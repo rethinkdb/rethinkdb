@@ -1,0 +1,108 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template fallback_to_default</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../attributes.html#header.boost.log.attributes.fallback_policy_hpp" title="Header &lt;boost/log/attributes/fallback_policy.hpp&gt;">
+<link rel="prev" href="fallback_to_throw.html" title="Struct fallback_to_throw">
+<link rel="next" href="attributes/function.html" title="Class template function">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="fallback_to_throw.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../attributes.html#header.boost.log.attributes.fallback_policy_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="attributes/function.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.fallback_to_default"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template fallback_to_default</span></h2>
+<p>boost::log::fallback_to_default</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../attributes.html#header.boost.log.attributes.fallback_policy_hpp" title="Header &lt;boost/log/attributes/fallback_policy.hpp&gt;">boost/log/attributes/fallback_policy.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DefaultT<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="fallback_to_default.html" title="Struct template fallback_to_default">fallback_to_default</a> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">remove_cv</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">remove_reference</span><span class="special">&lt;</span> <span class="identifier">DefaultT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="boost.log.fallback_to_default.default_type"></a><span class="identifier">default_type</span><span class="special">;</span>  <span class="comment">// Default value type. </span>
+
+  <span class="keyword">enum</span> <a name="boost.log.fallback_to_default.@2"></a>@2 <span class="special">{</span> guaranteed_result = = true <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="fallback_to_default.html#boost.log.fallback_to_defaultconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="fallback_to_default.html#idp26062200-bb"><span class="identifier">fallback_to_default</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="fallback_to_default.html#idp26062488-bb"><span class="identifier">fallback_to_default</span></a><span class="special">(</span><span class="identifier">default_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="fallback_to_default.html#idp26059016-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="fallback_to_default.html#idp26059224-bb"><span class="identifier">apply_default</span></a><span class="special">(</span><span class="identifier">FunT</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="fallback_to_default.html#idp26060712-bb"><span class="identifier">apply_default</span></a><span class="special">(</span><span class="identifier">FunT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="fallback_to_default.html#idp26063256-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="fallback_to_default.html#idp26063464-bb"><span class="identifier">on_invalid_type</span></a><span class="special">(</span><span class="identifier">type_info_wrapper</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="fallback_to_default.html#idp26064600-bb"><span class="identifier">on_missing_value</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp55921240"></a><h2>Description</h2>
+<p>The <code class="computeroutput"><a class="link" href="fallback_to_default.html" title="Struct template fallback_to_default">fallback_to_default</a></code> policy results in a default value if the attribute value cannot be extracted. </p>
+<div class="refsect2">
+<a name="idp55922312"></a><h3>
+<a name="boost.log.fallback_to_defaultconstruct-copy-destruct"></a><code class="computeroutput">fallback_to_default</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp26062200-bb"></a><span class="identifier">fallback_to_default</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Default constructor. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp26062488-bb"></a><span class="identifier">fallback_to_default</span><span class="special">(</span><span class="identifier">default_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> def_val<span class="special">)</span><span class="special">;</span></pre>
+<p>Initializing constructor. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp55928760"></a><h3>
+<a name="idp26059016-bb"></a><code class="computeroutput">fallback_to_default</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp26059224-bb"></a><span class="identifier">apply_default</span><span class="special">(</span><span class="identifier">FunT</span> <span class="special">&amp;</span> fun<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method is called in order to apply a function object to the default value. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp26060712-bb"></a><span class="identifier">apply_default</span><span class="special">(</span><span class="identifier">FunT</span> <span class="keyword">const</span> <span class="special">&amp;</span> fun<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method is called in order to apply a function object to the default value. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp55939320"></a><h3>
+<a name="idp26063256-bb"></a><code class="computeroutput">fallback_to_default</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp26063464-bb"></a><span class="identifier">on_invalid_type</span><span class="special">(</span><span class="identifier">type_info_wrapper</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method is called when value extraction failed because the attribute value has different type than requested. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp26064600-bb"></a><span class="identifier">on_missing_value</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method is called when value extraction failed because the attribute value was not found. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="fallback_to_throw.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../attributes.html#header.boost.log.attributes.fallback_policy_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="attributes/function.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

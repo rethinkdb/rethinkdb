@@ -1,0 +1,156 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;1.&#160;Range 2.0</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="next" href="range/introduction.html" title="Introduction">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="range/introduction.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="range"></a>Chapter&#160;1.&#160;Range 2.0</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Thorsten</span> <span class="surname">Ottosen</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Neil</span> <span class="surname">Groves</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves</p></div>
+<div><div class="legalnotice">
+<a name="range.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><span class="section"><a href="range/introduction.html">Introduction</a></span></dt>
+<dt><span class="section"><a href="range/concepts.html">Range Concepts</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="range/concepts/overview.html">Overview</a></span></dt>
+<dt><span class="section"><a href="range/concepts/single_pass_range.html">Single Pass Range</a></span></dt>
+<dt><span class="section"><a href="range/concepts/forward_range.html">Forward Range</a></span></dt>
+<dt><span class="section"><a href="range/concepts/bidirectional_range.html">Bidirectional Range</a></span></dt>
+<dt><span class="section"><a href="range/concepts/random_access_range.html">Random Access Range</a></span></dt>
+<dt><span class="section"><a href="range/concepts/concept_checking.html">Concept Checking</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="range/reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="range/reference/overview.html">Overview</a></span></dt>
+<dt><span class="section"><a href="range/reference/concept_implementation.html">Range concept
+      implementation</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="range/reference/concept_implementation/synopsis.html">Synopsis</a></span></dt>
+<dt><span class="section"><a href="range/reference/concept_implementation/semantics.html">Semantics</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="range/reference/adaptors.html">Range Adaptors</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="range/reference/adaptors/introduction.html">Introduction
+        and motivation</a></span></dt>
+<dt><span class="section"><a href="range/reference/adaptors/general_requirements.html">General
+        Requirements</a></span></dt>
+<dt><span class="section"><a href="range/reference/adaptors/reference.html">Reference</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="range/reference/algorithms.html">Range Algorithms</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="range/reference/algorithms/introduction.html">Introduction
+        and motivation</a></span></dt>
+<dt><span class="section"><a href="range/reference/algorithms/mutating.html">Mutating algorithms</a></span></dt>
+<dt><span class="section"><a href="range/reference/algorithms/non_mutating.html">Non-mutating
+        algorithms</a></span></dt>
+<dt><span class="section"><a href="range/reference/algorithms/set.html">Set algorithms</a></span></dt>
+<dt><span class="section"><a href="range/reference/algorithms/heap.html">Heap algorithms</a></span></dt>
+<dt><span class="section"><a href="range/reference/algorithms/permutation.html">Permutation
+        algorithms</a></span></dt>
+<dt><span class="section"><a href="range/reference/algorithms/new.html">New algorithms</a></span></dt>
+<dt><span class="section"><a href="range/reference/algorithms/numeric.html">Numeric algorithms</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="range/reference/ranges.html">Provided Ranges</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="range/reference/ranges/any_range.html">any_range</a></span></dt>
+<dt><span class="section"><a href="range/reference/ranges/counting_range.html">counting_range</a></span></dt>
+<dt><span class="section"><a href="range/reference/ranges/istream_range.html">istream_range</a></span></dt>
+<dt><span class="section"><a href="range/reference/ranges/irange.html">irange</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="range/reference/utilities.html">Utilities</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="range/reference/utilities/iterator_range.html">Class <code class="computeroutput"><span class="identifier">iterator_range</span></code></a></span></dt>
+<dt><span class="section"><a href="range/reference/utilities/sub_range.html">Class <code class="computeroutput"><span class="identifier">sub_range</span></code></a></span></dt>
+<dt><span class="section"><a href="range/reference/utilities/join.html">Function join</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="range/reference/extending.html">Extending the library</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="range/reference/extending/method_1.html">Method 1: provide
+        member functions and nested types</a></span></dt>
+<dt><span class="section"><a href="range/reference/extending/method_2.html">Method 2: provide
+        free-standing functions and specialize metafunctions</a></span></dt>
+<dt><span class="section"><a href="range/reference/extending/method_3.html">Method 3: provide
+        range adaptor implementations</a></span></dt>
+</dl></dd>
+</dl></dd>
+<dt><span class="section"><a href="range/style_guide.html">Terminology and style guidelines</a></span></dt>
+<dt><span class="section"><a href="range/headers.html">Library Headers</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="range/headers/general.html">General</a></span></dt>
+<dt><span class="section"><a href="range/headers/adaptors.html">Adaptors</a></span></dt>
+<dt><span class="section"><a href="range/headers/algorithm.html">Algorithm</a></span></dt>
+<dt><span class="section"><a href="range/headers/algorithm_ext.html">Algorithm Extensions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="range/examples.html">Examples</a></span></dt>
+<dt><span class="section"><a href="range/mfc_atl.html">MFC/ATL (courtesy of Shunsuke Sogame)</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="range/mfc_atl/requirements.html">Requirements</a></span></dt>
+<dt><span class="section"><a href="range/mfc_atl/mfc_ranges.html">MFC Ranges</a></span></dt>
+<dt><span class="section"><a href="range/mfc_atl/atl_ranges.html">ATL Ranges</a></span></dt>
+<dt><span class="section"><a href="range/mfc_atl/const_ranges.html">const Ranges</a></span></dt>
+<dt><span class="section"><a href="range/mfc_atl/references.html">References</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="range/upgrade.html">Upgrade version of Boost.Range</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="range/upgrade/upgrade_from_1_49.html">Upgrade from version
+      1.49</a></span></dt>
+<dt><span class="section"><a href="range/upgrade/upgrade_from_1_45.html">Upgrade from version
+      1.45</a></span></dt>
+<dt><span class="section"><a href="range/upgrade/upgrade_from_1_42.html">Upgrade from version
+      1.42</a></span></dt>
+<dt><span class="section"><a href="range/upgrade/upgrade_from_1_34.html">Upgrade from version
+      1.34</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="range/portability.html">Portability</a></span></dt>
+<dt><span class="section"><a href="range/faq.html">FAQ</a></span></dt>
+<dt><span class="section"><a href="range/history_ack.html">History and Acknowledgement</a></span></dt>
+</dl>
+</div>
+<p>
+    Boost.Range is a collection of concepts and utilities, range-based algorithms,
+    as well as range adaptors that allow for efficient and expressive code.
+  </p>
+<p>
+    Using Boost.Range inplace of the standard library alternatives results in more
+    readable code and in many cases greater efficiency.
+  </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: January 26, 2013 at 03:49:11 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="range/introduction.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

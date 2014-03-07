@@ -1,0 +1,10 @@
+[article Test newlines
+]
+
+Line 1\nLine 2
+
+[:["It is better to be approximately right than exactly wrong.]\n['-- Old adage]]
+
+Line 1[br]Line 2
+
+[:["It is better to be approximately right than exactly wrong.][br]['-- Old adage]]

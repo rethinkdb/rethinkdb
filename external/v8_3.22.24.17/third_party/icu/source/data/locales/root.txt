@@ -1,0 +1,1464 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/root.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/root.xml
+ */
+root{
+    AuxExemplarCharacters{"[]"}
+    ExemplarCharacters{"[]"}
+    ExemplarCharactersCurrency{"[a b c č d e f g h i j k l ł m n o º p q r s t u v w x y z]"}
+    ExemplarCharactersPunctuation{"[\- , ; \: ! ? . ( ) \[ \] \{ \}]"}
+    LocaleScript{
+        "Zyyy",
+    }
+    MeasurementSystem:int{0}
+    NumberElements{
+        default{"latn"}
+        latn{
+            patterns{
+                currencyFormat{"¤ #,##0.00"}
+                decimalFormat{"#,##0.###"}
+                percentFormat{"#,##0%"}
+                scientificFormat{"#E0"}
+            }
+            symbols{
+                decimal{"."}
+                exponential{"E"}
+                group{","}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"-"}
+                nan{"NaN"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    PaperSize:intvector{
+        297,
+        210,
+    }
+    Version{"2.0.52.9"}
+    calendar{
+        buddhist{
+            AmPmMarkers:alias{"/LOCALE/calendar/gregorian/AmPmMarkers"}
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE, MMMM d, y G",
+                "MMMM d, y G",
+                "MMM d, y G",
+                "M/d/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            appendItems:alias{"/LOCALE/calendar/gregorian/appendItems"}
+            availableFormats:alias{"/LOCALE/calendar/gregorian/availableFormats"}
+            dayNames:alias{"/LOCALE/calendar/gregorian/dayNames"}
+            eras{
+                abbreviated{
+                    "BE",
+                }
+                narrow:alias{"/LOCALE/calendar/buddhist/eras/abbreviated"}
+                wide:alias{"/LOCALE/calendar/buddhist/eras/abbreviated"}
+            }
+            intervalFormats:alias{"/LOCALE/calendar/gregorian/intervalFormats"}
+            monthNames:alias{"/LOCALE/calendar/gregorian/monthNames"}
+            quarters:alias{"/LOCALE/calendar/gregorian/quarters"}
+        }
+        chinese{
+            AmPmMarkers:alias{"/LOCALE/calendar/gregorian/AmPmMarkers"}
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE y'x'G-Ml-d",
+                "y'x'G-Ml-d",
+                "y'x'G-Ml-d",
+                "y'x'G-Ml-d",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            appendItems:alias{"/LOCALE/calendar/gregorian/appendItems"}
+            availableFormats:alias{"/LOCALE/calendar/gregorian/availableFormats"}
+            dayNames:alias{"/LOCALE/calendar/gregorian/dayNames"}
+            intervalFormats:alias{"/LOCALE/calendar/gregorian/intervalFormats"}
+            isLeapMonth{
+                "",
+                "*",
+            }
+            monthNames{
+                default{"format"}
+                format{
+                    abbreviated:alias{"/LOCALE/calendar/chinese/monthNames/format/wide"}
+                    default{"wide"}
+                    narrow:alias{"/LOCALE/calendar/chinese/monthNames/stand-alone/narrow"}
+                    wide{
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                        "8",
+                        "9",
+                        "10",
+                        "11",
+                        "12",
+                    }
+                }
+                stand-alone{
+                    abbreviated:alias{"/LOCALE/calendar/chinese/monthNames/format/abbreviated"}
+                    narrow{
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                        "8",
+                        "9",
+                        "10",
+                        "11",
+                        "12",
+                    }
+                    wide:alias{"/LOCALE/calendar/chinese/monthNames/format/wide"}
+                }
+            }
+            quarters:alias{"/LOCALE/calendar/gregorian/quarters"}
+        }
+        coptic{
+            AmPmMarkers:alias{"/LOCALE/calendar/gregorian/AmPmMarkers"}
+            DateTimePatterns:alias{"/LOCALE/calendar/gregorian/DateTimePatterns"}
+            appendItems:alias{"/LOCALE/calendar/gregorian/appendItems"}
+            availableFormats:alias{"/LOCALE/calendar/gregorian/availableFormats"}
+            dayNames:alias{"/LOCALE/calendar/gregorian/dayNames"}
+            eras{
+                abbreviated{
+                    "ERA0",
+                    "ERA1",
+                }
+                narrow:alias{"/LOCALE/calendar/coptic/eras/abbreviated"}
+                wide:alias{"/LOCALE/calendar/coptic/eras/abbreviated"}
+            }
+            intervalFormats:alias{"/LOCALE/calendar/gregorian/intervalFormats"}
+            monthNames{
+                default{"format"}
+                format{
+                    abbreviated:alias{"/LOCALE/calendar/coptic/monthNames/format/wide"}
+                    default{"wide"}
+                    narrow:alias{"/LOCALE/calendar/coptic/monthNames/stand-alone/narrow"}
+                    wide{
+                        "Tout",
+                        "Baba",
+                        "Hator",
+                        "Kiahk",
+                        "Toba",
+                        "Amshir",
+                        "Baramhat",
+                        "Baramouda",
+                        "Bashans",
+                        "Paona",
+                        "Epep",
+                        "Mesra",
+                        "Nasie",
+                    }
+                }
+                stand-alone{
+                    abbreviated:alias{"/LOCALE/calendar/coptic/monthNames/format/abbreviated"}
+                    narrow{
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                        "8",
+                        "9",
+                        "10",
+                        "11",
+                        "12",
+                        "13",
+                    }
+                    wide:alias{"/LOCALE/calendar/coptic/monthNames/format/wide"}
+                }
+            }
+            quarters:alias{"/LOCALE/calendar/gregorian/quarters"}
+        }
+        default{"gregorian"}
+        ethiopic{
+            AmPmMarkers:alias{"/LOCALE/calendar/gregorian/AmPmMarkers"}
+            DateTimePatterns:alias{"/LOCALE/calendar/gregorian/DateTimePatterns"}
+            appendItems:alias{"/LOCALE/calendar/gregorian/appendItems"}
+            availableFormats:alias{"/LOCALE/calendar/gregorian/availableFormats"}
+            dayNames:alias{"/LOCALE/calendar/gregorian/dayNames"}
+            eras{
+                abbreviated{
+                    "ERA0",
+                    "ERA1",
+                }
+                narrow:alias{"/LOCALE/calendar/ethiopic/eras/abbreviated"}
+                wide:alias{"/LOCALE/calendar/ethiopic/eras/abbreviated"}
+            }
+            intervalFormats:alias{"/LOCALE/calendar/gregorian/intervalFormats"}
+            monthNames{
+                default{"format"}
+                format{
+                    abbreviated:alias{"/LOCALE/calendar/ethiopic/monthNames/format/wide"}
+                    default{"wide"}
+                    narrow:alias{"/LOCALE/calendar/ethiopic/monthNames/stand-alone/narrow"}
+                    wide{
+                        "Meskerem",
+                        "Tekemt",
+                        "Hedar",
+                        "Tahsas",
+                        "Ter",
+                        "Yekatit",
+                        "Megabit",
+                        "Miazia",
+                        "Genbot",
+                        "Sene",
+                        "Hamle",
+                        "Nehasse",
+                        "Pagumen",
+                    }
+                }
+                stand-alone{
+                    abbreviated:alias{"/LOCALE/calendar/ethiopic/monthNames/format/abbreviated"}
+                    narrow{
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                        "8",
+                        "9",
+                        "10",
+                        "11",
+                        "12",
+                        "13",
+                    }
+                    wide:alias{"/LOCALE/calendar/ethiopic/monthNames/format/wide"}
+                }
+            }
+            quarters:alias{"/LOCALE/calendar/gregorian/quarters"}
+        }
+        ethiopic-amete-alem{
+            AmPmMarkers:alias{"/LOCALE/calendar/gregorian/AmPmMarkers"}
+            DateTimePatterns:alias{"/LOCALE/calendar/gregorian/DateTimePatterns"}
+            appendItems:alias{"/LOCALE/calendar/gregorian/appendItems"}
+            availableFormats:alias{"/LOCALE/calendar/gregorian/availableFormats"}
+            dayNames:alias{"/LOCALE/calendar/gregorian/dayNames"}
+            eras{
+                abbreviated{
+                    "ERA0",
+                }
+                narrow:alias{"/LOCALE/calendar/ethiopic-amete-alem/eras/abbreviated"}
+                wide:alias{"/LOCALE/calendar/ethiopic-amete-alem/eras/abbreviated"}
+            }
+            intervalFormats:alias{"/LOCALE/calendar/gregorian/intervalFormats"}
+            monthNames:alias{"/LOCALE/calendar/ethiopic/monthNames"}
+            quarters:alias{"/LOCALE/calendar/gregorian/quarters"}
+        }
+        gregorian{
+            AmPmMarkers{
+                "AM",
+                "PM",
+            }
+            DateTimeElements:intvector{
+                2,
+                4,
+            }
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE, y MMMM dd",
+                "y MMMM d",
+                "y MMM d",
+                "yyyy-MM-dd",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            appendItems{
+                Day{"{0} ({2}: {1})"}
+                Day-Of-Week{"{0} {1}"}
+                Era{"{0} {1}"}
+                Hour{"{0} ({2}: {1})"}
+                Minute{"{0} ({2}: {1})"}
+                Month{"{0} ({2}: {1})"}
+                Quarter{"{0} ({2}: {1})"}
+                Second{"{0} ({2}: {1})"}
+                Timezone{"{0} {1}"}
+                Week{"{0} ({2}: {1})"}
+                Year{"{0} {1}"}
+            }
+            availableFormats{
+                EEEd{"d EEE"}
+                H{"HH"}
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                M{"L"}
+                MEd{"E, M-d"}
+                MMM{"LLL"}
+                MMMEd{"E MMM d"}
+                MMMd{"MMM d"}
+                Md{"M-d"}
+                d{"d"}
+                h{"h a"}
+                hm{"h:mm a"}
+                hms{"h:mm:ss a"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"y-M"}
+                yMEd{"EEE, y-M-d"}
+                yMMM{"y MMM"}
+                yMMMEd{"EEE, y MMM d"}
+                yQ{"y Q"}
+                yQQQ{"y QQQ"}
+            }
+            dayNames{
+                default{"format"}
+                format{
+                    abbreviated:alias{"/LOCALE/calendar/gregorian/dayNames/format/wide"}
+                    default{"wide"}
+                    narrow:alias{"/LOCALE/calendar/gregorian/dayNames/stand-alone/narrow"}
+                    wide{
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                    }
+                }
+                stand-alone{
+                    abbreviated:alias{"/LOCALE/calendar/gregorian/dayNames/format/abbreviated"}
+                    narrow{
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                    }
+                    wide:alias{"/LOCALE/calendar/gregorian/dayNames/format/wide"}
+                }
+            }
+            eras{
+                abbreviated{
+                    "BCE",
+                    "CE",
+                }
+                narrow:alias{"/LOCALE/calendar/gregorian/eras/abbreviated"}
+                wide:alias{"/LOCALE/calendar/gregorian/eras/abbreviated"}
+            }
+            fields{
+                day{
+                    dn{"Day"}
+                    relative{
+                        "-1"{"Yesterday"}
+                        "0"{"Today"}
+                        "1"{"Tomorrow"}
+                    }
+                }
+                dayperiod{
+                    dn{"Dayperiod"}
+                }
+                era{
+                    dn{"Era"}
+                }
+                hour{
+                    dn{"Hour"}
+                }
+                minute{
+                    dn{"Minute"}
+                }
+                month{
+                    dn{"Month"}
+                }
+                second{
+                    dn{"Second"}
+                }
+                week{
+                    dn{"Week"}
+                }
+                weekday{
+                    dn{"Day of the Week"}
+                }
+                year{
+                    dn{"Year"}
+                }
+                zone{
+                    dn{"Zone"}
+                }
+            }
+            intervalFormats{
+                H{
+                    H{"HH–HH"}
+                    a{"HH–HH"}
+                }
+                Hm{
+                    H{"HH:mm–HH:mm"}
+                    a{"HH:mm–HH:mm"}
+                    m{"HH:mm–HH:mm"}
+                }
+                Hmv{
+                    H{"HH:mm–HH:mm v"}
+                    a{"HH:mm–HH:mm v"}
+                    m{"HH:mm–HH:mm v"}
+                }
+                Hv{
+                    H{"HH–HH v"}
+                    a{"HH–HH v"}
+                }
+                M{
+                    M{"M–M"}
+                }
+                MEd{
+                    M{"E, MM-dd – E, MM-dd"}
+                    d{"E, MM-dd – E, MM-dd"}
+                }
+                MMM{
+                    M{"LLL–LLL"}
+                }
+                MMMEd{
+                    M{"E, MM-d – E, MM-d"}
+                    d{"E, MM-d – E, MM-d"}
+                }
+                MMMM{
+                    M{"LLLL–LLLL"}
+                }
+                MMMd{
+                    M{"MM-d – MM-d"}
+                    d{"MM-d – d"}
+                }
+                Md{
+                    M{"MM-dd – MM-dd"}
+                    d{"MM-dd – dd"}
+                }
+                d{
+                    d{"d–d"}
+                }
+                fallback{"{0} – {1}"}
+                h{
+                    a{"h a – h a"}
+                    h{"h–h a"}
+                }
+                hm{
+                    a{"h:mm a – h:mm a"}
+                    h{"h:mm–h:mm a"}
+                    m{"h:mm–h:mm a"}
+                }
+                hmv{
+                    a{"h:mm a – h:mm a v"}
+                    h{"h:mm–h:mm a v"}
+                    m{"h:mm–h:mm a v"}
+                }
+                hv{
+                    a{"h a – h a v"}
+                    h{"h–h a v"}
+                }
+                y{
+                    y{"y–y"}
+                }
+                yM{
+                    M{"yyyy-MM – MM"}
+                    y{"yyyy-MM – yyyy-MM"}
+                }
+                yMEd{
+                    M{"E, yyyy-MM-dd – E, yyyy-MM-dd"}
+                    d{"E, yyyy-MM-dd – E, yyyy-MM-dd"}
+                    y{"E, yyyy-MM-dd – E, yyyy-MM-dd"}
+                }
+                yMMM{
+                    M{"yyyy-MM – MM"}
+                    y{"yyyy-MM – yyyy-MM"}
+                }
+                yMMMEd{
+                    M{"E, yyyy-MM-dd – E, yyyy-MM-dd"}
+                    d{"E, yyyy-MM-dd – E, yyyy-MM-dd"}
+                    y{"E, yyyy-MM-dd – E, yyyy-MM-dd"}
+                }
+                yMMMM{
+                    M{"yyyy-MM – MM"}
+                    y{"yyyy-MM – yyyy-MM"}
+                }
+                yMMMd{
+                    M{"yyyy-MM-dd – MM-d"}
+                    d{"yyyy-MM-d – d"}
+                    y{"yyyy-MM-dd – yyyy-MM-dd"}
+                }
+                yMd{
+                    M{"yyyy-MM-dd – MM-dd"}
+                    d{"yyyy-MM-dd – dd"}
+                    y{"yyyy-MM-dd – yyyy-MM-dd"}
+                }
+            }
+            monthNames{
+                default{"format"}
+                format{
+                    abbreviated:alias{"/LOCALE/calendar/gregorian/monthNames/format/wide"}
+                    default{"wide"}
+                    narrow:alias{"/LOCALE/calendar/gregorian/monthNames/stand-alone/narrow"}
+                    wide{
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                        "8",
+                        "9",
+                        "10",
+                        "11",
+                        "12",
+                    }
+                }
+                stand-alone{
+                    abbreviated:alias{"/LOCALE/calendar/gregorian/monthNames/format/abbreviated"}
+                    narrow{
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                        "8",
+                        "9",
+                        "10",
+                        "11",
+                        "12",
+                    }
+                    wide:alias{"/LOCALE/calendar/gregorian/monthNames/format/wide"}
+                }
+            }
+            quarters{
+                format{
+                    abbreviated:alias{"/LOCALE/calendar/gregorian/quarters/format/wide"}
+                    narrow:alias{"/LOCALE/calendar/gregorian/quarters/stand-alone/narrow"}
+                    wide{
+                        "Q1",
+                        "Q2",
+                        "Q3",
+                        "Q4",
+                    }
+                }
+                stand-alone{
+                    abbreviated:alias{"/LOCALE/calendar/gregorian/quarters/format/abbreviated"}
+                    narrow{
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                    }
+                    wide:alias{"/LOCALE/calendar/gregorian/quarters/format/wide"}
+                }
+            }
+            weekend:intvector{
+                7,
+                0,
+                1,
+                86400000,
+            }
+        }
+        hebrew{
+            AmPmMarkers:alias{"/LOCALE/calendar/gregorian/AmPmMarkers"}
+            DateTimePatterns:alias{"/LOCALE/calendar/gregorian/DateTimePatterns"}
+            appendItems:alias{"/LOCALE/calendar/gregorian/appendItems"}
+            availableFormats:alias{"/LOCALE/calendar/gregorian/availableFormats"}
+            dayNames:alias{"/LOCALE/calendar/gregorian/dayNames"}
+            eras{
+                abbreviated{
+                    "AM",
+                }
+                narrow:alias{"/LOCALE/calendar/hebrew/eras/abbreviated"}
+                wide:alias{"/LOCALE/calendar/hebrew/eras/abbreviated"}
+            }
+            intervalFormats:alias{"/LOCALE/calendar/gregorian/intervalFormats"}
+            monthNames{
+                default{"format"}
+                format{
+                    abbreviated:alias{"/LOCALE/calendar/hebrew/monthNames/format/wide"}
+                    default{"wide"}
+                    narrow:alias{"/LOCALE/calendar/hebrew/monthNames/format/wide"}
+                    wide{
+                        "Tishri",
+                        "Heshvan",
+                        "Kislev",
+                        "Tevet",
+                        "Shevat",
+                        "Adar I",
+                        "Adar",
+                        "Nisan",
+                        "Iyar",
+                        "Sivan",
+                        "Tamuz",
+                        "Av",
+                        "Elul",
+                        "Adar II",
+                    }
+                }
+                stand-alone{
+                    abbreviated:alias{"/LOCALE/calendar/hebrew/monthNames/format/abbreviated"}
+                    narrow:alias{"/LOCALE/calendar/hebrew/monthNames/format/narrow"}
+                    wide:alias{"/LOCALE/calendar/hebrew/monthNames/format/wide"}
+                }
+            }
+            quarters:alias{"/LOCALE/calendar/gregorian/quarters"}
+        }
+        indian{
+            AmPmMarkers:alias{"/LOCALE/calendar/gregorian/AmPmMarkers"}
+            DateTimePatterns:alias{"/LOCALE/calendar/gregorian/DateTimePatterns"}
+            appendItems:alias{"/LOCALE/calendar/gregorian/appendItems"}
+            availableFormats:alias{"/LOCALE/calendar/gregorian/availableFormats"}
+            dayNames:alias{"/LOCALE/calendar/gregorian/dayNames"}
+            eras{
+                abbreviated{
+                    "SAKA",
+                }
+                narrow:alias{"/LOCALE/calendar/indian/eras/abbreviated"}
+                wide:alias{"/LOCALE/calendar/indian/eras/abbreviated"}
+            }
+            intervalFormats:alias{"/LOCALE/calendar/gregorian/intervalFormats"}
+            monthNames{
+                default{"format"}
+                format{
+                    abbreviated:alias{"/LOCALE/calendar/indian/monthNames/format/wide"}
+                    default{"wide"}
+                    narrow:alias{"/LOCALE/calendar/indian/monthNames/stand-alone/narrow"}
+                    wide{
+                        "Chaitra",
+                        "Vaisakha",
+                        "Jyaistha",
+                        "Asadha",
+                        "Sravana",
+                        "Bhadra",
+                        "Asvina",
+                        "Kartika",
+                        "Agrahayana",
+                        "Pausa",
+                        "Magha",
+                        "Phalguna",
+                    }
+                }
+                stand-alone{
+                    abbreviated:alias{"/LOCALE/calendar/indian/monthNames/format/abbreviated"}
+                    narrow{
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                        "8",
+                        "9",
+                        "10",
+                        "11",
+                        "12",
+                    }
+                    wide:alias{"/LOCALE/calendar/indian/monthNames/format/wide"}
+                }
+            }
+            quarters:alias{"/LOCALE/calendar/gregorian/quarters"}
+        }
+        islamic{
+            AmPmMarkers:alias{"/LOCALE/calendar/gregorian/AmPmMarkers"}
+            DateTimePatterns:alias{"/LOCALE/calendar/gregorian/DateTimePatterns"}
+            appendItems:alias{"/LOCALE/calendar/gregorian/appendItems"}
+            availableFormats:alias{"/LOCALE/calendar/gregorian/availableFormats"}
+            dayNames:alias{"/LOCALE/calendar/gregorian/dayNames"}
+            eras{
+                abbreviated{
+                    "AH",
+                }
+                narrow:alias{"/LOCALE/calendar/islamic/eras/abbreviated"}
+                wide:alias{"/LOCALE/calendar/islamic/eras/abbreviated"}
+            }
+            intervalFormats:alias{"/LOCALE/calendar/gregorian/intervalFormats"}
+            monthNames{
+                default{"format"}
+                format{
+                    abbreviated{
+                        "Muh.",
+                        "Saf.",
+                        "Rab. I",
+                        "Rab. II",
+                        "Jum. I",
+                        "Jum. II",
+                        "Raj.",
+                        "Sha.",
+                        "Ram.",
+                        "Shaw.",
+                        "Dhuʻl-Q.",
+                        "Dhuʻl-H.",
+                    }
+                    default{"wide"}
+                    narrow:alias{"/LOCALE/calendar/islamic/monthNames/stand-alone/narrow"}
+                    wide{
+                        "Muharram",
+                        "Safar",
+                        "Rabiʻ I",
+                        "Rabiʻ II",
+                        "Jumada I",
+                        "Jumada II",
+                        "Rajab",
+                        "Shaʻban",
+                        "Ramadan",
+                        "Shawwal",
+                        "Dhuʻl-Qiʻdah",
+                        "Dhuʻl-Hijjah",
+                    }
+                }
+                stand-alone{
+                    abbreviated:alias{"/LOCALE/calendar/islamic/monthNames/format/abbreviated"}
+                    narrow{
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                        "8",
+                        "9",
+                        "10",
+                        "11",
+                        "12",
+                    }
+                    wide:alias{"/LOCALE/calendar/islamic/monthNames/format/wide"}
+                }
+            }
+            quarters:alias{"/LOCALE/calendar/gregorian/quarters"}
+        }
+        islamic-civil:alias{"/LOCALE/calendar/islamic"}
+        japanese{
+            AmPmMarkers:alias{"/LOCALE/calendar/gregorian/AmPmMarkers"}
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE, G y MMMM dd",
+                "G y MMMM d",
+                "G y MMM d",
+                "G yy-MM-dd",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            appendItems{
+                Day{"{0} ({2}: {1})"}
+                Day-Of-Week{"{0} {1}"}
+                Era{"{0} {1}"}
+                Hour{"{0} ({2}: {1})"}
+                Minute{"{0} ({2}: {1})"}
+                Month{"{0} ({2}: {1})"}
+                Quarter{"{0} ({2}: {1})"}
+                Second{"{0} ({2}: {1})"}
+                Timezone{"{0} {1}"}
+                Week{"{0} ({2}: {1})"}
+                Year{"{0} {1}"}
+            }
+            availableFormats{
+                Ed{"E d"}
+                H{"HH"}
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                MMMEd{"E MMM d"}
+                MMMMd{"MMMM d"}
+                Md{"M-d"}
+                h{"hh a"}
+                hm{"hh:mm a"}
+                hms{"hh:mm:ss a"}
+                ms{"mm:ss"}
+                yyyy{"yy GGG"}
+                yyyyM{"GGGGG yy-MM"}
+                yyyyMMM{"GGGGG yy MMM"}
+                yyyyMMMd{"GGGGG yy MMM d"}
+                yyyyMd{"GGGGG yy-MM-dd"}
+                yyyyQ{"GGGGG yy Q"}
+            }
+            dayNames:alias{"/LOCALE/calendar/gregorian/dayNames"}
+            eras{
+                abbreviated{
+                    "Taika",
+                    "Hakuchi",
+                    "Hakuhō",
+                    "Shuchō",
+                    "Taihō",
+                    "Keiun",
+                    "Wadō",
+                    "Reiki",
+                    "Yōrō",
+                    "Jinki",
+                    "Tempyō",
+                    "Tempyō-kampō",
+                    "Tempyō-shōhō",
+                    "Tempyō-hōji",
+                    "Temphō-jingo",
+                    "Jingo-keiun",
+                    "Hōki",
+                    "Ten-ō",
+                    "Enryaku",
+                    "Daidō",
+                    "Kōnin",
+                    "Tenchō",
+                    "Shōwa",
+                    "Kajō",
+                    "Ninju",
+                    "Saiko",
+                    "Tennan",
+                    "Jōgan",
+                    "Genkei",
+                    "Ninna",
+                    "Kampyō",
+                    "Shōtai",
+                    "Engi",
+                    "Enchō",
+                    "Shōhei",
+                    "Tengyō",
+                    "Tenryaku",
+                    "Tentoku",
+                    "Ōwa",
+                    "Kōhō",
+                    "Anna",
+                    "Tenroku",
+                    "Ten-en",
+                    "Jōgen",
+                    "Tengen",
+                    "Eikan",
+                    "Kanna",
+                    "Ei-en",
+                    "Eiso",
+                    "Shōryaku",
+                    "Chōtoku",
+                    "Chōhō",
+                    "Kankō",
+                    "Chōwa",
+                    "Kannin",
+                    "Jian",
+                    "Manju",
+                    "Chōgen",
+                    "Chōryaku",
+                    "Chōkyū",
+                    "Kantoku",
+                    "Eishō",
+                    "Tengi",
+                    "Kōhei",
+                    "Jiryaku",
+                    "Enkyū",
+                    "Shōho",
+                    "Shōryaku",
+                    "Eiho",
+                    "Ōtoku",
+                    "Kanji",
+                    "Kaho",
+                    "Eichō",
+                    "Shōtoku",
+                    "Kōwa",
+                    "Chōji",
+                    "Kashō",
+                    "Tennin",
+                    "Ten-ei",
+                    "Eikyū",
+                    "Gen-ei",
+                    "Hoan",
+                    "Tenji",
+                    "Daiji",
+                    "Tenshō",
+                    "Chōshō",
+                    "Hoen",
+                    "Eiji",
+                    "Kōji",
+                    "Tenyō",
+                    "Kyūan",
+                    "Ninpei",
+                    "Kyūju",
+                    "Hogen",
+                    "Heiji",
+                    "Eiryaku",
+                    "Ōho",
+                    "Chōkan",
+                    "Eiman",
+                    "Nin-an",
+                    "Kaō",
+                    "Shōan",
+                    "Angen",
+                    "Jishō",
+                    "Yōwa",
+                    "Juei",
+                    "Genryuku",
+                    "Bunji",
+                    "Kenkyū",
+                    "Shōji",
+                    "Kennin",
+                    "Genkyū",
+                    "Ken-ei",
+                    "Shōgen",
+                    "Kenryaku",
+                    "Kenpō",
+                    "Shōkyū",
+                    "Jōō",
+                    "Gennin",
+                    "Karoku",
+                    "Antei",
+                    "Kanki",
+                    "Jōei",
+                    "Tempuku",
+                    "Bunryaku",
+                    "Katei",
+                    "Ryakunin",
+                    "En-ō",
+                    "Ninji",
+                    "Kangen",
+                    "Hōji",
+                    "Kenchō",
+                    "Kōgen",
+                    "Shōka",
+                    "Shōgen",
+                    "Bun-ō",
+                    "Kōchō",
+                    "Bun-ei",
+                    "Kenji",
+                    "Kōan",
+                    "Shōō",
+                    "Einin",
+                    "Shōan",
+                    "Kengen",
+                    "Kagen",
+                    "Tokuji",
+                    "Enkei",
+                    "Ōchō",
+                    "Shōwa",
+                    "Bunpō",
+                    "Genō",
+                    "Genkyō",
+                    "Shōchū",
+                    "Kareki",
+                    "Gentoku",
+                    "Genkō",
+                    "Kemmu",
+                    "Engen",
+                    "Kōkoku",
+                    "Shōhei",
+                    "Kentoku",
+                    "Bunchũ",
+                    "Tenju",
+                    "Kōryaku",
+                    "Kōwa",
+                    "Genchũ",
+                    "Meitoku",
+                    "Kakei",
+                    "Kōō",
+                    "Meitoku",
+                    "Ōei",
+                    "Shōchō",
+                    "Eikyō",
+                    "Kakitsu",
+                    "Bun-an",
+                    "Hōtoku",
+                    "Kyōtoku",
+                    "Kōshō",
+                    "Chōroku",
+                    "Kanshō",
+                    "Bunshō",
+                    "Ōnin",
+                    "Bunmei",
+                    "Chōkyō",
+                    "Entoku",
+                    "Meiō",
+                    "Bunki",
+                    "Eishō",
+                    "Taiei",
+                    "Kyōroku",
+                    "Tenmon",
+                    "Kōji",
+                    "Eiroku",
+                    "Genki",
+                    "Tenshō",
+                    "Bunroku",
+                    "Keichō",
+                    "Genwa",
+                    "Kan-ei",
+                    "Shōho",
+                    "Keian",
+                    "Shōō",
+                    "Meiryaku",
+                    "Manji",
+                    "Kanbun",
+                    "Enpō",
+                    "Tenwa",
+                    "Jōkyō",
+                    "Genroku",
+                    "Hōei",
+                    "Shōtoku",
+                    "Kyōhō",
+                    "Genbun",
+                    "Kanpō",
+                    "Enkyō",
+                    "Kan-en",
+                    "Hōryaku",
+                    "Meiwa",
+                    "An-ei",
+                    "Tenmei",
+                    "Kansei",
+                    "Kyōwa",
+                    "Bunka",
+                    "Bunsei",
+                    "Tenpō",
+                    "Kōka",
+                    "Kaei",
+                    "Ansei",
+                    "Man-en",
+                    "Bunkyū",
+                    "Genji",
+                    "Keiō",
+                    "Meiji",
+                    "Taishō",
+                    "Shōwa",
+                    "Heisei",
+                }
+                narrow{
+                    "Taika" /** (abbr.)  */,
+                    "Hakuchi" /** (abbr.)  */,
+                    "Hakuhō" /** (abbr.)  */,
+                    "Shuchō" /** (abbr.)  */,
+                    "Taihō" /** (abbr.)  */,
+                    "Keiun" /** (abbr.)  */,
+                    "Wadō" /** (abbr.)  */,
+                    "Reiki" /** (abbr.)  */,
+                    "Yōrō" /** (abbr.)  */,
+                    "Jinki" /** (abbr.)  */,
+                    "Tempyō" /** (abbr.)  */,
+                    "Tempyō-kampō" /** (abbr.)  */,
+                    "Tempyō-shōhō" /** (abbr.)  */,
+                    "Tempyō-hōji" /** (abbr.)  */,
+                    "Temphō-jingo" /** (abbr.)  */,
+                    "Jingo-keiun" /** (abbr.)  */,
+                    "Hōki" /** (abbr.)  */,
+                    "Ten-ō" /** (abbr.)  */,
+                    "Enryaku" /** (abbr.)  */,
+                    "Daidō" /** (abbr.)  */,
+                    "Kōnin" /** (abbr.)  */,
+                    "Tenchō" /** (abbr.)  */,
+                    "Shōwa" /** (abbr.)  */,
+                    "Kajō" /** (abbr.)  */,
+                    "Ninju" /** (abbr.)  */,
+                    "Saiko" /** (abbr.)  */,
+                    "Tennan" /** (abbr.)  */,
+                    "Jōgan" /** (abbr.)  */,
+                    "Genkei" /** (abbr.)  */,
+                    "Ninna" /** (abbr.)  */,
+                    "Kampyō" /** (abbr.)  */,
+                    "Shōtai" /** (abbr.)  */,
+                    "Engi" /** (abbr.)  */,
+                    "Enchō" /** (abbr.)  */,
+                    "Shōhei" /** (abbr.)  */,
+                    "Tengyō" /** (abbr.)  */,
+                    "Tenryaku" /** (abbr.)  */,
+                    "Tentoku" /** (abbr.)  */,
+                    "Ōwa" /** (abbr.)  */,
+                    "Kōhō" /** (abbr.)  */,
+                    "Anna" /** (abbr.)  */,
+                    "Tenroku" /** (abbr.)  */,
+                    "Ten-en" /** (abbr.)  */,
+                    "Jōgen" /** (abbr.)  */,
+                    "Tengen" /** (abbr.)  */,
+                    "Eikan" /** (abbr.)  */,
+                    "Kanna" /** (abbr.)  */,
+                    "Ei-en" /** (abbr.)  */,
+                    "Eiso" /** (abbr.)  */,
+                    "Shōryaku" /** (abbr.)  */,
+                    "Chōtoku" /** (abbr.)  */,
+                    "Chōhō" /** (abbr.)  */,
+                    "Kankō" /** (abbr.)  */,
+                    "Chōwa" /** (abbr.)  */,
+                    "Kannin" /** (abbr.)  */,
+                    "Jian" /** (abbr.)  */,
+                    "Manju" /** (abbr.)  */,
+                    "Chōgen" /** (abbr.)  */,
+                    "Chōryaku" /** (abbr.)  */,
+                    "Chōkyū" /** (abbr.)  */,
+                    "Kantoku" /** (abbr.)  */,
+                    "Eishō" /** (abbr.)  */,
+                    "Tengi" /** (abbr.)  */,
+                    "Kōhei" /** (abbr.)  */,
+                    "Jiryaku" /** (abbr.)  */,
+                    "Enkyū" /** (abbr.)  */,
+                    "Shōho" /** (abbr.)  */,
+                    "Shōryaku" /** (abbr.)  */,
+                    "Eiho" /** (abbr.)  */,
+                    "Ōtoku" /** (abbr.)  */,
+                    "Kanji" /** (abbr.)  */,
+                    "Kaho" /** (abbr.)  */,
+                    "Eichō" /** (abbr.)  */,
+                    "Shōtoku" /** (abbr.)  */,
+                    "Kōwa" /** (abbr.)  */,
+                    "Chōji" /** (abbr.)  */,
+                    "Kashō" /** (abbr.)  */,
+                    "Tennin" /** (abbr.)  */,
+                    "Ten-ei" /** (abbr.)  */,
+                    "Eikyū" /** (abbr.)  */,
+                    "Gen-ei" /** (abbr.)  */,
+                    "Hoan" /** (abbr.)  */,
+                    "Tenji" /** (abbr.)  */,
+                    "Daiji" /** (abbr.)  */,
+                    "Tenshō" /** (abbr.)  */,
+                    "Chōshō" /** (abbr.)  */,
+                    "Hoen" /** (abbr.)  */,
+                    "Eiji" /** (abbr.)  */,
+                    "Kōji" /** (abbr.)  */,
+                    "Tenyō" /** (abbr.)  */,
+                    "Kyūan" /** (abbr.)  */,
+                    "Ninpei" /** (abbr.)  */,
+                    "Kyūju" /** (abbr.)  */,
+                    "Hogen" /** (abbr.)  */,
+                    "Heiji" /** (abbr.)  */,
+                    "Eiryaku" /** (abbr.)  */,
+                    "Ōho" /** (abbr.)  */,
+                    "Chōkan" /** (abbr.)  */,
+                    "Eiman" /** (abbr.)  */,
+                    "Nin-an" /** (abbr.)  */,
+                    "Kaō" /** (abbr.)  */,
+                    "Shōan" /** (abbr.)  */,
+                    "Angen" /** (abbr.)  */,
+                    "Jishō" /** (abbr.)  */,
+                    "Yōwa" /** (abbr.)  */,
+                    "Juei" /** (abbr.)  */,
+                    "Genryuku" /** (abbr.)  */,
+                    "Bunji" /** (abbr.)  */,
+                    "Kenkyū" /** (abbr.)  */,
+                    "Shōji" /** (abbr.)  */,
+                    "Kennin" /** (abbr.)  */,
+                    "Genkyū" /** (abbr.)  */,
+                    "Ken-ei" /** (abbr.)  */,
+                    "Shōgen" /** (abbr.)  */,
+                    "Kenryaku" /** (abbr.)  */,
+                    "Kenpō" /** (abbr.)  */,
+                    "Shōkyū" /** (abbr.)  */,
+                    "Jōō" /** (abbr.)  */,
+                    "Gennin" /** (abbr.)  */,
+                    "Karoku" /** (abbr.)  */,
+                    "Antei" /** (abbr.)  */,
+                    "Kanki" /** (abbr.)  */,
+                    "Jōei" /** (abbr.)  */,
+                    "Tempuku" /** (abbr.)  */,
+                    "Bunryaku" /** (abbr.)  */,
+                    "Katei" /** (abbr.)  */,
+                    "Ryakunin" /** (abbr.)  */,
+                    "En-ō" /** (abbr.)  */,
+                    "Ninji" /** (abbr.)  */,
+                    "Kangen" /** (abbr.)  */,
+                    "Hōji" /** (abbr.)  */,
+                    "Kenchō" /** (abbr.)  */,
+                    "Kōgen" /** (abbr.)  */,
+                    "Shōka" /** (abbr.)  */,
+                    "Shōgen" /** (abbr.)  */,
+                    "Bun-ō" /** (abbr.)  */,
+                    "Kōchō" /** (abbr.)  */,
+                    "Bun-ei" /** (abbr.)  */,
+                    "Kenji" /** (abbr.)  */,
+                    "Kōan" /** (abbr.)  */,
+                    "Shōō" /** (abbr.)  */,
+                    "Einin" /** (abbr.)  */,
+                    "Shōan" /** (abbr.)  */,
+                    "Kengen" /** (abbr.)  */,
+                    "Kagen" /** (abbr.)  */,
+                    "Tokuji" /** (abbr.)  */,
+                    "Enkei" /** (abbr.)  */,
+                    "Ōchō" /** (abbr.)  */,
+                    "Shōwa" /** (abbr.)  */,
+                    "Bunpō" /** (abbr.)  */,
+                    "Genō" /** (abbr.)  */,
+                    "Genkyō" /** (abbr.)  */,
+                    "Shōchū" /** (abbr.)  */,
+                    "Kareki" /** (abbr.)  */,
+                    "Gentoku" /** (abbr.)  */,
+                    "Genkō" /** (abbr.)  */,
+                    "Kemmu" /** (abbr.)  */,
+                    "Engen" /** (abbr.)  */,
+                    "Kōkoku" /** (abbr.)  */,
+                    "Shōhei" /** (abbr.)  */,
+                    "Kentoku" /** (abbr.)  */,
+                    "Bunchũ" /** (abbr.)  */,
+                    "Tenju" /** (abbr.)  */,
+                    "Kōryaku" /** (abbr.)  */,
+                    "Kōwa" /** (abbr.)  */,
+                    "Genchũ" /** (abbr.)  */,
+                    "Meitoku" /** (abbr.)  */,
+                    "Kakei" /** (abbr.)  */,
+                    "Kōō" /** (abbr.)  */,
+                    "Meitoku" /** (abbr.)  */,
+                    "Ōei" /** (abbr.)  */,
+                    "Shōchō" /** (abbr.)  */,
+                    "Eikyō" /** (abbr.)  */,
+                    "Kakitsu" /** (abbr.)  */,
+                    "Bun-an" /** (abbr.)  */,
+                    "Hōtoku" /** (abbr.)  */,
+                    "Kyōtoku" /** (abbr.)  */,
+                    "Kōshō" /** (abbr.)  */,
+                    "Chōroku" /** (abbr.)  */,
+                    "Kanshō" /** (abbr.)  */,
+                    "Bunshō" /** (abbr.)  */,
+                    "Ōnin" /** (abbr.)  */,
+                    "Bunmei" /** (abbr.)  */,
+                    "Chōkyō" /** (abbr.)  */,
+                    "Entoku" /** (abbr.)  */,
+                    "Meiō" /** (abbr.)  */,
+                    "Bunki" /** (abbr.)  */,
+                    "Eishō" /** (abbr.)  */,
+                    "Taiei" /** (abbr.)  */,
+                    "Kyōroku" /** (abbr.)  */,
+                    "Tenmon" /** (abbr.)  */,
+                    "Kōji" /** (abbr.)  */,
+                    "Eiroku" /** (abbr.)  */,
+                    "Genki" /** (abbr.)  */,
+                    "Tenshō" /** (abbr.)  */,
+                    "Bunroku" /** (abbr.)  */,
+                    "Keichō" /** (abbr.)  */,
+                    "Genwa" /** (abbr.)  */,
+                    "Kan-ei" /** (abbr.)  */,
+                    "Shōho" /** (abbr.)  */,
+                    "Keian" /** (abbr.)  */,
+                    "Shōō" /** (abbr.)  */,
+                    "Meiryaku" /** (abbr.)  */,
+                    "Manji" /** (abbr.)  */,
+                    "Kanbun" /** (abbr.)  */,
+                    "Enpō" /** (abbr.)  */,
+                    "Tenwa" /** (abbr.)  */,
+                    "Jōkyō" /** (abbr.)  */,
+                    "Genroku" /** (abbr.)  */,
+                    "Hōei" /** (abbr.)  */,
+                    "Shōtoku" /** (abbr.)  */,
+                    "Kyōhō" /** (abbr.)  */,
+                    "Genbun" /** (abbr.)  */,
+                    "Kanpō" /** (abbr.)  */,
+                    "Enkyō" /** (abbr.)  */,
+                    "Kan-en" /** (abbr.)  */,
+                    "Hōryaku" /** (abbr.)  */,
+                    "Meiwa" /** (abbr.)  */,
+                    "An-ei" /** (abbr.)  */,
+                    "Tenmei" /** (abbr.)  */,
+                    "Kansei" /** (abbr.)  */,
+                    "Kyōwa" /** (abbr.)  */,
+                    "Bunka" /** (abbr.)  */,
+                    "Bunsei" /** (abbr.)  */,
+                    "Tenpō" /** (abbr.)  */,
+                    "Kōka" /** (abbr.)  */,
+                    "Kaei" /** (abbr.)  */,
+                    "Ansei" /** (abbr.)  */,
+                    "Man-en" /** (abbr.)  */,
+                    "Bunkyū" /** (abbr.)  */,
+                    "Genji" /** (abbr.)  */,
+                    "Keiō" /** (abbr.)  */,
+                    "M",
+                    "T",
+                    "S",
+                    "H",
+                }
+                wide:alias{"/LOCALE/calendar/japanese/eras/abbreviated"}
+            }
+            monthNames:alias{"/LOCALE/calendar/gregorian/monthNames"}
+            quarters:alias{"/LOCALE/calendar/gregorian/quarters"}
+        }
+        persian{
+            AmPmMarkers:alias{"/LOCALE/calendar/gregorian/AmPmMarkers"}
+            DateTimePatterns:alias{"/LOCALE/calendar/gregorian/DateTimePatterns"}
+            appendItems:alias{"/LOCALE/calendar/gregorian/appendItems"}
+            availableFormats:alias{"/LOCALE/calendar/gregorian/availableFormats"}
+            dayNames:alias{"/LOCALE/calendar/gregorian/dayNames"}
+            eras{
+                abbreviated{
+                    "AP",
+                }
+                narrow:alias{"/LOCALE/calendar/persian/eras/abbreviated"}
+                wide:alias{"/LOCALE/calendar/persian/eras/abbreviated"}
+            }
+            intervalFormats:alias{"/LOCALE/calendar/gregorian/intervalFormats"}
+            monthNames{
+                default{"format"}
+                format{
+                    abbreviated:alias{"/LOCALE/calendar/persian/monthNames/format/wide"}
+                    default{"wide"}
+                    narrow:alias{"/LOCALE/calendar/persian/monthNames/stand-alone/narrow"}
+                    wide{
+                        "Farvardin",
+                        "Ordibehesht",
+                        "Khordad",
+                        "Tir",
+                        "Mordad",
+                        "Shahrivar",
+                        "Mehr",
+                        "Aban",
+                        "Azar",
+                        "Dey",
+                        "Bahman",
+                        "Esfand",
+                    }
+                }
+                stand-alone{
+                    abbreviated:alias{"/LOCALE/calendar/persian/monthNames/format/abbreviated"}
+                    narrow{
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                        "8",
+                        "9",
+                        "10",
+                        "11",
+                        "12",
+                    }
+                    wide:alias{"/LOCALE/calendar/persian/monthNames/format/wide"}
+                }
+            }
+            quarters:alias{"/LOCALE/calendar/gregorian/quarters"}
+        }
+        roc{
+            AmPmMarkers:alias{"/LOCALE/calendar/gregorian/AmPmMarkers"}
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE, MMMM d, G y",
+                "MMMM d, G y",
+                "MMM d, G y",
+                "G y/M/d",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            appendItems{
+                Day{"{0} ({2}: {1})"}
+                Day-Of-Week{"{0} {1}"}
+                Era{"{0} {1}"}
+                Hour{"{0} ({2}: {1})"}
+                Minute{"{0} ({2}: {1})"}
+                Month{"{0} ({2}: {1})"}
+                Quarter{"{0} ({2}: {1})"}
+                Second{"{0} ({2}: {1})"}
+                Timezone{"{0} {1}"}
+                Week{"{0} ({2}: {1})"}
+                Year{"{0} {1}"}
+            }
+            availableFormats{
+                Ed{"E d"}
+                H{"HH"}
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                MEd{"E, M/d"}
+                MMMEd{"E, MMM d"}
+                MMMd{"MMM d"}
+                Md{"M/d"}
+                h{"h a"}
+                hm{"h:mm a"}
+                hms{"h:mm:ss a"}
+                ms{"mm:ss"}
+                yyyy{"G y"}
+                yyyyM{"G y/M"}
+                yyyyMEd{"EEE, G y/M/d"}
+                yyyyMMM{"MMM, G y"}
+                yyyyMMMEd{"EEE, MMM d, G y"}
+                yyyyQ{"Q G y"}
+                yyyyQQQ{"QQQ G y"}
+            }
+            dayNames:alias{"/LOCALE/calendar/gregorian/dayNames"}
+            eras{
+                abbreviated{
+                    "Before R.O.C.",
+                    "R.O.C.",
+                }
+                narrow:alias{"/LOCALE/calendar/roc/eras/abbreviated"}
+                wide:alias{"/LOCALE/calendar/roc/eras/abbreviated"}
+            }
+            intervalFormats:alias{"/LOCALE/calendar/gregorian/intervalFormats"}
+            monthNames:alias{"/LOCALE/calendar/gregorian/monthNames"}
+            quarters:alias{"/LOCALE/calendar/gregorian/quarters"}
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"’"}
+        alternateQuotationStart{"‘"}
+        quotationEnd{"”"}
+        quotationStart{"“"}
+    }
+    layout{
+        characters{"left-to-right"}
+        lines{"top-to-bottom"}
+    }
+    listPattern{
+        standard{
+            2{"{0}, {1}"}
+            end{"{0}, {1}"}
+            middle{"{0}, {1}"}
+            start{"{0}, {1}"}
+        }
+    }
+    measurementSystemNames{
+        UK{"UK"}
+        US{"US"}
+        metric{"Metric"}
+    }
+    units{
+        day{
+            other{"{0} d"}
+        }
+        hour{
+            other{"{0} h"}
+        }
+        minute{
+            other{"{0} min"}
+        }
+        month{
+            other{"{0} m"}
+        }
+        second{
+            other{"{0} s"}
+        }
+        week{
+            other{"{0} w"}
+        }
+        year{
+            other{"{0} y"}
+        }
+    }
+}

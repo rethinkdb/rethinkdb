@@ -1,0 +1,288 @@
+[template history[]
+
+Currently open bug reports can be viewed
+[@https://svn.boost.org/trac/boost/query?status=assigned&status=new&status=reopened&component=math&col=id&col=summary&col=status&col=type&col=milestone&col=component&order=priority here].
+
+All bug reports including closed ones can be viewed
+[@https://svn.boost.org/trac/boost/query?status=assigned&status=closed&status=new&status=reopened&component=math&col=id&col=summary&col=status&col=type&col=milestone&col=component&order=priority here].
+
+[h4 Boost-1.55]
+
+* Suppress numerous warnings (mostly from GCC-4.8 and MSVC) [@https://svn.boost.org/trac/boost/ticket/8384 #8384], [@https://svn.boost.org/trac/boost/ticket/8855 #8855], 
+[@https://svn.boost.org/trac/boost/ticket/9107 #9107], [@https://svn.boost.org/trac/boost/ticket/9109 #9109]..
+* Fixed PGI compilation issue [@https://svn.boost.org/trac/boost/ticket/8333 #8333].
+* Fixed PGI constant value initialization issue that caused erf to generate incorrect results [@https://svn.boost.org/trac/boost/ticket/8621 #8621].
+* Prevent macro expansion of some C99 macros that are also C++ functions [@https://svn.boost.org/trac/boost/ticket/8732 #8732] and [@https://svn.boost.org/trac/boost/ticket/8733 #8733]..
+* Fixed Student's T distribution to behave correctly with huge degrees of freedom (larger than the largest representable integer) [@https://svn.boost.org/trac/boost/ticket/8837 #8837].
+* Make some core functions usable with `long double` even when the platform has no standard library `long double` support [@https://svn.boost.org/trac/boost/ticket/8940 #8940].
+* Fix error handling of distributions to catch invalid scale and location parameters when the random variable is infinite [@https://svn.boost.org/trac/boost/ticket/9042 #9042] and [@https://svn.boost.org/trac/boost/ticket/9126 #9126].
+* Add workaround for broken <tuple> in Intel C++ 14 [@https://svn.boost.org/trac/boost/ticket/9087 #9087].
+* Improve consistency of argument reduction in the elliptic integrals [@https://svn.boost.org/trac/boost/ticket/9104 #9104].
+* Fix bug in inverse incomplete beta that results in cancellation errors when the beta function is really an arcsine or Student's T distribution.
+* Fix issue in Bessel I and K function continued fractions that causes spurious over/underflow.
+* Add improvement to non-central chi squared distribution quantile due to Thomas Luu.
+
+[h4 Boost-1.54]
+
+* Major reorganization to incorporate other Boost.Math like Integer Utilities Integer Utilities (Greatest Common Divisor and Least Common Multiple), quaternions and octonions.
+Making new chapter headings.
+* Added many references to Boost.Multiprecision and `cpp_dec_float_50` as an example of a User-defined Type (UDT).
+* Added Clang to list of supported compilers.
+* Fixed constants to use a thread-safe cache of computed values when used at arbitrary precision.
+* Added finding zeros of Bessel functions `cyl_bessel_j_zero`, `cyl_neumann_zero`, `airy_ai_zero` and `airy_bi_zero`(by Christopher Kormanyos).
+* More accuracy improvements to the Bessel J and Y functions from Rocco Romeo.
+* Fixed nasty cyclic dependency bug that caused some headers to not compile [@https://svn.boost.org/trac/boost/ticket/7999 #7999].
+* Fixed bug in __tgamma that caused spurious overflow for arguments between 142.5 and 143.
+* Fixed bug in raise_rounding_error that caused it to return an incorrect result when throwing an exception is turned off [@https://svn.boost.org/trac/boost/ticket/7905 #7905].
+* Added minimal __float128 support.
+* Fixed bug in edge-cases of poisson quantile [@https://svn.boost.org/trac/boost/ticket/8308 #8308].
+* Adjusted heuristics used in Halley iteration to cope with inverting the incomplete beta in tricky regions
+where the derivative is flatlining.  Example is computing the quantile of the Fisher F distribution for probabilities
+smaller than machine epsilon.  See ticket [@https://svn.boost.org/trac/boost/ticket/8314 #8314].
+
+[h4 Boost-1.53]
+
+* Fixed issues [@https://svn.boost.org/trac/boost/ticket/7325 #7325], [@https://svn.boost.org/trac/boost/ticket/7415 #7415]
+and [@https://svn.boost.org/trac/boost/ticket/7416 #7416], [@https://svn.boost.org/trac/boost/ticket/7183 #7183],
+[@https://svn.boost.org/trac/boost/ticket/7649 #7649], [@https://svn.boost.org/trac/boost/ticket/7694 #7694],
+[@https://svn.boost.org/trac/boost/ticket/4445 #4445], [@https://svn.boost.org/trac/boost/ticket/7492 #7492],
+[@https://svn.boost.org/trac/boost/ticket/7891 #7891], [@https://svn.boost.org/trac/boost/ticket/7429 #7429].
+* Fixed mistake in calculating pooled standard deviation in two-sample students t example
+[@https://svn.boost.org/trac/boost/ticket/7402 #7402].
+* Improve complex acos/asin/atan, see [@https://svn.boost.org/trac/boost/ticket/7290 #7290],
+[@https://svn.boost.org/trac/boost/ticket/7291 #7291].
+* Improve accuracy in some corner cases of __cyl_bessel_j and __gamma_p/__gamma_q thanks to suggestions from Rocco Romeo.
+* Improve accuracy of Bessel J and Y for integer orders thanks to suggestions from Rocco Romeo.
+
+[h4 Boost-1.52]
+
+* Corrected moments for small degrees of freedom [@https://svn.boost.org/trac/boost/ticket/7177 #7177] (reported by Thomas Mang).
+* Added [link math_toolkit.airy Airy functions] and [link math_toolkit.jacobi Jacobi Elliptic functions].
+* Corrected failure to detect bad parameters in many distributions
+[@https://svn.boost.org/trac/boost/ticket/6934 #6934] (reported by Florian Schoppmann)
+by adding a function check_out_of_range to test many possible bad parameters.
+This test revealed several distributions where the checks for bad parameters were ineffective,
+and these have been rectified.
+* Fixed issue in Hankel functions that causes incorrect values to be returned for ['x < 0] and [nu] odd, see [@https://svn.boost.org/trac/boost/ticket/7135 #7135].
+* Fixed issues [@https://svn.boost.org/trac/boost/ticket/6517 #6517], [@https://svn.boost.org/trac/boost/ticket/6362 #6362],
+[@https://svn.boost.org/trac/boost/ticket/7053 #7053], [@https://svn.boost.org/trac/boost/ticket/2693 #2693],
+[@https://svn.boost.org/trac/boost/ticket/6937 #6937], [@https://svn.boost.org/trac/boost/ticket/7099 #7099].
+
+
+* Permitted infinite degrees of freedom [@https://svn.boost.org/trac/boost/ticket/7259 #7259]
+implemented using the normal distribution (requested by Thomas Mang).
+* Much enhanced accuracy for large degrees of freedom [nu] and/or large non-centrality [delta]
+by switching to use the Students t distribution
+(or Normal distribution for infinite degrees of freedom)
+ centered at delta,
+when [delta] / (4 * [nu])  < epsilon for the floating-point type in use.
+[@https://svn.boost.org/trac/boost/ticket/7259 #7259].
+It was found that the incomplete beta was suffering from serious cancellation errors
+when degrees of freedom was very large. (That has now been fixed in our code,
+but any code based on Didonato and Morris's original papers
+(probably every implementation out there actually) will have the same issue).
+
+[h4 Boost-1.51]
+See Boost-1.52 - some items were added but not listed in time for the release.
+
+[h4 Boost-1.50]
+
+* Promoted math constants to be 1st class citizens,
+including convenient access to the most widely used
+built-in float, double, long double via three namespaces.
+* Added the Owen's T function and Skew Normal distribution written by Benjamin Sobotta: see __owens_t and skew_normal_distrib.
+* Added Hankel functions __cyl_hankel_1, __cyl_hankel_2, __sph_hankel_1 and __sph_hankel_2.
+* Corrected issue [@https://svn.boost.org/trac/boost/ticket/6627 #6627 nonfinite_num_put formatting of 0.0 is incorrect]
+based on a patch submitted by K R Walker.
+* Changed constant initialization mechanism so that it is thread safe even for user-defined types, also
+so that user defined types get the full precision of the constant, even when `long double` does not.
+So for example 128-bit rational approximations will work with UDT's and do the right thing, even though
+`long double` may be only 64 or 80 bits.
+* Fixed issue in `bessel_jy` which causes Y[sub 8.5](4[pi]) to yield a NaN.
+
+[h4 Boost-1.49]
+
+* Deprecated wrongly named `twothirds` math constant in favour of `two_thirds` (with underscore separator).
+(issue [@https://svn.boost.org/trac/boost/ticket/6199 #6199]).
+* Refactored test data and some special function code to improve support for arbitary precision and/or expression-template-enabled types.
+* Added new faster zeta function evaluation method.
+
+Fixed issues:
+
+* Corrected CDF complement for Laplace distribution (issue [@https://svn.boost.org/trac/boost/ticket/6151 #6151]).
+* Corrected branch cuts on the complex inverse trig functions, to handle signed zeros (issue [@https://svn.boost.org/trac/boost/ticket/6171 #6171]).
+* Fixed bug in `bessel_yn` which caused incorrect overflow errors to be raised for negative ['n] (issue [@https://svn.boost.org/trac/boost/ticket/6367 #6367]).
+* Also fixed minor/cosmetic/configuration issues [@https://svn.boost.org/trac/boost/ticket/6120 #6120], [@https://svn.boost.org/trac/boost/ticket/6191 #6191],
+  [@https://svn.boost.org/trac/boost/ticket/5982 #5982], [@https://svn.boost.org/trac/boost/ticket/6130 #6130],
+  [@https://svn.boost.org/trac/boost/ticket/6234 #6234], [@https://svn.boost.org/trac/boost/ticket/6307 #6307],
+  [@https://svn.boost.org/trac/boost/ticket/6192 #6192].
+
+[h4 Boost-1.48]
+
+* Added new series evaluation methods to the cyclic Bessel I, J, K and Y functions.
+Also taken great care to avoid spurious over and underflow of these functions.
+Fixes issue [@https://svn.boost.org/trac/boost/ticket/5560 #5560]
+
+* Added an example of using Inverse Chi-Squared distribution for Bayesian statistics,
+provided by Thomas Mang.
+
+* Added tests to use improved version of lexical_cast which handles C99 nonfinites without using globale facets.
+
+* Corrected wrong out-of-bound uniform distribution CDF complement values [@https://svn.boost.org/trac/boost/ticket/5733 #5733].
+
+* Enabled long double support on OpenBSD (issue [@https://svn.boost.org/trac/boost/ticket/6014 #6014]).
+
+* Changed nextafter and related functions to behave in the same way as other implementations - so that nextafter(+INF, 0)
+is a finite value (issue [@https://svn.boost.org/trac/boost/ticket/5823 #5832]).
+
+* Changed tuple include configuration to fix issue when using in conjunction with Boost.Tr1 (issue [@https://svn.boost.org/trac/boost/ticket/5934 #5934]).
+
+* Changed class eps_tolerance to behave correctly when both ends of the range are zero (issue [@https://svn.boost.org/trac/boost/ticket/6001 #6001]).
+
+* Fixed missing include guards on prime.hpp (issue [@https://svn.boost.org/trac/boost/ticket/5927 #5927]).
+
+* Removed unused/undocumented constants from constants.hpp (issue [@https://svn.boost.org/trac/boost/ticket/5982 #5982]).
+
+* Fixed missing std:: prefix in nonfinite_num_facets.hpp (issue [@https://svn.boost.org/trac/boost/ticket/5914 #5914]).
+
+* Minor patches for Cray compiler compatibility.
+
+[h4 Boost-1.47]
+
+* Added changesign function to sign.hpp to facilitate addition of nonfinite facets.
+* Addition of nonfinite facets from Johan Rade, with tests,
+examples of use for C99 format infinity and NaN, and documentation.
+* Added tests and documentation of changesign from Johan Rade.
+
+[h4 Boost-1.46.1]
+
+* Fixed issues [@https://svn.boost.org/trac/boost/ticket/5095 #5095], [@https://svn.boost.org/trac/boost/ticket/5095 #5113].
+
+[h4 Boost-1.46.0]
+
+* Added Wald, Inverse Gaussian and geometric distributions.
+* Added information about configuration macros.
+* Added support for mpreal as a real-numbered type.
+
+[h4 Boost-1.45.0]
+
+* Added warnings about potential ambiguity with std random library in distribution and function names.
+* Added inverse gamma distribution and inverse chi_square and scaled inverse chi_square.
+* Editorial revision of documentation, and added FAQ.
+
+[h4 Boost-1.44.0]
+
+* Fixed incorrect range and support for Rayleigh distribution.
+* Fixed numerical error in the quantile of the Student's T distribution: the function was
+returning garbage values for non-integer degrees of freedom between 2 and 3.
+
+[h4 Boost-1.41.0]
+
+* Significantly improved performance for the incomplete gamma function and its inverse.
+
+[h4 Boost-1.40.0]
+
+* Added support for MPFR as a bignum type.
+* Added some full specializations of the policy classes to reduce compile times.
+* Added logistic and hypergeometric distributions, from Gautam Sewani's Google Summer of Code project.
+* Added Laplace distribution submitted by Thijs van den Berg.
+* Updated performance test code to include new distributions, and improved the performance of the non-central distributions.
+* Added SSE2 optimised __lanczos code, from Gautam Sewani's Google Summer of Code project.
+* Fixed bug in cyl_bessel_i that used an incorrect approximation for [nu] = 0.5, also effects the non-central
+   Chi Square Distribution when [nu] = 3, see bug report [@https://svn.boost.org/trac/boost/ticket/2877 #2877].
+* Fixed minor bugs [@https://svn.boost.org/trac/boost/ticket/2873 #2873].
+
+[h4 Boost-1.38.0]
+
+* Added Johan R'''&#xE5;'''de's optimised floating point classification routines.
+* Fixed code so that it compiles in GCC's -pedantic mode (bug report
+[@https://svn.boost.org/trac/boost/ticket/1451 #1451]).
+
+[h4 Boost-1.37.0]
+
+* Improved accuracy and testing of the inverse hypergeometric functions.
+
+[h4 Boost-1.36.0]
+
+* Added Noncentral Chi Squared Distribution.
+* Added Noncentral Beta Distribution.
+* Added Noncentral F Distribution.
+* Added Noncentral T Distribution.
+* Added Exponential Integral Functions.
+* Added Zeta Function.
+* Added Rounding and Truncation functions.
+* Added Compile time powers of runtime bases.
+* Added SSE2 optimizations for Lanczos evaluation.
+
+[h4 Boost-1.35.0: Post Review First Official Release]
+
+* Added Policy based framework that allows fine grained control
+over function behaviour.
+* [*Breaking change:] Changed default behaviour for domain, pole and overflow errors
+to throw an exception (based on review feedback), this
+behaviour can be customised using __Policy's.
+* [*Breaking change:] Changed exception thrown when an internal evaluation error
+occurs to boost::math::evaluation_error.
+* [*Breaking change:] Changed discrete quantiles to return an integer result:
+this is anything up to 20 times faster than finding the true root, this
+behaviour can be customised using __Policy's.
+* Polynomial/rational function evaluation is now customisable and hopefully
+faster than before.
+* Added performance test program.
+
+[h4 Milestone 4: Second Review Candidate (1st March 2007)]
+
+* Moved Xiaogang Zhang's Bessel Functions code into the library,
+and brought them into line with the rest of the code.
+* Added C# "Distribution Explorer" demo application.
+
+[h4 Milestone 3: First Review Candidate (31st Dec 2006)]
+
+* Implemented the main probability distribution and density functions.
+* Implemented digamma.
+* Added more factorial functions.
+* Implemented the Hermite, Legendre and Laguerre polynomials plus the
+spherical harmonic functions from TR1.
+* Moved Xiaogang Zhang's elliptic integral code into the library,
+and brought them into line with the rest of the code.
+* Moved Hubert Holin's existing Boost.Math special functions
+into this library and brought them into line with the rest of the code.
+
+[h4 Milestone 2: Released September 10th 2006]
+
+* Implement preview release of the statistical distributions.
+* Added statistical distributions tutorial.
+* Implemented root finding algorithms.
+* Implemented the inverses of the incomplete gamma and beta functions.
+* Rewrite erf/erfc as rational approximations (valid to 128-bit precision).
+* Integrated the statistical results generated from
+the test data with Boost.Test: uses a database of expected
+results, indexed by test, floating point type, platform, and compiler.
+* Improved lgamma near 1 and 2 (rational approximations).
+* Improved erf/erfc inverses (rational approximations).
+* Implemented Rational function generation (the Remez method).
+
+[h4 Milestone 1: Released March 31st 2006]
+
+* Implement gamma/beta/erf functions along with their incomplete counterparts.
+* Generate high quality test data, against which future improvements can be judged.
+* Provide tools for the evaluation of infinite series, continued fractions, and
+rational functions.
+* Provide tools for testing against tabulated test data, and collecting statistics
+on error rates.
+* Provide sufficient docs for people to be able to find their way around the library.
+
+SVN Revisions:
+
+Sandbox and trunk last synchonised at revision: .
+
+]
+[/
+  Copyright 2006 - 2013 John Maddock and Paul A. Bristow.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+

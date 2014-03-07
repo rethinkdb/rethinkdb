@@ -1,0 +1,154 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Stackful Coroutines</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../core.html" title="Core Concepts and Functionality">
+<link rel="prev" href="coroutine.html" title="Stackless Coroutines">
+<link rel="next" href="../networking.html" title="Networking">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="coroutine.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../networking.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.overview.core.spawn"></a><a class="link" href="spawn.html" title="Stackful Coroutines">Stackful Coroutines</a>
+</h4></div></div></div>
+<p>
+          The <a class="link" href="../../reference/spawn.html" title="spawn"><code class="computeroutput"><span class="identifier">spawn</span><span class="special">()</span></code></a> function is a high-level wrapper
+          for running stackful coroutines. It is based on the Boost.Coroutine library.
+          The <code class="computeroutput"><span class="identifier">spawn</span><span class="special">()</span></code>
+          function enables programs to implement asynchronous logic in a synchronous
+          manner, as shown in the following example:
+        </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">spawn</span><span class="special">(</span><span class="identifier">my_strand</span><span class="special">,</span> <span class="identifier">do_echo</span><span class="special">);</span>
+
+<span class="comment">// ...</span>
+
+<span class="keyword">void</span> <span class="identifier">do_echo</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">yield_context</span> <span class="identifier">yield</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="keyword">try</span>
+  <span class="special">{</span>
+    <span class="keyword">char</span> <span class="identifier">data</span><span class="special">[</span><span class="number">128</span><span class="special">];</span>
+    <span class="keyword">for</span> <span class="special">(;;)</span>
+    <span class="special">{</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">length</span> <span class="special">=</span>
+        <span class="identifier">my_socket</span><span class="special">.</span><span class="identifier">async_read_some</span><span class="special">(</span>
+          <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">data</span><span class="special">),</span> <span class="identifier">yield</span><span class="special">);</span>
+
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">async_write</span><span class="special">(</span><span class="identifier">my_socket</span><span class="special">,</span>
+          <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">data</span><span class="special">,</span> <span class="identifier">length</span><span class="special">),</span> <span class="identifier">yield</span><span class="special">);</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+  <span class="keyword">catch</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">exception</span><span class="special">&amp;</span> <span class="identifier">e</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="comment">// ...</span>
+  <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+<p>
+          The first argument to <code class="computeroutput"><span class="identifier">spawn</span><span class="special">()</span></code> may be a <a class="link" href="../../reference/io_service__strand.html" title="io_service::strand"><code class="computeroutput"><span class="identifier">strand</span></code></a>, <a class="link" href="../../reference/io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a>, or <a class="link" href="../../reference/CompletionHandler.html" title="Completion handler requirements">completion
+          handler</a>. This argument determines the context in which the coroutine
+          is permitted to execute. For example, a server's per-client object may
+          consist of multiple coroutines; they should all run on the same <code class="computeroutput"><span class="identifier">strand</span></code> so that no explicit synchronisation
+          is required.
+        </p>
+<p>
+          The second argument is a function object with signature:
+        </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">coroutine</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">yield_context</span> <span class="identifier">yield</span><span class="special">);</span>
+</pre>
+<p>
+          that specifies the code to be run as part of the coroutine. The parameter
+          <code class="computeroutput"><span class="identifier">yield</span></code> may be passed to
+          an asynchronous operation in place of the completion handler, as in:
+        </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">length</span> <span class="special">=</span>
+  <span class="identifier">my_socket</span><span class="special">.</span><span class="identifier">async_read_some</span><span class="special">(</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">data</span><span class="special">),</span> <span class="identifier">yield</span><span class="special">);</span>
+</pre>
+<p>
+          This starts the asynchronous operation and suspends the coroutine. The
+          coroutine will be resumed automatically when the asynchronous operation
+          completes.
+        </p>
+<p>
+          Where an asynchronous operation's handler signature has the form:
+        </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">handler</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="identifier">ec</span><span class="special">,</span> <span class="identifier">result_type</span> <span class="identifier">result</span><span class="special">);</span>
+</pre>
+<p>
+          the initiating function returns the result_type. In the <code class="computeroutput"><span class="identifier">async_read_some</span></code>
+          example above, this is <code class="computeroutput"><span class="identifier">size_t</span></code>.
+          If the asynchronous operation fails, the <code class="computeroutput"><span class="identifier">error_code</span></code>
+          is converted into a <code class="computeroutput"><span class="identifier">system_error</span></code>
+          exception and thrown.
+        </p>
+<p>
+          Where a handler signature has the form:
+        </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">handler</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+          the initiating function returns <code class="computeroutput"><span class="keyword">void</span></code>.
+          As above, an error is passed back to the coroutine as a <code class="computeroutput"><span class="identifier">system_error</span></code>
+          exception.
+        </p>
+<p>
+          To collect the <code class="computeroutput"><span class="identifier">error_code</span></code>
+          from an operation, rather than have it throw an exception, associate the
+          output variable with the <code class="computeroutput"><span class="identifier">yield_context</span></code>
+          as follows:
+        </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="identifier">ec</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">length</span> <span class="special">=</span>
+  <span class="identifier">my_socket</span><span class="special">.</span><span class="identifier">async_read_some</span><span class="special">(</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">data</span><span class="special">),</span> <span class="identifier">yield</span><span class="special">[</span><span class="identifier">ec</span><span class="special">]);</span>
+</pre>
+<p>
+          <span class="bold"><strong>Note:</strong></span> if <code class="computeroutput"><span class="identifier">spawn</span><span class="special">()</span></code> is used with a custom completion handler
+          of type <code class="computeroutput"><span class="identifier">Handler</span></code>, the function
+          object signature is actually:
+        </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">coroutine</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">basic_yield_context</span><span class="special">&lt;</span><span class="identifier">Handler</span><span class="special">&gt;</span> <span class="identifier">yield</span><span class="special">);</span>
+</pre>
+<h6>
+<a name="boost_asio.overview.core.spawn.h0"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.spawn.see_also"></a></span><a class="link" href="spawn.html#boost_asio.overview.core.spawn.see_also">See
+          Also</a>
+        </h6>
+<p>
+          <a class="link" href="../../reference/spawn.html" title="spawn">spawn</a>, <a class="link" href="../../reference/yield_context.html" title="yield_context">yield_context</a>,
+          <a class="link" href="../../reference/basic_yield_context.html" title="basic_yield_context">basic_yield_context</a>,
+          <a class="link" href="../../examples/cpp03_examples.html#boost_asio.examples.cpp03_examples.spawn">Spawn example
+          (C++03)</a>, <a class="link" href="../../examples/cpp11_examples.html#boost_asio.examples.cpp11_examples.spawn">Spawn
+          example (C++11)</a>, <a class="link" href="coroutine.html" title="Stackless Coroutines">Stackless
+          Coroutines</a>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="coroutine.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../networking.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Pairs</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../tuple.html" title="Tuple">
+<link rel="prev" href="class_template_tuple/relational_operators.html" title="Relational operators">
+<link rel="next" href="../extension.html" title="Extension">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="class_template_tuple/relational_operators.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tuple.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../extension.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="fusion.tuple.pairs"></a><a class="link" href="pairs.html" title="Pairs">Pairs</a>
+</h3></div></div></div>
+<h5>
+<a name="fusion.tuple.pairs.h0"></a>
+        <span class="phrase"><a name="fusion.tuple.pairs.description"></a></span><a class="link" href="pairs.html#fusion.tuple.pairs.description">Description</a>
+      </h5>
+<p>
+        The <a href="http://std.dkuug.dk/jtc1/sc22/wg21/docs/papers/2002/n1403.pdf" target="_top">TR1
+        Tuple</a> interface is specified to provide uniform access to <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code>
+        as if it were a 2 element tuple.
+      </p>
+<h5>
+<a name="fusion.tuple.pairs.h1"></a>
+        <span class="phrase"><a name="fusion.tuple.pairs.specification"></a></span><a class="link" href="pairs.html#fusion.tuple.pairs.specification">Specification</a>
+      </h5>
+<pre class="programlisting"><span class="identifier">tuple_size</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span>
+</pre>
+<p>
+        <span class="bold"><strong>Type</strong></span>: An <a href="http://www.boost.org/libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+        Integral Constant</a>
+      </p>
+<p>
+        <span class="bold"><strong>Value</strong></span>: Returns 2, the number of elements
+        in a pair.
+      </p>
+<pre class="programlisting"><span class="identifier">tuple_element</span><span class="special">&lt;</span><span class="number">0</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span>
+</pre>
+<p>
+        <span class="bold"><strong>Type</strong></span>: <code class="computeroutput"><span class="identifier">T1</span></code>
+      </p>
+<p>
+        <span class="bold"><strong>Value</strong></span>: Returns the type of the first element
+        of the pair
+      </p>
+<pre class="programlisting"><span class="identifier">tuple_element</span><span class="special">&lt;</span><span class="number">1</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span>
+</pre>
+<p>
+        <span class="bold"><strong>Type</strong></span>: <code class="computeroutput"><span class="identifier">T2</span></code>
+      </p>
+<p>
+        <span class="bold"><strong>Value</strong></span>: Returns the type of the second element
+        of the pair
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">int</span> <span class="identifier">I</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T2</span><span class="special">&gt;</span>
+<span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">get</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">&gt;&amp;</span> <span class="identifier">pr</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">int</span> <span class="identifier">I</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T2</span><span class="special">&gt;</span>
+<span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">get</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">&gt;&amp;</span> <span class="identifier">pr</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Type</strong></span>: If <code class="computeroutput"><span class="identifier">I</span>
+        <span class="special">==</span> <span class="number">0</span></code>
+        <code class="computeroutput"><span class="identifier">P</span></code> is <code class="computeroutput"><span class="identifier">T1</span></code>,
+        else if <code class="computeroutput"><span class="identifier">I</span> <span class="special">==</span>
+        <span class="number">1</span></code> <code class="computeroutput"><span class="identifier">P</span></code>
+        is <code class="computeroutput"><span class="identifier">T2</span></code> else the program is
+        ill-formed.
+      </p>
+<p>
+        [*Returns: <code class="computeroutput"><span class="identifier">pr</span><span class="special">.</span><span class="identifier">first</span></code> if <code class="computeroutput"><span class="identifier">I</span>
+        <span class="special">==</span> <span class="number">0</span></code>
+        else <code class="computeroutput"><span class="identifier">pr</span><span class="special">.</span><span class="identifier">second</span></code>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="class_template_tuple/relational_operators.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tuple.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../extension.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

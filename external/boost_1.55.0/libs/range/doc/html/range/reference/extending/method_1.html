@@ -1,0 +1,162 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Method 1: provide member functions and nested types</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../extending.html" title="Extending the library">
+<link rel="prev" href="../extending.html" title="Extending the library">
+<link rel="next" href="method_2.html" title="Method 2: provide free-standing functions and specialize metafunctions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../extending.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../extending.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="method_2.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_reference_extending_method_1">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="range.reference.extending.method_1"></a><a class="link" href="method_1.html" title="Method 1: provide member functions and nested types">Method 1: provide
+        member functions and nested types</a>
+</h4></div></div></div>
+<p>
+          This procedure assumes that you have control over the types that should
+          be made conformant to a Range concept. If not, see <a class="link" href="method_2.html" title="Method 2: provide free-standing functions and specialize metafunctions">method
+          2</a>.
+        </p>
+<p>
+          The primary templates in this library are implemented such that standard
+          containers will work automatically and so will <a href="../../../../../../../libs/array/index.html" target="_top">boost::array</a>.
+          Below is given an overview of which member functions and member types a
+          class must specify to be useable as a certain Range concept.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Member function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Related concept
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">begin</span><span class="special">()</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../concepts/single_pass_range.html" title="Single Pass Range">Single Pass
+                    Range</a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">end</span><span class="special">()</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../concepts/single_pass_range.html" title="Single Pass Range">Single Pass
+                    Range</a>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          Notice that <code class="computeroutput"><span class="identifier">rbegin</span><span class="special">()</span></code>
+          and <code class="computeroutput"><span class="identifier">rend</span><span class="special">()</span></code>
+          member functions are not needed even though the container can support bidirectional
+          iteration.
+        </p>
+<p>
+          The required member types are:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Member type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Related concept
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">iterator</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../concepts/single_pass_range.html" title="Single Pass Range">Single Pass
+                    Range</a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">const_iterator</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../concepts/single_pass_range.html" title="Single Pass Range">Single Pass
+                    Range</a>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          Again one should notice that member types <code class="computeroutput"><span class="identifier">reverse_iterator</span></code>
+          and <code class="computeroutput"><span class="identifier">const_reverse_iterator</span></code>
+          are not needed.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../extending.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../extending.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="method_2.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

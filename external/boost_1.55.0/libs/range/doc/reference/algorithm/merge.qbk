@@ -1,0 +1,88 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:merge merge]
+
+[heading Prototype]
+
+``
+template<
+    class SinglePassRange1,
+    class SinglePassRange2,
+    class OutputIterator
+    >
+OutputIterator merge(const SinglePassRange1& rng1,
+                     const SinglePassRange2& rng2,
+                     OutputIterator          out);
+
+template<
+    class SinglePassRange1,
+    class SinglePassRange2,
+    class OutputIterator,
+    class BinaryPredicate
+    >
+OutputIterator merge(const SinglePassRange1& rng1,
+                     const SinglePassRange2& rng2,
+                     OutputIterator          out,
+                     BinaryPredicate         pred);
+``
+
+[heading Description]
+
+`merge` combines two sorted ranges `rng1` and `rng2` into a single sorted range by copying elements. `merge` is stable. The return value is `out + distance(rng1) + distance(rng2)`.
+
+The two versions of `merge` differ by how they compare the elements.
+
+The non-predicate version uses the `operator<()` for the range value type. The predicate version uses the predicate instead of `operator<()`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/merge.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate version:]
+
+* `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+* `range_value<SinglePassRange1>::type` is the same as `range_value<SinglePassRange2>::type`.
+* `range_value<SinglePassRange1>::type` is a model of the `LessThanComparableConcept`.
+* The ordering on objects of `range_value<SinglePassRange1>::type` is a [*/strict weak ordering/], as defined in the `LessThanComparableConcept` requirements.
+* `range_value<SinglePassRange1>::type` is convertible to a type in `OutputIterator`'s set of value types.
+
+[*For the predicate version:]
+
+* `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+* `range_value<SinglePassRange1>::type` is the same as `range_value<SinglePassRange2>::type`.
+* `BinaryPredicate` is a model of the `StrictWeakOrderingConcept`.
+* `SinglePassRange1`'s value type is convertible to both `BinaryPredicate`'s argument types.
+* `range_value<SinglePassRange1>::type` is convertible to a type in `OutputIterator`'s set of value types.
+
+[heading Precondition:]
+
+[heading For the non-predicate version:]
+
+* The elements of `rng1` are in ascending order. That is, for each adjacent element pair `[x,y]` of `rng1`, `y < x == false`.
+* The elements of `rng2` are in ascending order. That is, for each adjacent element pair `[x,y]` of `rng2`, `y < x == false`.
+* The ranges `rng1` and `[out, out + distance(rng1) + distance(rng2))` do not overlap.
+* The ranges `rng2` and `[out, out + distance(rng1) + distance(rng2))` do not overlap.
+* `[out, out + distance(rng1) + distance(rng2))` is a valid range.
+
+[heading For the predicate version:]
+
+* The elements of `rng1` are in ascending order. That is, for each adjacent element pair `[x,y]`, of `rng1`, `pred(y, x) == false`.
+* The elements of `rng2` are in ascending order. That is, for each adjacent element pair `[x,y]`, of `rng2`, `pred(y, x) == false`.
+* The ranges `rng1` and `[out, out + distance(rng1) + distance(rng2))` do not overlap.
+* The ranges `rng2` and `[out, out + distance(rng1) + distance(rng2))` do not overlap.
+* `[out, out + distance(rng1) + distance(rng2))` is a valid range.
+
+[heading Complexity]
+
+Linear. There are no comparisons if both `rng1` and `rng2` are empty, otherwise at most `distance(rng1) + distance(rng2) - 1` comparisons.
+
+[endsect]
+
+

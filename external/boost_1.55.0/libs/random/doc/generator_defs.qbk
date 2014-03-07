@@ -1,0 +1,37 @@
+[/
+ / Copyright (c) 2009 Steven Watanabe
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See
+ / accompanying file LICENSE_1_0.txt or copy at
+ / http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[template rand48_speed[] 68%]
+[template lrand48_run_time_speed[] 12%]
+[template minstd_rand0_speed[] 32%]
+[template minstd_rand_speed[] 26%]
+[template ecuyer_combined_speed[] 11%]
+[template kreutzer1986_speed[] 46%]
+[template hellekalek1995__inversive__speed[] 2%]
+[template mt11213b_speed[] 95%]
+[template mt19937_speed[] 100%]
+[template lagged_fibonacci607_speed[] 42%]
+[template lagged_fibonacci1279_speed[] 44%]
+[template lagged_fibonacci2281_speed[] 44%]
+[template lagged_fibonacci3217_speed[] 43%]
+[template lagged_fibonacci4423_speed[] 44%]
+[template lagged_fibonacci9689_speed[] 44%]
+[template lagged_fibonacci19937_speed[] 44%]
+[template lagged_fibonacci23209_speed[] 44%]
+[template lagged_fibonacci44497_speed[] 44%]
+[template subtract_with_carry_speed[] 72%]
+[template subtract_with_carry_01_speed[] 54%]
+[template ranlux3_speed[] 6%]
+[template ranlux4_speed[] 4%]
+[template ranlux3_01_speed[] 5%]
+[template ranlux4_01_speed[] 2%]
+[template ranlux64_3_speed[] 6%]
+[template ranlux64_4_speed[] 4%]
+[template ranlux64_3_01_speed[] 4%]
+[template ranlux64_4_01_speed[] 2%]
+[template mt19937ar_c_speed[] 97%]

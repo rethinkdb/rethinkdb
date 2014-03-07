@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+  <title>Boost &quot;quoted&quot; I/O manipulator</title>
+  <meta name="generator" content="Microsoft FrontPage 5.0" />
+  <link rel="stylesheet" type="text/css" href="../../../doc/src/minimal.css" />
+</head>
+
+<body>
+
+<table border="0" cellpadding="5" cellspacing="0"
+style="border-collapse: collapse">
+  <tbody>
+    <tr>
+      <td width="277"><a href="../../../index.htm"><img
+        src="../../../boost.png" alt="boost.png (6897 bytes)" align="middle"
+        width="300" height="86" border="0" /></a></td>
+      <td>
+      <h1 align="center">&quot;Quoted&quot;
+      I/O Manipulators<br>
+      for Strings</h1>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table border="1" cellpadding="5" cellspacing="1" style="border-collapse: collapse" bordercolor="#111111">
+  <tr>
+    <td>
+    <p align="center"><b>&quot;Quoted&quot;
+      I/O Manipulators
+      for Strings are not yet accepted into Boost as public components. Thus the 
+    header file is currently located in &lt;boost/io/detail/quoted_manip.hpp&gt;</b></td>
+  </tr>
+</table>
+
+<h2>Introduction</h2>
+<p>C++ Standard library stream I/O for strings that contain embedded spaces 
+can produce unexpected results. For example,</p>
+<blockquote>
+  <pre>std::stringstream ss;
+std::string original = &quot;fooled you&quot;;
+std::string round_trip;
+
+ss &lt;&lt; original;
+ss &gt;&gt; round_trip;
+
+std::cout &lt;&lt; original;   // outputs: fooled you
+std::cout &lt;&lt; round_trip; // outputs: fooled
+
+assert(original == round_trip); // assert will fire</pre>
+</blockquote>
+<p>The Boost <code>quoted</code> stream I/O manipulator places delimiters, defaulted 
+to the double-quote (<code>&quot;</code>), around strings on output, and strips off 
+the delimiters on input. This ensures strings with embedded spaces round-trip as 
+desired. For example,</p>
+<blockquote>
+  <pre>std::stringstream ss;
+std::string original = &quot;fooled you&quot;;
+std::string round_trip;
+
+ss &lt;&lt; quoted(original);
+ss &gt;&gt; quoted(round_trip);
+
+std::cout &lt;&lt; quoted(original); // outputs: &quot;fooled you&quot;
+std::cout &lt;&lt; round_trip;       // outputs: fooled you
+
+assert(original == round_trip); // assert will not fire</pre>
+</blockquote>
+<p>If the string contains the delimiter character, on output that character will 
+be preceded by an escape character, as will the escape character itself:</p>
+<blockquote>
+  <pre>std::cout &lt;&lt; quoted(&quot;'Jack &amp; Jill'&quot;, '&amp;', '\'');  // outputs: '&amp;'Jack &amp;&amp; Jill&amp;''</pre>
+</blockquote>
+<h2>Header <a href="../../../boost/io/detail/quoted_manip.hpp">&lt;boost/io/quoted_manip.hpp&gt;</a> synopsis</h2>
+<pre>namespace boost
+{
+  namespace io
+  {
+    // manipulator for const std::basic_string&amp;
+
+    template &lt;class Char, class Traits, class Alloc&gt;
+    <b><i>unspecified-type1</i></b> quoted(const std::basic_string&lt;Char, Traits, Alloc&gt;&amp; string, Char escape='\\', Char delim='\&quot;');
+
+    // manipulator for const C-string*
+
+    template &lt;class Char&gt;
+    <b><i>unspecified-type2</i></b> quoted(const Char* string, Char escape='\\', Char delim='\&quot;');
+
+    // manipulator for non-const std::basic_string&amp;
+
+    template &lt;class Char, class Traits, class Alloc&gt;
+    <b><i>unspecified-type3</i></b> quoted(std::basic_string&lt;Char, Traits, Alloc&gt;&amp; string, Char escape='\\', Char delim='\&quot;');
+  }
+}</pre>
+<p><i><b><code>unspecified_type1</code></b></i>, <i><b><code>unspecified_type2</code></b></i>, 
+and <i><b><code>unspecified_type3</code></b></i> are implementation supplied 
+types with implementation supplied <code>operator&lt;&lt;</code>:</p>
+<blockquote>
+  <pre>template &lt;class Char, class Traits&gt;
+  std::basic_ostream&lt;Char, Traits&gt;&amp;
+    operator&lt;&lt;(std::basic_ostream&lt;Char, Traits&gt;&amp; os, const <i><b><code>unspecified_typeN</code></b></i>&amp; proxy);</pre>
+<p><i>Effects:</i> Inserts characters into <code>os</code>:</p>
+  <ul>
+    <li><code>delim</code>.</li>
+    <li>Each character in <code>string</code>. If the character to be output is 
+    equal to <code>escape</code> or <code>delim</code>, as determined by <code>
+    operator==</code>, first output <code>escape</code>. </li>
+    <li><code>delim</code>.</li>
+  </ul>
+<p><i>Remarks:</i> <code>string</code>, <code>escape</code>, and <code>delim</code> 
+have the type and value of the corresponding arguments of the call to the <code>
+quoted</code> function that constructed <code>proxy</code>.</p>
+<p><i>Returns:</i> <code>os</code>. </p>
+</blockquote>
+<p><i><b><code>unspecified_type3</code></b></i> is an implementation supplied 
+type with an implementation supplied <code>operator&gt;&gt;</code>:</p>
+<blockquote>
+  <pre>template &lt;class Char, class Traits&gt;
+  std::basic_istream&lt;Char, Traits&gt;&amp;
+    operator&gt;&gt;(std::basic_istream&lt;Char, Traits&gt;&amp; is, const <i><b><code>unspecified_type3</code></b></i>&amp; proxy);</pre>
+<p><i>Effects:</i> Extracts characters from <code>os</code>:</p>
+  <ul>
+    <li>If the first character extracted is equal to delim, as determined by
+    <code>operator==</code>, then:<ul>
+      <li>Turn off the <code>skipws</code> flag.</li>
+      <li><code>string.clear()</code></li>
+      <li>Until an unescaped <code>delim</code> character is reached or <code>
+      is.not_good()</code>, extract 
+      characters from <code>os</code> and append them to <code>string</code>, 
+      except that if an <code>escape</code> is reached, ignore it and append the 
+      next character to <code>string</code>.</li>
+      <li>Discard the final <code>delim</code> character.</li>
+      <li>Restore the <code>skipws</code> flag to its original value.</li>
+    </ul>
+    </li>
+    <li>Otherwise, <code>os &gt;&gt; string</code>.</li>
+  </ul>
+<p><i>Remarks:</i> <code>string</code>, <code>escape</code>, and <code>delim</code> 
+have the type and value of the corresponding arguments of the call to the <code>
+quoted</code> function that constructed <code>proxy</code>.</p>
+<p><i>Returns:</i> <code>is</code>. </p>
+</blockquote>
+<h2>Acknowledgements</h2>
+<p>The <code>quoted()</code> stream manipulator emerged from discussions on the 
+Boost developers mailing list. Participants included Beman Dawes, Rob Stewart, 
+Alexander Lamaison, Eric Niebler, Vicente Botet, Andrey Semashev, Phil Richards, 
+and Rob Murray. Eric Niebler's suggestions provided the basis for the name and 
+form of the templates. </p>
+<hr>
+<p>© Copyright Beman Dawes, 2002, 2006, 2007, 2009, 2010</p>
+<p>Distributed under the Boost Software License, Version 1.0. See
+<a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a></p>
+<p>Revised
+<!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B %Y" startspan -->20 June 2010<!--webbot bot="Timestamp" endspan i-checksum="17544" --></p>
+
+</body>
+</html>

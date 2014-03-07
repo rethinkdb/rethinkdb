@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="354.33069"
+   height="354.33069"
+   id="svg2"
+   sodipodi:version="0.32"
+   inkscape:version="0.46"
+   version="1.0"
+   sodipodi:docbase="c:\svn\geolib\trunk\src\cpp\library\gl\geometry\doc"
+   sodipodi:docname="union_box_point_box.svg"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape"
+   inkscape:export-filename="c:\svn\geolib\trunk\src\cpp\library\gl\geometry\doc\geometry\images\union_box_point_box.png"
+   inkscape:export-xdpi="200"
+   inkscape:export-ydpi="200">
+  <defs
+     id="defs4">
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 177.16534 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="354.33069 : 177.16534 : 1"
+       inkscape:persp3d-origin="177.16534 : 118.11023 : 1"
+       id="perspective14" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     gridtolerance="50"
+     guidetolerance="10"
+     objecttolerance="10"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="12.314871"
+     inkscape:cx="95.527705"
+     inkscape:cy="75.995428"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     width="10cm"
+     height="10cm"
+     showgrid="true"
+     gridanglex="8.4666669mm"
+     gridanglez="8.4666669mm"
+     grid_units="mm"
+     inkscape:grid-bbox="false"
+     inkscape:window-width="1280"
+     inkscape:window-height="774"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     units="cm">
+    <inkscape:grid
+       id="GridFromPre046Settings"
+       type="xygrid"
+       originx="0px"
+       originy="0px"
+       spacingx="1mm"
+       spacingy="1mm"
+       color="#0000ff"
+       empcolor="#0000ff"
+       opacity="0.2"
+       empopacity="0.4"
+       empspacing="5" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-38.639912,-633.95635)">
+    <path
+       transform="matrix(1,0,-9.3464798e-3,0.9999563,0,0)"
+       style="opacity:0.75;fill:#0092ff;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.70867687;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1"
+       d="M 100.19895,899.74368 L 153.67975,899.72723 L 153.67975,935.1783 L 100.53014,935.1783 L 100.19895,899.74368 z"
+       id="rect2234"
+       sodipodi:nodetypes="ccccc" />
+    <path
+       style="opacity:0.53744495;fill:#aead97;fill-opacity:1;fill-rule:evenodd;stroke:#ff0000;stroke-width:2.12598419;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1"
+       d="M 92.263165,888.70424 L 177.35302,888.70367 L 176.82889,935.13743 L 92.313648,934.76666 L 92.263165,888.70424 z"
+       id="rect3239"
+       sodipodi:nodetypes="ccccc" />
+    <path
+       sodipodi:type="arc"
+       style="opacity:0.75;fill:#1eff00;fill-opacity:1;stroke:#140707;stroke-width:1.57480264;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="path2383"
+       sodipodi:cx="131.10236"
+       sodipodi:cy="262.20471"
+       sodipodi:rx="3.5433071"
+       sodipodi:ry="3.5433071"
+       d="M 134.64566,262.20471 A 3.5433071,3.5433071 0 1 1 127.55905,262.20471 A 3.5433071,3.5433071 0 1 1 134.64566,262.20471 z"
+       transform="matrix(0.4500001,0,0,0.4500003,117.23833,772.08224)" />
+  </g>
+</svg>

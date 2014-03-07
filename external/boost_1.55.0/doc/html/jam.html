@@ -1,0 +1,923 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;42.&#160;Boost.Jam : 3.1.19</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="tools.html" title="Part&#160;II.&#160;Boost Tools">
+<link rel="prev" href="quickbook/ref.html" title="Quick Reference">
+<link rel="next" href="jam/language.html" title="Language">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="quickbook/ref.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="tools.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="jam/language.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="jam"></a>Chapter&#160;42.&#160;Boost.Jam : 3.1.19</h2></div>
+<div><div class="authorgroup">
+<div class="author"><h3 class="author">
+<span class="firstname">Rene</span> <span class="surname">Rivera</span>
+</h3></div>
+<div class="author"><h3 class="author">
+<span class="firstname">David</span> <span class="surname">Abrahams</span>
+</h3></div>
+<div class="author"><h3 class="author">
+<span class="firstname">Vladimir</span> <span class="surname">Prus</span>
+</h3></div>
+</div></div>
+<div><p class="copyright">Copyright &#169; 2003-2007 Rene Rivera, David Abrahams, Vladimir Prus</p></div>
+<div><div class="legalnotice">
+<a name="jam.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="jam.html#jam.building">Building B2</a></span></dt>
+<dt><span class="section"><a href="jam/language.html">Language</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="jam/language.html#jam.language.lexical">Lexical Features</a></span></dt>
+<dt><span class="section"><a href="jam/language.html#jam.language.target">Targets</a></span></dt>
+<dt><span class="section"><a href="jam/language.html#jam.language.rules">Rules</a></span></dt>
+<dt><span class="section"><a href="jam/language.html#jam.language.flow_of_control">Flow-of-Control</a></span></dt>
+<dt><span class="section"><a href="jam/language.html#jam.language.variables">Variables</a></span></dt>
+<dt><span class="section"><a href="jam/language.html#jam.language.modules">Modules</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="jam/miscellaneous.html">Miscellaneous</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="jam/miscellaneous.html#jam.miscellaneous.diagnostics">Diagnostics</a></span></dt>
+<dt><span class="section"><a href="jam/miscellaneous.html#jam.miscellaneous.bugs__limitations">Bugs, Limitations</a></span></dt>
+<dt><span class="section"><a href="jam/miscellaneous.html#jam.miscellaneous.fundamentals">Fundamentals</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="jam/history.html">History</a></span></dt>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="jam.building"></a><a class="link" href="jam.html#jam.building" title="Building B2">Building B2</a>
+</h2></div></div></div>
+<p>
+      Installing <code class="literal">B2</code> after building it is simply a matter of copying
+      the generated executables someplace in your <code class="literal">PATH</code>. For building
+      the executables there are a set of <code class="literal">build</code> bootstrap scripts
+      to accomodate particular environments. The scripts take one optional argument,
+      the name of the toolset to build with. When the toolset is not given an attempt
+      is made to detect an available toolset and use that. The build scripts accept
+      these arguments:
+    </p>
+<pre class="programlisting"><span class="emphasis"><em>build</em></span> [<span class="emphasis"><em>toolset</em></span>]
+</pre>
+<p>
+      Running the scripts without arguments will give you the best chance of success.
+      On Windows platforms from a command console do:
+    </p>
+<pre class="programlisting">cd <span class="emphasis"><em>jam source location</em></span>
+.\build.bat
+</pre>
+<p>
+      On Unix type platforms do:
+    </p>
+<pre class="programlisting">cd <span class="emphasis"><em>jam source location</em></span>
+sh ./build.sh
+</pre>
+<p>
+      For the Boost.Jam source included with the Boost distribution the <span class="emphasis"><em>jam
+      source location</em></span> is <code class="literal">BOOST_ROOT/tools/build/v2/engine</code>.
+    </p>
+<p>
+      If the scripts fail to detect an appropriate toolset to build with your particular
+      toolset may not be auto-detectable. In that case, you can specify the toolset
+      as the first argument, this assumes that the toolset is readily available in
+      the <code class="literal">PATH</code>.
+    </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        The toolset used to build Boost.Jam is independent of the toolsets used for
+        Boost.Build. Only one version of Boost.Jam is needed to use Boost.Build.
+      </p></td></tr>
+</table></div>
+<p>
+      The supported toolsets, and whether they are auto-detected, are:
+    </p>
+<div class="table">
+<a name="jam.building.t0"></a><p class="title"><b>Table&#160;42.1.&#160;Supported Toolsets</b></p>
+<div class="table-contents"><table class="table" summary="Supported Toolsets">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Script
+              </p>
+            </th>
+<th>
+              <p>
+                Platform
+              </p>
+            </th>
+<th>
+              <p>
+                Toolset
+              </p>
+            </th>
+<th>
+              <p>
+                Detection and Notes
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="literal">build.bat</code>
+              </p>
+            </td>
+<td>
+              <p>
+                Windows NT, 2000, and XP
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://www.codegear.com/downloads/free/cppbuilder" target="_top"><code class="literal">borland</code></a></td></tr>
+<tr><td>
+<a href="http://www.borland.com/" target="_top">Borland</a> C++Builder (BCC 5.5)</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">Common install location: "<code class="literal">C:\Borland\BCC55</code>"</li>
+<li class="listitem">
+<code class="literal">BCC32.EXE</code>
+                in <code class="literal">PATH</code>
+</li>
+</ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://www.comeaucomputing.com/" target="_top"><code class="literal">como</code></a></td></tr>
+<tr><td>Comeau
+                Computing C/C++</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://gcc.gnu.org/" target="_top"><code class="literal">gcc</code></a></td></tr>
+<tr><td>GNU
+                GCC</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://gcc.gnu.org/" target="_top"><code class="literal">gcc-nocygwin</code></a></td></tr>
+<tr><td>GNU
+                GCC</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://www.intel.com/software/products/compilers/c60" target="_top"><code class="literal">intel-win32</code></a></td></tr>
+<tr><td>Intel
+                C++ Compiler for Windows</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+<code class="literal">ICL.EXE</code> in <code class="literal">PATH</code>
+</li></ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://www.metrowerks.com/" target="_top"><code class="literal">metrowerks</code></a></td></tr>
+<tr><td>MetroWerks
+                CodeWarrior C/C++ 7.x, 8.x, 9.x</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<code class="literal">CWFolder</code> variable configured</li>
+<li class="listitem">
+<code class="literal">MWCC.EXE</code>
+                in <code class="literal">PATH</code>
+</li>
+</ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://www.mingw.org/" target="_top"><code class="literal">mingw</code></a></td></tr>
+<tr><td>GNU
+                <a href="http://gcc.gnu.org/" target="_top">GCC</a> as the <a href="http://www.mingw.org/" target="_top">MinGW</a>
+                configuration</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">Common install location: "<code class="literal">C:\MinGW</code>"</li></ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://msdn.microsoft.com/visualc/" target="_top"><code class="literal">msvc</code></a></td></tr>
+<tr><td>Microsoft
+                Visual C++ 6.x</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<code class="literal">VCVARS32.BAT</code> already configured</li>
+<li class="listitem">
+<code class="literal">%MSVCDir%</code>
+                is present in environment</li>
+<li class="listitem">Common install locations: "<code class="literal">%ProgramFiles%\Microsoft
+                Visual Studio</code>", "<code class="literal">%ProgramFiles%\Microsoft
+                Visual C++</code>"</li>
+<li class="listitem">
+<code class="literal">CL.EXE</code> in <code class="literal">PATH</code>
+</li>
+</ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://msdn.microsoft.com/visualc/" target="_top"><code class="literal">vc7</code></a></td></tr>
+<tr><td>Microsoft
+                Visual C++ 7.x</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<code class="literal">VCVARS32.BAT</code> or <code class="literal">VSVARS32.BAT</code>
+                already configured</li>
+<li class="listitem">
+<code class="literal">%VS71COMNTOOLS%</code> is present in
+                environment</li>
+<li class="listitem">
+<code class="literal">%VCINSTALLDIR%</code> is present in environment</li>
+<li class="listitem">Common
+                install locations: "<code class="literal">%ProgramFiles%\Microsoft Visual
+                Studio .NET</code>", "<code class="literal">%ProgramFiles%\Microsoft
+                Visual Studio .NET 2003</code>"</li>
+<li class="listitem">
+<code class="literal">CL.EXE</code>
+                in <code class="literal">PATH</code>
+</li>
+</ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://msdn.microsoft.com/visualc/" target="_top"><code class="literal">vc8</code>
+                and <code class="literal">vc9</code></a></td></tr>
+<tr><td>Microsoft Visual C++ 8.x and 9.x</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                Detection: </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<code class="literal">VCVARSALL.BAT</code> already configured</li>
+<li class="listitem">
+<code class="literal">%VS90COMNTOOLS%</code>
+                is present in environment</li>
+<li class="listitem">Common install location: "<code class="literal">%ProgramFiles%\Microsoft
+                Visual Studio 9</code>"</li>
+<li class="listitem">
+<code class="literal">%VS80COMNTOOLS%</code>
+                is present in environment</li>
+<li class="listitem">Common install location: "<code class="literal">%ProgramFiles%\Microsoft
+                Visual Studio 8</code>"</li>
+<li class="listitem">
+<code class="literal">CL.EXE</code> in <code class="literal">PATH</code>
+</li>
+</ul></div>
+<p>
+              </p>
+              <p>
+                Notes: </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">If <code class="literal">VCVARSALL.BAT</code> is called to set up the
+                toolset, it is passed all the extra arguments, see below for what
+                those arguments are. This can be used to build, for example, a Win64
+                specific version of <code class="literal">b2</code>. Consult the VisualStudio
+                documentation for what the possible argument values to the <code class="literal">VCVARSALL.BAT</code>
+                are.</li></ul></div>
+<p>
+  </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="literal">build.sh</code>
+              </p>
+            </td>
+<td>
+              <p>
+                Unix, Linux, Cygwin, etc.
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://www.hp.com/go/c++" target="_top"><code class="literal">acc</code></a></td></tr>
+<tr><td>HP-UX
+                aCC</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<code class="literal">aCC</code> in <code class="literal">PATH</code>
+</li>
+<li class="listitem">
+<code class="literal">uname</code>
+                is "HP-UX"</li>
+</ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://www.comeaucomputing.com/" target="_top"><code class="literal">como</code></a></td></tr>
+<tr><td>Comeau
+                Computing C/C++</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">como in <code class="literal">PATH</code>
+</li></ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://gcc.gnu.org/" target="_top"><code class="literal">gcc</code></a></td></tr>
+<tr><td>GNU
+                GCC</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">gcc in <code class="literal">PATH</code>
+</li></ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://www.intel.com/software/products/compilers/c60l/" target="_top"><code class="literal">intel-linux</code></a></td></tr>
+<tr><td>Intel
+                C++ for Linux</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<code class="literal">icc</code> in <code class="literal">PATH</code>
+</li>
+<li class="listitem">Common install locations:
+                "<code class="literal">/opt/intel/cc/9.0</code>", "<code class="literal">/opt/intel_cc_80</code>",
+                "<code class="literal">/opt/intel/compiler70</code>", "<code class="literal">/opt/intel/compiler60</code>",
+                "<code class="literal">/opt/intel/compiler50</code>"</li>
+</ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><code class="literal">kcc</code></td></tr>
+<tr><td>Intel KAI C++</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+<code class="literal">KCC</code> in <code class="literal">PATH</code>
+</li></ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://www.codegear.com/downloads/free/cppbuilder" target="_top"><code class="literal">kylix</code></a></td></tr>
+<tr><td>
+<a href="http://www.borland.com/" target="_top">Borland</a> C++Builder</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">bc++ in PATH</li></ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://www.sgi.com/developers/devtools/languages/mipspro.html" target="_top"><code class="literal">mipspro</code></a></td></tr>
+<tr><td>SGI
+                MIPSpro C</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+<code class="literal">uname</code> is "<code class="literal">IRIX</code>" or
+                "<code class="literal">IRIX64</code>"</li></ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><code class="literal">sunpro</code></td></tr>
+<tr><td>Sun Workshop 6 C++</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">Standard install location: "<code class="literal">/opt/SUNWspro</code>"</li></ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><code class="literal">qcc</code></td></tr>
+<tr><td><a href="http://www.qnx.com/" target="_top">QNX Neutrino</a></td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+<code class="literal">uname</code> is "<code class="literal">QNX</code>" and
+                <code class="literal">qcc</code> in <code class="literal">PATH</code>
+</li></ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://www.tru64unix.compaq.com/cplus/" target="_top"><code class="literal">true64cxx</code></a></td></tr>
+<tr><td>Compaq
+                C++ Compiler for True64 UNIX</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+<code class="literal">uname</code> is "<code class="literal">OSF1</code>"</li></ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://www.ibm.com/software/awdtools/vacpp/" target="_top"><code class="literal">vacpp</code></a></td></tr>
+<tr><td>IBM
+                VisualAge C++</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+<code class="literal">xlc</code> in <code class="literal">PATH</code>
+</li></ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+              <p>
+                MacOS X
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://developer.apple.com/tools/compilers.html" target="_top"><code class="literal">darwin</code></a></td></tr>
+<tr><td>Apple
+                MacOS X GCC</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+<code class="literal">uname</code> is "<code class="literal">Darwin</code>"</li></ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+            </td>
+<td>
+              <p>
+                Windows NT, 2000, and XP
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<table border="0" summary="Simple list" class="simplelist">
+<tr><td><a href="http://www.mingw.org/" target="_top"><code class="literal">mingw</code></a></td></tr>
+<tr><td>GNU
+                <a href="http://gcc.gnu.org/" target="_top">GCC</a> as the <a href="http://www.mingw.org/" target="_top">MinGW</a>
+                configuration with the MSYS shell</td></tr>
+</table>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">Common install location: "<code class="literal">/mingw</code>"</li></ul></div>
+<p>
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+      The built executables are placed in a subdirectory specific to your platform.
+      For example, in Linux running on an Intel x86 compatible chip, the executables
+      are placed in: "<code class="literal">bin.linuxx86</code>". The =b2[.exe]=
+      executable can be used to invoke Boost.Build.
+    </p>
+<p>
+      The build scripts support additional invocation arguments for use by developers
+      of Boost.Jam and for additional setup of the toolset. The extra arguments come
+      after the toolset:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Arguments not in the form of an option, before option arguments, are used
+          for extra setup to toolset configuration scripts.
+        </li>
+<li class="listitem">
+          Arguments of the form "<code class="literal">--option</code>", which are
+          passed to the <code class="literal">build.jam</code> build script.
+        </li>
+<li class="listitem">
+          Arguments not in the form of an option, after the options, which are targets
+          for the <code class="literal">build.jam</code> script.
+        </li>
+</ul></div>
+<pre class="programlisting"><span class="emphasis"><em>build</em></span> [<span class="emphasis"><em>toolset</em></span>] [<span class="emphasis"><em>setup</em></span>*] [--<span class="emphasis"><em>option</em></span>+ <span class="emphasis"><em>target</em></span>*]
+</pre>
+<p>
+      The arguments immediately after the toolset are passed directly to the setup
+      script of the toolset, if available and if it needs to be invoked. This allows
+      one to configure the toolset ass needed to do non-default builds of <code class="literal">b2</code>.
+      For example to build a Win64 version with <code class="literal">vc8</code>. See the toolset
+      descriptiona above for when particular toolsets support this.
+    </p>
+<p>
+      The arguments starting with the "<code class="literal">--option</code>" forms
+      are passed to the <code class="literal">build.jam</code> script and are used to further
+      customize what gets built. Options and targets supported by the <code class="literal">build.jam</code>
+      script:
+    </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><div class="literallayout"><p><code class="literal">---</code></p></div></span></dt>
+<dd><p>
+            Empty option when one wants to only specify a target.
+          </p></dd>
+<dt><span class="term"><div class="literallayout"><p><code class="literal">--release</code></p></div></span></dt>
+<dd><p>
+            The default, builds the optimized executable.
+          </p></dd>
+<dt><span class="term"><div class="literallayout"><p><code class="literal">--debug</code></p></div></span></dt>
+<dd><p>
+            Builds debugging versions of the executable. When built they are placed
+            in their own directory "<code class="literal">bin./platform/.debug</code>".
+          </p></dd>
+<dt><span class="term"><div class="literallayout"><p><code class="literal">--grammar</code></p></div></span></dt>
+<dd><p>
+            Normally the Jam language grammar parsing files are not regenerated.
+            This forces building of the grammar, although it may not force the regeneration
+            of the grammar parser. If the parser is out of date it will be regenerated
+            and subsequently built.
+          </p></dd>
+<dt><span class="term"><div class="literallayout"><p><code class="literal">--with-python=<span class="emphasis"><em>path</em></span></code></p></div></span></dt>
+<dd><p>
+            Enables Python integration, given a path to the Python libraries.
+          </p></dd>
+<dt><span class="term"><div class="literallayout"><p><code class="literal">--gc</code></p></div></span></dt>
+<dd><p>
+            Enables use of the Boehm Garbage Collector. The build will look for the
+            Boehm-GC source in a "boehm_gc" subdirectory from the <code class="literal">b2</code>
+            sources.
+          </p></dd>
+<dt><span class="term"><div class="literallayout"><p><code class="literal">--duma</code></p></div></span></dt>
+<dd><p>
+            Enables use of the DUMA (Detect Uintended Memory Access) debugging memory
+            allocator. The build expects to find the DUMA source files in a "duma"
+            subdirectory from the <code class="literal">b2</code> sources.
+          </p></dd>
+<dt><span class="term"><div class="literallayout"><p><code class="literal">--toolset-root=<span class="emphasis"><em>path</em></span></code></p></div></span></dt>
+<dd><p>
+            Indicates where the toolset used to build is located. This option is
+            passed in by the bootstrap (<code class="literal">build.bat</code> or <code class="literal">build.sh</code>)
+            script.
+          </p></dd>
+<dt><span class="term"><div class="literallayout"><p><code class="literal">--show-locate-target</code></p></div></span></dt>
+<dd><p>
+            For information, prints out where it will put the built executable.
+          </p></dd>
+<dt><span class="term"><div class="literallayout"><p><code class="literal">--noassert</code></p></div></span></dt>
+<dd><p>
+            Disable debug assertions, even if building the debug version of the executable.
+          </p></dd>
+<dt><span class="term"><div class="literallayout"><p><code class="literal">dist</code></p></div></span></dt>
+<dd><p>
+            Generate packages (compressed archives) as appropriate for distribution
+            in the platform, if possible.
+          </p></dd>
+<dt><span class="term"><div class="literallayout"><p><code class="literal">clean</code></p></div></span></dt>
+<dd><p>
+            Remove all the built executables and objects.
+          </p></dd>
+</dl>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="quickbook/ref.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="tools.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="jam/language.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

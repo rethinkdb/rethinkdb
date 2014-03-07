@@ -1,0 +1,61 @@
+<html>
+<head>
+	<title>BOOST_PP_LIST_AT</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">	
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_LIST_AT</b> macro extracts an element in a <i>list</i>.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_LIST_AT</b>(<i>list</i>, <i>index</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>list</dt>
+			<dd>
+				The <i>list</i> from which a element is to be extracted.&nbsp;
+				This <i>list</i> must have at least <i>index</i> + <i>1</i> elements.
+			</dd>
+			<dt>index</dt>
+			<dd>
+				The zero-based position in the <i>list</i> of the element to be extracted.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			Previously, this macro could not be used inside <b>BOOST_PP_WHILE</b>.&nbsp;
+			There is no longer any such restriction.&nbsp;
+			It is more efficient, however, to use <b>BOOST_PP_LIST_AT_D</b> in such a situation.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="list_at_d.html">BOOST_PP_LIST_AT_D</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/list/at.html">&lt;boost/preprocessor/list/at.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/list/at.html">boost/preprocessor/list/at.hpp</a>&gt;
+
+#define LIST (a, (b, (c, <a href="nil.html">BOOST_PP_NIL</a>)))
+
+<a href="list_at.html">BOOST_PP_LIST_AT</a>(LIST, 0) // expands to a
+<a href="list_at.html">BOOST_PP_LIST_AT</a>(LIST, 2) // expands to c
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title></title>
+<meta name="author" content="Dean Michael Berris" />
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document">
+
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td><a class="first reference external" href="mailto:mikhailberis&#64;gmail.com">Dean Michael Berris</a></td></tr>
+<tr class="field"><th class="docinfo-name">License:</th><td class="field-body">Distributed under the Boost Software License, Version 1.0
+(See accompanying file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="function-input-iterator">
+<h1>Function Input Iterator</h1>
+<p>The Function Input Iterator allows for creating iterators that encapsulate
+a nullary function object and a state object which tracks the number of times
+the iterator has been incremented. A Function Input Iterator models the
+<a class="reference external" href="http://www.sgi.com/tech/stl/InputIterator.html">InputIterator</a> concept and is useful for creating bounded input iterators.</p>
+<p>Like the Generator Iterator, the Function Input Iterator takes a function
+that models the <a class="reference external" href="http://www.sgi.com/tech/stl/Generator.html">Generator</a> concept (which is basically a nullary or 0-arity
+function object). Each increment of the function Function Input Iterator
+invokes the generator function and stores the value in the iterator. When
+the iterator is dereferenced the stored value is returned.</p>
+<p>The Function Input Iterator encapsulates a state object which models the
+<a class="reference internal" href="#incrementable-concept">Incrementable Concept</a> and the <a class="reference external" href="http://www.sgi.com/tech/stl/EqualityComparable.html">EqualityComparable</a> Concept. These concepts are
+described below as:</p>
+<div class="section" id="incrementable-concept">
+<h2>Incrementable Concept</h2>
+<p>A type models the Incrementable Concept when it supports the pre- and post-
+increment operators. For a given object <tt class="docutils literal"><span class="pre">i</span></tt> with type <tt class="docutils literal"><span class="pre">I</span></tt>, the following
+constructs should be valid:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="24%" />
+<col width="46%" />
+<col width="30%" />
+</colgroup>
+<tbody valign="top">
+<tr><td colspan="3">Construct  Description        Return Type</td>
+</tr>
+<tr><td>i++</td>
+<td>Post-increment i.</td>
+<td>I</td>
+</tr>
+<tr><td>++i</td>
+<td>Pre-increment i.</td>
+<td>I&amp;</td>
+</tr>
+</tbody>
+</table>
+<p>NOTE: An Incrementable type should also be <a class="reference external" href="http://www.sgi.com/tech/stl/DefaultConstructible.html">DefaultConstructible</a>.</p>
+</div>
+<div class="section" id="synopsis">
+<h2>Synopsis</h2>
+<pre class="literal-block">
+namespace {
+    template &lt;class Function, class State&gt;
+    class function_input_iterator;
+
+    template &lt;class Function, class State&gt;
+    typename function_input_iterator&lt;Function, State&gt;
+    make_function_input_iterator(Function &amp; f);
+
+    struct infinite;
+}
+</pre>
+</div>
+<div class="section" id="function-input-iterator-class">
+<h2>Function Input Iterator Class</h2>
+<p>The class Function Input Iterator class takes two template parameters
+<tt class="docutils literal"><span class="pre">Function</span></tt> and <tt class="docutils literal"><span class="pre">State</span></tt>. These two template parameters tell the
+Function Input Iterator the type of the function to encapsulate and
+the type of the internal state value to hold.</p>
+<p>The <tt class="docutils literal"><span class="pre">State</span></tt> parameter is important in cases where you want to
+control the type of the counter which determines whether two iterators
+are at the same state. This allows for creating a pair of iterators which
+bound the range of the invocations of the encapsulated functions.</p>
+</div>
+<div class="section" id="examples">
+<h2>Examples</h2>
+<p>The following example shows how we use the function input iterator class
+in cases where we want to create bounded (lazy) generated ranges.</p>
+<pre class="literal-block">
+struct generator {
+    typedef int result_type;
+    generator() { srand(time(0)); }
+    result_type operator() () const {
+        return rand();
+    }
+};
+
+int main(int argc, char * argv[]) {
+    generator f;
+    copy(
+            make_function_input_iterator(f, 0),
+            make_function_input_iterator(f, 10),
+            ostream_iterator&lt;int&gt;(cout, &quot; &quot;)
+        );
+    return 0;
+}
+</pre>
+<p>Here we can see that we've bounded the number of invocations using an <tt class="docutils literal"><span class="pre">int</span></tt>
+that counts from <tt class="docutils literal"><span class="pre">0</span></tt> to <tt class="docutils literal"><span class="pre">10</span></tt>. Say we want to create an endless stream
+of random numbers and encapsulate that in a pair of integers, we can do
+it with the <tt class="docutils literal"><span class="pre">boost::infinite</span></tt> helper class.</p>
+<pre class="literal-block">
+copy(
+        make_function_input_iterator(f,infinite()),
+        make_function_input_iterator(f,infinite()),
+        ostream_iterator&lt;int&gt;(count, &quot; &quot;)
+    );
+</pre>
+<p>Above, instead of creating a huge vector we rely on the STL copy algorithm
+to traverse the function input iterator and call the function object f
+as it increments the iterator. The special property of <tt class="docutils literal"><span class="pre">boost::infinite</span></tt>
+is that equating two instances always yield false -- and that incrementing
+an instance of <tt class="docutils literal"><span class="pre">boost::infinite</span></tt> doesn't do anything. This is an efficient
+way of stating that the iterator range provided by two iterators with an
+encapsulated infinite state will definitely be infinite.</p>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+<a class="reference external" href="function_input_iterator.rst">View document source</a>.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

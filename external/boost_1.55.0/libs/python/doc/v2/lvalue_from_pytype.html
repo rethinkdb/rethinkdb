@@ -1,0 +1,301 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/lvalue_from_python.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header
+          &lt;boost/python/lvalue_from_pytype.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#lvalue_from_pytype-spec">Class Template
+          <code>lvalue_from_pytype</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#lvalue_from_pytype-spec-synopsis">Class Template
+              <code>lvalue_from_pytype</code> synopsis</a></dt>
+
+              <dt><a href="#lvalue_from_pytype-spec-ctors">Class Template
+              <code>lvalue_from_pytype</code> constructor</a></dt>
+            </dl>
+          </dd>
+        </dl>
+
+        <dl class="page-index">
+          <dt><a href="#extract_identity-spec">Class Template
+          <code>extract_identity</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#extract_identity-spec-synopsis">Class Template
+              <code>extract_identity</code> synopsis</a></dt>
+
+              <dt><a href="#extract_identity-spec-statics">Class Template
+              <code>extract_identity</code> static functions</a></dt>
+            </dl>
+          </dd>
+
+          <dt><a href="#extract_member-spec">Class Template
+          <code>extract_member</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#extract_member-spec-synopsis">Class Template
+              <code>extract_member</code> synopsis</a></dt>
+
+              <dt><a href="#extract_member-spec-statics">Class Template
+              <code>extract_member</code> static functions</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+    <code>&lt;boost/python/lvalue_from_pytype.hpp&gt;</code> supplies a
+    facility for extracting C++ objects from within Python instances of a
+    given type. This is typically useful for dealing with "traditional"
+    Python extension types. 
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="lvalue_from_pytype-spec"></a>Class template
+    <code>lvalue_from_pytype</code></h3>
+
+    <p>Class template <code>lvalue_from_pytype</code> will register
+    from_python converters which, given an object of the given Python type,
+    can extract references and pointers to a particular C++ type. Its
+    template arguments are:</p>
+
+    <table border="1" summary="lvalue_from_pytype template parameters">
+      <caption>
+        <b><code>lvalue_from_pytype</code> Requirements</b><br>
+         In the table below, <b><code>x</code></b> denotes an object of type
+        <code>PythonObject&amp;</code>
+      </caption>
+
+      <tr>
+        <th>Parameter</th>
+
+        <th>Requirements</th>
+
+        <th>Semantics</th>
+      </tr>
+
+      <tr>
+        <td><code>Extractor</code></td>
+
+        <td>a model of <a href=
+        "Extractor.html#Extractor-concept">Extractor</a> whose execute
+        function returns a reference type.</td>
+
+        <td>Extracts the lvalue from the Python object once its type has been
+        confirmed</td>
+      </tr>
+
+      <tr>
+        <td><code>python_type</code></td>
+
+        <td>A compile-time constant <code><a href=
+        "http://www.python.org/doc/2.2/ext/dnt-type-methods.html">PyTypeObject</a>*</code></td>
+
+        <td>The Python type of instances convertible by this converter.
+        Python subtypes are also convertible.</td>
+      </tr>
+    </table>
+
+    <h4><a name="lvalue_from_pytype-spec-synopsis"></a>Class template
+    <code>lvalue_from_pytype</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+   template &lt;class Extractor, PyTypeObject const* python_type&gt;
+   struct lvalue_from_pytype
+   {
+       lvalue_from_pytype();
+   };
+}}
+</pre>
+
+    <h4><a name="lvalue_from_pytype-spec-ctors"></a>Class template
+    <code>lvalue_from_pytype</code> constructor</h4>
+<pre>
+lvalue_from_pytype();
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> Registers converters which can convert Python
+      objects of the given type to lvalues of the type returned by
+      <code>Extractor::execute</code>.</dt>
+    </dl>
+
+    <h3><a name="extract_identity-spec"></a>Class template
+    <code>extract_identity</code></h3>
+
+    <p><code>extract_identity</code> is a model of <a href=
+    "Extractor.html#Extractor-concept">Extractor</a> which can be used in the
+    common case where the C++ type to be extracted is the same as the Python
+    object type.</p>
+
+    <h4><a name="extract_identity-spec-synopsis"></a>Class template
+    <code>extract_identity</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+   template &lt;class InstanceType&gt;
+   struct extract_identity
+   {
+      static InstanceType&amp; execute(InstanceType&amp; c);
+   };
+}}
+</pre>
+
+    <h4><a name="extract_identity-spec-statics"></a>Class template
+    <code>extract_identity</code> static functions</h4>
+<pre>
+InstanceType&amp; execute(InstanceType&amp; c);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Returns:</b> <code>c</code></dt>
+    </dl>
+
+    <h3><a name="extract_member-spec"></a>Class template
+    <code>extract_member</code></h3>
+
+    <p><code>extract_member</code> is a model of <a href=
+    "Extractor.html#Extractor-concept">Extractor</a> which can be used in the
+    common case in the common case where the C++ type to be extracted is a
+    member of the Python object.</p>
+
+    <h4><a name="extract_member-spec-synopsis"></a>Class template
+    <code>extract_member</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+   template &lt;class InstanceType, class MemberType, MemberType (InstanceType::*member)&gt;
+   struct extract_member
+   {
+      static MemberType&amp; execute(InstanceType&amp; c);
+   };
+}}
+</pre>
+
+    <h4><a name="extract_member-spec-statics"></a>Class template
+    <code>extract_member</code> static functions</h4>
+<pre>
+static MemberType&amp; execute(InstanceType&amp; c);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Returns:</b> <code>c.*member</code></dt>
+    </dl>
+
+    <h2><a name="examples"></a>Example</h2>
+    This example presumes that someone has implemented the standard <a href=
+    "http://www.python.org/doc/2.2/ext/dnt-basics.html">noddy example
+    module</a> from the Python documentation, and we want to build a module
+    which manipulates <code>Noddy</code>s. Since
+    <code>noddy_NoddyObject</code> is so simple that it carries no
+    interesting information, the example is a bit contrived: it assumes you
+    want to keep track of one particular object for some reason. This module
+    would have to be dynamically linked to the module which defines
+    <code>noddy_NoddyType</code>. 
+
+    <h3>C++ module definition</h3>
+<pre>
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/handle.hpp&gt;
+#include &lt;boost/python/borrowed.hpp&gt;
+#include &lt;boost/python/lvalue_from_pytype.hpp&gt;
+
+// definition lifted from the Python docs
+typedef struct {
+   PyObject_HEAD
+} noddy_NoddyObject;
+
+using namespace boost::python;
+static handle&lt;noddy_NoddyObject&gt; cache;
+
+bool is_cached(noddy_NoddyObject* x)
+{
+   return x == cache.get();
+}
+
+void set_cache(noddy_NoddyObject* x)
+{
+   cache = handle&lt;noddy_NoddyObject&gt;(borrowed(x));
+}
+
+BOOST_PYTHON_MODULE(noddy_cache)
+{
+   def("is_cached", is_cached);
+   def("set_cache", set_cache);
+
+   // register Noddy lvalue converter
+   lvalue_from_pytype&lt;extract_identity&lt;noddy_NoddyObject&gt;,&amp;noddy_NoddyType&gt;();
+}
+</pre>
+
+    <h3>Python code</h3>
+<pre>
+&gt;&gt;&gt; import noddy
+&gt;&gt;&gt; n = noddy.new_noddy()
+&gt;&gt;&gt; import noddy_cache
+&gt;&gt;&gt; noddy_cache.is_cached(n)
+0
+&gt;&gt;&gt; noddy_cache.set_cache(n)
+&gt;&gt;&gt; noddy_cache.is_cached(n)
+1
+&gt;&gt;&gt; noddy_cache.is_cached(noddy.new_noddy())
+0
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  20 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

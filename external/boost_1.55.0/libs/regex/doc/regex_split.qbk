@@ -1,0 +1,122 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:regex_split regex_split (deprecated)]
+
+The algorithm [regex_split] has been deprecated in favor of the iterator 
+[regex_token_iterator] which has a more flexible and powerful interface, 
+as well as following the more usual standard library "pull" rather than 
+"push" semantics.
+
+Code which uses [regex_split] will continue to compile, the following 
+documentation is taken from a previous Boost.Regex version:
+
+   #include <boost/regex.hpp> 
+
+Algorithm [regex_split] performs a similar operation to the perl split operation, 
+and comes in three overloaded forms:
+
+   template <class OutputIterator, class charT, class Traits1, class Alloc1, class Traits2>
+   std::size_t regex_split(OutputIterator out, 
+                           std::basic_string<charT, Traits1, Alloc1>& s, 
+                           const basic_regex<charT, Traits2>& e,
+                           boost::match_flag_type flags,
+                           std::size_t max_split);
+
+   template <class OutputIterator, class charT, class Traits1, class Alloc1, class Traits2>
+   std::size_t regex_split(OutputIterator out, 
+                           std::basic_string<charT, Traits1, Alloc1>& s, 
+                           const basic_regex<charT, Traits2>& e,
+                           boost::match_flag_type flags = match_default);
+
+   template <class OutputIterator, class charT, class Traits1, class Alloc1>
+   std::size_t regex_split(OutputIterator out, 
+                           std::basic_string<charT, Traits1, Alloc1>& s);
+
+[*Effects]: Each version of the algorithm takes an output-iterator for 
+output, and a string for input. If the expression contains no marked 
+sub-expressions, then the algorithm writes one string onto the output-iterator 
+for each section of input that does not match the expression. 
+If the expression does contain marked sub-expressions, then each 
+time a match is found, one string for each marked sub-expression will be 
+written to the output-iterator. No more than max_split strings will be written 
+to the output-iterator. Before returning, all the input processed will be 
+deleted from the string /s/ (if /max_split/ is not reached then all of /s/ 
+will be deleted). Returns the number of strings written to the output-iterator. 
+If the parameter /max_split/ is not specified then it defaults to `UINT_MAX`. 
+If no expression is specified, then it defaults to "\\s+", and splitting occurs 
+on whitespace.
+
+[*Throws]: `std::runtime_error` if the complexity of matching the expression 
+against an N character string begins to exceed O(N[super 2]), or if the 
+program runs out of stack space while matching the expression (if Boost.Regex is 
+configured in recursive mode), or if the matcher exhausts its permitted 
+memory allocation (if Boost.Regex is configured in non-recursive mode).
+
+[*Example]: the following function will split the input string into a 
+series of tokens, and remove each token from the string /s/:
+
+   unsigned tokenise(std::list<std::string>& l, std::string& s)
+   {
+      return boost::regex_split(std::back_inserter(l), s);
+   }
+
+Example: the following short program will extract all of the URL's 
+from a html file, and print them out to cout:
+
+   #include <list>
+   #include <fstream>
+   #include <iostream>
+   #include <boost/regex.hpp>
+
+   boost::regex e("<\\s*A\\s+[^>]*href\\s*=\\s*\"([^\"]*)\"",
+                  boost::regbase::normal | boost::regbase::icase);
+
+   void load_file(std::string& s, std::istream& is)
+   {
+      s.erase();
+      //
+      // attempt to grow string buffer to match file size,
+      // this doesn't always work...
+      s.reserve(is.rdbuf()-&gtin_avail());
+      char c;
+      while(is.get(c))
+      {
+         // use logarithmic growth stategy, in case
+         // in_avail (above) returned zero:
+         if(s.capacity() == s.size())
+            s.reserve(s.capacity() * 3);
+         s.append(1, c);
+      }
+   }
+
+
+   int main(int argc, char** argv)
+   {
+      std::string s;
+      std::list<std::string> l;
+
+      for(int i = 1; i < argc; ++i)
+      {
+         std::cout << "Findings URL's in " << argv[i] << ":" << std::endl;
+         s.erase();
+         std::ifstream is(argv[i]);
+         load_file(s, is);
+         boost::regex_split(std::back_inserter(l), s, e);
+         while(l.size())
+         {
+            s = *(l.begin());
+            l.pop_front();
+            std::cout << s << std::endl;
+         }
+      }
+      return 0;
+   }
+     
+[endsect]
+

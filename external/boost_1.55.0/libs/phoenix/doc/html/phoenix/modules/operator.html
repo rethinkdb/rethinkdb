@@ -1,0 +1,368 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Operator</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../modules.html" title="Modules">
+<link rel="prev" href="function/adapting_functions.html" title="Adapting Functions">
+<link rel="next" href="statement.html" title="Statement">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="function/adapting_functions.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../modules.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="statement.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.modules.operator"></a><a class="link" href="operator.html" title="Operator">Operator</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        This facility provides a mechanism for lazily evaluating operators. Syntactically,
+        a lazy operator looks and feels like an ordinary C/C++ infix, prefix or postfix
+        operator. The operator application looks the same. However, unlike ordinary
+        operators, the actual operator execution is deferred. Samples:
+      </p>
+<pre class="programlisting"><span class="identifier">arg1</span> <span class="special">+</span> <span class="identifier">arg2</span>
+<span class="number">1</span> <span class="special">+</span> <span class="identifier">arg1</span> <span class="special">*</span> <span class="identifier">arg2</span>
+<span class="number">1</span> <span class="special">/</span> <span class="special">-</span><span class="identifier">arg1</span>
+<span class="identifier">arg1</span> <span class="special">&lt;</span> <span class="number">150</span>
+</pre>
+<p>
+        We have seen the lazy operators in action (see <a class="link" href="../starter_kit/lazy_operators.html" title="Lazy Operators">Quick
+        Start - Lazy Operators</a>). Let's go back and examine them a little bit
+        further:
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">find_if</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">arg1</span> <span class="special">%</span> <span class="number">2</span> <span class="special">==</span> <span class="number">1</span><span class="special">)</span>
+</pre>
+<p>
+        Through operator overloading, the expression <code class="computeroutput"><span class="identifier">arg1</span>
+        <span class="special">%</span> <span class="number">2</span> <span class="special">==</span> <span class="number">1</span></code> actually
+        generates an actor. This actor object is passed on to STL's <code class="computeroutput"><span class="identifier">find_if</span></code> function. From the viewpoint of
+        STL, the expression is simply a function object expecting a single argument
+        of the containers value_type. For each element in <code class="computeroutput"><span class="identifier">c</span></code>,
+        the element is passed on as an argument <code class="computeroutput"><span class="identifier">arg1</span></code>
+        to the actor (function object). The actor checks if this is an odd value
+        based on the expression <code class="computeroutput"><span class="identifier">arg1</span> <span class="special">%</span> <span class="number">2</span> <span class="special">==</span>
+        <span class="number">1</span></code> where arg1 is replaced by the container's
+        element.
+      </p>
+<p>
+        Like lazy functions (see <a class="link" href="function.html" title="Function">Function</a>),
+        lazy operators are not immediately executed when invoked. Instead, an actor
+        (see <a class="link" href="../actor.html" title="Actor">Actor</a>) object is created and returned
+        to the caller. Example:
+      </p>
+<pre class="programlisting"><span class="special">(</span><span class="identifier">arg1</span> <span class="special">+</span> <span class="identifier">arg2</span><span class="special">)</span> <span class="special">*</span> <span class="identifier">arg3</span>
+</pre>
+<p>
+        does nothing more than return an actor. A second function call will evaluate
+        the actual operators. Example:
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="special">((</span><span class="identifier">arg1</span> <span class="special">+</span> <span class="identifier">arg2</span><span class="special">)</span> <span class="special">*</span> <span class="identifier">arg3</span><span class="special">)(</span><span class="number">4</span><span class="special">,</span> <span class="number">5</span><span class="special">,</span> <span class="number">6</span><span class="special">);</span>
+</pre>
+<p>
+        will print out "54".
+      </p>
+<p>
+        Operator expressions are lazily evaluated following four simple rules:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            A binary operator, except <code class="computeroutput"><span class="special">-&gt;*</span></code>
+            will be lazily evaluated when <span class="emphasis"><em>at least</em></span> one of its
+            operands is an actor object (see <a class="link" href="../actor.html" title="Actor">Actor</a>).
+          </li>
+<li class="listitem">
+            Unary operators are lazily evaluated if their argument is an actor object.
+          </li>
+<li class="listitem">
+            Operator <code class="computeroutput"><span class="special">-&gt;*</span></code> is lazily
+            evaluated if the left hand argument is an actor object.
+          </li>
+<li class="listitem">
+            The result of a lazy operator is an actor object that can in turn allow
+            the applications of rules 1, 2 and 3.
+          </li>
+</ol></div>
+<p>
+        For example, to check the following expression is lazily evaluated:
+      </p>
+<pre class="programlisting"><span class="special">-(</span><span class="identifier">arg1</span> <span class="special">+</span> <span class="number">3</span> <span class="special">+</span> <span class="number">6</span><span class="special">)</span>
+</pre>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            Following rule 1, <code class="computeroutput"><span class="identifier">arg1</span> <span class="special">+</span> <span class="number">3</span></code> is
+            lazily evaluated since <code class="computeroutput"><span class="identifier">arg1</span></code>
+            is an actor (see <a class="link" href="core/arguments.html" title="Arguments">Arguments</a>).
+          </li>
+<li class="listitem">
+            The result of this <code class="computeroutput"><span class="identifier">arg1</span> <span class="special">+</span> <span class="number">3</span></code> expression
+            is an actor object, following rule 4.
+          </li>
+<li class="listitem">
+            Continuing, <code class="computeroutput"><span class="identifier">arg1</span> <span class="special">+</span>
+            <span class="number">3</span> <span class="special">+</span> <span class="number">6</span></code> is again lazily evaluated. Rule 2.
+          </li>
+<li class="listitem">
+            By rule 4 again, the result of <code class="computeroutput"><span class="identifier">arg1</span>
+            <span class="special">+</span> <span class="number">3</span> <span class="special">+</span> <span class="number">6</span></code> is
+            an actor object.
+          </li>
+<li class="listitem">
+            As <code class="computeroutput"><span class="identifier">arg1</span> <span class="special">+</span>
+            <span class="number">3</span> <span class="special">+</span> <span class="number">6</span></code> is an actor, <code class="computeroutput"><span class="special">-(</span><span class="identifier">arg1</span> <span class="special">+</span> <span class="number">3</span> <span class="special">+</span> <span class="number">6</span><span class="special">)</span></code> is lazily evaluated. Rule 2.
+          </li>
+</ol></div>
+<p>
+        Lazy-operator application is highly contagious. In most cases, a single
+        <code class="computeroutput"><span class="identifier">argN</span></code> actor infects all its
+        immediate neighbors within a group (first level or parenthesized expression).
+      </p>
+<p>
+        Note that at least one operand of any operator must be a valid actor for
+        lazy evaluation to take effect. To force lazy evaluation of an ordinary expression,
+        we can use <code class="computeroutput"><span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>, <code class="computeroutput"><span class="identifier">val</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code> or <code class="computeroutput"><span class="identifier">cref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+        to transform an operand into a valid actor object (see <a class="link" href="core.html" title="Core">Core</a>).
+        For example:
+      </p>
+<pre class="programlisting"><span class="number">1</span> <span class="special">&lt;&lt;</span> <span class="number">3</span><span class="special">;</span>      <span class="comment">// Immediately evaluated</span>
+<span class="identifier">val</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="number">3</span><span class="special">;</span> <span class="comment">// Lazily evaluated</span>
+</pre>
+<h5>
+<a name="phoenix.modules.operator.h0"></a>
+        <span class="phrase"><a name="phoenix.modules.operator.supported_operators"></a></span><a class="link" href="operator.html#phoenix.modules.operator.supported_operators">Supported
+        operators</a>
+      </h5>
+<h5>
+<a name="phoenix.modules.operator.h1"></a>
+        <span class="phrase"><a name="phoenix.modules.operator.unary_operators"></a></span><a class="link" href="operator.html#phoenix.modules.operator.unary_operators">Unary
+        operators</a>
+      </h5>
+<pre class="programlisting"><span class="identifier">prefix</span><span class="special">:</span>   <span class="special">~,</span> <span class="special">!,</span> <span class="special">-,</span> <span class="special">+,</span> <span class="special">++,</span> <span class="special">--,</span> <span class="special">&amp;</span> <span class="special">(</span><span class="identifier">reference</span><span class="special">),</span> <span class="special">*</span> <span class="special">(</span><span class="identifier">dereference</span><span class="special">)</span>
+<span class="identifier">postfix</span><span class="special">:</span>  <span class="special">++,</span> <span class="special">--</span>
+</pre>
+<h5>
+<a name="phoenix.modules.operator.h2"></a>
+        <span class="phrase"><a name="phoenix.modules.operator.binary_operators"></a></span><a class="link" href="operator.html#phoenix.modules.operator.binary_operators">Binary
+        operators</a>
+      </h5>
+<pre class="programlisting"><span class="special">=,</span> <span class="special">[],</span> <span class="special">+=,</span> <span class="special">-=,</span> <span class="special">*=,</span> <span class="special">/=,</span> <span class="special">%=,</span> <span class="special">&amp;=,</span> <span class="special">|=,</span> <span class="special">^=,</span> <span class="special">&lt;&lt;=,</span> <span class="special">&gt;&gt;=</span>
+<span class="special">+,</span> <span class="special">-,</span> <span class="special">*,</span> <span class="special">/,</span> <span class="special">%,</span> <span class="special">&amp;,</span> <span class="special">|,</span> <span class="special">^,</span> <span class="special">&lt;&lt;,</span> <span class="special">&gt;&gt;</span>
+<span class="special">==,</span> <span class="special">!=,</span> <span class="special">&lt;,</span> <span class="special">&gt;,</span> <span class="special">&lt;=,</span> <span class="special">&gt;=</span>
+<span class="special">&amp;&amp;,</span> <span class="special">||,</span> <span class="special">-&gt;*</span>
+</pre>
+<h5>
+<a name="phoenix.modules.operator.h3"></a>
+        <span class="phrase"><a name="phoenix.modules.operator.ternary_operator"></a></span><a class="link" href="operator.html#phoenix.modules.operator.ternary_operator">Ternary
+        operator</a>
+      </h5>
+<pre class="programlisting"><span class="identifier">if_else</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span>
+</pre>
+<p>
+        The ternary operator deserves special mention. Since C++ does not allow us
+        to overload the conditional expression: <code class="computeroutput"><span class="identifier">c</span>
+        <span class="special">?</span> <span class="identifier">a</span> <span class="special">:</span> <span class="identifier">b</span></code>, the
+        if_else pseudo function is provided for this purpose. The behavior is identical,
+        albeit in a lazy manner.
+      </p>
+<h5>
+<a name="phoenix.modules.operator.h4"></a>
+        <span class="phrase"><a name="phoenix.modules.operator.member_pointer_operator"></a></span><a class="link" href="operator.html#phoenix.modules.operator.member_pointer_operator">Member
+        pointer operator</a>
+      </h5>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">-&gt;*</span><span class="identifier">member_object_pointer</span>
+<span class="identifier">a</span><span class="special">-&gt;*</span><span class="identifier">member_function_pointer</span>
+</pre>
+<p>
+        The left hand side of the member pointer operator must be an actor returning
+        a pointer type. The right hand side of the member pointer operator may be
+        either a pointer to member object or pointer to member function.
+      </p>
+<p>
+        If the right hand side is a member object pointer, the result is an actor
+        which, when evaluated, returns a reference to that member. For example:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">A</span>
+<span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">member</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="identifier">A</span><span class="special">*</span> <span class="identifier">a</span> <span class="special">=</span> <span class="keyword">new</span> <span class="identifier">A</span><span class="special">;</span>
+<span class="special">...</span>
+
+<span class="special">(</span><span class="identifier">arg1</span><span class="special">-&gt;*&amp;</span><span class="identifier">A</span><span class="special">::</span><span class="identifier">member</span><span class="special">)(</span><span class="identifier">a</span><span class="special">);</span> <span class="comment">// returns member a-&gt;member</span>
+</pre>
+<p>
+        If the right hand side is a member function pointer, the result is an actor
+        which, when invoked, calls the specified member function. For example:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">A</span>
+<span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">func</span><span class="special">(</span><span class="keyword">int</span><span class="special">);</span>
+<span class="special">};</span>
+
+<span class="identifier">A</span><span class="special">*</span> <span class="identifier">a</span> <span class="special">=</span> <span class="keyword">new</span> <span class="identifier">A</span><span class="special">;</span>
+<span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+
+<span class="special">(</span><span class="identifier">arg1</span><span class="special">-&gt;*&amp;</span><span class="identifier">A</span><span class="special">::</span><span class="identifier">func</span><span class="special">)(</span><span class="identifier">arg2</span><span class="special">)(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">i</span><span class="special">);</span> <span class="comment">// returns a-&gt;func(i)</span>
+</pre>
+<h5>
+<a name="phoenix.modules.operator.h5"></a>
+        <span class="phrase"><a name="phoenix.modules.operator.include_files"></a></span><a class="link" href="operator.html#phoenix.modules.operator.include_files">Include
+        Files</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Operators
+                </p>
+              </th>
+<th>
+                <p>
+                  File
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">-</span></code>, <code class="computeroutput"><span class="special">+</span></code>,
+                  <code class="computeroutput"><span class="special">++</span></code>, <code class="computeroutput"><span class="special">--</span></code>, <code class="computeroutput"><span class="special">+=</span></code>,
+                  <code class="computeroutput"><span class="special">-=</span></code>, <code class="computeroutput"><span class="special">*=</span></code>, <code class="computeroutput"><span class="special">/=</span></code>,
+                  <code class="computeroutput"><span class="special">%=</span></code>, <code class="computeroutput"><span class="special">*</span></code>, <code class="computeroutput"><span class="special">/</span></code>,
+                  <code class="computeroutput"><span class="special">%</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">arithmetic</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&amp;=</span></code>, <code class="computeroutput"><span class="special">|=</span></code>, <code class="computeroutput"><span class="special">^=</span></code>,
+                  <code class="computeroutput"><span class="special">&lt;&lt;=</span></code>, <code class="computeroutput"><span class="special">&gt;&gt;=</span></code>, <code class="computeroutput"><span class="special">&amp;</span></code>,
+                  <code class="computeroutput"><span class="special">|</span></code>, <code class="computeroutput"><span class="special">^</span></code>,
+                  <code class="computeroutput"><span class="special">&lt;&lt;</span></code>, <code class="computeroutput"><span class="special">&gt;&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">bitwise</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">==</span></code>, <code class="computeroutput"><span class="special">!=</span></code>, <code class="computeroutput"><span class="special">&lt;</span></code>,
+                  <code class="computeroutput"><span class="special">&lt;=</span></code>, <code class="computeroutput"><span class="special">&gt;</span></code>, <code class="computeroutput"><span class="special">&gt;=</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">comparison</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;&lt;</span></code>, <code class="computeroutput"><span class="special">&gt;&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">io</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">!</span></code>, &amp;&amp;, <code class="computeroutput"><span class="special">||</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">logical</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span></code>,
+                  <code class="computeroutput"><span class="special">*</span><span class="identifier">p</span></code>,
+                  <code class="computeroutput"><span class="special">=</span></code>, <code class="computeroutput"><span class="special">[]</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">self</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">if_else</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span>
+                  <span class="identifier">a</span><span class="special">,</span>
+                  <span class="identifier">b</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">if_else</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">-&gt;*</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">member</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="function/adapting_functions.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../modules.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="statement.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

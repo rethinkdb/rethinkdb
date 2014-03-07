@@ -1,0 +1,85 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Optional references</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Chapter 1. Boost.Optional">
+<link rel="up" href="../index.html" title="Chapter 1. Boost.Optional">
+<link rel="prev" href="examples.html" title="Examples">
+<link rel="next" href="rebinding_semantics_for_assignment_of_optional_references.html" title="Rebinding semantics for assignment of optional references">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="examples.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="rebinding_semantics_for_assignment_of_optional_references.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+<div class="section" title="Optional references">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_optional.optional_references"></a><a class="link" href="optional_references.html" title="Optional references">Optional references</a>
+</h2></div></div></div>
+<p>
+      This library allows the template parameter <code class="computeroutput"><span class="identifier">T</span></code>
+      to be of reference type: <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span></code>, and to some extent, <code class="computeroutput"><span class="identifier">T</span>
+      <span class="keyword">const</span><span class="special">&amp;</span></code>.
+    </p>
+<p>
+      However, since references are not real objects some restrictions apply and
+      some operations are not available in this case:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+        Converting constructors
+      </li>
+<li class="listitem">
+        Converting assignment
+      </li>
+<li class="listitem">
+        InPlace construction
+      </li>
+<li class="listitem">
+        InPlace assignment
+      </li>
+<li class="listitem">
+        Value-access via pointer
+      </li>
+</ul></div>
+<p>
+      Also, even though <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&amp;&gt;</span></code>
+      treats it wrapped pseudo-object much as a real value, a true real reference
+      is stored so aliasing will ocurr:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+        Copies of <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&amp;&gt;</span></code>
+        will copy the references but all these references will nonetheless reefer
+        to the same object.
+      </li>
+<li class="listitem">
+        Value-access will actually provide access to the referenced object rather
+        than the reference itself.
+      </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2003 -2007 Fernando Luis Cacciola Carballal<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="examples.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="rebinding_semantics_for_assignment_of_optional_references.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,30 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:copied copied]
+
+[table
+    [[Syntax] [Code]]
+    [[Pipe] [`rng | boost::adaptors::copied(n, m)`]]
+    [[Function] [`boost::adaptors::copy(rng, n, m)`]]
+]
+
+* [*Precondition:]  `0 <= n && n <= m && m < distance(rng)`
+* [*Returns:] A new `iterator_range` that holds the sliced range `[n,m)` of the original range.
+* [*Range Category:] __random_access_range__
+* [*Returned Range Category:] __random_access_range__
+
+[section:copied_example copied example]
+[import ../../../test/adaptor_test/copied_example.cpp]
+[copied_example]
+[endsect]
+
+This would produce the output:
+``
+2,3,4,5,
+``
+[endsect]
+
+

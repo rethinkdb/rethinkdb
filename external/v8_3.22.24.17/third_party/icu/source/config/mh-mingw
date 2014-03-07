@@ -1,0 +1,131 @@
+## -*-makefile-*-
+## Cygwin/MinGW specific setup
+## Copyright (c) 2001-2009, International Business Machines Corporation and
+## others. All Rights Reserved.
+
+# TODO: Finish the rest of this port. This platform port is incomplete.
+
+# We install sbin tools into the same bin directory because
+# pkgdata needs some of the tools in sbin, and we can't always depend on
+# icu-config working on Windows.
+sbindir=$(bindir)
+
+## Commands to generate dependency files
+GEN_DEPS.c=	$(CC) -E -MM $(DEFS) $(CPPFLAGS)
+GEN_DEPS.cc=	$(CXX) -E -MM $(DEFS) $(CPPFLAGS)
+
+## Flags to create/use a static library
+ifneq ($(ENABLE_SHARED),YES)
+## Make sure that the static libraries can be built and used
+CPPFLAGS += -DU_STATIC_IMPLEMENTATION
+else
+## Make sure that the static libraries can be built
+STATICCPPFLAGS = -DU_STATIC_IMPLEMENTATION
+endif
+
+## Flags for position independent code
+SHAREDLIBCFLAGS = 
+SHAREDLIBCXXFLAGS = 
+SHAREDLIBCPPFLAGS = -DPIC
+
+## Additional flags when building libraries and with threads
+THREADSCFLAGS = -mthreads
+THREADSCXXFLAGS = -mthreads
+LIBCPPFLAGS =
+
+# Commands to link. Link with C++ in case static libraries are used.
+LINK.c=       $(CXX) $(CXXFLAGS) $(LDFLAGS)
+#LINK.cc=      $(CXX) $(CXXFLAGS) $(LDFLAGS)
+
+## Commands to make a shared library
+SHLIB.c=	$(CC) $(CFLAGS) $(LDFLAGS) -shared
+SHLIB.cc=	$(CXX) $(CXXFLAGS) $(LDFLAGS) -shared
+
+## Compiler switch to embed a runtime search path
+LD_RPATH=	
+LD_RPATH_PRE=	-Wl,-rpath,
+
+## Compiler switch to embed a library name
+LD_SONAME = 
+
+## Shared object suffix
+SO = dll
+## Non-shared intermediate object suffix
+STATIC_O = ao
+SO_TARGET_VERSION_SUFFIX = $(SO_TARGET_VERSION_MAJOR)
+
+# Static library prefix and file extension
+LIBSICU = $(STATIC_PREFIX)$(ICUPREFIX)
+A = lib
+
+## An import library is needed for z/OS and MSVC
+#IMPORT_LIB_EXT = .lib
+
+LIBPREFIX=
+
+# Change the stubnames so that poorly working FAT disks and installation programs can work.
+# This is also for backwards compatibility.
+DATA_STUBNAME = dt
+I18N_STUBNAME = in
+LIBICU = $(STATIC_PREFIX_WHEN_USED)$(ICUPREFIX)
+
+# The #M# is used to delete lines for icu-config
+# Current full path directory.
+#CURR_FULL_DIR=$(shell pwd -W)#M# for MSYS
+CURR_FULL_DIR=$(subst \,/,$(shell cmd /c cd))#M# for Cygwin shell
+# Current full path directory for use in source code in a -D compiler option.
+#CURR_SRCCODE_FULL_DIR=$(subst /,\\\\,$(shell pwd -W))#M# for MSYS
+CURR_SRCCODE_FULL_DIR=$(subst \,/,$(shell cmd /c cd))#M# for Cygwin shell
+
+## Compilation rules
+%.$(STATIC_O): $(srcdir)/%.c
+	$(COMPILE.c) $(STATICCPPFLAGS) $(STATICCFLAGS) -o $@ $<
+%.o: $(srcdir)/%.c
+	$(COMPILE.c) $(DYNAMICCPPFLAGS) $(DYNAMICCFLAGS) -o $@ $<
+
+%.$(STATIC_O): $(srcdir)/%.cpp
+	$(COMPILE.cc) $(STATICCPPFLAGS) $(STATICCXXFLAGS) -o $@ $<
+%.o: $(srcdir)/%.cpp
+	$(COMPILE.cc) $(DYNAMICCPPFLAGS) $(DYNAMICCXXFLAGS) -o $@ $<
+
+
+## Dependency rules
+%.d: $(srcdir)/%.c
+	@echo "generating dependency information for $<"
+	@echo -n "$@ " > $@
+	@$(GEN_DEPS.c) $< >> $@ || (rm -f $@ && FALSE)
+
+%.d: $(srcdir)/%.cpp
+	@echo "generating dependency information for $<"
+	@echo -n "$@ " > $@
+	@$(GEN_DEPS.cc) $< >> $@ || (rm -f $@ && FALSE)
+
+## Versioned target for a shared library.
+## Since symbolic links don't work the same way on Windows,
+## we only use the version major number.
+#FINAL_SO_TARGET=$(basename $(SO_TARGET))$(SO_TARGET_VERSION).$(SO)
+FINAL_SO_TARGET=$(basename $(SO_TARGET))$(SO_TARGET_VERSION_MAJOR).$(SO)
+MIDDLE_SO_TARGET=$(FINAL_SO_TARGET)
+
+## Special pkgdata information that is needed
+PKGDATA_VERSIONING = -r $(SO_TARGET_VERSION_MAJOR)
+#ICUPKGDATA_INSTALL_DIR = $(shell cygpath -dma $(DESTDIR)$(ICUPKGDATA_DIR))#M#
+#ICUPKGDATA_INSTALL_LIBDIR = $(shell cygpath -dma $(DESTDIR)$(libdir))#M#
+
+## Versioned libraries rules
+#%$(SO_TARGET_VERSION_MAJOR).$(SO): %$(SO_TARGET_VERSION).$(SO)
+#	$(RM) $@ && cp ${<F} $@
+%.$(SO): %$(SO_TARGET_VERSION_MAJOR).$(SO)
+	@echo -n
+
+# Environment variable to set a runtime search path
+LDLIBRARYPATH_ENVVAR = PATH
+
+# The type of assembly to write for generating an object file
+GENCCODE_ASSEMBLY=-a gcc-cygwin
+
+# These are needed to allow the pkgdata GNU make files to work
+PKGDATA_DEFS = -DU_MAKE=\"$(MAKE)\"
+
+## End Cygwin/MinGW specific setup
+

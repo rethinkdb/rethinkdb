@@ -1,0 +1,142 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Transforming the Expression Tree]
+
+This example will show how to write __phoenix_actions__ that transform the
+Phoenix AST.
+
+[:
+"/Lisp macros transform the program structure itself, with the full language
+available to express such transformations./"
+
+[@http://en.wikipedia.org/wiki/Lisp_macro#Lisp_macros Wikipedia]
+]
+
+What we want to do is to invert some arithmetic operators, i.e. plus will be
+transformed to minus, minus to plus, multiplication to division and division to
+multiplication.
+
+Let's start with defining our default action:
+
+    struct invert_actions
+    {
+        template <typename Rule>
+        struct when
+            : proto::_ // the default is proto::_
+        {};
+    };
+
+By default, we don't want to do anything, well, not exactly nothing, but just
+return the expression. This is done by
+[@http://www.boost.org/doc/libs/release/doc/html/boost/proto/_.html proto::_]
+which, used as a transform, just passes the current expression along. Making this
+action an identity transform.
+
+[def __proto_make_expr__     [@http://www.boost.org/doc/libs/release/doc/html/boost/proto/functional/make_expr.html `proto::functional::make_expr`]]
+
+So, after the basics are set up, we can start by writing the transformations we
+want to have on our tree:
+
+    // Transform plus to minus
+    template <>
+    struct invert_actions::when<phoenix::rule::plus>
+        : __proto_call__<
+            __proto_make_expr__<proto::tag::minus>(
+                phoenix::evaluator(proto::_left, phoenix::_context)
+              , phoenix::evaluator(proto::_right, phoenix::_context)
+            )
+        >
+    {};
+
+Wow, this looks complicated! Granted you need to know a little bit about __proto__
+(For a good introduction read through the 
+ [@http://cpp-next.com/archive/2010/08/expressive-c-introduction/ Expressive C++] series).
+
+What is done is the following:
+
+* The left expression is passed to evaluator (with the current context, that contains our invert_actions)
+* The right expression is passed to evaluator (with the current context, that contains our invert_actions)
+* The result of these two __proto_transforms__ is passed to __proto_make_expr__ which returns the freshly created expression
+
+After you know what is going on, maybe the rest doesn't look so scary anymore:
+
+    // Transform minus to plus
+    template <>
+    struct invert_actions::when<phoenix::rule::minus>
+        : __proto_call__<
+            __proto_make_expr__<proto::tag::plus>(
+                phoenix::evaluator(proto::_left, phoenix::_context)
+              , phoenix::evaluator(proto::_right, phoenix::_context)
+            )
+        >
+    {};
+
+    // Transform multiplies to divides
+    template <>
+    struct invert_actions::when<phoenix::rule::multiplies>
+        : __proto_call__<
+            __proto_make_expr__<proto::tag::divides>(
+                phoenix::evaluator(proto::_left, phoenix::_context)
+              , phoenix::evaluator(proto::_right, phoenix::_context)
+            )
+        >
+    {};
+
+    // Transform divides to multiplies
+    template <>
+    struct invert_actions::when<phoenix::rule::divides>
+        : __proto_call__<
+            __proto_make_expr__<proto::tag::multiplies>(
+                phoenix::evaluator(proto::_left, phoenix::_context)
+              , phoenix::evaluator(proto::_right, phoenix::_context)
+            )
+        >
+    {};
+
+That's it! Now that we have our actions defined, we want to evaluate some of our expressions with them:
+
+    template <typename Expr>
+    // Calculate the result type: our transformed AST
+    typename boost::result_of<
+        phoenix::evaluator(
+            Expr const&
+          , phoenix::result_of::context<int, invert_actions>::type
+        )
+    >::type
+    invert(Expr const & expr)
+    {
+        return 
+            // Evaluate it with our actions
+            phoenix::eval(
+                expr
+              , phoenix::context(
+                    int()
+                  , invert_actions()
+                )
+            );
+    }
+
+Run some tests to see if it is working:
+
+    invert(_1);                    // --> _1
+    invert(_1 + _2);               // --> _1 - _2
+    invert(_1 + _2 - _3);          // --> _1 - _2 + _3
+    invert(_1 * _2);               // --> _1 / _2
+    invert(_1 * _2 / _3);          // --> _1 / _2 * _3
+    invert(_1 * _2 + _3);          // --> _1 / _2 - _3
+    invert(_1 * _2 - _3);          // --> _1 / _2 + _2
+    invert(if_(_1 * _4)[_2 - _3]); // --> if_(_1 / _4)[_2 + _3]
+    _1 * invert(_2 - _3));         // --> _1 * _2 + _3
+
+__note__ The complete example can be found here: [@../../example/invert.cpp example/invert.cpp]
+
+/Pretty simple .../
+
+[endsect]

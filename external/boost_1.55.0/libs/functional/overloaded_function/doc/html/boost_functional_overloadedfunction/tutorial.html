@@ -1,0 +1,228 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Tutorial</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Functional/OverloadedFunction 1.0.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Functional/OverloadedFunction 1.0.0">
+<link rel="prev" href="getting_started.html" title="Getting Started">
+<link rel="next" href="../reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="getting_started.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_functional_overloadedfunction_tutorial">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_functional_overloadedfunction.tutorial"></a><a class="link" href="tutorial.html" title="Tutorial">Tutorial</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="tutorial.html#boost_functional_overloadedfunction.tutorial.overloading">Overloading</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#boost_functional_overloadedfunction.tutorial.without_function_types">Without
+      Function Types</a></span></dt>
+</dl></div>
+<p>
+      This section explains how to use this library.
+    </p>
+<div class="section boost_functional_overloadedfunction_tutorial_overloading">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_functional_overloadedfunction.tutorial.overloading"></a><a class="link" href="tutorial.html#boost_functional_overloadedfunction.tutorial.overloading" title="Overloading">Overloading</a>
+</h3></div></div></div>
+<p>
+        Consider the following functions which have distinct signatures:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">identity_s</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="comment">// Function (as pointer).</span>
+    <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">x</span><span class="special">;</span> <span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">identity_i_impl</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">x</span><span class="special">)</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">x</span><span class="special">;</span> <span class="special">}</span>
+<span class="keyword">int</span> <span class="special">(&amp;</span><span class="identifier">identity_i</span><span class="special">)(</span><span class="keyword">int</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">identity_i_impl</span><span class="special">;</span> <span class="comment">// Function reference.</span>
+
+<span class="keyword">double</span> <span class="identifier">identity_d_impl</span><span class="special">(</span><span class="keyword">double</span> <span class="identifier">x</span><span class="special">)</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">x</span><span class="special">;</span> <span class="special">}</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">function</span><span class="special">&lt;</span><span class="keyword">double</span> <span class="special">(</span><span class="keyword">double</span><span class="special">)&gt;</span> <span class="identifier">identity_d</span> <span class="special">=</span> <span class="identifier">identity_d_impl</span><span class="special">;</span> <span class="comment">// Functor.</span>
+</pre>
+<p>
+      </p>
+<p>
+        This library header <code class="computeroutput"><a class="link" href="../reference.html#header.boost.functional.overloaded_function_hpp" title="Header &lt;boost/functional/overloaded_function.hpp&gt;">boost/functional/overloaded_function.hpp</a></code>
+        provides a <code class="computeroutput"><a class="link" href="../boost/overloaded_function.html" title="Class template overloaded_function">boost::overloaded_function</a></code>
+        class template that creates a single overloaded function object that can
+        be used to call the specified functions instead of using the separate function
+        names (see also <a href="../../../test/functor.cpp" target="_top"><code class="literal">functor.cpp</code></a>
+        and <a href="../../../test/identity.hpp" target="_top"><code class="literal">identity.hpp</code></a>):
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">overloaded_function</span><span class="special">&lt;</span>
+      <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;)</span>
+    <span class="special">,</span> <span class="keyword">int</span> <span class="special">(</span><span class="keyword">int</span><span class="special">)</span>
+    <span class="special">,</span> <span class="keyword">double</span> <span class="special">(</span><span class="keyword">double</span><span class="special">)</span>
+<span class="special">&gt;</span> <span class="identifier">identity</span><span class="special">(</span><span class="identifier">identity_s</span><span class="special">,</span> <span class="identifier">identity_i</span><span class="special">,</span> <span class="identifier">identity_d</span><span class="special">);</span>
+
+<span class="comment">// All calls via single `identity` function.</span>
+<span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">identity</span><span class="special">(</span><span class="string">"abc"</span><span class="special">)</span> <span class="special">==</span> <span class="string">"abc"</span><span class="special">);</span>
+<span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">identity</span><span class="special">(</span><span class="number">123</span><span class="special">)</span> <span class="special">==</span> <span class="number">123</span><span class="special">);</span>
+<span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">identity</span><span class="special">(</span><span class="number">1.23</span><span class="special">)</span> <span class="special">==</span> <span class="number">1.23</span><span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        Note how each function type is passed as a template parameter of <code class="computeroutput"><a class="link" href="../boost/overloaded_function.html" title="Class template overloaded_function">boost::overloaded_function</a></code> using
+        the following syntax (this is <a href="http://www.boost.org/libs/function" target="_top">Boost.Function</a>'s
+        preferred syntax):
+      </p>
+<pre class="programlisting"><span class="emphasis"><em>result-type</em></span> <span class="special">(</span><span class="emphasis"><em>argument1-type</em></span><span class="special">,</span> <span class="emphasis"><em>argument2-type</em></span><span class="special">,</span> <span class="special">...)</span>
+</pre>
+<p>
+        Then the relative function pointers, function references, or <a href="http://en.wikipedia.org/wiki/Polymorphism_(computer_science)" target="_top">monomorphic
+        function</a> objects are passed to the <code class="computeroutput"><a class="link" href="../boost/overloaded_function.html" title="Class template overloaded_function">boost::overloaded_function</a></code>
+        constructor matching the order of the specified template parameters. <sup>[<a name="boost_functional_overloadedfunction.tutorial.overloading.f0" href="#ftn.boost_functional_overloadedfunction.tutorial.overloading.f0" class="footnote">2</a>]</sup> In the above example, <code class="computeroutput"><span class="identifier">identity_s</span></code>
+        is passed as a function pointer (the function address is automatically taken
+        from the function name by the compiler), <code class="computeroutput"><span class="identifier">identity_i</span></code>
+        as a function reference, and <code class="computeroutput"><span class="identifier">identity_d</span></code>
+        as a function object.
+      </p>
+<p>
+        All specified function types must have distinct parameters from one another
+        (so the overloaded calls can be resolved by this library). <sup>[<a name="boost_functional_overloadedfunction.tutorial.overloading.f1" href="#ftn.boost_functional_overloadedfunction.tutorial.overloading.f1" class="footnote">3</a>]</sup> In order to create an overloaded function object, it is necessary
+        to specify at least two function types (because there is nothing to overload
+        between one or zero functions).
+      </p>
+</div>
+<div class="section boost_functional_overloadedfunction_tutorial_without_function_types">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_functional_overloadedfunction.tutorial.without_function_types"></a><a class="link" href="tutorial.html#boost_functional_overloadedfunction.tutorial.without_function_types" title="Without Function Types">Without
+      Function Types</a>
+</h3></div></div></div>
+<p>
+        For convenience, this library also provides the <code class="computeroutput"><a class="link" href="../boost/make_overloaded_function.html" title="Function template make_overloaded_function">boost::make_overloaded_function</a></code>
+        function template which allows to create the overloaded function object without
+        explicitly specifying the function types. The function types are automatically
+        deduced from the specified functions and the appropriate <code class="computeroutput"><a class="link" href="../boost/overloaded_function.html" title="Class template overloaded_function">boost::overloaded_function</a></code>
+        instantiation is returned by <code class="computeroutput"><a class="link" href="../boost/make_overloaded_function.html" title="Function template make_overloaded_function">boost::make_overloaded_function</a></code>.
+      </p>
+<p>
+        The <code class="computeroutput"><a class="link" href="../boost/make_overloaded_function.html" title="Function template make_overloaded_function">boost::make_overloaded_function</a></code>
+        function template can be useful when used together with <a href="http://www.boost.org/doc/libs/typeof" target="_top">Boost.Typeof</a>'s
+        <code class="computeroutput"><span class="identifier">BOOST_AUTO</span></code> (or C++11 <code class="computeroutput"><span class="keyword">auto</span></code>). For example (see also <a href="../../../test/make_decl.cpp" target="_top"><code class="literal">make_decl.cpp</code></a>
+        and <a href="../../../test/identity.hpp" target="_top"><code class="literal">identity.hpp</code></a>):
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">BOOST_AUTO</span><span class="special">(</span><span class="identifier">identity</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_overloaded_function</span><span class="special">(</span>
+        <span class="identifier">identity_s</span><span class="special">,</span> <span class="identifier">identity_i</span><span class="special">,</span> <span class="identifier">identity_d</span><span class="special">));</span>
+
+<span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">identity</span><span class="special">(</span><span class="string">"abc"</span><span class="special">)</span> <span class="special">==</span> <span class="string">"abc"</span><span class="special">);</span>
+<span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">identity</span><span class="special">(</span><span class="number">123</span><span class="special">)</span> <span class="special">==</span> <span class="number">123</span><span class="special">);</span>
+<span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">identity</span><span class="special">(</span><span class="number">1.23</span><span class="special">)</span> <span class="special">==</span> <span class="number">1.23</span><span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        Note how the overloaded function object <code class="computeroutput"><span class="identifier">identity</span></code>
+        has been created specifying only the functions <code class="computeroutput"><span class="identifier">identity_s</span></code>,
+        <code class="computeroutput"><span class="identifier">identity_i</span></code>, <code class="computeroutput"><span class="identifier">identity_d</span></code> and without specifying the function
+        types <code class="computeroutput"><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="special">(</span><span class="keyword">const</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;)</span></code>,
+        <code class="computeroutput"><span class="keyword">int</span> <span class="special">(</span><span class="keyword">int</span><span class="special">)</span></code>, and
+        <code class="computeroutput"><span class="keyword">double</span> <span class="special">(</span><span class="keyword">double</span><span class="special">)</span></code> as
+        required instead by <code class="computeroutput"><a class="link" href="../boost/overloaded_function.html" title="Class template overloaded_function">boost::overloaded_function</a></code>.
+        Therefore, <code class="computeroutput"><a class="link" href="../boost/make_overloaded_function.html" title="Function template make_overloaded_function">boost::make_overloaded_function</a></code>
+        provides a more concise syntax in this context when compared with <code class="computeroutput"><a class="link" href="../boost/overloaded_function.html" title="Class template overloaded_function">boost::overloaded_function</a></code>.
+      </p>
+<p>
+        Another case where <code class="computeroutput"><a class="link" href="../boost/make_overloaded_function.html" title="Function template make_overloaded_function">boost::make_overloaded_function</a></code>
+        can be useful is when the overloaded function object is passed to a function
+        template which can hold the specific <code class="computeroutput"><a class="link" href="../boost/overloaded_function.html" title="Class template overloaded_function">boost::overloaded_function</a></code>
+        type using a template parameter. For example (see also <a href="../../../test/make_call.cpp" target="_top"><code class="literal">make_call.cpp</code></a>
+        and <a href="../../../test/identity.hpp" target="_top"><code class="literal">identity.hpp</code></a>):
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">check</span><span class="special">(</span><span class="identifier">F</span> <span class="identifier">identity</span><span class="special">)</span> <span class="special">{</span>
+    <span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">identity</span><span class="special">(</span><span class="string">"abc"</span><span class="special">)</span> <span class="special">==</span> <span class="string">"abc"</span><span class="special">);</span>
+    <span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">identity</span><span class="special">(</span><span class="number">123</span><span class="special">)</span> <span class="special">==</span> <span class="number">123</span><span class="special">);</span>
+    <span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">identity</span><span class="special">(</span><span class="number">1.23</span><span class="special">)</span> <span class="special">==</span> <span class="number">1.23</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">check</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_overloaded_function</span><span class="special">(</span><span class="identifier">identity_s</span><span class="special">,</span> <span class="identifier">identity_i</span><span class="special">,</span> <span class="identifier">identity_d</span><span class="special">));</span>
+</pre>
+<p>
+      </p>
+<p>
+        The library implementation of <code class="computeroutput"><a class="link" href="../boost/make_overloaded_function.html" title="Function template make_overloaded_function">boost::make_overloaded_function</a></code>
+        uses <a href="http://www.boost.org/doc/libs/typeof" target="_top">Boost.Typeof</a>
+        to automatically deduce some of the function types. In order to compile code
+        in <a href="http://www.boost.org/doc/libs/typeof" target="_top">Boost.Typeof</a>
+        emulation mode, all types should be properly registered using <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_REGISTER_TYPE</span></code> and <code class="computeroutput"><span class="identifier">BOOST_TYPEOF_REGISTER_TEMPLATE</span></code>, or appropriate
+        <a href="http://www.boost.org/doc/libs/typeof" target="_top">Boost.Typeof</a> headers
+        should be included (see <a href="http://www.boost.org/doc/libs/typeof" target="_top">Boost.Typeof</a>
+        for more information). For the above examples, it is sufficient to include
+        the <a href="http://www.boost.org/doc/libs/typeof" target="_top">Boost.Typeof</a>
+        header that registers <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>
+        (this library does not require to register <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">function</span></code>
+        for <a href="http://www.boost.org/doc/libs/typeof" target="_top">Boost.Typeof</a>
+        emulation):
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">typeof</span><span class="special">/</span><span class="identifier">std</span><span class="special">/</span><span class="identifier">string</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span> <span class="comment">// No need to register `boost::function`.</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="footnotes">
+<br><hr width="100" align="left">
+<div class="footnote"><p><sup>[<a id="ftn.boost_functional_overloadedfunction.tutorial.overloading.f0" href="#boost_functional_overloadedfunction.tutorial.overloading.f0" class="para">2</a>] </sup>
+          Function pointers are of the form <code class="literal"><span class="emphasis"><em>result-type </em></span></code><code class="computeroutput"><span class="special">(*)(</span></code><code class="literal"><span class="emphasis"><em>argument1-type</em></span></code><code class="computeroutput"><span class="special">,</span> <span class="special">...)</span></code> (the
+          C++ compiler is usually able to automatically promote a function name to
+          a function pointer in a context where a function pointer is expected even
+          if the function name is not prefixed by <code class="computeroutput"><span class="special">&amp;</span></code>).
+          Function references are of the form <code class="literal"><span class="emphasis"><em>result-type </em></span></code><code class="computeroutput"><span class="special">(&amp;)(</span></code><code class="literal"><span class="emphasis"><em>argument1-type</em></span></code><code class="computeroutput"><span class="special">,</span> <span class="special">...)</span></code>.
+          Function types are of the form <code class="literal"><span class="emphasis"><em>result-type </em></span></code><code class="computeroutput"><span class="special">(</span></code><code class="literal"><span class="emphasis"><em>argument1-type</em></span></code><code class="computeroutput"><span class="special">,</span> <span class="special">...)</span></code> (note
+          how they lack of both <code class="computeroutput"><span class="special">*</span></code> and
+          <code class="computeroutput"><span class="special">&amp;</span></code> when compared to function
+          pointers and function references). Finally, monomorphic function objects
+          are instances of classes with a non-template call operator of the form
+          <code class="literal"><span class="emphasis"><em>result-type </em></span></code><code class="computeroutput"><span class="keyword">operator</span><span class="special">()(</span></code><code class="literal"><span class="emphasis"><em>argument1-type</em></span></code><code class="computeroutput"><span class="special">,</span> <span class="special">...)</span></code>.
+          Unfortunately, it is not possible to support polymorphic function objects
+          (see <a href="http://lists.boost.org/Archives/boost/2012/03/191744.php" target="_top">http://lists.boost.org/Archives/boost/2012/03/191744.php</a>).
+        </p></div>
+<div class="footnote"><p><sup>[<a id="ftn.boost_functional_overloadedfunction.tutorial.overloading.f1" href="#boost_functional_overloadedfunction.tutorial.overloading.f1" class="para">3</a>] </sup>
+          Note that in C++ the function result type is not used for overload resolution
+          (to avoid making the overload resolution context dependent). Therefore,
+          at least one of the function parameters must be distinct for each specified
+          function type.
+        </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011, 2012 Lorenzo Caminiti<p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="getting_started.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

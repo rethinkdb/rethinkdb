@@ -1,0 +1,24 @@
+[/
+          Copyright Oliver Kowalke 2009.
+ Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+          http://www.boost.org/LICENSE_1_0.txt
+]
+
+[section:requirements Requirements]
+
+__boost_context__ must be built for the particular compiler(s) and CPU
+architecture(s)s being targeted. __boost_context__ includes assembly code and,
+therefore, requires GNU AS for supported POSIX systems, MASM for Windows/x86
+systems and ARMasm for Windows/arm systems.
+
+[note MASM64 (ml64.exe) is a part of Microsoft's Windows Driver Kit.]
+
+[important Please note that `address-model=64` must be given to bjam command line
+on 64bit Windows for 64bit build; otherwise 32bit code will be generated.]
+
+[important For cross-compiling the lib you must specify certain additional
+properties at bjam command line: `target-os`, `abi`, `binary-format`,
+`architecture` and `address-model`.]
+
+[endsect]

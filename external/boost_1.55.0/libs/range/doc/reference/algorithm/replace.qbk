@@ -1,0 +1,46 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:replace replace]
+
+[heading Prototype]
+
+``
+template<
+    class ForwardRange,
+    class Value
+    >
+ForwardRange& replace(ForwardRange& rng, const Value& what, const Value& with_what);
+
+template<
+    class ForwardRange,
+    class UnaryPredicate
+    >
+const ForwardRange& replace(const ForwardRange& rng, const Value& what, const Value& with_what);
+``
+
+[heading Description]
+
+`replace` every element in `rng` equal to `what` with `with_what`. Return a reference to `rng`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/replace.hpp`
+
+[heading Requirements]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange` is mutable.
+* `Value` is convertible to `ForwardRange`'s value type.
+* `Value` is a model of the `AssignableConcept`.
+* `Value` is a model of the `EqualityComparableConcept`, and may be compared for equality with objects of `ForwardRange`'s value type.
+
+[heading Complexity]
+
+Linear. `replace` performs exactly `distance(rng)` comparisons for equality and at most `distance(rng)` assignments.
+
+[endsect]
+
+

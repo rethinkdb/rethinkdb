@@ -1,0 +1,21 @@
+[article C++ test
+[quickbook 1.5]
+[source-mode python]
+[license `def foo(x): print "Hello"`]
+[source-mode teletype]
+[purpose `This shouldn't be highlighted`]
+]
+
+```This shouldn't be highlighted.```
+
+[include source-mode-cpp-include.quickbook]
+
+```int main() {}```
+
+[include source-mode-python-include.quickbook]
+
+```def foo(x):```
+
+[include source-mode-teletype-include.quickbook]
+
+```This shouldn't be highlighted.```

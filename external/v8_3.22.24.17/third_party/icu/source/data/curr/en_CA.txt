@@ -1,0 +1,21 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/en_CA.xml
+// *
+// ***************************************************************************
+en_CA{
+    Currencies{
+        CAD{
+            "$",
+            "Canadian Dollar",
+        }
+        USD{
+            "US$",
+            "US Dollar",
+        }
+    }
+    Version{"2.0.48.53"}
+}

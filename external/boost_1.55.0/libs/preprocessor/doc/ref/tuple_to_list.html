@@ -1,0 +1,60 @@
+<html>
+  <head>
+    <title>BOOST_PP_TUPLE_TO_LIST</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+  </head>
+  <body>
+	<div style="margin-left: 0px;">
+		The <b>BOOST_PP_TUPLE_TO_LIST</b> macro converts a <i>tuple</i> to a <i>list</i>.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_TUPLE_TO_LIST</b>(<i>size</i>, <i>tuple</i>)<br>
+<br>
+or<br>
+<br>
+<b>BOOST_PP_TUPLE_TO_LIST</b>(<i>...</i>) <sup>(v)</sup><br>
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>size</dt>
+			<dd>
+				The size of the <i>tuple</i> to be converted.&nbsp;
+				Valid <i>tuple</i> sizes range from <i>1</i> to <b>BOOST_PP_LIMIT_TUPLE</b>.&nbsp;
+			</dd>
+			<dt>tuple</dt>
+			<dd>
+				The <i>tuple</i> to be converted.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			The <i>size</i> argument must be the actual size of the <i>tuple</i>.<br>
+<br>
+You can
+invoke the variadic version <sup>(v)</sup> as BOOST_PP_TUPLE_TO_LIST(<i>tuple</i>) or
+BOOST_PP_TUPLE_TO_LIST(<i>size</i>,<i>tuple</i>).<br>
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="limit_tuple.html">BOOST_PP_LIMIT_TUPLE</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/tuple/to_list.html">&lt;boost/preprocessor/tuple/to_list.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>#include &lt;<a href="../headers/tuple/to_list.html">boost/preprocessor/tuple/to_list.hpp</a>&gt;<br><br><a href="tuple_to_list.html">BOOST_PP_TUPLE_TO_LIST</a>(3, (x, y, z))<br>   // expands to (x, (y, (z, <a href="nil.html">BOOST_PP_NIL</a>)))<br><br>// or for the variadic version <sup>(v)<br><br></sup><a href="tuple_to_list.html">BOOST_PP_TUPLE_TO_LIST</a>((x, y, z))<br>   // expands to (x, (y, (z, <a href="nil.html">BOOST_PP_NIL</a>)))<br></pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		<br><i>© Copyright Paul Mensonides 2002<br>
+</i><i>© Copyright Edward Diener 2011</i><br>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+  </body>
+</html>

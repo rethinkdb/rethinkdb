@@ -1,0 +1,99 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Frequently Asked Questions</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../signals2.html" title="Chapter&#160;28.&#160;Boost.Signals2">
+<link rel="prev" href="thread-safety.html" title="Thread-Safety">
+<link rel="next" href="rationale.html" title="Design Rationale">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="thread-safety.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rationale.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="signals2.faq"></a>Frequently Asked Questions</h2></div></div></div>
+<div class="qandaset">
+<a name="idp206489864"></a><dl>
+<dt>1. <a href="faq.html#idp206489992">Don't noncopyable signal semantics mean that a class
+        with a signal member will be noncopyable as well?</a>
+</dt>
+<dt>2. <a href="faq.html#idp206491368">Is Boost.Signals2 thread-safe?</a>
+</dt>
+</dl>
+<table border="0" style="width: 100%;">
+<colgroup>
+<col align="left" width="1%">
+<col>
+</colgroup>
+<tbody>
+<tr class="question">
+<td align="left" valign="top">
+<a name="idp206489992"></a><a name="idp206490120"></a><p><b>1.</b></p>
+</td>
+<td align="left" valign="top"><p>Don't noncopyable signal semantics mean that a class
+        with a signal member will be noncopyable as well?</p></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p>No. The compiler will not be able to generate a copy
+        constructor or copy assignment operator for your class if it
+        has a signal as a member, but you are free to write your own
+        copy constructor and/or copy assignment operator. Just don't
+        try to copy the signal.</p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="idp206491368"></a><a name="idp206491496"></a><p><b>2.</b></p>
+</td>
+<td align="left" valign="top"><p>Is Boost.Signals2 thread-safe?</p></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top">
+<p>
+          Yes, as long as the Mutex template parameter is not set to
+          a fake mutex type like <code class="computeroutput"><a class="link" href="../boost/signals2/dummy_mutex.html" title="Class dummy_mutex">boost::signals2::dummy_mutex</a></code>.
+          Also, if your slots depend on objects which may be destroyed concurrently
+          with signal invocation, you will need to use automatic connection management.
+          That is, the objects will need to be owned by
+          <code class="computeroutput">shared_ptr</code> and passed to the slot's
+          <code class="computeroutput"><a class="link" href="../boost/signals2/slot.html#idp58467624-bb">track</a></code>() method before the slot is connected.
+          The <code class="computeroutput"><a class="link" href="../boost/signals2/trackable.html" title="Class trackable">signals2::trackable</a></code> scheme of automatic connection management
+          is NOT thread-safe, and is only provided to ease porting of single-threaded
+          code from Boost.Signals to Boost.Signals2.
+        </p>
+<p>See the documentation section on <a class="link" href="thread-safety.html" title="Thread-Safety">thread-safety</a>
+          for more information.
+        </p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: June 12, 2007 at 14:01:23 -0400</small></p></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<br>Copyright &#169; 2007-2009 Frank Mori Hess<p>Distributed under the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="thread-safety.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rationale.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

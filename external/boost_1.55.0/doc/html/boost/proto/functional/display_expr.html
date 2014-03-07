@@ -1,0 +1,108 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct display_expr</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../../proto/reference.html#header.boost.proto.debug_hpp" title="Header &lt;boost/proto/debug.hpp&gt;">
+<link rel="prev" href="../listN.html" title="Struct template listN">
+<link rel="next" href="../display_expr_idp66182648.html" title="Function display_expr">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../listN.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../proto/reference.html#header.boost.proto.debug_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../display_expr_idp66182648.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.functional.display_expr"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct display_expr</span></h2>
+<p>boost::proto::functional::display_expr &#8212; Pretty-print a Proto expression tree. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../proto/reference.html#header.boost.proto.debug_hpp" title="Header &lt;boost/proto/debug.hpp&gt;">boost/proto/debug.hpp</a>&gt;
+
+</span>
+<span class="keyword">struct</span> <a class="link" href="display_expr.html" title="Struct display_expr">display_expr</a> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="keyword">void</span> <a name="boost.proto.functional.display_expr.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="display_expr.html#boost.proto.functional.display_exprconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="display_expr.html#idp66179080-bb"><span class="identifier">display_expr</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">,</span> <span class="keyword">int</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="display_expr.html#idp66176904-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../../Expr.html" title="Concept Expr">Expr</a><span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="display_expr.html#idp66177192-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">Expr</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp176200424"></a><h2>Description</h2>
+<p>
+              A <a class="link" href="../../../PolymorphicFunctionObject.html" title="Concept PolymorphicFunctionObject">PolymorphicFunctionObject</a> which accepts a Proto expression tree and pretty-prints it to an <code class="computeroutput">ostream</code> for debugging purposes.
+            </p>
+<div class="refsect2">
+<a name="idp176201832"></a><h3>
+<a name="boost.proto.functional.display_exprconstruct-copy-destruct"></a><code class="computeroutput">display_expr</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp66179080-bb"></a><span class="identifier">display_expr</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&amp;</span> sout <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">,</span> <span class="keyword">int</span> depth <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">depth</code></span></p></td>
+<td><p>
+                  The starting indentation depth for this node. Children nodes will be displayed at a starting depth of <code class="computeroutput">depth+4</code>.
+                </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">sout</code></span></p></td>
+<td><p>
+                  The <code class="computeroutput">ostream</code> to which the expression tree will be written.
+                </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp176211400"></a><h3>
+<a name="idp66176904-bb"></a><code class="computeroutput">display_expr</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../../Expr.html" title="Concept Expr">Expr</a><span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp66177192-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">Expr</span> <span class="keyword">const</span> <span class="special">&amp;</span> expr<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../listN.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../proto/reference.html#header.boost.proto.debug_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../display_expr_idp66182648.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

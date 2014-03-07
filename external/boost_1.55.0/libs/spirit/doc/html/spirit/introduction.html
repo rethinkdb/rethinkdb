@@ -1,0 +1,474 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Introduction</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../index.html" title="Spirit 2.5.2">
+<link rel="prev" href="what_s_new/spirit_1_x.html" title="Spirit Classic">
+<link rel="next" href="structure.html" title="Structure">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="what_s_new/spirit_1_x.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="structure.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="spirit.introduction"></a><a class="link" href="introduction.html" title="Introduction">Introduction</a>
+</h2></div></div></div>
+<p>
+      Boost Spirit is an object-oriented, recursive-descent parser and output generation
+      library for C++. It allows you to write grammars and format descriptions using
+      a format similar to Extended Backus Naur Form (EBNF)<a href="#ftn.spirit.introduction.f0" class="footnote" name="spirit.introduction.f0"><sup class="footnote">[2]</sup></a> directly in C++. These inline grammar specifications can mix freely
+      with other C++ code and, thanks to the generative power of C++ templates, are
+      immediately executable. In retrospect, conventional compiler-compilers or parser-generators
+      have to perform an additional translation step from the source EBNF code to
+      C or C++ code.
+    </p>
+<p>
+      The syntax and semantics of the libraries' API directly form domain-specific
+      embedded languages (DSEL). In fact, Spirit exposes 3 different DSELs to the
+      user:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          one for creating parser grammars,
+        </li>
+<li class="listitem">
+          one for the specification of the required tokens to be used for parsing,
+        </li>
+<li class="listitem">
+          and one for the description of the required output formats.
+        </li>
+</ul></div>
+<p>
+      Since the target input grammars and output formats are written entirely in
+      C++ we do not need any separate tools to compile, preprocess or integrate those
+      into the build process. <a href="http://boost-spirit.com" target="_top">Spirit</a>
+      allows seamless integration of the parsing and output generation process with
+      other C++ code. This often allows for simpler and more efficient code.
+    </p>
+<p>
+      Both the created parsers and generators are fully attributed, which allows
+      you to easily build and handle hierarchical data structures in memory. These
+      data structures resemble the structure of the input data and can directly be
+      used to generate arbitrarily-formatted output.
+    </p>
+<p>
+      The <a class="link" href="introduction.html#spirit.spiritstructure" title="Figure&#160;1.&#160;The overall structure of the Boost Spirit library">figure</a> below depicts the
+      overall structure of the Boost Spirit library. The library consists of 4 major
+      parts:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>:
+          This is the almost-unchanged code base taken from the former Boost Spirit
+          V1.8 distribution. It has been moved into the namespace boost::spirit::classic.
+          A special compatibility layer has been added to ensure complete compatibility
+          with existing code using Spirit V1.8.
+        </li>
+<li class="listitem">
+          <span class="emphasis"><em>Spirit.Qi</em></span>: This is the parser library allowing you
+          to build recursive descent parsers. The exposed domain-specific language
+          can be used to describe the grammars to implement, and the rules for storing
+          the parsed information.
+        </li>
+<li class="listitem">
+          <span class="emphasis"><em>Spirit.Lex</em></span>: This is the library usable to create tokenizers
+          (lexers). The domain-specific language exposed by <span class="emphasis"><em>Spirit.Lex</em></span>
+          allows you to define regular expressions used to match tokens (create token
+          definitions), associate these regular expressions with code to be executed
+          whenever they are matched, and to add the token definitions to the lexical
+          analyzer.
+        </li>
+<li class="listitem">
+          <span class="emphasis"><em>Spirit.Karma</em></span>: This is the generator library allowing
+          you to create code for recursive descent, data type-driven output formatting.
+          The exposed domain-specific language is almost equivalent to the parser
+          description language used in <span class="emphasis"><em>Spirit.Qi</em></span>, except that
+          it is used to describe the required output format to generate from a given
+          data structure.
+        </li>
+</ul></div>
+<p>
+      </p>
+<div class="figure">
+<a name="spirit.spiritstructure"></a><p class="title"><b>Figure&#160;1.&#160;The overall structure of the Boost Spirit library</b></p>
+<div class="figure-contents"><span class="inlinemediaobject"><img src=".././images/spiritstructure.png" alt="The overall structure of the Boost Spirit library"></span></div>
+</div>
+<p><br class="figure-break">
+    </p>
+<p>
+      The three components, <span class="emphasis"><em>Spirit.Qi</em></span>, <span class="emphasis"><em>Spirit.Karma</em></span>
+      and <span class="emphasis"><em>Spirit.Lex</em></span>, are designed to be used either stand alone,
+      or together. The general methodology is to use the token sequence generated
+      by <span class="emphasis"><em>Spirit.Lex</em></span> as the input for a parser generated by
+      <span class="emphasis"><em>Spirit.Qi</em></span>. On the opposite side of the equation, the hierarchical
+      data structures generated by <span class="emphasis"><em>Spirit.Qi</em></span> are used for the
+      output generators created using <span class="emphasis"><em>Spirit.Karma</em></span>. However,
+      there is nothing to stop you from using any of these components all by themselves.
+    </p>
+<p>
+      The <a class="link" href="introduction.html#spirit.spiritkarmaflow" title="Figure&#160;2.&#160;The place of Spirit.Qi and Spirit.Karma in a data transformation flow of a typical application">figure</a> below shows the typical
+      data flow of some input being converted to some internal representation. After
+      some (optional) transformation these data are converted back into some different,
+      external representation. The picture highlights Spirit's place in this data
+      transformation flow.
+    </p>
+<p>
+      </p>
+<div class="figure">
+<a name="spirit.spiritkarmaflow"></a><p class="title"><b>Figure&#160;2.&#160;The place of <span class="emphasis"><em>Spirit.Qi</em></span> and <span class="emphasis"><em>Spirit.Karma</em></span>
+      in a data transformation flow of a typical application</b></p>
+<div class="figure-contents"><span class="inlinemediaobject"><img src=".././images/spiritkarmaflow.png" alt="The place of Spirit.Qi and Spirit.Karma in a data transformation flow of a typical application"></span></div>
+</div>
+<p><br class="figure-break">
+    </p>
+<h4>
+<a name="spirit.introduction.h0"></a>
+      <span class="phrase"><a name="spirit.introduction.a_quick_overview_of_parsing_with__emphasis_spirit_qi__emphasis_"></a></span><a class="link" href="introduction.html#spirit.introduction.a_quick_overview_of_parsing_with__emphasis_spirit_qi__emphasis_">A
+      Quick Overview of Parsing with <span class="emphasis"><em>Spirit.Qi</em></span></a>
+    </h4>
+<p>
+      <span class="emphasis"><em>Spirit.Qi</em></span> is Spirit's sublibrary dealing with generating
+      parsers based on a given target grammar (essentially a format description of
+      the input data to read).
+    </p>
+<p>
+      A simple EBNF grammar snippet:
+    </p>
+<pre class="programlisting"><span class="identifier">group</span>       <span class="special">::=</span> <span class="char">'('</span> <span class="identifier">expression</span> <span class="char">')'</span>
+<span class="identifier">factor</span>      <span class="special">::=</span> <span class="identifier">integer</span> <span class="special">|</span> <span class="identifier">group</span>
+<span class="identifier">term</span>        <span class="special">::=</span> <span class="identifier">factor</span> <span class="special">((</span><span class="char">'*'</span> <span class="identifier">factor</span><span class="special">)</span> <span class="special">|</span> <span class="special">(</span><span class="char">'/'</span> <span class="identifier">factor</span><span class="special">))*</span>
+<span class="identifier">expression</span>  <span class="special">::=</span> <span class="identifier">term</span> <span class="special">((</span><span class="char">'+'</span> <span class="identifier">term</span><span class="special">)</span> <span class="special">|</span> <span class="special">(</span><span class="char">'-'</span> <span class="identifier">term</span><span class="special">))*</span>
+</pre>
+<p>
+      is approximated using facilities of Spirit's <span class="emphasis"><em>Qi</em></span> sublibrary
+      as seen in this code snippet:
+    </p>
+<pre class="programlisting"><span class="identifier">group</span>       <span class="special">=</span> <span class="char">'('</span> <span class="special">&gt;&gt;</span> <span class="identifier">expression</span> <span class="special">&gt;&gt;</span> <span class="char">')'</span><span class="special">;</span>
+<span class="identifier">factor</span>      <span class="special">=</span> <span class="identifier">integer</span> <span class="special">|</span> <span class="identifier">group</span><span class="special">;</span>
+<span class="identifier">term</span>        <span class="special">=</span> <span class="identifier">factor</span> <span class="special">&gt;&gt;</span> <span class="special">*((</span><span class="char">'*'</span> <span class="special">&gt;&gt;</span> <span class="identifier">factor</span><span class="special">)</span> <span class="special">|</span> <span class="special">(</span><span class="char">'/'</span> <span class="special">&gt;&gt;</span> <span class="identifier">factor</span><span class="special">));</span>
+<span class="identifier">expression</span>  <span class="special">=</span> <span class="identifier">term</span> <span class="special">&gt;&gt;</span> <span class="special">*((</span><span class="char">'+'</span> <span class="special">&gt;&gt;</span> <span class="identifier">term</span><span class="special">)</span> <span class="special">|</span> <span class="special">(</span><span class="char">'-'</span> <span class="special">&gt;&gt;</span> <span class="identifier">term</span><span class="special">));</span>
+</pre>
+<p>
+      Through the magic of expression templates, this is perfectly valid and executable
+      C++ code. The production rule <code class="computeroutput"><span class="identifier">expression</span></code>
+      is, in fact, an object that has a member function <code class="computeroutput"><span class="identifier">parse</span></code>
+      that does the work given a source code written in the grammar that we have
+      just declared. Yes, it's a calculator. We shall simplify for now by skipping
+      the type declarations and the definition of the rule <code class="computeroutput"><span class="identifier">integer</span></code>
+      invoked by <code class="computeroutput"><span class="identifier">factor</span></code>. Now, the
+      production rule <code class="computeroutput"><span class="identifier">expression</span></code>
+      in our grammar specification, traditionally called the <code class="computeroutput"><span class="identifier">start</span></code>
+      symbol, can recognize inputs such as:
+    </p>
+<pre class="programlisting"><span class="number">12345</span>
+<span class="special">-</span><span class="number">12345</span>
+<span class="special">+</span><span class="number">12345</span>
+<span class="number">1</span> <span class="special">+</span> <span class="number">2</span>
+<span class="number">1</span> <span class="special">*</span> <span class="number">2</span>
+<span class="number">1</span><span class="special">/</span><span class="number">2</span> <span class="special">+</span> <span class="number">3</span><span class="special">/</span><span class="number">4</span>
+<span class="number">1</span> <span class="special">+</span> <span class="number">2</span> <span class="special">+</span> <span class="number">3</span> <span class="special">+</span> <span class="number">4</span>
+<span class="number">1</span> <span class="special">*</span> <span class="number">2</span> <span class="special">*</span> <span class="number">3</span> <span class="special">*</span> <span class="number">4</span>
+<span class="special">(</span><span class="number">1</span> <span class="special">+</span> <span class="number">2</span><span class="special">)</span> <span class="special">*</span> <span class="special">(</span><span class="number">3</span> <span class="special">+</span> <span class="number">4</span><span class="special">)</span>
+<span class="special">(-</span><span class="number">1</span> <span class="special">+</span> <span class="number">2</span><span class="special">)</span> <span class="special">*</span> <span class="special">(</span><span class="number">3</span> <span class="special">+</span> <span class="special">-</span><span class="number">4</span><span class="special">)</span>
+<span class="number">1</span> <span class="special">+</span> <span class="special">((</span><span class="number">6</span> <span class="special">*</span> <span class="number">200</span><span class="special">)</span> <span class="special">-</span> <span class="number">20</span><span class="special">)</span> <span class="special">/</span> <span class="number">6</span>
+<span class="special">(</span><span class="number">1</span> <span class="special">+</span> <span class="special">(</span><span class="number">2</span> <span class="special">+</span> <span class="special">(</span><span class="number">3</span> <span class="special">+</span> <span class="special">(</span><span class="number">4</span> <span class="special">+</span> <span class="number">5</span><span class="special">))))</span>
+</pre>
+<p>
+      Certainly we have modified the original EBNF syntax. This is done to conform
+      to C++ syntax rules. Most notably we see the abundance of shift &gt;&gt; operators.
+      Since there are no 'empty' operators in C++, it is simply not possible to write
+      something like:
+    </p>
+<pre class="programlisting"><span class="identifier">a</span> <span class="identifier">b</span>
+</pre>
+<p>
+      as seen in math syntax, for example, to mean multiplication or, in our case,
+      as seen in EBNF syntax to mean sequencing (b should follow a). <span class="emphasis"><em>Spirit.Qi</em></span>
+      uses the shift <code class="computeroutput"><span class="special">&gt;&gt;</span></code> operator
+      instead for this purpose. We take the <code class="computeroutput"><span class="special">&gt;&gt;</span></code>
+      operator, with arrows pointing to the right, to mean "is followed by".
+      Thus we write:
+    </p>
+<pre class="programlisting"><span class="identifier">a</span> <span class="special">&gt;&gt;</span> <span class="identifier">b</span>
+</pre>
+<p>
+      The alternative operator <code class="computeroutput"><span class="special">|</span></code> and
+      the parentheses <code class="computeroutput"><span class="special">()</span></code> remain as is.
+      The assignment operator <code class="computeroutput"><span class="special">=</span></code> is used
+      in place of EBNF's <code class="computeroutput"><span class="special">::=</span></code>. Last but
+      not least, the Kleene star <code class="computeroutput"><span class="special">*</span></code>,
+      which in this case is a postfix operator in EBNF becomes a prefix. Instead
+      of:
+    </p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">*</span> <span class="comment">//... in EBNF syntax,</span>
+</pre>
+<p>
+      we write:
+    </p>
+<pre class="programlisting"><span class="special">*</span><span class="identifier">a</span> <span class="comment">//... in Spirit.</span>
+</pre>
+<p>
+      since there are no postfix stars, <code class="computeroutput"><span class="special">*</span></code>,
+      in C/C++. Finally, we terminate each rule with the ubiquitous semi-colon,
+      <code class="computeroutput"><span class="special">;</span></code>.
+    </p>
+<h4>
+<a name="spirit.introduction.h1"></a>
+      <span class="phrase"><a name="spirit.introduction.a_quick_overview_of_output_generation_with__emphasis_spirit_karma__emphasis_"></a></span><a class="link" href="introduction.html#spirit.introduction.a_quick_overview_of_output_generation_with__emphasis_spirit_karma__emphasis_">A
+      Quick Overview of Output Generation with <span class="emphasis"><em>Spirit.Karma</em></span></a>
+    </h4>
+<p>
+      Spirit not only allows you to describe the structure of the input, it also
+      enables the specification of the output format for your data in a similar way,
+      and based on a single syntax and compatible semantics.
+    </p>
+<p>
+      Let's assume we need to generate a textual representation from a simple data
+      structure such as a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code>. Conventional
+      code probably would look like:
+    </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">v</span> <span class="special">(</span><span class="identifier">initialize_and_fill</span><span class="special">());</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">iterator</span> <span class="identifier">end</span> <span class="special">=</span> <span class="identifier">v</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span>
+<span class="keyword">for</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">v</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">end</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">)</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="special">*</span><span class="identifier">it</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+      which is not very flexible and quite difficult to maintain when it comes to
+      changing the required output format. Spirit's sublibrary <span class="emphasis"><em>Karma</em></span>
+      allows you to specify output formats for arbitrary data structures in a very
+      flexible way. The following snippet is the <span class="emphasis"><em>Karma</em></span> format
+      description used to create the same output as the traditional code above:
+    </p>
+<pre class="programlisting"><span class="special">*(</span><span class="identifier">int_</span> <span class="special">&lt;&lt;</span> <span class="identifier">eol</span><span class="special">)</span>
+</pre>
+<p>
+      Here are some more examples of format descriptions for different output representations
+      of the same <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code>:
+    </p>
+<div class="table">
+<a name="spirit.introduction.different_output_formats_for__std__vector_int__"></a><p class="title"><b>Table&#160;2.&#160;Different output formats for `std::vector&lt;int&gt;`</b></p>
+<div class="table-contents"><table class="table" summary="Different output formats for `std::vector&lt;int&gt;`">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Format
+              </p>
+            </th>
+<th>
+              <p>
+                Example
+              </p>
+            </th>
+<th>
+              <p>
+                Description
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="char">'['</span> <span class="special">&lt;&lt;</span>
+                <span class="special">*(</span><span class="identifier">int_</span>
+                <span class="special">&lt;&lt;</span> <span class="char">','</span><span class="special">)</span> <span class="special">&lt;&lt;</span>
+                <span class="char">']'</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">[</span><span class="number">1</span><span class="special">,</span><span class="number">8</span><span class="special">,</span><span class="number">10</span><span class="special">,]</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Comma separated list of integers
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">*(</span><span class="char">'('</span>
+                <span class="special">&lt;&lt;</span> <span class="identifier">int_</span>
+                <span class="special">&lt;&lt;</span> <span class="char">')'</span>
+                <span class="special">&lt;&lt;</span> <span class="char">','</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">(</span><span class="number">1</span><span class="special">),(</span><span class="number">8</span><span class="special">),(</span><span class="number">10</span><span class="special">),</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Comma separated list of integers in parenthesis
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">*</span><span class="identifier">hex</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="number">18</span><span class="identifier">a</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                A list of hexadecimal numbers
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">*(</span><span class="identifier">double_</span>
+                <span class="special">&lt;&lt;</span> <span class="char">','</span><span class="special">)</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="number">1.0</span><span class="special">,</span><span class="number">8.0</span><span class="special">,</span><span class="number">10.0</span><span class="special">,</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                A list of floating point numbers
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+      We will see later in this documentation how it is possible to avoid printing
+      the trailing <code class="computeroutput"><span class="char">','</span></code>.
+    </p>
+<p>
+      Overall, the syntax is similar to <span class="emphasis"><em>Spirit.Qi</em></span> with the exception
+      that we use the <code class="computeroutput"><span class="special">&lt;&lt;</span></code> operator
+      for output concatenation. This should be easy to understand as it follows the
+      conventions used in the Standard's I/O streams.
+    </p>
+<p>
+      Another important feature of <span class="emphasis"><em>Spirit.Karma</em></span> allows you to
+      fully decouple the data type from the output format. You can use the same output
+      format with different data types as long as these conform conceptually. The
+      next table gives some related examples.
+    </p>
+<div class="table">
+<a name="spirit.introduction.different_data_types_usable_with_the_output_format____int_____eol__"></a><p class="title"><b>Table&#160;3.&#160;Different data types usable with the output format `*(int_ &lt;&lt;
+      eol)`</b></p>
+<div class="table-contents"><table class="table" summary="Different data types usable with the output format `*(int_ &lt;&lt;
+      eol)`">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Data type
+              </p>
+            </th>
+<th>
+              <p>
+                Description
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">int</span> <span class="identifier">i</span><span class="special">[</span><span class="number">4</span><span class="special">]</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                C style arrays
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Standard vector
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Standard list
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span><span class="keyword">long</span><span class="special">,</span> <span class="number">20</span><span class="special">&gt;</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Boost array
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.spirit.introduction.f0" class="footnote"><p><a href="#spirit.introduction.f0" class="para"><sup class="para">[2] </sup></a>
+        <a href="http://www.cl.cam.ac.uk/%7Emgk25/iso-14977.pdf" target="_top">ISO-EBNF</a>
+      </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="what_s_new/spirit_1_x.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="structure.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

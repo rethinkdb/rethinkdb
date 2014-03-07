@@ -1,0 +1,504 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Harmonic oscillator</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../tutorial.html" title="Tutorial">
+<link rel="prev" href="../tutorial.html" title="Tutorial">
+<link rel="next" href="solar_system.html" title="Solar system">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../tutorial.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="solar_system.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.tutorial.harmonic_oscillator"></a><a class="link" href="harmonic_oscillator.html" title="Harmonic oscillator">Harmonic
+      oscillator</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="harmonic_oscillator.html#boost_numeric_odeint.tutorial.harmonic_oscillator.define_the_ode">Define
+        the ODE</a></span></dt>
+<dt><span class="section"><a href="harmonic_oscillator.html#boost_numeric_odeint.tutorial.harmonic_oscillator.stepper_types">Stepper
+        Types</a></span></dt>
+<dt><span class="section"><a href="harmonic_oscillator.html#boost_numeric_odeint.tutorial.harmonic_oscillator.integration_with_constant_step_size">Integration
+        with Constant Step Size</a></span></dt>
+<dt><span class="section"><a href="harmonic_oscillator.html#boost_numeric_odeint.tutorial.harmonic_oscillator.integration_with_adaptive_step_size">Integration
+        with Adaptive Step Size</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numeric_odeint.tutorial.harmonic_oscillator.define_the_ode"></a><a class="link" href="harmonic_oscillator.html#boost_numeric_odeint.tutorial.harmonic_oscillator.define_the_ode" title="Define the ODE">Define
+        the ODE</a>
+</h4></div></div></div>
+<p>
+          First of all, you have to specify the data type that represents a state
+          <span class="emphasis"><em>x</em></span> of your system. Mathematically, this usually is
+          an n-dimensional vector with real numbers or complex numbers as scalar
+          objects. For odeint the most natural way is to use <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span></code> or <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">complex</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span> <span class="special">&gt;</span></code>
+          to represent the system state. However, odeint can deal with other container
+          types as well, e.g. <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span></code>, as long as it fulfills some requirements
+          defined below.
+        </p>
+<p>
+          To integrate a differential equation numerically, one also has to define
+          the rhs of the equation <span class="emphasis"><em>x' = f(x)</em></span>. In odeint you supply
+          this function in terms of an object that implements the ()-operator with
+          a certain parameter structure. Hence, the straightforward way would be
+          to just define a function, e.g:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">/* The type of container used to hold the state vector */</span>
+<span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span> <span class="identifier">state_type</span><span class="special">;</span>
+
+<span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">gam</span> <span class="special">=</span> <span class="number">0.15</span><span class="special">;</span>
+
+<span class="comment">/* The rhs of x' = f(x) */</span>
+<span class="keyword">void</span> <span class="identifier">harmonic_oscillator</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">dxdt</span> <span class="special">,</span> <span class="keyword">const</span> <span class="keyword">double</span> <span class="comment">/* t */</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">dxdt</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">];</span>
+    <span class="identifier">dxdt</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">=</span> <span class="special">-</span><span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">gam</span><span class="special">*</span><span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">];</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          The parameters of the function must follow the example above where <code class="computeroutput"><span class="identifier">x</span></code> is the current state, here a two-component
+          vector containing position <span class="emphasis"><em>q</em></span> and momentum <span class="emphasis"><em>p</em></span>
+          of the oscillator, <code class="computeroutput"><span class="identifier">dxdt</span></code>
+          is the derivative <span class="emphasis"><em>x'</em></span> and should be filled by the function
+          with <span class="emphasis"><em>f(x)</em></span>, and <code class="computeroutput"><span class="identifier">t</span></code>
+          is the current time. Note that in this example <span class="emphasis"><em>t</em></span> is
+          not required to calculate <span class="emphasis"><em>f</em></span>, however odeint expects
+          the function signature to have exactly three parameters (there are exception,
+          discussed later).
+        </p>
+<p>
+          A more sophisticated approach is to implement the system as a class where
+          the rhs function is defined as the ()-operator of the class with the same
+          parameter structure as above:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">/* The rhs of x' = f(x) defined as a class */</span>
+<span class="keyword">class</span> <span class="identifier">harm_osc</span> <span class="special">{</span>
+
+    <span class="keyword">double</span> <span class="identifier">m_gam</span><span class="special">;</span>
+
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">harm_osc</span><span class="special">(</span> <span class="keyword">double</span> <span class="identifier">gam</span> <span class="special">)</span> <span class="special">:</span> <span class="identifier">m_gam</span><span class="special">(</span><span class="identifier">gam</span><span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">dxdt</span> <span class="special">,</span> <span class="keyword">const</span> <span class="keyword">double</span> <span class="comment">/* t */</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">dxdt</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">];</span>
+        <span class="identifier">dxdt</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">=</span> <span class="special">-</span><span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">m_gam</span><span class="special">*</span><span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">];</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          odeint can deal with instances of such classes instead of pure functions
+          which allows for cleaner code.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numeric_odeint.tutorial.harmonic_oscillator.stepper_types"></a><a class="link" href="harmonic_oscillator.html#boost_numeric_odeint.tutorial.harmonic_oscillator.stepper_types" title="Stepper Types">Stepper
+        Types</a>
+</h4></div></div></div>
+<p>
+          Numerical integration works iteratively, that means you start at a state
+          <span class="emphasis"><em>x(t)</em></span> and perform a time-step of length <span class="emphasis"><em>dt</em></span>
+          to obtain the approximate state <span class="emphasis"><em>x(t+dt)</em></span>. There exist
+          many different methods to perform such a time-step each of which has a
+          certain order <span class="emphasis"><em>q</em></span>. If the order of a method is <span class="emphasis"><em>q</em></span>
+          than it is accurate up to term <span class="emphasis"><em>~dt<sup>q</sup></em></span> that means the
+          error in <span class="emphasis"><em>x</em></span> made by such a step is <span class="emphasis"><em>~dt<sup>q+1</sup></em></span>.
+          odeint provides several steppers of different orders, see <a class="link" href="../odeint_in_detail/steppers.html#boost_numeric_odeint.odeint_in_detail.steppers.stepper_overview" title="Stepper overview">Stepper
+          overview</a>.
+        </p>
+<p>
+          Some of steppers in the table above are special: Some need the Jacobian
+          of the ODE, others are constructed for special ODE-systems like Hamiltonian
+          systems. We will show typical examples and use-cases in this tutorial and
+          which kind of steppers should be applied.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numeric_odeint.tutorial.harmonic_oscillator.integration_with_constant_step_size"></a><a class="link" href="harmonic_oscillator.html#boost_numeric_odeint.tutorial.harmonic_oscillator.integration_with_constant_step_size" title="Integration with Constant Step Size">Integration
+        with Constant Step Size</a>
+</h4></div></div></div>
+<p>
+          The basic stepper just performs one time-step and doesn't give you any
+          information about the error that was made (except that you know it is of
+          order <span class="emphasis"><em>q+1</em></span>). Such steppers are used with constant step
+          size that should be chosen small enough to have reasonable small errors.
+          However, you should apply some sort of validity check of your results (like
+          observing conserved quantities) because you have no other control of the
+          error. The following example defines a basic stepper based on the classical
+          Runge-Kutta scheme of 4th order. The declaration of the stepper requires
+          the state type as template parameter. The integration can now be done by
+          using the <code class="computeroutput"><span class="identifier">integrate_const</span><span class="special">(</span> <span class="identifier">Stepper</span><span class="special">,</span> <span class="identifier">System</span><span class="special">,</span> <span class="identifier">state</span><span class="special">,</span> <span class="identifier">start_time</span><span class="special">,</span> <span class="identifier">end_time</span><span class="special">,</span> <span class="identifier">step_size</span>
+          <span class="special">)</span></code> function from odeint:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">runge_kutta4</span><span class="special">&lt;</span> <span class="identifier">state_type</span> <span class="special">&gt;</span> <span class="identifier">stepper</span><span class="special">;</span>
+<span class="identifier">integrate_const</span><span class="special">(</span> <span class="identifier">stepper</span> <span class="special">,</span> <span class="identifier">harmonic_oscillator</span> <span class="special">,</span> <span class="identifier">x</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="number">0.01</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          This call integrates the system defined by <code class="computeroutput"><span class="identifier">harmonic_oscillator</span></code>
+          using the RK4 method from <span class="emphasis"><em>t=0</em></span> to <span class="emphasis"><em>10</em></span>
+          with a step-size <span class="emphasis"><em>dt=0.01</em></span> and the initial condition
+          given in <code class="computeroutput"><span class="identifier">x</span></code>. The result,
+          <span class="emphasis"><em>x(t=10)</em></span> is stored in <code class="computeroutput"><span class="identifier">x</span></code>
+          (in-place). Each stepper defines a <code class="computeroutput"><span class="identifier">do_step</span></code>
+          method which can also be used directly. So, you write down the above example
+          as
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">dt</span> <span class="special">=</span> <span class="number">0.01</span><span class="special">;</span>
+<span class="keyword">for</span><span class="special">(</span> <span class="keyword">double</span> <span class="identifier">t</span><span class="special">=</span><span class="number">0.0</span> <span class="special">;</span> <span class="identifier">t</span><span class="special">&lt;</span><span class="number">10.0</span> <span class="special">;</span> <span class="identifier">t</span><span class="special">+=</span> <span class="identifier">dt</span> <span class="special">)</span>
+    <span class="identifier">stepper</span><span class="special">.</span><span class="identifier">do_step</span><span class="special">(</span> <span class="identifier">harmonic_oscillator</span> <span class="special">,</span> <span class="identifier">x</span> <span class="special">,</span> <span class="identifier">t</span> <span class="special">,</span> <span class="identifier">dt</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+            If you have a C++11 enabled compiler you can easily use lambdas to create
+            the system function :
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">runge_kutta4</span><span class="special">&lt;</span> <span class="identifier">state_type</span> <span class="special">&gt;</span> <span class="identifier">stepper</span><span class="special">;</span>
+<span class="identifier">integrate_const</span><span class="special">(</span> <span class="identifier">stepper</span> <span class="special">,</span> <span class="special">[](</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">dxdt</span> <span class="special">,</span> <span class="keyword">double</span> <span class="identifier">t</span> <span class="special">)</span> <span class="special">{</span>
+        <span class="identifier">dxdt</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">];</span> <span class="identifier">dxdt</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">=</span> <span class="special">-</span><span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">gam</span><span class="special">*</span><span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">];</span> <span class="special">}</span>
+    <span class="special">,</span> <span class="identifier">x</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="number">0.01</span> <span class="special">);</span>
+</pre>
+<p>
+          </p>
+</td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numeric_odeint.tutorial.harmonic_oscillator.integration_with_adaptive_step_size"></a><a class="link" href="harmonic_oscillator.html#boost_numeric_odeint.tutorial.harmonic_oscillator.integration_with_adaptive_step_size" title="Integration with Adaptive Step Size">Integration
+        with Adaptive Step Size</a>
+</h4></div></div></div>
+<p>
+          To improve the numerical results and additionally minimize the computational
+          effort, the application of a step size control is advisable. Step size
+          control is realized via stepper algorithms that additionally provide an
+          error estimation of the applied step. odeint provides a number of such
+          <span class="bold"><strong>ErrorSteppers</strong></span> and we will show their usage
+          on the example of <code class="computeroutput"><span class="identifier">explicit_error_rk54_ck</span></code>
+          - a 5th order Runge-Kutta method with 4th order error estimation and coefficients
+          introduced by Cash and Karp.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">runge_kutta_cash_karp54</span><span class="special">&lt;</span> <span class="identifier">state_type</span> <span class="special">&gt;</span> <span class="identifier">error_stepper_type</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          Given the error stepper, one still needs an instance that checks the error
+          and adjusts the step size accordingly. In odeint, this is done by <span class="bold"><strong>ControlledSteppers</strong></span>. For the <code class="computeroutput"><span class="identifier">runge_kutta_cash_karp54</span></code>
+          stepper a <code class="computeroutput"><span class="identifier">controlled_runge_kutta</span></code>
+          stepper exists which can be used via
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">controlled_runge_kutta</span><span class="special">&lt;</span> <span class="identifier">error_stepper_type</span> <span class="special">&gt;</span> <span class="identifier">controlled_stepper_type</span><span class="special">;</span>
+<span class="identifier">controlled_stepper_type</span> <span class="identifier">controlled_stepper</span><span class="special">;</span>
+<span class="identifier">integrate_adaptive</span><span class="special">(</span> <span class="identifier">controlled_stepper</span> <span class="special">,</span> <span class="identifier">harmonic_oscillator</span> <span class="special">,</span> <span class="identifier">x</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="number">0.01</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          As above, this integrates the system defined by <code class="computeroutput"><span class="identifier">harmonic_oscillator</span></code>,
+          but now using an adaptive step size method based on the Runge-Kutta Cash-Karp
+          54 scheme from <span class="emphasis"><em>t=0</em></span> to <span class="emphasis"><em>10</em></span> with
+          an initial step size of <span class="emphasis"><em>dt=0.01</em></span> (will be adjusted)
+          and the initial condition given in x. The result, <span class="emphasis"><em>x(t=10)</em></span>,
+          will also be stored in x (in-place).
+        </p>
+<p>
+          In the above example an error stepper is nested in a controlled stepper.
+          This is a nice technique; however one drawback is that one always needs
+          to define both steppers. One could also write the instantiation of the
+          controlled stepper into the call of the integrate function but a complete
+          knowledge of the underlying stepper types is still necessary. Another point
+          is, that the error tolerances for the step size control are not easily
+          included into the controlled stepper. Both issues can be solved by using
+          <code class="computeroutput"><span class="identifier">make_controlled</span></code>:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">integrate_adaptive</span><span class="special">(</span> <span class="identifier">make_controlled</span><span class="special">&lt;</span> <span class="identifier">error_stepper_type</span> <span class="special">&gt;(</span> <span class="number">1.0e-10</span> <span class="special">,</span> <span class="number">1.0e-6</span> <span class="special">)</span> <span class="special">,</span>
+                    <span class="identifier">harmonic_oscillator</span> <span class="special">,</span> <span class="identifier">x</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="number">0.01</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          <code class="computeroutput"><span class="identifier">make_controlled</span></code> can be
+          used with many of the steppers of odeint. The first parameter is the absolute
+          error tolerance <span class="emphasis"><em>eps_abs</em></span> and the second is the relative
+          error tolerance <span class="emphasis"><em>eps_rel</em></span> which is used during the integration.
+          The template parameter determines from which error stepper a controlled
+          stepper should be instantiated. An alternative syntax of <code class="computeroutput"><span class="identifier">make_controlled</span></code> is
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">integrate_adaptive</span><span class="special">(</span> <span class="identifier">make_controlled</span><span class="special">(</span> <span class="number">1.0e-10</span> <span class="special">,</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="identifier">error_stepper_type</span><span class="special">()</span> <span class="special">)</span> <span class="special">,</span>
+                    <span class="identifier">harmonic_oscillator</span> <span class="special">,</span> <span class="identifier">x</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="number">0.01</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          For the Runge-Kutta controller the error made during one step is compared
+          with <span class="emphasis"><em>eps_abs + eps_rel * ( a<sub>x</sub> * |x| + a<sub>dxdt</sub> * dt * |dxdt| )</em></span>.
+          If the error is smaller than this value the current step is accepted, otherwise
+          it is rejected and the step size is decreased. Note, that the step size
+          is also increased if the error gets too small compared to the rhs of the
+          above relation. The full instantiation of the <code class="computeroutput"><span class="identifier">controlled_runge_kutta</span></code>
+          with all parameters is therefore
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">double</span> <span class="identifier">abs_err</span> <span class="special">=</span> <span class="number">1.0e-10</span> <span class="special">,</span> <span class="identifier">rel_err</span> <span class="special">=</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="identifier">a_x</span> <span class="special">=</span> <span class="number">1.0</span> <span class="special">,</span> <span class="identifier">a_dxdt</span> <span class="special">=</span> <span class="number">1.0</span><span class="special">;</span>
+<span class="identifier">controlled_stepper_type</span> <span class="identifier">controlled_stepper</span><span class="special">(</span>
+    <span class="identifier">default_error_checker</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;(</span> <span class="identifier">abs_err</span> <span class="special">,</span> <span class="identifier">rel_err</span> <span class="special">,</span> <span class="identifier">a_x</span> <span class="special">,</span> <span class="identifier">a_dxdt</span> <span class="special">)</span> <span class="special">);</span>
+<span class="identifier">integrate_adaptive</span><span class="special">(</span> <span class="identifier">controlled_stepper</span> <span class="special">,</span> <span class="identifier">harmonic_oscillator</span> <span class="special">,</span> <span class="identifier">x</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="number">0.01</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          When using <code class="computeroutput"><span class="identifier">make_controlled</span></code>
+          the parameter <span class="emphasis"><em>a<sub>x</sub></em></span> and <span class="emphasis"><em>a<sub>dxdt</sub></em></span> are
+          used with their standard values of 1.
+        </p>
+<p>
+          In the tables below, one can find all steppers which are working with
+          <code class="computeroutput"><span class="identifier">make_controlled</span></code> and <code class="computeroutput"><span class="identifier">make_dense_output</span></code> which is the analog
+          for the dense output steppers.
+        </p>
+<div class="table">
+<a name="boost_numeric_odeint.tutorial.harmonic_oscillator.integration_with_adaptive_step_size.generation_functions_make_controlled__abs_error___rel_error___stepper__"></a><p class="title"><b>Table&#160;1.2.&#160;Generation functions make_controlled( abs_error , rel_error , stepper
+          )</b></p>
+<div class="table-contents"><table class="table" summary="Generation functions make_controlled( abs_error , rel_error , stepper
+          )">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Stepper
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Result of make_controlled
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Remarks
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">runge_kutta_cash_karp54</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">controlled_runge_kutta</span><span class="special">&lt;</span> <span class="identifier">runge_kutta_cash_karp54</span>
+                    <span class="special">,</span> <span class="identifier">default_error_checker</span><span class="special">&lt;...&gt;</span> <span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="emphasis"><em>a<sub>x</sub>=1</em></span>, <span class="emphasis"><em>a<sub>dxdt</sub>=1</em></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">runge_kutta_fehlberg78</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">controlled_runge_kutta</span><span class="special">&lt;</span> <span class="identifier">runge_kutta_fehlberg78</span>
+                    <span class="special">,</span> <span class="identifier">default_error_checker</span><span class="special">&lt;...&gt;</span> <span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="emphasis"><em>a<sub>x</sub>=1</em></span>, <span class="emphasis"><em>a<sub>dxdt</sub>=1</em></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">runge_kutta_dopri5</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">controlled_runge_kutta</span><span class="special">&lt;</span> <span class="identifier">runge_kutta_dopri5</span>
+                    <span class="special">,</span> <span class="identifier">default_error_checker</span><span class="special">&lt;...&gt;</span> <span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="emphasis"><em>a <sub>x</sub>=1</em></span>, <span class="emphasis"><em>a<sub>dxdt</sub>=1</em></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">rosenbrock4</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">rosenbrock4_controlled</span><span class="special">&lt;</span> <span class="identifier">rosenbrock4</span>
+                    <span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    -
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_numeric_odeint.tutorial.harmonic_oscillator.integration_with_adaptive_step_size.generation_functions_make_dense_output__abs_error___rel_error___stepper__"></a><p class="title"><b>Table&#160;1.3.&#160;Generation functions make_dense_output( abs_error , rel_error ,
+          stepper )</b></p>
+<div class="table-contents"><table class="table" summary="Generation functions make_dense_output( abs_error , rel_error ,
+          stepper )">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Stepper
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Result of make_dense_output
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Remarks
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">runge_kutta_dopri5</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">dense_output_runge_kutta</span><span class="special">&lt;</span> <span class="identifier">controlled_runge_kutta</span><span class="special">&lt;</span> <span class="identifier">runge_kutta_dopri5</span>
+                    <span class="special">,</span> <span class="identifier">default_error_checker</span><span class="special">&lt;...&gt;</span> <span class="special">&gt;</span>
+                    <span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <span class="emphasis"><em>a <sub>x</sub>=1</em></span>, <span class="emphasis"><em>a<sub>dxdt</sub>=1</em></span>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">rosenbrock4</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">rosenbrock4_dense_output</span><span class="special">&lt;</span> <span class="identifier">rosenbrock4_controller</span><span class="special">&lt;</span> <span class="identifier">rosenbrock4</span>
+                    <span class="special">&gt;</span> <span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    -
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+          When using <code class="computeroutput"><span class="identifier">make_controlled</span></code>
+          or <code class="computeroutput"><span class="identifier">make_dense_output</span></code> one
+          should be aware which exact type is used and how the step size control
+          works.
+        </p>
+</div>
+<p>
+        The full source file for this example can be found here: <a href="../../../../../../../libs/numeric/odeint/examples/harmonic_oscillator.cpp" target="_top">harmonic_oscillator.cpp</a>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../tutorial.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="solar_system.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

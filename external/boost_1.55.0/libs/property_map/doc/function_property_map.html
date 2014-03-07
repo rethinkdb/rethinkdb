@@ -1,0 +1,131 @@
+<HTML>
+<!--
+     Copyright (c) 2012 Trustees of Indiana University
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Function Property Map Adaptor</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+	ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H2><A NAME="sec:function-property-map"></A>
+</h2>
+<PRE>
+function_property_map&lt;UnaryFunction, Key, Ref&gt;
+</PRE>
+
+<P>
+This property map is an adaptor that converts a function object into either a <a href="ReadablePropertyMap.html">Readable Property Map</a> or a <a href="LvaluePropertyMap.html">Lvalue Property Map</a>.  The category of the property map is based on whether the function's return type (as given by <tt>Ref</tt>) is a non-const reference type.
+
+<P>
+
+<!-- <h3>Example</h3>
+
+<pre>
+</pre> -->
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/property_map/function_property_map.hpp"><TT>boost/property_map/function_property_map.hpp</TT></a>
+
+<p>
+<H3>Model Of</H3>
+
+<a href="./ReadablePropertyMap.html">Readable Property Map</a> or <a href="./LvaluePropertyMap.html">Lvalue Property Map</a>
+
+<P>
+
+<H3>Template Parameters</H3>
+
+<P>
+
+<TABLE border>
+<TR>
+<th>Parameter</th><th>Description</th><th>Default</th>
+</tr>
+
+
+<TR>
+<TD><TT>UnaryFunction</TT></TD> 
+<TD>Must be a model of <a href="http://www.sgi.com/tech/stl/UnaryFunction.html">Unary Function</a> that accepts an object of type <tt>Key</tt> as an argument and returns a result of type <tt>Ref</tt>.</TD>
+<TD>&nbsp;</td>
+</tr>
+
+<TR>
+<TD><TT>Key</TT></TD> <TD>The key type of the property map.
+</TD> <TD>&nbsp;</TD>
+</TR>
+
+<TR>
+<TD><TT>Ref</TT></TD>
+<TD>The result type of the function.</TD>
+<TD><TT>boost::result_of&lt;const UnaryFunction(const Key&amp;)&gt;::type</TT></TD>
+</TR>
+
+
+</TABLE>
+<P>
+
+<H3>Members</H3>
+
+<P>
+In addition to the methods and functions required by <a
+href="./ReadablePropertyMap.html">Readable Property Map</a> or <a href="LvaluePropertyMap.html">Lvalue Property Map</a>, this
+class has the following members:
+
+<hr>
+
+<pre>
+property_traits&lt;function_property_map&gt;::value_type
+</pre>
+The type <tt>Ref</tt> with any reference or cv-qualifiers removed.
+
+<hr>
+
+<pre>
+function_property_map(const UnaryFunction&amp; f = UnaryFunction())
+</pre>
+Constructor.
+
+<hr>
+
+<h3>Non-Member functions</h3>
+
+<hr>
+
+<pre>
+  template &lt;class Key, class UnaryFunction&gt;
+  function_property_map&lt;UnaryFunction, Key&gt;
+  make_function_property_map(const UnaryFunction&amp; f);
+</pre>
+Returns a <tt>function_property_map</tt> using the given function and key type.
+
+<hr>
+
+<pre>
+  template &lt;class Key, class Ref, class UnaryFunction&gt;
+  function_property_map&lt;UnaryFunction, Key, Ref&gt;
+  make_function_property_map(const UnaryFunction&amp; f);
+</pre>
+Returns a <tt>function_property_map</tt> using the given function and key and reference types.
+
+<hr>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2012</TD><TD>Trustees of Indiana University
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

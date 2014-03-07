@@ -1,0 +1,89 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Matching and Searching]
+
+[h2 Overview]
+
+Once you have created a regex object, you can use the _regex_match_ and _regex_search_ algorithms to find patterns
+in strings. This page covers the basics of regex matching and searching. In all cases, if you are familiar with
+how _regex_match_ and _regex_search_ in the _regexpp_ library work, xpressive's versions work the same way.
+
+[h2 Seeing if a String Matches a Regex]
+
+The _regex_match_ algorithm checks to see if a regex matches a given input.
+
+[warning The _regex_match_ algorithm will only report success if the regex matches the ['whole input],
+from beginning to end. If the regex matches only a part of the input, _regex_match_ will return false. If you
+want to search through the string looking for sub-strings that the regex matches, use the _regex_search_
+algorithm.]
+
+The input can be a bidirectional range such as `std::string`, a C-style null-terminated string or a pair of
+iterators. In all cases, the type of the iterator used to traverse the input sequence must match the iterator
+type used to declare the regex object. (You can use the table in the
+[link boost_xpressive.user_s_guide.quick_start.know_your_iterator_type Quick Start] to find the correct regex
+type for your iterator.)
+
+    cregex cre = +_w;  // this regex can match C-style strings
+    sregex sre = +_w;  // this regex can match std::strings
+
+    if( regex_match( "hello", cre ) )              // OK
+        { /*...*/ }
+
+    if( regex_match( std::string("hello"), sre ) ) // OK
+        { /*...*/ }
+
+    if( regex_match( "hello", sre ) )              // ERROR! iterator mis-match!
+        { /*...*/ }
+
+The _regex_match_ algorithm optionally accepts a _match_results_ struct as an out parameter. If given, the _regex_match_
+algorithm fills in the _match_results_ struct with information about which parts of the regex matched which
+parts of the input.
+
+    cmatch what;
+    cregex cre = +(s1= _w);
+
+    // store the results of the regex_match in "what"
+    if( regex_match( "hello", what, cre ) )
+    {
+        std::cout << what[1] << '\n'; // prints "o"
+    }
+
+The _regex_match_ algorithm also optionally accepts a _match_flag_type_ bitmask. With _match_flag_type_, you can
+control certain aspects of how the match is evaluated. See the _match_flag_type_ reference for a complete list
+of the flags and their meanings.
+
+    std::string str("hello");
+    sregex sre = bol >> +_w;
+
+    // match_not_bol means that "bol" should not match at [begin,begin)
+    if( regex_match( str.begin(), str.end(), sre, regex_constants::match_not_bol ) )
+    {
+        // should never get here!!!
+    }
+
+Click [link boost_xpressive.user_s_guide.examples.see_if_a_whole_string_matches_a_regex here] to see a complete
+example program that shows how to use _regex_match_. And check the _regex_match_ reference to see a complete list
+of the available overloads.
+
+[h2 Searching for Matching Sub-Strings]
+
+Use _regex_search_ when you want to know if an input sequence contains a sub-sequence that a regex matches.
+_regex_search_ will try to match the regex at the beginning of the input sequence and scan forward in the
+sequence until it either finds a match or exhausts the sequence.
+
+In all other regards, _regex_search_ behaves like _regex_match_ ['(see above)]. In particular, it can operate
+on a bidirectional range such as `std::string`, C-style null-terminated strings or iterator ranges. The same
+care must be taken to ensure that the iterator type of your regex matches the iterator type of your input
+sequence. As with _regex_match_, you can optionally provide a _match_results_ struct to receive the results
+of the search, and a _match_flag_type_ bitmask to control how the match is evaluated.
+
+Click [link boost_xpressive.user_s_guide.examples.see_if_a_string_contains_a_sub_string_that_matches_a_regex here]
+to see a complete example program that shows how to use _regex_search_. And check the _regex_search_ reference to
+see a complete list of the available overloads.
+
+[endsect]

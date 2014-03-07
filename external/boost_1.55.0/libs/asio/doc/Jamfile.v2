@@ -1,0 +1,111 @@
+#
+# Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+
+using quickbook ;
+
+########################################################################
+# Standalone HTML documentation
+
+xml standalone_doc
+  :
+    asio.qbk
+  ;
+
+install images
+  :
+    overview/proactor.png
+    overview/sync_op.png
+    overview/async_op1.png
+    overview/async_op2.png
+  :
+    <location>html/boost_asio
+  ;
+
+local example-names = cpp03/allocation cpp03/buffers cpp03/chat cpp03/echo
+  cpp03/fork cpp03/http/client cpp03/http/server cpp03/http/server2
+  cpp03/http/server3 cpp03/http/server4 cpp03/icmp cpp03/invocation
+  cpp03/iostreams cpp03/local cpp03/multicast cpp03/nonblocking cpp03/porthopper
+  cpp03/serialization cpp03/services cpp03/socks4 cpp03/spawn cpp03/ssl
+  cpp03/timeouts cpp03/timers cpp03/windows cpp11/allocation cpp11/buffers
+  cpp11/chat cpp11/echo cpp11/futures cpp11/http/server cpp11/spawn ;
+
+for local l in $(example-names)
+{
+  install ex_$(l) : [ glob ../example/$(l)/*.*pp ] : <location>html/boost_asio/example/$(l) ;
+}
+
+boostbook standalone
+  :
+    standalone_doc
+  :
+    <xsl:param>boost.root=../../../..
+    <xsl:param>chapter.autolabel=0
+    <xsl:param>chunk.section.depth=8
+    <xsl:param>chunk.first.sections=1
+    <xsl:param>toc.section.depth=2
+    <xsl:param>toc.max.depth=1
+    <xsl:param>generate.section.toc.level=1
+    <xsl:param>generate.toc="chapter nop section nop"
+    <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/libs/asio/doc/html
+  ;
+
+########################################################################
+# HTML documentation for $(BOOST_ROOT)/doc/html
+
+xml asio_doc
+  :
+    asio.qbk
+  ;
+
+explicit asio_doc ;
+
+install asio_doc_images
+  :
+    overview/proactor.png
+    overview/sync_op.png
+    overview/async_op1.png
+    overview/async_op2.png
+  :
+    <location>$(BOOST_ROOT)/doc/html/boost_asio
+  ;
+
+explicit asio_doc_images ;
+
+for local l in $(example-names)
+{
+  install asio_ex_$(l) : [ glob ../example/$(l)/*.*pp ] : <location>$(BOOST_ROOT)/doc/html/boost_asio/example/$(l) ;
+  explicit asio_ex_$(l) ;
+}
+
+alias asio_examples : asio_ex_$(example-names) ;
+
+explicit asio_examples ;
+
+path-constant images_location : ../../../doc/html ;
+
+boostbook asio
+  :
+    asio_doc
+  :
+    <xsl:param>chapter.autolabel=0
+    <xsl:param>chunk.section.depth=8
+    <xsl:param>chunk.first.sections=1
+    <xsl:param>toc.section.depth=2
+    <xsl:param>toc.max.depth=1
+    <xsl:param>generate.section.toc.level=1
+    <xsl:param>generate.toc="chapter nop section nop"
+    <xsl:param>root.filename=boost_asio
+    <format>pdf:<xsl:param>img.src.path=$(images_location)/
+    <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/libs/asio/doc/html
+  :
+    <dependency>asio_doc_images
+    <dependency>asio_examples
+  ;
+
+explicit asio ;
+
+

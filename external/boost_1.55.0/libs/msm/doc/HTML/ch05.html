@@ -1,0 +1,44 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>Chapter&nbsp;5.&nbsp;Questions &amp; Answers, tips</title><link rel="stylesheet" href="boostbook.css" type="text/css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.75.2"><link rel="home" href="index.html" title="Meta State Machine (MSM)"><link rel="up" href="pt01.html" title="Part&nbsp;I.&nbsp;User' guide"><link rel="prev" href="ch04s05.html" title="Compilers corner"><link rel="next" href="ch06.html" title="Chapter&nbsp;6.&nbsp;Internals"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter&nbsp;5.&nbsp;Questions &amp; Answers, tips</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04s05.html">Prev</a>&nbsp;</td><th width="60%" align="center">Part&nbsp;I.&nbsp;User' guide</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="ch06.html">Next</a></td></tr></table><hr></div><div class="chapter" title="Chapter&nbsp;5.&nbsp;Questions &amp; Answers, tips"><div class="titlepage"><div><div><h2 class="title"><a name="d0e2920"></a>Chapter&nbsp;5.&nbsp;Questions &amp; Answers, tips</h2></div></div></div><p><span class="underline">Where should I define a state machine?</span>: The
+                tutorials are implemented in a simple cpp source file for simplicity. I want to
+                model dynamic behavior of a class as a state machine, how should I define the state
+                machine?</p><p><span class="underline">Answer</span>: Usually you'll want to implement the
+                state machine as an attribute of the class. Unfortunately, a concrete state machine
+                is a typedef, which cannot be forward-declared. This leaves you with two
+                possibilities: </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>Provide the state machine definition inside the header class and
+                            contain an instance as attribute. Simple, but with several drawbacks:
+                            using namespace directives are not advised, and compile-time cost for
+                            all modules including the header.</p></li><li class="listitem"><p>Keep the state machine as (shared) pointer to void inside the <a class="link" href="examples/FsmAsPtr.hpp" target="_top">class definition</a>, and
+                            implement the state machine in the <a class="link" href="examples/FsmAsPtr.cpp" target="_top">cpp file</a>. Minimum
+                            compile-time, using directives are okay, but the state machine is now
+                            located inside the heap.</p></li></ul></div><p><span class="underline">Question</span>: on_entry gets as argument, the
+                sent event. What event do I get when the state becomes default-activated (because it
+                is an initial state)?</p><p>
+                <span class="underline">Answer</span>: To allow you to know that the state
+                was default-activated, MSM generates a boost::msm::InitEvent default event. </p><p><span class="underline">Question</span>: Why do I see no call to
+                no_transition in my submachine? </p><p><span class="underline">Answer</span>: Because of the priority rule defined
+                by UML. It says that in case of transition conflict, the most inner state has a
+                higher priority. So after asking the inner state, the containing composite has to be
+                also asked to handle the transition and could find a possible transition.</p><p><span class="underline">Question</span>: Why do I get a compile error
+                saying the compiler cannot convert to a function ...Fsm::*(some_event)? </p><p><span class="underline">Answer</span>: You probably defined a transition
+                triggered by the event some_event, but used a guard/action method taking another
+                event. </p><p><span class="underline">Question</span>: Why do I get a compile error
+                saying something like &#8220;too few&#8221; or &#8220;too many&#8221; template arguments? </p><p><span class="underline">Answer</span>: You probably defined a transition in
+                form of a a_row or g_row where you wanted just a _row or the other way around. With
+                Row, it could mean that you forgot a "none". </p><p><span class="underline">Question</span>: Why do I get a very long compile
+                error when I define more than 20 rows in the transition table? </p><p><span class="underline">Answer</span>: MSM uses Boost.MPL under the hood
+                and this is the default maximum size. Please define the following 3 macros before
+                including any MSM headers: </p><pre class="programlisting">#define BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS
+#define BOOST_MPL_LIMIT_VECTOR_SIZE 30 // or whatever you need               
+#define BOOST_MPL_LIMIT_MAP_SIZE 30 // or whatever you need </pre><p><span class="underline">Question</span>: Why do I get this error: &#8221;error
+                C2977: 'boost::mpl::vector' : too many template arguments&#8221;? </p><p><span class="underline">Answer</span>: The first possibility is that you
+                defined a transition table as, say, vector17 and have 18 entries. The second is that
+                you have 17 entries and have a composite state. Under the hood, MSM adds a row for
+                every event in the composite transition table. The third one is that you used a
+                mpl::vector without the number of entries but are close to the MPL default of 50 and
+                have a composite, thus pushing you above 50. Then you need mpl/vector60/70&#8230;.hpp and
+                a mpl/map60/70&#8230;.hpp </p><p><span class="underline">Question</span>: Why do I get a very long compile
+                error when I define more than 10 states in a state machine? </p><p><span class="underline">Answer</span>: MSM uses Boost.Fusion under the hood
+                and this is the default maximum size. Please define the following macro before
+                including any MSM headers: </p><pre class="programlisting">#define FUSION_MAX_VECTOR_SIZE 20 // or whatever you need </pre></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04s05.html">Prev</a>&nbsp;</td><td width="20%" align="center"><a accesskey="u" href="pt01.html">Up</a></td><td width="40%" align="right">&nbsp;<a accesskey="n" href="ch06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top"> Compilers corner &nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;Chapter&nbsp;6.&nbsp;Internals</td></tr></table></div></body></html>

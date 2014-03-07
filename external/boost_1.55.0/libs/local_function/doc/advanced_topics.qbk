@@ -1,0 +1,495 @@
+
+[/ Copyright (C) 2009-2012 Lorenzo Caminiti ]
+[/ Distributed under the Boost Software License, Version 1.0 ]
+[/ (see accompanying file LICENSE_1_0.txt or a copy at ]
+[/ http://www.boost.org/LICENSE_1_0.txt) ]
+[/ Home at http://www.boost.org/libs/local_function ]
+
+[section Advanced Topics]
+
+This section illustrates advanced usage of this library.
+At the bottom there is also a list of known limitations of this library.
+
+[section Default Parameters]
+
+This library allows to specify default values for the local function parameters.
+However, the usual C++ syntax for default parameters that uses the assignment symbol `=` cannot be used.
+[footnote
+*Rationale.*
+The assignment symbol `=` cannot be used to specify default parameter values because default values are not part of the parameter type so they cannot be handled using template meta-programming.
+Default parameter values need to be separated from the rest of the parameter declaration using the preprocessor.
+Specifically, this library needs to use preprocessor meta-programming to remove default values when constructing the local function type and also to count the number of default values to provide the correct set of call operators for the local functor.
+Therefore, the symbol `=` cannot be used because it cannot be handled by preprocessor meta-programming (non-alphanumeric symbols cannot be detected by preprocessor meta-programming because they cannot be concatenated by the preprocessor).
+]
+The keyword `default` is used instead:
+
+    ``[^/parameter-type parameter-name/]``, default`` [^/parameter-default-value/]``, ...
+
+For example, let's program a local function `add(x, y)` where the second parameter `y` is optional and has a default value of `2` (see also [@../../test/add_default.cpp =add_default.cpp=]):
+
+[add_default]
+
+Programmers can define a `WITH_DEFAULT` macro similar to the following if they think it improves readability over the above syntax (see also [@../../test/add_with_default.cpp =add_with_default.cpp=]):
+[footnote
+The authors do not personally find the use of the `WITH_DEFAULT` macro more readable and they prefer to use the `default` keyword directly.
+Furthermore, `WITH_DEFAULT` needs to be defined differently for compilers without variadic macros `#define WITH_DEFAULT (default)` so it can only be defined by programmers based on the syntax they decide to use (see the __No_Variadic_Macros__ section).
+]
+
+[add_with_default_macro]
+[add_with_default]
+
+[endsect]
+
+[section Commas and Symbols in Macros]
+
+The C++ preprocessor does not allow commas `,` within macro parameters unless they are wrapped by round parenthesis `()` (see the __Boost_Utility_IdentityType__ documentation for details).
+Therefore, using commas within local function parameters and bindings will generate (cryptic) preprocessor errors unless they are wrapped with an extra set of round parenthesis `()` as explained here.
+
+[note
+Also macro parameters with commas wrapped by angular parenthesis `<>` (templates, etc) or square parenthesis `[]` (multidimensional array access, etc) need to be wrapped by the extra round parenthesis `()` as explained here (this is because the preprocessor only recognizes the round parenthesis and it does not recognize angular, square, or any other type of parenthesis).
+However, macro parameters with commas which are already wrapped by round parenthesis `()` are fine (function calls, some value expressions, etc).
+]
+
+In addition, local function parameter types cannot start with non-alphanumeric symbols (alphanumeric symbols are `A-Z`, `a-z`, and `0-9`).
+[footnote
+*Rationale.*
+This limitation is because this library uses preprocessor token concatenation [^##] to inspect the macro parameters (to distinguish between function parameters, bound variables, etc) and the C++ preprocessor does not allow to concatenate non-alphanumeric tokens.
+]
+The library will generate (cryptic) preprocessor errors if a parameter type starts with a non-alphanumeric symbol.
+
+Let's consider the following example:
+
+    void BOOST_LOCAL_FUNCTION(
+        const std::map<std::string, size_t>& m,                 // (1) Error.
+        ::sign_t sign,                                          // (2) Error.
+        const size_t& factor,
+                default key_sizeof<std::string, size_t>::value, // (3) Error.
+        const std::string& separator, default cat(":", " ")     // (4) OK.
+    ) {
+        ...
+    } BOOST_LOCAL_FUNCTION_NAME(f)
+
+[*(1)] The parameter type `const std::map<std::string, size_t>&` contains a comma `,` after the first template parameter `std::string`.
+This comma is not wrapped by any round parenthesis `()` thus it will cause a preprocessor error.
+[footnote
+The preprocessor always interprets unwrapped commas as separating macro parameters.
+Thus in this case the comma will indicate to the preprocessor that the first macro parameter is `const std::map<std::tring`, the second macro parameter is `size_t>& m`, etc instead of passing `const std::map<std::string, size_t>& m` as a single macro parameter.
+]
+The __Boost_Utility_IdentityType__ macro `BOOST_IDENTITY_TYPE((`[^['type-with-commas]]`))` defined in the =boost/utility/identity_type.hpp= header can be used to wrap a type within extra parenthesis `()` so to overcome this problem:
+
+    #include <boost/utility/identity_type.hpp>
+    
+    void BOOST_LOCAL_FUNCTION(
+        BOOST_IDENTITY_TYPE((const std::map<std::string, size_t>&)) m, // OK.
+        ...
+    ) {
+        ...
+    } BOOST_LOCAL_FUNCTION_NAME(f)
+
+This macro expands to an expression that evaluates (at compile-time) exactly to the specified type (furthermore, this macro does not use variadic macros so it works on any __CXX03__ compiler).
+Note that a total of two set of parenthesis `()` are needed: The parenthesis to invoke the `BOOST_IDENTITY_TYPE(...)` macro plus the parenthesis to wrap the type expression (and therefore any comma `,` that it contains) passed as parameter to the `BOOST_IDENTITY_TYPE((...))` macro.
+Finally, the `BOOST_IDENTITY_TYPE` macro must be prefixed by the `typename` keyword `typename BOOST_IDENTITY_TYPE(`[^['parenthesized-type]]`)` when used together with the [macroref BOOST_LOCAL_FUNCTION_TPL] macro within templates.
+
+[note
+Often, there might be better ways to overcome this limitation that lead to code which is more readable than the one using the `BOOST_IDENTITY_TYPE` macro.
+]
+
+For example, in this case a `typedef` from the enclosing scope could have been used to obtain the following valid and perhaps more readable code:
+
+    typedef std::map<std::string, size_t> map_type;
+    void BOOST_LOCAL_FUNCTION(
+        const map_type& m, // OK (and more readable).
+        ...
+    ) BOOST_LOCAL_FUNCTION_NAME(f)
+
+[*(2)] The parameter type `::sign_t` starts with the non-alphanumeric symbols `::` thus it will generate preprocessor errors if used as a local function parameter type.
+The `BOOST_IDENTITY_TYPE` macro can also be used to overcome this issue:
+
+    void BOOST_LOCAL_FUNCTION(
+        ...
+        BOOST_IDENTITY_TYPE((::sign_t)) sign, // OK.
+        ...
+    ) {
+        ...
+    } BOOST_LOCAL_FUNCTION_NAME(f)
+
+[note
+Often, there might be better ways to overcome this limitation that lead to code which is more readable than the one using the `BOOST_IDENTITY_TYPE` macro.
+]
+
+For example, in this case the symbols `::` could have been simply dropped to obtain the following valid and perhaps more readable code:
+
+    void BOOST_LOCAL_FUNCTION(
+        ...
+        sign_t sign, // OK (and more readable).
+        ...
+    ) {
+        ...
+    } BOOST_LOCAL_FUNCTION_NAME(f)
+
+[*(3)] The default parameter value `key_sizeof<std::string, size_t>::value` contains a comma `,` after the first template parameter `std::string`.
+Again, this comma is not wrapped by any parenthesis `()` so it will cause a preprocessor error.
+Because this is a value expression (and not a type expression), it can simply be wrapped within an extra set of round parenthesis `()`:
+
+    void BOOST_LOCAL_FUNCTION(
+        ...
+        const size_t& factor,
+                default (key_sizeof<std::string, size_t>::value), // OK.
+        ...
+    ) {
+        ...
+    } BOOST_LOCAL_FUNCTION_NAME(f)
+
+[*(4)] The default parameter value `cat(":", " ")` is instead fine because it contains a comma `,` which is already wrapped by the parenthesis `()` of the function call `cat(...)`.
+
+Consider the following complete example (see also [@../../test/macro_commas.cpp =macro_commas.cpp=]):
+
+[macro_commas]
+
+[endsect]
+
+[section Assignments and Returns]
+
+Local functions are function objects so it is possible to assign them to other functors like __Boost_Function__'s `boost::function` in order to store the local function into a variable, pass it as a parameter to another function, or return it from the enclosing function.
+
+For example (see also [@../../test/return_assign.cpp =return_assign.cpp=]):
+
+[return_assign]
+
+[warning
+As with __CXX11_lambda_functions__, programmers are responsible to ensure that bound variables are valid in any scope where the local function object is called.
+Returning and calling a local function outside its declaration scope will lead to undefined behaviour if any of the bound variable is no longer valid in the scope where the local function is called (see the __Examples__ section for more examples on the extra care needed when returning a local function as a closure).
+It is always safe instead to call a local function within its enclosing scope.
+]
+
+In addition, a local function can bind and call other local functions.
+Local functions should always be bound by constant reference `const bind&` to avoid unnecessary copies.
+For example, the following local function `inc_sum` binds the local function `inc` so `inc_sum` can call `inc` (see aslo [@../../test/transform.cpp =transform.cpp=]):
+
+[transform]
+
+[endsect]
+
+[section Nesting]
+
+It is possible to nest local functions into one another.
+For example (see also [@../../test/nesting.cpp =nesting.cpp=]):
+
+[nesting]
+
+[endsect]
+
+[section Accessing Types (concepts, etc)]
+
+This library never requires to explicitly specify the type of bound variables (e.g., this reduces maintenance because the local function declaration and definition do not have to change even if the bound variable types change as long as the semantics of the local function remain valid).
+From within local functions, programmers can access the type of a bound variable using the following macro:
+
+    BOOST_LOCAL_FUNCTION_TYPEOF(``/bound-variable-name/``)
+
+The [macroref BOOST_LOCAL_FUNCTION_TYPEOF] macro expands to a type expression that evaluates (at compile-time) to the fully qualified type of the bound variable with the specified name.
+This type expression is fully qualified in the sense that it will be constant if the variable is bound by constant `const bind[&]` and it will also be a reference if the variable is bound by reference `[const] bind&` (if needed, programmers can remove the `const` and `&` qualifiers using `boost::remove_const` and `boost::remove_reference`, see __Boost_TypeTraits__).
+
+The deduced bound type can be used within the body to check concepts, declare local variables, etc.
+For example (see also [@../../test/typeof.cpp =typeof.cpp=] and [@../../test/addable.hpp =addable.hpp=]):
+
+[typeof]
+
+Within templates, [macroref BOOST_LOCAL_FUNCTION_TYPEOF] should not be prefixed by the `typename` keyword but eventual type manipulations need the `typename` prefix as usual (see also [@../../test/typeof_template.cpp =typeof_template.cpp=] and [@../../test/addable.hpp =addable.hpp=]):
+
+[typeof_template]
+
+In this context, it is best to use the [macroref BOOST_LOCAL_FUNCTION_TYPEOF] macro instead of using __Boost_Typeof__ to reduce the number of times that __Boost_Typeof__ is invoked (either the library already internally used __Boost_Typeof__ once, in which case using this macro will not use __Boost_Typeof__ again, or the bound variable type is explicitly specified by programmers as shown be below, in which case using this macro will not use __Boost_Typeof__ at all).
+
+Furthermore, within the local function body it possible to access the result type using `result_type`, the type of the first parameter using `arg1_type`, the type of the second parameter using `arg2_type`, etc.
+[footnote
+*Rationale.*
+The type names `result_type` and `arg`[^['N]]`_type` follow the __Boost_TypeTraits__ naming conventions for function traits.
+]
+
+[endsect]
+
+[section Specifying Types (no Boost.Typeof)]
+
+While not required, it is possible to explicitly specify the type of bound variables so the library will not internally use __Boost_Typeof__ to automatically deduce the types.
+When specified, the bound variable type must follow the `bind` "keyword" and it must be wrapped within round parenthesis `()`:
+
+    bind(``/variable-type/``) ``/variable-name/``           // Bind by value with explicit type.
+    bind(``/variable-type/``)& ``/variable-name/``          // Bind by reference with explicit type.
+    const bind(``/variable-type/``) ``/variable-name/``     // Bind by constant value with explicit type.
+    const bind(``/variable-type/``)& ``/variable-name/``    // Bind by constant reference with explicit type.
+    bind(``/class-type/``*) this_                     // Bind object `this` with explicit type.
+    const bind(``/class-type/``*) this_               // Bind object `this` by constant with explicit type.
+
+Note that within the local function body it is always possible to abstract the access to the type of a bound variable using [macroref BOOST_LOCAL_FUNCTION_TYPEOF] (even when the bound variable type is explicitly specified in the local function declaration).
+
+The library also uses __Boost_Typeof__ to determine the local function result type (because this type is specified outside the [macroref BOOST_LOCAL_FUNCTION] macro).
+Thus it is also possible to specify the local function result type as one of the [macroref BOOST_LOCAL_FUNCTION] macro parameters prefixing it by `return` so the library will not use __Boost_Typeof__ to deduce the result type:
+
+    BOOST_LOCAL_FUNCTION_TYPE(return ``[^/result-type/]``, ...)
+
+Note that the result type must be specified only once either before the macro (without the `return` prefix) or as one of the macro parameters (with the `return` prefix).
+As always, the result type can be `void` to declare a function that returns nothing (so `return void` is allowed when the result type is specified as one of the macro parameters).
+
+The following example specifies all bound variables and result types (see also [@../../test/add_typed.cpp =add_typed.cpp=]):
+[footnote
+In the examples of this documentation, bound variables, function parameters, and the result type are specified in this order because this is the order used by __CXX11_lambda_functions__.
+However, the library accepts bound variables, function parameters, and the result type in any order.
+]
+
+[add_typed]
+
+Unless necessary, it is recommended to not specify the bound variable and result types.
+Let the library deduce these types so the local function syntax will be more concise and the local function declaration will not have to change if a bound variable type changes (reducing maintenance).
+
+[note
+When all bound variable and result types are explicitly specified, the library implementation will not use __Boost_Typeof__.
+]
+
+[endsect]
+
+[section Inlining]
+
+Local functions can be declared [@http://en.wikipedia.org/wiki/Inline_function inline] to increase the chances that the compiler will be able to reduce the run-time of the local function call by inlining the generated assembly code.
+A local function is declared inline by prefixing its name with the keyword `inline`:
+
+    ``/result-type/`` BOOST_LOCAL_FUNCTION(``/parameters/``) {
+        ... // Body.
+    } BOOST_LOCAL_FUNCTION_NAME(inline ``/name/``) // Inlining.
+
+When inlining a local function, note the following:
+
+* On __CXX03__ compliant compilers, inline local functions always have a run-time comparable to their equivalent implementation that uses local functors (see the __Alternatives__ section).
+However, inline local functions have the important limitation that they cannot be assigned to other functors (like `boost::function`) and they cannot be passed as template parameters.
+* On __CXX11__ compilers, `inline` has no effect because this library will automatically generate code that uses __CXX11__ specific features to inline the local function calls whenever possible even if the local function is not declared inline.
+Furthermore, non __CXX11__ local functions can always be passes as template parameters even when they are declared inline.
+[footnote
+*Rationale.*
+This library uses an indirect function call via a function pointer in order to pass the local function as a template parameter (see the __Implementation__ section).
+No compiler has yet been observed to be able to inline function calls when they use such indirect function pointer calls.
+Therefore, inline local functions do not use such indirect function pointer call (so they are more likely to be optimized) but because of that they cannot be passed as template parameters.
+The indirect function pointer call is needed on __CXX03__ but it is not needed on __CXX11__ (see __N2657__ and __Boost_Config__'s `BOOST_NO_LOCAL_CLASS_TEMPLATE_PARAMETERS`) thus this library automatically generates local function calls that can be inline on __CXX11__ compilers (even when the local function is not declared inline).
+]
+
+[important
+It is recommended to not declare a local function inline unless it is strictly necessary for optimizing pure __CXX03__ compliant code (because in all other cases this library will automatically take advantage of __CXX11__ features to optimize the local function calls while always allowing to pass the local function as a template parameter).
+]
+
+For example, the following local function is declared inline (thus a for-loop needs to be used for portability instead of passing the local function as a template parameter to the `std::for_each` algorithm, see also [@../../test/add_inline.cpp =add_inline.cpp=]):
+
+[add_inline]
+
+[endsect]
+
+[section Recursion]
+
+Local functions can be declared [@http://en.wikipedia.org/wiki/Recursion_(computer_science)#Recursive_procedures recursive] so a local function can recursively call itself from its body (as usual with C++ functions).
+A local function is declared recursive by prefixing its name with the `recursive` "keyword" (thus `recursive` cannot be used as a local function name):
+
+    ``/result-type/`` BOOST_LOCAL_FUNCTION(``/parameters/``) {
+        ... // Body.
+    } BOOST_LOCAL_FUNCTION_NAME(recursive ``/name/``) // Recursive.
+
+For example, the following local function is used to recursively calculate the factorials of all the numbers in the specified vector (see also [@../../test/factorial.cpp =factorial.cpp=]):
+
+[factorial]
+
+Compilers have not been observed to be able to inline recursive local function calls not even when the recursive local function is also declared inline:
+
+    ... BOOST_LOCAL_FUNCTION_NAME(inline recursive factorial)
+
+Recursive local functions should never be called outside their declaration scope.
+[footnote
+*Rationale.*
+This limitation comes from the fact that the global functor used to pass the local function as a template parameter (and eventually returned outside the declarations scope) does not know the local function name so the local function name used for recursive call cannot be set in the global functor.
+This limitation together with preventing the possibility for inlining are the reasons why local functions are not recursive unless programmers explicitly declare them `recursive`.
+]
+
+[warning
+If a local function is returned from the enclosing function and called in a different scope, the behaviour is undefined (and it will likely result in a run-time error).
+]
+
+This is not a limitation with respect to __CXX11_lambda_functions__ because lambdas can never call themselves recursively (in other words, there is no recursive lambda function that can successfully be called outside its declaration scope because there is no recursive lambda function at all).
+
+[endsect]
+
+[section Overloading]
+
+Because local functions are functors, it is possible to overload them using the `boost::overloaded_function` functor of __Boost_Functional_OverloadedFunction__ from the =boost/functional/overloaded_function.hpp= header (see the __Boost_Functional_OverloadedFunction__ documentation for details).
+
+In the following example, the overloaded function object `add` can be called with signatures from either the local function `add_s`, or the local function `add_d`, or the local function `add_d` with its extra default parameter, or the function pointer `add_i` (see also [@../../test/overload.cpp =overload.cpp=]):
+
+[overload_decl]
+[overload]
+
+[endsect]
+
+[section Exception Specifications]
+
+It is possible to program exception specifications for local functions by specifying them after the [macroref BOOST_LOCAL_FUNCTION] macro and before the body code block `{ ... }`.
+
+[important
+Note that the exception specifications only apply to the body code specified by programmers and they do not apply to the rest of the code automatically generated by the macro expansions to implement local functions.
+For example, even if the body code is specified to throw no exception using `throw () { ... }`, the execution of the library code automatically generated by the macros could still throw (if there is no memory, etc).
+]
+
+For example (see also [@../../test/add_except.cpp =add_except.cpp=]):
+
+[add_except]
+
+[endsect]
+
+[section Storage Classifiers]
+
+Local function parameters support the storage classifiers as usual in __CXX03__.
+The `auto` storage classifier is specified as:
+[footnote
+The `auto` storage classifier is part of the __CXX03__ standard and therefore supported by this library.
+However, the meaning and usage of the `auto` keyword changed in __CXX11__.
+Therefore, use the `auto` storage classifier with the usual care in order to avoid writing __CXX03__ code that might not work on __CXX11__.
+]
+
+	auto ``/parameter-type parameter-name/``
+
+The `register` storage classifier is specified as:
+
+	register ``/parameter-type parameter-name/``
+
+For example (see also [@../../test/add_classifiers.cpp =add_classifiers.cpp=]):
+
+[add_classifiers]
+
+[endsect]
+
+[section Same Line Expansions]
+
+In general, it is not possible to expand the [macroref BOOST_LOCAL_FUNCTION], [macroref BOOST_LOCAL_FUNCTION_TPL] macros multiple times on the same line.
+[footnote
+*Rationale.*
+The [macroref BOOST_LOCAL_FUNCTION] and [macroref BOOST_LOCAL_FUNCTION_TPL] macros internally use `__LINE__` to generate unique identifiers.
+Therefore, if these macros are expanded more than on time on the same line, the generated identifiers will no longer be unique and the code will not compile.
+(This restriction does not apply to MSVC and other compilers that provide the non-standard `__COUNTER__` macro.)
+Note that the [macroref BOOST_LOCAL_FUNCTION_NAME] macro can always be expanded multiple times on the same line because the unique local function name (and not `__LINE__`) is used by this macro to generate unique identifiers (so there is no need for a `BOOST_LOCAL_FUNCTION_NAME_ID` macro).
+]
+
+Therefore, this library provides additional macros [macroref BOOST_LOCAL_FUNCTION_ID] and [macroref BOOST_LOCAL_FUNCTION_ID_TPL] which can be expanded multiple times on the same line as long as programmers specify unique identifiers as the macros' first parameters.
+The unique identifier can be any token (not just numeric) that can be successfully concatenated by the preprocessor (e.g., `local_function_number_1_at_line_123`).
+[footnote
+Because there are restrictions on the set of tokens that the preprocessor can concatenate and because not all compilers correctly implement these restrictions, it is in general recommended to specify unique identifiers as a combination of alphanumeric tokens. 
+]
+
+The [macroref BOOST_LOCAL_FUNCTION_ID] and [macroref BOOST_LOCAL_FUNCTION_ID_TPL] macros accept local function parameter declaration lists using the exact same syntax as [macroref BOOST_LOCAL_FUNCTION].
+For example (see also [@../../test/same_line.cpp =same_line.cpp=]):
+
+[same_line]
+
+As shown by the example above, the [macroref BOOST_LOCAL_FUNCTION_ID] and [macroref BOOST_LOCAL_FUNCTION_ID_TPL] macros are especially useful when it is necessary to invoke them multiple times within a user-defined macro (because the preprocessor expands all nested macros on the same line).
+
+[endsect]
+
+[section Limitations (operators, etc)]
+
+The following table summarizes all C++ function features indicating those features that are not supported by this library for local functions.
+
+[table
+[
+    [ C++ Function Feature ]
+    [ Local Function Support ]
+    [ Comment ]
+]
+[
+    [ `export` ]
+    [ No. ]
+    [ This is not supported because local functions cannot be templates (plus most C++ compilers do not implement `export` at all). ]
+]
+[
+    [ `template<`[^['template-parameter-list]]`>` ]
+    [ No. ]
+    [ This is not supported because local functions are implemented using local classes and __CXX03__ local classes cannot be templates. ]
+]
+[
+    [ `explicit` ]
+    [ No. ]
+    [ This is not supported because local functions are not constructors. ]
+]
+[
+    [ `inline` ]
+    [ Yes. ]
+    [ Local functions can be specified `inline` to improve the chances that __CXX03__ compilers can optimize the local function call run-time (but `inline` local functions cannot be passed as template parameters on __CXX03__ compilers, see the __Advanced_Topics__ section). ]
+]
+[
+    [ `extern` ]
+    [ No. ]
+    [ This is not supported because local functions are always defined locally within the enclosing scope and together with their declarations. ]
+]
+[
+    [ `static` ]
+    [ No. ]
+    [ This is not supported because local functions are not member functions. ]
+]
+[
+    [ `virtual` ]
+    [ No. ]
+    [ This is not supported because local functions are not member functions.
+[footnote
+*Rationale.*
+It would be possible to make a local function class inherit from another local function class.
+However, this "inheritance" feature is not implemented because it seemed of [@http://lists.boost.org/Archives/boost/2010/09/170895.php no use] given that local functions can be bound to one another thus they can simply call each other directly without recurring to dynamic binding or base function calls.
+]
+    ]
+]
+[
+    [ [^/result-type/] ]
+    [ Yes. ]
+    [ This is supported (see the __Tutorial__ section). ]
+]
+[
+    [ [^/function-name/] ]
+    [ Yes. ]
+    [ Local functions are named and they can call themselves recursively but they cannot be operators (see the __Tutorial__ and __Advanced_Topics__ sections). ]
+]
+[
+    [ [^/parameter-list/] ]
+    [ Yes. ]
+    [ This is supported and it also supports the `auto` and `register` storage classifiers, default parameters, and binding of variables in scope (see the __Tutorial__ and __Advanced_Topics__ sections). ]
+]
+[
+    [ Trailing `const` qualifier ]
+    [ No. ]
+    [ This is not supported because local functions are not member functions. ]
+]
+[
+    [ Trailing `volatile` qualifier ]
+    [ No. ]
+    [ This is not supported because local functions are not member functions. ]
+]
+]
+
+[heading Operators]
+
+Local functions cannot be operators.
+Naming a local function `operator...` will generate a compile-time error.
+[footnote
+*Rationale.*
+This is the because a local function name must be a valid local variable name (the local variable used to hold the local functor) and operators cannot be used as local variable names.
+]
+
+For example, the following code does not compile (see also [@../../test/operator_error.cpp =operator_error.cpp=]):
+
+[operator_error]
+
+[heading Goto]
+
+It is possible to jump with a `goto` within the local function body.
+For example, the following compiles (see also [@../../test/goto.cpp =goto.cpp=]):
+
+[goto]
+
+However, it is not possible to jump with a `goto` from within the local function body to to a label defined in the enclosing scope.
+For example, the following does not compile (see also [@../../test/goto_error.cpp =goto_error.cpp=]):
+
+[goto_error]
+
+[endsect]
+
+[endsect]
+

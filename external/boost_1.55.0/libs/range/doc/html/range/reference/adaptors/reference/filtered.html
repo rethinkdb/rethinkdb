@@ -1,0 +1,164 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>filtered</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="copied.html" title="copied">
+<link rel="next" href="indexed.html" title="indexed">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="copied.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="indexed.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_reference_adaptors_reference_filtered">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="range.reference.adaptors.reference.filtered"></a><a class="link" href="filtered.html" title="filtered">filtered</a>
+</h5></div></div></div>
+<div class="toc"><dl><dt><span class="section"><a href="filtered.html#range.reference.adaptors.reference.filtered.filtered_example">filtered
+            example</a></span></dt></dl></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Syntax
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Code
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Pipe
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">rng</span> <span class="special">|</span>
+                      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">filtered</span><span class="special">(</span><span class="identifier">pred</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Function
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">filter</span><span class="special">(</span><span class="identifier">rng</span><span class="special">,</span>
+                      <span class="identifier">pred</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                <span class="bold"><strong>Precondition:</strong></span> The <code class="computeroutput"><span class="identifier">value_type</span></code> of the range is convertible
+                to the argument type of <code class="computeroutput"><span class="identifier">pred</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postcondition:</strong></span> For all adjacent
+                elements <code class="computeroutput"><span class="special">[</span><span class="identifier">x</span><span class="special">]</span></code> in the returned range, <code class="computeroutput"><span class="identifier">pred</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                is <code class="computeroutput"><span class="keyword">true</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Throws:</strong></span> Whatever the copy constructor
+                of <code class="computeroutput"><span class="identifier">pred</span></code> might throw.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Range Category:</strong></span> <a class="link" href="../../../concepts/forward_range.html" title="Forward Range">Forward
+                Range</a>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Range Return Type:</strong></span> <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">filtered_range</span><span class="special">&lt;</span><span class="identifier">typeof</span><span class="special">(</span><span class="identifier">rng</span><span class="special">)&gt;</span></code>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returned Range Category:</strong></span> The minimum
+                of the range category of <code class="computeroutput"><span class="identifier">rng</span></code>
+                and <a class="link" href="../../../concepts/bidirectional_range.html" title="Bidirectional Range">Bidirectional
+                Range</a>
+              </li>
+</ul></div>
+<div class="section range_reference_adaptors_reference_filtered_filtered_example">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="range.reference.adaptors.reference.filtered.filtered_example"></a><a class="link" href="filtered.html#range.reference.adaptors.reference.filtered.filtered_example" title="filtered example">filtered
+            example</a>
+</h6></div></div></div>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">adaptor</span><span class="special">/</span><span class="identifier">filtered</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">/</span><span class="identifier">copy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">assign</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+<span class="keyword">struct</span> <span class="identifier">is_even</span>
+<span class="special">{</span>
+    <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="keyword">int</span> <span class="identifier">x</span> <span class="special">)</span> <span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">x</span> <span class="special">%</span> <span class="number">2</span> <span class="special">==</span> <span class="number">0</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">assign</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">;</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">input</span><span class="special">;</span>
+    <span class="identifier">input</span> <span class="special">+=</span> <span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">,</span><span class="number">3</span><span class="special">,</span><span class="number">4</span><span class="special">,</span><span class="number">5</span><span class="special">,</span><span class="number">6</span><span class="special">,</span><span class="number">7</span><span class="special">,</span><span class="number">8</span><span class="special">,</span><span class="number">9</span><span class="special">;</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span>
+        <span class="identifier">input</span> <span class="special">|</span> <span class="identifier">filtered</span><span class="special">(</span><span class="identifier">is_even</span><span class="special">()),</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream_iterator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">,</span> <span class="string">","</span><span class="special">));</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+            </p>
+</div>
+<p>
+            This would produce the output:
+</p>
+<pre class="programlisting"><span class="number">2</span><span class="special">,</span><span class="number">4</span><span class="special">,</span><span class="number">6</span><span class="special">,</span><span class="number">8</span><span class="special">,</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="copied.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="indexed.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,45 @@
+[/
+    Copyright (c) 2008-2010 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section Acknowledgments]
+
+I would like to thank CEO Hermann Steppe and Chief Developer Peter Wuttke
+of Cortex Software GmbH for their friendly support of my work on the
+Icl and their permission to release the library as open source.
+For her genuine interest in my work and many creative and
+uplifting talks I want to thank my colleague Axinja Ott who
+contributed a lot to the success of the project. 
+
+Many thanks to Paul A. Bristow, Vicente Botet, Luke Simonson,
+Alp Mestan, David Abrahams, Steven Watanabe, Neal Becker, Phil Endecott,
+Robert Stewart, Jeff Flinn, Zachary Turner
+and other developers
+form the Boost community who supported the development of the 
+Interval Template Library by numerous hints and feedbacks on 
+the boost mailing list.
+Also helpful have been conversations, hints and contributions
+at the BoostCon 2009 by Jeff Garland, David Jenkins, Tobias Loew,
+Barend Gehrels, Luke Simonson and Hartmut Kaiser. 
+Special thanks for reading and improving this documentation to
+Neal Becker, Ilya Bobir and Brian Wood.
+Jeff Flinn provided valuable feedback and a codepatch to fix 
+portability problems with CodeWarrior 9.4. Many thanks for that.
+
+I am grateful to Hartmut Kaiser for managing the formal review of 
+this library and to all the reviewers and participants
+in the related discussions, including Jeff Flinn, Luke Simonson, 
+Phil Endecott, Eric M. Jonas, Peter Wuttke, Robert Stewart,
+Barend Gehrels, Vicente Botet, Thomas Klimpel, Paul A. Bristow,
+Jerry Jeremiah, John Reid, Steven Watanabe, Brian Wood, Markus Werle 
+and Michael Caisse. 
+
+For sending in bug reports, code patches and suggestions for improvements
+after the review thanks to Denis and Marvin Sielenkemper.
+
+[endsect]
+

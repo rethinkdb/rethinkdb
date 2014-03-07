@@ -1,0 +1,14 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/zh_TW.xml
+// *
+// ***************************************************************************
+zh_Hant_TW{
+    /**
+     * empty target resource
+     */
+    ___{""}
+}

@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Tutorial</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Tutorial</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A><IMG WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev_disabled.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='container_source.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<A NAME="device_overview"></A>
+<H2 CLEAR='right'>2.1.1. Overview: Devices, <CODE>stream_buffer</CODE> and <CODE>stream</CODE></H2>
+
+<P>Writing a new stream or stream buffer class using the Boost Iostreams library is easy: you simply write a class modeling the <A HREF="../concepts/device.html">Device</A> concept, then use that class as the template argument to <A HREF="../guide/generic_streams.html#stream"><CODE>stream</CODE></A> or <A HREF="../guide/generic_streams.html#stream_buffer"><CODE>stream_buffer</CODE></A>:
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/stream.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/stream.hpp&gt;</SPAN></A>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A HREF="../../../../boost/iostreams/stream_buffer.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/stream_buffer.hpp&gt;</SPAN></A>
+
+<SPAN CLASS='keyword'>namespace</SPAN> io = boost::iostreams;
+
+<SPAN CLASS='keyword'>class</SPAN> my_device { <SPAN CLASS='comment'>/* */</SPAN> };
+
+<SPAN CLASS='keyword'>typedef</SPAN> io::stream&lt;my_device&gt;         my_stream;
+<SPAN CLASS='keyword'>typedef</SPAN> io::stream_buffer&lt;my_device&gt;  my_streambuf;</PRE>
+
+<P>Here <CODE>io::stream_buffer&lt;my_device&gt;</CODE> is a derived class of <CODE>std::basic_streambuf</CODE>, and <CODE>io::stream&lt;my_device&gt;</CODE> is a derived class of <CODE>std::basic_istream</CODE>, <CODE>std::basic_ostream</CODE> or <CODE>std::basic_iostream</CODE> depending on the <A HREF="../guide/modes.html">mode</A> of my_device, <I>i.e.</I>, depending on which of the fundamental i/o operations <A HREF="../functions/read.html"><CODE>read</CODE></A>, <A HREF="../functions/write.html"><CODE>write</CODE></A> and <A HREF="../functions/seek.html"><CODE>seek</CODE></A> it supports.
+
+<P>The template <CODE>io::stream</CODE> is provided as a convenience. It's always possible to avoid <CODE>io::stream</CODE> and simply use <CODE>io::stream_buffer</CODE> together with one of the standard library stream templates. <I>E.g.</I>, 
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;ostream&gt;</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/device/file.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/device/file.hpp&gt;</SPAN></A>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/stream.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/stream.hpp&gt;</SPAN></A>
+
+<SPAN CLASS='keyword'>namespace</SPAN> io = boost::iostreams;
+
+<SPAN CLASS='keyword'>int</SPAN> main()
+{
+    io::stream_buffer&lt;io::file_sink&gt; buf(<SPAN CLASS='literal'>"log.txt"</SPAN>);
+    std::ostream                     out(&amp;buf);
+    <SPAN CLASS='comment'>// out writes to log.txt</SPAN>
+}</PRE>
+
+<P>In this example, the <CODE>ostream</CODE> <CODE>out</CODE> uses the <CODE>stream_buffer</CODE> <CODE>buf</CODE> as its underlying data sink, so that data written to <CODE>out</CODE> goes to the file <I>log.txt</I>. The same effect could be achieved by default constructing <CODE>out</CODE> and telling it to use stream buffer <CODE>buf</CODE> by invoking <CODE>out.rdbuf(&amp;buf)</CODE>.
+
+<P>Another way to define a new stream or stream buffer class using the Boost Iostreams library is to derive from <A HREF="../classes/filtering_stream.html"><CODE>filtering_stream</CODE></A> or <A HREF="../classes/filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A>. 
+<P>The next three items will demonstrate how to write Devices for accessing STL-compatible containers. The source code for the examples can be found in the header <A HREF="../../example/container_device.hpp">&lt;<CODE>libs/iostreams/example/container_device.hpp</CODE>&gt;</A></P>
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <IMG WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev_disabled.png'>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='container_source.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Use, modification, and distribution are subject to the Boost Software License, Version 2.0. (See accompanying file <A HREF="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+<!-- End Footer -->
+
+</BODY>

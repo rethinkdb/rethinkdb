@@ -1,0 +1,16 @@
+[article Include in section 1.5
+[quickbook 1.5]
+]
+
+[section:container Container]
+[include in_section-inc1.quickbook]
+[include in_section-inc2.quickbook]
+[endsect]
+
+[include in_section-inc1.quickbook]
+[include in_section-inc2.quickbook]
+
+[section:container2 Container2]
+[include in_section-inc1.quickbook]
+[include in_section-inc2.quickbook]
+[endsect]

@@ -1,0 +1,108 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+	<head>
+		<title>pointer_to_other.hpp</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	</head>
+	<body bgcolor="#ffffff" text="#000000">
+		<h1><img src="../../boost.png" alt="boost.png (6897 bytes)" align="middle" WIDTH="277" HEIGHT="86">Header
+			<a href="../../boost/pointer_to_other.hpp">boost/pointer_to_other.hpp</a></h1>
+		<p>
+			The pointer to other utility provides a way, given a source pointer type, 
+			to obtain a pointer of the same type to another pointee type. The utility is 
+			defined in <cite><a href="../../boost/pointer_to_other.hpp">boost/pointer_to_other.hpp</a>.</cite></p>
+		<p>There is test/example code in <cite><a href="test/pointer_to_other_test.cpp">pointer_to_other_test.cpp</a></cite>.</p>
+		<h2><a name="contents">Contents</a></h2>
+		<ul>
+			<li>
+				<a href="#rationale">Rationale</a>
+			<li>
+				<a href="#synopsis">Synopsis</a>
+			<li>
+				<a href="#example">Example</a></li>
+		</ul>
+		<h2><a name="rationale">Rationale</a></h2>
+		<p>When building pointer independent classes, like memory managers, allocators, or 
+			containers, there is often a need to define pointers generically, so that if a 
+			template parameter represents a pointer (for example, a raw or smart pointer to 
+			an int), we can define another pointer of the same type to another pointee (a 
+			raw or smart pointer to a float.)</p>
+		<pre>template &lt;class IntPtr&gt;
+class FloatPointerHolder
+{   
+   <em>// Let's define a pointer to a float</em>
+   typedef typename boost::pointer_to_other
+      &lt;IntPtr, float&gt;::type float_ptr_t;
+   float_ptr_t float_ptr;
+};</pre>
+		<h2><a name="synopsis">Synopsis</a></h2>
+		<pre>
+namespace boost {
+
+template&lt;class T, class U&gt;
+   struct pointer_to_other;
+
+template&lt;class T, class U, template &lt;class&gt; class Sp&gt;
+   struct pointer_to_other&lt; Sp&lt;T&gt;, U &gt;
+{
+   typedef Sp&lt;U&gt; type;
+};
+
+template&lt;class T, class T2, class U,
+        template &lt;class, class&gt; class Sp&gt;
+   struct pointer_to_other&lt; Sp&lt;T, T2&gt;, U &gt;
+{
+   typedef Sp&lt;U, T2&gt; type;
+};
+
+template&lt;class T, class T2, class T3, class U,
+        template &lt;class, class, class&gt; class Sp&gt;
+struct pointer_to_other&lt; Sp&lt;T, T2, T3&gt;, U &gt;
+{
+   typedef Sp&lt;U, T2, T3&gt; type;
+};
+
+template&lt;class T, class U&gt;
+struct pointer_to_other&lt; T*, U &gt; 
+{
+   typedef U* type;
+};
+
+} <em>// namespace boost</em></pre>
+		<p>If these definitions are not correct for a specific smart pointer, we can define 
+			a specialization of pointer_to_other.</p>
+		<h2><a name="example">Example</a></h2>
+		<pre><em>// Let's define a memory allocator that can
+// work with raw and smart pointers</em>
+
+#include &lt;boost/pointer_to_other.hpp&gt;
+
+template &lt;class VoidPtr&gt;
+class memory_allocator
+{<em>
+   // Predefine a memory_block </em>
+   struct block;<em>
+
+   // Define a pointer to a memory_block from a void pointer
+   // If VoidPtr is void *, block_ptr_t is block*
+   // If VoidPtr is smart_ptr&lt;void&gt;, block_ptr_t is smart_ptr&lt;block&gt;</em>
+   typedef typename boost::pointer_to_other      
+            &lt;VoidPtr, block&gt;::type block_ptr_t;
+            
+   struct block
+   {
+      std::size_t size;
+      block_ptr_t next_block;
+   };
+
+   block_ptr_t free_blocks;
+};</pre>
+		<p>As we can see, using pointer_to_other we can create pointer independent code.</p>
+		<hr>
+		<p>Last revised: $Date: 2006-03-18 06:58:20 -0800 (Sat, 18 Mar 2006) $</p>
+		<p><small>Copyright 2005, 2006 Ion Gaztañaga and Peter Dimov. Use, modification, 
+				and distribution are subject to the Boost Software License, Version 1.0.<br>
+				(See accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or a 
+				copy at &lt; <a href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>&gt;.)</small></p>
+	</body>
+</html>

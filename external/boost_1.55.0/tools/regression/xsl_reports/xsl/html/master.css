@@ -1,0 +1,525 @@
+/*
+
+Copyright MetaCommunications, Inc. 2003-2004.
+
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+*/
+
+/* All reports */
+
+body
+{
+    background-color: white;
+}
+
+body.user-toc
+{
+    background-color: #f0f0f0;
+}
+
+body.developer-toc
+{
+    background-color: #f0f5ff;
+}
+
+span.super
+{
+    vertical-align: super;
+    font-size: 80%;
+    margin-left: 3pt;
+}
+
+h1.page-title
+{ 
+    text-align: left;
+    text-transform: capitalize;
+    margin-top: 10pt;
+    margin-bottom: 10pt;
+}
+
+img
+{
+    display: inline;
+}
+
+ a.hover-link:link
+,a.hover-link:visited
+,a.hover-link:active
+{
+    color: black;
+    text-decoration: none;
+}
+
+a.hover-link:hover
+{
+    color: black;
+    text-decoration: underline;
+}
+
+div.legend
+{
+    width: 80%;
+    background-color: #f5f5f5;
+    margin-top: 10pt;    
+}
+
+div.comment
+{
+    width: 80%;
+    background-color: #f5f5f5;
+    padding-left: 10pt;
+    padding-right: 10pt;
+    padding-bottom: 10pt;
+}
+
+div.tinyurl
+{
+    margin-top: 10pt;    
+}
+
+table.header-table
+{
+    margin-left: 10pt;
+    margin-top: 20pt;
+    margin-bottom: 10pt;
+    width: 80%;
+}
+
+td.header-item
+{ 
+    text-align: left;
+    vertical-align: top;
+    font-weight: bold;
+}
+
+td.header-item-content
+{ 
+    padding-left: 20pt;
+    padding-bottom: 10pt;
+}
+
+td.legend-item
+{ 
+    padding-left: 5pt;
+/*    padding-top: 2pt;*/
+}
+
+div.acknowledgement
+{
+    text-align: left;
+    margin-top: 10pt;
+    margin-left: 5pt;
+    margin-bottom: 10pt;
+}
+
+div.report-info
+{ 
+    text-align: left;
+    margin-bottom: 10pt;
+    width: 80%;
+}
+
+div.purpose
+{ 
+    text-align: left;
+    margin-left: 5pt;
+    margin-top: 10pt;
+}
+
+
+div.library-name
+{ 
+    margin-top: 20pt;
+    margin-bottom: 10pt;
+    text-align: left;
+    font-size: 125%;
+    font-weight: bold;
+}
+
+table.summary-table
+,table.library-table
+{ 
+    border-collapse: collapse;
+    border: 2px solid black;
+    margin: 5px;
+}
+
+ table.summary-table td
+,table.library-table td
+{ 
+    text-align: center;
+    border-left: 1px solid black;
+    border-right: 1px solid black;
+}
+
+ a.log-link:link
+,a.log-link:visited
+{
+     color: black; 
+/*  text-decoration: none; */
+}
+
+ a.log-link:active
+,a.log-link:hover
+,a.legend-link:link
+,a.legend-link:visited
+,a.legend-link:active
+,a.legend-link:hover
+{
+    color: black; 
+    text-decoration: underline;
+}
+
+ td.toolset-name
+,td.required-toolset-name
+{
+    vertical-align: middle;
+    padding-left: 3pt;
+    padding-right: 3pt;
+    word-spacing: -3pt;
+}
+
+td.required-toolset-name
+{
+    font-weight: bold;
+}
+
+td.library-corner-case-header
+{
+}
+
+tr.summary-row-first td
+, tr.library-row-first td 
+{
+    border-top: 1px solid gray;
+    border-bottom: 0px;
+}
+
+tr.summary-row-last td
+, tr.library-row-last td 
+{
+    border-top: 0px;
+    border-bottom: 1px solid gray;
+}
+
+tr.summary-row-single td
+, tr.library-row-single td 
+{
+    border-top: 1px solid gray;
+    border-bottom: 1px solid gray;
+}
+
+tr.summary-row td
+, tr.library-row td 
+{
+    border-bottom: 0px;
+    border-top: 0px; 
+}
+
+ td.library-success-expected
+,td.library-fail-expected
+,td.library-user-fail-expected
+,td.library-user-success
+,td.summary-expected
+,td.summary-user-fail-expected
+,td.summary-user-success
+,td.summary-unknown-status
+{ 
+    width: 60pt;
+    text-align: center;
+    background-color: lightgreen;
+    border-left: 1px solid black;
+    border-right: 1px solid black;
+    padding-left: 2pt;
+    padding-right: 2pt;
+}
+
+td.summary-unknown-status
+{ 
+    background-color: white;
+}
+
+ td.library-success-unexpected
+,td.summary-success-unexpected
+{ 
+    width: 60pt;
+    text-align: center;
+    background-color: green;
+    font-weight: bold;
+    color: white;
+    border: 0px;
+    padding-left: 2pt;
+    padding-right: 2pt;
+}
+
+
+ tr.summary-row         td.summary-fail-unexpected
+,tr.summary-row-first   td.summary-fail-unexpected
+,tr.summary-row-last    td.summary-fail-unexpected
+,tr.summary-row-single  td.summary-fail-unexpected  
+
+,tr.summary-row         td.summary-user-fail-unexpected    
+,tr.summary-row-first   td.summary-user-fail-unexpected
+,tr.summary-row-last    td.summary-user-fail-unexpected
+,tr.summary-row-single  td.summary-user-fail-unexpected
+
+,tr.library-row         td.library-user-fail-unexpected
+,tr.library-row-first   td.library-user-fail-unexpected
+,tr.library-row-last    td.library-user-fail-unexpected
+,tr.library-row-single  td.library-user-fail-unexpected
+{ 
+    width: 60pt;
+    text-align: center;
+    background-color: red;
+    color: black;
+    border: 2px solid black; 
+    padding-left: 2pt;
+    padding-right: 2pt;
+}
+
+  tr.summary-row        td.summary-missing
+, tr.summary-row-first  td.summary-missing
+, tr.summary-row-last   td.summary-missing
+, tr.summary-row-single td.summary-missing
+
+, tr.library-row        td.library-missing
+, tr.library-row-first  td.library-missing
+, tr.library-row-last   td.library-missing
+, tr.library-row-single td.library-missing
+{
+    width: 60pt;
+    text-align: center;
+    background-color: white;
+    color: black;
+    border: 2px solid black; 
+    padding-left: 2pt;
+    padding-right: 2pt;
+}
+
+  tr.summary-row        td.summary-unusable
+, tr.summary-row-first  td.summary-unusable
+, tr.summary-row-last   td.summary-unusable
+, tr.summary-row-single td.summary-unusable
+
+, tr.library-row        td.library-unusable
+, tr.library-row-first  td.library-unusable
+, tr.library-row-last   td.library-unusable
+, tr.library-row-single td.library-unusable
+{
+    width: 60pt;  
+    text-align: center;
+    background-color: silver;
+    color: black;
+    border-top: 2px solid black; 
+    border-bottom: 2px solid black; 
+    border-left: 2px solid black; 
+    border-right: 2px solid black; 
+    padding-left: 2pt;
+    padding-right: 2pt;
+}
+
+/* Summary */
+
+table.summary-table td.library-name
+{
+    width: 100pt;
+    padding: 0pt;
+    border-top: 1px solid gray;
+    border-bottom: 1px solid gray;
+}
+
+  tr.summary-row        td.summary-user-fail-unexpected
+, tr.summary-row-first  td.summary-user-fail-unexpected
+, tr.summary-row-last   td.summary-user-fail-unexpected
+, tr.summary-row-single td.summary-user-fail-unexpected
+{ 
+    width: 60pt;
+    text-align: center;
+    background-color: yellow;
+    color: black;
+    border: 2px solid black; 
+    padding-left: 2pt;
+    padding-right: 2pt;
+}
+
+  tr.summary-row        td.summary-fail-unexpected-new
+, tr.summary-row-first  td.summary-fail-unexpected-new
+, tr.summary-row-last   td.summary-fail-unexpected-new
+, tr.summary-row-single td.summary-fail-unexpected-new
+
+, tr.library-row        td.library-fail-unexpected-new
+, tr.library-row-first  td.library-fail-unexpected-new
+, tr.library-row-last   td.library-fail-unexpected-new
+, tr.library-row-single td.library-fail-unexpected-new 
+{ 
+    width: 60pt;
+    text-align: center;
+    background-color: yellow;
+    color: black;
+    border: 2px solid black; 
+}
+
+/* Detailed */
+
+.library-conf-problem
+{
+    font-size: 70%;
+    font-weight: normal;
+}
+
+div.library-toc
+{ 
+    margin: 5pt;
+}
+
+
+li.library-toc-entry
+{ 
+    margin-left: 5pt;
+    list-style-type: square;
+}
+
+
+div.library-footer
+{ 
+    margin: 5px;
+}
+
+
+table.library-table td.test-name
+{
+    width: 150pt;
+    padding-left: 6pt;
+    padding-right: 6pt;
+    border-right: 0;
+    border-top: 1px solid gray;
+    border-bottom: 1px solid gray;
+}
+
+table.library-table td.test-type
+{
+    padding-right: 5px;
+    border-left: 0;
+    border-right: 0;
+    border-top: 1px solid gray;
+    border-bottom: 1px solid gray;
+    text-align: right;
+}
+
+  tr.library-row        td.library-fail-unexpected
+, tr.library-row-first  td.library-fail-unexpected
+, tr.library-row-last   td.library-fail-unexpected
+, tr.library-row-single td.library-fail-unexpected
+{ 
+    width: 60pt;
+    text-align: center;
+    background-color: red;
+    font-weight: bold;
+    color: black;
+    border: 2px solid black; 
+}
+
+td.library-user-fail-expectected
+{ 
+    width: 60pt;
+    text-align: center;
+    background-color: yellow;
+    color: black;
+    border: 0px solid black; 
+}
+
+table.library-library-notes
+{
+    background-color: LemonChiffon;
+    width: 640px;
+    margin-left: 5px;
+    margin-right: 5px; 
+}
+
+tr.library-library-note
+{
+}
+
+div.note
+{
+    padding: 3pt;
+}
+
+
+span.note-header
+{
+    font-weight: bold;
+}
+
+/* Log */
+
+div.log-test-title
+{
+    font-size: 1.5em;
+    font-weight: bold;
+    border-bottom: 1px solid black;
+}
+
+div.notes-title
+{
+    font-weight: bold;
+    background-color: #ffffcc;
+}
+
+div.notes
+{
+    padding: 3pt;
+    background-color: #ffffcc;
+}
+
+div.notes-title
+{
+    font-weight: bold;
+}
+
+div.log-compiler-output-title
+{
+    font-weight: bold;
+}
+
+div.log-linker-output-title
+{
+  font-weight: bold;
+}
+
+div.log-run-output-title
+{
+  font-weight: bold;
+}
+
+
+/* Issues page */
+
+table.library-issues-table
+{
+    border-collapse: collapse;
+    border: 2px solid black;
+}
+
+table.library-issues-table td
+{
+    border: 1px solid #c0c0c0;
+    text-align: center;
+    margin-right: 5px;
+}
+
+table.library-issues-table td.failures-row
+{
+    text-align: left;
+    padding: 0px;
+}
+
+ table.issue-box tr.library-row-single td.library-fail-unexpected-new
+,table.issue-box tr.library-row-single td.library-fail-unexpected
+{
+    border: 0px;
+    font-weight: normal;
+}

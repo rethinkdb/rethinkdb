@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Supported Pragma Directives</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link href="theme/style.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" cellspacing="2" background="theme/bkd2.gif">
+  <tr> 
+    <td width="21"> <h1></h1></td>
+    <td width="885"> <font face="Verdana, Arial, Helvetica, sans-serif"><b><font size="6">Supported 
+      Pragma Directives</font></b></font></td>
+    <td width="96"><a href="http://www.boost.org"><img src="theme/wave.gif" width="93" height="68" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="tracing_facility.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="acknowledgements.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<blockquote>
+  <p><a href="supported_pragmas.html#library_pragmas">Pragma directives supported by the Wave library</a><br>
+    <a href="supported_pragmas.html#tool_pragmas">Pragma directives supported by the Wave tool</a></p>
+</blockquote>
+<h2><a name="library_pragmas"></a>Pragma directives supported by the Wave library </h2>
+<p>The <tt>Wave</tt> preprocessor library natively supports the <span class="preprocessor">#pragma&nbsp;once</span> and <span class="preprocessor">#pragma&nbsp;message(&quot;...&quot;)</span> directives. </p>
+<p>The <span class="preprocessor">#pragma&nbsp;once</span> directive  specifies that the file in which the pragma resides will be included 
+  (opened)  only once. This may be used to optimize 
+  the preprocessing of larger compilation units, which include a lot of files. Note though, that the <span class="preprocessor">#pragma&nbsp;once</span> directive is supported only, if the compile time constant <tt>BOOST_WAVE_SUPPORT_PRAGMA_ONCE</tt> was given during compilation of the library.</p>
+<p>The <span class="preprocessor">#pragma&nbsp;message(...)</span> directive generates a remark containing the given message text. This may be useful to generate status messages directly from the preprocessed file. Note though, that the #pragma message(...) directive is supported only, if the compile time constant <tt>BOOST_WAVE_SUPPORT_PRAGMA_MESSAGE</tt> was given during the compilation of the library. Note additionally, that the body of the message is preprocessed whenever the <tt>BOOST_WAVE_PREPROCESS_PRAGMA_BODY</tt> compile time constant was defined during compilation of the library. </p>
+<h2><a name="tool_pragmas"></a>Pragma directives supported by the Wave tool</h2>
+<p>The Wave preprocessor tool additionally supports specific <span class="preprocessor">#pragma</span>  directives, which may be used to control some of the tools features. These <span class="preprocessor">#pragma</span> directives are implemented using the <tt>interpret_pragma()</tt> preprocessing hook (see <a href="class_reference_ctxpolicy.html#interpret_pragma">here</a>).</p>
+<p>All directives 
+  described here are usable as conventional <span class="preprocessor">#pragma</span> directives and as <span class="preprocessor">operator&nbsp;_Pragma</span> (if variadics are enabled). So for instance the 
+  following directives are functionally identical:</p>
+<pre>    #pragma wave trace(enable)  </pre>
+<p>and </p>
+<pre>    _Pragma(&quot;wave trace(enable)&quot;)</pre>
+<p>All <tt>Wave</tt> specific pragma's must have the general form <tt>'wave option[(value)]'</tt>, 
+  where <tt>'wave'</tt> is the specific keyword (which may be configured through the <tt>BOOST_WAVE_PRAGMA_KEYWORD</tt> compile time constant, see <a href="compiletime_config.html">here</a> for more information), <tt>'option'</tt> is the concrete 
+  pragma functionality to trigger and <tt>'value'</tt> is an optional value to 
+  be supplied to the <tt>'option'</tt> functionality. The following table lists 
+  all possible pragma functions supported by the <tt>Wave</tt> library. For all recognised pragmas of this general form the interpret_pragma hook function from inside the <a href="class_reference_ctxpolicy.html">preprocessing_hooks</a> policy are called, so that the user of the library is responsible for the correct interpretation of these pragma's. </p>
+<table width="77%" border="0" align="center">
+  <tr> 
+    <td colspan="3"> <p class="table_title">Supported pragma's</p></td>
+  </tr>
+  <tr> 
+    <td> <p class="toc_title" width="36%">pragma option</p></td>
+    <td> <p class="toc_title" width="28%">pragma value</p></td>
+    <td> <p class="toc_title" width="36%">description</p></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="15%"> <p>trace</p></td>
+    <td class="table_cells"  width="31%"> <p>enable/on/1<br>
+    disable/off/0</p></td>
+    <td class="table_cells"  width="54%"><p>Enable or disable the tracing of the 
+        macro expansion process. This is needed, even if there is given the --trace 
+        command line option, because the trace output is generated only, if there 
+    is at least one trace(enable) pragma found.</p></td>
+  </tr>
+  <tr> 
+    <td class="table_cells"><p>stop</p></td>
+    <td class="table_cells"><p>message</p></td>
+    <td class="table_cells"><p>Stop the execution of <tt>Wave</tt> and print out 
+        the given message. This is very helpful for direct debugging purposes.</p></td>
+  </tr>
+  
+  <tr> 
+    <td class="table_cells"><p>system</p></td>
+    <td class="table_cells"><p>command</p></td>
+    <td class="table_cells"><p>Try to spawn the 'command' as a new operating system 
+        command and intercept the generated stdout and stderr. The stdout output 
+        of this command (if any) is retokenized and used as the replacement text 
+        for the whole pragma, the stderr output is ignored. The command is considered 
+        to be successful, if/when the return value is zero, otherwise an error 
+        is reported. <br>
+        This <span class="preprocessor">#pragma</span> is available only if the command line option -x is specified. The <tt>Wave</tt> driver will issue a remark if this command line argument is not specified and a <span class="preprocessor">#pragma&nbsp;wave&nbsp;system()</span> directive is encountered<br>
+      </p></td>
+  </tr>
+  <tr> 
+    <td class="table_cells"><p>timer</p></td>
+    <td class="table_cells"><p> restart/0<br>
+        &lt;no value&gt; <br>
+        suspend<br>
+        resume </p></td>
+    <td class="table_cells"><p>The value <tt>restart</tt> set the current elapsed 
+        time to 0 and restarts the timer.</p>
+      <p> If no value is provided, the current elapsed time is printed to the std::cerr 
+        stream.        </p>
+      <p>The values <tt>suspend</tt> and <tt>resume</tt> allow to temporarily stop 
+        and resume the timing.</p></td>
+  </tr>
+  <tr>
+    <td class="table_cells"><p>option</p></td>
+    <td class="table_cells"><p>line: [0 | 1 | push | pop]<br> 
+      preserve: [0 | 1 | 2 | push | pop]<br>
+      output: [&quot;filename&quot; | null | default | push | pop]
+</p>
+    </td>
+    <td class="table_cells"><p>The <tt>option(line: ...)</tt> directive allows to control, whether <span class="preprocessor">#line</span> directives will be generated in the output stream. Specify either '0' or '1' as the option parameter. All other values will be flaged as illegal. </p>
+      <p>The <tt>option(preserve: ...)</tt> directive allows to control the amount of whitespace generated in the output stream. The value '0' removes any not needed whitespace, the value '1' keeps comments only and the value '2' does not remove any whitespace.</p>
+    <p>The <tt>option(output: ...)</tt> directive allows to specify the name of the file, where the output is generated to.  Specify either a valid filename (which will be interpreted relative to directory of the processed file), the value <tt>null</tt> to disable the output at all, or the value <tt>default</tt> to use the output as specified on the command line using the --output/-o option. </p>
+    <p>The pragma values <tt>push</tt> and <tt>pop</tt> may be used for all of the options (<tt>line</tt>, <tt>preserve</tt> and <tt>output</tt>) to store and restore the current value of the corresponding option. </p></td>
+  </tr>
+</table>
+<p>All pragma's not listed here but flagged as <tt>'wave'</tt> are currently reported as 
+  errors. The handling of all remaining pragma's depends on the compilation constant 
+  <code><tt>BOOST_WAVE_RETURN_PRAGMA_DIRECTIVES</tt></code>, which allows to specify, 
+  if those pragmas are left unchanged in the output stream or not. Please note, 
+  that the operator _Pragma variant is always subject to full preprocessing, before 
+  the pragma itself is evaluated. The #pragma variant is subject to preprocessing 
+  only, if the <code><tt>BOOST_WAVE_PREPROCESS_PRAGMA_BODY</tt></code> compilation constant 
+  was specified during compilation. For more information about the possible compilation 
+  constants look <a href="compiletime_config.html">here</a>.</p>
+<p>It is fairly easy to implement your own <span class="preprocessor">#pragma&nbsp;wave&nbsp;...</span> directives. All you have to do is to implement your own <tt>interpret_pragma</tt> preprocessing hook function (see <a href="class_reference_ctxpolicy.html#interpret_pragma">here</a>) which should handle the additional directives. For an example of how to do it, you may have a look at the Wave driver application, which implements all of the pragma's listed above  with the help of a supplied <tt>interpret_pragma</tt> function (for instance the  <span class="preprocessor">#pragma wave timer()</span> directive). </p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="tracing_facility.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="acknowledgements.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003-2011 Hartmut Kaiser<br>
+  <br>
+<font size="2">Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<span class="updated"></span>
+<p class="copyright"><span class="updated">Last updated: 
+  <!-- #BeginDate format:fcAm1m -->Thursday, January 11, 2007  20:14<!-- #EndDate -->
+  </span>
+</p>
+<p>&nbsp;</p>
+</body>
+</html>

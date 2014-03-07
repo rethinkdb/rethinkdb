@@ -1,0 +1,394 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Usage</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../string_algo.html" title="Chapter&#160;30.&#160;Boost String Algorithms Library">
+<link rel="prev" href="release_notes.html" title="Release Notes">
+<link rel="next" href="quickref.html" title="Quick Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="release_notes.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../string_algo.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="quickref.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="string_algo.usage"></a>Usage</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="usage.html#idp206801352">First Example</a></span></dt>
+<dt><span class="section"><a href="usage.html#idp206813144">Case conversion</a></span></dt>
+<dt><span class="section"><a href="usage.html#idp206817064">Predicates and Classification</a></span></dt>
+<dt><span class="section"><a href="usage.html#idp206822440">Trimming</a></span></dt>
+<dt><span class="section"><a href="usage.html#idp206826200">Find algorithms</a></span></dt>
+<dt><span class="section"><a href="usage.html#idp206833528">Replace Algorithms</a></span></dt>
+<dt><span class="section"><a href="usage.html#idp206841224">Find Iterator</a></span></dt>
+<dt><span class="section"><a href="usage.html#idp206847064">Split</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206801352"></a>First Example</h3></div></div></div>
+<p>
+            Using the algorithms is straightforward. Let us have a look at the first example:
+        </p>
+<pre class="programlisting">
+    #include &lt;boost/algorithm/string.hpp&gt;
+    using namespace std;
+    using namespace boost;
+    
+    // ...
+
+    string str1(" hello world! ");
+    to_upper(str1);  // str1 == " HELLO WORLD! "
+    trim(str1);      // str1 == "HELLO WORLD!"
+
+    string str2=
+       to_lower_copy(
+          ireplace_first_copy(
+             str1,"hello","goodbye")); // str2 == "goodbye world!"
+        </pre>
+<p>
+            This example converts str1 to upper case and trims spaces from the start and the end
+            of the string. str2 is then created as a copy of str1 with "hello" replaced with "goodbye".
+            This example demonstrates several important concepts used in the library:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<p><span class="bold"><strong>Container parameters:</strong></span>
+                    Unlike in the STL algorithms, parameters are not specified only in the form
+                    of iterators. The STL convention allows for great flexibility,
+                    but it has several limitations. It is not possible to <span class="emphasis"><em>stack</em></span> algorithms together, 
+                    because a container is passed in two parameters. Therefore it is not possible to use 
+                    a return value from another algorithm. It is considerably easier to write
+                    <code class="computeroutput">to_lower(str1)</code>, than <code class="computeroutput">to_lower(str1.begin(), str1.end())</code>.
+                </p>
+<p>
+                    The magic of <a href="../../../libs/range/index.html" target="_top">Boost.Range</a> 
+                    provides a uniform way of handling different string types. 
+                    If there is a need to pass a pair of iterators, 
+                    <a href="../../../libs/range/doc/html/range/reference/utilities/iterator_range.html" target="_top"><code class="computeroutput">boost::iterator_range</code></a>
+                    can be used to package iterators into a structure with a compatible interface.
+                </p>
+</li>
+<li class="listitem"><p><span class="bold"><strong>Copy vs. Mutable:</strong></span>
+                    Many algorithms in the library are performing a transformation of the input. 
+                    The transformation can be done in-place, mutating the input sequence, or a copy 
+                    of the transformed input can be created, leaving the input intact. None of 
+                    these possibilities is superior to the other one and both have different 
+                    advantages and disadvantages. For this reason, both are provided with the library. 
+                </p></li>
+<li class="listitem"><p><span class="bold"><strong>Algorithm stacking:</strong></span>
+                    Copy versions return a transformed input as a result, thus allow a simple chaining of
+                    transformations within one expression (i.e. one can write <code class="computeroutput">trim_copy(to_upper_copy(s))</code>). 
+                    Mutable versions have <code class="computeroutput">void</code> return, to avoid misuse.
+                </p></li>
+<li class="listitem"><p><span class="bold"><strong>Naming:</strong></span>
+                    Naming follows the conventions from the Standard C++ Library. If there is a 
+                    copy and a mutable version of the same algorithm, the mutable version has no suffix 
+                    and the copy version has the suffix <span class="emphasis"><em>_copy</em></span>. 
+                    Some algorithms have the prefix <span class="emphasis"><em>i</em></span> 
+                    (e.g. <code class="computeroutput"><a class="link" href="../boost/algorithm/ifind_first.html" title="Function template ifind_first">ifind_first()</a></code>).
+                    This prefix identifies that the algorithm works in a case-insensitive manner.
+                </p></li>
+</ul></div>
+<p>
+            To use the library, include the <code class="computeroutput"><a class="link" href="reference.html#header.boost.algorithm.string_hpp" title="Header &lt;boost/algorithm/string.hpp&gt;">boost/algorithm/string.hpp</a></code> header. 
+            If the regex related functions are needed, include the 
+            <code class="computeroutput"><a class="link" href="reference.html#header.boost.algorithm.string_regex_hpp" title="Header &lt;boost/algorithm/string_regex.hpp&gt;">boost/algorithm/string_regex.hpp</a></code> header.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206813144"></a>Case conversion</h3></div></div></div>
+<p>
+            STL has a nice way of converting character case. Unfortunately, it works only
+            for a single character and we want to convert a string, 
+        </p>
+<pre class="programlisting">
+    string str1("HeLlO WoRld!");
+    to_upper(str1); // str1=="HELLO WORLD!"
+        </pre>
+<p>
+            <code class="computeroutput"><a class="link" href="../boost/algorithm/to_upper.html" title="Function template to_upper">to_upper()</a></code> and <code class="computeroutput"><a class="link" href="../boost/algorithm/to_lower.html" title="Function template to_lower">to_lower()</a></code> convert the case of 
+            characters in a string using a specified locale.
+        </p>
+<p>
+            For more information see the reference for <code class="computeroutput"><a class="link" href="reference.html#header.boost.algorithm.string.case_conv_hpp" title="Header &lt;boost/algorithm/string/case_conv.hpp&gt;">boost/algorithm/string/case_conv.hpp</a></code>.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206817064"></a>Predicates and Classification</h3></div></div></div>
+<p>
+            A part of the library deals with string related predicates. Consider this example:
+        </p>
+<pre class="programlisting">
+    bool is_executable( string&amp; filename )
+    {
+        return 
+            iends_with(filename, ".exe") ||
+            iends_with(filename, ".com");
+    }
+
+    // ...
+    string str1("command.com");
+    cout 
+        &lt;&lt; str1
+        &lt;&lt; (is_executable(str1)? "is": "is not") 
+        &lt;&lt; "an executable" 
+        &lt;&lt; endl; // prints "command.com is an executable"
+    
+    //..
+    char text1[]="hello";
+    cout 
+        &lt;&lt; text1 
+        &lt;&lt; (all( text1, is_lower() )? " is": " is not")
+        &lt;&lt; " written in the lower case" 
+        &lt;&lt; endl; // prints "hello is written in the lower case"
+        </pre>
+<p>
+            The predicates determine whether if a substring is contained in the input string
+            under various conditions. The conditions are: a string starts with the substring, 
+            ends with the substring, 
+            simply contains the substring or if both strings are equal. See the reference for 
+            <code class="computeroutput"><a class="link" href="reference.html#header.boost.algorithm.string.predicate_hpp" title="Header &lt;boost/algorithm/string/predicate.hpp&gt;">boost/algorithm/string/predicate.hpp</a></code> for more details. 
+        </p>
+<p>  
+            Note that if we had used "hello world" as the input to the test, it would have
+            output "hello world is not written in the lower case" because the space in the
+            input string is not a lower case letter.
+        </p>
+<p>  
+            In addition the algorithm <code class="computeroutput"><a class="link" href="../boost/algorithm/all.html" title="Function template all">all()</a></code> checks
+            all elements of a container to satisfy a condition specified by a predicate. 
+            This predicate can be any unary predicate, but the library provides a bunch of 
+            useful string-related predicates and combinators ready for use.
+            These are located in the <code class="computeroutput"><a class="link" href="reference.html#header.boost.algorithm.string.classification_hpp" title="Header &lt;boost/algorithm/string/classification.hpp&gt;">boost/algorithm/string/classification.hpp</a></code> header.
+            Classification predicates can be combined using logical combinators to form
+            a more complex expressions. For example: <code class="computeroutput">is_from_range('a','z') || is_digit()</code>
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206822440"></a>Trimming</h3></div></div></div>
+<p>
+            When parsing the input from a user, strings often have unwanted leading or trailing 
+            characters. To get rid of them, we need trim functions:
+        </p>
+<pre class="programlisting">
+    string str1="     hello world!     ";
+    string str2=trim_left_copy(str1);   // str2 == "hello world!     "
+    string str3=trim_right_copy(str1);  // str3 == "     hello world!"
+    trim(str1);                         // str1 == "hello world!"
+
+    string phone="00423333444";
+    // remove leading 0 from the phone number
+    trim_left_if(phone,is_any_of("0")); // phone == "423333444"
+        </pre>
+<p>
+            It is possible to trim the spaces on the right, on the left or on both sides of a string.
+            And for those cases when there is a need to remove something else than blank space, there
+            are <span class="emphasis"><em>_if</em></span> variants. Using these, a user can specify a functor which will 
+            select the <span class="emphasis"><em>space</em></span> to be removed. It is possible to use classification 
+            predicates like <code class="computeroutput">is_digit()</code> mentioned in the previous paragraph.
+            See the reference for the <code class="computeroutput"><a class="link" href="reference.html#header.boost.algorithm.string.trim_hpp" title="Header &lt;boost/algorithm/string/trim.hpp&gt;">boost/algorithm/string/trim.hpp</a></code>.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206826200"></a>Find algorithms</h3></div></div></div>
+<p>
+            The library contains a set of find algorithms. Here is an example:
+        </p>
+<pre class="programlisting">
+    char text[]="hello dolly!";
+    iterator_range&lt;char*&gt; result=find_last(text,"ll");
+
+    transform( result.begin(), result.end(), result.begin(), bind2nd(plus&lt;char&gt;(), 1) );
+    // text = "hello dommy!"            
+
+    to_upper(result); // text == "hello doMMy!"
+
+    // iterator_range is convertible to bool
+    if(find_first(text, "dolly"))
+    {
+        cout &lt;&lt; "Dolly is there" &lt;&lt; endl;
+    }
+        </pre>
+<p>
+            We have used <code class="computeroutput"><a class="link" href="../boost/algorithm/find_last.html" title="Function template find_last">find_last()</a></code> to search the <code class="computeroutput">text</code> for "ll".
+            The result is given in the <a href="../../../libs/range/doc/html/range/reference/utilities/iterator_range.html" target="_top"><code class="computeroutput">boost::iterator_range</code></a>. 
+            This range delimits the
+            part of the input which satisfies the find criteria. In our example it is the last occurrence of "ll".
+            
+            As we can see, input of the <code class="computeroutput"><a class="link" href="../boost/algorithm/find_last.html" title="Function template find_last">find_last()</a></code> algorithm can be also 
+            char[] because this type is supported by 
+            <a href="../../../libs/range/index.html" target="_top">Boost.Range</a>.
+
+            The following lines transform the result. Notice that 
+            <a href="../../../libs/range/doc/html/range/reference/utilities/iterator_range.html" target="_top"><code class="computeroutput">boost::iterator_range</code></a> has familiar 
+            <code class="computeroutput">begin()</code> and <code class="computeroutput">end()</code> methods, so it can be used like any other STL container.
+            Also it is convertible to bool therefore it is easy to use find algorithms for a simple containment checking.
+        </p>
+<p>
+            Find algorithms are located in <code class="computeroutput"><a class="link" href="reference.html#header.boost.algorithm.string.find_hpp" title="Header &lt;boost/algorithm/string/find.hpp&gt;">boost/algorithm/string/find.hpp</a></code>.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206833528"></a>Replace Algorithms</h3></div></div></div>
+<p>
+            Find algorithms can be used for searching for a specific part of string. Replace goes one step
+            further. After a matching part is found, it is substituted with something else. The substitution is computed
+            from the original, using some transformation. 
+        </p>
+<pre class="programlisting">
+    string str1="Hello  Dolly,   Hello World!"
+    replace_first(str1, "Dolly", "Jane");      // str1 == "Hello  Jane,   Hello World!"
+    replace_last(str1, "Hello", "Goodbye");    // str1 == "Hello  Jane,   Goodbye World!"
+    erase_all(str1, " ");                      // str1 == "HelloJane,GoodbyeWorld!"
+    erase_head(str1, 6);                       // str1 == "Jane,GoodbyeWorld!"
+        </pre>
+<p>
+            For the complete list of replace and erase functions see the 
+            <a class="link" href="reference.html" title="Reference">reference</a>.
+            There is a lot of predefined function for common usage, however, the library allows you to 
+            define a custom <code class="computeroutput">replace()</code> that suits a specific need. There is a generic <code class="computeroutput"><a class="link" href="../boost/algorithm/find_format.html" title="Function template find_format">find_format()</a></code> 
+            function which takes two parameters.
+            The first one is a <a class="link" href="concept.html#string_algo.finder_concept" title="Finder Concept">Finder</a> object, the second one is 
+            a <a class="link" href="concept.html#string_algo.formatter_concept" title="Formatter concept">Formatter</a> object. 
+            The Finder object is a functor which performs the searching for the replacement part. The Formatter object
+            takes the result of the Finder (usually a reference to the found substring) and creates a 
+            substitute for it. Replace algorithm puts these two together and makes the desired substitution. 
+        </p>
+<p>
+            Check <code class="computeroutput"><a class="link" href="reference.html#header.boost.algorithm.string.replace_hpp" title="Header &lt;boost/algorithm/string/replace.hpp&gt;">boost/algorithm/string/replace.hpp</a></code>, <code class="computeroutput"><a class="link" href="reference.html#header.boost.algorithm.string.erase_hpp" title="Header &lt;boost/algorithm/string/erase.hpp&gt;">boost/algorithm/string/erase.hpp</a></code> and
+            <code class="computeroutput"><a class="link" href="reference.html#header.boost.algorithm.string.find_format_hpp" title="Header &lt;boost/algorithm/string/find_format.hpp&gt;">boost/algorithm/string/find_format.hpp</a></code> for reference.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206841224"></a>Find Iterator</h3></div></div></div>
+<p>
+            An extension to find algorithms it the Find Iterator. Instead of searching for just a one part of a string, 
+            the find iterator allows us to iterate over the substrings matching the specified criteria.
+            This facility is using the <a class="link" href="concept.html#string_algo.finder_concept" title="Finder Concept">Finder</a> to incrementally
+            search the string. 
+            Dereferencing a find iterator yields an <a href="../../../libs/range/doc/html/range/reference/utilities/iterator_range.html" target="_top"><code class="computeroutput">boost::iterator_range</code></a> 
+            object, that delimits the current match.
+        </p>
+<p>
+            There are two iterators provided <code class="computeroutput"><a class="link" href="../boost/algorithm/find_iterator.html" title="Class template find_iterator">find_iterator</a></code> and 
+            <code class="computeroutput"><a class="link" href="../boost/algorithm/split_iterator.html" title="Class template split_iterator">split_iterator</a></code>. The former iterates over substrings that are found using the specified
+            Finder. The latter iterates over the gaps between these substrings.
+        </p>
+<pre class="programlisting">
+    string str1("abc-*-ABC-*-aBc");
+    // Find all 'abc' substrings (ignoring the case)
+    // Create a find_iterator
+    typedef find_iterator&lt;string::iterator&gt; string_find_iterator;
+    for(string_find_iterator It=
+            make_find_iterator(str1, first_finder("abc", is_iequal()));
+        It!=string_find_iterator();
+        ++It)
+    {
+        cout &lt;&lt; copy_range&lt;std::string&gt;(*It) &lt;&lt; endl;
+    }
+
+    // Output will be:
+    // abc
+    // ABC
+    // aBC
+    
+    typedef split_iterator&lt;string::iterator&gt; string_split_iterator;
+    for(string_split_iterator It=
+        make_split_iterator(str1, first_finder("-*-", is_iequal()));
+        It!=string_split_iterator();
+        ++It)
+    {
+        cout &lt;&lt; copy_range&lt;std::string&gt;(*It) &lt;&lt; endl;
+    }
+
+    // Output will be:
+    // abc
+    // ABC
+    // aBC
+        </pre>
+<p>
+            Note that the find iterators have only one template parameter. It is the base iterator type.
+            The Finder is specified at runtime. This allows us to typedef a find iterator for
+            common string types and reuse it. Additionally make_*_iterator functions help
+            to construct a find iterator for a particular range.
+        </p>
+<p>
+            See the reference in <code class="computeroutput"><a class="link" href="reference.html#header.boost.algorithm.string.find_iterator_hpp" title="Header &lt;boost/algorithm/string/find_iterator.hpp&gt;">boost/algorithm/string/find_iterator.hpp</a></code>.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206847064"></a>Split</h3></div></div></div>
+<p>
+            Split algorithms are an extension to the find iterator for one common usage scenario.
+            These algorithms use a find iterator and store all matches into the provided
+            container. This container must be able to hold copies (e.g. <code class="computeroutput">std::string</code>) or 
+            references (e.g. <code class="computeroutput">iterator_range</code>) of the extracted substrings.
+        </p>
+<p>
+            Two algorithms are provided. <code class="computeroutput"><a class="link" href="../boost/algorithm/find_all.html" title="Function template find_all">find_all()</a></code> finds all copies
+            of a string in the input. <code class="computeroutput"><a class="link" href="../boost/algorithm/split_idp58609016.html" title="Function template split">split()</a></code> splits the input into parts.
+        </p>
+<pre class="programlisting">
+    string str1("hello abc-*-ABC-*-aBc goodbye");
+
+    typedef vector&lt; iterator_range&lt;string::iterator&gt; &gt; find_vector_type;
+    
+    find_vector_type FindVec; // #1: Search for separators
+    ifind_all( FindVec, str1, "abc" ); // FindVec == { [abc],[ABC],[aBc] }
+
+    typedef vector&lt; string &gt; split_vector_type;
+    
+    split_vector_type SplitVec; // #2: Search for tokens
+    split( SplitVec, str1, is_any_of("-*"), token_compress_on ); // SplitVec == { "hello abc","ABC","aBc goodbye" }
+        </pre>
+<p>
+            <code class="computeroutput">[hello]</code> designates an <code class="computeroutput">iterator_range</code> delimiting this substring.                       
+        </p>
+<p>
+            First example show how to construct a container to hold references to all extracted
+            substrings. Algorithm <code class="computeroutput"><a class="link" href="../boost/algorithm/ifind_all.html" title="Function template ifind_all">ifind_all()</a></code> puts into FindVec references
+            to all substrings that are in case-insensitive manner equal to "abc".
+        </p>
+<p>
+            Second example uses <code class="computeroutput"><a class="link" href="../boost/algorithm/split_idp58609016.html" title="Function template split">split()</a></code> to split string str1 into parts
+            separated by characters '-' or '*'. These parts are then put into the SplitVec.
+            It is possible to specify if adjacent separators are concatenated or not.
+        </p>
+<p>
+            More information can be found in the reference: <code class="computeroutput"><a class="link" href="reference.html#header.boost.algorithm.string.split_hpp" title="Header &lt;boost/algorithm/string/split.hpp&gt;">boost/algorithm/string/split.hpp</a></code>.
+        </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: September 21, 2013 at 21:17:00 +0100</small></p></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2004 Pavol Droba<p>Use, modification and distribution is subject to the Boost
+                Software License, Version 1.0. (See accompanying file
+                <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+            </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="release_notes.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../string_algo.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="quickref.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

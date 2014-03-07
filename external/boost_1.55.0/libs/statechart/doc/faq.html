@@ -1,0 +1,783 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <meta name="GENERATOR" content="Microsoft FrontPage 6.0">
+  <meta name="ProgId" content="FrontPage.Editor.Document">
+  <link rel="stylesheet" type="text/css" href="../../../boost.css">
+
+  <title>The Boost Statechart Library - FAQ</title>
+</head>
+
+<body link="#0000FF" vlink="#800080">
+  <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+  "header">
+    <tr>
+      <td valign="top" width="300">
+        <h3><a href="../../../index.htm"><img alt="C++ Boost" src=
+        "../../../boost.png" border="0" width="277" height="86"></a></h3>
+      </td>
+
+      <td valign="top">
+        <h1 align="center">The Boost Statechart Library</h1>
+
+        <h2 align="center">Frequently Asked Questions (FAQs)</h2>
+      </td>
+    </tr>
+  </table>
+  <hr>
+
+  <dl class="page-index">
+    <dt><a href="#StateLocalStorage">What's so cool about state-local
+    storage?</a></dt>
+
+    <dt><a href="#HideInnerWorkings">How can I hide the inner workings of a
+    state machine from its clients?</a></dt>
+
+    <dt><a href="#MachineInheritance">Is it possible to inherit from a given
+    state machine and modify its layout in the subclass?</a></dt>
+
+    <dt><a href="#Uml2">What about UML2.0 features?</a></dt>
+    
+    <dt><a href="#AssertInStateDestructor">Why do I get an assert when I
+    access the state machine from a state destructor?</a></dt>
+
+    <dt><a href="#EmbeddedApplications">Is Boost.Statechart suitable for
+    embedded applications?</a></dt>
+
+    <dt><a href="#HardRealtime">Is your library suitable for applications
+    with hard real-time requirements?</a></dt>
+
+    <dt><a href="#TemplatedStates">With templated states I get an error that
+    'inner_context_type' is not defined. What's wrong?</a></dt>
+
+    <dt><a href="#CompilerError">My compiler reports an error in the library
+    code. Is this a bug in Boost.Statechart?</a></dt>
+
+    <dt><a href="#DisableHistory">Is it possible to disable history for a
+    state at runtime?</a></dt>
+
+    <dt><a href="#Dll">How can I compile a state machine into a dynamic link
+    library (DLL)?</a></dt>
+
+    <dt><a href="#PolymorphicEvents">Does Boost.Statechart support
+    polymorphic events?</a></dt>
+
+    <dt><a href="#WrongExitActionOrder">Why are exit-actions called in the
+    wrong order when I use multiple inheritance?</a></dt>
+  </dl>
+
+  <h2><a name="StateLocalStorage" id="StateLocalStorage">What's so cool about
+  state-local storage?</a></h2>
+
+  <p>This is best explained with an example:</p>
+  <pre>
+struct Active;
+struct Stopped;
+struct Running;
+struct StopWatch : sc::state_machine&lt; StopWatch, Active &gt;
+{
+  // startTime_ remains uninitialized, because there is no reasonable default
+  StopWatch() : elapsedTime_( 0.0 ) {}
+  ~StopWatch()
+  {
+    terminate();
+  }
+
+  double ElapsedTime() const
+  {
+    // Ugly switch over the current state.
+    if ( state_cast&lt; const Stopped * &gt;() != 0 )
+    {
+      return elapsedTime_;
+    }
+    else if ( state_cast&lt; const Running * &gt;() != 0 )
+    {
+      return elapsedTime_ + std::difftime( std::time( 0 ), startTime_ );
+    }
+    else // we're terminated
+    {
+      throw std::bad_cast();
+    }
+  }
+
+  // elapsedTime_ is only meaningful when the machine is not terminated
+  double elapsedTime_;
+  // startTime_ is only meaningful when the machine is in Running
+  std::time_t startTime_;
+};
+
+struct Active : sc::state&lt; Active, StopWatch, Stopped &gt;
+{
+  typedef sc::transition&lt; EvReset, Active &gt; reactions;
+
+  Active( my_context ctx ) : my_base( ctx )
+  {
+    outermost_context().elapsedTime_ = 0.0;
+  }
+};
+
+  struct Running : sc::state&lt; Running, Active &gt;
+  {
+    typedef sc::transition&lt; EvStartStop, Stopped &gt; reactions;
+
+    Running( my_context ctx ) : my_base( ctx )
+    {
+      outermost_context().startTime_ = std::time( 0 );
+    }
+
+    ~Running()
+    {
+      outermost_context().elapsedTime_ +=
+        std::difftime( std::time( 0 ), outermost_context().startTime_ );
+    }
+  };
+
+  struct Stopped : sc::simple_state&lt; Stopped, Active &gt;
+  {
+    typedef sc::transition&lt; EvStartStop, Running &gt; reactions;
+  };
+</pre>
+
+  <p>This StopWatch does not make any use of state-local storage while
+  implementing the same behavior as the <a href=
+  "tutorial.html#BasicTopicsAStopWatch">tutorial StopWatch</a>. Even though
+  this code is probably easier to read for the untrained eye, it does have a
+  few problems that are absent in the original:</p>
+
+  <ul>
+    <li>This StopWatch class has data members that have a meaningful value
+    only if the state machine happens to be in a certain state. That is, the
+    lifetimes of these variables are not identical with the one of the
+    StopWatch object containing them. Since the lifetimes are managed by the
+    entry and exit actions of states, we need to use an ugly switch over the
+    current state (see <code>StopWatch::ElapsedTime()</code>) if we want to
+    access them from a context where the current state is unclear. This
+    essentially duplicates some of the state logic of the FSM. Therefore,
+    whenever we need to change the layout of the state machine we will likely
+    also need to change the ugly switch. Even worse, if we forget to change
+    the switch, the code will probably still compile and maybe even silently
+    do the wrong thing. Note that this is impossible with the version in the
+    tutorial, which will at least throw an exception and often just refuse to
+    compile. Moreover, for the tutorial StopWatch there's a much higher
+    chance that a programmer will get a change correct the first time since
+    the code that calculates the elapsed time is located close to the code
+    that updates the variables</li>
+
+    <li>We need to change the StopWatch class whenever we want to introduce a
+    new variable or change the type of an already existing variable. That is,
+    many changes in the FSM will likely lead to a change in the StopWatch
+    class. In all FSMs that do not employ state-local storage, the
+    <code>state_machine&lt;&gt;</code> subtype will therefore be a change
+    hotspot, which is a pretty sure indicator for a bad design</li>
+  </ul>
+
+  <p>Both points are not much of a problem in a small example like this,
+  which can easily be implemented in a single translation unit by a single
+  programmer. However, they quickly become a major problem for a big complex
+  machine spread over multiple translation units, which are possibly even
+  maintained by different programmers.</p>
+
+  <h2><a name="HideInnerWorkings" id="HideInnerWorkings">How can I hide the
+  inner workings of a state machine from its clients?</a></h2>
+
+  <p>To see why and how this is possible it is important to recall the
+  following facts:</p>
+
+  <ul>
+    <li>Member functions of a C++ class template are instantiated at the
+    point where they're actually called. If the function is never called, it
+    will not be instantiated and not a single assembly instruction will ever
+    be generated</li>
+
+    <li>The <code>InitialState</code> template parameter of
+    <code>sc::state_machine</code> can be an incomplete type (i.e. forward
+    declared)</li>
+  </ul>
+
+  <p>The class template member function
+  <code>state_machine&lt;&gt;::initiate()</code> creates an object of the
+  initial state. So, the definition of this state must be known before the
+  compiler reaches the point where <code>initiate()</code> is called. To be
+  able to hide the initial state of a state machine in a .cpp file we must
+  therefore no longer let clients call <code>initiate()</code>. Instead, we
+  do so in the .cpp file, at a point where the full definition of the initial
+  state is known.</p>
+
+  <p>Example:</p>
+
+  <p>StopWatch.hpp:</p>
+  <pre>
+// define events ...
+
+struct Active; // the only visible forward
+struct StopWatch : sc::state_machine&lt; StopWatch, Active &gt;
+{
+  StopWatch();
+};
+</pre>
+
+  <p>StopWatch.cpp:</p>
+  <pre>
+struct Stopped;
+struct Active : sc::simple_state&lt; Active, StopWatch, Stopped &gt;
+{
+  typedef sc::transition&lt; EvReset, Active &gt; reactions;
+};
+
+  struct Running : sc::simple_state&lt; Running, Active &gt;
+  {
+    typedef sc::transition&lt; EvStartStop, Stopped &gt; reactions;
+  };
+
+  struct Stopped : sc::simple_state&lt; Stopped, Active &gt;
+  {
+    typedef sc::transition&lt; EvStartStop, Running &gt; reactions;
+  };
+
+StopWatch::StopWatch()
+{
+  // For example, we might want to ensure that the state
+  // machine is already started after construction.
+  // Alternatively, we could add our own initiate() function
+  // to StopWatch and call the base class initiate() in the
+  // implementation.
+  <b>initiate();</b>
+}
+</pre>
+  <p>The PingPong example demonstrates how the inner workings of an
+  asynchronous_state_machine<> subclass can be hidden.</p>
+
+  <h2><a name="MachineInheritance" id="MachineInheritance">Is it possible to
+  inherit from a given state machine and modify its layout in the
+  subclass?</a></h2>
+
+  <p>Yes, but contrary to what some FSM code generators allow,
+  Boost.Statechart machines can do so only in a way that was foreseen by the
+  designer of the base state machine:</p>
+  <pre>
+struct EvStart : sc::event&lt; EvStart &gt; {};
+
+struct Idle;
+struct PumpBase : sc::state_machine&lt; PumpBase, Idle &gt;
+{
+  <b>virtual sc::result react(
+</b>    <b>Idle &amp; idle, const EvStart &amp; ) const;
+</b>};
+
+struct Idle : sc::simple_state&lt; Idle, PumpBase &gt;
+{
+  typedef sc::custom_reaction&lt; EvStart &gt; reactions;
+
+  sc::result react( const EvStart &amp; evt )
+  {
+    <b>return context&lt; PumpBase &gt;().react( *this, evt );</b>
+  }
+};
+
+struct Running : sc::simple_state&lt; Running, PumpBase &gt; {};
+
+sc::result PumpBase::react(
+  Idle &amp; idle, const EvStart &amp; ) const
+{
+  <b>return idle.transit&lt; Running &gt;();
+</b>}
+
+
+struct MyRunning : sc::simple_state&lt; MyRunning, PumpBase &gt; {};
+
+struct MyPump : PumpBase
+{
+  virtual sc::result react(
+    Idle &amp; idle, const EvStart &amp; ) const
+  {
+    <b>return idle.transit&lt; MyRunning &gt;();
+</b>  }
+};
+</pre>
+
+  <h2><a name="Uml2" id="Uml2">What about UML 2.0 features?</a></h2>
+
+  <p>The library was designed before 2.0 came along. Therefore, if not
+  explicitly noted otherwise, the library implements the behavior mandated by
+  the UML1.5 standard. Here's an incomplete list of differences between the
+  2.0 semantics &amp; Boost.Statechart semantics:</p>
+
+  <ul>
+    <li>All transitions are always external. Local transitions are not
+    supported at all. Unfortunately, the UML2.0 specifications are not
+    entirely clear how local transitions are supposed to work, see <a href=
+    "http://thread.gmane.org/gmane.comp.lib.boost.user/18641">here</a> for
+    more information</li>
+
+    <li>There is no direct support for the UML2.0 elements entry point and
+    exit point. However, both can easily be simulated, the former with a
+    typedef and the latter with a state that is a template (with the
+    transition destination as a template parameter)</li>
+  </ul>
+
+  <h2><a name="AssertInStateDestructor" id="AssertInStateDestructor">Why do I
+  get an assert when I access the state machine from a state destructor?</a>
+  </h2>
+
+  <p>When compiled with <code>NDEBUG</code> undefined, running the following
+  program results in a failed assert:</p>
+  <pre>#include &lt;boost/statechart/state_machine.hpp&gt;
+#include &lt;boost/statechart/simple_state.hpp&gt;
+#include &lt;iostream&gt;
+
+struct Initial;
+struct Machine : boost::statechart::state_machine&lt; Machine, Initial &gt;
+{
+  Machine() { someMember_ = 42; }
+  int someMember_;
+};
+
+struct Initial : boost::statechart::simple_state&lt; Initial, Machine &gt;
+{
+  ~Initial() { std::cout &lt;&lt; outermost_context().someMember_; }
+};
+
+int main()
+{
+  Machine().initiate();
+  return 0;
+}</pre>
+  <p>The problem arises because <code>state_machine&lt;&gt;::~state_machine</code>
+  inevitably destructs all remaining active states. At this time,
+  <code>Machine::~Machine</code> has already been run, making it illegal to
+  access any of the <code>Machine</code> members. This problem can be avoided
+  by defining the following destructor:</p>
+  <pre>~Machine() { terminate(); }</pre>
+
+  <h2><a name="EmbeddedApplications" id="EmbeddedApplications">Is
+  Boost.Statechart suitable for embedded applications?</a></h2>
+
+  <p>It depends. As explained under <a href=
+  "performance.html#SpeedVersusScalabilityTradeoffs">Speed versus scalability
+  tradeoffs</a> on the Performance page, the virtually limitless scalability
+  offered by this library does have its price. Especially small and simple
+  FSMs can easily be implemented so that they consume fewer cycles and less
+  memory and occupy less code space in the executable. Here are some
+  obviously <b>very rough</b> estimates:</p>
+
+  <ul>
+    <li>For a state machine with at most one simultaneously active state
+    (that is, the machine is flat and does not have orthogonal regions) with
+    trivial actions, customized memory management and compiled with a good
+    optimizing compiler, a Pentium 4 class CPU should not spend more than
+    1000 cycles inside <code>state_machine&lt;&gt;::process_event()</code>.
+    This worst-case time to process one event scales more or less linearly
+    with the number of simultaneously active states for more complex state
+    machines, with the typical average being much lower than that. So, a
+    fairly complex machine with at most 10 simultaneously active states
+    running on a 100MHz CPU should be able to process more than 10'000 events
+    per second</li>
+
+    <li>A single state machine object uses typically less than 1KB of memory,
+    even if it implements a very complex machine</li>
+
+    <li>For code size, it is difficult to give a concrete guideline but tests
+    with the BitMachine example suggest that code size scales more or less
+    linearly with the number of states (transitions seem to have only little
+    impact). When compiled with MSVC7.1 on Windows, 32 states and 224
+    transitions seem to fit in ~108KB executable code (with all optimizations
+    turned on).<br>
+    Moreover, the library can be compiled with C++ RTTI and exception
+    handling turned off, resulting in significant savings on most
+    platforms</li>
+  </ul>
+
+  <p>As mentioned above, these are very rough estimates derived from the use
+  of the library on a desktop PC, so they should only be used to decide
+  whether there is a point in making your own performance tests on your
+  target platform.</p>
+
+  <h2><a name="HardRealtime" id="HardRealtime">Is your library suitable for
+  applications with hard real-time requirements?</a></h2>
+
+  <p>Yes. Out of the box, the only operations taking potentially
+  non-deterministic time that the library performs are calls to
+  <code>std::allocator&lt;&gt;</code> member functions and
+  <code>dynamic_cast</code>s. <code>std::allocator&lt;&gt;</code> member
+  function calls can be avoided by passing a custom allocator to
+  <code>event&lt;&gt;</code>, <code>state_machine&lt;&gt;</code>,
+  <code>asynchronous_state_machine&lt;&gt;</code>,
+  <code>fifo_scheduler&lt;&gt;</code> and <code>fifo_worker&lt;&gt;</code>.
+  <code>dynamic_cast</code>s can be avoided by not calling the
+  <code>state_cast&lt;&gt;</code> member functions of
+  <code>state_machine&lt;&gt;</code>, <code>simple_state&lt;&gt;</code> and
+  <code>state&lt;&gt;</code> but using the deterministic variant
+  <code>state_downcast&lt;&gt;</code> instead.</p>
+
+  <h2><a name="TemplatedStates" id="TemplatedStates">With templated states I
+  get an error that 'inner_context_type' is not defined. What's
+  wrong?</a></h2>
+
+  <p>The following code generates such an error:</p>
+  <pre>
+#include &lt;boost/statechart/state_machine.hpp&gt;
+#include &lt;boost/statechart/simple_state.hpp&gt;
+
+namespace sc = boost::statechart;
+
+template&lt; typename X &gt; struct A;
+struct Machine : sc::state_machine&lt; Machine, A&lt; int &gt; &gt; {};
+
+template&lt; typename X &gt; struct B;
+template&lt; typename X &gt;
+struct A : sc::simple_state&lt; A&lt; X &gt;, Machine, B&lt; X &gt; &gt; {};
+
+  template&lt; typename X &gt;
+  struct B : sc::simple_state&lt; B&lt; X &gt;, A&lt; X &gt; &gt; {};
+
+int main()
+{
+  Machine machine;
+  machine.initiate();
+  return 0;
+}
+</pre>
+
+  <p>If the templates <code>A</code> and <code>B</code> are replaced with
+  normal types, the above code compiles without errors. This is rooted in the
+  fact that C++ treats forward-declared templates differently than
+  forward-declared types. Namely, the compiler tries to access member
+  typedefs of <code>B&lt; X &gt;</code> at a point where the template has not
+  yet been defined. Luckily, this can easily be avoided by putting all inner
+  initial state arguments in an <code>mpl::list&lt;&gt;</code>, as
+  follows:</p>
+  <pre>
+struct A : sc::simple_state&lt;
+  A&lt; X &gt;, Machine, mpl::list&lt; B&lt; X &gt; &gt; &gt; {};
+</pre>
+
+  <p>See <a href=
+  "http://article.gmane.org/gmane.comp.lib.boost.devel/128741">this post</a>
+  for technical details.</p>
+
+  <h2><a name="CompilerError" id="CompilerError">My compiler reports an error
+  in the library code. Is this a bug in Boost.Statechart?</a></h2>
+
+  <p>Probably not. There are several possible reasons for such compile-time
+  errors:</p>
+
+  <ol>
+    <li>Your compiler is too buggy to compile the library, see <a href=
+    "index.html#SupportedPlatforms">here</a> for information on the status of
+    your compiler. If you absolutely must use such a compiler for your
+    project, I'm afraid Boost.Statechart is not for you.</li>
+
+    <li>The error is reported on a line similar to the following:
+      <pre>
+BOOST_STATIC_ASSERT( ( mpl::less&lt;
+  orthogonal_position,
+  typename context_type::no_of_orthogonal_regions &gt;::value ) );
+</pre>Most probably, there is an error in your code. The library has many
+such compile-time assertions to ensure that invalid state machines cannot be
+compiled (for an idea what kinds of errors are reported at compile time, see
+the compile-fail tests). Above each of these assertions there is a comment
+explaining the problem. On almost all current compilers an error in template
+code is accompanied by the current "instantiation stack". Very much like the
+call stack you see in the debugger, this "instantiation stack" allows you to
+trace the error back through instantiations of library code until you hit the
+line of your code that causes the problem. As an example, here's the MSVC7.1
+error message for the code in InconsistentHistoryTest1.cpp:
+      <pre>
+...\boost\statechart\shallow_history.hpp(34) : error C2027: use of undefined type 'boost::STATIC_ASSERTION_FAILURE&lt;x&gt;'
+  with
+  [
+    x=false
+  ]
+  ...\boost\statechart\shallow_history.hpp(34) : see reference to class template instantiation 'boost::STATIC_ASSERTION_FAILURE&lt;x&gt;' being compiled
+  with
+  [
+    x=false
+  ]
+  ...\boost\statechart\simple_state.hpp(861) : see reference to class template instantiation 'boost::statechart::shallow_history&lt;DefaultState&gt;' being compiled
+  with
+  [
+    DefaultState=B
+  ]
+  ...\boost\statechart\simple_state.hpp(599) : see reference to function template instantiation 'void boost::statechart::simple_state&lt;MostDerived,Context,InnerInitial&gt;::deep_construct_inner_impl_non_empty::deep_construct_inner_impl&lt;InnerList&gt;(const boost::statechart::simple_state&lt;MostDerived,Context,InnerInitial&gt;::inner_context_ptr_type &amp;,boost::statechart::simple_state&lt;MostDerived,Context,InnerInitial&gt;::outermost_context_base_type &amp;)' being compiled
+  with
+  [
+    MostDerived=A,
+    Context=InconsistentHistoryTest,
+    InnerInitial=boost::mpl::list&lt;boost::statechart::shallow_history&lt;B&gt;&gt;,
+    InnerList=boost::statechart::simple_state&lt;A,InconsistentHistoryTest,boost::mpl::list&lt;boost::statechart::shallow_history&lt;B&gt;&gt;&gt;::inner_initial_list
+  ]
+  ...\boost\statechart\simple_state.hpp(567) : see reference to function template instantiation 'void boost::statechart::simple_state&lt;MostDerived,Context,InnerInitial&gt;::deep_construct_inner&lt;boost::statechart::simple_state&lt;MostDerived,Context,InnerInitial&gt;::inner_initial_list&gt;(const boost::statechart::simple_state&lt;MostDerived,Context,InnerInitial&gt;::inner_context_ptr_type &amp;,boost::statechart::simple_state&lt;MostDerived,Context,InnerInitial&gt;::outermost_context_base_type &amp;)' being compiled
+  with
+  [
+    MostDerived=A,
+    Context=InconsistentHistoryTest,
+    InnerInitial=boost::mpl::list&lt;boost::statechart::shallow_history&lt;B&gt;&gt;
+  ]
+  ...\boost\statechart\simple_state.hpp(563) : while compiling class-template member function 'void boost::statechart::simple_state&lt;MostDerived,Context,InnerInitial&gt;::deep_construct(const boost::statechart::simple_state&lt;MostDerived,Context,InnerInitial&gt;::context_ptr_type &amp; ,boost::statechart::simple_state&lt;MostDerived,Context,InnerInitial&gt;::outermost_context_base_type &amp;)'
+  with
+  [
+    MostDerived=A,
+    Context=InconsistentHistoryTest,
+    InnerInitial=boost::mpl::list&lt;boost::statechart::shallow_history&lt;B&gt;&gt;
+  ]
+  ...\libs\statechart\test\InconsistentHistoryTest1.cpp(29) : see reference to class template instantiation 'boost::statechart::simple_state&lt;MostDerived,Context,InnerInitial&gt;' being compiled
+  with
+  [
+    MostDerived=A,
+    Context=InconsistentHistoryTest,
+    InnerInitial=boost::mpl::list&lt;boost::statechart::shallow_history&lt;B&gt;&gt;
+  ]
+</pre>Depending on the IDE you use, it is possible that you need to switch to
+another window to see this full error message (e.g. for Visual Studio 2003,
+you need to switch to the Output window). Starting at the top and going down
+the list of instantiations you see that each of them is accompanied by a file
+name and a line number. Ignoring all files belonging to the library, we find
+the culprit close to the bottom in file InconsistentHistoryTest1.cpp on line
+29.
+    </li>
+
+    <li>The error is reported on a line nowhere near a BOOST_STATIC_ASSERT.
+    Use the technique described under point 2 to see what line of your code
+    causes the problem. If your code is correct then you've found a bug in
+    either the compiler or Boost.Statechart. Please <a href=
+    "contact.html">send me</a> a small but complete program showing the
+    problem. Thank you!</li>
+  </ol>
+
+  <h2><a name="DisableHistory" id="DisableHistory">Is it possible to disable
+  history for a state at runtime?</a></h2>
+
+  <p>Yes, see <a href=
+  "reference.html#clear_shallow_history">simple_state::clear_shallow_history()</a>
+  and <a href=
+  "reference.html#clear_deep_history">simple_state::clear_deep_history()</a>.
+  Calling these functions is often preferable to introducting additional
+  normal transitions when ...</p>
+  <ul>
+    <li>a state with history is the target of many transitions,
+    <b>and/or</b></li>
+    <li>the decision to ignore history is made in a different place than
+    the transition to a state with history</li>
+  </ul>
+
+  <h2><a name="Dll" id="Dll">How can I compile a state machine into a dynamic
+  link library (DLL)?</a></h2>
+
+  <p>Invisible to the user, the library uses static data members to implement
+  its own speed-optimized RTTI-mechanism for <code>event&lt;&gt;</code> and
+  <code>simple_state&lt;&gt;</code> subtypes. Whenever such a subtype is
+  defined in a header file and then included in multiple TUs, the linker
+  later needs to eliminate the duplicate definitions of static data members.
+  This usually works flawlessly as long as all these TUs are
+  <b>statically</b> linked into the same binary. It is a lot more complex
+  when DLLs are involved. The TuTest*.?pp files illustrate this:</p>
+
+  <ul>
+    <li><a href="../test/TuTest.hpp">TuTest.hpp</a>: Instantiates a class
+    template containing a static data member</li>
+
+    <li><a href="../test/TuTest.cpp">TuTest.cpp</a>: Includes TuTest.hpp and
+    is compiled into a DLL</li>
+
+    <li><a href="../test/TuTestMain.cpp">TuTestMain.cpp</a>: Includes
+    TuTest.hpp and is compiled into an executable</li>
+  </ul>
+
+  <p>Without any precautions (e.g. <code>__declspec(dllexport)</code> on MSVC
+  compatible compilers), on most platforms both binaries (exe &amp; dll) now
+  contain their own instance of the static data member. Since the RTTI
+  mechanism assumes that there is exactly one object of that member at
+  runtime, the mechanism fails spectacularly when the process running the exe
+  also loads the dll. Different platforms deal differently with this
+  problem:</p>
+
+  <ul>
+    <li>On some platforms (e.g. MinGW) there simply doesn't seem to be a way
+    to enforce that such a member only exists once at runtime. Therefore, the
+    internal RTTI mechanism cannot be used reliably in conjunction with DLLs.
+    Disabling it by defining <a href=
+    "configuration.html#ApplicationDefinedMacros">BOOST_STATECHART_USE_NATIVE_RTTI</a>
+    in all TUs will <b>usually</b> work around the problem</li>
+
+    <li>MSVC-compatible compilers support <code>__declspec(dllimport)</code>
+    and <code>__declspec(dllexport)</code>, which allow to define exactly
+    what needs to be loaded from a DLL (see TuTest for an example how to do
+    this). Therefore, the internal RTTI mechanism can be used but care must
+    be taken to correctly export and import all <code>event&lt;&gt;</code>
+    and <code>simple_state&lt;&gt;</code> subtypes defined in headers that
+    are compiled into more than one binary. Alternatively, of course <a href=
+    "configuration.html#ApplicationDefinedMacros">BOOST_STATECHART_USE_NATIVE_RTTI</a>
+    can also be used to save the work of importing and exporting</li>
+  </ul>
+
+  <h2><a name="PolymorphicEvents" id="PolymorphicEvents">Does
+  Boost.Statechart support polymorphic events?</a></h2>
+
+  <p>No. Although events can be derived from each other to write common code
+  only once, <a href="definitions.html#Reaction">reactions</a> can only be
+  defined for most-derived events.</p>
+
+  <p>Example:</p>
+  <pre>
+template&lt; class MostDerived &gt;
+struct EvButtonPressed : sc::event&lt; MostDerived &gt;
+{
+  // common code
+};
+
+struct EvPlayButtonPressed :
+  EvButtonPressed&lt; EvPlayButtonPressed &gt; {};
+struct EvStopButtonPressed :
+  EvButtonPressed&lt; EvStopButtonPressed &gt; {};
+struct EvForwardButtonPressed :
+  EvButtonPressed&lt; EvForwardButtonPressed &gt; {};
+
+/* ... */
+
+// We want to turn the player on, no matter what button we
+// press in the Off state. Although we can write the reaction
+// code only once, we must mention all most-derived events in
+// the reaction list.
+struct Off : sc::simple_state&lt; Off, Mp3Player &gt;
+{
+  typedef mpl::list&lt;
+    sc::custom_reaction&lt; EvPlayButtonPressed &gt;,
+    sc::custom_reaction&lt; EvStopButtonPressed &gt;,
+    sc::custom_reaction&lt; EvForwardButtonPressed &gt;
+  &gt; reactions;
+
+  template&lt; class MostDerived &gt;
+  sc::result react( const EvButtonPressed&lt; MostDerived &gt; &amp; )
+  {
+    // ...
+  }
+};
+</pre>
+
+  <h2><a name="WrongExitActionOrder" id="WrongExitActionOrder">Why are
+  exit-actions called in the wrong order when I use multiple
+  inheritance?</a></h2>
+
+  <p><b>Update</b>: The implementation has changed considerably in this area.
+  It is still possible to get this behavior under rare circumstances (when an
+  action propagates an exception in a state machine with orthogonal regions
+  <b>and</b> if the statechart layout satisfies certain conditions), but it
+  can no longer be demonstrated with the example program below. However, the
+  described workaround is still valid and ensures that this behavior will
+  never show up.</p>
+
+  <p>They definitely aren't for the <code>simple_state&lt;&gt;</code> and
+  <code>state&lt;&gt;</code> subtypes, but the destructors of additional
+  bases might be called in construction order (rather than the reverse
+  construction order):</p>
+  <pre>
+#include &lt;boost/statechart/state_machine.hpp&gt;
+#include &lt;boost/statechart/simple_state.hpp&gt;
+
+namespace sc = boost::statechart;
+
+class EntryExitDisplayer
+{
+  protected:
+    EntryExitDisplayer( const char * pName ) :
+      pName_( pName )
+    {
+      std::cout &lt;&lt; pName_ &lt;&lt; " entered\n";
+    }
+
+    ~EntryExitDisplayer()
+    {
+      std::cout &lt;&lt; pName_ &lt;&lt; " exited\n";
+    }
+
+  private:
+    const char * const pName_;
+};
+
+struct Outer;
+struct Machine : sc::state_machine&lt; Machine, Outer &gt; {};
+struct Inner;
+struct Outer : EntryExitDisplayer, sc::simple_state&lt;
+  Outer, Machine, Inner &gt;
+{
+  Outer() : EntryExitDisplayer( "Outer" ) {}
+};
+
+struct Inner : EntryExitDisplayer,
+  sc::simple_state&lt; Inner, Outer &gt;
+{
+  Inner() : EntryExitDisplayer( "Inner" ) {}
+};
+
+int main()
+{
+  Machine myMachine;
+  myMachine.initiate();
+  return 0;
+}
+</pre>
+
+  <p>This program will produce the following output:</p>
+  <pre>
+Outer entered
+Inner entered
+Outer exited
+Inner exited
+</pre>
+
+  <p>That is, the <b><code>EntryExitDisplayer</code> base class portion</b>
+  of <code>Outer</code> is destructed before the one of <code>Inner</code>
+  although <code>Inner::~Inner()</code> is called before
+  <code>Outer::~Outer()</code>. This somewhat counter-intuitive behavior is
+  caused by the following facts:</p>
+
+  <ul>
+    <li>The <code>simple_state&lt;&gt;</code> base class portion of
+    <code>Inner</code> is responsible to destruct <code>Outer</code></li>
+
+    <li>Destructors of base class portions are called in the reverse order of
+    construction</li>
+  </ul>
+
+  <p>So, when the <code>Outer</code> destructor is called the call stack
+  looks as follows:</p>
+  <pre>
+Outer::~Outer()
+simple_state&lt; Inner, ... &gt;::~simple_state()
+Inner::~Inner()
+</pre>
+
+  <p>Note that <code>Inner::~Inner()</code> did not yet have a chance to
+  destroy its <code>EntryExitDisplayer</code> base class portion, as it first
+  has to call the destructor of the <b>second</b> base class. Now
+  <code>Outer::~Outer()</code> will first destruct its <code>simple_state&lt;
+  Outer, ... &gt;</code> base class portion and then do the same with its
+  <code>EntryExitDisplayer</code> base class portion. The stack then unwinds
+  back to <code>Inner::~Inner()</code>, which can then finally finish by
+  calling <code>EntryExitDisplayer::~EntryExitDisplayer()</code>.</p>
+
+  <p>Luckily, there is an easy work-around: Always let
+  <code>simple_state&lt;&gt;</code> and <code>state&lt;&gt;</code> be the
+  first base class of a state. This ensures that destructors of additional
+  bases are called before recursion employed by state base destructors can
+  alter the order of destruction.</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 05 January, 2008</p>
+
+  <p><i>Copyright &copy; 2003-2008 <a href="contact.html">Andreas Huber
+  D&ouml;nni</a></i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

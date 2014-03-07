@@ -1,0 +1,55 @@
+--- common/unicode/pmac.h
++++ common/unicode/pmac.h
+@@ -49,14 +49,20 @@
+ #define U_DARWIN
+ #endif
+ 
++#include <AvailabilityMacros.h>
++
+ /**
+  * \def U_HAVE_DIRENT_H
+  * Define whether dirent.h is available 
+  * @internal
+  */
+ #ifndef U_HAVE_DIRENT_H
++#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
++#define U_HAVE_DIRENT_H 0
++#else
+ #define U_HAVE_DIRENT_H 1
+ #endif
++#endif
+ 
+ /** Define whether inttypes.h is available */
+ #ifndef U_HAVE_INTTYPES_H
+@@ -282,8 +288,10 @@
+ #if 1
+ #define U_TZSET         tzset
+ #endif
+-#if 1
+-#define U_TIMEZONE      timezone
++#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
++#define U_TIMEZONE 0
++#else
++#define U_TIMEZONE timezone
+ #endif
+ #if 1
+ #define U_TZNAME        tzname
+@@ -399,4 +407,18 @@
+ 
+ # endif
+ #endif
++
++/*===========================================================================*/
++/* Local defines                                                             */
++/*===========================================================================*/
++
++/* On the Mac, we define U_WCHAR_IS_UTF32 to treat wchar_t as though it
++   contains UTF-32 at all times.  Strictly speaking, that's not entirely
++   correct given Mac's libc (__STDC_ISO_10646__ is not defined) , but provided
++   that we ignore libc's locale support (by not calling setlocale) and its
++   multibyte string support, this should be fine.  Our codebase makes enough
++   other assumptions about a UTF-8 locale and UTF-32 wchar_t strings for this
++   to make sense. */
++#define U_WCHAR_IS_UTF32
++
+ #endif

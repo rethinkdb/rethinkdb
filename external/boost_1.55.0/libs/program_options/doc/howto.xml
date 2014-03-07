@@ -1,0 +1,447 @@
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+     "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd"
+[
+    <!ENTITY % entities SYSTEM "program_options.ent" >
+    %entities;
+]>
+<section id="program_options.howto">
+
+  <title>How To</title>
+
+  <para>This section describes how the library can be used in specific
+  situations.</para>
+
+<!--
+
+validators
+positional options
+options groups/hidden options
+
+-->
+  <section>
+    <title>Non-conventional Syntax</title>
+    
+    <para>Sometimes, standard command line syntaxes are not enough. For
+    example, the gcc compiler has "-frtti" and -fno-rtti" options, and this
+    syntax is not directly supported.
+    </para>
+
+    <indexterm><primary>additional parser</primary></indexterm>
+    <para>For such cases, the library allows the user to provide an
+    <firstterm>additional parser</firstterm> -- a function which will be called on each
+    command line element, before any processing by the library. If the
+    additional parser recognises the syntax, it returns the option name and
+    value, which are used directly. The above example can be handled by the
+    following code:
+    </para>
+
+    <para>
+      <programlisting>
+pair&lt;string, string&gt; reg_foo(const string&amp; s)
+{
+    if (s.find("-f") == 0) {
+        if (s.substr(2, 3) == "no-")
+            return make_pair(s.substr(5), string("false"));
+        else
+            return make_pair(s.substr(2), string("true"));
+    } else {
+        return make_pair(string(), string());
+    }
+}
+</programlisting>
+      Here's the definition of the additional parser. When parsing the command
+      line, we pass the additional parser:
+<programlisting>
+store(command_line_parser(ac, av).options(desc).extra_parser(reg_foo)
+        .run(), vm);
+</programlisting>
+      The complete example can be found in the "example/custom_syntax.cpp"
+      file.                
+    </para>
+  </section>
+
+  <section>
+    <title>Response Files</title>
+
+    <indexterm><primary>response files</primary></indexterm> 
+
+    <para>Some operating system have very low limits of the command line
+      length. The common way to work around those limitations is using
+      <firstterm>response files</firstterm>.  A response file is just a
+      configuration file which uses the same syntax as the command line. If
+      the command line specifies a name of response file to use, it's loaded
+      and parsed in addition to the command line.  The library does not
+      provide direct support for response files, so you'll need to write some
+      extra code.
+    </para>
+
+    <para>
+      First, you need to define an option for the response file:
+<programlisting>
+("response-file", value&lt;string&gt;(), 
+     "can be specified with '@name', too")
+</programlisting>
+    </para>
+
+    <para>Second, you'll need an additional parser to support the standard syntax
+    for specifying response files: "@file":
+<programlisting><![CDATA[
+pair<string, string> at_option_parser(string const&s)
+{
+    if ('@' == s[0])
+        return std::make_pair(string("response-file"), s.substr(1));
+    else
+        return pair<string, string>();
+}
+]]>
+</programlisting>
+    </para>
+
+    <para>Finally, when the "response-file" option is found, you'll have to
+    load that file and pass it to the command line parser. This part is the
+    hardest. We'll use the Boost.Tokenizer library, which works but has some
+    limitations. You might also consider Boost.StringAlgo. The code is:
+<programlisting><![CDATA[
+if (vm.count("response-file")) {
+     // Load the file and tokenize it
+     ifstream ifs(vm["response-file"].as<string>().c_str());
+     if (!ifs) {
+         cout << "Could not open the response file\n";
+         return 1;
+     }
+     // Read the whole file into a string
+     stringstream ss;
+     ss << ifs.rdbuf();
+     // Split the file content
+     char_separator<char> sep(" \n\r");
+     std::string ResponsefileContents( ss.str() );
+     tokenizer<char_separator<char> > tok(ResponsefileContents, sep);
+     vector<string> args;
+     copy(tok.begin(), tok.end(), back_inserter(args));
+     // Parse the file and store the options
+     store(command_line_parser(args).options(desc).run(), vm);     
+}
+]]>
+</programlisting>
+      The complete example can be found in the "example/response_file.cpp"
+      file.                
+    </para>
+ 
+  </section>
+
+  <section>
+    <title>Winmain Command Line</title>
+
+    <para>On the Windows operating system, GUI applications receive the
+    command line as a single string, not split into elements. For that reason,
+    the command line parser cannot be used directly. At least on some
+    compilers, it is possible to obtain
+    the split command line, but it's not clear if all compilers support the
+    same mechanism on all versions of the operating system. The
+    <code>split_winmain</code> function is a portable mechanism provided
+    by the library.</para>
+
+    <para>Here's an example of use:
+<programlisting>
+vector&lt;string&gt; args = split_winmain(lpCmdLine);
+store(command_line_parser(args).options(desc).run(), vm);
+</programlisting>      
+      The <code>split_winmain</code> function is overloaded for <code>wchar_t</code> strings, so can
+      also be used in Unicode applications.
+    </para>
+
+  </section>
+
+  <section>
+    <title>Option Groups and Hidden Options</title>
+
+    <para>Having a single instance of the &options_description; class with all
+    the program's options can be problematic:
+      <itemizedlist>
+        <listitem>
+          <para>Some options make sense only for specific source, for example,
+          configuration files.</para>
+        </listitem>
+        <listitem>
+          <para>The user would prefer some structure in the generated help message.</para>
+        </listitem>
+        <listitem>
+          <para>Some options shouldn't appear in the generated help message at all.</para>
+        </listitem>
+      </itemizedlist>
+    </para>
+
+    <para>To solve the above issues, the library allows a programmer to create several
+      instances of the &options_description; class, which can be merged in
+      different combinations. The following example will define three groups of
+      options: command line specific, and two options group for specific program
+      modules, only one of which is shown in the generated help message.
+    </para>
+
+    <para>Each group is defined using standard syntax. However, you should
+      use reasonable names for each &options_description; instance:
+<programlisting><![CDATA[
+options_description general("General options");
+general.add_options()
+    ("help", "produce a help message")
+    ("help-module", value<string>(),
+        "produce a help for a given module")
+    ("version", "output the version number")
+    ;
+
+options_description gui("GUI options");
+gui.add_options()
+    ("display", value<string>(), "display to use")
+    ;
+
+options_description backend("Backend options");
+backend.add_options()
+    ("num-threads", value<int>(), "the initial number of threads")
+    ;
+]]></programlisting>
+    </para>
+
+    <para>After declaring options groups, we merge them in two
+      combinations. The first will include all options and be used for parsing. The
+      second will be used for the "--help" option.
+<programlisting>
+// Declare an options description instance which will include
+// all the options
+options_description all("Allowed options");
+all.add(general).add(gui).add(backend);
+
+// Declare an options description instance which will be shown
+// to the user
+options_description visible("Allowed options");
+visible.add(general).add(gui);
+</programlisting>
+    </para>
+
+    <para>What is left is to parse and handle the options:
+<programlisting><![CDATA[
+variables_map vm;
+store(parse_command_line(ac, av, all), vm);
+
+if (vm.count("help")) 
+{
+    cout << visible;
+    return 0;
+}
+if (vm.count("help-module")) {
+    const string& s = vm["help-module"].as<string>();
+    if (s == "gui") {
+        cout << gui;
+    } else if (s == "backend") {
+        cout << backend;
+    } else {
+        cout << "Unknown module '" 
+             << s << "' in the --help-module option\n";
+        return 1;
+    }
+    return 0;
+}
+if (vm.count("num-threads")) {
+    cout << "The 'num-threads' options was set to "
+         << vm["num-threads"].as<int>() << "\n";            
+}                           
+]]></programlisting>
+      When parsing the command line, all options are allowed. The "--help"
+      message, however, does not include the "Backend options" group -- the
+      options in that group are hidden. The user can explicitly force the
+      display of that options group by passing "--help-module backend"
+      option. The complete example can be found in the
+      "example/option_groups.cpp" file.
+    </para>
+  
+  </section>
+
+  <section>
+    <title>Custom Validators</title>
+
+    <para>By default, the conversion of option's value from string into C++
+      type is done using iostreams, which sometimes is not convenient. The
+      library allows the user to customize the conversion for specific
+      classes. In order to do so, the user should provide suitable overload of
+      the <code>validate</code> function.
+    </para>
+
+    <para>
+      Let's first define a simple class:
+<programlisting><![CDATA[
+struct magic_number {
+public:
+    magic_number(int n) : n(n) {}
+    int n;
+};
+]]></programlisting> and then overload the <code>validate</code> function:
+<programlisting><![CDATA[
+void validate(boost::any& v, 
+              const std::vector<std::string>& values,
+              magic_number* target_type, int)
+{
+    static regex r("\\d\\d\\d-(\\d\\d\\d)");
+
+    using namespace boost::program_options;
+
+    // Make sure no previous assignment to 'a' was made.
+    validators::check_first_occurrence(v);
+    // Extract the first string from 'values'. If there is more than
+    // one string, it's an error, and exception will be thrown.
+    const string& s = validators::get_single_string(values);
+
+    // Do regex match and convert the interesting part to 
+    // int.
+    smatch match;
+    if (regex_match(s, match, r)) {
+        v = any(magic_number(lexical_cast<int>(match[1])));
+    } else {
+        throw validation_error(validation_error::invalid_option_value);
+    }        
+}
+]]>        
+</programlisting>The function takes four parameters. The first is the storage
+      for the value, and in this case is either empty or contains an instance of
+      the <code>magic_number</code> class. The second is the list of strings
+      found in the next occurrence of the option. The remaining two parameters
+      are needed to workaround the lack of partial template specialization and
+      partial function template ordering on some compilers.
+    </para>
+
+    <para>The function first checks that we don't try to assign to the same
+      option twice. Then it checks that only a single string was passed
+      in. Next the string is verified with the help of the Boost.Regex
+      library. If that test is passed, the parsed value is stored into the
+      <code>v</code> variable.
+    </para>
+
+    <para>The complete example can be found in the "example/regex.cpp" file.
+    </para>
+
+
+  </section>
+
+  <section>
+    <title>Unicode Support</title>
+
+    <para>To use the library with Unicode, you'd need to:
+      <itemizedlist>
+        <listitem>
+          <para>Use Unicode-aware parsers for Unicode input</para>
+        </listitem>
+        <listitem>
+          <para>Require Unicode support for options which need it</para>
+        </listitem>
+      </itemizedlist>
+    </para>
+
+    <para>Most of the parsers have Unicode versions. For example, the
+      &parse_command_line; function has an overload which takes
+      <code>wchar_t</code> strings, instead of ordinary <code>char</code>.
+    </para>
+
+    <para>Even if some of the parsers are Unicode-aware, it does not mean you
+    need to change definition of all the options. In fact, for many options,
+    like integer ones, it makes no sense. To make use of Unicode you'll need
+    <emphasis>some</emphasis> Unicode-aware options. They are different from
+    ordinary options in that they accept <code>wstring</code> input, and
+    process it using wide character streams. Creating an Unicode-aware option
+    is easy: just use the the <code>wvalue</code> function instead of the
+    regular <code>value</code>.
+    </para>
+
+    <para>When an ascii parser passes data to an ascii option, or a Unicode
+      parser passes data to a Unicode option, the data are not changed at
+      all. So, the ascii option will see a string in local 8-bit encoding, and
+      the Unicode option will see whatever string was passed as the Unicode
+      input.
+    </para>
+
+    <para>What happens when Unicode data is passed to an ascii option, and
+      vice versa? The library automatically performs the conversion from
+      Unicode to local 8-bit encoding. For example, if command line is in
+      ascii, but you use <code>wstring</code> options, then the ascii input
+      will be converted into Unicode.
+    </para>
+
+    <para>To perform the conversion, the library uses the <code>codecvt&lt;wchar_t,
+    char&gt;</code> locale facet from the global locale. If
+    you want to work with strings that use local 8-bit encoding (as opposed to
+    7-bit ascii subset), your application should start with:
+      <programlisting>
+locale::global(locale(""));
+      </programlisting>
+      which would set up the conversion facet according to the user's selected
+      locale. 
+    </para>
+
+    <para>It's wise to check the status of the C++ locale support on your
+      implementation, though. The quick test involves three steps:
+      <orderedlist>
+        <listitem>
+          <para>Go the the "test" directory and build the "test_convert" binary.</para>
+        </listitem>
+        <listitem>
+          <para>Set some non-ascii locale in the environmemt. On Linux, one can
+          run, for example: <screen>
+$ export LC_CTYPE=ru_RU.KOI8-R
+</screen>
+          </para>
+        </listitem>
+        <listitem>
+          <para>Run the "test_convert" binary with any non-ascii string in the
+            selected encoding as its parameter. If you see a list of Unicode codepoints,
+            everything's OK. Otherwise, locale support on your system might be
+            broken.</para>
+        </listitem>
+      </orderedlist>
+    </para>
+
+    </section>
+
+    <section>
+      <title>Allowing Unknown Options</title>
+
+      <para>Usually, the library throws an exception on unknown option names. This 
+      behaviour can be changed. For example, only some part of your application uses 
+      <libraryname>Program_options</libraryname>, and you wish to pass unrecognized options to another part of
+      the program, or even to another application.</para>
+
+      <para>To allow unregistered options on the command line, you need to use 
+      the &basic_command_line_parser; class for parsing (not &parse_command_line;)
+      and call the <methodname alt="boost::program_options::basic_command_line_parser::allow_unregistered">allow_unregistered</methodname> 
+      method of that class:
+      <programlisting>
+parsed_options parsed = 
+    command_line_parser(argc, argv).options(desc).allow_unregistered().run();      
+      </programlisting>
+      
+      For each token that looks like an option, but does not have a known name, 
+      an instance of &basic_option; will be added to the result. 
+      The <code>string_key</code> and <code>value</code> fields of the instance will contain results 
+      of syntactic parsing of the token, the <code>unregistered</code> field will be set to <code>true</code>,
+      and the <code>original_tokens</code> field will contain the token as it appeared on the command line.
+      </para>
+
+      <para>If you want to pass the unrecognized options further, the 
+      <functionname alt="boost::program_options::collect_unrecognized">collect_unrecognized</functionname> function can be used.
+      The function will collect original tokens for all unrecognized values, and optionally, all found positional options.
+      Say, if your code handles a few options, but does not handles positional options at all, you can use the function like this:
+      <programlisting>
+vector&lt;string&gt; to_pass_further = collect_unrecognized(parsed.options, include_positional);
+      </programlisting>
+      
+      </para>     
+            
+    </section>
+
+</section>
+
+<!--
+     Local Variables:
+     mode: nxml
+     sgml-indent-data: t
+     sgml-parent-document: ("userman.xml" "chapter")
+     sgml-set-face: t
+     End:
+-->

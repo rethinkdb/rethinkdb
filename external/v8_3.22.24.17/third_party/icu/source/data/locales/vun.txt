@@ -1,0 +1,226 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/vun.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/vun.xml
+ */
+vun{
+    AuxExemplarCharacters{"[q x]"}
+    ExemplarCharacters{"[a b c d e f g h i j k l m n o p r s t u v w y z]"}
+    ExemplarCharactersIndex{"[A B C D E F G H I J K L M N O P R S T U V W Y Z]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤#,##0.00"}
+            }
+        }
+    }
+    Version{"2.0.45.90"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "utuko",
+                "kyiukonyi",
+            }
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, d MMMM y",
+                "d MMMM y",
+                "d MMM y",
+                "dd/MM/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                M{"L"}
+                MEd{"E, M/d"}
+                MMM{"LLL"}
+                MMMEd{"E, MMM d"}
+                MMMMEd{"E, MMMM d"}
+                MMMMd{"MMMM d"}
+                MMMd{"MMM d"}
+                Md{"M/d"}
+                d{"d"}
+                hm{"h:mm a"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"M/y"}
+                yMEd{"EEE, M/d/y"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE, MMM d, y"}
+                yMMMM{"MMMM y"}
+                yQ{"'R'Q y"}
+                yQQQ{"QQQ y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "Jpi",
+                        "Jtt",
+                        "Jnn",
+                        "Jtn",
+                        "Alh",
+                        "Iju",
+                        "Jmo",
+                    }
+                    wide{
+                        "Jumapilyi",
+                        "Jumatatuu",
+                        "Jumanne",
+                        "Jumatanu",
+                        "Alhamisi",
+                        "Ijumaa",
+                        "Jumamosi",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "J",
+                        "J",
+                        "J",
+                        "J",
+                        "A",
+                        "I",
+                        "J",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "KK",
+                    "BK",
+                }
+                wide{
+                    "Kabla ya Kristu",
+                    "Baada ya Kristu",
+                }
+            }
+            fields{
+                day{
+                    dn{"Mfiri"}
+                    relative{
+                        "-1"{"Ukou"}
+                        "0"{"Inu"}
+                        "1"{"Ngama"}
+                    }
+                }
+                dayperiod{
+                    dn{"Mfiri o siku"}
+                }
+                era{
+                    dn{"Kacha"}
+                }
+                hour{
+                    dn{"Saa"}
+                }
+                minute{
+                    dn{"Dakyika"}
+                }
+                month{
+                    dn{"Mori"}
+                }
+                second{
+                    dn{"Sekunde"}
+                }
+                week{
+                    dn{"Wiikyi"}
+                }
+                weekday{
+                    dn{"Mfiri"}
+                }
+                year{
+                    dn{"Maka"}
+                }
+                zone{
+                    dn{"Mfiri o saa"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "Jan",
+                        "Feb",
+                        "Mac",
+                        "Apr",
+                        "Mei",
+                        "Jun",
+                        "Jul",
+                        "Ago",
+                        "Sep",
+                        "Okt",
+                        "Nov",
+                        "Des",
+                    }
+                    wide{
+                        "Januari",
+                        "Februari",
+                        "Machi",
+                        "Aprilyi",
+                        "Mei",
+                        "Junyi",
+                        "Julyai",
+                        "Agusti",
+                        "Septemba",
+                        "Oktoba",
+                        "Novemba",
+                        "Desemba",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "J",
+                        "F",
+                        "M",
+                        "A",
+                        "M",
+                        "J",
+                        "J",
+                        "A",
+                        "S",
+                        "O",
+                        "N",
+                        "D",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "R1",
+                        "R2",
+                        "R3",
+                        "R4",
+                    }
+                    wide{
+                        "Robo 1",
+                        "Robo 2",
+                        "Robo 3",
+                        "Robo 4",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"“"}
+        alternateQuotationStart{"“"}
+        quotationEnd{"'"}
+        quotationStart{"'"}
+    }
+}

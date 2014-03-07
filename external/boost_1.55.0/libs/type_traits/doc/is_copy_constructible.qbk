@@ -1,0 +1,51 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Copyright 2013 Antony Polukhin.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_copy_constructible is_copy_constructible]
+
+   template <class T>
+   struct is_copy_constructible : public __tof {};
+    
+__inherit If `T` is a (possibly cv-qualified) type with a copy constructor,
+then inherits from __true_type, otherwise inherits from __false_type.  Type `T`
+must be a complete type.
+
+In other words, inherits from __true_type only if copy constructor of `T` not 
+marked with `= delete`, `T` does not derives from `boost::noncopyable` and 
+does not marked with `BOOST_MOVABLE_BUT_NOT_COPYABLE(T)`.
+
+__compat If the compiler does not support partial-specialization of class 
+templates, then this template can not be used.
+
+If your compiler does not support C++11 deleted functions (`= delete`) or does not support  
+SFINAE for the deleted constructors, then derive your classes from `boost::noncopyable` or 
+mark them with `BOOST_MOVABLE_BUT_NOT_COPYABLE(T)` to show that class is noncopyable.
+
+Trait does not care about access modifiers, so if you see errors like this:
+
+      'T::T(const T&)' is private
+      boost/type_traits/is_copy_constructible.hpp:68:5: error: within this context
+
+then you are trying to call that macro for a structure with private constructor:
+
+      struct T {
+          // ...
+      private:
+          T(const T &);
+          // ...
+      };
+
+To fix that you must modify your structure, explicitly marking it as noncopyable (`= delete`, 
+`boost::noncopyable` or `BOOST_MOVABLE_BUT_NOT_COPYABLE(T)`) or explicitly 
+[link boost_typetraits.user_defined specialize trait].
+
+
+__header ` #include <boost/type_traits/is_copy_constructible.hpp>` or ` #include <boost/type_traits.hpp>`
+
+[endsect]
+

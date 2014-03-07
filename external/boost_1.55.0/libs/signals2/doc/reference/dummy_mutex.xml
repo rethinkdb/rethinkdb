@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Frank Mori Hess 2008-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<header name="boost/signals2/dummy_mutex.hpp" last-revision="$Date: 2007-03-06 16:51:55 -0500 (Tue, 06 Mar 2007) $">
+  <using-namespace name="boost::signals2"/>
+  <using-namespace name="boost"/>
+  <namespace name="boost">
+    <namespace name="signals2">
+      <class name="dummy_mutex">
+        <inherit access="public">
+          <type><classname>noncopyable</classname></type>
+        </inherit>
+        <purpose>Fake mutex which does nothing.</purpose>
+        <description>
+          <para>You may wish to use the <code>dummy_mutex</code> class for the <code>Mutex</code>
+          template type of your signals if you are not concerned about thread safety.
+          This may give slightly faster
+          performance, since <code>dummy_mutex</code> performs no actual locking.
+          </para>
+        </description>
+        <access name="public">
+          <method name="lock">
+            <type>void</type>
+            <description>
+              <para>No effect.
+              </para>
+            </description>
+          </method>
+          <method name="try_lock">
+            <type>bool</type>
+            <description>
+              <para>No effect.
+              </para>
+            </description>
+            <returns><para><code>true</code>.</para></returns>
+          </method>
+          <method name="unlock">
+            <type>void</type>
+            <description>
+              <para>No effect.
+              </para>
+            </description>
+          </method>
+        </access>
+     </class>
+    </namespace>
+  </namespace>
+</header>

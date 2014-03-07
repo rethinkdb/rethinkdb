@@ -1,0 +1,758 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+    "../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!--
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2011 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2011 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2011 Bruno Lalande, Paris, France.
+  Copyright (c) 2013 Adam Wulkiewicz, Lodz, Poland.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<informaltable frame="all">
+ 
+<!-- ###### CONCEPTS ########################################################################### -->
+<tgroup cols="3">
+ <colspec colname="a"/>
+ <colspec colname="b"/>
+ <colspec colname="c"/>
+ <thead>
+  <row>
+   <entry valign="center" namest="a" nameend="c">
+    <bridgehead renderas="sect2">Geometry Concepts</bridgehead>
+   </entry>
+  </row>
+ </thead>
+ <tbody>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">0-dimensional</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.concepts.concept_point">Point</link></member>
+     <member><link linkend="geometry.reference.concepts.concept_multi_point">MultiPoint</link></member>
+      </simplelist>
+    </entry>
+    <entry valign="top">
+    <bridgehead renderas="sect3">1-dimensional</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.concepts.concept_segment">Segment</link></member>
+     <member><link linkend="geometry.reference.concepts.concept_linestring">Linestring</link></member>
+     <member><link linkend="geometry.reference.concepts.concept_multi_linestring">MultiLinestring</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">2-dimensional</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.concepts.concept_box">Box</link></member>
+     <member><link linkend="geometry.reference.concepts.concept_ring">Ring</link></member>
+     <member><link linkend="geometry.reference.concepts.concept_polygon">Polygon</link></member>
+     <member><link linkend="geometry.reference.concepts.concept_multi_polygon">MultiPolygon</link></member>
+    </simplelist>
+   </entry>
+  </row>
+ </tbody>
+</tgroup>
+
+<!-- ###### MODELS ############################################################################# -->
+<tgroup cols="3">
+ <colspec colname="a"/>
+ <colspec colname="b"/>
+ <colspec colname="c"/>
+ <thead>
+  <row>
+   <entry valign="center" namest="a" nameend="c">
+    <bridgehead renderas="sect2">Geometry Models</bridgehead>
+   </entry>
+  </row>
+ </thead>
+ <tbody>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">0-dimensional</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.models.model_point">point</link></member>
+     <member><link linkend="geometry.reference.models.model_d2_point_xy">point_xy</link></member>
+     <member><link linkend="geometry.reference.models.model_multi_point">multi_point</link></member>
+      </simplelist>
+    </entry>
+    <entry valign="top">
+    <bridgehead renderas="sect3">1-dimensional</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.models.model_linestring">linestring</link></member>
+     <member><link linkend="geometry.reference.models.model_multi_linestring">multi_linestring</link></member>
+     <member><link linkend="geometry.reference.models.model_segment">segment</link></member>
+     <member><link linkend="geometry.reference.models.model_referring_segment">referring_segment</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">2-dimensional</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.models.model_box">box</link></member>
+     <member><link linkend="geometry.reference.models.model_ring">ring</link></member>
+     <member><link linkend="geometry.reference.models.model_polygon">polygon</link></member>
+     <member><link linkend="geometry.reference.models.model_multi_polygon">multi_polygon</link></member>
+    </simplelist>
+   </entry>
+  </row>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">0-dimensional (adapted)</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.adapted.boost_array">Boost.Array</link></member>
+     <member><link linkend="geometry.reference.adapted.boost_fusion">Boost.Fusion</link></member>
+     <member><link linkend="geometry.reference.adapted.boost_polygon.point_data">Boost.Polygon's point_data</link></member>
+     <member><link linkend="geometry.reference.adapted.boost_tuple">Boost.Tuple</link></member>
+     <member><link linkend="geometry.reference.adapted.c_array">C arrays</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">1-dimensional (adapted)</bridgehead>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">2-dimensional (adapted)</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.adapted.boost_polygon.rectangle_data">Boost.Polygon's rectangle_data</link></member>
+     <member><link linkend="geometry.reference.adapted.boost_polygon.polygon_data">Boost.Polygon's polygon_data</link></member>
+     <member><link linkend="geometry.reference.adapted.boost_polygon.polygon_with_holes_data">Boost.Polygon's polygon_with_holes_data</link></member>
+    </simplelist>
+   </entry>
+  </row>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">0-dimensional (macro's for adaption)</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_point_2d">BOOST_GEOMETRY_REGISTER_POINT_2D</link></member>
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_point_2d_const">BOOST_GEOMETRY_REGISTER_POINT_2D_CONST</link></member>
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_point_2d_get_set">BOOST_GEOMETRY_REGISTER_POINT_2D_GET_SET</link></member>
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_point_3d">BOOST_GEOMETRY_REGISTER_POINT_3D</link></member>
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_point_3d_const">BOOST_GEOMETRY_REGISTER_POINT_3D_CONST</link></member>
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_point_3d_get_set">BOOST_GEOMETRY_REGISTER_POINT_3D_GET_SET</link></member>
+     
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_multi_point">BOOST_GEOMETRY_REGISTER_MULTI_POINT</link></member>
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_multi_point_templated">BOOST_GEOMETRY_REGISTER_MULTI_POINT_TEMPLATED</link></member>
+     
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">1-dimensionial (macro's for adaption)</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_linestring">BOOST_GEOMETRY_REGISTER_LINESTRING</link></member>
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_linestring_templated">BOOST_GEOMETRY_REGISTER_LINESTRING_TEMPLATED</link></member>
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_multi_linestring">BOOST_GEOMETRY_REGISTER_MULTI_LINESTRING</link></member>
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_multi_linestring_templated">BOOST_GEOMETRY_REGISTER_MULTI_LINESTRING_TEMPLATED</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">2-dimensional (macro's for adaption)</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_box">BOOST_GEOMETRY_REGISTER_BOX</link></member>
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_box_2d_4values">BOOST_GEOMETRY_REGISTER_BOX_2D_4VALUES</link></member>
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_box_templated">BOOST_GEOMETRY_REGISTER_BOX_TEMPLATED</link></member>
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_ring">BOOST_GEOMETRY_REGISTER_RING</link></member>
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_ring_templated">BOOST_GEOMETRY_REGISTER_RING_TEMPLATED</link></member>
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_multi_polygon">BOOST_GEOMETRY_REGISTER_MULTI_POLYGON</link></member>
+     <member><link linkend="geometry.reference.adapted.register.boost_geometry_register_multi_polygon_templated">BOOST_GEOMETRY_REGISTER_MULTI_POLYGON_TEMPLATED</link></member>
+    </simplelist>
+   </entry>
+  </row>
+ </tbody>
+</tgroup>
+
+<!-- ###### CORE ############################################################################### -->
+<tgroup cols="2">
+ <colspec colname="a"/>
+ <colspec colname="b"/>
+ <thead>
+  <row>
+   <entry valign="center" namest="a" nameend="b">
+    <bridgehead renderas="sect2">Core</bridgehead>
+   </entry>
+  </row>
+ </thead>
+ <tbody>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Metafunctions</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.core.cs_tag">cs_tag</link></member>
+     <member><link linkend="geometry.reference.core.closure">closure</link></member>
+     <member><link linkend="geometry.reference.core.coordinate_type">coordinate_type</link></member>
+     <member><link linkend="geometry.reference.core.coordinate_system">coordinate_system</link></member>
+     <member><link linkend="geometry.reference.core.dimension">dimension</link></member>
+     <member><link linkend="geometry.reference.core.interior_type">interior_type</link></member>
+     <member><link linkend="geometry.reference.core.is_radian">is_radian</link></member>
+     <member><link linkend="geometry.reference.core.point_order">point_order</link></member>
+     <member><link linkend="geometry.reference.core.point_type">point_type</link></member>
+     <member><link linkend="geometry.reference.core.ring_type">ring_type</link></member>
+     <member><link linkend="geometry.reference.core.tag">tag</link></member>
+     <member><link linkend="geometry.reference.core.tag_cast">tag_cast</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Access Functions</bridgehead>
+    <simplelist type="vert" columns="1">
+     <!-- This section is not ordered alfabetically 
+          to have get/set first and then the rings -->
+     <member><link linkend="geometry.reference.access.get">get</link></member>
+     <member><link linkend="geometry.reference.access.set">set</link></member>
+     <member><link linkend="geometry.reference.access.exterior_ring">exterior_ring</link></member>
+     <member><link linkend="geometry.reference.access.interior_rings">interior_rings</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Classes</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.exceptions.exception">exception</link></member>
+     <member> <link linkend="geometry.reference.exceptions.centroid_exception">centroid_exception</link></member>
+    </simplelist>
+   </entry>
+  </row>
+ </tbody>
+</tgroup>
+
+<!-- ###### CONSTANTS / COORDINATE SYSTEMS ################################ -->
+<tgroup cols="2">
+ <colspec colname="a"/>
+ <colspec colname="b"/>
+ <colspec colname="c"/>
+  <thead>
+  <row>
+   <entry valign="center" namest="a" nameend="b">
+    <bridgehead renderas="sect2">Constants</bridgehead>
+   </entry>
+   <entry valign="center" namest="b" nameend="c">
+    <bridgehead renderas="sect2">Coordinate Systems</bridgehead>
+   </entry>
+  </row>
+ </thead>
+ <tbody>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Numeric</bridgehead>
+    <simplelist type="vert" columns="1">
+    <member><link linkend="geometry.reference.constants.max_corner">max_corner</link></member>
+    <member><link linkend="geometry.reference.constants.min_corner">min_corner</link></member>
+    <member><link linkend="geometry.reference.enumerations.order_selector">order_selector</link></member>
+    <member><link linkend="geometry.reference.enumerations.closure_selector">closure_selector</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Types</bridgehead>
+    <simplelist type="vert" columns="1">
+    <member><link linkend="geometry.reference.core.degree">degree</link></member>
+    <member><link linkend="geometry.reference.core.radian">radian</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Classes</bridgehead>
+    <simplelist type="vert" columns="1">
+    <member><link linkend="geometry.reference.cs.cs_cartesian">cs::cartesian</link></member>
+    <member><link linkend="geometry.reference.cs.cs_spherical">cs::spherical</link></member>
+    <member><link linkend="geometry.reference.cs.cs_spherical_equatorial">cs::spherical_equatorial</link></member>
+    <member><link linkend="geometry.reference.cs.cs_geographic">cs::geographic</link></member>
+    </simplelist>
+   </entry>
+  </row>
+ </tbody>
+</tgroup>
+
+<!-- ###### ITERATORS / VIEWS ##################################################### -->
+<tgroup cols="2">
+ <colspec colname="a"/>
+ <colspec colname="b"/>
+  <thead>
+  <row>
+   <entry valign="center" namest="a" nameend="a">
+    <bridgehead renderas="sect2">Iterators</bridgehead>
+   </entry>
+   <entry valign="center" namest="b" nameend="b">
+    <bridgehead renderas="sect2">Views</bridgehead>
+   </entry>
+  </row>
+ </thead>
+ <tbody>
+  <row>
+   <entry valign="top">
+    <simplelist type="vert" columns="1">
+    <member><link linkend="geometry.reference.iterators.closing_iterator">closing_iterator</link></member>
+    <member><link linkend="geometry.reference.iterators.ever_circling_iterator">ever_circling_iterator</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <simplelist type="vert" columns="1">
+    <member><link linkend="geometry.reference.views.box_view">box_view</link></member>
+    <member><link linkend="geometry.reference.views.segment_view">segment_view</link></member>
+    <member><link linkend="geometry.reference.views.closeable_view">closeable_view</link></member>
+    <member><link linkend="geometry.reference.views.reversible_view">reversible_view</link></member>
+    <member><link linkend="geometry.reference.views.identity_view">identity_view</link></member>
+    </simplelist>
+   </entry>
+  </row>
+ </tbody>
+</tgroup>
+
+<!-- ###### ALGORITHMS ######################################################################### -->
+<tgroup cols="3">
+ <colspec colname="a"/>
+ <colspec colname="b"/>
+ <colspec colname="c"/>
+ <thead>
+  <row>
+   <entry valign="center" namest="a" nameend="c">
+    <bridgehead renderas="sect2">Algorithms</bridgehead>
+   </entry>
+  </row>
+ </thead>
+ <tbody>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Geometry Constructors</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.make">make</link></member>
+     <member><link linkend="geometry.reference.algorithms.make.make_inverse">make_inverse</link></member>
+     <member><link linkend="geometry.reference.algorithms.make.make_zero">make_zero</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Predicates</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.covered_by">covered_by</link></member>
+     <member><link linkend="geometry.reference.algorithms.disjoint">disjoint</link></member>
+     <member><link linkend="geometry.reference.algorithms.equals">equals</link></member>
+     <member><link linkend="geometry.reference.algorithms.intersects">intersects</link></member>
+     <member><link linkend="geometry.reference.algorithms.overlaps">overlaps</link></member>
+     <member><link linkend="geometry.reference.algorithms.touches">touches</link></member>
+     <member><link linkend="geometry.reference.algorithms.within">within</link></member>
+     </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Append</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.append">append</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Area</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.area">area</link></member>    
+    </simplelist>
+    <bridgehead renderas="sect3">Assign</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.assign.assign">assign</link></member>
+     <member><link linkend="geometry.reference.algorithms.assign.assign_inverse">assign_inverse</link></member>
+     <member><link linkend="geometry.reference.algorithms.assign.assign_zero">assign_zero</link></member>
+     <member><link linkend="geometry.reference.algorithms.assign.assign_points">assign_points</link></member>
+     <member>assign_values (
+        <link linkend="geometry.reference.algorithms.assign.assign_values_3_2_coordinate_values">2</link>
+        <link linkend="geometry.reference.algorithms.assign.assign_values_4_3_coordinate_values">3</link>
+        <link linkend="geometry.reference.algorithms.assign.assign_values_5_4_coordinate_values">4</link>
+        coordinate values)
+     </member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Centroid</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.centroid">centroid</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Clear</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.clear">clear</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Convert</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.convert">convert</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Convex Hull</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.convex_hull">convex_hull</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Correct</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.correct">correct</link></member>
+    </simplelist>
+   </entry>
+  </row>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Distance</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.distance">distance</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Difference</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.difference">difference</link></member>
+     <member><link linkend="geometry.reference.algorithms.sym_difference">sym_difference</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Envelope</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.envelope">envelope</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Expand</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.expand">expand</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">For Each</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.for_each">for each (point, segment)</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Intersection</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.intersection">intersection</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Length</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.length">length</link></member>
+    </simplelist>
+    
+    <bridgehead renderas="sect3">Num_ (counting)</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.num_interior_rings">num_interior_rings</link></member>
+     <member><link linkend="geometry.reference.algorithms.num_geometries">num_geometries</link></member>
+     <member><link linkend="geometry.reference.algorithms.num_points">num_points</link></member>
+    </simplelist>
+    
+    
+    <bridgehead renderas="sect3">Perimeter</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.perimeter">perimeter</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Reverse</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.reverse">reverse</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Simplify</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.simplify">simplify</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Transform</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.transform">transform</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Union</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.union_">union</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Unique</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.algorithms.unique">unique</link></member>
+    </simplelist>    
+   </entry>
+  </row>
+ </tbody>
+</tgroup>
+
+<!-- ###### POLICIES ########################################################################### -->
+<!-- to be documented (some of them)
+<tgroup cols="2">
+ <colspec colname="a"/>
+ <colspec colname="b"/>
+  <thead>
+  <row>
+   <entry valign="center" namest="a" nameend="b">
+    <bridgehead renderas="sect2">Policies</bridgehead>
+   </entry>
+  </row>
+ </thead>
+ <tbody>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Compare</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.equal_to">equal_to</link></member>
+     <member><link linkend="geometry.reference.greater">greater</link></member>
+     <member><link linkend="geometry.reference.less">less</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Relate</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.policies__relate__direction_type">policies::relate::direction_type</link></member>
+     <member><link linkend="geometry.reference.policies__relate__segments_de9im">policies::relate::segments_de9im</link></member>
+     <member><link linkend="geometry.reference.policies__relate__segments_direction">policies::relate::segments_direction</link></member>
+     <member><link linkend="geometry.reference.policies__relate__segments_intersection_points">policies::relate::segments_intersection_points</link></member>
+     <member><link linkend="geometry.reference.policies__relate__segments_tupled">policies::relate::segments_tupled</link></member>
+    </simplelist>
+   </entry>
+  </row>
+ </tbody>
+</tgroup>
+-->
+
+<!-- ###### STRATEGIES ######################################################################### -->
+<tgroup cols="3">
+ <colspec colname="a"/>
+ <colspec colname="b"/>
+ <colspec colname="c"/>
+  <thead>
+  <row>
+   <entry valign="center" namest="a" nameend="c">
+    <bridgehead renderas="sect2">Strategies</bridgehead>
+   </entry>
+  </row>
+ </thead>
+ <tbody>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Area</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.strategies.strategy_area_surveyor">strategy::area::surveyor</link></member>
+     <member><link linkend="geometry.reference.strategies.strategy_area_huiller">strategy::area::huiller</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Centroid</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.strategies.strategy_centroid_bashein_detmer">strategy::centroid::bashein_detmer</link></member>
+     <member><link linkend="geometry.reference.strategies.strategy_centroid_average">strategy::centroid::centroid_average</link></member>
+    </simplelist>
+   </entry>
+  </row>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Distance</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.strategies.strategy_distance_projected_point">strategy::distance::projected_point</link></member>
+     <member><link linkend="geometry.reference.strategies.strategy_distance_pythagoras">strategy::distance::pythagoras</link></member>
+     <member><link linkend="geometry.reference.strategies.strategy_distance_cross_track">strategy::distance::cross_track</link></member>
+     <member><link linkend="geometry.reference.strategies.strategy_distance_haversine">strategy::distance::haversine</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Convex Hull</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.strategies.strategy_convex_hull_graham_andrew">strategy::convex_hull::graham_andrew</link></member>
+    </simplelist>
+   </entry>
+  </row>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Side</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.strategies.strategy_side_side_by_triangle">strategy::side::side_by_triangle</link></member>
+     <member><link linkend="geometry.reference.strategies.strategy_side_side_by_cross_track">strategy::side::side_by_cross_track</link></member>
+     <member><link linkend="geometry.reference.strategies.strategy_side_spherical_side_formula">strategy::side::spherical_side_formula</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Simplify</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.strategies.strategy_simplify_douglas_peucker">strategy::simplify::douglas_peucker</link></member>
+    </simplelist>
+   </entry>
+  </row>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Transform</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.strategies.strategy_transform_inverse_transformer">strategy::transform::inverse_transformer</link></member>
+     <member><link linkend="geometry.reference.strategies.strategy_transform_map_transformer">strategy::transform::map_transformer</link></member>
+     <member><link linkend="geometry.reference.strategies.strategy_transform_ublas_transformer">strategy::transform::ublas_transformer</link></member>
+     <member><link linkend="geometry.reference.strategies.strategy_transform_translate_transformer">strategy::transform::translate_transformer</link></member>
+     <member><link linkend="geometry.reference.strategies.strategy_transform_scale_transformer">strategy::transform::scale_transformer</link></member>
+     <member><link linkend="geometry.reference.strategies.strategy_transform_rotate_transformer">strategy::transform::rotate_transformer</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Within</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.strategies.strategy_within_winding">strategy::winding</link></member>
+     <member><link linkend="geometry.reference.strategies.strategy_within_crossings_multiply">strategy::crossings_multiply</link></member>
+     <member><link linkend="geometry.reference.strategies.strategy_within_franklin">strategy::franklin</link></member>
+    </simplelist>
+   </entry>
+  </row>
+ </tbody>
+</tgroup>
+
+
+
+<!-- ###### ARITHMETIC ######################################################################### -->
+<tgroup cols="4">
+ <colspec colname="a"/>
+ <colspec colname="b"/>
+ <colspec colname="c"/>
+ <colspec colname="d"/>
+ <thead>
+  <row>
+   <entry valign="center" namest="a" nameend="d">
+    <bridgehead renderas="sect2">Arithmetic</bridgehead>
+   </entry>
+  </row>
+ </thead>
+ <tbody>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Add</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.arithmetic.add_point">add_point</link></member>
+     <member><link linkend="geometry.reference.arithmetic.add_value">add_value</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Subtract</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.arithmetic.subtract_point">subtract_point</link></member>
+     <member><link linkend="geometry.reference.arithmetic.subtract_value">subtract_value</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Multiply</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.arithmetic.multiply_point">multiply_point</link></member>
+     <member><link linkend="geometry.reference.arithmetic.multiply_value">multiply_value</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Divide</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.arithmetic.divide_point">divide_point</link></member>
+     <member><link linkend="geometry.reference.arithmetic.divide_value">divide_value</link></member>
+    </simplelist>
+   </entry>
+  </row>
+  <row>
+   <entry valign="center" namest="a" nameend="d">
+    <bridgehead renderas="sect3">Products</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.arithmetic.dot_product">dot_product</link></member>
+    </simplelist>
+   </entry>
+  </row>
+ </tbody>
+</tgroup>
+    
+<!-- ###### SPATIAL INDEXES ######################################################################### -->
+<tgroup cols="3">
+ <colspec colname="a"/>
+ <colspec colname="b"/>
+ <colspec colname="c"/>
+ <thead>
+  <row>
+   <entry valign="center" namest="a" nameend="c">
+    <bridgehead renderas="sect2">Spatial indexes</bridgehead>
+   </entry>
+  </row>
+ </thead>
+ <tbody>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">R-tree</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree">boost::geometry::index::rtree</link></member>
+    </simplelist>
+	<bridgehead renderas="sect3">R-tree parameters</bridgehead>
+    <simplelist type="vert" columns="1">
+	 <member><link linkend="geometry.reference.spatial_indexes.parameters.boost__geometry__index__linear">boost::geometry::index::linear</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.parameters.boost__geometry__index__quadratic">boost::geometry::index::quadratic</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.parameters.boost__geometry__index__rstar">boost::geometry::index::rstar</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.parameters.boost__geometry__index__dynamic_linear">boost::geometry::index::dynamic_linear</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.parameters.boost__geometry__index__dynamic_quadratic">boost::geometry::index::dynamic_quadratic</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.parameters.boost__geometry__index__dynamic_rstar">boost::geometry::index::dynamic_rstar</link></member>
+	</simplelist>
+	<bridgehead renderas="sect3">R-tree constructors and destructor</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.rtree__">rtree()</link></member>
+     <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.rtree_parameters_type_const____indexable_getter_const____value_equal_const____allocator_type_const___">rtree(parameters_type const &amp;, indexable_getter const &amp;, value_equal const &amp;, allocator_type const &amp;)</link></member>
+     <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.rtree_iterator__iterator_">rtree(Iterator, Iterator)</link></member>        
+     <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.rtree_range_const___">rtree(Range const &amp;)</link></member>
+     <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.rtree_rtree_const___">rtree(rtree const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.rtree_rtree_const____allocator_type_const___">rtree(rtree const &amp;, allocator_type const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.rtree_rtree____">rtree(rtree &amp;&amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.rtree_rtree_____allocator_type_const___">rtree(rtree &amp;&amp;, allocator_type const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree._rtree__">~rtree()</link></member>
+	</simplelist>
+   </entry>
+   <entry valign="top">
+	<bridgehead renderas="sect3">R-tree member functions</bridgehead>
+	<simplelist type="vert" columns="1">
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.operator__rtree_const___">operator=(const rtree &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.operator__rtree____">operator=(rtree &amp;&amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.swap_rtree___">swap(rtree &amp;)</link></member>	 
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.insert_value_type_const___">insert(value_type const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.insert_iterator__iterator_">insert(Iterator, Iterator)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.insert_range_const___">insert(Range const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.remove_value_type_const___">remove(value_type const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.remove_iterator__iterator_">remove(Iterator, Iterator)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.remove_range_const___">remove(Range const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.query_predicates_const____outiter_">query(Predicates const &amp;, OutIter)</link></member>
+     <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.qbegin_predicates_const___">qbegin(Predicates const &amp;)</link></member>
+     <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.qend__">qend()</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.size__">size()</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.empty__">empty()</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.clear__">clear()</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.bounds__">bounds()</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.count_valueorindexable_const___">count(ValueOrIndexable const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.parameters__">parameters()</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.indexable_get__">indexable_get()</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.value_eq__">value_eq()</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.boost__geometry__index__rtree.get_allocator__">get_allocator()</link></member>
+	</simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">R-tree free functions (boost::geometry::index::)</bridgehead>
+    <simplelist type="vert" columns="1">
+	 <member><link linkend="geometry.reference.spatial_indexes.group__rtree__functions.insert_rtree_________value_const___">insert(rtree&lt;...&gt; &amp;, Value const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__rtree__functions.insert_rtree_________iterator__iterator_">insert(rtree&lt;...&gt; &amp;, Iterator, Iterator)</link></member>
+     <member><link linkend="geometry.reference.spatial_indexes.group__rtree__functions.insert_rtree_________range_const___">insert(rtree&lt;...&gt; &amp;, Range const &amp;)</link></member> 
+	 <member><link linkend="geometry.reference.spatial_indexes.group__rtree__functions.remove_rtree_________value_const___">remove(rtree&lt;...&gt; &amp;, Value const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__rtree__functions.remove_rtree_________iterator__iterator_">remove(rtree&lt;...&gt; &amp;, Iterator, Iterator)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__rtree__functions.remove_rtree_________range_const___">remove(rtree&lt;...&gt; &amp;, Range const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__rtree__functions.query_rtree______const____predicates_const____outiter_">query(rtree&lt;...&gt; const &amp;, Predicates const &amp;, OutIter)</link></member>
+     <member><link linkend="geometry.reference.spatial_indexes.group__rtree__functions.qbegin_rtree______const____predicates_const___">qbegin(rtree&lt;...&gt; const &amp;, Predicates const &amp;)</link></member>
+     <member><link linkend="geometry.reference.spatial_indexes.group__rtree__functions.qend_rtree______const___">qend(rtree&lt;...&gt; const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__rtree__functions.clear_rtree________">clear(rtree&lt;...&gt; &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__rtree__functions.size_rtree______const___">size(rtree&lt;...&gt; const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__rtree__functions.empty_rtree______const___">empty(rtree&lt;...&gt; const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__rtree__functions.bounds_rtree______const___">bounds(rtree&lt;...&gt; const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__rtree__functions.swap_rtree_________rtree________">swap(rtree&lt;...&gt; &amp;, rtree&lt;...&gt; &amp;)</link></member>
+    </simplelist>
+   </entry>
+  </row>
+  <row>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Observers (boost::geometry::index::)</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable">boost::geometry::index::indexable</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.observers.boost__geometry__index__equal_to">boost::geometry::index::equal_to</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Inserters (boost::geometry::index::)</bridgehead>
+    <simplelist type="vert" columns="1">
+	 <member><link linkend="geometry.reference.spatial_indexes.group__inserters.inserter_container___">inserter(Container &amp;)</link></member>
+    </simplelist>
+    <bridgehead renderas="sect3">Adaptors (boost::geometry::index::adaptors::)</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.spatial_indexes.group__adaptors.queried_predicates_const___">queried(Predicates const &amp;)</link></member>
+    </simplelist>
+   </entry>
+   <entry valign="top">
+    <bridgehead renderas="sect3">Predicates (boost::geometry::index::)</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.spatial_indexes.group__predicates.contains_geometry_const___">contains(Geometry const &amp;)</link></member>
+     <member><link linkend="geometry.reference.spatial_indexes.group__predicates.covered_by_geometry_const___">covered_by(Geometry const &amp;)</link></member>
+        <member><link linkend="geometry.reference.spatial_indexes.group__predicates.covers_geometry_const___">covers(Geometry const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__predicates.disjoint_geometry_const___">disjoint(Geometry const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__predicates.intersects_geometry_const___">intersects(Geometry const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__predicates.overlaps_geometry_const___">overlaps(Geometry const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__predicates.within_geometry_const___">within(Geometry const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__predicates.satisfies_unarypredicate_const___">satisfies(UnaryPredicate const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__predicates.nearest_point_const____unsigned_">nearest(Point const &amp;, unsigned)</link></member>
+    </simplelist>
+   </entry>
+   <!--entry valign="top">
+    <bridgehead renderas="sect3">Nearest relations (boost::geometry::index::)</bridgehead>
+    <simplelist type="vert" columns="1">
+     <member><link linkend="geometry.reference.spatial_indexes.group__nearest__relations.to_nearest_t_const___">to_nearest(T const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__nearest__relations.to_centroid_t_const___">to_centroid(T const &amp;)</link></member>
+	 <member><link linkend="geometry.reference.spatial_indexes.group__nearest__relations.to_furthest_t_const___">to_furthest(T const &amp;) </link></member>
+    </simplelist>
+   </entry-->
+  </row>
+ </tbody>
+</tgroup>
+
+</informaltable>

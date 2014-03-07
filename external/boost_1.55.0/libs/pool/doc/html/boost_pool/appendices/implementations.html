@@ -1,0 +1,133 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Appendix F: Other Implementations</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../index.html" title="Boost.Pool">
+<link rel="up" href="../appendices.html" title="Appendices">
+<link rel="prev" href="tickets.html" title="Appendix E: Tickets">
+<link rel="next" href="references.html" title="Appendix G: References">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tickets.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../appendices.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="references.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_pool.appendices.implementations"></a><a class="link" href="implementations.html" title="Appendix F: Other Implementations">Appendix F: Other
+      Implementations</a>
+</h3></div></div></div>
+<p>
+        Pool allocators are found in many programming languages, and in many variations.
+        The beginnings of many implementations may be found in common programming
+        literature; some of these are given below. Note that none of these are complete
+        implementations of a Pool; most of these leave some aspects of a Pool as
+        a user exercise. However, in each case, even though some aspects are missing,
+        these examples use the same underlying concept of a Simple Segregated Storage
+        described in this document.
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            <span class="emphasis"><em>The C++ Programming Language</em></span>, 3rd ed., by Bjarne
+            Stroustrup, Section 19.4.2. Missing aspects:
+            <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                  Not portable.
+                </li>
+<li class="listitem">
+                  Cannot handle allocations of arbitrary numbers of objects (this
+                  was left as an exercise).
+                </li>
+<li class="listitem">
+                  Not thread-safe.
+                </li>
+<li class="listitem">
+                  Suffers from the static initialization problem.
+                </li>
+</ul></div>
+          </li>
+<li class="listitem">
+            <span class="emphasis"><em>MicroC/OS-II: The Real-Time Kernel</em></span>, by Jean J. Labrosse,
+            Chapter 7 and Appendix B.04.
+            <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                  An example of the Simple Segregated Storage scheme at work in the
+                  internals of an actual OS.
+                </li>
+<li class="listitem">
+                  Missing aspects:
+                </li>
+<li class="listitem">
+                  Not portable (though this is OK, since it's part of its own OS).
+                </li>
+<li class="listitem">
+                  Cannot handle allocations of arbitrary numbers of blocks (which
+                  is also OK, since this feature is not needed).
+                </li>
+<li class="listitem">
+                  Requires non-intuitive user code to create and destroy the Pool.
+                </li>
+</ul></div>
+          </li>
+<li class="listitem">
+            <span class="emphasis"><em>Efficient C++: Performance Programming Techniques</em></span>,
+            by Dov Bulka and David Mayhew, Chapters 6 and 7.
+            <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                  This is a good example of iteratively developing a Pool solutio.
+                </li>
+<li class="listitem">
+                  however, their premise (that the system-supplied allocation mechanism
+                  is hopelessly inefficient) is flawed on every system I've tested
+                  on.
+                </li>
+<li class="listitem">
+                  Run their timings on your system before you accept their conclusions.
+                </li>
+<li class="listitem">
+                  Missing aspect: Requires non-intuitive user code to create and
+                  destroy the Pool.
+                </li>
+</ul></div>
+          </li>
+<li class="listitem">
+            <span class="emphasis"><em>Advanced C++: Programming Styles and Idioms</em></span>, by
+            James O. Coplien, Section 3.6.
+            <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                  Has examples of both static and dynamic pooling, but missing aspects:
+                </li>
+<li class="listitem">
+                  Not thread-safe.
+                </li>
+<li class="listitem">
+                  The static pooling example is not portable.
+                </li>
+</ul></div>
+          </li>
+</ol></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2006 Stephen Cleary<br>Copyright &#169; 2011 Paul A. Bristow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tickets.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../appendices.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="references.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

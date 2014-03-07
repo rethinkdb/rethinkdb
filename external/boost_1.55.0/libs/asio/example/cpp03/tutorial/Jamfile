@@ -1,0 +1,46 @@
+#
+# Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+
+subproject libs/asio/example/tutorial ;
+
+project boost : $(BOOST_ROOT) ;
+
+if $(UNIX)
+{
+  switch $(JAMUNAME)
+  {
+  case SunOS* :
+    {
+      SOCKET_LIBS = <find-library>socket <find-library>nsl ;
+    }
+  }
+}
+
+template asio_tutorial
+  : <lib>@boost/libs/thread/build/boost_thread
+    <lib>@boost/libs/system/build/boost_system
+  : <include>$(BOOST_ROOT)
+    <include>../../../..
+    <define>BOOST_ALL_NO_LIB=1
+    <threading>multi
+    <mingw><*><find-library>ws2_32
+    <mingw><*><find-library>mswsock
+    $(SOCKET_LIBS)
+  ;
+
+exe timer1 : <template>asio_tutorial timer1/timer.cpp ;
+exe timer2 : <template>asio_tutorial timer2/timer.cpp ;
+exe timer3 : <template>asio_tutorial timer3/timer.cpp ;
+exe timer4 : <template>asio_tutorial timer4/timer.cpp ;
+exe timer5 : <template>asio_tutorial timer5/timer.cpp ;
+exe daytime1_client : <template>asio_tutorial daytime1/client.cpp ;
+exe daytime2_server : <template>asio_tutorial daytime2/server.cpp ;
+exe daytime3_server : <template>asio_tutorial daytime3/server.cpp ;
+exe daytime4_client : <template>asio_tutorial daytime4/client.cpp ;
+exe daytime5_server : <template>asio_tutorial daytime5/server.cpp ;
+exe daytime6_server : <template>asio_tutorial daytime6/server.cpp ;
+exe daytime7_server : <template>asio_tutorial daytime7/server.cpp ;

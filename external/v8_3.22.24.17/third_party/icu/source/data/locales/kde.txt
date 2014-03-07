@@ -1,0 +1,225 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/kde.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/kde.xml
+ */
+kde{
+    ExemplarCharacters{"[a b c d e f g h i j k l m n o p q r s t u v w x y z]"}
+    ExemplarCharactersIndex{"[A B C D E F G H I J K L M N O P Q R S T U V W X Y Z]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤#,##0.00;(¤#,##0.00)"}
+            }
+        }
+    }
+    Version{"2.0.45.90"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "Muhi",
+                "Chilo",
+            }
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, d MMMM y",
+                "d MMMM y",
+                "d MMM y",
+                "dd/MM/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                M{"L"}
+                MEd{"E, M/d"}
+                MMM{"LLL"}
+                MMMEd{"E, MMM d"}
+                MMMMEd{"E, MMMM d"}
+                MMMMd{"MMMM d"}
+                MMMd{"MMM d"}
+                Md{"M/d"}
+                d{"d"}
+                hm{"h:mm a"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"M/y"}
+                yMEd{"EEE, M/d/y"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE, MMM d, y"}
+                yMMMM{"MMMM y"}
+                yQ{"Q y"}
+                yQQQ{"QQQ y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "Ll2",
+                        "Ll3",
+                        "Ll4",
+                        "Ll5",
+                        "Ll6",
+                        "Ll7",
+                        "Ll1",
+                    }
+                    wide{
+                        "Liduva lyapili",
+                        "Liduva lyatatu",
+                        "Liduva lyanchechi",
+                        "Liduva lyannyano",
+                        "Liduva lyannyano na linji",
+                        "Liduva lyannyano na mavili",
+                        "Liduva litandi",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                        "1",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "AY",
+                    "NY",
+                }
+                wide{
+                    "Akanapawa Yesu",
+                    "Nankuida Yesu",
+                }
+            }
+            fields{
+                day{
+                    dn{"Lihiku"}
+                    relative{
+                        "-1"{"Lido"}
+                        "0"{"Nelo"}
+                        "1"{"Nundu"}
+                    }
+                }
+                dayperiod{
+                    dn{"Muhi/Chilo"}
+                }
+                era{
+                    dn{"Mahiku"}
+                }
+                hour{
+                    dn{"Saa"}
+                }
+                minute{
+                    dn{"Dakika"}
+                }
+                month{
+                    dn{"Mwedi"}
+                }
+                second{
+                    dn{"Sekunde"}
+                }
+                week{
+                    dn{"Lijuma"}
+                }
+                weekday{
+                    dn{"Disiku dya lijuma"}
+                }
+                year{
+                    dn{"Mwaka"}
+                }
+                zone{
+                    dn{"Npanda wa muda"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "Jan",
+                        "Feb",
+                        "Mac",
+                        "Apr",
+                        "Mei",
+                        "Jun",
+                        "Jul",
+                        "Ago",
+                        "Sep",
+                        "Okt",
+                        "Nov",
+                        "Des",
+                    }
+                    wide{
+                        "Mwedi Ntandi",
+                        "Mwedi wa Pili",
+                        "Mwedi wa Tatu",
+                        "Mwedi wa Nchechi",
+                        "Mwedi wa Nnyano",
+                        "Mwedi wa Nnyano na Umo",
+                        "Mwedi wa Nnyano na Mivili",
+                        "Mwedi wa Nnyano na Mitatu",
+                        "Mwedi wa Nnyano na Nchechi",
+                        "Mwedi wa Nnyano na Nnyano",
+                        "Mwedi wa Nnyano na Nnyano na U",
+                        "Mwedi wa Nnyano na Nnyano na M",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "J",
+                        "F",
+                        "M",
+                        "A",
+                        "M",
+                        "J",
+                        "J",
+                        "A",
+                        "S",
+                        "O",
+                        "N",
+                        "D",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "L1",
+                        "L2",
+                        "L3",
+                        "L4",
+                    }
+                    wide{
+                        "Lobo 1",
+                        "Lobo 2",
+                        "Lobo 3",
+                        "Lobo 4",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"”"}
+        alternateQuotationStart{"“"}
+        quotationEnd{"'"}
+        quotationStart{"'"}
+    }
+}

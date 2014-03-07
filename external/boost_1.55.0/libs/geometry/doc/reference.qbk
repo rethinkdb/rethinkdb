@@ -1,0 +1,319 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+  Copyright (c) 2013 Adam Wulkiewicz, Lodz, Poland.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section:reference Reference]
+
+
+[section:access Access Functions]
+
+[/ This section is not ordered alfabetically 
+   to have get/set first and then the rings]
+
+[section:get get]
+[include generated/get.qbk]
+[endsect]
+
+[section:set set]
+[include generated/set.qbk]
+[endsect]
+
+[section:exterior_ring exterior_ring]
+[include generated/exterior_ring.qbk]
+[endsect]
+
+[section:interior_rings interior_rings]
+[include generated/interior_rings.qbk]
+[endsect]
+
+[endsect] [/access functions]
+
+[section:adapted Adapted models]
+[include reference/geometries/adapted/c_array.qbk]
+[include reference/geometries/adapted/boost_array.qbk]
+[include reference/geometries/adapted/boost_fusion.qbk]
+[include reference/geometries/adapted/boost_tuple.qbk]
+[section:boost_polygon Boost.Polygon]
+[include reference/geometries/adapted/boost_polygon/point_data.qbk]
+[include reference/geometries/adapted/boost_polygon/rectangle_data.qbk]
+[include reference/geometries/adapted/boost_polygon/polygon_data.qbk]
+[include reference/geometries/adapted/boost_polygon/polygon_with_holes_data.qbk]
+[endsect]
+[section:boost_range Boost.Range]
+[include reference/geometries/adapted/boost_range/filtered.qbk]
+[include reference/geometries/adapted/boost_range/reversed.qbk]
+[include reference/geometries/adapted/boost_range/sliced.qbk]
+[include reference/geometries/adapted/boost_range/strided.qbk]
+[/ include reference/geometries/adapted/boost_range/uniqued.qbk]
+[endsect]
+[section:register Macro's for adaption]
+[include generated/register.qbk]
+[endsect]
+[endsect]
+
+[section:algorithms Algorithms]
+
+[section:area area]
+[include generated/area.qbk]
+[endsect]
+
+[section:assign assign]
+[include generated/assign.qbk]
+[endsect]
+
+[include generated/append.qbk]
+
+[section:buffer buffer]
+[include generated/buffer.qbk]
+[endsect]
+
+[section:centroid centroid]
+[include generated/centroid.qbk]
+[endsect]
+
+[include generated/clear.qbk]
+[include generated/convert.qbk]
+[include generated/convex_hull.qbk]
+[include generated/correct.qbk]
+
+[section:covered_by covered_by]
+[include generated/covered_by.qbk]
+[endsect]
+
+[include generated/difference.qbk]
+[include generated/disjoint.qbk]
+
+[section:distance distance]
+[include generated/distance.qbk]
+[endsect]
+
+[section:envelope envelope]
+[include generated/envelope.qbk]
+[endsect]
+
+[include generated/equals.qbk]
+[include generated/expand.qbk]
+
+[section:for_each for_each]
+[include generated/for_each.qbk]
+[endsect]
+
+[/section:intersection intersection]
+[include generated/intersection.qbk]
+[/endsect]
+
+[section:intersects intersects]
+[include generated/intersects.qbk]
+[endsect]
+
+[section:length length]
+[include generated/length.qbk]
+[endsect]
+
+[section:make make]
+[include generated/make.qbk]
+[endsect]
+
+[include generated/num_geometries.qbk]
+[include generated/num_interior_rings.qbk]
+[include generated/num_points.qbk]
+
+
+[include generated/overlaps.qbk]
+
+[section:perimeter perimeter]
+[include generated/perimeter.qbk]
+[endsect]
+
+[include generated/reverse.qbk]
+
+[section:simplify simplify]
+[include generated/simplify.qbk]
+[endsect]
+
+[/section:sym_difference sym_difference]
+[include generated/sym_difference.qbk]
+[/endsect]
+
+[section:touches touches]
+[include generated/touches.qbk]
+[endsect]
+
+[section:transform transform]
+[include generated/transform.qbk]
+[endsect]
+
+[/section:union union]
+[include generated/union.qbk]
+[/endsect]
+
+[include generated/unique.qbk]
+
+[section:within within]
+[include generated/within.qbk]
+[endsect]
+
+[endsect] [/algorithms]
+
+[section:arithmetic Arithmetic]
+[include generated/arithmetic.qbk]
+[endsect] 
+
+[section:concepts Concepts]
+[include concept/point.qbk]
+[include concept/linestring.qbk]
+[include concept/polygon.qbk]
+[include concept/multi_point.qbk]
+[include concept/multi_linestring.qbk]
+[include concept/multi_polygon.qbk]
+[include concept/box.qbk]
+[include concept/ring.qbk]
+[include concept/segment.qbk]
+[endsect] [/concepts]
+
+[section:constants Constants]
+[include reference/core/min_corner.qbk]
+[include reference/core/max_corner.qbk]
+[endsect] 
+
+[section:cs Coordinate Systems]
+[include generated/cartesian.qbk]
+[include generated/spherical.qbk]
+[include generated/spherical_equatorial.qbk]
+[include generated/geographic.qbk]
+[endsect] [/coordinate systems]
+
+[section:core Core Metafunctions]
+[include generated/closure.qbk]
+[include generated/coordinate_system.qbk]
+[include generated/coordinate_type.qbk]
+[include generated/cs_tag.qbk]
+[include generated/degree.qbk]
+[include generated/dimension.qbk]
+[include generated/interior_type.qbk]
+[include generated/is_radian.qbk]
+[include generated/point_order.qbk]
+[include generated/point_type.qbk]
+[include generated/radian.qbk]
+[include generated/ring_type.qbk]
+[include generated/tag.qbk]
+[include generated/tag_cast.qbk]
+[endsect] [/core metafunctions]
+
+[section:enumerations Enumerations]
+[include generated/enum.qbk]
+[endsect] 
+
+[section:exceptions Exceptions]
+[include generated/exception.qbk]
+[include generated/centroid_exception.qbk]
+[endsect] 
+
+
+[section:io IO (input/output)]
+[section:wkt WKT (Well-Known Text)]
+[/include generated/wkt.qbk/]
+[endsect]
+[section:svg SVG (Scalable Vector Graphics)]
+[include generated/svg.qbk]
+[include generated/svg_mapper.qbk]
+[endsect]
+[endsect] 
+
+
+[section:iterators Iterators]
+[include generated/closing_iterator.qbk]
+[include generated/circular_iterator.qbk]
+[include generated/ever_circling_iterator.qbk]
+[endsect] 
+
+
+[section:models Models]
+
+[include generated/point.qbk]
+[include generated/point_xy.qbk]
+[include generated/linestring.qbk]
+[include generated/polygon.qbk]
+[include generated/multi_point.qbk]
+[include generated/multi_linestring.qbk]
+[include generated/multi_polygon.qbk]
+[include generated/box.qbk]
+[include generated/ring.qbk]
+[include generated/segment.qbk]
+[include generated/referring_segment.qbk]
+[endsect]
+
+
+[section:spatial_indexes Spatial Indexes]
+
+[/section:rtree R-tree]
+[include index/generated/rtree.qbk]
+[include index/generated/rtree_functions.qbk]
+[section:parameters R-tree parameters (boost::geometry::index::)]
+[include index/generated/rtree_linear.qbk]
+[include index/generated/rtree_quadratic.qbk]
+[include index/generated/rtree_rstar.qbk]
+[include index/generated/rtree_dynamic_linear.qbk]
+[include index/generated/rtree_dynamic_quadratic.qbk]
+[include index/generated/rtree_dynamic_rstar.qbk]
+[endsect]
+[/endsect]
+
+[section:observers Observers (boost::geometry::index::)]
+[include index/generated/indexable.qbk]
+[include index/generated/equal_to.qbk]
+[endsect]
+[include index/generated/inserters.qbk]
+[include index/generated/adaptors.qbk]
+
+[include index/generated/predicates.qbk]
+[/include index/generated/nearest_relations.qbk]
+
+[endsect]
+
+
+[section:strategies Strategies]
+[include generated/distance_pythagoras.qbk]
+[include generated/distance_haversine.qbk]
+[include generated/distance_projected_point.qbk]
+[include generated/distance_cross_track.qbk]
+[include generated/area_surveyor.qbk]
+[include generated/area_huiller.qbk]
+[include generated/centroid_average.qbk]
+[include generated/centroid_bashein_detmer.qbk]
+[include generated/convex_hull_graham_andrew.qbk]
+[include generated/side_side_by_triangle.qbk]
+[include generated/side_side_by_cross_track.qbk]
+[include generated/side_spherical_side_formula.qbk]
+[include generated/simplify_douglas_peucker.qbk]
+[include generated/transform_inverse_transformer.qbk]
+[include generated/transform_map_transformer.qbk]
+[include generated/transform_rotate_transformer.qbk]
+[include generated/transform_scale_transformer.qbk]
+[include generated/transform_translate_transformer.qbk]
+[include generated/transform_ublas_transformer.qbk]
+[include generated/within_winding.qbk]
+[include generated/within_franklin.qbk]
+[include generated/within_crossings_multiply.qbk]
+[endsect] 
+
+
+[section:views Views]
+[include generated/box_view.qbk]
+[include generated/segment_view.qbk]
+[include generated/closeable_view.qbk]
+[include generated/reversible_view.qbk]
+[include generated/identity_view.qbk]
+[endsect] 
+
+
+[endsect] [/reference]

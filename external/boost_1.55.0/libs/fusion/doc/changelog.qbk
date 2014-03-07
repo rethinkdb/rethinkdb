@@ -1,0 +1,48 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2006 Dan Marsden
+    Copyright (C) 2006 Tobias Schwinger
+    Copyright (C) 2010 Christopher Schmidt
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section Change log]
+
+This section summarizes significant changes to the Fusion library.
+
+* Sep 27, 2006: Added `boost::tuple` support. (Joel de Guzman)
+* Nov 17, 2006: Added `boost::variant` support. (Joel de Guzman)
+* Feb 15, 2007: Added functional module. (Tobias Schwinger)
+* April 2, 2007: Added struct adapter. (Joel de Guzman)
+* May 8, 2007: Added associative struct adapter. (Dan Marsden)
+* Dec 20, 2007: Removed `boost::variant` support. After thorough
+  investigation, I think now that the move to make variant a
+  fusion sequence is rather quirky. A variant will always
+  have a size==1 regardless of the number of types it can contain
+  and there's no way to know at compile time what it contains.
+  Iterating over its types is simply wrong. All these imply that
+  the variant is *not* a fusion sequence. (Joel de Guzman)
+* Oct 12, 2009: The accumulator is the first argument to the functor of
+  __fold__ and __accumulate__. (Christopher Schmidt)
+* Oct 30, 2009: Added support for associative iterators and views. (Christopher
+  Schmidt)
+* March 1, 2010: Added __adapt_struct_named__ and __adapt_struct_named_ns__
+  (Hartmut Kaiser)
+* April 4, 2010: Added __array__ support, __adapt_tpl_struct__,
+  __adapt_assoc_tpl_struct__, __adapt_assoc_struct_named__ and
+  __adapt_assoc_struct_named_ns__ (Christopher Schmidt)
+* April 5, 2010: Added __define_struct__, __define_tpl_struct__,
+  __define_assoc_struct__ and __define_assoc_tpl_struct__ (Christopher Schmidt)
+* June 18, 2010: Added __reverse_fold__, __iter_fold__ and __reverse_iter_fold__
+  (Christopher Schmidt)
+* October 7, 2010: Added __adapt_adt__, __adapt_tpl_adt__,
+  __adapt_assoc_adt__ and __adapt_assoc_tpl_adt__ (Joel de Guzman,
+  Hartmut Kaiser and Christopher Schmidt)
+* August 29, 2011: Added support for segmented sequences and iterators (Eric Niebler)
+* September 16, 2011: Added preprocessed files (using wave) to speed up
+  compilation (Joel de Guzman)
+* October 8, 2011: Added adaptor for std::tuple (Joel de Guzman)
+
+[endsect]

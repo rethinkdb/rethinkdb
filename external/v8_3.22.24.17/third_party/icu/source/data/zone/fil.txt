@@ -1,0 +1,104 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/fil.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/fil.xml
+ */
+fil{
+    Version{"2.0.48.64"}
+    zoneStrings{
+        "Etc:Unknown"{
+            ec{"Unknown"}
+        }
+        "meta:Acre"{
+            ld{"Acre Daylight Time"}
+        }
+        "meta:Aktyubinsk"{
+            ld{"Aktyubinsk Daylight Time"}
+        }
+        "meta:Almaty"{
+            ld{"Almaty Daylight Time"}
+        }
+        "meta:Anadyr"{
+            ld{"Anadyr Daylight Time"}
+        }
+        "meta:Aqtau"{
+            ld{"Aqtau Daylight Time"}
+        }
+        "meta:Aqtobe"{
+            ld{"Aqtobe Daylight Time"}
+        }
+        "meta:Armenia"{
+            ld{"Armenia Daylight time"}
+        }
+        "meta:Ashkhabad"{
+            ld{"Ashkhabad Daylight Time"}
+        }
+        "meta:Azerbaijan"{
+            ld{"Azerbaijan Daylight Time"}
+        }
+        "meta:Azores"{
+            ld{"Azores Daylight Time"}
+        }
+        "meta:Baku"{
+            ld{"Baku Daylight Time"}
+        }
+        "meta:Bangladesh"{
+            ld{"Bangladesh Daylight Time"}
+        }
+        "meta:Borneo"{
+            ld{"Borneo Daylight Time"}
+        }
+        "meta:Brasilia"{
+            ld{"Brasilia Daylight Time"}
+        }
+        "meta:Cape_Verde"{
+            ld{"Cape Verde Daylight Time"}
+        }
+        "meta:Cook"{
+            ld{"Cook Islands Half Daylight Time"}
+        }
+        "meta:Easter"{
+            ld{"Easter Island Daylight Time"}
+        }
+        "meta:Europe_Central"{
+            ld{"Central European Daylight Time"}
+            ls{"Central European Time"}
+        }
+        "meta:Europe_Western"{
+            ld{"Western European Daylight Time"}
+        }
+        "meta:Falkland"{
+            ld{"Falkland Islands Daylight Time"}
+        }
+        "meta:Kuybyshev"{
+            ld{"Kuybyshev Daylight Time"}
+        }
+        "meta:Mauritius"{
+            ld{"Mauritius Daylight Time"}
+        }
+        "meta:Moscow"{
+            ld{"Moscow Daylight Time"}
+        }
+        "meta:New_Caledonia"{
+            ld{"New Caledonia Daylight Time"}
+        }
+        "meta:Samara"{
+            ld{"Samara Daylight Time"}
+        }
+        "meta:Turkey"{
+            ld{"Turkey Daylight Time"}
+        }
+        "meta:Volgograd"{
+            ld{"Volgograd Daylight Time"}
+        }
+        fallbackFormat{"{1} ({0})"}
+        gmtFormat{"GMT{0}"}
+        hourFormat{"+HH:mm;-HH:mm"}
+    }
+}

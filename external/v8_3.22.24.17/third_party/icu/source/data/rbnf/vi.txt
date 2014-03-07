@@ -1,0 +1,51 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/rbnf/vi.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/rbnf/vi.xml
+ */
+vi{
+    RBNFRules{
+        OrdinalRules{
+            "%digits-ordinal:",
+            "-x: \u2212>>;",
+            "0: th\u1EE9 =#,##0=;",
+        }
+        SpelloutRules{
+            "%spellout-numbering-year:",
+            "x.x: =#,###0.#=;",
+            "0: =%spellout-numbering=;",
+            "%spellout-numbering:",
+            "0: =%spellout-cardinal=;",
+            "%spellout-cardinal:",
+            "-x: tr\u1EEB >>;",
+            "x.x: << ph\u1EA9y >>;",
+            "0: kh\u00F4ng;",
+            "1: m\u1ED9t;",
+            "2: hai;",
+            "3: ba;",
+            "4: b\u1ED1n;",
+            "5: n\u0103m;",
+            "6: s\u00E1u;",
+            "7: b\u1EA3y;",
+            "8: t\u00E1m;",
+            "9: ch\u00EDn;",
+            "10: m\u01B0\u1EDDi[ >>];",
+            "20: << m\u01B0\u1EDDi[ >>];",
+            "100: << tr\u0103m[ >>];",
+            "1000: << ngh\u00ECn[ >>];",
+            "1000000: << tri\u1EC7u[ >>];",
+            "1000000000: << t\u1EF7[ >>];",
+            "1000000000000000000: =#,##0=;",
+            "%spellout-ordinal:",
+            "x.x: =#,##0.#=;",
+            "0: th\u1EE9 =%spellout-cardinal=;",
+        }
+    }
+    Version{"2.0.41.26"}
+}

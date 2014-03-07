@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.examples.general_usage_examples">
+  <title>General Usage Examples</title>
+
+  <para>
+    The following provides some sample usage of dates.
+    See <link linkend="date_time.gregorian">Date Programming</link> 
+    for more details.
+
+    <programlisting><emphasis role="keyword">using namespace</emphasis> boost::gregorian;
+    date weekstart(<emphasis role="number">2002</emphasis>,Feb,<emphasis role="number">1</emphasis>);
+    date weekend  = weekstart + weeks(<emphasis role="number">1</emphasis>);
+    date d2 = d1 + days(<emphasis role="number">5</emphasis>);
+    date today = day_clock::local_day();
+    if (d2 &gt;= today) {} <emphasis role="comment">//date comparison operators</emphasis> 
+
+    date_period thisWeek(d1,d2);
+    <emphasis role="keyword">if</emphasis> (thisWeek.contains(today)) {}<emphasis role="comment">//do something 
+
+    //iterate and print the week</emphasis>
+    day_iterator itr(weekstart);
+    <emphasis role="keyword">while</emphasis> (itr &lt;= weekend) {
+     std::cout &lt;&lt; (*itr) &lt;&lt; std::endl;
+     ++itr;
+    }  
+    <emphasis role="comment">//input streaming</emphasis> 
+    std::stringstream ss(<emphasis role="string">"2004-Jan-1"</emphasis>);
+    ss &gt;&gt; d3;
+
+    <emphasis role="comment">//date generator functions</emphasis> 
+    date d5 = next_weekday(d4, Sunday); <emphasis role="comment">//calculate Sunday following d4
+
+    //US labor day is first Monday in Sept</emphasis> 
+	<emphasis role="keyword">typedef</emphasis> nth_day_of_the_week_in_month nth_dow;
+    nth_dow labor_day(nth_dow::first,Monday, Sep); 
+    <emphasis role="comment">//calculate a specific date for 2004 from functor</emphasis> 
+    date d6 = labor_day.get_date(<emphasis role="number">2004</emphasis>); 
+    </programlisting>    
+
+      The following provides some example code using times.
+      See <link linkend="date_time.posix_time">Time Programming</link> 
+      for more details.
+
+    <programlisting><emphasis role="keyword">using namespace</emphasis> boost::posix_time; 
+    date d(<emphasis role="number">2002</emphasis>,Feb,<emphasis role="number">1</emphasis>); <emphasis role="comment">//an arbitrary date</emphasis> 
+    ptime t1(d, hours(<emphasis role="number">5</emphasis>)+nanosec(<emphasis role="number">100</emphasis>)); <emphasis role="comment">//date + time of day offset</emphasis> 
+    ptime t2 = t1 - minutes(<emphasis role="number">4</emphasis>)+seconds(<emphasis role="number">2</emphasis>);
+    ptime now = second_clock::local_time(); <emphasis role="comment">//use the clock</emphasis> 
+    date today = now.date(); <emphasis role="comment">//Get the date part out of the time</emphasis> 
+    date tomorrow = today + date_duration(<emphasis role="number">1</emphasis>);
+    ptime tomorrow_start(tomorrow); <emphasis role="comment">//midnight 
+
+    //input streaming</emphasis> 
+    std::stringstream ss(<emphasis role="string">"2004-Jan-1 05:21:33.20"</emphasis>);
+    ss &gt;&gt; t2;
+
+    <emphasis role="comment">//starting at current time iterator adds by one hour</emphasis>
+    time_iterator titr(now,hours(<emphasis role="number">1</emphasis>)); 
+    <emphasis role="keyword">for</emphasis> (; titr &lt; tomorrow_start; ++titr) {
+     std::cout &lt;&lt; (*titr) &lt;&lt; std::endl;
+    }
+    </programlisting>    
+  </para>
+
+  <para>
+      The following provides some example code using times.
+      See <link linkend="date_time.local_time">Local Time Programming</link> 
+      for more details.
+
+    <programlisting>
+    <emphasis role="keyword">using namespace</emphasis> boost::local_time; 
+    <emphasis role="comment">//setup some timezones for creating and adjusting times
+    //first time zone uses the time zone file for regional timezone definitions</emphasis>
+    tz_database tz_db;
+    tz_db.load_from_file(<emphasis role="string">"date_time_zonespec.csv"</emphasis>);
+    time_zone_ptr nyc_tz = tz_db.time_zone_from_region(<emphasis role="string">"America/New_York"</emphasis>);
+    <emphasis role="comment">//This timezone uses a posix time zone string definition to create a time zone</emphasis>
+    time_zone_ptr phx_tz(new posix_time_zone(<emphasis role="string">"MST-07:00:00"</emphasis>));
+
+    <emphasis role="comment">//local departure time in phoenix is 11 pm on April 2 2005 
+    // Note that New York changes to daylight savings on Apr 3 at 2 am)</emphasis>
+    local_date_time phx_departure(date(<emphasis role="number">2005</emphasis>, Apr, <emphasis role="number">2</emphasis>), hours(<emphasis role="number">23</emphasis>), phx_tz, 
+                                  local_date_time::NOT_DATE_TIME_ON_ERROR);
+
+    time_duration flight_length = hours(<emphasis role="number">4</emphasis>) + minutes(<emphasis role="number">30</emphasis>);
+    local_date_time phx_arrival = phx_departure + flight_length;
+    <emphasis role="comment">//convert the phx time to a nyz time</emphasis>
+    local_date_time nyc_arrival = phx_arrival.local_time_in(nyc_tz);
+
+    <emphasis role="comment">//2005-Apr-03 06:30:00 EDT</emphasis>
+    std::cout &lt;&lt; nyc_arrival &lt;&lt; std::endl;
+    </programlisting>    
+  </para>
+  
+</section>

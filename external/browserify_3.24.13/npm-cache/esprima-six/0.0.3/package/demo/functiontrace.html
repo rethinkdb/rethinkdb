@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Esprima: Function Trace Demo</title>
+<script src="../test/3rdparty/platform.js"></script>
+<script src="checkenv.js"></script>
+<script src="functiontrace.js"></script>
+<script src="../esprima.js"></script>
+<script src="../test/3rdparty/esmorph.js"></script>
+<script src="../assets/codemirror/codemirror.js"></script>
+<script src="../assets/codemirror/javascript.js"></script>
+<link rel="stylesheet" type="text/css" href="../assets/codemirror/codemirror.css"/>
+<link rel="stylesheet" type="text/css" href="../assets/style.css"/>
+<style>
+.CodeMirror-scroll {
+    height: 320px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="topbar">
+<ul class="nav">
+<li><a href="../index.html">&larr; Home</a></li>
+<li><a href="http://github.com/ariya/esprima">Code</a></li>
+<li><a href="../doc/index.html">Documentation</a></li>
+<li><a href="http://issues.esprima.org">Issues</a></li>
+</ul>
+</div>
+
+<h1>Function Trace <small>reveals what is being called</small></h1>
+
+<p>Type ECMAScript code:</p>
+<div><textarea id="code" autofocus="autofocus" cols="70" rows="25" spellcheck="false">
+Array.prototype.swap = function (i, j) {
+    var k = this[i]; this[i] = this[j]; this[j] = k;
+}
+
+function bubbleSort(list) {
+    var items = list.slice(0), swapped = false, p, q;
+    for (p = 1; p &lt; items.length; ++p) {
+        for (q = 0; q &lt; items.length - p; ++q) {
+            if (items[q + 1] &lt; items[q]) {
+                items.swap(q, q + 1);
+                swapped =true;
+            }
+        }
+        if (!swapped) break;
+    }
+    return items;
+}
+
+var N = 100, data = []; while (N &gt; 0) data.push(N--);
+
+bubbleSort(data);
+</textarea></div>
+<p id="codemirror" align="right"><small>The above code editor is based on <a href="http://codemirror.net" target="_blank">CodeMirror</a>.</small></p>
+
+<p><input type="button" value="Insert tracing" id="instrument">
+<span style="margin-left: 50px;">&nbsp;</span>
+<input type="button" value="Run" id="run"></p>
+
+<p>Instrumentation for each function will be added with the <i>Insert tracing</i> button. Pressing the <i>Run</i> button will execute the code (using JavaScript <code>eval</code>) with the instrumentation, and then call counts for each function will be displayed (sorted by the number of calls). <b>Warning</b>: do not run untrusted code!</p>
+
+<div id="result"><p>No result yet.</p></div>
+
+<p style="margin-top: 50px;">Using Esprima version <span id="version"></span>.</p>
+<div class="footer"><strong>Esprima</strong> is created by
+<a href="http://ariya.ofilabs.com/about" target="_blank">Ariya Hidayat</a>. Follow <a href="http://twitter.com/ariyahidayat">@ariyahidayat</a> on Twitter.
+</div>
+
+<div id="testbox" style="visibility: hidden;"><textarea id="test"></textarea></div>
+</div>
+<script>
+/*jslint sloppy:true browser:true */
+/*global traceInstrument: true, traceRun:true, CodeMirror:true */
+window.onload = function () {
+    var el;
+
+    el = document.getElementById('version');
+    if (typeof el.innerText === 'string') {
+        el.innerText = window.esprima.version;
+    } else {
+        el.textContent = window.esprima.version;
+    }
+
+    document.getElementById('instrument').onclick = traceInstrument;
+    document.getElementById('run').onclick = traceRun;
+};
+
+try {
+    window.checkEnv();
+
+    // This is just testing, to detect whether CodeMirror would fail or not
+    window.editor = CodeMirror.fromTextArea(document.getElementById("test"));
+
+    window.editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+        lineNumbers: true,
+        matchBrackets: true
+    });
+} catch (e) {
+    // CodeMirror failed to initialize, possible in e.g. old IE.
+    document.getElementById('codemirror').innerHTML = '';
+} finally {
+    document.getElementById('testbox').parentNode.removeChild(document.getElementById('testbox'));
+}
+</script>
+</body>
+</html>

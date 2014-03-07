@@ -1,0 +1,495 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Writing your own sources</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../extension.html" title="Extending the library">
+<link rel="prev" href="../extension.html" title="Extending the library">
+<link rel="next" href="attributes.html" title="Writing your own attributes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../extension.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../extension.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="attributes.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.extension.sources"></a><a class="link" href="sources.html" title="Writing your own sources">Writing your own sources</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../logging_sources.html#header.boost.log.sources.threading_models_hpp" title="Header &lt;boost/log/sources/threading_models.hpp&gt;">boost/log/sources/threading_models.hpp</a></code><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../../logging_sources.html#header.boost.log.sources.basic_logger_hpp" title="Header &lt;boost/log/sources/basic_logger.hpp&gt;">boost/log/sources/basic_logger.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+        You can extend the library by developing your own sources and, for that matter,
+        ways of collecting log data. Basically, you have two choices of how to start:
+        you can either develop a new logger feature or design a whole new type of
+        source. The first approach is good if all you need is to tweak the functionality
+        of the existing loggers. The second approach is reasonable if the whole mechanism
+        of collecting logs by the provided loggers is unsuitable for your needs.
+      </p>
+<h5>
+<a name="log.extension.sources.h0"></a>
+        <span class="phrase"><a name="log.extension.sources.creating_a_new_logger_feature"></a></span><a class="link" href="sources.html#log.extension.sources.creating_a_new_logger_feature">Creating
+        a new logger feature</a>
+      </h5>
+<p>
+        Every logger provided by the library consists of a number of features that
+        can be combined with each other. Each feature is responsible for a single
+        and independent aspect of the logger functionality. For example, loggers
+        that provide the ability to assign severity levels to logging records include
+        the <code class="computeroutput"><a class="link" href="../../boost/log/sources/severity.html" title="Struct template severity">severity</a></code> feature.
+        You can implement your own feature and use it along with the ones provided
+        by the library.
+      </p>
+<p>
+        A logger feature should follow these basic requirements:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            A logging feature should be a class template. It should have at least
+            one template parameter type (let's name it <code class="computeroutput"><span class="identifier">BaseT</span></code>).
+          </li>
+<li class="listitem">
+            The feature must publicly derive from the <code class="computeroutput"><span class="identifier">BaseT</span></code>
+            template parameter.
+          </li>
+<li class="listitem">
+            The feature must be default-constructible and copy-constructible.
+          </li>
+<li class="listitem">
+            The feature must be constructible with a single argument of a templated
+            type. The feature may not use this argument itself, but it should pass
+            this argument to the <code class="computeroutput"><span class="identifier">BaseT</span></code>
+            constructor.
+          </li>
+</ul></div>
+<p>
+        These requirements allow composition of a logger from a number of features
+        derived from each other. The root class of the features hierarchy will be
+        the <code class="computeroutput"><a class="link" href="../../boost/log/sources/basic_logger.html" title="Class template basic_logger">basic_logger</a></code>
+        class template instance. This class implements most of the basic functionality
+        of loggers, like storing logger-specific attributes and providing the interface
+        for log message formatting. The hierarchy composition is done by the <code class="computeroutput"><a class="link" href="../../boost/log/sources/basic_composite_logger.html" title="Class template basic_composite_logger">basic_composite_logger</a></code>
+        class template, which is instantiated on a sequence of features (don't worry,
+        this will be shown in an example in a few moments). The constructor with
+        a templated argument allows initializing features with named parameters,
+        using the <a href="http://www.boost.org/doc/libs/release/libs/parameter/doc/html/index.html" target="_top">Boost.Parameter</a>
+        library.
+      </p>
+<p>
+        A logging feature may also contain internal data. In that case, to maintain
+        thread safety for the logger, the feature should follow these additional
+        guidelines:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            Usually there is no need to introduce a mutex or another synchronization
+            mechanism in each feature. Moreover, it is advised not to do so, because
+            the same feature can be used in both thread-safe and not thread-safe
+            loggers. Instead, features should use the threading model of the logger
+            as a synchronization primitive, similar to how they would use a mutex.
+            The threading model is accessible through the <code class="computeroutput"><span class="identifier">get_threading_model</span></code>
+            method, defined in the <code class="computeroutput"><a class="link" href="../../boost/log/sources/basic_logger.html" title="Class template basic_logger">basic_logger</a></code>
+            class template.
+          </li>
+<li class="listitem">
+            If the feature has to override <code class="computeroutput"><span class="special">*</span><span class="identifier">_unlocked</span></code> methods of the protected
+            interface of the <code class="computeroutput"><a class="link" href="../../boost/log/sources/basic_logger.html" title="Class template basic_logger">basic_logger</a></code>
+            class template (or the same part of the base feature interface), the
+            following should be considered with regard to such methods:
+            <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                  The public methods that eventually call these methods are implemented
+                  by the <code class="computeroutput"><a class="link" href="../../boost/log/sources/basic_composite_logger.html" title="Class template basic_composite_logger">basic_composite_logger</a></code>
+                  class template. These implementations do the necessary locking
+                  and then pass control to the corresponding <code class="computeroutput"><span class="identifier">_unlocked</span></code>
+                  method of the base features.
+                </li>
+<li class="listitem">
+                  The thread safety requirements for these methods are expressed
+                  with lock types. These types are available as typedefs in each
+                  feature and the <code class="computeroutput"><a class="link" href="../../boost/log/sources/basic_logger.html" title="Class template basic_logger">basic_logger</a></code>
+                  class template. If the feature exposes a protected function <code class="computeroutput"><span class="identifier">foo_unlocked</span></code>, it will also expose
+                  type <code class="computeroutput"><span class="identifier">foo_lock</span></code>,
+                  which will express the locking requirements of <code class="computeroutput"><span class="identifier">foo_unlocked</span></code>.
+                  The corresponding method <code class="computeroutput"><span class="identifier">foo</span></code>
+                  in the <code class="computeroutput"><a class="link" href="../../boost/log/sources/basic_composite_logger.html" title="Class template basic_composite_logger">basic_composite_logger</a></code>
+                  class template will use this typedef in order to lock the threading
+                  model before calling <code class="computeroutput"><span class="identifier">foo_unlocked</span></code>.
+                </li>
+<li class="listitem">
+                  Feature constructors don't need locking, and thus there's no need
+                  for lock types for them.
+                </li>
+</ul></div>
+          </li>
+<li class="listitem">
+            The feature may implement a copy constructor. The argument of the constructor
+            is already locked with a shared lock when the constructor is called.
+            Naturally, the feature is expected to forward the copy constructor call
+            to the <code class="computeroutput"><span class="identifier">BaseT</span></code> class.
+          </li>
+<li class="listitem">
+            The feature need not implement an assignment operator. The assignment
+            will be automatically provided by the <code class="computeroutput"><a class="link" href="../../boost/log/sources/basic_composite_logger.html" title="Class template basic_composite_logger">basic_composite_logger</a></code>
+            class instance. However, the feature may provide a <code class="computeroutput"><span class="identifier">swap_unlocked</span></code>
+            method that will swap contents of this feature and the method argument,
+            and call similar method in the <code class="computeroutput"><span class="identifier">BaseT</span></code>
+            class. The automatically generated assignment operator will use this
+            method, along with copy constructor.
+          </li>
+</ol></div>
+<p>
+        In order to illustrate all these lengthy recommendations, let's implement
+        a simple logger feature. Suppose we want our logger to be able to tag individual
+        log records. In other words, the logger has to temporarily add an attribute
+        to its set of attributes, emit the logging record, and then automatically
+        remove the attribute. Somewhat similar functionality can be achieved with
+        scoped attributes, although the syntax may complicate wrapping it into a
+        neat macro:
+      </p>
+<pre class="programlisting"><span class="comment">// We want something equivalent to this</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_LOG_SCOPED_LOGGER_TAG</span><span class="special">(</span><span class="identifier">logger</span><span class="special">,</span> <span class="string">"Tag"</span><span class="special">,</span> <span class="string">"[GUI]"</span><span class="special">);</span>
+    <span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">logger</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"The user has confirmed his choice"</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        Let's declare our logger feature:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">BaseT</span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">record_tagger_feature</span> <span class="special">:</span>
+    <span class="keyword">public</span> <span class="identifier">BaseT</span>                        <a class="co" name="log.extension.sources.c0" href="sources.html#log.extension.sources.c1"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// Let's import some types that we will need. These imports should be public,</span>
+    <span class="comment">// in order to allow other features that may derive from record_tagger to do the same.</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">BaseT</span><span class="special">::</span><span class="identifier">char_type</span> <span class="identifier">char_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">BaseT</span><span class="special">::</span><span class="identifier">threading_model</span> <span class="identifier">threading_model</span><span class="special">;</span>
+
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// Default constructor. Initializes m_Tag to an invalid value.</span>
+    <span class="identifier">record_tagger_feature</span><span class="special">();</span>
+    <span class="comment">// Copy constructor. Initializes m_Tag to a value, equivalent to that.m_Tag.</span>
+    <span class="identifier">record_tagger_feature</span><span class="special">(</span><span class="identifier">record_tagger_feature</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">that</span><span class="special">);</span>
+    <span class="comment">// Forwarding constructor with named parameters</span>
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">ArgsT</span> <span class="special">&gt;</span>
+    <span class="identifier">record_tagger_feature</span><span class="special">(</span><span class="identifier">ArgsT</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">args</span><span class="special">);</span>
+
+    <span class="comment">// The method will require locking, so we have to define locking requirements for it.</span>
+    <span class="comment">// We use the strictest_lock trait in order to choose the most restricting lock type.</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">strictest_lock</span><span class="special">&lt;</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lock_guard</span><span class="special">&lt;</span> <span class="identifier">threading_model</span> <span class="special">&gt;,</span>
+        <span class="keyword">typename</span> <span class="identifier">BaseT</span><span class="special">::</span><span class="identifier">open_record_lock</span><span class="special">,</span>
+        <span class="keyword">typename</span> <span class="identifier">BaseT</span><span class="special">::</span><span class="identifier">add_attribute_lock</span><span class="special">,</span>
+        <span class="keyword">typename</span> <span class="identifier">BaseT</span><span class="special">::</span><span class="identifier">remove_attribute_lock</span>
+    <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">open_record_lock</span><span class="special">;</span>
+
+<span class="keyword">protected</span><span class="special">:</span>
+    <span class="comment">// Lock-less implementation of operations</span>
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">ArgsT</span> <span class="special">&gt;</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">record</span> <span class="identifier">open_record_unlocked</span><span class="special">(</span><span class="identifier">ArgsT</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">args</span><span class="special">);</span>
+<span class="special">};</span>
+
+<span class="comment">// A convenience metafunction to specify the feature</span>
+<span class="comment">// in the list of features of the final logger later</span>
+<span class="keyword">struct</span> <span class="identifier">record_tagger</span> <span class="special">:</span>
+    <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">quote1</span><span class="special">&lt;</span> <span class="identifier">record_tagger_feature</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<div class="calloutlist"><table border="0" summary="Callout list"><tr>
+<td width="5%" valign="top" align="left"><p><a name="log.extension.sources.c1"></a><a href="#log.extension.sources.c0"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+            the feature should derive from other features or the basic_logger class
+          </p></td>
+</tr></table></div>
+<p>
+        You can see that we use the <code class="computeroutput"><a class="link" href="../../boost/log/strictest_lock.html" title="Struct template strictest_lock">strictest_lock</a></code>
+        template in order to define lock types that would fulfill the base class
+        thread safety requirements for methods that are to be called from the corresponding
+        methods of <code class="computeroutput"><span class="identifier">record_tagger_feature</span></code>.
+        The <code class="computeroutput"><span class="identifier">open_record_lock</span></code> definition
+        shows that the <code class="computeroutput"><span class="identifier">open_record_unlocked</span></code>
+        implementation for the <code class="computeroutput"><span class="identifier">record_tagger_feature</span></code>
+        feature requires exclusive lock (which <code class="computeroutput"><span class="identifier">lock_guard</span></code>
+        is) for the logger, but it also takes into account locking requirements of
+        the <code class="computeroutput"><span class="identifier">open_record_unlocked</span></code>,
+        <code class="computeroutput"><span class="identifier">add_attribute_unlocked</span></code> and
+        <code class="computeroutput"><span class="identifier">remove_attribute_unlocked</span></code>
+        methods of the base class, because it will have to call them. The generated
+        <code class="computeroutput"><span class="identifier">open_record</span></code> method of the
+        final logger class will make use of this typedef in order to automatically
+        acquire the corresponding lock type before forwarding to the <code class="computeroutput"><span class="identifier">open_record_unlocked</span></code> methods.
+      </p>
+<p>
+        Actually, in this particular example, there was no need to use the <code class="computeroutput"><a class="link" href="../../boost/log/strictest_lock.html" title="Struct template strictest_lock">strictest_lock</a></code> trait, because
+        all our methods require exclusive locking, which is already the strictest
+        one. However, this template may come in handy, should you use shared locking.
+      </p>
+<p>
+        The implementation of the public interface becomes quite trivial:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">BaseT</span> <span class="special">&gt;</span>
+<span class="identifier">record_tagger_feature</span><span class="special">&lt;</span> <span class="identifier">BaseT</span> <span class="special">&gt;::</span><span class="identifier">record_tagger_feature</span><span class="special">()</span>
+<span class="special">{</span>
+<span class="special">}</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">BaseT</span> <span class="special">&gt;</span>
+<span class="identifier">record_tagger_feature</span><span class="special">&lt;</span> <span class="identifier">BaseT</span> <span class="special">&gt;::</span><span class="identifier">record_tagger_feature</span><span class="special">(</span><span class="identifier">record_tagger_feature</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">that</span><span class="special">)</span> <span class="special">:</span>
+    <span class="identifier">BaseT</span><span class="special">(</span><span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="identifier">BaseT</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="special">&gt;(</span><span class="identifier">that</span><span class="special">))</span>
+<span class="special">{</span>
+<span class="special">}</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">BaseT</span> <span class="special">&gt;</span>
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">ArgsT</span> <span class="special">&gt;</span>
+<span class="identifier">record_tagger_feature</span><span class="special">&lt;</span> <span class="identifier">BaseT</span> <span class="special">&gt;::</span><span class="identifier">record_tagger_feature</span><span class="special">(</span><span class="identifier">ArgsT</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">args</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">BaseT</span><span class="special">(</span><span class="identifier">args</span><span class="special">)</span>
+<span class="special">{</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        Now, since all locking is extracted into the public interface, we have the
+        most of our feature logic to be implemented in the protected part of the
+        interface. In order to set up tag value in the logger, we will have to introduce
+        a new <a href="http://www.boost.org/doc/libs/release/libs/parameter/doc/html/index.html" target="_top">Boost.Parameter</a>
+        keyword. Following recommendations from that library documentation, it's
+        better to introduce the keyword in a special namespace:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">my_keywords</span> <span class="special">{</span>
+
+    <span class="identifier">BOOST_PARAMETER_KEYWORD</span><span class="special">(</span><span class="identifier">tag_ns</span><span class="special">,</span> <span class="identifier">tag</span><span class="special">)</span>
+
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        Opening a new record can now look something like this:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">BaseT</span> <span class="special">&gt;</span>
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">ArgsT</span> <span class="special">&gt;</span>
+<span class="identifier">logging</span><span class="special">::</span><span class="identifier">record</span> <span class="identifier">record_tagger_feature</span><span class="special">&lt;</span> <span class="identifier">BaseT</span> <span class="special">&gt;::</span><span class="identifier">open_record_unlocked</span><span class="special">(</span><span class="identifier">ArgsT</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">args</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">// Extract the named argument from the parameters pack</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">tag_value</span> <span class="special">=</span> <span class="identifier">args</span><span class="special">[</span><span class="identifier">my_keywords</span><span class="special">::</span><span class="identifier">tag</span> <span class="special">|</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">()];</span>
+
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute_set</span><span class="special">&amp;</span> <span class="identifier">attrs</span> <span class="special">=</span> <span class="identifier">BaseT</span><span class="special">::</span><span class="identifier">attributes</span><span class="special">();</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute_set</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">tag</span> <span class="special">=</span> <span class="identifier">attrs</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span>
+    <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">tag_value</span><span class="special">.</span><span class="identifier">empty</span><span class="special">())</span>
+    <span class="special">{</span>
+        <span class="comment">// Add the tag as a new attribute</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span>
+            <span class="identifier">logging</span><span class="special">::</span><span class="identifier">attribute_set</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">,</span>
+            <span class="keyword">bool</span>
+        <span class="special">&gt;</span> <span class="identifier">res</span> <span class="special">=</span> <span class="identifier">BaseT</span><span class="special">::</span><span class="identifier">add_attribute_unlocked</span><span class="special">(</span><span class="string">"Tag"</span><span class="special">,</span>
+            <span class="identifier">attrs</span><span class="special">::</span><span class="identifier">constant</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&gt;(</span><span class="identifier">tag_value</span><span class="special">));</span>
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">res</span><span class="special">.</span><span class="identifier">second</span><span class="special">)</span>
+            <span class="identifier">tag</span> <span class="special">=</span> <span class="identifier">res</span><span class="special">.</span><span class="identifier">first</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="comment">// In any case, after opening a record remove the tag from the attributes</span>
+    <span class="identifier">BOOST_SCOPE_EXIT_TPL</span><span class="special">((&amp;</span><span class="identifier">tag</span><span class="special">)(&amp;</span><span class="identifier">attrs</span><span class="special">))</span>
+    <span class="special">{</span>
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">tag</span> <span class="special">!=</span> <span class="identifier">attrs</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+            <span class="identifier">attrs</span><span class="special">.</span><span class="identifier">erase</span><span class="special">(</span><span class="identifier">tag</span><span class="special">);</span>
+    <span class="special">}</span>
+    <span class="identifier">BOOST_SCOPE_EXIT_END</span>
+
+    <span class="comment">// Forward the call to the base feature</span>
+    <span class="keyword">return</span> <span class="identifier">BaseT</span><span class="special">::</span><span class="identifier">open_record_unlocked</span><span class="special">(</span><span class="identifier">args</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        Here we add a new attribute with the tag value, if one is specified in call
+        to <code class="computeroutput"><span class="identifier">open_record</span></code>. When a log
+        record is opened, all attribute values are acquired and locked after the
+        record, so we remove the tag from the attribute set with the <a href="http://www.boost.org/doc/libs/release/libs/scope_exit/doc/html/index.html" target="_top">Boost.ScopeExit</a>
+        block.
+      </p>
+<p>
+        Ok, we got our feature, and it's time to inject it into a logger. Assume
+        we want to combine it with the standard severity level logging. No problems:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">LevelT</span> <span class="special">=</span> <span class="keyword">int</span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">my_logger</span> <span class="special">:</span>
+    <span class="keyword">public</span> <span class="identifier">src</span><span class="special">::</span><span class="identifier">basic_composite_logger</span><span class="special">&lt;</span>
+        <span class="keyword">char</span><span class="special">,</span>                           <a class="co" name="log.extension.sources.c2" href="sources.html#log.extension.sources.c3"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a>
+        <span class="identifier">my_logger</span><span class="special">&lt;</span> <span class="identifier">LevelT</span> <span class="special">&gt;,</span>            <a class="co" name="log.extension.sources.c4" href="sources.html#log.extension.sources.c5"><img src="../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a>
+        <span class="identifier">src</span><span class="special">::</span><span class="identifier">single_thread_model</span><span class="special">,</span>       <a class="co" name="log.extension.sources.c6" href="sources.html#log.extension.sources.c7"><img src="../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a>
+        <span class="identifier">src</span><span class="special">::</span><span class="identifier">features</span><span class="special">&lt;</span>                  <a class="co" name="log.extension.sources.c8" href="sources.html#log.extension.sources.c9"><img src="../../../../../../doc/src/images/callouts/4.png" alt="4" border="0"></a>
+            <span class="identifier">src</span><span class="special">::</span><span class="identifier">severity</span><span class="special">&lt;</span> <span class="identifier">LevelT</span> <span class="special">&gt;,</span>
+            <span class="identifier">record_tagger</span>
+        <span class="special">&gt;</span>
+    <span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="comment">// The following line will automatically generate forwarding constructors that</span>
+    <span class="comment">// will call to the corresponding constructors of the base class</span>
+    <span class="identifier">BOOST_LOG_FORWARD_LOGGER_MEMBERS_TEMPLATE</span><span class="special">(</span><span class="identifier">my_logger</span><span class="special">)</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<div class="calloutlist"><table border="0" summary="Callout list">
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.extension.sources.c3"></a><a href="#log.extension.sources.c2"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+            character type for the logger
+          </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.extension.sources.c5"></a><a href="#log.extension.sources.c4"><img src="../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+            final logger type
+          </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.extension.sources.c7"></a><a href="#log.extension.sources.c6"><img src="../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+            the logger does not perform thread synchronization; use <code class="computeroutput"><span class="identifier">multi_thread_model</span></code> to declare a thread-safe
+            logger
+          </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.extension.sources.c9"></a><a href="#log.extension.sources.c8"><img src="../../../../../../doc/src/images/callouts/4.png" alt="4" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+            the list of features we want to combine
+          </p></td>
+</tr>
+</table></div>
+<p>
+        As you can see, creating a logger is a quite simple procedure. The <code class="computeroutput"><span class="identifier">BOOST_LOG_FORWARD_LOGGER_MEMBERS_TEMPLATE</span></code>
+        macro you see here is for mere convenience purpose: it unfolds into a default
+        constructor, copy constructor, assignment operator and a number of constructors
+        to support named arguments. For non-template loggers there is a similar
+        <code class="computeroutput"><span class="identifier">BOOST_LOG_FORWARD_LOGGER_MEMBERS</span></code>
+        macro.
+      </p>
+<p>
+        Assuming we have defined severity levels like this:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">enum</span> <span class="identifier">severity_level</span>
+<span class="special">{</span>
+    <span class="identifier">normal</span><span class="special">,</span>
+    <span class="identifier">warning</span><span class="special">,</span>
+    <span class="identifier">error</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        we can now use our logger as follows:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">manual_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">my_logger</span><span class="special">&lt;</span> <span class="identifier">severity_level</span> <span class="special">&gt;</span> <span class="identifier">logger</span><span class="special">;</span>
+
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">record</span> <span class="identifier">rec</span> <span class="special">=</span> <span class="identifier">logger</span><span class="special">.</span><span class="identifier">open_record</span><span class="special">((</span><span class="identifier">keywords</span><span class="special">::</span><span class="identifier">severity</span> <span class="special">=</span> <span class="identifier">normal</span><span class="special">,</span> <span class="identifier">my_keywords</span><span class="special">::</span><span class="identifier">tag</span> <span class="special">=</span> <span class="string">"GUI"</span><span class="special">));</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">rec</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">logging</span><span class="special">::</span><span class="identifier">record_ostream</span> <span class="identifier">strm</span><span class="special">(</span><span class="identifier">rec</span><span class="special">);</span>
+        <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="string">"The user has confirmed his choice"</span><span class="special">;</span>
+        <span class="identifier">strm</span><span class="special">.</span><span class="identifier">flush</span><span class="special">();</span>
+        <span class="identifier">logger</span><span class="special">.</span><span class="identifier">push_record</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span><span class="special">(</span><span class="identifier">rec</span><span class="special">));</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        All this verbosity is usually not required. One can define a special macro
+        to make the code more concise:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">LOG_WITH_TAG</span><span class="special">(</span><span class="identifier">lg</span><span class="special">,</span> <span class="identifier">sev</span><span class="special">,</span> <span class="identifier">tg</span><span class="special">)</span> <span class="special">\</span>
+    <span class="identifier">BOOST_LOG_WITH_PARAMS</span><span class="special">((</span><span class="identifier">lg</span><span class="special">),</span> <span class="special">(</span><span class="identifier">keywords</span><span class="special">::</span><span class="identifier">severity</span> <span class="special">=</span> <span class="special">(</span><span class="identifier">sev</span><span class="special">))(</span><span class="identifier">my_keywords</span><span class="special">::</span><span class="identifier">tag</span> <span class="special">=</span> <span class="special">(</span><span class="identifier">tg</span><span class="special">)))</span>
+
+<span class="keyword">void</span> <span class="identifier">logging_function</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">my_logger</span><span class="special">&lt;</span> <span class="identifier">severity_level</span> <span class="special">&gt;</span> <span class="identifier">logger</span><span class="special">;</span>
+
+    <span class="identifier">LOG_WITH_TAG</span><span class="special">(</span><span class="identifier">logger</span><span class="special">,</span> <span class="identifier">normal</span><span class="special">,</span> <span class="string">"GUI"</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"The user has confirmed his choice"</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        <a href="../../../../../../libs/log/example/doc/extension_record_tagger.cpp" target="_top">See
+        the complete code</a>.
+      </p>
+<h5>
+<a name="log.extension.sources.h1"></a>
+        <span class="phrase"><a name="log.extension.sources.guidelines_for_designers_of_standalone_logging_sources"></a></span><a class="link" href="sources.html#log.extension.sources.guidelines_for_designers_of_standalone_logging_sources">Guidelines
+        for designers of standalone logging sources</a>
+      </h5>
+<p>
+        In general, you can implement new logging sources the way you like, the library
+        does not mandate any design requirements on log sources. However, there are
+        some notes regarding the way log sources should interact with logging core.
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            Whenever a logging source is ready to emit a log record, it should call
+            the <code class="computeroutput"><span class="identifier">open_record</span></code> in the
+            core. The source-specific attributes should be passed into that call.
+            During that call the core allocates resources for the record being made
+            and performs filtering.
+          </li>
+<li class="listitem">
+            If the call to <code class="computeroutput"><span class="identifier">open_record</span></code>
+            returned a valid log record, then the record has passed the filtering
+            and is considered to be opened. The record may later be either confirmed
+            by the source by subsequently calling <code class="computeroutput"><span class="identifier">push_record</span></code>
+            or withdrawn by destroying it.
+          </li>
+<li class="listitem">
+            If the call to <code class="computeroutput"><span class="identifier">open_record</span></code>
+            returned an invalid (empty) log record, it means that the record has
+            not been opened (most likely due to filtering rejection). In that case
+            the logging core does not hold any resources associated with the record,
+            and thus the source must not call <code class="computeroutput"><span class="identifier">push_record</span></code>
+            for that particular logging attempt.
+          </li>
+<li class="listitem">
+            The source may subsequently open more than one record. Opened log records
+            exist independently from each other.
+          </li>
+</ol></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../extension.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../extension.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="attributes.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

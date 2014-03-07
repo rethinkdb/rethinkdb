@@ -1,0 +1,5 @@
+[article Unbalanced snippet fail test 2
+[quickbook 1.6]
+]
+
+[import unbalanced_snippet2.cpp]

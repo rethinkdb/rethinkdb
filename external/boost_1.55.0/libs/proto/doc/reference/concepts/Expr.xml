@@ -1,0 +1,194 @@
+<?xml version="1.0" ?>
+<!--
+  Copyright 2010 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<concept name="Expr" category="utility">
+  <param name="Expr" role="expession-type"/>
+  <param name="Tag" role="tag-type"/>
+  <param name="Domain" role="domain-type"/>
+  <param name="N" role="mpl-integral-constant-type"/>
+
+  <models-sentence>
+    The type <arg num="1"/> must be a model of <self/>.
+  </models-sentence>
+
+  <models-sentence>
+    The type <arg num="3"/> must be a model of <conceptname>Domain</conceptname>.
+  </models-sentence>
+
+  <models-sentence>
+    The type <arg num="4"/> must be a model of MPL Integral Constant.
+  </models-sentence>
+
+  <description>
+    <para>
+      An Expr represents a tagged node in an expression tree.
+      The children of the Expr must themselves satisfy the
+      Expr concept. The Expr has an arity representing the
+      number of children. If the number of children is zero,
+      the Expr also has a value. An Expr also has an associated
+      <conceptname>Domain</conceptname>.
+    </para>
+  </description>
+
+  <notation variables="e">
+    <sample-value>
+      <type name="Expr"/>
+    </sample-value>
+  </notation>
+
+  <associated-type name="proto_tag">
+    <get-member-type name="proto_tag">
+      <type name="Expr"/>
+    </get-member-type>
+    <description>
+      <simpara>The tag type of the Expr.</simpara>
+    </description>
+  </associated-type>
+
+  <associated-type name="proto_args">
+    <get-member-type name="proto_args">
+      <type name="Expr"/>
+    </get-member-type>
+    <description>
+      <simpara>A typelist representing either the types of the child nodes, or,
+        if the arity of the Expr is 0, of the value of the terminal.</simpara>
+    </description>
+  </associated-type>
+
+  <associated-type name="proto_arity">
+    <get-member-type name="proto_arity">
+      <type name="Expr"/>
+    </get-member-type>
+    <description>
+      <simpara>
+        The arity (number of child nodes) of the Expr.
+        <computeroutput>proto_arity</computeroutput> is an MPL Integral Constant.
+      </simpara>
+    </description>
+  </associated-type>
+
+  <associated-type name="proto_grammar">
+    <get-member-type name="proto_grammar">
+      <type name="Expr"/>
+    </get-member-type>
+    <description>
+      <simpara>
+        A typedef for an instantiation of
+        <classname alt="boost::proto::basic_expr">
+          <code>proto::basic_expr&lt;&gt;</code>
+        </classname>
+        that is equivalent to Expr. Expression types are equivalent if they have the
+        same <code>proto_tag</code>, <code>proto_args</code>, and <code>proto_arity</code>.
+      </simpara>
+    </description>
+  </associated-type>
+
+  <associated-type name="proto_base_expr">
+    <get-member-type name="proto_base_expr">
+      <type name="Expr"/>
+    </get-member-type>
+    <description>
+      <simpara>
+        A typedef for an instantiation of
+        <classname alt="boost::proto::expr"><code>proto::expr&lt;&gt;</code></classname> or
+        <classname alt="boost::proto::basic_expr"><code>proto::basic_expr&lt;&gt;</code></classname>
+        that is equivalent to Expr. Expression types are equivalent if they have the
+        same <code>proto_tag</code>, <code>proto_args</code>, and <code>proto_arity</code>.
+      </simpara>
+    </description>
+  </associated-type>
+
+  <associated-type name="proto_derived_expr">
+    <get-member-type name="proto_derived_expr">
+      <type name="Expr"/>
+    </get-member-type>
+    <description>
+      <simpara>
+        A typedef for <code>Expr</code>.
+      </simpara>
+    </description>
+  </associated-type>
+
+  <associated-type name="proto_domain">
+    <get-member-type name="proto_domain">
+      <type name="Expr"/>
+    </get-member-type>
+    <description>
+      <simpara>
+        The Domain of the Expr. <computeroutput>proto_domain</computeroutput>
+        models <conceptname>Domain</conceptname>.
+      </simpara>
+    </description>
+  </associated-type>
+
+  <associated-type name="proto_childN">
+    <get-member-type name="proto_childN">
+      <type name="Expr"/>
+    </get-member-type>
+    <description>
+      <simpara>The type of the Nth child of Expr. Requires 
+        <code>0 == N::value || N::value &lt; proto_arity::value</code></simpara>
+    </description>
+  </associated-type>
+
+  <valid-expression name="Get N-th Child">
+    <apply-function name="boost::proto::child&lt; N &gt;">
+      <sample-value>
+        <type name="Expr"/>
+      </sample-value>
+    </apply-function>
+    <return-type>
+      <require-same-type testable="yes">
+        <type name="proto_childN"/>
+      </require-same-type>
+    </return-type>
+    <semantics>Extracts the Nth child from this Expr.
+      Requires <computeroutput>N::value &lt; proto_arity::value</computeroutput>.</semantics>
+  </valid-expression>
+
+  <valid-expression name="Get Terminal Value">
+    <apply-function name="boost::proto::value">
+      <sample-value>
+        <type name="Expr"/>
+      </sample-value>
+    </apply-function>
+    <return-type>
+      <require-same-type testable="yes">
+        <type name="proto_child0"/>
+      </require-same-type>
+    </return-type>
+    <semantics>
+      Extracts the value from a terminal Expr.
+      Requires <computeroutput>0 == proto_arity::value</computeroutput>.
+    </semantics>
+  </valid-expression>
+
+  <valid-expression name="Get Base">
+    <apply-method name="proto_base">
+      <sample-value>
+        <type name="Expr"/>
+      </sample-value>
+    </apply-method>
+    <return-type>
+      <require-same-type testable="yes">
+        <type name="proto_base_expr"/>
+      </require-same-type>
+    </return-type>
+    <semantics>
+        Returns an object of type
+        <classname alt="boost::proto::expr"><code>proto::expr&lt;&gt;</code></classname> or
+        <classname alt="boost::proto::basic_expr"><code>proto::basic_expr&lt;&gt;</code></classname>
+        that is equivalent to <code>e</code>.
+    </semantics>
+  </valid-expression>
+
+  <example-model>
+    <type name="boost::proto::literal&lt; int &gt;"/>
+  </example-model>
+
+</concept>

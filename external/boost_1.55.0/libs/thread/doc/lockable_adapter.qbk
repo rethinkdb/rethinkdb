@@ -1,0 +1,117 @@
+[/
+  (C) Copyright 2008-2013 Vicente J. Botet Escriba
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[/==========================================================================================]
+[section:lockable_adapter_hpp Header `<boost/thread/lockable_adapter.hpp>`]
+[/==========================================================================================]
+
+    namespace boost {
+        template <typename Lockable> class basic_lockable_adapter;
+        template <typename Lockable> class lockable_adapter;
+        template <typename TimedLock> class timed_lockable_adapter;
+        template <typename SharableLock> class shared_lockable_adapter;
+        template <typename UpgradableLock> class upgrade_lockable_adapter;
+    }
+
+[section Template Class `basic_lockable_adapter<>`]
+
+    template <typename Lockable>
+    class basic_lockable_adapter {
+    public:
+        basic_lockable_adapter(basic_lockable_adapter const&) = delete
+        basic_lockable_adapter& opearator=(basic_lockable_adapter const&) = delete
+
+        typedef Lockable mutex_type;
+
+        basic_lockable_adapter() {}
+        void lock();
+        void unlock();
+        bool try_lock();
+    };
+
+[endsect]
+[section Template Class `lockable_adapter<>`]
+
+    template <typename Lockable>
+    class lockable_adapter : : public basic_lockable_adapter<Lockable> {
+    public:
+        lockable_adapter() {}
+
+        bool try_lock();
+    };
+
+[endsect]
+
+[section Template Class `timed_lockable_adapter<>`]
+
+    template <typename TimedLock>
+    class timed_lockable_adapter : public lockable_adapter<TimedLock> {
+    public:
+        timed_lockable_adapter() {}
+
+        bool try_lock_until(system_time const & abs_time);
+        template<typename TimeDuration>
+        bool try_lock_for(TimeDuration const & relative_time);
+        
+        void lock_until(system_time const & abs_time);
+        template<typename TimeDuration>
+        void lock_for(TimeDuration const & relative_time);
+    };
+
+[endsect]
+[section Template Class `shared_lockable_adapter<>`]
+
+    template <typename SharableLock>
+    class shared_lockable_adapter : public timed_lockable_adapter<SharableLock>     {
+    public:
+        shared_lockable_adapter() {}
+        void lock_shared();
+        bool try_lock_shared();
+        void unlock_shared();
+
+        bool try_lock_shared_until(system_time const& t);
+        template<typename TimeDuration>   
+        bool try_lock_shared_for(TimeDuration const& t);
+        
+        template<typename TimeDuration>   
+        void lock_shared_for(TimeDuration const& t);
+        void lock_shared_until(system_time const& t);
+    };
+
+
+[endsect]
+[section Template Class `upgrade_lockable_adapter<>`]
+
+    template <typename UpgradableLock>
+    class upgrade_lockable_adapter : public shared_lockable_adapter<UpgradableLock>{
+    public:
+        upgrade_lockable_adapter();
+
+        void lock_upgrade();
+        bool try_lock_upgrade();
+        void unlock_upgrade();
+
+        void unlock_upgrade_and_lock();
+        void unlock_and_lock_upgrade();
+        void unlock_and_lock_shared();
+        void unlock_upgrade_and_lock_shared();
+        
+        bool try_lock_upgrade_until(system_time const&t);
+        template<typename TimeDuration>   
+        bool try_lock_upgrade_for(TimeDuration const&t);
+        void lock_upgrade_until(system_time const&t);
+        template<typename TimeDuration>   
+        void lock_upgrade_for(TimeDuration const&t);
+    };
+
+
+
+[endsect]
+[endsect]
+
+
+

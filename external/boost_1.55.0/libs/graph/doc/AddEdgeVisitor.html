@@ -1,0 +1,130 @@
+<html>
+<head>
+<!-- Copyright 2007 Aaron Windsor
+     
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+  -->
+<title>AddEdgeVisitor Concept</title>
+</head>
+<body alink="#ff0000" 
+      bgcolor="#ffffff" 
+      link="#0000ee" 
+      text="#000000" 
+      vlink="#551a8b"> 
+
+<img src="../../../boost.png" alt="C++ Boost" height="86" width="277"> 
+
+<br clear="">
+
+<h1>AddEdgeVisitor Concept</h1>
+
+The AddEdgeVisitor concept exists to allow for some indirection in algorithms
+that modify graphs by adding edges. In such algorithms, it may be convenient
+to perform additional operations (such as updating an edge index map) at 
+points in the algorithm where an edge addition occurs. Replacing calls to
+to <tt>add_edge</tt> with calls to <tt>AddEdgeVisitor::visit_vertex_pair</tt>
+allows for such operations to be defined independently from the algorithm.
+
+<h3>Notation</h3>
+
+<table>
+<tbody>
+
+<tr>
+<td> <tt>Visitor</tt> </td>
+<td> is a type that models the AddEdgeVisitor concept </td>
+</tr>
+
+<tr> 
+<td> <tt>vis</tt> </td>  
+<td> is an object of type Visitor </td>
+</tr>
+
+<tr>
+<td> <tt>Graph</tt> </td>
+<td> is the type of a graph </td>
+</tr>
+
+<tr> 
+<td> <tt>u,v</tt> </td>  
+<td> are objects of type <tt>graph_traits&lt;Graph&gt;::vertex_descriptor</tt>
+</td>
+</tr>
+
+<tr> 
+<td> <tt>e</tt> </td>  
+<td> is an object of type <tt>graph_traits&lt;Graph&gt;::edge_descriptor</tt> 
+</td>
+</tr>
+
+<tr>
+<td> <tt>v</tt> </td>
+<td> is an object of type <tt>graph_traits&lt;Graph&gt;::vertex_descriptor</tt>
+</td>
+
+</tr><tr>
+<td> 
+
+</td></tr></tbody></table>
+
+
+<h3>Associated Types</h3>
+
+None
+
+<h3>Valid Expressions</h3>
+
+<p>
+
+<table border="1">
+
+<tbody><tr><th>Name</th><th>Expression</th><th>Return Type</th>
+<th>Description</th>
+
+</tr><tr> 
+<td> Add an Edge </td>
+<td> <tt>vis.visit_vertex_pair(u, v, g)</tt>  </td>
+<td> <tt>void</tt></td>
+<td> Invoked every time an edge between vertices <tt>u</tt> and <tt>v</tt>
+     should be added to the graph <tt>g</tt>.
+</td></tr>
+
+</tbody></table>
+
+</p><h3>Models</h3>
+
+Two models of this concept are defined in the file 
+<a href="../../../boost/graph/planar_detail/add_edge_visitors.hpp">
+<tt>add_edge_visitors.hpp</tt></a>:
+
+<ul>
+<li><tt>default_add_edge_visitor</tt>: The constructor of this class takes
+no arguments.<tt>visit_vertex_pair(u, v, g)</tt> is just a dispatch to
+<tt>add_edge(u, v, g)</tt>. 
+<li><tt>edge_index_update_visitor</tt>: The constructor of this class takes
+two arguments: the first, an EdgeIndexMap,
+is a <a href="../../property_map/doc/ReadWritePropertyMap.html">
+ReadWritePropertyMap</a> that maps each edge in the associated graph 
+<tt>g</tt> to a distinct integer in the range <tt>[0, num_edges(g))</tt>. 
+The second argument is the number of edges in the underlying graph, which 
+serves as the "next available index" counter within the visitor.
+For example, in the case the graph used has an initialized interior 
+edge index, the <tt>edge_index_update_visitor</tt> constructor should be 
+called with <tt>get(edge_index, g)</tt> as the edge index and 
+<tt>num_edges(g)</tt> as the next available index. When 
+<tt>visit_vertex_pair(u, v, g)</tt> is called, the 
+<tt>edge_index_update_visitor</tt> will add the edge <i>(u,v)</i> to the graph
+and update the edge index for the newly created edge.
+</ul>
+
+<p>
+
+<br>
+</p><hr>
+Copyright © 2007 Aaron Windsor (<a href="mailto:aaron.windsor@gmail.com">
+aaron.windsor@gmail.com</a>) 
+
+</body></html>

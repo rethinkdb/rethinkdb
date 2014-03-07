@@ -1,0 +1,191 @@
+//  time2_demo.output  ----------------------------------------------------------//
+
+//  Copyright 2008 Howard Hinnant
+//  Copyright 2008 Beman Dawes
+
+//  Distributed under the Boost Software License, Version 1.0.
+//  See http://www.boost.org/LICENSE_1_0.txt
+
+Running basic examples
+sleep_for 3000000 microseconds
+sleep_for 1 microseconds
+sleep_until    10:47:17.728293 which is 4499340 microseconds away
+try_lock_for 30000 microseconds
+try_lock_until 10:47:17.728285 which is 4499303 microseconds away
+wait_for 60000000 microseconds
+wait_until     10:47:17.728285 which is 4499264 microseconds away
+sleep_for 250000 microseconds
+sleep_until    10:47:14.729077 which is 1499979 microseconds away
+***************
+* testStdUser *
+***************
+100 hours expressed as hours = 100
+100 hours expressed as nanoseconds = 360000000000000
+200 hours expressed as nanoseconds = 720000000000000
+300 hours expressed as nanoseconds = 1080000000000000
+hr = ns;  // does not compile
+hr * ns;  // does not compile
+duration<double> has count() = 2.5
+seconds sec = duration<double> won't compile
+seconds has count() = 2
+
+*************
+* testUser1 *
+*************
+Speed = 24.5872 meters/sec
+Acceleration = 9.81456 meters/sec^2
+Distance = 13.5204 meters
+There are 125/201168 miles/meter which is approximately 0.000621371
+There are 201168/125 meters/mile which is approximately 1609.34
+1 attosecond is 1e-18 seconds
+sec = as;  // compiles
+1 second is 1e+18 attoseconds
+as = sec;  // compiles
+
+*************
+* testUser2 *
+*************
+100 years expressed as years = 100
+100 years expressed as nanoseconds = 3155695200000000000
+200 years expressed as nanoseconds = 6311390400000000000
+300 years expressed as nanoseconds = inf
+yr = ns;  // does not compile
+ps = yr;  // does not compile
+100 years expressed as picoseconds = inf
+0.1 years expressed as picoseconds = 3155695200000000000
+200 million years ago encoded in years: -200000000
+200 million years ago encoded in days: -73048500000
+200 million years ago encoded in millennium: -200000
+Demonstrate "uninitialized protection" behavior:
+nan
+
+d = 3e-09
+d = 10800
+d = 0.666667
+d = 10799.999999997
+292 years of hours = 2559672hr
+Add a nanosecond = 9214819200000000001ns
+Find the difference = 1ns
+244,000 years of hours = 2138904000hr
+Add a microsecond = 7700054400000000001us
+Find the difference = 1us
+********* nanoseconds *********
+The period of nanoseconds is 1e-09 seconds.
+The frequency of nanoseconds is 1e+09 Hz.
+The representation is integral
+The precision is 1e-09 seconds.
+The range is +/- 292.277 years.
+sizeof(nanoseconds) = 8
+********* microseconds *********
+The period of microseconds is 1e-06 seconds.
+The frequency of microseconds is 1e+06 Hz.
+The representation is integral
+The precision is 1e-06 seconds.
+The range is +/- 292277 years.
+sizeof(microseconds) = 8
+********* milliseconds *********
+The period of milliseconds is 0.001 seconds.
+The frequency of milliseconds is 1000 Hz.
+The representation is integral
+The precision is 0.001 seconds.
+The range is +/- 2.92277e+08 years.
+sizeof(milliseconds) = 8
+********* seconds *********
+The period of seconds is 1 seconds.
+The frequency of seconds is 1 Hz.
+The representation is integral
+The precision is 1 seconds.
+The range is +/- 2.92277e+11 years.
+sizeof(seconds) = 8
+********* minutes *********
+The period of minutes is 60 seconds.
+The frequency of minutes is 0.0166667 Hz.
+The representation is integral
+The precision is 60 seconds.
+The range is +/- 4083.06 years.
+sizeof(minutes) = 4
+********* hours *********
+The period of hours is 3600 seconds.
+The frequency of hours is 0.000277778 Hz.
+The representation is integral
+The precision is 3600 seconds.
+The range is +/- 244984 years.
+sizeof(hours) = 4
+********* duration<double> *********
+The period of duration<double> is 1 seconds.
+The frequency of duration<double> is 1 Hz.
+The representation is floating point
+The precision is the most significant 15 decimal digits.
+The range is +/- 5.69666e+300 years.
+sizeof(duration<double>) = 8
+success
+test_with_xtime
+{3,251000}
+3251 milliseconds
+{3,251000}
+{3,0}
+{3,1}
+system_clock test
+paused 5001000 nanoseconds
+system_clock resolution estimate: 0 nanoseconds
+monotonic_clock test
+paused 5000181 nanoseconds
+monotonic_clock resolution estimate: 97 nanoseconds
+high_resolution_clock test
+paused 5000277 nanoseconds
+high_resolution_clock resolution estimate: 96 nanoseconds
+mixed clock test
+Add 5 milliseconds to a high_resolution_clock::time_point
+Subtracting system_clock::time_point from monotonic_clock::time_point doesn't compile
+subtract high_resolution_clock::time_point from monotonic_clock::time_point and add that to a system_clock::time_point
+subtract two system_clock::time_point's and output that in microseconds:
+5000 microseconds
+timeval_demo system clock test
+sizeof xtime_clock::time_point = 8
+sizeof xtime_clock::duration = 8
+sizeof xtime_clock::rep = 8
+paused 5001000 nanoseconds
+runtime_resolution test
+paused 5000205 nanoseconds
+C map test
+It is now 10:47:13 2008-4-22
+Round-tripping through the C interface truncated the precision by 255445 microseconds
+2160000
+0
+3600000
+0
+2999998997 * 1/1000000000 seconds
+0 * 1/1000000000 seconds
+15778476000000000 microseconds
+paused 5001000 nanoseconds
+********* milliseconds(3) * 2.5 *********
+The period of milliseconds(3) * 2.5 is 0.001 seconds.
+The frequency of milliseconds(3) * 2.5 is 1000 Hz.
+The representation is floating point
+The precision is the most significant 15 decimal digits.
+The range is +/- 5.69666e+297 years.
+sizeof(milliseconds(3) * 2.5) = 8
+7.5
+milliseconds ms(3.5) doesn't compile
+
+Simulated 400MHz clock which has a tick period of 2.5 nanoseconds
+delay = 500 nanoseconds which is 200 cycles
+paused 201 cycles which is 502 nanoseconds
+
+Simulated 400MHz clock modeled with nanoseconds
+delay = 500 nanoseconds
+paused 503 nanoseconds
+
+Simulated 1500MHz clock which has a tick period of 0.666667 nanoseconds
+delay = 500 nanoseconds which is 750 cycles
+paused 751 cycles which is 500 nanoseconds
+
+Simulated 1500MHz clock modeled with nanoseconds
+delay = 500 nanoseconds
+paused 500 nanoseconds
+duration<unsigned>::min().count()  = 0
+duration<unsigned>::zero().count() = 0
+duration<unsigned>::max().count()  = 4294967295
+duration<int>::min().count()       = -2147483647
+duration<int>::zero().count()      = 0
+duration<int>::max().count()       = 2147483647

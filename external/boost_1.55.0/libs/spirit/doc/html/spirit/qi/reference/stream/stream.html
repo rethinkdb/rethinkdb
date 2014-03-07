@@ -1,0 +1,499 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Stream Parsers (stream, wstream, etc.)</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../stream.html" title="Stream Parsers">
+<link rel="prev" href="../stream.html" title="Stream Parsers">
+<link rel="next" href="../string.html" title="String Parsers">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../stream.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../stream.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../string.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.reference.stream.stream"></a><a class="link" href="stream.html" title="Stream Parsers (stream, wstream, etc.)">Stream Parsers
+          (<code class="computeroutput"><span class="identifier">stream</span></code>, <code class="computeroutput"><span class="identifier">wstream</span></code>, etc.)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.qi.reference.stream.stream.h0"></a>
+            <span class="phrase"><a name="spirit.qi.reference.stream.stream.description"></a></span><a class="link" href="stream.html#spirit.qi.reference.stream.stream.description">Description</a>
+          </h6>
+<p>
+            The <code class="computeroutput"><span class="identifier">stream_parser</span></code> is
+            a primitive which allows to use pre-existing standard streaming operators
+            for input parsing integrated with <span class="emphasis"><em>Spirit.Qi</em></span>. It
+            provides a wrapper parser dispatching the underlying input stream to
+            the stream operator of the corresponding attribute type to be parsed.
+            Any value <code class="computeroutput"><span class="identifier">a</span></code> to be parsed
+            using the <code class="computeroutput"><span class="identifier">stream_parser</span></code>
+            will result in invoking the standard streaming operator for its type
+            <code class="computeroutput"><span class="identifier">A</span></code>, for instance:
+          </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">istream</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">&gt;&gt;</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">istream</span><span class="special">&amp;,</span> <span class="identifier">A</span><span class="special">&amp;);</span>
+</pre>
+<h6>
+<a name="spirit.qi.reference.stream.stream.h1"></a>
+            <span class="phrase"><a name="spirit.qi.reference.stream.stream.header"></a></span><a class="link" href="stream.html#spirit.qi.reference.stream.stream.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/stream.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_stream</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.stream.stream.h2"></a>
+            <span class="phrase"><a name="spirit.qi.reference.stream.stream.namespace"></a></span><a class="link" href="stream.html#spirit.qi.reference.stream.stream.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">stream</span> <span class="comment">//
+                      alias: boost::spirit::qi::stream</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">wstream</span> <span class="comment">//
+                      alias: boost::spirit::qi::wstream</span></code>
+                    </p>
+                  </td></tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.stream.stream.h3"></a>
+            <span class="phrase"><a name="spirit.qi.reference.stream.stream.synopsis"></a></span><a class="link" href="stream.html#spirit.qi.reference.stream.stream.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Char</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Attrib</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">stream_parser</span><span class="special">;</span>
+</pre>
+<h6>
+<a name="spirit.qi.reference.stream.stream.h4"></a>
+            <span class="phrase"><a name="spirit.qi.reference.stream.stream.template_parameters"></a></span><a class="link" href="stream.html#spirit.qi.reference.stream.stream.template_parameters">Template
+            parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Default
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Char</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The character type to use to generate the input. This type
+                      will be used while assigning the generated characters to the
+                      underlying input iterator.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">char</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Attrib</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The type of the attribute the <code class="computeroutput"><span class="identifier">stream_parser</span></code>
+                      is expected to parse its input into.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">basic_hold_any</span><span class="special">&lt;</span><span class="identifier">Char</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.stream.stream.h5"></a>
+            <span class="phrase"><a name="spirit.qi.reference.stream.stream.model_of"></a></span><a class="link" href="stream.html#spirit.qi.reference.stream.stream.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../parser_concepts/primitiveparser.html" title="PrimitiveParser"><code class="computeroutput"><span class="identifier">PrimitiveParser</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">s</span></code></span></dt>
+<dd><p>
+                  A variable instance of any type with a defined matching streaming
+                  <code class="computeroutput"><span class="keyword">operator</span><span class="special">&gt;&gt;()</span></code>
+                  or a <a class="link" href="../basics.html#spirit.qi.reference.basics.lazy_argument">Lazy
+                  Argument</a> that evaluates to any type with a defined matching
+                  streaming <code class="computeroutput"><span class="keyword">operator</span><span class="special">&gt;&gt;()</span></code>.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.qi.reference.stream.stream.h6"></a>
+            <span class="phrase"><a name="spirit.qi.reference.stream.stream.expression_semantics"></a></span><a class="link" href="stream.html#spirit.qi.reference.stream.stream.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../parser_concepts/primitiveparser.html" title="PrimitiveParser"><code class="computeroutput"><span class="identifier">PrimitiveParser</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">stream</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Call the streaming <code class="computeroutput"><span class="keyword">operator</span><span class="special">&gt;&gt;()</span></code> for the type of the
+                      mandatory attribute. The input recognized by this operator
+                      will be the result of the <code class="computeroutput"><span class="identifier">stream</span></code>
+                      parser. This parser never fails (unless the underlying input
+                      stream reports an error). The character type of the I/O istream
+                      is assumed to be <code class="computeroutput"><span class="keyword">char</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">wstream</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Call the streaming <code class="computeroutput"><span class="keyword">operator</span><span class="special">&gt;&gt;()</span></code> for the type of the
+                      mandatory attribute. The input recognized by this operator
+                      will be the result of the <code class="computeroutput"><span class="identifier">wstream</span></code>
+                      parser. This parser never fails (unless the underlying input
+                      stream reports an error). The character type of the I/O istream
+                      is assumed to be <code class="computeroutput"><span class="keyword">wchar_t</span></code>.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+            All parsers listed in the table above are predefined specializations
+            of the <code class="computeroutput"><span class="identifier">stream_parser</span><span class="special">&lt;</span><span class="identifier">Char</span><span class="special">&gt;</span></code> basic stream parser type described
+            below. It is possible to directly use this type to create stream parsers
+            using an arbitrary underlying character type.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">stream_parser</span><span class="special">&lt;</span>
+    <span class="identifier">Char</span><span class="special">,</span> <span class="identifier">Attrib</span>
+<span class="special">&gt;()</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Call the streaming <code class="computeroutput"><span class="keyword">operator</span><span class="special">&gt;&gt;()</span></code> for the type of the
+                      optional attribute, <code class="computeroutput"><span class="identifier">Attrib</span></code>.
+                      The input recognized by this operator will be the result of
+                      the <code class="computeroutput"><span class="identifier">stream_parser</span><span class="special">&lt;&gt;</span></code> parser. This parser
+                      never fails (unless the underlying input stream reports an
+                      error). The character type of the I/O istream is assumed to
+                      be <code class="computeroutput"><span class="identifier">Char</span></code>
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.stream.stream.h7"></a>
+            <span class="phrase"><a name="spirit.qi.reference.stream.stream.additional_requirements"></a></span><a class="link" href="stream.html#spirit.qi.reference.stream.stream.additional_requirements">Additional
+            Requirements</a>
+          </h6>
+<p>
+            All of the stream parsers listed above require the type of the value
+            to parse (the associated attribute) to implement a streaming operator
+            conforming to the usual I/O streams conventions (where <code class="computeroutput"><span class="identifier">attribute_type</span></code> is the type of the value
+            to recognize while parse):
+          </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Istream</span><span class="special">&gt;</span>
+<span class="identifier">Istream</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">&gt;&gt;</span> <span class="special">(</span><span class="identifier">Istream</span><span class="special">&amp;</span> <span class="identifier">os</span><span class="special">,</span> <span class="identifier">attribute_type</span><span class="special">&amp;</span> <span class="identifier">attr</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">// type specific input parsing</span>
+    <span class="keyword">return</span> <span class="identifier">os</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+            This operator will be called by the stream parsers to gather the input
+            for the attribute of type <code class="computeroutput"><span class="identifier">attribute_type</span></code>.
+          </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              If the <code class="computeroutput"><span class="identifier">stream</span></code> parser
+              is invoked inside a <a class="link" href="../parse_api/stream_api.html" title="Stream Based Parser API"><code class="computeroutput"><span class="identifier">match</span></code></a> (or <a class="link" href="../parse_api/stream_api.html" title="Stream Based Parser API"><code class="computeroutput"><span class="identifier">phrase_match</span></code></a>) stream manipulator
+              the <code class="computeroutput"><span class="identifier">Istream</span></code> passed
+              to the <code class="computeroutput"><span class="keyword">operator</span><span class="special">&gt;&gt;()</span></code>
+              will have registered (imbued) the same standard locale instance as
+              the stream the <a class="link" href="../parse_api/stream_api.html" title="Stream Based Parser API"><code class="computeroutput"><span class="identifier">match</span></code></a> (or <a class="link" href="../parse_api/stream_api.html" title="Stream Based Parser API"><code class="computeroutput"><span class="identifier">phrase_match</span></code></a>) manipulator
+              has been used with. This ensures all facets registered (imbued) with
+              the original I/O stream object are used during input parsing.
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.stream.stream.h8"></a>
+            <span class="phrase"><a name="spirit.qi.reference.stream.stream.attributes"></a></span><a class="link" href="stream.html#spirit.qi.reference.stream.stream.attributes">Attributes</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">stream</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">hold_any</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">wstream</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">whold_any</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">stream_parser</span><span class="special">&lt;</span><span class="identifier">Char</span><span class="special">,</span> <span class="identifier">Attrib</span><span class="special">&gt;()</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Attrib</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The attribute type <code class="computeroutput"><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">hold_any</span></code>
+              exposed by some of the stream parsers is semantically and syntactically
+              equivalent to the type implemented by <a href="../../../../../../../../libs/any/index.html" target="_top">Boost.Any</a>.
+              It has been added to <span class="emphasis"><em>Spirit</em></span> as it has better performance
+              and a smaller footprint than <a href="../../../../../../../../libs/any/index.html" target="_top">Boost.Any</a>.
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.stream.stream.h9"></a>
+            <span class="phrase"><a name="spirit.qi.reference.stream.stream.complexity"></a></span><a class="link" href="stream.html#spirit.qi.reference.stream.stream.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              O(N), where N is the number of characters consumed by the stream parser
+            </p></blockquote></div>
+<h6>
+<a name="spirit.qi.reference.stream.stream.h10"></a>
+            <span class="phrase"><a name="spirit.qi.reference.stream.stream.example"></a></span><a class="link" href="stream.html#spirit.qi.reference.stream.stream.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.qi.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            A class definition used in the examples:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// a simple complex number representation z = a + bi</span>
+<span class="keyword">struct</span> <span class="identifier">complex</span>
+<span class="special">{</span>
+    <span class="identifier">complex</span> <span class="special">(</span><span class="keyword">double</span> <span class="identifier">a</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">,</span> <span class="keyword">double</span> <span class="identifier">b</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">)</span>
+      <span class="special">:</span> <span class="identifier">a</span><span class="special">(</span><span class="identifier">a</span><span class="special">),</span> <span class="identifier">b</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span>
+    <span class="special">{}</span>
+
+    <span class="keyword">double</span> <span class="identifier">a</span><span class="special">;</span>
+    <span class="keyword">double</span> <span class="identifier">b</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// define streaming operator for the type complex</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">istream</span><span class="special">&amp;</span>
+<span class="keyword">operator</span><span class="special">&gt;&gt;</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">istream</span><span class="special">&amp;</span> <span class="identifier">is</span><span class="special">,</span> <span class="identifier">complex</span><span class="special">&amp;</span> <span class="identifier">z</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">char</span> <span class="identifier">lbrace</span> <span class="special">=</span> <span class="char">'\0'</span><span class="special">,</span> <span class="identifier">comma</span> <span class="special">=</span> <span class="char">'\0'</span><span class="special">,</span> <span class="identifier">rbrace</span> <span class="special">=</span> <span class="char">'\0'</span><span class="special">;</span>
+    <span class="identifier">is</span> <span class="special">&gt;&gt;</span> <span class="identifier">lbrace</span> <span class="special">&gt;&gt;</span> <span class="identifier">z</span><span class="special">.</span><span class="identifier">a</span> <span class="special">&gt;&gt;</span> <span class="identifier">comma</span> <span class="special">&gt;&gt;</span> <span class="identifier">z</span><span class="special">.</span><span class="identifier">b</span> <span class="special">&gt;&gt;</span> <span class="identifier">rbrace</span><span class="special">;</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">lbrace</span> <span class="special">!=</span> <span class="char">'{'</span> <span class="special">||</span> <span class="identifier">comma</span> <span class="special">!=</span> <span class="char">','</span> <span class="special">||</span> <span class="identifier">rbrace</span> <span class="special">!=</span> <span class="char">'}'</span><span class="special">)</span>
+        <span class="identifier">is</span><span class="special">.</span><span class="identifier">setstate</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">failbit</span><span class="special">);</span>
+    <span class="keyword">return</span> <span class="identifier">is</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            Using declarations and variables:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">stream</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">stream_parser</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Parse a simple string using the operator&gt;&gt;(istream&amp;, std::string&amp;);
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span><span class="special">;</span>
+<span class="identifier">test_parser_attr</span><span class="special">(</span><span class="string">"abc"</span><span class="special">,</span> <span class="identifier">stream</span><span class="special">,</span> <span class="identifier">str</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">str</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>                  <span class="comment">// prints: abc</span>
+</pre>
+<p>
+          </p>
+<p>
+            Parse our complex type using the operator&gt;&gt;(istream&amp;, complex&amp;);
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">complex</span> <span class="identifier">c</span><span class="special">;</span>
+<span class="identifier">test_parser_attr</span><span class="special">(</span><span class="string">"{1.0,2.5}"</span><span class="special">,</span> <span class="identifier">stream_parser</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="identifier">complex</span><span class="special">&gt;(),</span> <span class="identifier">c</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">a</span> <span class="special">&lt;&lt;</span> <span class="string">","</span> <span class="special">&lt;&lt;</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">b</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>    <span class="comment">// prints: 1.0,2.5</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../stream.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../stream.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../string.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

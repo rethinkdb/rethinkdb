@@ -1,0 +1,431 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:regex_token_iterator regex_token_iterator]
+
+The template class [regex_token_iterator] is an iterator adapter; that is to 
+say it represents a new view of an existing iterator sequence, 
+by enumerating all the occurrences of a regular expression within that 
+sequence, and presenting one or more character sequence for each match found. 
+Each position enumerated by the iterator is a [sub_match] object that represents 
+what matched a particular sub-expression within the regular expression. 
+When class [regex_token_iterator] is used to enumerate a single sub-expression 
+with index -1, then the iterator performs field splitting: that is 
+to say it enumerates one character sequence for each section of the character 
+container sequence that does not match the regular expression specified.
+
+   template <class BidirectionalIterator, 
+            class charT = iterator_traits<BidirectionalIterator>::value_type,
+            class traits = regex_traits<charT> >
+   class regex_token_iterator 
+   {
+   public:
+      typedef          basic_regex<charT, traits>                              regex_type;
+      typedef          sub_match<BidirectionalIterator>                        value_type;
+      typedef typename iterator_traits<BidirectionalIterator>::difference_type difference_type;
+      typedef          const value_type*                                       pointer;
+      typedef          const value_type&                                       reference;
+      typedef          std::forward_iterator_tag                               iterator_category;
+      
+      ``[link boost_regex.regex_token_iterator.construct1 regex_token_iterator]``();
+      ``[link boost_regex.regex_token_iterator.construct2 regex_token_iterator]``(BidirectionalIterator a, 
+                           BidirectionalIterator b, 
+                           const regex_type& re, 
+                           int submatch = 0, 
+                           match_flag_type m = match_default);
+      ``[link boost_regex.regex_token_iterator.construct3 regex_token_iterator]``(BidirectionalIterator a, 
+                           BidirectionalIterator b, 
+                           const regex_type& re, 
+                           const std::vector<int>& submatches, 
+                           match_flag_type m = match_default);
+      template <std::size_t N>
+      ``[link boost_regex.regex_token_iterator.construct4 regex_token_iterator]``(BidirectionalIterator a, 
+                           BidirectionalIterator b, 
+                           const regex_type& re, 
+                           const int (&submatches)[N], 
+                           match_flag_type m = match_default);
+      ``[link boost_regex.regex_token_iterator.construct5 regex_token_iterator]``(const regex_token_iterator&);
+      regex_token_iterator& ``[link boost_regex.regex_token_iterator.assign operator=]``(const regex_token_iterator&);
+      bool ``[link boost_regex.regex_token_iterator.op_eq operator==]``(const regex_token_iterator&)const;
+      bool ``[link boost_regex.regex_token_iterator.op_ne operator!=]``(const regex_token_iterator&)const;
+      const value_type& ``[link boost_regex.regex_token_iterator.op_deref operator*]``()const;
+      const value_type* ``[link boost_regex.regex_token_iterator.op_arrow operator->]``()const;
+      regex_token_iterator& ``[link boost_regex.regex_token_iterator.op_inc1 operator++]``();
+      regex_token_iterator ``[link boost_regex.regex_token_iterator.op_inc2 operator++]``(int);
+   };
+
+   typedef regex_token_iterator<const char*>                   cregex_token_iterator;
+   typedef regex_token_iterator<std::string::const_iterator>   sregex_token_iterator;
+   #ifndef BOOST_NO_WREGEX
+   typedef regex_token_iterator<const wchar_t*>                wcregex_token_iterator;
+   typedef regex_token_iterator<<std::wstring::const_iterator> wsregex_token_iterator;
+   #endif
+
+   template <class charT, class traits>
+   regex_token_iterator<const charT*, charT, traits> 
+      ``[link boost_regex.regex_token_iterator.make make_regex_token_iterator]``(
+            const charT* p, 
+            const basic_regex<charT, traits>& e, 
+            int submatch = 0, 
+            regex_constants::match_flag_type m = regex_constants::match_default);
+                                
+   template <class charT, class traits, class ST, class SA>
+   regex_token_iterator<typename std::basic_string<charT, ST, SA>::const_iterator, charT, traits> 
+      ``[link boost_regex.regex_token_iterator.make make_regex_token_iterator]``(
+            const std::basic_string<charT, ST, SA>& p, 
+            const basic_regex<charT, traits>& e, 
+            int submatch = 0, 
+            regex_constants::match_flag_type m = regex_constants::match_default);
+                                
+   template <class charT, class traits, std::size_t N>
+   regex_token_iterator<const charT*, charT, traits> 
+   ``[link boost_regex.regex_token_iterator.make make_regex_token_iterator]``(
+            const charT* p, 
+            const basic_regex<charT, traits>& e, 
+            const int (&submatch)[N], 
+            regex_constants::match_flag_type m = regex_constants::match_default);
+                               
+   template <class charT, class traits, class ST, class SA, std::size_t N>
+   regex_token_iterator<typename std::basic_string<charT, ST, SA>::const_iterator, charT, traits> 
+      ``[link boost_regex.regex_token_iterator.make make_regex_token_iterator]``(
+            const std::basic_string<charT, ST, SA>& p, 
+            const basic_regex<charT, traits>& e, 
+            const int (&submatch)[N], 
+            regex_constants::match_flag_type m = regex_constants::match_default);
+                                
+   template <class charT, class traits>
+   regex_token_iterator<const charT*, charT, traits> 
+      ``[link boost_regex.regex_token_iterator.make make_regex_token_iterator]``(
+            const charT* p, 
+            const basic_regex<charT, traits>& e, 
+            const std::vector<int>& submatch, 
+            regex_constants::match_flag_type m = regex_constants::match_default);
+                                
+   template <class charT, class traits, class ST, class SA>
+   regex_token_iterator<
+         typename std::basic_string<charT, ST, SA>::const_iterator, charT, traits> 
+      ``[link boost_regex.regex_token_iterator.make make_regex_token_iterator]``(
+            const std::basic_string<charT, ST, SA>& p, 
+            const basic_regex<charT, traits>& e, 
+            const std::vector<int>& submatch, 
+            regex_constants::match_flag_type m = regex_constants::match_default);
+
+[h4 Description]
+
+[#boost_regex.regex_token_iterator.construct1]
+
+   regex_token_iterator();
+
+[*Effects]: constructs an end of sequence iterator.
+
+[#boost_regex.regex_token_iterator.construct2]
+
+   regex_token_iterator(BidirectionalIterator a, 
+                        BidirectionalIterator b, 
+                        const regex_type& re, 
+                        int submatch = 0, 
+                        match_flag_type m = match_default);
+
+[*Preconditions]: `!re.empty()`.  Object /re/ shall exist for the lifetime of 
+the iterator constructed from it.
+
+[*Effects]: constructs a [regex_token_iterator] that will enumerate one string for 
+each regular expression match of the expression /re/ found within the sequence \[a,b), 
+using match flags /m/ (see [match_flag_type]).  The string enumerated is the sub-expression /submatch/ 
+for each match found; if /submatch/ is -1, then enumerates all the text 
+sequences that did not match the expression /re/ (that is to performs field 
+splitting).
+
+[*Throws]: `std::runtime_error` if the complexity of matching the expression against 
+an N character string begins to exceed O(N[super 2]), or if the program runs 
+out of stack space while matching the expression (if Boost.Regex is configured 
+in recursive mode), or if the matcher exhausts its permitted memory 
+allocation (if Boost.Regex is configured in non-recursive mode).
+
+[#boost_regex.regex_token_iterator.construct3]
+
+   regex_token_iterator(BidirectionalIterator a, 
+                        BidirectionalIterator b, 
+                        const regex_type& re, 
+                        const std::vector<int>& submatches, 
+                        match_flag_type m = match_default);
+
+[*Preconditions]: `submatches.size() && !re.empty()`.  Object /re/ shall 
+exist for the lifetime of the iterator constructed from it.
+
+[*Effects]: constructs a [regex_token_iterator] that will enumerate 
+`submatches.size()` strings for each regular expression match of 
+the expression /re/ found within the sequence \[a,b), using match flags /m/ 
+(see [match_flag_type]).  For each match found one string will be enumerated 
+for each sub-expression index contained within submatches vector; if 
+`submatches[0]` is -1, then the first string enumerated for each match will be 
+all of the text from end of the last match to the start of the current match, 
+in addition there will be one extra string enumerated when no more matches can 
+be found: from the end of the last match found, to the end of the underlying sequence.
+
+[*Throws]: `std::runtime_error` if the complexity of matching the expression 
+against an N character string begins to exceed O(N[super 2]), or if the 
+program runs out of stack space while matching the expression (if Boost.Regex is 
+configured in recursive mode), or if the matcher exhausts its permitted memory 
+allocation (if Boost.Regex is configured in non-recursive mode).
+
+[#boost_regex.regex_token_iterator.construct4]
+
+   template <std::size_t N>
+   regex_token_iterator(BidirectionalIterator a, 
+                        BidirectionalIterator b, 
+                        const regex_type& re, 
+                        const int (&submatches)[R], 
+                        match_flag_type m = match_default);
+
+[*Preconditions]: `!re.empty()`.  Object /re/ shall exist for the lifetime of the iterator constructed from it.
+
+[*Effects]: constructs a [regex_token_iterator] that will enumerate /R/ strings 
+for each regular expression match of the expression /re/ found within the sequence 
+\[a,b), using match flags /m/ (see [match_flag_type]).  For each match found one 
+string will be enumerated for each sub-expression index contained within the 
+/submatches/ array; if `submatches[0]` is -1, then the first string enumerated for 
+each match will be all of the text from end of the last match to the start 
+of the current match, in addition there will be one extra string enumerated when 
+no more matches can be found: from the end of the last match found, to 
+the end of the underlying sequence.
+
+[*Throws]: `std::runtime_error` if the complexity of matching the expression 
+against an N character string begins to exceed O(N[super 2]), or if the 
+program runs out of stack space while matching the expression (if Boost.Regex 
+is configured in recursive mode), or if the matcher exhausts its 
+permitted memory allocation (if Boost.Regex is configured in non-recursive mode).
+
+[#boost_regex.regex_token_iterator.construct5]
+
+   regex_token_iterator(const regex_token_iterator& that);
+
+[*Effects]: constructs a copy of `that`.
+
+[*Postconditions]: `*this == that`.
+
+[#boost_regex.regex_token_iterator.assign]
+
+   regex_token_iterator& operator=(const regex_token_iterator& that);
+
+[*Effects]: sets `*this` to be equal to `that`.
+
+[*Postconditions]: `*this == that`.
+
+[#boost_regex.regex_token_iterator.op_eq]
+
+   bool operator==(const regex_token_iterator&)const;
+
+[*Effects]: returns true if `*this` is the same position as `that`.
+
+[#boost_regex.regex_token_iterator.op_ne]
+
+   bool operator!=(const regex_token_iterator&)const;
+
+[*Effects]: returns `!(*this == that)`.
+
+[#boost_regex.regex_token_iterator.op_deref]
+
+   const value_type& operator*()const;
+
+[*Effects]: returns the current character sequence being enumerated.
+
+[#boost_regex.regex_token_iterator.op_arrow]
+
+   const value_type* operator->()const;
+
+[*Effects]: returns `&(*this)`.
+
+[#boost_regex.regex_token_iterator.op_inc1]
+
+   regex_token_iterator& operator++();
+
+[*Effects]: Moves on to the next character sequence to be enumerated.
+
+[*Throws]: `std::runtime_error` if the complexity of matching the expression 
+against an N character string begins to exceed O(N[super 2]), or if the program 
+runs out of stack space while matching the expression (if Boost.Regex is 
+configured in recursive mode), or if the matcher exhausts its permitted 
+memory allocation (if Boost.Regex is configured in non-recursive mode).
+
+[*Returns]: `*this`.
+
+[#boost_regex.regex_token_iterator.op_inc2]
+
+   regex_token_iterator& operator++(int);
+
+[*Effects]: constructs a copy result of `*this`, then calls `++(*this)`.
+
+[*Returns]: result.
+
+[#boost_regex.regex_token_iterator.make]
+
+   template <class charT, class traits>
+   regex_token_iterator<const charT*, charT, traits> 
+      make_regex_token_iterator(
+            const charT* p, 
+            const basic_regex<charT, traits>& e, 
+            int submatch = 0, 
+            regex_constants::match_flag_type m = regex_constants::match_default);
+                             
+   template <class charT, class traits, class ST, class SA>
+   regex_token_iterator<typename std::basic_string<charT, ST, SA>::const_iterator, charT, traits> 
+      make_regex_token_iterator(
+            const std::basic_string<charT, ST, SA>& p, 
+            const basic_regex<charT, traits>& e, 
+            int submatch = 0, 
+            regex_constants::match_flag_type m = regex_constants::match_default);
+                                
+   template <class charT, class traits, std::size_t N>
+   regex_token_iterator<const charT*, charT, traits> 
+   make_regex_token_iterator(
+            const charT* p, 
+            const basic_regex<charT, traits>& e, 
+            const int (&submatch)[N], 
+            regex_constants::match_flag_type m = regex_constants::match_default);
+                               
+   template <class charT, class traits, class ST, class SA, std::size_t N>
+   regex_token_iterator<
+         typename std::basic_string<charT, ST, SA>::const_iterator, charT, traits> 
+      make_regex_token_iterator(
+            const std::basic_string<charT, ST, SA>& p, 
+            const basic_regex<charT, traits>& e, 
+            const int (&submatch)[N], 
+            regex_constants::match_flag_type m = regex_constants::match_default);
+                                
+   template <class charT, class traits>
+   regex_token_iterator<const charT*, charT, traits> 
+      make_regex_token_iterator(
+            const charT* p, 
+            const basic_regex<charT, traits>& e, 
+            const std::vector<int>& submatch, 
+            regex_constants::match_flag_type m = regex_constants::match_default);
+                                
+   template <class charT, class traits, class ST, class SA>
+   regex_token_iterator<
+         typename std::basic_string<charT, ST, SA>::const_iterator, charT, traits> 
+      make_regex_token_iterator(
+            const std::basic_string<charT, ST, SA>& p, 
+            const basic_regex<charT, traits>& e, 
+            const std::vector<int>& submatch, 
+            regex_constants::match_flag_type m = regex_constants::match_default);
+
+[*Effects]: returns a [regex_token_iterator] that enumerates one [sub_match] 
+for each value in /submatch/ for each occurrence of regular expression /e/ 
+in string /p/, matched using [match_flag_type] /m/.
+
+[h4 Examples]
+
+The following example takes a string and splits it into a series of tokens:
+
+   #include <iostream>
+   #include <boost/regex.hpp>
+
+   using namespace std;
+
+   int main(int argc)
+   {
+      string s;
+      do{
+         if(argc == 1)
+         {
+            cout << "Enter text to split (or \"quit\" to exit): ";
+            getline(cin, s);
+            if(s == "quit") break;
+         }
+         else
+            s = "This is a string of tokens";
+
+         boost::regex re("\\s+");
+         boost::sregex_token_iterator i(s.begin(), s.end(), re, -1);
+         boost::sregex_token_iterator j;
+
+         unsigned count = 0;
+         while(i != j)
+         {
+            cout << *i++ << endl;
+            count++;
+         }
+         cout << "There were " << count << " tokens found." << endl;
+
+      }while(argc == 1);
+      return 0;
+   }
+
+
+The following example takes a html file and outputs a list of all the linked files:
+
+   #include <fstream>
+   #include <iostream>
+   #include <iterator>
+   #include <boost/regex.hpp>
+
+   boost::regex e("<\\s*A\\s+[^>]*href\\s*=\\s*\"([^\"]*)\"",
+                  boost::regex::normal | boost::regbase::icase);
+
+   void load_file(std::string& s, std::istream& is)
+   {
+      s.erase();
+      //
+      // attempt to grow string buffer to match file size,
+      // this doesn't always work...
+      s.reserve(is.rdbuf()->in_avail());
+      char c;
+      while(is.get(c))
+      {
+         // use logarithmic growth stategy, in case
+         // in_avail (above) returned zero:
+         if(s.capacity() == s.size())
+            s.reserve(s.capacity() * 3);
+         s.append(1, c);
+      }
+   }
+
+   int main(int argc, char** argv)
+   {
+      std::string s;
+      int i;
+      for(i = 1; i < argc; ++i)
+      {
+         std::cout << "Findings URL's in " << argv[i] << ":" << std::endl;
+         s.erase();
+         std::ifstream is(argv[i]);
+         load_file(s, is);
+         boost::sregex_token_iterator i(s.begin(), s.end(), e, 1);
+         boost::sregex_token_iterator j;
+         while(i != j)
+         {
+            std::cout << *i++ << std::endl;
+         }
+      }
+      //
+      // alternative method:
+      // test the array-literal constructor, and split out the whole
+      // match as well as $1....
+      //
+      for(i = 1; i < argc; ++i)
+      {
+         std::cout << "Findings URL's in " << argv[i] << ":" << std::endl;
+         s.erase();
+         std::ifstream is(argv[i]);
+         load_file(s, is);
+         const int subs[] = {1, 0,};
+         boost::sregex_token_iterator i(s.begin(), s.end(), e, subs);
+         boost::sregex_token_iterator j;
+         while(i != j)
+         {
+            std::cout << *i++ << std::endl;
+         }
+      }
+
+      return 0;
+   }
+
+     
+[endsect]
+

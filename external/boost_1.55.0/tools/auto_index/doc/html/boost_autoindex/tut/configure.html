@@ -1,0 +1,139 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Step 2: Configure Boost.Build jamfile to use AutoIndex</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../index.html" title="Boost.AutoIndex">
+<link rel="up" href="../tut.html" title="Getting Started and Tutorial">
+<link rel="prev" href="build.html" title="Step 1: Build the AutoIndex tool">
+<link rel="next" href="configure/options.html" title="Available Indexing Options">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="build.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="configure/options.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_autoindex.tut.configure"></a><a class="link" href="configure.html" title="Step 2: Configure Boost.Build jamfile to use AutoIndex">Step 2: Configure Boost.Build
+      jamfile to use AutoIndex</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="configure/options.html">Available Indexing
+        Options</a></span></dt>
+<dt><span class="section"><a href="configure/optional.html">Making AutoIndex
+        optional</a></span></dt>
+</dl></div>
+<p>
+        Assuming you have a Jamfile for building your documentation that looks something
+        like:
+      </p>
+<pre class="programlisting">boostbook standalone
+    :
+        mylibrary
+    :
+        # build requirements go here:
+    ;
+</pre>
+<p>
+        Then add the line:
+      </p>
+<pre class="programlisting">using auto-index ; </pre>
+<p>
+        to the start of the Jamfile, and then add whatever auto-index options you
+        want to the <span class="emphasis"><em>build requirements section</em></span>, for example:
+      </p>
+<pre class="programlisting">boostbook standalone
+    :
+        mylibrary
+    :
+        # Build requirements go here:
+        
+        # &lt;auto-index&gt;on (or off) one turns on (or off) indexing:
+        &lt;auto-index&gt;on
+        
+        # Turns on (or off) auto-index-verbose for diagnostic info.
+        # This is highly recommended until you have got all the many details correct!
+        &lt;auto-index-verbose&gt;on 
+        
+        # Choose the indexing method (separately for html and PDF) - see manual.
+        # Choose indexing method for PDFs:
+        &lt;format&gt;pdf:&lt;auto-index-internal&gt;off
+        
+        # Choose indexing method for html:
+        &lt;format&gt;html:&lt;auto-index-internal&gt;on
+        
+        # Set the name of the script file to use (index.idx is popular):
+        &lt;auto-index-script&gt;index.idx
+        # Commands in the script file should all use RELATIVE PATHS
+        # otherwise the script will not be portable to other machines.
+        # Relative paths are normally taken as relative to the location 
+        # of the script file, but we can add a prefix to all
+        # those relative paths using the &lt;auto-index-prefix&gt; feature.
+        # The path specified by &lt;auto-index-prefix&gt; may be either relative or
+        # absolute, for example the following will get us up to the boost root
+        # directory for most Boost libraries:
+        &lt;auto-index-prefix&gt;../../..
+
+        # Tell Quickbook that it should enable indexing.
+        &lt;quickbook-define&gt;enable_index ;
+      
+    ;
+</pre>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Always send the output to a log file. It will contain of lot of stuff,
+          but is invaluable to check if all has gone right, or else diagnose what
+          has gone wrong.
+        </p></td></tr>
+</table></div>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          A return code of 0 is not a reliable indication that you have got what
+          you really want - inspecting the log file is the only certain way.
+        </p></td></tr>
+</table></div>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          If you upgrade compiler version, for example MSVC from 9 to 10, then you
+          may need to rebuild Autoindex to avoid what Microsoft call a 'side-by-side'
+          error. And make sure that the autoindex.exe version you are using is the
+          new one.
+        </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008, 2011 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="build.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="configure/options.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

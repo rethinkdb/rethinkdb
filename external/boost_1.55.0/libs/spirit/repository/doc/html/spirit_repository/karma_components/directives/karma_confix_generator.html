@@ -1,0 +1,326 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Karma Confix Generator</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit Repository 0.2">
+<link rel="up" href="../directives.html" title="Karma Generator Directives">
+<link rel="prev" href="../directives.html" title="Karma Generator Directives">
+<link rel="next" href="../nonterminal.html" title="Karma Generator Non-terminals">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../directives.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directives.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../nonterminal.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit_repository.karma_components.directives.karma_confix_generator"></a><a class="link" href="karma_confix_generator.html" title="Karma Confix Generator">Karma
+        Confix Generator</a>
+</h4></div></div></div>
+<h6>
+<a name="spirit_repository.karma_components.directives.karma_confix_generator.h0"></a>
+          <span class="phrase"><a name="spirit_repository.karma_components.directives.karma_confix_generator.description"></a></span><a class="link" href="karma_confix_generator.html#spirit_repository.karma_components.directives.karma_confix_generator.description">Description</a>
+        </h6>
+<p>
+          The <span class="emphasis"><em>Spirit.Karma</em></span> <code class="computeroutput"><span class="identifier">confix</span></code>
+          generator is a generator directive component allowing to embed any generated
+          ouput inside an opening (a prefix) and a closing (a suffix). A simple example
+          is a C comment: <code class="computeroutput"><span class="comment">/* This is a C comment */</span></code>
+          which can be generated using the <code class="computeroutput"><span class="identifier">confix</span></code>
+          generator as: <code class="computeroutput"><span class="identifier">confix</span><span class="special">(</span><span class="string">"/*"</span><span class="special">,</span>
+          <span class="string">"*/"</span><span class="special">)[</span><span class="string">"This is a C comment"</span><span class="special">]</span></code>.
+          The general syntax for using the <code class="computeroutput"><span class="identifier">confix</span></code>
+          is:
+        </p>
+<pre class="programlisting"><span class="identifier">confix</span><span class="special">(</span><span class="identifier">prefix</span><span class="special">,</span> <span class="identifier">suffix</span><span class="special">)[</span><span class="identifier">subject</span><span class="special">]</span>
+</pre>
+<p>
+          which results in generating a sequence equivalent to
+        </p>
+<pre class="programlisting"><span class="identifier">prefix</span> <span class="special">&lt;&lt;</span> <span class="identifier">subject</span> <span class="special">&lt;&lt;</span> <span class="identifier">suffix</span>
+</pre>
+<p>
+          Using the <code class="computeroutput"><span class="identifier">confix</span></code> component
+          instead of the explicit sequence has the advantage of being able to encapsulate
+          the prefix and the suffix into a separate generator construct. The following
+          code snippet illustrates the idea:
+        </p>
+<pre class="programlisting"><span class="comment">// Define a metafunction allowing to compute the type of the confix()</span>
+<span class="comment">// construct</span>
+<span class="keyword">namespace</span> <span class="identifier">traits</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">;</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Prefix</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Suffix</span> <span class="special">=</span> <span class="identifier">Prefix</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">confix_spec</span>
+      <span class="special">:</span> <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">terminal</span><span class="special">&lt;</span><span class="identifier">repository</span><span class="special">::</span><span class="identifier">tag</span><span class="special">::</span><span class="identifier">confix</span><span class="special">(</span><span class="identifier">Prefix</span><span class="special">,</span> <span class="identifier">Suffix</span><span class="special">)&gt;</span>
+    <span class="special">{};</span>
+<span class="special">};</span>
+
+<span class="comment">// Define a helper function allowing to create a confix() construct from </span>
+<span class="comment">// arbitrary prefix and suffix generators</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Prefix</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Suffix</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">traits</span><span class="special">::</span><span class="identifier">confix_spec</span><span class="special">&lt;</span><span class="identifier">Prefix</span><span class="special">,</span> <span class="identifier">Suffix</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">confix_spec</span><span class="special">(</span><span class="identifier">Prefix</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">prefix</span><span class="special">,</span> <span class="identifier">Suffix</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">suffix</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="identifier">repository</span><span class="special">::</span><span class="identifier">confix</span><span class="special">(</span><span class="identifier">prefix</span><span class="special">,</span> <span class="identifier">suffix</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="comment">// Define a helper function to  construct a HTML tag from the tag name</span>
+<span class="keyword">inline</span> <span class="keyword">typename</span> <span class="identifier">traits</span><span class="special">::</span><span class="identifier">confix_spec</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">tag</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">tagname</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">confix_spec</span><span class="special">(</span><span class="string">"&lt;"</span> <span class="special">+</span> <span class="identifier">tagname</span> <span class="special">+</span> <span class="string">"&gt;"</span><span class="special">,</span> <span class="string">"&lt;/"</span> <span class="special">+</span> <span class="identifier">tagname</span> <span class="special">+</span> <span class="string">"&gt;"</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="comment">// Define generators for different HTML tags the HTML tag</span>
+<span class="keyword">typedef</span> <span class="identifier">traits</span><span class="special">::</span><span class="identifier">confix_spec</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">ol</span> <span class="special">=</span> <span class="identifier">tag</span><span class="special">(</span><span class="string">"ol"</span><span class="special">);</span>      <span class="comment">// &lt;ol&gt;...&lt;/ol&gt; </span>
+<span class="keyword">typedef</span> <span class="identifier">traits</span><span class="special">::</span><span class="identifier">confix_spec</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">li</span> <span class="special">=</span> <span class="identifier">tag</span><span class="special">(</span><span class="string">"li"</span><span class="special">);</span>      <span class="comment">// &lt;li&gt;...&lt;/li&gt; </span>
+</pre>
+<p>
+          Now, for instance, the above definitions allow to generate the HTML 'ol'
+          tag using a simple: <code class="computeroutput"><span class="identifier">ol</span><span class="special">[</span><span class="string">"Some text"</span><span class="special">]</span></code> (which results in <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">ol</span><span class="special">&gt;</span><span class="identifier">Some</span> <span class="identifier">text</span><span class="special">&lt;/</span><span class="identifier">ol</span><span class="special">&gt;</span></code>).
+        </p>
+<h6>
+<a name="spirit_repository.karma_components.directives.karma_confix_generator.h1"></a>
+          <span class="phrase"><a name="spirit_repository.karma_components.directives.karma_confix_generator.header"></a></span><a class="link" href="karma_confix_generator.html#spirit_repository.karma_components.directives.karma_confix_generator.header">Header</a>
+        </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/repository/home/karma/directive/confix.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">repository</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma_confix</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="spirit_repository.karma_components.directives.karma_confix_generator.h2"></a>
+          <span class="phrase"><a name="spirit_repository.karma_components.directives.karma_confix_generator.synopsis"></a></span><a class="link" href="karma_confix_generator.html#spirit_repository.karma_components.directives.karma_confix_generator.synopsis">Synopsis</a>
+        </h6>
+<pre class="programlisting"><span class="identifier">confix</span><span class="special">(</span><span class="identifier">prefix</span><span class="special">,</span> <span class="identifier">suffix</span><span class="special">)[</span><span class="identifier">subject</span><span class="special">]</span>
+</pre>
+<h6>
+<a name="spirit_repository.karma_components.directives.karma_confix_generator.h3"></a>
+          <span class="phrase"><a name="spirit_repository.karma_components.directives.karma_confix_generator.parameters"></a></span><a class="link" href="karma_confix_generator.html#spirit_repository.karma_components.directives.karma_confix_generator.parameters">Parameters</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">prefix</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The generator construct to use to format the opening (the prefix).
+                    The prefix is the part generated <span class="emphasis"><em>before</em></span>
+                    any output as generated by the <code class="computeroutput"><span class="identifier">subject</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">suffix</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The generator construct to use to format the ending (the suffix).
+                    The suffix is the part generated <span class="emphasis"><em>after</em></span> any
+                    output as generated by the <code class="computeroutput"><span class="identifier">subject</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">subject</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The generator construct to use to format the actual output in
+                    between the <code class="computeroutput"><span class="identifier">prefix</span></code>
+                    and <code class="computeroutput"><span class="identifier">suffix</span></code> parts.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          All three parameters can be arbitrary complex generators themselves.
+        </p>
+<h6>
+<a name="spirit_repository.karma_components.directives.karma_confix_generator.h4"></a>
+          <span class="phrase"><a name="spirit_repository.karma_components.directives.karma_confix_generator.attribute"></a></span><a class="link" href="karma_confix_generator.html#spirit_repository.karma_components.directives.karma_confix_generator.attribute">Attribute</a>
+        </h6>
+<p>
+          The <code class="computeroutput"><span class="identifier">confix</span></code> component exposes
+          the attribute type of its subject as its own attribute type. If the <code class="computeroutput"><span class="identifier">subject</span></code> does not expose any attribute
+          (the type is <code class="computeroutput"><span class="identifier">unused_type</span></code>),
+          then the <code class="computeroutput"><span class="identifier">confix</span></code> does not
+          expose any attribute either.
+        </p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">confix</span><span class="special">(</span><span class="identifier">p</span><span class="special">,</span> <span class="identifier">s</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+</pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This notation is used all over the Spirit documentation and reads as:
+            Given, <code class="computeroutput"><span class="identifier">a</span></code> is generator,
+            and <code class="computeroutput"><span class="identifier">A</span></code> is the type of
+            the attribute of generator <code class="computeroutput"><span class="identifier">a</span></code>,
+            then the type of the attribute exposed by <code class="computeroutput"><span class="identifier">confix</span><span class="special">(</span><span class="identifier">p</span><span class="special">,</span> <span class="identifier">s</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code> will be <code class="computeroutput"><span class="identifier">A</span></code>
+            as well.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit_repository.karma_components.directives.karma_confix_generator.h5"></a>
+          <span class="phrase"><a name="spirit_repository.karma_components.directives.karma_confix_generator.example"></a></span><a class="link" href="karma_confix_generator.html#spirit_repository.karma_components.directives.karma_confix_generator.example">Example</a>
+        </h6>
+<p>
+          The following example shows simple use cases of the <code class="computeroutput"><span class="identifier">confix</span></code>
+          generator. We will illustrate its usage by generating different comment
+          styles and a function prototype (for the full example code see here: <a href="../../../../../example/karma/confix.cpp" target="_top">confix.cpp</a>)
+        </p>
+<h6>
+<a name="spirit_repository.karma_components.directives.karma_confix_generator.h6"></a>
+          <span class="phrase"><a name="spirit_repository.karma_components.directives.karma_confix_generator.prerequisites"></a></span><a class="link" href="karma_confix_generator.html#spirit_repository.karma_components.directives.karma_confix_generator.prerequisites">Prerequisites</a>
+        </h6>
+<p>
+          In addition to the main header file needed to include the core components
+          implemented in <span class="emphasis"><em>Spirit.Karma</em></span> we add the header file
+          needed for the new <code class="computeroutput"><span class="identifier">confix</span></code>
+          generator.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">repository</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma_confix</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        </p>
+<p>
+          To make all the code below more readable we introduce the following namespaces.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">repository</span><span class="special">::</span><span class="identifier">confix</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="spirit_repository.karma_components.directives.karma_confix_generator.h7"></a>
+          <span class="phrase"><a name="spirit_repository.karma_components.directives.karma_confix_generator.generating_different_comment_styles"></a></span><a class="link" href="karma_confix_generator.html#spirit_repository.karma_components.directives.karma_confix_generator.generating_different_comment_styles">Generating
+          Different Comment Styles</a>
+        </h6>
+<p>
+          We will show how to generate different comment styles. First we will generate
+          a C++ comment:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// C++ comment</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span>
+    <span class="identifier">karma</span><span class="special">::</span><span class="identifier">format_delimited</span><span class="special">(</span>
+        <span class="identifier">confix</span><span class="special">(</span><span class="string">"//"</span><span class="special">,</span> <span class="identifier">eol</span><span class="special">)[</span><span class="identifier">string</span><span class="special">],</span>            <span class="comment">// format description</span>
+        <span class="identifier">space</span><span class="special">,</span>                                <span class="comment">// delimiter</span>
+        <span class="string">"This is a comment"</span>                   <span class="comment">// data</span>
+    <span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          This code snippet will obviouly generate <code class="computeroutput"><span class="comment">//
+          This is a comment \n </span></code>. Similarily generating a 'C'-style
+          comment proves to be straightforward:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// C comment</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span>
+    <span class="identifier">karma</span><span class="special">::</span><span class="identifier">format_delimited</span><span class="special">(</span>
+        <span class="identifier">confix</span><span class="special">(</span><span class="string">"/*"</span><span class="special">,</span> <span class="string">"*/"</span><span class="special">)[</span><span class="identifier">string</span><span class="special">],</span>           <span class="comment">// format description</span>
+        <span class="identifier">space</span><span class="special">,</span>                                <span class="comment">// delimiter</span>
+        <span class="string">"This is a comment"</span>                   <span class="comment">// data</span>
+    <span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          which again will generate <code class="computeroutput"><span class="comment">/* This is a comment
+          */</span> </code>.
+        </p>
+<h6>
+<a name="spirit_repository.karma_components.directives.karma_confix_generator.h8"></a>
+          <span class="phrase"><a name="spirit_repository.karma_components.directives.karma_confix_generator.generating_a_function_prototype"></a></span><a class="link" href="karma_confix_generator.html#spirit_repository.karma_components.directives.karma_confix_generator.generating_a_function_prototype">Generating
+          a Function Prototype</a>
+        </h6>
+<p>
+          Generating a function prototype given a function name a vector or parameter
+          names is simple as well:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// Generate a function call with an arbitrary parameter list</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">parameters</span><span class="special">;</span>
+<span class="identifier">parameters</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="string">"par1"</span><span class="special">);</span>
+<span class="identifier">parameters</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="string">"par2"</span><span class="special">);</span>
+<span class="identifier">parameters</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="string">"par3"</span><span class="special">);</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span>
+    <span class="identifier">karma</span><span class="special">::</span><span class="identifier">format</span><span class="special">(</span>
+        <span class="identifier">string</span> <span class="special">&lt;&lt;</span> <span class="identifier">confix</span><span class="special">(</span><span class="char">'('</span><span class="special">,</span> <span class="char">')'</span><span class="special">)[</span><span class="identifier">string</span> <span class="special">%</span> <span class="char">','</span><span class="special">],</span>   <span class="comment">// format description</span>
+        <span class="string">"func"</span><span class="special">,</span>                                     <span class="comment">// function name</span>
+        <span class="identifier">parameters</span>                                  <span class="comment">// parameter names</span>
+    <span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          which generates the expected output: <code class="computeroutput"><span class="identifier">func</span><span class="special">(</span><span class="identifier">par1</span><span class="special">,</span><span class="identifier">par2</span><span class="special">,</span><span class="identifier">par3</span><span class="special">)</span></code>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../directives.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directives.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../nonterminal.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

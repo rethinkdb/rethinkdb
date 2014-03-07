@@ -1,0 +1,269 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Miscellaneous</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../jam.html" title="Chapter&#160;42.&#160;Boost.Jam : 3.1.19">
+<link rel="prev" href="language.html" title="Language">
+<link rel="next" href="history.html" title="History">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="language.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../jam.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="history.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="jam.miscellaneous"></a><a class="link" href="miscellaneous.html" title="Miscellaneous">Miscellaneous</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="miscellaneous.html#jam.miscellaneous.diagnostics">Diagnostics</a></span></dt>
+<dt><span class="section"><a href="miscellaneous.html#jam.miscellaneous.bugs__limitations">Bugs, Limitations</a></span></dt>
+<dt><span class="section"><a href="miscellaneous.html#jam.miscellaneous.fundamentals">Fundamentals</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="jam.miscellaneous.diagnostics"></a><a class="link" href="miscellaneous.html#jam.miscellaneous.diagnostics" title="Diagnostics">Diagnostics</a>
+</h3></div></div></div>
+<p>
+        In addition to generic error messages, <code class="literal">b2</code> may emit one
+        of the following:
+      </p>
+<pre class="programlisting">warning: unknown rule X</pre>
+<p>
+        A rule was invoked that has not been defined with an "<code class="literal">actions</code>"
+        or "<code class="literal">rule</code>" statement.
+      </p>
+<pre class="programlisting">using N temp target(s)</pre>
+<p>
+        Targets marked as being temporary (but nonetheless present) have been found.
+      </p>
+<pre class="programlisting">updating N target(s)</pre>
+<p>
+        Targets are out-of-date and will be updated.
+      </p>
+<pre class="programlisting">can't find N target(s)</pre>
+<p>
+        Source files can't be found and there are no actions to create them.
+      </p>
+<pre class="programlisting">can't make N target(s)</pre>
+<p>
+        Due to sources not being found, other targets cannot be made.
+      </p>
+<pre class="programlisting">warning: X depends on itself</pre>
+<p>
+        A target depends on itself either directly or through its sources.
+      </p>
+<pre class="programlisting">don't know how to make X</pre>
+<p>
+        A target is not present and no actions have been defined to create it.
+      </p>
+<pre class="programlisting">X skipped for lack of Y</pre>
+<p>
+        A source failed to build, and thus a target cannot be built.
+      </p>
+<pre class="programlisting">warning: using independent target X</pre>
+<p>
+        A target that is not a dependency of any other target is being referenced
+        with <code class="literal">$(&lt;)</code> or <code class="literal">$(&gt;)</code>.
+      </p>
+<pre class="programlisting">X removed</pre>
+<p>
+        <code class="literal">B2</code> removed a partially built target after being interrupted.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="jam.miscellaneous.bugs__limitations"></a><a class="link" href="miscellaneous.html#jam.miscellaneous.bugs__limitations" title="Bugs, Limitations">Bugs, Limitations</a>
+</h3></div></div></div>
+<p>
+        For parallel building to be successful, the dependencies among files must
+        be properly spelled out, as targets tend to get built in a quickest-first
+        ordering. Also, beware of un-parallelizable commands that drop fixed-named
+        files into the current directory, like <code class="literal">yacc(1)</code> does.
+      </p>
+<p>
+        A poorly set <code class="literal">$(JAMSHELL)</code> is likely to result in silent
+        failure.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="jam.miscellaneous.fundamentals"></a><a class="link" href="miscellaneous.html#jam.miscellaneous.fundamentals" title="Fundamentals">Fundamentals</a>
+</h3></div></div></div>
+<p>
+        This section is derived from the official Jam documentation and from experience
+        using it and reading the Jambase rules. We repeat the information here mostly
+        because it is essential to understanding and using Jam, but is not consolidated
+        in a single place. Some of it is missing from the official documentation
+        altogether. We hope it will be useful to anyone wishing to become familiar
+        with Jam and the Boost build system.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Jam "<code class="literal">rules</code>" are actually simple procedural
+            entities. Think of them as functions. Arguments are separated by colons.
+          </li>
+<li class="listitem">
+            A Jam <span class="bold"><strong>target</strong></span> is an abstract entity identified
+            by an arbitrary string. The build-in <code class="literal">DEPENDS</code> rule
+            creates a link in the dependency graph between the named targets.
+          </li>
+<li class="listitem">
+            Note that the original Jam documentation for the built-in <code class="literal">INCLUDES</code>
+            rule is incorrect: <code class="literal">INCLUDES <span class="emphasis"><em>targets1</em></span> :
+            <span class="emphasis"><em>targets2</em></span></code> causes everything that depends
+            on a member of <span class="emphasis"><em>targets1</em></span> to depend on all members
+            of <span class="emphasis"><em>targets2</em></span>. It does this in an odd way, by tacking
+            <span class="emphasis"><em>targets2</em></span> onto a special tail section in the dependency
+            list of everything in <span class="emphasis"><em>targets1</em></span>. It seems to be OK
+            to create circular dependencies this way; in fact, it appears to be the
+            "right thing to do" when a single build action produces both
+            <span class="emphasis"><em>targets1</em></span> and <span class="emphasis"><em>targets2</em></span>.
+          </li>
+<li class="listitem">
+            When a rule is invoked, if there are <code class="literal">actions</code> declared
+            with the same name as the rule, the actions are added to the updating
+            actions for the target identified by the rule's first argument. It is
+            actually possible to invoke an undeclared rule if corresponding actions
+            are declared: the rule is treated as empty.
+          </li>
+<li class="listitem">
+            Targets (other than <code class="literal">NOTFILE</code> targets) are associated
+            with paths in the file system through a process called binding. Binding
+            is a process of searching for a file with the same name as the target
+            (sans grist), based on the settings of the target-specific <code class="literal">SEARCH</code>
+            and <code class="literal">LOCATE</code> variables.
+          </li>
+<li class="listitem">
+            In addition to local and global variables, jam allows you to set a variable
+            <code class="literal">on</code> a target. Target-specific variable values can usually
+            not be read, and take effect only in the following contexts:
+            <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                  In updating actions, variable values are first looked up <code class="literal">on</code>
+                  the target named by the first argument (the target being updated).
+                  Because Jam builds its entire dependency tree before executing
+                  actions, Jam rules make target-specific variable settings as a
+                  way of supplying parameters to the corresponding actions.
+                </li>
+<li class="listitem">
+                  Binding is controlled <span class="emphasis"><em>entirely</em></span> by the target-specific
+                  setting of the <code class="literal">SEARCH</code> and <code class="literal">LOCATE</code>
+                  variables, as described here.
+                </li>
+<li class="listitem">
+                  In the special rule used for header file scanning, variable values
+                  are first looked up <code class="literal">on</code> the target named by the
+                  rule's first argument (the source file being scanned).
+                </li>
+</ul></div>
+          </li>
+<li class="listitem">
+            The "bound value" of a variable is the path associated with
+            the target named by the variable. In build actions, the first two arguments
+            are automatically replaced with their bound values. Target-specific variables
+            can be selectively replaced by their bound values using the <code class="literal">bind</code>
+            action modifier.
+          </li>
+<li class="listitem">
+            Note that the term "binding" as used in the Jam documentation
+            indicates a phase of processing that includes three sub-phases: <span class="emphasis"><em>binding</em></span>
+            (yes!), update determination, and header file scanning. The repetition
+            of the term "binding" can lead to some confusion. In particular,
+            the Modifying Binding section in the Jam documentation should probably
+            be titled "Modifying Update Determination".
+          </li>
+<li class="listitem">
+            "Grist" is just a string prefix of the form &lt;<span class="emphasis"><em>characters</em></span>&gt;.
+            It is used in Jam to create unique target names based on simpler names.
+            For example, the file name "<code class="literal">test.exe</code>" may
+            be used by targets in separate subprojects, or for the debug and release
+            variants of the "same" abstract target. Each distinct target
+            bound to a file called "test.exe" has its own unique grist
+            prefix. The Boost build system also takes full advantage of Jam's ability
+            to divide strings on grist boundaries, sometimes concatenating multiple
+            gristed elements at the beginning of a string. Grist is used instead
+            of identifying targets with absolute paths for two reasons:
+            <div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+                  The location of targets cannot always be derived solely from what
+                  the user puts in a Jamfile, but sometimes depends also on the binding
+                  process. Some mechanism to distinctly identify targets with the
+                  same name is still needed.
+                </li>
+<li class="listitem">
+                  Grist allows us to use a uniform abstract identifier for each built
+                  target, regardless of target file location (as allowed by setting
+                  ALL_LOCATE_TARGET).
+                </li>
+</ol></div>
+          </li>
+<li class="listitem">
+            When grist is extracted from a name with $(var:G), the result includes
+            the leading and trailing angle brackets. When grist is added to a name
+            with $(var:G=expr), existing grist is first stripped. Then, if expr is
+            non-empty, leading &lt;s and trailing &gt;s are added if necessary to
+            form an expression of the form &lt;expr2&gt;; &lt;expr2&gt; is then prepended.
+          </li>
+<li class="listitem">
+            When Jam is invoked it imports all environment variable settings into
+            corresponding Jam variables, followed by all command-line (-s...) variable
+            settings. Variables whose name ends in PATH, Path, or path are split
+            into string lists on OS-specific path-list separator boundaries (e.g.
+            ":" for UNIX and ";" for Windows). All other variables
+            are split on space (" ") boundaries. Boost Jam modifies that
+            behavior by allowing variables to be quoted.
+          </li>
+<li class="listitem">
+            A variable whose value is an empty list or which consists entirely of
+            empty strings has a negative logical value. Thus, for example, code like
+            the following allows a sensible non-empty default which can easily be
+            overridden by the user:
+<pre class="programlisting"><span class="identifier">MESSAGE</span> <span class="special">?\=</span> <span class="identifier">starting</span> <span class="identifier">jam</span><span class="special">...</span> <span class="special">;</span>
+<span class="keyword">if</span> <span class="error">$</span><span class="special">(</span><span class="identifier">MESSAGE</span><span class="special">)</span> <span class="special">{</span> <span class="identifier">ECHO</span> <span class="identifier">The</span> <span class="identifier">message</span> <span class="identifier">is</span><span class="special">:</span> <span class="error">$</span><span class="special">(</span><span class="identifier">MESSAGE</span><span class="special">)</span> <span class="special">;</span> <span class="special">}</span>
+</pre>
+            If the user wants a specific message, he invokes jam with <code class="literal">"-sMESSAGE=message
+            text"</code>. If he wants no message, he invokes jam with <code class="literal">-sMESSAGE=</code>
+            and nothing at all is printed.
+          </li>
+<li class="listitem">
+            The parsing of command line options in Jam can be rather unintuitive,
+            with regards to how other Unix programs accept options. There are two
+            variants accepted as valid for an option:
+            <div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+                  <code class="literal">-xvalue</code>, and
+                </li>
+<li class="listitem">
+                  <code class="literal">-x value</code>.
+                </li>
+</ol></div>
+          </li>
+</ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2007 Rene Rivera, David Abrahams, Vladimir Prus<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="language.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../jam.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="history.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,30 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Number List - stuffing numbers into a std::vector]
+
+This sample demonstrates a parser for a comma separated list of numbers. The
+numbers are inserted in a vector using phoenix.
+
+[import ../../example/qi/num_list2.cpp]
+
+[tutorial_numlist2]
+
+The full cpp file for this example can be found here: [@../../example/qi/num_list2.cpp]
+
+This, again, is the same parser as before. This time, instead of summing up the
+numbers, we stuff them in a `std::vector`. `push_back` is supplied by
+__phoenix__. The expression:
+
+    push_back(ref(v), _1)
+
+appends the parsed number. Like before, `_1` is a __phoenix__ placeholder for
+the parsed result attribute. Also, like before, `ref(v)` tells __phoenix__ that
+`v`, the `std::vector`, is a mutable reference.
+
+[endsect]

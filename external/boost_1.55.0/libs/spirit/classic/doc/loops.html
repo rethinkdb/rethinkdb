@@ -1,0 +1,174 @@
+<html>
+<head>
+<title> Loops</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> 
+      <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b> Loops</b></font>
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="escape_char_parser.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="character_sets.html"><img src="theme/r_arr.gif" border="0"></a></td>
+   </tr>
+</table>
+<p>So far we have introduced a couple of EBNF operators that deal with looping. 
+  We have the <tt>+</tt> positive operator, which matches the preceding symbol 
+  one (1) or more times, as well as the Kleene star <tt>*</tt> which matches the 
+  preceding symbol zero (0) or more times.</p>
+<p>Taking this further, we may want to have a generalized loop operator. To some 
+  this may seem to be a case of overkill. Yet there are grammars that are impractical 
+  and cumbersome, if not impossible, for the basic EBNF iteration syntax to specify. 
+  Examples:</p>
+<blockquote>
+  <p><img src="theme/bullet.gif" width="12" height="12"> A file name may have 
+    a maximum of 255 characters only.<br>
+    <img src="theme/bullet.gif" width="12" height="12"> A specific bitmap file 
+    format has exactly 4096 RGB color information. <br>
+    <img src="theme/bullet.gif" width="12" height="12"> A 32 bit binary string 
+    (1..32 1s or 0s).</p>
+</blockquote>
+<p>Other than the Kleene star <tt>*</tt>, the Positive closure <tt>+</tt>, and 
+  the optional <tt>!</tt>, a more flexible mechanism for looping is provided for 
+  by the framework. <br>
+</p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td colspan="2" class="table_title">Loop Constructs</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="26%"><b>repeat_p (n) [p]</b></td>
+    <td class="table_cells" width="74%">Repeat <b>p</b> exactly <b>n</b> times</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="26%"><b>repeat_p (n1, n2) [p]</b></td>
+    <td class="table_cells" width="74%">Repeat <b>p</b> at least <b>n1</b> times 
+      and at most <b>n2</b> times</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="26%"><b>repeat_p (n, more) [p] </b></td>
+    <td class="table_cells" width="74%">Repeat <b>p</b> at least <b>n</b> times, 
+      continuing until <b>p</b> fails or the input is consumed</td>
+  </tr>
+</table>
+<p>Using the <tt>repeat_p</tt> parser, we can now write our examples above:</p>
+<p>A file name with a maximum of 255 characters:<br>
+</p>
+<pre>    <span class=identifier>valid_fname_chars </span><span class=special>= </span><span class=comment>/*..*/</span><span class=special>;
+    </span><span class=identifier>filename </span><span class=special>= </span><span class=identifier>repeat_p</span><span class=special>(</span><span class=number>1</span><span class=special>, </span><span class=number>255</span><span class=special>)[</span><span class=identifier>valid_fname_chars</span><span class=special>];</span></pre>
+<p>A specific bitmap file format which has exactly 4096 RGB color information:<span class=special><br>
+  </span></p>
+<pre>    <span class=identifier>uint_parser</span><span class=special>&lt;</span><span class=keyword>unsigned</span><span class=special>, </span><span class=number>16</span><span class=special>, </span><span class=number>6</span><span class=special>, </span><span class=number>6</span><span class=special>&gt; </span><span class=identifier>rgb_p</span><span class=special>;
+    </span><span class=identifier>bitmap </span><span class=special>= </span><span class=identifier>repeat_p</span><span class=special>(</span><span class=number>4096</span><span class=special>)[</span><span class=identifier>rgb_p</span><span class=special>];</span></pre>
+<p>As for the 32 bit binary string (1..32 1s or 0s), of course we could have easily 
+  used the <tt>bin_p</tt> numeric parser instead. For the sake of demonstration 
+  however:<span class=special><br>
+  </span></p>
+<pre>    <span class=identifier>bin</span><span class=number>32</span> <span class=special>= </span><span class=identifier>lexeme_d</span><span class=special>[</span><span class=identifier>repeat_p</span><span class=special>(</span>1, <span class=number>32</span><span class=special>)[</span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'1'</span><span class=special>) </span><span class=special>| </span><span class=literal>'0'</span><span class=special>]];</span></pre>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><img src="theme/note.gif" width="16" height="16"> Loop 
+      parsers are run-time <a href="parametric_parsers.html">parametric</a>.</td>
+  </tr>
+</table>
+<p>The Loop parsers can be dynamic. Consider the parsing of a binary file of Pascal-style 
+  length prefixed string, where the first byte determines the length of the incoming 
+  string. Here's a sample input: 
+<blockquote> 
+  <table width="363" border="0" cellspacing="0" cellpadding="0">
+    <tr> 
+      <td class="dk_grey_bkd"> 
+        <table width="100%" border="0" cellspacing="2" cellpadding="2">
+          <tr> 
+            <td class="white_bkd" width=8%"> 
+              <div align="center">11</div>
+            </td>
+            <td class="white_bkd" width="8%"> 
+              <div align="center">h</div>
+            </td>
+            <td class="white_bkd" width="8%"> 
+              <div align="center">e</div>
+            </td>
+            <td class="white_bkd" width="8%"> 
+              <div align="center">l</div>
+            </td>
+            <td class="white_bkd" width="8%"> 
+              <div align="center">l</div>
+            </td>
+            <td class="white_bkd" width="8%"> 
+              <div align="center">o</div>
+            </td>
+            <td class="white_bkd" width="8%"> 
+              <div align="center"> _</div>
+            </td>
+            <td class="white_bkd" width="8%"> 
+              <div align="center">w</div>
+            </td>
+            <td class="white_bkd" width="8%"> 
+              <div align="center">o</div>
+            </td>
+            <td class="white_bkd" width="8%"> 
+              <div align="center">r</div>
+            </td>
+            <td class="white_bkd" width="8%"> 
+              <div align="center">l</div>
+            </td>
+            <td class="white_bkd" width="8%"> 
+              <div align="center">d</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  
+</blockquote>
+<p>This trivial example cannot be practically defined in traditional EBNF. Although 
+  some EBNF syntax allow more powerful repetition constructs other than the Kleene 
+  star, we are still limited to parsing fixed strings. The nature of EBNF forces 
+  the repetition factor to be a constant. On the other hand, Spirit allows the 
+  repetition factor to be variable at run time. We could write a grammar that 
+  accepts the input string above:</p>
+<pre><span class=identifier>    </span><span class=keyword>int </span><span class=identifier>c</span><span class=special>;
+    </span><span class=identifier>r </span><span class=special>= </span><span class=identifier>anychar_p</span><span class=special>[</span><span class=identifier>assign_a</span><span class=special>(</span><span class=identifier>c</span><span class=special>)] </span><span class=special>&gt;&gt; </span><span class=identifier>repeat_p</span><span class=special>(</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>ref</span><span class=special>(</span><span class=identifier>c</span><span class=special>))[</span><span class=identifier>anychar_p</span><span class=special>];</span></pre>
+<p>The expression</p>
+<pre>    <span class=identifier>anychar_p</span><span class=special>[</span><span class=identifier>assign_a</span><span class=special>(</span><span class=identifier>c</span><span class=special>)]</span></pre>
+<p>extracts the first character from the input and puts it in <tt>c</tt>. What 
+  is interesting is that in addition to constants, we can also use variables as 
+  parameters to <tt>repeat_p</tt>, as demonstrated in </p>
+<pre>    <span class=identifier>repeat_p</span><span class=special>(</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>ref</span><span class=special>(</span><span class=identifier>c</span><span class=special>)</span><span class=special>)</span><span class=special>[</span><span class=identifier>anychar_p</span><span class=special>]</span></pre>
+<p>Notice that <tt>boost::ref</tt> is used to reference the integer <tt>c</tt>. 
+  This usage of <tt>repeat_p</tt> makes the parser defer the evaluation of the 
+  repetition factor until it is actually needed. Continuing our example, since 
+  the value 11 is already extracted from the input, <tt>repeat_p</tt> is is now 
+  expected to loop exactly 11 times.</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="escape_char_parser.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="character_sets.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+</body>
+</html>

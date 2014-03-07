@@ -1,0 +1,112 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Strands: Use Threads Without Explicit Locking</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../core.html" title="Core Concepts and Functionality">
+<link rel="prev" href="threads.html" title="Threads and Boost.Asio">
+<link rel="next" href="buffers.html" title="Buffers">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="threads.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="buffers.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.overview.core.strands"></a><a class="link" href="strands.html" title="Strands: Use Threads Without Explicit Locking">Strands: Use Threads
+        Without Explicit Locking</a>
+</h4></div></div></div>
+<p>
+          A strand is defined as a strictly sequential invocation of event handlers
+          (i.e. no concurrent invocation). Use of strands allows execution of code
+          in a multithreaded program without the need for explicit locking (e.g.
+          using mutexes).
+        </p>
+<p>
+          Strands may be either implicit or explicit, as illustrated by the following
+          alternative approaches:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Calling io_service::run() from only one thread means all event handlers
+              execute in an implicit strand, due to the io_service's guarantee that
+              handlers are only invoked from inside run().
+            </li>
+<li class="listitem">
+              Where there is a single chain of asynchronous operations associated
+              with a connection (e.g. in a half duplex protocol implementation like
+              HTTP) there is no possibility of concurrent execution of the handlers.
+              This is an implicit strand.
+            </li>
+<li class="listitem">
+              An explicit strand is an instance of <code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">strand</span></code>.
+              All event handler function objects need to be wrapped using <code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">strand</span><span class="special">::</span><span class="identifier">wrap</span><span class="special">()</span></code>
+              or otherwise posted/dispatched through the <code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">strand</span></code>
+              object.
+            </li>
+</ul></div>
+<p>
+          In the case of composed asynchronous operations, such as <code class="computeroutput"><span class="identifier">async_read</span><span class="special">()</span></code>
+          or <code class="computeroutput"><span class="identifier">async_read_until</span><span class="special">()</span></code>,
+          if a completion handler goes through a strand, then all intermediate handlers
+          should also go through the same strand. This is needed to ensure thread
+          safe access for any objects that are shared between the caller and the
+          composed operation (in the case of <code class="computeroutput"><span class="identifier">async_read</span><span class="special">()</span></code> it's the socket, which the caller can
+          close() to cancel the operation). This is done by having hook functions
+          for all intermediate handlers which forward the calls to the customisable
+          hook associated with the final handler:
+        </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">my_handler</span>
+<span class="special">{</span>
+  <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()()</span> <span class="special">{</span> <span class="special">...</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">asio_handler_invoke</span><span class="special">(</span><span class="identifier">F</span> <span class="identifier">f</span><span class="special">,</span> <span class="identifier">my_handler</span><span class="special">*)</span>
+<span class="special">{</span>
+  <span class="comment">// Do custom invocation here.</span>
+  <span class="comment">// Default implementation calls f();</span>
+<span class="special">}</span>
+</pre>
+<p>
+          The <code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">strand</span><span class="special">::</span><span class="identifier">wrap</span><span class="special">()</span></code>
+          function creates a new completion handler that defines <code class="computeroutput"><span class="identifier">asio_handler_invoke</span></code>
+          so that the function object is executed through the strand.
+        </p>
+<h6>
+<a name="boost_asio.overview.core.strands.h0"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.strands.see_also"></a></span><a class="link" href="strands.html#boost_asio.overview.core.strands.see_also">See
+          Also</a>
+        </h6>
+<p>
+          <a class="link" href="../../reference/io_service__strand.html" title="io_service::strand">io_service::strand</a>,
+          <a class="link" href="../../tutorial/tuttimer5.html" title="Timer.5 - Synchronising handlers in multithreaded programs">tutorial Timer.5</a>,
+          <a class="link" href="../../examples/cpp03_examples.html#boost_asio.examples.cpp03_examples.http_server_3">HTTP server
+          3 example</a>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="threads.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="buffers.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

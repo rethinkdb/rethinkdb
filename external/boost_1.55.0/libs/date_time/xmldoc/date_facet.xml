@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.date_facet">
+  <title>Date Facet</title>
+
+  <link linkend="date_facet_intro">Introduction</link> -
+  <link linkend="date_facet_constr">Construction</link> -
+  <link linkend="date_facet_accessors">Accessors</link>
+
+  <anchor id="date_facet_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>The <code>boost::date_time::date_facet</code> enables users to have significant control over the output streaming of dates (and other gregorian objects). The date_facet is typedef'd in the <code>gregorian</code> namespace as <code>date_facet</code> and <code>wdate_facet</code>. 
+  </para>
+
+  <anchor id="date_facet_constr" />
+  <bridgehead renderas="sect3">Construction</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry>Syntax</entry>
+            <entry>Description</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top"><screen>date_facet()</screen></entry>
+            <entry>Default constructor</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>date_facet(...)
+  Parameters:
+    char_type* format
+    input_collection_type</screen></entry>
+            <entry>Format given will be used for date output. All other formats will use their defaults. Collection is the set of short names to be used for months. All other name collections will use their defaults.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>date_facet(...)
+  Parameters:
+    char_type* format
+    period_formatter_type
+    special_values_formatter_type
+    date_gen_formatter_type</screen></entry>
+            <entry>Format given will be used for date output. The remaining parameters are formatter objects. Further details on these objects can be found <link linkend="date_time.io_objects">here</link>. This constructor also provides default arguments for all parameters except the format. Therefore, <code>date_facet("%m %d %Y")</code> will work.</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <anchor id="date_facet_accessors" />
+  <bridgehead renderas="sect3">Accessors</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+              <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>void format(char_type*)</screen></entry>
+            <entry>Set the format for dates.</entry>
+          </row>
+          <row>
+            <entry><screen>date_facet* f = new date_facet();
+f->format("%m %d %Y");</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void set_iso_format()</screen></entry>
+            <entry>Sets the date format to ISO</entry>
+          </row>
+          <row>
+            <entry><screen>f->set_iso_format();
+// "%Y%m%d"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void set_iso_extended_format()</screen></entry>
+            <entry>Sets the date format to ISO Extended</entry>
+          </row>
+          <row>
+            <entry><screen>f->set_iso_extended_format();
+// "%Y-%m-%d"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void month_format(char_type*)</screen></entry>
+            <entry>Set the format for months when they are 'put' individually.</entry>
+          </row>
+          <row>
+            <entry><screen>f->month_format("%B"); 
+ss &lt;&lt; greg_month(12); // "December"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void weekday_format(char_type*)</screen></entry>
+            <entry>Set the format for weekdays when they are 'put' individually.</entry>
+          </row>
+          <row>
+            <entry><screen>f->weekday_format("%a");
+ss &lt;&lt; greg_weekday(2); // "Tue"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void period_formatter(...)
+  Parameter:
+    period_formatter_type</screen></entry>
+            <entry>Replaces the period formatter object with a user created one.</entry>
+          </row>
+          <row>
+            <entry>see the <link linkend="date_time.io_tutorial">tutorial</link> for a complete example.</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void special_values_formatter(...)
+  Parameter:
+    special_values_formatter_type</screen></entry>
+            <entry>Replaces the special_values formatter object with a user created one.</entry>
+          </row>
+          <row>
+            <entry>see the <link linkend="date_time.io_tutorial">tutorial</link> for a complete example.</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void date_gen_phrase_strings(...)
+  Parameters:
+    input_collection_type
+    date_gen_formatter_type::
+      phrase_elements</screen></entry>
+            <entry>Sets new date generator phrase strings in date_gen_formatter. The input collection is a vector of strings (for details on these strings see <link linkend="io_objects.date_generators">date generator formatter/parser documentation</link>). The phrase_elements parameter is an enum, defined in the date_generator_formatter object, that has a default value of 'first'. It is used to indicate what the position of the first string in the collection will be.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void short_weekday_names(...)
+  Parameter:
+    input_collection_type</screen></entry>
+            <entry>Replace strings used when 'putting' short weekdays.</entry>
+          </row>
+          <row>
+            <entry>see the <link linkend="date_time.io_tutorial">tutorial</link> for a complete example.</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void long_weekday_names(...)
+  Parameter:
+    input_collection_type</screen></entry>
+            <entry>Replace strings used when 'putting' long weekdays.</entry>
+          </row>
+          <row>
+            <entry>see the <link linkend="date_time.io_tutorial">tutorial</link> for a complete example.</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void short_month_names(...)
+  Parameter:
+    input_collection_type</screen></entry>
+            <entry>Replace strings used when 'putting' short months.</entry>
+          </row>
+          <row>
+            <entry>see the <link linkend="date_time.io_tutorial">tutorial</link> for a complete example.</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>void long_month_names(...)
+  Parameter:
+    input_collection_type</screen></entry>
+            <entry>Replace strings used when 'putting' long months.</entry>
+          </row>
+          <row>
+            <entry>see the <link linkend="date_time.io_tutorial">tutorial</link> for a complete example.</entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(...)
+  Common parameters for all 
+  'put' functions:
+    OutItrT 
+    ios_base
+    char_type
+  Unique parameter for 'put' funcs:
+    gregorian object</screen></entry>
+            <entry>There are 12 put functions in the date_facet. The common paraeters are: an iterator pointing to the next item in the stream, an ios_base object, and the fill character. Each unique gregorian object has it's own put function. Each unique put function is described below.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(..., date)</screen></entry>
+            <entry>Puts a date object into the stream using the format set by <code>format(...)</code> or the default.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(..., days)</screen></entry>
+            <entry>Puts a days object into the stream as a number.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(..., month)</screen></entry>
+            <entry>Puts a month object into the stream using the format set by <code>month_format(...)</code> or the default.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(..., day)</screen></entry>
+            <entry>Puts a day of month object into the stream as a two digit number.</entry>
+          </row>
+          <row>
+            <entry><screen>"01" // January 1st</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(..., day_of_week)</screen></entry>
+            <entry>Puts a day of week object into the stream using the format set by <code>weekday_format(...)</code> or the default.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(..., date_period)</screen></entry>
+            <entry>Puts a date_period into the stream. The format of the dates will use the format set by <code>format(..)</code> or the default date format. The type of period (open or closed range) and the delimiters used are those used by the period_formatter.</entry>
+          </row>
+          <row>
+            <entry><screen></screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(..., partial_date)</screen></entry>
+            <entry>Puts a partial_date date_generator object into the stream. The month format used is set by <code>month_format(..)</code> or the default. The day of month is represented as a two digit number.</entry>
+          </row>
+          <row>
+            <entry><screen>"01 Jan" // default formats
+"01 January" // long month format</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(..., date_generator)
+  Date Generator Type:
+    nth_day_of_the_week_in_month</screen></entry>
+            <entry>Puts a nth_day_of_the_week_in_month object into the stream. The month format is set by <code>month_format(...)</code> or the default. The weekday format is set by <code>weekday_format(...)</code> or the default. The remaining phrase elements are set in the <link linkend ="io_objects.date_generators">date_generator_formatter</link>.</entry>
+          </row>
+          <row>
+            <entry><screen>"third Fri in May" // defaults</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(..., date_generator)
+  Date Generator Type:
+    first_day_of_the_week_in_month</screen></entry>
+            <entry>Puts a first_day_of_the_week_in_month object into the stream. The month format is set by <code>month_format(...)</code> or the default. The weekday format is set by <code>weekday_format(...)</code> or the default. The remaining phrase elements are set in the <link linkend ="io_objects.date_generators">date_generator_formatter</link>.</entry>
+          </row>
+          <row>
+            <entry><screen>"first Wed of Jun" // defaults</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(..., date_generator)
+  Date Generator Type:
+    last_day_of_the_week_in_month</screen></entry>
+            <entry>Puts a last_day_of_the_week_in_month object into the stream. The month format is set by <code>month_format(...)</code> or the default. The weekday format is set by <code>weekday_format(...)</code> or the default. The remaining phrase elements are set in the <link linkend ="io_objects.date_generators">date_generator_formatter</link>.</entry>
+          </row>
+          <row>
+            <entry><screen>"last Tue of Mar" // defaults</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(..., date_generator)
+  Date Generator Type:
+    first_day_of_the_week_after</screen></entry>
+            <entry>Puts a first_day_of_the_week_after object into the stream. The weekday format is set by <code>weekday_format(...)</code> or the default. The remaining phrase elements are set in the <link linkend ="io_objects.date_generators">date_generator_formatter</link>.</entry>
+          </row>
+          <row>
+            <entry><screen>"first Sat after" // defaults</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>OutItrT put(..., date_generator)
+  Date Generator Type:
+    first_day_of_the_week_before</screen></entry>
+            <entry>Puts a first_day_of_the_week_before object into the stream. The weekday format is set by <code>weekday_format(...)</code> or the default. The remaining phrase elements are set in the <link linkend ="io_objects.date_generators">date_generator_formatter</link>.</entry>
+          </row>
+          <row>
+            <entry><screen>"first Mon before" // defaults</screen></entry>
+          </row>
+
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+</section>
+
+

@@ -1,0 +1,583 @@
+# Support for the Message Passing Interface (MPI)
+#
+# (C) Copyright 2005, 2006 Trustees of Indiana University
+# (C) Copyright 2005 Douglas Gregor
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying 
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.)
+#
+# Authors: Douglas Gregor
+#          Andrew Lumsdaine
+#
+# ==== MPI Configuration ====
+# 
+# For many users, MPI support can be enabled simply by adding the following 
+# line to your user-config.jam file:
+#
+#   using mpi ;
+#
+# This should auto-detect MPI settings based on the MPI wrapper compiler in 
+# your path, e.g., "mpic++". If the wrapper compiler is not in your path, or
+# has a different name, you can pass the name of the wrapper compiler as the
+# first argument to the mpi module:
+#
+#   using mpi : /opt/mpich2-1.0.4/bin/mpiCC ;
+#
+# If your MPI implementation does not have a wrapper compiler, or the MPI 
+# auto-detection code does not work with your MPI's wrapper compiler,
+# you can pass MPI-related options explicitly via the second parameter to the 
+# mpi module:
+#
+#    using mpi : : <find-shared-library>lammpio <find-shared-library>lammpi++
+#                  <find-shared-library>mpi <find-shared-library>lam 
+#                  <find-shared-library>dl ;
+#
+# To see the results of MPI auto-detection, pass "--debug-configuration" on
+# the bjam command line.
+#
+# The (optional) fourth argument configures Boost.MPI for running
+# regression tests. These parameters specify the executable used to
+# launch jobs (default: "mpirun") followed by any necessary arguments
+# to this to run tests and tell the program to expect the number of
+# processors to follow (default: "-np").  With the default parameters,
+# for instance, the test harness will execute, e.g.,
+#  
+#    mpirun -np 4 all_gather_test
+#
+# ==== Linking Against the MPI Libraries ===
+#
+# To link against the MPI libraries, import the "mpi" module and add the 
+# following requirement to your target:
+# 
+#   <library>/mpi//mpi 
+#
+# Since MPI support is not always available, you should check 
+# "mpi.configured" before trying to link against the MPI libraries.
+
+import "class" : new ;
+import common ;
+import feature : feature ;
+import generators ;
+import os ;
+import project ;
+import property ;
+import testing ;
+import toolset ;
+import type ;
+import path ;
+
+# Make this module a project
+project.initialize $(__name__) ;
+project mpi ;
+
+if [ MATCH (--debug-configuration) : [ modules.peek : ARGV ] ]
+{
+  .debug-configuration = true ;
+}
+
+# Assuming the first part of the command line is the given prefix
+# followed by some non-empty value, remove the first argument. Returns
+# either nothing (if there was no prefix or no value) or a pair
+#
+#   <name>value rest-of-cmdline
+#
+# This is a subroutine of cmdline_to_features
+rule add_feature ( prefix name cmdline ) 
+{
+    local match = [ MATCH "^$(prefix)([^\" ]+|\"[^\"]+\") *(.*)$" : $(cmdline) ] ;
+
+    # If there was no value associated with the prefix, abort
+    if ! $(match) {
+      return ;
+    }
+
+    local value = $(match[1]) ;
+
+    if [ MATCH " +" : $(value) ] {
+      value = "\"$(value)\"" ;
+    }
+
+    return "<$(name)>$(value)" $(match[2]) ;
+}
+
+# Strip any end-of-line characters off the given string and return the
+# result.
+rule strip-eol ( string )
+{
+  local match = [ MATCH "^(([A-Za-z0-9~`\.!@#$%^&*()_+={};:'\",.<>/?\\| -]|[|])*).*$" : $(string) ] ;
+
+  if $(match)
+  {
+    return $(match[1]) ;
+  }
+  else
+  {
+    return $(string) ;
+  }
+}
+
+# Split a command-line into a set of features. Certain kinds of
+# compiler flags are recognized (e.g., -I, -D, -L, -l) and replaced
+# with their Boost.Build equivalents (e.g., <include>, <define>,
+# <library-path>, <find-library>). All other arguments are introduced
+# using the features in the unknown-features parameter, because we
+# don't know how to deal with them. For instance, if your compile and
+# correct. The incoming command line should be a string starting with
+# an executable (e.g., g++ -I/include/path") and may contain any
+# number of command-line arguments thereafter. The result is a list of
+# features corresponding to the given command line, ignoring the
+# executable.
+rule cmdline_to_features ( cmdline : unknown-features ? )
+{
+    local executable ;
+    local features ;
+    local otherflags ;
+    local result ;
+
+    unknown-features ?= <cxxflags> <linkflags> ;
+
+    # Pull the executable out of the command line. At this point, the
+    # executable is just thrown away.
+    local match = [ MATCH "^([^\" ]+|\"[^\"]+\") *(.*)$" : $(cmdline) ] ;
+    executable = $(match[1]) ;
+    cmdline = $(match[2]) ;
+
+    # List the prefix/feature pairs that we will be able to transform. 
+    # Every kind of parameter not mentioned here will be placed in both
+    # cxxflags and linkflags, because we don't know where they should go.
+    local feature_kinds-D = "define" ;
+    local feature_kinds-I = "include" ;
+    local feature_kinds-L = "library-path" ;
+    local feature_kinds-l = "find-shared-library" ;
+
+    while $(cmdline) {
+
+        # Check for one of the feature prefixes we know about. If we
+        # find one (and the associated value is nonempty), convert it
+        # into a feature.
+        local match = [ MATCH "^(-.)(.*)" : $(cmdline) ] ;
+        local matched ;
+        if $(match) && $(match[2]) {
+           local prefix = $(match[1]) ;
+           if $(feature_kinds$(prefix)) {
+               local name = $(feature_kinds$(prefix)) ;
+               local add = [ add_feature $(prefix) $(name) $(cmdline) ] ;
+
+               if $(add) {
+
+                  if $(add[1]) = <find-shared-library>pthread
+                  {
+                      # Uhm. It's not really nice that this MPI implementation
+                      # uses -lpthread as opposed to -pthread. We do want to
+                      # set <threading>multi, instead of -lpthread.
+                      result += "<threading>multi" ;
+                      MPI_EXTRA_REQUIREMENTS += "<threading>multi" ;                      
+                  }
+                  else
+                  {                      
+                      result += $(add[1]) ;                  
+                  }
+                                     
+                  cmdline = $(add[2]) ;
+                  matched = yes ;
+               }
+           }
+        }
+
+        # If we haven't matched a feature prefix, just grab the command-line
+        # argument itself. If we can map this argument to a feature
+        # (e.g., -pthread -> <threading>multi), then do so; otherwise,
+        # and add it to the list of "other" flags that we don't
+        # understand.
+        if ! $(matched) {
+           match = [ MATCH "^([^\" ]+|\"[^\"]+\") *(.*)$" : $(cmdline) ] ;
+           local value = $(match[1]) ;
+           cmdline = $(match[2]) ;
+
+           # Check for multithreading support
+           if $(value) = "-pthread" || $(value) = "-pthreads"
+           {
+             result += "<threading>multi" ;
+
+             # DPG: This is a hack intended to work around a BBv2 bug where
+             # requirements propagated from libraries are not checked for
+             # conflicts when BBv2 determines which "common" properties to
+             # apply to a target. In our case, the <threading>single property
+             # gets propagated from the common properties to Boost.MPI
+             # targets, even though <threading>multi is in the usage 
+             # requirements of <library>/mpi//mpi.
+             MPI_EXTRA_REQUIREMENTS += "<threading>multi" ;
+           }
+           else if [ MATCH "(.*[a-zA-Z0-9<>?-].*)" : $(value) ] {
+              otherflags += $(value) ;
+           }
+        }
+    }
+
+    # If there are other flags that we don't understand, add them to the
+    # result as both <cxxflags> and <linkflags>
+    if $(otherflags) {
+       for unknown in $(unknown-features)
+       {
+         result += "$(unknown)$(otherflags:J= )" ;
+       }
+    }
+
+    return $(result) ;
+}
+
+# Determine if it is safe to execute the given shell command by trying
+# to execute it and determining whether the exit code is zero or
+# not. Returns true for an exit code of zero, false otherwise.
+local rule safe-shell-command ( cmdline )
+{
+  local result = [ SHELL "$(cmdline) > /dev/null 2>/dev/null; if [ "$?" -eq "0" ]; then echo SSCOK; fi" ] ;
+  return [ MATCH ".*(SSCOK).*" : $(result) ] ;
+}
+
+# Initialize the MPI module.  
+rule init ( mpicxx ? : options * : mpirun-with-options * )
+{
+  if ! $(options) && $(.debug-configuration)
+  {
+    ECHO "===============MPI Auto-configuration===============" ;
+  }
+    
+  if ! $(mpicxx) && [ os.on-windows ]
+  {  
+    # Try to auto-configure to the Microsoft Compute Cluster Pack
+    local cluster_pack_path_native = "C:\\Program Files\\Microsoft Compute Cluster Pack" ;
+    local cluster_pack_path = [ path.make $(cluster_pack_path_native) ] ;
+    if [ GLOB $(cluster_pack_path_native)\\Include : mpi.h ]
+    {
+      if $(.debug-configuration)
+      {
+        ECHO "Found Microsoft Compute Cluster Pack: $(cluster_pack_path_native)" ;
+      }
+      
+      # Pick up either the 32-bit or 64-bit library, depending on which address
+      # model the user has selected. Default to 32-bit.
+      options = <include>$(cluster_pack_path)/Include 
+                <address-model>64:<library-path>$(cluster_pack_path)/Lib/amd64
+                <library-path>$(cluster_pack_path)/Lib/i386
+                <find-static-library>msmpi
+                <toolset>msvc:<define>_SECURE_SCL=0
+              ;
+              
+      # Setup the "mpirun" equivalent (mpiexec)
+      .mpirun = "\"$(cluster_pack_path_native)\\Bin\\mpiexec.exe"\" ;
+      .mpirun_flags = -n ;
+    }
+    else if $(.debug-configuration)
+    {
+      ECHO "Did not find Microsoft Compute Cluster Pack in $(cluster_pack_path_native)." ;
+    }
+  } 
+   
+  if ! $(options)
+  { 
+    # Try to auto-detect options based on the wrapper compiler
+    local command = [ common.get-invocation-command mpi : mpic++ : $(mpicxx) ] ;
+
+    if ! $(mpicxx) && ! $(command) 
+    {
+      # Try "mpiCC", which is used by MPICH 
+      command = [ common.get-invocation-command mpi : mpiCC ] ;
+    }
+
+    if ! $(mpicxx) && ! $(command) 
+    {
+      # Try "mpicxx", which is used by OpenMPI and MPICH2
+      command = [ common.get-invocation-command mpi : mpicxx ] ;
+    }
+
+    local result ;
+    local compile_flags ;
+    local link_flags ;
+
+    if ! $(command)
+    { 
+      # Do nothing: we'll complain later
+    }
+    # OpenMPI and newer versions of LAM-MPI have -showme:compile and 
+    # -showme:link.
+    else if [ safe-shell-command "$(command) -showme:compile" ] &&
+              [ safe-shell-command "$(command) -showme:link" ]
+    {
+      if $(.debug-configuration)
+      {
+        ECHO "Found recent LAM-MPI or Open MPI wrapper compiler: $(command)" ;
+      }
+
+      compile_flags = [ SHELL "$(command) -showme:compile" ] ;
+      link_flags = [ SHELL "$(command) -showme:link" ] ;
+   
+      # Prepend COMPILER as the executable name, to match the format of 
+      # other compilation commands.
+      compile_flags = "COMPILER $(compile_flags)" ;
+      link_flags = "COMPILER $(link_flags)" ;
+    }
+    # Look for LAM-MPI's -showme
+    else if [ safe-shell-command "$(command) -showme" ]
+    {
+      if $(.debug-configuration)
+      {
+        ECHO "Found older LAM-MPI wrapper compiler: $(command)" ;
+      }
+
+      result = [ SHELL "$(command) -showme" ] ;
+    }
+    # Look for MPICH
+    else if [ safe-shell-command "$(command) -show" ]
+    {
+      if $(.debug-configuration)
+      {
+        ECHO "Found MPICH wrapper compiler: $(command)" ;
+      }
+      compile_flags = [ SHELL "$(command) -compile_info" ] ;
+      link_flags = [ SHELL "$(command) -link_info" ] ;
+    }
+    # Sun HPC and Ibm POE
+    else if [ SHELL "$(command) -v 2>/dev/null" ]
+    {
+      compile_flags = [ SHELL "$(command) -c -v -xtarget=native64 2>/dev/null" ] ;
+
+      local back = [ MATCH "--------------------(.*)" : $(compile_flags) ] ;
+      if $(back)
+      {
+        # Sun HPC
+        if $(.debug-configuration)
+        {
+          ECHO "Found Sun MPI wrapper compiler: $(command)" ;
+        }
+
+        compile_flags = [ MATCH "(.*)--------------------" : $(back) ] ;
+        compile_flags = [ MATCH "(.*)-v" :  $(compile_flags) ] ;
+        link_flags = [ SHELL "$(command) -v -xtarget=native64 2>/dev/null" ] ;
+        link_flags = [ MATCH "--------------------(.*)" : $(link_flags) ] ;
+        link_flags = [ MATCH "(.*)--------------------" : $(link_flags) ] ;
+
+        # strip out -v from compile options
+        local front = [ MATCH "(.*)-v" :  $(link_flags) ] ;
+        local back = [ MATCH "-v(.*)" :  $(link_flags) ] ;
+        link_flags = "$(front) $(back)" ;
+        front = [ MATCH "(.*)-xtarget=native64" :  $(link_flags) ] ;
+        back = [ MATCH "-xtarget=native64(.*)" :  $(link_flags) ] ;
+        link_flags = "$(front) $(back)" ;
+      }
+      else
+      {
+        # Ibm POE
+        if $(.debug-configuration)
+        {
+          ECHO "Found IBM MPI wrapper compiler: $(command)" ;
+        }
+
+        # 
+        compile_flags = [ SHELL "$(command) -c -v 2>/dev/null" ] ;
+        compile_flags = [ MATCH "(.*)exec: export.*" : $(compile_flags) ] ;
+        local front = [ MATCH "(.*)-v" :  $(compile_flags) ] ;
+        local back = [ MATCH "-v(.*)" :  $(compile_flags) ] ;
+        compile_flags = "$(front) $(back)" ;
+        front = [ MATCH "(.*)-c" :  $(compile_flags) ] ;
+        back = [ MATCH "-c(.*)" :  $(compile_flags) ] ;
+        compile_flags = "$(front) $(back)" ;
+        link_flags = $(compile_flags) ;
+
+        # get location of mpif.h from mpxlf
+        local f_flags = [ SHELL "mpxlf -v 2>/dev/null" ] ;
+        f_flags = [ MATCH "(.*)exec: export.*" : $(f_flags) ] ;
+        front = [ MATCH "(.*)-v" :  $(f_flags) ] ;
+        back = [ MATCH "-v(.*)" :  $(f_flags) ] ;
+        f_flags = "$(front) $(back)" ;
+        f_flags = [ MATCH "xlf_r(.*)" : $(f_flags) ] ;
+        f_flags = [ MATCH "-F:mpxlf_r(.*)" : $(f_flags) ] ;
+        compile_flags = [ strip-eol $(compile_flags) ] ;
+        compile_flags = "$(compile_flags) $(f_flags)" ;
+      }
+    }
+
+    if $(result) || $(compile_flags) && $(link_flags)
+    {
+      if $(result)
+      {
+         result = [ strip-eol $(result) ] ;
+         options = [ cmdline_to_features $(result) ] ;
+      }
+      else 
+      { 
+         compile_flags = [ strip-eol $(compile_flags) ] ;
+         link_flags = [ strip-eol $(link_flags) ] ;
+
+         # Separately process compilation and link features, then combine
+         # them at the end.
+         local compile_features = [ cmdline_to_features $(compile_flags) 
+                                                        : "<cxxflags>" ] ; 
+         local link_features = [ cmdline_to_features $(link_flags) 
+                                                     : "<linkflags>" ] ; 
+         options = $(compile_features) $(link_features) ;
+      }
+
+      # If requested, display MPI configuration information.
+      if $(.debug-configuration)
+      {
+        if $(result)
+        {
+          ECHO "  Wrapper compiler command line: $(result)" ;
+        }
+        else
+        {
+	  local match = [ MATCH "^([^\" ]+|\"[^\"]+\") *(.*)$" 
+                                : $(compile_flags) ] ;
+          ECHO "MPI compilation flags: $(match[2])" ;
+	  local match = [ MATCH "^([^\" ]+|\"[^\"]+\") *(.*)$" 
+                                : $(link_flags) ] ;
+          ECHO "MPI link flags: $(match[2])" ;
+        }
+      }
+    } 
+    else 
+    {
+      if $(command)
+      {
+        ECHO "MPI auto-detection failed: unknown wrapper compiler $(command)" ;
+        ECHO "Please report this error to the Boost mailing list: http://www.boost.org" ;
+      }     
+      else if $(mpicxx)
+      {
+        ECHO "MPI auto-detection failed: unable to find wrapper compiler $(mpicxx)" ;
+      } 
+      else
+      {
+        ECHO "MPI auto-detection failed: unable to find wrapper compiler `mpic++' or `mpiCC'" ;
+      }
+      ECHO "You will need to manually configure MPI support." ;
+    }
+ 
+  }
+
+  # Find mpirun (or its equivalent) and its flags
+  if ! $(.mpirun)
+  {
+    .mpirun = 
+        [ common.get-invocation-command mpi : mpirun : $(mpirun-with-options[1]) ] ;
+    .mpirun_flags = $(mpirun-with-options[2-]) ;
+    .mpirun_flags ?= -np ;
+  }
+  
+  if $(.debug-configuration)
+  {
+    if $(options)
+    {
+      echo "MPI build features: " ;
+      ECHO $(options) ;
+    }
+
+    if $(.mpirun)
+    {
+      echo "MPI launcher: $(.mpirun) $(.mpirun_flags)" ;
+    }
+        
+    ECHO "====================================================" ;
+  }
+
+  if $(options)  
+  {
+    .configured = true ;
+
+    # Set up the "mpi" alias 
+    alias mpi : : : : $(options) ;
+  }
+}
+
+# States whether MPI has bee configured
+rule configured ( )
+{
+  return $(.configured) ;
+}
+
+# Returs the "extra" requirements needed to build MPI. These requirements are
+# part of the /mpi//mpi library target, but they need to be added to anything
+# that uses MPI directly to work around bugs in BBv2's propagation of
+# requirements.
+rule extra-requirements ( )
+{
+  return $(MPI_EXTRA_REQUIREMENTS) ;
+}
+
+# Support for testing; borrowed from Python
+type.register RUN_MPI_OUTPUT ;
+type.register RUN_MPI : : TEST ;
+
+class mpi-test-generator : generator
+{
+    import property-set ;
+
+    rule __init__ ( * : * )
+    {
+        generator.__init__ $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ;
+        self.composing = true ;
+    }
+
+    rule run ( project name ? : property-set : sources * : multiple ? )
+    {  
+      # Generate an executable from the sources. This is the executable we will run.
+      local executable = 
+        [ generators.construct $(project) $(name) : EXE : $(property-set) : $(sources) ] ;
+
+      result = 
+        [ construct-result $(executable[2-]) : $(project) $(name)-run : $(property-set) ] ;
+    }
+}
+
+# Use mpi-test-generator to generate MPI tests from sources
+generators.register 
+  [ new mpi-test-generator mpi.capture-output : : RUN_MPI_OUTPUT ] ;
+
+generators.register-standard testing.expect-success 
+  : RUN_MPI_OUTPUT : RUN_MPI ;
+
+# The number of processes to spawn when executing an MPI test.
+feature mpi:processes : : free incidental ;
+
+# The flag settings on testing.capture-output do not
+# apply to mpi.capture output at the moment.
+# Redo this explicitly.
+toolset.flags mpi.capture-output ARGS <testing.arg> ;
+rule capture-output ( target : sources * : properties * )
+{
+    # Use the standard capture-output rule to run the tests
+    testing.capture-output $(target) : $(sources[1]) : $(properties) ;
+
+    # Determine the number of processes we should run on.
+    local num_processes = [ property.select <mpi:processes> : $(properties) ] ;
+    num_processes = $(num_processes:G=) ;
+
+    # serialize the MPI tests to avoid overloading systems
+    JAM_SEMAPHORE on $(target) = <s>mpi-run-semaphore ;
+
+    # We launch MPI processes using the "mpirun" equivalent specified by the user.
+    LAUNCHER on $(target) =  
+      [ on $(target) return $(.mpirun) $(.mpirun_flags) $(num_processes) ] ;
+}
+
+# Creates a set of test cases to be run through the MPI launcher. The name, sources, 
+# and requirements are the same as for any other test generator. However, schedule is 
+# a list of numbers, which indicates how many processes each test run will use. For 
+# example, passing 1 2 7 will run the test with 1 process, then 2 processes, then 7
+# 7 processes. The name provided is just the base name: the actual tests will be 
+# the name followed by a hypen, then the number of processes. 
+rule mpi-test ( name : sources * : requirements * : schedule * )
+{        
+    sources ?= $(name).cpp ;
+    schedule ?= 1 2 3 4 7 8 13 17 ;
+
+    local result ;
+    for processes in $(schedule)
+    {  
+      result += [ testing.make-test 
+        run-mpi : $(sources) /boost/mpi//boost_mpi
+          : $(requirements) <toolset>msvc:<link>static <mpi:processes>$(processes) : $(name)-$(processes) ] ;
+    }
+    return $(result) ;
+}

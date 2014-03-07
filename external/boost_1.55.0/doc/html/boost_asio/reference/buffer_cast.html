@@ -1,0 +1,90 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>buffer_cast</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="buffer/overload28.html" title="buffer (28 of 28 overloads)">
+<link rel="next" href="buffer_cast/overload1.html" title="buffer_cast (1 of 2 overloads)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="buffer/overload28.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="buffer_cast/overload1.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.buffer_cast"></a><a class="link" href="buffer_cast.html" title="buffer_cast">buffer_cast</a>
+</h3></div></div></div>
+<p>
+        <a class="indexterm" name="idp78734056"></a> 
+The <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer_cast</span></code> function is used to obtain
+        a pointer to the underlying memory region associated with a buffer.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PointerToPodType</span><span class="special">&gt;</span>
+<span class="identifier">PointerToPodType</span> <a class="link" href="buffer_cast/overload1.html" title="buffer_cast (1 of 2 overloads)">buffer_cast</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">mutable_buffer</span> <span class="special">&amp;</span> <span class="identifier">b</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_cast/overload1.html" title="buffer_cast (1 of 2 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">PointerToPodType</span><span class="special">&gt;</span>
+<span class="identifier">PointerToPodType</span> <a class="link" href="buffer_cast/overload2.html" title="buffer_cast (2 of 2 overloads)">buffer_cast</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffer</span> <span class="special">&amp;</span> <span class="identifier">b</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="buffer_cast/overload2.html" title="buffer_cast (2 of 2 overloads)">more...</a></em></span>
+</pre>
+<h5>
+<a name="boost_asio.reference.buffer_cast.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.buffer_cast.examples_"></a></span><a class="link" href="buffer_cast.html#boost_asio.reference.buffer_cast.examples_">Examples:</a>
+      </h5>
+<p>
+        To access the memory of a non-modifiable buffer, use:
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">const_buffer</span> <span class="identifier">b1</span> <span class="special">=</span> <span class="special">...;</span>
+<span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">p1</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer_cast</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">*&gt;(</span><span class="identifier">b1</span><span class="special">);</span>
+</pre>
+<p>
+        To access the memory of a modifiable buffer, use:
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">mutable_buffer</span> <span class="identifier">b2</span> <span class="special">=</span> <span class="special">...;</span>
+<span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">p2</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer_cast</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">*&gt;(</span><span class="identifier">b2</span><span class="special">);</span>
+</pre>
+<p>
+        The <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer_cast</span></code> function permits violations
+        of type safety, so uses of it in application code should be carefully considered.
+      </p>
+<h5>
+<a name="boost_asio.reference.buffer_cast.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.buffer_cast.requirements"></a></span><a class="link" href="buffer_cast.html#boost_asio.reference.buffer_cast.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/buffer.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="buffer/overload28.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="buffer_cast/overload1.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,32 @@
+# Copyright 2003 Vladimir Prus 
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) 
+
+import generators ;
+import feature ;
+import type ;
+import property ;
+
+feature.feature bison.prefix : : free ;
+type.register Y : y ;
+type.register YY : yy ;
+generators.register-standard bison.bison : Y : C H ;
+generators.register-standard bison.bison : YY : CPP HPP ;
+
+rule init ( )
+{
+}
+
+rule bison ( dst dst_header : src : properties * )
+{
+    local r = [ property.select bison.prefix : $(properties) ] ;
+    if $(r)
+    {
+        PREFIX_OPT on $(<) = -p $(r:G=) ;
+    }
+}
+
+actions bison 
+{
+    bison $(PREFIX_OPT) -d -o $(<[1]) $(>)
+}

@@ -1,0 +1,77 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Type level</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../../mpi/reference.html#header.boost.mpi.environment_hpp" title="Header &lt;boost/mpi/environment.hpp&gt;">
+<link rel="prev" href="../packed.html" title="Struct packed">
+<link rel="next" href="operator_idp95007160.html" title="Function operator&lt;&lt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../packed.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../mpi/reference.html#header.boost.mpi.environment_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="operator_idp95007160.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.mpi.threading.level"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Type level</span></h2>
+<p>boost::mpi::threading::level &#8212; specify the supported threading level. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../mpi/reference.html#header.boost.mpi.environment_hpp" title="Header &lt;boost/mpi/environment.hpp&gt;">boost/mpi/environment.hpp</a>&gt;
+
+</span>
+<span class="keyword">enum</span> <span class="identifier">level</span> <span class="special">{</span> <a class="link" href="level.html#boost.mpi.threading.level.single">single</a> = = MPI_THREAD_SINGLE, <a class="link" href="level.html#boost.mpi.threading.level.funneled">funneled</a> = = MPI_THREAD_FUNNELED, 
+             <a class="link" href="level.html#boost.mpi.threading.level.serialized">serialized</a> = = MPI_THREAD_SERIALIZED, 
+             <a class="link" href="level.html#boost.mpi.threading.level.multiple">multiple</a> = = MPI_THREAD_MULTIPLE <span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp161401128"></a><h2>Description</h2>
+<p>Based on MPI 2 standard/8.7.3 </p>
+<div class="variablelist"><dl class="variablelist compact">
+<dt><span class="term"><code class="computeroutput">single</code><a name="boost.mpi.threading.level.single"></a></span></dt>
+<dd><p>Only one thread will execute. </p></dd>
+<dt><span class="term"><code class="computeroutput">funneled</code><a name="boost.mpi.threading.level.funneled"></a></span></dt>
+<dd>
+<p>Only main thread will do MPI calls.</p>
+<p>The process may be multi-threaded, but only the main thread will make MPI calls (all MPI calls are ``funneled'' to the main thread). </p>
+</dd>
+<dt><span class="term"><code class="computeroutput">serialized</code><a name="boost.mpi.threading.level.serialized"></a></span></dt>
+<dd>
+<p>Only one thread at the time do MPI calls.</p>
+<p>The process may be multi-threaded, and multiple threads may make MPI calls, but only one at a time: MPI calls are not made concurrently from two distinct threads (all MPI calls are ``serialized''). </p>
+</dd>
+<dt><span class="term"><code class="computeroutput">multiple</code><a name="boost.mpi.threading.level.multiple"></a></span></dt>
+<dd>
+<p>Multiple thread may do MPI calls.</p>
+<p>Multiple threads may call MPI, with no restrictions. </p>
+</dd>
+</dl></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2007 Douglas Gregor,
+      Matthias Troyer, Trustees of Indiana University<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../packed.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../mpi/reference.html#header.boost.mpi.environment_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="operator_idp95007160.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

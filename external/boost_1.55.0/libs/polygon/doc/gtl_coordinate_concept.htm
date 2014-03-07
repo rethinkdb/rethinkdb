@@ -1,0 +1,187 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+ xmlns:v="urn:schemas-microsoft-com:vml"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:(null)1="http://www.w3.org/TR/REC-html40" lang="en">
+<head>
+<!--
+    Copyright 2009-2010 Intel Corporation
+    license banner
+-->
+  <title>Boost Polygon Library: Coordinate Concept</title>
+  <meta http-equiv="content-type" content="text/html;charset=ISO-8859-1" />
+<!-- <link type="text/css" rel="stylesheet" href="adobe_source.css"> -->
+</head>
+<body>
+<table style="margin: 0pt; padding: 0pt; width: 100%;" border="0"
+ cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top">
+      <div style="padding: 5px;" align="center"> <img
+ src="images/boost.png" border="0" height="86" width="277" /><a
+ title="www.boost.org home page" href="http://www.boost.org/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      <div style="margin: 5px;">
+      <h3 class="navbar">Contents</h3>
+      <ul>
+        <li><a href="index.htm">Boost.Polygon Main Page</a></li>
+        <li><a href="gtl_design_overview.htm">Design Overview</a></li>
+        <li><a href="gtl_isotropy.htm">Isotropy</a></li>
+        <li>Coordinate Concept</li>
+        <li><a href="gtl_interval_concept.htm">Interval Concept</a></li>
+        <li><a href="gtl_point_concept.htm">Point Concept</a></li>
+        <li><a href="gtl_segment_concept.htm">Segment Concept</a></li>
+        <li><a href="gtl_rectangle_concept.htm">Rectangle Concept</a></li>
+        <li><a href="gtl_polygon_90_concept.htm">Polygon 90 Concept</a></li>
+        <li><a href="gtl_polygon_90_with_holes_concept.htm">Polygon 90
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_45_concept.htm">Polygon 45 Concept</a></li>
+        <li><a href="gtl_polygon_45_with_holes_concept.htm">Polygon 45
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_concept.htm">Polygon Concept</a></li>
+        <li><a href="gtl_polygon_with_holes_concept.htm">Polygon With
+Holes Concept</a></li>
+        <li><a href="gtl_polygon_90_set_concept.htm">Polygon 90 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_45_set_concept.htm">Polygon 45 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_set_concept.htm">Polygon Set Concept</a></li>
+        <li><a href="gtl_connectivity_extraction_90.htm">Connectivity
+Extraction 90</a></li>
+        <li><a href="gtl_connectivity_extraction_45.htm">Connectivity
+Extraction 45</a></li>
+        <li><a href="gtl_connectivity_extraction.htm">Connectivity
+Extraction</a></li>
+        <li><a href="gtl_property_merge_90.htm">Property Merge 90</a></li>
+        <li><a href="gtl_property_merge_45.htm">Property Merge 45</a></li>
+        <li><a href="gtl_property_merge.htm">Property Merge</a></li>
+        <li><a href="voronoi_main.htm">Voronoi Main Page<br />
+          </a></li>
+        <li><a href="voronoi_benchmark.htm">Voronoi Benchmark</a><br />
+        </li>
+        <li><a href="voronoi_builder.htm">Voronoi Builder</a></li>
+        <li><a href="voronoi_diagram.htm">Voronoi Diagram</a></li>
+      </ul>
+      <h3 class="navbar">Other Resources</h3>
+      <ul>
+        <li><a href="GTL_boostcon2009.pdf">GTL Boostcon 2009 Paper</a></li>
+        <li><a href="GTL_boostcon_draft03.pdf">GTL Boostcon 2009
+Presentation</a></li>
+        <li><a href="analysis.htm">Performance Analysis</a></li>
+        <li><a href="gtl_tutorial.htm">Layout Versus Schematic Tutorial</a></li>
+        <li><a href="gtl_minkowski_tutorial.htm">Minkowski Sum Tutorial</a></li>
+        <li><a href="voronoi_basic_tutorial.htm">Voronoi Basic Tutorial</a></li>
+        <li><a href="voronoi_advanced_tutorial.htm">Voronoi Advanced
+Tutorial</a></li>
+      </ul>
+      </div>
+      <h3 class="navbar">Polygon Sponsor</h3>
+      <div style="padding: 5px;" align="center"> <img
+ src="images/intlogo.gif" border="0" height="51" width="127" /><a
+ title="www.adobe.com home page" href="http://www.adobe.com/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      </td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%">
+<!-- End Header --><br />
+      <p>
+      </p>
+      <h1>Coordinate Concept</h1>
+      <p> The coordinate concept tag is <font face="Courier New">
+coordinate_concept</font></p>
+      <p> To register a user defined type as a model of coordinate
+concept, specialize the geometry concept meta-function for that
+type.&nbsp; In the example below CCoordinate is registered as a model
+of coordinate concept.</p>
+      <p> <font face="Courier New">template &lt;&gt;<br />
+struct geometry_concept&lt;CCoordinate&gt; { typedef coordinate_concept
+type; };</font></p>
+      <p> The coordinate type is expected to be integral and built-in
+numerical data types such as float and int already have concept type
+traits specializations in the library.&nbsp; In the coordinate traits
+are type definitions for related types are provided to allow the
+library to choose the best type to cast to under various
+circumstances.&nbsp; The definition of coordinate_traits and its
+specialization for int are shown below.</p>
+      <p> <font face="Courier New">template &lt;typename T&gt;<br />
+struct coordinate_traits {};<br />
+      <br />
+template &lt;&gt;<br />
+struct coordinate_traits&lt;int&gt; {<br />
+&nbsp;&nbsp;&nbsp;&nbsp; typedef int coordinate_type;<br />
+&nbsp;&nbsp;&nbsp;&nbsp; typedef long double area_type;<br />
+&nbsp;&nbsp;&nbsp;&nbsp; typedef long long manhattan_area_type;<br />
+&nbsp;&nbsp;&nbsp;&nbsp; typedef unsigned long long unsigned_area_type;<br />
+&nbsp;&nbsp;&nbsp;&nbsp; typedef long long coordinate_difference;<br />
+&nbsp;&nbsp;&nbsp;&nbsp; typedef long double coordinate_distance;<br />
+};</font></p>
+      <p> By making use of the coordinate traits of int the library is
+able to avoid overflow and handle the normal issues encountered when
+programming integer geometry.&nbsp; For the out of the ordinary issues
+there is a special meta-function that provides the library with a
+numerical type suitable for exact numerical calculations.&nbsp; It
+defaults to the highest precision data type available in most
+compilers, long double, but can be overridden by specializing for a
+particular coordinate type.&nbsp; Use of gmp multi-precision rational
+or similar data type is recommended for numerically robust calculations
+in the general polygon algorithms.</p>
+      <p> <font face="Courier New">template &lt;typename T&gt;<br />
+struct high_precision_type {<br />
+&nbsp;&nbsp;&nbsp;&nbsp; typedef long double type;<br />
+};</font></p>
+      <p> There is only one generic function on coordinate concepts,
+Euclidean distance.</p>
+      <p> <font face="Courier New">template &lt;typename
+coordinate_type_1, typename coordinate_type_2&gt;<br />
+coordinate_difference euclidean_distance(coordinate_type_1,
+coordinate_type_2)</font></p>
+      <p> This function returns the absolution value of the difference
+between the two coordinates.</p>
+      <p> Note: older versions of the stl define a fully generic
+distance(T, T) function for computing the difference between two
+iterators.&nbsp; We were forced to name our distance function
+euclidean_distance to avoid name collision.</p>
+      <p> The
+      <a
+ href="http://www.mentor.com/products/esl/high_level_synthesis/ac_datatypes">
+Algorithmic C</a> ac_int&lt;128&gt; is an example of a user defined
+coordinate data type that satisfies the coordinate concept.&nbsp; In
+general a data type should define std::numeric_limits and be
+integer-like.&nbsp; Floating point coordinate types are not supported
+by all the algorithms and generally not suitable for use with the
+library at present.</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top"> &nbsp;</td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%">
+      <table class="docinfo" id="table1" frame="void" rules="none">
+        <colgroup> <col class="docinfo-name" /><col
+ class="docinfo-content" /> </colgroup> <tbody valign="top">
+          <tr>
+            <th class="docinfo-name">Copyright:</th>
+            <td>Copyright © Intel Corporation 2008-2010.</td>
+          </tr>
+          <tr class="field">
+            <th class="docinfo-name">License:</th>
+            <td class="field-body">Distributed under the Boost Software
+License, Version 1.0. (See accompanying file <tt class="literal"> <span
+ class="pre">LICENSE_1_0.txt</span></tt> or copy at <a
+ class="reference" target="_top"
+ href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+          </tr>
+        </tbody>
+      </table>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>

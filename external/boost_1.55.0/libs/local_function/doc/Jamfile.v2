@@ -1,0 +1,51 @@
+
+# Copyright (C) 2009-2012 Lorenzo Caminiti
+# Distributed under the Boost Software License, Version 1.0
+# (see accompanying file LICENSE_1_0.txt or a copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+# Home at http://www.boost.org/libs/local_function
+
+import quickbook ;
+using boostbook ;
+
+path-constant images_location : html ;
+path-constant here : . ;
+
+doxygen reference
+    :   ../../../boost/local_function.hpp
+        ../../../boost/local_function/config.hpp
+    :   <reftitle>"Reference"
+        <doxygen:param>PREDEFINED="DOXYGEN"
+        <doxygen:param>QUIET=YES
+        <doxygen:param>WARN_IF_UNDOCUMENTED=NO
+        <doxygen:param>HIDE_UNDOC_MEMBERS=YES
+        <doxygen:param>HIDE_UNDOC_CLASSES=YES
+        <doxygen:param>ALIASES=" Params=\"<b>Parameters:</b> <table border="0">\" Param{2}=\"<tr><td><b><tt>\\1</tt></b></td><td>\\2</td></tr>\" EndParams=\"</table>\" Returns=\"<b>Returns:</b>\" Note=\"<b>Note:</b>\" Warning=\"<b>Warning:</b>\" See=\"<b>See:</b>\" RefSect{2}=\"\\xmlonly<link linkend='boost_localfunction.\\1'>\\2</link>\\endxmlonly\" RefClass{1}=\"\\xmlonly<computeroutput><classname alt='\\1'>\\1</classname></computeroutput>\\endxmlonly\" RefFunc{1}=\"\\xmlonly<computeroutput><functionname alt='\\1'>\\1</functionname></computeroutput>\\endxmlonly\" RefMacro{1}=\"\\xmlonly<computeroutput><macroname alt='\\1'>\\1</macroname></computeroutput>\\endxmlonly\" "
+    ;
+
+xml qbk : local_function.qbk
+    :   <dependency>introduction.qbk
+        <dependency>getting_started.qbk
+        <dependency>tutorial.qbk
+        <dependency>advanced_topics.qbk
+        <dependency>examples.qbk
+        <dependency>reference
+        <dependency>alternatives.qbk
+        <dependency>no_variadic_macros.qbk
+        <dependency>implementation.qbk
+        <dependency>release_notes.qbk
+        <dependency>bibliography.qbk
+        <dependency>acknowledgements.qbk
+    ;
+
+boostbook doc : qbk
+    :   <xsl:param>boost.root=../../../..
+        <xsl:param>boost.defaults=Boost
+        <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/libs/local_function/doc/html
+        <format>pdf:<xsl:param>admon.graphics.extension=".svg"
+        <format>pdf:<xsl:param>img.src.path=$(images_location)/
+        <format>pdf:<xsl:param>draft.mode="no"
+    ;
+
+install pdfinstall : doc/<format>pdf : <location>. <install-type>PDF <name>local_function.pdf ;
+explicit pdfinstall ;

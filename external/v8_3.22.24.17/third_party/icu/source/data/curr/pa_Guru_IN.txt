@@ -1,0 +1,14 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/pa_IN.xml
+// *
+// ***************************************************************************
+pa_Guru_IN{
+    /**
+     * empty target resource
+     */
+    ___{""}
+}

@@ -1,0 +1,127 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function unpack_expr</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../proto/reference.html#header.boost.proto.make_expr_hpp" title="Header &lt;boost/proto/make_expr.hpp&gt;">
+<link rel="prev" href="make_expr_idp66958136.html" title="Function make_expr">
+<link rel="next" href="_.html" title="Struct _">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_expr_idp66958136.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.make_expr_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="_.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.unpack_expr_idp66974776"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function unpack_expr</span></h2>
+<p>boost::proto::unpack_expr &#8212; Construct an expression of the requested tag type with a domain and with children
+          from the specified Fusion Forward Sequence.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../proto/reference.html#header.boost.proto.make_expr_hpp" title="Header &lt;boost/proto/make_expr.hpp&gt;">boost/proto/make_expr.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Tag<span class="special">,</span> <span class="keyword">typename</span> Sequence<span class="special">&gt;</span> 
+  <span class="keyword">typename</span> <a class="link" href="result_of/unpack_expr.html" title="Struct template unpack_expr">proto::result_of::unpack_expr</a><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">,</span> <span class="identifier">Sequence</span> <span class="keyword">const</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="keyword">const</span> 
+  <span class="identifier">unpack_expr</span><span class="special">(</span><span class="identifier">Sequence</span> <span class="keyword">const</span> <span class="special">&amp;</span> sequence<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Tag<span class="special">,</span> <span class="keyword">typename</span> <a class="link" href="../../Domain.html" title="Concept Domain">Domain</a><span class="special">,</span> <span class="keyword">typename</span> Sequence<span class="special">&gt;</span> 
+  <span class="keyword">typename</span> <a class="link" href="result_of/unpack_expr.html" title="Struct template unpack_expr">proto::result_of::unpack_expr</a><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">,</span> <span class="identifier">Domain</span><span class="special">,</span> <span class="identifier">Sequence</span> <span class="keyword">const</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="keyword">const</span> 
+  <span class="identifier">unpack_expr</span><span class="special">(</span><span class="identifier">Sequence</span> <span class="keyword">const</span> <span class="special">&amp;</span> sequence<span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp179621080"></a><h2>Description</h2>
+<p>
+            This function template may be invoked either with or without specifying a
+            <code class="computeroutput">Domain</code> argument. If no domain is specified, the domain
+            is deduced by examining domains of each element of the sequence. See
+            <code class="computeroutput"><code class="computeroutput"><a class="link" href="deduce_domain.html" title="Struct deduce_domain">proto::deduce_domain</a></code></code> for a full
+            description of the procedure used.
+          </p>
+<p>
+            Let <code class="computeroutput">s</code> be a Fusion RandomAccessSequence equivalent to
+            <code class="computeroutput">sequence</code>.
+            Let <code class="computeroutput"><em class="replaceable"><code>WRAP</code></em>(N, s)</code> be defined such that:
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>
+                  If <code class="computeroutput">fusion::result_of::value_at_c&lt;decltype(s),N&gt;::type</code> is a reference type
+                  or an instantiation of <code class="computeroutput">boost::reference_wrapper&lt;&gt;</code>,
+                  <code class="computeroutput"><em class="replaceable"><code>WRAP</code></em>(N, s)</code> is equivalent to
+                  <code class="computeroutput"><code class="computeroutput"><a class="link" href="as_child_idp68177480.html" title="Function as_child">proto::as_child</a></code>&lt;Domain&gt;(fusion::at_c&lt;N&gt;(s))</code>.
+                </p></li>
+<li class="listitem"><p>
+                  Otherwise, <code class="computeroutput"><em class="replaceable"><code>WRAP</code></em>(N, s)</code> is equivalent to
+                  <code class="computeroutput"><code class="computeroutput"><a class="link" href="as_expr_idp68166056.html" title="Function as_expr">proto::as_expr</a></code>&lt;Domain&gt;(fusion::at_c&lt;N&gt;(s))</code>.
+                </p></li>
+</ul></div>
+<p>
+          </p>
+<p>
+            If <code class="computeroutput"><code class="computeroutput"><a class="link" href="wants_basic_expr.html" title="Struct template wants_basic_expr">proto::wants_basic_expr</a></code>&lt;typename Domain::proto_generator&gt;::value</code>
+            is true, then let <code class="computeroutput"><em class="replaceable"><code>E</code></em></code> be
+            <code class="computeroutput"><code class="computeroutput"><a class="link" href="basic_expr.html" title="Struct template basic_expr">proto::basic_expr</a></code></code>; otherwise,
+            let <code class="computeroutput"><em class="replaceable"><code>E</code></em></code> be
+            <code class="computeroutput"><code class="computeroutput"><a class="link" href="expr.html" title="Struct template expr">proto::expr</a></code></code>.
+          </p>
+<p>
+            Let <code class="computeroutput"><em class="replaceable"><code>MAKE</code></em>(Tag, b...)</code> be defined as
+            <code class="computeroutput"><em class="replaceable"><code>E</code></em>&lt;Tag,
+            <code class="computeroutput"><a class="link" href="listN.html" title="Struct template listN">proto::listN</a></code>&lt;decltype(b)...&gt; &gt;::make(b...)</code>.
+          </p>
+<p>
+            If <code class="computeroutput">Tag</code> is
+            <code class="computeroutput"><code class="computeroutput"><a class="link" href="tag/terminal.html" title="Struct terminal">proto::tag::terminal</a></code></code>, then return
+            <code class="computeroutput"><em class="replaceable"><code>WRAP</code></em>(0, s)</code>.
+          </p>
+<p>
+            Otherwise, return
+            <code class="computeroutput">Domain()(<em class="replaceable"><code>MAKE</code></em>(Tag, <em class="replaceable"><code>WRAP</code></em>(0, s),...
+            <em class="replaceable"><code>WRAP</code></em>(<em class="replaceable"><code>N</code></em>-1, s)))</code>, where
+            <em class="replaceable"><code>N</code></em> is the size of <code class="computeroutput">Sequence</code>.
+          </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">sequence</code></span></p></td>
+<td><p>A Fusion Forward Sequence.</p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_expr_idp66958136.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.make_expr_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="_.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

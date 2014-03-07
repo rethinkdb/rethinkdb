@@ -1,0 +1,339 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template slot</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../signals2/reference.html#header.boost.signals2.slot_hpp" title="Header &lt;boost/signals2/slot.hpp&gt;">
+<link rel="prev" href="signal_type.html" title="Class template signal_type">
+<link rel="next" href="slot/arg.html" title="Class template arg">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="signal_type.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../signals2/reference.html#header.boost.signals2.slot_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="slot/arg.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.signals2.slot"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template slot</span></h2>
+<p>boost::signals2::slot &#8212; Pass slots as function arguments, and associate tracked objects with a slot.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../signals2/reference.html#header.boost.signals2.slot_hpp" title="Header &lt;boost/signals2/slot.hpp&gt;">boost/signals2/slot.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Signature<span class="special">,</span> 
+         <span class="keyword">typename</span> SlotFunction <span class="special">=</span> <a class="link" href="../function.html" title="Class template function">boost::function</a><span class="special">&lt;</span><span class="identifier">R</span> <span class="special">(</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">)</span><span class="special">&gt;</span> <span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="slot.html" title="Class template slot">slot</a> <span class="special">:</span> <span class="keyword">public</span> <a class="link" href="slot_base.html" title="Class slot_base">boost::signals2::slot_base</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">R</span>            <a name="boost.signals2.slot.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">T1</span>           <a name="boost.signals2.slot.argument_type"></a><span class="identifier">argument_type</span><span class="special">;</span>         <span class="comment">// Exists iff arity == 1</span>
+  <span class="keyword">typedef</span> <span class="identifier">T1</span>           <a name="boost.signals2.slot.first_argument_type"></a><span class="identifier">first_argument_type</span><span class="special">;</span>   <span class="comment">// Exists iff arity == 2</span>
+  <span class="keyword">typedef</span> <span class="identifier">T2</span>           <a name="boost.signals2.slot.second_argument_type"></a><span class="identifier">second_argument_type</span><span class="special">;</span>  <span class="comment">// Exists iff arity == 2</span>
+  <span class="keyword">typedef</span> <span class="identifier">Signature</span>    <a name="boost.signals2.slot.signature_type"></a><span class="identifier">signature_type</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">SlotFunction</span> <a name="boost.signals2.slot.slot_function_type"></a><span class="identifier">slot_function_type</span><span class="special">;</span>  
+
+  <span class="comment">// static constants</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">arity</span> = <span class="identifier">N</span><span class="special">;</span>  <span class="comment">// The number of arguments taken by the slot.</span>
+
+  <span class="comment">// member classes/structs/unions</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">unsigned</span> n<span class="special">&gt;</span> 
+  <span class="keyword">class</span> <a class="link" href="slot/arg.html" title="Class template arg">arg</a> <span class="special">{</span>
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <span class="identifier">Tn</span> <a class="link" href="slot/arg.html#boost.signals2.slot.arg.type"><span class="identifier">type</span></a><span class="special">;</span>  <span class="comment">// The type of the <a class="link" href="slot.html" title="Class template slot">slot</a>'s (n+1)th argument</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="slot.html#boost.signals2.slotconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Slot<span class="special">&gt;</span> <a class="link" href="slot.html#idp94572920-bb"><span class="identifier">slot</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Slot</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> OtherSignature<span class="special">,</span> <span class="keyword">typename</span> OtherSlotFunction<span class="special">&gt;</span> 
+    <a class="link" href="slot.html#idp94055208-bb"><span class="identifier">slot</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">slot</span><span class="special">&lt;</span><span class="identifier">OtherSignature</span><span class="special">,</span> <span class="identifier">OtherSlotFunction</span><span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Func<span class="special">,</span> <span class="keyword">typename</span> Arg1<span class="special">,</span> <span class="keyword">typename</span> Arg2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> ArgN<span class="special">&gt;</span> 
+    <a class="link" href="slot.html#idp94577496-bb"><span class="identifier">slot</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Func</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Arg1</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Arg2</span> <span class="special">&amp;</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">ArgN</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="slot.html#idp96139896-bb">invocation</a></span>
+  <span class="identifier">result_type</span> <a class="link" href="slot.html#idp96140376-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">arg</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span><span class="special">,</span> <span class="identifier">arg</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">_type</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">arg</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">-</span><span class="number">1</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">result_type</span> <a class="link" href="slot.html#idp96691752-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">arg</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span><span class="special">,</span> <span class="identifier">arg</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">_type</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">arg</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">-</span><span class="number">1</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="slot.html#idp58467384-bb">tracking</a></span>
+  <span class="identifier">slot</span> <span class="special">&amp;</span> <a class="link" href="slot.html#idp58467864-bb"><span class="identifier">track</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">weak_ptr</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">slot</span> <span class="special">&amp;</span> <a class="link" href="slot.html#idp93106248-bb"><span class="identifier">track</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="signal_base.html" title="Class signal_base">signals2::signal_base</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">slot</span> <span class="special">&amp;</span> <a class="link" href="slot.html#idp93107320-bb"><span class="identifier">track</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="slot_base.html" title="Class slot_base">signals2::slot_base</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ForeignWeakPtr<span class="special">&gt;</span> 
+    <span class="identifier">slot</span> <span class="special">&amp;</span> <a class="link" href="slot.html#idp93289048-bb"><span class="identifier">track_foreign</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ForeignWeakPtr</span> <span class="special">&amp;</span><span class="special">,</span> 
+                         <span class="keyword">typename</span> <span class="identifier">weak_ptr_traits</span><span class="special">&lt;</span><span class="identifier">ForeignWeakPtr</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">shared_type</span> <span class="special">*</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ForeignSharedPtr<span class="special">&gt;</span> 
+    <span class="identifier">slot</span> <span class="special">&amp;</span> <a class="link" href="slot.html#idp93291112-bb"><span class="identifier">track_foreign</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ForeignSharedPtr</span> <span class="special">&amp;</span><span class="special">,</span> 
+                         <span class="keyword">typename</span> <span class="identifier">shared_ptr_traits</span><span class="special">&lt;</span><span class="identifier">ForeignSharedPtr</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">weak_type</span> <span class="special">*</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="slot.html#idp101634136-bb">slot function access</a></span>
+  <span class="identifier">slot_function_type</span> <span class="special">&amp;</span> <a class="link" href="slot.html#idp101634568-bb"><span class="identifier">slot_function</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">slot_function_type</span> <span class="special">&amp;</span> <a class="link" href="slot.html#idp101634952-bb"><span class="identifier">slot_function</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp206256712"></a><h2>Description</h2>
+<p>A slot consists of a polymorphic function wrapper (<a class="link" href="../function.html" title="Class template function">boost::function</a> by default)
+            plus a container of <code class="computeroutput">weak_ptr</code>s which identify the slot's "tracked objects".  If any of the
+            tracked objects expire, the slot will automatically disable itself.  That is, the slot's function
+            call operator will throw an exception instead of forwarding the function call to the slot's
+            polymorphic function wrapper.  Additionally, a slot will automatically lock all the tracked objects
+            as <code class="computeroutput">shared_ptr</code> during invocation, to prevent any of them from expiring while
+            the polymorphic function wrapper is being run.
+          </p>
+<p>
+            The slot constructor will search for <a class="link" href="signal.html" title="Class template signal">signals2::signal</a> and
+            <a class="link" href="trackable.html" title="Class trackable">signals2::trackable</a> inside incoming function objects and
+            automatically track them.  It does so by applying a visitor
+            to the incoming functors with <a class="link" href="../visit_each.html" title="Function template visit_each">boost::visit_each</a>.
+          </p>
+<div class="refsect2">
+<a name="idp206260792"></a><h3>Template Parameters</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Signature</pre>
+<p></p>
+</li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">typename</span> SlotFunction <span class="special">=</span> <a class="link" href="../function.html" title="Class template function">boost::function</a><span class="special">&lt;</span><span class="identifier">R</span> <span class="special">(</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">)</span><span class="special">&gt;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp206267016"></a><h3>
+<a name="boost.signals2.slotconstruct-copy-destruct"></a><code class="computeroutput">slot</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Slot<span class="special">&gt;</span> <a name="idp94572920-bb"></a><span class="identifier">slot</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Slot</span> <span class="special">&amp;</span> target<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>
+<p>Initializes the <code class="computeroutput">SlotFunction</code> object in <code class="computeroutput">this</code>
+            with <code class="computeroutput">target</code>, which may be any
+            function object with which a
+            <code class="computeroutput">SlotFunction</code> can be
+            constructed.
+            </p>
+<p>In this special case where the template type parameter <code class="computeroutput">Slot</code> is
+              a compatible <a class="link" href="signal.html" title="Class template signal">signals2::signal</a> type,
+              the signal will automatically be added to the slot's tracked object list.
+              Otherwise, the slot's tracked object list is initially empty.
+            </p>
+</td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> OtherSignature<span class="special">,</span> <span class="keyword">typename</span> OtherSlotFunction<span class="special">&gt;</span> 
+  <a name="idp94055208-bb"></a><span class="identifier">slot</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">slot</span><span class="special">&lt;</span><span class="identifier">OtherSignature</span><span class="special">,</span> <span class="identifier">OtherSlotFunction</span><span class="special">&gt;</span> <span class="special">&amp;</span> other_slot<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td><p>Initializes <code class="computeroutput">this</code> with a copy of
+            <code class="computeroutput">other_slot</code>'s <code class="computeroutput">OtherSlotFunction</code> object and tracked object list.
+            </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Func<span class="special">,</span> <span class="keyword">typename</span> Arg1<span class="special">,</span> <span class="keyword">typename</span> Arg2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> ArgN<span class="special">&gt;</span> 
+  <a name="idp94577496-bb"></a><span class="identifier">slot</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Func</span> <span class="special">&amp;</span> f<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Arg1</span> <span class="special">&amp;</span> a1<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Arg2</span> <span class="special">&amp;</span> a2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">ArgN</span> <span class="special">&amp;</span> aN<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td><p>Syntactic sugar for <code class="computeroutput">bind()</code> when the constructor is passed more than
+              one argument.  As if:
+            <code class="computeroutput">slot(boost::bind(f, a1, a2, ..., aN))</code>
+            </p></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp206296344"></a><h3>
+<a name="idp96139896-bb"></a><code class="computeroutput">slot</code> invocation</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp96140136-bb"></a><span class="identifier">result_type</span> <a name="idp96140376-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">arg</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> a1<span class="special">,</span> <span class="identifier">arg</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">_type</span> a2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> 
+                       <span class="identifier">arg</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">-</span><span class="number">1</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> aN<span class="special">)</span><span class="special">;</span>
+<span class="identifier">result_type</span> <a name="idp96691752-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">arg</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> a1<span class="special">,</span> <span class="identifier">arg</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">_type</span> a2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> 
+                       <span class="identifier">arg</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">-</span><span class="number">1</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> aN<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td><p>Calls the slot's <code class="computeroutput">SlotFunction</code> object.
+            </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The result returned by the slot's <code class="computeroutput">SlotFunction</code> object.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td><p>Any exceptions thrown by the slot's <code class="computeroutput">SlotFunction</code> object.
+            <a class="link" href="expired_slot.html" title="Class expired_slot">boost::signals2::expired_slot</a> if any object in the tracked object list
+            has expired.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Notes:</span></p></td>
+<td><p>If you have already used <a class="link" href="slot_base.html#idp60718520-bb">lock</a> to insure the
+            tracked objects are valid, it is slightly more efficient to use the
+            <a class="link" href="slot.html#idp101634328-bb">slot_function</a>() method
+            and call the slot's <code class="computeroutput">SlotFunction</code> directly.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp206321304"></a><h3>
+<a name="idp58467384-bb"></a><code class="computeroutput">slot</code> tracking</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp58467624-bb"></a><span class="identifier">slot</span> <span class="special">&amp;</span> <a name="idp58467864-bb"></a><span class="identifier">track</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">weak_ptr</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&amp;</span> tracked_object<span class="special">)</span><span class="special">;</span>
+<span class="identifier">slot</span> <span class="special">&amp;</span> <a name="idp93106248-bb"></a><span class="identifier">track</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="signal_base.html" title="Class signal_base">signals2::signal_base</a> <span class="special">&amp;</span> tracked_signal<span class="special">)</span><span class="special">;</span>
+<span class="identifier">slot</span> <span class="special">&amp;</span> <a name="idp93107320-bb"></a><span class="identifier">track</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="slot_base.html" title="Class slot_base">signals2::slot_base</a> <span class="special">&amp;</span> tracked_slot<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>
+<p>
+                Adds object(s) to the slot's tracked object list.  Should any of the
+                tracked objects expire, then subsequent attempts to call the slot's <code class="computeroutput">operator()</code>
+                or <code class="computeroutput">lock()</code> methods will throw an <a class="link" href="expired_slot.html" title="Class expired_slot">signals2::expired_slot</a> exception.
+              </p>
+<p>When tracking a signal, a shared_ptr
+                internal to the signal class is used for tracking.  The signal does not
+                need to be owned by an external <code class="computeroutput">shared_ptr</code>.
+              </p>
+<p>
+                In the case of passing another slot as the argument to <code class="computeroutput">track()</code>,
+                only the objects currently in the other slot's tracked object list are added
+                to the tracked object list of <code class="computeroutput">this</code>.  The other slot object itself
+                is not tracked.
+              </p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">*this</code></p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp93288856-bb"></a><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ForeignWeakPtr<span class="special">&gt;</span> 
+  <span class="identifier">slot</span> <span class="special">&amp;</span> <a name="idp93289048-bb"></a><span class="identifier">track_foreign</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ForeignWeakPtr</span> <span class="special">&amp;</span> tracked_object<span class="special">,</span> 
+                       <span class="keyword">typename</span> <span class="identifier">weak_ptr_traits</span><span class="special">&lt;</span><span class="identifier">ForeignWeakPtr</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">shared_type</span> <span class="special">*</span> SFINAE <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ForeignSharedPtr<span class="special">&gt;</span> 
+  <span class="identifier">slot</span> <span class="special">&amp;</span> <a name="idp93291112-bb"></a><span class="identifier">track_foreign</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ForeignSharedPtr</span> <span class="special">&amp;</span> tracked_object<span class="special">,</span> 
+                       <span class="keyword">typename</span> <span class="identifier">shared_ptr_traits</span><span class="special">&lt;</span><span class="identifier">ForeignSharedPtr</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">weak_type</span> <span class="special">*</span> SFINAE <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>
+<p>
+                The <code class="computeroutput">track_foreign</code>() method behaves similarly to calling the <a class="link" href="slot.html#idp58467624-bb">track</a>() method
+                with a boost::shared_ptr or boost::weak_ptr argument.
+                However, <code class="computeroutput">track_foreign</code> is more flexible in that it will accept <code class="computeroutput">shared_ptr</code>
+                or <code class="computeroutput">weak_ptr</code> classes from outside of boost (most significantly <code class="computeroutput">std::shared_ptr</code>
+                or <code class="computeroutput">std::weak_ptr</code>).
+              </p>
+<p>
+                In order to use a particular <code class="computeroutput">shared_ptr</code> class with this function, a specialization of
+                boost::signals2::shared_ptr_traits must exist for it.
+                Also, a specialization of boost::signals2::weak_ptr_traits must
+                be provided for its corresponding <code class="computeroutput">weak_ptr</code> class.
+                The <code class="computeroutput">shared_ptr_traits</code> specialization must include a <code class="computeroutput">weak_type</code>
+                member typedef which specifies the
+                corresponding <code class="computeroutput">weak_ptr</code> type of the <code class="computeroutput">shared_ptr</code> class.
+                Similarly, the <code class="computeroutput">weak_ptr_traits</code> specialization must include a <code class="computeroutput">shared_type</code>
+                member typedef which specifies the corresponding <code class="computeroutput">shared_ptr</code> type of the
+                <code class="computeroutput">weak_ptr</code> class.  Specializations
+                for <code class="computeroutput">std::shared_ptr</code> and <code class="computeroutput">std::weak_ptr</code> are already provided by the signals2 library.
+                For other <code class="computeroutput">shared_ptr</code> classes, you must provide the specializations.
+              </p>
+<p>The second argument "SFINAE" may be ignored, it is used to resolve the overload between
+                either <code class="computeroutput">shared_ptr</code> or <code class="computeroutput">weak_ptr</code> objects passed in as the first argument.
+              </p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">*this</code></p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp206364040"></a><h3>
+<a name="idp101634136-bb"></a><code class="computeroutput">slot</code> slot function access</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp101634328-bb"></a><span class="identifier">slot_function_type</span> <span class="special">&amp;</span> <a name="idp101634568-bb"></a><span class="identifier">slot_function</span><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="identifier">slot_function_type</span> <span class="special">&amp;</span> <a name="idp101634952-bb"></a><span class="identifier">slot_function</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A reference to the slot's underlying SlotFunction object.</p></td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<br>Copyright &#169; 2007-2009 Frank Mori Hess<p>Distributed under the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="signal_type.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../signals2/reference.html#header.boost.signals2.slot_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="slot/arg.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

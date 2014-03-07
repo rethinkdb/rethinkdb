@@ -1,0 +1,26 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Construct, New, Delete, Casts]
+
+You'll probably want to work with objects. There are lazy versions of
+constructor calls, `new`, `delete` and the suite of C++ casts. Examples:
+
+    construct<std::string>(arg1, arg2)  // constructs a std::string from arg1, arg2
+    new_<std::string>(arg1, arg2)       // makes a new std::string from arg1, arg2
+    delete_(arg1)                       // deletes arg1 (assumed to be a pointer)
+    static_cast_<int*>(arg1)            // static_cast's arg1 to an int*
+
+[note Take note that, by convention, names that conflict with C++
+reserved words are appended with a single trailing underscore `'_'`]
+
+[blurb __tip__ Learn more about this [link phoenix.modules.object here.]]
+
+[endsect]
+

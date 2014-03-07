@@ -1,0 +1,385 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/he.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/he.xml
+ */
+he{
+    Version{"2.0.48.46"}
+    zoneStrings{
+        "Africa:Ceuta"{
+            ec{"סאוטה"}
+        }
+        "Africa:Kinshasa"{
+            ec{"קינשסה"}
+        }
+        "Africa:Lubumbashi"{
+            ec{"לובומבאשי"}
+        }
+        "Africa:Tunis"{
+            ec{"תוניסיה"}
+        }
+        "America:Anchorage"{
+            ec{"זמן אלסקה"}
+        }
+        "America:Araguaina"{
+            ec{"אראגואינה"}
+        }
+        "America:Argentina:San_Juan"{
+            ec{"אמריקה/ארגנטינה/סאן-חואן"}
+        }
+        "America:Bahia"{
+            ec{"אמריקה/בהיאה"}
+        }
+        "America:Belem"{
+            ec{"בלם"}
+        }
+        "America:Boa_Vista"{
+            ec{"בואה ויסטה"}
+        }
+        "America:Buenos_Aires"{
+            ec{"בואנוס איירס"}
+        }
+        "America:Campo_Grande"{
+            ec{"קמפו גרנדה"}
+        }
+        "America:Cancun"{
+            ec{"אמריקה/קנקון"}
+        }
+        "America:Chicago"{
+            ec{"אמריקה/שיקגו"}
+        }
+        "America:Cordoba"{
+            ec{"אמריקה/קורדובה"}
+        }
+        "America:Cuiaba"{
+            ec{"קויאבה"}
+        }
+        "America:Danmarkshavn"{
+            ec{"דנמרקסהוון"}
+        }
+        "America:Dawson_Creek"{
+            ec{"אמריקה/דוסון-קריק"}
+        }
+        "America:Denver"{
+            ec{"אמריקה/דנוור"}
+        }
+        "America:Detroit"{
+            ec{"אמריקה/דטרויט"}
+        }
+        "America:Edmonton"{
+            ec{"אמריקה/אדמנטון"}
+        }
+        "America:Fortaleza"{
+            ec{"פורטאלזה"}
+        }
+        "America:Halifax"{
+            ec{"אמריקה/הליפקס"}
+        }
+        "America:Indianapolis"{
+            ec{"אינדיאנפוליס"}
+        }
+        "America:Los_Angeles"{
+            ec{"אמריקה/לוס-אנג׳לס"}
+        }
+        "America:Louisville"{
+            ec{"אמריקה/לואיסוויל"}
+        }
+        "America:Maceio"{
+            ec{"מאסיו"}
+        }
+        "America:Manaus"{
+            ec{"מנאוס"}
+        }
+        "America:Mazatlan"{
+            ec{"אמריקה/מזטלן"}
+        }
+        "America:Mendoza"{
+            ec{"אמריקה/מנדוזה"}
+        }
+        "America:Mexico_City"{
+            ec{"אמריקה/מקסיקו סיטי"}
+        }
+        "America:Monterrey"{
+            ec{"אמריקה/מונטריי"}
+        }
+        "America:Montreal"{
+            ec{"אמריקה/מונטריאול"}
+        }
+        "America:New_York"{
+            ec{"אמריקה/ניו-יורק"}
+        }
+        "America:Noronha"{
+            ec{"נורונהה"}
+        }
+        "America:North_Dakota:Center"{
+            ec{"אמריקה/צפון דקוטה/מרכז"}
+        }
+        "America:Phoenix"{
+            ec{"אמריקה/פיניקס"}
+        }
+        "America:Porto_Velho"{
+            ec{"פורטו וולהו"}
+        }
+        "America:Recife"{
+            ec{"רסיפה"}
+        }
+        "America:Rio_Branco"{
+            ec{"ריאו ברנצ׳ו"}
+        }
+        "America:Santiago"{
+            ec{"אמריקה/סנטיאגו"}
+        }
+        "America:Sao_Paulo"{
+            ec{"אמריקה/סאן-פאולו"}
+        }
+        "America:Scoresbysund"{
+            ec{"סקורסביסונד"}
+        }
+        "America:Shiprock"{
+            ec{"אמריקה/שיפרוק"}
+        }
+        "America:Thule"{
+            ec{"טולה"}
+        }
+        "America:Toronto"{
+            ec{"אמריקה/טורנטו"}
+        }
+        "America:Vancouver"{
+            ec{"אמריקה/ונקובר"}
+        }
+        "America:Winnipeg"{
+            ec{"אמריקה/וויניפוג"}
+        }
+        "Antarctica:Casey"{
+            ec{"קאסיי"}
+        }
+        "Antarctica:Davis"{
+            ec{"דייויס"}
+        }
+        "Antarctica:DumontDUrville"{
+            ec{"דומון ד׳אורווי"}
+        }
+        "Antarctica:Mawson"{
+            ec{"מאוסון"}
+        }
+        "Antarctica:McMurdo"{
+            ec{"מקמרדו"}
+        }
+        "Antarctica:Palmer"{
+            ec{"אמריקה/פאלמר"}
+        }
+        "Antarctica:Rothera"{
+            ec{"רות׳רה"}
+        }
+        "Antarctica:South_Pole"{
+            ec{"הקוטב הדרומי"}
+        }
+        "Antarctica:Syowa"{
+            ec{"שויה"}
+        }
+        "Antarctica:Vostok"{
+            ec{"ווסטוק"}
+        }
+        "Asia:Almaty"{
+            ec{"אלמאטי"}
+        }
+        "Asia:Aqtau"{
+            ec{"אקטאו"}
+        }
+        "Asia:Aqtobe"{
+            ec{"אקטובה"}
+        }
+        "Asia:Choibalsan"{
+            ec{"צ׳ואיבלסאן"}
+        }
+        "Asia:Hovd"{
+            ec{"חובד"}
+        }
+        "Asia:Jakarta"{
+            ec{"אסיה/ג׳קרטה"}
+        }
+        "Asia:Jayapura"{
+            ec{"ג׳איאפורה"}
+        }
+        "Asia:Kuala_Lumpur"{
+            ec{"קואלה לומפור"}
+        }
+        "Asia:Makassar"{
+            ec{"מאקאסאר"}
+        }
+        "Asia:Novosibirsk"{
+            ec{"אסיה/נובוסיבירסק"}
+        }
+        "Asia:Omsk"{
+            ec{"איה/אומסק"}
+        }
+        "Asia:Oral"{
+            ec{"אסיה/אורל"}
+        }
+        "Asia:Pyongyang"{
+            ec{"צפון קוריאה"}
+        }
+        "Asia:Samarkand"{
+            ec{"אסיה/סמרקנד"}
+        }
+        "Asia:Seoul"{
+            ec{"דרום קוריאה"}
+        }
+        "Asia:Shanghai"{
+            ec{"אסיה/שנחאי"}
+        }
+        "Asia:Tashkent"{
+            ec{"אסיה/טשקנט"}
+        }
+        "Asia:Ulaanbaatar"{
+            ec{"אולאאנבטאר"}
+        }
+        "Atlantic:Azores"{
+            ec{"האיים האזורים"}
+        }
+        "Atlantic:Canary"{
+            ec{"אטלנטי/קנרי"}
+        }
+        "Australia:Adelaide"{
+            ec{"אדלייד"}
+        }
+        "Australia:Brisbane"{
+            ec{"אוסטרליה/בריסבן"}
+        }
+        "Australia:Broken_Hill"{
+            ec{"אוסטרליה/ברוקן-היל"}
+        }
+        "Australia:Darwin"{
+            ec{"אוסטרליה/דרווין"}
+        }
+        "Australia:Hobart"{
+            ec{"אוסטרליה/הוברט"}
+        }
+        "Australia:Melbourne"{
+            ec{"אוסטרליה/מלבורן"}
+        }
+        "Australia:Perth"{
+            ec{"אוסטרליה/פרת׳"}
+        }
+        "Australia:Sydney"{
+            ec{"אוסטרליה/סידני"}
+        }
+        "Etc:Unknown"{
+            ec{"לא ידוע"}
+        }
+        "Europe:Kiev"{
+            ec{"אירופה/קייב"}
+        }
+        "Europe:Lisbon"{
+            ec{"אירופה/ליסבון"}
+        }
+        "Europe:London"{
+            ec{"אירופה/לונדון"}
+        }
+        "Europe:Madrid"{
+            ec{"אירופה/מדריד"}
+        }
+        "Europe:Moscow"{
+            ec{"אירופה/מוסקבה"}
+        }
+        "Europe:Samara"{
+            ec{"אירופה/סמרה"}
+        }
+        "Pacific:Auckland"{
+            ec{"פסיפי/אוקלנד"}
+        }
+        "Pacific:Easter"{
+            ec{"איי הפסחא"}
+        }
+        "Pacific:Enderbury"{
+            ec{"אנדרבורי"}
+        }
+        "Pacific:Galapagos"{
+            ec{"פסיפי/גלאפגוס"}
+        }
+        "Pacific:Gambier"{
+            ec{"איי גמביר"}
+        }
+        "Pacific:Honolulu"{
+            ec{"פסיפי/הונולולו"}
+        }
+        "Pacific:Johnston"{
+            ec{"ג׳ונסטון"}
+        }
+        "Pacific:Kiritimati"{
+            ec{"קיריטימאטי"}
+        }
+        "Pacific:Kosrae"{
+            ec{"קוסרה"}
+        }
+        "Pacific:Majuro"{
+            ec{"מאג׳ורו"}
+        }
+        "Pacific:Marquesas"{
+            ec{"איי מרקיז"}
+        }
+        "Pacific:Midway"{
+            ec{"מידוויי"}
+        }
+        "Pacific:Ponape"{
+            ec{"פונפה"}
+        }
+        "Pacific:Tahiti"{
+            ec{"פסיפי/טהיטי"}
+        }
+        "Pacific:Tarawa"{
+            ec{"טאראווה"}
+        }
+        "Pacific:Truk"{
+            ec{"טרוק"}
+        }
+        "Pacific:Wake"{
+            ec{"וואק"}
+        }
+        "meta:Africa_Central"{
+            ls{"שעון מרכז אפריקה"}
+        }
+        "meta:Africa_Eastern"{
+            ls{"שעון מזרח אפריקה"}
+        }
+        "meta:Africa_Southern"{
+            ls{"שעון דרום אפריקה"}
+        }
+        "meta:Africa_Western"{
+            ld{"שעון קיץ, מערב אפריקה"}
+            ls{"שעון מערב אפריקה"}
+        }
+        "meta:America_Central"{
+            sg{"שעון מרכז ארה״ב (שיקגו)"}
+        }
+        "meta:America_Eastern"{
+            sg{"שעון מזרח ארה״ב (ניו-יורק)"}
+        }
+        "meta:America_Mountain"{
+            sg{"שעון אזור ההרים של ארה״ב (דנוור)"}
+        }
+        "meta:America_Pacific"{
+            sg{"שעון מערב ארה״ב (לוס אנג׳לס)"}
+        }
+        "meta:Atlantic"{
+            sg{"שעון קנדה (הליפקס)"}
+        }
+        "meta:India"{
+            ss{"IST (הודו)"}
+        }
+        "meta:Israel"{
+            lg{"שעון ישראל"}
+            ss{"IST"}
+        }
+        fallbackFormat{"{1} ({0})"}
+        gmtFormat{"GMT{0}"}
+        hourFormat{"+HH:mm;-HH:mm"}
+        regionFormat{"שעון {0}"}
+    }
+}

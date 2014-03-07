@@ -1,0 +1,13 @@
+[article Macros Test 1.5
+[quickbook 1.5]
+]
+
+[def __defined__]
+
+[include macros-inc1.quickbook]
+
+* __foo__
+* [defined_template]
+* __defined_macro__
+* [not_defined_template]
+* [__not_defined_macro__]

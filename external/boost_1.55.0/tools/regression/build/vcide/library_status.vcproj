@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioProject
+	ProjectType="Visual C++"
+	Version="7.10"
+	Name="library_status"
+	ProjectGUID="{465BDB84-92B5-4C60-AF26-8BD1A61A089E}"
+	Keyword="MakeFileProj">
+	<Platforms>
+		<Platform
+			Name="Win32"/>
+	</Platforms>
+	<Configurations>
+		<Configuration
+			Name="Debug|Win32"
+			OutputDirectory="Debug"
+			IntermediateDirectory="Debug"
+			ConfigurationType="0">
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="cd ..
+..\..\jam\src\bin.ntx86\bjam library_status variant=debug link=static"
+				ReBuildCommandLine="cd ..
+..\..\jam\src\bin.ntx86\bjam -a library_status variant=debug link=static"
+				CleanCommandLine="cd ..
+..\..\jam\src\bin.ntx86\bjam clean"
+				Output="..\..\..\..\bin.v2\tools\regression\build\msvc-7.1\debug\link-static\library_status.exe"/>
+		</Configuration>
+		<Configuration
+			Name="Release|Win32"
+			OutputDirectory="Release"
+			IntermediateDirectory="Release"
+			ConfigurationType="0">
+			<Tool
+				Name="VCNMakeTool"
+				BuildCommandLine="cd ..
+..\..\jam\src\bin.ntx86\bjam library_status variant=release link=static"
+				ReBuildCommandLine="cd ..
+..\..\jam\src\bin.ntx86\bjam -a library_status variant=release link=static"
+				CleanCommandLine="cd ..
+..\..\jam\src\bin.ntx86\bjam clean"
+				Output="..\..\..\..\bin.v2\tools\regression\build\msvc-7.1\release\link-static\library_status.exe"/>
+		</Configuration>
+	</Configurations>
+	<References>
+	</References>
+	<Files>
+		<Filter
+			Name="Source Files"
+			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
+			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
+			<File
+				RelativePath="..\..\library_status.cpp">
+			</File>
+			<File
+				RelativePath="..\..\detail\tiny_xml.cpp">
+			</File>
+			<File
+				RelativePath="..\..\detail\tiny_xml.hpp">
+			</File>
+		</Filter>
+	</Files>
+	<Globals>
+	</Globals>
+</VisualStudioProject>

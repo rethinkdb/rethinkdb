@@ -1,0 +1,444 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Inverse Gaussian (or Inverse Normal) Distribution</title>
+<link rel="stylesheet" href="../../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Math Toolkit">
+<link rel="up" href="../dists.html" title="Distributions">
+<link rel="prev" href="inverse_gamma_dist.html" title="Inverse Gamma Distribution">
+<link rel="next" href="laplace_dist.html" title="Laplace Distribution">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="inverse_gamma_dist.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../dists.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="laplace_dist.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="math_toolkit.dist_ref.dists.inverse_gaussian_dist"></a><a class="link" href="inverse_gaussian_dist.html" title="Inverse Gaussian (or Inverse Normal) Distribution">Inverse
+        Gaussian (or Inverse Normal) Distribution</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">distributions</span><span class="special">/</span><span class="identifier">inverse_gaussian</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></pre>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">math</span><span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">RealType</span> <span class="special">=</span> <span class="keyword">double</span><span class="special">,</span>
+          <span class="keyword">class</span> <a class="link" href="../../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a>   <span class="special">=</span> <a class="link" href="../../pol_ref/pol_ref_ref.html" title="Policy Class Reference">policies::policy&lt;&gt;</a> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">inverse_gaussian_distribution</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+   <span class="keyword">typedef</span> <span class="identifier">RealType</span> <span class="identifier">value_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">Policy</span>   <span class="identifier">policy_type</span><span class="special">;</span>
+
+   <span class="identifier">inverse_gaussian_distribution</span><span class="special">(</span><span class="identifier">RealType</span> <span class="identifier">mean</span> <span class="special">=</span> <span class="number">1</span><span class="special">,</span> <span class="identifier">RealType</span> <span class="identifier">scale</span> <span class="special">=</span> <span class="number">1</span><span class="special">);</span>
+
+   <span class="identifier">RealType</span> <span class="identifier">mean</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span> <span class="comment">// mean default 1.</span>
+   <span class="identifier">RealType</span> <span class="identifier">scale</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span> <span class="comment">// Optional scale, default 1 (unscaled).</span>
+   <span class="identifier">RealType</span> <span class="identifier">shape</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span> <span class="comment">// Shape = scale/mean.</span>
+<span class="special">};</span>
+<span class="keyword">typedef</span> <span class="identifier">inverse_gaussian_distribution</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">inverse_gaussian</span><span class="special">;</span>
+
+<span class="special">}}</span> <span class="comment">// namespace boost // namespace math</span>
+</pre>
+<p>
+          The Inverse Gaussian distribution distribution is a continuous probability
+          distribution.
+        </p>
+<p>
+          The distribution is also called 'normal-inverse Gaussian distribution',
+          and 'normal Inverse' distribution.
+        </p>
+<p>
+          It is also convenient to provide unity as default for both mean and scale.
+          This is the Standard form for all distributions. The Inverse Gaussian distribution
+          was first studied in relation to Brownian motion. In 1956 M.C.K. Tweedie
+          used the name Inverse Gaussian because there is an inverse relationship
+          between the time to cover a unit distance and distance covered in unit
+          time. The inverse Gaussian is one of family of distributions that have
+          been called the <a href="http://en.wikipedia.org/wiki/Tweedie_distributions" target="_top">Tweedie
+          distributions</a>.
+        </p>
+<p>
+          (So <span class="emphasis"><em>inverse</em></span> in the name may mislead: it does <span class="bold"><strong>not</strong></span> relate to the inverse of a distribution).
+        </p>
+<p>
+          The tails of the distribution decrease more slowly than the normal distribution.
+          It is therefore suitable to model phenomena where numerically large values
+          are more probable than is the case for the normal distribution. For stock
+          market returns and prices, a key characteristic is that it models that
+          extremely large variations from typical (crashes) can occur even when almost
+          all (normal) variations are small.
+        </p>
+<p>
+          Examples are returns from financial assets and turbulent wind speeds.
+        </p>
+<p>
+          The normal-inverse Gaussian distributions form a subclass of the generalised
+          hyperbolic distributions.
+        </p>
+<p>
+          See <a href="http://en.wikipedia.org/wiki/Normal-inverse_Gaussian_distribution" target="_top">distribution</a>.
+          <a href="http://mathworld.wolfram.com/InverseGaussianDistribution.html" target="_top">Weisstein,
+          Eric W. "Inverse Gaussian Distribution." From MathWorld--A Wolfram
+          Web Resource.</a>
+        </p>
+<p>
+          If you want a <code class="computeroutput"><span class="keyword">double</span></code> precision
+          inverse_gaussian distribution you can use
+        </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">inverse_gaussian_distribution</span><span class="special">&lt;&gt;</span></pre>
+<p>
+          or, more conveniently, you can write
+        </p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">inverse_gaussian</span><span class="special">;</span>
+<span class="identifier">inverse_gaussian</span> <span class="identifier">my_ig</span><span class="special">(</span><span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">);</span>
+</pre>
+<p>
+          For mean parameters &#956; and scale (also called precision) parameter &#955;, and random
+          variate x, the inverse_gaussian distribution is defined by the probability
+          density function (PDF):
+        </p>
+<p>
+          &#8192;&#8192; f(x;&#956;, &#955;) = &#8730;(&#955;/2&#960;x<sup>3</sup>) e<sup>-&#955;(x-&#956;)&#178;/2&#956;&#178;x</sup>
+        </p>
+<p>
+          and Cumulative Density Function (CDF):
+        </p>
+<p>
+          &#8192;&#8192;  F(x;&#956;, &#955;) = &#934;{&#8730;(&#955;<span class="emphasis"><em>x) (x</em></span>&#956;-1)} + e<sup>2&#956;/&#955;</sup> &#934;{-&#8730;(&#955;/&#956;) (1+x/&#956;)}
+        </p>
+<p>
+          where &#934; is the standard normal distribution CDF.
+        </p>
+<p>
+          The following graphs illustrate how the PDF and CDF of the inverse_gaussian
+          distribution varies for a few values of parameters &#956; and &#955;:
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../../../../graphs/inverse_gaussian_pdf.png" align="middle"></span>
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../../../../graphs/inverse_gaussian_cdf.png" align="middle"></span>
+        </p>
+<p>
+          Tweedie also provided 3 other parameterisations where (&#956; and &#955;) are replaced
+          by their ratio &#966; = &#955;/&#956; and by 1/&#956;: these forms may be more suitable for Bayesian
+          applications. These can be found on Seshadri, page 2 and are also discussed
+          by Chhikara and Folks on page 105. Another related parameterisation, the
+          __wald_distrib (where mean &#956; is unity) is also provided.
+        </p>
+<h5>
+<a name="math_toolkit.dist_ref.dists.inverse_gaussian_dist.h0"></a>
+          <span class="phrase"><a name="math_toolkit.dist_ref.dists.inverse_gaussian_dist.member_functions"></a></span><a class="link" href="inverse_gaussian_dist.html#math_toolkit.dist_ref.dists.inverse_gaussian_dist.member_functions">Member
+          Functions</a>
+        </h5>
+<pre class="programlisting"><span class="identifier">inverse_gaussian_distribution</span><span class="special">(</span><span class="identifier">RealType</span> <span class="identifier">df</span> <span class="special">=</span> <span class="number">1</span><span class="special">,</span> <span class="identifier">RealType</span> <span class="identifier">scale</span> <span class="special">=</span> <span class="number">1</span><span class="special">);</span> <span class="comment">// optionally scaled.</span>
+</pre>
+<p>
+          Constructs an inverse_gaussian distribution with &#956; mean, and scale &#955;, with
+          both default values 1.
+        </p>
+<p>
+          Requires that both the mean &#956; parameter and scale &#955; are greater than zero,
+          otherwise calls <a class="link" href="../../error_handling.html#math_toolkit.error_handling.domain_error">domain_error</a>.
+        </p>
+<pre class="programlisting"><span class="identifier">RealType</span> <span class="identifier">mean</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+          Returns the mean &#956; parameter of this distribution.
+        </p>
+<pre class="programlisting"><span class="identifier">RealType</span> <span class="identifier">scale</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+          Returns the scale &#955; parameter of this distribution.
+        </p>
+<h5>
+<a name="math_toolkit.dist_ref.dists.inverse_gaussian_dist.h1"></a>
+          <span class="phrase"><a name="math_toolkit.dist_ref.dists.inverse_gaussian_dist.non_member_accessors"></a></span><a class="link" href="inverse_gaussian_dist.html#math_toolkit.dist_ref.dists.inverse_gaussian_dist.non_member_accessors">Non-member
+          Accessors</a>
+        </h5>
+<p>
+          All the <a class="link" href="../nmp.html" title="Non-Member Properties">usual non-member accessor
+          functions</a> that are generic to all distributions are supported:
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.cdf">Cumulative Distribution Function</a>,
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.pdf">Probability Density Function</a>,
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.quantile">Quantile</a>, <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.hazard">Hazard Function</a>, <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.chf">Cumulative Hazard Function</a>,
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.mean">mean</a>, <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.median">median</a>,
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.mode">mode</a>, <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.variance">variance</a>,
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.sd">standard deviation</a>,
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.skewness">skewness</a>, <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.kurtosis">kurtosis</a>, <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.kurtosis_excess">kurtosis_excess</a>,
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.range">range</a> and <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.support">support</a>.
+        </p>
+<p>
+          The domain of the random variate is [0,+&#8734;).
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Unlike some definitions, this implementation supports a random variate
+            equal to zero as a special case, returning zero for both pdf and cdf.
+          </p></td></tr>
+</table></div>
+<h5>
+<a name="math_toolkit.dist_ref.dists.inverse_gaussian_dist.h2"></a>
+          <span class="phrase"><a name="math_toolkit.dist_ref.dists.inverse_gaussian_dist.accuracy"></a></span><a class="link" href="inverse_gaussian_dist.html#math_toolkit.dist_ref.dists.inverse_gaussian_dist.accuracy">Accuracy</a>
+        </h5>
+<p>
+          The inverse_gaussian distribution is implemented in terms of the exponential
+          function and standard normal distribution <span class="emphasis"><em>N</em></span>0,1 &#934; : refer
+          to the accuracy data for those functions for more information. But in general,
+          gamma (and thus inverse gamma) results are often accurate to a few epsilon,
+          &gt;14 decimal digits accuracy for 64-bit double.
+        </p>
+<h5>
+<a name="math_toolkit.dist_ref.dists.inverse_gaussian_dist.h3"></a>
+          <span class="phrase"><a name="math_toolkit.dist_ref.dists.inverse_gaussian_dist.implementation"></a></span><a class="link" href="inverse_gaussian_dist.html#math_toolkit.dist_ref.dists.inverse_gaussian_dist.implementation">Implementation</a>
+        </h5>
+<p>
+          In the following table &#956; is the mean parameter and &#955; is the scale parameter
+          of the inverse_gaussian distribution, <span class="emphasis"><em>x</em></span> is the random
+          variate, <span class="emphasis"><em>p</em></span> is the probability and <span class="emphasis"><em>q = 1-p</em></span>
+          its complement. Parameters &#956; for shape and &#955; for scale are used for the inverse
+          gaussian function.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Implementation Notes
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    pdf
+                  </p>
+                </td>
+<td>
+                  <p>
+                    &#8730;(&#955;/ 2&#960;x<sup>3</sup>) e<sup>-&#955;(x - &#956;)&#178;/ 2&#956;&#178;x</sup>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    cdf
+                  </p>
+                </td>
+<td>
+                  <p>
+                    &#934;{&#8730;(&#955;<span class="emphasis"><em>x) (x</em></span>&#956;-1)} + e<sup>2&#956;/&#955;</sup> &#934;{-&#8730;(&#955;/&#956;) (1+x/&#956;)}
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    cdf complement
+                  </p>
+                </td>
+<td>
+                  <p>
+                    using complement of &#934; above.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    quantile
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No closed form known. Estimated using a guess refined by Newton-Raphson
+                    iteration.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    quantile from the complement
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No closed form known. Estimated using a guess refined by Newton-Raphson
+                    iteration.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    mode
+                  </p>
+                </td>
+<td>
+                  <p>
+                    &#956; {&#8730;(1+9&#956;&#178;/4&#955;&#178;)&#178; - 3&#956;/2&#955;}
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    median
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No closed form analytic equation is known, but is evaluated as
+                    quantile(0.5)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    mean
+                  </p>
+                </td>
+<td>
+                  <p>
+                    &#956;
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    variance
+                  </p>
+                </td>
+<td>
+                  <p>
+                    &#956;&#179;/&#955;
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    skewness
+                  </p>
+                </td>
+<td>
+                  <p>
+                    3 &#8730; (&#956;/&#955;)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    kurtosis_excess
+                  </p>
+                </td>
+<td>
+                  <p>
+                    15&#956;/&#955;
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    kurtosis
+                  </p>
+                </td>
+<td>
+                  <p>
+                    12&#956;/&#955;
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="math_toolkit.dist_ref.dists.inverse_gaussian_dist.h4"></a>
+          <span class="phrase"><a name="math_toolkit.dist_ref.dists.inverse_gaussian_dist.references"></a></span><a class="link" href="inverse_gaussian_dist.html#math_toolkit.dist_ref.dists.inverse_gaussian_dist.references">References</a>
+        </h5>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              Wald, A. (1947). Sequential analysis. Wiley, NY.
+            </li>
+<li class="listitem">
+              The Inverse Gaussian distribution : theory, methodology, and applications,
+              Raj S. Chhikara, J. Leroy Folks. ISBN 0824779975 (1989).
+            </li>
+<li class="listitem">
+              The Inverse Gaussian distribution : statistical theory and applications,
+              Seshadri, V , ISBN - 0387986189 (pbk) (Dewey 519.2) (1998).
+            </li>
+<li class="listitem">
+              <a href="http://docs.scipy.org/doc/numpy/reference/generated/numpy.random.wald.html" target="_top">Numpy
+              and Scipy Documentation</a>.
+            </li>
+<li class="listitem">
+              <a href="http://bm2.genes.nig.ac.jp/RGM2/R_current/library/statmod/man/invgauss.html" target="_top">R
+              statmod invgauss functions</a>.
+            </li>
+<li class="listitem">
+              <a href="http://cran.r-project.org/web/packages/SuppDists/index.html" target="_top">R
+              SuppDists invGauss functions</a>. (Note that these R implementations
+              names differ in case).
+            </li>
+<li class="listitem">
+              <a href="http://www.statsci.org/s/invgauss.html" target="_top">StatSci.org invgauss
+              help</a>.
+            </li>
+<li class="listitem">
+              <a href="http://www.statsci.org/s/invgauss.statSci.org" target="_top">invgauss
+              R source</a>.
+            </li>
+<li class="listitem">
+              <a href="http://www.biostat.wustl.edu/archives/html/s-news/2001-12/msg00144.html" target="_top">pwald,
+              qwald</a>.
+            </li>
+<li class="listitem">
+              <a href="http://www.brighton-webs.co.uk/distributions/wald.asp" target="_top">Brighton
+              Webs wald</a>.
+            </li>
+</ol></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="inverse_gamma_dist.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../dists.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="laplace_dist.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

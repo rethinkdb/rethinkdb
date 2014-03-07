@@ -1,0 +1,265 @@
+//////////////////////////////////////////////////////////////////////////////
+//
+// (C) Copyright Ion Gaztanaga. Distributed under the Boost
+// Software License, Version 1.0. (See accompanying file
+// LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+// See http://www.boost.org/libs/interprocess for documentation.
+//
+//////////////////////////////////////////////////////////////////////////////
+
+Remove std::iterator_traits and use pointer_traits
+
+What values should take shared memory allocators:
+
+propagate_on_container_copy_assignment
+propagate_on_container_move_assignment
+propagate_on_container_swap
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+Platform conformance
+//////////////////////////////////////////////////////////////////////////////
+
+//////////
+FreeBSD
+//////////
+
+Tested until FreeBSD 9
+
+Shared memory: FreeBSD < 7 filesystem semantics
+
+   HISTORY
+        The shm_open() and shm_unlink() functions first appeared in FreeBSD 4.3.
+        The functions were reimplemented as system calls using shared memory
+        objects directly rather than files in FreeBSD 7.0.
+
+   BUG: MAP_PRIVATE requires read-write access to shared memory object (mapped files work fine)
+
+Named semaphore: _POSIX_SEMAPHORES not defined. Limited named semaphore support (short names)
+Process shared: _POSIX_THREAD_PROCESS_SHARED not defined
+
+//////////
+Linux 2.6
+//////////
+
+All Fine
+
+
+
+
+
+
+-> add contiguous_elements option to burst allocation
+
+-> Test construct<> with throwing constructors
+
+-> Implement zero_memory flag for allocation_command
+
+-> The general allocation funtion can be improved with some fixed size allocation bins.
+
+-> Adapt error reporting to TR1 system exceptions
+
+-> Improve exception messages
+
+-> Movability of containers should depend on the no-throw guarantee of allocators copy constructor
+
+-> Check self-assignment for vectors
+
+-> Update writing a new memory allocator explaining new functions (like alignment)
+
+-> private node allocators could take the number of nodes as a runtime parameter.
+
+-> Explain how to build intrusive indexes.
+
+-> Add intrusive index types as available indexes.
+
+-> Add maximum alignment allocation limit in PageSize bytes. Otherwise, we can't
+   guarantee alignment for process-shared allocations.
+
+-> Add default algorithm and index types. The user does not need to know how are
+   they implemented.
+
+-> Pass max size check in allocation to node pools
+
+-> Use in-place expansion capabilities to shrink_to_fit and reserve functions
+   from iunordered_index.
+
+-> change unique_ptr to avoid using compressed_pair
+
+-> Improve unique_ptr test to test move assignment and other goodies like assigment from null
+
+-> barrier_test fails on MacOS X on PowerPC.
+
+-> use virtual functions to minimize template explosion in managed classes
+
+-> Insertions with InpIt are not tested in containers
+
+-> Run tests with rvalue reference compilers with no variadic insertions
+
+-> find a way to pass security attributes to shared memory
+
+-> Implement vector with memcpy/memmove for trivially copyable types.
+
+-> flat_xxx constructors are not documented
+
+-> operator >> and similar need moved_value
+
+-> rvalue reference enabled compilers are not optimized with has_move_emulation_enabled and move_iterator
+
+-> Add allocator test template that test all new functions (allocate_many, etc.)
+
+-> MacOS shm_open is non-conformant. Is there a way to know the size of a shared memory object?
+
+-> swap() of multiallocaiton iterator is wrong. Try to reimplement it with slist
+
+-> Could the mapped_file constructor allow a wchar_t filename on Windows?
+ Or some cross-platform way to get Unicode support?
+
+-> map::node_ptr p = m.create_node(my_special_cheap_key_value, mv1, mv2);
+//We would need to unconst-cast...
+const_cast<Key&>(p->first) = modify( p->second );
+m.insert( boost::move(p) );
+
+->  I found some bug in the interprocess library. I use
+ boost::interprocess::managed_mapped_file class and
+ managed_mapped_file::shrink_to_fit() method to decrease the size of file
+ on the disk. It works good but the thread hang up on shrink_to_fit() call
+ if the file exists already and it's size is zero. It makes me check the
+ file existance and it's size before shrink_to_fit() call.
+ Thank you!
+
+-> Ticket URL: <https://svn.boost.org/trac/boost/ticket/3375>
+
+->Robust mutex emulation:
+
+Two new fields:
+ - owner
+ - state
+
+Use intermodule singleton to store the lock file name
+
+LOCK
+  if (broken_id){
+    throw exception;
+  }
+
+  lock_own_unique_file();
+
+  while(1){
+    if (try_lock_mtx){
+      write unique_id
+    }
+    else{
+      sleep();
+      ++tries;
+      if(tries > 100)
+        if(!robust_check()){
+          tries = 0;
+        }
+        else{
+          break;
+        }
+      }
+    }
+  }
+ 
+
+UNLOCK
+  if (fixing_mode){
+    write_broken_id
+  }
+  else{
+    write invalid_id
+  }
+
+  unlock_mtx
+
+ROBUST_CHECK
+
+  if(check_if_owner_dead_and_take_ownership_atomically()){
+    return false;
+  }
+  write fixing_id
+
+CHECK_IF_OWNER_DEAD_AND_TAKE_OWNERSHIP_ATOMICALLY
+
+   do{
+      old_owner = read_owner_atomically()
+      if(check_owner_unique_resource_is_dead(old_owner){
+         return true;
+      }
+   }while(cas(old_owner, cur_owner) == old_owner);
+   return false;
+
+CHECK_OWNER_UNIQUE_RESOURCE_IS_DEAD(owner)
+
+   file = file_to_owner(owner);
+   if(file_exists(file)){
+      if(try_lock(file)){
+         write_owner_atomically();
+         remove(file);
+         unlock(file)
+         return true;
+      }
+   }
+   return false;
+
+
+LOCK_OWN_UNIQUE_FILE
+class MyRobustMutexLockFile
+{
+   int fd;
+};
+
+MyRobustMutexLockFile()
+{
+   //loop create_and_lock because another process
+   //can lock and erase it
+
+   //better create, lock and rename?
+   fd = create_file(lockfilename);
+   while(1){
+      lock_file(fd);
+      int fd2 = create_exclusive(lockfilename);
+      if(fd2){
+         close(fd);
+         fd = fd2;
+         continue;
+      }
+      else if(already_exist_error){ //must already exist
+         break;
+      }
+      else{
+         close(fd);
+         throw exception;
+      }
+   }
+}
+
+~MyRobustMutexLockFile()
+{
+   close(fd);
+   //No race condition because
+   //if any other thread tries to create the file
+   //the shm has a lock so constructor/destructor is serialized
+   unlink(lockfilename)
+}
+
+ipcdetail::intermodule_singleton<MyRobustMutexLockFile>::get();
+
+Add unsigned overflow checking with shortcut as explained here:
+
+https://github.com/ivmai/bdwgc/commit/83231d0ab5ed60015797c3d1ad9056295ac3b2bb
+
+# define GC_SIZE_MAX (~(size_t)0)
+ #endif
++#define GC_SQRT_SIZE_MAX ((1U << (WORDSZ / 2)) - 1)
++
+void * calloc(size_t n, size_t lb)
+{
+-    if (lb && n > GC_SIZE_MAX / lb)
++    if ((lb | n) > GC_SQRT_SIZE_MAX /* fast initial test */
++        && lb && n > GC_SIZE_MAX / lb)
+       return NULL;

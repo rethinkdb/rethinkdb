@@ -1,0 +1,247 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template mersenne_twister_engine</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_random/reference.html#header.boost.random.mersenne_twister_hpp" title="Header &lt;boost/random/mersenne_twister.hpp&gt;">
+<link rel="prev" href="lognormal_distribution/param_type.html" title="Class param_type">
+<link rel="next" href="mt11213b.html" title="Type definition mt11213b">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lognormal_distribution/param_type.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_random/reference.html#header.boost.random.mersenne_twister_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mt11213b.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.random.mersenne_twister_engine"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template mersenne_twister_engine</span></h2>
+<p>boost::random::mersenne_twister_engine</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_random/reference.html#header.boost.random.mersenne_twister_hpp" title="Header &lt;boost/random/mersenne_twister.hpp&gt;">boost/random/mersenne_twister.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> UIntType<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> w<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> n<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> m<span class="special">,</span> 
+         <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> r<span class="special">,</span> <span class="identifier">UIntType</span> a<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> u<span class="special">,</span> <span class="identifier">UIntType</span> d<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> s<span class="special">,</span> 
+         <span class="identifier">UIntType</span> b<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> t<span class="special">,</span> <span class="identifier">UIntType</span> c<span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> l<span class="special">,</span> <span class="identifier">UIntType</span> f<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">UIntType</span> <a name="boost.random.mersenne_twister_engine.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="mersenne_twister_engine.html#boost.random.mersenne_twister_engineconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="mersenne_twister_engine.html#idp60021832-bb"><span class="identifier">mersenne_twister_engine</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="mersenne_twister_engine.html#idp60022792-bb"><span class="identifier">mersenne_twister_engine</span></a><span class="special">(</span><span class="identifier">UIntType</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> It<span class="special">&gt;</span> <a class="link" href="mersenne_twister_engine.html#idp60024216-bb"><span class="identifier">mersenne_twister_engine</span></a><span class="special">(</span><span class="identifier">It</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">It</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SeedSeq<span class="special">&gt;</span> <span class="keyword">explicit</span> <a class="link" href="mersenne_twister_engine.html#idp60025368-bb"><span class="identifier">mersenne_twister_engine</span></a><span class="special">(</span><span class="identifier">SeedSeq</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="mersenne_twister_engine.html#idp60029880-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="mersenne_twister_engine.html#idp60030088-bb"><span class="identifier">seed</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="mersenne_twister_engine.html#idp60031000-bb"><span class="identifier">seed</span></a><span class="special">(</span><span class="identifier">UIntType</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SeeqSeq<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="mersenne_twister_engine.html#idp60032408-bb"><span class="identifier">seed</span></a><span class="special">(</span><span class="identifier">SeeqSeq</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> It<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="mersenne_twister_engine.html#idp60034264-bb"><span class="identifier">seed</span></a><span class="special">(</span><span class="identifier">It</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">It</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">result_type</span> <a class="link" href="mersenne_twister_engine.html#idp60026808-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Iter<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="mersenne_twister_engine.html#idp60027512-bb"><span class="identifier">generate</span></a><span class="special">(</span><span class="identifier">Iter</span><span class="special">,</span> <span class="identifier">Iter</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="mersenne_twister_engine.html#idp60020200-bb"><span class="identifier">discard</span></a><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="mersenne_twister_engine.html#idp60008808-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">result_type</span> <a class="link" href="mersenne_twister_engine.html#idp60009016-bb"><span class="identifier">min</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">result_type</span> <a class="link" href="mersenne_twister_engine.html#idp60009752-bb"><span class="identifier">max</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="mersenne_twister_engine.html#idp60017176-bb">friend functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+    <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+    <a class="link" href="mersenne_twister_engine.html#idp60017384-bb"><span class="keyword">operator</span><span class="special">&lt;&lt;</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+               <span class="keyword">const</span> <a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+    <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+    <a class="link" href="mersenne_twister_engine.html#idp60014264-bb"><span class="keyword">operator</span><span class="special">&gt;&gt;</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+               <a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">friend</span> <span class="keyword">bool</span> <a class="link" href="mersenne_twister_engine.html#idp60010520-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a> <span class="special">&amp;</span><span class="special">,</span> 
+                         <span class="keyword">const</span> <a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">friend</span> <span class="keyword">bool</span> <a class="link" href="mersenne_twister_engine.html#idp60012440-bb"><span class="keyword">operator</span><span class="special">!=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a> <span class="special">&amp;</span><span class="special">,</span> 
+                         <span class="keyword">const</span> <a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">word_size</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">state_size</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">shift_size</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">mask_bits</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">UIntType</span> <span class="identifier">xor_mask</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">tempering_u</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">UIntType</span> <span class="identifier">tempering_d</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">tempering_s</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">UIntType</span> <span class="identifier">tempering_b</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">tempering_t</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">UIntType</span> <span class="identifier">tempering_c</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">tempering_l</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">UIntType</span> <span class="identifier">initialization_multiplier</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">UIntType</span> <span class="identifier">default_seed</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">UIntType</span> <span class="identifier">parameter_a</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">output_u</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">output_s</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">UIntType</span> <span class="identifier">output_b</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">output_t</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">UIntType</span> <span class="identifier">output_c</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">output_l</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">has_fixed_range</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp195272328"></a><h2>Description</h2>
+<p>Instantiations of class template <a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a> model a  <a class="link" href="../../boost_random/reference.html#boost_random.reference.concepts.pseudo_random_number_generator" title="Pseudo-Random Number Generator">pseudo-random number generator</a> . It uses the algorithm described in</p>
+<p> </p>
+<div class="blockquote"><blockquote class="blockquote"><p>  "Mersenne Twister: A 623-dimensionally equidistributed uniform
+ pseudo-random number generator", Makoto Matsumoto and Takuji Nishimura, ACM Transactions on Modeling and Computer Simulation: Special Issue on Uniform Random Number Generation, Vol. 8, No. 1, January 1998, pp. 3-30.  </p></blockquote></div>
+<p> </p>
+<p> </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>  The boost variant has been implemented from scratch and does not derive from or use mt19937.c provided on the above WWW site. However, it was verified that both produce identical output.  </p></td></tr>
+</table></div>
+<p> </p>
+<p>The seeding from an integer was changed in April 2005 to address a <a href="http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/MT2002/emt19937ar.html" target="_top">weakness</a>.</p>
+<p>The quality of the generator crucially depends on the choice of the parameters. User code should employ one of the sensibly parameterized generators such as <a class="link" href="mt19937.html" title="Type definition mt19937">mt19937</a>  instead.</p>
+<p>The generator requires considerable amounts of memory for the storage of its state array. For example, <a class="link" href="mt11213b.html" title="Type definition mt11213b">mt11213b</a>  requires about 1408 bytes and  <a class="link" href="mt19937.html" title="Type definition mt19937">mt19937</a>  requires about 2496 bytes. </p>
+<div class="refsect2">
+<a name="idp195277544"></a><h3>
+<a name="boost.random.mersenne_twister_engineconstruct-copy-destruct"></a><code class="computeroutput">mersenne_twister_engine</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp60021832-bb"></a><span class="identifier">mersenne_twister_engine</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><code class="computeroutput"><a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a></code></code> and calls <code class="computeroutput">seed()</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp60022792-bb"></a><span class="identifier">mersenne_twister_engine</span><span class="special">(</span><span class="identifier">UIntType</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><code class="computeroutput"><a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a></code></code> and calls <code class="computeroutput">seed(value)</code>. </p>
+</li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> It<span class="special">&gt;</span> <a name="idp60024216-bb"></a><span class="identifier">mersenne_twister_engine</span><span class="special">(</span><span class="identifier">It</span> <span class="special">&amp;</span> first<span class="special">,</span> <span class="identifier">It</span> last<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SeedSeq<span class="special">&gt;</span> <span class="keyword">explicit</span> <a name="idp60025368-bb"></a><span class="identifier">mersenne_twister_engine</span><span class="special">(</span><span class="identifier">SeedSeq</span> <span class="special">&amp;</span> seq<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a></code> and calls <code class="computeroutput">seed(gen)</code>.</p>
+<p> </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>  The copy constructor will always be preferred over the templated constructor.  </p></td></tr>
+</table></div>
+<p>  </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp195295624"></a><h3>
+<a name="idp60029880-bb"></a><code class="computeroutput">mersenne_twister_engine</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp60030088-bb"></a><span class="identifier">seed</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Calls <code class="computeroutput">seed(default_seed)</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp60031000-bb"></a><span class="identifier">seed</span><span class="special">(</span><span class="identifier">UIntType</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p>Sets the state x(0) to v mod 2w. Then, iteratively, sets x(i) to (i + f * (x(i-1) xor (x(i-1) rshift w-2))) mod 2<sup>w</sup> for i = 1 .. n-1. x(n) is the first value to be returned by operator(). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SeeqSeq<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp60032408-bb"></a><span class="identifier">seed</span><span class="special">(</span><span class="identifier">SeeqSeq</span> <span class="special">&amp;</span> seq<span class="special">)</span><span class="special">;</span></pre>
+<p>Seeds a <code class="computeroutput"><a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a></code> using values produced by seq.generate(). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> It<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp60034264-bb"></a><span class="identifier">seed</span><span class="special">(</span><span class="identifier">It</span> <span class="special">&amp;</span> first<span class="special">,</span> <span class="identifier">It</span> last<span class="special">)</span><span class="special">;</span></pre>
+<p>Sets the state of the generator using values from an iterator range. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp60026808-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Produces the next value of the generator. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Iter<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp60027512-bb"></a><span class="identifier">generate</span><span class="special">(</span><span class="identifier">Iter</span> first<span class="special">,</span> <span class="identifier">Iter</span> last<span class="special">)</span><span class="special">;</span></pre>
+<p>Fills a range with random values </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp60020200-bb"></a><span class="identifier">discard</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span> z<span class="special">)</span><span class="special">;</span></pre>
+<p>Advances the state of the generator by <code class="computeroutput">z</code> steps. Equivalent to</p>
+<pre class="programlisting">* for(unsigned long long i = 0; i &lt; z; ++i) {
+*     gen();
+* }
+* 
+</pre>
+<p> </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp195323208"></a><h3>
+<a name="idp60008808-bb"></a><code class="computeroutput">mersenne_twister_engine</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">result_type</span> <a name="idp60009016-bb"></a><span class="identifier">min</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns the smallest value that the generator can produce. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">result_type</span> <a name="idp60009752-bb"></a><span class="identifier">max</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns the largest value that the generator can produce. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp195329416"></a><h3>
+<a name="idp60017176-bb"></a><code class="computeroutput">mersenne_twister_engine</code> friend functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+  <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+  <a name="idp60017384-bb"></a><span class="keyword">operator</span><span class="special">&lt;&lt;</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> os<span class="special">,</span> 
+             <span class="keyword">const</span> <a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a> <span class="special">&amp;</span> mt<span class="special">)</span><span class="special">;</span></pre>
+<p>Writes a <code class="computeroutput"><a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a></code> to a <code class="computeroutput">std::ostream</code> </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+  <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+  <a name="idp60014264-bb"></a><span class="keyword">operator</span><span class="special">&gt;&gt;</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> is<span class="special">,</span> 
+             <a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a> <span class="special">&amp;</span> mt<span class="special">)</span><span class="special">;</span></pre>
+<p>Reads a <code class="computeroutput"><a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a></code> from a <code class="computeroutput">std::istream</code> </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">friend</span> <span class="keyword">bool</span> <a name="idp60010520-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a> <span class="special">&amp;</span> x<span class="special">,</span> 
+                       <span class="keyword">const</span> <a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a> <span class="special">&amp;</span> y<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns true if the two generators are in the same state, and will thus produce identical sequences. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">friend</span> <span class="keyword">bool</span> <a name="idp60012440-bb"></a><span class="keyword">operator</span><span class="special">!=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a> <span class="special">&amp;</span> x<span class="special">,</span> 
+                       <span class="keyword">const</span> <a class="link" href="mersenne_twister_engine.html" title="Class template mersenne_twister_engine">mersenne_twister_engine</a> <span class="special">&amp;</span> y<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns true if the two generators are in different states. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2005 Jens Maurer<br>Copyright &#169; 2009, 2010 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lognormal_distribution/param_type.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_random/reference.html#header.boost.random.mersenne_twister_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mt11213b.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

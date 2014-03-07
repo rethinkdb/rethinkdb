@@ -1,0 +1,267 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Lazy Parser (lazy)</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../auxiliary.html" title="Auxiliary Parsers">
+<link rel="prev" href="eps.html" title="Epsilon Parser (eps)">
+<link rel="next" href="../binary.html" title="Binary Parsers">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="eps.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../auxiliary.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../binary.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.reference.auxiliary.lazy"></a><a class="link" href="lazy.html" title="Lazy Parser (lazy)">Lazy Parser (<code class="computeroutput"><span class="identifier">lazy</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.qi.reference.auxiliary.lazy.h0"></a>
+            <span class="phrase"><a name="spirit.qi.reference.auxiliary.lazy.description"></a></span><a class="link" href="lazy.html#spirit.qi.reference.auxiliary.lazy.description">Description</a>
+          </h6>
+<p>
+            The <code class="computeroutput"><span class="identifier">lazy</span></code> parser, as its
+            name suggests, invokes a lazy <a href="../../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a>
+            function that returns a parser at parse time. This parser will be used
+            once it is created to continue the parse.
+          </p>
+<h6>
+<a name="spirit.qi.reference.auxiliary.lazy.h1"></a>
+            <span class="phrase"><a name="spirit.qi.reference.auxiliary.lazy.header"></a></span><a class="link" href="lazy.html#spirit.qi.reference.auxiliary.lazy.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/auxiliary/lazy.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_lazy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.auxiliary.lazy.h2"></a>
+            <span class="phrase"><a name="spirit.qi.reference.auxiliary.lazy.namespace"></a></span><a class="link" href="lazy.html#spirit.qi.reference.auxiliary.lazy.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody><tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lazy</span> <span class="comment">// alias:
+                      boost::spirit::qi::lazy</span></code>
+                    </p>
+                  </td></tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.auxiliary.lazy.h3"></a>
+            <span class="phrase"><a name="spirit.qi.reference.auxiliary.lazy.model_of"></a></span><a class="link" href="lazy.html#spirit.qi.reference.auxiliary.lazy.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../parser_concepts/parser.html" title="Parser"><code class="computeroutput"><span class="identifier">Parser</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">fp</span></code></span></dt>
+<dd><p>
+                  A <a class="link" href="../basics.html#spirit.qi.reference.basics.lazy_argument">Lazy
+                  Argument</a> that evaluates to a <a class="link" href="../parser_concepts/parser.html" title="Parser"><code class="computeroutput"><span class="identifier">Parser</span></code></a>.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.qi.reference.auxiliary.lazy.h4"></a>
+            <span class="phrase"><a name="spirit.qi.reference.auxiliary.lazy.expression_semantics"></a></span><a class="link" href="lazy.html#spirit.qi.reference.auxiliary.lazy.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../parser_concepts/parser.html" title="Parser"><code class="computeroutput"><span class="identifier">Parser</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">fp</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Create a lazy-parser from a <a class="link" href="../basics.html#spirit.qi.reference.basics.lazy_argument">Lazy
+                      Argument</a>, <code class="computeroutput"><span class="identifier">fp</span></code>.
+                      <code class="computeroutput"><span class="identifier">fp</span></code> will be
+                      invoked at parse time. <code class="computeroutput"><span class="identifier">fp</span></code>
+                      is expected to return a <a class="link" href="../parser_concepts/parser.html" title="Parser"><code class="computeroutput"><span class="identifier">Parser</span></code></a> object. This
+                      parser is then invoked in order to parse the input.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">lazy</span><span class="special">(</span><span class="identifier">fp</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Create a lazy-parser from a <a class="link" href="../basics.html#spirit.qi.reference.basics.lazy_argument">Lazy
+                      Argument</a>, <code class="computeroutput"><span class="identifier">fp</span></code>.
+                      <code class="computeroutput"><span class="identifier">fp</span></code> will be
+                      invoked at parse time. <code class="computeroutput"><span class="identifier">fp</span></code>
+                      is expected to return a <a class="link" href="../parser_concepts/parser.html" title="Parser"><code class="computeroutput"><span class="identifier">Parser</span></code></a> object. This
+                      parser is then invoked in order to parse the input.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.auxiliary.lazy.h5"></a>
+            <span class="phrase"><a name="spirit.qi.reference.auxiliary.lazy.attributes"></a></span><a class="link" href="lazy.html#spirit.qi.reference.auxiliary.lazy.attributes">Attributes</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">fp</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The attribute type of the return type of <code class="computeroutput"><span class="identifier">fp</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">lazy</span><span class="special">(</span><span class="identifier">fp</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The attribute type of the return type of <code class="computeroutput"><span class="identifier">fp</span></code>.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.auxiliary.lazy.h6"></a>
+            <span class="phrase"><a name="spirit.qi.reference.auxiliary.lazy.complexity"></a></span><a class="link" href="lazy.html#spirit.qi.reference.auxiliary.lazy.complexity">Complexity</a>
+          </h6>
+<p>
+            The complexity of the <code class="computeroutput"><span class="identifier">lazy</span></code>
+            parser is determined by the complexity of the parser returned from <code class="computeroutput"><span class="identifier">fp</span></code>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.auxiliary.lazy.h7"></a>
+            <span class="phrase"><a name="spirit.qi.reference.auxiliary.lazy.example"></a></span><a class="link" href="lazy.html#spirit.qi.reference.auxiliary.lazy.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.qi.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">lazy</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">string</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">val</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Using <code class="computeroutput"><span class="identifier">lazy</span></code>:
+          </p>
+<p>
+            Here, the phoenix::val expression creates a function that returns its
+            argument when invoked. The lazy expression defers the invocation of this
+            function at parse time. Then, this parser (string parser) is called into
+            action. All this takes place at parse time.
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">test_parser</span><span class="special">(</span><span class="string">"Hello"</span><span class="special">,</span> <span class="identifier">lazy</span><span class="special">(</span><span class="identifier">val</span><span class="special">(</span><span class="identifier">string</span><span class="special">(</span><span class="string">"Hello"</span><span class="special">))));</span>
+</pre>
+<p>
+          </p>
+<p>
+            The above is equivalent to:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">test_parser</span><span class="special">(</span><span class="string">"Hello"</span><span class="special">,</span> <span class="identifier">val</span><span class="special">(</span><span class="identifier">string</span><span class="special">(</span><span class="string">"Hello"</span><span class="special">)));</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="eps.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../auxiliary.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../binary.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

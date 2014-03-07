@@ -1,0 +1,22 @@
+# Boost.Wave: A Standard compliant C++ preprocessor library
+#
+# Boost Wave Library Sample Build Jamfile (preprocess_pragma_output)
+#
+# http://www.boost.org/
+#
+# Copyright (c) 2001-2008 Hartmut Kaiser. Distributed under the Boost 
+# Software License, Version 1.0. (See accompanying file 
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+exe preprocess_pragma_output
+    :   ../preprocess_pragma_output.cpp 
+        /boost/wave//boost_wave
+        /boost/thread//boost_thread
+        /boost/date_time//boost_date_time
+        /boost/filesystem//boost_filesystem
+        /boost/system//boost_system
+    :
+        <toolset>msvc-8.0:<define>_SCL_SECURE_NO_DEPRECATE
+        <toolset>msvc-8.0:<define>_CRT_SECURE_NO_DEPRECATE
+    ;  
+

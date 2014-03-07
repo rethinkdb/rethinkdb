@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<library id="empty_attributes" name="Empty Attributes" dirname="empty_attributes"
+last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <libraryinfo>
+    <authorgroup>
+    <author>
+      <firstname></firstname> <surname></surname>
+    </author>
+    </authorgroup>
+    <copyright>
+      <year>2011</year> <holder></holder>
+    </copyright>
+  </libraryinfo>
+  <title>Empty Attributes</title>
+  <para>
+    <literal>biblioid</literal> and <literal>source-mode</literal> can't be empty.
+  </para>
+</library>

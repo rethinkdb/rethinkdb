@@ -1,0 +1,179 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Custom Polygon</title>
+</head>
+
+<body>
+
+<p><font face="Courier New">/*<br>
+Copyright 2008 Intel Corporation<br>
+<br>
+Use, modification and distribution are subject to the Boost Software License,<br>
+Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at<br>
+http://www.boost.org/LICENSE_1_0.txt).<br>
+*/<br>
+#include &lt;boost/polygon/polygon.hpp&gt;<br>
+#include &lt;cassert&gt;<br>
+#include &lt;list&gt;<br>
+namespace gtl = boost::polygon;<br>
+using namespace boost::polygon::operators;<br><br>
+//first lets turn our polygon usage code into a generic<br>
+//function parameterized by polygon type<br>
+template &lt;typename Polygon&gt;<br>
+void test_polygon() {<br>
+&nbsp; //lets construct a 10x10 rectangle shaped polygon<br>
+&nbsp; typedef typename gtl::polygon_traits&lt;Polygon&gt;::point_type Point;<br>
+&nbsp; Point pts[] = {gtl::construct&lt;Point&gt;(0, 0),<br>
+&nbsp; gtl::construct&lt;Point&gt;(10, 0),<br>
+&nbsp; gtl::construct&lt;Point&gt;(10, 10),<br>
+&nbsp; gtl::construct&lt;Point&gt;(0, 10) };<br>
+&nbsp; Polygon poly;<br>
+&nbsp; gtl::set_points(poly, pts, pts+4);<br>
+<br>
+&nbsp; //now lets see what we can do with this polygon<br>
+&nbsp; assert(gtl::area(poly) == 100.0f);<br>
+&nbsp; assert(gtl::contains(poly, gtl::construct&lt;Point&gt;(5, 5)));<br>
+&nbsp; assert(!gtl::contains(poly, gtl::construct&lt;Point&gt;(15, 5)));<br>
+&nbsp; gtl::rectangle_data&lt;int&gt; rect;<br>
+&nbsp; assert(gtl::extents(rect, poly)); //get bounding box of poly<br>
+&nbsp; assert(gtl::equivalence(rect, poly)); //hey, that's slick<br>
+&nbsp; assert(gtl::winding(poly) == gtl::COUNTERCLOCKWISE);<br>
+&nbsp; assert(gtl::perimeter(poly) == 40.0f);<br>
+<br>
+&nbsp; //add 5 to all coords of poly<br>
+&nbsp; gtl::convolve(poly, gtl::construct&lt;Point&gt;(5, 5));<br>
+&nbsp; //multiply all coords of poly by 2<br>
+&nbsp; gtl::scale_up(poly, 2);<br>
+&nbsp; gtl::set_points(rect, gtl::point_data&lt;int&gt;(10, 10),<br>
+&nbsp; gtl::point_data&lt;int&gt;(30, 30));<br>
+&nbsp; assert(gtl::equivalence(poly, rect));<br>
+}<br>
+<br>
+//Now lets declare our own polygon class<br>
+//Oops, we need a point class to support our polygon, lets borrow<br>
+//the CPoint example<br>
+struct CPoint {<br>
+&nbsp; int x;<br>
+&nbsp; int y;<br>
+};<br>
+<br>
+//we have to get CPoint working with boost polygon to make our polygon<br>
+//that uses CPoint working with boost polygon<br>
+namespace boost { namespace polygon {<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct geometry_concept&lt;CPoint&gt; { typedef point_concept type; };<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct point_traits&lt;CPoint&gt; {<br>
+&nbsp;&nbsp;&nbsp; typedef int coordinate_type;<br>
+<br>
+&nbsp;&nbsp;&nbsp; static inline coordinate_type get(const CPoint&amp; point, <br>
+&nbsp;&nbsp;&nbsp; orientation_2d orient) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(orient == HORIZONTAL)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return point.x;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return point.y;<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; };<br>
+<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct point_mutable_traits&lt;CPoint&gt; {<br>
+&nbsp;&nbsp;&nbsp; static inline void set(CPoint&amp; point, orientation_2d orient, 
+int value) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(orient == HORIZONTAL)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; point.x = value;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; point.y = value;<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; static inline CPoint construct(int x_value, int y_value) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CPoint retval;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; retval.x = x_value;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; retval.y = y_value; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return retval;<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; };<br>
+} }<br>
+<br>
+//I'm lazy and use the stl everywhere to avoid writing my own classes<br>
+//my toy polygon is a std::list&lt;CPoint&gt;<br>
+typedef std::list&lt;CPoint&gt; CPolygon;<br>
+<br>
+//we need to specialize our polygon concept mapping in boost polygon<br>
+namespace boost { namespace polygon {<br>
+&nbsp; //first register CPolygon as a polygon_concept type<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct geometry_concept&lt;CPolygon&gt;{ typedef polygon_concept type; };<br>
+<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct polygon_traits&lt;CPolygon&gt; {<br>
+&nbsp;&nbsp;&nbsp; typedef int coordinate_type;<br>
+&nbsp;&nbsp;&nbsp; typedef CPolygon::const_iterator iterator_type;<br>
+&nbsp;&nbsp;&nbsp; typedef CPoint point_type;<br>
+<br>
+&nbsp;&nbsp;&nbsp; // Get the begin iterator<br>
+&nbsp;&nbsp;&nbsp; static inline iterator_type begin_points(const CPolygon&amp; t) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return t.begin();<br>
+&nbsp;&nbsp;&nbsp; }<br>
+<br>
+&nbsp;&nbsp;&nbsp; // Get the end iterator<br>
+&nbsp;&nbsp;&nbsp; static inline iterator_type end_points(const CPolygon&amp; t) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return t.end();<br>
+&nbsp;&nbsp;&nbsp; }<br>
+<br>
+&nbsp;&nbsp;&nbsp; // Get the number of sides of the polygon<br>
+&nbsp;&nbsp;&nbsp; static inline std::size_t size(const CPolygon&amp; t) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return t.size();<br>
+&nbsp;&nbsp;&nbsp; }<br>
+<br>
+&nbsp;&nbsp;&nbsp; // Get the winding direction of the polygon<br>
+&nbsp;&nbsp;&nbsp; static inline winding_direction winding(const CPolygon&amp; t) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return unknown_winding;<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; };<br>
+<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct polygon_mutable_traits&lt;CPolygon&gt; {<br>
+&nbsp;&nbsp;&nbsp; //expects stl style iterators<br>
+&nbsp;&nbsp;&nbsp; template &lt;typename iT&gt;<br>
+&nbsp;&nbsp;&nbsp; static inline CPolygon&amp; set_points(CPolygon&amp; t, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+iT input_begin, iT input_end) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; t.clear();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; t.insert(t.end(), input_begin, input_end);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return t;<br>
+&nbsp;&nbsp;&nbsp; }<br>
+<br>
+&nbsp; };<br>
+} }<br>
+<br>
+//now there's nothing left to do but test that our polygon<br>
+//works with library interfaces<br>
+int main() {<br>
+&nbsp; test_polygon&lt;CPolygon&gt;(); //woot!<br>
+&nbsp; return 0;<br>
+}<br>
+&nbsp;</font></p>
+
+
+<table class="docinfo" rules="none" frame="void" id="table1">
+	<colgroup>
+		<col class="docinfo-name"><col class="docinfo-content">
+	</colgroup>
+	<tbody vAlign="top">
+		<tr>
+			<th class="docinfo-name">Copyright:</th>
+			<td>Copyright © Intel Corporation 2008-2010.</td>
+		</tr>
+		<tr class="field">
+			<th class="docinfo-name">License:</th>
+			<td class="field-body">Distributed under the Boost Software License, 
+			Version 1.0. (See accompanying file <tt class="literal">
+			<span class="pre">LICENSE_1_0.txt</span></tt> or copy at
+			<a class="reference" target="_top" href="http://www.boost.org/LICENSE_1_0.txt">
+			http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+		</tr>
+</table>
+
+</body>
+
+</html>

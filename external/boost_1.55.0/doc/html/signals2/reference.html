@@ -1,0 +1,231 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Reference</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../signals2.html" title="Chapter&#160;28.&#160;Boost.Signals2">
+<link rel="prev" href="examples.html" title="Example programs">
+<link rel="next" href="../boost/signals2/connection.html" title="Class connection">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="examples.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../boost/signals2/connection.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="signals2.reference"></a>Reference</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="reference.html#header.boost.signals2_hpp">Header &lt;boost/signals2.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.signals2.connection_hpp">Header &lt;boost/signals2/connection.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.signals2.deconstruct_hpp">Header &lt;boost/signals2/deconstruct.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.signals2.dummy_mutex_hpp">Header &lt;boost/signals2/dummy_mutex.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.signals2.last_value_hpp">Header &lt;boost/signals2/last_value.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.signals2.mutex_hpp">Header &lt;boost/signals2/mutex.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.signals2.optional_last_value_hpp">Header &lt;boost/signals2/optional_last_value.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.signals2.shared_connection_block_hpp">Header &lt;boost/signals2/shared_connection_block.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.signals2.signal_hpp">Header &lt;boost/signals2/signal.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.signals2.signal_base_hpp">Header &lt;boost/signals2/signal_base.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.signals2.signal_type_hpp">Header &lt;boost/signals2/signal_type.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.signals2.slot_hpp">Header &lt;boost/signals2/slot.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.signals2.slot_base_hpp">Header &lt;boost/signals2/slot_base.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.signals2.trackable_hpp">Header &lt;boost/signals2/trackable.hpp&gt;</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.signals2_hpp"></a>Header &lt;<a href="../../../boost/signals2.hpp" target="_top">boost/signals2.hpp</a>&gt;</h3></div></div></div>
+<p>
+      Including the "boost/signals2.hpp" header pulls in all the other headers of the Signals2
+      library.  It is provided as a convenience.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.signals2.connection_hpp"></a>Header &lt;<a href="../../../boost/signals2/connection.hpp" target="_top">boost/signals2/connection.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">signals2</span> <span class="special">{</span>
+    <span class="keyword">class</span> <a class="link" href="../boost/signals2/connection.html" title="Class connection">connection</a><span class="special">;</span>
+    <span class="keyword">void</span> <a class="link" href="../boost/signals2/connection.html#boost.signals2.connection.swap_idp57799576"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="../boost/signals2/connection.html" title="Class connection">connection</a><span class="special">&amp;</span><span class="special">,</span> <a class="link" href="../boost/signals2/connection.html" title="Class connection">connection</a><span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">class</span> <a class="link" href="../boost/signals2/scoped_connection.html" title="Class scoped_connection">scoped_connection</a><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.signals2.deconstruct_hpp"></a>Header &lt;<a href="../../../boost/signals2/deconstruct.hpp" target="_top">boost/signals2/deconstruct.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">signals2</span> <span class="special">{</span>
+    <span class="keyword">class</span> <a class="link" href="../boost/signals2/deconstruct_access.html" title="Class deconstruct_access">deconstruct_access</a><span class="special">;</span>
+    <span class="keyword">class</span> <a class="link" href="../boost/signals2/postconstructor_invoker.html" title="Class postconstructor_invoker">postconstructor_invoker</a><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <a class="link" href="../boost/signals2/postconstructor_invoker.html" title="Class postconstructor_invoker">postconstructor_invoker</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct"><span class="identifier">deconstruct</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> A1<span class="special">&gt;</span> 
+      <a class="link" href="../boost/signals2/postconstructor_invoker.html" title="Class postconstructor_invoker">postconstructor_invoker</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct"><span class="identifier">deconstruct</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">A1</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> A1<span class="special">,</span> <span class="keyword">typename</span> A2<span class="special">&gt;</span> 
+      <a class="link" href="../boost/signals2/postconstructor_invoker.html" title="Class postconstructor_invoker">postconstructor_invoker</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct"><span class="identifier">deconstruct</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">A1</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">A2</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> A1<span class="special">,</span> <span class="keyword">typename</span> A2, ...<span class="special">,</span> <span class="keyword">typename</span> AN<span class="special">&gt;</span> 
+      <a class="link" href="../boost/signals2/postconstructor_invoker.html" title="Class postconstructor_invoker">postconstructor_invoker</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> 
+      <a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct"><span class="identifier">deconstruct</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">A1</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">A2</span> <span class="special">&amp;</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">AN</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.signals2.dummy_mutex_hpp"></a>Header &lt;<a href="../../../boost/signals2/dummy_mutex.hpp" target="_top">boost/signals2/dummy_mutex.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">signals2</span> <span class="special">{</span>
+    <span class="keyword">class</span> <a class="link" href="../boost/signals2/dummy_mutex.html" title="Class dummy_mutex">dummy_mutex</a><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.signals2.last_value_hpp"></a>Header &lt;<a href="../../../boost/signals2/last_value.hpp" target="_top">boost/signals2/last_value.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">signals2</span> <span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/signals2/last_value.html" title="Class template last_value">last_value</a><span class="special">;</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/signals2/last_value_voi_idp89258328.html" title="Class last_value&lt;void&gt;">last_value</a><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span><span class="special">;</span>
+
+    <span class="keyword">class</span> <a class="link" href="../boost/signals2/no_slots_error.html" title="Class no_slots_error">no_slots_error</a><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.signals2.mutex_hpp"></a>Header &lt;<a href="../../../boost/signals2/mutex.hpp" target="_top">boost/signals2/mutex.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">signals2</span> <span class="special">{</span>
+    <span class="keyword">class</span> <a class="link" href="../boost/signals2/mutex.html" title="Class mutex">mutex</a><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.signals2.optional_last_value_hpp"></a>Header &lt;<a href="../../../boost/signals2/optional_last_value.hpp" target="_top">boost/signals2/optional_last_value.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">signals2</span> <span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/signals2/optional_last_value.html" title="Class template optional_last_value">optional_last_value</a><span class="special">;</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/signals2/optional_last__idp58716696.html" title="Class optional_last_value&lt;void&gt;">optional_last_value</a><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.signals2.shared_connection_block_hpp"></a>Header &lt;<a href="../../../boost/signals2/shared_connection_block.hpp" target="_top">boost/signals2/shared_connection_block.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">signals2</span> <span class="special">{</span>
+    <span class="keyword">class</span> <a class="link" href="../boost/signals2/shared_connection_block.html" title="Class shared_connection_block">shared_connection_block</a><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.signals2.signal_hpp"></a>Header &lt;<a href="../../../boost/signals2/signal.hpp" target="_top">boost/signals2/signal.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">signals2</span> <span class="special">{</span>
+
+    <span class="keyword">enum</span> <a name="boost.signals2.connect_position"></a>connect_position <span class="special">{</span> at_front, at_back <span class="special">}</span><span class="special">;</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Signature<span class="special">,</span> 
+             <span class="keyword">typename</span> Combiner <span class="special">=</span> <a class="link" href="../boost/signals2/optional_last_value.html" title="Class template optional_last_value">boost::signals2::optional_last_value</a><span class="special">&lt;</span><span class="identifier">R</span><span class="special">&gt;</span><span class="special">,</span> 
+             <span class="keyword">typename</span> Group <span class="special">=</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">typename</span> GroupCompare <span class="special">=</span> std::less<span class="special">&lt;</span><span class="identifier">Group</span><span class="special">&gt;</span><span class="special">,</span> 
+             <span class="keyword">typename</span> SlotFunction <span class="special">=</span> <a class="link" href="../boost/function.html" title="Class template function">boost::function</a><span class="special">&lt;</span><span class="identifier">Signature</span><span class="special">&gt;</span><span class="special">,</span> 
+             <span class="keyword">typename</span> ExtendedSlotFunction <span class="special">=</span> <a class="link" href="../boost/function.html" title="Class template function">boost::function</a><span class="special">&lt;</span><span class="identifier">R</span> <span class="special">(</span><span class="keyword">const</span> <a class="link" href="../boost/signals2/connection.html" title="Class connection">connection</a> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">)</span><span class="special">&gt;</span><span class="special">,</span> 
+             <span class="keyword">typename</span> Mutex <span class="special">=</span> <a class="link" href="../boost/signals2/mutex.html" title="Class mutex">boost::signals2::mutex</a><span class="special">&gt;</span> 
+      <span class="keyword">class</span> <a class="link" href="../boost/signals2/signal.html" title="Class template signal">signal</a><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Signature<span class="special">,</span> <span class="keyword">typename</span> Combiner<span class="special">,</span> <span class="keyword">typename</span> Group<span class="special">,</span> 
+             <span class="keyword">typename</span> GroupCompare<span class="special">,</span> <span class="keyword">typename</span> SlotFunction<span class="special">,</span> 
+             <span class="keyword">typename</span> ExtendedSlotFunction<span class="special">,</span> <span class="keyword">typename</span> Mutex<span class="special">&gt;</span> 
+      <span class="keyword">void</span> <a class="link" href="../boost/signals2/signal.html#boost.signals2.signal.swap_idp93684776"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="../boost/signals2/signal.html" title="Class template signal">signal</a><span class="special">&lt;</span><span class="identifier">Signature</span><span class="special">,</span> <span class="identifier">Combiner</span><span class="special">,</span> <span class="identifier">Group</span><span class="special">,</span> <span class="identifier">GroupCompare</span><span class="special">,</span> <span class="identifier">SlotFunction</span><span class="special">,</span> <span class="identifier">ExtendedSlotFunction</span><span class="special">,</span> <span class="identifier">Mutex</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">,</span> 
+                <a class="link" href="../boost/signals2/signal.html" title="Class template signal">signal</a><span class="special">&lt;</span><span class="identifier">Signature</span><span class="special">,</span> <span class="identifier">Combiner</span><span class="special">,</span> <span class="identifier">Group</span><span class="special">,</span> <span class="identifier">GroupCompare</span><span class="special">,</span> <span class="identifier">SlotFunction</span><span class="special">,</span> <span class="identifier">ExtendedSlotFunction</span><span class="special">,</span> <span class="identifier">Mutex</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.signals2.signal_base_hpp"></a>Header &lt;<a href="../../../boost/signals2/signal_base.hpp" target="_top">boost/signals2/signal_base.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">signals2</span> <span class="special">{</span>
+    <span class="keyword">class</span> <a class="link" href="../boost/signals2/signal_base.html" title="Class signal_base">signal_base</a><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.signals2.signal_type_hpp"></a>Header &lt;<a href="../../../boost/signals2/signal_type.hpp" target="_top">boost/signals2/signal_type.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">signals2</span> <span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> A0<span class="special">,</span> <span class="keyword">typename</span> A1 <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">parameter</span><span class="special">::</span><span class="identifier">void_</span><span class="special">,</span> 
+             <span class="keyword">typename</span> A2 <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">parameter</span><span class="special">::</span><span class="identifier">void_</span><span class="special">,</span> 
+             <span class="keyword">typename</span> A3 <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">parameter</span><span class="special">::</span><span class="identifier">void_</span><span class="special">,</span> 
+             <span class="keyword">typename</span> A4 <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">parameter</span><span class="special">::</span><span class="identifier">void_</span><span class="special">,</span> 
+             <span class="keyword">typename</span> A5 <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">parameter</span><span class="special">::</span><span class="identifier">void_</span><span class="special">,</span> 
+             <span class="keyword">typename</span> A6 <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">parameter</span><span class="special">::</span><span class="identifier">void_</span><span class="special">&gt;</span> 
+      <span class="keyword">class</span> <a class="link" href="../boost/signals2/signal_type.html" title="Class template signal_type">signal_type</a><span class="special">;</span>
+    <span class="keyword">namespace</span> <span class="identifier">keywords</span> <span class="special">{</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Signature<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/signals2/keywords/signature_type.html" title="Class template signature_type">signature_type</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Combiner<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/signals2/keywords/combiner_type.html" title="Class template combiner_type">combiner_type</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Group<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/signals2/keywords/group_type.html" title="Class template group_type">group_type</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> GroupCompare<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/signals2/keywords/group_compare_type.html" title="Class template group_compare_type">group_compare_type</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SlotFunction<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/signals2/keywords/slot_function_type.html" title="Class template slot_function_type">slot_function_type</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ExtendedSlotFunction<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/signals2/keywords/extended_slot__idp92904616.html" title="Class template extended_slot_function_type">extended_slot_function_type</a><span class="special">;</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Mutex<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/signals2/keywords/mutex_type.html" title="Class template mutex_type">mutex_type</a><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.signals2.slot_hpp"></a>Header &lt;<a href="../../../boost/signals2/slot.hpp" target="_top">boost/signals2/slot.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">signals2</span> <span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Signature<span class="special">,</span> 
+             <span class="keyword">typename</span> SlotFunction <span class="special">=</span> <a class="link" href="../boost/function.html" title="Class template function">boost::function</a><span class="special">&lt;</span><span class="identifier">R</span> <span class="special">(</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">)</span><span class="special">&gt;</span> <span class="special">&gt;</span> 
+      <span class="keyword">class</span> <a class="link" href="../boost/signals2/slot.html" title="Class template slot">slot</a><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.signals2.slot_base_hpp"></a>Header &lt;<a href="../../../boost/signals2/slot_base.hpp" target="_top">boost/signals2/slot_base.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">signals2</span> <span class="special">{</span>
+    <span class="keyword">class</span> <a class="link" href="../boost/signals2/slot_base.html" title="Class slot_base">slot_base</a><span class="special">;</span>
+    <span class="keyword">class</span> <a class="link" href="../boost/signals2/expired_slot.html" title="Class expired_slot">expired_slot</a><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.signals2.trackable_hpp"></a>Header &lt;<a href="../../../boost/signals2/trackable.hpp" target="_top">boost/signals2/trackable.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">signals2</span> <span class="special">{</span>
+    <span class="keyword">class</span> <a class="link" href="../boost/signals2/trackable.html" title="Class trackable">trackable</a><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<br>Copyright &#169; 2007-2009 Frank Mori Hess<p>Distributed under the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="examples.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../boost/signals2/connection.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

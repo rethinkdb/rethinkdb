@@ -1,0 +1,93 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Appendix 1: History]
+
+[h2 Version 2.1.0 6/12/2008]
+
+New Features:
+
+* `skip()` primitive for static regexes, which allows you to specify parts of
+  the input string to ignore during regex matching.
+* Range-based `regex_replace()` algorithm interface.
+* `regex_replace()` accepts formatter objects and formatter lambda expressions
+  in addition to format strings.
+
+Bugs Fixed:
+
+* Semantic actions in look-aheads, look-behinds and independent sub-expressions
+  execute eagerly instead of causing a crash.
+
+[h2 Version 2.0.1 10/23/2007]
+
+Bugs Fixed:
+
+* `sub_match<>` constructor copies singular iterator causing debug assert.
+
+[h2 Version 2.0.0, 10/12/2007]
+
+New Features:
+
+* Semantic actions
+* Custom assertions
+* Named captures
+* Dynamic regex grammars
+* Recursive dynamic regexes with [^(?R)] construct
+* Support for searching non-character data
+* Better errors for invalid static regexes
+* Range-based regex algorithm interface
+* `match_flag_type::format_perl`, `match_flag_type::format_sed`, and `match_flag_type::format_all`
+* `operator+(std::string, sub_match<>)` and variants
+* Version 2 regex traits get `tolower()` and `toupper()`
+
+Bugs Fixed:
+
+* Complementing single-character sets like `~(set='a')` works.
+
+[h2 Version 1.0.2, April 27, 2007]
+
+Bugs Fixed:
+
+* Back-references greater than nine work as advertized.
+
+This is the version that shipped as part of Boost 1.34.
+
+[h2 Version 1.0.1, October 2, 2006]
+
+Bugs Fixed:
+
+* `match_results::position()` works for nested results.
+
+[h2 Version 1.0.0, March 16, 2006]
+
+Version 1.0!
+
+[h2 Version 0.9.6, August 19, 2005]
+
+The version reviewed for acceptance into Boost. The review began September 8,
+2005. Xpressive was accepted into Boost on September 28, 2005.
+
+[h2 Version 0.9.3, June 30, 2005]
+
+New Features:
+
+* TR1-style regex_traits interface
+* Speed enhancements
+* `syntax_option_type::ignore_white_space`
+
+[h2 Version 0.9.0, September 2, 2004]
+
+New Features:
+
+* It sort of works.
+
+[h2 Version 0.0.1, November 16, 2003]
+
+Announcement of xpressive:
+[@http://lists.boost.org/Archives/boost/2003/11/56312.php]
+
+[endsect]

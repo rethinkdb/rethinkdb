@@ -1,0 +1,80 @@
+# architecture.jam
+#
+# Copyright 2012 Steven Watanabe
+#
+# Distributed under the Boost Software License Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import configure ;
+import project ;
+import path ;
+import property ;
+
+local here = [ modules.binding $(__name__) ] ;
+
+project.push-current [ project.current ] ;
+project.load [ path.join [ path.make $(here:D) ] ../config ] ;
+project.pop-current ;
+
+rule deduce-address-model ( properties * )
+{
+    local result = [ property.select <address-model> : $(properties) ] ;
+    if $(result)
+    {
+        return $(result) ;
+    }
+    else
+    {
+        if [ configure.builds /boost/architecture//32 : $(properties) : 32-bit ]
+        {
+            return <address-model>32 ;
+        }
+        else if [ configure.builds /boost/architecture//64 : $(properties) : 64-bit ]
+        {
+            return <address-model>64 ;
+        }
+    }
+}
+
+rule address-model ( )
+{
+    return <conditional>@architecture.deduce-address-model ;
+}
+
+rule deduce-architecture ( properties * )
+{
+    local result = [ property.select <architecture> : $(properties) ] ;
+    if $(result)
+    {
+        return $(result) ;
+    }
+    else
+    {
+        if [ configure.builds /boost/architecture//arm : $(properties) : arm ]
+        {
+            return <architecture>arm ;
+        }
+        else if [ configure.builds /boost/architecture//mips1 : $(properties) : mips1 ]
+        {
+            return <architecture>mips1 ;
+        }
+        else if [ configure.builds /boost/architecture//power : $(properties) : power ]
+        {
+            return <architecture>power ;
+        }
+        else if [ configure.builds /boost/architecture//sparc : $(properties) : sparc ]
+        {
+            return <architecture>sparc ;
+        }
+        else if [ configure.builds /boost/architecture//x86 : $(properties) : x86 ]
+        {
+            return <architecture>x86 ;
+        }
+    }
+}
+
+rule architecture ( )
+{
+    return <conditional>@architecture.deduce-architecture ;
+}

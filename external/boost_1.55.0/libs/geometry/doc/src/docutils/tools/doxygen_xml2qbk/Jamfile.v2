@@ -1,0 +1,30 @@
+# Boost.Geometry (aka GGL, Generic Geometry Library)
+# Doxygen XML to QuickBook
+#
+# Copyright (c) 2010-2012 Barend Gehrels, Amsterdam, the Netherlands.
+# Copyright (c) 2010-2012 Mateusz Loskot, London, UK.
+
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+
+project doxygen_xml2qbk
+    : requirements
+        <include>.
+        <include>contrib/rapidxml-1.13
+        <library>../../../../../../program_options/build//boost_program_options
+        <link>static
+    ;
+
+exe doxygen_xml2qbk : doxygen_xml2qbk.cpp ;
+
+install dist-bin
+    :
+    doxygen_xml2qbk
+    :
+    <install-type>EXE
+    <location>../../../../../../../dist/bin
+    :
+    release
+    ;

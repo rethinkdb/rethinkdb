@@ -1,0 +1,36 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:futher References and Further Information]
+
+Short tutorials on regular expressions can be 
+[@http://etext.lib.virginia.edu/helpsheets/regex.html found here] and 
+[@http://www.linuxpcug.org/lessons/regexp.html here].
+
+The main book on regular expressions is 
+[@http://www.oreilly.com/catalog/regex/ Mastering Regular Expressions, published by O'Reilly].
+
+Boost.Regex forms the basis for the regular expression chapter of the [tr1].
+
+The [@http://www.opengroup.org/onlinepubs/7908799/toc.htm Open Unix Specification] 
+contains a wealth of useful material, 
+including the POSIX regular expression syntax.
+
+The [@http://www.cs.ucr.edu/~stelo/pattern.html Pattern Matching Pointers] 
+site is a "must visit" resource for anyone interested in pattern matching.
+
+[@http://glimpse.cs.arizona.edu/ Glimpse and Agrep], use a simplified 
+regular expression syntax to achieve faster search times.
+
+[@http://glimpse.cs.arizona.edu/udi.html Udi Manber] 
+and [@http://www.dcc.uchile.cl/~rbaeza/ Ricardo Baeza-Yates] both have a 
+selection of useful pattern matching papers available from their respective web sites.
+
+[endsect]
+
+

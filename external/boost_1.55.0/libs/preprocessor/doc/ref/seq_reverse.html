@@ -1,0 +1,68 @@
+<html>
+	<head>
+		<title>BOOST_PP_SEQ_REVERSE</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+	</head>
+	<body>
+		<div style="margin-left:  0px;">
+			The <b>BOOST_PP_SEQ_REVERSE</b> macro reverses a <i>seq</i>.
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_REVERSE</b>(<i>seq</i>)
+		</div>
+		<h4>
+			Arguments
+		</h4>
+		<dl>
+			<dt>seq</dt>
+			<dd>
+				The <i>seq</i> to be reversed.
+			</dd>
+		</dl>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			For maximum efficiency, use <b>BOOST_PP_SEQ_REVERSE_S</b>.
+		</div>
+		<h4>
+			See Also
+		</h4>
+		<ul>
+			<li>
+				<a href="seq_reverse_s.html">BOOST_PP_SEQ_REVERSE_S</a></li>
+		</ul>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/reverse.html">&lt;boost/preprocessor/seq/reverse.hpp&gt;</a>
+		</div>
+		<h4>
+			Sample Code
+		</h4>
+		<div>
+			<pre>
+#include &lt;<a href="../headers/seq/reverse.html">boost/preprocessor/seq/reverse.hpp</a>&gt;
+
+#define SEQ (1)(2)(3)
+
+<a href="seq_reverse.html">BOOST_PP_SEQ_REVERSE</a>(SEQ) // expands to (3)(2)(1)
+</pre>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+	</body>
+</html>

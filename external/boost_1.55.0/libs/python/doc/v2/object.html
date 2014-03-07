@@ -1,0 +1,1121 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/object.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/object.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#types">Types</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#slice_nil-spec">slice_nil</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#const_attribute_policies-spec">Class
+          <code>const_attribute_policies</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#const_attribute_policies-spec-synopsis">Class
+              <code>const_attribute_policies</code> synopsis</a></dt>
+
+              <dt><a href="#const_attribute_policies-spec-statics">Class
+              <code>const_attribute_policies</code> static functions</a></dt>
+            </dl>
+          </dd>
+
+          <dt><a href="#attribute_policies-spec">Class
+          <code>attribute_policies</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#attribute_policies-spec-synopsis">Class
+              <code>attribute_policies</code> synopsis</a></dt>
+
+              <dt><a href="#attribute_policies-spec-statics">Class
+              <code>attribute_policies</code> static functions</a></dt>
+            </dl>
+          </dd>
+
+          <dt><a href="#const_objattribute_policies-spec">Class
+          <code>const_objattribute_policies</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#const_objattribute_policies-spec-synopsis">Class
+              <code>const_objattribute_policies</code> synopsis</a></dt>
+
+              <dt><a href="#const_objattribute_policies-spec-statics">Class
+              <code>const_objattribute_policies</code> static functions</a></dt>
+            </dl>
+          </dd>
+
+          <dt><a href="#objattribute_policies-spec">Class
+          <code>objattribute_policies</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#objattribute_policies-spec-synopsis">Class
+              <code>objattribute_policies</code> synopsis</a></dt>
+
+              <dt><a href="#objattribute_policies-spec-statics">Class
+              <code>objattribute_policies</code> static functions</a></dt>
+            </dl>
+          </dd>
+
+          <dt><a href="#const_item_policies-spec">Class
+          <code>const_item_policies</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#const_item_policies-spec-synopsis">Class
+              <code>const_item_policies</code> synopsis</a></dt>
+
+              <dt><a href="#const_item_policies-spec-statics">Class
+              <code>const_item_policies</code> static functions</a></dt>
+            </dl>
+          </dd>
+
+          <dt><a href="#item_policies-spec">Class
+          <code>item_policies</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#item_policies-spec-synopsis">Class
+              <code>item_policies</code> synopsis</a></dt>
+
+              <dt><a href="#item_policies-spec-statics">Class
+              <code>item_policies</code> static functions</a></dt>
+            </dl>
+          </dd>
+
+          <dt><a href="#const_slice_policies-spec">Class
+          <code>const_slice_policies</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#const_slice_policies-spec-synopsis">Class
+              <code>const_slice_policies</code> synopsis</a></dt>
+
+              <dt><a href="#const_slice_policies-spec-statics">Class
+              <code>const_slice_policies</code> static functions</a></dt>
+            </dl>
+          </dd>
+
+          <dt><a href="#slice_policies-spec">Class
+          <code>slice_policies</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#slice_policies-spec-synopsis">Class
+              <code>slice_policies</code> synopsis</a></dt>
+
+              <dt><a href="#slice_policies-spec-statics">Class
+              <code>slice_policies</code> static functions</a></dt>
+            </dl>
+          </dd>
+
+          <dt><a href="#object_operators-spec">Class
+          <code>object_operators</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#object_operators-spec-synopsis">Class
+              <code>object_operators</code> synopsis</a></dt>
+
+              <dt><a href="#object_operators-spec-observers">Class
+              <code>object_operators</code> observer functions</a></dt>
+            </dl>
+          </dd>
+
+          <dt><a href="#object-spec">Class <code>object</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#object-spec-synopsis">Class <code>object</code>
+              synopsis</a></dt>
+
+              <dt><a href="#object-spec-ctors">Class <code>object</code>
+              constructors and destructor</a></dt>
+
+              <dt><a href="#object-spec-modifiers">Class template
+              <code>object</code> modifier functions</a></dt>
+
+              <dt><a href="#object-spec-observers">Class template
+              <code>object</code> observer functions</a></dt>
+            </dl>
+          </dd>
+
+          <dt><a href="#proxy-spec">Class template
+          <code>proxy</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#proxy-spec-synopsis">Class template
+              <code>proxy</code> synopsis</a></dt>
+
+              <dt><a href="#proxy-spec-modifiers">Class template
+              <code>proxy</code> modifier functions</a></dt>
+
+              <dt><a href="#proxy-spec-observers">Class template
+              <code>proxy</code> observer functions</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#functions">Functions</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#del-spec">del</a></dt>
+
+          <dt><a href="#comparisons-spec">comparisons</a></dt>
+
+          <dt><a href="#binary-spec">binary operations</a></dt>
+
+          <dt><a href="#assignment-spec">assignment operations</a></dt>
+
+        </dl>
+
+        <dl class="page-index">
+          <dt><a href="#object_operators-spec">operators</a></dt>
+        </dl>
+
+        <dl class="page-index">
+          <dt><a href="#len-spec">len()</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p>Exposes the generic Python object wrapper class <code>object</code>,
+    and related classes. In order to avoid some potenential problems with
+    argument-dependent lookup and the generalized operators defined on
+    <code>object</code>, all these facilities are defined in
+    <code>namespace&nbsp;boost::python::api</code>, and <code>object</code>
+    is imported into <code>namespace&nbsp;boost::python</code> with a
+    <i>using-declaration</i>.</p>
+
+    <h2><a name="types"></a>Types</h2>
+
+    <p><a name="slice_nil-spec"></a></p>
+<pre>
+class slice_nil;
+static const _ = slice_nil();
+</pre>
+    A type that can be used to get the effect of leaving out an index in a
+    Python slice expression: 
+<pre>
+&gt;&gt;&gt; x[:-1]
+&gt;&gt;&gt; x[::-1]
+</pre>
+    C++ equivalent: 
+<pre>
+x.slice(_,-1)
+x[slice(_,_,-1)]
+</pre>
+
+    <h2><a name="classes"></a>Classes</h2>
+    <!-- begin -->
+
+    <h3><a name="const_attribute_policies-spec"></a>Class
+    <code>const_attribute_policies</code></h3>
+
+    <p>The policies which are used for proxies representing an attribute
+    access to a <code>const&nbsp;object</code>.</p>
+
+    <h4><a name="const_attribute_policies-spec-synopsis"></a>Class
+    <code>const_attribute_policies</code> synopsis</h4>
+<pre>
+namespace boost { namespace python { namespace api
+{
+  struct const_attribute_policies
+  {
+      typedef char const* key_type;
+      static object get(object const&amp; target, char const* key);
+  };
+}}}
+</pre>
+
+    <h4><a name="const_attribute_policies-spec-statics"></a>Class
+    <code>const_attribute_policies</code> static functions</h4>
+<pre>
+static object get(object const&amp; target, char const* key);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>key</code> is an <a href=
+      "definitions.html#ntbs">ntbs</a>.</dt>
+
+      <dt><b>Effects:</b> accesses the attribute of <code>target</code> named
+      by <code>key</code>.</dt>
+
+      <dt><b>Returns:</b> An <code>object</code> managing the result of the
+      attribute access.</dt>
+
+      <dt><b>Throws:</b> <code><a href=
+      "errors.html#error_already_set-spec">error_already_set</a></code> if a
+      Python exception is raised.</dt>
+    </dl>
+
+    <h3><a name="attribute_policies-spec"></a>Class
+    <code>attribute_policies</code></h3>
+
+    <p>The policies which are used for proxies representing an attribute
+    access to a mutable <code>object</code>.</p>
+
+    <h4><a name="attribute_policies-spec-synopsis"></a>Class
+    <code>attribute_policies</code> synopsis</h4>
+<pre>
+namespace boost { namespace python { namespace api
+{
+  struct attribute_policies : const_attribute_policies
+  {
+      static object const&amp; set(object const&amp; target, char const* key, object const&amp; value);
+      static void del(object const&amp;target, char const* key);
+  };
+}}}
+</pre>
+
+    <h4><a name="attribute_policies-spec-statics"></a>Class
+    <code>attribute_policies</code> static functions</h4>
+<pre>
+static object const&amp; set(object const&amp; target, char const* key, object const&amp; value);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>key</code> is an <a href=
+      "definitions.html#ntbs">ntbs</a>.</dt>
+
+      <dt><b>Effects:</b> sets the attribute of <code>target</code> named by
+      <code>key</code> to <code>value</code>.</dt>
+
+      <dt><b>Throws:</b> <code><a href=
+      "errors.html#error_already_set-spec">error_already_set</a></code> if a
+      Python exception is raised.</dt>
+    </dl>
+<pre>
+static void del(object const&amp;target, char const* key);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>key</code> is an <a href=
+      "definitions.html#ntbs">ntbs</a>.</dt>
+
+      <dt><b>Effects:</b> deletes the attribute of <code>target</code> named
+      by <code>key</code>.</dt>
+
+      <dt><b>Throws:</b> <code><a href=
+      "errors.html#error_already_set-spec">error_already_set</a></code> if a
+      Python exception is raised.</dt>
+    </dl>
+    <!-- end -->
+    <!-- begin -->
+
+    <h3><a name="const_objattribute_policies-spec"></a>Class
+    <code>const_objattribute_policies</code></h3>
+
+    <p>The policies which are used for proxies representing an attribute
+    access to a <code>const&nbsp;object</code> when the attribute name is
+    given as a <code>const&nbsp;object</code>.</p>
+
+    <h4><a name="const_objattribute_policies-spec-synopsis"></a>Class
+    <code>const_objattribute_policies</code> synopsis</h4>
+<pre>
+namespace boost { namespace python { namespace api
+{
+  struct const_objattribute_policies
+  {
+      typedef object const& key_type;
+      static object get(object const&amp; target, object const& key);
+  };
+}}}
+</pre>
+
+    <h4><a name="const_objattribute_policies-spec-statics"></a>Class
+    <code>const_objattribute_policies</code> static functions</h4>
+<pre>
+static object get(object const&amp; target, object const& key);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>key</code> is an <code>object</code>
+      holding a string.</dt>
+
+      <dt><b>Effects:</b> accesses the attribute of <code>target</code> named
+      by <code>key</code>.</dt>
+
+      <dt><b>Returns:</b> An <code>object</code> managing the result of the
+      attribute access.</dt>
+
+      <dt><b>Throws:</b> <code><a href=
+      "errors.html#error_already_set-spec">error_already_set</a></code> if a
+      Python exception is raised.</dt>
+    </dl>
+
+    <h3><a name="objattribute_policies-spec"></a>Class
+    <code>objattribute_policies</code></h3>
+
+    <p>The policies which are used for proxies representing an attribute
+    access to a mutable <code>object</code> when the attribute name is
+    given as a <code>const&nbsp;object</code>.</p>
+
+    <h4><a name="objattribute_policies-spec-synopsis"></a>Class
+    <code>objattribute_policies</code> synopsis</h4>
+<pre>
+namespace boost { namespace python { namespace api
+{
+  struct objattribute_policies : const_objattribute_policies
+  {
+      static object const&amp; set(object const&amp; target, object const& key, object const&amp; value);
+      static void del(object const&amp;target, object const& key);
+  };
+}}}
+</pre>
+
+    <h4><a name="objattribute_policies-spec-statics"></a>Class
+    <code>objattribute_policies</code> static functions</h4>
+<pre>
+static object const&amp; set(object const&amp; target, object const& key, object const&amp; value);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>key</code> is an <code>object</code>
+      holding a string.</dt>
+
+      <dt><b>Effects:</b> sets the attribute of <code>target</code> named by
+      <code>key</code> to <code>value</code>.</dt>
+
+      <dt><b>Throws:</b> <code><a href=
+      "errors.html#error_already_set-spec">error_already_set</a></code> if a
+      Python exception is raised.</dt>
+    </dl>
+<pre>
+static void del(object const&amp;target, object const& key);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>key</code> is an <code>object</code>
+      holding a string.</dt>
+
+      <dt><b>Effects:</b> deletes the attribute of <code>target</code> named
+      by <code>key</code>.</dt>
+
+      <dt><b>Throws:</b> <code><a href=
+      "errors.html#error_already_set-spec">error_already_set</a></code> if a
+      Python exception is raised.</dt>
+    </dl>
+    <!-- end -->
+    <!-- begin -->
+
+    <h3><a name="const_item_policies-spec"></a>Class
+    <code>const_item_policies</code></h3>
+
+    <p>The policies which are used for proxies representing an item access
+    (via the Python bracket operators <code>[]</code>) to a
+    <code>const&nbsp;object</code>.</p>
+
+    <h4><a name="const_item_policies-spec-synopsis"></a>Class
+    <code>const_item_policies</code> synopsis</h4>
+<pre>
+namespace boost { namespace python { namespace api
+{
+  struct const_item_policies
+  {
+      typedef object key_type;
+      static object get(object const&amp; target, object const&amp; key);
+  };
+}}}
+</pre>
+
+    <h4><a name="const_item_policies-spec-statics"></a>Class
+    <code>const_item_policies</code> static functions</h4>
+<pre>
+static object get(object const&amp; target, object const&amp; key);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> accesses the item of <code>target</code> specified
+      by <code>key</code>.</dt>
+
+      <dt><b>Returns:</b> An <code>object</code> managing the result of the
+      item access.</dt>
+
+      <dt><b>Throws:</b> <code><a href=
+      "errors.html#error_already_set-spec">error_already_set</a></code> if a
+      Python exception is raised.</dt>
+    </dl>
+
+    <h3><a name="item_policies-spec"></a>Class
+    <code>item_policies</code></h3>
+
+    <p>The policies which are used for proxies representing an item access
+    (via the Python bracket operators <code>[]</code>) to a mutable
+    <code>object</code>.</p>
+
+    <h4><a name="item_policies-spec-synopsis"></a>Class
+    <code>item_policies</code> synopsis</h4>
+<pre>
+namespace boost { namespace python { namespace api
+{
+  struct item_policies : const_item_policies
+  {
+      static object const&amp; set(object const&amp; target, object const&amp; key, object const&amp; value);
+      static void del(object const&amp; target, object const&amp; key);
+  };
+}}}
+</pre>
+
+    <h4><a name="item_policies-spec-statics"></a>Class
+    <code>item_policies</code> static functions</h4>
+<pre>
+static object const&amp; set(object const&amp; target, object const&amp; key, object const&amp; value);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> sets the item of <code>target</code> specified by
+      <code>key</code> to <code>value</code>.</dt>
+
+      <dt><b>Throws:</b> <code><a href=
+      "errors.html#error_already_set-spec">error_already_set</a></code> if a
+      Python exception is raised.</dt>
+    </dl>
+<pre>
+static void del(object const&amp; target, object const&amp; key);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> deletes the item of <code>target</code> specified
+      by <code>key</code>.</dt>
+
+      <dt><b>Throws:</b> <code><a href=
+      "errors.html#error_already_set-spec">error_already_set</a></code> if a
+      Python exception is raised.</dt>
+    </dl>
+    <!-- end -->
+    <!-- begin -->
+
+    <h3><a name="const_slice_policies-spec"></a>Class
+    <code>const_slice_policies</code></h3>
+
+    <p>The policies which are used for proxies representing an slice access
+    (via the Python slice notation
+    <code>[</code><i>x</i><code>:</code><i>y</i><code>]</code>) to a
+    <code>const&nbsp;object</code>.</p>
+
+    <h4><a name="const_slice_policies-spec-synopsis"></a>Class
+    <code>const_slice_policies</code> synopsis</h4>
+<pre>
+namespace boost { namespace python { namespace api
+{
+  struct const_slice_policies
+  {
+      typedef std::pair&lt;handle&lt;&gt;, handle&lt;&gt; &gt; key_type;
+      static object get(object const&amp; target, key_type const&amp; key);
+  };
+}}}
+</pre>
+
+    <h4><a name="const_slice_policies-spec-statics"></a>Class
+    <code>const_slice_policies</code> static functions</h4>
+<pre>
+static object get(object const&amp; target, key_type const&amp; key);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> accesses the slice of <code>target</code> specified
+      by <code>key</code>.</dt>
+
+      <dt><b>Returns:</b> An <code>object</code> managing the result of the
+      slice access.</dt>
+
+      <dt><b>Throws:</b> <code><a href=
+      "errors.html#error_already_set-spec">error_already_set</a></code> if a
+      Python exception is raised.</dt>
+    </dl>
+
+    <h3><a name="slice_policies-spec"></a>Class
+    <code>slice_policies</code></h3>
+
+    <p>The policies which are used for proxies representing an slice access
+    to a mutable <code>object</code>.</p>
+
+    <h4><a name="slice_policies-spec-synopsis"></a>Class
+    <code>slice_policies</code> synopsis</h4>
+<pre>
+namespace boost { namespace python { namespace api
+{
+  struct slice_policies : const_slice_policies
+  {
+      static object const&amp; set(object const&amp; target, key_type const&amp; key, object const&amp; value);
+      static void del(object const&amp; target, key_type const&amp; key);
+  };
+}}}
+</pre>
+
+    <h4><a name="slice_policies-spec-statics"></a>Class
+    <code>slice_policies</code> static functions</h4>
+<pre>
+static object const&amp; set(object const&amp; target, key_type const&amp; key, object const&amp; value);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> sets the slice of <code>target</code> specified by
+      <code>key</code> to <code>value</code>.</dt>
+
+      <dt><b>Throws:</b> <code><a href=
+      "errors.html#error_already_set-spec">error_already_set</a></code> if a
+      Python exception is raised.</dt>
+    </dl>
+<pre>
+static void del(object const&amp; target, key_type const&amp; key);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> deletes the slice of <code>target</code> specified
+      by <code>key</code>.</dt>
+
+      <dt><b>Throws:</b> <code><a href=
+      "errors.html#error_already_set-spec">error_already_set</a></code> if a
+      Python exception is raised.</dt>
+    </dl>
+    <!-- end -->
+
+    <h3><a name="object_operators-spec"></a>Class template
+    <code>object_operators&lt;U&gt;</code></h3>
+
+    <p>This is the base class of <code>object</code> and its
+    <code>proxy</code> template used to supply common interface: member
+    functions, and operators which must be defined within the class body. Its
+    template parameter <code>U</code> is expected to be a class derived from
+    <code>object_operators&lt;U&gt;</code>. In practice users should never
+    use this class directly, but it is documented here because it supplies
+    important interface to <code>object</code> and its proxies.</p>
+
+    <h4><a name="object_operators-spec-synopsis"></a>Class template
+    <code>object_operators</code> synopsis</h4>
+<pre>
+namespace boost { namespace python { namespace api
+{
+  template &lt;class U&gt;
+  class object_operators
+  {
+   public:
+      // function call
+      //
+      object operator()() const;
+
+      template &lt;class A0&gt;
+      object operator()(A0 const&amp;) const;
+      template &lt;class A0, class A1&gt;
+      object operator()(A0 const&amp;, A1 const&amp;) const;
+      ...
+      template &lt;class A0, class A1,...class An&gt;
+      object operator()(A0 const&amp;, A1 const&amp;,...An const&amp;) const;
+
+      detail::args_proxy operator* () const; 
+      object operator()(detail::args_proxy const &amp;args) const; 
+      object operator()(detail::args_proxy const &amp;args, 
+                        detail::kwds_proxy const &amp;kwds) const; 
+
+      // truth value testing
+      //
+      typedef unspecified bool_type;
+      operator bool_type() const;
+
+      // Attribute access
+      //
+      proxy&lt;const_object_attribute&gt; attr(char const*) const;
+      proxy&lt;object_attribute&gt; attr(char const*);
+      proxy&lt;const_object_objattribute&gt; attr(object const&) const;
+      proxy&lt;object_objattribute&gt; attr(object const&);
+
+      // item access
+      //
+      template &lt;class T&gt;
+      proxy&lt;const_object_item&gt; operator[](T const&amp; key) const;
+    
+      template &lt;class T&gt;
+      proxy&lt;object_item&gt; operator[](T const&amp; key);
+
+      // slicing
+      //
+      template &lt;class T, class V&gt;
+      proxy&lt;const_object_slice&gt; slice(T const&amp; start, V const&amp; end) const
+    
+      template &lt;class T, class V&gt;
+      proxy&lt;object_slice&gt; slice(T const&amp; start, V const&amp; end);
+  };
+}}}
+</pre>
+
+    <h4><a name="object_operators-spec-observers"></a>Class template
+    <code>object_operators</code> observer functions</h4>
+<pre>
+object operator()() const;
+template &lt;class A0&gt;
+object operator()(A0 const&amp;) const;
+template &lt;class A0, class A1&gt;
+object operator()(A0 const&amp;, A1 const&amp;) const;
+...
+template &lt;class A0, class A1,...class An&gt;
+object operator()(A0 const&amp; a1, A1 const&amp; a2,...An const&amp; aN) const;
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+      call&lt;object&gt;(object(*static_cast&lt;U*&gt;(this)).ptr(), a1,
+      a2,...aN)</dt>
+    </dl>
+
+<pre>
+object operator()(detail::args_proxy const &amp;args) const; 
+</pre>
+<dl class="function-semantics">
+  <dt><b>Effects:</b>
+  call object with arguments given by the tuple <varname>args</varname></dt>
+</dl>
+<pre>
+object operator()(detail::args_proxy const &amp;args, 
+                  detail::kwds_proxy const &amp;kwds) const; 
+</pre>
+<dl class="function-semantics">
+  <dt><b>Effects:</b>
+  call object with arguments given by the tuple <varname>args</varname>, and named
+  arguments given by the dictionary <varname>kwds</varname></dt>
+</dl>
+
+
+<pre>
+operator bool_type() const;
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> Tests truth value of <code>*this</code>.</dt>
+
+      <dt><b>Returns:</b>
+      call&lt;object&gt;(object(*static_cast&lt;U*&gt;(this)).ptr(), a1,
+      a2,...aN)</dt>
+    </dl>
+<pre>
+proxy&lt;const_object_attribute&gt; attr(char const* name) const;
+proxy&lt;object_attribute&gt; attr(char const* name);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> name is an <a href=
+      "definitions.html#ntbs">ntbs</a>.</dt>
+
+      <dt><b>Effects:</b> accesses the named attribute of
+      <code>*this</code>.</dt>
+
+      <dt><b>Returns:</b> a proxy object which binds
+      <code>object(*static_cast&lt;U*&gt;(this))</code> as its target, and
+      <code>name</code> as its key.</dt>
+    </dl>
+<pre>
+proxy&lt;const_object_objattribute&gt; attr(const object& name) const;
+proxy&lt;object_objattribute&gt; attr(const object& name);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> name is a <code>object</code> holding a string.</dt>
+
+      <dt><b>Effects:</b> accesses the named attribute of
+      <code>*this</code>.</dt>
+
+      <dt><b>Returns:</b> a proxy object which binds
+      <code>object(*static_cast&lt;U*&gt;(this))</code> as its target, and
+      <code>name</code> as its key.</dt>
+    </dl>
+<pre>
+template &lt;class T&gt;
+proxy&lt;const_object_item&gt; operator[](T const&amp; key) const;
+template &lt;class T&gt;
+proxy&lt;object_item&gt; operator[](T const&amp; key);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> accesses the item of <code>*this</code> indicated
+      by <code>key</code>.</dt>
+
+      <dt><b>Returns:</b> a proxy object which binds
+      <code>object(*static_cast&lt;U*&gt;(this))</code> as its target, and
+      <code>object(key)</code> as its key.</dt>
+    </dl>
+<pre>
+template &lt;class T, class V&gt;
+proxy&lt;const_object_slice&gt; slice(T const&amp; start; start, V const&amp; finish) const
+template &lt;class T, class V&gt;
+proxy&lt;object_slice&gt; slice(T const&amp; start; start, V const&amp; finish);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> accesses the slice of <code>*this</code> indicated
+      by <code>std::make_pair(object(start), object(finish))</code>.</dt>
+
+      <dt><b>Returns:</b> a proxy object which binds
+      <code>object(*static_cast&lt;U*&gt;(this))</code> as its target, and
+      <code>std::make_pair(object(start), object(finish))</code> as its
+      key.</dt>
+    </dl>
+    <!--  -->
+
+    <h3><a name="object-spec"></a>Class <code>object</code></h3>
+
+    <p>The intention is that <code>object</code> acts as much like a
+    Python variable as possible. Thus expressions you'd expect to work
+    in Python should generally work in the same way from C++. Most of
+    <code>object</code>'s interface is provided by its base class
+    <code><a
+    href="#object_operators-spec">object_operators</a>&lt;object&gt;</code>,
+    and the <a href="#functions">free functions</a> defined in this
+    header.
+</p> 
+
+    <h4><a name="object-spec-synopsis"></a>Class <code>object</code>
+    synopsis</h4>
+<pre>
+namespace boost { namespace python { namespace api
+{
+  class object : public object_operators&lt;object&gt;
+  {
+   public:
+      object();
+
+      object(object const&amp;);
+      
+      template &lt;class T&gt;
+      explicit object(T const&amp; x);
+
+      ~object();
+
+      object&amp; operator=(object const&amp;); 
+
+      PyObject* ptr() const;
+
+      bool is_none() const;
+  };
+}}}
+</pre>
+
+    <h4><a name="object-spec-ctors"></a>Class <code>object</code>
+    constructors and destructor</h4>
+<pre>
+object();
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> Constructs an object managing a reference to the
+      Python <code>None</code> object.</dt>
+
+      <dt><b>Throws:</b> nothing.</dt>
+    </dl>
+<pre>
+template &lt;class T&gt;
+explicit object(T const&amp; x);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> converts <code>x</code> to python and manages a
+      reference to it.</dt>
+
+      <dt><b>Throws:</b> <code>error_already_set</code> and sets a Python
+      <code>TypeError</code> exception if no such conversion is
+      possible.</dt>
+    </dl>
+<pre>
+~object();
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> decrements the reference count of the
+      internally-held object.</dt>
+    </dl>
+
+    <h4><a name="object-spec-modifiers"></a>Class <code>object</code>
+    modifiers</h4>
+<pre>
+object&amp; operator=(object const&amp; rhs); 
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> increments the reference count of the object held
+      by <code>rhs</code> and decrements the reference count of the object
+      held by <code>*this</code>.</dt>
+    </dl>
+
+    <h4><a name="object-spec-observers"></a>Class <code>object</code>
+    observers</h4>
+<pre>
+PyObject* ptr() const;
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Returns:</b> a pointer to the internally-held Python
+      object.</dt>
+    </dl>
+
+<pre>
+bool is_none() const;
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Returns:</b> result of (ptr() == Py_None)</dt>
+    </dl>
+    <!-- -->
+
+    <h3><a name="proxy-spec"></a>Class template <code>proxy</code></h3>
+
+    <p>This template is instantiated with various Policies described in this
+    document in order to implement attribute, item, and slice access for
+    <code>object</code>. It stores an object of type
+    <code>Policies::key_type</code>.</p>
+
+    <h4><a name="proxy-spec-synopsis"></a>Class template <code>proxy</code>
+    synopsis</h4>
+<pre>
+namespace boost { namespace python { namespace api
+{
+  template &lt;class Policies&gt;
+  class proxy : public object_operators&lt;proxy&lt;Policies&gt; &gt;
+  {
+   public:
+      operator object() const;
+
+      proxy const&amp; operator=(proxy const&amp;) const;
+      template &lt;class T&gt;
+      inline proxy const&amp; operator=(T const&amp; rhs) const;
+      
+      void del() const;
+
+      template &lt;class R&gt;
+      proxy operator+=(R const&amp; rhs);
+      template &lt;class R&gt;
+      proxy operator-=(R const&amp; rhs);
+      template &lt;class R&gt;
+      proxy operator*=(R const&amp; rhs);
+      template &lt;class R&gt;
+      proxy operator/=(R const&amp; rhs);
+      template &lt;class R&gt;
+      proxy operator%=(R const&amp; rhs);
+      template &lt;class R&gt;
+      proxy operator&lt;&lt;=(R const&amp; rhs);
+      template &lt;class R&gt;
+      proxy operator&gt;&gt;=(R const&amp; rhs);
+      template &lt;class R&gt;
+      proxy operator&amp;=(R const&amp; rhs);
+      template &lt;class R&gt;
+      proxy operator|=(R const&amp; rhs);
+  };
+}}}
+</pre>
+
+    <h4><a name="proxy-spec-observers"></a>Class template <code>proxy</code>
+    observer functions</h4>
+<pre>
+operator object() const;
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> applies
+      <code>Policies::get(</code><i>target</i><code>,</code>&nbsp;<i>key</i>
+      <code>)</code> with the proxy's target and key objects.</dt>
+    </dl>
+
+    <h4><a name="proxy-spec-modifiers"></a>Class template <code>proxy</code>
+    modifier functions</h4>
+<pre>
+proxy const&amp; operator=(proxy const&amp; rhs) const;
+template &lt;class T&gt;
+inline proxy const&amp; operator=(T const&amp; rhs) const;
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+      <code>Policies::set(</code><i>target</i><code>,</code>&nbsp;<i>key</i>
+      <code>,&nbsp;object(rhs))</code> with the proxy's target and key
+      objects.</dt>
+    </dl>
+<pre>
+template &lt;class R&gt;
+proxy operator+=(R const&amp; rhs);
+template &lt;class R&gt;
+proxy operator-=(R const&amp; rhs);
+template &lt;class R&gt;
+proxy operator*=(R const&amp; rhs);
+template &lt;class R&gt;
+proxy operator/=(R const&amp; rhs);
+template &lt;class R&gt;
+proxy operator%=(R const&amp; rhs);
+template &lt;class R&gt;
+proxy operator&lt;&lt;=(R const&amp; rhs);
+template &lt;class R&gt;
+proxy operator&gt;&gt;=(R const&amp; rhs);
+template &lt;class R&gt;
+proxy operator&amp;=(R const&amp; rhs);
+template &lt;class R&gt;
+proxy operator|=(R const&amp; rhs);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> for a given operator@=,
+      <code>object(*this)&nbsp;@=&nbsp;rhs;</code></dt>
+      <dt><b>Returns:</b> <code>*this</code></dt>
+    </dl>
+<pre>
+void del() const;
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+      <code>Policies::del(</code><i>target</i><code>,</code>&nbsp;<i>key</i>
+      <code>)</code> with the proxy's target and key objects.</dt>
+    </dl>
+    <!-- -->
+
+    <h2><a name="functions"></a>Functions</h2>
+<pre>
+<a name="del-spec"></a>template &lt;class T&gt;
+void del(proxy&lt;T&gt; const&amp; x);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> x.del()</dt>
+    </dl>
+<pre>
+<a name="comparisons-spec"></a>
+template&lt;class L,class R&gt; object operator&gt;(L const&amp;l,R const&amp;r);
+template&lt;class L,class R&gt; object operator&gt;=(L const&amp;l,R const&amp;r);
+template&lt;class L,class R&gt; object operator&lt;(L const&amp;l,R const&amp;r);
+template&lt;class L,class R&gt; object operator&lt;=(L const&amp;l,R const&amp;r);
+template&lt;class L,class R&gt; object operator==(L const&amp;l,R const&amp;r);
+template&lt;class L,class R&gt; object operator!=(L const&amp;l,R const&amp;r);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> returns the result of applying the operator to
+      <code>object(l)</code> and <code>object(r)</code>, respectively, in
+      Python.</dt>
+    </dl>
+<pre>
+<a name="binary-spec"></a>
+template&lt;class L,class R&gt; object operator+(L const&amp;l,R const&amp;r);
+template&lt;class L,class R&gt; object operator-(L const&amp;l,R const&amp;r);
+template&lt;class L,class R&gt; object operator*(L const&amp;l,R const&amp;r);
+template&lt;class L,class R&gt; object operator/(L const&amp;l,R const&amp;r);
+template&lt;class L,class R&gt; object operator%(L const&amp;l,R const&amp;r);
+template&lt;class L,class R&gt; object operator&lt;&lt;(L const&amp;l,R const&amp;r);
+template&lt;class L,class R&gt; object operator&gt;&gt;(L const&amp;l,R const&amp;r);
+template&lt;class L,class R&gt; object operator&amp;(L const&amp;l,R const&amp;r);
+template&lt;class L,class R&gt; object operator^(L const&amp;l,R const&amp;r);
+template&lt;class L,class R&gt; object operator|(L const&amp;l,R const&amp;r);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> returns the result of applying the operator to
+      <code>object(l)</code> and <code>object(r)</code>, respectively, in
+      Python.</dt>
+    </dl>
+<pre>
+<a name="assignment-spec"></a>
+template&lt;class R&gt; object&amp; operator+=(object&amp;l,R const&amp;r);
+template&lt;class R&gt; object&amp; operator-=(object&amp;l,R const&amp;r);
+template&lt;class R&gt; object&amp; operator*=(object&amp;l,R const&amp;r);
+template&lt;class R&gt; object&amp; operator/=(object&amp;l,R const&amp;r);
+template&lt;class R&gt; object&amp; operator%=(object&amp;l,R const&amp;r);
+template&lt;class R&gt; object&amp; operator&lt;&lt;=(object&amp;l,R const&amp;r)
+template&lt;class R&gt; object&amp; operator&gt;&gt;=(object&amp;l,R const&amp;r);
+template&lt;class R&gt; object&amp; operator&amp;=(object&amp;l,R const&amp;r);
+template&lt;class R&gt; object&amp; operator^=(object&amp;l,R const&amp;r);
+template&lt;class R&gt; object&amp; operator|=(object&amp;l,R const&amp;r);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> assigns to l the result of applying the
+      corresponding Python inplace operator to <code>l</code> and
+      <code>object(r)</code>, respectively.</dt>
+
+      <dt><b>Returns:</b> <code>l</code>.</dt>
+    </dl>
+
+<pre>
+inline long len(object const&amp; obj);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> PyObject_Length(obj.ptr()) </dt>
+      <dt><b>Returns:</b> len() of object.</dt>
+    </dl>
+
+<h2><a name="examples"></a>Example</h2>
+    Python code: 
+<pre>
+def sum_items(seq):
+   result = 0
+   for x in seq:
+      result += x
+   return result
+</pre>
+    C++ version: 
+<pre>
+object sum_items(object seq)
+{
+   object result = object(0);
+   for (int i = 0; i &lt; len(seq); ++i)
+      result += seq[i];
+   return result;
+}
+</pre>
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  15 March, 2010
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2008.</i></p>
+  </body>
+</html>

@@ -1,0 +1,110 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[import src/examples/quick_start.cpp]
+
+[import src/examples/algorithms/area.cpp]
+[import src/examples/algorithms/area_with_strategy.cpp]
+[import src/examples/algorithms/append.cpp]
+[import src/examples/algorithms/assign.cpp]
+[import src/examples/algorithms/assign_2d_point.cpp]
+[import src/examples/algorithms/assign_3d_point.cpp]
+[import src/examples/algorithms/assign_inverse.cpp]
+[import src/examples/algorithms/assign_points.cpp]
+[import src/examples/algorithms/clear.cpp]
+[import src/examples/algorithms/centroid.cpp]
+[import src/examples/algorithms/comparable_distance.cpp]
+[import src/examples/algorithms/convert.cpp]
+[import src/examples/algorithms/convex_hull.cpp]
+[import src/examples/algorithms/correct.cpp]
+[import src/examples/algorithms/distance.cpp]
+[import src/examples/algorithms/difference.cpp]
+[import src/examples/algorithms/envelope.cpp]
+[import src/examples/algorithms/equals.cpp]
+[import src/examples/algorithms/expand.cpp]
+[import src/examples/algorithms/for_each_point.cpp]
+[import src/examples/algorithms/for_each_point_const.cpp]
+[import src/examples/algorithms/for_each_segment_const.cpp]
+[import src/examples/algorithms/length.cpp]
+[import src/examples/algorithms/length_with_strategy.cpp]
+[import src/examples/algorithms/make_2d_point.cpp]
+[import src/examples/algorithms/make_3d_point.cpp]
+[import src/examples/algorithms/make_inverse.cpp]
+[import src/examples/algorithms/make_with_range.cpp]
+[import src/examples/algorithms/intersection_ls_ls_point.cpp]
+[import src/examples/algorithms/intersection_segment.cpp]
+[import src/examples/algorithms/intersection_poly_poly.cpp]
+[import src/examples/algorithms/intersects_linestring.cpp]
+[import src/examples/algorithms/num_geometries.cpp]
+[import src/examples/algorithms/num_interior_rings.cpp]
+[import src/examples/algorithms/num_points.cpp]
+[import src/examples/algorithms/reverse.cpp]
+[import src/examples/algorithms/return_envelope.cpp]
+[import src/examples/algorithms/simplify.cpp]
+[import src/examples/algorithms/sym_difference.cpp]
+[import src/examples/algorithms/transform.cpp]
+[import src/examples/algorithms/transform_with_strategy.cpp]
+[import src/examples/algorithms/union.cpp]
+[import src/examples/algorithms/unique.cpp]
+[import src/examples/algorithms/within.cpp]
+
+[import src/examples/core/coordinate_type.cpp]
+[import src/examples/core/coordinate_system.cpp]
+[import src/examples/core/coordinate_dimension.cpp]
+[import src/examples/core/point_order.cpp]
+[import src/examples/core/closure.cpp]
+
+[import src/examples/core/get_point.cpp]
+[import src/examples/core/get_box.cpp]
+[import src/examples/core/set_point.cpp]
+[import src/examples/core/set_box.cpp]
+[import src/examples/core/degree_radian.cpp]
+
+[import src/examples/core/interior_type.cpp]
+[import src/examples/core/point_type.cpp]
+[import src/examples/core/ring_type.cpp]
+[import src/examples/core/rings.cpp]
+[import src/examples/core/tag.cpp]
+[import src/examples/core/tag_cast.cpp]
+
+[import src/examples/geometries/point.cpp]
+[import src/examples/geometries/adapted/c_array.cpp]
+[import src/examples/geometries/adapted/boost_array.cpp]
+[import src/examples/geometries/adapted/boost_fusion.cpp]
+[import src/examples/geometries/adapted/boost_polygon.cpp]
+[import src/examples/geometries/adapted/boost_tuple.cpp]
+
+[import src/examples/geometries/adapted/boost_range/filtered.cpp]
+[import src/examples/geometries/adapted/boost_range/reversed.cpp]
+[import src/examples/geometries/adapted/boost_range/sliced.cpp]
+[import src/examples/geometries/adapted/boost_range/strided.cpp]
+[import src/examples/geometries/adapted/boost_range/uniqued.cpp]
+
+[import src/examples/geometries/register/box.cpp]
+[import src/examples/geometries/register/box_templated.cpp]
+[import src/examples/geometries/register/box_2d_4values.cpp]
+[import src/examples/geometries/register/point.cpp]
+[import src/examples/geometries/register/linestring.cpp]
+[import src/examples/geometries/register/linestring_templated.cpp]
+[import src/examples/geometries/register/ring.cpp]
+[import src/examples/geometries/register/ring_templated.cpp]
+
+[import src/examples/geometries/register/multi_point.cpp]
+[import src/examples/geometries/register/multi_point_templated.cpp]
+
+[import src/examples/geometries/register/multi_linestring.cpp]
+[import src/examples/geometries/register/multi_polygon.cpp]
+
+[import src/examples/io/svg.cpp]
+
+[import src/examples/views/box_view.cpp]
+[import src/examples/views/segment_view.cpp]

@@ -1,0 +1,284 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN'
+'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
+<head>
+	<meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+	<title>Synopsis</title>
+	<link href='reno.css' type='text/css' rel='stylesheet'/>
+</head>
+<body>
+<div class="body-0">
+<div class="body-1">
+<div class="body-2">
+<div>
+<div id="boost_logo">
+<a href="http://www.boost.org"><img style="border:0" src="../../../boost.png" alt="Boost" width="277" height="86"/></a>
+</div>
+<h1>Boost Exception</h1>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="RenoIncludeDIV"><h2>Synopsis</h2>
+<p>List of documented definitions, declarations and includes by header file:</p>
+<p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_exception_hpp.html">boost/exception/exception.hpp</a></span>&gt;</p>
+<pre><span class="RenoIncludeSPAN">namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">class
+    <span class="RenoLink"><a href="exception.html">exception</a></span>
+        {
+        protected:
+    
+    <span class="RenoIncludeSPAN">    <span class="RenoLink"><a href="exception_constructors.html">exception</a></span>();
+        <span class="RenoLink"><a href="exception_constructors.html">exception</a></span>( <span class="RenoLink"><a href="exception.html">exception</a></span> const &amp; x );</span>    
+    <span class="RenoIncludeSPAN">    <span class="RenoLink"><a href="exception_destructor.html">~exception</a></span>();</span>    
+        };</span>    
+    
+    <span class="RenoIncludeSPAN">template &lt;class Tag,class T&gt;
+    class <span class="RenoLink"><a href="error_info.html">error_info</a></span>;</span>    
+    
+    typedef <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct throw_function_,char const *&gt; throw_function;
+    typedef <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct throw_file_,char const *&gt; throw_file;
+    typedef <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct throw_line_,int&gt; throw_line;</span>
+    }</span></pre>
+<p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_error_info_hpp.html">boost/exception/error_info.hpp</a></span>&gt;</p>
+<pre><span class="RenoIncludeSPAN">namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">template &lt;class Tag,class T&gt;
+    class <span class="RenoLink"><a href="error_info.html">error_info</a></span>;</span></span>
+    }</span></pre>
+<p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_info_hpp.html">boost/exception/info.hpp</a></span>&gt;</p>
+<pre><span class="RenoIncludeSPAN">#include &lt;<span class="RenoLink"><a href="boost_exception_exception_hpp.html">boost/exception/exception.hpp</a></span>&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">template &lt;class Tag,class T&gt;
+    class
+    <span class="RenoLink"><a href="error_info.html">error_info</a></span>
+        {
+        public:
+    
+    <span class="RenoIncludeSPAN">    typedef T <span class="RenoLink"><a href="error_info_value_type.html">value_type</a></span>;</span>    
+    
+    <span class="RenoIncludeSPAN">    <span class="RenoLink"><a href="error_info_error_info.html">error_info</a></span>( <span class="RenoLink"><a href="error_info_value_type.html">value_type</a></span> const &amp; v );</span>    
+    <span class="RenoIncludeSPAN">    <span class="RenoLink"><a href="error_info_value_type.html">value_type</a></span> const &amp; <span class="RenoLink"><a href="error_info_value.html">value</a></span>() const;
+        <span class="RenoLink"><a href="error_info_value_type.html">value_type</a></span> &amp; <span class="RenoLink"><a href="error_info_value.html">value</a></span>();</span>    
+        };</span>    
+    
+    <span class="RenoIncludeSPAN">template &lt;class E, class Tag, class T&gt;
+    E const &amp; <span class="RenoLink"><a href="exception_operator_shl.html">operator&lt;&lt;</a></span>( E const &amp; x, <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;Tag,T&gt; const &amp; v );</span></span>
+    }</span></pre>
+<p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_info_tuple_hpp.html">boost/exception/info_tuple.hpp</a></span>&gt;</p>
+<pre><span class="RenoIncludeSPAN">#include &lt;<span class="RenoLink"><a href="boost_exception_info_hpp.html">boost/exception/info.hpp</a></span>&gt;
+#include &lt;boost/tuple/tuple.hpp&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">template &lt;class E, class Tag1, class T1, ..., class TagN, class TN&gt;
+    E const &amp; <span class="RenoLink"><a href="tuple_operator_shl.html">operator&lt;&lt;</a></span>( E const &amp; x,
+        <span class="RenoLink"><a href="http://www.boost.org/libs/tuple/doc/tuple_users_guide.html">tuple</a></span>&lt;
+            <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;Tag1,T1&gt;,
+            ...,
+            <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;TagN,TN&gt; &gt; const &amp; v );</span></span>
+    }</span></pre>
+<p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_enable_error_info_hpp.html">boost/exception/enable_error_info.hpp</a></span>&gt;</p>
+<pre><span class="RenoIncludeSPAN">#include &lt;<span class="RenoLink"><a href="boost_exception_exception_hpp.html">boost/exception/exception.hpp</a></span>&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">template &lt;class T&gt;
+    ---unspecified--- <span class="RenoLink"><a href="enable_error_info.html">enable_error_info</a></span>( T const &amp; x );</span></span>
+    }</span></pre>
+<p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_diagnostic_information_hpp.html">boost/exception/diagnostic_information.hpp</a></span>&gt;</p>
+<pre><span class="RenoIncludeSPAN">#include &lt;string&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    class <span class="RenoLink"><a href="exception.html">exception</a></span>;</span>
+
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">template &lt;class E&gt;
+    std::string <span class="RenoLink"><a href="diagnostic_information.html">diagnostic_information</a></span>( E const &amp; e, bool verbose=true );
+    
+    std::string <span class="RenoLink"><a href="diagnostic_information.html">diagnostic_information</a></span>( <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span> const &amp; p, bool verbose=true );</span>    
+    
+    <span class="RenoIncludeSPAN">char const * <span class="RenoLink"><a href="diagnostic_information_what.html">diagnostic_information_what</a></span>( boost::<span class="RenoLink"><a href="exception.html">exception</a></span> const &amp; e, bool verbose=true ) throw();</span>    
+    
+    <span class="RenoIncludeSPAN">std::string <span class="RenoLink"><a href="current_exception_diagnostic_information.html">current_exception_diagnostic_information</a></span>();</span></span>
+    }</span></pre>
+<p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_current_exception_cast_hpp.html">boost/exception/current_exception_cast.hpp</a></span>&gt;</p>
+<pre><span class="RenoIncludeSPAN">namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">template &lt;class E&gt;
+    E * <span class="RenoLink"><a href="current_exception_cast.html">current_exception_cast</a></span>();</span></span>
+    }</span></pre>
+<p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_ptr_hpp.html">boost/exception_ptr.hpp</a></span>&gt;</p>
+<pre><span class="RenoIncludeSPAN">#include &lt;<span class="RenoLink"><a href="boost_exception_exception_hpp.html">boost/exception/exception.hpp</a></span>&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">class
+    <span class="RenoLink"><a href="unknown_exception.html">unknown_exception</a></span>:
+        public std::exception
+        public boost::<span class="RenoLink"><a href="exception.html">exception</a></span>
+        {
+        ---unspecified---
+        };</span>    
+    
+    <span class="RenoIncludeSPAN">typedef <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct tag_original_exception_type,std::type_info const *&gt; <span class="RenoLink"><a href="original_exception_type.html">original_exception_type</a></span>;</span>    
+    
+    <span class="RenoIncludeSPAN">typedef ---unspecified--- <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span>;</span>    
+    
+    <span class="RenoIncludeSPAN">template &lt;class T&gt;
+    <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span> <span class="RenoLink"><a href="copy_exception.html">copy_exception</a></span>( T const &amp; e );</span>    
+    
+    <span class="RenoIncludeSPAN"><span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span> <span class="RenoLink"><a href="current_exception.html">current_exception</a></span>();</span>    
+    
+    <span class="RenoIncludeSPAN">void <span class="RenoLink"><a href="rethrow_exception.html">rethrow_exception</a></span>( <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span> const &amp; ep );</span></span>
+    }</span></pre>
+<p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_enable_current_exception_hpp.html">boost/exception/enable_current_exception.hpp</a></span>&gt;</p>
+<pre><span class="RenoIncludeSPAN">#include &lt;<span class="RenoLink"><a href="boost_exception_exception_hpp.html">boost/exception/exception.hpp</a></span>&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">template &lt;class T&gt;
+    ---unspecified--- <span class="RenoLink"><a href="enable_current_exception.html">enable_current_exception</a></span>( T const &amp; e );</span></span>
+    }</span></pre>
+<p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_throw_exception_hpp.html">boost/throw_exception.hpp</a></span>&gt;</p>
+<pre><span class="RenoIncludeSPAN"><div class="RenoIncludeDIV"><span class="RenoIncludeSPAN">#if !defined( BOOST_EXCEPTION_DISABLE )
+    #include &lt;<span class="RenoLink"><a href="boost_exception_exception_hpp.html">boost/exception/exception.hpp</a></span>&gt;
+    #include &lt;boost/current_function.hpp&gt;
+    #define <span class="RenoLink"><a href="BOOST_THROW_EXCEPTION.html">BOOST_THROW_EXCEPTION</a></span>(x)\
+        ::boost::<span class="RenoLink"><a href="throw_exception.html">throw_exception</a></span>( ::boost::<span class="RenoLink"><a href="enable_error_info.html">enable_error_info</a></span>(x) &lt;&lt;\
+        ::boost::<span class="RenoLink"><a href="boost_exception_exception_hpp.html">throw_function</a></span>(<span class="RenoLink"><a href="configuration_macros.html">BOOST_THROW_EXCEPTION_CURRENT_FUNCTION</a></span>) &lt;&lt;\
+        ::boost::<span class="RenoLink"><a href="boost_exception_exception_hpp.html">throw_file</a></span>(__FILE__) &lt;&lt;\
+        ::boost::<span class="RenoLink"><a href="boost_exception_exception_hpp.html">throw_line</a></span>((int)__LINE__) )
+#else
+    #define <span class="RenoLink"><a href="BOOST_THROW_EXCEPTION.html">BOOST_THROW_EXCEPTION</a></span>(x) ::boost::<span class="RenoLink"><a href="throw_exception.html">throw_exception</a></span>(x)
+#endif</span>
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">#ifdef BOOST_NO_EXCEPTIONS
+    void <span class="RenoLink"><a href="throw_exception.html">throw_exception</a></span>( std::exception const &amp; e ); // user defined
+#else
+    template &lt;class E&gt;
+    void <span class="RenoLink"><a href="throw_exception.html">throw_exception</a></span>( E const &amp; e );
+#endif</span>
+    }</div></span></pre>
+<p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_api_function_hpp.html">boost/exception/errinfo_api_function.hpp</a></span>&gt;</p>
+<div class="RenoIncludeDIV"><pre>#include &lt;<span class="RenoLink"><a href="boost_exception_error_info_hpp.html">boost/exception/error_info.hpp</a></span>&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">typedef <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct errinfo_api_function_,char const *&gt; <span class="RenoLink"><a href="errinfo_api_function.html">errinfo_api_function</a></span>;</span></span>
+    }</pre>
+</div><p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_at_line_hpp.html">boost/exception/errinfo_at_line.hpp</a></span>&gt;</p>
+<div class="RenoIncludeDIV"><pre>#include &lt;<span class="RenoLink"><a href="boost_exception_error_info_hpp.html">boost/exception/error_info.hpp</a></span>&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">typedef <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct errinfo_at_line_,int&gt; <span class="RenoLink"><a href="errinfo_at_line.html">errinfo_at_line</a></span>;</span></span>
+    }</pre>
+</div><p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_errno_hpp.html">boost/exception/errinfo_errno.hpp</a></span>&gt;</p>
+<div class="RenoIncludeDIV"><pre>#include &lt;<span class="RenoLink"><a href="boost_exception_error_info_hpp.html">boost/exception/error_info.hpp</a></span>&gt;
+#include &lt;errno.h&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">typedef <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct errinfo_errno_,int&gt; <span class="RenoLink"><a href="errinfo_errno.html">errinfo_errno</a></span>;</span></span>
+    }</pre>
+</div><p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_file_handle_hpp.html">boost/exception/errinfo_file_handle.hpp</a></span>&gt;</p>
+<div class="RenoIncludeDIV"><pre>#include &lt;<span class="RenoLink"><a href="boost_exception_error_info_hpp.html">boost/exception/error_info.hpp</a></span>&gt;
+
+namespace
+boost
+    {
+    template &lt;class&gt; class weak_ptr;
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">typedef <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct errinfo_file_handle_,weak_ptr&lt;FILE&gt; &gt; <span class="RenoLink"><a href="errinfo_file_handle.html">errinfo_file_handle</a></span>;</span></span>
+    }</pre>
+</div><p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_file_name_hpp.html">boost/exception/errinfo_file_name.hpp</a></span>&gt;</p>
+<div class="RenoIncludeDIV"><pre>#include &lt;<span class="RenoLink"><a href="boost_exception_error_info_hpp.html">boost/exception/error_info.hpp</a></span>&gt;
+#include &lt;string&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">typedef <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct errinfo_file_name_,std::string&gt; <span class="RenoLink"><a href="errinfo_file_name.html">errinfo_file_name</a></span>;</span></span>
+    }</pre>
+</div><p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_file_open_mode_hpp.html">boost/exception/errinfo_file_open_mode.hpp</a></span>&gt;</p>
+<div class="RenoIncludeDIV"><pre>#include &lt;<span class="RenoLink"><a href="boost_exception_error_info_hpp.html">boost/exception/error_info.hpp</a></span>&gt;
+#include &lt;string&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">typedef <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct errinfo_file_open_mode_,std::string&gt; <span class="RenoLink"><a href="errinfo_file_open_mode.html">errinfo_file_open_mode</a></span>;</span></span>
+    }</pre>
+</div><p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_nested_exception_hpp.html">boost/exception/errinfo_nested_exception.hpp</a></span>&gt;</p>
+<div class="RenoIncludeDIV"><pre>#include &lt;<span class="RenoLink"><a href="boost_exception_error_info_hpp.html">boost/exception/error_info.hpp</a></span>&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    typedef ---unspecified--- <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span>;</span>
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">typedef <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct errinfo_nested_exception_,<span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span>&gt; <span class="RenoLink"><a href="errinfo_nested_exception.html">errinfo_nested_exception</a></span>;</span></span>
+    }</pre>
+</div><p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_type_info_name_hpp.html">boost/exception/errinfo_type_info_name.hpp</a></span>&gt;</p>
+<div class="RenoIncludeDIV"><pre>#include &lt;<span class="RenoLink"><a href="boost_exception_error_info_hpp.html">boost/exception/error_info.hpp</a></span>&gt;
+#include &lt;string&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">typedef <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct errinfo_type_info_name_,std::string&gt; <span class="RenoLink"><a href="errinfo_type_info_name.html">errinfo_type_info_name</a></span>;</span></span>
+    }</pre>
+</div><p><span class="RenoEscape">&#35;<!--<wiki>`&#35;</wiki>--></span>include &lt;<span class="RenoLink"><a href="boost_exception_all_hpp.html">boost/exception/all.hpp</a></span>&gt;</p>
+<div class="RenoIncludeDIV"><pre><span class="RenoIncludeSPAN">#include &lt;<span class="RenoLink"><a href="boost_exception_diagnostic_information_hpp.html">boost/exception/diagnostic_information.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_error_info_hpp.html">boost/exception/error_info.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_exception_hpp.html">boost/exception/exception.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_get_error_info_hpp.html">boost/exception/get_error_info.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_info_hpp.html">boost/exception/info.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_info_tuple_hpp.html">boost/exception/info_tuple.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_api_function_hpp.html">boost/exception/errinfo_api_function.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_at_line_hpp.html">boost/exception/errinfo_at_line.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_errno_hpp.html">boost/exception/errinfo_errno.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_file_handle_hpp.html">boost/exception/errinfo_file_handle.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_file_name_hpp.html">boost/exception/errinfo_file_name.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_file_open_mode_hpp.html">boost/exception/errinfo_file_open_mode.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_type_info_name_hpp.html">boost/exception/errinfo_type_info_name.hpp</a></span>&gt;
+#ifndef <span class="RenoLink"><a href="configuration_macros.html">BOOST_NO_EXCEPTIONS</a></span>
+#include &lt;<span class="RenoLink"><a href="boost_exception_errinfo_nested_exception_hpp.html">boost/exception/errinfo_nested_exception.hpp</a></span>&gt;
+#include &lt;<span class="RenoLink"><a href="boost_exception_ptr_hpp.html">boost/exception_ptr.hpp</a></span>&gt;
+#endif</span></pre>
+</div></div><div class="RenoAutoDIV"><div class="RenoHR"><hr/></div>
+See also: <span class="RenoPageList"><a href="boost-exception.html">Boost Exception</a></span>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div id="footer">
+<p>
+<a class="logo" href="http://jigsaw.w3.org/css-validator/check/referer"><img class="logo_pic" src="valid-css.png" alt="Valid CSS" height="31" width="88"/></a>
+<a class="logo" href="http://validator.w3.org/check?uri=referer"><img class="logo_pic" src="valid-xhtml.png" alt="Valid XHTML 1.0" height="31" width="88"/></a>
+<small>Copyright (c) 2006-2009 by Emil Dotchevski and Reverge Studios, Inc.<br/>
+Distributed under the <a href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License, Version 1.0</a>.</small>
+</p>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

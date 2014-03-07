@@ -1,0 +1,85 @@
+<html>
+<head>
+	<title>BOOST_PP_DIV_D</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_DIV_D</b> macro expands to the quotient of its second and third arguments.&nbsp;
+		It reenters <b>BOOST_PP_WHILE</b> with maximum efficiency.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_DIV_D</b>(<i>d</i>, <i>x</i>, <i>y</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>d</dt>
+			<dd>
+				The next available <b>BOOST_PP_WHILE</b> iteration.&nbsp;
+			</dd>
+			<dt>x</dt>
+			<dd>
+				The dividend (numerator) of the operation.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+			<dt>y</dt>
+			<dd>
+				The divisor (denominator) of the operation.&nbsp;
+				Valid values range from <i>1</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			If <i>y</i> is <i>0</i>, the result is undefined.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="div.html">BOOST_PP_DIV</a></li>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/arithmetic/div.html">&lt;boost/preprocessor/arithmetic/div.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/arithmetic/dec.html">boost/preprocessor/arithmetic/dec.hpp</a>&gt;
+#include &lt;<a href="../headers/arithmetic/div.html">boost/preprocessor/arithmetic/div.hpp</a>&gt;
+#include &lt;<a href="../headers/control/while.html">boost/preprocessor/control/while.hpp</a>&gt;
+#include &lt;<a href="../headers/tuple/elem.html">boost/preprocessor/tuple/elem.hpp</a>&gt;
+
+#define PRED(d, data) <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(2, 0, data)
+
+#define OP(d, data) \
+   ( \
+      <a href="dec.html">BOOST_PP_DEC</a>( \
+         <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(2, 0, data) \
+      ), \
+      <a href="div_d.html">BOOST_PP_DIV_D</a>( \
+         d, \
+         <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(2, 1, data), \
+         2 \
+      ) \
+   ) \
+   /**/
+
+// halve 'x' 'n' times
+#define HALVE(x, n) <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(2, 1, <a href="while.html">BOOST_PP_WHILE</a>(PRED, OP, (n, x)))
+
+HALVE(8, 2) // expands to 2
+HALVE(16, 1) // expands to 8
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+    <meta name="generator" content="HTML Tidy, see www.w3.org">
+    <meta http-equiv="Content-Type" content=
+    "text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/type_id.hpp&gt;</title>
+
+    <style type="text/css">
+ p.c4 {font-style: italic}
+ span.c3 {color: #ff0000}
+ h2.c2 {text-align: center}
+ h1.c1 {text-align: center}
+</style>
+
+    <table border="0" cellpadding="7" cellspacing="0" width="100%"
+    summary="header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width= 
+          "277" alt="C++ Boost" src="../../../../boost.png" border=
+          "0"></a></h3>
+
+        <td valign="top">
+          <h1 class="c1"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 class="c2">Header &lt;boost/python/type_id.hpp&gt;</h2>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#type_info-spec">Class <code>type_info</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#type_info-spec-synopsis">Class
+              <code>type_info</code> synopsis</a></dt>
+
+              <dt><a href="#type_infospec-ctors">Class <code>type_info</code>
+              constructor</a></dt>
+
+              <dt><a href="#type_infospec-comparisons">Class
+              <code>type_info</code> comparison functions</a></dt>
+
+              <dt><a href="#type_infospec-observers">Class
+              <code>type_info</code> observer functions</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#functions">Functions</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#type_id-spec">type_id</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><code>&lt;boost/python/type_id.hpp&gt;</code> provides types and
+    functions for runtime type identification like those of of
+    <code>&lt;typeinfo&gt;</code>. It exists mostly to work around certain
+    compiler bugs and platform-dependent interactions with shared
+    libraries.</p>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="type_info-spec"></a>Class <code>type_info</code></h3>
+
+    <p><code>type_info</code> instances identify a type. As
+    <code>std::type_info</code> is specified to (but unlike its
+    implementation in some compilers), <code>boost::python::type_info</code>
+    never represents top-level references or cv-qualification (see section
+    5.2.8 in the C++ standard). Unlike <code>std::type_info</code>,
+    <code>boost::python::type_info</code> instances are copyable, and
+    comparisons always work reliably across shared library boundaries.</p>
+
+    <h4><a name="type_info-spec-synopsis"></a>Class type_info synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+  class type_info : <a href=
+"../../../utility/operators.htm#totally_ordered1">totally_ordered</a>&lt;type_info&gt;
+  {
+   public:
+      // constructor
+      type_info(std::type_info const&amp; = typeid(void));
+
+      // comparisons
+      bool operator&lt;(type_info const&amp; rhs) const;
+      bool operator==(type_info const&amp; rhs) const;
+
+      // observers
+      char const* name() const;
+  };
+}}
+</pre>
+
+    <h4><a name="type_infospec-ctors">Class <code>type_info</code>
+    constructor</a></h4>
+<pre>
+type_info(std::type_info const&amp; = typeid(void));
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> constructs a <code>type_info</code> object which
+      identifies the same type as its argument.</dt>
+
+      <dt><b>Rationale:</b> Since it is occasionally necessary to make an
+      array of <code>type_info</code> objects a benign default argument is
+      supplied. <span class="c3"><b>Note:</b></span> this constructor does
+      <i>not</i> correct for non-conformance of compiler
+      <code>typeid()</code> implementations. See <code><a href=
+      "#type_id-spec">type_id</a></code>, below.</dt>
+    </dl>
+
+    <h4><a name="type_infospec-comparisons">Class <code>type_info</code>
+    comparisons</a></h4>
+<pre>
+bool operator&lt;(type_info const&amp; rhs) const;
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> yields a total order over <code>type_info</code>
+      objects.</dt>
+    </dl>
+<pre>
+bool operator==(type_info const&amp; rhs) const;
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Returns:</b> <code>true</code> iff the two values describe the
+      same type.</dt>
+    </dl>
+
+    <dl class="function-semantics">
+      <dt><b>Note:</b> The use of <code><a href=
+      "../../../utility/operators.htm#totally_ordered1">totally_ordered</a>&lt;type_info&gt;</code>
+      as a private base class supplies operators <code>&lt;=</code>,
+      <code>&gt;=</code>, <code>&gt;</code>, and <code>!=</code></dt>
+    </dl>
+
+    <h4><a name="type_infospec-observers">Class <code>type_info</code>
+    observers</a></h4>
+<pre>
+char const* name() const;
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Returns:</b> The result of calling <code>name()</code> on the
+      argument used to construct the object.</dt>
+    </dl>
+
+    <h2><a name="functions"></a>Functions</h2>
+<pre>
+std::ostream&amp; operator&lt;&lt;(std::ostream&amp;s, type_info const&amp;x);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> Writes a description of the type described by to
+      <code>x</code> into <code>s</code>.</dt>
+
+      <dt><b>Rationale:</b> Not every C++ implementation provides a truly
+      human-readable <code>type_info::name()</code> string, but for some we
+      may be able to decode the string and produce a reasonable
+      representation.</dt>
+    </dl>
+<pre>
+<a name="type_id-spec">template &lt;class T&gt; type_info type_id</a>()
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Returns:</b> <code>type_info(typeid(T))</code></dt>
+
+      <dt><b>Note:</b> On some non-conforming C++ implementations, the code
+      is not actually as simple as described above; the semantics are
+      adjusted to work <i>as-if</i> the C++ implementation were
+      conforming.</dt>
+    </dl>
+
+    <h2><a name="examples"></a>Example</h2>
+    The following example, though silly, illustrates how the
+    <code>type_id</code> facility might be used 
+<pre>
+#include &lt;boost/python/type_id.hpp&gt;
+
+// Returns true iff the user passes an int argument
+template &lt;class T&gt;
+bool is_int(T x)
+{
+   using boost::python::type_id;
+   return type_id&lt;T&gt;() == type_id&lt;int&gt;();
+}
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+     13 November, 2002 
+    <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p class="c4">&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.  Distributed under the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)<
+
+  </body>
+</html>
+

@@ -1,0 +1,91 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - BOOST_STATIC_WARNING</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center"><code style="white-space: normal">BOOST_STRONG_TYPEDEF</code></h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<h3>Motivation</h3>
+<code style="white-space: normal">typedef</code> creates an alias for an existing type.  It does not create
+a new type that can be used for matching either function or template parameters.
+This can be shown by trying to compile the following example.
+<pre></code>
+typedef int a;
+void f(int x);  // (1) function to handle simple integers
+void f(a x);    // (2) special function to handle integers of type a 
+int main(){
+    int x = 1;
+    a y;
+    y = x;      // other operations permitted as a is converted as necessary
+    f(x);       // chooses (1)
+    f(y);       // chooses (2)
+}
+</code></pre>
+Since typedef doesn't create a new type, this program can't compile to code
+that implements its obvious intention.  
+<p>
+Usage of BOOST_STRONG_TYPEDEF
+addresses this.
+<pre></code>
+<a target="strong_typedef" href="../../../boost/strong_typedef.hpp">
+#include &lt;boost/serialization/strong_typedef.hpp&gt;
+</a>
+
+BOOST_STRONG_TYPEDEF(int, a)
+void f(int x);  // (1) function to handle simple integers
+void f(a x);    // (2) special function to handle integers of type a 
+int main(){
+    int x = 1;
+    a y;
+    y = x;      // other operations permitted as a is converted as necessary
+    f(x);       // chooses (1)
+    f(y);       // chooses (2)
+}
+</code></pre>
+The program will now compile and run as expected.
+
+<h3>Usage</h3>
+Syntax of <code style="white-space: normal">BOOST_STRONG_TYPEDEF</code>
+has been designed to be similar to the standard
+<code style="white-space: normal">typedef</code>.  So
+
+<pre><code>
+BOOST_STRONG_TYPEDEF(primitive type, name)
+</code></pre>
+
+will create a new type "name" which will be substitutable for the original
+type but still of distinct type.
+
+<h3>Implemenation</h3>
+<code style="white-space: normal">BOOST_STRONG_TYPEDEF</code> is a macro
+which generates a class named "name" wraps and instance of its
+primitive type and provides appropriate conversion operators in order
+to make the new type substitutable for the one that it wraps.
+
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

@@ -1,0 +1,33 @@
+locate-root "..\..\..\bin.v2"
+C:\Users\Misha\Stuff\boost\HEAD\boost\tools\regression\test>C:\Users\Misha\Stuff\boost\HEAD\bin\..\boost\tools\jam\src\bin.ntx86\bjam.exe --dump-tests --v2 msvc-7.1 "-sBOOST_BUILD_PATH=C:\Users\Misha\Stuff\boost\HEAD\bin\.." "-sBOOST_ROOT="C:\Users\Misha\Stuff\boost\HEAD\bin\..\boost"  
+
+boost-test(RUN) "testlib/run~pass" : "tools/regression/test/run~pass.cpp"
+boost-test(RUN) "testlib/run~pass" : "tools/regression/test/run~pass2s.cpp"
+
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static\threading-multi\run~pass.obj
+run~pass.cpp
+msvc.link ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static\threading-multi\run~pass.exe
+testing.capture-output ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static\threading-multi\run~pass.run
+        1 file(s) copied.
+**passed** ..\..\..\bin.v2\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static\threading-multi\run~pass.test
+
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass2.test
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static
+MkDir1 ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static\threading-multi
+compile-c-c++ ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static\threading-multi\run~pass2.obj
+run~pass2.cpp
+msvc.link ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static\threading-multi\run~pass2.exe
+testing.capture-output ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static\threading-multi\run~pass2.run
+        1 file(s) copied.
+**passed** ..\..\..\bin.v2\tools\regression\test\run~pass2.test\msvc-7.1\debug\link-static\threading-multi\run~pass2.test
+
+...failed updating 9 targets...
+...skipped 17 targets...
+...updated 131 targets...

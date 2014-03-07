@@ -1,0 +1,1012 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;1.&#160;Boost.Icl</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="next" href="boost_icl/examples.html" title="Examples">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_icl/examples.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="chapter" lang="en">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="optional"></a>Chapter&#160;1.&#160;Boost.Icl</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Joachim</span> <span class="surname">Faulhaber</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2007 -2010 Joachim Faulhaber</p></div>
+<div><p class="copyright">Copyright &#169; 1999 -2006 Cortex Software GmbH</p></div>
+<div><div class="legalnotice">
+<a name="id1048858"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><span class="section"><a href="index.html#boost_icl.introduction">Introduction</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="index.html#boost_icl.introduction.definition_and_basic_example">Definition
+      and Basic Example</a></span></dt>
+<dt><span class="section"><a href="index.html#boost_icl.introduction.icl_s_class_templates">Icl's class
+      templates</a></span></dt>
+<dt><span class="section"><a href="index.html#boost_icl.introduction.interval_combining_styles">Interval
+      Combining Styles</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_icl/examples.html">Examples</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_icl/examples.html#boost_icl.examples.overview">Overview</a></span></dt>
+<dt><span class="section"><a href="boost_icl/examples/party.html">Party</a></span></dt>
+<dt><span class="section"><a href="boost_icl/examples/interval.html">Interval</a></span></dt>
+<dt><span class="section"><a href="boost_icl/examples/dynamic_interval.html">Dynamic interval</a></span></dt>
+<dt><span class="section"><a href="boost_icl/examples/static_interval.html">Static interval</a></span></dt>
+<dt><span class="section"><a href="boost_icl/examples/interval_container.html">Interval container</a></span></dt>
+<dt><span class="section"><a href="boost_icl/examples/overlap_counter.html">Overlap counter</a></span></dt>
+<dt><span class="section"><a href="boost_icl/examples/partys_height_average.html"> Party's height
+      average</a></span></dt>
+<dt><span class="section"><a href="boost_icl/examples/partys_tallest_guests.html"> Party's tallest
+      guests</a></span></dt>
+<dt><span class="section"><a href="boost_icl/examples/time_grids.html"> Time grids for months
+      and weeks</a></span></dt>
+<dt><span class="section"><a href="boost_icl/examples/man_power.html">Man power</a></span></dt>
+<dt><span class="section"><a href="boost_icl/examples/user_groups.html">User groups</a></span></dt>
+<dt><span class="section"><a href="boost_icl/examples/std_copy.html">Std copy</a></span></dt>
+<dt><span class="section"><a href="boost_icl/examples/std_transform.html">Std transform</a></span></dt>
+<dt><span class="section"><a href="boost_icl/examples/custom_interval.html">Custom interval</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_icl/projects.html">Projects</a></span></dt>
+<dd><dl><dt><span class="section"><a href="boost_icl/projects.html#boost_icl.projects.large_bitset">Large Bitset</a></span></dt></dl></dd>
+<dt><span class="section"><a href="boost_icl/concepts.html">Concepts</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_icl/concepts.html#boost_icl.concepts.naming">Naming</a></span></dt>
+<dt><span class="section"><a href="boost_icl/concepts/aspects.html">Aspects</a></span></dt>
+<dt><span class="section"><a href="boost_icl/concepts/sets_and_maps.html">Sets and Maps</a></span></dt>
+<dt><span class="section"><a href="boost_icl/concepts/aggrovering.html"> Addability, Subtractability
+      and Aggregate on Overlap</a></span></dt>
+<dt><span class="section"><a href="boost_icl/concepts/map_traits.html">Map Traits</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_icl/semantics.html">Semantics</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_icl/semantics.html#boost_icl.semantics.orderings_and_equivalences">Orderings
+      and Equivalences</a></span></dt>
+<dt><span class="section"><a href="boost_icl/semantics/sets.html">Sets</a></span></dt>
+<dt><span class="section"><a href="boost_icl/semantics/maps.html">Maps</a></span></dt>
+<dt><span class="section"><a href="boost_icl/semantics/collectors__maps_of_sets.html">Collectors:
+      Maps of Sets</a></span></dt>
+<dt><span class="section"><a href="boost_icl/semantics/quantifiers__maps_of_numbers.html">Quantifiers:
+      Maps of Numbers</a></span></dt>
+<dt><span class="section"><a href="boost_icl/semantics/concept_induction.html">Concept Induction</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_icl/interface.html">Interface</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_icl/interface.html#boost_icl.interface.class_templates">Class templates</a></span></dt>
+<dt><span class="section"><a href="boost_icl/interface/required_concepts.html">Required Concepts</a></span></dt>
+<dt><span class="section"><a href="boost_icl/interface/associated_types.html">Associated Types</a></span></dt>
+<dt><span class="section"><a href="boost_icl/interface/function_synopsis.html">Function Synopsis</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_icl/customization.html">Customization</a></span></dt>
+<dd><dl><dt><span class="section"><a href="boost_icl/customization.html#boost_icl.customization.intervals">Intervals</a></span></dt></dl></dd>
+<dt><span class="section"><a href="boost_icl/implementation.html">Implementation</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_icl/implementation.html#boost_icl.implementation.iterative_size">Iterative size</a></span></dt>
+<dt><span class="section"><a href="boost_icl/implementation/complexity.html">Complexity</a></span></dt>
+<dt><span class="section"><a href="boost_icl/implementation/inplace_and_infix_operators.html">Inplace
+      and infix operators</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_icl/function_reference.html">Function Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_icl/function_reference.html#boost_icl.function_reference.overload_tables">Overload
+      tables</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/segmentational_fineness.html">Segmentational
+      Fineness</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/key_types.html">Key Types</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/construct__copy__destruct.html">Construct,
+      copy, destruct</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/containedness.html">Containedness</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/equivalences_and_orderings.html">Equivalences
+      and Orderings</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/size.html">Size</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/range.html">Range</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/selection.html">Selection</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/addition.html">Addition</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/subtraction.html">Subtraction</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/insertion.html">Insertion</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/erasure.html">Erasure</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/intersection.html">Intersection</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/symmetric_difference.html">Symmetric
+      Difference</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/iterator_related.html">Iterator
+      related</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/element_iteration.html">Element
+      iteration</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/streaming__conversion.html">Streaming,
+      conversion</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/interval_construction.html">Interval
+      Construction</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/additional_interval_orderings.html">Additional
+      Interval Orderings</a></span></dt>
+<dt><span class="section"><a href="boost_icl/function_reference/miscellaneous_interval_functions.html">Miscellaneous
+      Interval Functions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_icl/acknowledgments.html">Acknowledgments</a></span></dt>
+<dt><span class="section"><a href="interval_container_library_reference.html">Interval Container Library Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="interval_container_library_reference.html#header.boost.icl.closed_interval_hpp">Header &lt;boost/icl/closed_interval.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/continuous_interval_hpp.html">Header &lt;boost/icl/continuous_interval.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/discrete_interval_hpp.html">Header &lt;boost/icl/discrete_interval.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/dynamic_interval_traits_hpp.html">Header &lt;boost/icl/dynamic_interval_traits.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/functors_hpp.html">Header &lt;boost/icl/functors.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/gregorian_hpp.html">Header &lt;boost/icl/gregorian.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/impl_config_hpp.html">Header &lt;boost/icl/impl_config.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/interval_hpp.html">Header &lt;boost/icl/interval.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/interval_base_map_hpp.html">Header &lt;boost/icl/interval_base_map.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/interval_base_set_hpp.html">Header &lt;boost/icl/interval_base_set.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/interval_bounds_hpp.html">Header &lt;boost/icl/interval_bounds.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/interval_combining_style_hpp.html">Header &lt;boost/icl/interval_combining_style.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/interval_map_hpp.html">Header &lt;boost/icl/interval_map.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/interval_set_hpp.html">Header &lt;boost/icl/interval_set.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/interval_traits_hpp.html">Header &lt;boost/icl/interval_traits.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/iterator_hpp.html">Header &lt;boost/icl/iterator.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/left_open_interval_hpp.html">Header &lt;boost/icl/left_open_interval.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/map_hpp.html">Header &lt;boost/icl/map.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/open_interval_hpp.html">Header &lt;boost/icl/open_interval.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/ptime_hpp.html">Header &lt;boost/icl/ptime.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/rational_hpp.html">Header &lt;boost/icl/rational.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/right_open_interval_hpp.html">Header &lt;boost/icl/right_open_interval.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/separate_interval_set_hpp.html">Header &lt;boost/icl/separate_interval_set.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/split_interval_map_hpp.html">Header &lt;boost/icl/split_interval_map.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/icl/split_interval_set_hpp.html">Header &lt;boost/icl/split_interval_set.hpp&gt;</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<div class="section boost_icl_introduction" lang="en">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_icl.introduction"></a><a class="link" href="index.html#boost_icl.introduction" title="Introduction">Introduction</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="index.html#boost_icl.introduction.definition_and_basic_example">Definition
+      and Basic Example</a></span></dt>
+<dt><span class="section"><a href="index.html#boost_icl.introduction.icl_s_class_templates">Icl's class
+      templates</a></span></dt>
+<dt><span class="section"><a href="index.html#boost_icl.introduction.interval_combining_styles">Interval
+      Combining Styles</a></span></dt>
+</dl></div>
+<p>
+      &#8220;<span class="quote">A bug crawls across the boost docs on my laptop screen. Let him be!
+      We need all the readers we can get.</span>&#8221; -- Freely adapted from <a href="http://en.wikipedia.org/wiki/Jack_Kornfield" target="_top">Jack
+      Kornfield</a>
+    </p>
+<p>
+      Intervals are almost ubiquitous in software development. Yet they are very
+      easily coded into user defined classes by a pair of numbers so they are only
+      <span class="emphasis"><em>implicitly</em></span> used most of the time. The meaning of an interval
+      is simple. They represent all the elements between their lower and upper bound
+      and thus a set. But unlike sets, intervals usually can not be added to a single
+      new interval. If you want to add intervals to a collection of intervals that
+      does still represent a <span class="emphasis"><em>set</em></span>, you arrive at the idea of
+      <span class="emphasis"><em>interval_sets</em></span> provided by this library.
+    </p>
+<p>
+      Interval containers of the <span class="bold"><strong>ICL</strong></span> have been developed
+      initially at <a href="http://www.cortex-software.de/desktopdefault.aspx" target="_top">Cortex
+      Software GmbH</a> to solve problems related to date and time interval computations
+      in the context of a Hospital Information System. Time intervals with associated
+      values like <span class="emphasis"><em>amount of invoice</em></span> or <span class="emphasis"><em>set of therapies</em></span>
+      had to be manipulated in statistics, billing programs and therapy scheduling
+      programs. So the <span class="bold"><strong>ICL</strong></span> emerged out of those
+      industrial use cases. It extracts generic code that helps to solve common problems
+      from the date and time problem domain and can be beneficial in other fields
+      as well.
+    </p>
+<p>
+      One of the most advantageous aspects of interval containers is their very compact
+      representation of sets and maps. Working with sets and maps <span class="emphasis"><em>of elements</em></span>
+      can be very inefficient, if in a given problem domain, elements are typically
+      occurring in contiguous chunks. Besides a compact representation of associative
+      containers, that can reduce the cost of space and time drastically, the ICL
+      comes with a universal mechanism of aggregation, that allows to combine associated
+      values in meaningful ways when intervals overlap on insertion.
+    </p>
+<p>
+      For a condensed introduction and overview you may want to look at the <a href="http://www.herold-faulhaber.de/boost_icl/doc/libs/icl/doc/boostcon09/intro_to_itl.pdf" target="_top">presentation
+      material on the <span class="bold"><strong>ICL</strong></span> from <span class="emphasis"><em><span class="bold"><strong>BoostCon2009</strong></span></em></span></a>.
+    </p>
+<div class="section boost_icl_introduction_definition_and_basic_example" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.introduction.definition_and_basic_example"></a><a class="link" href="index.html#boost_icl.introduction.definition_and_basic_example" title="Definition and Basic Example">Definition
+      and Basic Example</a>
+</h3></div></div></div>
+<p>
+        The <span class="bold"><strong>Interval Container Library (ICL)</strong></span> provides
+        <code class="computeroutput"><a class="link" href="boost/icl/interval.html" title="Struct template interval">intervals</a></code> and two kinds
+        of interval containers: <code class="computeroutput"><a class="link" href="boost/icl/interval_set.html" title="Class template interval_set">interval_sets</a></code>
+        and <code class="computeroutput"><a class="link" href="boost/icl/interval_map.html" title="Class template interval_map">interval_maps</a></code>.
+      </p>
+<div class="itemizedlist"><ul type="disc">
+<li>
+          An <code class="computeroutput"><a class="link" href="boost/icl/interval_base_set.html" title="Class template interval_base_set">interval_set</a></code>
+          is a <span class="bold"><strong>set</strong></span> that is implemented as a set
+          of intervals.
+        </li>
+<li>
+          An <code class="computeroutput"><a class="link" href="boost/icl/interval_base_map.html" title="Class template interval_base_map">interval_map</a></code>
+          is a <span class="bold"><strong>map</strong></span> that is implemented as a map
+          of interval value pairs.
+        </li>
+</ul></div>
+<a name="boost_icl.introduction.definition_and_basic_example.two_aspects"></a><h5>
+<a name="id1049042"></a>
+        <a class="link" href="index.html#boost_icl.introduction.definition_and_basic_example.two_aspects">Two
+        Aspects</a>
+      </h5>
+<p>
+        <code class="computeroutput"><a class="link" href="boost/icl/interval_base_set.html" title="Class template interval_base_set">Interval_sets</a></code>
+        and <code class="computeroutput"><a class="link" href="boost/icl/interval_base_map.html" title="Class template interval_base_map">interval_maps</a></code>
+        expose two different aspects in their interfaces: (1) The functionality of
+        a set or a map, which is the more <span class="emphasis"><em><span class="bold"><strong>abstract
+        aspect</strong></span></em></span>. And (2) the functionality of a container of
+        intervals which is the more specific and <span class="emphasis"><em><span class="bold"><strong>implementation
+        related aspect</strong></span></em></span>. In practice both aspects are useful
+        and are therefore supported.
+      </p>
+<p>
+        The first aspect, that will be called <span class="emphasis"><em><span class="bold"><strong>fundamental</strong></span></em></span>
+        <span class="emphasis"><em><span class="bold"><strong>aspect</strong></span></em></span>, is the more
+        important one. It means that we can use an <code class="computeroutput"><a class="link" href="boost/icl/interval_set.html" title="Class template interval_set">interval_set</a></code>
+        or <code class="computeroutput"><a class="link" href="boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code> like
+        a set or map <span class="emphasis"><em><span class="bold"><strong>of elements</strong></span></em></span>.
+        It exposes the same functions. 
+</p>
+<pre class="programlisting"><span class="identifier">interval_set</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">mySet</span><span class="special">;</span>
+<span class="identifier">mySet</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="number">42</span><span class="special">);</span>
+<span class="keyword">bool</span> <span class="identifier">has_answer</span> <span class="special">=</span> <span class="identifier">contains</span><span class="special">(</span><span class="identifier">mySet</span><span class="special">,</span> <span class="number">42</span><span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        The second aspect, that will be called <span class="emphasis"><em><span class="bold"><strong>segmental</strong></span></em></span>
+        <span class="emphasis"><em><span class="bold"><strong>aspect</strong></span></em></span>, allows to exploit
+        the fact, that the elements of <code class="computeroutput"><a class="link" href="boost/icl/interval_set.html" title="Class template interval_set">interval_sets</a></code>
+        and <code class="computeroutput"><a class="link" href="boost/icl/interval_map.html" title="Class template interval_map">interval_maps</a></code> are
+        clustered in <span class="emphasis"><em><span class="bold"><strong>intervals</strong></span></em></span>
+        or <span class="emphasis"><em><span class="bold"><strong>segments</strong></span></em></span> that we
+        can iterate over.
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting"><span class="comment">// Switch on my favorite telecasts using an interval_set
+</span><span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">seconds</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">news</span><span class="special">(</span><span class="identifier">make_seconds</span><span class="special">(</span><span class="string">"20:00:00"</span><span class="special">),</span> <span class="identifier">make_seconds</span><span class="special">(</span><span class="string">"20:15:00"</span><span class="special">));</span>
+<span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">seconds</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">talk_show</span><span class="special">(</span><span class="identifier">make_seconds</span><span class="special">(</span><span class="string">"22:45:30"</span><span class="special">),</span> <span class="identifier">make_seconds</span><span class="special">(</span><span class="string">"23:30:50"</span><span class="special">));</span>
+<span class="identifier">interval_set</span><span class="special">&lt;</span><span class="identifier">seconds</span><span class="special">&gt;</span> <span class="identifier">myTvProgram</span><span class="special">;</span>
+<span class="identifier">myTvProgram</span><span class="special">.</span><span class="identifier">add</span><span class="special">(</span><span class="identifier">news</span><span class="special">).</span><span class="identifier">add</span><span class="special">(</span><span class="identifier">talk_show</span><span class="special">);</span>
+
+<span class="comment">// Iterating over elements (seconds) would be silly ...
+</span><span class="keyword">for</span><span class="special">(</span><span class="identifier">interval_set</span><span class="special">&lt;</span><span class="identifier">seconds</span><span class="special">&gt;::</span><span class="identifier">iterator</span> <span class="identifier">telecast</span> <span class="special">=</span> <span class="identifier">myTvProgram</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span> 
+    <span class="identifier">telecast</span> <span class="special">!=</span> <span class="identifier">myTvProgram</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span> <span class="special">++</span><span class="identifier">telecast</span><span class="special">)</span>
+    <span class="comment">//...so this iterates over intervals
+</span>   <span class="identifier">TV</span><span class="special">.</span><span class="identifier">switch_on</span><span class="special">(*</span><span class="identifier">telecast</span><span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        Working with <code class="computeroutput"><a class="link" href="boost/icl/interval_base_set.html" title="Class template interval_base_set">interval_sets</a></code>
+        and <code class="computeroutput"><a class="link" href="boost/icl/interval_base_map.html" title="Class template interval_base_map">interval_maps</a></code>
+        can be beneficial whenever the elements of sets appear in contiguous chunks:
+        <code class="computeroutput"><a class="link" href="boost/icl/interval.html" title="Struct template interval">intervals</a></code>. This is obviously
+        the case in many problem domains, particularly in fields that deal with computations
+        related to date and time.
+      </p>
+<a name="boost_icl.introduction.definition_and_basic_example.addabitlity_and_subtractability"></a><h5>
+<a name="id1049590"></a>
+        <a class="link" href="index.html#boost_icl.introduction.definition_and_basic_example.addabitlity_and_subtractability">Addabitlity
+        and Subtractability</a>
+      </h5>
+<p>
+        Unlike <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">sets</span></code> and <code class="computeroutput"><span class="identifier">maps</span></code>,
+        <code class="computeroutput"><a class="link" href="boost/icl/interval_base_set.html" title="Class template interval_base_set">interval_sets</a></code>
+        and <code class="computeroutput"><a class="link" href="boost/icl/interval_base_map.html" title="Class template interval_base_map">interval_maps</a></code>
+        implement concept <code class="computeroutput"><span class="identifier">Addable</span></code>
+        and <code class="computeroutput"><span class="identifier">Subtractable</span></code>. So <code class="computeroutput"><a class="link" href="boost/icl/interval_base_set.html" title="Class template interval_base_set">interval_sets</a></code> define an
+        <code class="computeroutput"><span class="keyword">operator</span> <span class="special">+=</span></code>
+        that is naturally implemented as <span class="emphasis"><em><span class="bold"><strong>set union</strong></span></em></span>
+        and an <code class="computeroutput"><span class="keyword">operator</span> <span class="special">-=</span></code>
+        that is consequently implemented as <span class="emphasis"><em><span class="bold"><strong>set difference</strong></span></em></span>.
+        In the <span class="bold"><strong>Icl</strong></span> <code class="computeroutput"><a class="link" href="boost/icl/interval_base_map.html" title="Class template interval_base_map">interval_maps</a></code>
+        are addable and subtractable as well. It turned out to be a very fruitful
+        concept to propagate the addition or subtraction to the <code class="computeroutput"><a class="link" href="boost/icl/interval_base_map.html" title="Class template interval_base_map">interval_map's</a></code>
+        associated values in cases where the insertion of an interval value pair
+        into an <code class="computeroutput"><a class="link" href="boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+        resulted in a collision of the inserted interval value pair with interval
+        value pairs, that are already in the <code class="computeroutput"><a class="link" href="boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>.
+        This operation propagation is called <span class="emphasis"><em><span class="bold"><strong>aggregate
+        on overlap</strong></span></em></span>.
+      </p>
+<a name="boost_icl.introduction.definition_and_basic_example.aggregate_on_overlap"></a><h5>
+<a name="id1049740"></a>
+        <a class="link" href="index.html#boost_icl.introduction.definition_and_basic_example.aggregate_on_overlap">Aggregate
+        on Overlap</a>
+      </h5>
+<p>
+        This is a first motivating example of a very small party, demonstrating the
+        <span class="emphasis"><em><span class="bold"><strong>aggregate on overlap</strong></span></em></span>
+        principle on <code class="computeroutput"><a class="link" href="boost/icl/interval_map.html" title="Class template interval_map">interval_maps</a></code>:
+      </p>
+<p>
+        In the example Mary enters the party first. She attends during the time interval
+        <code class="computeroutput"><span class="special">[</span><span class="number">20</span><span class="special">:</span><span class="number">00</span><span class="special">,</span><span class="number">22</span><span class="special">:</span><span class="number">00</span><span class="special">)</span></code>. Harry enters later. He stays within <code class="computeroutput"><span class="special">[</span><span class="number">21</span><span class="special">:</span><span class="number">00</span><span class="special">,</span><span class="number">23</span><span class="special">:</span><span class="number">00</span><span class="special">)</span></code>.
+        
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span><span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">guests</span><span class="special">;</span>
+<span class="identifier">interval_map</span><span class="special">&lt;</span><span class="identifier">time</span><span class="special">,</span> <span class="identifier">guests</span><span class="special">&gt;</span> <span class="identifier">party</span><span class="special">;</span> 
+<span class="identifier">party</span> <span class="special">+=</span> <span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">time</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(</span><span class="identifier">time</span><span class="special">(</span><span class="string">"20:00"</span><span class="special">),</span> <span class="identifier">time</span><span class="special">(</span><span class="string">"22:00"</span><span class="special">)),</span> <span class="identifier">guests</span><span class="special">(</span><span class="string">"Mary"</span><span class="special">));</span>
+<span class="identifier">party</span> <span class="special">+=</span> <span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">time</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(</span><span class="identifier">time</span><span class="special">(</span><span class="string">"21:00"</span><span class="special">),</span> <span class="identifier">time</span><span class="special">(</span><span class="string">"23:00"</span><span class="special">)),</span> <span class="identifier">guests</span><span class="special">(</span><span class="string">"Harry"</span><span class="special">));</span> 
+<span class="comment">// party now contains
+</span><span class="special">[</span><span class="number">20</span><span class="special">:</span><span class="number">00</span><span class="special">,</span> <span class="number">21</span><span class="special">:</span><span class="number">00</span><span class="special">)-&gt;{</span><span class="string">"Mary"</span><span class="special">}</span> 
+<span class="special">[</span><span class="number">21</span><span class="special">:</span><span class="number">00</span><span class="special">,</span> <span class="number">22</span><span class="special">:</span><span class="number">00</span><span class="special">)-&gt;{</span><span class="string">"Harry"</span><span class="special">,</span><span class="string">"Mary"</span><span class="special">}</span> <span class="comment">//guest sets aggregated on overlap
+</span><span class="special">[</span><span class="number">22</span><span class="special">:</span><span class="number">00</span><span class="special">,</span> <span class="number">23</span><span class="special">:</span><span class="number">00</span><span class="special">)-&gt;{</span><span class="string">"Harry"</span><span class="special">}</span>
+</pre>
+<p>
+        <span class="emphasis"><em><span class="bold"><strong>On overlap of intervals</strong></span></em></span>,
+        the corresponding name sets are <span class="emphasis"><em><span class="bold"><strong>accumulated</strong></span></em></span>.
+        At the <span class="emphasis"><em><span class="bold"><strong>points of overlap</strong></span></em></span>
+        the intervals are <span class="emphasis"><em><span class="bold"><strong>split</strong></span></em></span>.
+        The accumulation of content on overlap of intervals is done via an <code class="computeroutput"><span class="keyword">operator</span> <span class="special">+=</span></code>
+        that has to be implemented for the associated values of the <code class="computeroutput"><a class="link" href="boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>.
+        In the example the associated values are <code class="computeroutput"><span class="identifier">guest</span>
+        <span class="identifier">sets</span></code>. Thus a <code class="computeroutput"><span class="identifier">guest</span>
+        <span class="identifier">set</span></code> has to implement <code class="computeroutput"><span class="keyword">operator</span> <span class="special">+=</span></code>
+        as set union.
+      </p>
+<p>
+        As can be seen from the example an <code class="computeroutput"><a class="link" href="boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+        has both a <span class="emphasis"><em><span class="bold"><strong>decompositional behavior</strong></span></em></span>
+        (on the time dimension) as well as an <span class="emphasis"><em><span class="bold"><strong>accumulative
+        one</strong></span></em></span> (on the associated values).
+      </p>
+<p>
+        Addability and aggregate on overlap are useful features on <code class="computeroutput"><a class="link" href="boost/icl/interval_map.html" title="Class template interval_map">interval_maps</a></code>
+        implemented via function <code class="computeroutput"><span class="identifier">add</span></code>
+        and <code class="computeroutput"><span class="keyword">operator</span> <span class="special">+=</span></code>.
+        But you can also use them with the <span class="emphasis"><em>traditional</em></span> <a class="link" href="boost_icl/function_reference/insertion.html" title="Insertion">insert semantics</a>
+        that behaves like <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">::</span><span class="identifier">insert</span></code>
+        generalized for interval insertion.
+      </p>
+</div>
+<div class="section boost_icl_introduction_icl_s_class_templates" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.introduction.icl_s_class_templates"></a><a class="link" href="index.html#boost_icl.introduction.icl_s_class_templates" title="Icl's class templates">Icl's class
+      templates</a>
+</h3></div></div></div>
+<p>
+        In addition to interval containers we can work with containers of elements
+        that are <span class="emphasis"><em><span class="bold"><strong>behavioral equal</strong></span></em></span>
+        to the interval containers: On the fundamental aspect they have exactly the
+        same functionality. An <a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code>
+        </a> of the STL is such an equivalent set implementation. Due to the
+        aggregation facilities of the icl's interval maps <a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span></code>
+        </a> is fundamentally not completely equivalent to an <code class="computeroutput"><a class="link" href="boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>.
+        Therefore there is an extra <code class="computeroutput"><a class="link" href="boost/icl/map.html" title="Class template map">icl::map</a></code>
+        class template for maps of elements in the icl.
+      </p>
+<div class="itemizedlist"><ul type="disc">
+<li>
+          The <a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code> </a> is behavioral equal to
+          <code class="computeroutput"><a class="link" href="boost/icl/interval_base_set.html" title="Class template interval_base_set">interval_sets</a></code>
+          on the <span class="emphasis"><em><span class="bold"><strong>fundamental</strong></span></em></span>
+          aspect.
+        </li>
+<li>
+          An <code class="computeroutput"><a class="link" href="boost/icl/map.html" title="Class template map">icl::map</a></code> is behavioral
+          equal to <code class="computeroutput"><a class="link" href="boost/icl/interval_base_map.html" title="Class template interval_base_map">interval_maps</a></code>
+          on the <span class="emphasis"><em><span class="bold"><strong>fundamental</strong></span></em></span>
+          aspect. Specifically an <code class="computeroutput"><a class="link" href="boost/icl/map.html" title="Class template map">icl::map</a></code>
+          implements <span class="emphasis"><em><span class="bold"><strong>aggregate on overlap</strong></span></em></span>,
+          which is named <span class="emphasis"><em><span class="bold"><strong>aggregate on collision</strong></span></em></span>
+          for an element container.
+        </li>
+</ul></div>
+<p>
+        The following tables give an overview over the main class templates provided
+        by the <span class="bold"><strong>icl</strong></span>.
+      </p>
+<div class="table">
+<a name="id1053836"></a><p class="title"><b>Table&#160;1.1.&#160;Interval class templates</b></p>
+<div class="table-contents"><table class="table" summary="Interval class templates">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+            <p>
+              group
+            </p>
+            </th>
+<th>
+            <p>
+              form
+            </p>
+            </th>
+<th>
+            <p>
+              template
+            </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+            <p>
+              statically bounded
+            </p>
+            </td>
+<td>
+            <p>
+              asymmetric
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/right_open_interval.html" title="Class template right_open_interval">right_open_interval</a></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/left_open_interval.html" title="Class template left_open_interval">left_open_interval</a></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              symmetric
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/closed_interval.html" title="Class template closed_interval">closed_interval</a></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/open_interval.html" title="Class template open_interval">open_interval</a></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              dynamically bounded
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/discrete_interval.html" title="Class template discrete_interval">discrete_interval</a></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/continuous_interval.html" title="Class template continuous_interval">continuous_interval</a></code>
+            </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        Statically bounded intervals always have the same kind of interval borders,
+        e.g. right open borders<code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">..</span><span class="identifier">b</span><span class="special">)</span></code>
+        for <code class="computeroutput"><a class="link" href="boost/icl/right_open_interval.html" title="Class template right_open_interval">right_open_interval</a></code>.
+        Dynamically bounded intervals can have different borders. Refer to the chapter
+        about <a class="link" href="boost_icl/interface.html#boost_icl.interface.class_templates.intervals" title="Intervals"><span class="emphasis"><em><span class="bold"><strong>intervals</strong></span></em></span></a> for details.
+      </p>
+<div class="table">
+<a name="id1054100"></a><p class="title"><b>Table&#160;1.2.&#160;Container class templates</b></p>
+<div class="table-contents"><table class="table" summary="Container class templates">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+            <p>
+              granularity
+            </p>
+            </th>
+<th>
+            <p>
+              style
+            </p>
+            </th>
+<th>
+            <p>
+              sets
+            </p>
+            </th>
+<th>
+            <p>
+              maps
+            </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+            <p>
+              interval
+            </p>
+            </td>
+<td>
+            <p>
+              joining
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/interval_set.html" title="Class template interval_set">interval_set</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              separating
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              splitting
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/split_interval_set.html" title="Class template split_interval_set">split_interval_set</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/split_interval_map.html" title="Class template split_interval_map">split_interval_map</a></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              element
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              (<a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code> </a>)
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/map.html" title="Class template map">map</a></code>
+            </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        <a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">Std</span><span class="special">::</span><span class="identifier">set</span></code>
+        </a> is placed in paretheses, because it is not a class template of the
+        <span class="bold"><strong>ICL</strong></span>. It can be used as element container
+        though that is behavioral equal to the ICL's interval sets on their fundamental
+        aspect. Column <span class="emphasis"><em><span class="bold"><strong>style</strong></span></em></span>
+        refers to the different ways in which interval containers combine added intervals.
+        These <span class="emphasis"><em><span class="bold"><strong>combining styles</strong></span></em></span>
+        are described in the next section.
+      </p>
+</div>
+<div class="section boost_icl_introduction_interval_combining_styles" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.introduction.interval_combining_styles"></a><a class="link" href="index.html#boost_icl.introduction.interval_combining_styles" title="Interval Combining Styles">Interval
+      Combining Styles</a>
+</h3></div></div></div>
+<p>
+        When we add intervals or interval value pairs to interval containers, the
+        intervals can be added in different ways: Intervals can be joined or split
+        or kept separate. The different interval combining styles are shown by example
+        in the tables below.
+      </p>
+<div class="table">
+<a name="id1054378"></a><p class="title"><b>Table&#160;1.3.&#160;Interval container's ways to combine intervals</b></p>
+<div class="table-contents"><table class="table" summary="Interval container's ways to combine intervals">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+            <p>
+            </p>
+            </th>
+<th>
+            <p>
+              joining
+            </p>
+            </th>
+<th>
+            <p>
+              separating
+            </p>
+            </th>
+<th>
+            <p>
+              splitting
+            </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+            <p>
+              set
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/interval_set.html" title="Class template interval_set">interval_set</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/split_interval_set.html" title="Class template split_interval_set">split_interval_set</a></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              map
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/split_interval_map.html" title="Class template split_interval_map">split_interval_map</a></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              Intervals are joined on overlap or touch<br> (if associated values
+              are equal).
+            </p>
+            </td>
+<td>
+            <p>
+              Intervals are joined on overlap, not on touch.
+            </p>
+            </td>
+<td>
+            <p>
+              Intervals are split on overlap.<br> All interval borders are preserved.
+            </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="id1054556"></a><p class="title"><b>Table&#160;1.4.&#160;Interval combining styles by example</b></p>
+<div class="table-contents"><table class="table" summary="Interval combining styles by example">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+            <p>
+            </p>
+            </th>
+<th>
+            <p>
+              joining
+            </p>
+            </th>
+<th>
+            <p>
+              separating
+            </p>
+            </th>
+<th>
+            <p>
+              splitting
+            </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+            <p>
+              set
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/interval_set.html" title="Class template interval_set">interval_set</a></code>
+              <span class="emphasis"><em>A</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a></code>
+              <span class="emphasis"><em>B</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/split_interval_set.html" title="Class template split_interval_set">split_interval_set</a></code>
+              <span class="emphasis"><em>C</em></span>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              
+</p>
+<pre class="programlisting">  <span class="special">{[</span><span class="number">1</span>      <span class="number">3</span><span class="special">)</span>          <span class="special">}</span>
+<span class="special">+</span>       <span class="special">[</span><span class="number">2</span>      <span class="number">4</span><span class="special">)</span>
+<span class="special">+</span>                 <span class="special">[</span><span class="number">4</span> <span class="number">5</span><span class="special">)</span>
+<span class="special">=</span> <span class="special">{[</span><span class="number">1</span>                <span class="number">5</span><span class="special">)}</span></pre>
+<p>
+            </p>
+            </td>
+<td>
+            <p>
+              
+</p>
+<pre class="programlisting">  <span class="special">{[</span><span class="number">1</span>      <span class="number">3</span><span class="special">)}</span>         <span class="special">}</span>
+<span class="special">+</span>       <span class="special">[</span><span class="number">2</span>      <span class="number">4</span><span class="special">)</span>
+<span class="special">+</span>                 <span class="special">[</span><span class="number">4</span> <span class="number">5</span><span class="special">)</span>
+<span class="special">=</span> <span class="special">{[</span><span class="number">1</span>           <span class="number">4</span><span class="special">)[</span><span class="number">4</span> <span class="number">5</span><span class="special">)}</span></pre>
+<p>
+            </p>
+            </td>
+<td>
+            <p>
+              
+</p>
+<pre class="programlisting">  <span class="special">{[</span><span class="number">1</span>      <span class="number">3</span><span class="special">)</span>          <span class="special">}</span>
+<span class="special">+</span>       <span class="special">[</span><span class="number">2</span>      <span class="number">4</span><span class="special">)</span>
+<span class="special">+</span>                 <span class="special">[</span><span class="number">4</span> <span class="number">5</span><span class="special">)</span>
+<span class="special">=</span> <span class="special">{[</span><span class="number">1</span> <span class="number">2</span><span class="special">)[</span><span class="number">2</span> <span class="number">3</span><span class="special">)[</span><span class="number">3</span> <span class="number">4</span><span class="special">)[</span><span class="number">4</span> <span class="number">5</span><span class="special">)}</span></pre>
+<p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              map
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+              <span class="emphasis"><em>D</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="boost/icl/split_interval_map.html" title="Class template split_interval_map">split_interval_map</a></code>
+              <span class="emphasis"><em>E</em></span>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              
+</p>
+<pre class="programlisting">  <span class="special">{[</span><span class="number">1</span>      <span class="number">3</span><span class="special">)-&gt;</span><span class="number">1</span>          <span class="special">}</span>
+<span class="special">+</span>       <span class="special">[</span><span class="number">2</span>      <span class="number">4</span><span class="special">)-&gt;</span><span class="number">1</span>
+<span class="special">+</span>                 <span class="special">[</span><span class="number">4</span> <span class="number">5</span><span class="special">)-&gt;</span><span class="number">1</span>
+<span class="special">=</span> <span class="special">{[</span><span class="number">1</span> <span class="number">2</span><span class="special">)[</span><span class="number">2</span> <span class="number">3</span><span class="special">)[</span><span class="number">3</span>      <span class="number">5</span><span class="special">)</span>   <span class="special">}</span>
+  <span class="special">|</span> <span class="special">-&gt;</span><span class="number">1</span>  <span class="special">-&gt;</span><span class="number">2</span>     <span class="special">-&gt;</span><span class="number">1</span>      <span class="special">|</span></pre>
+<p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              
+</p>
+<pre class="programlisting">  <span class="special">{[</span><span class="number">1</span>      <span class="number">3</span><span class="special">)-&gt;</span><span class="number">1</span>          <span class="special">}</span>
+<span class="special">+</span>       <span class="special">[</span><span class="number">2</span>      <span class="number">4</span><span class="special">)-&gt;</span><span class="number">1</span>
+<span class="special">+</span>                 <span class="special">[</span><span class="number">4</span> <span class="number">5</span><span class="special">)-&gt;</span><span class="number">1</span>
+<span class="special">=</span> <span class="special">{[</span><span class="number">1</span> <span class="number">2</span><span class="special">)[</span><span class="number">2</span> <span class="number">3</span><span class="special">)[</span><span class="number">3</span> <span class="number">4</span><span class="special">)[</span><span class="number">4</span> <span class="number">5</span><span class="special">)</span>   <span class="special">}</span>
+  <span class="special">|</span> <span class="special">-&gt;</span><span class="number">1</span>  <span class="special">-&gt;</span><span class="number">2</span>  <span class="special">-&gt;</span><span class="number">1</span>  <span class="special">-&gt;</span><span class="number">1</span>    <span class="special">|</span></pre>
+<p>
+            </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        Note that <code class="literal">interval_sets</code> <span class="emphasis"><em>A</em></span>, <span class="emphasis"><em>B</em></span>
+        and <span class="emphasis"><em>C</em></span> represent the same set of elements <code class="literal">{1,2,3,4}</code>
+        and <code class="literal">interval_maps</code> <span class="emphasis"><em>D</em></span> and <span class="emphasis"><em>E</em></span>
+        represent the same map of elements <code class="literal">{1-&gt;1, 2-&gt;2, 3-&gt;1, 4-&gt;1}</code>.
+        See example program <a class="link" href="boost_icl/examples/interval_container.html" title="Interval container">Interval
+        container</a> for an additional demo.
+      </p>
+<a name="boost_icl.introduction.interval_combining_styles.joining_interval_containers"></a><h5>
+<a name="id1055491"></a>
+        <a class="link" href="index.html#boost_icl.introduction.interval_combining_styles.joining_interval_containers">Joining
+        interval containers</a>
+      </h5>
+<p>
+        <code class="computeroutput"><a class="link" href="boost/icl/interval_set.html" title="Class template interval_set">Interval_set</a></code> and <code class="computeroutput"><a class="link" href="boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code> are always in a
+        <span class="emphasis"><em><span class="bold"><strong>minimal representation</strong></span></em></span>.
+        This is useful in many cases, where the points of insertion or intersection
+        of intervals are not relevant. So in most instances <code class="computeroutput"><a class="link" href="boost/icl/interval_set.html" title="Class template interval_set">interval_set</a></code>
+        and <code class="computeroutput"><a class="link" href="boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code> will
+        be the first choice for an interval container.
+      </p>
+<a name="boost_icl.introduction.interval_combining_styles.splitting_interval_containers"></a><h5>
+<a name="id1055542"></a>
+        <a class="link" href="index.html#boost_icl.introduction.interval_combining_styles.splitting_interval_containers">Splitting
+        interval containers</a>
+      </h5>
+<p>
+        <code class="computeroutput"><a class="link" href="boost/icl/split_interval_set.html" title="Class template split_interval_set">Split_interval_set</a></code>
+        and <code class="computeroutput"><a class="link" href="boost/icl/split_interval_map.html" title="Class template split_interval_map">split_interval_map</a></code>
+        on the contrary have an <span class="emphasis"><em><span class="bold"><strong>insertion memory</strong></span></em></span>.
+        They do accumulate interval borders both from additions and intersections.
+        This is specifically useful, if we want to enrich an interval container with
+        certain time grids, like e.g. months or calendar weeks or both. See example
+        <a class="link" href="boost_icl/examples/time_grids.html" title="Time grids for months and weeks">time grids for months and weeks</a>.
+      </p>
+<a name="boost_icl.introduction.interval_combining_styles.separating_interval_containers"></a><h5>
+<a name="id1055584"></a>
+        <a class="link" href="index.html#boost_icl.introduction.interval_combining_styles.separating_interval_containers">Separating
+        interval containers</a>
+      </h5>
+<p>
+        <code class="computeroutput"><a class="link" href="boost/icl/separate_interval_set.html" title="Class template separate_interval_set">Separate_interval_set</a></code>
+        implements the separating style. This style preserves borders, that are never
+        passed by an overlapping interval. So if all intervals that are inserted
+        into a <code class="computeroutput"><a class="link" href="boost/icl/separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a></code>
+        are generated form a certain grid that never pass say month borders, then
+        these borders are preserved in the <code class="computeroutput"><a class="link" href="boost/icl/separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a></code>.
+      </p>
+</div>
+</div>
+<p>
+    14:46 15.10.2010
+  </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: July 01, 2012 at 19:09:06 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_icl/examples.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

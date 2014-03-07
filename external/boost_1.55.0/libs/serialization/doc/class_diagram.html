@@ -1,0 +1,170 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Archive Class Diagram</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Text Archive Class Diagram</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+
+<pre><code>
+
+
+basic_oarchive <a href="../../../boost/archive/detail/basic_oarchive.hpp">-></a>
+      |
+      |
+      |      interface_oarchive&lt;text_oarchive&gt; <a href="../../../boost/archive/detail/interface_oarchive.hpp">-></a>
+      |                     /
+      |                   /
+      |        _________/
+      |      /
+      |    /
+      |  /
+common_oarchive&lt;text_oarchive&gt; <a href="../../../boost/archive/detail/common_oarchive.hpp">-></a>
+      |
+      |
+<font color="blue">basic_text_oarchive&lt;text_oarchive&gt;</font> <a href="../../../boost/archive/basic_text_oarchive.hpp">-></a>
+      |
+      |
+      |     <font color="blue">basic_text_oprimitive&lt;basic_ostream&gt;</font> <a href="../../../boost/archive/basic_text_oprimitive.hpp">-></a>
+      |                    /
+      |                  /
+      |       _________/                  interface_oarchive&lt;polymorphic_oarchive&gt; <a href="../../../boost/archive/detail/interface_oarchive.hpp">-></a>
+      |     /                                                |
+      |   /                                                  |
+      | /                                                    |
+<font color="blue">text_oarchive_impl&lt;text_oarchive&gt;</font> <a href="../../../boost/archive/text_oarchive.hpp">-></a>              polymorphic_oarchive_impl <a href="../../../boost/archive/polymorphic_oarchive.hpp">-></a>
+      | \                                                    |
+      |   \                                                  |
+      |     \_____________________________________    <font color="red">polymorphic_oarchive</font> <a href="../../../boost/archive/polymorphic_oarchive.hpp">-></a>
+      |                                           \         /
+      |                                             \     /
+      |                                               \ /  
+<font color="red">text_oarchive</font> <a href="../../../boost/archive/text_oarchive.hpp">-></a>                 polymorphic_oarchive_route&lt;text_oarchive_impl&lt;text_oarchive&gt; &gt; <a href="../../../boost/archive/detail/polymorphic_oarchive_route.hpp">-></a>
+                                                       |
+                                                       |
+                                                       |
+                                             <font color="red">polymorphic_text_oarchive</font> <a href="../../../boost/archive/polymorphic_text_oarchive.hpp">-></a>
+
+
+</code></pre>
+This diagram shows the relationship between the various classes that implement saving (output
+serialization) for text archives.  The hierachy and organization is similar for loading and for
+other types of archives as well.  In the diagram, classes written in <font color="blue">blue</font> 
+implement saving for a given archive type. (in this case its text archives).
+Users include classes in <font color="red">red</font> to save their data from a partcular
+type of archive.  Other classes whose names are in black implement the library and should
+never change.  They are in <code>namespace boost::archive::detail</code>
+<dl>
+  <dt><code>
+  <a href="../../../boost/archive/detail/basic_oarchive.hpp">basic_oarchive</a>
+  </code></dt>
+  <dd>
+  Implements the core library functions for class export, versioning, and object tracking.  It is compiled
+  into the library as it has no template parameters.
+  </dd>
+  <p><dt><code>
+  <a href="../../../boost/archive/detail/interface_oarchive.hpp">interface_oarchive&lt;text_oarchive&gt;</a>
+  </code></dt>
+  <dd>
+  A class that declares the standard archive interface.  This has been factored out so that it
+  can be used as a base class for <code style="white-space: normal">polymorphic_oarchive</code>
+  as well as for archive implementations.
+  
+  <p><dt><code>
+  <a href="../../../boost/archive/detail/common_oarchive.hpp">common_oarchive&lt;text_oarchive&gt;</a>
+  </code></dt>
+  <dd>
+  The function of this class is to make the connection between the virtual function
+  interface used by <code>basic_oarchive</code> and the template interface used by archive
+  class implementations.
+  
+  <p><dt><code>
+  <a href="../../../boost/archive/basic_text_oarchive.hpp">basic_text_oarchive&lt;text_oarchive&gt;</a>
+  </code></dt>
+  <dd>
+  Implements the basic functionality for simple text archives.  The primitive save functions have been 
+  factored out so it can be used in other text based archives like XML archives.
+  
+  <p><dt><code>
+  <a href="../../../boost/archive/basic_text_oprimitive.hpp">basic_text_oprimitive&lt;basic_ostream&gt;</a>
+  </code></dt>
+  <dd>
+  Implements the save oversaves for all primitive types.  This is a template with a parameter
+  which describes the stream.
+  
+  <p><dt><code>
+  <a href="../../../boost/archive/text_oarchive.hpp">text_oarchive_impl&lt;text_oarchive&gt;</a>                 
+  </code></dt>
+  <dd>
+  Inherits from the above two classes to implement text archives.
+  </dd>
+
+  <p><dt><code>
+  <a href="../../../boost/archive/text_oarchive.hpp">text_oarchive</a>
+  </code></dt>
+  <dd>
+  This is just a short hand for <code style="white-space: normal">text_oarchive_impl&lt;text_oarchive&gt;</code> .
+  We can't use <code style="white-space: normal">typedef</code> because  a 
+  <code style="white-space: normal">typedef</code> can't refer to it self in its definition.  
+  This is the class name that is used to serialize to a text archive.
+  </dd>
+
+  <p><dt><code>
+  <a href="../../../boost/archive/detail/interface_oarchive.hpp">interface_oarchive&lt;polymorphic_oarchive&gt;</a>
+  </code></dt>
+  <dd>
+  Same template as above.  However, this time the Archive parameter refers to the polymorphic archive
+  with a virtual function interface rather than that the template interface that
+  <code style="white-space: normal">common_oarchive</code> uses.
+  
+  <p><dt><code>
+  <a href="../../../boost/archive/polymorphic_oarchive.hpp">polymorphic_oarchive</a>
+  </code></dt>
+  <dd>
+  A class with a list of virtual <code style="white-space: normal">save(T &t)</code>
+  for all primitive types T. This is the class that is used to do pre-compile serialization of classes
+  for all archives present and future.
+  
+  <p><dt><code>
+  <a href="../../../boost/archive/detail/polymorphic_oarchive_route.hpp">polymorphic_oarchive_route&lt;text_oarchive_impl&lt;text_oarchive&gt; &gt;</a>
+  </code></dt>
+  <dd><p>
+  This class implements the <code style="white-space: normal">polymorphic_oarchive</code> in terms of a specific 
+  concrete class.  Virtual function calls are routed to the implementing class.  In this example, 
+  that implementing class would be text_oarchive_impl.
+  
+  <p><dt><code>
+  <a href="../../../boost/archive/polymorphic_text_oarchive.hpp">polymorphic_text_oarchive</a>
+  </code></dt>
+  <dd>
+  this is just a typedef so we can write polymorphic_text_archive rather than
+  <code style="white-space: normal">polymorphic_oarchive_route&lt;text_oarchive_impl&'t;text_oarchive&gt; &gt;</code>
+  
+</dl>
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

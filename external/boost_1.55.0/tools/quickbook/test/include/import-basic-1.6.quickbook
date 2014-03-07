@@ -1,0 +1,12 @@
+[article Import Quickbook Test
+[quickbook 1.6]
+[id import-1.6]
+]
+
+[import import-basic-inc1.quickbook]
+
+macro1 [template1]
+
+[import import-basic-inc2.quickbook]
+
+macro2 [template2]

@@ -1,0 +1,122 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class visitation_result</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../attributes.html#header.boost.log.attributes.value_visitation_hpp" title="Header &lt;boost/log/attributes/value_visitation.hpp&gt;">
+<link rel="prev" href="extract_or_def_idp26291864.html" title="Function template extract_or_default">
+<link rel="next" href="value_visitor_invoker.html" title="Class template value_visitor_invoker">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="extract_or_def_idp26291864.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../attributes.html#header.boost.log.attributes.value_visitation_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="value_visitor_invoker.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.visitation_result"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class visitation_result</span></h2>
+<p>boost::log::visitation_result &#8212; The class represents attribute value visitation result. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../attributes.html#header.boost.log.attributes.value_visitation_hpp" title="Header &lt;boost/log/attributes/value_visitation.hpp&gt;">boost/log/attributes/value_visitation.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="visitation_result.html" title="Class visitation_result">visitation_result</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+
+  <span class="comment">// Error codes for attribute value visitation. </span>
+  <span class="keyword">enum</span> <a name="boost.log.visitation_result.error_code"></a>error_code <span class="special">{</span> ok, value_not_found, value_has_invalid_type <span class="special">}</span><span class="special">;</span>
+  <span class="comment">// <a class="link" href="visitation_result.html#boost.log.visitation_resultconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="visitation_result.html#idp26305752-bb"><span class="identifier">visitation_result</span></a><span class="special">(</span><span class="identifier">error_code</span> <span class="special">=</span> <span class="identifier">ok</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="visitation_result.html#idp26301576-bb">public member functions</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="visitation_result.html#idp26301784-bb"><span class="keyword">operator</span> <span class="keyword">bool</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="visitation_result.html#idp26303384-bb"><span class="keyword">operator</span><span class="special">!</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">error_code</span> <a class="link" href="visitation_result.html#idp26304840-bb"><span class="identifier">code</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp57615576"></a><h2>Description</h2>
+<p>The main purpose of this class is to provide a convenient interface for checking whether the attribute value visitation succeeded or not. It also allows to discover the actual cause of failure, should the operation fail. </p>
+<div class="refsect2">
+<a name="idp57616136"></a><h3>
+<a name="boost.log.visitation_resultconstruct-copy-destruct"></a><code class="computeroutput">visitation_result</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp26305752-bb"></a><span class="identifier">visitation_result</span><span class="special">(</span><span class="identifier">error_code</span> code <span class="special">=</span> <span class="identifier">ok</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Initializing constructor. Creates the result that is equivalent to the specified error code. </p>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp57620280"></a><h3>
+<a name="idp26301576-bb"></a><code class="computeroutput">visitation_result</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp26301784-bb"></a><span class="keyword">operator</span> <span class="keyword">bool</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Checks if the visitation was successful.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if the value was visited successfully, <code class="computeroutput">false</code> otherwise. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp26303384-bb"></a><span class="keyword">operator</span><span class="special">!</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Checks if the visitation was unsuccessful.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">false</code> if the value was visited successfully, <code class="computeroutput">true</code> otherwise. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">error_code</span> <a name="idp26304840-bb"></a><span class="identifier">code</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The actual result code of value visitation </p></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="extract_or_def_idp26291864.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../attributes.html#header.boost.log.attributes.value_visitation_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="value_visitor_invoker.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

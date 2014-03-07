@@ -1,0 +1,413 @@
+{
+  "source": "doc/api/dgram.markdown",
+  "modules": [
+    {
+      "textRaw": "UDP / Datagram Sockets",
+      "name": "dgram",
+      "stability": 3,
+      "stabilityText": "Stable",
+      "desc": "<p>Datagram sockets are available through <code>require(&#39;dgram&#39;)</code>.\n\n</p>\n<p>Important note: the behavior of <code>dgram.Socket#bind()</code> has changed in v0.10\nand is always asynchronous now.  If you have code that looks like this:\n\n</p>\n<pre><code>var s = dgram.createSocket(&#39;udp4&#39;);\ns.bind(1234);\ns.addMembership(&#39;224.0.0.114&#39;);</code></pre>\n<p>You have to change it to this:\n\n</p>\n<pre><code>var s = dgram.createSocket(&#39;udp4&#39;);\ns.bind(1234, function() {\n  s.addMembership(&#39;224.0.0.114&#39;);\n});</code></pre>\n",
+      "methods": [
+        {
+          "textRaw": "dgram.createSocket(type, [callback])",
+          "type": "method",
+          "name": "createSocket",
+          "signatures": [
+            {
+              "return": {
+                "textRaw": "Returns: Socket object ",
+                "name": "return",
+                "desc": "Socket object"
+              },
+              "params": [
+                {
+                  "textRaw": "`type` String. Either 'udp4' or 'udp6' ",
+                  "name": "type",
+                  "desc": "String. Either 'udp4' or 'udp6'"
+                },
+                {
+                  "textRaw": "`callback` Function. Attached as a listener to `message` events. Optional ",
+                  "name": "callback",
+                  "optional": true,
+                  "desc": "Function. Attached as a listener to `message` events."
+                }
+              ]
+            },
+            {
+              "params": [
+                {
+                  "name": "type"
+                },
+                {
+                  "name": "callback",
+                  "optional": true
+                }
+              ]
+            }
+          ],
+          "desc": "<p>Creates a datagram Socket of the specified types.  Valid types are <code>udp4</code>\nand <code>udp6</code>.\n\n</p>\n<p>Takes an optional callback which is added as a listener for <code>message</code> events.\n\n</p>\n<p>Call <code>socket.bind</code> if you want to receive datagrams. <code>socket.bind()</code> will bind\nto the &quot;all interfaces&quot; address on a random port (it does the right thing for\nboth <code>udp4</code> and <code>udp6</code> sockets). You can then retrieve the address and port\nwith <code>socket.address().address</code> and <code>socket.address().port</code>.\n\n</p>\n"
+        }
+      ],
+      "classes": [
+        {
+          "textRaw": "Class: dgram.Socket",
+          "type": "class",
+          "name": "dgram.Socket",
+          "desc": "<p>The dgram Socket class encapsulates the datagram functionality.  It\nshould be created via <code>dgram.createSocket(type, [callback])</code>.\n\n</p>\n",
+          "events": [
+            {
+              "textRaw": "Event: 'message'",
+              "type": "event",
+              "name": "message",
+              "params": [],
+              "desc": "<p>Emitted when a new datagram is available on a socket.  <code>msg</code> is a <code>Buffer</code> and <code>rinfo</code> is\nan object with the sender&#39;s address information and the number of bytes in the datagram.\n\n</p>\n"
+            },
+            {
+              "textRaw": "Event: 'listening'",
+              "type": "event",
+              "name": "listening",
+              "desc": "<p>Emitted when a socket starts listening for datagrams.  This happens as soon as UDP sockets\nare created.\n\n</p>\n",
+              "params": []
+            },
+            {
+              "textRaw": "Event: 'close'",
+              "type": "event",
+              "name": "close",
+              "desc": "<p>Emitted when a socket is closed with <code>close()</code>.  No new <code>message</code> events will be emitted\non this socket.\n\n</p>\n",
+              "params": []
+            },
+            {
+              "textRaw": "Event: 'error'",
+              "type": "event",
+              "name": "error",
+              "params": [],
+              "desc": "<p>Emitted when an error occurs.\n\n</p>\n"
+            }
+          ],
+          "methods": [
+            {
+              "textRaw": "socket.send(buf, offset, length, port, address, [callback])",
+              "type": "method",
+              "name": "send",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "textRaw": "`buf` Buffer object.  Message to be sent ",
+                      "name": "buf",
+                      "desc": "Buffer object.  Message to be sent"
+                    },
+                    {
+                      "textRaw": "`offset` Integer. Offset in the buffer where the message starts. ",
+                      "name": "offset",
+                      "desc": "Integer. Offset in the buffer where the message starts."
+                    },
+                    {
+                      "textRaw": "`length` Integer. Number of bytes in the message. ",
+                      "name": "length",
+                      "desc": "Integer. Number of bytes in the message."
+                    },
+                    {
+                      "textRaw": "`port` Integer. destination port ",
+                      "name": "port",
+                      "desc": "Integer. destination port"
+                    },
+                    {
+                      "textRaw": "`address` String. destination IP ",
+                      "name": "address",
+                      "desc": "String. destination IP"
+                    },
+                    {
+                      "textRaw": "`callback` Function. Callback when message is done being delivered. Optional. ",
+                      "name": "callback",
+                      "desc": "Function. Callback when message is done being delivered. Optional.",
+                      "optional": true
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "buf"
+                    },
+                    {
+                      "name": "offset"
+                    },
+                    {
+                      "name": "length"
+                    },
+                    {
+                      "name": "port"
+                    },
+                    {
+                      "name": "address"
+                    },
+                    {
+                      "name": "callback",
+                      "optional": true
+                    }
+                  ]
+                }
+              ],
+              "desc": "<p>For UDP sockets, the destination port and IP address must be specified.  A string\nmay be supplied for the <code>address</code> parameter, and it will be resolved with DNS.  An\noptional callback may be specified to detect any DNS errors and when <code>buf</code> may be\nre-used.  Note that DNS lookups will delay the time that a send takes place, at\nleast until the next tick.  The only way to know for sure that a send has taken place\nis to use the callback.\n\n</p>\n<p>If the socket has not been previously bound with a call to <code>bind</code>, it&#39;s\nassigned a random port number and bound to the &quot;all interfaces&quot; address\n(0.0.0.0 for <code>udp4</code> sockets, ::0 for <code>udp6</code> sockets).\n\n</p>\n<p>Example of sending a UDP packet to a random port on <code>localhost</code>;\n\n</p>\n<pre><code>var dgram = require(&#39;dgram&#39;);\nvar message = new Buffer(&quot;Some bytes&quot;);\nvar client = dgram.createSocket(&quot;udp4&quot;);\nclient.send(message, 0, message.length, 41234, &quot;localhost&quot;, function(err, bytes) {\n  client.close();\n});</code></pre>\n<p><strong>A Note about UDP datagram size</strong>\n\n</p>\n<p>The maximum size of an <code>IPv4/v6</code> datagram depends on the <code>MTU</code> (<em>Maximum Transmission Unit</em>)\nand on the <code>Payload Length</code> field size.\n\n</p>\n<ul>\n<li><p>The <code>Payload Length</code> field is <code>16 bits</code> wide, which means that a normal payload\ncannot be larger than 64K octets including internet header and data\n(65,507 bytes = 65,535 − 8 bytes UDP header − 20 bytes IP header);\nthis is generally true for loopback interfaces, but such long datagrams\nare impractical for most hosts and networks.</p>\n</li>\n<li><p>The <code>MTU</code> is the largest size a given link layer technology can support for datagrams.\nFor any link, <code>IPv4</code> mandates a minimum <code>MTU</code> of <code>68</code> octets, while the recommended <code>MTU</code>\nfor IPv4 is <code>576</code> (typically recommended as the <code>MTU</code> for dial-up type applications),\nwhether they arrive whole or in fragments.</p>\n<p>For <code>IPv6</code>, the minimum <code>MTU</code> is <code>1280</code> octets, however, the mandatory minimum\nfragment reassembly buffer size is <code>1500</code> octets.\nThe value of <code>68</code> octets is very small, since most current link layer technologies have\na minimum <code>MTU</code> of <code>1500</code> (like Ethernet).</p>\n</li>\n</ul>\n<p>Note that it&#39;s impossible to know in advance the MTU of each link through which\na packet might travel, and that generally sending a datagram greater than\nthe (receiver) <code>MTU</code> won&#39;t work (the packet gets silently dropped, without\ninforming the source that the data did not reach its intended recipient).\n\n</p>\n"
+            },
+            {
+              "textRaw": "socket.bind(port, [address], [callback])",
+              "type": "method",
+              "name": "bind",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "textRaw": "`port` Integer ",
+                      "name": "port",
+                      "desc": "Integer"
+                    },
+                    {
+                      "textRaw": "`address` String, Optional ",
+                      "name": "address",
+                      "optional": true,
+                      "desc": "String"
+                    },
+                    {
+                      "textRaw": "`callback` Function, Optional ",
+                      "name": "callback",
+                      "optional": true,
+                      "desc": "Function"
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "port"
+                    },
+                    {
+                      "name": "address",
+                      "optional": true
+                    },
+                    {
+                      "name": "callback",
+                      "optional": true
+                    }
+                  ]
+                }
+              ],
+              "desc": "<p>For UDP sockets, listen for datagrams on a named <code>port</code> and optional <code>address</code>.\nIf <code>address</code> is not specified, the OS will try to listen on all addresses.\n\n</p>\n<p>The <code>callback</code> argument, if provided, is added as a one-shot <code>&#39;listening&#39;</code>\nevent listener.\n\n</p>\n<p>Example of a UDP server listening on port 41234:\n\n</p>\n<pre><code>var dgram = require(&quot;dgram&quot;);\n\nvar server = dgram.createSocket(&quot;udp4&quot;);\n\nserver.on(&quot;message&quot;, function (msg, rinfo) {\n  console.log(&quot;server got: &quot; + msg + &quot; from &quot; +\n    rinfo.address + &quot;:&quot; + rinfo.port);\n});\n\nserver.on(&quot;listening&quot;, function () {\n  var address = server.address();\n  console.log(&quot;server listening &quot; +\n      address.address + &quot;:&quot; + address.port);\n});\n\nserver.bind(41234);\n// server listening 0.0.0.0:41234</code></pre>\n"
+            },
+            {
+              "textRaw": "socket.close()",
+              "type": "method",
+              "name": "close",
+              "desc": "<p>Close the underlying socket and stop listening for data on it.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.address()",
+              "type": "method",
+              "name": "address",
+              "desc": "<p>Returns an object containing the address information for a socket.  For UDP sockets,\nthis object will contain <code>address</code> , <code>family</code> and <code>port</code>.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.setBroadcast(flag)",
+              "type": "method",
+              "name": "setBroadcast",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "textRaw": "`flag` Boolean ",
+                      "name": "flag",
+                      "desc": "Boolean"
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "flag"
+                    }
+                  ]
+                }
+              ],
+              "desc": "<p>Sets or clears the <code>SO_BROADCAST</code> socket option.  When this option is set, UDP packets\nmay be sent to a local interface&#39;s broadcast address.\n\n</p>\n"
+            },
+            {
+              "textRaw": "socket.setTTL(ttl)",
+              "type": "method",
+              "name": "setTTL",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "textRaw": "`ttl` Integer ",
+                      "name": "ttl",
+                      "desc": "Integer"
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "ttl"
+                    }
+                  ]
+                }
+              ],
+              "desc": "<p>Sets the <code>IP_TTL</code> socket option.  TTL stands for &quot;Time to Live,&quot; but in this context it\nspecifies the number of IP hops that a packet is allowed to go through.  Each router or\ngateway that forwards a packet decrements the TTL.  If the TTL is decremented to 0 by a\nrouter, it will not be forwarded.  Changing TTL values is typically done for network\nprobes or when multicasting.\n\n</p>\n<p>The argument to <code>setTTL()</code> is a number of hops between 1 and 255.  The default on most\nsystems is 64.\n\n</p>\n"
+            },
+            {
+              "textRaw": "socket.setMulticastTTL(ttl)",
+              "type": "method",
+              "name": "setMulticastTTL",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "textRaw": "`ttl` Integer ",
+                      "name": "ttl",
+                      "desc": "Integer"
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "ttl"
+                    }
+                  ]
+                }
+              ],
+              "desc": "<p>Sets the <code>IP_MULTICAST_TTL</code> socket option.  TTL stands for &quot;Time to Live,&quot; but in this\ncontext it specifies the number of IP hops that a packet is allowed to go through,\nspecifically for multicast traffic.  Each router or gateway that forwards a packet\ndecrements the TTL. If the TTL is decremented to 0 by a router, it will not be forwarded.\n\n</p>\n<p>The argument to <code>setMulticastTTL()</code> is a number of hops between 0 and 255.  The default on most\nsystems is 1.\n\n</p>\n"
+            },
+            {
+              "textRaw": "socket.setMulticastLoopback(flag)",
+              "type": "method",
+              "name": "setMulticastLoopback",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "textRaw": "`flag` Boolean ",
+                      "name": "flag",
+                      "desc": "Boolean"
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "flag"
+                    }
+                  ]
+                }
+              ],
+              "desc": "<p>Sets or clears the <code>IP_MULTICAST_LOOP</code> socket option.  When this option is set, multicast\npackets will also be received on the local interface.\n\n</p>\n"
+            },
+            {
+              "textRaw": "socket.addMembership(multicastAddress, [multicastInterface])",
+              "type": "method",
+              "name": "addMembership",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "textRaw": "`multicastAddress` String ",
+                      "name": "multicastAddress",
+                      "desc": "String"
+                    },
+                    {
+                      "textRaw": "`multicastInterface` String, Optional ",
+                      "name": "multicastInterface",
+                      "optional": true,
+                      "desc": "String"
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "multicastAddress"
+                    },
+                    {
+                      "name": "multicastInterface",
+                      "optional": true
+                    }
+                  ]
+                }
+              ],
+              "desc": "<p>Tells the kernel to join a multicast group with <code>IP_ADD_MEMBERSHIP</code> socket option.\n\n</p>\n<p>If <code>multicastInterface</code> is not specified, the OS will try to add membership to all valid\ninterfaces.\n\n</p>\n"
+            },
+            {
+              "textRaw": "socket.dropMembership(multicastAddress, [multicastInterface])",
+              "type": "method",
+              "name": "dropMembership",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "textRaw": "`multicastAddress` String ",
+                      "name": "multicastAddress",
+                      "desc": "String"
+                    },
+                    {
+                      "textRaw": "`multicastInterface` String, Optional ",
+                      "name": "multicastInterface",
+                      "optional": true,
+                      "desc": "String"
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "multicastAddress"
+                    },
+                    {
+                      "name": "multicastInterface",
+                      "optional": true
+                    }
+                  ]
+                }
+              ],
+              "desc": "<p>Opposite of <code>addMembership</code> - tells the kernel to leave a multicast group with\n<code>IP_DROP_MEMBERSHIP</code> socket option. This is automatically called by the kernel\nwhen the socket is closed or process terminates, so most apps will never need to call\nthis.\n\n</p>\n<p>If <code>multicastInterface</code> is not specified, the OS will try to drop membership to all valid\ninterfaces.\n\n</p>\n"
+            },
+            {
+              "textRaw": "socket.unref()",
+              "type": "method",
+              "name": "unref",
+              "desc": "<p>Calling <code>unref</code> on a socket will allow the program to exit if this is the only\nactive socket in the event system. If the socket is already <code>unref</code>d calling\n<code>unref</code> again will have no effect.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.ref()",
+              "type": "method",
+              "name": "ref",
+              "desc": "<p>Opposite of <code>unref</code>, calling <code>ref</code> on a previously <code>unref</code>d socket will <em>not</em>\nlet the program exit if it&#39;s the only socket left (the default behavior). If\nthe socket is <code>ref</code>d calling <code>ref</code> again will have no effect.\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "type": "module",
+      "displayName": "dgram"
+    }
+  ]
+}

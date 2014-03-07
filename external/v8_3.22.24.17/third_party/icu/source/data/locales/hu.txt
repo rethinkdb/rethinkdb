@@ -1,0 +1,451 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/hu.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/hu.xml
+ */
+hu{
+    AuxExemplarCharacters{"[q w x y]"}
+    ExemplarCharacters{
+        "[a á b c {cs} {ccs} d {dz} {ddz} {dzs} {ddzs} e é f g {gy} {ggy} h i í j k l"
+        " {ly} {lly} m n {ny} {nny} o ó ö ő p r s {sz} {ssz} t {ty} {tty} u ú ü ű v z"
+        " {zs} {zzs}]"
+    }
+    ExemplarCharactersIndex{
+        "[A B C {CS} D {DZ} {DZS} E F G {GY} H I J K L {LY} M N {NY} O Ö P Q R S {SZ}"
+        " T {TY} U Ü V W X Y Z {ZS}]"
+    }
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"#,##0.00 ¤"}
+                decimalFormat{"#,##0.###"}
+                scientificFormat{"#E0"}
+            }
+            symbols{
+                decimal{","}
+                exponential{"E"}
+                group{" "}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"-"}
+                nan{"NaN"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    Version{"2.0.50.94"}
+    calendar{
+        buddhist{
+            eras{
+                abbreviated{
+                    "BK",
+                }
+            }
+        }
+        gregorian{
+            AmPmMarkers{
+                "de.",
+                "du.",
+            }
+            DateTimePatterns{
+                "H:mm:ss zzzz",
+                "H:mm:ss z",
+                "H:mm:ss",
+                "H:mm",
+                "y. MMMM d., EEEE",
+                "y. MMMM d.",
+                "yyyy.MM.dd.",
+                "yyyy.MM.dd.",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"d., E"}
+                H{"H"}
+                Hm{"H:mm"}
+                Hms{"H:mm:ss"}
+                M{"L"}
+                MEd{"M. d., E"}
+                MMM{"LLL"}
+                MMMEd{"MMM d., E"}
+                MMMMd{"MMMM d."}
+                MMMd{"MMM d."}
+                MMdd{"MM.dd."}
+                Md{"M. d."}
+                d{"d"}
+                mmss{"mm:ss"}
+                yMEd{"yyyy.MM.dd., E"}
+                yMMMEd{"y. MMM d., E"}
+                yyQ{"yy/Q"}
+                yyyyMM{"yyyy.MM"}
+                yyyyMMMM{"y. MMMM"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "V",
+                        "H",
+                        "K",
+                        "Sze",
+                        "Cs",
+                        "P",
+                        "Szo",
+                    }
+                    wide{
+                        "vasárnap",
+                        "hétfő",
+                        "kedd",
+                        "szerda",
+                        "csütörtök",
+                        "péntek",
+                        "szombat",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "V",
+                        "H",
+                        "K",
+                        "Sz",
+                        "Cs",
+                        "P",
+                        "Sz",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "i. e.",
+                    "i. sz.",
+                }
+                wide{
+                    "időszámításunk előtt",
+                    "időszámításunk szerint",
+                }
+            }
+            fields{
+                day{
+                    dn{"nap"}
+                    relative{
+                        "-1"{"tegnap"}
+                        "-2"{"tegnapelőtt"}
+                        "-3"{"három nappal ezelőtt"}
+                        "0"{"ma"}
+                        "1"{"holnap"}
+                        "2"{"holnapután"}
+                        "3"{"három nap múlva"}
+                    }
+                }
+                dayperiod{
+                    dn{"napszak"}
+                }
+                era{
+                    dn{"éra"}
+                }
+                hour{
+                    dn{"óra"}
+                }
+                minute{
+                    dn{"perc"}
+                }
+                month{
+                    dn{"hónap"}
+                }
+                second{
+                    dn{"másodperc"}
+                }
+                week{
+                    dn{"hét"}
+                }
+                weekday{
+                    dn{"hét napja"}
+                }
+                year{
+                    dn{"év"}
+                }
+                zone{
+                    dn{"zóna"}
+                }
+            }
+            intervalFormats{
+                H{
+                    H{"H-H"}
+                }
+                Hm{
+                    H{"H:mm-H:mm"}
+                    m{"H:mm-H:mm"}
+                }
+                Hmv{
+                    H{"H:mm-H:mm v"}
+                    m{"H:mm-H:mm v"}
+                }
+                Hv{
+                    H{"H-H v"}
+                }
+                M{
+                    M{"M-M."}
+                }
+                MEd{
+                    M{"MM.dd., E - MM.dd., E"}
+                    d{"MM.dd., E - MM.dd., E"}
+                }
+                MMM{
+                    M{"MMM-MMM"}
+                }
+                MMMEd{
+                    M{"MMM d., E - MMM d., E"}
+                    d{"MMM d., E - d., E"}
+                }
+                MMMd{
+                    M{"MMM d. - MMM d."}
+                    d{"MMM d-d."}
+                }
+                Md{
+                    M{"MM.dd. - MM.dd."}
+                    d{"MM.dd-dd."}
+                }
+                d{
+                    d{"d-d."}
+                }
+                fallback{"{0} - {1}"}
+                h{
+                    h{"h a - h a"}
+                }
+                hm{
+                    h{"h:mm-h:mm a"}
+                    m{"h:mm-h:mm a"}
+                }
+                hmv{
+                    h{"h:mm-h:mm a v"}
+                    m{"h:mm-h:mm a v"}
+                }
+                hv{
+                    h{"h-h a v"}
+                }
+                y{
+                    y{"y-y"}
+                }
+                yM{
+                    M{"yyyy.MM-MM."}
+                    y{"yyyy.MM. - yyyy.MM."}
+                }
+                yMEd{
+                    M{"yyyy.MM.dd., E - MM.dd., E"}
+                    d{"yyyy.MM.dd., E - dd., E"}
+                    y{"yyyy.MM.dd., E - yyyy.MM.dd., E"}
+                }
+                yMMM{
+                    M{"y. MMM-MMM"}
+                    y{"y. MMM - y. MMM"}
+                }
+                yMMMEd{
+                    M{"y. MMM d., E - MMM d., E"}
+                    d{"y. MMM d., E - d., E"}
+                    y{"y. MMM d., E - y. MMM d., E"}
+                }
+                yMMMd{
+                    M{"y. MMM d. - MMM d."}
+                    d{"y. MMM d-d."}
+                    y{"y. MMM d. - y. MMM d."}
+                }
+                yMd{
+                    M{"yyyy.MM.dd. - MM.dd."}
+                    d{"yyyy.MM.dd-dd."}
+                    y{"yyyy.MM.dd. - yyyy.MM.dd."}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "jan.",
+                        "febr.",
+                        "márc.",
+                        "ápr.",
+                        "máj.",
+                        "jún.",
+                        "júl.",
+                        "aug.",
+                        "szept.",
+                        "okt.",
+                        "nov.",
+                        "dec.",
+                    }
+                    wide{
+                        "január",
+                        "február",
+                        "március",
+                        "április",
+                        "május",
+                        "június",
+                        "július",
+                        "augusztus",
+                        "szeptember",
+                        "október",
+                        "november",
+                        "december",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "J",
+                        "F",
+                        "M",
+                        "Á",
+                        "M",
+                        "J",
+                        "J",
+                        "A",
+                        "Sz",
+                        "O",
+                        "N",
+                        "D",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "N1",
+                        "N2",
+                        "N3",
+                        "N4",
+                    }
+                    wide{
+                        "I. negyedév",
+                        "II. negyedév",
+                        "III. negyedév",
+                        "IV. negyedév",
+                    }
+                }
+            }
+        }
+        hebrew{
+            eras{
+                abbreviated{
+                    "TÉ",
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "Tisri",
+                        "Hesván",
+                        "Kiszlév",
+                        "Tévész",
+                        "Svát",
+                        "Ádár risón",
+                        "Ádár",
+                        "Niszán",
+                        "Ijár",
+                        "Sziván",
+                        "Tamuz",
+                        "Áv",
+                        "Elul",
+                        "Ádár séni",
+                    }
+                }
+            }
+        }
+        islamic{
+            eras{
+                abbreviated{
+                    "MF",
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "Moharrem",
+                        "Safar",
+                        "Rébi el avvel",
+                        "Rébi el accher",
+                        "Dsemádi el avvel",
+                        "Dsemádi el accher",
+                        "Redseb",
+                        "Sabán",
+                        "Ramadán",
+                        "Sevvál",
+                        "Dsül kade",
+                        "Dsül hedse",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"”"}
+        alternateQuotationStart{"„"}
+        quotationEnd{"”"}
+        quotationStart{"„"}
+    }
+    listPattern{
+        standard{
+            2{"{0} és {1}"}
+            end{"{0} és {1}"}
+        }
+    }
+    measurementSystemNames{
+        US{"amerikai"}
+        metric{"metrikus"}
+    }
+    units{
+        day{
+            other{"{0} nap"}
+        }
+        hour{
+            other{"{0} óra"}
+        }
+        minute{
+            other{"{0} perc"}
+        }
+        month{
+            other{"{0} hónap"}
+        }
+        second{
+            other{"{0} másodperc"}
+        }
+        week{
+            other{"{0} hét"}
+        }
+        year{
+            other{"{0} év"}
+        }
+    }
+    unitsShort{
+        day{
+            other{"{0} nap"}
+        }
+        hour{
+            other{"{0} ó"}
+        }
+        minute{
+            other{"{0} p"}
+        }
+        month{
+            other{"{0} hónap"}
+        }
+        second{
+            other{"{0} mp"}
+        }
+        week{
+            other{"{0} hét"}
+        }
+        year{
+            other{"{0} év"}
+        }
+    }
+}

@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Events Node.js v0.10.15 Manual &amp; Documentation</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/sh.css">
+  <link rel="canonical" href="http://nodejs.org/api/events.html">
+</head>
+<body class="alt apidoc" id="api-section-events">
+    <div id="intro" class="interior">
+        <a href="/" title="Go back to the home page">
+            <img id="logo" src="http://nodejs.org/images/logo-light.png" alt="node.js">
+        </a>
+    </div>
+    <div id="content" class="clearfix">
+        <div id="column2" class="interior">
+            <ul>
+                <li><a href="/" class="home">Home</a></li>
+                <li><a href="/download/" class="download">Download</a></li>
+                <li><a href="/about/" class="about">About</a></li>
+                <li><a href="http://npmjs.org/" class="npm">npm Registry</a></li>
+                <li><a href="http://nodejs.org/api/" class="docs current">Docs</a></li>
+                <li><a href="http://blog.nodejs.org" class="blog">Blog</a></li>
+                <li><a href="/community/" class="community">Community</a></li>
+                <li><a href="/logos/" class="logos">Logos</a></li>
+                <li><a href="http://jobs.nodejs.org/" class="jobs">Jobs</a></li>
+            </ul>
+            <p class="twitter"><a href="http://twitter.com/nodejs">@nodejs</a></p>
+        </div>
+
+        <div id="column1" class="interior">
+          <header>
+            <h1>Node.js v0.10.15 Manual &amp; Documentation</h1>
+            <div id="gtoc">
+              <p>
+                <a href="index.html" name="toc">Index</a> |
+                <a href="all.html">View on single page</a> |
+                <a href="events.json">View as JSON</a>
+              </p>
+            </div>
+            <hr>
+          </header>
+
+          <div id="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+<li><a href="#events_events">Events</a><ul>
+<li><a href="#events_class_events_eventemitter">Class: events.EventEmitter</a><ul>
+<li><a href="#events_emitter_addlistener_event_listener">emitter.addListener(event, listener)</a></li>
+<li><a href="#events_emitter_on_event_listener">emitter.on(event, listener)</a></li>
+<li><a href="#events_emitter_once_event_listener">emitter.once(event, listener)</a></li>
+<li><a href="#events_emitter_removelistener_event_listener">emitter.removeListener(event, listener)</a></li>
+<li><a href="#events_emitter_removealllisteners_event">emitter.removeAllListeners([event])</a></li>
+<li><a href="#events_emitter_setmaxlisteners_n">emitter.setMaxListeners(n)</a></li>
+<li><a href="#events_emitter_listeners_event">emitter.listeners(event)</a></li>
+<li><a href="#events_emitter_emit_event_arg1_arg2">emitter.emit(event, [arg1], [arg2], [...])</a></li>
+<li><a href="#events_class_method_eventemitter_listenercount_emitter_event">Class Method: EventEmitter.listenerCount(emitter, event)</a></li>
+<li><a href="#events_event_newlistener">Event: &#39;newListener&#39;</a></li>
+<li><a href="#events_event_removelistener">Event: &#39;removeListener&#39;</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+
+          <div id="apicontent">
+            <h1>Events<span><a class="mark" href="#events_events" id="events_events">#</a></span></h1>
+<pre class="api_stability_4">Stability: 4 - API Frozen</pre><!--type=module-->
+
+<p>Many objects in Node emit events: a <code>net.Server</code> emits an event each time
+a peer connects to it, a <code>fs.readStream</code> emits an event when the file is
+opened. All objects which emit events are instances of <code>events.EventEmitter</code>.
+You can access this module by doing: <code>require(&quot;events&quot;);</code>
+
+</p>
+<p>Typically, event names are represented by a camel-cased string, however,
+there aren&#39;t any strict restrictions on that, as any string will be accepted.
+
+</p>
+<p>Functions can then be attached to objects, to be executed when an event
+is emitted. These functions are called <em>listeners</em>. Inside a listener
+function, <code>this</code> refers to the <code>EventEmitter</code> that the listener was
+attached to.
+
+
+</p>
+<h2>Class: events.EventEmitter<span><a class="mark" href="#events_class_events_eventemitter" id="events_class_events_eventemitter">#</a></span></h2>
+<p>To access the EventEmitter class, <code>require(&#39;events&#39;).EventEmitter</code>.
+
+</p>
+<p>When an <code>EventEmitter</code> instance experiences an error, the typical action is
+to emit an <code>&#39;error&#39;</code> event.  Error events are treated as a special case in node.
+If there is no listener for it, then the default action is to print a stack
+trace and exit the program.
+
+</p>
+<p>All EventEmitters emit the event <code>&#39;newListener&#39;</code> when new listeners are
+added and <code>&#39;removeListener&#39;</code> when a listener is removed.
+
+</p>
+<h3>emitter.addListener(event, listener)<span><a class="mark" href="#events_emitter_addlistener_event_listener" id="events_emitter_addlistener_event_listener">#</a></span></h3>
+<h3>emitter.on(event, listener)<span><a class="mark" href="#events_emitter_on_event_listener" id="events_emitter_on_event_listener">#</a></span></h3>
+<p>Adds a listener to the end of the listeners array for the specified event.
+
+</p>
+<pre><code>server.on(&#39;connection&#39;, function (stream) {
+  console.log(&#39;someone connected!&#39;);
+});</code></pre>
+<p>Returns emitter, so calls can be chained.
+
+</p>
+<h3>emitter.once(event, listener)<span><a class="mark" href="#events_emitter_once_event_listener" id="events_emitter_once_event_listener">#</a></span></h3>
+<p>Adds a <strong>one time</strong> listener for the event. This listener is
+invoked only the next time the event is fired, after which
+it is removed.
+
+</p>
+<pre><code>server.once(&#39;connection&#39;, function (stream) {
+  console.log(&#39;Ah, we have our first user!&#39;);
+});</code></pre>
+<p>Returns emitter, so calls can be chained.
+
+</p>
+<h3>emitter.removeListener(event, listener)<span><a class="mark" href="#events_emitter_removelistener_event_listener" id="events_emitter_removelistener_event_listener">#</a></span></h3>
+<p>Remove a listener from the listener array for the specified event.
+<strong>Caution</strong>: changes array indices in the listener array behind the listener.
+
+</p>
+<pre><code>var callback = function(stream) {
+  console.log(&#39;someone connected!&#39;);
+};
+server.on(&#39;connection&#39;, callback);
+// ...
+server.removeListener(&#39;connection&#39;, callback);</code></pre>
+<p>Returns emitter, so calls can be chained.
+
+</p>
+<h3>emitter.removeAllListeners([event])<span><a class="mark" href="#events_emitter_removealllisteners_event" id="events_emitter_removealllisteners_event">#</a></span></h3>
+<p>Removes all listeners, or those of the specified event.
+
+</p>
+<p>Returns emitter, so calls can be chained.
+
+</p>
+<h3>emitter.setMaxListeners(n)<span><a class="mark" href="#events_emitter_setmaxlisteners_n" id="events_emitter_setmaxlisteners_n">#</a></span></h3>
+<p>By default EventEmitters will print a warning if more than 10 listeners are
+added for a particular event. This is a useful default which helps finding memory leaks.
+Obviously not all Emitters should be limited to 10. This function allows
+that to be increased. Set to zero for unlimited.
+
+
+</p>
+<h3>emitter.listeners(event)<span><a class="mark" href="#events_emitter_listeners_event" id="events_emitter_listeners_event">#</a></span></h3>
+<p>Returns an array of listeners for the specified event.
+
+</p>
+<pre><code>server.on(&#39;connection&#39;, function (stream) {
+  console.log(&#39;someone connected!&#39;);
+});
+console.log(util.inspect(server.listeners(&#39;connection&#39;))); // [ [Function] ]</code></pre>
+<h3>emitter.emit(event, [arg1], [arg2], [...])<span><a class="mark" href="#events_emitter_emit_event_arg1_arg2" id="events_emitter_emit_event_arg1_arg2">#</a></span></h3>
+<p>Execute each of the listeners in order with the supplied arguments.
+
+</p>
+<p>Returns <code>true</code> if event had listeners, <code>false</code> otherwise.
+
+
+</p>
+<h3>Class Method: EventEmitter.listenerCount(emitter, event)<span><a class="mark" href="#events_class_method_eventemitter_listenercount_emitter_event" id="events_class_method_eventemitter_listenercount_emitter_event">#</a></span></h3>
+<p>Return the number of listeners for a given event.
+
+
+</p>
+<h3>Event: &#39;newListener&#39;<span><a class="mark" href="#events_event_newlistener" id="events_event_newlistener">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>event</code> <span class="type">String</span> The event name</li>
+<li><code>listener</code> <span class="type">Function</span> The event handler function</li>
+</div></ul>
+<p>This event is emitted any time someone adds a new listener.  It is unspecified
+if <code>listener</code> is in the list returned by <code>emitter.listeners(event)</code>.
+
+
+</p>
+<h3>Event: &#39;removeListener&#39;<span><a class="mark" href="#events_event_removelistener" id="events_event_removelistener">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>event</code> <span class="type">String</span> The event name</li>
+<li><code>listener</code> <span class="type">Function</span> The event handler function</li>
+</div></ul>
+<p>This event is emitted any time someone removes a listener.  It is unspecified
+if <code>listener</code> is in the list returned by <code>emitter.listeners(event)</code>.
+</p>
+
+          </div>
+        </div>
+    </div>
+    <div id="footer">
+        <a href="http://joyent.com" class="joyent-logo">Joyent</a>
+        <ul class="clearfix">
+            <li><a href="/">Node.js</a></li>
+            <li><a href="/download/">Download</a></li>
+            <li><a href="/about/">About</a></li>
+            <li><a href="http://npmjs.org/">npm Registry</a></li>
+            <li><a href="http://nodejs.org/api/">Docs</a></li>
+            <li><a href="http://blog.nodejs.org">Blog</a></li>
+            <li><a href="/community/">Community</a></li>
+            <li><a href="/logos/">Logos</a></li>
+            <li><a href="http://jobs.nodejs.org/">Jobs</a></li>
+            <li><a href="http://twitter.com/nodejs" class="twitter">@nodejs</a></li>
+        </ul>
+
+        <p>Copyright <a href="http://joyent.com/">Joyent, Inc</a>, Node.js is a <a href="/trademark-policy.pdf">trademark</a> of Joyent, Inc. View <a href="https://raw.github.com/joyent/node/v0.10.15/LICENSE">license</a>.</p>
+    </div>
+
+  <script src="../sh_main.js"></script>
+  <script src="../sh_javascript.min.js"></script>
+  <script>highlight(undefined, undefined, 'pre');</script>
+  <script>
+    window._gaq = [['_setAccount', 'UA-10874194-2'], ['_trackPageview']];
+    (function(d, t) {
+      var g = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      g.src = '//www.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+  </script>
+</body>
+</html>
+

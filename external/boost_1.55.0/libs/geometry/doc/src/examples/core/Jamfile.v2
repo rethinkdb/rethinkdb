@@ -1,0 +1,33 @@
+# Boost.Geometry (aka GGL, Generic Geometry Library)
+#
+# Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
+# Copyright (c) 2008-2012 Bruno Lalande, Paris, France.
+# Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+
+project boost-geometry-doc-example-core
+    : # requirements
+    ;
+
+exe get_point : get_point.cpp ;
+exe get_box : get_box.cpp ;
+exe set_point : set_point.cpp ;
+exe set_box : set_box.cpp ;
+exe degree_radian : degree_radian.cpp ;
+
+exe coordinate_type : coordinate_type.cpp ;
+exe coordinate_system : coordinate_system.cpp ;
+exe coordinate_dimension : coordinate_dimension.cpp ;
+exe point_order : point_order.cpp ;
+exe closure : closure.cpp ;
+
+exe interior_type : interior_type.cpp ;
+exe point_type : point_type.cpp ;
+exe ring_type : ring_type.cpp ;
+exe rings : rings.cpp ;
+exe tag : tag.cpp ;
+exe tag_cast : tag_cast.cpp ;

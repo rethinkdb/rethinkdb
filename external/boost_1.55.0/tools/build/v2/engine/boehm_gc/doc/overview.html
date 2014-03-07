@@ -1,0 +1,446 @@
+<!DOCTYPE HTML>
+<html><head><title>A garbage collector for C and C++</title></head>
+<body>
+<table bgcolor="#f0f0ff" cellpadding="10%">
+  <tbody><tr>
+  <td><a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gcinterface.html">Interface Overview</a></td>
+  <td><a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/04tutorial.pdf">Tutorial Slides</a></td>
+  <td><a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/faq.html">FAQ</a></td>
+  <td><a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/simple_example.html">Example</a></td>
+  <td><a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source">Download</a></td>
+  <td><a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/license.txt">License</a></td>
+  </tr>
+</tbody></table>
+<h1>A garbage collector for C and C++</h1>
+<ul>
+<li><a href="#platforms">Platforms</a>
+</li><li><a href="#multiprocessors">Scalable multiprocessor versions</a>
+</li><li><a href="#details">Some collector details</a>
+</li><li><a href="#further">Further reading</a>
+</li><li><a href="#users">Current users</a>
+</li><li><a href="#collector">Local Links for this collector</a>
+</li><li><a href="#background">Local Background Links</a>
+</li><li><a href="#contacts">Contacts and Mailing List</a>
+</li></ul>
+[ This is an updated version of the page formerly at
+<tt>http://reality.sgi.com/boehm/gc.html</tt>
+and before that at
+<a href="ftp://parcftp.xerox.com/pub/gc/gc.html">
+<tt>ftp://parcftp.xerox.com/pub/gc/gc.html</tt></a>.]
+<p>
+The <a href="http://www.hpl.hp.com/personal/Hans_Boehm">Boehm</a>-<a href="http://www.cs.cornell.edu/annual_report/00-01/bios.htm#demers">Demers</a>-<a href="http://www-sul.stanford.edu/weiser/">Weiser</a>
+conservative garbage collector can
+be used as a garbage collecting
+replacement for C <tt>malloc</tt> or C++ <tt>new</tt>.
+It allows you to allocate memory basically as you normally would,
+without explicitly deallocating memory that is no longer useful.
+The collector automatically recycles memory when it determines
+that it can no longer be otherwise accessed.
+A simple example of such a use is given
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/simple_example.html">here</a>.
+</p><p>
+The collector is also used by a number of programming language
+implementations that either use C as intermediate code, want
+to facilitate easier interoperation with C libraries, or
+just prefer the simple collector interface.
+For a more detailed description of the interface, see
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gcinterface.html">here</a>.
+</p><p>
+Alternatively, the garbage collector  may be used as
+a <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/leak.html">leak detector</a>
+for C or C++ programs, though that is not its primary goal.
+</p><p>
+Typically several versions will be available.
+Usually you should first try to use
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source/gc.tar.gz"><tt>gc_source/gc.tar.gz</tt></a>,
+which is normally an older, more stable version.
+</p><p>
+If that fails, try the latest explicitly numbered version
+in <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source/">
+<tt>gc_source/</tt></a>.
+Later versions may contain additional features, platform support,
+or bug fixes, but are likely to be less well tested.
+Note that versions containing the letters <tt>alpha</tt> are even less
+well tested than others, especially on non-HP platforms.
+</p><p>
+A slightly older version of the garbage collector is now also
+included as part of the
+<a href="http://gcc.gnu.org/">GNU compiler</a>
+distribution.  The source
+code for that version is available for browsing
+<a href="http://gcc.gnu.org/cgi-bin/cvsweb.cgi/gcc/boehm-gc/">here</a>.
+</p><p>
+The arguments for and against conservative garbage collection
+in C and C++ are briefly
+discussed in
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/issues.html">issues.html</a>.  The beginnings of
+a frequently-asked-questions list are <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/faq.html">here</a>.
+</p><p>
+The garbage collector code is copyrighted by
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm">Hans-J. Boehm</a>,
+Alan J. Demers,
+<a href="http://www.xerox.com/">Xerox Corporation</a>,
+<a href="http://www.sgi.com/">Silicon Graphics</a>,
+and
+<a href="http://www.hp.com/">Hewlett-Packard Company</a>.
+It may be used and copied without payment of a fee under minimal restrictions.
+See the README file in the distribution  or the
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/license.txt">license</a> for more details.
+<b>IT IS PROVIDED AS IS,
+WITH ABSOLUTELY NO WARRANTY EXPRESSED OR IMPLIED.  ANY USE IS AT YOUR OWN RISK</b>.
+</p><p>
+Empirically, this collector works with most unmodified C programs,
+simply by replacing
+<tt>malloc</tt> with <tt>GC_malloc</tt> calls,
+replacing <tt>realloc</tt> with <tt>GC_realloc</tt> calls, and removing
+free calls.  Exceptions are discussed
+in <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/issues.html">issues.html</a>. 
+</p><h2><a name="platforms">Platforms</a></h2>
+The collector is not completely portable, but the distribution
+includes ports to most standard PC and UNIX/Linux platforms.
+The collector should work on Linux, *BSD, recent Windows versions,
+MacOS X, HP/UX, Solaris,
+Tru64, Irix and a few other operating systems.
+Some ports are more polished than others.
+<p>
+Irix pthreads, Linux threads, Win32 threads, Solaris threads
+(old style and pthreads),
+HP/UX 11 pthreads, Tru64 pthreads, and MacOS X threads are supported
+in recent versions.
+</p><h3>Separately distributed ports</h3>
+For MacOS 9/Classic use, Patrick Beard's latest port is available from
+<a href="http://homepage.mac.com/pcbeard/gc/">
+<tt>http://homepage.mac.com/pcbeard/gc/</tt></a>.
+(Unfortunately, that's now quite dated.
+I'm not in a position to test under MacOS.  Although I try to
+incorporate changes, it is impossible for
+me to update the project file.)
+<p>
+Precompiled versions of the collector for NetBSD are available
+<a href="ftp://ftp.netbsd.org/pub/NetBSD/packages/pkgsrc/devel/boehm-gc/README.html">here</a>
+or
+<a href="http://www.netbsd.org/packages/devel/boehm-gc/README.html">here</a>.
+</p><p>
+<a href="http://www.debian.org/">Debian Linux</a> includes prepackaged
+versions of the collector.
+</p><h2><a name="multiprocessors">Scalable multiprocessor versions</a></h2>
+Kenjiro Taura, Toshio Endo, and Akinori Yonezawa have made available
+a <a href="http://www.yl.is.s.u-tokyo.ac.jp/gc/">parallel collector</a>
+based on this one.  Their collector takes advantage of multiple processors
+during a collection.  Starting with collector version 6.0alpha1
+we also do this, though with more modest processor scalability goals.
+Our approach is discussed briefly in
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/scale.html"><tt>scale.html</tt></a>.
+<h2><a name="details">Some Collector Details</a></h2>
+The collector uses a <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/complexity.html">mark-sweep</a> algorithm.
+It provides incremental and generational
+collection under operating systems which provide the right kind of
+virtual memory support.  (Currently this includes SunOS[45], IRIX,
+OSF/1, Linux, and Windows, with varying restrictions.)
+It allows <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/finalization.html"><i>finalization</i></a> code
+to be invoked when an object is collected.
+It can take advantage of type information to locate pointers if such
+information is provided, but it is usually used without such information.
+ee the README and
+<tt>gc.h</tt> files in the distribution for more details.
+<p>
+For an overview of the implementation, see <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gcdescr.html">here</a>.
+</p><p>
+The garbage collector distribution includes a C string
+(<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source/cordh.txt"><i>cord</i></a>) package that provides
+for fast concatenation and substring operations on long strings.
+A simple curses- and win32-based editor that represents the entire file
+as a cord is included as a
+sample application.
+</p><p>
+Performance of the nonincremental collector is typically competitive
+with malloc/free implementations.  Both space and time overhead are
+likely to be only slightly higher
+for programs written for malloc/free
+(see Detlefs, Dosser and Zorn's
+<a href="ftp://ftp.cs.colorado.edu/pub/techreports/zorn/CU-CS-665-93.ps.Z">Memory Allocation Costs in Large C and C++ Programs</a>.)
+For programs allocating primarily very small objects, the collector
+may be faster; for programs allocating primarily large objects it will
+be slower.  If the collector is used in a multithreaded environment
+and configured for thread-local allocation, it may in some cases
+significantly outperform malloc/free allocation in time.
+</p><p>
+We also expect that in many cases any additional overhead
+will be more than compensated for by decreased copying etc.
+if programs are written
+and tuned for garbage collection.
+</p><h1><a name="further">Further Reading:</a></h1>
+<b>The beginnings of a frequently asked questions list for this
+collector are <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/faq.html">here</a></b>.
+<p>
+<b>The following provide information on garbage collection in general</b>:
+</p><p>
+Paul Wilson's <a href="ftp://ftp.cs.utexas.edu/pub/garbage">garbage collection ftp archive</a> and <a href="ftp://ftp.cs.utexas.edu/pub/garbage/gcsurvey.ps">GC survey</a>.
+</p><p>
+The Ravenbrook <a href="http://www.memorymanagement.org/">
+Memory Management Reference</a>.
+</p><p>
+David Chase's
+<a href="http://www.iecc.com/gclist/GC-faq.html">GC FAQ</a>.
+</p><p>
+Richard Jones'
+<a href="http://www.ukc.ac.uk/computer_science/Html/Jones/gc.html">
+GC page</a> and
+<a href="http://www.cs.kent.ac.uk/people/staff/rej/gcbook/gcbook.html">
+his book</a>.
+</p><p>
+<b>The following papers describe the collector algorithms we use
+and the underlying design decisions at
+a higher level.</b>
+</p><p>
+(Some of the lower level details can be found
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gcdescr.html">here</a>.)
+</p><p>
+The first one is not available
+electronically due to copyright considerations.  Most of the others are
+subject to ACM copyright.
+</p><p>
+Boehm, H., "Dynamic Memory Allocation and Garbage Collection", <i>Computers in Physics
+9</i>, 3, May/June 1995, pp. 297-303.  This is directed at an otherwise sophisticated
+audience unfamiliar with memory allocation issues.  The algorithmic details differ
+from those in the implementation.  There is a related letter to the editor and a minor
+correction in the next issue.
+</p><p>
+Boehm, H., and <a href="http://www.ubiq.com/hypertext/weiser/weiser.html">M. Weiser</a>,
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/spe_gc_paper">"Garbage Collection in an Uncooperative Environment"</a>,
+<i>Software Practice &amp; Experience</i>, September 1988, pp. 807-820.
+</p><p>
+Boehm, H., A. Demers, and S. Shenker, <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/papers/pldi91.ps.Z">"Mostly Parallel Garbage Collection"</a>, Proceedings
+of the ACM SIGPLAN '91 Conference on Programming Language Design and Implementation,
+<i>SIGPLAN Notices 26</i>, 6 (June 1991), pp. 157-164.
+</p><p>
+Boehm, H., <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/papers/pldi93.ps.Z">"Space Efficient Conservative Garbage Collection"</a>, Proceedings of the ACM
+SIGPLAN '93 Conference on Programming Language Design and Implementation, <i>SIGPLAN
+Notices 28</i>, 6 (June 1993), pp. 197-206.
+</p><p>
+Boehm, H., "Reducing Garbage Collector Cache Misses",
+<i> Proceedings of the 2000 International Symposium on Memory Management </i>.
+<a href="http://portal.acm.org/citation.cfm?doid=362422.362438">
+Official version.</a>
+<a href="http://www.hpl.hp.com/techreports/2000/HPL-2000-99.html">
+Technical report version.</a>  Describes the prefetch strategy
+incorporated into the collector for some platforms.  Explains why
+the sweep phase of a "mark-sweep" collector should not really be
+a distinct phase.
+</p><p>
+M. Serrano, H. Boehm,
+"Understanding Memory Allocation of Scheme Programs",
+<i>Proceedings of the Fifth ACM SIGPLAN International Conference on
+Functional Programming</i>, 2000, Montreal, Canada, pp. 245-256.
+<a href="http://www.acm.org/pubs/citations/proceedings/fp/351240/p245-serrano/">
+Official version.</a>
+<a href="http://www.hpl.hp.com/techreports/2000/HPL-2000-62.html">
+Earlier Technical Report version.</a>  Includes some discussion of the
+collector debugging facilities for identifying causes of memory retention.
+</p><p>
+Boehm, H.,
+"Fast Multiprocessor Memory Allocation and Garbage Collection",
+<a href="http://www.hpl.hp.com/techreports/2000/HPL-2000-165.html">
+HP Labs Technical Report HPL 2000-165</a>.  Discusses the parallel
+collection algorithms, and presents some performance results.
+</p><p>
+Boehm, H., "Bounding Space Usage of Conservative Garbage Collectors",
+<i>Proceeedings of the 2002 ACM SIGPLAN-SIGACT Symposium on Principles of
+Programming Languages</i>, Jan. 2002, pp. 93-100.
+<a href="http://portal.acm.org/citation.cfm?doid=503272.503282">
+Official version.</a>
+<a href="http://www.hpl.hp.com/techreports/2001/HPL-2001-251.html">
+Technical report version.</a>
+Includes a discussion of a collector facility to much more reliably test for
+the potential of unbounded heap growth.
+</p><p>
+<b>The following papers discuss language and compiler restrictions necessary to guaranteed
+safety of conservative garbage collection.</b>
+</p><p>
+We thank John Levine and JCLT for allowing
+us to make the second paper available electronically, and providing PostScript for the final
+version.
+</p><p>
+Boehm, H., <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/papers/pldi96.ps.gz">``Simple
+Garbage-Collector-Safety''</a>, Proceedings
+of the ACM SIGPLAN '96 Conference on Programming Language Design
+and Implementation.
+</p><p>
+Boehm, H., and D. Chase,  <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/papers/boecha.ps.gz">
+``A Proposal for Garbage-Collector-Safe C Compilation''</a>,
+<i>Journal of C  Language Translation 4</i>, 2 (Decemeber 1992), pp. 126-141.
+</p><p>
+<b>Other related information: </b>
+</p><p>
+The Detlefs, Dosser and Zorn's <a href="ftp://ftp.cs.colorado.edu/pub/techreports/zorn/CU-CS-665-93.ps.Z">Memory Allocation Costs in Large C and C++ Programs</a>.
+ This is a performance comparison of the Boehm-Demers-Weiser collector to malloc/free,
+using programs written for malloc/free.
+</p><p>
+Joel Bartlett's <a href="ftp://ftp.digital.com/pub/DEC/CCgc">mostly copying conservative garbage collector for C++</a>.
+</p><p>
+John Ellis and David Detlef's <a href="ftp://parcftp.xerox.com/pub/ellis/gc/gc.ps">Safe Efficient Garbage Collection for C++</a> proposal.
+</p><p>
+Henry Baker's <a href="http://home.pipeline.com/%7Ehbaker1/">paper collection</a>.
+</p><p>
+Slides for Hans Boehm's <a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/myths.ps">Allocation and GC Myths</a> talk.
+</p><h1><a name="users">Current users:</a></h1>
+Known current users of some variant of this collector include:
+<p>
+The runtime system for <a href="http://gcc.gnu.org/java">GCJ</a>,
+the static GNU java compiler.
+</p><p>
+<a href="http://w3m.sourceforge.net/">W3m</a>, a text-based web browser.
+</p><p>
+Some versions of the Xerox DocuPrint printer software.
+</p><p>
+The <a href="http://www.mozilla.org/">Mozilla</a> project, as leak
+detector.
+</p><p>
+The <a href="http://www.go-mono.com/">Mono</a> project,
+an open source implementation of the .NET development framework.
+</p><p>
+The <a href="http://www.gnu.org/projects/dotgnu/">DotGNU Portable.NET
+project</a>, another open source .NET implementation.
+</p><p>
+The <a href="http://irssi.org/">Irssi IRC client</a>.
+</p><p>
+<a href="http://titanium.cs.berkeley.edu/">The Berkeley Titanium project</a>.
+</p><p>
+<a href="http://www.nag.co.uk/nagware_fortran_compilers.asp">The NAGWare f90 Fortran 90 compiler</a>.
+</p><p>
+Elwood Corporation's <a href="http://www.elwood.com/eclipse-info/index.htm">
+Eclipse</a> Common Lisp system, C library, and translator.
+</p><p>
+The <a href="http://www-sop.inria.fr/mimosa/fp/Bigloo/">Bigloo
+Scheme</a>
+and <a href="http://kaolin.unice.fr/%7Eserrano/camloo.html">Camloo ML
+compilers</a>
+written by Manuel Serrano and others.
+</p><p>
+Brent Benson's <a href="http://ftp.cs.indiana.edu/pub/scheme-repository/imp/">libscheme</a>.
+</p><p>
+The <a href="http://www.cs.rice.edu/CS/PLT/packages/mzscheme/index.html">MzScheme</a> scheme implementation.
+</p><p>
+The <a href="http://www.cs.washington.edu/research/projects/cecil/www/cecil-home.html">University of Washington Cecil Implementation</a>.
+</p><p>
+<a href="http://www.icsi.berkeley.edu/Sather/">The Berkeley Sather implementation</a>.
+</p><p>
+<a href="http://www.cs.berkeley.edu/%7Eharmonia/">The Berkeley Harmonia Project</a>.
+</p><p>
+The <a href="http://www.cs.arizona.edu/sumatra/toba/">Toba</a> Java Virtual
+Machine to C translator.
+</p><p>
+The <a href="http://www.gwydiondylan.org/">Gwydion Dylan compiler</a>.
+</p><p>
+The <a href="http://gcc.gnu.org/onlinedocs/gcc/Objective-C.html">
+GNU Objective C runtime</a>.
+</p><p>
+<a href="http://www.math.uiuc.edu/Macaulay2">Macaulay 2</a>, a system to support
+research in algebraic geometry and commutative algebra.
+</p><p>
+The <a href="http://www.vestasys.org/">Vesta</a> configuration management
+system.
+</p><p>
+<a href="http://www.visual-prolog.com/vip6">Visual Prolog 6</a>.
+</p><p>
+<a href="http://asymptote.sf.net/">Asymptote LaTeX-compatible
+vector graphics language.</a>
+
+</p><h1><a name="collector">More collector information at this site</a></h1>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/simple_example.html">A simple illustration of how to build and
+use the collector.</a>.
+<p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gcinterface.html">Description of alternate interfaces to the
+garbage collector.</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/04tutorial.pdf">Slides from an ISMM 2004  tutorial about the GC.</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/faq.html">A FAQ (frequently asked questions) list.</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/leak.html">How to use the garbage collector as a leak detector.</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/debugging.html">Some hints on debugging garbage collected
+applications.</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gcdescr.html">An overview of the implementation of the
+garbage collector.</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/tree.html">The data structure used for fast pointer lookups.</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/scale.html">Scalability of the collector to multiprocessors.</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source">Directory containing garbage collector source.</a>
+
+</p><h1><a name="background">More background information at this site</a></h1>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/bounds.html">An attempt to establish a bound on space usage of
+conservative garbage collectors.</a>
+<p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/complexity.html">Mark-sweep versus copying garbage collectors
+and their complexity.</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/conservative.html">Pros and cons of conservative garbage collectors,
+in comparison to other collectors.
+</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/issues.html">Issues related to garbage collection vs.
+manual memory management in C/C++.</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/example.html">An example of a case in which garbage collection
+results in a much faster implementation as a result of reduced
+synchronization.</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/nonmoving">Slide set discussing performance of nonmoving
+garbage collectors.</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/popl03/web">
+Slide set discussing <i>Destructors, Finalizers, and Synchronization</i>
+(POPL 2003).</a>
+</p><p>
+<a href="http://portal.acm.org/citation.cfm?doid=604131.604153">
+Paper corresponding to above slide set.</a>
+(<a href="http://www.hpl.hp.com/techreports/2002/HPL-2002-335.html">
+Technical Report version</a>.)
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_bench.html">A Java/Scheme/C/C++ garbage collection benchmark.</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/myths.ps">Slides for talk on memory allocation myths.</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gctalk.ps">Slides for OOPSLA 98 garbage collection talk.</a>
+</p><p>
+<a href="http://www.hpl.hp.com/personal/Hans_Boehm/gc/papers">Related papers.</a>
+</p><h1><a name="contacts">Contacts and Mailing List</a><a></a></h1>
+<a>We have recently set up two mailing list for collector announcements
+and discussions:
+</a><ul>
+<li><a href="mailto:gc-announce@linux.hpl.hp.com">gc-announce@linux.hpl.hp.com</a>
+is used for announcements of new versions.  Postings are restricted.
+We expect this to always remain a very low volume list.
+</li><li><a href="mailto:gc@linux.hpl.hp.com">gc@linux.hpl.hp.com</a> is used for
+discussions, bug reports, and the like.  Subscribers may post.
+On-topic posts by nonsubscribers will usually also be accepted, but
+it may take some time to review them.
+</li></ul>
+To subscribe to these lists, send a mail message containing the
+word "subscribe" to
+<a href="mailto:gc-announce-request@linux.hpl.hp.com?subject=subscribe">gc-announce-request@linux.hpl.hp.com</a>
+or to
+<a href="mailto:gc-request@linux.hpl.hp.com?subject=subscribe">gc-request@linux.hpl.hp.com</a>.
+(Please ignore the instructions about web-based subscription.
+The listed web site is behind the HP firewall.)
+<p>
+The archives for these lists appear
+<a href="http://www.hpl.hp.com/hosted/linux/mail-archives">here</a>.
+The gc list archive may also be read at
+<a href="http://dir.gmane.org/gmane.comp.programming.garbage-collection.boehmgc">gmane.org</a>.
+</p><p>
+Some prior discussion of the collector has taken place on the gcc
+java mailing list, whose archives appear
+<a href="http://gcc.gnu.org/ml/java/">here</a>, and also on
+<a href="http://lists.tunes.org/mailman/listinfo/gclist">gclist@iecc.com</a>.
+</p><p>
+Comments and bug reports may also be sent to
+(<a href="mailto:Hans_Boehm@hp.com">Hans.Boehm@hp.com</a>) or
+(<a href="mailto:boehm@acm.org">boehm@acm.org</a>), but the gc
+mailing list is usually preferred.
+ 
+</p></body></html>

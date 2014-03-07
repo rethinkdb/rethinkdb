@@ -1,0 +1,235 @@
+
+
+local DATE_TIME_DYNAMIC_PROPERTIES = <define>BOOST_ALL_DYN_LINK <runtime-link>shared <define>BOOST_DATE_TIME_POSIX_TIME_STD_CONFIG <define>BOOST_ALL_NO_LIB ;
+local DATE_TIME_PROPERTIES = <define>BOOST_DATE_TIME_POSIX_TIME_STD_CONFIG <define>BOOST_DATE_TIME_STATIC_LINK
+  # FIXME 
+  #std::locale-support 
+  <define>BOOST_ALL_NO_LIB ;
+
+
+test-suite date_time_core
+     : 
+    [ run testint_adapter.cpp ]
+    [ run testtime_resolution_traits.cpp ]
+    [ run testwrapping_int.cpp ]
+    [ run testconstrained_value.cpp ]
+    [ run testgregorian_calendar.cpp ]
+    [ run testgeneric_period.cpp ]
+   ; 
+
+   test-suite date_time_gregorian
+     : 
+   [ run gregorian/testdate.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES) ]
+   [ run gregorian/testdate_duration.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES) ]
+   [ run gregorian/testgreg_durations.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES) ]
+   [ run gregorian/testperiod.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES) ]
+   [ run gregorian/testdate_iterator.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES) ]
+   [ run gregorian/testformatters.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES) ]
+###  streaming
+   [ run gregorian/testdate_facet_new.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES) ]
+   [ run gregorian/testdate_input_facet.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES) ]
+###
+   [ run gregorian/testgenerators.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES) ]
+   [ run gregorian/testgreg_cal.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES) ]
+   [ run gregorian/testgreg_day.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES) ]     
+   [ run gregorian/testgreg_month.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES) ]
+   [ run gregorian/testgreg_year.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES) ]
+ ;
+test-suite date_time_gregorian_dll
+     : 
+   [ run gregorian/testdate.cpp ../build//boost_date_time : : : $(DATE_TIME_DYNAMIC_PROPERTIES) : testdate_dll ]
+   [ run gregorian/testdate_duration.cpp ../build//boost_date_time : : : $(DATE_TIME_DYNAMIC_PROPERTIES) : testdate_duration_dll ]
+   [ run gregorian/testperiod.cpp ../build//boost_date_time : : : $(DATE_TIME_DYNAMIC_PROPERTIES) : testperiod_dll ]
+   [ run gregorian/testdate_iterator.cpp ../build//boost_date_time : : : $(DATE_TIME_DYNAMIC_PROPERTIES) : testdate_iterator_dll ]
+   [ run gregorian/testformatters.cpp ../build//boost_date_time : : : $(DATE_TIME_DYNAMIC_PROPERTIES) : testformatters_dll ]
+###  streaming 
+   [ run gregorian/testdate_facet_new.cpp ../build//boost_date_time : : : $(DATE_TIME_DYNAMIC_PROPERTIES) : testdate_facet_new_dll ]
+   [ run gregorian/testdate_input_facet.cpp ../build//boost_date_time : : : $(DATE_TIME_DYNAMIC_PROPERTIES) : testdate_input_facet_dll ]
+###
+   [ run gregorian/testgenerators.cpp ../build//boost_date_time : : : $(DATE_TIME_DYNAMIC_PROPERTIES) : testgenerators_dll ]
+   [ run gregorian/testgreg_cal.cpp ../build//boost_date_time : : : $(DATE_TIME_DYNAMIC_PROPERTIES) : testgreg_cal_dll ]
+   [ run gregorian/testgreg_day.cpp ../build//boost_date_time : : : $(DATE_TIME_DYNAMIC_PROPERTIES) : testgreg_day_dll ]     
+   [ run gregorian/testgreg_month.cpp ../build//boost_date_time : : : $(DATE_TIME_DYNAMIC_PROPERTIES) : testgreg_month_dll ]
+   [ run gregorian/testgreg_year.cpp ../build//boost_date_time : : : $(DATE_TIME_DYNAMIC_PROPERTIES) : testgreg_year_dll ]
+   [ run gregorian/testgreg_durations.cpp ../build//boost_date_time : : : $(DATE_TIME_DYNAMIC_PROPERTIES) : testgreg_durations_dll ]
+  ;
+
+   test-suite date_time_posixtime
+     : 
+   [ run posix_time/testfiletime_functions.cpp
+     ../build//boost_date_time/<link>static
+    : : :  $(DATE_TIME_PROPERTIES) ]
+   [ run posix_time/testlocal_adjustor.cpp
+     ../build//boost_date_time/<link>static
+    : : :  $(DATE_TIME_PROPERTIES) ]
+   [ run posix_time/testc_local_adjustor.cpp
+     ../build//boost_date_time/<link>static
+    : : :  $(DATE_TIME_PROPERTIES) ]
+   [ run posix_time/testclock.cpp
+     ../build//boost_date_time/<link>static
+    : : :  $(DATE_TIME_PROPERTIES) ]
+   [ run posix_time/testdst_rules.cpp
+     ../build//boost_date_time/<link>static
+    : : :  $(DATE_TIME_PROPERTIES) ]
+   [ run posix_time/testduration.cpp
+     ../build//boost_date_time/<link>static
+    : : :  $(DATE_TIME_PROPERTIES) ]
+   [ run posix_time/testiterator.cpp
+     ../build//boost_date_time/<link>static
+    : : :  $(DATE_TIME_PROPERTIES) ]
+   [ run posix_time/testparse_time.cpp
+     ../build//boost_date_time/<link>static 
+    : : :  $(DATE_TIME_PROPERTIES) ]
+   [ run posix_time/testtime_period.cpp
+     ../build//boost_date_time/<link>static
+    : : :  $(DATE_TIME_PROPERTIES) ]
+   [ run posix_time/testtime.cpp
+     ../build//boost_date_time/<link>static
+    : : :  $(DATE_TIME_PROPERTIES) ]
+   [ run posix_time/testmicrosec_time_clock.cpp
+     ../build//boost_date_time/<link>static
+    : : : $(DATE_TIME_PROPERTIES) ]
+   [ run posix_time/testtime_formatters.cpp
+     ../build//boost_date_time/<link>static
+    : : : $(DATE_TIME_PROPERTIES) ]
+   [ run posix_time/testgreg_duration_operators.cpp
+     ../build//boost_date_time/<link>static
+    : : :  $(DATE_TIME_PROPERTIES) ]
+### streaming
+   [ run posix_time/testtime_facet.cpp
+     ../build//boost_date_time/<link>static
+    : : :  $(DATE_TIME_PROPERTIES) ]
+   [ run posix_time/testtime_input_facet.cpp
+     ../build//boost_date_time/<link>static
+    : : :  $(DATE_TIME_PROPERTIES) ]
+###
+
+ ;
+
+
+   test-suite date_time_wide_streaming
+    :
+   [ run gregorian/testgreg_wstream.cpp
+     ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES) <define>USE_DATE_TIME_PRE_1_33_FACET_IO : testgreg_wstream ]
+   [ run posix_time/testtime_wstream.cpp
+     ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES) <define>USE_DATE_TIME_PRE_1_33_FACET_IO : testtime_wstream ]
+ ;
+
+   test-suite date_time_pre_133_facet 
+    :
+   [ run gregorian/testfacet.cpp ../build//boost_date_time : : : $(DATE_TIME_DYNAMIC_PROPERTIES)  <define>USE_DATE_TIME_PRE_1_33_FACET_IO : testfacet_dll ]
+   # this next test is commented out because it crashes on VC6 (cause unknown):
+#  [ run gregorian/testparse_date.cpp ../build//boost_date_time : : : $(DATE_TIME_DYNAMIC_PROPERTIES)  <define>USE_DATE_TIME_PRE_1_33_FACET_IO : testparse_date_dll ]
+   [ run gregorian/testfacet.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES)  <define>USE_DATE_TIME_PRE_1_33_FACET_IO  ]
+   [ run gregorian/testparse_date.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES)  <define>USE_DATE_TIME_PRE_1_33_FACET_IO ]
+
+   [ run posix_time/teststreams.cpp ../build//boost_date_time/<link>static : : : $(DATE_TIME_PROPERTIES)  <define>USE_DATE_TIME_PRE_1_33_FACET_IO ]
+ ;
+
+local DATE_TIME_PROPERTIES = <define>BOOST_DATE_TIME_POSIX_TIME_STD_CONFIG <define>BOOST_DATE_TIME_STATIC_LINK 
+   # FIXME
+   #std::locale-support 
+   <define>BOOST_ALL_NO_LIB ;
+
+   test-suite date_time_localtime
+     : 
+    [ run local_time/testdst_transition_day_rule.cpp
+      ../build//boost_date_time/<link>static
+     : : : $(DATE_TIME_PROPERTIES) ]
+   [ run local_time/testcustom_time_zone.cpp
+     ../build//boost_date_time/<link>static
+    : : : $(DATE_TIME_PROPERTIES) ]
+   [ run local_time/testposix_time_zone.cpp
+     ../build//boost_date_time/<link>static
+    : : : $(DATE_TIME_PROPERTIES) ]
+   [ run local_time/testwcustom_time_zone.cpp
+     ../build//boost_date_time/<link>static
+    : : : $(DATE_TIME_PROPERTIES) ]
+   [ run local_time/testwposix_time_zone.cpp
+     ../build//boost_date_time/<link>static
+    : : : $(DATE_TIME_PROPERTIES) ]
+   [ run local_time/testtz_database.cpp
+     ../build//boost_date_time/<link>static
+    : : : $(DATE_TIME_PROPERTIES) ]
+   [ run local_time/testlocal_time.cpp
+     ../build//boost_date_time/<link>static
+    : : : $(DATE_TIME_PROPERTIES) ]
+   [ run local_time/testlocal_time_iterator.cpp
+     ../build//boost_date_time/<link>static
+    : : :  $(DATE_TIME_PROPERTIES) ]
+   [ run local_time/testlocal_time_period.cpp
+     ../build//boost_date_time/<link>static
+    : : :  $(DATE_TIME_PROPERTIES) ]
+### streaming
+   [ run local_time/testlocal_time_facet.cpp
+     ../build//boost_date_time/<link>static
+    : : : $(DATE_TIME_PROPERTIES) ]
+   [ run local_time/testlocal_time_input_facet.cpp
+     ../build//boost_date_time/<link>static
+    : : : $(DATE_TIME_PROPERTIES) ]
+###
+   [ run local_time/testclocks.cpp
+     ../build//boost_date_time/<link>static
+    : : : $(DATE_TIME_PROPERTIES) ]
+ ;
+
+ local DATE_TIME_PROPERTIES =  <define>BOOST_DATE_TIME_STATIC_LINK <define>BOOST_ALL_NO_LIB  <define>USE_DATE_TIME_PRE_1_33_FACET_IO
+   # FIXME
+   # std::locale-support toolset::require-boost-spirit-support 
+   ;
+
+ test-suite date_time_serialization
+   :
+ # xml archive tests
+ [ run gregorian/testgreg_serialize.cpp
+   ../build//boost_date_time/<link>static
+   ../../serialization/build//boost_serialization
+   : : : $(DATE_TIME_PROPERTIES)  <define>DATE_TIME_XML_SERIALIZE
+   : testgreg_serialize_xml ]
+ [ run posix_time/testtime_serialize.cpp
+   ../build//boost_date_time/<link>static
+   ../../serialization/build//boost_serialization
+   : : : $(DATE_TIME_PROPERTIES)
+<define>BOOST_DATE_TIME_POSIX_TIME_STD_CONFIG
+<define>DATE_TIME_XML_SERIALIZE
+   : testtime_serialize_xml_std_config ]
+ [ run posix_time/testtime_serialize.cpp
+   ../build//boost_date_time/<link>static
+   ../../serialization/build//boost_serialization
+   : : : $(DATE_TIME_PROPERTIES)  <define>DATE_TIME_XML_SERIALIZE
+   : testtime_serialize_xml ]
+
+ # text archive tests
+ [ run gregorian/testgreg_serialize.cpp
+   ../build//boost_date_time/<link>static
+   ../../serialization/build//boost_serialization
+   : : : $(DATE_TIME_PROPERTIES)
+   : testgreg_serialize ]
+ [ run gregorian/testgreg_serialize.cpp
+   ../build//boost_date_time
+   ../../serialization/build//boost_serialization
+   : : : $(DATE_TIME_DYNAMIC_PROPERTIES)
+   : testgreg_serialize_dll ]
+ [ run posix_time/testtime_serialize.cpp
+   ../build//boost_date_time/<link>static
+   ../../serialization/build//boost_serialization
+   : : : $(DATE_TIME_PROPERTIES)
+<define>BOOST_DATE_TIME_POSIX_TIME_STD_CONFIG
+   : testtime_serialize_std_config ]
+ [ run posix_time/testtime_serialize.cpp
+   ../build//boost_date_time/<link>static
+   ../../serialization/build//boost_serialization
+   : : : $(DATE_TIME_PROPERTIES)
+   : testtime_serialize ]
+ ;
+
+
+# Copyright (c) 2000-2005
+# CrystalClear Software, Inc.
+# Subject to the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or 
+# http://www.boost.org/LICENSE_1_0.txt)
+
+
+
+

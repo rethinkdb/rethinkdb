@@ -1,0 +1,27 @@
+[article Doc Title 1
+[quickbook 1.5]
+]
+
+[/ Doc Titles for included files is a little odd. You generally don't see
+   titles in them, the only way to detect them is through the generated ids.
+   So that's what this test is for.
+   
+   The second include has a title, because that isn't scoped by file it will
+   continue to be used to generated ids for the following included files -
+   but not in this document as the document id for the file is generated
+   for the whole file at the start.
+   ]
+
+[heading a1]
+
+[include doc-title1-inc1.quickbook]
+
+[heading a2]
+
+[include doc-title1-inc2.quickbook]
+
+[heading a3]
+
+[include doc-title1-inc3.quickbook]
+
+[heading a4]

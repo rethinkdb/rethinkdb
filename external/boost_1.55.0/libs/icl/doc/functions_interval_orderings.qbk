@@ -1,0 +1,90 @@
+[/
+    Copyright (c) 2008-2010 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[/ //= Additional Interval Orderings ===================================================================]
+[section Additional Interval Orderings]
+
+In addition to the standard orderings `operator <` and rleated `> <= >=` that you will find in the 
+[link function_synopsis_table ['*librarie's function synopsis*]], intervals
+implement some additional orderings that can be useful.
+
+[table
+[[T]                                       [__ch_dsc_itv__] [__ch_cnt_itv__] [__ch_ro_itv__] [__ch_lo_itv__]  [__ch_cl_itv__] [__ch_op_itv__]      ]
+[[Interval bounds]                                     [dynamic]  [dynamic]    [static]     [static]     [static]    [static]    ]
+[[Form]                                                [ ]        [ ]          [asymmetric] [asymmetric] [symmetric] [symmetric] ]
+[[['*Orderings*]]                                      [ ]        [ ]          [ ]          [ ]          [ ]         [ ]         ]
+[[`bool exclusive_less(const T&, const T&)`]           [1]        [1]          [1]          [1]          [1]         [1]         ]
+[[``
+bool lower_less(const T&, const T&)
+bool lower_equal(const T&, const T&)
+bool lower_less_equal(const T&, const T&)
+``]                                                    [1]        [1]          [1]          [1]          [1]         [1]         ]
+[[``
+bool upper_less(const T&, const T&)
+bool upper_equal(const T&, const T&)
+bool upper_less_equal(const T&, const T&)
+``]                                                 
+                                                       [1]        [1]          [1]          [1]          [1]         [1]         ]
+]
+
+A central role for the *icl* plays the 
+`exclusive_less` ordering, which is used 
+in all interval containers.
+The other orderings can be useful to simplify
+comparison of intervals specifically for 
+dynamically bounded ones.
+
+[table
+[[['*Orderings*]]                                      [Description]         ]
+[[`bool exclusive_less(const T&, const T&)`]           [`exclusive_less(x1, x2)` is true if every element of interval `x1` is less than
+                                                         every element of interval `x2` w.r.t. the the intervals `Compare` ordering ]     ]
+[[``
+bool lower_less(const T&, const T&)
+bool lower_equal(const T&, const T&)
+bool lower_less_equal(const T&, const T&)
+``]                                                    [Compares the beginnings of intervals.
+``
+lower_less(x,y)  == true; // x begins before y
+lower_equal(x,y) == true; // x and y begin at the same element
+lower_less_equal(x,y) == lower_less(x,y) || lower_equal(x,y);
+``
+                                                       ]         ]
+[[``
+bool upper_less(const T&, const T&)
+bool upper_equal(const T&, const T&)
+bool upper_less_equal(const T&, const T&)
+``]                                                 
+                                                       [Compares the endings of intervals.
+``
+upper_less(x,y)  == true; // x ends before y
+upper_equal(x,y) == true; // x and y end at the same element
+upper_less_equal(x,y) == upper_less(x,y) || upper_equal(x,y);
+``                                                                                          
+                                                       ]         ]
+]
+
+
+['*See also . . .*]
+[table
+[]
+[[ __biLEquivsOrderings__ ]]
+]
+
+
+['*Back to section . . .*]
+[table
+[]
+[[[link additional_interval_functions ['*Additional interval functions*]] ]]
+[[[link function_synopsis_table ['*Function Synopsis*]]          ]]
+[[[link boost_icl.interface ['*Interface*]]                      ]]
+]
+
+[endsect][/ Additional Interval Orderings]
+
+

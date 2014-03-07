@@ -1,0 +1,508 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Extending the library</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="prev" href="detailed/utilities.html" title="Utilities">
+<link rel="next" href="extension/sources.html" title="Writing your own sources">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="detailed/utilities.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="extension/sources.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="log.extension"></a><a class="link" href="extension.html" title="Extending the library">Extending the library</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="extension.html#log.extension.sinks">Writing your own sinks</a></span></dt>
+<dt><span class="section"><a href="extension/sources.html">Writing your own sources</a></span></dt>
+<dt><span class="section"><a href="extension/attributes.html">Writing your own attributes</a></span></dt>
+<dt><span class="section"><a href="extension/settings.html">Extending library settings support</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.extension.sinks"></a><a class="link" href="extension.html#log.extension.sinks" title="Writing your own sinks">Writing your own sinks</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../sinks.html#header.boost.log.sinks.basic_sink_backend_hpp" title="Header &lt;boost/log/sinks/basic_sink_backend.hpp&gt;">boost/log/sinks/basic_sink_backend.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+        As was described in the <a class="link" href="design.html" title="Design overview">Design overview</a>
+        section, sinks consist of two parts: frontend and backend. Frontends are
+        provided by the library and usually do not need to be reimplemented. Thanks
+        to frontends, implementing backends is much easier than it could be: all
+        filtering, formatting and thread synchronization is done there.
+      </p>
+<p>
+        In order to develop a sink backend, you derive your class from either <code class="computeroutput"><a class="link" href="../boost/log/sinks/basic_sink_backend.html" title="Struct template basic_sink_backend">basic_sink_backend</a></code>
+        or <code class="computeroutput"><a class="link" href="../boost/log/sinks/basic_formatte_idp27106456.html" title="Struct template basic_formatted_sink_backend">basic_formatted_sink_backend</a></code>,
+        depending on whether your backend requires formatted log records or not.
+        Both base classes define a set of types that are required to interface with
+        sink frontends. One of these types is <code class="computeroutput"><span class="identifier">frontend_requirements</span></code>.
+      </p>
+<h5>
+<a name="log.extension.sinks.h0"></a>
+        <span class="phrase"><a name="log.extension.sinks.frontend_requirements"></a></span><a class="link" href="extension.html#log.extension.sinks.frontend_requirements">Frontend
+        requirements</a>
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><code class="computeroutput"><a class="link" href="../sinks.html#header.boost.log.sinks.frontend_requirements_hpp" title="Header &lt;boost/log/sinks/frontend_requirements.hpp&gt;">boost/log/sinks/frontend_requirements.hpp</a></code><span class="special">&gt;</span>
+</pre>
+<p>
+        In order to work with sink backends, frontends use the <code class="computeroutput"><span class="identifier">frontend_requirements</span></code>
+        type defined by all backends. The type combines one or several requirement
+        tags:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <code class="computeroutput"><a class="link" href="../boost/log/sinks/synchronized_feeding.html" title="Struct synchronized_feeding">synchronized_feeding</a></code>.
+            If the backend has this requirement, it expects log records to be passed
+            from frontend in synchronized manner (i.e. only one thread should be
+            feeding a record at a time). Note that different threads may be feeding
+            different records, the requirement merely states that there will be no
+            concurrent feeds.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><a class="link" href="../boost/log/sinks/concurrent_feeding.html" title="Struct concurrent_feeding">concurrent_feeding</a></code>.
+            This requirement extends <code class="computeroutput"><a class="link" href="../boost/log/sinks/synchronized_feeding.html" title="Struct synchronized_feeding">synchronized_feeding</a></code>
+            by allowing different threads to feed records concurrently. The backend
+            implements all necessary thread synchronization in this case.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><a class="link" href="../boost/log/sinks/formatted_records.html" title="Struct formatted_records">formatted_records</a></code>.
+            The backend expects formatted log records. The frontend implements formatting
+            to a string with character type defined by the <code class="computeroutput"><span class="identifier">char_type</span></code>
+            typedef within the backend. The formatted string will be passed along
+            with the log record to the backend. The <code class="computeroutput"><a class="link" href="../boost/log/sinks/basic_formatte_idp27106456.html" title="Struct template basic_formatted_sink_backend">basic_formatted_sink_backend</a></code>
+            base class automatically adds this requirement to the <code class="computeroutput"><span class="identifier">frontend_requirements</span></code>
+            type.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><a class="link" href="../boost/log/sinks/flushing.html" title="Struct flushing">flushing</a></code>. The
+            backend supports flushing its internal buffers. If the backend indicates
+            this requirement it has to implement the <code class="computeroutput"><span class="identifier">flush</span></code>
+            method taking no arguments; this method will be called by the frontend
+            when flushed.
+          </li>
+</ul></div>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          By choosing either of the thread synchronization requirements you effectively
+          allow or prohibit certain <a class="link" href="detailed/sink_frontends.html" title="Sink frontends">sink
+          frontends</a> from being used with your backend.
+        </p></td></tr>
+</table></div>
+<p>
+        Multiple requirements can be combined into <code class="computeroutput"><span class="identifier">frontend_requirements</span></code>
+        type with the <code class="computeroutput"><a class="link" href="../boost/log/sinks/combine_requirements.html" title="Struct template combine_requirements">combine_requirements</a></code>
+        metafunction:
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">combine_requirements</span><span class="special">&lt;</span>
+    <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronized_feeding</span><span class="special">,</span>
+    <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">formatted_records</span><span class="special">,</span>
+    <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">flushing</span>
+<span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">frontend_requirements</span><span class="special">;</span>
+</pre>
+<p>
+        It must be noted that <code class="computeroutput"><a class="link" href="../boost/log/sinks/synchronized_feeding.html" title="Struct synchronized_feeding">synchronized_feeding</a></code>
+        and <code class="computeroutput"><a class="link" href="../boost/log/sinks/concurrent_feeding.html" title="Struct concurrent_feeding">concurrent_feeding</a></code>
+        should not be combined together as it would make the synchronization requirement
+        ambiguous. The <code class="computeroutput"><a class="link" href="../boost/log/sinks/synchronized_feeding.html" title="Struct synchronized_feeding">synchronized_feeding</a></code>
+        is a more strict requirement than <code class="computeroutput"><a class="link" href="../boost/log/sinks/concurrent_feeding.html" title="Struct concurrent_feeding">concurrent_feeding</a></code>,
+        so whenever the backend requires concurrent feeding it is also capable of
+        synchronized feeding.
+      </p>
+<p>
+        The <code class="computeroutput"><a class="link" href="../boost/log/sinks/has_requirement.html" title="Struct template has_requirement">has_requirement</a></code>
+        metafunction can be used to test for a specific requirement in the <code class="computeroutput"><span class="identifier">frontend_requirements</span></code> typedef.
+      </p>
+<h5>
+<a name="log.extension.sinks.h1"></a>
+        <span class="phrase"><a name="log.extension.sinks.minimalistic_sink_backend"></a></span><a class="link" href="extension.html#log.extension.sinks.minimalistic_sink_backend">Minimalistic
+        sink backend</a>
+      </h5>
+<p>
+        As an example of the <code class="computeroutput"><a class="link" href="../boost/log/sinks/basic_sink_backend.html" title="Struct template basic_sink_backend">basic_sink_backend</a></code>
+        class usage, let's implement a simple statistical information collector backend.
+        Assume we have a network server and we want to monitor how many incoming
+        connections are active and how much data was sent or received. The collected
+        information should be written to a CSV-file every minute. The backend definition
+        could look something like this:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// The backend collects statistical information about network activity of the application</span>
+<span class="keyword">class</span> <span class="identifier">stat_collector</span> <span class="special">:</span>
+    <span class="keyword">public</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">basic_sink_backend</span><span class="special">&lt;</span>
+        <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">combine_requirements</span><span class="special">&lt;</span>
+            <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronized_feeding</span><span class="special">,</span>                                        <a class="co" name="log.extension.sinks.c0" href="extension.html#log.extension.sinks.c1"><img src="../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a>
+            <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">flushing</span>                                                     <a class="co" name="log.extension.sinks.c2" href="extension.html#log.extension.sinks.c3"><img src="../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a>
+        <span class="special">&gt;::</span><span class="identifier">type</span>
+    <span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="comment">// The file to write the collected information to</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">ofstream</span> <span class="identifier">m_csv_file</span><span class="special">;</span>
+
+    <span class="comment">// Here goes the data collected so far:</span>
+    <span class="comment">// Active connections</span>
+    <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">m_active_connections</span><span class="special">;</span>
+    <span class="comment">// Sent bytes</span>
+    <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">m_sent_bytes</span><span class="special">;</span>
+    <span class="comment">// Received bytes</span>
+    <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">m_received_bytes</span><span class="special">;</span>
+
+    <span class="comment">// The number of collected records since the last write to the file</span>
+    <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">m_collected_count</span><span class="special">;</span>
+    <span class="comment">// The time when the collected data has been written to the file last time</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="identifier">m_last_store_time</span><span class="special">;</span>
+
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// The constructor initializes the internal data</span>
+    <span class="keyword">explicit</span> <span class="identifier">stat_collector</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">file_name</span><span class="special">);</span>
+
+    <span class="comment">// The function consumes the log records that come from the frontend</span>
+    <span class="keyword">void</span> <span class="identifier">consume</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">record_view</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rec</span><span class="special">);</span>
+    <span class="comment">// The function flushes the file</span>
+    <span class="keyword">void</span> <span class="identifier">flush</span><span class="special">();</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="comment">// The function resets statistical accumulators to initial values</span>
+    <span class="keyword">void</span> <span class="identifier">reset_accumulators</span><span class="special">();</span>
+    <span class="comment">// The function writes the collected data to the file</span>
+    <span class="keyword">void</span> <span class="identifier">write_data</span><span class="special">();</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<div class="calloutlist"><table border="0" summary="Callout list">
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.extension.sinks.c1"></a><a href="#log.extension.sinks.c0"><img src="../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+            we will have to store internal data, so let's require frontend to synchronize
+            feeding calls to the backend
+          </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.extension.sinks.c3"></a><a href="#log.extension.sinks.c2"><img src="../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+            also enable flushing support
+          </p></td>
+</tr>
+</table></div>
+<p>
+        As you can see, the public interface of the backend is quite simple. Only
+        the <code class="computeroutput"><span class="identifier">consume</span></code> and <code class="computeroutput"><span class="identifier">flush</span></code> methods are called by frontends.
+        The <code class="computeroutput"><span class="identifier">consume</span></code> function is called
+        every time a logging record passes filtering in the frontend. The record,
+        as was stated before, contains a set of attribute values and the message
+        string. Since we have no need for the record message, we will ignore it for
+        now. But from the other attributes we can extract the statistical data to
+        accumulate and write to the file. We can use <a class="link" href="detailed/expressions.html#log.detailed.expressions.attr_keywords" title="Defining attribute keywords">attribute
+        keywords</a> and <a class="link" href="detailed/attributes.html#log.detailed.attributes.related_components.value_processing.visitation" title="Value visitation">value
+        visitation</a> to accomplish this.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span><span class="special">(</span><span class="identifier">sent</span><span class="special">,</span> <span class="string">"Sent"</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">)</span>
+<span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span><span class="special">(</span><span class="identifier">received</span><span class="special">,</span> <span class="string">"Received"</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">)</span>
+
+<span class="comment">// The function consumes the log records that come from the frontend</span>
+<span class="keyword">void</span> <span class="identifier">stat_collector</span><span class="special">::</span><span class="identifier">consume</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">record_view</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rec</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">// Accumulate statistical readings</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">rec</span><span class="special">.</span><span class="identifier">attribute_values</span><span class="special">().</span><span class="identifier">count</span><span class="special">(</span><span class="string">"Connected"</span><span class="special">))</span>
+        <span class="special">++</span><span class="identifier">m_active_connections</span><span class="special">;</span>
+    <span class="keyword">else</span> <span class="keyword">if</span> <span class="special">(</span><span class="identifier">rec</span><span class="special">.</span><span class="identifier">attribute_values</span><span class="special">().</span><span class="identifier">count</span><span class="special">(</span><span class="string">"Disconnected"</span><span class="special">))</span>
+        <span class="special">--</span><span class="identifier">m_active_connections</span><span class="special">;</span>
+    <span class="keyword">else</span>
+    <span class="special">{</span>
+        <span class="keyword">namespace</span> <span class="identifier">phoenix</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">;</span>
+        <span class="identifier">logging</span><span class="special">::</span><span class="identifier">visit</span><span class="special">(</span><span class="identifier">sent</span><span class="special">,</span> <span class="identifier">rec</span><span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">m_sent_bytes</span><span class="special">)</span> <span class="special">+=</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">placeholders</span><span class="special">::</span><span class="identifier">_1</span><span class="special">);</span>
+        <span class="identifier">logging</span><span class="special">::</span><span class="identifier">visit</span><span class="special">(</span><span class="identifier">received</span><span class="special">,</span> <span class="identifier">rec</span><span class="special">,</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">m_received_bytes</span><span class="special">)</span> <span class="special">+=</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">placeholders</span><span class="special">::</span><span class="identifier">_1</span><span class="special">);</span>
+    <span class="special">}</span>
+    <span class="special">++</span><span class="identifier">m_collected_count</span><span class="special">;</span>
+
+    <span class="comment">// Check if it's time to write the accumulated data to the file</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="identifier">now</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">microsec_clock</span><span class="special">::</span><span class="identifier">universal_time</span><span class="special">();</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">now</span> <span class="special">-</span> <span class="identifier">m_last_store_time</span> <span class="special">&gt;=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">minutes</span><span class="special">(</span><span class="number">1</span><span class="special">))</span>
+    <span class="special">{</span>
+        <span class="identifier">write_data</span><span class="special">();</span>
+        <span class="identifier">m_last_store_time</span> <span class="special">=</span> <span class="identifier">now</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="comment">// The function writes the collected data to the file</span>
+<span class="keyword">void</span> <span class="identifier">stat_collector</span><span class="special">::</span><span class="identifier">write_data</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">m_csv_file</span> <span class="special">&lt;&lt;</span> <span class="identifier">m_active_connections</span>
+        <span class="special">&lt;&lt;</span> <span class="char">','</span> <span class="special">&lt;&lt;</span> <span class="identifier">m_sent_bytes</span>
+        <span class="special">&lt;&lt;</span> <span class="char">','</span> <span class="special">&lt;&lt;</span> <span class="identifier">m_received_bytes</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">reset_accumulators</span><span class="special">();</span>
+<span class="special">}</span>
+
+<span class="comment">// The function resets statistical accumulators to initial values</span>
+<span class="keyword">void</span> <span class="identifier">stat_collector</span><span class="special">::</span><span class="identifier">reset_accumulators</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">m_sent_bytes</span> <span class="special">=</span> <span class="identifier">m_received_bytes</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+    <span class="identifier">m_collected_count</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        Note that we used <a href="http://www.boost.org/doc/libs/release/libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>
+        to automatically generate visitor function objects for attribute values.
+      </p>
+<p>
+        The last bit of implementation is the <code class="computeroutput"><span class="identifier">flush</span></code>
+        method. It is used to flush all buffered data to the external storage, which
+        is a file in our case. The method can be implemented in the following way:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// The function flushes the file</span>
+<span class="keyword">void</span> <span class="identifier">stat_collector</span><span class="special">::</span><span class="identifier">flush</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Store any data that may have been collected since the list write to the file</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">m_collected_count</span> <span class="special">&gt;</span> <span class="number">0</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">write_data</span><span class="special">();</span>
+        <span class="identifier">m_last_store_time</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">microsec_clock</span><span class="special">::</span><span class="identifier">universal_time</span><span class="special">();</span>
+    <span class="special">}</span>
+
+    <span class="identifier">m_csv_file</span><span class="special">.</span><span class="identifier">flush</span><span class="special">();</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        You can find the complete code of this example <a href="../../../../../libs/log/example/doc/extension_stat_collector.cpp" target="_top">here</a>.
+      </p>
+<h5>
+<a name="log.extension.sinks.h2"></a>
+        <span class="phrase"><a name="log.extension.sinks.formatting_sink_backend"></a></span><a class="link" href="extension.html#log.extension.sinks.formatting_sink_backend">Formatting
+        sink backend</a>
+      </h5>
+<p>
+        As an example of a formatting sink backend, let's implement a sink that will
+        display text notifications for every log record passed to it.
+      </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Real world applications would probably use some GUI toolkit API to display
+          notifications but GUI programming is out of scope of this documentation.
+          In order to display notifications we shall use an external program which
+          does just that. In this example we shall employ <code class="computeroutput"><span class="identifier">notify</span><span class="special">-</span><span class="identifier">send</span></code>
+          program which is available on Linux (Ubuntu/Debian users can install it
+          with the <code class="computeroutput"><span class="identifier">libnotify</span><span class="special">-</span><span class="identifier">bin</span></code> package; other distros should also
+          have it available in their package repositories). The program takes the
+          notification parameters in the command line, displays the notification
+          in the current desktop environment and then exits. Other platforms may
+          also have similar tools.
+        </p></td></tr>
+</table></div>
+<p>
+        The definition of the backend is very similar to what we have seen in the
+        previous section:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// The backend starts an external application to display notifications</span>
+<span class="keyword">class</span> <span class="identifier">app_launcher</span> <span class="special">:</span>
+    <span class="keyword">public</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">basic_formatted_sink_backend</span><span class="special">&lt;</span>
+        <span class="keyword">char</span><span class="special">,</span>                                                                   <a class="co" name="log.extension.sinks.c4" href="extension.html#log.extension.sinks.c5"><img src="../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a>
+        <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronized_feeding</span>                                             <a class="co" name="log.extension.sinks.c6" href="extension.html#log.extension.sinks.c7"><img src="../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a>
+    <span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// The function consumes the log records that come from the frontend</span>
+    <span class="keyword">void</span> <span class="identifier">consume</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">record_view</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rec</span><span class="special">,</span> <span class="identifier">string_type</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">command_line</span><span class="special">);</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<div class="calloutlist"><table border="0" summary="Callout list">
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.extension.sinks.c5"></a><a href="#log.extension.sinks.c4"><img src="../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+            target character type
+          </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="log.extension.sinks.c7"></a><a href="#log.extension.sinks.c6"><img src="../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+            in order not to spawn too many application instances we require records
+            to be processed serial
+          </p></td>
+</tr>
+</table></div>
+<p>
+        The first thing to notice is that the <code class="computeroutput"><span class="identifier">app_launcher</span></code>
+        backend derives from <code class="computeroutput"><a class="link" href="../boost/log/sinks/basic_formatte_idp27106456.html" title="Struct template basic_formatted_sink_backend">basic_formatted_sink_backend</a></code>
+        rather than <code class="computeroutput"><a class="link" href="../boost/log/sinks/basic_sink_backend.html" title="Struct template basic_sink_backend">basic_sink_backend</a></code>.
+        This base class accepts the character type in addition to the requirements.
+        The specified character type defines the target string type the formatter
+        will compose in the frontend and it typically corresponds to the underlying
+        API the backend uses to process records. It must be mentioned that the character
+        type the backend requires is not related to the character types of string
+        attribute values, including the message text. The formatter will take care
+        of character code conversion when needed.
+      </p>
+<p>
+        The second notable difference from the previous examples is that <code class="computeroutput"><span class="identifier">consume</span></code> method takes an additional string
+        parameter besides the log record. This is the result of formatting. The
+        <code class="computeroutput"><span class="identifier">string_type</span></code> type is defined
+        by the <code class="computeroutput"><a class="link" href="../boost/log/sinks/basic_formatte_idp27106456.html" title="Struct template basic_formatted_sink_backend">basic_formatted_sink_backend</a></code>
+        base class and it corresponds to the requested character type.
+      </p>
+<p>
+        We don't need to flush any buffers in this example, so we didn't specify
+        the <code class="computeroutput"><a class="link" href="../boost/log/sinks/flushing.html" title="Struct flushing">flushing</a></code> requirement
+        and omitted the <code class="computeroutput"><span class="identifier">flush</span></code> method
+        in the backend. Although we don't need any synchronization in our backend,
+        we specified <code class="computeroutput"><a class="link" href="../boost/log/sinks/synchronized_feeding.html" title="Struct synchronized_feeding">synchronized_feeding</a></code>
+        requirement so that we don't spawn multiple instances of <code class="computeroutput"><span class="identifier">notify</span><span class="special">-</span><span class="identifier">send</span></code> program
+        and cause a "fork bomb".
+      </p>
+<p>
+        Now, the <code class="computeroutput"><span class="identifier">consume</span></code> implementation
+        is trivial:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// The function consumes the log records that come from the frontend</span>
+<span class="keyword">void</span> <span class="identifier">app_launcher</span><span class="special">::</span><span class="identifier">consume</span><span class="special">(</span><span class="identifier">logging</span><span class="special">::</span><span class="identifier">record_view</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rec</span><span class="special">,</span> <span class="identifier">string_type</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">command_line</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">system</span><span class="special">(</span><span class="identifier">command_line</span><span class="special">.</span><span class="identifier">c_str</span><span class="special">());</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        So the formatted string is expected to actually be a command line to start
+        the application. The exact application name and arguments are to be determined
+        by the formatter. This approach adds flexibility because the backend can
+        be used for different purposes and updating the command line is as easy as
+        updating the formatter.
+      </p>
+<p>
+        The sink can be configured with the following code:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span><span class="special">(</span><span class="identifier">process_name</span><span class="special">,</span> <span class="string">"ProcessName"</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">)</span>
+<span class="identifier">BOOST_LOG_ATTRIBUTE_KEYWORD</span><span class="special">(</span><span class="identifier">caption</span><span class="special">,</span> <span class="string">"Caption"</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">)</span>
+
+<span class="comment">// Custom severity level formatting function</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">severity_level_as_urgency</span><span class="special">(</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">value_ref</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">severity_level</span><span class="special">,</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">tag</span><span class="special">::</span><span class="identifier">severity</span> <span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">level</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">level</span> <span class="special">||</span> <span class="identifier">level</span><span class="special">.</span><span class="identifier">get</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">info</span><span class="special">)</span>
+        <span class="keyword">return</span> <span class="string">"normal"</span><span class="special">;</span>
+    <span class="identifier">logging</span><span class="special">::</span><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">severity_level</span> <span class="identifier">lvl</span> <span class="special">=</span> <span class="identifier">level</span><span class="special">.</span><span class="identifier">get</span><span class="special">();</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">lvl</span> <span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">info</span><span class="special">)</span>
+        <span class="keyword">return</span> <span class="string">"low"</span><span class="special">;</span>
+    <span class="keyword">else</span>
+        <span class="keyword">return</span> <span class="string">"critical"</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// The function initializes the logging library</span>
+<span class="keyword">void</span> <span class="identifier">init_logging</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span> <span class="special">&gt;</span> <span class="identifier">core</span> <span class="special">=</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">core</span><span class="special">::</span><span class="identifier">get</span><span class="special">();</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">synchronous_sink</span><span class="special">&lt;</span> <span class="identifier">app_launcher</span> <span class="special">&gt;</span> <span class="identifier">sink_t</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sink_t</span> <span class="special">&gt;</span> <span class="identifier">sink</span><span class="special">(</span><span class="keyword">new</span> <span class="identifier">sink_t</span><span class="special">());</span>
+
+    <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="special">&gt;</span> <span class="identifier">shell_decorations</span><span class="special">[]</span> <span class="special">=</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="special">&gt;(</span><span class="string">"\""</span><span class="special">,</span> <span class="string">"\\\""</span><span class="special">),</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="special">&gt;(</span><span class="string">"$"</span><span class="special">,</span> <span class="string">"\\$"</span><span class="special">),</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="special">&gt;(</span><span class="string">"!"</span><span class="special">,</span> <span class="string">"\\!"</span><span class="special">)</span>
+    <span class="special">};</span>
+
+    <span class="comment">// Make the formatter generate the command line for notify-send</span>
+    <span class="identifier">sink</span><span class="special">-&gt;</span><span class="identifier">set_formatter</span>
+    <span class="special">(</span>
+        <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="string">"notify-send -t 2000 -u "</span>
+            <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">severity_level_as_urgency</span><span class="special">,</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">severity</span><span class="special">.</span><span class="identifier">or_none</span><span class="special">())</span>
+            <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">if_</span><span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">has_attr</span><span class="special">(</span><span class="identifier">process_name</span><span class="special">))</span>
+               <span class="special">[</span>
+                    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="string">" -a '"</span> <span class="special">&lt;&lt;</span> <span class="identifier">process_name</span> <span class="special">&lt;&lt;</span> <span class="string">"'"</span>
+               <span class="special">]</span>
+            <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">if_</span><span class="special">(</span><span class="identifier">expr</span><span class="special">::</span><span class="identifier">has_attr</span><span class="special">(</span><span class="identifier">caption</span><span class="special">))</span>
+               <span class="special">[</span>
+                    <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="string">" \""</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">char_decor</span><span class="special">(</span><span class="identifier">shell_decorations</span><span class="special">)[</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">caption</span> <span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="string">"\""</span>
+               <span class="special">]</span>
+            <span class="special">&lt;&lt;</span> <span class="string">" \""</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">char_decor</span><span class="special">(</span><span class="identifier">shell_decorations</span><span class="special">)[</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">stream</span> <span class="special">&lt;&lt;</span> <span class="identifier">expr</span><span class="special">::</span><span class="identifier">message</span> <span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="string">"\""</span>
+    <span class="special">);</span>
+
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">sink</span><span class="special">);</span>
+
+    <span class="comment">// Add attributes that we will use</span>
+    <span class="identifier">core</span><span class="special">-&gt;</span><span class="identifier">add_global_attribute</span><span class="special">(</span><span class="string">"ProcessName"</span><span class="special">,</span> <span class="identifier">attrs</span><span class="special">::</span><span class="identifier">current_process_name</span><span class="special">());</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        The most interesting part is the sink setup. The <code class="computeroutput"><a class="link" href="../boost/log/sinks/synchronous_sink.html" title="Class template synchronous_sink">synchronous_sink</a></code>
+        frontend (as well as any other frontend) will detect that the <code class="computeroutput"><span class="identifier">app_launcher</span></code> backend requires formatting
+        and enable the corresponding functionality. The <code class="computeroutput"><span class="identifier">set_formatter</span></code>
+        method becomes available and can be used to set the formatting expression
+        that composes the command line to start the <code class="computeroutput"><span class="identifier">notify</span><span class="special">-</span><span class="identifier">send</span></code> program.
+        We used <a class="link" href="detailed/expressions.html#log.detailed.expressions.attr_keywords" title="Defining attribute keywords">attribute
+        keywords</a> to identify particular attribute values in the formatter.
+        Notice that string attribute values have to be preprocessed so that special
+        characters interpreted by the shell are escaped in the command line. We achieve
+        that with the <code class="computeroutput"><a class="link" href="../boost/log/expressions/char_decor_idp25163672.html" title="Function template char_decor">char_decor</a></code> decorator with
+        our custom replacement map. After the sink is configured we also add the
+        <a class="link" href="detailed/attributes.html#log.detailed.attributes.process_name" title="Current process name">current process name</a>
+        attribute to the core so that we don't have to add it to every record.
+      </p>
+<p>
+        After all this is done, we can finally display some notifications:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">test_notifications</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_LOG_TRIVIAL</span><span class="special">(</span><span class="identifier">debug</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"Hello, it's a simple notification"</span><span class="special">;</span>
+    <span class="identifier">BOOST_LOG_TRIVIAL</span><span class="special">(</span><span class="identifier">info</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_value</span><span class="special">(</span><span class="identifier">caption</span><span class="special">,</span> <span class="string">"Caption text"</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"And this notification has caption as well"</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        The complete code of this example is available <a href="../../../../../libs/log/example/doc/extension_app_launcher.cpp" target="_top">here</a>.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="detailed/utilities.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="extension/sources.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

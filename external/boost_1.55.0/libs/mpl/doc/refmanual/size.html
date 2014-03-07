@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: size</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./sequence-tag.html" class="navigation-link">Prev</a>&nbsp;<a href="./value-type.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./sequence-tag.html" class="navigation-link">Back</a>&nbsp;<a href="./value-type.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./intrinsic-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./sequences.html" class="navigation-link">Sequences</a> / <a href="./intrinsic-metafunctions.html" class="navigation-link">Intrinsic Metafunctions</a> / <a href="./size.html" class="navigation-link">size</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="size">
+<h1><a class="toc-backref" href="./intrinsic-metafunctions.html#id1446">size</a></h1>
+<div class="section" id="id362">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename Sequence
+    &gt;
+struct <a href="./size.html" class="identifier">size</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id363">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p><tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a></span></tt> returns the number of elements in the sequence, that is, the number of elements
+in the range [<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;Sequence&gt;::type</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;Sequence&gt;::type</span></tt>).</p>
+</div>
+<div class="section" id="id364">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/size.hpp" class="header">boost/mpl/size.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id365">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./tag-dispatched-metafunction.html">Tag Dispatched Metafunction</a></p>
+</div>
+<div class="section" id="id366">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="18%" />
+<col width="27%" />
+<col width="55%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">Sequence</span></tt></td>
+<td><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></td>
+<td>A sequence to query.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id367">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> <tt class="literal"><span class="pre">s</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./size.html" class="identifier">size</a>&lt;s&gt;::type n;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="./integral-constant.html">Integral Constant</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to</p>
+<pre class="literal-block">
+typedef <a href="./distance.html" class="identifier">distance</a>&lt; <a href="./begin.html" class="identifier">begin</a>&lt;s&gt;::type,<a href="./end.html" class="identifier">end</a>&lt;s&gt;::type &gt;::type n;
+</pre>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Postcondition:</th><td class="field-body"><p class="first last"><tt class="literal"><span class="pre">n::value</span> <span class="pre">&gt;=</span> <span class="pre">0</span></tt>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id368">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>The complexity of the <tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a></span></tt> metafunction directly depends on the implementation of
+the particular sequence it is applied to. In the worst case, <tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a></span></tt> guarantees a
+linear complexity.</p>
+<p>If the <tt class="literal"><span class="pre">s</span></tt> is a <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>, <tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;s&gt;::type</span></tt> is an <em>O(1)</em> operation.
+The opposite is not necessarily true — for example, a sequence class that models
+<a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> might still give us an <em>O(1)</em> <tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a></span></tt> implementation.</p>
+</div>
+<div class="section" id="id369">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef list0&lt;&gt; empty_list;
+typedef <a href="./vector-c.html" class="identifier">vector_c</a>&lt;int,0,1,2,3,4,5&gt; numbers;
+typedef <a href="./range-c.html" class="identifier">range_c</a>&lt;int,0,100&gt; more_numbers;
+
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./size.html" class="identifier">size</a>&lt;<a href="./list.html" class="identifier">list</a>&gt;::value, ==, 0 );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./size.html" class="identifier">size</a>&lt;numbers&gt;::value, ==, 5 );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./size.html" class="identifier">size</a>&lt;more_numbers&gt;::value, ==, 100 );
+</pre>
+</div>
+<div class="section" id="id370">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a>, <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>, <a class="reference internal" href="./empty.html">empty</a>, <a class="reference internal" href="./begin.html">begin</a>, <a class="reference internal" href="./end.html">end</a>, <a class="reference internal" href="./distance.html">distance</a></p>
+<!-- Sequences/Intrinsic Metafunctions//value_type -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./sequence-tag.html" class="navigation-link">Prev</a>&nbsp;<a href="./value-type.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./sequence-tag.html" class="navigation-link">Back</a>&nbsp;<a href="./value-type.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./intrinsic-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

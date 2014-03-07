@@ -1,0 +1,504 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Using Boost.Asio</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../boost_asio.html" title="Boost.Asio">
+<link rel="prev" href="overview/implementation.html" title="Platform-Specific Implementation Notes">
+<link rel="next" href="tutorial.html" title="Tutorial">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overview/implementation.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_asio.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../boost_asio.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutorial.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_asio.using"></a><a class="link" href="using.html" title="Using Boost.Asio">Using Boost.Asio</a>
+</h2></div></div></div>
+<h4>
+<a name="boost_asio.using.h0"></a>
+      <span class="phrase"><a name="boost_asio.using.supported_platforms"></a></span><a class="link" href="using.html#boost_asio.using.supported_platforms">Supported
+      Platforms</a>
+    </h4>
+<p>
+      The following platforms and compilers have been tested:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Win32 and Win64 using Visual C++ 7.1 and Visual C++ 8.0.
+        </li>
+<li class="listitem">
+          Win32 using MinGW.
+        </li>
+<li class="listitem">
+          Win32 using Cygwin. (<code class="computeroutput"><span class="identifier">__USE_W32_SOCKETS</span></code>
+          must be defined.)
+        </li>
+<li class="listitem">
+          Linux (2.4 or 2.6 kernels) using g++ 3.3 or later.
+        </li>
+<li class="listitem">
+          Solaris using g++ 3.3 or later.
+        </li>
+<li class="listitem">
+          Mac OS X 10.4 using g++ 3.3 or later.
+        </li>
+</ul></div>
+<p>
+      The following platforms may also work:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          AIX 5.3 using XL C/C++ v9.
+        </li>
+<li class="listitem">
+          HP-UX 11i v3 using patched aC++ A.06.14.
+        </li>
+<li class="listitem">
+          QNX Neutrino 6.3 using g++ 3.3 or later.
+        </li>
+<li class="listitem">
+          Solaris using Sun Studio 11 or later.
+        </li>
+<li class="listitem">
+          Tru64 v5.1 using Compaq C++ v7.1.
+        </li>
+<li class="listitem">
+          Win32 using Borland C++ 5.9.2
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.using.h1"></a>
+      <span class="phrase"><a name="boost_asio.using.dependencies"></a></span><a class="link" href="using.html#boost_asio.using.dependencies">Dependencies</a>
+    </h4>
+<p>
+      The following libraries must be available in order to link programs that use
+      Boost.Asio:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Boost.System for the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span></code>
+          and <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">system_error</span></code> classes.
+        </li>
+<li class="listitem">
+          Boost.Regex (optional) if you use any of the <a class="link" href="reference/read_until.html" title="read_until"><code class="computeroutput"><span class="identifier">read_until</span><span class="special">()</span></code></a>
+          or <a class="link" href="reference/async_read_until.html" title="async_read_until"><code class="computeroutput"><span class="identifier">async_read_until</span><span class="special">()</span></code></a>
+          overloads that take a <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span></code>
+          parameter.
+        </li>
+<li class="listitem">
+          <a href="http://www.openssl.org" target="_top">OpenSSL</a> (optional) if you use
+          Boost.Asio's SSL support.
+        </li>
+</ul></div>
+<p>
+      Furthermore, some of the examples also require the Boost.Thread, Boost.Date_Time
+      or Boost.Serialization libraries.
+    </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        With MSVC or Borland C++ you may want to add <code class="computeroutput"><span class="special">-</span><span class="identifier">DBOOST_DATE_TIME_NO_LIB</span></code> and <code class="computeroutput"><span class="special">-</span><span class="identifier">DBOOST_REGEX_NO_LIB</span></code>
+        to your project settings to disable autolinking of the Boost.Date_Time and
+        Boost.Regex libraries respectively. Alternatively, you may choose to build
+        these libraries and link to them.
+      </p></td></tr>
+</table></div>
+<h4>
+<a name="boost_asio.using.h2"></a>
+      <span class="phrase"><a name="boost_asio.using.building_boost_libraries"></a></span><a class="link" href="using.html#boost_asio.using.building_boost_libraries">Building
+      Boost Libraries</a>
+    </h4>
+<p>
+      You may build the subset of Boost libraries required to use Boost.Asio and
+      its examples by running the following command from the root of the Boost download
+      package:
+    </p>
+<pre class="programlisting">bjam --with-system --with-thread --with-date_time --with-regex --with-serialization stage
+</pre>
+<p>
+      This assumes that you have already built <code class="computeroutput"><span class="identifier">bjam</span></code>.
+      Consult the Boost.Build documentation for more details.
+    </p>
+<h4>
+<a name="boost_asio.using.h3"></a>
+      <span class="phrase"><a name="boost_asio.using.optional_separate_compilation"></a></span><a class="link" href="using.html#boost_asio.using.optional_separate_compilation">Optional
+      separate compilation</a>
+    </h4>
+<p>
+      By default, Boost.Asio is a header-only library. However, some developers may
+      prefer to build Boost.Asio using separately compiled source code. To do this,
+      add <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">asio</span><span class="special">/</span><span class="identifier">impl</span><span class="special">/</span><span class="identifier">src</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code> to one (and only one) source file in a
+      program, then build the program with <code class="computeroutput"><span class="identifier">BOOST_ASIO_SEPARATE_COMPILATION</span></code>
+      defined in the project/compiler settings. Alternatively, <code class="computeroutput"><span class="identifier">BOOST_ASIO_DYN_LINK</span></code>
+      may be defined to build a separately-compiled Boost.Asio as part of a shared
+      library.
+    </p>
+<p>
+      If using Boost.Asio's SSL support, you will also need to add <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">asio</span><span class="special">/</span><span class="identifier">ssl</span><span class="special">/</span><span class="identifier">impl</span><span class="special">/</span><span class="identifier">src</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>.
+    </p>
+<h4>
+<a name="boost_asio.using.h4"></a>
+      <span class="phrase"><a name="boost_asio.using.macros"></a></span><a class="link" href="using.html#boost_asio.using.macros">Macros</a>
+    </h4>
+<p>
+      The macros listed in the table below may be used to control the behaviour of
+      Boost.Asio.
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Macro
+              </p>
+            </th>
+<th>
+              <p>
+                Description
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_ENABLE_BUFFER_DEBUGGING</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Enables Boost.Asio's buffer debugging support, which can help identify
+                when invalid buffers are used in read or write operations (e.g. if
+                a std::string object being written is destroyed before the write
+                operation completes).
+              </p>
+              <p>
+                When using Microsoft Visual C++, this macro is defined automatically
+                if the compiler's iterator debugging support is enabled, unless
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_DISABLE_BUFFER_DEBUGGING</span></code>
+                has been defined.
+              </p>
+              <p>
+                When using g++, this macro is defined automatically if standard library
+                debugging is enabled (<code class="computeroutput"><span class="identifier">_GLIBCXX_DEBUG</span></code>
+                is defined), unless <code class="computeroutput"><span class="identifier">BOOST_ASIO_DISABLE_BUFFER_DEBUGGING</span></code>
+                has been defined.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_DISABLE_BUFFER_DEBUGGING</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Explictly disables Boost.Asio's buffer debugging support.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_DISABLE_DEV_POLL</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Explicitly disables <code class="literal">/dev/poll</code> support on Solaris,
+                forcing the use of a <code class="computeroutput"><span class="identifier">select</span></code>-based
+                implementation.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_DISABLE_EPOLL</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Explicitly disables <code class="computeroutput"><span class="identifier">epoll</span></code>
+                support on Linux, forcing the use of a <code class="computeroutput"><span class="identifier">select</span></code>-based
+                implementation.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_DISABLE_EVENTFD</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Explicitly disables <code class="computeroutput"><span class="identifier">eventfd</span></code>
+                support on Linux, forcing the use of a pipe to interrupt blocked
+                epoll/select system calls.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_DISABLE_KQUEUE</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Explicitly disables <code class="computeroutput"><span class="identifier">kqueue</span></code>
+                support on Mac OS X and BSD variants, forcing the use of a <code class="computeroutput"><span class="identifier">select</span></code>-based implementation.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_DISABLE_IOCP</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Explicitly disables I/O completion ports support on Windows, forcing
+                the use of a <code class="computeroutput"><span class="identifier">select</span></code>-based
+                implementation.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_DISABLE_THREADS</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Explicitly disables Boost.Asio's threading support, independent of
+                whether or not Boost as a whole supports threads.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_NO_WIN32_LEAN_AND_MEAN</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                By default, Boost.Asio will automatically define <code class="computeroutput"><span class="identifier">WIN32_LEAN_AND_MEAN</span></code>
+                when compiling for Windows, to minimise the number of Windows SDK
+                header files and features that are included. The presence of <code class="computeroutput"><span class="identifier">BOOST_ASIO_NO_WIN32_LEAN_AND_MEAN</span></code>
+                prevents <code class="computeroutput"><span class="identifier">WIN32_LEAN_AND_MEAN</span></code>
+                from being defined.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_NO_NOMINMAX</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                By default, Boost.Asio will automatically define <code class="computeroutput"><span class="identifier">NOMINMAX</span></code>
+                when compiling for Windows, to suppress the definition of the <code class="computeroutput"><span class="identifier">min</span><span class="special">()</span></code>
+                and <code class="computeroutput"><span class="identifier">max</span><span class="special">()</span></code>
+                macros. The presence of <code class="computeroutput"><span class="identifier">BOOST_ASIO_NO_NOMINMAX</span></code>
+                prevents <code class="computeroutput"><span class="identifier">NOMINMAX</span></code>
+                from being defined.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_NO_DEFAULT_LINKED_LIBS</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                When compiling for Windows using Microsoft Visual C++ or Borland
+                C++, Boost.Asio will automatically link in the necessary Windows
+                SDK libraries for sockets support (i.e. <code class="literal">ws2_32.lib</code>
+                and <code class="literal">mswsock.lib</code>, or <code class="literal">ws2.lib</code>
+                when building for Windows CE). The <code class="computeroutput"><span class="identifier">BOOST_ASIO_NO_DEFAULT_LINKED_LIBS</span></code>
+                macro prevents these libraries from being linked.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_SOCKET_STREAMBUF_MAX_ARITY</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Determines the maximum number of arguments that may be passed to
+                the <code class="computeroutput"><span class="identifier">basic_socket_streambuf</span></code>
+                class template's <code class="computeroutput"><span class="identifier">connect</span></code>
+                member function. Defaults to 5.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_SOCKET_IOSTREAM_MAX_ARITY</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Determines the maximum number of arguments that may be passed to
+                the <code class="computeroutput"><span class="identifier">basic_socket_iostream</span></code>
+                class template's constructor and <code class="computeroutput"><span class="identifier">connect</span></code>
+                member function. Defaults to 5.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_ENABLE_CANCELIO</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Enables use of the <code class="computeroutput"><span class="identifier">CancelIo</span></code>
+                function on older versions of Windows. If not enabled, calls to
+                <code class="computeroutput"><span class="identifier">cancel</span><span class="special">()</span></code>
+                on a socket object will always fail with <code class="computeroutput"><span class="identifier">asio</span><span class="special">::</span><span class="identifier">error</span><span class="special">::</span><span class="identifier">operation_not_supported</span></code>
+                when run on Windows XP, Windows Server 2003, and earlier versions
+                of Windows. When running on Windows Vista, Windows Server 2008, and
+                later, the <code class="computeroutput"><span class="identifier">CancelIoEx</span></code>
+                function is always used.
+              </p>
+              <p>
+                The <code class="computeroutput"><span class="identifier">CancelIo</span></code> function
+                has two issues that should be considered before enabling its use:
+              </p>
+              <p>
+                * It will only cancel asynchronous operations that were initiated
+                in the current thread.
+              </p>
+              <p>
+                * It can appear to complete without error, but the request to cancel
+                the unfinished operations may be silently ignored by the operating
+                system. Whether it works or not seems to depend on the drivers that
+                are installed.
+              </p>
+              <p>
+                For portable cancellation, consider using one of the following alternatives:
+              </p>
+              <p>
+                * Disable asio's I/O completion port backend by defining BOOST_ASIO_DISABLE_IOCP.
+              </p>
+              <p>
+                * Use the socket object's close() function to simultaneously cancel
+                the outstanding operations and close the socket.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_NO_TYPEID</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Disables uses of the <code class="computeroutput"><span class="keyword">typeid</span></code>
+                operator in Boost.Asio. Defined automatically if <code class="computeroutput"><span class="identifier">BOOST_NO_TYPEID</span></code>
+                is defined.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">BOOST_ASIO_HASH_MAP_BUCKETS</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Determines the number of buckets in Boost.Asio's internal <code class="computeroutput"><span class="identifier">hash_map</span></code> objects. The value should
+                be a comma separated list of prime numbers, in ascending order. The
+                <code class="computeroutput"><span class="identifier">hash_map</span></code> implementation
+                will automatically increase the number of buckets as the number of
+                elements in the map increases.
+              </p>
+              <p>
+                Some examples:
+              </p>
+              <p>
+                * Defining <code class="computeroutput"><span class="identifier">BOOST_ASIO_HASH_MAP_BUCKETS</span></code>
+                to <code class="computeroutput"><span class="number">1021</span></code> means that the
+                <code class="computeroutput"><span class="identifier">hash_map</span></code> objects
+                will always contain 1021 buckets, irrespective of the number of elements
+                in the map.
+              </p>
+              <p>
+                * Defining <code class="computeroutput"><span class="identifier">BOOST_ASIO_HASH_MAP_BUCKETS</span></code>
+                to <code class="computeroutput"><span class="number">53</span><span class="special">,</span><span class="number">389</span><span class="special">,</span><span class="number">1543</span></code> means that the <code class="computeroutput"><span class="identifier">hash_map</span></code>
+                objects will initially contain 53 buckets. The number of buckets
+                will be increased to 389 and then 1543 as elements are added to the
+                map.
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+<h4>
+<a name="boost_asio.using.h5"></a>
+      <span class="phrase"><a name="boost_asio.using.mailing_list"></a></span><a class="link" href="using.html#boost_asio.using.mailing_list">Mailing
+      List</a>
+    </h4>
+<p>
+      A mailing list specifically for Boost.Asio may be found on <a href="http://sourceforge.net/mail/?group_id=122478" target="_top">SourceForge.net</a>.
+      Newsgroup access is provided via <a href="http://dir.gmane.org/gmane.comp.lib.boost.asio.user" target="_top">Gmane</a>.
+    </p>
+<h4>
+<a name="boost_asio.using.h6"></a>
+      <span class="phrase"><a name="boost_asio.using.wiki"></a></span><a class="link" href="using.html#boost_asio.using.wiki">Wiki</a>
+    </h4>
+<p>
+      Users are encouraged to share examples, tips and FAQs on the Boost.Asio wiki,
+      which is located at <a href="http://think-async.com/Asio/" target="_top">http://think-async.com/Asio/</a>.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overview/implementation.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_asio.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../boost_asio.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutorial.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

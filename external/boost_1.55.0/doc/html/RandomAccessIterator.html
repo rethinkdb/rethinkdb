@@ -1,0 +1,258 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Concept RandomAccessIterator</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="idp18734808-bb.html#concepts.reference" title="Concept reference">
+<link rel="prev" href="BidirectionalIterator.html" title="Concept BidirectionalIterator">
+<link rel="next" href="DefaultConstructible.html" title="Concept DefaultConstructible">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BidirectionalIterator.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="idp18734808-bb.html#concepts.reference"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="DefaultConstructible.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="RandomAccessIterator"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Concept RandomAccessIterator</span></h2>
+<p>RandomAccessIterator</p>
+</div>
+<div class="refsect1">
+<a name="idp75804920"></a><h2>Description</h2>
+<p>A random access iterator is an iterator that can read through
+  a sequence of values.  It can move in either direction through the
+  sequence (by any amount in constant time), and can be either mutable
+  (data pointed to by it can be changed) or not mutable.</p>
+<p>An iterator represents a position in a sequence.  Therefore,
+  the iterator can point into the sequence (returning a value when
+  dereferenced and being incrementable), or be off-the-end (and not
+  dereferenceable or incrementable).</p>
+</div>
+<div class="refsect1">
+<a name="idp75806088"></a><h2>Refinement of</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p><a class="link" href="BidirectionalIterator.html" title="Concept BidirectionalIterator">BidirectionalIterator</a></p></li>
+<li class="listitem"><p><a class="link" href="LessThanComparable.html" title="Concept LessThanComparable">LessThanComparable</a></p></li>
+</ul></div>
+</div>
+<div class="refsect1">
+<a name="idp75807384"></a><h2>Associated types</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<p><span class="bold"><strong>value_type</strong></span></p>
+<pre class="literallayout">std::iterator_traits&lt;Iter&gt;::value_type</pre>
+<p>The value type of the iterator</p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>category</strong></span></p>
+<pre class="literallayout">std::iterator_traits&lt;Iter&gt;::iterator_category</pre>
+<p>The category of the iterator</p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>difference_type</strong></span></p>
+<pre class="literallayout">std::iterator_traits&lt;Iter&gt;::difference_type</pre>
+<p>The difference type of the iterator (measure of the number
+    of steps between two iterators)</p>
+</li>
+</ul></div>
+</div>
+<div class="refsect1">
+<a name="idp75810824"></a><h2>Notation</h2>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term">Iter</span></dt>
+<dd>A type playing the role of iterator-type in the <a class="link" href="RandomAccessIterator.html" title="Concept RandomAccessIterator">RandomAccessIterator</a> concept.</dd>
+<dt>
+<span class="term"><code class="varname">i</code>, </span><span class="term"><code class="varname">j</code></span>
+</dt>
+<dd>Objects of type Iter</dd>
+<dt><span class="term"><code class="varname">x</code></span></dt>
+<dd>Object of type value_type</dd>
+<dt><span class="term"><code class="varname">n</code></span></dt>
+<dd>Object of type difference_type</dd>
+<dt><span class="term"><code class="varname">int_off</code></span></dt>
+<dd>Object of type int</dd>
+</dl></div>
+</div>
+<div class="refsect1">
+<a name="idp75814120"></a><h2>Type expressions</h2>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term">Category tag</span></dt>
+<dd><p><span class="type">category</span> must be
+                  derived from <span class="type">std::random_access_iterator_tag</span>.
+                </p></dd>
+</dl></div>
+</div>
+<div class="refsect1">
+<a name="idp75815256"></a><h2>Valid expressions</h2>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Type</th>
+<th>Semantics</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><p>Motion</p></td>
+<td><p>i += n</p></td>
+<td><p><span class="type">Iter &amp;</span></p></td>
+<td><p>Equivalent to applying <code class="computeroutput">i++</code> <code class="computeroutput">n</code> times
+    if <code class="computeroutput">n</code> is positive, applying <code class="computeroutput">i--</code>
+    <code class="computeroutput">-n</code> times if <code class="computeroutput">n</code> is negative, and to a null
+    operation if <code class="computeroutput">n</code> is zero.</p></td>
+</tr>
+<tr>
+<td><p>Motion (with integer offset)</p></td>
+<td><p>i += int_off</p></td>
+<td><p><span class="type">Iter &amp;</span></p></td>
+<td><p>Equivalent to applying <code class="computeroutput">i++</code> <code class="computeroutput">n</code> times
+    if <code class="computeroutput">n</code> is positive, applying <code class="computeroutput">i--</code>
+    <code class="computeroutput">-n</code> times if <code class="computeroutput">n</code> is negative, and to a null
+    operation if <code class="computeroutput">n</code> is zero.</p></td>
+</tr>
+<tr>
+<td><p>Subtractive motion</p></td>
+<td><p>i -= n</p></td>
+<td><p><span class="type">Iter &amp;</span></p></td>
+<td><p>Equivalent to <code class="computeroutput">i+=(-n)</code></p></td>
+</tr>
+<tr>
+<td><p>Subtractive motion (with integer offset)</p></td>
+<td><p>i -= int_off</p></td>
+<td><p><span class="type">Iter &amp;</span></p></td>
+<td><p>Equivalent to <code class="computeroutput">i+=(-n)</code></p></td>
+</tr>
+<tr>
+<td><p>Addition</p></td>
+<td><p>i + n</p></td>
+<td><p><span class="type">Iter</span></p></td>
+<td><p>Equivalent to <code class="computeroutput">{Iter j = i; j += n; return j;}</code></p></td>
+</tr>
+<tr>
+<td><p>Addition with integer</p></td>
+<td><p>i + int_off</p></td>
+<td><p><span class="type">Iter</span></p></td>
+<td><p>Equivalent to <code class="computeroutput">{Iter j = i; j += n; return j;}</code></p></td>
+</tr>
+<tr>
+<td><p>Addition (count first)</p></td>
+<td><p>n + i</p></td>
+<td><p><span class="type">Iter</span></p></td>
+<td><p>Equivalent to <code class="computeroutput">i + n</code></p></td>
+</tr>
+<tr>
+<td><p>Addition with integer (count first)</p></td>
+<td><p>int_off + i</p></td>
+<td><p><span class="type">Iter</span></p></td>
+<td><p>Equivalent to <code class="computeroutput">i + n</code></p></td>
+</tr>
+<tr>
+<td><p>Subtraction</p></td>
+<td><p>i - n</p></td>
+<td><p><span class="type">Iter</span></p></td>
+<td><p>Equivalent to <code class="computeroutput">i + (-n)</code></p></td>
+</tr>
+<tr>
+<td><p>Subtraction with integer</p></td>
+<td><p>i - int_off</p></td>
+<td><p><span class="type">Iter</span></p></td>
+<td><p>Equivalent to <code class="computeroutput">i + (-n)</code></p></td>
+</tr>
+<tr>
+<td><p>Distance</p></td>
+<td><p>i - j</p></td>
+<td><p><span class="type">difference_type</span></p></td>
+<td><p>The number of times <code class="computeroutput">i</code> must be incremented (or
+    decremented if the result is negative) to reach <code class="computeroutput">j</code>.  Not
+    defined if <code class="computeroutput">j</code> is not reachable from
+    <code class="computeroutput">i</code>.</p></td>
+</tr>
+<tr>
+<td><p>Element access</p></td>
+<td><p>i[n]</p></td>
+<td><p><span class="type">const-if-not-mutable value_type &amp;</span></p></td>
+<td><p>Equivalent to <code class="computeroutput">*(i + n)</code></p></td>
+</tr>
+<tr>
+<td><p>Element access with integer index</p></td>
+<td><p>i[int_off]</p></td>
+<td><p><span class="type">const-if-not-mutable value_type &amp;</span></p></td>
+<td><p>Equivalent to <code class="computeroutput">*(i + n)</code></p></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="refsect1">
+<a name="idp75838264"></a><h2>Complexity</h2>
+<p>
+  All iterator operations must take amortized constant time.
+  </p>
+</div>
+<div class="refsect1">
+<a name="idp75838680"></a><h2>Models</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><span class="simplelist"><span class="type">T *</span></span></li>
+<li class="listitem"><span class="simplelist"><span class="type">std::vector&lt;T&gt;::iterator</span></span></li>
+<li class="listitem"><span class="simplelist"><span class="type">std::vector&lt;T&gt;::const_iterator</span></span></li>
+<li class="listitem"><span class="simplelist"><span class="type">std::deque&lt;T&gt;::iterator</span></span></li>
+<li class="listitem"><span class="simplelist"><span class="type">std::deque&lt;T&gt;::const_iterator</span></span></li>
+</ul></div>
+</div>
+<div class="refsect1">
+<a name="idp75841480"></a><h2>See also</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><a class="link" href="LessThanComparable.html" title="Concept LessThanComparable">LessThanComparable</a></p></li></ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001, 2002 Indiana University<br>Copyright &#169; 2000, 2001 University of Notre Dame du Lac<br>Copyright &#169; 2000 Jeremy Siek, Lie-Quan Lee, Andrew Lumsdaine<br>Copyright &#169; 1996-1999 Silicon Graphics Computer Systems, Inc.<br>Copyright &#169; 1994 Hewlett-Packard Company<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+<p>This product includes software developed at the University
+      of Notre Dame and the Pervasive Technology Labs at Indiana
+      University. For technical information contact Andrew Lumsdaine
+      at the Pervasive Technology Labs at Indiana University.  For
+      administrative and license questions contact the Advanced
+      Research and Technology Institute at 351 West 10th Street.
+      Indianapolis, Indiana 46202, phone 317-278-4100, fax
+      317-274-5902.</p>
+<p>Some concepts based on versions from the MTL draft manual
+      and Boost Graph and Property Map documentation, the SGI Standard
+      Template Library documentation and the Hewlett-Packard STL,
+      under the following license: 
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>Permission to use, copy, modify, distribute and
+        sell this software and its documentation for any purpose is
+        hereby granted without fee, provided that the above copyright
+        notice appears in all copies and that both that copyright
+        notice and this permission notice appear in supporting
+        documentation.  Silicon Graphics makes no representations
+        about the suitability of this software for any purpose.  It is
+        provided "as is" without express or implied
+        warranty.</p></blockquote></div>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BidirectionalIterator.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="idp18734808-bb.html#concepts.reference"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="DefaultConstructible.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

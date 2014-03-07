@@ -1,0 +1,366 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Reference</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../variant.html" title="Chapter&#160;38.&#160;Boost.Variant">
+<link rel="prev" href="tutorial.html" title="Tutorial">
+<link rel="next" href="../BOOST_VARIANT_LIMIT_TYPES.html" title="Macro BOOST_VARIANT_LIMIT_TYPES">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tutorial.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../variant.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../BOOST_VARIANT_LIMIT_TYPES.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="variant.reference"></a>Reference</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="reference.html#variant.concepts">Concepts</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.variant_hpp">Header &lt;boost/variant.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.variant.variant_fwd_hpp">Header &lt;boost/variant/variant_fwd.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.variant.variant_hpp">Header &lt;boost/variant/variant.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.variant.recursive_variant_hpp">Header &lt;boost/variant/recursive_variant.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.variant.recursive_wrapper_hpp">Header &lt;boost/variant/recursive_wrapper.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.variant.apply_visitor_hpp">Header &lt;boost/variant/apply_visitor.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.variant.multivisitors_hpp">Header &lt;boost/variant/multivisitors.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.variant.get_hpp">Header &lt;boost/variant/get.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.variant.bad_visit_hpp">Header &lt;boost/variant/bad_visit.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.variant.static_visitor_hpp">Header &lt;boost/variant/static_visitor.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="reference.html#header.boost.variant.visitor_ptr_hpp">Header &lt;boost/variant/visitor_ptr.hpp&gt;</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="variant.concepts"></a>Concepts</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="reference.html#variant.concepts.bounded-type"><span class="emphasis"><em>BoundedType</em></span></a></span></dt>
+<dt><span class="section"><a href="reference.html#variant.concepts.static-visitor"><span class="emphasis"><em>StaticVisitor</em></span></a></span></dt>
+<dt><span class="section"><a href="reference.html#variant.concepts.output-streamable"><span class="emphasis"><em>OutputStreamable</em></span></a></span></dt>
+<dt><span class="section"><a href="reference.html#variant.concepts.hashable"><span class="emphasis"><em>Hashable</em></span></a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="variant.concepts.bounded-type"></a><span class="emphasis"><em>BoundedType</em></span>
+</h4></div></div></div>
+<p>The requirements on a <span class="bold"><strong>bounded type</strong></span>
+      are as follows:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<a class="link" href="../CopyConstructible.html" title="Concept CopyConstructible">CopyConstructible</a> or MoveConstructible.</li>
+<li class="listitem">Destructor upholds the no-throw exception-safety
+        guarantee.</li>
+<li class="listitem">Complete at the point of <code class="computeroutput">variant</code> template
+        instantiation. (See
+        <code class="computeroutput"><a class="link" href="../boost/recursive_wrapper.html" title="Class template recursive_wrapper">boost::recursive_wrapper</a>&lt;T&gt;</code>
+        for a type wrapper that accepts incomplete types to enable recursive
+        <code class="computeroutput">variant</code> types.)</li>
+</ul></div>
+<p>Every type specified as a template argument to
+      <code class="computeroutput"><a class="link" href="../boost/variant.html" title="Class template variant">variant</a></code> must at minimum fulfill the
+      above requirements. In addition, certain features of <code class="computeroutput">variant</code>
+      are available only if its bounded types meet the requirements of these
+      following additional concepts:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<a class="link" href="../Assignable.html" title="Concept Assignable">Assignable</a>:
+        <code class="computeroutput">variant</code> is itself <span class="emphasis"><em>Assignable</em></span> if and
+        only if every one of its bounded types meets the requirements of the
+        concept. (Note that top-level <code class="computeroutput">const</code>-qualified types and
+        reference types do <span class="emphasis"><em>not</em></span> meet these
+        requirements.)</li>
+<li class="listitem">MoveAssignable:
+        <code class="computeroutput">variant</code> is itself <span class="emphasis"><em>MoveAssignable</em></span> if and
+        only if every one of its bounded types meets the requirements of the
+        concept. (Note that top-level <code class="computeroutput">const</code>-qualified types and
+        reference types do <span class="emphasis"><em>not</em></span> meet these
+        requirements.)</li>
+<li class="listitem">
+<a class="link" href="../DefaultConstructible.html" title="Concept DefaultConstructible">DefaultConstructible</a> [20.1.4]:
+        <code class="computeroutput">variant</code> is itself
+        <a class="link" href="../DefaultConstructible.html" title="Concept DefaultConstructible">DefaultConstructible</a> if and only if its first
+        bounded type (i.e., <code class="computeroutput">T1</code>) meets the requirements of the
+        concept.</li>
+<li class="listitem">
+<a class="link" href="../EqualityComparable.html" title="Concept EqualityComparable">EqualityComparable</a>:
+        <code class="computeroutput">variant</code> is itself <a class="link" href="../EqualityComparable.html" title="Concept EqualityComparable">EqualityComparable</a>
+        if and only if every one of its bounded types meets the requirements
+        of the concept.</li>
+<li class="listitem">
+<a class="link" href="../LessThanComparable.html" title="Concept LessThanComparable">LessThanComparable</a>:
+        <code class="computeroutput">variant</code> is itself <a class="link" href="../LessThanComparable.html" title="Concept LessThanComparable">LessThanComparable</a>
+        if and only if every one of its bounded types meets the requirements
+        of the concept.</li>
+<li class="listitem">
+<a class="link" href="reference.html#variant.concepts.output-streamable" title="OutputStreamable"><span class="emphasis"><em>OutputStreamable</em></span></a>:
+        <code class="computeroutput">variant</code> is itself <span class="emphasis"><em>OutputStreamable</em></span>
+        if and only if every one of its bounded types meets the requirements
+        of the concept.</li>
+<li class="listitem">
+<a class="link" href="reference.html#variant.concepts.hashable" title="Hashable"><span class="emphasis"><em>Hashable</em></span></a>:
+        <code class="computeroutput">variant</code> is itself <span class="emphasis"><em>Hashable</em></span>
+        if and only if every one of its bounded types meets the requirements
+        of the concept.</li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="variant.concepts.static-visitor"></a><span class="emphasis"><em>StaticVisitor</em></span>
+</h4></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="reference.html#variant.concepts.static-visitor.examples">Examples</a></span></dt></dl></div>
+<p>The requirements on a <span class="bold"><strong>static
+    visitor</strong></span> of a type <code class="computeroutput">T</code> are as follows:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">Must allow invocation as a function by overloading
+        <code class="computeroutput">operator()</code>, unambiguously accepting any value of type
+        <code class="computeroutput">T</code>.</li>
+<li class="listitem">Must expose inner type <code class="computeroutput">result_type</code>. (See 
+        <code class="computeroutput"><a class="link" href="../boost/visitor_ptr.html" title="Function template visitor_ptr">boost::visitor_ptr</a></code> for a
+        solution to using functions as visitors.)</li>
+<li class="listitem">If <code class="computeroutput">result_type</code> is not <code class="computeroutput">void</code>, then
+        each operation of the function object must return a value implicitly
+        convertible to <code class="computeroutput">result_type</code>.</li>
+</ul></div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="variant.concepts.static-visitor.examples"></a>Examples</h5></div></div></div>
+<p>The following class satisfies the requirements of a static visitor
+      of several types (i.e., explicitly: <code class="computeroutput">int</code> and
+      <code class="computeroutput">std::string</code>; or, e.g., implicitly: <code class="computeroutput">short</code> and
+      <code class="computeroutput">const char *</code>; etc.):</p>
+<pre class="programlisting">class my_visitor
+    : public <code class="computeroutput"><a class="link" href="../boost/static_visitor.html" title="Class template static_visitor">boost::static_visitor</a></code>&lt;int&gt;
+{
+public:
+
+    int operator()(int i)
+    {
+        return i * 2;
+    }
+
+    int operator()(const std::string&amp; s)
+    {
+        return s.length();
+    }
+
+};</pre>
+<p>Another example is the following class, whose function-call
+      operator is a member template, allowing it to operate on values of many
+      types. Thus, the following class is a visitor of any type that supports
+      streaming output (e.g., <code class="computeroutput">int</code>, <code class="computeroutput">double</code>,
+      <code class="computeroutput">std::string</code>, etc.):</p>
+<pre class="programlisting">class printer
+    : public <code class="computeroutput"><a class="link" href="../boost/static_visitor.html" title="Class template static_visitor">boost::static_visitor</a></code>&lt;&gt;
+{
+    template &lt;typename T&gt;
+    void operator()(const T&amp; t)
+    {
+        std::cout &lt;&lt; t &lt;&lt; std::endl;
+    }
+};</pre>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="variant.concepts.output-streamable"></a><span class="emphasis"><em>OutputStreamable</em></span>
+</h4></div></div></div>
+<p>The requirements on an <span class="bold"><strong>output
+      streamable</strong></span> type <code class="computeroutput">T</code> are as follows:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">For any object <code class="computeroutput">t</code> of type <code class="computeroutput">T</code>,
+        <code class="computeroutput">std::cout &lt;&lt; t</code> must be a valid
+        expression.</li></ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="variant.concepts.hashable"></a><span class="emphasis"><em>Hashable</em></span>
+</h4></div></div></div>
+<p>The requirements on an <span class="bold"><strong>hashable</strong></span> type <code class="computeroutput">T</code> are as follows:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">For any object <code class="computeroutput">t</code> of type <code class="computeroutput">T</code>,
+        <code class="computeroutput">boost::hash&lt;T&gt;()(t)</code> must be a valid
+        expression.</li></ul></div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.variant_hpp"></a>Header &lt;<a href="../../../boost/variant.hpp" target="_top">boost/variant.hpp</a>&gt;</h3></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="reference.html#variant.header.include-all"></a></span></dt></dl></div>
+<div class="section">
+<div class="titlepage"></div>
+<p>This header exists simply as a convenience to the user, including
+      all of the headers in the <code class="computeroutput">boost/variant</code> directory except &lt;boost/multivisiors.hpp&gt;.</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.variant.variant_fwd_hpp"></a>Header &lt;<a href="../../../boost/variant/variant_fwd.hpp" target="_top">boost/variant/variant_fwd.hpp</a>&gt;</h3></div></div></div>
+<p>Provides forward declarations of the
+    <code class="computeroutput"><a class="link" href="../boost/variant.html" title="Class template variant">boost::variant</a></code>,
+    <code class="computeroutput"><a class="link" href="../boost/make_variant_over.html" title="Class template make_variant_over">boost::make_variant_over</a></code>,
+    <code class="computeroutput"><a class="link" href="../boost/make_recursive_variant.html" title="Class template make_recursive_variant">boost::make_recursive_variant</a></code>, and
+    <code class="computeroutput"><a class="link" href="../boost/make_recursiv_idp160888872.html" title="Class template make_recursive_variant_over">boost::make_recursive_variant_over</a></code>
+    class templates and the <code class="computeroutput">boost::recursive_variant_</code> tag type.
+    Also defines several preprocessor symbols, as described below.</p>
+<pre class="synopsis">
+
+<a class="link" href="../BOOST_VARIANT_LIMIT_TYPES.html" title="Macro BOOST_VARIANT_LIMIT_TYPES">BOOST_VARIANT_LIMIT_TYPES</a>
+<a class="link" href="../BOOST_VARIANT_ENUM_PARAMS.html" title="Macro BOOST_VARIANT_ENUM_PARAMS">BOOST_VARIANT_ENUM_PARAMS</a>(param)
+<a class="link" href="../BOOST_VARIANT_ENUM_SHIFTED_PARAMS.html" title="Macro BOOST_VARIANT_ENUM_SHIFTED_PARAMS">BOOST_VARIANT_ENUM_SHIFTED_PARAMS</a>(param)
+<a class="link" href="../BOOST_VARIANT_NO_REFERENCE_SUPPORT.html" title="Macro BOOST_VARIANT_NO_REFERENCE_SUPPORT">BOOST_VARIANT_NO_REFERENCE_SUPPORT</a>
+<a class="link" href="../BOOST_VARIANT_NO_TYPE_SEQUENCE_SUPPORT.html" title="Macro BOOST_VARIANT_NO_TYPE_SEQUENCE_SUPPORT">BOOST_VARIANT_NO_TYPE_SEQUENCE_SUPPORT</a>
+<a class="link" href="../BOOST_VARIANT_NO_FULL_RECURSIVE_VARIANT_SUPPORT.html" title="Macro BOOST_VARIANT_NO_FULL_RECURSIVE_VARIANT_SUPPORT">BOOST_VARIANT_NO_FULL_RECURSIVE_VARIANT_SUPPORT</a></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.variant.variant_hpp"></a>Header &lt;<a href="../../../boost/variant/variant.hpp" target="_top">boost/variant/variant.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2 <span class="special">=</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> 
+           <span class="keyword">typename</span> TN <span class="special">=</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span><span class="special">&gt;</span> 
+    <span class="keyword">class</span> <a class="link" href="../boost/variant.html" title="Class template variant">variant</a><span class="special">;</span>
+
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Sequence<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/make_variant_over.html" title="Class template make_variant_over">make_variant_over</a><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="../boost/swap_idp98051496.html" title="Function template swap"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="../boost/variant.html" title="Class template variant">variant</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <a class="link" href="../boost/variant.html" title="Class template variant">variant</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ElemType<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">,</span> <span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> 
+           <span class="keyword">typename</span> TN<span class="special">&gt;</span> 
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span><span class="identifier">ElemType</span><span class="special">,</span><span class="identifier">Traits</span><span class="special">&gt;</span> <span class="special">&amp;</span> 
+    <a class="link" href="../boost/operator_idp53065304.html" title="Function template operator&lt;&lt;"><span class="keyword">operator</span><span class="special">&lt;&lt;</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span><span class="identifier">ElemType</span><span class="special">,</span><span class="identifier">Traits</span><span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+               <span class="keyword">const</span> <a class="link" href="../boost/variant.html" title="Class template variant">variant</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">&gt;</span> 
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="../boost/hash_value_idp52963416.html" title="Function template hash_value"><span class="identifier">hash_value</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="../boost/variant.html" title="Class template variant">variant</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.variant.recursive_variant_hpp"></a>Header &lt;<a href="../../../boost/variant/recursive_variant.hpp" target="_top">boost/variant/recursive_variant.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a name="boost.recursive_variant_"></a><span class="identifier">recursive_variant_</span><span class="special">;</span>
+
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2 <span class="special">=</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> 
+           <span class="keyword">typename</span> TN <span class="special">=</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span><span class="special">&gt;</span> 
+    <span class="keyword">class</span> <a class="link" href="../boost/make_recursive_variant.html" title="Class template make_recursive_variant">make_recursive_variant</a><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Sequence<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/make_recursiv_idp160888872.html" title="Class template make_recursive_variant_over">make_recursive_variant_over</a><span class="special">;</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.variant.recursive_wrapper_hpp"></a>Header &lt;<a href="../../../boost/variant/recursive_wrapper.hpp" target="_top">boost/variant/recursive_wrapper.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/recursive_wrapper.html" title="Class template recursive_wrapper">recursive_wrapper</a><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/is_recursive_wrapper.html" title="Class template is_recursive_wrapper">is_recursive_wrapper</a><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/unwrap_recursive_wrapper.html" title="Class template unwrap_recursive_wrapper">unwrap_recursive_wrapper</a><span class="special">;</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.variant.apply_visitor_hpp"></a>Header &lt;<a href="../../../boost/variant/apply_visitor.hpp" target="_top">boost/variant/apply_visitor.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Visitor<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/apply_visitor_delayed_t.html" title="Class template apply_visitor_delayed_t">apply_visitor_delayed_t</a><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Visitor<span class="special">,</span> <span class="keyword">typename</span> Variant<span class="special">&gt;</span> 
+    <span class="keyword">typename</span> <span class="identifier">Visitor</span><span class="special">::</span><span class="identifier">result_type</span> <a class="link" href="../boost/apply_visitor.html" title="Function apply_visitor"><span class="identifier">apply_visitor</span></a><span class="special">(</span><span class="identifier">Visitor</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Variant</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Visitor<span class="special">,</span> <span class="keyword">typename</span> Variant<span class="special">&gt;</span> 
+    <span class="keyword">typename</span> <span class="identifier">Visitor</span><span class="special">::</span><span class="identifier">result_type</span> <a class="link" href="../boost/apply_visitor.html" title="Function apply_visitor"><span class="identifier">apply_visitor</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Visitor</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Variant</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BinaryVisitor<span class="special">,</span> <span class="keyword">typename</span> Variant1<span class="special">,</span> <span class="keyword">typename</span> Variant2<span class="special">&gt;</span> 
+    <span class="keyword">typename</span> <span class="identifier">BinaryVisitor</span><span class="special">::</span><span class="identifier">result_type</span> 
+    <a class="link" href="../boost/apply_visitor.html" title="Function apply_visitor"><span class="identifier">apply_visitor</span></a><span class="special">(</span><span class="identifier">BinaryVisitor</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Variant1</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Variant2</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BinaryVisitor<span class="special">,</span> <span class="keyword">typename</span> Variant1<span class="special">,</span> <span class="keyword">typename</span> Variant2<span class="special">&gt;</span> 
+    <span class="keyword">typename</span> <span class="identifier">BinaryVisitor</span><span class="special">::</span><span class="identifier">result_type</span> 
+    <a class="link" href="../boost/apply_visitor.html" title="Function apply_visitor"><span class="identifier">apply_visitor</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">BinaryVisitor</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Variant1</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Variant2</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> MultiVisitor<span class="special">,</span> <span class="keyword">typename</span> Variant1<span class="special">,</span> <span class="keyword">typename</span> Variant2<span class="special">,</span> 
+           <span class="keyword">typename</span> Variant3<span class="special">&gt;</span> 
+    <span class="keyword">typename</span> <span class="identifier">MultiVisitor</span><span class="special">::</span><span class="identifier">result_type</span> 
+    <a class="link" href="../boost/apply_visitor.html" title="Function apply_visitor"><span class="identifier">apply_visitor</span></a><span class="special">(</span><span class="identifier">MultiVisitor</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Variant1</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Variant2</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Variant3</span> <span class="special">&amp;</span><span class="special">,</span> <span class="special">...</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> MultiVisitor<span class="special">,</span> <span class="keyword">typename</span> Variant1<span class="special">,</span> <span class="keyword">typename</span> Variant2<span class="special">,</span> 
+           <span class="keyword">typename</span> Variant3<span class="special">&gt;</span> 
+    <span class="keyword">typename</span> <span class="identifier">MultiVisitor</span><span class="special">::</span><span class="identifier">result_type</span> 
+    <a class="link" href="../boost/apply_visitor.html" title="Function apply_visitor"><span class="identifier">apply_visitor</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">MultiVisitor</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Variant1</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Variant2</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Variant3</span> <span class="special">&amp;</span><span class="special">,</span> 
+                  <span class="special">...</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Visitor<span class="special">&gt;</span> 
+    <a class="link" href="../boost/apply_visitor_delayed_t.html" title="Class template apply_visitor_delayed_t">apply_visitor_delayed_t</a><span class="special">&lt;</span><span class="identifier">Visitor</span><span class="special">&gt;</span> <a class="link" href="../boost/apply_visitor.html" title="Function apply_visitor"><span class="identifier">apply_visitor</span></a><span class="special">(</span><span class="identifier">Visitor</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.variant.multivisitors_hpp"></a>Header &lt;<a href="../../../boost/variant/multivisitors.hpp" target="_top">boost/variant/multivisitors.hpp</a>&gt;</h3></div></div></div>
+<p>Provides declarations of <a class="link" href="../boost/apply_visitor.html" title="Function apply_visitor">apply_visitor</a> for three or more
+    <code class="computeroutput"><a class="link" href="../boost/variant.html" title="Class template variant">variant</a></code> parameters.</p>
+<pre class="synopsis">
+
+<a class="link" href="../BOOST_VARAINT_MAX_MULTIVIZITOR_PARAMS.html" title="Macro BOOST_VARAINT_MAX_MULTIVIZITOR_PARAMS">BOOST_VARAINT_MAX_MULTIVIZITOR_PARAMS</a></pre>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> MultiVisitor<span class="special">,</span> <span class="keyword">typename</span> Variant1<span class="special">,</span> <span class="keyword">typename</span> Variant2<span class="special">,</span> 
+           <span class="keyword">typename</span> Variant3<span class="special">&gt;</span> 
+    <span class="keyword">typename</span> <span class="identifier">MultiVisitor</span><span class="special">::</span><span class="identifier">result_type</span> 
+    <a class="link" href="../boost/apply_visitor_idp160064248.html" title="Function apply_visitor /*three or more variant parameters*/"><span class="identifier">apply_visitor</span> <span class="comment">/*three or more variant parameters*/</span></a><span class="special">(</span><span class="identifier">MultiVisitor</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                                       <span class="identifier">Variant1</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                                       <span class="identifier">Variant2</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                                       <span class="identifier">Variant3</span> <span class="special">&amp;</span><span class="special">,</span> <span class="special">...</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> MultiVisitor<span class="special">,</span> <span class="keyword">typename</span> Variant1<span class="special">,</span> <span class="keyword">typename</span> Variant2<span class="special">,</span> 
+           <span class="keyword">typename</span> Variant3<span class="special">&gt;</span> 
+    <span class="keyword">typename</span> <span class="identifier">MultiVisitor</span><span class="special">::</span><span class="identifier">result_type</span> 
+    <a class="link" href="../boost/apply_visitor_idp160064248.html" title="Function apply_visitor /*three or more variant parameters*/"><span class="identifier">apply_visitor</span> <span class="comment">/*three or more variant parameters*/</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">MultiVisitor</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                                       <span class="identifier">Variant1</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                                       <span class="identifier">Variant2</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                                       <span class="identifier">Variant3</span> <span class="special">&amp;</span><span class="special">,</span> <span class="special">...</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.variant.get_hpp"></a>Header &lt;<a href="../../../boost/variant/get.hpp" target="_top">boost/variant/get.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">class</span> <a class="link" href="../boost/bad_get.html" title="Class bad_get">bad_get</a><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">,</span> <span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">&gt;</span> 
+    <span class="identifier">U</span> <span class="special">*</span> <a class="link" href="../boost/get_idp140956568.html" title="Function get"><span class="identifier">get</span></a><span class="special">(</span><a class="link" href="../boost/variant.html" title="Class template variant">variant</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">,</span> <span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">&gt;</span> 
+    <span class="keyword">const</span> <span class="identifier">U</span> <span class="special">*</span> <a class="link" href="../boost/get_idp140956568.html" title="Function get"><span class="identifier">get</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="../boost/variant.html" title="Class template variant">variant</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">,</span> <span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">&gt;</span> 
+    <span class="identifier">U</span> <span class="special">&amp;</span> <a class="link" href="../boost/get_idp140956568.html" title="Function get"><span class="identifier">get</span></a><span class="special">(</span><a class="link" href="../boost/variant.html" title="Class template variant">variant</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">,</span> <span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">&gt;</span> 
+    <span class="keyword">const</span> <span class="identifier">U</span> <span class="special">&amp;</span> <a class="link" href="../boost/get_idp140956568.html" title="Function get"><span class="identifier">get</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="../boost/variant.html" title="Class template variant">variant</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.variant.bad_visit_hpp"></a>Header &lt;<a href="../../../boost/variant/bad_visit.hpp" target="_top">boost/variant/bad_visit.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">class</span> <a class="link" href="../boost/bad_visit.html" title="Class bad_visit">bad_visit</a><span class="special">;</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.variant.static_visitor_hpp"></a>Header &lt;<a href="../../../boost/variant/static_visitor.hpp" target="_top">boost/variant/static_visitor.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ResultType<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/static_visitor.html" title="Class template static_visitor">static_visitor</a><span class="special">;</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.variant.visitor_ptr_hpp"></a>Header &lt;<a href="../../../boost/variant/visitor_ptr.hpp" target="_top">boost/variant/visitor_ptr.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> R<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="../boost/visitor_ptr_t.html" title="Class template visitor_ptr_t">visitor_ptr_t</a><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> R<span class="special">,</span> <span class="keyword">typename</span> T<span class="special">&gt;</span> <a class="link" href="../boost/visitor_ptr_t.html" title="Class template visitor_ptr_t">visitor_ptr_t</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">R</span><span class="special">&gt;</span> <a class="link" href="../boost/visitor_ptr.html" title="Function template visitor_ptr"><span class="identifier">visitor_ptr</span></a><span class="special">(</span><span class="identifier">R</span> <span class="special">(</span><span class="special">*</span><span class="special">)</span><span class="special">(</span><span class="identifier">T</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span></pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002, 2003 Eric Friedman, Itay Maman<p>Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+    <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+    </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tutorial.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../variant.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../BOOST_VARIANT_LIMIT_TYPES.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

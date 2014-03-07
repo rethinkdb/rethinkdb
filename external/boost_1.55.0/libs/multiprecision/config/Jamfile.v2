@@ -1,0 +1,64 @@
+# copyright John Maddock 2008
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or copy at 
+# http://www.boost.org/LICENSE_1_0.txt.
+
+import modules ;
+import path ;
+
+local gmp_path = [ modules.peek : GMP_PATH ] ;
+local mpfr_path = [ modules.peek : MPFR_PATH ] ;
+local mpfi_path = [ modules.peek : MPFI_PATH ] ;
+local tommath_path = [ modules.peek : TOMMATH_PATH ] ;
+
+project : requirements 
+   <include>$(gmp_path) 
+   <include>$(gmp_path)/mpfr 
+   <include>$(gmp_path)/gmpfrxx 
+   <include>$(mpfr_path)
+   <include>$(mpfi_path)
+   <include>$(mpfi_path)/src
+   <include>$(tommath_path)
+   <include>../../.. 
+   <search>$(gmp_path) 
+   <search>$(mpfr_path) 
+   <search>$(mpfr_path)/build.vc10/lib/Win32/Debug
+   <search>$(tommath_path) 
+   <search>$(mpfi_path) 
+   <search>$(mpfi_path)/src 
+   # We set these to make it easier to set up and test GMP and MPFR under Win32:
+   <toolset>msvc:<runtime-link>static
+   <toolset>msvc:<link>static
+   <toolset>intel-win:<runtime-link>static
+   <toolset>intel-win:<link>static
+   <toolset>msvc:<warnings>all
+   <toolset>gcc:<cxxflags>-Wall
+   <toolset>gcc:<cxxflags>-Wextra
+   ;
+
+lib gmp ;
+lib mpfr ;
+lib mpfi ;
+lib quadmath ;
+
+exe has_gmp : has_gmp.cpp gmp :
+      <include>$(gmp_path) <include>$(gmp_path)/mpfr <include>$(gmp_path)/gmpfrxx ;
+exe has_mpfr : has_mpfr.cpp mpfr gmp :
+      <include>$(mpfr_path) <include>$(gmp_path)/mpfr <include>$(gmp_path)/gmpfrxx <include>$(gmp_path) ;
+exe has_mpfi : has_mpfi.cpp mpfi mpfr gmp :
+      <include>$(mpfr_path) <include>$(gmp_path)/mpfr <include>$(gmp_path)/gmpfrxx <include>$(gmp_path) ;
+obj has_tommath : has_tommath.cpp :
+      <include>$(tommath_path) ;
+exe has_float128 : has_float128.cpp quadmath ;
+exe has_intel_quad : has_intel_quad.cpp : <cxxflags>-Qoption,cpp,--extended_float_type ;
+
+explicit has_gmp ;
+explicit has_mpfr ;
+explicit has_mpfi ;
+explicit has_tommath ;
+explicit has_float128 ;
+explicit has_intel_quad ;
+
+
+
+

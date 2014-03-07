@@ -1,0 +1,76 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Polygon Usage</title>
+</head>
+
+<body>
+
+<p><font face="Courier New">/*<br>
+Copyright 2008 Intel Corporation<br>
+<br>
+Use, modification and distribution are subject to the Boost Software License,<br>
+Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at<br>
+http://www.boost.org/LICENSE_1_0.txt).<br>
+*/<br>
+#include &lt;boost/polygon/polygon.hpp&gt;<br>
+#include &lt;cassert&gt;<br>
+namespace gtl = boost::polygon;<br>
+using namespace boost::polygon::operators;<br><br>
+int main() {<br>
+&nbsp;&nbsp;&nbsp; //lets construct a 10x10 rectangle shaped polygon<br>
+&nbsp;&nbsp;&nbsp; typedef gtl::polygon_data&lt;int&gt; Polygon;<br>
+&nbsp;&nbsp;&nbsp; typedef gtl::polygon_traits&lt;Polygon&gt;::point_type Point;<br>
+&nbsp;&nbsp;&nbsp; Point pts[] = {gtl::construct&lt;Point&gt;(0, 0),<br>
+&nbsp;&nbsp;&nbsp; gtl::construct&lt;Point&gt;(10, 0),<br>
+&nbsp;&nbsp;&nbsp; gtl::construct&lt;Point&gt;(10, 10),<br>
+&nbsp;&nbsp;&nbsp; gtl::construct&lt;Point&gt;(0, 10) };<br>
+&nbsp;&nbsp;&nbsp; Polygon poly;<br>
+&nbsp;&nbsp;&nbsp; gtl::set_points(poly, pts, pts+4);<br>
+<br>
+&nbsp;&nbsp;&nbsp; //now lets see what we can do with this polygon<br>
+&nbsp;&nbsp;&nbsp; assert(gtl::area(poly) == 100.0f);<br>
+&nbsp;&nbsp;&nbsp; assert(gtl::contains(poly, gtl::construct&lt;Point&gt;(5, 5)));<br>
+&nbsp;&nbsp;&nbsp; assert(!gtl::contains(poly, gtl::construct&lt;Point&gt;(15, 5)));<br>
+&nbsp;&nbsp;&nbsp; gtl::rectangle_data&lt;int&gt; rect;<br>
+&nbsp;&nbsp;&nbsp; assert(gtl::extents(rect, poly)); //get bounding box of poly<br>
+&nbsp;&nbsp;&nbsp; assert(gtl::equivalence(rect, poly)); //hey, that's slick<br>
+&nbsp;&nbsp;&nbsp; assert(gtl::winding(poly) == gtl::COUNTERCLOCKWISE);<br>
+&nbsp;&nbsp;&nbsp; assert(gtl::perimeter(poly) == 40.0f);<br>
+<br>
+&nbsp;&nbsp;&nbsp; //add 5 to all coords of poly<br>
+&nbsp;&nbsp;&nbsp; gtl::convolve(poly, gtl::construct&lt;Point&gt;(5, 5));<br>
+&nbsp;&nbsp;&nbsp; //multiply all coords of poly by 2<br>
+&nbsp;&nbsp;&nbsp; gtl::scale_up(poly, 2);<br>
+&nbsp;&nbsp;&nbsp; gtl::set_points(rect, gtl::point_data&lt;int&gt;(10, 10),<br>
+&nbsp;&nbsp;&nbsp; gtl::point_data&lt;int&gt;(30, 30));<br>
+&nbsp;&nbsp;&nbsp; assert(gtl::equivalence(poly, rect));<br>
+&nbsp;&nbsp;&nbsp; return 0;<br>
+}<br>
+//Now you know how to use the built in polygon data type<br>
+&nbsp;</font></p>
+
+
+<table class="docinfo" rules="none" frame="void" id="table1">
+	<colgroup>
+		<col class="docinfo-name"><col class="docinfo-content">
+	</colgroup>
+	<tbody vAlign="top">
+		<tr>
+			<th class="docinfo-name">Copyright:</th>
+			<td>Copyright © Intel Corporation 2008-2010.</td>
+		</tr>
+		<tr class="field">
+			<th class="docinfo-name">License:</th>
+			<td class="field-body">Distributed under the Boost Software License, 
+			Version 1.0. (See accompanying file <tt class="literal">
+			<span class="pre">LICENSE_1_0.txt</span></tt> or copy at
+			<a class="reference" target="_top" href="http://www.boost.org/LICENSE_1_0.txt">
+			http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+		</tr>
+</table>
+
+</body>
+
+</html>

@@ -1,0 +1,47 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:make_signed make_signed]
+
+   template <class T>
+   struct make_signed
+   {
+      typedef __below type;
+   };
+  
+__type If T is a signed integer type then the same type as T, if T is an 
+unsigned integer type then the corresponding signed type.  
+Otherwise if T is an enumerated or
+character type (char or wchar_t) then a signed integer type with the same
+width as T.
+
+If T has any cv-qualifiers then these are also present on the result type.
+
+[*Requires:]  T must be an integer or enumerated type, and must not be the type
+bool.
+
+__std_ref 3.9.1.
+
+__header ` #include <boost/type_traits/make_signed.hpp>` or ` #include <boost/type_traits.hpp>`
+
+[table Examples
+
+[ [Expression] [Result Type]]
+
+[[`make_signed<int>::type`][`int`]]
+
+[[`make_signed<unsigned int const>::type`] [`int const`]]
+
+[[`make_signed<const unsigned long long>::type`] [`const long long`]]
+
+[[`make_signed<my_enum>::type`] [A signed integer type with the same width as the enum.]]
+[[`make_signed<wchar_t>::type`] [A signed integer type with the same width as wchar_t.]]
+
+]
+
+[endsect]
+

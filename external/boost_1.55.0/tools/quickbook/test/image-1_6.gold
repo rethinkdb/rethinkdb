@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="images_1_6" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Images 1.6</title>
+  <para>
+    <inlinemediaobject><imageobject><imagedata fileref="test.gif"></imagedata></imageobject></inlinemediaobject>
+    <inlinemediaobject><imageobject><imagedata fileref="test this.gif"></imagedata></imageobject></inlinemediaobject>
+    <inlinemediaobject><imageobject><imagedata fileref="test&amp;this.gif"></imagedata></imageobject></inlinemediaobject>
+    <inlinemediaobject><imageobject><imagedata fileref="test.gif" height="10cm" width="10cm"></imagedata></imageobject></inlinemediaobject>
+    <inlinemediaobject><imageobject><imagedata fileref="test.gif"></imagedata></imageobject>
+    <textobject>
+      <phrase>Foo</phrase>
+    </textobject>
+    </inlinemediaobject> <inlinemediaobject><imageobject><imagedata fileref="test.gif"></imagedata></imageobject>
+    <textobject>
+      <phrase>Foobie foobie foo</phrase>
+    </textobject>
+    </inlinemediaobject> <inlinemediaobject><imageobject><imagedata fileref="test.gif"></imagedata></imageobject>
+    <textobject>
+      <phrase>Foo &amp; bar</phrase>
+    </textobject>
+    </inlinemediaobject> <inlinemediaobject><imageobject><imagedata fileref="test.gif"
+    height="10cm" width="10cm"></imagedata></imageobject>
+    <textobject>
+      <phrase>Foo</phrase>
+    </textobject>
+    </inlinemediaobject> <inlinemediaobject><imageobject><imagedata fileref="test.gif"
+    height="10cm" width="10cm"></imagedata></imageobject>
+    <textobject>
+      <phrase>Foo[]</phrase>
+    </textobject>
+    </inlinemediaobject>
+  </para>
+  <para>
+    <inlinemediaobject><imageobject><imagedata fileref="test.gif"></imagedata></imageobject></inlinemediaobject>
+    <inlinemediaobject><imageobject><imagedata fileref="test.gif"></imagedata></imageobject></inlinemediaobject>
+    <inlinemediaobject><imageobject><imagedata fileref="test.gif"></imagedata></imageobject>
+    <textobject>
+      <phrase>comment</phrase>
+    </textobject>
+    </inlinemediaobject>
+  </para>
+  <para>
+    <inlinemediaobject><imageobject><imagedata fileref="test.gif" height="10cm" width="10cm"></imagedata></imageobject></inlinemediaobject>
+  </para>
+</article>

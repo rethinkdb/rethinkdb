@@ -1,0 +1,31 @@
+#  (C) Copyright Gennadiy Rozental 2001-2006.
+#  Use, modification, and distribution are subject to the 
+#  Boost Software License, Version 1.0. (See accompanying file 
+#  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org/libs/test for the library home page.
+
+subproject libs/test/example/cla/validation ;
+
+DEPENDS test : all ;
+
+rule boost-runtime-param-example ( example-name )
+{
+    exe $(example-name) : $(example-name).cpp
+                        : <sysinclude>$(BOOST_ROOT) 
+                          <stlport-iostream>on 
+                          <borland><*><cxxflags>-w-8080 ;
+}
+
+boost-runtime-param-example access_unknown ;
+boost-runtime-param-example ambiguous_access ;
+boost-runtime-param-example ambiguous_input ;
+boost-runtime-param-example definition_conflict ;
+boost-runtime-param-example invalid_short_name ;
+boost-runtime-param-example multiple_generators ;
+boost-runtime-param-example multiple_value_handlers ;
+boost-runtime-param-example opt_with_default_value ;
+boost-runtime-param-example optional_plus_multiplicable ;
+boost-runtime-param-example required_missing ;
+boost-runtime-param-example unexpected_input ;
+boost-runtime-param-example unexpected_repetition ;

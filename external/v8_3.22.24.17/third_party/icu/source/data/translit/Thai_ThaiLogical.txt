@@ -1,0 +1,16 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Thai_ThaiLogical.txt
+# Generated from CLDR 
+#
+$thai = [[:thai:] ก-\u0E3Aเ-๛] ;
+' '  ← $thai { '; '  } $thai;
+← $thai { ' ' } $thai;
+$thai_reversing = [[:Logical_Order_Exception:] & $thai];
+$thai_non_reversing = [$thai - $thai_reversing ];
+( $thai_reversing ) ( $thai_non_reversing ) → $2 $1;
+$2 $1 ← ( $thai_non_reversing ) ( $thai_reversing ) ;

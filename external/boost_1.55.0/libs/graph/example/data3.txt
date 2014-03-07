@@ -1,0 +1,12 @@
+# Copyright (c) 2002 Trustees of Indiana University
+#
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+# vertices and edges can be interleaved
+v 3.14 0
+v 3.15 1
+e 0 1 0.1
+e 1 0 1.0
+v 3.16 2
+e 1 2 1.2

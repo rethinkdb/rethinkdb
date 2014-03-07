@@ -1,0 +1,151 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Handler Tracking</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../core.html" title="Core Concepts and Functionality">
+<link rel="prev" href="allocation.html" title="Custom Memory Allocation">
+<link rel="next" href="coroutine.html" title="Stackless Coroutines">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="allocation.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="coroutine.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.overview.core.handler_tracking"></a><a class="link" href="handler_tracking.html" title="Handler Tracking">Handler
+        Tracking</a>
+</h4></div></div></div>
+<p>
+          To aid in debugging asynchronous programs, Boost.Asio provides support
+          for handler tracking. When enabled by defining <code class="computeroutput"><span class="identifier">BOOST_ASIO_ENABLE_HANDLER_TRACKING</span></code>,
+          Boost.Asio writes debugging output to the standard error stream. The output
+          records asynchronous operations and the relationships between their handlers.
+        </p>
+<p>
+          This feature is useful when debugging and you need to know how your asynchronous
+          operations are chained together, or what the pending asynchronous operations
+          are. As an illustration, here is the output when you run the HTTP Server
+          example, handle a single request, then shut down via Ctrl+C:
+        </p>
+<pre class="programlisting">@asio|1298160085.070638|0*1|signal_set@0x7fff50528f40.async_wait
+@asio|1298160085.070888|0*2|socket@0x7fff50528f60.async_accept
+@asio|1298160085.070913|0|resolver@0x7fff50528e28.cancel
+@asio|1298160118.075438|&gt;2|ec=asio.system:0
+@asio|1298160118.075472|2*3|socket@0xb39048.async_receive
+@asio|1298160118.075507|2*4|socket@0x7fff50528f60.async_accept
+@asio|1298160118.075527|&lt;2|
+@asio|1298160118.075540|&gt;3|ec=asio.system:0,bytes_transferred=122
+@asio|1298160118.075731|3*5|socket@0xb39048.async_send
+@asio|1298160118.075778|&lt;3|
+@asio|1298160118.075793|&gt;5|ec=asio.system:0,bytes_transferred=156
+@asio|1298160118.075831|5|socket@0xb39048.close
+@asio|1298160118.075855|&lt;5|
+@asio|1298160122.827317|&gt;1|ec=asio.system:0,signal_number=2
+@asio|1298160122.827333|1|socket@0x7fff50528f60.close
+@asio|1298160122.827359|&lt;1|
+@asio|1298160122.827370|&gt;4|ec=asio.system:125
+@asio|1298160122.827378|&lt;4|
+@asio|1298160122.827394|0|signal_set@0x7fff50528f40.cancel
+</pre>
+<p>
+          Each line is of the form:
+        </p>
+<pre class="programlisting">&lt;tag&gt;|&lt;timestamp&gt;|&lt;action&gt;|&lt;description&gt;
+</pre>
+<p>
+          The <code class="computeroutput">&lt;tag&gt;</code> is always <code class="computeroutput">@asio</code>, and is used
+          to identify and extract the handler tracking messages from the program
+          output.
+        </p>
+<p>
+          The <code class="computeroutput">&lt;timestamp&gt;</code> is seconds and microseconds from 1 Jan
+          1970 UTC.
+        </p>
+<p>
+          The <code class="computeroutput">&lt;action&gt;</code> takes one of the following forms:
+        </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">&gt;n</span></dt>
+<dd><p>
+                The program entered the handler number <code class="computeroutput">n</code>. The <code class="computeroutput">&lt;description&gt;</code>
+                shows the arguments to the handler.
+              </p></dd>
+<dt><span class="term">&lt;n</span></dt>
+<dd><p>
+                The program left handler number <code class="computeroutput">n</code>.
+              </p></dd>
+<dt><span class="term">!n</span></dt>
+<dd><p>
+                The program left handler number n due to an exception.
+              </p></dd>
+<dt><span class="term">~n</span></dt>
+<dd><p>
+                The handler number <code class="computeroutput">n</code> was destroyed without having been
+                invoked. This is usually the case for any unfinished asynchronous
+                operations when the <code class="computeroutput">io_service</code> is destroyed.
+              </p></dd>
+<dt><span class="term">n*m</span></dt>
+<dd><p>
+                The handler number <code class="computeroutput">n</code> created a new asynchronous operation
+                with completion handler number <code class="computeroutput">m</code>. The <code class="computeroutput">&lt;description&gt;</code>
+                shows what asynchronous operation was started.
+              </p></dd>
+<dt><span class="term">n</span></dt>
+<dd><p>
+                The handler number n performed some other operation. The <code class="computeroutput">&lt;description&gt;</code>
+                shows what function was called. Currently only <code class="computeroutput">close()</code>
+                and <code class="computeroutput">cancel()</code> operations are logged, as these may affect
+                the state of pending asynchronous operations.
+              </p></dd>
+</dl>
+</div>
+<p>
+          Where the <code class="computeroutput">&lt;description&gt;</code> shows a synchronous or asynchronous
+          operation, the format is <code class="computeroutput">&lt;object-type&gt;@&lt;pointer&gt;.&lt;operation&gt;</code>.
+          For handler entry, it shows a comma-separated list of arguments and their
+          values.
+        </p>
+<p>
+          As shown above, Each handler is assigned a numeric identifier. Where the
+          handler tracking output shows a handler number of 0, it means that the
+          action was performed outside of any handler.
+        </p>
+<h6>
+<a name="boost_asio.overview.core.handler_tracking.h0"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.handler_tracking.visual_representations"></a></span><a class="link" href="handler_tracking.html#boost_asio.overview.core.handler_tracking.visual_representations">Visual
+          Representations</a>
+        </h6>
+<p>
+          The handler tracking output may be post-processed using the included <code class="literal">handlerviz.pl</code>
+          tool to create a visual representation of the handlers (requires the GraphViz
+          tool <code class="literal">dot</code>).
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="allocation.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="coroutine.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

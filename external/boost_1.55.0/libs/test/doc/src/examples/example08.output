@@ -1,0 +1,6 @@
+> example
+Running 5 test cases...
+test.cpp(14): error in "tm": difference between d * 100{100.1} and (double)(int)(d*100){100} exceeds 0.01%
+test.cpp(14): error in "tm": difference between d * 100{100.01} and (double)(int)(d*100){100} exceeds 0.01%
+
+*** 2 failures detected in test suite "Master Test Suite"

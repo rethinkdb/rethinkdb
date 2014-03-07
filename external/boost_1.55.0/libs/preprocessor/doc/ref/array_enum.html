@@ -1,0 +1,37 @@
+<html>
+<head>
+  <title>BOOST_PP_ARRAY_ENUM</title>
+  <link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+  <div style="margin-left: 0px;"> The <b>BOOST_PP_ARRAY_ENUM</b> macro converts an <i>array</i> to its comma-separated elements. The comma-separated elements are in the form of <i>variadic data</i>.<br>
+  </div>
+<h4> Usage </h4>
+<div class="code"> <b>BOOST_PP_ARRAY_ENUM</b>(<i>array</i>) </div>
+<h4> Arguments </h4>
+<dl>
+  <dt>array</dt>
+  <dd> The <i>array</i> whose elements are to be converted. </dd>
+</dl>
+<h4> Remarks </h4>
+<div> This macro expands to a comma-separated list of the elements in <i>array</i>.&nbsp;
+For example, <b>BOOST_PP_ARRAY_ENUM</b>((3,(<i>x,</i><i>y,</i><i>z</i>)))
+expands to...
+<div> <i>x</i>, <i>y</i>, <i>z</i> </div>
+</div>
+<h4> Requirements </h4>
+<div> <b>Header:</b> &nbsp;<a href="../headers/array/enum.html">&lt;boost/preprocessor/array/enum.hpp&gt;</a>
+</div>
+<h4> Sample Code </h4>
+<div>
+<pre>#include &lt;<a href="../headers/array/enum.html">boost/preprocessor/array/enum.hpp</a>&gt;<br><br>#define ARRAY (5,(B,O,O,S,T))<br><br><a href="array_enum.html">BOOST_PP_ARRAY_ENUM</a>(ARRAY) // expands to B, O, O, S, T<br></pre>
+</div>
+<hr size="1">
+<div style="margin-left: 0px;"> <i></i><i>© Copyright Edward Diener 2011</i> </div>
+<div style="margin-left: 0px;">
+<p><small>Distributed under the Boost Software License, Version 1.0.
+(See accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+</div>
+</body>
+</html>

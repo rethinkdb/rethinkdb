@@ -1,0 +1,501 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Mini XML - ASTs!</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Tutorials">
+<link rel="prev" href="employee___parsing_into_structs.html" title="Employee - Parsing into structs">
+<link rel="next" href="mini_xml___error_handling.html" title="Mini XML - Error Handling">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="employee___parsing_into_structs.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mini_xml___error_handling.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.qi.tutorials.mini_xml___asts_"></a><a class="link" href="mini_xml___asts_.html" title="Mini XML - ASTs!">Mini XML - ASTs!</a>
+</h4></div></div></div>
+<p>
+          Stop and think about it... We've come very close to generating an AST (abstract
+          syntax tree) in our last example. We parsed a single structure and generated
+          an in-memory representation of it in the form of a struct: the <code class="computeroutput"><span class="keyword">struct</span> <span class="identifier">employee</span></code>.
+          If we changed the implementation to parse one or more employees, the result
+          would be a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">employee</span><span class="special">&gt;</span></code>.
+          We can go on and add more hierarchy: teams, departments, corporations.
+          Then we'll have an AST representation of it all.
+        </p>
+<p>
+          In this example (actually two examples), we'll now explore how to create
+          ASTs. We will parse a minimalistic XML-like language and compile the results
+          into our data structures in the form of a tree.
+        </p>
+<p>
+          Along the way, we'll see new features:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Inherited attributes
+            </li>
+<li class="listitem">
+              Variant attributes
+            </li>
+<li class="listitem">
+              Local Variables
+            </li>
+<li class="listitem">
+              Not Predicate
+            </li>
+<li class="listitem">
+              Lazy Lit
+            </li>
+</ul></div>
+<p>
+          The full cpp files for these examples can be found here: <a href="../../../../../example/qi/mini_xml1.cpp" target="_top">../../example/qi/mini_xml1.cpp</a>
+          and here: <a href="../../../../../example/qi/mini_xml2.cpp" target="_top">../../example/qi/mini_xml2.cpp</a>
+        </p>
+<p>
+          There are a couple of sample toy-xml files in the mini_xml_samples subdirectory:
+          <a href="../../../../../example/qi/mini_xml_samples/1.toyxml" target="_top">../../example/qi/mini_xml_samples/1.toyxml</a>,
+          <a href="../../../../../example/qi/mini_xml_samples/2.toyxml" target="_top">../../example/qi/mini_xml_samples/2.toyxml</a>,
+          and <a href="../../../../../example/qi/mini_xml_samples/3.toyxml" target="_top">../../example/qi/mini_xml_samples/3.toyxml</a>
+          for testing purposes. The example <a href="../../../../../example/qi/mini_xml_samples/4.toyxml" target="_top">../../example/qi/mini_xml_samples/4.toyxml</a>
+          has an error in it.
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.mini_xml___asts_.h0"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.mini_xml___asts_.first_cut"></a></span><a class="link" href="mini_xml___asts_.html#spirit.qi.tutorials.mini_xml___asts_.first_cut">First
+          Cut</a>
+        </h6>
+<p>
+          Without further delay, here's the first version of the XML grammar:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">mini_xml_grammar</span> <span class="special">:</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">mini_xml</span><span class="special">(),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">mini_xml_grammar</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">mini_xml_grammar</span><span class="special">::</span><span class="identifier">base_type</span><span class="special">(</span><span class="identifier">xml</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">lit</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">lexeme</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">char_</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">string</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">labels</span><span class="special">;</span>
+
+        <span class="keyword">using</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">at_c</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">push_back</span><span class="special">;</span>
+
+        <span class="identifier">text</span> <span class="special">=</span> <span class="identifier">lexeme</span><span class="special">[+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'&lt;'</span><span class="special">)</span>        <span class="special">[</span><span class="identifier">_val</span> <span class="special">+=</span> <span class="identifier">_1</span><span class="special">]];</span>
+        <span class="identifier">node</span> <span class="special">=</span> <span class="special">(</span><span class="identifier">xml</span> <span class="special">|</span> <span class="identifier">text</span><span class="special">)</span>                 <span class="special">[</span><span class="identifier">_val</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">];</span>
+
+        <span class="identifier">start_tag</span> <span class="special">=</span>
+                <span class="char">'&lt;'</span>
+            <span class="special">&gt;&gt;</span>  <span class="special">!</span><span class="identifier">lit</span><span class="special">(</span><span class="char">'/'</span><span class="special">)</span>
+            <span class="special">&gt;&gt;</span>  <span class="identifier">lexeme</span><span class="special">[+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'&gt;'</span><span class="special">)</span>       <span class="special">[</span><span class="identifier">_val</span> <span class="special">+=</span> <span class="identifier">_1</span><span class="special">]]</span>
+            <span class="special">&gt;&gt;</span>  <span class="char">'&gt;'</span>
+        <span class="special">;</span>
+
+        <span class="identifier">end_tag</span> <span class="special">=</span>
+                <span class="string">"&lt;/"</span>
+            <span class="special">&gt;&gt;</span>  <span class="identifier">string</span><span class="special">(</span><span class="identifier">_r1</span><span class="special">)</span>
+            <span class="special">&gt;&gt;</span>  <span class="char">'&gt;'</span>
+        <span class="special">;</span>
+
+        <span class="identifier">xml</span> <span class="special">=</span>
+                <span class="identifier">start_tag</span>                   <span class="special">[</span><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">_val</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">]</span>
+            <span class="special">&gt;&gt;</span>  <span class="special">*</span><span class="identifier">node</span>                       <span class="special">[</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">_val</span><span class="special">),</span> <span class="identifier">_1</span><span class="special">)]</span>
+            <span class="special">&gt;&gt;</span>  <span class="identifier">end_tag</span><span class="special">(</span><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">_val</span><span class="special">))</span>
+        <span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">mini_xml</span><span class="special">(),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">xml</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">mini_xml_node</span><span class="special">(),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">node</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">text</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">start_tag</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">void</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">end_tag</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          Going bottom up, let's examine the <code class="computeroutput"><span class="identifier">text</span></code>
+          rule:
+        </p>
+<pre class="programlisting"><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(),</span> <span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">text</span><span class="special">;</span>
+</pre>
+<p>
+          and its definition:
+        </p>
+<pre class="programlisting"><span class="identifier">text</span> <span class="special">=</span> <span class="identifier">lexeme</span><span class="special">[+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'&lt;'</span><span class="special">)</span>        <span class="special">[</span><span class="identifier">_val</span> <span class="special">+=</span> <span class="identifier">_1</span><span class="special">]];</span>
+</pre>
+<p>
+          The semantic action collects the chars and appends them (via +=) to the
+          <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code> attribute of the rule (represented
+          by the placeholder <code class="computeroutput"><span class="identifier">_val</span></code>).
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.mini_xml___asts_.h1"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.mini_xml___asts_.alternates"></a></span><a class="link" href="mini_xml___asts_.html#spirit.qi.tutorials.mini_xml___asts_.alternates">Alternates</a>
+        </h6>
+<pre class="programlisting"><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">mini_xml_node</span><span class="special">(),</span> <span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">node</span><span class="special">;</span>
+</pre>
+<p>
+          and its definition:
+        </p>
+<pre class="programlisting"><span class="identifier">node</span> <span class="special">=</span> <span class="special">(</span><span class="identifier">xml</span> <span class="special">|</span> <span class="identifier">text</span><span class="special">)</span>                 <span class="special">[</span><span class="identifier">_val</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">];</span>
+</pre>
+<p>
+          We'll see a <code class="computeroutput"><span class="identifier">mini_xml_node</span></code>
+          structure later. Looking at the rule definition, we see some alternation
+          going on here. An xml <code class="computeroutput"><span class="identifier">node</span></code>
+          is either an <code class="computeroutput"><span class="identifier">xml</span></code> OR <code class="computeroutput"><span class="identifier">text</span></code>. Hmmm... hold on to that thought...
+        </p>
+<pre class="programlisting"><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(),</span> <span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">start_tag</span><span class="special">;</span>
+</pre>
+<p>
+          Again, with an attribute of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>.
+          Then, it's definition:
+        </p>
+<pre class="programlisting"><span class="identifier">start_tag</span> <span class="special">=</span>
+        <span class="char">'&lt;'</span>
+    <span class="special">&gt;&gt;</span>  <span class="special">!</span><span class="identifier">char_</span><span class="special">(</span><span class="char">'/'</span><span class="special">)</span>
+    <span class="special">&gt;&gt;</span>  <span class="identifier">lexeme</span><span class="special">[+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'&gt;'</span><span class="special">)</span>       <span class="special">[</span><span class="identifier">_val</span> <span class="special">+=</span> <span class="identifier">_1</span><span class="special">]]</span>
+    <span class="special">&gt;&gt;</span>  <span class="char">'&gt;'</span>
+<span class="special">;</span>
+</pre>
+<h6>
+<a name="spirit.qi.tutorials.mini_xml___asts_.h2"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.mini_xml___asts_.not_predicate"></a></span><a class="link" href="mini_xml___asts_.html#spirit.qi.tutorials.mini_xml___asts_.not_predicate">Not Predicate</a>
+        </h6>
+<p>
+          <code class="computeroutput"><span class="identifier">start_tag</span></code> is similar to
+          the <code class="computeroutput"><span class="identifier">text</span></code> rule apart from
+          the added <code class="computeroutput"><span class="char">'&lt;'</span></code> and <code class="computeroutput"><span class="char">'&gt;'</span></code>. But wait, to make sure that the <code class="computeroutput"><span class="identifier">start_tag</span></code> does not parse <code class="computeroutput"><span class="identifier">end_tag</span></code>s too, we add: <code class="computeroutput"><span class="special">!</span><span class="identifier">char_</span><span class="special">(</span><span class="char">'/'</span><span class="special">)</span></code>. This
+          is a "Not Predicate":
+        </p>
+<pre class="programlisting"><span class="special">!</span><span class="identifier">p</span>
+</pre>
+<p>
+          It will try the parser, <code class="computeroutput"><span class="identifier">p</span></code>.
+          If it is successful, fail; otherwise, pass. In other words, it negates
+          the result of <code class="computeroutput"><span class="identifier">p</span></code>. Like the
+          <code class="computeroutput"><span class="identifier">eps</span></code>, it does not consume
+          any input though. It will always rewind the iterator position to where
+          it was upon entry. So, the expression:
+        </p>
+<pre class="programlisting"><span class="special">!</span><span class="identifier">char_</span><span class="special">(</span><span class="char">'/'</span><span class="special">)</span>
+</pre>
+<p>
+          basically says: we should not have a <code class="computeroutput"><span class="char">'/'</span></code>
+          at this point.
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.mini_xml___asts_.h3"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.mini_xml___asts_.inherited_attribute"></a></span><a class="link" href="mini_xml___asts_.html#spirit.qi.tutorials.mini_xml___asts_.inherited_attribute">Inherited
+          Attribute</a>
+        </h6>
+<p>
+          The <code class="computeroutput"><span class="identifier">end_tag</span></code>:
+        </p>
+<pre class="programlisting"><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">void</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">),</span> <span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">end_tag</span><span class="special">;</span>
+</pre>
+<p>
+          Ohh! Now we see an inherited attribute there: <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>.
+          The <code class="computeroutput"><span class="identifier">end_tag</span></code> does not have
+          a synthesized attribute. Let's see its definition:
+        </p>
+<pre class="programlisting"><span class="identifier">end_tag</span> <span class="special">=</span>
+        <span class="string">"&lt;/"</span>
+    <span class="special">&gt;&gt;</span>  <span class="identifier">lit</span><span class="special">(</span><span class="identifier">_r1</span><span class="special">)</span>
+    <span class="special">&gt;&gt;</span>  <span class="char">'&gt;'</span>
+<span class="special">;</span>
+</pre>
+<p>
+          <code class="computeroutput"><span class="identifier">_r1</span></code> is yet another <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a> placeholder for
+          the first inherited attribute (we have only one, use <code class="computeroutput"><span class="identifier">_r2</span></code>,
+          <code class="computeroutput"><span class="identifier">_r3</span></code>, etc. if you have more).
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.mini_xml___asts_.h4"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.mini_xml___asts_.a_lazy_lit"></a></span><a class="link" href="mini_xml___asts_.html#spirit.qi.tutorials.mini_xml___asts_.a_lazy_lit">A
+          Lazy Lit</a>
+        </h6>
+<p>
+          Check out how we used <code class="computeroutput"><span class="identifier">lit</span></code>
+          here, this time, not with a literal string, but with the value of the first
+          inherited attribute, which is specified as <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>
+          in our rule declaration.
+        </p>
+<p>
+          Finally, our <code class="computeroutput"><span class="identifier">xml</span></code> rule:
+        </p>
+<pre class="programlisting"><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">mini_xml</span><span class="special">(),</span> <span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">xml</span><span class="special">;</span>
+</pre>
+<p>
+          <code class="computeroutput"><span class="identifier">mini_xml</span></code> is our attribute
+          here. We'll see later what it is. Let's see its definition:
+        </p>
+<pre class="programlisting"><span class="identifier">xml</span> <span class="special">=</span>
+        <span class="identifier">start_tag</span>                   <span class="special">[</span><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">_val</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">]</span>
+    <span class="special">&gt;&gt;</span>  <span class="special">*</span><span class="identifier">node</span>                       <span class="special">[</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">_val</span><span class="special">),</span> <span class="identifier">_1</span><span class="special">)]</span>
+    <span class="special">&gt;&gt;</span>  <span class="identifier">end_tag</span><span class="special">(</span><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">_val</span><span class="special">))</span>
+<span class="special">;</span>
+</pre>
+<p>
+          Those who know <a href="../../../../../../../libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>
+          now will notice <code class="computeroutput"><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span></code> and
+          <code class="computeroutput"><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;</span></code>. This
+          gives us a hint that <code class="computeroutput"><span class="identifier">mini_xml</span></code>
+          is a sort of a tuple - a fusion sequence. <code class="computeroutput"><span class="identifier">at_c</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span></code> here is a lazy version of the tuple
+          accessors, provided by <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a>.
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.mini_xml___asts_.h5"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.mini_xml___asts_.how_it_all_works"></a></span><a class="link" href="mini_xml___asts_.html#spirit.qi.tutorials.mini_xml___asts_.how_it_all_works">How it
+          all works</a>
+        </h6>
+<p>
+          So, what's happening?
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              Upon parsing <code class="computeroutput"><span class="identifier">start_tag</span></code>,
+              the parsed start-tag string is placed in <code class="computeroutput"><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">_val</span><span class="special">)</span></code>.
+            </li>
+<li class="listitem">
+              Then we parse zero or more <code class="computeroutput"><span class="identifier">node</span></code>s.
+              At each step, we <code class="computeroutput"><span class="identifier">push_back</span></code>
+              the result into <code class="computeroutput"><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">_val</span><span class="special">)</span></code>.
+            </li>
+<li class="listitem">
+              Finally, we parse the <code class="computeroutput"><span class="identifier">end_tag</span></code>
+              giving it an inherited attribute: <code class="computeroutput"><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">_val</span><span class="special">)</span></code>. This is the string we obtained from
+              the <code class="computeroutput"><span class="identifier">start_tag</span></code>. Investigate
+              <code class="computeroutput"><span class="identifier">end_tag</span></code> above. It will
+              fail to parse if it gets something different from what we got from
+              the <code class="computeroutput"><span class="identifier">start_tag</span></code>. This
+              ensures that our tags are balanced.
+            </li>
+</ol></div>
+<p>
+          To give the last item some more light, what happens is this:
+        </p>
+<pre class="programlisting"><span class="identifier">end_tag</span><span class="special">(</span><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">_val</span><span class="special">))</span>
+</pre>
+<p>
+          calls:
+        </p>
+<pre class="programlisting"><span class="identifier">end_tag</span> <span class="special">=</span>
+        <span class="string">"&lt;/"</span>
+    <span class="special">&gt;&gt;</span>  <span class="identifier">lit</span><span class="special">(</span><span class="identifier">_r1</span><span class="special">)</span>
+    <span class="special">&gt;&gt;</span>  <span class="char">'&gt;'</span>
+<span class="special">;</span>
+</pre>
+<p>
+          passing in <code class="computeroutput"><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">_val</span><span class="special">)</span></code>, the string from start tag. This is referred
+          to in the <code class="computeroutput"><span class="identifier">end_tag</span></code> body
+          as <code class="computeroutput"><span class="identifier">_r1</span></code>.
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.mini_xml___asts_.h6"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.mini_xml___asts_.the_structures"></a></span><a class="link" href="mini_xml___asts_.html#spirit.qi.tutorials.mini_xml___asts_.the_structures">The Structures</a>
+        </h6>
+<p>
+          Let's see our structures. It will definitely be hierarchical: xml is hierarchical.
+          It will also be recursive: xml is recursive.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">mini_xml</span><span class="special">;</span>
+
+<span class="keyword">typedef</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">variant</span><span class="special">&lt;</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_wrapper</span><span class="special">&lt;</span><span class="identifier">mini_xml</span><span class="special">&gt;</span>
+      <span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span>
+    <span class="special">&gt;</span>
+<span class="identifier">mini_xml_node</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">mini_xml</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">name</span><span class="special">;</span>                           <span class="comment">// tag name</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">mini_xml_node</span><span class="special">&gt;</span> <span class="identifier">children</span><span class="special">;</span>        <span class="comment">// children</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.mini_xml___asts_.h7"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.mini_xml___asts_.of_alternates_and_variants"></a></span><a class="link" href="mini_xml___asts_.html#spirit.qi.tutorials.mini_xml___asts_.of_alternates_and_variants">Of
+          Alternates and Variants</a>
+        </h6>
+<p>
+          So that's what a <code class="computeroutput"><span class="identifier">mini_xml_node</span></code>
+          looks like. We had a hint that it is either a <code class="computeroutput"><span class="identifier">string</span></code>
+          or a <code class="computeroutput"><span class="identifier">mini_xml</span></code>. For this,
+          we use <a href="http://www.boost.org/doc/html/variant.html" target="_top">Boost.Variant</a>.
+          <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_wrapper</span></code> wraps <code class="computeroutput"><span class="identifier">mini_xml</span></code>, making it a recursive data
+          structure.
+        </p>
+<p>
+          Yep, you got that right: the attribute of an alternate:
+        </p>
+<pre class="programlisting"><span class="identifier">a</span> <span class="special">|</span> <span class="identifier">b</span>
+</pre>
+<p>
+          is a
+        </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variant</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">&gt;</span>
+</pre>
+<p>
+          where <code class="computeroutput"><span class="identifier">A</span></code> is the attribute
+          of <code class="computeroutput"><span class="identifier">a</span></code> and <code class="computeroutput"><span class="identifier">B</span></code> is the attribute of <code class="computeroutput"><span class="identifier">b</span></code>.
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.mini_xml___asts_.h8"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.mini_xml___asts_.adapting_structs_again"></a></span><a class="link" href="mini_xml___asts_.html#spirit.qi.tutorials.mini_xml___asts_.adapting_structs_again">Adapting
+          structs again</a>
+        </h6>
+<p>
+          <code class="computeroutput"><span class="identifier">mini_xml</span></code> is no brainier.
+          It is a plain ol' struct. But as we've seen in our employee example, we
+          can adapt that to be a <a href="../../../../../../../libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>
+          sequence:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">BOOST_FUSION_ADAPT_STRUCT</span><span class="special">(</span>
+    <span class="identifier">client</span><span class="special">::</span><span class="identifier">mini_xml</span><span class="special">,</span>
+    <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">name</span><span class="special">)</span>
+    <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">client</span><span class="special">::</span><span class="identifier">mini_xml_node</span><span class="special">&gt;,</span> <span class="identifier">children</span><span class="special">)</span>
+<span class="special">)</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.mini_xml___asts_.h9"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.mini_xml___asts_.one_more_take"></a></span><a class="link" href="mini_xml___asts_.html#spirit.qi.tutorials.mini_xml___asts_.one_more_take">One More Take</a>
+        </h6>
+<p>
+          Here's another version. The AST structure remains the same, but this time,
+          you'll see that we make use of auto-rules making the grammar semantic-action-less.
+          Here it is:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">mini_xml_grammar</span>
+  <span class="special">:</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">mini_xml</span><span class="special">(),</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">locals</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;,</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">mini_xml_grammar</span><span class="special">()</span>
+      <span class="special">:</span> <span class="identifier">mini_xml_grammar</span><span class="special">::</span><span class="identifier">base_type</span><span class="special">(</span><span class="identifier">xml</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">lit</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">lexeme</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">char_</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">string</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">labels</span><span class="special">;</span>
+
+        <span class="identifier">text</span> <span class="special">%=</span> <span class="identifier">lexeme</span><span class="special">[+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'&lt;'</span><span class="special">)];</span>
+        <span class="identifier">node</span> <span class="special">%=</span> <span class="identifier">xml</span> <span class="special">|</span> <span class="identifier">text</span><span class="special">;</span>
+
+        <span class="identifier">start_tag</span> <span class="special">%=</span>
+                <span class="char">'&lt;'</span>
+            <span class="special">&gt;&gt;</span>  <span class="special">!</span><span class="identifier">lit</span><span class="special">(</span><span class="char">'/'</span><span class="special">)</span>
+            <span class="special">&gt;&gt;</span>  <span class="identifier">lexeme</span><span class="special">[+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'&gt;'</span><span class="special">)]</span>
+            <span class="special">&gt;&gt;</span>  <span class="char">'&gt;'</span>
+        <span class="special">;</span>
+
+        <span class="identifier">end_tag</span> <span class="special">=</span>
+                <span class="string">"&lt;/"</span>
+            <span class="special">&gt;&gt;</span>  <span class="identifier">string</span><span class="special">(</span><span class="identifier">_r1</span><span class="special">)</span>
+            <span class="special">&gt;&gt;</span>  <span class="char">'&gt;'</span>
+        <span class="special">;</span>
+
+        <span class="identifier">xml</span> <span class="special">%=</span>
+                <span class="identifier">start_tag</span><span class="special">[</span><span class="identifier">_a</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">]</span>
+            <span class="special">&gt;&gt;</span>  <span class="special">*</span><span class="identifier">node</span>
+            <span class="special">&gt;&gt;</span>  <span class="identifier">end_tag</span><span class="special">(</span><span class="identifier">_a</span><span class="special">)</span>
+        <span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">mini_xml</span><span class="special">(),</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">locals</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;,</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">xml</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">mini_xml_node</span><span class="special">(),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">node</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">text</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">start_tag</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">void</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">),</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">end_tag</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          This one shouldn't be any more difficult to understand after going through
+          the first xml parser example. The rules are almost the same, except that,
+          we got rid of semantic actions and used auto-rules (see the employee example
+          if you missed that). There is some new stuff though. It's all in the <code class="computeroutput"><span class="identifier">xml</span></code> rule:
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.mini_xml___asts_.h10"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.mini_xml___asts_.local_variables"></a></span><a class="link" href="mini_xml___asts_.html#spirit.qi.tutorials.mini_xml___asts_.local_variables">Local Variables</a>
+        </h6>
+<pre class="programlisting"><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">mini_xml</span><span class="special">(),</span> <span class="identifier">locals</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;,</span> <span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">xml</span><span class="special">;</span>
+</pre>
+<p>
+          Wow, we have four template parameters now. What's that <code class="computeroutput"><span class="identifier">locals</span></code>
+          guy doing there? Well, it declares that the rule <code class="computeroutput"><span class="identifier">xml</span></code>
+          will have one local variable: a <code class="computeroutput"><span class="identifier">string</span></code>.
+          Let's see how this is used in action:
+        </p>
+<pre class="programlisting"><span class="identifier">xml</span> <span class="special">%=</span>
+        <span class="identifier">start_tag</span><span class="special">[</span><span class="identifier">_a</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">]</span>
+    <span class="special">&gt;&gt;</span>  <span class="special">*</span><span class="identifier">node</span>
+    <span class="special">&gt;&gt;</span>  <span class="identifier">end_tag</span><span class="special">(</span><span class="identifier">_a</span><span class="special">)</span>
+<span class="special">;</span>
+</pre>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              Upon parsing <code class="computeroutput"><span class="identifier">start_tag</span></code>,
+              the parsed start-tag string is placed in the local variable specified
+              by (yet another) <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a>
+              placeholder: <code class="computeroutput"><span class="identifier">_a</span></code>. We
+              have only one local variable. If we had more, these are designated
+              by <code class="computeroutput"><span class="identifier">_b</span></code>..<code class="computeroutput"><span class="identifier">_z</span></code>.
+            </li>
+<li class="listitem">
+              Then we parse zero or more <code class="computeroutput"><span class="identifier">node</span></code>s.
+            </li>
+<li class="listitem">
+              Finally, we parse the <code class="computeroutput"><span class="identifier">end_tag</span></code>
+              giving it an inherited attribute: <code class="computeroutput"><span class="identifier">_a</span></code>,
+              our local variable.
+            </li>
+</ol></div>
+<p>
+          There are no actions involved in stuffing data into our <code class="computeroutput"><span class="identifier">xml</span></code>
+          attribute. It's all taken care of thanks to the auto-rule.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="employee___parsing_into_structs.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mini_xml___error_handling.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

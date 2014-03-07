@@ -1,0 +1,10 @@
+# Source: http://www.realestate3d.com/gps/latlong.htm
+# Note: selected and converted manually
+POINT( -71.03 42.37) ; Boston
+POINT( -87.65 41.90) ; Chicago
+POINT( -95.35 29.97) ; Houston
+POINT(-118.40 33.93) ; Los Angeles
+POINT( -80.28 25.82) ; Miami
+POINT( -73.98 40.77) ; New York
+POINT(-112.02 33.43) ; Phoenix
+POINT( -77.04 38.85) ; Washington DC

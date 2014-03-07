@@ -1,0 +1,130 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page std_locales Introduction to C++ Standard Library localization support
+
+\section std_locales_basics Getting familiar with standard C++ Locales
+
+The C++ standard library offers a simple and powerful way to provide locale-specific information. It is done via the \c 
+std::locale class, the container that holds all the required information about a specific culture, such as number formatting
+patterns, date and time formatting, currency, case conversion etc.
+
+All this information is provided by facets, special classes derived from the \c std::locale::facet base class. Such facets are
+packed into the \c std::locale class and allow you to provide arbitrary information about the locale. The \c std::locale class
+keeps reference counters on installed facets and can be efficiently copied.
+
+Each facet that was installed into the \c std::locale object can be fetched using the \c std::use_facet function. For example,
+the \c std::ctype<Char> facet provides rules for case conversion, so you can convert a character to upper-case like this:
+
+\code
+std::ctype<char> const &ctype_facet = std::use_facet<std::ctype<char> >(some_locale);
+char upper_a = ctype_facet.toupper('a');
+\endcode
+
+A locale object can be imbued into an \c iostream so it would format information according to the locale:
+
+\code
+cout.imbue(std::locale("en_US.UTF-8"));
+cout << 1345.45 << endl;
+cout.imbue(std::locale("ru_RU.UTF-8"));
+cout << 1345.45 << endl;
+\endcode
+
+Would display:
+
+\verbatim
+    1,345.45 1.345,45
+\endverbatim
+
+You can also create your own facets and install them into existing locale objects. For example:
+
+\code
+    class measure : public std::locale::facet {
+    public:
+        typedef enum { inches, ... } measure_type;
+        measure(measure_type m,size_t refs=0) 
+        double from_metric(double value) const;
+        std::string name() const;
+        ...
+    };
+\endcode
+And now you can simply provide this information to a locale:
+
+\code
+    std::locale::global(std::locale(std::locale("en_US.UTF-8"),new measure(measure::inches)));
+    /// Create default locale built from en_US locale and add paper size facet.
+\endcode
+
+
+Now you can print a distance according to the correct locale:
+
+\code
+    void print_distance(std::ostream &out,double value)
+    {
+        measure const &m = std::use_facet<measure>(out.getloc());
+        // Fetch locale information from stream
+        out << m.from_metric(value) << " " << m.name();
+    }
+\endcode
+
+This technique was adopted by the Boost.Locale library in order to provide powerful and correct localization. Instead of using
+the very limited C++ standard library facets, it uses ICU under the hood to create its own much more powerful ones.
+
+\section std_locales_common Common Critical Problems with the Standard Library
+
+There are numerous issues in the standard library that prevent the use of its full power, and there are several
+additional issues:
+
+-   Setting the global locale has bad side effects.
+    \n
+    Consider following code:
+    \n
+    \code
+        int main()
+        {
+            std::locale::global(std::locale("")); 
+            // Set system's default locale as global
+            std::ofstream csv("test.csv");
+            csv << 1.1 << ","  << 1.3 << std::endl;
+        }
+    \endcode
+    \n
+    What would be the content of \c test.csv ? It may be "1.1,1.3" or it may be "1,1,1,3" 
+    rather than what you had expected.
+    \n
+    More than that it affects even \c printf and libraries like \c boost::lexical_cast giving
+    incorrect or unexpected formatting. In fact many third-party libraries are broken in such a
+    situation.
+    \n
+    Unlike the standard localization library, Boost.Locale never changes the basic number formatting,
+    even when it uses \c std based localization backends, so by default, numbers are always
+    formatted using C-style locale. Localized number formatting requires specific flags.
+    \n
+-   Number formatting is broken on some locales.
+    \n
+    Some locales use the non-breakable space u00A0 character for thousands separator, thus
+    in \c ru_RU.UTF-8 locale number 1024 should be displayed as "1 024" where the space
+    is a Unicode character with codepoint u00A0. Unfortunately many libraries don't handle
+    this correctly, for example GCC and SunStudio display a "\xC2" character instead of
+    the first character in the UTF-8 sequence "\xC2\xA0" that represents this code point, and 
+    actually generate invalid UTF-8.
+    \n
+-   Locale names are not standardized. For example, under MSVC you need to provide the name
+    \c en-US or \c English_USA.1252 , when on POSIX platforms it would be \c en_US.UTF-8 
+    or \c en_US.ISO-8859-1 
+    \n
+    More than that, MSVC does not support UTF-8 locales at all.
+    \n
+-   Many standard libraries provide only the C and POSIX locales, thus GCC supports localization
+    only under Linux. On all other platforms, attempting to create locales other than "C" or
+    "POSIX" would fail.
+
+*/
+

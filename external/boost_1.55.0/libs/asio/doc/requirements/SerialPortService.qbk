@@ -1,0 +1,301 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:SerialPortService Serial port service requirements]
+
+A serial port service must meet the requirements for an [link
+boost_asio.reference.IoObjectService I/O object service] with support for movability,
+as well as the additional requirements listed below.
+
+In the table below, `X` denotes a serial port service class, `a` and `ao` denote
+values of type `X`, `d` denotes a serial port device name of type `std::string`,
+`b` and `c` denote values of type `X::implementation_type`, `n` denotes a value
+of type `X::native_handle_type`, `ec` denotes a value of type `error_code`, `s`
+denotes a value meeting [link boost_asio.reference.SettableSerialPortOption
+`SettableSerialPortOption`] requirements, `g` denotes a value meeting [link
+boost_asio.reference.GettableSerialPortOption `GettableSerialPortOption`]
+requirements, `mb` denotes a value satisfying [link
+boost_asio.reference.MutableBufferSequence mutable buffer sequence] requirements,
+`rh` denotes a value meeting [link boost_asio.reference.ReadHandler `ReadHandler`]
+requirements, `cb` denotes a value satisfying [link
+boost_asio.reference.ConstBufferSequence constant buffer sequence] requirements, and
+`wh` denotes a value meeting [link boost_asio.reference.WriteHandler `WriteHandler`]
+requirements. and `u` and `v` denote identifiers.
+
+[table SerialPortService requirements
+  [[expression] [return type] [assertion/note\npre/post-condition]]
+  [
+    [`X::native_handle_type`]
+    []
+    [
+      The implementation-defined native representation of a serial port. Must
+      satisfy the requirements of `CopyConstructible` types (C++ Std, 20.1.3),
+      and the requirements of `Assignable` types (C++ Std, 23.1).
+    ]
+  ]
+  [
+    [`a.construct(b);`]
+    []
+    [
+      From [link boost_asio.reference.IoObjectService IoObjectService]
+      requirements.\n
+      post: `!a.is_open(b)`.
+    ]
+  ]
+  [
+    [`a.destroy(b);`]
+    []
+    [
+      From [link boost_asio.reference.IoObjectService IoObjectService]
+      requirements. Implicitly cancels asynchronous operations, as if by calling
+      `a.close(b, ec)`.
+    ]
+  ]
+  [
+    [``
+      a.move_construct(b, c);
+    ``]
+    []
+    [
+      From [link boost_asio.reference.IoObjectService IoObjectService] requirements.
+      The underlying native representation is moved from `c` to `b`.
+    ]
+  ]
+  [
+    [``
+      a.move_assign(b, ao, c);
+    ``]
+    []
+    [
+      From [link boost_asio.reference.IoObjectService IoObjectService] requirements.
+      Implicitly cancels asynchronous operations associated with `b`, as if by
+      calling `a.close(b, ec)`. Then the underlying native representation is
+      moved from `c` to `b`.
+    ]
+  ]
+  [
+    [``
+      const std::string& u = d;
+      a.open(b, u, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `!a.is_open(b)`.\n
+      post: `!!ec || a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      a.assign(b, n, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `!a.is_open(b)`.\n
+      post: `!!ec || a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      a.is_open(b);
+    ``]
+    [`bool`]
+    [
+    ]
+  ]
+  [
+    [``
+      const X& u = a;
+      const X::implementation_type& v = b;
+      u.is_open(v);
+    ``]
+    [`bool`]
+    [
+    ]
+  ]
+  [
+    [``
+      a.close(b, ec);
+    ``]
+    [`error_code`]
+    [
+      If `a.is_open()` is true, causes any outstanding asynchronous operations
+      to complete as soon as possible. Handlers for cancelled operations shall
+      be passed the error code `error::operation_aborted`.\n
+      post: `!a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      a.native_handle(b);
+    ``]
+    [`X::native_handle_type`]
+    [
+    ]
+  ]
+  [
+    [``
+      a.cancel(b, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `a.is_open(b)`.\n
+      Causes any outstanding asynchronous operations to complete as soon as
+      possible. Handlers for cancelled operations shall be passed the error
+      code `error::operation_aborted`.
+    ]
+  ]
+  [
+    [``
+      a.set_option(b, s, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      a.get_option(b, g, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      const X& u = a;
+      const X::implementation_type& v = b;
+      u.get_option(v, g, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `a.is_open(b)`.
+    ]
+  ]
+  [
+    [``
+      a.send_break(b, ec);
+    ``]
+    [`error_code`]
+    [
+      pre: `a.is_open(b)`.
+    ]
+  ]
+  [
+    [`a.read_some(b, mb, ec);`]
+    [`size_t`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Reads one or more bytes of data from a serial port `b`.\n
+      \n
+      The mutable buffer sequence `mb` specifies memory where the data should
+      be placed. The operation shall always fill a buffer in the sequence
+      completely before proceeding to the next.\n
+      \n
+      If successful, returns the number of bytes read. Otherwise returns `0`.
+      If the total size of all buffers in the sequence `mb` is `0`, the
+      function shall return `0` immediately.\n
+      \n
+      If the operation completes due to graceful connection closure by the
+      peer, the operation shall fail with `error::eof`.
+    ]
+  ]
+  [
+    [`a.async_read_some(b, mb, rh);`]
+    [`void`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Initiates an asynchronous operation to read one or more bytes of data
+      from a serial port `b`. The operation is performed via the
+      `io_service` object `a.get_io_service()` and behaves according to [link
+      boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.\n
+      \n
+      The mutable buffer sequence `mb` specifies memory where the data should
+      be placed. The operation shall always fill a buffer in the sequence
+      completely before proceeding to the next.\n
+      \n
+      The implementation shall maintain one or more copies of `mb` until such
+      time as the read operation no longer requires access to the memory
+      specified by the buffers in the sequence. The program must ensure the
+      memory is valid until:\n
+      \n
+      [mdash] the last copy of `mb` is destroyed, or\n
+      \n
+      [mdash] the handler for the asynchronous operation is invoked,\n
+      \n
+      whichever comes first. If the total size of all buffers in the sequence
+      `mb` is `0`, the asynchronous read operation shall complete immediately
+      and pass `0` as the argument to the handler that specifies the number of
+      bytes read.\n
+      \n
+      If the operation completes due to graceful connection closure by the
+      peer, the operation shall fail with `error::eof`.\n
+      \n
+      If the operation completes successfully, the `ReadHandler` object
+      `rh` is invoked with the number of bytes transferred. Otherwise it is
+      invoked with `0`.
+    ]
+  ]
+  [
+    [`a.write_some(b, cb, ec);`]
+    [`size_t`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Writes one or more bytes of data to a serial port `b`.\n
+      \n
+      The constant buffer sequence `cb` specifies memory where the data to be
+      written is located. The operation shall always write a buffer in the
+      sequence completely before proceeding to the next.\n
+      \n
+      If successful, returns the number of bytes written. Otherwise returns `0`.
+      If the total size of all buffers in the sequence `cb` is `0`, the
+      function shall return `0` immediately.
+    ]
+  ]
+  [
+    [`a.async_write_some(b, cb, wh);`]
+    [`void`]
+    [
+      pre: `a.is_open(b)`.\n
+      \n
+      Initiates an asynchronous operation to write one or more bytes of data to
+      a serial port `b`. The operation is performed via the `io_service`
+      object `a.get_io_service()` and behaves according to [link
+      boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.\n
+      \n
+      The constant buffer sequence `cb` specifies memory where the data to be
+      written is located. The operation shall always write a buffer in the
+      sequence completely before proceeding to the next.\n
+      \n
+      The implementation shall maintain one or more copies of `cb` until such
+      time as the write operation no longer requires access to the memory
+      specified by the buffers in the sequence. The program must ensure the
+      memory is valid until:\n
+      \n
+      [mdash] the last copy of `cb` is destroyed, or\n
+      \n
+      [mdash] the handler for the asynchronous operation is invoked,\n
+      \n
+      whichever comes first. If the total size of all buffers in the sequence
+      `cb` is `0`, the asynchronous operation shall complete immediately and
+      pass `0` as the argument to the handler that specifies the number of
+      bytes read.\n
+      \n
+      If the operation completes successfully, the `WriteHandler` object `wh`
+      is invoked with the number of bytes transferred. Otherwise it is invoked
+      with `0`.
+    ]
+  ]
+]
+
+[endsect]

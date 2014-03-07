@@ -1,0 +1,34 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Acknowledgments]
+
+The __spirit__ repository is the result of the contributions of active members 
+of the Spirit community. We would like to express our thanks to all who 
+directly contributed and to everybody directly or indirectly involved in the 
+discussions, which led to the creation of the parser and generator components.
+
+The following people have directly contributed code to this repository:
+
+[*Aaron Graham] wrote the __qi_advance__ parser component, which allows the 
+parser to skip (advance) through a specified number of iterations without 
+performing unnecessary work.
+
+[*Chris Hoeppler] submitted the __qi_confix__ parser directive allowing to 
+embed a parser (the subject) inside an opening (the prefix) and a closing 
+sequence (the suffix).
+
+[*Francois Barel] contributed the __qi_subrule__ parser and __karma_subrule__ 
+generator components, allowing to create a named parser or generator, and
+to refer to it by name. These components are in fact fully static versions of 
+the corresponding `rule` component.
+
+[*Thomas Bernard] contributed the __qi_keywords__ and __qi_keywords_list__ 
+parser components, allowing to define keyword parsers.
+
+[endsect]

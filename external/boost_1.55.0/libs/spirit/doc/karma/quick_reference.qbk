@@ -1,0 +1,687 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+This quick reference section is provided for convenience. You can use
+this section as sort of a "cheat-sheet" on the most commonly used Karma
+components. It is not intended to be complete, but should give you an
+easy way to recall a particular component without having to dig up on
+pages upon pages of reference documentation.
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section Common Notation]
+
+[variablelist Notation
+    [[`G`]              [Generator type]]
+    [[`g, a, b, c, d`]  [Generator objects]]
+    [[`A, B, C, D`]     [Attribute types of generators `a`, `b`, `c`, and `d`]]
+    [[`I`]              [The iterator type used for generation]]
+    [[`Unused`]         [An `unused_type`]]
+    [[`Context`]        [The enclosing rule's `Context` type]]
+    [[`attrib`]         [An attribute value]]
+    [[`Attrib`]         [An attribute type]]
+    [[`b`]              [A boolean expression]]
+    [[`B`]              [A type to be interpreted in boolean expressions]]
+    [[`fg`]             [A (lazy generator) function with signature `G(Unused, Context)`]]
+    [[`fa`]             [A (semantic action) function with signature `void(Attrib&, Context, bool&)`.
+                        The third parameter is a boolean flag that can be set to false to
+                        force the generator to fail. Both `Context` and the boolean flag are
+                        optional.]]
+    [[`outiter`]        [An output iterator to receive the generated output]]
+    [[`Ch`]             [Character-class specific character type (See __char_class_types__)]]
+    [[`ch, ch2`]        [Character-class specific character (See __char_class_types__)]]
+    [[`charset`]        [Character-set specifier string (example: `"a-z0-9"`)]]
+    [[`str`]            [Character-class specific string (See __char_class_types__)]]
+    [[`Str`]            [Attribute of `str`: `std::basic_string<T>` where `T` is the underlying character type of `str`]]
+    [[`num`]            [Numeric literal, any integer or real number type]]
+    [[`Num`]            [Attribute of `num`: any integer or real number type]]
+    [[`tuple<>`]        [Used as a placeholder for a fusion sequence]]
+    [[`vector<>`]       [Used as a placeholder for an STL container]]
+    [[`variant<>`]      [Used as a placeholder for a boost::variant]]
+    [[`optional<>`]     [Used as a placeholder for a boost::optional]]
+]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:primitive_generators Karma Generators]
+
+[section:char Character Generators]
+
+See here for more information about __karma_char__.
+
+[table 
+    [[Expression]                   [Attribute]         [Description]]
+    [[[karma_char `ch`]]            [`Unused`]          [Generate `ch`]]
+    [[[karma_char `lit(ch)`]]       [`Unused`]          [Generate `ch`]]
+
+    [[[karma_char `char_`]]         [`Ch`]      [Generate character supplied as the attribute]]
+    [[[karma_char `char_(ch)`]]     [`Ch`]      [Generate `ch`, 
+                                                 if an attribute is supplied it must match]]
+    [[[karma_char `char_("c")`]]    [`Ch`]      [Generate a single char string literal, `c`, 
+                                                 if an attribute is supplied it must match]]
+    [[[karma_char `char_(ch, ch2)`]][`Ch`]      [Generate the character supplied as the attribute, 
+                                                 if it belongs to the character range from
+                                                 `ch` to `ch2`]]
+    [[[karma_char `char_(charset)`]][`Ch`]      [Generate the character supplied as the attribute, 
+                                                 if it belongs to the character set `charset`]]
+
+    [[[karma_char_class `alnum`]]   [`Ch`]      [Generate the character supplied as the attribute
+                                                 if it satisfies the concept of `std::isalnum` in 
+                                                 the character set defined by `NS`]]
+    [[[karma_char_class `alpha`]]   [`Ch`]      [Generate the character supplied as the attribute
+                                                 if it satisfies the concept of `std::isalpha` in 
+                                                 the character set defined by `NS`]]
+    [[[karma_char_class `blank`]]   [`Ch`]      [Generate the character supplied as the attribute
+                                                 if it satisfies the concept of `std::isblank` in 
+                                                 the character set defined by `NS`]]
+    [[[karma_char_class `cntrl`]]   [`Ch`]      [Generate the character supplied as the attribute
+                                                 if it satisfies the concept of `std::iscntrl` in 
+                                                 the character set defined by `NS`]]
+    [[[karma_char_class `digit`]]   [`Ch`]      [Generate the character supplied as the attribute
+                                                 if it satisfies the concept of `std::isdigit` in 
+                                                 the character set defined by `NS`]]
+    [[[karma_char_class `graph`]]   [`Ch`]      [Generate the character supplied as the attribute
+                                                 if it satisfies the concept of `std::isgraph` in 
+                                                 the character set defined by `NS`]]
+    [[[karma_char_class `print`]]   [`Ch`]      [Generate the character supplied as the attribute
+                                                 if it satisfies the concept of `std::isprint` in 
+                                                 the character set defined by `NS`]]
+    [[[karma_char_class `punct`]]   [`Ch`]      [Generate the character supplied as the attribute
+                                                 if it satisfies the concept of `std::ispunct` in 
+                                                 the character set defined by `NS`]]
+    [[[karma_char_class `space`]]   [`Ch`]      [Generate the character supplied as the attribute
+                                                 if it satisfies the concept of `std::isspace`, or
+                                                 a single space character in the character set 
+                                                 defined by `NS`]]
+    [[[karma_char_class `xdigit`]]  [`Ch`]      [Generate the character supplied as the attribute
+                                                 if it satisfies the concept of `std::isxdigit` in 
+                                                 the character set defined by `NS`]]
+    [[[karma_char_class `lower`]]   [`Ch`]      [Generate the character supplied as the attribute
+                                                 if it satisfies the concept of `std::islower` in 
+                                                 the character set defined by `NS`]]
+    [[[karma_char_class `upper`]]   [`Ch`]      [Generate the character supplied as the attribute
+                                                 if it satisfies the concept of `std::isupper` in 
+                                                 the character set defined by `NS`]]
+]
+
+[endsect]
+
+[section:string String Generators]
+
+See here for more information about [karma_string String Generators].
+
+[table 
+    [[Expression]                   [Attribute] [Description]]
+    [[[karma_string `str`]]         [`Unused`]  [Generate `str`]]
+    [[[karma_string `lit(str)`]]    [`Unused`]  [Generate `str`]]
+    [[[karma_string `string`]]      [`Str`]     [Generate string supplied as the attribute]]
+    [[[karma_string `string(str)`]] [`Str`]     [Generate `str`, 
+                                                 if an attribute is supplied it must match]]
+
+    [[[karma_symbols `symbols<Attr, T>`]][`Attr`] [Declare a symbol table, `sym`. `Attr` is the
+                                                 The type of the original attribute to be used 
+                                                 as the key into the symbol generator.
+                                                 `T` is the data type associated with each key.]]
+    [[
+``
+    sym.add
+        (attr1, val1)
+        (attr2, val2)
+        /*...more...*/
+    ;
+``
+    ]
+    [N/A]                                        [Add symbols into a symbol table, `sym`.
+                                                  val1 and val2 are optional data of type `T`,
+                                                  the data type associated with each key.]]
+    [[`sym`]                [`T`]                [Emits entries in the symbol table, `sym`. If
+                                                  attribute is found in the symbol table,
+                                                  the corresponding value is emitted. If `sym`
+                                                  does not store values, the original attribute
+                                                  is emitted.]]
+]
+
+[endsect]
+
+[section:real_number Real Number Generators]
+
+See here for more information about __karma_numeric__.
+
+[table 
+    [[Expression]           [Attribute]                 [Description]]
+    [[[real_number `lit(num)`]]         [`Unused`]      [Generate `num`]]
+    [[[real_number `float_`]]           [`float`]       [Generate a real number from a `float`]]
+    [[[real_number `float_(num)`]]      [`float`]       [Generate `num` as a real number from a `float`, 
+                                                            if an attribute is supplied it must match `num`]]
+    [[[real_number `double_`]]          [`double`]      [Generate a real number from a `double`]]
+    [[[real_number `double_(num)`]]     [`double`]      [Generate a `num` as a real number from a `double`, 
+                                                            if an attribute is supplied it must match `num`]]
+    [[[real_number `long_double`]]      [`long double`] [Generate a real number from a `long double`]]
+    [[[real_number `long_double(num)`]] [`long double`] [Generate `num` as a real number from a `long double`, 
+                                                            if an attribute is supplied it must match `num`]]
+
+    [[[real_number ``real_generator<
+    Num, Policies
+>()``]]
+                                        [`Num`]            [Generate a real number `Num` using
+                                                            the supplied real number formatting policies]]
+    [[[real_number ``real_generator<
+    Num, Policies
+>()(num)``]]
+                                        [`Num`]            [Generate real number `num` as a `Num` 
+                                                            using the supplied real number formatting 
+                                                            policies, if an attribute is supplied it must 
+                                                            match]]
+]
+
+[endsect]
+
+[section:signed_int Integer Generators]
+
+[table 
+    [[Expression]           [Attribute]                 [Description]]
+    [[[signed_int `lit(num)`]]          [`Unused`]             [Generate `num`]]
+    [[[signed_int `short_`]]            [`short`]              [Generate a short integer]]
+    [[[signed_int `short_(num)`]]       [`short`]              [Generate `num` as a short integer, 
+                                                                if an attribute is supplied it must match]]
+    [[[signed_int `int_`]]              [`int`]                [Generate an int]]
+    [[[signed_int `int_(num)`]]         [`int`]                [Generate `num` as an int, 
+                                                                if an attribute is supplied it must match]]
+    [[[signed_int `long_`]]             [`long`]               [Generate a long integer]]
+    [[[signed_int `long_(num)`]]        [`long`]               [Generate `num` as long integer, 
+                                                                if an attribute is supplied it must match]]
+    [[[signed_int `long_long`]]         [`long long`]          [Generate a long long]]
+    [[[signed_int `long_long(num)`]]    [`long long`]          [Generate `num` as a long long, 
+                                                                if an attribute is supplied it must match]]
+
+    [[[signed_int ``int_generator<
+    Num, Radix, force_sign
+>()``]]
+                                        [`Num`]                [Generate a `Num`]]
+    [[[signed_int ``int_generator<
+    Num, Radix, force_sign
+>()(num)``]]
+                                        [`Num`]                [Generate a `num` as a `Num`, 
+                                                                if an attribute is supplied it must match]]
+]
+
+[endsect]
+
+[section:unsigned_int Unsigned Integer Generators]
+
+[table 
+    [[Expression]           [Attribute]                 [Description]]
+    [[[unsigned_int `lit(num)`]]        [`Unused`]             [Generate `num`]]
+    [[[unsigned_int `ushort_`]]         [`unsigned short`]     [Generate an unsigned short integer]]
+    [[[unsigned_int `ushort_(num)`]]    [`unsigned short`]     [Generate `num` as an unsigned short integer, 
+                                                                if an attribute is supplied it must match]]
+    [[[unsigned_int `uint_`]]           [`unsigned int`]       [Generate an unsigned int]]
+    [[[unsigned_int `uint_(num)`]]      [`unsigned int`]       [Generate `num` as an unsigned int, 
+                                                                if an attribute is supplied it must match]]
+    [[[unsigned_int `ulong_`]]          [`unsigned long`]      [Generate an unsigned long integer]]
+    [[[unsigned_int `ulong_(num)`]]     [`unsigned long`]      [Generate `num` as an unsigned long integer, 
+                                                                if an attribute is supplied it must match]]
+    [[[unsigned_int `ulong_long`]]      [`unsigned long long`] [Generate an unsigned long long]]
+    [[[unsigned_int `ulong_long(num)`]] [`unsigned long long`] [Generate `num` as an unsigned long long, 
+                                                                if an attribute is supplied it must match]]
+    [[[unsigned_int `bin`]]             [`unsigned int`]       [Generate a binary integer from an `unsigned int`]]
+    [[[unsigned_int `oct`]]             [`unsigned int`]       [Generate an octal integer from an `unsigned int`]]
+    [[[unsigned_int `hex`]]             [`unsigned int`]       [Generate a hexadecimal integer from an `unsigned int`]]
+
+    [[[unsigned_int ``uint_generator<
+    Num, Radix
+>()``]]
+                                        [`Num`]                [Generate an unsigned `Num`]]
+    [[[unsigned_int ``uint_generator<
+    Num, Radix
+>()(num)``]]
+                                        [`Num`]                [Generate an unsigned `num` as a `Num`, 
+                                                                if an attribute is supplied it must match]]
+]
+
+[endsect]
+
+[section:boolean Boolean Generators]
+
+[table 
+    [[Expression]               [Attribute]     [Description]]
+    [[[boolean `lit(num)`]]     [`Unused`]      [Generate `num`]]
+    [[[boolean `bool_`]]        [`bool`]        [Generate a boolean]]
+    [[[boolean `bool_(b)`]]     [`bool`]        [Generate `b` as a boolean, 
+                                                 if an attribute is supplied it must match]]
+    [[[boolean ``bool_generator<
+    B, Policies
+>()``]]
+                                [`B`]           [Generate a boolean of type `B`]]
+    [[[boolean ``bool_generator<
+    B, Policies
+>()(b)``]]
+                                [`B`]           [Generate a boolean `b` as a `B`, 
+                                                 if an attribute is supplied it must match]]
+]
+
+[endsect]
+
+[section:stream Stream Generators]
+
+See here for more information about [karma_stream Stream Generators].
+
+[table 
+    [[Expression]           [Attribute]     [Description]]
+    [[[karma_stream `stream`]]     [`hold_any`] [Generate narrow character (`char`) based output 
+                                                 using the matching streaming `operator<<()`]]
+    [[[karma_stream `stream(s)`]]  [`Unused`]   [Generate narrow character (`char`) based output 
+                                                 from the immediate argument `s` using the matching 
+                                                 streaming `operator<<()`]]
+    [[[karma_stream `wstream`]]    [`whold_any`] [Generate wide character (`wchar_t`) based output 
+                                                 using the matching streaming `operator<<()`]]
+    [[[karma_stream `wstream(s)`]] [`Unused`]   [Generate wide character (`wchar_t`) based output 
+                                                 from the immediate argument `s` using the matching 
+                                                 streaming `operator<<()`]]
+    [
+[[karma_stream ``stream_generator<
+    Char
+>()``]]                     [`basic_hold_any<Char>`]    [Generate output based on the given character type 
+                                             (`Char`) using the matching streaming `operator<<()`]]
+    [
+[[karma_stream ``stream_generator<
+    Char
+>()(s)``]]                  [`Unused`]      [Generate output based on the given character type
+                                             `Char` from the immediate argument `s` using the 
+                                             matching streaming `operator<<()`]]
+]
+
+[endsect]
+
+[section:binary Binary Generators]
+
+See here for more information about __karma_binary__.
+
+[table 
+    [[Expression]                          [Attribute]                 [Description]]
+    [[[karma_native_binary `byte_`]]       [8 bits native endian]      [Generate an 8 bit binary]]
+    [[[karma_native_binary `word`]]        [16 bits native endian]     [Generate a 16 bit binary in native endian representation]]
+    [[[karma_big_binary `big_word`]]       [16 bits big endian]        [Generate a 16 bit binary in big endian representation]]
+    [[[karma_little_binary `little_word`]] [16 bits little endian]     [Generate a 16 bit binary in little endian representation]]
+    [[[karma_native_binary `dword`]]       [32 bits native endian]     [Generate a 32 bit binary in native endian representation]]
+    [[[karma_big_binary `big_dword`]]      [32 bits big endian]        [Generate a 32 bit binary in big endian representation]]
+    [[[karma_little_binary `little_dword`]][32 bits little endian]     [Generate a 32 bit binary in little endian representation]]
+    [[[karma_native_binary `qword`]]       [64 bits native endian]     [Generate a 64 bit binary in native endian representation]]
+    [[[karma_big_binary `big_qword`]]      [64 bits big endian]        [Generate a 64 bit binary in big endian representation]]
+    [[[karma_little_binary `little_qword`]][64 bits little endian]     [Generate a 64 bit binary in little endian representation]]
+    [[`pad(num)`]                          [`Unused`]                  [Generate additional null bytes allowing to align generated 
+                                                                        output with memory addresses divisible by `num`.]]
+]
+
+[endsect]
+
+[section:auxiliary Auxiliary Generators]
+
+See here for more information about __karma_auxiliary__.
+
+[table 
+    [[Expression]           [Attribute]                 [Description]]
+    [[[karma_attr_cast `attr_cast<Exposed>(a)`]] [`Exposed`] [Invoke `a` while supplying an attribute of type `Exposed`.]]
+    [[__karma_eol__]        [`Unused`]                  [Generate the end of line (`\n`)]]
+    [[__karma_eps__]        [`Unused`]                  [Generate an empty string]]
+    [[__karma_feps__]       [`Unused`]                  [If `b` is true, generate an empty string]]
+    [[[karma_lazy `lazy(fg)`]]
+                            [Attribute of `G` where `G`
+                             is the return type of `fg`] [Invoke `fg` at generation time, returning a generator
+                                                        `g` which is then called to generate.]]
+    [[[karma_lazy `fg`]]    [see [karma_lazy `lazy(fg)`] above]  [Equivalent to [karma_lazy `lazy(fg)`]]]
+]
+
+[endsect]
+
+[section:auto Auto Generators]
+
+See here for more information about [karma_auto Auto Generators].
+
+[table 
+    [[Expression]           [Attribute]     [Description]]
+    [[[karma_auto `auto_`]] [`hold_any`]    [Generate output using a generator 
+                                             created from the supplied attribute type
+                                             using the __create_generator__ API function.]]
+]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:operators Generator Operators]
+
+See here for more information about __karma_operator__.
+
+[table 
+    [[Expression]           [Attribute]                 [Description]]
+    [[[link spirit.karma.reference.operator.not_predicate `!a`]]
+                            [`A`]                       [Not predicate. Ensure that `a` does not succeed 
+                                                         generating, but don't create any output]]
+    [[[link spirit.karma.reference.operator.not_predicate `&a`]]
+                            [`A`]                       [And predicate. Ensure that `a` does succeed
+                                                         generating, but don't create any output]]
+    [[[link spirit.karma.reference.operator.optional `-a`]]
+                            [`optional<A>`]             [Optional. Generate `a` zero or one time]]
+    [[[link spirit.karma.reference.operator.kleene `*a`]]
+                            [`vector<A>`]               [Kleene. Generate `a` zero or more times]]
+    [[[link spirit.karma.reference.operator.plus `+a`]]
+                            [`vector<A>`]               [Plus. Generate `a` one or more times]]
+    [[[link spirit.karma.reference.operator.alternative `a | b`]]
+                            [`variant<A, B>`]           [Alternative. Generate `a` or `b`]]
+    [[[link spirit.karma.reference.operator.sequence `a << b`]]
+                            [`tuple<A, B>`]             [Sequence. Generate `a` followed by `b`]]
+    [[[link spirit.karma.reference.operator.list `a % b`]]
+                            [`vector<A>`]               [List. Generate `a` delimited `b` one or more times]]
+]
+
+[:For more information about the attribute propagation rules implemented by the 
+compound generators please see __sec_karma_compound__.]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:directives Generator Directives]
+
+See here for more information about __karma_directive__.
+
+[table 
+    [[Expression]           [Attribute]           [Description]]
+    [[[karma_upperlower `lower`]`[a]`]        [`A`] [Generate `a` as lower case]]
+    [[[karma_upperlower `upper`]`[a]`]        [`A`] [Generate `a` as upper case]]
+
+    [[[karma_align `left_align`]`[a]`]        [`A`] [Generate `a` left aligned in column of width 
+                                                 `BOOST_KARMA_DEFAULT_FIELD_LENGTH`]]
+    [[[karma_align `left_align`]`(num)[a]`]   [`A`] [Generate `a` left aligned in column of width `num`]]
+    [[[karma_align `left_align`]`(g)[a]`]     [`A`] [Generate `a` left aligned in column of width 
+                                                 `BOOST_KARMA_DEFAULT_FIELD_LENGTH` while using `g` to 
+                                                 generate the necessary padding]]
+    [[[karma_align `left_align`]`(num, g)[a]`][`A`] [Generate `a` left aligned in column of width `num`
+                                                 while using `g` to generate the necessary
+                                                 padding]]
+
+    [[[karma_align `center`]`[a]`]            [`A`] [Generate `a` centered in column of width 
+                                                 `BOOST_KARMA_DEFAULT_FIELD_LENGTH`]]
+    [[[karma_align `center`]`(num)[a]`]       [`A`] [Generate `a` centered in column of width `num`]]
+    [[[karma_align `center`]`(g)[a]`]         [`A`] [Generate `a` centered in column of width 
+                                                 `BOOST_KARMA_DEFAULT_FIELD_LENGTH` while using `g` to 
+                                                 generate the necessary padding]]
+    [[[karma_align `center`]`(num, g)[a]`]    [`A`] [Generate `a` centered in column of width `num`
+                                                 while using `g` to generate the necessary
+                                                 padding]]
+
+    [[[karma_align `right_align`]`[a]`]       [`A`] [Generate `a` right aligned in column of width 
+                                                 `BOOST_KARMA_DEFAULT_FIELD_LENGTH`]]
+    [[[karma_align `right_align`]`(num)[a]`]  [`A`] [Generate `a` right aligned in column of width `num`]]
+    [[[karma_align `right_align`]`(g)[a]`]    [`A`] [Generate `a` right aligned in column of width 
+                                                 `BOOST_KARMA_DEFAULT_FIELD_LENGTH` while using `g` to 
+                                                 generate the necessary padding]]
+    [[[karma_align `right_align`]`(num, g)[a]`][`A`][Generate `a` right aligned in column of width `num`
+                                                 while using `g` to generate the necessary
+                                                 padding]]
+
+    [[[karma_maxwidth `maxwidth`]`[a]`]       [`A`] [Generate `a` truncated to column of width 
+                                                   `BOOST_KARMA_DEFAULT_FIELD_MAXWIDTH`]]
+    [[[karma_maxwidth `maxwidth`]`(num)[a]`]  [`A`] [Generate `a` truncated to column of width `num`]]
+
+    [[[karma_repeat `repeat`]`[a]`]             [`vector<A>`] [Repeat `a` zero or more times]]
+    [[[karma_repeat `repeat`]`(num)[a]`]        [`vector<A>`] [Repeat `a` `num` times]]
+    [[[karma_repeat `repeat`]`(num1, num2)[a]`] [`vector<A>`] [Repeat `a` `num1` to `num2` times]]
+    [[[karma_repeat `repeat`]`(num, inf)[a]`]   [`vector<A>`] [Repeat `a` `num` or more times]]
+
+    [[__karma_verbatim__`[a]`][`A`]               [Disable delimited generation for `a`. Performs post delimiting.]]
+    [[[karma_delimit `delimit`]`[a]`]     [`A`]   [Reestablish the delimiter that got inhibited by verbatim]]
+    [[[karma_delimit `delimit`]`(d)[a]`]  [`A`]   [Use `d` as a delimiter for generating `a`]]
+    [[[karma_no_delimit `no_delimit`]`[a]`] [`A`] [Disable delimited generation for `a`. No post-delimiting step performed.]]
+
+    [[__karma_as__`()[a]`]             [`A`]      [Force atomic output from arbitrary attribute types]]
+    [[__karma_as_string__`[a]`]        [`A`]      [Force atomic output from string attributes]]
+    [[__karma_as_wstring__`[a]`]       [`A`]      [Force atomic output from wide character string attributes]]
+
+    [[__karma_omit__`[a]`]  [`A`]               [Consume the attribute type of `a` without generating anything. 
+                                                 The embedded generator will be always executed.]]
+    [[__karma_skip__`[a]`]  [`A`]               [Consume the attribute type of `a` without generating anything.
+                                                 The embedded generator will never be executed.]]
+
+    [[__karma_duplicate__`[a]`]  [`A`]          [The supplied attribute will be duplicated and passed unchanged to 
+                                                 all embedded elements of a sequence.]]
+
+    [[__karma_buffer__`[a]`][`A`]               [Temporarily intercept the output generated by `a`, 
+                                                 flushing it only after `a` succeeded]]
+
+    [[[karma_columns `columns`]`[a]`]       [`A`] [Generate `a` split into 
+                                                 `BOOST_KARMA_DEFAULT_COLUMNS` number of columns using
+                                                 `karma::eol` as column delimiter]]
+    [[[karma_columns `columns`]`(num)[a]`]  [`A`] [Generate `a` split into 
+                                                 `num` number of columns using
+                                                 `karma::eol` as column delimiter]]
+    [[[karma_columns `columns`]`(g)[a]`]    [`A`] [Generate `a` split into 
+                                                 `BOOST_KARMA_DEFAULT_COLUMNS` number of columns using
+                                                 `g` as column delimiter]]
+    [[[karma_columns `columns`]`(num, g)[a]`][`A`][Generate `a` split into 
+                                                 `num` number of columns using
+                                                 `g` as column delimiter]]
+]
+
+[endsect]
+
+[section:action Generator Semantic Actions]
+
+[table 
+    [[Expression]           [Attribute]                 [Description]]
+    [[`g[fa]`]              [Attribute of `g`]          [Call semantic action `fa` before invoking `g`]]
+]
+
+[endsect]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section Compound Attribute Rules]
+
+[heading Notation]
+
+The notation we use is of the form:
+
+    a: A, b: B, ... --> composite-expression: composite-attribute
+
+`a`, `b`, etc. are the operands. `A`, `B`, etc. are the operand's
+attribute types. `composite-expression` is the expression involving the
+operands and `composite-attribute` is the resulting attribute type of
+the composite expression.
+
+For instance: 
+
+    a: A, b: B --> (a << b): tuple<A, B>
+
+which reads as: given, `a` and `b` are generators, and `A` is the type 
+of the attribute of `a`, and `B` is the type of the attribute of `b`, then the 
+type of the attribute of `a << b` will be `tuple<A, B>`.
+
+[important In the attribute tables, we will use `vector<A>` and
+`tuple<A, B...>` as placeholders only. The notation of `vector<A>`
+stands for ['any __stl__ container] holding elements of type `A` and the
+notation `tuple<A, B...>` stands for ['any __fusion__ sequence] holding
+`A`, `B`, ... etc. elements. The notation of `variant<A, B, ...>` stands for
+['a __boost_variant__] capable of holding `A`, `B`, ... etc. elements. Finally, 
+`Unused` stands for __unused_type__. ] 
+
+[heading Compound Generator Attribute Types]
+
+[table 
+    [[Expression]           [Attribute]]
+
+    [[__karma_sequence__ (`a << b`)]
+[``a: A, b: B --> (a << b): tuple<A, B>
+a: A, b: Unused --> (a << b): A
+a: Unused, b: B --> (a << b): B
+a: Unused, b: Unused --> (a << b): Unused
+
+a: A, b: A --> (a << b): vector<A>
+a: vector<A>, b: A --> (a << b): vector<A>
+a: A, b: vector<A> --> (a << b): vector<A>
+a: vector<A>, b: vector<A> --> (a << b): vector<A>``]]
+
+    [[__karma_alternative__ (`a | b`)]
+[``a: A, b: B --> (a | b): variant<A, B>
+a: A, b: Unused --> (a | b): A
+a: Unused, b: B --> (a | b): B
+a: Unused, b: Unused --> (a | b): Unused
+a: A, b: A --> (a | b): A``]]
+
+    [[[karma_kleene Kleene (`*a`)]]
+[``a: A --> *a: vector<A>
+a: Unused --> *a: Unused``]]
+    [[__karma_plus__ (`+a`)]
+[``a: A --> +a: vector<A>
+a: Unused --> +a: Unused``]]
+
+    [[__karma_list__ (`a % b`)]
+[``a: A, b: B --> (a % b): vector<A>
+a: Unused, b: B --> (a % b): Unused``]]
+
+    [[[karma_repeat Repetition] (`repeat[]`)]
+[``a: A --> repeat(...,...)[a]: vector<A>
+a: Unused --> repeat(...,...)[a]: Unused``]]
+
+    [[__karma_optional__ (`-a`)]
+[``a: A --> -a: optional<A>
+a: Unused --> -a: Unused``]]
+
+    [[__karma_and_predicate__ (`&a`)]  [`a: A --> &a: A`]]
+    [[__karma_not_predicate__ (`!a`)]  [`a: A --> !a: A`]]
+]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:non_terminals Nonterminals]
+
+See here for more information about __karma_nonterminal__.
+
+[variablelist Notation
+    [[`RT`]                     [Synthesized attribute. The rule or grammar's return type.]]
+    [[`Arg1`, `Arg2`, `ArgN`]   [Inherited attributes. Zero or more arguments.]]
+    [[`L1`, `L2`, `LN`]         [Zero or more local variables.]]
+    [[`r, r2`]                  [Rules]]
+    [[`g`]                      [A grammar]]
+    [[`p`]                      [A generator expression]]
+    [[`my_grammar`]             [A user defined grammar]]
+]
+
+[variablelist Terminology
+    [[Signature]                [`RT(Arg1, Arg2, ... ,ArgN)`. The signature specifies
+                                the synthesized (return value) and inherited (arguments)
+                                attributes.]]
+    [[Locals]                   [`locals<L1, L2, ..., LN>`. The local variables.]]
+    [[Delimiter]                [The delimit-generator type]]
+]
+
+[variablelist Template Arguments
+    [[`Iterator`]               [The iterator type you will use for parsing.]]
+    [[`A1`, `A2`, `A3`]         [Can be one of 1) Signature 2) Locals 3) Delimiter.]]
+]
+
+[table
+    [[Expression]                               [Description]]
+    [[`rule<OutputIterator, A1, A2, A3> r(name);`]    [Rule declaration. `OutputIterator` is required.
+                                                `A1, A2, A3` are optional and can be specified in any order.
+                                                `name` is an optional string that gives the rule
+                                                its name, useful for debugging.]]
+    [[`rule<OutputIterator, A1, A2, A3> r(r2);`]      [Copy construct rule `r` from rule `r2`.]]
+    [[`r = r2;`]                                [Assign rule `r2` to `r`. `boost::shared_ptr` semantics.]]
+    [[`r.alias()`]                              [Return an alias of `r`. The alias is a generator that
+                                                 holds a reference to `r`. Reference semantics.]]
+    [[`r.copy()`]                               [Get a copy of `r`.]]
+    [[`r.name(name)`]                           [Set the name of a rule]]
+    [[`r.name()`]                               [Get the name of a rule]]
+    [[debug(r)]                                 [Debug rule `r`]]
+    [[`r = g;`]                                 [Rule definition]]
+    [[`r %= g;`]                                [Auto-rule definition. The attribute of `g` should be
+                                                compatible with the synthesized attribute of `r`. When `g`
+                                                is successful, its attribute is automatically propagated
+                                                to `r`'s synthesized attribute.]]
+
+    [[
+``
+    template <typename OutputIterator>
+    struct my_grammar : grammar<OutputIterator, A1, A2, A3>
+    {
+        my_grammar() : my_grammar::base_type(start, name)
+        {
+            // Rule definitions
+            start = /* ... */;
+        }
+
+        rule<OutputIterator, A1, A2, A3> start;
+        // more rule declarations...
+    };
+``
+    ]                                           [Grammar definition. `name` is an optional string that gives the
+                                                grammar its name, useful for debugging.]]
+    [[my_grammar<OutputIterator> g]             [Instantiate a grammar]]
+    [[`g.name(name)`]                           [Set the name of a grammar]]
+    [[`g.name()`]                               [Get the name of a grammar]]
+]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:semantic_actions Generator Semantic Actions]
+
+Semantic Actions may be attached to any generator as follows:
+
+    g[f]
+
+where `f` is a function with the signatures:
+
+    void f(Attrib&);
+    void f(Attrib&, Context&);
+    void f(Attrib&, Context&, bool&);
+
+You can use __boost_bind__ to bind member functions. For function
+objects, the allowed signatures are:
+
+    void operator()(Attrib&, unused_type, unused_type) const;
+    void operator()(Attrib&, Context&, unused_type) const;
+    void operator()(Attrib&, Context&, bool&) const;
+
+The `unused_type` is used in the signatures above to signify 'don't
+care'.
+
+For more information see __karma_actions__.
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section Phoenix]
+
+__boost_phoenix__ makes it easier to attach semantic actions. You just
+inline your lambda expressions:
+
+    g[phoenix-lambda-expression]
+
+__karma__ provides some __boost_phoenix__ placeholders to access important
+information from the `Attrib` and `Context` that are otherwise fiddly to extract.
+
+[variablelist Spirit.Karma specific Phoenix placeholders
+    [[`_1, _2, ... , _N`]       [Nth attribute of `g`]]
+    [[`_val`]                   [The enclosing rule's synthesized attribute.]]
+    [[`_r1, _r2, ... , _rN`]    [The enclosing rule's Nth inherited attribute.]]
+    [[`_a, _b, ... , _j`]       [The enclosing rule's local variables (`_a` refers to the first).]]
+    [[`_pass`]                  [Assign `false` to `_pass` to force a generator failure.]]
+]
+
+[important  All placeholders mentioned above are defined in the namespace 
+           `boost::spirit` and, for your convenience, are available in the 
+           namespace `boost::spirit::karma` as well.]
+
+For more information see __karma_actions__.
+
+[endsect]
+
+

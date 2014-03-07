@@ -1,0 +1,155 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>push_heap</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../heap.html" title="Heap algorithms">
+<link rel="prev" href="../heap.html" title="Heap algorithms">
+<link rel="next" href="pop_heap.html" title="pop_heap">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../heap.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../heap.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="pop_heap.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_reference_algorithms_heap_push_heap">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="range.reference.algorithms.heap.push_heap"></a><a class="link" href="push_heap.html" title="push_heap">push_heap</a>
+</h5></div></div></div>
+<h6>
+<a name="range.reference.algorithms.heap.push_heap.h0"></a>
+            <span><a name="range.reference.algorithms.heap.push_heap.prototype"></a></span><a class="link" href="push_heap.html#range.reference.algorithms.heap.push_heap.prototype">Prototype</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">RandomAccessRange</span><span class="special">&gt;</span>
+<span class="identifier">RandomAccessRange</span><span class="special">&amp;</span> <span class="identifier">push_heap</span><span class="special">(</span><span class="identifier">RandomAccessRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">RandomAccessRange</span><span class="special">&gt;</span>
+<span class="keyword">const</span> <span class="identifier">RandomAccessRange</span><span class="special">&amp;</span> <span class="identifier">push_heap</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">RandomAccessRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">RandomAccessRange</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Compare</span><span class="special">&gt;</span>
+<span class="identifier">RandomAccessRange</span><span class="special">&amp;</span> <span class="identifier">push_heap</span><span class="special">(</span><span class="identifier">RandomAccessRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">,</span> <span class="identifier">Compare</span> <span class="identifier">pred</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">RandomAccessRange</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Compare</span><span class="special">&gt;</span>
+<span class="keyword">const</span> <span class="identifier">RandomAccessRange</span><span class="special">&amp;</span> <span class="identifier">push_heap</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">RandomAccessRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">,</span> <span class="identifier">Compare</span> <span class="identifier">pred</span><span class="special">);</span>
+</pre>
+<p>
+          </p>
+<h6>
+<a name="range.reference.algorithms.heap.push_heap.h1"></a>
+            <span><a name="range.reference.algorithms.heap.push_heap.description"></a></span><a class="link" href="push_heap.html#range.reference.algorithms.heap.push_heap.description">Description</a>
+          </h6>
+<p>
+            <code class="computeroutput"><span class="identifier">push_heap</span></code> adds an element
+            to a heap. It is assumed that <code class="computeroutput"><span class="identifier">begin</span><span class="special">(</span><span class="identifier">rng</span><span class="special">)</span></code>, <code class="computeroutput"><span class="identifier">prior</span><span class="special">(</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">rng</span><span class="special">))</span></code> is already a heap and that the element
+            to be added is <code class="computeroutput"><span class="special">*</span><span class="identifier">prior</span><span class="special">(</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">rng</span><span class="special">))</span></code>.
+          </p>
+<p>
+            The ordering relationship is determined by using <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;</span></code> in the non-predicate versions, and
+            by evaluating <code class="computeroutput"><span class="identifier">pred</span></code> in
+            the predicate versions.
+          </p>
+<h6>
+<a name="range.reference.algorithms.heap.push_heap.h2"></a>
+            <span><a name="range.reference.algorithms.heap.push_heap.definition"></a></span><a class="link" href="push_heap.html#range.reference.algorithms.heap.push_heap.definition">Definition</a>
+          </h6>
+<p>
+            Defined in the header file <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">/</span><span class="identifier">heap_algorithm</span><span class="special">.</span><span class="identifier">hpp</span></code>
+          </p>
+<h6>
+<a name="range.reference.algorithms.heap.push_heap.h3"></a>
+            <span><a name="range.reference.algorithms.heap.push_heap.requirements"></a></span><a class="link" href="push_heap.html#range.reference.algorithms.heap.push_heap.requirements">Requirements</a>
+          </h6>
+<p>
+            <span class="bold"><strong>For the non-predicate versions:</strong></span>
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">RandomAccessRange</span></code>
+                is a model of the <a class="link" href="../../../concepts/random_access_range.html" title="Random Access Range">Random
+                Access Range</a> Concept.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">RandomAccessRange</span></code>
+                is mutable.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">RandomAccessRange</span></code>'s
+                value type is a model of the <code class="computeroutput"><span class="identifier">LessThanComparableConcept</span></code>.
+              </li>
+<li class="listitem">
+                The ordering of objects of type <code class="computeroutput"><span class="identifier">RandomAccessRange</span></code>'s
+                value type is a <span class="bold"><strong><span class="emphasis"><em>strict weak ordering</em></span></strong></span>,
+                as defined in the <code class="computeroutput"><span class="identifier">LessThanComparableConcept</span></code>
+                requirements.
+              </li>
+</ul></div>
+<p>
+            <span class="bold"><strong>For the predicate versions:</strong></span>
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">RandomAccessRange</span></code>
+                is a model of the <a class="link" href="../../../concepts/random_access_range.html" title="Random Access Range">Random
+                Access Range</a> Concept.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">RandomAccessRange</span></code>
+                is mutable.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">Compare</span></code> is a model
+                of the <code class="computeroutput"><span class="identifier">StrictWeakOrderingConcept</span></code>.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">RandomAccessRange</span></code>'s
+                value type is convertible to both of <code class="computeroutput"><span class="identifier">Compare</span></code>'s
+                argument types.
+              </li>
+</ul></div>
+<h6>
+<a name="range.reference.algorithms.heap.push_heap.h4"></a>
+            <span><a name="range.reference.algorithms.heap.push_heap.precondition_"></a></span><a class="link" href="push_heap.html#range.reference.algorithms.heap.push_heap.precondition_">Precondition:</a>
+          </h6>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                <code class="computeroutput"><span class="special">!</span><span class="identifier">empty</span><span class="special">(</span><span class="identifier">rng</span><span class="special">)</span></code>
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">rng</span><span class="special">),</span> <span class="identifier">prior</span><span class="special">(</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">rng</span><span class="special">)))</span></code> is a heap.
+              </li>
+</ul></div>
+<h6>
+<a name="range.reference.algorithms.heap.push_heap.h5"></a>
+            <span><a name="range.reference.algorithms.heap.push_heap.complexity"></a></span><a class="link" href="push_heap.html#range.reference.algorithms.heap.push_heap.complexity">Complexity</a>
+          </h6>
+<p>
+            Logarithmic. At most <code class="computeroutput"><span class="identifier">log</span><span class="special">(</span><span class="identifier">distance</span><span class="special">(</span><span class="identifier">rng</span><span class="special">))</span></code> comparisons.
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../heap.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../heap.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="pop_heap.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

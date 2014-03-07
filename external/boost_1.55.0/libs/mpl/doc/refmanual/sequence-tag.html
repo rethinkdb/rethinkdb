@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: sequence_tag</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./push-front.html" class="navigation-link">Prev</a>&nbsp;<a href="./size.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./push-front.html" class="navigation-link">Back</a>&nbsp;<a href="./size.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./intrinsic-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./sequences.html" class="navigation-link">Sequences</a> / <a href="./intrinsic-metafunctions.html" class="navigation-link">Intrinsic Metafunctions</a> / <a href="./sequence-tag.html" class="navigation-link">sequence_tag</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="sequence-tag">
+<h1><a class="toc-backref" href="./intrinsic-metafunctions.html#id1445">sequence_tag</a></h1>
+<div class="section" id="id354">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename X
+    &gt;
+struct <a href="./sequence-tag.html" class="identifier">sequence_tag</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id355">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p><tt class="literal"><span class="pre"><a href="./sequence-tag.html" class="identifier">sequence_tag</a></span></tt> is a <a class="reference internal" href="./tag-dispatched-metafunction.html#tag-metafunction">tag metafunctions</a> for all <a class="reference internal" href="./tag-dispatched-metafunction.html">tag dispatched</a>
+<a class="reference internal" href="./intrinsic-metafunctions.html">intrinsic sequence operations</a>.</p>
+</div>
+<div class="section" id="id357">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/sequence_tag.hpp" class="header">boost/mpl/sequence_tag.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id358">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="19%" />
+<col width="23%" />
+<col width="58%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">X</span></tt></td>
+<td>Any type</td>
+<td>A type to obtain a sequence tag for.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id359">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any arbitrary type <tt class="literal"><span class="pre">x</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./sequence-tag.html" class="identifier">sequence_tag</a>&lt;x&gt;::type tag;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body">A type.</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><tt class="literal"><span class="pre">tag</span></tt> is an unspecified tag type for <tt class="literal"><span class="pre">x</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id360">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Amortized constant time.</p>
+</div>
+<div class="section" id="id361">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./intrinsic-metafunctions.html">Intrinsic Metafunctions</a>, <a class="reference internal" href="./tag-dispatched-metafunction.html">Tag Dispatched Metafunction</a></p>
+<!-- Sequences/Intrinsic Metafunctions//size -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./push-front.html" class="navigation-link">Prev</a>&nbsp;<a href="./size.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./push-front.html" class="navigation-link">Back</a>&nbsp;<a href="./size.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./intrinsic-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

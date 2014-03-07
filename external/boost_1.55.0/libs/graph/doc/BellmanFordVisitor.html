@@ -1,0 +1,184 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Bellman Ford Visitor</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><img src="figs/python.gif" alt="(Python)"/>Bellman Ford Visitor Concept</H1>
+
+This concept defines the visitor interface for <a
+href="./bellman_ford_shortest.html"><tt>bellman_ford_shortest_paths()</tt></a>.
+Users can define a class with the Bellman Ford Visitor interface and
+pass and object of the class to <tt>bellman_ford_shortest_paths()</tt>,
+thereby augmenting the actions taken during the graph search.
+
+<h3>Refinement of</h3>
+
+<a href="../../utility/CopyConstructible.html">Copy Constructible</a>
+(copying a visitor should be a lightweight operation).
+
+<h3>Notation</h3>
+
+<Table>
+<TR>
+<TD><tt>V</tt></TD>
+<TD>A type that is a model of Bellman Ford Visitor.</TD>
+</TR>
+
+<TR>
+<TD><tt>vis</tt></TD>
+<TD>An object of type <tt>V</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>G</tt></TD>
+<TD>A type that is a model of Graph.</TD>
+</TR>
+
+<TR>
+<TD><tt>g</tt></TD>
+<TD>An object of type <tt>G</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>e</tt></TD>
+<TD>An object of type <tt>boost::graph_traits&lt;G&gt;::edge_descriptor</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>s,u</tt></TD>
+<TD>An object of type <tt>boost::graph_traits&lt;G&gt;::vertex_descriptor</tt>.</TD>
+</TR>
+
+</table>
+
+<h3>Associated Types</h3>
+
+none
+<p>
+
+<h3>Valid Expressions</h3>
+
+<table border>
+<tr>
+<th>Name</th><th>Expression</th><th>Return Type</th><th>Description</th>
+</tr>
+
+<tr>
+<td>Examine Edge</td>
+<td><tt>vis.examine_edge(e, g)</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked on every edge in the graph <tt>num_vertices(g)</tt> times.
+</td>
+</tr>
+
+
+<tr>
+<td>Edge Relaxed</td>
+<td><tt>vis.edge_relaxed(e, g)</tt></td>
+<td><tt>void</tt></td>
+<td>
+Upon examination, if the following condition holds then the edge
+is relaxed (its distance is reduced), and this method is invoked.<br>
+<tt>
+tie(u,v) = incident(e, g);<br>
+D d_u = get(d, u), d_v = get(d, v);<br>
+W w_e = get(w, e);<br>
+assert(compare(combine(d_u, w_e), d_v));<br>
+</tt>
+</td>
+</tr>
+
+<tr>
+<td>Edge Not Relaxed</td>
+<td><tt>edge_not_relaxed(e, g)</tt></td>
+<td><tt>void</tt></td>
+<td>
+Upon examination, if the edge is not relaxed (see above) then
+this method is invoked.
+</td>
+</tr>
+
+<tr>
+<td>Edge Minimized</td>
+<td><tt>vis.edge_minimized(e, g)</tt></td>
+<td><tt>void</tt></td>
+<td>
+After <tt>num_vertices(g)</tt> iterations through the edge set
+of the graph are completed, one last iteration is made to test whether
+each edge was minimized. If the edge is minimized then this function
+is invoked.
+</td>
+</tr>
+
+<tr>
+<td>Edge Not Minimized</td>
+<td><tt>edge_not_minimized(e, g)</tt></td>
+<td><tt>void</tt></td>
+<td>
+If the edge is not minimized, this function is invoked. This happens
+when there is a negative cycle in the graph.
+</td>
+</tr>
+
+</table>
+
+
+<h3>Models</h3>
+
+<ul>
+  <li><a href="./bellman_visitor.html"><tt>bellman_visitor</tt></a>
+</ul>
+
+<a name="python"></a>
+<h3>Python</h3>
+
+To implement a model of the <tt>BellmanFordVisitor</tt> concept in Python,
+create a new class that derives from the <tt>BellmanFordVisitor</tt> type of
+the graph, which will be
+named <tt><i>GraphType</i>.BellmanFordVisitor</tt>. The events and syntax are
+the same as with visitors in C++. Here is an example for the
+Python <tt>bgl.Graph</tt> graph type:
+
+<pre>
+class count_tree_edges_bellman_ford_visitor(bgl.Graph.BellmanFordVisitor):
+  def __init__(self, name_map):
+    bgl.Graph.BellmanFordVisitor.__init__(self)
+    self.name_map = name_map
+
+  def edge_relaxed(self, e, g):
+    (u, v) = (g.source(e), g.target(e))
+    print "Relaxed edge ",
+    print self.name_map[u],
+    print " -> ",
+    print self.name_map[v]
+</pre>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

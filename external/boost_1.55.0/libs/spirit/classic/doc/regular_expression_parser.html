@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Regular Expression Parser</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link href="theme/style.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10" height="49"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>&nbsp;</b></font></td>
+    <td width="85%" height="49"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Regular Expression Parser</b></font></td>
+    <td width="112" height="49"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="refactoring.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="scoped_lock.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p><a name="regular_expression_parser"></a>Regular expressions are a form of pattern-matching 
+  that are often used in text processing. Many users will be familiar with the 
+  usage of regular expressions. Initially there were the Unix utilities grep, 
+  sed and awk, and the programming language perl, each of which make extensive 
+  use of regular expressions. Today the usage of such regular expressions is integrated 
+  in many more available systems.</p>
+<p>During parser construction it is often useful to have the power of regular 
+  expressions available. The Regular Expression Parser was introduced, to make 
+  the use of regular expressions accessible for Spirit parser construction.</p>
+<p>The Regular Expression Parser <tt>rxstrlit</tt> has a single template type 
+  parameter: an iterator type. Internally, <tt>rxstrlit</tt> holds the Boost Regex 
+  object containing the provided regular expression. The <tt>rxstrlit</tt> attempts 
+  to match the current input stream with this regular expression. The template 
+  type parameter defaults to <tt>char const<span class="operators">*</span></tt>. 
+  <tt>rxstrlit</tt> has two constructors. The first accepts a null-terminated 
+  character pointer. This constructor may be used to build <tt>rxstrlit's</tt> 
+  from quoted regular expression literals. The second constructor takes in a first/last 
+  iterator pair. The function generator version is <tt>regex_p</tt>. </p>
+<p>Here are some examples:</p>
+<pre><code><span class=comment>    </span><span class=identifier>rxstrlit</span><span class=special>&lt;&gt;(</span><span class=string>"Hello[[:space:]]+[W|w]orld"</span><span class=special>)
+    </span><span class=identifier>regex_p</span><span class=special>(</span><span class=string>"Hello[[:space:]]+[W|w]orld"</span><span class=special>)
+
+    </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string </span><span class=identifier>msg</span><span class=special>(</span><span class=string>"Hello[[:space:]]+[W|w]orld"</span><span class=special>);
+    rx</span><span class=identifier>strlit</span><span class=special>&lt;&gt;(</span><span class=identifier>msg</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(), </span><span class=identifier>msg</span><span class=special>.</span><span class=identifier>end</span><span class=special>());</span></code></pre>
+<p>The generated parser object acts at the character level, thus an eventually 
+  given skip parser is not used during the attempt to match the regular expression 
+  (see <a href="faq.html#scanner_business">The Scanner Business</a>).</p>
+<p>The Regular Expression Parser is implemented by the help of the <a href="http://www.boost.org/libs/regex/index.html">Boost 
+  Regex++ library</a>, so you have to have some limitations in mind. </p>
+<blockquote>
+  <p><img src="theme/bullet.gif" width="12" height="12"> Boost libraries have 
+    to be installed on your computer and the Boost root directory has to be added 
+    to your compiler <tt>#include&lt;...&gt;</tt> search path. You can download 
+    the actual version at the <a href="http://www.boost.org/">Boost web site</a>.</p>
+  <p><img src="theme/bullet.gif" width="12" height="12"> The Boost Regex library 
+    requires the usage of bi-directional iterators. So you have to ensure this 
+    during the usage of the Spirit parser, which contains a Regular Expression 
+    Parser.</p>
+  <p><img src="theme/bullet.gif" width="12" height="12"> The Boost Regex library 
+    is not a header only library, as Spirit is, though it provides the possibility 
+    to include all of the sources, if you are using it in one compilation unit 
+    only. Define the preprocessor constant <tt>BOOST_SPIRIT_NO_REGEX_LIB</tt> before 
+    including the spirit Regular Expression Parser header, if you want to include 
+    all the Boost Regex sources into this compilation unit. If you are using the 
+    Regular Expression Parser in more than one compilation unit, you should not 
+    define this constant and must link your application against the regex library 
+    as described in the related documentation.</p>
+</blockquote>
+<p> <img src="theme/lens.gif" width="15" height="16"> See <a href="../example/fundamental/regular_expression.cpp">regular_expression.cpp</a> for a compilable example. This is part of the Spirit distribution.</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="refactoring.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="scoped_lock.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2001-2002 Hartmut Kaiser<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+</body>
+</html>

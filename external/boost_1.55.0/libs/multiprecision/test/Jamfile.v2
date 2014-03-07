@@ -1,0 +1,750 @@
+# copyright John Maddock 2011
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt.
+
+import modules ;
+import path ;
+
+local ntl-path = [ modules.peek : NTL_PATH ] ;
+local gmp_path = [ modules.peek : GMP_PATH ] ;
+local mpfr_path = [ modules.peek : MPFR_PATH ] ;
+local mpfi_path = [ modules.peek : MPFI_PATH ] ;
+local tommath_path = [ modules.peek : TOMMATH_PATH ] ;
+
+project : requirements
+   <include>$(gmp_path)
+   <include>$(gmp_path)/mpfr
+   <include>$(gmp_path)/gmpfrxx
+   <include>$(mpfr_path)
+   <include>$(mpfi_path)
+   <include>$(mpfi_path)/src
+   <include>$(tommath_path)
+   <include>../../..
+   # We set these to make it easier to set up and test GMP and MPFR under Win32:
+   <toolset>msvc:<runtime-link>static
+   <toolset>msvc:<link>static
+   <toolset>msvc:<warnings>all
+   <toolset>intel-win:<runtime-link>static
+   <toolset>intel-win:<link>static
+   # Speed up compiles:
+   <toolset>msvc:<debug-symbols>off
+   <toolset>intel:<debug-symbols>off
+   <toolset>gcc:<cxxflags>-Wall
+   <toolset>gcc:<cxxflags>-Wextra
+   <toolset>intel:<define>SLOW_COMPILER
+   ;
+
+local enable-specfun = [ MATCH (--enable-specfun) : [ modules.peek : ARGV ] ] ;
+local disable-concepts = [ MATCH (--disable-concepts) : [ modules.peek : ARGV ] ] ;
+
+lib gmp : : <search>$(gmp_path) ;
+lib mpfr : : <search>$(gmp_path) <search>$(mpfr_path) <search>$(mpfr_path)/build.vc10/lib/Win32/Debug ;
+lib mpfi : : <search>$(gmp_path) <search>$(mpfr_path) <search>$(mpfr_path)/build.vc10/lib/Win32/Debug <search>$(mpfi_path) <search>$(mpfi_path)/src ;
+lib quadmath ;
+
+if $(tommath_path)
+{
+   lib tommath : [ GLOB $(tommath_path) : *.c ] ;
+   TOMMATH = tommath ;
+}
+else
+{
+   lib tommath : : <search>$(tommath_path) ;
+   TOMMATH = tommath ;
+}
+
+run test_arithmetic_backend_concept.cpp ;
+
+run test_arithmetic_cpp_dec_float_1.cpp ;
+run test_arithmetic_cpp_dec_float_2.cpp ;
+run test_arithmetic_cpp_dec_float_3.cpp ;
+
+run test_arithmetic_mpf_50.cpp gmp : : : [ check-target-builds ../config//has_gmp : : <build>no ] ;
+run test_arithmetic_mpf.cpp gmp : : : [ check-target-builds ../config//has_gmp : : <build>no ] ;
+run test_arithmetic_mpz.cpp gmp : : : [ check-target-builds ../config//has_gmp : : <build>no ] ;
+run test_arithmetic_mpz_br.cpp gmp : : : [ check-target-builds ../config//has_gmp : : <build>no ] ;
+run test_arithmetic_mpq.cpp gmp : : : [ check-target-builds ../config//has_gmp : : <build>no ] ;
+
+run test_arithmetic_mpfr.cpp mpfr gmp : : : [ check-target-builds ../config//has_mpfr : : <build>no ] ;
+run test_arithmetic_mpfr_50.cpp mpfr gmp : : : [ check-target-builds ../config//has_mpfr : : <build>no ] ;
+run test_arithmetic_mpfr_50_static.cpp mpfr gmp : : : [ check-target-builds ../config//has_mpfr : : <build>no ] ;
+
+run test_arithmetic_tommath.cpp $(TOMMATH) : : : [ check-target-builds ../config//has_tommath : : <build>no ] ;
+run test_arithmetic_tommath_br.cpp $(TOMMATH) : : : [ check-target-builds ../config//has_tommath : : <build>no ] ;
+
+run test_arithmetic_cpp_int_1.cpp ;
+run test_arithmetic_cpp_int_2.cpp ;
+run test_arithmetic_cpp_int_3.cpp ;
+run test_arithmetic_cpp_int_4.cpp ;
+run test_arithmetic_cpp_int_5.cpp ;
+run test_arithmetic_cpp_int_6.cpp ;
+run test_arithmetic_cpp_int_7.cpp ;
+run test_arithmetic_cpp_int_8.cpp ;
+run test_arithmetic_cpp_int_9.cpp ;
+run test_arithmetic_cpp_int_10.cpp ;
+run test_arithmetic_cpp_int_11.cpp ;
+run test_arithmetic_cpp_int_12.cpp ;
+run test_arithmetic_cpp_int_13.cpp ;
+run test_arithmetic_cpp_int_14.cpp ;
+run test_arithmetic_cpp_int_15.cpp ;
+run test_arithmetic_cpp_int_16.cpp ;
+run test_arithmetic_cpp_int_17.cpp ;
+run test_arithmetic_cpp_int_18.cpp ;
+run test_arithmetic_cpp_int_br.cpp ;
+
+run test_arithmetic_ab_1.cpp ;
+run test_arithmetic_ab_2.cpp ;
+run test_arithmetic_ab_3.cpp ;
+
+run test_cpp_dec_float_round.cpp ;
+
+run test_arithmetic_logged_1.cpp ;
+run test_arithmetic_logged_2.cpp ;
+
+run test_arithmetic_dbg_adptr1.cpp ;
+run test_arithmetic_dbg_adptr2.cpp ;
+
+run test_arithmetic_mpfi_50.cpp mpfi mpfr gmp : : : [ check-target-builds ../config//has_mpfi : : <build>no ] ;
+
+run test_arithmetic_float_128.cpp quadmath : : : [ check-target-builds ../config//has_float128 : : <build>no ] ;
+run test_arithmetic_float_128.cpp : : : [ check-target-builds ../config//has_intel_quad : <cxxflags>-Qoption,cpp,--extended_float_type : <build>no ] [ check-target-builds ../config//has_float128 : <source>quadmath ] : test_arithmetic_intel_quad ;
+
+run test_numeric_limits.cpp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_BACKEND
+        : test_numeric_limits_backend_concept ;
+
+run test_numeric_limits.cpp gmp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_MPF_50
+         [ check-target-builds ../config//has_gmp : : <build>no ]
+        : test_numeric_limits_mpf50 ;
+
+run test_numeric_limits.cpp gmp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_MPF
+         [ check-target-builds ../config//has_gmp : : <build>no ]
+        : test_numeric_limits_mpf ;
+
+run test_numeric_limits.cpp gmp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_MPZ
+         [ check-target-builds ../config//has_gmp : : <build>no ]
+        : test_numeric_limits_mpz ;
+
+run test_numeric_limits.cpp gmp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_MPQ
+         [ check-target-builds ../config//has_gmp : : <build>no ]
+        : test_numeric_limits_mpq ;
+
+run test_numeric_limits.cpp mpfr
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_MPFR
+         [ check-target-builds ../config//has_mpfr : : <build>no ]
+        : test_numeric_limits_mpfr ;
+
+run test_numeric_limits.cpp mpfr
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_MPFR_50
+         [ check-target-builds ../config//has_mpfr : : <build>no ]
+        : test_numeric_limits_mpfr_50 ;
+
+run test_numeric_limits.cpp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_CPP_DEC_FLOAT
+        : test_numeric_limits_cpp_dec_float ;
+
+run test_numeric_limits.cpp $(TOMMATH)
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_TOMMATH
+         [ check-target-builds ../config//has_tommath : : <build>no ]
+        : test_numeric_limits_tommath ;
+
+run test_numeric_limits.cpp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_CPP_INT
+        : test_numeric_limits_cpp_int ;
+
+run test_numeric_limits.cpp mpfi mpfr gmp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_MPFI_50
+         [ check-target-builds ../config//has_mpfi : : <build>no ]
+        : test_numeric_limits_mpfi_50 ;
+
+
+run test_numeric_limits.cpp quadmath
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_FLOAT128
+         [ check-target-builds ../config//has_float128 : : <build>no ]
+        : test_numeric_limits_float128 ;
+run test_numeric_limits.cpp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_FLOAT128
+         [ check-target-builds ../config//has_intel_quad : <cxxflags>-Qoption,cpp,--extended_float_type : <build>no ] [ check-target-builds ../config//has_float128 : <source>quadmath ]
+        : test_numeric_limits_intel_quad ;
+
+for local source in test_exp.cpp test_log.cpp test_pow.cpp test_sinh.cpp test_sqrt.cpp test_cosh.cpp test_tanh.cpp test_sin.cpp test_cos.cpp test_tan.cpp test_asin.cpp test_acos.cpp test_atan.cpp test_round.cpp test_fpclassify.cpp
+{
+      run $(source) gmp
+           : # command line
+           : # input files
+           : # requirements
+            [ check-target-builds ../config//has_gmp : : <build>no ]
+            <define>TEST_MPF_50
+           : $(source:B)_mpf50 ;
+      run $(source) mpfr gmp
+           : # command line
+           : # input files
+           : # requirements
+            [ check-target-builds ../config//has_mpfr : : <build>no ]
+            <define>TEST_MPFR_50
+           : $(source:B)_mpfr50 ;
+      run $(source) mpfi mpfr gmp
+           : # command line
+           : # input files
+           : # requirements
+            [ check-target-builds ../config//has_mpfi : : <build>no ]
+            <define>TEST_MPFI_50
+           : $(source:B)_mpfi50 ;
+      run $(source)
+           : # command line
+           : # input files
+           : # requirements
+            <define>TEST_CPP_DEC_FLOAT
+           : $(source:B)_cpp_dec_float ;
+      run $(source) quadmath
+           : # command line
+           : # input files
+           : # requirements
+            [ check-target-builds ../config//has_float128 : : <build>no ]
+            <define>TEST_FLOAT128
+           : $(source:B)_float128 ;
+      run $(source)
+           : # command line
+           : # input files
+           : # requirements
+            [ check-target-builds ../config//has_intel_quad : <cxxflags>-Qoption,cpp,--extended_float_type : <build>no ] [ check-target-builds ../config//has_float128 : <source>quadmath ]
+            <define>TEST_FLOAT128
+           : $(source:B)_intel_quad ;
+}
+
+run test_gmp_conversions.cpp gmp
+        : # command line
+        : # input files
+        : # requirements
+         [ check-target-builds ../config//has_gmp : : <build>no ] ;
+
+run test_mpfr_conversions.cpp gmp mpfr
+        : # command line
+        : # input files
+        : # requirements
+         [ check-target-builds ../config//has_mpfr : : <build>no ] ;
+
+run test_constants.cpp gmp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_MPF_50
+         [ check-target-builds ../config//has_gmp : : <build>no ]
+        : test_constants_mpf50 ;
+
+run test_constants.cpp mpfr
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_MPFR_50
+         [ check-target-builds ../config//has_mpfr : : <build>no ]
+        : test_constants_mpfr_50 ;
+
+run test_constants.cpp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_CPP_DEC_FLOAT
+        : test_constants_cpp_dec_float ;
+
+
+run test_move.cpp mpfr gmp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_MPFR
+         [ check-target-builds ../config//has_mpfr : : <build>no ]
+        : test_move_mpfr ;
+
+run test_move.cpp gmp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_GMP
+         [ check-target-builds ../config//has_gmp : : <build>no ]
+        : test_move_gmp ;
+
+run test_move.cpp $(TOMMATH)
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_TOMMATH
+         [ check-target-builds ../config//has_tommath : : <build>no ]
+        : test_move_tommath ;
+
+run test_move.cpp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_CPP_INT
+        : test_move_cpp_int ;
+
+run test_test.cpp ;
+run test_cpp_int_lit.cpp ;
+compile test_constexpr.cpp : [ check-target-builds ../config//has_float128 : <define>HAVE_FLOAT128 : ] [ check-target-builds ../config//has_intel_quad : <define>HAVE_FLOAT128 : ] ;
+
+run test_float_io.cpp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_CPP_DEC_FLOAT
+         #release # Otherwise runtime is slow
+        : test_float_io_cpp_dec_float ;
+
+run test_float_io.cpp gmp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_MPF_50
+         release # Otherwise runtime is slow
+         [ check-target-builds ../config//has_gmp : : <build>no ]
+        : test_float_io_mpf ;
+
+run test_float_io.cpp mpfr gmp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_MPFR_50
+         release # Otherwise runtime is slow
+         [ check-target-builds ../config//has_mpfr : : <build>no ]
+        : test_float_io_mpfr ;
+
+run test_float_io.cpp mpfi mpfr gmp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_MPFI_50
+         release # Otherwise runtime is slow
+         [ check-target-builds ../config//has_mpfi : : <build>no ]
+        : test_float_io_mpfi ;
+
+run test_float_io.cpp quadmath
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_FLOAT128
+         release # Otherwise runtime is slow
+         [ check-target-builds ../config//has_float128 : : <build>no ]
+        : test_float_io_float128 ;
+run test_float_io.cpp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_FLOAT128
+         release # Otherwise runtime is slow
+         [ check-target-builds ../config//has_intel_quad : <cxxflags>-Qoption,cpp,--extended_float_type : <build>no ] [ check-target-builds ../config//has_float128 : <source>quadmath ]
+        : test_float_io_intel_quad ;
+
+run test_int_io.cpp $(TOMMATH)
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_TOMMATH
+         release # Otherwise runtime is slow
+         [ check-target-builds ../config//has_tommath : : <build>no ]
+        : test_int_io_tommath ;
+
+run test_int_io.cpp gmp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_MPZ
+         release # Otherwise runtime is slow
+         [ check-target-builds ../config//has_gmp : : <build>no ]
+        : test_int_io_mpz ;
+
+run test_int_io.cpp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_CPP_INT
+         release # Otherwise runtime is slow
+        : test_int_io_cpp_int ;
+
+run test_cpp_int.cpp gmp
+        : # command line
+        : # input files
+        : # requirements
+         [ check-target-builds ../config//has_gmp : : <build>no ]
+         release  # otherwise runtime is too slow!!
+         <define>TEST1
+         : test_cpp_int_1
+         ;
+
+run test_cpp_int.cpp gmp
+        : # command line
+        : # input files
+        : # requirements
+         [ check-target-builds ../config//has_gmp : : <build>no ]
+         release  # otherwise runtime is too slow!!
+         <define>TEST2
+         : test_cpp_int_2
+         ;
+
+run test_cpp_int.cpp gmp
+        : # command line
+        : # input files
+        : # requirements
+         [ check-target-builds ../config//has_gmp : : <build>no ]
+         release  # otherwise runtime is too slow!!
+         <define>TEST3
+         : test_cpp_int_3
+         ;
+
+run test_checked_cpp_int.cpp ;
+
+run test_miller_rabin.cpp gmp
+        : # command line
+        : # input files
+        : # requirements
+         [ check-target-builds ../config//has_gmp : : <build>no ]
+         release  # otherwise runtime is too slow!!
+         ;
+
+run test_rational_io.cpp $(TOMMATH)
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_TOMMATH
+         [ check-target-builds ../config//has_tommath : : <build>no ]
+         release # Otherwise runtime is slow
+        : test_rational_io_tommath ;
+
+run test_rational_io.cpp gmp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_MPQ
+         [ check-target-builds ../config//has_gmp : : <build>no ]
+         release # Otherwise runtime is slow
+        : test_rational_io_mpz ;
+
+run test_rational_io.cpp
+        : # command line
+        : # input files
+        : # requirements
+	      <define>TEST_CPP_INT
+         release # Otherwise runtime is slow
+        : test_rational_io_cpp_int ;
+
+run test_generic_conv.cpp
+        : # command line
+        : # input files
+        : # requirements
+         [ check-target-builds ../config//has_gmp : <define>TEST_GMP <source>gmp :  ]
+         [ check-target-builds ../config//has_tommath : <define>TEST_TOMMATH <source>$(TOMMATH) :  ]
+         [ check-target-builds ../config//has_mpfr : <define>TEST_MPFR <source>mpfr :  ]
+         release # Otherwise runtime is slow
+         ;
+
+
+run ../example/gmp_snips.cpp gmp
+        : # command line
+        : # input files
+        : # requirements
+         [ check-target-builds ../config//has_gmp : : <build>no ] ;
+
+run ../example/mpfr_snips.cpp mpfr
+        : # command line
+        : # input files
+        : # requirements
+         [ check-target-builds ../config//has_mpfr : : <build>no ] ;
+
+run ../example/mpfi_snips.cpp mpfi mpfr gmp
+        : # command line
+        : # input files
+        : # requirements
+         [ check-target-builds ../config//has_mpfi : : <build>no ] ;
+
+run ../example/float128_snips.cpp quadmath
+        : # command line
+        : # input files
+        : # requirements
+         [ check-target-builds ../config//has_float128 : : <build>no ] ;
+
+run ../example/float128_snips.cpp
+        : # command line
+        : # input files
+        : # requirements
+         [ check-target-builds ../config//has_intel_quad : <cxxflags>-Qoption,cpp,--extended_float_type : <build>no ] [ check-target-builds ../config//has_float128 : <source>quadmath ]
+        : float128_snips_intel_quad ;
+
+run ../example/logged_adaptor.cpp mpfi mpfr gmp
+        : # command line
+        : # input files
+        : # requirements
+         [ check-target-builds ../config//has_mpfi : : <build>no ] ;
+
+run ../example/cpp_dec_float_snips.cpp ;
+run ../example/cpp_int_snips.cpp ;
+
+run ../example/tommath_snips.cpp $(TOMMATH)
+        : # command line
+        : # input files
+        : # requirements
+         [ check-target-builds ../config//has_tommath : : <build>no ] ;
+run ../example/floating_point_examples.cpp : : : <toolset>gcc:<cxxflags>-std=gnu++0x ;
+run test_cpp_int_conv.cpp ;
+run test_native_integer.cpp ;
+
+run test_mixed_cpp_int.cpp ;
+run test_mixed_float.cpp
+        : # command line
+        : # input files
+        : # requirements
+         [ check-target-builds ../config//has_gmp : <define>TEST_GMP <library>gmp : ]
+         [ check-target-builds ../config//has_mpfr : <define>TEST_MPFR <library>mpfr <library>gmp : ] ;
+
+
+compile include_test/mpfr_include_test.cpp
+              : # requirements
+               [ check-target-builds ../config//has_mpfr : : <build>no ] ;
+compile include_test/gmp_include_test.cpp
+              : # requirements
+               [ check-target-builds ../config//has_gmp : : <build>no ] ;
+compile include_test/tommath_include_test.cpp
+              : # requirements
+               [ check-target-builds ../config//has_tommath : : <build>no ] ;
+compile include_test/cpp_int_include_test.cpp ;
+compile include_test/cpp_dec_float_include_test.cpp ;
+
+run ublas_interop/test1.cpp ublas_interop/test11.cpp ublas_interop/test12.cpp ublas_interop/test13.cpp ;
+run ublas_interop/test2.cpp ublas_interop/test21.cpp ublas_interop/test22.cpp ublas_interop/test23.cpp ;
+#run ublas_interop/test3.cpp ublas_interop/test31.cpp ublas_interop/test32.cpp ublas_interop/test33.cpp ;
+run ublas_interop/test4.cpp ublas_interop/test42.cpp ublas_interop/test43.cpp ;
+run ublas_interop/test5.cpp ublas_interop/test52.cpp ublas_interop/test53.cpp ;
+run ublas_interop/test6.cpp ublas_interop/test62.cpp ublas_interop/test63.cpp ;
+#run ublas_interop/test7.cpp ublas_interop/test71.cpp ublas_interop/test72.cpp ublas_interop/test73.cpp ;
+
+run ublas_interop/test1.cpp ublas_interop/test11.cpp ublas_interop/test12.cpp ublas_interop/test13.cpp : : : <define>TEST_ET=1 : ublas1_et ;
+run ublas_interop/test2.cpp ublas_interop/test21.cpp ublas_interop/test22.cpp ublas_interop/test23.cpp : : : <define>TEST_ET=1 : ublas2_et ;
+#run ublas_interop/test3.cpp ublas_interop/test31.cpp ublas_interop/test32.cpp ublas_interop/test33.cpp : : : <define>TEST_ET=1 : ublas3_et ;
+run ublas_interop/test4.cpp ublas_interop/test42.cpp ublas_interop/test43.cpp : : : <define>TEST_ET=1 : ublas3_et ;
+run ublas_interop/test5.cpp ublas_interop/test52.cpp ublas_interop/test53.cpp : : : <define>TEST_ET=1 : ublas4_et ;
+run ublas_interop/test6.cpp ublas_interop/test62.cpp ublas_interop/test63.cpp : : : <define>TEST_ET=1 : ublas5_et ;
+#run ublas_interop/test7.cpp ublas_interop/test71.cpp ublas_interop/test72.cpp ublas_interop/test73.cpp : : : <define>TEST_ET=1 : ublas6_et ;
+
+#
+# Serialization tests, run in release mode so we cycle through more values:
+#
+path-constant here : . ;
+run test_cpp_int_serial.cpp ../../serialization/build//boost_serialization : : : release <define>TEST1 : test_cpp_int_serial_1 ;
+run test_cpp_int_serial.cpp ../../serialization/build//boost_serialization : : : release <define>TEST2 : test_cpp_int_serial_2 ;
+run test_cpp_int_serial.cpp ../../serialization/build//boost_serialization : : : release <define>TEST3 : test_cpp_int_serial_3 ;
+run test_cpp_int_serial.cpp ../../serialization/build//boost_serialization : : : release <define>TEST4 : test_cpp_int_serial_4 ;
+run test_cpp_int_deserial.cpp ../../serialization/build//boost_serialization ../../filesystem/build//boost_filesystem : $(here) : : release ;
+run test_cpp_rat_serial.cpp ../../serialization/build//boost_serialization : : : release ;
+run test_adapt_serial.cpp ../../serialization/build//boost_serialization : : : release ;
+run test_cpp_dec_float_serial.cpp ../../serialization/build//boost_serialization : : : release <define>TEST1 : test_cpp_dec_float_serial_1 ;
+run test_cpp_dec_float_serial.cpp ../../serialization/build//boost_serialization : : : release <define>TEST2 : test_cpp_dec_float_serial_2 ;
+run test_float128_serial.cpp ../../serialization/build//boost_serialization quadmath : : : release [ check-target-builds ../config//has_float128 : : <build>no ]  ;
+
+
+if $(enable-specfun)
+{
+
+   for local source in [ glob math/*.cpp ]
+   {
+      run $(source) mpfr gmp 
+            /boost/test//boost_unit_test_framework/<link>static 
+            /boost/regex//boost_regex/<link>static 
+            math/instances//test_instances_mpfr/<link>static
+           : # command line
+           : # input files
+           : # requirements
+            [ check-target-builds ../config//has_mpfr : : <build>no ]
+            <define>TEST_MPFR_50
+            <optimization>speed
+            <define>BOOST_ALL_NO_LIB
+            <toolset>msvc:<cxxflags>-bigobj
+            release
+           : $(source:B)_mpfr ;
+      run $(source) gmp 
+            /boost/test//boost_unit_test_framework/<link>static 
+            /boost/regex//boost_regex/<link>static
+            math/instances//test_instances_mpf/<link>static
+           : # command line
+           : # input files
+           : # requirements
+            [ check-target-builds ../config//has_gmp : : <build>no ]
+            <optimization>speed
+            <define>TEST_MPF_50
+            <define>BOOST_ALL_NO_LIB
+            <toolset>msvc:<cxxflags>-bigobj
+            release
+           : $(source:B)_mpf ;
+      run $(source) /boost/test//boost_unit_test_framework/<link>static 
+               /boost/regex//boost_regex/<link>static
+               math/instances//test_instances_cpp_dec_float/<link>static
+           : # command line
+           : # input files
+           : # requirements
+            <define>TEST_CPP_DEC_FLOAT
+            <define>BOOST_ALL_NO_LIB
+            <optimization>speed
+            <toolset>msvc:<cxxflags>-bigobj
+            release
+           : $(source:B)_cpp_dec_float ;
+      run $(source) quadmath 
+            /boost/test//boost_unit_test_framework/<link>static 
+            /boost/regex//boost_regex/<link>static
+            math/instances//test_instances_float128/<link>static
+           : # command line
+           : # input files
+           : # requirements
+            [ check-target-builds ../config//has_float128 : : <build>no ]
+            <optimization>speed
+            <define>TEST_FLOAT128
+            <define>BOOST_ALL_NO_LIB
+            <toolset>msvc:<cxxflags>-bigobj
+            release
+           : $(source:B)_float128 ;
+      run $(source)
+            /boost/test//boost_unit_test_framework/<link>static 
+            /boost/regex//boost_regex/<link>static
+            math/instances//test_instances_intel_quad/<link>static
+           : # command line
+           : # input files
+           : # requirements
+            [ check-target-builds ../config//has_intel_quad : <cxxflags>-Qoption,cpp,--extended_float_type : <build>no ] [ check-target-builds ../config//has_float128 : <source>quadmath ]
+            <optimization>speed
+            <define>TEST_FLOAT128
+            <define>BOOST_ALL_NO_LIB
+            <toolset>msvc:<cxxflags>-bigobj
+            release
+           : $(source:B)_intel_quad ;
+   }
+}
+
+for local source in [ glob compile_fail/*.cpp ]
+{
+   compile-fail $(source)
+   :
+      [ check-target-builds ../config//has_gmp : <define>TEST_GMP <debug-symbols>off : ]
+      [ check-target-builds ../config//has_mpfr : <define>TEST_MPFR <debug-symbols>off : ]
+   ;
+}
+
+if ! $(disable-concepts)
+{
+
+   for local source in [ glob concepts/*.cpp ]
+   {
+
+      compile $(source)  mpfr
+              : # requirements
+	            <define>TEST_MPFR_50
+               [ check-target-builds ../config//has_mpfr : : <build>no ]
+               <debug-symbols>off
+              : $(source:B)_mpfr_50 ;
+
+      compile $(source)  mpfr
+              : # requirements
+	            <define>TEST_MPFR_6
+               [ check-target-builds ../config//has_mpfr : : <build>no ]
+               <debug-symbols>off
+              : $(source:B)_mpfr_6 ;
+
+      compile $(source)  mpfr
+              : # requirements
+	            <define>TEST_MPFR_15
+               [ check-target-builds ../config//has_mpfr : : <build>no ]
+               <debug-symbols>off
+              : $(source:B)_mpfr_15 ;
+
+      compile $(source)  mpfr
+              : # requirements
+	            <define>TEST_MPFR_17
+               [ check-target-builds ../config//has_mpfr : : <build>no ]
+               <debug-symbols>off
+              : $(source:B)_mpfr_17 ;
+
+      compile $(source)  mpfr
+              : # requirements
+	            <define>TEST_MPFR_30
+               [ check-target-builds ../config//has_mpfr : : <build>no ]
+               <debug-symbols>off
+              : $(source:B)_mpfr_30 ;
+
+      compile $(source)  gmp
+              : # requirements
+	            <define>TEST_MPF_50
+               [ check-target-builds ../config//has_gmp : : <build>no ]
+               <debug-symbols>off
+              : $(source:B)_mpf50 ;
+
+      compile $(source)
+              : # requirements
+	            <define>TEST_CPP_DEC_FLOAT
+               <debug-symbols>off
+              : $(source:B)_cpp_dec_float ;
+
+      compile $(source)
+              : # requirements
+	            <define>TEST_CPP_DEC_FLOAT_NO_ET
+               <debug-symbols>off
+              : $(source:B)_cpp_dec_float_no_et ;
+
+      compile $(source)
+              : # requirements
+	            <define>TEST_BACKEND
+               <debug-symbols>off
+              : $(source:B)_backend_concept ;
+
+      compile $(source)
+              : # requirements
+	            <define>TEST_LOGGED_ADAPTER
+               <debug-symbols>off
+              : $(source:B)_logged_adaptor ;
+   }
+}
+
+
+
+
+
+

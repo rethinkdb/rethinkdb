@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="include_in_section_1_5" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Include in section 1.5</title>
+  <section id="include_in_section_1_5.container">
+    <title><link linkend="include_in_section_1_5.container">Container</link></title>
+    <bridgehead renderas="sect1" id="include_in_section_include_1.container.h0">
+      <phrase id="include_in_section_include_1.container.test1"/><link linkend="include_in_section_include_1.container.test1">Test1</link>
+    </bridgehead>
+    <section id="include_in_section_include_1.container.inner">
+      <title><link linkend="include_in_section_include_1.container.inner"></link></title>
+      <bridgehead renderas="sect1" id="include_in_section_include_1.container.inner.h0">
+        <phrase id="include_in_section_include_1.container.inner.test2"/><link linkend="include_in_section_include_1.container.inner.test2">Test2</link>
+      </bridgehead>
+      <bridgehead renderas="sect4" id="include_in_section_include_1.container.inner.h1">
+        <phrase id="include_in_section_include_1.container.inner.simple_include"/><link
+        linkend="include_in_section_include_1.container.inner.simple_include">Simple
+        include</link>
+      </bridgehead>
+    </section>
+    <bridgehead renderas="sect1" id="section_include.container.h0">
+      <phrase id="section_include.container.test1"/><link linkend="section_include.container.test1">Test1</link>
+    </bridgehead>
+    <section id="section_include.container.inner">
+      <title><link linkend="section_include.container.inner"></link></title>
+      <bridgehead renderas="sect1" id="section_include.container.inner.h0">
+        <phrase id="section_include.container.inner.test2"/><link linkend="section_include.container.inner.test2">Test2</link>
+      </bridgehead>
+      <bridgehead renderas="sect4" id="include_in_section_include_2.container.inner.h0">
+        <phrase id="include_in_section_include_2.container.inner.simple_include"/><link
+        linkend="include_in_section_include_2.container.inner.simple_include">Simple
+        include</link>
+      </bridgehead>
+    </section>
+  </section>
+  <bridgehead renderas="sect1" id="include_in_section_include_1.h0">
+    <phrase id="include_in_section_include_1.test1"/><link linkend="include_in_section_include_1.test1">Test1</link>
+  </bridgehead>
+  <section id="include_in_section_include_1.inner">
+    <title><link linkend="include_in_section_include_1.inner"></link></title>
+    <bridgehead renderas="sect1" id="include_in_section_include_1.inner.h0">
+      <phrase id="include_in_section_include_1.inner.test2"/><link linkend="include_in_section_include_1.inner.test2">Test2</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="include_in_section_include_1.inner.h1">
+      <phrase id="include_in_section_include_1.inner.simple_include"/><link linkend="include_in_section_include_1.inner.simple_include">Simple
+      include</link>
+    </bridgehead>
+  </section>
+  <bridgehead renderas="sect1" id="section_include.h0">
+    <phrase id="section_include.test1"/><link linkend="section_include.test1">Test1</link>
+  </bridgehead>
+  <section id="section_include.inner">
+    <title><link linkend="section_include.inner"></link></title>
+    <bridgehead renderas="sect1" id="section_include.inner.h0">
+      <phrase id="section_include.inner.test2"/><link linkend="section_include.inner.test2">Test2</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="include_in_section_include_2.inner.h0">
+      <phrase id="include_in_section_include_2.inner.simple_include"/><link linkend="include_in_section_include_2.inner.simple_include">Simple
+      include</link>
+    </bridgehead>
+  </section>
+  <section id="include_in_section_1_5.container2">
+    <title><link linkend="include_in_section_1_5.container2">Container2</link></title>
+    <bridgehead renderas="sect1" id="include_in_section_include_1.container2.h0">
+      <phrase id="include_in_section_include_1.container2.test1"/><link linkend="include_in_section_include_1.container2.test1">Test1</link>
+    </bridgehead>
+    <section id="include_in_section_include_1.container2.inner">
+      <title><link linkend="include_in_section_include_1.container2.inner"></link></title>
+      <bridgehead renderas="sect1" id="include_in_section_include_1.container2.inner.h0">
+        <phrase id="include_in_section_include_1.container2.inner.test2"/><link linkend="include_in_section_include_1.container2.inner.test2">Test2</link>
+      </bridgehead>
+      <bridgehead renderas="sect4" id="include_in_section_include_1.container2.inner.h1">
+        <phrase id="include_in_section_include_1.container2.inner.simple_include"/><link
+        linkend="include_in_section_include_1.container2.inner.simple_include">Simple
+        include</link>
+      </bridgehead>
+    </section>
+    <bridgehead renderas="sect1" id="section_include.container2.h0">
+      <phrase id="section_include.container2.test1"/><link linkend="section_include.container2.test1">Test1</link>
+    </bridgehead>
+    <section id="section_include.container2.inner">
+      <title><link linkend="section_include.container2.inner"></link></title>
+      <bridgehead renderas="sect1" id="section_include.container2.inner.h0">
+        <phrase id="section_include.container2.inner.test2"/><link linkend="section_include.container2.inner.test2">Test2</link>
+      </bridgehead>
+      <bridgehead renderas="sect4" id="include_in_section_include_2.container2.inner.h0">
+        <phrase id="include_in_section_include_2.container2.inner.simple_include"/><link
+        linkend="include_in_section_include_2.container2.inner.simple_include">Simple
+        include</link>
+      </bridgehead>
+    </section>
+  </section>
+</article>

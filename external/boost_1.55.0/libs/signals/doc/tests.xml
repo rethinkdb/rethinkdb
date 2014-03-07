@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE testsuite PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<testsuite last-revision="$Date: 2007-11-25 10:38:02 -0800 (Sun, 25 Nov 2007) $">
+  <run-test filename="dead_slot_test.cpp">
+    <lib>../../../libs/test/build/boost_test_exec_monitor</lib>
+    <lib>../build/boost_signals</lib>
+    <purpose>
+<para>Ensure that calling <methodname>connect</methodname> with a slot
+that has already been disconnected via deletion does not actually
+connect to the slot.</para>
+    </purpose>
+  </run-test>
+
+  <run-test filename="deletion_test.cpp">
+    <lib>../../../libs/test/build/boost_test_exec_monitor</lib>
+    <lib>../build/boost_signals</lib>
+    <purpose>
+<para>Test deletion of slots.</para>
+    </purpose>
+  </run-test>
+
+  <run-test filename="ordering_test.cpp">
+    <lib>../../../libs/test/build/boost_test_exec_monitor</lib>
+    <lib>../build/boost_signals</lib>
+    <purpose><para>Test slot group ordering.</para></purpose>
+  </run-test>
+
+  <run-test filename="signal_n_test.cpp">
+    <lib>../../../libs/test/build/boost_test_exec_monitor</lib>
+    <lib>../build/boost_signals</lib>
+    <purpose>
+<para>Basic test of signal/slot connections and invocation using the
+<classname>boost::signalN</classname> class templates.</para>
+    </purpose>
+  </run-test>
+
+  <run-test filename="signal_test.cpp">
+    <lib>../../../libs/test/build/boost_test_exec_monitor</lib>
+    <lib>../build/boost_signals</lib>
+    <purpose>
+<para>Basic test of signal/slot connections and invocation using the
+<classname>boost::signal</classname> class template.</para>
+    </purpose>
+    <if-fails>
+<para>The <classname>boost::signal</classname> class template may not
+be usable on your compiler. However, the
+<classname>boost::signalN</classname> class templates may still be
+usable.</para>
+    </if-fails>
+  </run-test>
+
+  <run-test filename="trackable_test.cpp">
+    <lib>../../../libs/test/build/boost_test_exec_monitor</lib>
+    <lib>../build/boost_signals</lib>
+    <purpose>
+      <para>Test automatic lifetime management using
+      <classname>boost::trackable</classname> objects.</para>
+    </purpose>
+  </run-test>
+</testsuite>

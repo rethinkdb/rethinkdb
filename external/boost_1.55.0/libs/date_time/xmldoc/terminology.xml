@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2004 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.terminology">
+  <title>Terminology</title>
+
+  <para>
+    The following are a number of terms relevant to the date-time domain. 
+  </para>
+  <para>
+    A taxonomy of temporal types:
+    <itemizedlist mark="bullet">
+      <listitem>Timepoint -- Specifier for a location in the time continuum. Similar to a number on a ruler.</listitem>
+      <listitem>Timelength -- A duration of time unattached to any point on the time continuum.</listitem>
+      <listitem>Timeinterval -- A duration of time attached to a specific point in the time continuum.</listitem>
+    </itemizedlist>
+  </para>
+  <para>
+    And some other terms: 
+    <itemizedlist mark="bullet">
+      <listitem>Accuracy -- A measure of error, the difference between the reading of a clock and the true time.</listitem>
+      <listitem>Calendar System -- A system for labeling time points with day level resolution.</listitem>
+      <listitem>Clock Device -- A software component (tied to some hardware) that provides the current date or time with respect to a calendar or clock system.</listitem>
+      <listitem>Precision -- A measure of repeatability of a clock.</listitem>
+      <listitem>Resolution -- A specification of the smallest representable duration (eg: 1 second, 1 century) for a clock/calendar system or temporal type.</listitem>
+      <listitem>Stability -- The property of a class which says that the underlying representation (implementation) associated with a particular (abstract) value will never change.</listitem>
+      <listitem>Time System -- A system for labeling time points with higher resolution than day-level. </listitem>
+    </itemizedlist>
+  </para>
+  <para>
+    Some standard date-time terminology: 
+    <itemizedlist mark="bullet">
+      <listitem>Epoch -- Starting time point of a calendar or clock system.</listitem>
+      <listitem>DST -- Daylight savings time - a local time adjustment made in some regions during the summer to shift the clock time of the daylight hours</listitem>
+      <listitem>Time zone -- A region of the earth that provides for a 'local time' defined by DST rules and UT offset.</listitem>
+      <listitem>UTC Time -- Coordinated Universal Time - Civil time system as measured at longitude zero. Kept adjusted to earth rotation by use of leap seconds. Also known as Zulu Time. Replaced the similar system known as Greenwich Mean Time. For more see <ulink url="http://aa.usno.navy.mil/faq/docs/UT.html" /></listitem>
+      <listitem>TAI Time -- A high-accuracy monotonic (need better term) time system measured to .1 microsecond resolution by atomic clocks around the world. Not adjusted to earth rotation. For more see <ulink url="http://www.bipm.fr/enus/5_Scientific/c_time/time_server.html" /></listitem>
+    </itemizedlist>
+  </para>
+  <para>
+    Some more experimental ones: 
+    <itemizedlist mark="bullet">
+      <listitem>Local Time -- A time measured in a specific location of the universe.</listitem>
+      <listitem>Time Label -- A tuple that either completely or partially specifies a specific date-time with respect to a calendar or clock system. This is the year-month-day representation.</listitem>
+      <listitem>Adjusting Time Length -- A duration that represents varying physical durations depending on the moment in time. For example, a 1 month duration is typically not a fixed number of days and it depends on the date it is measured from to determine the actual length. </listitem>
+    </itemizedlist>
+  </para>
+  <para>
+    These are design sorts of terms: 
+    <itemizedlist mark="bullet">
+      <listitem>Generation function -- A function that generates a specific set of time points, lengths, or intervals based on one or more parameters. </listitem>
+    </itemizedlist>
+  </para>
+</section>

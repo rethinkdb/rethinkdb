@@ -1,0 +1,58 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:history_ack History and Acknowledgement]
+
+[heading Version 1 - before Boost 1.43]
+The library have been under way for a long time. Dietmar Kühl originally intended to submit an `array_traits` class template which had most of the functionality present now, but only for arrays and standard containers.
+
+Meanwhile work on algorithms for containers in various contexts showed the need for handling pairs of iterators, and string libraries needed special treatment of character arrays. In the end it made sense to formalize the minimal requirements of these similar concepts. And the results are the Range concepts found in this library.
+
+The term Range was adopted because of paragraph 24.1/7 from the C++ standard:
+
+Most of the library's algorithmic templates that operate on data structures have interfaces that use ranges. A range is a pair of iterators that designate the beginning and end of the computation. A range [i, i) is an empty range; in general, a range [i, j) refers to the elements in the data structure starting with the one pointed to by i and up to but not including the one pointed to by j. Range [i, j) is valid if and only if j is reachable from i. The result of the application of functions in the library to invalid ranges is undefined.
+
+Special thanks goes to
+
+* Pavol Droba for help with documentation and implementation
+* Pavel Vozenilek for help with porting the library
+* Jonathan Turkanis and John Torjo for help with documentation
+* Hartmut Kaiser for being review manager
+* Jonathan Turkanis for porting the lib (as far as possible) to vc6 and vc7.
+
+The concept checks and their documentation was provided by Daniel Walker.
+
+[heading Version 2 - Boost 1.43 and beyond]
+This version introduced Range Adaptors and Range Algorithms. This version 2 is
+the result of a merge of all of the RangeEx features into Boost.Range.
+
+There were an enormous number of very significant contributors through all
+stages of this library.
+
+Prior to Boost.RangeEx there had been a number of Range library implementations,
+these include library implementations by Eric Niebler, Adobe,
+Shunsuke Sogame etc. Eric Niebler contributed the Range Adaptor idea which is
+arguably the single biggest innovation in this library. Inevitably a great deal
+of commonality evolved in each of these libraries, but a considerable amount
+of effort was expended to learn from all of the divergent techniques.
+
+The people in the following list all made contributions in the form of reviews,
+user feedback, design suggestions, or defect detection:
+
+* Thorsten Ottosen: review management, design advice, documentation feedback
+* Eric Niebler:     early implementation, and review feedback
+* Joel de Guzman:   review
+* Mathias Gaunard:  review
+* David Abrahams:   implementation advice
+* Robert Jones:     defect reports, usage feedback
+* Sean Parent:      contributed experience from the Adobe range library
+* Arno Schoedl:     implementations, and review
+* Rogier van Dalen: review
+* Vincente Botet:   review, documentation feedback
+
+Regardless of how I write this section it will never truly fairly capture the
+gratitude that I feel to all who have contributed. Thank you everyone.
+
+[endsect]

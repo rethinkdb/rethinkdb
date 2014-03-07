@@ -1,0 +1,78 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Macro BOOST_LOCAL_FUNCTION_TYPEOF</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.LocalFunction 1.0.0">
+<link rel="up" href="reference.html#header.boost.local_function_hpp" title="Header &lt;boost/local_function.hpp&gt;">
+<link rel="prev" href="BOOST_LOCAL_FUNCTION_NAME_TPL.html" title="Macro BOOST_LOCAL_FUNCTION_NAME_TPL">
+<link rel="next" href="BOOST_LOCAL_FUNCTION_CONFIG_ARITY_MAX.html" title="Macro BOOST_LOCAL_FUNCTION_CONFIG_ARITY_MAX">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_LOCAL_FUNCTION_NAME_TPL.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="reference.html#header.boost.local_function_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_LOCAL_FUNCTION_CONFIG_ARITY_MAX.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="BOOST_LOCAL_FUNCTION_TYPEOF"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Macro BOOST_LOCAL_FUNCTION_TYPEOF</span></h2>
+<p>BOOST_LOCAL_FUNCTION_TYPEOF &#8212; This macro expands to the type of the specified bound variable. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="reference.html#header.boost.local_function_hpp" title="Header &lt;boost/local_function.hpp&gt;">boost/local_function.hpp</a>&gt;
+
+</span>BOOST_LOCAL_FUNCTION_TYPEOF(bound_variable_name)</pre></div>
+<div class="refsect1">
+<a name="id883286"></a><h2>Description</h2>
+<p>This macro can be used within the local functions body to refer to the bound variable types so to declare local variables, check concepts (using Boost.ConceptCheck), etc (see the  <a class="link" href="boost_localfunction/advanced_topics.html" title="Advanced Topics"> Advanced Topics</a> section). This way the local function can be programmed entirely without explicitly specifying the bound variable types thus facilitating maintenance (e.g., if the type of a bound variable changes in the enclosing scope, the local function code does not have to change).</p>
+<p><span class="bold"><strong>Parameters:</strong></span> </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody><tr>
+<td><span class="bold"><strong><code class="computeroutput">bound_variable_name</code></strong></span></td>
+<td>The name of one of the local function's bound variables.  </td>
+</tr></tbody>
+</table></div>
+<p>
+</p>
+<p>The type returned by the macro is fully qualified in that it contains the extra constant and reference qualifiers when the specified variable is bound by constant and by reference. For example, if a variable named <code class="computeroutput">t</code> of type <code class="computeroutput">T</code> is: </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem"><p>Bound by value using <code class="computeroutput">bind t</code> then <code class="computeroutput">BOOST_LOCAL_FUNCTION_TYPEOF(t)</code> is <code class="computeroutput">T</code>. </p></li>
+<li class="listitem"><p>Bound by constant value using <code class="computeroutput">const bind t</code> then <code class="computeroutput">BOOST_LOCAL_FUNCTION_TYPEOF(t)</code> is <code class="computeroutput">const T</code>. </p></li>
+<li class="listitem"><p>Bound by reference using <code class="computeroutput">bind&amp; t</code> then <code class="computeroutput">BOOST_LOCAL_FUNCTION_TYPEOF(t)</code> is <code class="computeroutput">T&amp;</code>. </p></li>
+<li class="listitem"><p>Bound by constant reference using <code class="computeroutput">const bind&amp; t</code> then <code class="computeroutput">BOOST_LOCAL_FUNCTION_TYPEOF(t)</code> is <code class="computeroutput">const T&amp;</code>.</p></li>
+</ul></div>
+<p>
+This macro must be prefixed by <code class="computeroutput">typename</code> when used within templates.</p>
+<p><span class="bold"><strong>Note:</strong></span> It is best to use this macro instead of Boost.Typeof so to reduce the number of times Boost.Typeof is used to deduce types (see the  <a class="link" href="boost_localfunction/advanced_topics.html" title="Advanced Topics"> Advanced Topics</a> section).</p>
+<p><span class="bold"><strong>See:</strong></span>  <a class="link" href="boost_localfunction/advanced_topics.html" title="Advanced Topics"> Advanced Topics</a> section,  <code class="computeroutput"><a class="link" href="BOOST_LOCAL_FUNCTION.html" title="Macro BOOST_LOCAL_FUNCTION">BOOST_LOCAL_FUNCTION</a></code>. </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Lorenzo
+      Caminiti<p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or a copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_LOCAL_FUNCTION_NAME_TPL.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="reference.html#header.boost.local_function_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_LOCAL_FUNCTION_CONFIG_ARITY_MAX.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,2842 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Performance</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_random.html" title="Chapter&#160;24.&#160;Boost.Random">
+<link rel="prev" href="../boost/random/xor_combine_engine.html" title="Class template xor_combine_engine">
+<link rel="next" href="history_and_acknowledgements.html" title="History and Acknowledgements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/random/xor_combine_engine.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_random.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="history_and_acknowledgements.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_random.performance"></a><a class="link" href="performance.html" title="Performance">Performance</a>
+</h2></div></div></div>
+<p>
+      For some people, performance of random number generation is an important consideration
+      when choosing a random number generator or a particular distribution function.
+      This page provides numerous performance tests with the wide variety of generators
+      and distributions available in the boost library.
+    </p>
+<p>
+      The performance has been evaluated on an Intel(R) Core(TM) i7 CPU Q 840 @ 1.87GHz,
+      1867 Mhz with Visual C++ 2010, Microsoft Windows 7 Professional and with gcc
+      4.4.5, Ubuntu Linux 2.6.35-25-generic. The speed is reported in million random
+      numbers per second (M rn/sec), generated in a tight loop.
+    </p>
+<div class="table">
+<a name="boost_random.performance.basic_generators__linux_"></a><p class="title"><b>Table&#160;24.11.&#160;Basic Generators (Linux)</b></p>
+<div class="table-contents"><table class="table" summary="Basic Generators (Linux)">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                generator
+              </p>
+            </th>
+<th>
+              <p>
+                M rn/sec
+              </p>
+            </th>
+<th>
+              <p>
+                time per random number [nsec]
+              </p>
+            </th>
+<th>
+              <p>
+                relative speed compared to fastest [percent]
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                rand48
+              </p>
+            </td>
+<td>
+              <p>
+                149.254
+              </p>
+            </td>
+<td>
+              <p>
+                6.7
+              </p>
+            </td>
+<td>
+              <p>
+                59%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lrand48 run-time
+              </p>
+            </td>
+<td>
+              <p>
+                158.73
+              </p>
+            </td>
+<td>
+              <p>
+                6.3
+              </p>
+            </td>
+<td>
+              <p>
+                63%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                minstd_rand0
+              </p>
+            </td>
+<td>
+              <p>
+                22.9885
+              </p>
+            </td>
+<td>
+              <p>
+                43.5
+              </p>
+            </td>
+<td>
+              <p>
+                9%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                minstd_rand
+              </p>
+            </td>
+<td>
+              <p>
+                22.0751
+              </p>
+            </td>
+<td>
+              <p>
+                45.3
+              </p>
+            </td>
+<td>
+              <p>
+                8%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ecuyer combined
+              </p>
+            </td>
+<td>
+              <p>
+                42.735
+              </p>
+            </td>
+<td>
+              <p>
+                23.4
+              </p>
+            </td>
+<td>
+              <p>
+                17%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                kreutzer1986
+              </p>
+            </td>
+<td>
+              <p>
+                151.515
+              </p>
+            </td>
+<td>
+              <p>
+                6.6
+              </p>
+            </td>
+<td>
+              <p>
+                60%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                taus88
+              </p>
+            </td>
+<td>
+              <p>
+                250
+              </p>
+            </td>
+<td>
+              <p>
+                4
+              </p>
+            </td>
+<td>
+              <p>
+                100%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                knuth_b
+              </p>
+            </td>
+<td>
+              <p>
+                19.6078
+              </p>
+            </td>
+<td>
+              <p>
+                51
+              </p>
+            </td>
+<td>
+              <p>
+                7%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                hellekalek1995 (inversive)
+              </p>
+            </td>
+<td>
+              <p>
+                4.54545
+              </p>
+            </td>
+<td>
+              <p>
+                220
+              </p>
+            </td>
+<td>
+              <p>
+                1%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                mt11213b
+              </p>
+            </td>
+<td>
+              <p>
+                204.082
+              </p>
+            </td>
+<td>
+              <p>
+                4.9
+              </p>
+            </td>
+<td>
+              <p>
+                81%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                mt19937
+              </p>
+            </td>
+<td>
+              <p>
+                204.082
+              </p>
+            </td>
+<td>
+              <p>
+                4.9
+              </p>
+            </td>
+<td>
+              <p>
+                81%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                mt19937_64
+              </p>
+            </td>
+<td>
+              <p>
+                60.6061
+              </p>
+            </td>
+<td>
+              <p>
+                16.5
+              </p>
+            </td>
+<td>
+              <p>
+                24%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci607
+              </p>
+            </td>
+<td>
+              <p>
+                126.582
+              </p>
+            </td>
+<td>
+              <p>
+                7.9
+              </p>
+            </td>
+<td>
+              <p>
+                50%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci1279
+              </p>
+            </td>
+<td>
+              <p>
+                129.87
+              </p>
+            </td>
+<td>
+              <p>
+                7.7
+              </p>
+            </td>
+<td>
+              <p>
+                51%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci2281
+              </p>
+            </td>
+<td>
+              <p>
+                129.87
+              </p>
+            </td>
+<td>
+              <p>
+                7.7
+              </p>
+            </td>
+<td>
+              <p>
+                51%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci3217
+              </p>
+            </td>
+<td>
+              <p>
+                131.579
+              </p>
+            </td>
+<td>
+              <p>
+                7.6
+              </p>
+            </td>
+<td>
+              <p>
+                52%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci4423
+              </p>
+            </td>
+<td>
+              <p>
+                128.205
+              </p>
+            </td>
+<td>
+              <p>
+                7.8
+              </p>
+            </td>
+<td>
+              <p>
+                51%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci9689
+              </p>
+            </td>
+<td>
+              <p>
+                128.205
+              </p>
+            </td>
+<td>
+              <p>
+                7.8
+              </p>
+            </td>
+<td>
+              <p>
+                51%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci19937
+              </p>
+            </td>
+<td>
+              <p>
+                131.579
+              </p>
+            </td>
+<td>
+              <p>
+                7.6
+              </p>
+            </td>
+<td>
+              <p>
+                52%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci23209
+              </p>
+            </td>
+<td>
+              <p>
+                131.579
+              </p>
+            </td>
+<td>
+              <p>
+                7.6
+              </p>
+            </td>
+<td>
+              <p>
+                52%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci44497
+              </p>
+            </td>
+<td>
+              <p>
+                131.579
+              </p>
+            </td>
+<td>
+              <p>
+                7.6
+              </p>
+            </td>
+<td>
+              <p>
+                52%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                subtract_with_carry
+              </p>
+            </td>
+<td>
+              <p>
+                147.059
+              </p>
+            </td>
+<td>
+              <p>
+                6.8
+              </p>
+            </td>
+<td>
+              <p>
+                58%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                subtract_with_carry_01
+              </p>
+            </td>
+<td>
+              <p>
+                105.263
+              </p>
+            </td>
+<td>
+              <p>
+                9.5
+              </p>
+            </td>
+<td>
+              <p>
+                42%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux3
+              </p>
+            </td>
+<td>
+              <p>
+                15.748
+              </p>
+            </td>
+<td>
+              <p>
+                63.5
+              </p>
+            </td>
+<td>
+              <p>
+                6%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux4
+              </p>
+            </td>
+<td>
+              <p>
+                9.11577
+              </p>
+            </td>
+<td>
+              <p>
+                109.7
+              </p>
+            </td>
+<td>
+              <p>
+                3%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux3_01
+              </p>
+            </td>
+<td>
+              <p>
+                10.5708
+              </p>
+            </td>
+<td>
+              <p>
+                94.6
+              </p>
+            </td>
+<td>
+              <p>
+                4%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux4_01
+              </p>
+            </td>
+<td>
+              <p>
+                6.27353
+              </p>
+            </td>
+<td>
+              <p>
+                159.4
+              </p>
+            </td>
+<td>
+              <p>
+                2%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux64_3
+              </p>
+            </td>
+<td>
+              <p>
+                15.8983
+              </p>
+            </td>
+<td>
+              <p>
+                62.9
+              </p>
+            </td>
+<td>
+              <p>
+                6%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux64_4
+              </p>
+            </td>
+<td>
+              <p>
+                9.14913
+              </p>
+            </td>
+<td>
+              <p>
+                109.3
+              </p>
+            </td>
+<td>
+              <p>
+                3%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux64_3_01
+              </p>
+            </td>
+<td>
+              <p>
+                10.9409
+              </p>
+            </td>
+<td>
+              <p>
+                91.4
+              </p>
+            </td>
+<td>
+              <p>
+                4%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux64_4_01
+              </p>
+            </td>
+<td>
+              <p>
+                6.32911
+              </p>
+            </td>
+<td>
+              <p>
+                158
+              </p>
+            </td>
+<td>
+              <p>
+                2%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux24
+              </p>
+            </td>
+<td>
+              <p>
+                15.1976
+              </p>
+            </td>
+<td>
+              <p>
+                65.8
+              </p>
+            </td>
+<td>
+              <p>
+                6%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux48
+              </p>
+            </td>
+<td>
+              <p>
+                8.88099
+              </p>
+            </td>
+<td>
+              <p>
+                112.6
+              </p>
+            </td>
+<td>
+              <p>
+                3%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                mt19937ar.c
+              </p>
+            </td>
+<td>
+              <p>
+                111.111
+              </p>
+            </td>
+<td>
+              <p>
+                9
+              </p>
+            </td>
+<td>
+              <p>
+                44%
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_random.performance.basic_generators__windows_"></a><p class="title"><b>Table&#160;24.12.&#160;Basic Generators (Windows)</b></p>
+<div class="table-contents"><table class="table" summary="Basic Generators (Windows)">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                generator
+              </p>
+            </th>
+<th>
+              <p>
+                M rn/sec
+              </p>
+            </th>
+<th>
+              <p>
+                time per random number [nsec]
+              </p>
+            </th>
+<th>
+              <p>
+                relative speed compared to fastest [percent]
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                rand48
+              </p>
+            </td>
+<td>
+              <p>
+                152.672
+              </p>
+            </td>
+<td>
+              <p>
+                6.55
+              </p>
+            </td>
+<td>
+              <p>
+                64%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lrand48 run-time
+              </p>
+            </td>
+<td>
+              <p>
+                24.3724
+              </p>
+            </td>
+<td>
+              <p>
+                41.03
+              </p>
+            </td>
+<td>
+              <p>
+                10%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                minstd_rand0
+              </p>
+            </td>
+<td>
+              <p>
+                39.8248
+              </p>
+            </td>
+<td>
+              <p>
+                25.11
+              </p>
+            </td>
+<td>
+              <p>
+                16%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                minstd_rand
+              </p>
+            </td>
+<td>
+              <p>
+                39.0778
+              </p>
+            </td>
+<td>
+              <p>
+                25.59
+              </p>
+            </td>
+<td>
+              <p>
+                16%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ecuyer combined
+              </p>
+            </td>
+<td>
+              <p>
+                16.7813
+              </p>
+            </td>
+<td>
+              <p>
+                59.59
+              </p>
+            </td>
+<td>
+              <p>
+                7%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                kreutzer1986
+              </p>
+            </td>
+<td>
+              <p>
+                89.0472
+              </p>
+            </td>
+<td>
+              <p>
+                11.23
+              </p>
+            </td>
+<td>
+              <p>
+                37%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                taus88
+              </p>
+            </td>
+<td>
+              <p>
+                237.53
+              </p>
+            </td>
+<td>
+              <p>
+                4.21
+              </p>
+            </td>
+<td>
+              <p>
+                100%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                knuth_b
+              </p>
+            </td>
+<td>
+              <p>
+                30.8166
+              </p>
+            </td>
+<td>
+              <p>
+                32.45
+              </p>
+            </td>
+<td>
+              <p>
+                12%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                hellekalek1995 (inversive)
+              </p>
+            </td>
+<td>
+              <p>
+                5.28457
+              </p>
+            </td>
+<td>
+              <p>
+                189.23
+              </p>
+            </td>
+<td>
+              <p>
+                2%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                mt11213b
+              </p>
+            </td>
+<td>
+              <p>
+                237.53
+              </p>
+            </td>
+<td>
+              <p>
+                4.21
+              </p>
+            </td>
+<td>
+              <p>
+                100%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                mt19937
+              </p>
+            </td>
+<td>
+              <p>
+                221.239
+              </p>
+            </td>
+<td>
+              <p>
+                4.52
+              </p>
+            </td>
+<td>
+              <p>
+                93%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                mt19937_64
+              </p>
+            </td>
+<td>
+              <p>
+                91.5751
+              </p>
+            </td>
+<td>
+              <p>
+                10.92
+              </p>
+            </td>
+<td>
+              <p>
+                38%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci607
+              </p>
+            </td>
+<td>
+              <p>
+                142.45
+              </p>
+            </td>
+<td>
+              <p>
+                7.02
+              </p>
+            </td>
+<td>
+              <p>
+                59%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci1279
+              </p>
+            </td>
+<td>
+              <p>
+                142.45
+              </p>
+            </td>
+<td>
+              <p>
+                7.02
+              </p>
+            </td>
+<td>
+              <p>
+                59%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci2281
+              </p>
+            </td>
+<td>
+              <p>
+                145.56
+              </p>
+            </td>
+<td>
+              <p>
+                6.87
+              </p>
+            </td>
+<td>
+              <p>
+                61%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci3217
+              </p>
+            </td>
+<td>
+              <p>
+                149.031
+              </p>
+            </td>
+<td>
+              <p>
+                6.71
+              </p>
+            </td>
+<td>
+              <p>
+                62%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci4423
+              </p>
+            </td>
+<td>
+              <p>
+                142.45
+              </p>
+            </td>
+<td>
+              <p>
+                7.02
+              </p>
+            </td>
+<td>
+              <p>
+                59%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci9689
+              </p>
+            </td>
+<td>
+              <p>
+                145.773
+              </p>
+            </td>
+<td>
+              <p>
+                6.86
+              </p>
+            </td>
+<td>
+              <p>
+                61%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci19937
+              </p>
+            </td>
+<td>
+              <p>
+                142.45
+              </p>
+            </td>
+<td>
+              <p>
+                7.02
+              </p>
+            </td>
+<td>
+              <p>
+                59%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci23209
+              </p>
+            </td>
+<td>
+              <p>
+                145.773
+              </p>
+            </td>
+<td>
+              <p>
+                6.86
+              </p>
+            </td>
+<td>
+              <p>
+                61%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lagged_fibonacci44497
+              </p>
+            </td>
+<td>
+              <p>
+                142.45
+              </p>
+            </td>
+<td>
+              <p>
+                7.02
+              </p>
+            </td>
+<td>
+              <p>
+                59%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                subtract_with_carry
+              </p>
+            </td>
+<td>
+              <p>
+                136.24
+              </p>
+            </td>
+<td>
+              <p>
+                7.34
+              </p>
+            </td>
+<td>
+              <p>
+                57%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                subtract_with_carry_01
+              </p>
+            </td>
+<td>
+              <p>
+                90.3342
+              </p>
+            </td>
+<td>
+              <p>
+                11.07
+              </p>
+            </td>
+<td>
+              <p>
+                38%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux3
+              </p>
+            </td>
+<td>
+              <p>
+                13.1631
+              </p>
+            </td>
+<td>
+              <p>
+                75.97
+              </p>
+            </td>
+<td>
+              <p>
+                5%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux4
+              </p>
+            </td>
+<td>
+              <p>
+                7.60398
+              </p>
+            </td>
+<td>
+              <p>
+                131.51
+              </p>
+            </td>
+<td>
+              <p>
+                3%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux3_01
+              </p>
+            </td>
+<td>
+              <p>
+                8.62738
+              </p>
+            </td>
+<td>
+              <p>
+                115.91
+              </p>
+            </td>
+<td>
+              <p>
+                3%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux4_01
+              </p>
+            </td>
+<td>
+              <p>
+                4.99625
+              </p>
+            </td>
+<td>
+              <p>
+                200.15
+              </p>
+            </td>
+<td>
+              <p>
+                2%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux64_3
+              </p>
+            </td>
+<td>
+              <p>
+                13.1631
+              </p>
+            </td>
+<td>
+              <p>
+                75.97
+              </p>
+            </td>
+<td>
+              <p>
+                5%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux64_4
+              </p>
+            </td>
+<td>
+              <p>
+                7.5861
+              </p>
+            </td>
+<td>
+              <p>
+                131.82
+              </p>
+            </td>
+<td>
+              <p>
+                3%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux64_3_01
+              </p>
+            </td>
+<td>
+              <p>
+                8.63931
+              </p>
+            </td>
+<td>
+              <p>
+                115.75
+              </p>
+            </td>
+<td>
+              <p>
+                3%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux64_4_01
+              </p>
+            </td>
+<td>
+              <p>
+                5.01958
+              </p>
+            </td>
+<td>
+              <p>
+                199.22
+              </p>
+            </td>
+<td>
+              <p>
+                2%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux24
+              </p>
+            </td>
+<td>
+              <p>
+                13.1631
+              </p>
+            </td>
+<td>
+              <p>
+                75.97
+              </p>
+            </td>
+<td>
+              <p>
+                5%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                ranlux48
+              </p>
+            </td>
+<td>
+              <p>
+                7.5861
+              </p>
+            </td>
+<td>
+              <p>
+                131.82
+              </p>
+            </td>
+<td>
+              <p>
+                3%
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                mt19937ar.c
+              </p>
+            </td>
+<td>
+              <p>
+                200.401
+              </p>
+            </td>
+<td>
+              <p>
+                4.99
+              </p>
+            </td>
+<td>
+              <p>
+                84%
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+      Note that the lagged Fibonacci and ranlux_01 generators produce floating-point
+      numbers, whereas all others produce integers.
+    </p>
+<div class="table">
+<a name="boost_random.performance.distributions__linux_"></a><p class="title"><b>Table&#160;24.13.&#160;Distributions (Linux)</b></p>
+<div class="table-contents"><table class="table" summary="Distributions (Linux)">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                [M rn/sec]
+              </p>
+            </th>
+<th>
+              <p>
+                minstd_rand
+              </p>
+            </th>
+<th>
+              <p>
+                kreutzer1986
+              </p>
+            </th>
+<th>
+              <p>
+                mt19937
+              </p>
+            </th>
+<th>
+              <p>
+                lagged_fibonacci607
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                uniform_int
+              </p>
+            </td>
+<td>
+              <p>
+                16.2338
+              </p>
+            </td>
+<td>
+              <p>
+                48.7805
+              </p>
+            </td>
+<td>
+              <p>
+                21.5517
+              </p>
+            </td>
+<td>
+              <p>
+                23.8663
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                uniform_smallint
+              </p>
+            </td>
+<td>
+              <p>
+                18.9036
+              </p>
+            </td>
+<td>
+              <p>
+                114.943
+              </p>
+            </td>
+<td>
+              <p>
+                25.3165
+              </p>
+            </td>
+<td>
+              <p>
+                74.6269
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                bernoulli
+              </p>
+            </td>
+<td>
+              <p>
+                21.322
+              </p>
+            </td>
+<td>
+              <p>
+                85.4701
+              </p>
+            </td>
+<td>
+              <p>
+                23.2558
+              </p>
+            </td>
+<td>
+              <p>
+                125
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                geometric
+              </p>
+            </td>
+<td>
+              <p>
+                9.42507
+              </p>
+            </td>
+<td>
+              <p>
+                11.7925
+              </p>
+            </td>
+<td>
+              <p>
+                7.38007
+              </p>
+            </td>
+<td>
+              <p>
+                15.528
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                binomial
+              </p>
+            </td>
+<td>
+              <p>
+                13.4953
+              </p>
+            </td>
+<td>
+              <p>
+                29.7619
+              </p>
+            </td>
+<td>
+              <p>
+                12.7877
+              </p>
+            </td>
+<td>
+              <p>
+                38.7597
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                negative_binomial
+              </p>
+            </td>
+<td>
+              <p>
+                1.69549
+              </p>
+            </td>
+<td>
+              <p>
+                2.29305
+              </p>
+            </td>
+<td>
+              <p>
+                1.65563
+              </p>
+            </td>
+<td>
+              <p>
+                2.45098
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                poisson
+              </p>
+            </td>
+<td>
+              <p>
+                13.7552
+              </p>
+            </td>
+<td>
+              <p>
+                34.1297
+              </p>
+            </td>
+<td>
+              <p>
+                13.369
+              </p>
+            </td>
+<td>
+              <p>
+                43.8596
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                uniform_real
+              </p>
+            </td>
+<td>
+              <p>
+                18.2815
+              </p>
+            </td>
+<td>
+              <p>
+                44.4444
+              </p>
+            </td>
+<td>
+              <p>
+                19.8413
+              </p>
+            </td>
+<td>
+              <p>
+                119.048
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                uniform_01
+              </p>
+            </td>
+<td>
+              <p>
+                21.692
+              </p>
+            </td>
+<td>
+              <p>
+                72.4638
+              </p>
+            </td>
+<td>
+              <p>
+                17.1233
+              </p>
+            </td>
+<td>
+              <p>
+                116.279
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                triangle
+              </p>
+            </td>
+<td>
+              <p>
+                15.2207
+              </p>
+            </td>
+<td>
+              <p>
+                29.3255
+              </p>
+            </td>
+<td>
+              <p>
+                11.9904
+              </p>
+            </td>
+<td>
+              <p>
+                51.2821
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                exponential
+              </p>
+            </td>
+<td>
+              <p>
+                10.5374
+              </p>
+            </td>
+<td>
+              <p>
+                17.0068
+              </p>
+            </td>
+<td>
+              <p>
+                10.8814
+              </p>
+            </td>
+<td>
+              <p>
+                22.2222
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                normal polar
+              </p>
+            </td>
+<td>
+              <p>
+                8.82613
+              </p>
+            </td>
+<td>
+              <p>
+                12.9199
+              </p>
+            </td>
+<td>
+              <p>
+                9.00901
+              </p>
+            </td>
+<td>
+              <p>
+                14.771
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lognormal
+              </p>
+            </td>
+<td>
+              <p>
+                6.15764
+              </p>
+            </td>
+<td>
+              <p>
+                7.50188
+              </p>
+            </td>
+<td>
+              <p>
+                5.68182
+              </p>
+            </td>
+<td>
+              <p>
+                8.61326
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                chi squared
+              </p>
+            </td>
+<td>
+              <p>
+                2.07297
+              </p>
+            </td>
+<td>
+              <p>
+                2.8401
+              </p>
+            </td>
+<td>
+              <p>
+                2.10926
+              </p>
+            </td>
+<td>
+              <p>
+                3.07409
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                cauchy
+              </p>
+            </td>
+<td>
+              <p>
+                9.18274
+              </p>
+            </td>
+<td>
+              <p>
+                14.8368
+              </p>
+            </td>
+<td>
+              <p>
+                7.37463
+              </p>
+            </td>
+<td>
+              <p>
+                17.3913
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                fisher f
+              </p>
+            </td>
+<td>
+              <p>
+                1.04646
+              </p>
+            </td>
+<td>
+              <p>
+                1.47449
+              </p>
+            </td>
+<td>
+              <p>
+                1.08026
+              </p>
+            </td>
+<td>
+              <p>
+                1.61186
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                student t
+              </p>
+            </td>
+<td>
+              <p>
+                1.60927
+              </p>
+            </td>
+<td>
+              <p>
+                2.18245
+              </p>
+            </td>
+<td>
+              <p>
+                1.65207
+              </p>
+            </td>
+<td>
+              <p>
+                2.34192
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                gamma
+              </p>
+            </td>
+<td>
+              <p>
+                2.1097
+              </p>
+            </td>
+<td>
+              <p>
+                2.87439
+              </p>
+            </td>
+<td>
+              <p>
+                2.13538
+              </p>
+            </td>
+<td>
+              <p>
+                3.01296
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                weibull
+              </p>
+            </td>
+<td>
+              <p>
+                4.73709
+              </p>
+            </td>
+<td>
+              <p>
+                5.77367
+              </p>
+            </td>
+<td>
+              <p>
+                4.20521
+              </p>
+            </td>
+<td>
+              <p>
+                6.33312
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                extreme value
+              </p>
+            </td>
+<td>
+              <p>
+                7.40192
+              </p>
+            </td>
+<td>
+              <p>
+                10.101
+              </p>
+            </td>
+<td>
+              <p>
+                6.23441
+              </p>
+            </td>
+<td>
+              <p>
+                11.5741
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                uniform_on_sphere
+              </p>
+            </td>
+<td>
+              <p>
+                2.22222
+              </p>
+            </td>
+<td>
+              <p>
+                2.78552
+              </p>
+            </td>
+<td>
+              <p>
+                2.28311
+              </p>
+            </td>
+<td>
+              <p>
+                2.7933
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_random.performance.distributions__windows_"></a><p class="title"><b>Table&#160;24.14.&#160;Distributions (Windows)</b></p>
+<div class="table-contents"><table class="table" summary="Distributions (Windows)">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                [M rn/sec]
+              </p>
+            </th>
+<th>
+              <p>
+                minstd_rand
+              </p>
+            </th>
+<th>
+              <p>
+                kreutzer1986
+              </p>
+            </th>
+<th>
+              <p>
+                mt19937
+              </p>
+            </th>
+<th>
+              <p>
+                lagged_fibonacci607
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                uniform_int
+              </p>
+            </td>
+<td>
+              <p>
+                27.049
+              </p>
+            </td>
+<td>
+              <p>
+                79.1139
+              </p>
+            </td>
+<td>
+              <p>
+                29.8151
+              </p>
+            </td>
+<td>
+              <p>
+                34.8432
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                uniform_smallint
+              </p>
+            </td>
+<td>
+              <p>
+                31.736
+              </p>
+            </td>
+<td>
+              <p>
+                90.3342
+              </p>
+            </td>
+<td>
+              <p>
+                33.9213
+              </p>
+            </td>
+<td>
+              <p>
+                59.9161
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                bernoulli
+              </p>
+            </td>
+<td>
+              <p>
+                25.641
+              </p>
+            </td>
+<td>
+              <p>
+                56.2114
+              </p>
+            </td>
+<td>
+              <p>
+                27.049
+              </p>
+            </td>
+<td>
+              <p>
+                62.8141
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                geometric
+              </p>
+            </td>
+<td>
+              <p>
+                12.8717
+              </p>
+            </td>
+<td>
+              <p>
+                18.9645
+              </p>
+            </td>
+<td>
+              <p>
+                14.6671
+              </p>
+            </td>
+<td>
+              <p>
+                18.5805
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                binomial
+              </p>
+            </td>
+<td>
+              <p>
+                18.2116
+              </p>
+            </td>
+<td>
+              <p>
+                32.2165
+              </p>
+            </td>
+<td>
+              <p>
+                19.8491
+              </p>
+            </td>
+<td>
+              <p>
+                29.4118
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                negative_binomial
+              </p>
+            </td>
+<td>
+              <p>
+                2.79065
+              </p>
+            </td>
+<td>
+              <p>
+                3.99138
+              </p>
+            </td>
+<td>
+              <p>
+                2.73358
+              </p>
+            </td>
+<td>
+              <p>
+                3.72898
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                poisson
+              </p>
+            </td>
+<td>
+              <p>
+                20.0321
+              </p>
+            </td>
+<td>
+              <p>
+                37.7074
+              </p>
+            </td>
+<td>
+              <p>
+                18.9645
+              </p>
+            </td>
+<td>
+              <p>
+                36.4299
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                uniform_real
+              </p>
+            </td>
+<td>
+              <p>
+                27.6319
+              </p>
+            </td>
+<td>
+              <p>
+                78.1861
+              </p>
+            </td>
+<td>
+              <p>
+                26.4901
+              </p>
+            </td>
+<td>
+              <p>
+                71.2251
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                uniform_01
+              </p>
+            </td>
+<td>
+              <p>
+                36.63
+              </p>
+            </td>
+<td>
+              <p>
+                95.6938
+              </p>
+            </td>
+<td>
+              <p>
+                26.3783
+              </p>
+            </td>
+<td>
+              <p>
+                85.4701
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                triangle
+              </p>
+            </td>
+<td>
+              <p>
+                19.4856
+              </p>
+            </td>
+<td>
+              <p>
+                43.8982
+              </p>
+            </td>
+<td>
+              <p>
+                19.425
+              </p>
+            </td>
+<td>
+              <p>
+                36.8324
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                exponential
+              </p>
+            </td>
+<td>
+              <p>
+                17.0474
+              </p>
+            </td>
+<td>
+              <p>
+                32.0513
+              </p>
+            </td>
+<td>
+              <p>
+                18.005
+              </p>
+            </td>
+<td>
+              <p>
+                28.6205
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                normal polar
+              </p>
+            </td>
+<td>
+              <p>
+                14.4051
+              </p>
+            </td>
+<td>
+              <p>
+                19.7863
+              </p>
+            </td>
+<td>
+              <p>
+                13.1354
+              </p>
+            </td>
+<td>
+              <p>
+                20.7426
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                lognormal
+              </p>
+            </td>
+<td>
+              <p>
+                10.8472
+              </p>
+            </td>
+<td>
+              <p>
+                13.6968
+              </p>
+            </td>
+<td>
+              <p>
+                10.3563
+              </p>
+            </td>
+<td>
+              <p>
+                13.7855
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                chi squared
+              </p>
+            </td>
+<td>
+              <p>
+                3.53957
+              </p>
+            </td>
+<td>
+              <p>
+                4.95
+              </p>
+            </td>
+<td>
+              <p>
+                3.44448
+              </p>
+            </td>
+<td>
+              <p>
+                4.83442
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                cauchy
+              </p>
+            </td>
+<td>
+              <p>
+                15.1906
+              </p>
+            </td>
+<td>
+              <p>
+                23.5682
+              </p>
+            </td>
+<td>
+              <p>
+                14.9768
+              </p>
+            </td>
+<td>
+              <p>
+                23.31
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                fisher f
+              </p>
+            </td>
+<td>
+              <p>
+                1.74951
+              </p>
+            </td>
+<td>
+              <p>
+                2.45417
+              </p>
+            </td>
+<td>
+              <p>
+                1.69854
+              </p>
+            </td>
+<td>
+              <p>
+                2.38743
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                student t
+              </p>
+            </td>
+<td>
+              <p>
+                2.63151
+              </p>
+            </td>
+<td>
+              <p>
+                3.75291
+              </p>
+            </td>
+<td>
+              <p>
+                2.53872
+              </p>
+            </td>
+<td>
+              <p>
+                3.51432
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                gamma
+              </p>
+            </td>
+<td>
+              <p>
+                3.50275
+              </p>
+            </td>
+<td>
+              <p>
+                4.9729
+              </p>
+            </td>
+<td>
+              <p>
+                3.35087
+              </p>
+            </td>
+<td>
+              <p>
+                4.75195
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                weibull
+              </p>
+            </td>
+<td>
+              <p>
+                8.96539
+              </p>
+            </td>
+<td>
+              <p>
+                11.9161
+              </p>
+            </td>
+<td>
+              <p>
+                9.09256
+              </p>
+            </td>
+<td>
+              <p>
+                11.6754
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                extreme value
+              </p>
+            </td>
+<td>
+              <p>
+                12.3274
+              </p>
+            </td>
+<td>
+              <p>
+                18.4196
+              </p>
+            </td>
+<td>
+              <p>
+                12.5945
+              </p>
+            </td>
+<td>
+              <p>
+                17.5623
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                uniform_on_sphere
+              </p>
+            </td>
+<td>
+              <p>
+                2.83688
+              </p>
+            </td>
+<td>
+              <p>
+                3.58038
+              </p>
+            </td>
+<td>
+              <p>
+                2.73898
+              </p>
+            </td>
+<td>
+              <p>
+                3.60101
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2005 Jens Maurer<br>Copyright &#169; 2009, 2010 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/random/xor_combine_engine.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_random.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="history_and_acknowledgements.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

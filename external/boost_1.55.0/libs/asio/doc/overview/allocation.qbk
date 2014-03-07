@@ -1,0 +1,58 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:allocation Custom Memory Allocation]
+
+Many asynchronous operations need to allocate an object to store state
+associated with the operation. For example, a Win32 implementation needs
+`OVERLAPPED`-derived objects to pass to Win32 API functions.
+
+Furthermore, programs typically contain easily identifiable chains of
+asynchronous operations. A half duplex protocol implementation (e.g. an HTTP
+server) would have a single chain of operations per client (receives followed
+by sends). A full duplex protocol implementation would have two chains
+executing in parallel. Programs should be able to leverage this knowledge to
+reuse memory for all asynchronous operations in a chain.
+
+Given a copy of a user-defined `Handler` object `h`, if the implementation
+needs to allocate memory associated with that handler it will execute the code:
+
+  void* pointer = asio_handler_allocate(size, &h);
+
+Similarly, to deallocate the memory it will execute:
+
+  asio_handler_deallocate(pointer, size, &h);
+
+These functions are located using argument-dependent lookup. The implementation
+provides default implementations of the above functions in the `asio` namespace:
+
+  void* asio_handler_allocate(size_t, ...);
+  void asio_handler_deallocate(void*, size_t, ...);
+
+which are implemented in terms of `::operator new()` and `::operator delete()`
+respectively.
+
+The implementation guarantees that the deallocation will occur before the
+associated handler is invoked, which means the memory is ready to be reused for
+any new asynchronous operations started by the handler.
+
+The custom memory allocation functions may be called from any user-created
+thread that is calling a library function. The implementation guarantees that,
+for the asynchronous operations included the library, the implementation will
+not make concurrent calls to the memory allocation functions for that handler.
+The implementation will insert appropriate memory barriers to ensure correct
+memory visibility should allocation functions need to be called from different
+threads.
+
+[heading See Also]
+
+[link boost_asio.reference.asio_handler_allocate asio_handler_allocate],
+[link boost_asio.reference.asio_handler_deallocate asio_handler_deallocate],
+[link boost_asio.examples.cpp03_examples.allocation custom memory allocation example (C++03)],
+[link boost_asio.examples.cpp11_examples.allocation custom memory allocation example (C++11)].
+
+[endsect]

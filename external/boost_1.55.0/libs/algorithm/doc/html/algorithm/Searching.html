@@ -1,0 +1,227 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Searching Algorithms</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost Algorithm Library">
+<link rel="up" href="../index.html" title="The Boost Algorithm Library">
+<link rel="prev" href="../index.html" title="The Boost Algorithm Library">
+<link rel="next" href="../the_boost_algorithm_library/Searching/BoyerMooreHorspool.html" title="Boyer-Moore-Horspool Search">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../the_boost_algorithm_library/Searching/BoyerMooreHorspool.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="algorithm.Searching"></a><a class="link" href="Searching.html" title="Searching Algorithms">Searching Algorithms</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="Searching.html#the_boost_algorithm_library.Searching.BoyerMoore">Boyer-Moore
+      Search</a></span></dt>
+<dt><span class="section"><a href="../the_boost_algorithm_library/Searching/BoyerMooreHorspool.html">Boyer-Moore-Horspool
+      Search</a></span></dt>
+<dt><span class="section"><a href="../the_boost_algorithm_library/Searching/KnuthMorrisPratt.html">Knuth-Morris-Pratt
+      Search</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="the_boost_algorithm_library.Searching.BoyerMoore"></a><a class="link" href="Searching.html#the_boost_algorithm_library.Searching.BoyerMoore" title="Boyer-Moore Search">Boyer-Moore
+      Search</a>
+</h3></div></div></div>
+<h5>
+<a name="the_boost_algorithm_library.Searching.BoyerMoore.h0"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Searching.BoyerMoore.overview"></a></span><a class="link" href="Searching.html#the_boost_algorithm_library.Searching.BoyerMoore.overview">Overview</a>
+      </h5>
+<p>
+        The header file 'boyer_moore.hpp' contains an implementation of the Boyer-Moore
+        algorithm for searching sequences of values.
+      </p>
+<p>
+        The Boyer&#8211;Moore string search algorithm is a particularly efficient string
+        searching algorithm, and it has been the standard benchmark for the practical
+        string search literature. The Boyer-Moore algorithm was invented by Bob Boyer
+        and J. Strother Moore, and published in the October 1977 issue of the Communications
+        of the ACM , and a copy of that article is available at <a href="http://www.cs.utexas.edu/~moore/publications/fstrpos.pdf" target="_top">http://www.cs.utexas.edu/~moore/publications/fstrpos.pdf</a>.
+      </p>
+<p>
+        The Boyer-Moore algorithm uses two precomputed tables to give better performance
+        than a naive search. These tables depend on the pattern being searched for,
+        and give the Boyer-Moore algorithm larger a memory footprint and startup
+        costs than a simpler algorithm, but these costs are recovered quickly during
+        the searching process, especially if the pattern is longer than a few elements.
+      </p>
+<p>
+        However, the Boyer-Moore algorithm cannot be used with comparison predicates
+        like <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">search</span></code>.
+      </p>
+<p>
+        Nomenclature: I refer to the sequence being searched for as the "pattern",
+        and the sequence being searched in as the "corpus".
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Searching.BoyerMoore.h1"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Searching.BoyerMoore.interface"></a></span><a class="link" href="Searching.html#the_boost_algorithm_library.Searching.BoyerMoore.interface">Interface</a>
+      </h5>
+<p>
+        For flexibility, the Boyer-Moore algorithm has two interfaces; an object-based
+        interface and a procedural one. The object-based interface builds the tables
+        in the constructor, and uses operator () to perform the search. The procedural
+        interface builds the table and does the search all in one step. If you are
+        going to be searching for the same pattern in multiple corpora, then you
+        should use the object interface, and only build the tables once.
+      </p>
+<p>
+        Here is the object interface:
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">patIter</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">boyer_moore</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">boyer_moore</span> <span class="special">(</span> <span class="identifier">patIter</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">patIter</span> <span class="identifier">last</span> <span class="special">);</span>
+    <span class="special">~</span><span class="identifier">boyer_moore</span> <span class="special">();</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">corpusIter</span><span class="special">&gt;</span>
+    <span class="identifier">corpusIter</span> <span class="keyword">operator</span> <span class="special">()</span> <span class="special">(</span> <span class="identifier">corpusIter</span> <span class="identifier">corpus_first</span><span class="special">,</span> <span class="identifier">corpusIter</span> <span class="identifier">corpus_last</span> <span class="special">);</span>
+    <span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        and here is the corresponding procedural interface:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">patIter</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">corpusIter</span><span class="special">&gt;</span>
+<span class="identifier">corpusIter</span> <span class="identifier">boyer_moore_search</span> <span class="special">(</span>
+        <span class="identifier">corpusIter</span> <span class="identifier">corpus_first</span><span class="special">,</span> <span class="identifier">corpusIter</span> <span class="identifier">corpus_last</span><span class="special">,</span>
+        <span class="identifier">patIter</span> <span class="identifier">pat_first</span><span class="special">,</span> <span class="identifier">patIter</span> <span class="identifier">pat_last</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        Each of the functions is passed two pairs of iterators. The first two define
+        the corpus and the second two define the pattern. Note that the two pairs
+        need not be of the same type, but they do need to "point" at the
+        same type. In other words, <code class="computeroutput"><span class="identifier">patIter</span><span class="special">::</span><span class="identifier">value_type</span></code>
+        and <code class="computeroutput"><span class="identifier">curpusIter</span><span class="special">::</span><span class="identifier">value_type</span></code> need to be the same type.
+      </p>
+<p>
+        The return value of the function is an iterator pointing to the start of
+        the pattern in the corpus. If the pattern is not found, it returns the end
+        of the corpus (<code class="computeroutput"><span class="identifier">corpus_last</span></code>).
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Searching.BoyerMoore.h2"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Searching.BoyerMoore.performance"></a></span><a class="link" href="Searching.html#the_boost_algorithm_library.Searching.BoyerMoore.performance">Performance</a>
+      </h5>
+<p>
+        The execution time of the Boyer-Moore algorithm, while still linear in the
+        size of the string being searched, can have a significantly lower constant
+        factor than many other search algorithms: it doesn't need to check every
+        character of the string to be searched, but rather skips over some of them.
+        Generally the algorithm gets faster as the pattern being searched for becomes
+        longer. Its efficiency derives from the fact that with each unsuccessful
+        attempt to find a match between the search string and the text it is searching,
+        it uses the information gained from that attempt to rule out as many positions
+        of the text as possible where the string cannot match.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Searching.BoyerMoore.h3"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Searching.BoyerMoore.memory_use"></a></span><a class="link" href="Searching.html#the_boost_algorithm_library.Searching.BoyerMoore.memory_use">Memory
+        Use</a>
+      </h5>
+<p>
+        The algorithm allocates two internal tables. The first one is proportional
+        to the length of the pattern; the second one has one entry for each member
+        of the "alphabet" in the pattern. For (8-bit) character types,
+        this table contains 256 entries.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Searching.BoyerMoore.h4"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Searching.BoyerMoore.complexity"></a></span><a class="link" href="Searching.html#the_boost_algorithm_library.Searching.BoyerMoore.complexity">Complexity</a>
+      </h5>
+<p>
+        The worst-case performance to find a pattern in the corpus is <span class="emphasis"><em>O(N)</em></span>
+        (linear) time; that is, proportional to the length of the corpus being searched.
+        In general, the search is sub-linear; not every entry in the corpus need
+        be checked.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Searching.BoyerMoore.h5"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Searching.BoyerMoore.exception_safety"></a></span><a class="link" href="Searching.html#the_boost_algorithm_library.Searching.BoyerMoore.exception_safety">Exception
+        Safety</a>
+      </h5>
+<p>
+        Both the object-oriented and procedural versions of the Boyer-Moore algorithm
+        take their parameters by value and do not use any information other than
+        what is passed in. Therefore, both interfaces provide the strong exception
+        guarantee.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Searching.BoyerMoore.h6"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Searching.BoyerMoore.notes"></a></span><a class="link" href="Searching.html#the_boost_algorithm_library.Searching.BoyerMoore.notes">Notes</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            When using the object-based interface, the pattern must remain unchanged
+            for during the searches; i.e, from the time the object is constructed
+            until the final call to operator () returns.
+          </li>
+<li class="listitem">
+            The Boyer-Moore algorithm requires random-access iterators for both the
+            pattern and the corpus.
+          </li>
+</ul></div>
+<h5>
+<a name="the_boost_algorithm_library.Searching.BoyerMoore.h7"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Searching.BoyerMoore.customization_points"></a></span><a class="link" href="Searching.html#the_boost_algorithm_library.Searching.BoyerMoore.customization_points">Customization
+        points</a>
+      </h5>
+<p>
+        The Boyer-Moore object takes a traits template parameter which enables the
+        caller to customize how one of the precomputed tables is stored. This table,
+        called the skip table, contains (logically) one entry for every possible
+        value that the pattern can contain. When searching 8-bit character data,
+        this table contains 256 elements. The traits class defines the table to be
+        used.
+      </p>
+<p>
+        The default traits class uses a <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span></code>
+        for small 'alphabets' and a <code class="computeroutput"><span class="identifier">tr1</span><span class="special">::</span><span class="identifier">unordered_map</span></code>
+        for larger ones. The array-based skip table gives excellent performance,
+        but could be prohibitively large when the 'alphabet' of elements to be searched
+        grows. The unordered_map based version only grows as the number of unique
+        elements in the pattern, but makes many more heap allocations, and gives
+        slower lookup performance.
+      </p>
+<p>
+        To use a different skip table, you should define your own skip table object
+        and your own traits class, and use them to instantiate the Boyer-Moore object.
+        The interface to these objects is described TBD.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2010-2012 Marshall Clow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../the_boost_algorithm_library/Searching/BoyerMooreHorspool.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

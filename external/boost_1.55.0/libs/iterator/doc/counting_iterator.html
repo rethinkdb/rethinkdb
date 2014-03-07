@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>Counting Iterator</title>
+<meta name="author" content="David Abrahams, Jeremy Siek, Thomas Witt" />
+<meta name="organization" content="Boost Consulting, Indiana University Open Systems Lab, University of Hanover Institute for Transport Railway Operation and Construction" />
+<meta name="date" content="2006-09-11" />
+<meta name="copyright" content="Copyright David Abrahams, Jeremy Siek, and Thomas Witt 2003." />
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="counting-iterator">
+<h1 class="title">Counting Iterator</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>David Abrahams, Jeremy Siek, Thomas Witt</td></tr>
+<tr><th class="docinfo-name">Contact:</th>
+<td><a class="first reference external" href="mailto:dave&#64;boost-consulting.com">dave&#64;boost-consulting.com</a>, <a class="reference external" href="mailto:jsiek&#64;osl.iu.edu">jsiek&#64;osl.iu.edu</a>, <a class="last reference external" href="mailto:witt&#64;ive.uni-hannover.de">witt&#64;ive.uni-hannover.de</a></td></tr>
+<tr><th class="docinfo-name">Organization:</th>
+<td><a class="first reference external" href="http://www.boost-consulting.com">Boost Consulting</a>, Indiana University <a class="reference external" href="http://www.osl.iu.edu">Open Systems
+Lab</a>, University of Hanover <a class="last reference external" href="http://www.ive.uni-hannover.de">Institute for Transport
+Railway Operation and Construction</a></td></tr>
+<tr><th class="docinfo-name">Date:</th>
+<td>2006-09-11</td></tr>
+<tr><th class="docinfo-name">Copyright:</th>
+<td>Copyright David Abrahams, Jeremy Siek, and Thomas Witt 2003.</td></tr>
+</tbody>
+</table>
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">abstract:</th><td class="field-body"><p class="first">How would you fill up a vector with the numbers zero
+through one hundred using <tt class="docutils literal"><span class="pre">std::copy()</span></tt>?  The only iterator
+operation missing from builtin integer types is an
+<tt class="docutils literal"><span class="pre">operator*()</span></tt> that returns the current value of the integer.
+The counting iterator adaptor adds this crucial piece of
+functionality to whatever type it wraps.  One can use the
+counting iterator adaptor not only with integer types, but with
+any incrementable type.</p>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<p class="last"><tt class="docutils literal"><span class="pre">counting_iterator</span></tt> adapts an object by adding an <tt class="docutils literal"><span class="pre">operator*</span></tt> that
+returns the current value of the object. All other iterator operations
+are forwarded to the adapted object.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#counting-iterator-synopsis" id="id2"><tt class="docutils literal"><span class="pre">counting_iterator</span></tt> synopsis</a></li>
+<li><a class="reference internal" href="#counting-iterator-requirements" id="id3"><tt class="docutils literal"><span class="pre">counting_iterator</span></tt> requirements</a></li>
+<li><a class="reference internal" href="#counting-iterator-models" id="id4"><tt class="docutils literal"><span class="pre">counting_iterator</span></tt> models</a></li>
+<li><a class="reference internal" href="#counting-iterator-operations" id="id5"><tt class="docutils literal"><span class="pre">counting_iterator</span></tt> operations</a></li>
+<li><a class="reference internal" href="#example" id="id6">Example</a></li>
+</ul>
+</div>
+<div class="section" id="counting-iterator-synopsis">
+<h1><a class="toc-backref" href="#id2"><tt class="docutils literal"><span class="pre">counting_iterator</span></tt> synopsis</a></h1>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+template &lt;
+    class Incrementable
+  , class CategoryOrTraversal = use_default
+  , class Difference = use_default
+&gt;
+class counting_iterator
+{
+public:
+    typedef Incrementable value_type;
+    typedef const Incrementable&amp; reference;
+    typedef const Incrementable* pointer;
+    typedef /* see below */ difference_type;
+    typedef /* see below */ iterator_category;
+
+    counting_iterator();
+    counting_iterator(counting_iterator const&amp; rhs);
+    explicit counting_iterator(Incrementable x);
+    Incrementable const&amp; base() const;
+    reference operator*() const;
+    counting_iterator&amp; operator++();
+    counting_iterator&amp; operator--();
+private:
+    Incrementable m_inc; // exposition
+};
+</pre>
+<p>If the <tt class="docutils literal"><span class="pre">Difference</span></tt> argument is <tt class="docutils literal"><span class="pre">use_default</span></tt> then
+<tt class="docutils literal"><span class="pre">difference_type</span></tt> is an unspecified signed integral
+type. Otherwise <tt class="docutils literal"><span class="pre">difference_type</span></tt> is <tt class="docutils literal"><span class="pre">Difference</span></tt>.</p>
+<p><tt class="docutils literal"><span class="pre">iterator_category</span></tt> is determined according to the following
+algorithm:</p>
+<pre class="literal-block">
+if (CategoryOrTraversal is not use_default)
+    return CategoryOrTraversal
+else if (numeric_limits&lt;Incrementable&gt;::is_specialized)
+    return <a class="reference external" href="iterator_facade.html#iterator-category"><em>iterator-category</em></a>(
+        random_access_traversal_tag, Incrementable, const Incrementable&amp;)
+else
+    return <a class="reference external" href="iterator_facade.html#iterator-category"><em>iterator-category</em></a>(
+         iterator_traversal&lt;Incrementable&gt;::type,
+         Incrementable, const Incrementable&amp;)
+</pre>
+<dl class="docutils">
+<dt>[<em>Note:</em> implementers are encouraged to provide an implementation of</dt>
+<dd><tt class="docutils literal"><span class="pre">operator-</span></tt> and a <tt class="docutils literal"><span class="pre">difference_type</span></tt> that avoids overflows in
+the cases where <tt class="docutils literal"><span class="pre">std::numeric_limits&lt;Incrementable&gt;::is_specialized</span></tt>
+is true.]</dd>
+</dl>
+</div>
+<div class="section" id="counting-iterator-requirements">
+<h1><a class="toc-backref" href="#id3"><tt class="docutils literal"><span class="pre">counting_iterator</span></tt> requirements</a></h1>
+<p>The <tt class="docutils literal"><span class="pre">Incrementable</span></tt> argument shall be Copy Constructible and Assignable.</p>
+<p>If <tt class="docutils literal"><span class="pre">iterator_category</span></tt> is convertible to <tt class="docutils literal"><span class="pre">forward_iterator_tag</span></tt>
+or <tt class="docutils literal"><span class="pre">forward_traversal_tag</span></tt>, the following must be well-formed:</p>
+<pre class="literal-block">
+Incrementable i, j;
+++i;         // pre-increment
+i == j;      // operator equal
+</pre>
+<p>If <tt class="docutils literal"><span class="pre">iterator_category</span></tt> is convertible to
+<tt class="docutils literal"><span class="pre">bidirectional_iterator_tag</span></tt> or <tt class="docutils literal"><span class="pre">bidirectional_traversal_tag</span></tt>,
+the following expression must also be well-formed:</p>
+<pre class="literal-block">
+--i
+</pre>
+<p>If <tt class="docutils literal"><span class="pre">iterator_category</span></tt> is convertible to
+<tt class="docutils literal"><span class="pre">random_access_iterator_tag</span></tt> or <tt class="docutils literal"><span class="pre">random_access_traversal_tag</span></tt>,
+the following must must also be valid:</p>
+<pre class="literal-block">
+counting_iterator::difference_type n;
+i += n;
+n = i - j;
+i &lt; j;
+</pre>
+</div>
+<div class="section" id="counting-iterator-models">
+<h1><a class="toc-backref" href="#id4"><tt class="docutils literal"><span class="pre">counting_iterator</span></tt> models</a></h1>
+<p>Specializations of <tt class="docutils literal"><span class="pre">counting_iterator</span></tt> model Readable Lvalue
+Iterator. In addition, they model the concepts corresponding to the
+iterator tags to which their <tt class="docutils literal"><span class="pre">iterator_category</span></tt> is convertible.
+Also, if <tt class="docutils literal"><span class="pre">CategoryOrTraversal</span></tt> is not <tt class="docutils literal"><span class="pre">use_default</span></tt> then
+<tt class="docutils literal"><span class="pre">counting_iterator</span></tt> models the concept corresponding to the iterator
+tag <tt class="docutils literal"><span class="pre">CategoryOrTraversal</span></tt>.  Otherwise, if
+<tt class="docutils literal"><span class="pre">numeric_limits&lt;Incrementable&gt;::is_specialized</span></tt>, then
+<tt class="docutils literal"><span class="pre">counting_iterator</span></tt> models Random Access Traversal Iterator.
+Otherwise, <tt class="docutils literal"><span class="pre">counting_iterator</span></tt> models the same iterator traversal
+concepts modeled by <tt class="docutils literal"><span class="pre">Incrementable</span></tt>.</p>
+<p><tt class="docutils literal"><span class="pre">counting_iterator&lt;X,C1,D1&gt;</span></tt> is interoperable with
+<tt class="docutils literal"><span class="pre">counting_iterator&lt;Y,C2,D2&gt;</span></tt> if and only if <tt class="docutils literal"><span class="pre">X</span></tt> is
+interoperable with <tt class="docutils literal"><span class="pre">Y</span></tt>.</p>
+</div>
+<div class="section" id="counting-iterator-operations">
+<h1><a class="toc-backref" href="#id5"><tt class="docutils literal"><span class="pre">counting_iterator</span></tt> operations</a></h1>
+<p>In addition to the operations required by the concepts modeled by
+<tt class="docutils literal"><span class="pre">counting_iterator</span></tt>, <tt class="docutils literal"><span class="pre">counting_iterator</span></tt> provides the following
+operations.</p>
+<p><tt class="docutils literal"><span class="pre">counting_iterator();</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Requires:</th><td class="field-body"><tt class="docutils literal"><span class="pre">Incrementable</span></tt> is Default Constructible.</td>
+</tr>
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body">Default construct the member <tt class="docutils literal"><span class="pre">m_inc</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">counting_iterator(counting_iterator</span> <span class="pre">const&amp;</span> <span class="pre">rhs);</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body">Construct member <tt class="docutils literal"><span class="pre">m_inc</span></tt> from <tt class="docutils literal"><span class="pre">rhs.m_inc</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">explicit</span> <span class="pre">counting_iterator(Incrementable</span> <span class="pre">x);</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body">Construct member <tt class="docutils literal"><span class="pre">m_inc</span></tt> from <tt class="docutils literal"><span class="pre">x</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">reference</span> <span class="pre">operator*()</span> <span class="pre">const;</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">m_inc</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">counting_iterator&amp;</span> <span class="pre">operator++();</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body"><tt class="docutils literal"><span class="pre">++m_inc</span></tt></td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">*this</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">counting_iterator&amp;</span> <span class="pre">operator--();</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body"><tt class="docutils literal"><span class="pre">--m_inc</span></tt></td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">*this</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">Incrementable</span> <span class="pre">const&amp;</span> <span class="pre">base()</span> <span class="pre">const;</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">m_inc</span></tt></td>
+</tr>
+</tbody>
+</table>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+template &lt;class Incrementable&gt;
+counting_iterator&lt;Incrementable&gt; make_counting_iterator(Incrementable x);
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">An instance of <tt class="docutils literal"><span class="pre">counting_iterator&lt;Incrementable&gt;</span></tt>
+with <tt class="docutils literal"><span class="pre">current</span></tt> constructed from <tt class="docutils literal"><span class="pre">x</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+</div>
+<div class="section" id="example">
+<h1><a class="toc-backref" href="#id6">Example</a></h1>
+<p>This example fills an array with numbers and a second array with
+pointers into the first array, using <tt class="docutils literal"><span class="pre">counting_iterator</span></tt> for both
+tasks. Finally <tt class="docutils literal"><span class="pre">indirect_iterator</span></tt> is used to print out the numbers
+into the first array via indirection through the second array.</p>
+<pre class="literal-block">
+int N = 7;
+std::vector&lt;int&gt; numbers;
+typedef std::vector&lt;int&gt;::iterator n_iter;
+std::copy(boost::counting_iterator&lt;int&gt;(0),
+         boost::counting_iterator&lt;int&gt;(N),
+         std::back_inserter(numbers));
+
+std::vector&lt;std::vector&lt;int&gt;::iterator&gt; pointers;
+std::copy(boost::make_counting_iterator(numbers.begin()),
+          boost::make_counting_iterator(numbers.end()),
+          std::back_inserter(pointers));
+
+std::cout &lt;&lt; &quot;indirectly printing out the numbers from 0 to &quot;
+          &lt;&lt; N &lt;&lt; std::endl;
+std::copy(boost::make_indirect_iterator(pointers.begin()),
+          boost::make_indirect_iterator(pointers.end()),
+          std::ostream_iterator&lt;int&gt;(std::cout, &quot; &quot;));
+std::cout &lt;&lt; std::endl;
+</pre>
+<p>The output is:</p>
+<pre class="literal-block">
+indirectly printing out the numbers from 0 to 7
+0 1 2 3 4 5 6
+</pre>
+<p>The source code for this example can be found <a class="reference external" href="../example/counting_iterator_example.cpp">here</a>.</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+<a class="reference external" href="counting_iterator.rst">View document source</a>.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

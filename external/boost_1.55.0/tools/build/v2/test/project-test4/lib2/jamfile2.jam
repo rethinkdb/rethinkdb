@@ -1,0 +1,4 @@
+
+project mylib
+    : requirements <rtti>off
+    ; 

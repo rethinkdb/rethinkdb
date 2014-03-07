@@ -1,0 +1,67 @@
+## -*-makefile-*-
+## BSD-specific setup (FreeBSD, OpenBSD, NetBSD, *BSD)
+## Copyright (c) 1999-2009, International Business Machines Corporation and
+## others. All Rights Reserved.
+
+## Commands to generate dependency files
+GEN_DEPS.c=	$(CC) -E -MM $(DEFS) $(CPPFLAGS)
+GEN_DEPS.cc=	$(CXX) -E -MM $(DEFS) $(CPPFLAGS)
+
+## Flags for position independent code
+SHAREDLIBCFLAGS = -fPIC
+SHAREDLIBCXXFLAGS = -fPIC
+SHAREDLIBCPPFLAGS = -DPIC
+
+## Additional flags when building libraries and with threads
+THREADSCPPFLAGS = -D_REENTRANT
+LIBCPPFLAGS =
+
+## Compiler switch to embed a runtime search path
+LD_RPATH=	
+LD_RPATH_PRE=	-Wl,-rpath,
+
+## Compiler switch to embed a library name
+LD_SONAME = -Wl,-soname -Wl,$(notdir $(MIDDLE_SO_TARGET))
+
+## Shared library options
+LD_SOOPTIONS= -Wl,-Bsymbolic
+
+## Shared object suffix
+SO = so
+## Non-shared intermediate object suffix
+STATIC_O = ao
+
+## Compilation rules
+%.$(STATIC_O): $(srcdir)/%.c
+	$(COMPILE.c) $(STATICCPPFLAGS) $(STATICCFLAGS) -o $@ $<
+%.o: $(srcdir)/%.c
+	$(COMPILE.c) $(DYNAMICCPPFLAGS) $(DYNAMICCFLAGS) -o $@ $<
+
+%.$(STATIC_O): $(srcdir)/%.cpp
+	$(COMPILE.cc) $(STATICCPPFLAGS) $(STATICCXXFLAGS) -o $@ $<
+%.o: $(srcdir)/%.cpp
+	$(COMPILE.cc) $(DYNAMICCPPFLAGS) $(DYNAMICCXXFLAGS) -o $@ $<
+
+
+## Dependency rules
+%.d: $(srcdir)/%.c
+	@echo "generating dependency information for $<"
+	@$(SHELL) -ec '$(GEN_DEPS.c) $< \
+		| sed '\''s/\($*\)\.o[ :]*/\1.o $@ : /g'\'' > $@; \
+		[ -s $@ ] || rm -f $@'
+
+%.d: $(srcdir)/%.cpp
+	@echo "generating dependency information for $<"
+	@$(SHELL) -ec '$(GEN_DEPS.cc) $< \
+		| sed '\''s/\($*\)\.o[ :]*/\1.o $@ : /g'\'' > $@; \
+		[ -s $@ ] || rm -f $@'
+
+## Versioned libraries rules
+
+%.$(SO).$(SO_TARGET_VERSION_MAJOR): %.$(SO).$(SO_TARGET_VERSION)
+	$(RM) $@ && ln -s ${<F} $@
+%.$(SO): %.$(SO).$(SO_TARGET_VERSION_MAJOR)
+	$(RM) $@ && ln -s ${*F}.$(SO).$(SO_TARGET_VERSION) $@
+
+## End FreeBSD-specific setup
+

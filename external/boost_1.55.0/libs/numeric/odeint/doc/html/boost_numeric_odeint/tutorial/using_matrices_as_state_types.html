@@ -1,0 +1,115 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Using matrices as state types</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../tutorial.html" title="Tutorial">
+<link rel="prev" href="using_boost__units.html" title="Using boost::units">
+<link rel="next" href="using_arbitrary_precision_floating_point_types.html" title="Using arbitrary precision floating point types">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using_boost__units.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="using_arbitrary_precision_floating_point_types.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.tutorial.using_matrices_as_state_types"></a><a class="link" href="using_matrices_as_state_types.html" title="Using matrices as state types">Using
+      matrices as state types</a>
+</h3></div></div></div>
+<p>
+        odeint works well with a variety of different state types. It is not restricted
+        to pure vector-wise types, like <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span></code>, <code class="computeroutput"><span class="identifier">array</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span></code>,
+        <code class="computeroutput"><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">,</span> <span class="keyword">double</span> <span class="special">&gt;</span></code>,
+        etc. but also works with types having a different topology then simple vectors.
+        Here, we show how odeint can be used with matrices as states type, in the
+        next section we will show how can be used to solve ODEs defined on complex
+        networks.
+      </p>
+<p>
+        By default, odeint can be used with <code class="computeroutput"><span class="identifier">ublas</span><span class="special">::</span><span class="identifier">matrix</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span></code> as state type for matrices. A simple
+        example is a two-dimensional lattice of coupled phase oscillators. Other
+        matrix types like <code class="computeroutput"><span class="identifier">mtl</span><span class="special">::</span><span class="identifier">dense_matrix</span></code> or blitz arrays and matrices
+        can used as well but need some kind of activation in order to work with odeint.
+        This activation is described in following sections,
+      </p>
+<p>
+        The definition of the system is
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">ublas</span><span class="special">::</span><span class="identifier">matrix</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span> <span class="identifier">state_type</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">two_dimensional_phase_lattice</span>
+<span class="special">{</span>
+    <span class="identifier">two_dimensional_phase_lattice</span><span class="special">(</span> <span class="keyword">double</span> <span class="identifier">gamma</span> <span class="special">=</span> <span class="number">0.5</span> <span class="special">)</span>
+    <span class="special">:</span> <span class="identifier">m_gamma</span><span class="special">(</span> <span class="identifier">gamma</span> <span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">dxdt</span> <span class="special">,</span> <span class="keyword">double</span> <span class="comment">/* t */</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">size_t</span> <span class="identifier">size1</span> <span class="special">=</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">size1</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">size2</span> <span class="special">=</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">size2</span><span class="special">();</span>
+
+        <span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">1</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">size1</span><span class="special">-</span><span class="number">1</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">j</span><span class="special">=</span><span class="number">1</span> <span class="special">;</span> <span class="identifier">j</span><span class="special">&lt;</span><span class="identifier">size2</span><span class="special">-</span><span class="number">1</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">j</span> <span class="special">)</span>
+            <span class="special">{</span>
+                <span class="identifier">dxdt</span><span class="special">(</span> <span class="identifier">i</span> <span class="special">,</span> <span class="identifier">j</span> <span class="special">)</span> <span class="special">=</span>
+                        <span class="identifier">coupling_func</span><span class="special">(</span> <span class="identifier">x</span><span class="special">(</span> <span class="identifier">i</span> <span class="special">+</span> <span class="number">1</span> <span class="special">,</span> <span class="identifier">j</span> <span class="special">)</span> <span class="special">-</span> <span class="identifier">x</span><span class="special">(</span> <span class="identifier">i</span> <span class="special">,</span> <span class="identifier">j</span> <span class="special">)</span> <span class="special">)</span> <span class="special">+</span>
+                        <span class="identifier">coupling_func</span><span class="special">(</span> <span class="identifier">x</span><span class="special">(</span> <span class="identifier">i</span> <span class="special">-</span> <span class="number">1</span> <span class="special">,</span> <span class="identifier">j</span> <span class="special">)</span> <span class="special">-</span> <span class="identifier">x</span><span class="special">(</span> <span class="identifier">i</span> <span class="special">,</span> <span class="identifier">j</span> <span class="special">)</span> <span class="special">)</span> <span class="special">+</span>
+                        <span class="identifier">coupling_func</span><span class="special">(</span> <span class="identifier">x</span><span class="special">(</span> <span class="identifier">i</span> <span class="special">,</span> <span class="identifier">j</span> <span class="special">+</span> <span class="number">1</span> <span class="special">)</span> <span class="special">-</span> <span class="identifier">x</span><span class="special">(</span> <span class="identifier">i</span> <span class="special">,</span> <span class="identifier">j</span> <span class="special">)</span> <span class="special">)</span> <span class="special">+</span>
+                        <span class="identifier">coupling_func</span><span class="special">(</span> <span class="identifier">x</span><span class="special">(</span> <span class="identifier">i</span> <span class="special">,</span> <span class="identifier">j</span> <span class="special">-</span> <span class="number">1</span> <span class="special">)</span> <span class="special">-</span> <span class="identifier">x</span><span class="special">(</span> <span class="identifier">i</span> <span class="special">,</span> <span class="identifier">j</span> <span class="special">)</span> <span class="special">);</span>
+            <span class="special">}</span>
+        <span class="special">}</span>
+
+        <span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">size1</span><span class="special">()</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span> <span class="identifier">dxdt</span><span class="special">(</span> <span class="identifier">i</span> <span class="special">,</span> <span class="number">0</span> <span class="special">)</span> <span class="special">=</span> <span class="identifier">dxdt</span><span class="special">(</span> <span class="identifier">i</span> <span class="special">,</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">size2</span><span class="special">()</span> <span class="special">-</span><span class="number">1</span> <span class="special">)</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">;</span>
+        <span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">j</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">j</span><span class="special">&lt;</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">size2</span><span class="special">()</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">j</span> <span class="special">)</span> <span class="identifier">dxdt</span><span class="special">(</span> <span class="number">0</span> <span class="special">,</span> <span class="identifier">j</span> <span class="special">)</span> <span class="special">=</span> <span class="identifier">dxdt</span><span class="special">(</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">size1</span><span class="special">()</span> <span class="special">-</span><span class="number">1</span> <span class="special">,</span> <span class="identifier">j</span> <span class="special">)</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">double</span> <span class="identifier">coupling_func</span><span class="special">(</span> <span class="keyword">double</span> <span class="identifier">x</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">sin</span><span class="special">(</span> <span class="identifier">x</span> <span class="special">)</span> <span class="special">-</span> <span class="identifier">m_gamma</span> <span class="special">*</span> <span class="special">(</span> <span class="number">1.0</span> <span class="special">-</span> <span class="identifier">cos</span><span class="special">(</span> <span class="identifier">x</span> <span class="special">)</span> <span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="keyword">double</span> <span class="identifier">m_gamma</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        In principle this is all. Please note, that the above code is far from being
+        optimal. Better performance can be achieved if every interaction is only
+        calculated once and iterators for columns and rows are used. Below are some
+        visualizations of the evolution of this lattice equation.
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../phase_lattice_2d_0000.jpg" alt="phase_lattice_2d_0000"></span> <span class="inlinemediaobject"><img src="../../phase_lattice_2d_0100.jpg" alt="phase_lattice_2d_0100"></span> <span class="inlinemediaobject"><img src="../../phase_lattice_2d_1000.jpg" alt="phase_lattice_2d_1000"></span>
+      </p>
+<p>
+        The full cpp for this example can be found here <a href="../../../../../../../libs/numeric/odeint/examples/two_dimensional_phase_lattice.cpp" target="_top">two_dimensional_phase_lattice.cpp</a>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using_boost__units.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="using_arbitrary_precision_floating_point_types.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

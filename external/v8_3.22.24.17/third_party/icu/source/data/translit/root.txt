@@ -1,0 +1,1568 @@
+﻿// ***************************************************************************
+// *
+// *  Copyright (C) 2004-2010, International Business Machines
+// *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+// *
+// ***************************************************************************
+// File: root.txt
+// Generated from CLDR 
+//
+root {
+    RuleBasedTransliteratorIDs {
+        Tone-Digit {
+            alias {"Pinyin-NumericPinyin"}
+        }
+        Digit-Tone {
+            alias {"NumericPinyin-Pinyin"}
+        }
+        Amharic-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Amharic_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Any-Accents {
+            file {
+                resource:process(transliterator) {"Any_Accents.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Accents-Any {
+            file {
+                resource:process(transliterator) {"Any_Accents.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Any-Publishing {
+            file {
+                resource:process(transliterator) {"Any_Publishing.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Publishing-Any {
+            file {
+                resource:process(transliterator) {"Any_Publishing.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Arabic-Latin {
+            file {
+                resource:process(transliterator) {"Arabic_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Latin-Arabic {
+            file {
+                resource:process(transliterator) {"Arabic_Latin.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Arabic-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Arabic_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Armenian-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Armenian_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Azerbaijani-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Azerbaijani_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Belarusian-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Belarusian_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Bengali-Devanagari {
+            file {
+                resource:process(transliterator) {"Bengali_Devanagari.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Bengali-Gujarati {
+            file {
+                resource:process(transliterator) {"Bengali_Gujarati.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Bengali-Gurmukhi {
+            file {
+                resource:process(transliterator) {"Bengali_Gurmukhi.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Bengali-InterIndic {
+            internal {
+                resource:process(transliterator) {"Bengali_InterIndic.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Bengali-Kannada {
+            file {
+                resource:process(transliterator) {"Bengali_Kannada.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Bengali-Latin {
+            file {
+                resource:process(transliterator) {"Bengali_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Bengali-Malayalam {
+            file {
+                resource:process(transliterator) {"Bengali_Malayalam.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Bengali-Oriya {
+            file {
+                resource:process(transliterator) {"Bengali_Oriya.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Bengali-Tamil {
+            file {
+                resource:process(transliterator) {"Bengali_Tamil.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Bengali-Telugu {
+            file {
+                resource:process(transliterator) {"Bengali_Telugu.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Bulgarian-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Bulgarian_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Cyrillic-Latin {
+            file {
+                resource:process(transliterator) {"Cyrillic_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Latin-Cyrillic {
+            file {
+                resource:process(transliterator) {"Cyrillic_Latin.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Devanagari-Bengali {
+            file {
+                resource:process(transliterator) {"Devanagari_Bengali.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Devanagari-Gujarati {
+            file {
+                resource:process(transliterator) {"Devanagari_Gujarati.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Devanagari-Gurmukhi {
+            file {
+                resource:process(transliterator) {"Devanagari_Gurmukhi.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Devanagari-InterIndic {
+            internal {
+                resource:process(transliterator) {"Devanagari_InterIndic.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Devanagari-Kannada {
+            file {
+                resource:process(transliterator) {"Devanagari_Kannada.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Devanagari-Latin {
+            file {
+                resource:process(transliterator) {"Devanagari_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Devanagari-Malayalam {
+            file {
+                resource:process(transliterator) {"Devanagari_Malayalam.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Devanagari-Oriya {
+            file {
+                resource:process(transliterator) {"Devanagari_Oriya.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Devanagari-Tamil {
+            file {
+                resource:process(transliterator) {"Devanagari_Tamil.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Devanagari-Telugu {
+            file {
+                resource:process(transliterator) {"Devanagari_Telugu.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Fullwidth-Halfwidth {
+            file {
+                resource:process(transliterator) {"Fullwidth_Halfwidth.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Halfwidth-Fullwidth {
+            file {
+                resource:process(transliterator) {"Fullwidth_Halfwidth.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Georgian-Latin {
+            file {
+                resource:process(transliterator) {"Georgian_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Latin-Georgian {
+            file {
+                resource:process(transliterator) {"Georgian_Latin.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Georgian-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Georgian_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Greek-Latin {
+            file {
+                resource:process(transliterator) {"Greek_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Latin-Greek {
+            file {
+                resource:process(transliterator) {"Greek_Latin.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Greek-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Greek_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Greek-Latin/UNGEGN {
+            file {
+                resource:process(transliterator) {"Greek_Latin_UNGEGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Latin-Greek/UNGEGN {
+            file {
+                resource:process(transliterator) {"Greek_Latin_UNGEGN.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Gujarati-Bengali {
+            file {
+                resource:process(transliterator) {"Gujarati_Bengali.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gujarati-Devanagari {
+            file {
+                resource:process(transliterator) {"Gujarati_Devanagari.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gujarati-Gurmukhi {
+            file {
+                resource:process(transliterator) {"Gujarati_Gurmukhi.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gujarati-InterIndic {
+            internal {
+                resource:process(transliterator) {"Gujarati_InterIndic.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gujarati-Kannada {
+            file {
+                resource:process(transliterator) {"Gujarati_Kannada.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gujarati-Latin {
+            file {
+                resource:process(transliterator) {"Gujarati_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gujarati-Malayalam {
+            file {
+                resource:process(transliterator) {"Gujarati_Malayalam.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gujarati-Oriya {
+            file {
+                resource:process(transliterator) {"Gujarati_Oriya.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gujarati-Tamil {
+            file {
+                resource:process(transliterator) {"Gujarati_Tamil.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gujarati-Telugu {
+            file {
+                resource:process(transliterator) {"Gujarati_Telugu.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gurmukhi-Bengali {
+            file {
+                resource:process(transliterator) {"Gurmukhi_Bengali.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gurmukhi-Devanagari {
+            file {
+                resource:process(transliterator) {"Gurmukhi_Devanagari.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gurmukhi-Gujarati {
+            file {
+                resource:process(transliterator) {"Gurmukhi_Gujarati.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gurmukhi-InterIndic {
+            internal {
+                resource:process(transliterator) {"Gurmukhi_InterIndic.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gurmukhi-Kannada {
+            file {
+                resource:process(transliterator) {"Gurmukhi_Kannada.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gurmukhi-Latin {
+            file {
+                resource:process(transliterator) {"Gurmukhi_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gurmukhi-Malayalam {
+            file {
+                resource:process(transliterator) {"Gurmukhi_Malayalam.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gurmukhi-Oriya {
+            file {
+                resource:process(transliterator) {"Gurmukhi_Oriya.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gurmukhi-Tamil {
+            file {
+                resource:process(transliterator) {"Gurmukhi_Tamil.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Gurmukhi-Telugu {
+            file {
+                resource:process(transliterator) {"Gurmukhi_Telugu.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Han-Latin {
+            file {
+                resource:process(transliterator) {"Han_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Latin-Han {
+            file {
+                resource:process(transliterator) {"Han_Latin.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Han-Latin/Names {
+            file {
+                resource:process(transliterator) {"Han_Latin_Names.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Han-Spacedhan {
+            internal {
+                resource:process(transliterator) {"Han_Spacedhan.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Spacedhan-Han {
+            internal {
+                resource:process(transliterator) {"Han_Spacedhan.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Hangul-Latin {
+            file {
+                resource:process(transliterator) {"Hangul_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Hebrew-Latin {
+            file {
+                resource:process(transliterator) {"Hebrew_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Latin-Hebrew {
+            file {
+                resource:process(transliterator) {"Hebrew_Latin.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Hebrew-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Hebrew_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Hiragana-Katakana {
+            file {
+                resource:process(transliterator) {"Hiragana_Katakana.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Katakana-Hiragana {
+            file {
+                resource:process(transliterator) {"Hiragana_Katakana.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Hiragana-Latin {
+            file {
+                resource:process(transliterator) {"Hiragana_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Latin-Hiragana {
+            file {
+                resource:process(transliterator) {"Hiragana_Latin.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        IPA-XSampa {
+            file {
+                resource:process(transliterator) {"IPA_XSampa.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        XSampa-IPA {
+            file {
+                resource:process(transliterator) {"IPA_XSampa.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        InterIndic-Bengali {
+            internal {
+                resource:process(transliterator) {"InterIndic_Bengali.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        InterIndic-Devanagari {
+            internal {
+                resource:process(transliterator) {"InterIndic_Devanagari.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        InterIndic-Gujarati {
+            internal {
+                resource:process(transliterator) {"InterIndic_Gujarati.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        InterIndic-Gurmukhi {
+            internal {
+                resource:process(transliterator) {"InterIndic_Gurmukhi.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        InterIndic-Kannada {
+            internal {
+                resource:process(transliterator) {"InterIndic_Kannada.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        InterIndic-Latin {
+            internal {
+                resource:process(transliterator) {"InterIndic_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        InterIndic-Malayalam {
+            internal {
+                resource:process(transliterator) {"InterIndic_Malayalam.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        InterIndic-Oriya {
+            internal {
+                resource:process(transliterator) {"InterIndic_Oriya.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        InterIndic-Tamil {
+            internal {
+                resource:process(transliterator) {"InterIndic_Tamil.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        InterIndic-Telugu {
+            internal {
+                resource:process(transliterator) {"InterIndic_Telugu.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Jamo-Latin {
+            file {
+                resource:process(transliterator) {"Jamo_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Kannada-Bengali {
+            file {
+                resource:process(transliterator) {"Kannada_Bengali.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Kannada-Devanagari {
+            file {
+                resource:process(transliterator) {"Kannada_Devanagari.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Kannada-Gujarati {
+            file {
+                resource:process(transliterator) {"Kannada_Gujarati.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Kannada-Gurmukhi {
+            file {
+                resource:process(transliterator) {"Kannada_Gurmukhi.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Kannada-InterIndic {
+            internal {
+                resource:process(transliterator) {"Kannada_InterIndic.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Kannada-Latin {
+            file {
+                resource:process(transliterator) {"Kannada_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Kannada-Malayalam {
+            file {
+                resource:process(transliterator) {"Kannada_Malayalam.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Kannada-Oriya {
+            file {
+                resource:process(transliterator) {"Kannada_Oriya.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Kannada-Tamil {
+            file {
+                resource:process(transliterator) {"Kannada_Tamil.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Kannada-Telugu {
+            file {
+                resource:process(transliterator) {"Kannada_Telugu.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        JapaneseKana-Latin/BGN {
+            file {
+                resource:process(transliterator) {"JapaneseKana_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Kazakh-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Kazakh_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Kirghiz-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Kirghiz_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Korean-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Korean_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Latin-ASCII {
+            file {
+                resource:process(transliterator) {"Latin_ASCII.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        ASCII-Latin {
+            file {
+                resource:process(transliterator) {"Latin_ASCII.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Latin-Armenian {
+            file {
+                resource:process(transliterator) {"Latin_Armenian.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Armenian-Latin {
+            file {
+                resource:process(transliterator) {"Latin_Armenian.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Latin-Bengali {
+            file {
+                resource:process(transliterator) {"Latin_Bengali.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Latin-ConjoiningJamo {
+            internal {
+                resource:process(transliterator) {"Latin_ConjoiningJamo.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        ConjoiningJamo-Latin {
+            internal {
+                resource:process(transliterator) {"Latin_ConjoiningJamo.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Latin-Devanagari {
+            file {
+                resource:process(transliterator) {"Latin_Devanagari.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Latin-Gujarati {
+            file {
+                resource:process(transliterator) {"Latin_Gujarati.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Latin-Gurmukhi {
+            file {
+                resource:process(transliterator) {"Latin_Gurmukhi.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Latin-Hangul {
+            file {
+                resource:process(transliterator) {"Latin_Hangul.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Latin-InterIndic {
+            internal {
+                resource:process(transliterator) {"Latin_InterIndic.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Latin-Jamo {
+            file {
+                resource:process(transliterator) {"Latin_Jamo.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Latin-Kannada {
+            file {
+                resource:process(transliterator) {"Latin_Kannada.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Latin-Katakana {
+            file {
+                resource:process(transliterator) {"Latin_Katakana.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Katakana-Latin {
+            file {
+                resource:process(transliterator) {"Latin_Katakana.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Latin-Malayalam {
+            file {
+                resource:process(transliterator) {"Latin_Malayalam.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Latin-NumericPinyin {
+            file {
+                resource:process(transliterator) {"Latin_NumericPinyin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        NumericPinyin-Latin {
+            file {
+                resource:process(transliterator) {"Latin_NumericPinyin.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Latin-Oriya {
+            file {
+                resource:process(transliterator) {"Latin_Oriya.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Latin-Tamil {
+            file {
+                resource:process(transliterator) {"Latin_Tamil.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Latin-Telugu {
+            file {
+                resource:process(transliterator) {"Latin_Telugu.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Latin-Thai {
+            file {
+                resource:process(transliterator) {"Latin_Thai.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Macedonian-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Macedonian_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Malayalam-Bengali {
+            file {
+                resource:process(transliterator) {"Malayalam_Bengali.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Malayalam-Devanagari {
+            file {
+                resource:process(transliterator) {"Malayalam_Devanagari.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Malayalam-Gujarati {
+            file {
+                resource:process(transliterator) {"Malayalam_Gujarati.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Malayalam-Gurmukhi {
+            file {
+                resource:process(transliterator) {"Malayalam_Gurmukhi.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Malayalam-InterIndic {
+            internal {
+                resource:process(transliterator) {"Malayalam_InterIndic.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Malayalam-Kannada {
+            file {
+                resource:process(transliterator) {"Malayalam_Kannada.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Malayalam-Latin {
+            file {
+                resource:process(transliterator) {"Malayalam_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Malayalam-Oriya {
+            file {
+                resource:process(transliterator) {"Malayalam_Oriya.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Malayalam-Tamil {
+            file {
+                resource:process(transliterator) {"Malayalam_Tamil.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Malayalam-Telugu {
+            file {
+                resource:process(transliterator) {"Malayalam_Telugu.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Maldivian-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Maldivian_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Mongolian-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Mongolian_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Oriya-Bengali {
+            file {
+                resource:process(transliterator) {"Oriya_Bengali.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Oriya-Devanagari {
+            file {
+                resource:process(transliterator) {"Oriya_Devanagari.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Oriya-Gujarati {
+            file {
+                resource:process(transliterator) {"Oriya_Gujarati.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Oriya-Gurmukhi {
+            file {
+                resource:process(transliterator) {"Oriya_Gurmukhi.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Oriya-InterIndic {
+            internal {
+                resource:process(transliterator) {"Oriya_InterIndic.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Oriya-Kannada {
+            file {
+                resource:process(transliterator) {"Oriya_Kannada.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Oriya-Latin {
+            file {
+                resource:process(transliterator) {"Oriya_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Oriya-Malayalam {
+            file {
+                resource:process(transliterator) {"Oriya_Malayalam.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Oriya-Tamil {
+            file {
+                resource:process(transliterator) {"Oriya_Tamil.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Oriya-Telugu {
+            file {
+                resource:process(transliterator) {"Oriya_Telugu.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Pashto-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Pashto_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Persian-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Persian_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Pinyin-NumericPinyin {
+            file {
+                resource:process(transliterator) {"Pinyin_NumericPinyin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        NumericPinyin-Pinyin {
+            file {
+                resource:process(transliterator) {"Pinyin_NumericPinyin.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Russian-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Russian_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Serbian-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Serbian_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Simplified-Traditional {
+            file {
+                resource:process(transliterator) {"Simplified_Traditional.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Traditional-Simplified {
+            file {
+                resource:process(transliterator) {"Simplified_Traditional.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Syriac-Latin {
+            file {
+                resource:process(transliterator) {"Syriac_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Latin-Syriac {
+            file {
+                resource:process(transliterator) {"Syriac_Latin.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Tamil-Bengali {
+            file {
+                resource:process(transliterator) {"Tamil_Bengali.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Tamil-Devanagari {
+            file {
+                resource:process(transliterator) {"Tamil_Devanagari.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Tamil-Gujarati {
+            file {
+                resource:process(transliterator) {"Tamil_Gujarati.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Tamil-Gurmukhi {
+            file {
+                resource:process(transliterator) {"Tamil_Gurmukhi.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Tamil-InterIndic {
+            internal {
+                resource:process(transliterator) {"Tamil_InterIndic.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Tamil-Kannada {
+            file {
+                resource:process(transliterator) {"Tamil_Kannada.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Tamil-Latin {
+            file {
+                resource:process(transliterator) {"Tamil_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Tamil-Malayalam {
+            file {
+                resource:process(transliterator) {"Tamil_Malayalam.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Tamil-Oriya {
+            file {
+                resource:process(transliterator) {"Tamil_Oriya.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Tamil-Telugu {
+            file {
+                resource:process(transliterator) {"Tamil_Telugu.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Telugu-Bengali {
+            file {
+                resource:process(transliterator) {"Telugu_Bengali.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Telugu-Devanagari {
+            file {
+                resource:process(transliterator) {"Telugu_Devanagari.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Telugu-Gujarati {
+            file {
+                resource:process(transliterator) {"Telugu_Gujarati.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Telugu-Gurmukhi {
+            file {
+                resource:process(transliterator) {"Telugu_Gurmukhi.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Telugu-InterIndic {
+            internal {
+                resource:process(transliterator) {"Telugu_InterIndic.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Telugu-Kannada {
+            file {
+                resource:process(transliterator) {"Telugu_Kannada.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Telugu-Latin {
+            file {
+                resource:process(transliterator) {"Telugu_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Telugu-Malayalam {
+            file {
+                resource:process(transliterator) {"Telugu_Malayalam.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Telugu-Oriya {
+            file {
+                resource:process(transliterator) {"Telugu_Oriya.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Telugu-Tamil {
+            file {
+                resource:process(transliterator) {"Telugu_Tamil.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Latin-Thaana {
+            file {
+                resource:process(transliterator) {"Latin_Thaana.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Thaana-Latin {
+            file {
+                resource:process(transliterator) {"Latin_Thaana.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Thai-Latin {
+            file {
+                resource:process(transliterator) {"Thai_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Thai-ThaiLogical {
+            internal {
+                resource:process(transliterator) {"Thai_ThaiLogical.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        ThaiLogical-Thai {
+            internal {
+                resource:process(transliterator) {"Thai_ThaiLogical.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Thai-ThaiSemi {
+            internal {
+                resource:process(transliterator) {"Thai_ThaiSemi.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        ThaiSemi-Thai {
+            internal {
+                resource:process(transliterator) {"Thai_ThaiSemi.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        ThaiLogical-Latin {
+            internal {
+                resource:process(transliterator) {"ThaiLogical_Latin.txt"}
+                direction {"FORWARD"}
+            }
+        }
+        Latin-ThaiLogical {
+            internal {
+                resource:process(transliterator) {"ThaiLogical_Latin.txt"}
+                direction {"REVERSE"}
+            }
+        }
+
+        Turkmen-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Turkmen_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Ukrainian-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Ukrainian_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        Uzbek-Latin/BGN {
+            file {
+                resource:process(transliterator) {"Uzbek_Latin_BGN.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        cs-cs_FONIPA {
+            file {
+                resource:process(transliterator) {"cs_cs_FONIPA.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        cs-ja {
+            file {
+                resource:process(transliterator) {"cs_ja.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        cs-ko {
+            file {
+                resource:process(transliterator) {"cs_ko.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        cs_FONIPA-ja {
+            file {
+                resource:process(transliterator) {"cs_FONIPA_ja.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        cs_FONIPA-ko {
+            file {
+                resource:process(transliterator) {"cs_FONIPA_ko.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        es-am {
+            file {
+                resource:process(transliterator) {"es_am.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        es-es_FONIPA {
+            file {
+                resource:process(transliterator) {"es_es_FONIPA.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        es-ja {
+            file {
+                resource:process(transliterator) {"es_ja.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        es-zh {
+            file {
+                resource:process(transliterator) {"es_zh.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        es_419-ja {
+            file {
+                resource:process(transliterator) {"es_419_ja.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        es_419-zh {
+            file {
+                resource:process(transliterator) {"es_419_zh.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        es_FONIPA-am {
+            file {
+                resource:process(transliterator) {"es_FONIPA_am.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        es_FONIPA-es_419_FONIPA {
+            file {
+                resource:process(transliterator) {"es_FONIPA_es_419_FONIPA.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        es_FONIPA-ja {
+            file {
+                resource:process(transliterator) {"es_FONIPA_ja.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        es_FONIPA-zh {
+            file {
+                resource:process(transliterator) {"es_FONIPA_zh.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        it-am {
+            file {
+                resource:process(transliterator) {"it_am.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        it-ja {
+            file {
+                resource:process(transliterator) {"it_ja.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        ja_Latn-ko {
+            file {
+                resource:process(transliterator) {"ja_Latn_ko.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        ja_Latn-ru {
+            file {
+                resource:process(transliterator) {"ja_Latn_ru.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        pl-ja {
+            file {
+                resource:process(transliterator) {"pl_ja.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        pl-pl_FONIPA {
+            file {
+                resource:process(transliterator) {"pl_pl_FONIPA.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        pl_FONIPA-ja {
+            file {
+                resource:process(transliterator) {"pl_FONIPA_ja.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        ro-ja {
+            file {
+                resource:process(transliterator) {"ro_ja.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        ro-ro_FONIPA {
+            file {
+                resource:process(transliterator) {"ro_ro_FONIPA.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        ro_FONIPA-ja {
+            file {
+                resource:process(transliterator) {"ro_FONIPA_ja.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        ru-ja {
+            file {
+                resource:process(transliterator) {"ru_ja.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        ru-zh {
+            file {
+                resource:process(transliterator) {"ru_zh.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        sk-ja {
+            file {
+                resource:process(transliterator) {"sk_ja.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        sk-sk_FONIPA {
+            file {
+                resource:process(transliterator) {"sk_sk_FONIPA.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        sk_FONIPA-ja {
+            file {
+                resource:process(transliterator) {"sk_FONIPA_ja.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+        zh_Latn_PINYIN-ru {
+            file {
+                resource:process(transliterator) {"zh_Latn_PINYIN_ru.txt"}
+                direction {"FORWARD"}
+            }
+        }
+
+    }
+    TransliteratorNamePattern {
+        // Format for the display name of a Transliterator.
+        // This is the language-neutral form of this resource.
+        "{0,choice,0#|1#{1}|2#{1}-{2}}" // Display name
+    }
+    // Transliterator display names
+    // This is the English form of this resource.
+    "%Translit%Hex"         { "%Translit%Hex" }
+    "%Translit%UnicodeName" { "%Translit%UnicodeName" }
+    "%Translit%UnicodeChar" { "%Translit%UnicodeChar" }
+    TransliterateLATIN{        
+    "",
+    ""
+    }
+}

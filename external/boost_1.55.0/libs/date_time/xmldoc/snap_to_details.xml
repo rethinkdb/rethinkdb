@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+
+<para>
+<anchor id="snap_to_details" />
+<bridgehead renderas="sect4">Reversibility of Operations Pitfall</bridgehead>
+<para>A natural expectation when adding a number of months to a date, and then subtracting the same number of months, is to end up exactly where you started. This is most often the result the <code>date_time</code> library provides but there is one significant exception: The snap-to-end-of-month behavior implemented by the <link linkend="additional_duration_types">months</link> duration type. The <link linkend="additional_duration_types">months</link> duration type may provide unexpected results when the starting day is the 28th, 29th, or 30th in a 31 day month. The <link linkend="iterators_intro">month_iterator</link> is not affected by this issue and is therefore included in the examples to illustrate a possible alternative.
+</para>
+
+<para>When the starting date is in the middle of a month, adding or subtracting any number of months will result in a date that is the same day of month (e.g. if you start on the 15th, you will end on the 15th). When a date is the last day of the month, adding or subtracting any number of months will give a result that is also the last day of the month (e.g if you start on Jan 31st, you will land on: Feb 28th, Mar 31st, etc).
+  <programlisting>
+    // using months duration type
+    date d(2005, Nov, 30); // last day of November
+    d + months(1); // result is last day of December "2005-Dec-31"
+    d - months(1); // result is last day of October "2005-Oct-31"
+
+    // using month_iterator
+    month_iterator itr(d); // last day of November
+    ++itr; // result is last day of December "2005-Dec-31"
+    --itr; // back to original starting point "2005-Nov-30"
+    --itr; // last day of October "2005-Oct-31"
+  </programlisting>
+</para>
+
+<para>If the start date is the 28th, 29th, or 30th in a 31 day month, the result of adding or subtracting a month may result in the snap-to-end-of-month behavior kicking in unexpectedly. This would cause the final result to be different than the starting date.
+  <programlisting>
+    // using months duration type
+    date d(2005, Nov, 29);
+    d += months(1); // "2005-Dec-29"
+    d += months(1); // "2006-Jan-29"
+    d += months(1); // "2006-Feb-28" --> snap-to-end-of-month behavior kicks in
+    d += months(1); // "2006-Mar-31" --> unexpected result
+    d -= months(4); // "2005-Nov-30" --> unexpected result, not where we started
+
+    // using month_iterator
+    month_iterator itr(date(2005, Dec, 30));
+    ++itr; // "2006-Jan-30" --> ok
+    ++itr; // "2006-Feb-28" --> snap-to DOES NOT kick in 
+    ++itr; // "2006-Mar-30" --> ok
+    --itr; // "2006-Feb-28" --> ok
+    --itr; // "2006-Jan-30" --> ok
+    --itr; // "2005-Dec-30" --> ok, back where we started
+  </programlisting>
+</para>
+
+<para>The additional duration types (<code>months</code>, <code>years</code>, and <code>weeks</code>) are provided as a convenience and can be easily removed to insure this pitfall never occurs. To remove these types simply undefine BOOST_DATE_TIME_OPTIONAL_GREGORIAN_TYPES.</para>
+</para>

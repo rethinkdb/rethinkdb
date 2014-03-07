@@ -1,0 +1,150 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Mini XML - Error Handling]
+
+A parser will not be complete without error handling. Spirit2 provides some
+facilities to make it easy to adapt a grammar for error handling. We'll wrap up
+the Qi tutorial with another version of the mini xml parser, this time, with
+error handling.
+
+The full cpp file for this example can be found here:
+[@../../example/qi/mini_xml3.cpp]
+
+[import ../../example/qi/mini_xml3.cpp]
+
+Here's the grammar:
+
+[tutorial_xml3_grammar]
+
+What's new?
+
+[heading Readable Names]
+
+First, when we call the base class, we give the grammar a name:
+
+    : mini_xml_grammar::base_type(xml, "xml")
+
+Then, we name all our rules:
+
+    xml.name("xml");
+    node.name("node");
+    text.name("text");
+    start_tag.name("start_tag");
+    end_tag.name("end_tag");
+
+[heading On Success]
+
+`on_success` declares a handler that is applied when a rule is
+succesfully matched.
+
+	on_success(rule, handler)
+
+This specifies that the handler will be called when a rule is
+matched successfully.  The handler has the following signature:
+
+	void handler(
+		fusion::vector<
+			Iterator& first,
+			Iterator const& last,
+			Iterator const& i> args,
+		Context& context)
+
+`first` points to the position in the input sequence before the rule
+is matched.  `last` points to the last position in the input sequence.
+`i` points to the position in the input sequence following the last
+character that was consumed by the rule.
+
+A success handler can be used to annotate each matched rule in the
+grammar with additional information about the portion of the input
+that matched the rule.  In a compiler application, this can be a
+combination of file, line number and column number from the input
+stream for reporting diagnostics or other messages.
+
+[heading On Error]
+
+`on_error` declares our error handler:
+
+    on_error<Action>(rule, handler)
+
+This will specify what we will do when we get an error. We will print out an
+error message using phoenix:
+
+    on_error<fail>
+    (
+        xml
+      , std::cout
+            << val("Error! Expecting ")
+            << _4                               // what failed?
+            << val(" here: \"")
+            << construct<std::string>(_3, _2)   // iterators to error-pos, end
+            << val("\"")
+            << std::endl
+    );
+
+we choose to `fail` in our example for the `Action`: Quit and fail. Return a
+no_match (false). It can be one of:
+
+[table
+    [[`Action`]     [Description]]
+    [[fail]         [Quit and fail. Return a no_match.]]
+    [[retry]        [Attempt error recovery, possibly moving the iterator position.]]
+    [[accept]       [Force success, moving the iterator position appropriately.]]
+    [[rethrow]      [Rethrows the error.]]
+]
+
+
+`rule` is the rule to which the handler is attached. In our case, we are attaching to the
+`xml` rule.
+
+`handler` is the actual error handling function. It expects 4 arguments:
+
+[table
+    [[Arg]          [Description]]
+    [[first]        [The position of the iterator when the rule with the handler was entered.]]
+    [[last]         [The end of input.]]
+    [[error-pos]    [The actual position of the iterator where the error occured.]]
+    [[what]         [What failed: a string describing the failure.]]
+]
+
+[heading Expectation Points]
+
+You might not have noticed it, but some of our expressions changed from using
+the `>>` to `>`. Look, for example:
+
+    end_tag =
+            "</"
+        >   lit(_r1)
+        >   '>'
+    ;
+
+What is it? It's the /expectation/ operator. You will have some "deterministic
+points" in the grammar. Those are the places where backtracking *cannot* occur.
+For our example above, when you get a `"</"`, you definitely must see a valid
+end-tag label next. It should be the one you got from the start-tag. After that,
+you definitely must have a `'>'` next. Otherwise, there is no point in
+proceeding and trying other branches, regardless where they are. The
+input is definitely erroneous. When this happens, an expectation_failure
+exception is thrown. Somewhere outward, the error handler will catch the
+exception.
+
+Try building the parser: [@../../example/qi/mini_xml3.cpp]. You can find some
+examples in: [@../../example/qi/mini_xml_samples] for testing purposes.
+"4.toyxml" has an error in it:
+
+    <foo><bar></foo></bar>
+
+Running the example with this gives you:
+
+    Error! Expecting "bar" here: "foo></bar>"
+    Error! Expecting end_tag here: "<bar></foo></bar>"
+    -------------------------
+    Parsing failed
+    -------------------------
+
+[endsect]

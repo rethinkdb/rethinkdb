@@ -1,0 +1,6 @@
+> example
+Running 4 test cases...
+test.cpp(12): fatal error in "test_case2": critical check 1 == 2 failed [1 != 2]
+test.cpp(27): error in "test_case4": check false failed
+
+*** 2 failures detected in test suite "example"

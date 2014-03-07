@@ -1,0 +1,11 @@
+# Copyright (c) 2004-2010 Michael Stevens, David Bellot
+# Use, modification and distribution are subject to the
+# Boost Software License, Version 1.0. (See accompanying file
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# bench5 measures performance of the assignment operator
+
+exe bench5
+    : assignment_bench.cpp
+    : <define>BOOST_UBLAS_USE_INTERVAL
+    ;

@@ -1,0 +1,114 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+
+[section Harmonic oscillator]
+
+[section Define the ODE]
+
+First of all, you have to specify the data type that represents a state ['x] of your system. Mathematically, this usually is an n-dimensional vector with real numbers or complex numbers as scalar objects. For odeint the most natural way is to use `vector< double >` or `vector< complex< double > >` to represent the system state. However, odeint can deal with other container types as well, e.g. `boost::array< double , N >`, as long as it fulfills some requirements defined below.
+
+To integrate a differential equation numerically, one also has to define the rhs of the equation ['x' = f(x)]. In odeint you supply this function in terms of an object that implements the ()-operator with a certain parameter structure. Hence, the straightforward way would be to just define a function, e.g:
+
+[rhs_function]
+
+The parameters of the function must follow the example above where `x` is the
+current state, here a two-component vector containing position ['q] and
+momentum ['p] of the oscillator, `dxdt` is the derivative ['x'] and should be
+filled by the function with ['f(x)], and `t` is the current time.
+Note that in this example ['t] is not required to calculate ['f], however
+odeint expects the function signature to have exactly three parameters (there
+are exception, discussed later).
+
+A more sophisticated approach is to implement the system as a class where the rhs function is defined as the ()-operator of the class with the same parameter structure as above:
+
+[rhs_class]
+
+odeint can deal with instances of such classes instead of pure functions which
+allows for cleaner code.
+
+[endsect]
+
+[section Stepper Types]
+
+Numerical integration works iteratively, that means you start at a state ['x(t)] and perform a time-step of length ['dt] to obtain the approximate state ['x(t+dt)]. There exist many different methods to perform such a time-step each of which has a certain order ['q]. If the order of a method is ['q] than it is accurate up to term ['~dt[super q]] that means the error in ['x] made by such a step is ['~dt[super q+1]]. odeint provides several steppers of different orders, see __odeint_stepper_table.
+
+Some of steppers in the table above are special: Some need the Jacobian of the ODE, others are constructed for special ODE-systems like Hamiltonian systems. We will show typical examples and use-cases in this tutorial and which kind of steppers should be applied.
+
+[endsect]
+
+[section Integration with Constant Step Size]
+
+The basic stepper just performs one time-step and doesn't give you any information about the error that was made (except that you know it is of order ['q+1]). Such steppers are used with constant step size that should be chosen small enough to have reasonable small errors. However, you should apply some sort of validity check of your results (like observing conserved quantities) because you have no other control of the error. The following example defines a basic stepper based on the classical Runge-Kutta scheme of 4th order. The declaration of the stepper requires the state type as template parameter. The integration can now be done by using the `integrate_const( Stepper, System, state, start_time, end_time, step_size )` function from odeint:
+
+[define_const_stepper]
+
+This call integrates the system defined by `harmonic_oscillator` using the RK4 method from ['t=0] to ['10] with a step-size ['dt=0.01] and the initial condition given in `x`. The result, ['x(t=10)] is stored in `x` (in-place). Each stepper defines a `do_step` method which can also be used directly. So, you write down the above example as 
+
+[integrate_const_loop]
+
+[tip If you have a C++11 enabled compiler you can easily use lambdas to create the system function :
+
+[define_const_stepper_cpp11]
+
+]
+
+[endsect]
+
+[section Integration with Adaptive Step Size]
+
+To improve the numerical results and additionally minimize the computational
+effort, the application of a step size control is advisable. Step size control
+is realized via stepper algorithms that additionally provide an  error
+estimation of the applied step. odeint provides a number of such
+*ErrorSteppers* and we will show their usage on the example of
+`explicit_error_rk54_ck` - a 5th order Runge-Kutta method with 4th order
+error estimation and coefficients introduced by Cash and Karp.
+
+[define_adapt_stepper]
+
+Given the error stepper, one still needs an instance that checks the error and adjusts the step size accordingly. In odeint, this is done by *ControlledSteppers*. For the `runge_kutta_cash_karp54` stepper a `controlled_runge_kutta` stepper exists which can be used via
+
+[integrate_adapt]
+
+As above, this integrates the system defined by `harmonic_oscillator`, but now using an adaptive step size method based on the Runge-Kutta Cash-Karp 54 scheme from ['t=0] to ['10] with an initial step size of ['dt=0.01] (will be adjusted) and the initial condition given in x. The result, ['x(t=10)], will also be stored in x (in-place).
+
+In the above example an error stepper is nested in a controlled stepper. This is a nice technique; however one drawback is that one always needs to define both steppers. One could also write the instantiation of the controlled stepper into the call of the integrate function but a complete knowledge of the underlying stepper types is still necessary. Another point is, that the error tolerances for the step size control are not easily included into the controlled stepper. Both issues can be solved by using `make_controlled`:
+
+[integrate_adapt_make_controlled]
+
+`make_controlled` can be used with many of the steppers of odeint. The first
+parameter is the absolute error tolerance ['eps_abs] and the second is the
+relative error tolerance ['eps_rel] which is used during the integration. The template parameter determines from which error stepper a controlled stepper should be instantiated. An alternative syntax of `make_controlled` is
+
+[integrate_adapt_make_controlled_alternative]
+
+For the Runge-Kutta controller the error made during one step is compared with ['eps_abs + eps_rel * ( a[sub x] * |x| + a[sub dxdt] * dt * |dxdt| )]. If the error is smaller than this value the current step is accepted, otherwise it is rejected and the step size is decreased. Note, that the step size is also increased if the error gets too small compared to the rhs of the above relation. The full instantiation of the `controlled_runge_kutta` with all parameters is therefore
+
+[integrate_adapt_full]
+
+When using `make_controlled` the parameter ['a[sub x]] and ['a[sub dxdt]] are used with their standard values of 1.
+
+In the tables below, one can find all steppers which are working with `make_controlled` and `make_dense_output` which is the analog for the dense output steppers.
+
+[include make_controlled_table.qbk]
+
+[include make_dense_output_table.qbk]
+
+When using `make_controlled` or `make_dense_output` one should be aware which exact type is used and how the step size control works.
+
+[endsect]
+
+The full source file for this example can be found here: [github_link libs/numeric/odeint/examples/harmonic_oscillator.cpp harmonic_oscillator.cpp]
+
+
+[endsect]

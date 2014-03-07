@@ -1,0 +1,225 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template unique_ptr</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../interprocess/indexes_reference.html#header.boost.interprocess.smart_ptr.unique_ptr_hpp" title="Header &lt;boost/interprocess/smart_ptr/unique_ptr.hpp&gt;">
+<link rel="prev" href="make_managed_s_idp28383208.html" title="Function template make_managed_shared_ptr">
+<link rel="next" href="managed_unique_ptr.html" title="Struct template managed_unique_ptr">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_managed_s_idp28383208.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.smart_ptr.unique_ptr_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="managed_unique_ptr.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.interprocess.unique_ptr"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template unique_ptr</span></h2>
+<p>boost::interprocess::unique_ptr</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../interprocess/indexes_reference.html#header.boost.interprocess.smart_ptr.unique_ptr_hpp" title="Header &lt;boost/interprocess/smart_ptr/unique_ptr.hpp&gt;">boost/interprocess/smart_ptr/unique_ptr.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> D<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">T</span>           <a name="boost.interprocess.unique_ptr.element_type"></a><span class="identifier">element_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">D</span>           <a name="boost.interprocess.unique_ptr.deleter_type"></a><span class="identifier">deleter_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a name="boost.interprocess.unique_ptr.pointer"></a><span class="identifier">pointer</span><span class="special">;</span>     
+
+  <span class="comment">// <a class="link" href="unique_ptr.html#boost.interprocess.unique_ptrconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="unique_ptr.html#idp28405704-bb"><span class="identifier">unique_ptr</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="unique_ptr.html#idp28407032-bb"><span class="identifier">unique_ptr</span></a><span class="special">(</span><span class="identifier">pointer</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="unique_ptr.html#idp28408952-bb"><span class="identifier">unique_ptr</span></a><span class="special">(</span><span class="identifier">pointer</span><span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">,</span> <span class="keyword">typename</span> E<span class="special">&gt;</span> 
+    <a class="link" href="unique_ptr.html#idp28410488-bb"><span class="identifier">unique_ptr</span></a><span class="special">(</span><a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a><span class="special">&lt;</span> <span class="identifier">U</span><span class="special">,</span> <span class="identifier">E</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span><span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="identifier">nat</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  unique_ptr&amp; <a class="link" href="unique_ptr.html#idp28414696-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">,</span> <span class="keyword">typename</span> E<span class="special">&gt;</span> 
+    unique_ptr&amp; <a class="link" href="unique_ptr.html#idp28416760-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a><span class="special">&lt;</span> <span class="identifier">U</span><span class="special">,</span> <span class="identifier">E</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  unique_ptr&amp; <a class="link" href="unique_ptr.html#idp28419656-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="identifier">nullptr_t</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="unique_ptr.html#idp28414200-bb"><span class="special">~</span><span class="identifier">unique_ptr</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="unique_ptr.html#idp28395784-bb">public member functions</a></span>
+   <a class="link" href="unique_ptr.html#idp28395992-bb"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">forward</span></a><span class="special">(</span><span class="identifier">u</span><span class="special">.</span><span class="special">)</span><span class="special">;</span>
+  <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a class="link" href="unique_ptr.html#idp28396712-bb"><span class="keyword">operator</span><span class="special">*</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">pointer</span> <a class="link" href="unique_ptr.html#idp28397496-bb"><span class="keyword">operator</span><span class="special">-&gt;</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">pointer</span> <a class="link" href="unique_ptr.html#idp28398216-bb"><span class="identifier">get</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">deleter_reference</span> <a class="link" href="unique_ptr.html#idp28398920-bb"><span class="identifier">get_deleter</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">deleter_const_reference</span> <a class="link" href="unique_ptr.html#idp28399800-bb"><span class="identifier">get_deleter</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="unique_ptr.html#idp28400696-bb"><span class="keyword">operator</span> <span class="keyword">int</span> <span class="identifier">nat</span><span class="special">::</span><span class="special">*</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">pointer</span> <a class="link" href="unique_ptr.html#idp28401624-bb"><span class="identifier">release</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="unique_ptr.html#idp28402680-bb"><span class="identifier">reset</span></a><span class="special">(</span><span class="identifier">pointer</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="unique_ptr.html#idp28404216-bb"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="unique_ptr.html#boost.interprocess.unique_ptrpublic-data-members">public data members</a></span>
+   <a class="link" href="unique_ptr.html#boost.interprocess.unique_ptr.__pad0__"><span class="identifier">__pad0__</span></a><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp117767160"></a><h2>Description</h2>
+<p>Template <a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a> stores a pointer to an object and deletes that object using the associated deleter when it is itself destroyed (such as when leaving block scope.</p>
+<p>The <a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a> provides a semantics of strict ownership. A <a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a> owns the object it holds a pointer to.</p>
+<p>A <a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a> is not CopyConstructible, nor CopyAssignable, however it is MoveConstructible and Move-Assignable.</p>
+<p>The uses of <a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a> include providing exception safety for dynamically allocated memory, passing ownership of dynamically allocated memory to a function, and returning dynamically allocated memory from a function</p>
+<p>A client-supplied template argument D must be a function pointer or functor for which, given a value d of type D and a pointer ptr to a type T*, the expression d(ptr) is valid and has the effect of deallocating the pointer as appropriate for that deleter. D may also be an lvalue-reference to a deleter.</p>
+<p>If the deleter D maintains state, it is intended that this state stay with the associated pointer as ownership is transferred from <a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a> to <a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a>. The deleter state need never be copied, only moved or swapped as pointer ownership is moved around. That is, the deleter need only be MoveConstructible, MoveAssignable, and Swappable, and need not be CopyConstructible (unless copied into the <a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a>) nor CopyAssignable. </p>
+<div class="refsect2">
+<a name="idp117772968"></a><h3>
+<a name="boost.interprocess.unique_ptrconstruct-copy-destruct"></a><code class="computeroutput">unique_ptr</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp28405704-bb"></a><span class="identifier">unique_ptr</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Requires: D must be default constructible, and that construction must not throw an exception. D must not be a reference type.</p>
+<p>Effects: Constructs a <code class="computeroutput"><a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a></code> which owns nothing.</p>
+<p>Postconditions: get() == 0. get_deleter() returns a reference to a default constructed deleter D.</p>
+<p>Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp28407032-bb"></a><span class="identifier">unique_ptr</span><span class="special">(</span><span class="identifier">pointer</span> p<span class="special">)</span><span class="special">;</span></pre>
+<p>Requires: The expression D()(p) must be well formed. The default constructor of D must not throw an exception.</p>
+<p>D must not be a reference type.</p>
+<p>Effects: Constructs a <code class="computeroutput"><a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a></code> which owns p.</p>
+<p>Postconditions: get() == p. get_deleter() returns a reference to a default constructed deleter D.</p>
+<p>Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28408952-bb"></a><span class="identifier">unique_ptr</span><span class="special">(</span><span class="identifier">pointer</span> p<span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> d<span class="special">)</span><span class="special">;</span></pre>
+<p>Requires: The expression d(p) must be well formed.</p>
+<p>Postconditions: get() == p. get_deleter() returns a reference to the internally stored deleter. If D is a reference type then get_deleter() returns a reference to the lvalue d.</p>
+<p>Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">,</span> <span class="keyword">typename</span> E<span class="special">&gt;</span> 
+  <a name="idp28410488-bb"></a><span class="identifier">unique_ptr</span><span class="special">(</span><a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a><span class="special">&lt;</span> <span class="identifier">U</span><span class="special">,</span> <span class="identifier">E</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span> u<span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="identifier">nat</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Requires: If D is not a reference type, construction of the deleter D from an rvalue of type E must be well formed and not throw an exception. If D is a reference type, then E must be the same type as D (diagnostic required). unique_ptr&lt;U, E&gt;::pointer must be implicitly convertible to pointer.</p>
+<p>Effects: Constructs a <code class="computeroutput"><a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a></code> which owns the pointer which u owns (if any). If the deleter is not a reference type, it is move constructed from u's deleter, otherwise the reference is copy constructed from u's deleter.</p>
+<p>After the construction, u no longer owns a pointer.</p>
+<p>postconditions get() == value u.get() had before the construction, modulo any required offset adjustments resulting from the cast from U* to T*. get_deleter() returns a reference to the internally stored deleter which was constructed from u.get_deleter().</p>
+<p>Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">unique_ptr&amp; <a name="idp28414696-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a> <span class="special">&amp;&amp;</span> u<span class="special">)</span><span class="special">;</span></pre>
+<p>Requires: Assignment of the deleter D from an rvalue D must not throw an exception.</p>
+<p>Effects: reset(u.release()) followed by a move assignment from u's deleter to this deleter.</p>
+<p>Postconditions: This <code class="computeroutput"><a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a></code> now owns the pointer which u owned, and u no longer owns it.</p>
+<p>Returns: *this.</p>
+<p>Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">,</span> <span class="keyword">typename</span> E<span class="special">&gt;</span> 
+  unique_ptr&amp; <a name="idp28416760-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a><span class="special">&lt;</span> <span class="identifier">U</span><span class="special">,</span> <span class="identifier">E</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span> u<span class="special">)</span><span class="special">;</span></pre>
+<p>Requires: Assignment of the deleter D from an rvalue D must not throw an exception. U* must be implicitly convertible to T*.</p>
+<p>Effects: reset(u.release()) followed by a move assignment from u's deleter to this deleter. If either D or E is a reference type, then the referenced lvalue deleter participates in the move assignment.</p>
+<p>Postconditions: This <code class="computeroutput"><a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a></code> now owns the pointer which u owned, and u no longer owns it.</p>
+<p>Returns: *this.</p>
+<p>Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">unique_ptr&amp; <a name="idp28419656-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="identifier">nullptr_t</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Assigns from the literal 0 or NULL.</p>
+<p>Effects: reset().</p>
+<p>Postcondition: get() == 0</p>
+<p>Returns: *this.</p>
+<p>Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28414200-bb"></a><span class="special">~</span><span class="identifier">unique_ptr</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: If get() == 0 there are no effects. Otherwise get_deleter()(get()).</p>
+<p>Throws: nothing. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp117812712"></a><h3>
+<a name="idp28395784-bb"></a><code class="computeroutput">unique_ptr</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"> <a name="idp28395992-bb"></a><span class="identifier">boost</span><span class="special">::</span><span class="identifier">forward</span><span class="special">(</span><span class="identifier">u</span><span class="special">.</span> get_deleter<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a name="idp28396712-bb"></a><span class="keyword">operator</span><span class="special">*</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Requires: get() != 0. Returns: *get(). Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">pointer</span> <a name="idp28397496-bb"></a><span class="keyword">operator</span><span class="special">-&gt;</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Requires: get() != 0. Returns: get(). Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">pointer</span> <a name="idp28398216-bb"></a><span class="identifier">get</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns: The stored pointer. Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">deleter_reference</span> <a name="idp28398920-bb"></a><span class="identifier">get_deleter</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns: A reference to the stored deleter.</p>
+<p>Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">deleter_const_reference</span> <a name="idp28399800-bb"></a><span class="identifier">get_deleter</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns: A const reference to the stored deleter.</p>
+<p>Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28400696-bb"></a><span class="keyword">operator</span> <span class="keyword">int</span> <span class="identifier">nat</span><span class="special">::</span><span class="special">*</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns: An unspecified value that, when used in boolean contexts, is equivalent to get() != 0.</p>
+<p>Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">pointer</span> <a name="idp28401624-bb"></a><span class="identifier">release</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Postcondition: get() == 0.</p>
+<p>Returns: The value get() had at the start of the call to release.</p>
+<p>Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28402680-bb"></a><span class="identifier">reset</span><span class="special">(</span><span class="identifier">pointer</span> p <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: If p == get() there are no effects. Otherwise get_deleter()(get()).</p>
+<p>Postconditions: get() == p.</p>
+<p>Throws: nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28404216-bb"></a><span class="identifier">swap</span><span class="special">(</span><a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a> <span class="special">&amp;</span> u<span class="special">)</span><span class="special">;</span></pre>
+<p>Requires: The deleter D is Swappable and will not throw an exception under swap.</p>
+<p>Effects: The stored pointers of this and u are exchanged. The stored deleters are swapped (unqualified). Throws: nothing. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp117843336"></a><h3>
+<a name="boost.interprocess.unique_ptrpublic-data-members"></a><code class="computeroutput">unique_ptr</code> 
+        public
+       public data members</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"> <a name="boost.interprocess.unique_ptr.__pad0__"></a><span class="identifier">__pad0__</span><span class="special">;</span></pre>
+<p>Requires: If the deleter is not a reference type, construction of the deleter D from an lvalue D must not throw an exception.</p>
+<p>Effects: Constructs a <a class="link" href="unique_ptr.html" title="Class template unique_ptr">unique_ptr</a> which owns the pointer which u owns (if any). If the deleter is not a reference type, it is move constructed from u's deleter, otherwise the reference is copy constructed from u's deleter.</p>
+<p>After the construction, u no longer owns a pointer. [ Note: The deleter constructor can be implemented with boost::forward&lt;D&gt;. -end note ]</p>
+<p>Postconditions: get() == value u.get() had before the construction. get_deleter() returns a reference to the internally stored deleter which was constructed from u.get_deleter(). If D is a reference type then get_- deleter() and u.get_deleter() both reference the same lvalue deleter.</p>
+<p>Throws: nothing. </p>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_managed_s_idp28383208.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.smart_ptr.unique_ptr_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="managed_unique_ptr.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

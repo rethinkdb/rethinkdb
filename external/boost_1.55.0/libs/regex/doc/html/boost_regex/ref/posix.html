@@ -1,0 +1,553 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>POSIX Compatible C API's</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Boost.Regex">
+<link rel="up" href="../ref.html" title="Reference">
+<link rel="prev" href="non_std_strings/mfc_strings/mfc_iter.html" title="Iterating Over the Matches Within An MFC String">
+<link rel="next" href="concepts.html" title="Concepts">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="non_std_strings/mfc_strings/mfc_iter.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concepts.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_ref_posix">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_regex.ref.posix"></a><a class="link" href="posix.html" title="POSIX Compatible C API's">POSIX Compatible C API's</a>
+</h3></div></div></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          this is an abridged reference to the POSIX API functions, these are provided
+          for compatibility with other libraries, rather than as an API to be used
+          in new code (unless you need access from a language other than C++). This
+          version of these functions should also happily coexist with other versions,
+          as the names used are macros that expand to the actual function names.
+        </p></td></tr>
+</table></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">cregex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        or:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span>
+</pre>
+<p>
+        The following functions are available for users who need a POSIX compatible
+        C library, they are available in both Unicode and narrow character versions,
+        the standard POSIX API names are macros that expand to one version or the
+        other depending upon whether UNICODE is defined or not.
+      </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Note that all the symbols defined here are enclosed inside namespace <code class="computeroutput"><span class="identifier">boost</span></code> when used in C++ programs, unless
+          you use <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span></code>
+          instead - in which case the symbols are still defined in namespace boost,
+          but are made available in the global namespace as well.
+        </p></td></tr>
+</table></div>
+<p>
+        The functions are defined as:
+      </p>
+<pre class="programlisting"><span class="keyword">extern</span> <span class="string">"C"</span> <span class="special">{</span>
+
+<span class="keyword">struct</span> <span class="identifier">regex_tA</span><span class="special">;</span>
+<span class="keyword">struct</span> <span class="identifier">regex_tW</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">regcompA</span><span class="special">(</span><span class="identifier">regex_tA</span><span class="special">*,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*,</span> <span class="keyword">int</span><span class="special">);</span>
+<span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">regerrorA</span><span class="special">(</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">regex_tA</span><span class="special">*,</span> <span class="keyword">char</span><span class="special">*,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">);</span>
+<span class="keyword">int</span> <span class="identifier">regexecA</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">regex_tA</span><span class="special">*,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">regmatch_t</span><span class="special">*,</span> <span class="keyword">int</span><span class="special">);</span>
+<span class="keyword">void</span> <span class="identifier">regfreeA</span><span class="special">(</span><span class="identifier">regex_tA</span><span class="special">*);</span>
+
+<span class="keyword">int</span> <span class="identifier">regcompW</span><span class="special">(</span><span class="identifier">regex_tW</span><span class="special">*,</span> <span class="keyword">const</span> <span class="keyword">wchar_t</span><span class="special">*,</span> <span class="keyword">int</span><span class="special">);</span>
+<span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">regerrorW</span><span class="special">(</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">regex_tW</span><span class="special">*,</span> <span class="keyword">wchar_t</span><span class="special">*,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">);</span>
+<span class="keyword">int</span> <span class="identifier">regexecW</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">regex_tW</span><span class="special">*,</span> <span class="keyword">const</span> <span class="keyword">wchar_t</span><span class="special">*,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">regmatch_t</span><span class="special">*,</span> <span class="keyword">int</span><span class="special">);</span>
+<span class="keyword">void</span> <span class="identifier">regfreeW</span><span class="special">(</span><span class="identifier">regex_tW</span><span class="special">*);</span>
+
+<span class="preprocessor">#ifdef</span> <span class="identifier">UNICODE</span>
+<span class="preprocessor">#define</span> <span class="identifier">regcomp</span> <span class="identifier">regcompW</span>
+<span class="preprocessor">#define</span> <span class="identifier">regerror</span> <span class="identifier">regerrorW</span>
+<span class="preprocessor">#define</span> <span class="identifier">regexec</span> <span class="identifier">regexecW</span>
+<span class="preprocessor">#define</span> <span class="identifier">regfree</span> <span class="identifier">regfreeW</span>
+<span class="preprocessor">#define</span> <span class="identifier">regex_t</span> <span class="identifier">regex_tW</span>
+<span class="preprocessor">#else</span>
+<span class="preprocessor">#define</span> <span class="identifier">regcomp</span> <span class="identifier">regcompA</span>
+<span class="preprocessor">#define</span> <span class="identifier">regerror</span> <span class="identifier">regerrorA</span>
+<span class="preprocessor">#define</span> <span class="identifier">regexec</span> <span class="identifier">regexecA</span>
+<span class="preprocessor">#define</span> <span class="identifier">regfree</span> <span class="identifier">regfreeA</span>
+<span class="preprocessor">#define</span> <span class="identifier">regex_t</span> <span class="identifier">regex_tA</span>
+<span class="preprocessor">#endif</span>
+<span class="special">}</span>
+</pre>
+<p>
+        All the functions operate on structure regex_t, which exposes two public
+        members:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Member
+                </p>
+              </th>
+<th>
+                <p>
+                  Meaning
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                  <span class="identifier">re_nsub</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  This is filled in by <code class="computeroutput"><span class="identifier">regcomp</span></code>
+                  and indicates the number of sub-expressions contained in the regular
+                  expression.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">const</span> <span class="identifier">TCHAR</span><span class="special">*</span> <span class="identifier">re_endp</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Points to the end of the expression to compile when the flag REG_PEND
+                  is set.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          <code class="computeroutput"><span class="identifier">regex_t</span></code> is actually a
+          <code class="computeroutput"><span class="preprocessor">#define</span></code> - it is either
+          <code class="computeroutput"><span class="identifier">regex_tA</span></code> or <code class="computeroutput"><span class="identifier">regex_tW</span></code> depending upon whether <code class="computeroutput"><span class="identifier">UNICODE</span></code> is defined or not, <code class="computeroutput"><span class="identifier">TCHAR</span></code> is either <code class="computeroutput"><span class="keyword">char</span></code>
+          or <code class="computeroutput"><span class="keyword">wchar_t</span></code> again depending
+          upon the macro <code class="computeroutput"><span class="identifier">UNICODE</span></code>.
+        </p></td></tr>
+</table></div>
+<a name="regcomp"></a><h5>
+<a name="boost_regex.ref.posix.h0"></a>
+        <span class="phrase"><a name="boost_regex.ref.posix.regcomp"></a></span><a class="link" href="posix.html#boost_regex.ref.posix.regcomp">regcomp</a>
+      </h5>
+<p>
+        <code class="computeroutput"><span class="identifier">regcomp</span></code> takes a pointer to
+        a <code class="computeroutput"><span class="identifier">regex_t</span></code>, a pointer to the
+        expression to compile and a flags parameter which can be a combination of:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Flag
+                </p>
+              </th>
+<th>
+                <p>
+                  Meaning
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  REG_EXTENDED
+                </p>
+              </td>
+<td>
+                <p>
+                  Compiles modern regular expressions. Equivalent to <code class="computeroutput"><span class="identifier">regbase</span><span class="special">::</span><span class="identifier">char_classes</span> <span class="special">|</span>
+                  <span class="identifier">regbase</span><span class="special">::</span><span class="identifier">intervals</span> <span class="special">|</span>
+                  <span class="identifier">regbase</span><span class="special">::</span><span class="identifier">bk_refs</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  REG_BASIC
+                </p>
+              </td>
+<td>
+                <p>
+                  Compiles basic (obsolete) regular expression syntax. Equivalent
+                  to <code class="computeroutput"><span class="identifier">regbase</span><span class="special">::</span><span class="identifier">char_classes</span> <span class="special">|</span>
+                  <span class="identifier">regbase</span><span class="special">::</span><span class="identifier">intervals</span> <span class="special">|</span>
+                  <span class="identifier">regbase</span><span class="special">::</span><span class="identifier">limited_ops</span> <span class="special">|</span>
+                  <span class="identifier">regbase</span><span class="special">::</span><span class="identifier">bk_braces</span> <span class="special">|</span>
+                  <span class="identifier">regbase</span><span class="special">::</span><span class="identifier">bk_parens</span> <span class="special">|</span>
+                  <span class="identifier">regbase</span><span class="special">::</span><span class="identifier">bk_refs</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  REG_NOSPEC
+                </p>
+              </td>
+<td>
+                <p>
+                  All characters are ordinary, the expression is a literal string.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  REG_ICASE
+                </p>
+              </td>
+<td>
+                <p>
+                  Compiles for matching that ignores character case.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  REG_NOSUB
+                </p>
+              </td>
+<td>
+                <p>
+                  Has no effect in this library.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  REG_NEWLINE
+                </p>
+              </td>
+<td>
+                <p>
+                  When this flag is set a dot does not match the newline character.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  REG_PEND
+                </p>
+              </td>
+<td>
+                <p>
+                  When this flag is set the re_endp parameter of the regex_t structure
+                  must point to the end of the regular expression to compile.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  REG_NOCOLLATE
+                </p>
+              </td>
+<td>
+                <p>
+                  When this flag is set then locale dependent collation for character
+                  ranges is turned off.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  REG_ESCAPE_IN_LISTS
+                </p>
+              </td>
+<td>
+                <p>
+                  When this flag is set, then escape sequences are permitted in bracket
+                  expressions (character sets).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  REG_NEWLINE_ALT
+                </p>
+              </td>
+<td>
+                <p>
+                  When this flag is set then the newline character is equivalent
+                  to the alternation operator |.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  REG_PERL
+                </p>
+              </td>
+<td>
+                <p>
+                  Compiles Perl like regular expressions.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  REG_AWK
+                </p>
+              </td>
+<td>
+                <p>
+                  A shortcut for awk-like behavior: <code class="computeroutput"><span class="identifier">REG_EXTENDED</span>
+                  <span class="special">|</span> <span class="identifier">REG_ESCAPE_IN_LISTS</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  REG_GREP
+                </p>
+              </td>
+<td>
+                <p>
+                  A shortcut for grep like behavior: <code class="computeroutput"><span class="identifier">REG_BASIC</span>
+                  <span class="special">|</span> <span class="identifier">REG_NEWLINE_ALT</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  REG_EGREP
+                </p>
+              </td>
+<td>
+                <p>
+                  A shortcut for egrep like behavior: <code class="computeroutput"><span class="identifier">REG_EXTENDED</span>
+                  <span class="special">|</span> <span class="identifier">REG_NEWLINE_ALT</span></code>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<a name="regerror"></a><h5>
+<a name="boost_regex.ref.posix.h1"></a>
+        <span class="phrase"><a name="boost_regex.ref.posix.regerror"></a></span><a class="link" href="posix.html#boost_regex.ref.posix.regerror">regerror</a>
+      </h5>
+<p>
+        regerror takes the following parameters, it maps an error code to a human
+        readable string:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Parameter
+                </p>
+              </th>
+<th>
+                <p>
+                  Meaning
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  int code
+                </p>
+              </td>
+<td>
+                <p>
+                  The error code.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  const regex_t* e
+                </p>
+              </td>
+<td>
+                <p>
+                  The regular expression (can be null).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  char* buf
+                </p>
+              </td>
+<td>
+                <p>
+                  The buffer to fill in with the error message.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  unsigned int buf_size
+                </p>
+              </td>
+<td>
+                <p>
+                  The length of buf.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        If the error code is OR'ed with REG_ITOA then the message that results is
+        the printable name of the code rather than a message, for example "REG_BADPAT".
+        If the code is REG_ATIO then e must not be null and e-&gt;re_pend must point
+        to the printable name of an error code, the return value is then the value
+        of the error code. For any other value of code, the return value is the number
+        of characters in the error message, if the return value is greater than or
+        equal to buf_size then regerror will have to be called again with a larger
+        buffer.
+      </p>
+<a name="regexec"></a><h5>
+<a name="boost_regex.ref.posix.h2"></a>
+        <span class="phrase"><a name="boost_regex.ref.posix.regexec"></a></span><a class="link" href="posix.html#boost_regex.ref.posix.regexec">regexec</a>
+      </h5>
+<p>
+        regexec finds the first occurrence of expression e within string buf. If
+        len is non-zero then <span class="emphasis"><em>*m</em></span> is filled in with what matched
+        the regular expression, m[0] contains what matched the whole string, m[1]
+        the first sub-expression etc, see regmatch_t in the header file declaration
+        for more details. The eflags parameter can be a combination of:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Flag
+                </p>
+              </th>
+<th>
+                <p>
+                  Meaning
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  REG_NOTBOL
+                </p>
+              </td>
+<td>
+                <p>
+                  Parameter buf does not represent the start of a line.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  REG_NOTEOL
+                </p>
+              </td>
+<td>
+                <p>
+                  Parameter buf does not terminate at the end of a line.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  REG_STARTEND
+                </p>
+              </td>
+<td>
+                <p>
+                  The string searched starts at buf + pmatch[0].rm_so and ends at
+                  buf + pmatch[0].rm_eo.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<a name="regfree"></a><h5>
+<a name="boost_regex.ref.posix.h3"></a>
+        <span class="phrase"><a name="boost_regex.ref.posix.regfree"></a></span><a class="link" href="posix.html#boost_regex.ref.posix.regfree">regfree</a>
+      </h5>
+<p>
+        <code class="computeroutput"><span class="identifier">regfree</span></code> frees all the memory
+        that was allocated by regcomp.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="non_std_strings/mfc_strings/mfc_iter.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concepts.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

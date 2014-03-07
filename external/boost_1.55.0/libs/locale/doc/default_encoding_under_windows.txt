@@ -1,0 +1,65 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page default_encoding_under_windows Default Encoding under Microsoft Windows
+
+All modern operating systems use Unicode.
+
+-   Unix operating system family use UTF-8 encoding by default.
+-   Microsoft Windows had migrated to Wide/UTF-16 API.
+    The narrow encodings had been deprecated and the native OS API became so called "Wide API"
+
+As a result of radically different approaches, it is very hard to write portable Unicode aware applications.
+
+Boost Locale fully supports both narrow and wide API. The default character
+encoding is assumed to be UTF-8 on Windows.
+
+So if the default operating system Locale is "English_USA.1252" the default
+locale for Boost.Locale on Windows would be "en_US.UTF-8".
+
+When the created locale object is installed globally then any libraries
+that use \c std::codecvt for conversion between narrow API and the native
+wide API would handle UTF-8 correctly.
+
+A good example of such library is Boost.Filesystem v3.
+
+For example
+
+\code
+#include <boost/locale.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/fstream.hpp>
+
+int main()
+{
+    // Create and install global locale
+    std::locale::global(boost::locale::generator().generate(""));
+    // Make boost.filesystem use it
+    boost::filesystem::path::imbue(std::locale());
+    // Now Works perfectly fine with UTF-8!
+    boost::filesystem::ofstream hello("שלום.txt"); 
+}
+
+\endcode
+
+However such behavior may break existing software that assumes that the current
+encoding is single byte encodings like code page 1252.
+
+\ref boost::locale::generator class has a property \ref boost::locale::generator::use_ansi_encoding() "use_ansi_encoding()"
+that allows to change the behavior to legacy one and select an ANSI code page as
+default system encoding.
+
+So, when the current locale is "English_USA.1252" and the \c use_ansi_encoding is turned on
+then the default locale would be "en_US.windows-1252"
+
+\note \c winapi backend does not support ANSI encodings, thus UTF-8 encoding is always used for narrow characters.
+
+*/
+

@@ -1,0 +1,342 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2002
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Undirected Depth-First Search</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:depth-first-search"></A>
+<img src="figs/python.gif" alt="(Python)"/>
+<TT>undirected_dfs</TT>
+</H1>
+
+<P>
+<PRE>
+<i>// named parameter version</i>
+template &lt;typename Graph, typename P, typename T, typename R&gt;
+void undirected_dfs(Graph&amp; G, const bgl_named_params&lt;P, T, R&gt;&amp; params);
+
+<i>// non-named parameter version</i>
+template &lt;typename Graph, typename <a href="DFSVisitor.html">DFSVisitor</a>, typename VertexColorMap, typename EdgeColorMap&gt;
+void undirected_dfs(const Graph&amp; g, DFSVisitor vis, VertexColorMap vertex_color, EdgeColorMap edge_color)
+
+template &lt;typename Graph, typename <a href="DFSVisitor.html">DFSVisitor</a>, typename VertexColorMap, typename EdgeColorMap&gt;
+void undirected_dfs(const Graph&amp; g, DFSVisitor vis,
+                    VertexColorMap vertex_color, EdgeColorMap edge_color,
+                    typename graph_traits&lt;Graph&gt;::vertex_descriptor start)
+
+</PRE>
+
+<p>
+The <tt>undirected_dfs()</tt> function performs a depth-first
+traversal of the vertices in an undirected graph.  When possible, a
+depth-first traversal chooses a vertex adjacent to the current vertex
+to visit next. If all adjacent vertices have already been discovered,
+or there are no adjacent vertices, then the algorithm backtracks to
+the last vertex that had undiscovered neighbors. Once all reachable
+vertices have been visited, the algorithm selects from any remaining
+undiscovered vertices and continues the traversal. The algorithm
+finishes when all vertices have been visited. Depth-first search is
+useful for categorizing edges in a graph, and for imposing an ordering
+on the vertices. Section <a
+href="./graph_theory_review.html#sec:dfs-algorithm">Depth-First
+Search</a> describes the various properties of DFS and walks through
+an example.
+</p>
+
+<p>
+Similar to BFS, color markers are used to keep track of which vertices
+have been discovered. White marks vertices that have yet to be
+discovered, gray marks a vertex that is discovered but still has
+vertices adjacent to it that are undiscovered. A black vertex is
+discovered vertex that is not adjacent to any white vertices.
+</p>
+
+<p>
+Edges are also colored during the search to disambiguate tree and back
+edges.
+</p>
+
+<p>
+The <tt>undirected_dfs()</tt> function invokes user-defined actions at
+certain event-points within the algorithm. This provides a mechanism
+for adapting the generic DFS algorithm to the many situations in which
+it can be used.  In the pseudo-code below, the event points for DFS
+are indicated in by the triangles and labels on the right. The
+user-defined actions must be provided in the form of a visitor object,
+that is, an object whose type meets the requirements for a <a
+href="./DFSVisitor.html">DFS Visitor</a>. In the pseudo-code we show
+the algorithm computing predecessors <i>p</i>, discover time <i>d</i>
+and finish time <i>t</i>.  By default, the <tt>undirected_dfs()</tt>
+function does not compute these properties, however there are
+pre-defined visitors such as <a
+href="./predecessor_recorder.html"><tt>predecessor_recorder</tt></a>
+and <a href="./time_stamper.html"><tt>time_stamper</tt></a> that can
+be used to do this.
+</p>
+
+<table>
+<tr>
+<td valign="top">
+<pre>
+DFS(<i>G</i>)
+  <b>for</b> each vertex <i>u in V</i> 
+    <i>vcolor[u] :=</i> WHITE
+    <i>p[u] := u</i> 
+  <b>end for</b>
+  <b>for</b> each edge <i>e in E</i> 
+    <i>ecolor[u] :=</i> WHITE
+  <b>end for</b>
+  <i>time := 0</i>
+  <b>if</b> there is a starting vertex <i>s</i>
+    <b>call</b> DFS-VISIT(<i>G</i>, <i>s</i>)
+  <b>for</b> each vertex <i>u in V</i> 
+    <b>if</b> <i>vcolor[u] =</i> WHITE
+      <b>call</b> DFS-VISIT(<i>G</i>, <i>u</i>)
+  <b>end for</b>
+  <b>return</b> (<i>p</i>,<i>d_time</i>,<i>f_time</i>) <br>
+DFS-VISIT(<i>G</i>, <i>u</i>) 
+  <i>vcolor[u] :=</i> GRAY
+  <i>d_time[u] := time := time + 1</i> 
+  <b>for</b> each <i>e in Out[u]</i> 
+    <b>var</b> <i>ec := ecolor[e]</i>
+    <i>ecolor[e] :=</i> BLACK
+    <b>if</b> (<i>vcolor[v] =</i> WHITE)
+      <i>p[v] := u</i> 
+      <b>call</b> DFS-VISIT(<i>G</i>, <i>v</i>)
+    <b>else if</b> (<i>vcolor[v] =</i> GRAY and <i>ec =</i> WHITE)
+      <i>...</i>
+    <i>...</i>
+  <b>end for</b>
+  <i>vcolor[u] :=</i> BLACK
+  <i>f_time[u] := time := time + 1</i> 
+<pre>
+</td>
+<td valign="top">
+<pre>
+-
+-
+initialize vertex <i>u</i>
+-
+-
+-
+-
+-
+-
+-
+start vertex <i>s</i>
+-
+-
+start vertex <i>u</i>
+-
+-
+-
+-
+discover vertex <i>u</i>
+-
+examine edge <i>(u,v)</i>
+-
+-
+<i>(u,v)</i> is a tree edge
+-
+-
+<i>(u,v)</i> is a back edge
+-
+-
+finish edge <i>(u,v)</i>
+-
+finish vertex <i>u</i>
+-
+</pre>
+</td>
+</tr>
+</table>
+
+
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/undirected_dfs.hpp"><TT>boost/graph/undirected_dfs.hpp</TT></a>
+
+<h3>Parameters</h3>
+
+IN: <tt>Graph&amp; g</tt>
+<blockquote>
+  An undirected graph. The graph type must
+  be a model of <a href="./IncidenceGraph.html">Incidence Graph</a>,
+  <a href="./VertexListGraph.html">Vertex List Graph</a>,
+  and <a href="./EdgeListGraph.html">Edge List Graph</a>.<br>
+
+  <b>Python</b>: The parameter is named <tt>graph</tt>.  
+</blockquote>
+
+
+<h3>Named Parameters</h3>
+
+IN: <tt>visitor(DFSVisitor vis)</tt>
+<blockquote>
+  A visitor object that is invoked inside the algorithm at the
+  event-points specified by the <a href="./DFSVisitor.html">DFS
+  Visitor</a> concept. The visitor object is passed by value <a
+  href="#1">[1]</a>. <br> <b>Default:</b>
+  <tt>dfs_visitor&lt;null_visitor&gt;</tt><br>
+
+  <b>Python</b>: The parameter should be an object that derives from
+  the <a href="DFSVisitor.html#python"><tt>DFSVisitor</tt></a> type of
+  the graph.
+</blockquote>
+
+UTIL/OUT: <tt>vertex_color_map(VertexColorMap vertex_color)</tt>
+<blockquote>
+  This is used by the algorithm to keep track of its progress through
+  the graph. The type <tt>VertexColorMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a> and its key type must be the graph's vertex
+  descriptor type and the value type of the color map must model
+  <a href="./ColorValue.html">ColorValue</a>.<br>
+  <b>Default:</b> an <a
+  href="../../property_map/doc/iterator_property_map.html">
+  </tt>iterator_property_map</tt></a> created from a
+  <tt>std::vector</tt> of <tt>default_color_type</tt> of size
+  <tt>num_vertices(g)</tt> and using the <tt>i_map</tt> for the index
+  map.<br>
+
+  <b>Python</b>: The color map must be a <tt>vertex_color_map</tt> for
+  the graph.
+</blockquote>
+
+UTIL: <tt>edge_color_map(EdgeColorMap edge_color)</tt>
+<blockquote>
+  This is used by the algorithm to keep track of which edges
+  have been visited. The type <tt>EdgeColorMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a> and its key type must be the graph's edge
+  descriptor type and the value type of the color map must model
+  <a href="./ColorValue.html">ColorValue</a>.<br>
+  <b>Default:</b> none.<br>
+
+  <b>Python</b>: The color map must be an <tt>edge_color_map</tt> for
+  the graph.
+</blockquote>
+
+IN: <tt>root_vertex(typename
+graph_traits&lt;VertexListGraph&gt;::vertex_descriptor start)</tt>
+<blockquote>
+  This specifies the vertex that the depth-first search should
+  originate from. The type is the type of a vertex descriptor for the
+  given graph.<br>
+  <b>Default:</b> <tt>*vertices(g).first</tt>
+</blockquote>
+
+IN: <tt>vertex_index_map(VertexIndexMap i_map)</tt>
+<blockquote>
+  This maps each vertex to an integer in the range <tt>[0,
+  num_vertices(g))</tt>. This parameter is only necessary when the
+  default color property map is used. The type <tt>VertexIndexMap</tt>
+  must be a model of <a
+  href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+  Map</a>. The value type of the map must be an integer type. The
+  vertex descriptor type of the graph needs to be usable as the key
+  type of the map.<br>
+
+  <b>Default:</b> <tt>get(vertex_index, g)</tt>
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacenty_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.
+   <br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+<P>
+
+<H3><A NAME="SECTION001340300000000000000">
+Complexity</A>
+</H3>
+
+<P>
+The time complexity is <i>O(E + V)</i>.
+
+<P>
+
+<h3>Visitor Event Points</h3>
+
+<ul>
+
+<li><b><tt>vis.initialize_vertex(s, g)</tt></b> is invoked on every
+  vertex of the graph before the start of the graph search.
+
+<li><b><tt>vis.start_vertex(s, g)</tt></b> is invoked on the source
+  vertex once before the start of the search.
+  
+<li><b><tt>vis.discover_vertex(u, g)</tt></b> is invoked when a vertex
+  is encountered for the first time.
+  
+<li><b><tt>vis.examine_edge(e, g)</tt></b> is invoked on every out-edge
+  of each vertex after it is discovered.
+
+<li><b><tt>vis.tree_edge(e, g)</tt></b> is invoked on each edge as it
+  becomes a member of the edges that form the search tree. If you
+  wish to record predecessors, do so at this event point.
+  
+<li><b><tt>vis.back_edge(e, g)</tt></b> is invoked on the back edges in
+  the graph. 
+
+<li><b><tt>vis.finish_edge(e, g)</tt></b> is invoked on the back edges in 
+  the graph as well as on each tree edge after its target vertex is finished. 
+
+<li><b><tt>vis.finish_vertex(u, g)</tt></b> is invoked on a vertex after
+  all of its out edges have been added to the search tree and all of
+  the adjacent vertices have been discovered (but before their
+  out-edges have been examined).
+
+</ul>
+
+
+<H3>Example</H3>
+
+<P>
+An example is in <a href="../example/undirected_dfs.cpp">
+<TT>examples/undirected_dfs.cpp</TT></a>.
+
+<h3>See Also</h3>
+
+<a href="./depth_first_search.html"><tt>depth_first_search</tt></a>
+
+<h3>Notes</h3>
+
+<p><a name="1">[1]</a> 
+  Since the visitor parameter is passed by value, if your visitor
+  contains state then any changes to the state during the algorithm
+  will be made to a copy of the visitor object, not the visitor object
+  passed in. Therefore you may want the visitor to hold this state by
+  pointer or reference.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

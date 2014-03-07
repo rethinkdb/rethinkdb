@@ -1,0 +1,203 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Class Template code_converter</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Class Template <CODE>code_converter</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#description">Description</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+</DL>
+
+<HR>
+
+<A NAME="description"></A>
+<H2>Description</H2>
+
+<P>
+    The class templates <CODE>code_converter</CODE> is a <SPAN CLASS="term">Device adapter</SPAN> which takes a Device with a narrow <A HREF="../guide/traits.html#char_type">character type</A> — typically <CODE>char</CODE> — and produces a Device with wide character type — typically <CODE>wchar_t</CODE> — by introducing a layer of <A HREF="../guide/code_conversion.html">code conversion</A>. The code conversion is performed using a <CODE>std::codecvt</CODE> facet which can either be specified as a template parameter or be fetched from a <CODE>std::locale</CODE> provided at runtime. 
+</P>
+<P>
+    For example, we can define a wide-character Device for reading from a memory-mapped file as follows:
+    <PRE CLASS="broken_ie">    <SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/device/mapped_file.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/maped_file.hpp&gt;</SPAN></A>
+
+    <SPAN CLASS="keyword">typedef</SPAN> code_converter&lt;mapped_file_source&gt; my_source;</PRE>
+
+    Similarly, we can define a wide-character Device which writes multibyte characters to an in-memory character sequence as follows:
+
+    <PRE CLASS="broken_ie">    <SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/device/array.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/device/array.hpp&gt;</SPAN></A>
+
+    <SPAN CLASS="keyword">typedef</SPAN> code_converter&lt;array_sink&gt; my_sink;</PRE>
+</P>
+<P>
+    The <A HREF="../guide/modes.html">mode</A> of a specialization of <CODE>code_converter</CODE> is determined as follows. If a narrow character Device is read-only, the resulting specialization of <CODE>code_converter</CODE> has mode <A HREF="../guide/modes.html#input">input</A>. If a narrow character Device is write-only, the resulting specialization of <CODE>code_converter</CODE> has mode <A HREF="../guide/modes.html#output">output</A>. If a narrow character Device performs input and output using two distinct sequences (<I>see</I> <A HREF="../guide/modes.html">Modes</A>), the resulting specialization of <CODE>code_converter</CODE> has mode <A HREF="../guide/modes.html#bidirectional">bidirectional</A>. Otherwise, attempting to spcialize <CODE>code_converter</CODE> results in a compile-time error.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/code_converter.hpp"><CODE>&lt;boost/iostreams/code_converter.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt; <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Device</A>, 
+          <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Codecvt</A> = <SPAN CLASS='omitted'>default_value</SPAN>
+          <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Alloc</A> = std::allocator&lt;<CODE>char</CODE>&gt; &gt;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#template_params">code_converter</A> {
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="keyword">typename</SPAN> Codecvt::intern_type  char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">implementation-defined</SPAN>         category;
+    <A CLASS="documented" HREF="#constructors">code_converter</A>();
+    <A CLASS="documented" HREF="#constructors">code_converter</A>( <SPAN CLASS="keyword">const</SPAN> Device&amp; dev, 
+                    int buffer_size = <SPAN CLASS="omitted">default_value</SPAN> );
+    <A CLASS="documented" HREF="code_converter.html#constructors">code_converter</A>( <SPAN CLASS="omitted">device-constructor-args...</SPAN>,
+                    int buffer_size = <SPAN CLASS="omitted">default_value</SPAN> );
+    <SPAN CLASS="keyword">void</SPAN> <A CLASS="documented" HREF="code_converter.html#open">open</A>( <SPAN CLASS="keyword">const</SPAN> Device&amp; dev, 
+               int buffer_size = <SPAN CLASS="omitted">default_value</SPAN> );
+    <SPAN CLASS="keyword">void</SPAN> <A CLASS="documented" HREF="code_converter.html#open">open</A>( <SPAN CLASS="omitted">device-constructor-args...</SPAN>,
+               int buffer_size = <SPAN CLASS="omitted">default_value</SPAN> );
+    <SPAN CLASS="keyword">bool</SPAN> <A CLASS="documented" HREF="#is_open">is_open</A>() <SPAN CLASS="keyword">const</SPAN>;
+    <SPAN CLASS="keyword">void</SPAN> <A CLASS="documented" HREF="#close">close</A>();
+    std::locale <A CLASS="documented" HREF="#imbue">imbue</A>(<SPAN CLASS="keyword">const</SPAN> std::locale&amp; loc);
+    Device&amp; <A CLASS="documented" HREF="#operator_star">operator*</A>();
+    Device* <A CLASS="documented" HREF="#operator_arrow">operator-&gt;</A>();
+};
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A NAME="template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>Device</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A model of one of the <A HREF="../guide/concepts.html#device_concepts">Device</A> concepts; typically has <A HREF="../guide/traits.html#char_type">character type</A> <CODE>char</CODE>.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>Codecvt</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>
+            A standard library codecvt facet, which must be default constructible. If this parameter is not specified,
+            an instance of <CODE>std::codecvt&lt;wchar_t, char, std::mbstate_t&gt;</CODE> will be fetched from the global
+            local when a <CODE>code_converter</CODE> is constructed or opened.
+        </TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>Alloc</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A standard library allocator type (<A CLASS="bib_ref" HREF="../bibliography.html#iso">[ISO]</A>, 20.1.5), used to allocate character buffers</TD>
+    </TR>
+</TABLE>
+
+<A NAME="constructors"></A>
+<H4><CODE>code_converter::code_converter</CODE></H4>
+
+<PRE CLASS="broken_ie">    code_converter();
+    code_converter( <SPAN CLASS="keyword">const</SPAN> Device&amp; dev, 
+                    int buffer_size );
+    code_converter( <SPAN CLASS="omitted">device-constructor-args...</SPAN>, 
+                    int buffer_size );</PRE>
+    
+<P>
+    The first member constructs a <CODE>code_converter</CODE> with no associated instance of the Device type <CODE>Device</CODE>. Before the instance can be used for i/o, the member function <CODE>open()</CODE> must be invoked. 
+</P>
+    
+<P>
+    The second member constructs a <CODE>code_converter</CODE> based on the given instance of <CODE>Device</CODE>. The second parameter determines the size of the buffers or buffers used for code conversion. If a <CODE>std::codecvt</CODE> was specified as a template parameter, an instance of it will be default constructed. Otherwise, a copy of the global <CODE>locale</CODE> will be made, and an instance of <CODE>std::codecvt&lt;wchar_t, char, std::mbstate_t&gt;</CODE> will be fetched from it.
+</P>
+
+<P>
+    The third member constructs a <CODE>code_converter</CODE> based on the given instance of <CODE>Device</CODE> constructed with the forwarded arguments. Take care as the <CODE>buffer_size</CODE> can be confused for a constructor argument if it isn't an <CODE>int</CODE>.<br>
+</P>
+
+<A NAME="imbue"></A>
+<H4><CODE>code_converter::imbue</CODE></H4>
+
+<PRE CLASS="broken_ie">    std::locale imbue(<SPAN CLASS="keyword">const</SPAN> std::locale&amp; loc);</PRE>
+
+<P>
+    Used to specify a locale from which a <CODE>std::codecvt</CODE> facet will be fetched to perform code conversion. The effect of invoking imbue while code conversion is in progress is undefined.
+</P>
+
+<P>
+    This function is a no-op if a <CODE>std::codecvt</CODE> facet was specified as a template parameter.
+</P>
+
+<A NAME="open"></A>
+<H4><CODE>code_converter::open</CODE></H4>
+
+<PRE CLASS="broken_ie">     <SPAN CLASS="keyword">void</SPAN> open( <SPAN CLASS="keyword">const</SPAN> Device&amp; dev,
+                std::streamsize buffer_size = <SPAN CLASS="omitted">default_value</SPAN> );
+     <SPAN CLASS="keyword">void</SPAN> open( <SPAN CLASS="omitted">device-constructor-args</SPAN>,
+                std::streamsize buffer_size = <SPAN CLASS="omitted">default_value</SPAN> );<br></PRE>
+
+<P>
+    Associates the given instance of <CODE>Device</CODE> with <CODE>this</CODE> instance of <CODE>code_converter</CODE>, if there is no such instance currently associated; otherwise, throws <CODE>std::ios_base::failure</CODE>. The second parameter determines the size of the buffer or buffers used for code conversion. If a <CODE>std::codecvt</CODE> was specified as a template parameter, an instance of it will be default constructed. Otherwise, a copy of the global <CODE>locale</CODE> will be made, and an instance of <CODE>std::codecvt&lt;wchar_t, char, std::mbstate_t&gt;</CODE> will be fetched from it.
+</P>
+<P>
+    The second member constructs a <CODE>Device</CODE> with the forwarded arguments. Take care as the <CODE>buffer_size</CODE> can be confused for a constructor argument if it isn't an <CODE>int</CODE>.
+</P>
+
+<A NAME="is_open"></A>
+<H4><CODE>code_converter::is_open</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">bool</SPAN> is_open() <SPAN CLASS="keyword">const</SPAN>;</PRE>
+
+<P>Returns true if there is an instance of the Device type <CODE>Device</CODE> associated with <CODE>this</CODE> instance of <CODE>code_converter</CODE>.</P>
+
+<A NAME="close"></A>
+<H4><CODE>code_converter::close</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">void</SPAN> close();</PRE>
+
+<P>
+    Disassociates from <CODE>this</CODE> instance of <CODE>code_converter</CODE> any instance of the Device type <CODE>Device</CODE> currently associated with it, calling cleanup functions as appropriate and destroying the associated instance of <CODE>Device</CODE>.
+</P>
+
+<A NAME="operator_star"></A>
+<H4><CODE>code_converter::operator*</CODE></H4>
+
+<PRE CLASS="broken_ie">    Device&amp; operator*();</PRE>
+
+<P>
+     Returns a reference to the instance of Device associated with this instance of <CODE>code_converter</CODE>, which must be <A HREF="#is_open">open</A>.
+</P>
+
+<A NAME="operator_arrow"></A>
+<H4><CODE>code_converter::operator-></CODE></H4>
+
+<PRE CLASS="broken_ie">    Device* operator->();</PRE>
+
+<P>
+    Returns a pointer to the instance of Device associated with this instance of <CODE>code_converter</CODE>, which must be <A HREF="#is_open">open</A>.
+</P>
+    
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

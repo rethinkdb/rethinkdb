@@ -1,0 +1,877 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/et.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/et.xml
+ */
+et{
+    Currencies{
+        ADP{
+            "ADP" /** ===  */,
+            "Andorra peseeta",
+        }
+        AED{
+            "AED",
+            "Araabia Ühendemiraatide dirhem",
+        }
+        AFA{
+            "AFA" /** ===  */,
+            "Afganistani afgaani, 1927-2002",
+        }
+        AFN{
+            "Af",
+            "Afganistani afgaani",
+        }
+        ALL{
+            "ALL",
+            "Albaania lekk",
+        }
+        AMD{
+            "AMD",
+            "Armeenia dramm",
+        }
+        ANG{
+            "NAf.",
+            "Hollandi Antillide kulden",
+        }
+        AOA{
+            "Kz",
+            "Angola kvanza",
+        }
+        AOK{
+            "AOK" /** ===  */,
+            "Angola kvanza, 1977-1990",
+        }
+        AON{
+            "AON" /** ===  */,
+            "Angola kvanza, 1990-2000",
+        }
+        AOR{
+            "AOR" /** ===  */,
+            "Angola reformitud kvanza, 1995-1999",
+        }
+        ARA{
+            "₳",
+            "Argentina austral",
+        }
+        ARP{
+            "ARP" /** ===  */,
+            "Argentina peeso, 1983-1985",
+        }
+        ARS{
+            "AR$",
+            "Argentina peeso",
+        }
+        ATS{
+            "ATS" /** ===  */,
+            "Austria šilling",
+        }
+        AUD{
+            "AU$",
+            "Austraalia dollar",
+        }
+        AWG{
+            "Afl.",
+            "Aruba guilder",
+        }
+        AZM{
+            "AZM",
+            "Aserbaidžaani manat, 1993-2006",
+        }
+        AZN{
+            "man.",
+            "Aserbaidžaani manat",
+        }
+        BAD{
+            "BAD" /** ===  */,
+            "Bosnia-Hertsegoviina dinaar",
+        }
+        BAM{
+            "KM",
+            "Bosnia-Hertsegoviina mark",
+        }
+        BBD{
+            "Bds$",
+            "Barbadose dollar",
+        }
+        BDT{
+            "Tk",
+            "Bangladeshi taka",
+        }
+        BEC{
+            "BEC" /** ===  */,
+            "Belgia konverteeritav frank",
+        }
+        BEF{
+            "BF",
+            "Belgia frank",
+        }
+        BEL{
+            "BEL" /** ===  */,
+            "Belgia arveldusfrank",
+        }
+        BGL{
+            "BGL" /** ===  */,
+            "Bulgaaria püsiv leev",
+        }
+        BGN{
+            "BGN",
+            "Bulgaaria leev",
+        }
+        BHD{
+            "BD",
+            "Bahreini dinaar",
+        }
+        BIF{
+            "FBu",
+            "Burundi frank",
+        }
+        BMD{
+            "BD$",
+            "Bermuda dollar",
+        }
+        BND{
+            "BN$",
+            "Brunei dollar",
+        }
+        BOB{
+            "Bs",
+            "boliviaano",
+        }
+        BOP{
+            "$b.",
+            "Boliivia peeso",
+        }
+        BRC{
+            "BRC" /** ===  */,
+            "Brasiilia krusado",
+        }
+        BRL{
+            "R$",
+            "Brasiilia reaal",
+        }
+        BUK{
+            "BUK" /** ===  */,
+            "Birma kjatt",
+        }
+        BWP{
+            "BWP",
+            "Botswana pula",
+        }
+        BYB{
+            "BYB" /** ===  */,
+            "Valgevene uus rubla, 1994-1999",
+        }
+        BYR{
+            "BYR",
+            "Valgevene rubla",
+        }
+        CAD{
+            "CA$",
+            "Kanada dollar",
+        }
+        CHF{
+            "CHF",
+            "Šveitsi frank",
+        }
+        CLP{
+            "CL$",
+            "Tšiili peeso",
+        }
+        CNY{
+            "CN¥",
+            "Hiina jüaan",
+        }
+        COP{
+            "CO$",
+            "Kolumbia peeso",
+        }
+        CSD{
+            "CSD" /** ===  */,
+            "Serbia vana dinaar",
+        }
+        CYP{
+            "CY£",
+            "Küprose nael",
+        }
+        CZK{
+            "CZK",
+            "Tšehhi kroon",
+        }
+        DEM{
+            "DM",
+            "Saksa mark",
+        }
+        DKK{
+            "DKK",
+            "Taani kroon",
+        }
+        DZD{
+            "DA",
+            "Alžeeria dinaar",
+        }
+        ECS{
+            "ECS" /** ===  */,
+            "Ecuadori sukre",
+        }
+        EEK{
+            "kr",
+            "Eesti kroon",
+            {
+                /**
+                 * Duplicated from NumberPatterns resource
+                 */
+                "#,##0.00 ¤",
+                ".",
+                /**
+                 * Duplicated from NumberElements resource
+                 */
+                " ",
+            }
+        }
+        EGP{
+            "EGP",
+            "Egiptuse nael",
+        }
+        ESP{
+            "Pts",
+            "Hispaania peseeta",
+        }
+        ETB{
+            "Br",
+            "Etioopia birr",
+        }
+        EUR{
+            "€",
+            "euro",
+        }
+        FIM{
+            "mk",
+            "Soome mark",
+        }
+        FJD{
+            "FJ$",
+            "Fidži dollar",
+        }
+        FKP{
+            "FK£",
+            "Falklandi saarte nael",
+        }
+        FRF{
+            "₣",
+            "Prantsuse frank",
+        }
+        GBP{
+            "£",
+            "Suurbritannia naelsterling",
+        }
+        GEL{
+            "GEL",
+            "Gruusia lari",
+        }
+        GHC{
+            "₵",
+            "Ghana sedi",
+        }
+        GIP{
+            "GI£",
+            "Gibraltari nael",
+        }
+        GMD{
+            "GMD",
+            "Gambia dalasi",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "Guinea syli",
+        }
+        GRD{
+            "₯",
+            "Kreeka drahm",
+        }
+        GTQ{
+            "GTQ",
+            "Guatemala ketsal",
+        }
+        GWP{
+            "GWP" /** ===  */,
+            "Guinea-Bissau peeso",
+        }
+        GYD{
+            "GY$",
+            "Guyana dollar",
+        }
+        HKD{
+            "HK$",
+            "Hongkongi dollar",
+        }
+        HNL{
+            "HNL",
+            "Hondurase lempiira",
+        }
+        HRK{
+            "kn",
+            "Horvaatia kuna",
+        }
+        HTG{
+            "HTG",
+            "Haiti gurd",
+        }
+        HUF{
+            "Ft",
+            "Ungari forint",
+        }
+        IDR{
+            "Rp",
+            "Indoneesia ruupia",
+        }
+        IEP{
+            "IR£",
+            "Iiri nael",
+        }
+        ILP{
+            "I£",
+            "Iisraeli nael",
+        }
+        ILS{
+            "₪",
+            "Iisraeli uus seekel",
+        }
+        INR{
+            "Rs",
+            "India ruupia",
+        }
+        IQD{
+            "IQD",
+            "Iraagi dinaar",
+        }
+        IRR{
+            "IRR",
+            "Iraani riaal",
+        }
+        ISK{
+            "Ikr",
+            "Islandi kroon",
+        }
+        ITL{
+            "IT₤",
+            "Itaalia liir",
+        }
+        JMD{
+            "J$",
+            "Jamaica dollar",
+        }
+        JPY{
+            "¥",
+            "Jaapani jeen",
+        }
+        KES{
+            "Ksh",
+            "Keenia šilling",
+        }
+        KGS{
+            "KGS",
+            "Kõrgõzstani somm",
+        }
+        KHR{
+            "KHR",
+            "Kambodža riaal",
+        }
+        KPW{
+            "KPW",
+            "Põhja-Korea vonn",
+        }
+        KRW{
+            "₩",
+            "Lõuna-Korea vonn",
+        }
+        KWD{
+            "KD",
+            "Kuveidi dinaar",
+        }
+        KZT{
+            "KZT",
+            "Kasahstani tenge",
+        }
+        LAK{
+            "₭",
+            "Laose kiip",
+        }
+        LBP{
+            "LB£",
+            "Liibanoni nael",
+        }
+        LTL{
+            "Lt",
+            "Leedu litt",
+        }
+        LUF{
+            "LUF" /** ===  */,
+            "Luksemburgi frank",
+        }
+        LVL{
+            "Ls",
+            "Läti latt",
+        }
+        MAD{
+            "MAD",
+            "Maroko dirhem",
+        }
+        MDL{
+            "MDL",
+            "Moldova leu",
+        }
+        MMK{
+            "MMK",
+            "Myanmari kjatt",
+        }
+        MNT{
+            "₮",
+            "Mongoolia tugrik",
+        }
+        MOP{
+            "MOP$",
+            "Macao pataka",
+        }
+        MRO{
+            "UM",
+            "Mauretaania ugia",
+        }
+        MTL{
+            "Lm",
+            "Malta liir",
+        }
+        MUR{
+            "MURs",
+            "Mauritiuse ruupia",
+        }
+        MVR{
+            "MVR",
+            "Maldiivide ruupia",
+        }
+        MWK{
+            "MWK",
+            "Malawi kvatša",
+        }
+        MXN{
+            "MX$",
+            "Mehhiko peeso",
+        }
+        MXP{
+            "MXP" /** ===  */,
+            "Mehhiko peeso, 1861-1990",
+        }
+        MYR{
+            "RM",
+            "Malaisia ringgit",
+        }
+        MZN{
+            "MTn",
+            "Mosambiigi metikal",
+        }
+        NGN{
+            "₦",
+            "Nigeeria naira",
+        }
+        NIC{
+            "NIC" /** ===  */,
+            "Nicaragua kordoba",
+        }
+        NIO{
+            "C$",
+            "Nicaragua kuldkordoba",
+        }
+        NLG{
+            "fl",
+            "Hollandi kulden",
+        }
+        NOK{
+            "NOK",
+            "Norra kroon",
+        }
+        NPR{
+            "NPRs",
+            "Nepali ruupia",
+        }
+        NZD{
+            "NZ$",
+            "Uus-Meremaa dollar",
+        }
+        OMR{
+            "OMR",
+            "Omaani riaal",
+        }
+        PAB{
+            "B/.",
+            "Panama balboa",
+        }
+        PEI{
+            "I/.",
+            "Peruu inti",
+        }
+        PEN{
+            "S/.",
+            "Peruu uus soll",
+        }
+        PES{
+            "PES" /** ===  */,
+            "Peruu soll",
+        }
+        PGK{
+            "PGK",
+            "Paapua Uus-Guinea kina",
+        }
+        PHP{
+            "₱",
+            "Filipiinide peeso",
+        }
+        PKR{
+            "PKRs",
+            "Pakistani ruupia",
+        }
+        PLN{
+            "zł",
+            "Poola zlott",
+        }
+        PLZ{
+            "PLZ" /** ===  */,
+            "Poola zlott, 1950-1995",
+        }
+        PTE{
+            "Esc",
+            "Portugali eskuudo",
+        }
+        PYG{
+            "₲",
+            "Paraguai guaranii",
+        }
+        QAR{
+            "QR",
+            "Quatari riaal",
+        }
+        ROL{
+            "ROL",
+            "Rumeenia lei, -2005",
+        }
+        RON{
+            "RON",
+            "Rumeenia lei",
+        }
+        RSD{
+            "din.",
+            "Serbia dinaar",
+        }
+        RUB{
+            "RUB",
+            "Venemaa rubla",
+        }
+        RUR{
+            "RUR" /** ===  */,
+            "Venemaa rubla, 1991-1998",
+        }
+        RWF{
+            "RWF",
+            "Ruanda frank",
+        }
+        SAR{
+            "SR",
+            "Saudi-Araabia riaal",
+        }
+        SBD{
+            "SI$",
+            "Saalomoni saarte dollar",
+        }
+        SCR{
+            "SRe",
+            "Seišelli saarte ruupia",
+        }
+        SDP{
+            "SDP" /** ===  */,
+            "Sudaani nael",
+        }
+        SEK{
+            "SEK",
+            "Rootsi kroon",
+        }
+        SGD{
+            "S$",
+            "Singapuri dollar",
+        }
+        SHP{
+            "SH£",
+            "Saint Helena nael",
+        }
+        SIT{
+            "SIT" /** ===  */,
+            "Sloveenia tolar",
+        }
+        SKK{
+            "Sk",
+            "Slovakkia kroon",
+        }
+        SLL{
+            "Le",
+            "Sierra Leone leoone",
+        }
+        SOS{
+            "Ssh",
+            "Somaalia šilling",
+        }
+        SRG{
+            "Sf",
+            "Surinami kulden",
+        }
+        STD{
+            "Db",
+            "São Tomé ja Príncipe dobra",
+        }
+        SUR{
+            "SUR" /** ===  */,
+            "NSVL rubla",
+        }
+        SVC{
+            "SV₡",
+            "Salvadori koloon",
+        }
+        SYP{
+            "SY£",
+            "Süüria nael",
+        }
+        THB{
+            "฿",
+            "Tai baat",
+        }
+        TJS{
+            "TJS",
+            "Tadžikistani somoni",
+        }
+        TMM{
+            "TMM",
+            "Türkmenistani manat",
+        }
+        TND{
+            "DT",
+            "Tuneesia dinaar",
+        }
+        TOP{
+            "T$",
+            "Tonga pa'anga",
+        }
+        TPE{
+            "TPE" /** ===  */,
+            "Timori eskuudo",
+        }
+        TRL{
+            "TRL",
+            "Türgi liir",
+        }
+        TRY{
+            "TL",
+            "Türgi uus liir",
+        }
+        TWD{
+            "NT$",
+            "Taiwani dollar",
+        }
+        TZS{
+            "TSh",
+            "Tansaania šilling",
+        }
+        UAH{
+            "₴",
+            "Ukraina grivna",
+        }
+        UAK{
+            "UAK" /** ===  */,
+            "Ukraina karbovanets",
+        }
+        UGX{
+            "USh",
+            "Uganda šilling",
+        }
+        USD{
+            "$",
+            "USA dollar",
+        }
+        USN{
+            "USN" /** ===  */,
+            "USA järgmise päeva dollar",
+        }
+        USS{
+            "USS" /** ===  */,
+            "USA sama päeva dollar",
+        }
+        UYU{
+            "$U",
+            "Uruguai peeso",
+        }
+        UZS{
+            "UZS",
+            "Usbekistani somm",
+        }
+        VEB{
+            "VEB" /** ===  */,
+            "Venezuela boliivar",
+        }
+        VND{
+            "₫",
+            "Vietnami dong",
+        }
+        VUV{
+            "VT",
+            "Vanuatu vatu",
+        }
+        WST{
+            "WS$",
+            "Lääne-Samoa tala",
+        }
+        XAF{
+            "FCFA",
+            "CFA frank BEAC",
+        }
+        XAG{
+            "XAG",
+            "hõbe",
+        }
+        XAU{
+            "XAU",
+            "kuld",
+        }
+        XBA{
+            "XBA",
+            "EURCO",
+        }
+        XBB{
+            "XBB",
+            "Euroopa rahaühik",
+        }
+        XBC{
+            "XBC",
+            "Euroopa rahaline arvestusühik (XBC)",
+        }
+        XBD{
+            "XBD",
+            "Euroopa rahaline arvestusühik (XBD)",
+        }
+        XCD{
+            "EC$",
+            "Ida-Kariibi dollar",
+        }
+        XDR{
+            "XDR",
+            "Rahvusvahelise Valuutafondi arvestusühik",
+        }
+        XEU{
+            "XEU" /** ===  */,
+            "eküü",
+        }
+        XFO{
+            "XFO",
+            "Prantsuse kuldfrank",
+        }
+        XFU{
+            "XFU",
+            "Prantsuse UIC-frank",
+        }
+        XPD{
+            "XPD",
+            "pallaadium",
+        }
+        XPT{
+            "XPT",
+            "plaatina",
+        }
+        XTS{
+            "XTS",
+            "vääringute testkood",
+        }
+        XXX{
+            "XXX",
+            "määramata",
+        }
+        YDD{
+            "YDD" /** ===  */,
+            "Jeemeni dinaar",
+        }
+        YUM{
+            "YUM" /** ===  */,
+            "Jugoslaavia uus dinaar",
+        }
+        YUN{
+            "YUN" /** ===  */,
+            "Jugoslaavia konverteeritav dinaar",
+        }
+        ZAR{
+            "R",
+            "LAVi rand",
+        }
+        ZMK{
+            "ZK",
+            "Sambia kvatša",
+        }
+        ZRZ{
+            "ZRZ",
+            "Sairi zaire",
+        }
+        ZWD{
+            "Z$",
+            "Zimbabwe dollar",
+        }
+    }
+    CurrencyPlurals{
+        CZK{
+            one{"Tšehhi kroon"}
+            other{"Tšehhi krooni"}
+        }
+        DKK{
+            one{"Taani kroon"}
+            other{"Taani krooni"}
+        }
+        EEK{
+            one{"Eesti kroon"}
+            other{"Eesti krooni"}
+        }
+        EUR{
+            one{"euro"}
+            other{"eurot"}
+        }
+        NOK{
+            one{"Norra kroon"}
+            other{"Norra krooni"}
+        }
+        SEK{
+            one{"Rootsi kroon"}
+            other{"Rootsi krooni"}
+        }
+        SKK{
+            one{"Slovakkia kroon"}
+            other{"Slovakkia krooni"}
+        }
+        XAG{
+            one{"hõbe"}
+            other{"hõbedat"}
+        }
+        XAU{
+            one{"kuld"}
+            other{"kulda"}
+        }
+        XPD{
+            one{"pallaadium"}
+            other{"pallaadiumit"}
+        }
+        XPT{
+            one{"plaatina"}
+            other{"plaatina"}
+        }
+    }
+    CurrencyUnitPatterns{
+        one{"{0} {1}"}
+        other{"{0} {1}"}
+    }
+    Version{"2.0.50.94"}
+}

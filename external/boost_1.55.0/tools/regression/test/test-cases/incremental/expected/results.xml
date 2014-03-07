@@ -1,0 +1,9 @@
+<test-log library="" test-name="run~pass" test-type="" test-program="" target-directory="tools/regression/test/run~pass.test/msvc-7.1/debug/link-static/threading-multi" toolset="msvc-7.1" show-run-output="false">
+<compile result="fail" timestamp="xxx">
+run~pass.cpp
+
+    call "C:\Program Files\Microsoft Visual Studio .NET 2003\Vc7\bin\vcvars32.bat"  &gt;nul
+cl /Zm800 -nologo @"C:\users\Misha\Stuff\boost\boost\tools\regression\test\test-cases\incremental\actual\tools\regression\test\run~pass.test\msvc-7.1\debug\link-static\threading-multi\run~pass.obj.rsp"
+
+</compile>
+</test-log>

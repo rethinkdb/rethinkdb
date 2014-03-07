@@ -1,0 +1,332 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Generator Directives Consuming Attributes (omit[] and skip[])</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../directive.html" title="Generator Directives">
+<link rel="prev" href="buffer.html" title="Generator Directive for Temporary Output Buffering (buffer[])">
+<link rel="next" href="duplicate.html" title="Generator Directive Duplicating Attributes (duplicate[])">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="buffer.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="duplicate.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.karma.reference.directive.omit"></a><a class="link" href="omit.html" title="Generator Directives Consuming Attributes (omit[] and skip[])">Generator
+          Directives Consuming Attributes (<code class="computeroutput"><span class="identifier">omit</span><span class="special">[]</span></code> and <code class="computeroutput"><span class="identifier">skip</span><span class="special">[]</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.karma.reference.directive.omit.h0"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.omit.description"></a></span><a class="link" href="omit.html#spirit.karma.reference.directive.omit.description">Description</a>
+          </h6>
+<p>
+            The directives <code class="computeroutput"><span class="identifier">omit</span><span class="special">[]</span></code>
+            and <code class="computeroutput"><span class="identifier">skip</span><span class="special">[]</span></code>
+            consumes the attribute type of the embedded generator without generating
+            any output. The <code class="computeroutput"><span class="identifier">omit</span><span class="special">[]</span></code> directive will still execute the embedded
+            generator while discarding the generated output afterwards. The <code class="computeroutput"><span class="identifier">skip</span><span class="special">[]</span></code>
+            directive will not execute the embedded generator, but will use it only
+            to extract the exposed attribute type.
+          </p>
+<h6>
+<a name="spirit.karma.reference.directive.omit.h1"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.omit.header"></a></span><a class="link" href="omit.html#spirit.karma.reference.directive.omit.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/karma/directive/omit.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma_omit</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">omit</span> <span class="comment">// alias:
+                      boost::spirit::karma::omit</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">skip</span> <span class="comment">// alias:
+                      boost::spirit::karma::skip</span></code>
+                    </p>
+                  </td></tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.directive.omit.h2"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.omit.model_of"></a></span><a class="link" href="omit.html#spirit.karma.reference.directive.omit.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../generator_concepts/unarygenerator.html" title="UnaryGenerator"><code class="computeroutput"><span class="identifier">UnaryGenerator</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a</span></code></span></dt>
+<dd><p>
+                  A generator object
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">A</span></code></span></dt>
+<dd><p>
+                  Attribute type of generator <code class="computeroutput"><span class="identifier">a</span></code>
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.karma.reference.directive.omit.h3"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.omit.expression_semantics"></a></span><a class="link" href="omit.html#spirit.karma.reference.directive.omit.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../generator_concepts/unarygenerator.html" title="UnaryGenerator"><code class="computeroutput"><span class="identifier">UnaryGenerator</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">omit</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The <code class="computeroutput"><span class="identifier">omit</span></code> directive
+                      consumes the attribute type of the embedded generator <code class="computeroutput"><span class="identifier">A</span></code> without generating any
+                      output. It succeeds always. The embedded generator is executed
+                      and any generated output is discarded.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">skip</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The <code class="computeroutput"><span class="identifier">skip</span></code> directive
+                      consumes the attribute type of the embedded generator <code class="computeroutput"><span class="identifier">A</span></code> without generating any
+                      output. It succeeds always. The embedded generator is not executed.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.directive.omit.h4"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.omit.attributes"></a></span><a class="link" href="omit.html#spirit.karma.reference.directive.omit.attributes">Attributes</a>
+          </h6>
+<p>
+            See <a class="link" href="../../quick_reference/compound_attribute_rules.html#spirit.karma.quick_reference.compound_attribute_rules.notation">Compound
+            Attribute Notation</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">omit</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">omit</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">omit</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">skip</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">skip</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">skip</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.directive.omit.h5"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.omit.complexity"></a></span><a class="link" href="omit.html#spirit.karma.reference.directive.omit.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              The overall complexity of the <code class="computeroutput"><span class="identifier">omit</span><span class="special">[]</span></code> directive depends on the complexity
+              of the embedded generator. The overall complexity of the <code class="computeroutput"><span class="identifier">skip</span><span class="special">[]</span></code>
+              generator directive is O(1) as it does not generate any output.
+            </p></blockquote></div>
+<h6>
+<a name="spirit.karma.reference.directive.omit.h6"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.omit.example"></a></span><a class="link" href="omit.html#spirit.karma.reference.directive.omit.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.karma.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some includes:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">support_utree</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">std_pair</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">omit</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Basic usage of a <code class="computeroutput"><span class="identifier">omit</span></code>
+            generator directive. It shows how it consumes the first element of the
+            provided attribute without generating anything, leaving the second element
+            of the attribute to the non-wrapped <code class="computeroutput"><span class="identifier">double_</span></code>
+            generator.
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">p</span> <span class="special">(</span><span class="number">1.0</span><span class="special">,</span> <span class="number">2.0</span><span class="special">);</span>
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">"2.0"</span><span class="special">,</span> <span class="identifier">omit</span><span class="special">[</span><span class="identifier">double_</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span><span class="special">,</span> <span class="identifier">p</span><span class="special">);</span>
+</pre>
+<p>
+          </p>
+<p>
+            Generally, this directive is helpful in situations, where the attribute
+            type contains more information (elements) than need to be used to generate
+            the required output. Normally in such situations we would resolve to
+            use semantic actions to explicitly pass the correct parts of the overall
+            attribute to the generators. The <code class="computeroutput"><span class="identifier">omit</span></code>
+            directive helps achieving the same without having to use semantic actions.
+          </p>
+<p>
+            Consider the attribute type:
+          </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">fusion</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">attribute_type</span><span class="special">;</span>
+</pre>
+<p>
+            where we need to generate output only from the first and last element:
+          </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">back_insert</span><span class="special">:</span><span class="identifier">iterator</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">iterator_type</span><span class="special">;</span>
+
+<span class="identifier">karma</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">iterator_type</span><span class="special">,</span> <span class="identifier">attribute_type</span><span class="special">()&gt;</span> <span class="identifier">r</span><span class="special">;</span>
+<span class="identifier">r</span> <span class="special">=</span> <span class="identifier">int_</span><span class="special">[</span><span class="identifier">_1</span> <span class="special">=</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">_val</span><span class="special">)]</span> <span class="special">&lt;&lt;</span> <span class="identifier">string</span><span class="special">[</span><span class="identifier">_1</span> <span class="special">=</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;(</span><span class="identifier">_val</span><span class="special">)];</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span><span class="special">;</span>
+<span class="identifier">iterator_type</span> <span class="identifier">sink</span><span class="special">(</span><span class="identifier">str</span><span class="special">);</span>
+<span class="identifier">generate</span><span class="special">(</span><span class="identifier">sink</span><span class="special">,</span> <span class="identifier">r</span><span class="special">,</span> <span class="identifier">attribute_type</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">2.0</span><span class="special">,</span> <span class="string">"example"</span><span class="special">));</span>  <span class="comment">// will generate: '1example'</span>
+</pre>
+<p>
+            This is error prone and not really readable. The same can be achieved
+            by using the <code class="computeroutput"><span class="identifier">omit</span></code> directive:
+          </p>
+<pre class="programlisting"><span class="identifier">r</span> <span class="special">=</span> <span class="identifier">int_</span> <span class="special">&lt;&lt;</span> <span class="identifier">omit</span><span class="special">[</span><span class="identifier">double_</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="identifier">string</span><span class="special">;</span>
+</pre>
+<p>
+            which is at the same time more readable and more efficient as we don't
+            have to use semantic actions.
+          </p>
+<p>
+            The semantics of using the <code class="computeroutput"><span class="identifier">skip</span><span class="special">[]</span></code> directive are identical to the <code class="computeroutput"><span class="identifier">omit</span><span class="special">[]</span></code>
+            directive, except that it does not actually execute the embedded generator.
+            For this reason it is usually preferable to utilize the <code class="computeroutput"><span class="identifier">skip</span><span class="special">[]</span></code>
+            directive instead of the <code class="computeroutput"><span class="identifier">omit</span><span class="special">[]</span></code> directive. On the other hand, the
+            <code class="computeroutput"><span class="identifier">omit</span><span class="special">[]</span></code>
+            directive is very useful whenever the embedded generator produces side
+            effects (has semantic actions which need to be executed).
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="buffer.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="duplicate.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

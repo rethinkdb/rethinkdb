@@ -1,0 +1,58 @@
+<p><body bgcolor="#ffffff" link="#0000ee" text="#000000" vlink="#551a8b" alink="#ff0000"></p>
+
+<p><img src="../../../boost.png" alt="C++ Boost" /></p>
+
+<h1 id="hawick_circuits"><code>hawick_circuits</code></h1>
+
+<pre><code>template &lt;typename Graph, typename Visitor, typename VertexIndexMap&gt;
+void hawick_circuits(Graph const&amp; graph, Visitor visitor, VertexIndexMap const&amp; vim = get(vertex_index, graph));
+
+template &lt;typename Graph, typename Visitor, typename VertexIndexMap&gt;
+void hawick_unique_circuits(Graph const&amp; graph, Visitor visitor, VertexIndexMap const&amp; vim = get(vertex_index, graph));
+</code></pre>
+
+<p>Enumerate all the elementary circuits in a directed multigraph. Specifically,
+self-loops and redundant circuits caused by parallel edges are enumerated too.
+<code>hawick_unique_circuits</code> may be used if redundant circuits caused by parallel
+edges are not desired.</p>
+
+<p>The algorithm is described in detail in
+<a href="http://www.massey.ac.nz/~kahawick/cstn/013/cstn-013.pdf">http://www.massey.ac.nz/~kahawick/cstn/013/cstn-013.pdf</a>.</p>
+
+<h3 id="where-defined">Where defined</h3>
+
+<p><a href="../../../boost/graph/hawick_circuits.hpp"><code>#include &lt;boost/graph/hawick_circuits.hpp&gt;</code></a></p>
+
+<h3 id="parameters">Parameters</h3>
+
+<p><strong>IN:</strong> <code>Graph const&amp; graph</code></p>
+
+<blockquote>
+  <p>The graph on which the algorithm is to be performed. It must be a model of
+  the <code>VertexListGraph</code> and <code>AdjacencyGraph</code> concepts.</p>
+</blockquote>
+
+<p><strong>IN:</strong> <code>Visitor visitor</code></p>
+
+<blockquote>
+  <p>The visitor that will be notified on each circuit found by the algorithm.
+  The <code>visitor.cycle(circuit, graph)</code> expression must be valid, with <code>circuit</code>
+  being a <code>const</code>-reference to a random access sequence of <code>vertex_descriptor</code>s.</p>
+
+  <p>For example, if a circuit <code>u -&gt; v -&gt; w -&gt; u</code> exists in the graph, the
+  visitor will be called with a sequence consisting of <code>(u, v, w)</code>.</p>
+</blockquote>
+
+<p><strong>IN:</strong> <code>VertexIndexMap const&amp; vim = get(vertex_index, graph)</code></p>
+
+<blockquote>
+  <p>A model of the <code>ReadablePropertyMap</code> concept mapping each <code>vertex_descriptor</code>
+  to an integer in the range <code>[0, num_vertices(graph))</code>. It defaults to using
+  the vertex index map provided by the <code>graph</code>.</p>
+</blockquote>
+
+<hr />
+
+<div class="footer">
+    &copy; 2013 Louis Dionne
+</div>

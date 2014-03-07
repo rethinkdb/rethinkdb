@@ -1,0 +1,842 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Equivalences and Orderings</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../function_reference.html" title="Function Reference">
+<link rel="prev" href="containedness.html" title="Containedness">
+<link rel="next" href="size.html" title="Size">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="containedness.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function_reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="size.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_function_reference_equivalences_and_orderings" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.function_reference.equivalences_and_orderings"></a><a class="link" href="equivalences_and_orderings.html" title="Equivalences and Orderings">Equivalences
+      and Orderings</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="equivalences_and_orderings.html#boost_icl.function_reference.equivalences_and_orderings.synopsis">Synopsis</a></span></dt>
+<dt><span class="section"><a href="equivalences_and_orderings.html#boost_icl.function_reference.equivalences_and_orderings.less_on_intervals">Less
+        on Intervals</a></span></dt>
+<dt><span class="section"><a href="equivalences_and_orderings.html#boost_icl.function_reference.equivalences_and_orderings.lexicographical_ordering">Lexicographical
+        Ordering</a></span></dt>
+<dt><span class="section"><a href="equivalences_and_orderings.html#boost_icl.function_reference.equivalences_and_orderings.sequential_element_ordering">Sequential
+        Element Ordering</a></span></dt>
+<dt><span class="section"><a href="equivalences_and_orderings.html#boost_icl.function_reference.equivalences_and_orderings.distinct_equality">Distinct
+        Equality</a></span></dt>
+</dl></div>
+<div class="section boost_icl_function_reference_equivalences_and_orderings_synopsis" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.function_reference.equivalences_and_orderings.synopsis"></a><a class="link" href="equivalences_and_orderings.html#boost_icl.function_reference.equivalences_and_orderings.synopsis" title="Synopsis">Synopsis</a>
+</h4></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  <span class="emphasis"><em><span class="bold"><strong>Equivalences and Orderings</strong></span></em></span>
+                </p>
+                </th>
+<th>
+                <p>
+                  intervals
+                </p>
+                </th>
+<th>
+                <p>
+                  interval<br> sets
+                </p>
+                </th>
+<th>
+                <p>
+                  interval<br> maps
+                </p>
+                </th>
+<th>
+                <p>
+                  element<br> sets
+                </p>
+                </th>
+<th>
+                <p>
+                  element<br> maps
+                </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <span class="emphasis"><em>Segment Ordering</em></span>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">bool</span> <span class="keyword">operator</span>
+                  <span class="special">==</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+                  <span class="identifier">T</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">bool</span> <span class="keyword">operator</span>
+                  <span class="special">!=</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+                  <span class="identifier">T</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">bool</span> <span class="keyword">operator</span>
+                  <span class="special">&lt;</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+                  <span class="identifier">T</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">bool</span> <span class="keyword">operator</span>
+                  <span class="special">&gt;</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+                  <span class="identifier">T</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">bool</span> <span class="keyword">operator</span>
+                  <span class="special">&lt;=</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+                  <span class="identifier">T</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">bool</span> <span class="keyword">operator</span>
+                  <span class="special">&gt;=</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span>
+                  <span class="identifier">T</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="emphasis"><em>Element Ordering</em></span>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">is_element_equal</span><span class="special">(</span><span class="keyword">const</span>
+                  <span class="identifier">T</span><span class="special">&amp;,</span>
+                  <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">is_element_less</span><span class="special">(</span><span class="keyword">const</span>
+                  <span class="identifier">T</span><span class="special">&amp;,</span>
+                  <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">is_element_greater</span><span class="special">(</span><span class="keyword">const</span>
+                  <span class="identifier">T</span><span class="special">&amp;,</span>
+                  <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="emphasis"><em>Distinct Equality</em></span>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">is_distinct_equal</span><span class="special">(</span><span class="keyword">const</span>
+                  <span class="identifier">T</span><span class="special">&amp;,</span>
+                  <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                  1
+                </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="section boost_icl_function_reference_equivalences_and_orderings_less_on_intervals" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.function_reference.equivalences_and_orderings.less_on_intervals"></a><a class="link" href="equivalences_and_orderings.html#boost_icl.function_reference.equivalences_and_orderings.less_on_intervals" title="Less on Intervals">Less
+        on Intervals</a>
+</h4></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                </p>
+                </th>
+<th>
+                <p>
+                  Types
+                </p>
+                </th>
+<th>
+                <p>
+                </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">x</span> <span class="special">&lt;</span>
+                  <span class="identifier">y</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <a class="link" href="../interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">x</span></code> begins before
+                  <code class="computeroutput"><span class="identifier">y</span></code> or, for equal
+                  beginnings <code class="computeroutput"><span class="identifier">x</span></code> ends
+                  before <code class="computeroutput"><span class="identifier">y</span></code>
+                </p>
+                </td>
+</tr></tbody>
+</table></div>
+</div>
+<div class="section boost_icl_function_reference_equivalences_and_orderings_lexicographical_ordering" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.function_reference.equivalences_and_orderings.lexicographical_ordering"></a><a class="link" href="equivalences_and_orderings.html#boost_icl.function_reference.equivalences_and_orderings.lexicographical_ordering" title="Lexicographical Ordering">Lexicographical
+        Ordering</a>
+</h4></div></div></div>
+<p>
+          All common equality and compare operators are defined for all objects of
+          the <span class="bold"><strong>icl</strong></span>. For all <span class="bold"><strong>icl</strong></span>
+          containers equality and compare operators implement lexicographical equality
+          and lexicographical comparison, that depends on the equality of template
+          parameter <code class="computeroutput"><span class="identifier">Compare</span></code>. This
+          includes the less ordering on intervals, that can be perceived as the sequence
+          of elements between their lower and upper bound. This generalized lexicogrphical
+          comparison in intervals can also be specified this way:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr></tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">x</span> <span class="special">&lt;</span>
+                  <span class="identifier">y</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">:=</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">x</span></code> begins before
+                  <code class="computeroutput"><span class="identifier">y</span></code> or, for equal
+                  beginnings <code class="computeroutput"><span class="identifier">x</span></code> ends
+                  before <code class="computeroutput"><span class="identifier">y</span></code>.
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                </p>
+                </td>
+<td>
+                <p>
+                  The other operators can be deduced in the usual way
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">x</span> <span class="special">&gt;</span>
+                  <span class="identifier">y</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">:=</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">y</span> <span class="special">&lt;</span>
+                  <span class="identifier">x</span></code>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">x</span> <span class="special">&lt;=</span>
+                  <span class="identifier">y</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">:=</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">!(</span><span class="identifier">y</span>
+                  <span class="special">&lt;</span> <span class="identifier">x</span><span class="special">)</span></code>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">x</span> <span class="special">&gt;=</span>
+                  <span class="identifier">y</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">:=</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">!(</span><span class="identifier">x</span>
+                  <span class="special">&lt;</span> <span class="identifier">y</span><span class="special">)</span></code>
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">x</span> <span class="special">==</span>
+                  <span class="identifier">y</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">:=</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">!(</span><span class="identifier">x</span>
+                  <span class="special">&lt;</span> <span class="identifier">y</span><span class="special">)</span> <span class="special">&amp;&amp;</span>
+                  <span class="special">!(</span><span class="identifier">y</span>
+                  <span class="special">&lt;</span> <span class="identifier">x</span><span class="special">)</span></code> induced equivalence
+                </p>
+                </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">x</span> <span class="special">!=</span>
+                  <span class="identifier">y</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">:=</span></code>
+                </p>
+                </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">!(</span><span class="identifier">x</span>
+                  <span class="special">==</span> <span class="identifier">y</span><span class="special">)</span></code>
+                </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          Equality and compare operators are defined for all <span class="bold"><strong>icl</strong></span>
+          objects but there are no overloads between different types.
+        </p>
+<p>
+          Containers of different segmentation are different, even if their elements
+          are the same: 
+</p>
+<pre class="programlisting"><span class="identifier">split_interval_set</span><span class="special">&lt;</span><span class="identifier">time</span><span class="special">&gt;</span> <span class="identifier">w1</span><span class="special">,</span> <span class="identifier">w2</span><span class="special">;</span> <span class="comment">//Pseudocode
+</span><span class="identifier">w1</span> <span class="special">=</span> <span class="special">{[</span><span class="identifier">Mon</span>       <span class="special">..</span>       <span class="identifier">Sun</span><span class="special">)};</span> <span class="comment">//split_interval_set containing a week
+</span><span class="identifier">w2</span> <span class="special">=</span> <span class="special">{[</span><span class="identifier">Mon</span> <span class="special">..</span> <span class="identifier">Fri</span><span class="special">)[</span><span class="identifier">Sat</span> <span class="special">..</span> <span class="identifier">Sun</span><span class="special">)};</span> <span class="comment">//Same week split in work and week end parts.
+</span><span class="identifier">w1</span> <span class="special">==</span> <span class="identifier">w2</span><span class="special">;</span>                        <span class="comment">//false: Different segmentation
+</span><span class="identifier">is_element_equal</span><span class="special">(</span><span class="identifier">w1</span><span class="special">,</span><span class="identifier">w2</span><span class="special">);</span>         <span class="comment">//true:  Same elements contained  
+</span></pre>
+<p>
+        </p>
+<p>
+          <span class="bold"><strong>Complexity</strong></span> is <span class="emphasis"><em><span class="bold"><strong>linear</strong></span></em></span>
+          in the <code class="computeroutput"><span class="identifier">iterative_size</span></code> of
+          the shorter container to compare.
+        </p>
+</div>
+<div class="section boost_icl_function_reference_equivalences_and_orderings_sequential_element_ordering" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.function_reference.equivalences_and_orderings.sequential_element_ordering"></a><a class="link" href="equivalences_and_orderings.html#boost_icl.function_reference.equivalences_and_orderings.sequential_element_ordering" title="Sequential Element Ordering">Sequential
+        Element Ordering</a>
+</h4></div></div></div>
+<p>
+          The <span class="emphasis"><em><span class="bold"><strong>Sequential Element Ordering</strong></span></em></span>
+          abstracts from the way in which elements of interval containers are clustered
+          into intervals: it's <span class="emphasis"><em><span class="bold"><strong>segmentation</strong></span></em></span>.
+        </p>
+<p>
+          So these equality and compare operations can be applied within interval
+          container types. The admissible type combinations are summarized in the
+          next overload table.
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="comment">// overload tables for
+</span><span class="keyword">bool</span> <span class="identifier">is_element_equal</span>  <span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>
+<span class="keyword">bool</span> <span class="identifier">is_element_less</span>   <span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>
+<span class="keyword">bool</span> <span class="identifier">is_element_greater</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>
+
+<span class="identifier">element</span> <span class="identifier">containers</span><span class="special">:</span>     <span class="identifier">interval</span> <span class="identifier">containers</span><span class="special">:</span>  
+<span class="identifier">T</span><span class="special">\</span><span class="identifier">P</span><span class="special">|</span> <span class="identifier">s</span> <span class="identifier">m</span>                <span class="identifier">T</span><span class="special">\</span><span class="identifier">P</span><span class="special">|</span> <span class="identifier">S1</span> <span class="identifier">S2</span> <span class="identifier">S3</span> <span class="identifier">M1</span> <span class="identifier">M3</span>    
+<span class="special">---+----</span>                <span class="special">---+---------------</span>    
+<span class="identifier">s</span>  <span class="special">|</span> <span class="number">1</span>                  <span class="identifier">S1</span> <span class="special">|</span> <span class="number">1</span>  <span class="number">1</span>  <span class="number">1</span>    
+<span class="identifier">m</span>  <span class="special">|</span>   <span class="number">1</span>                <span class="identifier">S2</span> <span class="special">|</span> <span class="number">1</span>  <span class="number">1</span>  <span class="number">1</span>    
+                        <span class="identifier">S3</span> <span class="special">|</span> <span class="number">1</span>  <span class="number">1</span>  <span class="number">1</span>
+                        <span class="identifier">M1</span> <span class="special">|</span>          <span class="number">1</span>  <span class="number">1</span>
+                        <span class="identifier">M3</span> <span class="special">|</span>          <span class="number">1</span>  <span class="number">1</span>
+</pre>
+<p>
+        </p>
+<p>
+          For element containers lexicographical equality and sequential element
+          equality are identical.
+        </p>
+<p>
+          The <span class="bold"><strong>complexity</strong></span> of sequential element comparison
+          functions is <span class="emphasis"><em><span class="bold"><strong>linear</strong></span></em></span>
+          in the <code class="computeroutput"><span class="identifier">iterative_size</span></code> of
+          the larger container.
+        </p>
+</div>
+<div class="section boost_icl_function_reference_equivalences_and_orderings_distinct_equality" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.function_reference.equivalences_and_orderings.distinct_equality"></a><a class="link" href="equivalences_and_orderings.html#boost_icl.function_reference.equivalences_and_orderings.distinct_equality" title="Distinct Equality">Distinct
+        Equality</a>
+</h4></div></div></div>
+<p>
+          <span class="emphasis"><em><span class="bold"><strong>Distinct Equality</strong></span></em></span>
+          is an equality predicate that is available for <code class="computeroutput"><a class="link" href="../../boost/icl/map.html" title="Class template map">icl::maps</a></code>
+          and <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_maps</a></code>.
+          It yields true, if two maps are sequential element equal except for value
+          pairs whose associated values are identity elements.
+        </p>
+<p>
+          <span class="bold"><strong>Complexity</strong></span> is linear in the <code class="computeroutput"><span class="identifier">iterative_size</span></code> of the larger container
+          to compare.
+        </p>
+</div>
+<p>
+        <span class="emphasis"><em><span class="bold"><strong>See also . . .</strong></span></em></span>
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr></tr></thead>
+<tbody><tr><td>
+              <p>
+                <a class="link" href="../semantics.html#boost_icl.semantics.orderings_and_equivalences" title="Orderings and Equivalences"><span class="emphasis"><em><span class="bold"><strong>Semantics</strong></span></em></span></a>
+              </p>
+              </td></tr></tbody>
+</table></div>
+<p>
+        <span class="emphasis"><em><span class="bold"><strong>Back to section . . .</strong></span></em></span>
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr></tr></thead>
+<tbody>
+<tr><td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#function_synopsis_table"><span class="emphasis"><em><span class="bold"><strong>Function
+                Synopsis</strong></span></em></span></a>
+              </p>
+              </td></tr>
+<tr><td>
+              <p>
+                <a class="link" href="../interface.html" title="Interface"><span class="emphasis"><em><span class="bold"><strong>Interface</strong></span></em></span></a>
+              </p>
+              </td></tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="containedness.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function_reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="size.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,236 @@
+[/license
+
+Boost.Bimap
+
+Copyright (c) 2006-2007 Matias Capeletto
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+]
+
+[/ QuickBook Document version 1.4 ]
+
+[section Examples]
+
+[section Examples list]
+
+In the folder [@../../example libs/bimap/example] you can find all the examples
+used in bimap documentation. Here is a list of them:
+
+
+[table Tutorial examples
+[[Program                          ][Description                          ]]
+
+[[[@../../example/simple_bimap.cpp
+    simple_bimap.cpp                                                      ]]
+    [Soccer world cup example                                             ]]
+
+[[[@../../example/tagged_simple_bimap.cpp
+    tagged_simple_bimap.cpp                                               ]]
+    [Soccer world cup example using user defined names                    ]]
+
+[[[@../../example/step_by_step.cpp
+    step_by_step.cpp                                                      ]]
+    [Basic example of the three views of bimap                            ]]
+
+[[[@../../example/population_bimap.cpp
+    population_bimap.cpp                                                  ]]
+    [Countries populations, using `unordered_set_of` and `multiset_of`    ]]
+
+[[[@../../example/repetitions_counter.cpp
+    repetitions_counter.cpp                                               ]]
+    [Word repetitions counter, using `unordered_set_of` and `list_of`     ]]
+
+[[[@../../example/mighty_bimap.cpp
+    mighty_bimap.cpp                                                      ]]
+    [Dictionary using `list_of_relation`                                  ]]
+
+[[[@../../example/user_defined_names.cpp
+    user_defined_names.cpp                                                ]]
+    [Equivalence between code with tagged and untagged code               ]]
+
+[[[@../../example/standard_map_comparison.cpp
+    standard_map_comparison.cpp                                           ]]
+    [Comparison between standard maps and bimap map views                 ]]
+
+[[[@../../example/at_function_examples.cpp
+    at_function_examples.cpp                                              ]]
+    [Functions `at(key)` and `operator[](key)` examples                   ]]
+
+[[[@../../example/tutorial_modify_and_replace.cpp
+    tutorial_modify_and_replace.cpp                                       ]]
+    [`modify` and `replace` examples                                      ]]
+
+[[[@../../example/tutorial_range.cpp
+    tutorial_range.cpp                                                    ]]
+    [`range()` tutorial                                                   ]]
+
+[[[@../../example/tutorial_info_hook.cpp
+    tutorial_info_hook.cpp                                                ]]
+    [Additional information hooking                                       ]]
+
+[[[@../../example/unconstrained_collection.cpp
+    unconstrained_collection.cpp                                          ]]
+    [Using `unconstrained_set_of` collection type                         ]]
+]
+
+
+[table Bimap and Boost examples
+[[Program                          ][Description                          ]]
+
+[[[@../../example/bimap_and_boost/assign.cpp
+    assign.cpp                                                            ]]
+    [Bimap and Boost.Assign: Methods to insert elements                   ]]
+
+[[[@../../example/bimap_and_boost/lambda.cpp
+    lambda.cpp                                                            ]]
+    [Bimap and Boost.Lambda: new lambda placeholders                      ]]
+
+[[[@../../example/bimap_and_boost/property_map.cpp
+    property_map.cpp                                                      ]]
+    [Bimap and Boost.PropertyMap: PropertyMap support                     ]]
+
+[[[@../../example/bimap_and_boost/range.cpp
+    range.cpp                                                             ]]
+    [Bimap and Boost.Range: Using bimaps in the new range framework       ]]
+
+[[[@../../example/bimap_and_boost/foreach.cpp
+    foreach.cpp                                                           ]]
+    [Bimap and Boost.Foreach: Iterating over bimaps                       ]]
+
+[[[@../../example/bimap_and_boost/typeof.cpp
+    typeof.cpp                                                            ]]
+    [Bimap and Boost.Typeof: using BOOST_AUTO while we wait for C++0x     ]]
+
+[[[@../../example/bimap_and_boost/xpressive.cpp
+    xpressive.cpp                                                         ]]
+    [Bimap and Boost.Xpressive: Inserting elements in a bimap             ]]
+
+[[[@../../example/bimap_and_boost/serialization.cpp
+    serialization.cpp:                                                    ]]
+    [Bimap and Boost.Serialization: Load and save bimaps and iterators    ]]
+]
+
+
+[table Boost.MultiIndex to Boost.Bimap path examples
+[[Program                          ][Description                          ]]
+
+[[[@../../example/mi_to_b_path/bidirectional_map.cpp
+    bidirectional_map.cpp                                                 ]]
+    [Boost.MultiIndex to Boost.Bimap path example                         ]]
+
+[[[@../../example/mi_to_b_path/hashed_indices.cpp
+    hashed_indices.cpp                                                    ]]
+    [Boost.MultiIndex to Boost.Bimap path example                         ]]
+
+[[[@../../example/mi_to_b_path/tagged_bidirectional_map.cpp
+    tagged_bidirectional_map.cpp                                          ]]
+    [Boost.MultiIndex to Boost.Bimap path example                         ]]
+
+]
+
+[endsect]
+
+[section Simple Bimap]
+
+This is the example from the one minute tutorial section.
+
+[@../../example/simple_bimap.cpp Go to source code]
+
+[code_simple_bimap]
+
+You can rewrite it using tags to gain readability.
+
+[@../../example/tagged_simple_bimap.cpp Go to source code]
+
+[import ../example/tagged_simple_bimap.cpp]
+
+[code_tagged_simple_bimap]
+
+
+[endsect]
+
+[section Mighty Bimap]
+
+This is the translator example from the tutorial.
+In this example the collection type of relation is changed to allow the iteration
+of the container.
+
+[@../../example/mighty_bimap.cpp Go to source code]
+
+[code_mighty_bimap]
+
+
+[endsect]
+
+[section MultiIndex to Bimap Path - Bidirectional Map]
+
+This is example 4 in Boost.MultiIndex documentation.
+
+[blurb
+This example shows how to construct a bidirectional map with multi_index_container.
+By a bidirectional map we mean a container of elements of
+`std::pair<const FromType,const ToType>` such that no two elements exists with the
+same first or second value (`std::map` only guarantees uniqueness of the first member).
+Fast look-up is provided for both keys. The program features a tiny Spanish-English
+dictionary with on-line query of words in both languages.
+]
+
+[heading Boost.MultiIndex]
+
+[@../../example/mi_to_b_path/mi_bidirectional_map.cpp Go to source code]
+
+[import ../example/mi_to_b_path/mi_bidirectional_map.cpp]
+
+[code_mi_to_b_path_mi_bidirectional_map]
+
+[heading Boost.Bimap]
+
+[@../../example/mi_to_b_path/bidirectional_map.cpp Go to source code]
+
+[import ../example/mi_to_b_path/bidirectional_map.cpp]
+
+[code_mi_to_b_path_bidirectional_map]
+
+Or better, using tags...
+
+[@../../example/mi_to_b_path/tagged_bidirectional_map.cpp Go to source code]
+
+[import ../example/mi_to_b_path/tagged_bidirectional_map.cpp]
+
+[code_mi_to_b_path_tagged_bidirectional_map]
+
+[endsect]
+
+[section MultiIndex to Bimap Path - Hashed indices]
+
+This is example 8 of Boost.MultiIndex.
+
+[blurb
+Hashed indices can be used as an alternative to ordered indices when fast look-up is needed and sorting
+information is of no interest. The example features a word counter where duplicate entries are checked by
+means of a hashed index.
+]
+
+[heading Boost.MultiIndex]
+
+[@../../example/mi_to_b_path/mi_hashed_indices.cpp Go to source code]
+
+[import ../example/mi_to_b_path/mi_hashed_indices.cpp]
+
+[code_mi_to_b_path_mi_hashed_indices]
+
+[heading Boost.Bimap]
+
+[@../../example/mi_to_b_path/hashed_indices.cpp Go to source code]
+
+[import ../example/mi_to_b_path/hashed_indices.cpp]
+
+[code_mi_to_b_path_hashed_indices]
+
+
+[endsect]
+
+[endsect]

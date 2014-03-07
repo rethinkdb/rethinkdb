@@ -1,0 +1,208 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:lexer_token_values About Tokens and Token Values]
+
+As already discussed, lexical scanning is the process of analyzing the stream 
+of input characters and separating it into strings called tokens, most of the 
+time separated by whitespace. The different token types recognized by a lexical 
+analyzer often get assigned unique integer token identifiers (token ids). These 
+token ids are normally used by the parser to identify the current token without 
+having to look at the matched string again. The __lex__ library is not 
+different with respect to this, as it uses the token ids as the main means of 
+identification of the different token types defined for a particular lexical 
+analyzer. However, it is different from commonly used lexical analyzers in the 
+sense that it returns (references to) instances of a (user defined) token class 
+to the user. The only limitation of this token class is that it must carry at 
+least the token id of the token it represents. For more information about the 
+interface a user defined token type has to expose please look at the 
+__sec_ref_lex_token__ reference. The library provides a default 
+token type based on the __lexertl__ library which should be sufficient in most 
+cases: the __class_lexertl_token__ type. This section focusses on the 
+description of general features a token class may implement and how this 
+integrates with the other parts of the __lex__ library.
+
+[heading The Anatomy of a Token]
+
+It is very important to understand the difference between a token definition 
+(represented by the __class_token_def__ template) and a token itself (for 
+instance represented by the __class_lexertl_token__ template). 
+
+The token definition is used to describe the main features of a particular 
+token type, especially:
+
+* to simplify the definition of a token type using a regular expression pattern 
+  applied while matching this token type,
+* to associate a token type with a particular lexer state,
+* to optionally assign a token id to a token type,
+* to optionally associate some code to execute whenever an instance of this 
+  token type has been matched,
+* and to optionally specify the attribute type of the token value.
+
+The token itself is a data structure returned by the lexer iterators. 
+Dereferencing a lexer iterator returns a reference to the last matched token 
+instance. It encapsulates the part of the underlying input sequence matched by
+the regular expression used during the definition of this token type. 
+Incrementing the lexer iterator invokes the lexical analyzer to
+match the next token by advancing the underlying input stream. The token data 
+structure contains at least the token id of the matched token type, 
+allowing to identify the matched character sequence. Optionally, the token 
+instance may contain a token value and/or the lexer state this token instance
+was matched in. The following [link spirit.lex.tokenstructure figure] shows the 
+schematic structure of a token.
+
+[fig tokenstructure.png..The structure of a token..spirit.lex.tokenstructure]
+
+The token value and the lexer state the token has been recognized in may be 
+omitted for optimization reasons, thus avoiding the need for the token to carry 
+more data than actually required. This configuration can be achieved by supplying 
+appropriate template parameters for the 
+__class_lexertl_token__ template while defining the token type. 
+
+The lexer iterator returns the same token type for each of the different 
+matched token definitions. To accommodate for the possible different token 
+/value/ types exposed by the various token types (token definitions), the 
+general type of the token value is a __boost_variant__. At a minimum (for the 
+default configuration) this token value variant will be configured to always 
+hold a __boost_iterator_range__ containing the pair of iterators pointing to 
+the matched input sequence for this token instance.
+
+[note If the lexical analyzer is used in conjunction with a __qi__ parser, the 
+      stored __boost_iterator_range__ token value will be converted to the 
+      requested token type (parser attribute) exactly once. This happens at the 
+      time of the first access to the token value requiring the  
+      corresponding type conversion. The converted token value will be stored 
+      in the __boost_variant__ replacing the initially stored iterator range.
+      This avoids having to convert the input sequence to the token value more 
+      than once, thus optimizing the integration of the lexer with __qi__, even 
+      during parser backtracking.
+]
+
+Here is the template prototype of the __class_lexertl_token__ template:
+
+    template <
+        typename Iterator = char const*, 
+        typename AttributeTypes = mpl::vector0<>, 
+        typename HasState = mpl::true_
+    >
+    struct lexertl_token;
+
+[variablelist where:
+    [[Iterator]       [This is the type of the iterator used to access the 
+                       underlying input stream. It defaults to a plain 
+                       `char const*`.]]
+    [[AttributeTypes] [This is either a mpl sequence containing all 
+                       attribute types used for the token definitions or the
+                       type `omit`. If the mpl sequence is empty (which is 
+                       the default), all token instances will store a 
+                       __boost_iterator_range__`<Iterator>` pointing to the start
+                       and the end of the matched section in the input stream.
+                       If the type is `omit`, the generated tokens will
+                       contain no token value (attribute) at all.]]
+    [[HasState]       [This is either `mpl::true_` or `mpl::false_`, allowing
+                       control as to whether the generated token instances will
+                       contain the lexer state they were generated in. The 
+                       default is mpl::true_, so all token instances will 
+                       contain the lexer state.]]
+]
+
+Normally, during construction, a token instance always holds the 
+__boost_iterator_range__ as its token value, unless it has been defined 
+using the `omit` token value type. This iterator range then is 
+converted in place to the requested token value type (attribute) when it is
+requested for the first time.
+
+
+[heading The Physiognomy of a Token Definition]
+
+The token definitions (represented by the __class_token_def__ template) are 
+normally used as part of the definition of the lexical analyzer. At the same 
+time a token definition instance may be used as a parser component in __qi__.
+
+The template prototype of this class is shown here:
+
+    template<
+        typename Attribute = unused_type, 
+        typename Char = char
+    >
+    class token_def;
+
+[variablelist where:
+    [[Attribute]      [This is the type of the token value (attribute) 
+                       supported by token instances representing this token 
+                       type. This attribute type is exposed to the __qi__ 
+                       library, whenever this token definition is used as a 
+                       parser component. The default attribute type is 
+                       `unused_type`, which means the token instance holds a
+                       __boost_iterator_range__ pointing to the start
+                       and the end of the matched section in the input stream.
+                       If the attribute is `omit` the token instance will
+                       expose no token type at all. Any other type will be 
+                       used directly as the token value type.]]
+    [[Char]           [This is the value type of the iterator for the 
+                       underlying input sequence. It defaults to `char`.]]
+]
+
+The semantics of the template parameters for the token type and the token 
+definition type are very similar and interdependent. As a rule of thumb you can 
+think of the token definition type as the means of specifying everything 
+related to a single specific token type (such as `identifier` or `integer`).
+On the other hand the token type is used to define the general properties of all
+token instances generated by the __lex__ library.
+
+[important If you don't list any token value types in the token type definition 
+           declaration (resulting in the usage of the default __boost_iterator_range__ 
+           token type) everything will compile and work just fine, just a bit 
+           less efficient. This is because the token value will be converted 
+           from the matched input sequence every time it is requested. 
+           
+           But as soon as you specify at least one token value type while 
+           defining the token type you'll have to list all value types used for 
+           __class_token_def__ declarations in the token definition class, 
+           otherwise compilation errors will occur.
+]
+
+
+[heading Examples of using __class_lexertl_token__]
+
+Let's start with some examples. We refer to one of the __lex__ examples (for 
+the full source code of this example please see 
+[@../../example/lex/example4.cpp example4.cpp]).
+
+[import ../example/lex/example4.cpp]
+
+The first code snippet shows an excerpt of the token definition class, the
+definition of a couple of token types. Some of the token types do not expose a
+special token value (`if_`, `else_`, and `while_`). Their token value will
+always hold the iterator range of the matched input sequence. The token
+definitions for the `identifier` and the integer `constant` are specialized 
+to expose an explicit token type each: `std::string` and `unsigned int`.
+
+[example4_token_def]
+
+As the parsers generated by __qi__ are fully attributed, any __qi__ parser 
+component needs to expose a certain type as its parser attribute. Naturally, 
+the __class_token_def__ exposes the token value type as its parser attribute, 
+enabling a smooth integration with __qi__.
+
+The next code snippet demonstrates how the required token value types are 
+specified while defining the token type to use. All of the token value types
+used for at least one of the token definitions have to be re-iterated for the 
+token definition as well.
+
+[example4_token]
+
+To avoid the token to have a token value at all, the special tag `omit` can 
+be used: `token_def<omit>` and `lexertl_token<base_iterator_type, omit>`.
+
+
+
+
+
+
+[endsect]

@@ -1,0 +1,23 @@
+[library Duplicates 1.1
+
+[id thing1]
+[id thing2]
+[dirname thing1]
+[dirname thing2]
+[last-revision Yesterday]
+[last-revision Tomorrow]
+[purpose Test Duplicates]
+[purpose Another Duplicate]
+[category Category 1]
+[category Category 2]
+[version 1]
+[version 2]
+[authors [Blow, Joe]]
+[authors [Doe, Jane]]
+[copyright 2018 Joe Blow]
+[copyright 1963 Jane Doe]
+[license Some license]
+[license Public Domain]
+]
+
+Content

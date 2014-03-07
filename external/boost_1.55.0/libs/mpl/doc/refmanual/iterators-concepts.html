@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: Concepts</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./iterators.html" class="navigation-link">Prev</a>&nbsp;<a href="./forward-iterator.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./iterator-metafunctions.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iterators.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./iterators.html" class="navigation-link">Iterators</a> / <a href="./iterators-concepts.html" class="navigation-link">Concepts</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="id382">
+<h1><a class="toc-backref" href="./iterators.html#id1449"><a class="subsection-title" href="#concepts" name="concepts">Concepts</a></a></h1>
+<p id="label-iterators-concepts">All iterators in MPL are classified into three iterator concepts, or
+<cite>categories</cite>, named according to the type of traversal provided. The
+categories are: <a class="reference internal" href="./forward-iterator.html">Forward Iterator</a>, <a class="reference internal" href="./bidirectional-iterator.html">Bidirectional Iterator</a>, and
+<a class="reference internal" href="./random-access-iterator.html">Random Access Iterator</a>. The concepts are hierarchical:
+<a class="reference internal" href="./random-access-iterator.html">Random Access Iterator</a> is a refinement of <a class="reference internal" href="./bidirectional-iterator.html">Bidirectional Iterator</a>,
+which, in its turn, is a refinement of <a class="reference internal" href="./forward-iterator.html">Forward Iterator</a>.</p>
+<p>Because of the inherently immutable nature of the value access, MPL
+iterators escape the problems of the traversal-only categorization
+discussed at length in <a class="citation-reference" href="#n1550" id="id383">[n1550]</a>.</p>
+<table class="docutils citation" frame="void" id="n1550" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id383">[n1550]</a></td><td><a class="reference external" href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1550.htm" target="_top">http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1550.htm</a></td></tr>
+</tbody>
+</table>
+<!-- Iterators/Concepts//Forward Iterator |10 -->
+<ul class="toc simple" id="outline">
+<li><a class="reference internal" href="./forward-iterator.html" id="id1450">Forward Iterator</a></li>
+<li><a class="reference internal" href="./bidirectional-iterator.html" id="id1451">Bidirectional Iterator</a></li>
+<li><a class="reference internal" href="./random-access-iterator.html" id="id1452">Random Access Iterator</a></li>
+</ul>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./iterators.html" class="navigation-link">Prev</a>&nbsp;<a href="./forward-iterator.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./iterator-metafunctions.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iterators.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

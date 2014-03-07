@@ -1,0 +1,162 @@
+/** @mainpage Program options documentation 
+
+    @section scope Scope
+
+    Briefly, the library should allow program developers to obtain
+    <em>program options</em>, i.e. (name,value) pairs from the user,
+    via conventional methods such as command line and config file.
+    
+    Necessary facilities include:
+    - parse command line
+    - parse config files
+    - perform semantic validation on input, such as checking for correct
+      type of parameters, and storing values.
+    - combine all inputs together, so that all program options can
+      be obtained in one place.
+
+    @section goals Goals
+    The fundamental goals for this library were:
+    - it should be more convenient to use it than parse command line by hand,
+      even when the number of possible options is 2,
+    - all popular command line styles should be supported,
+    - "you pay for what you use" principle is important: simple utilities
+      need not be forced to depend on excessive amount of code.
+    - it must be possible to validate option values, convert them to required
+      types, and store either in program variables, or in data structures
+      maintained by the library.
+    - data from command line and config file should be usable together, and
+      alternative program option sources (such as registry) should be
+      possible.
+
+   @section design_overview Design overview
+
+   To meet the stated goals, the library uses a layered architecture.
+   -# At the bottom, there are two parser classes, 
+      boost::program_options::cmdline and 
+      boost::program_options::config_file.
+    They are responsible for syntax matters only and provide simple 
+    iterator-like interface.
+   -# The boost::program_options::options_and_arguments holds the result of parsing command line or
+    config file. It is still concerned with syntax only and holds precisely
+    what is found on command line. There's a couple of associated parse
+    functions (
+    @ref parse_cmdline_func "1",
+    @ref parse_config_file_func "2"), 
+    which relieve the user from the need to iterate over options 
+    and arguments manually.
+   -# The class boost::program_options::options_description is a high-level 
+    description of allowed
+    program options, which does not depend on concrete parser class. In
+    addition, it can be used to provide help message. There are parse
+    functions which return options_and_arguments given options_description.
+   -# The options_description class also has semantic responsibilities. It's
+    possible to specify validators for option, their default values, and the 
+    like. There's a function boost::program_options::perform_semantic_actions, 
+    which handles this information and returns a map of option values.
+   -# Finally, at the top, there boost::program_options::variables_map class. 
+    It's possible to
+    store options in it, and obtain them later. Another feature is that
+    different variable_map instances can be linked together, so that both
+    command line and config file data is used. Additional option sources can
+    be added at this level.
+   
+   @section futher_reading Futher reading
+
+   To get further information about the library, you might want to read
+   the documentation for the classes referenced above. Another possibility
+   is to look through the examples:
+   
+    -  @ref options_description "simple usage"
+    -  @ref variables_map "parsing with validation and assignment to program variables"
+    -  @ref multiple_sources "using command line and config file together"
+    -  @ref custom_syntax "customized options syntax"
+    -  @ref real_example "real example"
+    -  @ref custom_validator "custom validator"
+    -  @ref multiple_modules "possible approach for multi-module programs"
+    -  @ref cmdline "low level cmdline parsing"
+
+    Finally, you might want the check out the @ref recipes "recipes" page.
+*/
+
+/** @page examples Examples
+
+    -  @ref options_description "simple usage"
+    -  @ref variables_map "parsing with validation and assignment to program variables"
+    -  @ref multiple_sources "using command line and config file together"
+    -  @ref custom_syntax "customized options syntax"
+    -  @ref real_example "real example"
+    -  @ref custom_validator "custom validator"
+    -  @ref multiple_modules "possible approach for multi-module programs"
+    -  @ref cmdline "low level cmdline parsing"
+*/
+
+/** @page options_description Options description
+
+    Example of quite a simple usage. Options are registered and the 
+    command line is parsed. The user is responsible to interpreting the
+    option values. This also how automatic help message.
+
+    @include options_description.cpp
+*/
+
+/** @page variables_map Variables map
+
+    In this example, the <tt>parameter</tt> function is used to enable
+    validation of options (i.e. checking that they are of correct type).
+    The option values are also stored in program variables.
+
+    @include variables_map.cpp
+*/
+
+/** @page multiple_sources Multiple sources
+
+    It is possible for program options to come from different sources. 
+    Here, the command line and a config file are used, and the values
+    specified in both are combined, with preferrence given to the
+    command line.
+
+    @include multiple_sources.cpp
+*/
+
+/** @page custom_syntax Custom syntax
+
+    Some applications use a custom syntax for the command line. In this
+    example, the gcc style of &quot;-fbar&quot;/&quot;-f&quot; is handled.
+
+    @include custom_syntax.cpp
+*/
+
+/** @page real_example A real example
+
+    Shows how to use custom option description class and custom formatter.
+    Also validates some option relationship.
+
+    @include real.cpp
+*/
+
+/** @page multiple_modules Multiple modules
+
+    Large programs are likely to have several modules which want to use
+    some options. One possible approach is show here.
+    @sa @ref recipe_multiple_modules
+
+    @include multiple_modules.cpp 
+*/
+
+/** @page custom_validator Custom validator
+
+    It's possible to plug in arbitrary function for converting the string
+    value from the command line to the value used in your program. The
+    example below illustrates this.
+
+    @include regex.cpp
+*/
+
+/** @page cmdline The cmdline class
+
+    When validation or automatic help message are not needed, it's possible
+    to use low-level boost::program_options::cmdline class, like shown
+    in this example.
+
+    @include cmdline.cpp
+*/

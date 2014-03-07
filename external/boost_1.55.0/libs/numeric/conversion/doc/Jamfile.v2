@@ -1,0 +1,36 @@
+# Boost.Numeric/Conversion
+#
+# Copyright (c) 2004-2007 Fernando Luis Cacciola Carballal
+#
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+
+# Quickbook
+# -----------------------------------------------------------------------------
+
+import quickbook ;
+
+path-constant images : html ;
+
+
+xml conversion
+    :
+        conversion.qbk
+    ;
+
+boostbook standalone
+    :
+        conversion
+    :
+        <xsl:param>boost.root=../../../../..
+        <xsl:param>html.stylesheet=boostbook.css
+        <xsl:param>toc.max.depth=2
+        <xsl:param>toc.section.depth=2
+        <xsl:param>chunk.section.depth=1
+        <format>pdf:<xsl:param>img.src.path=$(images)/
+        <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/libs/numeric/conversion/doc/html
+    ;
+
+

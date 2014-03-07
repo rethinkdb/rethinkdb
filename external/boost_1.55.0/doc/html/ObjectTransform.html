@@ -1,0 +1,122 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Concept ObjectTransform</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="proto/reference.html" title="Reference">
+<link rel="prev" href="Expr.html" title="Concept Expr">
+<link rel="next" href="PolymorphicFunctionObject.html" title="Concept PolymorphicFunctionObject">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="Expr.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="proto/reference.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="PolymorphicFunctionObject.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="ObjectTransform"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Concept ObjectTransform</span></h2>
+<p>ObjectTransform</p>
+</div>
+<div class="refsect1">
+<a name="idp188829816"></a><h2>Description</h2>
+<p>
+      An ObjectTransform is a function type or a function
+      pointer type where the return type Obj is a
+      an object type and the arguments are
+      Transforms. is_callable&lt; Obj &gt;::value
+      must be false. The ObjectTransform, when applied,
+      has the effect of constructing an object of type
+      Obj' (see below), passing as construction parameters
+      the result(s) of applying transform(s) Tn.
+    </p>
+<p>
+      The type Obj may be a template specialization representing
+      a compile-time lambda expression. For instance, if Obj is
+      std::pair&lt; proto::_value, int &gt;, the result type of the
+      ObjectTransform is computed by replacing the type proto::_value
+      with the result of applying the proto::_value transform. For
+      given types Obj, Expr, State and Data, we can say that the
+      type Obj' represents the type Obj after all nested transforms
+      have been replaced with the results of applying the transforms
+      with Expr, State and Data as transform arguments.
+    </p>
+<p>
+      If the type Obj is not a template specialization representing
+      a compile-time lambda expression, then the result type Obj' is
+      the same as Obj.
+    </p>
+</div>
+<div class="refsect1">
+<a name="idp188831000"></a><h2>Notation</h2>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term">Obj</span></dt>
+<dd>A type playing the role of object-type in the <a class="link" href="ObjectTransform.html" title="Concept ObjectTransform">ObjectTransform</a> concept.</dd>
+<dt><span class="term">Tn</span></dt>
+<dd>A type playing the role of transform-type in the <a class="link" href="ObjectTransform.html" title="Concept ObjectTransform">ObjectTransform</a> concept.</dd>
+<dt><span class="term">Expr</span></dt>
+<dd>A type playing the role of expression-type in the <a class="link" href="ObjectTransform.html" title="Concept ObjectTransform">ObjectTransform</a> concept.</dd>
+<dt><span class="term">State</span></dt>
+<dd>A type playing the role of state-type in the <a class="link" href="ObjectTransform.html" title="Concept ObjectTransform">ObjectTransform</a> concept.</dd>
+<dt><span class="term">Data</span></dt>
+<dd>A type playing the role of data-type in the <a class="link" href="ObjectTransform.html" title="Concept ObjectTransform">ObjectTransform</a> concept.</dd>
+<dt><span class="term"><code class="varname">expr</code></span></dt>
+<dd>Object of type Expr</dd>
+<dt><span class="term"><code class="varname">state</code></span></dt>
+<dd>Object of type State</dd>
+<dt><span class="term"><code class="varname">data</code></span></dt>
+<dd>Object of type Data</dd>
+</dl></div>
+</div>
+<div class="refsect1">
+<a name="idp188836952"></a><h2>Valid expressions</h2>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Type</th>
+<th>Semantics</th>
+</tr></thead>
+<tbody><tr>
+<td><p>Apply Transform</p></td>
+<td><p>when&lt; _, Obj(Tn...)&gt;()(expr, state, data)</p></td>
+<td><p><span class="type">Obj'</span></p></td>
+<td><p>Applies the transform.</p></td>
+</tr></tbody>
+</table></div>
+</div>
+<div class="refsect1">
+<a name="idp188839208"></a><h2>Models</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><span class="simplelist"><span class="type">std::pair&lt; boost::proto::_value, int &gt;(boost::proto::_value, int())</span></span></li></ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="Expr.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="proto/reference.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="PolymorphicFunctionObject.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

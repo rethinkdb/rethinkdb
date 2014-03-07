@@ -1,0 +1,256 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template dst_calculator</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.dst_rules_hpp" title="Header &lt;boost/date_time/dst_rules.hpp&gt;">
+<link rel="prev" href="from_stream_ty_idp35250376.html" title="Function template from_stream_type">
+<link rel="next" href="dst_calc_engine.html" title="Class template dst_calc_engine">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="from_stream_ty_idp35250376.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.dst_rules_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="dst_calc_engine.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.dst_calculator"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template dst_calculator</span></h2>
+<p>boost::date_time::dst_calculator &#8212; Dynamic class used to caluclate dst transition information. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.dst_rules_hpp" title="Header &lt;boost/date_time/dst_rules.hpp&gt;">boost/date_time/dst_rules.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> date_type_<span class="special">,</span> <span class="keyword">typename</span> time_duration_type_<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="dst_calculator.html" title="Class template dst_calculator">dst_calculator</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">time_duration_type_</span> <a name="boost.date_time.dst_calculator.time_duration_type"></a><span class="identifier">time_duration_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">date_type_</span>          <a name="boost.date_time.dst_calculator.date_type"></a><span class="identifier">date_type</span><span class="special">;</span>         
+
+  <span class="comment">// <a class="link" href="dst_calculator.html#idp36590760-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">time_is_dst_result</span> 
+  <a class="link" href="dst_calculator.html#idp36590968-bb"><span class="identifier">process_local_dst_start_day</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">long</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">time_is_dst_result</span> 
+  <a class="link" href="dst_calculator.html#idp36397688-bb"><span class="identifier">process_local_dst_end_day</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">long</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">time_is_dst_result</span> 
+  <a class="link" href="dst_calculator.html#idp35161528-bb"><span class="identifier">local_is_dst</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span><span class="special">,</span> 
+               <span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span><span class="special">,</span> 
+               <span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span><span class="special">,</span> 
+               <span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">time_is_dst_result</span> 
+  <a class="link" href="dst_calculator.html#idp52396104-bb"><span class="identifier">local_is_dst</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span><span class="special">,</span> 
+               <span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span><span class="special">,</span> 
+               <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">long</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp86408024"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp86408232"></a><h3>
+<a name="idp36590760-bb"></a><code class="computeroutput">dst_calculator</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">time_is_dst_result</span> 
+<a name="idp36590968-bb"></a><span class="identifier">process_local_dst_start_day</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span> time_of_day<span class="special">,</span> 
+                            <span class="keyword">unsigned</span> <span class="keyword">int</span> dst_start_offset_minutes<span class="special">,</span> 
+                            <span class="keyword">long</span> dst_length_minutes<span class="special">)</span><span class="special">;</span></pre>Check the local time offset when on dst start day. <p>On this dst transition, the time label between the transition boundary and the boudary + the offset are invalid times. If before the boundary then still not in dst. 
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dst_length_minutes</code></span></p></td>
+<td><p>Number of minutes to adjust clock forward </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dst_start_offset_minutes</code></span></p></td>
+<td><p>Local day offset for start of dst </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">time_of_day</code></span></p></td>
+<td><p>Time offset in the day for the local time </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">time_is_dst_result</span> 
+<a name="idp36397688-bb"></a><span class="identifier">process_local_dst_end_day</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span> time_of_day<span class="special">,</span> 
+                          <span class="keyword">unsigned</span> <span class="keyword">int</span> dst_end_offset_minutes<span class="special">,</span> 
+                          <span class="keyword">long</span> dst_length_minutes<span class="special">)</span><span class="special">;</span></pre>Check the local time offset when on the last day of dst. <p>This is the calculation for the DST end day. On that day times prior to the conversion time - dst_length (1 am in US) are still in dst. Times between the above and the switch time are ambiguous. Times after the start_offset are not in dst. 
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dst_end_offset_minutes</code></span></p></td>
+<td><p>Local time of day for end of dst </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">time_of_day</code></span></p></td>
+<td><p>Time offset in the day for the local time </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">time_is_dst_result</span> 
+<a name="idp35161528-bb"></a><span class="identifier">local_is_dst</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span> current_day<span class="special">,</span> 
+             <span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span> time_of_day<span class="special">,</span> 
+             <span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span> dst_start_day<span class="special">,</span> 
+             <span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span> dst_start_offset<span class="special">,</span> 
+             <span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span> dst_end_day<span class="special">,</span> 
+             <span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span> dst_end_offset<span class="special">,</span> 
+             <span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span> dst_length_minutes<span class="special">)</span><span class="special">;</span></pre>Calculates if the given local time is dst or not. <p>Determines if the time is really in DST or not. Also checks for invalid and ambiguous. 
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">current_day</code></span></p></td>
+<td><p>The day to check for dst </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dst_end_day</code></span></p></td>
+<td><p>Ending day of dst for the given locality </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dst_end_offset</code></span></p></td>
+<td><p>Time offset within day given in dst for dst boundary </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dst_start_day</code></span></p></td>
+<td><p>Starting day of dst for the given locality </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dst_start_offset</code></span></p></td>
+<td><p>Time offset within day for dst boundary </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">time_of_day</code></span></p></td>
+<td><p>Time offset within the day to check </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">time_is_dst_result</span> 
+<a name="idp52396104-bb"></a><span class="identifier">local_is_dst</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span> current_day<span class="special">,</span> 
+             <span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span> time_of_day<span class="special">,</span> 
+             <span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span> dst_start_day<span class="special">,</span> 
+             <span class="keyword">unsigned</span> <span class="keyword">int</span> dst_start_offset_minutes<span class="special">,</span> 
+             <span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span> dst_end_day<span class="special">,</span> 
+             <span class="keyword">unsigned</span> <span class="keyword">int</span> dst_end_offset_minutes<span class="special">,</span> <span class="keyword">long</span> dst_length_minutes<span class="special">)</span><span class="special">;</span></pre>Calculates if the given local time is dst or not. <p>Determines if the time is really in DST or not. Also checks for invalid and ambiguous. 
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">current_day</code></span></p></td>
+<td><p>The day to check for dst </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dst_end_day</code></span></p></td>
+<td><p>Ending day of dst for the given locality </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dst_end_offset_minutes</code></span></p></td>
+<td><p>Offset within day given in dst for dst boundary (eg 120 for US which is 02:00:00) </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dst_length_minutes</code></span></p></td>
+<td><p>Length of dst adjusment (eg: 60 for US) </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dst_start_day</code></span></p></td>
+<td><p>Starting day of dst for the given locality </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dst_start_offset_minutes</code></span></p></td>
+<td><p>Offset within day for dst boundary (eg 120 for US which is 02:00:00) </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">time_of_day</code></span></p></td>
+<td><p>Time offset within the day to check </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="from_stream_ty_idp35250376.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.dst_rules_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="dst_calc_engine.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

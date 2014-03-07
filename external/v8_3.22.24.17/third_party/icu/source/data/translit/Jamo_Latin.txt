@@ -1,0 +1,13 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Jamo_Latin.txt
+# Generated from CLDR 
+#
+::['ᄀ-하-ᅵᆨ-ᇂ가-힣];
+::NFD;
+::ConjoiningJamo-Latin;
+::NFC;

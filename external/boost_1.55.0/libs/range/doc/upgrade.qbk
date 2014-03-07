@@ -1,0 +1,51 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:upgrade Upgrade version of Boost.Range]
+
+[section:upgrade_from_1_49 Upgrade from version 1.49]
+
+# __size__ now returns the type Rng::size_type if the range has size_type;
+otherwise range_size<Rng>::type is used. This is the distance type promoted to
+an unsigned type.
+
+[endsect]
+
+[section:upgrade_from_1_45 Upgrade from version 1.45]
+
+# __size__ in addition to supporting __random_access_range__ now also supports extensibility via calls to the unqualified `range_calculate_size(rng)` function.
+# __range_adaptors_strided__ now in addition to working with any RandomAccessRange additionally works for any SinglePassRange for which `boost::size(rng)` is valid.
+# __range_adaptors_strided__ no longer requires `distance(rng) % stride_size == 0` or `stride_size < distance(rng)`
+
+[endsect]
+
+[section:upgrade_from_1_42 Upgrade from version 1.42]
+
+New features:
+
+# __range_adaptors__
+# __range_algorithms__
+
+Removed:
+
+# `iterator_range` no longer has a `is_singular` member function. The singularity restrictions have been removed from the `iterator_range` class since this added restrictions to ranges of iterators whose default constructors were not singular. Previously the `is_singular` member function always returned `false` in release build configurations, hence it is not anticipated that this interface change will produce difficulty in upgrading.
+
+
+[endsect]
+
+[section:upgrade_from_1_34 Upgrade from version 1.34]
+
+Boost version 1.35 introduced some larger refactorings of the library:
+
+# Direct support for character arrays was abandoned in favor of uniform treatment of all arrays. Instead string algorithms can use the new function __as_literal__`()`.
+# __size__ now requires a __random_access_range__. The old behavior is provided as __distance__`()`.
+# `range_size<T>::type` has been completely removed in favor of `range_difference<T>::type`
+# `boost_range_begin()` and `boost_range_end()` have been renamed `range_begin()` and `range_end()` respectively.
+# `range_result_iterator<T>::type` and `range_reverse_result_iterator<T>::type` have been renamed `range_iterator<T>::type` and `range_reverse_iterator<T>::type`.
+# The procedure that makes a custom type work with the library has been greatly simplified. See __extending_for_udts__ for details.
+
+[endsect]
+
+[endsect]

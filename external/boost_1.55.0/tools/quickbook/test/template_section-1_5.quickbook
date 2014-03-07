@@ -1,0 +1,20 @@
+[article Section in a template
+    [quickbook 1.5]
+]
+
+[template nestedsection[]
+
+Some text before the section.
+
+[section Test]
+
+Hello.
+
+[heading Just to test id generation]
+
+Goodbye.
+
+[endsect]
+]
+
+[nestedsection]

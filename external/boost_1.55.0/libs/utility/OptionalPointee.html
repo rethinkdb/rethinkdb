@@ -1,0 +1,164 @@
+<HTML>
+<Head>
+<Title>OptionalPointee Concept</Title>
+</HEAD>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+<!--end header-->
+<BR Clear>
+<H1>Concept: OptionalPointee</H1>
+
+<h3>Description</h3>
+A type is a model of <i>OptionalPointee</i> if it points to (or refers to) a value 
+that may not exist. That is, if it has a <b>pointee</b> which might be <b>valid</b>
+(existent) or <b>invalid</b> (inexistent); and it is possible to test whether the 
+pointee is valid or not.
+This model does <u>not</u> imply pointer semantics: i.e., it does not imply shallow copy nor
+aliasing.
+<h3>Notation</h3>
+<Table>
+  <TR>
+    <TD VAlign=top> <tt>T</tt> </TD>
+    <TD VAlign=top> is a type that is a model of OptionalPointee</TD>
+  </TR>
+  <TR>
+    <TD VAlign=top> <tt>t</tt> </TD>
+    <TD VAlign=top> is an object of type <tt>T</tt> or possibly <tt>const T</tt></TD>
+  </tr>
+</table>
+<h3>Definitions</h3>
+<h3>Valid expressions</h3>
+<Table border>
+  <TR>
+    <TH> Name </TH>
+    <TH> Expression </TH>
+    <TH> Return type </TH>
+    <TH> Semantics </TH>
+  </TR>
+  <TR>
+    <TD VAlign=top>Value Access</TD>
+    <TD VAlign=top>&nbsp;<tt>*t</tt></TD>
+    <TD VAlign=top>&nbsp;<tt>T&amp;</tt></TD>
+    <TD VAlign=top>If the pointee is valid returns a reference to
+      the pointee.<br>
+      If the pointee is invalid the result is <i>undefined</i>.</TD>
+    <TD VAlign=top> </TD>
+  </TR>
+  <TR>
+    <TD VAlign=top>Value Access</TD>
+    <TD VAlign=top>&nbsp;<tt>t-><i>xyz</i></tt></TD>
+    <TD VAlign=top>&nbsp;<tt>T*</tt></TD>
+    <TD VAlign=top>If the pointee is valid returns a builtin pointer to the pointee.<br>
+      If the pointee is invalid the result is <i>undefined</i> (It might not even return NULL).<br>
+    </TD>
+    <TD VAlign=top> </TD>
+  </TR>
+  <TR>
+    <TD VAlign=top>Validity Test</TD>
+    <TD VAlign=top>&nbsp;<tt>t</tt><br>
+     &nbsp;<tt>t != 0</tt><br>
+     &nbsp;<tt>!!t</tt>
+     </TD>
+    <TD VAlign=top>&nbsp;bool </TD>
+    <TD VAlign=top>If the pointee is valid returns true.<br>
+      If the pointee is invalid returns false.</TD>
+    <TD VAlign=top></TD>
+  </TR>
+  <TR>
+    <TD VAlign=top>Invalidity Test</TD>
+    <TD VAlign=top>&nbsp;<tt>t == 0</tt><br>
+                   &nbsp;<tt>!t</tt>
+    </TD>
+    <TD VAlign=top>&nbsp;bool </TD>
+    <TD VAlign=top>If the pointee is valid returns false.<br>
+      If the pointee is invalid returns true.</TD>
+    <TD VAlign=top></TD>
+  </TR>
+</table>
+
+
+<h3>Models</h3>
+
+<UL>
+  <LI><tt>pointers, both builtin and smart.</tt>
+  <LI><tt>boost::optional&lt;&gt;</tt>
+</UL>
+
+<HR>
+<h3>OptionalPointee and relational operations</h3>
+<p>This concept does not define any particular semantic for relational operations, therefore,
+a type which models this concept might have either shallow or deep relational semantics.<br>
+For instance, pointers, which are models of OptionalPointee, have shallow relational operators:
+comparisons of pointers do not involve comparisons of pointees.
+This makes sense for pointers because they have shallow copy semantics.<br>
+But boost::optional&lt;T&gt;, on the other hand, which is also a model of OptionalPointee, has
+deep-copy and deep-relational semantics.<br>
+If generic code is written for this concept, it is important not to use relational
+operators directly because the semantics might be different depending on the actual type.<br>
+Still, the concept itsef can be used to define <i>deep</i> relational tests that can
+be used in generic code with any type which models OptionalPointee:</p>
+<a name="equal"></a>
+<p><u>Equivalence relation:</u></p>
+<pre>template&lt;class OptionalPointee&gt;
+inline
+bool equal_pointees ( OptionalPointee const&amp; x, OptionalPointee const&amp; y )
+{
+  return (!x) != (!y) ? false : ( !x ? true : (*x) == (*y) ) ;
+}
+template&lt;class OptionalPointee&gt;
+struct equal_pointees_t : std::binary_function&lt;OptionalPointee,OptionalPointee,bool&gt;
+{
+  bool operator() ( OptionalPointee const& x, OptionalPointee const& y ) const
+    { return equal_pointees(x,y) ; }
+} ;
+</pre>
+<p>The preceding generic function and function object have the following semantics:<br>
+If both <b>x</b> and <b>y</b> have valid pointees, it compares values via <code>(*x == *y)</code>.<br>
+If only one has a valid pointee, returns <code>false</code>.<br>
+If both have invalid pointees, returns <code>true</code>.</p>
+<a name="less"></a>
+<p><u>Less-than relation:</u></p>
+<pre>template&lt;class OptionalPointee&gt;
+inline
+bool less_pointees ( OptionalPointee const&amp; x, OptionalPointee const&amp; y )
+{
+  return !y ? false : ( !x ? true : (*x) < (*y) ) ;
+}
+template&lt;class OptionalPointee&gt;
+struct less_pointees_t : std::binary_function&lt;OptionalPointee,OptionalPointee,bool&gt;
+{
+  bool operator() ( OptionalPointee const& x, OptionalPointee const& y ) const
+    { return less_pointees(x,y) ; }
+} ;
+</pre>
+<p>The preceding generic function and function object have the following semantics:<br>
+If <b>y</b> has an invalid pointee, returns <code>false</code>.<br>
+Else, if <b>x</b> has an invalid pointee, returns <code>true</code>.<br>
+Else, ( <b>x</b> and <b>y</b> have valid pointees), compares values via <code>(*x &lt; 
+*y).</code></p>
+<p><br>
+All these functions and function 
+objects are is implemented in <a href="../../boost/utility/compare_pointees.hpp">compare_pointees.hpp</a></p>
+<p>Notice that OptionalPointee does not imply aliasing (and optional&lt;&gt; for instance does not alias);
+so direct usage of relational operators with the implied aliasing of shallow semantics
+-as with pointers- should not be used with generic code written for this concept.</p>
+
+<h3>Acknowledgements</h3>
+<p>Based on the original concept developed by Augustus Saunders.
+
+<br>
+</p>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy 2003</TD><TD>
+<A HREF="mailto:fernando_cacciola@hotmail.com">Fernando Cacciola</A>
+</TD></TR></TABLE>
+
+<p>Distributed under the Boost Software License, Version 1.0. See
+<a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a></p>
+
+</BODY>
+</HTML>

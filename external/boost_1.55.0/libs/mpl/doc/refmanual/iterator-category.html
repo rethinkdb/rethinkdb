@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: iterator_category</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./deref.html" class="navigation-link">Prev</a>&nbsp;<a href="./algorithms.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./deref.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iterator-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./iterators.html" class="navigation-link">Iterators</a> / <a href="./iterator-metafunctions.html" class="navigation-link">Iterator Metafunctions</a> / <a href="./iterator-category.html" class="navigation-link">iterator_category</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="iterator-category">
+<h1><a class="toc-backref" href="./iterator-metafunctions.html#id1459">iterator_category</a></h1>
+<div class="section" id="id445">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename Iterator
+    &gt;
+struct <a href="./iterator-category.html" class="identifier">iterator_category</a>
+{
+    typedef typename Iterator::category type;
+};
+</pre>
+</div>
+<div class="section" id="id446">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Returns one of the following iterator category tags:</p>
+<ul class="simple">
+<li><tt class="literal"><span class="pre">forward_iterator_tag</span></tt></li>
+<li><tt class="literal"><span class="pre">bidirectional_iterator_tag</span></tt></li>
+<li><tt class="literal"><span class="pre">random_access_iterator_tag</span></tt></li>
+</ul>
+</div>
+<div class="section" id="id447">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/iterator_category.hpp" class="header">boost/mpl/iterator_category.hpp</a>&gt;
+#include &lt;<a href="../../../../boost/mpl/iterator_tags.hpp" class="header">boost/mpl/iterator_tags.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id448">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="19%" />
+<col width="28%" />
+<col width="53%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">Iterator</span></tt></td>
+<td><a class="reference internal" href="./forward-iterator.html">Forward Iterator</a></td>
+<td>The iterator to obtain a category for.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id449">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any <a class="reference internal" href="./forward-iterator.html">Forward Iterator</a>s <tt class="literal"><span class="pre">iter</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./iterator-category.html" class="identifier">iterator_category</a>&lt;iter&gt;::type tag;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="./integral-constant.html">Integral Constant</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first"><tt class="literal"><span class="pre">tag</span></tt> is <tt class="literal"><span class="pre">forward_iterator_tag</span></tt> if <tt class="literal"><span class="pre">iter</span></tt> is a model of <a class="reference internal" href="./forward-iterator.html">Forward Iterator</a>,
+<tt class="literal"><span class="pre">bidirectional_iterator_tag</span></tt> if <tt class="literal"><span class="pre">iter</span></tt> is a model of <a class="reference internal" href="./bidirectional-iterator.html">Bidirectional Iterator</a>,
+or <tt class="literal"><span class="pre">random_access_iterator_tag</span></tt> if <tt class="literal"><span class="pre">iter</span></tt> is a model of <a class="reference internal" href="./random-access-iterator.html">Random Access Iterator</a>;</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Postcondition:</th><td class="field-body"><dl class="first last docutils">
+<dt><tt class="literal"><span class="pre">forward_iterator_tag::value</span> <span class="pre">&lt;</span> <span class="pre">bidirectional_iterator_tag::value</span></tt>,</dt>
+<dd><p class="first last"><tt class="literal"><span class="pre">bidirectional_iterator_tag::value</span> <span class="pre">&lt;</span> <span class="pre">random_access_iterator_tag::value</span></tt>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id450">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Amortized constant time.</p>
+</div>
+<div class="section" id="id451">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+template&lt; typename Tag, typename Iterator &gt;
+struct algorithm_impl
+{
+    // <em>O(n)</em> implementation
+};
+
+template&lt; typename Iterator &gt;
+struct algorithm_impl&lt;random_access_iterator_tag,Iterator&gt;
+{
+    // <em>O(1)</em> implementation
+};
+
+template&lt; typename Iterator &gt;
+struct algorithm
+    : algorithm_impl&lt;
+          <a href="./iterator-category.html" class="identifier">iterator_category</a>&lt;Iterator&gt;::type
+        , Iterator
+        >
+{
+};
+</pre>
+</div>
+<div class="section" id="id452">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./iterators.html">Iterators</a>, <a class="reference internal" href="./begin.html">begin</a> / <a class="reference internal" href="./end.html">end</a>, <a class="reference internal" href="./advance.html">advance</a>, <a class="reference internal" href="./distance.html">distance</a>, <a class="reference internal" href="./next.html">next</a></p>
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./deref.html" class="navigation-link">Prev</a>&nbsp;<a href="./algorithms.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./deref.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iterator-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

@@ -1,0 +1,18 @@
+#  Boost string_algo library examples Jamfile  ---------------------------------
+#
+#  Copyright Pavol Droba 2002-2003. Use, modification and
+#  distribution is subject to the Boost Software License, Version
+#  1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#  http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org for updates, documentation, and revision history.
+
+
+exe conv_example : conv_example.cpp ;
+exe predicate_example : predicate_example.cpp ;
+exe find_example : find_example.cpp ;
+exe replace_example : replace_example.cpp ;
+exe rle_example : rle_example.cpp ;
+exe trim_example : trim_example.cpp ;
+exe regex_example : regex_example.cpp /boost/regex//boost_regex ;
+exe split_example : split_example.cpp ;

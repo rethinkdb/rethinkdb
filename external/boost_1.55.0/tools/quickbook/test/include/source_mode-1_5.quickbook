@@ -1,0 +1,4 @@
+[article Souce Mode Include [source-mode teletype][quickbook 1.5]]
+
+[include source_mode-inc1.quickbook]
+[include source_mode-inc2.quickbook]

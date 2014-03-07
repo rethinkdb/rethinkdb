@@ -1,0 +1,151 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!--
+     Copyright (c) 2004 Trustees of Indiana University
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<html>
+<head>
+<meta name="generator" content=
+"HTML Tidy for Mac OS X (vers 12 April 2005), see www.w3.org">
+<meta http-equiv="Content-Type" content=
+"text/html; charset=us-ascii">
+<title>Function betweenness_centrality_clustering</title>
+</head>
+<body>
+<div class="titlepage"></div>
+<div class="refnamediv">
+
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86">
+
+<h1><img src="figs/python.gif" alt="(Python)"/><span class="refentrytitle">Function
+betweenness_centrality_clustering</span></h1>
+<p>boost::betweenness_centrality_clustering &mdash; Graph
+clustering based on edge betweenness centrality.</p>
+</div>
+<h2 xmlns:rev=
+"http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class=
+"refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev=
+"http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class=
+"refsynopsisdiv">
+<pre class="synopsis">
+<span class="bold"><b>template</b></span>&lt;<span class=
+"bold"><b>typename</b></span> MutableGraph, <span class=
+"bold"><b>typename</b></span> Done, <span class=
+"bold"><b>typename</b></span> EdgeCentralityMap, 
+         <span class=
+"bold"><b>typename</b></span> VertexIndexMap&gt; 
+  <span class="type"><span class=
+"bold"><b>void</b></span></span> betweenness_centrality_clustering(MutableGraph &amp; g, Done done, 
+                                         EdgeCentralityMap edge_centrality, 
+                                         VertexIndexMap vertex_index);
+<span class="bold"><b>template</b></span>&lt;<span class=
+"bold"><b>typename</b></span> MutableGraph, <span class=
+"bold"><b>typename</b></span> Done, <span class=
+"bold"><b>typename</b></span> EdgeCentralityMap&gt; 
+  <span class="type"><span class=
+"bold"><b>void</b></span></span> betweenness_centrality_clustering(MutableGraph &amp; g, Done done, 
+                                         EdgeCentralityMap edge_centrality);
+<span class="bold"><b>template</b></span>&lt;<span class=
+"bold"><b>typename</b></span> MutableGraph, <span class=
+"bold"><b>typename</b></span> Done&gt; 
+  <span class="type"><span class=
+"bold"><b>void</b></span></span> betweenness_centrality_clustering(MutableGraph &amp; g, Done done);
+</pre></div>
+<div class="refsect1" lang="en"><a name="id822306" id=
+"id822306"></a>
+<h2>Description</h2>
+<p>This algorithm implements graph clustering based on edge
+betweenness centrality. It is an iterative algorithm, where in each
+step it computes the edge betweenness centrality (via <a href=
+"betweenness_centrality.html">brandes_betweenness_centrality</a>) and
+removes the edge with the maximum betweenness centrality. The
+<tt class="computeroutput">done</tt> function object determines
+when the algorithm terminates (the edge found when the algorithm
+terminates will not be removed).</p>
+
+<h2>Parameters</h2>
+IN: <tt>const Graph&amp; g</tt>
+<blockquote>
+  The graph object on which the algorithm will be applied.  The type
+  <tt>Graph</tt> must be a model of <a
+  href="VertexListGraph.html">Vertex List Graph</a> and <a
+  href="IncidenceGraph.html">Incidence Graph</a>. When an edge
+  centrality map is supplied, it must also model <a
+  href="EdgeListGraph.html">Edge List Graph</a> and <a
+  href="MutableGraph.html">MutableGraph</a>.<br>
+
+<b>Python</b>: The parameter is named <tt>graph</tt>.
+</blockquote>
+
+IN: <tt>Done done</tt>
+<blockquote>
+The function object that indicates termination of the algorithm.
+It must be a ternary function object thats accepts the maximum
+centrality, the descriptor of the edge that will be removed, and
+the graph <tt class="computeroutput">g</tt>.<br>
+<b>Python</b>: Any callable Python object will suffice.
+</blockquote>
+
+OUT/UTIL: <tt>EdgeCentralityMap edge_centrality_map</tt>
+<blockquote>
+  This property map is used to accumulate the betweenness centrality
+  of each edge, and is a secondary form of output for the
+  algorithm. The type <tt>EdgeCentralityMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a>, with the graph's edge descriptor type as its key
+  type. The value type of this property map should be the same as the
+  value type of the <tt>CentralityMap</tt> property map.<br>
+
+  <b>Default:</b> a <tt>dummy_property_map</tt>, which requires no
+  work to compute and returns no answer.<br>
+  <b>Python</b>: The color map must be a <tt>edge_double_map</tt> for
+  the graph.<br>
+  <b>Python default</b>: <tt>graph.get_edge_double_map("centrality")</tt>
+</blockquote>
+
+IN: <tt>VertexIndexMap vertex_index</tt> 
+<blockquote>
+  This maps each vertex to an integer in the range <tt>[0,
+    num_vertices(g))</tt>. This is necessary for efficient updates of the
+  heap data structure when an edge is relaxed.  The type
+  <tt>VertexIndexMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>. The value type of the map must be an
+  integer type. The vertex descriptor type of the graph needs to be
+  usable as the key type of the map.<br>
+  <b>Default:</b> <tt>get(vertex_index, g)</tt>.
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacenty_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.<br>
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+<table xmlns:rev=
+"http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width=
+"100%">
+<tr>
+<td align="left"></td>
+<td align="right"></td>
+</tr>
+</table>
+<h3>Where Defined</h3>
+&lt;<a href=
+"../../../boost/graph/bc_clustering.hpp">boost/graph/bc_clustering.hpp</a>&gt;
+<hr>
+<table>
+<tr valign="top">
+<td nowrap>Copyright &copy; 2004</td>
+<td><a href="http://www.boost.org/people/doug_gregor.html">Douglas Gregor</a>,
+Indiana University (dgregor@cs.indiana.edu)<br>
+<a href="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</a>, Indiana
+University (<a href=
+"mailto:lums@osl.iu.edu">lums@osl.iu.edu</a>)</td>
+</tr>
+</table>
+</body>
+</html>

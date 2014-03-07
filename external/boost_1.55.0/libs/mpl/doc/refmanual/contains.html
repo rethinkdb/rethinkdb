@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: contains</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./find-if.html" class="navigation-link">Prev</a>&nbsp;<a href="./count.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./find-if.html" class="navigation-link">Back</a>&nbsp;<a href="./count.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./querying-algorithms.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./algorithms.html" class="navigation-link">Algorithms</a> / <a href="./querying-algorithms.html" class="navigation-link">Querying Algorithms</a> / <a href="./contains.html" class="navigation-link">contains</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="contains">
+<h1><a class="toc-backref" href="./querying-algorithms.html#id1477">contains</a></h1>
+<div class="section" id="id551">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename Sequence
+    , typename T
+    &gt;
+struct <a href="./contains.html" class="identifier">contains</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id552">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Returns a true-valued <a class="reference internal" href="./integral-constant.html">Integral Constant</a> if one or more elements in <tt class="literal"><span class="pre">Sequence</span></tt>
+are identical to <tt class="literal"><span class="pre">T</span></tt>.</p>
+</div>
+<div class="section" id="id553">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/contains.hpp" class="header">boost/mpl/contains.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id554">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="19%" />
+<col width="35%" />
+<col width="45%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">Sequence</span></tt></td>
+<td><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></td>
+<td>A sequence to be examined.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">T</span></tt></td>
+<td>Any type</td>
+<td>A type to search for.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id555">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> <tt class="literal"><span class="pre">s</span></tt> and arbitrary type <tt class="literal"><span class="pre">t</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./contains.html" class="identifier">contains</a>&lt;s,t&gt;::type r;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="./integral-constant.html">Integral Constant</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to</p>
+<pre class="last literal-block">
+typedef <a href="./not.html" class="identifier">not_</a>&lt; is_same&lt;
+      <a href="./find.html" class="identifier">find</a>&lt;s,t&gt;::type
+    , <a href="./end.html" class="identifier">end</a>&lt;s&gt;::type
+    &gt; &gt;::type r;
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id556">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Linear. At most <tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;s&gt;::value</span></tt> comparisons for identity.</p>
+</div>
+<div class="section" id="id557">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./vector.html" class="identifier">vector</a>&lt;char,int,unsigned,long,unsigned long&gt; types;
+<a href="./assert-not.html" class="identifier">BOOST_MPL_ASSERT_NOT</a>(( <a href="./contains.html" class="identifier">contains</a>&lt;types,bool&gt; ));
+</pre>
+</div>
+<div class="section" id="id558">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./querying-algorithms.html">Querying Algorithms</a>, <a class="reference internal" href="./find.html">find</a>, <a class="reference internal" href="./find-if.html">find_if</a>, <a class="reference internal" href="./count.html">count</a>, <a class="reference internal" href="./lower-bound.html">lower_bound</a></p>
+<!-- Algorithms/Querying Algorithms//count |40 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./find-if.html" class="navigation-link">Prev</a>&nbsp;<a href="./count.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./find-if.html" class="navigation-link">Back</a>&nbsp;<a href="./count.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./querying-algorithms.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

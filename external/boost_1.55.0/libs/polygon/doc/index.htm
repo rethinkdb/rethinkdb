@@ -1,0 +1,295 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<!--
+    Copyright 2009-2010 Intel Corporation
+    license banner
+-->
+  <title>Boost Polygon Library: Main Page</title>
+  <meta http-equiv="content-type" content="text/html;charset=ISO-8859-1" />
+<!-- <link type="text/css" rel="stylesheet" href="adobe_source.css"> -->
+</head>
+<body>
+<table style="margin: 0pt; padding: 0pt; width: 100%;" border="0"
+ cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top">
+      <div style="padding: 5px;" align="center"> <img
+ src="images/boost.png" border="0" height="86" width="277" /><a
+ title="www.boost.org home page" href="http://www.boost.org/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      <div style="margin: 5px;">
+      <h3 class="navbar">Contents</h3>
+      <ul>
+        <li>Boost.Polygon Main Page</li>
+        <li><a href="gtl_design_overview.htm">Design Overview</a></li>
+        <li><a href="gtl_isotropy.htm">Isotropy</a></li>
+        <li><a href="gtl_coordinate_concept.htm">Coordinate Concept</a></li>
+        <li><a href="gtl_interval_concept.htm">Interval Concept</a></li>
+        <li><a href="gtl_point_concept.htm">Point Concept</a></li>
+        <li><a href="gtl_segment_concept.htm">Segment Concept</a></li>
+        <li><a href="gtl_rectangle_concept.htm">Rectangle Concept</a></li>
+        <li><a href="gtl_polygon_90_concept.htm">Polygon 90 Concept</a></li>
+        <li><a href="gtl_polygon_90_with_holes_concept.htm">Polygon 90
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_45_concept.htm">Polygon 45 Concept</a></li>
+        <li><a href="gtl_polygon_45_with_holes_concept.htm">Polygon 45
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_concept.htm">Polygon Concept</a></li>
+        <li><a href="gtl_polygon_with_holes_concept.htm">Polygon With
+Holes Concept</a></li>
+        <li><a href="gtl_polygon_90_set_concept.htm">Polygon 90 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_45_set_concept.htm">Polygon 45 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_set_concept.htm">Polygon Set Concept</a></li>
+        <li><a href="gtl_connectivity_extraction_90.htm">Connectivity
+Extraction 90</a></li>
+        <li><a href="gtl_connectivity_extraction_45.htm">Connectivity
+Extraction 45</a></li>
+        <li><a href="gtl_connectivity_extraction.htm">Connectivity
+Extraction</a></li>
+        <li><a href="gtl_property_merge_90.htm">Property Merge 90</a></li>
+        <li><a href="gtl_property_merge_45.htm">Property Merge 45</a></li>
+        <li><a href="gtl_property_merge.htm">Property Merge</a></li>
+        <li><a href="voronoi_main.htm">Voronoi Main Page<br />
+          </a></li>
+        <li><a href="voronoi_benchmark.htm">Voronoi Benchmark</a><br />
+        </li>
+        <li><a href="voronoi_builder.htm">Voronoi Builder</a></li>
+        <li><a href="voronoi_diagram.htm">Voronoi Diagram</a></li>
+      </ul>
+      <h3 class="navbar">Other Resources</h3>
+      <ul>
+        <li><a href="GTL_boostcon2009.pdf">GTL Boostcon 2009 Paper</a></li>
+        <li><a href="GTL_boostcon_draft03.pdf">GTL Boostcon 2009
+Presentation</a></li>
+        <li><a href="analysis.htm">Performance Analysis</a></li>
+        <li><a href="gtl_tutorial.htm">Layout Versus Schematic Tutorial</a></li>
+        <li><a href="gtl_minkowski_tutorial.htm">Minkowski Sum Tutorial</a></li>
+        <li><a href="voronoi_basic_tutorial.htm">Voronoi Basic Tutorial</a></li>
+        <li><a href="voronoi_advanced_tutorial.htm">Voronoi Advanced
+Tutorial</a></li>
+      </ul>
+      </div>
+      <h3 class="navbar">Polygon Sponsor</h3>
+      <div style="padding: 5px;" align="center"> <img
+ src="images/intlogo.gif" border="0" height="51" width="127" /><a
+ title="www.adobe.com home page" href="http://www.adobe.com/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      </td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%">
+<!-- End Header --><br />
+      <p>
+      </p>
+      <h1>THE BOOST.POLYGON LIBRARY</h1>
+      <p>The Boost.Polygon library provides algorithms focused on
+manipulating planar polygon geometry data.&nbsp; Specific algorithms
+provided are the polygon set operations (intersection, union,
+difference, disjoint-union) and related algorithms such as polygon
+connectivity graph extraction, offsetting and map-overlay.&nbsp; An
+example of the disjoint-union (XOR) of figure a and figure b is shown
+below in figure c.&nbsp; These so-called Boolean algorithms are of
+significant interest in GIS (Geospatial Information Systems), VLSI CAD
+as well all other fields of CAD, and many more application areas, and
+providing them is the primary focus of this library.&nbsp; The
+Boost.Polygon library is not intended to cover all of computational
+geometry in its scope, and provides a set of capabilities for working
+with coordinates, points, intervals and rectangles that are needed to
+support implementing and interacting with polygon data structures and
+algorithms.&nbsp; </p>
+      <img src="images/hand.png" border="0" height="277" width="837" />
+      <p>One of the important features of the library is the
+implementation of
+the generic sweepline algorithm to construct Voronoi diagrams of points
+and linear segments in 2D (developed
+as part of the GSoC 2010 program). Voronoi diagram data structure has
+applications in image segmentation, optical character recognition,
+nearest neighbor queries execution. It is closely related with the
+other
+computational geometry concepts: Delaunay triangulation, medial axis,
+straight skeleton, the largest empty circle. The Boost.Polygon library
+provides interface to construct Voronoi diagram of points figure a and
+line segments figure b (the last could be used to discretize any
+two-dimensional curve). Figure c contains the example of the medial
+axis of the
+non-convex polygon. The implementation <a href="voronoi_benchmark.htm">outperforms</a>
+most of the known
+commercial and non-commercial libraries in both efficiency and
+numerical robustness aspects. You may find more details on the topic at
+the <a href="voronoi_main.htm">Voronoi main page</a>.<br />
+      </p>
+      <p><img src="images/voronoi.png" border="0" height="300"
+ width="900" /></p>
+      <p>The coordinate data type is a template parameter of all data
+types
+and algorithms provided by the library, and is expected to be integral.
+Floating point coordinate data types are not supported by the
+algorithms implemented in the library due to the fact that the
+achieving floating point robustness implies a different set of
+algorithms and generally platform specific assumptions about floating
+point representations.&nbsp;
+For additional detailed discussion of the library and its
+implementation including benchmark comparisons with other open source
+alternatives please see the <a href="GTL_boostcon2009.pdf">paper</a>
+and
+      <a href="GTL_boostcon_draft03.pdf">presentation</a> from
+      <a href="http://www.boostcon.com/home">boostcon</a> 2009 as well
+as a detailed
+      <a href="analysis.htm">analysis</a> of the runtime complexity of
+the library's core algorithms. </p>
+      <p>The design philosophy behind the polygon library was to create
+an API for invoking the library algorithms it provides on user geometry
+data types that is maximally intuitive, minimally error-prone and easy
+to integrate into pre-existing applications.&nbsp; C++-concepts based
+template meta-programming combined with generic operator overloading
+meets these design goals without sacrificing the runtime or memory
+efficiency of the underlying algorithms.&nbsp; The API is intended to
+demonstrate what could be achieved with ease by a C++-concepts based
+library interface, but is implemented based on current language
+features.&nbsp; This API makes the following code snippet that operates
+on non-library geometry types possible:</p>
+      <p:colorscheme
+ colors="#ffffff,#000000,#808080,#000000,#bbe0e3,#333399,#009999,#99cc00">
+      </p:colorscheme>
+      <div v:shape="_x0000_s1026" class="O">
+      <div style="text-align: justify;"> <nobr> <span
+ style="font-family: Courier New;"> void foo(list&lt;CPolygon&gt;&amp;
+result, const list&lt;CPolygon&gt;&amp; a, </span></nobr><br />
+      <span style="font-family: Courier New;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+      </span><nobr> <span style="font-family: Courier New;"> const
+list&lt;CPolygon&gt;&amp; b, int deflateValue) { </span></nobr></div>
+      <div style="text-align: justify;"> <nobr><span
+ style="font-family: Courier New;">&nbsp;&nbsp;&nbsp;&nbsp;
+CBoundingBox domainExtent; </span></nobr></div>
+      <div style="text-align: justify;"> <nobr> <span
+ style="font-family: Courier New;"> <span style="">&nbsp; </span>&nbsp;&nbsp;
+using namespace boost::polygon::operators; </span></nobr></div>
+      <div style="text-align: justify;"> <nobr> <span
+ style="font-family: Courier New;"> <span style="">&nbsp; </span>&nbsp;&nbsp;
+boost::polygon::extents(domainExtent, a); </span></nobr></div>
+      <div style="text-align: justify;"> <nobr> <span
+ style="font-family: Courier New;"> <span style="">&nbsp;&nbsp;&nbsp;&nbsp;
+      </span>result += (b &amp; domainExtent) ^ (a - deflateValue); </span></nobr></div>
+      <div style="text-align: justify;"> <nobr> <span
+ style="font-family: Courier New;"> }</span></nobr></div>
+      </div>
+      <p>In the code snippet above the hypothetical polygon type
+CPolygon has been mapped to the library polygon concept and is used
+with library APIs to clip polygon list <i>b</i> against the bounding
+box of polygon list <i>a</i> and apply the disjoint-union of that with
+polygon list <i>a</i> deflated by some integer amount.&nbsp; The end
+result is accumulated into a list of polygons with a union
+operation.&nbsp; It is considerably more typing to describe this usage
+of the API than to code it, and the description is not much clearer
+than the code itself.&nbsp; A picture is worth a thousand words.</p>
+      <p><img src="images/foo.PNG" border="0" height="371" width="432" /></p>
+      <p>In Boost.Polygon operations such as those shown above are free
+functions named for what they do, or are overloads of C++ operators
+that make it easy to infer from reading the code what to expect.&nbsp;
+Operators are contained in the namespace <font face="Courier New">boost::polygon::operators</font>
+so that they can be used outside the <font face="Courier New">boost::polygon</font>
+namespace without bringing in the entire <font face="Courier New">boost::polygon</font>
+namespace.&nbsp; Following the principle of least astonishment, the
+inferred behavior should generally match the actual behavior.&nbsp;
+Conventions such as argument ordering (output arguments come first) and
+consistently applying the same semantics across different functions
+(accumulate) reduces the learning curve for new users while reducing
+the need to memorize semantics and argument ordering of many different
+functions for advanced users.</p>
+      <p>While the internal library code that implements this API is
+usually complex and cryptic due to heavy use of template
+meta-programming, the application of the library API in user code is
+usually simple and clear because it is free of any extraneous
+syntax.&nbsp; The one exception to this is the mapping of user types to
+library concepts, which necessitates that the user perform some simple
+template programming and understand some of the internals of how the
+library concept type system works.&nbsp; The examples below should aid
+the user in performing these programming tasks.</p>
+      <ul>
+        <li>Example files:
+          <ul>
+            <li><a href="gtl_point_usage.htm">point_usage.cpp</a> Using
+the library provided point data type and functions</li>
+            <li><a href="gtl_custom_point.htm">custom_point.cpp</a>
+Mapping a user defined point class to the library point_concept</li>
+            <li><a href="gtl_polygon_usage.htm">polygon_usage.cpp</a>
+Using the library provided polygon data types and functions</li>
+            <li><a href="gtl_custom_polygon.htm">custom_polygon.cpp</a>
+Mapping a user defined polygon class to the library polygon_concept</li>
+            <li><a href="gtl_polygon_set_usage.htm">polygon_set_usage.cpp</a>
+Using the library provided polygon set data types and functions</li>
+            <li><a href="gtl_custom_polygon_set.htm">custom_polygon_set.cpp</a>
+Mapping a user defined class to the library polygon_set_concept</li>
+            <li><a href="gtl_connectivity_extraction_usage.htm">connectivity_extraction_usage.cpp</a>
+Using the connectivity extraction algorithm to build a connectivity
+graph on polygons</li>
+            <li><a href="gtl_property_merge_usage.htm">property_merge_usage.cpp</a>
+Using the n-layer map-overlay algorithm on polygon data</li>
+          </ul>
+        </li>
+        <li>Tutorials:
+          <ul>
+            <li><a href="gtl_tutorial.htm">Layout Versus Schematic</a>
+Learn how to apply Boost.Polygon capabilities to implement a simplified
+circuit extraction application</li>
+            <li><a href="gtl_minkowski_tutorial.htm">Minkowski Sum</a>
+Learn how to apply Boost.Polygon capabilities to implement Minkowski
+sum of polygon sets</li>
+            <li><a href="voronoi_basic_tutorial.htm">Voronoi Basic
+Tutorial</a> Learn how to construct, traverse, visualize, associate
+data with Voronoi diagrams without digging into the library details.</li>
+            <li><a href="voronoi_advanced_tutorial.htm">Voronoi
+Advanced Tutorial</a> Learn how to configure the Voronoi builder and
+Voronoi diagram data structure with the user provided coordinate types.
+            </li>
+          </ul>
+        </li>
+      </ul>
+      <p>We would like to thank: Thomas Klimpel, Frank Mori Hess,
+Barend Gehrels, Andreas Fabri, Jeffrey Hellrung, Tim Keitt, Markus
+Werle, Paul A. Bristow, Robert Stewart, Mathias Gaunard, Michael
+Fawcett, Steven Watanabe, Joachim Faulhaber, John Bytheway, Sebastian
+Redl, Mika Heiskanen, John Phillips, Kai Benndorf, Hartmut Kaiser,
+Arash Partow, Maurizio Vitale, Brandon Kohn, David Abrahams, Gordon
+Woodhull, Daniel James, John Maddock, Tom Brinkman, Bo Persson, Mateusz
+Loskot, Christian Henning, Jean-Sebastien Stoezel, for providing
+feedback and or formal review of the library as part of the boost
+submission process and Fernando Cacciola for graciously serving as
+review manager.</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top"> &nbsp;</td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%">
+      <table class="docinfo" id="table2" frame="void" rules="none">
+        <colgroup> <col class="docinfo-name" /><col
+ class="docinfo-content" /> </colgroup> <tbody valign="top">
+          <tr>
+            <th class="docinfo-name">Copyright:</th>
+            <td>Copyright © Intel Corporation 2008-2010.</td>
+          </tr>
+          <tr class="field">
+            <th class="docinfo-name">License:</th>
+            <td class="field-body">Distributed under the Boost Software
+License, Version 1.0. (See accompanying file <tt class="literal"> <span
+ class="pre">LICENSE_1_0.txt</span></tt> or copy at <a
+ class="reference" target="_top"
+ href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+          </tr>
+        </tbody>
+      </table>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>

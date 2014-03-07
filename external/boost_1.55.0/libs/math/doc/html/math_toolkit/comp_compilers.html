@@ -1,0 +1,378 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Comparing Compilers</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Math Toolkit">
+<link rel="up" href="../perf.html" title="Chapter&#160;14.&#160;Performance">
+<link rel="prev" href="getting_best.html" title="Getting the Best Performance from this Library">
+<link rel="next" href="tuning.html" title="Performance Tuning Macros">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="getting_best.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../perf.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tuning.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="math_toolkit.comp_compilers"></a><a class="link" href="comp_compilers.html" title="Comparing Compilers">Comparing Compilers</a>
+</h2></div></div></div>
+<p>
+      After a good choice of build settings the next most important thing you can
+      do, is choose your compiler - and the standard C library it sits on top of
+      - very carefully. GCC-3.x in particular has been found to be particularly bad
+      at inlining code, and performing the kinds of high level transformations that
+      good C++ performance demands (thankfully GCC-4.x is somewhat better in this
+      respect).
+    </p>
+<div class="table">
+<a name="math_toolkit.comp_compilers.performance_comparison_of_variou"></a><p class="title"><b>Table&#160;14.2.&#160;Performance Comparison of Various Windows Compilers</b></p>
+<div class="table-contents"><table class="table" summary="Performance Comparison of Various Windows Compilers">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Function
+              </p>
+            </th>
+<th>
+              <p>
+                Intel C++ 10.0
+              </p>
+              <p>
+                ( /Ox /Qipo /QxN )
+              </p>
+            </th>
+<th>
+              <p>
+                Microsoft Visual C++ 8.0
+              </p>
+              <p>
+                ( /Ox /arch:SSE2 )
+              </p>
+            </th>
+<th>
+              <p>
+                Cygwin G++ 3.4
+              </p>
+              <p>
+                ( /O3 )
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_erf/error_function.html" title="Error Functions">erf</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.118e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.483e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>3.24</p>
+<p> </p>
+<p>(1.336e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_erf/error_inv.html" title="Error Function Inverses">erf_inv</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.439e-008s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(4.888e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>7.88</p>
+<p> </p>
+<p>(3.500e-007s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_beta/ibeta_function.html" title="Incomplete Beta Functions">ibeta</a>
+                and <a class="link" href="sf_beta/ibeta_function.html" title="Incomplete Beta Functions">ibetac</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(1.631e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.14</p>
+<p> </p>
+<p>(1.852e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>3.05</p>
+<p> </p>
+<p>(4.975e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_beta/ibeta_inv_function.html" title="The Incomplete Beta Function Inverses">ibeta_inv</a>
+                and <a class="link" href="sf_beta/ibeta_inv_function.html" title="The Incomplete Beta Function Inverses">ibetac_inv</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(6.133e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.19</p>
+<p> </p>
+<p>(7.311e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.60</p>
+<p> </p>
+<p>(1.597e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_beta/ibeta_inv_function.html" title="The Incomplete Beta Function Inverses">ibeta_inva</a>,
+                <a class="link" href="sf_beta/ibeta_inv_function.html" title="The Incomplete Beta Function Inverses">ibetac_inva</a>,
+                <a class="link" href="sf_beta/ibeta_inv_function.html" title="The Incomplete Beta Function Inverses">ibeta_invb</a>
+                and <a class="link" href="sf_beta/ibeta_inv_function.html" title="The Incomplete Beta Function Inverses">ibetac_invb</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(2.453e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.16</p>
+<p> </p>
+<p>(2.847e-005s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.83</p>
+<p> </p>
+<p>(6.947e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_gamma/igamma.html" title="Incomplete Gamma Functions">gamma_p</a> and
+                <a class="link" href="sf_gamma/igamma.html" title="Incomplete Gamma Functions">gamma_q</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(6.735e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.41</p>
+<p> </p>
+<p>(9.504e-007s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.78</p>
+<p> </p>
+<p>(1.872e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_gamma/igamma_inv.html" title="Incomplete Gamma Function Inverses">gamma_p_inv</a>
+                and <a class="link" href="sf_gamma/igamma_inv.html" title="Incomplete Gamma Function Inverses">gamma_q_inv</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(2.637e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.38</p>
+<p> </p>
+<p>(3.631e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>3.31</p>
+<p> </p>
+<p>(8.736e-006s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <a class="link" href="sf_gamma/igamma_inv.html" title="Incomplete Gamma Function Inverses">gamma_p_inva</a>
+                and <a class="link" href="sf_gamma/igamma_inv.html" title="Incomplete Gamma Function Inverses">gamma_q_inva</a>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p><span class="bold"><strong>1.00</strong></span></p>
+<p> </p>
+<p>(7.716e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>1.29</p>
+<p> </p>
+<p>(9.982e-006s)</p>
+<p>
+              </p>
+            </td>
+<td>
+              <p>
+                </p>
+<p>2.56</p>
+<p> </p>
+<p>(1.974e-005s)</p>
+<p>
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="getting_best.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../perf.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tuning.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

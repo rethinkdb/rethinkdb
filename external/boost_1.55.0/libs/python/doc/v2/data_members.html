@@ -1,0 +1,229 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Cygwin (vers 1st April 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/data_members.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header
+          &lt;boost/python/data_members.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#functions">Functions</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#make_getter-spec">make_getter</a></dt>
+
+          <dt><a href="#make_setter-spec">make_setter</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><code><a href="#make_getter-spec">make_getter</a>()</code> and
+    <code><a href="#make_setter-spec">make_setter</a>()</code> are the
+    functions used internally by <code>class_&lt;&gt;::<a href=
+    "class.html#class_-spec-modifiers">def_readonly</a></code> and
+    <code>class_&lt;&gt;::<a href=
+    "class.html#class_-spec-modifiers">def_readwrite</a></code> to produce
+    Python callable objects which wrap C++ data members.</p>
+
+    <h2><a name="functions"></a>Functions</h2>
+<pre>
+<a name="make_getter-spec">template &lt;class C, class D&gt;</a>
+<a href="object.html#object-spec">object</a> make_getter(D C::*pm);
+
+template &lt;class C, class D, class Policies&gt;
+<a href=
+"object.html#object-spec">object</a> make_getter(D C::*pm, Policies const&amp; policies);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>Policies</code> is a model of <a href=
+      "CallPolicies.html">CallPolicies</a>.</dt>
+
+      <dt><b>Effects:</b> Creates a Python callable object which accepts a
+      single argument that can be converted <code>from_python</code> to
+      <code>C*</code>, and returns the corresponding member <code>D</code>
+      member of the <code>C</code> object, converted <code>to_python</code>.
+      If <code>policies</code> is supplied, it will be applied to the
+      function as described <a href="CallPolicies.html">here</a>. Otherwise,
+      the library attempts to determine whether <code>D</code> is a
+      user-defined class type, and if so uses <code><a href=
+      "return_internal_reference.html#return_internal_reference-spec">return_internal_reference</a>&lt;&gt;</code></dt>
+
+      <dt>for <code>Policies</code>. Note that this test may inappropriately
+      choose <code>return_internal_reference&lt;&gt;</code> in some cases
+      when <code>D</code> is a smart pointer type. This is a known
+      defect.</dt>
+
+      <dt><b>Returns:</b> An instance of <a href=
+      "object.html#object-spec">object</a> which holds the new Python
+      callable object.</dt>
+    </dl>
+<pre>
+template &lt;class D&gt;
+<a href="object.html#object-spec">object</a> make_getter(D const&amp; d);
+template &lt;class D, class Policies&gt;
+<a href=
+"object.html#object-spec">object</a> make_getter(D const&amp; d, Policies const&amp; policies);
+
+template &lt;class D&gt;
+<a href="object.html#object-spec">object</a> make_getter(D const* p);
+template &lt;class D, class Policies&gt;
+<a href=
+"object.html#object-spec">object</a> make_getter(D const* p, Policies const&amp; policies);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>Policies</code> is a model of <a href=
+      "CallPolicies.html">CallPolicies</a>.</dt>
+
+      <dt><b>Effects:</b> Creates a Python callable object which accepts no
+      arguments and returns <code>d</code> or <code>*p</code>, converted
+      <code>to_python</code> on demand. If <code>policies</code> is supplied,
+      it will be applied to the function as described <a href=
+      "CallPolicies.html">here</a>. Otherwise, the library attempts to
+      determine whether <code>D</code> is a user-defined class type, and if
+      so uses <code><a href=
+      "reference_existing_object.html#reference_existing_object-spec">reference_existing_object</a></code></dt>
+
+      <dt>for <code>Policies</code>.</dt>
+
+      <dt><b>Returns:</b> An instance of <a href=
+      "object.html#object-spec">object</a> which holds the new Python
+      callable object.</dt>
+    </dl>
+<pre>
+<a name="make_setter-spec">template &lt;class C, class D&gt;</a>
+<a href="object.html#object-spec">object</a> make_setter(D C::*pm);
+
+template &lt;class C, class D, class Policies&gt;
+<a href=
+"object.html#object-spec">object</a> make_setter(D C::*pm, Policies const&amp; policies);
+</pre>
+
+    <dl class="function*-semantics">
+      <dt><b>Requires:</b> <code>Policies</code> is a model of <a href=
+      "CallPolicies.html">CallPolicies</a>.</dt>
+
+      <dt><b>Effects:</b> Creates a Python callable object which, when called
+      from Python, expects two arguments which can be converted
+      <code>from_python</code> to <code>C*</code> and
+      <code>D&nbsp;const&amp;</code>, respectively, and sets the
+      corresponding <code>D</code> member of the <code>C</code> object. If
+      <code>policies</code> is supplied, it will be applied to the function
+      as described <a href="CallPolicies.html">here</a>.</dt>
+
+      <dt><b>Returns:</b> An instance of <a href=
+      "object.html#object-spec">object</a> which holds the new Python
+      callable object.</dt>
+    </dl>
+<pre>
+template &lt;class D&gt;
+<a href="object.html#object-spec">object</a> make_setter(D&amp; d);
+template &lt;class D, class Policies&gt;
+<a href=
+"object.html#object-spec">object</a> make_setter(D&amp; d, Policies const&amp; policies);
+
+template &lt;class D&gt;
+<a href="object.html#object-spec">object</a> make_setter(D* p);
+template &lt;class D, class Policies&gt;
+<a href=
+"object.html#object-spec">object</a> make_setter(D* p, Policies const&amp; policies);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>Policies</code> is a model of <a href=
+      "CallPolicies.html">CallPolicies</a>.</dt>
+
+      <dt><b>Effects:</b> Creates a Python callable object which accepts one
+      argument, which is converted from Python to <code>D const&amp;</code>
+      and written into <code>d</code> or <code>*p</code>, respectively. If
+      <code>policies</code> is supplied, it will be applied to the function
+      as described <a href="CallPolicies.html">here</a>.</dt>
+
+      <dt><b>Returns:</b> An instance of <a href=
+      "object.html#object-spec">object</a> which holds the new Python
+      callable object.</dt>
+    </dl>
+
+    <h2><a name="examples"></a>Example</h2>
+
+    <p>The code below uses make_getter and make_setter to expose a data
+    member as functions:</p>
+<pre>
+#include &lt;boost/python/data_members.hpp&gt;
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/class.hpp&gt;
+
+struct X
+{
+    X(int x) : y(x) {}
+    int y;
+};
+
+using namespace boost::python;
+
+BOOST_PYTHON_MODULE_INIT(data_members_example)
+{
+    class_&lt;X&gt;("X", init&lt;int&gt;())
+       .def("get", make_getter(&amp;X::y))
+       .def("set", make_setter(&amp;X::y))
+       ;
+}
+</pre>
+    It can be used this way in Python: 
+<pre>
+&gt;&gt;&gt; from data_members_example import *
+&gt;&gt;&gt; x = X(1)
+&gt;&gt;&gt; x.get()
+1
+&gt;&gt;&gt; x.set(2)
+&gt;&gt;&gt; x.get()
+2
+</pre>
+
+    <p>
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+     5 August, 2003 <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

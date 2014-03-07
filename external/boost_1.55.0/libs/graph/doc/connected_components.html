@@ -1,0 +1,157 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000-2001
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Connected Components</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H1>
+<A NAME="sec:connected-components">
+<img src="figs/python.gif" alt="(Python)"/>
+<TT>connected_components</TT></A>
+</H1>
+
+<PRE>
+<i>// named parameter version</i>
+template &lt;class VertexListGraph, class ComponentMap, class P, class T, class R&gt;
+typename property_traits&lt;ComponentMap&gt;::value_type
+connected_components(VertexListGraph&amp; G, ComponentMap comp,
+    const bgl_named_params&lt;P, T, R&gt;&amp; params = <i>all defaults</i>);
+
+<i>// there is not a non-named parameter version of this function</i>
+</PRE>
+
+<P>
+The <TT>connected_components()</TT> functions compute the connected
+components of an undirected graph using a DFS-based approach.  A
+<b><I>connected component</I></b> of an undirected graph is a set of
+vertices that are all reachable from each other. If the connected
+components need to be maintained while a graph is growing the
+disjoint-set based approach of function <a
+href="./incremental_components.html">
+<TT>incremental_components()</TT></a> is faster. For ``static'' graphs
+this DFS-based approach is faster&nbsp;[<A
+HREF="bibliography.html#clr90">8</A>].
+
+<P>
+The output of the algorithm is recorded in the component property map
+<TT>comp</TT>, which will contain numbers giving the component number
+assigned to each vertex. The total number of components is the return
+value of the function.
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/connected_components.hpp"><TT>boost/graph/connected_components.hpp</TT></a>
+
+
+<h3>Parameters</h3>
+
+IN: <tt>const Graph&amp; g</tt>
+<blockquote>
+An undirected graph. The graph type must be a model of <a
+href="VertexListGraph.html">Vertex List Graph</a> and <a
+href="IncidenceGraph.html">Incidence Graph</a>.<br>
+
+<b>Python</b>: The parameter is named <tt>graph</tt>.
+</blockquote>
+
+OUT: <tt>ComponentMap c</tt>
+<blockquote>
+The algorithm computes how many connected components are in the graph,
+and assigning each component an integer label. The algorithm then
+records which component each vertex in the graph belongs to by
+recording the component number in the component property map. The
+<tt>ComponentMap</tt> type must be a model of <a
+href="../../property_map/doc/WritablePropertyMap.html">Writable Property
+Map</a>. The value type shouch be an integer type, preferably the same
+as the <tt>vertices_size_type</tt> of the graph. The key type must be
+the graph's vertex descriptor type.<br>
+
+  <b>Python</b>: Must be an <tt>vertex_int_map</tt> for the graph.<br>
+  <b>Python default</b>: <tt>graph.get_vertex_int_map("component")</tt>
+</blockquote>
+
+<h3>Named Parameters</h3>
+
+UTIL: <tt>color_map(ColorMap color)</tt>
+<blockquote>
+  This is used by the algorithm to keep track of its progress through
+  the graph. The type <tt>ColorMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a> and its key type must be the graph's vertex
+  descriptor type and the value type of the color map must model
+  <a href="./ColorValue.html">ColorValue</a>.<br>
+  <b>Default:</b> an <a
+  href="../../property_map/doc/iterator_property_map.html">
+  </tt>iterator_property_map</tt></a> created from a
+  <tt>std::vector</tt> of <tt>default_color_type</tt> of size
+  <tt>num_vertices(g)</tt> and using the <tt>i_map</tt> for the index
+  map.<br>
+  <b>Python</b>: The color map must be a <tt>vertex_color_map</tt> for
+  the graph.
+</blockquote>
+
+IN: <tt>vertex_index_map(VertexIndexMap i_map)</tt>
+<blockquote>
+  This maps each vertex to an integer in the range <tt>[0,
+  num_vertices(g))</tt>. This parameter is only necessary when the
+  default color property map is used. The type <tt>VertexIndexMap</tt>
+  must be a model of <a
+  href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+  Map</a>. The value type of the map must be an integer type. The
+  vertex descriptor type of the graph needs to be usable as the key
+  type of the map.<br>
+
+  <b>Default:</b> <tt>get(vertex_index, g)</tt>.
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacenty_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.<br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+
+<H3>Complexity</H3>
+
+<P>
+The time complexity for the connected components algorithm is also
+<i>O(V + E)</i>.
+
+<P>
+
+<h3>See Also</h3>
+
+<a href="./strong_components.html"><tt>strong_components()</tt></a>
+and <a href="./incremental_components.html"><tt>incremental_components()</tt></a>
+
+<H3>Example</H3>
+
+<P>
+The file <a
+href="../example/connected_components.cpp"><tt>examples/connected_components.cpp</tt></a>
+contains an example of calculating the connected components of an
+undirected graph.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

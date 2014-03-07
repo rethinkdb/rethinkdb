@@ -1,0 +1,76 @@
+Copyright 2005 Vladimir Prus 
+Distributed under the Boost Software License, Version 1.0. 
+(See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) 
+
+
+Hi,
+recently, we had a couple of problems caused by using relative file paths, and 
+I'd like to discuss what to do.
+
+Let's use the case from CÊdric. Simplified version is:
+
+    exe a : a.cpp dir1/qt_file.h ;
+    exe b : a.cpp dir2/qt_file.h ;
+
+Both exes have the same source cpp file but different *.h files -- which are 
+processed by Qt tools. V2 currently strips directory name from all targets, 
+so it tries to
+
+   - create "bin/mvsc/debug/moc_qt_file.cpp" from dir1/qt_file.h
+   - create "bin/msvc/debug/moc_qt_file.cpp" from dir2/qt_file.h
+
+There are two solutions that I see:
+
+   1. Rewrite the code like:
+      
+      lib aux : a.cpp 
+      exe a : aux dir1/qt_file.h : <location-prefix>a ;
+      exe b : aux dir2/qt_file.h : <location-prefix>b ;
+
+    This way, two version of moc_qt_file.cpp will be generated to different
+    places. 
+
+  2. Rewrite the code like:
+
+      obj a_moc : dir1/qt_file.h : <library>/qt//qt ;
+      exe a : a.cpp a_moc ;
+      obj b_moc : dir2/qt_file.h : <library>/qt//qt ;
+      exe b : a.cpp b_moc ;
+
+     Explicitly changing name for the problematic files.
+
+  3. Generally change V2 so that directory part of source is preserved. This
+      will generate targets:
+     "bin/msvc/debug/dir1/moc_qt_file.cpp" and
+     "bin/msvc/debug/dir2/moc_qt_file.cpp". No problems.
+
+   However, there are some additional questions:
+
+       - What if source has absolute file name?
+       - What if source is "../../include/qt_file.h"?
+
+       We can ignore directory names in those cases (i.e. use the current 
+       behaviour) but that would be a bit inconsistent.
+
+Any opinions?
+
+Pedro Ferreira:
+
+I think this is a corner case and BB should not try to solve everything 
+automatically - otherwise it will become really complex.
+I don't see a problem in requiring the user to help the build system by 
+using solutions 1 or 2.
+Of course, the better the error reporting, the easier it will be to 
+find the cause and the cure of the problem.
+
+TEMPLIE Cedric:
+
+I agree with Pedro. Solution 1 or 2 is the best way to deal with this 
+problem. Of course I have a preference for the solution 1, but the 
+solution 2 has the advantage to work without any modification...
+
+Toon Knapen:
+
+I agree.
+
+

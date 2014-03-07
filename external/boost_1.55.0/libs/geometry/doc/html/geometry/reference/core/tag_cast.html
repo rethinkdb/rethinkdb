@@ -1,0 +1,317 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>tag_cast</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../core.html" title="Core Metafunctions">
+<link rel="prev" href="tag.html" title="tag">
+<link rel="next" href="../enumerations.html" title="Enumerations">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tag.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../enumerations.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.core.tag_cast"></a><a class="link" href="tag_cast.html" title="tag_cast">tag_cast</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp59177832"></a>
+Metafunction defining a type being either the specified tag, or one of
+          the specified basetags if the type inherits from them.
+        </p>
+<h6>
+<a name="geometry.reference.core.tag_cast.h0"></a>
+          <span class="phrase"><a name="geometry.reference.core.tag_cast.description"></a></span><a class="link" href="tag_cast.html#geometry.reference.core.tag_cast.description">Description</a>
+        </h6>
+<p>
+          Tags can inherit each other. A multi_point inherits, for example, both
+          the multi_tag and the pointlike tag. Often behaviour can be shared between
+          different geometry types. A tag, found by the metafunction tag, can be
+          casted to a more basic tag, and then dispatched by that tag.
+        </p>
+<h6>
+<a name="geometry.reference.core.tag_cast.h1"></a>
+          <span class="phrase"><a name="geometry.reference.core.tag_cast.synopsis"></a></span><a class="link" href="tag_cast.html#geometry.reference.core.tag_cast.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Tag</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">BaseTag</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">BaseTag2</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">BaseTag3</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">BaseTag4</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">BaseTag5</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">BaseTag6</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">BaseTag7</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">tag_cast</span>
+<span class="special">{</span>
+  <span class="comment">// ...</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="geometry.reference.core.tag_cast.h2"></a>
+          <span class="phrase"><a name="geometry.reference.core.tag_cast.template_parameter_s_"></a></span><a class="link" href="tag_cast.html#geometry.reference.core.tag_cast.template_parameter_s_">Template
+          parameter(s)</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Default
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    typename Tag
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    The tag to be casted to one of the base tags
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    typename BaseTag
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    First base tag
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    typename BaseTag2
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Optional second base tag
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    typename BaseTag3
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Optional third base tag
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    typename BaseTag4
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Optional fourth base tag
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    typename BaseTag5
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Optional fifth base tag
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    typename BaseTag6
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Optional sixth base tag
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    typename BaseTag7
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Optional seventh base tag
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.core.tag_cast.h3"></a>
+          <span class="phrase"><a name="geometry.reference.core.tag_cast.header"></a></span><a class="link" href="tag_cast.html#geometry.reference.core.tag_cast.header">Header</a>
+        </h6>
+<p>
+          Either
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<p>
+          Or
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">tag_cast</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The specified tag list is handled in the specified order: as soon as
+            a tag inheriting the specified tag is found, it is defined as the metafunction
+            typedef <span class="bold"><strong>type</strong></span>.
+          </p></td></tr>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            If none of the specified possible base tags is a base class of the specified
+            tag, the tag itself is defined as the <span class="bold"><strong>type</strong></span>
+            result of the metafunction.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="geometry.reference.core.tag_cast.h4"></a>
+          <span class="phrase"><a name="geometry.reference.core.tag_cast.complexity"></a></span><a class="link" href="tag_cast.html#geometry.reference.core.tag_cast.complexity">Complexity</a>
+        </h6>
+<p>
+          Compile time
+        </p>
+<h6>
+<a name="geometry.reference.core.tag_cast.h5"></a>
+          <span class="phrase"><a name="geometry.reference.core.tag_cast.example"></a></span><a class="link" href="tag_cast.html#geometry.reference.core.tag_cast.example">Example</a>
+        </h6>
+<p>
+          Check if the polygon_tag can be casted to the areal_tag
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">typeinfo</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">polygon</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">point_xy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">geo</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">;</span>
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">geo</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">d2</span><span class="special">::</span><span class="identifier">point_xy</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">point_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">geo</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">polygon</span><span class="special">&lt;</span><span class="identifier">point_type</span><span class="special">&gt;</span> <span class="identifier">polygon_type</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">geo</span><span class="special">::</span><span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">polygon_type</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">tag</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">geo</span><span class="special">::</span><span class="identifier">tag_cast</span><span class="special">&lt;</span><span class="identifier">tag</span><span class="special">,</span> <span class="identifier">geo</span><span class="special">::</span><span class="identifier">linear_tag</span><span class="special">,</span> <span class="identifier">geo</span><span class="special">::</span><span class="identifier">areal_tag</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">base_tag</span><span class="special">;</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"tag: "</span> <span class="special">&lt;&lt;</span> <span class="keyword">typeid</span><span class="special">(</span><span class="identifier">tag</span><span class="special">).</span><span class="identifier">name</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span>
+        <span class="special">&lt;&lt;</span> <span class="string">"base tag: "</span> <span class="special">&lt;&lt;</span> <span class="keyword">typeid</span><span class="special">(</span><span class="identifier">base_tag</span><span class="special">).</span><span class="identifier">name</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Output (in MSVC):
+        </p>
+<pre class="programlisting">tag: struct boost::geometry::polygon_tag
+base tag: struct boost::geometry::areal_tag
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tag.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../enumerations.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

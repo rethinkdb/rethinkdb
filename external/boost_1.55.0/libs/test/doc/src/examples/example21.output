@@ -1,0 +1,8 @@
+> example --log_level=message
+Running 2 test cases...
+Testing initialization :
+Current time:0
+Testing update :
+Update Volume with 100
+
+*** No errors detected

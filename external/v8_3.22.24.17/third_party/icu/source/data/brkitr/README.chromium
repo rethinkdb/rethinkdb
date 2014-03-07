@@ -1,0 +1,27 @@
+Name: Chinese and Japanese Word List
+URL: http://src.chromium.org/viewvc/chrome/trunk/deps/third_party/icu42/source/data/brkitr/
+License: BSD and custom licenses
+Security Critical: no
+Version: unknown
+
+
+The list of words in cjdict.txt are obtained by combining three word
+lists listed below with further processing for compound word breaking.
+The frequency is generated with an iterative training against Google
+web corpora.
+
+  * CC-CEDICT (Chinese)
+    - http://www.mdbg.net/chindict/chindict.php?page=cedict (home page)
+    - http://www.mdbg.net/chindict/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz (word list)
+    - It is licensed under a Creative Commons Attribution-Share Alike 3.0 License.
+      (see http://creativecommons.org/licenses/by-sa/3.0 for more details)
+    - The portion of words derived from CC-CEDICT is also separately available
+       cc_cedict.txt per the above CC Attribution-Share Alike 3.0 License.
+
+  * Libtabe (Chinese)
+    - https://sourceforge.net/project/?group_id=1519
+    - Its license terms and conditions are in LICENSE.
+
+  * IPADIC (Japanese)
+    - http://chasen.aist-nara.ac.jp/chasen/distribution.html
+    - Its license terms and conditions are in LICENSE.

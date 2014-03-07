@@ -1,0 +1,94 @@
+<?xml version="1.0" ?>
+  <!--
+  Copyright 2008 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<concept name="ObjectTransform" category="utility">
+  <param name="Obj" role="object-type" />
+  <param name="Tn" role="transform-type" />
+  <param name="Expr" role="expression-type" />
+  <param name="State" role="state-type" />
+  <param name="Data" role="data-type" />
+
+  <models-sentence>
+    The type <arg num="1" /> must be a model of <conceptname name="Regular"/>, or
+    else it is a template specialization representing a lamda expression that,
+    subsequent to type substitution, is a type that models <conceptname name="Regular"/>.
+    The type <arg num="2" /> must be a model of <conceptname name="Transform"/>.
+  </models-sentence>
+
+  <description>
+    <para>
+      An ObjectTransform is a function type or a function
+      pointer type where the return type Obj is a
+      an object type and the arguments are
+      Transforms. is_callable&lt; Obj &gt;::value
+      must be false. The ObjectTransform, when applied,
+      has the effect of constructing an object of type
+      Obj' (see below), passing as construction parameters
+      the result(s) of applying transform(s) Tn.
+    </para>
+    <para>
+      The type Obj may be a template specialization representing
+      a compile-time lambda expression. For instance, if Obj is
+      std::pair&lt; proto::_value, int &gt;, the result type of the
+      ObjectTransform is computed by replacing the type proto::_value
+      with the result of applying the proto::_value transform. For
+      given types Obj, Expr, State and Data, we can say that the
+      type Obj' represents the type Obj after all nested transforms
+      have been replaced with the results of applying the transforms
+      with Expr, State and Data as transform arguments.
+    </para>
+    <para>
+      If the type Obj is not a template specialization representing
+      a compile-time lambda expression, then the result type Obj' is
+      the same as Obj.
+    </para>
+  </description>
+
+  <notation variables="expr">
+    <sample-value>
+      <type name="Expr" />
+    </sample-value>
+  </notation>
+
+  <notation variables="state">
+    <sample-value>
+      <type name="State" />
+    </sample-value>
+  </notation>
+
+  <notation variables="data">
+    <sample-value>
+      <type name="Data" />
+    </sample-value>
+  </notation>
+
+  <valid-expression name="Apply Transform">
+    <apply-function name="when&lt; _, Obj(Tn...)&gt;()">
+      <sample-value>
+        <type name="Expr" />
+      </sample-value>
+      <sample-value>
+        <type name="State" />
+      </sample-value>
+      <sample-value>
+        <type name="Data" />
+      </sample-value>
+    </apply-function>
+    <return-type>
+      <require-same-type testable="yes">
+        <type name="Obj'"/>
+      </require-same-type>
+    </return-type>
+    <semantics>Applies the transform.</semantics>
+  </valid-expression>
+
+  <example-model>
+    <type name="std::pair&lt; boost::proto::_value, int &gt;(boost::proto::_value, int())" />
+  </example-model>
+
+</concept>

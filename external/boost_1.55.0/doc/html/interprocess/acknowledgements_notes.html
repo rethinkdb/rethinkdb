@@ -1,0 +1,1167 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Acknowledgements, notes and links</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../interprocess.html" title="Chapter&#160;14.&#160;Boost.Interprocess">
+<link rel="prev" href="customizing_interprocess.html" title="Customizing Boost.Interprocess">
+<link rel="next" href="indexes_reference.html" title="Indexes and Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="customizing_interprocess.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="indexes_reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="interprocess.acknowledgements_notes"></a><a class="link" href="acknowledgements_notes.html" title="Acknowledgements, notes and links">Acknowledgements,
+    notes and links</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.notes">Notes</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.thanks_to">Thanks
+      to...</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes">Release
+      Notes</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.books_and_links">Books
+      and interesting links</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.future_improvements">Future
+      improvements...</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.acknowledgements_notes.notes"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.notes" title="Notes">Notes</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.notes.notes_windows">Notes
+        for Windows users</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.notes.notes_linux">Notes
+        for Linux users</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.notes.notes_windows"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.notes.notes_windows" title="Notes for Windows users">Notes
+        for Windows users</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.notes.notes_windows.notes_windows_com_init">COM
+          Initialization</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.notes.notes_windows.notes_windows_shm_folder">Shared
+          memory emulation folder</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="interprocess.acknowledgements_notes.notes.notes_windows.notes_windows_com_init"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.notes.notes_windows.notes_windows_com_init" title="COM Initialization">COM
+          Initialization</a>
+</h5></div></div></div>
+<p>
+            <span class="bold"><strong>Boost.Interprocess</strong></span> uses the Windows
+            COM library to implement some features and initializes it with concurrency
+            model <code class="computeroutput"><span class="identifier">COINIT_APARTMENTTHREADED</span></code>.
+            If the COM library was already initialized by the calling thread for
+            another concurrency model, <span class="bold"><strong>Boost.Interprocess</strong></span>
+            handles this gracefully and uses COM calls for the already initialized
+            model. If for some reason, you want <span class="bold"><strong>Boost.Interprocess</strong></span>
+            to initialize the COM library with another model, define the macro <code class="computeroutput"><span class="identifier">BOOST_INTERPROCESS_WINDOWS_COINIT_MODEL</span></code>
+            before including <span class="bold"><strong>Boost.Interprocess</strong></span>
+            to one of these values:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">COINIT_APARTMENTTHREADED_BIPC</span></code>
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">COINIT_MULTITHREADED_BIPC</span></code>
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">COINIT_DISABLE_OLE1DDE_BIPC</span></code>
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">COINIT_SPEED_OVER_MEMORY_BIPC</span></code>
+              </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="interprocess.acknowledgements_notes.notes.notes_windows.notes_windows_shm_folder"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.notes.notes_windows.notes_windows_shm_folder" title="Shared memory emulation folder">Shared
+          memory emulation folder</a>
+</h5></div></div></div>
+<p>
+            Shared memory (<code class="computeroutput"><span class="identifier">shared_memory_object</span></code>)
+            is implemented in windows using memory mapped files, placed in a directory
+            in the shared documents folder (<code class="computeroutput"><span class="identifier">SOFTWARE</span><span class="special">\</span><span class="identifier">Microsoft</span><span class="special">\</span><span class="identifier">Windows</span><span class="special">\</span><span class="identifier">CurrentVersion</span><span class="special">\</span><span class="identifier">Explorer</span><span class="special">\</span><span class="identifier">Shell</span> <span class="identifier">Folders</span><span class="special">\</span><span class="identifier">Common</span> <span class="identifier">AppData</span></code>).
+            This directory name is the last bootup time (obtained via COM calls),
+            so that each bootup shared memory is created in a new folder obtaining
+            kernel persistence shared memory.
+          </p>
+<p>
+            Unfortunately, due to COM implementation related errors, in Boost 1.48
+            &amp; Boost 1.49 the bootup-time folder was dumped and files were directly
+            created in shared documents folder, reverting to filesystem persistence
+            shared memory. Boost 1.50 fixed those issues and recovered bootup time
+            directory and kernel persistence. If you need to reproduce Boost 1.48
+            &amp; Boost 1.49 behaviour to communicate with applications compiled
+            with that version, comment <code class="computeroutput"><span class="preprocessor">#define</span>
+            <span class="identifier">BOOST_INTERPROCESS_HAS_KERNEL_BOOTTIME</span></code>
+            directive in the Windows configuration part of <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">detail</span><span class="special">/</span><span class="identifier">workaround</span><span class="special">.</span><span class="identifier">hpp</span></code>.
+          </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.notes.notes_linux"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.notes.notes_linux" title="Notes for Linux users">Notes
+        for Linux users</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.notes.notes_linux.notes_linux_overcommit">Overcommit</a></span></dt></dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="interprocess.acknowledgements_notes.notes.notes_linux.notes_linux_overcommit"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.notes.notes_linux.notes_linux_overcommit" title="Overcommit">Overcommit</a>
+</h5></div></div></div>
+<p>
+            The committed address space is the total amount of virtual memory (swap
+            or physical memory/RAM) that the kernel might have to supply if all applications
+            decide to access all of the memory they've requested from the kernel.
+            By default, Linux allows processes to commit more virtual memory than
+            available in the system. If that memory is not accessed, no physical
+            memory + swap is actually used.
+          </p>
+<p>
+            The reason for this behaviour is that Linux tries to optimize memory
+            usage on forked processes; fork() creates a full copy of the process
+            space, but with overcommitted memory, in this new forked instance only
+            pages which have been written to actually need to be allocated by the
+            kernel. If applications access more memory than available, then the kernel
+            must free memory in the hard way: the OOM (Out Of Memory)-killer picks
+            some processes to kill in order to recover memory.
+          </p>
+<p>
+            <span class="bold"><strong>Boost.Interprocess</strong></span> has no way to change
+            this behaviour and users might suffer the OOM-killer when accessing shared
+            memory. According to the <a href="http://www.kernel.org/doc/Documentation/vm/overcommit-accounting" target="_top">Kernel
+            documentation</a>, the Linux kernel supports several overcommit modes.
+            If you need non-kill guarantees in your application, you should change
+            this overcommit behaviour.
+          </p>
+</div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.acknowledgements_notes.thanks_to"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.thanks_to" title="Thanks to...">Thanks
+      to...</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.thanks_to.thanks_to_people">People</a></span></dt></dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.thanks_to.thanks_to_people"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.thanks_to.thanks_to_people" title="People">People</a>
+</h4></div></div></div>
+<p>
+          Many people have contributed with ideas and revisions, so this is the place
+          to thank them:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Thanks to all people who have shown interest in the library and have
+              downloaded and tested the snapshots.
+            </li>
+<li class="listitem">
+              Thanks to <span class="bold"><strong>Francis Andre</strong></span> and <span class="bold"><strong>Anders Hybertz</strong></span> for their ideas and suggestions.
+              Many of them are not implemented yet but I hope to include them when
+              library gets some stability.
+            </li>
+<li class="listitem">
+              Thanks to <span class="bold"><strong>Matt Doyle</strong></span>, <span class="bold"><strong>Steve
+              LoBasso</strong></span>, <span class="bold"><strong>Glenn Schrader</strong></span>,
+              <span class="bold"><strong>Hiang Swee Chiang</strong></span>, <span class="bold"><strong>Phil
+              Endecott</strong></span>, <span class="bold"><strong>Rene Rivera</strong></span>,
+              <span class="bold"><strong>Harold Pirtle</strong></span>, <span class="bold"><strong>Paul
+              Ryan</strong></span>, <span class="bold"><strong>Shumin Wu</strong></span>, <span class="bold"><strong>Michal Wozniak</strong></span>, <span class="bold"><strong>Peter
+              Johnson</strong></span>, <span class="bold"><strong>Alex Ott</strong></span>, <span class="bold"><strong>Shane Guillory</strong></span>, <span class="bold"><strong>Steven
+              Wooding</strong></span> and <span class="bold"><strong>Kim Barrett</strong></span>
+              for their bug fixes and library testing.
+            </li>
+<li class="listitem">
+              Thanks to <span class="bold"><strong>Martin Adrian</strong></span> who suggested
+              the use of Interprocess framework for user defined buffers.
+            </li>
+<li class="listitem">
+              Thanks to <span class="bold"><strong>Synge Todo</strong></span> for his boostbook-doxygen
+              patch to improve Interprocess documentation.
+            </li>
+<li class="listitem">
+              Thanks to <span class="bold"><strong>Olaf Krzikalla</strong></span> for his Intrusive
+              library. I have taken some ideas to improve red black tree implementation
+              from his library.
+            </li>
+<li class="listitem">
+              Thanks to <span class="bold"><strong>Daniel James</strong></span> for his unordered_map/set
+              family and his help with allocators. His great unordered implementation
+              has been a reference to design exception safe containers.
+            </li>
+<li class="listitem">
+              Thanks to <span class="bold"><strong>Howard Hinnant</strong></span> for his amazing
+              help, specially explaining allocator swapping, move semantics and for
+              developing upgradable mutex and lock transfer features.
+            </li>
+<li class="listitem">
+              Thanks to <span class="bold"><strong>Pavel Vozenilek</strong></span> for his
+              continuous review process, suggestions, code and help. He is the major
+              supporter of Interprocess library. The library has grown with his many
+              and great advices.
+            </li>
+<li class="listitem">
+              And finally, thank you to all Boosters. <span class="bold"><strong>Long
+              live to C++!</strong></span>
+            </li>
+</ul></div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes" title="Release Notes">Release
+      Notes</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_55_00">Boost
+        1.55 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_54_00">Boost
+        1.54 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_53_00">Boost
+        1.53 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_52_00">Boost
+        1.52 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_51_00">Boost
+        1.51 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_50_00">Boost
+        1.50 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_49_00">Boost
+        1.49 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_48_00">Boost
+        1.48 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_46_00">Boost
+        1.46 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_45_00">Boost
+        1.45 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_41_00">Boost
+        1.41 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_40_00">Boost
+        1.40 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_39_00">Boost
+        1.39 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_38_00">Boost
+        1.38 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_37_00">Boost
+        1.37 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_36_00">Boost
+        1.36 Release</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_35_00">Boost
+        1.35 Release</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_55_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_55_00" title="Boost 1.55 Release">Boost
+        1.55 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/7156" target="_top">#7156</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/7164" target="_top">#7164</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/8277" target="_top">#8277</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/8976" target="_top">#8976</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/9065" target="_top">#9065</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/9073" target="_top">#9073</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/9008" target="_top">#9008</a>.
+            </li></ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_54_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_54_00" title="Boost 1.54 Release">Boost
+        1.54 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Added support for platform-specific flags to mapped_region (ticket
+              #8030)
+            </li>
+<li class="listitem">
+              Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/7484" target="_top">#7484</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/7598" target="_top">#7598</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/7682" target="_top">#7682</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/7923" target="_top">#7923</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/7924" target="_top">#7924</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/7928" target="_top">#7928</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/7936" target="_top">#7936</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/8521" target="_top">#8521</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/8595" target="_top">#8595</a>.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>ABI breaking</strong></span>: Changed bootstamp function
+              in Windows to use EventLog service start time as system bootup time.
+              Previously used <code class="computeroutput"><span class="identifier">LastBootupTime</span></code>
+              from WMI was unstable with time synchronization and hibernation and
+              unusable in practice. If you really need to obtain pre Boost 1.54 behaviour
+              define <code class="computeroutput"><span class="identifier">BOOST_INTERPROCESS_BOOTSTAMP_IS_LASTBOOTUPTIME</span></code>
+              from command line or <code class="computeroutput"><span class="identifier">detail</span><span class="special">/</span><span class="identifier">workaround</span><span class="special">.</span><span class="identifier">hpp</span></code>.
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_53_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_53_00" title="Boost 1.53 Release">Boost
+        1.53 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Fixed GCC -Wshadow warnings.
+            </li>
+<li class="listitem">
+              Experimental multiple allocation interface improved and changed again.
+              Still unstable.
+            </li>
+<li class="listitem">
+              Replaced deprecated BOOST_NO_XXXX with newer BOOST_NO_CXX11_XXX macros.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>ABI breaking</strong></span>: changed node pool allocators
+              internals for improved efficiency.
+            </li>
+<li class="listitem">
+              Fixed bug <a href="https://svn.boost.org/trac/boost/ticket/7795" target="_top">#7795</a>.
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_52_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_52_00" title="Boost 1.52 Release">Boost
+        1.52 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Added <code class="computeroutput"><span class="identifier">shrink_by</span></code> and
+              <code class="computeroutput"><span class="identifier">advise</span></code> functions in
+              <code class="computeroutput"><span class="identifier">mapped_region</span></code>.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>ABI breaking:</strong></span> Reimplemented <code class="computeroutput"><span class="identifier">message_queue</span></code> with a circular buffer
+              index (the old behavior used an ordered array, leading to excessive
+              copies). This should greatly increase performance but breaks ABI. Old
+              behaviour/ABI can be used undefining macro <code class="computeroutput"><span class="identifier">BOOST_INTERPROCESS_MSG_QUEUE_CIRCULAR_INDEX</span></code>
+              in <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">detail</span><span class="special">/</span><span class="identifier">workaround</span><span class="special">.</span><span class="identifier">hpp</span></code>
+            </li>
+<li class="listitem">
+              Improved <code class="computeroutput"><span class="identifier">message_queue</span></code>
+              insertion time avoiding priority search for common cases (both array
+              and circular buffer configurations).
+            </li>
+<li class="listitem">
+              Implemented <code class="computeroutput"><span class="identifier">interproces_sharable_mutex</span></code>
+              and <code class="computeroutput"><span class="identifier">interproces_condition_any</span></code>.
+            </li>
+<li class="listitem">
+              Improved <code class="computeroutput"><span class="identifier">offset_ptr</span></code>
+              performance.
+            </li>
+<li class="listitem">
+              Added integer overflow checks.
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_51_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_51_00" title="Boost 1.51 Release">Boost
+        1.51 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Synchronous and asynchronous flushing for <code class="computeroutput"><span class="identifier">mapped_region</span><span class="special">::</span><span class="identifier">flush</span></code>.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>Source &amp; ABI breaking</strong></span>: Removed
+              <code class="computeroutput"><span class="identifier">get_offset</span></code> method from
+              <code class="computeroutput"><span class="identifier">mapped_region</span></code> as it
+              has no practical utility and <code class="computeroutput"><span class="identifier">m_offset</span></code>
+              member was not for anything else.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>Source &amp; ABI breaking</strong></span>: Removed
+              <code class="computeroutput"><span class="identifier">flush</span></code> from <code class="computeroutput"><span class="identifier">managed_shared_memory</span></code>. as it is unspecified
+              according to POSIX: <a href="http://pubs.opengroup.org/onlinepubs/009695399/functions/msync.html" target="_top"><span class="emphasis"><em>"The
+              effect of msync() on a shared memory object or a typed memory object
+              is unspecified"</em></span> </a>.
+            </li>
+<li class="listitem">
+              Fixed bug <a href="https://svn.boost.org/trac/boost/ticket/7152" target="_top">#7152</a>,
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_50_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_50_00" title="Boost 1.50 Release">Boost
+        1.50 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/3750" target="_top">#3750</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/6727" target="_top">#6727</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/6648" target="_top">#6648</a>,
+            </li>
+<li class="listitem">
+              Shared memory in windows has again kernel persistence: kernel bootstamp
+              and WMI has received some fixes and optimizations. This causes incompatibility
+              with Boost 1.48 and 1.49 but the user can comment <code class="computeroutput"><span class="preprocessor">#define</span>
+              <span class="identifier">BOOST_INTERPROCESS_HAS_KERNEL_BOOTTIME</span></code>
+              in the windows configuration part to get Boost 1.48 &amp; Boost 1.49
+              behaviour.
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_49_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_49_00" title="Boost 1.49 Release">Boost
+        1.49 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/6531" target="_top">#6531</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/6412" target="_top">#6412</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/6398" target="_top">#6398</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/6340" target="_top">#6340</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/6319" target="_top">#6319</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/6287" target="_top">#6287</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/6265" target="_top">#6265</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/6233" target="_top">#6233</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/6147" target="_top">#6147</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/6134" target="_top">#6134</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/6058" target="_top">#6058</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/6054" target="_top">#6054</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5772" target="_top">#5772</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5738" target="_top">#5738</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5622" target="_top">#5622</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5552" target="_top">#5552</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5518" target="_top">#5518</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4655" target="_top">#4655</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4452" target="_top">#4452</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4383" target="_top">#4383</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4297" target="_top">#4297</a>.
+            </li>
+<li class="listitem">
+              Fixed timed functions in mutex implementations to fulfill POSIX requirements:
+              <span class="emphasis"><em>Under no circumstance shall the function fail with a timeout
+              if the mutex can be locked immediately. The validity of the abs_timeout
+              parameter need not be checked if the mutex can be locked immediately.</em></span>
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_48_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_48_00" title="Boost 1.48 Release">Boost
+        1.48 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/2796" target="_top">#2796</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4031" target="_top">#4031</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4251" target="_top">#4251</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4452" target="_top">#4452</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4895" target="_top">#4895</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5077" target="_top">#5077</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5120" target="_top">#5120</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5123" target="_top">#5123</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5230" target="_top">#5230</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5197" target="_top">#5197</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5287" target="_top">#5287</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5294" target="_top">#5294</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5306" target="_top">#5306</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5308" target="_top">#5308</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5392" target="_top">#5392</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/5409" target="_top">#5409</a>,
+            </li>
+<li class="listitem">
+              Added support to customize offset_ptr and allow creating custom managed
+              segments that might be shared between 32 and 64 bit processes.
+            </li>
+<li class="listitem">
+              Shared memory in windows has again filesystem lifetime: kernel bootstamp
+              and WMI use to get a reliable timestamp was causing a lot of trouble.
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_46_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_46_00" title="Boost 1.46 Release">Boost
+        1.46 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/4557" target="_top">#4557</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4979" target="_top">#4979</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4907" target="_top">#4907</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4895" target="_top">#4895</a>.
+            </li></ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_45_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_45_00" title="Boost 1.45 Release">Boost
+        1.45 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/1080" target="_top">#1080</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/3284" target="_top">#3284</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/3439" target="_top">#3439</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/3448" target="_top">#3448</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/3582" target="_top">#3582</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/3682" target="_top">#3682</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/3829" target="_top">#3829</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/3846" target="_top">#3846</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/3914" target="_top">#3914</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/3947" target="_top">#3947</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/3950" target="_top">#3950</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/3951" target="_top">#3951</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/3985" target="_top">#3985</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4010" target="_top">#4010</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4417" target="_top">#4417</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4019" target="_top">#4019</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4039" target="_top">#4039</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4218" target="_top">#4218</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4230" target="_top">#4230</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4250" target="_top">#4250</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4297" target="_top">#4297</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4350" target="_top">#4350</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4352" target="_top">#4352</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4426" target="_top">#4426</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4516" target="_top">#4516</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4524" target="_top">#4524</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4557" target="_top">#4557</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4606" target="_top">#4606</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4685" target="_top">#4685</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/4694" target="_top">#4694</a>.
+            </li>
+<li class="listitem">
+              Added support for standard rvalue reference move semantics (tested
+              on GCC 4.5 and VC10).
+            </li>
+<li class="listitem">
+              Permissions can be detailed for interprocess named resources.
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">mapped_region</span><span class="special">::</span><span class="identifier">flush</span></code> initiates disk flushing but
+              does not guarantee it's completed when returns, since it is not portable.
+            </li>
+<li class="listitem">
+              FreeBSD and MacOS now use posix semaphores to implement named semaphores
+              and mutex.
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_41_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_41_00" title="Boost 1.41 Release">Boost
+        1.41 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Support for POSIX shared memory in Mac OS.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>ABI breaking</strong></span>: Generic <code class="computeroutput"><span class="identifier">semaphore</span></code> and <code class="computeroutput"><span class="identifier">named_semaphore</span></code>
+              now implemented more efficiently with atomic operations.
+            </li>
+<li class="listitem">
+              More robust file opening in Windows platforms with active Anti-virus
+              software.
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_40_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_40_00" title="Boost 1.40 Release">Boost
+        1.40 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Windows shared memory is created in Shared Documents folder so that
+              it can be shared between services and processes
+            </li>
+<li class="listitem">
+              Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/2967" target="_top">#2967</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/2973" target="_top">#2973</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/2992" target="_top">#2992</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/3138" target="_top">#3138</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/3166" target="_top">#3166</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/3205" target="_top">#3205</a>.
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_39_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_39_00" title="Boost 1.39 Release">Boost
+        1.39 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Added experimental <code class="computeroutput"><span class="identifier">stable_vector</span></code>
+              container.
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span></code>
+              has now POSIX <code class="computeroutput"><span class="identifier">unlink</span></code>
+              semantics and <code class="computeroutput"><span class="identifier">file_mapping</span><span class="special">::</span><span class="identifier">remove</span></code>
+              was added to obtain POSIX <code class="computeroutput"><span class="identifier">unlink</span></code>
+              semantics with mapped files.
+            </li>
+<li class="listitem">
+              Shared memory in windows has now kernel lifetime instead of filesystem
+              lifetime: shared memory will disappear when the system reboots.
+            </li>
+<li class="listitem">
+              Updated move semantics.
+            </li>
+<li class="listitem">
+              Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/2722" target="_top">#2722</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/2729" target="_top">#2729</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/2766" target="_top">#2766</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/1390" target="_top">#1390</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/2589" target="_top">#2589</a>,
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_38_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_38_00" title="Boost 1.38 Release">Boost
+        1.38 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Updated documentation to show rvalue-references funcions instead of
+              emulation functions.
+            </li>
+<li class="listitem">
+              More non-copyable classes are now movable.
+            </li>
+<li class="listitem">
+              Move-constructor and assignments now leave moved object in default-constructed
+              state instead of just swapping contents.
+            </li>
+<li class="listitem">
+              Several bugfixes ( <a href="https://svn.boost.org/trac/boost/ticket/2391" target="_top">#2391</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/2431" target="_top">#2431</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/1390" target="_top">#1390</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/2570" target="_top">#2570</a>,
+              <a href="https://svn.boost.org/trac/boost/ticket/2528" target="_top">#2528</a>.
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_37_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_37_00" title="Boost 1.37 Release">Boost
+        1.37 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Containers can be used now in recursive types.
+            </li>
+<li class="listitem">
+              Added <code class="computeroutput"><span class="identifier">BOOST_INTERPROCESS_FORCE_GENERIC_EMULATION</span></code>
+              macro option to force the use of generic emulation code for process-shared
+              synchronization primitives instead of native POSIX functions.
+            </li>
+<li class="listitem">
+              Added placement insertion members to containers
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">pos_inf</span></code> value is now handled portably
+              for timed functions.
+            </li>
+<li class="listitem">
+              Update some function parameters from <code class="computeroutput"><span class="identifier">iterator</span></code>
+              to <code class="computeroutput"><span class="identifier">const_iterator</span></code> in
+              containers to keep up with the draft of the next standard.
+            </li>
+<li class="listitem">
+              Documentation fixes.
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_36_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_36_00" title="Boost 1.36 Release">Boost
+        1.36 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Added anonymous shared memory for UNIX systems.
+            </li>
+<li class="listitem">
+              Fixed erroneous <code class="computeroutput"><span class="keyword">void</span></code> return
+              types from <code class="computeroutput"><span class="identifier">flat_map</span><span class="special">::</span><span class="identifier">erase</span><span class="special">()</span></code> functions.
+            </li>
+<li class="listitem">
+              Fixed missing move semantics on managed memory classes.
+            </li>
+<li class="listitem">
+              Added copy_on_write and open_read_only options for shared memory and
+              mapped file managed classes.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>ABI breaking</strong></span>: Added to <code class="computeroutput"><span class="identifier">mapped_region</span></code> the mode used to create
+              it.
+            </li>
+<li class="listitem">
+              Corrected instantiation errors in void allocators.
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">shared_ptr</span></code> is movable
+              and supports aliasing.
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_35_00"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.release_notes.release_notes_boost_1_35_00" title="Boost 1.35 Release">Boost
+        1.35 Release</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Added auxiliary utilities to ease the definition and construction of
+              <code class="computeroutput"><a class="link" href="../boost/interprocess/shared_ptr.html" title="Class template shared_ptr">shared_ptr</a></code>,
+              <code class="computeroutput"><a class="link" href="../boost/interprocess/weak_ptr.html" title="Class template weak_ptr">weak_ptr</a></code>
+              and <code class="computeroutput"><a class="link" href="../boost/interprocess/unique_ptr.html" title="Class template unique_ptr">unique_ptr</a></code>.
+              Added explanations and examples of these smart pointers in the documentation.
+            </li>
+<li class="listitem">
+              Optimized vector:
+              <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                    1) Now works with raw pointers as much as possible when using
+                    allocators defining <code class="computeroutput"><span class="identifier">pointer</span></code>
+                    as an smart pointer. This increases performance and improves
+                    compilation times.
+                  </li>
+<li class="listitem">
+                    2) A bit of metaprogramming to avoid using move_iterator when
+                    the type has trivial copy constructor or assignment and improve
+                    performance.
+                  </li>
+<li class="listitem">
+                    3) Changed custom algorithms with standard ones to take advantage
+                    of optimized standard algorithms.
+                  </li>
+<li class="listitem">
+                    4) Removed unused code.
+                  </li>
+</ul></div>
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>ABI breaking</strong></span>: Containers don't derive
+              from allocators, to avoid problems with allocators that might define
+              virtual functions with the same names as container member functions.
+              That would convert container functions in virtual functions and might
+              disallow some of them if the returned type does not lead to a covariant
+              return. Allocators are now stored as base classes of internal structs.
+            </li>
+<li class="listitem">
+              Implemented <code class="computeroutput"><a class="link" href="../boost/interprocess/named_mutex.html" title="Class named_mutex">named_mutex</a></code>
+              and <code class="computeroutput"><a class="link" href="../boost/interprocess/named_semaphore.html" title="Class named_semaphore">named_semaphore</a></code>
+              with POSIX named semaphores in systems supporting that option. <code class="computeroutput"><a class="link" href="../boost/interprocess/named_condition.html" title="Class named_condition">named_condition</a></code>
+              has been accordingly changed to support interoperability with <code class="computeroutput"><a class="link" href="../boost/interprocess/named_mutex.html" title="Class named_mutex">named_mutex</a></code>.
+            </li>
+<li class="listitem">
+              Reduced template bloat for node and adaptive allocators extracting
+              node implementation to a class that only depends on the memory algorithm,
+              instead of the segment manager + node size + node number...
+            </li>
+<li class="listitem">
+              Fixed bug in <code class="computeroutput"><span class="identifier">mapped_region</span></code>
+              in UNIX when mapping address was provided but the region was mapped
+              in another address.
+            </li>
+<li class="listitem">
+              Added <code class="computeroutput"><span class="identifier">aligned_allocate</span></code>
+              and <code class="computeroutput"><span class="identifier">allocate_many</span></code> functions
+              to managed memory segments.
+            </li>
+<li class="listitem">
+              Improved documentation about managed memory segments.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>Boost.Interprocess</strong></span> containers are
+              now documented in the Reference section.
+            </li>
+<li class="listitem">
+              Correction of typos and documentation errors.
+            </li>
+<li class="listitem">
+              Added <code class="computeroutput"><span class="identifier">get_instance_name</span></code>,
+              <code class="computeroutput"><span class="identifier">get_instance_length</span></code>
+              and <code class="computeroutput"><span class="identifier">get_instance_type</span></code>
+              functions to managed memory segments.
+            </li>
+<li class="listitem">
+              Corrected suboptimal buffer expansion bug in <code class="computeroutput"><span class="identifier">rbtree_best_fit</span></code>.
+            </li>
+<li class="listitem">
+              Added iteration of named and unique objects in a segment manager.
+            </li>
+<li class="listitem">
+              Fixed leak in <code class="computeroutput">vector</code>.
+            </li>
+<li class="listitem">
+              Added support for Solaris.
+            </li>
+<li class="listitem">
+              Optimized <code class="computeroutput"><a class="link" href="../boost/interprocess/segment_manager.html" title="Class template segment_manager">segment_manager</a></code>
+              to avoid code bloat associated with templated instantiations.
+            </li>
+<li class="listitem">
+              Fixed bug for UNIX: No slash ('/') was being added as the first character
+              for shared memory names, leading to errors in some UNIX systems.
+            </li>
+<li class="listitem">
+              Fixed bug in VC-8.0: Broken function inlining in core offset_ptr functions.
+            </li>
+<li class="listitem">
+              Code examples changed to use new BoostBook code import features.
+            </li>
+<li class="listitem">
+              Added aligned memory allocation function to memory algorithms.
+            </li>
+<li class="listitem">
+              Fixed bug in <code class="computeroutput"><span class="identifier">deque</span><span class="special">::</span><span class="identifier">clear</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">deque</span><span class="special">::</span><span class="identifier">erase</span><span class="special">()</span></code>, they were declared private.
+            </li>
+<li class="listitem">
+              Fixed bug in <code class="computeroutput"><span class="identifier">deque</span><span class="special">::</span><span class="identifier">erase</span><span class="special">()</span></code>. Thanks to Steve LoBasso.
+            </li>
+<li class="listitem">
+              Fixed bug in <code class="computeroutput"><span class="identifier">atomic_dec32</span><span class="special">()</span></code>. Thanks to Glenn Schrader.
+            </li>
+<li class="listitem">
+              Improved (multi)map/(multi)set constructors taking iterators. Now those
+              have linear time if the iterator range is already sorted.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>ABI breaking</strong></span>: (multi)map/(multi)set
+              now reduce their node size. The color bit is embedded in the parent
+              pointer. Now, the size of a node is the size of 3 pointers in most
+              systems. This optimization is activated for raw and <code class="computeroutput"><span class="identifier">offset_ptr</span></code>
+              pointers.
+            </li>
+<li class="listitem">
+              (multi)map/(multi)set now reuse memory from old nodes in the assignment
+              operator.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>ABI breaking</strong></span>: Implemented node-containers
+              based on intrusive containers. This saves code size, since many instantiations
+              share the same algorithms.
+            </li>
+<li class="listitem">
+              Corrected code to be compilable with Visual C++ 8.0.
+            </li>
+<li class="listitem">
+              Added function to zero free memory in memory algorithms and the segment
+              manager. This function is useful for security reasons and to improve
+              compression ratios for files created with <code class="computeroutput"><span class="identifier">managed_mapped_file</span></code>.
+            </li>
+<li class="listitem">
+              Added support for intrusive index types in managed memory segments.
+              Intrusive indexes save extra memory allocations to allocate the index
+              since with just one allocation, we allocate room for the value, the
+              name and the hook to insert the object in the index.
+            </li>
+<li class="listitem">
+              Created new index type: <span class="bold"><strong>iset_index</strong></span>.
+              It's an index based on an intrusive set (rb-tree).
+            </li>
+<li class="listitem">
+              Created new index type: <span class="bold"><strong>iunordered_set_index</strong></span>.
+              It's an index based on a pseudo-intrusive unordered set (hash table).
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>ABI breaking</strong></span>: The intrusive index
+              <span class="bold"><strong>iset_index</strong></span> is now the default index
+              type.
+            </li>
+<li class="listitem">
+              Optimized vector to take advantage of <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">has_trivial_destructor</span></code>.
+              This optimization avoids calling destructors of elements that have
+              a trivial destructor.
+            </li>
+<li class="listitem">
+              Optimized vector to take advantage of <code class="computeroutput"><span class="identifier">has_trivial_destructor_after_move</span></code>
+              trait. This optimization avoids calling destructors of elements that
+              have a trivial destructor if the element has been moved (which is the
+              case of many movable types). This trick was provided by Howard Hinnant.
+            </li>
+<li class="listitem">
+              Added security check to avoid integer overflow bug in allocators and
+              named construction functions.
+            </li>
+<li class="listitem">
+              Added alignment checks to forward and backwards expansion functions.
+            </li>
+<li class="listitem">
+              Fixed bug in atomic functions for PPC.
+            </li>
+<li class="listitem">
+              Fixed race-condition error when creating and opening a managed segment.
+            </li>
+<li class="listitem">
+              Added adaptive pools.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>Source breaking</strong></span>: Changed node allocators'
+              template parameter order to make them easier to use.
+            </li>
+<li class="listitem">
+              Added support for native windows shared memory.
+            </li>
+<li class="listitem">
+              Added more tests.
+            </li>
+<li class="listitem">
+              Corrected the presence of private functions in the reference section.
+            </li>
+<li class="listitem">
+              Added function (<code class="computeroutput"><span class="identifier">deallocate_free_chunks</span><span class="special">()</span></code>) to manually deallocate completely
+              free chunks from node allocators.
+            </li>
+<li class="listitem">
+              Implemented N1780 proposal to LWG issue 233: <span class="emphasis"><em>Insertion hints
+              in associative containers</em></span> in interprocess <code class="computeroutput">multiset</code>
+              and <code class="computeroutput">multimap</code>
+              classes.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>Source breaking</strong></span>: A shared memory object
+              is now used including <code class="computeroutput"><span class="identifier">shared_memory_object</span><span class="special">.</span><span class="identifier">hpp</span></code>
+              header instead of <code class="computeroutput"><span class="identifier">shared</span>
+              <span class="identifier">memory</span><span class="special">.</span><span class="identifier">hpp</span></code>.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>ABI breaking</strong></span>: Changed global mutex
+              when initializing managed shared memory and memory mapped files. This
+              change tries to minimize deadlocks.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>Source breaking</strong></span>: Changed shared memory,
+              memory mapped files and mapped region's open mode to a single <code class="computeroutput"><span class="identifier">mode_t</span></code> type.
+            </li>
+<li class="listitem">
+              Added extra WIN32_LEAN_AND_MEAN before including DateTime headers to
+              avoid socket redefinition errors when using Interprocess and Asio in
+              windows.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>ABI breaking</strong></span>: <code class="computeroutput"><span class="identifier">mapped_region</span></code>
+              constructor no longer requires classes derived from memory_mappable,
+              but classes must fulfill the MemoryMappable concept.
+            </li>
+<li class="listitem">
+              Added in-place reallocation capabilities to basic_string.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>ABI breaking</strong></span>: Reimplemented and optimized
+              small string optimization. The narrow string class has zero byte overhead
+              with an internal 11 byte buffer in 32 systems!
+            </li>
+<li class="listitem">
+              Added move semantics to containers. Improves performance when using
+              containers of containers.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>ABI breaking</strong></span>: End nodes of node containers
+              (list, slist, map/set) are now embedded in the containers instead of
+              allocated using the allocator. This allows no-throw move-constructors
+              and improves performance.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>ABI breaking</strong></span>: <span class="bold"><strong>slist</strong></span>
+              and <span class="bold"><strong>list</strong></span> containers now have constant-time
+              <span class="emphasis"><em>size()</em></span> function. The size of the container is
+              added as a member.
+            </li>
+</ul></div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.acknowledgements_notes.books_and_links"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.books_and_links" title="Books and interesting links">Books
+      and interesting links</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.books_and_links.references_books">Books</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.books_and_links.references_links">Links</a></span></dt>
+</dl></div>
+<p>
+        Some useful references about the C++ programming language, C++ internals,
+        shared memory, allocators and containers used to design <span class="bold"><strong>Boost.Interprocess</strong></span>.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.books_and_links.references_books"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.books_and_links.references_books" title="Books">Books</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Great book about multithreading, and POSIX: <span class="bold"><strong><span class="emphasis"><em>"Programming
+              with Posix Threads"</em></span></strong></span>, <span class="bold"><strong>David
+              R. Butenhof</strong></span>
+            </li>
+<li class="listitem">
+              The UNIX inter-process bible: <span class="bold"><strong><span class="emphasis"><em>"UNIX
+              Network Programming, Volume 2: Interprocess Communications"</em></span></strong></span>,
+              <span class="bold"><strong>W. Richard Stevens</strong></span>
+            </li>
+<li class="listitem">
+              Current STL allocator issues: <span class="bold"><strong><span class="emphasis"><em>"Effective
+              STL"</em></span></strong></span>, <span class="bold"><strong>Scott Meyers</strong></span>
+            </li>
+<li class="listitem">
+              My C++ bible: <span class="bold"><strong><span class="emphasis"><em>"Thinking in C++,
+              Volume 1 &amp; 2"</em></span></strong></span>, <span class="bold"><strong>Bruce
+              Eckel and Chuck Allison</strong></span>
+            </li>
+<li class="listitem">
+              The book every C++ programmer should read: <span class="bold"><strong><span class="emphasis"><em>"Inside
+              the C++ Object Model"</em></span></strong></span>, <span class="bold"><strong>Stanley
+              B. Lippman</strong></span>
+            </li>
+<li class="listitem">
+              A must-read: <span class="bold"><strong><span class="emphasis"><em>"ISO/IEC TR 18015:
+              Technical Report on C++ Performance"</em></span></strong></span>, <span class="bold"><strong>ISO WG21-SC22 members.</strong></span>
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.books_and_links.references_links"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.books_and_links.references_links" title="Links">Links</a>
+</h4></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              A framework to put the STL in shared memory: <a href="http://allocator.sourceforge.net/" target="_top"><span class="emphasis"><em>"A
+              C++ Standard Allocator for the Standard Template Library"</em></span>
+              </a>.
+            </li>
+<li class="listitem">
+              Instantiating C++ objects in shared memory: <a href="http://www.cs.ubc.ca/local/reading/proceedings/cascon94/htm/english/abs/hon.htm" target="_top"><span class="emphasis"><em>"Using
+              objects in shared memory for C++ application"</em></span> </a>.
+            </li>
+<li class="listitem">
+              A shared memory allocator and relative pointer: <a href="http://home.earthlink.net/~joshwalker1/writing/SharedMemory.html" target="_top"><span class="emphasis"><em>"Taming
+              Shared Memory"</em></span> </a>.
+            </li>
+</ul></div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.acknowledgements_notes.future_improvements"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.future_improvements" title="Future improvements...">Future
+      improvements...</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.future_improvements.win32_sync">Win32
+        synchronization is too basic</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.future_improvements.future_objectnames">Use
+        of wide character names on Boost.Interprocess basic resources</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.future_improvements.future_security">Security
+        attributes</a></span></dt>
+<dt><span class="section"><a href="acknowledgements_notes.html#interprocess.acknowledgements_notes.future_improvements.future_ipc">Future
+        inter-process communications</a></span></dt>
+</dl></div>
+<p>
+        There are some Interprocess features that I would like to implement and some
+        <span class="bold"><strong>Boost.Interprocess</strong></span> code that can be much
+        better. Let's see some ideas:
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.future_improvements.win32_sync"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.future_improvements.win32_sync" title="Win32 synchronization is too basic">Win32
+        synchronization is too basic</a>
+</h4></div></div></div>
+<p>
+          Win32 version of shared mutexes and shared conditions are based on "spin
+          and wait" atomic instructions. This leads to poor performance and
+          does not manage any issues like priority inversions. We would need very
+          serious help from threading experts on this. And I'm not sure that this
+          can be achieved in user-level software. Posix based implementations use
+          PTHREAD_PROCESS_SHARED attribute to place mutexes in shared memory, so
+          there are no such problems. I'm not aware of any implementation that simulates
+          PTHREAD_PROCESS_SHARED attribute for Win32. We should be able to construct
+          these primitives in memory mapped files, so that we can get filesystem
+          persistence just like with POSIX primitives.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.future_improvements.future_objectnames"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.future_improvements.future_objectnames" title="Use of wide character names on Boost.Interprocess basic resources">Use
+        of wide character names on Boost.Interprocess basic resources</a>
+</h4></div></div></div>
+<p>
+          Currently Interprocess only allows <span class="bold"><strong>char</strong></span>
+          based names for basic named objects. However, several operating systems
+          use <span class="bold"><strong>wchar_t</strong></span> names for resources (mapped
+          files, for example). In the future Interprocess should try to present a
+          portable narrow/wide char interface. To do this, it would be useful to
+          have a boost wstring &lt;-&gt; string conversion utilities to translate
+          resource names (escaping needed characters that can conflict with OS names)
+          in a portable way. It would be interesting also the use of <span class="bold"><strong>boost::filesystem</strong></span>
+          paths to avoid operating system specific issues.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.future_improvements.future_security"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.future_improvements.future_security" title="Security attributes">Security
+        attributes</a>
+</h4></div></div></div>
+<p>
+          <span class="bold"><strong>Boost.Interprocess</strong></span> does not define security
+          attributes for shared memory and synchronization objects. Standard C++
+          also ignores security attributes with files so adding security attributes
+          would require some serious work.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.acknowledgements_notes.future_improvements.future_ipc"></a><a class="link" href="acknowledgements_notes.html#interprocess.acknowledgements_notes.future_improvements.future_ipc" title="Future inter-process communications">Future
+        inter-process communications</a>
+</h4></div></div></div>
+<p>
+          <span class="bold"><strong>Boost.Interprocess</strong></span> offers a process-shared
+          message queue based on <span class="bold"><strong>Boost.Interprocess</strong></span>
+          primitives like mutexes and conditions. I would want to develop more mechanisms,
+          like stream-oriented named fifo so that we can use it with a iostream-interface
+          wrapper (we can imitate Unix pipes).
+        </p>
+<p>
+          C++ needs more complex mechanisms and it would be nice to have a stream
+          and datagram oriented PF_UNIX-like mechanism in C++. And for very fast
+          inter-process remote calls Solaris doors is an interesting alternative
+          to implement for C++. But the work to implement PF_UNIX-like sockets and
+          doors would be huge (and it might be difficult in a user-level library).
+          Any network expert volunteer?
+        </p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="customizing_interprocess.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="indexes_reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

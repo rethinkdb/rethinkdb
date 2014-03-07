@@ -1,0 +1,232 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>OutputFilter</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">OutputFilter</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL CLASS="page-index" STYLE="margin-top:0">
+    <DT><A HREF="#definition">Definition</A>
+    <DT><A HREF="#description">Description</A>
+    <DT><A HREF="#examples">Examples</A>
+    <DT><A HREF="#detailed_specification">Detailed Specification</A>
+</DL>
+
+<A NAME="definition"></A>
+<H2>Definition</H2>
+
+<P>
+    An OutputFilter is a <A HREF="filter.html">Filter</A> whose <A HREF="../guide/modes.html">mode</A> refines <A HREF="../guide/modes.html#output">output</A>. 
+</P>
+
+<A NAME="description"></A>
+<H2>Description</H2>
+
+<P>
+    An OutputFilter operates on the character sequence controlled by a <A HREF="sink.html">Sink</A>, providing access to a filtered sequence having the same character type. It may expose the filtered sequence in two ways:
+    <OL>
+        <LI STYLE="list-style-type:lower-roman">
+            by defining a member function <CODE>put</CODE>
+        </LI>
+        <LI STYLE="list-style-type:lower-roman">
+            by defining a member function <CODE>write</CODE>
+    </OL>
+    The second alternative is provided for enhanced performance. OutputFilters implementing this alternative are referred to as as <I>Multi-Character</I>. (<I>See</I> <A HREF="multi_character.html">Multi-Character Filter</A>.)
+</P>
+
+<A NAME="examples"></A>
+<H2>Examples</H2>
+
+<H4>I. Ordinary OutputFilter</H4>
+
+<P>
+    The following example shows an OutputFilter which converts each character in a sequence to uppercase.
+</P>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="preprocessor">#include</SPAN> <SPAN CLASS="literal">&lt;ctype.h&gt;</SPAN>                        <SPAN CLASS="comment">// toupper</SPAN>
+    <SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/categories.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/categories.hpp&gt;</SPAN></A> <SPAN CLASS="comment">// output_filter_tag</SPAN>
+    <SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/operations.hpp&gt;</SPAN></A> <SPAN CLASS="comment">// put</SPAN>
+
+    <SPAN CLASS="keyword">using</SPAN> <SPAN CLASS="keyword">namespace</SPAN> std;
+    <SPAN CLASS="keyword">namespace</SPAN> io = boost::iostreams;
+
+    <SPAN CLASS="keyword">struct</SPAN> toupper_output_filter {
+        <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="keyword">char</SPAN>                   char_type;
+        <SPAN CLASS="keyword">typedef</SPAN> io::output_filter_tag  category;
+
+        <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+        <SPAN CLASS="keyword">bool</SPAN> put(Sink&amp; snk, <SPAN CLASS="keyword">char</SPAN> c)
+        { 
+            <SPAN CLASS="keyword">return</SPAN> io::put(snk, toupper((<SPAN CLASS="keyword">unsigned</SPAN> <SPAN CLASS="keyword">char</SPAN>) c)); 
+        }
+    };</PRE>
+
+<P>
+    Here <CODE>char_type</CODE> is the <A HREF="../guide/traits.html#char_type">character type</A> of the Filter, <CODE>output_filter_tag</CODE> is a <A HREF="../guide/traits.html#category">category tag</A> identifying the Filter as a model of OutputFilter, and the function <A HREF="../functions/put.html"><CODE>io::put</CODE></A> writes a character to an arbitrary Sink.<A CLASS="footnote_ref" NAME="note_1_ref" HREF="#note_1"><SUP>[1]</SUP></A>
+</P>
+
+<P>
+    The Iostreams library defines two convenience classes, <A HREF="../classes/filter.html#synopsis"><CODE>output_filter</CODE></A> and <A HREF="../classes/filter.html#synopsis"><CODE>output_wfilter</CODE></A>, which provide member <CODE>typedef</CODE>s <CODE>char_type</CODE> and <CODE>category</CODE> as well as default implementations of several member functions. When defining a new model of OutputFilter, it is often sufficient to derive from <CODE>output_filter</CODE> or <CODE>output_wfilter</CODE> and to define a member function <CODE>put</CODE>.
+</P>
+
+<H4>II. Multi-Character OutputFilter</H4>
+
+<P>
+    The following example shows a Multi-Character OutputFilter which performs the same filtering operation as the Filter in Example I.
+</P>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="preprocessor">#include</SPAN> <SPAN CLASS="literal">&lt;ctype.h&gt;</SPAN>                        <SPAN CLASS="comment">// toupper</SPAN>
+    <SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/categories.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/categories.hpp&gt;</SPAN></A> <SPAN CLASS="comment">// output_filter_tag</SPAN>
+    <SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/operations.hpp&gt;</SPAN></A> <SPAN CLASS="comment">// put</SPAN>
+
+    <SPAN CLASS="keyword">using</SPAN> <SPAN CLASS="keyword">namespace</SPAN> std;
+    <SPAN CLASS="keyword">namespace</SPAN> io = boost::iostreams;
+
+    <SPAN CLASS="keyword">struct</SPAN> toupper_filter {
+        <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="keyword">char</SPAN>                             char_type;
+        <SPAN CLASS="keyword">typedef</SPAN> io::multichar_output_filter_tag  category;
+
+        <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+        <SPAN CLASS="keyword">std::streamsize</SPAN> write(Sink&amp; snk, <SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword">char</SPAN>* s, streamsize n)
+        { 
+            std::streamsize rest = n;
+            <SPAN CLASS="keyword">while</SPAN> (rest != 0 &amp;&amp; io::put(snk, toupper((<SPAN CLASS="keyword">unsigned</SPAN> <SPAN CLASS="keyword">char</SPAN>) *s++))
+                --rest;
+            <SPAN CLASS="keyword">return</SPAN> n - rest;
+        }
+    };</PRE>
+
+<P>
+    Here <CODE>multichar_output_filter_tag</CODE> is a <A HREF="../guide/traits.html#category">category tag</A> identifying the Filter as a multichar OutputFilter.
+</P>
+<P>
+    The Iostreams library defines two convenience classes, <A HREF="../classes/filter.html#synopsis"><CODE>multichar_output_filter</CODE></A> and <A HREF="../classes/filter.html#synopsis"><CODE>multichar_output_wfilter</CODE></A>, which provide the member <CODE>typedef</CODE>s <CODE>char_type</CODE> and <CODE>category</CODE> as well as default implementations of several member functions. When defining a new multichar OutputFilter, it is often sufficient to derive from <CODE>multichar_output_filter</CODE> or <CODE>multichar_output_wfilter</CODE> and to define a member function <CODE>write</CODE>.
+</P>
+
+<A NAME="detailed_specification"></A>
+<H2>Refinement of</H2>
+
+<P><A HREF="filter.html">Filter</A>.</P>
+
+<H2>Associated Types</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TD>Character type</TD><TD>The type of the characters in the filtered sequences</TD></TR>
+    <TR>
+        <TD>Category</TD>
+        <TD>
+            A type convertible to <A HREF="../guide/traits.html#category_tags"><CODE>filter_tag</CODE></A> and to <A HREF="../guide/modes.html#output"><CODE>output</CODE></A>
+        </TD>
+    </TR>
+    <TR>
+        <TD>Mode</TD>
+        <TD>
+            The unique <I>most-derived</I> <A HREF="../guide/modes.html#mode_tags">mode tag</A> to which Category is convertible
+        </TD>
+    </TR>
+</TABLE>
+
+<H2>Notation</H2>
+
+<TABLE CELLPADDING="2">
+    <TR><TD><CODE>F</CODE></TD><TD>- A type which is a model of OutputFilter</TD></TR>
+    <TR><TD><CODE>D</CODE></TD><TD>- A type which is a model of <A HREF="device.html">Device</A>, with the same character type as <CODE>F</CODE> and with mode refining the mode of <CODE>F</CODE></TD></TR>
+    <TR><TD><CODE>Ch</CODE></TD><TD>- The character type of <CODE>F</CODE></TD></TR>
+    <TR><TD><CODE>Tr</CODE></A></TD><TD>- <A HREF="../classes/char_traits.html"><CODE>boost::iostreams::char_traits&lt;Ch&gt;</CODE></A></TD></TR>
+    <TR><TD><CODE>f</CODE></TD><TD>- Object of type <CODE>F</CODE></TD></TR>
+    <TR><TD><CODE>d</CODE></TD><TD>- Object of type <CODE>D</CODE></TD></TR>
+    <TR><TD><CODE>c</CODE></TD><TD>- Object of type <CODE>Ch</CODE></TD></TR>
+    <TR><TD><CODE>s</CODE></TD><TD>- Object of type <CODE>const Ch*</CODE></TD></TR>
+    <TR><TD><CODE>n</CODE></TD><TD>- Object of type <CODE>std::streamsize</CODE></TD></TR>
+    <TR><TD><CODE>io</CODE></TD><TD>- Alias for namespace <CODE>boost::iostreams</CODE></TD></TR>
+</TABLE>
+
+<A NAME="semantics"></A>
+<H2>Valid Expressions / Semantics</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH><TH>Category Precondition</TH><TH>Semantics</TH></TR>
+    <TR>
+        <TD>
+            <PRE CLASS="plain_code"><CODE>typename <A HREF="../guide/traits.html#char_type_of_ref">char_type_of</A>&lt;F&gt;::type</CODE></PRE>
+        </TD>
+        <TD><CODE>typename</CODE> of the character type</TD>
+        <TD ALIGN="center">-</TD><TD ALIGN="center">-</TD>
+    </TR>
+    <TR>
+        <TD>
+            <PRE CLASS="plain_code"><CODE>typename <A HREF="../guide/traits.html#category_ref">category_of</A>&lt;F&gt;::type</CODE></PRE>
+        </TD>
+        <TD><CODE>typename</CODE> of the category</TD>
+        <TD ALIGN="center">-</TD><TD ALIGN="center">-</TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>f.put(d, c)</CODE></PRE></TD>
+        <TD><CODE>bool</CODE></TD>
+        <TD>
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>output</CODE></A> but not to <A HREF="../guide/traits.html#category_tags"><CODE>multichar_tag</CODE></A>
+        </TD>
+        <TD>
+            Attempts to writes the character <CODE>c</CODE> to the output sequence controlled by <CODE>f</CODE>, returning <CODE>false</CODE> if <CODE>c</CODE> cannot be consumed because a call to <CODE>d</CODE> has consumed fewer characters than requested. The output sequence controlled by <CODE>d</CODE> may be accessed using <A HREF="../functions/put.html"><CODE>io::put</CODE></A> and <A HREF="../functions/write.html"><CODE>io::write</CODE></A>.
+        </TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>f.write(d, s, n)</CODE></PRE></TD>
+        <TD><PRE CLASS="plain_code"><CODE>std::streamsize</CODE></PRE></TD>
+        <TD>
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>output</CODE></A> and to <A HREF="../guide/traits.html#category_tags"><CODE>multichar_tag</CODE></A>
+        </TD>
+        <TD>
+            Writes up to <CODE>n</CODE> characters from the buffer <CODE>s</CODE> to the output sequence controlled by <CODE>d</CODE>, returning the number of characters written. A value less than <CODE>n</CODE> may be returned only if a call to <CODE>d</CODE> has consumed fewer characters than requested. The output sequence controlled by <CODE>d</CODE> may be accessed using <A HREF="../functions/put.html"><CODE>io::put</CODE></A> and <A HREF="../functions/write.html"><CODE>io::write</CODE></A>.
+        </TD>
+    </TR>
+</TABLE>
+
+<H2>Exceptions</H2>
+
+<P>
+    Errors which occur during the execution of <CODE>put</CODE> or <CODE>write</CODE> are indicated by throwing exceptions. Attempting to write past the end of the sequence is always an error.
+</P>
+
+<P>
+    After an exception is thrown, an OutputFilter must be in a consistent state; further i/o operations may throw exceptions but must have well-defined behaviour.Furthermore, unless it is <A HREF="closable.html">Closable</A>, it must be ready to begin processing a new character sequence.
+</P>
+
+<H2>Models</H2>
+
+<H2>Acknowledgments</H2>
+
+<P>
+    The concept OutputFilter was inspired by the <I>inserters</I> of <A CLASS="footnote_ref" HREF="../bibliography.html#kanze">[Kanze]</A>.
+</P>
+
+<!-- Begin Footnotes -->
+
+<HR>
+
+<P>
+    <A CLASS="footnote_ref" NAME="note_1" HREF="#note_1_ref"><SUP>[1]</SUP></A>Technically, <CODE>boost::iostreams::put</CODE> requires that a Sink be <A HREF="../concepts/direct.html"><I>indirect</I></A>.
+</P>
+
+<!-- End Footnotes -->
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

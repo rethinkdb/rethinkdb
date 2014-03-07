@@ -1,0 +1,227 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python -
+    &lt;boost/python/to_python_converter.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header
+          &lt;boost/python/to_python_converter.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#to_python_converter-spec">Class Template
+          <code>to_python_converter</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#to_python_converter-spec-synopsis">Class Template
+              <code>to_python_converter</code> synopsis</a></dt>
+
+              <dt><a href="#to_python_converter-spec-ctors">Class Template
+              <code>to_python_converter</code> constructor</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+    <code>to_python_converter</code> registers a conversion from objects of a
+    given C++ type into a Python object. 
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="to_python_converter-spec"></a>Class template
+    <code>to_python_converter</code></h3>
+    <code>to_python_converter</code> adds a wrapper around a static member
+    function of its second template parameter, handling low-level details
+    such as insertion into the converter registry. 
+
+    <table border="1" summary="to_python_converter template parameters">
+      <caption>
+        <b><code>to_python_converter</code> template parameters</b><br>
+        In the table below, <b><code>x</code></b> denotes an object of type
+        <code>T</code>
+      </caption>
+
+      <tr>
+        <th>Parameter</th>
+
+        <th>Requirements</th>
+
+        <th>Description</th>
+      </tr>
+
+      <tr>
+        <td><code>T</code></td>
+
+        <td>
+        </td>
+
+        <td>The C++ type of the source object in the conversion</td>
+      </tr>
+
+      <tr>
+        <td><code>Conversion</code></td>
+
+        <td>
+        <code>PyObject*&nbsp;p&nbsp;=&nbsp;Conversion::convert(x)</code>,<br>
+         if <code>p&nbsp;==&nbsp;0</code>, <code><a href=
+        "http://www.python.org/doc/2.2/api/exceptionHandling.html#l2h-71">PyErr_Occurred</a>()&nbsp;!=&nbsp;0</code>.</td>
+
+        <td>A class type whose static member function <code>convert</code>
+        does the real work of the conversion.</td>
+      </tr>
+      <tr>
+        <td><code>bool has_get_pytype = false</code></td>
+
+        <td>
+            <code>PyTypeObject const * p = Conversion::get_pytype() </code>.</td>
+
+        <td><b>Optional member</b> - if <code>Conversion</code> has <code>get_pytype</code> member supply 
+            <code>true</code> for this parameters.
+            If present <code>get_pytype</code> is used to document the return type 
+            of functions using this conversion. The <code>get_pytype</code> may be implemented 
+            using the classes and functions 
+            from <a href="pytype_function.html"><code>pytype_function.hpp</code></a>
+            <b>NOTE :</b> For backward compatibility this parameter may be passed after 
+            checking if <code>BOOST_PYTHON_SUPPORTS_PY_SIGNATURES</code> is defined (see 
+            <a href="pytype_function.html#examples">here</a>).
+       </td>
+      </tr>
+    </table>
+
+    <h4><a name="to_python_converter-spec-synopsis"></a>Class template
+    <code>to_python_converter</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+  template &lt;class T, class Conversion, bool convertion_has_get_pytype_member=false&gt;
+  struct to_python_converter
+  {
+      to_python_converter();
+  };
+}}
+</pre>
+
+    <h4><a name="to_python_converter-spec-ctors"></a>Class template
+    <code>to_python_converter</code> constructor</h4>
+<pre>
+to_python_converter();
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> Registers a to_python converter which uses
+      <code>Conversion::convert()</code> to do its work.</dt>
+    </dl>
+
+    <h2><a name="examples"></a>Example</h2>
+    This example presumes that someone has implemented the standard <a href=
+    "http://www.python.org/doc/2.2/ext/dnt-basics.html">noddy example
+    module</a> from the Python documentation, and placed the corresponding
+    declarations in <code>"noddy.h"</code>. Because
+    <code>noddy_NoddyObject</code> is the ultimate trivial extension type,
+    the example is a bit contrived: it wraps a function for which all
+    information is contained in the <i>type</i> of its return value. 
+
+    <h3>C++ module definition</h3>
+<pre>
+#include &lt;boost/python/reference.hpp&gt;
+#include &lt;boost/python/module.hpp&gt;
+#include "noddy.h"
+
+struct tag {};
+tag make_tag() { return tag(); }
+
+using namespace boost::python;
+
+struct tag_to_noddy
+{
+    static PyObject* convert(tag const&amp; x)
+    {
+        return PyObject_New(noddy_NoddyObject, &amp;noddy_NoddyType);
+    }
+    static PyTypeObject const* get_pytype()
+    {
+        return &amp;noddy_NoddyType;
+    }
+};
+
+BOOST_PYTHON_MODULE(to_python_converter)
+{
+    def("make_tag", make_tag);
+    to_python_converter&lt;tag, tag_to_noddy, true&gt;(); //"true" because tag_to_noddy has member get_pytype
+}
+</pre>
+
+    <h3>Python code</h3>
+<pre>
+&gt;&gt;&gt; import to_python_converter
+&gt;&gt;&gt; def always_none():
+...     return None
+...
+&gt;&gt;&gt; def choose_function(x):
+...     if (x % 2 != 0):
+...         return to_python_converter.make_tag
+...     else:
+...         return always_none
+...
+&gt;&gt;&gt; a = [ choose_function(x) for x in range(5) ]
+&gt;&gt;&gt; b = [ f() for f in a ]
+&gt;&gt;&gt; type(b[0])
+&lt;type 'NoneType'&gt;
+&gt;&gt;&gt; type(b[1])
+&lt;type 'Noddy'&gt;
+&gt;&gt;&gt; type(b[2])
+&lt;type 'NoneType'&gt;
+&gt;&gt;&gt; type(b[3])
+&lt;type 'Noddy'&gt;
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  11 June, 2007
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

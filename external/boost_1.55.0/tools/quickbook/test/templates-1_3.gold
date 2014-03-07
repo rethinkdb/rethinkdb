@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="templates" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Templates</title>
+  <section id="templates.templates">
+    <title><link linkend="templates.templates">Templates</link></title>
+    <para>
+      nullary_arg
+    </para>
+    <para>
+      foo baz
+    </para>
+    <para>
+      foo baz
+    </para>
+    <para>
+      This is a complete paragraph. kalamazoo kalamazoo kalamazoo kalamazoo kalamazoo
+      kalamazoo kalamazoo kalamazoo kalamazoo.... blah blah blah......
+    </para>
+    <para>
+      <hey>baz</hey>
+    </para>
+    <para>
+      This is a complete paragraph. madagascar madagascar madagascar madagascar madagascar
+      madagascar madagascar madagascar madagascar.... blah blah blah......
+    </para>
+    <para>
+      zoom peanut zoom
+    </para>
+    <para>
+      exactly xanadu
+    </para>
+    <para>
+      wx
+    </para>
+    <para>
+      wxyz wxyz trail
+    </para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">main</phrase><phrase role="special">()</phrase>
+<phrase role="special">{</phrase>
+    <phrase role="identifier">std</phrase><phrase role="special">::</phrase><phrase role="identifier">cout</phrase> <phrase role="special">&lt;&lt;</phrase> &quot;Hello, World&quot; <phrase role="special">&lt;&lt;</phrase> <phrase role="identifier">std</phrase><phrase role="special">::</phrase><phrase role="identifier">endl</phrase><phrase role="special">;</phrase>
+<phrase role="special">}</phrase>
+</programlisting>
+    <para>
+      x<superscript>2</superscript>
+    </para>
+    <para>
+      &alpha;<superscript>2</superscript>
+    </para>
+    <para>
+      x<superscript>2</superscript>
+    </para>
+    <para>
+      got a banana?
+    </para>
+    <para>
+      .0 00
+    </para>
+    <para>
+      [fool]
+    </para>
+  </section>
+  <section id="templates.empty_templates">
+    <title><link linkend="templates.empty_templates">Empty Templates</link></title>
+  </section>
+  <section id="templates.nested_templates">
+    <title><link linkend="templates.nested_templates">Nested Templates</link></title>
+    <para>
+      Pre
+    </para>
+    <para>
+      Start block template.
+    </para>
+    <para>
+      Start block template.
+    </para>
+    <para>
+      Hello!
+    </para>
+    <para>
+      End block template.
+    </para>
+    <para>
+      End block template.
+    </para>
+    <para>
+      Post
+    </para>
+    <para>
+      Pre
+    </para>
+    <para>
+      Start block template.
+    </para>
+    <para>
+      Start phrase template. Hello! End phrase template.
+    </para>
+    <para>
+      End block template.
+    </para>
+    <para>
+      Post
+    </para>
+    <para>
+      Pre
+    </para>
+    <para>
+      Start phrase template.
+    </para>
+    <para>
+      Start block template.
+    </para>
+    <para>
+      Hello!
+    </para>
+    <para>
+      End block template.
+    </para>
+    <para>
+      End phrase template.
+    </para>
+    <para>
+      Post
+    </para>
+    <para>
+      Pre Start phrase template. Start phrase template. Hello! End phrase template.
+      End phrase template. Post
+    </para>
+  </section>
+  <section id="templates.block_markup">
+    <title><link linkend="templates.block_markup">Block Markup</link></title>
+    <itemizedlist>
+      <listitem>
+        <simpara>
+          a
+        </simpara>
+      </listitem>
+      <listitem>
+        <simpara>
+          b
+        </simpara>
+      </listitem>
+    </itemizedlist>
+    <para/>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">main</phrase><phrase role="special">()</phrase> <phrase role="special">{}</phrase></programlisting>
+    <para>
+      Paragraphs 1
+    </para>
+    <para>
+      Paragraphs 2
+    </para>
+    <itemizedlist>
+      <listitem>
+        <simpara>
+          <itemizedlist>
+            <listitem>
+              <simpara>
+                a
+              </simpara>
+            </listitem>
+            <listitem>
+              <simpara>
+                b
+              </simpara>
+            </listitem>
+          </itemizedlist>
+        </simpara>
+      </listitem>
+      <listitem>
+        <para/>
+      </listitem>
+      <listitem>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">main</phrase><phrase role="special">()</phrase> <phrase role="special">{}</phrase></programlisting>
+      </listitem>
+      <listitem>
+        <simpara>
+          Paragraphs 1
+        </simpara>
+        <simpara>
+          Paragraphs 2
+        </simpara>
+      </listitem>
+    </itemizedlist>
+  </section>
+  <section id="templates.escaped_templates">
+    <title><link linkend="templates.escaped_templates">Escaped templates</link></title>
+    <para>
+      <thingbob>Not real boostbook</thingbob> <thingbob>Also not real boostbook</thingbob>
+      <thingbob>More fake boostbook</thingbob> <thingbob>Final fake boostbook</thingbob>
+    </para>
+  </section>
+</article>

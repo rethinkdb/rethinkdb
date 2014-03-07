@@ -1,0 +1,729 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Tutorial - Index types</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="basics.html">
+<link rel="up" href="index.html">
+<link rel="next" href="key_extraction.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Tutorial: Index types</h1>
+
+<div class="prev_link"><a href="basics.html"><img src="../prev.gif" alt="basics" border="0"><br>
+Basics
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex tutorial" border="0"><br>
+Boost.MultiIndex tutorial
+</a></div>
+<div class="next_link"><a href="key_extraction.html"><img src="../next.gif" alt="key estraction" border="0"><br>
+Key extraction
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#classification">Classification</a>
+  <li><a href="#hashed_indices">Hashed indices</a>
+    <ul>
+      <li><a href="#hash_unique_non_unique">Unique and non-unique variants</a></li>
+      <li><a href="#hash_spec">Specification</a></li>
+      <li><a href="#hash_lookup">Lookup</a></li>
+      <li><a href="#hash_updating">Updating</a></li>
+      <li><a href="#guarantees">Guarantees on iterator validity and exception safety</a></li>
+    </ul>
+  </li>
+  <li><a href="#rnd_indices">Random access indices</a>
+    <ul>
+      <li><a href="#rnd_spec">Specification</a></li>
+	  <li><a href="#rnd_interface">Interface</a></li>
+      <li><a href="#rnd_vs_vector">Comparison with <code>std::vector</code></a></li>
+	</ul>
+  </li>
+  <li><a href="#rearrange">Index rearranging</a></li>
+  <li><a href="#iterator_to"><code>iterator_to</code></a></li>
+  <li><a href="#ordered_node_compression">Ordered indices node compression</a></li>
+</ul>
+
+<h2><a name="classification">Classification</a></h2>
+
+<p>
+Boost.MultiIndex provides six different index types, which can be classified as
+shown in the table below. <a href="basics.html#ord_indices">Ordered</a> and
+<a href="basics.html#seq_indices">sequenced</a> indices,
+which are the most commonly used, have been explained in the basics section;
+the rest of index types can be regarded as variations of the former providing
+some added benefits, functionally or in the area of performance.
+</p>
+
+<p align="center">
+<table cellspacing="0">
+  <caption><b>Boost.MultiIndex indices.</b></caption>
+<tr>
+  <th align="center"colspan="2">type</th>
+  <th align="center">specifier</th>
+</tr>
+<tr>
+  <td align="center" rowspan="4">&nbsp;&nbsp;key-based&nbsp;&nbsp;</td>
+  <td align="center" rowspan="2">&nbsp;&nbsp;ordered&nbsp;&nbsp;</td>
+  <td align="center">&nbsp;&nbsp;<code>ordered_unique</code>&nbsp;&nbsp;</td>
+</tr>
+<tr class="odd_tr">
+  <td align="center">&nbsp;&nbsp;<code>ordered_non_unique</code>&nbsp;&nbsp;</td>
+</tr>
+<tr>
+  <td align="center" rowspan="2">&nbsp;&nbsp;hashed&nbsp;&nbsp;</td>
+  <td align="center">&nbsp;&nbsp;<code>hashed_unique</code>&nbsp;&nbsp;</td>
+</tr>
+<tr class="odd_tr">
+  <td align="center">&nbsp;&nbsp;<code>hashed_non_unique</code>&nbsp;&nbsp;</td>
+</tr>
+<tr>
+  <td align="center" rowspan="2" colspan="2">&nbsp;&nbsp;non key-based&nbsp;&nbsp;</td>
+  <td align="center"><code>&nbsp;&nbsp;sequenced&nbsp;&nbsp;</code></td>
+</tr>
+<tr class="odd_tr">
+  <td align="center"><code>&nbsp;&nbsp;random_access&nbsp;&nbsp;</code></td>
+</tr>
+</table>
+</p>
+
+<p>
+Key-based indices, of which ordered indices are the usual example, provide
+efficient lookup of elements based on some piece of information called the
+<i>element key</i>: there is an extensive suite of
+<a href="key_extraction.html">key extraction</a>
+utility classes allowing for the specification of such keys. Fast lookup
+imposes an internally managed order on these indices that the user is not
+allowed to modify; non key-based indices, on the other hand, can be freely
+rearranged at the expense of lacking lookup facilities. Sequenced indices,
+modeled after the interface of <code>std::list</code>, are the customary
+example of a non key-based index.
+</p>
+
+<h2><a name="hashed_indices">Hashed indices</a></h2>
+
+<p>
+Hashed indices constitute a trade-off with respect to ordered indices: if correctly used,
+they provide much faster lookup of elements, at the expense of losing sorting
+information. 
+Let us revisit our <code>employee_set</code> example: suppose a field for storing
+the Social Security number is added, with the requisite that lookup by this
+number should be as fast as possible. Instead of the usual ordered index, a
+hashed index can be resorted to:
+</p>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index_container</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>hashed_index</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>ordered_index</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>identity</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>member</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=keyword>struct</span> <span class=identifier>employee</span>
+<span class=special>{</span>
+  <span class=keyword>int</span>         <span class=identifier>id</span><span class=special>;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>name</span><span class=special>;</span>
+  <span class=keyword>int</span>         <span class=identifier>ssnumber</span><span class=special>;</span>
+
+  <span class=identifier>employee</span><span class=special>(</span><span class=keyword>int</span> <span class=identifier>id</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>name</span><span class=special>,</span><span class=keyword>int</span> <span class=identifier>ssnumber</span><span class=special>):</span>
+    <span class=identifier>id</span><span class=special>(</span><span class=identifier>id</span><span class=special>),</span><span class=identifier>name</span><span class=special>(</span><span class=identifier>name</span><span class=special>),</span><span class=identifier>ssnumber</span><span class=special>(</span><span class=identifier>ssnumber</span><span class=special>){}</span>
+
+  <span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>&lt;(</span><span class=keyword>const</span> <span class=identifier>employee</span><span class=special>&amp;</span> <span class=identifier>e</span><span class=special>)</span><span class=keyword>const</span><span class=special>{</span><span class=keyword>return</span> <span class=identifier>id</span><span class=special>&lt;</span><span class=identifier>e</span><span class=special>.</span><span class=identifier>id</span><span class=special>;}</span>
+<span class=special>};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>employee</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=comment>// sort by employee::operator&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    
+    <span class=comment>// sort by less&lt;string&gt; on name</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    
+    <span class=comment>// hashed on ssnumber</span>
+    <span class=identifier>hashed_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=keyword>int</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>ssnumber</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>employee_set</span>
+</pre></blockquote>
+
+<p>
+Note that the hashed index does not guarantee any particular ordering of the
+elements: so, for instance, we cannot efficiently query the employees whose SSN is
+greater than a given number. Usually, you must consider these restrictions when
+determining whether a hashed index is preferred over an ordered one.
+</p>
+
+<p>
+If you are familiar with non-standard <code>hash_set</code>s provided
+by some compiler vendors, then learning to use hashed indices should be straightforward.
+However, the interface of hashed indices is modeled after the specification
+for unordered associative containers by the
+<a href="http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2005/n1836.pdf">C++ Standard
+Library Technical Report</a> (TR1),
+which differs in some significant aspects from existing pre-standard
+implementations:
+<ul>
+  <li>As there is no notion of ordering between keys, the <a href="#hash_lookup">lookup
+    interface</a> does not offer <code>lower_bound</code> or <code>upper_bound</code>
+    member functions (unlike Dinkumware's solution.)</li>
+  <li>A set of member functions is provided for handling the internal
+    bucket structure on which hashed indices rely. This includes facilities
+    for <a href="../reference/hash_indices.html#hash_policy">rehashing</a>,
+    control of the load factor (number of elements divided by number of buckets),
+    and inspection of the buckets contents. Pre-standard implementations
+    do not have such an extensive functionality.</li> 
+</ul>
+Check the <a href="../reference/hash_indices.html">reference</a> for a
+complete specification of the interface of hashed indices,
+and <a href="../examples.html#example8">example 8</a> and
+<a href="../examples.html#example9">example 9</a> for practical applications.
+</p>
+
+</p>
+
+<h3><a name="hash_unique_non_unique">Unique and non-unique variants</a></h3>
+
+<p>
+Just like ordered indices, hashed indices have unique and non-unique variants, selected
+with the specifiers <code>hashed_unique</code> and <code>hashed_non_unique</code>,
+respectively. In the latter case, elements with equivalent keys are kept together and can
+be jointly retrieved by means of the <code>equal_range</code> member function.
+</p>
+
+<h3><a name="hash_spec">Specification</a></h3>
+
+<p>
+Hashed indices specifiers have two alternative syntaxes, depending on whether
+<a href="basics.html#tagging">tags</a> are provided or not:
+</p>
+
+<blockquote><pre>
+<span class=special>(</span><span class=identifier>hashed_unique</span> <span class=special>|</span> <span class=identifier>hashed_non_unique</span><span class=special>)
+  </span><span class=special>&lt;[</span><i>(tag)</i><span class=special>[,</span><i>(key extractor)</i><span class=special>[,</span><i>(hash function)</i><span class=special>[,</span><i>(equality predicate)</i><span class=special>]]]]&gt;</span>
+
+<span class=special>(</span><span class=identifier>hashed_unique</span> <span class=special>|</span> <span class=identifier>hashed_non_unique</span><span class=special>)</span>
+  <span class=special>&lt;[</span><i>(key extractor)</i><span class=special>[,</span><i>(hash function)</i><span class=special>[,</span><i>(equality predicate)</i><span class=special>]]]&gt;</span>
+</pre></blockquote>
+
+<p>
+The key extractor parameter works in exactly the same way as for
+<a href="basics.html#key_extraction">ordered indices</a>; lookup, insertion,
+etc., are based on the key returned by the extractor rather than the whole
+element.
+</p>
+
+<p>
+The hash function is the very core of the fast lookup capabilities of this type of
+indices: a hasher is just a unary function object
+returning an <code>std::size_t</code> value for any given
+key. In general, it is impossible that every key map to a different hash value, for
+the space of keys can be greater than the number of permissible hash codes: what
+makes for a good hasher is that the probability of a collision (two different
+keys with the same hash value) is as close to zero as possible. This is a statistical
+property depending on the typical distribution of keys in a given application, so
+it is not feasible to have a general-purpose hash function with excellent results
+in <i>every</i> possible scenario; the default value for this parameter uses
+<a href="../../../functional/hash/index.html">Boost.Hash</a>, which often provides good
+enough results.
+</p>
+
+<p>
+The equality predicate is used to determine whether two keys are to be treated
+as the same. The default
+value <code>std::equal_to&lt;KeyFromValue::result_type&gt;</code> is in most
+cases exactly what is needed, so very rarely will you have to provide
+your own predicate. Note that hashed indices require that two
+equivalent keys have the same hash value, which
+in practice greatly reduces the freedom in choosing an equality predicate.
+</p>
+
+<h3><a name="hash_lookup">Lookup</a></h3>
+
+<p>
+The lookup interface of hashed indices consists in member functions
+<code>find</code>, <code>count</code> and <code>equal_range</code>.
+Note that <code>lower_bound</code> and <code>upper_bound</code> are not
+provided, as there is no intrinsic ordering of keys in this type of indices.
+</p>
+
+<p>
+Just as with ordered indices, these member functions take keys
+as their search arguments, rather than entire objects. Remember that
+ordered indices lookup operations are further augmented to accept
+<i>compatible keys</i>, which can roughly be regarded as "subkeys".
+For hashed indices, a concept of
+<a href="../reference/hash_indices.html#lookup">compatible key</a> is also
+supported, though its usefulness is much more limited: basically,
+a compatible key is an object which is entirely equivalent to
+a native object of <code>key_type</code> value, though maybe with
+a different internal representation:
+</p>
+
+<blockquote><pre>
+<span class=comment>// US SSN numbering scheme</span>
+<span class=keyword>struct</span> <span class=identifier>ssn</span>
+<span class=special>{</span>
+  <span class=identifier>ssn</span><span class=special>(</span><span class=keyword>int</span> <span class=identifier>area_no</span><span class=special>,</span><span class=keyword>int</span> <span class=identifier>group_no</span><span class=special>,</span><span class=keyword>int</span> <span class=identifier>serial_no</span><span class=special>):</span>
+    <span class=identifier>area_no</span><span class=special>(</span><span class=identifier>area_no</span><span class=special>),</span><span class=identifier>group_no</span><span class=special>(</span><span class=identifier>group_no</span><span class=special>),</span><span class=identifier>serial_no</span><span class=special>(</span><span class=identifier>serial_no</span><span class=special>)</span>
+  <span class=special>{}</span>
+
+  <span class=keyword>int</span> <span class=identifier>to_int</span><span class=special>()</span><span class=keyword>const</span>
+  <span class=special>{</span>
+    <span class=keyword>return</span> <span class=identifier>serial_no</span><span class=special>+</span><span class=number>10000</span><span class=special>*</span><span class=identifier>group_no</span><span class=special>+</span><span class=number>1000000</span><span class=special>*</span><span class=identifier>area_no</span><span class=special>;</span>
+  <span class=special>}</span>
+
+<span class=keyword>private</span><span class=special>:</span>
+  <span class=keyword>int</span> <span class=identifier>area_no</span><span class=special>;</span>
+  <span class=keyword>int</span> <span class=identifier>group_no</span><span class=special>;</span>
+  <span class=keyword>int</span> <span class=identifier>serial_no</span><span class=special>;</span>
+<span class=special>};</span>
+
+<span class=comment>// interoperability with SSNs in raw int form</span>
+
+<span class=keyword>struct</span> <span class=identifier>ssn_equal</span>
+<span class=special>{</span>
+  <span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>()(</span><span class=keyword>const</span> <span class=identifier>ssn</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>,</span><span class=keyword>int</span> <span class=identifier>y</span><span class=special>)</span><span class=keyword>const</span>
+  <span class=special>{</span>
+    <span class=keyword>return</span> <span class=identifier>x</span><span class=special>.</span><span class=identifier>to_int</span><span class=special>()==</span><span class=identifier>y</span><span class=special>;</span>
+  <span class=special>}</span>
+
+  <span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>()(</span><span class=keyword>int</span> <span class=identifier>x</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>ssn</span><span class=special>&amp;</span> <span class=identifier>y</span><span class=special>)</span><span class=keyword>const</span>
+  <span class=special>{</span>
+    <span class=keyword>return</span> <span class=identifier>x</span><span class=special>==</span><span class=identifier>y</span><span class=special>.</span><span class=identifier>to_int</span><span class=special>();</span>
+  <span class=special>}</span>
+<span class=special>};</span>
+
+<span class=keyword>struct</span> <span class=identifier>ssn_hash</span>
+<span class=special>{</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>size_t</span> <span class=keyword>operator</span><span class=special>()(</span><span class=keyword>const</span> <span class=identifier>ssn</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>)</span><span class=keyword>const</span>
+  <span class=special>{</span>
+    <span class=keyword>return</span> <span class=identifier>boost</span><span class=special>::</span><span class=identifier>hash</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;()(</span><span class=identifier>x</span><span class=special>.</span><span class=identifier>to_int</span><span class=special>());</span>
+  <span class=special>}</span>
+
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>size_t</span> <span class=keyword>operator</span><span class=special>()(</span><span class=keyword>int</span> <span class=identifier>x</span><span class=special>)</span><span class=keyword>const</span>
+  <span class=special>{</span>
+    <span class=keyword>return</span> <span class=identifier>boost</span><span class=special>::</span><span class=identifier>hash</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;()(</span><span class=identifier>x</span><span class=special>);</span>
+  <span class=special>}</span>
+<span class=special>};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>nth_index</span><span class=special>&lt;</span><span class=number>2</span><span class=special>&gt;::</span><span class=identifier>type</span> <span class=identifier>employee_set_by_ssn</span><span class=special>;</span>
+
+<span class=identifier>employee_set</span>         <span class=identifier>es</span><span class=special>;</span>
+<span class=identifier>employee_set_by_ssn</span><span class=special>&amp;</span> <span class=identifier>ssn_index</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=number>2</span><span class=special>&gt;();</span>
+<span class=special>...</span>
+<span class=comment>// find an employee by ssn</span>
+<span class=identifier>employee</span> <span class=identifier>e</span><span class=special>=*(</span><span class=identifier>ssn_index</span><span class=special>.</span><span class=identifier>find</span><span class=special>(</span><span class=identifier>ssn</span><span class=special>(</span><span class=number>12</span><span class=special>,</span><span class=number>1005</span><span class=special>,</span><span class=number>20678</span><span class=special>),</span><span class=identifier>ssn_hash</span><span class=special>(),</span><span class=identifier>ssn_equal</span><span class=special>()));</span>
+</pre></blockquote>
+
+<p>
+In the example, we provided a hash functor <code>ssn_hash</code> and an
+equality predicate <code>ssn_equal</code> allowing for interoperability
+between <code>ssn</code> objects and the raw <code>int</code>s stored as
+<code>SSN</code>s in <code>employee_set</code>.
+</p>
+
+<p>
+By far, the most useful application of compatible keys in the context
+of hashed indices lies in the fact that they allow for seamless usage of
+<a href="key_extraction.html#composite_keys">composite keys</a>.
+</p>
+
+<h3><a name="hash_updating">Updating</a></h3>
+
+<p>
+Hashed indices have
+<a href="../reference/hash_indices.html#replace"><code>replace</code></a>, 
+<a href="../reference/hash_indices.html#modify"><code>modify</code></a> and
+<a href="../reference/hash_indices.html#modify_key"><code>modify_key</code></a>
+member functions, with the same functionality as in ordered indices.
+</p>
+
+<h3><a name="guarantees">Guarantees on iterator validity and exception safety</a></h3>
+
+<p>
+Due to the internal constraints imposed by the Boost.MultiIndex framework,
+hashed indices provide guarantees on iterator validity and
+exception safety that are actually stronger than required by the
+C++ Standard Library Technical Report (TR1) with respect
+to unordered associative containers:
+<ul>
+  <li>Iterator validity is preserved in any case during insertion or rehashing:
+    TR1 allows for iterator invalidation when a rehash (implicit or explicit)
+    is performed.</li>
+  <li>Erasing an element or range of elements via iterators does not throw ever,
+    as the internal hash function and equality predicate objects are not actually
+    invoked.</li>
+  <li><code>rehash</code> provides the strong exception safety guarantee
+    unconditionally. TR1 only warrants it if the internal hash function and
+    equality predicate objects do not throw. The somewhat surprising consequence
+    is that a TR1-compliant unordered associative container might erase
+    elements if an exception is thrown during rehashing!</li>
+</ul>
+In general, these stronger guarantees play in favor of the user's convenience,
+specially that which refers to iterator stability. A (hopefully minimal)
+degradation in performance might result in exchange for these commodities,
+though.
+</p>
+
+<h2><a name="rnd_indices">Random access indices</a></h2>
+
+<p>
+Random access indices offer the same kind of functionality as
+<a href="basics.html#seq_indices">sequenced indices</a>, with the extra advantages
+that their iterators are random access, and <code>operator[]</code>
+and <code>at()</code> are provided for accessing
+elements based on their position in the index. Let us rewrite a
+container used in a previous <a href="basics.html#list_fast_lookup">example</a>,
+using random access instead of sequenced indices:
+</p>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index_container</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>random_access_index</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>ordered_index</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>identity</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=comment>// text container with fast lookup based on a random access index</span>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>random_access</span><span class=special>&lt;&gt;,</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>text_container</span><span class=special>;</span>
+
+<span class=comment>// global text container object</span>
+<span class=identifier>text_container</span> <span class=identifier>tc</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+Random access capabilities allow us to efficiently write code
+like the following:
+</p>
+
+<blockquote><pre>
+<span class=keyword>void</span> <span class=identifier>print_page</span><span class=special>(</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>size_t</span> <span class=identifier>page_num</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=keyword>static</span> <span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>size_t</span> <span class=identifier>words_per_page</span><span class=special>=</span><span class=number>50</span><span class=special>;</span>
+
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>size_t</span> <span class=identifier>pos0</span><span class=special>=</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>min</span><span class=special>(</span><span class=identifier>tc</span><span class=special>.</span><span class=identifier>size</span><span class=special>(),</span><span class=identifier>page_num</span><span class=special>*</span><span class=identifier>words_per_page</span><span class=special>);</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>size_t</span> <span class=identifier>pos1</span><span class=special>=</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>min</span><span class=special>(</span><span class=identifier>tc</span><span class=special>.</span><span class=identifier>size</span><span class=special>(),</span><span class=identifier>pos0</span><span class=special>+</span><span class=identifier>words_per_page</span><span class=special>);</span>
+
+  <span class=comment>// note random access iterators can be added offsets</span> 
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>copy</span><span class=special>(</span>
+    <span class=identifier>tc</span><span class=special>.</span><span class=identifier>begin</span><span class=special>()+</span><span class=identifier>pos0</span><span class=special>,</span><span class=identifier>tc</span><span class=special>.</span><span class=identifier>begin</span><span class=special>()+</span><span class=identifier>pos1</span><span class=special>,</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>ostream_iterator</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;(</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>cout</span><span class=special>));</span>
+<span class=special>}</span>
+
+<span class=keyword>void</span> <span class=identifier>print_random_word</span><span class=special>()</span>
+<span class=special>{</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>cout</span><span class=special>&lt;&lt;</span><span class=identifier>tc</span><span class=special>[</span><span class=identifier>rand</span><span class=special>()%</span><span class=identifier>tc</span><span class=special>.</span><span class=identifier>size</span><span class=special>()];</span>
+<span class=special>}</span>
+</pre></blockquote>
+
+<p>
+This added flexibility comes at a price: insertions and deletions at positions
+other than the end of the index have linear complexity, whereas these operations
+are constant time for sequenced indices. This situation is reminiscent of the
+differences in complexity behavior between <code>std::list</code> and
+<code>std::vector</code>: in the case of random access indices, however,
+insertions and deletions never incur any element copying, so the actual
+performance of these operations can be acceptable, despite the theoretical
+disadvantage with respect to sequenced indices.
+</p>
+
+<p>
+<a href="../examples.html#example10">Example 10</a> and
+<a href="../examples.html#example11">example 11</a> in the examples section put
+random access indices in practice.
+</p>
+
+<h3><a name="rnd_spec">Specification</a></h3>
+
+<p>
+Random access indices are specified with the <code>random_access</code> construct,
+where the <a href="basics.html#tagging">tag</a> parameter is, as usual, optional: 
+</p>
+
+<blockquote><pre>
+<span class=identifier>random_access</span><span class=special>&lt;[</span><i>(tag)</i><span class=special>]&gt;</span>
+</pre></blockquote>
+
+<h3><a name="rnd_interface">Interface</a></h3>
+
+<p>
+All public functions offered by sequenced indices are also provided
+by random access indices, so that the latter can act as a drop-in replacement
+of the former (save with respect to their complexity bounds, as explained above).
+Besides, random access
+indices have <code>operator[]</code> and <code>at()</code> for positional
+access to the elements, and member functions
+<a href="../reference/rnd_indices.html#capacity_memfun"><code>capacity</code></a> and
+<a href="../reference/rnd_indices.html#reserve"><code>reserve</code></a>
+that control internal reallocation in a similar manner as the homonym
+facilities in <code>std::vector</code>. Check the
+<a href="../reference/rnd_indices.html">reference</a> for details.
+</p>
+
+<h3><a name="rnd_vs_vector">Comparison with <code>std::vector</code></a></h3>
+
+<p>
+It is tempting to see random access indices as an analogue of <code>std::vector</code>
+for use in Boost.MultiIndex, but this metaphor can be misleading, as both constructs,
+though similar in many respects, show important semantic differences. An 
+advantage of random access indices is that their iterators, as well as references
+to their elements, are <i>stable</i>, that is, they remain valid after any insertions
+or deletions. On the other hand, random access indices have several disadvantages with
+respect to <code>std::vector</code>s:
+<ul>
+  <li>They do not provide <i>memory contiguity</i>, a property
+    of <code>std::vector</code>s by which elements are stored adjacent to one
+	another in a single block of memory.
+  </li>
+  <li>As usual in Boost.MultiIndex, elements of random access indices are immutable
+    and can only be modified through member functions
+    <a href="../reference/rnd_indices.html#replace"><code>replace</code></a> and
+	<a href="../reference/rnd_indices.html#modify"><code>modify</code></a>.
+    This precludes the usage of many mutating
+	algorithms that are nonetheless applicable to <code>std::vector</code>s.
+  </li>
+</ul>
+The latter shortcoming can be partially remedied by means of the
+<a href="#rearrange">rearranging interface</a> these indices provide.
+</p>
+
+<p>
+In general, it is more instructive to regard random access indices as
+a variation of sequenced indices providing random access semantics, instead
+of insisting on the <code>std::vector</code> analogy.
+</p>
+
+<h2><a name="rearrange">Index rearranging</a></h2>
+
+<p>
+By design, index elements are immutable, i.e. iterators only grant
+<code>const</code> access to them, and only through the provided
+updating interface (<code>replace</code>, <code>modify</code> and
+<code>modify_key</code>) can the elements be modified. This restriction
+is set up so that the internal invariants of key-based indices are
+not broken (for instance, ascending order traversal in ordered
+indices), but induces important limitations in non key-based indices:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>random_access</span><span class=special>&lt;&gt;,</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>container</span><span class=special>;</span>	
+
+<span class=identifier>container</span> <span class=identifier>c</span><span class=special>;</span>
+<span class=special>...</span>
+<span class=comment>// compiler error: assignment to read-only objects</span>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>random_shuffle</span><span class=special>(</span><span class=identifier>c</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>c</span><span class=special>.</span><span class=identifier>end</span><span class=special>());</span>
+</pre></blockquote>
+
+<p>
+What is unfortunate about the previous example is that the operation
+performed by <code>std::random_shuffle</code> is potentially compatible
+with <code>multi_index_container</code> invariants, as its result can be
+described by a permutation of the elements in the random access index
+with no actual modifications to the elements themselves. There are many
+more examples of such compatible algorithms in the C++ standard library,
+like for instance all sorting and partition functions.
+</p>
+
+<p>
+Sequenced and random access indices provide a means to take advantage
+of such external algorithms. In order to introduce this facility we need
+a preliminary concept: a <i>view</i> of an index is defined as
+some iterator range [<code>first</code>,<code>last</code>) over the
+elements of the index such that all its elements are contained in the
+range exactly once. Continuing with our example, we can apply
+<code>std::random_suffle</code> on an ad hoc view obtained from the
+container:
+</p>
+
+<blockquote><pre>
+<span class=comment>// note that the elements of the view are not copies of the elements
+// in c, but references to them</span>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>vector</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>reference_wrapper</span><span class=special>&lt;</span><span class=keyword>const</span> <span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>v</span><span class=special>;</span>
+<span class=identifier>BOOST_FOREACH</span><span class=special>(</span><span class=keyword>const</span> <span class=keyword>int</span><span class=special>&amp;</span> <span class=identifier>i</span><span class=special>,</span><span class=identifier>c</span><span class=special>)</span><span class=identifier>v</span><span class=special>.</span><span class=identifier>push_back</span><span class=special>(</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>cref</span><span class=special>(</span><span class=identifier>i</span><span class=special>));</span>
+
+<span class=comment>// this compiles OK, as reference_wrappers are swappable</span>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>random_shuffle</span><span class=special>(</span><span class=identifier>v</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>v</span><span class=special>.</span><span class=identifier>end</span><span class=special>());</span>
+</pre></blockquote>
+
+<p>
+Elements of <code>v</code> are <code>reference_wrapper</code>s (from
+<a href="../../../../doc/html/ref.html">Boost.Ref</a>) to the actual elements
+in the multi-index container. These objects still do not allow modification
+of the referenced entities, but they are swappable,
+which is the only requirement <code>std::random_shuffle</code> imposes. Once
+we have our desired rearrange stored in the view, we can transfer it to
+the container with
+</p>
+
+<blockquote><pre>
+<span class=identifier>c</span><span class=special>.</span><span class=identifier>rearrange</span><span class=special>(</span><span class=identifier>v</span><span class=special>.</span><span class=identifier>begin</span><span class=special>());</span>
+</pre></blockquote>
+
+<p>
+<code>rearrange</code> accepts an input iterator signaling the beginning
+of the external view (and end iterator is not needed since the length of
+the view is the same as that of the index) and internally relocates the
+elements of the index so that their traversal order matches the view.
+Albeit with some circumventions, <code>rearrange</code> allows for the
+application of a varied range of algorithms to non key-based indices.
+Please note that the view concept is very general, and in no way tied
+to the particular implementation example shown above. For instance, indices
+of a <code>multi_index_container</code> are indeed views with respect to
+its non key-based indices:
+</p>
+
+<blockquote><pre>
+<span class=comment>// rearrange as index #1 (ascending order)</span>
+<span class=identifier>c</span><span class=special>.</span><span class=identifier>rearrange</span><span class=special>(</span><span class=identifier>c</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;().</span><span class=identifier>begin</span><span class=special>());</span>
+
+<span class=comment>// rearrange in descending order</span>
+<span class=identifier>c</span><span class=special>.</span><span class=identifier>rearrange</span><span class=special>(</span><span class=identifier>c</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;().</span><span class=identifier>rbegin</span><span class=special>());</span>
+</pre></blockquote>
+
+<p>
+The only important requirement imposed on views is that they must be
+<i>free</i>, i.e. they are not affected by relocations on the base index:
+thus, <code>rearrange</code> does not accept the following:
+</p>
+
+<blockquote><pre>
+<span class=comment>// undefined behavior: [rbegin(),rend()) is not free with respect
+// to the base index</span>
+<span class=identifier>c</span><span class=special>.</span><span class=identifier>rearrange</span><span class=special>(</span><span class=identifier>c</span><span class=special>.</span><span class=identifier>rbegin</span><span class=special>());</span>
+</pre></blockquote>
+
+<p>
+The view concept is defined in detail in the
+<a href="../reference/indices.html#views">reference</a>.
+See <a href="../examples.html#example11">example 11</a> in the examples section
+for a demonstration of use of <code>rearrange</code>.
+</p>
+
+<h2><a name="iterator_to"><code>iterator_to</code></a></h2>
+
+<p>
+All indices of Boost.MultiIndex provide a member function called <code>iterator_to</code>
+which returns an iterator to a given element of the container:
+</p>
+
+<blockquote><pre>
+<span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span><span class=identifier>sequenced</span><span class=special>&lt;&gt;</span> <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>c</span><span class=special>;</span>
+<span class=special>...</span>
+<span class=comment>// convoluted way to do c.pop_back()</span>
+<span class=identifier>c</span><span class=special>.</span><span class=identifier>erase</span><span class=special>(</span><span class=identifier>c</span><span class=special>.</span><span class=identifier>iterator_to</span><span class=special>(</span><span class=identifier>c</span><span class=special>.</span><span class=identifier>back</span><span class=special>()));</span> 
+
+<span class=comment>// The following, though similar to the previous code,
+// does not work: iterator_to accepts a reference to
+// the element in the container, not a copy.</span>
+<span class=keyword>int</span> <span class=identifier>x</span><span class=special>=</span><span class=identifier>c</span><span class=special>.</span><span class=identifier>back</span><span class=special>();</span>
+<span class=identifier>c</span><span class=special>.</span><span class=identifier>erase</span><span class=special>(</span><span class=identifier>c</span><span class=special>.</span><span class=identifier>iterator_to</span><span class=special>(</span><span class=identifier>x</span><span class=special>));</span> <span class=comment>// run-time failure ensues</span>
+</pre></blockquote>
+
+<p>
+<code>iterator_to</code> provides a way to retrieve an iterator to an element
+from a pointer to the element, thus making iterators and pointers interchangeable
+for the purposes of element pointing (not so for traversal) in many situations.
+This notwithstanding, it is not the aim of <code>iterator_to</code> to
+promote the usage of pointers as substitutes for real iterators: the latter are
+specifically designed for handling the elements of a container,
+and not only benefit from the iterator orientation of container interfaces,
+but are also capable of exposing many more programming bugs than raw pointers, both
+at compile and run time. <code>iterator_to</code> is thus meant to be used
+in scenarios where access via iterators is not suitable or desireable:
+<ul>
+  <li>Interoperability with preexisting APIs based on pointers or references.</li>
+  <li>Publication of pointer-based interfaces (for instance, when
+    designing a C-compatible library).
+  </li>
+  <li>The exposure of pointers in place of iterators can act as a <i>type
+    erasure</i> barrier effectively decoupling the user of the code
+    from the implementation detail of which particular container is being
+    used. Similar techniques, like the famous Pimpl idiom, are used
+    in large projects to reduce dependencies and build times.
+  </li>
+  <li>Self-referencing contexts where an element acts upon its owner
+    container and no iterator to itself is available.
+  </li>
+</ul>
+</p>
+
+<h2><a name="ordered_node_compression">Ordered indices node compression</a></h2>
+
+<p>
+Ordered indices are implemented by means of a data structure
+known as a <i>red-black tree</i>. Nodes of a red-back tree contain pointers
+to the parent and the two children nodes, plus a 1-bit field referred to as
+the <i>node color</i> (hence the name of the structure). Due to alignment
+issues, on most architectures the color field occupies one entire word, that is,
+4 bytes in 32-bit systems and 8 bytes in 64-bit environments. This waste
+of space can be avoided by embedding the color bit inside one of the
+node pointers, provided not all the bits of the pointer representation contain
+useful information: this is precisely the case in many architectures where
+such nodes are aligned to even addresses, which implies that the least
+significant bit of the address must always be zero.
+</p>
+
+<p>
+Boost.MultiIndex ordered indices implement this type of node compression
+whenever applicable. As compared with common implementations of the STL
+container <code>std::set</code>, node compression can
+result in a reduction of header overload by 25% (from 16 to 12 bytes on
+typical 32-bit architectures, and from 32 to 24 bytes on 64-bit systems).
+The impact on performance of this optimization has been checked to be negligible
+for moderately sized containers, whereas containers with many elements (hundreds
+of thousands or more) perform faster with this optimization, most likely due to
+L1 and L2 cache effects. 
+</p>
+
+<p>
+Node compression can be disabled by globally setting the macro
+<code>BOOST_MULTI_INDEX_DISABLE_COMPRESSED_ORDERED_INDEX_NODES</code>.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="basics.html"><img src="../prev.gif" alt="basics" border="0"><br>
+Basics
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex tutorial" border="0"><br>
+Boost.MultiIndex tutorial
+</a></div>
+<div class="next_link"><a href="key_extraction.html"><img src="../next.gif" alt="key estraction" border="0"><br>
+Key extraction
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised July 7th 2013</p>
+
+<p>&copy; Copyright 2003-2013 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

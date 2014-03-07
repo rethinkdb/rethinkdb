@@ -1,0 +1,493 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>conversion_traits&lt;&gt; traits class</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_numericconversion.conversion_traits___traits_class"></a><a class="link" href="conversion_traits___traits_class.html" title="conversion_traits&lt;&gt; traits class">conversion_traits&lt;&gt;
+    traits class</a>
+</h2></div></div></div>
+    
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.conversion_traits___traits_class.types"></a><a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types" title="Types">Types</a>
+</h3></div></div></div>
+      
+      <div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numericconversion.conversion_traits___traits_class.types.enumeration_int_float_mixture_enum"></a><a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types.enumeration_int_float_mixture_enum" title="enumeration int_float_mixture_enum">enumeration
+        int_float_mixture_enum</a>
+</h4></div></div></div>
+        
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+
+    <span class="keyword">enum</span> <span class="identifier">int_float_mixture_enum</span>
+    <span class="special">{</span>
+       <span class="identifier">integral_to_integral</span>
+      <span class="special">,</span><span class="identifier">integral_to_float</span>
+      <span class="special">,</span><span class="identifier">float_to_integral</span>
+      <span class="special">,</span><span class="identifier">float_to_float</span>
+    <span class="special">}</span> <span class="special">;</span>
+
+<span class="special">}</span> <span class="special">}</span> <span class="comment">// namespace boost::numeric</span>
+</pre>
+      </div>
+      <div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numericconversion.conversion_traits___traits_class.types.enumeration_sign_mixture_enum"></a><a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types.enumeration_sign_mixture_enum" title="enumeration sign_mixture_enum">enumeration
+        sign_mixture_enum</a>
+</h4></div></div></div>
+        
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+
+<span class="keyword">enum</span> <span class="identifier">sign_mixture_enum</span>
+<span class="special">{</span>
+   <span class="identifier">unsigned_to_unsigned</span>
+  <span class="special">,</span><span class="identifier">signed_to_signed</span>
+  <span class="special">,</span><span class="identifier">signed_to_unsigned</span>
+  <span class="special">,</span><span class="identifier">unsigned_to_signed</span>
+<span class="special">}</span> <span class="special">;</span>
+
+<span class="special">}</span> <span class="special">}</span> <span class="comment">// namespace boost::numeric</span>
+</pre>
+      </div>
+      <div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numericconversion.conversion_traits___traits_class.types.enumeration_udt_builtin_mixture_enum"></a><a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types.enumeration_udt_builtin_mixture_enum" title="enumeration udt_builtin_mixture_enum">enumeration
+        udt_builtin_mixture_enum</a>
+</h4></div></div></div>
+        
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+
+    <span class="keyword">enum</span> <span class="identifier">udt_builtin_mixture_enum</span>
+    <span class="special">{</span>
+       <span class="identifier">builtin_to_builtin</span>
+      <span class="special">,</span><span class="identifier">builtin_to_udt</span>
+      <span class="special">,</span><span class="identifier">udt_to_builtin</span>
+      <span class="special">,</span><span class="identifier">udt_to_udt</span>
+    <span class="special">}</span> <span class="special">;</span>
+
+<span class="special">}</span> <span class="special">}</span> <span class="comment">// namespace boost::numeric</span>
+</pre>
+      </div>
+      <div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numericconversion.conversion_traits___traits_class.types.template_class_int_float_mixture__"></a><a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types.template_class_int_float_mixture__" title="template class int_float_mixture&lt;&gt;">template
+        class int_float_mixture&lt;&gt;</a>
+</h4></div></div></div>
+        
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">S</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">int_float_mixture</span> <span class="special">:</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span><span class="special">&lt;</span><span class="identifier">int_float_mixture_enum</span><span class="special">,</span> <span class="identifier">impl</span><span class="special">-</span><span class="identifier">def</span><span class="special">-</span><span class="identifier">value</span><span class="special">&gt;</span> <span class="special">{}</span> <span class="special">;</span>
+
+<span class="special">}</span> <span class="special">}</span> <span class="comment">// namespace boost::numeric</span>
+</pre>
+        <p>
+          Classifying <code class="computeroutput"><span class="identifier">S</span></code> and <code class="computeroutput"><span class="identifier">T</span></code> as either integral or float, this
+          <a class="ulink" href="../../../../mpl/doc/refmanual/integral-constant.html" target="_top">MPL's
+          Integral Constant</a> indicates the combination of these attributes.
+        </p>
+        <p>
+          Its <code class="computeroutput"><span class="special">::</span><span class="identifier">value</span></code>
+          is of enumeration type <a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types.enumeration_int_float_mixture_enum" title="enumeration int_float_mixture_enum"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">int_float_mixture_enum</span></code></a>
+        </p>
+      </div>
+      <div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numericconversion.conversion_traits___traits_class.types.template_class_sign_mixture__"></a><a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types.template_class_sign_mixture__" title="template class sign_mixture&lt;&gt;">template
+        class sign_mixture&lt;&gt;</a>
+</h4></div></div></div>
+        
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">S</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">sign_mixture</span> <span class="special">:</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span><span class="special">&lt;</span><span class="identifier">sign_mixture_enum</span><span class="special">,</span> <span class="identifier">impl</span><span class="special">-</span><span class="identifier">def</span><span class="special">-</span><span class="identifier">value</span><span class="special">&gt;</span> <span class="special">{}</span> <span class="special">;</span>
+
+<span class="special">}</span> <span class="special">}</span> <span class="comment">// namespace boost::numeric</span>
+</pre>
+        <p>
+          Classifying <code class="computeroutput"><span class="identifier">S</span></code> and <code class="computeroutput"><span class="identifier">T</span></code> as either signed or unsigned, this
+          <a class="ulink" href="../../../../mpl/doc/refmanual/integral-constant.html" target="_top">MPL's
+          Integral Constant</a> indicates the combination of these attributes.
+        </p>
+        <p>
+          Its <code class="computeroutput"><span class="special">::</span><span class="identifier">value</span></code>
+          is of enumeration type <a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types.enumeration_sign_mixture_enum" title="enumeration sign_mixture_enum"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">sign_mixture_enum</span></code></a>
+        </p>
+      </div>
+      <div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numericconversion.conversion_traits___traits_class.types.template_class_udt_builtin_mixture__"></a><a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types.template_class_udt_builtin_mixture__" title="template class udt_builtin_mixture&lt;&gt;">template
+        class udt_builtin_mixture&lt;&gt;</a>
+</h4></div></div></div>
+        
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">S</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">udt_builtin_mixture</span> <span class="special">:</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span><span class="special">&lt;</span><span class="identifier">udt_builtin__mixture_enum</span><span class="special">,</span> <span class="identifier">impl</span><span class="special">-</span><span class="identifier">def</span><span class="special">-</span><span class="identifier">value</span><span class="special">&gt;</span> <span class="special">{}</span> <span class="special">;</span>
+
+<span class="special">}</span> <span class="special">}</span> <span class="comment">// namespace boost::numeric</span>
+</pre>
+        <p>
+          Classifying <code class="computeroutput"><span class="identifier">S</span></code> and <code class="computeroutput"><span class="identifier">T</span></code> as either user-defined or builtin,
+          this <a class="ulink" href="../../../../mpl/doc/refmanual/integral-constant.html" target="_top">MPL's
+          Integral Constant</a> indicates the combination of these attributes.
+        </p>
+        <p>
+          Its <code class="computeroutput"><span class="special">::</span><span class="identifier">value</span></code>
+          is of enumeration type <a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types.enumeration_udt_builtin_mixture_enum" title="enumeration udt_builtin_mixture_enum"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">udt_builtin_mixture_enum</span></code></a>
+        </p>
+      </div>
+      <div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numericconversion.conversion_traits___traits_class.types.template_class_is_subranged__"></a><a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types.template_class_is_subranged__" title="template class is_subranged&lt;&gt;">template
+        class is_subranged&lt;&gt;</a>
+</h4></div></div></div>
+        
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">S</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">is_subranged</span> <span class="special">:</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">bool_</span><span class="special">&lt;</span><span class="identifier">impl</span><span class="special">-</span><span class="identifier">def</span><span class="special">-</span><span class="identifier">value</span><span class="special">&gt;</span> <span class="special">{}</span> <span class="special">;</span>
+
+<span class="special">}</span> <span class="special">}</span> <span class="comment">// namespace boost::numeric</span>
+</pre>
+        <p>
+          Indicates if the range of the target type <code class="computeroutput"><span class="identifier">T</span></code>
+          is a subset of the range of the source type <code class="computeroutput"><span class="identifier">S</span></code>.
+          That is: if there are some source values which fall out of the Target type's
+          range.
+        </p>
+        <p>
+          It is a boolean <a class="ulink" href="../../../../mpl/doc/refmanual/integral-constant.html" target="_top">MPL's
+          Integral Constant</a> .
+        </p>
+        <p>
+          It does not indicate if a particular conversion is effectively out of range;
+          it indicates that some conversion might be out of range because not all
+          the source values are representable as Target type.
+        </p>
+      </div>
+      <div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numericconversion.conversion_traits___traits_class.types.template_class_conversion_traits__"></a><a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types.template_class_conversion_traits__" title="template class conversion_traits&lt;&gt;">template
+        class conversion_traits&lt;&gt;</a>
+</h4></div></div></div>
+        
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">S</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">conversion_traits</span>
+    <span class="special">{</span>
+        <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span><span class="special">&lt;</span><span class="identifier">int_float_mixture_enum</span>  <span class="special">,</span> <span class="special">...&gt;</span> <span class="identifier">int_float_mixture</span> <span class="special">;</span>
+        <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span><span class="special">&lt;</span><span class="identifier">sign_mixture_enum</span>       <span class="special">,</span> <span class="special">...&gt;</span> <span class="identifier">sign_mixture</span><span class="special">;</span>
+        <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span><span class="special">&lt;</span><span class="identifier">udt_builtin_mixture_enum</span><span class="special">,</span> <span class="special">...&gt;</span> <span class="identifier">udt_builtin_mixture</span> <span class="special">;</span>
+
+        <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">bool_</span><span class="special">&lt;...&gt;</span> <span class="identifier">subranged</span> <span class="special">;</span>
+        <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">bool_</span><span class="special">&lt;...&gt;</span> <span class="identifier">trivial</span> <span class="special">;</span>
+
+        <span class="keyword">typedef</span> <span class="identifier">T</span> <span class="identifier">target_type</span>   <span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="identifier">S</span> <span class="identifier">source_type</span>   <span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="special">...</span> <span class="identifier">argument_type</span> <span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="special">...</span> <span class="identifier">result_type</span>   <span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="special">...</span> <span class="identifier">supertype</span>     <span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="special">...</span> <span class="identifier">subtype</span>       <span class="special">;</span>
+    <span class="special">}</span> <span class="special">;</span>
+
+<span class="special">}</span> <span class="special">}</span> <span class="comment">// namespace numeric, namespace boost</span>
+</pre>
+        <p>
+          This traits class indicates some properties of a <span class="emphasis"><em>numeric conversion</em></span>
+          direction: from a source type <code class="computeroutput"><span class="identifier">S</span></code>
+          to a target type <code class="computeroutput"><span class="identifier">T</span></code>. It
+          does not indicate the properties of a <span class="emphasis"><em>specific</em></span> conversion,
+          but of the conversion direction. See <a class="link" href="definitions.html#boost_numericconversion.definitions.subranged_conversion_direction__subtype_and_supertype" title="Subranged Conversion Direction, Subtype and Supertype">Definitions</a>
+          for details.
+        </p>
+        <p>
+          The traits class provides the following <a class="ulink" href="../../../../mpl/doc/refmanual/integral-constant.html" target="_top">MPL's
+          Integral Constant</a> \s of enumeration type. They express the combination
+          of certain attributes of the Source and Target types (thus they are call
+          mixture):
+        </p>
+        <div class="informaltable">
+          <table border="1">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                </th>
+<th>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <span class="bold"><strong>int_float_mixture </strong></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Same as given by the traits class <a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types.template_class_int_float_mixture__" title="template class int_float_mixture&lt;&gt;">int_float_mixture</a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <span class="bold"><strong>sign_mixture </strong></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Same as given by the traits class <a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types.template_class_sign_mixture__" title="template class sign_mixture&lt;&gt;">sign_mixture</a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <span class="bold"><strong>udt_builtin_mixture </strong></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Same as given by the traits class <a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types.template_class_udt_builtin_mixture__" title="template class udt_builtin_mixture&lt;&gt;">udt_builtin_mixture</a>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table>
+        </div>
+        <p>
+          The traits class provides the following <a class="ulink" href="../../../../mpl/doc/refmanual/integral-constant.html" target="_top">MPL's
+          Integral Constant</a> \s of boolean type which indicates indirectly
+          the relation between the Source and Target ranges (see <a class="link" href="definitions.html#boost_numericconversion.definitions.range_and_precision" title="Range and Precision">Definitions</a>
+          for details).
+        </p>
+        <div class="informaltable">
+          <table border="1">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                </th>
+<th>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    subranged
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Same as given by <a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types.template_class_is_subranged__" title="template class is_subranged&lt;&gt;">is_subranged</a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    trivial
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Indicates if both Source and Target, <span class="underline">without
+                    cv-qualifications</span>, are the same type.
+                  </p>
+                  <p>
+                    Its <code class="computeroutput"><span class="special">::</span><span class="identifier">value</span></code>
+                    is of boolean type.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table>
+        </div>
+        <p>
+          The traits class provides the following types. They are the Source and
+          Target types classified and qualified for different purposes.
+        </p>
+        <div class="informaltable">
+          <table border="1">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                </th>
+<th>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <span class="bold"><strong>target_type</strong></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The template parameter <code class="computeroutput"><span class="identifier">T</span></code>
+                    without cv-qualifications
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <span class="bold"><strong>source_type</strong></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The template parameter <code class="computeroutput"><span class="identifier">S</span></code>
+                    without cv-qualifications
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <span class="bold"><strong>argument_type</strong></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    This type is either source_type or <code class="computeroutput"><span class="identifier">source_type</span>
+                    <span class="keyword">const</span><span class="special">&amp;</span></code>.
+                  </p>
+                  <p>
+                    It represents the optimal argument type for the <a class="link" href="converter___function_object.html" title="converter&lt;&gt; function object">converter</a>
+                    member functions.
+                  </p>
+                  <p>
+                    If S is a built-in type, this is <code class="computeroutput"><span class="identifier">source_type</span></code>,
+                    otherwise, this is <code class="computeroutput"><span class="identifier">source_type</span>
+                    <span class="keyword">const</span><span class="special">&amp;</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <span class="bold"><strong>result_type</strong></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    This type is either target_type or target_type const&amp;
+                  </p>
+                  <p>
+                    It represents the return type of the <a class="link" href="converter___function_object.html" title="converter&lt;&gt; function object">converter</a>
+                    member functions.
+                  </p>
+                  <p>
+                    If <code class="computeroutput"><span class="identifier">T</span><span class="special">==</span><span class="identifier">S</span></code>, it is <code class="computeroutput"><span class="identifier">target_type</span>
+                    <span class="keyword">const</span><span class="special">&amp;</span></code>,
+                    otherwise, it is <code class="computeroutput"><span class="identifier">target_type</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <span class="bold"><strong>supertype</strong></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    If the conversion is subranged, it is <code class="computeroutput"><span class="identifier">source_type</span></code>,
+                    otherwise, it is <code class="computeroutput"><span class="identifier">target_type</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <span class="bold"><strong>subtype</strong></span>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    If the conversion is subranged, it is <code class="computeroutput"><span class="identifier">target_type</span></code>,
+                    otherwise, it is <code class="computeroutput"><span class="identifier">source_type</span></code>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.conversion_traits___traits_class.examples"></a><a class="link" href="conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.examples" title="Examples">Examples</a>
+</h3></div></div></div>
+      
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cassert</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">typeinfo</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">numeric</span><span class="special">/</span><span class="identifier">conversion</span><span class="special">/</span><span class="identifier">conversion_traits</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+
+    <span class="comment">// A trivial conversion.</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">conversion_traits</span><span class="special">&lt;</span><span class="keyword">short</span><span class="special">,</span><span class="keyword">short</span><span class="special">&gt;</span> <span class="identifier">Short2Short_Traits</span> <span class="special">;</span>
+    <span class="identifier">assert</span> <span class="special">(</span> <span class="identifier">Short2Short_Traits</span><span class="special">::</span><span class="identifier">trivial</span><span class="special">::</span><span class="identifier">value</span> <span class="special">)</span> <span class="special">;</span>
+
+    <span class="comment">// A subranged conversion.</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">conversion_traits</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">UInt2Double_Traits</span> <span class="special">;</span>
+    <span class="identifier">assert</span> <span class="special">(</span>  <span class="identifier">UInt2Double_Traits</span><span class="special">::</span><span class="identifier">int_float_mixture</span><span class="special">::</span><span class="identifier">value</span> <span class="special">==</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">integral_to_float</span> <span class="special">)</span> <span class="special">;</span>
+    <span class="identifier">assert</span> <span class="special">(</span>  <span class="identifier">UInt2Double_Traits</span><span class="special">::</span><span class="identifier">sign_mixture</span><span class="special">::</span><span class="identifier">value</span> <span class="special">==</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">unsigned_to_signed</span> <span class="special">)</span> <span class="special">;</span>
+    <span class="identifier">assert</span> <span class="special">(</span> <span class="special">!</span><span class="identifier">UInt2Double_Traits</span><span class="special">::</span><span class="identifier">subranged</span><span class="special">::</span><span class="identifier">value</span> <span class="special">)</span> <span class="special">;</span>
+    <span class="identifier">assert</span> <span class="special">(</span> <span class="keyword">typeid</span><span class="special">(</span><span class="identifier">UInt2Double_Traits</span><span class="special">::</span><span class="identifier">supertype</span><span class="special">)</span> <span class="special">==</span> <span class="keyword">typeid</span><span class="special">(</span><span class="keyword">double</span><span class="special">)</span> <span class="special">)</span> <span class="special">;</span>
+    <span class="identifier">assert</span> <span class="special">(</span> <span class="keyword">typeid</span><span class="special">(</span><span class="identifier">UInt2Double_Traits</span><span class="special">::</span><span class="identifier">subtype</span><span class="special">)</span> <span class="special">==</span> <span class="keyword">typeid</span><span class="special">(</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">)</span> <span class="special">)</span> <span class="special">;</span>
+
+    <span class="comment">// A doubly subranged conversion.</span>
+    <span class="identifier">assert</span> <span class="special">(</span> <span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">conversion_traits</span><span class="special">&lt;</span><span class="keyword">short</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">short</span><span class="special">&gt;::</span><span class="identifier">subranged</span><span class="special">::</span><span class="identifier">value</span><span class="special">)</span> <span class="special">);</span>
+    <span class="identifier">assert</span> <span class="special">(</span> <span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">conversion_traits</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">short</span><span class="special">,</span> <span class="keyword">short</span><span class="special">&gt;::</span><span class="identifier">subranged</span><span class="special">::</span><span class="identifier">value</span><span class="special">)</span> <span class="special">);</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+    </div>
+  </div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+</body>
+</html>

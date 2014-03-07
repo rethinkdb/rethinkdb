@@ -1,0 +1,470 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Gamma</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Math Toolkit">
+<link rel="up" href="../sf_gamma.html" title="Gamma Functions">
+<link rel="prev" href="../sf_gamma.html" title="Gamma Functions">
+<link rel="next" href="lgamma.html" title="Log Gamma">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../sf_gamma.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../sf_gamma.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lgamma.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="math_toolkit.sf_gamma.tgamma"></a><a class="link" href="tgamma.html" title="Gamma">Gamma</a>
+</h3></div></div></div>
+<h5>
+<a name="math_toolkit.sf_gamma.tgamma.h0"></a>
+        <span class="phrase"><a name="math_toolkit.sf_gamma.tgamma.synopsis"></a></span><a class="link" href="tgamma.html#math_toolkit.sf_gamma.tgamma.synopsis">Synopsis</a>
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">special_functions</span><span class="special">/</span><span class="identifier">gamma</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">math</span><span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">tgamma1pm1</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">dz</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">tgamma1pm1</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">dz</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<h5>
+<a name="math_toolkit.sf_gamma.tgamma.h1"></a>
+        <span class="phrase"><a name="math_toolkit.sf_gamma.tgamma.description"></a></span><a class="link" href="tgamma.html#math_toolkit.sf_gamma.tgamma.description">Description</a>
+      </h5>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<p>
+        Returns the "true gamma" (hence name tgamma) of value z:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/gamm1.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../graphs/tgamma.png" align="middle"></span>
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<p>
+        There are effectively two versions of the <a href="http://en.wikipedia.org/wiki/Gamma_function" target="_top">tgamma</a>
+        function internally: a fully generic version that is slow, but reasonably
+        accurate, and a much more efficient approximation that is used where the
+        number of digits in the significand of T correspond to a certain <a class="link" href="../lanczos.html" title="The Lanczos Approximation">Lanczos
+        approximation</a>. In practice any built in floating point type you will
+        encounter has an appropriate <a class="link" href="../lanczos.html" title="The Lanczos Approximation">Lanczos
+        approximation</a> defined for it. It is also possible, given enough machine
+        time, to generate further <a class="link" href="../lanczos.html" title="The Lanczos Approximation">Lanczos approximation</a>'s
+        using the program libs/math/tools/lanczos_generator.cpp.
+      </p>
+<p>
+        The return type of this function is computed using the <a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>result
+        type calculation rules</em></span></a>: the result is <code class="computeroutput"><span class="keyword">double</span></code>
+        when T is an integer type, and T otherwise.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">tgamma1pm1</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">dz</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">tgamma1pm1</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">dz</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<p>
+        Returns <code class="computeroutput"><span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">dz</span> <span class="special">+</span> <span class="number">1</span><span class="special">)</span> <span class="special">-</span> <span class="number">1</span></code>.
+        Internally the implementation does not make use of the addition and subtraction
+        implied by the definition, leading to accurate results even for very small
+        <code class="computeroutput"><span class="identifier">dz</span></code>. However, the implementation
+        is capped to either 35 digit accuracy, or to the precision of the <a class="link" href="../lanczos.html" title="The Lanczos Approximation">Lanczos
+        approximation</a> associated with type T, whichever is more accurate.
+      </p>
+<p>
+        The return type of this function is computed using the <a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>result
+        type calculation rules</em></span></a>: the result is <code class="computeroutput"><span class="keyword">double</span></code>
+        when T is an integer type, and T otherwise.
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<h5>
+<a name="math_toolkit.sf_gamma.tgamma.h2"></a>
+        <span class="phrase"><a name="math_toolkit.sf_gamma.tgamma.accuracy"></a></span><a class="link" href="tgamma.html#math_toolkit.sf_gamma.tgamma.accuracy">Accuracy</a>
+      </h5>
+<p>
+        The following table shows the peak errors (in units of epsilon) found on
+        various platforms with various floating point types, along with comparisons
+        to the <a href="http://www.gnu.org/software/gsl/" target="_top">GSL-1.9</a>, <a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>, <a href="http://docs.hp.com/en/B9106-90010/index.html" target="_top">HP-UX
+        C Library</a> and <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a>
+        libraries. Unless otherwise specified any floating point type that is narrower
+        than the one shown will have <a class="link" href="../relative_error.html#math_toolkit.relative_error.zero_error">effectively
+        zero error</a>.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Significand Size
+                </p>
+              </th>
+<th>
+                <p>
+                  Platform and Compiler
+                </p>
+              </th>
+<th>
+                <p>
+                  Factorials and Half factorials
+                </p>
+              </th>
+<th>
+                <p>
+                  Values Near Zero
+                </p>
+              </th>
+<th>
+                <p>
+                  Values Near 1 or 2
+                </p>
+              </th>
+<th>
+                <p>
+                  Values Near a Negative Pole
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  53
+                </p>
+              </td>
+<td>
+                <p>
+                  Win32 Visual C++ 8
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=1.9 Mean=0.7
+                </p>
+                <p>
+                  (GSL=3.9)
+                </p>
+                <p>
+                  (<a href="http://www.netlib.org/cephes/" target="_top">Cephes</a>=3.0)
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2.0 Mean=1.1
+                </p>
+                <p>
+                  (GSL=4.5)
+                </p>
+                <p>
+                  (<a href="http://www.netlib.org/cephes/" target="_top">Cephes</a>=1)
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2.0 Mean=1.1
+                </p>
+                <p>
+                  (GSL=7.9)
+                </p>
+                <p>
+                  (<a href="http://www.netlib.org/cephes/" target="_top">Cephes</a>=1.0)
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2.6 Mean=1.3
+                </p>
+                <p>
+                  (GSL=2.5)
+                </p>
+                <p>
+                  (<a href="http://www.netlib.org/cephes/" target="_top">Cephes</a>=2.7)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  Linux IA32 / GCC
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=300 Mean=49.5
+                </p>
+                <p>
+                  (<a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=395 Mean=89)
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=3.0 Mean=1.4
+                </p>
+                <p>
+                  (<a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=11 Mean=3.3)
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=5.0 Mean=1.8
+                </p>
+                <p>
+                  (<a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=0.92 Mean=0.2)
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=157 Mean=65
+                </p>
+                <p>
+                  (<a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=205 Mean=108)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  Linux IA64 / GCC
+                </p>
+              </td>
+<td>
+                <p>
+                  <a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak 2.8 Mean=0.9
+                </p>
+                <p>
+                  (<a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak 0.7)
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=4.8 Mean=1.5
+                </p>
+                <p>
+                  (<a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak 0)
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=4.8 Mean=1.5
+                </p>
+                <p>
+                  (<a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak 0)
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=5.0 Mean=1.7 (<a href="http://www.gnu.org/software/libc/" target="_top">GNU
+                  C Lib</a> Peak 0)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  113
+                </p>
+              </td>
+<td>
+                <p>
+                  HPUX IA64, aCC A.06.06
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2.5 Mean=1.1
+                </p>
+                <p>
+                  (<a href="http://docs.hp.com/en/B9106-90010/index.html" target="_top">HP-UX
+                  C Library</a> Peak 0)
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=3.5 Mean=1.7
+                </p>
+                <p>
+                  (<a href="http://docs.hp.com/en/B9106-90010/index.html" target="_top">HP-UX
+                  C Library</a> Peak 0)
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=3.5 Mean=1.6
+                </p>
+                <p>
+                  (<a href="http://docs.hp.com/en/B9106-90010/index.html" target="_top">HP-UX
+                  C Library</a> Peak 0)
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=5.2 Mean=1.92
+                </p>
+                <p>
+                  (<a href="http://docs.hp.com/en/B9106-90010/index.html" target="_top">HP-UX
+                  C Library</a> Peak 0)
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="math_toolkit.sf_gamma.tgamma.h3"></a>
+        <span class="phrase"><a name="math_toolkit.sf_gamma.tgamma.testing"></a></span><a class="link" href="tgamma.html#math_toolkit.sf_gamma.tgamma.testing">Testing</a>
+      </h5>
+<p>
+        The gamma is relatively easy to test: factorials and half-integer factorials
+        can be calculated exactly by other means and compared with the gamma function.
+        In addition, some accuracy tests in known tricky areas were computed at high
+        precision using the generic version of this function.
+      </p>
+<p>
+        The function <code class="computeroutput"><span class="identifier">tgamma1pm1</span></code> is
+        tested against values calculated very naively using the formula <code class="computeroutput"><span class="identifier">tgamma</span><span class="special">(</span><span class="number">1</span><span class="special">+</span><span class="identifier">dz</span><span class="special">)-</span><span class="number">1</span></code> with a
+        lanczos approximation accurate to around 100 decimal digits.
+      </p>
+<h5>
+<a name="math_toolkit.sf_gamma.tgamma.h4"></a>
+        <span class="phrase"><a name="math_toolkit.sf_gamma.tgamma.implementation"></a></span><a class="link" href="tgamma.html#math_toolkit.sf_gamma.tgamma.implementation">Implementation</a>
+      </h5>
+<p>
+        The generic version of the <code class="computeroutput"><span class="identifier">tgamma</span></code>
+        function is implemented by combining the series and continued fraction representations
+        for the incomplete gamma function:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/gamm2.png"></span>
+      </p>
+<p>
+        where <span class="emphasis"><em>l</em></span> is an arbitrary integration limit: choosing
+        <code class="literal">l = max(10, a)</code> seems to work fairly well.
+      </p>
+<p>
+        For types of known precision the <a class="link" href="../lanczos.html" title="The Lanczos Approximation">Lanczos
+        approximation</a> is used, a traits class <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">lanczos</span><span class="special">::</span><span class="identifier">lanczos_traits</span></code>
+        maps type T to an appropriate approximation.
+      </p>
+<p>
+        For z in the range -20 &lt; z &lt; 1 then recursion is used to shift to z
+        &gt; 1 via:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/gamm3.png"></span>
+      </p>
+<p>
+        For very small z, this helps to preserve the identity:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/gamm4.png"></span>
+      </p>
+<p>
+        For z &lt; -20 the reflection formula:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/gamm5.png"></span>
+      </p>
+<p>
+        is used. Particular care has to be taken to evaluate the <code class="computeroutput"><span class="identifier">z</span>
+        <span class="special">*</span> <span class="identifier">sin</span><span class="special">([</span><span class="identifier">pi</span><span class="special">][</span><span class="identifier">space</span><span class="special">]</span> <span class="special">*</span> <span class="identifier">z</span><span class="special">)</span></code>
+        part: a special routine is used to reduce z prior to multiplying by &#960; &#160; to ensure
+        that the result in is the range [0, &#960;/2]. Without this an excessive amount
+        of error occurs in this region (which is hard enough already, as the rate
+        of change near a negative pole is <span class="emphasis"><em>exceptionally</em></span> high).
+      </p>
+<p>
+        Finally if the argument is a small integer then table lookup of the factorial
+        is used.
+      </p>
+<p>
+        The function <code class="computeroutput"><span class="identifier">tgamma1pm1</span></code> is
+        implemented using rational approximations <a class="link" href="../sf_implementation.html#math_toolkit.sf_implementation.rational_approximations_used">devised
+        by JM</a> in the region <code class="computeroutput"><span class="special">-</span><span class="number">0.5</span> <span class="special">&lt;</span> <span class="identifier">dz</span>
+        <span class="special">&lt;</span> <span class="number">2</span></code>.
+        These are the same approximations (and internal routines) that are used for
+        <a class="link" href="lgamma.html" title="Log Gamma">lgamma</a>, and so aren't
+        detailed further here. The result of the approximation is <code class="computeroutput"><span class="identifier">log</span><span class="special">(</span><span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">dz</span><span class="special">+</span><span class="number">1</span><span class="special">))</span></code> which can
+        fed into <a class="link" href="../powers/expm1.html" title="expm1">expm1</a> to give the
+        desired result. Outside the range <code class="computeroutput"><span class="special">-</span><span class="number">0.5</span> <span class="special">&lt;</span> <span class="identifier">dz</span>
+        <span class="special">&lt;</span> <span class="number">2</span></code>
+        then the naive formula <code class="computeroutput"><span class="identifier">tgamma1pm1</span><span class="special">(</span><span class="identifier">dz</span><span class="special">)</span>
+        <span class="special">=</span> <span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">dz</span><span class="special">+</span><span class="number">1</span><span class="special">)-</span><span class="number">1</span></code>
+        can be used directly.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../sf_gamma.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../sf_gamma.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lgamma.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,564 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:match_results match_results]
+
+[h4 Synopsis]
+
+   #include <boost/regex.hpp>
+
+Regular expressions are different from many simple pattern-matching algorithms 
+in that as well as finding an overall match they can also produce 
+sub-expression matches: each sub-expression being delimited in the 
+pattern by a pair of parenthesis (...). There has to be some method for 
+reporting sub-expression matches back to the user: this is achieved this by 
+defining a class `match_results` that acts as an indexed collection of 
+sub-expression matches, each sub-expression match being contained in an 
+object of type [sub_match].
+
+Template class `match_results` denotes a collection of character 
+sequences representing the result of a regular expression match. Objects of 
+type `match_results` are passed to the algorithms [regex_match] and [regex_search], 
+and are returned by the iterator [regex_iterator].  Storage for the 
+collection is allocated and freed as necessary by the member functions of 
+class `match_results`.
+
+The template class `match_results` conforms to the requirements of a Sequence, 
+as specified in (lib.sequence.reqmts), except that only operations defined for 
+const-qualified Sequences are supported.
+
+Class template `match_results` is most commonly used as one of the typedefs 
+`cmatch`, `wcmatch`, `smatch`, or `wsmatch`:
+
+   template <class BidirectionalIterator,
+            class Allocator = std::allocator<sub_match<BidirectionalIterator> >
+   class match_results;
+
+   typedef match_results<const char*>              cmatch;
+   typedef match_results<const wchar_t*>           wcmatch;
+   typedef match_results<string::const_iterator>   smatch;
+   typedef match_results<wstring::const_iterator>  wsmatch;
+
+   template <class BidirectionalIterator,
+            class Allocator = std::allocator<sub_match<BidirectionalIterator> >
+   class match_results
+   { 
+   public: 
+      typedef          sub_match<BidirectionalIterator>                        value_type;
+      typedef          const value_type&                                       const_reference;
+      typedef          const_reference                                         reference;
+      typedef          implementation defined                                  const_iterator;
+      typedef          const_iterator                                          iterator;
+      typedef typename iterator_traits<BidirectionalIterator>::difference_type difference_type;
+      typedef typename Allocator::size_type                                    size_type;
+      typedef          Allocator                                               allocator_type;
+      typedef typename iterator_traits<BidirectionalIterator>::value_type      char_type;
+      typedef          basic_string<char_type>                                 string_type;
+
+      // construct/copy/destroy:
+      ``[link boost_regex.match_results.construct explicit match_results]``(const Allocator& a = Allocator());
+      ``[link boost_regex.match_results.copy_construct match_results]``(const match_results& m);
+      ``[link boost_regex.match_results.assign match_results& operator=]``(const match_results& m); 
+      ~match_results();
+
+      // size:
+      size_type ``[link boost_regex.match_results.size size]``() const;
+      size_type ``[link boost_regex.match_results.max_size max_size]``() const;
+      bool ``[link boost_regex.match_results.empty empty]``() const;
+      // element access:
+      difference_type ``[link boost_regex.match_results.length length]``(int sub = 0) const;
+      difference_type ``[link boost_regex.match_results.length length]``(const char_type* sub) const;
+      template <class charT>
+      difference_type ``[link boost_regex.match_results.length length]``(const charT* sub) const;
+      template <class charT, class Traits, class A>
+      difference_type ``[link boost_regex.match_results.length length]``(const std::basic_string<charT, Traits, A>& sub) const;
+      difference_type ``[link boost_regex.match_results.position position]``(unsigned int sub = 0) const;
+      difference_type ``[link boost_regex.match_results.position position]``(const char_type* sub) const;
+      template <class charT>
+      difference_type ``[link boost_regex.match_results.position position]``(const charT* sub) const;
+      template <class charT, class Traits, class A>
+      difference_type ``[link boost_regex.match_results.position position]``(const std::basic_string<charT, Traits, A>& sub) const;
+      string_type ``[link boost_regex.match_results.str str]``(int sub = 0) const;
+      string_type ``[link boost_regex.match_results.str str]``(const char_type* sub)const;
+      template <class Traits, class A>
+      string_type ``[link boost_regex.match_results.str str]``(const std::basic_string<char_type, Traits, A>& sub)const;
+      template <class charT>
+      string_type ``[link boost_regex.match_results.str str]``(const charT* sub)const;
+      template <class charT, class Traits, class A>
+      string_type ``[link boost_regex.match_results.str str]``(const std::basic_string<charT, Traits, A>& sub)const;
+      const_reference ``[link boost_regex.match_results.subscript operator\[\]]``(int n) const;
+      const_reference ``[link boost_regex.match_results.subscript operator\[\]]``(const char_type* n) const;
+      template <class Traits, class A>
+      const_reference ``[link boost_regex.match_results.subscript operator\[\]]``(const std::basic_string<char_type, Traits, A>& n) const;
+      template <class charT>
+      const_reference ``[link boost_regex.match_results.subscript operator\[\]]``(const charT* n) const;
+      template <class charT, class Traits, class A>
+      const_reference ``[link boost_regex.match_results.subscript operator\[\]]``(const std::basic_string<charT, Traits, A>& n) const;
+
+      const_reference ``[link boost_regex.match_results.prefix prefix]``() const;
+
+      const_reference ``[link boost_regex.match_results.suffix suffix]``() const;
+      const_iterator ``[link boost_regex.match_results.begin begin]``() const;
+      const_iterator ``[link boost_regex.match_results.end end]``() const;
+      // format:
+      template <class OutputIterator, class Formatter>
+      OutputIterator ``[link boost_regex.match_results.format format]``(OutputIterator out,
+                           Formatter fmt,
+                           match_flag_type flags = format_default) const;
+      template <class Formatter>
+      string_type ``[link boost_regex.match_results.format2 format]``(Formatter fmt,
+                        match_flag_type flags = format_default) const;
+
+      allocator_type ``[link boost_regex.match_results.get_allocator get_allocator]``() const;
+      void ``[link boost_regex.match_results.swap swap]``(match_results& that);
+
+   #ifdef BOOST_REGEX_MATCH_EXTRA
+      typedef typename value_type::capture_sequence_type capture_sequence_type;
+      const capture_sequence_type& ``[link boost_regex.match_results.captures captures]``(std::size_t i)const;
+   #endif
+
+   };
+
+   template <class BidirectionalIterator, class Allocator>
+   bool ``[link boost_regex.match_results.op_eq operator ==]`` (const match_results<BidirectionalIterator, Allocator>& m1,
+                     const match_results<BidirectionalIterator, Allocator>& m2);
+   template <class BidirectionalIterator, class Allocator>
+   bool ``[link boost_regex.match_results.op_ne operator !=]`` (const match_results<BidirectionalIterator, Allocator>& m1,
+                     const match_results<BidirectionalIterator, Allocator>& m2);
+
+   template <class charT, class traits, class BidirectionalIterator, class Allocator>
+   basic_ostream<charT, traits>&
+      ``[link boost_regex.match_results.op_stream operator <<]`` (basic_ostream<charT, traits>& os,
+                  const match_results<BidirectionalIterator, Allocator>& m);
+
+   template <class BidirectionalIterator, class Allocator>
+   void ``[link boost_regex.match_results.op_swap swap]``(match_results<BidirectionalIterator, Allocator>& m1,
+            match_results<BidirectionalIterator, Allocator>& m2);
+
+[h4 Description]
+
+In all `match_results` constructors, a copy of the Allocator argument is used 
+for any memory allocation performed by the constructor or member functions 
+during the lifetime of the object.
+
+[#boost_regex.match_results.construct]
+
+   match_results(const Allocator& a = Allocator());
+
+[*Effects]: Constructs an object of class `match_results`. The postconditions of 
+this function are indicated in the table:
+
+[table 
+[[Element][Value]]
+[[empty()][true]]
+[[size()][0]]
+[[str()][basic_string<charT>()]]
+]
+ 
+
+
+[#boost_regex.match_results.copy_construct]
+
+   match_results(const match_results& m);
+
+[*Effects]: Constructs an object of class match_results, as a copy of m.
+
+
+[#boost_regex.match_results.assign]
+
+   match_results& operator=(const match_results& m);
+
+[*Effects]: Assigns m to *this. The postconditions of this function are 
+indicated in the table:
+
+[table
+[[Element][Value]]
+[[empty()][m.empty().]]
+[[size()][m.size().]]
+[[str(n)][m.str(n) for all integers n < m.size().]]
+[[prefix()][m.prefix().]]
+[[suffix()][m.suffix().]]
+[[(*this)\[n\]][m\[n\] for all integers n < m.size().]]
+[[length(n)][m.length(n) for all integers n < m.size().]]
+[[position(n)][m.position(n) for all integers n < m.size().]]
+]
+
+[#boost_regex.match_results.size]
+
+   size_type size()const;
+
+[*Effects]: Returns the number of [sub_match] elements stored in *this; that is 
+the number of marked sub-expressions in the regular expression that was 
+matched plus one.
+
+
+[#boost_regex.match_results.max_size]
+
+   size_type max_size()const;
+
+[*Effects]: Returns the maximum number of [sub_match] elements that can be 
+stored in *this.
+
+
+[#boost_regex.match_results.empty]
+
+   bool empty()const;
+
+[*Effects]: Returns size() == 0.
+
+
+
+[#boost_regex.match_results.length]
+
+   difference_type length(int sub = 0)const;
+   difference_type length(const char_type* sub)const;
+   template <class charT>
+   difference_type length(const charT* sub)const;
+   template <class charT, class Traits, class A>
+   difference_type length(const std::basic_string<charT, Traits, A>&)const;
+
+
+[*Requires]: that the match_results object has been initialized as a result of a 
+successful call to [regex_search] or [regex_match] or was returned from a [regex_iterator], and 
+that the underlying iterators have not been subsequently invalidated.  Will raise a 
+`std::logic_error` if the match_results object was not initialized.
+
+[*Effects]: Returns the length of sub-expression /sub/, that is to say: 
+`(*this)[sub].length()`.
+
+The overloads that accept a string refer to a named sub-expression /n/.
+In the event that there is no such named sub-expression then returns zero.  
+
+The template overloads of this function, allow the string and\/or character type
+to be different from the character type of the underlying sequence and\/or regular expression: 
+in this case the characters will be widened to the underlying character type of the original regular expression.
+A compiler error will occur if the argument passes a wider character type than the underlying sequence.
+These overloads allow a normal narrow character C string literal to be used as an argument, even when
+the underlying character type of the expression being matched may be something more exotic such as a 
+Unicode character type.
+
+[#boost_regex.match_results.position]
+
+   difference_type position(unsigned int sub = 0)const;
+   difference_type position(const char_type* sub)const;
+   template <class charT>
+   difference_type position(const charT* sub)const;
+   template <class charT, class Traits, class A>
+   difference_type position(const std::basic_string<charT, Traits, A>&)const;
+
+[*Requires]: that the match_results object has been initialized as a result of a 
+successful call to [regex_search] or [regex_match] or was returned from a [regex_iterator], and 
+that the underlying iterators have not been subsequently invalidated.  Will raise a 
+`std::logic_error` if the match_results object was not initialized.
+
+[*Effects]: Returns the starting location of sub-expression /sub/, or -1 if /sub/ was 
+not matched.  Note that if this represents a partial match , then `position()` 
+will return the location of the partial match even though `(*this)[0].matched` is false.
+
+The overloads that accept a string refer to a named sub-expression /n/.
+In the event that there is no such named sub-expression then returns -1.  
+
+The template overloads of this function, allow the string and\/or character type
+to be different from the character type of the underlying sequence and\/or regular expression: 
+in this case the characters will be widened to the underlying character type of the original regular expression.
+A compiler error will occur if the argument passes a wider character type than the underlying sequence.
+These overloads allow a normal narrow character C string literal to be used as an argument, even when
+the underlying character type of the expression being matched may be something more exotic such as a 
+Unicode character type.
+
+
+[#boost_regex.match_results.str]
+
+   string_type str(int sub = 0)const;
+   string_type str(const char_type* sub)const;
+   template <class Traits, class A>
+   string_type str(const std::basic_string<char_type, Traits, A>& sub)const;
+   template <class charT>
+   string_type str(const charT* sub)const;
+   template <class charT, class Traits, class A>
+   string_type str(const std::basic_string<charT, Traits, A>& sub)const;
+
+[*Requires]: that the match_results object has been initialized as a result of a 
+successful call to [regex_search] or [regex_match] or was returned from a [regex_iterator], and 
+that the underlying iterators have not been subsequently invalidated.  Will raise a 
+`std::logic_error` if the match_results object was not initialized.
+
+[*Effects]: Returns sub-expression /sub/ as a string:  `string_type((*this)[sub])`.
+
+The overloads that accept a string, return the string that matched the named sub-expression /n/.
+In the event that there is no such named sub-expression then returns an empty string.  
+
+The template overloads of this function, allow the string and\/or character type
+to be different from the character type of the underlying sequence and\/or regular expression: 
+in this case the characters will be widened to the underlying character type of the original regular expression.
+A compiler error will occur if the argument passes a wider character type than the underlying sequence.
+These overloads allow a normal narrow character C string literal to be used as an argument, even when
+the underlying character type of the expression being matched may be something more exotic such as a 
+Unicode character type.
+
+
+[#boost_regex.match_results.subscript]
+
+	const_reference operator[](int n) const;
+	const_reference operator[](const char_type* n) const;
+	template <class Traits, class A>
+	const_reference operator[](const std::basic_string<char_type, Traits, A>& n) const;
+	template <class charT>
+	const_reference operator[](const charT* n) const;
+	template <class charT, class Traits, class A>
+	const_reference operator[](const std::basic_string<charT, Traits, A>& n) const;
+
+[*Requires]: that the match_results object has been initialized as a result of a 
+successful call to [regex_search] or [regex_match] or was returned from a [regex_iterator], and 
+that the underlying iterators have not been subsequently invalidated.  Will raise a 
+`std::logic_error` if the match_results object was not initialized.
+
+[*Effects]: Returns a reference to the [sub_match] object representing the character 
+sequence that matched marked sub-expression /n/. If `n == 0` then returns a 
+reference to a [sub_match] object representing the character sequence that 
+matched the whole regular expression.  If /n/ is out of range, or if /n/ is an 
+unmatched sub-expression, then returns a [sub_match] object whose matched 
+member is false.
+
+The overloads that accept a string, return a reference to the [sub_match] 
+object representing the character sequence that matched the named sub-expression /n/.
+In the event that there is no such named sub-expression then returns a [sub_match] object whose matched 
+member is false.  
+
+The template overloads of this function, allow the string and\/or character type
+to be different from the character type of the underlying sequence and\/or regular expression: 
+in this case the characters will be widened to the underlying character type of the original regular expression.
+A compiler error will occur if the argument passes a wider character type than the underlying sequence.
+These overloads allow a normal narrow character C string literal to be used as an argument, even when
+the underlying character type of the expression being matched may be something more exotic such as a 
+Unicode character type.
+
+
+[#boost_regex.match_results.prefix]
+
+   const_reference prefix()const;
+
+[*Requires]: that the match_results object has been initialized as a result of a 
+successful call to [regex_search] or [regex_match] or was returned from a [regex_iterator], and 
+that the underlying iterators have not been subsequently invalidated.  Will raise a 
+`std::logic_error` if the match_results object was not initialized.
+
+[*Effects]: Returns a reference to the [sub_match] object representing the 
+character sequence from the start of the string being matched or searched, to the 
+start of the match found.
+
+
+[#boost_regex.match_results.suffix]
+
+   const_reference suffix()const;
+
+[*Requires]: that the match_results object has been initialized as a result of a 
+successful call to [regex_search] or [regex_match] or was returned from a [regex_iterator], and 
+that the underlying iterators have not been subsequently invalidated.  Will raise a 
+`std::logic_error` if the match_results object was not initialized.
+
+[*Effects]: Returns a reference to the [sub_match] object representing the 
+character sequence from the end of the match found to the end of the 
+string being matched or searched.
+
+
+[#boost_regex.match_results.begin]
+
+   const_iterator begin()const;
+
+[*Effects]: Returns a starting iterator that enumerates over all the marked 
+sub-expression matches stored in *this.
+
+
+[#boost_regex.match_results.end]
+
+   const_iterator end()const;
+
+[*Effects]: Returns a terminating iterator that enumerates over all the 
+marked sub-expression matches stored in *this.
+
+[#boost_regex.match_results_format]
+[#boost_regex.match_results.format]
+
+   template <class OutputIterator, class Formatter>
+   OutputIterator format(OutputIterator out,
+                         Formatter fmt,
+                         match_flag_type flags = format_default);
+
+[*Requires]: The type `OutputIterator` conforms to the Output Iterator requirements 
+(C++ std 24.1.2).
+
+The type `Formatter` must be either a pointer to a null-terminated string
+of type `char_type[]`, or be a container of `char_type`'s (for example
+`std::basic_string<char_type>`) or be a unary, binary or ternary functor
+that computes the replacement string from a function call: either 
+`fmt(*this)` which must return a container of `char_type`'s to be used as the
+replacement text, or either `fmt(*this, out)` or `fmt(*this, out, flags)`, both of
+which write the replacement text to `*out`, and then return the new
+OutputIterator position.  Note that if the formatter is a functor, then it is
+['passed by value]: users that want to pass function objects with internal state
+might want to use [@../../../../doc/html/ref.html Boost.Ref] to wrap the object so 
+that it's passed by reference.
+
+[*Requires]: that the match_results object has been initialized as a result of a 
+successful call to [regex_search] or [regex_match] or was returned from a [regex_iterator], and 
+that the underlying iterators have not been subsequently invalidated.  Will raise a 
+`std::logic_error` if the match_results object was not initialized.
+
+[*Effects]: If `fmt` is either a null-terminated string, or a 
+container of `char_type`'s, then copies the character sequence `[fmt.begin(), fmt.end())` to 
+`OutputIterator` /out/. For each format specifier or escape sequence in 
+/fmt/, replace that sequence with either the character(s) it represents, 
+or the sequence of characters within `*this` to which it refers. 
+The bitmasks specified in flags determines what format specifiers or 
+escape sequences are recognized, by default this is the format used by 
+ECMA-262, ECMAScript Language Specification, Chapter 15 part 
+5.4.11 String.prototype.replace.
+
+If `fmt` is a function object, then depending on the number of arguments
+the function object accepts, it will either:
+
+* Call `fmt(*this)` and copy the string returned to `OutputIterator`
+/out/.
+* Call `fmt(*this, out)`.
+* Call `fmt(*this, out, flags)`.
+
+In all cases the new position of the `OutputIterator` is returned.
+
+See the [link boost_regex.format format syntax guide for more information].
+
+[*Returns]: out.
+
+
+[#boost_regex.match_results.format2]
+
+   template <class Formatter>
+   string_type format(Formatter fmt,
+                      match_flag_type flags = format_default);
+
+[*Requires]
+The type `Formatter` must be either a pointer to a null-terminated string
+of type `char_type[]`, or be a container of `char_type`'s (for example
+`std::basic_string<char_type>`) or be a unary, binary or ternary functor
+that computes the replacement string from a function call: either 
+`fmt(*this)` which must return a container of `char_type`'s to be used as the
+replacement text, or either `fmt(*this, out)` or `fmt(*this, out, flags)`, both of
+which write the replacement text to `*out`, and then return the new
+OutputIterator position.
+
+[*Requires]: that the match_results object has been initialized as a result of a 
+successful call to [regex_search] or [regex_match] or was returned from a [regex_iterator], and 
+that the underlying iterators have not been subsequently invalidated.  Will raise a 
+`std::logic_error` if the match_results object was not initialized.
+
+[*Effects]: 
+If `fmt` is either a null-terminated string, or a 
+container of `char_type`'s, then copies the string /fmt/: For each format specifier or 
+escape sequence in /fmt/, replace that sequence with either the 
+character(s) it represents, or the sequence of characters within `*this` to 
+which it refers. The bitmasks specified in flags determines what format 
+specifiers or escape sequences are recognized, by default this is the format 
+used by ECMA-262, ECMAScript Language Specification, Chapter 15 part 
+5.4.11 String.prototype.replace.
+
+If `fmt` is a function object, then depending on the number of arguments
+the function object accepts, it will either:
+
+* Call `fmt(*this)` and return the result.
+* Call `fmt(*this, unspecified-output-iterator)`, where `unspecified-output-iterator`
+is an unspecified OutputIterator type used to copy the output to the string result.
+* Call `fmt(*this, unspecified-output-iterator, flags)`, where `unspecified-output-iterator`
+is an unspecified OutputIterator type used to copy the output to the string result.
+
+See the [link boost_regex.format format syntax guide for more information].
+
+[#boost_regex.match_results.get_allocator]
+
+   allocator_type get_allocator()const;
+
+[*Effects]: Returns a copy of the Allocator that was passed to the object's constructor.
+
+[#boost_regex.match_results.swap]
+
+   void swap(match_results& that);
+
+[*Effects]: Swaps the contents of the two sequences.
+
+[*Postcondition]: *this contains the sequence of matched sub-expressions that were in that, that contains the sequence of matched sub-expressions that were in *this.
+
+[*Complexity]: constant time.
+
+[#boost_regex.match_results.capture_type]
+
+   typedef typename value_type::capture_sequence_type capture_sequence_type;
+
+Defines an implementation-specific type that satisfies the requirements of 
+a standard library Sequence (21.1.1 including the optional Table 68 operations), 
+whose value_type is a `sub_match<BidirectionalIterator>`. This type happens to be 
+`std::vector<sub_match<BidirectionalIterator> >`, but you shouldn't actually 
+rely on that.
+
+[#boost_regex.match_results.captures]
+
+   const capture_sequence_type& captures(std::size_t i)const; 
+
+[*Requires]: that the match_results object has been initialized as a result of a 
+successful call to [regex_search] or [regex_match] or was returned from a [regex_iterator], and 
+that the underlying iterators have not been subsequently invalidated.  Will raise a 
+`std::logic_error` if the match_results object was not initialized.
+
+[*Effects]: returns a sequence containing all the captures obtained for sub-expression i.
+
+[*Returns]: `(*this)[i].captures();`
+
+[*Preconditions]: the library must be built and used with BOOST_REGEX_MATCH_EXTRA defined, 
+and you must pass the flag match_extra to the regex matching functions 
+([regex_match], [regex_search], [regex_iterator] or [regex_token_iterator]) in 
+order for this member function to be defined and return useful information.
+
+[*Rationale]: Enabling this feature has several consequences:
+
+* sub_match occupies more memory resulting in complex expressions running out of memory or stack space more quickly during matching.
+* The matching algorithms are less efficient at handling some features (independent sub-expressions for example), even when match_extra is not used.
+* The matching algorithms are much less efficient (i.e. slower), when match_extra is used.  Mostly this is down to the extra memory allocations that have to take place.
+
+[#boost_regex.match_results.op_eq]
+
+   template <class BidirectionalIterator, class Allocator>
+   bool operator == (const match_results<BidirectionalIterator, Allocator>& m1,
+                     const match_results<BidirectionalIterator, Allocator>& m2);
+
+[*Effects]: Compares the two sequences for equality.
+
+[#boost_regex.match_results.op_ne]
+
+   template <class BidirectionalIterator, class Allocator>
+   bool operator != (const match_results<BidirectionalIterator, Allocator>& m1,
+                     const match_results<BidirectionalIterator, Allocator>& m2);
+
+[*Effects]: Compares the two sequences for inequality.
+
+[#boost_regex.match_results.op_stream]
+
+   template <class charT, class traits, class BidirectionalIterator, class Allocator>
+   basic_ostream<charT, traits>&
+      operator << (basic_ostream<charT, traits>& os,
+                  const match_results<BidirectionalIterator, Allocator>& m);
+
+[*Effects]: Writes the contents of /m/ to the stream /os/ as if by calling 
+`os << m.str()`; Returns /os/.
+
+[#boost_regex.match_results.op_swap]
+
+   template <class BidirectionalIterator, class Allocator>
+   void swap(match_results<BidirectionalIterator, Allocator>& m1,
+            match_results<BidirectionalIterator, Allocator>& m2);
+
+[*Effects]: Swaps the contents of the two sequences.
+
+[endsect]
+

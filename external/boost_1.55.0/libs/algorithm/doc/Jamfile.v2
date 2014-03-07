@@ -1,0 +1,46 @@
+# Boost.Algorithm
+#
+# Copyright (c) 2010-2012 Marshall Clow
+#
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+
+# Quickbook
+# -----------------------------------------------------------------------------
+
+import os ;
+
+using quickbook ;
+using doxygen ;
+using boostbook ;
+
+doxygen autodoc 
+    : 
+        [ glob ../../../boost/algorithm/*.hpp 
+               ../../../boost/algorithm/searching/*.hpp
+               ../../../boost/algorithm/cxx11/*.hpp
+               ../../../boost/algorithm/cxx14/*.hpp
+        ]
+    : 
+       <doxygen:param>"PREDEFINED=\"BOOST_ALGORITHM_DOXYGEN=1\""
+       <doxygen:param>WARNINGS=YES # Default NO, but useful to see warnings, especially in a logfile.
+    ; 
+
+
+xml algorithm : algorithm.qbk ;
+
+boostbook standalone
+  :
+    algorithm
+  :
+    <dependency>autodoc 
+    <xsl:param>boost.root=../../../..
+    <xsl:param>"boost.doxygen.reftitle=Boost.Algorithms C++ Reference"
+    <xsl:param>chapter.autolabel=0
+    <xsl:param>chunk.section.depth=8
+    <xsl:param>toc.section.depth=2
+    <xsl:param>toc.max.depth=2
+    <xsl:param>generate.section.toc.level=1
+  ;

@@ -1,0 +1,267 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/sk.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/sk.xml
+ */
+sk{
+    Countries{
+        419{"Latinská Amerika"}
+        AD{"Andorra"}
+        AE{"Spojené arabské emiráty"}
+        AF{"Afganistan"}
+        AG{"Antigua a Barbados"}
+        AI{"Anguilla"}
+        AL{"Albánsko"}
+        AM{"Arménsko"}
+        AN{"Holandské Antily"}
+        AO{"Angola"}
+        AQ{"Antarctica"}
+        AR{"Argentína"}
+        AS{"Americká Samoa"}
+        AT{"Rakúsko"}
+        AU{"Austrália"}
+        AW{"Aruba"}
+        AX{"Alandské ostrovy"}
+        AZ{"Azerbajdžan"}
+        BA{"Bosna a Hercegovina"}
+        BB{"Barbados"}
+        BD{"Bangladéš"}
+        BE{"Belgicko"}
+        BF{"Burkina Faso"}
+        BG{"Bulharsko"}
+        BH{"Bahrajn"}
+        BI{"Burundi"}
+        BJ{"Benin"}
+        BL{"Svätý Bartolomej"}
+        BM{"Bermudy"}
+        BN{"Brunej"}
+        BO{"Bolívia"}
+        BR{"Brazília"}
+        BS{"Bahamy"}
+        BT{"Bután"}
+        BV{"Bouvetov ostrov"}
+        BW{"Botswana"}
+        BY{"Bielorusko"}
+        BZ{"Belize"}
+        CA{"Kanada"}
+        CC{"Kokosové ostrovy"}
+        CD{"Konžská demokratická republika"}
+        CF{"Stredoafrická republika"}
+        CG{"Kongo"}
+        CH{"Švajčiarsko"}
+        CI{"Pobrežie Slonoviny"}
+        CK{"Cookove ostrovy"}
+        CL{"Čile"}
+        CM{"Kamerun"}
+        CN{"Čína"}
+        CO{"Kolumbia"}
+        CR{"Kostarika"}
+        CS{"Srbsko a Čierna Hora"}
+        CU{"Kuba"}
+        CV{"Kapverdy"}
+        CX{"Vianočný ostrov"}
+        CY{"Cyprus"}
+        CZ{"Česká republika"}
+        DE{"Nemecko"}
+        DJ{"Džibuti"}
+        DK{"Dánsko"}
+        DM{"Dominika"}
+        DO{"Dominikánska republika"}
+        DZ{"Alžírsko"}
+        EC{"Ekvádor"}
+        EE{"Estónsko"}
+        EG{"Egypt"}
+        EH{"Západná Sahara"}
+        ER{"Eritrea"}
+        ES{"Španielsko"}
+        ET{"Etiópia"}
+        EU{"Európska únia"}
+        FI{"Fínsko"}
+        FJ{"Fidži"}
+        FK{"Falklandské ostrovy"}
+        FM{"Mikronézia"}
+        FO{"Faerské ostrovy"}
+        FR{"Francúzsko"}
+        GA{"Gabon"}
+        GB{"Spojené kráľovstvo"}
+        GD{"Grenada"}
+        GE{"Gruzínsko"}
+        GF{"Francúzska Guayana"}
+        GG{"Guernsey"}
+        GH{"Ghana"}
+        GI{"Gibraltár"}
+        GL{"Grónsko"}
+        GM{"Gambia"}
+        GN{"Guinea"}
+        GP{"Guadeloupe"}
+        GQ{"Rovníková Guinea"}
+        GR{"Grécko"}
+        GS{"Južná Georgia a Južné Sandwichove ostrovy"}
+        GT{"Guatemala"}
+        GU{"Guam"}
+        GW{"Guinea-Bissau"}
+        GY{"Guayana"}
+        HK{"Hong Kong S.A.R. Číny"}
+        HM{"Heardove ostrovy a McDonaldove ostrovy"}
+        HN{"Honduras"}
+        HR{"Chorvátsko"}
+        HT{"Haiti"}
+        HU{"Maďarsko"}
+        ID{"Indonézia"}
+        IE{"Írsko"}
+        IL{"Izrael"}
+        IM{"Ostrov Man"}
+        IN{"India"}
+        IO{"Britské územie v Indickom oceáne"}
+        IQ{"Irak"}
+        IR{"Irán"}
+        IS{"Island"}
+        IT{"Taliansko"}
+        JE{"Jersey"}
+        JM{"Jamajka"}
+        JO{"Jordánsko"}
+        JP{"Japonsko"}
+        KE{"Keňa"}
+        KG{"Kirgizsko"}
+        KH{"Kambodža"}
+        KI{"Kiribati"}
+        KM{"Komory"}
+        KN{"Saint Kitts a Nevis"}
+        KP{"Kórejská ľudovodemokratická republika"}
+        KR{"Kórejská republika"}
+        KW{"Kuvajt"}
+        KY{"Kajmanské ostrovy"}
+        KZ{"Kazachstan"}
+        LA{"Laoská ľudovodemokratická republika"}
+        LB{"Libanon"}
+        LC{"Svätá Lucia"}
+        LI{"Lichtenštajnsko"}
+        LK{"Srí Lanka"}
+        LR{"Libéria"}
+        LS{"Lesotho"}
+        LT{"Litva"}
+        LU{"Luxembursko"}
+        LV{"Lotyšsko"}
+        LY{"Lýbijská arabská džamahírija"}
+        MA{"Maroko"}
+        MC{"Monako"}
+        MD{"Moldavsko"}
+        ME{"Čierna Hora"}
+        MF{"Svätý Martin"}
+        MG{"Madagaskar"}
+        MH{"Marshallove ostrovy"}
+        MK{"Macedónsko"}
+        ML{"Mali"}
+        MM{"Mjanmarsko"}
+        MN{"Mongolsko"}
+        MO{"Makao S.A.R. Číny"}
+        MP{"Severné Mariány"}
+        MQ{"Martinik"}
+        MR{"Mauritánia"}
+        MS{"Montserrat"}
+        MT{"Malta"}
+        MU{"Maurícius"}
+        MV{"Maldivy"}
+        MW{"Malawi"}
+        MX{"Mexiko"}
+        MY{"Malajzia"}
+        MZ{"Mozambik"}
+        NA{"Namíbia"}
+        NC{"Nová Kaledónia"}
+        NE{"Niger"}
+        NF{"Norfolkov ostrov"}
+        NG{"Nigéria"}
+        NI{"Nikaragua"}
+        NL{"Holandsko"}
+        NO{"Nórsko"}
+        NP{"Nepál"}
+        NR{"Nauru"}
+        NU{"Niue"}
+        NZ{"Nový Zéland"}
+        OM{"Omán"}
+        PA{"Panama"}
+        PE{"Peru"}
+        PF{"Francúzska Polynézia"}
+        PG{"Papua Nová Guinea"}
+        PH{"Filipíny"}
+        PK{"Pakistan"}
+        PL{"Poľsko"}
+        PM{"Saint Pierre a Miquelon"}
+        PN{"Pitcairnove ostrovy"}
+        PR{"Portoriko"}
+        PS{"Palestínske územie"}
+        PT{"Portugalsko"}
+        PW{"Palau"}
+        PY{"Paraguaj"}
+        QA{"Katar"}
+        QO{"Tichomorie - ostatné"}
+        RE{"Reunion"}
+        RO{"Rumunsko"}
+        RS{"Srbsko"}
+        RU{"Ruská federácia"}
+        RW{"Rwanda"}
+        SA{"Saudská Arábia"}
+        SB{"Šalamúnove ostrovy"}
+        SC{"Seychelské ostrovy"}
+        SD{"Sudán"}
+        SE{"Švédsko"}
+        SG{"Singapur"}
+        SH{"Svätá Helena"}
+        SI{"Slovinsko"}
+        SJ{"Špicbergy a Jan Mayen"}
+        SK{"Slovenská republika"}
+        SL{"Sierra Leone"}
+        SM{"San Maríno"}
+        SN{"Senegal"}
+        SO{"Somálsko"}
+        SR{"Surinam"}
+        ST{"Svätý Tomáš a Princove ostrovy"}
+        SV{"Salvador"}
+        SY{"Sýrska arabská republika"}
+        SZ{"Svazijsko"}
+        TC{"Turks a Caicos"}
+        TD{"Čad"}
+        TF{"Francúzske južné územia"}
+        TG{"Togo"}
+        TH{"Thajsko"}
+        TJ{"Tadžikistan"}
+        TK{"Tokelau"}
+        TL{"Východný Timor"}
+        TM{"Turkménsko"}
+        TN{"Tunisko"}
+        TO{"Tonga"}
+        TR{"Turecko"}
+        TT{"Trinidad a Tobago"}
+        TV{"Tuvalu"}
+        TW{"Tajwan"}
+        TZ{"Tanzánia"}
+        UA{"Ukrajina"}
+        UG{"Uganda"}
+        UM{"Menšie odľahlé ostrovy USA"}
+        US{"Spojené štáty"}
+        UY{"Uruguaj"}
+        UZ{"Uzbekistan"}
+        VA{"Vatikán"}
+        VC{"Svätý Vincent a Grenadíny"}
+        VE{"Venezuela"}
+        VG{"Britské panenské ostrovy"}
+        VI{"Panenské ostrovy - USA"}
+        VN{"Vietnam"}
+        VU{"Vanuatu"}
+        WF{"Wallis a Futuna"}
+        WS{"Samoa"}
+        YE{"Jemen"}
+        YT{"Mayotte"}
+        ZA{"Južná Afrika"}
+        ZM{"Zambia"}
+        ZW{"Zimbabwe"}
+        ZZ{"Neznámy alebo neplatný región"}
+    }
+    Version{"2.0.50.88"}
+}

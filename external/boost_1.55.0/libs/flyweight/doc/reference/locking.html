@@ -1,0 +1,287 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Flyweight Documentation - Locking policies reference</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="factories.html">
+<link rel="up" href="index.html">
+<link rel="next" href="tracking.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="Boost logo" align=
+"middle" width="277" height="86">Boost.Flyweight
+Locking policies reference</h1>
+
+<div class="prev_link"><a href="holders.html"><img src="../prev.gif" alt="holders" border="0"><br>
+Holders
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div>
+<div class="next_link"><a href="tracking.html"><img src="../next.gif" alt="tracking policies" border="0"><br>
+Tracking policies
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#preliminary">Preliminary concepts</a></li>
+  <li><a href="#locking">Locking policies</a></li>
+  <li><a href="#locking_tag_synopsis">Header
+    <code>"boost/flyweight/locking_tag.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#is_locking">Class template <code>is_locking</code></a></li>
+      <li><a href="#locking_construct">Class template <code>locking</code></a></li>
+    </ul>    
+  </li>
+  <li><a href="#simple_locking_fwd_synopsis">Header
+    <code>"boost/flyweight/simple_locking_fwd.hpp"</code> synopsis</a>
+  </li>
+  <li><a href="#simple_locking_synopsis">Header
+    <code>"boost/flyweight/simple_locking.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#simple_locking">Class <code>simple_locking</code></a></li>
+    </ul>    
+  </li>
+  <li><a href="#no_locking_fwd_synopsis">Header
+    <code>"boost/flyweight/no_locking_fwd.hpp"</code> synopsis</a>
+  </li>
+  <li><a href="#no_locking_synopsis">Header
+    <code>"boost/flyweight/no_locking.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#no_locking">Class <code>no_locking</code></a></li>
+    </ul>    
+  </li>
+</ul>
+
+<h2><a name="preliminary">Preliminary concepts</a></h2>
+
+<p>
+A <i>mutex</i> is a type whose objects can be in either of two states, called
+locked and unlocked, with the property that when a thread A has locked a
+mutex <code>m</code> and a different thread B tries to lock <code>m</code>,
+B is blocked until A unlocks <code>m</code>. Additionally, a mutex is said to 
+support <i>recursive locking</i> if a thread can succesfully invoke the locking
+operation for a mutex already locked by this same thread; in this case, it is
+required that the thread execute as many unlock operations as lock
+operations it has performed for the mutex to become effectively unlocked.
+A <i>scoped lock</i> is a
+type associated to some mutex type whose objects do the locking/unlocking
+of a mutex on construction/destruction time.
+</p>
+
+<p>
+In the following table, <code>Mutex</code> is a mutex type, <code>m</code>
+is an object of type <code>Mutex</code>, <code>Lock</code> is a scoped lock
+associated to <code>Mutex</code> and <code>lk</code> is a value of
+<code>Lock</code>.
+
+<p align="center">
+<table cellspacing="0">
+  <caption><b>Mutex and Scoped Lock requirements.</b></caption>
+<tr>
+  <th align="center">expression</th>
+  <th align="center">return type</th>
+  <th align="center">assertion/note<br>pre/post-condition</th>
+</tr>
+<tr>
+  <td><code>Mutex m;</code></td>
+  <td>&nbsp;</td>
+  <td>Post: <code>m</code> is unlocked.
+  </td>
+</tr>
+<tr class="odd_tr">
+  <td><code>(&amp;m)->~Mutex();</code></td>
+  <td><code>void</code></td>
+  <td>Pre: <code>m</code> is unlocked.</td>
+</tr>
+<tr>
+  <td><code>Lock lk(m);</code></td>
+  <td>&nbsp;</td>
+  <td>Associates <code>m</code> to <code>lk</code> and locks <code>m</code>.</td>
+</tr>
+<tr class="odd_tr">
+  <td><code>(&amp;lk)->~Lock();</code></td>
+  <td><code>void</code></td>
+  <td>Unlocks the mutex associated to <code>lk</code>.</td>
+</tr>
+</table>
+</p>
+
+<p>
+These concepts are very similar, but not entirely equivalent, to
+the homonym ones described in the
+<a href="../../../../doc/html/thread/synchronization.html#thread.synchronization.mutex_concepts">Boost Thread
+Library</a>.
+</p>
+
+<h2><a name="locking">Locking policies</a></h2>
+
+<p>
+<i>Locking policies</i> describe a mutex type and an associated
+scoped lock type.
+<a href="flyweight.html#flyweight"><code>flyweight</code></a> uses a given locking
+policy to synchronize the access to its internal
+<a href="factories.html#factory">factory</a>.
+</p>
+
+<p>
+A type <code>Locking</code> is a locking policy if:
+<ul>
+  <li>One of the following conditions is satisfied:
+    <ol type="a">
+      <li><a href="#is_locking"><code>is_locking&lt;Locking&gt;::type</code></a> is
+      <a href="../../../mpl/doc/refmanual/bool.html"><code>boost::mpl::true_</code></a>,</li>
+      <li><code>Locking</code> is of the form
+      <a href="#locking_construct"><code>locking&lt;Locking'&gt;</code></a>.</li>
+    </ol>
+  </li>
+  <li>The type <code>Locking::mutex_type</code> (or 
+    <code>Locking'::mutex_type</code> if (b) applies) is a
+    model of <a href="#preliminary"><code>Mutex</code></a>
+    and supports recursive locking.
+  </li>
+  <li>The type <code>Locking::lock_type</code> (or 
+    <code>Locking'::lock_type</code> if (b) applies) is a
+    <a href="#preliminary"><code>Scoped Lock</code></a> of
+    the mutex referred to above.
+  </li>
+</ul>
+</p>
+
+<h2><a name="locking_tag_synopsis">Header
+<a href="../../../../boost/flyweight/locking_tag.hpp"><code>"boost/flyweight/locking_tag.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>struct</span> <span class=identifier>locking_marker</span><span class=special>;</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>is_locking</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>locking</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::flyweights</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<h3><a name="is_locking">Class template <code>is_locking</code></a></h3>
+
+<p>
+Unless specialized by the user, <code>is_locking&lt;T&gt;::type</code> is
+<a href="../../../mpl/doc/refmanual/bool.html"><code>boost::mpl::true_</code></a>
+if <code>T</code> is derived from <code>locking_marker</code>, and it is
+<a href="../../../mpl/doc/refmanual/bool.html"><code>boost::mpl::false_</code></a>
+otherwise.
+</p>
+
+<h3><a name="locking_construct">Class template <code>locking</code></a></h3>
+
+<p>
+<code>locking&lt;T&gt;</code> is a syntactic construct meant to indicate
+that <code>T</code> is a locking policy without resorting to the
+mechanisms provided by the <code>is_locking</code> class template.
+</p>
+
+<h2><a name="simple_locking_fwd_synopsis">Header
+<a href="../../../../boost/flyweight/simple_locking_fwd.hpp"><code>"boost/flyweight/simple_locking_fwd.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>struct</span> <span class=identifier>simple_locking</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::flyweights</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<p>
+<code>simple_locking_fwd.hpp</code> forward declares the class
+<a href="#simple_locking"><code>simple_locking</code></a>.
+</p>
+
+<h2><a name="simple_locking_synopsis">Header
+<a href="../../../../boost/flyweight/simple_locking.hpp"><code>"boost/flyweight/simple_locking.hpp"</code></a> synopsis</a></h2>
+
+<h3><a name="simple_locking">Class <code>simple_locking</code></a></h3>
+
+<p>
+<a href="#locking"><code>Locking Policy</code></a> that specifies a basic
+mutex type based on the simplest synchronization mechanisms provided by
+the environment; When no threading capabilities are available,
+<code>simple_locking</code> specifies a dummy type without actual
+synchronization capabilities.
+</p>
+
+<h2><a name="no_locking_fwd_synopsis">Header
+<a href="../../../../boost/flyweight/no_locking_fwd.hpp"><code>"boost/flyweight/no_locking_fwd.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>struct</span> <span class=identifier>no_locking</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::flyweights</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<p>
+<code>no_locking_fwd.hpp</code> forward declares the class
+<a href="#no_locking"><code>no_locking</code></a>.
+</p>
+
+<h2><a name="no_locking_synopsis">Header
+<a href="../../../../boost/flyweight/no_locking.hpp"><code>"boost/flyweight/no_locking.hpp"</code></a> synopsis</a></h2>
+
+<h3><a name="no_locking">Class <code>no_locking</code></a></h3>
+
+<p>
+Null <a href="#locking"><code>Locking Policy</code></a>: it specifies a dummy
+type that satisfies the formal requirements for the
+<a href="#preliminary"><code>Mutex</code></a> concept but does not perform
+thread blocking. <code>no_locking</code> should only be used in single-threaded
+environments.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="holders.html"><img src="../prev.gif" alt="holders" border="0"><br>
+Holders
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div>
+<div class="next_link"><a href="tracking.html"><img src="../next.gif" alt="tracking policies" border="0"><br>
+Tracking policies
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised March 9th 2010</p>
+
+<p>&copy; Copyright 2006-2010 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

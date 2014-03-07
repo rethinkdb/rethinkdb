@@ -1,0 +1,24 @@
+#==============================================================================
+#   Copyright (c) 2001-2009 Joel de Guzman
+#   Copyright (c) 2001-2009 Hartmut Kaiser
+#
+#   Distributed under the Boost Software License, Version 1.0. (See accompanying
+#   file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+
+project spirit_v2_repository/example_qi
+    : requirements
+        <toolset>gcc:<cxxflags>-ftemplate-depth-300
+        <toolset>darwin:<cxxflags>-ftemplate-depth-300
+    ;
+
+exe qi_confix : confix.cpp ;
+exe qi_distinct : distinct.cpp ;
+exe flush_multi_pass : flush_multi_pass.cpp ;
+exe calc1_sr : calc1_sr.cpp ;
+exe mini_xml2_sr : mini_xml2_sr.cpp ;
+exe advance : advance.cpp ;
+exe keywords : keywords.cpp ;
+exe derived : derived.cpp ;
+exe options : options.cpp ;
+exe seek : seek.cpp ;

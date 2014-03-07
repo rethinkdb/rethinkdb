@@ -1,0 +1,722 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/hu.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/hu.xml
+ */
+hu{
+    Keys{
+        calendar{"Naptár"}
+        collation{"Rendezés"}
+        currency{"Pénznem"}
+    }
+    Languages{
+        aa{"afar"}
+        ab{"abház"}
+        ace{"achinéz"}
+        ach{"akoli"}
+        ada{"adangme"}
+        ady{"adyghe"}
+        ae{"avesztán"}
+        af{"afrikaans"}
+        afa{"afroázsiai nyelv"}
+        afh{"afrihili"}
+        ain{"ainu"}
+        ak{"akan"}
+        akk{"akkád"}
+        ale{"aleut"}
+        alg{"algonkin nyelv"}
+        alt{"dél-altaji"}
+        am{"amhara"}
+        an{"aragonéz"}
+        ang{"óangol"}
+        anp{"angika"}
+        apa{"apacs nyelvek"}
+        ar{"arab"}
+        arc{"arámi"}
+        arn{"araucani"}
+        arp{"arapaho"}
+        art{"mesterséges nyelv"}
+        arw{"aravak"}
+        as{"asszámi"}
+        ast{"asztúr"}
+        ath{"atapaszkan nyelvek"}
+        aus{"ausztrál nyelvek"}
+        av{"avar"}
+        awa{"awádi"}
+        ay{"ajmara"}
+        az{"azerbajdzsáni"}
+        ba{"baskír"}
+        bad{"banda"}
+        bai{"bamileke nyelvek"}
+        bal{"balucsi"}
+        ban{"balinéz"}
+        bas{"basza"}
+        bat{"balti nyelv"}
+        be{"belorusz"}
+        bej{"bedzsa"}
+        bem{"bemba"}
+        ber{"berber"}
+        bg{"bolgár"}
+        bh{"bihari"}
+        bho{"bodzspuri"}
+        bi{"bislama"}
+        bik{"bikol"}
+        bin{"bini"}
+        bla{"siksika"}
+        bm{"bambara"}
+        bn{"bengáli"}
+        bnt{"bantu"}
+        bo{"tibeti"}
+        br{"breton"}
+        bra{"braj"}
+        bs{"bosnyák"}
+        btk{"batak"}
+        bua{"burját"}
+        bug{"buginéz"}
+        byn{"blin"}
+        ca{"katalán"}
+        cad{"caddo"}
+        cai{"egyéb közép-amerikai indián"}
+        car{"karib"}
+        cau{"egyéb kaukázusi"}
+        cch{"atszam"}
+        ce{"csecsen"}
+        ceb{"cebui"}
+        cel{"egyéb kelta"}
+        ch{"csamoró"}
+        chb{"csibcsa"}
+        chg{"csagatáj"}
+        chk{"csukéz"}
+        chm{"mari"}
+        chn{"csinuk zsargon"}
+        cho{"csoktó"}
+        chp{"csipevé"}
+        chr{"cseroki"}
+        chy{"csejen"}
+        cmc{"csam nyelv"}
+        co{"korzikai"}
+        cop{"kopt"}
+        cpe{"egyéb angol alapú kreol és pidgin"}
+        cpf{"egyéb francia alapú kreol és pidgin"}
+        cpp{"portugál alapú kreol vagy pidgin"}
+        cr{"krí"}
+        crh{"krími tatár"}
+        crp{"kreol és pidzsin"}
+        cs{"cseh"}
+        csb{"kasub"}
+        cu{"egyházi szláv"}
+        cus{"kusita nyelv"}
+        cv{"csuvas"}
+        cy{"walesi"}
+        da{"dán"}
+        dak{"dakota"}
+        dar{"dargva"}
+        day{"dajak"}
+        de{"német"}
+        de_AT{"osztrák német"}
+        de_CH{"svájci felnémet"}
+        del{"delavár"}
+        den{"szlevi"}
+        dgr{"dogrib"}
+        din{"dinka"}
+        doi{"dogri"}
+        dra{"egyéb dravida"}
+        dsb{"alsó szorb"}
+        dua{"duala"}
+        dum{"közép holland"}
+        dv{"divehi"}
+        dyu{"diula"}
+        dz{"butáni"}
+        ee{"eve"}
+        efi{"efik"}
+        egy{"óegyiptomi"}
+        eka{"ekadzsuk"}
+        el{"görög"}
+        elx{"elamit"}
+        en{"angol"}
+        en_AU{"ausztrál angol"}
+        en_CA{"kanadai angol"}
+        en_GB{"brit angol"}
+        en_US{"amerikai angol"}
+        enm{"közép angol"}
+        eo{"eszperantó"}
+        es{"spanyol"}
+        es_419{"latin-amerikai spanyol"}
+        es_ES{"ibériai spanyol"}
+        et{"észt"}
+        eu{"baszk"}
+        ewo{"evondo"}
+        fa{"perzsa"}
+        fan{"fang"}
+        fat{"fanti"}
+        ff{"fulani"}
+        fi{"finn"}
+        fil{"filippínó"}
+        fiu{"finnugor nyelv"}
+        fj{"fidzsi"}
+        fo{"feröeri"}
+        fon{"fon"}
+        fr{"francia"}
+        fr_CA{"kanadai francia"}
+        fr_CH{"svájci francia"}
+        frm{"közép francia"}
+        fro{"ófrancia"}
+        frr{"északi fríz"}
+        frs{"keleti fríz"}
+        fur{"friuli"}
+        fy{"fríz"}
+        ga{"ír"}
+        gaa{"ga"}
+        gay{"gajo"}
+        gba{"gbaja"}
+        gd{"skót gael"}
+        gem{"germán nyelv"}
+        gez{"geez"}
+        gil{"ikiribati"}
+        gl{"galíciai"}
+        gmh{"közép felső német"}
+        gn{"guarani"}
+        goh{"ófelső német"}
+        gon{"gondi"}
+        gor{"gorontalo"}
+        got{"gót"}
+        grb{"grebó"}
+        grc{"ógörög"}
+        gsw{"svájci német"}
+        gu{"gudzsarati"}
+        gv{"Man-szigeti"}
+        gwi{"gvicsin"}
+        ha{"hausza"}
+        hai{"haida"}
+        haw{"hawaii"}
+        he{"héber"}
+        hi{"hindi"}
+        hil{"hiligajnon"}
+        him{"himaháli"}
+        hit{"hittite"}
+        hmn{"hmong"}
+        ho{"hiri motu"}
+        hr{"horvát"}
+        hsb{"felső szorb"}
+        ht{"haiti"}
+        hu{"magyar"}
+        hup{"hupa"}
+        hy{"örmény"}
+        hz{"herero"}
+        ia{"interlingva"}
+        iba{"iban"}
+        id{"indonéz"}
+        ie{"interlingue"}
+        ig{"igbó"}
+        ii{"szecsuán ji"}
+        ijo{"idzsó"}
+        ik{"inupiak"}
+        ilo{"ilokó"}
+        inc{"egyéb indiai"}
+        ine{"indoeurópai nyelv"}
+        inh{"ingus"}
+        io{"idó"}
+        ira{"iráni"}
+        iro{"irokéz nyelvek"}
+        is{"izlandi"}
+        it{"olasz"}
+        iu{"inuktitut"}
+        ja{"japán"}
+        jbo{"lojban"}
+        jpr{"zsidó-perzsa"}
+        jrb{"zsidó-arab"}
+        jv{"jávai"}
+        ka{"grúz"}
+        kaa{"kara-kalpak"}
+        kab{"kabije"}
+        kac{"kacsin"}
+        kaj{"jju"}
+        kam{"kamba"}
+        kar{"karen"}
+        kaw{"kawi"}
+        kbd{"kabardi"}
+        kcg{"tyap"}
+        kfo{"koro"}
+        kg{"kongo"}
+        kha{"kaszi"}
+        khi{"egyéb koiszan"}
+        kho{"kotanéz"}
+        ki{"kikuju"}
+        kj{"kuanyama"}
+        kk{"kazah"}
+        kl{"grönlandi"}
+        km{"kambodzsai"}
+        kmb{"kimbundu"}
+        kn{"kannada"}
+        ko{"koreai"}
+        kok{"konkani"}
+        kos{"kosrei"}
+        kpe{"kpelle"}
+        kr{"kanuri"}
+        krc{"karacsáj-balkár"}
+        krl{"karelai"}
+        kro{"kru"}
+        kru{"kuruh"}
+        ks{"kásmíri"}
+        ku{"kurd"}
+        kum{"kumük"}
+        kut{"kutenai"}
+        kv{"komi"}
+        kw{"korni"}
+        ky{"kirgiz"}
+        la{"latin"}
+        lad{"ladino"}
+        lah{"lahnda"}
+        lam{"lamba"}
+        lb{"luxemburgi"}
+        lez{"lezg"}
+        lg{"ganda"}
+        li{"limburgi"}
+        ln{"lingala"}
+        lo{"laoszi"}
+        lol{"mongó"}
+        loz{"lozi"}
+        lt{"litván"}
+        lu{"luba-katanga"}
+        lua{"luba-lulua"}
+        lui{"luiseno"}
+        lun{"lunda"}
+        luo{"luo"}
+        lus{"lushai"}
+        lv{"lett"}
+        mad{"madurai"}
+        mag{"magahi"}
+        mai{"maithili"}
+        mak{"makaszar"}
+        man{"mandingó"}
+        map{"ausztronéz"}
+        mas{"masai"}
+        mdf{"moksán"}
+        mdr{"mandar"}
+        men{"mende"}
+        mg{"málgas"}
+        mga{"közép ír"}
+        mh{"marshalli"}
+        mi{"maori"}
+        mic{"mikmak"}
+        min{"minangkabau"}
+        mis{"egyéb nyelvek"}
+        mk{"macedón"}
+        mkh{"egyéb mon-khmer"}
+        ml{"malajálam"}
+        mn{"mongol"}
+        mnc{"mandzsu"}
+        mni{"manipuri"}
+        mno{"manobó nyelvek"}
+        mo{"moldvai"}
+        moh{"mohawk"}
+        mos{"moszi"}
+        mr{"marathi"}
+        ms{"maláj"}
+        mt{"máltai"}
+        mul{"többszörös nyelvek"}
+        mun{"munda nyelvek"}
+        mus{"krík"}
+        mwl{"mirandéz"}
+        mwr{"marvari"}
+        my{"burmai"}
+        myn{"maja nyelvek"}
+        myv{"erzjány"}
+        na{"naurui"}
+        nah{"nahuati"}
+        nai{"észak-amerikai indián nyelv"}
+        nap{"nápolyi"}
+        nb{"norvég bokmal"}
+        nd{"északi ndebele"}
+        nds{"alsónémet"}
+        ne{"nepáli"}
+        new{"nevari"}
+        ng{"ndonga"}
+        nia{"nias"}
+        nic{"niger-kordofan nyelv"}
+        niu{"niui"}
+        nl{"holland"}
+        nl_BE{"flamand"}
+        nn{"norvég nynorsk"}
+        no{"norvég"}
+        nog{"nogaj"}
+        non{"óskandináv"}
+        nqo{"n'kó"}
+        nr{"déli ndebele"}
+        nso{"északi szotó"}
+        nub{"núbiai nyelv"}
+        nv{"navahó"}
+        nwc{"klasszikus newari"}
+        ny{"nyanja"}
+        nym{"nyamvézi"}
+        nyn{"nyankole"}
+        nyo{"nyoró"}
+        nzi{"nzima"}
+        oc{"okszitán"}
+        oj{"ojibva"}
+        om{"oromói"}
+        or{"orija"}
+        os{"oszét"}
+        osa{"osage"}
+        ota{"ottomán török"}
+        oto{"otomi nyelv"}
+        pa{"pandzsábi"}
+        paa{"pápuai nyelv"}
+        pag{"pangaszinan"}
+        pal{"pahlavi"}
+        pam{"pampangan"}
+        pap{"papiamentó"}
+        pau{"palaui"}
+        peo{"óperzsa"}
+        phi{"Fülöp-szigeteki nyelv"}
+        phn{"főniciai"}
+        pi{"pali"}
+        pl{"lengyel"}
+        pon{"pohnpei"}
+        pra{"prakrit nyelvek"}
+        pro{"óprovánszi"}
+        ps{"pastu"}
+        pt{"portugál"}
+        pt_BR{"brazíliai portugál"}
+        pt_PT{"ibériai portugál"}
+        qu{"kecsua"}
+        raj{"radzsasztáni"}
+        rap{"rapanui"}
+        rar{"rarotongai"}
+        rm{"réto-román"}
+        rn{"kirundi"}
+        ro{"román"}
+        roa{"román nyelv"}
+        rom{"roma"}
+        root{"ősi"}
+        ru{"orosz"}
+        rup{"aromán"}
+        rw{"kiruanda"}
+        sa{"szanszkrit"}
+        sad{"szandave"}
+        sah{"jakut"}
+        sai{"dél-amerikai indián nyelv"}
+        sal{"szelis nyelv"}
+        sam{"szamaritánus arámi"}
+        sas{"sasak"}
+        sat{"szantáli"}
+        sc{"szardíniai"}
+        scn{"szicíliai"}
+        sco{"skót"}
+        sd{"szindhi"}
+        se{"északi számi"}
+        sel{"szölkup"}
+        sem{"egyéb szemita"}
+        sg{"szangó"}
+        sga{"óír"}
+        sgn{"jelnyelv"}
+        sh{"szerbhorvát"}
+        shn{"san"}
+        si{"szingaléz"}
+        sid{"szidamó"}
+        sio{"sziú nyelvek"}
+        sit{"sinotibeti nyelv"}
+        sk{"szlovák"}
+        sl{"szlovén"}
+        sla{"szláv nyelv"}
+        sm{"szamoai"}
+        sma{"déli számi"}
+        smi{"lapp nyelv"}
+        smj{"lule számi"}
+        smn{"inar sami"}
+        sms{"koltta lapp"}
+        sn{"sona"}
+        snk{"szoninke"}
+        so{"szomáliai"}
+        sog{"sogdien"}
+        son{"szongai"}
+        sq{"albán"}
+        sr{"szerb"}
+        srn{"szranai tongó"}
+        srr{"szerer"}
+        ss{"sziszuati"}
+        ssa{"nílusi-szaharai nyelv"}
+        st{"szeszotó"}
+        su{"szundanéz"}
+        suk{"szukuma"}
+        sus{"szuszu"}
+        sux{"sumér"}
+        sv{"svéd"}
+        sw{"szuahéli"}
+        swb{"comorei"}
+        syc{"klasszikus szír"}
+        syr{"szíriai"}
+        ta{"tamil"}
+        tai{"thai nyelv"}
+        te{"telugu"}
+        tem{"temne"}
+        ter{"terenó"}
+        tet{"tetum"}
+        tg{"tadzsik"}
+        th{"thai"}
+        ti{"tigrinja"}
+        tig{"tigré"}
+        tiv{"tiv"}
+        tk{"türkmén"}
+        tkl{"tokelaui"}
+        tl{"tagalog"}
+        tlh{"klingon"}
+        tli{"tlingit"}
+        tmh{"tamasek"}
+        tn{"szecsuáni"}
+        to{"tonga"}
+        tog{"nyasa tonga"}
+        tpi{"tok pisin"}
+        tr{"török"}
+        ts{"conga"}
+        tsi{"csimsiáni"}
+        tt{"tatár"}
+        tum{"tumbuka"}
+        tup{"tupi nyelv"}
+        tut{"altáji nyelv"}
+        tvl{"tuvalu"}
+        tw{"twi"}
+        ty{"tahiti"}
+        tyv{"tuvai"}
+        udm{"udmurt"}
+        ug{"ujgur"}
+        uga{"ugariti"}
+        uk{"ukrán"}
+        umb{"umbundu"}
+        und{"ismeretlen vagy érvénytelen nyelv"}
+        ur{"urdu"}
+        uz{"üzbég"}
+        vai{"vai"}
+        ve{"venda"}
+        vi{"vietnami"}
+        vo{"volapük"}
+        vot{"votják"}
+        wa{"vallon"}
+        wak{"vakas nyelv"}
+        wal{"valamo"}
+        war{"varaó"}
+        was{"vasó"}
+        wen{"szorb nyelvek"}
+        wo{"volof"}
+        xal{"kalmük"}
+        xh{"hosza"}
+        yao{"jaó"}
+        yap{"japi"}
+        yi{"jiddis"}
+        yo{"joruba"}
+        ypk{"jupik nyelv"}
+        yue{"kantoni"}
+        za{"zsuang"}
+        zap{"zapoték"}
+        zbl{"Bliss jelképrendszer"}
+        zen{"zenaga"}
+        zh{"kínai"}
+        zh_Hans{"egyszerűsített kínai"}
+        zh_Hant{"hagyományos kínai"}
+        znd{"zande"}
+        zu{"zulu"}
+        zun{"zuni"}
+        zxx{"nincs nyelvészeti tartalom"}
+        zza{"zaza"}
+    }
+    Scripts{
+        Arab{"Arab"}
+        Armi{"Birodalmi arámi"}
+        Armn{"Örmény"}
+        Avst{"Avesztán"}
+        Bali{"Balinéz"}
+        Batk{"Batak"}
+        Beng{"Bengáli"}
+        Blis{"Bliss jelképrendszer"}
+        Bopo{"Bopomofo"}
+        Brah{"Brámi"}
+        Brai{"Vakírás"}
+        Bugi{"Buginéz"}
+        Buhd{"Buhid"}
+        Cakm{"Csakma"}
+        Cans{"Egyesített kanadai őslakos jelek"}
+        Cari{"Kari"}
+        Cham{"Csám"}
+        Cher{"Cseroki"}
+        Cirt{"Cirt"}
+        Copt{"Kopt"}
+        Cprt{"Ciprusi"}
+        Cyrl{"Cirill"}
+        Cyrs{"Óegyházi szláv cirill"}
+        Deva{"Devanagári"}
+        Dsrt{"Deseret"}
+        Egyd{"Egyiptomi demotikus"}
+        Egyh{"Egyiptomi hieratikus"}
+        Egyp{"Egyiptomi hieroglifák"}
+        Ethi{"Etióp"}
+        Geok{"Grúz kucsuri"}
+        Geor{"Grúz"}
+        Glag{"Glagolitikus"}
+        Goth{"Gót"}
+        Grek{"Görög"}
+        Gujr{"Gudzsaráti"}
+        Guru{"Gurmuki"}
+        Hang{"Hangul"}
+        Hani{"Han"}
+        Hano{"Hanunoo"}
+        Hans{"Egyszerűsített Han"}
+        Hant{"Hagyományos Han"}
+        Hebr{"Héber"}
+        Hira{"Hiragana"}
+        Hmng{"Pahawh hmong"}
+        Hrkt{"Katakana vagy hiragana"}
+        Hung{"Ómagyar"}
+        Inds{"Indus"}
+        Ital{"Régi olasz"}
+        Java{"Jávai"}
+        Jpan{"Japán"}
+        Kali{"Kajah li"}
+        Kana{"Katakana"}
+        Khar{"Kharoshthi"}
+        Khmr{"Khmer"}
+        Knda{"Kannada"}
+        Kore{"Koreai"}
+        Kthi{"Kaithi"}
+        Lana{"Lanna"}
+        Laoo{"Lao"}
+        Latf{"Fraktur latin"}
+        Latg{"Gael latin"}
+        Latn{"Latin"}
+        Lepc{"Lepcha"}
+        Limb{"Limbu"}
+        Lina{"Lineáris A"}
+        Linb{"Lineáris B"}
+        Lyci{"Líciai"}
+        Lydi{"Lídiai"}
+        Mand{"Mandai"}
+        Mani{"Manicheus"}
+        Maya{"Maja hieroglifák"}
+        Mero{"Meroitikus"}
+        Mlym{"Malajálam"}
+        Mong{"Mongol"}
+        Moon{"Moon"}
+        Mtei{"Meitei mayek"}
+        Mymr{"Burmai"}
+        Nkoo{"N'ko"}
+        Ogam{"Ogham"}
+        Olck{"Ol chiki"}
+        Orkh{"Orhon"}
+        Orya{"Oriya"}
+        Osma{"Oszmán"}
+        Perm{"Ópermikus"}
+        Phag{"Phags-pa"}
+        Phli{"Felriatos pahlavi"}
+        Phlp{"Psalter pahlavi"}
+        Phlv{"Könyv pahlavi"}
+        Phnx{"Főniciai"}
+        Plrd{"Pollard fonetikus"}
+        Prti{"Feliratos parthian"}
+        Rjng{"Redzsang"}
+        Roro{"Rongorongo"}
+        Runr{"Runikus"}
+        Samr{"Szamaritán"}
+        Sara{"Szarati"}
+        Saur{"Szaurastra"}
+        Sgnw{"Jelírás"}
+        Shaw{"Shaw ábécé"}
+        Sinh{"Szingaléz"}
+        Sund{"Szundanéz"}
+        Sylo{"Sylheti nagári"}
+        Syrc{"Szíriai"}
+        Syre{"Estrangelo szíriai"}
+        Syrj{"Nyugat-szíriai"}
+        Syrn{"Kelet-szíriai"}
+        Tagb{"Tagbanwa"}
+        Tale{"Tai Le"}
+        Talu{"Új tai lue"}
+        Taml{"Tamil"}
+        Tavt{"Tai viet"}
+        Telu{"Telugu"}
+        Teng{"Tengwar"}
+        Tfng{"Berber"}
+        Tglg{"Tagalog"}
+        Thaa{"Thaana"}
+        Thai{"Thai"}
+        Tibt{"Tibeti"}
+        Ugar{"Ugari"}
+        Vaii{"Vai"}
+        Visp{"Látható beszéd"}
+        Xpeo{"Óperzsa"}
+        Xsux{"Ékírásos suméro-akkád"}
+        Yiii{"Ji"}
+        Zinh{"Származtatott"}
+        Zmth{"Matematikai jelrendszer"}
+        Zsym{"Szimbólum"}
+        Zxxx{"Íratlan nyelvek kódja"}
+        Zyyy{"Meghatározatlan"}
+        Zzzz{"Ismeretlen vagy érvénytelen írásrendszer"}
+    }
+    Types{
+        calendar{
+            buddhist{"buddhista naptár"}
+            chinese{"kínai naptár"}
+            gregorian{"Gergely-naptár"}
+            hebrew{"héber naptár"}
+            indian{"Indiai nemzeti naptár"}
+            islamic{"iszlám naptár"}
+            islamic-civil{"iszlám civil naptár"}
+            japanese{"japán naptár"}
+            roc{"Kínai köztársasági naptár"}
+        }
+        collation{
+            big5han{"Hagyományos kínai sorrend - Big5"}
+            direct{"Közvetlen sorrend"}
+            gb2312han{"Egyszerűsített kínai sorrend - GB2312"}
+            phonebook{"Telefonkönyv sorrend"}
+            pinyin{"Pinyin sorrend"}
+            stroke{"Vonássorrend"}
+            traditional{"Hagyományos"}
+        }
+    }
+    Variants{
+        1606NICT{"Késői közép francia 1606-ig"}
+        1901{"Hagyományos német helyesírás"}
+        1994{"Szabványosított reziján helyesírás"}
+        1996{"1996-os német helyesírás"}
+        AREVELA{"Keleti örmény"}
+        AREVMDA{"Nyugati örmény"}
+        BAKU1926{"Egyesített türkic latin ábécé"}
+        BISKE{"San Giorgo/Bila tájszólás"}
+        BOONT{"Boontling"}
+        FONIPA{"IPA fonetika"}
+        FONUPA{"UPA fonetika"}
+        LIPAW{"Reziján lipovaz tájszólás"}
+        MONOTON{"Monoton"}
+        NEDIS{"Natisone dialektus"}
+        NJIVA{"Gniva/Njiva tájszólás"}
+        OSOJS{"Oseacco/Osojane tájszólás"}
+        PINYIN{"pinjin átírás"}
+        POLYTON{"Politonikus"}
+        POSIX{"Számítógép"}
+        REVISED{"Átdolgozott helyesírás"}
+        ROZAJ{"Reziján"}
+        SAAHO{"Saho"}
+        SCOTLAND{"Skót szabványos angol"}
+        SCOUSE{"Scouse"}
+        SOLBA{"Stolvizza/Solbica tájszólás"}
+        TARASK{"Taraskijevica helyesírás"}
+        VALENCIA{"Valencia"}
+        WADEGILE{"Wade-Giles átírás"}
+    }
+    Version{"2.0.50.94"}
+    codePatterns{
+        language{"Nyelv: {0}"}
+        script{"Írásrendszer: {0}"}
+        territory{"Régió: {0}"}
+    }
+    localeDisplayPattern{
+        pattern{"{0} ({1})"}
+        separator{", "}
+    }
+}

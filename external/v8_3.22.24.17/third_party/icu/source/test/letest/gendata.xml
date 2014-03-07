@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  Copyright (c) 1999-2008 International Business Machines
+  Corporation and others. All rights reserved.
+-->
+
+<layout-tests>
+   <test-case id="Ghita" script="deva">
+        <test-font name="raghu.ttf"/>
+        <test-text>श्रीमद् भगवद्गीता अध्याय अर्जुन विषाद योग धृतराष्ट्र उवाचृ धर्मक्षेत्रे कुरुक्षेत्रे समवेता युयुत्सवः मामकाः पाण्डवाश्चैव किमकुर्वत संजव</test-text>
+    </test-case>
+    
+    <test-case id="Arabic" script="arab">
+      <test-font name="CODE2000.TTF"/>
+      <test-text>أساسًا، تتعامل الحواسيب فقط مع الأرقام، وتقوم بتخزين الأحرف والمحارف الأخرى بعد أن تُعطي رقما معينا لكل واحد منها. وقبل اختراع "يونِكود"، كان هناك مئات الأنظمة للتشفير وتخصيص هذه الأرقام للمحارف، ولم يوجد نظام تشفير واحد يحتوي على جميع المحارف الضرورية</test-text>
+    </test-case>
+    
+    <test-case id="Unicode Arabic" script="arab">
+      <test-font name="LucidaSansRegular.ttf"/>
+      <test-text>أساسًا، تتعامل الحواسيب فقط مع الأرقام، وتقوم بتخزين الأحرف والمحارف الأخرى بعد أن تُعطي رقما معينا لكل واحد منها. وقبل اختراع "يونِكود"، كان هناك مئات الأنظمة للتشفير وتخصيص هذه الأرقام للمحارف، ولم يوجد نظام تشفير واحد يحتوي على جميع المحارف الضرورية</test-text>
+    </test-case>
+    
+    <test-case id="Thai" script="thai">
+      <test-font name="angsd___.ttf"/>
+      <test-text>บทที่๑พายุไซโคลนโดโรธีอาศัยอยู่ท่ามกลางทุ่งใหญ่ในแคนซัสกับลุงเฮนรีชาวไร่และป้าเอ็มภรรยาชาวไร่บ้านของพวกเขาหลังเล็กเพราะไม้สร้างบ้านต้องขนมาด้วยเกวียนเป็นระยะทางหลายไมล์</test-text>
+    </test-case>
+    
+    <test-case id="Arabic Simple" script="arab">
+      <test-text>أساسًا، تتعامل الحواسيب فقط مع الأرقام، وتقوم بتخزين الأحرف والمحارف الأخرى بعد أن تُعطي رقما معينا لكل واحد منها. وقبل اختراع "يونِكود"، كان هناك مئات الأنظمة للتشفير وتخصيص هذه الأرقام للمحارف، ولم يوجد نظام تشفير واحد يحتوي على جميع المحارف الضرورية</test-text>
+    </test-case>
+    
+    <test-case id="Matra Test" script="deva">
+      <test-font name="Devamt.ttf"/>
+      <test-text>ुं ं॑</test-text>
+    </test-case>
+    
+    <test-case id="Deva Stress Test" script="deva">
+      <test-font name="Devamt.ttf"/>
+      <test-text>कँ कं कः क॑ क॒ कँ॑ कं॒ कँंः क॒॑</test-text>
+    </test-case>
+    
+    <test-case id="Deva Test" script="deva">
+      <test-font name="Devamt.ttf"/>
+      <test-text>रू क़् क्ष क्कि क्रि ट्रि हिन्दी र्क्रिं क्षत्रज्ञत्रक्ष श्र थ्र श्र कके र्कें केूकूेकेृ र्कू क़ क क् क्ष क्ष् क्ष्क  ज़ ज ज् ज्ञ ज्ञ् ज्ञ्क र्क र्क्क ड्र क्क क़्क क़्क क़् क्ष्क क्ष् त्र्क द्द कि हि रू रु र्के र्कं क् कु के द्द्द क़्ष क्ष र्क्षे द्दत्र्क ज्ञ क्त्व ज्ञ्क र्कँ र्किँ र्केँ र्क्रिँ हिंदी ह्मिह्यिखि ङ्क ङ्म ङ्क्त ङ्ख ङ्ग ङ्घ ङ्क्ष ङ्क्ष्व ङ्क्ष्य र्क्त्वि र्र्र्र कै के कु कू कृ कॅ कॆ हु हू हॆ है हे</test-text>
+    </test-case>
+    
+    <test-case id="Japanese Han" script="hani" lang="JAN">
+      <test-font name="ARIALUNI.TTF"/>
+      <test-text>中华人民共和国 台湾 中華人民共和國 臺灣</test-text>
+    </test-case>
+    
+    <test-case id="Korean Han" script="hani" lang="KOR">
+      <test-font name="ARIALUNI.TTF"/>
+      <test-text>中华人民共和国 台湾 中華人民共和國 臺灣</test-text>
+    </test-case>
+     
+    <test-case id="Traditional Han" script="hani" lang="ZHT">
+      <test-font name="ARIALUNI.TTF"/>
+      <test-text>中华人民共和国 台湾 中華人民共和國 臺灣</test-text>
+    </test-case>
+    
+    <test-case id="Simplified Han" script="hani" lang="ZHS">
+      <test-font name="ARIALUNI.TTF"/>
+      <test-text>中华人民共和国 台湾 中華人民共和國 臺灣</test-text>
+    </test-case>
+    
+    <test-case id="Deva locl Hindi" script="deva" lang="HIN">
+      <test-font name="TestFont1.otf"/>
+      <test-text>शङ़ु</test-text>
+    </test-case>
+    
+    <test-case id="Deva locl Marathi" script="deva" lang="MAR">
+      <test-font name="TestFont1.otf"/>
+      <test-text>शङ़ु</test-text>
+    </test-case>
+  
+  <test-case id="Deva ZWJ" script="deva">
+    <test-font name="raghu.ttf"/>
+    <test-text>क्ष र्क क्‍ष र्‍क</test-text>
+  </test-case>
+
+  <test-case id="Hangul" script="hang">
+    <test-text>마만만</test-text>
+  </test-case>
+
+  <test-case id="Hebrew Mark Test" script="hebr">
+    <test-font name="SBL_Hbrw.ttf"/>
+    <test-text>מָשְׁכֵנִיאַחֲרֶיךָנָּרוּצָההֱבִיאַנִיהַמֶּלֶךְחֲדָרָיונָגִילָהוְנִשְׂמְחָהבָּךְנַזְכִּירָהדֹדֶיךָמִיַּיִןמֵישָׁרִיםאֲהֵבוּךָ</test-text>
+  </test-case>
+
+  <test-case id="Not Language Specific" script="latn">
+    <test-font name="fp9r8a.otf"/>
+    <test-text>Ţhiş iş a ţeşţ.</test-text>
+  </test-case>
+
+  <test-case id="Romanian Language Specific" script="latn" lang="ROM">
+    <test-font name="fp9r8a.otf"/>
+    <test-text>Ţhiş iş a ţeşţ.</test-text>
+  </test-case>
+
+  <test-case id="Nafees Nastaleeq Cursive Positioning Test" script="arab">
+    <test-font name="Nafees Nastaleeq v1.01.ttf"/>
+    <test-text>فتح بینچ خلیج شیخ پہنچ</test-text>
+  </test-case>
+
+  <test-case id="Malayalam Samvruthokaram Test" script="mlym">
+    <test-font name="lohit_ml.ttf"/>
+    <test-text>ണു്</test-text>
+  </test-case>
+
+  <test-case id="Broken Font Test" script="hani" lang="ZHT">
+    <test-font name="BMIN00M.TTF"/>
+    <test-text>中華人民共和國 臺灣</test-text>
+  </test-case>
+
+  <test-case id="Telugu Syllable Boundary Test" script="telu">
+    <test-font name="gautami.ttf"/>
+    <test-text>ప్రకాష్</test-text>
+  </test-case>
+
+  <test-case id="Angsana New Mark Test" script="thai">
+    <test-font name="ANGSA.TTF"/>
+    <test-text>บทที่๑พายุไซโคลนโดโรธีอาศัยอยู่ท่ามกลางทุ่งใหญ่ในแคนซัสกับลุงเฮนรีชาวไร่และป้าเอ็มภรรยาชาวไร่บ้านของพวกเขาหลังเล็กเพราะไม้สร้างบ้านต้องขนมาด้วยเกวียนเป็นระยะทางหลายไมล์</test-text>
+  </test-case>
+
+  <test-case id="Sinhala Al-Lakuna Test" script="sinh">
+    <test-font name="lklug.hj.ttf"/>
+    <test-text>ක්‍රෙ ක්‍යෙ ක්‍ෂෙ ක්‍ෂ්‍යෙ ක්ෂෙ කර්‍මෙ ස්ට්‍රේ ස‍්සෙ ස්ස</test-text>
+  </test-case>
+
+  <test-case id="Arabic Presentation Forms LRO Test" script="arab">
+    <test-font name="trado.ttf"/>
+    <test-text>‭ﻲﺑﺮﻌﻟﺎﺑ</test-text>
+  </test-case>
+
+  <test-case id="Arabic Presentation Forms No LRO Test" script="arab">
+    <test-font name="trado.ttf"/>
+    <test-text>ﻲﺑﺮﻌﻟﺎﺑ</test-text>
+  </test-case>
+
+  <test-case id="Canonical Char Indices Test" script="latn">
+    <test-font name="arial.ttf"/>
+    <test-text>ḤḤ</test-text>
+  </test-case>
+
+  <test-case id="REPH ZWNJ Test" script="deva">
+    <test-font name="raghu.ttf"/>
+    <test-text>र्य र्‌य</test-text>
+  </test-case>
+</layout-tests>

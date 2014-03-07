@@ -1,0 +1,6 @@
+\DeclareOption{awpaper}
+   {\setlength\paperheight {9.25in}%
+    \setlength\paperwidth  {7.375in}}
+\DeclareOption*{\PassOptonsToPackage{\CurrentOption}{newsiambook}}
+\ProcessOptions
+\ExecuteOptions{awpaper}

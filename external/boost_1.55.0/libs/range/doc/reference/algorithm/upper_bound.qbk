@@ -1,0 +1,90 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:upper_bound upper_bound]
+
+[heading Prototype]
+
+``
+template<
+    class ForwardRange, 
+    class Value
+    >
+typename range_iterator<ForwardRange>::type
+upper_bound(ForwardRange& rng, Value val);
+
+template<
+    range_return_value re,
+    class ForwardRange,
+    class Value
+    >
+typename range_return<ForwardRange, re>::type
+upper_bound(ForwardRange& rng, Value val);
+
+template<
+    class ForwardRange,
+    class Value,
+    class SortPredicate
+    >
+typename range_iterator<ForwardRange>::type
+upper_bound(ForwardRange& rng, Value val, SortPredicate pred);
+
+template<
+    range_return_value re,
+    class ForwardRange,
+    class Value,
+    class SortPredicate
+    >
+typename range_return<ForwardRange,re>::type
+upper_bound(ForwardRange& rng, Value val, SortPredicate pred);
+``
+
+[heading Description]
+
+The versions of `upper_bound` that return an iterator, returns the first iterator in the range `rng` such that:
+without predicate - `val < *i` is `true`,
+with predicate - `pred(val, *i)` is `true`.
+
+`end(rng)` is returned if no such iterator exists.
+
+The versions of `upper_bound` that return a `range_return`, defines `found` in the same manner as the returned iterator described above.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/upper_bound.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate versions:]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `Value` is a model of the `LessThanComparableConcept`.
+* The ordering of objects of type `Value` is a [*/strict weak ordering/], as defined in the `LessThanComparableConcept` requirements.
+* `ForwardRange`'s value type is the same type as `Value`.
+
+[*For the predicate versions:]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `BinaryPredicate` is a model of the `StrictWeakOrderingConcept`.
+* `ForwardRange`'s value type is the same type as `Value`.
+* `ForwardRange`'s value type is convertible to both of `BinaryPredicate`'s argument types.
+
+[heading Precondition:]
+
+[*For the non-predicate versions:]
+
+`rng` is sorted in ascending order according to `operator<`.
+
+[*For the predicate versions:]
+
+`rng` is sorted in ascending order according to `pred`.
+
+[heading Complexity]
+
+For ranges that model the __random_access_range__ Concept the complexity is `O(log N)`, where `N` is `distance(rng)`. For all other range types the complexity is `O(N)`.
+
+[endsect]
+
+

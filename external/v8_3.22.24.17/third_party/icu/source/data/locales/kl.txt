@@ -1,0 +1,90 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/kl.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/kl.xml
+ */
+kl{
+    ExemplarCharacters{
+        "[a á â ã b c d e é ê f g h i í î ĩ j k l m n o ô p q ĸ r s t u ú û ũ v w x y"
+        " z æ ø å]"
+    }
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤#,##0.00;¤-#,##0.00"}
+            }
+            symbols{
+                decimal{","}
+                group{"."}
+            }
+        }
+    }
+    Version{"2.0.47.67"}
+    calendar{
+        gregorian{
+            dayNames{
+                format{
+                    abbreviated{
+                        "sab",
+                        "ata",
+                        "mar",
+                        "pin",
+                        "sis",
+                        "tal",
+                        "arf",
+                    }
+                    wide{
+                        "sabaat",
+                        "ataasinngorneq",
+                        "marlunngorneq",
+                        "pingasunngorneq",
+                        "sisamanngorneq",
+                        "tallimanngorneq",
+                        "arfininngorneq",
+                    }
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "jan",
+                        "feb",
+                        "mar",
+                        "apr",
+                        "maj",
+                        "jun",
+                        "jul",
+                        "aug",
+                        "sep",
+                        "okt",
+                        "nov",
+                        "dec",
+                    }
+                    wide{
+                        "januari",
+                        "februari",
+                        "martsi",
+                        "aprili",
+                        "maji",
+                        "juni",
+                        "juli",
+                        "augustusi",
+                        "septemberi",
+                        "oktoberi",
+                        "novemberi",
+                        "decemberi",
+                    }
+                }
+            }
+        }
+    }
+}

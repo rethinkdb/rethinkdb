@@ -1,0 +1,196 @@
+# copyright John Maddock 2003
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or copy at 
+# http://www.boost.org/LICENSE_1_0.txt.
+
+project
+    : requirements 
+      <threading>multi 
+      <link>shared:<define>BOOST_REGEX_DYN_LINK=1 
+      <toolset>msvc-7.1:<define>TEST_MFC=1 
+      <toolset>msvc-7.0:<define>TEST_MFC=1
+      <toolset>msvc:<asynch-exceptions>on
+      # There are unidentified linker problems on these platforms:
+      <toolset>mipspro-7.4:<link>static
+      <toolset>sun-5.9:<link>static
+      <warnings>all
+      <toolset>gcc:<cxxflags>-Wextra
+      <toolset>gcc:<cxxflags>-Wshadow
+      <define>U_USING_ICU_NAMESPACE=0
+      #<toolset>gcc-mw:<link>static
+      #<toolset>gcc-mingw:<link>static
+      <toolset>gcc-cygwin:<link>static
+    ;
+
+#
+# rule for simple regex test programs:
+#
+rule regex-test ( name : sources + : requirements * : input-files * )
+{
+    return [ run $(sources) ../build//boost_regex
+               :
+               : $(input-files)
+               : $(requirements)
+               : $(name) ] ;
+}
+
+R_SOURCE = 
+basic_tests.cpp
+main.cpp
+test_alt.cpp
+test_anchors.cpp
+test_asserts.cpp
+test_backrefs.cpp
+test_deprecated.cpp
+test_emacs.cpp
+test_escapes.cpp
+test_grep.cpp
+test_locale.cpp
+test_mfc.cpp
+test_non_greedy_repeats.cpp
+test_perl_ex.cpp
+test_replace.cpp
+test_sets.cpp
+test_simple_repeats.cpp
+test_tricky_cases.cpp
+test_icu.cpp
+test_unicode.cpp
+test_overloads.cpp
+test_operators.cpp
+;
+
+lib boost_regex_recursive :    
+   ../src/c_regex_traits.cpp
+   ../src/cpp_regex_traits.cpp
+   ../src/cregex.cpp
+   ../src/fileiter.cpp
+   ../src/icu.cpp
+   ../src/instances.cpp
+   ../src/posix_api.cpp
+   ../src/regex.cpp
+   ../src/regex_debug.cpp
+   ../src/regex_raw_buffer.cpp
+   ../src/regex_traits_defaults.cpp
+   ../src/static_mutex.cpp
+   ../src/w32_regex_traits.cpp
+   ../src/wc_regex_traits.cpp
+   ../src/wide_posix_api.cpp
+   ../src/winstances.cpp 
+   ../src/usinstances.cpp 
+   ../build//icu_options
+    : 
+        <define>BOOST_REGEX_RECURSIVE=1
+	     <link>shared:<define>BOOST_REGEX_DYN_LINK=1
+    : 
+    ;
+
+local regress-sources = regress/$(R_SOURCE) ;
+
+test-suite regex
+      : 
+      [ run regress/$(R_SOURCE) ../build//boost_regex ../build//icu_options
+        : # command line
+        : # input files
+        : # requirements
+        : regex_regress ]
+
+      [ run regress/$(R_SOURCE) ../build//boost_regex
+                                ../../thread/build//boost_thread ../build//icu_options
+        : # command line
+        : # input files
+        : # requirements
+        <define>TEST_THREADS
+        : regex_regress_threaded ]
+
+      [ regex-test posix_api_check : c_compiler_checks/posix_api_check.c ]
+
+      [ compile c_compiler_checks/wide_posix_api_check.c 
+        : : wide_posix_api_check_c ]
+
+      [ regex-test posix_api_check_cpp : c_compiler_checks/posix_api_check.cpp ]
+
+      [ regex-test wide_posix_api_check_cpp 
+          : c_compiler_checks/wide_posix_api_check.cpp ]
+
+      [ run pathology/bad_expression_test.cpp
+            ../build//boost_regex
+      ]
+
+      [ run pathology/recursion_test.cpp
+            ../build//boost_regex
+      ]
+      
+      [ run named_subexpressions/named_subexpressions_test.cpp
+            ../build//boost_regex
+      ]
+      
+      [ run unicode/unicode_iterator_test.cpp ../build//boost_regex : : : release <define>TEST_UTF8 : unicode_iterator_test_utf8 ]
+      [ run unicode/unicode_iterator_test.cpp ../build//boost_regex : : : release <define>TEST_UTF16 : unicode_iterator_test_utf16 ]
+      [ run static_mutex/static_mutex_test.cpp
+            ../../thread/build//boost_thread ../build//boost_regex
+      ]
+      [ run object_cache/object_cache_test.cpp ../build//boost_regex
+      ]
+      
+      [ run config_info/regex_config_info.cpp 
+         ../build//boost_regex/<link>static 
+         : # command line
+         : # input files
+         : <test-info>always_show_run_output
+      ]
+      [ run config_info/regex_config_info.cpp ../build//boost_regex 
+        : # command line
+        : # input files
+        : <test-info>always_show_run_output
+        : regex_dll_config_info
+      ]    
+
+      [ run collate_info/collate_info.cpp ../build//boost_regex
+      : : : <test-info>always_show_run_output : test_collate_info ]
+
+
+      [ compile concepts/concept_check.cpp ../build//boost_regex
+      ]
+      [ compile concepts/icu_concept_check.cpp ../build//boost_regex
+      ]
+      
+     [ run
+    # sources
+    captures/captures_test.cpp
+    captures//boost_regex_extra
+ :  # additional args
+ :  # test-files
+ :  # requirements
+    <threading>multi
+    <define>BOOST_REGEX_MATCH_EXTRA=1
+    <define>BOOST_REGEX_NO_LIB=1
+ :  # test name
+    captures_test
+ ]
+
+[ run regress/$(R_SOURCE) .//boost_regex_recursive
+                          ../build//icu_options
+  : # command line
+  : # input files
+  : # requirements
+    <define>BOOST_REGEX_RECURSIVE=1
+  : regex_regress_recursive ]
+
+[ run regress/$(R_SOURCE) ./noeh_test//boost_regex_noeh
+                          ../build//icu_options
+  : # command line
+  : # input files
+  : # requirements
+    <define>BOOST_NO_EXCEPTIONS=1
+    <exception-handling>off
+    <link>static
+    <runtime-link>shared
+  : regex_regress_noeh ]
+
+;
+
+compile test_consolidated.cpp ;
+
+build-project ../example ;
+
+

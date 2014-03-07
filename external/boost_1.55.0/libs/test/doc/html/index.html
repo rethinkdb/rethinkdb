@@ -1,0 +1,162 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost Test Library</title>
+<link rel="stylesheet" href="../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="index.html" title="Boost Test Library">
+<link rel="next" href="intro.html" title="Introduction">
+<script language="JavaScript1.2" src="../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"></td>
+<td><div class="spirit-nav"><a href="intro.html"><img src="../../../../doc/html/images/next.png" alt="Next"></a></div></td>
+</tr></table>
+<hr>
+<div class="chapter" lang="en">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="btl"></a>Boost Test Library</h2></div>
+<div><div class="author">
+<h3 class="author">
+<span class="firstname">Gennadiy</span> <span class="surname">Rozental</span>
+</h3>
+<code class="email">&lt;<a class="email" href="mailto:boost-test%20=at=%20emailaccount%20=dot=%20com">boost-test =at= emailaccount =dot= com</a>&gt;</code>
+</div></div>
+<div><p class="copyright">Copyright © 2001-2007 Gennadiy Rozental</p></div>
+<div><div class="legalnotice">
+<a name="id586245"></a><p>
+    Use, modification and distribution is subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at
+    <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a> )
+   </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><a href="intro.html">Introduction</a></dt>
+<dl>
+<dt><a href="faq.html">FAQ</a></dt>
+<dt><a href="open-issues.html">Open issues</a></dt>
+<dt><a href="aknowledgements.html">Acknowledgements</a></dt>
+</dl>
+<dt>I. <a href="execution-monitor.html">The Execution Monitor</a>
+</dt>
+<dl>
+<dt><a href="execution-monitor/compilation.html">Compilation</a></dt>
+<dt><a href="execution-monitor/user-guide.html">User's guide</a></dt>
+<dt><a href="execution-monitor/reference.html">Reference</a></dt>
+</dl>
+<dt>II. <a href="prg-exec-monitor.html">The Program Execution Monitor</a>
+</dt>
+<dl>
+<dt><a href="prg-exec-monitor/impl.html">Implementation</a></dt>
+<dt><a href="prg-exec-monitor/compilation.html">Compilation</a></dt>
+</dl>
+<dt>III. <a href="minimal.html">Minimal testing facility</a>
+</dt>
+<dt>IV. <a href="utf.html">The Unit Test Framework</a>
+</dt>
+<dl>
+<dt><a href="utf/intro.html">Introduction</a></dt>
+<dt><a href="utf/tutorials.html">Tutorials</a></dt>
+<dl>
+<dt><a href="tutorials/intro-in-testing.html">Introduction into testing</a></dt>
+<dt><a href="tutorials/hello-the-testing-world.html">Hello the testing world</a></dt>
+<dt><a href="tutorials/new-year-resolution.html">Boost.Test driven development</a></dt>
+</dl>
+<dt><a href="utf/compilation.html">Compilation</a></dt>
+<dl>
+<dt><a href="utf/compilation/standalone.html">Standalone library compilation</a></dt>
+<dt><a href="utf/compilation/auto-linking.html">Auto-linking support</a></dt>
+<dt><a href="utf/compilation/direct-include.html">Direct include</a></dt>
+</dl>
+<dt><a href="utf/user-guide.html">User's guide</a></dt>
+<dl>
+<dt><a href="utf/user-guide/usage-variants.html">Usage variants</a></dt>
+<dl>
+<dt><a href="utf/user-guide/usage-variants/static-lib-variant.html">Static library</a></dt>
+<dt><a href="utf/user-guide/usage-variants/dynamic-lib-variant.html">Dynamic library</a></dt>
+<dt><a href="utf/user-guide/usage-variants/single-header-variant.html">Single header</a></dt>
+<dt><a href="utf/user-guide/usage-variants/extern-test-runner-variant.html">External test runner</a></dt>
+</dl>
+<dt><a href="utf/user-guide/test-runners.html">Supplied test runners</a></dt>
+<dl><dt><a href="utf/user-guide/usage-variants/extern-test-runner.html">External test runner</a></dt></dl>
+<dt><a href="utf/user-guide/initialization.html">Test module initialization</a></dt>
+<dt><a href="utf/user-guide/test-organization.html">Test organization</a></dt>
+<dl>
+<dt><a href="utf/user-guide/test-organization/nullary-test-case.html">Nullary function based test case</a></dt>
+<dl>
+<dt><a href="utf/user-guide/test-organization/manual-nullary-test-case.html">Manual registration</a></dt>
+<dt><a href="utf/user-guide/test-organization/auto-nullary-test-case.html">Automated registration</a></dt>
+</dl>
+<dt><a href="utf/user-guide/test-organization/unary-test-case.html">Unary function based test case</a></dt>
+<dt><a href="utf/user-guide/test-organization/test-case-template.html">Test case template</a></dt>
+<dl>
+<dt><a href="utf/user-guide/test-organization/manual-test-case-template.html">Manual registration</a></dt>
+<dt><a href="utf/user-guide/test-organization/auto-test-case-template.html">Automated registration</a></dt>
+</dl>
+<dt><a href="utf/user-guide/test-organization/test-suite.html">Test suite</a></dt>
+<dl>
+<dt><a href="utf/user-guide/test-organization/manual-test-suite.html">Manual registration</a></dt>
+<dt><a href="utf/user-guide/test-organization/auto-test-suite.html">Automated registration</a></dt>
+<dt><a href="utf/user-guide/test-organization/master-test-suite.html">Master Test Suite</a></dt>
+</dl>
+<dt><a href="utf/user-guide/test-organization/expected-failures.html">Expected failures specification</a></dt>
+</dl>
+<dt><a href="utf/user-guide/fixture.html">Fixtures</a></dt>
+<dl>
+<dt><a href="utf/user-guide/fixture/model.html">Generic model</a></dt>
+<dt><a href="utf/user-guide/fixture/per-test-case.html">Per test case</a></dt>
+<dt><a href="utf/user-guide/fixture/test-suite-shared.html">Test suite shared</a></dt>
+<dt><a href="utf/user-guide/fixture/global.html">Global fixture</a></dt>
+</dl>
+<dt><a href="utf/user-guide/test-output.html">Test Output </a></dt>
+<dl>
+<dt><a href="utf/user-guide/test-output/test-log.html">Test log</a></dt>
+<dl>
+<dt><a href="utf/user-guide/test-output/BOOST_TEST_MESSAGE.html">BOOST_TEST_MESSAGE</a></dt>
+<dt><a href="utf/user-guide/test-output/BOOST_TEST_CHECKPOINT.html">BOOST_TEST_CHECKPOINT</a></dt>
+<dt><a href="utf/user-guide/test-output/BOOST_TEST_PASSPOINT.html">BOOST_TEST_PASSPOINT</a></dt>
+<dt><a href="utf/user-guide/test-output/BOOST_TEST_PASSPOINT.html">Logging floating point type numbers</a></dt>
+<dt><a href="utf/user-guide/test-output/log-hr-format.html">Human readable format</a></dt>
+<dt><a href="utf/user-guide/test-output/log-xml-format.html">XML based log output format</a></dt>
+<dt><a href="utf/user-guide/test-output/log-ct-config.html">Compile time configuration</a></dt>
+</dl>
+<dt><a href="utf/user-guide/test-output/results-report.html">Test report output</a></dt>
+<dt><a href="utf/user-guide/test-output/test-progress.html">Progress display</a></dt>
+</dl>
+<dt><a href="utf/user-guide/runtime-config.html">Runtime configuration </a></dt>
+<dl>
+<dt><a href="utf/user-guide/runtime-config/run-by-name.html">Run by name</a></dt>
+<dt><a href="utf/user-guide/runtime-config/reference.html">Parameters reference</a></dt>
+</dl>
+</dl>
+<dt><a href="utf/testing-tools.html">Testing tools</a></dt>
+<dl>
+<dt><a href="utf/testing-tools/output-test.html">Output testing tool</a></dt>
+<dt><a href="utf/testing-tools/custom-predicate.html">Custom predicate support</a></dt>
+<dt><a href="utf/testing-tools/floating_point_comparison.html">Floating-point comparison algorithms</a></dt>
+<dt><a href="utf/testing-tools/reference.html">Reference</a></dt>
+</dl>
+<dt><a href="utf/usage-recommendations.html">Usage recommendations</a></dt>
+<dl>
+<dt><a href="utf/usage-recommendations/generic.html">Generic</a></dt>
+<dt><a href="utf/usage-recommendations/dot-net-specific.html">Microsoft Visual Studio .NET users specific</a></dt>
+<dt><a href="utf/usage-recommendations/command-line-specific.html">Command-line (non-GUI) users specific</a></dt>
+</dl>
+</dl>
+</dl>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised:  ,  at  </small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="intro.html"><img src="../../../../doc/html/images/next.png" alt="Next"></a></div>
+</body>
+</html>

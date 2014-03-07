@@ -1,0 +1,21 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>From V2.21 to V2.22 (Boost 1.48)</title><link rel="stylesheet" href="boostbook.css" type="text/css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.75.2"><link rel="home" href="index.html" title="Meta State Machine (MSM)"><link rel="up" href="ch08.html" title="Chapter&nbsp;8.&nbsp;Version history"><link rel="prev" href="ch08s04.html" title="From V2.22 to V2.23 (Boost 1.50)"><link rel="next" href="ch08s06.html" title="From V2.20 to V2.21 (Boost 1.47)"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">From V2.21 to V2.22 (Boost 1.48)</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch08s04.html">Prev</a>&nbsp;</td><th width="60%" align="center">Chapter&nbsp;8.&nbsp;Version history</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="ch08s06.html">Next</a></td></tr></table><hr></div><div class="sect1" title="From V2.21 to V2.22 (Boost 1.48)"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d0e3446"></a>From V2.21 to V2.22 (Boost 1.48)</h2></div></div></div><p>
+                    </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>eUML: added easier event reprocessing:
+                                    <code class="code">process(event_)</code> and <code class="code">reprocess()</code></p></li><li class="listitem"><p>Rewrite of internal transition tables. There were a few bugs
+                                (failing recursivity in internal transition tables of sub-sub
+                                machines) and a missing feature (unused internal transition table of
+                                the main state machine).</p></li><li class="listitem"><p>Bugfixes</p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p>Reverted favor_compile_time policy to Boost 1.46
+                                            state</p></li><li class="listitem"><p><code class="code">none</code> event now is convertible from any
+                                            other event </p></li><li class="listitem"><p>eUML and pseudo exit states</p></li><li class="listitem"><p>Fixed not working Flag_AND</p></li><li class="listitem"><p>Fixed rare bugs causing multiple processing of the
+                                            same event in a submachine whose transition table
+                                            contains this event and a base event of it.</p></li><li class="listitem"><p>gcc warnings about unused variables</p></li></ul></div></li><li class="listitem"><p>Breaking change: the new internal transition table feature causes
+                                a minor breaking change. In a submachine, the "Fsm" template
+                                parameter for guards / actions of an internal table declared using
+                                    <code class="code">internal_transition_table</code> now is the submachine,
+                                not the higher-level state machine. Internal transitions declared
+                                using internal rows in the higher-level state machine keep their
+                                behavior (the "Fsm" parameter is the higher-level state machine). To
+                                sum up, the internal transition "Fsm" parameter is the closest state
+                                machine containing this transition.</p></li></ul></div><p>
+                </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch08s04.html">Prev</a>&nbsp;</td><td width="20%" align="center"><a accesskey="u" href="ch08.html">Up</a></td><td width="40%" align="right">&nbsp;<a accesskey="n" href="ch08s06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">From V2.22 to V2.23 (Boost 1.50)&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;From V2.20 to V2.21 (Boost 1.47)</td></tr></table></div></body></html>

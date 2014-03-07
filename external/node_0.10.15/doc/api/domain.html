@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Domain Node.js v0.10.15 Manual &amp; Documentation</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/sh.css">
+  <link rel="canonical" href="http://nodejs.org/api/domain.html">
+</head>
+<body class="alt apidoc" id="api-section-domain">
+    <div id="intro" class="interior">
+        <a href="/" title="Go back to the home page">
+            <img id="logo" src="http://nodejs.org/images/logo-light.png" alt="node.js">
+        </a>
+    </div>
+    <div id="content" class="clearfix">
+        <div id="column2" class="interior">
+            <ul>
+                <li><a href="/" class="home">Home</a></li>
+                <li><a href="/download/" class="download">Download</a></li>
+                <li><a href="/about/" class="about">About</a></li>
+                <li><a href="http://npmjs.org/" class="npm">npm Registry</a></li>
+                <li><a href="http://nodejs.org/api/" class="docs current">Docs</a></li>
+                <li><a href="http://blog.nodejs.org" class="blog">Blog</a></li>
+                <li><a href="/community/" class="community">Community</a></li>
+                <li><a href="/logos/" class="logos">Logos</a></li>
+                <li><a href="http://jobs.nodejs.org/" class="jobs">Jobs</a></li>
+            </ul>
+            <p class="twitter"><a href="http://twitter.com/nodejs">@nodejs</a></p>
+        </div>
+
+        <div id="column1" class="interior">
+          <header>
+            <h1>Node.js v0.10.15 Manual &amp; Documentation</h1>
+            <div id="gtoc">
+              <p>
+                <a href="index.html" name="toc">Index</a> |
+                <a href="all.html">View on single page</a> |
+                <a href="domain.json">View as JSON</a>
+              </p>
+            </div>
+            <hr>
+          </header>
+
+          <div id="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+<li><a href="#domain_domain">Domain</a><ul>
+<li><a href="#domain_warning_don_t_ignore_errors">Warning: Don&#39;t Ignore Errors!</a></li>
+<li><a href="#domain_additions_to_error_objects">Additions to Error objects</a></li>
+<li><a href="#domain_implicit_binding">Implicit Binding</a></li>
+<li><a href="#domain_explicit_binding">Explicit Binding</a></li>
+<li><a href="#domain_domain_create">domain.create()</a></li>
+<li><a href="#domain_class_domain">Class: Domain</a><ul>
+<li><a href="#domain_domain_run_fn">domain.run(fn)</a></li>
+<li><a href="#domain_domain_members">domain.members</a></li>
+<li><a href="#domain_domain_add_emitter">domain.add(emitter)</a></li>
+<li><a href="#domain_domain_remove_emitter">domain.remove(emitter)</a></li>
+<li><a href="#domain_domain_bind_callback">domain.bind(callback)</a><ul>
+<li><a href="#domain_example">Example</a></li>
+</ul>
+</li>
+<li><a href="#domain_domain_intercept_callback">domain.intercept(callback)</a><ul>
+<li><a href="#domain_example_1">Example</a></li>
+</ul>
+</li>
+<li><a href="#domain_domain_dispose">domain.dispose()</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+
+          <div id="apicontent">
+            <h1>Domain<span><a class="mark" href="#domain_domain" id="domain_domain">#</a></span></h1>
+<pre class="api_stability_2">Stability: 2 - Unstable</pre><p>Domains provide a way to handle multiple different IO operations as a
+single group.  If any of the event emitters or callbacks registered to a
+domain emit an <code>error</code> event, or throw an error, then the domain object
+will be notified, rather than losing the context of the error in the
+<code>process.on(&#39;uncaughtException&#39;)</code> handler, or causing the program to
+exit immediately with an error code.
+
+</p>
+<h2>Warning: Don&#39;t Ignore Errors!<span><a class="mark" href="#domain_warning_don_t_ignore_errors" id="domain_warning_don_t_ignore_errors">#</a></span></h2>
+<!-- type=misc -->
+
+<p>Domain error handlers are not a substitute for closing down your
+process when an error occurs.
+
+</p>
+<p>By the very nature of how <code>throw</code> works in JavaScript, there is almost
+never any way to safely &quot;pick up where you left off&quot;, without leaking
+references, or creating some other sort of undefined brittle state.
+
+</p>
+<p>The safest way to respond to a thrown error is to shut down the
+process.  Of course, in a normal web server, you might have many
+connections open, and it is not reasonable to abruptly shut those down
+because an error was triggered by someone else.
+
+</p>
+<p>The better approach is send an error response to the request that
+triggered the error, while letting the others finish in their normal
+time, and stop listening for new requests in that worker.
+
+</p>
+<p>In this way, <code>domain</code> usage goes hand-in-hand with the cluster module,
+since the master process can fork a new worker when a worker
+encounters an error.  For node programs that scale to multiple
+machines, the terminating proxy or service registry can take note of
+the failure, and react accordingly.
+
+</p>
+<p>For example, this is not a good idea:
+
+</p>
+<pre><code class="javascript">// XXX WARNING!  BAD IDEA!
+
+var d = require(&#39;domain&#39;).create();
+d.on(&#39;error&#39;, function(er) {
+  // The error won&#39;t crash the process, but what it does is worse!
+  // Though we&#39;ve prevented abrupt process restarting, we are leaking
+  // resources like crazy if this ever happens.
+  // This is no better than process.on(&#39;uncaughtException&#39;)!
+  console.log(&#39;error, but oh well&#39;, er.message);
+});
+d.run(function() {
+  require(&#39;http&#39;).createServer(function(req, res) {
+    handleRequest(req, res);
+  }).listen(PORT);
+});</code></pre>
+<p>By using the context of a domain, and the resilience of separating our
+program into multiple worker processes, we can react more
+appropriately, and handle errors with much greater safety.
+
+</p>
+<pre><code class="javascript">// Much better!
+
+var cluster = require(&#39;cluster&#39;);
+var PORT = +process.env.PORT || 1337;
+
+if (cluster.isMaster) {
+  // In real life, you&#39;d probably use more than just 2 workers,
+  // and perhaps not put the master and worker in the same file.
+  //
+  // You can also of course get a bit fancier about logging, and
+  // implement whatever custom logic you need to prevent DoS
+  // attacks and other bad behavior.
+  //
+  // See the options in the cluster documentation.
+  //
+  // The important thing is that the master does very little,
+  // increasing our resilience to unexpected errors.
+
+  cluster.fork();
+  cluster.fork();
+
+  cluster.on(&#39;disconnect&#39;, function(worker) {
+    console.error(&#39;disconnect!&#39;);
+    cluster.fork();
+  });
+
+} else {
+  // the worker
+  //
+  // This is where we put our bugs!
+
+  var domain = require(&#39;domain&#39;);
+
+  // See the cluster documentation for more details about using
+  // worker processes to serve requests.  How it works, caveats, etc.
+
+  var server = require(&#39;http&#39;).createServer(function(req, res) {
+    var d = domain.create();
+    d.on(&#39;error&#39;, function(er) {
+      console.error(&#39;error&#39;, er.stack);
+
+      // Note: we&#39;re in dangerous territory!
+      // By definition, something unexpected occurred,
+      // which we probably didn&#39;t want.
+      // Anything can happen now!  Be very careful!
+
+      try {
+        // make sure we close down within 30 seconds
+        var killtimer = setTimeout(function() {
+          process.exit(1);
+        }, 30000);
+        // But don&#39;t keep the process open just for that!
+        killtimer.unref();
+
+        // stop taking new requests.
+        server.close();
+
+        // Let the master know we&#39;re dead.  This will trigger a
+        // &#39;disconnect&#39; in the cluster master, and then it will fork
+        // a new worker.
+        cluster.worker.disconnect();
+
+        // try to send an error to the request that triggered the problem
+        res.statusCode = 500;
+        res.setHeader(&#39;content-type&#39;, &#39;text/plain&#39;);
+        res.end(&#39;Oops, there was a problem!\n&#39;);
+      } catch (er2) {
+        // oh well, not much we can do at this point.
+        console.error(&#39;Error sending 500!&#39;, er2.stack);
+      }
+    });
+
+    // Because req and res were created before this domain existed,
+    // we need to explicitly add them.
+    // See the explanation of implicit vs explicit binding below.
+    d.add(req);
+    d.add(res);
+
+    // Now run the handler function in the domain.
+    d.run(function() {
+      handleRequest(req, res);
+    });
+  });
+  server.listen(PORT);
+}
+
+// This part isn&#39;t important.  Just an example routing thing.
+// You&#39;d put your fancy application logic here.
+function handleRequest(req, res) {
+  switch(req.url) {
+    case &#39;/error&#39;:
+      // We do some async stuff, and then...
+      setTimeout(function() {
+        // Whoops!
+        flerb.bark();
+      });
+      break;
+    default:
+      res.end(&#39;ok&#39;);
+  }
+}</code></pre>
+<h2>Additions to Error objects<span><a class="mark" href="#domain_additions_to_error_objects" id="domain_additions_to_error_objects">#</a></span></h2>
+<!-- type=misc -->
+
+<p>Any time an Error object is routed through a domain, a few extra fields
+are added to it.
+
+</p>
+<ul>
+<li><code>error.domain</code> The domain that first handled the error.</li>
+<li><code>error.domainEmitter</code> The event emitter that emitted an &#39;error&#39; event
+with the error object.</li>
+<li><code>error.domainBound</code> The callback function which was bound to the
+domain, and passed an error as its first argument.</li>
+<li><code>error.domainThrown</code> A boolean indicating whether the error was
+thrown, emitted, or passed to a bound callback function.</li>
+</ul>
+<h2>Implicit Binding<span><a class="mark" href="#domain_implicit_binding" id="domain_implicit_binding">#</a></span></h2>
+<!--type=misc-->
+
+<p>If domains are in use, then all <strong>new</strong> EventEmitter objects (including
+Stream objects, requests, responses, etc.) will be implicitly bound to
+the active domain at the time of their creation.
+
+</p>
+<p>Additionally, callbacks passed to lowlevel event loop requests (such as
+to fs.open, or other callback-taking methods) will automatically be
+bound to the active domain.  If they throw, then the domain will catch
+the error.
+
+</p>
+<p>In order to prevent excessive memory usage, Domain objects themselves
+are not implicitly added as children of the active domain.  If they
+were, then it would be too easy to prevent request and response objects
+from being properly garbage collected.
+
+</p>
+<p>If you <em>want</em> to nest Domain objects as children of a parent Domain,
+then you must explicitly add them.
+
+</p>
+<p>Implicit binding routes thrown errors and <code>&#39;error&#39;</code> events to the
+Domain&#39;s <code>error</code> event, but does not register the EventEmitter on the
+Domain, so <code>domain.dispose()</code> will not shut down the EventEmitter.
+Implicit binding only takes care of thrown errors and <code>&#39;error&#39;</code> events.
+
+</p>
+<h2>Explicit Binding<span><a class="mark" href="#domain_explicit_binding" id="domain_explicit_binding">#</a></span></h2>
+<!--type=misc-->
+
+<p>Sometimes, the domain in use is not the one that ought to be used for a
+specific event emitter.  Or, the event emitter could have been created
+in the context of one domain, but ought to instead be bound to some
+other domain.
+
+</p>
+<p>For example, there could be one domain in use for an HTTP server, but
+perhaps we would like to have a separate domain to use for each request.
+
+</p>
+<p>That is possible via explicit binding.
+
+</p>
+<p>For example:
+
+</p>
+<pre><code>// create a top-level domain for the server
+var serverDomain = domain.create();
+
+serverDomain.run(function() {
+  // server is created in the scope of serverDomain
+  http.createServer(function(req, res) {
+    // req and res are also created in the scope of serverDomain
+    // however, we&#39;d prefer to have a separate domain for each request.
+    // create it first thing, and add req and res to it.
+    var reqd = domain.create();
+    reqd.add(req);
+    reqd.add(res);
+    reqd.on(&#39;error&#39;, function(er) {
+      console.error(&#39;Error&#39;, er, req.url);
+      try {
+        res.writeHead(500);
+        res.end(&#39;Error occurred, sorry.&#39;);
+      } catch (er) {
+        console.error(&#39;Error sending 500&#39;, er, req.url);
+      }
+    });
+  }).listen(1337);
+});</code></pre>
+<h2>domain.create()<span><a class="mark" href="#domain_domain_create" id="domain_domain_create">#</a></span></h2>
+<div class="signature"><ul>
+<li>return: <span class="type">Domain</span></li>
+</div></ul>
+<p>Returns a new Domain object.
+
+</p>
+<h2>Class: Domain<span><a class="mark" href="#domain_class_domain" id="domain_class_domain">#</a></span></h2>
+<p>The Domain class encapsulates the functionality of routing errors and
+uncaught exceptions to the active Domain object.
+
+</p>
+<p>Domain is a child class of <a href="events.html#events_class_events_eventemitter">EventEmitter</a>.  To handle the errors that it
+catches, listen to its <code>error</code> event.
+
+</p>
+<h3>domain.run(fn)<span><a class="mark" href="#domain_domain_run_fn" id="domain_domain_run_fn">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>fn</code> <span class="type">Function</span></li>
+</div></ul>
+<p>Run the supplied function in the context of the domain, implicitly
+binding all event emitters, timers, and lowlevel requests that are
+created in that context.
+
+</p>
+<p>This is the most basic way to use a domain.
+
+</p>
+<p>Example:
+
+</p>
+<pre><code>var d = domain.create();
+d.on(&#39;error&#39;, function(er) {
+  console.error(&#39;Caught error!&#39;, er);
+});
+d.run(function() {
+  process.nextTick(function() {
+    setTimeout(function() { // simulating some various async stuff
+      fs.open(&#39;non-existent file&#39;, &#39;r&#39;, function(er, fd) {
+        if (er) throw er;
+        // proceed...
+      });
+    }, 100);
+  });
+});</code></pre>
+<p>In this example, the <code>d.on(&#39;error&#39;)</code> handler will be triggered, rather
+than crashing the program.
+
+</p>
+<h3>domain.members<span><a class="mark" href="#domain_domain_members" id="domain_domain_members">#</a></span></h3>
+<div class="signature"><ul>
+<li><span class="type">Array</span></li>
+</div></ul>
+<p>An array of timers and event emitters that have been explicitly added
+to the domain.
+
+</p>
+<h3>domain.add(emitter)<span><a class="mark" href="#domain_domain_add_emitter" id="domain_domain_add_emitter">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>emitter</code> <span class="type">EventEmitter | Timer</span> emitter or timer to be added to the domain</li>
+</div></ul>
+<p>Explicitly adds an emitter to the domain.  If any event handlers called by
+the emitter throw an error, or if the emitter emits an <code>error</code> event, it
+will be routed to the domain&#39;s <code>error</code> event, just like with implicit
+binding.
+
+</p>
+<p>This also works with timers that are returned from <code>setInterval</code> and
+<code>setTimeout</code>.  If their callback function throws, it will be caught by
+the domain &#39;error&#39; handler.
+
+</p>
+<p>If the Timer or EventEmitter was already bound to a domain, it is removed
+from that one, and bound to this one instead.
+
+</p>
+<h3>domain.remove(emitter)<span><a class="mark" href="#domain_domain_remove_emitter" id="domain_domain_remove_emitter">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>emitter</code> <span class="type">EventEmitter | Timer</span> emitter or timer to be removed from the domain</li>
+</div></ul>
+<p>The opposite of <code>domain.add(emitter)</code>.  Removes domain handling from the
+specified emitter.
+
+</p>
+<h3>domain.bind(callback)<span><a class="mark" href="#domain_domain_bind_callback" id="domain_domain_bind_callback">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>callback</code> <span class="type">Function</span> The callback function</li>
+<li>return: <span class="type">Function</span> The bound function</li>
+</div></ul>
+<p>The returned function will be a wrapper around the supplied callback
+function.  When the returned function is called, any errors that are
+thrown will be routed to the domain&#39;s <code>error</code> event.
+
+</p>
+<h4>Example<span><a class="mark" href="#domain_example" id="domain_example">#</a></span></h4>
+<pre><code>var d = domain.create();
+
+function readSomeFile(filename, cb) {
+  fs.readFile(filename, &#39;utf8&#39;, d.bind(function(er, data) {
+    // if this throws, it will also be passed to the domain
+    return cb(er, data ? JSON.parse(data) : null);
+  }));
+}
+
+d.on(&#39;error&#39;, function(er) {
+  // an error occurred somewhere.
+  // if we throw it now, it will crash the program
+  // with the normal line number and stack message.
+});</code></pre>
+<h3>domain.intercept(callback)<span><a class="mark" href="#domain_domain_intercept_callback" id="domain_domain_intercept_callback">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>callback</code> <span class="type">Function</span> The callback function</li>
+<li>return: <span class="type">Function</span> The intercepted function</li>
+</div></ul>
+<p>This method is almost identical to <code>domain.bind(callback)</code>.  However, in
+addition to catching thrown errors, it will also intercept <code>Error</code>
+objects sent as the first argument to the function.
+
+</p>
+<p>In this way, the common <code>if (er) return callback(er);</code> pattern can be replaced
+with a single error handler in a single place.
+
+</p>
+<h4>Example<span><a class="mark" href="#domain_example_1" id="domain_example_1">#</a></span></h4>
+<pre><code>var d = domain.create();
+
+function readSomeFile(filename, cb) {
+  fs.readFile(filename, &#39;utf8&#39;, d.intercept(function(data) {
+    // note, the first argument is never passed to the
+    // callback since it is assumed to be the &#39;Error&#39; argument
+    // and thus intercepted by the domain.
+
+    // if this throws, it will also be passed to the domain
+    // so the error-handling logic can be moved to the &#39;error&#39;
+    // event on the domain instead of being repeated throughout
+    // the program.
+    return cb(null, JSON.parse(data));
+  }));
+}
+
+d.on(&#39;error&#39;, function(er) {
+  // an error occurred somewhere.
+  // if we throw it now, it will crash the program
+  // with the normal line number and stack message.
+});</code></pre>
+<h3>domain.dispose()<span><a class="mark" href="#domain_domain_dispose" id="domain_domain_dispose">#</a></span></h3>
+<p>The dispose method destroys a domain, and makes a best effort attempt to
+clean up any and all IO that is associated with the domain.  Streams are
+aborted, ended, closed, and/or destroyed.  Timers are cleared.
+Explicitly bound callbacks are no longer called.  Any error events that
+are raised as a result of this are ignored.
+
+</p>
+<p>The intention of calling <code>dispose</code> is generally to prevent cascading
+errors when a critical part of the Domain context is found to be in an
+error state.
+
+</p>
+<p>Once the domain is disposed the <code>dispose</code> event will emit.
+
+</p>
+<p>Note that IO might still be performed.  However, to the highest degree
+possible, once a domain is disposed, further errors from the emitters in
+that set will be ignored.  So, even if some remaining actions are still
+in flight, Node.js will not communicate further about them.
+
+</p>
+
+          </div>
+        </div>
+    </div>
+    <div id="footer">
+        <a href="http://joyent.com" class="joyent-logo">Joyent</a>
+        <ul class="clearfix">
+            <li><a href="/">Node.js</a></li>
+            <li><a href="/download/">Download</a></li>
+            <li><a href="/about/">About</a></li>
+            <li><a href="http://npmjs.org/">npm Registry</a></li>
+            <li><a href="http://nodejs.org/api/">Docs</a></li>
+            <li><a href="http://blog.nodejs.org">Blog</a></li>
+            <li><a href="/community/">Community</a></li>
+            <li><a href="/logos/">Logos</a></li>
+            <li><a href="http://jobs.nodejs.org/">Jobs</a></li>
+            <li><a href="http://twitter.com/nodejs" class="twitter">@nodejs</a></li>
+        </ul>
+
+        <p>Copyright <a href="http://joyent.com/">Joyent, Inc</a>, Node.js is a <a href="/trademark-policy.pdf">trademark</a> of Joyent, Inc. View <a href="https://raw.github.com/joyent/node/v0.10.15/LICENSE">license</a>.</p>
+    </div>
+
+  <script src="../sh_main.js"></script>
+  <script src="../sh_javascript.min.js"></script>
+  <script>highlight(undefined, undefined, 'pre');</script>
+  <script>
+    window._gaq = [['_setAccount', 'UA-10874194-2'], ['_trackPageview']];
+    (function(d, t) {
+      var g = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      g.src = '//www.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+  </script>
+</body>
+</html>
+

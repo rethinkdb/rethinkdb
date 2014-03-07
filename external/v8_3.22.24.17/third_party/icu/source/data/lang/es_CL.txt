@@ -1,0 +1,19 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/es_CL.xml
+// *
+// ***************************************************************************
+es_CL{
+    Scripts{
+        Bali{"balinés"}
+    }
+    Types{
+        collation{
+            phonebook{"orden de directorio telefónico"}
+        }
+    }
+    Version{"2.0.45.82"}
+}

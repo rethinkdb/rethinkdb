@@ -1,0 +1,78 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Maldivian_Latin_BGN.txt
+# Generated from CLDR 
+#
+:: [ހށނރބޅކއވމފދތލގޏސޑޒޓޔޕޖޗ\u07A6\u07A7\u07A8\u07A9\u07AA\u07AB\u07AC\u07AD\u07AE\u07AF\u07B0];
+:: NFD (NFC) ;
+އ\u07A6 → a ; # THAANA LETTER ALIFU + ABAFILI
+އ\u07A7 → aa ; # THAANA LETTER ALIFU + AABAAFILI
+އ\u07A8 → i ; # THAANA LETTER ALIFU + IBIFILI
+އ\u07A9 → ee ; # THAANA LETTER ALIFU + EEBEEFILI
+އ\u07AA → u ; # THAANA LETTER ALIFU + UBUFILI
+އ\u07AB → oo ; # THAANA LETTER ALIFU + OOBOOFILI
+އ\u07AC → e ; # THAANA LETTER ALIFU + EBEFILI
+އ\u07AD → ey ; # THAANA LETTER ALIFU + EYBEYFILI
+އ\u07AE → o ; # THAANA LETTER ALIFU + OBOFILI
+އ\u07AF → oa ; # THAANA LETTER ALIFU + OABOAFILI
+އހ → hh ; # THAANA LETTER ALIFU + HAA
+އށ → shsh ; # THAANA LETTER ALIFU + SHAVIYANI 
+އނ → nn ; # THAANA LETTER ALIFU + NOONU
+އރ → rr ; # THAANA LETTER ALIFU + RAA
+އބ → bb ; # THAANA LETTER ALIFU + BAA
+އޅ → lhlh ; # THAANA LETTER ALIFU + LHAVIYANI
+އކ → kk ; # THAANA LETTER ALIFU + KAAFU
+އވ → vv ; # THAANA LETTER ALIFU + VAAVU
+އމ → mm ; # THAANA LETTER ALIFU + MEEMU
+އފ → ff ; # THAANA LETTER ALIFU + FAAFU
+އދ → dhdh ; # THAANA LETTER ALIFU + DHAALU
+އތ → thth ; # THAANA LETTER ALIFU + THAA
+އލ → ll ; # THAANA LETTER ALIFU + LAAMU
+އގ → gg ; # THAANA LETTER ALIFU + GAAFU
+އޏ → gngn ; # THAANA LETTER ALIFU + GNAVIYANI
+އސ → ss ; # THAANA LETTER ALIFU + SEENU
+އޑ → dd ; # THAANA LETTER ALIFU + DAVIYANI
+އޒ → zz ; # THAANA LETTER ALIFU + ZAVIYANI
+އޓ → tt ; # THAANA LETTER ALIFU + TAVIYANI
+އޔ → yy ; # THAANA LETTER ALIFU + YAA
+އޕ → pp ; # THAANA LETTER ALIFU + PAVIYANI
+އޖ → jj ; # THAANA LETTER ALIFU + JAVIYANI
+އޗ → chch ; # THAANA LETTER ALIFU + CHAVIYANI
+ހ → h ; # THAANA LETTER HAA
+ށ → sh ; # THAANA LETTER SHAVIYANI
+ނ → n ; # THAANA LETTER NOONU
+ރ → r ; # THAANA LETTER RAA
+ބ → b ; # THAANA LETTER BAA
+ޅ → lh ; # THAANA LETTER LHAVIYANI
+ކ → k ; # THAANA LETTER KAAFU
+ވ → v ; # THAANA LETTER VAAVU
+މ → m ; # THAANA LETTER MEEMU
+ފ → f ; # THAANA LETTER FAAFU
+ދ → dh ; # THAANA LETTER DHAALU
+ތ → th ; # THAANA LETTER THAA
+ލ → l ; # THAANA LETTER LAAMU
+ގ → g ; # THAANA LETTER GAAFU
+ޏ → gn ; # THAANA LETTER GNAVIYANI
+ސ → s ; # THAANA LETTER SEENU
+ޑ → d ; # THAANA LETTER DAVIYANI
+ޒ → z ; # THAANA LETTER ZAVIYANI
+ޓ → t ; # THAANA LETTER TAVIYANI
+ޔ → y ; # THAANA LETTER YAA
+ޕ → p ; # THAANA LETTER PAVIYANI
+ޖ → j ; # THAANA LETTER JAVIYANI
+ޗ → ch ; # THAANA LETTER CHAVIYANI
+\u07A6 → a ; # THAANA ABAFILI
+\u07A7 → aa ; # THAANA AABAAFILI
+\u07A8 → i ; # THAANA IBIFILI
+\u07A9 → ee ; # THAANA EEBEEFILI
+\u07AA → u ; # THAANA UBUFILI
+\u07AB → oo ; # THAANA OOBOOFILI
+\u07AC → e ; # THAANA EBEFILI
+\u07AD → ey ; # THAANA EYBEYFILI
+\u07AE → o ; # THAANA OBOFILI
+\u07AF → oa ; # THAANA OABOAFILI
+\u07B0 → ; # THAANA SUKUUN

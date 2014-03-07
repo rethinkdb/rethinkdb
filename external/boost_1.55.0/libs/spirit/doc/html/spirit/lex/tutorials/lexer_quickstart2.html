@@ -1,0 +1,302 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Quickstart 2 - A better word counter using Spirit.Lex</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Spirit.Lex Tutorials">
+<link rel="prev" href="lexer_quickstart1.html" title="Quickstart 1 - A word counter using Spirit.Lex">
+<link rel="next" href="lexer_quickstart3.html" title="Quickstart 3 - Counting Words Using a Parser">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lexer_quickstart1.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lexer_quickstart3.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.lex.tutorials.lexer_quickstart2"></a><a class="link" href="lexer_quickstart2.html" title="Quickstart 2 - A better word counter using Spirit.Lex">Quickstart
+        2 - A better word counter using <span class="emphasis"><em>Spirit.Lex</em></span></a>
+</h4></div></div></div>
+<p>
+          People familiar with <a href="http://flex.sourceforge.net/" target="_top">Flex</a>
+          will probably complain about the example from the section <a class="link" href="lexer_quickstart1.html" title="Quickstart 1 - A word counter using Spirit.Lex">Lex
+          Quickstart 1 - A word counter using <span class="emphasis"><em>Spirit.Lex</em></span></a>
+          as being overly complex and not being written to leverage the possibilities
+          provided by this tool. In particular the previous example did not directly
+          use the lexer actions to count the lines, words, and characters. So the
+          example provided in this step of the tutorial will show how to use semantic
+          actions in <span class="emphasis"><em>Spirit.Lex</em></span>. Even though this examples still
+          counts textual elements, the purpose is to introduce new concepts and configuration
+          options along the lines (for the full example code see here: <a href="../../../../../example/lex/word_count_lexer.cpp" target="_top">word_count_lexer.cpp</a>).
+        </p>
+<h6>
+<a name="spirit.lex.tutorials.lexer_quickstart2.h0"></a>
+          <span class="phrase"><a name="spirit.lex.tutorials.lexer_quickstart2.prerequisites"></a></span><a class="link" href="lexer_quickstart2.html#spirit.lex.tutorials.lexer_quickstart2.prerequisites">Prerequisites</a>
+        </h6>
+<p>
+          In addition to the only required <code class="computeroutput"><span class="preprocessor">#include</span></code>
+          specific to <span class="emphasis"><em>Spirit.Lex</em></span> this example needs to include
+          a couple of header files from the <a href="../../../../../../../libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>
+          library. This example shows how to attach functors to token definitions,
+          which could be done using any type of C++ technique resulting in a callable
+          object. Using <a href="../../../../../../../libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>
+          for this task simplifies things and avoids adding dependencies to other
+          libraries (<a href="../../../../../../../libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>
+          is already in use for <a href="http://boost-spirit.com" target="_top">Spirit</a>
+          anyway).
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">lex_lexertl</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_statement</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_algorithm</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        </p>
+<p>
+          To make all the code below more readable we introduce the following namespaces.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">lex</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lex</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          To give a preview at what to expect from this example, here is the flex
+          program which has been used as the starting point. The useful code is directly
+          included inside the actions associated with each of the token definitions.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="special">%{</span>
+    <span class="keyword">int</span> <span class="identifier">c</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">w</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">l</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">%}</span>
+<span class="special">%%</span>
+<span class="special">[^</span> <span class="special">\</span><span class="identifier">t</span><span class="special">\</span><span class="identifier">n</span><span class="special">]+</span>  <span class="special">{</span> <span class="special">++</span><span class="identifier">w</span><span class="special">;</span> <span class="identifier">c</span> <span class="special">+=</span> <span class="identifier">yyleng</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">\</span><span class="identifier">n</span>         <span class="special">{</span> <span class="special">++</span><span class="identifier">c</span><span class="special">;</span> <span class="special">++</span><span class="identifier">l</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">.</span>          <span class="special">{</span> <span class="special">++</span><span class="identifier">c</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">%%</span>
+<span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">yylex</span><span class="special">();</span>
+    <span class="identifier">printf</span><span class="special">(</span><span class="string">"%d %d %d\n"</span><span class="special">,</span> <span class="identifier">l</span><span class="special">,</span> <span class="identifier">w</span><span class="special">,</span> <span class="identifier">c</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="spirit.lex.tutorials.lexer_quickstart2.h1"></a>
+          <span class="phrase"><a name="spirit.lex.tutorials.lexer_quickstart2.semantic_actions_in__emphasis_spirit_lex__emphasis_"></a></span><a class="link" href="lexer_quickstart2.html#spirit.lex.tutorials.lexer_quickstart2.semantic_actions_in__emphasis_spirit_lex__emphasis_">Semantic
+          Actions in <span class="emphasis"><em>Spirit.Lex</em></span></a>
+        </h6>
+<p>
+          <span class="emphasis"><em>Spirit.Lex</em></span> uses a very similar way of associating
+          actions with the token definitions (which should look familiar to anybody
+          knowledgeable with <a href="http://boost-spirit.com" target="_top">Spirit</a>
+          as well): specifying the operations to execute inside of a pair of <code class="computeroutput"><span class="special">[]</span></code> brackets. In order to be able to attach
+          semantic actions to token definitions for each of them there is defined
+          an instance of a <code class="computeroutput"><span class="identifier">token_def</span><span class="special">&lt;&gt;</span></code>.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Lexer</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">word_count_tokens</span> <span class="special">:</span> <span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;</span><span class="identifier">Lexer</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">word_count_tokens</span><span class="special">()</span>
+      <span class="special">:</span> <span class="identifier">c</span><span class="special">(</span><span class="number">0</span><span class="special">),</span> <span class="identifier">w</span><span class="special">(</span><span class="number">0</span><span class="special">),</span> <span class="identifier">l</span><span class="special">(</span><span class="number">0</span><span class="special">)</span>
+      <span class="special">,</span> <span class="identifier">word</span><span class="special">(</span><span class="string">"[^ \t\n]+"</span><span class="special">)</span>     <span class="comment">// define tokens</span>
+      <span class="special">,</span> <span class="identifier">eol</span><span class="special">(</span><span class="string">"\n"</span><span class="special">)</span>
+      <span class="special">,</span> <span class="identifier">any</span><span class="special">(</span><span class="string">"."</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lex</span><span class="special">::</span><span class="identifier">_start</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lex</span><span class="special">::</span><span class="identifier">_end</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">ref</span><span class="special">;</span>
+
+        <span class="comment">// associate tokens with the lexer</span>
+        <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">self</span>
+            <span class="special">=</span>   <span class="identifier">word</span>  <span class="special">[++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">w</span><span class="special">),</span> <span class="identifier">ref</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span> <span class="special">+=</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">_start</span><span class="special">,</span> <span class="identifier">_end</span><span class="special">)]</span>
+            <span class="special">|</span>   <span class="identifier">eol</span>   <span class="special">[++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">c</span><span class="special">),</span> <span class="special">++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">l</span><span class="special">)]</span>
+            <span class="special">|</span>   <span class="identifier">any</span>   <span class="special">[++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">c</span><span class="special">)]</span>
+            <span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">c</span><span class="special">,</span> <span class="identifier">w</span><span class="special">,</span> <span class="identifier">l</span><span class="special">;</span>
+    <span class="identifier">lex</span><span class="special">::</span><span class="identifier">token_def</span><span class="special">&lt;&gt;</span> <span class="identifier">word</span><span class="special">,</span> <span class="identifier">eol</span><span class="special">,</span> <span class="identifier">any</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          The semantics of the shown code is as follows. The code inside the <code class="computeroutput"><span class="special">[]</span></code> brackets will be executed whenever the
+          corresponding token has been matched by the lexical analyzer. This is very
+          similar to <a href="http://flex.sourceforge.net/" target="_top">Flex</a>, where
+          the action code associated with a token definition gets executed after
+          the recognition of a matching input sequence. The code above uses function
+          objects constructed using <a href="../../../../../../../libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>,
+          but it is possible to insert any C++ function or function object as long
+          as it exposes the proper interface. For more details on please refer to
+          the section <a class="link" href="../abstracts/lexer_semantic_actions.html" title="Lexer Semantic Actions">Lexer
+          Semantic Actions</a>.
+        </p>
+<h6>
+<a name="spirit.lex.tutorials.lexer_quickstart2.h2"></a>
+          <span class="phrase"><a name="spirit.lex.tutorials.lexer_quickstart2.associating_token_definitions_with_the_lexer"></a></span><a class="link" href="lexer_quickstart2.html#spirit.lex.tutorials.lexer_quickstart2.associating_token_definitions_with_the_lexer">Associating
+          Token Definitions with the Lexer</a>
+        </h6>
+<p>
+          If you compare this code to the code from <a class="link" href="lexer_quickstart1.html" title="Quickstart 1 - A word counter using Spirit.Lex">Lex
+          Quickstart 1 - A word counter using <span class="emphasis"><em>Spirit.Lex</em></span></a>
+          with regard to the way how token definitions are associated with the lexer,
+          you will notice a different syntax being used here. In the previous example
+          we have been using the <code class="computeroutput"><span class="identifier">self</span><span class="special">.</span><span class="identifier">add</span><span class="special">()</span></code> style of the API, while we here directly
+          assign the token definitions to <code class="computeroutput"><span class="identifier">self</span></code>,
+          combining the different token definitions using the <code class="computeroutput"><span class="special">|</span></code>
+          operator. Here is the code snippet again:
+        </p>
+<pre class="programlisting"><span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">self</span>
+    <span class="special">=</span>   <span class="identifier">word</span>  <span class="special">[++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">w</span><span class="special">),</span> <span class="identifier">ref</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span> <span class="special">+=</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">_1</span><span class="special">)]</span>
+    <span class="special">|</span>   <span class="identifier">eol</span>   <span class="special">[++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">c</span><span class="special">),</span> <span class="special">++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">l</span><span class="special">)]</span>
+    <span class="special">|</span>   <span class="identifier">any</span>   <span class="special">[++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">c</span><span class="special">)]</span>
+    <span class="special">;</span>
+</pre>
+<p>
+          This way we have a very powerful and natural way of building the lexical
+          analyzer. If translated into English this may be read as: The lexical analyzer
+          will recognize ('<code class="computeroutput"><span class="special">=</span></code>') tokens
+          as defined by any of ('<code class="computeroutput"><span class="special">|</span></code>')
+          the token definitions <code class="computeroutput"><span class="identifier">word</span></code>,
+          <code class="computeroutput"><span class="identifier">eol</span></code>, and <code class="computeroutput"><span class="identifier">any</span></code>.
+        </p>
+<p>
+          A second difference to the previous example is that we do not explicitly
+          specify any token ids to use for the separate tokens. Using semantic actions
+          to trigger some useful work has freed us from the need to define those.
+          To ensure every token gets assigned a id the <span class="emphasis"><em>Spirit.Lex</em></span>
+          library internally assigns unique numbers to the token definitions, starting
+          with the constant defined by <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lex</span><span class="special">::</span><span class="identifier">min_token_id</span></code>.
+        </p>
+<h6>
+<a name="spirit.lex.tutorials.lexer_quickstart2.h3"></a>
+          <span class="phrase"><a name="spirit.lex.tutorials.lexer_quickstart2.pulling_everything_together"></a></span><a class="link" href="lexer_quickstart2.html#spirit.lex.tutorials.lexer_quickstart2.pulling_everything_together">Pulling
+          everything together</a>
+        </h6>
+<p>
+          In order to execute the code defined above we still need to instantiate
+          an instance of the lexer type, feed it from some input sequence and create
+          a pair of iterators allowing to iterate over the token sequence as created
+          by the lexer. This code shows how to achieve these steps:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+
+<a class="co" name="spirit.lex.tutorials.lexer_quickstart2.c0" href="lexer_quickstart2.html#spirit.lex.tutorials.lexer_quickstart2.c1"><img src="../../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a>  <span class="keyword">typedef</span>
+        <span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">token</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*,</span> <span class="identifier">lex</span><span class="special">::</span><span class="identifier">omit</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span><span class="special">&gt;</span>
+     <span class="identifier">token_type</span><span class="special">;</span>
+
+<a class="co" name="spirit.lex.tutorials.lexer_quickstart2.c2" href="lexer_quickstart2.html#spirit.lex.tutorials.lexer_quickstart2.c3"><img src="../../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a>  <span class="keyword">typedef</span> <span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">actor_lexer</span><span class="special">&lt;</span><span class="identifier">token_type</span><span class="special">&gt;</span> <span class="identifier">lexer_type</span><span class="special">;</span>
+
+<a class="co" name="spirit.lex.tutorials.lexer_quickstart2.c4" href="lexer_quickstart2.html#spirit.lex.tutorials.lexer_quickstart2.c5"><img src="../../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a>  <span class="identifier">word_count_tokens</span><span class="special">&lt;</span><span class="identifier">lexer_type</span><span class="special">&gt;</span> <span class="identifier">word_count_lexer</span><span class="special">;</span>
+
+<a class="co" name="spirit.lex.tutorials.lexer_quickstart2.c6" href="lexer_quickstart2.html#spirit.lex.tutorials.lexer_quickstart2.c7"><img src="../../../../../../../doc/src/images/callouts/4.png" alt="4" border="0"></a>  <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span> <span class="special">(</span><span class="identifier">read_from_file</span><span class="special">(</span><span class="number">1</span> <span class="special">==</span> <span class="identifier">argc</span> <span class="special">?</span> <span class="string">"word_count.input"</span> <span class="special">:</span> <span class="identifier">argv</span><span class="special">[</span><span class="number">1</span><span class="special">]));</span>
+    <span class="keyword">char</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">first</span> <span class="special">=</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">c_str</span><span class="special">();</span>
+    <span class="keyword">char</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">last</span> <span class="special">=</span> <span class="special">&amp;</span><span class="identifier">first</span><span class="special">[</span><span class="identifier">str</span><span class="special">.</span><span class="identifier">size</span><span class="special">()];</span>
+
+<a class="co" name="spirit.lex.tutorials.lexer_quickstart2.c8" href="lexer_quickstart2.html#spirit.lex.tutorials.lexer_quickstart2.c9"><img src="../../../../../../../doc/src/images/callouts/5.png" alt="5" border="0"></a>  <span class="identifier">lexer_type</span><span class="special">::</span><span class="identifier">iterator_type</span> <span class="identifier">iter</span> <span class="special">=</span> <span class="identifier">word_count_lexer</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">);</span>
+    <span class="identifier">lexer_type</span><span class="special">::</span><span class="identifier">iterator_type</span> <span class="identifier">end</span> <span class="special">=</span> <span class="identifier">word_count_lexer</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span>
+
+<a class="co" name="spirit.lex.tutorials.lexer_quickstart2.c10" href="lexer_quickstart2.html#spirit.lex.tutorials.lexer_quickstart2.c11"><img src="../../../../../../../doc/src/images/callouts/6.png" alt="6" border="0"></a>  <span class="keyword">while</span> <span class="special">(</span><span class="identifier">iter</span> <span class="special">!=</span> <span class="identifier">end</span> <span class="special">&amp;&amp;</span> <span class="identifier">token_is_valid</span><span class="special">(*</span><span class="identifier">iter</span><span class="special">))</span>
+        <span class="special">++</span><span class="identifier">iter</span><span class="special">;</span>
+
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">iter</span> <span class="special">==</span> <span class="identifier">end</span><span class="special">)</span> <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"lines: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">word_count_lexer</span><span class="special">.</span><span class="identifier">l</span>
+                  <span class="special">&lt;&lt;</span> <span class="string">", words: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">word_count_lexer</span><span class="special">.</span><span class="identifier">w</span>
+                  <span class="special">&lt;&lt;</span> <span class="string">", characters: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">word_count_lexer</span><span class="special">.</span><span class="identifier">c</span>
+                  <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">else</span> <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">rest</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">);</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Lexical analysis failed\n"</span> <span class="special">&lt;&lt;</span> <span class="string">"stopped at: \""</span>
+                  <span class="special">&lt;&lt;</span> <span class="identifier">rest</span> <span class="special">&lt;&lt;</span> <span class="string">"\"\n"</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<div class="calloutlist"><table border="0" summary="Callout list">
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="spirit.lex.tutorials.lexer_quickstart2.c1"></a><a href="#spirit.lex.tutorials.lexer_quickstart2.c0"><img src="../../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              Specifying <code class="computeroutput"><span class="identifier">omit</span></code> as
+              the token attribute type generates a token class not holding any token
+              attribute at all (not even the iterator range of the matched input
+              sequence), therefore optimizing the token, the lexer, and possibly
+              the parser implementation as much as possible. Specifying <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code> as the 3rd template parameter
+              generates a token type and an iterator, both holding no lexer state,
+              allowing for even more aggressive optimizations. As a result the token
+              instances contain the token ids as the only data member.
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="spirit.lex.tutorials.lexer_quickstart2.c3"></a><a href="#spirit.lex.tutorials.lexer_quickstart2.c2"><img src="../../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              This defines the lexer type to use
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="spirit.lex.tutorials.lexer_quickstart2.c5"></a><a href="#spirit.lex.tutorials.lexer_quickstart2.c4"><img src="../../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              Create the lexer object instance needed to invoke the lexical analysis
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="spirit.lex.tutorials.lexer_quickstart2.c7"></a><a href="#spirit.lex.tutorials.lexer_quickstart2.c6"><img src="../../../../../../../doc/src/images/callouts/4.png" alt="4" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              Read input from the given file, tokenize all the input, while discarding
+              all generated tokens
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="spirit.lex.tutorials.lexer_quickstart2.c9"></a><a href="#spirit.lex.tutorials.lexer_quickstart2.c8"><img src="../../../../../../../doc/src/images/callouts/5.png" alt="5" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              Create a pair of iterators returning the sequence of generated tokens
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="spirit.lex.tutorials.lexer_quickstart2.c11"></a><a href="#spirit.lex.tutorials.lexer_quickstart2.c10"><img src="../../../../../../../doc/src/images/callouts/6.png" alt="6" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              Here we simply iterate over all tokens, making sure to break the loop
+              if an invalid token gets returned from the lexer
+            </p></td>
+</tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lexer_quickstart1.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lexer_quickstart3.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

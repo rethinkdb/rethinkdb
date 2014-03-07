@@ -1,0 +1,45 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:CompletionHandler Completion handler requirements]
+
+A completion handler must meet the requirements for a [link
+boost_asio.reference.Handler handler]. A value `h` of a completion handler
+class should work correctly in the expression `h()`.
+
+[heading Examples]
+
+A free function as a completion handler:
+
+  void completion_handler()
+  {
+    ...
+  }
+
+A completion handler function object:
+
+  struct completion_handler
+  {
+    ...
+    void operator()()
+    {
+      ...
+    }
+    ...
+  };
+
+A non-static class member function adapted to a completion handler using
+`bind()`:
+
+  void my_class::completion_handler()
+  {
+    ...
+  }
+  ...
+  my_io_service.post(boost::bind(&my_class::completion_handler, this));
+
+[endsect]

@@ -1,0 +1,297 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>transform</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../transform.html" title="transform">
+<link rel="prev" href="transform_3_with_strategy.html" title="transform (with strategy)">
+<link rel="next" href="../union_.html" title="union_">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="transform_3_with_strategy.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../transform.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../union_.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.algorithms.transform.transform_2"></a><a class="link" href="transform_2.html" title="transform">transform</a>
+</h5></div></div></div>
+<p>
+            <a class="indexterm" name="idp57038120"></a>
+Transforms from one geometry to another geometry using a strategy.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.transform.transform_2.h0"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.transform.transform_2.synopsis"></a></span><a class="link" href="transform_2.html#geometry.reference.algorithms.transform.transform_2.synopsis">Synopsis</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Geometry2</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">transform</span><span class="special">(</span><span class="identifier">Geometry1</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry1</span><span class="special">,</span> <span class="identifier">Geometry2</span> <span class="special">&amp;</span> <span class="identifier">geometry2</span><span class="special">)</span></pre>
+<p>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.transform.transform_2.h1"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.transform.transform_2.parameters"></a></span><a class="link" href="transform_2.html#geometry.reference.algorithms.transform.transform_2.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Concept
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Name
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Geometry1 const &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Geometry Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      geometry1
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A model of the specified concept
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Geometry2 &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Geometry Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      geometry2
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A model of the specified concept
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.transform.transform_2.h2"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.transform.transform_2.returns"></a></span><a class="link" href="transform_2.html#geometry.reference.algorithms.transform.transform_2.returns">Returns</a>
+          </h6>
+<p>
+            True if the transformation could be done
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.transform.transform_2.h3"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.transform.transform_2.header"></a></span><a class="link" href="transform_2.html#geometry.reference.algorithms.transform.transform_2.header">Header</a>
+          </h6>
+<p>
+            Either
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<p>
+            Or
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">transform</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.transform.transform_2.h4"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.transform.transform_2.conformance"></a></span><a class="link" href="transform_2.html#geometry.reference.algorithms.transform.transform_2.conformance">Conformance</a>
+          </h6>
+<p>
+            The function transform is not defined by OGC.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.transform.transform_2.h5"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.transform.transform_2.behavior"></a></span><a class="link" href="transform_2.html#geometry.reference.algorithms.transform.transform_2.behavior">Behavior</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Case
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Behavior
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Spherical (degree) / Spherical (radian)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Transforms coordinates from degree to radian, or vice versa
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Spherical / Cartesian (3D)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Transforms coordinates from spherical coordinates to X,Y,Z,
+                      or vice versa, on a unit sphere
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Spherical (degree, with radius) / Spherical (radian, with radius)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Transforms coordinates from degree to radian, or vice versa.
+                      Third coordinate (radius) is untouched
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Spherical (with radius) / Cartesian (3D)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Transforms coordinates from spherical coordinates to X,Y,Z,
+                      or vice versa, on a unit sphere. Third coordinate (radius)
+                      is taken into account
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.transform.transform_2.h6"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.transform.transform_2.complexity"></a></span><a class="link" href="transform_2.html#geometry.reference.algorithms.transform.transform_2.complexity">Complexity</a>
+          </h6>
+<p>
+            Linear
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.transform.transform_2.h7"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.transform.transform_2.example"></a></span><a class="link" href="transform_2.html#geometry.reference.algorithms.transform.transform_2.example">Example</a>
+          </h6>
+<p>
+            Shows how points can be transformed using the default strategy
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">bg</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">;</span>
+
+    <span class="comment">// Select a point near the pole (theta=5.0, phi=15.0)</span>
+    <span class="identifier">bg</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">point</span><span class="special">&lt;</span><span class="keyword">long</span> <span class="keyword">double</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">spherical</span><span class="special">&lt;</span><span class="identifier">bg</span><span class="special">::</span><span class="identifier">degree</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">p1</span><span class="special">(</span><span class="number">15.0</span><span class="special">,</span> <span class="number">5.0</span><span class="special">);</span>
+
+    <span class="comment">// Transform from degree to radian. Default strategy is automatically selected,</span>
+    <span class="comment">// it will convert from degree to radian</span>
+    <span class="identifier">bg</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">point</span><span class="special">&lt;</span><span class="keyword">long</span> <span class="keyword">double</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">spherical</span><span class="special">&lt;</span><span class="identifier">bg</span><span class="special">::</span><span class="identifier">radian</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">p2</span><span class="special">;</span>
+    <span class="identifier">bg</span><span class="special">::</span><span class="identifier">transform</span><span class="special">(</span><span class="identifier">p1</span><span class="special">,</span> <span class="identifier">p2</span><span class="special">);</span>
+
+    <span class="comment">// Transform from degree (lon-lat) to 3D (x,y,z). Default strategy is automatically selected, </span>
+    <span class="comment">// it will consider points on a unit sphere</span>
+    <span class="identifier">bg</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">point</span><span class="special">&lt;</span><span class="keyword">long</span> <span class="keyword">double</span><span class="special">,</span> <span class="number">3</span><span class="special">,</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">cartesian</span><span class="special">&gt;</span> <span class="identifier">p3</span><span class="special">;</span>
+    <span class="identifier">bg</span><span class="special">::</span><span class="identifier">transform</span><span class="special">(</span><span class="identifier">p1</span><span class="special">,</span> <span class="identifier">p3</span><span class="special">);</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span>
+        <span class="special">&lt;&lt;</span> <span class="string">"p1: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">dsv</span><span class="special">(</span><span class="identifier">p1</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span>
+        <span class="special">&lt;&lt;</span> <span class="string">"p2: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">dsv</span><span class="special">(</span><span class="identifier">p2</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span>
+        <span class="special">&lt;&lt;</span> <span class="string">"p3: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">dsv</span><span class="special">(</span><span class="identifier">p3</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            Output:
+          </p>
+<pre class="programlisting">p1: (15, 5)
+p2: (0.261799, 0.0872665)
+p3: (0.084186, 0.0225576, 0.996195)
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="transform_3_with_strategy.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../transform.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../union_.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

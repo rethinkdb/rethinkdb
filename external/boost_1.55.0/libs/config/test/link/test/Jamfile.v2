@@ -1,0 +1,117 @@
+# copyright John Maddock 2006
+# Use, modification and distribution are subject to the 
+# Boost Software License, Version 1.0. (See accompanying file 
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import type ;
+
+type.register AUTOLINK_LIB ;
+
+import generators ;
+import "class" : new ;
+
+# This generator creates library using standard generators,
+# and then add <library-path> usage requirements with the
+# path of the created library.
+class autolink-generator : generator
+{
+    import generators ;
+    import "class" ;
+    import property-set ;
+    import path ;
+
+    rule run ( project name ? : property-set : sources + )
+    {
+        local result = [ generators.construct $(project) $(name)
+            : LIB : $(property-set) : $(sources) ] ;
+                            
+        local targets ;
+        local usage-requirements ;
+        
+        if [ class.is-a $(result[1]) : property-set ]
+        {
+            usage-requirements = $(result[1]) ;
+            targets = $(result[2-]) ;
+        }
+        else
+        {
+            usage-requirements = [ property-set.empty ] ;
+            targets = $(result) ;
+        }
+        
+        local extra ;
+        local paths ;
+        local pwd = [ path.pwd ] ;
+        for local t in $(targets)
+        {
+            if [ type.is-derived [ $(t).type ] LIB ] 
+            {
+                paths += [ path.root [ path.make [ $(t).path ] ] $(pwd) ] ;
+            }                                            
+        }
+        extra += $(paths:G=<library-path>) ;
+        if $(extra)
+        {
+            extra = [ sequence.unique $(extra) ] ;
+            usage-requirements = [ $(usage-requirements).add-raw $(extra) ] ;
+        }
+        return $(usage-requirements) $(targets) ;
+    }
+}
+
+generators.register [ 
+  new autolink-generator $(__name__).autolink  : : AUTOLINK_LIB ] ;
+
+project : requirements -<threading>multi <hardcode-dll-paths>false ;
+
+autolink-lib link_test : ../link_test.cpp 
+    : <link>shared:<define>BOOST_DYN_LINK=1
+    : 
+    ;
+    
+   
+explicit link_test ;
+
+run ../main.cpp link_test
+  : : : <toolset>msvc-8.0:<build>no <toolset>msvc-9.0:<build>no <toolset>msvc-10.0:<build>no <link>static <runtime-link>static <threading>single debug : link_test_ssd ;
+
+run ../main.cpp link_test
+  : : : <toolset>msvc-8.0:<build>no <toolset>msvc-9.0:<build>no <toolset>msvc-10.0:<build>no <link>static <runtime-link>static <threading>single release : link_test_ssr ;
+
+run ../main.cpp link_test
+  : : : <link>static <runtime-link>static <threading>multi debug : link_test_smd ;
+
+run ../main.cpp link_test
+  : : : <link>static <runtime-link>static <threading>multi release : link_test_smr ;
+
+run ../main.cpp link_test
+  : : : <link>static <runtime-link>shared <threading>multi debug : link_test_dmd ;
+
+run ../main.cpp link_test
+  : : : <link>static <runtime-link>shared <threading>multi release : link_test_dmr ;
+
+run ../main.cpp link_test
+  : : : <link>static <runtime-link>shared <threading>single debug : link_test_dsd ;
+
+run ../main.cpp link_test
+  : : : <link>static <runtime-link>shared <threading>single release : link_test_dsr ;
+
+run ../main.cpp link_test
+  : : : <define>BOOST_DYN_LINK=1 <link>shared <runtime-link>shared <threading>multi debug : link_test_dll_dmd ;
+
+run ../main.cpp link_test
+  : : : <define>BOOST_DYN_LINK=1 <link>shared <runtime-link>shared <threading>multi release : link_test_dll_dmr ;
+
+run ../main.cpp link_test
+  : : : <define>BOOST_DYN_LINK=1 <link>shared <runtime-link>shared <threading>single debug : link_test_dll_dsd ;
+
+run ../main.cpp link_test
+  : : : <define>BOOST_DYN_LINK=1 <link>shared <runtime-link>shared <threading>single release : link_test_dll_dsr ;
+
+
+
+
+
+
+
+

@@ -1,0 +1,54 @@
+[/
+    Copyright 2002,2004,2006 Joel de Guzman, Eric Niebler
+    Copyright 2010-2011 Daniel James
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[chapter Syntax Summary
+    [quickbook 1.6]
+    [compatibility-mode 1.5]
+    [id quickbook.syntax]
+    [source-mode teletype]
+]
+
+A QuickBook document is composed of one or more blocks. An example of
+a block is the paragraph or a C++ code snippet. Some blocks have
+special mark-ups. Blocks, except code snippets which have their own
+grammar (C++ or Python), are composed of one or more phrases. A phrase
+can be a simple contiguous run of characters. Phrases can have special
+mark-ups. Marked up phrases can recursively contain other phrases, but
+cannot contain blocks. A terminal is a self contained block-level or
+phrase-level element that does not nest anything.
+
+Blocks, in general, are delimited by two end-of-lines (the block terminator).
+Phrases in each block cannot contain a block terminator. This way, syntax errors
+such as un-matched closing brackets do not go haywire and corrupt anything past
+a single block.
+
+[#quickbook.ref.comments]
+[section:comments Comments]
+
+Can be placed anywhere.
+
+```
+[/ comment (no output generated) ]
+```
+
+[/ for testing only... ]
+
+```
+[/ comments can be nested [/ some more here] ]
+```
+
+[/ for testing [/ only ] ]
+
+```
+[/ Quickbook blocks can nest inside comments. [*Comment this out too!] ]
+```
+
+[/ for testing [*only ] ]
+
+[endsect] [/comments]

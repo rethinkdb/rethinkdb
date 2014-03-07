@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.0: http://docutils.sourceforge.net/" />
+<title>Boost.Python Internals Boost</title>
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="boost-python-internals-logo">
+<h1 class="title"><a class="reference" href="index.html">Boost.Python</a> Internals <a class="reference" href="../../../index.htm"><img alt="Boost" src="../../../boost.png" /></a></h1>
+<div class="section" id="a-conversation-between-brett-calcott-and-david-abrahams">
+<h1><a name="a-conversation-between-brett-calcott-and-david-abrahams">A conversation between Brett Calcott and David Abrahams</a></h1>
+<table class="field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">copyright:</th><td class="field-body">Copyright David Abrahams and Brett Calcott 2003. See
+accompanying <a class="reference" href="../../../LICENSE_1_0.txt">license</a> for terms of use.</td>
+</tr>
+</tbody>
+</table>
+<p>In both of these cases, I'm quite capable of reading code - but the
+thing I don't get from scanning the source is a sense of the
+architecture, both structurally, and temporally (er, I mean in what
+order things go on).</p>
+<ol class="arabic">
+<li><p class="first">What happens when you do the following:</p>
+<pre class="literal-block">
+struct boring {};
+...etc...
+class_&lt;boring&gt;(&quot;boring&quot;)
+    ;
+</pre>
+</li>
+</ol>
+<p>There seems to be a fair bit going on.</p>
+<blockquote>
+<ul class="simple">
+<li>Python needs a new ClassType to be registered.</li>
+<li>We need to construct a new type that can hold our boring struct.</li>
+<li>Inward and outward converters need to be registered for the type.</li>
+</ul>
+</blockquote>
+<p>Can you gesture in the general direction where these things are done?</p>
+<blockquote>
+<p>I only have time for a &quot;off-the-top-of-my-head&quot; answer at the moment;
+I suggest you step through the code with a debugger after reading this
+to see how it works, fill in details, and make sure I didn't forget
+anything.</p>
+<blockquote>
+<p>A new (Python) subclass of Boost.Python.Instance (see
+libs/python/src/object/class.cpp) is created by invoking
+Boost.Python.class, the metatype:</p>
+<pre class="literal-block">
+&gt;&gt;&gt; boring = Boost.Python.class(
+...     'boring'
+...   , bases_tuple       # in this case, just ()
+...   , { 
+...         '__module__' : module_name
+...       , '__doc__' : doc_string # optional
+...     }
+... )
+</pre>
+<p>A handle to this object is stuck in the m_class_object field
+of the registration associated with <tt class="literal"><span class="pre">typeid(boring)</span></tt>.  The
+registry will keep that object alive forever, even if you
+wipe out the 'boring' attribute of the extension module
+(probably not a good thing).</p>
+<p>Because you didn't specify <tt class="literal"><span class="pre">class&lt;boring,</span> <span class="pre">non_copyable,</span>
+<span class="pre">...&gt;</span></tt>, a to-python converter for boring is registered which
+copies its argument into a value_holder held by the the
+Python boring object.</p>
+<p>Because you didn't specify <tt class="literal"><span class="pre">class&lt;boring</span> <span class="pre">...&gt;(no_init)</span></tt>,
+an <tt class="literal"><span class="pre">__init__</span></tt> function object is added to the class
+dictionary which default-constructs a boring in a
+value_holder (because you didn't specify some smart pointer
+or derived wrapper class as a holder) held by the Python
+boring object.</p>
+<p><tt class="literal"><span class="pre">register_class_from_python</span></tt> is used to register a
+from-python converter for <tt class="literal"><span class="pre">shared_ptr&lt;boring&gt;</span></tt>.
+<tt class="literal"><span class="pre">boost::shared_ptr</span></tt>s are special among smart pointers
+because their Deleter argument can be made to manage the
+whole Python object, not just the C++ object it contains, no
+matter how the C++ object is held.</p>
+<p>If there were any <tt class="literal"><span class="pre">bases&lt;&gt;</span></tt>, we'd also be registering the
+relationship between these base classes and boring in the
+up/down cast graph (<tt class="literal"><span class="pre">inheritance.[hpp/cpp]</span></tt>).</p>
+<p>In earlier versions of the code, we'd be registering lvalue
+from-python converters for the class here, but now
+from-python conversion for wrapped classes is handled as a
+special case, before consulting the registry, if the source
+Python object's metaclass is the Boost.Python metaclass.</p>
+<p>Hmm, that from-python converter probably ought to be handled
+the way class converters are, with no explicit conversions
+registered.</p>
+</blockquote>
+</blockquote>
+<ol class="arabic" start="2">
+<li><p class="first">Can you give a brief overview of the data structures that are
+present in the registry</p>
+<blockquote>
+<p>The registry is simple: it's just a map from typeid -&gt;
+registration (see boost/python/converter/registrations.hpp).
+<tt class="literal"><span class="pre">lvalue_chain</span></tt> and <tt class="literal"><span class="pre">rvalue_chain</span></tt> are simple endogenous
+linked lists.</p>
+<p>If you want to know more, just ask.</p>
+<p>If you want to know about the cast graph, ask me something specific in
+a separate message.</p>
+</blockquote>
+<p>and an overview of the process that happens as a type makes its
+way from c++ to python and back again.</p>
+</li>
+</ol>
+<blockquote>
+<p>Big subject.  I suggest some background reading: look for relevant
+info in the LLNL progress reports and the messages they link to.
+Also,</p>
+<blockquote>
+<p><a class="reference" href="http://mail.python.org/pipermail/c++-sig/2002-May/001023.html">http://mail.python.org/pipermail/c++-sig/2002-May/001023.html</a></p>
+<p><a class="reference" href="http://mail.python.org/pipermail/c++-sig/2002-December/003115.html">http://mail.python.org/pipermail/c++-sig/2002-December/003115.html</a></p>
+<p><a class="reference" href="http://aspn.activestate.com/ASPN/Mail/Message/1280898">http://aspn.activestate.com/ASPN/Mail/Message/1280898</a></p>
+<p><a class="reference" href="http://mail.python.org/pipermail/c++-sig/2002-July/001755.html">http://mail.python.org/pipermail/c++-sig/2002-July/001755.html</a></p>
+</blockquote>
+<p>from c++ to python:</p>
+<blockquote>
+<p>It depends on the type and the call policies in use or, for
+<tt class="literal"><span class="pre">call&lt;&gt;(...)</span></tt>, <tt class="literal"><span class="pre">call_method&lt;&gt;(...)</span></tt>, or <tt class="literal"><span class="pre">object(...)</span></tt>, if
+<tt class="literal"><span class="pre">ref</span></tt> or <tt class="literal"><span class="pre">ptr</span></tt> is used.  There are also two basic
+categories to to-python conversion, &quot;return value&quot; conversion
+(for Python-&gt;C++ calls) and &quot;argument&quot; conversion (for
+C++-&gt;Python calls and explicit <tt class="literal"><span class="pre">object()</span></tt> conversions).  The
+behavior of these two categories differs subtly in various ways
+whose details I forget at the moment.  You can probably find
+the answers in the above references, and certainly in the code.</p>
+<p>The &quot;default&quot; case is by-value (copying) conversion, which uses
+to_python_value as a to-python converter.</p>
+<blockquote>
+<p>Since there can sensibly be only one way to convert any type
+to python (disregarding the idea of scoped registries for the
+moment), it makes sense that to-python conversions can be
+handled by specializing a template.  If the type is one of
+the types handled by a built-in conversion
+(builtin_converters.hpp), the corresponding template
+specialization of to_python_value gets used.</p>
+<p>Otherwise, to_python_value uses the <tt class="literal"><span class="pre">m_to_python</span></tt>
+function in the registration for the C++ type.</p>
+</blockquote>
+<p>Other conversions, like by-reference conversions, are only
+available for wrapped classes, and are requested explicitly by
+using <tt class="literal"><span class="pre">ref(...)</span></tt>, <tt class="literal"><span class="pre">ptr(...)</span></tt>, or by specifying different
+CallPolicies for a call, which can cause a different to-python
+converter to be used.  These conversions are never registered
+anywhere, though they do need to use the registration to find
+the Python class corresponding to the C++ type being referred
+to.  They just build a new Python instance and stick the
+appropriate Holder instance in it.</p>
+</blockquote>
+<p>from python to C++:</p>
+<blockquote>
+<p>Once again I think there is a distinction between &quot;return value&quot;
+and &quot;argument&quot; conversions, and I forget exactly what that is.</p>
+<p>What happens depends on whether an lvalue conversion is needed
+(see <a class="reference" href="http://mail.python.org/pipermail/c++-sig/2002-May/001023.html">http://mail.python.org/pipermail/c++-sig/2002-May/001023.html</a>)
+All lvalue conversions are also registered in a type's rvalue
+conversion chain, since when an rvalue will do, an lvalue is
+certainly good enough.</p>
+<p>An lvalue conversion can be done in one step (just get me the
+pointer to the object - it can be <tt class="literal"><span class="pre">NULL</span></tt> if no conversion is
+possible) while an rvalue conversion requires two steps to
+support wrapped function overloading and multiple converters for
+a given C++ target type: first tell me if a conversion is
+possible, then construct the converted object as a second step.</p>
+</blockquote>
+</blockquote>
+</div>
+</div>
+<hr class="footer"/>
+<div class="footer">
+<a class="reference" href="internals.rst">View document source</a>.
+Generated on: 2003-09-12 14:51 UTC.
+Generated by <a class="reference" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+</div>
+</body>
+</html>

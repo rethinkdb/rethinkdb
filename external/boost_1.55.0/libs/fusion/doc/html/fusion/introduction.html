@@ -1,0 +1,155 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Introduction</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="prev" href="preface.html" title="Preface">
+<link rel="next" href="quick_start.html" title="Quick Start">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="preface.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="quick_start.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="fusion.introduction"></a><a class="link" href="introduction.html" title="Introduction">Introduction</a>
+</h2></div></div></div>
+<p>
+      An advantage other languages such as Python and Lisp/ Scheme, ML and Haskell,
+      etc., over C++ is the ability to have heterogeneous containers that can hold
+      arbitrary element types. All the containers in the standard library can only
+      hold a specific type. A <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code>
+      can only hold <code class="computeroutput"><span class="keyword">int</span></code>s. A <code class="computeroutput"><span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;</span></code> can
+      only hold elements of type <code class="computeroutput"><span class="identifier">X</span></code>,
+      and so on.
+    </p>
+<p>
+      True, you can use inheritance to make the containers hold different types,
+      related through subclassing. However, you have to hold the objects through
+      a pointer or smart reference of some sort. Doing this, you'll have to rely
+      on virtual functions to provide polymorphic behavior since the actual type
+      is erased as soon as you store a pointer to a derived class to a pointer to
+      its base. The held objects must be related: you cannot hold objects of unrelated
+      types such as <code class="computeroutput"><span class="keyword">char</span></code>, <code class="computeroutput"><span class="keyword">int</span></code>, <code class="computeroutput"><span class="keyword">class</span>
+      <span class="identifier">X</span></code>, <code class="computeroutput"><span class="keyword">float</span></code>,
+      etc. Oh sure you can use something like <a href="http://boost.org/doc/html/any.html" target="_top">Boost.Any</a>
+      to hold arbitrary types, but then you pay more in terms of runtime costs and
+      due to the fact that you practically erased all type information, you'll have
+      to perform dangerous casts to get back the original type.
+    </p>
+<p>
+      The <a href="http://www.boost.org/libs/tuple/doc/tuple_users_guide.html" target="_top">Boost.Tuple</a>
+      library written by <a href="http://www.boost.org/people/jaakko_jarvi.htm" target="_top">Jaakko
+      Jarvi</a> provides heterogeneous containers in C++. The <code class="computeroutput"><span class="identifier">tuple</span></code>
+      is a basic data structure that can hold heterogeneous types. It's a good first
+      step, but it's not complete. What's missing are the algorithms. It's nice that
+      we can store and retrieve data to and from tuples, pass them around as arguments
+      and return types. As it is, the <a href="http://www.boost.org/libs/tuple/doc/tuple_users_guide.html" target="_top">Boost.Tuple</a>
+      facility is already very useful. Yet, as soon as you use it more often, usage
+      patterns emerge. Eventually, you collect these patterns into algorithm libraries.
+    </p>
+<p>
+      Hmmm, kinda reminds us of STL right? Right! Can you imagine how it would be
+      like if you used STL without the algorithms? Everyone will have to reinvent
+      their own <span class="emphasis"><em>algorithm</em></span> wheels.
+    </p>
+<p>
+      Fusion is a library and a framework similar to both <a href="http://en.wikipedia.org/wiki/Standard_Template_Library" target="_top">STL</a>
+      and the boost <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>.
+      The structure is modeled after <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>,
+      which is modeled after <a href="http://en.wikipedia.org/wiki/Standard_Template_Library" target="_top">STL</a>.
+      It is named "fusion" because the library is reminiscent of the "fusion"
+      of compile time meta-programming with runtime programming. The library inherently
+      has some interesting flavors and characteristics of both <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>
+      and <a href="http://en.wikipedia.org/wiki/Standard_Template_Library" target="_top">STL</a>.
+      It lives in the twilight zone between compile time meta-programming and run
+      time programming. <a href="http://en.wikipedia.org/wiki/Standard_Template_Library" target="_top">STL</a>
+      containers work on values. MPL containers work on types. Fusion containers
+      work on both types and values.
+    </p>
+<p>
+      Unlike <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>, Fusion
+      algorithms are lazy and non sequence-type preserving. What does that mean?
+      It means that when you operate on a sequence through a Fusion algorithm that
+      returns a sequence, the sequence returned may not be of the same class as the
+      original. This is by design. Runtime efficiency is given a high priority. Like
+      <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>, and unlike
+      <a href="http://en.wikipedia.org/wiki/Standard_Template_Library" target="_top">STL</a>,
+      fusion algorithms are functional in nature such that algorithms are non mutating
+      (no side effects). However, due to the high cost of returning full sequences
+      such as vectors and lists, <span class="emphasis"><em>Views</em></span> are returned from Fusion
+      algorithms instead. For example, the <a class="link" href="algorithm/transformation/functions/transform.html" title="transform"><code class="computeroutput"><span class="identifier">transform</span></code></a> algorithm does not actually
+      return a transformed version of the original sequence. <a class="link" href="algorithm/transformation/functions/transform.html" title="transform"><code class="computeroutput"><span class="identifier">transform</span></code></a> returns a <a class="link" href="view/transform_view.html" title="transform_view"><code class="computeroutput"><span class="identifier">transform_view</span></code></a>. This view holds a
+      reference to the original sequence plus the transform function. Iteration over
+      the <a class="link" href="view/transform_view.html" title="transform_view"><code class="computeroutput"><span class="identifier">transform_view</span></code></a>
+      will apply the transform function over the sequence elements on demand. This
+      <span class="emphasis"><em>lazy</em></span> evaluation scheme allows us to chain as many algorithms
+      as we want without incurring a high runtime penalty.
+    </p>
+<p>
+      The <span class="emphasis"><em>lazy</em></span> evaluation scheme where algorithms return views
+      allows operations such as <a class="link" href="algorithm/transformation/functions/push_back.html" title="push_back"><code class="computeroutput"><span class="identifier">push_back</span></code></a> to be totally generic. In
+      Fusion, <a class="link" href="algorithm/transformation/functions/push_back.html" title="push_back"><code class="computeroutput"><span class="identifier">push_back</span></code></a> is actually a generic algorithm
+      that works on all sequences. Given an input sequence <code class="computeroutput"><span class="identifier">s</span></code>
+      and a value <code class="computeroutput"><span class="identifier">x</span></code>, Fusion's <a class="link" href="algorithm/transformation/functions/push_back.html" title="push_back"><code class="computeroutput"><span class="identifier">push_back</span></code></a> algorithm simply returns
+      a <a class="link" href="view/joint_view.html" title="joint_view"><code class="computeroutput"><span class="identifier">joint_view</span></code></a>:
+      a view that holds a reference to the original sequence <code class="computeroutput"><span class="identifier">s</span></code>
+      and the value <code class="computeroutput"><span class="identifier">x</span></code>. Functions
+      that were once sequence specific and need to be implemented N times over N
+      different sequences are now implemented only once.
+    </p>
+<p>
+      Fusion provides full round compatibility with <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>.
+      Fusion sequences are fully conforming <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>
+      sequences and <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>
+      sequences are fully compatible with Fusion. You can work with Fusion sequences
+      on <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a> if you
+      wish to work solely on types <a href="#ftn.fusion.introduction.f0" class="footnote" name="fusion.introduction.f0"><sup class="footnote">[1]</sup></a>. In <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>,
+      Fusion sequences follow <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>'s
+      sequence-type preserving semantics (i.e. algorithms preserve the original sequence
+      type. e.g. transforming a vector returns a vector). You can also convert from
+      an <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a> sequence
+      to a Fusion sequence. For example, there are times when it is convenient to
+      work solely on <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>
+      using pure <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>
+      sequences, then, convert them to Fusion sequences as a final step before actual
+      instantiation of real runtime objects with data. You have the best of both
+      worlds.
+    </p>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.fusion.introduction.f0" class="footnote"><p><a href="#fusion.introduction.f0" class="para"><sup class="para">[1] </sup></a>
+        Choose <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>
+        over fusion when doing pure type calculations. Once the static type calculation
+        is finished, you can instantiate a fusion sequence (see <a class="link" href="container/conversion/functions.html" title="Functions">Conversion</a>)
+        for the runtime part.
+      </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="preface.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="quick_start.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

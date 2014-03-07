@@ -1,0 +1,294 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Stream Based Parser API</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../parse_api.html" title="Parser API">
+<link rel="prev" href="iterator_api.html" title="Iterator Based Parser API">
+<link rel="next" href="create_parser.html" title="API for Automatic Parser Creation">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="iterator_api.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../parse_api.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="create_parser.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.reference.parse_api.stream_api"></a><a class="link" href="stream_api.html" title="Stream Based Parser API">Stream
+          Based Parser API</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.qi.reference.parse_api.stream_api.h0"></a>
+            <span class="phrase"><a name="spirit.qi.reference.parse_api.stream_api.description"></a></span><a class="link" href="stream_api.html#spirit.qi.reference.parse_api.stream_api.description">Description</a>
+          </h6>
+<p>
+            The library provides a couple of Standard IO <a href="http://www.cppreference.com/wiki/io/io_flags#manipulators" target="_top">Manipulators</a>
+            allowing to integrate <span class="emphasis"><em>Spirit.Qi</em></span> input parsing facilities
+            with Standard input streams. These parser manipulators have two forms.
+            The first form, <code class="computeroutput"><span class="identifier">match</span></code>,
+            works on the character level. The second <code class="computeroutput"><span class="identifier">phrase_match</span></code>
+            works on the phrase level and requires a skip parser. Both versions can
+            take in attributes by reference that will hold the parsed values on a
+            successful parse.
+          </p>
+<h6>
+<a name="spirit.qi.reference.parse_api.stream_api.h1"></a>
+            <span class="phrase"><a name="spirit.qi.reference.parse_api.stream_api.header"></a></span><a class="link" href="stream_api.html#spirit.qi.reference.parse_api.stream_api.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/stream/match_manip.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_match</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            For variadic attributes:
+          </p>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/stream/match_manip_attr.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_match_attr</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            The variadic attributes version of the API allows one or more attributes
+            to be passed into the parse manipulators. The manipulators taking two
+            or more attributes are usable when the parser expression is a <a class="link" href="../operator/sequence.html" title="Sequence Parser (a &gt;&gt; b)">Sequence</a>
+            only. In this case each of the attributes passed have to match the corresponding
+            part of the sequence.
+          </p>
+<p>
+            For the API functions deducing the correct (matching) parser type from
+            the supplied attribute type:
+          </p>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/match_auto.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_match_auto</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.parse_api.stream_api.h2"></a>
+            <span class="phrase"><a name="spirit.qi.reference.parse_api.stream_api.namespace"></a></span><a class="link" href="stream_api.html#spirit.qi.reference.parse_api.stream_api.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">match</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_match</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">skip_flag</span><span class="special">::</span><span class="identifier">postskip</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">skip_flag</span><span class="special">::</span><span class="identifier">dont_postskip</span></code>
+                    </p>
+                  </td></tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.parse_api.stream_api.h3"></a>
+            <span class="phrase"><a name="spirit.qi.reference.parse_api.stream_api.synopsis"></a></span><a class="link" href="stream_api.html#spirit.qi.reference.parse_api.stream_api.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">spirit</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">qi</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">&gt;</span>
+    <span class="keyword">inline</span> <span class="special">&lt;</span><span class="identifier">unspecified</span><span class="special">&gt;</span>
+    <span class="identifier">match</span><span class="special">(</span>
+        <span class="identifier">Expr</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">xpr</span><span class="special">);</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Expr</span>
+      <span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Attr1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Attr2</span><span class="special">,</span> <span class="special">...,</span> <span class="keyword">typename</span> <span class="identifier">AttrN</span><span class="special">&gt;</span>
+    <span class="keyword">inline</span> <span class="special">&lt;</span><span class="identifier">unspecified</span><span class="special">&gt;</span>
+    <span class="identifier">match</span><span class="special">(</span>
+        <span class="identifier">Expr</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">xpr</span>
+      <span class="special">,</span> <span class="identifier">Attr1</span><span class="special">&amp;</span> <span class="identifier">attr1</span><span class="special">,</span> <span class="identifier">Attr2</span><span class="special">&amp;</span> <span class="identifier">attr2</span><span class="special">,</span> <span class="special">...,</span> <span class="identifier">AttrN</span><span class="special">&amp;</span> <span class="identifier">attrN</span><span class="special">);</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Skipper</span><span class="special">&gt;</span>
+    <span class="keyword">inline</span> <span class="special">&lt;</span><span class="identifier">unspecified</span><span class="special">&gt;</span>
+    <span class="identifier">phrase_match</span><span class="special">(</span>
+        <span class="identifier">Expr</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">expr</span>
+      <span class="special">,</span> <span class="identifier">Skipper</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">s</span>
+      <span class="special">,</span> <span class="identifier">BOOST_SCOPED_ENUM</span><span class="special">(</span><span class="identifier">skip_flag</span><span class="special">)</span> <span class="identifier">post_skip</span> <span class="special">=</span> <span class="identifier">skip_flag</span><span class="special">::</span><span class="identifier">postskip</span><span class="special">);</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Skipper</span>
+      <span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Attr1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Attr2</span><span class="special">,</span> <span class="special">...,</span> <span class="keyword">typename</span> <span class="identifier">AttrN</span><span class="special">&gt;</span>
+    <span class="keyword">inline</span> <span class="special">&lt;</span><span class="identifier">unspecified</span><span class="special">&gt;</span>
+    <span class="identifier">phrase_match</span><span class="special">(</span>
+        <span class="identifier">Expr</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">expr</span>
+      <span class="special">,</span> <span class="identifier">Skipper</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">s</span>
+      <span class="special">,</span> <span class="identifier">Attr1</span><span class="special">&amp;</span> <span class="identifier">attr1</span><span class="special">,</span> <span class="identifier">Attr2</span><span class="special">&amp;</span> <span class="identifier">attr2</span><span class="special">,</span> <span class="special">...,</span> <span class="identifier">AttrN</span><span class="special">&amp;</span> <span class="identifier">attrN</span><span class="special">);</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Skipper</span>
+      <span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Attr1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Attr2</span><span class="special">,</span> <span class="special">...,</span> <span class="keyword">typename</span> <span class="identifier">AttrN</span><span class="special">&gt;</span>
+    <span class="keyword">inline</span> <span class="special">&lt;</span><span class="identifier">unspecified</span><span class="special">&gt;</span>
+    <span class="identifier">phrase_match</span><span class="special">(</span>
+        <span class="identifier">Expr</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">expr</span>
+      <span class="special">,</span> <span class="identifier">Skipper</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">s</span>
+      <span class="special">,</span> <span class="identifier">BOOST_SCOPED_ENUM</span><span class="special">(</span><span class="identifier">skip_flag</span><span class="special">)</span> <span class="identifier">post_skip</span>
+      <span class="special">,</span> <span class="identifier">Attr1</span><span class="special">&amp;</span> <span class="identifier">attr1</span><span class="special">,</span> <span class="identifier">Attr2</span><span class="special">&amp;</span> <span class="identifier">attr2</span><span class="special">,</span> <span class="special">...,</span> <span class="identifier">AttrN</span><span class="special">&amp;</span> <span class="identifier">attrN</span><span class="special">);</span>
+<span class="special">}}}</span>
+</pre>
+<p>
+            <span class="emphasis"><em>Spirit.Qi</em></span> parser API functions based on the automatic
+            creation of the matching parser type:
+          </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">spirit</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">qi</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Attr</span><span class="special">&gt;</span>
+    <span class="keyword">inline</span> <span class="special">&lt;</span><span class="identifier">unspecified</span><span class="special">&gt;</span>
+    <span class="identifier">match</span><span class="special">(</span>
+        <span class="identifier">Attr</span><span class="special">&amp;</span> <span class="identifier">attr</span><span class="special">);</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Attr</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Skipper</span><span class="special">&gt;</span>
+    <span class="keyword">inline</span> <span class="special">&lt;</span><span class="identifier">unspecified</span><span class="special">&gt;</span>
+    <span class="identifier">phrase_match</span><span class="special">(</span>
+        <span class="identifier">Attr</span><span class="special">&amp;</span> <span class="identifier">attr</span>
+      <span class="special">,</span> <span class="identifier">Skipper</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">s</span>
+      <span class="special">,</span> <span class="identifier">BOOST_SCOPED_ENUM</span><span class="special">(</span><span class="identifier">skip_flag</span><span class="special">)</span> <span class="identifier">post_skip</span> <span class="special">=</span> <span class="identifier">skip_flag</span><span class="special">::</span><span class="identifier">postskip</span><span class="special">);</span>
+<span class="special">}}}</span>
+</pre>
+<p>
+            All functions above return a standard IO stream manipulator instance
+            (see <a href="http://www.cppreference.com/wiki/io/io_flags#manipulators" target="_top">Manipulators</a>),
+            which when streamed from an input stream will result in parsing the input
+            using the embedded <span class="emphasis"><em>Spirit.Qi</em></span> parser expression.
+            Any error (or failed parse) occurring during the invocation of the <span class="emphasis"><em>Spirit.Qi</em></span>
+            parsers will be reflected in the streams status flag (<code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">failbit</span></code>
+            will be set).
+          </p>
+<p>
+            The maximum number of supported arguments is limited by the preprocessor
+            constant <code class="computeroutput"><span class="identifier">SPIRIT_ARGUMENTS_LIMIT</span></code>.
+            This constant defaults to the value defined by the preprocessor constant
+            <code class="computeroutput"><span class="identifier">PHOENIX_LIMIT</span></code> (which
+            in turn defaults to <code class="computeroutput"><span class="number">10</span></code>).
+          </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The variadic manipulators with two or more attributes internally combine
+              references to all passed attributes into a <code class="computeroutput"><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">vector</span></code>
+              and forward this as a combined attribute to the corresponding manipulator
+              taking one attribute.
+            </p></td></tr>
+</table></div>
+<p>
+            The <code class="computeroutput"><span class="identifier">phrase_match</span></code> manipulators
+            not taking an explicit <code class="computeroutput"><span class="identifier">skip_flag</span></code>
+            as one of their arguments invoke the passed skipper after a successful
+            match of the parser expression. This can be inhibited by using the other
+            versions of that manipulator while passing <code class="computeroutput"><span class="identifier">skip_flag</span><span class="special">::</span><span class="identifier">dont_postskip</span></code>
+            to the corresponding argument.
+          </p>
+<h6>
+<a name="spirit.qi.reference.parse_api.stream_api.h4"></a>
+            <span class="phrase"><a name="spirit.qi.reference.parse_api.stream_api.template_parameters"></a></span><a class="link" href="stream_api.html#spirit.qi.reference.parse_api.stream_api.template_parameters">Template
+            parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Expr</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      An expression that can be converted to a Qi parser.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Skipper</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parser used to skip white spaces.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Attr</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      An attribute type utilized to create the corresponding parser
+                      type from.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Attr1</span></code>, <code class="computeroutput"><span class="identifier">Attr2</span></code>, ..., <code class="computeroutput"><span class="identifier">AttrN</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      One or more attributes.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="iterator_api.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../parse_api.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="create_parser.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

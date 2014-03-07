@@ -1,0 +1,77 @@
+# Jamfile.v2
+#
+# Copyright (c) 2007-2009
+# Steven Watanabe
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt
+
+import testing ;
+
+warning-options = <warnings>all <warnings-as-errors>on ;
+warning-compilers =
+    <toolset>msvc
+;
+
+project boost/units/test :
+    requirements
+        <implicit-dependency>/boost//headers
+        <include>../../..
+        <toolset>msvc:<asynch-exceptions>on
+        $(warning-compilers):$(warning-options)
+        # This warning comes from the test library.
+        <toolset>msvc:<cxxflags>"/wd4701"
+        # The comes from the exception library
+        <toolset>msvc,<toolset-msvc:version>7.1:<cxxflags>"/wd4800"
+;
+
+alias test_framework : /boost//unit_test_framework/<warnings-as-errors>off ;
+
+compile test_predicates.cpp ;
+compile test_negative_denominator.cpp ;
+compile test_dimensionless_ice1.cpp ;
+compile test_dimensionless_ice2.cpp ;
+compile test_mixed_value_types.cpp ;
+compile test_complicated_system.cpp ;
+compile test_reduce_unit.cpp ;
+compile test_unscale.cpp ;
+compile test_constants.cpp ;
+
+run test_dimensionless_quantity.cpp ;
+run test_implicit_conversion.cpp ;
+run test_quantity.cpp ;
+run test_unit.cpp ;
+run test_conversion.cpp test_framework ;
+run test_base_dimension.cpp ;
+run test_absolute.cpp ;
+run test_default_conversion.cpp ;
+run test_cmath.cpp ;
+run test_limits.cpp ;
+run test_custom_unit.cpp ;
+run test_scaled_conversion.cpp ;
+run test_lambda.cpp ;
+run test_scaled_unit.cpp test_framework ;
+run test_output.cpp test_framework /boost//regex ;
+run test_trig.cpp test_framework ;
+
+compile-fail fail_implicit_conversion.cpp ;
+compile-fail fail_quantity_construct.cpp ;
+compile-fail fail_quantity_assign.cpp ;
+compile-fail fail_quantity_add.cpp ;
+compile-fail fail_quantity_subtract.cpp ;
+compile-fail fail_quantity_add_assign.cpp ;
+compile-fail fail_quantity_sub_assign.cpp ;
+compile-fail fail_quantity_scalar_add.cpp ;
+compile-fail fail_quantity_scalar_sub.cpp ;
+compile-fail fail_quantity_unit_add.cpp ;
+compile-fail fail_quantity_unit_subtract.cpp ;
+compile-fail fail_scalar_quantity_add.cpp ;
+compile-fail fail_scalar_quantity_sub.cpp ;
+compile-fail fail_unit_quantity_add.cpp ;
+compile-fail fail_unit_quantity_subtract.cpp ;
+compile-fail fail_adl_detail.cpp ;
+compile-fail fail_heterogeneous_unit.cpp ;
+compile-fail fail_base_dimension.cpp ;
+compile-fail fail_add_temperature.cpp ;
+compile-fail fail_quantity_non_unit.cpp ;

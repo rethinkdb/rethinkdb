@@ -1,0 +1,365 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Statement]
+
+[*/Lazy statements.../]
+
+The expressions presented so far are sufficiently
+powerful to construct quite elaborate structures. We have presented lazy-functions
+and lazy-operators. How about lazy-statements? First, an appetizer:
+
+Print all odd-numbered contents of an STL container using `std::for_each`
+([@../../example/all_odds.cpp all_odds.cpp]):
+
+    std::for_each(c.begin(), c.end(),
+        if_(arg1 % 2 == 1)
+        [
+            cout << arg1 << ' '
+        ]
+    );
+
+Huh? Is that valid C++? Read on...
+
+Yes, it is valid C++. The sample code above is as close as you can get to the
+syntax of C++. This stylized C++ syntax differs from actual C++ code. First, the
+`if` has a trailing underscore. Second, the block uses square brackets instead
+of the familiar curly braces {}.
+
+[note *C++ in C++?*
+
+    In as much as __spirit__ attempts to mimic EBNF in C++,
+    Phoenix attempts to mimic C++ in C++!!!
+]
+
+[note Unlike lazy functions and lazy operators, lazy statements always
+return void.]
+
+Here are more examples with annotations. The code almost speaks for itself.
+
+[section Block Statement]
+
+[/    #include <boost/phoenix/statement/sequence.hpp>]
+
+Syntax:
+
+    statement,
+    statement,
+    ....
+    statement
+
+Basically, these are comma separated statements. Take note that unlike the C/C++
+semicolon, the comma is a separator put *in-between* statements. This is like
+Pascal's semicolon separator, rather than C/C++'s semicolon terminator. For
+example:
+
+    statement,
+    statement,
+    statement, // ERROR!
+
+Is an error. The last statement should not have a comma. Block statements can be
+grouped using the parentheses. Again, the last statement in a group should not
+have a trailing comma.
+
+    statement,
+    statement,
+    (
+        statement,
+        statement
+    ),
+    statement
+
+Outside the square brackets, block statements should be grouped. For example:
+
+    std::for_each(c.begin(), c.end(),
+        (
+            do_this(arg1),
+            do_that(arg1)
+        )
+    );
+
+Wrapping a comma operator chain around a parentheses pair blocks the
+interpretation as an argument separator.  The reason for the exception for
+the square bracket operator is that the operator always takes exactly one
+argument, so it "transforms" any attempt at multiple arguments with a comma
+operator chain (and spits out an error for zero arguments).
+
+[endsect]
+
+[section if_ Statement]
+
+    #include <boost/phoenix/statement/if.hpp>
+
+We have seen the `if_` statement. The syntax is:
+
+    if_(conditional_expression)
+    [
+        sequenced_statements
+    ]
+
+[endsect]
+
+[section '''if_else_''' Statement]
+
+    #include <boost/phoenix/statement/if.hpp>
+
+The syntax is
+
+    if_(conditional_expression)
+    [
+        sequenced_statements
+    ]
+    .else_
+    [
+        sequenced_statements
+    ]
+
+Take note that `else` has a leading dot and a trailing underscore: `.else_`
+
+Example: This code prints out all the elements and appends `" > 5"`, `" == 5"`
+or `" < 5"` depending on the element's actual value:
+
+    std::for_each(c.begin(), c.end(),
+        if_(arg1 > 5)
+        [
+            cout << arg1 << " > 5\n"
+        ]
+        .else_
+        [
+            if_(arg1 == 5)
+            [
+                cout << arg1 << " == 5\n"
+            ]
+            .else_
+            [
+                cout << arg1 << " < 5\n"
+            ]
+        ]
+    );
+
+Notice how the `if_else_` statement is nested.
+
+[/note `if_` is one example of a customized actor. See [link phoenix.advanced.extending.extending_actors Extending Actors] for more details]
+
+[endsect]
+
+[section switch_ Statement]
+
+    #include <boost/phoenix/statement/switch.hpp>
+
+The syntax is:
+
+    switch_(integral_expression)
+    [
+        case_<integral_value>(sequenced_statements),
+        ...
+        default_<integral_value>(sequenced_statements)
+    ]
+
+A comma separated list of cases, and an optional default can be provided. Note unlike
+a normal switch statement, cases do not fall through.
+
+Example: This code prints out `"one"`, `"two"` or `"other value"` depending on the
+element's actual value:
+
+    std::for_each(c.begin(), c.end(),
+        switch_(arg1)
+        [
+            case_<1>(std::cout << val("one") << '\n'),
+            case_<2>(std::cout << val("two") << '\n'),
+            default_(std::cout << val("other value") << '\n')
+        ]
+    );
+
+[endsect]
+
+[section while_ Statement]
+
+    #include <boost/phoenix/statement/while.hpp>
+
+The syntax is:
+
+    while_(conditional_expression)
+    [
+        sequenced_statements
+    ]
+
+Example: This code decrements each element until it reaches zero and prints out
+the number at each step. A newline terminates the printout of each value.
+
+    std::for_each(c.begin(), c.end(),
+        (
+            while_(arg1--)
+            [
+                cout << arg1 << ", "
+            ],
+            cout << val("\n")
+        )
+    );
+
+[endsect]
+
+[section '''do_while_''' Statement]
+
+    #include <boost/phoenix/statement/do_while.hpp>
+
+The syntax is:
+
+    do_
+    [
+        sequenced_statements
+    ]
+    .while_(conditional_expression)
+
+Again, take note that `while` has a leading dot and a trailing underscore:
+`.while_`
+
+Example: This code is almost the same as the previous example above with a
+slight twist in logic.
+
+    std::for_each(c.begin(), c.end(),
+        (
+            do_
+            [
+                cout << arg1 << ", "
+            ]
+            .while_(arg1--),
+            cout << val("\n")
+        )
+    );
+
+[/note `do_` is one example of a customized actor. See [link phoenix.advanced.extending.extending_actors Extending Actors] for more details]
+
+[endsect]
+
+[section:for_statement for_ Statement]
+
+    #include <boost/phoenix/statement/for.hpp>
+
+The syntax is:
+
+    for_(init_statement, conditional_expression, step_statement)
+    [
+        sequenced_statements
+    ]
+
+It is again very similar to the C++ for statement. Take note that the
+init_statement, conditional_expression and '''step_statement''' are separated by the
+comma instead of the semi-colon and each must be present (i.e. `for_(,,)` is
+invalid). This is a case where the [link phoenix.modules.core.nothing `nothing`]
+actor can be useful.
+
+Example: This code prints each element N times where N is the element's value. A
+newline terminates the printout of each value.
+
+    int iii;
+    std::for_each(c.begin(), c.end(),
+        (
+            for_(ref(iii) = 0, ref(iii) < arg1, ++ref(iii))
+            [
+                cout << arg1 << ", "
+            ],
+            cout << val("\n")
+        )
+    );
+
+As before, all these are lazily evaluated. The result of such statements are in
+fact expressions that are passed on to STL's for_each function. In the viewpoint
+of `for_each`, what was passed is just a functor, no more, no less.
+
+[endsect]
+
+[section try_ catch_ Statement]
+
+    #include <boost/phoenix/statement/try_catch.hpp>
+
+The syntax is:
+
+    try_
+    [
+        sequenced_statements
+    ]
+    .catch_<exception_type>()
+    [
+        sequenced_statements
+    ]
+    ...
+    .catch_all
+    [
+        sequenced_statement
+    ]
+
+Note the usual underscore after try and catch, and the extra parentheses required
+after the catch.
+
+[/note `do_` is one example of a customized actor. See [link phoenix.advanced.extending.extending_actors Extending Actors] for more details]
+
+Example: The following code calls the (lazy) function `f` for each element, and
+prints messages about different exception types it catches.
+
+    try_
+    [
+        f(arg1)
+    ]
+    .catch_<runtime_error>()
+    [
+        cout << val("caught runtime error or derived\n")
+    ]
+    .catch_<exception>()
+    [
+        cout << val("caught exception or derived\n")
+    ]
+    .catch_all
+    [
+        cout << val("caught some other type of exception\n")
+    ]
+
+[endsect]
+
+[section throw_]
+
+    #include <boost/phoenix/statement/throw.hpp>
+
+As a natural companion to the try/catch support, the statement module provides
+lazy throwing and re-throwing of exceptions.
+
+The syntax to throw an exception is:
+
+    throw_(exception_expression)
+
+The syntax to re-throw an exception is:
+
+    throw_()
+
+Example: This code extends the try/catch example, re-throwing exceptions derived from
+runtime_error or exception, and translating other exception types to runtime_errors.
+
+    try_
+    [
+        f(arg1)
+    ]
+    .catch_<runtime_error>()
+    [
+        cout << val("caught runtime error or derived\n"),
+        throw_()
+    ]
+    .catch_<exception>()
+    [
+        cout << val("caught exception or derived\n"),
+        throw_()
+    ]
+    .catch_all
+    [
+        cout << val("caught some other type of exception\n"),
+        throw_(runtime_error("translated exception"))
+    ]
+
+[endsect]
+
+[endsect]

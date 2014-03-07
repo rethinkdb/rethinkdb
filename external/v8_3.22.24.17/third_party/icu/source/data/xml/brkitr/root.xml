@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+ Copyright (c) 2010 International Business Machines Corporation and others. All rights reserved.
+-->
+<!DOCTYPE ldml SYSTEM "http://www.unicode.org/repos/cldr/trunk/common/dtd/ldml.dtd"
+[
+   <!ENTITY % icu SYSTEM "http://www.unicode.org/repos/cldr/trunk/common/dtd/ldmlICU.dtd">
+   %icu;
+]
+>
+<ldml>
+    <identity>
+        <version number="$Revision: 1.1 $"/>
+        <generation date="$Date: 2006/04/21 00:54:07 $"/>
+        <language type="root"/> 
+    </identity>
+    <special xmlns:icu="http://www.icu-project.org/">
+        <icu:breakIteratorData>
+            <icu:boundaries>
+                <icu:grapheme icu:dependency="char.brk"/>
+                <icu:word     icu:dependency="word.brk"/>
+                <icu:line     icu:dependency="line.brk"/>
+                <icu:sentence icu:dependency="sent.brk"/>
+                <icu:title    icu:dependency="title.brk"/>
+            </icu:boundaries>
+            <icu:dictionaries>
+                <icu:dictionary type="Thai" icu:dependency="thaidict.ctd"/>
+                <icu:dictionary type="Hani" icu:dependency="cjdict.ctd"/>
+                <icu:dictionary type="Hira" icu:dependency="cjdict.ctd"/>
+                <icu:dictionary type="Kata" icu:dependency="cjdict.ctd"/>
+            </icu:dictionaries>
+        </icu:breakIteratorData>
+    </special>
+</ldml>
+

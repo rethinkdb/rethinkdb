@@ -1,0 +1,319 @@
+# Doxyfile 1.5.5
+
+#---------------------------------------------------------------------------
+# Project related configuration options
+#---------------------------------------------------------------------------
+DOXYFILE_ENCODING      = UTF-8
+PROJECT_NAME           = "Boost.Geometry (aka GGL)"
+PROJECT_NUMBER         = 
+OUTPUT_DIRECTORY       = ./doxygen_output
+CREATE_SUBDIRS         = NO
+OUTPUT_LANGUAGE        = English
+BRIEF_MEMBER_DESC      = YES
+REPEAT_BRIEF           = YES
+ABBREVIATE_BRIEF       = 
+ALWAYS_DETAILED_SEC    = YES
+INLINE_INHERITED_MEMB  = NO
+FULL_PATH_NAMES        = YES
+STRIP_FROM_PATH        = c:/_svn/boost/trunk/boost/geometry  \
+				c:/_svn/boost/trunk/libs/geometry/doc/doxygen_input/pages
+STRIP_FROM_INC_PATH    = 
+SHORT_NAMES            = NO
+JAVADOC_AUTOBRIEF      = NO
+QT_AUTOBRIEF           = NO
+MULTILINE_CPP_IS_BRIEF = NO
+INHERIT_DOCS           = YES
+SEPARATE_MEMBER_PAGES  = NO
+TAB_SIZE               = 8
+
+# The aliases are shortcuts for Doxygen documentation. 
+# Within Boost.Geometry they are used in the top section, so for both
+# Doxygen documentation and QuickBook documentation.
+# They avoid repetations and make the documentation more structured.
+# There are also qbk expressions, which might qbk defines and templates.
+
+# There are sections for
+# \brief* for various brief descriptions
+# \tparam* for various template parameters
+# \param* for various parameters
+# \return* for various return cases
+ALIASES                = qbk{1}="\xmlonly <qbk>\1</qbk> \endxmlonly" \
+			qbk{2}="\xmlonly <qbk.\1>\2</qbk.\1> \endxmlonly" \
+			brief_calc{1}="Calculates the \1 of a geometry" \
+			brief_calc2{1}="Calculate the \1 of two geometries" \
+			brief_calc2{2}="Calculate the \1 \2 two geometries" \
+			brief_check{1}="Checks if a geometry \1" \
+			brief_check2{1}="Checks if two geometries \1" \
+			brief_check12{1}="Checks if the first geometry \1 the second geometry" \
+			brief_strategy="using the specified strategy" \
+			brief_macro{1}="Macro to register a \1" \
+			brief_macro_const=" (const version)" \
+			brief_macro_getset=" (having separate get/set methods)" \
+            brief_meta{3}="Metafunction defining [*\1] as the \2 of the \3" \
+			tparam_allocator="container-allocator-type" \
+			tparam_box="Any type fulfilling a Box Concept" \
+			tparam_box_or_segment="Any type fulfilling a Box Concept or a Segment Concept" \
+			tparam_calculation="numeric type for calculation (e.g. high precision); if [*void] then it is extracted automatically from the coordinate type and (if necessary) promoted to floating point" \
+			tparam_radius="numeric type for radius (of sphere, earth)" \
+			tparam_container="container type, for example std::vector, std::deque" \
+			tparam_dimension_required="Dimension, this template parameter is required. Should contain \\[0 .. n-1\\] for an n-dimensional geometry" \
+			tparam_first_point="first point type" \
+			tparam_functor="Function or class with operator()" \
+			tparam_output_collection="output collection, either a multi-geometry, or a std::vector<Geometry> / std::deque<Geometry> etc" \
+			tparam_geometry="Any type fulfilling a Geometry Concept" \
+			tparam_geometry{1}="A type fulfilling the \1 Concept" \
+			tparam_index_required="Index, this template parameter is required. For a Box: either min_corner or max_corner. For a Segment: either 0 or 1 for first or last point." \
+			tparam_numeric="numerical type (int, double, ttmath, ...)" \
+			tparam_out{1}="A valid output iterator type, accepting geometries of \1 Concept" \
+			tparam_point="Any type fulfilling a Point Concept" \
+			tparam_range_point="Any type fulfilling a Range Concept where it range_value type fulfills the Point Concept" \
+			tparam_first_point="point type" \
+			tparam_second_point="second point type" \
+			tparam_segment_point="segment point type" \
+			tparam_strategy{1}="Any type fulfilling a \1 Strategy Concept" \
+			tparam_strategy_overlay="Compound strategy for segment intersection" \
+			param_box="A model of the specified Box Concept" \
+			param_box_or_segment="A box modelling the specified Box Concept or segment modelling the specified Segment Concept" \
+			param_geometry="A model of the specified concept" \
+			param_out{1}="The output iterator, to which \1 geometries are feeded" \
+			param_point="A model of the specified Point Concept" \
+			param_set{1}="which is set to the \1" \
+			param_strategy{1}="The strategy which will be used for \1 calculations" \
+			param_macro_type{1}="\1 type to be registered" \
+			param_macro_coortype{1}="Type of the coordinates of the \1 (e.g. double)" \
+			param_macro_coorsystem="Coordinate system (e.g. cs::cartesian)" \
+			param_macro_member{1}="Member containing \1 coordinate" \
+			param_macro_getset{2}="Method to \1 the \2 coordinate" \
+			param_range_point="A range containg points fulfilling range and point concepts" \
+			param_x="First coordinate (usually x-coordinate)" \
+			param_y="Second coordinate (usually y-coordinate)" \
+			param_z="Third coordinate (usually z-coordinate)" \
+			constructor_default{1}="Default constructor, creating an empty \1" \
+			constructor_begin_end{1}="Constructor with begin and end,  filling the \1" \
+			details_calc{2}="The free function \1 calculates the \2 of a geometry" \
+			details_calc{1}="The free function \1 calculates the \1 of a geometry" \
+			details_calc2{2}="The free function \1 calculates the \2 of two geometries" \
+			details_calc2{1}="The free function \1 calculates the \1 of two geometries" \
+			details_check12{2}="The free function \1 checks if the first geometry \2 the second geometry" \
+			details_macro{2}="The macro \1 registers a \2 such that it is recognized by Boost.Geometry and that Boost.Geometry functionality can used with the specified type." \
+			details_macro_const="The const version registers only read access to the fields, the point type is therefore read-only" \
+			details_macro_getset="The get/set version registers get and set methods separately and can be used for classes with protected member variables and get/set methods to change coordinates" \
+			details_macro_templated{2}="The type must have one template parameter, which should be a \2 type, and should not be specified. Boost.Geometry takes care of inserting the template parameter. Hence all types of this templated \1 are registered, regardless of their point type." \
+			details_default_strategy="It uses the default strategy, based on the coordinate system of the geometry." \
+			details_strategy_reasons="Reasons to specify a strategy include: use another coordinate system for calculations; construct the strategy beforehand (e.g. with the radius of the Earth); select a strategy when there are more than one available for a calculation." \
+			details_return{1}="This version with the return_ prefix returns the \1, and a template parameter must therefore be specified in the call." \
+			details_insert{1}="This version with the _insert suffix outputs the \1 to an output iterator, and a template parameter must therefore be specified in the call." \
+			details_get_set="The free functions [*get] and [*set] are two of the most important functions of Boost.Geometry, both within the library, as also for the library user. With these two functions you normally get and set coordinate values from and for a point, box, segment or sphere." \
+			details_make="Boost.Geometry uses concepts for all its geometries. It does not rely on constructors. The "make" functions are object generators creating geometries. There are overloads, currently with two or three coordinate values or ranges, to construct geometry instances" \
+			return_calc{1}="The calculated \1" \
+			return_check{1}="Returns true if the geometry \1" \
+			return_check2{1}="Returns true if two geometries \1" \
+			return_out="The output iterator" \
+            meta_geometry_type="specified geometry type" \
+            meta_point_type="point type making up the specified geometry type" \
+			brf_for_each{1}="Applies function [*f] to each \1" \ 
+			det_envelope="envelope (also known as axis aligned bounding box, aabb, or minimum bounding rectangle, mbr)" \
+			det_buffer="buffer (a polygon being the spatial point set collection within a specified maximum distance from a geometry)" \
+			det_for_each{1}="Applies a function [*f] (functor, having operator() defined) to each \1 making up the geometry" \ 
+			par_for_each_f{1}="Unary function, taking a \1 as argument" \
+			macro_x="first (usually x)" \
+			macro_y="second (usually y)" \
+			macro_z="third (usually z)" \
+			p_l_or_c="Point, LineString or Polygon"
+OPTIMIZE_OUTPUT_FOR_C  = NO
+OPTIMIZE_OUTPUT_JAVA   = NO
+OPTIMIZE_FOR_FORTRAN   = NO
+OPTIMIZE_OUTPUT_VHDL   = NO
+BUILTIN_STL_SUPPORT    = YES
+CPP_CLI_SUPPORT        = NO
+SIP_SUPPORT            = NO
+DISTRIBUTE_GROUP_DOC   = NO
+SUBGROUPING            = YES
+TYPEDEF_HIDES_STRUCT   = NO
+#---------------------------------------------------------------------------
+# Build related configuration options
+#---------------------------------------------------------------------------
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = NO
+EXTRACT_LOCAL_METHODS  = NO
+EXTRACT_ANON_NSPACES   = NO
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+HIDE_FRIEND_COMPOUNDS  = NO
+HIDE_IN_BODY_DOCS      = NO
+INTERNAL_DOCS          = NO
+CASE_SENSE_NAMES       = NO
+HIDE_SCOPE_NAMES       = NO
+SHOW_INCLUDE_FILES     = NO
+INLINE_INFO            = NO
+SORT_MEMBER_DOCS       = NO
+SORT_BRIEF_DOCS        = YES
+SORT_GROUP_NAMES       = YES
+SORT_BY_SCOPE_NAME     = YES
+GENERATE_TODOLIST      = NO
+GENERATE_TESTLIST      = YES
+GENERATE_BUGLIST       = YES
+GENERATE_DEPRECATEDLIST= YES
+ENABLED_SECTIONS       = 
+MAX_INITIALIZER_LINES  = 30
+SHOW_USED_FILES        = NO
+FILE_VERSION_FILTER    = 
+#---------------------------------------------------------------------------
+# configuration options related to warning and progress messages
+#---------------------------------------------------------------------------
+QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = NO
+WARN_FORMAT            = "$file:$line: $text"
+WARN_LOGFILE           = 
+#---------------------------------------------------------------------------
+# configuration options related to the input files
+#---------------------------------------------------------------------------
+INPUT                  = . .. ../../../../boost/geometry/core \
+			../../../../boost/geometry/algorithms \
+			../../../../boost/geometry/algorithms/detail \
+			../../../../boost/geometry/algorithms/detail/overlay \
+			../../../../boost/geometry/algorithms/detail/equals \
+			../../../../boost/geometry/algorithms/detail/sections \
+			../../../../boost/geometry/arithmetic \
+			../../../../boost/geometry/geometries/concepts \
+			../../../../boost/geometry/geometries \
+			../../../../boost/geometry/geometries/adapted \
+			../../../../boost/geometry/geometries/register \
+			../../../../boost/geometry/iterators \
+			../../../../boost/geometry/io/wkt \
+			../../../../boost/geometry/io/svg \
+			../../../../boost/geometry/multi/algorithms \
+			../../../../boost/geometry/multi/algorithms/detail \
+			../../../../boost/geometry/multi/core \
+			../../../../boost/geometry/multi/geometries \
+			../../../../boost/geometry/multi/geometries/register \
+			../../../../boost/geometry/multi/geometries/concepts \
+			../../../../boost/geometry/multi/strategies/cartesian \
+			../../../../boost/geometry/policies \
+			../../../../boost/geometry/policies/relate \
+			../../../../boost/geometry/strategies \
+			../../../../boost/geometry/strategies/concepts \
+			../../../../boost/geometry/strategies/agnostic \
+			../../../../boost/geometry/strategies/cartesian \
+			../../../../boost/geometry/strategies/spherical \
+			../../../../boost/geometry/strategies/transform \
+			../../../../boost/geometry/util \
+			../../../../boost/geometry/views \
+			./doxygen_input/pages \
+			./doxygen_input/groups
+INPUT_ENCODING         = UTF-8
+FILE_PATTERNS          = *.hpp
+RECURSIVE              = NO
+EXCLUDE                = ../../../../boost/geometry/util/builder.hpp \
+			../../../../boost/geometry/algorithms/parse.hpp \
+			../../../../boost/geometry/algorithms/point_on_line.hpp \
+			../../../../boost/geometry/strategies/cartesian/cart_intersect.hpp \
+			../../../../boost/geometry/util/distance_sort.hpp \
+			./doxygen_extension_examples.hpp 
+EXCLUDE_SYMLINKS       = NO
+EXCLUDE_PATTERNS       = 
+EXCLUDE_SYMBOLS        = 
+EXAMPLE_PATH           = . .. ../../example ../../example/with_external_libs \
+			doxygen_input/sourcecode \
+			../../../../boost/geometry/geometries \
+			../../../../boost/geometry/strategies \
+			../../../../boost/geometry/strategies/cartesian \
+			../../../../boost/geometry/algorithms
+EXAMPLE_PATTERNS       = 
+EXAMPLE_RECURSIVE      = NO
+IMAGE_PATH             = doxygen_input/images
+INPUT_FILTER           = 
+FILTER_PATTERNS        = 
+FILTER_SOURCE_FILES    = NO
+#---------------------------------------------------------------------------
+# configuration options related to source browsing
+#---------------------------------------------------------------------------
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+STRIP_CODE_COMMENTS    = YES
+REFERENCED_BY_RELATION = NO
+REFERENCES_RELATION    = NO
+REFERENCES_LINK_SOURCE = NO
+USE_HTAGS              = NO
+VERBATIM_HEADERS       = NO
+#---------------------------------------------------------------------------
+# configuration options related to the alphabetical class index
+#---------------------------------------------------------------------------
+COLS_IN_ALPHA_INDEX    = 3
+IGNORE_PREFIX          = 
+#---------------------------------------------------------------------------
+# configuration options related to the HTML output
+#---------------------------------------------------------------------------
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_FILE_EXTENSION    = .html
+HTML_HEADER            = doxygen_input/ggl_doxygen_header.html
+HTML_FOOTER            = doxygen_input/ggl_doxygen_footer.html
+HTML_STYLESHEET        = 
+GENERATE_HTMLHELP      = NO
+GENERATE_DOCSET        = NO
+DOCSET_FEEDNAME        = "Generated documentation, by Doxygen"
+DOCSET_BUNDLE_ID       = org.doxygen.Project
+HTML_DYNAMIC_SECTIONS  = NO
+CHM_FILE               = 
+HHC_LOCATION           = 
+GENERATE_CHI           = NO
+BINARY_TOC             = NO
+TOC_EXPAND             = NO
+DISABLE_INDEX          = NO
+ENUM_VALUES_PER_LINE   = 4
+GENERATE_TREEVIEW      = NO
+TREEVIEW_WIDTH         = 250
+
+#---------------------------------------------------------------------------
+# configuration options related to the XML output
+#---------------------------------------------------------------------------
+GENERATE_XML           = YES
+XML_OUTPUT             = xml
+XML_SCHEMA             = 
+XML_DTD                = 
+XML_PROGRAMLISTING     = NO
+
+#---------------------------------------------------------------------------
+# Configuration options turned off
+#---------------------------------------------------------------------------
+GENERATE_LATEX         = NO
+GENERATE_MAN           = NO
+GENERATE_RTF           = NO
+GENERATE_AUTOGEN_DEF   = NO
+GENERATE_PERLMOD       = NO
+
+
+#---------------------------------------------------------------------------
+# Configuration options related to the preprocessor   
+#---------------------------------------------------------------------------
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+SEARCH_INCLUDES        = YES
+INCLUDE_PATH           = 
+INCLUDE_FILE_PATTERNS  = 
+PREDEFINED             = BOOST_CONCEPT_REQUIRES(x)= \
+                         BOOST_CONCEPT_ASSERT(x) = \
+                         BOOST_STATIC_ASSERT(x) = \
+                         DOXYGEN_SHOULD_SKIP_THIS \
+                         DOXYGEN_NO_DISPATCH \
+                         DOXYGEN_NO_IMPL \
+                         DOXYGEN_NO_DETAIL \
+                         DOXYGEN_NO_CONCEPT_MEMBERS \
+                         DOXYGEN_NO_TRAITS_SPECIALIZATIONS \
+                         DOXYGEN_NO_STRATEGY_SPECIALIZATIONS \
+                         DOXYGEN_NO_SPECIALIZATIONS
+EXPAND_AS_DEFINED      = 
+SKIP_FUNCTION_MACROS   = YES
+
+
+#---------------------------------------------------------------------------
+# Configuration::additions related to the search engine   
+#---------------------------------------------------------------------------
+SEARCHENGINE           = NO

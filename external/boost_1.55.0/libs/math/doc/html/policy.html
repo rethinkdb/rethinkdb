@@ -1,0 +1,90 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc</title>
+<link rel="stylesheet" href="boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Math Toolkit">
+<link rel="up" href="index.html" title="Math Toolkit">
+<link rel="prev" href="math_toolkit/archetypes.html" title="Conceptual Archetypes for Reals and Distributions">
+<link rel="next" href="math_toolkit/pol_overview.html" title="Policy Overview">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="math_toolkit/archetypes.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="index.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="math_toolkit/pol_overview.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div><div><h1 class="title">
+<a name="policy"></a>Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc</h1></div></div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="math_toolkit/pol_overview.html">Policy Overview</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_tutorial.html">Policy Tutorial</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="math_toolkit/pol_tutorial/what_is_a_policy.html">So Just What
+      is a Policy Anyway?</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_tutorial/policy_tut_defaults.html">Policies
+      Have Sensible Defaults</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_tutorial/policy_usage.html">So How are Policies
+      Used Anyway?</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_tutorial/changing_policy_defaults.html">Changing
+      the Policy Defaults</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_tutorial/ad_hoc_dist_policies.html">Setting
+      Policies for Distributions on an Ad Hoc Basis</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_tutorial/ad_hoc_sf_policies.html">Changing
+      the Policy on an Ad Hoc Basis for the Special Functions</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_tutorial/namespace_policies.html">Setting
+      Policies at Namespace or Translation Unit Scope</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_tutorial/user_def_err_pol.html">Calling User
+      Defined Error Handlers</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_tutorial/understand_dis_quant.html">Understanding
+      Quantiles of Discrete Distributions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="math_toolkit/pol_ref.html">Policy Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="math_toolkit/pol_ref/error_handling_policies.html">Error Handling
+      Policies</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_ref/internal_promotion.html">Internal Floating-point
+      Promotion Policies</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_ref/assert_undefined.html">Mathematically
+      Undefined Function Policies</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_ref/discrete_quant_ref.html">Discrete Quantile
+      Policies</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_ref/precision_pol.html">Precision Policies</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_ref/iteration_pol.html">Iteration Limits
+      Policies</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_ref/policy_defaults.html">Using Macros to
+      Change the Policy Defaults</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_ref/namespace_pol.html">Setting Polices at
+      Namespace Scope</a></span></dt>
+<dt><span class="section"><a href="math_toolkit/pol_ref/pol_ref_ref.html">Policy Class Reference</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="math_toolkit/archetypes.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="index.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="math_toolkit/pol_overview.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

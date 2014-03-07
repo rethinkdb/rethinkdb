@@ -1,0 +1,259 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Compilation</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="prev" href="introduction.html" title="Introduction">
+<link rel="next" href="design.html" title="Design Rationale">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="design.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="geometry.compilation"></a><a class="link" href="compilation.html" title="Compilation">Compilation</a>
+</h2></div></div></div>
+<p>
+      Boost.Geometry is a headers-only library. Users only need to include the library
+      headers in their programs in order to be able to access definitions and algorithms
+      provided by the Boost.Geometry library. No linking against any binaries is
+      required.
+    </p>
+<p>
+      Boost.Geometry is only dependant on headers-only Boost libraries. It does not
+      introduce indirect dependencies on any binary libraries.
+    </p>
+<p>
+      In order to be able to use Boost.Geometry, the only thing users need to do
+      is to download and/or install Boost and specify location to include directories,
+      so <code class="computeroutput"><span class="identifier">include</span></code> directives of this
+      scheme will work:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/...&gt;</span>
+</pre>
+<h4>
+<a name="geometry.compilation.h0"></a>
+      <span class="phrase"><a name="geometry.compilation.supported_compilers"></a></span><a class="link" href="compilation.html#geometry.compilation.supported_compilers">Supported
+      Compilers</a>
+    </h4>
+<p>
+      Boost.Geometry library has been successfully tested with the following compilers:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          MSVC (including Express Editions)
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                10.0 (MSVC 2010)
+              </li>
+<li class="listitem">
+                9.0 (MSVC 2008)
+              </li>
+<li class="listitem">
+                8.0 (MSVC 2005)
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          gcc
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                gcc 4.7.0
+              </li>
+<li class="listitem">
+                gcc 4.6.2
+              </li>
+<li class="listitem">
+                gcc 4.6.1
+              </li>
+<li class="listitem">
+                gcc 4.6.0
+              </li>
+<li class="listitem">
+                gcc 4.5.2
+              </li>
+<li class="listitem">
+                gcc 4.4.0
+              </li>
+<li class="listitem">
+                gcc 4.3.4
+              </li>
+<li class="listitem">
+                gcc 4.2.1
+              </li>
+<li class="listitem">
+                gcc 3.4.6
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          clang
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                clang x.x
+              </li></ul></div>
+        </li>
+<li class="listitem">
+          darwin
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                darwin 4.0.1
+              </li>
+<li class="listitem">
+                darwin 4.4
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          intel
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                intel 11.1
+              </li>
+<li class="listitem">
+                intel 11.0
+              </li>
+<li class="listitem">
+                intel 10.1
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          pathscale
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                pathscale 4.0.8
+              </li></ul></div>
+        </li>
+</ul></div>
+<p>
+      Boost.Geometry uses Boost.Build, a text-based system for developing and testing
+      software, to configure, build and execute unit tests and example programs.
+      The build configuration is provided as a collection of <code class="computeroutput"><span class="identifier">Jamfile</span><span class="special">.</span><span class="identifier">v2</span></code> files.
+    </p>
+<p>
+      For gcc, flag <code class="literal">-Wno-long-long</code> can be used to surpress some
+      warnings originating from Boost.
+    </p>
+<h4>
+<a name="geometry.compilation.h1"></a>
+      <span class="phrase"><a name="geometry.compilation.includes"></a></span><a class="link" href="compilation.html#geometry.compilation.includes">Includes</a>
+    </h4>
+<p>
+      The most convenient headerfile including all algorithms and strategies is
+      <code class="computeroutput"><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span></code>:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+      This is the main header of the Boost.Geometry library and it is recommended
+      to include this file.
+    </p>
+<p>
+      Alternatively, it is possible to include Boost.Geometry header files separately.
+      However, this may be inconvenient as header files might be renamed or moved
+      occasionaly in future.
+    </p>
+<p>
+      Another often used header is <code class="computeroutput"><span class="identifier">geometries</span><span class="special">.</span><span class="identifier">hpp</span></code>:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+      This includes definitions of all provided geometry types: point, linestring,
+      polygon, ring, box. The file <code class="computeroutput"><span class="identifier">geometries</span><span class="special">.</span><span class="identifier">hpp</span></code> is not
+      included in the <code class="computeroutput"><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span></code> headerfile because users should be given
+      the liberty to use their own geometries and not the provided ones. However,
+      for the Boost.Geometry users who want to use the provided geometries it is
+      useful to include.
+    </p>
+<p>
+      For users using multi-geometries:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">multi</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">multi_geometries</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="geometry.compilation.h2"></a>
+      <span class="phrase"><a name="geometry.compilation.advanced_includes"></a></span><a class="link" href="compilation.html#geometry.compilation.advanced_includes">Advanced
+      Includes</a>
+    </h4>
+<p>
+      Users who have their own geometries and want to use algorithms from Boost.Geometry
+      might include the files containing registration macro's, like:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="keyword">register</span><span class="special">/</span><span class="identifier">point</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h4>
+<a name="geometry.compilation.h3"></a>
+      <span class="phrase"><a name="geometry.compilation.performance"></a></span><a class="link" href="compilation.html#geometry.compilation.performance">Performance</a>
+    </h4>
+<p>
+      The enumeration below is not exhaustive but can contain hints to improve the
+      performance:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          For Microsoft MSVC, set define <code class="computeroutput"><span class="identifier">_SECURE_SCL</span><span class="special">=</span><span class="number">0</span></code> for preprocessor.
+        </li>
+<li class="listitem">
+          For Microsoft MSVC, set define <code class="computeroutput"><span class="identifier">_HAS_ITERATOR_DEBUGGING</span><span class="special">=</span><span class="number">0</span></code> for preprocessor.
+        </li>
+<li class="listitem">
+          Use of <a href="http://sourceforge.net/projects/stlport" target="_top">STLport</a>,
+          a popular open-source implementation of the STL, may result in significantly
+          faster code than use of the C++ standard library provided by MSVC.
+        </li>
+<li class="listitem">
+          Turn on compiler optimizations, compile in release mode.
+        </li>
+</ul></div>
+<h4>
+<a name="geometry.compilation.h4"></a>
+      <span class="phrase"><a name="geometry.compilation.problems_with_intellisense"></a></span><a class="link" href="compilation.html#geometry.compilation.problems_with_intellisense">Problems
+      with Intellisense</a>
+    </h4>
+<p>
+      Both versions of MSVC, 2005 and 2008 (including Express Editions) can hang
+      trying to resolve symbols and give <a href="http://en.wikipedia.org/wiki/IntelliSense" target="_top">IntelliSense</a>
+      suggestions while typing in a bracket or angle bracket. This is not directly
+      related to Boost.Geometry, but is caused by problems with handling by this
+      IDE large C++ code base with intensively used templates, such as Boost and
+      Boost.Geometry. If this is inconvenient, IntelliSense can be turned off:
+    </p>
+<div class="blockquote"><blockquote class="blockquote">
+<p>
+        <span class="emphasis"><em><span class="quote">&#8220;<span class="quote">(...)disabling IntelliSense in VC++. There is a file called
+        <code class="computeroutput"><span class="identifier">feacp</span><span class="special">.</span><span class="identifier">dll</span></code> in <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">VS8INSTALL</span><span class="special">&gt;/</span><span class="identifier">VC</span><span class="special">/</span><span class="identifier">vcpackages</span></code>
+        folder. Renaming this file will disable Intellisense feature.</span>&#8221;</span></em></span>
+      </p>
+<p>
+        -- <a href="http://blogs.msdn.com/yash/archive/2007/09/19/intellisense-issues-in-visual-c-2005.aspx" target="_top">Intellisense
+        issues in Visual C++ 2005</a>
+      </p>
+</blockquote></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="design.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

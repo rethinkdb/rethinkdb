@@ -1,0 +1,106 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template numeric_limits&lt;::boost::units::quantity&lt; Unit, T &gt;&gt;</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_units/Reference.html#header.boost.units.limits_hpp" title="Header &lt;boost/units/limits.hpp&gt;">
+<link rel="prev" href="../boost/units/operator_idp156989880.html" title="Function template operator*">
+<link rel="next" href="../boost/units/make_scaled_unit.html" title="Struct template make_scaled_unit">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/units/operator_idp156989880.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_units/Reference.html#header.boost.units.limits_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../boost/units/make_scaled_unit.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="std.numeric_limit_idp156994056"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template numeric_limits&lt;::boost::units::quantity&lt; Unit, T &gt;&gt;</span></h2>
+<p>std::numeric_limits&lt;::boost::units::quantity&lt; Unit, T &gt;&gt;</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../boost_units/Reference.html#header.boost.units.limits_hpp" title="Header &lt;boost/units/limits.hpp&gt;">boost/units/limits.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Unit<span class="special">,</span> <span class="keyword">typename</span> T<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="numeric_limit_idp156994056.html" title="Class template numeric_limits&lt;::boost::units::quantity&lt; Unit, T &gt;&gt;">numeric_limits</a><span class="special">&lt;</span><span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">units</span><span class="special">::</span><span class="identifier">quantity</span><span class="special">&lt;</span> <span class="identifier">Unit</span><span class="special">,</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">&gt;</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="special">::</span><a class="link" href="../boost/units/quantity.html" title="Class template quantity">boost::units::quantity</a><span class="special">&lt;</span> <span class="identifier">Unit</span><span class="special">,</span> <span class="identifier">T</span> <span class="special">&gt;</span> <a name="std.numeric_limit_idp156994056.quantity_type"></a><span class="identifier">quantity_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="numeric_limit_idp156994056.html#idp157006136-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">quantity_type</span><span class="special">(</span><span class="special">)</span> <a class="link" href="numeric_limit_idp156994056.html#idp157006344-bb"><span class="identifier">min</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">quantity_type</span><span class="special">(</span><span class="special">)</span> <a class="link" href="numeric_limit_idp156994056.html#idp157006824-bb"><span class="identifier">max</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">quantity_type</span> <a class="link" href="numeric_limit_idp156994056.html#idp157007304-bb"><span class="identifier">epsilon</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">quantity_type</span> <a class="link" href="numeric_limit_idp156994056.html#idp157007784-bb"><span class="identifier">round_error</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">quantity_type</span> <a class="link" href="numeric_limit_idp156994056.html#idp157008264-bb"><span class="identifier">infinity</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">quantity_type</span> <a class="link" href="numeric_limit_idp156994056.html#idp157008744-bb"><span class="identifier">quiet_NaN</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">quantity_type</span> <a class="link" href="numeric_limit_idp156994056.html#idp157009224-bb"><span class="identifier">signaling_NaN</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">quantity_type</span> <a class="link" href="numeric_limit_idp156994056.html#idp157009704-bb"><span class="identifier">denorm_min</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_specialized</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">digits</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">digits10</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_signed</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_integer</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_exact</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">radix</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">min_exponent</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">min_exponent10</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">max_exponent</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">max_exponent10</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">has_infinity</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">has_quiet_NaN</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">has_signaling_NaN</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">has_denorm_loss</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_iec559</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_bounded</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_modulo</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">traps</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">tinyness_before</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">float_denorm_style</span> <span class="identifier">has_denorm</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">float_round_style</span> <span class="identifier">round_style</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp236987128"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp236987336"></a><h3>
+<a name="idp157006136-bb"></a><code class="computeroutput">numeric_limits</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">quantity_type</span><span class="special">(</span><span class="special">)</span> <a name="idp157006344-bb"></a><span class="identifier">min</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">quantity_type</span><span class="special">(</span><span class="special">)</span> <a name="idp157006824-bb"></a><span class="identifier">max</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">quantity_type</span> <a name="idp157007304-bb"></a><span class="identifier">epsilon</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">quantity_type</span> <a name="idp157007784-bb"></a><span class="identifier">round_error</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">quantity_type</span> <a name="idp157008264-bb"></a><span class="identifier">infinity</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">quantity_type</span> <a name="idp157008744-bb"></a><span class="identifier">quiet_NaN</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">quantity_type</span> <a name="idp157009224-bb"></a><span class="identifier">signaling_NaN</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">quantity_type</span> <a name="idp157009704-bb"></a><span class="identifier">denorm_min</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2008 Matthias Christian Schabel<br>Copyright &#169; 2007-2010 Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/units/operator_idp156989880.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_units/Reference.html#header.boost.units.limits_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../boost/units/make_scaled_unit.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

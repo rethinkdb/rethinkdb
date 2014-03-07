@@ -1,0 +1,62 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:IoObjectService I/O object service requirements]
+
+An I/O object service must meet the requirements for a [link
+boost_asio.reference.Service service], as well as the requirements listed
+below.
+
+In the table below, `X` denotes an I/O object service class, `a` and `ao` denote
+values of type `X`, `b` and `c` denote values of type `X::implementation_type`,
+and `u` denotes an identifier.
+
+[table IoObjectService requirements
+  [[expression] [return type] [assertion/note\npre/post-condition]]
+  [
+    [`X::implementation_type`]
+    []
+    []
+  ]
+  [
+    [`X::implementation_type u;`]
+    []
+    [note: `X::implementation_type` has a public default constructor and
+     destructor.]
+  ]
+  [
+    [``
+      a.construct(b);
+    ``]
+    []
+    []
+  ]
+  [
+    [``
+      a.destroy(b);
+    ``]
+    []
+    [note: `destroy()` will only be called on a value that has previously been
+     initialised with `construct()` or `move_construct()`.]
+  ]
+  [
+    [``
+      a.move_construct(b, c);
+    ``]
+    []
+    [note: only required for I/O objects that support movability.]
+  ]
+  [
+    [``
+      a.move_assign(b, ao, c);
+    ``]
+    []
+    [note: only required for I/O objects that support movability.]
+  ]
+]
+
+[endsect]

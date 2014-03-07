@@ -1,0 +1,94 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:standards Standards Conformance]
+
+[h4 C++]
+
+Boost.Regex is intended to conform to the [tr1].
+
+[h4 ECMAScript / JavaScript]
+
+All of the ECMAScript regular expression syntax features are supported, except that:
+
+The escape sequence \\u matches any upper case character (the same as \[\[:upper:\]\]) 
+rather than a Unicode escape sequence; use \\x{DDDD} for Unicode escape sequences.
+
+[h4 Perl]
+
+Almost all Perl features are supported, except for:
+
+(?{code}) 	Not implementable in a compiled strongly typed language.
+
+(??{code}) 	Not implementable in a compiled strongly typed language.
+
+(*VERB) The [@http://perldoc.perl.org/perlre.html#Special-Backtracking-Control-Verbs 
+backtracking control verbs] are not recognised or implemented at this time.
+
+In addition the following features behave slightly differently from Perl:
+
+^ $ \Z  These recognise any line termination sequence, and not just \\n: see the Unicode requirements below.
+
+[h4 POSIX]
+
+All the POSIX basic and extended regular expression features are supported, 
+except that:
+
+No character collating names are recognized except those specified in the 
+POSIX standard for the C locale, unless they are explicitly registered with the 
+traits class.
+
+Character equivalence classes ( \[\[\=a\=\]\] etc) are probably buggy except on Win32.  
+Implementing this feature requires knowledge of the format of the string sort 
+keys produced by the system; if you need this, and the default implementation 
+doesn't work on your platform, then you will need to supply a custom traits class.
+
+[h4 Unicode]
+
+The following comments refer to 
+[@http://unicode.org/reports/tr18/ Unicode Technical Standard #18: Unicode 
+Regular Expressions version 11].
+
+[table
+[[Item][Feature][Support]]
+[[1.1][Hex Notation][Yes: use \x{DDDD} to refer to code point UDDDD.]]
+[[1.2][Character Properties][All the names listed under the General Category Property are supported.  Script names and Other Names are not currently supported.]]
+[[1.3][Subtraction and Intersection][Indirectly support by forward-lookahead:
+
+`(?=[[:X:]])[[:Y:]]`
+
+Gives the intersection of character properties X and Y.
+
+`(?![[:X:]])[[:Y:]]`
+
+Gives everything in Y that is not in X (subtraction).]]
+[[1.4][Simple Word Boundaries][Conforming: non-spacing marks are included in the set of word characters.]]
+[[1.5][Caseless Matching][Supported, note that at this level, case transformations are 1:1, many to many case folding operations are not supported (for example "'''&#xDF;'''" to "SS").]]
+[[1.6][Line Boundaries][Supported, except that "." matches only one character of "\\r\\n". Other than that word boundaries match correctly; including not matching in the middle of a "\\r\\n" sequence.]]
+[[1.7][Code Points][Supported: provided you use the u32* algorithms, then UTF-8, UTF-16 and UTF-32 are all treated as sequences of 32-bit code points.]]
+[[2.1][Canonical Equivalence][Not supported: it is up to the user of the library to convert all text into the same canonical form as the regular expression.]]
+[[2.2][Default Grapheme Clusters][Not supported.]]
+[[2.3Default Word Boundaries][Not supported.]]
+[[2.4][Default Loose Matches][Not Supported.]]
+[[2.5][Named Properties][Supported: the expression "\[\[:name:\]\]" or \\N{name} matches the named character "name".]]
+[[2.6][Wildcard properties][Not Supported.]]
+[[3.1][Tailored Punctuation.][Not Supported.]]
+[[3.2][Tailored Grapheme Clusters][Not Supported.]]
+[[3.3][Tailored Word Boundaries.][Not Supported.]]
+[[3.4][Tailored Loose Matches][Partial support: \[\[\=c\=\]\] matches characters with the same primary equivalence class as "c".]]
+[[3.5][Tailored Ranges][Supported: \[a-b\] matches any character that collates in the range a to b, when the expression is constructed with the collate flag set.]]
+[[3.6][Context Matches][Not Supported.]]
+[[3.7][Incremental Matches][Supported: pass the flag `match_partial` to the regex algorithms.]]
+[[3.8][Unicode Set Sharing][Not Supported.]]
+[[3.9][Possible Match Sets][Not supported, however this information is used internally to optimise the matching of regular expressions, and return quickly if no match is possible.]]
+[[3.10][Folded Matching][Partial Support:  It is possible to achieve a similar effect by using a custom regular expression traits class.]]
+[[3.11][Custom Submatch Evaluation][Not Supported.]]
+]
+     
+[endsect]
+

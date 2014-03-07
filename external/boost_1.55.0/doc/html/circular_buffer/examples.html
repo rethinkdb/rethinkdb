@@ -1,0 +1,259 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>More Examples</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../circular_buffer.html" title="Chapter&#160;6.&#160;Boost.Circular Buffer">
+<link rel="prev" href="implementation.html" title="Implementation">
+<link rel="next" href="headers.html" title="Header Files">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="implementation.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../circular_buffer.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="headers.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="circular_buffer.examples"></a><a class="link" href="examples.html" title="More Examples">More Examples</a>
+</h2></div></div></div>
+<h4>
+<a name="circular_buffer.examples.h0"></a>
+      <span class="phrase"><a name="circular_buffer.examples.summing_all_the_values_in_a_circ"></a></span><a class="link" href="examples.html#circular_buffer.examples.summing_all_the_values_in_a_circ">Summing
+      all the values in a circular buffer</a>
+    </h4>
+<p>
+      This example shows several functions, including summing all valid values.
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">circular_buffer</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">numeric</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">assert</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="comment">/*argc*/</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*</span> <span class="comment">/*argv*/</span><span class="special">[])</span>
+<span class="special">{</span>
+   <span class="comment">// Create a circular buffer of capacity 3.</span>
+   <span class="identifier">boost</span><span class="special">::</span><span class="identifier">circular_buffer</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">cb</span><span class="special">(</span><span class="number">3</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">cb</span><span class="special">.</span><span class="identifier">capacity</span><span class="special">()</span> <span class="special">==</span> <span class="number">3</span><span class="special">);</span>
+   <span class="comment">// Check is empty.</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">cb</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="number">0</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">cb</span><span class="special">.</span><span class="identifier">empty</span><span class="special">());</span>
+
+   <span class="comment">// Insert some elements into the circular buffer.</span>
+   <span class="identifier">cb</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+   <span class="identifier">cb</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+
+   <span class="comment">// Assertions to check push_backs have expected effect.</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">cb</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">==</span> <span class="number">1</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">cb</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">==</span> <span class="number">2</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(!</span><span class="identifier">cb</span><span class="special">.</span><span class="identifier">full</span><span class="special">());</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">cb</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="number">2</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">cb</span><span class="special">.</span><span class="identifier">capacity</span><span class="special">()</span> <span class="special">==</span> <span class="number">3</span><span class="special">);</span>
+
+   <span class="comment">// Insert some other elements.</span>
+   <span class="identifier">cb</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">3</span><span class="special">);</span>
+   <span class="identifier">cb</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">4</span><span class="special">);</span>
+
+   <span class="comment">// Evaluate the sum of all elements.</span>
+   <span class="keyword">int</span> <span class="identifier">sum</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">accumulate</span><span class="special">(</span><span class="identifier">cb</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">cb</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="number">0</span><span class="special">);</span>
+
+   <span class="comment">// Assertions to check state.</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">sum</span> <span class="special">==</span> <span class="number">9</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">cb</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">==</span> <span class="number">2</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">cb</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">==</span> <span class="number">3</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">cb</span><span class="special">[</span><span class="number">2</span><span class="special">]</span> <span class="special">==</span> <span class="number">4</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(*</span><span class="identifier">cb</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">==</span> <span class="number">2</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">cb</span><span class="special">.</span><span class="identifier">front</span><span class="special">()</span> <span class="special">==</span> <span class="number">2</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">cb</span><span class="special">.</span><span class="identifier">back</span><span class="special">()</span> <span class="special">==</span> <span class="number">4</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">cb</span><span class="special">.</span><span class="identifier">full</span><span class="special">());</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">cb</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="number">3</span><span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">cb</span><span class="special">.</span><span class="identifier">capacity</span><span class="special">()</span> <span class="special">==</span> <span class="number">3</span><span class="special">);</span>
+
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      The <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code> has
+      a capacity of three <code class="computeroutput"><span class="keyword">int</span></code>. Therefore,
+      the size of the buffer will never exceed three. The <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">accumulate</span></code>
+      algorithm evaluates the sum of the stored elements. The semantics of the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code> can be inferred from
+      the assertions.
+    </p>
+<p>
+      You can see the full example code at <a href="../../../libs/circular_buffer/example/circular_buffer_sum_example.cpp" target="_top">circular_buffer_sum_example.cpp</a>.
+    </p>
+<h4>
+<a name="circular_buffer.examples.h1"></a>
+      <span class="phrase"><a name="circular_buffer.examples.bounded_buffer_example"></a></span><a class="link" href="examples.html#circular_buffer.examples.bounded_buffer_example">Bounded
+      Buffer Example</a>
+    </h4>
+<p>
+      The bounded buffer is normally used in a producer-consumer mode: producer threads
+      produce items and store them in the container and consumer threads remove these
+      items and process them. The bounded buffer has to guarantee that
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          producers do not insert items into the container when the container is
+          full,
+        </li>
+<li class="listitem">
+          consumers do not try to remove items when the container is empty,
+        </li>
+<li class="listitem">
+          each produced item is consumed by exactly one consumer.
+        </li>
+</ul></div>
+<p>
+      This example shows how the <code class="computeroutput"><span class="identifier">circular_buffer</span></code>
+      can be utilized as an underlying container of the bounded buffer.
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">circular_buffer</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">thread</span><span class="special">/</span><span class="identifier">mutex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">thread</span><span class="special">/</span><span class="identifier">condition</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">thread</span><span class="special">/</span><span class="identifier">thread</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">call_traits</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bind</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">timer</span><span class="special">/</span><span class="identifier">timer</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span> <span class="comment">// for auto_cpu_timer</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">bounded_buffer</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+
+  <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">circular_buffer</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">container_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">container_type</span><span class="special">::</span><span class="identifier">size_type</span> <span class="identifier">size_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">container_type</span><span class="special">::</span><span class="identifier">value_type</span> <span class="identifier">value_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">call_traits</span><span class="special">&lt;</span><span class="identifier">value_type</span><span class="special">&gt;::</span><span class="identifier">param_type</span> <span class="identifier">param_type</span><span class="special">;</span>
+
+  <span class="keyword">explicit</span> <span class="identifier">bounded_buffer</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">capacity</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">m_unread</span><span class="special">(</span><span class="number">0</span><span class="special">),</span> <span class="identifier">m_container</span><span class="special">(</span><span class="identifier">capacity</span><span class="special">)</span> <span class="special">{}</span>
+
+  <span class="keyword">void</span> <span class="identifier">push_front</span><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">call_traits</span><span class="special">&lt;</span><span class="identifier">value_type</span><span class="special">&gt;::</span><span class="identifier">param_type</span> <span class="identifier">item</span><span class="special">)</span>
+  <span class="special">{</span> <span class="comment">// `param_type` represents the "best" way to pass a parameter of type `value_type` to a method.</span>
+
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span><span class="special">::</span><span class="identifier">scoped_lock</span> <span class="identifier">lock</span><span class="special">(</span><span class="identifier">m_mutex</span><span class="special">);</span>
+      <span class="identifier">m_not_full</span><span class="special">.</span><span class="identifier">wait</span><span class="special">(</span><span class="identifier">lock</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">bounded_buffer</span><span class="special">&lt;</span><span class="identifier">value_type</span><span class="special">&gt;::</span><span class="identifier">is_not_full</span><span class="special">,</span> <span class="keyword">this</span><span class="special">));</span>
+      <span class="identifier">m_container</span><span class="special">.</span><span class="identifier">push_front</span><span class="special">(</span><span class="identifier">item</span><span class="special">);</span>
+      <span class="special">++</span><span class="identifier">m_unread</span><span class="special">;</span>
+      <span class="identifier">lock</span><span class="special">.</span><span class="identifier">unlock</span><span class="special">();</span>
+      <span class="identifier">m_not_empty</span><span class="special">.</span><span class="identifier">notify_one</span><span class="special">();</span>
+  <span class="special">}</span>
+
+  <span class="keyword">void</span> <span class="identifier">pop_back</span><span class="special">(</span><span class="identifier">value_type</span><span class="special">*</span> <span class="identifier">pItem</span><span class="special">)</span> <span class="special">{</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span><span class="special">::</span><span class="identifier">scoped_lock</span> <span class="identifier">lock</span><span class="special">(</span><span class="identifier">m_mutex</span><span class="special">);</span>
+      <span class="identifier">m_not_empty</span><span class="special">.</span><span class="identifier">wait</span><span class="special">(</span><span class="identifier">lock</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">bounded_buffer</span><span class="special">&lt;</span><span class="identifier">value_type</span><span class="special">&gt;::</span><span class="identifier">is_not_empty</span><span class="special">,</span> <span class="keyword">this</span><span class="special">));</span>
+      <span class="special">*</span><span class="identifier">pItem</span> <span class="special">=</span> <span class="identifier">m_container</span><span class="special">[--</span><span class="identifier">m_unread</span><span class="special">];</span>
+      <span class="identifier">lock</span><span class="special">.</span><span class="identifier">unlock</span><span class="special">();</span>
+      <span class="identifier">m_not_full</span><span class="special">.</span><span class="identifier">notify_one</span><span class="special">();</span>
+  <span class="special">}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+  <span class="identifier">bounded_buffer</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">bounded_buffer</span><span class="special">&amp;);</span>              <span class="comment">// Disabled copy constructor.</span>
+  <span class="identifier">bounded_buffer</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">=</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">bounded_buffer</span><span class="special">&amp;);</span> <span class="comment">// Disabled assign operator.</span>
+
+  <span class="keyword">bool</span> <span class="identifier">is_not_empty</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">m_unread</span> <span class="special">&gt;</span> <span class="number">0</span><span class="special">;</span> <span class="special">}</span>
+  <span class="keyword">bool</span> <span class="identifier">is_not_full</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">m_unread</span> <span class="special">&lt;</span> <span class="identifier">m_container</span><span class="special">.</span><span class="identifier">capacity</span><span class="special">();</span> <span class="special">}</span>
+
+  <span class="identifier">size_type</span> <span class="identifier">m_unread</span><span class="special">;</span>
+  <span class="identifier">container_type</span> <span class="identifier">m_container</span><span class="special">;</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span> <span class="identifier">m_mutex</span><span class="special">;</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">condition</span> <span class="identifier">m_not_empty</span><span class="special">;</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">condition</span> <span class="identifier">m_not_full</span><span class="special">;</span>
+<span class="special">};</span> <span class="comment">//</span>
+</pre>
+<p>
+      The bounded_buffer relies on <a href="../../../doc/html/thread.html" target="_top">Boost.Thread</a>
+      and <a href="../../../libs/bind/index.html" target="_top">Boost.Bind</a> libraries and
+      <a href="../../../libs/utility/call_traits.htm" target="_top">Boost.call_traits utility</a>.
+    </p>
+<p>
+      The <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html#idp20566920-bb">push_front()</a></code>
+      method is called by the producer thread in order to insert a new item into
+      the buffer. The method locks the mutex and waits until there is a space for
+      the new item. (The mutex is unlocked during the waiting stage and has to be
+      regained when the condition is met.) If there is a space in the buffer available,
+      the execution continues and the method inserts the item at the end of the
+      <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>. Then it
+      increments the number of unread items and unlocks the mutex (in case an exception
+      is thrown before the mutex is unlocked, the mutex is unlocked automatically
+      by the destructor of the scoped_lock). At last the method notifies one of the
+      consumer threads waiting for a new item to be inserted into the buffer.
+    </p>
+<p>
+      The <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html#idp20589016-bb">pop_back()</a></code>
+      method is called by the consumer thread in order to read the next item from
+      the buffer. The method locks the mutex and waits until there is an unread item
+      in the buffer. If there is at least one unread item, the method decrements
+      the number of unread items and reads the next item from the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>.
+      Then it unlocks the mutex and notifies one of the producer threads waiting
+      for the buffer to free a space for the next item.
+    </p>
+<p>
+      The <code class="computeroutput"><span class="identifier">bounded</span> <span class="identifier">buffer</span><span class="special">::</span><span class="identifier">pop_back</span><span class="special">()</span></code> method <span class="bold"><strong>does not remove
+      the item</strong></span> but the item is left in the circular_buffer which then
+      <span class="bold"><strong>replaces it with a new one</strong></span> (inserted by a
+      producer) when the circular_buffer is full. This technique is more effective
+      than removing the item explicitly by calling the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html#idp20589016-bb">circular_buffer::pop_back()</a></code>
+      method of the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>.
+    </p>
+<p>
+      This claim is based on the assumption that an assignment (replacement) of a
+      new item into an old one is more effective than a destruction (removal) of
+      an old item and a consequent inplace construction (insertion) of a new item.
+    </p>
+<p>
+      For comparison of bounded buffers based on different containers compile and
+      run <a href="../../../libs/circular_buffer/test/bounded_buffer_comparison.cpp" target="_top">bounded_buffer_comparison.cpp</a>.
+      The test should reveal the bounded buffer based on the <code class="computeroutput"><a class="link" href="../boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      is most effective closely followed by the <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">deque</span></code> based
+      bounded buffer. (In reality, the result may differ sometimes because the test
+      is always affected by external factors such as immediate CPU load.)
+    </p>
+<p>
+      You can see the full test code at <a href="../../../libs/circular_buffer/test/bounded_buffer_comparison.cpp" target="_top">bounded_buffer_comparison.cpp</a>,
+      and an example of output is
+    </p>
+<pre class="programlisting"><span class="identifier">Description</span><span class="special">:</span> <span class="identifier">Autorun</span> <span class="string">"J:\Cpp\Misc\Debug\bounded_buffer_comparison.exe"</span>
+<span class="identifier">bounded_buffer</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="number">5.15</span> <span class="identifier">s</span>
+
+<span class="identifier">bounded_buffer_space_optimized</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="number">5.71</span> <span class="identifier">s</span>
+
+<span class="identifier">bounded_buffer_deque_based</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="number">15.57</span> <span class="identifier">s</span>
+
+<span class="identifier">bounded_buffer_list_based</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="number">17.33</span> <span class="identifier">s</span>
+
+<span class="identifier">bounded_buffer</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="number">24.49</span> <span class="identifier">s</span>
+
+<span class="identifier">bounded_buffer_space_optimized</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="number">28.33</span> <span class="identifier">s</span>
+
+<span class="identifier">bounded_buffer_deque_based</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="number">29.45</span> <span class="identifier">s</span>
+
+<span class="identifier">bounded_buffer_list_based</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="number">31.29</span> <span class="identifier">s</span>
+</pre>
+<p>
+      .
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Jan Gaspar<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="implementation.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../circular_buffer.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="headers.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

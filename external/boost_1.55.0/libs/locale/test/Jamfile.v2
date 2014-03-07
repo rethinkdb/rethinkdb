@@ -1,0 +1,55 @@
+#
+# Copyright 2011 Artyom Beilis 
+#
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or copy at 
+# http://www.boost.org/LICENSE_1_0.txt.
+
+
+project 
+    :   requirements 
+            <library>/boost/locale//boost_locale
+            <use>../build//build_flags 
+				# Make sure we get all defines we need
+				# Otherwise we would have problem knowing
+				# what backends are actually in use
+			<link>shared
+			<define>BOOST_LOCALE_DYN_LINK=1
+    ;
+
+# Shared boost.locale tests
+
+test-suite "boost_locale_test" 
+    : 
+        # Configuration Information 
+        [ run test_config.cpp : : : <test-info>always_show_run_output ]
+        # Shared
+        [ run test_utf.cpp ]
+        [ run test_date_time.cpp ]
+        [ run test_ios_prop.cpp ]
+        [ run test_codepage_converter.cpp ]
+        [ run test_codepage.cpp ]
+        [ run test_message.cpp : $(BOOST_ROOT)/libs/locale/test ]
+        [ run test_generator.cpp ]
+        # icu
+        [ run test_collate.cpp ]
+        [ run test_convert.cpp ]
+        [ run test_boundary.cpp ]
+        [ run test_formatting.cpp : : : <optimization>off ]
+        [ run test_icu_vs_os_timezone.cpp ]
+        # winapi
+        [ run test_winapi_collate.cpp ]
+        [ run test_winapi_convert.cpp ]
+        [ run test_winapi_formatting.cpp ]
+        # posix
+        [ run test_posix_collate.cpp ]
+        [ run test_posix_convert.cpp ]
+        [ run test_posix_formatting.cpp ]
+        # std
+        [ run test_std_collate.cpp ]
+        [ run test_std_convert.cpp ]
+        [ run test_std_formatting.cpp ]
+    ;
+
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
+

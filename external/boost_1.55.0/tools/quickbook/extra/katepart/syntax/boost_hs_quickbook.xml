@@ -1,0 +1,736 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE language SYSTEM "language.dtd">
+<language
+
+name="quickbook"
+version="0.9.4"
+kateversion="2.4"
+section="boost::hs"
+extensions="*.qbk"
+mimetype="allFiles"
+author="Copyright 2006 -2007 Matias Capeletto, matias.capeletto@gmail.com"
+license="Distributed under the Boost Software License, Version 1.0.
+http://www.boost.org/LICENSE_1_0.txt"
+
+>
+
+<highlighting>
+
+<!-- Contexts -->
+
+<contexts>
+
+<!--
+    Main context
+    This is bottom the context, every thing the user type will stack another
+    context. This context is special because some things can only be called
+    from here. (e.g. The quickbook description)
+-->
+
+<context name="c_main" attribute="d_normal" lineEndContext="#stay">
+
+    <IncludeRules context="c_main_before_code" />
+    <IncludeRules context="c_cpp_code_block_finder" />
+    <IncludeRules context="c_main_after_code" />
+    <IncludeRules context="c_normal" />
+
+</context>
+
+<context name="c_main_before_code" attribute="d_normal" lineEndContext="#stay">
+
+    <IncludeRules context="c_sections_finder" />
+    <IncludeRules context="c_predefined_macros" />
+    <IncludeRules context="c_boost::hs call finder" />
+    <IncludeRules context="c_item_list_finder" />
+
+</context>
+
+<context name="c_main_after_code" attribute="d_normal" lineEndContext="#stay">
+
+    <IncludeRules context="c_scape_sequence_finder" />
+    <IncludeRules context="c_headings_finder" />
+    <IncludeRules context="c_includes_finder" />
+    <IncludeRules context="c_macro_definition_finder" />
+    <IncludeRules context="c_template_definition_finder" />
+    <IncludeRules context="c_quickbook_type_finder" />
+    <IncludeRules context="c_text_block_finder" />
+    <IncludeRules context="c_table_finder" />
+    <IncludeRules context="c_variable_list_finder" />
+    <IncludeRules context="c_import_finder" />
+
+</context>
+
+<!-- Common Structures, this constructions can be called in almost every context -->
+
+<context  name="c_common_structures" attribute="d_normal" lineEndContext="#stay">
+
+    <DetectSpaces/>
+    <IncludeRules context="c_common_structures_before_code" />
+    <IncludeRules context="c_cpp_inline_code_block_finder" />
+    <IncludeRules context="c_common_structures_after_code" />
+
+</context>
+
+<context  name="c_common_structures_before_code" attribute="d_normal" lineEndContext="#stay">
+
+    <DetectSpaces/>
+    <IncludeRules context="c_scape_sequence_finder" />
+    <IncludeRules context="c_predefined_macros" />
+    <IncludeRules context="c_language_finder" />
+    <IncludeRules context="c_comment_finder" />
+    <IncludeRules context="c_boost::hs call finder" />
+    <IncludeRules context="c_no_processing_finder" />
+
+</context>
+
+<context  name="c_common_structures_after_code" attribute="d_normal" lineEndContext="#stay">
+
+    <IncludeRules context="c_anchor_finder" />
+    <IncludeRules context="c_image_finder" />
+    <IncludeRules context="c_link_finder" />
+    <IncludeRules context="c_cpp_link_finder" />
+    <IncludeRules context="c_text_format_finder" />
+
+</context>
+
+<!-- Normal contex, defines plain text and look for a structure to appear -->
+
+<context name="c_normal" attribute="d_normal" lineEndContext="#stay">
+
+    <!-- For performance the [endsect] resets the engine -->
+    <StringDetect String="[endsect]" attribute="d_structure" context="#pop#pop#pop#pop#pop" endRegion="r_section"/>
+
+    <IncludeRules context="c_common_structures" />
+    <IncludeRules context="c_simple_text_block_finder" />
+
+</context>
+
+<!-- Inside tables and list, you can not use every construction -->
+
+<context name="c_strict_normal" attribute="d_normal" lineEndContext="#stay">
+
+    <!-- For performance the [endsect] resets the engine -->
+    <StringDetect String="[endsect]" attribute="d_structure" context="#pop#pop#pop#pop#pop" endRegion="r_section"/>
+
+    <IncludeRules context="c_common_structures" />
+
+</context>
+
+<!-- Normal block contexs, this contexts will be stacked so we can know the state -->
+
+<context name="c_normal_block" attribute="d_normal" lineEndContext="#stay">
+    <IncludeRules context="c_normal" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_normal_bold_block" attribute="d_normal_bold" lineEndContext="#stay">
+    <IncludeRules context="c_normal" />
+
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_indirect_normal_block" attribute="d_normal" lineEndContext="#stay">
+    <IncludeRules context="c_normal" />
+
+    <DetectChar char="]" attribute="d_structure" context="#pop#pop" />
+</context>
+
+<context name="c_deep_normal_block" attribute="d_normal" lineEndContext="#stay">
+    <IncludeRules context="c_normal" />
+    <DetectChar char="]" attribute="d_structure" context="#pop#pop#pop" />
+</context>
+
+<context name="c_indirect_normal_bold_block" attribute="d_normal_bold" lineEndContext="#stay">
+    <IncludeRules context="c_normal" />
+
+    <DetectChar char="]" attribute="d_structure" context="#pop#pop" />
+</context>
+
+<!-- Blocks used in macros and templates bodies -->
+
+<context name="c_indirect_main_block" attribute="d_normal" lineEndContext="#stay">
+    <IncludeRules context="c_main" />
+
+    <DetectChar char="]" attribute="d_structure" context="#pop#pop" />
+</context>
+
+<context name="c_deep_main_block" attribute="d_normal" lineEndContext="#stay">
+    <IncludeRules context="c_main" />
+    <DetectChar char="]" attribute="d_structure" context="#pop#pop#pop" />
+</context>
+
+<!-- No processing block -->
+
+<context name="c_no_processing_block" attribute="d_normal" lineEndContext="#stay">
+    <IncludeRules context="c_predefined_macros" />
+    <StringDetect String="'''" attribute="d_structure" context="#pop" endRegion="r_no_processing"/>
+</context>
+
+<context name="c_no_processing_finder" attribute="d_normal" lineEndContext="#stay">
+    <StringDetect String="'''" attribute="d_structure" context="c_no_processing_block" beginRegion="r_no_processing"/>
+</context>
+
+<!-- Items list finder  -->
+
+<context name="c_item_list" attribute="d_normal" lineEndContext="#stay">
+    <RegExpr String="^\s*[\*\#]\s" minimal="true" attribute="d_structure" context="c_item_list"/>
+    <RegExpr String="^." minimal="true" attribute="d_structure" lookAhead="true" context="#pop"/>
+    <IncludeRules context="c_strict_normal" />
+</context>
+
+<context name="c_item_list_finder" attribute="d_normal" lineEndContext="#stay">
+    <RegExpr String="^\s*[\*\#]\s" minimal="true" attribute="d_structure" context="c_item_list"/>
+</context>
+
+<!-- Code blocks -->
+
+<context name="c_back_to_quickbook_block" attribute="d_normal" lineEndContext="#stay">
+    <Detect2Chars char="`" char1="`" attribute="d_structure" context="#pop" />
+    <IncludeRules context="c_strict_normal" />
+</context>
+
+<context name="c_code_block" attribute="d_normal" lineEndContext="#stay">
+    <RegExpr String="^[\S]" minimal="true" attribute="d_structure" lookAhead="true" context="#pop" />
+    <Detect2Chars char="`" char1="`" attribute="d_structure" context="c_back_to_quickbook_block" />
+    <IncludeRules context="c_predefined_macros" />
+    <IncludeRules context="##C++" />
+</context>
+
+<context name="c_preformated_code_block" attribute="d_normal" lineEndContext="#stay">
+    <Detect2Chars char="`" char1="`" attribute="d_structure" context="#pop" endRegion="r_code_block" />
+    <IncludeRules context="c_predefined_macros" />
+    <IncludeRules context="##C++" />
+</context>
+
+<context name="c_inline_code_block" attribute="d_normal" lineEndContext="#stay">
+    <DetectChar char="`" attribute="d_structure" context="#pop" />
+    <IncludeRules context="c_predefined_macros" />
+    <IncludeRules context="##C++"/>
+</context>
+
+<context name="c_cpp_code_block_finder"  attribute="d_normal" lineEndContext="#stay">
+    <RegExpr String="^[\s]" minimal="true" attribute="d_structure" context="c_code_block" />
+</context>
+
+<context name="c_cpp_inline_code_block_finder"  attribute="d_normal" lineEndContext="#stay">
+    <Detect2Chars char="`" char1="`" attribute="d_structure" context="c_preformated_code_block" beginRegion="r_code_block" />
+    <DetectChar char="`" attribute="d_structure" context="c_inline_code_block" />
+</context>
+
+<context name="c_language_finder" attribute="d_normal" lineEndContext="#stay">
+    <StringDetect String="[c++]" attribute="d_structure" context="#stay" />
+    <StringDetect String="[python]" attribute="d_structure" context="#stay" />
+</context>
+
+<!-- Sections and Headings -->
+
+<context name="c_section_definition" attribute="d_anchor" lineEndContext="#stay">
+    <DetectChar char=" " attribute="d_structure" context="c_indirect_normal_bold_block" />
+</context>
+
+<context name="c_sections_finder" attribute="d_normal" lineEndContext="#stay">
+    <StringDetect String="[section" attribute="d_structure" context="c_section_definition" beginRegion="r_section" />
+    <StringDetect String="[endsect]" attribute="d_structure" context="#pop#pop#pop#pop" endRegion="r_section"/>
+</context>
+
+<context name="c_headings_finder" attribute="d_normal" lineEndContext="#stay">
+    <StringDetect String="[heading" minimal="true" attribute="d_structure" context="c_normal_bold_block" />
+    <RegExpr String="\[h[1-6]\b" minimal="true" attribute="d_structure" context="c_normal_bold_block" />
+</context>
+
+
+<!-- Macros -->
+
+<context name="c_macro_definition" attribute="d_macro" lineEndContext="c_indirect_main_block">
+    <RegExpr String="\s" minimal="true" attribute="d_structure" context="c_indirect_main_block" />
+</context>
+
+<context name="c_predefined_macros" attribute="d_macro">
+    <RegExpr String="[_]{2}[\w_]+[_]{2}" minimal="true" attribute="d_macro" context="#stay" />
+</context>
+
+<context name="c_macro_definition_finder" attribute="d_normal" lineEndContext="#stay">
+    <RegExpr String="\[def\b[\s]*" attribute="d_structure" context="c_macro_definition" />
+</context>
+
+
+<!-- Templates -->
+
+<context name="c_template_parameters" attribute="d_path" lineEndContext="#stay">
+    <DetectChar char="]" attribute="d_structure" context="c_deep_main_block" />
+</context>
+
+<context name="c_template_definition" attribute="d_macro" lineEndContext="c_indirect_main_block">
+    <DetectChar char="[" attribute="d_structure" context="c_template_parameters" />
+    <RegExpr String="\\\s" minimal="true" attribute="d_structure" context="c_indirect_main_block"/>
+    <RegExpr String="\s" minimal="true" attribute="d_structure" context="c_indirect_main_block" />
+</context>
+
+<context name="c_template_definition_finder" attribute="d_normal" lineEndContext="#stay">
+    <RegExpr String="\[template\b[\s]*" attribute="d_structure" context="c_template_definition" />
+</context>
+
+<!-- Text format logic -->
+
+<context name="c_text_format_finder" attribute="d_normal">
+    <Detect2Chars char="[" char1="*" attribute="d_structure" context="c_normal_bold" />
+    <Detect2Chars char="[" char1="'" attribute="d_structure" context="c_normal_italic" />
+    <Detect2Chars char="[" char1="_" attribute="d_structure" context="c_normal_underline" />
+    <Detect2Chars char="[" char1="-" attribute="d_structure" context="c_normal_strikeout" />
+    <Detect2Chars char="[" char1="^" attribute="d_structure" context="c_normal_teletype" />
+    <Detect2Chars char="[" char1="~" attribute="d_structure" context="c_normal_replaceable" />
+    <RegExpr String="(?=(^|\W))[\*][\S][^\[\]]*[\S]?[\*](?=($|\W))" minimal="true" attribute="d_normal_bold" context="#stay" />
+    <RegExpr String="(?=(^|\W))[/][\S][^\[\]]*[\S]?[/](?=($|\W))" minimal="true" attribute="d_normal_italic" context="#stay" />
+    <RegExpr String="(?=(^|\W))[_][\S][^\[\]]*[\S]?[_](?=($|\W))" minimal="true" attribute="d_normal_underline" context="#stay" />
+    <RegExpr String="(?=(^|\W))[=][\S][^\[\]]*[\S]?[=](?=($|\W))" minimal="true" attribute="d_normal_teletype" context="#stay" />
+</context>
+
+<context name="c_normal_bold" attribute="d_normal_bold" lineEndContext="#stay">
+    <IncludeRules context="c_common_structures" />
+    <Detect2Chars char="[" char1="*" attribute="d_structure" context="c_normal_bold" />
+    <Detect2Chars char="[" char1="'" attribute="d_structure" context="c_normal_bold_italic" />
+    <Detect2Chars char="[" char1="_" attribute="d_structure" context="c_normal_bold_underline" />
+    <RegExpr String="(?=(^|\W))[/][\S][^\[\]]*[\S]?[/](?=($|\W))" minimal="true" attribute="d_normal_bold_italic" context="#stay" />
+    <RegExpr String="(?=(^|\W))[_][\S][^\[\]]*[\S]?[_](?=($|\W))" minimal="true" attribute="d_normal_bold_underline" context="#stay" />
+    <IncludeRules context="c_simple_text_block_finder" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_normal_italic" attribute="d_normal_italic" lineEndContext="#stay">
+    <IncludeRules context="c_common_structures" />
+    <Detect2Chars char="[" char1="*" attribute="d_structure" context="c_normal_bold_italic" />
+    <Detect2Chars char="[" char1="_" attribute="d_structure" context="c_normal_italic_underline" />
+    <RegExpr String="(?=(^|\W))[\*][\S][^\[\]]*[\S]?[\*](?=($|\W))" minimal="true" attribute="d_normal_bold_italic" context="#stay" />
+    <RegExpr String="(?=(^|\W))[_][\S][^\[\]]*[\S]?[_](?=($|\W))" minimal="true" attribute="d_normal_italic_underline" context="#stay" />
+    <IncludeRules context="c_simple_text_block_finder" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_normal_underline" attribute="d_normal_underline" lineEndContext="#stay">
+    <IncludeRules context="c_common_structures" />
+    <Detect2Chars char="[" char1="*" attribute="d_structure" context="c_normal_bold_underline" />
+    <Detect2Chars char="[" char1="'" attribute="d_structure" context="c_normal_italic_underline" />
+    <Detect2Chars char="[" char1="_" attribute="d_structure" context="c_normal_underline" />
+    <RegExpr String="(?=(^|\W))[\*][\S][^\[\]]*[\S]?[\*](?=($|\W))" minimal="true" attribute="d_normal_bold_underline" context="#stay" />
+    <RegExpr String="(?=(^|\W))[/][\S][^\[\]]*[\S]?[/](?=($|\W))" minimal="true" attribute="d_normal_italic_underline" context="#stay" />
+    <IncludeRules context="c_simple_text_block_finder" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_normal_bold_italic" attribute="d_normal_bold_italic" lineEndContext="#stay">
+    <IncludeRules context="c_common_structures" />
+    <Detect2Chars char="[" char1="*" attribute="d_structure" context="c_normal_bold_italic" />
+    <Detect2Chars char="[" char1="'" attribute="d_structure" context="c_normal_bold_italic" />
+    <Detect2Chars char="[" char1="_" attribute="d_structure" context="c_normal_bold_italic_underline" />
+    <IncludeRules context="c_simple_text_block_finder" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_normal_bold_underline" attribute="d_normal_bold_underline" lineEndContext="#stay">
+    <IncludeRules context="c_common_structures" />
+    <Detect2Chars char="[" char1="*" attribute="d_structure" context="c_normal_bold_underline" />
+    <Detect2Chars char="[" char1="'" attribute="d_structure" context="c_normal_bold_italic_underline" />
+    <Detect2Chars char="[" char1="_" attribute="d_structure" context="c_normal_bold_underline" />
+    <IncludeRules context="c_simple_text_block_finder" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_normal_italic_underline" attribute="d_normal_italic_underline" lineEndContext="#stay">
+    <IncludeRules context="c_common_structures" />
+    <Detect2Chars char="[" char1="*" attribute="d_structure" context="c_normal_bold_italic_underline" />
+    <Detect2Chars char="[" char1="'" attribute="d_structure" context="c_normal_italic_underline" />
+    <Detect2Chars char="[" char1="_" attribute="d_structure" context="c_normal_italic_underline" />
+    <IncludeRules context="c_simple_text_block_finder" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_normal_bold_italic_underline" attribute="d_normal_bold_italic_underline" lineEndContext="#stay">
+    <IncludeRules context="c_common_structures" />
+    <Detect2Chars char="[" char1="*" attribute="d_structure" context="c_normal_bold_italic_underline" />
+    <Detect2Chars char="[" char1="'" attribute="d_structure" context="c_normal_bold_italic_underline" />
+    <Detect2Chars char="[" char1="_" attribute="d_structure" context="c_normal_bold_italic_underline" />
+    <IncludeRules context="c_simple_text_block_finder" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_normal_strikeout" attribute="d_normal_strikeout" lineEndContext="#stay">
+    <IncludeRules context="c_common_structures" />
+    <IncludeRules context="c_simple_text_block_finder" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_normal_teletype" attribute="d_normal_teletype" lineEndContext="#stay">
+    <IncludeRules context="c_common_structures" />
+    <IncludeRules context="c_simple_text_block_finder" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_normal_replaceable" attribute="d_normal_ replaceable" lineEndContext="#stay">
+    <IncludeRules context="c_common_structures" />
+    <IncludeRules context="c_simple_text_block_finder" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<!-- Links -->
+
+<context name="c_link" attribute="d_anchor" lineEndContext="c_indirect_normal_block">
+    <RegExpr String="\s" minimal="true" attribute="d_structure" context="c_indirect_normal_block" />
+</context>
+
+<context name="c_web_link" attribute="d_path" lineEndContext="c_indirect_normal_block">
+    <RegExpr String="\s" minimal="true" attribute="d_structure" context="c_indirect_normal_block" />
+    <IncludeRules context="c_simple_text_block_finder" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_link_finder" attribute="d_normal" lineEndContext="#stay">
+    <RegExpr String="\[link\b[\s]*" attribute="d_structure" context="c_link" />
+    <Detect2Chars char="[" char1="@" attribute="d_structure" context="c_web_link" />
+</context>
+
+<context name="c_cpp_link_finder" attribute="d_normal" lineEndContext="#stay">
+    <RegExpr String="\[(funcref|classref|memberref|enumref|headerref)\b[\s]*" attribute="d_structure" context="c_link" />
+</context>
+
+<!-- Anchors -->
+
+<context name="c_anchor" attribute="d_anchor" lineEndContext="#stay">
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_anchor_finder" attribute="d_normal" lineEndContext="#stay">
+    <Detect2Chars char="[" char1="#" attribute="d_structure" context="c_anchor" />
+</context>
+
+<!-- Images -->
+
+<context name="c_image" attribute="d_path" lineEndContext="#stay">
+    <IncludeRules context="c_simple_text_block_finder" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_image_finder" attribute="d_normal" lineEndContext="#stay">
+    <Detect2Chars char="[" char1="$" attribute="d_structure" context="c_image" />
+</context>
+
+<!-- Comments -->
+
+<context name="c_comment" attribute="d_comment" lineEndContext="#stay">
+
+    <!-- For performance the [endsect] resets the engine -->
+    <!-- Is this the best approach here? -->
+    <StringDetect String="[endsect]" attribute="d_structure" context="#pop#pop#pop#pop#pop" endRegion="r_section"/>
+
+    <DetectChar char="[" attribute="d_structure" context="c_comment" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" endRegion="r_comment" />
+</context>
+
+<context name="c_comment_finder" >
+    <Detect2Chars char="[" char1="/" attribute="d_structure" context="c_comment" beginRegion="r_comment" />
+</context>
+
+<!-- Scape sequences -->
+
+<context name="c_scape_sequence_finder" attribute="d_normal" lineEndContext="#stay">
+    <DetectChar char="\" attribute="d_structure" context="c_scape_character" />
+</context>
+
+<context name="c_scape_character" attribute="d_normal" lineEndContext="#stay">
+    <RegExpr String="." minimal="true" attribute="d_normal" context="#pop" />
+</context>
+
+<!-- Text blocks -->
+
+<context name="c_normal_text_block" attribute="d_normal" lineEndContext="#stay">
+    <IncludeRules context="c_strict_normal" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" endRegion="r_text_block"/>
+</context>
+
+<context name="c_text_block_finder" attribute="d_normal" lineEndContext="#stay">
+    <Detect2Chars char="[" char1=":" attribute="d_structure" context="c_normal_text_block" beginRegion="r_text_block" />
+    <RegExpr String="[\[][\x0022]" minimal="true" attribute="d_structure" context="c_normal_text_block" beginRegion="r_text_block"/>
+    <RegExpr String="\[(pre|footnote|blurb|warning|note|tip|important|pre|caution)(\b|\W|$)" minimal="true" attribute="d_structure" context="c_normal_text_block" beginRegion="r_text_block"/>
+</context>
+
+
+<context name="c_simple_text_block" attribute="d_anchor" lineEndContext="#stay">
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+    <RegExpr String="\s" minimal="true" attribute="d_structure" context="c_indirect_normal_block" />
+</context>
+
+<context name="c_simple_text_block_finder" attribute="d_normal" lineEndContext="#stay">
+    <DetectChar char="["  attribute="d_structure" context="c_simple_text_block" />
+</context>
+
+<!-- Includes -->
+
+<context name="c_included_path" attribute="d_path" lineEndContext="#stay">
+    <IncludeRules context="c_simple_text_block_finder" />
+    <DetectChar char="]" attribute="d_structure" context="#pop#pop" />
+</context>
+
+<context name="c_include" attribute="d_anchor" lineEndContext="#stay">
+    <RegExpr String="\s" minimal="true" attribute="d_structure" context="c_included_path" />
+</context>
+
+<context name="c_includes_finder" attribute="d_normal" lineEndContext="#stay">
+    <StringDetect String="[include" attribute="d_structure" context="c_include" />
+    <StringDetect String="[xinclude" attribute="d_structure" context="c_include" />
+</context>
+
+<!-- Import -->
+
+<context name="c_import_path" attribute="d_path" lineEndContext="#stay">
+    <IncludeRules context="c_simple_text_block_finder" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_import_finder" attribute="d_normal" lineEndContext="#stay">
+    <StringDetect String="[import" attribute="d_structure" context="c_import_path" />
+</context>
+
+<!-- Document Type logic -->
+
+<context name="c_quickbook_type_finder" attribute="d_normal" lineEndContext="#stay">
+    <RegExpr String="\[(book|article|library|chapter|part|appendix|preface|qandadiv|qandaset|reference|set)\b" minimal="true" attribute="d_structure" context="c_documment_definition" beginRegion="r_documment_definition" />
+</context>
+
+<context name="c_documment_definition" attribute="d_normal_bold" lineEndContext="#stay">
+    <IncludeRules context="c_quickbook_attribute_finder" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" endRegion="r_documment_definition"/>
+</context>
+
+<context name="c_quickbook_attribute_finder" attribute="d_normal" lineEndContext="#stay">
+    <RegExpr String="\[(quickbook|version|id|dirname|copyright|purpose|category|authors|license|source\-mode)\b" minimal="true" attribute="d_structure" context="c_normal_block" />
+
+</context>
+
+<!-- Tables
+
+        [table A Simple Table
+        [[Heading 1] [Heading 2] [Heading 3]]
+        [[R0-C0]     [R0-C1]     [R0-C2]]
+        [[R1-C0]     [R1-C1]     [R1-C2]]
+        [[R2-C0]     [R2-C1]     [R2-C2]]]                 -->
+
+<context name="c_table" attribute="d_normal_bold" lineEndContext="#stay">
+    <IncludeRules context="c_strict_normal" />
+    <DetectChar char="[" attribute="d_structure" context="c_table_title_row" />
+</context>
+
+<context name="c_table_title_row" attribute="d_nop" lineEndContext="#stay">
+
+    <!-- For performance the [endsect] resets the engine -->
+    <StringDetect String="[endsect]" attribute="d_structure" context="#pop#pop#pop#pop#pop" endRegion="r_section"/>
+
+    <DetectChar char="[" attribute="d_structure" context="c_table_title_cell" />
+    <DetectChar char="]" attribute="d_structure" context="c_table_body" />
+</context>
+
+<context name="c_table_title_cell" attribute="d_table_title_cell" lineEndContext="#stay">
+    <IncludeRules context="c_strict_normal" />
+
+    <DetectChar char="[" attribute="d_structure" context="c_table_cell" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_table_body" attribute="d_nop" lineEndContext="#stay">
+
+    <!-- For performance the [endsect] resets the engine -->
+    <StringDetect String="[endsect]" attribute="d_structure" context="#pop#pop#pop#pop#pop" endRegion="r_section"/>
+
+    <DetectChar char="[" attribute="d_structure" context="c_table_row" />
+    <DetectChar char="]" attribute="d_structure" context="#pop#pop#pop" endRegion="r_table"/>
+</context>
+
+<context name="c_table_row" attribute="d_nop" lineEndContext="#stay">
+
+    <!-- For performance the [endsect] resets the engine -->
+    <StringDetect String="[endsect]" attribute="d_structure" context="#pop#pop#pop#pop#pop" endRegion="r_section"/>
+
+    <DetectChar char="[" attribute="d_structure" context="c_table_cell" />
+
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_table_cell" attribute="d_normal" lineEndContext="#stay">
+    <IncludeRules context="c_normal" />
+    <RegExpr String="Row[\s]+[\d]+[\s]*,[\s]*Col[\s]+[\d]+[\s]*:" minimal="true" attribute="d_structure" context="#stay" />
+    <!--DetectChar char="[" attribute="d_structure" context="c_table_cell" /-->
+    <DetectChar char="]" attribute="d_structure" context="#pop" />
+</context>
+
+<context name="c_table_finder" attribute="d_normal" lineEndContext="#stay">
+    <RegExpr String="\[table\b" minimal="true" attribute="d_structure" context="c_table" beginRegion="r_table" />
+</context>
+
+<!-- Variable List
+
+        [variablelist A Variable List
+        [[term 1] [The definition of term 1]]
+        [[term 2] [The definition of term 2]]
+        [[term 3] [The definition of term 3]]
+        ]
+        -->
+
+<context name="c_variable_list" attribute="d_normal_bold" lineEndContext="#stay">
+    <IncludeRules context="c_strict_normal" />
+    <DetectChar char="[" attribute="d_structure" context="c_var_list_body_1" />
+    <DetectChar char="]" attribute="d_structure" context="#pop" endRegion="r_variable_list"/>
+</context>
+
+<context name="c_var_list_body_1" attribute="d_nop" lineEndContext="#stay">
+
+    <!-- For performance the [endsect] resets the engine -->
+    <StringDetect String="[endsect]" attribute="d_structure" context="#pop#pop#pop#pop#pop" endRegion="r_section"/>
+
+    <DetectChar char="[" attribute="d_structure" context="c_var_list_element_name" />
+</context>
+
+<context name="c_var_list_body_2" attribute="d_nop" lineEndContext="#stay">
+
+    <!-- For performance the [endsect] resets the engine -->
+    <StringDetect String="[endsect]" attribute="d_structure" context="#pop#pop#pop#pop#pop" endRegion="r_section"/>
+
+    <DetectChar char="[" attribute="d_structure" context="c_var_list_element_info" />
+</context>
+
+<context name="c_var_list_body_3" attribute="d_nop" lineEndContext="#stay">
+    <DetectChar char="]" attribute="d_structure" context="#pop#pop#pop#pop#pop" />
+</context>
+
+<context name="c_var_list_element_name" attribute="d_list_element_name" lineEndContext="#stay">
+    <IncludeRules context="c_normal" />
+    <DetectChar char="]" attribute="d_structure" context="c_var_list_body_2" />
+</context>
+
+<context name="c_var_list_element_info" attribute="d_normal" lineEndContext="#stay">
+    <IncludeRules context="c_normal" />
+    <DetectChar char="]" attribute="d_structure" context="c_var_list_body_3" />
+</context>
+
+<context name="c_variable_list_finder" attribute="d_normal" lineEndContext="#stay">
+    <RegExpr String="\[variablelist\b" minimal="true" attribute="d_structure" context="c_variable_list" beginRegion="r_variable_list" />
+</context>
+
+
+<!--
+    boost::hs
+-->
+
+<context name="c_boost::hs call finder" attribute="d_boost::hs">
+    <StringDetect String="[/boost::hs::turn_off()]" attribute="d_boost::hs" context="c_scape_highlighting" />
+    <StringDetect String="[/boost::hs::turn_on()]" attribute="d_boost::hs" context="#stay" />
+    <StringDetect String="[/boost::hs::begin_region()]" attribute="d_boost::hs" context="#stay" beginRegion="r_boost::hs::region"  />
+    <StringDetect String="[/boost::hs::end_region()]" attribute="d_boost::hs" context="#stay" endRegion="r_boost::hs::region"  />
+</context>
+
+<context name="c_scape_highlighting" attribute="d_normal" lineEndContext="#stay">
+    <StringDetect String="[/boost::hs::turn_on()]" attribute="d_boost::hs" context="#pop" />
+    <StringDetect String="[/boost::hs::turn_off()]" attribute="d_boost::hs" context="#stay" />
+</context>
+
+</contexts>
+
+<!--
+    This section defines the colors and format of each type of string parsed
+    Try to use defaults so the user can change it as he wished
+-->
+
+<itemDatas>
+
+    <itemData name="d_normal" defStyleNum="dsNormal" />
+
+    <itemData name="d_normal_bold" bold="true" defStyleNum="dsNormal" />
+
+    <itemData name="d_normal_italic" italic="true" defStyleNum="dsNormal" />
+
+    <itemData name="d_normal_underline" underline="true" defStyleNum="dsNormal" />
+
+    <itemData name="d_normal_bold_italic" bold="true" italic="true" defStyleNum="dsNormal" />
+    <itemData name="d_normal_bold_underline" bold="true" underline="true" defStyleNum="dsNormal" />
+
+    <itemData name="d_normal_italic_underline" italic="true" underline="true" defStyleNum="dsNormal" />
+
+    <itemData name="d_normal_bold_italic_underline" bold="true" italic="true" underline="true" defStyleNum="dsNormal" />
+
+    <itemData name="d_normal_strikeout" strikeout="true" defStyleNum="dsNormal" />
+
+    <itemData name="d_normal_teletype" italic="true" defStyleNum="dsNormal" />
+
+    <itemData name="d_normal_replaceable" italic="true" defStyleNum="dsNormal" />
+
+    <itemData name="d_anchor" defStyleNum="dsDataType" />
+
+    <itemData name="d_macro" defStyleNum="dsDataType" />
+
+    <itemData name="d_path" defStyleNum="dsOthers" />
+
+    <itemData name="d_structure" color="#5555FF" defStyleNum="dsNormal" />
+
+    <itemData name="d_comment" defStyleNum="dsComment" />
+
+    <itemData name="d_table_title_cell" color="#000000" bold="true" backgroundColor="#E6E6E6" defStyleNum="dsNormal" />
+
+    <itemData name="d_list_element_name" bold="true" defStyleNum="dsNormal" />
+
+    <itemData name="d_nop" defStyleNum="dsComment" />
+
+    <itemData name="d_boost::hs" defStyleNum="dsFunction" />
+
+</itemDatas>
+
+<!-- Last Part, Give acces to some tools, for example comment/uncomment in edit menu -->
+
+</highlighting>
+
+<general>
+
+    <comments>
+
+        <comment name="multiLine" start="[/" end="]" region="r_comment" />
+
+    </comments>
+
+</general>
+
+</language>
+
+<!--
+
+Aknowelegments
+=================================================
+
+Boost.Quickbook is a poweful C++ documentation tool.
+It is developped by Joel de Guzman and Eric Niebler, I am very thankful they give
+this tool a Boost License and allowed C++ developpers to document their work
+in a easy and fun way.
+Check www.boost.org to get the tool and meet one of the most impressive c++
+library communities in the world.
+
+Version history
+=================================================
+
+[ 0.9.4 ] Add [heading ]
+Add templates
+Add import
+[ 0.9.3 ] "[endsect]" reset the engine to avoid lags in long files
+[ 0.9.2 ] Change file name ( quickbook_sintaxis.xml -> boost::hs::quickbook.xml )
+Change section ( Docs -> boost::hs ),
+Change name ( Boost.Quickbook -> quickbook )
+This changes aims to incorporate a boost kate sintaxis framework in KDE.
+[ 0.9.1 ] Fixed simple formating ( for example: "*this] [that*" is not longer bolded ).
+[ 0.9.0 ] Initial beta, sended to Joel de Guzman and Eric Niebler.
+
+Known bugs
+=================================================
+
+Feedback will be appreciated.
+They are very small and it is very unlikely to encounter one.
+
+* List items * and # are not fully implemented.
+* The line ` \\ C++ comment ` is not working because of Kate C++
+highlight definitions.
+* Python code is not yet supported.
+
+-->

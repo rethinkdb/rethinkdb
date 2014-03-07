@@ -1,0 +1,36 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+	<head>
+		<title>Boost: current_function.hpp documentation</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	</head>
+	<body bgcolor="white" style="MARGIN-LEFT: 5%; MARGIN-RIGHT: 5%">
+		<table border="0" width="100%">
+			<tr>
+				<td width="277"><A href="../../index.htm"> <img src="../../boost.png" alt="boost.png (6897 bytes)" width="277" height="86" border="0"></A>
+				</td>
+				<td align="center">
+					<h1>current_function.hpp</h1>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2" height="64">&nbsp;</td>
+			</tr>
+		</table>
+		<p>
+			The header <STRONG>&lt;boost/current_function.hpp&gt;</STRONG> defines a single 
+			macro, <STRONG>BOOST_CURRENT_FUNCTION</STRONG>,<STRONG> </STRONG>similar to the 
+			C99 predefined identifier <STRONG>__func__</STRONG>.
+		</p>
+		<P><STRONG>BOOST_CURRENT_FUNCTION</STRONG> expands to a string literal containing 
+			the (fully qualified, if possible) name of the enclosing function. If there is 
+			no enclosing function, the behavior is undefined.</P>
+		<p>Some compilers do not provide a way to obtain the name of the current enclosing 
+			function. On such compilers, the string literal has an unspecified value.</p>
+		<p>
+			<br>
+			<small>Copyright © 2002 by Peter Dimov. Distributed under the Boost Software License, Version 
+				1.0. See accompanying file <A href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or 
+				copy at <A href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>.</small></p>
+	</body>
+</html>

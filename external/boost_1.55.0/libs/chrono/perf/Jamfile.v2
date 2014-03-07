@@ -1,0 +1,170 @@
+# Boost Chrono Library test Jamfile
+
+# Copyright Beman Dawes 2008
+# Copyright Vicente J. Botet Escriba 2009-2010
+
+# Distributed under the Boost Software License, Version 1.0.
+# See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt
+
+# See library home page at http://www.boost.org/libs/chrono
+
+import os ;
+import feature ;
+
+project
+    : requirements
+        <target-os>freebsd:<linkflags>"-lrt" 
+        <target-os>linux:<linkflags>"-lrt" 
+        <toolset>pgi:<linkflags>"-lrt" 
+        #<threading>single:<define>BOOST_CHRONO_THREAD_DISABLED
+        <toolset>msvc:<asynch-exceptions>on
+        <define>BOOST_CHRONO_USES_MPL_ASSERT
+        <define>BOOST_SYSTEM_NO_DEPRECATED
+        <toolset>sun:<define>BOOST_TYPEOF_EMULATION
+        <warnings>all
+        <toolset>gcc:<cxxflags>-Wextra
+        <toolset>gcc:<cxxflags>-pedantic
+        <toolset>gcc:<cxxflags>-Wno-long-long
+        <toolset>darwin:<cxxflags>-Wextra
+        <toolset>darwin:<cxxflags>-pedantic
+        <toolset>darwin:<cxxflags>-Wno-long-long
+        #<toolset>pathscale:<cxxflags>-Wextra
+        <toolset>pathscale:<cxxflags>-Wno-long-long
+        <toolset>pathscale:<cxxflags>-pedantic
+        <toolset>clang:<cxxflags>-Wextra
+        <toolset>clang:<cxxflags>-pedantic
+        <toolset>clang:<cxxflags>-Wno-long-long
+        <toolset>gcc-mingw-4.5.0:<cxxflags>-Wno-missing-field-initializers
+        <toolset>gcc-mingw-4.5.0:<cxxflags>-fdiagnostics-show-option
+        <toolset>msvc:<cxxflags>/wd4127
+# Note: Some of the remarks from the Intel compiler are disabled
+# remark #304: access control not specified ("public" by default)
+# remark #383: value copied to temporary, reference to temporary used
+# remark #1418: external function definition with no prior declaration
+        <toolset>intel:<cxxflags>-wd304,383,1418
+        <define>BOOST_CHRONO_VERSION=2
+    ;
+
+rule chrono-run ( sources )
+{
+    return
+    [ run $(sources) ../build//boost_chrono
+        : :
+        :
+            <library>/boost/system//boost_system
+        :   $(sources[1]:B)_shared ]
+    [ run $(sources) ../build//boost_chrono/<link>static
+        : :
+        :
+            <library>/boost/system//boost_system
+        :   $(sources[1]:B)_static ]
+    [ run $(sources)
+        : :
+        :   <define>BOOST_CHRONO_HEADER_ONLY
+            # comment one of the following lines
+            #<define>BOOST_SYSTEM_INLINED
+            <library>/boost/system//boost_system
+        :   $(sources[1]:B)_header ]
+    ;
+}
+rule chrono-run2 ( sources : name )
+{
+    return
+    [ run $(sources) ../build//boost_chrono
+        : :
+        :
+            <library>/boost/system//boost_system
+        :   $(name)_shared ]
+    [ run $(sources) ../build//boost_chrono/<link>static
+        : :
+        :
+            <library>/boost/system//boost_system
+        : $(name)_static ]
+    [ run $(sources)
+        : :
+        :   <define>BOOST_CHRONO_HEADER_ONLY
+            # comment one of the following lines
+            #<define>BOOST_SYSTEM_INLINED
+            <library>/boost/system//boost_system
+        : $(name)_header ]
+    ;
+}
+
+
+rule chrono-run-mt ( sources )
+{
+    return
+    [ run $(sources) ../build//boost_chrono
+        : :
+        :
+            <library>/boost/system//boost_system
+        :   $(sources[1]:B)_shared ]
+    [ run $(sources) ../build//boost_chrono/<link>static
+        : :
+        :
+            <library>/boost/system//boost_system
+        :  $(sources[1]:B)_static ]
+    [ run $(sources)
+        : :
+        :   <define>BOOST_CHRONO_HEADER_ONLY
+            # comment one of the following lines
+            #<define>BOOST_SYSTEM_INLINED
+            <library>/boost/system//boost_system
+        :   $(sources[1]:B)_header ]
+    ;
+}
+rule chrono-run2-mt ( sources : name )
+{
+    return
+    [ run $(sources) ../build//boost_chrono
+        : :
+        :
+            <library>/boost/system//boost_system
+        :   $(name)_shared ]
+    [ run $(sources) ../build//boost_chrono/<link>static
+        : :
+        :
+            <library>/boost/system//boost_system
+        : $(name)_static ]
+    [ run $(sources)
+        : :
+        :   <define>BOOST_CHRONO_HEADER_ONLY
+            # comment one of the following lines
+            #<define>BOOST_SYSTEM_INLINED
+            <library>/boost/system//boost_system
+        : $(name)_header ]
+    ;
+}
+rule chrono-compile ( sources )
+{
+    return
+    [ compile $(sources)
+        :
+        : $(sources[1]:B)_lib ]
+    [ compile $(sources)
+        :   <define>BOOST_CHRONO_HEADER_ONLY
+            # comment the following line
+            <define>BOOST_SYSTEM_INLINED
+        : $(sources[1]:B)_header ]
+    ;
+}
+
+rule chrono-compile2 ( sources : name )
+{
+    return
+    [ compile $(sources)
+        :
+        : $(name)_lib ]
+    [ compile $(sources)
+        :  <define>BOOST_CHRONO_HEADER_ONLY
+            # comment the following line
+            <define>BOOST_SYSTEM_INLINED
+        : $(name)_header ]
+    ;
+}
+
+    test-suite "perf"
+        :
+        [ chrono-run store_now_in_vector.cpp  ]
+        ;
+

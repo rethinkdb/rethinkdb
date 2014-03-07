@@ -1,0 +1,85 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ti_ER.xml
+// *
+// ***************************************************************************
+ti_ER{
+    Version{"2.0.47.65"}
+    calendar{
+        gregorian{
+            DateTimeElements:intvector{
+                7,
+                4,
+            }
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE፡ dd MMMM መዓልቲ y G",
+                "dd MMMM y",
+                "dd-MMM-y",
+                "dd/MM/yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            dayNames{
+                format{
+                    wide{
+                        "ሰንበት",
+                        "ሰኑይ",
+                        "ሰሉስ",
+                        "ረቡዕ",
+                        "ሓሙስ",
+                        "ዓርቢ",
+                        "ቀዳም",
+                    }
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "ጥሪ",
+                        "ለካቲ",
+                        "መጋቢ",
+                        "ሚያዝ",
+                        "ግንቦ",
+                        "ሰነ",
+                        "ሓምለ",
+                        "ነሓሰ",
+                        "መስከ",
+                        "ጥቅም",
+                        "ሕዳር",
+                        "ታሕሳ",
+                    }
+                    wide{
+                        "ጥሪ",
+                        "ለካቲት",
+                        "መጋቢት",
+                        "ሚያዝያ",
+                        "ግንቦት",
+                        "ሰነ",
+                        "ሓምለ",
+                        "ነሓሰ",
+                        "መስከረም",
+                        "ጥቅምቲ",
+                        "ሕዳር",
+                        "ታሕሳስ",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"”"}
+        alternateQuotationStart{"“"}
+        quotationEnd{"’"}
+        quotationStart{"‘"}
+    }
+}

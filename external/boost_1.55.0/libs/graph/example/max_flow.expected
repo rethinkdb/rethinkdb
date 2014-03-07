@@ -1,0 +1,24 @@
+c  The total flow:
+s 13
+
+c flow values:
+f 0 6 3
+f 0 1 0
+f 0 2 10
+f 1 5 1
+f 1 0 0
+f 1 3 0
+f 2 4 4
+f 2 3 6
+f 2 0 0
+f 3 7 5
+f 3 2 0
+f 3 1 1
+f 4 5 4
+f 4 6 0
+f 5 4 0
+f 5 7 5
+f 6 7 3
+f 6 4 0
+f 7 6 0
+f 7 5 0

@@ -1,0 +1,72 @@
+{
+  "source": "doc/api/url.markdown",
+  "modules": [
+    {
+      "textRaw": "URL",
+      "name": "url",
+      "stability": 3,
+      "stabilityText": "Stable",
+      "desc": "<p>This module has utilities for URL resolution and parsing.\nCall <code>require(&#39;url&#39;)</code> to use it.\n\n</p>\n<p>Parsed URL objects have some or all of the following fields, depending on\nwhether or not they exist in the URL string. Any parts that are not in the URL\nstring will not be in the parsed object. Examples are shown for the URL\n\n</p>\n<p><code>&#39;http://user:pass@host.com:8080/p/a/t/h?query=string#hash&#39;</code>\n\n</p>\n<ul>\n<li><p><code>href</code>: The full URL that was originally parsed. Both the protocol and host are lowercased.</p>\n<p>  Example: <code>&#39;http://user:pass@host.com:8080/p/a/t/h?query=string#hash&#39;</code></p>\n</li>\n<li><p><code>protocol</code>: The request protocol, lowercased.</p>\n<p>  Example: <code>&#39;http:&#39;</code></p>\n</li>\n<li><p><code>host</code>: The full lowercased host portion of the URL, including port\ninformation.</p>\n<p>  Example: <code>&#39;host.com:8080&#39;</code></p>\n</li>\n<li><p><code>auth</code>: The authentication information portion of a URL.</p>\n<p>  Example: <code>&#39;user:pass&#39;</code></p>\n</li>\n<li><p><code>hostname</code>: Just the lowercased hostname portion of the host.</p>\n<p>  Example: <code>&#39;host.com&#39;</code></p>\n</li>\n<li><p><code>port</code>: The port number portion of the host.</p>\n<p>  Example: <code>&#39;8080&#39;</code></p>\n</li>\n<li><p><code>pathname</code>: The path section of the URL, that comes after the host and\nbefore the query, including the initial slash if present.</p>\n<p>  Example: <code>&#39;/p/a/t/h&#39;</code></p>\n</li>\n<li><p><code>search</code>: The &#39;query string&#39; portion of the URL, including the leading\nquestion mark.</p>\n<p>  Example: <code>&#39;?query=string&#39;</code></p>\n</li>\n<li><p><code>path</code>: Concatenation of <code>pathname</code> and <code>search</code>.</p>\n<p>  Example: <code>&#39;/p/a/t/h?query=string&#39;</code></p>\n</li>\n<li><p><code>query</code>: Either the &#39;params&#39; portion of the query string, or a\nquerystring-parsed object.</p>\n<p>  Example: <code>&#39;query=string&#39;</code> or <code>{&#39;query&#39;:&#39;string&#39;}</code></p>\n</li>\n<li><p><code>hash</code>: The &#39;fragment&#39; portion of the URL including the pound-sign.</p>\n<p>  Example: <code>&#39;#hash&#39;</code></p>\n</li>\n</ul>\n<p>The following methods are provided by the URL module:\n\n</p>\n",
+      "methods": [
+        {
+          "textRaw": "url.parse(urlStr, [parseQueryString], [slashesDenoteHost])",
+          "type": "method",
+          "name": "parse",
+          "desc": "<p>Take a URL string, and return an object.\n\n</p>\n<p>Pass <code>true</code> as the second argument to also parse\nthe query string using the <code>querystring</code> module.\nDefaults to <code>false</code>.\n\n</p>\n<p>Pass <code>true</code> as the third argument to treat <code>//foo/bar</code> as\n<code>{ host: &#39;foo&#39;, pathname: &#39;/bar&#39; }</code> rather than\n<code>{ pathname: &#39;//foo/bar&#39; }</code>. Defaults to <code>false</code>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "urlStr"
+                },
+                {
+                  "name": "parseQueryString",
+                  "optional": true
+                },
+                {
+                  "name": "slashesDenoteHost",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "url.format(urlObj)",
+          "type": "method",
+          "name": "format",
+          "desc": "<p>Take a parsed URL object, and return a formatted URL string.\n\n</p>\n<ul>\n<li><code>href</code> will be ignored.</li>\n<li><code>protocol</code>is treated the same with or without the trailing <code>:</code> (colon).<ul>\n<li>The protocols <code>http</code>, <code>https</code>, <code>ftp</code>, <code>gopher</code>, <code>file</code> will be\npostfixed with <code>://</code> (colon-slash-slash).</li>\n<li>All other protocols <code>mailto</code>, <code>xmpp</code>, <code>aim</code>, <code>sftp</code>, <code>foo</code>, etc will\nbe postfixed with <code>:</code> (colon)</li>\n</ul>\n</li>\n<li><code>auth</code> will be used if present.</li>\n<li><code>hostname</code> will only be used if <code>host</code> is absent.</li>\n<li><code>port</code> will only be used if <code>host</code> is absent.</li>\n<li><code>host</code> will be used in place of <code>hostname</code> and <code>port</code></li>\n<li><code>pathname</code> is treated the same with or without the leading <code>/</code> (slash)</li>\n<li><code>search</code> will be used in place of <code>query</code></li>\n<li><code>query</code> (object; see <code>querystring</code>) will only be used if <code>search</code> is absent.</li>\n<li><code>search</code> is treated the same with or without the leading <code>?</code> (question mark)</li>\n<li><code>hash</code> is treated the same with or without the leading <code>#</code> (pound sign, anchor)</li>\n</ul>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "urlObj"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "url.resolve(from, to)",
+          "type": "method",
+          "name": "resolve",
+          "desc": "<p>Take a base URL, and a href URL, and resolve them as a browser would for\nan anchor tag.  Examples:\n\n</p>\n<pre><code>url.resolve(&#39;/one/two/three&#39;, &#39;four&#39;)         // &#39;/one/two/four&#39;\nurl.resolve(&#39;http://example.com/&#39;, &#39;/one&#39;)    // &#39;http://example.com/one&#39;\nurl.resolve(&#39;http://example.com/one&#39;, &#39;/two&#39;) // &#39;http://example.com/two&#39;</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "from"
+                },
+                {
+                  "name": "to"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "type": "module",
+      "displayName": "URL"
+    }
+  ]
+}

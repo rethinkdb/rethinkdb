@@ -1,0 +1,25 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/uz_Arab_AF.xml
+// *
+// ***************************************************************************
+uz_Arab_AF{
+    Version{"2.0.41.23"}
+    calendar{
+        gregorian{
+            DateTimeElements:intvector{
+                7,
+                4,
+            }
+            weekend:intvector{
+                5,
+                0,
+                6,
+                86400000,
+            }
+        }
+    }
+}

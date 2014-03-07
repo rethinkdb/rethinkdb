@@ -1,0 +1,62 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:GettableSocketOption Gettable socket option requirements]
+
+In the table below, `X` denotes a socket option class, `a` denotes a value of
+`X`, `p` denotes a value that meets the [link boost_asio.reference.Protocol
+protocol] requirements, and `u` denotes an identifier.
+
+[table GettableSocketOption requirements
+  [[expression] [type] [assertion/note\npre/post-conditions]]
+  [
+    [`a.level(p);`]
+    [`int`]
+    [
+      Returns a value suitable for passing as the /level/ argument to __POSIX__
+      __getsockopt__ (or equivalent).
+    ]
+  ]
+  [
+    [`a.name(p);`]
+    [`int`]
+    [
+      Returns a value suitable for passing as the /option_name/ argument to
+      __POSIX__ __getsockopt__ (or equivalent).
+    ]
+  ]
+  [
+    [`a.data(p);`]
+    [a pointer, convertible to `void*`]
+    [
+      Returns a pointer suitable for passing as the /option_value/ argument to
+      __POSIX__ __getsockopt__ (or equivalent).
+    ]
+  ]
+  [
+    [`a.size(p);`]
+    [`size_t`]
+    [
+      Returns a value suitable for passing as the /option_len/ argument to
+      __POSIX__ __getsockopt__ (or equivalent), after appropriate
+      integer conversion has been performed.
+    ]
+  ]
+  [
+    [`a.resize(p, s);`]
+    []
+    [
+      post: `a.size(p) == s`.\n
+      Passed the value contained in the /option_len/ argument to __POSIX__
+      __getsockopt__ (or equivalent) after successful completion of the
+      function. Permitted to throw an exception if the socket option object `a`
+      does not support the specified size.
+    ]
+  ]
+]
+
+[endsect]

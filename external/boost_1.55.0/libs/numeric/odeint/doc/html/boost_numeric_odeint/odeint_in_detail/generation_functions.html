@@ -1,0 +1,310 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Generation functions</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../odeint_in_detail.html" title="odeint in detail">
+<link rel="prev" href="steppers.html" title="Steppers">
+<link rel="next" href="integrate_functions.html" title="Integrate functions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="steppers.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../odeint_in_detail.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="integrate_functions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.odeint_in_detail.generation_functions"></a><a class="link" href="generation_functions.html" title="Generation functions">Generation
+      functions</a>
+</h3></div></div></div>
+<p>
+        In the <a class="link" href="../tutorial.html" title="Tutorial">Tutorial</a> we have
+        learned how we can use the generation functions <code class="computeroutput"><span class="identifier">make_controlled</span></code>
+        and <code class="computeroutput"><span class="identifier">make_dense_output</span></code> to
+        create controlled and dense output stepper from a simple stepper or an error
+        stepper. The syntax of these two functions is very simple:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">auto</span> <span class="identifier">stepper1</span> <span class="special">=</span> <span class="identifier">make_controlled</span><span class="special">(</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="identifier">stepper_type</span><span class="special">()</span> <span class="special">);</span>
+<span class="keyword">auto</span> <span class="identifier">stepper2</span> <span class="special">=</span> <span class="identifier">make_dense_output</span><span class="special">(</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="identifier">stepper_type</span><span class="special">()</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        The first two parameters are the absolute and the relative error tolerances
+        and the third parameter is the stepper. In C++03 you can infer the type from
+        the <code class="computeroutput"><span class="identifier">result_of</span></code> mechanism:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">odeint</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">make_controlled</span><span class="special">&lt;</span> <span class="identifier">stepper_type</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">stepper3</span> <span class="special">=</span> <span class="identifier">make_controlled</span><span class="special">(</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="identifier">stepper_type</span><span class="special">()</span> <span class="special">);</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">odeint</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">make_dense_output</span><span class="special">&lt;</span> <span class="identifier">stepper_type</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">stepper4</span> <span class="special">=</span> <span class="identifier">make_dense_output</span><span class="special">(</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="identifier">stepper_type</span><span class="special">()</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        To use your own steppers with the <code class="computeroutput"><span class="identifier">make_controlled</span></code>
+        or <code class="computeroutput"><span class="identifier">make_dense_output</span></code> you
+        need to specialize two class templates. Suppose your steppers are called
+        <code class="computeroutput"><span class="identifier">custom_stepper</span></code>, <code class="computeroutput"><span class="identifier">custom_controller</span></code> and <code class="computeroutput"><span class="identifier">custom_dense_output</span></code>.
+        Then, the first class you need to specialize is <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">get_controller</span></code>,
+        a meta function returning the type of the controller:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">odeint</span> <span class="special">{</span>
+
+<span class="keyword">template</span><span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">get_controller</span><span class="special">&lt;</span> <span class="identifier">custom_stepper</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">custom_controller</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="special">}</span> <span class="special">}</span> <span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        The second one is a factory class <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">odeint</span><span class="special">::</span><span class="identifier">controller_factory</span></code>
+        which constructs the controller from the tolerances and the stepper. In our
+        dummy implementation this class is
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">odeint</span> <span class="special">{</span>
+
+<span class="keyword">template</span><span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">controller_factory</span><span class="special">&lt;</span> <span class="identifier">custom_stepper</span> <span class="special">,</span> <span class="identifier">custom_controller</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">custom_controller</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="keyword">double</span> <span class="identifier">abs_tol</span> <span class="special">,</span> <span class="keyword">double</span> <span class="identifier">rel_tol</span> <span class="special">,</span> <span class="keyword">const</span> <span class="identifier">custom_stepper</span> <span class="special">&amp;</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">custom_controller</span><span class="special">();</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="special">}</span> <span class="special">}</span> <span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        This is all to use the <code class="computeroutput"><span class="identifier">make_controlled</span></code>
+        mechanism. Now you can use your controller via
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">auto</span> <span class="identifier">stepper5</span> <span class="special">=</span> <span class="identifier">make_controlled</span><span class="special">(</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="number">1.0e-6</span> <span class="special">,</span> <span class="identifier">custom_stepper</span><span class="special">()</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        For the dense_output_stepper everything works similar. Here you have to specialize
+        <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">odeint</span><span class="special">::</span><span class="identifier">get_dense_output</span></code> and <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">odeint</span><span class="special">::</span><span class="identifier">dense_output_factory</span></code>.
+        These two classes have the same syntax as their relatives <code class="computeroutput"><span class="identifier">get_controller</span></code>
+        and <code class="computeroutput"><span class="identifier">controller_factory</span></code>.
+      </p>
+<p>
+        All controllers and dense-output steppers in odeint can be used with these
+        mechanisms. In the table below you will find, which steppers is constructed
+        from <code class="computeroutput"><span class="identifier">make_controlled</span></code> or
+        <code class="computeroutput"><span class="identifier">make_dense_output</span></code> if applied
+        on a stepper from odeint:
+      </p>
+<div class="table">
+<a name="boost_numeric_odeint.odeint_in_detail.generation_functions.generation_functions_make_controlled__abs_error___rel_error___stepper__"></a><p class="title"><b>Table&#160;1.7.&#160;Generation functions make_controlled( abs_error , rel_error , stepper
+        )</b></p>
+<div class="table-contents"><table class="table" summary="Generation functions make_controlled( abs_error , rel_error , stepper
+        )">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Stepper
+                </p>
+              </th>
+<th>
+                <p>
+                  Result of make_controlled
+                </p>
+              </th>
+<th>
+                <p>
+                  Remarks
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">runge_kutta_cash_karp54</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">controlled_runge_kutta</span><span class="special">&lt;</span> <span class="identifier">runge_kutta_cash_karp54</span>
+                  <span class="special">,</span> <span class="identifier">default_error_checker</span><span class="special">&lt;...&gt;</span> <span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="emphasis"><em>a<sub>x</sub>=1</em></span>, <span class="emphasis"><em>a<sub>dxdt</sub>=1</em></span>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">runge_kutta_fehlberg78</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">controlled_runge_kutta</span><span class="special">&lt;</span> <span class="identifier">runge_kutta_fehlberg78</span>
+                  <span class="special">,</span> <span class="identifier">default_error_checker</span><span class="special">&lt;...&gt;</span> <span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="emphasis"><em>a<sub>x</sub>=1</em></span>, <span class="emphasis"><em>a<sub>dxdt</sub>=1</em></span>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">runge_kutta_dopri5</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">controlled_runge_kutta</span><span class="special">&lt;</span> <span class="identifier">runge_kutta_dopri5</span>
+                  <span class="special">,</span> <span class="identifier">default_error_checker</span><span class="special">&lt;...&gt;</span> <span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="emphasis"><em>a <sub>x</sub>=1</em></span>, <span class="emphasis"><em>a<sub>dxdt</sub>=1</em></span>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">rosenbrock4</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">rosenbrock4_controlled</span><span class="special">&lt;</span> <span class="identifier">rosenbrock4</span>
+                  <span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_numeric_odeint.odeint_in_detail.generation_functions.generation_functions_make_dense_output__abs_error___rel_error___stepper__"></a><p class="title"><b>Table&#160;1.8.&#160;Generation functions make_dense_output( abs_error , rel_error , stepper
+        )</b></p>
+<div class="table-contents"><table class="table" summary="Generation functions make_dense_output( abs_error , rel_error , stepper
+        )">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Stepper
+                </p>
+              </th>
+<th>
+                <p>
+                  Result of make_dense_output
+                </p>
+              </th>
+<th>
+                <p>
+                  Remarks
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">runge_kutta_dopri5</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">dense_output_runge_kutta</span><span class="special">&lt;</span> <span class="identifier">controlled_runge_kutta</span><span class="special">&lt;</span> <span class="identifier">runge_kutta_dopri5</span>
+                  <span class="special">,</span> <span class="identifier">default_error_checker</span><span class="special">&lt;...&gt;</span> <span class="special">&gt;</span>
+                  <span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="emphasis"><em>a <sub>x</sub>=1</em></span>, <span class="emphasis"><em>a<sub>dxdt</sub>=1</em></span>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">rosenbrock4</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">rosenbrock4_dense_output</span><span class="special">&lt;</span> <span class="identifier">rosenbrock4_controller</span><span class="special">&lt;</span> <span class="identifier">rosenbrock4</span>
+                  <span class="special">&gt;</span> <span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="steppers.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../odeint_in_detail.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="integrate_functions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

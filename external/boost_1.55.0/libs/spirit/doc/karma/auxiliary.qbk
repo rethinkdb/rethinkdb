@@ -1,0 +1,443 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:auxiliary Auxiliary Generators]
+
+This module includes different auxiliary generators not fitting into any of the 
+other categories. It includes the `attr_cast`, `eol`, `eps`, and `lazy` 
+generators.
+
+[heading Module Header]
+
+    // forwards to <boost/spirit/home/karma/auxiliary.hpp>
+    #include <boost/spirit/include/karma_auxiliary.hpp>
+
+Also, see __include_structure__.
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:attr_cast Attribute Transformation Pseudo Generator (`attr_cast`)]
+
+[heading Description]
+
+The `attr_cast<Exposed, Transformed>()` component invokes the embedded generator 
+while supplying an attribute of type `Transformed`. The supplied attribute gets created 
+from the original attribute (of type `Exposed`) passed to this component using the 
+customization point __customize_transform_attribute__.
+
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/auxiliary/attr_cast.hpp>
+    #include <boost/spirit/include/karma_attr_cast.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::attr_cast // alias: boost::spirit::karma::attr_cast`]]
+]
+
+[heading Synopsis]
+
+    template <Exposed, Transformed>
+    <unspecified> attr_cast(<unspecified>);
+
+[heading Template parameters]
+
+[table
+    [[Parameter]    [Description]                       [Default]]
+    [[`Exposed`]    [The type of the attribute supplied to the `attr_cast`.] [__unused_type__]]
+    [[`Transformed`][The type of the attribute expected by the embedded 
+                     generator `g`.]                    [__unused_type__]]
+]
+
+The `attr_cast` is a function template. It is possible to invoke it using the 
+following schemes:
+
+    attr_cast(g)
+    attr_cast<Exposed>(g)
+    attr_cast<Exposed, Transformed>(g)
+
+depending on which of the attribute types can be deduced properly if not 
+explicitly specified.
+
+[heading Model of]
+
+[:__unary_generator_concept__]
+
+[variablelist Notation
+    [[`g`]          [A generator object.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __unary_generator_concept__.
+
+[table
+    [[Expression]             [Semantics]]
+    [[`attr_cast(g)`]         [Create a component invoking the 
+                              generator `g` while passing an attribute of the type 
+                              as normally expected by `g`. The type of the supplied 
+                              attribute will be transformed to the type 
+                              `g` exposes as its attribute type (by using the 
+                              attribute customization point __customize_transform_attribute__).
+                              This generator does not fail unless `g` fails.]]
+    [[`attr_cast<Exposed>(g)`] [Create a component invoking the 
+                              generator `g` while passing an attribute of the type 
+                              as normally expected by `g`. The supplied attribute 
+                              is expected to be of the type `Exposed`, it will be 
+                              transformed to the type `g` exposes as its attribute type 
+                              (using the attribute customization point 
+                              __customize_transform_attribute__).
+                              This generator does not fail unless `g` fails.]]
+    [[`attr_cast<Exposed, Transformed>(g)`] [Create a component invoking the 
+                              generator `g` while passing an attribute of type 
+                              `Transformed`. The supplied attribute is expected
+                              to be of the type `Exposed`, it will be transformed
+                              to the type `Transformed` (using the attribute 
+                              customization point __customize_transform_attribute__).
+                              This generator does not fail unless `g` fails.]]
+]
+
+[heading Attributes]
+
+[table
+    [[Expression]                             [Attribute]]
+    [[`attr_cast(g)`]                         [`g: A --> attr_cast(g): A`]]
+    [[`attr_cast<Exposed>(g)`] [`g: A --> attr_cast<Exposed>(g): Exposed`]]
+    [[`attr_cast<Exposed, Transformed>(g)`] 
+                  [`g: A --> attr_cast<Exposed, Transformed>(g): Exposed`]]
+]
+
+[heading Complexity]
+
+[:The complexity of this component is fully defined by the complexity of the 
+  embedded generator `g`.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_attr_cast]
+
+The example references data structure `int_data` which needs a specialization of 
+the customization point __customize_transform_attribute__:
+
+[reference_karma_auxiliary_attr_cast_data1]
+
+Now we use the `attr_cast` pseudo generator to invoke the attribute 
+transformation:
+
+[reference_karma_attr_cast1]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:eol End of Line Generator (`eol`)]
+
+[heading Description]
+
+The `eol` component generates a single newline character. It is equivalent
+to `lit('\n')` or simply '\\n' (please see the [karma_char `char_`] generator 
+module for more details).
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/auxiliary/eol.hpp>
+    #include <boost/spirit/include/karma_eol.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::eol // alias: boost::spirit::karma::eol`]]
+]
+
+[heading Model of]
+
+[:__primitive_generator_concept__]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_generator_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`eol`]            [Create a component generating a single end of line
+                         character in the output. This generator never fails 
+                         (unless the underlying output stream reports an 
+                         error).]]
+]
+
+[heading Attributes]
+
+[table
+    [[Expression]       [Attribute]]
+    [[`eol`]            [__unused__]]
+]
+
+[heading Complexity]
+
+[:O(1)]
+
+The complexity is constant as a single character is generated in the output.
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_eol]
+
+Basic usage of the `eol` generator:
+
+[reference_karma_eol]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:eps Epsilon Generator (`eps`)]
+
+The family of `eps` components allows to create pseudo generators generating
+an empty string. This feature is sometimes useful either to force a generator
+to fail or to succeed or to insert semantic actions into the generation process.
+
+[heading Description]
+
+The Epsilon (`eps`) is a multi-purpose generator that emits a zero length 
+string. 
+
+[heading Simple Form]
+
+In its simplest form, `eps` creates a component generating an empty string 
+while always succeeding:
+
+    eps       // always emits a zero-length string
+
+This form is usually used to trigger a semantic action unconditionally.
+For example, it is useful in triggering error messages when a set of
+alternatives fail:
+
+    r = a | b | c | eps[error()]; // Call error if a, b, and c fail to generate
+
+[heading Semantic Predicate]
+
+The `eps(b)` component generates an empty string as well, but 
+succeeds only if `b` is `true` and fails otherwise. It's lazy variant `eps(fb)`
+is equivalent to `eps(b)` except it evaluates the supplied function `fb` at 
+generate time, while using the return value as the criteria to succeed.
+
+Semantic predicates allow you to attach a conditional function anywhere
+in the grammar. In this role, the epsilon takes a __karma_lazy_argument__ that
+returns `true` or `false`. The __karma_lazy_argument__ is typically a test
+that is called to resolve ambiguity in the grammar. A generator failure will
+be reported when the __karma_lazy_argument__ result evaluates to `false`.
+Otherwise an empty string will be emitted. The general form is:
+
+    eps_p(fb) << rest;
+
+The __karma_lazy_argument__ `fb` is called to do a semantic test. If the test 
+returns true, `rest` will be evaluated. Otherwise, the production will return 
+early without ever touching rest. 
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/auxiliary/eps.hpp>
+    #include <boost/spirit/include/karma_eps.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::eps // alias: boost::spirit::karma::eps`]]
+]
+
+[heading Model of]
+
+[:__primitive_generator_concept__]
+
+[variablelist Notation
+    [[`b`]      [A boolean value.]]
+    [[`fb`]     [A __karma_lazy_argument__ that evaluates to a boolean value.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_generator_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`eps`]            [Creates a component generating an empty string. 
+                         Succeeds always.]]
+    [[`eps(b)`]         [Creates a component generating an empty string. 
+                         Succeeds if `b` is `true` (unless the underlying 
+                         output stream reports an error).]]
+    [[`eps(fb)`]        [Creates a component generating an empty string. 
+                         Succeeds if `fb` returns `true` at generate time 
+                         (unless the underlying output stream reports an 
+                         error).]]
+]
+
+[heading Attributes]
+
+[table
+    [[Expression]       [Attribute]]
+    [[`eps`]            [__unused__]]
+    [[`eps(b)`]         [__unused__]]
+    [[`eps(fb)`]        [__unused__]]
+]
+
+[heading Complexity]
+
+[:O(1)]
+
+The complexity is constant as no output is generated.
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_eps]
+
+Basic usage of the `eps` generator:
+
+[reference_karma_eps]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:lazy Lazy Generator (`lazy`)]
+
+[heading Description]
+
+The family of `lazy` components allows to use a dynamically returned generator 
+component for output generation. It calls the provided function or function 
+object at generate time using its return value as the actual generator to 
+produce the output.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/auxiliary/lazy.hpp>
+    #include <boost/spirit/include/karma_lazy.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::lazy // alias: boost::spirit::karma::lazy`]]
+]
+
+[heading Model of]
+
+[:__generator_concept__]
+
+[variablelist Notation
+    [[`fg`]       [A function or function object that evaluates to a generator 
+                   object (an object exposing the __generator_concept__). This 
+                   function will be invoked at generate time.]]
+]
+
+The signature of `fg` is expected to be
+
+    G f(Unused, Context)
+
+where `G`, the function's return value, is the type of the generator to be 
+invoked, and `Context` is the generator's __karma_context__ type (The 
+first argument is __unused__ to make the `Context` the second argument. This
+is done for uniformity with __karma_actions__).
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __generator_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`fg`]             [The __boost_phoenix__ function object `fg` will be 
+                         invoked at generate time. It is expected to return a
+                         generator instance. This generator is then invoked
+                         in order to generate the output. This generator will
+                         succeed as long as the invoked generated succeeds as 
+                         well (unless the underlying output stream reports 
+                         an error).]]
+    [[`lazy(fg)`]       [The function or function object will be invoked at 
+                         generate time. It is expected to return a generator 
+                         instance  (note this version of `lazy` does not 
+                         require `fg` to be a __boost_phoenix__ function 
+                         object). This generator is then invoked in order to 
+                         generate the output. This generator will succeed as 
+                         long as the invoked generated succeeds as well (except 
+                         if the underlying output stream reports an error).]]
+]
+
+[heading Attributes]
+
+[table
+    [[Expression]       [Attribute]]
+    [[`fg`]             [The attribute type `G` as exposed by the generator `g` 
+                         returned from `fg`.]]
+    [[`lazy(fg)`]       [The attribute type `G` as exposed by the generator `g` 
+                         returned from `fg`.]]
+]
+
+[heading Complexity]
+
+The complexity of the `lazy` component is determined by the complexity of the 
+generator returned from `fg`.
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_lazy]
+
+Basic usage of the `lazy` generator:
+
+[reference_karma_lazy]
+
+[endsect]
+
+[endsect]

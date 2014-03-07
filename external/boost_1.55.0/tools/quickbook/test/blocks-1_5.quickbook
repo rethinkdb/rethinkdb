@@ -1,0 +1,46 @@
+[article Various blocks
+[quickbook 1.5]
+]
+
+[heading Blockquotes]
+
+Here's a blockquote:
+
+[:Blockquote.]
+
+And another:
+
+[:
+Blockquote first paragraph.
+
+Blockquote second paragraph.
+]
+
+[heading Admonitions]
+
+[warning Warning]
+[caution Caution]
+[important Important]
+[note Note]
+[tip Tip]
+
+[warning Warning first paragraph.
+
+Warning second paragraph.]
+
+[heading Blurb]
+
+[blurb Blurb]
+
+[heading Inline blocks]
+
+[: Blockquote containing a footnote[footnote Here it is!].]
+
+[/ Unfortunately footnotes currently can't contain blocks.]
+
+[/ Quickbook shouldn't think that this is a tip]
+[tipping point]
+
+Multiple paragraphs because of the inline blocks. [warning Warning] This
+line should appear as a separate paragraph.[warning Warning]
+* This should be a list item because it's preceded by block markup.

@@ -1,0 +1,569 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>io_service</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="invalid_service_owner/invalid_service_owner.html" title="invalid_service_owner::invalid_service_owner">
+<link rel="next" href="io_service/add_service.html" title="io_service::add_service">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="invalid_service_owner/invalid_service_owner.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="io_service/add_service.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.io_service"></a><a class="link" href="io_service.html" title="io_service">io_service</a>
+</h3></div></div></div>
+<p>
+        Provides core I/O functionality.
+      </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">io_service</span> <span class="special">:</span>
+  <span class="identifier">noncopyable</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.io_service.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.io_service.types"></a></span><a class="link" href="io_service.html#boost_asio.reference.io_service.types">Types</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service__id.html" title="io_service::id"><span class="bold"><strong>id</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Class used to uniquely identify a service.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service__service.html" title="io_service::service"><span class="bold"><strong>service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Base class for all io_service services.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service__strand.html" title="io_service::strand"><span class="bold"><strong>strand</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Provides serialised handler execution.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service__work.html" title="io_service::work"><span class="bold"><strong>work</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Class to inform the io_service when it has work to do.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/fork_event.html" title="io_service::fork_event"><span class="bold"><strong>fork_event</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Fork-related event notifications.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.io_service.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.io_service.member_functions"></a></span><a class="link" href="io_service.html#boost_asio.reference.io_service.member_functions">Member
+        Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/dispatch.html" title="io_service::dispatch"><span class="bold"><strong>dispatch</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Request the io_service to invoke the given handler.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/io_service.html" title="io_service::io_service"><span class="bold"><strong>io_service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Constructor.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/notify_fork.html" title="io_service::notify_fork"><span class="bold"><strong>notify_fork</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Notify the io_service of a fork-related event.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/poll.html" title="io_service::poll"><span class="bold"><strong>poll</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Run the io_service object's event processing loop to execute ready
+                  handlers.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/poll_one.html" title="io_service::poll_one"><span class="bold"><strong>poll_one</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Run the io_service object's event processing loop to execute one
+                  ready handler.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/post.html" title="io_service::post"><span class="bold"><strong>post</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Request the io_service to invoke the given handler and return immediately.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/reset.html" title="io_service::reset"><span class="bold"><strong>reset</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Reset the io_service in preparation for a subsequent run() invocation.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/run.html" title="io_service::run"><span class="bold"><strong>run</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Run the io_service object's event processing loop.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/run_one.html" title="io_service::run_one"><span class="bold"><strong>run_one</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Run the io_service object's event processing loop to execute at
+                  most one handler.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/stop.html" title="io_service::stop"><span class="bold"><strong>stop</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Stop the io_service object's event processing loop.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/stopped.html" title="io_service::stopped"><span class="bold"><strong>stopped</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Determine whether the io_service object has been stopped.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/wrap.html" title="io_service::wrap"><span class="bold"><strong>wrap</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Create a new handler that automatically dispatches the wrapped
+                  handler on the io_service.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/_io_service.html" title="io_service::~io_service"><span class="bold"><strong>~io_service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Destructor.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.io_service.h2"></a>
+        <span class="phrase"><a name="boost_asio.reference.io_service.friends"></a></span><a class="link" href="io_service.html#boost_asio.reference.io_service.friends">Friends</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/add_service.html" title="io_service::add_service"><span class="bold"><strong>add_service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Add a service object to the io_service.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/has_service.html" title="io_service::has_service"><span class="bold"><strong>has_service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Determine if an io_service contains a specified service type.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="io_service/use_service.html" title="io_service::use_service"><span class="bold"><strong>use_service</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Obtain the service object corresponding to the given type.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        The <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a>
+        class provides the core I/O functionality for users of the asynchronous I/O
+        objects, including:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span></code>
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">acceptor</span></code>
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">udp</span><span class="special">::</span><span class="identifier">socket</span></code>
+          </li>
+<li class="listitem">
+            <a class="link" href="deadline_timer.html" title="deadline_timer"><code class="computeroutput"><span class="identifier">deadline_timer</span></code></a>.
+          </li>
+</ul></div>
+<p>
+        The <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a>
+        class also includes facilities intended for developers of custom asynchronous
+        services.
+      </p>
+<h5>
+<a name="boost_asio.reference.io_service.h3"></a>
+        <span class="phrase"><a name="boost_asio.reference.io_service.thread_safety"></a></span><a class="link" href="io_service.html#boost_asio.reference.io_service.thread_safety">Thread
+        Safety</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Distinct</em></span> <span class="emphasis"><em>objects:</em></span> Safe.
+      </p>
+<p>
+        <span class="emphasis"><em>Shared</em></span> <span class="emphasis"><em>objects:</em></span> Safe, with the
+        specific exceptions of the <code class="computeroutput"><span class="identifier">reset</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">notify_fork</span><span class="special">()</span></code> functions. Calling <code class="computeroutput"><span class="identifier">reset</span><span class="special">()</span></code> while there are unfinished <code class="computeroutput"><span class="identifier">run</span><span class="special">()</span></code>,
+        <code class="computeroutput"><span class="identifier">run_one</span><span class="special">()</span></code>,
+        <code class="computeroutput"><span class="identifier">poll</span><span class="special">()</span></code>
+        or <code class="computeroutput"><span class="identifier">poll_one</span><span class="special">()</span></code>
+        calls results in undefined behaviour. The <code class="computeroutput"><span class="identifier">notify_fork</span><span class="special">()</span></code> function should not be called while any
+        <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a>
+        function, or any function on an I/O object that is associated with the <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a>,
+        is being called in another thread.
+      </p>
+<h5>
+<a name="boost_asio.reference.io_service.h4"></a>
+        <span class="phrase"><a name="boost_asio.reference.io_service.synchronous_and_asynchronous_operations"></a></span><a class="link" href="io_service.html#boost_asio.reference.io_service.synchronous_and_asynchronous_operations">Synchronous
+        and asynchronous operations</a>
+      </h5>
+<p>
+        Synchronous operations on I/O objects implicitly run the <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> object for an individual
+        operation. The <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> functions <code class="computeroutput"><span class="identifier">run</span><span class="special">()</span></code>,
+        <code class="computeroutput"><span class="identifier">run_one</span><span class="special">()</span></code>,
+        <code class="computeroutput"><span class="identifier">poll</span><span class="special">()</span></code>
+        or <code class="computeroutput"><span class="identifier">poll_one</span><span class="special">()</span></code>
+        must be called for the <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> to perform asynchronous
+        operations on behalf of a C++ program. Notification that an asynchronous
+        operation has completed is delivered by invocation of the associated handler.
+        Handlers are invoked only by a thread that is currently calling any overload
+        of <code class="computeroutput"><span class="identifier">run</span><span class="special">()</span></code>,
+        <code class="computeroutput"><span class="identifier">run_one</span><span class="special">()</span></code>,
+        <code class="computeroutput"><span class="identifier">poll</span><span class="special">()</span></code>
+        or <code class="computeroutput"><span class="identifier">poll_one</span><span class="special">()</span></code>
+        for the <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a>.
+      </p>
+<h5>
+<a name="boost_asio.reference.io_service.h5"></a>
+        <span class="phrase"><a name="boost_asio.reference.io_service.effect_of_exceptions_thrown_from_handlers"></a></span><a class="link" href="io_service.html#boost_asio.reference.io_service.effect_of_exceptions_thrown_from_handlers">Effect
+        of exceptions thrown from handlers</a>
+      </h5>
+<p>
+        If an exception is thrown from a handler, the exception is allowed to propagate
+        through the throwing thread's invocation of <code class="computeroutput"><span class="identifier">run</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">run_one</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">poll</span><span class="special">()</span></code> or <code class="computeroutput"><span class="identifier">poll_one</span><span class="special">()</span></code>. No other threads that are calling any
+        of these functions are affected. It is then the responsibility of the application
+        to catch the exception.
+      </p>
+<p>
+        After the exception has been caught, the <code class="computeroutput"><span class="identifier">run</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">run_one</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">poll</span><span class="special">()</span></code> or <code class="computeroutput"><span class="identifier">poll_one</span><span class="special">()</span></code> call may be restarted <span class="emphasis"><em>without</em></span>
+        the need for an intervening call to <code class="computeroutput"><span class="identifier">reset</span><span class="special">()</span></code>. This allows the thread to rejoin the
+        <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a>
+        object's thread pool without impacting any other threads in the pool.
+      </p>
+<p>
+        For example:
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span> <span class="identifier">io_service</span><span class="special">;</span>
+<span class="special">...</span>
+<span class="keyword">for</span> <span class="special">(;;)</span>
+<span class="special">{</span>
+  <span class="keyword">try</span>
+  <span class="special">{</span>
+    <span class="identifier">io_service</span><span class="special">.</span><span class="identifier">run</span><span class="special">();</span>
+    <span class="keyword">break</span><span class="special">;</span> <span class="comment">// run() exited normally</span>
+  <span class="special">}</span>
+  <span class="keyword">catch</span> <span class="special">(</span><span class="identifier">my_exception</span><span class="special">&amp;</span> <span class="identifier">e</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="comment">// Deal with exception as appropriate.</span>
+  <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.io_service.h6"></a>
+        <span class="phrase"><a name="boost_asio.reference.io_service.stopping_the_io_service_from_running_out_of_work"></a></span><a class="link" href="io_service.html#boost_asio.reference.io_service.stopping_the_io_service_from_running_out_of_work">Stopping
+        the io_service from running out of work</a>
+      </h5>
+<p>
+        Some applications may need to prevent an <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> object's <code class="computeroutput"><span class="identifier">run</span><span class="special">()</span></code> call
+        from returning when there is no more work to do. For example, the <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> may be being run in a
+        background thread that is launched prior to the application's asynchronous
+        operations. The <code class="computeroutput"><span class="identifier">run</span><span class="special">()</span></code>
+        call may be kept running by creating an object of type <a class="link" href="io_service__work.html" title="io_service::work"><code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">work</span></code></a>:
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span> <span class="identifier">io_service</span><span class="special">;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">work</span> <span class="identifier">work</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">);</span>
+<span class="special">...</span>
+</pre>
+<p>
+        To effect a shutdown, the application will then need to call the <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> object's <code class="computeroutput"><span class="identifier">stop</span><span class="special">()</span></code>
+        member function. This will cause the <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> <code class="computeroutput"><span class="identifier">run</span><span class="special">()</span></code> call to return as soon as possible, abandoning
+        unfinished operations and without permitting ready handlers to be dispatched.
+      </p>
+<p>
+        Alternatively, if the application requires that all operations and handlers
+        be allowed to finish normally, the work object may be explicitly destroyed.
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span> <span class="identifier">io_service</span><span class="special">;</span>
+<span class="identifier">auto_ptr</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">work</span><span class="special">&gt;</span> <span class="identifier">work</span><span class="special">(</span>
+    <span class="keyword">new</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">work</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">));</span>
+<span class="special">...</span>
+<span class="identifier">work</span><span class="special">.</span><span class="identifier">reset</span><span class="special">();</span> <span class="comment">// Allow run() to exit. </span>
+</pre>
+<h5>
+<a name="boost_asio.reference.io_service.h7"></a>
+        <span class="phrase"><a name="boost_asio.reference.io_service.the_io_service_class_and_i_o_services"></a></span><a class="link" href="io_service.html#boost_asio.reference.io_service.the_io_service_class_and_i_o_services">The
+        io_service class and I/O services</a>
+      </h5>
+<p>
+        Class <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a>
+        implements an extensible, type-safe, polymorphic set of I/O services, indexed
+        by service type. An object of class <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> must be initialised before
+        I/O objects such as sockets, resolvers and timers can be used. These I/O
+        objects are distinguished by having constructors that accept an <code class="computeroutput"><span class="identifier">io_service</span><span class="special">&amp;</span></code>
+        parameter.
+      </p>
+<p>
+        I/O services exist to manage the logical interface to the operating system
+        on behalf of the I/O objects. In particular, there are resources that are
+        shared across a class of I/O objects. For example, timers may be implemented
+        in terms of a single timer queue. The I/O services manage these shared resources.
+      </p>
+<p>
+        Access to the services of an <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> is via three function
+        templates, <code class="computeroutput"><span class="identifier">use_service</span><span class="special">()</span></code>,
+        <code class="computeroutput"><span class="identifier">add_service</span><span class="special">()</span></code>
+        and <code class="computeroutput"><span class="identifier">has_service</span><span class="special">()</span></code>.
+      </p>
+<p>
+        In a call to <code class="computeroutput"><span class="identifier">use_service</span><span class="special">&lt;</span><span class="identifier">Service</span><span class="special">&gt;()</span></code>, the type argument chooses a service,
+        making available all members of the named type. If <code class="computeroutput"><span class="identifier">Service</span></code>
+        is not present in an <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a>, an object of type <code class="computeroutput"><span class="identifier">Service</span></code> is created and added to the <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a>.
+        A C++ program can check if an <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> implements a particular
+        service with the function template <code class="computeroutput"><span class="identifier">has_service</span><span class="special">&lt;</span><span class="identifier">Service</span><span class="special">&gt;()</span></code>.
+      </p>
+<p>
+        Service objects may be explicitly added to an <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> using the function template
+        <code class="computeroutput"><span class="identifier">add_service</span><span class="special">&lt;</span><span class="identifier">Service</span><span class="special">&gt;()</span></code>.
+        If the <code class="computeroutput"><span class="identifier">Service</span></code> is already
+        present, the <a class="link" href="service_already_exists.html" title="service_already_exists"><code class="computeroutput"><span class="identifier">service_already_exists</span></code></a> exception
+        is thrown. If the owner of the service is not the same object as the <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a>
+        parameter, the <a class="link" href="invalid_service_owner.html" title="invalid_service_owner"><code class="computeroutput"><span class="identifier">invalid_service_owner</span></code></a> exception
+        is thrown.
+      </p>
+<p>
+        Once a service reference is obtained from an <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> object by calling <code class="computeroutput"><span class="identifier">use_service</span><span class="special">()</span></code>,
+        that reference remains usable as long as the owning <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> object exists.
+      </p>
+<p>
+        All I/O service implementations have <a class="link" href="io_service__service.html" title="io_service::service"><code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">service</span></code></a> as a public base class.
+        Custom I/O services may be implemented by deriving from this class and then
+        added to an <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> using the facilities
+        described above.
+      </p>
+<h5>
+<a name="boost_asio.reference.io_service.h8"></a>
+        <span class="phrase"><a name="boost_asio.reference.io_service.requirements"></a></span><a class="link" href="io_service.html#boost_asio.reference.io_service.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/io_service.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="invalid_service_owner/invalid_service_owner.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="io_service/add_service.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

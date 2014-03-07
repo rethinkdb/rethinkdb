@@ -1,0 +1,211 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Johnson All Pairs Shortest Paths</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:johnson"></A>
+<TT>johnson_all_pairs_shortest_paths</TT>
+</H1>
+
+<PRE>
+<i>// named parameter version</i>
+  template &lt;class VertexAndEdgeListGraph, class DistanceMatrix,
+            class VertexID, class Weight, class BinaryPredicate, 
+            class BinaryFunction, class Infinity, class DistanceZero&gt;
+  bool
+  johnson_all_pairs_shortest_paths(VertexAndEdgeListGraph& g1, 
+               DistanceMatrix&amp; D,
+               VertexID id1, Weight w1, const BinaryPredicate&amp; compare, 
+               const BinaryFunction&amp; combine, const Infinity&amp; inf,
+               DistanceZero zero);
+
+template &lt;typename Graph, typename DistanceMatrix, typename P, typename T, typename R&gt;
+bool johnson_all_pairs_shortest_paths(Graph&amp; g, DistanceMatrix&amp; D,
+  const bgl_named_params&lt;P, T, R&gt;&amp; params = <i>all defaults</i>)
+
+<i>// non-named parameter version</i>
+template &lt;typename Graph, typename DistanceMatrix,
+          typename VertexIndex, typename WeightMap, typename DT&gt;
+bool
+johnson_all_pairs_shortest_paths(VertexAndEdgeListGraph&amp; g1, 
+  DistanceMatrix&amp; D,
+  VertexIndex i_map, WeightMap w_map, DT zero)
+</PRE>
+
+<P>
+This algorithm finds the shortest distance between every pair of
+vertices in the graph. The algorithm returns false if there is a
+negative weight cycle in the graph and true otherwise. The distance
+between each pair of vertices is stored in the distance matrix
+<TT>D</TT>. This is one of the more time intensive graph algorithms,
+having a time complexity of <i>O(V E log V)</i>.
+
+<P>This algorithm should be used to compute shortest paths between
+every pair of vertices for sparse graphs. For dense graphs, use <a
+href="floyd_warshall_shortest.html"><code>floyd_warshall_all_pairs_shortest_paths</code></a>.
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/johnson_all_pairs_shortest.hpp"><TT>boost/graph/johnson_all_pairs_shortest.hpp</TT></a>
+
+
+<h3>Parameters</h3>
+
+IN: <tt>Graph&amp; g</tt>
+<blockquote>
+A directed or undirected graph. The graph type must be a model of
+<a href="VertexListGraph.html">Vertex List Graph</a>,
+<a href="EdgeListGraph.html">Edge List Graph</a>,
+and <a href="IncidenceGraph.html">Incidence Graph</a>.
+</blockquote>
+
+OUT: <tt>DistanceMatrix&amp; D</tt>
+<blockquote>
+The length of the shortest path between each pair of vertices
+<i>u,v</i> in the graph is stored in <tt>D[u][v]</tt>. The tuple of
+types (<tt>DistanceMatrix, vertices_size_type, D</tt>) must be a model
+of <a href="BasicMatrix.html">BasicMatrix</a> where <tt>D</tt> is the
+value type of the <tt>DistanceMap</tt>.  There must be implicit conversions
+between the value type of the distance matrix and the value type of the weight
+map.
+</blockquote>
+
+
+<h3>Named Parameters</h3>
+
+IN: <tt>weight_map(WeightMap w_map)</tt>   
+<blockquote>
+  The weight or "length" of each edge in the graph.
+  The type <tt>WeightMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>. The edge descriptor type of
+  the graph needs to be usable as the key type for the weight
+  map.  The value type of the weight map must support a subtraction operation.<br>
+  <b>Default:</b>  <tt>get(edge_weight, g)</tt>
+</blockquote>
+
+UTIL: <tt>weight_map2(WeightMap2 w2_map)</tt>   
+<blockquote>
+  This parameter is no longer needed, and will be ignored.
+</blockquote>
+
+IN: <tt>vertex_index_map(VertexIndexMap i_map)</tt> 
+<blockquote>
+  This maps each vertex to an integer in the range <tt>[0,
+    num_vertices(g))</tt>. This is necessary for efficient updates of the
+  heap data structure in the internal call to Dijkstra's algorithm.  The type
+  <tt>VertexIndexMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>. The value type of the map must be an
+  integer type. The vertex descriptor type of the graph needs to be
+  usable as the key type of the map.<br>
+  <b>Default:</b> <tt>get(vertex_index, g)</tt>
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacency_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.
+   <br>
+</blockquote>
+
+
+UTIL: <tt>distance_map(DistanceMap d_map)</tt> 
+<blockquote>
+  This parameter is no longer needed, and will be ignored.
+</blockquote>
+
+IN: <tt>distance_compare(CompareFunction cmp)</tt> 
+<blockquote>
+  This function is use to compare distances to determine
+  which vertex is closer to the source vertex.
+  The <tt>CompareFunction</tt> type must be a model of
+  <a href="http://www.sgi.com/tech/stl/BinaryPredicate.html">Binary Predicate</a>
+  and have argument types that
+  match the value type of the <tt>WeightMap</tt> property map.<br>
+  <b>Default:</b> <tt>std::less&lt;DT&gt;</tt> with
+  <tt>DT=typename&nbsp;property_traits&lt;WeightMap&gt;::value_type</tt>
+</blockquote>
+
+IN: <tt>distance_combine(CombineFunction cmb)</tt> 
+<blockquote>
+  This function is used to combine distances to compute the distance
+  of a path. The <tt>CombineFunction</tt> type must be a model of <a
+  href="http://www.sgi.com/tech/stl/BinaryFunction.html">Binary
+  Function</a>. Both argument types and the return type of the binary function
+  must match the value type of the <tt>WeightMap</tt> property map.  This operation is required to act as the sum operation for the weight type; in particular, it must be the inverse of the binary <tt>-</tt> operator on that type.<br>
+  <b>Default:</b> <tt>std::plus&lt;DT&gt;</tt> with
+   <tt>DT=typename&nbsp;property_traits&lt;WeightMap&gt;::value_type</tt>
+</blockquote>
+
+IN: <tt>distance_inf(DT inf)</tt> 
+<blockquote>
+  This value is used to initialize the distance for each
+  vertex before the start of the algorithm. 
+  The type <tt>DT</tt> must be the value type of the <tt>WeightMap</tt>.<br>
+  <b>Default:</b> <tt>std::numeric_limits::max()</tt>
+</blockquote>
+
+IN: <tt>distance_zero(DT zero)</tt> 
+<blockquote>
+  This value is used to initialize the distance for the source
+  vertex before the start of the algorithm.  The type <tt>DT</tt>
+  must be the value type of the <tt>WeightMap</tt>.<br>
+  <b>Default:</b> <tt>0</tt>
+</blockquote>
+
+UTIL/OUT: <tt>color_map(ColorMap c_map)</tt> 
+<blockquote>
+  This is used during the execution of the algorithm to mark the
+  vertices. The vertices start out white and become gray when they are
+  inserted in the queue. They then turn black when they are removed
+  from the queue. At the end of the algorithm, vertices reachable from
+  the source vertex will have been colored black. All other vertices
+  will still be white. The type <tt>ColorMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a>. A vertex descriptor must be usable as the key type
+  of the map, and the value type of the map must be a model of
+  <a href="./ColorValue.html">Color Value</a>.<br>
+  <b>Default:</b> an <a
+  href="../../property_map/doc/iterator_property_map.html">
+  <tt>iterator_property_map</tt></a> created from a <tt>std::vector</tt>
+  of <tt>default_color_type</tt> of size <tt>num_vertices(g)</tt> and
+  using the <tt>i_map</tt> for the index map.
+</blockquote>
+
+
+<h3>Complexity</h3>
+
+The time complexity is <i>O(V E log V)</i>.
+
+
+
+<H3>Example</H3>
+
+<P>
+The file <a
+href="../example/johnson-eg.cpp"><tt>example/johnson-eg.cpp</tt></a> applies
+Johnson's algorithm for all-pairs shortest paths to the example graph
+from page 568 of the CLR&nbsp;[<A
+HREF="bibliography.html#clr90">8</A>].
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

@@ -1,0 +1,95 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Rationale</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../hash.html" title="Chapter&#160;12.&#160;Boost.Functional/Hash">
+<link rel="prev" href="changes.html" title="Change Log">
+<link rel="next" href="reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="changes.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../hash.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="hash.rationale"></a><a class="link" href="rationale.html" title="Rationale">Rationale</a>
+</h2></div></div></div>
+<p>
+      The rationale can be found in the original design <a href="#ftn.hash.rationale.f0" class="footnote" name="hash.rationale.f0"><sup class="footnote">[2]</sup></a>.
+    </p>
+<h4>
+<a name="hash.rationale.h0"></a>
+      <span class="phrase"><a name="hash.rationale.quality_of_the_hash_function"></a></span><a class="link" href="rationale.html#hash.rationale.quality_of_the_hash_function">Quality
+      of the hash function</a>
+    </h4>
+<p>
+      Many hash functions strive to have little correlation between the input and
+      output values. They attempt to uniformally distribute the output values for
+      very similar inputs. This hash function makes no such attempt. In fact, for
+      integers, the result of the hash function is often just the input value. So
+      similar but different input values will often result in similar but different
+      output values. This means that it is not appropriate as a general hash function.
+      For example, a hash table may discard bits from the hash function resulting
+      in likely collisions, or might have poor collision resolution when hash values
+      are clustered together. In such cases this hash function will preform poorly.
+    </p>
+<p>
+      But the standard has no such requirement for the hash function, it just requires
+      that the hashes of two different values are unlikely to collide. Containers
+      or algorithms designed to work with the standard hash function will have to
+      be implemented to work well when the hash function's output is correlated to
+      its input. Since they are paying that cost a higher quality hash function would
+      be wasteful.
+    </p>
+<p>
+      For other use cases, if you do need a higher quality hash function, then neither
+      the standard hash function or <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">hash</span></code> are
+      appropriate. There are several options available. One is to use a second hash
+      on the output of this hash function, such as <a href="http://www.concentric.net/~ttwang/tech/inthash.htm" target="_top">Thomas
+      Wang's hash function</a>. This this may not work as well as a hash algorithm
+      tailored for the input.
+    </p>
+<p>
+      For strings there are several fast, high quality hash functions available (for
+      example <a href="http://code.google.com/p/smhasher/" target="_top">MurmurHash3</a>
+      and <a href="http://code.google.com/p/cityhash/" target="_top">Google's CityHash</a>),
+      although they tend to be more machine specific. These may also be appropriate
+      for hashing a binary representation of your data - providing that all equal
+      values have an equal representation, which is not always the case (e.g. for
+      floating point values).
+    </p>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.hash.rationale.f0" class="footnote"><p><a href="#hash.rationale.f0" class="para"><sup class="para">[2] </sup></a>
+        issue 6.18 of the <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2005/n1837.pdf" target="_top">Library
+        Extension Technical Report Issues List</a> (page 63)
+      </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2008 Daniel
+      James<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="changes.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../hash.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

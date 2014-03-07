@@ -1,0 +1,167 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template placeholder</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp" title="Header &lt;boost/xpressive/regex_actions.hpp&gt;">
+<link rel="prev" href="local.html" title="Struct template local">
+<link rel="next" href="at.html" title="Global at">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="local.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="at.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.xpressive.placeholder"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template placeholder</span></h2>
+<p>boost::xpressive::placeholder &#8212; For defining a placeholder to stand in for a variable a semantic action. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp" title="Header &lt;boost/xpressive/regex_actions.hpp&gt;">boost/xpressive/regex_actions.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">int</span> I <span class="special">=</span> <span class="number">0</span><span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="placeholder.html" title="Struct template placeholder">placeholder</a> <span class="special">{</span>
+  <span class="comment">// <a class="link" href="placeholder.html#boost.xpressive.placeholderconstruct-copy-destruct">construct/copy/destruct</a></span>
+  placeholder&amp; <a class="link" href="placeholder.html#idp163420648-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  placeholder&amp; <a class="link" href="placeholder.html#idp163422328-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp255647576"></a><h2>Description</h2>
+<p>Use <code class="computeroutput">placeholder&lt;&gt;</code> to define a placeholder for use in semantic actions to stand in for real objects. The use of placeholders allows regular expressions with actions to be defined once and reused in many contexts to read and write from objects which were not available when the regex was defined.</p>
+<p>
+You can use <code class="computeroutput">placeholder&lt;&gt;</code> by creating an object of type <code class="computeroutput">placeholder&lt;T&gt;</code> and using that object in a semantic action exactly as you intend an object of type <code class="computeroutput">T</code> to be used. </p>
+<pre class="programlisting"><span class="identifier">placeholder</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">_i</span><span class="special">;</span>
+<span class="identifier">placeholder</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">_d</span><span class="special">;</span>
+
+<span class="identifier">sregex</span> <span class="identifier">rex</span> <span class="special">=</span> <span class="special">(</span> <span class="identifier">some</span> <span class="special">&gt;&gt;</span> <span class="identifier">regex</span> <span class="special">&gt;&gt;</span> <span class="identifier">here</span> <span class="special">)</span>
+    <span class="special">[</span> <span class="special">++</span><span class="identifier">_i</span><span class="special">,</span> <span class="identifier">_d</span> <span class="special">*=</span> <span class="identifier">_d</span> <span class="special">]</span><span class="special">;</span>
+</pre>
+<p> Then, when doing a pattern match with either <code class="computeroutput">regex_search()</code>, <code class="computeroutput">regex_match()</code> or <code class="computeroutput">regex_replace()</code>, pass a <code class="computeroutput"><a class="link" href="match_results.html" title="Struct template match_results">match_results</a>&lt;&gt;</code> object that contains bindings for the placeholders used in the regex object's semantic actions. You can create the bindings by calling <code class="computeroutput">match_results::let</code> as follows: </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+<span class="keyword">double</span> <span class="identifier">d</span> <span class="special">=</span> <span class="number">3</span><span class="special">.</span><span class="number">14</span><span class="special">;</span>
+
+<span class="identifier">smatch</span> <span class="identifier">what</span><span class="special">;</span>
+<span class="identifier">what</span><span class="special">.</span><span class="identifier">let</span><span class="special">(</span><span class="identifier">_i</span> <span class="special">=</span> <span class="identifier">i</span><span class="special">)</span>
+    <span class="special">.</span><span class="identifier">let</span><span class="special">(</span><span class="identifier">_d</span> <span class="special">=</span> <span class="identifier">d</span><span class="special">)</span><span class="special">;</span>
+
+<span class="keyword">if</span><span class="special">(</span><span class="identifier">regex_match</span><span class="special">(</span><span class="string">"some string"</span><span class="special">,</span> <span class="identifier">rex</span><span class="special">,</span> <span class="identifier">what</span><span class="special">)</span><span class="special">)</span>
+   <span class="comment">// i and d mutated here</span>
+</pre>
+<p> If a semantic action executes that contains an unbound placeholder, a exception of type <code class="computeroutput"><a class="link" href="regex_error.html" title="Struct regex_error">regex_error</a></code> is thrown.</p>
+<p>See the discussion for <code class="computeroutput">xpressive::let()</code> and the  <a class="link" href="../../xpressive/user_s_guide.html#boost_xpressive.user_s_guide.semantic_actions_and_user_defined_assertions.referring_to_non_local_variables"> "Referring to Non-Local Variables"</a> section in the Users' Guide for more information.</p>
+<p><span class="emphasis"><em>Example:</em></span> </p>
+<pre class="programlisting"><span class="comment">// Define a placeholder for a map object:</span>
+<span class="identifier">placeholder</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">_map</span><span class="special">;</span>
+
+<span class="comment">// Match a word and an integer, separated by =&gt;,</span>
+<span class="comment">// and then stuff the result into a std::map&lt;&gt;</span>
+<span class="identifier">sregex</span> <span class="identifier">pair</span> <span class="special">=</span> <span class="special">(</span> <span class="special">(</span><span class="identifier">s1</span><span class="special">=</span> <span class="special">+</span><span class="identifier">_w</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="string">"=&gt;"</span> <span class="special">&gt;&gt;</span> <span class="special">(</span><span class="identifier">s2</span><span class="special">=</span> <span class="special">+</span><span class="identifier">_d</span><span class="special">)</span> <span class="special">)</span>
+    <span class="special">[</span> <span class="identifier">_map</span><span class="special">[</span><span class="identifier">s1</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">as</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span><span class="special">(</span><span class="identifier">s2</span><span class="special">)</span> <span class="special">]</span><span class="special">;</span>
+
+<span class="comment">// Match one or more word/integer pairs, separated</span>
+<span class="comment">// by whitespace.</span>
+<span class="identifier">sregex</span> <span class="identifier">rx</span> <span class="special">=</span> <span class="identifier">pair</span> <span class="special">&gt;&gt;</span> <span class="special">*</span><span class="special">(</span><span class="special">+</span><span class="identifier">_s</span> <span class="special">&gt;&gt;</span> <span class="identifier">pair</span><span class="special">)</span><span class="special">;</span>
+
+<span class="comment">// The string to parse</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span><span class="special">(</span><span class="string">"aaa=&gt;1 bbb=&gt;23 ccc=&gt;456"</span><span class="special">)</span><span class="special">;</span>
+
+<span class="comment">// Here is the actual map to fill in:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">result</span><span class="special">;</span>
+
+<span class="comment">// Bind the _map placeholder to the actual map</span>
+<span class="identifier">smatch</span> <span class="identifier">what</span><span class="special">;</span>
+<span class="identifier">what</span><span class="special">.</span><span class="identifier">let</span><span class="special">(</span> <span class="identifier">_map</span> <span class="special">=</span> <span class="identifier">result</span> <span class="special">)</span><span class="special">;</span>
+
+<span class="comment">// Execute the match and fill in result map</span>
+<span class="keyword">if</span><span class="special">(</span><span class="identifier">regex_match</span><span class="special">(</span><span class="identifier">str</span><span class="special">,</span> <span class="identifier">what</span><span class="special">,</span> <span class="identifier">rx</span><span class="special">)</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">result</span><span class="special">[</span><span class="string">"aaa"</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">result</span><span class="special">[</span><span class="string">"bbb"</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">result</span><span class="special">[</span><span class="string">"ccc"</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p> </p>
+<div class="refsect2">
+<a name="idp255721272"></a><h3>Template Parameters</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> T</pre>
+<p>The type of the object for which this placeholder stands in. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> I <span class="special">=</span> <span class="number">0</span></pre>
+<p>An optional identifier that can be used to distinguish this placeholder from others that may be used in the same semantic action that happen to have the same type.</p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp255724568"></a><h3>
+<a name="boost.xpressive.placeholderconstruct-copy-destruct"></a><code class="computeroutput">placeholder</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout">placeholder&amp; <a name="idp163420648-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span> t<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The object to associate with this placeholder </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>An object of unspecified type that records the association of <code class="computeroutput">t</code> with <code class="computeroutput">*this</code>. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout">placeholder&amp; <a name="idp163422328-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span> t<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="local.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="at.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

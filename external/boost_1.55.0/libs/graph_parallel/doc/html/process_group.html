@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL Parallel BGL Process Groups</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-parallel-bgl-process-groups">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> Parallel BGL Process Groups</h1>
+
+<!-- Copyright (C) 2004-2008 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#introduction" id="id1">Introduction</a></li>
+<li><a class="reference internal" href="#communication-model" id="id2">Communication model</a><ul>
+<li><a class="reference internal" href="#distributed-data-structures" id="id3">Distributed data structures</a></li>
+<li><a class="reference internal" href="#asynchronous-receives" id="id4">Asynchronous receives</a></li>
+<li><a class="reference internal" href="#out-of-band-messaging" id="id5">Out-of-band messaging</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#reference" id="id6">Reference</a><ul>
+<li><a class="reference internal" href="#process-group-constructors" id="id7">Process group constructors</a></li>
+<li><a class="reference internal" href="#triggers" id="id8">Triggers</a></li>
+<li><a class="reference internal" href="#helper-operations" id="id9">Helper operations</a></li>
+<li><a class="reference internal" href="#process-query" id="id10">Process query</a></li>
+<li><a class="reference internal" href="#message-transmission" id="id11">Message transmission</a></li>
+<li><a class="reference internal" href="#synchronization" id="id12">Synchronization</a></li>
+<li><a class="reference internal" href="#out-of-band-communication" id="id13">Out-of-band communication</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="introduction">
+<h1><a class="toc-backref" href="#id1">Introduction</a></h1>
+<p>Process groups are an abstraction of a set of communicating processes
+that coordinate to solve the same problem. Process groups contain
+facilities for identifying the processes within that group, sending
+and receiving messages between the processes in that group, and
+performing collective communications involving all processes in the
+group simultaneously.</p>
+</div>
+<div class="section" id="communication-model">
+<h1><a class="toc-backref" href="#id2">Communication model</a></h1>
+<p>Process groups are based on an extended version of the Bulk
+Synchronous Parallel (BSP) model of computation. Parallel computations
+in the BSP model are organized into <em>supersteps</em>, each of which
+consists of a computation phase followed by a communication
+phase. During the computation phase, all processes in the process
+group work exclusively on local data, and there is no inter-process
+communication. During the communication phase, all of the processes
+exchange message with each other. Messages sent in the communication
+phase of a superstep will be received in the next superstep.</p>
+<p>The boundary between supersteps in the Parallel BGL corresponds to the
+<tt class="docutils literal"><span class="pre">synchronize</span></tt> operation. Whenever a process has completed its local
+computation phase and sent all of the messages required for that
+superstep, it invokes the <tt class="docutils literal"><span class="pre">synchronize</span></tt> operation on the process
+group. Once all processes in the process group have entered
+<tt class="docutils literal"><span class="pre">synchronize</span></tt>, they exchange messages and then continue with the
+next superstep.</p>
+<p>The Parallel BGL loosens the BSP model significantly, to provide a
+more natural programming model that also provides some performance
+benefits over the strict BSP model. The primary extension is the
+ability to receive messages sent within the same superstep
+&quot;asynchronously&quot;, either to free up message buffers or to respond to
+an immediate request for information. For particularly unstructured
+computations, the ability to send a message and get an immediate reply
+can simplify many computations that would otherwise need to be split
+into two separate supersteps. Additionally, the Parallel BGL augments
+the BSP model with support for multiple distributed data structures,
+each of which are provided with a different communication space but
+whose messages will all be synchronized concurrently.</p>
+<div class="section" id="distributed-data-structures">
+<h2><a class="toc-backref" href="#id3">Distributed data structures</a></h2>
+<p>A typical computation with the Parallel BGL involves several
+distributed data structures working in concern. For example, a simple
+breadth-first search involves the distributed graph data structure
+containing the graph itself, a distributed queue that manages the
+traversal through the graph, and a distributed property map that
+tracks which vertices have already been visited as part of the
+search.</p>
+<p>The Parallel BGL manages these distributed data structures by allowing
+each of the data structures to attach themselves to the process group
+itself. When a distributed data structure attaches to the process
+group, it receives its own copy of the process group that allows the
+distributed data structure to communicate without colliding with the
+communications from other distributed data structures. When the
+process group is synchronized, all of the distributed data structures
+attached to that process group are automatically synchronized, so that
+all of the distributed data structures in a computation remain
+synchronized.</p>
+<p>A distributed data structure attaches itself to the process group by
+creating a copy of the process group and passing an
+<tt class="docutils literal"><span class="pre">attach_distributed_object</span></tt> flag to the process group
+constructor. So long as this copy of the process group persists, the
+distributed data structure is attached the process group. For this
+reason, most distributed data structures keep a copy of the process
+group as member data, constructing the member with
+<tt class="docutils literal"><span class="pre">attach_distributed_object</span></tt>, e.g.,</p>
+<pre class="literal-block">
+template&lt;typename ProcessGroup&gt;
+struct distributed_data_structure
+{
+  explicit distributed_data_structure(const ProcessGroup&amp; pg)
+    : process_group(pg, boost::parallel::attach_distributed_object())
+  { }
+
+private:
+  ProcessGroup process_group;
+};
+</pre>
+</div>
+<div class="section" id="asynchronous-receives">
+<h2><a class="toc-backref" href="#id4">Asynchronous receives</a></h2>
+<p>Distributed data structures in the Parallel BGL can &quot;asynchronously&quot;
+receive and process messages before the end of a BSP
+superstep. Messages can be received any time that a process is inside
+the process group operations, and the scheduling of message receives
+is entirely managed by the process group.</p>
+<p>Distributed data structures receive messages through
+&quot;triggers&quot;. Triggers are function objects responsible for processing a
+received message. Each trigger is registered with the <tt class="docutils literal"><span class="pre">trigger</span></tt>
+method of the process group using a specific message
+tag (an integer) and the type of data that is expected to be
+contained within that message. Whenever a message with that tag
+becomes available, the progress group will call the trigger with the
+source of the message, the message tag, the data contained in the
+message, and the &quot;context&quot; of the message.</p>
+<p>The majority of triggers have no return value, although it is common
+that the triggers send messages back to the source process. In certain
+cases where the trigger's purpose is to immediately reply with a
+value, the trigger should be registered with the
+<tt class="docutils literal"><span class="pre">trigger_with_reply</span></tt> method and should return the value that will be
+sent back to the caller. The <tt class="docutils literal"><span class="pre">trigger_with_reply</span></tt> facility is only
+useful in conjunction with out-of-band messaging, discussed next.</p>
+</div>
+<div class="section" id="out-of-band-messaging">
+<h2><a class="toc-backref" href="#id5">Out-of-band messaging</a></h2>
+<p>The majority of messages sent by the Parallel BGL are sent through the
+normal send operations, to be received in the next superstep or, in
+some cases, received &quot;early&quot; by a trigger. These messages are not
+time-sensitive, so they will be delivered whenever the process group
+processes them.</p>
+<p>Some messages, however, require immediate responses. For example, if a
+process needs to determine the current value associated with a vertex
+owned by another process, the first process must send a request to the
+second process and block while waiting for a response. For such
+messages, the Parallel BGL's process groups provide an out-of-band
+messaging mechanism. Out-of-band messages are transmitted immediately,
+with a much higher priority than other messages. The sending of
+out-of-band messages can be coupled with a receive operation that
+waits until the remote process has received the message and sent its
+reply. For example, in the following code the process sends a message
+containing the string <tt class="docutils literal"><span class="pre">name</span></tt> to process <tt class="docutils literal"><span class="pre">owner</span></tt> with tag
+<tt class="docutils literal"><span class="pre">msg_get_descriptor_by_name</span></tt> via an out-of-band message. The
+receiver of that message will immediately deliver the message via a
+trigger, that returns the resulting value--a
+<tt class="docutils literal"><span class="pre">vertex_descriptor</span></tt>--that will be passed back to the process that
+initiated the communication. The full communication happens
+immediately, within the current superstep.</p>
+<pre class="literal-block">
+std::string name;
+vertex_descriptor descriptor;
+send_oob_with_reply(process_group, owner, msg_get_descriptor_by_name,
+                    name, descriptor);
+</pre>
+</div>
+</div>
+<div class="section" id="reference">
+<h1><a class="toc-backref" href="#id6">Reference</a></h1>
+<p>The Parallel BGL process groups specify an interface that can be
+implemented by various communication subsystems. In this reference
+section, we use the placeholder type <tt class="docutils literal"><span class="pre">ProcessGroup</span></tt> to stand in for
+the various process group implementations that exist. There is only
+one implementation of the process group interface at this time:</p>
+<blockquote>
+<ul class="simple">
+<li><a class="reference external" href="mpi_bsp_process_group.html">MPI BSP process group</a></li>
+</ul>
+</blockquote>
+<pre class="literal-block">
+enum trigger_receive_context {
+  trc_none,
+  trc_in_synchronization,
+  trc_early_receive,
+  trc_out_of_band
+};
+
+class ProcessGroup
+{
+  // Process group constructors
+  ProcessGroup();
+  ProcessGroup(const ProcessGroup&amp;, boost::parallel::attach_distributed_object);
+
+  // Triggers
+  template&lt;typename Type, typename Handler&gt;
+    void trigger(int tag, const Handler&amp; handler);
+
+  template&lt;typename Type, typename Handler&gt;
+    void trigger_with_reply(int tag, const Handler&amp; handler);
+
+  trigger_receive_context trigger_context() const;
+
+  // Helper operations
+  void poll();
+  ProcessGroup base() const;
+};
+
+// Process query
+int process_id(const ProcessGroup&amp;);
+int num_processes(const ProcessGroup&amp;);
+
+// Message transmission
+template&lt;typename T&gt;
+  void send(const ProcessGroup&amp; pg, int dest, int tag, const T&amp; value);
+
+template&lt;typename T&gt;
+  void receive(const ProcessGroup&amp; pg, int source, int tag, T&amp; value);
+
+optional&lt;std::pair&lt;int, int&gt; &gt; probe(const ProcessGroup&amp; pg);
+
+// Synchronization
+void synchronize(const ProcessGroup&amp; pg);
+
+// Out-of-band communication
+template&lt;typename T&gt;
+  void send_oob(const ProcessGroup&amp; pg, int dest, int tag, const T&amp; value);
+
+template&lt;typename T, typename U&gt;
+  void
+  send_oob_with_reply(const ProcessGroup&amp; pg, int dest, int
+                      tag, const T&amp; send_value, U&amp; receive_value);
+
+template&lt;typename T&gt;
+  void receive_oob(const ProcessGroup&amp; pg, int source, int tag, T&amp; value);
+</pre>
+<div class="section" id="process-group-constructors">
+<h2><a class="toc-backref" href="#id7">Process group constructors</a></h2>
+<pre class="literal-block">
+ProcessGroup();
+</pre>
+<p>Constructs a new process group with a different communication space
+from any other process group.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+ProcessGroup(const ProcessGroup&amp; pg, boost::parallel::attach_distributed_object);
+</pre>
+<p>Attaches a new distributed data structure to the process group
+<tt class="docutils literal"><span class="pre">pg</span></tt>. The resulting process group can be used for communication
+within that new distributed data structure. When the newly-constructed
+process group is eventually destroyed, the distributed data structure
+is detached from the process group.</p>
+</div>
+<div class="section" id="triggers">
+<h2><a class="toc-backref" href="#id8">Triggers</a></h2>
+<pre class="literal-block">
+template&lt;typename Type, typename Handler&gt;
+  void trigger(int tag, const Handler&amp; handler);
+</pre>
+<p>Registers a trigger with the given process group. The trigger will
+watch for messages with the given <tt class="docutils literal"><span class="pre">tag</span></tt>. When such a message is
+available, it will be received into a value of type <tt class="docutils literal"><span class="pre">Type</span></tt>, and the
+function object <tt class="docutils literal"><span class="pre">handler</span></tt> will be invoked with four parameters:</p>
+<dl class="docutils">
+<dt>source</dt>
+<dd>The rank of the source process (an <tt class="docutils literal"><span class="pre">int</span></tt>)</dd>
+<dt>tag</dt>
+<dd>The tag used to send the message (also an <tt class="docutils literal"><span class="pre">int</span></tt>)</dd>
+<dt>data:</dt>
+<dd>The data transmitted with the message. The data will have the type
+specified when the trigger was registered.</dd>
+<dt>context:</dt>
+<dd>The context in which the trigger is executed. This will be a value of
+type <tt class="docutils literal"><span class="pre">trigger_receive_context</span></tt>, which stages whether the trigger
+is being executed during synchronization, asynchronously in response
+to an &quot;early&quot; receive (often to free up communication buffers), or
+in response to an &quot;out-of-band&quot; message.</dd>
+</dl>
+<p>Triggers can only be registered by process groups that result from
+attaching a distributed data structure. A trigger can be invoked in
+response to either a normal send operation or an out-of-band send
+operation. There is also a <a class="reference external" href="simple_trigger.html">simple trigger interface</a> for defining
+triggers in common cases.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template&lt;typename Type, typename Handler&gt;
+  void trigger_with_reply(int tag, const Handler&amp; handler);
+</pre>
+<p>Like the <tt class="docutils literal"><span class="pre">trigger</span></tt> method, registers a trigger with the given
+process group. The trigger will watch for messages with the given
+<tt class="docutils literal"><span class="pre">tag</span></tt>. When such a message is available, it will be received into a
+value of type <tt class="docutils literal"><span class="pre">Type</span></tt> and <tt class="docutils literal"><span class="pre">handler</span></tt> will be invoked, just as with a
+normal trigger. However, a trigger registered with
+<tt class="docutils literal"><span class="pre">trigger_with_reply</span></tt> must return a value, which will be immediately
+sent back to the process that initiated the send resulting in this
+trigger. Thus, <tt class="docutils literal"><span class="pre">trigger_with_reply</span></tt> should only be used for messages
+that need immediate responses. These triggers can only be invoked via
+the out-of-band sends that wait for the reply, via
+<tt class="docutils literal"><span class="pre">send_oob_with_reply</span></tt>. There is also a <a class="reference external" href="simple_trigger.html">simple trigger interface</a>
+for defining triggers in common cases.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+trigger_receive_context trigger_context() const;
+</pre>
+<p>Retrieves the current context of the process group with respect to the
+invocation of triggers. When <tt class="docutils literal"><span class="pre">trc_none</span></tt>, the process group is not
+currently invoking any triggers. Otherwise, this value describes in
+what context the currently executing trigger is being invoked.</p>
+</div>
+<div class="section" id="helper-operations">
+<h2><a class="toc-backref" href="#id9">Helper operations</a></h2>
+<pre class="literal-block">
+void poll();
+</pre>
+<p>Permits the process group to receive any incomining messages,
+processing them via triggers. If you have a long-running computation
+that does not invoke any of the process group's communication
+routines, you should call <tt class="docutils literal"><span class="pre">poll</span></tt> occasionally to along incoming
+messages to be processed.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+ProcessGroup base() const;
+</pre>
+<p>Retrieves the &quot;base&quot; process group for this process group, which is a
+copy of the underlying process group that does not reference any
+specific distributed data structure.</p>
+</div>
+<div class="section" id="process-query">
+<h2><a class="toc-backref" href="#id10">Process query</a></h2>
+<pre class="literal-block">
+int process_id(const ProcessGroup&amp; pg);
+</pre>
+<p>Retrieves the ID (or &quot;rank&quot;) of the calling process within the process
+group. Process IDs are values in the range [0, <tt class="docutils literal"><span class="pre">num_processes(pg)</span></tt>)
+that uniquely identify the process. Process IDs can be used to
+initiate communication with another process.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+int num_processes(const ProcessGroup&amp; pg);
+</pre>
+<p>Returns the number of processes within the process group.</p>
+</div>
+<div class="section" id="message-transmission">
+<h2><a class="toc-backref" href="#id11">Message transmission</a></h2>
+<pre class="literal-block">
+template&lt;typename T&gt;
+  void send(const ProcessGroup&amp; pg, int dest, int tag, const T&amp; value);
+</pre>
+<p>Sends a message with the given <tt class="docutils literal"><span class="pre">tag</span></tt> and carrying the given
+<tt class="docutils literal"><span class="pre">value</span></tt> to the process with ID <tt class="docutils literal"><span class="pre">dest</span></tt> in the given process
+group. All message sends are non-blocking, meaning that this send
+operation will not block while waiting for the communication to
+complete. There is no guarantee when the message will be received,
+except that it will become available to the destination process by the
+end of the superstep, in the collective call to <tt class="docutils literal"><span class="pre">synchronize</span></tt>.</p>
+<p>Any type of value can be transmitted via <tt class="docutils literal"><span class="pre">send</span></tt>, so long as it
+provides the appropriate functionality to be serialized with the
+Boost.Serialization library.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template&lt;typename T&gt;
+  void receive(const ProcessGroup&amp; pg, int source, int tag, T&amp; value);
+</pre>
+<p>Receives a message with the given <tt class="docutils literal"><span class="pre">tag</span></tt> sent from the process
+<tt class="docutils literal"><span class="pre">source</span></tt>, updating <tt class="docutils literal"><span class="pre">value</span></tt> with the payload of the message. This
+receive operation can only receive messages sent within the previous
+superstep via the <tt class="docutils literal"><span class="pre">send</span></tt> operation. If no such message is available
+at the time <tt class="docutils literal"><span class="pre">receive</span></tt> is called, the program is ill-formed.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+optional&lt;std::pair&lt;int, int&gt; &gt; probe(const ProcessGroup&amp; pg);
+</pre>
+<p>Determines whether a message is available. The probe operation checks
+for any messages that were sent in the previous superstep but have not
+yet been received. If such a message exists, <tt class="docutils literal"><span class="pre">probe</span></tt> returns a
+(source, tag) pair describing the message. Otherwise, <tt class="docutils literal"><span class="pre">probe</span></tt> will
+return an empty <tt class="docutils literal"><span class="pre">boost::optional</span></tt>.</p>
+<p>A typical use of <tt class="docutils literal"><span class="pre">probe</span></tt> is to continually probe for messages at the
+beginning of the superstep, receiving and processing those messages
+until no messages remain.</p>
+</div>
+<div class="section" id="synchronization">
+<h2><a class="toc-backref" href="#id12">Synchronization</a></h2>
+<pre class="literal-block">
+void synchronize(const ProcessGroup&amp; pg);
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">synchronize</span></tt> function is a collective operation that must be
+invoked by all of the processes within the process group. A call to
+<tt class="docutils literal"><span class="pre">synchronize</span></tt> marks the end of a superstep in the parallel
+computation. All messages sent before the end of the superstep will be
+received into message buffers, and can be processed by the program in
+the next superstep. None of the processes will leave the
+<tt class="docutils literal"><span class="pre">synchronize</span></tt> function until all of the processes have entered the
+function and exchanged messages, so that all processes are always on
+the same superstep.</p>
+</div>
+<div class="section" id="out-of-band-communication">
+<h2><a class="toc-backref" href="#id13">Out-of-band communication</a></h2>
+<pre class="literal-block">
+template&lt;typename T&gt;
+  void send_oob(const ProcessGroup&amp; pg, int dest, int tag, const T&amp; value);
+</pre>
+<p>Sends and out-of-band message. This out-of-band send operation acts
+like the normal <tt class="docutils literal"><span class="pre">send</span></tt> operation, except that out-of-band messages
+are delivered immediately through a high-priority channel.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template&lt;typename T, typename U&gt;
+  void
+  send_oob_with_reply(const ProcessGroup&amp; pg, int dest, int
+                      tag, const T&amp; send_value, U&amp; receive_value);
+</pre>
+<p>Sends an out-of-band message and waits for a reply. The
+<tt class="docutils literal"><span class="pre">send_oob_with_reply</span></tt> function can only be invoked with message tags
+that correspond to triggers registered with
+<tt class="docutils literal"><span class="pre">trigger_with_reply</span></tt>. This operation will send the message
+immediately (through the high-priority, out-of-band channel), then
+wait until the remote process sends a reply. The data from the reply
+is stored into <tt class="docutils literal"><span class="pre">receive_value</span></tt>.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template&lt;typename T&gt;
+  void receive_oob(const ProcessGroup&amp; pg, int source, int tag, T&amp; value);
+</pre>
+<p>Receives an out-of-band message with the given <tt class="docutils literal"><span class="pre">source</span></tt> and
+<tt class="docutils literal"><span class="pre">tag</span></tt>. As with the normal <tt class="docutils literal"><span class="pre">receive</span></tt> operation, it is an error to
+call <tt class="docutils literal"><span class="pre">receive_oob</span></tt> if no message matching the source and tag is
+available. This routine is used only rarely; for most circumstances,
+use <tt class="docutils literal"><span class="pre">send_oob_with_reply</span></tt> to perform an immediate send with a
+reply.</p>
+<hr class="docutils" />
+<p>Copyright (C) 2007 Douglas Gregor</p>
+<p>Copyright (C) 2007 Matthias Troyer</p>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:22 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

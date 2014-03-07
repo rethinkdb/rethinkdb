@@ -1,0 +1,34 @@
+#~ Copyright 2005 Rene Rivera.
+#~ Distributed under the Boost Software License, Version 1.0.
+#~ (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+# Automatic configuration for CodeWarrior toolset. To use, just import this module.
+
+import os ;
+import toolset : using ;
+
+if [ os.name ] = NT
+{
+    for local R in 9 8 7
+    {
+        local cw-path = [ W32_GETREG
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Metrowerks\\CodeWarrior\\Product Versions\\CodeWarrior for Windows R$(R)"
+            : "PATH" ] ;
+        local cw-version = [ W32_GETREG
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Metrowerks\\CodeWarrior\\Product Versions\\CodeWarrior for Windows R$(R)"
+            : "VERSION" ] ;
+        cw-path ?= [ W32_GETREG
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Metrowerks\\CodeWarrior for Windows\\$(R).0"
+            : "PATH" ] ;
+        cw-version ?= $(R).0 ;
+        
+        if $(cw-path)
+        {
+            if --debug-configuration in [ modules.peek : ARGV ]
+            {
+                ECHO "notice:" using cw ":" $(cw-version) ":" "$(cw-path)\\Other Metrowerks Tools\\Command Line Tools\\mwcc.exe" ;
+            }
+            using cw : $(cw-version) : "$(cw-path)\\Other Metrowerks Tools\\Command Line Tools\\mwcc.exe" ;
+        }
+    }
+}

@@ -1,0 +1,181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Flyweight Documentation - Tutorial - Annex - MPL lambda expressions</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="technical.html">
+<link rel="up" href="index.html">
+<link rel="next" href="../reference/index.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="Boost logo" align=
+"middle" width="277" height="86">Boost.Flyweight Tutorial Annex: MPL lambda expressions</h1>
+
+<div class="prev_link"><a href="technical.html"><img src="../prev.gif" alt="technical issues" border="0"><br>
+Technical issues
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight tutorial" border="0"><br>
+Boost.Flyweight tutorial
+</a></div>
+<div class="next_link"><a href="../reference/index.html"><img src="../next.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<p>This short introduction to lambda expressions is meant for readers unfamiliar
+with the <a href="../../../mpl/doc/index.html">Boost MPL Library</a> who
+want to rapidly acquire a working knowledge of the basic concepts for the purposes
+of using them in Boost.Flyweight. Please refer to the Boost.MPL documentation
+for further information beyond these introductory notes.
+</p>
+
+<p>
+The specifiers defined by Boost.Flyweight rely heavily on the
+<a href="../../../mpl/doc/refmanual/lambda-expression.html"><code>Lambda
+Expression</code></a> concept defined by the 
+<a href="../../../mpl/doc/index.html">Boost MPL Library</a>. A lambda
+expression can be thought of as a compile-time "type function", an entity (a
+concrete type, actually) that can be invoked with a list of types and returns
+some associated type in its turn. Consider for instance an arbitrary class
+template:
+</p>
+
+<blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Q</span><span class=special>&gt;</span>
+<span class=keyword>class</span> <span class=identifier>foo</span>
+<span class=special>{</span>
+  <span class=special>...</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+and suppose we want to have a lambda expression that, when invoked
+with some generic types <code>Arg1</code> and <code>Arg2</code>,
+returns <code>foo&lt;Arg1,Arg2&gt;</code>. Such a lambda expression
+can be implemented in two ways
+<ol>
+  <li>As a
+    <a href="../../../mpl/doc/refmanual/metafunction-class.html"><code>MPL
+    Metafunction Class</code></a>, a type with a special nested class template
+    named <code>apply</code>:
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>foo_specifier</span>
+<span class=special>{</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Arg1</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg2</span><span class=special>&gt;</span>
+  <span class=keyword>struct</span> <span class=identifier>apply</span>
+  <span class=special>{</span>
+    <span class=comment>// this is the &quot;return type&quot; of foo_specifier</span>
+    <span class=keyword>typedef</span> <span class=identifier>foo</span><span class=special>&lt;</span><span class=identifier>Arg1</span><span class=special>,</span><span class=identifier>Arg2</span><span class=special>&gt;</span> <span class=identifier>type</span><span class=special>;</span>
+  <span class=special>};</span>
+<span class=special>};</span>
+</pre></blockquote>
+  </li>
+  <li>
+    As a
+    <a href="../../../mpl/doc/refmanual/placeholder-expression.html"><code>MPL
+    Placeholder Expression</code></a>, a class template instantiated with one or
+    more <i>placeholders</i>:
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>foo</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>,</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_2</span><span class=special>&gt;</span> <span class=identifier>foo_specifier</span><span class=special>;</span>
+</pre></blockquote>
+    Note that, in this case, <code>foo_specifier</code> is a concrete type, much
+    as <code>int</code> or <code>std::set&lt;std::string&gt;</code> are; yet,
+    MPL internal mechanisms are able to detect that this type has been gotten
+    from instantiating a class template with placeholders <code>boost::mpl::_1</code>
+    and <code>boost::mpl::_2</code> and take these placeholders as slots to
+    be substituted for actual types (the first and second type supplied,
+    respectively) when <code>foo_specifier</code> is
+    invoked. So, an instantiation of <code>foo</code> can be used
+    to refer back to the <code>foo</code> class template itself! The net
+    effect is the same as with metafunctions, but placeholder expressions spare
+    us the need to write boilerplate metafunction classes
+    --and the kind of metaprogramming magic they depend on has an undeniable
+    beauty to it.
+  </li>
+</ol>
+So far the examples shown just forward the arguments <code>Arg1</code> and
+<code>Arg2</code> directly to a class template without further elaboration,
+but there is nothing preventing us from doing some argument manipulation,
+like, for instance, switching their places:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>foo_specifier</span>
+<span class=special>{</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Arg1</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg2</span><span class=special>&gt;</span>
+  <span class=keyword>struct</span> <span class=identifier>apply</span><span class=special>{</span><span class=keyword>typedef</span> <span class=identifier>foo</span><span class=special>&lt;</span><span class=identifier>Arg2</span><span class=special>,</span><span class=identifier>Arg1</span><span class=special>&gt;</span> <span class=identifier>type</span><span class=special>;};</span>
+<span class=special>};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>foo</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_2</span><span class=special>,</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>&gt;</span> <span class=identifier>foo_specifier</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+passing placeholder subexpressions as arguments to the overall expression:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>foo_specifier</span>
+<span class=special>{</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Arg1</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg2</span><span class=special>&gt;</span>
+  <span class=keyword>struct</span> <span class=identifier>apply</span><span class=special>{</span><span class=keyword>typedef</span> <span class=identifier>foo</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>shared_ptr</span><span class=special>&lt;</span><span class=identifier>Arg1</span><span class=special>&gt;,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>less</span><span class=special>&lt;</span><span class=identifier>Arg2</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>type</span><span class=special>;};</span>
+<span class=special>};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>foo</span><span class=special>&lt;</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>shared_ptr</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>&gt;,</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>less</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_2</span><span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>foo_specifier</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+or accepting less or more arguments than the class template itself
+(the number of parameters of a lambda expression is called its <i>arity</i>):
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>foo_specifier</span>
+<span class=special>{</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Arg1</span><span class=special>&gt;</span>
+  <span class=keyword>struct</span> <span class=identifier>apply</span><span class=special>{</span><span class=keyword>typedef</span> <span class=identifier>foo</span><span class=special>&lt;</span><span class=identifier>Arg1</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>less</span><span class=special>&lt;</span><span class=identifier>Arg1</span><span class=special>&gt;</span> <span class=identifier>type</span><span class=special>;};</span>
+<span class=special>};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>foo</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>less</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>foo_specifier</span><span class=special>;</span>
+
+<span class=keyword>struct</span> <span class=identifier>foo_specifier</span>
+<span class=special>{</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Arg1</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg2</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg3</span><span class=special>&gt;</span>
+  <span class=keyword>struct</span> <span class=identifier>apply</span><span class=special>{</span><span class=keyword>typedef</span> <span class=identifier>foo</span><span class=special>&lt;</span><span class=identifier>Arg1</span><span class=special>,</span><span class=identifier>foo</span><span class=special>&lt;</span><span class=identifier>Arg2</span><span class=special>,</span><span class=identifier>Arg3</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>type</span><span class=special>;};</span>
+<span class=special>};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>foo</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>,</span><span class=identifier>foo</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_2</span><span class=special>,</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_3</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>foo_specifier</span><span class=special>;</span>
+</pre></blockquote>
+
+<hr>
+
+<div class="prev_link"><a href="technical.html"><img src="../prev.gif" alt="technical issues" border="0"><br>
+Technical issues
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight tutorial" border="0"><br>
+Boost.Flyweight tutorial
+</a></div>
+<div class="next_link"><a href="../reference/index.html"><img src="../next.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised August 13th 2008</p>
+
+<p>&copy; Copyright 2006-2008 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

@@ -1,0 +1,164 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Line-Based Operations</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../core.html" title="Core Concepts and Functionality">
+<link rel="prev" href="reactor.html" title="Reactor-Style Operations">
+<link rel="next" href="allocation.html" title="Custom Memory Allocation">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reactor.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="allocation.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.overview.core.line_based"></a><a class="link" href="line_based.html" title="Line-Based Operations">Line-Based Operations</a>
+</h4></div></div></div>
+<p>
+          Many commonly-used internet protocols are line-based, which means that
+          they have protocol elements that are delimited by the character sequence
+          <code class="computeroutput"><span class="string">"\r\n"</span></code>. Examples
+          include HTTP, SMTP and FTP. To more easily permit the implementation of
+          line-based protocols, as well as other protocols that use delimiters, Boost.Asio
+          includes the functions <code class="computeroutput"><span class="identifier">read_until</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">async_read_until</span><span class="special">()</span></code>.
+        </p>
+<p>
+          The following example illustrates the use of <code class="computeroutput"><span class="identifier">async_read_until</span><span class="special">()</span></code> in an HTTP server, to receive the first
+          line of an HTTP request from a client:
+        </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">http_connection</span>
+<span class="special">{</span>
+  <span class="special">...</span>
+
+  <span class="keyword">void</span> <span class="identifier">start</span><span class="special">()</span>
+  <span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">async_read_until</span><span class="special">(</span><span class="identifier">socket_</span><span class="special">,</span> <span class="identifier">data_</span><span class="special">,</span> <span class="string">"\r\n"</span><span class="special">,</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">http_connection</span><span class="special">::</span><span class="identifier">handle_request_line</span><span class="special">,</span> <span class="keyword">this</span><span class="special">,</span> <span class="identifier">_1</span><span class="special">));</span>
+  <span class="special">}</span>
+
+  <span class="keyword">void</span> <span class="identifier">handle_request_line</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="identifier">ec</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">ec</span><span class="special">)</span>
+    <span class="special">{</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">method</span><span class="special">,</span> <span class="identifier">uri</span><span class="special">,</span> <span class="identifier">version</span><span class="special">;</span>
+      <span class="keyword">char</span> <span class="identifier">sp1</span><span class="special">,</span> <span class="identifier">sp2</span><span class="special">,</span> <span class="identifier">cr</span><span class="special">,</span> <span class="identifier">lf</span><span class="special">;</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">istream</span> <span class="identifier">is</span><span class="special">(&amp;</span><span class="identifier">data_</span><span class="special">);</span>
+      <span class="identifier">is</span><span class="special">.</span><span class="identifier">unsetf</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ios_base</span><span class="special">::</span><span class="identifier">skipws</span><span class="special">);</span>
+      <span class="identifier">is</span> <span class="special">&gt;&gt;</span> <span class="identifier">method</span> <span class="special">&gt;&gt;</span> <span class="identifier">sp1</span> <span class="special">&gt;&gt;</span> <span class="identifier">uri</span> <span class="special">&gt;&gt;</span> <span class="identifier">sp2</span> <span class="special">&gt;&gt;</span> <span class="identifier">version</span> <span class="special">&gt;&gt;</span> <span class="identifier">cr</span> <span class="special">&gt;&gt;</span> <span class="identifier">lf</span><span class="special">;</span>
+      <span class="special">...</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+
+  <span class="special">...</span>
+
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket_</span><span class="special">;</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">streambuf</span> <span class="identifier">data_</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+          The <code class="computeroutput"><span class="identifier">streambuf</span></code> data member
+          serves as a place to store the data that has been read from the socket
+          before it is searched for the delimiter. It is important to remember that
+          there may be additional data <span class="emphasis"><em>after</em></span> the delimiter.
+          This surplus data should be left in the <code class="computeroutput"><span class="identifier">streambuf</span></code>
+          so that it may be inspected by a subsequent call to <code class="computeroutput"><span class="identifier">read_until</span><span class="special">()</span></code> or <code class="computeroutput"><span class="identifier">async_read_until</span><span class="special">()</span></code>.
+        </p>
+<p>
+          The delimiters may be specified as a single <code class="computeroutput"><span class="keyword">char</span></code>,
+          a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code> or a <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span></code>.
+          The <code class="computeroutput"><span class="identifier">read_until</span><span class="special">()</span></code>
+          and <code class="computeroutput"><span class="identifier">async_read_until</span><span class="special">()</span></code>
+          functions also include overloads that accept a user-defined function object
+          called a match condition. For example, to read data into a streambuf until
+          whitespace is encountered:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffers_iterator</span><span class="special">&lt;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">streambuf</span><span class="special">::</span><span class="identifier">const_buffers_type</span><span class="special">&gt;</span> <span class="identifier">iterator</span><span class="special">;</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">&gt;</span>
+<span class="identifier">match_whitespace</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">begin</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">end</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="identifier">iterator</span> <span class="identifier">i</span> <span class="special">=</span> <span class="identifier">begin</span><span class="special">;</span>
+  <span class="keyword">while</span> <span class="special">(</span><span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">end</span><span class="special">)</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">isspace</span><span class="special">(*</span><span class="identifier">i</span><span class="special">++))</span>
+      <span class="keyword">return</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">i</span><span class="special">,</span> <span class="keyword">true</span><span class="special">);</span>
+  <span class="keyword">return</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">i</span><span class="special">,</span> <span class="keyword">false</span><span class="special">);</span>
+<span class="special">}</span>
+<span class="special">...</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">streambuf</span> <span class="identifier">b</span><span class="special">;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">read_until</span><span class="special">(</span><span class="identifier">s</span><span class="special">,</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">match_whitespace</span><span class="special">);</span>
+</pre>
+<p>
+          To read data into a streambuf until a matching character is found:
+        </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">match_char</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="keyword">explicit</span> <span class="identifier">match_char</span><span class="special">(</span><span class="keyword">char</span> <span class="identifier">c</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">c_</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span> <span class="special">{}</span>
+
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">&gt;</span> <span class="keyword">operator</span><span class="special">()(</span>
+      <span class="identifier">Iterator</span> <span class="identifier">begin</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">end</span><span class="special">)</span> <span class="keyword">const</span>
+  <span class="special">{</span>
+    <span class="identifier">Iterator</span> <span class="identifier">i</span> <span class="special">=</span> <span class="identifier">begin</span><span class="special">;</span>
+    <span class="keyword">while</span> <span class="special">(</span><span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">end</span><span class="special">)</span>
+      <span class="keyword">if</span> <span class="special">(</span><span class="identifier">c_</span> <span class="special">==</span> <span class="special">*</span><span class="identifier">i</span><span class="special">++)</span>
+        <span class="keyword">return</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">i</span><span class="special">,</span> <span class="keyword">true</span><span class="special">);</span>
+    <span class="keyword">return</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">i</span><span class="special">,</span> <span class="keyword">false</span><span class="special">);</span>
+  <span class="special">}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+  <span class="keyword">char</span> <span class="identifier">c_</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">asio</span> <span class="special">{</span>
+  <span class="keyword">template</span> <span class="special">&lt;&gt;</span> <span class="keyword">struct</span> <span class="identifier">is_match_condition</span><span class="special">&lt;</span><span class="identifier">match_char</span><span class="special">&gt;</span>
+    <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">true_type</span> <span class="special">{};</span>
+<span class="special">}</span> <span class="special">}</span> <span class="comment">// namespace boost::asio</span>
+<span class="special">...</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">streambuf</span> <span class="identifier">b</span><span class="special">;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">read_until</span><span class="special">(</span><span class="identifier">s</span><span class="special">,</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">match_char</span><span class="special">(</span><span class="char">'a'</span><span class="special">));</span>
+</pre>
+<p>
+          The <code class="computeroutput"><span class="identifier">is_match_condition</span><span class="special">&lt;&gt;</span></code> type trait automatically evaluates
+          to true for functions, and for function objects with a nested <code class="computeroutput"><span class="identifier">result_type</span></code> typedef. For other types
+          the trait must be explicitly specialised, as shown above.
+        </p>
+<h6>
+<a name="boost_asio.overview.core.line_based.h0"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.line_based.see_also"></a></span><a class="link" href="line_based.html#boost_asio.overview.core.line_based.see_also">See
+          Also</a>
+        </h6>
+<p>
+          <a class="link" href="../../reference/async_read_until.html" title="async_read_until">async_read_until()</a>,
+          <a class="link" href="../../reference/is_match_condition.html" title="is_match_condition">is_match_condition</a>,
+          <a class="link" href="../../reference/read_until.html" title="read_until">read_until()</a>, <a class="link" href="../../reference/streambuf.html" title="streambuf">streambuf</a>, <a class="link" href="../../examples/cpp03_examples.html#boost_asio.examples.cpp03_examples.http_client">HTTP
+          client example</a>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reactor.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="allocation.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

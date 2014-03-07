@@ -1,0 +1,293 @@
+// Copyright (c) 2001 Samuel Krempp
+//                  krempp@crans.ens-cachan.fr
+// Distributed under the Boost Software License, Version 1.0. (See accompany-
+// ing file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+// This benchmark is provided purely for information.
+// It might not even compile as-is, 
+//   or not give any sensible results. 
+//      (e.g., it expects sprintf to be POSIX compliant)
+
+ new results ( with  outsstream vs. stringstream)
+
+bjam -sTOOLS="gcc intel-linux-7.1" -sBUILD="release"
+
+( -sBUILD="profile"  for profiling..)
+
+
+ "_no_reuse_stream" "_stringstr" "_strstream" _no_locale 
+
+intel-linux-7.1
+
+for comp in gcc  ; do 
+   echo  "\n------------------- Compiler  $comp : ---------------- "
+   for var in _overloads _basicfmt _normal; do 
+     echo "\n-- Variant  **" $var "**" :
+      texe=$EXEBOOST/libs/format/benchmark/bench_format${var}/${comp}/release/bench_format${var} ;
+      ls -l $texe;
+      $texe
+   done
+done
+
+
+// stringstream recréé chaque fois.
+-- Variant  ** _normal ** :
+-rwx--x--x    1 sam      users       61952 Sep 17 03:13 /home/data/zStore/BBoost/bin/boost//libs/format/benchmark/bench_format_normal/gcc/release/bench_format_normal
+printf time         :2.16
+ostream time        : 3.69,  = 1.70833 * printf
+parsed-once time    : 8.45,  = 3.91204 * printf ,  = 2.28997 * nullStream
+reused format time  :10.94,  = 5.06481 * printf ,  = 2.96477 * nullStream
+format time         :10.97,  = 5.0787 * printf ,  = 2.9729 * nullStream
+
+
+Pour le parsing. step 1 : scan_not + str2int (version Iter const& qques % mieux)
+
+------------------- Compiler  gcc : ----------------
+
+-- Variant  ** _overloads ** :
+-rwx--x--x    1 sam      users       52864 2003-09-12 02:59 /home/sam/progs/Boost/bin/BBoost//libs/format/benchmark/bench_format_overloads/gcc/release/bench_format_overloads
+printf time         :2.21
+ostream time        : 3.57,  = 1.61538 * printf
+parsed-once time    : 4.93,  = 2.23077 * printf ,  = 1.38095 * nullStream
+reused format time  : 9.25,  = 4.18552 * printf ,  = 2.59104 * nullStream
+format time         :10.33,  = 4.67421 * printf ,  = 2.89356 * nullStream
+
+-- Variant  ** _basicfmt ** :
+-rwx--x--x    1 sam      users       52864 2003-09-12 03:00 /home/sam/progs/Boost/bin/BBoost//libs/format/benchmark/bench_format_basicfmt/gcc/release/bench_format_basicfmt
+printf time         :2.2
+ostream time        : 3.57,  = 1.62273 * printf
+parsed-once time    : 4.85,  = 2.20455 * printf ,  = 1.35854 * nullStream
+reused format time  : 9.25,  = 4.20455 * printf ,  = 2.59104 * nullStream
+format time         :10.29,  = 4.67727 * printf ,  = 2.88235 * nullStream
+
+-- Variant  ** _normal ** :
+-rwx--x--x    1 sam      users       53088 2003-09-12 03:00 /home/sam/progs/Boost/bin/BBoost//libs/format/benchmark/bench_format_normal/gcc/release/bench_format_normal
+printf time         :2.27
+ostream time        : 3.47,  = 1.52863 * printf
+parsed-once time    : 4.79,  = 2.11013 * printf ,  = 1.3804 * nullStream
+reused format time  : 9.88,  = 4.35242 * printf ,  = 2.84726 * nullStream
+format time         :10.97,  = 4.8326 * printf ,  = 3.16138 * nullStream
+
+-------------------------------------------------------------------------------------------------
+Overload : int, double char * -> put_simple :
+#if defined(BOOST_FORMAT_OVERLOADS)
+        template<class T>  
+        basic_format&   operator%(const char* x) 
+            { return io::detail::feed_overloaded(*this,x); }
+        template<class T>  
+        basic_format&   operator%(const double x)
+            { return io::detail::feed_overloaded(*this,x); }
+        template<class T>  
+        basic_format&   operator%(const int x)
+            { return io::detail::feed_overloaded(*this,x); }
+#endif
+
+    // put overloads for common types (-> faster)
+    template< class Ch, class Tr, class T> 
+    void put_simple( T x, 
+                     const format_item<Ch, Tr>& specs, 
+                     std::basic_string<Ch, Tr> & res, 
+                     io::basic_outsstream<Ch, Tr>& oss_ )
+    {
+        typedef std::basic_string<Ch, Tr> string_t;
+        typedef format_item<Ch, Tr>  format_item_t;
+    
+        specs.fmtstate_.apply_on(oss_);
+        const std::ios_base::fmtflags fl=oss_.flags();
+        const std::streamsize w = oss_.width();
+      
+        if(w!=0) 
+            oss_.width(0);
+        put_last( oss_, x);
+        const Ch * res_beg = oss_.begin();
+        std::streamsize res_size = std::min(specs.truncate_, oss_.pcount());
+        int prefix_space = 0;
+        if(specs.pad_scheme_ & format_item_t::spacepad)
+            if( res_size == 0 ||   ( res_beg[0] !='+' && res_beg[0] !='-'  ))
+                prefix_space = 1;
+        mk_str(res, res_beg, res_size, w, oss_.fill(), fl, 
+               prefix_space, (specs.pad_scheme_ & format_item_t::centered) !=0 );
+        clear_buffer( oss_);
+    } // end- put_simple(..)
+
+
+
+------------------- Compiler  gcc : ----------------
+
+-- Variant  ** _overloads ** :
+-rwx--x--x    1 sam      users       52832 2003-09-12 00:17 /home/sam/progs/Boost/bin/BBoost//libs/format/benchmark/bench_format_overloads/gcc/release/bench_format_overloads
+printf time         :2.13
+ostream time        : 2.91,  = 1.3662 * printf
+parsed-once time    : 4.48,  = 2.10329 * printf ,  = 1.53952 * nullStream
+reused format time  : 9.42,  = 4.42254 * printf ,  = 3.23711 * nullStream
+format time         : 11.1,  = 5.21127 * printf ,  = 3.81443 * nullStream
+
+RERUN 
+printf time         :2.09
+ostream time        : 2.92,  = 1.39713 * printf
+parsed-once time    : 4.43,  = 2.11962 * printf ,  = 1.51712 * nullStream
+reused format time  : 9.29,  = 4.44498 * printf ,  = 3.18151 * nullStream
+format time         :11.05,  = 5.28708 * printf ,  = 3.78425 * nullStream
+
+-- Variant  ** _basicfmt ** :
+-rwx--x--x    1 sam      users       52832 2003-09-12 00:17 /home/sam/progs/Boost/bin/BBoost//libs/format/benchmark/bench_format_basicfmt/gcc/release/bench_format_basicfmt
+printf time         :2.16
+ostream time        : 3.01,  = 1.39352 * printf
+parsed-once time    : 4.41,  = 2.04167 * printf ,  = 1.46512 * nullStream
+reused format time  : 9.61,  = 4.44907 * printf ,  = 3.19269 * nullStream
+format time         :11.02,  = 5.10185 * printf ,  = 3.66113 * nullStream
+
+-- Variant  ** _no_locale ** :
+-rwx--x--x    1 sam      users       52192 2003-09-12 00:09 /home/sam/progs/Boost/bin/BBoost//libs/format/benchmark/bench_format_no_locale/gcc/release/bench_format_no_locale
+printf time         :2.1
+ostream time        : 2.87,  = 1.36667 * printf
+parsed-once time    : 4.44,  = 2.11429 * printf ,  = 1.54704 * nullStream
+reused format time  : 8.21,  = 3.90952 * printf ,  = 2.86063 * nullStream
+format time         : 9.25,  = 4.40476 * printf ,  = 3.223 * nullStream
+
+-- Variant  ** _normal ** :
+-rwx--x--x    1 sam      users       53056 2003-09-12 00:17 /home/sam/progs/Boost/bin/BBoost//libs/format/benchmark/bench_format_normal/gcc/release/bench_format_normal
+printf time         :2.18
+ostream time        : 2.92,  = 1.33945 * printf
+parsed-once time    : 5.75,  = 2.63761 * printf ,  = 1.96918 * nullStream
+reused format time  :10.27,  = 4.71101 * printf ,  = 3.51712 * nullStream
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------- Compiler  gcc : ----------------
+
+-- Variant  ** _normal ** :
+-rwx--x--x    1 sam      users       49280 2003-09-10 21:12 /home/sam/progs/Boost/bin/BBoost//libs/format/benchmark/bench_format_normal/gcc/release/bench_format_normal
+printf time         :2.16
+ostream time        : 2.81,  = 1.30093 * printf
+stored format time  :11.56,  = 5.35185 * printf ,  = 4.11388 * nullStream
+format time         :18.69,  = 8.65278 * printf ,  = 6.65125 * nullStream
+
+-- Variant  ** _static_stream ** :
+-rwx--x--x    1 sam      users       45856 2003-09-10 21:13 /home/sam/progs/Boost/bin/BBoost//libs/format/benchmark/bench_format_static_stream/gcc/release/bench_format_static_stream
+printf time         :2.1
+ostream time        : 2.79,  = 1.32857 * printf
+stored format time  :  4.5,  = 2.14286 * printf ,  = 1.6129 * nullStream
+format time         :10.05,  = 4.78571 * printf ,  = 3.60215 * nullStream
+
+-- Variant  ** _basicfmt ** :
+-rwx--x--x    1 sam      users       47200 2003-09-10 21:13 /home/sam/progs/Boost/bin/BBoost//libs/format/benchmark/bench_format_basicfmt/gcc/release/bench_format_basicfmt
+printf time         :2.22
+ostream time        : 2.88,  = 1.2973 * printf
+stored format time  : 4.45,  = 2.0045 * printf ,  = 1.54514 * nullStream
+format time         :11.67,  = 5.25676 * printf ,  = 4.05208 * nullStream
+
+
+
+
+
+The cost of imbuing locale after each object is fed :
+
+------------------- Compiler  gcc : ----------------
+-- Variant  _normal :
+-rwx--x--x    1 sam      users       49920 2003-09-10 20:23 /home/sam/progs/Boost/bin/BBoost//libs/format/benchmark/bench_format_normal/gcc/release/bench_format_normal
+printf time         :2.21
+ostream time        :  3.1,  = 1.40271 * printf
+stored format time  :11.53,  = 3.71935 * stream
+format time         :18.86,  = 6.08387 * stream
+
+-- Variant  _static_stream :
+-rwx--x--x    1 sam      users       43232 2003-09-10 20:24 /home/sam/progs/Boost/bin/BBoost//libs/format/benchmark/bench_format_static_stream/gcc/release/bench_format_static_stream
+printf time         :2.19
+ostream time        : 3.09,  = 1.41096 * printf
+stored format time  : 4.63,  = 1.49838 * stream
+format time         :10.12,  = 3.27508 * stream
+
+-- Variant  _basicfmt :
+-rwx--x--x    1 sam      users       45760 2003-09-10 20:24 /home/sam/progs/Boost/bin/BBoost//libs/format/benchmark/bench_format_basicfmt/gcc/release/bench_format_basicfmt
+printf time         :2.23
+ostream time        : 3.14,  = 1.40807 * printf
+stored format time  : 4.61,  = 1.46815 * stream
+format time         :11.33,  = 3.60828 * stream
+
+
+
+
+
+
+
+------------------- Compiler  gcc : ----------------
+-- Variant  _normal :
+printf time         :2.15
+ostream time        :4.42,  = 2.05581 * printf
+stored format time  :5.85,  = 1.32353 * stream
+format time         :11.53,  = 2.6086 * stream
+-- Variant  _no_reuse_stream :
+printf time         :2.13
+ostream time        :4.4,  = 2.06573 * printf
+stored format time  :11.1,  = 2.52273 * stream
+format time         :14.3,  = 3.25 * stream
+-- Variant  _stringstr :
+printf time         :2.01
+ostream time        :4.42,  = 2.199 * printf
+stored format time  :7.92,  = 1.79186 * stream
+format time         :12.8,  = 2.89593 * stream
+
+------------------- Compiler  intel-linux-7.1 : ----------------
+-- Variant  _normal :
+printf time         :2.08
+ostream time        :4.49,  = 2.15865 * printf
+stored format time  :5.3,  = 1.1804 * stream
+format time         :17.8,  = 3.96437 * stream
+-- Variant  _no_reuse_stream :
+printf time         :2.09
+ostream time        :4.37,  = 2.09091 * printf
+stored format time  :10.07,  = 2.30435 * stream
+format time         :14.46,  = 3.30892 * stream
+-- Variant  _stringstr :
+printf time         :1.99
+ostream time        :5.16,  = 2.59296 * printf
+stored format time  :5.83,  = 1.12984 * stream
+format time         :17.42,  = 3.37597 * stream
+
+
+
+
+// older Result with gcc-3.03 on linux :
+
+// With flag -g :
+
+/***
+printf time         :1.2
+ostream time        :2.84,  = 2.36667 * printf 
+stored format time  :8.91,  = 3.13732 * stream 
+format time         :15.35, = 5.40493 * stream 
+format3 time        :21.83, = 7.68662 * stream 
+***/
+
+
+// With flag -O
+
+/***
+printf time         :1.16
+ostream time        :1.94,  = 1.67241 * printf 
+stored format time  :3.68,  = 1.89691 * stream 
+format time         :6.31,  = 3.25258 * stream 
+format3 time        :9.04,  = 4.65979 * stream 
+***/
+
+//  ==> that's quite acceptable.
+
+// ------------------------------------------------------------------------------

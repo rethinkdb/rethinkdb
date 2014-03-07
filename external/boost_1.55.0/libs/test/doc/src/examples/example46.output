@@ -1,0 +1,5 @@
+> example
+Running 1 test case...
+test.cpp(8): error in "test": Nothing to test
+
+*** 1 failure detected in test suite "example"

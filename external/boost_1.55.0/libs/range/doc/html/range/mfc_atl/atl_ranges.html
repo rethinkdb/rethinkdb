@@ -1,0 +1,375 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>ATL Ranges</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../mfc_atl.html" title="MFC/ATL (courtesy of Shunsuke Sogame)">
+<link rel="prev" href="mfc_ranges.html" title="MFC Ranges">
+<link rel="next" href="const_ranges.html" title="const Ranges">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="mfc_ranges.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../mfc_atl.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="const_ranges.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_mfc_atl_atl_ranges">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="range.mfc_atl.atl_ranges"></a><a class="link" href="atl_ranges.html" title="ATL Ranges">ATL Ranges</a>
+</h3></div></div></div>
+<p>
+        If the <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">atl</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        is included before or after Boost.Range headers, the ATL collections and
+        strings become models of Range. The table below lists the Traversal Category
+        and <code class="computeroutput"><span class="identifier">range_reference</span></code> of ATL
+        ranges.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Range
+                </p>
+              </th>
+<th>
+                <p>
+                  Traversal Category
+                </p>
+              </th>
+<th>
+                <p>
+                  <code class="computeroutput"><span class="identifier">range_reference</span><span class="special">&lt;</span><span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CAtlArray</span><span class="special">&lt;</span><span class="identifier">E</span><span class="special">,</span><span class="identifier">ET</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/random_access_range.html" title="Random Access Range">Random Access
+                  Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">E</span><span class="special">&amp;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CAutoPtrArray</span><span class="special">&lt;</span><span class="identifier">E</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/random_access_range.html" title="Random Access Range">Random Access
+                  Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">E</span><span class="special">&amp;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CInterfaceArray</span><span class="special">&lt;</span><span class="identifier">I</span><span class="special">,</span><span class="identifier">pi</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/random_access_range.html" title="Random Access Range">Random Access
+                  Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CComQIPtr</span><span class="special">&lt;</span><span class="identifier">I</span><span class="special">,</span><span class="identifier">pi</span><span class="special">&gt;&amp;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CAtlList</span><span class="special">&lt;</span><span class="identifier">E</span><span class="special">,</span><span class="identifier">ET</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/bidirectional_range.html" title="Bidirectional Range">Bidirectional
+                  Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">E</span><span class="special">&amp;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CAutoPtrList</span><span class="special">&lt;</span><span class="identifier">E</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/bidirectional_range.html" title="Bidirectional Range">Bidirectional
+                  Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">E</span><span class="special">&amp;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CHeapPtrList</span><span class="special">&lt;</span><span class="identifier">E</span><span class="special">,</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/bidirectional_range.html" title="Bidirectional Range">Bidirectional
+                  Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">E</span><span class="special">&amp;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CInterfaceList</span><span class="special">&lt;</span><span class="identifier">I</span><span class="special">,</span><span class="identifier">pi</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/bidirectional_range.html" title="Bidirectional Range">Bidirectional
+                  Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CComQIPtr</span><span class="special">&lt;</span><span class="identifier">I</span><span class="special">,</span><span class="identifier">pi</span><span class="special">&gt;&amp;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CAtlMap</span><span class="special">&lt;</span><span class="identifier">K</span><span class="special">,</span><span class="identifier">V</span><span class="special">,</span><span class="identifier">KT</span><span class="special">,</span><span class="identifier">VT</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/forward_range.html" title="Forward Range">Forward Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">Range</span><span class="special">::</span><span class="identifier">CPair</span><span class="special">&amp;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CRBTree</span><span class="special">&lt;</span><span class="identifier">K</span><span class="special">,</span><span class="identifier">V</span><span class="special">,</span><span class="identifier">KT</span><span class="special">,</span><span class="identifier">VT</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/bidirectional_range.html" title="Bidirectional Range">Bidirectional
+                  Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">Range</span><span class="special">::</span><span class="identifier">CPair</span><span class="special">&amp;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CRBMap</span><span class="special">&lt;</span><span class="identifier">K</span><span class="special">,</span><span class="identifier">V</span><span class="special">,</span><span class="identifier">KT</span><span class="special">,</span><span class="identifier">VT</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/bidirectional_range.html" title="Bidirectional Range">Bidirectional
+                  Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">Range</span><span class="special">::</span><span class="identifier">CPair</span><span class="special">&amp;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CRBMultiMap</span><span class="special">&lt;</span><span class="identifier">K</span><span class="special">,</span><span class="identifier">V</span><span class="special">,</span><span class="identifier">KT</span><span class="special">,</span><span class="identifier">VT</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/bidirectional_range.html" title="Bidirectional Range">Bidirectional
+                  Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">Range</span><span class="special">::</span><span class="identifier">CPair</span><span class="special">&amp;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CSimpleStringT</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">,</span><span class="identifier">b</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/random_access_range.html" title="Random Access Range">Random Access
+                  Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">B</span><span class="special">&amp;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CStringT</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">,</span><span class="identifier">ST</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/random_access_range.html" title="Random Access Range">Random Access
+                  Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">B</span><span class="special">&amp;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CFixedStringT</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,</span><span class="identifier">n</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/random_access_range.html" title="Random Access Range">Random Access
+                  Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">range_reference</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CComBSTR</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/random_access_range.html" title="Random Access Range">Random Access
+                  Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">OLECHAR</span><span class="special">&amp;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CSimpleArray</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">TE</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <a class="link" href="../concepts/random_access_range.html" title="Random Access Range">Random Access
+                  Range</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span></code>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        Other <a class="link" href="../../index.html" title="Chapter&#160;1.&#160;Range 2.0">Boost.Range</a> metafunctions are defined
+        by the following. Let <code class="computeroutput"><span class="identifier">Range</span></code>
+        be any type listed above and <code class="computeroutput"><span class="identifier">Ref</span></code>
+        be the same as <code class="computeroutput"><span class="identifier">range_reference</span><span class="special">&lt;</span><span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+        <code class="computeroutput"><span class="identifier">range_value</span><span class="special">&lt;</span><span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span></code> is the same as <code class="computeroutput"><span class="identifier">remove_reference</span><span class="special">&lt;</span><span class="identifier">Ref</span><span class="special">&gt;::</span><span class="identifier">type</span></code>,
+        <code class="computeroutput"><span class="identifier">range_difference</span><span class="special">&lt;</span><span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span></code> is the same as <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span></code>,
+        and <code class="computeroutput"><span class="identifier">range_pointer</span><span class="special">&lt;</span><span class="identifier">Range</span><span class="special">&gt;::</span><span class="identifier">type</span></code> is the same as <code class="computeroutput"><span class="identifier">add_pointer</span><span class="special">&lt;</span><span class="identifier">remove_reference</span><span class="special">&lt;</span><span class="identifier">Ref</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+        As for <code class="computeroutput"><span class="keyword">const</span> <span class="identifier">Range</span></code>,
+        see below.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="mfc_ranges.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../mfc_atl.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="const_ranges.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

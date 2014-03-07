@@ -1,0 +1,40 @@
+{
+  "name": "JSONStream",
+  "version": "0.4.3",
+  "description": "rawStream.pipe(JSONStream.parse()).pipe(streamOfObjects)",
+  "homepage": "http://github.com/dominictarr/JSONStream",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/dominictarr/JSONStream.git"
+  },
+  "dependencies": {
+    "jsonparse": "~0.0.4"
+  },
+  "devDependencies": {
+    "it-is": "~1",
+    "assertions": "~2.2.2",
+    "render": "~0.1.1",
+    "trees": "~0.0.3",
+    "event-stream": "~0.7.0",
+    "from": "0.0.2",
+    "probe-stream": "~0.1.0"
+  },
+  "author": {
+    "name": "Dominic Tarr",
+    "email": "dominic.tarr@gmail.com",
+    "url": "http://bit.ly/dominictarr"
+  },
+  "scripts": {
+    "test": "set -e; for t in test/*.js; do echo '***' $t '***'; node $t; done"
+  },
+  "optionalDependencies": {},
+  "engines": {
+    "node": "*"
+  },
+  "readme": "# JSONStream\n\nstreaming JSON.parse and stringify\n\n<img src=https://secure.travis-ci.org/dominictarr/JSONStream.png?branch=master>\n\n## example\n\n```javascript\n\nvar request = require('request')\n  , JSONStream = require('JSONStream')\n  , es = require('event-stream')\n\nvar parser = JSONStream.parse(['rows', true])\n  , req = request({url: 'http://isaacs.couchone.com/registry/_all_docs'})\n  , logger = es.mapSync(function (data) {\n      console.error(data)\n      return data\n    })\n```\n\nin node 0.4.x\n\n``` javascript\n\nreq.pipe(parser)\nparser.pipe(logger)\n\n```\n\nin node v0.5.x\n\n``` javascript\nreq.pipe(parser).pipe(logger)\n\n```\n\n## JSONStream.parse(path)\n\nusally, a json API will return a list of objects.\n\n`path` should be an array of property names, `RegExp`s, booleans, and/or functions.\nany object that matches the path will be emitted as 'data' (and `pipe`d down stream)\n\na 'root' event is emitted when all data has been received. The 'root' event passes the root object & the count of matched objects.\n\nif `path` is empty or null, no 'data' events are emitted.\n\n### example\n\nquery a couchdb view:\n\n``` bash\ncurl -sS localhost:5984/tests/_all_docs&include_docs=true\n```\nyou will get something like this:\n\n``` js\n{\"total_rows\":129,\"offset\":0,\"rows\":[\n  { \"id\":\"change1_0.6995461115147918\"\n  , \"key\":\"change1_0.6995461115147918\"\n  , \"value\":{\"rev\":\"1-e240bae28c7bb3667f02760f6398d508\"}\n  , \"doc\":{\n      \"_id\":  \"change1_0.6995461115147918\"\n    , \"_rev\": \"1-e240bae28c7bb3667f02760f6398d508\",\"hello\":1}\n  },\n  { \"id\":\"change2_0.6995461115147918\"\n  , \"key\":\"change2_0.6995461115147918\"\n  , \"value\":{\"rev\":\"1-13677d36b98c0c075145bb8975105153\"}\n  , \"doc\":{\n      \"_id\":\"change2_0.6995461115147918\"\n    , \"_rev\":\"1-13677d36b98c0c075145bb8975105153\"\n    , \"hello\":2\n    }\n  },\n]}\n\n```\n\nwe are probably most interested in the `rows.*.docs`\n\ncreate a `Stream` that parses the documents from the feed like this:\n\n``` js\nvar stream = JSONStream.parse(['rows', true, 'doc']) //rows, ANYTHING, doc\n\nstream.on('data', function(data) {\n  console.log('received:', data);\n});\n\nstream.on('root', function(root, count) {\n  if (!count) {\n    console.log('no matches found:', root);\n  }\n});\n```\nawesome!\n\n## JSONStream.stringify(open, sep, close)\n\nCreate a writable stream.\n\nyou may pass in custom `open`, `close`, and `seperator` strings.\nBut, by default, `JSONStream.stringify()` will create an array,\n(with default options `open='[\\n', sep='\\n,\\n', close='\\n]\\n'`)\n\nIf you call `JSONStream.stringify(false)`\nthe elements will only be seperated by a newline.\n\nIf you only write one item this will be valid JSON.\n\nIf you write many items,\nyou can use a `RegExp` to split it into valid chunks.\n\n## JSONStream.stringifyObject(open, sep, close)\n\nVery much like `JSONStream.stringify`,\nbut creates a writable stream for objects instead of arrays.\n\nAccordingly, `open='{\\n', sep='\\n,\\n', close='\\n}\\n'`.\n\nWhen you `.write()` to the stream you must supply an array with `[ key, data ]`\nas the first argument.\n\n## numbers\n\nThere are occasional problems parsing and unparsing very precise numbers.\n\nI have opened an issue here:\n\nhttps://github.com/creationix/jsonparse/issues/2\n\n+1\n\n## Acknowlegements\n\nthis module depends on https://github.com/creationix/jsonparse\nby Tim Caswell\nand also thanks to Florent Jaby for teaching me about parsing with:\nhttps://github.com/Floby/node-json-streams\n\n## license\n\nMIT / APACHE2\n",
+  "_id": "JSONStream@0.4.3",
+  "dist": {
+    "shasum": "673c8498179a14ce8948bd89538f6a32ce1e9f49"
+  },
+  "_from": "JSONStream"
+}

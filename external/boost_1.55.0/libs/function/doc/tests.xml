@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Copyright (c) 2002 Douglas Gregor <doug.gregor -at- gmail.com>
+  
+   Distributed under the Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt or copy at
+   http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<testsuite id="function.testsuite" last-revision="$Date: 2006-11-03 11:41:10 -0800 (Fri, 03 Nov 2006) $">
+  <run-test filename="function_test.cpp" name="lib_function_test">
+    <purpose><para>Test the capabilities of the <classname>boost::function</classname> class template.</para></purpose>
+    <if-fails><para>The <classname>boost::function</classname> class template may not be usable on your compiler. However, the library may still be usable via the <classname>boost::functionN</classname> class templates.</para></if-fails>
+  </run-test>
+
+  <run-test filename="function_n_test.cpp">
+    <purpose><para>Test the capabilities of the <classname>boost::functionN</classname> class templates.</para></purpose>
+  </run-test>
+
+  <run-test filename="allocator_test.cpp">
+    <purpose><para>Test the use of custom allocators.</para></purpose>
+    <if-fails><para>Allocators are ignored by the implementation.</para></if-fails>
+  </run-test>
+
+  <run-test filename="stateless_test.cpp">
+    <purpose><para>Test the optimization of stateless function objects in the Boost.Function library.</para></purpose>
+    <if-fails><para>The exception-safety and performance guarantees given for stateless function objects may not be met by the implementation.</para></if-fails>
+  </run-test>
+
+  <run-test filename="lambda_test.cpp">
+    <purpose><para>Test the interaction between Boost.Function and Boost.Lambda.</para></purpose>
+    <if-fails><para>Either Boost.Lambda does not work on the platform, or Boost.Function cannot safely be applied without the use of <functionname>boost::unlambda</functionname>.</para></if-fails>
+  </run-test>
+
+  <run-test filename="contains_test.cpp">
+    <purpose><para>Test the operation of the
+    <code><methodname>target</methodname></code> member function and the
+    equality operators.</para></purpose>
+  </run-test>
+
+  <compile-fail-test filename="function_test_fail1.cpp">
+    <purpose><para>Test the (incorrect!) use of comparisons between Boost.Function function objects.</para></purpose>
+    <if-fails><para>Intuitive (but incorrect!) code may compile and will give meaningless results.</para></if-fails>
+  </compile-fail-test>
+
+  <compile-fail-test filename="function_test_fail2.cpp">
+    <purpose><para>Test the use of an incompatible function object with Boost.Function</para></purpose>
+    <if-fails><para>Incorrect code may compile (with potentially unexpected results).</para></if-fails>
+  </compile-fail-test>
+
+  <compile-test filename="function_30.cpp">
+    <purpose><para>Test the generation of a Boost.Function function object adaptor accepting 30 arguments.</para></purpose>
+    <if-fails><para>The Boost.Function library may work for function object adaptors of up to 10 parameters, but will be unable to generate adaptors for an arbitrary number of parameters. Failure often indicates an error in the compiler's preprocessor.</para></if-fails>
+  </compile-test> 
+
+  <run-test filename="function_arith_cxx98.cpp">
+    <source>
+    <![CDATA[
+#include <boost/function.hpp>
+#include <iostream>
+]]>
+
+<snippet name="function.tutorial.mul_ints"/>
+<snippet name="function.tutorial.int_div"/>
+
+int main()
+{
+    <snippet name="function.tutorial.arith.cxx98"/>
+    <snippet name="function.tutorial.use_int_div"/>
+    <snippet name="function.tutorial.call_int_div"/>
+    <snippet name="function.tutorial.check_empty"/>
+    <snippet name="function.tutorial.clear"/>
+    <snippet name="function.tutorial.use_mul_ints"/>
+  
+    return 0;
+}
+</source>
+    <purpose><para>Test the first tutorial example.</para></purpose>
+  </run-test>
+
+  <run-test filename="function_arith_portable.cpp">
+    <source>
+    <![CDATA[
+#include <boost/function.hpp>
+#include <iostream>
+]]>
+<snippet name="function.tutorial.mul_ints"/>
+<snippet name="function.tutorial.int_div"/>
+int main()
+{
+    <snippet name="function.tutorial.arith.portable"/>
+    <snippet name="function.tutorial.use_int_div"/>
+    <snippet name="function.tutorial.call_int_div"/>
+    <snippet name="function.tutorial.check_empty"/>
+    <snippet name="function.tutorial.clear"/>
+    <snippet name="function.tutorial.use_mul_ints"/>
+
+    return 0;
+}
+</source>
+    <purpose><para>Test the first tutorial example.</para></purpose>
+  </run-test>
+
+  <run-test filename="sum_avg_cxx98.cpp">
+    <source>
+    <![CDATA[
+#include <boost/function.hpp>
+#include <iostream>
+]]>
+<snippet name="function.tutorial.sum_avg"/>
+int main()
+{
+    <snippet name="function.tutorial.sum_avg_decl.cxx98"/>
+    <snippet name="function.tutorial.use_sum_avg"/>
+
+    return 0;
+}
+</source>
+    <purpose><para>Test the second tutorial example.</para></purpose>
+  </run-test>
+
+  <run-test filename="sum_avg_portable.cpp">
+    <source>
+    <![CDATA[
+#include <boost/function.hpp>
+#include <iostream>
+]]>
+<snippet name="function.tutorial.sum_avg"/>
+int main()
+{
+    <snippet name="function.tutorial.sum_avg_decl.portable"/>
+    <snippet name="function.tutorial.use_sum_avg"/>
+
+    return 0;
+}
+</source>
+    <purpose><para>Test the second tutorial example.</para></purpose>
+  </run-test>
+
+  <run-test filename="mem_fun_cxx98.cpp">
+    <source>
+    <![CDATA[
+#include <boost/function.hpp>
+#include <iostream>
+#include <functional>
+]]>
+<snippet name="function.tutorial.X"/>
+int X::foo(int x) { return -x; }
+
+int main()
+{
+    <snippet name="function.tutorial.mem_fun.cxx98"/>
+
+    return 0;
+}
+</source>    
+    <purpose><para>Test member function example from tutorial.</para></purpose>
+  </run-test>
+
+  <run-test filename="mem_fun_portable.cpp">
+    <source>
+    <![CDATA[
+#include <boost/function.hpp>
+#include <iostream>
+#include <functional>
+]]>
+<snippet name="function.tutorial.X"/>
+int X::foo(int x) { return -x; }
+
+int main()
+{
+    <snippet name="function.tutorial.mem_fun.portable"/>
+
+    return 0;
+}
+</source>    
+    <purpose><para>Test member function example from tutorial.</para></purpose>
+  </run-test>
+
+  <run-test filename="std_bind_cxx98.cpp">
+    <source>
+    <![CDATA[
+#include <boost/function.hpp>
+#include <iostream>
+#include <functional>
+]]>
+<snippet name="function.tutorial.X"/>
+int X::foo(int x) { return -x; }
+
+int main()
+{
+    <snippet name="function.tutorial.std_bind.cxx98"/>
+
+    return 0;
+}
+</source>
+    <purpose><para>Test standard binders example from tutorial.</para></purpose>
+  </run-test>
+
+  <run-test filename="std_bind_portable.cpp">
+    <source>
+    <![CDATA[
+#include <boost/function.hpp>
+#include <iostream>
+#include <functional>
+]]>
+<snippet name="function.tutorial.X"/>
+int X::foo(int x) { return -x; }
+
+int main()
+{
+    <snippet name="function.tutorial.std_bind.portable"/>
+
+    return 0;
+}
+</source>
+    <purpose><para>Test standard binders example from tutorial.</para></purpose>
+  </run-test>
+
+  <run-test filename="function_ref_cxx98.cpp">
+    <source>
+<![CDATA[
+#include <boost/function.hpp>
+#include <iostream>
+]]>
+
+struct stateful_type { int operator()(int) const { return 0; } };
+
+int main()
+{
+  <snippet name="function.tutorial.ref.cxx98"/>
+
+    return 0;
+}
+</source>
+    <purpose><para>Test <functionname>boost::ref</functionname> example from tutorial.</para></purpose>
+  </run-test>
+
+  <run-test filename="function_ref_portable.cpp">
+    <source>
+<![CDATA[
+#include <boost/function.hpp>
+#include <iostream>
+]]>
+
+struct stateful_type { int operator()(int) const { return 0; } };
+
+int main()
+{
+  <snippet name="function.tutorial.ref.portable"/>
+
+    return 0;
+}
+</source>
+    <purpose><para>Test <functionname>boost::ref</functionname> example from tutorial.</para></purpose>
+  </run-test>
+</testsuite>

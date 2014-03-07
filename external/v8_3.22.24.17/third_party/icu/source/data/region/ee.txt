@@ -1,0 +1,242 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ee.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ee.xml
+ */
+ee{
+    Countries{
+        AD{"Andorradu"}
+        AE{"United Arab Emiratesdu"}
+        AF{"Afghanistadu"}
+        AG{"Antigua kplɛ Barbudadukɔwo"}
+        AI{"Anguilladu"}
+        AL{"Albaniadu"}
+        AM{"Armeniadu"}
+        AN{"Nedalands Antilisdu"}
+        AO{"Angoladu"}
+        AR{"Argentinadu"}
+        AS{"Amerika Samoadu"}
+        AT{"Austriadu"}
+        AU{"Australiadu"}
+        AW{"Arubadu"}
+        AZ{"Azerbaigyandu"}
+        BA{"Bosnia kplɛ Herzegovinadukɔwo"}
+        BB{"Barbadosdu"}
+        BD{"Bangladesidu"}
+        BE{"Belgiumdu"}
+        BF{"Burkina Fasodu"}
+        BG{"Bulgaridu"}
+        BH{"Bahraindu"}
+        BI{"Burundidu"}
+        BJ{"Benindu"}
+        BM{"Bermudadu"}
+        BN{"Bruneidu"}
+        BO{"Boliviadu"}
+        BR{"Brazildu"}
+        BS{"Bahamasdu"}
+        BT{"Bhutandu"}
+        BW{"Botswanadu"}
+        BY{"Belarusdu"}
+        BZ{"Belizidu"}
+        CA{"Kanadadu"}
+        CD{"Kongo Demokratik Repɔblikdu"}
+        CF{"Sentral Afrikan Republikdu"}
+        CG{"Kongodu"}
+        CH{"Switzerland-du"}
+        CI{"Kote d'ivoiredu"}
+        CK{"Kook Ailandsdukɔwo"}
+        CL{"Tsilidu"}
+        CM{"Kamerundu"}
+        CN{"Tsinadu"}
+        CO{"Kolombiadu"}
+        CR{"Kosta Rikadu"}
+        CS{"Serbia kplɛ Montenegrodukɔwo"}
+        CU{"kubadu"}
+        CV{"Kape Verde Ailandsdukɔwo"}
+        CY{"Syprusdu"}
+        CZ{"Tsek Repɔblikdu"}
+        DE{"Germanidu"}
+        DJ{"Dzibutidu"}
+        DK{"Denmarkdu"}
+        DM{"Dominikadu"}
+        DO{"Dominika Repɔblikdu"}
+        DZ{"Algeriadu"}
+        EC{"Ekuadɔdu"}
+        EE{"Estoniadu"}
+        EG{"Egyptdu"}
+        ER{"Eritreadu"}
+        ES{"Spaindu"}
+        ET{"Etiopiadu"}
+        FI{"Finland-du"}
+        FJ{"Fidzidu"}
+        FK{"Falklanɖ Ailandsdukɔwo"}
+        FM{"Mikronesiadu"}
+        FR{"Fransdu"}
+        GA{"Gabɔndu"}
+        GB{"United Kingdomdu"}
+        GD{"Grenadadu"}
+        GE{"Georgiadu"}
+        GF{"Frentsi Guianadu"}
+        GH{"Ghanadu"}
+        GI{"Gibraltadu"}
+        GL{"Greenland-du"}
+        GM{"Gambiadu"}
+        GN{"Guinidu"}
+        GP{"Guadelupedu"}
+        GQ{"Ekuatorial Ginidu"}
+        GR{"Greesidu"}
+        GT{"Guatemayadu"}
+        GU{"Guamdu"}
+        GW{"Gini-Bisaodu"}
+        GY{"Guyanadu"}
+        HN{"Hondurasdu"}
+        HR{"Kroashiadu"}
+        HT{"Haitidu"}
+        HU{"Hungaridu"}
+        ID{"Indonesiadu"}
+        IE{"Ireland-du"}
+        IL{"Izraldu"}
+        IN{"Inɖiadu"}
+        IO{"British India Oshiin Territorydu"}
+        IQ{"Irakdu"}
+        IR{"Irandu"}
+        IS{"Aiselanddu"}
+        IT{"Italidu"}
+        JM{"Gyamaikadu"}
+        JO{"Gyɔdandu"}
+        JP{"Gyapandu"}
+        KE{"Kenyadu"}
+        KG{"Kyrgyzstandu"}
+        KH{"Kambodiadu"}
+        KI{"Kiribatidu"}
+        KM{"Komorosdu"}
+        KN{"Saint Kitis kplɛ Nevisdukɔwo"}
+        KP{"North Koreadu"}
+        KR{"South Koreadu"}
+        KW{"Kuwaitdu"}
+        KY{"Kayman Ailandsdukɔwo"}
+        KZ{"Kazakstandu"}
+        LA{"Laosdu"}
+        LB{"Lebanɔndu"}
+        LC{"Saint Lusiadu"}
+        LI{"Litsensteindu"}
+        LK{"Sri Lankadu"}
+        LR{"Liberiadu"}
+        LS{"Lɛsotodu"}
+        LT{"Lituaniadu"}
+        LU{"Luxembɔgdu"}
+        LV{"Latviadu"}
+        LY{"Libyadu"}
+        MA{"Morokodu"}
+        MC{"Monakodu"}
+        MD{"Moldovadu"}
+        MG{"Madagaskadu"}
+        MH{"Marshal Aislandsdu"}
+        MK{"Masedoniadu"}
+        ML{"Malidu"}
+        MM{"Myanmardu"}
+        MN{"Mongoliadu"}
+        MP{"Norh Mariana Ailandukɔwo"}
+        MQ{"Martinikidu"}
+        MR{"Mɔritaniadu"}
+        MS{"Montserratdu"}
+        MT{"Maltadu"}
+        MU{"Mɔritiusdu"}
+        MV{"Maldivisdu"}
+        MW{"Malawidu"}
+        MX{"Mesikodu"}
+        MY{"Malaysiadu"}
+        MZ{"Mozambikidu"}
+        NA{"Namibiadu"}
+        NC{"New Kaledoniadu"}
+        NE{"Nigerdu"}
+        NF{"Norfolk Ailanddu"}
+        NG{"Nigeriadu"}
+        NI{"Nikaraguadu"}
+        NL{"Nedalandsdu"}
+        NO{"Norwaydu"}
+        NP{"Nepaldu"}
+        NR{"Naurudu"}
+        NU{"Niuedu"}
+        NZ{"New Zealand-du"}
+        OM{"Omandu"}
+        PA{"Panamadu"}
+        PE{"Perudu"}
+        PF{"Frentsi Polynesiadu"}
+        PG{"Papua New Guineadu"}
+        PH{"Philipinsdu"}
+        PK{"Pakistandu"}
+        PL{"Polandu"}
+        PM{"Saint Pierre kplɛ Mikelɔndukɔwo"}
+        PN{"Pitkairndu"}
+        PR{"Puerto Rikodu"}
+        PS{"Palestinia West Bank kplɛ Gazadukɔwo"}
+        PT{"Portugaldu"}
+        PW{"Palaudu"}
+        PY{"Paraguadu"}
+        QA{"Katadu"}
+        RE{"Reuniondu"}
+        RO{"Romaniadu"}
+        RU{"Russiadu"}
+        RW{"Rwandadu"}
+        SA{"Saudi Arabiadu"}
+        SB{"Solomon Ailandukɔwo"}
+        SC{"Seyshɛlsdu"}
+        SD{"Sudandu"}
+        SE{"Swedendu"}
+        SG{"Singapɔrdu"}
+        SH{"Saint Helenadu"}
+        SI{"Sloveniadu"}
+        SK{"Slovakiadu"}
+        SL{"Sierra Leonedu"}
+        SM{"San Marinodu"}
+        SN{"Senegaldu"}
+        SO{"Somaliadu"}
+        SR{"Surinamedu"}
+        ST{"Sao Tome kplɛ Prinsipidukɔwo"}
+        SV{"El Savadɔdu"}
+        SY{"Syriadu"}
+        SZ{"Swaziland-du"}
+        TC{"Turks kplɛ kaikos Islandsdukɔwo"}
+        TD{"Tsad-du"}
+        TG{"Togodu"}
+        TH{"Thailand-du"}
+        TJ{"Taghikistandu"}
+        TK{"Tokelaudu"}
+        TL{"East Timordu"}
+        TM{"Turkmenistandu"}
+        TN{"Tunisiadu"}
+        TO{"Tongadu"}
+        TR{"Turkeedu"}
+        TT{"Trinidad kplɛ Tobagodukɔwo"}
+        TV{"Tuvaludu"}
+        TW{"Taiwandu"}
+        TZ{"Tanzaniadu"}
+        UA{"Ukrainedu"}
+        UG{"Ugandadu"}
+        US{"USA-dukɔwo"}
+        UY{"Uruguaydu"}
+        UZ{"Uzbekistandu"}
+        VA{"Vatikan Statedu"}
+        VC{"Saint Vinsent kplɛ Grenadinisdukɔwo"}
+        VE{"Venezueladu"}
+        VG{"British Virgin Islandsdukɔwo"}
+        VI{"U.S Virgin Islandsdukɔwo"}
+        VN{"Vietnamdu"}
+        VU{"Vanuatudu"}
+        WF{"Wallis kplɛ Futunadu"}
+        WS{"Samoadu"}
+        YE{"Yemendu"}
+        YT{"Mayotidu"}
+        ZA{"South Afrikadu"}
+        ZM{"Zambiadu"}
+        ZW{"Zimbabwedu"}
+    }
+    Version{"2.0.50.66"}
+}

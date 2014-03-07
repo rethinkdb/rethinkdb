@@ -1,0 +1,67 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Type advice_types</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../mapped_region.html#idp116571976" title="Description">
+<link rel="prev" href="../mapped_region.html" title="Class mapped_region">
+<link rel="next" href="../operator_idp28243512.html" title="Function template operator&lt;&lt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../mapped_region.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../mapped_region.html#idp116571976"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../operator_idp28243512.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.interprocess.mapped_region.advice_types"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Type advice_types</span></h2>
+<p>boost::interprocess::mapped_region::advice_types</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../interprocess/indexes_reference.html#header.boost.interprocess.mapped_region_hpp" title="Header &lt;boost/interprocess/mapped_region.hpp&gt;">boost/interprocess/mapped_region.hpp</a>&gt;
+
+</span>
+<span class="keyword">enum</span> <span class="identifier">advice_types</span> <span class="special">{</span> <a class="link" href="advice_types.html#boost.interprocess.mapped_region.advice_types.advice_normal">advice_normal</a>, <a class="link" href="advice_types.html#boost.interprocess.mapped_region.advice_types.advice_sequential">advice_sequential</a>, <a class="link" href="advice_types.html#boost.interprocess.mapped_region.advice_types.advice_random">advice_random</a>, 
+                    <a class="link" href="advice_types.html#boost.interprocess.mapped_region.advice_types.advice_willneed">advice_willneed</a>, <a class="link" href="advice_types.html#boost.interprocess.mapped_region.advice_types.advice_dontneed">advice_dontneed</a> <span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp116646056"></a><h2>Description</h2>
+<p>This enum specifies region usage behaviors that an application can specify to the mapped region implementation. </p>
+<div class="variablelist"><dl class="variablelist compact">
+<dt><span class="term"><code class="computeroutput">advice_normal</code><a name="boost.interprocess.mapped_region.advice_types.advice_normal"></a></span></dt>
+<dd><p>Specifies that the application has no advice to give on its behavior with respect to the region. It is the default characteristic if no advice is given for a range of memory. </p></dd>
+<dt><span class="term"><code class="computeroutput">advice_sequential</code><a name="boost.interprocess.mapped_region.advice_types.advice_sequential"></a></span></dt>
+<dd><p>Specifies that the application expects to access the region sequentially from lower addresses to higher addresses. The implementation can lower the priority of preceding pages within the region once a page have been accessed. </p></dd>
+<dt><span class="term"><code class="computeroutput">advice_random</code><a name="boost.interprocess.mapped_region.advice_types.advice_random"></a></span></dt>
+<dd><p>Specifies that the application expects to access the region in a random order, and prefetching is likely not advantageous. </p></dd>
+<dt><span class="term"><code class="computeroutput">advice_willneed</code><a name="boost.interprocess.mapped_region.advice_types.advice_willneed"></a></span></dt>
+<dd><p>Specifies that the application expects to access the region in the near future. The implementation can prefetch pages of the region. </p></dd>
+<dt><span class="term"><code class="computeroutput">advice_dontneed</code><a name="boost.interprocess.mapped_region.advice_types.advice_dontneed"></a></span></dt>
+<dd><p>Specifies that the application expects that it will not access the region in the near future. The implementation can unload pages within the range to save system resources. </p></dd>
+</dl></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../mapped_region.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../mapped_region.html#idp116571976"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../operator_idp28243512.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class timer</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../attributes.html#header.boost.log.attributes.timer_hpp" title="Header &lt;boost/log/attributes/timer.hpp&gt;">
+<link rel="prev" href="local_time_traits.html" title="Struct local_time_traits">
+<link rel="next" href="../result_of/extract_or_default.html" title="Struct template extract_or_default">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="local_time_traits.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../attributes.html#header.boost.log.attributes.timer_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../result_of/extract_or_default.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.attributes.timer"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class timer</span></h2>
+<p>boost::log::attributes::timer &#8212; A class of an attribute that makes an attribute value of the time interval since construction. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../attributes.html#header.boost.log.attributes.timer_hpp" title="Header &lt;boost/log/attributes/timer.hpp&gt;">boost/log/attributes/timer.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="timer.html" title="Class timer">timer</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">attribute</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">utc_time_traits</span><span class="special">::</span><span class="identifier">time_type</span><span class="special">::</span><span class="identifier">time_duration_type</span> <a name="boost.log.attributes.timer.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>  <span class="comment">// Attribute value type. </span>
+
+  <span class="comment">// <a class="link" href="timer.html#boost.log.attributes.timerconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="timer.html#idp26181128-bb"><span class="identifier">timer</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="timer.html#idp26181432-bb"><span class="identifier">timer</span></a><span class="special">(</span><a class="link" href="cast_source.html" title="Class cast_source">cast_source</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp56734920"></a><h2>Description</h2>
+<p>The timer attribute calculates the time passed since its construction and returns it on value acquisition. The attribute value type is <code class="computeroutput">boost::posix_time::time_duration</code>.</p>
+<p>On Windows platform there are two implementations of the attribute. The default one is more precise but a bit slower. This version uses <code class="computeroutput">QueryPerformanceFrequence</code>/<code class="computeroutput">QueryPerformanceCounter</code> API to calculate elapsed time.</p>
+<p>There are known problems with these functions when used with some CPUs, notably AMD Athlon with Cool'n'Quiet technology enabled. See the following links for more information and possible resolutions:</p>
+<p><a href="http://support.microsoft.com/?scid=kb;en-us;895980" target="_top">http://support.microsoft.com/?scid=kb;en-us;895980</a> <a href="http://support.microsoft.com/?id=896256" target="_top">http://support.microsoft.com/?id=896256</a></p>
+<p>In case if none of these solutions apply, you are free to define <code class="computeroutput">BOOST_LOG_NO_QUERY_PERFORMANCE_COUNTER</code> macro to fall back to another implementation based on Boost.DateTime. </p>
+<div class="refsect2">
+<a name="idp56738600"></a><h3>
+<a name="boost.log.attributes.timerconstruct-copy-destruct"></a><code class="computeroutput">timer</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp26181128-bb"></a><span class="identifier">timer</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor. Starts time counting. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp26181432-bb"></a><span class="identifier">timer</span><span class="special">(</span><a class="link" href="cast_source.html" title="Class cast_source">cast_source</a> <span class="keyword">const</span> <span class="special">&amp;</span> source<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor for casting support </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="local_time_traits.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../attributes.html#header.boost.log.attributes.timer_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../result_of/extract_or_default.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

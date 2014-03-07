@@ -1,0 +1,84 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Utilities</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="ranges/irange.html" title="irange">
+<link rel="next" href="utilities/iterator_range.html" title="Class iterator_range">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ranges/irange.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="utilities/iterator_range.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_reference_utilities">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="range.reference.utilities"></a><a class="link" href="utilities.html" title="Utilities">Utilities</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="utilities/iterator_range.html">Class <code class="computeroutput"><span class="identifier">iterator_range</span></code></a></span></dt>
+<dt><span class="section"><a href="utilities/sub_range.html">Class <code class="computeroutput"><span class="identifier">sub_range</span></code></a></span></dt>
+<dt><span class="section"><a href="utilities/join.html">Function join</a></span></dt>
+</dl></div>
+<p>
+        Having an abstraction that encapsulates a pair of iterators is very useful.
+        The standard library uses <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code>
+        in some circumstances, but that class is cumbersome to use because we need
+        to specify two template arguments, and for all range algorithm purposes we
+        must enforce the two template arguments to be the same. Moreover, <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span><span class="identifier">iterator</span><span class="special">&gt;</span></code> is hardly self-documenting whereas more
+        domain specific class names are. Therefore these two classes are provided:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            Class <code class="computeroutput"><span class="identifier">iterator_range</span></code>
+          </li>
+<li class="listitem">
+            Class <code class="computeroutput"><span class="identifier">sub_range</span></code>
+          </li>
+<li class="listitem">
+            Function <code class="computeroutput"><span class="identifier">join</span></code>
+          </li>
+</ul></div>
+<p>
+        The <code class="computeroutput"><span class="identifier">iterator_range</span></code> class
+        is templated on an <a href="../../../../../../libs/iterator/doc/new-iter-concepts.html#forward-traversal-iterators-lib-forward-traversal-iterators" target="_top">Forward
+        Traversal Iterator</a> and should be used whenever fairly general code
+        is needed. The <code class="computeroutput"><span class="identifier">sub_range</span></code>
+        class is templated on an <a class="link" href="../concepts/forward_range.html" title="Forward Range">Forward
+        Range</a> and it is less general, but a bit easier to use since its template
+        argument is easier to specify. The biggest difference is, however, that a
+        <code class="computeroutput"><span class="identifier">sub_range</span></code> can propagate constness
+        because it knows what a corresponding <code class="computeroutput"><span class="identifier">const_iterator</span></code>
+        is.
+      </p>
+<p>
+        Both classes can be used as ranges since they implement the <a class="link" href="extending.html" title="Extending the library">minimal
+        interface</a> required for this to work automatically.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ranges/irange.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="utilities/iterator_range.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

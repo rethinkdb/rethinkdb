@@ -1,0 +1,807 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Class Serialization Traits</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Class Serialization Traits</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<dl class="page-index">
+  <dt><a href="#version">Version</a>
+  <dt><a href="#level">Implementation Level</a>
+  <dt><a href="#tracking">Object Tracking</a>
+  <dt><a href="#export">Export Key</a>
+  <dt><a href="#abstract">Abstract</a>
+  <dt><a href="#typeinfo">Type Information Implementation</a>
+  <dt><a href="#wrappers">Wrappers</a>
+  <dt><a href="#bitwise">Bitwise Serialization</a>
+  <dt><a href="#templates">Template Serialization Traits</a>
+  <dt><a href="#compiletime_messages">Compile Time Warnings and Errors</a>
+</dl>
+Serialization of data depends on the type of the data.  For example, for
+primitive types such as an <code style="white-space: normal">int</code>, it wouldn't make sense to save
+a version number in the archive. Likewise, for a data type that is never
+serialized through a pointer, it would (almost) never make sense to track
+the address of objects saved to/loaded from the archive as it will never
+be saved/loaded more than once in any case.  Details of
+serialization for a particular data type will vary depending on the
+type, the way it is used and specifications of the programmer. 
+<p>
+One can alter the manner in which a particular data type is serialized
+by specifying one or more <strong>class serialization traits</strong>.
+It is not generally necessary for the programmer to explictly assign
+traits to his classes as there are default values for all traits.
+If the default values are not appropriate they can be assigned by the programmer.
+A template is used to associate a typename with a constant.  For example
+see <a href="../../../boost/serialization/version.hpp" target="version_hpp">
+version.hpp</a>.  
+<h3><a name="version">Version</a></h3>
+This header file includes the following code:
+
+<pre><code>
+namespace boost { 
+namespace serialization {
+template&lt;class T&gt;
+struct version
+{
+    BOOST_STATIC_CONSTANT(unsigned int, value = 0);
+};
+} // namespace serialization
+} // namespace boost
+</code></pre>
+
+For any class <code style="white-space: normal">T</code>, The default definition 
+of <code style="white-space: normal">boost::serialization::version&lt;T&gt;::value</code> is 0. 
+If we want to assign a value of 2 as the version for class <code style="white-space: normal">my_class</code>
+we specialize the version template:
+<pre><code>
+namespace boost { 
+namespace serialization {
+struct version&lt;my_class&gt;
+{
+    BOOST_STATIC_CONSTANT(unsigned int, value = 2);
+};
+} // namespace serialization
+} // namespace boost
+</code></pre>
+Now whenever the version number for class <code style="white-space: normal">my_class</code> is required,
+the value 2 will be returned rather than the default value of 0.
+<p>
+To diminish typing and enhance readability, a macro is defined
+so that instead of the above, we could write:
+<pre><code>
+BOOST_CLASS_VERSION(my_class, 2)
+</code></pre>
+which expands to the code above.
+
+<h3><a name="level">Implementation Level</a></h3>
+In the same manner as the above, the "level" of implementation of serialization is
+specified.  The header file <a href="../../../boost/serialization/level.hpp" 
+target="level_hpp">level.hpp</a> defines the following.
+<pre><code>
+// names for each level
+enum level_type
+{
+    // Don't serialize this type. An attempt to do so should
+    // invoke a compile time assertion.
+    not_serializable = 0,
+    // write/read this type directly to the archive. In this case
+    // serialization code won't be called.  This is the default
+    // case for fundamental types.  It presumes a member function or
+    // template in the archive class that can handle this type.
+    // there is no runtime overhead associated reading/writing
+    // instances of this level
+    primitive_type = 1,
+    // Serialize the objects of this type using the objects "serialize"
+    // function or template. This permits values to be written/read
+    // to/from archives but includes no class or version information. 
+    object_serializable = 2,
+    ///////////////////////////////////////////////////////////////////
+    // once an object is serialized at one of the above levels, the
+    // corresponding archives cannot be read if the implementation level
+    // for the archive object is changed.  
+    ///////////////////////////////////////////////////////////////////
+    // Add class information to the archive.  Class information includes
+    // implementation level, class version and class name if available.
+    object_class_info = 3,
+};
+</code></pre>
+Using a macro defined in <code style="white-space: normal">level.hpp</code> we can specify
+that <code style="white-space: normal">my_class</code> should be serialized along with its version number:
+<pre><code>
+BOOST_CLASS_IMPLEMENTATION(my_class, boost::serialization::object_class_info)
+</code></pre>
+If implementation level is not explicitly assigned, the system uses
+a default according to the following rules.
+<ul>
+  <li>if the data type is <code style="white-space: normal">volatile</code> 
+assign <code style="white-space: normal">not_serializable</code>
+  <li>else if it's an enum or fundamental type assign <code style="white-space: normal">primitive_type</code>
+  <li>else assign <code style="white-space: normal">object_class_info</code>
+</ul>
+That is, for most user defined types, objects will be serialized along with
+class version information. This will permit one to maintain backward
+compatibility with archives which contain previous versions.  However, with this 
+ability comes a small runtime cost.  For types whose definition will "never" 
+change, efficiency can be gained by specifying <code style="white-space: normal">object_serializable</code> 
+to override the default setting of <code style="white-space: normal">object_class_info</code>.  
+For example, 
+this has been done for the  
+<a href="../../../boost/serialization/binary_object.hpp" target="binary_object_hpp">
+binary_object wrapper</a>
+
+<h3><a name="tracking">Object Tracking</a></h3>
+Depending on the way a type is used, it may be necessary or convenient to
+track the address of objects saved and loaded.  For example, this is generally
+necessary while serializing objects through a pointer in order to be sure
+that multiple identical objects are not created when an archive is loaded.
+This "tracking behavior" is controlled by the type trait defined in the header
+file <a href="../../../boost/serialization/tracking.hpp" target="tracking_hpp">tracking.hpp</a>
+which defines the following:
+<pre><code>
+// names for each tracking level
+enum tracking_type
+{
+    // never track this type
+    track_never = 0,
+    // track objects of this type if the object is serialized through a 
+    // pointer.
+    track_selectively = 1,
+    // always track this type
+    track_always = 2
+};
+</code></pre>
+A corresponding macro is defined so that we can use:
+<pre><code>
+BOOST_CLASS_TRACKING(my_class, boost::serialization::track_never)
+</code></pre>
+Default tracking traits are:
+<ul>
+  <li>For primitive, <code style="white-space: normal">track_never</code>.
+  <li>For pointers, <code style="white-space: normal">track_never</code>.
+  That is, addresses of addresses are not tracked by default.
+  <li>All current serialization wrappers such as <code style="white-space: normal">boost::serialization::nvp</code>,
+  <code style="white-space: normal">track_never</code>.
+  <li>For all other types, <code style="white-space: normal">track_selectively</code>.
+  That is addresses of serialized objects are tracked if and only if
+  one or more of the following is true:
+  <ul>
+  <li>an object of this type is anywhere in the program serialized
+  through a pointer.
+  <li>the class is explicitly "exported" - see below.
+  <li>the class is explicitly "registered" in the archive
+  </ul>
+</ul>
+
+<p>
+The default behavior is almost always the most convenient one.  However,
+there a few cases where it would be desirable to override the
+default.  One case is that of a virtual base class. In a diamond
+heritance structure with a virtual base class, object tracking
+will prevent redundant save/load invocations.  So here is one
+case where it might be convenient to override the default tracking
+trait. <i>(Note: in a future version the default will be reimplemented
+to automatically track classes used as virtual bases).</i> This 
+situation is demonstrated by 
+<a href="../test/test_diamond.cpp" target="test_diamond_cpp">test_diamond.cpp</a>
+included with the library.
+
+<h3><a name="export">Export Key</a></h3>
+
+When serializing a derived class through a virtual base class pointer,
+two issues may arise.
+<ul>
+<li> The code in the derived class might never be explicitly
+referred to.  Such code will never be instantiated.
+<p>
+This is addressed by invoking 
+<code style="white-space: normal">BOOST_CLASS_EXPORT_IMPLEMENT(T)</code>
+in the file which defines (implements) the class T.
+This ensures that code for the derived class T will
+be explicity instantiated.
+<li> There needs to be some sort of identifier which can
+be used to select the code to be invoked when the object
+is loaded.
+Standard C++ does implement <code style="white-space: normal">typeid()</code> which can be
+used to return a unique string for the class.  This is not entirely
+statisfactory for our purposes for the following reasons:
+<ul>
+  <li>There is no guarantee that the string is the same across platforms.
+  This would then fail to support portable archives.
+  <li>In using code modules from various sources, classes may have
+  to be wrapped in different namespaces in different programs.
+  <li>There might be classes locally defined in different code modules
+  that have the same name. 
+  <li>There might be classes with different names that we want to
+  consider equivalent for purposes of of serialization.
+</ul>
+<p>
+So in the serialization library, this is addressed by invoking
+<code style="white-space: normal">BOOST_CLASS_EXPORT_KEY2(my_class, "my_class_external_identifier")</code>
+in the header file which declares he class.
+In a large majority of applications, the class name works just fine
+for the external identifier string so the following short cut is
+defined -
+<code style="white-space: normal">BOOST_CLASS_EXPORT_KEY(my_class)</code>.
+</ul>
+For programs which consist of only one module - that is 
+programs which do not use DLLS, one can specify
+<code style="white-space: normal">BOOST_CLASS_EXPORT(my_class)</code>
+or
+<code style="white-space: normal">BOOST_CLASS_EXPORT_GUID(my_class, "my_class_external_identifier")</code>
+in either he declaration header or definition.  These macros
+expand to invocation of the of both of the macros described above.
+<i>(<b>GUID</b> stands for <b>G</b>lobally <b>U</b>nique <b>ID</b>entfier.)</i>
+<p>
+<i>(<a target="detail" href="special.html#export">Elsewhere</a>
+in this manual, the serialization of derived classes is addressed in detail.)</i>
+<p>
+The header file
+<a href="../../../boost/serialization/export.hpp" target="export_hpp">export.hpp</a>
+contains all macro definitions described here.
+The library will throw a runtime exception if
+<ul>
+<li> A type not explicitly referred to is not exported.
+<li> Serialization code for the same type is instantiated
+in more than one module (or DLL).
+</ul>
+
+<h3><a name="abstract">Abstract</a></h3>
+When serializing an object through a pointer to its base class,
+the library needs to determine whether or not the bas is abstract
+(i.e. has at least one virtual function).  The library uses the
+type trait macro <code style="white-space: normal">BOOST_IS_ABSTRACT(T)</code>
+to do this.  Not all compilers support this type trait and corresponding
+macro.  To address this, the macro <code style="white-space: normal">
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(T)</code> has been
+implemented to permit one to explicitly indicate that a specified
+type is in fact abstract.  This will guarentee that
+<code style="white-space: normal">BOOST_IS_ABSTRACT</code>
+will return the correct value for all compilers.
+
+<h3><a name="typeinfo">Type Information Implementation</a></h3>
+This last trait is also related to the serialization of objects
+through a base class pointer.  The implementation of this facility
+requires the ability to determine at run time the true type of the
+object that a base class pointer points to.  Different serialization
+systems do this in different ways.  In our system, the default method
+is to use the function <code style="white-space: normal">typeid(...)</code> which is available 
+in systems which support <b>RTTI</b> (<b>R</b>un <b>T</b>ime 
+<b>T</b>ype <b>I</b>nformation).
+This will be satisfactory in almost all cases and most users of this 
+library will lose nothing in skipping this section of the manual.
+<p>
+However, there are some cases where the default type determination
+system is not convenient.  Some platforms might not support
+RTTI or it may have been disabled in order to speed execution
+or for some other reason.  Some applications, E.G. runtime linking
+of plug-in modules, can't depend on C++ RTTI to determine the
+true derived class.  RTTI only returns the correct type for polymorphic
+classes - classes with at least one virtual function.  If any of these
+situations applies, one may substitute his own implementation of
+<code style="white-space: normal">extended_type_info</code>
+<p>
+The interface to facilities required to implement serialization is defined in
+<a href="../../../boost/serialization/extended_type_info.hpp" 
+target="extended_type_info_hpp">extended_type_info.hpp</a>.
+
+Default implementation of these facilities based on <code style="white-space: normal">typeid(...)</code>
+is defined in
+
+<a href="../../../boost/serialization/extended_type_info_typeid.hpp" 
+target="extended_type_info_typeid_hpp">extended_type_info_typeid.hpp</a>.
+
+An alternative implementation based on exported class identifiers
+is defined in
+<a href="../../../boost/serialization/extended_type_info_no_rtti.hpp" 
+target="extended_type_info_rtti_hpp">extended_type_info_no_rtti.hpp</a>.
+<p>
+By invoking the macro:
+<pre><code>
+BOOST_CLASS_TYPE_INFO(
+    my_class, 
+    extended_type_info_no_rtti&lt;my_class&gt;
+)
+</code></pre>
+we can assign the type information implementation to each class on a case by
+case basis.  There is no requirement that all classes in a program use the same 
+implementation of <code style="white-space: normal">extended_type_info</code>.  This supports the concept
+that serialization of each class is specified "once and for all" in a header
+file that can be included in any project without change.
+<p>
+This is illustrated by the test program
+<a href="../test/test_no_rtti.cpp" target="test_no_rtti_cpp">test_no_rtti.cpp</a>.
+Other implementations are possible and might be necessary for
+certain special cases.
+
+version.hpp</a>.  
+<h3><a name="wrappers">Wrappers</a></h3>
+Archives need to treat wrappers diffently from other types since, for example,
+they usually are non-const object while output archives require that any
+serialized object (with the exception of a wrapper) be const. 
+
+This header file <a href="../../../boost/serialization/wrapper.hpp">wrapper.hpp</a>
+includes the following code:
+
+<pre><code>
+namespace boost { 
+namespace serialization {
+template&lt;class T&gt;
+struct is_wrapper
+ : public mpl::false_
+{};
+} // namespace serialization
+} // namespace boost
+</code></pre>
+
+For any class <code style="white-space: normal">T</code>, The default definition 
+of <code style="white-space: normal">boost::serialization::is_wrapper&lt;T&gt;::value</code> is thus false.
+ 
+If we want to declare that a class <code style="white-space: normal">my_class</code>
+is a wrapper we specialize the version template:
+<pre><code>
+namespace boost { 
+namespace serialization {
+struct is_wrapper&lt;my_class&gt;
+ : mpl::true_
+{};
+} // namespace serialization
+} // namespace boost
+</code></pre>
+<p>
+To diminish typing and enhance readability, a macro is defined
+so that instead of the above, we could write:
+<pre><code>
+BOOST_CLASS_IS_WRAPPER(my_class)
+</code></pre>
+which expands to the code above.
+
+<h3><a name="bitwise">Bitwise Serialization</a></h3>
+Some simple classes could be serialized just by directly copying all bits
+of the class. This is, in particular, the case for POD data types containing
+no pointer members, and which are neither versioned nor tracked. Some archives, 
+such as non-portable binary archives can make us of this information to 
+substantially speed up serialization.
+
+To indicate the possibility of bitwise serialization the type trait defined 
+in the header
+file <a href="../../../boost/serialization/is_bitwise_serializable.hpp" target="is_bitwise_serializable">is_bitwise_serializable.hpp</a>
+is used:
+<pre><code>
+namespace boost { namespace serialization {
+    template<class T>
+    struct is_bitwise_serializable
+     : public is_arithmetic<T>
+    {};
+} }
+</code></pre>
+is used, and can be specialized for other classes. The specialization
+is made easy by the corresponding macro:
+<pre><code>
+BOOST_IS_BITWISE_SERIALIZABLE(my_class)
+</code></pre>
+
+<h3><a name="templates">Template Serialization Traits</a></h3>
+In some instances it might be convenient to assign serialization traits
+to a whole group of classes at once.  Consider, the name-value pair
+wrapper 
+<pre><code>
+template&lt;class T&gt;
+struct nvp : public std::pair&lt;const char *, T *&gt;
+{
+    ...
+};
+</code></pre>
+used by XML archives to associate a name with a data variable of type T.
+These data types are never tracked and never versioned.  So one might
+want to specify:
+<pre><code>
+BOOST_CLASS_IMPLEMENTATION(nvp&lt;T&gt;, boost::serialization::level_type::object_serializable)
+BOOST_CLASS_TRACKING(nvp&lt;T&gt;, boost::serialization::track_never)
+</code></pre>
+Examination of the definition of these macros reveals that they won't expand
+to sensible code when used with a template argument.  So rather than using the
+convenience macros, use the original definitions
+<pre><code>
+template&lt;class T&gt;
+struct implementation_level&lt;nvp&lt;T&gt; &gt;
+{
+    typedef mpl::integral_c_tag tag;
+    typedef mpl::int_&lt;object_serializable&gt; type;
+    BOOST_STATIC_CONSTANT(
+        int,
+        value = implementation_level::type::value
+    );
+};
+
+// nvp objects are generally created on the stack and are never tracked
+template&lt;class T&gt;
+struct tracking_level&lt;nvp&lt;T&gt; &gt;
+{
+    typedef mpl::integral_c_tag tag;
+    typedef mpl::int_&lt;track_never&gt; type;
+    BOOST_STATIC_CONSTANT(
+        int, 
+        value = tracking_level::type::value
+    );
+};
+</code></pre>
+to assign serialization traits to all classes generated by the template
+<code style="white-space: normal">nvp&lt;T&gt;</code>
+<p>
+
+Note that it is only possible to use the above method to assign traits to 
+templates when using compilers which correctly support Partial Template Specialization.
+
+One's first impulse might be to do something like:
+
+<pre><code>
+#ifndef BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION
+template&lt;class T&gt;
+struct implementation_level&lt;nvp&lt;T&gt; &gt;
+{
+   ... // see above
+};
+
+// nvp objects are generally created on the stack and are never tracked
+template&lt;class T&gt;
+struct tracking_level&lt;nvp&lt;T&gt; &gt;
+{
+   ... // see above
+};
+#endif
+</code></pre>
+This can be problematic when one wants to make his code <strong>and archives</strong>
+portable to other platforms.  It means the she objects will be serialized differently
+depending on the platform used.  This implies that objects saved from one platform
+won't be loaded properly on another.  In other words, archives won't be portable.
+<p>
+This problem is addressed by creating another method of assigning serialization traits
+to user classes.  This is illustrated by the serialization for a 
+<a target="nvp" href="../../../boost/serialization/nvp.hpp"><strong>name-value</strong> pair</a>.
+<p>
+Specifically, this entails deriving the template from a special class
+<a target="traits" href="../../../boost/serialization/traits.hpp">
+<code style="white-space: normal">boost::serialization::traits</code></a> which is specialized for a specific
+combination of serialization traits.  
+When looking up the serialization traits, the library first checks to see if this class has been
+used as a base class. If so, the corresponding traits are used.  Otherwise, the standard defaults
+are used. By deriving from a serialization traits class rather than relying upon Partial Template
+Specializaton, one can a apply serialization traits to a template and those traits will be
+the same across all known platforms.
+<p>
+The signature for the traits template is:
+<pre><code>
+template&lt;
+    class T,       
+    int Level, 
+    int Tracking,
+    unsigned int Version = 0,
+    class ETII = BOOST_SERIALIZATION_DEFAULT_TYPE_INFO(T),
+    class IsWrapper = mpl::false_
+&gt;
+struct traits
+</code></pre>
+and template parameters should be assigned according to the following table:
+<p>
+<table border>
+<tr><th align=left>parameter</th><th align=left>description</th><th align=left>permitted values</th><th align=left>default value</th></tr>
+<tr><td><code>T</code></td><td>target class</td><td>class name<T></td><td>none</td></tr>            
+<tr><td><code>Level</code></td><td>implementation level</td><td><code>not_serializable<br>primitive_type<br>object_serializable<br>object_class_info</code></td><td>none</td></tr>  
+<tr><td><code>Tracking</code></td><td>tracking level</td><td><code>track_never<br>track_selectivly<br>track_always</code></td><td>none</td></tr>
+<tr><td><code>Version</code></td><td><code>class version</td><td>unsigned integer</td><td><code>0</code></td></tr>
+<tr><td><code>ETTI</code></td><td><code>type_info</code> implementation</td><td><code>extended_type_info_typeid<br>extended_type_info_no_rtti</code></td><td>default <code>type_info implementation</code></td></tr>
+<tr><td><code>IsWrapper</code></td><td><code></code>is the type a wrapper?</td><td><code>mpl::false_<br>mpl::true_</code></td><td><code>mpl::false_</code></td></tr>
+</table>
+
+<h3><a name="compiletime_messages">Compile Time Warnings and Errors</a></h3>
+Some serialization traits can conflict with other ones.  Sometimes these conflicts
+will result in erroneous behavior (E.G. creating of archives which could not be read)
+and other times they represent a probable misconception on the part of the
+library user which could result in suprising behavior.  The extent possible,
+these conflicts are detected at compile time and errors (BOOST_STATIC_ASSERT) 
+or warnings (BOOST_STATIC_WARNING) are generated. The are generated in a
+compiler dependent way manner which should show an chain of instantiation
+to the point where the error/warning is detected.  Without this capability,
+it would be very hard to track down errors or unexpected behavior in library
+usage.  Here is list of the conflicts trapped:
+
+<dl>
+<dt><h2><a name="object_level">object_level</a> - error</h2></dt>
+<dd>
+This error traps attempts to serialize types whose
+implentation level is set to non_serializable.
+</dd>
+<dt><h2><a name="object_versioning">object_versioning</a> - error</h2></dt>
+<dd>
+It's possible that for efficiency reasons, a type can be
+assigned a serialization level which doesn't include type information 
+in the archive.  This would preclude the assignment
+of a new version number to the type.  This error
+traps attempts to assign a version number in this case.
+This has to be a user error.
+</dd>
+
+<dt><h2><a name="object_tracking">object_tracking</a> - warning</h2></dt>
+<dd>
+The following code will display a message when compiled:
+
+<code style="white-space: normal"><pre>
+T t;
+ar &lt;&lt; t;
+</pre></code>
+
+unless the tracking_level serialization trait is set to "track_never". The following
+will compile without problem:
+
+<code style="white-space: normal"><pre>
+const T t
+ar &lt;&lt; t;
+</pre></code>
+
+Likewise, the following code will trap at compile time:
+
+<code style="white-space: normal"><pre>
+T * t;
+ar >> t;
+</pre></code>
+
+if the tracking_level serialization trait is set to "track_never".
+<p>
+
+The following case illustrates the function of this message.
+It was originally used as an example in the
+mailing list by Peter Dimov.
+
+<code style="white-space: normal"><pre>
+class construct_from 
+{ 
+    ... 
+}; 
+
+void main(){ 
+    ... 
+    Y y; 
+    construct_from x(y); 
+    ar &lt;&lt; x; 
+} 
+</pre></code>
+
+Suppose that the above message is not displayed and the code is used as is.
+<ol>
+  <li>this example compiles and executes fine. No tracking is done because 
+  construct_from has never been serialized through a pointer. Now some time 
+  later, the next programmer(2) comes along and makes an enhancement. He 
+  wants the archive to be sort of a log. 
+
+<code style="white-space: normal"><pre>
+void main(){ 
+    ... 
+    Y y; 
+    construct_from x(y); 
+    ar &lt;&lt; x; 
+    ... 
+    x.f(); // change x in some way 
+   ... 
+    ar &lt;&lt; x 
+} 
+</pre></code>
+  <p>
+  Again no problem. He gets two different of copies in the archive, each one is different. 
+  That is he gets exactly what he expects and is naturally delighted. 
+  <p>
+  <li>Now sometime later, a third programmer(3) sees construct_from and says - 
+  oh cool, just what I need. He writes a function in a totally disjoint 
+  module. (The project is so big, he doesn't even realize the existence of 
+  the original usage) and writes something like: 
+
+<code style="white-space: normal"><pre>
+class K { 
+    shared_ptr &lt;construct_from&gt; z; 
+    template &lt;class Archive&gt; 
+    void serialize(Archive & ar, const unsigned version){ 
+        ar &lt;&lt; z; 
+    } 
+}; 
+</pre></code>
+
+  <p>
+  He builds and runs the program and tests his new functionality. It works 
+  great and he's delighted. 
+  <p>
+  <li>Things continue smoothly as before.  A month goes by and it's 
+  discovered that when loading the archives made in the last month (reading the 
+  log). Things don't work. The second log entry is always the same as the 
+  first. After a series of very long and increasingly acrimonius email exchanges, 
+its discovered 
+  that programmer (3) accidently broke programmer(2)'s code .This is because by 
+  serializing via a pointer, the "log" object now being tracked.  This is because
+  the default tracking behavior is "track_selectively".  This means that class
+  instances are tracked only if they are serialized through pointers anywhere in
+  the program. Now multiple saves from the same address result in only the first one 
+  being written to the archive. Subsequent saves only add the address - even though the 
+  data might have been changed.  When it comes time to load the data, all instances of the log record show the same data.
+  In this way, the behavior of a functioning piece of code is changed due the side
+  effect of a change in an otherwise disjoint module.
+  Worse yet, the data has been lost and cannot not be now recovered from the archives.
+  People are really upset and disappointed with boost (at least the serialization system).
+  <p>
+  <li>
+  After a lot of investigation, it's discovered what the source of the problem
+  and class construct_from is marked "track_never" by including:
+<code style="white-space: normal"><pre>
+BOOST_CLASS_TRACKING(construct_from, track_never) 
+</pre></code>
+  <li>Now everything works again. Or - so it seems.
+  <p>
+  <li><code style="white-space: normal">shared_ptr&lt;construct_from&gt;</code>
+is not going to have a single raw pointer shared amongst the instances. Each loaded 
+<code style="white-space: normal">shared_ptr&lt;construct_from&gt;</code> is going to 
+have its own distinct raw pointer. This will break 
+<code style="white-space: normal">shared_ptr</code> and cause a memory leak.  Again,
+The cause of this problem is very far removed from the point of discovery.  It could 
+well be that the problem is not even discovered until after the archives are loaded.
+Now we not only have difficult to find and fix program bug, but we have a bunch of
+invalid archives and lost data.
+</ol>
+
+<p>Now consider what happens when the message is displayed:
+
+<ol>
+  <p>
+  <li>Right away, the program traps at 
+<code style="white-space: normal"><pre>
+ar &lt;&lt; x; 
+</pre></code>
+  <p>
+  <li>The programmer curses (another %^&*&* hoop to jump through). If he's in a 
+  hurry (and who isn't) and would prefer not to <code style="white-space: normal">const_cast</code>
+  - because it looks bad.  So he'll just make the following change an move on. 
+<code style="white-space: normal"><pre>
+Y y; 
+const construct_from x(y); 
+ar &lt;&lt; x; 
+</pre></code>
+  <p>
+  Things work fine and he moves on. 
+  <p>
+  <li>Now programer (2) wants to make his change - and again another 
+  annoying const issue; 
+<code style="white-space: normal"><pre>
+Y y; 
+const construct_from x(y); 
+... 
+x.f(); // change x in some way ; compile error f() is not const 
+... 
+ar &lt;&lt; x 
+</pre></code>
+  <p>
+  He's mildly annoyed now he tries the following: 
+  <ul>
+    <li>He considers making f() a const - but presumable that shifts the const 
+    error to somewhere else. And his doesn't want to fiddle with "his" code to 
+    work around a quirk in the serializaition system 
+    <p>
+    <li>He removes the <code style="white-space: normal">const</code>
+    from <code style="white-space: normal">const construct_from</code> above - damn now he 
+    gets the trap. If he looks at the comment code where the 
+    <code style="white-space: normal">BOOST_STATIC_ASSERT</code>
+    occurs, he'll do one of two things 
+    <ol>
+      <p>
+      <li>This is just crazy. Its making my life needlessly difficult and flagging 
+      code that is just fine. So I'll fix this with a <code style="white-space: normal">const_cast</code>
+      and fire off a complaint to the list and mabe they will fix it. 
+      In this case, the story branches off to the previous scenario.
+      <p>
+      <li>Oh, this trap is suggesting that the default serialization isn't really 
+      what I want. Of course in this particular program it doesn't matter. But 
+      then the code in the trap can't really evaluate code in other modules (which 
+      might not even be written yet). OK, I'll add the following to my 
+      construct_from.hpp to solve the problem. 
+<code style="white-space: normal"><pre>
+BOOST_CLASS_TRACKING(construct_from, track_never) 
+</pre></code>
+    </ol>
+  </ul>
+  <p>
+  <li>Now programmer (3) comes along and make his change. The behavior of the 
+  original (and distant module) remains unchanged because the 
+  <code style="white-space: normal">construct_from</code> trait has been set to 
+  "track_never" so he should always get copies and the log should be what we expect.
+  <p>
+  <li>But now he gets another trap - trying to save an object of a 
+  class marked "track_never" through a pointer. So he goes back to 
+  construct_from.hpp and comments out the 
+  <code style="white-space: normal">BOOST_CLASS_TRACKING</code> that 
+  was inserted. Now the second trap is avoided, But damn - the first trap is 
+  popping up again. Eventually, after some code restructuring, the differing
+  requirements of serializating <code style="white-space: normal">construct_from</code>
+  are reconciled.
+</ol>
+Note that in this second scenario
+<ul>
+  <li>all errors are trapped at compile time.
+  <li>no invalid archives are created.
+  <li>no data is lost.
+  <li>no runtime errors occur.
+</ul>
+
+It's true that these messages may sometimes flag code that is currently correct and
+that this may be annoying to some programmers.  However, this example illustrates
+my view that these messages are useful and that any such annoyance is small price to
+pay to avoid particularly vexing programming errors.
+
+</dd>
+
+<dt><h2><a name="pointer_level">pointer_level</a> - warning</h2></dt>
+<dd>
+This trap addresses the following situaion when serializing 
+a pointer:
+<ul>
+<li>A type doesn't save class information in the
+archive. That is, the serialization trait implementation
+level <= object_serializable.
+<li>Tracking for this type is set to "track selectively"
+in this case, indication that an object is tracked is
+not stored in the archive itself - see level == object_serializable.
+Since class information is not saved in the archive, the existence
+or absense of the operation ar << T * anywhere else in the 
+program is used to infer that an object of this type should be tracked.
+<p>
+A problem arises when a program which reads an archive
+includes the operation ar >> T * so that tracking information
+will be included in the archive. When a program which
+creates the archive doesn't include ar << T it is presumed
+that the archive doesn't include tracking information and
+the archive will fail to load.  Also the reverse situation could 
+trigger a similar problem.
+<p>
+Though this situation is unlikely for several reasones, 
+it is possible - hence this warning. 
+</ul>
+So if your program traps here, consider changing the 
+tracking or implementation level traits - or not
+serializing via a pointer.
+</dd>
+
+<dt><h2><a name="pointer_tracking">pointer_tracking</a> - warning</h2></dt>
+<dd>
+Serializing an object of a type marked "track_never" through a pointer
+could result in creating more objects than were saved! There are cases
+in which a user might really want to do this so we leave it as a warning.
+</dd>
+
+<dt><h2><a name="const_loading">const_loading</a> - error</h2></dt>
+<dd>
+One cannot load data into a "const" object unless it's a
+wrapper around some other non-const object.
+</dd>
+</dl>
+
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004 and Matthias Troyer 2006. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

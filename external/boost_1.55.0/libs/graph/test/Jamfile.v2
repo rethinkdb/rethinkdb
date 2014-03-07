@@ -1,0 +1,155 @@
+# Copyright (c) 2002 Trustees of Indiana University
+#
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# Define SGB (stanford graph base top level directory) and
+# LEDA (also top level directory) at the command line of jam using -s
+
+import modules ;
+import path ;
+
+path-constant TEST_DIR : . ;
+
+path-constant PLANAR_INPUT_FILES : ./planar_input_graphs ;
+
+path-constant CYCLE_RATIO_INPUT_FILE : ./cycle_ratio_s382.90.dot ;
+
+path-constant METIS_INPUT_FILE : ./weighted_graph.gr ;
+
+test-suite graph_test :
+    # test_graphs will eventually defined a framework for testing the structure
+    # and implementation of graph data structures and adaptors.
+    [ run test_graphs.cpp ]
+    [ run index_graph.cpp ]     # TODO: Make this part of the test_graphs framework
+    [ run labeled_graph.cpp ]
+
+    [ run transitive_closure_test.cpp ]
+    [ compile adj_list_cc.cpp ]
+
+    # adj_list_test needs some work -JGS
+    # unit-test adj_list_test : adj_list_test.cpp  ;
+
+    [ run adj_list_edge_list_set.cpp ]
+    [ run adj_list_loops.cpp ]
+    [ compile adj_matrix_cc.cpp ]
+    [ run bfs.cpp ../../test/build//boost_test_exec_monitor ]
+    [ compile bfs_cc.cpp ]
+    [ run bellman-test.cpp ]
+    [ run betweenness_centrality_test.cpp : 100 ]
+    [ run bidir_remove_edge.cpp ]
+    [ run bipartite_test.cpp ]
+    [ run csr_graph_test.cpp : : : : : <variant>release ]
+    [ run dag_longest_paths.cpp ]
+    [ run dfs.cpp ../../test/build//boost_test_exec_monitor ]
+    [ run undirected_dfs.cpp ../../test/build//boost_test_exec_monitor ]
+    [ compile dfs_cc.cpp ]
+    [ compile dijkstra_cc.cpp ]
+    [ run dijkstra_heap_performance.cpp : 10000 ]
+    [ run dijkstra_no_color_map_compare.cpp : 10000 ]
+    [ run dominator_tree_test.cpp ]
+    [ run relaxed_heap_test.cpp : 5000 15000 ]
+    [ compile edge_list_cc.cpp ]
+    [ compile filtered_graph_cc.cpp ]
+    [ run generator_test.cpp ]
+    [ run graph.cpp ]
+    [ compile graph_concepts.cpp ]
+    [ run graphviz_test.cpp
+            /boost/test//boost_test_exec_monitor/<link>static
+            ../build//boost_graph
+            ../../regex/build//boost_regex : --log_level=all ]
+    [ run metis_test.cpp : $(METIS_INPUT_FILE) ]
+    [ run gursoy_atun_layout_test.cpp ]
+    [ run layout_test.cpp : : : <test-info>always_show_run_output <toolset>intel:<debug-symbols>off ]
+
+    [ run serialize.cpp
+          ../../serialization/build//boost_serialization
+      : : : ]
+
+    [ compile reverse_graph_cc.cpp ]
+    [ run sequential_vertex_coloring.cpp ]
+
+    # TODO: Merge these into a single test framework.
+    [ run subgraph.cpp ../../test/build//boost_test_exec_monitor ]
+    [ run subgraph_bundled.cpp ]
+    [ run subgraph_props.cpp ]
+
+    [ run isomorphism.cpp ../../test/build//boost_test_exec_monitor ]
+    [ run adjacency_matrix_test.cpp ]
+    [ compile vector_graph_cc.cpp ]
+    [ compile copy.cpp ]
+    [ compile property_iter.cpp ]
+    [ run bundled_properties.cpp ]
+    [ run floyd_warshall_test.cpp ]
+    [ run astar_search_test.cpp ]
+    [ run biconnected_components_test.cpp ]
+    [ run cuthill_mckee_ordering.cpp ]
+    [ run king_ordering.cpp ]
+    [ run matching_test.cpp ]
+    [ run max_flow_test.cpp ]
+    [ run boykov_kolmogorov_max_flow_test.cpp ]
+    [ run cycle_ratio_tests.cpp ../build//boost_graph ../../regex/build//boost_regex : $(CYCLE_RATIO_INPUT_FILE) ]
+    [ run basic_planarity_test.cpp ]
+    [ run make_connected_test.cpp ]
+    [ run make_bicon_planar_test.cpp ]
+    [ run make_maximal_planar_test.cpp ]
+    [ run named_vertices_test.cpp ]
+    [ run all_planar_input_files_test.cpp
+        ../../filesystem/build
+        ../../system/build
+        : $(PLANAR_INPUT_FILES) ]
+    [ run parallel_edges_loops_test.cpp
+        ../../filesystem/build
+        ../../system/build
+        : $(PLANAR_INPUT_FILES) ]
+    [ run r_c_shortest_paths_test.cpp ]
+    [ run rcsp_custom_vertex_id.cpp ]
+    [ run is_straight_line_draw_test.cpp ]
+    [ run metric_tsp_approx.cpp : metric_tsp_approx.graph ]
+    [ compile dimacs.cpp ]
+    [ run bron_kerbosch_all_cliques.cpp ]
+    [ run tiernan_all_cycles.cpp ]
+    [ run closeness_centrality.cpp ]
+    [ run degree_centrality.cpp ]
+    [ run mean_geodesic.cpp ]
+    [ run eccentricity.cpp ]
+    [ run clustering_coefficient.cpp ]
+    [ run core_numbers_test.cpp ]
+    [ run read_propmap.cpp ]
+    [ run mcgregor_subgraphs_test.cpp ../build//boost_graph ]
+    [ compile grid_graph_cc.cpp ]
+    [ run grid_graph_test.cpp ]
+    [ run incremental_components_test.cpp ]
+    [ run two_graphs_common_spanning_trees_test.cpp ]
+    [ run random_spanning_tree_test.cpp ../build//boost_graph ]
+    [ run graphml_test.cpp ../build//boost_graph : : "graphml_test.xml" ]
+    [ run mas_test.cpp ../../test/build//boost_unit_test_framework/<link>static : $(TEST_DIR) ]
+    [ run stoer_wagner_test.cpp ../../test/build//boost_unit_test_framework/<link>static : $(TEST_DIR) ]
+    [ compile filtered_graph_properties_dijkstra.cpp ]
+    [ run vf2_sub_graph_iso_test.cpp ]
+    [ run hawick_circuits.cpp ]
+    [ run successive_shortest_path_nonnegative_weights_test.cpp ../../test/build//boost_unit_test_framework/<link>static ]
+    [ run cycle_canceling_test.cpp ../../test/build//boost_unit_test_framework/<link>static ]
+    ;
+
+# Run SDB tests only when -sSDB= is set.
+local SDB = [ modules.peek : SDB ] ;
+if $(SDB)
+{
+    local sdb-root = [ path.root [ path.make $(SDB) ] [ path.pwd ] ] ;
+
+    compile stanford_graph_cc.cpp :
+        <include>$(sdb-root) ;
+}
+
+# Run LEDA tests only when -sLEDA= is set.
+local LEDA = [ modules.peek : LEDA ] ;
+if $(LEDA)
+{
+    local leda-root = [ path.root [ path.make $(LEDA) ] [ path.pwd ] ] ;
+    local leda-include = [ path.join $(leda-root) incl ] ;
+
+    compile leda_graph_cc.cpp :
+        <include>$(leda-include) ;
+}

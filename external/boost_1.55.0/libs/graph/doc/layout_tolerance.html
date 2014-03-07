@@ -1,0 +1,21 @@
+<html><!--
+     Copyright (c) 2004 Trustees of Indiana University
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Struct template layout_tolerance</title></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><table cellpadding="2" width="100%"><td valign="top"><img src="../../../boost.png" alt="boost.png (6897 bytes)" width="277" height="86"></td><td align="center"><a href="../../../index.htm">Home</a></td><td align="center"><a href="../../libraries.htm">Libraries</a></td><td align="center"><a href="http://www.boost.org/people/people.htm">People</a></td><td align="center"><a href="http://www.boost.org/more/faq.htm">FAQ</a></td><td align="center"><a href="../../../more/index.htm">More</a></td></table><hr><div class="refentry" lang="en"><a name="struct.boost.layout_tolerance"></a><div class="titlepage"><div></div><div></div></div><div class="refnamediv"><h2><span class="refentrytitle">Struct template layout_tolerance</span></h2><p>boost::layout_tolerance &#8212; Determines when to terminate layout of a particular graph based on a given relative tolerance. </p></div><h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2><div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="bold"><b>template</b></span>&lt;<span class="bold"><b>typename</b></span> T = double&gt; 
+<span class="bold"><b>struct</b></span> layout_tolerance {
+  <span class="emphasis"><em>// <a href="layout_tolerance.html#layout_toleranceconstruct-copy-destruct">construct/copy/destruct</a></em></span>
+  <a href="layout_tolerance.html#id103752-bb">layout_tolerance</a>(<span class="bold"><b>const</b></span> T &amp; = T(0.001));
+
+  <span class="emphasis"><em>// <a href="layout_tolerance.html#id103692-bb">public member functions</a></em></span>
+  <span class="bold"><b>template</b></span>&lt;<span class="bold"><b>typename</b></span> Graph&gt; 
+    <span class="type"><span class="bold"><b>bool</b></span></span> <a href="layout_tolerance.html#id103697-bb"><span class="bold"><b>operator</b></span>()</a>(T, 
+                    <span class="bold"><b>typename</b></span> boost::graph_traits&lt; Graph &gt;::vertex_descriptor, 
+                    <span class="bold"><b>const</b></span> Graph &amp;, <span class="bold"><b>bool</b></span>) ;
+};</pre></div><div class="refsect1" lang="en"><a name="id822409"></a><h2>Where Defined</h2><a href="../../../boost/graph/kamada_kawai_spring_layout.hpp">boost/graph/kamada_kawai_spring_layout.hpp</a><div class="refsect2" lang="en"><a name="id822420"></a><h3><a name="layout_toleranceconstruct-copy-destruct"></a><tt class="computeroutput">layout_tolerance</tt> construct/copy/destruct</h3><div class="orderedlist"><ol type="1"><li><pre class="literallayout"><a name="id103752-bb"></a>layout_tolerance(<span class="bold"><b>const</b></span> T &amp; tolerance = T(0.001));</pre></li></ol></div></div><div class="refsect2" lang="en"><a name="id822461"></a><h3><a name="id103692-bb"></a><tt class="computeroutput">layout_tolerance</tt> public member functions</h3><div class="orderedlist"><ol type="1"><li><pre class="literallayout"><span class="bold"><b>template</b></span>&lt;<span class="bold"><b>typename</b></span> Graph&gt; 
+  <span class="type"><span class="bold"><b>bool</b></span></span> <a name="id103697-bb"></a><span class="bold"><b>operator</b></span>()(T delta_p, 
+                  <span class="bold"><b>typename</b></span> boost::graph_traits&lt; Graph &gt;::vertex_descriptor p, 
+                  <span class="bold"><b>const</b></span> Graph &amp; g, <span class="bold"><b>bool</b></span> global) ;</pre></li></ol></div></div></div></div><table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr><td align="left"></td><td align="right"><small></small></td></tr></table><hr></body></html>

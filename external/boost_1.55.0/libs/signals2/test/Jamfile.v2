@@ -1,0 +1,50 @@
+# Boost.Signals2 Library
+
+# Copyright Douglas Gregor 2001-2003.
+# Copyright Frank Mori Hess 2009.
+# Use, modification and
+# distribution is subject to the Boost Software License, Version
+# 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# For more information, see http://www.boost.org
+
+# bring in rules for testing
+import testing ;
+
+project
+    : source-location .
+    : requirements
+        <hardcode-dll-paths>true
+        <library>/boost/test//boost_unit_test_framework
+        <link>static
+    ;
+
+rule thread-run ( sources )
+{
+    return
+    [ run $(sources) : : : <library>/boost/thread//boost_thread/
+        <threading>multi ]
+    ;
+}
+
+{
+  test-suite signals2
+    :
+  [ run connection_test.cpp ]
+  [ run dead_slot_test.cpp ]
+  [ run deconstruct_test.cpp ]
+  [ run deletion_test.cpp ]
+  [ thread-run mutex_test.cpp ]
+  [ run ordering_test.cpp ]
+  [ run regression_test.cpp ]
+  [ run shared_connection_block_test.cpp ]
+  [ run signal_n_test.cpp ]
+  [ run signal_test.cpp ]
+  [ run signal_type_test.cpp ]
+  [ run slot_compile_test.cpp ]
+  [ thread-run threading_models_test.cpp ]
+  [ run trackable_test.cpp ]
+  [ run track_test.cpp ]
+ ;
+}

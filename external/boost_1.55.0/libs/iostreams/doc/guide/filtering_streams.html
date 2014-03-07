@@ -1,0 +1,55 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Filtering Streams and Stream Buffers</TITLE>
+    <LINK REL="stylesheet" href="../../../../boost.css">
+    <LINK REL="stylesheet" href="../theme/iostreams.css">
+    <STYLE>
+        .caption_code { font: bold 8pt monospace }
+    </STYLE>
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">User's Guide</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+     <A HREF='generic_streams.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='guide.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='code_conversion.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<A NAME="overview"></A>
+<H2>3.4 Filtering Streams and Stream Buffers</H2>
+
+<HR STYLE="margin-top:1em">
+
+<P>
+    The class templates <A href="../classes/filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A> and <A href="../classes/filtering_stream.html"><CODE>filtering_stream</CODE></A> are the fundamental components provided by the Iostreams library for filtering data. Each <CODE>filtering_streambuf</CODE> or <CODE>filtering_stream</CODE> contains a chain of zero or more <A HREF="../concepts/filter.html">Filters</A> followed by an optional <A HREF="../concepts/device.html">Device</A>, accessed with an interface similar to that of <CODE>std::stack</CODE>. These chains are represented by of the class template <A HREF="../classes/chain.html"><CODE>chain</CODE></A>. If the chain ends with a Device it is called <SPAN CLASS="term">complete</SPAN> and may be used to perform i/o. 
+</P>
+<P>
+    The <A HREF="modes.html">mode</A> of each <CODE>stream_buffer</CODE> in the chain must refine the mode of the <CODE>filtering_streambuf</CODE> or <CODE>filtering_stream</CODE>. For example, one cannot use a Filter or Device having mode <A HREF="modes.html#output">output</A> with a <CODE>filtering_streambuf</CODE> having mode <A HREF="modes.html#input">input</A>.
+</P>
+<P>
+    If a <CODE>filtering_streambuf</CODE> or <CODE>filtering_stream</CODE> has mode <A HREF="modes.html#input">input</A>, data flows from the chain's end to its beginning &#8212; starting at a <A href="../concepts/source.html">Source</A> and passing through zero or more <A href="../concepts/input_filter.html">InputFilters</A>. If it has mode <A HREF="modes.html#output">output</A>, data flows in the opposite direction &#8212; from the beginning of the chain, through zero or more <A href="../concepts/output_filter.html">OutputFilters</A>, towards <A href="../concepts/source.html">Sink</A> at the end of the chain. If a <CODE>filtering_streambuf</CODE> or <CODE>filtering_stream</CODE> performs both input and output, data flows in both directions.
+
+<!-- Begin Footer -->
+
+<HR STYLE="margin-top:1em">
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

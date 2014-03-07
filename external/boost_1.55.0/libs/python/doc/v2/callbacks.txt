@@ -1,0 +1,92 @@
+.. Copyright David Abrahams 2006. Distributed under the Boost
+.. Software License, Version 1.0. (See accompanying
+.. file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+Here's the plan:
+
+I aim to provide an interface similar to that of Boost.Python v1's
+callback<>::call(...) for dealing with callbacks. The interface will
+look like:
+
+    returning<ResultType>::call("method_name", self_object, a1, a2...);
+
+or
+
+    returning<ResultType>::call(callable_object, a1, a2...);
+
+ARGUMENT HANDLING
+
+There is an issue concerning how to make Python objects from the
+arguments a1...aN. A new Python object must be created; should the C++
+object be copied into that Python object, or should the Python object
+simply hold a reference/pointer to the C++ object? In general, the
+latter approach is unsafe, since the called function may store a
+reference to the Python object somewhere. If the Python object is used
+after the C++ object is destroyed, we'll crash Python.
+
+I plan to make the copying behavior the default, and to allow a
+non-copying behavior if the user writes boost::ref(a1) instead of a1
+directly. At least this way, the user doesn't get dangerous behavior "by
+accident". It's also worth noting that the non-copying ("by-reference")
+behavior is in general only available for class types, and will fail at
+runtime with a Python exception if used otherwise**
+
+However, pointer types present a problem: My first thought is to refuse
+to compile if any aN has pointer type: after all, a user can always pass
+*aN to pass "by-value" or ref(*aN) to indicate a pass-by-reference
+behavior. However, this creates a problem for the expected NULL pointer
+=> None conversion: it's illegal to dereference a null pointer value.
+
+We could use another construct, say "ptr(aN)", to deal with null
+pointers, but then what does it mean? We know what it does when aN is
+NULL, but it might either have by-value or by-reference behavior when aN
+is non-null.
+
+The compromise I've settled on is this: 
+
+1. The default behavior is pass-by-value. If you pass a non-null
+   pointer, the pointee is copied into a new Python object; otherwise
+   the corresponding Python argument will be None.
+
+2. if you want by-reference behavior, use ptr(aN) if aN is a pointer
+   and ref(aN) otherwise. If a null pointer is passed to ptr(aN), the
+   corresponding Python argument will be None.
+
+RESULT HANDLING
+
+As for results, we have a similar problem: if ResultType is allowed to
+be a pointer or reference type, the lifetime of the object it refers to
+is probably being managed by a Python object. When that Python object is
+destroyed, our pointer dangles. The problem is particularly bad when the
+ResultType is char const* - the corresponding Python String object is
+typically uniquely-referenced, meaning that the pointer dangles as soon
+as returning<char const*>::call() returns.
+
+Boost.Python v1 deals with this issue by refusing to compile any uses of
+callback<char const*>::call(), but IMO this goes both too far and not
+far enough. It goes too far because there are cases where the owning
+String object survives beyond the call (just for instance when it's the
+name of a Python class), and it goes not far enough because we might
+just as well have the same problem with any returned pointer or
+reference.
+
+I propose to address this in Boost.Python v2 by
+
+    1. lifting the compile-time restriction on const
+    char* callback returns
+
+    2. detecting the case when the reference count on the
+    result Python object is 1 and throwing an exception
+    inside of returning<U>::call() when U is a pointer or
+    reference type.
+
+I think this is acceptably safe because users have to explicitly specify
+a pointer/reference for U in returning<U>, and they will be protected
+against dangles at runtime, at least long enough to get out of the
+returning<U>::call() invocation.
+
+-Dave
+
+**It would be possible to make it fail at compile-time for non-class
+types such as int and char, but I'm not sure it's a good idea to impose
+this restriction yet.

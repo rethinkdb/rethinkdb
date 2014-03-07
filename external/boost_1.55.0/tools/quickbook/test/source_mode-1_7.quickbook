@@ -1,0 +1,12 @@
+[quickbook 1.7]
+[source-mode teletype]
+[article Source Mode Test]
+
+[!c++][table [[``int main() {}``][``void foo() {}``]]]
+``Plain text...``
+
+[!c++]`int main() {}` but `plain text`.
+
+[!c++]
+* Sadly this doesn't work.
+* `int main() {}`

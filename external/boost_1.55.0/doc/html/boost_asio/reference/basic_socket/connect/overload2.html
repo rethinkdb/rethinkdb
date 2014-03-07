@@ -1,0 +1,92 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>basic_socket::connect (2 of 2 overloads)</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../connect.html" title="basic_socket::connect">
+<link rel="prev" href="overload1.html" title="basic_socket::connect (1 of 2 overloads)">
+<link rel="next" href="../debug.html" title="basic_socket::debug">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overload1.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../connect.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../boost_asio.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../debug.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_asio.reference.basic_socket.connect.overload2"></a><a class="link" href="overload2.html" title="basic_socket::connect (2 of 2 overloads)">basic_socket::connect
+          (2 of 2 overloads)</a>
+</h5></div></div></div>
+<p>
+            Connect the socket to the specified endpoint.
+          </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="identifier">connect</span><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">endpoint_type</span> <span class="special">&amp;</span> <span class="identifier">peer_endpoint</span><span class="special">,</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="special">&amp;</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+            This function is used to connect a socket to the specified remote endpoint.
+            The function call will block until the connection is successfully made
+            or an error occurs.
+          </p>
+<p>
+            The socket is automatically opened if it is not already open. If the
+            connect fails, and the socket was automatically opened, the socket is
+            not returned to the closed state.
+          </p>
+<h6>
+<a name="boost_asio.reference.basic_socket.connect.overload2.h0"></a>
+            <span class="phrase"><a name="boost_asio.reference.basic_socket.connect.overload2.parameters"></a></span><a class="link" href="overload2.html#boost_asio.reference.basic_socket.connect.overload2.parameters">Parameters</a>
+          </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">peer_endpoint</span></dt>
+<dd><p>
+                  The remote endpoint to which the socket will be connected.
+                </p></dd>
+<dt><span class="term">ec</span></dt>
+<dd><p>
+                  Set to indicate what error occurred, if any.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="boost_asio.reference.basic_socket.connect.overload2.h1"></a>
+            <span class="phrase"><a name="boost_asio.reference.basic_socket.connect.overload2.example"></a></span><a class="link" href="overload2.html#boost_asio.reference.basic_socket.connect.overload2.example">Example</a>
+          </h6>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">);</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">endpoint</span> <span class="identifier">endpoint</span><span class="special">(</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">address</span><span class="special">::</span><span class="identifier">from_string</span><span class="special">(</span><span class="string">"1.2.3.4"</span><span class="special">),</span> <span class="number">12345</span><span class="special">);</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="identifier">ec</span><span class="special">;</span>
+<span class="identifier">socket</span><span class="special">.</span><span class="identifier">connect</span><span class="special">(</span><span class="identifier">endpoint</span><span class="special">,</span> <span class="identifier">ec</span><span class="special">);</span>
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">ec</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="comment">// An error occurred.</span>
+<span class="special">}</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overload1.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../connect.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../boost_asio.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../debug.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

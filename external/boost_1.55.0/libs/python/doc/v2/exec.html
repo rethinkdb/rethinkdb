@@ -1,0 +1,163 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/exec.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/exec.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#functions">Functions</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#eval-spec"><code>eval</code></a></dt>
+          <dt><a href="#exec-spec"><code>exec</code></a></dt>
+          <dt><a href="#exec_file-spec"><code>exec_file</code></a></dt>
+        </dl>
+      </dd>
+      <dt><a href="#examples">Examples</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p>Exposes a mechanism for embedding the python interpreter into C++ code.</p>
+
+    <h2><a name="functions"></a>Functions</h2>
+
+    <h3><a name="eval-spec"></a><code>eval</code></h3>
+    <pre>
+object eval(str expression,
+            object globals = object(),
+            object locals = object());
+    </pre>
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+        Evaluate Python expression from <code>expression</code> in the context 
+        specified by the dictionaries <code>globals</code> and <code>locals</code>.
+      </dt>
+      <dt><b>Returns:</b>
+        An instance of <a href="object.html#object-spec">object</a> 
+        which holds the value of the expression.
+      </dt>
+    </dl>
+
+    <h3><a name="exec-spec"></a><code>exec</code></h3>
+    <pre>
+object exec(str code,
+            object globals = object(),
+            object locals = object());
+    </pre>
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+        Execute Python source code from <code>code</code> in the context 
+        specified by the dictionaries <code>globals</code> and <code>locals</code>.
+      </dt>
+      <dt><b>Returns:</b>
+        An instance of <a href="object.html#object-spec">object</a> 
+        which holds the result of executing the code.
+      </dt>
+    </dl>
+
+    <h3><a name="exec_file-spec"></a><code>exec_file</code></h3>
+    <pre>
+object exec_file(str filename,
+                 object globals = object(),
+                 object locals = object());
+    </pre>
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+        Execute Python source code from the file named by <code>filename</code>
+        in the context specified by the  dictionaries <code>globals</code> and 
+        <code>locals</code>.
+      </dt>
+      <dt><b>Returns:</b>
+        An instance of <a href="object.html#object-spec">object</a> 
+        which holds the result of executing the code.
+      </dt>
+    </dl>
+
+    <h2><a name="examples"></a>Examples</h2>
+
+    <para>The following example demonstrates the use of <function>import</function>
+      and <function>exec</function> to define a function in python, and later call
+      it from within C++.</para>
+
+<pre>
+#include &lt;iostream&gt;
+#include &lt;string&gt;
+
+using namespace boost::python;
+
+void greet()
+{ 
+  // Retrieve the main module.
+  object main = import("__main__");
+  
+  // Retrieve the main module's namespace
+  object global(main.attr("__dict__"));
+
+  // Define greet function in Python.
+  object result = exec(
+    "def greet():                   \n"
+    "   return 'Hello from Python!' \n",
+    global, global);
+
+  // Create a reference to it.
+  object greet = global["greet"];
+
+  // Call it.
+  std::string message = extract&lt;std::string&gt;(greet());
+  std::cout &lt;&lt; message &lt;&lt; std::endl;
+}
+</pre>
+
+    <para>Instead of embedding the python script into a string,
+      we could also store it in an a file...</para>
+
+<pre>
+def greet():
+   return 'Hello from Python!'
+</pre>
+    <para>... and execute that instead.</para>
+<pre>
+  // ...
+  // Load the greet function from a file.
+  object result = exec_file(script, global, global);
+  // ...
+}
+</pre>
+    <p>Revised 01 November, 2005</p>
+
+    <p><i>&copy; Copyright Stefan Seefeld 2005.</i></p>
+  </body>
+</html>
+

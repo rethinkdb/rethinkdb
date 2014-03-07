@@ -1,0 +1,153 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Complex - Fully Integrated</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Tutorials">
+<link rel="prev" href="karma_easier_complex.html" title="Complex - Made easier">
+<link rel="next" href="num_list.html" title="Number List - Printing Numbers From a std::vector">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="karma_easier_complex.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="num_list.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.karma.tutorials.karma_adapted_complex"></a><a class="link" href="karma_adapted_complex.html" title="Complex - Fully Integrated">Complex
+        - Fully Integrated</a>
+</h4></div></div></div>
+<p>
+          Until now, we have been working around the fact that <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">complex</span><span class="special">&lt;&gt;</span></code> is not a native <a href="../../../../../../../libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>
+          sequence. We have not been able to use it with the same simplicity and
+          natural grace of a <code class="computeroutput"><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;&gt;</span></code> or a similar <a href="../../../../../../../libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>
+          data structure. Fortunately, starting with Boost V1.43 it is possible to
+          adapt any data structure (not only, as before, structures with publicly
+          accessible members) as a <a href="../../../../../../../libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>
+          sequence. All we have to do is to employ one of the new <code class="computeroutput"><span class="identifier">BOOST_FUSION_ADAPT_ADT</span></code>
+          macros.
+        </p>
+<h6>
+<a name="spirit.karma.tutorials.karma_adapted_complex.h0"></a>
+          <span class="phrase"><a name="spirit.karma.tutorials.karma_adapted_complex.adapting_a_class_as_a_fusion_sequence"></a></span><a class="link" href="karma_adapted_complex.html#spirit.karma.tutorials.karma_adapted_complex.adapting_a_class_as_a_fusion_sequence">Adapting
+          a Class As a Fusion Sequence</a>
+        </h6>
+<p>
+          Let us start with the code again, following up with the explanations afterwards.
+        </p>
+<p>
+          Wouldn't it be optimal if we could pass our instance of a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">complex</span><span class="special">&lt;&gt;</span></code>
+          directly to <span class="emphasis"><em>Karma's</em></span> <code class="computeroutput"><span class="identifier">generate</span><span class="special">()</span></code> function:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">OutputIterator</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">generate_complex</span><span class="special">(</span><span class="identifier">OutputIterator</span> <span class="identifier">sink</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">complex</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">c</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">bool_</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">true_</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">omit</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">generate</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="identifier">generate</span><span class="special">(</span><span class="identifier">sink</span><span class="special">,</span>
+
+        <span class="comment">//  Begin grammar</span>
+        <span class="special">(</span>
+           <span class="special">&amp;</span><span class="identifier">true_</span> <span class="special">&lt;&lt;</span> <span class="char">'('</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="string">", "</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="char">')'</span>
+        <span class="special">|</span>   <span class="identifier">omit</span><span class="special">[</span><span class="identifier">bool_</span><span class="special">]</span>  <span class="special">&lt;&lt;</span> <span class="identifier">double_</span>
+        <span class="special">),</span>
+        <span class="comment">//  End grammar</span>
+
+        <span class="identifier">c</span>     <span class="comment">//  Data to output</span>
+    <span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Indeed, this is possible! All we have to supply to make this work is a
+          magic incantation (somewhere in the global namespace):
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// We can leave off the setters as Karma does not need them.</span>
+<span class="identifier">BOOST_FUSION_ADAPT_ADT</span><span class="special">(</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">complex</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;,</span>
+    <span class="special">(</span><span class="keyword">bool</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">,</span> <span class="identifier">obj</span><span class="special">.</span><span class="identifier">imag</span><span class="special">()</span> <span class="special">!=</span> <span class="number">0</span><span class="special">,</span> <span class="comment">/**/</span><span class="special">)</span>
+    <span class="special">(</span><span class="keyword">double</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="identifier">obj</span><span class="special">.</span><span class="identifier">real</span><span class="special">(),</span> <span class="comment">/**/</span><span class="special">)</span>
+    <span class="special">(</span><span class="keyword">double</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="identifier">obj</span><span class="special">.</span><span class="identifier">imag</span><span class="special">(),</span> <span class="comment">/**/</span><span class="special">)</span>
+<span class="special">)</span>
+</pre>
+<p>
+        </p>
+<p>
+          Most of the formatting grammar itself has not changed from the last section.
+          We still utilize a very similar scheme. We have an alternative providing
+          the formatting rules for our both use cases: one for the full complex format
+          and one for complex numbers with a zero imaginary part. But instead of
+          selecting the required alternative by comparing the imaginary part to zero
+          in the grammar we assume to receive a boolean attribute carrying this information:
+        </p>
+<pre class="programlisting"><span class="special">&amp;</span><span class="identifier">true_</span> <span class="special">&lt;&lt;</span> <span class="string">"("</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="string">", "</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="string">")"</span>
+</pre>
+<p>
+          This reads as: 'if the first (boolean) element of the supplied fusion sequence
+          is <code class="computeroutput"><span class="keyword">true</span></code>, proceed as specified,
+          else select the next alternative'. The next alternative now accounts for
+          the boolean element as well, but is otherwise (almost) unchanged from the
+          last section's example.
+        </p>
+<p>
+          Now it should be clear why our adapt construct above exposes a three element
+          <a href="../../../../../../../libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>
+          sequence: a boolean and two double values (the real and the imaginary part
+          of the complex number). We want it to match the requirements of our formatting
+          grammar, which expects those exact values. The <code class="computeroutput"><span class="identifier">BOOST_FUSION_ADAPT_ADT</span></code>
+          macro allows us to specify an arbitrary accessor construct, not necessarily
+          limited to just calling a member function of the object instance (represented
+          by <code class="computeroutput"><span class="identifier">obj</span></code> in the context of
+          this macro). This allows us to nicely encapsulate the decision logic into
+          the class adaptation.
+        </p>
+<p>
+          Here is the last new bit of information. If you look closely you realize
+          the second alternative to be 'shorter' than the first one. It consumes
+          only two elements of the supplied fusion sequence: it ignores the boolean
+          and uses the real part of the complex number to generate its output. If
+          there are more elements in our attribute than needed, we now can safely
+          omit them from the grammar (which is a new 'feature' added to <a href="http://boost-spirit.com" target="_top">Spirit</a>
+          in V1.43 as well). Note, we could have written the alternative as
+        </p>
+<pre class="programlisting"><span class="special">&amp;</span><span class="identifier">false_</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span>
+</pre>
+<p>
+          but this would have been a bit less efficient as we needed to compare the
+          boolean value again, while the final solution provided will just ignore
+          it.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="karma_easier_complex.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="num_list.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

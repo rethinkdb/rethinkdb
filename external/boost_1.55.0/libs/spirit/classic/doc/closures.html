@@ -1,0 +1,338 @@
+<html>
+<head>
+<title>Closures</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+<style type="text/css">
+<!--
+.style1 {font-family: "Courier New", Courier, mono}
+-->
+</style>
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr>
+    <td width="10">
+    </td>
+    <td width="85%">
+      <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Closures</b></font>
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="phoenix.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="dynamic_parsers.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<h2>Overview</h2>
+<p>Using phoenix, in the previous chapter, we've seen how we can get data from our parsers using <tt>var</tt>:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>int </span><span class=identifier>i</span><span class=special>;
+</span><span class=identifier>    integer </span><span class=special>= </span><span class=identifier>int_p</span><span class=special>[</span><span class="identifier">var</span><span class=special>(</span><span class=identifier>i</span><span class=special>) = </span><span class="identifier">arg1</span><span class=special>];</span></font></code></pre>
+<p>Nifty! Our rule <tt>integer</tt>, if successful, passes the parsed integer
+  to the variable <tt>i</tt>. Everytime we need to parse an integer, we can call
+  our rule <tt>integer</tt> and simply extract the parsed number from the variable
+  <tt>i</tt>. There's something you should be aware of though. In the viewpoint
+  of the grammar, the variable <tt>i</tt> is global. When the grammar gets more
+  complex, it's hard to keep track of the current state of <tt>i</tt>. And, with
+  recursive rules, global variables simply won't be adequate. </p>
+<p>Closures are needed if you need your rules (or grammars) to be reentrant. For example, a rule (or grammar) might be called recursively indirectly or directly by itself. The calculator is a good example. The expression rule recursively calls itself indirectly when it invokes the factor rule. </p>
+<p>Closures provide named (lazy) variables associated with each parse rule invocation. A closure variable is addressed using member syntax:</p>
+<pre><code><font color="#000000"><span class=identifier>    </span>rulename<span class="special">.</span>varname</font></code></pre>
+<p>A closure variable <tt>R.x</tt> may be addressed in the semantic action of any other rule invoked by <tt>R</tt>; it refers to the innermost enclosing invocation of <tt>R</tt>. If no such invocation exists, an assertion occurs at runtime. </p>
+<p>Closures provide an environment, a stack frame, for local variables.
+  Most importantly, the closure variables are accessible from the EBNF grammar
+  specification and can be used to pass parser information upstream or downstream
+  from the topmost rule down to the terminals in a top-down recursive descent.
+  Closures facilitate dynamic scoping in C++.
+  Spirit's closure implementation is based on <em>Todd Veldhuizen</em>'s <strong>Dynamic
+  scoping in C++</strong> technique that he presented in his paper <a href="ftp://ftp.cs.indiana.edu/pub/techreports/TR542.pdf">Techniques
+  for Scientic C++</a>. </p>
+<p>When a rule is given a closure, the closure's local variables are created prior
+    to entering the parse function and destructed after exiting the parse function.
+    These local variables are true local variables that exist on the hardware stack.</p>
+<table width="80%" border="0" align="center">
+  <tr>
+    <td class="note_box"><img src="theme/alert.gif" width="16" height="16"> <strong>Closures</strong>
+      <strong>and Phoenix</strong><br> <br>
+      Spirit v1.8 closure support requires <a href="../phoenix/index.html">Phoenix</a>.
+      In the future, Spirit will fully support <a href="../../../../libs/lambda/index.html">BLL</a>.
+      Currently, work is underway to merge the features of both libraries.</td>
+  </tr>
+</table>
+<h2>Example</h2>
+<p>Let's go back to the calculator grammar introduced in the <a href="functional.html">Functional</a> chapter. Here's the full grammar again, plus the closure declarations:</p>
+<pre><span class=special>    </span><span class=keyword>struct </span><span class=identifier>calc_closure </span><span class=special>: </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>spirit</span><span class=special>::</span><span class=identifier>closure</span><span class=special>&lt;</span><span class=identifier>calc_closure</span><span class=special>, </span><span class=keyword>double</span><span class=special>&gt;
+    </span><span class=special>{
+        </span><span class=identifier>member1 </span><span class=identifier>val</span><span class=special>;
+    </span><span class=special>};
+
+    </span><span class=keyword>struct </span><span class=identifier>calculator </span><span class=special>: </span><span class=keyword>public </span><span class=identifier>grammar</span><span class=special>&lt;</span><span class=identifier>calculator</span><span class=special>, </span><span class=identifier>calc_closure</span><span class=special>::</span><span class=identifier>context_t</span><span class=special>&gt;
+    </span><span class=special>{
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>struct </span><span class=identifier>definition
+        </span><span class=special>{
+            </span><span class=identifier>definition</span><span class=special>(</span><span class=identifier>calculator </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>self</span><span class=special>)
+            </span><span class=special>{
+                </span><span class=identifier>top </span><span class=special>= </span><span class=identifier>expression</span><span class=special>[</span><span class=identifier>self</span><span class=special>.</span><span class=identifier>val </span><span class=special>= </span><span class=identifier>arg1</span><span class=special>];
+
+                </span><span class=identifier>expression
+                    </span><span class=special>=   </span><span class=identifier>term</span><span class=special>[</span><span class=identifier>expression</span><span class=special>.</span><span class=identifier>val </span><span class=special>= </span><span class=identifier>arg1</span><span class=special>]
+                        </span><span class=special>&gt;&gt; </span><span class=special>*(   </span><span class=special>(</span><span class=literal>'+' </span><span class=special>&gt;&gt; </span><span class=identifier>term</span><span class=special>[</span><span class=identifier>expression</span><span class=special>.</span><span class=identifier>val </span><span class=special>+= </span><span class=identifier>arg1</span><span class=special>])
+                            </span><span class=special>|   </span><span class=special>(</span><span class=literal>'-' </span><span class=special>&gt;&gt; </span><span class=identifier>term</span><span class=special>[</span><span class=identifier>expression</span><span class=special>.</span><span class=identifier>val </span><span class=special>-= </span><span class=identifier>arg1</span><span class=special>])
+                            </span><span class=special>)
+                    </span><span class=special>;
+
+                </span><span class=identifier>term
+                    </span><span class=special>=   </span><span class=identifier>factor</span><span class=special>[</span><span class=identifier>term</span><span class=special>.</span><span class=identifier>val </span><span class=special>= </span><span class=identifier>arg1</span><span class=special>]
+                        </span><span class=special>&gt;&gt; </span><span class=special>*(   </span><span class=special>(</span><span class=literal>'*' </span><span class=special>&gt;&gt; </span><span class=identifier>factor</span><span class=special>[</span><span class=identifier>term</span><span class=special>.</span><span class=identifier>val </span><span class=special>*= </span><span class=identifier>arg1</span><span class=special>])
+                            </span><span class=special>|   </span><span class=special>(</span><span class=literal>'/' </span><span class=special>&gt;&gt; </span><span class=identifier>factor</span><span class=special>[</span><span class=identifier>term</span><span class=special>.</span><span class=identifier>val </span><span class=special>/= </span><span class=identifier>arg1</span><span class=special>])
+                            </span><span class=special>)
+                    </span><span class=special>;
+
+                </span><span class=identifier>factor
+                    </span><span class=special>=   </span><span class=identifier>ureal_p</span><span class=special>[</span><span class=identifier>factor</span><span class=special>.</span><span class=identifier>val </span><span class=special>= </span><span class=identifier>arg1</span><span class=special>]
+                    </span><span class=special>|   </span><span class=literal>'(' </span><span class=special>&gt;&gt; </span><span class=identifier>expression</span><span class=special>[</span><span class=identifier>factor</span><span class=special>.</span><span class=identifier>val </span><span class=special>= </span><span class=identifier>arg1</span><span class=special>] </span><span class=special>&gt;&gt; </span><span class=literal>')'
+                    </span><span class=special>|   </span><span class=special>(</span><span class=literal>'-' </span><span class=special>&gt;&gt; </span><span class=identifier>factor</span><span class=special>[</span><span class=identifier>factor</span><span class=special>.</span><span class=identifier>val </span><span class=special>= </span><span class=special>-</span><span class=identifier>arg1</span><span class=special>])
+                    </span><span class=special>|   </span><span class=special>(</span><span class=literal>'+' </span><span class=special>&gt;&gt; </span><span class=identifier>factor</span><span class=special>[</span><span class=identifier>factor</span><span class=special>.</span><span class=identifier>val </span><span class=special>= </span><span class=identifier>arg1</span><span class=special>])
+                    </span><span class=special>;
+            </span><span class=special>}
+
+            </span><span class=keyword>typedef </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>, </span><span class=identifier>calc_closure</span><span class=special>::</span><span class=identifier>context_t</span><span class=special>&gt; </span><span class=identifier>rule_t</span><span class=special>;
+            </span><span class=identifier>rule_t </span><span class=identifier>expression</span><span class=special>, </span><span class=identifier>term</span><span class=special>, </span><span class=identifier>factor</span><span class=special>;
+            </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt; </span><span class=identifier>top</span><span class=special>;
+
+            </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt; </span><span class=keyword>const</span><span class=special>&amp;
+            </span><span class=identifier>start</span><span class=special>() </span><span class=keyword>const </span><span class=special>{ </span><span class=keyword>return </span><span class=identifier>top</span><span class=special>; </span><span class=special>}
+        </span><span class=special>};
+    </span><span class=special>};</span></pre>
+<p> <img height="16" width="15" src="theme/lens.gif"> The full source code can be <a href="../example/fundamental/phoenix_calc.cpp">viewed here</a>. This is part of the Spirit distribution.</p>
+<p>Surely, we've come a long way from the original version of this calculator. With inline <a href="phoenix.html#lambda">lambda expressions</a>, we were able to write self contained grammars complete with semantic actions. </p>
+<p>The first thing to notice is the declaration of <tt>calc_closure</tt>. </p>
+<p> <strong>Declaring closures</strong></p>
+<p> The general closure declaration syntax is:</p>
+<pre><code>    <span class=keyword>struct </span><span class=identifier>name</span><span class=special></span> <span class=special>: </span><span class=identifier>spirit</span><span class=special>::</span><span class=identifier>closure</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>, </span><span class=keyword>type1, type2, type3,... typeN</span><span class=special>&gt;
+    {
+        </span><span class=identifier>member1 m_name1</span><span class=special>;
+        </span><span class=identifier>member2 m_name2</span><span class=special>;
+        </span><span class=identifier>member3 m_name3</span><span class=special>;
+        ...
+        </span><span class=identifier>memberN m_nameN</span><span class=special>;
+    };</span></code></pre>
+<p> <tt>member1</tt>... <tt>memberN</tt> are indirect links to the actual closure variables. Their indirect types correspond to <code><tt>type1</tt></code>... <code><tt>typeN</tt></code>. In our example, we declared <tt>calc_closure</tt>:</p>
+<pre><span class=number>    </span><span class=keyword>struct </span><span class=identifier>calc_closure </span><span class=special>: </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>spirit</span><span class=special>::</span><span class=identifier>closure</span><span class=special>&lt;</span><span class=identifier>calc_closure</span><span class=special>, </span><span class=keyword>double</span><span class=special>&gt;
+    </span><span class=special>{
+        </span><span class=identifier>member1 </span><span class=identifier>val</span><span class=special>;
+    </span><span class=special>};</span></pre>
+<p><tt>calc_closure</tt> has a single variable <tt>val</tt> of type <span class=keyword>double</span><span class=special></span>.</p>
+<table width="80%" border="0" align="center">
+  <tr>
+    <td class="note_box"><p><img src="theme/alert.gif" width="16" height="16"> <tt>BOOST_SPIRIT_CLOSURE_LIMIT</tt><br>
+        <br>
+      Spirit predefined maximum closure limit. This limit defines the maximum number of elements a closure can hold. This number defaults to 3. The actual maximum is rounded up in multiples of 3. Thus, if this value is 4, the actual limit is 6. The ultimate maximum limit in this implementation is 15. It should <strong>NOT</strong> be greater than <tt>PHOENIX_LIMIT</tt> (see <a href="../phoenix/index.html">phoenix</a>). Example:<br>
+      <br>
+      <span class="comment style1">// Define these before including anything else       <br>
+        </span><span class="preprocessor style1">#define</span><span class="style1"> PHOENIX_LIMIT 10<br>
+      </span><span class="preprocessor">#define</span><span class="style1"> BOOST_SPIRIT_CLOSURE_LIMIT 10</span></p>      </td>
+  </tr>
+</table>
+<p><strong>Attaching closures</strong></p>
+<p>Closures can be applied to rules, subrules and grammars (non-terminals). The closure has a
+  special <a href="indepth_the_parser_context.html">parser context</a> that can be used with these non-terminals. The closure's
+  context is its means to hook into the non-terminal. The  context of the closure <tt>C</tt> is <tt>C::context_t</tt>. </p>
+<p>We can see in the example that we attached <tt>calc_closure</tt> to the <tt>expression</tt>, <tt>term</tt> and <tt>factor</tt> rules in our grammar:</p>
+<pre><span class=special>    </span><span class=keyword>typedef </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>, </span><span class=identifier>calc_closure</span><span class=special>::</span><span class=identifier>context_t</span><span class=special>&gt; </span><span class=identifier>rule_t</span><span class=special>;
+    </span><span class=identifier>rule_t </span><span class=identifier>expression</span><span class=special>, </span><span class=identifier>term</span><span class=special>, </span><span class=identifier>factor</span><span class=special>;</span> </pre>
+<p>as well as the grammar itself:</p>
+<pre><span class=special>    </span><span class=keyword>struct </span><span class=identifier>calculator </span><span class=special>: </span><span class=keyword>public </span><span class=identifier>grammar</span><span class=special>&lt;</span><span class=identifier>calculator</span><span class=special>, </span><span class=identifier>calc_closure</span><span class=special>::</span><span class=identifier>context_t</span><span class=special>&gt;</span></pre>
+<p><strong>Closure return value</strong></p>
+<p>The closure <tt>member1</tt> is the closure's return value. This return value, like the one returned by <tt>anychar_p</tt>, for example, can be used to propagate data up the parser hierarchy or passed to semantic actions. Thus, <tt>expression</tt>, <tt>term</tt> and <tt>factor</tt>, as well as the <tt>calculator</tt> grammar itself, all return a <tt>double</tt>. </p>
+<p><strong>Accessing closure variables</strong></p>
+<p>Closure variables can be accessed from within semantic actions just like you
+  would struct members: by qualifying the member name with its owner rule, subrule
+  or grammar. In our example above, notice how we referred to the closure member val. Example:</p>
+<pre class="identifier"><code>    expression<span class=special>.</span>val <span class="comment">// refer to expression's closure member val</span></code></pre>
+<p><strong>Initializing closure variables </strong></p>
+<p>We didn't use this feature in the example, yet, for completeness... </p>
+<p>Sometimes, we need to initialize our closure variables upon entering a non-terminal (rule, subrule or grammar). Closure enabled non-terminals, by default, default-construct variables upon entering the parse member function.
+      If this is not desirable, we can pass constructor arguments  to the non-terminal. The syntax mimics a
+  function call. </p>
+<p>For (<em>a contrived</em>) example, if you wish to construct <tt>calc_closure</tt>'s variables
+    to <tt>3.6</tt>, when we invoke the rule <tt>expression</tt>, we write:</p>
+<pre class="identifier"><code>    expression<span class="special">(</span><span class="keyword">3.6</span><span class="special">) </span><span class="comment">// invoke rule expression and set its closure variable to 3.6</span></code></pre>
+<p>The constructor arguments are actually Phoenix lambda expressions, so you can
+  use arbitrarily complex expressions. Here's another <em>contrived example<strong>: </strong></em></p>
+<pre class="identifier"><code>    <span class="comment">// call rule factor and set its closure variable to (expression.x / 8) * factor.y
+</span>    <code>factor</code><span class="special">((</span>expression<span class="special">.</span>x<span class="keyword"> </span><span class="special">/</span><span class="keyword"> 8</span><span class="special">) *</span><span class="keyword"> </span>term<span class="special">.</span>y<span class="special">)</span></code></pre>
+<p><img src="theme/lens.gif" width="15" height="16"> We can pass less arguments than the actual number of variables in the closure.
+  The variables at the right with no corresponding constructor arguments are default
+  constructed. Passing more arguments than there are closure variables is an error.</p>
+<p><img src="theme/lens.gif" width="15" height="16"> See <a href="../example/intermediate/parameters.cpp">parameters.cpp</a> for a compilable example. This is part of the Spirit distribution.</p>
+<h2>Closures and Dynamic parsing</h2>
+<p>Let's write a very simple parser for an XML/HTML like language  with arbitrarily nested tags. The typical approach to this type of nested tag parsing is to delegate the actual tag matching to semantic actions, perhaps using a symbol table. For example, the semantic actions are responsible for ensuring that the tags are nested (e.g. this code: <tt>&lt;p&gt;&lt;table&gt;&lt;/p&gt;&lt;/table&gt;</tt> is erroneous).</p>
+<p>Spirit allows us to dynamically modify the parser at runtime. The ability to guide parser behavior through semantic actions makes it possible to ensure the nesting of tags directly in the parser. We shall see how this is possible. here's the grammar in its simplest form:</p>
+<pre><span class=identifier>    element </span><span class=special>= </span><span class=identifier>start_tag </span><span class=special>&gt;&gt; </span><span class=special>*</span><span class=identifier>element </span><span class=special>&gt;&gt; </span><span class=identifier>end_tag</span><span class=special>;</span>
+</pre>
+<p>An element is a <tt>start_tag</tt> (e.g. <tt>&lt;font&gt;</tt>) folowed by zero or more elements, and ended by an <tt>end_tag</tt> (e.g. <tt>&lt;/font&gt;</tt>). Now, here's a first shot at our <tt>start_tag</tt>:</p>
+<pre><span class=special>    </span><span class=identifier>start_tag </span><span class=special>= </span><span class=literal>'&lt;' </span><span class=special>&gt;&gt; </span><span class=identifier>lexeme_d</span><span class=special>[</span><span class=special>(+</span><span class=identifier>alpha_p</span><span class=special>)</span><span class=special>] </span><span class=special>&gt;&gt; </span><span class=literal>'&gt;'</span><span class=special>;</span></pre>
+<p>Notice that the <tt>end_tag</tt> is just the same as <tt>start_tag</tt> with the addition of a slash:</p>
+<pre><span class=special>    </span><span class=identifier>end_tag </span><span class=special>= </span><span class=literal>&quot;&lt;/&quot; </span><span class=special>&gt;&gt; </span>what_we_got_in_the_start_tag <span class=special></span><span class=special>&gt;&gt; </span><span class=literal>'&gt;'</span><span class=special>;</span>
+</pre>
+<p>What we need to do is to temporarily store what we got in our <tt>start_tag</tt> and use that later to parse our <tt>end_tag</tt>. Nifty, we can use the <a href="parametric_parsers.html">parametric parser</a> primitives to parse our <tt>end_tag</tt>: </p>
+<pre><span class=special>    </span><span class=identifier>end_tag </span><span class=special>= </span><span class=string>&quot;&lt;/&quot; </span><span class=special>&gt;&gt; </span><span class=identifier>f_str_p</span><span class=special>(</span>tag<span class=special>) </span><span class=special>&gt;&gt; </span><span class=literal>'&gt;'</span><span class=special>;</span></pre>
+<p>where we parameterize <tt>f_str_p</tt> with what we stored (tag). </p>
+<p>Be reminded though that our grammar is recursive. The element rule calls itself. Hence, we can't just use a variable and use <tt>phoenix::var</tt> or <tt>boost::ref</tt>. Nested recursion will simply gobble up the variable. Each invocation of element must have a closure variable <tt>tag</tt>. Here now is the complete grammar:</p>
+<pre><span class=number>    </span><span class=keyword>struct </span><span class=identifier>tags_closure </span><span class=special>: </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>spirit</span><span class=special>::</span><span class=identifier>closure</span><span class=special>&lt;</span><span class=identifier>tags_closure</span><span class=special>, </span><span class=identifier>string</span><span class=special>&gt; </span><span class=special>
+    {
+        </span><span class=identifier>member1 </span><span class=identifier>tag</span><span class=special>;
+    </span><span class=special>};
+
+    </span><span class=keyword>struct </span><span class=identifier>tags </span><span class=special>: </span><span class=keyword>public </span><span class=identifier>grammar</span><span class=special>&lt;</span><span class=identifier>tags</span><span class=special>&gt;
+    </span><span class=special>{
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>struct </span><span class=identifier>definition </span><span class=special>{
+
+            </span><span class=identifier>definition</span><span class=special>(</span><span class=identifier>tags </span><span class=keyword>const</span><span class=special>&amp; </span><span class=comment>/*self*/</span><span class=special>)
+            </span><span class=special>{
+                </span><span class=identifier>element </span><span class=special>= </span><span class=identifier>start_tag </span><span class=special>&gt;&gt; </span><span class=special>*</span><span class=identifier>element </span><span class=special>&gt;&gt; </span><span class=identifier>end_tag</span><span class=special>;
+
+                </span><span class=identifier>start_tag </span><span class=special>=
+                        </span><span class=literal>'&lt;'
+                    </span><span class=special>&gt;&gt;  </span><span class=identifier>lexeme_d
+                        </span><span class=special>[
+                            </span><span class=special>(+</span><span class=identifier>alpha_p</span><span class=special>)
+                            </span><span class=special>[
+                                </span><span class=comment>//  construct string from arg1 and arg2 lazily
+                                </span><span class=comment>//  and assign to element.tag
+
+                                </span><span class=identifier>element</span><span class=special>.</span><span class=identifier>tag </span><span class=special>= </span><span class=identifier>construct_</span><span class=special>&lt;</span><span class=identifier>string</span><span class=special>&gt;(</span><span class=identifier>arg1</span><span class=special>, </span><span class=identifier>arg2</span><span class=special>)
+                            </span><span class=special>]
+                        </span><span class=special>]
+                    </span><span class=special>&gt;&gt; </span><span class=literal>'&gt;'</span><span class=special>;
+
+                </span><span class=identifier>end_tag </span><span class=special>= </span><span class=string>&quot;&lt;/&quot; </span><span class=special>&gt;&gt; </span><span class=identifier>f_str_p</span><span class=special>(</span><span class=identifier>element</span><span class=special>.</span><span class=identifier>tag</span><span class=special>) </span><span class=special>&gt;&gt; </span><span class=literal>'&gt;'</span><span class=special>;
+            </span><span class=special>}
+
+            </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>, </span><span class=identifier>tags_closure</span><span class=special>::</span><span class=identifier>context_t</span><span class=special>&gt; </span><span class=identifier>element</span><span class=special>;
+            </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt; </span><span class=identifier>start_tag</span><span class=special>, </span><span class=identifier>end_tag</span><span class=special>;
+
+            </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>, </span><span class=identifier>tags_closure</span><span class=special>::</span><span class=identifier>context_t</span><span class=special>&gt; </span><span class=keyword>const</span><span class=special>&amp;
+            </span><span class=identifier>start</span><span class=special>() </span><span class=keyword>const </span><span class=special>{ </span><span class=keyword>return </span><span class=identifier>element</span><span class=special>; </span><span class=special>}
+        </span><span class=special>};
+    </span><span class=special>};</span></pre>
+<p>We attached a semantic action to the <tt>(+alpha_p)</tt> part of the start_tag. There, we stored the parsed tag in the <tt>element</tt>'s closure variable <tt>tag</tt>. Later, in the <tt>end_tag</tt>, we simply used the <tt>element</tt>'s closure variable <tt>tag</tt> to parameterize our <tt>f_str_p</tt> parser. Simple and elegant. If some of the details begin to look like greek (e.g. what is <tt>construct_</tt>?), please consult the <a href="phoenix.html">Phoenix</a> chapter. </p>
+<p><img height="16" width="15" src="theme/lens.gif"> The full source code can be <a href="../example/fundamental/matching_tags.cpp">viewed here</a>. This is part of the Spirit distribution.</p>
+<h2><img src="theme/lens.gif" width="15" height="16"> Closures in-depth</h2>
+<p><strong>What are Closures?</strong></p>
+<p>The closure is an object that <span class="quotes">&quot;closes&quot;</span>
+  over the local variables of a function making them visible and accessible outside
+  the function. What is more interesting is that the closure actually packages
+  a local context (stack frame where some variables reside) and makes it available
+  outside the scope in which they actually exist. The information is essentially
+  <span class="quotes">&quot;captured&quot;</span> by the closure allowing it
+  to be referred to anywhere and anytime, even prior to the actual creation of
+  the variables. </p>
+<p>The following diagram depicts the situation where a function <tt>A</tt> (or
+  rule) exposes its closure and another function <tt>B</tt> references <tt>A</tt>'s
+  variables through its closure.</p>
+<table width="40%" border="0" align="center">
+  <tr>
+    <td><img src="theme/closure1.png"></td>
+  </tr>
+  <tr>
+    <td> <div align="center"><b><font face="Geneva, Arial, Helvetica, san-serif" size="+1" color="#003399">The
+        closure as an object that <i>&quot;closes&quot;</i> over the local variables
+        of a function making them visible and accessible outside the function</font></b></div></td>
+  </tr>
+</table>
+<p>Of course, function <tt>A</tt> should be active when <tt>A.x</tt> is referenced.
+  What this means is that function <tt>B</tt> is reliant on function <tt>A</tt>
+  (If <tt>B</tt> is a nested function of <tt>A</tt>, this will always be the case).
+  The free form nature of Spirit rules allows access to a closure variable anytime,
+  anywhere. Accessing <tt>A.x</tt> is equivalent to referring to the topmost stack
+  variable <tt>x</tt> of function <tt>A</tt>. If function <tt>A</tt> is not active
+  when <tt>A.x</tt> is referenced, a runtime exception will be thrown.</p>
+<p><strong>Nested Functions</strong></p>
+<p>To fully understand the importance of closures, it is best to look at a language
+  such as Pascal which allows nested functions. Since we are dealing with C++,
+  lets us assume for the moment that C++ allows nested functions. Consider the
+  following <b><i>pseudo</i></b> C++ code:</p>
+<pre><span class=identifier>    </span><span class=keyword>void </span><span class=identifier>a</span><span class=special>()
+    </span><span class=special>{
+        </span><span class=keyword>int </span><span class=identifier>va</span><span class=special>;
+        </span><span class=keyword>void </span><span class=identifier>b</span><span class=special>()
+        </span><span class=special>{
+            </span><span class=keyword>int </span><span class=identifier>vb</span><span class=special>;
+</span>            <span class=keyword>void </span><span class=identifier>c</span><span class=special>()
+            </span><span class=special>{
+                </span><span class=keyword>int </span><span class=identifier>vc</span><span class=special>;
+            </span><span class=special>}
+
+            </span><span class=identifier>c</span><span class=special>()</span><span class=special>;
+        </span><span class=special>}
+
+        </span><span class=identifier>b</span><span class=special>();
+    </span><span class=special>}</span></pre>
+<p>We have three functions <tt>a</tt>, <tt>b</tt> and <tt>c</tt> where <tt>c</tt>
+  is nested in <tt>b</tt> and <tt>b</tt> is nested in <tt>a</tt>. We also have
+  three variables <tt>va</tt>, <tt>vb</tt> and <tt>vc</tt>. The lifetime of each
+  of these local variables starts when the function where it is declared is entered
+  and ends when the function exits. The scope of a local variable spans all nested
+  functions inside the enclosing function where the variable is declared.</p>
+<p>Going downstream from function <tt>a</tt> to function <tt>c</tt>, when function
+  a is entered, the variable <tt>va</tt> will be created in the stack. When function
+  <tt>b</tt> is entered (called by <tt>a</tt>), <tt>va</tt> is very well in scope
+  and is visble in <tt>b</tt>. At which point a fresh variable, <tt>vb</tt>, is
+  created on the stack. When function <tt>c</tt> is entered, both <tt>va</tt>
+  and <tt>vb</tt> are visibly in scope, and a fresh local variable <tt>vc</tt>
+  is created. </p>
+<p>Going upstream, <tt>vc</tt> is not and cannot be visible outside the function
+  <tt>c</tt>. <tt>vc</tt>'s life has already expired once <tt>c</tt> exits. The
+  same is true with <tt>vb</tt>; vb is accessible in function <tt>c</tt> but not
+  in function <tt>a</tt>. </p>
+<strong>Nested Mutually Recursive Rules</strong>
+<p>Now consider that <tt>a</tt>, <tt>b</tt> and <tt>c</tt> are rules:</p>
+<pre><span class=identifier>    </span><span class=identifier>a </span><span class=special>= </span><span class=identifier>b </span><span class=special>&gt;&gt; </span><span class=special>*((</span><span class=literal>'+' </span><span class=special>&gt;&gt; </span><span class=identifier>b</span><span class=special>) </span><span class=special>| </span><span class=special>(</span><span class=literal>'-' </span><span class=special>&gt;&gt; </span><span class=identifier>b</span><span class=special>));
+    </span><span class=identifier>b </span><span class=special>= </span><span class=identifier>c </span><span class=special>&gt;&gt; </span><span class=special>*((</span><span class=literal>'*' </span><span class=special>&gt;&gt; </span><span class=identifier>c</span><span class=special>) </span><span class=special>| </span><span class=special>(</span><span class=literal>'/' </span><span class=special>&gt;&gt; </span><span class=identifier>c</span><span class=special>));
+    </span><span class=identifier>c </span><span class=special>= </span><span class=identifier>int_p </span><span class=special>| </span><span class=literal>'(' </span><span class=special>&gt;&gt; </span><span class=identifier>a </span><span class=special>&gt;&gt; </span><span class=literal>')' </span><span class=special>| </span><span class=special>(</span><span class=literal>'-' </span><span class=special>&gt;&gt; </span><span class=identifier>c</span><span class=special>) </span><span class=special>| </span><span class=special>(</span><span class=literal>'+' </span><span class=special>&gt;&gt; </span><span class=identifier>c</span><span class=special>);</span></pre>
+<p>We can visualize <tt>a</tt>, <tt>b</tt> and <tt>c</tt> as mutually recursive
+  functions where <tt>a</tt> calls <tt>b</tt>, <tt>b</tt> calls <tt>c</tt> and
+  <tt>c</tt> recursively calls <tt>a</tt>. Now, imagine if <tt>a</tt>, <tt>b</tt>
+  and <tt>c</tt> each has a local variable named <tt>value</tt> that can be referred
+  to in our grammar by explicit qualification:</p>
+<pre><span class=special>    </span><span class=identifier>a</span><span class=special>.</span><span class=identifier>value </span><span class=comment>// refer to a's value local variable
+    </span><span class=identifier>b</span><span class=special>.</span><span class=identifier>value </span><span class=comment>// refer to b's value local variable
+    </span><span class=identifier>c</span><span class=special>.</span><span class=identifier>value </span><span class=comment>// refer to c's value local variable</span>
+</pre>
+<p>Like above, when <tt>a</tt> is entered, a local variable <tt>value</tt> is
+  created on the stack. This variable can be referred to by both <tt>b</tt> and
+  <tt>c</tt>. Again, when <tt>b</tt> is called by <tt>a</tt>, <tt>b</tt> creates
+  a local variable <tt>value</tt>. This variable is accessible by <tt>c</tt> but
+  not by <tt>a</tt>. </p>
+<p>Here now is where the analogy with nested functions end: when <tt>c</tt> is
+  called, a fresh variable <tt>value</tt> is created which, as usual, lasts the
+  whole lifetime of <tt>c</tt>. Pay close attention however that <tt>c</tt> may
+  call <tt>a</tt> recursively. When this happens, <tt>a</tt> may now refer to
+  the local variable of <tt>c</tt><code><span class=special>.</span></code></p>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="phoenix.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="dynamic_parsers.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+<font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+</body>
+</html>

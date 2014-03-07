@@ -1,0 +1,38 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[def __this_function__ num_points]
+
+[heading_conformance_ogc __this_function__..NumPoints]
+[note __this_function__ can be called for any geometry and not just linestrings
+(as the standard describes)]
+
+[heading Behavior]
+[table
+[[Case] [Behavior] ]
+[[__point__][[qbk_ret 1]]]
+[[__segment__][[qbk_ret 2]]]
+[[__box__][[qbk_ret 4]]]
+[[__range__][[qbk_ret boost::size(geometry)]]]
+[[__other__][[qbk_ret the sum of the number of points of its elements]]]
+[[Open geometries][[qbk_ret the sum of the number of points of its elements, it adds one for open (per ring) if specified]]]
+[[Closed geometries][[qbk_ret the sum of the number of points of its elements]]]
+]
+
+
+[heading Complexity]
+Constant or Linear
+
+[heading Examples]
+[num_points]
+[num_points_output]
+

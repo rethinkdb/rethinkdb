@@ -1,0 +1,24 @@
+#  Boost.Format Library test Jamfile
+#
+#  Copyright (c) 2003 Samuel Krempp
+#
+#  Distributed under the Boost Software License, Version 1.0. (See accompany-
+#  ing file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+project
+    : requirements 
+      <library>/boost/test//boost_test_exec_monitor/<link>static
+    ;
+
+import testing ;
+{
+
+test-suite "format"
+   :    [ run format_test1.cpp ]
+        [ run format_test2.cpp ]
+        [ run format_test3.cpp ]
+        [ run format_test_wstring.cpp ]
+        [ run format_test_enum.cpp ]
+  ;
+}
+

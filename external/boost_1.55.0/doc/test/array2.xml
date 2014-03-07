@@ -1,0 +1,82 @@
+<section id="array.rationale">
+   <title>Design Rationale</title>
+
+   <para>
+      There was an important design tradeoff regarding the
+      constructors: We could implement array as an "aggregate" (see
+      Section 8.5.1, [dcl.init.aggr], of the C++ Standard). This would
+      mean:
+      <itemizedlist>
+         <listitem>
+            <simpara>
+               An array can be initialized with a
+               brace-enclosing, comma-separated list of initializers for the
+               elements of the container, written in increasing subscript
+               order:
+            </simpara>
+
+            <programlisting>
+               <classname>boost::array</classname>&lt;int,4&gt; a = { { 1, 2, 3 } };
+            </programlisting>
+
+            <simpara>
+               Note that if there are fewer elements in the
+               initializer list, then each remaining element gets
+               default-initialized (thus, it has a defined value).
+            </simpara>
+         </listitem>
+      </itemizedlist>
+   </para>
+
+   <para>
+      However, this approach has its drawbacks: <emphasis
+  role="bold">
+         passing no initializer list means that the elements
+         have an indetermined initial value
+      </emphasis>, because the rule says
+      that aggregates may have:
+      <itemizedlist>
+         <listitem>
+            <simpara>No user-declared constructors.</simpara>
+         </listitem>
+         <listitem>
+            <simpara>No private or protected non-static data members.</simpara>
+         </listitem>
+         <listitem>
+            <simpara>No base classes.</simpara>
+         </listitem>
+         <listitem>
+            <simpara>No virtual functions.</simpara>
+         </listitem>
+      </itemizedlist>
+   </para>
+
+   <para>Nevertheless, The current implementation uses this approach.</para>
+
+   <para>
+      Note that for standard conforming compilers it is possible to
+      use fewer braces (according to 8.5.1 (11) of the Standard). That is,
+      you can initialize an array as follows:
+   </para>
+
+   <programlisting>
+      <classname>boost::array</classname>&lt;int,4&gt; a = { 1, 2, 3 };
+   </programlisting>
+
+   <para>
+      I'd appreciate any constructive feedback. <emphasis
+  role="bold">
+         Please note: I don't have time to read all boost
+         mails. Thus, to make sure that feedback arrives to me, please send
+         me a copy of each mail regarding this class.
+      </emphasis>
+   </para>
+
+   <para>
+      The code is provided "as is" without expressed or implied
+      warranty.
+   </para>
+
+</section>
+
+

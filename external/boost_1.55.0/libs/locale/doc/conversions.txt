@@ -1,0 +1,100 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page conversions Text Conversions
+
+There is a set of functions that perform basic string conversion operations: 
+upper, lower and \ref term_title_case "title case" conversions, \ref term_case_folding "case folding"
+and Unicode \ref term_normalization "normalization". These are \ref boost::locale::to_upper "to_upper" , \ref boost::locale::to_lower "to_lower", \ref boost::locale::to_title "to_title", \ref boost::locale::fold_case "fold_case" and \ref boost::locale::normalize "normalize".
+
+All these functions receive an \c std::locale object as parameter or use a global locale by default.
+
+Global locale is used in all examples below.
+
+\section conversions_case Case Handing
+
+For example:
+\code
+    std::string grussen = "grüßEN";
+    std::cout   <<"Upper "<< boost::locale::to_upper(grussen) << std::endl
+                <<"Lower "<< boost::locale::to_lower(grussen) << std::endl
+                <<"Title "<< boost::locale::to_title(grussen) << std::endl
+                <<"Fold  "<< boost::locale::fold_case(grussen) << std::endl;
+\endcode
+
+Would print:
+
+\verbatim
+Upper GRÜSSEN
+Lower grüßen
+Title Grüßen
+Fold  grüssen
+\endverbatim
+
+You may notice that there are existing functions \c to_upper and \c to_lower in the Boost.StringAlgo library.
+The difference is that these function operate over an entire string instead of performing incorrect character-by-character conversions.
+
+For example:
+
+\code
+    std::wstring grussen = L"grüßen";
+    std::wcout << boost::algorithm::to_upper_copy(grussen) << " " << boost::locale::to_upper(grussen) << std::endl;
+\endcode
+
+Would give in output:
+
+\verbatim
+GRÜßEN GRÜSSEN
+\endverbatim
+
+Where a letter "ß" was not converted correctly to double-S in first case because of a limitation of \c std::ctype facet.
+
+This is even more problematic in case of UTF-8 encodings where non US-ASCII are not converted at all. 
+For example, this code 
+
+\code
+    std::string grussen = "grüßen";
+    std::cout << boost::algorithm::to_upper_copy(grussen) << " " << boost::locale::to_upper(grussen) << std::endl;
+\endcode
+
+Would modify ASCII characters only
+
+\verbatim
+GRüßEN GRÜSSEN
+\endverbatim
+
+\section conversions_normalization Unicode Normalization
+
+Unicode normalization is the process of converting strings to a standard form, suitable for text processing and
+comparison. For example, character "ü" can be represented by a single code point or a combination of the character "u" and the
+diaeresis "¨". Normalization is an important part of Unicode text processing.
+
+Unicode defines four normalization forms. Each specific form is selected by a flag passed
+to \ref boost::locale::normalize() "normalize" function:
+
+- NFD - Canonical decomposition - boost::locale::norm_nfd
+- NFC - Canonical decomposition followed by canonical composition - boost::locale::norm_nfc or boost::locale::norm_default
+- NFKD - Compatibility decomposition - boost::locale::norm_nfkd
+- NFKC - Compatibility decomposition followed by canonical composition - boost::locale::norm_nfkc
+
+For more details on normalization forms, read <a href="http://unicode.org/reports/tr15/#Norm_Forms">this article</a>.
+
+\section conversions_notes Notes
+
+-   \ref boost::locale::normalize() "normalize" operates only on Unicode-encoded strings, i.e.: UTF-8, UTF-16 and UTF-32 depending on the
+    character width. So be careful when using non-UTF encodings as they may be treated incorrectly.
+-   \ref boost::locale::fold_case() "fold_case" is generally a locale-independent operation, but it receives a locale as a parameter to
+    determine the 8-bit encoding.
+-   All of these functions can work with an STL string, a NUL terminated string, or a range defined by two pointers. They always
+    return a newly created STL string.
+-   The length of the string may change, see the above example.
+*/
+
+

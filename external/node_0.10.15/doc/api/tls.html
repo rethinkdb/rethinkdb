@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TLS (SSL) Node.js v0.10.15 Manual &amp; Documentation</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/sh.css">
+  <link rel="canonical" href="http://nodejs.org/api/tls.html">
+</head>
+<body class="alt apidoc" id="api-section-tls">
+    <div id="intro" class="interior">
+        <a href="/" title="Go back to the home page">
+            <img id="logo" src="http://nodejs.org/images/logo-light.png" alt="node.js">
+        </a>
+    </div>
+    <div id="content" class="clearfix">
+        <div id="column2" class="interior">
+            <ul>
+                <li><a href="/" class="home">Home</a></li>
+                <li><a href="/download/" class="download">Download</a></li>
+                <li><a href="/about/" class="about">About</a></li>
+                <li><a href="http://npmjs.org/" class="npm">npm Registry</a></li>
+                <li><a href="http://nodejs.org/api/" class="docs current">Docs</a></li>
+                <li><a href="http://blog.nodejs.org" class="blog">Blog</a></li>
+                <li><a href="/community/" class="community">Community</a></li>
+                <li><a href="/logos/" class="logos">Logos</a></li>
+                <li><a href="http://jobs.nodejs.org/" class="jobs">Jobs</a></li>
+            </ul>
+            <p class="twitter"><a href="http://twitter.com/nodejs">@nodejs</a></p>
+        </div>
+
+        <div id="column1" class="interior">
+          <header>
+            <h1>Node.js v0.10.15 Manual &amp; Documentation</h1>
+            <div id="gtoc">
+              <p>
+                <a href="index.html" name="toc">Index</a> |
+                <a href="all.html">View on single page</a> |
+                <a href="tls.json">View as JSON</a>
+              </p>
+            </div>
+            <hr>
+          </header>
+
+          <div id="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+<li><a href="#tls_tls_ssl">TLS (SSL)</a><ul>
+<li><a href="#tls_client_initiated_renegotiation_attack_mitigation">Client-initiated renegotiation attack mitigation</a></li>
+<li><a href="#tls_npn_and_sni">NPN and SNI</a></li>
+<li><a href="#tls_tls_getciphers">tls.getCiphers()</a></li>
+<li><a href="#tls_tls_createserver_options_secureconnectionlistener">tls.createServer(options, [secureConnectionListener])</a></li>
+<li><a href="#tls_tls_slab_buffer_size">tls.SLAB_BUFFER_SIZE</a></li>
+<li><a href="#tls_tls_connect_options_callback">tls.connect(options, [callback])</a></li>
+<li><a href="#tls_tls_connect_port_host_options_callback">tls.connect(port, [host], [options], [callback])</a></li>
+<li><a href="#tls_tls_createsecurepair_credentials_isserver_requestcert_rejectunauthorized">tls.createSecurePair([credentials], [isServer], [requestCert], [rejectUnauthorized])</a></li>
+<li><a href="#tls_class_securepair">Class: SecurePair</a><ul>
+<li><a href="#tls_event_secure">Event: &#39;secure&#39;</a></li>
+</ul>
+</li>
+<li><a href="#tls_class_tls_server">Class: tls.Server</a><ul>
+<li><a href="#tls_event_secureconnection">Event: &#39;secureConnection&#39;</a></li>
+<li><a href="#tls_event_clienterror">Event: &#39;clientError&#39;</a></li>
+<li><a href="#tls_event_newsession">Event: &#39;newSession&#39;</a></li>
+<li><a href="#tls_event_resumesession">Event: &#39;resumeSession&#39;</a></li>
+<li><a href="#tls_server_listen_port_host_callback">server.listen(port, [host], [callback])</a></li>
+<li><a href="#tls_server_close">server.close()</a></li>
+<li><a href="#tls_server_address">server.address()</a></li>
+<li><a href="#tls_server_addcontext_hostname_credentials">server.addContext(hostname, credentials)</a></li>
+<li><a href="#tls_server_maxconnections">server.maxConnections</a></li>
+<li><a href="#tls_server_connections">server.connections</a></li>
+</ul>
+</li>
+<li><a href="#tls_class_cryptostream">Class: CryptoStream</a><ul>
+<li><a href="#tls_cryptostream_byteswritten">cryptoStream.bytesWritten</a></li>
+</ul>
+</li>
+<li><a href="#tls_class_tls_cleartextstream">Class: tls.CleartextStream</a><ul>
+<li><a href="#tls_event_secureconnect">Event: &#39;secureConnect&#39;</a></li>
+<li><a href="#tls_cleartextstream_authorized">cleartextStream.authorized</a></li>
+<li><a href="#tls_cleartextstream_authorizationerror">cleartextStream.authorizationError</a></li>
+<li><a href="#tls_cleartextstream_getpeercertificate">cleartextStream.getPeerCertificate()</a></li>
+<li><a href="#tls_cleartextstream_getcipher">cleartextStream.getCipher()</a></li>
+<li><a href="#tls_cleartextstream_address">cleartextStream.address()</a></li>
+<li><a href="#tls_cleartextstream_remoteaddress">cleartextStream.remoteAddress</a></li>
+<li><a href="#tls_cleartextstream_remoteport">cleartextStream.remotePort</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+
+          <div id="apicontent">
+            <h1>TLS (SSL)<span><a class="mark" href="#tls_tls_ssl" id="tls_tls_ssl">#</a></span></h1>
+<pre class="api_stability_3">Stability: 3 - Stable</pre><p>Use <code>require(&#39;tls&#39;)</code> to access this module.
+
+</p>
+<p>The <code>tls</code> module uses OpenSSL to provide Transport Layer Security and/or
+Secure Socket Layer: encrypted stream communication.
+
+</p>
+<p>TLS/SSL is a public/private key infrastructure. Each client and each
+server must have a private key. A private key is created like this
+
+</p>
+<pre><code>openssl genrsa -out ryans-key.pem 1024</code></pre>
+<p>All severs and some clients need to have a certificate. Certificates are public
+keys signed by a Certificate Authority or self-signed. The first step to
+getting a certificate is to create a &quot;Certificate Signing Request&quot; (CSR)
+file. This is done with:
+
+</p>
+<pre><code>openssl req -new -key ryans-key.pem -out ryans-csr.pem</code></pre>
+<p>To create a self-signed certificate with the CSR, do this:
+
+</p>
+<pre><code>openssl x509 -req -in ryans-csr.pem -signkey ryans-key.pem -out ryans-cert.pem</code></pre>
+<p>Alternatively you can send the CSR to a Certificate Authority for signing.
+
+</p>
+<p>(TODO: docs on creating a CA, for now interested users should just look at
+<code>test/fixtures/keys/Makefile</code> in the Node source code)
+
+</p>
+<p>To create .pfx or .p12, do this:
+
+</p>
+<pre><code>openssl pkcs12 -export -in agent5-cert.pem -inkey agent5-key.pem \
+    -certfile ca-cert.pem -out agent5.pfx</code></pre>
+<ul>
+<li><code>in</code>:  certificate</li>
+<li><code>inkey</code>: private key</li>
+<li><code>certfile</code>: all CA certs concatenated in one file like
+<code>cat ca1-cert.pem ca2-cert.pem &gt; ca-cert.pem</code></li>
+</ul>
+<h2>Client-initiated renegotiation attack mitigation<span><a class="mark" href="#tls_client_initiated_renegotiation_attack_mitigation" id="tls_client_initiated_renegotiation_attack_mitigation">#</a></span></h2>
+<!-- type=misc -->
+
+<p>The TLS protocol lets the client renegotiate certain aspects of the TLS session.
+Unfortunately, session renegotiation requires a disproportional amount of
+server-side resources, which makes it a potential vector for denial-of-service
+attacks.
+
+</p>
+<p>To mitigate this, renegotiations are limited to three times every 10 minutes. An
+error is emitted on the <a href="#tls_class_tls_cleartextstream">CleartextStream</a> instance when the threshold is
+exceeded. The limits are configurable:
+
+</p>
+<ul>
+<li><p><code>tls.CLIENT_RENEG_LIMIT</code>: renegotiation limit, default is 3.</p>
+</li>
+<li><p><code>tls.CLIENT_RENEG_WINDOW</code>: renegotiation window in seconds, default is
+10 minutes.</p>
+</li>
+</ul>
+<p>Don&#39;t change the defaults unless you know what you are doing.
+
+</p>
+<p>To test your server, connect to it with <code>openssl s_client -connect address:port</code>
+and tap <code>R&lt;CR&gt;</code> (that&#39;s the letter <code>R</code> followed by a carriage return) a few
+times.
+
+
+</p>
+<h2>NPN and SNI<span><a class="mark" href="#tls_npn_and_sni" id="tls_npn_and_sni">#</a></span></h2>
+<!-- type=misc -->
+
+<p>NPN (Next Protocol Negotiation) and SNI (Server Name Indication) are TLS
+handshake extensions allowing you:
+
+</p>
+<ul>
+<li>NPN - to use one TLS server for multiple protocols (HTTP, SPDY)</li>
+<li>SNI - to use one TLS server for multiple hostnames with different SSL
+certificates.</li>
+</ul>
+<h2>tls.getCiphers()<span><a class="mark" href="#tls_tls_getciphers" id="tls_tls_getciphers">#</a></span></h2>
+<p>Returns an array with the names of the supported SSL ciphers.
+
+</p>
+<p>Example:
+
+</p>
+<pre><code>var ciphers = tls.getCiphers();
+console.log(ciphers); // [&#39;AES128-SHA&#39;, &#39;AES256-SHA&#39;, ...]</code></pre>
+<h2>tls.createServer(options, [secureConnectionListener])<span><a class="mark" href="#tls_tls_createserver_options_secureconnectionlistener" id="tls_tls_createserver_options_secureconnectionlistener">#</a></span></h2>
+<p>Creates a new <a href="#tls_class_tls_server">tls.Server</a>.  The <code>connectionListener</code> argument is
+automatically set as a listener for the <a href="#tls_event_secureconnection">secureConnection</a> event.  The
+<code>options</code> object has these possibilities:
+
+</p>
+<ul>
+<li><p><code>pfx</code>: A string or <code>Buffer</code> containing the private key, certificate and
+CA certs of the server in PFX or PKCS12 format. (Mutually exclusive with
+the <code>key</code>, <code>cert</code> and <code>ca</code> options.)</p>
+</li>
+<li><p><code>key</code>: A string or <code>Buffer</code> containing the private key of the server in
+PEM format. (Required)</p>
+</li>
+<li><p><code>passphrase</code>: A string of passphrase for the private key or pfx.</p>
+</li>
+<li><p><code>cert</code>: A string or <code>Buffer</code> containing the certificate key of the server in
+PEM format. (Required)</p>
+</li>
+<li><p><code>ca</code>: An array of strings or <code>Buffer</code>s of trusted certificates. If this is
+omitted several well known &quot;root&quot; CAs will be used, like VeriSign.
+These are used to authorize connections.</p>
+</li>
+<li><p><code>crl</code> : Either a string or list of strings of PEM encoded CRLs (Certificate
+Revocation List)</p>
+</li>
+<li><p><code>ciphers</code>: A string describing the ciphers to use or exclude.</p>
+<p>To mitigate <a href="http://blog.ivanristic.com/2011/10/mitigating-the-beast-attack-on-tls.html">BEAST attacks</a> it is recommended that you use this option in
+conjunction with the <code>honorCipherOrder</code> option described below to
+prioritize the non-CBC cipher.</p>
+<p>Defaults to <code>AES128-GCM-SHA256:RC4:HIGH:!MD5:!aNULL:!EDH</code>.
+Consult the <a href="http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT">OpenSSL cipher list format documentation</a> for details on the
+format. ECDH (Elliptic Curve Diffie-Hellman) ciphers are not yet supported.</p>
+</li>
+</ul>
+<pre><code>`AES128-GCM-SHA256` is used when node.js is linked against OpenSSL 1.0.1
+or newer and the client speaks TLS 1.2, RC4 is used as a secure fallback.
+
+**NOTE**: Previous revisions of this section suggested `AES256-SHA` as an
+acceptable cipher. Unfortunately, `AES256-SHA` is a CBC cipher and therefore
+susceptible to BEAST attacks. Do *not* use it.</code></pre>
+<ul>
+<li><p><code>handshakeTimeout</code>: Abort the connection if the SSL/TLS handshake does not
+finish in this many milliseconds. The default is 120 seconds.</p>
+<p>A <code>&#39;clientError&#39;</code> is emitted on the <code>tls.Server</code> object whenever a handshake
+times out.</p>
+</li>
+<li><p><code>honorCipherOrder</code> : When choosing a cipher, use the server&#39;s preferences
+instead of the client preferences.</p>
+<p>Note that if SSLv2 is used, the server will send its list of preferences
+to the client, and the client chooses the cipher.</p>
+<p>Although, this option is disabled by default, it is <em>recommended</em> that you
+use this option in conjunction with the <code>ciphers</code> option to mitigate
+BEAST attacks.</p>
+</li>
+<li><p><code>requestCert</code>: If <code>true</code> the server will request a certificate from
+clients that connect and attempt to verify that certificate. Default:
+<code>false</code>.</p>
+</li>
+<li><p><code>rejectUnauthorized</code>: If <code>true</code> the server will reject any connection
+which is not authorized with the list of supplied CAs. This option only
+has an effect if <code>requestCert</code> is <code>true</code>. Default: <code>false</code>.</p>
+</li>
+<li><p><code>NPNProtocols</code>: An array or <code>Buffer</code> of possible NPN protocols. (Protocols
+should be ordered by their priority).</p>
+</li>
+<li><p><code>SNICallback</code>: A function that will be called if client supports SNI TLS
+extension. Only one argument will be passed to it: <code>servername</code>. And
+<code>SNICallback</code> should return SecureContext instance.
+(You can use <code>crypto.createCredentials(...).context</code> to get proper
+SecureContext). If <code>SNICallback</code> wasn&#39;t provided - default callback with
+high-level API will be used (see below).</p>
+</li>
+<li><p><code>sessionIdContext</code>: A string containing a opaque identifier for session
+resumption. If <code>requestCert</code> is <code>true</code>, the default is MD5 hash value
+generated from command-line. Otherwise, the default is not provided.</p>
+</li>
+<li><p><code>secureProtocol</code>: The SSL method to use, e.g. <code>SSLv3_method</code> to force
+SSL version 3. The possible values depend on your installation of
+OpenSSL and are defined in the constant <a href="http://www.openssl.org/docs/ssl/ssl.html#DEALING_WITH_PROTOCOL_METHODS">SSL_METHODS</a>.</p>
+</li>
+</ul>
+<p>Here is a simple example echo server:
+
+</p>
+<pre><code>var tls = require(&#39;tls&#39;);
+var fs = require(&#39;fs&#39;);
+
+var options = {
+  key: fs.readFileSync(&#39;server-key.pem&#39;),
+  cert: fs.readFileSync(&#39;server-cert.pem&#39;),
+
+  // This is necessary only if using the client certificate authentication.
+  requestCert: true,
+
+  // This is necessary only if the client uses the self-signed certificate.
+  ca: [ fs.readFileSync(&#39;client-cert.pem&#39;) ]
+};
+
+var server = tls.createServer(options, function(cleartextStream) {
+  console.log(&#39;server connected&#39;,
+              cleartextStream.authorized ? &#39;authorized&#39; : &#39;unauthorized&#39;);
+  cleartextStream.write(&quot;welcome!\n&quot;);
+  cleartextStream.setEncoding(&#39;utf8&#39;);
+  cleartextStream.pipe(cleartextStream);
+});
+server.listen(8000, function() {
+  console.log(&#39;server bound&#39;);
+});</code></pre>
+<p>Or
+
+</p>
+<pre><code>var tls = require(&#39;tls&#39;);
+var fs = require(&#39;fs&#39;);
+
+var options = {
+  pfx: fs.readFileSync(&#39;server.pfx&#39;),
+
+  // This is necessary only if using the client certificate authentication.
+  requestCert: true,
+
+};
+
+var server = tls.createServer(options, function(cleartextStream) {
+  console.log(&#39;server connected&#39;,
+              cleartextStream.authorized ? &#39;authorized&#39; : &#39;unauthorized&#39;);
+  cleartextStream.write(&quot;welcome!\n&quot;);
+  cleartextStream.setEncoding(&#39;utf8&#39;);
+  cleartextStream.pipe(cleartextStream);
+});
+server.listen(8000, function() {
+  console.log(&#39;server bound&#39;);
+});</code></pre>
+<p>You can test this server by connecting to it with <code>openssl s_client</code>:
+
+
+</p>
+<pre><code>openssl s_client -connect 127.0.0.1:8000</code></pre>
+<h2>tls.SLAB_BUFFER_SIZE<span><a class="mark" href="#tls_tls_slab_buffer_size" id="tls_tls_slab_buffer_size">#</a></span></h2>
+<p>Size of slab buffer used by all tls servers and clients.
+Default: <code>10 * 1024 * 1024</code>.
+
+
+</p>
+<p>Don&#39;t change the defaults unless you know what you are doing.
+
+
+</p>
+<h2>tls.connect(options, [callback])<span><a class="mark" href="#tls_tls_connect_options_callback" id="tls_tls_connect_options_callback">#</a></span></h2>
+<h2>tls.connect(port, [host], [options], [callback])<span><a class="mark" href="#tls_tls_connect_port_host_options_callback" id="tls_tls_connect_port_host_options_callback">#</a></span></h2>
+<p>Creates a new client connection to the given <code>port</code> and <code>host</code> (old API) or
+<code>options.port</code> and <code>options.host</code>. (If <code>host</code> is omitted, it defaults to
+<code>localhost</code>.) <code>options</code> should be an object which specifies:
+
+</p>
+<ul>
+<li><p><code>host</code>: Host the client should connect to</p>
+</li>
+<li><p><code>port</code>: Port the client should connect to</p>
+</li>
+<li><p><code>socket</code>: Establish secure connection on a given socket rather than
+creating a new socket. If this option is specified, <code>host</code> and <code>port</code>
+are ignored.</p>
+</li>
+<li><p><code>pfx</code>: A string or <code>Buffer</code> containing the private key, certificate and
+CA certs of the server in PFX or PKCS12 format.</p>
+</li>
+<li><p><code>key</code>: A string or <code>Buffer</code> containing the private key of the client in
+PEM format.</p>
+</li>
+<li><p><code>passphrase</code>: A string of passphrase for the private key or pfx.</p>
+</li>
+<li><p><code>cert</code>: A string or <code>Buffer</code> containing the certificate key of the client in
+PEM format.</p>
+</li>
+<li><p><code>ca</code>: An array of strings or <code>Buffer</code>s of trusted certificates. If this is
+omitted several well known &quot;root&quot; CAs will be used, like VeriSign.
+These are used to authorize connections.</p>
+</li>
+<li><p><code>rejectUnauthorized</code>: If <code>true</code>, the server certificate is verified against
+the list of supplied CAs. An <code>&#39;error&#39;</code> event is emitted if verification
+fails. Default: <code>true</code>.</p>
+</li>
+<li><p><code>NPNProtocols</code>: An array of string or <code>Buffer</code> containing supported NPN
+protocols. <code>Buffer</code> should have following format: <code>0x05hello0x05world</code>,
+where first byte is next protocol name&#39;s length. (Passing array should
+usually be much simpler: <code>[&#39;hello&#39;, &#39;world&#39;]</code>.)</p>
+</li>
+<li><p><code>servername</code>: Servername for SNI (Server Name Indication) TLS extension.</p>
+</li>
+<li><p><code>secureProtocol</code>: The SSL method to use, e.g. <code>SSLv3_method</code> to force
+SSL version 3. The possible values depend on your installation of
+OpenSSL and are defined in the constant <a href="http://www.openssl.org/docs/ssl/ssl.html#DEALING_WITH_PROTOCOL_METHODS">SSL_METHODS</a>.</p>
+</li>
+</ul>
+<p>The <code>callback</code> parameter will be added as a listener for the
+<a href="#tls_event_secureconnect">&#39;secureConnect&#39;</a> event.
+
+</p>
+<p><code>tls.connect()</code> returns a <a href="#tls_class_tls_cleartextstream">CleartextStream</a> object.
+
+</p>
+<p>Here is an example of a client of echo server as described previously:
+
+</p>
+<pre><code>var tls = require(&#39;tls&#39;);
+var fs = require(&#39;fs&#39;);
+
+var options = {
+  // These are necessary only if using the client certificate authentication
+  key: fs.readFileSync(&#39;client-key.pem&#39;),
+  cert: fs.readFileSync(&#39;client-cert.pem&#39;),
+
+  // This is necessary only if the server uses the self-signed certificate
+  ca: [ fs.readFileSync(&#39;server-cert.pem&#39;) ]
+};
+
+var cleartextStream = tls.connect(8000, options, function() {
+  console.log(&#39;client connected&#39;,
+              cleartextStream.authorized ? &#39;authorized&#39; : &#39;unauthorized&#39;);
+  process.stdin.pipe(cleartextStream);
+  process.stdin.resume();
+});
+cleartextStream.setEncoding(&#39;utf8&#39;);
+cleartextStream.on(&#39;data&#39;, function(data) {
+  console.log(data);
+});
+cleartextStream.on(&#39;end&#39;, function() {
+  server.close();
+});</code></pre>
+<p>Or
+
+</p>
+<pre><code>var tls = require(&#39;tls&#39;);
+var fs = require(&#39;fs&#39;);
+
+var options = {
+  pfx: fs.readFileSync(&#39;client.pfx&#39;)
+};
+
+var cleartextStream = tls.connect(8000, options, function() {
+  console.log(&#39;client connected&#39;,
+              cleartextStream.authorized ? &#39;authorized&#39; : &#39;unauthorized&#39;);
+  process.stdin.pipe(cleartextStream);
+  process.stdin.resume();
+});
+cleartextStream.setEncoding(&#39;utf8&#39;);
+cleartextStream.on(&#39;data&#39;, function(data) {
+  console.log(data);
+});
+cleartextStream.on(&#39;end&#39;, function() {
+  server.close();
+});</code></pre>
+<h2>tls.createSecurePair([credentials], [isServer], [requestCert], [rejectUnauthorized])<span><a class="mark" href="#tls_tls_createsecurepair_credentials_isserver_requestcert_rejectunauthorized" id="tls_tls_createsecurepair_credentials_isserver_requestcert_rejectunauthorized">#</a></span></h2>
+<p>Creates a new secure pair object with two streams, one of which reads/writes
+encrypted data, and one reads/writes cleartext data.
+Generally the encrypted one is piped to/from an incoming encrypted data stream,
+and the cleartext one is used as a replacement for the initial encrypted stream.
+
+</p>
+<ul>
+<li><p><code>credentials</code>: A credentials object from crypto.createCredentials( ... )</p>
+</li>
+<li><p><code>isServer</code>: A boolean indicating whether this tls connection should be
+opened as a server or a client.</p>
+</li>
+<li><p><code>requestCert</code>: A boolean indicating whether a server should request a
+certificate from a connecting client. Only applies to server connections.</p>
+</li>
+<li><p><code>rejectUnauthorized</code>: A boolean indicating whether a server should
+automatically reject clients with invalid certificates. Only applies to
+servers with <code>requestCert</code> enabled.</p>
+</li>
+</ul>
+<p><code>tls.createSecurePair()</code> returns a SecurePair object with [cleartext][] and
+<code>encrypted</code> stream properties.
+
+</p>
+<h2>Class: SecurePair<span><a class="mark" href="#tls_class_securepair" id="tls_class_securepair">#</a></span></h2>
+<p>Returned by tls.createSecurePair.
+
+</p>
+<h3>Event: &#39;secure&#39;<span><a class="mark" href="#tls_event_secure" id="tls_event_secure">#</a></span></h3>
+<p>The event is emitted from the SecurePair once the pair has successfully
+established a secure connection.
+
+</p>
+<p>Similarly to the checking for the server &#39;secureConnection&#39; event,
+pair.cleartext.authorized should be checked to confirm whether the certificate
+used properly authorized.
+
+</p>
+<h2>Class: tls.Server<span><a class="mark" href="#tls_class_tls_server" id="tls_class_tls_server">#</a></span></h2>
+<p>This class is a subclass of <code>net.Server</code> and has the same methods on it.
+Instead of accepting just raw TCP connections, this accepts encrypted
+connections using TLS or SSL.
+
+</p>
+<h3>Event: &#39;secureConnection&#39;<span><a class="mark" href="#tls_event_secureconnection" id="tls_event_secureconnection">#</a></span></h3>
+<p><code>function (cleartextStream) {}</code>
+
+</p>
+<p>This event is emitted after a new connection has been successfully
+handshaked. The argument is a instance of <a href="#tls_class_tls_cleartextstream">CleartextStream</a>. It has all the
+common stream methods and events.
+
+</p>
+<p><code>cleartextStream.authorized</code> is a boolean value which indicates if the
+client has verified by one of the supplied certificate authorities for the
+server. If <code>cleartextStream.authorized</code> is false, then
+<code>cleartextStream.authorizationError</code> is set to describe how authorization
+failed. Implied but worth mentioning: depending on the settings of the TLS
+server, you unauthorized connections may be accepted.
+<code>cleartextStream.npnProtocol</code> is a string containing selected NPN protocol.
+<code>cleartextStream.servername</code> is a string containing servername requested with
+SNI.
+
+
+</p>
+<h3>Event: &#39;clientError&#39;<span><a class="mark" href="#tls_event_clienterror" id="tls_event_clienterror">#</a></span></h3>
+<p><code>function (exception, securePair) { }</code>
+
+</p>
+<p>When a client connection emits an &#39;error&#39; event before secure connection is
+established - it will be forwarded here.
+
+</p>
+<p><code>securePair</code> is the <code>tls.SecurePair</code> that the error originated from.
+
+
+</p>
+<h3>Event: &#39;newSession&#39;<span><a class="mark" href="#tls_event_newsession" id="tls_event_newsession">#</a></span></h3>
+<p><code>function (sessionId, sessionData) { }</code>
+
+</p>
+<p>Emitted on creation of TLS session. May be used to store sessions in external
+storage.
+
+
+</p>
+<h3>Event: &#39;resumeSession&#39;<span><a class="mark" href="#tls_event_resumesession" id="tls_event_resumesession">#</a></span></h3>
+<p><code>function (sessionId, callback) { }</code>
+
+</p>
+<p>Emitted when client wants to resume previous TLS session. Event listener may
+perform lookup in external storage using given <code>sessionId</code>, and invoke
+<code>callback(null, sessionData)</code> once finished. If session can&#39;t be resumed
+(i.e. doesn&#39;t exist in storage) one may call <code>callback(null, null)</code>. Calling
+<code>callback(err)</code> will terminate incoming connection and destroy socket.
+
+
+</p>
+<h3>server.listen(port, [host], [callback])<span><a class="mark" href="#tls_server_listen_port_host_callback" id="tls_server_listen_port_host_callback">#</a></span></h3>
+<p>Begin accepting connections on the specified <code>port</code> and <code>host</code>.  If the
+<code>host</code> is omitted, the server will accept connections directed to any
+IPv4 address (<code>INADDR_ANY</code>).
+
+</p>
+<p>This function is asynchronous. The last parameter <code>callback</code> will be called
+when the server has been bound.
+
+</p>
+<p>See <code>net.Server</code> for more information.
+
+
+</p>
+<h3>server.close()<span><a class="mark" href="#tls_server_close" id="tls_server_close">#</a></span></h3>
+<p>Stops the server from accepting new connections. This function is
+asynchronous, the server is finally closed when the server emits a <code>&#39;close&#39;</code>
+event.
+
+</p>
+<h3>server.address()<span><a class="mark" href="#tls_server_address" id="tls_server_address">#</a></span></h3>
+<p>Returns the bound address, the address family name and port of the
+server as reported by the operating system.  See <a href="net.html#net_server_address">net.Server.address()</a> for
+more information.
+
+</p>
+<h3>server.addContext(hostname, credentials)<span><a class="mark" href="#tls_server_addcontext_hostname_credentials" id="tls_server_addcontext_hostname_credentials">#</a></span></h3>
+<p>Add secure context that will be used if client request&#39;s SNI hostname is
+matching passed <code>hostname</code> (wildcards can be used). <code>credentials</code> can contain
+<code>key</code>, <code>cert</code> and <code>ca</code>.
+
+</p>
+<h3>server.maxConnections<span><a class="mark" href="#tls_server_maxconnections" id="tls_server_maxconnections">#</a></span></h3>
+<p>Set this property to reject connections when the server&#39;s connection count
+gets high.
+
+</p>
+<h3>server.connections<span><a class="mark" href="#tls_server_connections" id="tls_server_connections">#</a></span></h3>
+<p>The number of concurrent connections on the server.
+
+
+</p>
+<h2>Class: CryptoStream<span><a class="mark" href="#tls_class_cryptostream" id="tls_class_cryptostream">#</a></span></h2>
+<p>This is an encrypted stream.
+
+</p>
+<h3>cryptoStream.bytesWritten<span><a class="mark" href="#tls_cryptostream_byteswritten" id="tls_cryptostream_byteswritten">#</a></span></h3>
+<p>A proxy to the underlying socket&#39;s bytesWritten accessor, this will return
+the total bytes written to the socket, <em>including the TLS overhead</em>.
+
+</p>
+<h2>Class: tls.CleartextStream<span><a class="mark" href="#tls_class_tls_cleartextstream" id="tls_class_tls_cleartextstream">#</a></span></h2>
+<p>This is a stream on top of the <em>Encrypted</em> stream that makes it possible to
+read/write an encrypted data as a cleartext data.
+
+</p>
+<p>This instance implements a duplex <a href="stream.html#stream_stream">Stream</a> interfaces.  It has all the
+common stream methods and events.
+
+</p>
+<p>A ClearTextStream is the <code>clear</code> member of a SecurePair object.
+
+</p>
+<h3>Event: &#39;secureConnect&#39;<span><a class="mark" href="#tls_event_secureconnect" id="tls_event_secureconnect">#</a></span></h3>
+<p>This event is emitted after a new connection has been successfully handshaked. 
+The listener will be called no matter if the server&#39;s certificate was
+authorized or not. It is up to the user to test <code>cleartextStream.authorized</code>
+to see if the server certificate was signed by one of the specified CAs.
+If <code>cleartextStream.authorized === false</code> then the error can be found in
+<code>cleartextStream.authorizationError</code>. Also if NPN was used - you can check
+<code>cleartextStream.npnProtocol</code> for negotiated protocol.
+
+</p>
+<h3>cleartextStream.authorized<span><a class="mark" href="#tls_cleartextstream_authorized" id="tls_cleartextstream_authorized">#</a></span></h3>
+<p>A boolean that is <code>true</code> if the peer certificate was signed by one of the
+specified CAs, otherwise <code>false</code>
+
+</p>
+<h3>cleartextStream.authorizationError<span><a class="mark" href="#tls_cleartextstream_authorizationerror" id="tls_cleartextstream_authorizationerror">#</a></span></h3>
+<p>The reason why the peer&#39;s certificate has not been verified. This property
+becomes available only when <code>cleartextStream.authorized === false</code>.
+
+</p>
+<h3>cleartextStream.getPeerCertificate()<span><a class="mark" href="#tls_cleartextstream_getpeercertificate" id="tls_cleartextstream_getpeercertificate">#</a></span></h3>
+<p>Returns an object representing the peer&#39;s certificate. The returned object has
+some properties corresponding to the field of the certificate.
+
+</p>
+<p>Example:
+
+</p>
+<pre><code>{ subject: 
+   { C: &#39;UK&#39;,
+     ST: &#39;Acknack Ltd&#39;,
+     L: &#39;Rhys Jones&#39;,
+     O: &#39;node.js&#39;,
+     OU: &#39;Test TLS Certificate&#39;,
+     CN: &#39;localhost&#39; },
+  issuer: 
+   { C: &#39;UK&#39;,
+     ST: &#39;Acknack Ltd&#39;,
+     L: &#39;Rhys Jones&#39;,
+     O: &#39;node.js&#39;,
+     OU: &#39;Test TLS Certificate&#39;,
+     CN: &#39;localhost&#39; },
+  valid_from: &#39;Nov 11 09:52:22 2009 GMT&#39;,
+  valid_to: &#39;Nov  6 09:52:22 2029 GMT&#39;,
+  fingerprint: &#39;2A:7A:C2:DD:E5:F9:CC:53:72:35:99:7A:02:5A:71:38:52:EC:8A:DF&#39; }</code></pre>
+<p>If the peer does not provide a certificate, it returns <code>null</code> or an empty
+object.
+
+</p>
+<h3>cleartextStream.getCipher()<span><a class="mark" href="#tls_cleartextstream_getcipher" id="tls_cleartextstream_getcipher">#</a></span></h3>
+<p>Returns an object representing the cipher name and the SSL/TLS
+protocol version of the current connection.
+
+</p>
+<p>Example:
+{ name: &#39;AES256-SHA&#39;, version: &#39;TLSv1/SSLv3&#39; }
+
+</p>
+<p>See SSL_CIPHER_get_name() and SSL_CIPHER_get_version() in
+<a href="http://www.openssl.org/docs/ssl/ssl.html#DEALING_WITH_CIPHERS">http://www.openssl.org/docs/ssl/ssl.html#DEALING_WITH_CIPHERS</a> for more
+information.
+
+</p>
+<h3>cleartextStream.address()<span><a class="mark" href="#tls_cleartextstream_address" id="tls_cleartextstream_address">#</a></span></h3>
+<p>Returns the bound address, the address family name and port of the
+underlying socket as reported by the operating system. Returns an
+object with three properties, e.g.
+<code>{ port: 12346, family: &#39;IPv4&#39;, address: &#39;127.0.0.1&#39; }</code>
+
+</p>
+<h3>cleartextStream.remoteAddress<span><a class="mark" href="#tls_cleartextstream_remoteaddress" id="tls_cleartextstream_remoteaddress">#</a></span></h3>
+<p>The string representation of the remote IP address. For example,
+<code>&#39;74.125.127.100&#39;</code> or <code>&#39;2001:4860:a005::68&#39;</code>.
+
+</p>
+<h3>cleartextStream.remotePort<span><a class="mark" href="#tls_cleartextstream_remoteport" id="tls_cleartextstream_remoteport">#</a></span></h3>
+<p>The numeric representation of the remote port. For example, <code>443</code>.
+
+</p>
+
+          </div>
+        </div>
+    </div>
+    <div id="footer">
+        <a href="http://joyent.com" class="joyent-logo">Joyent</a>
+        <ul class="clearfix">
+            <li><a href="/">Node.js</a></li>
+            <li><a href="/download/">Download</a></li>
+            <li><a href="/about/">About</a></li>
+            <li><a href="http://npmjs.org/">npm Registry</a></li>
+            <li><a href="http://nodejs.org/api/">Docs</a></li>
+            <li><a href="http://blog.nodejs.org">Blog</a></li>
+            <li><a href="/community/">Community</a></li>
+            <li><a href="/logos/">Logos</a></li>
+            <li><a href="http://jobs.nodejs.org/">Jobs</a></li>
+            <li><a href="http://twitter.com/nodejs" class="twitter">@nodejs</a></li>
+        </ul>
+
+        <p>Copyright <a href="http://joyent.com/">Joyent, Inc</a>, Node.js is a <a href="/trademark-policy.pdf">trademark</a> of Joyent, Inc. View <a href="https://raw.github.com/joyent/node/v0.10.15/LICENSE">license</a>.</p>
+    </div>
+
+  <script src="../sh_main.js"></script>
+  <script src="../sh_javascript.min.js"></script>
+  <script>highlight(undefined, undefined, 'pre');</script>
+  <script>
+    window._gaq = [['_setAccount', 'UA-10874194-2'], ['_trackPageview']];
+    (function(d, t) {
+      var g = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      g.src = '//www.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+  </script>
+</body>
+</html>
+

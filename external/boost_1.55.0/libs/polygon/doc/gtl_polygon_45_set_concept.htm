@@ -1,0 +1,842 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+ xmlns:v="urn:schemas-microsoft-com:vml"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:(null)1="http://www.w3.org/TR/REC-html40" lang="en">
+<head>
+<!--
+    Copyright 2009-2010 Intel Corporation
+    license banner
+-->
+  <title>Boost Polygon Library: Polygon 45 Set Concept</title>
+  <meta http-equiv="content-type" content="text/html;charset=ISO-8859-1" />
+<!-- <link type="text/css" rel="stylesheet" href="adobe_source.css"> -->
+</head>
+<body>
+<table style="margin: 0pt; padding: 0pt; width: 100%;" border="0"
+ cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top">
+      <div style="padding: 5px;" align="center"> <img
+ src="images/boost.png" border="0" height="86" width="277" /><a
+ title="www.boost.org home page" href="http://www.boost.org/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      <div style="margin: 5px;">
+      <h3 class="navbar">Contents</h3>
+      <ul>
+        <li><a href="index.htm">Boost.Polygon Main Page</a></li>
+        <li><a href="gtl_design_overview.htm">Design Overview</a></li>
+        <li><a href="gtl_isotropy.htm">Isotropy</a></li>
+        <li><a href="gtl_coordinate_concept.htm">Coordinate Concept</a></li>
+        <li><a href="gtl_interval_concept.htm">Interval Concept</a></li>
+        <li><a href="gtl_point_concept.htm">Point Concept</a></li>
+        <li><a href="gtl_segment_concept.htm">Segment Concept</a></li>
+        <li><a href="gtl_rectangle_concept.htm">Rectangle Concept</a></li>
+        <li><a href="gtl_polygon_90_concept.htm">Polygon 90 Concept</a></li>
+        <li><a href="gtl_polygon_90_with_holes_concept.htm">Polygon 90
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_45_concept.htm">Polygon 45 Concept</a></li>
+        <li><a href="gtl_polygon_45_with_holes_concept.htm">Polygon 45
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_concept.htm">Polygon Concept</a></li>
+        <li><a href="gtl_polygon_with_holes_concept.htm">Polygon With
+Holes Concept</a></li>
+        <li><a href="gtl_polygon_90_set_concept.htm">Polygon 90 Set
+Concept</a></li>
+        <li>Polygon 45 Set Concept</li>
+        <li><a href="gtl_polygon_set_concept.htm">Polygon Set Concept</a></li>
+        <li><a href="gtl_connectivity_extraction_90.htm">Connectivity
+Extraction 90</a></li>
+        <li><a href="gtl_connectivity_extraction_45.htm">Connectivity
+Extraction 45</a></li>
+        <li><a href="gtl_connectivity_extraction.htm">Connectivity
+Extraction</a></li>
+        <li><a href="gtl_property_merge_90.htm">Property Merge 90</a></li>
+        <li><a href="gtl_property_merge_45.htm">Property Merge 45</a></li>
+        <li><a href="gtl_property_merge.htm">Property Merge</a></li>
+        <li><a href="voronoi_main.htm">Voronoi Main Page<br />
+          </a></li>
+        <li><a href="voronoi_benchmark.htm">Voronoi Benchmark</a><br />
+        </li>
+        <li><a href="voronoi_builder.htm">Voronoi Builder</a></li>
+        <li><a href="voronoi_diagram.htm">Voronoi Diagram</a></li>
+      </ul>
+      <h3 class="navbar">Other Resources</h3>
+      <ul>
+        <li><a href="GTL_boostcon2009.pdf">GTL Boostcon 2009 Paper</a></li>
+        <li><a href="GTL_boostcon_draft03.pdf">GTL Boostcon 2009
+Presentation</a></li>
+        <li><a href="analysis.htm">Performance Analysis</a></li>
+        <li><a href="gtl_tutorial.htm">Layout Versus Schematic Tutorial</a></li>
+        <li><a href="gtl_minkowski_tutorial.htm">Minkowski Sum Tutorial</a></li>
+        <li><a href="voronoi_basic_tutorial.htm">Voronoi Basic Tutorial</a></li>
+        <li><a href="voronoi_advanced_tutorial.htm">Voronoi Advanced
+Tutorial</a></li>
+      </ul>
+      </div>
+      <h3 class="navbar">Polygon Sponsor</h3>
+      <div style="padding: 5px;" align="center"> <img
+ src="images/intlogo.gif" border="0" height="51" width="127" /><a
+ title="www.adobe.com home page" href="http://www.adobe.com/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      </td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%">
+<!-- End Header --><br />
+      <p>
+      </p>
+      <h1>Polygon 45 Set Concept</h1>
+      <p> </p>
+      <p>The polygon_45_set concept tag is <font face="Courier New">
+polygon_45_set_concept</font></p>
+      <p> <font face="Times New Roman">The semantic of a
+polygon_45_set is zero or more geometry regions which have angles at
+the vertices that are multiples of 45-degrees relative to the
+coordinate axis.&nbsp; A Polygon 45 Set Concept makes no sense in
+floating point, but currently does not provide a static assert to
+prevent it from being used with floating point coordinates.&nbsp; The
+result of such use is undefined.&nbsp; When the intersection of two 45
+degree edges results in a vertex that is off the integer grid that case
+is handled by inserting a unit length edge between the two 45 degree
+edges near the off grid intersection point.&nbsp; In the case that data
+represented contains no 45-degree angles and is Manhattan a runtime
+check will default to the Manhattan algorithm.&nbsp; The results of
+which are identical to what the 45-degree algorithm would do, but
+obtained more efficiently.</font></p>
+      <p> <font face="Times New Roman">The motivation for providing
+the polygon_45_set is to extend the special case of Manhattan geometry
+capability of the library to encompass the slightly less common, but
+still important special case of geometry that is described by angles
+that are multiples of 45-degress with respect to the coordinate
+axis.&nbsp; This simplifies the implementation of geometry algorithms
+and affords many opportunities for optimization.&nbsp; 45-degree
+algorithms can be 50X faster than arbitrary angle algorithms and are
+required to provide a complete feature set that meets the performance
+requirements of application domains in which Manhattan and 45-degree
+geometry are a common special case.</font></p>
+      <p>Users are recommended to use std::vector and std::list of user
+defined polygons or library provided
+polygon_45_set_data&lt;coordinate_type&gt; objects.&nbsp; Lists and
+vectors of models of polygon_45_concept or
+polygon_45_with_holes_concept are automatically models of
+polygon_45_set_concept.</p>
+      <p>An object that is a model of <font face="Courier New">
+polygon_45_set_concept</font> can be viewed as a model of <font
+ face="Courier New">
+polygon_90_set_concept</font> if it is determined at runtime to conform
+to the restriction that all edges are axis-parallel.&nbsp; This concept
+casting is accomplished through the <font face="Courier New">view_as&lt;&gt;()</font>
+function.</p>
+      <p><font face="Courier New">view_as&lt;polygon_90_set_concept&gt;(polygon_set_object)</font></p>
+      <p>The return value of <font face="Courier New">view_as&lt;&gt;()</font>
+can be passed into any interface that expects an object of the
+conceptual type specified in its template parameter.&nbsp; Polygon sets
+cannot be viewed as single polygons or rectangles since it generally
+cannot be known whether a polygon set contains only a single polygon
+without converting to polygons.</p>
+      <h2>Operators</h2>
+      <p>The return type of some operators is the <font
+ face="Courier New">polygon_45_set_view</font> operator template
+type.&nbsp; This type is itself a model of the polygon 90 set concept,
+but furthermore can be used as an argument to the <font
+ face="Courier New">polygon_45_set_data</font> constructor and
+assignment operator.&nbsp; The operator template exists to eliminate
+temp copies of intermediate results when Boolean operators are chained
+together.</p>
+      <p>Operators are declared inside the namespace <font
+ face="Courier New">boost::polygon::operators</font>.</p>
+      <table id="table5" border="1" width="100%">
+        <tbody>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+polygon_45_set_view <b>operator</b>|(const T1&amp; l, const T2&amp; r)</font></td>
+            <td>Boolean OR operation (polygon set union).&nbsp; Accepts
+two objects that model polygon_45_set or one of its refinements.&nbsp;
+Returns an operator template that performs the operation on demand when
+chained or or nested in a library function call such as assign().&nbsp;
+O( n log n) runtime complexity and O(n) memory wrt vertices +
+intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+polygon_45_set_view <b>operator</b>+(const T1&amp; l, const T2&amp; r)</font></td>
+            <td>Same as operator|.&nbsp; The plus sign is also used for
+OR operations in Boolean logic expressions.&nbsp; O( n log n) runtime
+complexity and O(n) memory wrt vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+polygon_45_set_view <b>operator</b>&amp;(const T1&amp; l, const
+T2&amp; r)</font></td>
+            <td>Boolean AND operation (polygon set intersection).&nbsp;
+Accepts two objects that model polygon_45_set or one of its
+refinements.&nbsp; O( n log n) runtime complexity and O(n) memory wrt
+vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+polygon_45_set_view <b>operator</b>*(const T1&amp; l, const T2&amp; r)</font></td>
+            <td>Same as operator&amp;.&nbsp; The multiplication symbol
+is also used for AND operations in Boolean logic expressions.&nbsp; O(
+n log n) runtime complexity and O(n) memory wrt vertices +
+intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+polygon_45_set_view <b>operator</b>^(const T1&amp; l, const T2&amp; r)</font></td>
+            <td>Boolean XOR operation (polygon set
+disjoint-union).&nbsp; Accepts two objects that model polygon_45_set or
+one of its refinements.&nbsp; O( n log n) runtime complexity and O(n)
+memory wrt vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+polygon_45_set_view <b>operator</b>-(const T1&amp; l, const T2&amp; r)</font></td>
+            <td>Boolean SUBTRACT operation (polygon set
+difference).&nbsp; Accepts two objects that model polygon_45_set or one
+of its refinements.&nbsp; O( n log n) runtime complexity and O(n)
+memory wrt vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>operator</b>|=(const T1&amp; l, const T2&amp; r)</font></td>
+            <td>Same as operator|, but with self assignment, left
+operand must model polygon_45_set and not one of it's
+refinements.&nbsp; O( n log n) runtime complexity and O(n) memory wrt
+vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>operator</b>+=(T1&amp; l, const T2&amp; r)</font></td>
+            <td>Same as operator+, but with self assignment, left
+operand must model polygon_45_set and not one of it's
+refinements.&nbsp; O( n log n) runtime complexity and O(n) memory wrt
+vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>operator</b>&amp;=(const T1&amp; l, const T2&amp; r)</font></td>
+            <td>Same as operator&amp;, but with self assignment, left
+operand must model polygon_45_set and not one of it's
+refinements.&nbsp; O( n log n) runtime complexity and O(n) memory wrt
+vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>operator</b>*=(T1&amp; l, const T2&amp; r)</font></td>
+            <td>Same as operator*, but with self assignment, left
+operand must model polygon_45_set and not one of it's
+refinements.&nbsp; O( n log n) runtime complexity and O(n) memory wrt
+vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>operator</b>^=(const T1&amp; l, const T2&amp; r)</font></td>
+            <td>Same as operator^, but with self assignment, left
+operand must model polygon_45_set and not one of it's
+refinements.&nbsp; O( n log n) runtime complexity and O(n) memory wrt
+vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>operator</b>-=(T1&amp; l, const T2&amp; r)</font></td>
+            <td>Same as operator-, but with self assignment, left
+operand must model polygon_45_set and not one of it's
+refinements.&nbsp; O( n log n) runtime complexity and O(n) memory wrt
+vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1&gt;<br />
+T1 <b>operator</b>+(const T1&amp;, coordinate_type bloating)</font></td>
+            <td>Performs resize operation, inflating by bloating
+ammount.&nbsp; If negative the result is a shrink instead of
+bloat.&nbsp; Note: returns result by value.&nbsp; O( n log n) runtime
+complexity and O(n) memory wrt vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1 <b>operator</b>-(const T1&amp;, coordinate_type shrinking)</font></td>
+            <td>Performs resize operation, deflating by bloating
+ammount.&nbsp; If negative the result is a bloat instead of
+shrink.&nbsp; Note: returns result by value.&nbsp; O( n log n) runtime
+complexity and O(n) memory wrt vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>operator</b>+=(const T1&amp;, coordinate_type bloating)</font></td>
+            <td>Performs resize operation, inflating by bloating
+ammount.&nbsp; If negative the result is a shrink instead of
+bloat.&nbsp; Returns reference to modified argument.&nbsp; O( n log n)
+runtime complexity and O(n) memory wrt vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>operator</b>-=(const T1&amp;, coordinate_type shrinking)</font></td>
+            <td>Performs resize operation, deflating by bloating
+ammount.&nbsp; If negative the result is a bloat instead of
+shrink.&nbsp; Returns reference to modified argument.&nbsp; O( n log n)
+runtime complexity and O(n) memory wrt vertices + intersections.</td>
+          </tr>
+        </tbody>
+      </table>
+      <h2>Functions</h2>
+      <table id="table3" border="1" width="100%">
+        <tbody>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>assign</b>(T1&amp; lvalue, const T2&amp; rvalue)</font></td>
+            <td>Eliminates overlaps in geometry and copies from an
+object that models polygon_45_set or any of its refinements into an
+object that models polygon_45_set.&nbsp; O( n log n) runtime complexity
+and O(n) memory wrt vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+bool <b>equivalence</b>(const T1&amp; lvalue, const T2&amp; rvalue) </font></td>
+            <td>Returns true if an object that models polygon_45_set or
+one of its refinements covers the exact same geometric regions as
+another object that models polygon_45_set or one of its
+refinements.&nbsp; For example: two of polygon_45 objects.&nbsp; O( n
+log n) runtime complexity and O(n) memory wrt vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename output_container_type, typename T&gt;<br />
+void <b>get_trapezoids</b>(output_container_type&amp; output, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+const T&amp; polygon_set)</font></td>
+            <td>Output container is expected to be a standard
+container.&nbsp; Slices geometry of an object that models
+polygon_45_set or one of its refinements into non overlapping
+trapezoids along a vertical slicing orientation and appends them to the
+output, which must have a value type that models polygon_45,
+polygon_45_with_holes, polygon or polygon_with_holes.&nbsp;&nbsp; O( n
+log n) runtime complexity and O(n) memory wrt vertices.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename output_container_type, typename T&gt;<br />
+void <b>get_trapezoids</b>(output_container_type&amp; output, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+const T&amp; polygon_set,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+orientation_2d orient)</font></td>
+            <td>Output container is expected to be a standard
+container.&nbsp; Slices geometry of an object that models
+polygon_45_set or one of its refinements into non overlapping
+trapezoids along a the specified slicing orientation and appends them
+to the output, which must have a value type that models polygon_45,
+polygon_45_with_holes, polygon or polygon_with_holes.&nbsp;&nbsp; O( n
+log n) runtime complexity and O(n) memory wrt vertices.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename polygon_set_type&gt;<br />
+void <b>clear</b>(polygon_set_type&amp; polygon_set)</font></td>
+            <td>Makes the object empty of geometry.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename polygon_set_type&gt;<br />
+bool <b>empty</b>(const polygon_set_type&amp; polygon_set)</font></td>
+            <td>Checks whether the object is empty of geometry.&nbsp;
+Polygons that are completely covered by holes will result in empty
+returning true.&nbsp;&nbsp; O( n log n) runtime complexity and O(n)
+memory wrt vertices.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T, typename rectangle_type&gt;<br />
+bool <b>extents</b>(rectangle_type&amp; extents_rectangle, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+const T&amp; polygon_set)</font></td>
+            <td>Computes bounding box of an object that models
+polygon_45_set and stores it in an object that models rectangle.&nbsp;
+If the polygon set is empty returns false.&nbsp; If there are holes
+outside of shells they do not contribute to the extents of the polygon
+set.&nbsp;&nbsp; O( n log n) runtime complexity and O(n) memory wrt
+vertices.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+area_type <b>area</b>(const T&amp; polygon_set)</font></td>
+            <td>Computes the area covered by geometry in an object that
+models polygon_45_set.&nbsp;&nbsp; O( n log n) runtime complexity and
+O(n) memory wrt vertices.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>interact</b>(T1&amp; a, const T2&amp; b)</font></td>
+            <td>Given an object that models polygon_45_set and an
+object that models polygon_45_set or one of its refinements, modifies a
+to retain only regions that overlap or touch regions in b.&nbsp;&nbsp;
+O( n log n) runtime complexity and O(n) memory wrt vertices plus
+intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T&amp; <b>self_intersect</b>(T&amp; polygon_set)</font></td>
+            <td>Given an object that models polygon_45_set that has
+self overlapping regions, modifies the argument to contain only the
+regions of overlap.&nbsp; O( n log n) runtime complexity and O(n)
+memory wrt vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T&amp; <b>self_xor</b>(T&amp; polygon_set)</font></td>
+            <td>Given an object that models polygon_45_set that has
+self overlapping regions, modifies the argument to contain only the
+regions that do not overlap.&nbsp; O( n log n) runtime complexity and
+O(n) memory wrt vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T&amp; <b>bloat</b>(T&amp; polygon_set, unsigned_area_type bloating)</font></td>
+            <td>Same as getting all the polygons, bloating them and
+putting them back.&nbsp; O( n log n) runtime complexity and O(n) memory
+wrt vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T&amp; <b>shrink</b>(T&amp; polygon_set, unsigned_area_type shrinking)</font></td>
+            <td>Same as getting all the polygons, shrinking them and
+overwriting the polygon set with the resulting regions.&nbsp; O( n log
+n) runtime complexity and O(n) memory wrt vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T, typename coord_type&gt;<br />
+T&amp; <b>resize</b>(T&amp; polygon_set, coord_type resizing,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; RoundingOption
+rounding = CLOSEST, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CornerOption
+corner = INTERSECTION)</font></td>
+            <td>Same as bloat if resizing is positive, same as shrink
+if resizing is negative.&nbsp; RoundingOption is an enum that controls
+snapping of non-integer results of resizing 45 degree edges.&nbsp;
+CornerOption is an enum that controls how corner filling is
+performed.&nbsp; polygon_45_set_data.hpp defines these enums.&nbsp; O(
+n log n) runtime complexity and O(n) memory wrt vertices +
+intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T&amp; <b>grow_and</b>(T&amp; polygon_set, unsigned_area_type bloating)</font></td>
+            <td>Same as bloating non-overlapping regions and then
+applying self intersect to retain only the overlaps introduced by the
+bloat.&nbsp; O( n log n) runtime complexity and O(n) memory wrt
+vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T&amp; <b>scale_up</b>(T&amp; polygon_set, unsigned_area_type factor)</font></td>
+            <td>Scales geometry up by unsigned factor.&nbsp; O( n log
+n) runtime complexity and O(n) memory wrt vertices.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T&amp; <b>scale_down</b>(T&amp; polygon_set, unsigned_area_type factor)</font></td>
+            <td>Scales geometry down by unsigned factor.&nbsp; Snaps 45
+degree edges back to 45 degrees after division truncation leads to
+small changes in angle.&nbsp; O( n log n) runtime complexity and O(n)
+memory wrt vertices.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T, typename scaling_type&gt;<br />
+T&amp; <b>scale</b>(polygon_set_type&amp; polygon_set, double scaling)</font></td>
+            <td>Scales geometry by multiplying by floating point
+factor.&nbsp;&nbsp; Snaps 45 degree edges back to 45 degrees after
+truncation of fractional results of multiply leads to small changes in
+angle.&nbsp; O( n log n) runtime complexity and O(n) memory wrt
+vertices.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T, typename transformation_type&gt;<br />
+T&amp; <b>transform</b>(T&amp; polygon_set,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+const transformation_type&amp; transformation)</font></td>
+            <td>Applies transformation.transform() on all
+vertices.&nbsp; O( n log n) runtime complexity and O(n) memory wrt
+vertices.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T&amp; <b>keep</b>(T&amp; polygon_set, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; unsigned_area_type min_area,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; unsigned_area_type max_area,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; unsigned_area_type min_width,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; unsigned_area_type max_width,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; unsigned_area_type
+min_height,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; unsigned_area_type
+max_height)</font></td>
+            <td>Retains only regions that satisfy the min/max criteria
+in the argument list.&nbsp; Note: useful for visualization to cull too
+small polygons.&nbsp; O( n log n) runtime complexity and O(n) memory
+wrt vertices.</td>
+          </tr>
+        </tbody>
+      </table>
+      <h1>Polygon 45 Set Data Object</h1>
+      <p> </p>
+      <p>The polygon 45 set data type encapsulates the internal data
+format that serves as the input to the sweep-line algorithm that
+implements polygon-clipping Boolean operations.&nbsp; It also
+internally keeps track of whether that data has been sorted or scanned
+and maintains the invariant that when its flags indicate that the data
+is sorted or scanned the data has not been changed to violate that
+assumption.&nbsp; Using the Polygon 45 Set Data type directly can be
+more efficient than using lists and vectors of polygons in the
+functions above because of the invariants it can enforce which provide
+the opportunity to maintain the data is sorted form rather than going
+all the way out to polygons then resorting those vertices for a
+subsequent operation.</p>
+      <p>The declaration of Polygon 45 Set Data is the following:</p>
+      <p><font face="Courier New">template &lt;typename T&gt;<br />
+class polygon_45_set_data;</font></p>
+      <p>The class is parameterized on the coordinate data type.&nbsp;
+Algorithms that benefit from knowledge of the invariants enforced by
+the class are implemented as member functions to provide them access to
+information about those invariants.&nbsp; </p>
+      <h2>Member Functions</h2>
+      <table id="table4" border="1" width="100%">
+        <tbody>
+          <tr>
+            <td width="586"><font face="Courier New"><b>polygon_45_set_data</b>()</font></td>
+            <td>Default constructor. </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename iT&gt;<br />
+            <b>polygon_45_set_data</b>(iT input_begin, iT input_end)</font></td>
+            <td>Construct from an iterator range of insertable objects.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New"> <b>polygon_45_set_data</b>(const
+polygon_45_set_data&amp; that)</font></td>
+            <td>Copy construct.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename l, typename r, typename op&gt;<br />
+            <b>polygon_45_set_data</b>(const
+polygon_45_set_view&lt;l,r,op&gt;&amp; t)</font></td>
+            <td>Copy construct from a Boolean operator template.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">polygon_45_set_data&amp;
+            <br />
+            <b>operator=</b>(const polygon_45_set_data&amp; that)</font></td>
+            <td>Assignment from another polygon set, may change
+scanning orientation.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename l, typename r, typename op&gt;<br />
+polygon_45_set_data&amp; <br />
+            <b>operator=</b>(const polygon_45_set_view&lt;l, r,
+op&gt;&amp; that)</font></td>
+            <td>Assignment from a Boolean operator template.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename geometry_object&gt;<br />
+polygon_45_set_data&amp; <b>operator=</b>(const geometry_object&amp;
+geo)</font></td>
+            <td>Assignment from an insertable object.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">
+template &lt;typename iT&gt;<br />
+void <b>insert</b>(iT input_begin, iT input_end, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bool
+is_hole = false)</font></td>
+            <td>Insert objects of an iterator range.&nbsp; If is_hole
+is true inserts subtractive regions.&nbsp; Linear wrt the number of
+vertices added.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">
+void <b>insert</b>(const polygon_45_set_data&amp; polygon_set, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bool
+is_hole = false)</font></td>
+            <td>Insert a polygon set.&nbsp; Linear wrt the number of
+vertices added.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">
+template &lt;typename geometry_type&gt;<br />
+void <b>insert</b>(const geometry_type&amp; geometry_object, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bool
+is_hole = false)</font></td>
+            <td>Insert a geometry object, if is_hole is true then the
+inserted region is subtractive rather than additive.&nbsp; Linear wrt
+the number of vertices added.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename output_container&gt;<br />
+void <b>get</b>(output_container&amp; output) const</font></td>
+            <td>Expects a standard container of geometry objects.&nbsp;
+Will scan and eliminate overlaps.&nbsp; Converts polygon set geometry
+to objects of that type and appends them to the container.&nbsp;
+Polygons will be output with counterclockwise winding, hole polygons
+will be output with clockwise winding.&nbsp; The last vertex of an
+output polygon is not the duplicate of the first, and the number of
+points is equal to the number of edges.&nbsp; O(n log n) runtime and
+O(n) memory wrt. vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename output_container&gt;<br />
+void <b>get_polygons</b>(output_container&amp; output) const</font></td>
+            <td>Expects a standard container of polygon objects.&nbsp;
+Will scan and eliminate overlaps.&nbsp; Converts polygon set geometry
+to polygons and appends them to the container.&nbsp; Polygons will have
+holes fractured out to the outer boundary along the positive y
+direction.&nbsp; O(n log n) runtime and O(n) memory wrt. vertices +
+intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename output_container&gt;<br />
+void <b>get_polygons_with_holes</b>(output_container&amp; o) const</font></td>
+            <td>Expects a standard container of polygon with holes
+objects.&nbsp; Will scan and eliminate overlaps.&nbsp; Converts polygon
+set geometry to polygons and appends them to the container.&nbsp; O(n
+log n) runtime and O(n) memory wrt. vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename output_container&gt;<br />
+void <b>get_trapezoids</b>(output_container&amp; output) const</font></td>
+            <td>Expects a standard container of polygon objects.&nbsp;
+Will scan and eliminate overlaps.&nbsp; Slices polygon set geometry to
+trapezoids vertically and appends them to the container.&nbsp; O(n log
+n) runtime and O(n) memory wrt. vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">
+template &lt;typename output_container&gt;<br />
+void <b>get_trapezoids</b>(output_container&amp; output, <br />
+&nbsp; orientation_2d slicing_orientation) const </font> </td>
+            <td>Expects a standard container of polygon objects.&nbsp;
+Will scan and eliminate overlaps.&nbsp; Slices polygon set geometry to
+trapezoids along the given orientation and appends them to the
+container.&nbsp; O(n log n) runtime and O(n) memory wrt. vertices +
+intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">
+bool <b>operator==</b>(const polygon_45_set_data&amp; p) const</font></td>
+            <td>Once scanned the data representation of geometry within
+a polygon set is in a mathematically canonical form.&nbsp; Comparison
+between two sets is therefore a linear time operation once they are in
+the scanned state. Will scan and eliminate overlaps in both polygon
+sets.&nbsp; O(n log n) runtime and O(n) memory wrt. vertices +
+intersections the first time and linear runtime and constant memory
+subsequently.&nbsp; </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">bool <b>operator!=</b>(const
+polygon_45_set_data&amp; p) const</font></td>
+            <td>Inverse logic of equivalence operator.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">void <b>clear</b>()</font></td>
+            <td>Make the polygon set empty.&nbsp; Note: does not
+de-allocate memory.&nbsp; Use shrink to fit idiom and assign default
+constructed polygon set to de-allocate.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">bool <b>empty</b>()
+const </font> </td>
+            <td>Check whether the polygon set contains no
+geometry.&nbsp; Will scan and eliminate overlaps because subtractive
+regions might make the polygon set empty.&nbsp; O(n log n) runtime and
+O(n) memory wrt. vertices + intersections the first time and linear
+runtime and constant memory subsequently.&nbsp; </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">bool <b>is_manhattan</b>()
+const</font></td>
+            <td>Returns in constant time the information about whether
+the geometry contains only Manhattan (axis-parallel rectilinear)
+edges.&nbsp; Constant time.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">void <b>clean</b>()
+const</font></td>
+            <td>Scan and eliminate overlaps.&nbsp; O(n log n) runtime
+and O(n) memory wrt. vertices + intersections the first time and linear
+runtime and constant memory subsequently.&nbsp; </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename input_iterator_type&gt;<br />
+void <b>set</b>(input_iterator_type input_begin, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; input_iterator_type
+input_end) </font> </td>
+            <td>Overwrite geometry in polygon set with insertable
+objects in the iterator range.&nbsp; </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename rectangle_type&gt;<br />
+bool <b>extents</b>(rectangle_type&amp; extents_rectangle) const</font></td>
+            <td>Given an object that models rectangle, scans and
+eliminates overlaps in the polygon set because subtractive regions may
+alter its extents then computes the bounding box and assigns it to
+extents_rectangle.&nbsp; O(n log n) runtime and O(n) memory wrt.
+vertices the first time and linear runtime and constant memory
+subsequently.&nbsp; </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">polygon_45_set_data&amp;<br />
+            <b>resize</b>(coord_type resizing,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; RoundingOption rounding = CLOSEST,
+            <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CornerOption corner = INTERSECTION)</font></td>
+            <td>Same as bloat if resizing is positive, same as shrink
+if resizing is negative.&nbsp; RoundingOption is an enum that controls
+snapping of non-integer results of resizing 45 degree edges.&nbsp;
+CornerOption is an enum that controls how corner filling is
+performed.&nbsp; polygon_45_set_data.hpp defines these enums.&nbsp; O(n
+log n) runtime and O(n) memory wrt. vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename transformation_type&gt;<br />
+polygon_45_set_data&amp; <br />
+            <b>transform</b>(const transformation_type&amp;
+transformation) </font> </td>
+            <td>Applies transformation.transform() on vertices stored
+within the polygon set.&nbsp; O(n log n) runtime and O(n) memory wrt.
+vertices + intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">polygon_45_set_data&amp;
+            <b>scale_up</b>(unsigned_area_type factor)</font></td>
+            <td>Scales vertices stored within the polygon set up by
+factor.&nbsp; Linear wrt vertices.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">polygon_45_set_data&amp;
+            <b>scale_down</b>(unsigned_area_type factor)</font>&nbsp;</td>
+            <td>Scales vertices stored within the polygon set down by
+factor.&nbsp; Linear wrt vertices.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">polygon_45_set_data&amp;
+            <b>scale</b>(double factor) </font></td>
+            <td>Scales vertices stored within the polygon set by
+floating point factor.&nbsp; Linear wrt vertices.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">polygon_45_set_data&amp;
+            <b>self_xor</b>()</font></td>
+            <td>Retain only non-overlapping regions of geometry within
+polygon set.&nbsp; O(n log n) runtime and O(n) memory wrt. vertices +
+intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">polygon_45_set_data&amp;
+            <b>self_intersect</b>()</font></td>
+            <td>Retain only overlapping regions of geometry within a
+polygon set.&nbsp; O(n log n) runtime and O(n) memory wrt. vertices +
+intersections.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">bool <b>has_error_data</b>()
+const </font></td>
+            <td>Returns true if non-integer intersections resulted in
+small artifacts in the output of a boolean.&nbsp; Constant time.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">std::size_t <b>error_count</b>()
+const</font></td>
+            <td>Returns the number of artifacts that may potentially be
+present in the output due to non-integer intersections.&nbsp; Constant
+time.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">void <b>get_error_data</b>(polygon_45_set_data&amp;
+p) const</font></td>
+            <td>Populates the input polygon set with 1x1 unit squares
+that bound the error that may be present in the output due to
+non-integer intersections.&nbsp; Linear wrt. vertices of error data.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">polygon_45_set_data&amp;
+            <b>self_intersect</b>()</font></td>
+            <td>Retain only overlapping regions of geometry within a
+polygon set.&nbsp; O(n log n) runtime and O(n) memory wrt. vertices +
+intersections.</td>
+          </tr>
+        </tbody>
+      </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top"> &nbsp;</td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%">
+      <table class="docinfo" id="table6" frame="void" rules="none">
+        <colgroup> <col class="docinfo-name" /><col
+ class="docinfo-content" /> </colgroup> <tbody valign="top">
+          <tr>
+            <th class="docinfo-name">Copyright:</th>
+            <td>Copyright © Intel Corporation 2008-2010.</td>
+          </tr>
+          <tr class="field">
+            <th class="docinfo-name">License:</th>
+            <td class="field-body">Distributed under the Boost Software
+License, Version 1.0. (See accompanying file <tt class="literal"> <span
+ class="pre">LICENSE_1_0.txt</span></tt> or copy at <a
+ class="reference" target="_top"
+ href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+          </tr>
+        </tbody>
+      </table>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>

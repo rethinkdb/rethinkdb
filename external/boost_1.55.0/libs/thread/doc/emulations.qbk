@@ -1,0 +1,365 @@
+[/
+  (C) Copyright 20012 Vicente J. Botet Escriba.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:emulations Emulations]
+[section:delete `=delete` emulation]
+
+C++11 allows to delete some implicitly generated functions as constructors and assignment using '= delete' as in
+
+  public:
+    thread(thread const&) = delete;
+
+On compilers not supporting this feature, Boost.Thread relays on a partial simulation, it declares the function as private without definition.
+
+  private:
+    thread(thread &);
+
+The emulation is partial as the private function can be used for overload resolution for some compilers and prefer it to other overloads that need a conversion. See below the consequences on the move semantic emulation.
+
+[endsect]
+
+[section:move Move semantics]
+
+In order to implement Movable classes, move parameters and return types Boost.Thread uses the rvalue reference when the compiler support it.
+On compilers not supporting it Boost.Thread uses either the emulation provided by Boost.Move or the emulation provided by the previous versions of Boost.Thread depending whether `BOOST_THREAD_USES_MOVE` is defined or not. This macros is unset by default when `BOOST_THREAD_VERSION` is 2. Since `BOOST_THREAD_VERSION` 3, `BOOST_THREAD_USES_MOVE` is defined.
+
+[section:deprecated Deprecated Version 2 interface]
+
+Previous to version 1.50, Boost.Thread make use of its own move semantic emulation which had more limitations than the provided by Boost.Move. In addition, it is of interest of the whole Boost community that Boost.Thread uses Boost.Move so that boost::thread can be stored on Movable aware containers.
+
+To preserve backward compatibility at least during some releases, Boost.Thread allows the user to use the deprecated move semantic emulation defining BOOST_THREAD_DONT_USE_MOVE.
+
+Many aspects of move semantics can be emulated for compilers not supporting rvalue references and Boost.Thread legacy offers tools for that purpose. 
+
+[section:Helper Helpers class and function]
+
+Next follows the interface of the legacy move semantic helper class and function. 
+
+  namespace boost
+  {
+    namespace detail
+    {
+        template<typename T>
+        struct thread_move_t
+        {
+          explicit thread_move_t(T& t_);
+          T& operator*() const;
+          T* operator->() const;
+        private:
+          void operator=(thread_move_t&);
+        };
+    }
+    template<typename T>
+    boost::detail::thread_move_t<T> move(boost::detail::thread_move_t<T> t);
+  }
+[endsect]
+
+[section:movable Movable emulation]
+
+We can write a MovableOny class as follows. You just need to follow these simple steps:
+
+* Add a conversion to the `detail::thread_move_t<classname>`
+* Make the copy constructor private.
+* Write a constructor taking the parameter as `detail::thread_move_t<classname>`
+* Write an assignment taking the parameter as `detail::thread_move_t<classname>`
+
+For example the thread class defines the following:
+
+    class thread 
+    {
+      // ...
+    private:
+        thread(thread&);
+        thread& operator=(thread&);
+    public:
+        detail::thread_move_t<thread> move()
+        {
+            detail::thread_move_t<thread> x(*this);
+            return x;
+        }    
+        operator detail::thread_move_t<thread>()
+        {
+            return move();
+        }
+        thread(detail::thread_move_t<thread> x)
+        {
+            thread_info=x->thread_info;
+            x->thread_info.reset();
+        }
+        thread& operator=(detail::thread_move_t<thread> x)
+        {
+            thread new_thread(x);
+            swap(new_thread);
+            return *this;
+        }
+      // ...
+
+    };
+
+[endsect]
+
+[endsect]
+
+[section:portable Portable interface]
+
+In order to make the library code portable Boost.Thread uses some macros that will use either the ones provided by Boost.Move or the deprecated move semantics provided by previous versions of Boost.Thread.
+
+See the Boost.Move documentation for a complete description on how to declare new Movable classes and its limitations.
+
+* `BOOST_THREAD_RV_REF(TYPE)` is the equivalent of `BOOST_RV_REF(TYPE)`
+* `BOOST_THREAD_RV_REF_BEG` is the equivalent of `BOOST_RV_REF_BEG(TYPE)`
+* `BOOST_THREAD_RV_REF_END` is the equivalent of `BOOST_RV_REF_END(TYPE)`
+* `BOOST_THREAD_FWD_REF(TYPE)` is the equivalent of `BOOST_FWD_REF(TYPE)
+
+In addition the following macros are needed to make the code portable:
+
+* `BOOST_THREAD_RV(V)` macro to access the rvalue from a BOOST_THREAD_RV_REF(TYPE), 
+* `BOOST_THREAD_MAKE_RV_REF(RVALUE)` makes a rvalue.
+* `BOOST_THREAD_DCL_MOVABLE(CLASS)` to avoid conflicts with Boost.Move
+* `BOOST_THREAD_DCL_MOVABLE_BEG(T1)` and `BOOST_THREAD_DCL_MOVABLE_END` are variant of `BOOST_THREAD_DCL_MOVABLE` when the parameter is a template instantiation.
+
+Other macros are provided and must be included on the public section:
+
+* `BOOST_THREAD_NO_COPYABLE` declares a class no-copyable either deleting the copy constructors and copy assignment or moving them to the private section. 
+* `BOOST_THREAD_MOVABLE(CLASS)` declares all the implicit conversions to an rvalue-reference. 
+* `BOOST_THREAD_MOVABLE_ONLY(CLASS)` is the equivalent of `BOOST_MOVABLE_BUT_NOT_COPYABLE(CLASS)`
+* `BOOST_THREAD_COPYABLE_AND_MOVABLE(CLASS)` is the equivalent of `BOOST_COPYABLE_AND_MOVABLE(CLASS)`
+
+
+[section:NO_COPYABLE `BOOST_THREAD_NO_COPYABLE(CLASS)`]
+
+This macro marks a class as no copyable, disabling copy construction and assignment. 
+
+[endsect] 
+
+[section:MOVABLE `BOOST_THREAD_MOVABLE(CLASS)`]
+
+This macro marks a class as movable, declaring all the implicit conversions to an rvalue-reference. 
+
+[endsect] 
+
+[section:MOVABLE_ONLY `BOOST_THREAD_MOVABLE_ONLY(CLASS)`]
+
+This macro marks a type as movable but not copyable, disabling copy construction and assignment. The user will need to write a move constructor/assignment to fully write a movable but not copyable class. 
+
+[endsect] 
+
+[section:COPYABLE_AND_MOVABLE `BOOST_THREAD_COPYABLE_AND_MOVABLE(CLASS)`]
+
+This macro marks a type as copyable and movable. The user will need to write a move constructor/assignment and a copy assignment to fully write a copyable and movable class. 
+
+[endsect] 
+
+[section:RV_REF `BOOST_THREAD_RV_REF(TYPE)`, `BOOST_THREAD_RV_REF_BEG` and `BOOST_THREAD_RV_REF_END`]
+
+This macro is used to achieve portable syntax in move constructors and assignments for classes marked as `BOOST_THREAD_COPYABLE_AND_MOVABLE` or `BOOST_THREAD_MOVABLE_ONLY`. 
+
+`BOOST_THREAD_RV_REF_BEG` and `BOOST_THREAD_RV_REF_END` are used when the parameter end with a `>` to avoid the compiler error.       
+
+[endsect] 
+
+[section:RV `BOOST_THREAD_RV(V)`]
+
+While Boost.Move emulation allows to access an rvalue reference `BOOST_THREAD_RV_REF(TYPE)` using the dot operator, the legacy defines the `operator->`. We need then a macro `BOOST_THREAD_RV` that mask this difference. E.g.
+
+        thread(BOOST_THREAD_RV_REF(thread) x)
+        {
+            thread_info=BOOST_THREAD_RV(x).thread_info;
+            BOOST_THREAD_RV(x).thread_info.reset();
+        }
+
+The use of this macros has reduced considerably the size of the Boost.Thread move related code.
+
+[endsect] 
+
+[section:MAKE_RV_REF `BOOST_THREAD_MAKE_RV_REF(RVALUE)`]
+
+While Boost.Move is the best C++03 move emulation there are some limitations that impact the way the library can be used. 
+For example, with the following declarations 
+
+  class thread {
+    // ...
+  private:
+    thread(thread &);
+  public:
+    thread(rv<thread>&);
+    // ...
+  };
+
+This could not work on some compilers even if thread is convertible to `rv<thread>` because the compiler prefers the private copy constructor.
+
+  thread mkth() 
+  {
+    return thread(f);
+  }
+
+On these compilers we need to use instead an explicit conversion. The library provides a move member function that allows to workaround the issue.  
+
+  thread mkth() 
+  {
+    return thread(f).move();
+  }
+
+Note that `::boost::move` can not be used in this case as thread is not implicitly convertible to `thread&`.
+
+  thread mkth() 
+  {
+    return ::boost::move(thread(f));
+  }
+
+To make the code portable Boost.Thread the user needs to use a macro `BOOST_THREAD_MAKE_RV_REF` that can be used as in 
+
+  thread mkth() 
+  {
+    return BOOST_THREAD_MAKE_RV_REF(thread(f));
+  }
+
+Note that this limitation is shared also by the legacy Boost.Thread move emulation.
+ 
+[endsect] 
+
+[section:DCL_MOVABLE `BOOST_THREAD_DCL_MOVABLE`, `BOOST_THREAD_DCL_MOVABLE_BEG(T1)` and `BOOST_THREAD_DCL_MOVABLE_END`]
+
+As Boost.Move defines also the `boost::move` function we need to specialize the `has_move_emulation_enabled_aux` metafunction.
+
+    template <>
+    struct has_move_emulation_enabled_aux<thread>
+      : BOOST_MOVE_BOOST_NS::integral_constant<bool, true>
+    {};
+
+so that the following Boost.Move overload is disabled
+
+   template <class T>
+   inline typename BOOST_MOVE_BOOST_NS::disable_if<has_move_emulation_enabled_aux<T>, T&>::type move(T& x);
+
+The macros `BOOST_THREAD_DCL_MOVABLE(CLASS)`, `BOOST_THREAD_DCL_MOVABLE_BEG(T1)` and `BOOST_THREAD_DCL_MOVABLE_END` are used for this purpose. E.g.
+
+    BOOST_THREAD_DCL_MOVABLE(thread)
+
+and
+
+    BOOST_THREAD_DCL_MOVABLE_BEG(T) promise<T> BOOST_THREAD_DCL_MOVABLE_END
+
+
+[endsect] 
+[endsect] 
+
+
+[endsect]
+
+[section:bool_explicit_conversion Bool explicit conversion]
+
+Locks provide an explicit bool conversion operator when the compiler provides them.
+
+  explicit operator bool() const;
+
+The library provides un implicit conversion to an undefined type that can be used as a conditional expression. 
+
+    #if defined(BOOST_NO_EXPLICIT_CONVERSION_OPERATORS)
+        operator ``['unspecified-bool-type]``() const;
+        bool operator!() const;
+    #else
+        explicit operator bool() const;
+    #endif
+
+The user should use the lock.owns_lock() when a explicit conversion is required. 
+
+[section:bool_conversion `operator `['unspecified-bool-type]`() const`]
+
+[variablelist
+
+[[Returns:] [If __owns_lock_ref__ would return `true`, a value that evaluates to
+`true` in boolean contexts, otherwise a value that evaluates to `false` in
+boolean contexts.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+
+[section:operator_not `bool operator!() const`]
+
+[variablelist
+
+[[Returns:] [`!` __owns_lock_ref__.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+ 
+[endsect]
+
+[section:scoped_enums Scoped Enums]
+
+Some of the enumerations defined in the standard library are scoped enums. 
+
+On compilers that don't support them, the library uses a class to wrap the underlying type. Instead of 
+
+  enum class future_errc
+  {
+      broken_promise,
+      future_already_retrieved,
+      promise_already_satisfied,
+      no_state
+  };
+
+the library declare these types as
+
+  BOOST_SCOPED_ENUM_DECLARE_BEGIN(future_errc)
+  {
+      broken_promise,
+      future_already_retrieved,
+      promise_already_satisfied,
+      no_state
+  }
+  BOOST_SCOPED_ENUM_DECLARE_END(future_errc)
+
+These macros allows to use 'future_errc' in almost all the cases as an scoped enum.
+
+There are however some limitations:
+
+* The type is not a C++ enum, so 'is_enum<future_errc>' will be false_type.
+* The emulated scoped enum can not be used in switch nor in template arguments. For these cases the user needs to use some macros.
+
+Instead of
+
+        switch (ev)
+        {
+        case future_errc::broken_promise:
+	// ...
+
+use
+
+        switch (boost::native_value(ev))
+        {
+        case future_errc::broken_promise:
+
+And instead of
+
+    #ifdef BOOST_NO_SCOPED_ENUMS
+    template <>
+    struct BOOST_SYMBOL_VISIBLE is_error_code_enum<future_errc> : public true_type { };
+    #endif
+
+use
+
+    #ifdef BOOST_NO_SCOPED_ENUMS
+    template <>
+    struct BOOST_SYMBOL_VISIBLE is_error_code_enum<future_errc::enum_type> : public true_type { };
+    #endif
+
+
+
+[endsect]
+
+[endsect]

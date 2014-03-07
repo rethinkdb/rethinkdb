@@ -1,0 +1,57 @@
+===============================================================================
+Copyright (C) 2001-2007 Joel de Guzman, Dan Marsden, Tobias Schwinger
+
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================
+
+Timing result for sequence_efficiency.cpp comparing the speed of various
+fusion sequences. The test involves accumulating the elements of the
+sequence which is primed to have values 0..N (N=size of sequence). Small,
+medium and big sequences are tested where:
+
+    small = 3 elements
+    medium = 10 elements
+    big = 30 elements
+
+Tester: Joel de Guzman. WinXP, P4-3.0GHZ, 2GB RAM
+
+VC7.1 (flags = /MD /O2 /EHsc /GS)
+
+    small vector time:                  1.870000e-006
+    small list time:                    1.870000e-006
+    medium vector time:                 1.880000e-006
+    medium list time:                   3.600000e-006
+    big vector time:                    2.030000e-006
+    big list time:                      8.910000e-006
+
+VC8.0 (flags = /MD /O2 /EHsc /GS)
+
+    small vector time:                  2.500000e-05
+    small list time:                    2.500000e-05
+    medium vector time:                 7.810000e-05
+    medium list time:                   7.810000e-05
+    big vector time:                    2.469000e-04
+    big list time:                      2.453000e-04
+
+G++ 3.4 (flags = -ftemplate-depth-128  -funroll-loops -O3 -finline-functions -Wno-inline -Wall)
+
+    small vector time:                  2.500000e-05
+    small list time:                    2.500000e-05
+    medium vector time:                 7.970000e-05
+    medium list time:                   7.970000e-05
+    big vector time:                    2.516000e-04
+    big list time:                      2.485000e-04
+
+Intel 9.1 (flags = /MD /O2 /EHsc /GS)
+
+    small vector time:                  1.125000e-006
+    small list time:                    1.125000e-006
+    medium vector time:                 1.125000e-006
+    medium list time:                   1.141000e-006
+    big vector time:                    1.140000e-006
+    big list time:                      1.141000e-006
+
+
+

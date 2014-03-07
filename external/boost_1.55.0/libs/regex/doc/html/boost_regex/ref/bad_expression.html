@@ -1,0 +1,103 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>bad_expression</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Boost.Regex">
+<link rel="up" href="../ref.html" title="Reference">
+<link rel="prev" href="regex_token_iterator.html" title="regex_token_iterator">
+<link rel="next" href="syntax_option_type.html" title="syntax_option_type">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_token_iterator.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="syntax_option_type.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_ref_bad_expression">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_regex.ref.bad_expression"></a><a class="link" href="bad_expression.html" title="bad_expression">bad_expression</a>
+</h3></div></div></div>
+<h5>
+<a name="boost_regex.ref.bad_expression.h0"></a>
+        <span class="phrase"><a name="boost_regex.ref.bad_expression.synopsis"></a></span><a class="link" href="bad_expression.html#boost_regex.ref.bad_expression.synopsis">Synopsis</a>
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">pattern_except</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        The class <code class="computeroutput"><span class="identifier">regex_error</span></code> defines
+        the type of objects thrown as exceptions to report errors during the conversion
+        from a string representing a regular expression to a finite state machine.
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span>
+
+<span class="keyword">class</span> <span class="identifier">regex_error</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+   <span class="keyword">explicit</span> <span class="identifier">regex_error</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">error_type</span> <span class="identifier">err</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span> <span class="identifier">pos</span><span class="special">);</span>
+   <span class="keyword">explicit</span> <span class="identifier">regex_error</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">error_type</span> <span class="identifier">err</span><span class="special">);</span>
+   <span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">error_type</span> <span class="identifier">code</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span> <span class="identifier">position</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">typedef</span> <span class="identifier">regex_error</span> <span class="identifier">bad_pattern</span><span class="special">;</span> <span class="comment">// for backwards compatibility</span>
+<span class="keyword">typedef</span> <span class="identifier">regex_error</span> <span class="identifier">bad_expression</span><span class="special">;</span> <span class="comment">// for backwards compatibility</span>
+
+<span class="special">}</span> <span class="comment">// namespace boost</span>
+</pre>
+<h5>
+<a name="boost_regex.ref.bad_expression.h1"></a>
+        <span class="phrase"><a name="boost_regex.ref.bad_expression.description"></a></span><a class="link" href="bad_expression.html#boost_regex.ref.bad_expression.description">Description</a>
+      </h5>
+<pre class="programlisting"><span class="identifier">regex_error</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">error_type</span> <span class="identifier">err</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span> <span class="identifier">pos</span><span class="special">);</span>
+<span class="identifier">regex_error</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">error_type</span> <span class="identifier">err</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects:</strong></span> Constructs an object of class regex_error.
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">error_type</span> <span class="identifier">code</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects:</strong></span> returns the error code that represents
+        parsing error that occurred.
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span> <span class="identifier">position</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        <span class="bold"><strong>Effects:</strong></span> returns the location in the expression
+        where parsing stopped.
+      </p>
+<p>
+        Footnotes: the choice of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+        as the base class for <code class="computeroutput"><span class="identifier">regex_error</span></code>
+        is moot; depending upon how the library is used exceptions may be either
+        logic errors (programmer supplied expressions) or run time errors (user supplied
+        expressions). The library previously used <code class="computeroutput"><span class="identifier">bad_pattern</span></code>
+        and <code class="computeroutput"><span class="identifier">bad_expression</span></code> for errors,
+        these have been replaced by the single class <code class="computeroutput"><span class="identifier">regex_error</span></code>
+        to keep the library in synchronization with the <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2005/n1836.pdf" target="_top">Technical
+        Report on C++ Library Extensions</a>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_token_iterator.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ref.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="syntax_option_type.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

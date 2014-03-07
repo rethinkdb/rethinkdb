@@ -1,0 +1,66 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct relaxed</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.relaxed_hpp" title="Header &lt;boost/type_erasure/relaxed.hpp&gt;">
+<link rel="prev" href="is_relaxed.html" title="Struct template is_relaxed">
+<link rel="next" href="require_match.html" title="Function require_match">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="is_relaxed.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.relaxed_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="require_match.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.type_erasure.relaxed"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct relaxed</span></h2>
+<p>boost::type_erasure::relaxed</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.relaxed_hpp" title="Header &lt;boost/type_erasure/relaxed.hpp&gt;">boost/type_erasure/relaxed.hpp</a>&gt;
+
+</span>
+<span class="keyword">struct</span> <a class="link" href="relaxed.html" title="Struct relaxed">relaxed</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector0</span><span class="special">&lt;</span><span class="special">&gt;</span> <span class="special">{</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp229951688"></a><h2>Description</h2>
+<p>This special concept enables various useful default behavior that makes <a class="link" href="any.html" title="Class template any">any</a> act like an ordinary object. By default <a class="link" href="any.html" title="Class template any">any</a> forwards all operations to the underlying type, and provides only the operations that are specified in its <code class="computeroutput">Concept</code>.</p>
+<p>In detail, <a class="link" href="relaxed.html" title="Struct relaxed">relaxed</a> enables the following:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>A raw value can be assigned to an <a class="link" href="any.html" title="Class template any">any</a>. This will replace the value stored by the <a class="link" href="any.html" title="Class template any">any</a>. (But note that if <a class="link" href="assignable.html" title="Struct template assignable">assignable</a> is present, it takes priority.)</p></li>
+<li class="listitem"><p>copy assignment of <a class="link" href="any.html" title="Class template any">any</a> uses the copy constructor if it can't use <a class="link" href="assignable.html" title="Struct template assignable">assignable</a> (either because <a class="link" href="assignable.html" title="Struct template assignable">assignable</a> is missing, or because the stored types do not match).</p></li>
+<li class="listitem"><p>default construction of <a class="link" href="any.html" title="Class template any">any</a> is allowed and creates a null any.</p></li>
+<li class="listitem"><p><a class="link" href="equality_comparable.html" title="Struct template equality_comparable">equality_comparable</a>: If the types do not match, it will return false.</p></li>
+<li class="listitem"><p><a class="link" href="less_than_comparable.html" title="Struct template less_than_comparable">less_than_comparable</a>: If the types do not match, the ordering will be according to <code class="computeroutput">std::type_info::before</code>.</p></li>
+<li class="listitem"><p>if the arguments to any other function do not match, it will throw a <a class="link" href="bad_function_call.html" title="Class bad_function_call">bad_function_call</a> exception instead of having undefined behavior. </p></li>
+</ul></div>
+<p>
+</p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="is_relaxed.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.relaxed_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="require_match.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

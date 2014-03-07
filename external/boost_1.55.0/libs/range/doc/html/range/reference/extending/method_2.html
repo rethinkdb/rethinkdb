@@ -1,0 +1,287 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Method 2: provide free-standing functions and specialize metafunctions</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../extending.html" title="Extending the library">
+<link rel="prev" href="method_1.html" title="Method 1: provide member functions and nested types">
+<link rel="next" href="method_3.html" title="Method 3: provide range adaptor implementations">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="method_1.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../extending.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="method_3.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_reference_extending_method_2">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="range.reference.extending.method_2"></a><a class="link" href="method_2.html" title="Method 2: provide free-standing functions and specialize metafunctions">Method 2: provide
+        free-standing functions and specialize metafunctions</a>
+</h4></div></div></div>
+<p>
+          This procedure assumes that you cannot (or do not wish to) change the types
+          that should be made conformant to a Range concept. If this is not true,
+          see <a class="link" href="method_1.html" title="Method 1: provide member functions and nested types">method 1</a>.
+        </p>
+<p>
+          The primary templates in this library are implemented such that certain
+          functions are found via argument-dependent-lookup (ADL). Below is given
+          an overview of which free-standing functions a class must specify to be
+          useable as a certain Range concept. Let <code class="computeroutput"><span class="identifier">x</span></code>
+          be a variable (<code class="computeroutput"><span class="keyword">const</span></code> or <code class="computeroutput"><span class="keyword">mutable</span></code>) of the class in question.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Related concept
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">range_begin</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../concepts/single_pass_range.html" title="Single Pass Range">Single Pass
+                    Range</a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">range_end</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../concepts/single_pass_range.html" title="Single Pass Range">Single Pass
+                    Range</a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">range_calculate_size</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Optional. This can be used to specify a mechanism for constant-time
+                    computation of the size of a range. The default behaviour is
+                    to return <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span> <span class="special">-</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                    for random access ranges, and to return <code class="computeroutput"><span class="identifier">x</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code> for ranges with lesser traversal
+                    capability. This behaviour can be changed by implementing <code class="computeroutput"><span class="identifier">range_calculate_size</span></code> in a manner
+                    that will be found via ADL. The ability to calculate size in
+                    O(1) is often possible even with ranges with traversal categories
+                    less than random access.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          <code class="computeroutput"><span class="identifier">range_begin</span><span class="special">()</span></code>
+          and <code class="computeroutput"><span class="identifier">range_end</span><span class="special">()</span></code>
+          must be overloaded for both <code class="computeroutput"><span class="keyword">const</span></code>
+          and <code class="computeroutput"><span class="keyword">mutable</span></code> reference arguments.
+        </p>
+<p>
+          You must also specialize two metafunctions for your type <code class="computeroutput"><span class="identifier">X</span></code>:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Metafunction
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Related concept
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_mutable_iterator</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../concepts/single_pass_range.html" title="Single Pass Range">Single Pass
+                    Range</a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_const_iterator</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../../concepts/single_pass_range.html" title="Single Pass Range">Single Pass
+                    Range</a>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          A complete example is given here:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">&gt;</span>         <span class="comment">// for std::iterator_traits, std::distance()</span>
+
+<span class="keyword">namespace</span> <span class="identifier">Foo</span>
+<span class="special">{</span>
+    <span class="comment">//</span>
+    <span class="comment">// Our sample UDT. A 'Pair'</span>
+    <span class="comment">// will work as a range when the stored</span>
+    <span class="comment">// elements are iterators.</span>
+    <span class="comment">//</span>
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">T</span> <span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">Pair</span>
+    <span class="special">{</span>
+        <span class="identifier">T</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">;</span>
+    <span class="special">};</span>
+
+<span class="special">}</span> <span class="comment">// namespace 'Foo'</span>
+
+<span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+    <span class="comment">//</span>
+    <span class="comment">// Specialize metafunctions. We must include the range.hpp header.</span>
+    <span class="comment">// We must open the 'boost' namespace.</span>
+    <span class="comment">//</span>
+
+	<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">T</span> <span class="special">&gt;</span>
+	<span class="keyword">struct</span> <span class="identifier">range_mutable_iterator</span><span class="special">&lt;</span> <span class="identifier">Foo</span><span class="special">::</span><span class="identifier">Pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+	<span class="special">{</span>
+		<span class="keyword">typedef</span> <span class="identifier">T</span> <span class="identifier">type</span><span class="special">;</span>
+	<span class="special">};</span>
+
+	<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">T</span> <span class="special">&gt;</span>
+	<span class="keyword">struct</span> <span class="identifier">range_const_iterator</span><span class="special">&lt;</span> <span class="identifier">Foo</span><span class="special">::</span><span class="identifier">Pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+	<span class="special">{</span>
+		<span class="comment">//</span>
+		<span class="comment">// Remark: this is defined similar to 'range_iterator'</span>
+		<span class="comment">//         because the 'Pair' type does not distinguish</span>
+		<span class="comment">//         between an iterator and a const_iterator.</span>
+		<span class="comment">//</span>
+		<span class="keyword">typedef</span> <span class="identifier">T</span> <span class="identifier">type</span><span class="special">;</span>
+	<span class="special">};</span>
+
+<span class="special">}</span> <span class="comment">// namespace 'boost'</span>
+
+<span class="keyword">namespace</span> <span class="identifier">Foo</span>
+<span class="special">{</span>
+	<span class="comment">//</span>
+	<span class="comment">// The required functions. These should be defined in</span>
+	<span class="comment">// the same namespace as 'Pair', in this case</span>
+	<span class="comment">// in namespace 'Foo'.</span>
+	<span class="comment">//</span>
+
+	<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">T</span> <span class="special">&gt;</span>
+	<span class="keyword">inline</span> <span class="identifier">T</span> <span class="identifier">range_begin</span><span class="special">(</span> <span class="identifier">Pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;&amp;</span> <span class="identifier">x</span> <span class="special">)</span>
+	<span class="special">{</span>
+		<span class="keyword">return</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">first</span><span class="special">;</span>
+	<span class="special">}</span>
+
+	<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">T</span> <span class="special">&gt;</span>
+	<span class="keyword">inline</span> <span class="identifier">T</span> <span class="identifier">range_begin</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">Pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;&amp;</span> <span class="identifier">x</span> <span class="special">)</span>
+	<span class="special">{</span>
+		<span class="keyword">return</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">first</span><span class="special">;</span>
+	<span class="special">}</span>
+
+	<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">T</span> <span class="special">&gt;</span>
+	<span class="keyword">inline</span> <span class="identifier">T</span> <span class="identifier">range_end</span><span class="special">(</span> <span class="identifier">Pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;&amp;</span> <span class="identifier">x</span> <span class="special">)</span>
+	<span class="special">{</span>
+		<span class="keyword">return</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">last</span><span class="special">;</span>
+	<span class="special">}</span>
+
+	<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">T</span> <span class="special">&gt;</span>
+	<span class="keyword">inline</span> <span class="identifier">T</span> <span class="identifier">range_end</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">Pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;&amp;</span> <span class="identifier">x</span> <span class="special">)</span>
+	<span class="special">{</span>
+		<span class="keyword">return</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">last</span><span class="special">;</span>
+	<span class="special">}</span>
+
+<span class="special">}</span> <span class="comment">// namespace 'Foo'</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+	<span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">iterator</span>  <span class="identifier">iter</span><span class="special">;</span>
+	<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span>                    <span class="identifier">vec</span><span class="special">;</span>
+	<span class="identifier">Foo</span><span class="special">::</span><span class="identifier">Pair</span><span class="special">&lt;</span><span class="identifier">iter</span><span class="special">&gt;</span>                     <span class="identifier">pair</span> <span class="special">=</span> <span class="special">{</span> <span class="identifier">vec</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">vec</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">};</span>
+	<span class="keyword">const</span> <span class="identifier">Foo</span><span class="special">::</span><span class="identifier">Pair</span><span class="special">&lt;</span><span class="identifier">iter</span><span class="special">&gt;&amp;</span>              <span class="identifier">cpair</span> <span class="special">=</span> <span class="identifier">pair</span><span class="special">;</span>
+	<span class="comment">//</span>
+	<span class="comment">// Notice that we call 'begin' etc with qualification.</span>
+	<span class="comment">//</span>
+	<span class="identifier">iter</span> <span class="identifier">i</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span> <span class="identifier">pair</span> <span class="special">);</span>
+	<span class="identifier">iter</span> <span class="identifier">e</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span> <span class="identifier">pair</span> <span class="special">);</span>
+	<span class="identifier">i</span>      <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span> <span class="identifier">cpair</span> <span class="special">);</span>
+	<span class="identifier">e</span>      <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span> <span class="identifier">cpair</span> <span class="special">);</span>
+	<span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_difference</span><span class="special">&lt;</span> <span class="identifier">Foo</span><span class="special">::</span><span class="identifier">Pair</span><span class="special">&lt;</span><span class="identifier">iter</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">s</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">size</span><span class="special">(</span> <span class="identifier">pair</span> <span class="special">);</span>
+	<span class="identifier">s</span>      <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">size</span><span class="special">(</span> <span class="identifier">cpair</span> <span class="special">);</span>
+	<span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="identifier">Foo</span><span class="special">::</span><span class="identifier">Pair</span><span class="special">&lt;</span><span class="identifier">iter</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span>
+	<span class="identifier">ri</span>     <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">rbegin</span><span class="special">(</span> <span class="identifier">cpair</span> <span class="special">),</span>
+	<span class="identifier">re</span>     <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">rend</span><span class="special">(</span> <span class="identifier">cpair</span> <span class="special">);</span>
+
+	<span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="method_1.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../extending.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="method_3.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

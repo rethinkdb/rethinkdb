@@ -1,0 +1,73 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>io_service::run_one (2 of 2 overloads)</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../run_one.html" title="io_service::run_one">
+<link rel="prev" href="overload1.html" title="io_service::run_one (1 of 2 overloads)">
+<link rel="next" href="../stop.html" title="io_service::stop">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overload1.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../run_one.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../boost_asio.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../stop.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_asio.reference.io_service.run_one.overload2"></a><a class="link" href="overload2.html" title="io_service::run_one (2 of 2 overloads)">io_service::run_one
+          (2 of 2 overloads)</a>
+</h5></div></div></div>
+<p>
+            Run the <a class="link" href="../../io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> object's event processing
+            loop to execute at most one handler.
+          </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">run_one</span><span class="special">(</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="special">&amp;</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+            The <code class="computeroutput"><span class="identifier">run_one</span><span class="special">()</span></code>
+            function blocks until one handler has been dispatched, or until the
+            <a class="link" href="../../io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a>
+            has been stopped.
+          </p>
+<h6>
+<a name="boost_asio.reference.io_service.run_one.overload2.h0"></a>
+            <span class="phrase"><a name="boost_asio.reference.io_service.run_one.overload2.return_value"></a></span><a class="link" href="overload2.html#boost_asio.reference.io_service.run_one.overload2.return_value">Return
+            Value</a>
+          </h6>
+<p>
+            The number of handlers that were executed. A zero return value implies
+            that the <a class="link" href="../../io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> object is stopped
+            (the <code class="computeroutput"><span class="identifier">stopped</span><span class="special">()</span></code>
+            function returns <code class="computeroutput"><span class="keyword">true</span></code>).
+            Subsequent calls to <code class="computeroutput"><span class="identifier">run</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">run_one</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">poll</span><span class="special">()</span></code> or <code class="computeroutput"><span class="identifier">poll_one</span><span class="special">()</span></code> will return immediately unless there
+            is a prior call to <code class="computeroutput"><span class="identifier">reset</span><span class="special">()</span></code>.
+          </p>
+<p>
+            The number of handlers that were executed.
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overload1.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../run_one.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../boost_asio.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../stop.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

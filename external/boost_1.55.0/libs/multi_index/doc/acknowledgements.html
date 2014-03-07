@@ -1,0 +1,198 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Acknowledgements</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+<link rel="start" href="index.html">
+<link rel="prev" href="release_notes.html">
+<link rel="up" href="index.html">
+</head>
+
+<body>
+<h1><img src="../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Acknowledgements</h1>
+
+<div class="prev_link"><a href="release_notes.html"><img src="prev.gif" alt="release notes" border="0"><br>
+Release notes
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link">
+</div><br clear="all" style="clear: all;">
+
+<hr>
+
+<p>
+Fernando Cacciola, Darren Cook, Beman Dawes, Jeremy Maitin-Shepard and Daryle
+Walker from the Boost mailing list provided useful suggestions for improvement
+on the first alpha releases of the library. Gang Wang discovered several
+bugs in the code. Thomas Wenisch brought out the idea of "sequence sets"
+from which sequenced indices were designed. Giovanni Bajo, Chris Little and
+Maxim Yegorushkin tested the library on several platforms. Daniel Wallin
+contributed fixes for MSVC++ 7.0. Ron Liechty and the support staff at
+Metrowerks provided assistance during the porting of the library to CW 8.3.
+Porting to VisualAge 6.0 counted on Toon Knapen's help. Markus Sch&ouml;pflin
+aided with Compaq C++ 6.5 and GCC for Tru64 UNIX. Rosa Bern&aacute;rdez proofread the
+last versions of the tutorial.
+</p>
+
+<p>
+Pavel Vo&#382;en&iacute;lek has been immensely helpful in thoroughly reviewing
+every single bit of the library, and he also suggested several extra
+functionalities, most notably range querying, safe mode, polymorphic key
+extractors and MPL support. Thank you!
+</p>
+
+<p>
+The Boost acceptance review took place between March 20th and 30th 2004.
+Pavel Vo&#382;en&iacute;lek was the review manager. Thanks to all the people
+who participated and specially to those who submitted reviews:
+Fredrik Blomqvist, Tom Brinkman, Paul A Bristow, Darren Cook, Jeff Garland,
+David B. Held, Brian McNamara, Gary Powell, Rob Stewart, Arkadiy Vertleyb,
+J&ouml;rg Walter. Other Boost members also contributed ideas, particularly
+in connection with the library's naming scheme: Pavol Droba,
+Dave Gomboc, Jeremy Maitin-Shepard, Thorsten Ottosen, Matthew Vogt,
+Daryle Walker. My apologies if I inadvertently left somebody out of this
+list.
+</p>
+
+<p>
+Boost.MultiIndex could not have been written without Aleksey Gurtovoy
+et al. superb <a href="../../../libs/mpl/doc/index.html">Boost MPL
+Library</a>. Also, Aleksey's techniques for dealing with ETI-related
+problems in MSVC++ 6.0 helped solve some internal issues of the library.
+</p>
+
+<p>
+The internal implementation of red-black trees is based on that of SGI STL
+<a href="http://www.sgi.com/tech/stl/stl_tree.h">stl_tree.h</a> file:
+</p>
+
+<blockquote>
+Copyright (c) 1996,1997
+Silicon Graphics Computer Systems, Inc.
+<br>
+Permission to use, copy, modify, distribute and sell this software
+and its documentation for any purpose is hereby granted without fee,
+provided that the above copyright notice appear in all copies and
+that both that copyright notice and this permission notice appear
+in supporting documentation.  Silicon Graphics makes no
+representations about the suitability of this software for any
+purpose.  It is provided &quot;as is&quot; without express or implied warranty.
+<br>
+<br>
+Copyright (c) 1994
+Hewlett-Packard Company
+<br>
+Permission to use, copy, modify, distribute and sell this software
+and its documentation for any purpose is hereby granted without fee,
+provided that the above copyright notice appear in all copies and
+that both that copyright notice and this permission notice appear
+in supporting documentation.  Hewlett-Packard Company makes no
+representations about the suitability of this software for any
+purpose.  It is provided &quot;as is&quot; without express or implied warranty.
+</blockquote>
+
+<p>
+<span style="float:right;margin-left:10px"><img src="lopez.jpg" width="160" height="120"></span>
+I would like to dedicate this piece of work to Rosa Bern&aacute;rdez, my very first
+C++ teacher, for her unconditional support in many endeavors of which programming is
+by no means the most important. In memory of my cat L&oacute;pez (2001-2003): he
+lived too fast, died too young.
+<br style="clear:all;">
+</p>
+
+<h2><a name="boost_1_33">Boost 1.33 release</a></h2>
+
+<p>
+Many thanks again to Pavel Vo&#382;en&iacute;lek, who has carefully reviewed
+the new material and suggested many improvements. The design of hashed indices
+has benefited from discussions with several Boost members, most notably
+Howard Hinnant and Daniel James. Daniel has also contributed
+<a href="../../functional/hash/index.html">Boost.Hash</a>
+to the community: hashed indices depend on this library as
+their default hash function provider. Robert Ramey's
+<a href="../../serialization/index.html">Boost Serialization Library</a>
+provides the very solid framework upon which Boost.MultiIndex serialization
+capabilities are built. Toon Knapen helped adjust the library for VisualAge 6.0.
+Markus Sch&ouml;pflin provided a Jamfile tweak for GCC under Tru64 UNIX.
+</p>
+
+<h2><a name="boost_1_34">Boost 1.34 release</a></h2>
+
+<p>
+<span style="float:left;margin-right:10px"><img src="hector.jpg" width="150" height="198"></span>
+Thanks go to Pavel Vo&#382;en&iacute;lek for his useful comments and suggestions
+during the development of this release, and to Rosa Bern&aacute;rdez for reviewing
+the new material in the documentation.
+Alo Sarv suggested a notational improvement in the specification of
+partial searches with composite keys.
+Maxim Yegorushkin proposed a valuable
+<a href="tutorial/indices.html#ordered_node_compression">spatial optimization</a>
+for ordered indices and provided figures of its impact on performance
+for containers with large numbers of elements.
+Caleb Epstein performed the tests under MSVC++ 8.0 described in the
+performance section. The following people have reported bugs and problems with
+previous versions and prereleases of the library: Alexei Alexandrov,
+Mat&iacute;as Capeletto, John Eddy, Martin Eigel, Guillaume Lazzara,
+Felipe Magno de Almeida, Julien Pervill&eacute;, Hubert Schmid, Toby Smith.
+</p>
+
+<p>
+New member in the family! Thanks to H&eacute;ctor for his patience during
+long development sessions and his occasional contributions to the source
+codebase.
+<br style="clear:all;">
+</p>
+
+<h2><a name="boost_1_35">Boost 1.35 release</a></h2>
+
+<p>
+<a href="tutorial/key_extraction.html#global_fun"><code>global_fun</code></a>
+was included after a proposal by Markus Werle. Bruno Mart&iacute;nez Aguerre
+suggested the inclusion of
+<a href="tutorial/indices.html#iterator_to"><code>iterator_to</code></a>. The
+rollback versions of <code>modify</code> and <code>modify_key</code> arose
+from discussions with Mat&iacute;as Capeletto. Steven Watanabe spotted an
+include guard bug present from the first release of the library.
+</p>
+
+<h2><a name="boost_1_36">Boost 1.36 release</a></h2>
+
+<p>
+Thanks to Amit Jain for reporting a problem with allocator management.
+Michael Fawcett proposed the addition of an allocator constructor to
+<code>multi_index_container</code>.
+A report from Zachary Zhou has led to
+<a href="release_notes.html#stable_update">enhancing the behavior of
+hashed indices update functions</a> so that they meet some intuitive expectations.
+Grzegorz Jakacki spotted some internal dead code.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="release_notes.html"><img src="prev.gif" alt="release notes" border="0"><br>
+Release notes
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link">
+</div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised June 25th 2008</p>
+
+<p>&copy; Copyright 2003-2008 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

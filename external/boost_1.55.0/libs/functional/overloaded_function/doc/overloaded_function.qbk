@@ -1,0 +1,171 @@
+
+[/ Copyright (C) 2009-2012 Lorenzo Caminiti ]
+[/ Distributed under the Boost Software License, Version 1.0 ]
+[/ (see accompanying file LICENSE_1_0.txt or a copy at ]
+[/ http://www.boost.org/LICENSE_1_0.txt) ]
+[/ Home at http://www.boost.org/libs/functional/overloaded_function ]
+
+[library Boost.Functional/OverloadedFunction
+    [quickbook 1.5]
+    [version 1.0.0]
+    [copyright 2011-2012 Lorenzo Caminiti]
+    [purpose overload functions with one function object]
+    [license
+        Distributed under the Boost Software License, Version 1.0
+        (see accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+    [authors [Caminiti <email>lorcaminiti@gmail.com</email>, Lorenzo]]
+    [category Function Objects and Higher-Order Programming]
+]
+
+[def __Introduction__ [link functional_overloaded_function.introduction Introduction]]
+[def __Getting_Started__ [link functional_overloaded_function.getting_started Getting Started]]
+[def __Tutorial__ [link functional_overloaded_function.tutorial Tutorial]]
+[def __Boost__ [@http://www.boost.org Boost]]
+[def __Boost_Test__ [@http://www.boost.org/libs/test Boost.Test]]
+[def __Boost_Function__ [@http://www.boost.org/libs/function Boost.Function]]
+[def __Boost_Typeof__ [@http://www.boost.org/doc/libs/typeof Boost.Typeof]]
+
+[import ../test/identity.hpp]
+[import ../test/functor.cpp]
+[import ../test/make_decl.cpp]
+[import ../test/make_call.cpp]
+
+This library allows to overload different functions into a single function object.
+
+[section Introduction]
+
+Consider the following functions which have distinct signatures:
+
+[identity_decls]
+
+Instead of calling them using their separate names (here `BOOST_TEST` is equivalent to `assert`):
+[footnote
+In most of the examples presented in this documentation, the Boost.Detail/LightweightTest (=boost/detail/lightweight_test.hpp=) macro `BOOST_TEST` is used to check correctness conditions (conceptually similar to `assert`).
+A failure of the checked condition does not abort the execution of the program, it will instead make `boost::report_errors` return a non-zero program exit code.
+Using Boost.Detail/LightweightTest allows to add the examples to the library regression tests so to make sure that they always compile and run correctly.
+]
+
+[identity_calls]
+
+It is possible to use this library to create a single [@http://en.wikipedia.org/wiki/Function_overloading overloaded] function object (or [@http://en.wikipedia.org/wiki/Functor functor]) named `identity` that aggregates together the calls to the specific functions (see also [@../../test/functor.cpp =functor.cpp=] and [@../../test/identity.hpp =identity.hpp=]):
+
+[identity_functor]
+
+Note how the functions are called via a single overloaded function object `identity` instead of using their different names `identity_s`, `identity_i`, and `identity_d`.
+
+[endsect]
+
+[section Getting Started]
+
+This section explains how to setup a system to use this library.
+
+[section Compilers and Platforms]
+
+The authors originally developed and tested this library on:
+
+# GNU Compiler Collection (GCC) C++ 4.5.3 (with and without C++11 features enabled `-std=c++0x`) on Cygwin.
+# Miscrosoft Visual C++ (MSVC) 8.0 on Windows 7.
+
+See the library [@http://www.boost.org/development/tests/release/developer/functional-overloaded_function.html regressions test results] for detailed information on supported compilers and platforms.
+Check the library regression test [@../../test/Jamfile.v2 =Jamfile.v2=] for any special configuration that might be required for a specific compiler.
+
+[endsect]
+
+[section Installation]
+
+This library is composed of header files only.
+Therefore there is no pre-compiled object file which needs to be installed.
+Programmers can simply instruct the compiler where to find the library header files (`-I` option on GCC, `/I` option on MSVC, etc) and compile code using the library.
+
+The maximum number of functions to overload is given by the [macroref BOOST_FUNCTIONAL_OVERLOADED_FUNCTION_CONFIG_OVERLOAD_MAX] configuration macro.
+The maximum number of function parameters for each of the specified function type is given by the [macroref BOOST_FUNCTIONAL_OVERLOADED_FUNCTION_CONFIG_ARITY_MAX] configuration macro.
+All configuration macros have appropriate default values when they are left undefined.
+
+[endsect]
+
+[endsect]
+
+[section Tutorial]
+
+This section explains how to use this library.
+
+[section Overloading]
+
+Consider the following functions which have distinct signatures:
+
+[identity_decls]
+
+This library header [headerref boost/functional/overloaded_function.hpp] provides a [classref boost::overloaded_function] class template that creates a single overloaded function object that can be used to call the specified functions instead of using the separate function names (see also [@../../test/functor.cpp =functor.cpp=] and [@../../test/identity.hpp =identity.hpp=]):
+
+[identity_functor]
+
+Note how each function type is passed as a template parameter of [classref boost::overloaded_function] using the following syntax (this is __Boost_Function__'s preferred syntax):
+
+    ``/result-type/`` (``/argument1-type/``, ``/argument2-type/``, ...)
+
+Then the relative function pointers, function references, or [@http://en.wikipedia.org/wiki/Polymorphism_(computer_science) monomorphic function] objects are passed to the [classref boost::overloaded_function] constructor matching the order of the specified template parameters.
+[footnote
+Function pointers are of the form [^['result-type ]]`(*)(`[^['argument1-type]]`, ...)` (the C++ compiler is usually able to automatically promote a function name to a function pointer in a context where a function pointer is expected even if the function name is not prefixed by `&`).
+Function references are of the form [^['result-type ]]`(&)(`[^['argument1-type]]`, ...)`.
+Function types are of the form [^['result-type ]]`(`[^['argument1-type]]`, ...)` (note how they lack of both `*` and `&` when compared to function pointers and function references).
+Finally, monomorphic function objects are instances of classes with a non-template call operator of the form [^['result-type ]]`operator()(`[^['argument1-type]]`, ...)`.
+Unfortunately, it is not possible to support polymorphic function objects (see [@http://lists.boost.org/Archives/boost/2012/03/191744.php]).
+]
+In the above example, `identity_s` is passed as a function pointer (the function address is automatically taken from the function name by the compiler), `identity_i` as a function reference, and `identity_d` as a function object.
+
+All specified function types must have distinct parameters from one another (so the overloaded calls can be resolved by this library).
+[footnote
+Note that in C++ the function result type is not used for overload resolution (to avoid making the overload resolution context dependent).
+Therefore, at least one of the function parameters must be distinct for each specified function type.
+]
+In order to create an overloaded function object, it is necessary to specify at least two function types (because there is nothing to overload between one or zero functions).
+
+[endsect]
+
+[section Without Function Types]
+
+For convenience, this library also provides the [funcref boost::make_overloaded_function] function template which allows to create the overloaded function object without explicitly specifying the function types.
+The function types are automatically deduced from the specified functions and the appropriate [classref boost::overloaded_function] instantiation is returned by [funcref boost::make_overloaded_function].
+
+The [funcref boost::make_overloaded_function] function template can be useful when used together with __Boost_Typeof__'s `BOOST_AUTO` (or C++11 `auto`).
+For example (see also [@../../test/make_decl.cpp =make_decl.cpp=] and [@../../test/identity.hpp =identity.hpp=]):
+
+[identity_make_decl]
+
+Note how the overloaded function object `identity` has been created specifying only the functions `identity_s`, `identity_i`, `identity_d` and without specifying the function types `const std::string& (const std::string&)`, `int (int)`, and `double (double)` as required instead by [classref boost::overloaded_function].
+Therefore, [funcref boost::make_overloaded_function] provides a more concise syntax in this context when compared with [classref boost::overloaded_function].
+
+Another case where [funcref boost::make_overloaded_function] can be useful is when the overloaded function object is passed to a function template which can hold the specific [classref boost::overloaded_function] type using a template parameter.
+For example (see also [@../../test/make_call.cpp =make_call.cpp=] and [@../../test/identity.hpp =identity.hpp=]):
+
+[identity_make_checks]
+[identity_make_call]
+
+The library implementation of [funcref boost::make_overloaded_function] uses __Boost_Typeof__ to automatically deduce some of the function types.
+In order to compile code in __Boost_Typeof__ emulation mode, all types should be properly registered using `BOOST_TYPEOF_REGISTER_TYPE` and `BOOST_TYPEOF_REGISTER_TEMPLATE`, or appropriate __Boost_Typeof__ headers should be included (see __Boost_Typeof__ for more information).
+For the above examples, it is sufficient to include the __Boost_Typeof__ header that registers `std::string` (this library does not require to register `boost::function` for __Boost_Typeof__ emulation):
+
+[identity_typeof]
+
+[endsect]
+
+[endsect]
+
+[xinclude reference.xml]
+
+[section Acknowledgments]
+
+Many thanks to Mathias Gaunard for suggesting to implement [classref boost::overloaded_function] and for some sample code.
+
+Thanks to John Bytheway for suggesting to implement [funcref boost::make_overloaded_function].
+
+Thanks to Nathan Ridge for suggestions on how to implement [funcref boost::make_overloaded_function].
+
+Thanks to Robert Stewart for commenting on the library name.
+
+Many thanks to the entire __Boost__ community and mailing list for providing valuable comments about this library and great insights on the C++ programming language.
+
+[endsect]
+

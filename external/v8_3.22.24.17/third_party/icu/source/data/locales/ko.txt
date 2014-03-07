@@ -1,0 +1,799 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ko.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ko.xml
+ */
+ko{
+    AuxExemplarCharacters{
+        "[丘 串 乃 久 乖 九 乞 乫 乾 亂 亘 交 京 仇 今 介 件 价 企 伋 伎 伽 佳 佶 侃 來 侊 供 係 俓 俱 個 倞 倦 倨 假 偈 健"
+        " 傀 傑 傾 僅 僑 價 儆 儉 儺 光 克 兢 內 公 共 其 具 兼 冀 冠 凱 刊 刮 券 刻 剋 剛 劇 劍 劒 功 加 劤 劫 勁 勍 勘 勤"
+        " 勸 勻 勾 匡 匣 區 南 卦 却 卵 卷 卿 厥 去 及 口 句 叩 叫 可 各 吉 君 告 呱 呵 咎 咬 哥 哭 啓 喀 喇 喝 喫 喬 嗜 嘉"
+        " 嘔 器 囊 困 固 圈 國 圭 圻 均 坎 坑 坤 坰 坵 垢 基 埼 堀 堅 堈 堪 堺 塊 塏 境 墾 壙 壞 夔 奇 奈 奎 契 奸 妓 妗 姑"
+        " 姜 姦 娘 娜 嫁 嬌 孔 季 孤 宏 官 客 宮 家 寄 寇 寡 寬 尻 局 居 屆 屈 岐 岡 岬 崎 崑 崗 嵌 嵐 嶇 嶠 工 巧 巨 己 巾"
+        " 干 幹 幾 庚 庫 康 廊 廐 廓 廣 建 弓 强 彊 徑 忌 急 怪 怯 恐 恝 恪 恭 悸 愆 感 愧 愷 愾 慊 慣 慤 慨 慶 慷 憩 憬 憾"
+        " 懃 懇 懦 懶 懼 戈 戒 戟 戡 扱 技 抉 拉 拏 拐 拒 拘 括 拮 拱 拳 拷 拿 捏 据 捲 捺 掘 掛 控 揀 揆 揭 擊 擎 擒 據 擧"
+        " 攪 攷 改 攻 故 敎 救 敢 敬 敲 斛 斤 旗 旣 昆 昑 景 晷 暇 暖 暠 暻 曠 曲 更 曷 朗 朞 期 机 杆 杞 杰 枏 果 枯 架 枸"
+        " 柑 柩 柬 柯 校 根 格 桀 桂 桔 桿 梏 梗 械 梱 棄 棋 棍 棘 棨 棺 楗 楠 極 槁 構 槐 槨 槪 槻 槿 樂 橄 橋 橘 機 檄 檎"
+        " 檢 櫃 欄 權 欺 款 歌 歐 歸 殼 毆 毬 氣 求 江 汨 汲 決 汽 沂 沽 洛 洸 浪 涇 淃 淇 減 渠 渴 湳 溝 溪 滑 滾 漑 潔 潰"
+        " 澗 激 濫 灌 灸 炅 炚 炬 烙 烱 煖 爛 牽 犬 狂 狗 狡 狼 獗 玖 玘 珂 珏 珖 珙 珞 珪 球 琦 琨 琪 琯 琴 瑾 璂 璟 璣 璥"
+        " 瓊 瓘 瓜 甄 甘 甲 男 畇 界 畸 畺 畿 疆 疥 疳 痂 痙 痼 癎 癩 癸 皆 皎 皐 盖 監 看 眷 睾 瞰 瞼 瞿 矜 矩 矯 硅 硬 碁"
+        " 碣 磎 磬 磯 磵 祁 祇 祈 祛 祺 禁 禽 科 稈 稼 稽 稿 穀 究 穹 空 窘 窟 窮 窺 竅 竟 竭 競 竿 筋 筐 筠 箇 箕 箝 管 簡"
+        " 粳 糠 系 糾 紀 納 紘 級 紺 絅 結 絞 給 絳 絹 絿 經 綱 綺 緊 繫 繭 繼 缺 罐 罫 羅 羈 羌 羔 群 羹 翹 考 耆 耉 耕 耭"
+        " 耿 肌 肝 股 肩 肯 肱 胛 胱 脚 脛 腔 腱 膈 膏 膠 臘 臼 舅 舊 舡 艮 艱 芎 芥 芩 芹 苛 苟 苦 苽 茄 莖 菅 菊 菌 菓 菫"
+        " 菰 落 葛 葵 蓋 蕎 蕨 薑 藁 藍 藿 蘭 蘿 虔 蚣 蛟 蝎 螺 蠟 蠱 街 衢 衲 衾 衿 袈 袞 袴 裙 裸 褐 襁 襟 襤 見 規 覡 覲"
+        " 覺 觀 角 計 記 訣 訶 詭 誇 誡 誥 課 諫 諾 謙 講 謳 謹 譏 警 譴 谷 谿 豈 貢 貫 貴 賈 購 赳 起 跏 距 跨 踞 蹇 蹶 躬"
+        " 軀 車 軌 軍 軻 較 輕 轎 轟 辜 近 迦 迲 适 逑 逕 逵 過 遣 遽 邏 那 邯 邱 郊 郎 郡 郭 酪 醵 金 鈐 鈞 鉀 鉅 鉗 鉤 銶"
+        " 鋸 鋼 錡 錤 錦 錮 鍋 鍵 鎌 鎧 鏡 鑑 鑒 鑛 開 間 閘 閣 閨 闕 關 降 階 隔 隙 雇 難 鞏 鞠 鞨 鞫 頃 頸 顆 顧 飢 餃 館"
+        " 饉 饋 饑 駒 駕 駱 騎 騏 騫 驅 驕 驚 驥 骨 高 鬼 魁 鮫 鯤 鯨 鱇 鳩 鵑 鵠 鷄 鷗 鸞 麒 麴 黔 鼓 龕 龜]"
+    }
+    ExemplarCharacters{"[가-힣]"}
+    ExemplarCharactersCurrency{"[a b c d e f g h i j k l m n o p q r s t u v w x y z]"}
+    ExemplarCharactersIndex{"[ᄀ ᄂ ᄃ ᄅ ᄆ ᄇ ᄉ ᄋ ᄌ ᄎ ᄏ ᄐ ᄑ ᄒ]"}
+    LocaleScript{
+        "Hang",
+        "Hani",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤#,##0.00"}
+                decimalFormat{"#,##0.###"}
+                percentFormat{"#,##0%"}
+                scientificFormat{"#E0"}
+            }
+            symbols{
+                decimal{"."}
+                exponential{"E"}
+                group{","}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"-"}
+                nan{"NaN"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    Version{"2.0.49.58"}
+    calendar{
+        buddhist{
+            DateTimePatterns{
+                "a h시 m분 s초 zzzz",
+                "a h시 m분 s초 z",
+                "a h:mm:ss",
+                "a h:mm",
+                "G y년 M월 d일 EEEE",
+                "G y년 M월 d일",
+                "G y. M. d",
+                "G y. M. d",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                EEEd{"d일 (E)"}
+                H{"H시"}
+                HHmmss{"HH:mm:ss"}
+                Hm{"HH:mm"}
+                Hms{"H시 m분 s초"}
+                M{"M월"}
+                MEd{"M. d. (E)"}
+                MMM{"LLL"}
+                MMMEd{"MMM d일 (E)"}
+                MMMd{"MMM d일"}
+                MMdd{"MM. dd"}
+                Md{"M. d."}
+                d{"d일"}
+                h{"a h시"}
+                hm{"a h:mm"}
+                hms{"a h:mm:ss"}
+                mmss{"mm:ss"}
+                ms{"mm:ss"}
+                y{"G y년"}
+                yM{"G y. M."}
+                yMEd{"G y. M. d. (E)"}
+                yMMM{"G y년 MMM"}
+                yMMMEEEd{"G y년 MMM d일 (E)"}
+                yMMMEEEEd{"G y년 MMM d일 EEEE"}
+                yMMMd{"G y년 MMM d일"}
+                yQ{"G y년 Q분기"}
+                yQQQ{"G y년 QQQ"}
+                yyMM{"G yy. M."}
+                yyMMM{"G y년 MMM"}
+                yyQ{"G y년 Q분기"}
+                yyyyMM{"G y. MM"}
+            }
+            eras{
+                abbreviated{
+                    "불기",
+                }
+            }
+        }
+        gregorian{
+            AmPmMarkers{
+                "오전",
+                "오후",
+            }
+            DateTimePatterns{
+                "a h시 m분 s초 zzzz",
+                "a h시 m분 s초 z",
+                "a h:mm:ss",
+                "a h:mm",
+                "y년 M월 d일 EEEE",
+                "y년 M월 d일",
+                "yyyy. M. d.",
+                "yy. M. d.",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                EEEd{"d일 (E)"}
+                H{"H시"}
+                HHmmss{"HH:mm:ss"}
+                Hm{"HH:mm"}
+                Hms{"H시 m분 s초"}
+                M{"M월"}
+                MEd{"M. d. (E)"}
+                MMM{"LLL"}
+                MMMEd{"MMM d일 (E)"}
+                MMMd{"MMM d일"}
+                MMdd{"MM. dd"}
+                Md{"M. d."}
+                d{"d일"}
+                h{"a h시"}
+                hm{"a h:mm"}
+                hms{"a h:mm:ss"}
+                mmss{"mm:ss"}
+                ms{"mm:ss"}
+                y{"y년"}
+                yM{"yyyy. M."}
+                yMEd{"yyyy. M. d. (E)"}
+                yMMM{"y년 MMM"}
+                yMMMEd{"y년 MMM d일 (E)"}
+                yMMMEEEEd{"y년 MMM d일 EEEE"}
+                yMMMd{"y년 MMM d일"}
+                yQ{"y년 Q분기"}
+                yQQQ{"y년 QQQ"}
+                yyMM{"yy. M."}
+                yyMMM{"yy년 MMM"}
+                yyQ{"yy년 Q분기"}
+                yyyyMM{"yyyy. MM"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "일",
+                        "월",
+                        "화",
+                        "수",
+                        "목",
+                        "금",
+                        "토",
+                    }
+                    wide{
+                        "일요일",
+                        "월요일",
+                        "화요일",
+                        "수요일",
+                        "목요일",
+                        "금요일",
+                        "토요일",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "일",
+                        "월",
+                        "화",
+                        "수",
+                        "목",
+                        "금",
+                        "토",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "기원전",
+                    "서기",
+                }
+                wide{
+                    "서력기원전",
+                    "서력기원",
+                }
+            }
+            fields{
+                day{
+                    dn{"일"}
+                    relative{
+                        "-1"{"어제"}
+                        "-2"{"그저께"}
+                        "-3"{"그끄제"}
+                        "0"{"오늘"}
+                        "1"{"내일"}
+                        "2"{"모레"}
+                        "3"{"3일후"}
+                    }
+                }
+                dayperiod{
+                    dn{"오전/오후"}
+                }
+                era{
+                    dn{"연호"}
+                }
+                hour{
+                    dn{"시"}
+                }
+                minute{
+                    dn{"분"}
+                }
+                month{
+                    dn{"월"}
+                }
+                second{
+                    dn{"초"}
+                }
+                week{
+                    dn{"주"}
+                }
+                weekday{
+                    dn{"요일"}
+                }
+                year{
+                    dn{"년"}
+                }
+                zone{
+                    dn{"시간대"}
+                }
+            }
+            intervalFormats{
+                M{
+                    M{"M월 ~ M월"}
+                }
+                MEd{
+                    M{"M. d (E) ~ M. d (E)"}
+                    d{"M. d (E) ~ M. d (E)"}
+                }
+                MMM{
+                    M{"MMM ~ MMM"}
+                }
+                MMMEd{
+                    M{"M월 d일 (E) ~ M월 d일 (E)"}
+                    d{"M월 d일 (E) ~ d일 (E)"}
+                }
+                MMMM{
+                    M{"LLLL-LLLL"}
+                }
+                MMMd{
+                    M{"M월 d일 ~ M월 d일"}
+                    d{"M월 d일 ~ d일"}
+                }
+                Md{
+                    M{"M. d ~ M. d"}
+                    d{"M. d ~ M. d"}
+                }
+                d{
+                    d{"d일 ~ d일"}
+                }
+                fallback{"{0} – {1}"}
+                h{
+                    a{"a h ~ a h"}
+                    h{"a h~h"}
+                }
+                hm{
+                    a{"a h:mm ~ a h:mm"}
+                    h{"a h:mm~h:mm"}
+                    m{"a h:mm~h:mm"}
+                }
+                hmv{
+                    a{"a h:mm ~ a h:mm v"}
+                    h{"a h:mm~h:mm v"}
+                    m{"a h:mm~h:mm v"}
+                }
+                hv{
+                    a{"a h ~ a h v"}
+                    h{"a h~h v"}
+                }
+                y{
+                    y{"y년 ~ y년"}
+                }
+                yM{
+                    M{"yyyy. M ~ yyyy. M"}
+                    y{"yyyy. M ~ yyyy. M"}
+                }
+                yMEd{
+                    M{"yy. M. d. (E) ~ M. d. (E)"}
+                    d{"yy. M. d. (E) ~ d. (E)"}
+                    y{"yy. M. d. (E) ~ yy. M. d. (E)"}
+                }
+                yMMM{
+                    M{"y년 M월 ~ M월"}
+                    y{"y년 M월 ~ y년 M월"}
+                }
+                yMMMEd{
+                    M{"y년 M월 d일 (E) ~ M월 d일 (E)"}
+                    d{"y년 M월 d일 (E) ~ d일 (E)"}
+                    y{"y년 M월 d일 (E) ~ y년 M월 d일 (E)"}
+                }
+                yMMMM{
+                    M{"y년 M월 ~ M월"}
+                    y{"y년 M월 ~ y년 M월"}
+                }
+                yMMMd{
+                    M{"y년 M월 d일 ~ M월 d일"}
+                    d{"y년 M월 d일 ~ d일"}
+                    y{"y년 M월 d일 ~ y년 M월 d일"}
+                }
+                yMd{
+                    M{"yy. M. d ~ M. d"}
+                    d{"yy. M. d ~ d"}
+                    y{"yy. M. d. ~ yy. M. d."}
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "1월",
+                        "2월",
+                        "3월",
+                        "4월",
+                        "5월",
+                        "6월",
+                        "7월",
+                        "8월",
+                        "9월",
+                        "10월",
+                        "11월",
+                        "12월",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "1월",
+                        "2월",
+                        "3월",
+                        "4월",
+                        "5월",
+                        "6월",
+                        "7월",
+                        "8월",
+                        "9월",
+                        "10월",
+                        "11월",
+                        "12월",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "1분기",
+                        "2분기",
+                        "3분기",
+                        "4분기",
+                    }
+                    wide{
+                        "제 1/4분기",
+                        "제 2/4분기",
+                        "제 3/4분기",
+                        "제 4/4분기",
+                    }
+                }
+            }
+        }
+        japanese{
+            DateTimePatterns{
+                "a h시 m분 s초 zzzz",
+                "a h시 m분 s초 z",
+                "a h:mm:ss",
+                "a h:mm",
+                "G y년 M월 d일 EEEE",
+                "G y년 M월 d일",
+                "G y. M. d",
+                "G y. M. d",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                EEEd{"d일 (E)"}
+                H{"H시"}
+                HHmmss{"HH:mm:ss"}
+                Hm{"HH:mm"}
+                Hms{"H시 m분 s초"}
+                M{"M월"}
+                MEd{"M. d. (E)"}
+                MMM{"LLL"}
+                MMMEd{"MMM d일 (E)"}
+                MMMd{"MMM d일"}
+                MMdd{"MM. dd"}
+                Md{"M. d."}
+                d{"d일"}
+                h{"a h시"}
+                hm{"a h:mm"}
+                hms{"a h:mm:ss"}
+                mmss{"mm:ss"}
+                ms{"mm:ss"}
+                yyMM{"G yy. M."}
+                yyMMM{"G yy년 MMM"}
+                yyQ{"G yy년 Q분기"}
+                yyyy{"G yy년"}
+                yyyyM{"G y. M."}
+                yyyyMEd{"G y. M. d. (EEE)"}
+                yyyyMM{"G y. MM"}
+                yyyyMMM{"G y년 MMM"}
+                yyyyMMMEd{"G y년 MMM d일 (EEE)"}
+                yyyyMMMEEEEd{"G y년 MMM d일 EEEE"}
+                yyyyMMMd{"G yy년 MMM d일"}
+                yyyyQ{"G yy년 Q분기"}
+                yyyyQQQ{"G y년 QQQ"}
+            }
+            eras{
+                abbreviated{
+                    "다이카",
+                    "하쿠치",
+                    "하쿠호",
+                    "슈초",
+                    "다이호",
+                    "게이운",
+                    "와도",
+                    "레이키",
+                    "요로",
+                    "진키",
+                    "덴표",
+                    "덴표칸포",
+                    "덴표쇼호",
+                    "덴표호지",
+                    "덴표진고",
+                    "진고케이운",
+                    "호키",
+                    "덴오",
+                    "엔랴쿠",
+                    "다이도",
+                    "고닌",
+                    "덴초",
+                    "조와",
+                    "가쇼",
+                    "닌주",
+                    "사이코",
+                    "덴난",
+                    "조간",
+                    "간교",
+                    "닌나",
+                    "간표",
+                    "쇼타이",
+                    "엔기",
+                    "엔초",
+                    "조헤이",
+                    "덴교",
+                    "덴랴쿠",
+                    "덴토쿠",
+                    "오와",
+                    "고호",
+                    "안나",
+                    "덴로쿠",
+                    "덴엔",
+                    "조겐",
+                    "덴겐",
+                    "에이간",
+                    "간나",
+                    "에이엔",
+                    "에이소",
+                    "쇼랴쿠",
+                    "조토쿠",
+                    "조호",
+                    "간코",
+                    "조와",
+                    "간닌",
+                    "지안",
+                    "만주",
+                    "조겐",
+                    "조랴쿠",
+                    "조큐",
+                    "간토쿠",
+                    "에이쇼",
+                    "덴기",
+                    "고헤이",
+                    "지랴쿠",
+                    "엔큐",
+                    "조호",
+                    "쇼랴쿠",
+                    "에이호",
+                    "오토쿠",
+                    "간지",
+                    "가호",
+                    "에이초",
+                    "조토쿠",
+                    "고와",
+                    "조지",
+                    "가쇼",
+                    "덴닌",
+                    "덴에이",
+                    "에이큐",
+                    "겐에이",
+                    "호안",
+                    "덴지",
+                    "다이지",
+                    "덴쇼",
+                    "조쇼",
+                    "호엔",
+                    "에이지",
+                    "고지",
+                    "덴요",
+                    "규안",
+                    "닌페이",
+                    "규주",
+                    "호겐",
+                    "헤이지",
+                    "에이랴쿠",
+                    "오호",
+                    "조칸",
+                    "에이만",
+                    "닌난",
+                    "가오",
+                    "조안",
+                    "안겐",
+                    "지쇼",
+                    "요와",
+                    "주에이",
+                    "겐랴쿠",
+                    "분지",
+                    "겐큐",
+                    "쇼지",
+                    "겐닌",
+                    "겐큐",
+                    "겐에이",
+                    "조겐",
+                    "겐랴쿠",
+                    "겐포",
+                    "조큐",
+                    "조오",
+                    "겐닌",
+                    "가로쿠",
+                    "안테이",
+                    "간키",
+                    "조에이",
+                    "덴푸쿠",
+                    "분랴쿠",
+                    "가테이",
+                    "랴쿠닌",
+                    "엔오",
+                    "닌지",
+                    "간겐",
+                    "호지",
+                    "겐초",
+                    "고겐",
+                    "쇼카",
+                    "쇼겐",
+                    "분오",
+                    "고초",
+                    "분에이",
+                    "겐지",
+                    "고안",
+                    "쇼오",
+                    "에이닌",
+                    "쇼안",
+                    "겐겐",
+                    "가겐",
+                    "도쿠지",
+                    "엔쿄",
+                    "오초",
+                    "쇼와",
+                    "분포",
+                    "겐오",
+                    "겐코",
+                    "쇼추",
+                    "가랴쿠",
+                    "겐토쿠",
+                    "겐코",
+                    "겐무",
+                    "엔겐",
+                    "고코쿠",
+                    "쇼헤이",
+                    "겐토쿠",
+                    "분추",
+                    "덴주",
+                    "고랴쿠",
+                    "고와",
+                    "겐추",
+                    "메이토쿠",
+                    "가쿄",
+                    "고오",
+                    "메이토쿠",
+                    "오에이",
+                    "쇼초",
+                    "에이쿄",
+                    "가키쓰",
+                    "분안",
+                    "호토쿠",
+                    "교토쿠",
+                    "고쇼",
+                    "조로쿠",
+                    "간쇼",
+                    "분쇼",
+                    "오닌",
+                    "분메이",
+                    "조쿄",
+                    "엔토쿠",
+                    "메이오",
+                    "분키",
+                    "에이쇼",
+                    "다이에이",
+                    "교로쿠",
+                    "덴분",
+                    "고지",
+                    "에이로쿠",
+                    "겐키",
+                    "덴쇼",
+                    "분로쿠",
+                    "게이초",
+                    "겐나",
+                    "간에이",
+                    "쇼호",
+                    "게이안",
+                    "조오",
+                    "메이레키",
+                    "만지",
+                    "간분",
+                    "엔포",
+                    "덴나",
+                    "조쿄",
+                    "겐로쿠",
+                    "호에이",
+                    "쇼토쿠",
+                    "교호",
+                    "겐분",
+                    "간포",
+                    "엔쿄",
+                    "간엔",
+                    "호레키",
+                    "메이와",
+                    "안에이",
+                    "덴메이",
+                    "간세이",
+                    "교와",
+                    "분카",
+                    "분세이",
+                    "덴포",
+                    "고카",
+                    "가에이",
+                    "안세이",
+                    "만엔",
+                    "분큐",
+                    "겐지",
+                    "게이오",
+                    "메이지",
+                    "다이쇼",
+                    "쇼와",
+                    "헤이세이",
+                }
+            }
+        }
+        roc{
+            DateTimePatterns{
+                "a h시 m분 s초 zzzz",
+                "a h시 m분 s초 z",
+                "a h:mm:ss",
+                "a h:mm",
+                "G y년 M월 d일 EEEE",
+                "G y년 M월 d일",
+                "G y. M. d",
+                "G y. M. d",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                EEEd{"d일 (EEE)"}
+                H{"H시"}
+                HHmmss{"HH:mm:ss"}
+                Hm{"HH:mm"}
+                Hms{"H시 m분 s초"}
+                M{"M월"}
+                MEd{"M. d. (E)"}
+                MMM{"LLL"}
+                MMMEd{"MMM d일 (E)"}
+                MMMd{"MMM d일"}
+                MMdd{"MM. dd"}
+                Md{"M. d."}
+                d{"d일"}
+                h{"a h시"}
+                hm{"a h:mm"}
+                hms{"a h:mm:ss"}
+                mmss{"mm:ss"}
+                ms{"mm:ss"}
+                yyMM{"G yy. M."}
+                yyMMM{"G yy년 MMM"}
+                yyQ{"G y년 Q분기"}
+                yyyy{"G yy년"}
+                yyyyM{"G y. M."}
+                yyyyMEd{"G y. M. d. EEE"}
+                yyyyMM{"G y. MM"}
+                yyyyMMM{"G y년 MMM"}
+                yyyyMMMEd{"G y년 MMM d일 (EEE)"}
+                yyyyMMMEEEEd{"G y년 MMM d일 EEEE"}
+                yyyyMMMd{"G yy년 MMM d일"}
+                yyyyQ{"G y년 Q분기"}
+                yyyyQQQ{"G y년 QQQ"}
+            }
+            eras{
+                abbreviated{
+                    "중화민국전",
+                    "중화민국",
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"”"}
+        alternateQuotationStart{"“"}
+        quotationEnd{"’"}
+        quotationStart{"‘"}
+    }
+    measurementSystemNames{
+        US{"US"}
+        metric{"미터법"}
+    }
+    units{
+        day{
+            other{"{0}일"}
+        }
+        hour{
+            other{"{0}시간"}
+        }
+        minute{
+            other{"{0}분"}
+        }
+        month{
+            other{"{0}개월"}
+        }
+        second{
+            other{"{0}초"}
+        }
+        week{
+            other{"{0}주"}
+        }
+        year{
+            other{"{0}년"}
+        }
+    }
+    unitsShort{
+        day{
+            other{"{0}일"}
+        }
+        hour{
+            other{"{0}시간"}
+        }
+        minute{
+            other{"{0}분"}
+        }
+        month{
+            other{"{0}개월"}
+        }
+        second{
+            other{"{0}초"}
+        }
+        week{
+            other{"{0}주"}
+        }
+        year{
+            other{"{0}년"}
+        }
+    }
+}

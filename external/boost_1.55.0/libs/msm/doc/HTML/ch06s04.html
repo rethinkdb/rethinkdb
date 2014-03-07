@@ -1,0 +1,26 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>Metaprogramming tools</title><link rel="stylesheet" href="boostbook.css" type="text/css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.75.2"><link rel="home" href="index.html" title="Meta State Machine (MSM)"><link rel="up" href="ch06.html" title="Chapter&nbsp;6.&nbsp;Internals"><link rel="prev" href="ch06s03.html" title="Generated state ids"><link rel="next" href="ch07.html" title="Chapter&nbsp;7.&nbsp;Acknowledgements"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Metaprogramming tools</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch06s03.html">Prev</a>&nbsp;</td><th width="60%" align="center">Chapter&nbsp;6.&nbsp;Internals</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="ch07.html">Next</a></td></tr></table><hr></div><div class="sect1" title="Metaprogramming tools"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="d0e3266"></a>Metaprogramming tools</h2></div></div></div><p>We can find for the transition table more uses than what we have seen so far.
+                    Let's suppose you need to write a coverage tool. A state machine would be
+                    perfect for such a job, if only it could provide some information about its
+                    structure. Thanks to the transition table and Boost.MPL, it does.</p><p>What is needed for a coverage tool? You need to know how many states are
+                    defined in the state machine, and how many events can be fired. This way you can
+                    log the fired events and the states visited in the life of a concrete machine
+                    and be able to perform some coverage analysis, like &#8220;fired 65% of all possible
+                    events and visited 80% of the states defined in the state machine&#8221;. To achieve
+                    this, MSM provides a few useful tools:</p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>generate_state_set&lt;transition table&gt;: returns a mpl::set of all
+                                the states defined in the table.</p></li><li class="listitem"><p>generate_event_set&lt;transition table&gt;: returns a mpl::set of all
+                                the events defined in the table.</p></li><li class="listitem"><p>using mpl::size&lt;&gt;::value you can get the number of elements in
+                                the set.</p></li><li class="listitem"><p>display_type defines an operator() sending typeid(Type).name() to
+                                cout.</p></li><li class="listitem"><p>fill_state_names fills an array of char const* with names of all
+                                states (found by typeid)</p></li><li class="listitem"><p>using mpl::for_each on the result of generate_state_set and
+                                generate_event_set passing display_type as argument will display all
+                                the states of the state machine.</p></li><li class="listitem"><p>let's suppose you need to recursively find the states and events
+                                defined in the composite states and thus also having a transition
+                                table. Calling recursive_get_transition_table&lt;Composite&gt; will
+                                return you the transition table of the composite state, recursively
+                                adding the transition tables of all sub-state machines and
+                                sub-sub...-sub-state machines. Then call generate_state_set or
+                                generate_event_set on the result to get the full list of states and
+                                events. </p></li></ul></div><p> An <a class="link" href="examples/BoostCon09Full.cpp" target="_top">example</a> shows the
+                    tools in action. </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch06s03.html">Prev</a>&nbsp;</td><td width="20%" align="center"><a accesskey="u" href="ch06.html">Up</a></td><td width="40%" align="right">&nbsp;<a accesskey="n" href="ch07.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top"> Generated state ids &nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;Chapter&nbsp;7.&nbsp;Acknowledgements</td></tr></table></div></body></html>

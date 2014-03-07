@@ -1,0 +1,75 @@
+<html>
+<head>
+	<title>BOOST_PP_MOD_D</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_MOD_D</b> macro expands to the modulus of its second and third arguments.&nbsp;
+		It reenters <b>BOOST_PP_WHILE</b> with maximum efficiency.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_MOD_D</b>(<i>d</i>, <i>x</i>, <i>y</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>d</dt>
+			<dd>
+				The next available <b>BOOST_PP_WHILE</b> iteration.&nbsp;
+			</dd>
+			<dt>x</dt>
+			<dd>
+				The dividend (numerator) of the operation.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+			<dt>y</dt>
+			<dd>
+				The divisor (denominator) of the operation.&nbsp;
+				Valid values range from <i>1</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			If <i>y</i> is <i>0</i>, the result is undefined.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+			<li><a href="mod.html">BOOST_PP_MOD</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/arithmetic/div.html">&lt;boost/preprocessor/arithmetic/div.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/arithmetic/mod.html">boost/preprocessor/arithmetic/mod.hpp</a>&gt;
+#include &lt;<a href="../headers/list/filter.html">boost/preprocessor/list/filter.hpp</a>&gt;
+#include &lt;<a href="../headers/logical/not.html">boost/preprocessor/logical/not.hpp</a>&gt;
+
+#define LIST (1, (2, (3, (4, (5, <a href="nil.html">BOOST_PP_NIL</a>)))))
+
+#define EVEN_P(d, _, num) <a href="not.html">BOOST_PP_NOT</a>(<a href="mod_d.html">BOOST_PP_MOD_D</a>(d, num, 2))
+#define EVEN(list) <a href="list_filter.html">BOOST_PP_LIST_FILTER</a>(EVEN_P, nil, list)
+
+EVEN(LIST) // expands to (2, (4, <a href="nil.html">BOOST_PP_NIL</a>))
+
+#define ODD_P(d, _, num) <a href="mod_d.html">BOOST_PP_MOD_D</a>(d, num, 2)
+#define ODD(list) <a href="list_filter.html">BOOST_PP_LIST_FILTER</a>(ODD_P, nil, list)
+
+ODD(LIST) // expands to (1, (3, (5, <a href="nil.html">BOOST_PP_NIL</a>)))
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+Source: boost-build
+Section: devel
+Priority: optional
+Maintainer: Vladimir Prus <ghost@cs.msu.su>
+Build-Depends: debhelper (>> 3.0.0), docbook-to-man, bison
+Standards-Version: 3.5.2
+
+Package: boost-build
+Architecture: all
+Depends: ${shlibs:Depends}, bjam (>> 3.1.9-1)
+Description: Build system
+ Boost.Build is a build system with a simple and high-level language.   
+ It supports build variants, and several different compilers and tools. 

@@ -1,0 +1,25 @@
+graph {
+  0 [ style="filled", fillcolor="#9999ff" ];
+  1 [ style="filled", fillcolor="#333399", fontcolor=white ];
+  2 [ style="filled", fillcolor="#9999ff" ];
+  3 [ style="filled", fillcolor="#9999ff" ];
+  4 [ style="filled", fillcolor="#9999ff" ];
+  5 [ style="filled", fillcolor="#333399", fontcolor=white ];
+  6 [ style="filled", fillcolor="#9999ff" ];
+  7 [ style="filled", fillcolor="#9999ff" ];
+  3 -- 4 [ taillabel="4" ];
+  3 -- 6 [ taillabel="3" ];
+  3 -- 5 [ taillabel="1" ];
+  0 -- 4 [ taillabel="3" ];
+  0 -- 1 [ taillabel="1" ];
+  0 -- 6 [ taillabel="2" ];
+  0 -- 7 [ taillabel="6" ];
+  0 -- 5 [ taillabel="1" ];
+  0 -- 2 [ taillabel="8" ];
+  4 -- 1 [ label="1" ];
+  1 -- 6 [ label="1" ];
+  1 -- 5 [ label="80", len=4 ];
+  6 -- 7 [ label="2" ];
+  7 -- 5 [ label="1" ];
+  5 -- 2 [ label="1" ];
+}

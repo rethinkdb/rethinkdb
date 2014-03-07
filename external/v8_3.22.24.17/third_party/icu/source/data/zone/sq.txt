@@ -1,0 +1,25 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/sq.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/sq.xml
+ */
+sq{
+    Version{"2.0.47.69"}
+    zoneStrings{
+        "meta:Europe_Central"{
+            ls{"Ora qendrore evropiane"}
+        }
+        "meta:Europe_Eastern"{
+            ls{"Ora lindore evropiane"}
+        }
+        "meta:Moscow"{
+            ls{"Ora standarde e Moskës"}
+        }
+    }
+}

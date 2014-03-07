@@ -1,0 +1,378 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Integer Masks</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Boost.Integer">
+<link rel="up" href="../index.html" title="Boost.Integer">
+<link rel="prev" href="integer.html" title="Integer Type Selection">
+<link rel="next" href="log2.html" title="Compile Time log2 Calculation">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="integer.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="log2.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_integer.mask"></a><a class="link" href="mask.html" title="Integer Masks"> Integer Masks</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="mask.html#boost_integer.mask.overview">Overview</a></span></dt>
+<dt><span class="section"><a href="mask.html#boost_integer.mask.synopsis">Synopsis</a></span></dt>
+<dt><span class="section"><a href="mask.html#boost_integer.mask.single_bit_mask_class_template">Single
+      Bit-Mask Class Template</a></span></dt>
+<dt><span class="section"><a href="mask.html#boost_integer.mask.group_bit_mask_class_template">Group
+      Bit-Mask Class Template</a></span></dt>
+<dt><span class="section"><a href="mask.html#boost_integer.mask.implementation_notes">Implementation
+      Notes</a></span></dt>
+<dt><span class="section"><a href="mask.html#boost_integer.mask.example">Example</a></span></dt>
+<dt><span class="section"><a href="mask.html#boost_integer.mask.demonstration_program">Demonstration
+      Program</a></span></dt>
+<dt><span class="section"><a href="mask.html#boost_integer.mask.rationale">Rationale</a></span></dt>
+<dt><span class="section"><a href="mask.html#boost_integer.mask.credits">Credits</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.mask.overview"></a><a class="link" href="mask.html#boost_integer.mask.overview" title="Overview">Overview</a>
+</h3></div></div></div>
+<p>
+        The class templates in <a href="../../../../../boost/integer/integer_mask.hpp" target="_top">&lt;boost/integer/integer_mask.hpp&gt;</a>
+        provide bit masks for a certain bit position or a contiguous-bit pack of
+        a certain size. The types of the masking constants come from the <a class="link" href="integer.html" title="Integer Type Selection">integer
+        type selection templates</a> header.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.mask.synopsis"></a><a class="link" href="mask.html#boost_integer.mask.synopsis" title="Synopsis">Synopsis</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstddef</span><span class="special">&gt;</span>  <span class="comment">// for std::size_t
+</span>
+<span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">Bit</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">high_bit_mask_t</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>implementation-defined-type</em></span>  <span class="identifier">least</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>implementation-defined-type</em></span>  <span class="identifier">fast</span><span class="special">;</span>
+
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">least</span>       <span class="identifier">high_bit</span>       <span class="special">=</span> <span class="emphasis"><em>implementation-defined</em></span><span class="special">;</span>
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">fast</span>        <span class="identifier">high_bit_fast</span>  <span class="special">=</span> <span class="emphasis"><em>implementation-defined</em></span><span class="special">;</span>
+
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">bit_position</span>   <span class="special">=</span> <span class="identifier">Bit</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">Bits</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">low_bits_mask_t</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>implementation-defined-type</em></span>  <span class="identifier">least</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>implementation-defined-type</em></span>  <span class="identifier">fast</span><span class="special">;</span>
+
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">least</span>       <span class="identifier">sig_bits</span>       <span class="special">=</span> <span class="emphasis"><em>implementation-defined</em></span><span class="special">;</span>
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">fast</span>        <span class="identifier">sig_bits_fast</span>  <span class="special">=</span> <span class="emphasis"><em>implementation-defined</em></span><span class="special">;</span>
+
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">bit_count</span>      <span class="special">=</span> <span class="identifier">Bits</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="comment">// Specializations for low_bits_mask_t exist for certain bit counts.
+</span>
+<span class="special">}</span>  <span class="comment">// namespace boost
+</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.mask.single_bit_mask_class_template"></a><a class="link" href="mask.html#boost_integer.mask.single_bit_mask_class_template" title="Single Bit-Mask Class Template">Single
+      Bit-Mask Class Template</a>
+</h3></div></div></div>
+<p>
+        The <code class="literal">boost::high_bit_mask_t</code> class template provides constants
+        for bit masks representing the bit at a certain position. The masks are equivalent
+        to the value 2<sup>Bit</sup>, where <code class="literal">Bit</code> is the template parameter.
+        The bit position must be a nonnegative number from zero to <span class="emphasis"><em>Max</em></span>,
+        where Max is one less than the number of bits supported by the largest unsigned
+        built-in integral type. The following table describes the members of an instantiation
+        of <code class="literal">high_bit_mask_t</code>.
+      </p>
+<div class="table">
+<a name="boost_integer.mask.single_bit_mask_class_template.members_of_the__boost__high_bit_mask_t__class_template"></a><p class="title"><b>Table&#160;2.&#160;Members of the `boost::high_bit_mask_t` Class Template</b></p>
+<div class="table-contents"><table class="table" summary="Members of the `boost::high_bit_mask_t` Class Template">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Member
+                </p>
+              </th>
+<th>
+                <p>
+                  Meaning
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="literal">least</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The smallest, unsigned, built-in type that supports the given bit
+                  position.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">fast</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The easiest-to-manipulate analog of <code class="literal">least</code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">high_bit</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  A <code class="literal">least</code> constant of the value 2<sup>Bit</sup>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">high_bit_fast</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  A <code class="literal">fast</code> analog of <code class="literal">high_bit</code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">bit_position</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The value of the template parameter, in case its needed from a
+                  renamed instantiation of the class template.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.mask.group_bit_mask_class_template"></a><a class="link" href="mask.html#boost_integer.mask.group_bit_mask_class_template" title="Group Bit-Mask Class Template">Group
+      Bit-Mask Class Template</a>
+</h3></div></div></div>
+<p>
+        The <code class="literal">boost::low_bits_mask_t</code> class template provides constants
+        for bit masks equivalent to the value (2<sup>Bits</sup> - 1), where <code class="literal">Bits</code>
+        is the template parameter. The parameter <code class="literal">Bits</code> must be
+        a non-negative integer from zero to <span class="emphasis"><em>Max</em></span>, where Max is
+        the number of bits supported by the largest, unsigned, built-in integral
+        type. The following table describes the members of <code class="literal">low_bits_mask_t</code>.
+      </p>
+<div class="table">
+<a name="boost_integer.mask.group_bit_mask_class_template.members_of_the___boost__low_bits_mask_t__class_template"></a><p class="title"><b>Table&#160;3.&#160;Members of the [^boost::low_bits_mask_t] Class Template</b></p>
+<div class="table-contents"><table class="table" summary="Members of the [^boost::low_bits_mask_t] Class Template">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Member
+                </p>
+              </th>
+<th>
+                <p>
+                  Meaning
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="literal">least</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The smallest, unsigned built-in type that supports the given bit
+                  count.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">fast</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The easiest-to-manipulate analog of <code class="literal">least</code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">sig_bits</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  A <code class="literal">least</code> constant of the desired bit-masking
+                  value.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">sig_bits_fast</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  A <code class="literal">fast</code> analog of <code class="literal">sig_bits</code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="literal">bit_count</code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The value of the template parameter, in case its needed from a
+                  renamed instantiation of the class template.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.mask.implementation_notes"></a><a class="link" href="mask.html#boost_integer.mask.implementation_notes" title="Implementation Notes">Implementation
+      Notes</a>
+</h3></div></div></div>
+<p>
+        When <code class="literal">Bits</code> is the exact size of a built-in unsigned type,
+        the implementation has to change to prevent undefined behavior. Therefore,
+        there are specializations of <code class="literal">low_bits_mask_t</code> at those
+        bit counts.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.mask.example"></a><a class="link" href="mask.html#boost_integer.mask.example" title="Example">Example</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">integer</span><span class="special">/</span><span class="identifier">integer_mask</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">//...
+</span>
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">high_bit_mask_t</span><span class="special">&lt;</span><span class="number">29</span><span class="special">&gt;</span>  <span class="identifier">mask1_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">low_bits_mask_t</span><span class="special">&lt;</span><span class="number">15</span><span class="special">&gt;</span>  <span class="identifier">mask2_type</span><span class="special">;</span>
+
+    <span class="identifier">mask1_type</span><span class="special">::</span><span class="identifier">least</span>  <span class="identifier">my_var1</span><span class="special">;</span>
+    <span class="identifier">mask2_type</span><span class="special">::</span><span class="identifier">fast</span>   <span class="identifier">my_var2</span><span class="special">;</span>
+    <span class="comment">//...
+</span>
+    <span class="identifier">my_var1</span> <span class="special">|=</span> <span class="identifier">mask1_type</span><span class="special">::</span><span class="identifier">high_bit</span><span class="special">;</span>
+    <span class="identifier">my_var2</span> <span class="special">&amp;=</span> <span class="identifier">mask2_type</span><span class="special">::</span><span class="identifier">sig_bits_fast</span><span class="special">;</span>
+
+    <span class="comment">//...
+</span><span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.mask.demonstration_program"></a><a class="link" href="mask.html#boost_integer.mask.demonstration_program" title="Demonstration Program">Demonstration
+      Program</a>
+</h3></div></div></div>
+<p>
+        The program <a href="../../../test/integer_mask_test.cpp" target="_top">integer_mask_test.cpp</a>
+        is a simplistic demonstration of the results from instantiating various examples
+        of the bit mask class templates.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.mask.rationale"></a><a class="link" href="mask.html#boost_integer.mask.rationale" title="Rationale">Rationale</a>
+</h3></div></div></div>
+<p>
+        The class templates in this header are an extension of the <a class="link" href="integer.html" title="Integer Type Selection">integer
+        type selection class templates</a>. The new class templates provide the
+        same sized types, but also convenient masks to use when extracting the highest
+        or all the significant bits when the containing built-in type contains more
+        bits. This prevents contamination of values by the higher, unused bits.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_integer.mask.credits"></a><a class="link" href="mask.html#boost_integer.mask.credits" title="Credits">Credits</a>
+</h3></div></div></div>
+<p>
+        The author of the Boost bit mask class templates is <a href="http://www.boost.org/people/daryle_walker.html" target="_top">Daryle
+        Walker</a>.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001 -2009 Beman Dawes, Daryle Walker, Gennaro Prota,
+      John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="integer.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="log2.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

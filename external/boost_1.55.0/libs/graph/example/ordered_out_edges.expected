@@ -1,0 +1,10 @@
+0  --chandler--> 1   --joe--> 1  
+1  --chandler--> 0   --joe--> 0   --curly--> 2   --dick--> 3   --dick--> 3  
+2  --curly--> 1   --tom--> 4  
+3  --dick--> 1   --dick--> 1   --harry--> 4  
+4  --tom--> 2   --harry--> 3  
+
+name(0,1) = chandler
+
+name(0,1) = chandler
+name(0,1) = joe

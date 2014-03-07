@@ -1,0 +1,18 @@
+Dynamic loading support requires that executables be linked with -ldld.
+The alternative is to build the collector without defining DYNAMIC_LOADING
+in gcconfig.h and ensuring that all garbage collectable objects are
+accessible without considering statically allocated variables in dynamic
+libraries.
+
+The collector should compile with either plain cc or cc -Ae.  Cc -Aa
+fails to define _HPUX_SOURCE and thus will not configure the collector
+correctly.
+
+Incremental collection support was reccently added, and should now work.
+
+In spite of past claims, pthread support under HP/UX 11 should now work.
+Define GC_HPUX_THREADS for the build.  Incremental collection still does not
+work in combination with it.
+
+The stack finding code can be confused by putenv calls before collector
+initialization.  Call GC_malloc or GC_init before any putenv calls.

@@ -1,0 +1,12 @@
+[Original version supplied by Xiaokun Zhu <xiaokun@aero.gla.ac.uk>]
+[This version came mostly from Gary Leavens.			  ]
+
+Look first at Makefile.dj, and possibly change the definitions of
+RM and MV if you don't have rm and mv installed.
+Then use Makefile.dj to compile the garbage collector.
+For example, you can do:
+
+	make -f Makefile.dj test
+
+All the tests should work fine.
+

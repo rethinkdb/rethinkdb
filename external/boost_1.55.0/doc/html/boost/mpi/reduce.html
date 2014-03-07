@@ -1,0 +1,106 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function reduce</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../mpi/reference.html#header.boost.mpi.collectives_hpp" title="Header &lt;boost/mpi/collectives.hpp&gt;">
+<link rel="prev" href="scatter.html" title="Function scatter">
+<link rel="next" href="scan.html" title="Function scan">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="scatter.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.collectives_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="scan.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.mpi.reduce"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function reduce</span></h2>
+<p>boost::mpi::reduce &#8212; Combine the values stored by each process into a single value at the root. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../mpi/reference.html#header.boost.mpi.collectives_hpp" title="Header &lt;boost/mpi/collectives.hpp&gt;">boost/mpi/collectives.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Op<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <span class="identifier">reduce</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="communicator.html" title="Class communicator">communicator</a> <span class="special">&amp;</span> comm<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span> in_value<span class="special">,</span> <span class="identifier">T</span> <span class="special">&amp;</span> out_value<span class="special">,</span> 
+              <span class="identifier">Op</span> op<span class="special">,</span> <span class="keyword">int</span> root<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Op<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <span class="identifier">reduce</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="communicator.html" title="Class communicator">communicator</a> <span class="special">&amp;</span> comm<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span> in_value<span class="special">,</span> <span class="identifier">Op</span> op<span class="special">,</span> <span class="keyword">int</span> root<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Op<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <span class="identifier">reduce</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="communicator.html" title="Class communicator">communicator</a> <span class="special">&amp;</span> comm<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span> <span class="special">*</span> in_values<span class="special">,</span> <span class="keyword">int</span> n<span class="special">,</span> 
+              <span class="identifier">T</span> <span class="special">*</span> out_values<span class="special">,</span> <span class="identifier">Op</span> op<span class="special">,</span> <span class="keyword">int</span> root<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Op<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <span class="identifier">reduce</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="communicator.html" title="Class communicator">communicator</a> <span class="special">&amp;</span> comm<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span> <span class="special">*</span> in_values<span class="special">,</span> <span class="keyword">int</span> n<span class="special">,</span> <span class="identifier">Op</span> op<span class="special">,</span> 
+              <span class="keyword">int</span> root<span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp160652904"></a><h2>Description</h2>
+<p><code class="computeroutput">reduce</code> is a collective algorithm that combines the values stored by each process into a single value at the <code class="computeroutput">root</code>. The values can be combined arbitrarily, specified via a function object. The type <code class="computeroutput">T</code> of the values may be any type that is serializable or has an associated MPI data type. One can think of this operation as a <code class="computeroutput">gather</code> to the <code class="computeroutput">root</code>, followed by an <code class="computeroutput">std::accumulate()</code> over the gathered values and using the operation <code class="computeroutput">op</code>.</p>
+<p>When the type <code class="computeroutput">T</code> has an associated MPI data type, this routine invokes <code class="computeroutput">MPI_Reduce</code> to perform the reduction. If possible, built-in MPI operations will be used; otherwise, <code class="computeroutput">reduce()</code> will create a custom MPI_Op for the call to MPI_Reduce.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">comm</code></span></p></td>
+<td><p>The communicator over which the reduction will occur.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">in_value</code></span></p></td>
+<td><p>The local value to be combined with the local values of every other process. For reducing arrays, <code class="computeroutput">in_values</code> contains a pointer to the local values. In this case, <code class="computeroutput">n</code> is the number of values that will be reduced. Reduction occurs independently for each of the <code class="computeroutput">n</code> values referenced by <code class="computeroutput">in_values</code>, e.g., calling reduce on an array of <code class="computeroutput">n</code> values is like calling <code class="computeroutput">reduce</code> <code class="computeroutput">n</code> separate times, one for each location in <code class="computeroutput">in_values</code> and <code class="computeroutput">out_values</code>.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">op</code></span></p></td>
+<td><p>The binary operation that combines two values of type <code class="computeroutput">T</code> into a third value of type <code class="computeroutput">T</code>. For types <code class="computeroutput">T</code> that has ssociated MPI data types, <code class="computeroutput">op</code> will either be translated into an <code class="computeroutput">MPI_Op</code> (via <code class="computeroutput">MPI_Op_create</code>) or, if possible, mapped directly to a built-in MPI operation. See <code class="computeroutput"><code class="computeroutput"><a class="link" href="is_mpi_op.html" title="Struct template is_mpi_op">is_mpi_op</a></code></code> in the <code class="computeroutput">operations.hpp</code> header for more details on this mapping. For any non-built-in operation, commutativity will be determined by the <code class="computeroutput">is_commmutative</code> trait (also in <code class="computeroutput">operations.hpp</code>): users are encouraged to mark commutative operations as such, because it gives the implementation additional lattitude to optimize the reduction operation.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">out_value</code></span></p></td>
+<td><p>Will receive the result of the reduction operation, but only for the <code class="computeroutput">root</code> process. Non-root processes may omit if parameter; if they choose to supply the parameter, it will be unchanged. For reducing arrays, <code class="computeroutput">out_values</code> contains a pointer to the storage for the output values.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">root</code></span></p></td>
+<td><p>The process ID number that will receive the final, combined value. This value must be the same on all processes. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2007 Douglas Gregor,
+      Matthias Troyer, Trustees of Indiana University<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="scatter.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.collectives_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="scan.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

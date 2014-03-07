@@ -1,0 +1,1022 @@
+#~ Copyright 2002-2007 Rene Rivera.
+#~ Distributed under the Boost Software License, Version 1.0.
+#~ (See accompanying file LICENSE_1_0.txt or copy at
+#~ http://www.boost.org/LICENSE_1_0.txt)
+
+# Clean env vars of any "extra" empty values.
+for local v in ARGV CC CFLAGS LIBS
+{
+    local values ;
+    for local x in $($(v))
+    {
+        if $(x) != ""
+        {
+            values += $(x) ;
+        }
+    }
+    $(v) = $(values) ;
+}
+
+# Platform related specifics.
+if $(OS) = NT { rule .path { return "$(<:J=\\)" ; } ./ = "/" ; }
+else { rule .path { return "$(<:J=/)" ; } }
+
+. = "." ;
+./ ?= "" ;
+
+# Info about what we are building.
+_VERSION_ = 3 1 19 ;
+NAME = boost-jam ;
+VERSION = $(_VERSION_:J=$(.)) ;
+RELEASE = 1 ;
+LICENSE = LICENSE_1_0 ;
+
+# Generate development debug binaries?
+if --debug in $(ARGV)
+{
+    debug = true ;
+}
+
+if --profile in $(ARGV)
+{
+    profile = true ;
+}
+
+# Attempt to generate and/or build the grammar?
+if --grammar in $(ARGV)
+{
+    grammar = true ;
+}
+
+# Do we need to add a default build type argument?
+if ! ( --release in $(ARGV) ) &&
+   ! ( --debug in $(ARGV) ) &&
+   ! ( --profile in $(ARGV) )
+{
+    ARGV += --release ;
+}
+
+# Enable, and configure, Python hooks.
+with-python = ;
+python-location = [ MATCH --with-python=(.*) : $(ARGV) ] ;
+if $(python-location)
+{
+    with-python = true ;
+}
+if $(with-python)
+{
+    if $(OS) = NT
+    {
+        --python-include = [ .path $(python-location) include ] ;
+        --python-lib = ;
+        for local v in 27 26 25 24 23 22
+        {
+            --python-lib ?=
+                [ GLOB [ .path $(python-location) libs ] : "python$(v).lib" ]
+                [ GLOB $(python-location) [ .path $(python-location) libs ]
+                    $(Path) $(PATH) $(path) : "python$(v).dll" ]
+                ;
+            if ! $(--python-lib[2])
+            {
+                --python-lib = ;
+            }
+        }
+        --python-lib = $(--python-lib[1]) ;
+    }
+    else if $(OS) = MACOSX
+    {
+        --python-include = [ .path $(python-location) Headers ] ;
+        --python-lib = $(python-location) Python ;
+    }
+    else
+    {
+        --python-include = ;
+        --python-lib = ;
+        for local v in 2.7 2.6 2.5 2.4 2.3 2.2
+        {
+            local inc = [ GLOB [ .path $(python-location) include ] : python$(v) ] ;
+            local lib = [ GLOB [ .path $(python-location) lib ] : libpython$(v)* ] ;
+            if $(inc) && $(lib)
+            {
+                --python-include ?= $(inc) ;
+                --python-lib ?= $(lib[1]:D) python$(v) ;
+            }
+        }
+    }
+}
+
+# Boehm GC?
+if --gc in $(ARGV)
+{
+    --boehm-gc = true ;
+}
+if $(--boehm-gc)
+{
+    --extra-include += [ .path [ PWD ] "boehm_gc" "include" ] ;
+}
+
+# Duma?
+if --duma in $(ARGV)
+{
+    --duma = true ;
+}
+if $(--duma)
+{
+    --extra-include += [ .path [ PWD ] "duma" ] ;
+}
+
+# An explicit root for the toolset? (trim spaces)
+toolset-root = [ MATCH --toolset-root=(.*) : $(ARGV) ] ;
+{
+    local t = [ MATCH "[ ]*(.*)" : $(toolset-root:J=" ") ] ;
+    toolset-root = ;
+    while $(t)
+    {
+        t = [ MATCH "([^ ]+)([ ]*)(.*)" : $(t) ] ;
+        toolset-root += $(t[1]) ;
+        if $(t[3]) { toolset-root += $(t[2]) ; }
+        t = $(t[3]) ;
+    }
+    toolset-root = $(toolset-root:J="") ;
+}
+
+# Configure the implemented toolsets. These are minimal commands and options to
+# compile the full Jam. When adding new toolsets make sure to add them to the
+# "known" list also.
+
+rule toolset ( name command .type ? : opt.out + : opt.define * : flags * : linklibs * )
+{
+    .type ?= "" ;
+    tool.$(name)$(.type).cc ?= $(command) ;
+    tool.$(name)$(.type).opt.out ?= $(opt.out) ;
+    tool.$(name)$(.type).opt.define ?= $(opt.define) ;
+    tool.$(name)$(.type).flags ?= $(flags) ;
+    tool.$(name)$(.type).linklibs ?= $(linklibs) ;
+    if ! $(name) in $(toolsets) { toolsets += $(name) ; }
+}
+
+rule if-os ( os + : yes-opt * : no-opt * )
+    { if $(os) in $(OS) { return $(yes-opt) ; } else { return $(no-opt) ; } }
+
+rule opt ( type : yes-opt * : no-opt * )
+    { if $(type) in $(ARGV) { return $(yes-opt) ; } else { return $(no-opt) ; } }
+
+## HP-UX aCC compiler
+toolset acc cc : "-o " : -D
+    : -Ae
+    [ opt --release : -s -O3 ]
+    [ opt --debug : -g -pg ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## Borland C++ 5.5.x
+toolset borland bcc32 : -e -n : /D
+    : -WC -w- -q "-I$(toolset-root)Include" "-L$(toolset-root)Lib"
+    [ opt --release : -O2 -vi -w-inl ]
+    [ opt --debug : -v -Od -vi- ]
+    -I$(--python-include) -I$(--extra-include)
+    : $(--python-lib[1]) ;
+## Generic Unix cc
+if ! $(CC) { CC = cc ; }
+toolset cc $(CC) : "-o " : -D
+    : $(CFLAGS)
+    [ opt --release : -s -O ]
+    [ opt --debug : -g ]
+    -I$(--python-include) -I$(--extra-include)
+    : $(LIBS) -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## Comeau C/C++ 4.x
+toolset como como : "-o " : -D
+    : --c
+    [ opt --release : --inlining ]
+    [ opt --debug : --no_inlining ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## Clang Linux 2.8+
+toolset clang clang :  "-o " : -D
+    : -Wno-unused -Wno-format
+    [ opt --release : -Os ]
+    [ opt --debug : -g -O0 -fno-inline ]
+    [ opt --profile : -finline-functions -g ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## MacOSX Darwin, using GCC 2.9.x, 3.x
+toolset darwin cc :  "-o " : -D
+    :
+    [ opt --release : -Wl,-x -O3 -finline-functions ]
+    [ opt --debug : -g -O0 -fno-inline -pg ]
+    [ opt --profile : -Wl,-x -O3 -finline-functions -g -pg ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## GCC 2.x, 3.x, 4.x
+toolset gcc gcc : "-o " : -D
+    : -pedantic -fno-strict-aliasing
+    [ opt --release : [ opt --symbols : -g : -s ] -O3 ]
+    [ opt --debug : -g -O0 -fno-inline ]
+    [ opt --profile : -O3 -g -pg ]
+    -I$(--python-include) -I$(--extra-include) -Wno-long-long
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## GCC 2.x, 3.x on CYGWIN but without cygwin1.dll
+toolset gcc-nocygwin gcc : "-o " : -D
+    : -s -O3 -mno-cygwin
+    [ opt --release : -finline-functions ]
+    [ opt --debug : -s -O3 -fno-inline -pg ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## Intel C/C++ for Darwin
+toolset intel-darwin icc : "-o " : -D
+    :
+    [ opt --release : -O3 ]
+    [ opt --debug : -g -O0 -p ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## Intel C/C++ for Linux
+toolset intel-linux icc : "-o " : -D
+    :
+    [ opt --release : -Xlinker -s -O3 ]
+    [ opt --debug : -g -O0 -p ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## Intel C/C++ for Win32
+toolset intel-win32 icl : /Fe : -D
+    : /nologo
+    [ opt --release : /MT /O2 /Ob2 /Gy /GF /GA /GB ]
+    [ opt --debug : /MTd /DEBUG /Z7 /Od /Ob0 ]
+    -I$(--python-include) -I$(--extra-include)
+    : kernel32.lib advapi32.lib user32.lib $(--python-lib[1]) ;
+## KCC ?
+toolset kcc KCC : "-o " : -D
+    :
+    [ opt --release : -s +K2 ]
+    [ opt --debug : -g +K0 ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## Borland Kylix
+toolset kylix bc++ : -o : -D
+    : -tC -q
+    [ opt --release : -O2 -vi -w-inl ]
+    [ opt --debug : -v -Od -vi- ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## Metrowerks CodeWarrior 8.x
+{
+    # Even though CW can compile all files at once, it crashes if it tries in
+    # the bjam case.
+    local mwcc ; if $(OS) != NT { mwcc = mwc$(OSPLAT:L) ; }
+    mwcc ?= mwcc ;
+    toolset metrowerks $(mwcc) : "-o " : -D
+        : -c -lang c -subsystem console -cwd include
+        [ opt --release : -runtime ss -opt full -inline all ]
+        [ opt --debug : -runtime ssd -opt none -inline off ]
+        -I$(--python-include) -I$(--extra-include) ;
+    toolset metrowerks $(mwcc) .link : "-o " :
+        : -subsystem console -lkernel32.lib -ladvapi32.lib -luser32.lib
+        [ opt --release : -runtime ss ]
+        [ opt --debug : -runtime ssd ]
+        : $(--python-lib[1]) ;
+}
+## MINGW GCC
+toolset mingw gcc : "-o " : -D
+    :
+    [ opt --release : -s -O3 -finline-functions ]
+    [ opt --debug : -g -O0 -fno-inline -pg ]
+    -I$(--python-include) -I$(--extra-include)
+    : $(--python-lib[2]) ;
+## MIPS Pro
+toolset mipspro cc : "-o " : -D
+    :
+    [ opt --release : -s -O3 -g0 -INLINE:none ]
+    [ opt --debug : -g -O0 -INLINE ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## Microsoft Visual Studio C++ 6.x
+toolset msvc cl : /Fe /Fe /Fd /Fo : -D
+    : /nologo
+    [ opt --release : /ML /O2 /Ob2 /Gy /GF /GA /GB ]
+    [ opt --debug : /MLd /DEBUG /Z7 /Od /Ob0 ]
+    -I$(--python-include) -I$(--extra-include)
+    : kernel32.lib advapi32.lib user32.lib $(--python-lib[1]) ;
+## QNX 6.x GCC 3.x/2.95.3
+toolset qcc qcc : "-o " : -D
+    : -Wc,-pedantic -Wc,-fno-strict-aliasing
+    [ opt --release : [ opt --symbols : -g ] -O3 -Wc,-finline-functions ]
+    [ opt --debug : -g -O0 -Wc,-fno-inline ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## Qlogic Pathscale 2.4
+toolset pathscale pathcc : "-o " : -D
+    :
+    [ opt --release : -s -Ofast -O3 ]
+    [ opt --debug : -g ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## Portland Group Pgi 6.2
+toolset pgi pgcc : "-o " : -D
+    :
+    [ opt --release : -s -O3 ]
+    [ opt --debug : -g ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## Sun Workshop 6 C++
+toolset sun cc : "-o " : -D
+    :
+    [ opt --release : -s -xO3 ]
+    [ opt --debug : -g ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## Sun Workshop 6 C++ (old alias)
+toolset sunpro cc : "-o " : -D
+    :
+    [ opt --release : -s -xO3 ]
+    [ opt --debug : -g ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## Compaq Alpha CXX
+toolset tru64cxx cc : "-o " : -D
+    :
+    [ opt --release : -s -O5 -inline speed ]
+    [ opt --debug : -g -O0 -pg ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) ;
+## IBM VisualAge C++
+toolset vacpp xlc : "-o " : -D
+    :
+    [ opt --release : -s -O3 -qstrict -qinline ]
+    [ opt --debug : -g -qNOOPTimize -qnoinline -pg ]
+    -I$(--python-include) -I$(--extra-include)
+    : -L$(--python-lib[1]) -l$(--python-lib[2]) [ if-os AIX : -bmaxdata:0x40000000 ] ;
+## Microsoft Visual C++ .NET 7.x
+toolset vc7 cl : /Fe /Fe /Fd /Fo : -D
+    : /nologo
+    [ opt --release : /ML /O2 /Ob2 /Gy /GF /GA /GB ]
+    [ opt --debug : /MLd /DEBUG /Z7 /Od /Ob0 ]
+    -I$(--python-include) -I$(--extra-include)
+    : kernel32.lib advapi32.lib user32.lib $(--python-lib[1]) ;
+## Microsoft Visual C++ 2005
+toolset vc8 cl : /Fe /Fe /Fd /Fo : -D
+    : /nologo
+    [ opt --release : /MT /O2 /Ob2 /Gy /GF /GA /wd4996 ]
+    [ opt --debug : /MTd /DEBUG /Z7 /Od /Ob0 /wd4996 ]
+    -I$(--python-include) -I$(--extra-include)
+    : kernel32.lib advapi32.lib user32.lib $(--python-lib[1]) ;
+## Microsoft Visual C++ 2008
+toolset vc9 cl : /Fe /Fe /Fd /Fo : -D
+    : /nologo
+    [ opt --release : /MT /O2 /Ob2 /Gy /GF /GA /wd4996 ]
+    [ opt --debug : /MTd /DEBUG /Z7 /Od /Ob0 /wd4996 ]
+    -I$(--python-include) -I$(--extra-include)
+    : kernel32.lib advapi32.lib user32.lib $(--python-lib[1]) ;
+## Microsoft Visual C++ 2010
+toolset vc10 cl : /Fe /Fe /Fd /Fo : -D
+    : /nologo
+    [ opt --release : /MT /O2 /Ob2 /Gy /GF /GA /wd4996 ]
+    [ opt --debug : /MTd /DEBUG /Z7 /Od /Ob0 /wd4996 ]
+    -I$(--python-include) -I$(--extra-include)
+    : kernel32.lib advapi32.lib user32.lib $(--python-lib[1]) ;
+toolset vc11 cl : /Fe /Fe /Fd /Fo : -D
+    : /nologo
+    [ opt --release : /GL /MT /O2 /Ob2 /Gy /GF /GA /wd4996 ]
+    [ opt --debug : /MTd /DEBUG /Z7 /Od /Ob0 /wd4996 ]
+    -I$(--python-include) -I$(--extra-include)
+    : kernel32.lib advapi32.lib user32.lib $(--python-lib[1]) ;
+toolset vc12 cl : /Fe /Fe /Fd /Fo : -D
+    : /nologo
+    [ opt --release : /GL /MT /O2 /Ob2 /Gy /GF /GA /wd4996 ]
+    [ opt --debug : /MTd /DEBUG /Z7 /Od /Ob0 /wd4996 ]
+    -I$(--python-include) -I$(--extra-include)
+    : kernel32.lib advapi32.lib user32.lib $(--python-lib[1]) ;
+
+# First set the build commands and options according to the
+# preset toolset.
+toolset = [ MATCH --toolset=(.*) : $(ARGV) ] ;
+if ! $(toolset)
+{
+    # For some reason, the following test does not catch empty toolset.
+    ECHO "###" ;
+    ECHO "###" No toolset specified. Please use --toolset option. ;
+    ECHO "###" ;
+    ECHO "###" Known toolsets are: $(toolsets:J=", ") ;
+    EXIT "###" ;
+}
+if ! $(toolset) in $(toolsets)
+{
+    ECHO "###" ;
+    ECHO "###" Unknown toolset: $(toolset) ;
+    ECHO "###" ;
+    ECHO "###" Known toolsets are: $(toolsets:J=", ") ;
+    EXIT "###" ;
+}
+--cc = $(tool.$(toolset).cc) ;
+if $(tool.$(toolset).opt.out[2])
+{
+    if $(tool.$(toolset).opt.out[1]) = $(tool.$(toolset).opt.out[2])
+    {
+        --out = $(tool.$(toolset).opt.out[1]) ;
+        --dir = $(tool.$(toolset).opt.out[3-]) ;
+    }
+    else
+    {
+        --bin = $(tool.$(toolset).opt.out[1]) ;
+        --dir = $(tool.$(toolset).opt.out[2-]) ;
+    }
+}
+else
+{
+    --out = $(tool.$(toolset).opt.out) ;
+}
+--def = $(tool.$(toolset).opt.define) ;
+--flags = $(tool.$(toolset).flags) ;
+--defs = $(tool.$(toolset).defines) ;
+--libs = $(tool.$(toolset).linklibs) ;
+if $(tool.$(toolset).link.cc)
+{
+    --link = $(tool.$(toolset).link.cc) ;
+    if $(tool.$(toolset).link.opt.out[2])
+    {
+        if $(tool.$(toolset).link.opt.out[1]) = $(tool.$(toolset).link.opt.out[2])
+        {
+            --link-out = $(tool.$(toolset).link.opt.out[1]) ;
+            --link-dir = $(tool.$(toolset).link.opt.out[3-]) ;
+        }
+        else
+        {
+            --link-bin = $(tool.$(toolset).link.opt.out[1]) ;
+            --link-dir = $(tool.$(toolset).link.opt.out[2-]) ;
+        }
+    }
+    else
+    {
+        --link-out = $(tool.$(toolset).link.opt.out) ;
+    }
+    --link-def = $(tool.$(toolset).link.opt.define) ;
+    --link-flags = $(tool.$(toolset).link.flags) ;
+    --link-defs = $(tool.$(toolset).link.defines) ;
+    --link-libs = $(tool.$(toolset).link.linklibs) ;
+}
+
+# Put executables in platform-specific subdirectory.
+locate-target = $(LOCATE_TARGET) ;
+if $(OSPLAT)
+{
+    locate-target ?= bin$(.)$(OS:L)$(OSPLAT:L) ;
+    platform = $(OS:L)$(OSPLAT:L) ;
+}
+else
+{
+    locate-target ?= bin$(.)$(OS:L) ;
+    platform = $(OS:L) ;
+}
+if $(debug)
+{
+    locate-target = [ .path $(locate-target)$(.)debug ] ;
+}
+if $(profile)
+{
+    locate-target = [ .path $(locate-target)$(.)profile ] ;
+}
+else
+{
+    locate-target = [ .path $(locate-target) ] ;
+}
+
+if --show-locate-target in $(ARGV)
+{
+    ECHO $(locate-target) ;
+}
+
+# We have some different files for UNIX, and NT.
+jam.source =
+    command.c compile.c constants.c debug.c execcmd.c frames.c function.c glob.c
+    hash.c hcache.c headers.c hdrmacro.c jam.c jambase.c jamgram.c lists.c
+    make.c make1.c mem.c object.c option.c output.c parse.c pathsys.c regexp.c
+    rules.c scan.c search.c subst.c w32_getreg.c timestamp.c variable.c
+    modules.c strings.c filesys.c builtins.c class.c cwd.c native.c md5.c
+    [ .path modules set.c ] [ .path modules path.c ] [ .path modules regex.c ]
+    [ .path modules property-set.c ] [ .path modules sequence.c ] [ .path modules order.c ] ;
+if $(OS) = NT
+{
+    jam.source += execnt.c filent.c pathnt.c ;
+}
+else
+{
+    jam.source += execunix.c fileunix.c pathunix.c ;
+}
+
+# Debug assertions, or not.
+if ! $(debug) || --noassert in $(ARGV)
+{
+    --defs += NDEBUG ;
+}
+
+# Enable some optional features.
+--defs += OPT_HEADER_CACHE_EXT ;
+--defs += OPT_GRAPH_DEBUG_EXT ;
+--defs += OPT_SEMAPHORE ;
+--defs += OPT_AT_FILES ;
+--defs += OPT_DEBUG_PROFILE ;
+
+# Bug fixes
+--defs += OPT_FIX_TARGET_VARIABLES_EXT ;
+#~ --defs += OPT_NO_EXTERNAL_VARIABLE_SPLIT ;
+
+# Improvements
+--defs += OPT_IMPROVED_PATIENCE_EXT ;
+
+# Use Boehm GC memory allocator?
+if $(--boehm-gc)
+{
+    --defs += OPT_BOEHM_GC ;
+    if $(debug)
+    {
+        --defs += GC_DEBUG ;
+    }
+}
+
+if $(--duma)
+{
+    --defs += OPT_DUMA ;
+}
+
+if ( $(OS) = NT ) && ! NT in $(--defs)
+{
+    --defs += NT ;
+}
+--defs += YYSTACKSIZE=5000 ;
+
+if $(with-python)
+{
+    --defs += HAVE_PYTHON ;
+}
+
+if $(debug)
+{
+    --defs += BJAM_NEWSTR_NO_ALLOCATE ;
+}
+
+
+# The basic symbolic targets...
+NOTFILE all clean dist ;
+ALWAYS clean ;
+
+# Utility rules and actions...
+rule .clean
+{
+    [DELETE] clean : $(<) ;
+}
+if $(OS) = NT { actions piecemeal together existing [DELETE] {
+    del /F /Q "$(>)"
+} }
+if $(UNIX) = true { actions piecemeal together existing [DELETE] {
+    rm -f "$(>)"
+} }
+if $(OS) = NT {
+    --chmod+w = "attrib -r " ;
+}
+if $(UNIX) = true {
+    --chmod+w = "chmod +w " ;
+}
+
+rule .mkdir
+{
+    NOUPDATE $(<) ;
+    if $(<:P) { DEPENDS $(<) : $(<:P) ; .mkdir $(<:P) ; }
+    if ! $(md<$(<)>) { [MKDIR] $(<) ; md<$(<)> = - ; }
+}
+if $(OS) = NT { actions [MKDIR] {
+    md "$(<)"
+} }
+if $(UNIX) = true { actions [MKDIR] {
+    mkdir "$(<)"
+} }
+
+rule .exe
+{
+    local exe = $(<) ;
+    if $(OS) = NT || ( $(UNIX) = true && $(OS) = CYGWIN ) { exe = $(exe:S=.exe) ; }
+    LOCATE on $(exe) = $(locate-target) ;
+    DEPENDS all : $(exe) ;
+    .mkdir $(locate-target) ;
+    if $(--link)
+    {
+        local objs ;
+        for local s in $(>)
+        {
+            # Translate any subdir elements into a simple file name.
+            local o = [ MATCH "([^/]+)[/]?(.+)" : $(s) ] ;
+            o = $(o:J=_) ;
+            o = $(o:S=.o) ;
+            objs += $(o) ;
+            LOCATE on $(o) = $(locate-target) ;
+            DEPENDS $(exe) : $(o) ;
+            DEPENDS $(o) : $(s) ;
+            DEPENDS $(o) : $(locate-target) ;
+            [COMPILE] $(o) : $(s) ;
+            .clean $(o) ;
+        }
+        DEPENDS $(exe) : $(objs) ;
+        DEPENDS $(exe) : $(locate-target) ;
+        [COMPILE.LINK] $(exe) : $(objs) ;
+        .clean $(exe) ;
+    }
+    else
+    {
+        DEPENDS $(exe) : $(>) ;
+        DEPENDS $(exe) : $(locate-target) ;
+        [COMPILE] $(exe) : $(>) ;
+        .clean $(exe) ;
+    }
+    return $(exe) ;
+}
+if ! $(--def[2]) { actions [COMPILE] {
+    "$(--cc)" "$(--bin)$(<:D=)" "$(--dir)$(<:D)$(./)" $(--out)$(<) "$(--def)$(--defs)" "$(--flags)" "$(>)" "$(--libs)"
+} }
+else { actions [COMPILE] {
+    "$(--cc)" "$(--bin)$(<:D=)" "$(--dir)$(<:D)$(./)" $(--out)$(<) "$(--def[1])$(--defs:J=$(--def[2]))$(--def[3])" "$(--flags)"  "$(>)" "$(--libs)"
+} }
+
+actions [COMPILE.LINK] {
+    "$(--link)" "$(--link-bin)$(<:D=)" "$(--link-dir)$(<:D)$(./)" "$(--link-out)$(<)" "$(--link-def)$(--link-defs)" "$(--link-flags)"  "$(>)" "$(--link-libs)"
+}
+
+rule .link
+{
+    DEPENDS all : $(<) ;
+    DEPENDS $(<) : $(>) ;
+    [LINK] $(<) : $(>) ;
+    .clean $(<) ;
+}
+if $(OS) = NT { actions [LINK] {
+    copy "$(>)" "$(<)"
+} }
+if $(UNIX) = true { actions [LINK] {
+    ln -fs "$(>)" "$(<)"
+} }
+
+rule .copy
+{
+    DEPENDS all : $(<) ;
+    DEPENDS $(<) : $(>) ;
+    [COPY] $(<) : $(>) ;
+    .clean $(<) ;
+}
+
+# Will be redefined later.
+actions [COPY]
+{
+}
+
+
+rule .move
+{
+    DEPENDS $(<) : $(>) ;
+    [MOVE] $(<) : $(>) ;
+}
+if $(OS) = NT { actions [MOVE] {
+    del /f "$(<)"
+    rename "$(>)" "$(<)"
+} }
+if $(UNIX) = true { actions [MOVE] {
+    mv -f "$(>)" "$(<)"
+} }
+
+# Generate the grammar tokens table, and the real yacc grammar.
+rule .yyacc
+{
+    local exe = [ .exe yyacc : yyacc.c ] ;
+    NOUPDATE $(exe) ;
+    DEPENDS $(<) : $(exe) $(>) ;
+    LEAVES $(<) ;
+    yyacc.exe on $(<) = $(exe:R=$(locate-target)) ;
+    [YYACC] $(<) : $(>) ;
+}
+actions [YYACC] {
+    $(--chmod+w)$(<[1])
+    $(--chmod+w)$(<[2])
+    "$(yyacc.exe)" "$(<)" "$(>)"
+}
+if $(grammar)
+{
+    .yyacc jamgram.y jamgramtab.h : jamgram.yy ;
+}
+else if $(debug)
+{
+    .exe yyacc : yyacc.c ;
+}
+
+# How to build the grammar.
+if $(OS) = NT
+{
+    SUFEXE = .exe ;
+    # try some other likely spellings...
+    PATH ?= $(Path) ;
+    PATH ?= $(path) ;
+}
+SUFEXE ?= "" ;
+
+yacc ?= [ GLOB $(PATH) : yacc$(SUFEXE) ] ;
+yacc ?= [ GLOB $(PATH) : bison$(SUFEXE) ] ;
+yacc ?= [ GLOB "$(ProgramFiles:J= )\\GnuWin32\\bin"
+    "C:\\Program Files\\GnuWin32\\bin" : bison$(SUFEXE) ] ;
+yacc = $(yacc[1]) ;
+switch $(yacc:D=:S=)
+{
+    case bison : yacc += -d --yacc ;
+    case yacc  : yacc += -d ;
+}
+if $(debug) && $(yacc)
+{
+    yacc += -t -v ;
+}
+yacc += $(YACCFLAGS) ;
+
+rule .yacc
+{
+    DEPENDS $(<) : $(>) ;
+    LEAVES $(<) ;
+    [YACC] $(<) : $(>) ;
+}
+if $(OS) = NT { actions [YACC] {
+    "$(yacc)" "$(>)"
+    if not errorlevel 1 (
+        del /f "$(<[1])"
+        rename y.tab$(<[1]:S) "$(<[1])"
+        del /f $(<[2])
+        rename y.tab$(<[2]:S) "$(<[2])"
+    ) else set _error_ =
+} }
+if $(UNIX) = true { actions [YACC] {
+    if ` "$(yacc)" "$(>)" ` ; then
+        mv -f y.tab$(<[1]:S) "$(<[1])"
+        mv -f y.tab$(<[2]:S) "$(<[2])"
+    else
+        exit 1
+    fi
+} }
+if $(grammar) && ! $(yacc)
+{
+    EXIT Could not find the 'yacc' tool, and therefore can not build the
+        grammar. ;
+}
+if $(grammar) && $(yacc)
+{
+    .yacc jamgram.c jamgram.h : jamgram.y ;
+}
+
+# How to build the compiled in jambase.
+rule .mkjambase
+{
+    local exe = [ .exe mkjambase : mkjambase.c ] ;
+    DEPENDS $(<) : $(exe) $(>) ;
+    LEAVES $(<) ;
+    mkjambase.exe on $(<) = $(exe:R=$(locate-target)) ;
+    [MKJAMBASE] $(<) : $(>) ;
+}
+actions [MKJAMBASE] {
+    $(--chmod+w)$(<)
+    $(mkjambase.exe) "$(<)" "$(>)"
+}
+if $(debug)
+{
+    .mkjambase jambase.c : Jambase ;
+}
+
+# How to build Jam.
+rule .jam
+{
+    $(>).exe = [ .exe $(>) : $(jam.source) ] ;
+    DEPENDS all : $($(>).exe) ;
+
+    # Make a copy under the old name.
+    $(<).exe = $(<:S=$($(>).exe:S)) ;
+    LOCATE on $($(<).exe) = $(locate-target) ;
+    .copy $($(<).exe) : $($(>).exe) ;
+    DEPENDS all : $($(<).exe) ;
+}
+.jam bjam : b2 ;
+
+
+# Scan sources for header dependencies.
+#
+# In order to keep things simple, we made a slight compromise here - we only
+# detect changes in headers included relative to the current folder as opposed
+# to those included from somewhere on the include path.
+rule .scan ( targets + )
+{
+    HDRRULE on $(targets) = .hdr.scan ;
+    HDRSCAN on $(targets) = "^[ \t]*#[ \t]*include[ \t]*\"([^\"]*)\".*$" ;
+}
+rule .hdr.scan ( target : includes * : binding )
+{
+    local target-path = [ NORMALIZE_PATH $(binding:D) ] ;
+    # Extra grist provides target name uniqueness when referencing same name
+    # header files from different folders.
+    local include-targets = <$(target-path)>$(includes) ;
+    NOCARE $(include-targets) ;
+    INCLUDES $(target) : $(include-targets) ;
+    SEARCH on $(include-targets) = $(target-path) ;
+    ISFILE $(include-targets) ;
+    .scan $(include-targets) ;
+}
+.scan $(jam.source) ;
+
+
+# Distribution making from here on out. Assumes that the docs are already built
+# as HTML at ../doc/html. Otherwise they will not be included in the built
+# distribution archive.
+dist.license =
+    [ GLOB . : $(LICENSE).txt ]
+    ;
+dist.license = $(dist.license:D=)
+    [ GLOB [ .path .. .. .. ] : $(LICENSE).txt ]
+    [ GLOB [ .path .. boost ] : $(LICENSE).txt ] ;
+dist.docs =
+    [ GLOB . : *.png *.css *.html ]
+    ;
+dist.docs = $(dist.docs:D=)
+    [ GLOB [ .path images ] : *.png ]
+    [ GLOB [ .path jam ] : *.html ]
+    ;
+dist.source =
+    [ GLOB . : *.c *.h ]
+    ;
+dist.source = $(dist.source:D=)
+    $(dist.license[1])
+    $(dist.docs)
+    build.jam build.bat build.sh
+    Jambase
+    jamgram.y jamgram.yy
+    [ .path modules set.c ]
+    [ .path modules path.c ]
+    [ .path modules regex.c ]
+    [ .path modules property-set.c ]
+    [ .path modules sequence.c ]
+    [ .path modules order.c ]
+    [ GLOB [ .path boehm_gc ] : * ]
+    [ GLOB [ .path boehm_gc include ] : * ]
+    [ GLOB [ .path boehm_gc include private ] : * ]
+    [ GLOB [ .path boehm_gc cord ] : * ]
+    [ GLOB [ .path boehm_gc Mac_files ] : * ]
+    [ GLOB [ .path boehm_gc tests ] : * ]
+    [ GLOB [ .path boehm_gc doc ] : * ]
+    ;
+dist.bin =
+    bjam
+    ;
+dist.bin =
+    $(dist.license[1])
+    $(dist.bin:S=$(bjam.exe:S))
+    ;
+
+if $(OS) = NT
+{
+    zip ?= [ GLOB "$(ProgramFiles:J= )\\7-ZIP" "C:\\Program Files\\7-ZIP" : "7z.exe" ] ;
+    zip ?= [ GLOB "$(ProgramFiles:J= )\\7-ZIP" "C:\\Program Files\\7-ZIP" : "7zn.exe" ] ;
+    zip ?= [ GLOB $(PATH) : zip.exe ] ;
+    zip ?= zip ;
+    zip = $(zip[1]) ;
+    switch $(zip:D=:S=)
+    {
+        case 7z* : zip += a -r -tzip -mx=9 ;
+        case zip : zip += -9r ;
+    }
+    actions piecemeal [PACK] {
+        "$(zip)" "$(<)" "$(>)"
+    }
+    actions piecemeal [ZIP] {
+        "$(zip)" "$(<)" "$(>)"
+    }
+    actions piecemeal [COPY] {
+        copy /Y "$(>)" "$(<)" >NUL:
+    }
+}
+if $(UNIX) = true
+{
+    tar ?= [ GLOB $(PATH) : star bsdtar tar ] ;
+    tar = $(tar[1]) ;
+    switch $(tar:D=:S=)
+    {
+        case star : tar += -c artype=pax -D -d -to-stdout ;
+        case * : tar += -c -f - ;
+    }
+    actions [PACK] {
+        "$(tar)" "$(>)" | gzip -c9 > "$(<)"
+    }
+    #~ actions [PACK] {
+    #~     tar cf "$(<:S=.tar)" "$(>)"
+    #~ }
+    actions [ZIP] {
+    gzip -c9 "$(>)" > "$(<)"
+    }
+    actions [COPY] {
+        cp -Rpf "$(>)" "$(<)"
+    }
+}
+
+# The single binary, compressed.
+rule .binary
+{
+    local zip ;
+    if $(OS) = NT { zip = $($(<).exe:S=.zip) ; }
+    if $(UNIX) = true { zip = $($(<).exe:S=.tgz) ; }
+    zip = $(zip:S=)-$(VERSION)-$(RELEASE)-$(platform)$(zip:S) ;
+    DEPENDS $(zip) : $($(<).exe) ;
+    DEPENDS dist : $(zip) ;
+    #~ LOCATE on $(zip) = $(locate-target) ;
+    if $(OS) = NT { [ZIP] $(zip) : $($(<).exe) ; }
+    if $(UNIX) = true { [PACK] $(zip) : $($(<).exe) ; }
+    .clean $(zip) ;
+}
+
+# Package some file.
+rule .package ( dst-dir : src-files + )
+{
+    local dst-files ;
+    local src-files-actual ;
+    for local src-path in $(src-files)
+    {
+        if ! [ GLOB $(src-path:P) : $(src-path:B) ] || [ CHECK_IF_FILE $(src-path) ]
+        {
+            local src-subdir = $(src-path:D) ;
+            local src-file = $(src-path) ;
+            while $(src-subdir:D) { src-subdir = $(src-subdir:D) ; }
+            if $(src-subdir) = ".."
+            {
+                src-file = $(src-file:D=) ;
+            }
+            dst-files += $(src-file:R=$(dst-dir)) ;
+            src-files-actual += $(src-path) ;
+        }
+    }
+
+    local pack ;
+    if $(OS) = NT { pack = $(dst-dir).zip ; }
+    if $(UNIX) = true { pack = $(dst-dir).tgz ; }
+
+    DEPENDS dist : $(pack) ;
+    DEPENDS $(pack) : $(dst-files) ;
+
+    local dst-files-queue = $(dst-files) ;
+    for local src-path in $(src-files-actual)
+    {
+        local dst-file = $(dst-files-queue[1]) ;
+        dst-files-queue = $(dst-files-queue[2-]) ;
+        DEPENDS $(dst-file) : $(src-path) $(dst-file:D) ;
+        .mkdir $(dst-file:D) ;
+
+        [COPY] $(dst-file) : $(src-path) ;
+        .clean $(dst-file) ;
+    }
+
+    [PACK] $(pack) : $(dst-files) ;
+    .clean $(pack) ;
+}
+
+# RPM distro file.
+rpm-tool = [ GLOB $(PATH) : "rpmbuild" ] ;
+rpm-tool ?= [ GLOB $(PATH) : "rpm" ] ;
+rpm-tool = $(rpm-tool[1]) ;
+rule .rpm ( name : source )
+{
+    local rpm-arch ;
+    switch $(OSPLAT)
+    {
+        case X86       : rpm-arch ?= i386 ;
+        case PPC       : rpm-arch ?= ppc ;
+        case AXP       : rpm-arch ?= alpha ;
+        # no guaranty for these:
+        case IA64      : rpm-arch ?= ia64 ;
+        case ARM       : rpm-arch ?= arm ;
+        case SPARC     : rpm-arch ?= sparc ;
+        case *         : rpm-arch ?= other ;
+    }
+    local target = $(name)-rpm ;
+    NOTFILE $(target) ;
+    DEPENDS dist : $(target) ;
+    DEPENDS $(target) : $(name).$(rpm-arch).rpm $(name).src.rpm ;
+    DEPENDS $(name).$(rpm-arch).rpm : $(source) ;
+    DEPENDS $(name).src.rpm : $(name).$(rpm-arch).rpm ;
+    docs on $(target) = $(dist.docs:J=" ") ;
+    arch on $(target) = $(rpm-arch) ;
+    if $(rpm-arch) = ppc { target-opt on $(target) = --target= ; }
+    else { target-opt on $(target) = "--target " ; }
+    [RPM] $(target) : $(source) ;
+    .clean $(name).$(rpm-arch).rpm $(name).src.rpm ;
+}
+actions [RPM] {
+    set -e
+    export BOOST_JAM_TOOLSET="$(toolset)"
+    $(rpm-tool) -ta $(target-opt)$(arch) $(>) | tee rpm.out
+    cp `grep -e '^Wrote:' rpm.out | sed 's/^Wrote: //'` .
+    rm -f rpm.out
+}
+
+# The distribution targets. Do not bother with them unless this is a
+# distribution build.
+if dist in $(ARGV)
+{
+    #~ .binary bjam ;
+    .package $(NAME)-$(VERSION) : $(dist.source) ;
+    .package $(NAME)-$(VERSION)-$(RELEASE)-$(platform) : $(dist.bin) ;
+    if $(rpm-tool)
+    {
+        #~ .rpm $(NAME)-$(VERSION)-$(RELEASE) : $(NAME)-$(VERSION).tgz ;
+    }
+}

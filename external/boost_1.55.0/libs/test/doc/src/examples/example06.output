@@ -1,0 +1,8 @@
+> example --log_level=test_suite
+Running 1 test case...
+Entering test suite "example"
+Entering test case "free_test_function"
+Leaving test case "free_test_function"; testing time: 16ms
+Leaving test suite "example"
+
+*** No errors detected

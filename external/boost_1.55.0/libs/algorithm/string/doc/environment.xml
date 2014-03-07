@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2002-2006 Pavol Droba.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="string_algo.env" last-revision="$Date: 2008-02-27 12:00:24 -0800 (Wed, 27 Feb 2008) $">
+    <title>Environment</title>
+    <section>
+        <title>Build</title>
+        <para>
+            The whole library is provided in headers. Regex variants of some algorithms, 
+            however, are dependent on the <libraryname>Boost.Regex</libraryname> library. All such algorithms are
+            separated in <headername>boost/algorithm/string_regex.hpp</headername>. 
+            If this header is used, the application must be linked with the <libraryname>Boost.Regex</libraryname> 
+            library. 
+        </para>
+    </section>
+
+    <section>
+        <title>Examples</title>
+        <para>
+            Examples showing the basic usage of the library can be found in the libs/algorithm/string/example
+            directory. There is a separate file for the each part of the library. Please follow the boost
+            build guidelines to build examples using the bjam. To successfully build regex examples 
+            the <libraryname>Boost.Regex</libraryname> library is required. 
+        </para>
+    </section>
+
+    <section>
+        <title>Tests</title>
+        <para>
+            A full set of test cases for the library is located in the libs/algorithm/string/test directory. 
+            The test cases can be executed using the boost build system. For the tests of regular 
+            expression variants of algorithms, the <libraryname>Boost.Regex</libraryname> library is required. 
+        </para>
+    </section>
+
+    <section>
+        <title>Portability</title>
+        <para>
+            The library has been successfully compiled and tested with the following compilers:
+            
+            <itemizedlist>
+                <listitem>Microsoft Visual C++ 7.0</listitem>
+                <listitem>Microsoft Visual C++ 7.1</listitem>
+                <listitem>GCC 3.2</listitem>
+                <listitem>GCC 3.3.1</listitem>
+            </itemizedlist>
+
+            See <ulink url="http://boost.sourceforge.net/regression-logs/">Boost regression tables</ulink>
+            for additional info for a particular compiler.
+        </para>
+        <para>
+            There are known limitation on platforms not supporting partial template specialization. 
+            Library depends on correctly implemented <code>std::iterator_traits</code> class. 
+            If a standard library provided with compiler is broken, the String Algorithm Library 
+            cannot function properly. Usually it implies that primitive pointer iterators are not 
+            working with the library functions. 
+        </para>
+    </section>
+</section>

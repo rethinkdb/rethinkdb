@@ -1,0 +1,131 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Binding member functions</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../odeint_in_detail.html" title="odeint in detail">
+<link rel="prev" href="using_boost__range.html" title="Using boost::range">
+<link rel="next" href="../concepts.html" title="Concepts">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using_boost__range.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../odeint_in_detail.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../concepts.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.odeint_in_detail.binding_member_functions"></a><a class="link" href="binding_member_functions.html" title="Binding member functions">Binding
+      member functions</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="binding_member_functions.html#boost_numeric_odeint.odeint_in_detail.binding_member_functions.binding_member_functions_in_c__11">Binding
+        member functions in C++11</a></span></dt></dl></div>
+<p>
+        Binding member functions to a function objects suitable for odeint system
+        function is not easy, at least in C++03. The usual way of using __boost_bind
+        does not work because of the forwarding problem. odeint provides two <code class="computeroutput"><span class="identifier">do_step</span></code> method which only differ in the
+        const specifiers of the arguments and __boost_bind binders only provide the
+        specializations up to two argument which is not enough for odeint.
+      </p>
+<p>
+        But one can easily implement the according binders themself:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Obj</span> <span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Mem</span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">ode_wrapper</span>
+<span class="special">{</span>
+    <span class="identifier">Obj</span> <span class="identifier">m_obj</span><span class="special">;</span>
+    <span class="identifier">Mem</span> <span class="identifier">m_mem</span><span class="special">;</span>
+
+<span class="keyword">public</span><span class="special">:</span>
+
+    <span class="identifier">ode_wrapper</span><span class="special">(</span> <span class="identifier">Obj</span> <span class="identifier">obj</span> <span class="special">,</span> <span class="identifier">Mem</span> <span class="identifier">mem</span> <span class="special">)</span> <span class="special">:</span> <span class="identifier">m_obj</span><span class="special">(</span> <span class="identifier">obj</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">m_mem</span><span class="special">(</span> <span class="identifier">mem</span> <span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">State</span> <span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Deriv</span> <span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Time</span> <span class="special">&gt;</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="keyword">const</span> <span class="identifier">State</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="identifier">Deriv</span> <span class="special">&amp;</span><span class="identifier">dxdt</span> <span class="special">,</span> <span class="identifier">Time</span> <span class="identifier">t</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="special">(</span><span class="identifier">m_obj</span><span class="special">.*</span><span class="identifier">m_mem</span><span class="special">)(</span> <span class="identifier">x</span> <span class="special">,</span> <span class="identifier">dxdt</span> <span class="special">,</span> <span class="identifier">t</span> <span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Obj</span> <span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Mem</span> <span class="special">&gt;</span>
+<span class="identifier">ode_wrapper</span><span class="special">&lt;</span> <span class="identifier">Obj</span> <span class="special">,</span> <span class="identifier">Mem</span> <span class="special">&gt;</span> <span class="identifier">make_ode_wrapper</span><span class="special">(</span> <span class="identifier">Obj</span> <span class="identifier">obj</span> <span class="special">,</span> <span class="identifier">Mem</span> <span class="identifier">mem</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">ode_wrapper</span><span class="special">&lt;</span> <span class="identifier">Obj</span> <span class="special">,</span> <span class="identifier">Mem</span> <span class="special">&gt;(</span> <span class="identifier">obj</span> <span class="special">,</span> <span class="identifier">mem</span> <span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        One can use this binder as follows
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">lorenz</span>
+<span class="special">{</span>
+    <span class="keyword">void</span> <span class="identifier">ode</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">dxdt</span> <span class="special">,</span> <span class="keyword">double</span> <span class="identifier">t</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">dxdt</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">=</span> <span class="number">10.0</span> <span class="special">*</span> <span class="special">(</span> <span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">);</span>
+        <span class="identifier">dxdt</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">=</span> <span class="number">28.0</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">[</span><span class="number">2</span><span class="special">];</span>
+        <span class="identifier">dxdt</span><span class="special">[</span><span class="number">2</span><span class="special">]</span> <span class="special">=</span> <span class="special">-</span><span class="number">8.0</span> <span class="special">/</span> <span class="number">3.0</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">[</span><span class="number">2</span><span class="special">]</span> <span class="special">+</span> <span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">];</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span> <span class="keyword">int</span> <span class="identifier">argc</span> <span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">argv</span><span class="special">[]</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">odeint</span><span class="special">;</span>
+    <span class="identifier">state_type</span> <span class="identifier">x</span> <span class="special">=</span> <span class="special">{{</span> <span class="number">10.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">}};</span>
+    <span class="identifier">integrate_const</span><span class="special">(</span> <span class="identifier">runge_kutta4</span><span class="special">&lt;</span> <span class="identifier">state_type</span> <span class="special">&gt;()</span> <span class="special">,</span> <span class="identifier">make_ode_wrapper</span><span class="special">(</span> <span class="identifier">lorenz</span><span class="special">()</span> <span class="special">,</span> <span class="special">&amp;</span><span class="identifier">lorenz</span><span class="special">::</span><span class="identifier">ode</span> <span class="special">)</span> <span class="special">,</span>
+                     <span class="identifier">x</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="number">0.01</span> <span class="special">);</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numeric_odeint.odeint_in_detail.binding_member_functions.binding_member_functions_in_c__11"></a><a class="link" href="binding_member_functions.html#boost_numeric_odeint.odeint_in_detail.binding_member_functions.binding_member_functions_in_c__11" title="Binding member functions in C++11">Binding
+        member functions in C++11</a>
+</h4></div></div></div>
+<p>
+          In C++11 one can use <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">bind</span></code>
+          and one does not need to implement the bind themself:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">pl</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">placeholders</span><span class="special">;</span>
+
+<span class="identifier">state_type</span> <span class="identifier">x</span> <span class="special">=</span> <span class="special">{{</span> <span class="number">10.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">}};</span>
+<span class="identifier">integrate_const</span><span class="special">(</span> <span class="identifier">runge_kutta4</span><span class="special">&lt;</span> <span class="identifier">state_type</span> <span class="special">&gt;()</span> <span class="special">,</span>
+                 <span class="identifier">std</span><span class="special">::</span><span class="identifier">bind</span><span class="special">(</span> <span class="special">&amp;</span><span class="identifier">lorenz</span><span class="special">::</span><span class="identifier">ode</span> <span class="special">,</span> <span class="identifier">lorenz</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">pl</span><span class="special">::</span><span class="identifier">_1</span> <span class="special">,</span> <span class="identifier">pl</span><span class="special">::</span><span class="identifier">_2</span> <span class="special">,</span> <span class="identifier">pl</span><span class="special">::</span><span class="identifier">_3</span> <span class="special">)</span> <span class="special">,</span>
+                 <span class="identifier">x</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="number">0.01</span>  <span class="special">);</span>
+</pre>
+<p>
+        </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using_boost__range.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../odeint_in_detail.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../concepts.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

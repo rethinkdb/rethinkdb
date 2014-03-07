@@ -1,0 +1,152 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: FAQ</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<h1>Frequently Asked Questions</h1>
+
+<ol>
+
+<li>
+How do I perform an early exit from an algorithm such as BFS?<br>
+
+<p>
+Create a visitor that throws an exception when you want to cut off the
+search, then put your call to <tt>breadth_first_search</tt> inside of
+an appropriate try/catch block. This strikes many programmers as a
+misuse of exceptions, however, much thought was put into the decision
+to have exceptions has the preferred way to exit early. See boost
+email discussions for more details.
+</p>
+
+<li>
+Why is the visitor parameter passed by value rather than reference
+in the various BGL algorithms?<br>
+
+<p>
+One of the usage scenarios that we wanted to support with the
+algorithms was creating visitor objects on the fly, within the
+argument list of the call to the graph algorithm. In this situation,
+the visitor object is a temporary object. Now there is a truly
+unfortunate rule in the C++ standard that says a temporary cannot be
+bound to a non-const reference parameter.  So we had to decide whether
+we wanted to support this kind of usage and call-by-value, or not and
+call-by-reference. We chose call-by-value, following in the footsteps
+of the STL (which passes functors by value).  The disadvantage of this
+decision is that if your visitor contains state and changes that state
+during the algorithm, the change will be made to a copy of the visitor
+object, not the visitor object passed in. Therefore you may want the
+visitor to hold this state by pointer or reference.
+</p>
+
+<li>Why does the BGL interface use friend functions (or free functions)
+  instead of member functions?<br>
+<p>
+For the most part, the differences between member functions and free
+functions are syntactic, and not very important, though people can get
+religious about them. However, we had one technical reason for
+favoring free functions. A programmer can overload a free function for
+a type coming from a 3rd party without modifying the source
+code/definition of that type. There are several uses of this in the
+BGL. For example, Stanford GraphBase and LEDA graphs can both be used
+in BGL algorithms because of overloads in <tt>stanford_graph.hpp</tt>
+and <tt>leda_graph.hpp</tt>. One can even use
+<tt>std::vector&lt;std::list&gt;</tt> as a graph due to the overloads
+in <tt>vector_as_graph.hpp</tt>.
+</p>
+<p>
+Of course, there is a way to adapt 3rd party classes into an interface
+with member functions. You create an adaptor class. However, the
+disadvantage of an adaptor class (compared to overloaded functions) is
+that one has to physically wrap and unwrap the objects as they go
+into/out of BGL algorithms. So the overloaded function route is more
+convenient.  Granted, this is not a huge difference, but since there
+weren't other strong reasons, it was enough for us to choose free
+functions.
+</p>
+ 
+<p> 
+Our religious reason for choosing free functions is to send the message
+that BGL is a generic library, and not a traditional object-oriented
+library. OO was hip in the 80s and 90s, but its time we moved beyond!
+</p>
+</li>
+
+
+
+
+<li>How do I create a graph where the edges are sorted/ordered? <br>
+  <p>The example <a href="../example/ordered_out_edges.cpp">
+  <tt>ordered_out_edges.cpp</tt></a> shows how to do this.</p>
+  </li>
+
+<li>Why does the algorithm X work with <tt>adjacency_list</tt> where
+ <tt>VertexList=vecS</tt> but not when <tt>VertexList=listS</tt>? <br><br>
+ Often the reason is that the algorithm expects to find the
+ <tt>vertex_index</tt> property stored in the graph. When
+ <tt>VertexList=vecS</tt>, the <tt>adjacency_list</tt> automatically
+ has a <tt>vertex_index</tt> property. However, when <tt>VertexList=listS</tt>
+ this is not the case, and the <tt>vertex_index</tt> property must be
+ explicitly added, and initialized. For example,
+<pre>
+  // specify the graph type
+  typedef adjacency_list&lt;listS, listS, undirectedS,
+                         property&lt;vertex_index_t, std::size_t&gt;,
+                         no_property
+                        &gt; graph_t;
+
+  // construct a graph object
+  graph_t G(num_nodes);
+  // obtain a property map for the vertex_index property
+  property_map&lt;graph_t, vertex_index_t&gt;::type
+    index = get(vertex_index, G);
+  // initialize the vertex_index property values
+  graph_traits&lt;graph_t&gt;::vertex_iterator vi, vend;
+  graph_traits&lt;graph_t&gt;::vertices_size_type cnt = 0;
+  for(tie(vi,vend) = vertices(G); vi != vend; ++vi)
+    put(index, *vi, cnt++);
+</pre>
+</li>
+
+<li>When using algorithm X, why do I get an error about a property
+not being found, such as:
+<pre>
+../../../boost/concept_check.hpp:209: no match for
+`boost::detail::error_property_not_found &amp; == 
+ boost::detail::error_property_not_found &amp;'
+</pre>
+or a message such as:
+<pre>
+../../..\boost/graph/depth_first_search.hpp(78) : error C2664: 'white'
+: cannot convert parameter 1 from 
+ 'struct boost::detail::error_property_not_found'
+ to 'enum boost::default_color_type'
+</pre>
+
+The reason is that the algorithm expected to find some property (like color or
+weight) attached to the vertices or edges of the graph, but didn't
+find it. You need to either add an interior property to the graph, or
+create an exterior property map for the property and pass it as an
+argument to the algorithm.</li>
+
+
+
+</ol>
+<!--  LocalWords:  gif ALT BGL std const STL GraphBase LEDA BFS stanford hpp OO
+ -->
+<!--  LocalWords:  leda cpp VertexList vecS listS undirectedS num cnt struct
+ -->
+<!--  LocalWords:  enum
+ -->

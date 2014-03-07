@@ -1,0 +1,115 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:any_range any_range]
+
+[heading Description]
+
+`any_range` is a range that has the type information erased hence a `any_range<int, boost::forward_pass_traversal_tag, int, std::ptrdiff_t>`
+can be used to represent a `std::vector<int>`, a `std::list<int>` or many other types.
+
+The __type_erasure_article__ covers the motivation and goals of type erasure in this context. Clearly
+my implementation is building upon a lot of prior art created by others. Thomas Becker's `any_iterator` was a strong
+influence. Adobe also have an `any_iterator` implementation, but this has very tight coupling to other parts of the
+library that precluded it from use in Boost.Range.
+Early development versions of this Range Adaptor directly used Thomas Becker's any_iterator implementation.
+Subsequently I discovered that the heap allocations of this and many other implementations cause poor
+speed performance particularly at the tails of the distribution. To solve this required a new design that
+incorporated the embedded buffer optimization.
+
+Despite the underlying `any_iterator` being the fastest available implementation, the performance overhead of `any_range` is still appreciable due to the cost of virtual function calls required to implement `increment`, `decrement`, `advance`, `equal` etc. Frequently a better design choice is to convert to a canonical form.
+
+Please see the __range_adaptors_type_erased__ for a Range Adaptor that returns `any_range` instances.
+
+[heading Synopsis]
+
+``
+template<
+    class Value
+  , class Traversal
+  , class Reference
+  , class Difference
+  , class Buffer = any_iterator_default_buffer
+>
+class any_range
+    : public iterator_range<
+        range_detail::any_iterator<
+            Value
+          , Traversal
+          , Reference
+          , Difference
+          , Buffer
+        >
+    >
+{
+    typedef range_detail::any_iterator<
+        Value
+      , Traversal
+      , Reference
+      , Difference
+      , Buffer
+    > any_iterator_type;
+
+    typedef iterator_range<any_iterator_type> base_type;
+
+    struct enabler {};
+    struct disabler {};
+public:
+    typedef any_iterator_type iterator;
+    typedef any_iterator_type const_iterator;
+
+    any_range()
+    {
+    }
+
+    any_range(const any_range& other)
+        : base_type(other)
+    {
+    }
+
+    template<class WrappedRange>
+    any_range(WrappedRange& wrapped_range)
+    : base_type(boost::begin(wrapped_range),
+                boost::end(wrapped_range))
+    {
+    }
+
+    template<class WrappedRange>
+    any_range(const WrappedRange& wrapped_range)
+    : base_type(boost::begin(wrapped_range),
+                boost::end(wrapped_range))
+    {
+    }
+
+    template<
+        class OtherValue
+      , class OtherTraversal
+      , class OtherReference
+      , class OtherDifference
+    >
+    any_range(const any_range<
+                        OtherValue
+                      , OtherTraversal
+                      , OtherReference
+                      , OtherDifference
+                      , Buffer
+                    >& other)
+    : base_type(boost::begin(other), boost::end(other))
+    {
+    }
+
+    template<class Iterator>
+    any_range(Iterator first, Iterator last)
+        : base_type(first, last)
+    {
+    }
+};
+``
+
+[heading Definition]
+
+Defined in header file `boost/range/any_range.hpp`
+
+[endsect]

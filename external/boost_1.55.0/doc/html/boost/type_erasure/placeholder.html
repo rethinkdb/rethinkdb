@@ -1,0 +1,62 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct placeholder</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.placeholder_hpp" title="Header &lt;boost/type_erasure/placeholder.hpp&gt;">
+<link rel="prev" href="as_param.html" title="Struct template as_param">
+<link rel="next" href="_a.html" title="Struct _a">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="as_param.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.placeholder_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="_a.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.type_erasure.placeholder"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct placeholder</span></h2>
+<p>boost::type_erasure::placeholder</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.placeholder_hpp" title="Header &lt;boost/type_erasure/placeholder.hpp&gt;">boost/type_erasure/placeholder.hpp</a>&gt;
+
+</span>
+<span class="keyword">struct</span> <a class="link" href="placeholder.html" title="Struct placeholder">placeholder</a> <span class="special">{</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp229825720"></a><h2>Description</h2>
+<p>Placeholders are used heavily throughout the library. Every placeholder must derive from <a class="link" href="placeholder.html" title="Struct placeholder">placeholder</a>. The library provides a number of placeholders, out of the box, but you are welcome to define your own, if you want more descriptive names. The placeholder <a class="link" href="_self.html" title="Struct _self">_self</a> is special in that it is used as the default wherever possible.</p>
+<p>What exactly is a placeholder? Placeholders act as a substitute for template parameters in concepts. The library automatically replaces all the placeholders used in a concept with the actual types involved when it stores an object in an <a class="link" href="any.html" title="Class template any">any</a>.</p>
+<p>For example, in the following,</p>
+<pre class="programlisting"><span class="special">*</span> <span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">copy_constructible</span><span class="special">&lt;</span><span class="identifier">_a</span><span class="special">&gt;</span><span class="special">,</span> <span class="identifier">_a</span><span class="special">&gt;</span> <span class="identifier">x</span><span class="special">(</span><span class="number">1</span><span class="special">)</span><span class="special">;</span>
+<span class="special">*</span> 
+</pre>
+<p>The library sees that we're constructing an <a class="link" href="any.html" title="Class template any">any</a> that uses the <a class="link" href="_a.html" title="Struct _a">_a</a> placeholder with an <code class="computeroutput">int</code>. Thus it binds <a class="link" href="_a.html" title="Struct _a">_a</a> to int and instantiates <a class="link" href="copy_constructible.html" title="Struct template copy_constructible">copy_constructible&lt;int&gt;</a>.</p>
+<p>When there are multiple placeholders involved, you will have to use <a class="link" href="tuple.html" title="Class template tuple">tuple</a>, or pass the bindings explicitly, but the substitution still works the same way. </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="as_param.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.placeholder_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="_a.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

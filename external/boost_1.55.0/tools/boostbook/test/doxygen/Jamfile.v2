@@ -1,0 +1,41 @@
+
+# Copyright 2009 Daniel James.
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+using boostbook ;
+using doxygen ;
+import os ;
+
+doxygen autodoc
+    :
+        [ glob boost/*.hpp ]
+    :
+        <xsl:param>"boost.doxygen.reftitle=Example Reference"
+    ;
+
+if [ os.name ] = NT
+{
+    actions compare
+    {
+        comp /A $(>[1]) $(>[2]) && echo "Stamped" >$(<)
+    }
+
+}
+else
+{
+    actions compare
+    {
+        diff -u -w $(>[1]) $(>[2]) && echo "Stamped" >$(<)
+    }
+}
+
+make check : autodoc.xml autodoc.gold : @compare ;
+
+boostbook standalone
+    :
+        example.xml
+    :
+        <xsl:param>boost.root=../../../../..        
+        <dependency>autodoc
+    ;

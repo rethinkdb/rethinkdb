@@ -1,0 +1,168 @@
+# Some Portions Copyright (c) 2006-2010 IBM and others. All Rights Reserved.
+
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+
+top_builddir = ../..
+
+subdir = tools/tzcode
+
+include $(top_builddir)/icudefs.mk
+
+ifeq ($(TZDATA),)
+TZDATA = $(firstword $(wildcard ./tzdata*.tar.gz) $(wildcard $(srcdir)/tzdata*.tar.gz))
+endif
+ifeq ($(TZCODE),)
+TZCODE = $(firstword $(wildcard ./tzcode*.tar.gz) $(wildcard $(srcdir)/tzcode*.tar.gz))
+endif
+
+TZORIG=./tzorig
+TZORIG_TZDIR=./tzorig/tzdir
+TZORIG_ABS := $(shell pwd)/tzorig
+TZORIG_TZDIR_ABS := $(TZORIG_ABS)/tzdir
+TZORIG_OPTS := CFLAGS="-D_POSIX_C_SOURCE $(TZORIG_EXTRA_CFLAGS)" TZDIR=$(TZORIG_TZDIR_ABS)
+
+
+## Options for building zdumps
+ZDUMPOUT=$(shell pwd)/zdumpout
+ICUZDUMPOUT=$(shell pwd)/icuzdumpout
+
+ZDUMP_OPTS= -v -a -d $(ZDUMPOUT) -c 1902,2038 -i
+ICUZDUMP_OPTS= -a -d $(ICUZDUMPOUT)
+
+# Executables & objects
+OBJECTS= zic.o localtime.o asctime.o scheck.o ialloc.o
+ZICTARG=$(BINDIR)/zic$(EXEEXT)
+ZICEXEC=$(TOOLBINDIR)/zic$(TOOLEXEEXT)
+TZ2ICUTARG=$(BINDIR)/tz2icu$(EXEEXT)
+TZ2ICUEXEC=$(TOOLBINDIR)/tz2icu$(TOOLEXEEXT)
+ICUZDUMPTARG=$(BINDIR)/icuzdump$(EXEEXT)
+ICUZDUMPEXEC=$(TOOLBINDIR)/icuzdump$(TOOLEXEEXT)
+
+ifeq ($(TZDATA),)
+all: 
+	@echo ERROR "tzdata*.tar.gz" can\'t be found.
+	@false
+else
+all: icu_data
+endif
+
+TZCODE_TARGETS= tzorig check-dump
+
+ifeq ($(TZCODE),)
+# we're broken.
+$(TZCODE_TARGETS):
+	@echo ERROR "tzcode*.tar.gz" can\'t be found.
+	@false
+
+else
+ifeq ($(TZDATA),)
+# we're broken.
+$(TZCODE_TARGETS):
+	@echo ERROR "tzdata*.tar.gz" can\'t be found.
+	@false
+else
+tzorig:	$(TZCODE) $(TZDATA)
+	-$(RMV) ./tzorig/
+	mkdir $@
+	mkdir $(TZORIG_TZDIR)
+	gunzip -d < $(TZDATA) | ( cd $@ ; tar xf - )
+	gunzip -d < $(TZCODE) | ( cd $@ ; tar xf - )
+	-mv $(TZORIG)/zdump.c $(TZORIG)/zdump.c.orig
+	cp $(srcdir)/zdump.c $(TZORIG)/zdump.c
+	-mv $(TZORIG)/factory $(TZORIG)/factory.orig
+	cat $(TZORIG)/factory.orig $(srcdir)/icuzones > $(TZORIG)/factory
+	$(MAKE) -C $@ $(TZORIG_OPTS) zdump zones
+
+$(ZDUMPOUT): tzorig
+	( cd $(TZORIG) ; ./zdump$(EXEEXT) $(ZDUMP_OPTS) )
+
+
+dump-out: $(ZDUMPOUT) $(ICUZDUMPOUT)
+
+check-dump: dump-out
+	diff -r zdumpout icuzdumpout
+
+endif
+endif
+
+$(ICUZDUMPOUT): $(ICUZDUMPEXEC)
+	-$(RMV) $(ICUZDUMPOUT)
+	-mkdir $(ICUZDUMPOUT)
+	$(INVOKE) $(ICUZDUMPEXEC) $(ICUZDUMP_OPTS)
+
+
+#
+# old 'tz' rules start here
+#
+
+
+PRIMARY_YDATA=	africa antarctica asia australasia \
+		europe northamerica southamerica
+YDATA=		$(PRIMARY_YDATA) pacificnew etcetera factory backward
+NDATA=		systemv
+SDATA=		solar87 solar88 solar89
+TDATA=		$(YDATA) $(NDATA) $(SDATA) 
+YEARISTYPE=     ./yearistype
+
+TZDIR=zoneinfo
+
+CFLAGS+=-D_POSIX_C_SOURCE
+CPPFLAGS+= -DTZDIR=\"$(TZDIR)\" 
+
+# more data
+XDATA=zone.tab yearistype.sh leapseconds iso3166.tab
+ICUDATA=ZoneMetaData.java icu_zone.txt tz2icu zoneinfo64.txt zoneinfo.txt
+
+$(ZICTARG):		$(OBJECTS) $(TDATA) yearistype $(srcdir)/tz2icu.h
+		$(CC) $(CFLAGS) $(TZORIG_EXTRA_CFLAGS) $(LFLAGS) -I$(srcdir) $(OBJECTS) $(LDLIBS) -o $@
+
+$(TZ2ICUTARG):	$(srcdir)/tz2icu.cpp $(srcdir)/tz2icu.h
+		$(CXX) -W -Wall  -I$(srcdir) -I$(top_srcdir)/common -pedantic $(srcdir)/tz2icu.cpp -o $@
+
+$(ICUZDUMPTARG):	$(srcdir)/icuzdump.cpp
+		$(LINK.cc)  -I$(srcdir) -I$(top_srcdir)/common -I$(top_srcdir)/i18n -I$(top_srcdir)/tools/toolutil -I$(top_srcdir)/io  -pedantic $(srcdir)/icuzdump.cpp $(LIBICUUC) $(LIBICUDT) $(LIBICUI18N) $(LIBICUIO) $(LIBICUTOOLUTIL) -o $@
+
+
+$(TDATA): tdatamarker
+
+tdatamarker: $(TZDATA)
+	gunzip -d < $(TZDATA) | tar xf -
+	touch $@
+
+yearistype:	yearistype.sh
+		cp yearistype.sh yearistype
+		chmod +x yearistype
+
+posix_only:	$(ZICEXEC) $(TDATA) $(srcdir)/icuzones
+		$(ZICEXEC) -y $(YEARISTYPE) -d $(TZDIR) -L /dev/null $(TDATA) $(srcdir)/icuzones
+
+
+icu_data:	$(TZ2ICUEXEC) posix_only
+		$(TZ2ICUEXEC) $(TZDIR) zone.tab `echo $(TZDATA) | sed -e "s/.*\/tzdata//;s/\.tar\.gz$$//"`
+		$(TZ2ICUEXEC) $(TZDIR) zone.tab `echo $(TZDATA) | sed -e "s/.*\/tzdata//;s/\.tar\.gz$$//"` --old
+
+clean:
+		-rm -f core *.o *.out zdump${EXEEXT} $(ZICTARG) yearistype date $(TZ2ICUTARG)
+		@echo ICU specific cleanup:
+		-rm -f $(ICUDATA)
+		-rm -rf $(TZDIR)
+		-$(RMV) $(ICUZDUMPTARG) tzorig ./zdumpout/ ./icuzdumpout/
+ifneq ($(TZDATA),)
+		-rm -rf `gunzip -d < $(TZDATA) | tar tf - | grep -o '[^ ]*$$' | tr '\n' ' '`
+		-rm tdatamarker
+endif
+
+checkclean:
+
+dataclean: clean
+	-rm -f $(TDATA) $(XDATA)
+
+distclean:	dataclean clean
+	-rm -f Makefile
+
+Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
+	cd $(top_builddir) \
+	&& CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
+
+

@@ -1,0 +1,14 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/de_CH.xml
+// *
+// ***************************************************************************
+de_CH{
+    Languages{
+        be{"Weissrussisch"}
+    }
+    Version{"2.0.47.67"}
+}

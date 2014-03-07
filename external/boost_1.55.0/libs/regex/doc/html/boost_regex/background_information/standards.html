@@ -1,0 +1,574 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Standards Conformance</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Boost.Regex">
+<link rel="up" href="../background_information.html" title="Background Information">
+<link rel="prev" href="performance.html" title="Performance">
+<link rel="next" href="redist.html" title="Redistributables">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="performance.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../background_information.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="redist.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_background_information_standards">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_regex.background_information.standards"></a><a class="link" href="standards.html" title="Standards Conformance">Standards
+      Conformance</a>
+</h3></div></div></div>
+<h5>
+<a name="boost_regex.background_information.standards.h0"></a>
+        <span class="phrase"><a name="boost_regex.background_information.standards.c__"></a></span><a class="link" href="standards.html#boost_regex.background_information.standards.c__">C++</a>
+      </h5>
+<p>
+        Boost.Regex is intended to conform to the <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2005/n1836.pdf" target="_top">Technical
+        Report on C++ Library Extensions</a>.
+      </p>
+<h5>
+<a name="boost_regex.background_information.standards.h1"></a>
+        <span class="phrase"><a name="boost_regex.background_information.standards.ecmascript___javascript"></a></span><a class="link" href="standards.html#boost_regex.background_information.standards.ecmascript___javascript">ECMAScript
+        / JavaScript</a>
+      </h5>
+<p>
+        All of the ECMAScript regular expression syntax features are supported, except
+        that:
+      </p>
+<p>
+        The escape sequence \u matches any upper case character (the same as [[:upper:]])
+        rather than a Unicode escape sequence; use \x{DDDD} for Unicode escape sequences.
+      </p>
+<h5>
+<a name="boost_regex.background_information.standards.h2"></a>
+        <span class="phrase"><a name="boost_regex.background_information.standards.perl"></a></span><a class="link" href="standards.html#boost_regex.background_information.standards.perl">Perl</a>
+      </h5>
+<p>
+        Almost all Perl features are supported, except for:
+      </p>
+<p>
+        (?{code}) Not implementable in a compiled strongly typed language.
+      </p>
+<p>
+        (??{code}) Not implementable in a compiled strongly typed language.
+      </p>
+<p>
+        (*VERB) The <a href="http://perldoc.perl.org/perlre.html#Special-Backtracking-Control-Verbs" target="_top">backtracking
+        control verbs</a> are not recognised or implemented at this time.
+      </p>
+<p>
+        In addition the following features behave slightly differently from Perl:
+      </p>
+<p>
+        ^ $ \Z These recognise any line termination sequence, and not just \n: see
+        the Unicode requirements below.
+      </p>
+<h5>
+<a name="boost_regex.background_information.standards.h3"></a>
+        <span class="phrase"><a name="boost_regex.background_information.standards.posix"></a></span><a class="link" href="standards.html#boost_regex.background_information.standards.posix">POSIX</a>
+      </h5>
+<p>
+        All the POSIX basic and extended regular expression features are supported,
+        except that:
+      </p>
+<p>
+        No character collating names are recognized except those specified in the
+        POSIX standard for the C locale, unless they are explicitly registered with
+        the traits class.
+      </p>
+<p>
+        Character equivalence classes ( [[=a=]] etc) are probably buggy except on
+        Win32. Implementing this feature requires knowledge of the format of the
+        string sort keys produced by the system; if you need this, and the default
+        implementation doesn't work on your platform, then you will need to supply
+        a custom traits class.
+      </p>
+<h5>
+<a name="boost_regex.background_information.standards.h4"></a>
+        <span class="phrase"><a name="boost_regex.background_information.standards.unicode"></a></span><a class="link" href="standards.html#boost_regex.background_information.standards.unicode">Unicode</a>
+      </h5>
+<p>
+        The following comments refer to <a href="http://unicode.org/reports/tr18/" target="_top">Unicode
+        Technical Standard #18: Unicode Regular Expressions version 11</a>.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Item
+                </p>
+              </th>
+<th>
+                <p>
+                  Feature
+                </p>
+              </th>
+<th>
+                <p>
+                  Support
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  1.1
+                </p>
+              </td>
+<td>
+                <p>
+                  Hex Notation
+                </p>
+              </td>
+<td>
+                <p>
+                  Yes: use \x{DDDD} to refer to code point UDDDD.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  1.2
+                </p>
+              </td>
+<td>
+                <p>
+                  Character Properties
+                </p>
+              </td>
+<td>
+                <p>
+                  All the names listed under the General Category Property are supported.
+                  Script names and Other Names are not currently supported.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  1.3
+                </p>
+              </td>
+<td>
+                <p>
+                  Subtraction and Intersection
+                </p>
+              </td>
+<td>
+                <p>
+                  Indirectly support by forward-lookahead:
+                </p>
+                <p>
+                  <code class="computeroutput"><span class="special">(?=[[:</span><span class="identifier">X</span><span class="special">:]])[[:</span><span class="identifier">Y</span><span class="special">:]]</span></code>
+                </p>
+                <p>
+                  Gives the intersection of character properties X and Y.
+                </p>
+                <p>
+                  <code class="computeroutput"><span class="special">(?![[:</span><span class="identifier">X</span><span class="special">:]])[[:</span><span class="identifier">Y</span><span class="special">:]]</span></code>
+                </p>
+                <p>
+                  Gives everything in Y that is not in X (subtraction).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  1.4
+                </p>
+              </td>
+<td>
+                <p>
+                  Simple Word Boundaries
+                </p>
+              </td>
+<td>
+                <p>
+                  Conforming: non-spacing marks are included in the set of word characters.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  1.5
+                </p>
+              </td>
+<td>
+                <p>
+                  Caseless Matching
+                </p>
+              </td>
+<td>
+                <p>
+                  Supported, note that at this level, case transformations are 1:1,
+                  many to many case folding operations are not supported (for example
+                  "&#223;" to "SS").
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  1.6
+                </p>
+              </td>
+<td>
+                <p>
+                  Line Boundaries
+                </p>
+              </td>
+<td>
+                <p>
+                  Supported, except that "." matches only one character
+                  of "\r\n". Other than that word boundaries match correctly;
+                  including not matching in the middle of a "\r\n" sequence.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  1.7
+                </p>
+              </td>
+<td>
+                <p>
+                  Code Points
+                </p>
+              </td>
+<td>
+                <p>
+                  Supported: provided you use the u32* algorithms, then UTF-8, UTF-16
+                  and UTF-32 are all treated as sequences of 32-bit code points.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  2.1
+                </p>
+              </td>
+<td>
+                <p>
+                  Canonical Equivalence
+                </p>
+              </td>
+<td>
+                <p>
+                  Not supported: it is up to the user of the library to convert all
+                  text into the same canonical form as the regular expression.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  2.2
+                </p>
+              </td>
+<td>
+                <p>
+                  Default Grapheme Clusters
+                </p>
+              </td>
+<td>
+                <p>
+                  Not supported.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  2.3Default Word Boundaries
+                </p>
+              </td>
+<td>
+                <p>
+                  Not supported.
+                </p>
+              </td>
+<td class="auto-generated">&#160;</td>
+</tr>
+<tr>
+<td>
+                <p>
+                  2.4
+                </p>
+              </td>
+<td>
+                <p>
+                  Default Loose Matches
+                </p>
+              </td>
+<td>
+                <p>
+                  Not Supported.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  2.5
+                </p>
+              </td>
+<td>
+                <p>
+                  Named Properties
+                </p>
+              </td>
+<td>
+                <p>
+                  Supported: the expression "[[:name:]]" or \N{name} matches
+                  the named character "name".
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  2.6
+                </p>
+              </td>
+<td>
+                <p>
+                  Wildcard properties
+                </p>
+              </td>
+<td>
+                <p>
+                  Not Supported.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  3.1
+                </p>
+              </td>
+<td>
+                <p>
+                  Tailored Punctuation.
+                </p>
+              </td>
+<td>
+                <p>
+                  Not Supported.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  3.2
+                </p>
+              </td>
+<td>
+                <p>
+                  Tailored Grapheme Clusters
+                </p>
+              </td>
+<td>
+                <p>
+                  Not Supported.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  3.3
+                </p>
+              </td>
+<td>
+                <p>
+                  Tailored Word Boundaries.
+                </p>
+              </td>
+<td>
+                <p>
+                  Not Supported.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  3.4
+                </p>
+              </td>
+<td>
+                <p>
+                  Tailored Loose Matches
+                </p>
+              </td>
+<td>
+                <p>
+                  Partial support: [[=c=]] matches characters with the same primary
+                  equivalence class as "c".
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  3.5
+                </p>
+              </td>
+<td>
+                <p>
+                  Tailored Ranges
+                </p>
+              </td>
+<td>
+                <p>
+                  Supported: [a-b] matches any character that collates in the range
+                  a to b, when the expression is constructed with the collate flag
+                  set.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  3.6
+                </p>
+              </td>
+<td>
+                <p>
+                  Context Matches
+                </p>
+              </td>
+<td>
+                <p>
+                  Not Supported.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  3.7
+                </p>
+              </td>
+<td>
+                <p>
+                  Incremental Matches
+                </p>
+              </td>
+<td>
+                <p>
+                  Supported: pass the flag <code class="computeroutput"><span class="identifier">match_partial</span></code>
+                  to the regex algorithms.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  3.8
+                </p>
+              </td>
+<td>
+                <p>
+                  Unicode Set Sharing
+                </p>
+              </td>
+<td>
+                <p>
+                  Not Supported.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  3.9
+                </p>
+              </td>
+<td>
+                <p>
+                  Possible Match Sets
+                </p>
+              </td>
+<td>
+                <p>
+                  Not supported, however this information is used internally to optimise
+                  the matching of regular expressions, and return quickly if no match
+                  is possible.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  3.10
+                </p>
+              </td>
+<td>
+                <p>
+                  Folded Matching
+                </p>
+              </td>
+<td>
+                <p>
+                  Partial Support: It is possible to achieve a similar effect by
+                  using a custom regular expression traits class.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  3.11
+                </p>
+              </td>
+<td>
+                <p>
+                  Custom Submatch Evaluation
+                </p>
+              </td>
+<td>
+                <p>
+                  Not Supported.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="performance.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../background_information.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="redist.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

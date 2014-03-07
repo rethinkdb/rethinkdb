@@ -1,0 +1,197 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Emulation limitations</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../move.html" title="Chapter&#160;19.&#160;Boost.Move">
+<link rel="prev" href="move_algorithms.html" title="Move algorithms">
+<link rel="next" href="how_the_library_works.html" title="How the library works">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="move_algorithms.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../move.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="how_the_library_works.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="move.emulation_limitations"></a><a class="link" href="emulation_limitations.html" title="Emulation limitations">Emulation limitations</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="emulation_limitations.html#move.emulation_limitations.emulation_limitations_base">Initializing
+      base classes</a></span></dt>
+<dt><span class="section"><a href="emulation_limitations.html#move.emulation_limitations.template_parameters">Template
+      parameters for perfect forwarding</a></span></dt>
+<dt><span class="section"><a href="emulation_limitations.html#move.emulation_limitations.emulation_limitations_binding">Binding
+      of rvalue references to lvalues</a></span></dt>
+<dt><span class="section"><a href="emulation_limitations.html#move.emulation_limitations.assignment_operator">Assignment
+      operator in classes derived from or holding copyable and movable types</a></span></dt>
+</dl></div>
+<p>
+      Like any emulation effort, the library has some limitations users should take
+      in care to achieve portable and efficient code when using the library with
+      C++03 conformant compilers:
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="move.emulation_limitations.emulation_limitations_base"></a><a class="link" href="emulation_limitations.html#move.emulation_limitations.emulation_limitations_base" title="Initializing base classes">Initializing
+      base classes</a>
+</h3></div></div></div>
+<p>
+        When initializing base classes in move constructors, users must cast the
+        reference to a base class reference before moving it. Example:
+      </p>
+<pre class="programlisting"><span class="comment">//Portable and efficient</span>
+<span class="identifier">Derived</span><span class="special">(</span><span class="identifier">BOOST_RV_REF</span><span class="special">(</span><span class="identifier">Derived</span><span class="special">)</span> <span class="identifier">x</span><span class="special">)</span>             <span class="comment">// Move ctor</span>
+   <span class="special">:</span> <span class="identifier">Base</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span><span class="special">(</span><span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">Base</span><span class="special">&amp;&gt;(</span><span class="identifier">x</span><span class="special">))),</span>
+     <span class="identifier">mem_</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span><span class="special">(</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">mem_</span><span class="special">))</span> <span class="special">{</span> <span class="special">}</span>
+</pre>
+<p>
+        If casting is not performed the emulation will not move construct the base
+        class, because no conversion is available from <code class="computeroutput"><span class="identifier">BOOST_RV_REF</span><span class="special">(</span><span class="identifier">Derived</span><span class="special">)</span></code> to <code class="computeroutput"><span class="identifier">BOOST_RV_REF</span><span class="special">(</span><span class="identifier">Base</span><span class="special">)</span></code>.
+        Without the cast we might obtain a compilation error (for non-copyable types)
+        or a less-efficient move constructor (for copyable types):
+      </p>
+<pre class="programlisting"><span class="comment">//If Derived is copyable, then Base is copy-constructed.</span>
+<span class="comment">//If not, a compilation error is issued</span>
+<span class="identifier">Derived</span><span class="special">(</span><span class="identifier">BOOST_RV_REF</span><span class="special">(</span><span class="identifier">Derived</span><span class="special">)</span> <span class="identifier">x</span><span class="special">)</span>             <span class="comment">// Move ctor</span>
+   <span class="special">:</span> <span class="identifier">Base</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span><span class="special">(</span><span class="identifier">x</span><span class="special">)),</span>
+     <span class="identifier">mem_</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span><span class="special">(</span><span class="identifier">x</span><span class="special">.</span><span class="identifier">mem_</span><span class="special">))</span> <span class="special">{</span> <span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="move.emulation_limitations.template_parameters"></a><a class="link" href="emulation_limitations.html#move.emulation_limitations.template_parameters" title="Template parameters for perfect forwarding">Template
+      parameters for perfect forwarding</a>
+</h3></div></div></div>
+<p>
+        The emulation can't deal with C++0x reference collapsing rules that allow
+        perfect forwarding:
+      </p>
+<pre class="programlisting"><span class="comment">//C++0x</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">forward_function</span><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;&amp;</span><span class="identifier">t</span><span class="special">)</span>
+<span class="special">{</span>  <span class="identifier">inner_function</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">forward</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;(</span><span class="identifier">t</span><span class="special">);</span> <span class="special">}</span>
+
+<span class="comment">//Wrong C++03 emulation</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">forward_function</span><span class="special">(</span><span class="identifier">BOOST_RV_REF</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">t</span><span class="special">)</span>
+<span class="special">{</span>  <span class="identifier">inner_function</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">forward</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;(</span><span class="identifier">t</span><span class="special">);</span> <span class="special">}</span>
+</pre>
+<p>
+        In C++03 emulation BOOST_RV_REF doesn't catch any const rlvalues. For more
+        details on forwarding see <a class="link" href="construct_forwarding.html" title="Constructor Forwarding">Constructor
+        Forwarding</a> chapter.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="move.emulation_limitations.emulation_limitations_binding"></a><a class="link" href="emulation_limitations.html#move.emulation_limitations.emulation_limitations_binding" title="Binding of rvalue references to lvalues">Binding
+      of rvalue references to lvalues</a>
+</h3></div></div></div>
+<p>
+        The <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2004/n1690.html" target="_top">first
+        rvalue reference</a> proposal allowed the binding of rvalue references
+        to lvalues:
+      </p>
+<pre class="programlisting"><span class="identifier">func</span><span class="special">(</span><span class="identifier">Type</span> <span class="special">&amp;&amp;</span><span class="identifier">t</span><span class="special">);</span>
+<span class="comment">//....</span>
+
+<span class="identifier">Type</span> <span class="identifier">t</span><span class="special">;</span>  <span class="comment">//Allowed</span>
+<span class="identifier">func</span><span class="special">(</span><span class="identifier">t</span><span class="special">)</span>
+</pre>
+<p>
+        Later, as explained in <a href="http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2008/n2812.html" target="_top"><span class="emphasis"><em>Fixing
+        a Safety Problem with Rvalue References</em></span></a> this behaviour
+        was considered dangerous and eliminated this binding so that rvalue references
+        adhere to the principle of type-safe overloading: <span class="emphasis"><em>Every function
+        must be type-safe in isolation, without regard to how it has been overloaded</em></span>
+      </p>
+<p>
+        <span class="bold"><strong>Boost.Move</strong></span> can't emulate this type-safe
+        overloading principle for C++03 compilers:
+      </p>
+<pre class="programlisting"><span class="comment">//Allowed by move emulation</span>
+<span class="identifier">movable</span> <span class="identifier">m</span><span class="special">;</span>
+<span class="identifier">BOOST_RV_REF</span><span class="special">(</span><span class="identifier">movable</span><span class="special">)</span> <span class="identifier">r</span> <span class="special">=</span> <span class="identifier">m</span><span class="special">;</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="move.emulation_limitations.assignment_operator"></a><a class="link" href="emulation_limitations.html#move.emulation_limitations.assignment_operator" title="Assignment operator in classes derived from or holding copyable and movable types">Assignment
+      operator in classes derived from or holding copyable and movable types</a>
+</h3></div></div></div>
+<p>
+        The macro <code class="computeroutput"><a class="link" href="../BOOST_COPYABLE_AND_MOVABLE.html" title="Macro BOOST_COPYABLE_AND_MOVABLE">BOOST_COPYABLE_AND_MOVABLE</a></code>
+        needs to define a copy constructor for <code class="computeroutput"><span class="identifier">copyable_and_movable</span></code>
+        taking a non-const parameter in C++03 compilers:
+      </p>
+<pre class="programlisting"><span class="comment">//Generated by BOOST_COPYABLE_AND_MOVABLE</span>
+<span class="identifier">copyable_and_movable</span> <span class="special">&amp;</span><span class="keyword">operator</span><span class="special">=(</span><span class="identifier">copyable_and_movable</span><span class="special">&amp;){/**/}</span>
+</pre>
+<p>
+        Since the non-const overload of the copy constructor is generated, compiler-generated
+        assignment operators for classes containing <code class="computeroutput"><span class="identifier">copyable_and_movable</span></code>
+        will get the non-const copy constructor overload, which will surely surprise
+        users:
+      </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">holder</span>
+<span class="special">{</span>
+   <span class="identifier">copyable_and_movable</span> <span class="identifier">c</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">void</span> <span class="identifier">func</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">holder</span><span class="special">&amp;</span> <span class="identifier">h</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="identifier">holder</span> <span class="identifier">copy_h</span><span class="special">(</span><span class="identifier">h</span><span class="special">);</span> <span class="comment">//&lt;--- ERROR: can't convert 'const holder&amp;' to 'holder&amp;'</span>
+   <span class="comment">//Compiler-generated copy constructor is non-const:</span>
+   <span class="comment">// holder&amp; operator(holder &amp;)</span>
+   <span class="comment">//!!!</span>
+<span class="special">}</span>
+</pre>
+<p>
+        This limitation forces the user to define a const version of the copy assignment,
+        in all classes holding copyable and movable classes which might annoying
+        in some cases.
+      </p>
+<p>
+        An alternative is to implement a single <code class="computeroutput"><span class="keyword">operator</span>
+        <span class="special">=()</span></code> for copyable and movable classes
+        <a href="http://cpp-next.com/archive/2009/08/want-speed-pass-by-value/" target="_top">using
+        "pass by value" semantics</a>:
+      </p>
+<pre class="programlisting"><span class="identifier">T</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">T</span> <span class="identifier">x</span><span class="special">)</span>    <span class="comment">// x is a copy of the source; hard work already done</span>
+<span class="special">{</span>
+   <span class="identifier">swap</span><span class="special">(*</span><span class="keyword">this</span><span class="special">,</span> <span class="identifier">x</span><span class="special">);</span>  <span class="comment">// trade our resources for x's</span>
+   <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span>    <span class="comment">// our (old) resources get destroyed with x</span>
+<span class="special">}</span>
+</pre>
+<p>
+        However, "pass by value" is not optimal for classes (like containers,
+        strings, etc.) that reuse resources (like previously allocated memory) when
+        x is assigned from a lvalue.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="move_algorithms.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../move.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="how_the_library_works.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

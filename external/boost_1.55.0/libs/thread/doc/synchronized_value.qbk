@@ -1,0 +1,147 @@
+[/
+ / Copyright (c) 2013 Vicente J. Botet Escriba
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+
+[section:synchronized_valuesxxx Synchronized Values - EXPERIMENTAL]
+
+[warning These features are experimental and subject to change in future versions. There are not too much tests yet, so it is possible that you can find out some trivial bugs :(] 
+
+[section:tutorial Tutorial]
+
+
+[note This tutorial is an adaptation of the paper of Anthony Williams  "Enforcing Correct Mutex Usage with Synchronized Values" to the Boost library.]
+
+[section The Problem with Mutexes]
+
+The key problem with protecting shared data with a mutex is that there is no easy way to associate the mutex with the data. It is thus relatively easy to accidentally write code that fails to lock the right mutex - or even locks the wrong mutex - and the compiler will not help you.
+
+
+  std::mutex m1;
+  int value1;
+  std::mutex m2;
+  int value2;
+ 
+  int readValue1()
+  {
+    boost::lock_guard<boost::mutex> lk(m1);
+    return value1;
+  }
+  int readValue2()
+  {
+    boost::lock_guard<boost::mutex> lk(m1); // oops: wrong mutex
+    return value2;
+  }
+
+Moreover, managing the mutex lock also clutters the source code, making it harder to see what is really going on.
+
+The use of synchronized_value solves both these problems - the mutex is intimately tied to the value, so you cannot access it without a lock, and yet access semantics are still straightforward. For simple accesses, synchronized_value behaves like a pointer-to-T; for example: 
+
+
+  boost::synchronized_value<std::string> value3;
+  std::string readValue3()
+  {
+    return *value3;
+  }
+  void setValue3(std::string const& newVal)
+  {
+    *value3=newVal;
+  }
+  void appendToValue3(std::string const& extra)
+  {
+    value3->append(extra);
+  }
+
+Both forms of pointer dereference return a proxy object rather than a real reference, to ensure that the lock on the mutex is held across the assignment or method call, but this is transparent to the user. 
+
+[endsect] [/The Problem with Mutexes]
+
+[section Beyond Simple Accesses]
+
+The pointer-like semantics work very well for simple accesses such as assignment and calls to member functions. However, sometimes you need to perform an operation that requires multiple accesses under protection of the same lock, and that's what the synchronize() method provides.
+
+By calling synchronize() you obtain an strict_lock_ptr object that holds a lock on the mutex protecting the data, and which can be used to access the protected data. The lock is held until the strict_lock_ptr object is destroyed, so you can safely perform multi-part operations. The strict_lock_ptr object also acts as a pointer-to-T, just like synchronized_value does, but this time the lock is already held. For example, the following function adds a trailing slash to a path held in a synchronized_value. The use of the strict_lock_ptr object ensures that the string hasn't changed in between the query and the update.
+
+  void addTrailingSlashIfMissing(boost::synchronized_value<std::string> & path)
+  {
+    boost::strict_lock_ptr<std::string> u=path.synchronize();
+  
+    if(u->empty() || (*u->rbegin()!='/'))
+    {
+      *u+='/';
+    }
+  }
+
+[endsect] [/Beyond Simple Accesses]
+
+[section Operations Across Multiple Objects]
+
+Though synchronized_value works very well for protecting a single object of type T, nothing that we've seen so far solves the problem of operations that require atomic access to multiple objects unless those objects can be combined within a single structure protected by a single mutex.
+
+One way to protect access to two synchronized_value objects is to construct a strict_lock_ptr for each object and use those to access the respective protected values; for instance: 
+
+  synchronized_value<std::queue<MessageType> > q1,q2;
+  void transferMessage()
+  {
+    strict_lock_ptr<std::queue<MessageType> > u1 = q1.synchronize();
+    strict_lock_ptr<std::queue<MessageType> > u2 = q2.synchronize();
+ 
+    if(!u1->empty())
+    {
+      u2->push_back(u1->front());
+      u1->pop_front();
+    }
+  }
+
+This works well in some scenarios, but not all -- if the same two objects are updated together in different sections of code then you need to take care to ensure that the strict_lock_ptr objects are constructed in the same sequence in all cases, otherwise you have the potential for deadlock. This is just the same as when acquiring any two mutexes.
+
+In order to be able to use the dead-lock free lock algorithms we need to use instead unique_lock_ptr, which is Lockable.
+
+  synchronized_value<std::queue<MessageType> > q1,q2;
+  void transferMessage()
+  {
+    unique_lock_ptr<std::queue<MessageType> > u1 = q1.unique_synchronize(boost::defer_lock);
+    unique_lock_ptr<std::queue<MessageType> > u2 = q2.unique_synchronize(boost::defer_lock);
+    boost::lock(u1,u2); // dead-lock free algorithm
+
+    if(!u1->empty())
+    {
+      u2->push_back(u1->front());
+      u1->pop_front();
+    }
+  }
+
+While the preceding takes care of dead-lock, the access to the synchronized_value via unique_lock_ptr requires a lock that is not forced by the interface.
+An alternative on compilers providing a standard library that supports movable std::tuple is to use the free synchronize function, which will lock all the mutexes associated to the synchronized values and return a tuple os strict_lock_ptr.
+
+  synchronized_value<std::queue<MessageType> > q1,q2;
+  void transferMessage()
+  {
+    auto lks = synchronize(u1,u2); // dead-lock free algorithm
+
+    if(!std::get<1>(lks)->empty())
+    {
+      std::get<2>(lks)->push_back(u1->front());
+      std::get<1>(lks)->pop_front();
+    }
+  }
+  
+
+[endsect] [/Operations Across Multiple Objects]
+
+[section Value semantics]
+
+synchronized_value has value semantics even if the syntax lets is close to a pointer (this is just because we are unable to define smart references).
+
+[endsect] [/Value semantics]
+
+
+[endsect] [/tutorial]
+
+[include synchronized_value_ref.qbk]
+
+[endsect] [/Synchronized values]
+

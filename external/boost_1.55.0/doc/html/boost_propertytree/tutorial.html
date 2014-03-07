@@ -1,0 +1,156 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Five Minute Tutorial</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../property_tree.html" title="Chapter&#160;22.&#160;Boost.PropertyTree">
+<link rel="prev" href="../property_tree.html" title="Chapter&#160;22.&#160;Boost.PropertyTree">
+<link rel="next" href="container.html" title="Property Tree as a Container">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../property_tree.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../property_tree.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="container.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_propertytree.tutorial"></a><a class="link" href="tutorial.html" title="Five Minute Tutorial">Five Minute Tutorial</a>
+</h2></div></div></div>
+<p>
+      This tutorial uses XML. Note that the library is not specifically bound to
+      XML, and any other supported format (such as INI or JSON) could be used instead.
+      XML was chosen because the author thinks that wide range of people is familiar
+      with it.
+    </p>
+<p>
+      Suppose we are writing a logging system for some application, and need to read
+      log configuration from a file when the program starts. The file with the log
+      configuration looks like this:
+    </p>
+<pre class="programlisting">&lt;debug&gt;
+    &lt;filename&gt;debug.log&lt;/filename&gt;
+    &lt;modules&gt;
+        &lt;module&gt;Finance&lt;/module&gt;
+        &lt;module&gt;Admin&lt;/module&gt;
+        &lt;module&gt;HR&lt;/module&gt;
+    &lt;/modules&gt;
+    &lt;level&gt;2&lt;/level&gt;
+&lt;/debug&gt;
+</pre>
+<p>
+      It contains the log filename, a list of modules where logging is enabled, and
+      the debug level value. To store the logging configuration in the program we
+      created a debug_settings structure:
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">debug_settings</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">m_file</span><span class="special">;</span>          <span class="comment">// log filename</span>
+    <span class="keyword">int</span> <span class="identifier">m_level</span><span class="special">;</span>                 <span class="comment">// debug level</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span><span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">m_modules</span><span class="special">;</span>  <span class="comment">// modules where logging is enabled</span>
+    <span class="keyword">void</span> <span class="identifier">load</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span><span class="identifier">filename</span><span class="special">);</span>
+    <span class="keyword">void</span> <span class="identifier">save</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span><span class="identifier">filename</span><span class="special">);</span>
+<span class="special">};</span>
+</pre>
+<p>
+      All that needs to be done now is to write implementations of load() and save()
+      member functions. Let's first deal with load(). It contains just 7 lines of
+      code, although it does all the necessary things, including error reporting:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">property_tree</span><span class="special">/</span><span class="identifier">ptree</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">property_tree</span><span class="special">/</span><span class="identifier">xml_parser</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">// Loads debug_settings structure from the specified XML file</span>
+<span class="keyword">void</span> <span class="identifier">debug_settings</span><span class="special">::</span><span class="identifier">load</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span><span class="identifier">filename</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">// Create an empty property tree object</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">property_tree</span><span class="special">::</span><code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code><span class="special">;</span>
+    <code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code> <span class="identifier">pt</span><span class="special">;</span>
+
+    <span class="comment">// Load the XML file into the property tree. If reading fails</span>
+    <span class="comment">// (cannot open file, parse error), an exception is thrown.</span>
+    <code class="computeroutput"><a class="link" href="../boost/property_tree/xml_parser/read_xml_idp96436280.html" title="Function template read_xml">read_xml</a></code><span class="special">(</span><span class="identifier">filename</span><span class="special">,</span> <span class="identifier">pt</span><span class="special">);</span>
+
+    <span class="comment">// Get the filename and store it in the m_file variable.</span>
+    <span class="comment">// Note that we construct the path to the value by separating</span>
+    <span class="comment">// the individual keys with dots. If dots appear in the keys,</span>
+    <span class="comment">// a path type with a different separator can be used.</span>
+    <span class="comment">// If the debug.filename key is not found, an exception is thrown.</span>
+    <span class="identifier">m_file</span> <span class="special">=</span> <span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp103515608-bb">get</a></code><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;(</span><span class="string">"debug.filename"</span><span class="special">);</span>
+
+    <span class="comment">// Get the debug level and store it in the m_level variable.</span>
+    <span class="comment">// This is another version of the get method: if the value is</span>
+    <span class="comment">// not found, the default value (specified by the second</span>
+    <span class="comment">// parameter) is returned instead. The type of the value</span>
+    <span class="comment">// extracted is determined by the type of the second parameter,</span>
+    <span class="comment">// so we can simply write get(...) instead of get&lt;int&gt;(...).</span>
+    <span class="identifier">m_level</span> <span class="special">=</span> <span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp103515608-bb">get</a></code><span class="special">(</span><span class="string">"debug.level"</span><span class="special">,</span> <span class="number">0</span><span class="special">);</span>
+
+    <span class="comment">// Iterate over the debug.modules section and store all found</span>
+    <span class="comment">// modules in the m_modules set. The get_child() function</span>
+    <span class="comment">// returns a reference to the child at the specified path; if</span>
+    <span class="comment">// there is no such child, it throws. Property tree iterators</span>
+    <span class="comment">// are models of BidirectionalIterator.</span>
+    <span class="identifier">BOOST_FOREACH</span><span class="special">(</span><code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code><span class="special">::</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#boost.property_tree.basic_ptree.value_type">value_type</a></code> <span class="special">&amp;</span><span class="identifier">v</span><span class="special">,</span>
+            <span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp101691848-bb">get_child</a></code><span class="special">(</span><span class="string">"debug.modules"</span><span class="special">))</span>
+        <span class="identifier">m_modules</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp96780456-bb">insert</a></code><span class="special">(</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">second</span><span class="special">.</span><span class="identifier">data</span><span class="special">());</span>
+<span class="special">}</span>
+</pre>
+<p>
+      Now the save() function. It is also 7 lines of code:
+    </p>
+<pre class="programlisting"><span class="comment">// Saves the debug_settings structure to the specified XML file</span>
+<span class="keyword">void</span> <span class="identifier">debug_settings</span><span class="special">::</span><span class="identifier">save</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span><span class="identifier">filename</span><span class="special">)</span>
+<span class="special">{</span>
+   <span class="comment">// Create an empty property tree object</span>
+   <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">property_tree</span><span class="special">::</span><code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code><span class="special">;</span>
+   <code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code> <span class="identifier">pt</span><span class="special">;</span>
+
+   <span class="comment">// Put log filename in property tree</span>
+   <span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp102154584-bb">put</a></code><span class="special">(</span><span class="string">"debug.filename"</span><span class="special">,</span> <span class="identifier">m_file</span><span class="special">);</span>
+
+   <span class="comment">// Put debug level in property tree</span>
+   <span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp102154584-bb">put</a></code><span class="special">(</span><span class="string">"debug.level"</span><span class="special">,</span> <span class="identifier">m_level</span><span class="special">);</span>
+
+   <span class="comment">// Iterate over the modules in the set and put them in the</span>
+   <span class="comment">// property tree. Note that the put function places the new</span>
+   <span class="comment">// key at the end of the list of keys. This is fine most of</span>
+   <span class="comment">// the time. If you want to place an item at some other place</span>
+   <span class="comment">// (i.e. at the front or somewhere in the middle), this can</span>
+   <span class="comment">// be achieved using a combination of the insert and put_own</span>
+   <span class="comment">// functions.</span>
+   <span class="identifier">BOOST_FOREACH</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span><span class="identifier">name</span><span class="special">,</span> <span class="identifier">m_modules</span><span class="special">)</span>
+      <span class="identifier">pt</span><span class="special">.</span><code class="computeroutput"><a class="link" href="../boost/property_tree/basic_ptree.html#idp96747928-bb">add</a></code><span class="special">(</span><span class="string">"debug.modules.module"</span><span class="special">,</span> <span class="identifier">name</span><span class="special">);</span>
+
+   <span class="comment">// Write the property tree to the XML file.</span>
+   <code class="computeroutput"><a class="link" href="../boost/property_tree/xml_parser/write_xml_idp97806664.html" title="Function template write_xml">write_xml</a></code><span class="special">(</span><span class="identifier">filename</span><span class="special">,</span> <span class="identifier">pt</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      The full program <a href="../../../libs/property_tree/examples/debug_settings.cpp" target="_top">debug_settings.cpp</a>
+      is included in the examples directory.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Marcin Kalicinski<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../property_tree.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../property_tree.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="container.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

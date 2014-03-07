@@ -1,0 +1,93 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template iterator</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.iterator_hpp" title="Header &lt;boost/type_erasure/iterator.hpp&gt;">
+<link rel="prev" href="is_subconcept.html" title="Struct template is_subconcept">
+<link rel="next" href="forward_iterator.html" title="Struct template forward_iterator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="is_subconcept.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.iterator_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="forward_iterator.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.type_erasure.iterator"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template iterator</span></h2>
+<p>boost::type_erasure::iterator</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.iterator_hpp" title="Header &lt;boost/type_erasure/iterator.hpp&gt;">boost/type_erasure/iterator.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Traversal<span class="special">,</span> <span class="keyword">typename</span> T <span class="special">=</span> <a class="link" href="_self.html" title="Struct _self">_self</a><span class="special">,</span> 
+         <span class="keyword">typename</span> Reference <span class="special">=</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">use_default</span><span class="special">,</span> 
+         <span class="keyword">typename</span> DifferenceType <span class="special">=</span> <span class="special">::</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span><span class="special">,</span> 
+         <span class="keyword">typename</span> ValueType <span class="special">=</span> <span class="keyword">typename</span> <a class="link" href="deduced.html" title="Struct template deduced">deduced</a><span class="special">&lt;</span>iterator_value_type<span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span><span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="iterator.html" title="Struct template iterator">iterator</a> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>    <a name="boost.type_erasure.iterator.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="identifier">Reference</span>      <a name="boost.type_erasure.iterator.reference"></a><span class="identifier">reference</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">DifferenceType</span> <a name="boost.type_erasure.iterator.difference_type"></a><span class="identifier">difference_type</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp229026312"></a><h2>Description</h2>
+<p>The <a class="link" href="iterator.html" title="Struct template iterator">iterator</a> concept can be used for any iterator category.</p>
+<p>
+The value_type of the iterator is deduced. To force it to be a specific type, use the <a class="link" href="same_type.html" title="Struct template same_type">same_type</a> concept.</p>
+<p>Example:</p>
+<pre class="programlisting"><span class="special">*</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span>
+<span class="special">*</span>   <span class="identifier">iterator</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">forward_traversal_tag</span><span class="special">&gt;</span><span class="special">,</span>
+<span class="special">*</span>   <span class="identifier">same_type</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">forward_traversal_tag</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">int_it</span><span class="special">;</span>
+<span class="special">*</span> 
+</pre>
+<p> </p>
+<div class="refsect2">
+<a name="idp229037176"></a><h3>Template Parameters</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Traversal</pre>
+<p>must be one of <code class="computeroutput">boost::incrementable_traversal_tag</code>, <code class="computeroutput">boost::single_pass_traversal_tag</code>, <code class="computeroutput">boost::forward_traversal_tag</code>, <code class="computeroutput">boost::bidirectional_traversal_tag</code>, and <code class="computeroutput">boost::random_access_traversal_tag</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> T <span class="special">=</span> <a class="link" href="_self.html" title="Struct _self">_self</a></pre>
+<p>The placeholder representing the iterator. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Reference <span class="special">=</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">use_default</span></pre>
+<p>The reference type. If it is boost::use_default, then reference will be value_type&amp;. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> DifferenceType <span class="special">=</span> <span class="special">::</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span></pre>
+<p>The iterator's difference type.</p>
+</li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">typename</span> ValueType <span class="special">=</span> <span class="keyword">typename</span> <a class="link" href="deduced.html" title="Struct template deduced">deduced</a><span class="special">&lt;</span>iterator_value_type<span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="is_subconcept.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.iterator_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="forward_iterator.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

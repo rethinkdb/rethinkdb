@@ -1,0 +1,88 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Using boost::ref</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../odeint_in_detail.html" title="odeint in detail">
+<link rel="prev" href="state_types__algebras_and_operations.html" title="State types, algebras and operations">
+<link rel="next" href="using_boost__range.html" title="Using boost::range">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="state_types__algebras_and_operations.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../odeint_in_detail.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="using_boost__range.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.odeint_in_detail.using_boost__ref"></a><a class="link" href="using_boost__ref.html" title="Using boost::ref">Using
+      boost::ref</a>
+</h3></div></div></div>
+<p>
+        In odeint all system functions and observers are passed by value. For example,
+        if you call a <code class="computeroutput"><span class="identifier">do_step</span></code> method
+        of a particular stepper or the integration functions, your system and your
+        stepper will be passed by value:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">rk4</span><span class="special">.</span><span class="identifier">do_step</span><span class="special">(</span> <span class="identifier">sys</span> <span class="special">,</span> <span class="identifier">x</span> <span class="special">,</span> <span class="identifier">t</span> <span class="special">,</span> <span class="identifier">dt</span> <span class="special">);</span>   <span class="comment">// pass sys by value</span>
+</pre>
+<p>
+      </p>
+<p>
+        This behavior is suitable for most systems, especially if your system does
+        not contain any data or only a few parameters. However, in some cases you
+        might contain some large amount of data with you system function and passing
+        them by value is not desired since the data would be copied.
+      </p>
+<p>
+        In such cases you can easily use <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span></code> (and
+        its relative <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">cref</span></code>) which passes its argument by reference
+        (or constant reference). odeint will unpack the arguments and no copying
+        at all of your system object will take place:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">rk4</span><span class="special">.</span><span class="identifier">do_step</span><span class="special">(</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span> <span class="identifier">sys</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">x</span> <span class="special">,</span> <span class="identifier">t</span> <span class="special">,</span> <span class="identifier">dt</span> <span class="special">);</span>   <span class="comment">// pass sys as references</span>
+</pre>
+<p>
+      </p>
+<p>
+        The same mechanism can be used for the observers in the integrate functions.
+      </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          If you are using C++11 you can also use <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">ref</span></code>
+          and <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">cref</span></code>
+        </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="state_types__algebras_and_operations.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../odeint_in_detail.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="using_boost__range.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

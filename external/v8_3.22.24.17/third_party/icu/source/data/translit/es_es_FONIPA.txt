@@ -1,0 +1,82 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: es_es_FONIPA.txt
+# Generated from CLDR 
+#
+$bow = [-\ $] ;  # Beginning of word.
+$consonant = [bβdðfgɣʝklʎmnŋɲθprɾstʧx] ;
+$syll = '.' ;    # Syllable boundary.
+::NFC;
+::Lower;
+$bow { ct → | t ;  # ctónico (?)
+$bow { cz → | z ;  # czar
+$bow { gn → | n ;  # gnomo
+$bow { mn → | n ;  # mnemotécnico
+$bow { ps → | s ;  # psicología
+$bow { pt → | t ;  # pterodáctilo
+$bow { x  → | s ;  # xilófono
+$bow       { i                 → i ;
+$consonant { i } [ aáeé  oóuú] → j ;
+[aeo]      { i } [^aáeé  oóuú] → i\u032F ;
+i } [ aáeé  oóuú] → ʝ ;
+i                 → i ;
+[aeo]      { y } [^aáeéiíoóuú] → i\u032F ;
+y } [ aáeéiíoóuú] → ʝ ;
+y                 → i ;
+[aeo]      { u } [^aáeéiíoó  ] → u\u032F ;
+u } [ aáeéiíoó  ] → w ;
+ü } [   eéií    ] → w ;
+u                 → u ;
+ü                 → u ;  # Should not be needed, but just in case.
+[aá] → a ;
+[eé] → e ;
+í    → i ;
+[oó] → o ;
+ú    → u ;
+b → β ;
+cch → ʧ ;
+ch → ʧ ;
+cc } [^eéií] → k ;
+c } [eéií] → θ ;
+c → k ;
+d → ð ;
+f → f;
+gu } [eéiíy] → ɣ ;
+g } [eéiíy] → x ;
+g → ɣ ;
+hi } [aáeéoóuú] → ʝ ;
+h → $syll ;
+j → x ;
+k → k ;
+ll → ʎ ;
+l → l ;
+m → m ;
+n → n ;
+ñ → ɲ ;
+p → p ;
+qu } [eéiíy] → k ;
+q → k ;
+[-\ lns$] { r → r ;
+rr → r ;
+r → ɾ ;
+ss → s ;
+s → s ;
+tx → ʧ ;  # for loanwords from Basque, Catalan
+t → t ;
+v → β ;
+w → $syll w ;
+x } h?[aáeéiíoóuú$] → ks ;
+x } [^aáeéiíoóuú$] → s ;
+x → ks ;
+z → θ ;
+::Null;
+[-\ ] → ;
+[mnɲŋ  $] { β → b ;
+[mnɲŋlʎ$] { ð → d ;
+[mnɲŋ  $] { ɣ → g ;
+n } [gɣk] → ŋ ;
+::NFC;

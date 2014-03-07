@@ -1,0 +1,459 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/bg.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/bg.xml
+ */
+bg{
+    AuxExemplarCharacters{"[{а̀} ѐ ѝ {о̀} {у̀} { ъ̀} ѣ {ю̀} {я̀} ѫ]"}
+    ExemplarCharacters{"[а б в г д е ж з и й к л м н о п р с т у ф х ц ч ш щ ъ ь ю я]"}
+    ExemplarCharactersIndex{"[А Б В Г Д Е Ж З И Й К Л М Н О П Р С Т У Ф Х Ц Ч Ш Щ Ю Я]"}
+    LocaleScript{
+        "Cyrl",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"#,##0.00 ¤"}
+                decimalFormat{"#,##0.###"}
+                percentFormat{"#,##0%"}
+            }
+            symbols{
+                decimal{","}
+                group{" "}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"-"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    Version{"2.0.49.23"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "пр. об.",
+                "сл. об.",
+            }
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "dd MMMM y, EEEE",
+                "dd MMMM y",
+                "dd.MM.yyyy",
+                "dd.MM.yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E d"}
+                H{"HH"}
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                MMMEd{"d MMM, E"}
+                MMMMd{"d MMMM"}
+                MMMMdd{"dd MMMM"}
+                MMdd{"dd.MM"}
+                hm{"h:mm a"}
+                hms{"h:mm:ss a"}
+                mmss{"mm:ss"}
+                yyMM{"MM.yy"}
+                yyQ{"Q yy"}
+                yyyy{"y"}
+                yyyyMM{"MM.yyyy"}
+                yyyyMMMM{"MMMM y"}
+                yyyyQQQQ{"QQQQ y 'г'."}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "нд",
+                        "пн",
+                        "вт",
+                        "ср",
+                        "чт",
+                        "пт",
+                        "сб",
+                    }
+                    wide{
+                        "неделя",
+                        "понеделник",
+                        "вторник",
+                        "сряда",
+                        "четвъртък",
+                        "петък",
+                        "събота",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "н",
+                        "п",
+                        "в",
+                        "с",
+                        "ч",
+                        "п",
+                        "с",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "пр. н. е.",
+                    "от н. е.",
+                }
+                narrow{
+                    "пр. н. е.",
+                    "сл.н.е.",
+                }
+                wide{
+                    "пр.Хр.",
+                    "сл.Хр.",
+                }
+            }
+            fields{
+                day{
+                    dn{"Ден"}
+                    relative{
+                        "-1"{"Вчера"}
+                        "-2"{"Онзи ден"}
+                        "0"{"Днес"}
+                        "1"{"Утре"}
+                        "2"{"Вдругиден"}
+                    }
+                }
+                dayperiod{
+                    dn{"ден"}
+                }
+                era{
+                    dn{"ера"}
+                }
+                hour{
+                    dn{"час"}
+                }
+                minute{
+                    dn{"минута"}
+                }
+                month{
+                    dn{"месец"}
+                }
+                second{
+                    dn{"секунда"}
+                }
+                week{
+                    dn{"седмица"}
+                }
+                weekday{
+                    dn{"Ден от седмицата"}
+                }
+                year{
+                    dn{"година"}
+                }
+                zone{
+                    dn{"зона"}
+                }
+            }
+            intervalFormats{
+                H{
+                    H{"HH-HH"}
+                }
+                Hm{
+                    H{"HH:mm-HH:mm"}
+                    m{"HH:mm-HH:mm"}
+                }
+                Hmv{
+                    H{"HH:mm-HH:mm v"}
+                    m{"HH:mm-HH:mm v"}
+                }
+                Hv{
+                    H{"HH-HH v"}
+                }
+                M{
+                    M{"M-M"}
+                }
+                MEd{
+                    M{"dd.MM, E - dd.MM, E"}
+                    d{"dd.MM, E - dd.MM, E"}
+                }
+                MMM{
+                    M{"MMM-MMM"}
+                }
+                MMMEd{
+                    M{"d MMM, E - d MMM, E"}
+                    d{"d MMM, E - d MMM, E"}
+                }
+                MMMd{
+                    M{"dd MMM - dd MMM"}
+                    d{"dd-dd MMM"}
+                }
+                Md{
+                    M{"dd.MM - dd.MM"}
+                    d{"dd.MM - dd.MM"}
+                }
+                d{
+                    d{"d-d"}
+                }
+                fallback{"{0} - {1}"}
+                h{
+                    h{"h-h a"}
+                }
+                hm{
+                    h{"h:mm-h:mm a"}
+                    m{"h:mm-h:mm a"}
+                }
+                hmv{
+                    h{"h:mm-h:mm a v"}
+                    m{"h:mm-h:mm a v"}
+                }
+                hv{
+                    h{"h-h a v"}
+                }
+                y{
+                    y{"y-y"}
+                }
+                yM{
+                    M{"MM.yy - MM.yy"}
+                    y{"MM.yy - MM.yy"}
+                }
+                yMEd{
+                    M{"dd.MM.yy, E - dd.MM.yy, E"}
+                    d{"dd.MM.yy, E - dd.MM.yy, E"}
+                    y{"dd.MM.yy, E - dd.MM.yy, E"}
+                }
+                yMMM{
+                    M{"MMM-MMM y"}
+                    y{"MMM y - MMM y"}
+                }
+                yMMMEd{
+                    M{"d MMM y, E - d MMM y, E"}
+                    d{"d MMM y, E - d MMM y, E"}
+                    y{"d MMM y, E - d MMM y, E"}
+                }
+                yMMMd{
+                    M{"dd MMM - dd MMM y"}
+                    d{"dd-dd MMM y"}
+                    y{"dd MMM y - dd MMM y"}
+                }
+                yMd{
+                    M{"dd.MM.yy - dd.MM.yy"}
+                    d{"dd.MM.yy - dd.MM.yy"}
+                    y{"dd.MM.yy - dd.MM.yy"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "ян.",
+                        "февр.",
+                        "март",
+                        "апр.",
+                        "май",
+                        "юни",
+                        "юли",
+                        "авг.",
+                        "септ.",
+                        "окт.",
+                        "ноем.",
+                        "дек.",
+                    }
+                    wide{
+                        "януари",
+                        "февруари",
+                        "март",
+                        "април",
+                        "май",
+                        "юни",
+                        "юли",
+                        "август",
+                        "септември",
+                        "октомври",
+                        "ноември",
+                        "декември",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "я",
+                        "ф",
+                        "м",
+                        "а",
+                        "м",
+                        "ю",
+                        "ю",
+                        "а",
+                        "с",
+                        "о",
+                        "н",
+                        "д",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "I трим.",
+                        "II трим.",
+                        "III трим.",
+                        "IV трим.",
+                    }
+                    wide{
+                        "1-во тримесечие",
+                        "2-ро тримесечие",
+                        "3-то тримесечие",
+                        "4-то тримесечие",
+                    }
+                }
+            }
+        }
+        hebrew{
+            monthNames{
+                format{
+                    wide{
+                        "тишри",
+                        "хешван",
+                        "кислев",
+                        "тебет",
+                        "шебат",
+                        "адар I",
+                        "адар",
+                        "нисан",
+                        "иар",
+                        "сиван",
+                        "тамуз",
+                        "Av",
+                        "Elul",
+                        "адар II",
+                    }
+                }
+            }
+        }
+        indian{
+            monthNames{
+                format{
+                    wide{
+                        "чайтра",
+                        "вайсакха",
+                        "джаинтха",
+                        "асадха",
+                        "сравана",
+                        "бхада",
+                        "азвина",
+                        "картика",
+                        "аграхайана",
+                        "пауза",
+                        "магха",
+                        "пхалгуна",
+                    }
+                }
+            }
+        }
+        islamic{
+            monthNames{
+                format{
+                    wide{
+                        "мухарам",
+                        "сафар",
+                        "раби-1",
+                        "раби-2",
+                        "джумада-1",
+                        "джумада-2",
+                        "раджаб",
+                        "шабан",
+                        "рамазан",
+                        "Шавал",
+                        "Дхул-Каада",
+                        "Дхул-хиджа",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"’"}
+        alternateQuotationStart{"‘"}
+        quotationEnd{"“"}
+        quotationStart{"„"}
+    }
+    listPattern{
+        standard{
+            2{"{0} и {1}"}
+            end{"{0} и {1}"}
+        }
+    }
+    measurementSystemNames{
+        US{"Американска"}
+        metric{"Метрична"}
+    }
+    units{
+        day{
+            one{"{0} ден"}
+            other{"{0} дена"}
+        }
+        hour{
+            one{"{0} час"}
+            other{"{0} часа"}
+        }
+        minute{
+            one{"{0} минута"}
+            other{"{0} минути"}
+        }
+        month{
+            one{"{0} месец"}
+            other{"{0} месеца"}
+        }
+        second{
+            one{"{0} секунда"}
+            other{"{0} секунди"}
+        }
+        week{
+            one{"{0} седмица"}
+            other{"{0} седмици"}
+        }
+        year{
+            one{"{0} година"}
+            other{"{0} години"}
+        }
+    }
+    unitsShort{
+        day{
+            one{"{0} дн."}
+            other{"{0} дн."}
+        }
+        hour{
+            one{"{0} ч"}
+            other{"{0} ч"}
+        }
+        minute{
+            one{"{0} мин"}
+            other{"{0} мин"}
+        }
+        month{
+            one{"{0} мес."}
+            other{"{0} мес."}
+        }
+        second{
+            one{"{0} сек"}
+            other{"{0} сек"}
+        }
+        week{
+            one{"{0} седм."}
+            other{"{0} седм."}
+        }
+        year{
+            one{"{0} год."}
+            other{"{0} год."}
+        }
+    }
+}

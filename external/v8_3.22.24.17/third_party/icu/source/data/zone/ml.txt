@@ -1,0 +1,1220 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ml.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ml.xml
+ */
+ml{
+    Version{"2.0.50.94"}
+    zoneStrings{
+        "Africa:Ceuta"{
+            ec{"ക്യൂട്ട"}
+        }
+        "Africa:Kinshasa"{
+            ec{"കിന്‍ഷാസ"}
+        }
+        "Africa:Lubumbashi"{
+            ec{"ലൂബുംബാഷി"}
+        }
+        "America:Adak"{
+            ec{"അഡാക്"}
+        }
+        "America:Anchorage"{
+            ec{"ആങ്കറേജ്"}
+        }
+        "America:Araguaina"{
+            ec{"അറഗ്വൈന"}
+        }
+        "America:Argentina:La_Rioja"{
+            ec{"ലാ റിയോജ"}
+        }
+        "America:Argentina:Rio_Gallegos"{
+            ec{"റിയോ ഗ്യാലഗോസ്"}
+        }
+        "America:Argentina:San_Juan"{
+            ec{"സാന്‍ ജുവാന്‍"}
+        }
+        "America:Argentina:San_Luis"{
+            ec{"സാന്‍ ലൂയിസ്"}
+        }
+        "America:Argentina:Tucuman"{
+            ec{"റ്റുകുമാന്‍"}
+        }
+        "America:Argentina:Ushuaia"{
+            ec{"ഉഷിയ"}
+        }
+        "America:Bahia"{
+            ec{"ബഹിയ"}
+        }
+        "America:Belem"{
+            ec{"ബെലം"}
+        }
+        "America:Blanc-Sablon"{
+            ec{"ബ്ലാങ്ക് സാബ്ലോണ്‍"}
+        }
+        "America:Boa_Vista"{
+            ec{"ബോവ വിസ്റ്റ"}
+        }
+        "America:Boise"{
+            ec{"ബൊയ്സി"}
+        }
+        "America:Buenos_Aires"{
+            ec{"ബ്യൂനസ് ഐറിസ്"}
+        }
+        "America:Cambridge_Bay"{
+            ec{"കെയ്ന്പ്രിഡ്ജ് ബേ"}
+        }
+        "America:Campo_Grande"{
+            ec{"ക്യാന്പോ ഗ്രാന്‍ഡെ"}
+        }
+        "America:Cancun"{
+            ec{"കന്‍കൂന്‍"}
+        }
+        "America:Catamarca"{
+            ec{"‍ക്യാറ്റമാര്‍ക്ക"}
+        }
+        "America:Chicago"{
+            ec{"ചിക്കാഗോ"}
+        }
+        "America:Chihuahua"{
+            ec{"ചിവാവു"}
+        }
+        "America:Coral_Harbour"{
+            ec{"കോറല്‍ ഹാര്‍ബര്‍"}
+        }
+        "America:Cordoba"{
+            ec{"കൊര്‍ദോവ"}
+        }
+        "America:Cuiaba"{
+            ec{"കുയ്ബ"}
+        }
+        "America:Danmarkshavn"{
+            ec{"ഡാന്‍മാര്‍ക്ക്ഷാവ്ന്‍"}
+        }
+        "America:Dawson"{
+            ec{"ഡോവ്സണ്‍"}
+        }
+        "America:Dawson_Creek"{
+            ec{"ഡോവ്സണ്‍ ക്രീക്ക്"}
+        }
+        "America:Denver"{
+            ec{"ഡെന്‍‌വര്‍"}
+        }
+        "America:Detroit"{
+            ec{"ഡെട്രോയിറ്റ്"}
+        }
+        "America:Edmonton"{
+            ec{"എഡ്മോണ്‍ടണ്‍"}
+        }
+        "America:Eirunepe"{
+            ec{"യെറുനീപ്പെ"}
+        }
+        "America:Fortaleza"{
+            ec{"ഫോര്‍ട്ടലീസ"}
+        }
+        "America:Glace_Bay"{
+            ec{"ഗ്ലെയ്സ് ബേ"}
+        }
+        "America:Goose_Bay"{
+            ec{"ഗൂസ് ബേ"}
+        }
+        "America:Halifax"{
+            ec{"ഹാലിഫാക്സ്"}
+        }
+        "America:Hermosillo"{
+            ec{"ഹെര്‍മോസില്ലോ"}
+        }
+        "America:Indiana:Knox"{
+            ec{"നോക്സ്, ഇന്‍ഡ്യാന"}
+        }
+        "America:Indiana:Marengo"{
+            ec{"മരെങ്കോ, ഇന്‍ഡ്യാനാ"}
+        }
+        "America:Indiana:Petersburg"{
+            ec{"പീറ്റേഴ്സ്ബര്‍ഗ്, ഇന്‍ഡ്യാന"}
+        }
+        "America:Indiana:Tell_City"{
+            ec{"റ്റെല്‍ സിറ്റി, ഇന്‍ഡ്യാന"}
+        }
+        "America:Indiana:Vevay"{
+            ec{"വിവെയ്, ഇന്‍ഡ്യാന"}
+        }
+        "America:Indiana:Vincennes"{
+            ec{"വിന്‍സെന്‍സ്, ഇന്‍ഡ്യാന"}
+        }
+        "America:Indiana:Winamac"{
+            ec{"വിനാമാക്, ഇന്‍ഡ്യാന"}
+        }
+        "America:Indianapolis"{
+            ec{"ഇന്‍ഡ്യാനാപോലീസ്"}
+        }
+        "America:Inuvik"{
+            ec{"ഇനുവിക്"}
+        }
+        "America:Iqaluit"{
+            ec{"ഇഖാലിത്"}
+        }
+        "America:Jujuy"{
+            ec{"ജുജുയ്"}
+        }
+        "America:Juneau"{
+            ec{"ജുനിയു"}
+        }
+        "America:Kentucky:Monticello"{
+            ec{"മോണ്ടിസെല്ലോ, കെന്‍റക്കി"}
+        }
+        "America:Los_Angeles"{
+            ec{"ലോസ് എയ്ഞ്ചലസ്"}
+        }
+        "America:Louisville"{
+            ec{"ലൂയിവില്‍"}
+        }
+        "America:Maceio"{
+            ec{"മാസിയോ"}
+        }
+        "America:Manaus"{
+            ec{"മനൌസ്"}
+        }
+        "America:Mazatlan"{
+            ec{"മാസറ്റ്ലാന്‍"}
+        }
+        "America:Mendoza"{
+            ec{"മെന്‍ഡോസ"}
+        }
+        "America:Menominee"{
+            ec{"മെനോമിനീ"}
+        }
+        "America:Merida"{
+            ec{"മെരിഡ"}
+        }
+        "America:Mexico_City"{
+            ec{"മെക്സിക്കോ സിറ്റി"}
+        }
+        "America:Moncton"{
+            ec{"മോങ്റ്റണ്‍"}
+        }
+        "America:Monterrey"{
+            ec{"മോണ്ടര്‍‌റേ"}
+        }
+        "America:Montreal"{
+            ec{"മോണ്ട്രിയാല്‍"}
+        }
+        "America:New_York"{
+            ec{"ന്യൂയോര്‍ക്ക്"}
+        }
+        "America:Nipigon"{
+            ec{"നിപ്പിഗോണ്‍"}
+        }
+        "America:Nome"{
+            ec{"നൌം"}
+        }
+        "America:Noronha"{
+            ec{"നൊറോന"}
+        }
+        "America:North_Dakota:Center"{
+            ec{"സെന്‍റര്‍, നോര്‍ത്ത് ഡക്കോട്ട"}
+        }
+        "America:North_Dakota:New_Salem"{
+            ec{"ന്യൂ സെയ്‌ലം, നോര്‍ത്ത് ഡക്കോട്ട"}
+        }
+        "America:Pangnirtung"{
+            ec{"പാന്‍ഗ്‌നിറ്റങ്"}
+        }
+        "America:Phoenix"{
+            ec{"ഫീനിക്സ്"}
+        }
+        "America:Porto_Velho"{
+            ec{"പോര്‍ട്ടോ വെല്ലോ"}
+        }
+        "America:Rainy_River"{
+            ec{"റെയ്നി റിവര്‍"}
+        }
+        "America:Rankin_Inlet"{
+            ec{"റാങ്കിന്‍ ഇന്‍ലെറ്റ്"}
+        }
+        "America:Recife"{
+            ec{"റെസീഫെ"}
+        }
+        "America:Regina"{
+            ec{"റിജീന"}
+        }
+        "America:Resolute"{
+            ec{"റെസല്യൂട്ട്"}
+        }
+        "America:Rio_Branco"{
+            ec{"റിയോ ബ്രാങ്കോ"}
+        }
+        "America:Sao_Paulo"{
+            ec{"സാവോ പോലോ"}
+        }
+        "America:Scoresbysund"{
+            ec{"സ്കോര്‍സ്ബൈസണ്ട്"}
+        }
+        "America:Shiprock"{
+            ec{"ഷിപ്പ്റോക്ക്"}
+        }
+        "America:St_Johns"{
+            ec{"സെയ്ന്‍റ് ജോണ്‍സ്"}
+        }
+        "America:Swift_Current"{
+            ec{"സ്വിഫ്റ്റ് കറന്‍റ്"}
+        }
+        "America:Thule"{
+            ec{"തൂളി"}
+        }
+        "America:Thunder_Bay"{
+            ec{"തണ്ടര്‍ ബേ"}
+        }
+        "America:Tijuana"{
+            ec{"തിയുവാന"}
+        }
+        "America:Toronto"{
+            ec{"ടൊറണ്ടോ"}
+        }
+        "America:Vancouver"{
+            ec{"വാന്‍‌കൂവര്‍"}
+        }
+        "America:Whitehorse"{
+            ec{"വൈറ്റ്ഹോഴ്സ്"}
+        }
+        "America:Winnipeg"{
+            ec{"വിന്നിപെഗ്"}
+        }
+        "America:Yakutat"{
+            ec{"യാകുറ്റാറ്റ്"}
+        }
+        "America:Yellowknife"{
+            ec{"യെല്ലോനൈഫ്"}
+        }
+        "Antarctica:Casey"{
+            ec{"കാസെ"}
+        }
+        "Antarctica:Davis"{
+            ec{"ഡെയ്‌വിസ്"}
+        }
+        "Antarctica:DumontDUrville"{
+            ec{"ഡ്യൂമണ്ട് ഡി യുര്‍വില്‍"}
+        }
+        "Antarctica:Mawson"{
+            ec{"മാവ്സണ്‍"}
+        }
+        "Antarctica:McMurdo"{
+            ec{"മാക്മര്‍ഡോ"}
+        }
+        "Antarctica:Palmer"{
+            ec{"പാമര്‍"}
+        }
+        "Antarctica:Rothera"{
+            ec{"റൊതീറ"}
+        }
+        "Antarctica:South_Pole"{
+            ec{"ദക്ഷിണ ധ്രൂവം"}
+        }
+        "Antarctica:Syowa"{
+            ec{"സ്യോവ"}
+        }
+        "Antarctica:Vostok"{
+            ec{"വോസ്റ്റോക്"}
+        }
+        "Asia:Almaty"{
+            ec{"അല്‍മതി"}
+        }
+        "Asia:Anadyr"{
+            ec{"അനാഡിര്‍"}
+        }
+        "Asia:Aqtau"{
+            ec{"അഖ്തൌ"}
+        }
+        "Asia:Aqtobe"{
+            ec{"അഖ്തോബ്"}
+        }
+        "Asia:Choibalsan"{
+            ec{"ചൊയ്ബല്‍സന്‍"}
+        }
+        "Asia:Chongqing"{
+            ec{"ചോങ്ഖിങ്"}
+        }
+        "Asia:Harbin"{
+            ec{"ഹാര്‍ബിന്‍"}
+        }
+        "Asia:Hovd"{
+            ec{"ഹൌഡ്"}
+        }
+        "Asia:Irkutsk"{
+            ec{"ഇര്‍കസ്ക്"}
+        }
+        "Asia:Jakarta"{
+            ec{"ജക്കാര്‍ത്ത"}
+        }
+        "Asia:Jayapura"{
+            ec{"ജയപുര"}
+        }
+        "Asia:Kamchatka"{
+            ec{"കാംചട്ക"}
+        }
+        "Asia:Kashgar"{
+            ec{"കാഷ്ഗര്‍"}
+        }
+        "Asia:Krasnoyarsk"{
+            ec{"ക്രാസ്നോയാസ്ക്"}
+        }
+        "Asia:Kuching"{
+            ec{"കുചിങ്"}
+        }
+        "Asia:Magadan"{
+            ec{"മഗഡാന്‍"}
+        }
+        "Asia:Makassar"{
+            ec{"മകസ്സര്‍"}
+        }
+        "Asia:Novosibirsk"{
+            ec{"നൊവോസിബിര്‍സ്ക്"}
+        }
+        "Asia:Omsk"{
+            ec{"ഒംസ്ക്"}
+        }
+        "Asia:Oral"{
+            ec{"ഓറല്‍"}
+        }
+        "Asia:Pontianak"{
+            ec{"പൊന്‍റിയാനക്"}
+        }
+        "Asia:Qyzylorda"{
+            ec{"ഖിസിലോര്‍ഡ"}
+        }
+        "Asia:Sakhalin"{
+            ec{"സഖാലിന്‍"}
+        }
+        "Asia:Samarkand"{
+            ec{"സമര്‍ക്കന്ദ്"}
+        }
+        "Asia:Ulaanbaatar"{
+            ec{"ഉലാന്‍ബട്ടൂര്‍"}
+        }
+        "Asia:Urumqi"{
+            ec{"ഉറുംഖി"}
+        }
+        "Asia:Vladivostok"{
+            ec{"വ്ളാഡിവോസ്റ്റോക്"}
+        }
+        "Asia:Yakutsk"{
+            ec{"യാകസ്ക്"}
+        }
+        "Asia:Yekaterinburg"{
+            ec{"യാകാറ്റെറിന്‍ബര്‍ഗ്"}
+        }
+        "Atlantic:Azores"{
+            ec{"എയ്സോര്‍സ്"}
+        }
+        "Atlantic:Canary"{
+            ec{"ക്യാനറി"}
+        }
+        "Atlantic:Madeira"{
+            ec{"മഡെയ്റ"}
+        }
+        "Australia:Adelaide"{
+            ec{"അഡലെയ്ഡ്"}
+        }
+        "Australia:Brisbane"{
+            ec{"ബ്രിസ്‌ബേയ്ന്‍"}
+        }
+        "Australia:Broken_Hill"{
+            ec{"ബ്രോക്കണ്‍ ഹില്‍"}
+        }
+        "Australia:Currie"{
+            ec{"ക്യൂറി"}
+        }
+        "Australia:Darwin"{
+            ec{"ഡാര്‍വിന്‍"}
+        }
+        "Australia:Eucla"{
+            ec{"യൂക്ല"}
+        }
+        "Australia:Hobart"{
+            ec{"ഹൊബാര്‍ട്ട്"}
+        }
+        "Australia:Lindeman"{
+            ec{"ലിന്‍ഡെമാന്‍"}
+        }
+        "Australia:Lord_Howe"{
+            ec{"ലോഡ് ഹോവ്"}
+        }
+        "Australia:Melbourne"{
+            ec{"മെല്‍ബണ്‍"}
+        }
+        "Australia:Perth"{
+            ec{"പെര്‍ത്ത്"}
+        }
+        "Australia:Sydney"{
+            ec{"സിഡ്നി"}
+        }
+        "Etc:Unknown"{
+            ec{"അറിയപ്പെടാത്ത നഗരം"}
+        }
+        "Europe:Kaliningrad"{
+            ec{"ക്യാലിനിന്‍ഗ്രാഡ്"}
+        }
+        "Europe:Kiev"{
+            ec{"കീവ്"}
+        }
+        "Europe:Moscow"{
+            ec{"മോസ്കോ"}
+        }
+        "Europe:Samara"{
+            ec{"സമാറ"}
+        }
+        "Europe:Simferopol"{
+            ec{"സിംഫെറോപോള്‍"}
+        }
+        "Europe:Uzhgorod"{
+            ec{"ഉസ്ഗൊറോഡ്"}
+        }
+        "Europe:Volgograd"{
+            ec{"വോള്‍ഗോഗ്രാഡ്"}
+        }
+        "Europe:Zaporozhye"{
+            ec{"സാപ്പറോസൈ"}
+        }
+        "Pacific:Chatham"{
+            ec{"ചാത്തം"}
+        }
+        "Pacific:Easter"{
+            ec{"ഈസ്റ്റര്‍"}
+        }
+        "Pacific:Enderbury"{
+            ec{"എന്‍ഡബറി"}
+        }
+        "Pacific:Galapagos"{
+            ec{"ഗാലപ്പാഗോസ്"}
+        }
+        "Pacific:Gambier"{
+            ec{"ഗാന്പിയര്‍"}
+        }
+        "Pacific:Honolulu"{
+            ec{"ഹോണലൂലു"}
+        }
+        "Pacific:Johnston"{
+            ec{"ജോണ്‍സ്റ്റണ്‍"}
+        }
+        "Pacific:Kiritimati"{
+            ec{"കിരിതിമാത്തി"}
+        }
+        "Pacific:Kosrae"{
+            ec{"കൊസ്രേ"}
+        }
+        "Pacific:Kwajalein"{
+            ec{"ക്വാജലെയ്ന്‍"}
+        }
+        "Pacific:Majuro"{
+            ec{"മജൂറോ"}
+        }
+        "Pacific:Marquesas"{
+            ec{"മാര്‍ക്യുസാസ്"}
+        }
+        "Pacific:Midway"{
+            ec{"മിഡ്‌വേ"}
+        }
+        "Pacific:Ponape"{
+            ec{"പൊനാപ്"}
+        }
+        "Pacific:Tarawa"{
+            ec{"തരാവ"}
+        }
+        "Pacific:Truk"{
+            ec{"ട്രക്"}
+        }
+        "Pacific:Wake"{
+            ec{"വെയ്ക്"}
+        }
+        "meta:Acre"{
+            ld{"എയ്ക്കര്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"എയ്ക്കര്‍ സമയം"}
+            sd{"ACST (എയ്ക്കര്‍)"}
+            ss{"ACT (എയ്ക്കര്‍)"}
+        }
+        "meta:Afghanistan"{
+            ls{"അഫ്ഗാനിസ്ഥാന്‍ സമയം"}
+        }
+        "meta:Africa_Central"{
+            ls{"മദ്ധ്യ ആഫ്രിക്കന്‍ സമയം"}
+        }
+        "meta:Africa_Eastern"{
+            ls{"കിഴക്കേ ആഫ്രിക്കന്‍ സമയം"}
+        }
+        "meta:Africa_Southern"{
+            lg{"ദക്ഷിണാഫ്രിക്കന്‍ സമയം"}
+            ls{"ദക്ഷിണാഫ്രിക്കന്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Africa_Western"{
+            ld{"പശ്ചിമാഫ്രിക്കന്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"പശ്ചിമാഫ്രിക്കന്‍ സമയം"}
+        }
+        "meta:Aktyubinsk"{
+            ld{"അക്ത്യുബിന്‍സ്ക് വേനല്‍ക്കാല സമയം"}
+            ls{"അക്ത്യുബിന്‍സ്ക് സമയം"}
+        }
+        "meta:Alaska"{
+            ld{"അലാസ്ക പകല്‍ സമയം"}
+            lg{"അലാസ്ക്ക സമയം"}
+            ls{"അലാസ്ക സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Alaska_Hawaii"{
+            ld{"അലാസ്ക-ഹവായി പകല്‍ സമയം"}
+            lg{"അലാസ്ക-ഹവായി സമയം"}
+            ls{"അലാസ്ക-ഹവായി സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Almaty"{
+            ld{"അല്‍മതി വേനല്‍ക്കാല സമയം"}
+            ls{"അല്‍മതി സമയം"}
+        }
+        "meta:Amazon"{
+            ld{"ആമസോണ്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"ആമസോണ്‍ സമയം"}
+        }
+        "meta:America_Central"{
+            ld{"സെന്‍ട്രല്‍ പകല്‍ സമയം"}
+            lg{"സെന്‍ട്രല്‍ സമയം"}
+            ls{"സെന്‍ട്രല്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:America_Eastern"{
+            ld{"കിഴക്കന്‍ പകല്‍ സമയം"}
+            lg{"കിഴക്കന്‍ സമയം"}
+            ls{"കിഴക്കന്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:America_Mountain"{
+            ld{"മൌണ്ടന്‍ പകല്‍ സമയം"}
+            lg{"മൌണ്ടന്‍ സമയം"}
+            ls{"മൌണ്ടന്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:America_Pacific"{
+            ld{"പസഫിക് പകല്‍ സമയം"}
+            lg{"പസഫിക് സമയം"}
+            ls{"പസഫിക് സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Anadyr"{
+            ld{"അനാഡിര്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"അനാഡിര്‍ സമയം"}
+        }
+        "meta:Aqtau"{
+            ld{"അഖ്തൌ വേനല്‍ക്കാല സമയം"}
+            ls{"അഖ്തൌ സമയം"}
+            sd{"AQTST (അഖ്തൌ)"}
+            ss{"AQTT (അഖ്തൌ)"}
+        }
+        "meta:Aqtobe"{
+            ld{"അഖ്തോബ് വേനല്‍ക്കാല സമയം"}
+            ls{"അഖ്തോബ് സമയം"}
+            sd{"AQTST (അഖ്തോബ്)"}
+            ss{"AQTT (അഖ്തോബ്)"}
+        }
+        "meta:Arabian"{
+            ld{"അറേബ്യന്‍ പകല്‍ സമയം"}
+            lg{"അറേബ്യന്‍ സമയം"}
+            ls{"അറേബ്യന്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+            sd{"ADT (അറേബ്യന്‍)"}
+            sg{"AT (അറേബ്യന്‍)"}
+            ss{"AST (അറേബ്യന്‍)"}
+        }
+        "meta:Argentina"{
+            ld{"അര്‍ജന്‍റീന വേനല്‍ക്കാല സമയം"}
+            ls{"അര്‍ജന്‍റീന സമയം"}
+        }
+        "meta:Argentina_Western"{
+            ls{"പശ്ചിമ അര്‍ജന്‍റീന സമയം"}
+        }
+        "meta:Armenia"{
+            ld{"അര്‍മേനിയ വേനല്‍ക്കാല സമയം"}
+            ls{"അര്‍മേനിയ സമയം"}
+            sd{"AMST (അര്‍മേനിയ)"}
+            ss{"AMT (അര്‍മേനിയ)"}
+        }
+        "meta:Ashkhabad"{
+            ld{"അഷ്ഖാബാദ് വേനല്‍ക്കാല സമയം"}
+            ls{"അഷ്ഖാബാദ് സമയം"}
+        }
+        "meta:Atlantic"{
+            ld{"അറ്റ്ലാന്‍റിക് പകല്‍ സമയം"}
+            lg{"അറ്റ്ലാന്‍റിക് സമയം"}
+            ls{"അറ്റ്ലാന്‍റിക് സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Australia_Central"{
+            ld{"ഓസ്ട്രേലിയന്‍ സെന്‍ട്രല്‍ പകല്‍ സമയം"}
+            lg{"സെന്‍ട്രല്‍ ഓസ്ട്രേലിയ സമയം"}
+            ls{"ഓസ്ട്രേലിയന്‍ സെന്‍ട്രല്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Australia_CentralWestern"{
+            ld{"ഓസ്ട്രേലിയന്‍ സെന്‍ട്രല്‍ വെസ്റ്റേണ്‍ പകല്‍ സമയം"}
+            lg{"ഓസ്ട്രേലിയന്‍ സെന്‍ട്രല്‍ വെസ്റ്റേണ്‍ സമയം"}
+            ls{"ഓസ്ട്രേലിയന്‍ സെന്‍ട്രല്‍ വെസ്റ്റേണ്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Australia_Eastern"{
+            ld{"ഓസ്ട്രേലിയന്‍ ഈസ്റ്റേണ്‍ പകല്‍ സമയം"}
+            lg{"ഈസ്റ്റേണ്‍ ഓസ്ട്രേലിയ സമയം"}
+            ls{"ഓസ്ട്രേലിയന്‍ ഈസ്റ്റേണ്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Australia_Western"{
+            ld{"ഓസ്ട്രേലിയന്‍ ‍വെസ്റ്റേണ്‍ പകല്‍ സമയം"}
+            lg{"വെസ്റ്റേണ്‍ ഓസ്ട്രേലിയ സമയം"}
+            ls{"ഓസ്ട്രേലിയന്‍ ‍വെസ്റ്റേണ്‍ സ്റ്റാന്‍ഡേര്‍ഡ്"}
+        }
+        "meta:Azerbaijan"{
+            ld{"അസര്‍ബയ്ജാന്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"അസര്‍ബയ്ജാന്‍ സമയം"}
+        }
+        "meta:Azores"{
+            ld{"എയ്സോര്‍സ് വേനല്‍ക്കാല സമയം"}
+            ls{"എയ്സോര്‍സ് സമയം"}
+        }
+        "meta:Baku"{
+            ld{"ബാകു വേനല്‍ക്കാല സമയം"}
+            ls{"ബാകു സമയം"}
+        }
+        "meta:Bangladesh"{
+            ls{"ബംഗ്ലാദേശ് സമയം"}
+        }
+        "meta:Bering"{
+            ld{"ബെറിങ് പകല്‍ സമയം"}
+            lg{"ബെറിങ് സമയം"}
+            ls{"ബെറിങ് സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+            sd{"BDT (ബെറിങ് )"}
+            sg{"BT (ബെറിങ് )"}
+            ss{"BST (ബെറിങ് )"}
+        }
+        "meta:Bhutan"{
+            ls{"ഭൂട്ടാന്‍ സമയം"}
+        }
+        "meta:Bolivia"{
+            ls{"ബൊളീവിയ സമയം"}
+        }
+        "meta:Borneo"{
+            ld{"ബോര്‍ണിയോ വേനല്‍ക്കാല സമയം"}
+            ls{"ബോര്‍ണിയോ സമയം"}
+        }
+        "meta:Brasilia"{
+            ld{"ബ്രസീലിയ വേനല്‍ക്കാല സമയം"}
+            ls{"ബ്രസീലിയ സമയം"}
+        }
+        "meta:Brunei"{
+            ls{"ബ്രൂണെ ഡാറുസ്സലാം സമയം"}
+        }
+        "meta:Cape_Verde"{
+            ld{"കെയ്പ് വെര്‍ഡെ വേനല്‍ക്കാല സമയം"}
+            ls{"കെയ്പ് വെര്‍ഡെ സമയം"}
+        }
+        "meta:Chamorro"{
+            lg{"കമോറോ സമയം"}
+            ls{"കമോറോ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Changbai"{
+            ls{"ചാങ്ബയ് സമയം"}
+        }
+        "meta:Chatham"{
+            ld{"ചാതം വേനല്‍ക്കാല സമയം"}
+            ls{"ചാതം സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Chile"{
+            ld{"ചിലി വേനല്‍ക്കാല സമയം"}
+            ls{"ചിലി സമയം"}
+        }
+        "meta:China"{
+            ld{"ചൈന പകല്‍ സമയം"}
+            lg{"ചൈന സമയം"}
+            ls{"ചൈനാ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+            sd{"CDT (ചൈന)"}
+            sg{"CT (ചൈന)"}
+            ss{"CST (ചൈന)"}
+        }
+        "meta:Choibalsan"{
+            ld{"ചോയ്ബല്‍സന്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"ചോയ്ബല്‍സന്‍ സമയം"}
+        }
+        "meta:Christmas"{
+            ls{"ക്രിസ്മസ് ദ്വീപ് സമയം"}
+        }
+        "meta:Cocos"{
+            ls{"കൊക്കോസ് ദ്വീപുകള്‍ സമയം"}
+        }
+        "meta:Colombia"{
+            ld{"കൊളംബിയ വേനല്‍ക്കാല സമയം"}
+            ls{"കൊളംബിയ സമയം"}
+        }
+        "meta:Cook"{
+            ld{"കുക്ക് ദ്വീപുകള്‍ അര്‍ദ്ധ വേനല്‍ക്കാല സമയം"}
+            ls{"കുക്ക് ദ്വീപുകള്‍ സമയം"}
+        }
+        "meta:Cuba"{
+            ld{"ക്യൂബ പകല്‍ സമയം"}
+            lg{"ക്യൂബ സമയം"}
+            ls{"ക്യൂബ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+            sd{"CDT (ക്യൂബ )"}
+            sg{"CST (ക്യൂബ )"}
+            ss{"CST (ക്യൂബ)"}
+        }
+        "meta:Dacca"{
+            ls{"ഡാക്ക സമയം"}
+        }
+        "meta:Davis"{
+            ls{"ഡെയ്‌വിസ് സമയം"}
+        }
+        "meta:DumontDUrville"{
+            ls{"ഡ്യൂമണ്ട് ഡി യൂര്‍വില്‍ സമയം"}
+        }
+        "meta:Dushanbe"{
+            ld{"ദുഷാന്‍ബെ വേനല്‍ക്കാല സമയം"}
+            ls{"ദുഷാന്‍ബെ സമയം"}
+        }
+        "meta:Dutch_Guiana"{
+            ls{"ഡച്ച് ഗയാന സമയം"}
+        }
+        "meta:East_Timor"{
+            ls{"കിഴക്കന്‍ തിമൂര്‍ സമയം"}
+        }
+        "meta:Easter"{
+            ld{"ഈസ്റ്റര്‍ ദ്വീപ് വേനല്‍ക്കാല സമയം"}
+            ls{"ഈസ്റ്റര്‍ ദ്വീപ് സമയം"}
+        }
+        "meta:Ecuador"{
+            ls{"ഇക്വഡോര്‍ സമയം"}
+        }
+        "meta:Europe_Central"{
+            ld{"സെന്‍ട്രല്‍ യൂറോപ്യന്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"സെന്‍ട്രല്‍ യൂറോപ്യന്‍ സമയം"}
+        }
+        "meta:Europe_Eastern"{
+            ld{"കിഴക്കന്‍ യൂറോപ്യന്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"കിഴക്കന്‍ യൂറോപ്യന്‍ സമയം"}
+        }
+        "meta:Falkland"{
+            ld{"ഫാക്‌ലാന്‍ഡ് ദ്വീപുകള്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"ഫാക്‌ലാന്‍ഡ് ദ്വീപുകള്‍ സമയം"}
+        }
+        "meta:Fiji"{
+            ld{"ഫിജി വേനല്‍ക്കാല സമയം"}
+            ls{"ഫിജി സമയം"}
+        }
+        "meta:French_Guiana"{
+            ls{"ഫ്രെഞ്ച് ഗയാന സമയം"}
+        }
+        "meta:French_Southern"{
+            ls{"ഫ്രെഞ്ച് സതേണ്‍ ആന്‍ഡ് അന്‍റാര്‍ട്ടിക് സമയം"}
+        }
+        "meta:Frunze"{
+            ld{"ഫ്രൂന്‍സ് വേനല്‍ക്കാല സമയം"}
+            ls{"ഫ്രൂന്‍സ് സമയം"}
+        }
+        "meta:Galapagos"{
+            ls{"ഗാലപ്പാഗോസ് സമയം"}
+        }
+        "meta:Gambier"{
+            ls{"ഗാന്പിയര്‍ സമയം"}
+        }
+        "meta:Georgia"{
+            ld{"ജോര്‍ജ്ജിയ വേനല്‍ക്കാല സമയം"}
+            ls{"ജോര്‍ജ്ജിയ സമയം"}
+        }
+        "meta:Gilbert_Islands"{
+            ls{"ഗില്‍ബര്‍ട്ട് ദ്വീപുകള്‍ സമയം"}
+        }
+        "meta:Greenland_Central"{
+            ld{"സെന്‍ട്രല്‍ ഗ്രീന്‍ലാന്‍ഡ് വേനല്‍ക്കാല സമയം"}
+            ls{"സെന്‍ട്രല്‍ ഗ്രീന്‍ലാന്‍ഡ് സമയം"}
+        }
+        "meta:Greenland_Eastern"{
+            ld{"കിഴക്കന്‍ ഗ്രീന്‍ലാന്‍ഡ് വേനല്‍ക്കാല സമയം"}
+            ls{"കിഴക്കന്‍ ഗ്രീന്‍ലാന്‍ഡ് സമയം"}
+        }
+        "meta:Greenland_Western"{
+            ld{"പശ്ചിമ ഗ്രീന്‍ലാന്‍ഡ് വേനല്‍ക്കാല സമയം"}
+            ls{"പശ്ചിമ ഗ്രീന്‍ലാന്‍ഡ് സമയം"}
+        }
+        "meta:Guam"{
+            ls{"ഗ്വാം സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+            ss{"GST (ഗ്വാം)"}
+        }
+        "meta:Gulf"{
+            lg{"ഗള്‍ഫ് സമയം"}
+            ls{"ഗള്‍ഫ് സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Guyana"{
+            ls{"ഗയാന സമയം"}
+        }
+        "meta:Hawaii_Aleutian"{
+            ls{"ഹവായി-അലൂഷ്യന്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Hong_Kong"{
+            ld{"ഹോങ് കോങ് വേനല്‍ക്കാല സമയം"}
+            ls{"ഹോങ് കോങ് സമയം"}
+        }
+        "meta:Hovd"{
+            ld{"ഹൌഡ് വേനല്‍ക്കാല സമയം"}
+            ls{"ഹൌഡ് സമയം"}
+        }
+        "meta:India"{
+            ls{"ഇന്‍‌ഡ്യ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Indian_Ocean"{
+            ls{"ഇന്‍ഡ്യന്‍ മഹാസമുദ്ര സമയം"}
+        }
+        "meta:Indochina"{
+            ls{"ഇന്‍ഡോചൈന സമയം"}
+        }
+        "meta:Indonesia_Central"{
+            ls{"സെന്‍ട്രല്‍ ഇന്‍ഡോനേഷ്യ സമയം"}
+        }
+        "meta:Indonesia_Eastern"{
+            ls{"കിഴക്കന്‍ ഇന്‍ഡോനേഷ്യ സമയം"}
+        }
+        "meta:Indonesia_Western"{
+            ls{"പശ്ചിമ ഇന്‍ഡോനേഷ്യ സമയം"}
+        }
+        "meta:Iran"{
+            ld{"ഇറാന്‍ പകല്‍ സമയം"}
+            ls{"ഇറാന്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Irkutsk"{
+            ld{"ഇര്‍കസ്ക് വേനല്‍ക്കാല സമയം"}
+            ls{"ഇര്‍കസ്ക് സമയം"}
+        }
+        "meta:Israel"{
+            ld{"ഇസ്രായേല്‍ പകല്‍ സമയം"}
+            lg{"ഇസ്രായേല്‍ സമയം"}
+            ls{"ഇസ്രായേല്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+            ss{"IST (ഇസ്രായേല്‍)"}
+        }
+        "meta:Japan"{
+            ld{"ജപ്പാന്‍ പകല്‍ സമയം"}
+            lg{"ജപ്പാന്‍ സമയം"}
+            ls{"ജപ്പാന്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Kamchatka"{
+            ld{"പെട്രോപാവ്‌ലോസ്ക് കംചാസ്കി വേനല്‍ക്കാല സമയം"}
+            ls{"പെട്രോപാവ്‌ലോസ്ക് കംചാസ്കി സമയം"}
+        }
+        "meta:Karachi"{
+            ls{"കറാച്ചി സമയം"}
+        }
+        "meta:Kashgar"{
+            ls{"കാഷ്ഗര്‍ സമയം"}
+        }
+        "meta:Kazakhstan_Eastern"{
+            lg{"കിഴക്കന്‍ കസാഖ്സ്ഥാന്‍ സമയം"}
+            ls{"കിഴക്കന്‍ കസാഖ്സ്ഥാന്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Kazakhstan_Western"{
+            lg{"പടിഞ്ഞാറന്‍ കസാഖ്സ്ഥാന്‍ സമയം"}
+            ls{"പടിഞ്ഞാറന്‍ കസാഖ്സ്ഥാന്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Kizilorda"{
+            ld{"കിസിലോര്‍ഡ വേനല്‍ക്കാല സമയം"}
+            ls{"കിസിലോര്‍ഡ സമയം"}
+        }
+        "meta:Korea"{
+            ld{"കൊറിയന്‍ പകല്‍ സമയം"}
+            lg{"കൊറിയന്‍ സമയം"}
+            ls{"കൊറിയന്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Kosrae"{
+            ls{"കൊസ്റേ സമയം"}
+        }
+        "meta:Krasnoyarsk"{
+            ld{"ക്രാസ്നോയാഴ്സ്ക് വേനല്‍ക്കാല സമയം"}
+            ls{"ക്രാസ്നോയാഴ്സ്ക് സമയം"}
+        }
+        "meta:Kuybyshev"{
+            ld{"കുയ്ബൈഷെവ് വേനല്‍ക്കാല സമയം"}
+            ls{"കുയ്ബൈഷെവ് സമയം"}
+        }
+        "meta:Kwajalein"{
+            ls{"ക്വാജലെയ്ന്‍ സമയം"}
+        }
+        "meta:Kyrgystan"{
+            ls{"കിര്‍ഗിസ്ഥാന്‍ സമയം"}
+        }
+        "meta:Lanka"{
+            ls{"ലങ്ക സമയം"}
+        }
+        "meta:Line_Islands"{
+            ls{"ലൈന്‍ ദ്വീപുകള്‍ സമയം"}
+        }
+        "meta:Long_Shu"{
+            ls{"ലോങ്-ഷു സമയം"}
+        }
+        "meta:Lord_Howe"{
+            ld{"ലോര്‍ഡ് ഹോവ് പകല്‍ സമയം"}
+            lg{"ലോര്‍ഡ് ഹോവ് സമയം"}
+            ls{"ലോര്‍ഡ് ഹോവ് സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Macau"{
+            ld{"മകൌ വേനല്‍ക്കാല സമയം"}
+            ls{"മകൌ സമയം"}
+        }
+        "meta:Magadan"{
+            ld{"മഗാഡന്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"മഗാഡന്‍ സമയം"}
+        }
+        "meta:Malaya"{
+            ls{"മലയ സമയം"}
+        }
+        "meta:Malaysia"{
+            ls{"മലേഷ്യ സമയം"}
+        }
+        "meta:Maldives"{
+            ls{"മാലിദ്വീപ് സമയം"}
+        }
+        "meta:Marquesas"{
+            ls{"മാര്‍ക്യുസാസ് സമയം"}
+        }
+        "meta:Marshall_Islands"{
+            ls{"മാര്‍ഷല്‍ ദ്വീപുകള്‍ സമയം"}
+        }
+        "meta:Mauritius"{
+            ls{"മൌറിഷ്യസ് സമയം"}
+        }
+        "meta:Mawson"{
+            ls{"മാവ്സണ്‍ സമയം"}
+        }
+        "meta:Mongolia"{
+            ld{"യുലാന്‍ ബാറ്റര്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"യുലാന്‍ ബാറ്റര്‍ സമയം"}
+        }
+        "meta:Moscow"{
+            ld{"മോസ്കോ വേനല്‍ക്കാല സമയം"}
+            lg{"മോസ്കോ സമയം"}
+            ls{"മോസ്കോ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Myanmar"{
+            ls{"മ്യാന്‍മാര്‍ സമയം"}
+        }
+        "meta:Nauru"{
+            ls{"നൌറു സമയം"}
+        }
+        "meta:Nepal"{
+            ls{"നേപ്പാള്‍ സമയം"}
+        }
+        "meta:New_Caledonia"{
+            ld{"ന്യൂ കാലിഡോണിയ വേനല്‍ക്കാല സമയം"}
+            ls{"ന്യൂ കാലിഡോണിയ സമയം"}
+        }
+        "meta:New_Zealand"{
+            ld{"ന്യൂസീലന്‍ഡ് പകല്‍ സമയം"}
+            lg{"ന്യൂസീലന്‍ഡ് സമയം"}
+            ls{"ന്യൂസീലന്‍ഡ് സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Newfoundland"{
+            ld{"ന്യൂഫൌണ്ട്‌ലാന്‍ഡ് പകല്‍‌ സമയം"}
+            lg{"ന്യൂഫൌണ്ട്‌ലാന്‍ഡ് സമയം"}
+            ls{"ന്യൂഫൌണ്ട്‌ലാന്‍ഡ് സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Niue"{
+            ls{"നിയു സമയം"}
+        }
+        "meta:Norfolk"{
+            ls{"നോര്‍ഫോക് ദ്വീപുകള്‍ സമയം"}
+        }
+        "meta:Noronha"{
+            ld{"ഫെര്‍ണാണ്ടോ ഡി നൊറോന വേനല്‍ക്കാല സമയം"}
+            ls{"ഫെര്‍ണാണ്ടോ ഡി നൊറോന സമയം"}
+        }
+        "meta:North_Mariana"{
+            ls{"നോര്‍ത്ത് മറിയാനാ ദ്വീപുകള്‍ സമയം"}
+        }
+        "meta:Novosibirsk"{
+            ld{"നോവോസിബിര്‍സ്ക് വേനല്‍ക്കാല സമയം"}
+            ls{"നോവോസിബിര്‍സ്ക് സമയം"}
+        }
+        "meta:Omsk"{
+            ld{"ഓംസ്ക് വേനല്‍ക്കാല സമയം"}
+            ls{"ഓംസ്ക് സമയം"}
+        }
+        "meta:Pakistan"{
+            ld{"പാകിസ്ഥാന്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"പാകിസ്ഥാന്‍ സമയം"}
+        }
+        "meta:Palau"{
+            ls{"പലൌ സമയം"}
+        }
+        "meta:Papua_New_Guinea"{
+            ls{"പാപ്യു ന്യൂ ഗിനിയ സമയം"}
+        }
+        "meta:Paraguay"{
+            ld{"പരാഗ്വേ വേനല്‍ക്കാല സമയം"}
+            ls{"പരാഗ്വേ സമയം"}
+        }
+        "meta:Peru"{
+            ld{"പെറു വേനല്‍ക്കാല സമയം"}
+            ls{"പെറു സമയം"}
+        }
+        "meta:Philippines"{
+            ld{"ഫിലിപ്പീന്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"ഫിലിപ്പീന്‍ സമയം"}
+        }
+        "meta:Phoenix_Islands"{
+            ls{"ഫീനിക്സ് ദ്വീപുകള്‍ സമയം"}
+        }
+        "meta:Pierre_Miquelon"{
+            ld{"പിയറി ആന്‍ഡ് മിക്വിലോണ്‍ പകല്‍ സമയം"}
+            lg{"പിയറി ആന്‍ഡ് മിക്വിലോണ്‍ സമയം"}
+            ls{"പിയറി ആന്‍ഡ് മിക്വിലോണ്‍ സ്റ്റാന്‍ഡേര്‍ഡ്സമയം"}
+        }
+        "meta:Pitcairn"{
+            ls{"പിറ്റ്കെയ്ന്‍ സമയം"}
+        }
+        "meta:Ponape"{
+            ls{"പൊനാപ് സമയം"}
+        }
+        "meta:Qyzylorda"{
+            ld{"ഖിസിലോര്‍ഡ വേനല്‍ക്കാല സമയം"}
+            ls{"ഖിസിലോര്‍ഡ സമയം"}
+        }
+        "meta:Reunion"{
+            ls{"റീയൂണിയന്‍ സമയം"}
+        }
+        "meta:Rothera"{
+            ls{"റൊതീറ സമയം"}
+        }
+        "meta:Sakhalin"{
+            ld{"സഖാലിന്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"സഖാലിന്‍ സമയം"}
+        }
+        "meta:Samara"{
+            ld{"സമാറ വേനല്‍ക്കാല സമയം"}
+            ls{"സമാറ സമയം"}
+        }
+        "meta:Samarkand"{
+            ld{"സമര്‍കന്ദ് വേനല്‍ക്കാല സമയം"}
+            ls{"സമര്‍കന്ദ് സമയം"}
+            sd{"SAMST (സമര്‍കന്ദ് )"}
+            ss{"SAMT (സമര്‍കന്ദ് )"}
+        }
+        "meta:Samoa"{
+            ls{"സമോവാ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Seychelles"{
+            ls{"സെയ്ഷെല്‍സ് സമയം"}
+        }
+        "meta:Shevchenko"{
+            ld{"ഷെവ്ചെങ്കോ വേനല്‍ക്കാല സമയം"}
+            ls{"ഷെവ്ചെങ്കോ സമയം"}
+        }
+        "meta:Singapore"{
+            ls{"സിങ്കപ്പൂര്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        "meta:Solomon"{
+            ls{"സോളമന്‍ ദ്വീപുകള്‍ സമയം"}
+        }
+        "meta:South_Georgia"{
+            ls{"ദക്ഷിണ ജോര്‍ജ്ജിയ സമയം"}
+            ss{"GST (ദക്ഷിണ ജോര്‍ജ്ജിയ)"}
+        }
+        "meta:Suriname"{
+            ls{"സൂറിനാം സമയം"}
+        }
+        "meta:Sverdlovsk"{
+            ld{"സ്‌വേഡ്‌ലോവ്സ്ക് വേനല്‍ക്കാല സമയം"}
+            ls{"സ്‌വേഡ്‌ലോവ്സ്ക് സമയം"}
+        }
+        "meta:Syowa"{
+            ls{"സ്യോവ സമയം"}
+        }
+        "meta:Tahiti"{
+            ls{"തഹിതി സമയം"}
+        }
+        "meta:Tajikistan"{
+            ls{"തജികിസ്ഥാന്‍ സമയം"}
+        }
+        "meta:Tashkent"{
+            ld{"താഷ്കന്ദ് വേനല്‍ക്കാല സമയം"}
+            ls{"താഷ്കന്ദ് സമയം"}
+        }
+        "meta:Tbilisi"{
+            ld{"തിബിലീസി വേനല്‍ക്കാല സമയം"}
+            ls{"തിബിലീസി സമയം"}
+        }
+        "meta:Tokelau"{
+            ls{"റ്റോക്കിലൌ സമയം"}
+        }
+        "meta:Tonga"{
+            ld{"റ്റോംഗാ വേനല്‍ക്കാല സമയം"}
+            ls{"റ്റോംഗാ സമയം"}
+        }
+        "meta:Truk"{
+            ls{"ട്രക്ക് സമയം"}
+        }
+        "meta:Turkey"{
+            ld{"തുര്‍ക്കി വേനല്‍ക്കാല സമയം"}
+            ls{"തുര്‍ക്കി സമയം"}
+        }
+        "meta:Turkmenistan"{
+            ld{"തുര്‍ക്ക്മെനിസ്ഥാന്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"തുര്‍ക്ക്മെനിസ്ഥാന്‍ സമയം"}
+        }
+        "meta:Tuvalu"{
+            ls{"തുവാലു സമയം"}
+        }
+        "meta:Uralsk"{
+            ld{"യുറാല്‍സ്ക് വേനല്‍ക്കാല സമയം"}
+            ls{"യുറാല്‍സ്ക് സമയം"}
+        }
+        "meta:Uruguay"{
+            ld{"ഉറുഗ്വെ വേനല്‍ക്കാല സമയം"}
+            ls{"ഉറുഗ്വെ സമയം"}
+        }
+        "meta:Urumqi"{
+            ls{"ഉറുംഖി വേനല്‍‌ക്കാല സമയം"}
+        }
+        "meta:Uzbekistan"{
+            ld{"ഉസ്ബക്കിസ്ഥാന്‍ വേനല്‍‌ക്കാല സമയം"}
+            ls{"ഉസ്ബക്കിസ്ഥാന്‍ സമയം"}
+        }
+        "meta:Vanuatu"{
+            ld{"വന്വാതു വേനല്‍ക്കാല സമയം"}
+            ls{"വന്വാതു സമയം"}
+        }
+        "meta:Venezuela"{
+            ls{"വെനസ്വേല സമയം"}
+        }
+        "meta:Vladivostok"{
+            ld{"വ്‌ളാഡിവോസ്റ്റോക് വേനല്‍ക്കാല സമയം"}
+            ls{"വ്‌ളാഡിവോസ്റ്റോക് സമയം"}
+        }
+        "meta:Volgograd"{
+            ld{"വോള്‍ഗോഗ്രാഡ് വേനല്‍ക്കാല സമയം"}
+            ls{"വോള്‍ഗോഗ്രാഡ് സമയം"}
+        }
+        "meta:Vostok"{
+            ls{"വോസ്റ്റോക് സമയം"}
+        }
+        "meta:Wake"{
+            ls{"വെയ്ക് ദ്വീപ് സമയം"}
+        }
+        "meta:Wallis"{
+            ls{"വാലിസ് ആന്‍ഡ് ഫ്യൂചുന സമയം"}
+        }
+        "meta:Yakutsk"{
+            ld{"യാകസ്ക് വേനല്‍ക്കാല സമയം"}
+            ls{"യാകസ്ക് സമയം"}
+        }
+        "meta:Yekaterinburg"{
+            ld{"യെക്കാറ്ററിന്‍ബര്‍ഗ് വേനല്‍ക്കാല സമയം"}
+            ls{"യെക്കാറ്ററിന്‍ബര്‍ഗ് സമയം"}
+        }
+        "meta:Yerevan"{
+            ld{"യെരെവാന്‍ വേനല്‍ക്കാല സമയം"}
+            ls{"യെരെവാന്‍ സമയം"}
+        }
+        "meta:Yukon"{
+            ld{"യൂക്കണ്‍ പകല്‍ സമയം"}
+            lg{"യൂക്കോണ്‍ സമയം"}
+            ls{"യൂക്കോണ്‍ സ്റ്റാന്‍ഡേര്‍ഡ് സമയം"}
+        }
+        fallbackFormat{"{1} ({0})"}
+        gmtFormat{"GMT{0}"}
+        hourFormat{"+HH:mm;-HH:mm"}
+        regionFormat{"{0} സമയം"}
+    }
+}

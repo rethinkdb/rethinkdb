@@ -1,0 +1,138 @@
+#!/usr/bin/env node
+
+var util = require('util');
+var fs = require('fs');
+var path = require('path');
+var CleanCSS = require('../index');
+
+var commands = require('commander');
+
+var packageConfig = fs.readFileSync(path.join(path.dirname(fs.realpathSync(process.argv[1])), '../package.json'));
+var buildVersion = JSON.parse(packageConfig).version;
+
+var isWindows = process.platform == 'win32';
+
+// Specify commander options to parse command line params correctly
+commands
+  .version(buildVersion, '-v, --version')
+  .usage('[options] <source-file>')
+  .option('-b, --keep-line-breaks', 'Keep line breaks')
+  .option('--s0', 'Remove all special comments, i.e. /*! comment */')
+  .option('--s1', 'Remove all special comments but the first one')
+  .option('-r, --root [root-path]', 'Set a root path to which resolve absolute @import rules')
+  .option('-o, --output [output-file]', 'Use [output-file] as output instead of STDOUT')
+  .option('-s, --skip-import', 'Disable @import processing')
+  .option('--skip-rebase', 'Disable URLs rebasing')
+  .option('--skip-advanced', 'Disable advanced optimizations - selector & property merging, reduction, etc.')
+  .option('--selectors-merge-mode [ie8|*]', 'Use `ie8` for compatibility mode, `*` for merge all (default).')
+  .option('-d, --debug', 'Shows debug information (minification time & compression efficiency)');
+
+commands.on('--help', function() {
+  util.puts('  Examples:\n');
+  util.puts('    %> cleancss one.css');
+  util.puts('    %> cleancss -o one-min.css one.css');
+  if (isWindows) {
+    util.puts('    %> type one.css two.css three.css | cleancss -o merged-and-minified.css');
+  } else {
+    util.puts('    %> cat one.css two.css three.css | cleancss -o merged-and-minified.css');
+    util.puts('    %> cat one.css two.css three.css | cleancss | gzip -9 -c > merged-minified-and-gzipped.css.gz');
+  }
+  util.puts('');
+  process.exit();
+});
+
+commands.parse(process.argv);
+
+var options = {
+  source: null,
+  target: null
+};
+var cleanOptions = {};
+var fromStdin = !process.env['__DIRECT__'] && !process.stdin.isTTY;
+
+// If no sensible data passed in just print help and exit
+if (!fromStdin && commands.args.length == 0) {
+  commands.outputHelp();
+  return 0;
+}
+
+// Now coerce commands into CleanCSS configuration...
+if (commands.output)
+  cleanOptions.target = options.target = commands.output;
+if (commands.keepLineBreaks)
+  cleanOptions.keepBreaks = true;
+if (commands.s1)
+  cleanOptions.keepSpecialComments = 1;
+if (commands.s0)
+  cleanOptions.keepSpecialComments = 0;
+if (commands.root)
+  cleanOptions.root = commands.root;
+if (commands.skipImport)
+  cleanOptions.processImport = false;
+if (commands.skipRebase)
+  cleanOptions.noRebase = true;
+if (commands.skipAdvanced)
+  cleanOptions.noAdvanced = true;
+if (commands.selectorsMergeMode)
+  cleanOptions.selectorsMergeMode = commands.selectorsMergeMode;
+if (commands.debug)
+  cleanOptions.debug = true;
+if (commands.args.length > 0) {
+  var source = commands.args[0];
+  options.source = source;
+  cleanOptions.relativeTo = path.dirname(path.resolve(source));
+}
+
+// ... and do the magic!
+if (options.source) {
+  fs.readFile(options.source, 'utf8', function(error, data) {
+    if (error)
+      throw error;
+    output(minify(data));
+  });
+} else {
+  var stdin = process.openStdin();
+  stdin.setEncoding('utf-8');
+  var data = '';
+  stdin.on('data', function(chunk) {
+    data += chunk;
+  });
+  stdin.on('end', function() {
+    output(minify(data));
+  });
+}
+
+function minify(data) {
+  var minifier = new CleanCSS(cleanOptions);
+  var minified = minifier.minify(data);
+
+  if (cleanOptions.debug) {
+    console.error('Original: %d bytes', minifier.stats.originalSize);
+    console.error('Minified: %d bytes', minifier.stats.minifiedSize);
+    console.error('Efficiency: %d%', ~~(minifier.stats.efficiency * 10000) / 100.0);
+    console.error('Time spent: %dms', minifier.stats.timeSpent);
+  }
+
+  outputFeedback(minifier.errors, true);
+  outputFeedback(minifier.warnings);
+
+  if (minifier.errors.length > 0)
+    process.exit(1);
+
+  return minified;
+}
+
+function output(minified) {
+  if (options.target)
+    fs.writeFileSync(options.target, minified, 'utf8');
+  else
+    process.stdout.write(minified);
+};
+
+function outputFeedback(messages, isError) {
+  var prefix = isError ? '\x1B[31mERROR\x1B[39m:' : 'WARNING:';
+
+  messages.forEach(function(message) {
+    console.error('%s %s', prefix, message);
+  });
+};

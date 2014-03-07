@@ -1,0 +1,63 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:partition partition]
+
+[heading Prototype]
+
+``
+template<
+    class ForwardRange,
+    class UnaryPredicate
+    >
+typename range_iterator<ForwardRange>::type
+partition(ForwardRange& rng, UnaryPredicate pred);
+
+template<
+    class ForwardRange,
+    class UnaryPredicate
+    >
+typename range_iterator<const ForwardRange>::type
+partition(const ForwardRange& rng, UnaryPredicate pred);
+
+template<
+    range_return_value re,
+    class ForwardRange,
+    class UnaryPredicate
+    >
+typename range_return<ForwardRange, re>::type
+partition(ForwardRange& rng, UnaryPredicate pred);
+
+template<
+    range_return_value re,
+    class ForwardRange,
+    class UnaryPredicate
+    >
+typename range_return<const ForwardRange, re>::type
+partition(const ForwardRange& rng, UnaryPredicate pred);
+``
+
+[heading Description]
+
+`partition` orders the elements in `rng` based on `pred`, such that the elements that satisfy `pred` precede the elements that do not. In the versions that return a single iterator, the return value is the middle iterator. In the versions that have a configurable range_return, `found` corresponds to the middle iterator.
+
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/partition.hpp`
+
+[heading Requirements]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `UnaryPredicate` is a model of the `PredicateConcept`.
+* `ForwardRange`'s value type is convertible to `UnaryPredicate`'s argument type.
+
+[heading Complexity]
+
+Linear. Exactly `distance(rng)` applications of `pred`, and at most `distance(rng) / 2` swaps.
+
+[endsect]
+
+

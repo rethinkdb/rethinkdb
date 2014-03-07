@@ -1,0 +1,40 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:is_sorted is_sorted]
+
+[heading Prototype]
+
+``
+template<class SinglePassRange>
+bool is_sorted(const SinglePassRange& rng);
+
+template<class SinglePassRange, class BinaryPredicate>
+bool is_sorted(const SinglePassRange& rng, BinaryPredicate pred);
+``
+
+[heading Description]
+
+`is_sorted` determines if a range is sorted.
+For the non-predicate version the return value is `true` if and only if for
+each adjacent elements `[x,y]` the expression `x < y` is `true`.
+For the predicate version the return value is `true` is and only if for each
+adjacent elements `[x,y]` the expression `pred(x,y)` is `true`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm_ext/is_sorted.hpp`
+
+[heading Requirements]
+
+# `SinglePassRange` is a model of the __single_pass_range__ Concept.
+# `BinaryPredicate` is a model of the `BinaryPredicate` Concept.
+# The value type of `SinglePassRange` is convertible to both argument types of `BinaryPredicate`.
+
+[heading Complexity]
+
+Linear. A maximum of `distance(rng)` comparisons are performed.
+
+[endsect]

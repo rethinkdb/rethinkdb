@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="c___test" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>C++ test</title>
+  <articleinfo>
+    <legalnotice id="c___test.legal">
+      <para>
+        <code><phrase role="keyword">def</phrase> <phrase role="identifier">foo</phrase><phrase
+        role="special">(</phrase><phrase role="identifier">x</phrase><phrase role="special">):</phrase>
+        <phrase role="keyword">print</phrase> <phrase role="string">&quot;Hello&quot;</phrase></code>
+      </para>
+    </legalnotice>
+    <articlepurpose>
+      <code><phrase role="keyword">int</phrase> <phrase role="identifier">main</phrase><phrase
+      role="special">()</phrase> <phrase role="special">{}</phrase></code>
+    </articlepurpose>
+  </articleinfo>
+  <para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">main</phrase><phrase role="special">()</phrase> <phrase role="special">{}</phrase></programlisting>
+  </para>
+  <para>
+<programlisting><phrase role="keyword">def</phrase> <phrase role="identifier">foo</phrase><phrase role="special">():</phrase></programlisting>
+  </para>
+  <para>
+<programlisting><phrase role="keyword">def</phrase> <phrase role="identifier">foo</phrase><phrase role="special">(</phrase><phrase role="identifier">x</phrase><phrase role="special">):</phrase></programlisting>
+  </para>
+  <para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">main</phrase><phrase role="special">()</phrase> <phrase role="special">{}</phrase></programlisting>
+  </para>
+  <para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">main</phrase><phrase role="special">()</phrase> <phrase role="special">{}</phrase></programlisting>
+  </para>
+</article>

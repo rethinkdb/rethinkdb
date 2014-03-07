@@ -1,0 +1,562 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Flyweight Documentation - Tutorial - Extending Boost.Flyweight</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="configuration.html">
+<link rel="up" href="index.html">
+<link rel="next" href="technical.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="Boost logo" align=
+"middle" width="277" height="86">Boost.Flyweight Tutorial: Extending Boost.Flyweight</h1>
+
+<div class="prev_link"><a href="configuration.html"><img src="../prev.gif" alt="configuring Boost.Flyweight" border="0"><br>
+Configuring Boost.Flyweight
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight tutorial" border="0"><br>
+Boost.Flyweight tutorial
+</a></div>
+<div class="next_link"><a href="technical.html"><img src="../next.gif" alt="technical issues" border="0"><br>
+Technical issues
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#intro">Introduction</a></li>
+  <li><a href="#factories">Custom factories</a></li>
+  <li><a href="#holders">Custom holders</a></li>
+  <li><a href="#locking">Custom locking policies</a></li>
+  <li><a href="#tracking">Custom tracking policies</a></li>
+</ul>
+
+<h2><a name="intro">Introduction</a></h2>
+
+<p>
+Boost.Flyweight provides public interface specifications of
+its <a href="configuration.html">configurable aspects</a> so that the user
+can extend the library by implementing her own components and providing them to
+instantiations of the <code>flyweight</code> class template.
+</p>
+
+<p>
+In most cases there are two types of entities involved in extending a given
+aspect of Boost.Flyweight:
+<ul>
+  <li>The component itself (for instance, a factory class template).</li>
+  <li>The associated <i>component specifier</i>, which is the type
+    provided as a template argument of a <code>flyweight</code>
+    instantiation.
+  </li>
+</ul>
+For example, the type
+<a href="configuration.html#static_holder"><code>static_holder</code></a>
+is a holder specifier which is used by <code>flyweight</code> to generate
+actual holder classes, in this case instantiations of the class
+template 
+<a href="../reference/holders.html#static_holder_class"><code>static_holder_class</code></a>.
+Note that <code>static_holder</code> is a concrete type while
+<code>static_holder_class</code> is a class template, so a specifier can be
+seen as a convenient way to provide access to a family of related concrete
+components (the different possible instantiations of the class template):
+<code>flyweight</code> internally selects the particular component
+appropriate for its internal needs.
+</p>
+
+<h2><a name="factories">Custom factories</a></h2>
+
+<p>
+In a way, factories resemble unique associative containers like <code>std::set</code>,
+though their expected interface is much more concise:
+</p>
+
+<blockquote><pre>
+<span class=comment>// example of a possible factory class template</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Entry</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Key</span><span class=special>&gt;</span>
+<span class=keyword>class</span> <span class=identifier>custom_factory_class</span>
+<span class=special>{</span>
+<span class=keyword>public</span><span class=special>:</span>
+  <span class=keyword>typedef</span> <span class=special>...</span> <span class=identifier>handle_type</span><span class=special>;</span>
+  
+  <span class=identifier>handle_type</span>  <span class=identifier>insert</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>Entry</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=keyword>void</span>         <span class=identifier>erase</span><span class=special>(</span><span class=identifier>handle_type</span> <span class=identifier>h</span><span class=special>);</span>
+  <span class=keyword>const</span> <span class=identifier>Entry</span><span class=special>&amp;</span> <span class=identifier>entry</span><span class=special>(</span><span class=identifier>handle_type</span> <span class=identifier>h</span><span class=special>);</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+Factories are parameterized by <code>Entry</code> and <code>Key</code>:
+the first is the type of the objects stored, while the second is the public
+key type on which <code>flyweight</code> operates (e.g. the <code>std::string</code>
+in <code>flyweight&lt;std::string&gt;</code> or
+<code>flyweight&lt;key_value&lt;std::string,texture&gt; &gt;</code>). An entry holds a
+shared value to which flyweight objects are associated as well as internal bookkeeping information, but from the
+point of view of the factory, though, the only fact known about <code>Entry</code>
+is that it is implicitly convertible to <code>const Key&amp;</code>, and it is
+based on their associated <code>Key</code> that entries are to be considered
+equivalent or not. The factory <code>insert()</code>
+member function locates a previously stored entry whose
+associated <code>Key</code> is equivalent to that of the <code>Entry</code>
+object being passed (for some equivalence relation on <code>Key</code> germane to
+the factory), or stores the new entry if no equivalent one is found. A
+<code>handle_type</code> to the equivalent or newly inserted entry is returned;
+this <code>handle_type</code> is a token for further access to an entry via
+<code>erase()</code> and <code>entry()</code>. Consult the
+<a href="../reference/factories.html#factory">reference</a> for the formal
+definition of the <code>Factory</code> concept.
+</p>
+
+<p>
+Let us see an actual example of realization of a custom factory class. Suppose
+we want to trace the different invocations by Boost.Flyweight of the
+<code>insert()</code> and <code>erase()</code> member functions: this can be
+done by using a custom factory whose member methods emit trace messages
+to the program console. We base the implementation of the repository
+functionality on a regular <code>std::set</code>:
+
+<blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Entry</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Key</span><span class=special>&gt;</span>
+<span class=keyword>class</span> <span class=identifier>verbose_factory_class</span>
+<span class=special>{</span> 
+  <span class=keyword>typedef</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>set</span><span class=special>&lt;</span><span class=identifier>Entry</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>less</span><span class=special>&lt;</span><span class=identifier>Key</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>store_type</span><span class=special>;</span>
+
+  <span class=identifier>store_type</span> <span class=identifier>store</span><span class=special>;</span>
+
+<span class=keyword>public</span><span class=special>:</span>
+  <span class=keyword>typedef</span> <span class=keyword>typename</span> <span class=identifier>store_type</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>handle_type</span><span class=special>;</span>
+
+  <span class=identifier>handle_type</span> <span class=identifier>insert</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>Entry</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>)</span>
+  <span class=special>{</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>handle_type</span><span class=special>,</span> <span class=keyword>bool</span><span class=special>&gt;</span> <span class=identifier>p</span><span class=special>=</span><span class=identifier>store</span><span class=special>.</span><span class=identifier>insert</span><span class=special>(</span><span class=identifier>x</span><span class=special>);</span>
+    <span class=keyword>if</span><span class=special>(</span><span class=identifier>p</span><span class=special>.</span><span class=identifier>second</span><span class=special>){</span> <span class=comment>/* new entry */</span>
+      <span class=identifier>std</span><span class=special>::</span><span class=identifier>cout</span><span class=special>&lt;&lt;</span><span class=string>&quot;new: &quot;</span><span class=special>&lt;&lt;(</span><span class=keyword>const</span> <span class=identifier>Key</span><span class=special>&amp;)</span><span class=identifier>x</span><span class=special>&lt;&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>endl</span><span class=special>;</span>
+    <span class=special>}</span>
+    <span class=keyword>else</span><span class=special>{</span>         <span class=comment>/* existing entry */</span>
+      <span class=identifier>std</span><span class=special>::</span><span class=identifier>cout</span><span class=special>&lt;&lt;</span><span class=string>&quot;hit: &quot;</span><span class=special>&lt;&lt;(</span><span class=keyword>const</span> <span class=identifier>Key</span><span class=special>&amp;)</span><span class=identifier>x</span><span class=special>&lt;&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>endl</span><span class=special>;</span>
+    <span class=special>}</span>
+    <span class=keyword>return</span> <span class=identifier>p</span><span class=special>.</span><span class=identifier>first</span><span class=special>;</span>
+  <span class=special>}</span>
+
+  <span class=keyword>void</span> <span class=identifier>erase</span><span class=special>(</span><span class=identifier>handle_type</span> <span class=identifier>h</span><span class=special>)</span>
+  <span class=special>{</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>cout</span><span class=special>&lt;&lt;</span><span class=string>&quot;del: &quot;</span><span class=special>&lt;&lt;(</span><span class=keyword>const</span> <span class=identifier>Key</span><span class=special>&amp;)*</span><span class=identifier>h</span><span class=special>&lt;&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>endl</span><span class=special>;</span>
+    <span class=identifier>store</span><span class=special>.</span><span class=identifier>erase</span><span class=special>(</span><span class=identifier>h</span><span class=special>);</span>
+  <span class=special>}</span>
+
+  <span class=keyword>const</span> <span class=identifier>Entry</span><span class=special>&amp;</span> <span class=identifier>entry</span><span class=special>(</span><span class=identifier>handle_type</span> <span class=identifier>h</span><span class=special>)</span>
+  <span class=special>{</span>
+    <span class=keyword>return</span> <span class=special>*</span><span class=identifier>h</span><span class=special>;</span>
+  <span class=special>}</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+The code deserves some commentaries:
+<ul>
+  <li>
+    Note that the factory is parameterized by <code>Entry</code>
+    and <code>Key</code>, as these types are provided internally by Boost.Flyweight
+    when the factory is instantiated as part of the machinery of <code>flyeight</code>;
+    but there is nothing to prevent us from having more template parameters for
+    finer configuration of the factory type: for instance, we could extend
+    <code>verbose_factory_class</code> to accept some comparison predicate rather than
+    the default <code>std::less&lt;Key&gt;</code>, or to specify the allocator
+    used by the internal <code>std::set</code>.
+  </li>
+  <li>
+    The fact that <code>Entry</code> is convertible to <code>const Key&amp;</code>
+    (which is about the only property known about <code>Entry</code>) is
+    exploited in the specification of <code>std::less&lt;Key&gt;</code> as
+    the comparison predicate for the <code>std::set</code> of <code>Entry</code>s
+    used as the internal repository.
+  </li>
+  <li>
+    As our public <code>handle_type</code> we are simply using an iterator to the
+    internal <code>std::set</code>.
+  </li>
+</ul>
+</p>
+
+<p>
+In order to plug a custom factory into the specification of a <code>flyweight</code>
+type, we need an associated construct called the <i>factory specifier</i>.
+A factory specifier is a 
+<a href="lambda_expressions.html"><code>Lambda
+Expression</code></a> accepting the two argument types <code>Entry</code>
+and <code>Key</code> and returning the corresponding factory class:
+</p>
+
+<blockquote><pre>
+<span class=comment>// Factory specifier (metafunction class version)</span>
+
+<span class=keyword>struct</span> <span class=identifier>custom_factory_specifier</span>
+<span class=special>{</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Entry</span><span class=special>,</span><span class=identifier>Key</span><span class=special>&gt;</span>
+  <span class=keyword>struct</span> <span class=identifier>apply</span>
+  <span class=special>{</span>
+    <span class=keyword>typedef</span> <span class=identifier>custom_factory_class</span><span class=special>&lt;</span><span class=identifier>Entry</span><span class=special>,</span><span class=identifier>Key</span><span class=special>&gt;</span> <span class=identifier>type</span><span class=special>;</span>
+  <span class=special>}</span> 
+<span class=special>};</span>
+
+<span class=comment>// Factory specifier (placeholder version)</span>
+
+<span class=keyword>typedef</span> <span class=identifier>custom_factory_class</span><span class=special>&lt;</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>,</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_2</span>
+<span class=special>&gt;</span> <span class=identifier>custom_factory_specifier</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+There is one last detail: in order to implement <code>flyweight</code>
+<a href="configuration.html#free_order_template">free-order template
+parameter interface</a>, it is necessary to explicitly tag a
+factory specifier as such, so that it can be distinguised from other
+types of specifiers. Boost.Flyweight provides three different mechanisms
+to do this tagging:
+<ol>
+  <li>Have the specifier derive from the dummy type <code>factory_marker</code>.
+      Note that this mechanism cannot be used with placeholder expressions.
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>factory_tag</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=keyword>struct</span> <span class=identifier>custom_factory_specifier</span><span class=special>:</span> <span class=identifier><b>factory_marker</b></span>
+<span class=special>{</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Entry</span><span class=special>,</span><span class=identifier>Key</span><span class=special>&gt;</span>
+  <span class=keyword>struct</span> <span class=identifier>apply</span>
+  <span class=special>{</span>
+    <span class=keyword>typedef</span> <span class=identifier>custom_factory_class</span><span class=special>&lt;</span><span class=identifier>Entry</span><span class=special>,</span><span class=identifier>Key</span><span class=special>&gt;</span> <span class=identifier>type</span><span class=special>;</span>
+  <span class=special>}</span> 
+<span class=special>};</span>
+</pre></blockquote>
+  </li>
+  <li>Specialize a special class template called
+    <a href="../reference/factories.html#is_factory"><code>is_factory</code></a>:
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>factory_tag</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=keyword>struct</span> <span class=identifier>custom_factory_specifier</span><span class=special>{};</span>
+
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;&gt;</span> <span class=keyword>struct</span> <span class=identifier>is_factory</span><span class=special>&lt;</span><span class=identifier>custom_factory_specifier</span><span class=special>&gt;:</span> <span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>true_</span><span class=special>{};</span>
+
+<span class=special>}</span>
+<span class=special>}</span>
+</pre></blockquote>
+  </li>
+  <li>The third mechanism, which is the least intrusive, consists in
+    wrapping the specifier inside the
+    <a href="../reference/factories.html#factory_construct"><code>factory</code></a>
+    construct:
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>factory_tag</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=keyword>typedef</span> <span class=identifier>flyweight</span><span class=special>&lt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span>
+  <span class=identifier><b>factory</b></span><span class=special>&lt;</span><span class=identifier>custom_factory_specifier</span><span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>flyweight_string</span><span class=special>;</span>
+</pre></blockquote>
+  </li>
+</ol>
+</p>
+
+<p>
+<a href="../examples.html#example7">Example 7</a> in the examples section develops
+in full the <code>verbose_factory_class</code> case sketched above.
+</p>
+
+<h2><a name="holders">Custom holders</a></h2>
+
+<p>
+A holder is a class with a static member function <code>get()</code> giving
+access to a unique instance of a given type <code>C</code>:
+</p>
+
+<blockquote><pre>
+<span class=comment>// example of a possible holder class template</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>C</span><span class=special>&gt;</span>
+<span class=keyword>class</span> <span class=identifier>custom_holder_class</span>
+<span class=special>{</span>
+<span class=keyword>public</span><span class=special>:</span>
+  <span class=keyword>static</span> <span class=identifier>C</span><span class=special>&amp;</span> <span class=identifier>get</span><span class=special>();</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+<code>flyweight</code> internally uses a holder to create its associated
+factory as well as some other global data. A holder specifier is a
+<a href="lambda_expressions.html"><code>Lambda
+Expression</code></a> accepting the type <code>C</code> upon which
+the associated holder class operates:
+</p>
+
+<blockquote><pre>
+<span class=comment>// Holder specifier (metafunction class version)</span>
+
+<span class=keyword>struct</span> <span class=identifier>custom_holder_specifier</span>
+<span class=special>{</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>C</span><span class=special>&gt;</span>
+  <span class=keyword>struct</span> <span class=identifier>apply</span>
+  <span class=special>{</span>
+    <span class=keyword>typedef</span> <span class=identifier>custom_holder_class</span><span class=special>&lt;</span><span class=identifier>C</span><span class=special>&gt;</span> <span class=identifier>type</span><span class=special>;</span>
+  <span class=special>}</span> 
+<span class=special>};</span>
+
+<span class=comment>// Holder specifier (placeholder version)</span>
+
+<span class=keyword>typedef</span> <span class=identifier>custom_holder_class</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>&gt;</span> <span class=identifier>custom_factory_specifier</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+As is the case with <a href="#factories">factory specifiers</a>, holder
+specifiers must be tagged in order to be properly recognized when
+provided to <code>flyweight</code>, and there are three available mechanisms
+to do so:
+</p>
+
+<blockquote><pre>
+<span class=comment>// Alternatives for tagging a holder specifier</span>
+
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>holder_tag</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=comment>// 1: Have the specifier derive from holder_marker</span>
+
+<span class=keyword>struct</span> <span class=identifier>custom_holder_specifier</span><span class=special>:</span> <span class=identifier><b>holder_marker</b></span>
+<span class=special>{</span>
+  <span class=special>...</span>
+<span class=special>};</span>
+
+<span class=comment>// 2: Specialize the is_holder class template</span>
+
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;&gt;</span> <span class=keyword>struct</span> <span class=identifier>is_holder</span><span class=special>&lt;</span><span class=identifier>custom_holder_specifier</span><span class=special>&gt;:</span> <span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>true_</span><span class=special>{};</span>
+
+<span class=special>}}</span>
+
+<span class=comment>// 3: use the holder&lt;&gt; wrapper when passing the specifier
+// to flyweight</span>
+
+<span class=keyword>typedef</span> <span class=identifier>flyweight</span><span class=special>&lt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span>
+  <span class=identifier><b>holder</b></span><span class=special>&lt;</span><span class=identifier>custom_holder_specifier</span><span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>flyweight_string</span><span class=special>;</span>
+</pre></blockquote>
+
+<h2><a name="locking">Custom locking policies</a></h2>
+
+<p>
+A custom locking policy presents the following simple interface:
+</p>
+
+<blockquote><pre>
+<span class=comment>// example of a custom policy</span>
+
+<span class=keyword>class</span> <span class=identifier>custom_locking</span>
+<span class=special>{</span>
+  <span class=keyword>typedef</span> <span class=special>...</span> <span class=identifier>mutex_type</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=special>...</span> <span class=identifier>lock_type</span><span class=special>;</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+where <code>lock_type</code> is used to acquire/release mutexes according to
+the <i>scoped lock</i> idiom:
+</p>
+
+<blockquote><pre>
+<span class=identifier>mutex_type</span> <span class=identifier>m</span><span class=special>;</span>
+<span class=special>...</span>
+<span class=special>{</span>
+  <span class=identifier>lock_type</span> <span class=identifier>lk</span><span class=special>(</span><span class=identifier>m</span><span class=special>);</span> <span class=comment>// acquire the mutex
+  // zone of mutual exclusion, no other thread can acquire the mutex</span>
+  <span class=special>...</span>
+<span class=special>}</span> <span class=comment>// m released at lk destruction</span>
+</pre></blockquote>
+
+<p>
+Formal definitions for the concepts
+<a href="../reference/locking.html#preliminary"><code>Mutex</code></a> and
+<a href="../reference/locking.html#preliminary"><code>Scoped Lock</code></a>
+are given at the reference. To pass a locking policy as a template argument of
+<code>flyweight</code>, the class must be appropriately tagged:
+</p>
+
+<blockquote><pre>
+<span class=comment>// Alternatives for tagging a locking policy</span>
+
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>locking_tag</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=comment>// 1: Have the policy derive from locking_marker</span>
+
+<span class=keyword>struct</span> <span class=identifier>custom_locking</span><span class=special>:</span> <span class=identifier>locking_marker</span>
+<span class=special>{</span>
+  <span class=special>...</span>
+<span class=special>};</span>
+
+<span class=comment>// 2: Specialize the is_locking class template</span>
+
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;&gt;</span> <span class=keyword>struct</span> <span class=identifier>is_locking</span><span class=special>&lt;</span><span class=identifier>custom_locking</span><span class=special>&gt;:</span> <span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>true_</span><span class=special>{};</span>
+
+<span class=special>}}</span>
+
+<span class=comment>// 3: use the locking&lt;&gt; wrapper when passing the policy
+// to flyweight</span>
+
+<span class=keyword>typedef</span> <span class=identifier>flyweight</span><span class=special>&lt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span>
+  <span class=identifier>locking</span><span class=special>&lt;</span><span class=identifier>custom_locking</span><span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>flyweight_string</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+Note that a locking policy is its own specifier, i.e. there is no
+additional class to be passed as a proxy for the real component as is
+the case with factories and holders.
+</p>
+
+<h2><a name="tracking">Custom tracking policies</a></h2>
+
+<p>
+Tracking policies contribute some type information to the process of
+definition of the internal flyweight factory, and are given access
+to that factory to allow for the implementation of the tracking
+code. A tracking policy <code>Tracking</code> is defined as a class with
+the following nested elements:
+<ul>
+  <li>A type <code>Tracking::entry_type</code>.</li>
+  <li>A type <code>Tracking::handle_type</code>.</li>
+</ul>
+Each of these elements build on the preceding one, in the sense that
+Boost.Flyweight internal machinery funnels the results produced by an
+element into the following:
+<ul>
+  <li><code>Tracking::entry_type</code> is a
+    <a href="lambda_expressions.html"><code>Lambda
+    Expression</code></a> accepting two different types named
+    <code>Value</code> and <code>Key</code> such that
+    <code>Value</code> is implicitly convertible to
+    <code>const Key&amp;</code>. The expression is expected
+    to return
+    a type implicitly convertible to both <code>const Value&amp;</code>
+    and <code>const Key&amp;</code>.
+    <code>Tracking::entry_type</code> corresponds to the actual
+    type of the entries stored into the
+    <a href="configuration.html#factory_types">flyweight factory</a>:
+    by allowing the tracking policy to take part on the definition
+    of this type it is possible for the policy to add internal
+    tracking information to the entry data in case this is needed.
+    If no additional information is required,
+    the tracking policy can simply return <code>Value</code> as its
+    <code>Tracking::entry_type</code> type.
+  </li>
+  <li>
+    The binary <a href="lambda_expressions.html"><code>Lambda
+    Expression</code></a> <code>Tracking::handle_type</code> is invoked
+    with types <code>InternalHandle</code> and <code>TrackingHandler</code>
+    to produce a type <code>Handle</code>, which will be used as the handle
+    type of the flyweight factory.
+    <a href="../reference/tracking.html#preliminary"><code>TrackingHandler</code></a>
+    is passed as a template argument to <code>Tracking::handle_type</code>
+    to offer functionality supporting the implementation of the tracking
+    code.
+  </li>
+</ul>
+So, in order to define the factory of some instantiation
+<code>fw_t</code> of <code>flyweight</code>, <code>Tracking::entry_type</code>
+is invoked with an internal type <code>Value</code> implicitly convertible
+to <code>const fw_t::key_type&amp;</code> to obtain the entry type for the factory,
+which must be convertible to both <code>const Value&amp;</code> and
+<code>const fw_t::key_type&amp;</code>.
+Then, <code>Tracking::handle_type</code> is fed an internal handle
+type and a tracking policy helper to produce the factory handle type.
+The observant reader might have detected an apparent circularity: 
+<code>Tracking::handle_type</code> produces the handle type of
+the flyweight factory, and at the same time is passed a tracking helper
+that grants access to the factory being defined!
+The solution to this riddle comes from the realization of the fact that
+<code>TrackingHandler</code> is an <i>incomplete
+type</i> by the time it is passed to <code>Tracking::handle_type</code>:
+only when <code>Handle</code> is instantiated at a later stage will this
+type be complete.
+</p>
+
+<p>
+In order for a tracking policy to be passed to <code>flyweight</code>,
+it must be tagged much in the same way as the rest of specifiers.
+</p>
+
+<blockquote><pre>
+<span class=comment>// Alternatives for tagging a tracking policy</span>
+
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>tracking_tag</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=comment>// 1: Have the policy derive from tracking_marker</span>
+
+<span class=keyword>struct</span> <span class=identifier>custom_tracking</span><span class=special>:</span> <span class=identifier><b>tracking_marker</b></span>
+<span class=special>{</span>
+  <span class=special>...</span>
+<span class=special>};</span>
+
+<span class=comment>// 2: Specialize the is_tracking class template</span>
+
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;&gt;</span> <span class=keyword>struct</span> <span class=identifier>is_tracking</span><span class=special>&lt;</span><span class=identifier>custom_tracking</span><span class=special>&gt;:</span> <span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>true_</span><span class=special>{};</span>
+
+<span class=special>}}</span>
+
+<span class=comment>// 3: use the tracking&lt;&gt; wrapper when passing the policy
+// to flyweight</span>
+
+<span class=keyword>typedef</span> <span class=identifier>flyweight</span><span class=special>&lt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span>
+  <span class=identifier><b>tracking</b></span><span class=special>&lt;</span><span class=identifier>custom_tracking</span><span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>flyweight_string</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+Tracking policies are their own specifiers, that is, they are provided directly
+as template arguments to the <code>flyweight</code> class template.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="configuration.html"><img src="../prev.gif" alt="configuring Boost.Flyweight" border="0"><br>
+Configuring Boost.Flyweight
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight tutorial" border="0"><br>
+Boost.Flyweight tutorial
+</a></div>
+<div class="next_link"><a href="technical.html"><img src="../next.gif" alt="technical issues" border="0"><br>
+Technical issues
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised December 2nd 2008</p>
+
+<p>&copy; Copyright 2006-2008 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

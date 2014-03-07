@@ -1,0 +1,16 @@
+.. Copyright David Abrahams 2006. Distributed under the Boost
+.. Software License, Version 1.0. (See accompanying
+.. file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+To get started with the Boost Python Library, use the examples
+getting_started1.cpp and getting_started2.cpp.  Invoking
+
+    bjam --toolset=your-toolset test
+
+in this directory will build and run the examples.  See
+http://www.boost.org/more/getting_started.html for details about the
+--toolset= option.
+
+If you move this example from its place in the Boost development tree
+you'll need to edit the two lines indicated in Jamroot and
+boost-build.jam.

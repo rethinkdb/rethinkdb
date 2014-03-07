@@ -1,0 +1,230 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Polygon Usage</title>
+</head>
+
+<body>
+
+<h1>Minkowski Sum Tutorial</h1> 
+<p>In this tutorial we will implement an algorithm to compute the Minkowski sum 
+of two polygon sets.&nbsp; The Minkowski sum of two polygon sets is the 
+convolution of the two polygon sets and is defined as the set of points which is 
+produced if you sum all pairs of points in the two polygon sets.&nbsp; The sum 
+of two points is implemented in Boost.Polygon by the <font face="Courier New">
+convolve</font> function for <a href="gtl_point_concept.htm">point_concept</a>.&nbsp; 
+Similarly there is a <font face="Courier New">
+convolve</font> function for <a href="gtl_rectangle_concept.htm">rectangle_concept</a>.&nbsp; 
+The convolution of two polygon sets produces a polygon set as its output.&nbsp; 
+An example of the convolution of two polygons is shown below.&nbsp; The center 
+point of the green 
+star can be imagined to slide around freely inside the blue picture frame shape 
+painting the area the star touches to produce the red bloated picture frame.</p>
+<p>&nbsp;<img border="0" src="images/convolution1.PNG" width="438" height="404"></p>
+<p>The above image was produced using the code presented in this tutorial.&nbsp; 
+We can see that the algorithm for Minkowski sum should support non-convex 
+polygons that may potentially have holes.&nbsp; It should also support disjoint 
+polygons in both input polygon sets.&nbsp; Shown below is what happens when 
+multiple polygons are present in each input polygon set.</p>
+<p><img border="0" src="images/convolution2.PNG" width="547" height="432"></p>
+<p>In each of these examples the origin of the coordinate system is in the lower 
+left corner of the image and the sum of the x and y locations of the input 
+polygons places the result in the upper right hand corner of the images.&nbsp; 
+In the example above the lower left red triangle is the convolution of the small 
+blue triangle with the small green triangle.&nbsp; The upper right red triangle 
+is the convolution of the large blue and large green triangle.&nbsp; The two 
+medium sized red polygons are the result of the convolution of the small with 
+large and large with small blue and green triangles.&nbsp; The test case was 
+carefully contrived to prevent the result from merging together, though that 
+could certainly happen.</p>
+<p>The algorithm implemented for Minkowski sum in this tutorial is very simple.&nbsp; 
+It is based on the convolution of polygon edges.&nbsp; The convolution of two 
+edges is very easy to compute and is in general a parallelogram.&nbsp; An 
+example of two edges being convolved to produce a parallelogram is shown below.</p>
+<p><img border="0" src="images/convolve_edges.PNG" width="491" height="461"></p>
+<p>Now that we know what we need from a function to convolve two edges, let's 
+implement one now.&nbsp; Below we show the code for convolving two edges along 
+with some type definitions we will be using throughout the tutorial.&nbsp; The 
+code for this tutorial is available in <a href="tutorial/minkowski.cpp">
+minkowski.cpp</a>.</p>
+<p><font face="Courier New" size="2">typedef boost::polygon::point_data&lt;int&gt; 
+point;<br>
+typedef boost::polygon::polygon_set_data&lt;int&gt; polygon_set;<br>
+typedef boost::polygon::polygon_with_holes_data&lt;int&gt; polygon;<br>
+typedef std::pair&lt;point, point&gt; edge;<br>
+using namespace boost::polygon::operators;<br>
+<br>
+void convolve_two_segments(std::vector&lt;point&gt;&amp; figure, const edge&amp; a, const 
+edge&amp; b) {<br>
+&nbsp; using namespace boost::polygon;<br>
+&nbsp; figure.clear();<br>
+&nbsp; figure.push_back(point(a.first));<br>
+&nbsp; figure.push_back(point(a.first));<br>
+&nbsp; figure.push_back(point(a.second));<br>
+&nbsp; figure.push_back(point(a.second));<br>
+&nbsp; convolve(figure[0], b.second);<br>
+&nbsp; convolve(figure[1], b.first);<br>
+&nbsp; convolve(figure[2], b.first);<br>
+&nbsp; convolve(figure[3], b.second);<br>
+}</font></p>
+<p>This function for convolving two line segments just convolves the end points 
+of the two line segments in all combinations to produce the four points of a 
+parallelogram and populates a vector of points with them in the correct order.&nbsp; 
+We are using the Boost.Polygon library function for convolving two points and 
+the library point data structure.</p>
+<p>To compute the convolution of two polygon sets we start by taking the union 
+of the convolution of all pairs of edges between the two polygon sets.&nbsp; 
+Given an operation for convolving two edges it is pretty easy to convolve all 
+pairs of edges of two polygon sets.&nbsp; The result is the convolution the 
+perimeters of the polygon sets, but doesn't handle the convolution of their 
+interiors.&nbsp; To illustrate this we show what happens when one of the above 
+examples is computed using just the all pairs of edges convolution.</p>
+<p>&nbsp; <img border="0" src="images/perimeter_convolve.PNG" width="546" height="432"></p>
+<p>As we can see, the result is as if the small triangles were slid around the 
+perimeter of the large triangles leaving a hole in the center that should be 
+filled in if the small triangle were allowed to slide freely within the large 
+triangle.&nbsp; Also available in Boost.Polygon is the <font face="Courier New">
+convolve</font> function for <a href="gtl_polygon_concept.htm">polygon_concept</a> 
+that convolves a polygon over a point.&nbsp; All this does is translate the 
+polygon by the x and y value of the point.&nbsp; To fill in the interior regions 
+of the result of the convolution of two polygon sets we perform an all pairs of 
+polygon convolution to the first vertex of the other polygon and merge that into 
+the union of edge convolutions.</p>
+<p>Let's implement the rest of Minkowski sum of two polygon sets as the union of 
+all pairs edges convolutions and the all pairs of polygons to point 
+convolutions.&nbsp; First we implement a function that convolves all pairs of 
+edges represented by iterator pairs over points.&nbsp; We assume that the first 
+point is equal to the last point in each sequence because we know the polygons 
+that gave rise to the iterators were produce by the Boost.Polygon algorithm for 
+general polygon formation.</p>
+<p><font face="Courier New" size="2">template &lt;typename itrT1, typename itrT2&gt;<br>
+void convolve_two_point_sequences(polygon_set&amp; result, itrT1 ab, itrT1 ae, itrT2 
+bb, itrT2 be) {<br>
+&nbsp; using namespace boost::polygon;<br>
+&nbsp; if(ab == ae || bb == be)<br>
+&nbsp;&nbsp;&nbsp; return;<br>
+&nbsp; point prev_a = *ab;<br>
+&nbsp; std::vector&lt;point&gt; vec;<br>
+&nbsp; polygon poly;<br>
+&nbsp; ++ab;<br>
+&nbsp; for( ; ab != ae; ++ab) {<br>
+&nbsp;&nbsp;&nbsp; point prev_b = *bb;<br>
+&nbsp;&nbsp;&nbsp; itrT2 tmpb = bb;<br>
+&nbsp;&nbsp;&nbsp; ++tmpb;<br>
+&nbsp;&nbsp;&nbsp; for( ; tmpb != be; ++tmpb) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; convolve_two_segments(vec, std::make_pair(prev_b, 
+*tmpb), std::make_pair(prev_a, *ab));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; set_points(poly, vec.begin(), vec.end());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; result.insert(poly);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; prev_b = *tmpb;<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; prev_a = *ab;<br>
+&nbsp; }<br>
+}</font></p>
+<p>Using the function defined above we can implement a function for computing 
+the convolution of all pairs of edges represented by an iterator pair over 
+points and edges in a collection of polygons.&nbsp; We just call the 
+convolve_two_point_sequences for the input point sequence and all outer shell 
+and hole point sequences from the container of polygons.</p>
+<p><font face="Courier New" size="2">template &lt;typename itrT&gt;<br>
+void convolve_point_sequence_with_polygons(polygon_set&amp; result, itrT b, itrT e, 
+const std::vector&lt;polygon&gt;&amp; polygons) {<br>
+&nbsp; using namespace boost::polygon;<br>
+&nbsp; for(std::size_t i = 0; i &lt; polygons.size(); ++i) {<br>
+&nbsp;&nbsp;&nbsp; convolve_two_point_sequences(result, b, e, 
+begin_points(polygons[i]), end_points(polygons[i]));<br>
+&nbsp;&nbsp;&nbsp; for(polygon_with_holes_traits&lt;polygon&gt;::iterator_holes_type 
+itrh = begin_holes(polygons[i]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; itrh != end_holes(polygons[i]); ++itrh) 
+{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; convolve_two_point_sequences(result, b, e, 
+begin_points(*itrh), end_points(*itrh));<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; }<br>
+}</font></p>
+<p>Using the function defined above we can implement a function for computing 
+the convolution of all pairs of edges from polygons contained within two polygon 
+sets.&nbsp; We also convolve each polygon with the first vertex of every polygon 
+from the other set to fill in the interiors of the result.</p>
+<p><font face="Courier New" size="2">void convolve_two_polygon_sets(polygon_set&amp; 
+result, const polygon_set&amp; a, const polygon_set&amp; b) {<br>
+&nbsp; using namespace boost::polygon;<br>
+&nbsp; result.clear();<br>
+&nbsp; std::vector&lt;polygon&gt; a_polygons;<br>
+&nbsp; std::vector&lt;polygon&gt; b_polygons;<br>
+&nbsp; a.get(a_polygons);<br>
+&nbsp; b.get(b_polygons);<br>
+&nbsp; for(std::size_t ai = 0; ai &lt; a_polygons.size(); ++ai) {<br>
+&nbsp;&nbsp;&nbsp; convolve_point_sequence_with_polygons(result, 
+begin_points(a_polygons[ai]), <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+end_points(a_polygons[ai]), b_polygons);<br>
+&nbsp;&nbsp;&nbsp; for(polygon_with_holes_traits&lt;polygon&gt;::iterator_holes_type 
+itrh = begin_holes(a_polygons[ai]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; itrh != end_holes(a_polygons[ai]); ++itrh) 
+{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; convolve_point_sequence_with_polygons(result, 
+begin_points(*itrh), <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+end_points(*itrh), b_polygons);<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; for(std::size_t bi = 0; bi &lt; b_polygons.size(); ++bi) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; polygon tmp_poly = a_polygons[ai];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; result.insert(convolve(tmp_poly, *(begin_points(b_polygons[bi]))));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tmp_poly = b_polygons[bi];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; result.insert(convolve(tmp_poly, *(begin_points(a_polygons[ai]))));<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; }<br>
+}</font></p>
+<p>We test the convolution of two polygon set with the code shown below that 
+produces the first example shown in this tutorial.<font face="Courier New" size="2">
+</font></p>
+<p><font face="Courier New" size="2">polygon_set a, b, c;<br>
+a += boost::polygon::rectangle_data&lt;int&gt;(0+300, 0, 200+300, 200);<br>
+a -= boost::polygon::rectangle_data&lt;int&gt;(50+300, 50, 150+300, 150);<br>
+std::vector&lt;polygon&gt; polys;<br>
+std::vector&lt;point&gt; pts;<br>
+pts.push_back(point(-40, 0+300));<br>
+pts.push_back(point(-10, 10+300));<br>
+pts.push_back(point(0, 40+300));<br>
+pts.push_back(point(10, 10+300));<br>
+pts.push_back(point(40, 0+300));<br>
+pts.push_back(point(10, -10+300));<br>
+pts.push_back(point(0, -40+300));<br>
+pts.push_back(point(-10, -10+300));<br>
+pts.push_back(point(-40, 0+300));<br>
+polygon poly;<br>
+boost::polygon::set_points(poly, pts.begin(), pts.end());<br>
+b+=poly;<br>
+polys.clear();<br>
+convolve_two_polygon_sets(c, a, b);</font></p>
+<p>Output (a is blue, b is green and c is red):</p>
+<p><img border="0" src="images/convolution1.PNG" width="438" height="404"></p>
+<p>This concludes our tutorial on how to implement Minkowski sum of polygons as 
+the convolution of polygon sets based on the Boolean OR operation of geometry 
+produced by simpler convolution features provided by the Boost.Polygon library.</p>
+
+
+<table class="docinfo" rules="none" frame="void" id="table1">
+	<colgroup>
+		<col class="docinfo-name"><col class="docinfo-content">
+	</colgroup>
+	<tbody vAlign="top">
+		<tr>
+			<th class="docinfo-name">Copyright:</th>
+			<td>Copyright © Intel Corporation 2008-2010.</td>
+		</tr>
+		<tr class="field">
+			<th class="docinfo-name">License:</th>
+			<td class="field-body">Distributed under the Boost Software License, 
+			Version 1.0. (See accompanying file <tt class="literal">
+			<span class="pre">LICENSE_1_0.txt</span></tt> or copy at
+			<a class="reference" target="_top" href="http://www.boost.org/LICENSE_1_0.txt">
+			http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+		</tr>
+</table>
+
+</body>
+
+</html>

@@ -1,0 +1,249 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Custom Polygon Set</title>
+</head>
+
+<body>
+
+<p><font face="Courier New">/*<br>
+Copyright 2008 Intel Corporation<br>
+<br>
+Use, modification and distribution are subject to the Boost Software License,<br>
+Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at<br>
+http://www.boost.org/LICENSE_1_0.txt).<br>
+*/<br>
+#include &lt;boost/polygon/polygon.hpp&gt;<br>
+#include &lt;list&gt;<br>
+#include &lt;time.h&gt;<br>
+#include &lt;cassert&gt;<br>
+#include &lt;deque&gt;<br>
+#include &lt;iostream&gt;<br>
+namespace gtl = boost::polygon;<br>
+using namespace boost::polygon::operators;<br><br>
+//once again we make our usage of the library generic<br>
+//and parameterize it on the polygon set type<br>
+template &lt;typename PolygonSet&gt;<br>
+void test_polygon_set() {<br>
+&nbsp; using namespace gtl; <br>
+&nbsp; PolygonSet ps;<br>
+&nbsp; ps += rectangle_data&lt;int&gt;(0, 0, 10, 10);<br>
+&nbsp; PolygonSet ps2;<br>
+&nbsp; ps2 += rectangle_data&lt;int&gt;(5, 5, 15, 15);<br>
+&nbsp; PolygonSet ps3;<br>
+&nbsp; assign(ps3, ps * ps2); <br>
+&nbsp; PolygonSet ps4;<br>
+&nbsp; ps4 += ps + ps2;<br>
+&nbsp; assert(area(ps4) == area(ps) + area(ps2) - area(ps3));<br>
+&nbsp; assert(equivalence((ps + ps2) - (ps * ps2), ps ^ ps2));<br>
+&nbsp; rectangle_data&lt;int&gt; rect;<br>
+&nbsp; assert(extents(rect, ps ^ ps2));<br>
+&nbsp; assert(area(rect) == 225);<br>
+&nbsp; assert(area(rect ^ (ps ^ ps2)) == area(rect) - area(ps ^ ps2)); <br>
+}<br>
+<br>
+//first thing is first, lets include all the code from previous examples<br>
+<br>
+//the CPoint example<br>
+struct CPoint {<br>
+&nbsp; int x;<br>
+&nbsp; int y;<br>
+};<br>
+<br>
+namespace boost { namespace polygon {<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct geometry_concept&lt;CPoint&gt; { typedef point_concept type; };<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct point_traits&lt;CPoint&gt; {<br>
+&nbsp;&nbsp;&nbsp; typedef int coordinate_type;<br>
+<br>
+&nbsp;&nbsp;&nbsp; static inline coordinate_type get(const CPoint&amp; point, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+orientation_2d orient) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(orient == HORIZONTAL)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return point.x;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return point.y;<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; };<br>
+<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct point_mutable_traits&lt;CPoint&gt; {<br>
+&nbsp;&nbsp;&nbsp; static inline void set(CPoint&amp; point, orientation_2d orient, 
+int value) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(orient == HORIZONTAL)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; point.x = value;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; else<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; point.y = value;<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; static inline CPoint construct(int x_value, int y_value) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CPoint retval;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; retval.x = x_value;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; retval.y = y_value; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return retval;<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; };<br>
+} }<br>
+<br>
+//the CPolygon example<br>
+typedef std::list&lt;CPoint&gt; CPolygon;<br>
+<br>
+//we need to specialize our polygon concept mapping in boost polygon<br>
+namespace boost { namespace polygon {<br>
+&nbsp; //first register CPolygon as a polygon_concept type<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct geometry_concept&lt;CPolygon&gt;{ typedef polygon_concept type; };<br>
+<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct polygon_traits&lt;CPolygon&gt; {<br>
+&nbsp;&nbsp;&nbsp; typedef int coordinate_type;<br>
+&nbsp;&nbsp;&nbsp; typedef CPolygon::const_iterator iterator_type;<br>
+&nbsp;&nbsp;&nbsp; typedef CPoint point_type;<br>
+<br>
+&nbsp;&nbsp;&nbsp; // Get the begin iterator<br>
+&nbsp;&nbsp;&nbsp; static inline iterator_type begin_points(const CPolygon&amp; t) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return t.begin();<br>
+&nbsp;&nbsp;&nbsp; }<br>
+<br>
+&nbsp;&nbsp;&nbsp; // Get the end iterator<br>
+&nbsp;&nbsp;&nbsp; static inline iterator_type end_points(const CPolygon&amp; t) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return t.end();<br>
+&nbsp;&nbsp;&nbsp; }<br>
+<br>
+&nbsp;&nbsp;&nbsp; // Get the number of sides of the polygon<br>
+&nbsp;&nbsp;&nbsp; static inline std::size_t size(const CPolygon&amp; t) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return t.size();<br>
+&nbsp;&nbsp;&nbsp; }<br>
+<br>
+&nbsp;&nbsp;&nbsp; // Get the winding direction of the polygon<br>
+&nbsp;&nbsp;&nbsp; static inline winding_direction winding(const CPolygon&amp; t) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return unknown_winding;<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; };<br>
+<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct polygon_mutable_traits&lt;CPolygon&gt; {<br>
+&nbsp;&nbsp;&nbsp; //expects stl style iterators<br>
+&nbsp;&nbsp;&nbsp; template &lt;typename iT&gt;<br>
+&nbsp;&nbsp;&nbsp; static inline CPolygon&amp; set_points(CPolygon&amp; t, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+iT input_begin, iT input_end) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; t.clear();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while(input_begin != input_end) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; t.push_back(CPoint());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; gtl::assign(t.back(), *input_begin);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ++input_begin;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return t;<br>
+&nbsp;&nbsp;&nbsp; }<br>
+<br>
+&nbsp; };<br>
+} }<br>
+<br>
+//OK, finally we get to declare our own polygon set type<br>
+typedef std::deque&lt;CPolygon&gt; CPolygonSet;<br>
+<br>
+//deque isn't automatically a polygon set in the library<br>
+//because it is a standard container there is a shortcut<br>
+//for mapping it to polygon set concept, but I'll do it<br>
+//the long way that you would use in the general case.<br>
+namespace boost { namespace polygon {<br>
+&nbsp; //first we register CPolygonSet as a polygon set<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct geometry_concept&lt;CPolygonSet&gt; { typedef polygon_set_concept type; 
+};<br>
+<br>
+&nbsp; //next we map to the concept through traits<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct polygon_set_traits&lt;CPolygonSet&gt; {<br>
+&nbsp;&nbsp;&nbsp; typedef int coordinate_type;<br>
+&nbsp;&nbsp;&nbsp; typedef CPolygonSet::const_iterator iterator_type;<br>
+&nbsp;&nbsp;&nbsp; typedef CPolygonSet operator_arg_type;<br>
+<br>
+&nbsp;&nbsp;&nbsp; static inline iterator_type begin(const CPolygonSet&amp; 
+polygon_set) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return polygon_set.begin();<br>
+&nbsp;&nbsp;&nbsp; }<br>
+<br>
+&nbsp;&nbsp;&nbsp; static inline iterator_type end(const CPolygonSet&amp; 
+polygon_set) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return polygon_set.end();<br>
+&nbsp;&nbsp;&nbsp; }<br>
+<br>
+&nbsp;&nbsp;&nbsp; //don't worry about these, just return false from them<br>
+&nbsp;&nbsp;&nbsp; static inline bool clean(const CPolygonSet&amp; polygon_set) { 
+return false; }<br>
+&nbsp;&nbsp;&nbsp; static inline bool sorted(const CPolygonSet&amp; polygon_set) { 
+return false; }<br>
+&nbsp; };<br>
+<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct polygon_set_mutable_traits&lt;CPolygonSet&gt; {<br>
+&nbsp;&nbsp;&nbsp; template &lt;typename input_iterator_type&gt;<br>
+&nbsp;&nbsp;&nbsp; static inline void set(CPolygonSet&amp; polygon_set, 
+input_iterator_type input_begin, input_iterator_type input_end) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; polygon_set.clear();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //this is kind of cheesy. I am copying the 
+unknown input geometry<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //into my own polygon set and then calling get to 
+populate the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //deque<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; polygon_set_data&lt;int&gt; ps;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ps.insert(input_begin, input_end);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ps.get(polygon_set);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //if you had your own odd-ball polygon set you 
+would probably have<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //to iterate through each polygon at this point 
+and do something<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //extra<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; };<br>
+} }<br>
+<br>
+int main() {<br>
+&nbsp; long long c1 = clock();<br>
+&nbsp; for(int i = 0; i &lt; 1000; ++i) <br>
+&nbsp;&nbsp;&nbsp; test_polygon_set&lt;CPolygonSet&gt;();<br>
+&nbsp; long long c2 = clock();<br>
+&nbsp; for(int i = 0; i &lt; 1000; ++i) <br>
+&nbsp;&nbsp;&nbsp; test_polygon_set&lt;gtl::polygon_set_data&lt;int&gt; &gt;();<br>
+&nbsp; long long c3 = clock();<br>
+&nbsp; long long diff1 = c2 - c1;<br>
+&nbsp; long long diff2 = c3 - c2;<br>
+&nbsp; if(diff1 &gt; 0 &amp;&amp; diff2)<br>
+&nbsp;&nbsp;&nbsp; std::cout &lt;&lt; &quot;library polygon_set_data is &quot; &lt;&lt; 
+float(diff1)/float(diff2) &lt;&lt; &quot;X faster than custom polygon set deque of CPolygon&quot; 
+&lt;&lt; std::endl;<br>
+&nbsp; else<br>
+&nbsp;&nbsp;&nbsp; std::cout &lt;&lt; &quot;operation was too fast&quot; &lt;&lt; std::endl;<br>
+&nbsp; return 0;<br>
+}</font></p>
+<p><font face="Courier New">//Now you know how to map your own data type to 
+polygon set concept<br>
+//Now you also know how to make your application code that operates on geometry<br>
+//data type agnostic from point through polygon set
+&nbsp;</font></p>
+
+
+<table class="docinfo" rules="none" frame="void" id="table1">
+	<colgroup>
+		<col class="docinfo-name"><col class="docinfo-content">
+	</colgroup>
+	<tbody vAlign="top">
+		<tr>
+			<th class="docinfo-name">Copyright:</th>
+			<td>Copyright © Intel Corporation 2008-2010.</td>
+		</tr>
+		<tr class="field">
+			<th class="docinfo-name">License:</th>
+			<td class="field-body">Distributed under the Boost Software License, 
+			Version 1.0. (See accompanying file <tt class="literal">
+			<span class="pre">LICENSE_1_0.txt</span></tt> or copy at
+			<a class="reference" target="_top" href="http://www.boost.org/LICENSE_1_0.txt">
+			http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+		</tr>
+</table>
+
+</body>
+
+</html>

@@ -1,0 +1,96 @@
+#  (C) Copyright Gennadiy Rozental 2001-2007.
+#  Use, modification, and distribution are subject to the 
+#  Boost Software License, Version 1.0. (See accompanying file 
+#  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org/libs/test for the library home page.
+
+
+rule test-btl-lib ( test-rule : test-name : lib-name ? : pattern_file * : source_files * : extra-libs ? )
+{
+   source_files ?= $(test-name).cpp ;
+
+   return [ $(test-rule) $(source_files) ../build//$(lib-name) $(extra-libs)
+            : #args
+            : $(pattern_file)
+            : #<stlport-iostream>on 
+              # Activating -pedantic finds more gotchas
+              # Unfortunately, this warns about the use of "long long" in gcc's own stdlib
+              # So deactivate those warnings again
+              <toolset>gcc:<cxxflags>-pedantic
+              <toolset>gcc:<cxxflags>-Wno-long-long
+              <toolset>borland:<cxxflags>-w-8080
+              <toolset>borland:<cxxflags>-w-8084
+              <toolset>msvc-6.5:<link>static
+              <toolset>msvc-8.0:<define>_SCL_SECURE_NO_DEPRECATE
+              <warnings>all
+            : $(test-name)
+          ] ;
+}
+
+rule test-btl-lib-mt ( test-rule : test-name : lib-name ? : pattern_file * : source_files * : extra-libs ? )
+{
+   source_files ?= $(test-name).cpp ;
+
+   return [ $(test-rule) $(source_files) ../build//$(lib-name) $(extra-libs)
+            : #args
+            : $(pattern_file)
+            : #<stlport-iostream>on 
+              # Activating -pedantic finds more gotchas
+              # Unfortunately, this warns about the use of "long long" in gcc's own stdlib
+              # So deactivate those warnings again
+              <toolset>gcc:<cxxflags>-pedantic
+              <toolset>gcc:<cxxflags>-Wno-long-long
+              <toolset>borland:<cxxflags>-w-8080
+              <toolset>msvc-6.5:<link>static
+              <toolset>msvc-8.0:<define>_SCL_SECURE_NO_DEPRECATE
+              <define>BOOST_TEST_NO_AUTO_LINK=1 # requirements
+              <threading>multi
+            : $(test-name)
+          ] ;
+}
+
+test-suite "basics_test"
+        :
+          [ test-btl-lib run : class_properties_test : boost_unit_test_framework ]
+          [ test-btl-lib run : basic_cstring_test    : boost_unit_test_framework/<link>static ]
+        ;
+
+test-suite "prg_exec_monitor_test"
+        : [ test-btl-lib run-fail : prg_exec_fail1 : included ]
+          [ test-btl-lib run-fail : prg_exec_fail2 : boost_prg_exec_monitor/<link>static ]
+          [ test-btl-lib run-fail : prg_exec_fail3 : boost_prg_exec_monitor/<link>static ]
+          [ test-btl-lib run-fail : prg_exec_fail4 : boost_prg_exec_monitor/<link>static ]
+        ;
+
+test-suite "unit_test_framework_test"
+        :
+          [ test-btl-lib run : errors_handling_test        : boost_unit_test_framework : test_files/errors_handling_test.pattern ]
+          [ test-btl-lib run : online_test ]
+          [ test-btl-lib run-fail : minimal_test ]
+          [ test-btl-lib run : foreach_test ]
+          [ test-btl-lib run : output_test_stream_test     : boost_unit_test_framework ]
+          [ test-btl-lib run : result_report_test          : boost_unit_test_framework : test_files/result_report_test.pattern ]
+          [ test-btl-lib run : parameterized_test_test     : boost_unit_test_framework ]
+          [ test-btl-lib run : test_fp_comparisons         : boost_unit_test_framework ]
+          [ test-btl-lib run : test_tools_test             : boost_unit_test_framework : test_files/test_tools_test.pattern ]
+          [ test-btl-lib run : test_case_template_test     : boost_unit_test_framework ]
+          [ test-btl-lib run : custom_exception_test       : boost_unit_test_framework/<link>static ]
+          [ test-btl-lib run : fixed_mapping_test          : boost_unit_test_framework ]
+          [ test-btl-lib run : ifstream_line_iterator_test : boost_unit_test_framework : test_files/ifstream_line_iterator.tst1 test_files/ifstream_line_iterator.tst2 ]
+          [ test-btl-lib run : algorithms_test             : boost_unit_test_framework/<link>static ]
+          [ test-btl-lib run : token_iterator_test         : boost_unit_test_framework ]
+          [ test-btl-lib run : boost_check_equal_str       : boost_unit_test_framework ]
+          [ test-btl-lib run : test_tree_management_test   : boost_unit_test_framework ]
+        ;
+
+test-suite "multithreaded_test"
+        :
+          [ test-btl-lib-mt run : sync_access_test         : boost_unit_test_framework/<link>static : : : /boost/thread//boost_thread ]
+        ;
+
+# A target that runs all the tests 
+alias test : basics_test prg_exec_monitor_test unit_test_framework_test ; 
+  
+# Only run tests when explicitly requested 
+# explicit test basics_test prg_exec_monitor_test unit_test_framework_test ;

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.local_time.time_zone_base">
+  <title>Time Zone (abstract)</title>
+
+  <link linkend="time_zone_base_intro">Introduction</link> --
+  <link linkend="time_zone_base_header">Header</link> --
+  <link linkend="time_zone_base_constr">Construction</link> --
+  <link linkend="time_zone_base_accessors">Accessors</link>
+
+  <anchor id="time_zone_base_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>
+    The time_zone_base class is an abstract base class template for representing time zones. Time zones are a set of data and rules that provide information about a time zone. The date_time library handles time_zones by means of a boost::shared_ptr&lt;time_zone_base&gt;. A user's custom time zone class will work in the date_time library by means of this shared_ptr.
+  </para>
+  <para>
+    For convienience, the time_zone_base class is typedef'd as time_zone. All references in the documentation to time_zone, are referring to this typedef.
+  </para>
+
+  <anchor id="time_zone_base_header" />
+  <bridgehead renderas="sect3">Header</bridgehead>
+  <para>
+    The time_zone_base class is defined in the header:
+    <programlisting>#include "boost/date_time/time_zone_base.hpp"
+    </programlisting>
+  </para>
+
+  <anchor id="time_zone_base_constr" />
+  <bridgehead renderas="sect3">Construction</bridgehead>
+  <para>
+    A default constructor is provided in the time_zone_base class. There are no private data members in this base class to initialize.
+  </para>
+  <para>
+    Template parameters are time_type (typically posix_time::ptime) and CharT (defaults to char).
+  </para>
+
+  <anchor id="time_zone_base_accessors" />
+  <bridgehead renderas="sect3">Accessors</bridgehead>
+  <para>
+    All of the accessors listed here are pure virtual functions.
+  </para>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry>Syntax</entry>
+            <entry>Description</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top"><screen>
+string_type dst_zone_abbrev();</screen></entry>
+            <entry>Returns the daylight savings abbreviation for the represented time zone.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>
+string_type std_zone_abbrev();</screen></entry>
+            <entry>Returns the standard abbreviation for the represented time zone.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>
+string_type dst_zone_name();</screen></entry>
+            <entry>Returns the daylight savings name for the represented time zone.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>
+string_type std_zone_name();</screen></entry>
+            <entry>Returns the standard name for the represented time zone.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>bool has_dst();</screen></entry>
+            <entry>Returns true if this time zone does not make a daylight savings shift.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>
+time_type dst_local_start_time(year_type);</screen></entry>
+            <entry>The date and time daylight savings time begins in given year.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>
+time_type dst_local_end_time(year_type);</screen></entry>
+            <entry valign="top">The date and time daylight savings time ends in given year.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>
+time_duration_type base_utc_offset();</screen></entry>
+            <entry>The amount of time offset from UTC (typically in hours).</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>
+time_duration_type dst_offset();</screen></entry>
+            <entry>The amount of time shifted during daylight savings.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>
+std::string to_posix_string();</screen></entry>
+            <entry>Returns a posix time zone string representation of this time_zone_base object. For a detailed description of a posix time zone string see <link linkend="date_time.local_time.posix_time_zone">posix_time_zone</link>.</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+</section>

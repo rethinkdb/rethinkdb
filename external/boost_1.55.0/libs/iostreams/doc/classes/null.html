@@ -1,0 +1,273 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Null Devices</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Null Devices</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#acknowledgments">Acknowledgments</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A>
+    <DL>
+      <DT><A href="#null_source">Class template <CODE>basic_null_source</CODE></A></DT>
+      <DT><A href="#null_sink">Class template <CODE>basic_null_sink</CODE></A></DT>
+      <DT><A href="#null_device">Class template <CODE>basic_null_device</CODE></A></DT>
+    </DL>
+  </DT>
+</DL>
+
+<HR>
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    The class templates <CODE>basic_null_source</CODE>, <CODE>basic_null_sink</CODE> and <CODE>basic_null_device</CODE> are models of Device whose member functions all have trivial implementations. A <CODE>basic_null_source</CODE> is a <A HREF="../concepts/source.html">Source</A> whose member function <CODE>read</CODE> returns <CODE>-1</CODE>, indicating end-of-sequence. A <CODE>basic_null_sink</CODE> is a <A HREF="../concepts/sink.html">Sink</A> whose member function <CODE>write</CODE> consumes and ignores the characters passed to it. A <CODE>basic_null_device</CODE> combines &#8212; depending on its template parameter <A HREF="#null_device_params"><CODE>Mode</CODE></A> &#8212; the trivial <CODE>read</CODE> and <CODE>write</CODE> functions just described with a member <CODE>seek</CODE> that always returns an invalid stream position.
+</P>
+
+<P>
+    In addition, each of the above templates is <A HREF='../concepts/closable.html'>Closable</A>, with a no-op implementation of <CODE>close</CODE>.
+</P>
+
+<A NAME="acknowledgments"></A>
+<H2>Acknowledgments</H2>
+
+<P>
+    The templates described here were inspired by <A HREF="http://www.boost.org/people/daryle_walker.html" TARGET="_top">Daryle Walker's</A> <CODE>basic_nullbuf</CODE> template. <I>See</I> <A HREF="http://boost-sandbox.cvs.sourceforge.net/viewvc/boost-sandbox/boost-sandbox/libs/io/doc/null_stream.html" TARGET="_top">Disconnected Streams</A>.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/device/null.hpp"><CODE>&lt;boost/iostreams/device/null.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="null_source"></A>
+<H3>Class template <CODE>basic_null_source</CODE></H3>
+
+<H4>Description</H4>
+
+<P>Model of <A HREF="../concepts/source.html">Source</A> whose member function <CODE>read</CODE> returns <CODE>-1</CODE>, indicating end-of-sequence.</P>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#null_source_params">Ch</A>&gt;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#null_source_params">basic_null_source</A> { 
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS="keyword">typedef</SPAN> Ch                        char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS='omitted'>[implementation-defined]</SPAN>  category;
+
+    <A CLASS="documented" HREF="#null_source_ctor">basic_null_source</A>();    
+    std::streamsize <A CLASS="documented" HREF="#null_source_read">read</A>(char_type* s, std::streamsize n);
+    <SPAN CLASS='keyword'>void</SPAN> <A CLASS='documented' HREF='#null_source_close'>close</A>();
+};
+
+<SPAN CLASS='keyword'>typedef</SPAN> basic_null_source&lt;<SPAN CLASS='keyword'>char</SPAN>&gt;     <SPAN CLASS='defined'>null_source</SPAN>;
+<SPAN CLASS='keyword'>typedef</SPAN> basic_null_source&lt;<SPAN CLASS='keyword'>wchar_t</SPAN>&gt;  <SPAN CLASS='defined'>wnull_source</SPAN>;
+
+} } <SPAN CLASS='comment'>// End namespace boost::io</SPAN></PRE>
+
+<A NAME="null_source_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em">
+<TR>
+    <TD><P><I>Ch</I></TD><TD VALIGN="top">-</TD>
+    <TD><P>The <A HREF='../guide/traits.html#char_type'>character type</A> type.</TD>
+</TR>
+</TABLE>
+
+<A NAME="null_source_ctor"></A>
+
+<H4><CODE>basic_null_source::basic_null_source</CODE></H4>
+
+<PRE CLASS="broken_ie">    basic_null_source();</PRE>
+
+<P>Constructs a <CODE>basic_null_source</CODE>.</P>
+
+<A NAME="null_source_read"></A>
+<H4><CODE>basic_null_source::read</CODE></H4>
+
+<PRE CLASS="broken_ie">    std::streamsize read(char_type* s, std::streamsize n);</PRE>
+
+<P>Returns <CODE>-1</CODE>.</P>
+
+<A NAME="null_source_close"></A>
+<H4><CODE>basic_null_source::close</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>void</SPAN> close();</PRE>
+
+<P>No-op.</P>
+
+<A NAME="null_sink"></A>
+<H3>Class template <CODE>basic_null_sink</CODE></H3>
+
+<H4>Description</H4>
+
+<P>Model of <A HREF="../concepts/sink.html">Sink</A> whose member function <CODE>write</CODE> consumes and ignores the contents of the character buffer passed to it.
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#null_sink_params">Ch</A>&gt;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#null_sink_params">basic_null_sink</A> { 
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS="keyword">typedef</SPAN> Ch                        char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS='omitted'>[implementation-defined]</SPAN>  category;
+
+    <A CLASS="documented" HREF="#null_sink_ctor">basic_null_sink</A>();
+    std::streamsize <A CLASS="documented" HREF="#null_sink_write">write</A>(<SPAN CLASS='keyword'>const</SPAN> char_type* s, std::streamsize n);
+    <SPAN CLASS='keyword'>void</SPAN> <A CLASS='documented' HREF='#null_sink_close'>close</A>();
+};
+
+<SPAN CLASS='keyword'>typedef</SPAN> basic_null_sink&lt;<SPAN CLASS='keyword'>char</SPAN>&gt;     <SPAN CLASS='defined'>null_sink</SPAN>;
+<SPAN CLASS='keyword'>typedef</SPAN> basic_null_sink&lt;<SPAN CLASS='keyword'>wchar_t</SPAN>&gt;  <SPAN CLASS='defined'>wnull_sink</SPAN>;
+
+} } <SPAN CLASS='comment'>// End namespace boost::io</SPAN></PRE>
+
+<A NAME="null_sink_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em">
+<TR>
+    <TD><P><I>Ch</I></TD><TD VALIGN="top">-</TD>
+    <TD><P>The <A HREF='../guide/traits.html#char_type'>character type</A> type.</TD>
+</TR>
+</TABLE>
+
+<A NAME="null_sink_ctor"></A>
+
+<H4><CODE>basic_null_sink::basic_null_sink</CODE></H4>
+
+<PRE CLASS="broken_ie">    basic_null_sink();</PRE>
+
+<P>Constructs a <CODE>basic_null_sink</CODE>.</P>
+
+<A NAME="null_sink_write"></A>
+<H4><CODE>basic_null_sink::write</CODE></H4>
+
+<PRE CLASS="broken_ie">    std::streamsize write(<SPAN CLASS='keyword'>const</SPAN> char_type* s, std::streamsize n);</PRE>
+
+<P>Returns <CODE>n</CODE>.</P>
+
+<A NAME="null_sink_close"></A>
+<H4><CODE>basic_null_sink::close</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>void</SPAN> close();</PRE>
+
+<P>No-op.</P>
+
+<A NAME="null_device"></A>
+<H3>Class template <CODE>basic_null_device</CODE></H3>
+
+<H4>Description</H4>
+
+<P>Model of <A HREF="../concepts/seekable_device.html">Device</A> whose mode is specified as a template parameter, and whose member functions have trivial implementations, as follows:</P>
+<UL>
+<LI><CODE>read</CODE> returns <CODE>-1</CODE>, indicating end-of-sequence
+<LI><CODE>write</CODE> consumes but ignores the entire contents of the character buffer passed to it
+<LI><CODE>seek</CODE> returns an invalid stream position
+</UL>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#null_device_params">Ch</A>, <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#null_device_params">Mode</A>&gt;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#null_device_params">basic_null_device</A> {
+<SPAN CLASS="keyword">public</SPAN>:    
+    <SPAN CLASS="keyword">typedef</SPAN> Ch                        char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS='omitted'>[implementation-defined]</SPAN>  category;
+
+    <A CLASS="documented" HREF="#null_device_ctor">basic_null_device</A>();
+    std::streamsize <A CLASS="documented" HREF="#null_device_read">read</A>(char_type* s, std::streamsize n);
+    std::streamsize <A CLASS="documented" HREF="#null_device_write">write</A>(<SPAN CLASS='keyword'>const</SPAN> char_type* s, std::streamsize n);
+    <A CLASS='documented' HREF='../functions/positioning.html#synopsis'>stream_offset</A> <A CLASS='documented' HREF='#null_device_seek'>seek</A>( <A CLASS='documented' HREF='../functions/positioning.html#synopsis'>stream_offset</A> off, std::ios_base::seekdir way,
+                        std::ios_base::openmode which =
+                            std::ios_base::in | std::ios_base::out );
+    <SPAN CLASS='keyword'>void</SPAN> <A CLASS='documented' HREF='#null_device_close'>close</A>();
+};
+
+} } <SPAN CLASS='comment'>// End namespace boost::io</SPAN></PRE>
+
+<A NAME="null_device_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em">
+<TR>
+    <TD><P><I>Ch</I></TD><TD VALIGN="top">-</TD>
+    <TD><P>The <A HREF='../guide/traits.html#char_type'>character type</A>.</TD>
+</TR>
+<TR>
+    <TD><P><I>Mode</I></TD><TD VALIGN="top">-</TD>
+    <TD><P>The <A HREF='../guide/modes.html'>mode</A>.</TD>
+</TR>
+</TABLE>
+
+<A NAME="null_device_ctor"></A>
+<H4><CODE>basic_null_device::basic_null_device</CODE></H4>
+
+<PRE CLASS="broken_ie">    basic_null_device();</PRE>
+
+<P>Constructs a <CODE>basic_null_device</CODE>.</P>
+
+<A NAME="null_device_read"></A>
+<H4><CODE>basic_null_device::read</CODE></H4>
+
+<PRE CLASS="broken_ie">    std::streamsize read(char_type* s, std::streamsize n);</PRE>
+
+<P>Returns <CODE>-1</CODE>. Enabled if <CODE>Mode</CODE> refines <A HREF='../guide/modes.html#mode_tags'><CODE>input</CODE></A>.</P>
+
+<A NAME="null_device_write"></A>
+<H4><CODE>basic_null_device::write</CODE></H4>
+
+<PRE CLASS="broken_ie">    std::streamsize write(<SPAN CLASS='keyword'>const</SPAN> char_type* s, std::streamsize n);</PRE>
+
+<P>Returns <CODE>n</CODE>. Enabled if <CODE>Mode</CODE> refines <A HREF='../guide/modes.html#mode_tags'><CODE>output</CODE></A>.</P>
+
+<A NAME="null_device_seek"></A>
+<H4><CODE>basic_null_device::seek</CODE></H4>
+
+<PRE CLASS="broken_ie">     <A CLASS='documented' HREF='../functions/positioning.html#synopsis'>stream_offset</A> seek( <A CLASS='documented' HREF='../functions/positioning.html#synopsis'>stream_offset</A> off, std::ios_base::seekdir way,
+                         std::ios_base::openmode which =
+                             std::ios_base::in | std::ios_base::out );</PRE>
+
+<P>Returns an invalid stream position. Enabled if <CODE>Mode</CODE> permits random access.</P>
+
+<A NAME="null_device_close"></A>
+<H4><CODE>basic_null_device::close</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>void</SPAN> close();</PRE>
+
+<P>No-op.</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

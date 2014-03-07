@@ -1,0 +1,84 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>MultiLinestring Concept</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../concepts.html" title="Concepts">
+<link rel="prev" href="concept_multi_point.html" title="MultiPoint Concept">
+<link rel="next" href="concept_multi_polygon.html" title="MultiPolygon Concept">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="concept_multi_point.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concept_multi_polygon.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.concepts.concept_multi_linestring"></a><a class="link" href="concept_multi_linestring.html" title="MultiLinestring Concept">MultiLinestring
+        Concept</a>
+</h4></div></div></div>
+<h6>
+<a name="geometry.reference.concepts.concept_multi_linestring.h0"></a>
+          <span class="phrase"><a name="geometry.reference.concepts.concept_multi_linestring.description"></a></span><a class="link" href="concept_multi_linestring.html#geometry.reference.concepts.concept_multi_linestring.description">Description</a>
+        </h6>
+<p>
+          The MultiLinestring Concept describes the requirements for a multi linestring
+          type. All algorithms in Boost.Geometry will check any geometry arguments
+          against the concept requirements.
+        </p>
+<h6>
+<a name="geometry.reference.concepts.concept_multi_linestring.h1"></a>
+          <span class="phrase"><a name="geometry.reference.concepts.concept_multi_linestring.concept_definition"></a></span><a class="link" href="concept_multi_linestring.html#geometry.reference.concepts.concept_multi_linestring.concept_definition">Concept
+          Definition</a>
+        </h6>
+<p>
+          The MultiLinestring Concept is defined as following:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              There must be a specialization of the metafunction <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">tag</span></code>,
+              defining <code class="computeroutput"><span class="identifier">multi_linestring_tag</span></code>
+              as type
+            </li>
+<li class="listitem">
+              It must behave like a Boost.Range Random Access Range
+            </li>
+<li class="listitem">
+              The type defined by the metafunction <code class="computeroutput"><span class="identifier">range_value</span><span class="special">&lt;...&gt;::</span><span class="identifier">type</span></code>
+              must fulfill the <a class="link" href="concept_linestring.html" title="Linestring Concept">Linestring
+              Concept</a>
+            </li>
+</ul></div>
+<h6>
+<a name="geometry.reference.concepts.concept_multi_linestring.h2"></a>
+          <span class="phrase"><a name="geometry.reference.concepts.concept_multi_linestring.available_models"></a></span><a class="link" href="concept_multi_linestring.html#geometry.reference.concepts.concept_multi_linestring.available_models">Available
+          Models</a>
+        </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              <a class="link" href="../models/model_multi_linestring.html" title="model::multi_linestring">model::multi_linestring</a>
+            </li></ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="concept_multi_point.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concept_multi_polygon.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

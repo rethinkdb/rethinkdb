@@ -1,0 +1,61 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2010 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[/------------------------------------------------------------------------------]
+[section XXX]
+
+[heading Description]
+
+Description of XXX
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/operator/xxx.hpp>
+    #include <boost/spirit/include/qi_xxx.hpp>
+    
+Also, see __include_structure__.
+
+[heading Model of]
+
+[:__nary_parser_concept__]
+[:__binary_parser_concept__]
+[:__unary_parser_concept__]
+
+[variablelist Notation
+    [[`a`, `b`]     [A __parser_concept__]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in _concept-of_XXX_.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`xxx`]            [Semantics of `xxx`]]
+]
+
+[heading Attributes]
+
+See __qi_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`xxx`]            [Attribute of `xxx`]]
+]
+
+[heading Complexity]
+
+Big-O complexity of the parser
+
+[heading Example]
+
+Real example code. Use Quickbook import mechanism to link to actual
+working code snippets here.
+
+[endsect] [/ XXX]

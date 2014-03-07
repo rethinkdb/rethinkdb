@@ -1,0 +1,37 @@
+#          Copyright Andrii Sydorchuk 2010-2012.
+# Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+
+import cast ;
+import testing ;
+
+lib opengl : : <name>opengl32 ;
+
+project voronoi_example
+    :
+    requirements
+        <include>.
+        <toolset>msvc:<asynch-exceptions>on
+        <library>$(BOOST_ROOT)/libs/timer/build//boost_timer
+    ;
+
+exe voronoi-visualizer
+    :
+        voronoi_visualizer.cpp
+        [ cast _ moccable-cpp : voronoi_visualizer.cpp ]
+        /qt//QtOpenGL 
+    : 
+        <target-os>windows:<library>opengl
+    ;
+
+alias "basic-tutorial"
+    :
+        [ run voronoi_basic_tutorial.cpp ]
+    ;
+
+alias "advanced-tutorial"
+    :
+        [ run voronoi_advanced_tutorial.cpp ]
+    ;
+

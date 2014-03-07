@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.local_time.custom_time_zone">
+  <title>Custom Time Zone</title>
+
+  <link linkend="custom_time_zone_intro">Introduction</link> --
+  <link linkend="custom_time_zone_header">Header</link> --
+  <link linkend="custom_time_zone_constr">Construction</link> --
+  <link linkend="custom_time_zone_accessors">Accessors</link> --
+  <link linkend="custom_time_zone_dependents">Dependent Types</link>
+
+  <anchor id="custom_time_zone_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>
+    A custom_time_zone object is a set of data and rules that provide information about a time zone. Information such as the offset from UTC, it's name and abbreviation, as well as daylight savings rules, called <link linkend="date_time.local_time.dst_calc_rules">dst_calc_rules</link>. These rules are handled via a boost::shared_ptr&lt;dst_calc_rules&gt;. Not all time zones utilize daylight savings, therefore, time_zone objects can be used with a NULL-assigned shared_ptr.
+  </para>
+  <para>
+    As a convenience, a typedef for shared_ptr&lt;dst_calc_rules&gt; is provided.
+    <programlisting>typedef boost::shared_ptr&lt;dst_calc_rules&gt; local_time::dst_calc_rule_ptr;</programlisting>
+  </para>
+  <anchor id="date_time.local_time.custom_time_zone_ptr" />
+  <para>
+    The time_zone objects are used via a boost::shared_ptr&lt;local_time::time_zone&gt;. As a convenience, a typedef for boost::shared_ptr&lt;local_time::time_zone&gt; is provided: 
+    <programlisting>typedef boost::shared_ptr&lt;time_zone&gt; local_time::time_zone_ptr;</programlisting>
+  </para>
+
+  <anchor id="custom_time_zone_header" />
+  <bridgehead renderas="sect3">Header</bridgehead>
+  <para>
+    The inclusion of a single header will bring in all boost::local_time types, functions, and IO operators.
+    <programlisting>#include "boost/date_time/local_time/local_time.hpp"</programlisting>
+  </para>
+
+  <anchor id="custom_time_zone_constr" />
+  <bridgehead renderas="sect3">Construction</bridgehead>
+  <para>
+    Construction of a custom_time_zone is dependent on four objects: a 
+    <link linkend="date_time.posix_time.time_duration">time_duration</link>, a <link linkend="time_zone_names">time_zone_names</link>, a <link linkend="dst_adjustment_offsets">dst_adjustment_offsets</link>, and a shared_ptr to a <link linkend="date_time.local_time.dst_calc_rules">dst_calc_rule</link>.
+  </para>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry>Syntax</entry>
+            <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top"><screen>custom_time_zone(...)
+  Parameters:
+    <link linkend="time_zone_names">names</link>, 
+    <link linkend="date_time.posix_time.time_duration">gmt_offset</link>, 
+    <link linkend="dst_adjustment_offsets">dst_offsets</link>, 
+    <link linkend="date_time.local_time.dst_calc_rules">dst_rules</link> </screen></entry>
+            <entry>See <link linkend="date_time.examples.simple_time_zone">simple_time_zone</link> example for time_zone usage</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <anchor id="custom_time_zone_accessors" />
+  <bridgehead renderas="sect3">Accessors</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+            <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>std::string dst_zone_abbrev()</screen></entry>
+            <entry>Returns the daylight savings abbreviation for the represented time zone.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr->dst_zone_abbrev();
+// "EDT"</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>std::string std_zone_abbrev()</screen></entry>
+            <entry>Returns the standard abbreviation for the represented time zone.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr->std_zone_abbrev();
+// "EST"</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>std::string dst_zone_name()</screen></entry>
+            <entry>Returns the daylight savings name for the represented time zone.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr->dst_zone_name(); 
+// "Eastern Daylight Time"</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>std::string std_zone_name()</screen></entry>
+            <entry>Returns the standard name for the represented time zone.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr->std_zone_name();
+// "Eastern Standard Time"</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>bool has_dst()</screen></entry>
+            <entry>Returns true when custom_time_zone's shared_ptr to dst_calc_rules is not NULL.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr->has_dst();
+// true
+phx_zone_sh_ptr->has_dst();
+// false</screen>
+            </entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>dst_local_start_time(...)
+  Return Type:
+    ptime
+  Parameter:
+    greg_year</screen></entry>
+            <entry>The date and time daylight savings time begins in given year. Returns not_a_date_time if this zone has no daylight savings.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_ptr->dst_local_start_time(2004);
+// 2004-Apr-04 02:00</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>dst_local_end_time(...)
+  Return Type:
+    ptime
+  Parameter:
+    greg_year</screen></entry>
+            <entry>The date and time daylight savings time ends in given year. Returns not_a_date_time if this zone has no daylight savings.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_ptr->dst_local_end_time(2004);
+// 2004-Oct-31 02:00</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>time_duration base_utc_offset()</screen></entry>
+            <entry>The amount of time offset from UTC (typically in hours).</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_ptr->base_utc_offset();
+// -05:00</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>time_duration dst_offset()</screen></entry>
+            <entry>The amount of time shifted during daylight savings.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr->dst_offset();
+// 01:00</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>std::string to_posix_string()</screen></entry>
+            <entry>Returns a posix time zone string representation of this time_zone object. Depending on how the time_zone object was created, the date-spec format of the string will be in either 'M' notation or 'n' notation. Every possible date-spec that can be represented in 'J' notation can also be represented in 'n' notation. The reverse is not true so only 'n' notation is used for these types of date-specs. For a detailed description of a posix time zone string see <link linkend="date_time.local_time.posix_time_zone">posix_time_zone</link>.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_ptr->to_posix_string();
+// "EST-05EDT+01,M4.1.0/02:00,M10.5.0/02:00"
+phx_ptr->to_posix_string();
+// "MST-07"
+            </screen></entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <anchor id="custom_time_zone_dependents" />
+  <bridgehead renderas="sect3">Dependent Types</bridgehead>
+  <link linkend="time_zone_names">Time Zone Names</link> --
+  <link linkend="dst_adjustment_offsets">Dst Adjustment Offsets</link> --
+  <link linkend="date_time.local_time.dst_calc_rules">Daylight Savings Calc Rules</link>
+  <anchor id="time_zone_names" />
+  <bridgehead renderas="sect3">Time Zone Names</bridgehead>
+  <para>
+    The time_zone_names_base type is an immutable template class of four strings. One each for the name and abbreviation in standard time and daylight savings time. The time_zone_names type is a typedef of time_zone_names_base&lt;char&gt;.
+  </para>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+            <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>time_zone_names(...)
+  Parameters:
+    string std_name
+    string std_abbrev
+    string dst_name
+    string dst_abbrev</screen></entry>
+            <entry>The only constructor, all four strings must be provided.</entry>
+          </row>
+          <row>
+            <entry><screen>string sn("Eastern Standard Time");
+string sa("EST");
+string dn("Eastern Daylight Time");
+string da("EDT");
+time_zone_names nyc_names(sn, sa, 
+                          dn, da);</screen>
+            </entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>std::string std_zone_name()</screen></entry>
+            <entry>Returns the standard zone name</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_names.std_zone_name();
+// "Eastern Standard Time"</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>std::string std_zone_abbrev()</screen></entry>
+            <entry>Returns the standard zone abbreviation</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_names.std_zone_abbrev();
+// "EST"</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>std::string dst_zone_name()</screen></entry>
+            <entry>Returns the daylight savings zone name</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_names.std_zone_name();
+// "Eastern Daylight Time"</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>std::string dst_zone_abbrev()</screen></entry>
+            <entry>Returns the daylight savings zone abbreviation</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_names.std_zone_abbrev();
+// "EDT"</screen></entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <anchor id="dst_adjustment_offsets" />
+  <bridgehead renderas="sect3">Dst Adjustment Offsets</bridgehead>
+  <para>
+    The dst_adjustment_offsets type is a collection of three <link linkend="date_time.posix_time.time_duration">time_duration</link> objects.
+  </para>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+            <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>dst_adjustment_offsets(...)
+  Parameters:
+    time_duration dst_adjust
+    time_duration start_offset
+    time_duration end_offset</screen></entry>
+            <entry>The first time_duration is the daylight savings adjustment. The second is the time which daylight savings starts on the start day. The third is the time daylight savings ends on the ending day.</entry>
+          </row>
+          <row>
+            <entry><screen>
+dst_adjustment_offsets(hours(1), 
+                       hours(2), 
+                       hours(2));</screen></entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <anchor id="date_time.local_time.dst_calc_rules" />
+  <bridgehead renderas="sect3">Daylight Savings Calc Rules</bridgehead>
+  <para>
+    Daylight savings calc rules, named dst_calc_rules, are a series of objects that group appropriate <link linkend="date_time.gregorian.date_algorithms">date_generators</link> together to form rule sets. The individual rules objects are used via dst_calc_rule_ptr.
+  </para>
+  <para>
+    For a complete example of all five dst_calc_rule types, see: <link linkend="date_time.examples.calc_rules">calc_rules example</link>.
+  </para>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry>Syntax</entry>
+            <entry>Description</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top"><screen>partial_date_dst_rule(...)
+  Parameters:
+    start_rule
+    end_rule</screen></entry>
+            <entry>Both the start and end rules are of type gregorian::partial_date.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>first_last_dst_rule(...)
+  Parameters:
+    start_rule
+    end_rule</screen></entry>
+            <entry>The DST start rule is of type gregorian::first_day_of_the_week_in_month and the end rule is of type gregorian::last_day_of_the_week_in_month.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>last_last_dst_rule(...)
+  Parameters:
+    start_rule
+    end_rule</screen></entry>
+            <entry>Both the start and end rules are of type gregorian::last_day_of_the_week_in_month.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>nth_last_dst_rule(...)
+  Parameters:
+    start_rule
+    end_rule</screen></entry>
+            <entry>The DST start rule is of type gregorian::nth_day_of_the_week_in_month and the end rule is of type gregorian::last_day_of_the_week_in_month.</entry>
+          </row>
+          <row>
+            <entry valign="top"><screen>nth_kday_dst_rule(...)
+  Parameters:
+    start_rule
+    end_rule)
+(see note* below)</screen>
+            </entry>
+            <entry>Both rules are of type gregorian::nth_day_of_the_week_in_month.</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+    <para>
+      * Note: The name "nth_kday_dst_rule" is a bit cryptic. Therefore, a more descriptive name, "nth_day_of_the_week_in_month_dst_rule", is also provided.
+    </para>
+  </para>
+
+</section>

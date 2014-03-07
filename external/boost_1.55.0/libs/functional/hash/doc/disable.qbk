@@ -1,0 +1,29 @@
+
+[/ Copyright 2005-2008 Daniel James.
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) ]
+
+[section:disable Disabling The Extensions]
+
+While [classref boost::hash]'s extensions are generally useful, you might want
+to turn them of in order to check that your code will work with other
+implementations of TR1. To do this define the macro `BOOST_HASH_NO_EXTENSIONS`.
+When this macro is defined, only the specialisations detailed
+in TR1 will be declared. But, if you later undefine the macro and include
+<[headerref boost/functional/hash.hpp]> then the non-specialised form will be defined
+- activating the extensions.
+
+It is strongly recommended that you never undefine the macro - and only define
+it so that it applies to the complete translation unit, either by defining it
+at the beginning of the main source file or, preferably, by using a compiler
+switch or preference. And you really should never define it in header files.
+
+If you are writing a library which has code in the header which requires the
+extensions, then the best action is to tell users not to define the macro.
+Their code won't ['require] the macro.
+
+Translation units that are compiled with the macro defined will link with units
+that were compiled without it. This feature has been designed to avoid ODR
+violations.
+
+[endsect]

@@ -1,0 +1,247 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/et.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/et.xml
+ */
+et{
+    Version{"2.0.50.94"}
+    zoneStrings{
+        "Antarctica:DumontDUrville"{
+            ec{"Dumont D'Urville"}
+        }
+        "Antarctica:South_Pole"{
+            ec{"Lõunapoolus"}
+        }
+        "Atlantic:Canary"{
+            ec{"Kanaari saared"}
+        }
+        "Etc:Unknown"{
+            ec{"määramata"}
+        }
+        "Pacific:Easter"{
+            ec{"Lihavõttesaar"}
+        }
+        "meta:Acre"{
+            ld{"Acre suveaeg"}
+        }
+        "meta:Africa_Central"{
+            ls{"Kesk-Aafrika aeg"}
+        }
+        "meta:Africa_Eastern"{
+            ls{"Ida-Aafrika aeg"}
+        }
+        "meta:Africa_Southern"{
+            lg{"Lõuna-Aafrika aeg"}
+            ls{"Lõuna-Aafrika standardaeg"}
+        }
+        "meta:Africa_Western"{
+            ld{"Lääne-Aafrika suveaeg"}
+            ls{"Lääne-Aafrika aeg"}
+        }
+        "meta:America_Central"{
+            ld{"Kesk-Ameerika suveaeg"}
+            lg{"Kesk-Ameerika aeg"}
+            ls{"Kesk-Ameerika standardaeg"}
+        }
+        "meta:America_Eastern"{
+            ld{"Idaranniku suveaeg"}
+            lg{"Idaranniku aeg"}
+            ls{"Idaranniku standardaeg"}
+        }
+        "meta:America_Mountain"{
+            ld{"Mäestikuvööndi suveaeg"}
+            lg{"Mäestikuvööndi aeg"}
+            ls{"Mäestikuvööndi standardaeg"}
+        }
+        "meta:America_Pacific"{
+            ld{"Vaikse ookeani suveaeg"}
+            lg{"Vaikse ookeani aeg"}
+            ls{"Vaikse ookeani standardaeg"}
+        }
+        "meta:Atlantic"{
+            ld{"Atlandi suveaeg"}
+            lg{"Atlandi aeg"}
+            ls{"Atlandi standardaeg"}
+        }
+        "meta:Australia_Central"{
+            ld{"Kesk-Austraalia suveaeg"}
+            lg{"Kesk-Austraalia aeg"}
+            ls{"Kesk-Austraalia standardaeg"}
+        }
+        "meta:Australia_CentralWestern"{
+            ld{"Kesk-Lääne Austraalia suveaeg"}
+            lg{"Kesk-Lääne Austraalia aeg"}
+            ls{"Kesk-Lääne Austraalia standardaeg"}
+        }
+        "meta:Australia_Eastern"{
+            ld{"Ida-Austraalia suveaeg"}
+            lg{"Ida-Austraalia aeg"}
+            ls{"Ida-Austraalia standardaeg"}
+        }
+        "meta:Australia_Western"{
+            ld{"Lääne-Austraalia suveaeg"}
+            lg{"Lääne-Austraalia aeg"}
+            ls{"Lääne-Austraalia standardaeg"}
+        }
+        "meta:Azores"{
+            ld{"Assooride suveaeg"}
+            ls{"Assooride aeg"}
+        }
+        "meta:Cape_Verde"{
+            ld{"Rohuneemesaarte suveaeg"}
+            ls{"Rohuneemesaarte aeg"}
+        }
+        "meta:Chamorro"{
+            lg{"Põhja-Mariaanide aeg"}
+            ls{"Põhja-Mariaanide standardaeg"}
+            sg{"Ch. aeg"}
+        }
+        "meta:Chatham"{
+            ld{"Chathami suveaeg"}
+            ls{"Chathami standardaeg"}
+        }
+        "meta:Christmas"{
+            ls{"Jõulusaaare aeg"}
+        }
+        "meta:Cocos"{
+            ls{"Kookossaarte aeg"}
+        }
+        "meta:Cook"{
+            ld{"Cook'i saarte pool-suveaeg"}
+            ls{"Cook'i saarte aeg"}
+        }
+        "meta:Davis"{
+            ls{"Davis aeg"}
+        }
+        "meta:DumontDUrville"{
+            ls{"Dumont-d'Urville aeg"}
+        }
+        "meta:Easter"{
+            ld{"Lihavõttesaare suveaeg"}
+            ls{"Lihavõttesaare aeg"}
+        }
+        "meta:Europe_Central"{
+            ld{"Kesk-Euroopa suveaeg"}
+            ls{"Kesk-Euroopa aeg"}
+        }
+        "meta:Europe_Eastern"{
+            ld{"Ida-Euroopa suveaeg"}
+            ls{"Ida-Euroopa aeg"}
+        }
+        "meta:Europe_Western"{
+            ld{"Lääne-Euroopa suveaeg"}
+            ls{"Lääne-Euroopa aeg"}
+        }
+        "meta:Falkland"{
+            ld{"Falklandi saarte suveaeg"}
+            ls{"Falklandi saarte aeg"}
+        }
+        "meta:Fiji"{
+            ld{"Fiji suveaeg"}
+            ls{"Fiji aeg"}
+        }
+        "meta:French_Southern"{
+            ls{"Prantsuse Lõunaalade ja Antarktika aeg"}
+        }
+        "meta:GMT"{
+            ls{"Greenwich'i aeg"}
+        }
+        "meta:Galapagos"{
+            ls{"Galapagose aeg"}
+        }
+        "meta:Gambier"{
+            ls{"Gambier'i aeg"}
+        }
+        "meta:Gilbert_Islands"{
+            ls{"Gilberti saare aeg"}
+        }
+        "meta:Guam"{
+            ls{"Guami standardaeg"}
+        }
+        "meta:Hawaii_Aleutian"{
+            ls{"Hawaii-Aleuudi standardaeg"}
+        }
+        "meta:Indian_Ocean"{
+            ls{"India ookeani aeg"}
+        }
+        "meta:Kosrae"{
+            ls{"Kosrae aeg"}
+        }
+        "meta:Kuybyshev"{
+            ld{"Kuibõševi suveaeg"}
+            ls{"Kuibõševi aeg"}
+        }
+        "meta:Kwajalein"{
+            ls{"Kwajalein'i aeg"}
+        }
+        "meta:Line_Islands"{
+            ls{"Line'i saarte aeg"}
+        }
+        "meta:Lord_Howe"{
+            ld{"Lord Howe suveaeg"}
+            lg{"Lord Howe aeg"}
+            ls{"Lord Howe standardaeg"}
+        }
+        "meta:Maldives"{
+            ls{"Maldiivide aeg"}
+        }
+        "meta:Marquesas"{
+            ls{"Marquesas'i aeg"}
+        }
+        "meta:Marshall_Islands"{
+            ls{"Marshalli saarte aeg"}
+        }
+        "meta:Mauritius"{
+            ld{"Mauritiuse suveaeg"}
+            ls{"Mauritiuse aeg"}
+        }
+        "meta:Mawson"{
+            ls{"Mawson aeg"}
+        }
+        "meta:Moscow"{
+            ld{"Moskva suveaeg"}
+            lg{"Moskva aeg"}
+            ls{"Moskva standardaeg"}
+        }
+        "meta:Reunion"{
+            ls{"Reunioni aeg"}
+        }
+        "meta:Rothera"{
+            ls{"Rothera aeg"}
+        }
+        "meta:Samara"{
+            ld{"Samara suveag"}
+            ls{"Samara aeg"}
+        }
+        "meta:Seychelles"{
+            ls{"Seišellide aeg"}
+        }
+        "meta:South_Georgia"{
+            ls{"Lõuna-Georgia aeg"}
+            ss{"GST (Lõuna-Georgia)"}
+        }
+        "meta:Syowa"{
+            ls{"Syowa aeg"}
+        }
+        "meta:Turkey"{
+            ld{"Türgi suveaeg"}
+            ls{"Türgi aeg"}
+        }
+        "meta:Volgograd"{
+            ld{"Volgogradi suveaeg"}
+            ls{"Volgogradi aeg"}
+        }
+        "meta:Vostok"{
+            ls{"Vostoki aeg"}
+        }
+        fallbackFormat{"{0} ({1})"}
+        gmtFormat{"GMT{0}"}
+        hourFormat{"+HH:mm;-HH:mm"}
+    }
+}

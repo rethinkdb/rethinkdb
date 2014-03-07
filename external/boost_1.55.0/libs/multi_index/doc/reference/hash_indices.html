@@ -1,0 +1,1082 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Hashed indices reference</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="ord_indices.html">
+<link rel="up" href="index.html">
+<link rel="next" href="seq_indices.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Hashed indices reference</h1>
+
+<div class="prev_link"><a href="ord_indices.html"><img src="../prev.gif" alt="ordered indices" border="0"><br>
+Ordered indices
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex reference" border="0"><br>
+Boost.MultiIndex reference
+</a></div>
+<div class="next_link"><a href="seq_indices.html"><img src="../next.gif" alt="sequenced indices" border="0"><br>
+Sequenced indices
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#hash_index_fwd_synopsis">Header
+    <code>"boost/multi_index/hashed_index_fwd.hpp"</code> synopsis</a></li>
+  <li><a href="#synopsis">Header
+    <code>"boost/multi_index/hashed_index.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#unique_non_unique">
+        Index specifiers <code>hashed_unique</code> and <code>hashed_non_unique</code>
+        </a></li>
+      <li><a href="#hash_indices">Hashed indices</a>
+        <ul>
+          <li><a href="#complexity_signature">Complexity signature</a></li>
+          <li><a href="#instantiation_types">Instantiation types</a></li>
+          <li><a href="#types">Nested types</a></li>
+          <li><a href="#constructors">Constructors, copy and assignment</a></li>
+          <li><a href="#iterators">Iterators</a></li>
+          <li><a href="#modifiers">Modifiers</a></li>
+          <li><a href="#observers">Observers</a></li>
+          <li><a href="#lookup">Lookup</a></li>
+          <li><a href="#bucket_interface">Bucket interface</a></li>
+          <li><a href="#hash_policy">Hash policy</a></li>
+          <li><a href="#serialization">Serialization</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2>
+<a name="hash_index_fwd_synopsis">Header
+<a href="../../../../boost/multi_index/hashed_index_fwd.hpp">
+<code>"boost/multi_index/hashed_index_fwd.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>multi_index</span><span class=special>{</span>
+
+<span class=comment>// index specifiers hashed_unique and hashed_non_unique</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>consult hashed_unique reference for arguments</b><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>hashed_unique</span><span class=special>;</span>
+<span class=keyword>template</span><span class=special>&lt;</span><b>consult hashed_non_unique reference for arguments</b><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>hashed_non_unique</span><span class=special>;</span>
+
+<span class=comment>// indices</span>
+
+<span class=keyword>namespace</span> <span class=identifier>detail</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>implementation defined</b><span class=special>&gt;</span> <span class=keyword>class</span> <b>index name is implementation defined</b><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::multi_index::detail</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::multi_index</span> 
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<p>
+<code>hashed_index_fwd.hpp</code> provides forward declarations for index specifiers 
+<a href="#unique_non_unique"><code>hashed_unique</code> and <code>hashed_non_unique</code></a> and
+their associated <a href="#hash_indices">hashed index</a> classes.
+</p>
+
+<h2>
+<a name="synopsis">Header
+<a href="../../../../boost/multi_index/hashed_index.hpp">
+<code>"boost/multi_index/hashed_index.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>initializer_list</span><span class=special>&gt;</span>
+
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>multi_index</span><span class=special>{</span>
+
+<span class=comment>// index specifiers hashed_unique and hashed_non_unique</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>consult hashed_unique reference for arguments</b><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>hashed_unique</span><span class=special>;</span>
+<span class=keyword>template</span><span class=special>&lt;</span><b>consult hashed_non_unique reference for arguments</b><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>hashed_non_unique</span><span class=special>;</span>
+
+<span class=comment>// indices</span>
+
+<span class=keyword>namespace</span> <span class=identifier>detail</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>implementation defined</b><span class=special>&gt;</span> <span class=keyword>class</span> <b>index class name implementation defined</b><span class=special>;</span>
+
+<span class=comment>// index specialized algorithms:</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>implementation defined</b><span class=special>&gt;</span>
+<span class=keyword>void</span> <span class=identifier>swap</span><span class=special>(</span><b>index class name</b><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>,</span><b>index class name</b><span class=special>&amp;</span> <span class=identifier>y</span><span class=special>);</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::multi_index::detail</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::multi_index</span> 
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<h3><a name="unique_non_unique">
+Index specifiers <code>hashed_unique</code> and <code>hashed_non_unique</code>
+</a></h3>
+
+<p>
+These <a href="indices.html#index_specification">index specifiers</a> allow
+for insertion of <a href="#hash_indices">hashed indices</a> without and with
+allowance of duplicate elements, respectively. The syntax of <code>hashed_unique</code>
+and <code>hashed_non_unique</code> coincide, thus we describe them in a grouped manner.
+<code>hashed_unique</code> and <code>hashed_non_unique</code> can be instantiated in
+two different forms, according to whether a tag list for the index is provided or not:
+</p>
+
+<blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>KeyFromValue</span><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Hash</span><span class=special>=</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>hash</span><span class=special>&lt;</span><span class=identifier>KeyFromValue</span><span class=special>::</span><span class=identifier>result_type</span><span class=special>&gt;,</span>
+  <span class=keyword>typename</span> <span class=identifier>Pred</span><span class=special>=</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>equal_to</span><span class=special>&lt;</span><span class=identifier>KeyFromValue</span><span class=special>::</span><span class=identifier>result_type</span><span class=special>&gt;</span>
+<span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=special>(</span><span class=identifier>hashed_unique</span> <span class=special>|</span> <span class=identifier>hashed_non_unique</span><span class=special>)</span><span class=special>;</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>TagList</span><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>KeyFromValue</span><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Hash</span><span class=special>=</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>hash</span><span class=special>&lt;</span><span class=identifier>KeyFromValue</span><span class=special>::</span><span class=identifier>result_type</span><span class=special>&gt;,</span>
+  <span class=keyword>typename</span> <span class=identifier>Pred</span><span class=special>=</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>equal_to</span><span class=special>&lt;</span><span class=identifier>KeyFromValue</span><span class=special>::</span><span class=identifier>result_type</span><span class=special>&gt;</span>
+<span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=special>(</span><span class=identifier>hashed_unique</span> <span class=special>|</span> <span class=identifier>hashed_non_unique</span><span class=special>)</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+If provided, <code>TagList</code> must be an instantiation of the class template
+<a href="indices.html#tag"><code>tag</code></a>.
+The template arguments are used by the corresponding index implementation,
+refer to the <a href="#hash_indices">hashed indices</a> reference section for further
+explanations on their acceptable type values.
+</p>
+
+<h3><a name="hash_indices">Hashed indices</a></h3>
+
+<p>
+A hashed index provides fast retrieval of elements of a <code>multi_index_container</code>
+through hashing tecnhiques.
+A hashed index is particularized according to a given
+<a href="key_extraction.html#key_extractors"><code>Key Extractor</code></a>
+that retrieves keys from elements of <code>multi_index_container</code>, a <code>Hash</code>
+function object which returns hash values for the keys and a binary predicate <code>Pred</code>
+acting as an equivalence relation on values of <code>Key</code>.
+</p>
+
+<p>
+There are two variants of hashed indices: <i>unique</i>, which do
+not allow duplicate elements (with respect to its associated equality
+predicate) and <i>non-unique</i>, which accept those duplicates.
+The interface of these two variants is the same, so they are documented
+together, with minor differences explicitly stated when they exist.
+</p>
+
+<p>
+Except where noted or if the corresponding interface does not exist, hashed indices
+(both unique and non-unique) satisfy the C++ requirements for undordered associative
+containers at <b>[unord.req]</b> (supporting unique and equivalent keys, respectively.)
+Validity of iterators and references to
+elements is preserved in all cases. Occasionally, the exception safety guarantees provided
+are actually stronger than required by the standard. We only provide descriptions of
+those types and operations that do not exactly conform to or are not mandated by the standard
+requirements. 
+</p>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>multi_index</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>detail</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>implementation defined: dependent on types Value, Allocator,
+  TagList, KeyFromValue, Hash, Pred</b><span class=special>&gt;</span>
+<span class=keyword>class</span> <b>name is implementation defined</b>
+<span class=special>{</span> 
+<span class=keyword>public</span><span class=special>:</span>
+  <span class=comment>// types:</span>
+
+  <span class=keyword>typedef</span> <span class=keyword>typename</span> <span class=identifier>KeyFromValue</span><span class=special>::</span><span class=identifier>result_type</span>         <span class=identifier>key_type</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=identifier>Value</span>                                      <span class=identifier>value_type</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=identifier>KeyFromValue</span>                               <span class=identifier>key_from_value</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=identifier>Hash</span>                                       <span class=identifier>hasher</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=identifier>Pred</span>                                       <span class=identifier>key_equal</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=identifier>tuple</span><span class=special>&lt;</span>
+    <span class=identifier>size_type</span><span class=special>,</span><span class=identifier>key_from_value</span><span class=special>,</span><span class=identifier>hasher</span><span class=special>,</span><span class=identifier>key_equal</span><span class=special>&gt;</span>       <span class=identifier>ctor_args</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=identifier>TagList</span>                                    <span class=identifier>tag_list</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=identifier>Allocator</span>                                  <span class=identifier>allocator_type</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=keyword>typename</span> <span class=identifier>Allocator</span><span class=special>::</span><span class=identifier>pointer</span>                <span class=identifier>pointer</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=keyword>typename</span> <span class=identifier>Allocator</span><span class=special>::</span><span class=identifier>const_pointer</span>          <span class=identifier>const_pointer</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=keyword>typename</span> <span class=identifier>Allocator</span><span class=special>::</span><span class=identifier>reference</span>              <span class=identifier>reference</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=keyword>typename</span> <span class=identifier>Allocator</span><span class=special>::</span><span class=identifier>const_reference</span>        <span class=identifier>const_reference</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <b>implementation defined                     </b><span class=identifier>size_type</span><span class=special>;</span>      
+  <span class=keyword>typedef</span> <b>implementation defined                     </b><span class=identifier>difference_type</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <b>implementation defined                     </b><span class=identifier>iterator</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <b>implementation defined                     </b><span class=identifier>const_iterator</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <b>implementation defined                     </b><span class=identifier>local_iterator</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <b>implementation defined                     </b><span class=identifier>const_local_iterator</span><span class=special>;</span>
+
+  <span class=comment>// construct/destroy/copy:</span>
+
+  <b>index class name</b><span class=special>&amp;</span> <span class=keyword>operator</span><span class=special>=(</span><span class=keyword>const</span> <b>index class name</b><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <b>index class name</b><span class=special>&amp;</span> <span class=keyword>operator</span><span class=special>=(</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>initializer_list</span><span class=special>&lt;</span><span class=identifier>value_type</span><span class=special>&gt;</span> <span class=identifier>list</span><span class=special>);</span>
+
+  <span class=identifier>allocator_type</span> <span class=identifier>get_allocator</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+
+  <span class=comment>// size and capacity:</span>
+
+  <span class=keyword>bool</span>      <span class=identifier>empty</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>size_type</span> <span class=identifier>size</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>size_type</span> <span class=identifier>max_size</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+
+  <span class=comment>// iterators:</span>
+
+  <span class=identifier>iterator</span>       <span class=identifier>begin</span><span class=special>();</span>
+  <span class=identifier>const_iterator</span> <span class=identifier>begin</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>iterator</span>       <span class=identifier>end</span><span class=special>();</span>
+  <span class=identifier>const_iterator</span> <span class=identifier>end</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>const_iterator</span> <span class=identifier>cbegin</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>const_iterator</span> <span class=identifier>cend</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+ 
+  <span class=identifier>iterator</span>       <span class=identifier>iterator_to</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=identifier>const_iterator</span> <span class=identifier>iterator_to</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+
+  <span class=comment>// modifiers:</span>
+
+
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span><span class=special>...</span> <span class=identifier>Args</span><span class=special>&gt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>iterator</span><span class=special>,</span><span class=keyword>bool</span><span class=special>&gt;</span> <span class=identifier>emplace</span><span class=special>(</span><span class=identifier>Args</span><span class=special>&amp;&amp;...</span> <span class=identifier>args</span><span class=special>);</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span><span class=special>...</span> <span class=identifier>Args</span><span class=special>&gt;</span>
+  <span class=identifier>iterator</span> <span class=identifier>emplace_hint</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>Args</span><span class=special>&amp;&amp;...</span> <span class=identifier>args</span><span class=special>);</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>iterator</span><span class=special>,</span><span class=keyword>bool</span><span class=special>&gt;</span> <span class=identifier>insert</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>iterator</span><span class=special>,</span><span class=keyword>bool</span><span class=special>&gt;</span> <span class=identifier>insert</span><span class=special>(</span><span class=identifier>value_type</span><span class=special>&amp;&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=identifier>iterator</span> <span class=identifier>insert</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=identifier>iterator</span> <span class=identifier>insert</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>value_type</span><span class=special>&amp;&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>InputIterator</span><span class=special>&gt;</span>
+  <span class=keyword>void</span> <span class=identifier>insert</span><span class=special>(</span><span class=identifier>InputIterator</span> <span class=identifier>first</span><span class=special>,</span><span class=identifier>InputIterator</span> <span class=identifier>last</span><span class=special>);</span>
+  <span class=keyword>void</span> <span class=identifier>insert</span><span class=special>(</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>initializer_list</span><span class=special>&lt;</span><span class=identifier>value_type</span><span class=special>&gt;</span> <span class=identifier>list</span><span class=special>);</span>
+
+  <span class=identifier>iterator</span>  <span class=identifier>erase</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>);</span>
+  <span class=identifier>size_type</span> <span class=identifier>erase</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>key_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=identifier>iterator</span>  <span class=identifier>erase</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>first</span><span class=special>,</span><span class=identifier>iterator</span> <span class=identifier>last</span><span class=special>);</span>
+
+  <span class=keyword>bool</span> <span class=identifier>replace</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=keyword>bool</span> <span class=identifier>replace</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>value_type</span><span class=special>&amp;&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Modifier</span><span class=special>&gt;</span> <span class=keyword>bool</span> <span class=identifier>modify</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>Modifier</span> <span class=identifier>mod</span><span class=special>);</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Modifier</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Rollback</span><span class=special>&gt;</span>
+  <span class=keyword>bool</span> <span class=identifier>modify</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>Modifier</span> <span class=identifier>mod</span><span class=special>,</span><span class=identifier>Rollback</span> <span class=identifier>back</span><span class=special>);</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Modifier</span><span class=special>&gt;</span> <span class=keyword>bool</span> <span class=identifier>modify_key</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>Modifier</span> <span class=identifier>mod</span><span class=special>);</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>Modifier</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Rollback</span><span class=special>&gt;</span>
+  <span class=keyword>bool</span> <span class=identifier>modify_key</span><span class=special>(</span><span class=identifier>iterator</span> <span class=identifier>position</span><span class=special>,</span><span class=identifier>Modifier</span> <span class=identifier>mod</span><span class=special>,</span><span class=identifier>Rollback</span> <span class=identifier>back</span><span class=special>);</span>
+  
+  <span class=keyword>void</span> <span class=identifier>clear</span><span class=special>();</span>
+  <span class=keyword>void</span> <span class=identifier>swap</span><span class=special>(</span><b>index class name</b><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+
+  <span class=comment>// observers:</span>
+
+  <span class=identifier>key_from_value</span> <span class=identifier>key_extractor</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>hasher</span>         <span class=identifier>hash_function</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>key_equal</span>      <span class=identifier>key_eq</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+
+  <span class=comment>// lookup:</span>
+
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>CompatibleKey</span><span class=special>&gt;</span>
+  <span class=identifier>iterator</span> <span class=identifier>find</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>CompatibleKey</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=keyword>template</span><span class=special>&lt;</span>
+    <span class=keyword>typename</span> <span class=identifier>CompatibleKey</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>CompatibleHash</span><span class=special>,</span> <span class=keyword>typename</span> <span class=identifier>CompatiblePred</span>
+  <span class=special>&gt;</span>
+  <span class=identifier>iterator</span> <span class=identifier>find</span><span class=special>(</span>
+    <span class=keyword>const</span> <span class=identifier>CompatibleKey</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>,</span>
+    <span class=keyword>const</span> <span class=identifier>CompatibleHash</span><span class=special>&amp;</span> <span class=identifier>hash</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>CompatiblePred</span><span class=special>&amp;</span> <span class=identifier>eq</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span> 
+
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>CompatibleKey</span><span class=special>&gt;</span>
+  <span class=identifier>size_type</span> <span class=identifier>count</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>CompatibleKey</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=keyword>template</span><span class=special>&lt;</span>
+    <span class=keyword>typename</span> <span class=identifier>CompatibleKey</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>CompatibleHash</span><span class=special>,</span> <span class=keyword>typename</span> <span class=identifier>CompatiblePred</span>
+  <span class=special>&gt;</span>
+  <span class=identifier>size_type</span> <span class=identifier>count</span><span class=special>(</span>
+    <span class=keyword>const</span> <span class=identifier>CompatibleKey</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>,</span>
+    <span class=keyword>const</span> <span class=identifier>CompatibleHash</span><span class=special>&amp;</span> <span class=identifier>hash</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>CompatiblePred</span><span class=special>&amp;</span> <span class=identifier>eq</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>CompatibleKey</span><span class=special>&gt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>iterator</span><span class=special>,</span><span class=identifier>iterator</span><span class=special>&gt;</span> <span class=identifier>equal_range</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>CompatibleKey</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=keyword>template</span><span class=special>&lt;</span>
+    <span class=keyword>typename</span> <span class=identifier>CompatibleKey</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>CompatibleHash</span><span class=special>,</span> <span class=keyword>typename</span> <span class=identifier>CompatiblePred</span>
+  <span class=special>&gt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>iterator</span><span class=special>,</span><span class=identifier>iterator</span><span class=special>&gt;</span> <span class=identifier>equal_range</span><span class=special>(</span>
+    <span class=keyword>const</span> <span class=identifier>CompatibleKey</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>,
+    </span><span class=keyword>const</span> <span class=identifier>CompatibleHash</span><span class=special>&amp;</span> <span class=identifier>hash</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>CompatiblePred</span><span class=special>&amp;</span> <span class=identifier>eq</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+
+  <span class=comment>// bucket interface:</span>
+
+  <span class=identifier>size_type</span> <span class=identifier>bucket_count</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>size_type</span> <span class=identifier>max_bucket_count</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>size_type</span> <span class=identifier>bucket_size</span><span class=special>(</span><span class=identifier>size_type</span> <span class=identifier>n</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>size_type</span> <span class=identifier>bucket</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>key_type</span><span class=special>&amp;</span> <span class=identifier>k</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+
+  <span class=identifier>local_iterator</span>       <span class=identifier>begin</span><span class=special>(</span><span class=identifier>size_type</span> <span class=identifier>n</span><span class=special>);</span>
+  <span class=identifier>const_local_iterator</span> <span class=identifier>begin</span><span class=special>(</span><span class=identifier>size_type</span> <span class=identifier>n</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>local_iterator</span>       <span class=identifier>end</span><span class=special>(</span><span class=identifier>size_type</span> <span class=identifier>n</span><span class=special>);</span>
+  <span class=identifier>const_local_iterator</span> <span class=identifier>end</span><span class=special>(</span><span class=identifier>size_type</span> <span class=identifier>n</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>const_local_iterator</span> <span class=identifier>cbegin</span><span class=special>(</span><span class=identifier>size_type</span> <span class=identifier>n</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=identifier>const_local_iterator</span> <span class=identifier>cend</span><span class=special>(</span><span class=identifier>size_type</span> <span class=identifier>n</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+
+  <span class=identifier>local_iterator</span>       <span class=identifier>local_iterator_to</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=identifier>const_local_iterator</span> <span class=identifier>local_iterator_to</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>)</span><span class=keyword>const</span><span class=special>;</span>
+
+  <span class=comment>// hash policy:</span>
+
+  <span class=keyword>float</span> <span class=identifier>load_factor</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=keyword>float</span> <span class=identifier>max_load_factor</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=keyword>void</span>  <span class=identifier>max_load_factor</span><span class=special>(</span><span class=keyword>float</span> <span class=identifier>z</span><span class=special>);</span>
+  <span class=keyword>void</span>  <span class=identifier>rehash</span><span class=special>(</span><span class=identifier>size_type</span> <span class=identifier>n</span><span class=special>);</span>
+<span class=special>};</span>
+
+<span class=comment>// index specialized algorithms:</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><b>implementation defined</b><span class=special>&gt;</span>
+<span class=keyword>void</span> <span class=identifier>swap</span><span class=special>(</span><b>index class name</b><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>,</span><b>index class name</b><span class=special>&amp;</span> <span class=identifier>y</span><span class=special>);</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::multi_index::detail</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::multi_index</span> 
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<h4><a name="complexity_signature">Complexity signature</a></h4>
+
+<p>
+Here and in the descriptions of operations of hashed indices, we adopt the
+scheme outlined in the 
+<a href="indices.html#complexity_signature">complexity signature
+section</a>. The complexity signature of hashed indices is:
+<ul>
+  <li>copying: <code>c(n)=n*log(n)</code>,</li>
+  <li>insertion: average case <code>i(n)=1</code> (constant),
+    worst case <code>i(n)=n</code>,</li>
+  <li>hinted insertion: average case <code>h(n)=1</code> (constant),
+    worst case <code>h(n)=n</code>,</li>
+  <li>deletion: average case <code>d(n)=1</code> (constant),
+    worst case <code>d(n)=n</code>,</li>
+  <li>replacement:
+    <ul>
+      <li>if the new element key is equivalent to the original, <code>r(n)=1</code> (constant),</li>
+      <li>otherwise, average case <code>r(n)=1</code> (constant),
+        worst case <code>r(n)=n</code>,</li>
+    </ul></li>
+  <li>modifying: average case <code>m(n)=1</code> (constant),
+    worst case <code>m(n)=n</code>.</li>
+</ul>
+</p>
+
+<h4><a name="instantiation_types">Instantiation types</a></h4>
+
+<p>Hashed indices are instantiated internally to <code>multi_index_container</code> and
+specified by means of <a href="indices.html#indexed_by"><code>indexed_by</code></a>
+with <a href="#unique_non_unique"> index specifiers <code>hashed_unique</code>
+and <code>hashed_non_unique</code></a>. Instantiations are dependent on the
+following types:
+<ul>
+  <li><code>Value</code> from <code>multi_index_container</code>,</li>
+  <li><code>Allocator</code> from <code>multi_index_container</code>,</li>
+  <li><code>TagList</code> from the index specifier (if provided, otherwise <code>tag&lt;&gt;</code> is assumed),</li>
+  <li><code>KeyFromValue</code> from the index specifier,</li>
+  <li><code>Hash</code> from the index specifier,</li>
+  <li><code>Pred</code> from the index specifier.</li>
+</ul>
+<code>TagList</code> must be an instantiation of
+<a href="indices.html#tag"><code>tag</code></a>. The type <code>KeyFromValue</code>,
+which determines the mechanism for extracting a key from <code>Value</code>,
+must be a model of <a href="key_extraction.html#key_extractors">
+<code>Key Extractor</code></a> from <code>Value</code>. <code>Hash</code> is a
+<code>CopyConstructible</code>unary function object 
+taking a single argument of type <code>KeyFromValue::result_type</code> and returning a
+value of type <code>std::size_t</code> in the range
+<code>[0, std::numeric_limits&lt;std::size_t&gt;::max())</code>.
+<code>Pred</code> is a <code>CopyConstructible</code> binary predicate inducing an equivalence relation
+on elements of <code>KeyFromValue::result_type</code>. It is required that
+the <code>Hash</code> object return the same value for keys
+equivalent under <code>Pred</code>.
+</p>
+
+<h4><a name="types">Nested types</a></h4>
+
+<code>ctor_args</code>
+
+<blockquote>
+The first element of this tuple indicates the minimum number of buckets
+set up by the index on construction time. If the default value 0 is used,
+an implementation defined number is used instead.
+</blockquote>
+
+<code>iterator<br>
+const_iterator<br>
+local_iterator<br>
+const_local_iterator</code>
+
+<blockquote>
+These types are forward iterators.
+</blockquote>
+
+<h4><a name="constructors">Constructors, copy and assignment</a></h4>
+
+<p>
+As explained in the <a href="indices.html#index_concepts">index
+concepts section</a>, indices do not have public constructors or destructors.
+Assignment, on the other hand, is provided. Upon construction,
+<code>max_load_factor()</code> is 1.0.
+</p>
+
+<code><b>index class name</b>&amp; operator=(const <b>index class name</b>&amp; x);</code>
+
+<blockquote>
+<b>Effects:</b>
+<blockquote><pre>
+<span class=identifier>a</span><span class=special>=</span><span class=identifier>b</span><span class=special>;</span>
+</pre></blockquote>
+where <code>a</code> and <code>b</code> are the <code>multi_index_container</code>
+objects to which <code>*this</code> and <code>x</code> belong, respectively.<br>
+<b>Returns:</b> <code>*this</code>.<br>
+</blockquote>
+
+<code><b>index class name</b>&amp; operator=(std::initializer_list&lt;value_type&gt; list);</code>
+
+<blockquote>
+<b>Effects:</b>
+<blockquote><pre>
+<span class=identifier>a</span><span class=special>=</span><span class=identifier>list</span><span class=special>;</span>
+</pre></blockquote>
+where <code>a</code> is the <code>multi_index_container</code>
+object to which <code>*this</code> belongs.<br>
+<b>Returns:</b> <code>*this</code>.<br>
+</blockquote>
+
+<h4><a name="iterators">Iterators</a></h4>
+
+<code>iterator&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;iterator_to(const value_type&amp; x);<br>
+const_iterator iterator_to(const value_type&amp; x)const;</code>
+  
+<blockquote>
+<b>Requires:</b> <code>x</code> is a reference to an element of the container.<br>
+<b>Returns:</b> An iterator to <code>x</code>.<br>
+<b>Complexity:</b> Constant.<br>
+<b>Exception safety:</b> <code>nothrow</code>.<br>
+</blockquote>
+
+<h4><a name="modifiers">Modifiers</a></h4>
+
+<code>template&lt;typename... Args&gt;<br>
+std::pair&lt;iterator,bool&gt; emplace(Args&amp;&amp;... args);</code>
+
+<blockquote>
+<b>Requires:</b> <code>value_type</code> is <code>EmplaceConstructible</code>
+into <code>multi_index_container</code> from <code>args</code>.<br>
+<b>Effects:</b> Inserts a <code>value_type</code> object constructed with
+<code>std::forward&lt;Args&gt;(args)...</code> into the <code>multi_index_container</code> to which
+the index belongs if
+<ul>
+  <li>the index is non-unique OR no other element exists with
+    equivalent key,</li>
+  <li>AND insertion is allowed by all other indices of the
+    <code>multi_index_container</code>.</li>
+</ul>
+<b>Returns:</b> The return value is a pair <code>p</code>. <code>p.second</code>
+is <code>true</code> if and only if insertion took place. On successful insertion,
+<code>p.first</code> points to the element inserted; otherwise, <code>p.first</code>
+points to an element that caused the insertion to be banned. Note that more than
+one element can be causing insertion not to be allowed.<br>
+<b>Complexity:</b> <code>O(I(n))</code>.<br>
+<b>Exception safety:</b> Strong.<br>
+</blockquote>
+
+<code>template&lt;typename... Args&gt;<br>
+iterator emplace_hint(iterator position, Args&amp;&amp;... args);</code>
+
+<blockquote>
+<b>Requires:</b> <code>value_type</code> is <code>EmplaceConstructible</code>
+into <code>multi_index_container</code> from <code>args</code>.
+<code>position</code> is a valid iterator of the index.<br>
+<b>Effects:</b> Inserts a <code>value_type</code> object constructed with
+<code>std::forward&lt;Args&gt;(args)...</code> into the <code>multi_index_container</code> to which
+the index belongs if
+<ul>
+  <li>the index is non-unique OR no other element exists with
+    equivalent key,</li>
+  <li>AND insertion is allowed by all other indices of the
+    <code>multi_index_container</code>.</li>
+</ul>
+<code>position</code> is used as a hint to improve the efficiency of the
+operation.<br>
+<b>Returns:</b> On successful insertion, an iterator to the newly inserted
+element. Otherwise, an iterator to an element that caused the insertion to be
+banned. Note that more than one element can be causing insertion not to be
+allowed.<br>
+<b>Complexity:</b> <code>O(H(n))</code>.<br>
+<b>Exception safety:</b> Strong.<br>
+</blockquote>
+
+<code>std::pair&lt;iterator,bool> insert(const value_type&amp; x);</code><br>
+<code>std::pair&lt;iterator,bool> insert(value_type&amp;&amp; x);</code>
+
+<blockquote>
+<b>Requires (first version):</b> <code>value_type</code> is <code>CopyInsertable</code>
+into <code>multi_index_container</code>.<br>
+<b>Requires (second version):</b> <code>value_type</code> is <code>MoveInsertable</code>
+into <code>multi_index_container</code>.<br>
+<b>Effects:</b> Inserts <code>x</code> into the <code>multi_index_container</code> to which
+the index belongs if
+<ul>
+  <li>the index is non-unique OR no other element exists with
+    equivalent key,</li>
+  <li>AND insertion is allowed by all other indices of the
+    <code>multi_index_container</code>.</li>
+</ul>
+<b>Returns:</b> The return value is a pair <code>p</code>. <code>p.second</code>
+is <code>true</code> if and only if insertion took place. On successful insertion,
+<code>p.first</code> points to the element inserted; otherwise, <code>p.first</code>
+points to an element that caused the insertion to be banned. Note that more than
+one element can be causing insertion not to be allowed.<br>
+<b>Complexity:</b> <code>O(I(n))</code>.<br>
+<b>Exception safety:</b> Strong.<br>
+</blockquote>
+
+<code>iterator insert(iterator position,const value_type&amp; x);</code><br>
+<code>iterator insert(iterator position,value_type&amp;&amp; x);</code>
+
+<blockquote>
+<b>Requires (first version):</b> <code>value_type</code> is <code>CopyInsertable</code>
+into <code>multi_index_container</code>.
+<code>position</code> is a valid iterator of the index.<br>
+<b>Requires (second version):</b> <code>value_type</code> is <code>MoveInsertable</code>
+into <code>multi_index_container</code>.
+<code>position</code> is a valid iterator of the index.<br>
+<b>Effects:</b> Inserts <code>x</code> into the <code>multi_index_container</code> to which
+the index belongs if
+<ul>
+  <li>the index is non-unique OR no other element exists with
+    equivalent key,</li>
+  <li>AND insertion is allowed by all other indices of the
+    <code>multi_index_container</code>.</li>
+</ul>
+<code>position</code> is used as a hint to improve the efficiency of the
+operation.<br>
+<b>Returns:</b> On successful insertion, an iterator to the newly inserted
+element. Otherwise, an iterator to an element that caused the insertion to be
+banned. Note that more than one element can be causing insertion not to be
+allowed.<br>
+<b>Complexity:</b> <code>O(H(n))</code>.<br>
+<b>Exception safety:</b> Strong.<br>
+</blockquote>
+
+<code>template&lt;typename InputIterator><br>
+void insert(InputIterator first,InputIterator last);</code>
+
+<blockquote>
+<b>Requires:</b> <code>InputIterator</code> is an input iterator.
+<code>value_type</code> is
+<code>EmplaceConstructible</code> into
+<code>multi_index_container</code> from <code>*first</code>.
+<code>first</code> and <code>last</code> are not iterators into any
+index of the <code>multi_index_container</code> to which this index belongs.
+<code>last</code> is reachable from <code>first</code>.<br>
+<b>Effects:</b>
+For each element of [<code>first</code>, <code>last</code>), in this
+order, inserts it into the <code>multi_index_container</code>
+to which this index belongs if
+<ul>
+  <li>the index is non-unique OR no other element exists with
+    equivalent key,</li>
+  <li>AND insertion is allowed by all other indices of the
+    <code>multi_index_container</code>.</li>
+</ul>
+<b>Complexity:</b> <code>O(m*I(n+m))</code>, where
+<code>m</code> is the number of elements in [<code>first</code>,
+<code>last</code>).<br>
+<b>Exception safety:</b> Basic.<br>
+</blockquote>
+
+<code>void insert(std::initializer_list&lt;value_type&gt; list);</code>
+
+<blockquote>
+<b>Effects:</b>
+<blockquote><pre>
+<span class=identifier>insert</span><span class=special>(</span><span class=identifier>list</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>list</span><span class=special>.</span><span class=identifier>end</span><span class=special>())</span>
+</pre></blockquote>
+</blockquote>
+    
+<code>iterator erase(iterator position);</code>
+
+<blockquote>
+<b>Requires:</b> <code>position</code> is a valid dereferenceable  iterator
+of the index.<br>
+<b>Effects:</b> Deletes the element pointed to by <code>position</code>.<br>
+<b>Returns:</b> An iterator pointing to the element immediately following
+the one that was deleted, or <code>end()</code>
+if no such element exists.<br>
+<b>Complexity:</b> <code>O(D(n))</code>.<br>
+<b>Exception safety:</b> <code>nothrow</code>.<br>
+</blockquote>
+
+<code>size_type erase(const key_type&amp; x);</code>
+
+<blockquote>
+<b>Effects:</b> Deletes the elements with key equivalent to <code>x</code>.<br>
+<b>Returns:</b> Number of elements deleted.<br>
+<b>Complexity:</b> Average case, <code>O(1 + m*D(n))</code>, worst case
+<code>O(n + m*D(n))</code>, where <code>m</code> is
+the number of elements deleted.<br>
+<b>Exception safety:</b> Basic.<br>
+</blockquote>
+
+<code>iterator erase(iterator first,iterator last);</code>
+
+<blockquote>
+<b>Requires:</b> [<code>first</code>,<code>last</code>) is a valid
+range of the index.<br>
+<b>Effects:</b> Deletes the elements in [<code>first</code>,<code>last</code>).<br>
+<b>Returns:</b> <code>last</code>.<br>
+<b>Complexity:</b> <code>O(m*D(n))</code>, where <code>m</code> is
+the number of elements in [<code>first</code>,<code>last</code>).<br>
+<b>Exception safety:</b> <code>nothrow</code>.<br>
+</blockquote>
+
+<a name="replace"><code>bool replace(iterator position,const value_type&amp; x);</code></a><br>
+<code>bool replace(iterator position,value_type&amp;&amp; x);</code>
+
+<blockquote>
+<b>Requires (first version):</b> <code>value_type</code> is <code>CopyAssignable</code>.
+<code>position</code> is a valid dereferenceable iterator of the index.<br>
+<b>Requires (second version):</b> <code>value_type</code> is <code>MoveAssignable</code>.
+<code>position</code> is a valid dereferenceable iterator of the index.<br>
+<b>Effects:</b> Assigns the value <code>x</code> to the element pointed
+to by <code>position</code> into the <code>multi_index_container</code> to which
+the index belongs if, for the value <code>x</code>
+<ul>
+  <li>the index is non-unique OR no other element exists
+    (except possibly <code>*position</code>) with equivalent key,</li>
+  <li>AND replacing is allowed by all other indices of the
+    <code>multi_index_container</code>.</li>
+</ul>
+<b>Postconditions:</b> Validity of <code>position</code> is preserved
+in all cases. If the key of the new value is equivalent to that of the replaced value,
+the position of the element does not change.<br>
+<b>Returns:</b> <code>true</code> if the replacement took place,
+<code>false</code> otherwise.<br>
+<b>Complexity:</b> <code>O(R(n))</code>.<br>
+<b>Exception safety:</b> Strong. If an exception is thrown by some
+user-provided operation the <code>multi_index_container</code> to which the index
+belongs remains in its original state.
+</blockquote>
+  
+<a name="modify">
+<code>template&lt;typename Modifier> bool modify(iterator position,Modifier mod);</code></a>
+
+<blockquote>
+<b>Requires:</b> <code>mod</code> is a unary function object
+accepting arguments of type
+<code>value_type&amp;</code>. <code>position</code> is a valid dereferenceable
+iterator of the index.<br>
+<b>Effects:</b> Calls <code>mod(e)</code> where <code>e</code> is the element
+pointed to by <code>position</code> and rearranges <code>*position</code> into
+all the indices of the <code>multi_index_container</code>. Rearrangement is successful if
+<ul>
+  <li>the index is non-unique OR no other element exists
+    with  equivalent key,</li>
+  <li>AND rearrangement is allowed by all other indices of the
+    <code>multi_index_container</code>.</li>
+</ul>
+If the rearrangement fails, the element is erased.<br>
+<b>Postconditions:</b> Validity of <code>position</code> is preserved if the
+operation succeeds. If the key of the modified value is equivalent to that of the
+original value, the position of the element does not change.<br>
+<b>Returns:</b> <code>true</code> if the operation succeeded, <code>false</code>
+otherwise.<br>
+<b>Complexity:</b> <code>O(M(n))</code>.<br>
+<b>Exception safety:</b> Basic. If an exception is thrown by some
+user-provided operation (except possibly <code>mod</code>), then
+the element pointed to by <code>position</code> is erased.
+</blockquote>
+
+<code>template&lt;typename Modifier,typename Rollback><br>
+bool modify(iterator position,Modifier mod,Rollback back);</code>
+
+<blockquote>
+<b>Requires:</b> <code>mod</code> and <code>back</code> are unary function
+objects accepting arguments of type
+<code>value_type&amp;</code>. <code>position</code> is a valid dereferenceable
+iterator of the index. The sequence of operations <code>mod(e)</code>,
+<code>back(e)</code>, where <code>e</code> is the element
+pointed to by <code>position</code>, restores all keys of the element
+to their original state.<br>
+<b>Effects:</b> Calls <code>mod(e)</code> where <code>e</code> is the element
+pointed to by <code>position</code> and tries to rearrange <code>*position</code> into
+all the indices of the <code>multi_index_container</code>. Rearrangement is successful if
+<ul>
+  <li>the index is non-unique OR no other element exists
+    with  equivalent key,</li>
+  <li>AND rearrangement is allowed by all other indices of the
+    <code>multi_index_container</code>.</li>
+</ul>
+If the rearrangement fails, <code>back(e)</code> is invoked and the
+element is kept at its original position in all indices.<br>
+<b>Postconditions:</b> Validity of <code>position</code> is preserved except if
+the element is erased under the conditions described below.
+If the key of the modified value is equivalent to that of the
+original value, the position of the element does not change.<br>
+<b>Returns:</b> <code>true</code> if the operation succeeded, <code>false</code>
+otherwise.<br>
+<b>Complexity:</b> <code>O(M(n))</code>.<br>
+<b>Exception safety:</b> Strong, except if <code>back</code> throws an
+exception, in which case the modified element is erased. If <code>back</code>
+throws inside the handling code executing after some other user-provided
+operation has thrown, it is the exception generated by <code>back</code> that
+is rethrown.
+</blockquote>
+
+<a name="modify_key">    
+<code>template&lt;typename Modifier> bool modify_key(iterator position,Modifier mod);</code></a>
+
+<blockquote>
+<b>Requires:</b> <code>key_from_value</code> is a read/write
+<a href="key_extraction.html#key_extractors"><code>Key Extractor</code></a>
+from <code>value_type</code>. <code>mod</code> is a
+unary function object accepting arguments of type
+<code>key_type&amp;</code>. <code>position</code> is a valid dereferenceable
+iterator of the index.<br>
+<b>Effects:</b> Equivalent to <code>modify(position,mod')</code>,
+with <code>mod'</code> defined in such a way that
+<code>mod'(x)</code> is the same as <code>mod(key(x))</code>, where
+<code>key</code> is the internal <code>KeyFromValue</code> object of the index.
+</blockquote>
+
+<code>template&lt;typename Modifier,typename Rollback><br>
+bool modify_key(iterator position,Modifier mod,Rollback back);</code>
+
+<blockquote>
+<b>Requires:</b> <code>key_from_value</code> is a read/write
+<a href="key_extraction.html#key_extractors"><code>Key Extractor</code></a>
+from <code>value_type</code>. <code>mod</code> and <code>back</code>
+are unary function objects accepting arguments of type
+<code>key_type&amp;</code>. <code>position</code> is a valid dereferenceable
+iterator of the index.
+The sequence of operations <code>mod(k)</code>,
+<code>back(k)</code>, where <code>k</code> is the key of the element
+pointed to by <code>position</code>, restores <code>k</code> to its original state.<br>
+<b>Effects:</b> Equivalent to <code>modify(position,mod',back')</code>,
+with <code>mod'</code> and <code>back</code> defined in such a way that
+<code>mod'(x)</code> is the same as <code>mod(key(x))</code> and
+<code>back'(x)</code> is the same as <code>back(key(x))</code>, where
+<code>key</code> is the internal <code>KeyFromValue</code> object of the index.
+</blockquote>
+
+<h4><a name="observers">Observers</a></h4>
+
+<p>Apart from standard <code>hash_function</code> and <code>key_eq</code>,
+hashed indices have a member function for retrieving the internal key extractor
+used.
+</p>
+
+<code>key_from_value key_extractor()const;</code>
+
+<blockquote>
+Returns a copy of the <code>key_from_value</code> object used to construct
+the index.<br>
+<b>Complexity:</b> Constant.
+</blockquote>
+
+<h4><a name="lookup">Lookup</a></h4>
+
+<p>
+Hashed indices provide the full lookup functionality required by
+<b>[unord.req]</b>, namely <code>find</code>,
+<code>count</code>, and <code>equal_range</code>. Additionally,
+these member functions are templatized to allow for non-standard
+arguments, so extending the types of search operations allowed.
+The kind of arguments permissible when invoking the lookup member
+functions is defined by the following concept.
+</p>
+
+<p>
+Consider a pair (<code>Hash</code>, <code>Pred</code>) where
+<code>Hash</code> is a hash functor over values of type <code>Key</code>
+and <code>Pred</code> is a binary predicate
+inducing an equivalence relation
+on <code>Key</code>, with the additional constraint that equivalent
+keys have the same hash value.
+A triplet of types (<code>CompatibleKey</code>, <code>CompatibleHash</code>,
+<code>CompatiblePred</code>) is said to be a <i>compatible extension</i>
+of (<code>Hash</code>, <code>Pred</code>) if
+<ol>
+  <li><code>CompatibleHash</code> is a hash functor on values of
+    type <code>CompatibleKey</code>,</li>
+  <li><code>CompatiblePred</code> is a binary predicate over (<code>Key</code>,
+    <code>CompatibleKey</code>),</li>
+  <li><code>CompatiblePred</code> is a binary predicate over (<code>CompatibleKey</code>,
+    <code>Key</code>),</li>
+  <li>if <code>c_eq(ck,k1)</code> then <code>c_eq(k1,ck)</code>,</li>
+  <li>if <code>c_eq(ck,k1)</code> and <code>eq(k1,k2)</code> then
+    <code>c_eq(ck,k2)</code>,</li>
+  <li>if <code>c_eq(ck,k1)</code> and <code>c_eq(ck,k2)</code> then
+    <code>eq(k1,k2)</code>,</li>
+  <li>if <code>c_eq(ck,k1)</code> then <code>c_hash(ck)==hash(k1)</code>,</li>
+</ol>
+for every <code>c_hash</code> of type <code>CompatibleHash</code>,
+<code>c_eq</code> of type <code>CompatiblePred</code>,
+<code>hash</code> of type <code>Hash</code>,
+<code>eq</code> of type <code>Pred</code>, <code>ck</code> of type
+<code>CompatibleKey</code> and <code>k1</code>, <code>k2</code> of type
+<code>Key</code>.
+</p>
+
+<p>Additionally, a type <code>CompatibleKey</code> is said to be a
+<i>compatible key</i> of (<code>Hash</code>, <code>Pred</code>) if
+(<code>CompatibleKey</code>, <code>Hash</code>, <code>Pred</code>)
+is a compatible extension of (<code>Hash</code>, <code>Pred</code>).
+This implies that <code>Hash</code> and <code>Pred</code> accept arguments
+of type <code>CompatibleKey</code>, which usually means they have
+several overloads of therir corresponding <code>operator()</code>
+member functions.
+</p>
+
+<p>
+In the context of a compatible extension or a compatible key, the expression
+"equivalent key" takes on its obvious interpretation.
+</p>
+
+<code>template&lt;typename CompatibleKey> iterator find(const CompatibleKey&amp; x)const;
+</code>
+
+<blockquote>
+<b>Requires:</b> <code>CompatibleKey</code> is a compatible key of
+(<code>hasher</code>, <code>key_equal</code>).<br>
+<b>Effects:</b> Returns a pointer to an element whose key is equivalent to
+<code>x</code>, or <code>end()</code> if such an element does not exist.<br>
+<b>Complexity:</b> Average case <code>O(1)</code> (constant), worst case
+<code>O(n)</code>.<br>
+</blockquote>
+
+<code>template&lt;<br>
+&nbsp;&nbsp;typename CompatibleKey,typename CompatibleHash, typename CompatiblePred<br>
+&gt;<br>
+iterator find(<br>
+&nbsp;&nbsp;const CompatibleKey&amp; x,<br>
+&nbsp;&nbsp;const CompatibleHash&amp; hash,const CompatiblePred&amp; eq)const;
+</code>
+
+<blockquote>
+<b>Requires:</b> (<code>CompatibleKey</code>, <code>CompatibleHash</code>,
+<code>CompatiblePred</code>) is a compatible extension of
+(<code>hasher</code>, <code>key_equal</code>).<br>
+<b>Effects:</b> Returns a pointer to an element whose key is equivalent to
+<code>x</code>, or <code>end()</code> if such an element does not exist.<br>
+<b>Complexity:</b> Average case <code>O(1)</code> (constant), worst case
+<code>O(n)</code>.<br>
+</blockquote>
+
+<code>template&lt;typename CompatibleKey><br>
+size_type count(const CompatibleKey&amp; x)const;
+</code>
+
+<blockquote>
+<b>Requires:</b> <code>CompatibleKey</code> is a compatible key of
+(<code>hasher</code>, <code>key_equal</code>).<br>
+<b>Effects:</b> Returns the number of elements with key equivalent to <code>x</code>.<br>
+<b>Complexity:</b> Average case <code>O(count(x))</code>, worst case
+<code>O(n)</code>.<br>
+</blockquote>
+
+<code>template&lt;<br>
+&nbsp;&nbsp;typename CompatibleKey,typename CompatibleHash, typename CompatiblePred<br>
+&gt;<br>
+size_type count(<br>
+&nbsp;&nbsp;const CompatibleKey&amp; x,<br>
+&nbsp;&nbsp;const CompatibleHash&amp; hash,const CompatiblePred&amp; eq)const;
+</code>
+
+<blockquote>
+<b>Requires:</b> (<code>CompatibleKey</code>, <code>CompatibleHash</code>,
+<code>CompatiblePred</code>) is a compatible extension of
+(<code>hasher</code>, <code>key_equal</code>).<br>
+<b>Effects:</b> Returns the number of elements with key equivalent to <code>x</code>.<br>
+<b>Complexity:</b> Average case <code>O(count(x,hash,eq))</code>, worst case
+<code>O(n)</code>.<br>
+</blockquote>
+
+<code>template&lt;typename CompatibleKey><br>
+std::pair&lt;iterator,iterator> equal_range(const CompatibleKey&amp; x)const;
+</code>
+
+<blockquote>
+<b>Requires:</b> <code>CompatibleKey</code> is a compatible key of
+(<code>hasher</code>, <code>key_equal</code>).<br>
+<b>Effects:</b> Returns a range containing all elements with keys equivalent
+to <code>x</code> (and only those), or (<code>end()</code>,<code>end()</code>)
+if no such elements exist.<br>
+<b>Complexity:</b> Average case <code>O(count(x))</code>, worst case
+<code>O(n)</code>.<br>
+</blockquote>
+
+<code>template&lt;<br>
+&nbsp;&nbsp;typename CompatibleKey,typename CompatibleHash, typename CompatiblePred<br>
+&gt;<br>
+std::pair&lt;iterator,iterator> equal_range(<br>
+&nbsp;&nbsp;const CompatibleKey&amp; x,<br>
+&nbsp;&nbsp;const CompatibleHash&amp; hash,const CompatiblePred&amp; eq)const;
+</code>
+
+<blockquote>
+<b>Requires:</b> (<code>CompatibleKey</code>, <code>CompatibleHash</code>,
+<code>CompatiblePred</code>) is a compatible extension of
+(<code>hasher</code>, <code>key_equal</code>).<br>
+<b>Effects:</b> Returns a range containing all elements with keys equivalent
+to <code>x</code> (and only those), or (<code>end()</code>,<code>end()</code>)
+if no such elements exist.<br>
+<b>Complexity:</b> Average case <code>O(count(x,hash,eq))</code>, worst case
+<code>O(n)</code>.<br>
+</blockquote>
+
+<h4><a name="bucket_interface">Bucket interface</a></h4>
+
+<code>local_iterator&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;local_iterator_to(const value_type&amp; x);<br>
+const_local_iterator local_iterator_to(const value_type&amp; x)const;</code>
+  
+<blockquote>
+<b>Requires:</b> <code>x</code> is a reference to an element of the container.<br>
+<b>Returns:</b> An iterator to <code>x</code>.<br>
+<b>Complexity:</b> Constant.<br>
+<b>Exception safety:</b> <code>nothrow</code>.<br>
+</blockquote>
+
+
+<h4><a name="hash_policy">Hash policy</a></h4>
+
+<code>void rehash(size_type n);</code>
+
+<blockquote>
+<b>Effects:</b> Increases if necessary the number of internal buckets
+so that <code>size()/bucket_count()</code> does not exceed the maximum
+load factor, and <code>bucket_count()>=n</code>.<br>
+<b>Postconditions:</b> Validity of iterators and references to the
+elements contained is preserved.<br>
+<b>Complexity:</b> Average case <code>O(size())</code>, worst case
+<code>O(size(n)<sup>2</sup>)</code>.<br>
+<b>Exception safety:</b> Strong.
+</blockquote>
+
+<h4><a name="serialization">Serialization</a></h4>
+
+<p>
+Indices cannot be serialized on their own, but only as part of the
+<code>multi_index_container</code> into which they are embedded. In describing
+the additional preconditions and guarantees associated to hashed indices
+with respect to serialization of their embedding containers, we
+use the concepts defined in the <code>multi_index_container</code>
+<a href="multi_index_container.html#serialization">serialization section</a>.
+</p>
+
+Operation: saving of a <code>multi_index_container</code> <code>m</code> to an
+output archive (XML archive) <code>ar</code>.
+
+<blockquote>
+<b>Requires:</b> No additional requirements to those imposed by the container.
+</blockquote>
+
+Operation: loading of a <code>multi_index_container</code> <code>m'</code> from an
+input archive (XML archive) <code>ar</code>.
+
+<blockquote>
+<b>Requires:</b> Additionally to the general requirements, <code>key_eq()</code>
+must be serialization-compatible with <code>m.get&lt;i&gt;().key_eq()</code>,
+where <code>i</code> is the position of the hashed index in the container.<br>
+<b>Postconditions:</b> On succesful loading, the range 
+[<code>begin()</code>, <code>end()</code>) contains restored copies of every
+element in [<code>m.get&lt;i&gt;().begin()</code>, <code>m.get&lt;i&gt;().end()</code>),
+though not necessarily in the same order.
+</blockquote>
+
+Operation: saving of an <code>iterator</code> or <code>const_iterator</code>
+<code>it</code> to an output archive (XML archive) <code>ar</code>.
+
+<blockquote>
+<b>Requires:</b> <code>it</code> is a valid iterator of the index. The associated
+<code>multi_index_container</code> has been previously saved.
+</blockquote>
+
+Operation: loading of an <code>iterator</code> or <code>const_iterator</code>
+<code>it'</code> from an input archive (XML archive) <code>ar</code>.
+
+<blockquote>
+<b>Postconditions:</b> On succesful loading, if <code>it</code> was dereferenceable
+then <code>*it'</code> is the restored copy of <code>*it</code>, otherwise
+<code>it'==end()</code>.<br>
+<b>Note:</b> It is allowed that <code>it</code> be a <code>const_iterator</code>
+and the restored <code>it'</code> an <code>iterator</code>, or viceversa.
+</blockquote>
+
+Operation: saving of a <code>local_iterator</code> or
+<code>const_local_iterator</code>
+<code>it</code> to an output archive (XML archive) <code>ar</code>.
+
+<blockquote>
+<b>Requires:</b> <code>it</code> is a valid local iterator of the index. The
+associated <code>multi_index_container</code> has been previously saved.
+</blockquote>
+
+Operation: loading of a <code>local_iterator</code> or
+<code>const_local_iterator</code>
+<code>it'</code> from an input archive (XML archive) <code>ar</code>.
+
+<blockquote>
+<b>Postconditions:</b> On succesful loading, if <code>it</code> was dereferenceable
+then <code>*it'</code> is the restored copy of <code>*it</code>; if <code>it</code>
+was <code>m.get&lt;i&gt;().end(n)</code> for some <code>n</code>, then
+<code>it'==m'.get&lt;i&gt;().end(n)</code> (where <code>m</code> is the original
+<code>multi_index_container</code>, <code>m'</code> its restored copy
+and <code>i</code> is the ordinal of the index.)<br>
+<b>Note:</b> It is allowed that <code>it</code> be a <code>const_local_iterator</code>
+and the restored <code>it'</code> a <code>local_iterator</code>, or viceversa.
+</blockquote>
+
+<hr>
+
+<div class="prev_link"><a href="ord_indices.html"><img src="../prev.gif" alt="ordered indices" border="0"><br>
+Ordered indices
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex reference" border="0"><br>
+Boost.MultiIndex reference
+</a></div>
+<div class="next_link"><a href="seq_indices.html"><img src="../next.gif" alt="sequenced indices" border="0"><br>
+Sequenced indices
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised July 6th 2013</p>
+
+<p>&copy; Copyright 2003-2013 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

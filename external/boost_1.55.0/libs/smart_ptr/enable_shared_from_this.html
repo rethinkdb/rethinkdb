@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+	<head>
+		<title>Boost: enable_shared_from_this.hpp documentation</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	</head>
+	<body bgcolor="white" style="MARGIN-LEFT: 5%; MARGIN-RIGHT: 5%">
+		<table border="0" width="100%">
+			<tr>
+				<td width="277"><A href="../../index.htm"> <img src="../../boost.png" alt="boost.png (6897 bytes)" width="277" height="86" border="0"></A>
+				</td>
+				<td align="center">
+					<h1>enable_shared_from_this.hpp</h1>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2" height="64">&nbsp;</td>
+			</tr>
+		</table>
+		<h3><a name="Purpose">Purpose</a></h3>
+		<p>
+			The header <STRONG>&lt;boost/enable_shared_from_this.hpp&gt;</STRONG> defines 
+			the class template <STRONG>enable_shared_from_this</STRONG>. It is used as a 
+			base class that allows a <A href="shared_ptr.htm">shared_ptr</A> to the current 
+			object to be obtained from within a member function.
+		</p>
+		<P><STRONG>enable_shared_from_this&lt;T&gt;</STRONG> defines two member functions 
+			called <STRONG>shared_from_this</STRONG> that return a <STRONG>shared_ptr&lt;T&gt;</STRONG>
+			and <STRONG>shared_ptr&lt;T const&gt;</STRONG>, depending on constness, to <STRONG>this</STRONG>.</P>
+		<h3><a name="Example">Example</a></h3>
+		<pre>
+#include &lt;boost/enable_shared_from_this.hpp&gt;
+#include &lt;boost/shared_ptr.hpp&gt;
+#include &lt;cassert&gt;
+
+class Y: public boost::enable_shared_from_this&lt;Y&gt;
+{
+public:
+
+    boost::shared_ptr&lt;Y&gt; f()
+    {
+        return shared_from_this();
+    }
+};
+
+int main()
+{
+    boost::shared_ptr&lt;Y&gt; p(new Y);
+    boost::shared_ptr&lt;Y&gt; q = p-&gt;f();
+    assert(p == q);
+    assert(!(p &lt; q || q &lt; p)); // p and q must share ownership
+}
+</pre>
+		<h3><a name="Synopsis">Synopsis</a></h3>
+		<pre>
+namespace boost
+{
+
+template&lt;class T&gt; class enable_shared_from_this
+{
+public:
+
+    shared_ptr&lt;T&gt; shared_from_this();
+    shared_ptr&lt;T const&gt; shared_from_this() const;
+}
+
+}
+</pre>
+		<h4>template&lt;class T&gt; shared_ptr&lt;T&gt; 
+			enable_shared_from_this&lt;T&gt;::shared_from_this();</h4>
+		<h4>template&lt;class T&gt; shared_ptr&lt;T const&gt; 
+			enable_shared_from_this&lt;T&gt;::shared_from_this() const;</h4>
+		<blockquote>
+			<p>
+				<b>Requires:</b> <STRONG>enable_shared_from_this&lt;T&gt;</STRONG> must be an 
+				accessible base class of <b>T</b>. <STRONG>*this</STRONG> must be a subobject 
+				of an instance <STRONG>t</STRONG> of type <STRONG>T</STRONG> . There must exist 
+				at least one <STRONG>shared_ptr</STRONG> instance <STRONG>p</STRONG> that <EM>owns</EM>
+				<STRONG>t</STRONG>.
+			</p>
+			<p>
+				<b>Returns:</b> A <b>shared_ptr&lt;T&gt;</b> instance <b>r</b> that shares 
+				ownership with <b>p</b>.
+			</p>
+			<p>
+				<b>Postconditions:</b> <tt>r.get() == this</tt>.
+			</p>
+		</blockquote>
+		<p>
+			<br>
+			<small>Copyright © 2002, 2003 by Peter Dimov. Distributed under the Boost Software License, Version 
+				1.0. See accompanying file <A href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or 
+				copy at <A href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>.</small></p>
+	</body>
+</html>

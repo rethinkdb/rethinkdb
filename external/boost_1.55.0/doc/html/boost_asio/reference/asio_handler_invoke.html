@@ -1,0 +1,114 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>asio_handler_invoke</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="asio_handler_deallocate.html" title="asio_handler_deallocate">
+<link rel="next" href="asio_handler_invoke/overload1.html" title="asio_handler_invoke (1 of 2 overloads)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="asio_handler_deallocate.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="asio_handler_invoke/overload1.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.asio_handler_invoke"></a><a class="link" href="asio_handler_invoke.html" title="asio_handler_invoke">asio_handler_invoke</a>
+</h3></div></div></div>
+<p>
+        <a class="indexterm" name="idp54869320"></a> 
+Default invoke function for handlers.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">Function</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <a class="link" href="asio_handler_invoke/overload1.html" title="asio_handler_invoke (1 of 2 overloads)">asio_handler_invoke</a><span class="special">(</span>
+    <span class="identifier">Function</span> <span class="special">&amp;</span> <span class="identifier">function</span><span class="special">,</span>
+    <span class="special">...</span> <span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="asio_handler_invoke/overload1.html" title="asio_handler_invoke (1 of 2 overloads)">more...</a></em></span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">Function</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <a class="link" href="asio_handler_invoke/overload2.html" title="asio_handler_invoke (2 of 2 overloads)">asio_handler_invoke</a><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">Function</span> <span class="special">&amp;</span> <span class="identifier">function</span><span class="special">,</span>
+    <span class="special">...</span> <span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="asio_handler_invoke/overload2.html" title="asio_handler_invoke (2 of 2 overloads)">more...</a></em></span>
+</pre>
+<p>
+        Completion handlers for asynchronous operations are invoked by the <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a>
+        associated with the corresponding object (e.g. a socket or deadline_timer).
+        Certain guarantees are made on when the handler may be invoked, in particular
+        that a handler can only be invoked from a thread that is currently calling
+        <code class="computeroutput"><span class="identifier">run</span><span class="special">()</span></code>
+        on the corresponding <a class="link" href="io_service.html" title="io_service"><code class="computeroutput"><span class="identifier">io_service</span></code></a> object. Handlers may
+        subsequently be invoked through other objects (such as <a class="link" href="io_service__strand.html" title="io_service::strand"><code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">strand</span></code></a> objects) that provide additional
+        guarantees.
+      </p>
+<p>
+        When asynchronous operations are composed from other asynchronous operations,
+        all intermediate handlers should be invoked using the same method as the
+        final handler. This is required to ensure that user-defined objects are not
+        accessed in a way that may violate the guarantees. This hooking function
+        ensures that the invoked method used for the final handler is accessible
+        at each intermediate step.
+      </p>
+<p>
+        Implement asio_handler_invoke for your own handlers to specify a custom invocation
+        strategy.
+      </p>
+<p>
+        This default implementation invokes the function object like so:
+      </p>
+<pre class="programlisting"><span class="identifier">function</span><span class="special">();</span>
+</pre>
+<p>
+        If necessary, the default implementation makes a copy of the function object
+        so that the non-const operator() can be used.
+      </p>
+<h5>
+<a name="boost_asio.reference.asio_handler_invoke.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.asio_handler_invoke.example"></a></span><a class="link" href="asio_handler_invoke.html#boost_asio.reference.asio_handler_invoke.example">Example</a>
+      </h5>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">my_handler</span><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Function</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">asio_handler_invoke</span><span class="special">(</span><span class="identifier">Function</span> <span class="identifier">function</span><span class="special">,</span> <span class="identifier">my_handler</span><span class="special">*</span> <span class="identifier">context</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="identifier">context</span><span class="special">-&gt;</span><span class="identifier">strand_</span><span class="special">.</span><span class="identifier">dispatch</span><span class="special">(</span><span class="identifier">function</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.asio_handler_invoke.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.asio_handler_invoke.requirements"></a></span><a class="link" href="asio_handler_invoke.html#boost_asio.reference.asio_handler_invoke.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/handler_invoke_hook.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="asio_handler_deallocate.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="asio_handler_invoke/overload1.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

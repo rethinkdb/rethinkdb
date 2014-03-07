@@ -1,0 +1,85 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template random_number_generator</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_random/reference.html#header.boost.random.random_number_generator_hpp" title="Header &lt;boost/random/random_number_generator.hpp&gt;">
+<link rel="prev" href="random_device.html" title="Class random_device">
+<link rel="next" href="ranlux3.html" title="Type definition ranlux3">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="random_device.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_random/reference.html#header.boost.random.random_number_generator_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ranlux3.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.random.random_number_generator"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template random_number_generator</span></h2>
+<p>boost::random::random_number_generator</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_random/reference.html#header.boost.random.random_number_generator_hpp" title="Header &lt;boost/random/random_number_generator.hpp&gt;">boost/random/random_number_generator.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> URNG<span class="special">,</span> <span class="keyword">typename</span> IntType <span class="special">=</span> <span class="keyword">long</span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="random_number_generator.html" title="Class template random_number_generator">random_number_generator</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">URNG</span>    <a name="boost.random.random_number_generator.base_type"></a><span class="identifier">base_type</span><span class="special">;</span>    
+  <span class="keyword">typedef</span> <span class="identifier">IntType</span> <a name="boost.random.random_number_generator.argument_type"></a><span class="identifier">argument_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">IntType</span> <a name="boost.random.random_number_generator.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>  
+
+  <span class="comment">// <a class="link" href="random_number_generator.html#boost.random.random_number_generatorconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="random_number_generator.html#idp36244104-bb"><span class="identifier">random_number_generator</span></a><span class="special">(</span><span class="identifier">base_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="random_number_generator.html#idp36242856-bb">public member functions</a></span>
+  <span class="identifier">result_type</span> <a class="link" href="random_number_generator.html#idp36243064-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">argument_type</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp197312040"></a><h2>Description</h2>
+<p>Instantiations of class template <a class="link" href="random_number_generator.html" title="Class template random_number_generator">random_number_generator</a> model a RandomNumberGenerator (std:25.2.11 [lib.alg.random.shuffle]). On each invocation, it returns a uniformly distributed integer in the range [0..n).</p>
+<p>The template parameter IntType shall denote some integer-like value type. </p>
+<div class="refsect2">
+<a name="idp197313320"></a><h3>
+<a name="boost.random.random_number_generatorconstruct-copy-destruct"></a><code class="computeroutput">random_number_generator</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp36244104-bb"></a><span class="identifier">random_number_generator</span><span class="special">(</span><span class="identifier">base_type</span> <span class="special">&amp;</span> rng<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><a class="link" href="random_number_generator.html" title="Class template random_number_generator">random_number_generator</a></code> functor with the given  <a class="link" href="../../boost_random/reference.html#boost_random.reference.concepts.uniform_random_number_generator" title="Uniform Random Number Generator">uniform random number generator</a>  as the underlying source of random numbers. </p>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp197318328"></a><h3>
+<a name="idp36242856-bb"></a><code class="computeroutput">random_number_generator</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp36243064-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">argument_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns a value in the range [0, n) </p>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2005 Jens Maurer<br>Copyright &#169; 2009, 2010 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="random_device.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_random/reference.html#header.boost.random.random_number_generator_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ranlux3.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

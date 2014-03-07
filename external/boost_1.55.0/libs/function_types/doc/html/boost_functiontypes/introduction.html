@@ -1,0 +1,92 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Introduction</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.FunctionTypes 2.5">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.FunctionTypes 2.5">
+<link rel="prev" href="../index.html" title="Chapter&#160;1.&#160;Boost.FunctionTypes 2.5">
+<link rel="next" href="use_cases.html" title="Use Cases">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="use_cases.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_functiontypes.introduction"></a><a class="link" href="introduction.html" title="Introduction">Introduction</a>
+</h2></div></div></div>
+<p>
+      Boost.FunctionTypes provides functionality to classify, decompose and synthesize
+      function, function pointer, function reference and pointer to member types.
+    </p>
+<p>
+      We collectively refer to these types as <span class="emphasis"><em>callable builtin</em></span>
+      types.
+    </p>
+<p>
+      In particular, the library can be used to:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          test whether a type is a specific callable, builtin type,
+        </li>
+<li class="listitem">
+          extract all component properties from callable, builtin types, and
+        </li>
+<li class="listitem">
+          create callable, builtin types from specified properties.
+        </li>
+</ul></div>
+<p>
+      The library is designed to work well with other Boost libraries and uses well-accepted
+      concepts introduced by Boost and TR1.
+    </p>
+<p>
+      Templates that encapsulate boolean or numeric properties define a static member
+      constant called <code class="literal">value</code>.
+    </p>
+<pre class="programlisting"><a class="link" href="reference/classification.html#boost_functiontypes.reference.classification.is_function_pointer" title="is_function_pointer">is_function_pointer</a><span class="special">&lt;</span> <span class="keyword">bool</span><span class="special">(*)(</span><span class="keyword">int</span><span class="special">)</span> <span class="special">&gt;::</span><span class="identifier">value</span> <span class="comment">// == true 
+</span>
+<a class="link" href="reference/decomposition.html#boost_functiontypes.reference.decomposition.function_arity" title="function_arity">function_arity</a><span class="special">&lt;</span> <span class="keyword">bool</span><span class="special">(*)(</span><span class="keyword">int</span><span class="special">)</span> <span class="special">&gt;::</span><span class="identifier">value</span> <span class="comment">// == 1
+</span></pre>
+<p>
+      Templates that encapsulate properties that are single types contain a type
+      member called <code class="literal">type</code>.
+    </p>
+<pre class="programlisting"><a class="link" href="reference/synthesis.html#boost_functiontypes.reference.synthesis.function_type" title="function_type">function_type</a><span class="special">&lt;</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="comment">// is bool(int)
+</span>
+<a class="link" href="reference/decomposition.html#boost_functiontypes.reference.decomposition.result_type" title="result_type">result_type</a><span class="special">&lt;</span> <span class="keyword">bool</span><span class="special">(&amp;)(</span><span class="keyword">int</span><span class="special">)</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="comment">// is bool
+</span></pre>
+<p>
+      Templates that encapsulate properties that are type lists model an MPL-compatible
+      type sequence.
+    </p>
+<pre class="programlisting"><a class="link" href="reference/decomposition.html#boost_functiontypes.reference.decomposition.parameter_types" title="parameter_types">parameter_types</a><span class="special">&lt;</span> <span class="keyword">bool</span><span class="special">(</span><span class="keyword">int</span><span class="special">)</span> <span class="special">&gt;</span> <span class="comment">// models an MPL sequence
+</span></pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2004-2007 Tobias
+      Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="use_cases.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

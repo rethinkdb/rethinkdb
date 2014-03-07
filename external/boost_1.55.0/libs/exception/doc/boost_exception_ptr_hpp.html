@@ -1,0 +1,67 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN'
+'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
+<head>
+	<meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+	<title>boost/exception_ptr.hpp</title>
+	<link href='reno.css' type='text/css' rel='stylesheet'/>
+</head>
+<body>
+<div class="body-0">
+<div class="body-1">
+<div class="body-2">
+<div>
+<div id="boost_logo">
+<a href="http://www.boost.org"><img style="border:0" src="../../../boost.png" alt="Boost" width="277" height="86"/></a>
+</div>
+<h1>Boost Exception</h1>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="RenoIncludeDIV"><div class="RenoAutoDIV"><h2>boost/exception_ptr.hpp</h2>
+</div>
+<h3>Synopsis</h3>
+<div class="RenoIncludeDIV"><pre>#include &lt;<span class="RenoLink"><a href="boost_exception_exception_hpp.html">boost/exception/exception.hpp</a></span>&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">class
+    <span class="RenoLink"><a href="unknown_exception.html">unknown_exception</a></span>:
+        public std::exception
+        public boost::<span class="RenoLink"><a href="exception.html">exception</a></span>
+        {
+        ---unspecified---
+        };</span>    
+    
+    <span class="RenoIncludeSPAN">typedef <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;struct tag_original_exception_type,std::type_info const *&gt; <span class="RenoLink"><a href="original_exception_type.html">original_exception_type</a></span>;</span>    
+    
+    <span class="RenoIncludeSPAN">typedef ---unspecified--- <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span>;</span>    
+    
+    <span class="RenoIncludeSPAN">template &lt;class T&gt;
+    <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span> <span class="RenoLink"><a href="copy_exception.html">copy_exception</a></span>( T const &amp; e );</span>    
+    
+    <span class="RenoIncludeSPAN"><span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span> <span class="RenoLink"><a href="current_exception.html">current_exception</a></span>();</span>    
+    
+    <span class="RenoIncludeSPAN">void <span class="RenoLink"><a href="rethrow_exception.html">rethrow_exception</a></span>( <span class="RenoLink"><a href="exception_ptr.html">exception_ptr</a></span> const &amp; ep );</span></span>
+    }</pre>
+</div></div><div class="RenoAutoDIV"><div class="RenoHR"><hr/></div>
+See also: <span class="RenoPageList"><a href="boost_exception_all_hpp.html">boost/exception/all.hpp</a>&nbsp;| <a href="copy_exception.html">copy_exception</a>&nbsp;| <a href="current_exception.html">current_exception</a>&nbsp;| <a href="diagnostic_information.html">diagnostic_information</a>&nbsp;| <a href="exception_ptr.html">exception_ptr</a>&nbsp;| <a href="original_exception_type.html">original_exception_type</a>&nbsp;| <a href="rethrow_exception.html">rethrow_exception</a>&nbsp;| <a href="synopsis.html">Synopsis</a>&nbsp;| <a href="unknown_exception.html">unknown_exception</a></span>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div id="footer">
+<p>
+<a class="logo" href="http://jigsaw.w3.org/css-validator/check/referer"><img class="logo_pic" src="valid-css.png" alt="Valid CSS" height="31" width="88"/></a>
+<a class="logo" href="http://validator.w3.org/check?uri=referer"><img class="logo_pic" src="valid-xhtml.png" alt="Valid XHTML 1.0" height="31" width="88"/></a>
+<small>Copyright (c) 2006-2009 by Emil Dotchevski and Reverge Studios, Inc.<br/>
+Distributed under the <a href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License, Version 1.0</a>.</small>
+</p>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

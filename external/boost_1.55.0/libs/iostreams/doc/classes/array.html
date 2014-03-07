@@ -1,0 +1,218 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Array Devices</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Array Devices</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#implementation">Implementation</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A>
+    <DL>
+      <DT><A href="#array_source">Class template <CODE>basic_array_source</CODE></A></DT>
+      <DT><A href="#array_sink">Class template <CODE>basic_array_sink</CODE></A></DT>
+      <DT><A href="#array">Class template <CODE>basic_array</CODE></A></DT>
+    </DL>
+  </DT>
+  <DT><A href="#acknowledgments">Acknowledgments</A></DT>
+</DL>
+
+<HR>
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    The class templates <CODE>basic_array_source</CODE>, <CODE>basic_array_sink</CODE> and <CODE>basic_array</CODE> provide access to a sequence of characters in memory. The array Devices do not manage the lifetimes of the underlying character sequences.
+</P>
+
+<A NAME="implementation"></A>
+<H2>Implementation</H2>
+
+<P>
+    The array Devices are implemented as <A HREF="../concepts/direct.html">Direct</A> Devices in order to provide efficient unbuffered access to the underlying character sequences.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/device/array.hpp"><CODE>&lt;boost/iostreams/device/array.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="array_source"></A>
+<H3>Class template <CODE>basic_array_source</CODE></H3>
+
+<H4>Description</H4>
+
+<P>Model of <A HREF="../concepts/source.html">Source</A> providing read-only access to a sequence of characters in memory.</P>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#array_source_params">Ch</A>&gt;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#array_source_params">basic_array_source</A> { 
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS="keyword">typedef</SPAN> Ch          char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> source_tag  category;
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">int</SPAN> N&gt; <A CLASS="documented" HREF="#array_source_constructors">basic_array_source</A>(char_type (&amp;)[N]);
+    <A CLASS="documented" HREF="#array_source_constructors">basic_array_source</A>(<SPAN CLASS="keyword">const</SPAN> char_type* begin, <SPAN CLASS="keyword">const</SPAN> char_type* end);
+    <A CLASS="documented" HREF="#array_source_constructors">basic_array_source</A>(<SPAN CLASS="keyword">const</SPAN> char_type* begin, std::size_t length);
+    <SPAN CLASS="omitted">...</SPAN>
+};
+
+<SPAN CLASS="keyword">typedef</SPAN> basic_array_source&lt;<SPAN CLASS="keyword">char</SPAN>&gt;     <SPAN CLASS='defined'>array_source</SPAN>;
+<SPAN CLASS="keyword">typedef</SPAN> basic_array_source&lt;<SPAN CLASS="keyword">wchar_t</SPAN>&gt;  <SPAN CLASS='defined'>warray_source</SPAN>;
+
+} } <SPAN CLASS='comment'>// End namespace boost::io</SPAN></PRE>
+
+<A NAME="array_source_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em">
+<TR>
+    <TD><I>Ch</I></TD><TD VALIGN="top">-</TD>
+    <TD>The character type.</TD>
+</TR>
+</TABLE>
+
+<A NAME="array_source_constructors"></A>
+<H4><CODE>basic_array_source::basic_array_source</CODE></H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">int</SPAN> N&gt; basic_array_source(char_type (&amp;)[N]);
+basic_array_source(<SPAN CLASS="keyword">const</SPAN> char_type* begin, <SPAN CLASS="keyword">const</SPAN> char_type* end);
+basic_array_source(<SPAN CLASS="keyword">const</SPAN> char_type* begin, std::size_t length);</PRE>
+    
+<P>Constructs a <CODE>basic_array_source</CODE> to read from the indicated character sequence.</P>
+
+<A NAME="array_sink"></A>
+<H3>Class template <CODE>basic_array_sink</CODE></H3>
+
+<H4>Description</H4>
+
+<P>Model of <A HREF="../concepts/sink.html">Sink</A> providing write-only access to a sequence of characters in memory.
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#array_sink_params">Ch</A>&gt;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#array_sink_params">basic_array_sink</A> { 
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS="keyword">typedef</SPAN> Ch        char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> sink_tag  category;
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">int</SPAN> N&gt; <A CLASS="documented" HREF="#array_sink_constructors">basic_array_sink</A>(char_type (&amp;)[N]);
+    <A CLASS="documented" HREF="#array_sink_constructors">basic_array_sink</A>(char_type* begin, char_type* end);
+    <A CLASS="documented" HREF="#array_sink_constructors">basic_array_sink</A>(char_type* begin, std::size_t length);
+
+    <SPAN CLASS="comment">// Additional nember functions</SPAN>
+};
+
+<SPAN CLASS="keyword">typedef</SPAN> basic_array_sink&lt;<SPAN CLASS="keyword">char</SPAN>&gt;     <SPAN CLASS='defined'>array_sink</SPAN>;
+<SPAN CLASS="keyword">typedef</SPAN> basic_array_sink&lt;<SPAN CLASS="keyword">wchar_t</SPAN>&gt;  <SPAN CLASS='defined'>warray_sink</SPAN>;
+
+} } <SPAN CLASS='comment'>// End namespace boost::io</SPAN></PRE>
+
+<A NAME="array_sink_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em">
+<TR>
+    <TD><I>Ch</I></TD><TD VALIGN="top">-</TD>
+    <TD>The character type.</TD>
+</TR>
+</TABLE>
+
+<A NAME="array_sink_constructors"></A>
+<H4><CODE>basic_array_sink::basic_array_sink</CODE></H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">int</SPAN> N&gt; basic_array_sink(char_type (&amp;)[N]);
+basic_array_sink(char_type* begin, char_type* end);
+basic_array_sink(char_type* begin, std::size_t length);</PRE>
+    
+<P>Constructs an <CODE>basic_array_sink</CODE> to write to the indicated character sequence.</P>
+
+<A NAME="array"></A>
+<H3>Class template <CODE>basic_array</CODE></H3>
+
+<H4>Description</H4>
+
+<P>Model of <A HREF="../concepts/seekable_device.html">SeekableDevice</A> providing read-write access to a sequence of characters in memory.
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#array_params">Ch</A>&gt;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#array_params">basic_array</A> {
+<SPAN CLASS="keyword">public</SPAN>:    
+    <SPAN CLASS="keyword">typedef</SPAN> Ch                   char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> seekable_device_tag  category;
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">int</SPAN> N&gt; <A CLASS="documented" HREF="#array_constructor">basic_array</A>(char_type (&amp;)[N]);
+    <A CLASS="documented" HREF="#array_constructor">basic_array</A>(char_type* begin, char_type* end);
+    <A CLASS="documented" HREF="#array_constructor">basic_array</A>(char_type* begin, std::size_t length);
+
+    <SPAN CLASS="comment">// Additional nember functions</SPAN>
+};
+
+<SPAN CLASS="keyword">typedef</SPAN> basic_array&lt;<SPAN CLASS="keyword">char</SPAN>&gt;     <SPAN CLASS='defined'>array</SPAN>;
+<SPAN CLASS="keyword">typedef</SPAN> basic_array&lt;<SPAN CLASS="keyword">wchar_t</SPAN>&gt;  <SPAN CLASS='defined'>warray</SPAN>;
+
+} } <SPAN CLASS='comment'>// End namespace boost::io</SPAN></PRE>
+
+<A NAME="array_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em">
+<TR>
+    <TD><I>Ch</I></TD><TD VALIGN="top">-</TD>
+    <TD>The character type.</TD>
+</TR>
+</TABLE>
+
+<A NAME="array_constructor"></A>
+<H4><CODE>array::array</CODE></H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">int</SPAN> N&gt; basic_array(char_type (&amp;)[N]);
+basic_array(char_type* begin, char_type* end);
+basic_array(char_type* begin, std::size_t length);</PRE>
+
+<P>Constructs a <CODE>basic_array</CODE> to access the indicated character sequence.</P>
+
+<A NAME="acknowledgments"></A>
+<H2>Acknowledgments</H2>
+
+<P>
+The concept of Devices which provide unbuffered access to character sequences was suggested by <A HREF="http://www.boost.org/people/daryle_walker.html">Daryle Walker's</A> <A HREF="http://boost-sandbox.cvs.sourceforge.net/viewvc/boost-sandbox/boost-sandbox/libs/io/doc/array_stream.html"><CODE>array_stream</CODE></A> template.
+</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

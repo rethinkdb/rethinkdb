@@ -1,0 +1,76 @@
+% Style helpers for use in Math M413
+
+\usepackage[leqno]{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{latexsym}
+
+\numberwithin{equation}{section}
+
+\DeclareMathOperator{\suchthat}{s.t.}
+\DeclareMathOperator{\st}{\;|\;}
+\DeclareMathOperator{\lub}{lub}
+\DeclareMathOperator{\glb}{glb}
+\DeclareMathOperator{\C}{C}
+\DeclareMathOperator{\Rl}{R_L}
+\DeclareMathOperator{\Rm}{R_M}
+\DeclareMathOperator{\Poly}{\mathcal{P}}
+\DeclareMathOperator{\NPoly}{\mathcal{NP}}
+\DeclareMathOperator{\outdegree}{out-degree}
+\DeclareMathOperator{\indegree}{in-degree}
+
+% Abbreviations for Commonly used sets
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\Q}{\field{Q}} % Rational numbers
+\newcommand{\N}{\field{N}} % Natural numbers
+\newcommand{\R}{\field{R}} % Real numbers
+\newcommand{\Z}{\field{Z}} % Integers
+\newcommand{\Zp}{\field{Z}^+} % Positive Integers
+
+% Theorem declarations
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{correllary}{Correllary}[section]
+\newtheorem{proposition}{Proposition}[section]
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{example}{Example}[section]
+
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+\newtheorem*{note}{Note}
+\newtheorem{case}{Case}
+
+
+% Meaningful abbreviations, etc
+\newcommand{\onlyif}{\Rightarrow}
+\newcommand{\thus}{\Longrightarrow}
+\newcommand{\contradicts}{\rightarrow\leftarrow}
+\newcommand{\Union}{\bigcup} 
+\newcommand{\union}{\cup}
+\newcommand{\Intersect}{\bigcap}
+\newcommand{\intersect}{\cap}
+\newcommand{\setdiff}{\setminus}
+\newcommand{\divides}{|}
+\newcommand{\Land}{\;\bigwedge\;}
+\newcommand{\Lor}{\;\bigvee\;}
+\newcommand{\floor}[1]{\lfloor#1\rfloor}
+\newcommand{\inverse}[1]{\ensuremath\frac{1}{#1}}
+\newcommand{\abs}[1]{\ensuremath \lvert#1\rvert}
+\newcommand{\norm}[1]{\ensuremath \lVert#1\rVert}
+\newcommand{\inner}[2]{\ensuremath #1 \cdot #2}
+
+\newcommand{\cross}{\times}
+\newcommand{\setcomplement}[1]{\overline{#1}}
+\newcommand{\emptystring}{\epsilon}
+\newcommand{\concat}[2]{#1 \cdot #2}
+\newcommand{\pair}[2]{\langle #1, #2 \rangle}
+\newcommand{\closure}[1]{#1^*}
+\newcommand{\strlen}[1]{\abs{#1}}
+
+\newcommand{\produce}{\rightarrow}
+\newcommand{\derive}{\Rightarrow}
+\newcommand{\derives}{\stackrel{*}{\Rightarrow}}

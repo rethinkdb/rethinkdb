@@ -1,0 +1,82 @@
+<html>
+<head>
+	<title>BOOST_PP_DEDUCE_D</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_DEDUCE_D</b> macro manually deduces the state of the <b>BOOST_PP_WHILE</b> construct.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_DEDUCE_D</b>()
+		</div>
+	<h4>Remarks</h4>
+		<div>
+			This macro is intended to avoid the use of <i>automatic-recursion</i> at deep expansion depths.&nbsp;
+			<i>Automatic-recursion</i> at such depths can be inefficient on some preprocessors.&nbsp;
+			It is not intended to be used directly with the invocation of macros with a <b>_D</b> suffix such as:
+			<div>
+				<b>BOOST_PP_ADD_D</b>(<b>BOOST_PP_DEDUCE_D</b>(), <i>x</i>, <i>y</i>)
+			</div>
+			If it is used in this context, the <b>_D</b> macro will fail.&nbsp;
+			The <b>_D</b> macros directly concatenate to the <i>d</i> parameter that is passed to them,
+			which would prevent <b>BOOST_PP_DEDUCE_D</b>() from expanding.&nbsp;
+			Furthermore, it is pointless to use this macro in a situation such as this
+			because it would already be too late to gain any efficiency.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="while.html">BOOST_PP_WHILE</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/control/deduce_d.html">&lt;boost/preprocessor/control/deduce_d.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/arithmetic/add.html">boost/preprocessor/arithmetic/add.hpp</a>&gt;
+#include &lt;<a href="../headers/arithmetic/inc.html">boost/preprocessor/arithmetic/inc.hpp</a>&gt;
+#include &lt;<a href="../headers/arithmetic/sub.html">boost/preprocessor/arithmetic/sub.hpp</a>&gt;
+#include &lt;<a href="../headers/control/deduce_d.html">boost/preprocessor/control/deduce_d.hpp</a>&gt;
+#include &lt;<a href="../headers/punctuation/comma_if.html">boost/preprocessor/punctuation/comma_if.hpp</a>&gt;
+#include &lt;<a href="../headers/repetition/repeat.html">boost/preprocessor/repetition/repeat.hpp</a>&gt;
+#include &lt;<a href="../headers/tuple/elem.html">boost/preprocessor/tuple/elem.hpp</a>&gt;
+
+#define RANGE(first, last) \
+   <a href="repeat.html">BOOST_PP_REPEAT</a>( \
+      <a href="inc.html">BOOST_PP_INC</a>( \
+         <a href="sub.html">BOOST_PP_SUB</a>(last, first) \
+      ), \
+      RANGE_M, \
+      (first, <a href="deduce_d.html">BOOST_PP_DEDUCE_D</a>()) \
+   ) \
+   /**/
+
+#define RANGE_M(z, n, data) \
+   RANGE_M_2( \
+      n, \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(2, 0, data), \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(2, 1, data) \
+   ) \
+   /**/
+
+#define RANGE_M_2(n, first, d) \
+   <a href="comma_if.html">BOOST_PP_COMMA_IF</a>(n) <a href="add_d.html">BOOST_PP_ADD_D</a>(d, n, first) \
+   /**/
+
+RANGE(5, 10) // expands to 5, 6, 7, 8, 9, 10
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

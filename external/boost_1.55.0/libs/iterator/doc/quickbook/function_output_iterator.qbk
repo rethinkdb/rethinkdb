@@ -1,0 +1,100 @@
+
+[section:function_output Function Output Iterator]
+
+The function output iterator adaptor makes it easier to create custom
+output iterators. The adaptor takes a unary function and creates a
+model of Output Iterator. Each item assigned to the output iterator is
+passed as an argument to the unary function.  The motivation for this
+iterator is that creating a conforming output iterator is non-trivial,
+particularly because the proper implementation usually requires a
+proxy object.
+
+[h2 Example]
+
+    struct string_appender
+    {
+        string_appender(std::string& s)
+            : m_str(&s)
+        {}
+
+        void operator()(const std::string& x) const
+        {
+            *m_str += x;
+        }
+
+        std::string* m_str;
+    };
+
+    int main(int, char*[])
+    {
+      std::vector<std::string> x;
+      x.push_back("hello");
+      x.push_back(" ");
+      x.push_back("world");
+      x.push_back("!");
+
+      std::string s = "";
+      std::copy(x.begin(), x.end(), 
+		boost::make_function_output_iterator(string_appender(s)));
+
+      std::cout << s << std::endl;
+
+      return 0;
+    }
+
+[h2 Reference]
+
+[h3 Synopsis]
+
+  template <class UnaryFunction>
+  class function_output_iterator {
+  public:
+    typedef std::output_iterator_tag iterator_category;
+    typedef void                     value_type;
+    typedef void                     difference_type;
+    typedef void                     pointer;
+    typedef void                     reference;
+
+    explicit function_output_iterator();
+
+    explicit function_output_iterator(const UnaryFunction& f);
+
+    /* see below */ operator*();
+    function_output_iterator& operator++();
+    function_output_iterator& operator++(int);
+  private:
+    UnaryFunction m_f;     // exposition only
+  };
+
+[h3 Requirements]
+
+`UnaryFunction` must be Assignable and Copy Constructible.  
+
+[h3 Concepts]
+
+`function_output_iterator` is a model of the Writable and
+Incrementable Iterator concepts.
+
+[h3 Operations]
+
+  explicit function_output_iterator(const UnaryFunction& f = UnaryFunction());
+
+[*Effects: ] Constructs an instance of `function_output_iterator` 
+  with `m_f` constructed from `f`.
+
+  unspecified_type operator*();
+
+[*Returns: ] An object `r` of unspecified type such that `r = t`
+  is equivalent to `m_f(t)` for all `t`.
+  
+
+  function_output_iterator& operator++();
+
+[*Returns: ] `*this`.
+
+
+  function_output_iterator& operator++(int);
+
+[*Returns: ] `*this`.
+
+[endsect]

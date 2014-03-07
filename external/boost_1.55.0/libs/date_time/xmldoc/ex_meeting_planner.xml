@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.examples.meeting_planner">
+  <title>Teleconference Scheduler (partial listing)</title>
+
+  <para> 
+    The Teleconference Scheduler is a Qt based example (found in the examples/qt directory). Partial listings of <link linkend="meeting_planner_hpp">meeting_planner.hpp</link> and <link linkend="planner_form_cpp">planner_form.cpp</link> are provided to illustrate techniques for using the local_date_time and tz_database objects. 
+  </para>
+  
+  <anchor id="planner_form_cpp" />
+  <para>
+    The planner_form class is derived from a QDialog. This listing illustrates the initialization of a tz_database object and using it to populate combo boxes with region lists. Only the init function is listed here for the sake of brevity.
+  </para>
+  <programlisting>
+    <![CDATA[
+
+  void planner_form::init() {
+    try{
+      tz_db.load_from_file("../../data/date_time_zonespec.csv");
+    }catch(boost::local_time::data_not_accessible dna) {
+      std::cerr << "Error with time zone data file: " << dna.what() << std::endl;
+      exit(EXIT_FAILURE);
+    }catch(boost::local_time::bad_field_count bfc) {
+      std::cerr << "Error with time zone data file: " << bfc.what() << std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+    // populate combo boxes with region names
+    typedef std::vector<std::string> vect;
+    vect regions = tz_db.region_list();
+    vect::const_iterator itr = regions.begin();
+    while(itr != regions.end()) {
+      comboBox1->insertItem(*itr);
+      comboBox2->insertItem(*itr);
+      comboBox3->insertItem(*itr);
+      ++itr;
+    }
+    comboBox1->insertItem("<Select Region>", 0);
+    comboBox2->insertItem("<Select Region>", 0);
+    comboBox3->insertItem("<Select Region>", 0);
+
+    // set up dateEdit
+    dateEdit2->setSeparator("-");
+
+    this->reset();
+  }
+
+    ]]>
+  </programlisting>
+  
+  <anchor id="meeting_planner_hpp" />
+  <para>
+    This class coordinates local times across multiple time zones. It accomplishes this by iterating across a collection of time zones and verifying that the target time falls within a set period (a workday).
+  </para>
+  <programlisting>
+    <![CDATA[
+
+  /* The heart of the meeting_planner is the synchronization of different
+   * time zones to a single point in time.
+   * The class takes a vector of regions and a date. The default time
+   * range is 9am to 5pm but can be changed.
+   * The resulting time specs are returned as a vector of strings
+   */
+
+
+  #include "boost/date_time/gregorian/gregorian.hpp"
+  #include "boost/date_time/posix_time/posix_time.hpp"
+  #include "boost/date_time/local_time/local_time.hpp"
+  #include "boost/shared_ptr.hpp"
+  #include <string>
+  #include <vector>
+  #include <locale>
+
+  using namespace boost;
+  using namespace local_time;
+  using namespace posix_time;
+
+  //! Coordinates meeting times accounting for time zone differences
+  class meeting_planner {
+    public:
+      typedef std::vector<shared_ptr<time_zone_base> > vector_type;
+      // a multimap is used so time_zones can be sorted according to utc_offset
+      typedef std::multimap<posix_time::time_duration, shared_ptr<time_zone_base> > zone_map_type;
+      typedef std::vector<std::string> result_type;
+      
+      meeting_planner(const gregorian::date& d, const vector_type& v)
+        : l_time(posix_time::not_a_date_time, shared_ptr<time_zone_base>()),
+          workday(ptime(d,hours(9)), time_duration(8,0,0,1))
+      {
+        vector_type::const_iterator iter = v.begin();
+        while(iter != v.end()) {
+          time_duration offset(0,0,0);
+          if(*iter == NULL) {
+            offset = hours(0);
+          }
+          else{
+            // null pointers may wind up in the vector
+            // TODO: this should be fixed in tz_database
+            offset = (*iter)->base_utc_offset();
+          }
+          zones.insert(zone_map_type::value_type(offset, *iter));
+          ++iter;
+        }
+
+        // set l_time to noon UTC
+        l_time = local_date_time(posix_time::ptime(d, posix_time::hours(12)),
+                                 shared_ptr<time_zone_base>());
+      }
+
+      //! Changes range of valid meeting times (ie. The hours in a workday) times are inclusive
+      void change_range(const time_duration& start, const time_duration& end)
+      {
+        ptime pt(l_time.date(), start);
+        // add one unit to make the give times inclusive
+        workday = time_period(pt, (end - start) + time_duration::unit());
+      }
+
+      //! strings returned in the form of "yyyy-Mon-dd: hh:mm Zzz [repeat]"
+      result_type coordinate_time() const
+      {
+        using namespace posix_time;
+
+        result_type result;
+        bool flag = true;
+        std::stringstream ss;
+        ss.str("");
+       
+        // set the output format for local_date_time to only give 
+        // time_of_day & zone offset
+        typedef boost::date_time::time_facet<local_date_time, char> ldt_facet;
+        ldt_facet* timefacet = new ldt_facet("%H:%M (%q)"); 
+        std::locale loc(std::locale::classic(), timefacet);
+        ss.imbue(loc);
+           
+        // backup a full day and start iterating from there
+        // I went overkill because I've got no decent 
+        // algorithm to set a starting point (yet)
+        local_date_time tmp = l_time - gregorian::days(1);
+        zone_map_type::const_iterator iter; 
+        for(int i = 0; i < 48; ++i) {
+          iter = zones.begin();
+          flag = true;
+          tmp += posix_time::hours(1);
+          
+          while(iter != zones.end() && flag) {
+            if(!workday.contains(tmp.local_time_in(iter->second).local_time())) {
+              flag = false;
+            }
+            ++iter;
+          }
+
+          if(flag) { 
+            iter = zones.begin();
+            ss << tmp.date() << ':';
+            while(iter != zones.end()) {
+              ss << ' ' << tmp.local_time_in(iter->second);
+              ++iter;
+              if(iter != zones.end()) {
+                ss << ',';
+              }
+            }
+            result.push_back(ss.str());
+            ss.str("");
+          }
+        }
+        if(result.empty()) {
+          result.push_back("Scheduling within the time period given is not possible for these time zones.");
+        }
+        return result;
+      }
+      
+    private:
+      zone_map_type zones;
+      local_date_time l_time;
+      time_period workday;
+  };
+
+    ]]>
+  </programlisting>
+</section>

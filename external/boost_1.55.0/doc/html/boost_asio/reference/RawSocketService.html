@@ -1,0 +1,369 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Raw socket service requirements</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="RandomAccessHandleService.html" title="Random access handle service requirements">
+<link rel="next" href="ReadHandler.html" title="Read handler requirements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="RandomAccessHandleService.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ReadHandler.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.RawSocketService"></a><a class="link" href="RawSocketService.html" title="Raw socket service requirements">Raw socket service
+      requirements</a>
+</h3></div></div></div>
+<p>
+        A raw socket service must meet the requirements for a <a class="link" href="SocketService.html" title="Socket service requirements">socket
+        service</a>, as well as the additional requirements listed below.
+      </p>
+<p>
+        In the table below, <code class="computeroutput"><span class="identifier">X</span></code> denotes
+        a raw socket service class for protocol <a class="link" href="Protocol.html" title="Protocol requirements"><code class="computeroutput"><span class="identifier">Protocol</span></code></a>, <code class="computeroutput"><span class="identifier">a</span></code>
+        denotes a value of type <code class="computeroutput"><span class="identifier">X</span></code>,
+        <code class="computeroutput"><span class="identifier">b</span></code> denotes a value of type
+        <code class="computeroutput"><span class="identifier">X</span><span class="special">::</span><span class="identifier">implementation_type</span></code>, <code class="computeroutput"><span class="identifier">e</span></code>
+        denotes a value of type <code class="computeroutput"><span class="identifier">Protocol</span><span class="special">::</span><span class="identifier">endpoint</span></code>,
+        <code class="computeroutput"><span class="identifier">ec</span></code> denotes a value of type
+        <code class="computeroutput"><span class="identifier">error_code</span></code>, <code class="computeroutput"><span class="identifier">f</span></code> denotes a value of type <code class="computeroutput"><span class="identifier">socket_base</span><span class="special">::</span><span class="identifier">message_flags</span></code>, <code class="computeroutput"><span class="identifier">mb</span></code>
+        denotes a value satisfying <a class="link" href="MutableBufferSequence.html" title="Mutable buffer sequence requirements">mutable
+        buffer sequence</a> requirements, <code class="computeroutput"><span class="identifier">rh</span></code>
+        denotes a value meeting <a class="link" href="ReadHandler.html" title="Read handler requirements"><code class="computeroutput"><span class="identifier">ReadHandler</span></code></a> requirements, <code class="computeroutput"><span class="identifier">cb</span></code> denotes a value satisfying <a class="link" href="ConstBufferSequence.html" title="Constant buffer sequence requirements">constant
+        buffer sequence</a> requirements, and <code class="computeroutput"><span class="identifier">wh</span></code>
+        denotes a value meeting <a class="link" href="WriteHandler.html" title="Write handler requirements"><code class="computeroutput"><span class="identifier">WriteHandler</span></code></a> requirements.
+      </p>
+<div class="table">
+<a name="boost_asio.reference.RawSocketService.t0"></a><p class="title"><b>Table&#160;22.&#160;RawSocketService requirements</b></p>
+<div class="table-contents"><table class="table" summary="RawSocketService requirements">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  expression
+                </p>
+              </th>
+<th>
+                <p>
+                  return type
+                </p>
+              </th>
+<th>
+                <p>
+                  assertion/note<br> pre/post-condition
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">receive</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span>
+                  <span class="identifier">mb</span><span class="special">,</span>
+                  <span class="identifier">f</span><span class="special">,</span>
+                  <span class="identifier">ec</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">size_t</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.<br>
+                  <br> Reads one or more bytes of data from a connected socket
+                  <code class="computeroutput"><span class="identifier">b</span></code>.<br> <br>
+                  The mutable buffer sequence <code class="computeroutput"><span class="identifier">mb</span></code>
+                  specifies memory where the data should be placed. The operation
+                  shall always fill a buffer in the sequence completely before proceeding
+                  to the next.<br> <br> If successful, returns the number of
+                  bytes read. Otherwise returns <code class="computeroutput"><span class="number">0</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">async_receive</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span>
+                  <span class="identifier">mb</span><span class="special">,</span>
+                  <span class="identifier">f</span><span class="special">,</span>
+                  <span class="identifier">rh</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">void</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.<br>
+                  <br> Initiates an asynchronous operation to read one or more
+                  bytes of data from a connected socket <code class="computeroutput"><span class="identifier">b</span></code>.
+                  The operation is performed via the <code class="computeroutput"><span class="identifier">io_service</span></code>
+                  object <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">get_io_service</span><span class="special">()</span></code>
+                  and behaves according to <a class="link" href="asynchronous_operations.html" title="Requirements on asynchronous operations">asynchronous
+                  operation</a> requirements.<br> <br> The mutable buffer
+                  sequence <code class="computeroutput"><span class="identifier">mb</span></code> specifies
+                  memory where the data should be placed. The operation shall always
+                  fill a buffer in the sequence completely before proceeding to the
+                  next.<br> <br> The implementation shall maintain one or more
+                  copies of <code class="computeroutput"><span class="identifier">mb</span></code> until
+                  such time as the read operation no longer requires access to the
+                  memory specified by the buffers in the sequence. The program must
+                  ensure the memory is valid until:<br> <br> &#8212; the last copy of
+                  <code class="computeroutput"><span class="identifier">mb</span></code> is destroyed,
+                  or<br> <br> &#8212; the handler for the asynchronous operation is invoked,<br>
+                  <br> whichever comes first.<br> <br> If the operation completes
+                  successfully, the <code class="computeroutput"><span class="identifier">ReadHandler</span></code>
+                  object <code class="computeroutput"><span class="identifier">rh</span></code> is invoked
+                  with the number of bytes transferred. Otherwise it is invoked with
+                  <code class="computeroutput"><span class="number">0</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">receive_from</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span>
+                  <span class="identifier">mb</span><span class="special">,</span>
+                  <span class="identifier">e</span><span class="special">,</span>
+                  <span class="identifier">f</span><span class="special">,</span>
+                  <span class="identifier">ec</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">size_t</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.<br>
+                  <br> Reads one or more bytes of data from an unconnected socket
+                  <code class="computeroutput"><span class="identifier">b</span></code>.<br> <br>
+                  The mutable buffer sequence <code class="computeroutput"><span class="identifier">mb</span></code>
+                  specifies memory where the data should be placed. The operation
+                  shall always fill a buffer in the sequence completely before proceeding
+                  to the next.<br> <br> If successful, returns the number of
+                  bytes read. Otherwise returns <code class="computeroutput"><span class="number">0</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">async_receive_from</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span>
+                  <span class="identifier">mb</span><span class="special">,</span>
+                  <span class="identifier">e</span><span class="special">,</span>
+                  <span class="identifier">f</span><span class="special">,</span>
+                  <span class="identifier">rh</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">void</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.<br>
+                  <br> Initiates an asynchronous operation to read one or more
+                  bytes of data from an unconnected socket <code class="computeroutput"><span class="identifier">b</span></code>.
+                  The operation is performed via the <code class="computeroutput"><span class="identifier">io_service</span></code>
+                  object <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">get_io_service</span><span class="special">()</span></code>
+                  and behaves according to <a class="link" href="asynchronous_operations.html" title="Requirements on asynchronous operations">asynchronous
+                  operation</a> requirements.<br> <br> The mutable buffer
+                  sequence <code class="computeroutput"><span class="identifier">mb</span></code> specifies
+                  memory where the data should be placed. The operation shall always
+                  fill a buffer in the sequence completely before proceeding to the
+                  next.<br> <br> The implementation shall maintain one or more
+                  copies of <code class="computeroutput"><span class="identifier">mb</span></code> until
+                  such time as the read operation no longer requires access to the
+                  memory specified by the buffers in the sequence. The program must
+                  ensure the memory is valid until:<br> <br> &#8212; the last copy of
+                  <code class="computeroutput"><span class="identifier">mb</span></code> is destroyed,
+                  or<br> <br> &#8212; the handler for the asynchronous operation is invoked,<br>
+                  <br> whichever comes first.<br> <br> The program must ensure
+                  the object <code class="computeroutput"><span class="identifier">e</span></code> is
+                  valid until the handler for the asynchronous operation is invoked.<br>
+                  <br> If the operation completes successfully, the <code class="computeroutput"><span class="identifier">ReadHandler</span></code> object <code class="computeroutput"><span class="identifier">rh</span></code> is invoked with the number
+                  of bytes transferred. Otherwise it is invoked with <code class="computeroutput"><span class="number">0</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">send</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span>
+                  <span class="identifier">cb</span><span class="special">,</span>
+                  <span class="identifier">f</span><span class="special">,</span>
+                  <span class="identifier">ec</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">size_t</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.<br>
+                  <br> Writes one or more bytes of data to a connected socket
+                  <code class="computeroutput"><span class="identifier">b</span></code>.<br> <br>
+                  The constant buffer sequence <code class="computeroutput"><span class="identifier">cb</span></code>
+                  specifies memory where the data to be written is located. The operation
+                  shall always write a buffer in the sequence completely before proceeding
+                  to the next.<br> <br> If successful, returns the number of
+                  bytes written. Otherwise returns <code class="computeroutput"><span class="number">0</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">async_send</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span>
+                  <span class="identifier">cb</span><span class="special">,</span>
+                  <span class="identifier">f</span><span class="special">,</span>
+                  <span class="identifier">wh</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">void</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.<br>
+                  <br> Initiates an asynchronous operation to write one or more
+                  bytes of data to a connected socket <code class="computeroutput"><span class="identifier">b</span></code>.
+                  The operation is performed via the <code class="computeroutput"><span class="identifier">io_service</span></code>
+                  object <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">get_io_service</span><span class="special">()</span></code>
+                  and behaves according to <a class="link" href="asynchronous_operations.html" title="Requirements on asynchronous operations">asynchronous
+                  operation</a> requirements.<br> <br> The constant buffer
+                  sequence <code class="computeroutput"><span class="identifier">cb</span></code> specifies
+                  memory where the data to be written is located. The operation shall
+                  always write a buffer in the sequence completely before proceeding
+                  to the next.<br> <br> The implementation shall maintain one
+                  or more copies of <code class="computeroutput"><span class="identifier">cb</span></code>
+                  until such time as the write operation no longer requires access
+                  to the memory specified by the buffers in the sequence. The program
+                  must ensure the memory is valid until:<br> <br> &#8212; the last copy
+                  of <code class="computeroutput"><span class="identifier">cb</span></code> is destroyed,
+                  or<br> <br> &#8212; the handler for the asynchronous operation is invoked,<br>
+                  <br> whichever comes first.<br> <br> If the operation completes
+                  successfully, the <code class="computeroutput"><span class="identifier">WriteHandler</span></code>
+                  object <code class="computeroutput"><span class="identifier">wh</span></code> is invoked
+                  with the number of bytes transferred. Otherwise it is invoked with
+                  <code class="computeroutput"><span class="number">0</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="keyword">const</span> <span class="keyword">typename</span> <span class="identifier">Protocol</span><span class="special">::</span><span class="identifier">endpoint</span><span class="special">&amp;</span> <span class="identifier">u</span> <span class="special">=</span> <span class="identifier">e</span><span class="special">;</span>
+<span class="identifier">a</span><span class="special">.</span><span class="identifier">send_to</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">cb</span><span class="special">,</span> <span class="identifier">u</span><span class="special">,</span> <span class="identifier">f</span><span class="special">,</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">size_t</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.<br>
+                  <br> Writes one or more bytes of data to an unconnected socket
+                  <code class="computeroutput"><span class="identifier">b</span></code>.<br> <br>
+                  The constant buffer sequence <code class="computeroutput"><span class="identifier">cb</span></code>
+                  specifies memory where the data to be written is located. The operation
+                  shall always write a buffer in the sequence completely before proceeding
+                  to the next.<br> <br> If successful, returns the number of
+                  bytes written. Otherwise returns <code class="computeroutput"><span class="number">0</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="keyword">const</span> <span class="keyword">typename</span> <span class="identifier">Protocol</span><span class="special">::</span><span class="identifier">endpoint</span><span class="special">&amp;</span> <span class="identifier">u</span> <span class="special">=</span> <span class="identifier">e</span><span class="special">;</span>
+<span class="identifier">a</span><span class="special">.</span><span class="identifier">async_send</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">cb</span><span class="special">,</span> <span class="identifier">u</span><span class="special">,</span> <span class="identifier">f</span><span class="special">,</span> <span class="identifier">wh</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">void</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.<br>
+                  <br> Initiates an asynchronous operation to write one or more
+                  bytes of data to an unconnected socket <code class="computeroutput"><span class="identifier">b</span></code>.
+                  The operation is performed via the <code class="computeroutput"><span class="identifier">io_service</span></code>
+                  object <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">get_io_service</span><span class="special">()</span></code>
+                  and behaves according to <a class="link" href="asynchronous_operations.html" title="Requirements on asynchronous operations">asynchronous
+                  operation</a> requirements.<br> <br> The constant buffer
+                  sequence <code class="computeroutput"><span class="identifier">cb</span></code> specifies
+                  memory where the data to be written is located. The operation shall
+                  always write a buffer in the sequence completely before proceeding
+                  to the next.<br> <br> The implementation shall maintain one
+                  or more copies of <code class="computeroutput"><span class="identifier">cb</span></code>
+                  until such time as the write operation no longer requires access
+                  to the memory specified by the buffers in the sequence. The program
+                  must ensure the memory is valid until:<br> <br> &#8212; the last copy
+                  of <code class="computeroutput"><span class="identifier">cb</span></code> is destroyed,
+                  or<br> <br> &#8212; the handler for the asynchronous operation is invoked,<br>
+                  <br> whichever comes first.<br> <br> If the operation completes
+                  successfully, the <code class="computeroutput"><span class="identifier">WriteHandler</span></code>
+                  object <code class="computeroutput"><span class="identifier">wh</span></code> is invoked
+                  with the number of bytes transferred. Otherwise it is invoked with
+                  <code class="computeroutput"><span class="number">0</span></code>.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="RandomAccessHandleService.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ReadHandler.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

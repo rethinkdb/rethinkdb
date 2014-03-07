@@ -1,0 +1,933 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Bimap Reference</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="../reference.html" title="Reference">
+<link rel="next" href="set_of_reference.html" title="set_of Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../reference.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="set_of_reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_reference_bimap_reference">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.reference.bimap_reference"></a><a class="link" href="bimap_reference.html" title="Bimap Reference">Bimap Reference</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.view_concepts">View
+        concepts</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.complexity_signature">Complexity
+        signature</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.set_type_specification">Set
+        type specification</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.tags">Tags</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.header__boost_bimap_bimap_hpp__synopsis">Header
+        "boost/bimap/bimap.hpp" synopsis</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap">Class
+        template bimap</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.complexity">Complexity</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.instantiation_types">Instantiation
+          types</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.nested_types">Nested
+          types</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.constructors__copy_and_assignment">Constructors,
+          copy and assignment</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.projection_operations">Projection
+          operations</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.support_for_user_defined_names">Support
+          for user defined names</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.serialization">Serialization</a></span></dt>
+</dl></dd>
+</dl></div>
+<div class="section boost_bimap_reference_bimap_reference_view_concepts">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.reference.bimap_reference.view_concepts"></a><a class="link" href="bimap_reference.html#boost_bimap.reference.bimap_reference.view_concepts" title="View concepts">View
+        concepts</a>
+</h4></div></div></div>
+<p>
+          <code class="computeroutput"><span class="identifier">bimap</span></code> instantiations comprise
+          two side views and an view of the relation specified at compile time. Each
+          view allows read-write access to the elements contained in a definite manner,
+          mathing an STL container signature.
+        </p>
+<p>
+          Views are not isolated objects and so cannot be constructed on their own;
+          rather they are an integral part of a <code class="computeroutput"><span class="identifier">bimap</span></code>.
+          The name of the view class implementation proper is never directly exposed
+          to the user, who has access only to the associated view type specifier.
+        </p>
+<p>
+          Insertion and deletion of elements are always performed through the appropriate
+          interface of any of the three views of the <code class="computeroutput"><span class="identifier">bimap</span></code>;
+          these operations do, however, have an impact on all other views as well:
+          for instance, insertion through a given view may fail because there exists
+          another view that forbids the operation in order to preserve its invariant
+          (such as uniqueness of elements). The global operations performed jointly
+          in the any view can be reduced to six primitives:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              copying
+            </li>
+<li class="listitem">
+              insertion of an element
+            </li>
+<li class="listitem">
+              hinted insertion, where a pre-existing element is suggested in order
+              to improve the efficiency of the operation
+            </li>
+<li class="listitem">
+              deletion of an element
+            </li>
+<li class="listitem">
+              replacement of the value of an element, which may trigger the rearrangement
+              of this element in one or more views, or may forbid the replacement
+            </li>
+<li class="listitem">
+              modification of an element, and its subsequent rearrangement/banning
+              by the various views
+            </li>
+</ul></div>
+<p>
+          The last two primitives deserve some further explanation: in order to guarantee
+          the invariants associated to each view (e.g. some definite ordering) elements
+          of a <code class="computeroutput"><span class="identifier">bimap</span></code> are not mutable.
+          To overcome this restriction, the views expose member functions for updating
+          and modifying, which allows for the mutation of elements in a controlled
+          fashion.
+        </p>
+</div>
+<div class="section boost_bimap_reference_bimap_reference_complexity_signature">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.reference.bimap_reference.complexity_signature"></a><a name="complexity_signature_explanation"></a><a class="link" href="bimap_reference.html#boost_bimap.reference.bimap_reference.complexity_signature" title="Complexity signature">Complexity
+        signature</a>
+</h4></div></div></div>
+<p>
+          Some member functions of a view interface are implemented by global primitives
+          from the above list. The complexity of these operations thus depends on
+          all views of a given <code class="computeroutput"><span class="identifier">bimap</span></code>,
+          not just the currently used view.
+        </p>
+<p>
+          In order to establish complexity estimates, a view is characterised by
+          its complexity signature, consisting of the following associated functions
+          on the number of elements:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">c</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code>:
+              copying
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">i</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code>:
+              insertion
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">h</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code>:
+              hinted insertion
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">d</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code>:
+              deletion
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">r</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code>:
+              replacement
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">m</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code>:
+              modifying
+            </li>
+</ul></div>
+<p>
+          If the collection type of the relation is <code class="computeroutput"><span class="identifier">left_based</span></code>
+          or <code class="computeroutput"><span class="identifier">right_based</span></code>, and we
+          use an <code class="computeroutput"><span class="identifier">l</span></code> subscript to denote
+          the left view and an <code class="computeroutput"><span class="identifier">r</span></code>
+          for the right view, then the insertion of an element in such a container
+          is of complexity <code class="computeroutput"><span class="identifier">O</span><span class="special">(</span><span class="identifier">i_l</span><span class="special">(</span><span class="identifier">n</span><span class="special">)+</span><span class="identifier">i_r</span><span class="special">(</span><span class="identifier">n</span><span class="special">))</span></code>,
+          where n is the number of elements. If the collection type of relation is
+          not side-based, then there is an additional term to add that is contributed
+          by the collection type of relation view. Using <code class="computeroutput"><span class="identifier">a</span></code>
+          to denote the above view, the complexity of insertion will now be <code class="computeroutput"><span class="identifier">O</span><span class="special">(</span><span class="identifier">i_l</span><span class="special">(</span><span class="identifier">n</span><span class="special">)+</span><span class="identifier">i_r</span><span class="special">(</span><span class="identifier">n</span><span class="special">)+</span><span class="identifier">i_a</span><span class="special">(</span><span class="identifier">n</span><span class="special">))</span></code>.
+          To abbreviate the notation, we adopt the following definitions:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">C</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">c_l</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">+</span> <span class="identifier">c_r</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">[</span> <span class="special">+</span> <span class="identifier">c_a</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">]</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">I</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">i_l</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">+</span> <span class="identifier">i_r</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">[</span> <span class="special">+</span> <span class="identifier">i_a</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">]</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">H</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">h_l</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">+</span> <span class="identifier">h_r</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">[</span> <span class="special">+</span> <span class="identifier">h_a</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">]</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">D</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">d_l</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">+</span> <span class="identifier">d_r</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">[</span> <span class="special">+</span> <span class="identifier">d_a</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">]</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">r_l</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">+</span> <span class="identifier">r_r</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">[</span> <span class="special">+</span> <span class="identifier">r_a</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">]</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">M</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">m_l</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">+</span> <span class="identifier">m_r</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">[</span> <span class="special">+</span> <span class="identifier">m_a</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">]</span></code>
+            </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_bimap_reference_set_type_specification">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.reference.bimap_reference.set_type_specification"></a><a class="link" href="bimap_reference.html#boost_bimap.reference.bimap_reference.set_type_specification" title="Set type specification">Set
+        type specification</a>
+</h4></div></div></div>
+<p>
+          Set type specifiers are passed as instantiation arguments to <code class="computeroutput"><span class="identifier">bimap</span></code> and provide the information needed
+          to incorporate the corresponding views. Currently, Boost.Bimap provides
+          the collection type specifiers. The <span class="emphasis"><em>side collection type</em></span>
+          specifiers define the constraints of the two map views of the bimap. The
+          <span class="emphasis"><em>collection type of relation</em></span> specifier defines the
+          main set view constraints. If <code class="computeroutput"><span class="identifier">left_based</span></code>
+          (the default parameter) or <code class="computeroutput"><span class="identifier">right_based</span></code>
+          is used, then the collection type of relation will be based on the left
+          or right collection type correspondingly.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Side collection type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Collection type of relation
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Include
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">set_of</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">set_of_relation</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">set_of</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">multiset_of</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">multiset_of_relation</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">multiset_of</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unordered_set_of</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unordered_set_of_relation</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">unordered_set_of</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unordered_multiset_of</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unordered_multiset_of_relation</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">unordered_multiset_of</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">list_of</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">list_of_relation</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">list_of</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">vector_of</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">vector_of_relation</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">vector_of</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unconstrained_set_of</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unconstrained_set_of_relation</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">unconstrained_set_of</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">left_based</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">right_based</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="section boost_bimap_reference_bimap_reference_tags">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.reference.bimap_reference.tags"></a><a class="link" href="bimap_reference.html#boost_bimap.reference.bimap_reference.tags" title="Tags">Tags</a>
+</h4></div></div></div>
+<p>
+          Tags are just conventional types used as mnemonics for the types stored
+          in a <code class="computeroutput"><span class="identifier">bimap</span></code>. Boost.Bimap
+          uses the tagged idiom to let the user specify this tags.
+        </p>
+</div>
+<div class="section boost_bimap_reference_bimap_reference_header__boost_bimap_bimap_hpp__synopsis">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.reference.bimap_reference.header__boost_bimap_bimap_hpp__synopsis"></a><a class="link" href="bimap_reference.html#boost_bimap.reference.bimap_reference.header__boost_bimap_bimap_hpp__synopsis" title='Header "boost/bimap/bimap.hpp" synopsis'>Header
+        "boost/bimap/bimap.hpp" synopsis</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+<span class="keyword">namespace</span> <span class="identifier">bimaps</span> <span class="special">{</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Type</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Tag</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">tagged</span><span class="special">;</span>
+
+<span class="comment">// bimap template class</span>
+
+<span class="keyword">template</span>
+<span class="special">&lt;</span>
+    <span class="keyword">class</span> <span class="identifier">LeftCollectionType</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">RightCollectionType</span><span class="special">,</span>
+
+    <span class="keyword">class</span> <span class="identifier">AdditionalParameter_1</span> <span class="special">=</span> <span class="identifier">detail</span><span class="special">::</span><span class="identifier">not_specified</span><span class="special">,</span>
+    <span class="keyword">class</span> <span class="identifier">AdditionalParameter_2</span> <span class="special">=</span> <span class="identifier">detail</span><span class="special">::</span><span class="identifier">not_specified</span>
+<span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">bimap</span> <span class="emphasis"><em>- implementation defined { : public SetView } -</em></span>
+<span class="special">{</span>
+    <span class="keyword">public</span><span class="special">:</span>
+
+    <span class="comment">// Metadata</span>
+
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">left_tag</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">left_map</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">right_tag</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">right_map</span><span class="special">;</span>
+
+    <span class="comment">// Shortcuts</span>
+    <span class="comment">// typedef -side-_map::-type- -side-_-type-;</span>
+
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">info_type</span><span class="special">;</span>
+
+    <span class="comment">// Map views</span>
+
+     <span class="identifier">left_map</span>  <span class="identifier">left</span><span class="special">;</span>
+    <span class="identifier">right_map</span> <span class="identifier">right</span><span class="special">;</span>
+
+    <span class="comment">// Constructors</span>
+
+    <span class="identifier">bimap</span><span class="special">();</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">InputIterator</span> <span class="special">&gt;</span>
+    <span class="identifier">bimap</span><span class="special">(</span><span class="identifier">InputIterator</span> <span class="identifier">first</span><span class="special">,</span><span class="identifier">InputIterator</span> <span class="identifier">last</span><span class="special">);</span>
+
+    <span class="identifier">bimap</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">bimap</span> <span class="special">&amp;);</span>
+
+    <span class="identifier">bimap</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">bimap</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">);</span>
+
+    <span class="comment">// Projection of iterators</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+    <span class="identifier">left_iterator</span> <span class="identifier">project_left</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">);</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+    <span class="identifier">left_const_iterator</span> <span class="identifier">project_left</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+    <span class="identifier">right_iterator</span> <span class="identifier">project_right</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">);</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+    <span class="identifier">right_const_iterator</span> <span class="identifier">project_right</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+    <span class="identifier">iterator</span> <span class="identifier">project_up</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">);</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+    <span class="identifier">const_iterator</span> <span class="identifier">project_up</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="comment">// Support for tags</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Tag</span> <span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">map_by</span><span class="special">;</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Tag</span> <span class="special">&gt;</span>
+    <span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">by</span><span class="special">();</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Tag</span> <span class="special">&gt;</span>
+    <span class="keyword">const</span> <span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="special">&amp;</span> <span class="identifier">by</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Tag</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+    <span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">iterator</span> <span class="identifier">project</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">);</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Tag</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+    <span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span> <span class="identifier">project</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">)</span> <span class="keyword">const</span>
+
+<span class="special">};</span>
+
+
+<span class="special">}</span> <span class="comment">// namespace bimap</span>
+<span class="special">}</span> <span class="comment">// namespace boost</span>
+</pre>
+</div>
+<div class="section boost_bimap_reference_bimap_reference_class_template_bimap">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.reference.bimap_reference.class_template_bimap"></a><a class="link" href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap" title="Class template bimap">Class
+        template bimap</a>
+</h4></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.complexity">Complexity</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.instantiation_types">Instantiation
+          types</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.nested_types">Nested
+          types</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.constructors__copy_and_assignment">Constructors,
+          copy and assignment</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.projection_operations">Projection
+          operations</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.support_for_user_defined_names">Support
+          for user defined names</a></span></dt>
+<dt><span class="section"><a href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.serialization">Serialization</a></span></dt>
+</dl></div>
+<p>
+          This is the main component of Boost.Bimap.
+        </p>
+<div class="section boost_bimap_reference_bimap_reference_class_template_bimap_complexity">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.bimap_reference.class_template_bimap.complexity"></a><a class="link" href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.complexity" title="Complexity">Complexity</a>
+</h5></div></div></div>
+<p>
+            In the descriptions of the operations of <code class="computeroutput"><span class="identifier">bimap</span></code>,
+            we adopt the scheme outlined in the complexity signature section.
+          </p>
+</div>
+<div class="section boost_bimap_reference_bimap_reference_class_template_bimap_instantiation_types">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.bimap_reference.class_template_bimap.instantiation_types"></a><a class="link" href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.instantiation_types" title="Instantiation types">Instantiation
+          types</a>
+</h5></div></div></div>
+<p>
+            <code class="computeroutput"><span class="identifier">bimap</span></code> is instantiated
+            with the following types:
+          </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+                LeftCollectionType and RightCollectionType are collection type specifications
+                optionally tagged, or any type optionally tagged, in which case that
+                side acts as a set.
+              </li>
+<li class="listitem">
+                AdditionalParameter_{1/2} can be any ordered subset of:
+                <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                      CollectionTypeOfRelation specification
+                    </li>
+<li class="listitem">
+                      Allocator
+                    </li>
+</ul></div>
+              </li>
+</ol></div>
+</div>
+<div class="section boost_bimap_reference_bimap_reference_class_template_bimap_nested_types">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.bimap_reference.class_template_bimap.nested_types"></a><a class="link" href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.nested_types" title="Nested types">Nested
+          types</a>
+</h5></div></div></div>
+<pre class="programlisting"><span class="identifier">left_tag</span><span class="special">,</span> <span class="identifier">right_tag</span>
+</pre>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              Tags for each side of the bimap. If the user has not specified any
+              tag the tags default to <code class="computeroutput"><span class="identifier">member_at</span><span class="special">::</span><span class="identifier">left</span></code>
+              and <code class="computeroutput"><span class="identifier">member_at</span><span class="special">::</span><span class="identifier">right</span></code>.
+            </p></blockquote></div>
+<pre class="programlisting"><span class="identifier">left_key_type</span><span class="special">,</span> <span class="identifier">right_key_type</span>
+</pre>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              Key type of each side. In a <code class="computeroutput"><span class="identifier">bimap</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span><span class="identifier">B</span><span class="special">&gt;</span> </code> <code class="computeroutput"><span class="identifier">left_key_type</span></code>
+              is <code class="computeroutput"><span class="identifier">A</span></code> and <code class="computeroutput"><span class="identifier">right_key_type</span></code> is <code class="computeroutput"><span class="identifier">B</span></code>.
+              If there are tags, it is better to use: <code class="computeroutput"><span class="identifier">Bimap</span><span class="special">::</span><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">key_type</span></code>.
+            </p></blockquote></div>
+<pre class="programlisting"><span class="identifier">left_data_type</span><span class="special">,</span> <span class="identifier">right_data_type</span>
+</pre>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              Data type of each side. In a bimap&lt;A,B&gt; left_key_type is B and
+              right_key_type is A. If there are tags, it is better to use: <code class="computeroutput"><span class="identifier">Bimap</span><span class="special">::</span><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">data_type</span></code>.
+            </p></blockquote></div>
+<pre class="programlisting"><span class="identifier">left_value_type</span><span class="special">,</span> <span class="identifier">right_value_type</span>
+</pre>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              Value type used for the views. If there are tags, it is better to use:
+              <code class="computeroutput"><span class="identifier">Bimap</span><span class="special">::</span><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">value_type</span></code>.
+            </p></blockquote></div>
+<pre class="programlisting"><span class="identifier">left_iterator</span><span class="special">,</span> <span class="identifier">right_iterator</span>
+<span class="identifier">left_const_iterator</span><span class="special">,</span> <span class="identifier">right_const_iterator</span>
+</pre>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              Iterators of the views. If there are tags, it is better to use: <code class="computeroutput"><span class="identifier">Bimap</span><span class="special">::</span><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">iterator</span></code> and <code class="computeroutput"><span class="identifier">Bimap</span><span class="special">::</span><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span></code>
+            </p></blockquote></div>
+<pre class="programlisting"><span class="identifier">left_map</span><span class="special">,</span> <span class="identifier">right_map</span>
+</pre>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              Map view type of each side. If there are tags, it is better to use:
+              <code class="computeroutput"><span class="identifier">Bimap</span><span class="special">::</span><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+            </p></blockquote></div>
+</div>
+<div class="section boost_bimap_reference_bimap_reference_class_template_bimap_constructors__copy_and_assignment">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.bimap_reference.class_template_bimap.constructors__copy_and_assignment"></a><a class="link" href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.constructors__copy_and_assignment" title="Constructors, copy and assignment">Constructors,
+          copy and assignment</a>
+</h5></div></div></div>
+<pre class="programlisting"><span class="identifier">bimap</span><span class="special">();</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Constructs an empty <code class="computeroutput"><span class="identifier">bimap</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> Constant.
+              </li>
+</ul></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">InputIterator</span><span class="special">&gt;</span>
+<span class="identifier">bimap</span><span class="special">(</span><span class="identifier">InputIterator</span> <span class="identifier">first</span><span class="special">,</span><span class="identifier">InputIterator</span> <span class="identifier">last</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">InputIterator</span></code>
+                is a model of Input Iterator over elements of type <code class="computeroutput"><span class="identifier">relation</span></code> or a type convertible
+                to <code class="computeroutput"><span class="identifier">relation</span></code>. last
+                is reachable from <code class="computeroutput"><span class="identifier">first</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Constructs an empty <code class="computeroutput"><span class="identifier">bimap</span></code> and fills it with the elements
+                in the range <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span><span class="identifier">last</span><span class="special">)</span></code>. Insertion of each element may or
+                may not succeed depending on acceptance by the collection types of
+                the <code class="computeroutput"><span class="identifier">bimap</span></code>.
+              </li>
+<li class="listitem">
+                <a class="link" href="bimap_reference.html#complexity_signature_explanation"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(m*H(m)), where m is the number of elements in <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span><span class="identifier">last</span><span class="special">)</span></code>.
+              </li>
+</ul></div>
+<pre class="programlisting"><span class="identifier">bimap</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">bimap</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Constructs a copy of x,
+                copying its elements as well as its internal objects (key extractors,
+                comparison objects, allocator.)
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span> <span class="special">==</span>
+                <span class="identifier">x</span></code>. The order of the views
+                of the <code class="computeroutput"><span class="identifier">bimap</span></code> is preserved
+                as well.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> O(x.size()*log(x.size())
+                + C(x.size()))
+              </li>
+</ul></div>
+<pre class="programlisting"><span class="special">~</span><span class="identifier">bimap</span><span class="special">()</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Destroys the <code class="computeroutput"><span class="identifier">bimap</span></code> and all the elements contained.
+                The order in which the elements are destroyed is not specified.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> O(n).
+              </li>
+</ul></div>
+<pre class="programlisting"><span class="identifier">bimap</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">bimap</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Replaces the elements and
+                internal objects of the <code class="computeroutput"><span class="identifier">bimap</span></code>
+                with copies from x.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span><span class="special">==</span><span class="identifier">x</span></code>. The order on the views of the
+                <code class="computeroutput"><span class="identifier">bimap</span></code> is preserved
+                as well.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns: </strong></span> <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> O(n + x.size()*log(x.size())
+                + C(x.size())).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Strong, provided
+                the copy and assignment operations of the types of <code class="computeroutput"><span class="identifier">ctor_args_list</span></code> do not throw.
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_bimap_reference_class_template_bimap_projection_operations">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.bimap_reference.class_template_bimap.projection_operations"></a><a name="reference_projection_operations"></a><a class="link" href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.projection_operations" title="Projection operations">Projection
+          operations</a>
+</h5></div></div></div>
+<p>
+            Given a <code class="computeroutput"><span class="identifier">bimap</span></code> with views
+            v1 and v2, we say than an v1-iterator it1 and an v2-iterator it2 are
+            equivalent if:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">it1</span> <span class="special">==</span>
+                <span class="identifier">i1</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span></code>
+                AND <code class="computeroutput"><span class="identifier">it2</span> <span class="special">==</span>
+                <span class="identifier">i2</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span></code>,
+              </li>
+<li class="listitem">
+                OR <code class="computeroutput"><span class="identifier">it1</span></code> and <code class="computeroutput"><span class="identifier">it2</span></code> point to the same element.
+              </li>
+</ul></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+<span class="identifier">left_iterator</span> <span class="identifier">project_left</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+<span class="identifier">left_const_iterator</span> <span class="identifier">project_left</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires:</strong></span> <code class="computeroutput"><span class="identifier">IteratorType</span></code>
+                is a bimap view iterator. it is a valid iterator of some view of
+                <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>
+                (i.e. does not refer to some other <code class="computeroutput"><span class="identifier">bimap</span></code>.)
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Returns a left map view
+                iterator equivalent to <code class="computeroutput"><span class="identifier">it</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> Constant.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> nothrow.
+              </li>
+</ul></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+<span class="identifier">right_iterator</span> <span class="identifier">project_right</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+<span class="identifier">right_const_iterator</span> <span class="identifier">project_right</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires:</strong></span> <code class="computeroutput"><span class="identifier">IteratorType</span></code>
+                is a bimap view iterator. it is a valid iterator of some view of
+                <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>
+                (i.e. does not refer to some other <code class="computeroutput"><span class="identifier">bimap</span></code>.)
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Returns a right map view
+                iterator equivalent to <code class="computeroutput"><span class="identifier">it</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> Constant.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> nothrow.
+              </li>
+</ul></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+<span class="identifier">iterator</span> <span class="identifier">project_up</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+<span class="identifier">const_iterator</span> <span class="identifier">project_up</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires:</strong></span> <code class="computeroutput"><span class="identifier">IteratorType</span></code>
+                is a bimap view iterator. it is a valid iterator of some view of
+                <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>
+                (i.e. does not refer to some other <code class="computeroutput"><span class="identifier">bimap</span></code>.)
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Returns a collection of
+                relations view iterator equivalent to <code class="computeroutput"><span class="identifier">it</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> Constant.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> nothrow.
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_bimap_reference_class_template_bimap_support_for_user_defined_names">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.bimap_reference.class_template_bimap.support_for_user_defined_names"></a><a name="reference_support_for_used_defined_names"></a><a class="link" href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.support_for_user_defined_names" title="Support for user defined names">Support
+          for user defined names</a>
+</h5></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Tag</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">map_by</span><span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">type</span></code> yields the type of the map
+                view tagged with <code class="computeroutput"><span class="identifier">Tag</span></code>.
+                <code class="computeroutput"><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span></code><span class="emphasis"><em>-type
+                name-</em></span> is the same as <code class="computeroutput"><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">::</span></code><span class="emphasis"><em>-type name-</em></span>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">Tag</span></code>
+                is a valid user defined name of the bimap.
+              </li>
+</ul></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Tag</span> <span class="special">&gt;</span>
+<span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">by</span><span class="special">();</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Tag</span> <span class="special">&gt;</span>
+<span class="keyword">const</span> <span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="special">&amp;</span> <span class="identifier">by</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">Tag</span></code>
+                is a valid user defined name of the bimap.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Returns a reference to
+                the map view tagged with <code class="computeroutput"><span class="identifier">Tag</span></code>
+                held by <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> Constant.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> nothrow.
+              </li>
+</ul></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Tag</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+<span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">iterator</span> <span class="identifier">project</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Tag</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">IteratorType</span> <span class="special">&gt;</span>
+<span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span> <span class="identifier">project</span><span class="special">(</span><span class="identifier">IteratorType</span> <span class="identifier">iter</span><span class="special">)</span> <span class="keyword">const</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">Tag</span></code>
+                is a valid user defined name of the bimap. <code class="computeroutput"><span class="identifier">IteratorType</span></code>
+                is a bimap view iterator. it is a valid iterator of some view of
+                <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>
+                (i.e. does not refer to some other <code class="computeroutput"><span class="identifier">bimap</span></code>.)
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Returns a reference to
+                the map view tagged with <code class="computeroutput"><span class="identifier">Tag</span></code>
+                held by <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> Constant.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> nothrow.
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_bimap_reference_class_template_bimap_serialization">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.bimap_reference.class_template_bimap.serialization"></a><a class="link" href="bimap_reference.html#boost_bimap.reference.bimap_reference.class_template_bimap.serialization" title="Serialization">Serialization</a>
+</h5></div></div></div>
+<p>
+            A <code class="computeroutput"><span class="identifier">bimap</span></code> can be archived
+            and retrieved by means of <a href="http://www.boost.org/libs/serialization/doc/index.html" target="_top"><span class="bold"><strong>Boost.Serialization</strong></span></a>. Boost.Bimap does
+            not expose a public serialisation interface, as this is provided by Boost.Serialization
+            itself. Both regular and XML archives are supported.
+          </p>
+<p>
+            Each of the set specifications comprising a given <code class="computeroutput"><span class="identifier">bimap</span></code>
+            contributes its own preconditions as well as guarantees on the retrieved
+            containers. In describing these, the following concepts are used. A type
+            <code class="computeroutput"><span class="identifier">T</span></code> is <span class="emphasis"><em>serializable</em></span>
+            (resp. XML-serializable) if any object of type <code class="computeroutput"><span class="identifier">T</span></code>
+            can be saved to an output archive (XML archive) and later retrieved from
+            an input archive (XML archive) associated to the same storage. If <code class="computeroutput"><span class="identifier">x</span></code>' of type <code class="computeroutput"><span class="identifier">T</span></code>
+            is loaded from the serialization information saved from another object
+            x, we say that x' is a <span class="emphasis"><em>restored copy</em></span> of x. Given
+            a <a href="http://www.sgi.com/tech/stl/BinaryPredicate.html" target="_top">Binary
+            Predicate</a> <code class="computeroutput"><span class="identifier">Pred</span></code>
+            over <code class="computeroutput"><span class="special">(</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">)</span></code>, and objects <code class="computeroutput"><span class="identifier">p</span></code>
+            and <code class="computeroutput"><span class="identifier">q</span></code> of type <code class="computeroutput"><span class="identifier">Pred</span></code>, we say that <code class="computeroutput"><span class="identifier">q</span></code>
+            is <span class="emphasis"><em>serialization-compatible</em></span> with <code class="computeroutput"><span class="identifier">p</span></code>
+            if
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <code class="computeroutput"><span class="identifier">p</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span><span class="identifier">y</span><span class="special">)</span> <span class="special">==</span> <span class="identifier">q</span><span class="special">(</span><span class="identifier">x</span></code>'<code class="computeroutput"><span class="special">,</span><span class="identifier">y</span></code>'<code class="computeroutput"><span class="special">)</span></code>
+              </li></ul></div>
+<p>
+            for every <code class="computeroutput"><span class="identifier">x</span></code> and <code class="computeroutput"><span class="identifier">y</span></code> of type <code class="computeroutput"><span class="identifier">T</span></code>
+            and <code class="computeroutput"><span class="identifier">x</span></code>' and <code class="computeroutput"><span class="identifier">y</span></code>' being restored copies of <code class="computeroutput"><span class="identifier">x</span></code> and <code class="computeroutput"><span class="identifier">y</span></code>,
+            respectively.
+          </p>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+            <span class="bold"><strong>Operation:</strong></span> saving of a <code class="computeroutput"><span class="identifier">bimap</span> <span class="identifier">b</span></code>
+            to an output archive (XML archive) ar.
+          </p>
+</div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires:</strong></span> Value is serializable
+                (XML-serializable). Additionally, each of the views of b can impose
+                other requirements.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Strong with respect
+                to <code class="computeroutput"><span class="identifier">b</span></code>. If an exception
+                is thrown, ar may be left in an inconsistent state.
+              </li>
+</ul></div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+            <span class="bold"><strong>Operation:</strong></span> loading of a <code class="computeroutput"><span class="identifier">bimap</span></code> m' from an input archive (XML
+            archive) ar.
+          </p>
+</div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires:</strong></span> Value is serializable
+                (XML-serializable). Additionally, each of the views of <code class="computeroutput"><span class="identifier">b</span></code>' can impose other requirements.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Basic. If an exception
+                is thrown, ar may be left in an inconsistent state.
+              </li>
+</ul></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../reference.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="set_of_reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

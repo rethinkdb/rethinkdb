@@ -1,0 +1,56 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:prev_permutation prev_permutation]
+
+[heading Prototype]
+
+``
+template<class BidirectionalRange>
+bool prev_permutation(BidirectionalRange& rng);
+
+template<class BidirectionalRange>
+bool prev_permutation(const BidirectionalRange& rng);
+
+template<class BidirectionalRange, class Compare>
+bool prev_permutation(BidirectionalRange& rng, Compare pred);
+
+template<class BidirectionalRange, class Compare>
+bool prev_permutation(const BidirectionalRange& rng, Compare pred);
+``
+
+[heading Description]
+
+`prev_permutation` transforms the range of elements `rng` into the lexicographically next smaller permutation of the elements if such a permutation exists. If one does not exist then the range is transformed into the lexicographically largest permutation and `false` is returned. `true` is returned when the next smaller permutation is successfully generated.
+
+The ordering relationship is determined by using `operator<` in the non-predicate versions, and by evaluating `pred` in the predicate versions.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/permutation.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate versions:]
+
+* `BidirectionalRange` is a model of the __bidirectional_range__ Concept.
+* `BidirectionalRange` is mutable.
+* `BidirectionalRange`'s value type is a model of the `LessThanComparableConcept`.
+* The ordering of objects of type `BidirectionalRange`'s value type is a [*/strict weak ordering/], as defined in the `LessThanComparableConcept` requirements.
+
+[*For the predicate versions:]
+
+* `BidirectionalRange` is a model of the __bidirectional_range__ Concept.
+* `BidirectionalRange` is mutable.
+* `Compare` is a model of the `StrictWeakOrderingConcept`.
+* `BidirectionalRange`'s value type is convertible to both of `Compare`'s argument types.
+
+[heading Complexity]
+
+Linear. At most `distance(rng) / 2` swaps.
+
+[endsect]
+
+

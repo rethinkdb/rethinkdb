@@ -1,0 +1,14 @@
+
+project 
+    : requirements <library>../build//boost_program_options
+      <hardcode-dll-paths>true
+      <link>static
+    ;
+
+exe first : first.cpp ;
+exe options_description : options_description.cpp ;
+exe multiple_sources : multiple_sources.cpp ;
+exe custom_syntax : custom_syntax.cpp ;
+
+exe real : real.cpp ;
+exe regex : regex.cpp /boost/regex//boost_regex ;

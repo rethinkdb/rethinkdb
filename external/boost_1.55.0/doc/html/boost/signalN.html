@@ -1,0 +1,437 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template signalN</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../signals/reference.html#header.boost.signal_hpp" title="Header &lt;boost/signal.hpp&gt;">
+<link rel="prev" href="../signals/reference.html" title="Reference">
+<link rel="next" href="signal.html" title="Class template signal">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../signals/reference.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals/reference.html#header.boost.signal_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="signal.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.signalN"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template signalN</span></h2>
+<p>boost::signalN &#8212; Set of safe multicast callback types.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../signals/reference.html#header.boost.signal_hpp" title="Header &lt;boost/signal.hpp&gt;">boost/signal.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> R<span class="special">,</span> <span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> 
+         <span class="keyword">typename</span> Combiner <span class="special">=</span> <a class="link" href="last_value.html" title="Class template last_value">last_value</a><span class="special">&lt;</span><span class="identifier">R</span><span class="special">&gt;</span><span class="special">,</span> <span class="keyword">typename</span> Group <span class="special">=</span> <span class="keyword">int</span><span class="special">,</span> 
+         <span class="keyword">typename</span> GroupCompare <span class="special">=</span> std::less<span class="special">&lt;</span><span class="identifier">Group</span><span class="special">&gt;</span><span class="special">,</span> 
+         <span class="keyword">typename</span> SlotFunction <span class="special">=</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">R</span><span class="special">,</span> <span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span> <span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="signalN.html" title="Class template signalN">signalN</a> <span class="special">:</span> <span class="keyword">public</span> <a class="link" href="signals/trackable.html" title="Class trackable">signals::trackable</a>,
+                <span class="keyword">private</span> noncopyable   <span class="comment">// Exposition only</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Combiner</span><span class="special">::</span><span class="identifier">result_type</span> <a name="boost.signalN.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">Combiner</span>                       <a name="boost.signalN.combiner_type"></a><span class="identifier">combiner_type</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">Group</span>                          <a name="boost.signalN.group_type"></a><span class="identifier">group_type</span><span class="special">;</span>          
+  <span class="keyword">typedef</span> <span class="identifier">GroupCompare</span>                   <a name="boost.signalN.group_compare_type"></a><span class="identifier">group_compare_type</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <span class="identifier">SlotFunction</span>                   <a name="boost.signalN.slot_function_type"></a><span class="identifier">slot_function_type</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <a class="link" href="slot.html" title="Class template slot">slot</a><span class="special">&lt;</span><span class="identifier">SlotFunction</span><span class="special">&gt;</span>             <a name="boost.signalN.slot_type"></a><span class="identifier">slot_type</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                    <a name="boost.signalN.slot_result_type"></a><span class="identifier">slot_result_type</span><span class="special">;</span>    
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                    <a name="boost.signalN.slot_call_iterator"></a><span class="identifier">slot_call_iterator</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <span class="identifier">T1</span>                             <a name="boost.signalN.argument_type"></a><span class="identifier">argument_type</span><span class="special">;</span>         <span class="comment">// If N == 1</span>
+  <span class="keyword">typedef</span> <span class="identifier">T1</span>                             <a name="boost.signalN.first_argument_type"></a><span class="identifier">first_argument_type</span><span class="special">;</span>   <span class="comment">// If N == 2</span>
+  <span class="keyword">typedef</span> <span class="identifier">T2</span>                             <a name="boost.signalN.second_argument_type"></a><span class="identifier">second_argument_type</span><span class="special">;</span>  <span class="comment">// If N == 2</span>
+  <span class="keyword">typedef</span> <span class="identifier">T1</span>                             <a name="boost.signalN.arg1_type"></a><span class="identifier">arg1_type</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <span class="identifier">T2</span>                             <a name="boost.signalN.arg2_type"></a><span class="identifier">arg2_type</span><span class="special">;</span>           
+     .
+     .
+     .
+  <span class="keyword">typedef</span> <span class="identifier">TN</span>                             <a name="boost.signalN.argN_type"></a><span class="identifier">argN_type</span><span class="special">;</span>           
+
+  <span class="comment">// static constants</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">arity</span> = <span class="identifier">N</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="signalN.html#boost.signalNconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="signalN.html#idp36207400-bb"><span class="identifier">signalN</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">combiner_type</span><span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">combiner_type</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+          <span class="keyword">const</span> <span class="identifier">group_compare_type</span><span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">group_compare_type</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="signalN.html#idp58416152-bb"><span class="special">~</span><span class="identifier">signalN</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="signalN.html#idp58476040-bb">connection management</a></span>
+  <a class="link" href="signals/connection.html" title="Class connection">signals::connection</a> 
+  <a class="link" href="signalN.html#idp57915576-bb"><span class="identifier">connect</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">slot_type</span><span class="special">&amp;</span><span class="special">,</span> <span class="identifier">signals</span><span class="special">::</span><span class="identifier">connect_position</span> <span class="special">=</span> <span class="identifier">signals</span><span class="special">::</span><span class="identifier">at_back</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="signals/connection.html" title="Class connection">signals::connection</a> 
+  <a class="link" href="signalN.html#idp58275736-bb"><span class="identifier">connect</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">group_type</span><span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">slot_type</span><span class="special">&amp;</span><span class="special">,</span> 
+          <span class="identifier">signals</span><span class="special">::</span><span class="identifier">connect_position</span> <span class="special">=</span> <span class="identifier">signals</span><span class="special">::</span><span class="identifier">at_back</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="signalN.html#idp60534920-bb"><span class="identifier">disconnect</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">group_type</span><span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Slot<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="signalN.html#idp58312568-bb"><span class="identifier">disconnect</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Slot</span><span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="signalN.html#idp21355912-bb"><span class="identifier">disconnect_all_slots</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="signalN.html#idp21193144-bb"><span class="identifier">empty</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="signalN.html#idp60912616-bb"><span class="identifier">num_slots</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="signalN.html#idp60795832-bb">invocation</a></span>
+  <span class="identifier">result_type</span> <a class="link" href="signalN.html#idp19371688-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">arg1_type</span><span class="special">,</span> <span class="identifier">arg2_type</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">argN_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">result_type</span> <a class="link" href="signalN.html#idp58247128-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">arg1_type</span><span class="special">,</span> <span class="identifier">arg2_type</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">argN_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="signalN.html#idp103502552-bb">combiner access</a></span>
+  <span class="identifier">combiner_type</span><span class="special">&amp;</span> <a class="link" href="signalN.html#idp60561576-bb"><span class="identifier">combiner</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">combiner_type</span><span class="special">&amp;</span> <a class="link" href="signalN.html#idp46494168-bb"><span class="identifier">combiner</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp204250664"></a><h2>Description</h2>
+<p>The class template <a class="link" href="signalN.html" title="Class template signalN">signalN</a> covers
+         several related classes signal0, signal1, signal2, etc.,
+         where the number suffix describes the number of function
+         parameters the signal and its connected slots will
+         take. Instead of enumerating all classes, a single pattern
+         <a class="link" href="signalN.html" title="Class template signalN">signalN</a> will be described, where N
+         represents the number of function parameters.</p>
+<div class="refsect2">
+<a name="idp204252344"></a><h3>
+<a name="boost.signalNconstruct-copy-destruct"></a><code class="computeroutput">signalN</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp36207400-bb"></a><span class="identifier">signalN</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">combiner_type</span><span class="special">&amp;</span> combiner <span class="special">=</span> <span class="identifier">combiner_type</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+        <span class="keyword">const</span> <span class="identifier">group_compare_type</span><span class="special">&amp;</span> compare <span class="special">=</span> <span class="identifier">group_compare_type</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>Initializes the signal to contain no slots, copies the given combiner into internal storage, and stores the given group comparison function object to compare groups.</td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><code class="computeroutput">this-&gt;<a class="link" href="signalN.html#idp21193144-bb">empty</a>()</code></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp58416152-bb"></a><span class="special">~</span><span class="identifier">signalN</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>Disconnects all slots connected to <code class="computeroutput">*this</code>.</td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp204264856"></a><h3>
+<a name="idp58476040-bb"></a><code class="computeroutput">signalN</code> connection management</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp60505848-bb"></a><a class="link" href="signals/connection.html" title="Class connection">signals::connection</a> 
+<a name="idp57915576-bb"></a><span class="identifier">connect</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">slot_type</span><span class="special">&amp;</span> slot<span class="special">,</span> 
+        <span class="identifier">signals</span><span class="special">::</span><span class="identifier">connect_position</span> at <span class="special">=</span> <span class="identifier">signals</span><span class="special">::</span><span class="identifier">at_back</span><span class="special">)</span><span class="special">;</span>
+<a class="link" href="signals/connection.html" title="Class connection">signals::connection</a> 
+<a name="idp58275736-bb"></a><span class="identifier">connect</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">group_type</span><span class="special">&amp;</span> group<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">slot_type</span><span class="special">&amp;</span> slot<span class="special">,</span> 
+        <span class="identifier">signals</span><span class="special">::</span><span class="identifier">connect_position</span> at <span class="special">=</span> <span class="identifier">signals</span><span class="special">::</span><span class="identifier">at_back</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>Connects the signal this to the incoming
+          slot. If the slot is inactive, i.e., any of the trackable
+          objects bound by the slot call have been destroyed, then the
+          call to connect is a no-op. If the second version of
+          <code class="computeroutput">connect</code> is invoked, the
+          slot is associated with the given group. The <code class="computeroutput">at</code>
+          parameter specifies where the slot should be connected:
+          <code class="computeroutput">at_front</code> indicates that the slot will be
+          connected at the front of the list or group of slots and
+          <code class="computeroutput">at_back</code> indicates that the slot will be
+          connected at the back of the list or group of
+          slots.</td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>A
+          <code class="computeroutput"><a class="link" href="signals/connection.html" title="Class connection">signals::connection</a></code>
+          object that references the newly-created connection between
+          the signal and the slot; if the slot is inactive, returns a
+          disconnected connection.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>This routine meets the strong exception guarantee,
+          where any exception thrown will cause the slot to not be
+          connected to the signal.</td>
+</tr>
+<tr>
+<td><p><span class="term">Complexity:</span></p></td>
+<td>Constant time when connecting a slot
+          without a group name or logarithmic in the number of groups
+          when connecting to a particular
+          group.</td>
+</tr>
+<tr>
+<td><p><span class="term">Notes:</span></p></td>
+<td>It is unspecified whether connecting a slot while the
+          signal is calling will result in the slot being called
+          immediately.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp60883096-bb"></a><span class="keyword">void</span> <a name="idp60534920-bb"></a><span class="identifier">disconnect</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">group_type</span><span class="special">&amp;</span> group<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Slot<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp58312568-bb"></a><span class="identifier">disconnect</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Slot</span><span class="special">&amp;</span> slot<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>If the parameter is (convertible to) a
+          group name, any slots in the given group are
+          disconnected. Otherwise, any slots equal to the given slot
+          are disconnected.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw unless a user destructor or
+          equality operator <code class="computeroutput">==</code> throws. If either throws,
+          not all slots may be disconnected.</td>
+</tr>
+<tr>
+<td><p><span class="term">Complexity:</span></p></td>
+<td>If a group is given, O(lg g) + k where
+          g is the number of groups in the signal and k is the
+          number of slots in the group. Otherwise, linear in the
+          number of slots connected to the
+          signal.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp21355912-bb"></a><span class="identifier">disconnect_all_slots</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>Disconnects all slots connected to the signal.</td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td>
+<code class="computeroutput">this-&gt;<a class="link" href="signalN.html#idp21193144-bb">empty</a>()</code>.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>If disconnecting a slot causes an exception to be
+          thrown, not all slots may be disconnected.</td>
+</tr>
+<tr>
+<td><p><span class="term">Complexity:</span></p></td>
+<td>Linear in the number of slots known to the
+          signal.</td>
+</tr>
+<tr>
+<td><p><span class="term">Notes:</span></p></td>
+<td>May be called at any time within the lifetime of the
+          signal, including during calls to the signal's slots.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp21193144-bb"></a><span class="identifier">empty</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>
+<code class="computeroutput">true</code> if no slots
+          are connected to the signal, and
+          <code class="computeroutput">false</code> otherwise.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr>
+<tr>
+<td><p><span class="term">Complexity:</span></p></td>
+<td>Linear in the number of slots known to the
+          signal.</td>
+</tr>
+<tr>
+<td><p><span class="term">Rationale:</span></p></td>
+<td>Slots can disconnect at any point in time,
+          including while those same slots are being invoked. It is
+          therefore possible that the implementation must search
+          through a list of disconnected slots to determine if any
+          slots are still connected.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a name="idp60912616-bb"></a><span class="identifier">num_slots</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>The number of slots connected to the signal</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr>
+<tr>
+<td><p><span class="term">Complexity:</span></p></td>
+<td>Linear in the number of slots known to the
+          signal.</td>
+</tr>
+<tr>
+<td><p><span class="term">Rationale:</span></p></td>
+<td>Slots can disconnect at any point in time,
+          including while those same slots are being invoked. It is
+          therefore possible that the implementation must search
+          through a list of disconnected slots to determine how many
+          slots are still connected.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp204309400"></a><h3>
+<a name="idp60795832-bb"></a><code class="computeroutput">signalN</code> invocation</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp51413352-bb"></a><span class="identifier">result_type</span> <a name="idp19371688-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">arg1_type</span> a1<span class="special">,</span> <span class="identifier">arg2_type</span> a2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">argN_type</span> aN<span class="special">)</span><span class="special">;</span>
+<span class="identifier">result_type</span> <a name="idp58247128-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">arg1_type</span> a1<span class="special">,</span> <span class="identifier">arg2_type</span> a2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">argN_type</span> aN<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>Invokes the combiner with a
+          <code class="computeroutput">slot_call_iterator</code> range
+          [first, last) corresponding to the sequence of calls to the
+          slots connected to signal
+          <code class="computeroutput">*this</code>. Dereferencing an
+          iterator in this range causes a slot call with the given set
+          of parameters <code class="computeroutput">(a1, a2, ...,
+          aN)</code>, the result of which is returned from
+          the iterator dereference operation.</td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>The result returned by the combiner.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>If an exception is thrown by a slot call, or if the
+          combiner does not dereference any slot past some given slot,
+          all slots after that slot in the internal list of connected
+          slots will not be invoked.</td>
+</tr>
+<tr>
+<td><p><span class="term">Notes:</span></p></td>
+<td>
+<p class="simpara">Only the slots associated with iterators that are
+          actually dereferenced will be invoked. Multiple dereferences
+          of the same iterator will not result in multiple slot
+          invocations, because the return value of the slot will be
+          cached.</p>
+<p class="simpara">The <code class="computeroutput">const</code> version of
+          the function call operator will invoke the combiner as
+          <code class="computeroutput">const</code>, whereas the
+          non-<code class="computeroutput">const</code> version will
+          invoke the combiner as
+          non-<code class="computeroutput">const</code>.</p>
+<p class="simpara">Calling the function call operator may invoke undefined
+          behavior if no slots are connected to the signal, depending
+          on the combiner used. The default combiner is well-defined
+          for zero slots when the return type is void but is undefined
+          when the return type is any other type (because there is no
+          way to synthesize a return value).</p>
+</td>
+</tr>
+</tbody>
+</table></div>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp204326424"></a><h3>
+<a name="idp103502552-bb"></a><code class="computeroutput">signalN</code> combiner access</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp103502744-bb"></a><span class="identifier">combiner_type</span><span class="special">&amp;</span> <a name="idp60561576-bb"></a><span class="identifier">combiner</span><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="identifier">combiner_type</span><span class="special">&amp;</span> <a name="idp46494168-bb"></a><span class="identifier">combiner</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>A reference to the stored combiner.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr>
+</tbody>
+</table></div>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../signals/reference.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals/reference.html#header.boost.signal_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="signal.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

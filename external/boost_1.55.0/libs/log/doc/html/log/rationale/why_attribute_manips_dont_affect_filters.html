@@ -1,0 +1,51 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Why attributes set with stream manipulators do not participate in filtering?</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../rationale.html" title="Rationale and FAQ">
+<link rel="prev" href="why_weak_record_ordering.html" title="Why log records are weakly ordered in a multithreaded application?">
+<link rel="next" href="why_not_lazy_streaming.html" title="Why not using lazy streaming?">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="why_weak_record_ordering.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="why_not_lazy_streaming.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.rationale.why_attribute_manips_dont_affect_filters"></a><a class="link" href="why_attribute_manips_dont_affect_filters.html" title="Why attributes set with stream manipulators do not participate in filtering?">Why
+      attributes set with stream manipulators do not participate in filtering?</a>
+</h3></div></div></div>
+<p>
+        One can add attributes to log records in the following way:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_LOG</span><span class="special">(</span><span class="identifier">logger</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_value</span><span class="special">(</span><span class="string">"MyInt"</span><span class="special">,</span> <span class="number">10</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">logging</span><span class="special">::</span><span class="identifier">add_value</span><span class="special">(</span><span class="string">"MyString"</span><span class="special">,</span> <span class="string">"string attribute value"</span><span class="special">)</span>
+    <span class="special">&lt;&lt;</span> <span class="string">"Some log message"</span><span class="special">;</span>
+</pre>
+<p>
+        However, filters will not be able to use MyInt and MyString attributes. The
+        reason for this behavior is quite simple. The streaming expression is executed
+        <span class="emphasis"><em>after</em></span> the filtering takes place and only <span class="emphasis"><em>if</em></span>
+        the filter passed the log record. At this point these attributes have not
+        been added to the record yet. The easiest way to pass attributes to the filter
+        is to use scoped attributes or tags (see <a class="link" href="../detailed/attributes.html#log.detailed.attributes.related_components.scoped_attributes" title="Scoped attributes">here</a>).
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="why_weak_record_ordering.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="why_not_lazy_streaming.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

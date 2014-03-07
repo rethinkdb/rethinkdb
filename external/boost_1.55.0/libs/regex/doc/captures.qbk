@@ -1,0 +1,200 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:captures Understanding Marked Sub-Expressions and Captures]
+
+Captures are the iterator ranges that are "captured" by marked 
+sub-expressions as a regular expression gets matched.  Each marked 
+sub-expression can result in more than one capture, if it is matched 
+more than once.  This document explains how captures and marked 
+sub-expressions in Boost.Regex are represented and accessed.
+
+[h4 Marked sub-expressions]
+
+Every time a Perl regular expression contains a parenthesis group `()`, it 
+spits out an extra field, known as a marked sub-expression, 
+for example the expression:
+
+[pre (\w+)\W+(\w+)]
+
+Has two marked sub-expressions (known as $1 and $2 respectively), in 
+addition the complete match is known as $&, everything before the 
+first match as $\`, and everything after the match as $'.  So 
+if the above expression is searched for within `"@abc def--"`, then we obtain:
+
+[table
+[[Sub-expression][Text found]]
+[[$\`]["@"]]
+[[$&]["abc def"]]
+[[$1]["abc"]]
+[[$2]["def"]]
+[[$']["--"]]
+]
+
+In Boost.Regex all these are accessible via the [match_results] class that 
+gets filled in when calling one of the regular expression matching algorithms 
+([regex_search], [regex_match], or [regex_iterator]).  So given:
+
+   boost::match_results<IteratorType> m;
+
+The Perl and Boost.Regex equivalents are as follows:
+
+[table 
+[[Perl][Boost.Regex]]
+[[$\`][`m.prefix()`]]
+[[$&][`m[0]`]]
+[[$n][`m[n]`]]
+[[$\'][`m.suffix()`]]
+]
+
+In Boost.Regex each sub-expression match is represented by a [sub_match] object, 
+this is basically just a pair of iterators denoting the start and end 
+position of the sub-expression match, but there are some additional 
+operators provided so that objects of type [sub_match] behave a lot like a 
+`std::basic_string`: for example they are implicitly convertible to a 
+`basic_string`, they can be compared to a string, added to a string, or 
+streamed out to an output stream.
+
+[h4 Unmatched Sub-Expressions]
+
+When a regular expression match is found there is no need for all of the 
+marked sub-expressions to have participated in the match, for example the expression:
+
+[pre (abc)|(def)]
+
+can match either $1 or $2, but never both at the same time.  In Boost.Regex 
+you can determine which sub-expressions matched by accessing the 
+`sub_match::matched` data member.
+
+[h4 Repeated Captures]
+
+When a marked sub-expression is repeated, then the sub-expression gets 
+"captured" multiple times, however normally only the final capture is available, 
+for example if
+
+[pre (?:(\w+)\W+)+]
+
+is matched against
+
+[pre one fine day]
+
+Then $1 will contain the string "day", and all the previous captures will have 
+been forgotten.
+
+However, Boost.Regex has an experimental feature that allows all the capture 
+information to be retained - this is accessed either via the 
+`match_results::captures` member function or the `sub_match::captures` member 
+function.  These functions return a container that contains a sequence of all 
+the captures obtained during the regular expression matching.  The following 
+example program shows how this information may be used:
+
+   #include <boost/regex.hpp>
+   #include <iostream>
+
+   void print_captures(const std::string& regx, const std::string& text)
+   {
+      boost::regex e(regx);
+      boost::smatch what;
+      std::cout << "Expression:  \"" << regx << "\"\n";
+      std::cout << "Text:        \"" << text << "\"\n";
+      if(boost::regex_match(text, what, e, boost::match_extra))
+      {
+         unsigned i, j;
+         std::cout << "** Match found **\n   Sub-Expressions:\n";
+         for(i = 0; i < what.size(); ++i)
+            std::cout << "      $" << i << " = \"" << what[i] << "\"\n";
+         std::cout << "   Captures:\n";
+         for(i = 0; i < what.size(); ++i)
+         {
+            std::cout << "      $" << i << " = {";
+            for(j = 0; j < what.captures(i).size(); ++j)
+            {
+               if(j)
+                  std::cout << ", ";
+               else
+                  std::cout << " ";
+               std::cout << "\"" << what.captures(i)[j] << "\"";
+            }
+            std::cout << " }\n";
+         }
+      }
+      else
+      {
+         std::cout << "** No Match found **\n";
+      }
+   }
+
+   int main(int , char* [])
+   {
+      print_captures("(([[:lower:]]+)|([[:upper:]]+))+", "aBBcccDDDDDeeeeeeee");
+      print_captures("(.*)bar|(.*)bah", "abcbar");
+      print_captures("(.*)bar|(.*)bah", "abcbah");
+      print_captures("^(?:(\\w+)|(?>\\W+))*$", 
+         "now is the time for all good men to come to the aid of the party");
+      return 0;
+   }
+
+Which produces the following output:
+
+[pre 
+Expression:  "(([[:lower:\]\]+)|([[:upper:\]\]+))+"
+Text:        "aBBcccDDDDDeeeeeeee"
+'''**''' Match found '''**'''
+   Sub-Expressions:
+      $0 = "aBBcccDDDDDeeeeeeee"
+      $1 = "eeeeeeee"
+      $2 = "eeeeeeee"
+      $3 = "DDDDD"
+   Captures:
+      $0 = { "aBBcccDDDDDeeeeeeee" }
+      $1 = { "a", "BB", "ccc", "DDDDD", "eeeeeeee" }
+      $2 = { "a", "ccc", "eeeeeeee" }
+      $3 = { "BB", "DDDDD" }
+Expression:  "(.'''*''')bar|(.'''*''')bah"
+Text:        "abcbar"
+'''**''' Match found '''**'''
+   Sub-Expressions:
+      $0 = "abcbar"
+      $1 = "abc"
+      $2 = ""
+   Captures:
+      $0 = { "abcbar" }
+      $1 = { "abc" }
+      $2 = { }
+Expression:  "(.'''*''')bar|(.'''*''')bah"
+Text:        "abcbah"
+'''**''' Match found '''**'''
+   Sub-Expressions:
+      $0 = "abcbah"
+      $1 = ""
+      $2 = "abc"
+   Captures:
+      $0 = { "abcbah" }
+      $1 = { }
+      $2 = { "abc" }
+Expression:  "^(?:(\w+)|(?>\W+))'''*$'''"
+Text:        "now is the time for all good men to come to the aid of the party"
+'''**''' Match found '''**'''
+   Sub-Expressions:
+      $0 = "now is the time for all good men to come to the aid of the party"
+      $1 = "party"
+   Captures:
+      $0 = { "now is the time for all good men to come to the aid of the party" }
+      $1 = { "now", "is", "the", "time", "for", "all", "good", "men", "to", 
+         "come", "to", "the", "aid", "of", "the", "party" }
+]
+
+Unfortunately enabling this feature has an impact on performance 
+(even if you don't use it), and a much bigger impact if you do use it, 
+therefore to use this feature you need to:
+
+* Define BOOST_REGEX_MATCH_EXTRA for all translation units including the library source (the best way to do this is to uncomment this define in boost/regex/user.hpp and then rebuild everything.
+* Pass the match_extra flag to the particular algorithms where you actually need the captures information (regex_search, regex_match, or regex_iterator).
+    
+[endsect]
+

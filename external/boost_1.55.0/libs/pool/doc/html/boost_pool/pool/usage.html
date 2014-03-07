@@ -1,0 +1,73 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>How do I use Pool?</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../index.html" title="Boost.Pool">
+<link rel="up" href="../pool.html" title="Introduction and Overview">
+<link rel="prev" href="introduction.html" title="Introduction">
+<link rel="next" href="installation.html" title="Installation">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../pool.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="installation.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_pool.pool.usage"></a><a class="link" href="usage.html" title="How do I use Pool?">How do I use Pool?</a>
+</h3></div></div></div>
+<p>
+        See the <a class="link" href="interfaces.html" title="Boost Pool Interfaces - What interfaces are provided and when to use each one.">Pool Interfaces</a>
+        section that covers the different Pool interfaces supplied by this library.
+      </p>
+<a name="boost_pool.pool.usage.library_structure_and_dependencies"></a><h6>
+<a name="boost_pool.pool.usage.library_structure_and_dependencies-heading"></a>
+        <a class="link" href="usage.html#boost_pool.pool.usage.library_structure_and_dependencies">Library
+        Structure and Dependencies</a>
+      </h6>
+<p>
+        Forward declarations of all the exposed symbols for this library are in the
+        header made inscope by <code class="computeroutput"><span class="preprocessor">#include</span>
+        <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">pool</span><span class="special">/</span><span class="identifier">poolfwd</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>.
+      </p>
+<p>
+        The library may use macros, which will be prefixed with <code class="computeroutput"><span class="identifier">BOOST_POOL_</span></code>.
+        The exception to this rule are the include file guards, which (for file
+        <code class="computeroutput"><span class="identifier">xxx</span><span class="special">.</span><span class="identifier">hpp</span></code>) is <code class="computeroutput"><span class="identifier">BOOST_xxx_HPP</span></code>.
+      </p>
+<p>
+        All exposed symbols defined by the library will be in namespace boost::.
+        All symbols used only by the implementation will be in namespace boost::details::pool.
+      </p>
+<p>
+        Every header used only by the implementation is in the subdirectory <code class="computeroutput"><span class="special">/</span><span class="identifier">detail</span><span class="special">/</span></code>.
+      </p>
+<p>
+        Any header in the library may include any other header in the library or
+        any system-supplied header at its discretion.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2006 Stephen Cleary<br>Copyright &#169; 2011 Paul A. Bristow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../pool.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="installation.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

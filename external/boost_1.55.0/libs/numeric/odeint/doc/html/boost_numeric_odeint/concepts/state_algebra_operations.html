@@ -1,0 +1,839 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>State Algebra Operations</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../concepts.html" title="Concepts">
+<link rel="prev" href="dense_output_stepper.html" title="Dense Output Stepper">
+<link rel="next" href="state_wrapper.html" title="State Wrapper">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="dense_output_stepper.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="state_wrapper.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.concepts.state_algebra_operations"></a><a class="link" href="state_algebra_operations.html" title="State Algebra Operations">State
+      Algebra Operations</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="state_algebra_operations.html#boost_numeric_odeint.concepts.state_algebra_operations.operations">Operations</a></span></dt>
+<dt><span class="section"><a href="state_algebra_operations.html#boost_numeric_odeint.concepts.state_algebra_operations.algebra">Algebra</a></span></dt>
+<dt><span class="section"><a href="state_algebra_operations.html#boost_numeric_odeint.concepts.state_algebra_operations.pre_defined_implementations">Pre-Defined
+        implementations</a></span></dt>
+<dt><span class="section"><a href="state_algebra_operations.html#boost_numeric_odeint.concepts.state_algebra_operations.example_expressions">Example
+        expressions</a></span></dt>
+</dl></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          The following does not apply to implicit steppers like implicit_euler or
+          Rosenbrock 4 as there the <code class="computeroutput"><span class="identifier">state_type</span></code>
+          can not be changed from <code class="computeroutput"><span class="identifier">ublas</span><span class="special">::</span><span class="identifier">vector</span></code>
+          and no algebra/operations are used.
+        </p></td></tr>
+</table></div>
+<h5>
+<a name="boost_numeric_odeint.concepts.state_algebra_operations.h0"></a>
+        <span class="phrase"><a name="boost_numeric_odeint.concepts.state_algebra_operations.description"></a></span><a class="link" href="state_algebra_operations.html#boost_numeric_odeint.concepts.state_algebra_operations.description">Description</a>
+      </h5>
+<p>
+        The <code class="computeroutput"><span class="identifier">State</span></code>, <code class="computeroutput"><span class="identifier">Algebra</span></code> and <code class="computeroutput"><span class="identifier">Operations</span></code>
+        together define a concept describing how the mathematical vector operations
+        required for the stepper algorithms are performed. The typical vector operation
+        done within steppers is
+      </p>
+<p>
+        <span class="emphasis"><em><span class="bold"><strong>y</strong></span> = &#931; &#945;<sub>i</sub> <span class="bold"><strong>x<sub>i</sub></strong></span></em></span>.
+      </p>
+<p>
+        The <code class="computeroutput"><span class="identifier">State</span></code> represents the
+        state variable of an ODE, usually denoted with <span class="emphasis"><em>x</em></span>. Algorithmically,
+        the state is often realized as a <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span></code> or <code class="computeroutput"><span class="identifier">array</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span></code>,
+        however, the genericity of odeint enables you to basically use anything as
+        a state type. The algorithmic counterpart of such mathematical expressions
+        is divided into two parts. First, the <code class="computeroutput"><span class="identifier">Algebra</span></code>
+        is used to account for the vector character of the equation. In the case
+        of a <code class="computeroutput"><span class="identifier">vector</span></code> as state type
+        this means the <code class="computeroutput"><span class="identifier">Algebra</span></code> is
+        responsible for iteration over all vector elements. Second, the <code class="computeroutput"><span class="identifier">Operations</span></code> are used to represent the actual
+        operation applied to each of the vector elements. So the <code class="computeroutput"><span class="identifier">Algebra</span></code>
+        iterates over all elements of the <code class="computeroutput"><span class="identifier">State</span></code>s
+        and calls an operation taken from the <code class="computeroutput"><span class="identifier">Operations</span></code>
+        for each element. This is where <code class="computeroutput"><span class="identifier">State</span></code>,
+        <code class="computeroutput"><span class="identifier">Algebra</span></code> and <code class="computeroutput"><span class="identifier">Operations</span></code> have to work together to make
+        odeint running. Please have a look at the <code class="computeroutput"><span class="identifier">range_algebra</span></code>
+        and <code class="computeroutput"><span class="identifier">default_operations</span></code> to
+        see an example how this is implemented.
+      </p>
+<p>
+        In the following we describe how <code class="computeroutput"><span class="identifier">State</span></code>,
+        <code class="computeroutput"><span class="identifier">Algebra</span></code> and <code class="computeroutput"><span class="identifier">Operations</span></code> are used together within the
+        stepper implementations.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numeric_odeint.concepts.state_algebra_operations.operations"></a><a class="link" href="state_algebra_operations.html#boost_numeric_odeint.concepts.state_algebra_operations.operations" title="Operations">Operations</a>
+</h4></div></div></div>
+<h6>
+<a name="boost_numeric_odeint.concepts.state_algebra_operations.operations.h0"></a>
+          <span class="phrase"><a name="boost_numeric_odeint.concepts.state_algebra_operations.operations.notation"></a></span><a class="link" href="state_algebra_operations.html#boost_numeric_odeint.concepts.state_algebra_operations.operations.notation">Notation</a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Operations</span></code></span></dt>
+<dd><p>
+                The operations type
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Value1</span></code>, ... ,
+            <code class="computeroutput"><span class="identifier">ValueN</span></code></span></dt>
+<dd><p>
+                Types representing the value or time type of stepper
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Scale</span></code></span></dt>
+<dd><p>
+                Type of the scale operation
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">scale</span></code></span></dt>
+<dd><p>
+                Object of type <code class="computeroutput"><span class="identifier">Scale</span></code>
+              </p></dd>
+<dt><span class="term"><code class="literal">ScaleSum<span class="emphasis"><em>N</em></span></code></span></dt>
+<dd><p>
+                Type that represents a general scale_sum operation, <code class="literal"><span class="emphasis"><em>N</em></span></code>
+                should be replaced by a number from 1 to 14.
+              </p></dd>
+<dt><span class="term"><code class="literal">scale_sum<span class="emphasis"><em>N</em></span></code></span></dt>
+<dd><p>
+                Object of type <code class="literal">ScaleSum<span class="emphasis"><em>N</em></span></code>,
+                <code class="literal"><span class="emphasis"><em>N</em></span></code> should be replaced by a
+                number from 1 to 14.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">ScaleSumSwap2</span></code></span></dt>
+<dd><p>
+                Type of the scale sum swap operation
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">scale_sum_swap2</span></code></span></dt>
+<dd><p>
+                Object of type <code class="computeroutput"><span class="identifier">ScaleSumSwap2</span></code>
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a1</span><span class="special">,</span>
+            <span class="identifier">a2</span><span class="special">,</span>
+            <span class="special">...</span></code></span></dt>
+<dd><p>
+                Objects of type <code class="computeroutput"><span class="identifier">Value1</span></code>,
+                <code class="computeroutput"><span class="identifier">Value2</span></code>, ...
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">y</span><span class="special">,</span>
+            <span class="identifier">x1</span><span class="special">,</span>
+            <span class="identifier">x2</span><span class="special">,</span>
+            <span class="special">...</span></code></span></dt>
+<dd><p>
+                Objects of <code class="computeroutput"><span class="identifier">State</span></code>'s
+                value type
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="boost_numeric_odeint.concepts.state_algebra_operations.operations.h1"></a>
+          <span class="phrase"><a name="boost_numeric_odeint.concepts.state_algebra_operations.operations.valid_expressions"></a></span><a class="link" href="state_algebra_operations.html#boost_numeric_odeint.concepts.state_algebra_operations.operations.valid_expressions">Valid
+          Expressions</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Get scale operation
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Operations</span><span class="special">::</span><span class="identifier">scale</span><span class="special">&lt;</span>
+                    <span class="identifier">Value</span> <span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Scale</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get <code class="computeroutput"><span class="identifier">Scale</span></code> from
+                    <code class="computeroutput"><span class="identifier">Operations</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Scale</span></code> constructor
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Scale</span><span class="special">&lt;</span>
+                    <span class="identifier">Value</span> <span class="special">&gt;(</span>
+                    <span class="identifier">a</span> <span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Scale</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Constructs a <code class="computeroutput"><span class="identifier">Scale</span></code>
+                    object
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Scale</span></code> operation
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">scale</span><span class="special">(</span>
+                    <span class="identifier">x</span> <span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">void</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Calculates <code class="computeroutput"><span class="identifier">x</span> <span class="special">*=</span> <span class="identifier">a</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Get general <code class="computeroutput"><span class="identifier">scale_sum</span></code>
+                    operation
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="literal">Operations::scale_sum<span class="emphasis"><em>N</em></span>&lt; Value1
+                    , ... , ValueN &gt;</code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="literal">ScaleSum<span class="emphasis"><em>N</em></span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get the <code class="literal">ScaleSum<span class="emphasis"><em>N</em></span></code> type
+                    from <code class="computeroutput"><span class="identifier">Operations</span></code>,
+                    <code class="literal"><span class="emphasis"><em>N</em></span></code> should be replaced
+                    by a number from 1 to 14.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">scale_sum</span></code> constructor
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="literal">ScaleSum<span class="emphasis"><em>N</em></span>&lt; Value1 , ... , ValueN
+                    &gt;( a1 , ... , aN )</code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="literal">ScaleSum<span class="emphasis"><em>N</em></span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Constructs a <code class="computeroutput"><span class="identifier">scale_sum</span></code>
+                    object given <code class="literal"><span class="emphasis"><em>N</em></span></code> parameter
+                    values with <code class="literal"><span class="emphasis"><em>N</em></span></code> between
+                    1 and 14.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">scale_sum</span></code> operation
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="literal">scale_sum<span class="emphasis"><em>N</em></span>( y , x1 , ... , xN )</code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">void</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Calculates <code class="computeroutput"><span class="identifier">y</span> <span class="special">=</span> <span class="identifier">a1</span><span class="special">*</span><span class="identifier">x1</span>
+                    <span class="special">+</span> <span class="identifier">a2</span><span class="special">*</span><span class="identifier">x2</span>
+                    <span class="special">+</span> <span class="special">...</span>
+                    <span class="special">+</span> <span class="identifier">aN</span><span class="special">*</span><span class="identifier">xN</span></code>.
+                    Note that this is an <code class="literal"><span class="emphasis"><em>N</em></span>+1</code>-ary
+                    function call.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Get scale sum swap operation
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Operations</span><span class="special">::</span><span class="identifier">scale_sum_swap2</span><span class="special">&lt;</span>
+                    <span class="identifier">Value1</span> <span class="special">,</span>
+                    <span class="identifier">Value2</span> <span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">ScaleSumSwap2</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get scale sum swap from operations
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">ScaleSumSwap2</span></code>
+                    constructor
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">ScaleSumSwap2</span><span class="special">&lt;</span> <span class="identifier">Value1</span>
+                    <span class="special">,</span> <span class="identifier">Value2</span>
+                    <span class="special">&gt;(</span> <span class="identifier">a1</span>
+                    <span class="special">,</span> <span class="identifier">a2</span>
+                    <span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">ScaleSumSwap2</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Constructor
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">ScaleSumSwap2</span></code>
+                    operation
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">scale_sum_swap2</span><span class="special">(</span> <span class="identifier">x1</span>
+                    <span class="special">,</span> <span class="identifier">x2</span>
+                    <span class="special">,</span> <span class="identifier">x3</span>
+                    <span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">void</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Calculates <code class="computeroutput"><span class="identifier">tmp</span> <span class="special">=</span> <span class="identifier">x1</span></code>,
+                    <code class="computeroutput"><span class="identifier">x1</span> <span class="special">=</span>
+                    <span class="identifier">a1</span><span class="special">*</span><span class="identifier">x2</span> <span class="special">+</span>
+                    <span class="identifier">a2</span><span class="special">*</span><span class="identifier">x3</span></code> and <code class="computeroutput"><span class="identifier">x2</span>
+                    <span class="special">=</span> <span class="identifier">tmp</span></code>.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numeric_odeint.concepts.state_algebra_operations.algebra"></a><a class="link" href="state_algebra_operations.html#boost_numeric_odeint.concepts.state_algebra_operations.algebra" title="Algebra">Algebra</a>
+</h4></div></div></div>
+<h6>
+<a name="boost_numeric_odeint.concepts.state_algebra_operations.algebra.h0"></a>
+          <span class="phrase"><a name="boost_numeric_odeint.concepts.state_algebra_operations.algebra.notation"></a></span><a class="link" href="state_algebra_operations.html#boost_numeric_odeint.concepts.state_algebra_operations.algebra.notation">Notation</a>
+        </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">State</span></code></span></dt>
+<dd><p>
+                The state type
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Algebra</span></code></span></dt>
+<dd><p>
+                The algebra type
+              </p></dd>
+<dt><span class="term"><code class="literal">Operation<span class="emphasis"><em>N</em></span></code></span></dt>
+<dd><p>
+                An <code class="literal"><span class="emphasis"><em>N</em></span></code>-ary operation type,
+                <code class="literal"><span class="emphasis"><em>N</em></span></code> should be a number from
+                1 to 14.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">algebra</span></code></span></dt>
+<dd><p>
+                Object of type <code class="computeroutput"><span class="identifier">Algebra</span></code>
+              </p></dd>
+<dt><span class="term"><code class="literal">operation<span class="emphasis"><em>N</em></span></code></span></dt>
+<dd><p>
+                Object of type <code class="literal">Operation<span class="emphasis"><em>N</em></span></code>
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">y</span><span class="special">,</span>
+            <span class="identifier">x1</span><span class="special">,</span>
+            <span class="identifier">x2</span><span class="special">,</span>
+            <span class="special">...</span></code></span></dt>
+<dd><p>
+                Objects of type <code class="computeroutput"><span class="identifier">State</span></code>
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="boost_numeric_odeint.concepts.state_algebra_operations.algebra.h1"></a>
+          <span class="phrase"><a name="boost_numeric_odeint.concepts.state_algebra_operations.algebra.valid_expressions"></a></span><a class="link" href="state_algebra_operations.html#boost_numeric_odeint.concepts.state_algebra_operations.algebra.valid_expressions">Valid
+          Expressions</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Vector Operation with arity 2
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">algebra</span><span class="special">.</span><span class="identifier">for_each2</span><span class="special">(</span>
+                    <span class="identifier">y</span> <span class="special">,</span>
+                    <span class="identifier">x</span> <span class="special">,</span>
+                    <span class="identifier">operation2</span> <span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Calls <code class="computeroutput"><span class="identifier">operation2</span><span class="special">(</span> <span class="identifier">y_i</span>
+                    <span class="special">,</span> <span class="identifier">x_i</span>
+                    <span class="special">)</span></code> for each element <code class="computeroutput"><span class="identifier">y_i</span></code> of <code class="computeroutput"><span class="identifier">y</span></code>
+                    and <code class="computeroutput"><span class="identifier">x_i</span></code> of <code class="computeroutput"><span class="identifier">x</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Vector Operation with arity 3
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">algebra</span><span class="special">.</span><span class="identifier">for_each3</span><span class="special">(</span>
+                    <span class="identifier">y</span> <span class="special">,</span>
+                    <span class="identifier">x1</span> <span class="special">,</span>
+                    <span class="identifier">x2</span> <span class="special">,</span>
+                    <span class="identifier">operation3</span> <span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Calls <code class="computeroutput"><span class="identifier">operation3</span><span class="special">(</span> <span class="identifier">y_i</span>
+                    <span class="special">,</span> <span class="identifier">x1_i</span>
+                    <span class="special">,</span> <span class="identifier">x2_i</span>
+                    <span class="special">)</span></code> for each element <code class="computeroutput"><span class="identifier">y_i</span></code> of <code class="computeroutput"><span class="identifier">y</span></code>
+                    and <code class="computeroutput"><span class="identifier">x1_i</span></code> of
+                    <code class="computeroutput"><span class="identifier">x1</span></code> and <code class="computeroutput"><span class="identifier">x2_i</span></code> of <code class="computeroutput"><span class="identifier">x2</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Vector Operation with arity <code class="literal"><span class="emphasis"><em>N</em></span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="literal">algebra.for_each<span class="emphasis"><em>N</em></span>( y , x1 , ...
+                    , xN , operation<span class="emphasis"><em>N</em></span> )</code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Calls <code class="literal">operation<span class="emphasis"><em>N</em></span>( y_i , x1_i ,
+                    ... , xN_i )</code> for each element <code class="computeroutput"><span class="identifier">y_i</span></code>
+                    of <code class="computeroutput"><span class="identifier">y</span></code> and <code class="computeroutput"><span class="identifier">x1_i</span></code> of <code class="computeroutput"><span class="identifier">x1</span></code>
+                    and so on. <code class="literal"><span class="emphasis"><em>N</em></span></code> should be
+                    replaced by a number between 1 and 14.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numeric_odeint.concepts.state_algebra_operations.pre_defined_implementations"></a><a class="link" href="state_algebra_operations.html#boost_numeric_odeint.concepts.state_algebra_operations.pre_defined_implementations" title="Pre-Defined implementations">Pre-Defined
+        implementations</a>
+</h4></div></div></div>
+<p>
+          As standard configuration odeint uses the <code class="computeroutput"><span class="identifier">range_algebra</span></code>
+          and <code class="computeroutput"><span class="identifier">default_operations</span></code>
+          which suffices most situations. However, a few more possibilities exist
+          either to gain better performance or to ensure interoperability with other
+          libraries. In the following we list the existing <code class="computeroutput"><span class="identifier">Algebra</span></code>/<code class="computeroutput"><span class="identifier">Operations</span></code> configurations that can be
+          used in the steppers.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">State</span></code>
+                  </p>
+                </th>
+<th>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Algebra</span></code>
+                  </p>
+                </th>
+<th>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Operations</span></code>
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Remarks
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Anything supporting <a href="http://www.boost.org/doc/libs/release/libs/range/index.html" target="_top">Boost.Range</a>,
+                    like <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span></code>, <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span></code>,
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span></code>,... based on a <code class="computeroutput"><span class="identifier">value_type</span></code> that supports operators
+                    +,* (typically <code class="computeroutput"><span class="keyword">double</span></code>)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">range_algebra</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">default_operations</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Standard implementation, applicable for most typical situations.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span></code> based on a <code class="computeroutput"><span class="identifier">value_type</span></code> that supports operators
+                    +,*
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">array_algebra</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">default_operations</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Special implementation for boost::array with better performance
+                    than <code class="computeroutput"><span class="identifier">range_algebra</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Anything that defines operators + within itself and * with scalar
+                    (Mathematically spoken, anything that is a vector space).
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">vector_space_algebra</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">default_operations</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    For the use of <a class="link" href="controlled_stepper.html" title="Controlled Stepper">Controlled
+                    Stepper</a>, the template <code class="computeroutput"><span class="identifier">vector_space_reduce</span></code>
+                    has to be instantiated.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">thrust</span><span class="special">::</span><span class="identifier">device_vector</span></code>, <code class="computeroutput"><span class="identifier">thrust</span><span class="special">::</span><span class="identifier">host_vector</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">thrust_algebra</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">thrust_operations</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    For running odeint on CUDA devices by using <a href="http://code.google.com/p/thrust/" target="_top">Thrust</a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span></code> or anything which allocates
+                    the elements in a C-like manner
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">vector_space_algebra</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">mkl_operations</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Using the <a href="http://software.intel.com/en-us/articles/intel-mkl/" target="_top">Intel
+                    Math Kernel Library</a> in odeint for maximum performance.
+                    Currently, only the RK4 stepper is supported.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numeric_odeint.concepts.state_algebra_operations.example_expressions"></a><a class="link" href="state_algebra_operations.html#boost_numeric_odeint.concepts.state_algebra_operations.example_expressions" title="Example expressions">Example
+        expressions</a>
+</h4></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    Vector operation
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">algebra</span><span class="special">.</span><span class="identifier">for_each3</span><span class="special">(</span>
+                    <span class="identifier">y</span> <span class="special">,</span>
+                    <span class="identifier">x1</span> <span class="special">,</span>
+                    <span class="identifier">x2</span> <span class="special">,</span>
+                    <span class="identifier">Operations</span><span class="special">::</span><span class="identifier">scale_sum2</span><span class="special">&lt;</span>
+                    <span class="identifier">Value1</span> <span class="special">,</span>
+                    <span class="identifier">Value2</span> <span class="special">&gt;(</span>
+                    <span class="identifier">a1</span> <span class="special">,</span>
+                    <span class="identifier">a2</span> <span class="special">)</span>
+                    <span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Calculates <span class="emphasis"><em><span class="bold"><strong>y</strong></span> = a1
+                    <span class="bold"><strong>x1</strong></span> + a2 <span class="bold"><strong>x2</strong></span></em></span>
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="dense_output_stepper.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="state_wrapper.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

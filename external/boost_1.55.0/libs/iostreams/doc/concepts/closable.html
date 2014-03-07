@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Closable</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Closable</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<H2>Description</H2>
+
+<P>
+    A Closable Filter or Device receives notifications before a stream or stream buffer which contains it is closed.
+</P>
+
+<H4>Motivation</H4>
+
+<P>
+    The C++ standard library does not recognize the notion of an arbitrary stream or stream buffer being <I>open</I> or <I>closed</I>. For the Iostreams library, however, the notion of opening and closing streams and stream buffers is important. Some Filters and Devices have special behavior reserved for the end of a stream &#8212; <I>e.g.</I>, an
+    <A HREF="output_filter.html">OutputFilter</A> might conclude each sequence of data with a newline character. 
+    Other Filters or Devices maintain state during a sequence of i/o operations which must be 
+    reset before the Filter or Device can be reused. Such Filters and Devices need to be notified before a stream is closed, and should model Closable.
+</P>
+
+<H4>Closure Notifications</H4>
+    
+<P>
+    The Iostreams library sends closure notifications by invoking the function <A HREF="../functions/close.html"><CODE>close</CODE></A>. For most Closable Filter or Device, <CODE>close</CODE> delegates to a member function <CODE>close</CODE>; for non-Closable Devices, <CODE>close</CODE> calls <A HREF="../functions/flush.html"><CODE>flush</CODE></A>. The <A HREF="../functions/close.html#when">details</A> regarding when and how <CODE>close</CODE> is invoked are complicated. However, defining a Filter or Device which receives closure notifications is easy, as illustrated in the following sections.
+</P>
+
+<H4>Single-Sequence Devices</H4>
+
+<P>
+    If a Device controls a single sequence of characters, it can be made Closable simply by specifying a <A HREF="../guide/traits.html#category_tags">category tag</A> which is convertible to <CODE>closable_tag</CODE> and by adding a member function <CODE>close</CODE>, like so:
+</P>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">void</SPAN> close() { <SPAN CLASS="comment"> /* process closure notification */ </SPAN> }</PRE>
+<P>
+    Filters and Devices which derive from the <A HREF="../guide/concepts.html#convenience">convenience templates and <CODE>typedef</CODE>s</A> have category tags convertible to <CODE>closable_tag</CODE> provided automatically.
+</P>
+
+<H4>Single-Sequence Filters</H4>
+
+<P>For Filters controlling a single sequence, the signature of <CODE>close</CODE> is:</P>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Device&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Device&amp;);</PRE>
+
+<H4>Two-Sequence Devices</H4>
+
+<P>
+    If a Device controls separate input and output sequences, the signature of <CODE>close</CODE> is:</P>
+    <PRE CLASS="broken_ie">    <SPAN CLASS="keyword">void</SPAN> close(std::ios_base::openmode);</PRE>
+<P>This function will be called twice: first with argument <CODE>std::ios_base::in</CODE>, to signal the closing of the input sequence, and later with argument <CODE>std::ios_base::out</CODE>, to signal the closing of the output sequence. </P>
+
+<H4>Two-Sequence Filters</H4>
+
+<P>
+    If a Filter controls separate input and output sequences, the signature of <CODE>close</CODE> is:</P>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Device&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Device&amp;, std::ios_base::openmode);</PRE>
+<P>This function will be called twice: first with argument <CODE>std::ios_base::in</CODE>, to signal the closing of the input sequence, and later with argument <CODE>std::ios_base::out</CODE>, to signal the closing of the output sequence.</P>
+
+<H4>Dual-Use Filters</H4>
+
+<P>The signature of  <CODE>close</CODE> for <A HREF="dual_use_filter.html">DualUserFilters</A> is the same as that for two-sequence Filters:</P>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Device&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Device&amp;, std::ios_base::openmode);</PRE>
+<P>This function will be called only once, depending on whether the filter is being used for input or output.</P>
+
+<H2>Refinement of</H2>
+
+<A NAME="types"></A>
+<H2>Associated Types</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TD>Character type</TD><TD>The type of the characters in the associated sequence</TD></TR>
+    <TR><TD>Category</TD><TD>A category tag convertible to <A HREF="../guide/traits.html#category_tags"><CODE>closable_tag</CODE></A></TD></TR>
+</TABLE>
+
+<H2>Notation</H2>
+
+<TABLE CELLPADDING="2">
+    <TR><TD><CODE>C</CODE></TD><TD>-</TD><TD>A type which is a model of Closable</TD></TR>
+    <TR><TD><CODE>D</CODE></TD><TD>-</TD><TD>A type which is a model of <A HREF="blocking.html">Blocking</A>, with the same character type as <CODE>C</CODE> and with mode refining the mode of <CODE>C</CODE></TD></TR>
+    <TR><TD><CODE>c</CODE></TD><TD>-</TD><TD>Object of type <CODE>C</CODE></TD></TR>
+    <TR><TD><CODE>d</CODE></TD><TD>-</TD><TD>Object of type <CODE>D</CODE></TD></TR>
+    <TR><TD><CODE>w</CODE></TD><TD>-</TD><TD>Object of type <CODE>std::ios_base::openmode</CODE>, equal to <CODE>std::ios_base::in</CODE> or <CODE>std::ios_base::out</CODE></TD></TR>
+</TABLE>
+
+<H2>Valid Expressions / Semantics</H2>
+
+<P>Same as <A HREF="filter.html">Filter</A> or <A HREF="device.html">Device</A>, with the following additional requirements:</P>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH><TH>Precondition</TH><TH>Semantics</TH><TH>Postcondition</TH></TR>
+    <TR>
+        <TD>
+            <PRE CLASS="plain_code"><CODE><A HREF="../functions/close.html#close_device">boost::iostreams::close</A>(c, w)</CODE></PRE>
+        </TD>
+        <TD><CODE>void</CODE></TD>
+        <TD>Category convertible to <A HREF="../guide/traits.html#category_tags"><CODE>device_tag</CODE></A></TD>
+        <TD>
+            If <CODE>w</CODE> is <CODE>std::ios_base::out</CODE>, writes zero or more characters to the output sequence
+        </TD>
+        <TD><CODE>c</CODE> is ready to begin processing a new character sequence</TD>
+    </TR>
+    <TR>
+        <TD>
+            <PRE CLASS="plain_code"><CODE><A HREF="../functions/close.html#close_filter">boost::iostreams::close</A>(c, d, w)</CODE></PRE>
+        </TD>
+        <TD><CODE>void</CODE></TD>
+        <TD>Category convertible to <A HREF="../guide/traits.html#category_tags"><CODE>filter_tag</CODE></A></TD>
+        <TD>
+            <P>
+                If <CODE>w</CODE> is <CODE>std::ios_base::out</CODE>, writes zero or more characters to <CODE>d</CODE> using <A HREF="../functions/put.html"><CODE>boost::iostreams::put</CODE></A> and <A HREF="../functions/write.html"><CODE>boost::iostreams::write</CODE></A>
+            </P>
+        </TD>
+        <TD><CODE>c</CODE> is ready to begin processing a new character sequence</TD>
+    </TR>
+</TABLE>
+
+<H2>Exceptions</H2>
+
+<P>
+    Errors which occur during the execution of <A CLASS="code" HREF="../functions/close.html"><CODE>close</CODE></A> are be indicated by throwing exceptions. Such exceptions are caught and ignored if they occur during the execution of stream or stream buffer destructor.
+</P>
+
+<H2>Models</H2>
+
+<UL>
+    <LI><A HREF="../guide/generic_streams.html">Generic Streams and Stream Buffers</A>.
+    <LI><A HREF="../guide/filtering_streams.html">Filtering Streams and Stream Buffers</A>.
+    <LI>Standard file streams and stream buffers.</A>
+</UL>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

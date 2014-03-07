@@ -1,0 +1,29 @@
+# Copyright (c) 2002 Trustees of Indiana University
+#
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import mpi ;
+
+project boost/graph
+    : requirements <include>../src
+    : source-location ../src
+    ;
+
+lib boost_graph
+    :
+    read_graphviz_new.cpp
+    graphml.cpp
+    :
+    <library>../../regex/build//boost_regex
+    <link>shared:<define>BOOST_GRAPH_DYN_LINK=1
+    # Without these flags, MSVC 7.1 and 8.0 crash
+    # User reports that VC++ 8.0 does not fail anymore, so that is removed
+    <toolset>msvc-7.1:<cxxflags>-GR-
+    <toolset>sun:<build>no
+    :
+    :
+    ;
+
+boost-install boost_graph ;

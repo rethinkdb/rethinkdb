@@ -1,0 +1,108 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+
+[section Solar system]
+
+[section Gravitation and energy conservation]
+
+The next example in this tutorial is a simulation of the outer solar system, consisting of the sun, Jupiter, Saturn, Uranus, Neptune and Pluto.
+
+[$solar_system.jpg]
+
+Each planet and of course the sun will be represented by mass points. The interaction force between each object is the gravitational force which can be written as
+
+['F[subl ij] = -__gamma m[subl i] m[subl j] ( q[subl i] - q[subl j] ) / | q[subl i] - q[subl j] | [super 3]]
+
+where [' __gamma] is the gravitational constant, ['m[subl i]] and ['m[subl j]] are the masses and ['q[subl i]] and ['q[subl j]] are the locations of the two objects. The equations of motion are then
+
+['dq[subl i] / dt = p[subl i]]
+
+['dp[subl i] / dt = 1 / m[subl i] __Sigma[subl ji] F[subl ij]]
+
+where ['p[subl i]] is the momenta of object ['i]. The equations of motion can also be derived from the Hamiltonian
+
+['H = __Sigma[subl i] p[subl i][super 2] / ( 2 m[subl i] ) + __Sigma[subl j] V( q[subl i] , q[subl j] )]
+
+with the interaction potential ['V(q[subl i],q[subl j])]. The Hamiltonian equations give the
+equations of motion
+
+['dq[subl i] / dt = dH / dp[subl i]]
+
+['dp[subl i] / dt = -dH / dq[subl i]]
+
+In time independent Hamiltonian system the energy and the phase space volume
+are conserved and special integration methods have to be applied in order to
+ensure these conservation laws. The odeint library provides classes for
+separable Hamiltonian systems, which can be written in the form ['H = __Sigma
+p[subl i][super 2] / (2m[subl i]) + H[subl q](q)], where ['H[subl q](q)] only
+depends on the coordinates. Although this functional form might look a bit
+arbitrary, it covers nearly all classical mechanical systems with inertia and
+without dissipation, or where the equations of motion can be written in the
+form ['dq[subl i] / dt = p[subl i]] / m[subl i] , ['dp[subl i] / dt = f(
+q[subl i] )].
+
+[note A short physical note: While the two-body-problem is known to be
+integrable, that means it can be solved with purely analytic techniques,
+already the three-body-problem is not solvable. This was found in the end of the
+19th century by H. Poincare which led to the whole new subject of
+[@http://en.wikipedia.org/wiki/Chaos_theory Chaos Theory].]
+
+[endsect]
+
+
+[section Define the system function]
+
+To implement this system we define a 3D point type which will represent the space as well as the velocity. Therefore, we use the operators from __boost_operators:
+
+[import ../examples/point_type.hpp]
+[point_type]
+
+
+The next step is to define a container type storing the values of ['q] and ['p] and to define system functions. As container type we use `boost::array`
+
+[import ../examples/solar_system.cpp]
+[container_type_definition]
+
+The `container_type` is different from the state type of the ODE. The state type of the ode is simply a `pair< container_type , container_type >` since it needs the information about the coordinates and the momenta.
+
+Next we define the system's equations.
+As we will use a stepper that accounts for the Hamiltonian (energy-preserving)
+character of the system, we have to define the rhs different from the usual
+case where it is just a single function.
+The stepper will make use of the separable character, which means the system
+will be defined by two objects representing ['f(p) = -dH/dq] and ['g(q) = dH/dp]:
+
+[coordinate_function]
+
+[momentum_function]
+
+In general a three body-system is chaotic, hence we can not expect that arbitrary initial conditions of the system will lead to a solution comparable with the solar system dynamics. That is we have to define proper initial conditions, which are taken from the book of Hairer, Wannier, Lubich __hairer_geom_ref.
+
+As mentioned above, we need to use some special integrators in order to
+conserve phase space volume. There is a well known family of such integrators,
+the so-called Runge-Kutta-Nystroem solvers, which we apply here in terms of a
+`symplectic_rkn_sb3a_mclachlan` stepper:
+
+[integration_solar_system]
+
+These integration routine was used to produce the above sketch of the solar system. Note, that there are two particularities in this example. First, the state of the symplectic stepper is not `container_type` but a pair of `container_type`. Hence, we must pass such a pair to the integrate function. Since, we want to pass them as references we can simply pack them into __boost_ref. The second point is the observer, which is called with a state type, hence a pair of `container_type`. The reference wrapper is also passed, but this is not a problem at all:
+
+[streaming_observer]
+
+[tip You can use C++11 lambda to create the observers]
+
+The full example can be found here: [github_link libs/numeric/odeint/examples/solar_system.cpp solar_system.cpp]
+
+[endsect]
+
+[endsect]

@@ -1,0 +1,280 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Tutorial</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Tutorial</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='line_wrapping_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='dictionary_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<A NAME="tab_expanding"></A>
+<H2>2.2.5. Tab-Expanding Filters</H2>
+
+<P>
+    Suppose you want to write a filter which replaces each tab character with one or more space characters in such a way that the document appears unchanged when displayed. The basic algorithm is as follows: You examine characters one at a time, forwarding them <I>as-is</I> and keeping track of the current column number. When you encounter a tab character, you replace it with a sequence of space characters whose length depends on the current column count. When you encounter a newline character, you forward it and reset the column count.
+</P>
+
+<P>
+    In the next three sections, I'll express this algorithm as a <A HREF="../classes/stdio_filter.html"><CODE>stdio_filter</CODE></A>, an <A HREF="../concepts/input_filter.html">InputFilter</A> and an <A HREF="../concepts/output_filter.html">OutputFilter</A>. The source code can be found in the header <A HREF="../../example/tab_expanding_filter.hpp"><CODE>&lt;libs/iostreams/example/tab_expanding_filter.hpp&gt;</CODE></A>. These examples were inspired by James Kanze's <CODE>ExpandTabsInserter.hh</CODE> (<I>see</I> <A CLASS="bib_ref" HREF="../bibliography.html#kanze">[Kanze]</A>).
+</P>
+
+<A NAME="tab_expanding_stdio_filter"></A>
+<H4><CODE>tab_expanding_stdio_filter</CODE></H4>
+
+<P>You can express a tab-expanding Filter as a <A HREF="../classes/stdio_filter.html"><CODE>stdio_filter</CODE></A> as follows:</P>
+
+<PRE class="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS="literal">&lt;cstdio&gt;</SPAN>    <SPAN CLASS="comment">// EOF</SPAN>
+<SPAN CLASS="preprocessor">#include</SPAN> <SPAN CLASS="literal">&lt;iostream&gt;</SPAN>  <SPAN CLASS="comment">// cin, cout</SPAN>
+<SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/filter/stdio.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/filter/stdio.hpp&gt;</SPAN></A>
+
+<SPAN CLASS="keyword">class</SPAN> tab_expanding_stdio_filter : <SPAN CLASS="keyword"><SPAN CLASS="keyword"><SPAN CLASS="keyword">public</SPAN></SPAN></SPAN> stdio_filter {
+<SPAN CLASS="keyword">public</SPAN>:
+    explicit tab_expanding_stdio_filter(<SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> tab_size = 8)
+        : tab_size_(tab_size), col_no_(0)
+    {
+        assert(tab_size &gt; 0);
+    }
+<SPAN CLASS="keyword">private</SPAN>:
+    <SPAN CLASS="keyword">void</SPAN> do_filter();
+    <SPAN CLASS="keyword">void</SPAN> do_close();
+    <SPAN CLASS="keyword">void</SPAN> put_char(<SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c);
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>  tab_size_;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>  col_no_;
+};
+
+} } } <SPAN CLASS="comment">// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>The helper function <CODE>put_char</CODE> is identical to <A HREF="line_wrapping_filters.html#line_wrapping_stdio_filter"><CODE>line_wrapping_stdio_filter::put_char</CODE></A>. It writes a character to <CODE>std::cout</CODE> and updates the column count:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">void</SPAN> put_char(<SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c)
+    {
+        std::cout.put(c);
+        <SPAN CLASS="keyword">if</SPAN> (c == <SPAN CLASS="literal">'\n'</SPAN>) {
+            col_no_ = 0;
+        } <SPAN CLASS="keyword">else</SPAN> {
+            ++col_no_;
+        }
+    }</PRE>
+
+<P>Using <CODE>put_char</CODE> you can implement <CODE>do_filter</CODE> as follows:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">void</SPAN> do_filter()
+    {
+        <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c;
+        <SPAN CLASS="keyword">while</SPAN> ((c = std::cin.get()) != <SPAN CLASS="numeric_literal">EOF</SPAN>) {
+            <SPAN CLASS="keyword">if</SPAN> (c == '\t') {
+                <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> spaces = tab_size_ - (col_no_ % tab_size_);
+                for (; spaces &gt; 0; --spaces)
+                    put_char(' ');
+            } <SPAN CLASS="keyword">else</SPAN> {
+                put_char(c);
+            }
+        }
+    }</PRE>
+
+<P>The <CODE>while</CODE> loop reads a character from <CODE>std::cin</CODE> and writes it to <CODE>std::cout</CODE>, unless it is a tab character, in which case it writes an appropriate number of space characters to <CODE>std::cout</CODE>.</P>
+
+<P>As with <A HREF="line_wrapping_filters.html#line_wrapping_stdio_filter"><CODE>line_wrapping_stdio_filter</CODE></A>, the <CODE>virtual</CODE> function <CODE>do_close</CODE> resets the Filter's state:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">void</SPAN> do_close() { col_no_ = 0; }</PRE>
+
+<A NAME="tab_expanding_input_filter"></A>
+<H4><CODE>tab_expanding_input_filter</CODE></H4>
+
+<P>You can express a tab-expanding Filter as an <A HREF="../concepts/input_filter.html">InputFilter</A> as follows:</P>
+
+<PRE class="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/char_traits.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/char_traits.hpp&gt;</SPAN></A> <SPAN CLASS="comment">// EOF, WOULD_BLOCK</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A>    <SPAN CLASS="comment">// input_filter</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/operations.hpp&gt;</SPAN></A>  <SPAN CLASS="comment">// get</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS="keyword">class</SPAN> tab_expanding_input_filter : <SPAN CLASS="keyword"><SPAN CLASS="keyword"><SPAN CLASS="keyword">public</SPAN></SPAN></SPAN> input_filter {
+<SPAN CLASS="keyword">public</SPAN>:
+    explicit tab_expanding_input_filter(<SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> tab_size = 8)
+        : tab_size_(tab_size), col_no_(0), spaces_(0)
+    { 
+        assert(tab_size &gt; 0); 
+    }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> get(Source&amp; src);
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Source&amp;);
+<SPAN CLASS="keyword">private</SPAN>:
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> get_char(<SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c);
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>   tab_size_;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>   col_no_;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>   spaces_;
+};
+
+} } } <SPAN CLASS="comment">// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>Let's look first at the helper function <CODE>get_char</CODE>:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> get_char(<SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c)
+    {
+        <SPAN CLASS="keyword">if</SPAN> (c == <SPAN CLASS="literal">'\n'</SPAN>) {
+            col_no_ = 0;
+        } <SPAN CLASS="keyword">else</SPAN> {
+            ++col_no_;
+        }
+        <SPAN CLASS="keyword">return</SPAN> c;
+    }</PRE>
+
+<P>This function updates the column count based on the given character <CODE>c</CODE> and returns <CODE>c</CODE>. Using <CODE>get_char</CODE> you can implement <CODE>get</CODE> as follows:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> get(Source&amp; src)
+    {
+        <SPAN CLASS="keyword">if</SPAN> (spaces_ &gt; 0) {
+            --spaces_;
+            <SPAN CLASS="keyword">return</SPAN> get_char(' ');
+        }
+
+        <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c;
+        <SPAN CLASS="keyword">if</SPAN> ((c = iostreams::get(src)) == <SPAN CLASS="numeric_literal">EOF</SPAN> || c == WOULD_BLOCK)
+            <SPAN CLASS="keyword">return</SPAN> c;
+
+        <SPAN CLASS="keyword">if</SPAN> (c != '\t')
+            <SPAN CLASS="keyword">return</SPAN> get_char(c);
+
+        <SPAN CLASS='comment'>// Found a tab. Call this filter recursively.</SPAN>
+        spaces_ = tab_size_ - (col_no_ % tab_size_);
+        <SPAN CLASS="keyword">return</SPAN> this-&gt;get(src);
+    }</PRE>
+
+<P>
+    The implementation is similar to that of <A HREF="line_wrapping_filters.html#line_wrapping_input_filter"><CODE>line_wrapping_input_filter::get</CODE></A>. Since <CODE>get</CODE> can only return a single character at a time, whenever a tab character must be replaced by a sequence of space character, only the first space character can be returned. The rest must be returned by subsequent invocations of <CODE>get</CODE>. The member variable <CODE>spaces_</CODE> is used to store the number of such space characters.
+</P>
+<P>
+    The implementation begins by checking whether any space characters remain to be returned. If so, it decrements <CODE>spaces_</CODE> and returns a space. Otherwise, a character is read from <CODE>src</CODE>. Ordinary characters, as well as the special values <CODE>EOF</CODE> and <CODE>WOULD_BLOCK</CODE>, are returned <I>as-is</I>. When a tab character is encountered, the number of spaces which must be returned by future invocations of get is recorded, and a space character is returned.
+</P>
+
+<P>As usual, the function <CODE>close</CODE> resets the Filter's state:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">void</SPAN> close(Source&amp;)
+    {
+        col_no_ = 0;
+        spaces_ = 0;
+    }</PRE>
+
+<A NAME="tab_expanding_output_filter"></A>
+<H4><CODE>tab_expanding_output_filter</CODE></H4>
+
+<P>You can express a tab-expanding Filter as an <A HREF="../concepts/output_filter.html">OutputFilter</A> as follows:</P>
+
+<PRE class="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A>    <SPAN CLASS="comment">// output_filter</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/operations.hpp&gt;</SPAN></A>  <SPAN CLASS="comment">// put</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS="keyword">class</SPAN> tab_expanding_output_filter : <SPAN CLASS="keyword"><SPAN CLASS="keyword"><SPAN CLASS="keyword">public</SPAN></SPAN></SPAN> output_filter {
+<SPAN CLASS="keyword">public</SPAN>:
+    explicit tab_expanding_output_filter(<SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> tab_size = 8)
+        : tab_size_(tab_size), col_no_(0), spaces_(0)
+    { 
+        assert(tab_size &gt; 0); 
+    }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">bool</SPAN></SPAN> put(Sink&amp; dest, <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c);
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Sink&amp;);
+<SPAN CLASS="keyword">private</SPAN>:
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">bool</SPAN></SPAN> put_char(Sink&amp; dest, <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c);
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>  tab_size_;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>  col_no_;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN>  spaces_;
+};
+
+} } } <SPAN CLASS="comment">// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>The implemenation helper function <CODE>put_char</CODE> is the same as that of <A HREF="line_wrapping_filters.html#line_wrapping_output_filter"><CODE>line_wrapping_output_filter::put_char</CODE></A>: it writes the given character to <CODE>std::cout</CODE> and increments the column number, unless the character is a newline, in which case the column number is reset.</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">bool</SPAN></SPAN> put_char(Sink&amp; dest, <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c)
+    {
+        <SPAN CLASS="keyword">if</SPAN> (!iostreams::put(dest, c))
+            <SPAN CLASS="keyword">return</SPAN> <SPAN CLASS="keyword">false</SPAN>;
+        <SPAN CLASS="keyword">if</SPAN> (c != <SPAN CLASS="literal">'\n'</SPAN>)
+            ++col_no_;
+        <SPAN CLASS="keyword">else</SPAN>
+            col_no_ = 0;
+        <SPAN CLASS="keyword">return</SPAN> <SPAN CLASS="keyword">true</SPAN>;
+    }</PRE>
+
+<P>Using <CODE>put_char</CODE> you can implement <CODE>put</CODE> as follows:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">bool</SPAN></SPAN> put(Sink&amp; dest, <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c)
+    {
+        for (; spaces_ &gt; 0; --spaces_)
+            <SPAN CLASS="keyword">if</SPAN> (!put_char(dest, ' '))
+                <SPAN CLASS="keyword">return</SPAN> <SPAN CLASS="keyword">false</SPAN>;
+
+        <SPAN CLASS="keyword">if</SPAN> (c == '\t') {
+            spaces_ = tab_size_ - (col_no_ % tab_size_) - 1;
+            <SPAN CLASS="keyword">return</SPAN> this-&gt;put(dest, ' ');
+        } 
+
+        <SPAN CLASS="keyword">return</SPAN> put_char(dest, c);
+    }</PRE>
+
+<P>
+    The implementation begins by attempting to write any space characters left over from previously encountered tabs. If successful, it examine the given character <CODE>c</CODE>. If <CODE>c</CODE> is not a tab character, it attempts to write it to <CODE>dest</CODE>. Otherwise, it calculates the number of spaces which must be inserted and calls itself recursively. Using recursion here saves us from having to decrement the member variable <CODE>spaces_</CODE> at two different points in the code.
+</P>
+<P>
+    Note that after a tab character is encountered, get will return false until all the associated space characters have been written.
+</P>
+
+<P>As usual, the function <CODE>close</CODE> resets the Filter's state:</P>
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">void</SPAN> close(Source&amp;)
+    {
+        col_no_ = 0;
+        spaces_ = 0;
+    }</PRE>
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='line_wrapping_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='dictionary_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Use, modification, and distribution are subject to the Boost Software License, Version 2.0. (See accompanying file <A HREF="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+<!-- End Footer -->
+
+</BODY>

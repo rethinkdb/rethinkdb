@@ -1,0 +1,30 @@
+# Boost.Geometry (aka GGL, Generic Geometry Library)
+#
+# Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
+# Copyright (c) 2008-2012 Bruno Lalande, Paris, France.
+# Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+
+project boost-geometry-doc-src-example-geometries-register
+    : # requirements
+    ;
+
+exe box : box.cpp ;
+exe box_templated : box_templated.cpp ;
+exe box_2d_4values : box_2d_4values.cpp ;
+exe point : point.cpp ;
+
+exe linestring : linestring.cpp ;
+exe linestring_templated : linestring_templated.cpp ;
+exe ring : ring.cpp ;
+exe ring_templated : ring_templated.cpp ;
+
+exe multi_point : multi_point.cpp ;
+exe multi_point_templated : multi_point_templated.cpp ;
+
+exe multi_linestring : multi_linestring.cpp ;
+exe multi_polygon : multi_polygon.cpp ;

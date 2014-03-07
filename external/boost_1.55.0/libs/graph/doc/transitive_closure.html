@@ -1,0 +1,224 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2001
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Transitive Closure</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:transitive_closure">
+<img src="figs/python.gif" alt="(Python)"/>
+<TT>transitive_closure</TT>
+</H1>
+
+<P>
+<PRE>
+template &lt;typename Graph, typename GraphTC,
+  typename P, typename T, typename R&gt;
+void transitive_closure(const Graph&amp; g, GraphTC&amp; tc,
+  const bgl_named_params&lt;P, T, R&gt;&amp; params = <i>all defaults</i>)
+
+template &lt;typename Graph, typename GraphTC,
+  typename G_to_TC_VertexMap, typename VertexIndexMap&gt;
+void transitive_closure(const Graph&amp; g, GraphTC&amp; tc,
+                        G_to_TC_VertexMap g_to_tc_map, VertexIndexMap index_map)
+</PRE>
+
+The transitive closure of a graph <i>G = (V,E)</i> is a graph <i>G* =
+(V,E*)</i> such that <i>E*</i> contains an edge <i>(u,v)</i> if and
+only if <i>G</i> contains a <a
+href="graph_theory_review.html#def:path">path</a> (of at least one
+edge) from <i>u</i> to <i>v</i>. The <tt>transitive_closure()</tt>
+function transforms the input graph <tt>g</tt> into the transitive
+closure graph <tt>tc</tt>.
+
+<p>
+Thanks to Vladimir Prus for the implementation of this algorithm!
+
+
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/transitive_closure.hpp"><TT>boost/graph/transitive_closure.hpp</TT></a>
+
+<h3>Parameters</h3>
+
+IN: <tt>const Graph&amp; g</tt>
+<blockquote>
+ A directed graph, where the <tt>Graph</tt> type must model the
+ <a href="./VertexListGraph.html">Vertex List Graph</a>,
+ <a href="./AdjacencyGraph.html">Adjacency Graph</a>,
+ and <a href="./AdjacencyMatrix.html">Adjacency Matrix</a> concepts.<br>
+
+  <b>Python</b>: The parameter is named <tt>graph</tt>.
+</blockquote>
+
+OUT: <tt>GraphTC&amp; tc</tt>
+<blockquote>
+ A directed graph, where the <tt>GraphTC</tt> type must model the
+ <a href="./VertexMutableGraph.html">Vertex Mutable Graph</a> 
+ and <a href="./EdgeMutableGraph.html">Edge Mutable Graph</a> concepts.<br>
+
+ <b>Python</b>: This parameter is not used in Python. Instead, a new
+ graph of the same type is returned.
+</blockquote>
+
+<h3>Named Parameters</h3>
+
+UTIL/OUT: <tt>orig_to_copy(G_to_TC_VertexMap g_to_tc_map)</tt>
+<blockquote>
+  This maps each vertex in the input graph to the new matching
+  vertices in the output transitive closure graph.<br>
+
+  <b>Python</b>: This must be a <tt>vertex_vertex_map</tt> of the graph.
+</blockquote>
+
+IN: <tt>vertex_index_map(VertexIndexMap&amp; index_map)</tt>
+<blockquote>
+  This maps each vertex to an integer in the range <tt>[0,
+  num_vertices(g))</tt>. This parameter is only necessary when the
+  default color property map is used. The type <tt>VertexIndexMap</tt>
+  must be a model of <a
+  href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+  Map</a>. The value type of the map must be an integer type. The
+  vertex descriptor type of the graph needs to be usable as the key
+  type of the map.<br>
+
+  <b>Default:</b> <tt>get(vertex_index, g)</tt>
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacenty_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.
+   <br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+
+<h3>Complexity</h3>
+
+The time complexity (worst-case) is <i>O(|V||E|)</i>.
+
+<h3>Example</h3>
+
+The following is the graph from the example <tt><a
+href="../example/transitive_closure.cpp">example/transitive_closure.cpp</a></tt>
+and the transitive closure computed by the algorithm.
+
+<table>
+  <tr>
+    <td><img src="tc.gif" width="173" height="264" ></td>
+    <td><img src="tc-out.gif" width="200" height="360"></td>
+  </tr>
+</table>
+
+
+<h3>Implementation Notes</h3>
+
+<p>
+The algorithm used to implement the <tt>transitive_closure()</tt>
+function is based on the detection of strong components[<a
+href="bibliography.html#nuutila95">50</a>, <a
+href="bibliography.html#purdom70">53</a>]. The following discussion
+describes the algorithm (and some relevant background theory).
+
+<p>
+A <a name="def:successor-set"><i><b>successor set</b></i></a> of a
+vertex <i>v</i>, denoted by <i>Succ(v)</i>, is the set of vertices
+that are <a
+href="graph_theory_review.html#def:reachable">reachable</a> from
+vertex <i>v</i>. The set of vertices adjacent to <i>v</i> in the
+transitive closure <i>G*</i> is the same as the successor set of
+<i>v</i> in the original graph <i>G</i>. Computing the transitive
+closure is equivalent to computing the successor set for every vertex
+in <i>G</i>.
+
+<p>
+All vertices in the same strong component have the same successor set
+(because every vertex is reachable from all the other vertices in the
+component). Therefore, it is redundant to compute the successor set
+for every vertex in a strong component; it suffices to compute it for
+just one vertex per component.
+
+<p>
+The following is the outline of the algorithm:
+
+<ol>
+<li>Compute <a
+href="strong_components.html#def:strongly-connected-component">strongly
+connected components</a> of the graph.
+
+<li> Construct the condensation graph.  A <a
+name="def:condensation-graph"><i><b>condensation graph</b></i></a> is
+a a graph <i>G'=(V',E')</i> based on the graph <i>G=(V,E)</i> where
+each vertex in <i>V'</i> corresponds to a strongly connected component
+in <i>G</i> and edge <i>(u,v)</i> is in <i>E'</i> if and only if there
+exists an edge in <i>E</i> connecting any of the vertices in the
+component of <i>u</i> to any of the vertices in the component of
+<i>v</i>.
+
+<li> Compute transitive closure on the condensation graph.
+  This is done using the following algorithm:
+<pre>
+ for each vertex u in G' in reverse topological order
+   for each vertex v in Adj[u]
+     if (v not in Succ(u))
+       Succ(u) = Succ(u) U { v } U Succ(v)   // &quot;U&quot; means set union
+</pre>
+  The vertices are considered in reverse topological order to
+  ensure that the when computing the successor set for a vertex
+  <i>u</i>, the successor set for each vertex in <i>Adj[u]</i>
+  has already been computed.
+
+  <p>An optimized implementation of the set union operation improves
+   the performance of the algorithm. Therefore this implementation
+   uses <a name="def:chain-decomposition"><i><b>chain
+   decomposition</b></i></a> [<a
+   href="bibliography.html#goral79">51</a>,<a
+   href="bibliography.html#simon86">52</a>]. The vertices of <i>G</i>
+   are partitioned into chains <i>Z<sub>1</sub>, ...,
+   Z<sub>k</sub></i>, where each chain <i>Z<sub>i</sub></i> is a path
+   in <i>G</i> and the vertices in a chain have increasing topological
+   number.  A successor set <i>S</i> is then represented by a
+   collection of intersections with the chains, i.e., <i>S =
+   U<sub>i=1...k</sub> (Z<sub>i</sub> &amp; S)</i>. Each intersection
+   can be represented by the first vertex in the path
+   <i>Z<sub>i</sub></i> that is also in <i>S</I>, since the rest of
+   the path is guaranteed to also be in <i>S</i>. The collection of
+   intersections is therefore represented by a vector of length
+   <i>k</i> where the ith element of the vector stores the first
+   vertex in the intersection of <i>S</i> with <i>Z<sub>i</sub></i>.
+
+   <p>Computing the union of two successor sets, <i>S<sub>3</sub> =
+   S<sub>1</sub> U S<sub>2</sub></i>, can then be computed in
+   <i>O(k)</i> time with the following operation:
+<pre>
+  for i = 0...k
+    S3[i] = min(S1[i], S2[i]) // where min compares the topological number of the vertices
+</pre>
+
+<li>Create the graph <i>G*</i> based on the transitive closure of
+ the condensation graph <i>G'*</i>.
+
+</ol>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana Univ.(<A HREF="mailto:jsiek@cs.indiana.edu">jsiek@cs.indiana.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

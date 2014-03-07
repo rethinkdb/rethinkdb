@@ -1,0 +1,493 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template controlled_runge_kutta&lt;ErrorStepper, ErrorChecker, Resizer, explicit_error_stepper_tag&gt;</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../../../header/boost/numeric/odeint/stepper/controlled_runge_kutta_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/controlled_runge_kutta.hpp&gt;">
+<link rel="prev" href="controlled_runge_kutta.html" title="Class template controlled_runge_kutta">
+<link rel="next" href="controlled_run_idp26723880.html" title="Class template controlled_runge_kutta&lt;ErrorStepper, ErrorChecker, Resizer, explicit_error_stepper_fsal_tag&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="controlled_runge_kutta.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../header/boost/numeric/odeint/stepper/controlled_runge_kutta_hpp.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="controlled_run_idp26723880.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.numeric.odeint.controlled_run_idp26675272"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template controlled_runge_kutta&lt;ErrorStepper, ErrorChecker, Resizer, explicit_error_stepper_tag&gt;</span></h2>
+<p>boost::numeric::odeint::controlled_runge_kutta&lt;ErrorStepper, ErrorChecker, Resizer, explicit_error_stepper_tag&gt; &#8212; Implements step size control for Runge-Kutta steppers with error estimation. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../header/boost/numeric/odeint/stepper/controlled_runge_kutta_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/controlled_runge_kutta.hpp&gt;">boost/numeric/odeint/stepper/controlled_runge_kutta.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ErrorStepper<span class="special">,</span> <span class="keyword">typename</span> ErrorChecker<span class="special">,</span> <span class="keyword">typename</span> Resizer<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="controlled_run_idp26675272.html" title="Class template controlled_runge_kutta&lt;ErrorStepper, ErrorChecker, Resizer, explicit_error_stepper_tag&gt;">controlled_runge_kutta</a><span class="special">&lt;</span><span class="identifier">ErrorStepper</span><span class="special">,</span> <span class="identifier">ErrorChecker</span><span class="special">,</span> <span class="identifier">Resizer</span><span class="special">,</span> <span class="identifier">explicit_error_stepper_tag</span><span class="special">&gt;</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">ErrorStepper</span>                    <a name="boost.numeric.odeint.controlled_run_idp26675272.stepper_type"></a><span class="identifier">stepper_type</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">state_type</span>        <a name="boost.numeric.odeint.controlled_run_idp26675272.state_type"></a><span class="identifier">state_type</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">value_type</span>        <a name="boost.numeric.odeint.controlled_run_idp26675272.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">deriv_type</span>        <a name="boost.numeric.odeint.controlled_run_idp26675272.deriv_type"></a><span class="identifier">deriv_type</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">time_type</span>         <a name="boost.numeric.odeint.controlled_run_idp26675272.time_type"></a><span class="identifier">time_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">algebra_type</span>      <a name="boost.numeric.odeint.controlled_run_idp26675272.algebra_type"></a><span class="identifier">algebra_type</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">stepper_type</span><span class="special">::</span><span class="identifier">operations_type</span>   <a name="boost.numeric.odeint.controlled_run_idp26675272.operations_type"></a><span class="identifier">operations_type</span><span class="special">;</span>   
+  <span class="keyword">typedef</span> <span class="identifier">Resizer</span>                         <a name="boost.numeric.odeint.controlled_run_idp26675272.resizer_type"></a><span class="identifier">resizer_type</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">ErrorChecker</span>                    <a name="boost.numeric.odeint.controlled_run_idp26675272.error_checker_type"></a><span class="identifier">error_checker_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">explicit_controlled_stepper_tag</span> <a name="boost.numeric.odeint.controlled_run_idp26675272.stepper_category"></a><span class="identifier">stepper_category</span><span class="special">;</span>  
+
+  <span class="comment">// <a class="link" href="controlled_run_idp26675272.html#boost.numeric.odeint.controlled_run_idp26675272construct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="controlled_run_idp26675272.html#idp26715528-bb"><span class="identifier">controlled_runge_kutta</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">error_checker_type</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">error_checker_type</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">stepper_type</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">stepper_type</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="controlled_run_idp26675272.html#idp26681992-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">&gt;</span> 
+    <span class="identifier">controlled_step_result</span> 
+    <a class="link" href="controlled_run_idp26675272.html#idp26682200-bb"><span class="identifier">try_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">&gt;</span> 
+    <span class="identifier">controlled_step_result</span> 
+    <a class="link" href="controlled_run_idp26675272.html#idp26686920-bb"><span class="identifier">try_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">,</span> <span class="keyword">typename</span> DerivIn<span class="special">&gt;</span> 
+    <span class="identifier">controlled_step_result</span> 
+    <a class="link" href="controlled_run_idp26675272.html#idp26691752-bb"><span class="identifier">try_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> StateOut<span class="special">&gt;</span> 
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">disable_if</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_same</span><span class="special">&lt;</span> <span class="identifier">StateIn</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">controlled_step_result</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+    <a class="link" href="controlled_run_idp26675272.html#idp26697304-bb"><span class="identifier">try_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> DerivIn<span class="special">,</span> 
+           <span class="keyword">typename</span> StateOut<span class="special">&gt;</span> 
+    <span class="identifier">controlled_step_result</span> 
+    <a class="link" href="controlled_run_idp26675272.html#idp26703160-bb"><span class="identifier">try_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span><span class="special">,</span> 
+             <span class="identifier">StateOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">value_type</span> <a class="link" href="controlled_run_idp26675272.html#idp26709512-bb"><span class="identifier">last_error</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateType<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="controlled_run_idp26675272.html#idp26710728-bb"><span class="identifier">adjust_size</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateType</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">stepper_type</span> <span class="special">&amp;</span> <a class="link" href="controlled_run_idp26675272.html#idp26712632-bb"><span class="identifier">stepper</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">stepper_type</span> <span class="special">&amp;</span> <a class="link" href="controlled_run_idp26675272.html#idp26714072-bb"><span class="identifier">stepper</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="controlled_run_idp26675272.html#idp26717464-bb">private member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">&gt;</span> 
+    <span class="identifier">controlled_step_result</span> 
+    <a class="link" href="controlled_run_idp26675272.html#idp26717672-bb"><span class="identifier">try_step_v1</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="controlled_run_idp26675272.html#idp26720184-bb"><span class="identifier">resize_m_xerr_impl</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="controlled_run_idp26675272.html#idp26721416-bb"><span class="identifier">resize_m_dxdt_impl</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="controlled_run_idp26675272.html#idp26722648-bb"><span class="identifier">resize_m_xnew_impl</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp56350952"></a><h2>Description</h2>
+<p>This class implements the step size control for standard Runge-Kutta steppers with error estimation.</p>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp56351528"></a><h3>Template Parameters</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> ErrorStepper</pre>
+<p>The stepper type with error estimation, has to fulfill the ErrorStepper concept. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> ErrorChecker</pre>
+<p>The error checker </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Resizer</pre>
+<p>The resizer policy type. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp56355208"></a><h3>
+<a name="boost.numeric.odeint.controlled_run_idp26675272construct-copy-destruct"></a><code class="computeroutput">controlled_runge_kutta</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp26715528-bb"></a><span class="identifier">controlled_runge_kutta</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">error_checker_type</span> <span class="special">&amp;</span> error_checker <span class="special">=</span> <span class="identifier">error_checker_type</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                       <span class="keyword">const</span> <span class="identifier">stepper_type</span> <span class="special">&amp;</span> stepper <span class="special">=</span> <span class="identifier">stepper_type</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>Constructs the controlled Runge-Kutta stepper. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">error_checker</code></span></p></td>
+<td><p>An instance of the error checker. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">stepper</code></span></p></td>
+<td><p>An instance of the underlying stepper. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp56365352"></a><h3>
+<a name="idp26681992-bb"></a><code class="computeroutput">controlled_runge_kutta</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">&gt;</span> 
+  <span class="identifier">controlled_step_result</span> 
+  <a name="idp26682200-bb"></a><span class="identifier">try_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span> x<span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span> t<span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span> dt<span class="special">)</span><span class="special">;</span></pre>Tries to perform one step. <p>This method tries to do one step with step size dt. If the error estimate is to large, the step is rejected and the method returns fail and the step size dt is reduced. If the error estimate is acceptably small, the step is performed, success is returned and dt might be increased to make the steps as large as possible. This method also updates t if a step is performed.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The step size. Updated. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ODE. It must fulfill the Simple System concept. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The value of the time. Updated if the step is successful. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">x</code></span></p></td>
+<td><p>The state of the ODE which should be solved. Overwritten if the step is successful. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>success if the step was accepted, fail otherwise. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">&gt;</span> 
+  <span class="identifier">controlled_step_result</span> 
+  <a name="idp26686920-bb"></a><span class="identifier">try_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span> x<span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span> t<span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span> dt<span class="special">)</span><span class="special">;</span></pre>Tries to perform one step. Solves the forwarding problem and allows for using boost range as state_type. <p>This method tries to do one step with step size dt. If the error estimate is to large, the step is rejected and the method returns fail and the step size dt is reduced. If the error estimate is acceptably small, the step is performed, success is returned and dt might be increased to make the steps as large as possible. This method also updates t if a step is performed.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The step size. Updated. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ODE. It must fulfill the Simple System concept. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The value of the time. Updated if the step is successful. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">x</code></span></p></td>
+<td><p>The state of the ODE which should be solved. Overwritten if the step is successful. Can be a boost range. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>success if the step was accepted, fail otherwise. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">,</span> <span class="keyword">typename</span> DerivIn<span class="special">&gt;</span> 
+  <span class="identifier">controlled_step_result</span> 
+  <a name="idp26691752-bb"></a><span class="identifier">try_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span> x<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span> dxdt<span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span> t<span class="special">,</span> 
+           <span class="identifier">time_type</span> <span class="special">&amp;</span> dt<span class="special">)</span><span class="special">;</span></pre>Tries to perform one step. <p>This method tries to do one step with step size dt. If the error estimate is to large, the step is rejected and the method returns fail and the step size dt is reduced. If the error estimate is acceptably small, the step is performed, success is returned and dt might be increased to make the steps as large as possible. This method also updates t if a step is performed.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The step size. Updated. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dxdt</code></span></p></td>
+<td><p>The derivative of state. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ODE. It must fulfill the Simple System concept. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The value of the time. Updated if the step is successful. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">x</code></span></p></td>
+<td><p>The state of the ODE which should be solved. Overwritten if the step is successful. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>success if the step was accepted, fail otherwise. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> StateOut<span class="special">&gt;</span> 
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">disable_if</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_same</span><span class="special">&lt;</span> <span class="identifier">StateIn</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">controlled_step_result</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+  <a name="idp26697304-bb"></a><span class="identifier">try_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> in<span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span> t<span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span> out<span class="special">,</span> 
+           <span class="identifier">time_type</span> <span class="special">&amp;</span> dt<span class="special">)</span><span class="special">;</span></pre>Tries to perform one step. <div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>This method is disabled if state_type=time_type to avoid ambiguity.</p></td></tr>
+</table></div>
+<p>
+This method tries to do one step with step size dt. If the error estimate is to large, the step is rejected and the method returns fail and the step size dt is reduced. If the error estimate is acceptably small, the step is performed, success is returned and dt might be increased to make the steps as large as possible. This method also updates t if a step is performed.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The step size. Updated. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">in</code></span></p></td>
+<td><p>The state of the ODE which should be solved. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">out</code></span></p></td>
+<td><p>Used to store the result of the step. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ODE. It must fulfill the Simple System concept. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The value of the time. Updated if the step is successful. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>success if the step was accepted, fail otherwise. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> DerivIn<span class="special">,</span> 
+         <span class="keyword">typename</span> StateOut<span class="special">&gt;</span> 
+  <span class="identifier">controlled_step_result</span> 
+  <a name="idp26703160-bb"></a><span class="identifier">try_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> in<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span> dxdt<span class="special">,</span> 
+           <span class="identifier">time_type</span> <span class="special">&amp;</span> t<span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span> out<span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span> dt<span class="special">)</span><span class="special">;</span></pre>Tries to perform one step. <p>This method tries to do one step with step size dt. If the error estimate is to large, the step is rejected and the method returns fail and the step size dt is reduced. If the error estimate is acceptably small, the step is performed, success is returned and dt might be increased to make the steps as large as possible. This method also updates t if a step is performed.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The step size. Updated. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dxdt</code></span></p></td>
+<td><p>The derivative of state. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">in</code></span></p></td>
+<td><p>The state of the ODE which should be solved. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">out</code></span></p></td>
+<td><p>Used to store the result of the step. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ODE. It must fulfill the Simple System concept. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The value of the time. Updated if the step is successful. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>success if the step was accepted, fail otherwise. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">value_type</span> <a name="idp26709512-bb"></a><span class="identifier">last_error</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns the error of the last step. <p>returns The last error of the step. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateType<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp26710728-bb"></a><span class="identifier">adjust_size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateType</span> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre>Adjust the size of all temporaries in the stepper manually. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">x</code></span></p></td>
+<td><p>A state from which the size of the temporaries to be resized is deduced. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">stepper_type</span> <span class="special">&amp;</span> <a name="idp26712632-bb"></a><span class="identifier">stepper</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span></pre>Returns the instance of the underlying stepper. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The instance of the underlying stepper. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <span class="identifier">stepper_type</span> <span class="special">&amp;</span> <a name="idp26714072-bb"></a><span class="identifier">stepper</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns the instance of the underlying stepper. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The instance of the underlying stepper. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp56459672"></a><h3>
+<a name="idp26717464-bb"></a><code class="computeroutput">controlled_runge_kutta</code> private member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">&gt;</span> 
+  <span class="identifier">controlled_step_result</span> 
+  <a name="idp26717672-bb"></a><span class="identifier">try_step_v1</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span> x<span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span> t<span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&amp;</span> dt<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp26720184-bb"></a><span class="identifier">resize_m_xerr_impl</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp26721416-bb"></a><span class="identifier">resize_m_dxdt_impl</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp26722648-bb"></a><span class="identifier">resize_m_xnew_impl</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="controlled_runge_kutta.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../header/boost/numeric/odeint/stepper/controlled_runge_kutta_hpp.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="controlled_run_idp26723880.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

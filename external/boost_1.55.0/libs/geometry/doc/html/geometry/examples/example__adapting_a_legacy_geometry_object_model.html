@@ -1,0 +1,256 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Example: Adapting a legacy geometry object model</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../examples.html" title="Examples">
+<link rel="prev" href="../examples.html" title="Examples">
+<link rel="next" href="example_source_code__adapting_a_legacy_geometry_object_model.html" title="Example source code: Adapting a legacy geometry object model">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../examples.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="example_source_code__adapting_a_legacy_geometry_object_model.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="geometry.examples.example__adapting_a_legacy_geometry_object_model"></a><a class="link" href="example__adapting_a_legacy_geometry_object_model.html" title="Example: Adapting a legacy geometry object model">Example:
+      Adapting a legacy geometry object model</a>
+</h3></div></div></div>
+<p>
+        One of the primary benefits of Boost.Geometry, and the reason for its fairly
+        complex template-based implementation, is that it allows for integration
+        with legacy classes/objects.
+      </p>
+<p>
+        By defining the relationship between the Boost.Geometry concepts and an existing,
+        legacy object model, the legacy objects can be used in place of Boost.Geometry's
+        own geometry classes.
+      </p>
+<p>
+        Boost.Geometry will then happliy read and write directly from and to the
+        legacy object, treating it as a native Boost.Geometry object.
+      </p>
+<p>
+        This means that one can adapt algorithms and methods from Boost.Geometry
+        to any existing legacy geometry object model at a very small runtime cost,
+        which is simply not possible with most geometry libraries, where one has
+        to make an intermediate object specific to the geometry library one is using.
+      </p>
+<p>
+        The following example will demonstrate the adaption process of a legacy geometry
+        object model for use with Boost.Geometry.
+      </p>
+<h3>
+<a name="geometry.examples.example__adapting_a_legacy_geometry_object_model.h0"></a>
+        <span class="phrase"><a name="geometry.examples.example__adapting_a_legacy_geometry_object_model.adapting_a_shared_geometry_legacy_object_model"></a></span><a class="link" href="example__adapting_a_legacy_geometry_object_model.html#geometry.examples.example__adapting_a_legacy_geometry_object_model.adapting_a_shared_geometry_legacy_object_model">Adapting
+        a shared geometry legacy object model</a>
+      </h3>
+<h4>
+<a name="geometry.examples.example__adapting_a_legacy_geometry_object_model.h1"></a>
+        <span class="phrase"><a name="geometry.examples.example__adapting_a_legacy_geometry_object_model.example_code__object_hierarcy"></a></span><a class="link" href="example__adapting_a_legacy_geometry_object_model.html#geometry.examples.example__adapting_a_legacy_geometry_object_model.example_code__object_hierarcy">Example
+        code: object hierarcy</a>
+      </h4>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">QPoint</span>
+<span class="special">{</span>
+    <span class="keyword">public</span><span class="special">:</span>
+        <span class="keyword">double</span> <span class="identifier">x</span><span class="special">;</span>
+        <span class="keyword">double</span> <span class="identifier">y</span><span class="special">;</span>
+        <span class="identifier">QPoint</span><span class="special">(</span><span class="keyword">double</span> <span class="identifier">x</span><span class="special">,</span> <span class="keyword">double</span> <span class="identifier">y</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">x</span><span class="special">(</span><span class="identifier">x</span><span class="special">),</span> <span class="identifier">y</span><span class="special">(</span><span class="identifier">y</span><span class="special">)</span> <span class="special">{}</span>
+<span class="special">};</span>
+
+<span class="keyword">class</span> <span class="identifier">QLineString</span>
+<span class="special">{</span>
+    <span class="keyword">public</span><span class="special">:</span>
+        <span class="keyword">bool</span> <span class="identifier">cw</span><span class="special">;</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">QPoint</span><span class="special">*&gt;</span> <span class="identifier">points</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">class</span> <span class="identifier">QRing</span>
+<span class="special">{</span>
+    <span class="keyword">public</span><span class="special">:</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">QLineString</span><span class="special">*&gt;</span> <span class="identifier">lines</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">class</span> <span class="identifier">QPolygon</span>
+<span class="special">{</span>
+    <span class="keyword">public</span><span class="special">:</span>
+        <span class="identifier">QRing</span><span class="special">*</span> <span class="identifier">exterior</span><span class="special">;</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">QRing</span><span class="special">*&gt;</span> <span class="identifier">interiors</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        The legacy object hierarcy is based on topology (e.g. two QRings might share
+        one QLineString) instead of points directly (i.e. each object does not point
+        directly to it's QPoints), and it also uses pointers for access.
+      </p>
+<p>
+        This is the other common way to approach geometries, to enable e.g. shared
+        boundaries between surfaces. Boost.Geometry's approach use simple features,
+        and does not have shared geometries.
+      </p>
+<p>
+        The mismatch in representation is fixed by creating a custom iterator, that
+        exposes a Boost.Range of Points for every object. This way, Boost.Geometry's
+        functions will operate on the QRing as if it was a collection of Points,
+        which is a requirement.
+      </p>
+<h3>
+<a name="geometry.examples.example__adapting_a_legacy_geometry_object_model.h2"></a>
+        <span class="phrase"><a name="geometry.examples.example__adapting_a_legacy_geometry_object_model.adapting_qpoint"></a></span><a class="link" href="example__adapting_a_legacy_geometry_object_model.html#geometry.examples.example__adapting_a_legacy_geometry_object_model.adapting_qpoint">Adapting
+        QPoint</a>
+      </h3>
+<p>
+        The <a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#adaption_of_qpoint_source_code">adaption of the QPoint</a>
+        is fairly straightforward, one just needs to implement the requirements.
+      </p>
+<p>
+        Even though the geometries in our legacy object model use pointers of QPoints,
+        Boost.Geometry automatically handles the conversion from pointers-to-Points
+        to references-to-Points internally, so we do not have to convert them manually.
+      </p>
+<p>
+        Alternatively, we can use the <a class="link" href="../reference/adapted/register/boost_geometry_register_point_2d.html" title="BOOST_GEOMETRY_REGISTER_POINT_2D">BOOST_GEOMETRY_REGISTER_POINT_2D(QPoint,
+        double, cs::cartesian, x, y)</a> helper macro, which does exactly the
+        same as our manual adaption.
+      </p>
+<p>
+        The sample code adapts QPoint to the <a class="link" href="../reference/concepts/concept_point.html" title="Point Concept">Point
+        Concept</a> using specialization of the traits class.
+      </p>
+<h3>
+<a name="geometry.examples.example__adapting_a_legacy_geometry_object_model.h3"></a>
+        <span class="phrase"><a name="geometry.examples.example__adapting_a_legacy_geometry_object_model.adapting_qlinestring"></a></span><a class="link" href="example__adapting_a_legacy_geometry_object_model.html#geometry.examples.example__adapting_a_legacy_geometry_object_model.adapting_qlinestring">Adapting
+        QLineString</a>
+      </h3>
+<p>
+        The <a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#adaption_of_qlinestring_source_code">adaption of the QLineString</a>
+        is very simple on the surface, as it is just "a specialization of traits::tag
+        defining linestring_tag as type". Alternatively, we can use the <a class="link" href="../reference/adapted/register/boost_geometry_register_linestring.html" title="BOOST_GEOMETRY_REGISTER_LINESTRING">BOOST_GEOMETRY_REGISTER_LINESTRING(QLineString)</a>
+        helper macro, which does exactly the same as our manual adaption.
+      </p>
+<p>
+        However, the <a class="link" href="../reference/concepts/concept_linestring.html" title="Linestring Concept">LineString
+        concept</a> also requires that the collection of Points "must behave
+        like a Boost.Range Random Access Range" and "the type defined by
+        the metafunction range_value&lt;...&gt;::type must fulfill the Point Concept".
+      </p>
+<p>
+        This means that we have to do two things:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Make QLineString behave like a Boost.Range, with Random Access requirements
+          </li>
+<li class="listitem">
+            Make sure that the Boost.Range iterates over QPoints, which we already
+            have adapted
+          </li>
+</ul></div>
+<p>
+        This might look like a lot of work, but we are in luck: a std::vector is
+        nearly a Boost.Range, and already iterate over pointers-to-QPoints, that
+        are handled by Boost.Geometry. The <a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#adaption_of_qlinestring_range_source_code">code
+        for making QLineString a Boost.Range</a> is therefore fairly straightforward.
+      </p>
+<h3>
+<a name="geometry.examples.example__adapting_a_legacy_geometry_object_model.h4"></a>
+        <span class="phrase"><a name="geometry.examples.example__adapting_a_legacy_geometry_object_model.adapting_qring"></a></span><a class="link" href="example__adapting_a_legacy_geometry_object_model.html#geometry.examples.example__adapting_a_legacy_geometry_object_model.adapting_qring">Adapting
+        QRing</a>
+      </h3>
+<p>
+        The <a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#adaption_of_qring_source_code">adaption of the QRing</a>
+        is mostly equal to the QLineString in that there is a tag and a collection
+        to iterate through. Alternatively, we can use the <a class="link" href="../reference/adapted/register/boost_geometry_register_ring.html" title="BOOST_GEOMETRY_REGISTER_RING">BOOST_GEOMETRY_REGISTER_RING(QRing)</a>
+        helper macro, which does exactly the same as our manual adaption.
+      </p>
+<p>
+        However, the QRing expose pointers-to-QLineStrings, and not QPoints directly,
+        which is <a class="link" href="../reference/concepts/concept_ring.html" title="Ring Concept">required
+        in the Ring concept</a>, so it is not enough to trivially make the std::vector
+        into a Boost.Range. We need to create a Boost.Iterator that expose QPoints,
+        and because we are dealing with a legacy object model, we are not allowed
+        to change the class definition.
+      </p>
+<p>
+        The <a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#adaption_of_qring_iterator_source_code">custom iterator
+        that does this</a> uses Boost.Iterator Facade, and is not very different
+        from the <a href="http://www.boost.org/doc/libs/1_53_0/libs/iterator/doc/iterator_facade.html" target="_top">example
+        provided in Boost.Iterator's own documentation</a>(link), except that
+        our Boost.Range need to be random access.
+      </p>
+<p>
+        Now, with the custom iterator made, we can <a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#adaption_of_qring_range_source_code">define
+        the Boost.Range</a> that traverses through QPoints.
+      </p>
+<h3>
+<a name="geometry.examples.example__adapting_a_legacy_geometry_object_model.h5"></a>
+        <span class="phrase"><a name="geometry.examples.example__adapting_a_legacy_geometry_object_model.adapting_qpolygon"></a></span><a class="link" href="example__adapting_a_legacy_geometry_object_model.html#geometry.examples.example__adapting_a_legacy_geometry_object_model.adapting_qpolygon">Adapting
+        QPolygon</a>
+      </h3>
+<p>
+        <a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#adaption_of_qpolygon_source_code">Adapting the QPolygon</a>
+        to the <a class="link" href="../reference/concepts/concept_polygon.html" title="Polygon Concept">Polygon
+        Concept</a> is a little more involved than the other geometry types.
+      </p>
+<p>
+        The only requirement that is not straightforward to adapt is the interior_rings'
+        get method.
+      </p>
+<p>
+        A Boost.Geometry Polygon operates on Ring objects, and unfortunately, Boost.Geometry
+        does not automatically handle the conversion from pointers to references
+        for Rings internally (only Points, as mentioned).
+      </p>
+<p>
+        Therefore, we need to expose QRings instead of pointers-to-QRings for the
+        interior Rings, which means a little more work than the pointers-to-QPoints
+        for QLineString and QRing.
+      </p>
+<p>
+        First, we <a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#adaption_of_qpolygon_iterator_source_code">create
+        a Boost.Iterator Facade</a> that returns QRing instead of pointer-to-QRing:
+      </p>
+<p>
+        Now we have an iterator that can "convert" our pointer-to-QRing
+        into QRing. However, the get method of the interior Rings must return a Boost.Range
+        compatible object, which a plain PolygonRingIterator is not.
+      </p>
+<p>
+        We need to <a class="link" href="example_source_code__adapting_a_legacy_geometry_object_model.html#adaption_of_qpolygon_range_source_code">define
+        another Boost.Range</a>, that can be constructed with PolygonRingIterators
+        as arguments, and returned from the get method.
+      </p>
+<h3>
+<a name="geometry.examples.example__adapting_a_legacy_geometry_object_model.h6"></a>
+        <span class="phrase"><a name="geometry.examples.example__adapting_a_legacy_geometry_object_model.conclusion"></a></span><a class="link" href="example__adapting_a_legacy_geometry_object_model.html#geometry.examples.example__adapting_a_legacy_geometry_object_model.conclusion">Conclusion</a>
+      </h3>
+<p>
+        That's it! The methods of Boost.Geometry can now be used directly on instances
+        of our legacy object model.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../examples.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="example_source_code__adapting_a_legacy_geometry_object_model.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

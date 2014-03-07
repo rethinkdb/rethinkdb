@@ -1,0 +1,124 @@
+<html>
+<head>
+<title>Style Guide</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Style 
+      Guide </b></font></td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="portability.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="techniques.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p> At some point, especially when there are lots of semantic actions attached 
+  to various points, the grammar tends to be quite difficult to follow. In order 
+  to keep an easy-to-read, consistent en aesthetically pleasing look to the Spirit 
+  code, the following coding styleguide is advised. </p>
+<p>This coding style is adapted and extended from the ANTLR/PCCTS style (Terrence 
+  Parr) and <a href="http://groups.yahoo.com/group/boost/files/coding_guidelines.html">Boost 
+  coding guidelines</a> (David Abrahams and Nathan Myers) and is the combined 
+  work of Joel de Guzman, Chris Uzdavinis and Hartmut Kaiser.</p>
+<ul>
+  <li> Rule names use std C++ (Boost) convention. The rule name may be very long.</li>
+  <li>The '=' is neatly indented 4 spaces below. Like Boost, use spaces instead 
+    of tabs. </li>
+  <li>Breaking the operands into separate lines puts the semantic actions neatly 
+    to the right. </li>
+  <li>Semicolon at the last line terminates the rule. </li>
+  <li>The adjacent parts of a sequence should be indented accordingly to have 
+    all, what belongs to one level, at one indentation level.</li>
+</ul>
+<pre><span class=identifier>    program
+        </span><span class=special>=   </span><span class=identifier>program_heading </span><span class=special>[</span><span class=identifier>heading_action</span><span class=special>]
+    </span><span class=identifier>    </span><span class=special>    &gt;&gt; </span><span class=identifier>block </span><span class=special>[</span><span class=identifier>block_action</span><span class=special>]
+    </span><span class=identifier>    </span><span class=special>    &gt;&gt; </span><span class=literal>'.'
+    </span><span class=identifier>    </span><span class=special>|   </span><span class=identifier>another_sequence
+            </span><span class=special>&gt;&gt; </span><span class=identifier>etc
+    </span><span class=identifier>    </span><span class=special>;</span></pre>
+<ul>
+  <li>Prefer literals in the grammar instead of identifiers. e.g. <tt>&quot;program&quot;</tt> 
+    instead of <tt>PROGRAM</tt>, <tt>'&gt;='</tt> instead of <tt>GTE</tt> and 
+    <tt>'.' </tt>instead of <tt>DOT</tt>. This makes it much easier to read. If 
+    this isn't possible (for instance where the used tokens must be identified 
+    through integers) capitalized identifiers should be used instead. </li>
+  <li> Breaking the operands may not be needed for short expressions. e.g. <tt>*(',' 
+    &gt;&gt; file_identifier)</tt> as long as the line does not exceed 80 characters. 
+  </li>
+  <li> If a sequence fits on one line, put spaces inside the parentheses to clearly 
+    separate them from the rules. </li>
+</ul>
+<pre>    <span class=identifier>program_heading
+        </span><span class=special>=   </span><span class=identifier>as_lower_d</span><span class=special>[</span><span class=string>&quot;program&quot;</span><span class=special>]
+            &gt;&gt; </span><span class=identifier>identifier
+            </span><span class=special>&gt;&gt; </span><span class=literal>'('
+            </span><span class=special>&gt;&gt; </span><span class=identifier>file_identifier
+            </span><span class=special>&gt;&gt; *( </span><span class=literal>',' </span><span class=special>&gt;&gt; </span><span class=identifier>file_identifier </span><span class=special>)
+            &gt;&gt; </span><span class=literal>')'
+            </span><span class=special>&gt;&gt; </span><span class=literal>';'
+        </span><span class=special>;</span></pre>
+<ul>
+  <li> Nesting directives: If a rule does not fit on one line (80 characters) 
+    it should be continued on the next line intended by one level. </li>
+  <li>The brackets of directives, semantic expressions (using Phoenix or LL lambda 
+    expressions) or parsers should be placed as follows. </li>
+</ul>
+<pre>    <span class=identifier>identifier
+        </span><span class=special>=   </span><span class=identifier>nocase
+            </span><span class=special>[
+                </span><span class=identifier>lexeme
+                </span><span class=special>[
+                    </span><span class=identifier>alpha </span><span class=special>&gt;&gt; *(</span><span class=identifier>alnum </span><span class=special>| </span><span class=literal>'_'</span><span class=special>) [</span><span class=identifier>id_action</span><span class=special>]
+                ]
+            ]
+        ;</span></pre>
+<ul>
+  <li> Nesting unary operators (e.g.Kleene star) </li>
+  <li>Unary rule operators (Kleene star, <tt>'!'</tt>, <tt>'+'</tt> etc.) should 
+    be moved out one space before the corresponding indentation level, if this 
+    rule has a body or a sequence after it, which does not fit on on line. This 
+    makes the formatting more consistent and moves the rule 'body' at the same 
+    indentation level as the rule itself, highlighting the unary operator.</li>
+</ul>
+<pre><span class=special>    </span><span class=identifier>block
+        </span><span class=special>=  *(   </span><span class=identifier>label_declaration_part
+            </span><span class=special>|   </span><span class=identifier>constant_definition_part
+            </span><span class=special>|   </span><span class=identifier>type_definition_part
+            </span><span class=special>|   </span><span class=identifier>variable_declaration_part
+            </span><span class=special>|   </span><span class=identifier>procedure_and_function_declaration_part
+            </span><span class=special>)
+            &gt;&gt; </span><span class=identifier>statement_part
+        </span><span class=special>;</span></pre>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="portability.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="techniques.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2001-2003 Joel de Guzman<br>
+  Copyright &copy; 2001-2002 Hartmut Kaiser<br>
+  Copyright &copy; 2001-2002 Chris Uzdavinis<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

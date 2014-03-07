@@ -1,0 +1,103 @@
+﻿<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Template serialization - shared_ptr</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center"><code style="white-space: normal">shared_ptr&lt;class T&gt;</code> Revisited</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+The previously described serialization of <code style="white-space: normal">shared_ptr</code>
+illustrates the straightforward way of serializing a moderately complicated class structure.
+Unfortunately, this way of doing it suffered from some undesirable features
+<ul>
+  <li>It was dependent on the Boost implementation of <code style="white-space: normal">shared_ptr</code>.
+  The <code style="white-space: normal">shared_ptr</code> interface has been included
+  in <code style="white-space: normal">std::tr1</code> and may someday be included in the standard
+  C++ library. An implementation which depends only on the public interface can be guaranteed to
+  function with any other future implementation of <code style="white-space: normal">shared_ptr</code>.
+  <li>It required extra macros for export.
+</ul>
+
+<pre><code>
+template&lt;class Archive, class T&gt;
+inline void save(
+    Archive & ar,
+    const boost::shared_ptr&ltT&gt; &t,
+    const unsigned int /* file_version */
+){
+    const T * t_ptr = t.get();
+    // just serialize the underlying raw pointer
+    ar &lt;&lt: boost::serialization::make_nvp("px", t_ptr);
+}
+
+template&lt;class Archive, class T&gt
+inline void load(
+    Archive & ar,
+    boost::shared_ptr&lt;T&gt; &t,
+    const unsigned int file_version
+){
+    T* r;
+    // recover the underlying raw pointer
+    ar >> boost::serialization::make_nvp("px", r);
+
+    // To Do - match up with other shared pointers which 
+    // use this same raw pointer.
+    ...
+}
+</code></pre>
+
+In principle, this is very much simpler than the original implementation.  Completion of
+this code requires:
+
+<ol>
+  <li>Filling in the "To Do".  This required making an extra map for
+  <code style="white-space: normal">shared_ptr</code> instances.
+  <li>A method for identifying pointers to the same objects from pointers to their base classes.
+  <li>Backward compatibility with pointers serialized by the previous method.  This exploits
+  the serialization class versioning.
+  <li>Proper handling of <code style="white-space: normal">weak_ptr</code>.
+</ol>
+
+The result of this effort can be found in 
+<a target = serialization_shared_ptr href="../../../boost/serialization/shared_ptr.hpp">
+<code style="white-space: normal">boost::serialization::shared_ptr.hpp</code>
+</a>
+<p>
+Note that if your code needs to read archives created under boost version 1.32, you will
+have to include the following
+
+<pre><code>
+#include &lt;boost/serialization/shared_ptr_132.hpp&gt;
+#include &lt;boost/serialization/shared_ptr.hpp&gt;
+</code></pre>
+rather than just
+<pre><code>
+#include &lt;boost/serialization/shared_ptr.hpp&gt;
+</code></pre>
+
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

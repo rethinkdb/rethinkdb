@@ -1,0 +1,96 @@
+<html>
+<head>
+	<title>BOOST_PP_ENUM_z</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_ENUM_<i>z</i></b> macro represents a reentry into the <b>BOOST_PP_ENUM</b> repetition construct.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_ENUM_</b> ## <i>z</i>(<i>count</i>, <i>macro</i>, <i>data</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>z</dt>
+			<dd>
+				The next available <b>BOOST_PP_REPEAT</b> dimension.
+			</dd>
+			<dt>count</dt>
+			<dd>
+				The number of repetitious calls to <i>macro</i>.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_REPEAT</b>.
+			</dd>
+			<dt>macro</dt>
+			<dd>
+				A ternary operation of the form <i>macro</i>(<i>z</i>, <i>n</i>, <i>data</i>).&nbsp;
+				This macro is expanded by <b>BOOST_PP_ENUM</b> with the next available repetition depth,
+				the current repetition number, and the auxiliary <i>data</i> argument.&nbsp;
+			</dd>
+			<dt>data</dt>
+			<dd>
+				Auxiliary data passed to <i>macro</i>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro expands to the sequence:
+			<div>
+				<i>macro</i>(<i>z</i>, <i>0</i>, <i>data</i>), <i>macro</i>(<i>z</i>, <i>1</i>, <i>data</i>), ... <i>macro</i>(<i>z</i>, <i>count</i> - <i>1</i>, <i>data</i>)
+			</div>
+		</div>
+		<div>
+			At certain times, it may be necessary to perform the concatenation with <b>BOOST_PP_CAT</b> rather than the preprocessor token-pasting operator.&nbsp;
+			This happens when the <i>z</i> value is a macro invocation itself.&nbsp;
+			It needs a delay to allow it to expand.&nbsp;
+			The syntax in such a scenario becomes:
+			<div>
+				<b>BOOST_PP_CAT</b>(<b>BOOST_PP_ENUM_</b>, <i>z</i>)(<i>count</i>, <i>macro</i>, <i>data</i>)
+			</div>
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="cat.html">BOOST_PP_CAT</a></li>
+			<li><a href="enum.html">BOOST_PP_ENUM</a></li>
+			<li><a href="limit_repeat.html">BOOST_PP_LIMIT_REPEAT</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/repetition/enum.html">&lt;boost/preprocessor/repetition/enum.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/arithmetic/inc.html">boost/preprocessor/arithmetic/inc.hpp</a>&gt;
+#include &lt;<a href="../headers/repetition/enum.html">boost/preprocessor/repetition/enum.hpp</a>&gt;
+
+#define TEXT(z, n, text) text
+
+#define TTP(z, n, _) \
+   template&lt; \
+      <a href="enum_z.html">BOOST_PP_ENUM_</a> ## z(<a href="inc.html">BOOST_PP_INC</a>(n), TEXT, class) \
+   &gt; \
+   class T ## n \
+   /**/
+
+<a href="enum.html">BOOST_PP_ENUM</a>(3, TTP, nil)
+   /*
+      expands to...
+      template&lt;class&gt; class T0,
+      template&lt;class, class&gt; class T1,
+      template&lt;class, class, class&gt; class T2
+   */
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

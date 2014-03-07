@@ -1,0 +1,85 @@
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" href="../boost.css">
+<title>Boost.Python - &lt;call.hpp&gt;</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+  <tr> 
+    <td valign="top" width="300"> 
+          <h3><a href="../../../../index.htm"><img height="86" width="277" alt=
+          "C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+      <h2 align="center">Header &lt;call.hpp&gt;</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<h2>Contents</h2>
+<dl class="page-index"> 
+  <dt><a href="#introduction">Introduction</a></dt>
+  <dt><a href="#functions">Functions</a></dt>
+  <dl class="page-index">
+    <dt><a href="#call-spec">call</a></dt>
+  </dl>
+
+  <dt><a href="#examples">Example(s)</a></dt>
+
+</dl>
+<hr>
+<h2><a name="introduction"></a>Introduction</h2>
+<p>
+  <code>&lt;boost/python/call.hpp&gt;</code> defines the <a
+  href="#call-spec"><code>call</code></a> family of overloaded function
+  templates, used to invoke Python callable objects from C++.
+
+<h2><a name="functions"></a>Functions</h2>
+<pre>
+<a name="call-spec">template &lt;class R, class A1, class A2, ... class A<i>n</i>&gt;</a>
+R call(PyObject* callable, A1 const&amp;, A2 const&amp;, ... A<i>n</i> const&amp;)
+</pre>
+<dl class="function-semantics"> 
+  <dt><b>Requires:</b> <code>R</code> is a pointer type, reference
+  type, or a complete type with an accessible copy constructor</dt>
+
+  <dt><b>Effects:</b> Invokes <code>callable(a1,&nbsp;a2,&nbsp;...a<i>n</i>)</code> in
+  Python, where <code>a1</code>...<code>a<i>n</i></code> are the arguments to
+  <code>call()</code>, converted to Python objects.
+  <dt><b>Returns:</b> The result of the Python call, converted to the C++ type <code>R</code>.</dt>
+
+</dt>
+  <dt><b>Rationale:</b> For a complete semantic description and
+  rationale, see <a href="callbacks.html">this page</a>.
+</dt>
+</dl>
+
+<h2><a name="examples"></a>Example(s)</h2>
+
+The following C++ function applies a Python callable object to its two
+arguments and returns the result. If a Python exception is raised or
+the result can't be converted to a <code>double</code>, an exception
+is thrown.
+
+<pre>
+double apply2(PyObject* func, double x, double y)
+{
+   return boost::python::call&lt;double&gt;(func, x, y);
+}
+</pre>
+
+<p>Revised 
+  <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  9 May, 2002 <!-- Luann's birthday! -->
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+</p>
+<p><i>&copy; Copyright <a href="http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 
+  2002. </i></p>
+</body>
+</html>

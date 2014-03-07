@@ -1,0 +1,74 @@
+# Copyright 2003, 2004, 2006 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# This module defines the 'alias' rule and the associated target class.
+#
+# Alias is just a main target which returns its source targets without any
+# processing. For example:
+#
+#   alias bin : hello test_hello ;
+#   alias lib : helpers xml_parser ;
+#
+# Another important use of 'alias' is to conveniently group source files:
+#
+#   alias platform-src : win.cpp : <os>NT ;
+#   alias platform-src : linux.cpp : <os>LINUX ;
+#   exe main : main.cpp platform-src ;
+#
+# Lastly, it is possible to create a local alias for some target, with different
+# properties:
+#
+#   alias big_lib : : @/external_project/big_lib/<link>static ;
+#
+
+import "class" : new ;
+import project ;
+import property-set ;
+import targets ;
+
+
+class alias-target-class : basic-target
+{
+    rule __init__ ( name : project : sources * : requirements *
+        : default-build * : usage-requirements * )
+    {
+        basic-target.__init__ $(name) : $(project) : $(sources) :
+            $(requirements) : $(default-build) : $(usage-requirements) ;
+    }
+
+    rule construct ( name : source-targets * : property-set )
+    {
+        return [ property-set.empty ] $(source-targets) ;
+    }
+
+    rule compute-usage-requirements ( subvariant )
+    {
+        local base = [ basic-target.compute-usage-requirements $(subvariant) ] ;
+        return [ $(base).add [ $(subvariant).sources-usage-requirements ] ] ;
+    }
+}
+
+
+# Declares the 'alias' target. It will process its sources virtual-targets by
+# returning them unaltered as its own constructed virtual-targets.
+#
+rule alias ( name : sources * : requirements * : default-build * :
+    usage-requirements * )
+{
+    local project = [ project.current ] ;
+
+    targets.main-target-alternative
+        [ new alias-target-class $(name) : $(project)
+            : [ targets.main-target-sources $(sources) : $(name) : no-renaming ]
+            : [ targets.main-target-requirements $(requirements) : $(project) ]
+            : [ targets.main-target-default-build $(default-build) : $(project)
+                ]
+            : [ targets.main-target-usage-requirements $(usage-requirements) :
+                $(project) ]
+        ] ;
+}
+
+
+IMPORT $(__name__) : alias : : alias ;

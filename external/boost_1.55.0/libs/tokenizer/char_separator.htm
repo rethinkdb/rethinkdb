@@ -1,0 +1,230 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <meta name="GENERATOR" content="Microsoft FrontPage 6.0">
+  <meta name="ProgId" content="FrontPage.Editor.Document">
+
+  <title>Boost Char Separator</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000" link="#0000EE" vlink="#551A8B" alink=
+"#FF0000">
+  <p><img src="../../boost.png" alt="C++ Boost" width="277" height=
+  "86"><br></p>
+
+  <h1>char_separator&lt;Char, Traits&gt;</h1>
+
+  <p>The <tt>char_separator</tt> class breaks a sequence of characters into
+  tokens based on character delimiters much in the same way that
+  <tt>strtok()</tt> does (but without all the evils of non-reentrancy and
+  destruction of the input sequence).</p>
+
+  <p>The <tt>char_separator</tt> class is used in conjunction with the
+  <a href="token_iterator.htm"><tt>token_iterator</tt></a> or <a href=
+  "tokenizer.htm"><tt>tokenizer</tt></a> to perform tokenizing.</p>
+
+  <h2>Definitions</h2>
+
+  <p>The <tt>strtok()</tt> function does not include matches with the
+  character delimiters in the output sequence of tokens. However, sometimes
+  it is useful to have the delimiters show up in the output sequence,
+  therefore <tt>char_separator</tt> provides this as an option. We refer to
+  delimiters that show up as output tokens as <b><i>kept delimiters</i></b>
+  and delimiters that do now show up as output tokens as <b><i>dropped
+  delimiters</i></b>.</p>
+
+  <p>When two delimiters appear next to each other in the input sequence,
+  there is the question of whether to output an <b><i>empty token</i></b> or
+  to skip ahead. The behaviour of <tt>strtok()</tt> is to skip ahead. The
+  <tt>char_separator</tt> class provides both options.</p>
+
+  <h2>Examples</h2>
+
+  <p>This first examples shows how to use <tt>char_separator</tt> as a
+  replacement for the <tt>strtok()</tt> function. We've specified three
+  character delimiters, and they will not show up as output tokens. We have
+  not specified any kept delimiters, and by default any empty tokens will be
+  ignored.</p>
+
+  <blockquote>
+    <pre>
+// char_sep_example_1.cpp
+#include &lt;iostream&gt;
+#include &lt;boost/tokenizer.hpp&gt;
+#include &lt;string&gt;
+
+int main()
+{
+  std::string str = ";;Hello|world||-foo--bar;yow;baz|";
+  typedef boost::tokenizer&lt;boost::char_separator&lt;char&gt; &gt; 
+    tokenizer;
+  boost::char_separator&lt;char&gt; sep("-;|");
+  tokenizer tokens(str, sep);
+  for (tokenizer::iterator tok_iter = tokens.begin();
+       tok_iter != tokens.end(); ++tok_iter)
+    std::cout &lt;&lt; "&lt;" &lt;&lt; *tok_iter &lt;&lt; "&gt; ";
+  std::cout &lt;&lt; "\n";
+  return EXIT_SUCCESS;
+}
+</pre>
+  </blockquote>The output is:
+
+  <blockquote>
+    <pre>
+&lt;Hello&gt; &lt;world&gt; &lt;foo&gt; &lt;bar&gt; &lt;yow&gt; &lt;baz&gt; 
+</pre>
+  </blockquote>
+
+  <p>The next example shows tokenizing with two dropped delimiters '-' and
+  ';' and a single kept delimiter '|'. We also specify that empty tokens
+  should show up in the output when two delimiters are next to each
+  other.</p>
+
+  <blockquote>
+    <pre>
+// char_sep_example_2.cpp
+#include &lt;iostream&gt;
+#include &lt;boost/tokenizer.hpp&gt;
+#include &lt;string&gt;
+
+int main()
+{
+    std::string str = ";;Hello|world||-foo--bar;yow;baz|";
+    typedef boost::tokenizer&lt;boost::char_separator&lt;char&gt; &gt; 
+        tokenizer;
+    boost::char_separator&lt;char&gt; sep("-;", "|", boost::keep_empty_tokens);
+    tokenizer tokens(str, sep);
+    for (tokenizer::iterator tok_iter = tokens.begin();
+         tok_iter != tokens.end(); ++tok_iter)
+      std::cout &lt;&lt; "&lt;" &lt;&lt; *tok_iter &lt;&lt; "&gt; ";
+    std::cout &lt;&lt; "\n";
+    return EXIT_SUCCESS;
+}
+</pre>
+  </blockquote>The output is:
+
+  <blockquote>
+    <pre>
+&lt;&gt; &lt;&gt; &lt;Hello&gt; &lt;|&gt; &lt;world&gt; &lt;|&gt; &lt;&gt; &lt;|&gt; &lt;&gt; &lt;foo&gt; &lt;&gt; &lt;bar&gt; &lt;yow&gt; &lt;baz&gt; &lt;|&gt; &lt;&gt;
+</pre>
+  </blockquote>
+
+  <p>The final example shows tokenizing on punctuation and whitespace
+  characters using the default constructor of the
+  <tt>char_separator</tt>.</p>
+
+  <blockquote>
+    <pre>
+// char_sep_example_3.cpp
+#include &lt;iostream&gt;
+#include &lt;boost/tokenizer.hpp&gt;
+#include &lt;string&gt;
+
+int main()
+{
+   std::string str = "This is,  a test";
+   typedef boost::tokenizer&lt;boost::char_separator&lt;char&gt; &gt; Tok;
+   boost::char_separator&lt;char&gt; sep; // default constructed
+   Tok tok(str, sep);
+   for(Tok::iterator tok_iter = tok.begin(); tok_iter != tok.end(); ++tok_iter)
+     std::cout &lt;&lt; "&lt;" &lt;&lt; *tok_iter &lt;&lt; "&gt; ";
+   std::cout &lt;&lt; "\n";
+   return EXIT_SUCCESS;
+}
+</pre>
+  </blockquote>The output is:
+
+  <blockquote>
+    <pre>
+&lt;This&gt; &lt;is&gt; &lt;,&gt; &lt;a&gt; &lt;test&gt; 
+</pre>
+  </blockquote>
+
+  <h2>Template parameters</h2>
+
+  <table border summary="">
+    <tr>
+      <th>Parameter</th>
+
+      <th>Description</th>
+
+      <th>Default</th>
+    </tr>
+
+    <tr>
+      <td><tt>Char</tt></td>
+
+      <td>The type of elements within a token, typically <tt>char</tt>.</td>
+
+      <td>&nbsp;</td>
+    </tr>
+
+    <tr>
+      <td><tt>Traits</tt></td>
+
+      <td>The <tt>char_traits</tt> for the character type.</td>
+
+      <td><tt>char_traits&lt;char&gt;</tt></td>
+    </tr>
+  </table>
+
+  <h2>Model of</h2><a href="tokenizerfunction.htm">Tokenizer Function</a>
+
+  <h2>Members</h2>
+  <hr>
+  <pre>
+explicit char_separator(const Char* dropped_delims,
+                        const Char* kept_delims = "",
+                        empty_token_policy empty_tokens = drop_empty_tokens)
+</pre>
+
+  <p>This creates a <tt>char_separator</tt> object, which can then be used to
+  create a <a href="token_iterator.htm"><tt>token_iterator</tt></a> or
+  <a href="tokenizer.htm"><tt>tokenizer</tt></a> to perform tokenizing. The
+  <tt>dropped_delims</tt> and <tt>kept_delims</tt> are strings of characters
+  where each character is used as delimiter during tokenizing. Whenever a
+  delimiter is seen in the input sequence, the current token is finished, and
+  a new token begins. The delimiters in <tt>dropped_delims</tt> do not show
+  up as tokens in the output whereas the delimiters in <tt>kept_delims</tt>
+  do show up as tokens. If <tt>empty_tokens</tt> is
+  <tt>drop_empty_tokens</tt>, then empty tokens will not show up in the
+  output. If <tt>empty_tokens</tt> is <tt>keep_empty_tokens</tt> then empty
+  tokens will show up in the output.</p>
+  <hr>
+  <pre>
+explicit char_separator()
+</pre>
+
+  <p>The function <tt>std::isspace()</tt> is used to identify dropped
+  delimiters and <tt>std::ispunct()</tt> is used to identify kept delimiters.
+  In addition, empty tokens are dropped.</p>
+  <hr>
+  <pre>
+template &lt;typename InputIterator, typename Token&gt;
+bool operator()(InputIterator&amp; next, InputIterator end, Token&amp; tok)
+</pre>
+
+  <p>This function is called by the <a href=
+  "token_iterator.htm"><tt>token_iterator</tt></a> to perform tokenizing. The
+  user typically does not call this function directly.</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->25
+  December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38518" --></p>
+
+  <p><i>Copyright &copy; 2001-2002 Jeremy Siek and John R. Bandela</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

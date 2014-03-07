@@ -1,0 +1,773 @@
+# Copyright 2003, 2004, 2005 Dave Abrahams
+# Copyright 2003, 2004, 2005 Douglas Gregor
+# Copyright 2005, 2006, 2007 Rene Rivera
+# Copyright 2003, 2004, 2005 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# This module defines rules to handle generation of documentation from BoostBook
+# sources.
+#
+# The type of output is controlled by the <format> feature which can have the
+# following values:
+#   * html: Generates html documentation. This is the default.
+#   * xhtml: Generates xhtml documentation.
+#   * htmlhelp: Generates html help output.
+#   * onehtml: Generates a single html page.
+#   * man: Generates man pages.
+#   * pdf: Generates pdf documentation.
+#   * ps: Generates postscript output.
+#   * docbook: Generates docbook XML.
+#   * fo: Generates XSL formating objects.
+#   * tests: Extracts test cases from the boostbook XML.
+#
+# <format> is an implicit feature, so for example, typing pdf on the command
+# line is a short-cut for format=pdf.
+
+import build-system ;
+import "class" : new ;
+import common ;
+import feature ;
+import generators ;
+import make ;
+import modules ;
+import os ;
+import path ;
+import print ;
+import project ;
+import property ;
+import property-set ;
+import regex ;
+import scanner ;
+import sequence ;
+import targets ;
+import type ;
+import virtual-target ;
+import xsltproc ;
+
+# Make this module into a project.
+project.initialize $(__name__) ;
+project boostbook ;
+
+.debug-configuration = [ MATCH ^(--debug-configuration)$ : [ modules.peek : ARGV
+    ] ] ;
+
+feature.feature format
+    : html xhtml htmlhelp onehtml man pdf ps docbook fo tests
+    : incidental implicit composite propagated ;
+
+type.register DTDXML : dtdxml ;
+type.register XML : xml ;
+type.register BOOSTBOOK : boostbook : XML ;
+type.register DOCBOOK : docbook : XML ;
+type.register FO : fo : XML ;
+type.register PDF : pdf ;
+type.register PS : ps ;
+type.register XSLT : xsl : XML ;
+type.register HTMLDIR ;
+type.register XHTMLDIR ;
+type.register HTMLHELP ;
+type.register MANPAGES ;
+type.register TESTS : tests ;
+
+
+# Initialize BoostBook support.
+#
+rule init (
+      docbook-xsl-dir ? # The DocBook XSL stylesheet directory. If not provided,
+                        # we use DOCBOOK_XSL_DIR from the environment (if
+                        # available) or look in standard locations. Otherwise,
+                        # we let the XML processor load the stylesheets
+                        # remotely.
+
+    : docbook-dtd-dir ? # The DocBook DTD directory. If not provided, we use
+                        # DOCBOOK_DTD_DIR From the environment (if available) or
+                        # look in standard locations. Otherwise, we let the XML
+                        # processor load the DTD remotely.
+
+    : boostbook-dir ?   # The BoostBook directory with the DTD and XSL subdirs.
+)
+{
+    if ! $(.initialized)
+    {
+        .initialized = true ;
+
+        check-boostbook-dir $(boostbook-dir) ;
+        find-tools $(docbook-xsl-dir) : $(docbook-dtd-dir) : $(boostbook-dir) ;
+
+        # Register generators only if we were called via "using boostbook ;"
+        local reg-gen = generators.register-standard ;
+        $(reg-gen) boostbook.dtdxml-to-boostbook  : DTDXML  : XML ;
+        $(reg-gen) boostbook.boostbook-to-docbook : XML     : DOCBOOK ;
+        $(reg-gen) boostbook.boostbook-to-tests   : XML     : TESTS ;
+        $(reg-gen) boostbook.docbook-to-onehtml   : DOCBOOK : HTML ;
+        $(reg-gen) boostbook.docbook-to-htmldir   : DOCBOOK : HTMLDIR ;
+        $(reg-gen) boostbook.docbook-to-xhtmldir  : DOCBOOK : XHTMLDIR ;
+        $(reg-gen) boostbook.docbook-to-htmlhelp  : DOCBOOK : HTMLHELP ;
+        $(reg-gen) boostbook.docbook-to-manpages  : DOCBOOK : MANPAGES ;
+        $(reg-gen) boostbook.docbook-to-fo        : DOCBOOK : FO ;
+
+        # The same about Jamfile main target rules.
+        IMPORT $(__name__) : boostbook : : boostbook ;
+    }
+    else
+    {
+        if $(docbook-xsl-dir)
+        {
+            modify-config ;
+            .docbook-xsl-dir = [ path.make $(docbook-xsl-dir) ] ;
+            check-docbook-xsl-dir ;
+        }
+        if $(docbook-dtd-dir)
+        {
+            modify-config ;
+            .docbook-dtd-dir = [ path.make $(docbook-dtd-dir) ] ;
+            check-docbook-dtd-dir ;
+        }
+        if $(boostbook-dir)
+        {
+            modify-config ;
+            check-boostbook-dir $(boostbook-dir) ;
+            local boostbook-xsl-dir = [ path.glob $(boostbook-dir) : xsl ] ;
+            local boostbook-dtd-dir = [ path.glob $(boostbook-dir) : dtd ] ;
+            .boostbook-xsl-dir = $(boostbook-xsl-dir[1]) ;
+            .boostbook-dtd-dir = $(boostbook-dtd-dir[1]) ;
+            check-boostbook-xsl-dir ;
+            check-boostbook-dtd-dir ;
+        }
+    }
+}
+
+
+local rule lock-config ( )
+{
+    if ! $(.initialized)
+    {
+        import errors ;
+        errors.user-error BoostBook has not been configured. ;
+    }
+    if ! $(.config-locked)
+    {
+        .config-locked = true ;
+
+        if $(.error-message)
+        {
+            print-error $(.error-message) ;
+        }
+    }
+}
+
+
+local rule modify-config ( )
+{
+    if $(.config-locked)
+    {
+        import errors ;
+        errors.user-error BoostBook configuration cannot be changed after it has
+            been used. ;
+    }
+}
+
+rule print-error ( location message * )
+{
+    ECHO error: at $(location) ;
+    ECHO error: $(message) ;
+    EXIT ;
+}
+
+rule make-error ( message * )
+{
+    return [ errors.nearest-user-location ] $(message) ;
+}
+
+
+rule find-boost-in-registry ( keys * )
+{
+    local boost-root ;
+    for local R in $(keys)
+    {
+        local installed-boost = [ W32_GETREG
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\$(R)" : "InstallRoot" ] ;
+        if $(installed-boost)
+        {
+            boost-root += [ path.make $(installed-boost) ] ;
+        }
+    }
+    return $(boost-root) ;
+}
+
+
+rule check-docbook-xsl-dir ( )
+{
+    if $(.docbook-xsl-dir)
+    {
+        if ! [ path.glob $(.docbook-xsl-dir) : common/common.xsl ]
+        {
+            import errors ;
+            .error-message = [ make-error BoostBook: could not find docbook XSL stylesheets
+                in: [ path.native $(.docbook-xsl-dir) ] ] ;
+        }
+        else if $(.debug-configuration)
+        {
+            ECHO notice: BoostBook: found docbook XSL stylesheets in: [
+                path.native $(.docbook-xsl-dir) ] ;
+        }
+    }
+}
+
+
+rule check-docbook-dtd-dir ( )
+{
+    if $(.docbook-dtd-dir)
+    {
+        if ! [ path.glob $(.docbook-dtd-dir) : docbookx.dtd ]
+        {
+            import errors ;
+            .error-message = [ make-error BoostBook: could not find docbook DTD in: [
+                path.native $(.docbook-dtd-dir) ] ] ;
+        }
+        else if $(.debug-configuration)
+        {
+            ECHO notice: BoostBook: found docbook DTD in: [ path.native
+                $(.docbook-dtd-dir) ] ;
+        }
+    }
+}
+
+
+rule check-boostbook-xsl-dir ( )
+{
+    if ! $(.boostbook-xsl-dir)
+    {
+        .error-message = [ make-error BoostBook: could not find boostbook XSL stylesheets. ] ;
+    }
+    else if ! [ path.glob $(.boostbook-xsl-dir) : docbook.xsl ]
+    {
+        .error-message = [ make-error  BoostBook: could not find docbook XSL stylesheets in:
+            [ path.native $(.boostbook-xsl-dir) ] ] ;
+    }
+    else if $(.debug-configuration)
+    {
+        ECHO notice: BoostBook: found boostbook XSL stylesheets in: [
+            path.native $(.boostbook-xsl-dir) ] ;
+    }
+}
+
+
+rule check-boostbook-dtd-dir ( )
+{
+    if ! $(.boostbook-dtd-dir)
+    {
+        .error-message = [ make-error BoostBook: could not find boostbook DTD. ] ;
+    }
+    else if ! [ path.glob $(.boostbook-dtd-dir) : boostbook.dtd ]
+    {
+        .error-message = [ make-error BoostBook: could not find boostbook DTD in: [
+            path.native $(.boostbook-dtd-dir) ] ] ;
+    }
+    else if $(.debug-configuration)
+    {
+        ECHO notice: BoostBook: found boostbook DTD in: [ path.native
+            $(.boostbook-dtd-dir) ] ;
+    }
+}
+
+
+rule check-boostbook-dir ( boostbook-dir ? )
+{
+    if $(boostbook-dir) && ! [ path.glob $(boostbook-dir) : xsl ]
+    {
+        import errors ;
+        .error-message = [ make-error BoostBook: could not find boostbook in: [ path.native
+            $(boostbook-dir) ] ] ;
+    }
+}
+
+
+rule find-tools ( docbook-xsl-dir ? : docbook-dtd-dir ? : boostbook-dir ? )
+{
+    docbook-xsl-dir ?= [ modules.peek : DOCBOOK_XSL_DIR ] ;
+    docbook-dtd-dir ?= [ modules.peek : DOCBOOK_DTD_DIR ] ;
+    boostbook-dir ?= [ modules.peek : BOOSTBOOK_DIR ] ;
+
+    # Look for the boostbook stylesheets relative to BOOST_ROOT and Boost.Build.
+    local boost-build-root = [ path.make [ build-system.location ] ] ;
+    local boostbook-search-dirs = [ path.join $(boost-build-root) .. .. ] ;
+
+    local boost-root = [ modules.peek : BOOST_ROOT ] ;
+    if $(boost-root)
+    {
+        boostbook-search-dirs += [ path.join [ path.make $(boost-root) ] tools ]
+            ;
+    }
+    boostbook-dir ?= [ path.glob $(boostbook-search-dirs) : boostbook* ] ;
+
+    # Try to find the tools in platform specific locations.
+    if [ os.name ] = NT
+    {
+        # If installed by the Boost installer.
+        local boost-root = ;
+
+        local boost-installer-versions = snapshot cvs 1.33.0 ;
+        local boost-consulting-installer-versions = 1.33.1 1.34.0 1.34.1 ;
+        local boostpro-installer-versions =
+            1.35.0 1.36.0 1.37.0 1.38.0 1.39.0 1.40.0 1.41.0 1.42.0
+            1.43.0 1.44.0 1.45.0 1.46.0 1.47.0 1.48.0 1.49.0 1.50.0 ;
+
+        local old-installer-root = [ find-boost-in-registry
+            Boost.org\\$(boost-installer-versions) ] ;
+
+        # Make sure that the most recent version is searched for first.
+        boost-root += [ sequence.reverse [ find-boost-in-registry
+            Boost-Consulting.com\\$(boost-consulting-installer-versions)
+            boostpro.com\\$(boostpro-installer-versions) ] ] ;
+
+        # Plausible locations.
+        local root = [ PWD ] ;
+        while $(root) != $(root:D) { root = $(root:D) ; }
+        root = [ path.make $(root) ] ;
+        local search-dirs ;
+        local docbook-search-dirs ;
+        for local p in $(boost-root)
+        {
+            search-dirs += [ path.join $(p) tools ] ;
+        }
+        for local p in $(old-installer-root)
+        {
+            search-dirs += [ path.join $(p) share ] ;
+            docbook-search-dirs += [ path.join $(p) share ] ;
+        }
+        search-dirs += [ path.join $(root) Boost tools ] ;
+        search-dirs += [ path.join $(root) Boost share ] ;
+        docbook-search-dirs += [ path.join $(root) Boost share ] ;
+
+        docbook-xsl-dir ?= [ path.glob $(docbook-search-dirs) : docbook-xsl* ] ;
+        docbook-dtd-dir ?= [ path.glob $(docbook-search-dirs) : docbook-xml* ] ;
+        boostbook-dir ?= [ path.glob $(search-dirs) : boostbook* ] ;
+    }
+    else
+    {
+        # Plausible locations.
+
+        local share = /usr/local/share /usr/share /opt/share /opt/local/share ;
+        local dtd-versions = 4.2 ;
+
+        docbook-xsl-dir ?= [ path.glob $(share) : docbook-xsl* ] ;
+        docbook-xsl-dir ?= [ path.glob $(share)/sgml/docbook : xsl-stylesheets ]
+            ;
+        docbook-xsl-dir ?= [ path.glob $(share)/xsl : docbook* ] ;
+
+        docbook-dtd-dir ?= [ path.glob $(share) : docbook-xml* ] ;
+        docbook-dtd-dir ?= [ path.glob $(share)/sgml/docbook :
+            xml-dtd-$(dtd-versions)* ] ;
+        docbook-dtd-dir ?= [ path.glob $(share)/xml/docbook : $(dtd-versions) ]
+            ;
+
+        boostbook-dir ?= [ path.glob $(share) : boostbook* ] ;
+
+        # Ubuntu Linux.
+        docbook-xsl-dir ?= [ path.glob /usr/share/xml/docbook/stylesheet :
+            nwalsh ] ;
+        docbook-dtd-dir ?= [ path.glob /usr/share/xml/docbook/schema/dtd :
+            $(dtd-versions) ] ;
+
+        # SUSE.
+        docbook-xsl-dir ?= [ path.glob /usr/share/xml/docbook/stylesheet/nwalsh
+            : current ] ;
+    }
+
+    if $(docbook-xsl-dir)
+    {
+        .docbook-xsl-dir = [ path.make $(docbook-xsl-dir[1]) ] ;
+    }
+    if $(docbook-dtd-dir)
+    {
+        .docbook-dtd-dir = [ path.make $(docbook-dtd-dir[1]) ] ;
+    }
+
+    if $(.debug-configuration)
+    {
+        ECHO notice: Boost.Book: searching XSL/DTD "in" ;
+        ECHO notice: [ sequence.transform path.native : $(boostbook-dir) ] ;
+    }
+    local boostbook-xsl-dir ;
+    for local dir in $(boostbook-dir)
+    {
+        boostbook-xsl-dir += [ path.glob $(dir) : xsl ] ;
+    }
+    local boostbook-dtd-dir ;
+    for local dir in $(boostbook-dir)
+    {
+        boostbook-dtd-dir += [ path.glob $(dir) : dtd ] ;
+    }
+    .boostbook-xsl-dir = $(boostbook-xsl-dir[1]) ;
+    .boostbook-dtd-dir = $(boostbook-dtd-dir[1]) ;
+
+    check-docbook-xsl-dir ;
+    check-docbook-dtd-dir ;
+    check-boostbook-xsl-dir ;
+    check-boostbook-dtd-dir ;
+}
+
+
+rule xsl-dir
+{
+    lock-config ;
+    return $(.boostbook-xsl-dir) ;
+}
+
+
+rule dtd-dir
+{
+    lock-config ;
+    return $(.boostbook-dtd-dir) ;
+}
+
+
+rule docbook-xsl-dir
+{
+    lock-config ;
+    return $(.docbook-xsl-dir) ;
+}
+
+
+rule docbook-dtd-dir
+{
+    lock-config ;
+    return $(.docbook-dtd-dir) ;
+}
+
+
+rule dtdxml-to-boostbook ( target : source : properties * )
+{
+    lock-config ;
+    xsltproc.xslt $(target) : $(source)
+        "$(.boostbook-xsl-dir)/dtd/dtd2boostbook.xsl" : $(properties) ;
+}
+
+
+rule boostbook-to-docbook ( target : source : properties * )
+{
+    lock-config ;
+    local stylesheet = [ path.native $(.boostbook-xsl-dir)/docbook.xsl ] ;
+    xsltproc.xslt $(target) : $(source) $(stylesheet) : $(properties) ;
+}
+
+
+rule docbook-to-onehtml ( target : source : properties * )
+{
+    lock-config ;
+    local stylesheet = [ path.native $(.boostbook-xsl-dir)/html-single.xsl ] ;
+    xsltproc.xslt $(target) : $(source) $(stylesheet) : $(properties) ;
+}
+
+
+rule docbook-to-htmldir ( target : source : properties * )
+{
+    lock-config ;
+    local stylesheet = [ path.native $(.boostbook-xsl-dir)/html.xsl ] ;
+    xsltproc.xslt-dir $(target) : $(source) $(stylesheet) : $(properties) : html
+        ;
+}
+
+
+rule docbook-to-xhtmldir ( target : source : properties * )
+{
+    lock-config ;
+    local stylesheet = [ path.native $(.boostbook-xsl-dir)/xhtml.xsl ] ;
+    xsltproc.xslt-dir $(target) : $(source) $(stylesheet) : $(properties) :
+        xhtml ;
+}
+
+
+rule docbook-to-htmlhelp ( target : source : properties * )
+{
+    lock-config ;
+    local stylesheet = [ path.native $(.boostbook-xsl-dir)/html-help.xsl ] ;
+    xsltproc.xslt-dir $(target) : $(source) $(stylesheet) : $(properties) :
+        htmlhelp ;
+}
+
+
+rule docbook-to-manpages ( target : source : properties * )
+{
+    lock-config ;
+    local stylesheet = [ path.native $(.boostbook-xsl-dir)/manpages.xsl ] ;
+    xsltproc.xslt-dir $(target) : $(source) $(stylesheet) : $(properties) : man
+        ;
+}
+
+
+rule docbook-to-fo ( target : source : properties * )
+{
+    lock-config ;
+    local stylesheet = [ path.native $(.boostbook-xsl-dir)/fo.xsl ] ;
+    xsltproc.xslt $(target) : $(source) $(stylesheet) : $(properties) ;
+}
+
+
+rule format-catalog-path ( path )
+{
+    local result = $(path) ;
+    if [ xsltproc.is-cygwin ]
+    {
+        if [ os.name ] = NT
+        {
+            drive = [ MATCH ^/(.):(.*)$ : $(path) ] ;
+            result = /cygdrive/$(drive[1])$(drive[2]) ;
+        }
+    }
+    else
+    {
+        if [ os.name ] = CYGWIN
+        {
+            local native-path = [ path.native $(path) ] ;
+            result = [ path.make $(native-path:W) ] ;
+        }
+    }
+    return [ regex.replace $(result) " " "%20" ] ;
+}
+
+
+rule generate-xml-catalog ( target : sources * : properties * )
+{
+    print.output $(target) ;
+
+    # BoostBook DTD catalog entry.
+    local boostbook-dtd-dir = [ boostbook.dtd-dir ] ;
+    if $(boostbook-dtd-dir)
+    {
+        boostbook-dtd-dir = [ format-catalog-path $(boostbook-dtd-dir) ] ;
+    }
+
+    print.text
+        "<?xml version=\"1.0\"?>"
+        "<!DOCTYPE catalog "
+        "  PUBLIC \"-//OASIS/DTD Entity Resolution XML Catalog V1.0//EN\""
+        "  \"http://www.oasis-open.org/committees/entity/release/1.0/catalog.dtd\">"
+        "<catalog xmlns=\"urn:oasis:names:tc:entity:xmlns:xml:catalog\">"
+        "  <rewriteURI uriStartString=\"http://www.boost.org/tools/boostbook/dtd/\" rewritePrefix=\"file://$(boostbook-dtd-dir)/\"/>"
+        : true ;
+
+    local docbook-xsl-dir = [ boostbook.docbook-xsl-dir ] ;
+    if ! $(docbook-xsl-dir)
+    {
+        ECHO "BoostBook warning: no DocBook XSL directory specified." ;
+        ECHO "  If you have the DocBook XSL stylesheets installed, please " ;
+        ECHO "  set DOCBOOK_XSL_DIR to the stylesheet directory on either " ;
+        ECHO "  the command line (via -sDOCBOOK_XSL_DIR=...) or in a " ;
+        ECHO "  Boost.Jam configuration file. The DocBook XSL stylesheets " ;
+        ECHO "  are available here: http://docbook.sourceforge.net/ " ;
+        ECHO "  Stylesheets will be downloaded on-the-fly (very slow!) " ;
+    }
+    else
+    {
+        docbook-xsl-dir = [ format-catalog-path $(docbook-xsl-dir) ] ;
+        print.text "  <rewriteURI uriStartString=\"http://docbook.sourceforge.net/release/xsl/current/\" rewritePrefix=\"file://$(docbook-xsl-dir)/\"/>" ;
+    }
+
+    local docbook-dtd-dir = [ boostbook.docbook-dtd-dir ] ;
+    if ! $(docbook-dtd-dir)
+    {
+        ECHO "BoostBook warning: no DocBook DTD directory specified." ;
+        ECHO "  If you have the DocBook DTD installed, please set " ;
+        ECHO "  DOCBOOK_DTD_DIR to the DTD directory on either " ;
+        ECHO "  the command line (via -sDOCBOOK_DTD_DIR=...) or in a " ;
+        ECHO "  Boost.Jam configuration file. The DocBook DTD is available " ;
+        ECHO "  here: http://www.oasis-open.org/docbook/xml/4.2/index.shtml" ;
+        ECHO "  The DTD will be downloaded on-the-fly (very slow!) " ;
+    }
+    else
+    {
+        docbook-dtd-dir = [ format-catalog-path $(docbook-dtd-dir) ] ;
+        print.text "  <rewriteURI uriStartString=\"http://www.oasis-open.org/docbook/xml/4.2/\" rewritePrefix=\"file://$(docbook-dtd-dir)/\"/>" ;
+    }
+
+    print.text "</catalog>" ;
+}
+
+
+# Returns information about the global XML catalog target, creating it lazily if
+# needed. To get the global catalog generated only once we do not create it in
+# every project that requests it but instead only create it based on the first
+# project requesting it and then reuse it from there for any later requests.
+#
+# To get 'as close as possible' to having the global catalog stored in the same
+# location independent of which folder our build was run from, we assign its
+# target to the given project's base Jamroot project. This works correctly as
+# long as we know the passed project is not standalone or one of Boost Build's
+# configuration module projects, as those to not have a Jamroot project in their
+# parent chain. Note also that we can still get our targets generated in
+# different folders in case when one build project references a target from
+# another build project with its own separate Jamroot.
+#
+# FIXME: Ideally the catalog target should be created as part of the boostbook
+# project and stored in some central location for all used standalone pojects,
+# shared between all builds made on that system. This however would require much
+# more though to add the necessary changes to Boost Build's internal design.
+#
+local rule xml-catalog ( project )
+{
+    if ! $(.xml-catalog)
+    {
+        local project-module = [ $(project).project-module ] ;
+        local root-module = [ project.get-jamroot-module $(project-module) ] ;
+        if ! $(root-module)
+        {
+            import errors ;
+            if [ project.is-config-module $(project-module) ]
+            {
+                errors.user-error boostbook targets can not be declared in Boost
+                    Build's configuration modules. ;
+            }
+            else
+            {
+                errors.user-error boostbook targets can not be declared in
+                    standalone projects. : use a Jamfile/Jamroot project
+                    instead. ;
+            }
+        }
+        local root-project = [ project.target $(root-module) ] ;
+
+        .xml-catalog = [ virtual-target.register [ new file-target
+            boostbook_catalog : XML : $(root-project) : [ new action :
+            boostbook.generate-xml-catalog ] ] ] ;
+        .xml-catalog-file = [ $(.xml-catalog).path ] [ $(.xml-catalog).name ] ;
+        .xml-catalog-file = $(.xml-catalog-file:J=/) ;
+    }
+    return $(.xml-catalog) $(.xml-catalog-file) ;
+}
+
+
+class boostbook-target-class : basic-target
+{
+    import generators ;
+    import property-set ;
+    import virtual-target ;
+
+    rule construct ( name : sources * : property-set )
+    {
+        # Generate the catalog, but only once.
+        IMPORT boostbook : xml-catalog : $(__name__) : boostbook.xml-catalog ;
+        local global-catalog = [ boostbook.xml-catalog [ project ] ] ;
+        local catalog = $(global-catalog[1]) ;
+        local catalog-file = $(global-catalog[2]) ;
+        local targets ;
+
+        # Add the catalog to the property set.
+        property-set = [ $(property-set).add-raw <catalog>$(catalog-file) ] ;
+
+        local type = none ;
+        local manifest ;
+        local format = [ $(property-set).get <format> ] ;
+        switch $(format)
+        {
+            case html     : type = HTMLDIR ; manifest = HTML.manifest ;
+            case xhtml    : type = XHTMLDIR ; manifest = HTML.manifest ;
+            case htmlhelp : type = HTMLHELP ; manifest = HTML.manifest ;
+            case onehtml  : type = HTML ;
+            case man      : type = MANPAGES ; manifest = man.manifest ;
+            case docbook  : type = DOCBOOK ;
+            case fo       : type = FO ;
+            case pdf      : type = PDF ;
+            case ps       : type = PS ;
+            case tests    : type = TESTS ;
+        }
+
+        local target ;
+        if $(manifest)
+        {
+            # Sources --> DOCBOOK.
+            local docbook-target = [ generators.construct [ project ] : DOCBOOK
+                : $(property-set) : $(sources) ] ;
+            docbook-target = $(docbook-target[2]) ;
+            $(docbook-target).depends $(catalog) ;
+
+            # DOCBOOK --> type.
+            target = [ generators.construct [ project ] $(name)_$(manifest) :
+                $(type) : [ $(property-set).add-raw
+                <xsl:param>manifest=$(name)_$(manifest) ] : $(docbook-target) ]
+                ;
+            target = $(target[2]) ;
+            local name = [ $(property-set).get <name> ] ;
+            name ?= $(format) ;
+            $(target).set-path $(name) ;
+        }
+        else
+        {
+            # Sources --> type.
+            target = [ generators.construct [ project ] : $(type) :
+                $(property-set) : $(sources) ] ;
+            target = $(target[2]) ;
+            if ! $(target)
+            {
+                import errors ;
+                errors.error Cannot build documentation type '$(format)'. ;
+            }
+        }
+        $(target).depends $(catalog) ;
+
+        return [ property-set.empty ] $(target) ;
+    }
+}
+
+
+# Declare a boostbook target.
+#
+rule boostbook ( target-name : sources * : requirements * : default-build * )
+{
+    return [ targets.create-metatarget boostbook-target-class :
+        [ project.current ] : $(target-name) : $(sources) : $(requirements) :
+        $(default-build) ] ;
+}
+
+
+rule boostbook-to-tests ( target : source : properties * )
+{
+    lock-config ;
+    local boost_root = [ modules.peek : BOOST_ROOT ] ;
+    local native-path = [ path.native [ path.join $(.boostbook-xsl-dir) testing
+        Jamfile ] ] ;
+    local stylesheet = $(native-path:S=.xsl) ;
+    xsltproc.xslt $(target) : $(source) $(stylesheet) : $(properties)
+        <xsl:param>boost.root=$(boost_root) ;
+}
+
+
+#############################################################################
+# Dependency scanners
+#############################################################################
+# XInclude scanner. Mostly stolen from c-scanner. :)
+# Note that this assumes an "xi" prefix for XIncludes. This is not always the
+# case for XML documents, but we assume it is true for anything we encounter.
+#
+class xinclude-scanner : scanner
+{
+    import scanner ;
+
+    rule __init__ ( includes * )
+    {
+        scanner.__init__ ;
+        self.includes = $(includes) ;
+    }
+
+    rule pattern ( )
+    {
+        return "xi:include[ ]*href=\"([^\"]*)\"" ;
+    }
+
+    rule process ( target : matches * : binding )
+    {
+        local target_path = [ NORMALIZE_PATH $(binding:D) ] ;
+
+        NOCARE $(matches) ;
+        INCLUDES $(target) : $(matches) ;
+        SEARCH on $(matches) = $(target_path) $(self.includes:G=) ;
+
+        scanner.propagate $(__name__) : $(matches) : $(target) ;
+    }
+}
+
+scanner.register xinclude-scanner : xsl:path ;
+type.set-scanner XML : xinclude-scanner ;

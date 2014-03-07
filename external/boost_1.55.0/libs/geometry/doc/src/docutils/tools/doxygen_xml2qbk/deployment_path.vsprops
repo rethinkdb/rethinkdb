@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioPropertySheet
+	ProjectType="Visual C++"
+	Version="8.00"
+	Name="deployment_path"
+	>
+	<UserMacro
+		Name="DEPLOYMENT_PATH"
+		Value="c:\software"
+		PerformEnvironmentSet="true"
+	/>
+</VisualStudioPropertySheet>

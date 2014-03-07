@@ -1,0 +1,69 @@
+<html>
+<head>
+	<title>BOOST_PP_LIST_APPEND</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">	
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_LIST_APPEND</b> macro appends two <i>lists</i>.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_LIST_APPEND</b>(<i>a</i>, <i>b</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>a</dt>
+			<dd>
+				The first <i>list</i>.
+			</dd>
+			<dt>b</dt>
+			<dd>
+				The second <i>list</i>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro appends two lists.&nbsp;
+			For example, if <i>a</i> is (<i>1</i>, (<i>2</i>, (<i>3</i>, <b>BOOST_PP_NIL</b>))) and <i>b</i> is (<i>4</i>, (<i>5</i>, <b>BOOST_PP_NIL</b>)),
+			this macro will expand to:
+			<div>
+				(<i>1</i>, (<i>2</i>, (<i>3</i>, (<i>4</i>, (<i>5</i>, <b>BOOST_PP_NIL</b>)))))
+			</div>
+		</div>
+		<div>
+			Previously, this macro could not be used inside <b>BOOST_PP_WHILE</b>.&nbsp;
+			There is no longer any such restriction.&nbsp;
+			It is more efficient, however, to use <b>BOOST_PP_LIST_APPEND_D</b> in such a situation.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="list_append_d.html">BOOST_PP_LIST_APPEND_D</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/list/append.html">&lt;boost/preprocessor/list/append.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/list/append.html">boost/preprocessor/list/append.hpp</a>&gt;
+
+#define L1 (a, (b, (c, <a href="nil.html">BOOST_PP_NIL</a>)))
+#define L2 (x, (y, (z, <a href="nil.html">BOOST_PP_NIL</a>)))
+
+<a href="list_append.html">BOOST_PP_LIST_APPEND</a>(L1, L2)
+   // expands to (a, (b, (c, (x, (y, (z, <a href="nil.html">BOOST_PP_NIL</a>))))))
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

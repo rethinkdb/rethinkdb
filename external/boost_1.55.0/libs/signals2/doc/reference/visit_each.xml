@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Douglas Gregor 2001-2004
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<header name="boost/visit_each.hpp" last-revision="$Date: 2007-03-06 16:51:55 -0500 (Tue, 06 Mar 2007) $">
+  <namespace name="boost">
+    <function name="visit_each">
+      <template>
+        <template-type-parameter name="Visitor"/>
+        <template-type-parameter name="T"/>
+      </template>
+      <type>void</type>
+      <parameter name="visitor">
+        <paramtype>const Visitor&amp;</paramtype>
+      </parameter>
+      <parameter name="t">
+        <paramtype>const T&amp;</paramtype>
+      </parameter>
+      <parameter>
+        <paramtype>int</paramtype>
+      </parameter>
+
+      <purpose>Allow limited exploration of class members.</purpose>
+
+      <description>
+        <para>The <functionname>visit_each</functionname> mechanism
+        allows a visitor to be applied to every subobject in a given
+        object. It was used by the Signals library to discover (now deprecated)
+        <classname>signals::trackable</classname> objects within a
+        function object, but other uses may surface if used
+        universally (e.g., conservative garbage collection). To fit
+        within the <functionname>visit_each</functionname> framework,
+        a <functionname>visit_each</functionname> overload must be
+        supplied for each object type. </para>
+      </description>
+
+      <effects><para><code>visitor(t)</code>, and for
+      every subobject <code>x</code> of
+      <code>t</code>:
+        <itemizedlist>
+          <listitem><para>If <code>x</code> is a reference, <code>visit_each(visitor, <functionname>ref</functionname>(x), 0)</code></para></listitem>
+          <listitem><para>Otherwise, <code>visit_each(visitor, x, 0)</code></para></listitem>
+        </itemizedlist>
+      </para></effects>
+
+      <notes><para>The third parameter is
+      <code>long</code> for the fallback version
+      of <functionname>visit_each</functionname> and the argument
+      supplied to this third paramter must always be 0. The third
+      parameter is an artifact of the widespread lack of proper
+      function template ordering, and will be removed in the future.</para>
+
+      <para>Library authors will be expected to add additional
+      overloads that specialize the T argument for their classes, so
+      that subobjects can be visited.</para>
+
+      <para>Calls to visit_each are required to be unqualified, to
+      enable argument-dependent lookup.</para></notes>
+    </function>
+  </namespace>
+</header>

@@ -1,0 +1,976 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>The Token Identifiers</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link href="theme/style.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<table width="100%" border="0" cellspacing="2" background="theme/bkd2.gif">
+  <tr> 
+    <td width="21"> <h1></h1></td>
+    <td width="885"> <font face="Verdana, Arial, Helvetica, sans-serif"><b><font size="6">The 
+      Token Identifiers</font></b></font></td>
+    <td width="96"><a href="http://www.boost.org"><img src="theme/wave.gif" width="93" height="68" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="class_reference_tokentype.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="class_reference_filepos.html"><img src="theme/r_arr.gif" width="20" height="19" border="0"></a></td>
+  </tr>
+</table>
+<blockquote> 
+  <p><a href="token_ids.html#literal_tokens">Table of literal token identifiers</a><br>
+    <a href="token_ids.html#whitespace_tokens">Table of white token identifiers</a><br>
+    <a href="token_ids.html#keyword_tokens">Table of keyword token identifiers</a><br>
+    <a href="token_ids.html#operator_tokens">Table of operator token identifiers</a><br>
+    <a href="token_ids.html#preprocessor_tokens">Table of preprocessor token identifiers</a></p>
+</blockquote>
+<p>The following tables contain all those tokens, which should be recognized by 
+  a C++ lexer, which is to be used in conjunction with the <tt>Wave</tt> preprocessing 
+  engine. The tokens are grouped into categories to simplify some internal logic 
+  and eventually the driver programs. The token identifiers are defined as an 
+  <tt>enum</tt>, and it is recommended to reuse this definition for your own lexer 
+  implementations.</p>
+<p>Note though, that the preprocessor engine does some token transformation, so 
+  that not all of the listet here token identifiers may occur inside tokens, returned 
+  from the preprocessing iterator.</p>
+<a name="literal_tokens"></a>
+<table width="70%" border="0" align="center">
+  <tr> 
+    <td colspan="3"> <p class="table_title">List of literal token id's</p></td>
+  </tr>
+  <tr> 
+    <td> <p class="toc_title" width="36%" >Token identifier</p></td>
+    <td> <p class="toc_title" width="28%" >Token category</p></td>
+    <td> <p class="toc_title" width="36%" >Token value</p></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_CHARLIT  </p></td>
+    <td class="table_cells"  width="31%"> <p>CharacterLiteralTokenType</p></td>
+    <td class="table_cells"  width="29%"><p><code>'a', '\t', '\u0057'</code></p></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" > <p>T_FLOATLIT </p></td>
+    <td class="table_cells" > <p>FloatingLiteralTokenType</p></td>
+    <td class="table_cells" ><code>-1.23456e78</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" > <p>T_IDENTIFIER </p></td>
+    <td class="table_cells" > <p>IdentifierTokenType</p></td>
+    <td class="table_cells" ><code> C++ identifier</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" > <p>T_OCTALINT </p></td>
+    <td class="table_cells" > <p>IntegerLiteralTokenType</p></td>
+    <td class="table_cells" ><code>007</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" > <p>T_DECIMALINT </p></td>
+    <td class="table_cells" > <p>IntegerLiteralTokenType</p></td>
+    <td class="table_cells" ><code>10</code></td>
+  </tr>
+  <tr>
+    <td class="table_cells" >
+      <p>T_HEXAINT </p></td>
+    <td class="table_cells" >
+      <p>IntegerLiteralTokenType</p></td>
+    <td class="table_cells" ><code>0x1234</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" > <p>T_INTLIT </p></td>
+    <td class="table_cells" > <p>IntegerLiteralTokenType</p></td>
+    <td class="table_cells" ><code>T_OCTALINT, T_DECIMALINT or T_HEXAINT</code></td>
+  </tr>
+  <tr>
+    <td class="table_cells" >
+      <p>T_LONGINTLIT</p></td>
+    <td class="table_cells" >
+      <p>IntegerLiteralTokenType</p></td>
+    <td class="table_cells" ><code>0x1234LL</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" > <p>T_STRINGLIT </p></td>
+    <td class="table_cells" > <p>StringLiteralTokenType</p></td>
+    <td class="table_cells" ><code>&quot;abc&quot;</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" > <p>T_FALSE </p></td>
+    <td class="table_cells" > <p>BoolLiteralTokenType</p></td>
+    <td class="table_cells" ><code>false</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_TRUE </p></td>
+    <td class="table_cells" width="31%" > <p>BoolLiteralTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>true</code></td>
+  </tr>
+</table>
+<br>
+<a name="whitespace_tokens"></a>
+<table width="70%" border="0" align="center">
+  <tr> 
+    <td colspan="3"> <p class="table_title">List of whitespace token id's</p></td>
+  </tr>
+  <tr> 
+    <td> <p class="toc_title" width="36%" >Token identifier</p></td>
+    <td> <p class="toc_title" width="28%" >Token category</p></td>
+    <td> <p class="toc_title" width="36%" >Token value</p></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%"> <p>T_ANY </p></td>
+    <td class="table_cells" width="31%"> <p>UnknownTokenType</p></td>
+    <td class="table_cells" width="29%"> <p><code>any value not matched otherwise</code></p></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" > <p>T_CCOMMENT </p></td>
+    <td class="table_cells" > <p>WhiteSpaceTokenType</p></td>
+    <td class="table_cells" > <p><code>/* ... */</code></p></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" > <p>T_CPPCOMMENT </p></td>
+    <td class="table_cells" > <p>WhiteSpaceTokenType</p></td>
+    <td class="table_cells" ><code>// ... \n</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" > <p>T_SPACE </p></td>
+    <td class="table_cells" > <p>WhiteSpaceTokenType</p></td>
+    <td class="table_cells" > <p>blank or '\t'</p></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" > <p>T_SPACE2 </p></td>
+    <td class="table_cells" > <p>WhiteSpaceTokenType</p></td>
+    <td class="table_cells" ><code>'\v' or '\f'</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_EOF </p></td>
+    <td class="table_cells" width="31%" > <p>EOFTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>end of input</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_CONTLINE </p></td>
+    <td class="table_cells" width="31%" > <p>EOLTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>'\\' followed by '\n'</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_NEWLINE </p></td>
+    <td class="table_cells" width="31%" > <p>EOLTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>'\n'</code></td>
+  </tr>
+</table>
+<br>
+<br>
+<a name="keyword_tokens"></a>
+<table width="70%" border="0" align="center">
+  <tr> 
+    <td colspan="3"> <p class="table_title">List of keyword token id's</p></td>
+  </tr>
+  <tr> 
+    <td> <p class="toc_title" width="36%" >Token identifier</p></td>
+    <td> <p class="toc_title" width="28%" >Token category</p></td>
+    <td> <p class="toc_title" width="36%" >Token value</p></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_ASM </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>asm</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_AUTO </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>auto</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_BOOL </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>bool</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_BREAK </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>break</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_CASE </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>case</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_CATCH </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>catch</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_CHAR </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>char</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_CLASS </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>class</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_CONST </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>const</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_CONSTCAST </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>const_cast</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_CONTINUE </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>continue</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_DEFAULT </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>default</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_DELETE </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>delete</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_DO </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>do</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_DOUBLE </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>double</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_DYNAMICCAST </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>dynamic_cast</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_ELSE </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>else</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_ENUM </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>enum</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_EXPLICIT </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>explicit</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_EXPORT </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>export</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_EXTERN </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>extern</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_FLOAT </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>float</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_FOR </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>for</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_FRIEND </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>friend</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_GOTO </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>goto</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_IF </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>if</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_INLINE </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>inline</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_INT </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>int</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_LONG </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>long</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_MUTABLE </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>mutable</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_NAMESPACE </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>namespace</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_NEW </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>new</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_OPERATOR </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>operator</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PRIVATE </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>private</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PROTECTED </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>protected</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PUBLIC </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>public</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_REGISTER </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>register</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_REINTERPRETCAST </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>reinterpret_cast</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_RETURN </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>return</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_SHORT </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>short</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_SIGNED </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>signed</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_SIZEOF </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>sizeof</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_STATIC </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>static</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_STATICCAST </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>static_cast</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_STRUCT </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>struct</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_SWITCH </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>switch</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_TEMPLATE </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>template</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_THIS </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>this</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_THROW </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>throw</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_TRY </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>try</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_TYPEDEF </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>typedef</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_TYPEID </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>typeid</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_TYPENAME </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>typename</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_UNION </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>union</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_UNSIGNED </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>unsigned</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_USING </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>using</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_VIRTUAL </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>virtual</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_VOID </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>void</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_VOLATILE </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>volatile</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_WCHART </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>wchar_t</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_WHILE </p></td>
+    <td class="table_cells" width="31%" > <p>KeywordTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>while</code></td>
+  </tr>
+</table>
+<br>
+<a name="operator_tokens"></a>
+<table width="70%" border="0" align="center">
+  <tr> 
+    <td colspan="3"> <p class="table_title">List of operator token id's</p></td>
+  </tr>
+  <tr> 
+    <td> <p class="toc_title" width="36%" >Token identifier</p></td>
+    <td> <p class="toc_title" width="28%" >Token category</p></td>
+    <td> <p class="toc_title" width="36%" >Token value</p></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_AND </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>&amp;</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_ANDAND </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>&amp;&amp;</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_ASSIGN </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>=</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_ANDASSIGN </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>&amp;=</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_OR </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>|</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_ORASSIGN </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>|=</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_XOR </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>^</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_XORASSIGN </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>^=</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_COMMA </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>,</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_COLON </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>:</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_DIVIDE </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>/</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_DIVIDEASSIGN </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>/=</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_DOT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>.</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_DOTSTAR </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>.*</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_ELLIPSIS </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>...</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_EQUAL </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>==</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_GREATER </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>&gt;</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_GREATEREQUAL </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>&gt;=</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_LEFTBRACE </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>{</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_LESS </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>&lt;</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_LESSEQUAL </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>&lt;=</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_LEFTPAREN </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>(</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_LEFTBRACKET </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>[</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_MINUS </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>-</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_MINUSASSIGN </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>-=</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_MINUSMINUS </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>--</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PERCENT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>%</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PERCENTASSIGN </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>%=</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_NOT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>!</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_NOTEQUAL </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>!=</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_OROR </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>||</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PLUS </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>+</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PLUSASSIGN </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>+=</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PLUSPLUS </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>++</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_ARROW </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>-&gt;</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_ARROWSTAR </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>-&gt;*</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_QUESTION_MARK </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>?</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_RIGHTBRACE </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>}</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_RIGHTPAREN </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>)</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_RIGHTBRACKET </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>]</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_COLON_COLON </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>::</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_SEMICOLON </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>;</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_SHIFTLEFT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>&lt;&lt;</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_SHIFTLEFTASSIGN </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>&lt;&lt;=</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_SHIFTRIGHT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>&gt;&gt;</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_SHIFTRIGHTASSIGN </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>&gt;&gt;=</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_STAR </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>*</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_COMPL </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>~</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_STARASSIGN </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>*=</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_POUND_POUND </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>##</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_POUND </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_AND_ALT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| AltTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>bitand</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_ANDASSIGN_ALT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| AltTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>and_eq</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_OR_ALT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| AltTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>or</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_ORASSIGN_ALT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| AltTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>or_eq</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_XOR_ALT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| AltTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>xor</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_XORASSIGN_ALT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| AltTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>xor_eq</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_LEFTBRACE_ALT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| AltTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>&lt;%</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_LEFTBRACKET_ALT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| AltTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>&lt;:</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_NOT_ALT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| AltTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>not</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_NOTEQUAL_ALT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| AltTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>not_eq</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_RIGHTBRACE_ALT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| AltTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>%&gt;</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_RIGHTBRACKET_ALT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| AltTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>:&gt;</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_COMPL_ALT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| AltTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>compl</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_POUND_POUND_ALT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| AltTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>%:%:</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_POUND_ALT </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| AltTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>%:</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_OR_TRIGRAPH </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| TriGraphTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>??!</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_XOR_TRIGRAPH </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| TriGraphTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>??'</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_LEFTBRACE_TRIGRAPH </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| TriGraphTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>??&lt;</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_LEFTBRACKET_TRIGRAPH </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| TriGraphTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>??(</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_RIGHTBRACE_TRIGRAPH </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| TriGraphTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>??&gt;</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_RIGHTBRACKET_TRIGRAPH </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| TriGraphTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>??)</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_COMPL_TRIGRAPH </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| TriGraphTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>??-</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_POUND_POUND_TRIGRAPH </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| TriGraphTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>??=??=</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_POUND_TRIGRAPH </p></td>
+    <td class="table_cells" width="31%" > <p>OperatorTokenType&nbsp;| TriGraphTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>??=</code></td>
+  </tr>
+</table>
+<p><br>
+  <a name="preprocessor_tokens"></a> The preprocessor tokens listet in the following 
+  table are returned by the C++ lexer only. The preprocessor naturally acts on 
+  these tokens and they are not returned by dereferencing the preprocessing iterators.</p>
+<table width="70%" border="0" align="center">
+  <tr> 
+    <td colspan="3"> <p class="table_title">List of preprocessor token id's</p></td>
+  </tr>
+  <tr> 
+    <td> <p class="toc_title" width="36%" >Token identifier</p></td>
+    <td> <p class="toc_title" width="28%" >Token category</p></td>
+    <td> <p class="toc_title" width="36%" >Token value</p></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PP_DEFINE </p></td>
+    <td class="table_cells" width="31%" > <p>PPTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#define</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PP_IF </p></td>
+    <td class="table_cells" width="31%" > <p>PPTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#if</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PP_IFDEF </p></td>
+    <td class="table_cells" width="31%" > <p>PPTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#ifdef</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PP_IFNDEF </p></td>
+    <td class="table_cells" width="31%" > <p>PPTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#ifndef</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PP_ELSE </p></td>
+    <td class="table_cells" width="31%" > <p>PPTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#else</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PP_ELIF </p></td>
+    <td class="table_cells" width="31%" > <p>PPTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#elif</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PP_ENDIF </p></td>
+    <td class="table_cells" width="31%" > <p>PPTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#endif</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PP_ERROR </p></td>
+    <td class="table_cells" width="31%" > <p>PPTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#error</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PP_LINE </p></td>
+    <td class="table_cells" width="31%" > <p>PPTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#line</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PP_PRAGMA </p></td>
+    <td class="table_cells" width="31%" > <p>PPTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#pragma</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PP_UNDEF </p></td>
+    <td class="table_cells" width="31%" > <p>PPTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#undef</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PP_WARNING </p></td>
+    <td class="table_cells" width="31%" > <p>PPTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#warning</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PP_INCLUDE </p></td>
+    <td class="table_cells" width="31%" > <p>PPTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#include &quot;...&quot;</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PP_QHEADER </p></td>
+    <td class="table_cells" width="31%" > <p>PPTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#include &lt;...&gt;</code></td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="40%" > <p>T_PP_HHEADER </p></td>
+    <td class="table_cells" width="31%" > <p>PPTokenType</p></td>
+    <td class="table_cells" width="29%" ><code>#include ...</code></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="class_reference_tokentype.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="class_reference_filepos.html"><img src="theme/r_arr.gif" width="20" height="19" border="0"></a></td>
+  </tr>
+</table>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003-2011 Hartmut Kaiser<br>
+  <br>
+  <font size="2">Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<span class="updated"></span>
+<p class="copyright"><span class="updated">Last updated: 
+  <!-- #BeginDate format:fcAm1m -->Friday, January 18, 2008  11:35<!-- #EndDate -->
+  </span></p>
+</body>
+</html>

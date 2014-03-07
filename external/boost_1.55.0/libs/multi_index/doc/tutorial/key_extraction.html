@@ -1,0 +1,968 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Tutorial - Key extraction</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="indices.html">
+<link rel="up" href="index.html">
+<link rel="next" href="creation.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Tutorial: Key extraction</h1>
+
+<div class="prev_link"><a href="indices.html"><img src="../prev.gif" alt="index types" border="0"><br>
+Index types
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex tutorial" border="0"><br>
+Boost.MultiIndex tutorial
+</a></div>
+<div class="next_link"><a href="creation.html"><img src="../next.gif" alt="container creation" border="0"><br>
+Container creation
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#intro">Introduction</a>
+    <ul>
+      <li><a href="#read_write_key_extractors">Read/write key extractors</a></li>
+    </ul>
+  </li>
+  <li><a href="#predefined_key_extractors">Predefined key extractors</a>
+    <ul>
+      <li><a href="#identity"><code>identity</code></a></li>
+      <li><a href="#member"><code>member</code></a></li>
+      <li><a href="#const_mem_fun"><code>const_mem_fun</code>
+        and <code>mem_fun</code></a></li>
+      <li><a href="#global_fun"><code>global_fun</code></a></li>
+    </ul>
+  </li>
+  <li><a href="#user_defined_key_extractors">User-defined key extractors</a></li>
+  <li><a href="#composite_keys">Composite keys</a>
+    <ul>
+      <li><a href="#composite_keys_hash">Composite keys and hashed indices</a></li>
+    </ul>
+  </li>
+  <li><a href="#advanced_key_extractors">Advanced features of Boost.MultiIndex key
+    extractors</a></li>
+</ul>
+
+<h2><a name="intro">Introduction</a></h2>
+
+<p>
+STL associative containers have a notion of key, albeit in a somewhat incipient
+form. So, the keys of such containers are identified by a nested type
+<code>key_type</code>; for <code>std::set</code>s and <code>std::multiset</code>s,
+<code>key_type</code> coincides with <code>value_type</code>, i.e. the key is the
+element itself. <code>std::map</code> and <code>std::multimap</code> manage
+elements of type <code>std::pair&lt;const Key,T&gt;</code>, where the first
+member is the key. In either case, the process of obtaining the key from a
+given element is implicitly fixed and cannot be customized by the user.
+</p>
+
+<p>
+Fixed key extraction mechanisms like those performed by STL associative
+containers do not scale well in the context of Boost.MultiIndex, where
+several indices share their <code>value_type</code> definition but
+might feature completely different lookup semantics. For this reason,
+Boost.MultiIndex formalizes the concept of a 
+<a href="../reference/key_extraction.html#key_extractors"><code>Key
+Extractor</code></a> in order to make it explicit and controllable
+in the definition of key-based indices.
+</p>
+
+<p>
+Intuitively speaking, a key extractor is a function object that accepts
+a reference to an element and returns its associated key. The formal
+concept also imposes some reasonable constraints about the stability
+of the process, in the sense that extractors are assumed to
+return the same key when passed the same element: this is in consonance
+with the informal understanding that keys are actually some "part"
+of the element and do not depend on external data.
+</p>
+
+<h3><a name="read_write_key_extractors">Read/write key extractors</a></h3>
+
+<p>
+A key extractor is called <i>read/write</i> if it returns a non-constant reference
+to the key when passed a non-constant element, and it is called <i>read-only</i>
+otherwise. Boost.MultiIndex requires that the key extractor be read/write
+when using the <code>modify_key</code> member function of ordered and hashed
+indices. In all other situations, read-only extractors suffice.
+The section on <a href="#advanced_key_extractors">advanced features
+of Boost.MultiIndex key extractors</a> details which of the predefined
+key extractors are read/write.
+</p>
+
+<h2><a name="predefined_key_extractors">Predefined key extractors</a></h2>
+
+<h3><a name="identity"><code>identity</code></a></h3>
+
+<p>
+The <a href="../reference/key_extraction.html#identity"><code>identity</code></a>
+key extractor returns the entire base object as the associated key:
+</p>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index_container</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>ordered_index</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>identity</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span>
+      <span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=comment>// the key is the entire element</span>
+    <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>cont</span><span class=special>;</span>
+</pre></blockquote>
+
+<h3><a name="member"><code>member</code></a></h3>
+
+<p>
+<a href="../reference/key_extraction.html#member"><code>member</code></a>
+key extractors return a reference to a specified
+data field of the base object. For instance, in the following version of our
+familiar employee container:
+</p>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index_container</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>ordered_index</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>identity</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>member</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>employee</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=keyword>int</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>ssnumber</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>employee_set</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+the second and third indices use <code>member</code> extractors on
+<code>employee::name</code> and <code>employee::ssnumber</code>, respectively.
+The specification of an instantiation of <code>member</code> is simple
+yet a little contrived:
+</p>
+
+<blockquote><pre>
+<span class=identifier>member</span><span class=special>&lt;</span><span class=identifier><i>(base type)</i></span><span class=special>,</span><span class=identifier><i>(key type)</i></span><span class=special>,</span><span class=identifier><i>(pointer to member)</i></span><span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+It might seem that the first and second parameters are superfluous,
+since the type of the base object and of the associated data field are
+already implicit in the pointer to member argument: unfortunately, it is
+not possible to extract this information with current C++ mechanisms,
+which makes the syntax of <code>member</code> a little too verbose.
+</p>
+
+<h3><a name="const_mem_fun"><code>const_mem_fun</code> and <code>mem_fun</code></a></h3>
+
+<p>
+Sometimes, the key of an index is not a concrete data member of the element,
+but rather it is a value returned by a particular member function.
+This resembles the notion of <i>calculated indices</i> supported by some
+relational databases. Boost.MultiIndex supports this
+kind of key extraction through
+<a href="../reference/key_extraction.html#const_mem_fun"><code>const_mem_fun</code></a>.
+Consider the following container where sorting on the third index
+is based upon the length of the name field:
+</p>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index_container</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>ordered_index</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>identity</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>member</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>mem_fun</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=keyword>struct</span> <span class=identifier>employee</span>
+<span class=special>{</span>
+  <span class=keyword>int</span>         <span class=identifier>id</span><span class=special>;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>name</span><span class=special>;</span>
+
+  <span class=identifier>employee</span><span class=special>(</span><span class=keyword>int</span> <span class=identifier>id</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>name</span><span class=special>):</span><span class=identifier>id</span><span class=special>(</span><span class=identifier>id</span><span class=special>),</span><span class=identifier>name</span><span class=special>(</span><span class=identifier>name</span><span class=special>){}</span>
+
+  <span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>&lt;(</span><span class=keyword>const</span> <span class=identifier>employee</span><span class=special>&amp;</span> <span class=identifier>e</span><span class=special>)</span><span class=keyword>const</span><span class=special>{</span><span class=keyword>return</span> <span class=identifier>id</span><span class=special>&lt;</span><span class=identifier>e</span><span class=special>.</span><span class=identifier>id</span><span class=special>;}</span>
+
+  <span class=comment>// returns the length of the name field</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>size_t</span> <span class=identifier>name_length</span><span class=special>()</span><span class=keyword>const</span><span class=special>{</span><span class=keyword>return</span> <span class=identifier>name</span><span class=special>.</span><span class=identifier>size</span><span class=special>();}</span>
+<span class=special>};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>employee</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=comment>// sort by employee::operator&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    
+    <span class=comment>// sort by less&lt;string&gt; on name</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    
+    <span class=comment>// sort by less&lt;int&gt; on name_length()</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span>
+      <span class=identifier>const_mem_fun</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>size_t</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name_length</span><span class=special>&gt;</span>
+    <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>employee_set</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+<code>const_mem_fun</code> usage syntax is similar to that of
+<a href="#member"><code>member</code></a>:
+</p>
+
+<blockquote><pre>
+<span class=identifier>const_mem_fun</span><span class=special>&lt;</span><span class=identifier><i>(base type)</i></span><span class=special>,</span><span class=identifier><i>(key type)</i></span><span class=special>,</span><span class=identifier><i>(pointer to member function)</i></span><span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+The member function referred to must be <code>const</code>, take no arguments and return
+a value of the specified key type.
+Almost always you will want to use a <code>const</code> member function,
+since elements in a <code>multi_index_container</code> are treated as constant, much
+as elements of an <code>std::set</code>. However, a
+<a href="../reference/key_extraction.html#mem_fun"><code>mem_fun</code></a>
+counterpart is provided for use with non-constant member functions, whose
+applicability is discussed on the paragraph on
+<a href="#advanced_key_extractors">advanced features
+of Boost.MultiIndex key extractors</a>.
+</p>
+
+<p><a href="../examples.html#example2">Example 2</a> in the examples section
+provides a complete program showing how to use <code>const_mem_fun</code>.
+<p>
+
+<h3><a name="global_fun"><code>global_fun</code></a></h3>
+
+<p>
+Whereas <code>const_mem_fun</code> and <code>mem_fun</code> are based on a
+given member function of the base type from where the key is extracted,
+<a href="../reference/key_extraction.html#global_fun"><code>global_fun</code></a>
+takes a global function (or static member function) accepting the base
+type as its parameter and returning the key:
+</p>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index_container</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>ordered_index</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>global_fun</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=keyword>struct</span> <span class=identifier>rectangle</span>
+<span class=special>{</span>
+  <span class=keyword>int</span> <span class=identifier>x0</span><span class=special>,</span><span class=identifier>y0</span><span class=special>;</span>
+  <span class=keyword>int</span> <span class=identifier>x1</span><span class=special>,</span><span class=identifier>y1</span><span class=special>;</span>
+<span class=special>};</span>
+
+<span class=keyword>unsigned</span> <span class=keyword>long</span> <span class=identifier>area</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>rectangle</span><span class=special>&amp;</span> <span class=identifier>r</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=keyword>return</span> <span class=special>(</span><span class=keyword>unsigned</span> <span class=keyword>long</span><span class=special>)(</span><span class=identifier>r</span><span class=special>.</span><span class=identifier>x1</span><span class=special>-</span><span class=identifier>r</span><span class=special>.</span><span class=identifier>x0</span><span class=special>)*(</span><span class=identifier>r</span><span class=special>.</span><span class=identifier>x1</span><span class=special>-</span><span class=identifier>r</span><span class=special>.</span><span class=identifier>x0</span><span class=special>)+</span>
+         <span class=special>(</span><span class=keyword>unsigned</span> <span class=keyword>long</span><span class=special>)(</span><span class=identifier>r</span><span class=special>.</span><span class=identifier>y1</span><span class=special>-</span><span class=identifier>r</span><span class=special>.</span><span class=identifier>y0</span><span class=special>)*(</span><span class=identifier>r</span><span class=special>.</span><span class=identifier>y1</span><span class=special>-</span><span class=identifier>r</span><span class=special>.</span><span class=identifier>y0</span><span class=special>);</span>
+<span class=special>}</span>
+
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>rectangle</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=comment>// sort by increasing area</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>global_fun</span><span class=special>&lt;</span><span class=keyword>const</span> <span class=identifier>rectangle</span><span class=special>&amp;,</span><span class=keyword>unsigned</span> <span class=keyword>long</span><span class=special>,&amp;</span><span class=identifier>area</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>rectangle_container</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+The specification of <code>global_fun</code> obeys the following syntax:
+</p>
+
+<blockquote><pre>
+<span class=identifier>global_fun</span><span class=special>&lt;</span><span class=identifier><i>(argument type)</i></span><span class=special>,</span><span class=identifier><i>(key type)</i></span><span class=special>,</span><span class=identifier><i>(pointer to function)</i></span><span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+where the argument type and key type must match <i>exactly</i> those in the
+signature of the function used; for instance, in the example above the argument
+type is <code>const rectangle&amp;</code>, without omitting the "<code>const</code>"
+and "<code>&amp;</code>" parts. So, although most of the time the base type will be
+accepted by constant reference, <code>global_fun</code> is also prepared to take
+functions accepting their argument by value or by non-constant reference: this
+latter case cannot generally be used directly in the specification of
+<code>multi_index_container</code>s as their elements are treated as constant,
+but the section on <a href="#advanced_key_extractors">advanced features
+of Boost.MultiIndex key extractors</a> describes valid use cases of
+key extraction based on such functions with a non-constant reference argument.
+</p>
+
+<p><a href="../examples.html#example2">Example 2</a> in the examples section
+uses <code>gobal_fun</code>.
+<p>
+
+<h2><a name="user_defined_key_extractors">User-defined key extractors</a></h2>
+
+<p>
+Although the <a href="#predefined_key_extractors">predefined key extractors</a>
+provided by Boost.MultiIndex are intended to serve most cases,
+the user can also provide her own key extractors in more exotic situations,
+as long as these conform to the
+<a href="../reference/key_extraction.html#key_extractors"><code>Key
+Extractor</code></a> concept.
+</p>
+
+<blockquote><pre>
+<span class=comment>// some record class</span>
+<span class=keyword>struct</span> <span class=identifier>record</span>
+<span class=special>{</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>gregorian</span><span class=special>::</span><span class=identifier>date</span> <span class=identifier>d</span><span class=special>;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span>            <span class=identifier>str</span><span class=special>;</span>    
+<span class=special>};</span>
+
+<span class=comment>// extracts a record's year</span>
+<span class=keyword>struct</span> <span class=identifier>record_year</span>
+<span class=special>{</span>
+  <span class=comment>// result_type typedef required by Key Extractor concept</span>
+  <span class=keyword>typedef</span> <span class=identifier>boost</span><span class=special>::</span><span class=identifier>gregorian</span><span class=special>::</span><span class=identifier>greg_year</span> <span class=identifier>result_type</span><span class=special>;</span> 
+  
+  <span class=identifier>result_type</span> <span class=keyword>operator</span><span class=special>()(</span><span class=keyword>const</span> <span class=identifier>record</span><span class=special>&amp;</span> <span class=identifier>r</span><span class=special>)</span><span class=keyword>const</span> <span class=comment>// operator() must be const</span>
+  <span class=special>{</span>
+    <span class=keyword>return</span> <span class=identifier>r</span><span class=special>.</span><span class=identifier>d</span><span class=special>.</span><span class=identifier>year</span><span class=special>();</span>
+  <span class=special>}</span>
+<span class=special>};</span>
+
+<span class=comment>// example of use of the previous key extractor</span>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>record</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>record_year</span><span class=special>&gt;</span> <span class=comment>// sorted by record's year</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>record_log</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+<a href="../examples.html#example6">Example 6</a> in the examples section
+applies some user-defined key extractors in a complex scenario where
+keys are accessed via pointers.
+</p>
+
+<h2><a name="composite_keys">Composite keys</a></h2>
+
+<p>
+In relational databases, composite keys depend on two or more fields of a given table.
+The analogous concept in Boost.MultiIndex is modeled by means of
+<a href="../reference/key_extraction.html#composite_key">
+<code>composite_key</code></a>, as shown in the example:
+</p>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index_container</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>ordered_index</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>member</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>composite_key</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=keyword>struct</span> <span class=identifier>phonebook_entry</span>
+<span class=special>{</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>family_name</span><span class=special>;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>given_name</span><span class=special>;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>phone_number</span><span class=special>;</span>
+
+  <span class=identifier>phonebook_entry</span><span class=special>(</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>family_name</span><span class=special>,</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>given_name</span><span class=special>,</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>phone_number</span><span class=special>):</span>
+    <span class=identifier>family_name</span><span class=special>(</span><span class=identifier>family_name</span><span class=special>),</span><span class=identifier>given_name</span><span class=special>(</span><span class=identifier>given_name</span><span class=special>),</span><span class=identifier>phone_number</span><span class=special>(</span><span class=identifier>phone_number</span><span class=special>)</span>
+  <span class=special>{}</span>
+<span class=special>};</span>
+
+<span class=comment>// define a multi_index_container with a composite key on
+// (family_name,given_name)</span>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>phonebook_entry</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=comment>//non-unique as some subscribers might have more than one number</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span> 
+      <span class=identifier>composite_key</span><span class=special>&lt;</span>
+        <span class=identifier>phonebook_entry</span><span class=special>,</span>
+        <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>phonebook_entry</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>phonebook_entry</span><span class=special>::</span><span class=identifier>family_name</span><span class=special>&gt;,</span>
+        <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>phonebook_entry</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>phonebook_entry</span><span class=special>::</span><span class=identifier>given_name</span><span class=special>&gt;</span>
+      <span class=special>&gt;</span>
+    <span class=special>&gt;,</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span> <span class=comment>// unique as numbers belong to only one subscriber</span>
+      <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>phonebook_entry</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>phonebook_entry</span><span class=special>::</span><span class=identifier>phone_number</span><span class=special>&gt;</span>
+    <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>phonebook</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+<code>composite_key</code> accepts two or more key extractors on the same
+value (here, <code>phonebook_entry</code>). Lookup operations on a composite
+key are accomplished by passing tuples with the values searched:
+</p>
+
+<blockquote><pre>
+<span class=identifier>phonebook</span> <span class=identifier>pb</span><span class=special>;</span>
+<span class=special>...</span>
+<span class=comment>// search for Dorothea White's number</span>
+<span class=identifier>phonebook</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it</span><span class=special>=</span><span class=identifier>pb</span><span class=special>.</span><span class=identifier>find</span><span class=special>(</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>make_tuple</span><span class=special>(</span><span class=string>&quot;White&quot;</span><span class=special>,</span><span class=string>&quot;Dorothea&quot;</span><span class=special>));</span>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>number</span><span class=special>=</span><span class=identifier>it</span><span class=special>-&gt;</span><span class=identifier>phone_number</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+Composite keys are sorted by lexicographical order, i.e. sorting is performed
+by the first key, then the second key if the first one is equal, etc. This
+order allows for partial searches where only the first keys are specified:
+</p>
+
+<blockquote><pre>
+<span class=identifier>phonebook</span> <span class=identifier>pb</span><span class=special>;</span>
+<span class=special>...</span>
+<span class=comment>// look for all Whites</span>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>phonebook</span><span class=special>::</span><span class=identifier>iterator</span><span class=special>,</span><span class=identifier>phonebook</span><span class=special>::</span><span class=identifier>iterator</span><span class=special>&gt;</span> <span class=identifier>p</span><span class=special>=</span>
+  <span class=identifier>pb</span><span class=special>.</span><span class=identifier>equal_range</span><span class=special>(</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>make_tuple</span><span class=special>(</span><span class=string>&quot;White&quot;</span><span class=special>));</span>
+</pre></blockquote>
+
+<p>
+As a notational convenience, when only the first key is specified it is possible
+to pass the argument directly without including it into a tuple:
+</p>
+
+<blockquote><pre>
+<span class=identifier>phonebook</span> <span class=identifier>pb</span><span class=special>;</span>
+<span class=special>...</span>
+<span class=comment>// look for all Whites</span>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>phonebook</span><span class=special>::</span><span class=identifier>iterator</span><span class=special>,</span><span class=identifier>phonebook</span><span class=special>::</span><span class=identifier>iterator</span><span class=special>&gt;</span> <span class=identifier>p</span><span class=special>=</span><span class=identifier>pb</span><span class=special>.</span><span class=identifier>equal_range</span><span class=special>(</span><span class=string>&quot;White&quot;</span><span class=special>);</span>
+</pre></blockquote>
+
+<p>
+On the other hand, partial searches without specifying the first keys are not
+allowed.
+</p>
+
+<p>
+By default, the corresponding <code>std::less</code> predicate is used
+for each subkey of a composite key. Alternate comparison predicates can
+be specified with <a href="../reference/key_extraction.html#composite_key_compare">
+<code>composite_key_compare</code></a>:
+</p>
+
+<blockquote><pre>
+<span class=comment>// phonebook with given names in reverse order</span>
+
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>phonebook_entry</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span>
+      <span class=identifier>composite_key</span><span class=special>&lt;</span>
+        <span class=identifier>phonebook_entry</span><span class=special>,</span>
+        <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>phonebook_entry</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>phonebook_entry</span><span class=special>::</span><span class=identifier>family_name</span><span class=special>&gt;,</span>
+        <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>phonebook_entry</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>phonebook_entry</span><span class=special>::</span><span class=identifier>given_name</span><span class=special>&gt;</span>
+      <span class=special>&gt;,</span>
+      <span class=identifier>composite_key_compare</span><span class=special>&lt;</span>
+        <span class=identifier>std</span><span class=special>::</span><span class=identifier>less</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;,</span>   <span class=comment>// family names sorted as by default</span>
+        <span class=identifier>std</span><span class=special>::</span><span class=identifier>greater</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span> <span class=comment>// given names reversed</span>
+      <span class=special>&gt;</span>
+    <span class=special>&gt;,</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span>
+      <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>phonebook_entry</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>phonebook_entry</span><span class=special>::</span><span class=identifier>phone_number</span><span class=special>&gt;</span>
+    <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>phonebook</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+See <a href="../examples.html#example7">example 7</a> in the examples section
+for an application of <code>composite_key</code>.
+</p>
+
+<h3><a name="composite_keys_hash">Composite keys and hashed indices</a></h3>
+
+<p>
+Composite keys can also be used with hashed indices in a straightforward manner:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>street_entry</span>
+<span class=special>{</span>
+  <span class=comment>// quadrant coordinates</span>
+  <span class=keyword>int</span> <span class=identifier>x</span><span class=special>;</span>
+  <span class=keyword>int</span> <span class=identifier>y</span><span class=special>;</span>
+
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>name</span><span class=special>;</span>
+
+  <span class=identifier>street_entry</span><span class=special>(</span><span class=keyword>int</span> <span class=identifier>x</span><span class=special>,</span><span class=keyword>int</span> <span class=identifier>y</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>name</span><span class=special>):</span><span class=identifier>x</span><span class=special>(</span><span class=identifier>x</span><span class=special>),</span><span class=identifier>y</span><span class=special>(</span><span class=identifier>y</span><span class=special>),</span><span class=identifier>name</span><span class=special>(</span><span class=identifier>name</span><span class=special>){}</span>
+<span class=special>};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>street_entry</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>hashed_non_unique</span><span class=special>&lt;</span> <span class=comment>// indexed by quadrant coordinates</span>
+      <span class=identifier>composite_key</span><span class=special>&lt;</span>
+        <span class=identifier>street_entry</span><span class=special>,</span>
+        <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>street_entry</span><span class=special>,</span><span class=keyword>int</span><span class=special>,&amp;</span><span class=identifier>street_entry</span><span class=special>::</span><span class=identifier>x</span><span class=special>&gt;,</span>
+        <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>street_entry</span><span class=special>,</span><span class=keyword>int</span><span class=special>,&amp;</span><span class=identifier>street_entry</span><span class=special>::</span><span class=identifier>y</span><span class=special>&gt;</span>
+      <span class=special>&gt;</span>
+    <span class=special>&gt;,</span>
+    <span class=identifier>hashed_non_unique</span><span class=special>&lt;</span> <span class=comment>// indexed by street name</span>
+      <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>street_entry</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>street_entry</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span>
+    <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>street_locator</span><span class=special>;</span>
+
+<span class=identifier>street_locator</span> <span class=identifier>sl</span><span class=special>;</span>
+<span class=special>...</span>
+<span class=keyword>void</span> <span class=identifier>streets_in_quadrant</span><span class=special>(</span><span class=keyword>int</span> <span class=identifier>x</span><span class=special>,</span><span class=keyword>int</span> <span class=identifier>y</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>street_locator</span><span class=special>::</span><span class=identifier>iterator</span><span class=special>,</span><span class=identifier>street_locator</span><span class=special>::</span><span class=identifier>iterator</span><span class=special>&gt;</span> <span class=identifier>p</span><span class=special>=</span>
+    <span class=identifier>sl</span><span class=special>.</span><span class=identifier>equal_range</span><span class=special>(</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>make_tuple</span><span class=special>(</span><span class=identifier>x</span><span class=special>,</span><span class=identifier>y</span><span class=special>));</span>
+
+  <span class=keyword>while</span><span class=special>(</span><span class=identifier>p</span><span class=special>.</span><span class=identifier>first</span><span class=special>!=</span><span class=identifier>p</span><span class=special>.</span><span class=identifier>second</span><span class=special>){</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>cout</span><span class=special>&lt;&lt;</span><span class=identifier>p</span><span class=special>.</span><span class=identifier>first</span><span class=special>-&gt;</span><span class=identifier>name</span><span class=special>&lt;&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>endl</span><span class=special>;</span>
+    <span class=special>++</span><span class=identifier>p</span><span class=special>.</span><span class=identifier>first</span><span class=special>;</span>
+  <span class=special>}</span>
+<span class=special>}</span>
+</pre></blockquote>
+
+<p>
+Note that hashing is automatically taken care of: <code>boost::hash</code> is
+specialized to hash a composite key as a function of the <code>boost::hash</code>
+values of its elements. Should we need to specify different hash functions for the
+elements of a composite key, we can explicitly do so by using the
+<a href="../reference/key_extraction.html#composite_key_hash"><code>composite_key_hash</code></a>
+utility:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>tuned_int_hash</span>
+<span class=special>{</span>
+  <span class=keyword>int</span> <span class=keyword>operator</span><span class=special>()(</span><span class=keyword>int</span> <span class=identifier>x</span><span class=special>)</span><span class=keyword>const</span>
+  <span class=special>{</span>
+    <span class=comment>// specially tuned hash for this application</span>
+  <span class=special>}</span>
+<span class=special>};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>street_entry</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>hashed_non_unique</span><span class=special>&lt;</span> <span class=comment>// indexed by quadrant coordinates</span>
+      <span class=identifier>composite_key</span><span class=special>&lt;</span>
+        <span class=identifier>street_entry</span><span class=special>,</span>
+        <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>street_entry</span><span class=special>,</span><span class=keyword>int</span><span class=special>,&amp;</span><span class=identifier>street_entry</span><span class=special>::</span><span class=identifier>x</span><span class=special>&gt;,</span>
+        <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>street_entry</span><span class=special>,</span><span class=keyword>int</span><span class=special>,&amp;</span><span class=identifier>street_entry</span><span class=special>::</span><span class=identifier>y</span><span class=special>&gt;</span>
+      <span class=special>&gt;,</span>
+      <span class=identifier>composite_key_hash</span><span class=special>&lt;</span>
+        <span class=identifier>tuned_int_hash</span><span class=special>,</span>
+        <span class=identifier>tuned_int_hash</span>
+      <span class=special>&gt;</span>
+    <span class=special>&gt;,</span>
+    <span class=identifier>hashed_non_unique</span><span class=special>&lt;</span> <span class=comment>// indexed by street name</span>
+      <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>street_entry</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>street_entry</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span>
+    <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>street_locator</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+Also, equality of composite keys can be tuned with
+<a href="../reference/key_extraction.html#composite_key_equal_to"><code>composite_key_equal_to</code></a>,
+though in most cases the default equality predicate (relying on
+the <code>std::equal_to</code> instantiations for the element types)
+will be the right choice.
+</p>
+
+<p>
+Unlike with ordered indices, we cannot perform partial searches specifying
+only the first elements of a composite key:
+</p>
+
+<blockquote><pre>
+<span class=comment>// try to locate streets in quadrants with x==0
+// compile-time error: hashed indices do not allow such operations</span>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>street_locator</span><span class=special>::</span><span class=identifier>iterator</span><span class=special>,</span><span class=identifier>street_locator</span><span class=special>::</span><span class=identifier>iterator</span><span class=special>&gt;</span> <span class=identifier>p</span><span class=special>=</span>
+  <span class=identifier>sl</span><span class=special>.</span><span class=identifier>equal_range</span><span class=special>(</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>make_tuple</span><span class=special>(</span><span class=number>0</span><span class=special>));</span>
+</pre></blockquote>
+
+<p>
+The reason for this limitation is quite logical: as the hash value of a composite
+key depends on all of its elements, it is impossible to calculate it from
+partial information.
+</p>
+
+<h2><a name="advanced_key_extractors">Advanced features of Boost.MultiIndex key
+extractors</a></h2>
+
+<p>
+The <a href="../reference/key_extraction.html#key_extractors"><code>Key Extractor</code></a>
+concept allows the same object to extract keys from several different types,
+possibly through suitably defined overloads of <code>operator()</code>:
+</p>
+
+<blockquote><pre>
+<span class=comment>// example of a name extractor from employee and employee *</span>
+<span class=keyword>struct</span> <span class=identifier>name_extractor</span>
+<span class=special>{</span>
+  <span class=keyword>typedef</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>result_type</span><span class=special>;</span>
+
+  <span class=keyword>const</span> <span class=identifier>result_type</span><span class=special>&amp;</span> <span class=keyword>operator</span><span class=special>()(</span><span class=keyword>const</span> <span class=identifier>employee</span><span class=special>&amp;</span> <span class=identifier>e</span><span class=special>)</span><span class=keyword>const</span><span class=special>{</span><span class=keyword>return</span> <span class=identifier>e</span><span class=special>.</span><span class=identifier>name</span><span class=special>;}</span>
+  <span class=identifier>result_type</span><span class=special>&amp;</span>       <span class=keyword>operator</span><span class=special>()(</span><span class=identifier>employee</span><span class=special>*</span> <span class=identifier>e</span><span class=special>)</span><span class=keyword>const</span><span class=special>{</span><span class=keyword>return</span> <span class=identifier>e</span><span class=special>-&gt;</span><span class=identifier>name</span><span class=special>;}</span>
+<span class=special>};</span>
+
+<span class=comment>// name_extractor can handle elements of type employee...</span>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>employee</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>name_extractor</span><span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>employee_set</span><span class=special>;</span>
+
+<span class=comment>// ...as well as elements of type employee *</span>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>employee</span><span class=special>*,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>name_extractor</span><span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>employee_ptr_set</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+This possibility is fully exploited by predefined key extractors provided
+by Boost.MultiIndex, making it simpler to define <code>multi_index_container</code>s
+where elements are pointers or references to the actual objects. The following
+specifies a <code>multi_index_container</code> of pointers to employees sorted by their
+names.
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>employee</span> <span class=special>*,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>employee_set</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+Note that this is specified in exactly the same manner as a <code>multi_index_container</code>
+of actual <code>employee</code> objects: <code>member</code> takes care of the
+extra dereferencing needed to gain access to <code>employee::name</code>. A similar
+functionality is provided for interoperability with reference wrappers from
+<a href="../../../../doc/html/ref.html">Boost.Ref</a>:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>reference_wrapper</span><span class=special>&lt;</span><span class=keyword>const</span> <span class=identifier>employee</span><span class=special>&gt;,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>employee_set</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+In fact, support for pointers is further extended to accept what we call
+<i>chained pointers</i>. Such a chained pointer is defined by induction as a raw or
+smart pointer or iterator to the actual element, to a reference wrapper of the
+element or <i>to another chained pointer</i>; that is, chained pointers are arbitrary
+compositions of pointer-like types ultimately dereferencing
+to the element from where the key is to be extracted. Examples of chained
+pointers to <code>employee</code> are:
+<ul>
+  <li><code>employee *</code>,</li>
+  <li><code>const employee *</code>,</li>
+  <li><code>std::auto_ptr&lt;employee></code>,</li>
+  <li><code>std::list&lt;boost::reference_wrapper&lt;employee> >::iterator</code>,</li>
+  <li><code>employee **</code>,</li>
+  <li><code>boost::shared_ptr&lt;const employee *></code>.</li>
+</ul>
+In general, chained pointers with dereferencing distance greater than 1 are not
+likely to be used in a normal program, but they can arise in frameworks
+which construct "views" as <code>multi_index_container</code>s from preexisting
+<code>multi_index_container</code>s.
+</p>
+
+<p>
+In order to present a short summary of the different usages of Boost.MultiIndex
+key extractors in the presence of reference wrappers and pointers, consider the
+following final type:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>T</span>
+<span class=special>{</span>
+  <span class=keyword>int</span>        <span class=identifier>i</span><span class=special>;</span>
+  <span class=keyword>const</span> <span class=keyword>int</span>  <span class=identifier>j</span><span class=special>;</span>
+  <span class=keyword>int</span>        <span class=identifier>f</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=keyword>int</span>        <span class=identifier>g</span><span class=special>();</span>
+  <span class=keyword>static</span> <span class=keyword>int</span> <span class=identifier>gf</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>T</span><span class=special>&amp;);</span>
+  <span class=keyword>static</span> <span class=keyword>int</span> <span class=identifier>gg</span><span class=special>(</span><span class=identifier>T</span><span class=special>&amp;);</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+The table below lists the appropriate key extractors to be used for
+different pointer and reference wrapper types based on <code>T</code>, for
+each of its members.
+</p>
+
+<p align="center">
+<table cellspacing="0">
+  <caption><b>Use cases for Boost.MultiIndex key extractors.</b></caption>
+<tr>
+  <th>element type</th>
+  <th>&nbsp;key&nbsp;</th>
+  <th>key extractor</th>
+  <th>applicable to<br><code>const</code> elements?</th>
+  <th>read/write?</th>
+</tr>
+<tr>
+  <td align="center" rowspan="6"><code>T</code></td>
+  <td><code>i</code></td>
+  <td><code>member&lt;T,int,&amp;T::i></code></td>
+  <td align="center">yes</td>
+  <td align="center">yes</td>
+</tr>
+<tr>
+  <td><code>j</code></td>
+  <td><code>member&lt;T,const int,&amp;T::j></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr>
+  <td><code>f()</code></td>
+  <td><code>const_mem_fun&lt;T,int,&amp;T::f></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr>
+  <td><code>g()</code></td>
+  <td><code>mem_fun&lt;T,int,&amp;T::g></code></td>
+  <td align="center">no</td>
+  <td align="center">no</td>
+</tr>
+<tr>
+  <td><code>gf()</code></td>
+  <td><code>global_fun&lt;const T&amp;,int,&amp;T::gf></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr>
+  <td><code>gg()</code></td>
+  <td><code>global_fun&lt;T&amp;,int,&amp;T::gg></code></td>
+  <td align="center">no</td>
+  <td align="center">no</td>
+</tr>
+
+<tr class="odd_tr">
+  <td align="center" rowspan="6"><code>reference_wrapper&lt;T></code></td>
+  <td><code>i</code></td>
+  <td><code>member&lt;T,int,&amp;T::i></code></td>
+  <td align="center">yes</td>
+  <td align="center">yes</td>
+</tr>
+<tr class="odd_tr">
+  <td><code>j</code></td>
+  <td><code>member&lt;T,const int,&amp;T::j></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr class="odd_tr">
+  <td><code>f()</code></td>
+  <td><code>const_mem_fun&lt;T,int,&amp;T::f></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr class="odd_tr">
+  <td><code>g()</code></td>
+  <td><code>mem_fun&lt;T,int,&amp;T::g></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr class="odd_tr">
+  <td><code>gf()</code></td>
+  <td><code>global_fun&lt;const T&amp;,int,&amp;T::gf></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr class="odd_tr">
+  <td><code>gg()</code></td>
+  <td><code>global_fun&lt;T&amp;,int,&amp;T::gg></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+
+<tr>
+  <td align="center" rowspan="6"><code>reference_wrapper&lt;const T></code></td>
+  <td><code>i</code></td>
+  <td><code>member&lt;T,const int,&amp;T::i></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr>
+  <td><code>j</code></td>
+  <td><code>member&lt;T,const int,&amp;T::j></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr>
+  <td><code>f()</code></td>
+  <td><code>const_mem_fun&lt;T,int,&amp;T::f></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr>
+  <td><code>g()</code></td>
+  <td colspan="3">&nbsp;</td>
+</tr>
+<tr>
+  <td><code>gf()</code></td>
+  <td><code>global_fun&lt;const T&amp;,int,&amp;T::gf></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr>
+  <td><code>gg()</code></td>
+  <td colspan="3">&nbsp;</td>
+</tr>
+
+<tr class="odd_tr">
+  <td align="center" rowspan="6">chained pointer to <code>T</code><br>
+    or to <code>reference_wrapper&lt;T></code></td>
+  <td><code>i</code></td>
+  <td><code>member&lt;T,int,&amp;T::i></code></td>
+  <td align="center">yes</td>
+  <td align="center">yes</td>
+</tr>
+<tr class="odd_tr">
+  <td><code>j</code></td>
+  <td><code>member&lt;T,const int,&amp;T::j></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr class="odd_tr">
+  <td><code>f()</code></td>
+  <td><code>const_mem_fun&lt;T,int,&amp;T::f></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr class="odd_tr">
+  <td><code>g()</code></td>
+  <td><code>mem_fun&lt;T,int,&amp;T::g></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr class="odd_tr">
+  <td><code>gf()</code></td>
+  <td><code>global_fun&lt;const T&amp;,int,&amp;T::gf></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr class="odd_tr">
+  <td><code>gg()</code></td>
+  <td><code>global_fun&lt;T&amp;,int,&amp;T::gg></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+
+<tr>
+  <td align="center" rowspan="6">chained pointer to <code>const T</code><br>
+    or to <code>reference_wrapper&lt;const T></code></td>
+  <td><code>i</code></td>
+  <td><code>member&lt;T,const int,&amp;T::i></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr>
+  <td><code>j</code></td>
+  <td><code>member&lt;T,const int,&amp;T::j></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr>
+  <td><code>f()</code></td>
+  <td><code>const_mem_fun&lt;T,int,&amp;T::f></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr>
+  <td><code>g()</code></td>
+  <td colspan="3">&nbsp;</td>
+</tr>
+<tr>
+  <td><code>gf()</code></td>
+  <td><code>global_fun&lt;const T&amp;,int,&amp;T::gf></code></td>
+  <td align="center">yes</td>
+  <td align="center">no</td>
+</tr>
+<tr>
+  <td><code>gg()</code></td>
+  <td colspan="3">&nbsp;</td>
+</tr>
+
+</table>
+</p>
+
+<p>
+The column "applicable to <code>const</code> elements?" states whether the
+corresponding key extractor can be used when passed constant elements (this
+relates to the elements specified in the first column, not the referenced
+<code>T</code> objects). The only negative cases are for <code>T::g</code> and
+<code>T:gg</code> when the elements are raw <code>T</code> objects, which make sense
+as we are dealing with a non-constant member function (<code>T::g</code>)
+and a function taking <code>T</code> by
+non-constant reference: this also implies that <code>multi_index_container</code>s
+of elements of <code>T</code> cannot be sorted by <code>T::g</code> or <code>T::gg</code>, because
+elements contained within a <code>multi_index_container</code> are treated as constant.
+</p>
+
+<p>
+The column "read/write?" shows which combinations yield
+<a href="#read_write_key_extractors">read/write key extractors</a>.
+</p>
+
+<p>
+Some care has to be taken to preserve <code>const</code>-correctness in the
+specification of <code>member</code> key extractors: in some sense, the <code>const</code>
+qualifier is carried along to the member part, even if that particular
+member is not defined as <code>const</code>. For instance, if the elements
+are of type <code>const T *</code>, sorting by <code>T::i</code> is <i>not</i>
+specified as <code>member&lt;const T,int,&amp;T::i></code>, but rather as
+<code>member&lt;T,const int,&amp;T::i></code>.
+</p>
+
+<p>
+For practical demonstrations of use of these key extractors, refer to
+<a href="../examples.html#example2">example 2</a> and
+<a href="../examples.html#example6">example 6</a> in the examples section.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="indices.html"><img src="../prev.gif" alt="index types" border="0"><br>
+Index types
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex tutorial" border="0"><br>
+Boost.MultiIndex tutorial
+</a></div>
+<div class="next_link"><a href="creation.html"><img src="../next.gif" alt="container creation" border="0"><br>
+Container creation
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised June 11th 2007</p>
+
+<p>&copy; Copyright 2003-2007 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

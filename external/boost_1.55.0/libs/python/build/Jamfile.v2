@@ -1,0 +1,151 @@
+# Copyright David Abrahams 2001-2006. Distributed under the Boost
+# Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import os ;
+import indirect ;
+import modules ;
+import feature ;
+
+import python ;
+
+if ! [ python.configured ] && ! ( --without-python in  [ modules.peek : ARGV ] )
+{
+    # Attempt default configuration of python
+    import toolset : using ;
+    using python ;
+}
+
+if [ python.configured ] || ( --without-python in  [ modules.peek : ARGV ] )
+{
+    alias config-warning ;
+}
+else
+{
+    message config-warning
+        : "warning: No python installation configured and autoconfiguration"
+        : "note: failed.  See http://www.boost.org/libs/python/doc/building.html"
+        : "note: for configuration instructions or pass --without-python to"
+        : "note: suppress this message and silently skip all Boost.Python targets"
+        ;
+}
+
+rule find-py3-version
+{
+    local versions = [ feature.values python ] ;
+    local py3ver ;
+    for local v in $(versions)
+    {
+        if $(v) >= 3.0
+        {
+            py3ver = $(v) ;
+        }
+    }
+    return $(py3ver) ;
+}
+
+py3-version = [ find-py3-version ] ;
+
+project boost/python
+  : source-location ../src
+  : requirements
+    -<tag>@$(BOOST_JAMROOT_MODULE)%$(BOOST_JAMROOT_MODULE).tag
+    <tag>@$(__name__).tag
+  ;
+
+rule tag ( name : type ? : property-set )
+{
+    local result = $(name) ;
+    if $(type) in STATIC_LIB SHARED_LIB IMPORT_LIB
+    {
+        if $(name) = boost_python && $(PYTHON_ID)
+        {
+            result = $(result)-$(PYTHON_ID) ;
+        }
+    }
+    
+    # forward to the boost tagging rule
+    return  [ indirect.call $(BOOST_JAMROOT_MODULE)%$(BOOST_JAMROOT_MODULE).tag 
+                $(result) : $(type) : $(property-set) ] ;
+}
+
+rule cond ( test ? : yes * : no * ) { if $(test) { return $(yes) ; } else { return $(no) ; } }
+rule unless ( test ? : yes * : no * ) { if ! $(test) { return $(yes) ; } else { return $(no) ; } }
+
+rule lib_boost_python ( is-py3 ? )
+{
+
+    lib [ cond $(is-py3) : boost_python3 : boost_python ]
+        : # sources
+        numeric.cpp
+        list.cpp
+        long.cpp
+        dict.cpp
+        tuple.cpp
+        str.cpp
+        slice.cpp
+
+        converter/from_python.cpp
+        converter/registry.cpp
+        converter/type_id.cpp
+        object/enum.cpp
+        object/class.cpp
+        object/function.cpp
+        object/inheritance.cpp
+        object/life_support.cpp
+        object/pickle_support.cpp
+        errors.cpp
+        module.cpp
+        converter/builtin_converters.cpp
+        converter/arg_to_python_base.cpp
+        object/iterator.cpp
+        object/stl_iterator.cpp
+        object_protocol.cpp
+        object_operators.cpp
+        wrapper.cpp
+        import.cpp
+        exec.cpp
+        object/function_doc_signature.cpp
+        :   # requirements
+            <link>static:<define>BOOST_PYTHON_STATIC_LIB 
+            <define>BOOST_PYTHON_SOURCE
+          
+            # On Windows, all code using Python has to link to the Python
+            # import library.
+            #
+            # On *nix we never link libboost_python to libpython.  When
+            # extending Python, all Python symbols are provided by the
+            # Python interpreter executable.  When embedding Python, the
+            # client executable is expected to explicitly link to
+            # /python//python (the target representing libpython) itself.
+            #
+            # python_for_extensions is a target defined by Boost.Build to
+            # provide the Python include paths, and on Windows, the Python
+            # import library, as usage requirements.
+            [ cond [ python.configured ] : <library>/python//python_for_extensions ]
+            
+            # we prevent building when there is no python available
+            # as it's not possible anyway, and to cause dependents to
+            # fail to build
+            [ unless [ python.configured ] : <build>no ]
+            <dependency>config-warning
+
+            <python-debugging>on:<define>BOOST_DEBUG_PYTHON
+            [ cond $(is-py3) : <python>$(py3-version) ]
+        :   # default build
+            <link>shared
+        :   # usage requirements
+            <link>static:<define>BOOST_PYTHON_STATIC_LIB
+            <python-debugging>on:<define>BOOST_DEBUG_PYTHON
+        ;
+
+}
+
+lib_boost_python ;
+boost-install boost_python ;
+
+if $(py3-version)
+{
+    lib_boost_python yes ;
+    boost-install boost_python3 ;
+}

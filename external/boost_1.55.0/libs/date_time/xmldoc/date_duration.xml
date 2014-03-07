@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section xmlns:xi="http://www.w3.org/2001/XInclude" id="date_time.gregorian.date_duration">
+  <title>Date Duration (aka Days)</title>
+
+  <link linkend="duration_intro">Introduction</link> --
+  <link linkend="duration_header">Header</link> --
+  <link linkend="duration_construction">Construction</link> --
+  <link linkend="duration_accessors">Accessors</link> --
+  <link linkend="duration_operators">Operators</link> --
+  <link linkend="additional_duration_types">Additional Duration Types</link>
+
+  <anchor id="duration_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>
+    The class boost::gregorian::date_duration is a simple day count used for arithmetic with <link linkend="date_time.gregorian.date_class">gregorian::date</link>. A duration can be either positive or negative. 
+  </para>
+  <para>
+    As of version 1_32 the date_duration class has been typedef'd as days in the boost::gregorian namespace. Throughout the examples you will find days used instead of date_duration.
+  </para>
+
+  <anchor id="duration_header" />
+  <bridgehead renderas="sect3">Header</bridgehead>
+  <para>
+    <programlisting>#include "boost/date_time/gregorian/gregorian.hpp" //include all types plus i/o
+or
+#include "boost/date_time/gregorian/gregorian_types.hpp" //no i/o just types</programlisting>
+  </para>
+
+  <anchor id="duration_construction" />
+  <bridgehead renderas="sect3">Construction</bridgehead>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+	<row>
+	  <entry valign="top" morerows="1">Syntax</entry>
+	  <entry>Description</entry>
+        </row>
+        <row>
+	  <entry>Example</entry>
+	</row>
+      </thead>
+      <tbody>
+	<row>
+          <entry valign="top" morerows="1"><screen>date_duration(long)</screen></entry>
+          <entry>Create a duration count.</entry>
+        </row>
+        <row>
+          <entry><screen>date_duration dd(3); //3 days</screen></entry>
+        </row>
+
+	<row>
+	  <entry valign="top" morerows="1"><screen>days(special_values sv)</screen></entry>
+	  <entry>Constructor for infinities, not-a-date-time, max_date_time, and min_date_time</entry>
+	</row>
+        <row>
+	  <entry><screen>days dd1(neg_infin);
+days dd2(pos_infin);
+days dd3(not_a_date_time);
+days dd4(max_date_time);
+days dd5(min_date_time);</screen></entry>
+        </row>
+
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+  <anchor id="duration_accessors" />
+  <bridgehead renderas="sect3">Accessors</bridgehead>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+	<row>
+	  <entry valign="top" morerows="1">Syntax</entry>
+	  <entry>Description</entry>
+	</row>
+	<row>
+	  <entry>Example</entry>
+	</row>
+      </thead>
+      <tbody>
+        <row>
+	  <entry valign="top" morerows="1"><screen>long days() const</screen></entry>
+	  <entry>Get the day count.</entry>
+	</row>
+	<row>
+	  <entry><screen>date_duration dd(3); dd.days() --> 3</screen></entry>
+        </row>
+        
+	<row>
+	  <entry valign="top" morerows="1"><screen>bool is_negative() const</screen></entry>
+	  <entry>True if number of days is less than zero.</entry>
+	</row>
+	<row>
+	  <entry><screen>date_duration dd(-1); dd.is_negative() --> true</screen></entry>
+        </row>
+
+	<row>
+	  <entry valign="top" morerows="1"><screen>static date_duration unit()</screen></entry>
+	  <entry>Return smallest possible unit of duration type.</entry>
+	</row>
+        <row>
+	  <entry><screen>date_duration::unit() --> date_duration(1)</screen></entry>
+        </row>
+
+	<row>
+	  <entry valign="top" morerows="1"><screen>bool is_special() const</screen></entry>
+          <entry>Returns true if days is any <code>special_value</code></entry>
+	</row>
+	<row>
+          <entry><screen>days dd(pos_infin); 
+days dd2(not_a_date_time); 
+days dd3(25);
+dd.is_special(); // --> true
+dd2.is_special(); // --> true
+dd3.is_special(); // --> false</screen></entry>
+        </row>
+        
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+  <anchor id="duration_operators" />
+  <bridgehead renderas="sect3">Operators</bridgehead>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+	<row>
+	  <entry valign="top" morerows="1">Syntax</entry>
+	  <entry>Description</entry>
+	</row>
+	<row>
+	  <entry>Example</entry>
+	</row>
+      </thead>
+      <tbody>
+        <row>
+          <entry valign="top" morerows="1"><screen>operator&lt;&lt;, operator&gt;&gt;</screen></entry>
+          <entry>Streaming operators. <emphasis role="strong">Note:</emphasis> As of version 1.33, streaming operations have been greatly improved. See <link linkend="date_time.date_time_io">Date Time IO System</link> for more details (including exceptions and error conditions).</entry>
+	</row>
+	<row>
+          <entry><screen>date d(not_a_date_time);
+stringstream ss("2002-Jan-01");
+ss &gt;&gt; d; 
+std::cout &lt;&lt; d; // "2002-Jan-01"
+</screen>
+	  </entry>
+        </row>
+
+        <row>
+	  <entry valign="top" morerows="1"><screen>operator==, operator!=,
+operator>, operator&lt;,
+operator>=, operator&lt;=</screen>
+	  </entry>
+	  <entry>A full complement of comparison operators</entry>
+	</row>
+	<row>
+	  <entry><screen>dd1 == dd2, etc</screen></entry>
+        </row>
+
+	<row>
+	  <entry valign="top" morerows="1"><screen>date_duration operator+(date_duration) const</screen></entry>
+	  <entry>Add date durations.</entry>
+	</row>
+	<row>
+	  <entry><screen>date_duration dd1(3);
+date_duration dd2(5);
+date_duration dd3 = dd1 + dd2;</screen>
+	  </entry>
+        </row>
+        
+	<row>
+	  <entry valign="top" morerows="1"><screen>date_duration operator-(date_duration) const</screen></entry>
+	  <entry>Subtract durations.</entry>
+	</row>
+        <row>
+	  <entry><screen>date_duration dd1(3);
+date_duration dd2(5);
+date_duration dd3 = dd1 - dd2;</screen>
+	  </entry>
+	</row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+  <anchor id="additional_duration_types" />
+  <bridgehead renderas="sect3">Additional Duration Types</bridgehead>
+  <para>These additional types are logical representations of spans of days.</para>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+	<row>
+	  <entry valign="top" morerows="1">Syntax</entry>
+	  <entry>Description</entry>
+        </row>
+        <row>
+	  <entry>Example</entry>
+	</row>
+      </thead>
+      <tbody>
+	<row>
+          <entry valign="top" morerows="1"><screen>months(int num_of_months)</screen></entry>
+          <entry>A logical month representation. Depending on the usage, this <code>months</code> object may cover a span of 28 to 31 days. The objects also use a snap to end-of-month behavior when used in conjunction with a date that is the last day of a given month. <emphasis role="strong">WARNING: this behavior may lead to unexpected results.</emphasis> See: <link linkend="snap_to_details">Reversibility of Operations Pitfall</link> for complete details and alternatives.</entry>
+        </row>
+        <row>
+          <entry><screen>months single(1);
+date leap_year(2004,Jan,31);
+date norm_year(2005,Jan,31);
+leap_year + single; // => 2004-Feb-29
+norm_year + single; // => 2005-Feb-28
+date(2005,Jan,1) + single; // => 2005-Feb-01
+date(2005,Feb,1) + single; // => 2005-Mar-01
+date(2005,Feb,28) + single; // => 2005-Mar-31</screen></entry>
+        </row>
+
+	<row>
+          <entry valign="top" morerows="1"><screen>years(int num_of_years)</screen></entry>
+          <entry>A logical representation of a year. The <code>years</code> object has the same behavior as the <code>months</code> objects with regards to the end-of-the-month.</entry>
+        </row>
+        <row>
+          <entry><screen>years single(1);
+date(2003,Feb,28) + single;
+// results in => 2004-Feb-29
+date(2004,Feb,29) + single;
+// results in => 2005-Feb-28</screen></entry>
+        </row>
+
+	<row>
+          <entry valign="top" morerows="1"><screen>weeks(int num_of_weeks)</screen></entry>
+          <entry>A duration type representing a number of <code>n * 7</code> days.</entry>
+        </row>
+        <row>
+          <entry><screen>weeks single(1);
+date(2005,Jan,1) + single; // => 2005-Jan-08</screen></entry>
+        </row>
+
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+  <xi:include href="snap_to_details.xml"/> 
+
+</section>

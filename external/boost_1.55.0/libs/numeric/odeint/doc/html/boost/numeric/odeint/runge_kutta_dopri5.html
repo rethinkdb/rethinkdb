@@ -1,0 +1,968 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template runge_kutta_dopri5</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../../../header/boost/numeric/odeint/stepper/runge_kutta_dopri5_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/runge_kutta_dopri5.hpp&gt;">
+<link rel="prev" href="../../../header/boost/numeric/odeint/stepper/runge_kutta_dopri5_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/runge_kutta_dopri5.hpp&gt;">
+<link rel="next" href="../../../header/boost/numeric/odeint/stepper/runge_kutta_fehlberg78_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/runge_kutta_fehlberg78.hpp&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../header/boost/numeric/odeint/stepper/runge_kutta_dopri5_hpp.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../header/boost/numeric/odeint/stepper/runge_kutta_dopri5_hpp.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../header/boost/numeric/odeint/stepper/runge_kutta_fehlberg78_hpp.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.numeric.odeint.runge_kutta_dopri5"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template runge_kutta_dopri5</span></h2>
+<p>boost::numeric::odeint::runge_kutta_dopri5 &#8212; The Runge-Kutta Dormand-Prince 5 method. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../header/boost/numeric/odeint/stepper/runge_kutta_dopri5_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/runge_kutta_dopri5.hpp&gt;">boost/numeric/odeint/stepper/runge_kutta_dopri5.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> State<span class="special">,</span> <span class="keyword">typename</span> Value <span class="special">=</span> <span class="keyword">double</span><span class="special">,</span> <span class="keyword">typename</span> Deriv <span class="special">=</span> <span class="identifier">State</span><span class="special">,</span> 
+         <span class="keyword">typename</span> Time <span class="special">=</span> <span class="identifier">Value</span><span class="special">,</span> <span class="keyword">typename</span> Algebra <span class="special">=</span> <span class="identifier">range_algebra</span><span class="special">,</span> 
+         <span class="keyword">typename</span> Operations <span class="special">=</span> <span class="identifier">default_operations</span><span class="special">,</span> 
+         <span class="keyword">typename</span> Resizer <span class="special">=</span> <span class="identifier">initially_resizer</span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="runge_kutta_dopri5.html" title="Class template runge_kutta_dopri5">runge_kutta_dopri5</a> <span class="special">:</span> <span class="keyword">public</span> boost::numeric::odeint::explicit_error_stepper_fsal_base&lt; Stepper, Order, StepperOrder, ErrorOrder, State, Value, Deriv, Time, Algebra, Operations, Resizer &gt;
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <a class="link" href="explicit_error_idp26311336.html" title="Class template explicit_error_stepper_fsal_base">explicit_error_stepper_fsal_base</a><span class="special">&lt;</span> <a class="link" href="runge_kutta_dopri5.html" title="Class template runge_kutta_dopri5">runge_kutta_dopri5</a><span class="special">&lt;</span> <span class="special">...</span> <span class="special">&gt;</span><span class="special">,</span><span class="special">...</span> <span class="special">&gt;</span> <a name="boost.numeric.odeint.runge_kutta_dopri5.stepper_base_type"></a><span class="identifier">stepper_base_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">stepper_base_type</span><span class="special">::</span><span class="identifier">state_type</span>                                     <a name="boost.numeric.odeint.runge_kutta_dopri5.state_type"></a><span class="identifier">state_type</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">stepper_base_type</span><span class="special">::</span><span class="identifier">value_type</span>                                     <a name="boost.numeric.odeint.runge_kutta_dopri5.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">stepper_base_type</span><span class="special">::</span><span class="identifier">deriv_type</span>                                     <a name="boost.numeric.odeint.runge_kutta_dopri5.deriv_type"></a><span class="identifier">deriv_type</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">stepper_base_type</span><span class="special">::</span><span class="identifier">time_type</span>                                      <a name="boost.numeric.odeint.runge_kutta_dopri5.time_type"></a><span class="identifier">time_type</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">stepper_base_type</span><span class="special">::</span><span class="identifier">algebra_type</span>                                   <a name="boost.numeric.odeint.runge_kutta_dopri5.algebra_type"></a><span class="identifier">algebra_type</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="identifier">stepper_base_type</span><span class="special">::</span><span class="identifier">operations_type</span>                                <a name="boost.numeric.odeint.runge_kutta_dopri5.operations_type"></a><span class="identifier">operations_type</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <span class="identifier">stepper_base_type</span><span class="special">::</span><span class="identifier">resizer_type</span>                                   <a name="boost.numeric.odeint.runge_kutta_dopri5.resizer_type"></a><span class="identifier">resizer_type</span><span class="special">;</span>     
+
+  <span class="comment">// <a class="link" href="runge_kutta_dopri5.html#boost.numeric.odeint.runge_kutta_dopri5construct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="runge_kutta_dopri5.html#idp27630248-bb"><span class="identifier">runge_kutta_dopri5</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">algebra_type</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">algebra_type</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="runge_kutta_dopri5.html#idp27530120-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> DerivIn<span class="special">,</span> 
+           <span class="keyword">typename</span> StateOut<span class="special">,</span> <span class="keyword">typename</span> DerivOut<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="runge_kutta_dopri5.html#idp27530328-bb"><span class="identifier">do_step_impl</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> 
+                      <span class="identifier">StateOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">DerivOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> DerivIn<span class="special">,</span> 
+           <span class="keyword">typename</span> StateOut<span class="special">,</span> <span class="keyword">typename</span> DerivOut<span class="special">,</span> <span class="keyword">typename</span> Err<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="runge_kutta_dopri5.html#idp27539320-bb"><span class="identifier">do_step_impl</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> 
+                      <span class="identifier">StateOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">DerivOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">Err</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateOut<span class="special">,</span> <span class="keyword">typename</span> StateIn1<span class="special">,</span> <span class="keyword">typename</span> DerivIn1<span class="special">,</span> 
+           <span class="keyword">typename</span> StateIn2<span class="special">,</span> <span class="keyword">typename</span> DerivIn2<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="runge_kutta_dopri5.html#idp27549176-bb"><span class="identifier">calc_state</span></a><span class="special">(</span><span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn1</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">DerivIn1</span> <span class="special">&amp;</span><span class="special">,</span> 
+                    <span class="identifier">time_type</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn2</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">DerivIn2</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="runge_kutta_dopri5.html#idp27555832-bb"><span class="identifier">adjust_size</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="runge_kutta_dopri5.html#idp27557720-bb"><span class="identifier">m_first_call</span></a><span class="special">(</span><span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">order_type</span> <a class="link" href="runge_kutta_dopri5.html#idp27558440-bb"><span class="identifier">order</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">order_type</span> <a class="link" href="runge_kutta_dopri5.html#idp27559720-bb"><span class="identifier">stepper_order</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">order_type</span> <a class="link" href="runge_kutta_dopri5.html#idp27561000-bb"><span class="identifier">error_order</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="runge_kutta_dopri5.html#idp27562296-bb"><span class="identifier">do_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="runge_kutta_dopri5.html#idp27566552-bb"><span class="identifier">do_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">,</span> <span class="keyword">typename</span> DerivInOut<span class="special">&gt;</span> 
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">disable_if</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_same</span><span class="special">&lt;</span> <span class="identifier">StateInOut</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&gt;</span><span class="special">,</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+    <a class="link" href="runge_kutta_dopri5.html#idp27569288-bb"><span class="identifier">do_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">DerivInOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> StateOut<span class="special">&gt;</span> 
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">disable_if</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_same</span><span class="special">&lt;</span> <span class="identifier">StateIn</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&gt;</span><span class="special">,</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+    <a class="link" href="runge_kutta_dopri5.html#idp27575992-bb"><span class="identifier">do_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> DerivIn<span class="special">,</span> 
+           <span class="keyword">typename</span> StateOut<span class="special">,</span> <span class="keyword">typename</span> DerivOut<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="runge_kutta_dopri5.html#idp27581688-bb"><span class="identifier">do_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> 
+                 <span class="identifier">StateOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">DerivOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">,</span> <span class="keyword">typename</span> Err<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="runge_kutta_dopri5.html#idp27589208-bb"><span class="identifier">do_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">Err</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">,</span> <span class="keyword">typename</span> Err<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="runge_kutta_dopri5.html#idp27594328-bb"><span class="identifier">do_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">Err</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">,</span> <span class="keyword">typename</span> DerivInOut<span class="special">,</span> 
+           <span class="keyword">typename</span> Err<span class="special">&gt;</span> 
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">disable_if</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_same</span><span class="special">&lt;</span> <span class="identifier">StateInOut</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&gt;</span><span class="special">,</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+    <a class="link" href="runge_kutta_dopri5.html#idp27597672-bb"><span class="identifier">do_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">DerivInOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">Err</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> StateOut<span class="special">,</span> <span class="keyword">typename</span> Err<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="runge_kutta_dopri5.html#idp27605288-bb"><span class="identifier">do_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> 
+                 <span class="identifier">Err</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> DerivIn<span class="special">,</span> 
+           <span class="keyword">typename</span> StateOut<span class="special">,</span> <span class="keyword">typename</span> DerivOut<span class="special">,</span> <span class="keyword">typename</span> Err<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="runge_kutta_dopri5.html#idp27611448-bb"><span class="identifier">do_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> 
+                 <span class="identifier">StateOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">DerivOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">Err</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="runge_kutta_dopri5.html#idp27619576-bb"><span class="identifier">reset</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DerivIn<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="runge_kutta_dopri5.html#idp27620872-bb"><span class="identifier">initialize</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="runge_kutta_dopri5.html#idp27623656-bb"><span class="identifier">initialize</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="runge_kutta_dopri5.html#idp27627480-bb"><span class="identifier">is_initialized</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">algebra_type</span> <span class="special">&amp;</span> <a class="link" href="runge_kutta_dopri5.html#idp27629112-bb"><span class="identifier">algebra</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="runge_kutta_dopri5.html#idp27632296-bb">private member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="runge_kutta_dopri5.html#idp27632504-bb"><span class="identifier">resize_k_x_tmp_impl</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="runge_kutta_dopri5.html#idp27633736-bb"><span class="identifier">resize_dxdt_tmp_impl</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp60862776"></a><h2>Description</h2>
+<p>The Runge-Kutta Dormand-Prince 5 method is a very popular method for solving ODEs, see <a href="../../../" target="_top"></a>. The method is explicit and fulfills the Error Stepper concept. Step size control is provided but continuous output is available which make this method favourable for many applications.</p>
+<p>This class derives from <a class="link" href="explicit_error_idp26311336.html" title="Class template explicit_error_stepper_fsal_base">explicit_error_stepper_fsal_base</a> and inherits its interface via CRTP (current recurring template pattern). The method possesses the FSAL (first-same-as-last) property. See <a class="link" href="explicit_error_idp26311336.html" title="Class template explicit_error_stepper_fsal_base">explicit_error_stepper_fsal_base</a> for more details.</p>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp60865096"></a><h3>Template Parameters</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> State</pre>
+<p>The state type. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Value <span class="special">=</span> <span class="keyword">double</span></pre>
+<p>The value type. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Deriv <span class="special">=</span> <span class="identifier">State</span></pre>
+<p>The type representing the time derivative of the state. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Time <span class="special">=</span> <span class="identifier">Value</span></pre>
+<p>The time representing the independent variable - the time. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Algebra <span class="special">=</span> <span class="identifier">range_algebra</span></pre>
+<p>The algebra type. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Operations <span class="special">=</span> <span class="identifier">default_operations</span></pre>
+<p>The operations type. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Resizer <span class="special">=</span> <span class="identifier">initially_resizer</span></pre>
+<p>The resizer policy type. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp60876456"></a><h3>
+<a name="boost.numeric.odeint.runge_kutta_dopri5construct-copy-destruct"></a><code class="computeroutput">runge_kutta_dopri5</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp27630248-bb"></a><span class="identifier">runge_kutta_dopri5</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">algebra_type</span> <span class="special">&amp;</span> algebra <span class="special">=</span> <span class="identifier">algebra_type</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>Constructs the <code class="computeroutput"><a class="link" href="runge_kutta_dopri5.html" title="Class template runge_kutta_dopri5">runge_kutta_dopri5</a></code> class. This constructor can be used as a default constructor if the algebra has a default constructor. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">algebra</code></span></p></td>
+<td><p>A copy of algebra is made and stored inside <code class="computeroutput"><a class="link" href="explicit_stepper_base.html" title="Class template explicit_stepper_base">explicit_stepper_base</a></code>. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp60884824"></a><h3>
+<a name="idp27530120-bb"></a><code class="computeroutput">runge_kutta_dopri5</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> DerivIn<span class="special">,</span> 
+         <span class="keyword">typename</span> StateOut<span class="special">,</span> <span class="keyword">typename</span> DerivOut<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27530328-bb"></a><span class="identifier">do_step_impl</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> in<span class="special">,</span> 
+                    <span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span> dxdt_in<span class="special">,</span> <span class="identifier">time_type</span> t<span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span> out<span class="special">,</span> 
+                    <span class="identifier">DerivOut</span> <span class="special">&amp;</span> dxdt_out<span class="special">,</span> <span class="identifier">time_type</span> dt<span class="special">)</span><span class="special">;</span></pre>This method performs one step. The derivative <code class="computeroutput">dxdt_in</code> of <code class="computeroutput">in</code> at the time <code class="computeroutput">t</code> is passed to the method. The result is updated out-of-place, hence the input is in <code class="computeroutput">in</code> and the output in <code class="computeroutput">out</code>. Furthermore, the derivative is update out-of-place, hence the input is assumed to be in <code class="computeroutput">dxdt_in</code> and the output in <code class="computeroutput">dxdt_out</code>. Access to this step functionality is provided by <code class="computeroutput"><a class="link" href="explicit_error_idp26311336.html" title="Class template explicit_error_stepper_fsal_base">explicit_error_stepper_fsal_base</a></code> and <code class="computeroutput">do_step_impl</code> should not be called directly. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The step size. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dxdt_in</code></span></p></td>
+<td><p>The derivative of x at t. dxdt_in is not modified by this method </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dxdt_out</code></span></p></td>
+<td><p>The result of the new derivative at time t+dt. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">in</code></span></p></td>
+<td><p>The state of the ODE which should be solved. in is not modified in this method </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">out</code></span></p></td>
+<td><p>The result of the step is written in out. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ODE. It must fulfill the Simple System concept. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The value of the time, at which the step should be performed. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> DerivIn<span class="special">,</span> 
+         <span class="keyword">typename</span> StateOut<span class="special">,</span> <span class="keyword">typename</span> DerivOut<span class="special">,</span> <span class="keyword">typename</span> Err<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27539320-bb"></a><span class="identifier">do_step_impl</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> in<span class="special">,</span> 
+                    <span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span> dxdt_in<span class="special">,</span> <span class="identifier">time_type</span> t<span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span> out<span class="special">,</span> 
+                    <span class="identifier">DerivOut</span> <span class="special">&amp;</span> dxdt_out<span class="special">,</span> <span class="identifier">time_type</span> dt<span class="special">,</span> <span class="identifier">Err</span> <span class="special">&amp;</span> xerr<span class="special">)</span><span class="special">;</span></pre>This method performs one step. The derivative <code class="computeroutput">dxdt_in</code> of <code class="computeroutput">in</code> at the time <code class="computeroutput">t</code> is passed to the method. The result is updated out-of-place, hence the input is in <code class="computeroutput">in</code> and the output in <code class="computeroutput">out</code>. Furthermore, the derivative is update out-of-place, hence the input is assumed to be in <code class="computeroutput">dxdt_in</code> and the output in <code class="computeroutput">dxdt_out</code>. Access to this step functionality is provided by <code class="computeroutput"><a class="link" href="explicit_error_idp26311336.html" title="Class template explicit_error_stepper_fsal_base">explicit_error_stepper_fsal_base</a></code> and <code class="computeroutput">do_step_impl</code> should not be called directly. An estimation of the error is calculated. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The step size. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dxdt_in</code></span></p></td>
+<td><p>The derivative of x at t. dxdt_in is not modified by this method </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dxdt_out</code></span></p></td>
+<td><p>The result of the new derivative at time t+dt. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">in</code></span></p></td>
+<td><p>The state of the ODE which should be solved. in is not modified in this method </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">out</code></span></p></td>
+<td><p>The result of the step is written in out. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ODE. It must fulfill the Simple System concept. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The value of the time, at which the step should be performed. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">xerr</code></span></p></td>
+<td><p>An estimation of the error. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateOut<span class="special">,</span> <span class="keyword">typename</span> StateIn1<span class="special">,</span> <span class="keyword">typename</span> DerivIn1<span class="special">,</span> 
+         <span class="keyword">typename</span> StateIn2<span class="special">,</span> <span class="keyword">typename</span> DerivIn2<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27549176-bb"></a><span class="identifier">calc_state</span><span class="special">(</span><span class="identifier">time_type</span> t<span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span> x<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn1</span> <span class="special">&amp;</span> x_old<span class="special">,</span> 
+                  <span class="keyword">const</span> <span class="identifier">DerivIn1</span> <span class="special">&amp;</span> deriv_old<span class="special">,</span> <span class="identifier">time_type</span> t_old<span class="special">,</span> 
+                  <span class="keyword">const</span> <span class="identifier">StateIn2</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">DerivIn2</span> <span class="special">&amp;</span> deriv_new<span class="special">,</span> 
+                  <span class="identifier">time_type</span> t_new<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>This method is used for continuous output and it calculates the state <code class="computeroutput">x</code> at a time <code class="computeroutput">t</code> from the knowledge of two states <code class="computeroutput">old_state</code> and <code class="computeroutput">current_state</code> at time points <code class="computeroutput">t_old</code> and <code class="computeroutput">t_new</code>. It also uses internal variables to calculate the result. Hence this method must be called after two successful <code class="computeroutput">do_step</code> calls. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp27555832-bb"></a><span class="identifier">adjust_size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre>Adjust the size of all temporaries in the stepper manually. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">x</code></span></p></td>
+<td><p>A state from which the size of the temporaries to be resized is deduced. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem"><pre class="literallayout"> <a name="idp27557720-bb"></a><span class="identifier">m_first_call</span><span class="special">(</span><span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">order_type</span> <a name="idp27558440-bb"></a><span class="identifier">order</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Returns the order of the stepper if it used without error estimation. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">order_type</span> <a name="idp27559720-bb"></a><span class="identifier">stepper_order</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Returns the order of a step if the stepper is used without error estimation. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">order_type</span> <a name="idp27561000-bb"></a><span class="identifier">error_order</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Returns the order of an error step if the stepper is used without error estimation. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27562296-bb"></a><span class="identifier">do_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span> x<span class="special">,</span> <span class="identifier">time_type</span> t<span class="special">,</span> <span class="identifier">time_type</span> dt<span class="special">)</span><span class="special">;</span></pre>This method performs one step. It transforms the result in-place. <div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>This method uses the internal state of the stepper.</p></td></tr>
+</table></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The step size. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ordinary differential equation. It must fulfill the Simple System concept. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The value of the time, at which the step should be performed. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">x</code></span></p></td>
+<td><p>The state of the ODE which should be solved. After calling do_step the result is updated in x. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27566552-bb"></a><span class="identifier">do_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span> x<span class="special">,</span> <span class="identifier">time_type</span> t<span class="special">,</span> <span class="identifier">time_type</span> dt<span class="special">)</span><span class="special">;</span></pre>Second version to solve the forwarding problem, can be called with Boost.Range as StateInOut. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">,</span> <span class="keyword">typename</span> DerivInOut<span class="special">&gt;</span> 
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">disable_if</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_same</span><span class="special">&lt;</span> <span class="identifier">StateInOut</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&gt;</span><span class="special">,</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+  <a name="idp27569288-bb"></a><span class="identifier">do_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span> x<span class="special">,</span> <span class="identifier">DerivInOut</span> <span class="special">&amp;</span> dxdt<span class="special">,</span> <span class="identifier">time_type</span> t<span class="special">,</span> 
+          <span class="identifier">time_type</span> dt<span class="special">)</span><span class="special">;</span></pre>The method performs one step with the stepper passed by Stepper. Additionally to the other methods the derivative of x is also passed to this method. Therefore, dxdt must be evaluated initially: <pre class="programlisting">* ode( x , dxdt , t );
+* for( ... )
+* {
+*     stepper.do_step( ode , x , dxdt , t , dt );
+*     t += dt;
+* }
+* 
+</pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>This method does NOT use the initial state, since the first derivative is explicitly passed to this method.</p></td></tr>
+</table></div>
+<p>
+The result is updated in place in x as well as the derivative dxdt. This method is disabled if Time and StateInOut are of the same type. In this case the method could not be distinguished from other <code class="computeroutput">do_step</code> versions.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>This method does not solve the forwarding problem.</p></td></tr>
+</table></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The step size. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dxdt</code></span></p></td>
+<td><p>The derivative of x at t. After calling <code class="computeroutput">do_step</code> dxdt is updated to the new value. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ODE. It must fulfill the Simple System concept. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The value of the time, at which the step should be performed. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">x</code></span></p></td>
+<td><p>The state of the ODE which should be solved. After calling do_step the result is updated in x. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> StateOut<span class="special">&gt;</span> 
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">disable_if</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_same</span><span class="special">&lt;</span> <span class="identifier">StateIn</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&gt;</span><span class="special">,</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+  <a name="idp27575992-bb"></a><span class="identifier">do_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> in<span class="special">,</span> <span class="identifier">time_type</span> t<span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span> out<span class="special">,</span> 
+          <span class="identifier">time_type</span> dt<span class="special">)</span><span class="special">;</span></pre>The method performs one step with the stepper passed by Stepper. The state of the ODE is updated out-of-place. This method is disabled if StateIn and Time are the same type. In this case the method can not be distinguished from other <code class="computeroutput">do_step</code> variants. <div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>This method uses the internal state of the stepper.</p>
+<p>This method does not solve the forwarding problem.</p>
+</td></tr>
+</table></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The step size. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">in</code></span></p></td>
+<td><p>The state of the ODE which should be solved. in is not modified in this method </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">out</code></span></p></td>
+<td><p>The result of the step is written in out. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ODE. It must fulfill the Simple System concept. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The value of the time, at which the step should be performed. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> DerivIn<span class="special">,</span> 
+         <span class="keyword">typename</span> StateOut<span class="special">,</span> <span class="keyword">typename</span> DerivOut<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27581688-bb"></a><span class="identifier">do_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> in<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span> dxdt_in<span class="special">,</span> 
+               <span class="identifier">time_type</span> t<span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span> out<span class="special">,</span> <span class="identifier">DerivOut</span> <span class="special">&amp;</span> dxdt_out<span class="special">,</span> 
+               <span class="identifier">time_type</span> dt<span class="special">)</span><span class="special">;</span></pre>The method performs one step with the stepper passed by Stepper. The state of the ODE is updated out-of-place. Furthermore, the derivative of x at t is passed to the stepper and updated by the stepper to its new value at t+dt. <div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>This method does not solve the forwarding problem.</p>
+<p>This method does NOT use the internal state of the stepper.</p>
+</td></tr>
+</table></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The step size. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dxdt_in</code></span></p></td>
+<td><p>The derivative of x at t. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dxdt_out</code></span></p></td>
+<td><p>The updated derivative of <code class="computeroutput">out</code> at <code class="computeroutput">t+dt</code>. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">in</code></span></p></td>
+<td><p>The state of the ODE which should be solved. in is not modified in this method </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">out</code></span></p></td>
+<td><p>The result of the step is written in out. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ODE. It must fulfill the Simple System concept. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The value of the time, at which the step should be performed. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">,</span> <span class="keyword">typename</span> Err<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27589208-bb"></a><span class="identifier">do_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span> x<span class="special">,</span> <span class="identifier">time_type</span> t<span class="special">,</span> <span class="identifier">time_type</span> dt<span class="special">,</span> 
+               <span class="identifier">Err</span> <span class="special">&amp;</span> xerr<span class="special">)</span><span class="special">;</span></pre>The method performs one step with the stepper passed by Stepper and estimates the error. The state of the ODE is updated in-place. <div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>This method uses the internal state of the stepper.</p></td></tr>
+</table></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The step size. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ODE. It must fulfill the Simple System concept. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The value of the time, at which the step should be performed. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">x</code></span></p></td>
+<td><p>The state of the ODE which should be solved. x is updated by this method. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">xerr</code></span></p></td>
+<td><p>The estimation of the error is stored in xerr. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">,</span> <span class="keyword">typename</span> Err<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27594328-bb"></a><span class="identifier">do_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span> x<span class="special">,</span> <span class="identifier">time_type</span> t<span class="special">,</span> <span class="identifier">time_type</span> dt<span class="special">,</span> 
+               <span class="identifier">Err</span> <span class="special">&amp;</span> xerr<span class="special">)</span><span class="special">;</span></pre>Second version to solve the forwarding problem, can be called with Boost.Range as StateInOut. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateInOut<span class="special">,</span> <span class="keyword">typename</span> DerivInOut<span class="special">,</span> 
+         <span class="keyword">typename</span> Err<span class="special">&gt;</span> 
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">disable_if</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_same</span><span class="special">&lt;</span> <span class="identifier">StateInOut</span><span class="special">,</span> <span class="identifier">time_type</span> <span class="special">&gt;</span><span class="special">,</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+  <a name="idp27597672-bb"></a><span class="identifier">do_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="identifier">StateInOut</span> <span class="special">&amp;</span> x<span class="special">,</span> <span class="identifier">DerivInOut</span> <span class="special">&amp;</span> dxdt<span class="special">,</span> <span class="identifier">time_type</span> t<span class="special">,</span> 
+          <span class="identifier">time_type</span> dt<span class="special">,</span> <span class="identifier">Err</span> <span class="special">&amp;</span> xerr<span class="special">)</span><span class="special">;</span></pre>The method performs one step with the stepper passed by Stepper. Additionally to the other method the derivative of x is also passed to this method and updated by this method. <div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>This method does NOT use the internal state of the stepper.</p></td></tr>
+</table></div>
+<p>
+The result is updated in place in x. This method is disabled if Time and Deriv are of the same type. In this case the method could not be distinguished from other <code class="computeroutput">do_step</code> versions. This method is disabled if StateInOut and Time are of the same type.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>This method does NOT use the internal state of the stepper.</p>
+<p>This method does not solve the forwarding problem.</p>
+</td></tr>
+</table></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The step size. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dxdt</code></span></p></td>
+<td><p>The derivative of x at t. After calling <code class="computeroutput">do_step</code> this value is updated to the new value at <code class="computeroutput">t+dt</code>. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ODE. It must fulfill the Simple System concept. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The value of the time, at which the step should be performed. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">x</code></span></p></td>
+<td><p>The state of the ODE which should be solved. After calling do_step the result is updated in x. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">xerr</code></span></p></td>
+<td><p>The error estimate is stored in xerr. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> StateOut<span class="special">,</span> <span class="keyword">typename</span> Err<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27605288-bb"></a><span class="identifier">do_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> in<span class="special">,</span> <span class="identifier">time_type</span> t<span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span> out<span class="special">,</span> 
+               <span class="identifier">time_type</span> dt<span class="special">,</span> <span class="identifier">Err</span> <span class="special">&amp;</span> xerr<span class="special">)</span><span class="special">;</span></pre>The method performs one step with the stepper passed by Stepper. The state of the ODE is updated out-of-place. Furthermore, the error is estimated. <div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>This method uses the internal state of the stepper.</p>
+<p>This method does not solve the forwarding problem.</p>
+</td></tr>
+</table></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The step size. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">in</code></span></p></td>
+<td><p>The state of the ODE which should be solved. in is not modified in this method </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">out</code></span></p></td>
+<td><p>The result of the step is written in out. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ODE. It must fulfill the Simple System concept. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The value of the time, at which the step should be performed. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">xerr</code></span></p></td>
+<td><p>The error estimate. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> DerivIn<span class="special">,</span> 
+         <span class="keyword">typename</span> StateOut<span class="special">,</span> <span class="keyword">typename</span> DerivOut<span class="special">,</span> <span class="keyword">typename</span> Err<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27611448-bb"></a><span class="identifier">do_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> in<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span> dxdt_in<span class="special">,</span> 
+               <span class="identifier">time_type</span> t<span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span> out<span class="special">,</span> <span class="identifier">DerivOut</span> <span class="special">&amp;</span> dxdt_out<span class="special">,</span> 
+               <span class="identifier">time_type</span> dt<span class="special">,</span> <span class="identifier">Err</span> <span class="special">&amp;</span> xerr<span class="special">)</span><span class="special">;</span></pre>The method performs one step with the stepper passed by Stepper. The state of the ODE is updated out-of-place. Furthermore, the derivative of x at t is passed to the stepper and the error is estimated. <div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>This method does NOT use the internal state of the stepper.</p>
+<p>This method does not solve the forwarding problem.</p>
+</td></tr>
+</table></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dt</code></span></p></td>
+<td><p>The step size. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dxdt_in</code></span></p></td>
+<td><p>The derivative of x at t. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">dxdt_out</code></span></p></td>
+<td><p>The new derivative at <code class="computeroutput">t+dt</code> is written into this variable. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">in</code></span></p></td>
+<td><p>The state of the ODE which should be solved. in is not modified in this method </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">out</code></span></p></td>
+<td><p>The result of the step is written in out. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function to solve, hence the r.h.s. of the ODE. It must fulfill the Simple System concept. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The value of the time, at which the step should be performed. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">xerr</code></span></p></td>
+<td><p>The error estimate. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27619576-bb"></a><span class="identifier">reset</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span></pre>Resets the internal state of this stepper. After calling this method it is safe to use all <code class="computeroutput">do_step</code> method without explicitly initializing the stepper. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DerivIn<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp27620872-bb"></a><span class="identifier">initialize</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span> deriv<span class="special">)</span><span class="special">;</span></pre>Initializes the internal state of the stepper. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">deriv</code></span></p></td>
+<td><p>The derivative of x. The next call of <code class="computeroutput">do_step</code> expects that the derivative of <code class="computeroutput">x</code> passed to <code class="computeroutput">do_step</code> has the value of <code class="computeroutput">deriv</code>. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27623656-bb"></a><span class="identifier">initialize</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> x<span class="special">,</span> <span class="identifier">time_type</span> t<span class="special">)</span><span class="special">;</span></pre>Initializes the internal state of the stepper. <p>This method is equivalent to </p>
+<pre class="programlisting">* Deriv dxdt;
+* system( x , dxdt , t );
+* stepper.initialize( dxdt );
+* 
+</pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">system</code></span></p></td>
+<td><p>The system function for the next calls of <code class="computeroutput">do_step</code>. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The current time of the ODE. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">x</code></span></p></td>
+<td><p>The current state of the ODE. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp27627480-bb"></a><span class="identifier">is_initialized</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns if the stepper is already initialized. If the stepper is not initialized, the first call of <code class="computeroutput">do_step</code> will initialize the state of the stepper. If the stepper is already initialized the system function can not be safely exchanged between consecutive <code class="computeroutput">do_step</code> calls. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <span class="identifier">algebra_type</span> <span class="special">&amp;</span> <a name="idp27629112-bb"></a><span class="identifier">algebra</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>
+<p>A reference to the algebra which is held by this class.</p>
+<p>A const reference to the algebra which is held by this class. </p>
+</td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp61152680"></a><h3>
+<a name="idp27632296-bb"></a><code class="computeroutput">runge_kutta_dopri5</code> private member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp27632504-bb"></a><span class="identifier">resize_k_x_tmp_impl</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp27633736-bb"></a><span class="identifier">resize_dxdt_tmp_impl</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../header/boost/numeric/odeint/stepper/runge_kutta_dopri5_hpp.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../header/boost/numeric/odeint/stepper/runge_kutta_dopri5_hpp.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../header/boost/numeric/odeint/stepper/runge_kutta_fehlberg78_hpp.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

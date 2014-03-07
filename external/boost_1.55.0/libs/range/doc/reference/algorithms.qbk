@@ -1,0 +1,180 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:algorithms Range Algorithms]
+[section:introduction Introduction and motivation]
+In its most simple form a [*Range Algorithm] (or range-based algorithm) is simply an iterator-based algorithm where the /two/ iterator arguments have been replaced by /one/ range argument. For example, we may write
+
+``
+#include <boost/range/algorithm.hpp>
+#include <vector>
+
+std::vector<int> vec = ...;
+boost::sort(vec);
+``
+
+instead of
+
+``
+std::sort(vec.begin(), vec.end());
+``
+
+However, the return type of range algorithms is almost always different from that of existing iterator-based algorithms.
+
+One group of algorithms, like `boost::sort()`, will simply return the same range so that we can continue to pass the range around and/or further modify it. Because of this we may write
+``
+boost:unique(boost::sort(vec));
+``
+to first sort the range and then run `unique()` on the sorted range.
+
+Algorithms like `boost::unique()` fall into another group of algorithms that return (potentially) narrowed views of the original range. By default `boost::unique(rng)` returns the range `[boost::begin(rng), found)` where `found` denotes the iterator returned by `std::unique(boost::begin(rng), boost::end(rng))`
+
+Therefore exactly the unique values can be copied by writing
+``
+boost::copy(boost::unique(boost::sort(vec)),
+            std::ostream_iterator<int>(std::cout));
+``
+
+Algorithms like `boost::unique` usually return the same range: `[boost::begin(rng), found)`. However, this behaviour may be changed by supplying the algorithms with a template argument:
+
+[table
+    [[Expression] [Return]]
+    [[`boost::unique<boost::return_found>(rng)`] [returns a single iterator like `std::unique`]]
+    [[`boost::unique<boost::return_begin_found>(rng)`] [returns the range `[boost::begin(rng), found)` (this is the default)]]
+    [[`boost::unique<boost::return_begin_next>(rng)`] [returns the range `[boost::begin(rng), boost::next(found))`]]
+    [[`boost::unique<boost::return_found_end>(rng)`] [returns the range `[found, boost::end(rng))`]]
+    [[`boost::unique<boost::return_next_end>(rng)`] [returns the range `[boost::next(found),boost::end(rng))`]]
+    [[`boost::unique<boost::return_begin_end>(rng)`] [returns the entire original range.]]
+]
+
+This functionality has the following advantages:
+
+# it allows for ['*seamless functional-style programming*] where you do not need to use named local variables to store intermediate results
+# it is very ['*safe*] because the algorithm can verify out-of-bounds conditions and handle tricky conditions that lead to empty ranges
+
+For example, consider how easy we may erase the duplicates in a sorted container:
+
+``
+std::vector<int> vec = ...;
+boost::erase(vec, boost::unique<boost::return_found_end>(boost::sort(vec)));
+``
+
+Notice the use of `boost::return_found_end`. What if we wanted to erase all the duplicates except one of them? In old-fashined STL-programming we might write
+
+``
+// assume 'vec' is already sorted
+std::vector<int>::iterator i = std::unique(vec.begin(), vec.end());
+
+// remember this check or you get into problems
+if (i != vec.end())
+    ++i;
+
+vec.erase(i, vec.end());
+``
+
+The same task may be accomplished simply with
+``
+boost::erase(vec, boost::unique<boost::return_next_end>(vec));
+``
+and there is no need to worry about generating an invalid range. Furthermore, if the container is complex, calling `vec.end()` several times will be more expensive than using a range algorithm.
+
+[endsect]
+
+[section:mutating Mutating algorithms]
+[include algorithm/copy.qbk]
+[include algorithm/copy_backward.qbk]
+[include algorithm/fill.qbk]
+[include algorithm/fill_n.qbk]
+[include algorithm/generate.qbk]
+[include algorithm/inplace_merge.qbk]
+[include algorithm/merge.qbk]
+[include algorithm/nth_element.qbk]
+[include algorithm/partial_sort.qbk]
+[include algorithm/partition.qbk]
+[include algorithm/random_shuffle.qbk]
+[include algorithm/remove.qbk]
+[include algorithm/remove_copy.qbk]
+[include algorithm/remove_copy_if.qbk]
+[include algorithm/remove_if.qbk]
+[include algorithm/replace.qbk]
+[include algorithm/replace_copy.qbk]
+[include algorithm/replace_copy_if.qbk]
+[include algorithm/replace_if.qbk]
+[include algorithm/reverse.qbk]
+[include algorithm/reverse_copy.qbk]
+[include algorithm/rotate.qbk]
+[include algorithm/rotate_copy.qbk]
+[include algorithm/sort.qbk]
+[include algorithm/stable_partition.qbk]
+[include algorithm/stable_sort.qbk]
+[include algorithm/swap_ranges.qbk]
+[include algorithm/transform.qbk]
+[include algorithm/unique.qbk]
+[include algorithm/unique_copy.qbk]
+[endsect]
+
+[section:non_mutating Non-mutating algorithms]
+[include algorithm/adjacent_find.qbk]
+[include algorithm/binary_search.qbk]
+[include algorithm/count.qbk]
+[include algorithm/count_if.qbk]
+[include algorithm/equal.qbk]
+[include algorithm/equal_range.qbk]
+[include algorithm/for_each.qbk]
+[include algorithm/find.qbk]
+[include algorithm/find_end.qbk]
+[include algorithm/find_first_of.qbk]
+[include algorithm/find_if.qbk]
+[include algorithm/lexicographical_compare.qbk]
+[include algorithm/lower_bound.qbk]
+[include algorithm/max_element.qbk]
+[include algorithm/min_element.qbk]
+[include algorithm/mismatch.qbk]
+[include algorithm/search.qbk]
+[include algorithm/search_n.qbk]
+[include algorithm/upper_bound.qbk]
+[endsect]
+
+[section:set Set algorithms]
+[include algorithm/includes.qbk]
+[include algorithm/set_union.qbk]
+[include algorithm/set_intersection.qbk]
+[include algorithm/set_difference.qbk]
+[include algorithm/set_symmetric_difference.qbk]
+[endsect]
+
+[section:heap Heap algorithms]
+[include algorithm/push_heap.qbk]
+[include algorithm/pop_heap.qbk]
+[include algorithm/make_heap.qbk]
+[include algorithm/sort_heap.qbk]
+[endsect]
+
+[section:permutation Permutation algorithms]
+[include algorithm/next_permutation.qbk]
+[include algorithm/prev_permutation.qbk]
+[endsect]
+
+[section:new New algorithms]
+[include algorithm_ext/copy_n.qbk]
+[include algorithm_ext/erase.qbk]
+[include algorithm_ext/for_each.qbk]
+[include algorithm_ext/insert.qbk]
+[include algorithm_ext/iota.qbk]
+[include algorithm_ext/is_sorted.qbk]
+[include algorithm_ext/overwrite.qbk]
+[include algorithm_ext/push_back.qbk]
+[include algorithm_ext/push_front.qbk]
+[include algorithm_ext/remove_erase.qbk]
+[include algorithm_ext/remove_erase_if.qbk]
+[endsect]
+
+[section:numeric Numeric algorithms]
+[include numeric/accumulate.qbk]
+[include numeric/adjacent_difference.qbk]
+[include numeric/inner_product.qbk]
+[include numeric/partial_sum.qbk]
+[endsect]
+[endsect]

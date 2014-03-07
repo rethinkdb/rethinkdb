@@ -1,0 +1,289 @@
+<html>
+<head>
+<title>Subrules</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr>
+    <td width="10">
+    </td>
+    <td width="85%">
+      <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Subrules</b></font>
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="grammar.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="semantic_actions.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>Spirit is implemented using expression templates. This is a very powerful technique.
+  Along with its power comes some complications. We almost take for granted that
+  when we write <tt>i | j &gt;&gt; k</tt> where <tt>i</tt>, <tt>j</tt> and <tt>k</tt>
+  are all integers the result is still an integer. Yet, with expression templates,
+  the same expression <tt>i | j &gt;&gt; k</tt> where <tt>i</tt>, <tt>j</tt> and
+  <tt>k</tt> are of type <tt>T</tt>, the result is a complex composite type [see
+  <a href="basic_concepts.html">Basic Concepts</a>]. Spirit expressions, which
+  are combinations of primitives and composites yield an infinite set of new types.
+  One problem is that C++ offers no easy facility to deduce the type of an arbitrarily
+  complex expression that yields a complex type. Thus, while it is easy to write:</p>
+<pre><code><font color="#000000"><span class=identifier>    </span><span class=keyword>int </span><span class=identifier>r </span><span class=special>= </span><span class=identifier>i </span><span class=special>| </span><span class=identifier>j </span><span class=special>&gt;&gt; </span><span class=identifier>k</span><span class=special>; </span><span class=comment>// where i, j, and k are ints</span></font></code></pre>
+<p>Expression templates yield an endless supply of types. Without the <a href="rule.html">rule</a>, 
+  there is no easy way to do this in C++ if <tt>i</tt>, <tt>j</tt> and <tt>k</tt> 
+  are Spirit parsers:</p>
+<pre><code><font color="#000000"><span class=comment>    </span><span class=special>&lt;</span><span class=identifier>what_type???</span><span class=special>&gt; </span><span class=identifier>r </span><span class=special>= </span><span class=identifier>i </span><span class=special>| </span><span class=identifier>j </span><span class=special>&gt;&gt; </span><span class=identifier>k</span><span class=special>; </span><span class=comment>// where i, j, and k are Spirit parsers</span></font></code></pre>
+<p>If <tt>i</tt>, <tt>j</tt> and <tt>k</tt> are all <tt>chlit&lt;&gt;</tt> objects, 
+  the type that we want is:</p>
+<pre><code><font color="#000000"><span class=comment>    </span><span class=keyword>typedef
+        </span><span class=identifier>alternative</span><span class=special>&lt;
+            </span><span class=identifier>chlit</span><span class=special>&lt;&gt;</span><span class=comment>      //  i
+          </span><span class=special>,</span> <span class=identifier>sequence</span><span class=special>&lt;
+                </span><span class=identifier>chlit</span><span class=special>&lt;&gt;  </span><span class=comment>//  j
+          </span><span class=special>    ,</span><span class=comment> </span><span class=identifier>chlit</span><span class=special>&lt;&gt;  </span><span class=comment>//  k
+            </span><span class=special>&gt;
+        &gt;
+    </span><span class=identifier>rule_t</span><span class=special>;
+
+    </span><span class=identifier>rule_t r </span><span class=special>= </span><span class=identifier>i </span><span class=special>| </span><span class=identifier>j </span><span class=special>&gt;&gt; </span><span class=identifier>k</span><span class=special>; </span><span class=comment>// where i, j, and k are chlit&lt;&gt; objects</span></font></code></pre>
+<p>We deliberately formatted the type declaration nicely to make it understandable. 
+  Try that with a more complex expression. While it can be done, explicitly spelling 
+  out the type of a Spirit expression template is tedious and error prone. The 
+  right hand side (rhs) has to mirror the type of the left hand side (lhs). (<img src="theme/lens.gif" width="15" height="16"> 
+  Yet, if you still wish to do it, see this <a href="techniques.html#no_rules">link</a> 
+  for a technique). </p>
+<table width="80%" border="0" align="center">
+  <tr>
+    <td class="note_box"><p><img src="theme/lens.gif" width="15" height="16"><b> 
+        typeof and auto</b> <br>
+        <br>
+        Some compilers already support the <tt>typeof</tt> keyword. This can be 
+        used to free us from having to explicitly type the type (pun intentional). 
+        Using the <tt>typeof</tt>, we can rewrite the Spirit expression above 
+        as:<br>
+        <br>
+        <span class="keyword"><code>typeof</code><code></code></span><code><span class=special>(</span><span class=identifier>i 
+        </span><span class=special>| </span><span class=identifier>j </span><span class=special>&gt;&gt; 
+        </span><span class=identifier>k</span><span class=special>) </span><span class=identifier>r 
+        </span><span class=special>= </span><span class=identifier>i </span><span class=special>| 
+        </span><span class=identifier>j </span><span class=special>&gt;&gt; </span><span class=identifier>k</span><span class=special>;</span></code><br>
+        <br>
+        While this is better than having to explicitly declare a complex type, 
+        it is redundant, error prone and still an eye sore. The expression is 
+        typed twice. The only way to simplify this is to introduce a macro (See 
+        this <a href="techniques.html#typeof">link</a> for more information).<br>
+        <br>
+        <a href="http://www.boost-consulting.com">David Abrahams</a> proposed 
+        in comp.std.c++ to reuse the <tt>auto</tt> keyword for type deduced variables. 
+        This has been extensibly discussed in <a href="http://www.boost.org">boost.org</a>. Example: 
+        <br>
+        <br>
+        <span class=keyword><code>auto </code></span><code><span class=identifier>r 
+        </span><span class=special>= </span><span class=identifier>i </span><span class=special>| 
+        </span><span class=identifier>j </span><span class=special>&gt;&gt; </span><span class=identifier>k</span><span class=special>;</span></code><br>
+        <br>
+        Once such a C++ extension is accepted into the standard, this would be 
+        a neat solution and a nice fit for our purpose. It's not a complete solution 
+        though since there are still situations where we do not know the rhs beforehand; 
+        for instance when pre-declaring cyclic dependent rules.</p>
+    </td>
+  </tr>
+</table>
+<p>Fortunately, rules come to the rescue. Rules can capture the type of the expression
+  assigned to it. Thus:</p>
+<pre><code><font color="#000000">    <span class=identifier>rule</span><span class=special>&lt;&gt; </span><span class=identifier>r </span><span class=special>= </span><span class=identifier>i </span><span class=special>| </span><span class=identifier>j </span><span class=special>&gt;&gt; </span><span class=identifier>k</span><span class=special>;  </span><span class=comment>// where i, j, and k are chlit&lt;&gt; objects</span></font></code></pre>
+<p>It might not be apparent but behind the scenes, plain rules are actually implemented
+  using a pointer to a runtime polymorphic abstract class that holds the dynamic
+  type of the parser assigned to it. When a Spirit expression is assigned to a
+  rule, its type is encapsulated in a concrete subclass of the abstract class.
+  A virtual parse function delegates the parsing to the encapsulated object.</p>
+<p>Rules have drawbacks though:</p>
+<p><img src="theme/bullet.gif" width="12" height="12"> It is coupled to a specific 
+  scanner type. The rule is tied to a specific scanner [see <a href="faq.html#scanner_business">The 
+  Scanner Business</a>].<br>
+  <img src="theme/bullet.gif" width="12" height="12"> The rule's parse member 
+function has a virtual function call overhead that cannot be inlined.</p>
+<h2>Static rules: subrules</h2>
+<p>The subrule is a fully static version of the rule. The subrule does not have
+  the drawbacks listed above. </p>
+<p><img src="theme/bullet.gif" width="12" height="12"> The subrule is not tied 
+  to a specific scanner so just about any scanner type may be used<br>
+  <img src="theme/bullet.gif" width="12" height="12"> The subrule also allows 
+  aggressive inlining since there are no virtual function calls</p>
+<pre><code><font color="#000000"><span class=identifier>    </span><span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>int </span></font><span class="identifier">ID</span><font color="#000000"><span class=special>, </span><span class=keyword>typename </span><span class=identifier>ContextT </span><span class=special>= </span><span class=identifier>parser_context</span><span class=special>&lt;&gt;</span> <span class=special>&gt;
+    </span><span class=keyword>class </span><span class=identifier>subrule</span><span class=special>;</span></font></code></pre>
+<p>The first template parameter gives the subrule an identification tag. Like 
+  the <a href="rule.html">rule</a>, there is a ContextT template parameter that 
+  defaults to <code><tt>parser_context</tt></code>. You need not be concerned 
+  at all with the <tt>ContextT</tt> template parameter unless you wish to tweak 
+  the low level behavior of the subrule. Detailed information on the <tt>ContextT</tt> 
+  template parameter is provided <a href="indepth_the_parser_context.html">elsewhere</a>. 
+</p>
+<p>Presented above is the public API. There may actually be more template parameters 
+  after <tt>ContextT</tt>. Everything after the <tt>ContextT</tt> parameter should 
+  not be of concern to the client and are strictly for internal use only.</p>
+<p>Apart from a few minor differences, the subrule follows the usage and syntax 
+  of the rule closely. Here's the calculator grammar using subrules:</p>
+<pre><code><font color="#000000"><span class=comment>    </span><span class=keyword>struct </span><span class=identifier>calculator </span><span class=special>: </span><span class=keyword>public </span><span class=identifier>grammar</span><span class=special>&lt;</span><span class=identifier>calculator</span><span class=special>&gt;
+    </span><span class=special>{
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>struct </span><span class=identifier>definition
+        </span><span class=special>{
+            </span><span class=identifier>definition</span><span class=special>(</span><span class=identifier>calculator </span><span class=keyword>const</span><span class=special>& </span><span class=identifier>self</span><span class=special>)
+            </span><span class=special>{
+                </span><span class=identifier>first </span><span class=special>=
+                </span><span class=special>(
+                    </span><span class=identifier>expression  </span><span class=special>= </span><span class=identifier>term </span><span class=special>&gt;&gt; </span><span class=special>*((</span><span class=literal>'+' </span><span class=special>&gt;&gt; </span><span class=identifier>term</span><span class=special>) </span><span class=special>| </span><span class=special>(</span><span class=literal>'-' </span><span class=special>&gt;&gt; </span><span class=identifier>term</span><span class=special>)),
+                    </span><span class=identifier>term        </span><span class=special>= </span><span class=identifier>factor </span><span class=special>&gt;&gt; </span><span class=special>*((</span><span class=literal>'*' </span><span class=special>&gt;&gt; </span><span class=identifier>factor</span><span class=special>) </span><span class=special>| </span><span class=special>(</span><span class=literal>'/' </span><span class=special>&gt;&gt; </span><span class=identifier>factor</span><span class=special>)),
+                    </span><span class=identifier>factor      </span><span class=special>= </span><span class=identifier>integer </span><span class=special>| </span><span class=identifier>group</span><span class=special>,
+                    </span><span class=identifier>group       </span><span class=special>= </span><span class=literal>'(' </span><span class=special>&gt;&gt; </span><span class=identifier>expression </span><span class=special>&gt;&gt; </span><span class=literal>')'
+                </span><span class=special>);
+            </span><span class=special>}
+
+            </span><span class=identifier>subrule</span><span class=special>&lt;</span><span class=number>0</span><span class=special>&gt;  </span><span class=identifier>expression</span><span class=special>;
+            </span><span class=identifier>subrule</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;  </span><span class=identifier>term</span><span class=special>;
+            </span><span class=identifier>subrule</span><span class=special>&lt;</span><span class=number>2</span><span class=special>&gt;  </span><span class=identifier>factor</span><span class=special>;
+            </span><span class=identifier>subrule</span><span class=special>&lt;</span><span class=number>3</span><span class=special>&gt;  </span><span class=identifier>group</span><span class=special>;
+
+            </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt; </span><span class=identifier>first</span><span class=special>;
+            </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>&gt; </span><span class=keyword>const</span><span class=special>&
+            </span><span class=identifier>start</span><span class=special>() </span><span class=keyword>const </span><span class=special>{ </span><span class=keyword>return </span><span class=identifier>first</span><span class=special>; </span><span class=special>}
+        </span><span class=special>};
+    </span><span class=special>};</span></font></code></pre>
+<p><img src="theme/lens.gif" width="15" height="16"> A fully working example with 
+  <a href="semantic_actions.html">semantic actions</a> can be <a href="../example/fundamental/subrule_calc.cpp">viewed 
+  here</a>. This is part of the Spirit distribution. </p>
+<table border="0" align="left">
+  <tr> 
+    <td width="199"><img src="theme/subrule1.png" width="234" height="224"></td>
+    <td width="2"></td>
+  </tr>
+</table>
+<p>The subrule as an efficient version of the rule. Compiler optimizations such
+  as aggressive inlining help reduce the code size and increase performance significantly.
+</p>
+<p>The subrule is not a panacea however. Subrules push the C++ compiler hard to
+  its knees. For example, current compilers have a limit on recursion depth that
+  may not be exceeded. Don't even think about writing a full pascal grammar using
+  subrules alone. A grammar using subrules is a single C++ expression. Current
+  C++ compilers cannot handle very complex expressions very well. Finally, a plain
+  rule is still needed to act as place holder for subrules.</p>
+<p>The code above is a good example of the recommended way to use subrules. Notice 
+  the hierarchy. We have a grammar that encapsulates the whole calculator. The 
+  start rule is a plain rule that holds the set of subrules. The subrules in turn 
+  defines the actual details of the grammar.</p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><img src="theme/lens.gif" width="15" height="16"><b> 
+      Template instantiation depth</b> <br> <br>
+      Spirit pushes the C++ compiler hard. Current C++ compilers cannot handle 
+      very complex heavily nested expressions very well. One restricting factor 
+      is the typical compiler's limit on template recursion depth. Some, but not 
+      all, compilers allow this limit to be configured.<br>
+      <br>
+      g++'s maximum can be set using a compiler flag: -ftemplate-depth. Set this 
+      appropriately if you have a relatively complex grammar.<br>
+      <br>
+      Microsoft Visual C++ can take greater than 1000 for both template class 
+      and function instantiation depths. However, the linker chokes with deep 
+      template function instantiation unless inline recursion depth is set using 
+      these pragmas:<br>
+      <br>
+      <span class="preprocessor">#pragma</span> inline_depth<span class="special">(</span>255<span class="special">)</span><br>
+      <span class="preprocessor">#pragma</span> inline_recursion<span class="special">(</span>on<span class="special">)<br>
+      <br>
+      </span>Perhaps this limitations no longer applies to more current versions 
+      of these compilers. Be sure to check your compiler documentation.</td>
+  </tr>
+</table>
+<p>This setup gives a good balance. The subrules do all the work. Each grammar 
+  will have only one rule: <tt>first</tt>. The rule is used just to hold the subrules 
+  and make them visible to the grammar. </p>
+<h3>The subrule definition</h3>
+<p>Like the rule, the expression after assignment operator <tt>=</tt> defines
+  the subrule:</p>
+<pre>    <span class=identifier>identifier </span><span class=special>= </span><span class=identifier>expression</span></pre>
+<p>Unlike rules, subrules may be defined only once. Redefining a subrule is illegal 
+  and will result to a compile time assertion.</p>
+<h3>Separators [ , ]</h3>
+<p>While rules are terminated by the semicollon <tt>';'</tt>. Subrules are not 
+  terminated but are separated by the comma: <tt>','</tt>. Like Pascal statements, 
+  the last subrule in a group may not have a trailing comma.</p>
+<pre><span class=identifier>    </span><span class=identifier>a </span><span class=special>= </span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'a'</span><span class=special>),
+    </span><span class=identifier>b </span><span class=special>= </span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'b'</span><span class=special>),
+    </span><span class=identifier>c </span><span class=special>= </span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'c'</span><span class=special>), </span><span class=comment>// BAD, trailing comma</span><code><font color="#000000"><font color="#800000"><i></i></font></font></code><code><font color="#000000"><font color="#800000"><i></i></font></font><i></i></code></pre>
+<p>
+<pre><code><span class=comment>    </span><span class=identifier>a </span><span class=special>= </span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'a'</span><span class=special>),
+    </span><span class=identifier>b </span><span class=special>= </span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'b'</span><span class=special>),
+    </span><span class=identifier>c </span><span class=special>= </span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'c'</span><span class=special>)  </span><span class=comment>// OK</span></code></pre>
+<h3> The start subrule</h3>
+<p>Unlike rules, parsing proceeds from the start subrule. The first (topmost) 
+  subrule in a group of subrules is called the <b>start subrule</b>. In our example 
+  above, <tt>expression</tt> is the start subrule. When a group of subrules is 
+  called forth, the start subrule <tt>expression</tt> is called first.</p>
+<h3>IDs</h3>
+<p>Each subrule has a corresponding ID; an integral constant that uniquely specifies 
+  the subrule. Our example above has four subrules. They are declared as:</p>
+<pre><code><span class=comment>    </span><span class=identifier>subrule</span><span class=special>&lt;</span><span class=number>0</span><span class=special>&gt;  </span><span class=identifier>expression</span><span class=special>;
+    </span><span class=identifier>subrule</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;  </span><span class=identifier>term</span><span class=special>;
+    </span><span class=identifier>subrule</span><span class=special>&lt;</span><span class=number>2</span><span class=special>&gt;  </span><span class=identifier>factor</span><span class=special>;
+    </span><span class=identifier>subrule</span><span class=special>&lt;</span><span class=number>3</span><span class=special>&gt;  </span><span class=identifier>group</span><span class=special>;</span></code></pre>
+<h3> Aliases</h3>
+<p>It is possible to have subrules with similar IDs. A subrule with a similar
+  ID to will be an alias of the other. Both subrules may be used interchangeably.</p>
+<pre><code><span class=special>    </span><span class=identifier>subrule</span><span class=special>&lt;</span><span class=number>0</span><span class=special>&gt;  </span><span class=identifier>a</span><span class=special>;
+    </span><span class=identifier>subrule</span><span class=special>&lt;</span><span class=number>0</span><span class=special>&gt;  </span><span class=identifier>alias</span><span class=special>;  </span><span class=comment>// alias of a</span></code></pre>
+<h3>Groups: scope and nesting</h3>
+<p>The scope of a subrule and its definition is the enclosing group, typically 
+  (and by convention) enclosed inside the parentheses. IDs outside a scope are 
+  not directly visible. Inner subrule groups can be nested by enclosing each sub-group 
+  inside another set of parentheses. Each group is unique and acts independently. 
+  Consequently, while it may not be advisable to do so, a subrule in a group may 
+  share the same ID as a subrule in another group since both groups are independent 
+  of each other.</p>
+<pre><code><span class=comment>    </span><span class=identifier>subrule</span><span class=special>&lt;</span><span class=number>0</span><span class=special>&gt; </span><span class=identifier>a</span><span class=special>;
+    </span><span class=identifier>subrule</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt; </span><span class=identifier>b</span><span class=special>;
+    </span><span class=identifier>subrule</span><span class=special>&lt;</span><span class=number>0</span><span class=special>&gt; </span><span class=identifier>c</span><span class=special>;
+    </span><span class=identifier>subrule</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt; </span><span class=identifier>d</span><span class=special>;
+
+    </span><span class=special>(                       </span><span class=comment>// outer subrule group, scope of a and b
+        </span><span class=identifier>a </span><span class=special>= </span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'a'</span><span class=special>),
+        </span><span class=identifier>b </span><span class=special>=
+        </span><span class=special>(                   </span><span class=comment>// inner subrule group, scope of b and c
+            </span><span class=identifier>c </span><span class=special>= </span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'c'</span><span class=special>),
+            </span><span class=identifier>d </span><span class=special>= </span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'d'</span><span class=special>)
+        </span><span class=special>)
+    </span><span class=special>)</span></code></pre>
+<p>Subrule IDs need to be unique only within a group. A grammar is an implicit 
+  group. Furthermore, even subrules in a grammar may have the same IDs without 
+  clashing if they are inside a group. Subrules may be explicitly grouped using 
+  the parentheses. Parenthesized groups have unique scopes. In the code above, 
+  the outer subrule group defines the subrules <tt>a</tt> and <tt>b</tt> while 
+  the inner subrule group defines the subrules <tt>c</tt> and <tt>d</tt>. Notice 
+  that the definition of <tt>b</tt> is the inner subrule.</p>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="grammar.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="semantic_actions.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p>&nbsp;</p>
+<p><code><font color="#000000"><font color="#0000ff"></font></font></code></p>
+</body>
+</html>

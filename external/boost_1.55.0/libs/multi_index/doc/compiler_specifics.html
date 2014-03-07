@@ -1,0 +1,385 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Compiler specifics</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+<link rel="start" href="index.html">
+<link rel="prev" href="reference/key_extraction.html">
+<link rel="up" href="index.html">
+<link rel="next" href="performance.html">
+</head>
+
+<body>
+<h1><img src="../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Compiler specifics</h1>
+
+<div class="prev_link"><a href="reference/key_extraction.html"><img src="prev.gif" alt="key extraction" border="0"><br>
+Key extraction
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="performance.html"><img src="next.gif" alt="performance" border="0"><br>
+Performance
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<p>
+Boost.MultiIndex utilizes some C++11 capabilities but is also equipped
+to work reasonably well in decent C++03-compliant environments. 
+We list some of the possible limitations along with suitable workarounds when available.
+</p>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#move">Move semantics</a></li>
+  <li><a href="#emplace">Emplace functions</a></li>
+  <li><a href="#initializer_list">Initializer lists</a></li>
+  <li><a href="#symbol_reduction">Reduction of symbol name lengths</a>
+    <ul>
+      <li><a href="#argument_limitation">Limitation of maximum number of arguments</a></li>
+      <li><a href="#type_hiding">Type hiding</a></li>
+  </ul>
+  </li>
+  <li><a href="#legacy">Legacy compilers</a></li>
+</ul>
+
+<h2><a name="move">Move semantics</a></h2>
+
+<p>
+Boost.MultiIndex uses <a href="../../../doc/html/move.html">Boost.Move</a>
+to support compilers without rvalue references. In such scenarios, taking
+advantage of <code>multi_index_container&lt;Value&gt;</code> capabilities for
+increased efficiency in insertion and handling of moveable-only elements will
+require that <code>Value</code> be suitably instrumented.
+</p>
+
+<h2><a name="emplace">Emplace functions</a></h2>
+
+<p>
+In compilers without variadic template support, Boost.MultiIndex emplace
+functions emulate this missing functionality by accepting up to
+<code>BOOST_MULTI_INDEX_LIMIT_VARTEMPL_ARGS</code>
+construction arguments that are internally forwarded with
+<a href="../../../doc/html/move.html">Boost.Move</a>:
+only constant lvalue references and rvalues are permitted as construction arguments
+in such case.
+</p>
+
+<p>
+<code>BOOST_MULTI_INDEX_LIMIT_VARTEMPL_ARGS</code>, which by default is 5, can
+be globally defined by the user to a different value.
+</p>
+
+<h2><a name="initializer_list">Initializer lists</a></h2>
+
+<p>
+No transparent emulation of this functionality can be provided in the absence of
+<code>std::initializer_list</code>: consider
+<a href="../../../libs/assign/index.html">Boost.Assign</a> as a
+possible replacement.
+</p>
+
+<h2><a name="symbol_reduction">Reduction of symbol name lengths</a></h2>
+
+<p>
+The types generated on the instantiations of <code>multi_index_container</code>s
+typically produce very long symbol names, sometimes beyond the internal limits
+of some compilers. There are several techniques to shorten generated symbol
+names: these techniques have also the beneficial side effect that resulting error
+messages are more readable.
+</p>
+
+<h3><a name="argument_limitation">Limitation of maximum number of arguments</a></h3>
+
+<p>
+The class templates <a href="reference/indices.html#indexed_by"><code>indexed_by</code></a>,
+<a href="reference/indices.html#tag"><code>tag</code></a> and
+<a href="reference/key_extraction.html#composite_key"><code>composite_key</code></a>
+accept a variable number of arguments whose maximum number is limited by
+internal macros. Even non-used arguments contribute to the final types,
+so manually adjusting the corresponding macros can result in a modest reduction
+of symbol names.
+</p>
+
+<p align="center">
+<table cellspacing="0">
+  <caption><b>Limiting maximum number of arguments of some class templates
+  of Boost.MultiIndex.</b></caption>
+<tr>
+  <th>class template</th>
+  <th>limiting macro</th>
+  <th>default value</th>
+  <th>default value<br>(MSVC++ 6.0)</th>
+</tr>
+<tr>
+  <td align="center">&nbsp;<code>indexed_by</code>&nbsp;</td>
+  <td align="center">&nbsp;<code>BOOST_MULTI_INDEX_LIMIT_INDEXED_BY_SIZE</code>&nbsp;</td>
+  <td align="center">20</td>
+  <td align="center">5</td>
+</tr>
+<tr class="odd_tr">
+  <td align="center">&nbsp;<code>tag</code>&nbsp;</td>
+  <td align="center">&nbsp;<code>BOOST_MULTI_INDEX_LIMIT_TAG_SIZE</code>&nbsp;</td>
+  <td align="center">20</td>
+  <td align="center">3</td>
+</tr>
+<tr>
+  <td align="center">&nbsp;<code>composite_key</code>&nbsp;</td>
+  <td align="center">&nbsp;<code>BOOST_MULTI_INDEX_LIMIT_COMPOSITE_KEY_SIZE</code>&nbsp;</td>
+  <td align="center">10</td>
+  <td align="center">5</td>
+</tr>
+</table>
+</p>
+
+<h3><a name="type_hiding">Type hiding</a></h3>
+
+<p>
+Consider a typical instantiation of <code>multi_index_container</code>:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>employee</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=keyword>int</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>ssnumber</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>employee_set</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+Then, for instance, the type <code>employee_set::nth_index&lt;0&gt;::type</code>
+resolves to the following in GCC:
+</p>
+
+<blockquote><pre>
+<span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>detail</span><span class=special>::</span><span class=identifier>ordered_index</span><span class=special>&lt;</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;,</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>less</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;,</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>detail</span><span class=special>::</span><span class=identifier>nth_layer</span><span class=special>&lt;</span>
+    <span class=number>1</span><span class=special>,</span> <span class=identifier>employee</span><span class=special>,</span>
+    <span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>indexed_by</span><span class=special>&lt;</span>
+      <span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>ordered_unique</span><span class=special>&lt;</span>
+        <span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span>
+      <span class=special>&gt;,</span>
+      <span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>ordered_non_unique</span><span class=special>&lt;</span>
+        <span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span> <span class=special>&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;,</span>
+        <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span>
+      <span class=special>&gt;,</span>
+      <span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>ordered_unique</span><span class=special>&lt;</span>
+        <span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span> <span class=keyword>int</span><span class=special>,</span> <span class=special>&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>ssnumber</span><span class=special>&gt;,</span>
+        <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span>
+      <span class=special>&gt;,</span>
+      <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span>
+      <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span>
+      <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>,</span> <span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span>
+    <span class=special>&gt;,</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>allocator</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;</span>
+  <span class=special>&gt;,</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>vector0</span><span class=special>&lt;</span><span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>&gt;,</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>detail</span><span class=special>::</span><span class=identifier>ordered_unique_tag</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+It can be seen that a significant portion of the type name is contributed by
+the <code>indexed_by&lt;...&gt;</code> part, which is nothing but an expanded
+version of the index specifier list provided in the definition of
+<code>employee_set</code>. We can prevent this very long name from appearing
+in the final type by encapsulating it into another, shorter-named construct:
+</p>
+
+<blockquote><pre>
+<span class=comment>// reducing symbol names through type hiding
+// type hide the index spexifier list within employee_set_indices</span>
+
+<span class=keyword>struct</span> <span class=identifier>employee_set_indices</span><span class=special>:</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=keyword>int</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>ssnumber</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>{};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>employee</span><span class=special>,</span>
+  <span class=identifier>employee_set_indices</span>
+<span class=special>&gt;</span> <span class=identifier>employee_set</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+<code>employee_set_indices</code> works as a conventional <code>typedef</code>
+in all respects, save for a detail: its name does not explicitly
+include the information contained in the <code>indexed_by</code> instantiation.
+Applying this technique, <code>employee_set::nth_index&lt;0&gt;::type</code>
+now becomes:
+</p>
+
+<blockquote><pre>
+<span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>detail</span><span class=special>::</span><span class=identifier>ordered_index</span><span class=special>&lt;</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;,</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>less</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;,</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>detail</span><span class=special>::</span><span class=identifier>nth_layer</span><span class=special>&lt;</span>
+    <span class=number>1</span><span class=special>,</span> <span class=identifier>employee</span><span class=special>,</span>
+    <span class=identifier>employee_set_indices</span><span class=special>,</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>allocator</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;</span>
+  <span class=special>&gt;,</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>vector0</span><span class=special>&lt;</span><span class=identifier>mpl_</span><span class=special>::</span><span class=identifier>na</span><span class=special>&gt;,</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>detail</span><span class=special>::</span><span class=identifier>ordered_unique_tag</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+which is considerably shorter than the original, and also more
+easily parsed by a human reader. Type hiding would not work if, instead of
+making <code>employee_set_indices</code> a derived <code>struct</code> of
+<code>indexed_by&lt;...&gt;</code>, we had defined it as a <code>typedef</code>:
+<code>typedef</code>s are syntactic aliases and usually get expanded
+by the compiler before doing any further type handling.
+</p>
+
+<p>
+Type hiding techniques can also be applied to <code>composite_key</code> intantiations,
+which often contribute a great deal to symbol name lengths.
+</p>
+
+<h2><a name="legacy">Legacy compilers</a></h2>
+
+<p>
+Boost.MultiIndex support for legacy compilers is not actively kept, so if you happen
+to work with an old environment you might need to use a former version of the library.
+A table is provided of some legacy compilers along with the latest version of
+Boost.MultiIndex known to work for them (frequently with limitations as explained
+in the corresponding compiler specifics section.) If you successfully try one of those
+with newer versions of Boost.MultiIndex than stated here, please report back so that
+the information can be udated. 
+</p>
+
+<p align="center">
+<table cellspacing="0" cellpadding="5">
+  <caption><b>Support for legacy compilers.</b></caption>
+<tr>
+  <th>Compiler</th>
+  <th>Latest known<br>compatible version</th>
+  <th>Date</th>
+</tr>
+<tr>
+  <td>Borland C++ Builder 6.4 through 2006, CodeGear C++Builder 2010</td>
+  <td>Never worked with Boost.MultiIndex</td>
+  <td></td>
+</tr>
+<tr class="odd_tr">
+  <td>Comeau C/C++ 4.3.10.1 for Windows (VC++ 9.0 backend)</td>
+  <td><a href="http://www.boost.org/doc/libs/1_38_0/libs/multi_index/doc/compiler_specifics.html#comeau_43101_win_vc7_71">Boost 1.38</a></td>
+  <td>February 2009</td>
+</tr>
+<tr>
+  <td>Compaq C++ 6.5-042 through 7.1-006 for Tru64 UNIX</td>
+  <td><a href="http://www.boost.org/doc/libs/1_38_0/libs/multi_index/doc/compiler_specifics.html#compaq_65">Boost 1.38</a></td>
+  <td>February 2009</td>
+</tr>
+<tr class="odd_tr">
+  <td>GCC 3.2 through 3.4</td>
+  <td><a href="http://www.boost.org/doc/libs/1_41_0/libs/multi_index/doc/compiler_specifics.html#gcc_32">Boost 1.41</a></td>
+  <td>November 2009</td>
+</tr>
+<tr>
+  <td>HP aC++ A.06.12 through A.06.17 for HP-UX IA64</td>
+  <td><a href="http://www.boost.org/doc/libs/1_38_0/libs/multi_index/doc/compiler_specifics.html#acc_612_ia64">Boost 1.38</a></td>
+  <td>February 2009</td>
+</tr>
+<tr class="odd_tr">
+  <td>HP aC++ A.03.80 through A.03.85 for HP-UX PA-RISC</td>
+  <td><a href="http://www.boost.org/doc/libs/1_38_0/libs/multi_index/doc/compiler_specifics.html#acc_380_pa_risc">Boost 1.38</a></td>
+  <td>February 2009</td>
+</tr>
+<tr>
+  <td>IBM VisualAge C++ V6.0 for AIX</td>
+  <td><a href="http://www.boost.org/doc/libs/1_33_1/libs/multi_index/doc/compiler_specifics.html#va_60">Boost 1.33.1</a></td>
+  <td>December 2006</td>
+</tr>
+<tr class="odd_tr">
+  <td>IBM XL C/C++ V9.0 through V10.1 for AIX</td>
+  <td><a href="http://www.boost.org/doc/libs/1_41_0/libs/multi_index/doc/compiler_specifics.html#xl_90">Boost 1.41</a></td>
+  <td>November 2009</td>
+</tr>
+<tr>
+  <td>Intel C++ Compiler for Linux 8.1 through 11.1</td>
+  <td><a href="http://www.boost.org/doc/libs/1_41_0/libs/multi_index/doc/compiler_specifics.html#intel_81_lin">Boost 1.41</a></td>
+  <td>November 2009</td>
+</tr>
+<tr class="odd_tr">
+  <td>Intel C++ Compiler for Mac OS 9.1 through 11.0</td>
+  <td><a href="http://www.boost.org/doc/libs/1_41_0/libs/multi_index/doc/compiler_specifics.html#intel_91_mac">Boost 1.41</a></td>
+  <td>November 2009</td>
+</tr>
+<tr>
+  <td>Intel C++ Compiler for Windows 32-bit 8.0 through 11.1</td>
+  <td><a href="http://www.boost.org/doc/libs/1_41_0/libs/multi_index/doc/compiler_specifics.html#intel_80_win">Boost 1.41</a></td>
+  <td>November 2009</td>
+</tr>
+<tr class="odd_tr">
+  <td>Intel C++ Compiler for Windows 64-bit 10.0 through 11.11</td>
+  <td><a href="http://www.boost.org/doc/libs/1_41_0/libs/multi_index/doc/compiler_specifics.html#intel_100_win64">Boost 1.41</a></td>
+  <td>November 2009</td>
+</tr>
+<tr>
+  <td>Metrowerks CodeWarrior 8.3</td>
+  <td><a href="http://www.boost.org/doc/libs/1_36_0/libs/multi_index/doc/compiler_specifics.html#cw_83">Boost 1.36</a></td>
+  <td>August 2008</td>
+</tr>
+<tr class="odd_tr">
+  <td>Metrowerks CodeWarrior 9 through 9.5</td>
+  <td><a href="http://www.boost.org/doc/libs/1_34_1/libs/multi_index/doc/compiler_specifics.html#cw_9x">Boost 1.34.1</a></td>
+  <td>July 2007</td>
+</tr>
+<tr>
+  <td>Microsoft Visual C++ 6.0 Service Pack 5</td>
+  <td><a href="http://www.boost.org/doc/libs/1_36_0/libs/multi_index/doc/compiler_specifics.html#msvc_60">Boost 1.36</a></td>
+  <td>August 2008</td>
+</tr>
+<tr class="odd_tr">
+  <td>Microsoft Visual C++ 7.0</td>
+  <td><a href="http://www.boost.org/doc/libs/1_35_0/libs/multi_index/doc/compiler_specifics.html#msvc_70">Boost 1.35</a></td>
+  <td>March 2008</td>
+</tr>
+<tr>
+  <td>Sun Studio 10 through 12 Update 1 for Solaris</td>
+  <td><a href="http://www.boost.org/doc/libs/1_41_0/libs/multi_index/doc/compiler_specifics.html#sun_10">Boost 1.41</a></td>
+  <td>November 2009</td>
+</tr>
+</table>
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="reference/key_extraction.html"><img src="prev.gif" alt="key extraction" border="0"><br>
+Key extraction
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="performance.html"><img src="next.gif" alt="performance" border="0"><br>
+Performance
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised July 30th 2013</p>
+
+<p>&copy; Copyright 2003-2013 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

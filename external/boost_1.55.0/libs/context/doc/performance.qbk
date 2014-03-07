@@ -1,0 +1,42 @@
+[/
+          Copyright Oliver Kowalke 2009.
+ Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+          http://www.boost.org/LICENSE_1_0.txt
+]
+
+[section:performance Performance]
+
+Performance of __boost_context__ was measured on the platforms shown in the
+following table. Performance measurements were taken using `rdtsc`, with
+overhead corrections, on x86 platforms. In each case, stack protection was
+active, cache warm-up was accounted for, and the one running thread was pinned
+to a single CPU. The code was compiled using the build options,
+'variant = release cxxflags = -DBOOST_DISABLE_ASSERTS'.
+
+Applying `-DBOOST_USE_UCONTEXT` to cxxflags the performance of `ucontext` will
+be measured too.
+
+The numbers in the table are the number of cycles per iteration, based upon an
+average computed over 10 iterations.
+
+[table Performance of context switch
+    [[Platform] [ucontext_t] [fcontext_t with fpu] [fcontext_t without fpu] [boost::function]]
+    [
+        [AMD Athlon 64 DualCore 4400+ (32bit Linux)]
+        [846 cycles]
+        [65 cycles]
+        [43 cycles]
+        [15 cycles]
+    ]
+    [
+        [Intel Core2 Q6700 (64bit Linux)]
+        [1481 cycles]
+        [172 cycles]
+        [63 cycles]
+        [25 cycles]
+    ]
+]
+
+
+[endsect]

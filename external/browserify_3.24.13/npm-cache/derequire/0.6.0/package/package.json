@@ -1,0 +1,29 @@
+{
+  "name": "derequire",
+  "version": "0.6.0",
+  "description": "remove requires",
+  "main": "index.js",
+  "scripts": {
+    "test": "./node_modules/istanbul/lib/cli.js test ./node_modules/mocha/bin/_mocha test/test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/calvinmetcalf/derequire.git"
+  },
+  "author": "Calvin Metcalf",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/calvinmetcalf/derequire/issues"
+  },
+  "homepage": "https://github.com/calvinmetcalf/derequire",
+  "dependencies": {
+    "estraverse": "~1.5.0",
+    "esprima-six": "~0.0.3",
+    "esrefactor": "~0.1.0"
+  },
+  "devDependencies": {
+    "chai": "~1.8.1",
+    "mocha": "~1.16.2",
+    "istanbul": "~0.2.1"
+  }
+}

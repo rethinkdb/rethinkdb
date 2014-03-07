@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="section_in_a_template" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Section in a template</title>
+  <para>
+    Some text before the section.
+  </para>
+  <section id="section_in_a_template.test">
+    <title><link linkend="section_in_a_template.test">Test</link></title>
+    <para>
+      Hello.
+    </para>
+    <bridgehead renderas="sect3" id="section_in_a_template.test.h0">
+      <phrase id="section_in_a_template.test.just_to_test_id_generation"/><link linkend="section_in_a_template.test.just_to_test_id_generation">Just
+      to test id generation</link>
+    </bridgehead>
+    <para>
+      Goodbye.
+    </para>
+  </section>
+</article>

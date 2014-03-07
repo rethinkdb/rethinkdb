@@ -1,0 +1,57 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:AsyncRandomAccessReadDevice Buffer-oriented asynchronous random-access
+read device requirements]
+
+In the table below, `a` denotes an asynchronous random access read device
+object, `o` denotes an offset of type `boost::uint64_t`, `mb` denotes an object
+satisfying [link boost_asio.reference.MutableBufferSequence mutable buffer sequence]
+requirements, and `h` denotes an object satisfying [link
+boost_asio.reference.ReadHandler read handler] requirements.
+
+[table Buffer-oriented asynchronous random-access read device requirements
+  [[operation] [type] [semantics, pre/post-conditions]]
+  [
+    [`a.get_io_service();`]
+    [`io_service&`]
+    [Returns the `io_service` object through which the `async_read_some_at`
+    handler `h` will be invoked.]
+  ]
+  [
+    [`a.async_read_some_at(o, mb, h);`]
+    [`void`]
+    [
+      Initiates an asynchronous operation to read one or more bytes of data
+      from the device `a` at the offset `o`. The operation is performed via the
+      `io_service` object `a.get_io_service()` and behaves according to [link
+      boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.\n
+      \n
+      The mutable buffer sequence `mb` specifies memory where the data should
+      be placed. The `async_read_some_at` operation shall always fill a buffer
+      in the sequence completely before proceeding to the next.\n
+      \n
+      The implementation shall maintain one or more copies of `mb` until such
+      time as the read operation no longer requires access to the memory
+      specified by the buffers in the sequence. The program must ensure the
+      memory is valid until:\n
+      \n
+      [mdash] the last copy of `mb` is destroyed, or\n
+      \n
+      [mdash] the handler for the asynchronous read operation is invoked,\n
+      \n
+      whichever comes first.\n
+      \n
+      If the total size of all buffers in the sequence `mb` is `0`, the
+      asynchronous read operation shall complete immediately and pass `0` as
+      the argument to the handler that specifies the number of bytes read.
+    ]
+  ]
+]
+
+[endsect]

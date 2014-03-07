@@ -1,0 +1,206 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:actor Actors in Detail]
+
+[heading Actor]
+
+The main concept is the `Actor`. An `Actor` is a model of the __PFO__ concept
+(that can accept 0 to N arguments (where N is a predefined maximum).
+
+An `Actor` contains a valid Phoenix Expression, a call to one of the function
+call operator overloads, starts the evaluation process.
+
+[note You can set `BOOST_PHOENIX_LIMIT`, the predefined maximum arity an
+actor can take. By default, `BOOST_PHOENIX_LIMIT` is set to 10.]
+
+The `actor` template class models the `Actor` concept:
+
+    template <typename Expr>
+    struct actor
+    {
+        template <typename Sig>
+        struct result;
+
+        typename result_of::actor<Expr>::type
+        operator()() const;
+
+        template <typename T0>
+        typename result_of::actor<Expr, T0 &>::type
+        operator()(T0& _0) const;
+
+        template <typename T0>
+        typename result_of::actor<Expr, T0 const &>::type
+        operator()(T0 const & _0) const;
+
+        //...
+    };
+
+[table Actor Concept Requirements
+    [
+     [Expression]
+     [Semantics]
+    ]
+    [
+     [`actor(arg0, arg1, ..., argN)`]
+     [Function call operators to start the evaluation]
+    ]
+    [
+     [`boost::result_of<Actor<Expr>(Arg0, Arg1, ..., ArgN)>::type`]
+     [Result of the evaluation]
+    ]
+    [
+     [`result_of::actor<Expr, Arg0, Arg1, ..., ArgN>::type`]
+     [Result of the evaluation]
+    ]
+]
+
+[heading Function Call Operators]
+
+There are 2*N function call operators for 0 to N arguments (N == `BOOST_PHOENIX_LIMIT`).
+The actor class accepts the arguments and forwards the arguments to the default
+evaluation action.
+
+Additionally, there exist function call operators accepting permutations of const
+and non-const references. These operators are created for all N <=
+`BOOST_PHOENIX_PERFECT_FORWARD_LIMIT` (which defaults to 3).
+
+[def [$http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1385.htm]
+
+[note *Forwarding Function Problem*
+
+    There is a known issue with current C++ called the "__forwarding__".
+    The problem is that given an arbitrary function `F`, using current C++
+    language rules, one cannot create a forwarding function `FF` that
+    transparently assumes the arguments of `F`.
+]
+
+[heading Context]
+
+On an actor function call, before calling the evaluation function, the actor created a *context*.
+This context consists of an `Environment` and an `Action` part. These contain all information
+necessary to evaluate the given expression.
+
+[table Context Concept Requirements
+    [
+     [Expression]
+     [Semantics]
+    ]
+    [
+     [`result_of::context<Env, Actions>::type`]
+     [Type of a Context]
+    ]
+    [
+     [`context(e, a)`]
+     [A Context containing environment `e` and actions `a`]
+    ]
+    [
+     [`result_of::env<Context>::type`]
+     [Type of the contained Environment]
+    ]
+    [
+     [`env(ctx)`]
+     [The environment]
+    ]
+    [
+     [`result_of::actions<Context>::type`]
+     [Type of the contained Actions]
+    ]
+    [
+     [`actions(ctx)`]
+     [The actions]
+    ]
+]
+
+[heading Environment]
+
+The Environment is a model of __random_access__.
+
+The arguments passed to the actor's function call operator are collected inside the Environment:
+
+[$images/funnel_in.png]
+
+Other parts of the library (e.g. the scope module) extends the `Environment`
+concept to hold other information such as local variables, etc.
+
+[heading Actions]
+
+Actions is the part of Phoenix which are responsible for giving the actual expressions
+a specific behaviour. During the traversal of the Phoenix Expression Tree these actions
+are called whenever a specified rule in the grammar matches.
+
+    struct actions
+    {
+        template <typename Rule>
+        struct when;
+    };
+
+The nested `when` template is required to be __proto_primitive_transform__. No
+worries, you don't have to learn __proto__ just yet! Phoenix provides some wrappers
+to let you define simple actions without the need to dive deep into proto.
+
+Phoenix ships with a predefined `default_actions` class that evaluates the expressions with
+C++ semantics:
+
+    struct default_actions
+    {
+        template <typename Rule, typename Dummy = void>
+        struct when
+            : proto::_default<meta_grammar>
+        {};
+    };
+
+For more information on how to use the default_actions class and how to attach custom actions
+to the evaluation process, see [link phoenix.inside.actions more on actions].
+
+[heading Evaluation]
+
+    struct evaluator
+    {
+        template <typename Expr, typename Context>
+        __unspecified__ operator()(Expr &, Context &);
+    };
+
+    evaluator const eval = {};
+
+The evaluation of a Phoenix expression is started by a call to the function call operator of
+`evaluator`.
+
+The evaluator is called by the `actor` function operator overloads after the context is built up.
+For reference, here is a typical `actor::operator()` that accepts two arguments:
+
+    template <typename T0, typename T1>
+    typename result_of::actor<Expr, T0 &, T1 &>::type
+    operator()(T0 &t0, T1 &t1) const
+    {
+        fusion::vector2<T0 &, T1 &> env(t0, t1);
+
+        return eval(*this, context(env, default_actions()));
+    }
+
+[heading result_of::actor]
+
+For reasons of symmetry to the family of `actor::operator()` there is a special
+metafunction usable for actor result type calculation named `result_of::actor`. This
+metafunction allows us to directly specify the types of the parameters to be
+passed to the `actor::operator()` function. Here's a typical `actor_result` that
+accepts two arguments:
+
+    namespace result_of
+    {
+        template <typename Expr, typename T0, typename T1>
+        struct actor
+        {
+            typedef fusion::vector2<T0, T1>                                           env_tpe;
+            typedef typename result_of::context<env_type, default_actions>::type      ctx_type
+            typedef typename boost::result_of<evaluator(Expr const&, ctx_type)>::type type;
+        };
+    }
+
+[endsect]

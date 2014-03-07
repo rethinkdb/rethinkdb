@@ -1,0 +1,31 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section References]
+
+References are functions. They hold a reference to a value stored somewhere.
+For example, given:
+
+    int i = 3;
+    char const* s = "Hello World";
+
+we create `references` to `i` and `s` this way:
+
+    ref(i)
+    ref(s)
+
+Like `val`, the expressions above evaluates to a nullary function; the first one
+returning an `int&`, and the second one returning a `char const*&`.
+
+(See [@../../example/references.cpp references.cpp])
+
+[blurb __tip__ Learn more about references [link phoenix.modules.core.references here.]]
+
+[endsect]
+

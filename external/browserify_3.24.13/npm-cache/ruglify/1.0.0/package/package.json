@@ -1,0 +1,33 @@
+{
+  "name": "ruglify",
+  "version": "1.0.0",
+  "description": "'Require' minified JavaScript as a string",
+  "scripts": {
+    "test": "mocha -R spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ForbesLindesay/ruglify.git"
+  },
+  "keywords": [
+    "require",
+    "file",
+    "text",
+    "relative",
+    "module",
+    "javascript",
+    "uglify",
+    "minify",
+    "compress",
+    "string"
+  ],
+  "author": "ForbesLindesay",
+  "license": "MIT",
+  "dependencies": {
+    "rfile": "~1.0",
+    "uglify-js": "~2.2"
+  },
+  "devDependencies": {
+    "mocha": "~1.8"
+  }
+}

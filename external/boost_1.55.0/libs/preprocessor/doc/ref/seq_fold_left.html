@@ -1,0 +1,90 @@
+<html>
+	<head>
+		<title>BOOST_PP_SEQ_FOLD_LEFT</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+	</head>
+	<body>
+		<div style="margin-left:  0px;">
+			The <b>BOOST_PP_SEQ_FOLD_LEFT</b> macro folds (or accumulates) the elements of 
+			a <i>seq</i> left-to-right.
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_FOLD_LEFT</b>(<i>op</i>, <i>state</i>, <i>seq</i>)
+		</div>
+		<h4>
+			Arguments
+		</h4>
+		<dl>
+			<dt>op</dt>
+			<dd>
+				A ternary operation of the form <i>op</i>(<i>s</i>, <i>state</i>, <i>elem</i>).&nbsp; 
+				This macro is called for each element in <i>seq</i>--each time returning a new <i>state</i>.&nbsp; 
+				This operation is expanded by <b>BOOST_PP_SEQ_FOLD_LEFT</b> with the next 
+				available fold step, the current <i>state</i>, and the current element.
+			</dd>
+			<dt>state</dt>
+			<dd>
+				The initial state of the fold.
+			</dd>
+			<dt>seq</dt>
+			<dd>
+				The <i>seq</i> to be folded.
+			</dd>
+		</dl>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			For the <i>seq</i>, (<i>0</i>)(<i>1</i>)(<i>2</i>), this macro expands to:
+			<div>
+				<i>op</i>(<i>s</i>, <i>op</i>(<i>s</i>, <i>op</i>(<i>s</i>, <i>state</i>, <i>0</i>),
+				<i>1</i>), <i>2</i>)
+			</div>
+		</div>
+		<div>
+			For maximum efficiency, <b>BOOST_PP_SEQ_FOLD_LEFT</b> can be reentered with <b>BOOST_PP_SEQ_FOLD_LEFT_<i>s</i></b>.
+		</div>
+		<h4>
+			See Also
+		</h4>
+		<ul>
+			<li>
+				<a href="seq_fold_left_s.html">BOOST_PP_SEQ_FOLD_LEFT_<i>s</i></a></li>
+		</ul>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/fold_left.html">&lt;boost/preprocessor/seq/fold_left.hpp&gt;</a>
+		</div>
+		<h4>
+			Sample Code
+		</h4>
+		<div>
+			<pre>
+#include &lt;<a href="../headers/cat.html">boost/preprocessor/cat.hpp</a>&gt;
+#include &lt;<a href="../headers/seq/fold_left.html">boost/preprocessor/seq/fold_left.hpp</a>&gt;
+
+#define SEQ (b)(o)(o)(s)(t)
+
+#define OP(s, state, x) <a href="cat.html">BOOST_PP_CAT</a>(state, x)
+
+<a href="seq_fold_left.html">BOOST_PP_SEQ_FOLD_LEFT</a>(OP, <a href="seq_head.html">BOOST_PP_SEQ_HEAD</a>(SEQ), <a href="seq_tail.html">BOOST_PP_SEQ_TAIL</a>(SEQ)) // expands to boost
+</pre>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+	</body>
+</html>

@@ -1,0 +1,164 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;1.&#160;Boost.Log v2</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="next" href="log/how_to_read.html" title="How to read the documentation">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="log/how_to_read.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="log"></a>Chapter&#160;1.&#160;Boost.Log v2</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Andrey</span> <span class="surname">Semashev</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2007-2013 Andrey Semashev</p></div>
+<div><div class="legalnotice">
+<a name="log.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="index.html#log.moti">Motivation</a></span></dt>
+<dt><span class="section"><a href="log/how_to_read.html">How to read the documentation</a></span></dt>
+<dt><span class="section"><a href="log/installation.html">Installation and compatibility</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="log/installation.html#log.installation.supported_compilers">Supported compilers
+      and platforms</a></span></dt>
+<dt><span class="section"><a href="log/installation/config.html">Configuring and building the
+      library</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="log/defs.html">Definitions</a></span></dt>
+<dt><span class="section"><a href="log/design.html">Design overview</a></span></dt>
+<dt><span class="section"><a href="log/tutorial.html">Tutorial</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="log/tutorial.html#log.tutorial.trivial">Trivial logging</a></span></dt>
+<dt><span class="section"><a href="log/tutorial/trivial_filtering.html">Trivial logging with
+      filters</a></span></dt>
+<dt><span class="section"><a href="log/tutorial/sinks.html">Setting up sinks</a></span></dt>
+<dt><span class="section"><a href="log/tutorial/sources.html">Creating loggers and writing logs</a></span></dt>
+<dt><span class="section"><a href="log/tutorial/attributes.html">Adding more information to log:
+      Attributes</a></span></dt>
+<dt><span class="section"><a href="log/tutorial/formatters.html">Log record formatting</a></span></dt>
+<dt><span class="section"><a href="log/tutorial/advanced_filtering.html">Filtering revisited</a></span></dt>
+<dt><span class="section"><a href="log/tutorial/wide_char.html">Wide character logging</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="log/detailed.html">Detailed features description</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="log/detailed.html#log.detailed.core">Core facilities</a></span></dt>
+<dt><span class="section"><a href="log/detailed/sources.html">Logging sources</a></span></dt>
+<dt><span class="section"><a href="log/detailed/sink_frontends.html">Sink frontends</a></span></dt>
+<dt><span class="section"><a href="log/detailed/sink_backends.html">Sink backends</a></span></dt>
+<dt><span class="section"><a href="log/detailed/expressions.html">Lambda expressions</a></span></dt>
+<dt><span class="section"><a href="log/detailed/attributes.html">Attributes</a></span></dt>
+<dt><span class="section"><a href="log/detailed/utilities.html">Utilities</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="log/extension.html">Extending the library</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="log/extension.html#log.extension.sinks">Writing your own sinks</a></span></dt>
+<dt><span class="section"><a href="log/extension/sources.html">Writing your own sources</a></span></dt>
+<dt><span class="section"><a href="log/extension/attributes.html">Writing your own attributes</a></span></dt>
+<dt><span class="section"><a href="log/extension/settings.html">Extending library settings support</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="log/rationale.html">Rationale and FAQ</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="log/rationale.html#log.rationale.why_str_lit">Why string literals as scope
+      names?</a></span></dt>
+<dt><span class="section"><a href="log/rationale/why_weak_scoped_attributes.html">Why scoped
+      attributes don't override existing attributes?</a></span></dt>
+<dt><span class="section"><a href="log/rationale/why_weak_record_ordering.html">Why log records
+      are weakly ordered in a multithreaded application?</a></span></dt>
+<dt><span class="section"><a href="log/rationale/why_attribute_manips_dont_affect_filters.html">Why
+      attributes set with stream manipulators do not participate in filtering?</a></span></dt>
+<dt><span class="section"><a href="log/rationale/why_not_lazy_streaming.html">Why not using lazy
+      streaming?</a></span></dt>
+<dt><span class="section"><a href="log/rationale/why_not_log4j.html">Why not using hierarchy
+      of loggers, like in log4j? Why not Boost.Log4j? Etc.</a></span></dt>
+<dt><span class="section"><a href="log/rationale/fork_support.html">Does Boost.Log support process
+      forking?</a></span></dt>
+<dt><span class="section"><a href="log/rationale/init_term_support.html">Does Boost.Log support
+      logging at process initialization and termination?</a></span></dt>
+<dt><span class="section"><a href="log/rationale/why_crash_on_term.html">Why my application crashes
+      on process termination when file sinks are used?</a></span></dt>
+<dt><span class="section"><a href="log/rationale/namespace_mangling.html">Why my application
+      fails to link with Boost.Log? What's the fuss about library namespaces?</a></span></dt>
+<dt><span class="section"><a href="log/rationale/msvc_link_fails_lnk1123.html">Why MSVC 2010
+      fails to link the library with error LNK1123: failure during conversion to
+      COFF: file invalid or corrupt?</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="log/reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="log/reference.html#top_level_headers">Top level headers</a></span></dt>
+<dt><span class="section"><a href="core_components.html">Core components</a></span></dt>
+<dt><span class="section"><a href="attributes.html">Attributes</a></span></dt>
+<dt><span class="section"><a href="expressions.html">Expressions</a></span></dt>
+<dt><span class="section"><a href="logging_sources.html">Logging sources</a></span></dt>
+<dt><span class="section"><a href="sinks.html">Sinks</a></span></dt>
+<dt><span class="section"><a href="utilities.html">Utilities</a></span></dt>
+<dt><span class="section"><a href="other_libraries_support_layer.html">Other libraries support layer</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="log/changelog.html">Changelog</a></span></dt>
+<dt><span class="section"><a href="log/todo.html">TODO in future releases</a></span></dt>
+<dt><span class="section"><a href="log/acknowledgments.html">Acknowledgments</a></span></dt>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="log.moti"></a><a class="link" href="index.html#log.moti" title="Motivation">Motivation</a>
+</h2></div></div></div>
+<p>
+      Today applications grow rapidly, becoming complicated and difficult to test
+      and debug. Most of the time applications run on a remote site, leaving the
+      developer little chance to monitor their execution and figure out the reasons
+      for their failure, once it should happen. Moreover, even the local debugging
+      may become problematic if the application behavior depends heavily on asynchronous
+      side events, such as a device feedback or another process activity.
+    </p>
+<p>
+      This is where logging can help. The application stores all essential information
+      about its execution to a log, and when something goes wrong this information
+      can be used to analyze the program behavior and make the necessary corrections.
+      There are other very useful applications of logging, such as gathering statistical
+      information and highlighting events (i.e. indicating that some situation has
+      occurred or that the application is experiencing some problems). These tasks
+      have proved to be vital for many real-world industrial applications.
+    </p>
+<p>
+      This library aims to make logging significantly easier for the application
+      developer. It provides a wide range of out-of-the-box tools along with public
+      interfaces for extending the library. The main goals of the library are:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Simplicity. A small example code snippet should be enough to get the feel
+          of the library and be ready to use its basic features.
+        </li>
+<li class="listitem">
+          Extensibility. A user should be able to extend functionality of the library
+          for collecting and storing information into logs.
+        </li>
+<li class="listitem">
+          Performance. The library should have as little performance impact on the
+          user's application as possible.
+        </li>
+</ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: September 29, 2013 at 22:04:06 +0100</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="log/how_to_read.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

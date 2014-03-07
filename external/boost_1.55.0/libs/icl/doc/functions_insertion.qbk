@@ -1,0 +1,156 @@
+[/
+    Copyright (c) 2008-2010 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[/ //= Insertion ===================================================================]
+[section Insertion]
+
+[section Synopsis][/ Insertion]
+
+[table
+[[['*Insertion*]][__ch_itv_sets__][__ch_itv_maps__][__ch_ele_sets__][__ch_ele_maps__]  ]
+
+[[`V T::insert(const P&)`]                         [__ei]    [__bp]   [__e]    [__b]  ]
+[[`V insert(T&, const P&)`]                        [__ei]    [__bp]   [__e]    [__b]  ]
+[[`V T::insert(J pos, const P&)`]                  [__i]     [__p]    [__e]    [__b]  ]
+[[`V insert(T&, J pos, const P&)`]                 [__i]     [__p]    [__e]    [__b]  ]
+[[`T& insert(T&, const P&)`]                      [__eiS]   [__bpM]   [__es]   [__bm] ]
+[[`T& T::set(const P&)`]                             [ ]     [__bp]   [ ]      [1]    ]
+[[`T& set_at(T&, const P&)`]                         [ ]     [__bp]   [ ]      [1]    ]
+
+]
+
+[h5 Insertion]
+
+The effects of ['*insertion*] implemented by `insert` and ['*addition*]
+implemented by `add` and `operator +=` are identical for all Set-types of
+the *icl*.
+
+For Map-types, `insert` provides the *stl* semantics of insertion in
+contrast to `add` and `operator +=`, that implement a generalized addition,
+that performs aggregations if key values collide or key intervals overlap.
+`insert` on Maps does not alter a maps content at the points, where
+the keys of the object to inserted overlap or collide with keys that
+are already in the map. 
+
+
+[h5 Setting values]
+
+Overwriting values using `operator[]` like in
+``
+my_map[key] = new_value;
+``
+is not provided for __itv_maps__ because an `operator[]` is not 
+implemented for them. As a substitute a function
+`T& T::set(const P&)` can be used to achieve the same effect:
+``
+my_map.set(make_pair(overwrite_this, new_value));
+``
+
+[endsect][/ Synopsis Insertion]
+
+[section Insertion]
+
+``
+// overload table for functions      T\P| e i b p  
+V T::insert(const P&)                ---+--------
+V insert(T&, const P&)                s | s
+                                      m |     m
+                                      S |   S      
+                                      M |       M  
+``
+
+[table Time Complexity for member function insert on icl containers
+[[`T& T::insert(const P&)`]    [__ch_dom_t__][__ch_itv_t__][__ch_dom_mp_t__][__ch_itv_mp_t__]]
+[[__icl_set__]                 [__Olgn__] []          []        []          ]
+[[__icl_map__]                 []         []          [__Olgn__][]          ]
+[[__itv_set__\n__sep_itv_set__][__Olgn__] [__a_Olgn__][]        []          ]
+[[__spl_itv_set__]             [__Olgn__] [__On__]    []        []          ]
+[[__itv_map__\n__spl_itv_map__][]         []          [__Olgn__][__On__]    ]
+]
+
+``
+// overload tables for function      element containers:     interval containers:  
+T& insert(T&, const P&)              T\P| e b s m            T\P| e i b p S M 
+                                     ---+--------            ---+------------ 
+                                      s | s   s               S | S S     S   
+                                      m |   m   m             M |     M M   M    
+``
+
+
+[table Time Complexity for inplace insertion on element containers
+[[`T& insert(T& y, const P& x)`][__ch_dom_t__][__ch_dom_mp_t__][__ch_itv_sets__][__ch_itv_maps__]]
+[[__icl_set__]                  [__Olgn__]    []               [__Om__]         []               ]
+[[__icl_map__]                  []            [__Olgn__]       []               [__Om__]         ]
+]
+
+Time complexity characteristics of inplace insertion for interval containers
+is given by this table.
+
+[table Time Complexity for inplace insertion on interval containers
+[[`T& insert(T& y, const P& x)`][][__ch_dom_t__][__ch_itv_t__][__ch_dom_mp_t__][__ch_itv_mp_t__][__ch_itv_sets__][__ch_itv_maps__]]
+[[interval_sets][__itv_set__\n__sep_itv_set__][__Olgn__] [__a_Olgn__][]        []        [__Omlgnpm__]    []               ]
+[[]             [__spl_itv_set__]             [__Olgn__] [__On__]    []        []        [__Omlgnpm__]    []               ]
+[[interval_maps][]                            []         []          [__Olgn__][__On__]  []               [__Omlgnpm__]    ]
+]
+
+
+[h4 Hinted insertion]
+
+Function `T& T::insert(T::iterator prior, const P& addend)` allows
+for an insertion in ['*constant time*], if `addend` can be inserted
+right after iterator `prior` without collision. If this is not possible
+the complexity characteristics are as stated for the non hinted insertion
+above. Hinted insertion is available for these combinations of types:
+``
+// overload table for insertion with hint     T\P| e i b p  
+V T::insert(J pos, const P&)                  ---+--------
+V insert(T&, J pos, const P&)                  s | s
+                                               m |     m
+                                               S |   S     
+                                               M |       M 
+``
+
+[endsect][/ Insertion]
+
+
+
+[section Setting values]
+
+``
+// overload table for member function         T\P| b p 
+T& T::set(const P&)                           ---+---- 
+T& set_at(T&, const P&)                        m | m   
+                                               M |   M 
+``
+
+[table Time Complexity for member function `set`
+[[`T& set(T&, const P&)`] [domain_mapping_type] [interval_mapping_type] ]
+[[icl::map]               [__Olgn__]            [ ]                     ]
+[[interval_maps]          []                    [__a_Olgn__]            ]
+]
+
+[endsect][/ Set]
+
+['*See also . . .*]
+[table
+[]
+[[[link boost_icl.function_reference.addition ['*Erasure*]]          ]]
+[[[link boost_icl.function_reference.addition ['*Addition*]]         ]]
+]
+
+['*Back to section . . .*]
+[table
+[]
+[[[link function_synopsis_table ['*Function Synopsis*]]]]
+[[[link boost_icl.interface ['*Interface*]]                          ]]
+]
+
+[endsect][/ Insertion]
+
+    

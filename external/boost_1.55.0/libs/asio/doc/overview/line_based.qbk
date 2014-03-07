@@ -1,0 +1,118 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:line_based Line-Based Operations]
+
+Many commonly-used internet protocols are line-based, which means that they
+have protocol elements that are delimited by the character sequence `"\r\n"`.
+Examples include HTTP, SMTP and FTP. To more easily permit the implementation
+of line-based protocols, as well as other protocols that use delimiters, Boost.Asio
+includes the functions `read_until()` and `async_read_until()`.
+
+The following example illustrates the use of `async_read_until()` in an HTTP
+server, to receive the first line of an HTTP request from a client:
+
+  class http_connection
+  {
+    ...
+
+    void start()
+    {
+      boost::asio::async_read_until(socket_, data_, "\r\n",
+          boost::bind(&http_connection::handle_request_line, this, _1));
+    }
+
+    void handle_request_line(boost::system::error_code ec)
+    {
+      if (!ec)
+      {
+        std::string method, uri, version;
+        char sp1, sp2, cr, lf;
+        std::istream is(&data_);
+        is.unsetf(std::ios_base::skipws);
+        is >> method >> sp1 >> uri >> sp2 >> version >> cr >> lf;
+        ...
+      }
+    }
+
+    ...
+
+    boost::asio::ip::tcp::socket socket_;
+    boost::asio::streambuf data_;
+  };
+
+The `streambuf` data member serves as a place to store the data that has been
+read from the socket before it is searched for the delimiter. It is important
+to remember that there may be additional data ['after] the delimiter. This
+surplus data should be left in the `streambuf` so that it may be inspected by a
+subsequent call to `read_until()` or `async_read_until()`.
+
+The delimiters may be specified as a single `char`, a `std::string` or a
+`boost::regex`. The `read_until()` and `async_read_until()` functions also
+include overloads that accept a user-defined function object called a match
+condition. For example, to read data into a streambuf until whitespace is
+encountered:
+
+  typedef boost::asio::buffers_iterator<
+      boost::asio::streambuf::const_buffers_type> iterator;
+
+  std::pair<iterator, bool>
+  match_whitespace(iterator begin, iterator end)
+  {
+    iterator i = begin;
+    while (i != end)
+      if (std::isspace(*i++))
+        return std::make_pair(i, true);
+    return std::make_pair(i, false);
+  }
+  ...
+  boost::asio::streambuf b;
+  boost::asio::read_until(s, b, match_whitespace);
+
+To read data into a streambuf until a matching character is found:
+
+  class match_char
+  {
+  public:
+    explicit match_char(char c) : c_(c) {}
+
+    template <typename Iterator>
+    std::pair<Iterator, bool> operator()(
+        Iterator begin, Iterator end) const
+    {
+      Iterator i = begin;
+      while (i != end)
+        if (c_ == *i++)
+          return std::make_pair(i, true);
+      return std::make_pair(i, false);
+    }
+
+  private:
+    char c_;
+  };
+
+  namespace boost { namespace asio {
+    template <> struct is_match_condition<match_char>
+      : public boost::true_type {};
+  } } // namespace boost::asio
+  ...
+  boost::asio::streambuf b;
+  boost::asio::read_until(s, b, match_char('a'));
+
+The `is_match_condition<>` type trait automatically evaluates to true for
+functions, and for function objects with a nested `result_type` typedef. For
+other types the trait must be explicitly specialised, as shown above.
+
+[heading See Also]
+
+[link boost_asio.reference.async_read_until async_read_until()],
+[link boost_asio.reference.is_match_condition is_match_condition],
+[link boost_asio.reference.read_until read_until()],
+[link boost_asio.reference.streambuf streambuf],
+[link boost_asio.examples.cpp03_examples.http_client HTTP client example].
+
+[endsect]

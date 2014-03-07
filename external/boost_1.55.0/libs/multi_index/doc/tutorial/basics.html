@@ -1,0 +1,1253 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Tutorial - Basics</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="index.html">
+<link rel="up" href="index.html">
+<link rel="next" href="indices.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Tutorial: Basics</h1>
+
+<div class="prev_link"><a href="index.html"><img src="../prev.gif" alt="Boost.MultiIndex tutorial" border="0"><br>
+Boost.MultiIndex tutorial
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex tutorial" border="0"><br>
+Boost.MultiIndex tutorial
+</a></div>
+<div class="next_link"><a href="indices.html"><img src="../next.gif" alt="index types" border="0"><br>
+Index types
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#intro">Introduction</a>
+    <ul>
+      <li><a href="#multiple_sort">Multiple sorts on a single set</a></li>
+      <li><a href="#list_fast_lookup">A bidirectional list with fast lookup</a></li>
+    </ul>
+  </li>
+  <li><a href="#index_spec">Index specification</a></li>
+  <li><a href="#tagging">Tagging</a></li>
+  <li><a href="#iterator_access">Iterator access</a></li>
+  <li><a href="#index_types">Index types</a>
+    <ul>
+      <li><a href="#ord_indices">Ordered indices</a>
+        <ul>
+          <li><a href="#unique_non_unique">Unique and non-unique variants</a></li>
+          <li><a href="#ord_spec">Specification</a></li>
+          <li><a href="#key_extraction">Key extraction</a></li>
+          <li><a href="#comparison_predicates">Comparison predicates</a></li>
+          <li><a href="#special_lookup">Special lookup operations</a></li>
+          <li><a href="#range">Retrieval of ranges</a></li>
+          <li><a href="#ord_updating">Updating</a></li>
+        </ul>
+      </li>
+      <li><a href="#seq_indices">Sequenced indices</a>
+        <ul>
+          <li><a href="#seq_spec">Specification</a></li>
+          <li><a href="#list_ops">List operations</a></li>
+          <li><a href="#seq_updating">Updating</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#projection">Projection of iterators</a></li>
+  <li><a href="#complexity">Complexity and exception safety</a></li>
+</ul>
+
+<h2><a name="intro">Introduction</a></h2>
+
+<p>
+We introduce the main concepts of Boost.MultiIndex through the study of
+two typical use cases.
+</p>
+
+<h3><a name="multiple_sort">Multiple sorts on a single set</a></h3>
+
+<p>
+STL sets and multisets are varying-length containers where elements are efficiently
+sorted according to a given comparison predicate. These container classes fall short
+of functionality when the programmer wishes to efficiently sort and look up the elements
+following a different sorting criterion. Consider for instance:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>employee</span>
+<span class=special>{</span>
+  <span class=keyword>int</span>         <span class=identifier>id</span><span class=special>;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>name</span><span class=special>;</span>
+
+  <span class=identifier>employee</span><span class=special>(</span><span class=keyword>int</span> <span class=identifier>id</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>name</span><span class=special>):</span><span class=identifier>id</span><span class=special>(</span><span class=identifier>id</span><span class=special>),</span><span class=identifier>name</span><span class=special>(</span><span class=identifier>name</span><span class=special>){}</span>
+
+  <span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>&lt;(</span><span class=keyword>const</span> <span class=identifier>employee</span><span class=special>&amp;</span> <span class=identifier>e</span><span class=special>)</span><span class=keyword>const</span><span class=special>{</span><span class=keyword>return</span> <span class=identifier>id</span><span class=special>&lt;</span><span class=identifier>e</span><span class=special>.</span><span class=identifier>id</span><span class=special>;}</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>The fact that IDs are unique to each employee is reflected by the way
+<code>operator&lt;</code> is defined, so a natural data structure for storing of
+<code>employee</code>s is just a <code>std::set&lt;employee></code>. Now,
+if one wishes to print out a listing of all employees in alphabetical order, available
+solutions may have disadvantages either in terms of storage space, complexity or ease
+of maintenance:
+<ul>
+<li>Copy the employee set into a vector or similar and sort this by a comparison
+functor dependent upon <code>employee::name</code>.
+<li>Keep a secondary data structure of pointers to the elements of the set, appropriately
+sorted by name.
+</ul>
+Of these, probably the second solution will be the one adopted by most programmers
+concerned about efficiency, but it imposes the annoying burden of keeping the two
+structures in sync. If the code is additionally required to be exception-safe, this
+construct easily becomes unmaintainable.
+</p>
+
+<p>
+Boost.MultiIndex features <a href="#ord_indices"><i>ordered indices</i></a>, which
+sort the elements according to a particular key, and are designed to help programmers
+in need of sequences of elements for which <i>more than one</i> sorting criteria are
+relevant. We do so by defining a <code>multi_index_container</code>
+instantiation composed of several ordered indices: each index, viewed in isolation,
+behaves much as an ordered <code>std::set</code> (or <code>std::multiset</code>), whilst
+the overall integrity of the entire data structure is preserved. Our example problem
+thus can be solved with Boost.MultiIndex as follows:
+</p>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index_container</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>ordered_index</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>identity</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>member</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=comment>// define a multiply indexed set with indices by id and name</span>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>employee</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=comment>// sort by employee::operator&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    
+    <span class=comment>// sort by less&lt;string&gt; on name</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span> 
+<span class=special>&gt;</span> <span class=identifier>employee_set</span><span class=special>;</span>
+
+<span class=keyword>void</span> <span class=identifier>print_out_by_name</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>employee_set</span><span class=special>&amp;</span> <span class=identifier>es</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=comment>// get a view to index #1 (name)</span>
+  <span class=keyword>const</span> <span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>nth_index</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;::</span><span class=identifier>type</span><span class=special>&amp;</span> <span class=identifier>name_index</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;();</span>
+  <span class=comment>// use name_index as a regular std::set</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>copy</span><span class=special>(</span>
+    <span class=identifier>name_index</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>name_index</span><span class=special>.</span><span class=identifier>end</span><span class=special>(),</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>ostream_iterator</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;(</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>cout</span><span class=special>));</span>
+<span class=special>}</span>
+</pre></blockquote>
+
+<p>
+Instead of a single comparison predicate type, as it happens for STL associative
+containers, <code>multi_index_container</code> is passed a 
+<a href="../reference/multi_index_container.html#multi_index_container">list</a> of index
+specifications (<code>indexed_by</code>), each one inducing the corresponding index.
+Indices are accessed via
+<a href="../reference/multi_index_container.html#index_retrieval"><code>get</code></a><code>&lt;N>()</code>
+where <i>N</i> ranges between 0 and the number of comparison
+predicates minus one. The functionality of index #0 can be accessed directly from a
+<code>multi_index_container</code> object without using <code>get&lt;0>()</code>: for instance,
+<code>es.begin()</code> is equivalent to <code>es.get&lt;0>().begin()</code>.
+</p>
+
+<p>
+Note that <code>get</code> returns a <i>reference</i> to the index, and not
+an index object. Indices cannot be constructed as separate objects from the
+container they belong to, so the following
+</p>
+
+<blockquote><pre>
+<span class=comment>// Wrong: we forgot the &amp; after employee_set::nth_index&lt;1&gt;::type</span>
+<span class=keyword>const</span> <span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>nth_index</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;::</span><span class=identifier>type</span> <span class=identifier>name_index</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;();</span>
+</pre></blockquote>
+
+<p>
+does not compile, since it is trying to construct the index object
+<code>name_index</code>. This is a common source of errors in user code.
+</p>
+
+<h3><a name="list_fast_lookup">A bidirectional list with fast lookup</a></h3>
+
+<p>
+This study case allows us to introduce so-called
+<a href="#seq_indices"><i>sequenced indices</i></a>, and how they
+interact with ordered indices to construct powerful containers. Suppose
+we have a text parsed into words and stored in a list like this:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>list</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span> <span class=identifier>text_container</span><span class=special>;</span>
+
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>text</span><span class=special>=</span>
+  <span class=string>&quot;Alice was beginning to get very tired of sitting by her sister on the &quot;</span>
+  <span class=string>&quot;bank, and of having nothing to do: once or twice she had peeped into the &quot;</span>
+  <span class=string>&quot;book her sister was reading, but it had no pictures or conversations in &quot;</span>
+  <span class=string>&quot;it, 'and what is the use of a book,' thought Alice 'without pictures or &quot;</span>
+  <span class=string>&quot;conversation?'&quot;</span><span class=special>;</span>
+
+<span class=comment>// feed the text into the list</span>
+<span class=identifier>text_container</span> <span class=identifier>tc</span><span class=special>;</span>
+<span class=identifier>boost</span><span class=special>::</span><span class=identifier>tokenizer</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>char_separator</span><span class=special>&lt;</span><span class=keyword>char</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>tok</span>
+  <span class=special>(</span><span class=identifier>text</span><span class=special>,</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>char_separator</span><span class=special>&lt;</span><span class=keyword>char</span><span class=special>&gt;(</span><span class=string>&quot; \t\n.,;:!?'\&quot;-&quot;</span><span class=special>));</span>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>copy</span><span class=special>(</span><span class=identifier>tok</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>tok</span><span class=special>.</span><span class=identifier>end</span><span class=special>(),</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>back_inserter</span><span class=special>(</span><span class=identifier>tc</span><span class=special>));</span>
+</pre></blockquote>
+
+<p>
+If we want to count the occurrences of a given word into the text we will resort
+to <code>std::count</code>:
+</p>
+
+<blockquote><pre>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>size_t</span> <span class=identifier>occurrences</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>word</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=keyword>return</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>count</span><span class=special>(</span><span class=identifier>tc</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>tc</span><span class=special>.</span><span class=identifier>end</span><span class=special>(),</span><span class=identifier>word</span><span class=special>);</span>
+<span class=special>}</span>
+</pre></blockquote>
+
+<p>
+But this implementation of <code>occurrences</code> performs in linear time, which
+could be unacceptable for large quantities of text. Similarly, other operations like
+deletion of selected words are just too costly to carry out on a
+<code>std::list</code>:
+</p>
+
+<blockquote><pre>
+<span class=keyword>void</span> <span class=identifier>delete_word</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>word</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=identifier>tc</span><span class=special>.</span><span class=identifier>remove</span><span class=special>(</span><span class=identifier>word</span><span class=special>);</span> <span class=comment>// scans the entire list looking for word</span>
+<span class=special>}</span>
+</pre></blockquote>
+
+<p>
+When performance is a concern, we will need an additional data structure that indexes
+the elements in <code>tc</code>, presumably in alphabetical order. Boost.MultiIndex
+does precisely this through the combination of sequenced and ordered indices:
+</p>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index_container</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>sequenced_index</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>ordered_index</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index</span><span class=special>/</span><span class=identifier>identity</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=comment>// define a multi_index_container with a list-like index and an ordered index</span>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>sequenced</span><span class=special>&lt;&gt;,</span> <span class=comment>// list-like index</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=comment>// words by alphabetical order</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>text_container</span><span class=special>;</span>
+
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>text</span><span class=special>=...</span>
+
+<span class=comment>// feed the text into the list</span>
+<span class=identifier>text_container</span> <span class=identifier>tc</span><span class=special>;</span>
+<span class=identifier>boost</span><span class=special>::</span><span class=identifier>tokenizer</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>char_separator</span><span class=special>&lt;</span><span class=keyword>char</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>tok</span>
+  <span class=special>(</span><span class=identifier>text</span><span class=special>,</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>char_separator</span><span class=special>&lt;</span><span class=keyword>char</span><span class=special>&gt;(</span><span class=string>&quot; \t\n.,;:!?'\&quot;-&quot;</span><span class=special>));</span>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>copy</span><span class=special>(</span><span class=identifier>tok</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>tok</span><span class=special>.</span><span class=identifier>end</span><span class=special>(),</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>back_inserter</span><span class=special>(</span><span class=identifier>tc</span><span class=special>));</span>
+</pre></blockquote>
+
+<p>
+So far, the substitution of <code>multi_index_container</code> for <code>std::list</code>
+does not show any advantage. The code for inserting the text into the container
+does not change as sequenced indices provide an interface similar to that of
+<code>std::list</code> (no explicit access to this index through
+<code>get&lt;0>()</code> is needed as <code>multi_index_container</code> inherits the
+functionality of index #0.) But the specification of an additional ordered index
+allows us to implement <code>occurrences</code> and <code>delete_word</code>
+in a much more efficient manner:
+</p>
+
+<blockquote><pre>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>size_t</span> <span class=identifier>occurrences</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>word</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=comment>// get a view to index #1</span>
+  <span class=identifier>text_container</span><span class=special>::</span><span class=identifier>nth_index</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;::</span><span class=identifier>type</span><span class=special>&amp;</span> <span class=identifier>sorted_index</span><span class=special>=</span><span class=identifier>tc</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;();</span>
+
+  <span class=comment>// use sorted_index as a regular std::set</span>
+  <span class=keyword>return</span> <span class=identifier>sorted_index</span><span class=special>.</span><span class=identifier>count</span><span class=special>(</span><span class=identifier>word</span><span class=special>);</span>
+<span class=special>}</span>
+
+<span class=keyword>void</span> <span class=identifier>delete_word</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>word</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=comment>// get a view to index #1</span>
+  <span class=identifier>text_container</span><span class=special>::</span><span class=identifier>nth_index</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;::</span><span class=identifier>type</span><span class=special>&amp;</span> <span class=identifier>sorted_index</span><span class=special>=</span><span class=identifier>tc</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;();</span>
+
+  <span class=comment>// use sorted_index as a regular std::set</span>
+  <span class=identifier>sorted_index</span><span class=special>.</span><span class=identifier>erase</span><span class=special>(</span><span class=identifier>word</span><span class=special>);</span>
+<span class=special>}</span>
+</pre></blockquote>
+
+<p>
+Now, <code>occurrences</code> and <code>delete_word</code> have logarithmic
+complexity. The programmer can use index #0 for accessing the text as with
+<code>std::list</code>, and use index #1 when logarithmic lookup is needed.
+</p>
+
+<h2>
+<a name="index_spec">Index specification</a>
+</h2>
+
+<p>
+The indices of a <code>multi_index_container</code> instantiation are specified by
+means of the <a href="../reference/indices.html#indexed_by">
+<code>indexed_by</code></a> construct. For instance, the instantiation
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>employee</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span> 
+<span class=special>&gt;</span> <span class=identifier>employee_set</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+is comprised of a <a href="#unique_non_unique">unique ordered index</a> and a
+<a href="#unique_non_unique">non-unique ordered index</a>, while in
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>sequenced</span><span class=special>&lt;&gt;,</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>text_container</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+we specifiy two indices, the first of <a href="#seq_indices">sequenced type</a>,
+the second a non-unique <a href="#ord_indices">ordered index</a>. In general, we
+can specify an arbitrary number of indices: each of the arguments of
+<code>indexed_by</code> is called an
+<a href="../reference/indices.html#index_specification"><i>index specifier</i></a>.
+Depending on the type of index being specified, the corresponding specifier
+will need additional information: for instance, the specifiers <code>ordered_unique</code>
+and <code>ordered_non_unique</code> are provided with a
+<a href="#key_extraction">key extractor</a> and an optional
+<a href="#comparison_predicates">comparison predicate</a> which jointly indicate
+how the sorting of elements will be performed.
+</p>
+
+<p>
+A <code>multi_index_container</code> instantiation can be declared without supplying
+the <code>indexed_by</code> part: in this case, default index values are taken
+so that the resulting type is equivalent to a regular <code>std::set</code>.
+Concretely, the instantiation
+</p>
+
+<blockquote><pre>
+<span class=identifier>multi_index_container</span><span class=special>&lt;</span><i>(element)</i><span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+is equivalent to
+</p>
+
+<blockquote><pre>
+<span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <i>(element)</i><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;(</span><span class=identifier>element</span><span class=special>)&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+
+<h2><a name="tagging">Tagging</a></h2>
+
+<p>
+In order to retrieve (a reference to) an index of a given <code>multi_index_container</code>,
+the programmer must provide its order number, which is cumbersome and not very
+self-descriptive. Optionally, indices can be assigned <i>tags</i> (C++ types) that
+act as more convenient mnemonics. If provided, tags must be passed as the
+first parameter of the corresponding index specifier. The following is a revised version of
+<code>employee_set</code> with inclusion of tags:
+</p>
+
+<blockquote><pre>
+<span class=comment>// tags</span> 
+<span class=keyword>struct</span> <span class=identifier>name</span><span class=special>{};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>employee</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>tag</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;,</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>employee_set</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+Tags have to be passed inside the <a href="../reference/indices.html#tag"><code>tag</code></a>
+construct. Any type can be used as a tag for an index, although in general one will choose
+names that are descriptive of the index they are associated with. The tagging mechanism allows
+us to write expressions like</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>index</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;::</span><span class=identifier>type</span> <span class=identifier>employee_set_by_name</span><span class=special>;</span>
+<span class=identifier>employee_set_by_name</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;().</span><span class=identifier>begin</span><span class=special>();</span>
+</pre></blockquote>
+
+<p>
+If no tag is provided for an index (as is the case for index #0 of the previous
+example), access to that index can only be performed by number. Note the existence
+of two different <code>typedef</code>s <code>nth_index</code> and
+<code>index</code> for referring to an index by number and by tag, respectively;
+for instance,
+<ul>
+  <li><code>employee_set::nth_index&lt;1>::type</code> is the type of
+    index #1,</li>
+  <li><code>employee_set::index&lt;name>::type</code> is the type of the index
+    tagged with <code>name</code> (the same index #1 in this case.)</li>
+</ul>
+<code>get()</code>, on the other hand, is overloaded to serve both styles of access:
+</p>
+
+<blockquote><pre>
+<span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>index</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;::</span><span class=identifier>type</span><span class=special>&amp;</span> <span class=identifier>name_index</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;();</span>
+<span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>nth_index</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;::</span><span class=identifier>type</span><span class=special>&amp;</span> <span class=identifier>name_index2</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;();</span> <span class=comment>// same index</span>
+</pre></blockquote>
+
+<p>
+Additionally, the <code>tag</code> class template accepts several tags for one
+index, that we can use interchangeably: for instance, the specification of index #1
+in the previous example can be rewritten to hold two different tags
+<code>name</code> and <code>by_name</code>:
+</p>
+
+<blockquote><pre>
+<span class=comment>// tags</span>
+<span class=keyword>struct</span> <span class=identifier>name</span><span class=special>{};</span>
+<span class=keyword>struct</span> <span class=identifier>by_name</span><span class=special>{};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=special>...</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span>
+      <span class=identifier>tag</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>,</span><span class=identifier>by_name</span><span class=special>&gt;,</span>
+      <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span>
+    <span class=special>&gt;</span>
+  <span class=special>...</span>
+<span class=special>&gt;</span> <span class=identifier>employee_set</span><span class=special>;</span>
+</pre></blockquote>
+
+<h2><a name="iterator_access">Iterator access</a></h2>
+
+<p>
+Each index of a <code>multi_index_container</code> uses its own
+iterator types, which are different from those of another indices. As is
+the rule with STL containers, these iterators are defined as nested
+types of the index:
+</p>
+
+<blockquote><pre>
+<span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>nth_index</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;::</span><span class=identifier>type</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it</span><span class=special>=</span>
+  <span class=identifier>es</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;().</span><span class=identifier>find</span><span class=special>(</span><span class=string>&quot;Judy Smith&quot;</span><span class=special>);</span>
+</pre></blockquote>
+
+<p>
+This kind of expressions can be rendered more readable by
+means of user-defined <code>typedef</code>s:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>nth_index</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;::</span><span class=identifier>type</span> <span class=identifier>employee_set_by_name</span><span class=special>;</span>
+<span class=identifier>employee_set_by_name</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it</span><span class=special>=</span>
+  <span class=identifier>es</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;().</span><span class=identifier>find</span><span class=special>(</span><span class=string>&quot;Judy Smith&quot;</span><span class=special>);</span>
+</pre></blockquote>
+
+<h2>
+<a name="index_types">Index types</a>
+</h2>
+
+<p>
+Currently, Boost.MultiIndex provides the following index types:
+<ul>
+  <li>Ordered indices sort the elements like <code>std::set</code>s do and
+    provide a similar interface. There are <i>unique</i> and <i>non-unique</i>
+    variants: the former do not allow for duplicates, while the latter permit
+    them (like <code>std::multiset</code>.)</li>
+  <li>Sequenced indices are modeled after the semantics and interface of
+    <code>std::list</code>: they arrange the elements as if in a bidirectional
+    list.</li>
+  <li>Hashed indices provide fast access to the elements through hashing
+    tecnhiques, in a similar way as non-standard <code>hash_set</code>s provided
+    by some vendors. Recently, <i>unordered associative containers</i> have been
+    proposed as part of an extension of the C++ standard library known
+    in the standardization commitee as TR1. Hashed indices closely model this
+    proposal.</li>
+  <li>Random access indices provide an interface similar to that of
+    sequenced indices, and additionally feature random access iterators
+    and positional access to the elements.</li>
+</ul>
+The examples in the <a href="#intro">introduction</a> exercise ordered and sequenced
+indices, which are the most commonly used; the other kinds of indices are presented
+in the <a href="indices.html">index types</a> section of the tutorial.
+</p>
+
+<h3>
+<a name="ord_indices">Ordered indices</a>
+</h3>
+
+<p>
+Ordered indices sort the elements in a <code>multi_index_container</code> according
+to a specified key and an associated comparison predicate. These indices can
+be viewed as analogues of the standard container <code>std::set</code>, and in fact
+they do replicate its interface, albeit with some minor differences dictated
+by the general constraints of Boost.MultiIndex.
+</p>
+
+<h4>
+<a name="unique_non_unique">Unique and non-unique variants</a>
+</h4>
+
+<p>
+Ordered indices are classified into <i>unique</i>, which prohibit two
+elements to have the same key value, and <i>non-unique</i> indices,
+which allow for duplicates. Consider again the definition
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>employee</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span> 
+<span class=special>&gt;</span> <span class=identifier>employee_set</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+In this instantiation of <code>multi_index_container</code>, the first index is to be
+treated as unique (since IDs are exclusive to each employee) and thus is declared using
+<code>ordered_unique</code>, whereas the second index is non-unique (as the possibility exists
+that say two John Smiths are hired in the same company), which is specified by the use
+of <code>ordered_non_unique</code>.
+</p>
+
+<p>
+The classification of ordered indices in unique and non-unique has an impact on which
+elements are allowed to be inserted into a given <code>multi_index_container</code>; briefly put,
+unique ordered indices mimic the behavior of <code>std::set</code>s while non-unique
+ordered indices are similar to <code>std::multiset</code>s. For instance, an
+<code>employee_set</code> can hold the objects <code>employee(0,"George Brown")</code>
+and <code>employee(1,"George Brown")</code>, but will not accept the insertion of an
+<code>employee</code> object whose ID coincides with that of some previously inserted
+employee.
+</p>
+
+<p>
+More than one unique index can be specified. For instance, if we augment
+<code>employee</code> to include an additional member for the Social Security number,
+which is reasonably treated as unique, the following captures this design:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>employee</span>
+<span class=special>{</span>
+  <span class=keyword>int</span>         <span class=identifier>id</span><span class=special>;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>name</span><span class=special>;</span>
+  <span class=keyword>int</span>         <span class=identifier>ssnumber</span><span class=special>;</span>
+
+  <span class=identifier>employee</span><span class=special>(</span><span class=keyword>int</span> <span class=identifier>id</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>name</span><span class=special>,</span><span class=keyword>int</span> <span class=identifier>ssnumber</span><span class=special>):</span>
+    <span class=identifier>id</span><span class=special>(</span><span class=identifier>id</span><span class=special>),</span><span class=identifier>name</span><span class=special>(</span><span class=identifier>name</span><span class=special>),</span><span class=identifier>ssnumber</span><span class=special>(</span><span class=identifier>ssnumber</span><span class=special>){}</span>
+
+  <span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>&lt;(</span><span class=keyword>const</span> <span class=identifier>employee</span><span class=special>&amp;</span> <span class=identifier>e</span><span class=special>)</span><span class=keyword>const</span><span class=special>{</span><span class=keyword>return</span> <span class=identifier>id</span><span class=special>&lt;</span><span class=identifier>e</span><span class=special>.</span><span class=identifier>id</span><span class=special>;}</span>
+<span class=special>};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>employee</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=comment>// sort by employee::operator&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    
+    <span class=comment>// sort by less&lt;string&gt; on name</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    
+    <span class=comment>// sort by less&lt;int&gt; on ssnumber</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=keyword>int</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>ssnumber</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>employee_set</span><span class=special>;</span>
+</pre></blockquote>
+
+<h4>
+<a name="ord_spec">Specification</a>
+</h4>
+
+<p>
+Ordered index specifiers in <code>indexed_by</code> must conform to one of the 
+following syntaxes:
+</p>
+
+<blockquote><pre>
+<span class=special>(</span><span class=identifier>ordered_unique</span> <span class=special>|</span> <span class=identifier>ordered_non_unique</span><span class=special>)
+  </span><span class=special>&lt;[</span><i>(tag)</i><span class=special>[,</span><i>(key extractor)</i><span class=special>[,</span><i>(comparison predicate)</i><span class=special>]]]&gt;</span>
+
+<span class=special>(</span><span class=identifier>ordered_unique</span> <span class=special>|</span> <span class=identifier>ordered_non_unique</span><span class=special>)</span>
+  <span class=special>&lt;[</span><i>(key extractor)</i><span class=special>[,</span><i>(comparison predicate)</i><span class=special>]]&gt;</span>
+</pre></blockquote>
+
+<p>
+The first optional argument is used if <a href="#tagging">tags</a> are associated
+with the index. We now proceed to briefly discuss the remaining arguments
+of an ordered index specifier.
+</p>
+
+<h4>
+<a name="key_extraction">Key extraction</a>
+</h4>
+
+<p>
+The first template parameter (or the second, if tags are supplied)
+in the specification of an ordered index provides a <i>key extraction</i> predicate.
+This predicate takes a whole element (in our example, a reference to an
+<code>employee</code> object) and returns the piece of information by which
+the sorting is performed. In most cases, one of the following two situations arises:
+<ul>
+<li>The whole element serves as the key, as is the case of the first index
+in <code>employee_set</code>. The predefined
+<a href="key_extraction.html#identity"><code>identity</code></a> predicate
+can be used here as a key extractor; <code>identity</code> returns as the key the
+same object passed as argument.</li>
+<li>The comparison is performed on a particular data member of the element; this
+closely follows the specification of indices on a column of a table in relational
+databases. Boost.MultiIndex provides
+<a href="key_extraction.html#member"><code>member</code></a>, which returns
+as the key a member of the element specified by a given pointer.</li>
+</ul>
+As an example, consider again the definition of <code>employee_set</code>. The
+definition of the first index:
+</p>
+
+<blockquote><pre>
+<span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+specifies by means of <code>identity</code> that <code>element</code>
+objects themselves serve as key for this index. On the other hand, in the second
+index:
+</p>
+
+<blockquote><pre>
+<span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+we use <code>member</code> to extract the <code>name</code> part of the
+<code>employee</code> object. The key type of this index is then
+<code>std::string</code>.
+</p>
+
+<p>
+Apart from <code>identity</code> and <code>member</code>, Boost.MultiIndex provides
+several other predefined key extractors and powerful ways to combine them.
+Key extractors can also be defined by the user.
+Consult the <a href="key_extraction.html">key extraction section</a> of
+the tutorial for a more detailed exposition of this topic.
+</p>
+
+<h4><a name="comparison_predicates">Comparison predicates</a></h4>
+
+<p>
+The last part of the specification of an ordered index is the associated
+<i>comparison predicate</i>, which must order the keys in a less-than fashion.
+These comparison predicates are not different from those used by STL containers like
+<code>std::set</code>. By default (i.e. if no comparison predicate is provided),
+an index with keys of type <code>key_type</code> sorts the elements by
+<code>std::less&lt;key_type></code>. Should other comparison criteria be needed,
+they can be specified as an additional parameter in the index declaration:
+</p>
+
+<blockquote><pre>
+<span class=comment>// define a multiply indexed set with indices by id and by name
+// in reverse alphabetical order</span>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=identifier>employee</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;</span> <span class=special>&gt;,</span> <span class=comment>// as usual</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span>
+      <span class=identifier>member</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,&amp;</span><span class=identifier>employee</span><span class=special>::</span><span class=identifier>name</span><span class=special>&gt;,</span>
+      <span class=identifier>std</span><span class=special>::</span><span class=identifier>greater</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span>  <span class=comment>// default would be std::less&lt;std::string&gt;</span>
+    <span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>employee_set</span><span class=special>;</span>
+</pre></blockquote>
+
+<h4><a name="special_lookup">Special lookup operations</a></h4>
+
+<p>
+A given ordered index allows for lookup based on its key type, rather than the
+whole element. For instance, to find Veronica Cruz in an
+<code>employee_set</code> one would write:
+</p>
+
+<blockquote><pre>
+<span class=identifier>employee_set</span> <span class=identifier>es</span><span class=special>;</span>
+<span class=special>...</span>
+<span class=keyword>typedef</span> <span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>index</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;::</span><span class=identifier>type</span> <span class=identifier>employee_set_by_name</span><span class=special>;</span>
+<span class=identifier>employee_set_by_name</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;().</span><span class=identifier>find</span><span class=special>(</span><span class=string>&quot;Veronica Cruz&quot;</span><span class=special>);</span>
+</pre></blockquote>
+
+<p>As a plus, Boost.MultiIndex provides lookup operations accepting search keys
+different from the <code>key_type</code> of the index, which is a specially useful
+facility when <code>key_type</code> objects  are expensive to create. Ordered STL containers
+fail to provide this functionality, which often leads to inelegant workarounds: consider for
+instance the problem of determining the employees whose IDs fall in the range [0,100]. Given
+that the key of <code>employee_set</code> index #0
+is <code>employee</code> itself, on a first approach one would write the following:
+</p>
+
+<blockquote><pre>
+<span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>p0</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>lower_bound</span><span class=special>(</span><span class=identifier>employee</span><span class=special>(</span><span class=number>0</span><span class=special>,</span><span class=string>&quot;&quot;</span><span class=special>));</span>
+<span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>p1</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>upper_bound</span><span class=special>(</span><span class=identifier>employee</span><span class=special>(</span><span class=number>100</span><span class=special>,</span><span class=string>&quot;&quot;</span><span class=special>));</span>
+</pre></blockquote>
+
+<p>
+Note however that <code>std::less&lt;employee></code> actually only depends
+on the IDs of the employees, so it would be more convenient to avoid
+the creation of entire <code>employee</code> objects just for the sake of
+their IDs. Boost.MultiIndex allows for this: define an appropriate
+comparison predicate
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>comp_id</span>
+<span class=special>{</span>
+  <span class=comment>// compare an ID and an employee</span>
+  <span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>()(</span><span class=keyword>int</span> <span class=identifier>x</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>employee</span><span class=special>&amp;</span> <span class=identifier>e2</span><span class=special>)</span><span class=keyword>const</span><span class=special>{</span><span class=keyword>return</span> <span class=identifier>x</span><span class=special>&lt;</span><span class=identifier>e2</span><span class=special>.</span><span class=identifier>id</span><span class=special>;}</span>
+
+  <span class=comment>// compare an employee and an ID</span>
+  <span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>()(</span><span class=keyword>const</span> <span class=identifier>employee</span><span class=special>&amp;</span> <span class=identifier>e1</span><span class=special>,</span><span class=keyword>int</span> <span class=identifier>x</span><span class=special>)</span><span class=keyword>const</span><span class=special>{</span><span class=keyword>return</span> <span class=identifier>e1</span><span class=special>.</span><span class=identifier>id</span><span class=special>&lt;</span><span class=identifier>x</span><span class=special>;}</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>and now write the search as</p>
+
+<blockquote><pre>
+<span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>p0</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>lower_bound</span><span class=special>(</span><span class=number>0</span><span class=special>,</span><span class=identifier>comp_id</span><span class=special>());</span>
+<span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>p1</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>upper_bound</span><span class=special>(</span><span class=number>100</span><span class=special>,</span><span class=identifier>comp_id</span><span class=special>());</span>
+</pre></blockquote>
+
+<p>
+Here we are not only passing IDs instead of <code>employee</code> objects:
+an alternative comparison predicate is passed as well. In general, lookup operations
+of ordered indices are overloaded to accept
+<a href="../reference/ord_indices.html#set_operations"><i>compatible sorting
+criteria</i></a>. The somewhat cumbersone definition of compatibility in this context
+is given in the reference, but roughly speaking we say that a comparison predicate
+<code>C1</code> is compatible with <code>C2</code> if any sequence sorted by
+<code>C2</code> is also sorted with respect to <code>C1</code>.
+The following shows a more interesting use of compatible predicates:
+</p>
+
+<blockquote><pre>
+<span class=comment>// sorting by name's initial</span>
+<span class=keyword>struct</span> <span class=identifier>comp_initial</span>
+<span class=special>{</span>
+  <span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>()(</span><span class=keyword>char</span> <span class=identifier>ch</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>s</span><span class=special>)</span><span class=keyword>const</span><span class=special>{</span>
+    <span class=keyword>if</span><span class=special>(</span><span class=identifier>s</span><span class=special>.</span><span class=identifier>empty</span><span class=special>())</span><span class=keyword>return</span> <span class=keyword>false</span><span class=special>;</span>
+    <span class=keyword>return</span> <span class=identifier>ch</span><span class=special>&lt;</span><span class=identifier>s</span><span class=special>[</span><span class=number>0</span><span class=special>];</span>
+  <span class=special>}</span>
+
+  <span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>()(</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>s</span><span class=special>,</span><span class=keyword>char</span> <span class=identifier>ch</span><span class=special>)</span><span class=keyword>const</span><span class=special>{</span>
+    <span class=keyword>if</span><span class=special>(</span><span class=identifier>s</span><span class=special>.</span><span class=identifier>empty</span><span class=special>())</span><span class=keyword>return</span> <span class=keyword>true</span><span class=special>;</span>
+    <span class=keyword>return</span> <span class=identifier>s</span><span class=special>[</span><span class=number>0</span><span class=special>]&lt;</span><span class=identifier>ch</span><span class=special>;</span>
+  <span class=special>}</span>
+<span class=special>};</span>
+
+<span class=comment>// obtain first employee whose name begins with 'J' (ordered by name)</span>
+<span class=keyword>typedef</span> <span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>index</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;::</span><span class=identifier>type</span> <span class=identifier>employee_set_by_name</span><span class=special>;</span>
+<span class=identifier>employee_set_by_name</span><span class=special>&amp;</span> <span class=identifier>name_index</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;();</span> 
+<span class=identifier>employee_set_by_name</span><span class=special>::</span><span class=identifier>const_iterator</span> <span class=identifier>it</span><span class=special>=</span>
+  <span class=identifier>name_index</span><span class=special>.</span><span class=identifier>lower_bound</span><span class=special>(</span><span class=literal>'J'</span><span class=special>,</span><span class=identifier>comp_initial</span><span class=special>());</span>
+</pre></blockquote>
+
+<h4><a name="range">Retrieval of ranges</a></h4>
+
+<p>
+Range searching, i.e. the lookup of all elements in a given interval, is a very
+frequent operation for which standard <code>lower_bound</code> and
+<code>upper_bound</code> can be resorted to, though in a cumbersome manner.
+For instance, the following code retrieves the elements of an
+<code>multi_index_container&lt;double></code> in the interval [100,200]:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span><span class=keyword>double</span><span class=special>&gt;</span> <span class=identifier>double_set</span><span class=special>;</span>
+<span class=comment>// note: default template parameters resolve to
+// multi_index_container&lt;double,indexed_by&lt;unique&lt;identity&lt;double&gt; &gt; &gt; &gt;.</span>
+
+<span class=identifier>double_set</span> <span class=identifier>s</span><span class=special>;</span>
+<span class=special>...</span>
+<span class=identifier>double_set</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it0</span><span class=special>=</span><span class=identifier>s</span><span class=special>.</span><span class=identifier>lower_bound</span><span class=special>(</span><span class=number>100.0</span><span class=special>);</span>
+<span class=identifier>double_set</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it1</span><span class=special>=</span><span class=identifier>s</span><span class=special>.</span><span class=identifier>upper_bound</span><span class=special>(</span><span class=number>200.0</span><span class=special>);</span>
+<span class=comment>// range [it0,it1) contains the elements in [100,200]</span>
+</pre></blockquote>
+
+<p>
+Subtle changes to the code are required when strict inequalities are considered.
+To retrieve the elements <i>greater</i> than 100 and <i>less</i> than 200, the
+code has to be rewritten as
+</p>
+
+<blockquote><pre>
+<span class=identifier>double_set</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it0</span><span class=special>=</span><span class=identifier>s</span><span class=special>.</span><span class=identifier>upper_bound</span><span class=special>(</span><span class=number>100.0</span><span class=special>);</span>
+<span class=identifier>double_set</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it1</span><span class=special>=</span><span class=identifier>s</span><span class=special>.</span><span class=identifier>lower_bound</span><span class=special>(</span><span class=number>200.0</span><span class=special>);</span>
+<span class=comment>// range [it0,it1) contains the elements in (100,200)</span>
+</pre></blockquote>
+
+<p>
+To add to this complexity, the careful programmer has to take into account
+that the lower and upper bounds of the interval searched be compatible: for
+instance, if the lower bound is 200 and the upper bound is 100, the iterators
+<code>it0</code> and <code>it1</code> produced by the code above will be in reverse
+order, with possibly catastrophic results if a traversal from <code>it0</code>
+to <code>it1</code> is tried. All these details make range searching a tedious
+and error prone task.
+</p>
+
+<p>
+The <a href="../reference/ord_indices.html#range_operations"><code>range</code></a>
+member function, often in combination with
+<a href="../../../../libs/lambda/index.html">Boost.Lambda</a> expressions, can
+greatly help alleviate this situation:
+</p>
+
+<blockquote><pre>
+<span class=keyword>using</span> <span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>::</span><span class=identifier>lambda</span><span class=special>;</span>
+
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span><span class=keyword>double</span><span class=special>&gt;</span> <span class=identifier>double_set</span><span class=special>;</span>
+<span class=identifier>double_set</span> <span class=identifier>s</span><span class=special>;</span>
+<span class=special>...</span>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>pair</span><span class=special>&lt;</span><span class=identifier>double_set</span><span class=special>::</span><span class=identifier>iterator</span><span class=special>,</span><span class=identifier>double_set</span><span class=special>::</span><span class=identifier>iterator</span><span class=special>&gt;</span> <span class=identifier>p</span><span class=special>=</span>
+  <span class=identifier>s</span><span class=special>.</span><span class=identifier>range</span><span class=special>(</span><span class=number>100.0</span><span class=special>&lt;=</span><span class=identifier>_1</span><span class=special>,</span><span class=identifier>_1</span><span class=special>&lt;=</span><span class=number>200</span><span class=special>);</span> <span class=comment>// 100&lt;= x &lt;=200</span>
+<span class=special>...</span>
+<span class=identifier>p</span><span class=special>=</span><span class=identifier>s</span><span class=special>.</span><span class=identifier>range</span><span class=special>(</span><span class=number>100.0</span><span class=special>&lt;</span><span class=identifier>_1</span><span class=special>,</span><span class=identifier>_1</span><span class=special>&lt;</span><span class=number>200</span><span class=special>);</span>   <span class=comment>// 100&lt;  x &lt; 200</span>
+<span class=special>...</span>
+<span class=identifier>p</span><span class=special>=</span><span class=identifier>s</span><span class=special>.</span><span class=identifier>range</span><span class=special>(</span><span class=number>100.0</span><span class=special>&lt;=</span><span class=identifier>_1</span><span class=special>,</span><span class=identifier>_1</span><span class=special>&lt;</span><span class=number>200</span><span class=special>);</span>  <span class=comment>// 100&lt;= x &lt; 200</span>
+</pre></blockquote>
+
+<p>
+<code>range</code> simply accepts predicates specifying the lower and upper bounds
+of the interval searched. Please consult the reference for a detailed explanation
+of the permissible predicates passed to <code>range</code>.</p>
+
+<p>
+One or both bounds can be omitted with the special <code>unbounded</code> marker:
+</p>
+
+<blockquote><pre>
+<span class=identifier>p</span><span class=special>=</span><span class=identifier>s</span><span class=special>.</span><span class=identifier>range</span><span class=special>(</span><span class=number>100.0</span><span class=special>&lt;=</span><span class=identifier>_1</span><span class=special>,</span><span class=identifier>unbounded</span><span class=special>);</span> <span class=comment>// 100 &lt;= x</span>
+<span class=identifier>p</span><span class=special>=</span><span class=identifier>s</span><span class=special>.</span><span class=identifier>range</span><span class=special>(</span><span class=identifier>unbounded</span><span class=special>,</span><span class=identifier>_1</span><span class=special>&lt;</span><span class=number>200.0</span><span class=special>);</span>  <span class=comment>//   x &lt;  200</span>
+<span class=identifier>p</span><span class=special>=</span><span class=identifier>s</span><span class=special>.</span><span class=identifier>range</span><span class=special>(</span><span class=identifier>unbounded</span><span class=special>,</span><span class=identifier>unbounded</span><span class=special>);</span> <span class=comment>// equiv. to std::make_pair(s.begin(),s.end())</span>
+</pre></blockquote>
+
+<h4><a name="ord_updating">Updating</a></h4>
+
+<p>
+The <a href="../reference/ord_indices.html#replace"><code>replace</code></a> member function
+performs in-place replacement of a given element as the following example shows:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>index</span><span class=special>&lt;</span><span class=identifier>employee_set</span><span class=special>,</span><span class=identifier>name</span><span class=special>&gt;::</span><span class=identifier>type</span> <span class=identifier>employee_set_by_name</span><span class=special>;</span>
+<span class=identifier>employee_set_by_name</span><span class=special>&amp;</span> <span class=identifier>name_index</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;();</span>
+
+<span class=identifier>employee_set_by_name</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it</span><span class=special>=</span><span class=identifier>name_index</span><span class=special>.</span><span class=identifier>find</span><span class=special>(</span><span class=string>&quot;Anna Jones&quot;</span><span class=special>);</span>
+<span class=identifier>employee</span> <span class=identifier>anna</span><span class=special>=*</span><span class=identifier>it</span><span class=special>;</span>
+<span class=identifier>anna</span><span class=special>.</span><span class=identifier>name</span><span class=special>=</span><span class=string>&quot;Anna Smith&quot;</span><span class=special>;</span>      <span class=comment>// she just got married to Calvin Smith</span>
+<span class=identifier>name_index</span><span class=special>.</span><span class=identifier>replace</span><span class=special>(</span><span class=identifier>it</span><span class=special>,</span><span class=identifier>anna</span><span class=special>);</span> <span class=comment>// update her record</span>
+</pre></blockquote>
+
+<p>
+<code>replace</code> performs this substitution in such a manner that:
+<ul>
+<li>The complexity is constant time if the changed element retains its original
+order with respect to all indices; it is logarithmic otherwise.
+<li>Iterator and reference validity are preserved.
+<li>The operation is strongly exception-safe, i.e. the <code>multi_index_container</code>
+remains unchanged if some exception (originated by the system or the user's data
+types) is thrown.
+</ul>
+<code>replace</code> is a powerful operation not provided by standard STL
+containers, and one that is specially handy when strong exception-safety is
+required.
+</p>
+
+<p>
+The observant reader might have noticed that the convenience of <code>replace</code>
+comes at a cost: namely the whole element has to be copied <i>twice</i> to do
+the updating (when retrieving it and inside <code>replace</code>). If elements
+are expensive to copy, this may be quite a computational cost for the modification
+of just a tiny part of the object. To cope with this situation, Boost.MultiIndex
+provides an alternative updating mechanism called
+<a href="../reference/ord_indices.html#modify"><code>modify</code></a>:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>change_name</span>
+<span class=special>{</span>
+  <span class=identifier>change_name</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>new_name</span><span class=special>):</span><span class=identifier>new_name</span><span class=special>(</span><span class=identifier>new_name</span><span class=special>){}</span>
+
+  <span class=keyword>void</span> <span class=keyword>operator</span><span class=special>()(</span><span class=identifier>employee</span><span class=special>&amp;</span> <span class=identifier>e</span><span class=special>)</span>
+  <span class=special>{</span>
+    <span class=identifier>e</span><span class=special>.</span><span class=identifier>name</span><span class=special>=</span><span class=identifier>new_name</span><span class=special>;</span>
+  <span class=special>}</span>
+
+<span class=keyword>private</span><span class=special>:</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>new_name</span><span class=special>;</span>
+<span class=special>};</span>
+<span class=special>...</span>
+<span class=keyword>typedef</span> <span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>index</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;::</span><span class=identifier>type</span> <span class=identifier>employee_set_by_name</span><span class=special>;</span>
+<span class=identifier>employee_set_by_name</span><span class=special>&amp;</span> <span class=identifier>name_index</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;();</span>
+
+<span class=identifier>employee_set_by_name</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it</span><span class=special>=</span><span class=identifier>name_index</span><span class=special>.</span><span class=identifier>find</span><span class=special>(</span><span class=string>&quot;Anna Jones&quot;</span><span class=special>);</span>
+<span class=identifier>name_index</span><span class=special>.</span><span class=identifier>modify</span><span class=special>(</span><span class=identifier>it</span><span class=special>,</span><span class=identifier>change_name</span><span class=special>(</span><span class=string>&quot;Anna Smith&quot;</span><span class=special>));</span>
+</pre></blockquote>
+
+<p><code>modify</code> accepts a functor (or pointer to function) that is
+passed a reference to the element to be changed, thus eliminating the need
+for spurious copies. Like <code>replace</code>, <code>modify</code> does preserve
+the internal orderings of all the indices of the <code>multi_index_container</code>.
+However, the semantics of <code>modify</code> is not entirely equivalent to
+<code>replace</code>. Consider what happens if a collision occurs as a result
+of modifying the element, i.e. the modified element clashes with another with
+respect to some unique ordered index. In the case of <code>replace</code>, the
+original value is kept and the method returns without altering the container, but
+<code>modify</code> cannot afford such an approach, since the modifying functor
+leaves no trace of the previous value of the element. Integrity constraints
+thus lead to the following policy: when a collision happens in the
+process of calling <code>modify</code>, the element is erased and the method returns
+<code>false</code>. There is a further version of <code>modify</code> which
+accepts a <i>rollback</i> functor to undo the changes in case of collision:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>change_id</span>
+<span class=special>{</span>
+  <span class=identifier>change_id</span><span class=special>(</span><span class=keyword>int</span> <span class=identifier>new_id</span><span class=special>):</span><span class=identifier>new_id</span><span class=special>(</span><span class=identifier>new_id</span><span class=special>){}</span>
+
+  <span class=keyword>void</span> <span class=keyword>operator</span><span class=special>()(</span><span class=identifier>employee</span><span class=special>&amp;</span> <span class=identifier>e</span><span class=special>)</span>
+  <span class=special>{</span>
+    <span class=identifier>e</span><span class=special>.</span><span class=identifier>id</span><span class=special>=</span><span class=identifier>new_id</span><span class=special>;</span>
+  <span class=special>}</span>
+
+<span class=keyword>private</span><span class=special>:</span>
+  <span class=keyword>int</span> <span class=identifier>new_id</span><span class=special>;</span>
+<span class=special>};</span>
+<span class=special>...</span>
+<span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it</span><span class=special>=...</span>
+
+<span class=keyword>int</span> <span class=identifier>old_id</span><span class=special>=</span><span class=identifier>it</span><span class=special>-&gt;</span><span class=identifier>id</span><span class=special>;</span> <span class=comment>// keep the original id
+
+// try to modify the id, restore it in case of collisions</span>
+<span class=identifier>es</span><span class=special>.</span><span class=identifier>modify</span><span class=special>(</span><span class=identifier>it</span><span class=special>,</span><span class=identifier>change_id</span><span class=special>(</span><span class=number>321</span><span class=special>),</span><span class=identifier>change_id</span><span class=special>(</span><span class=identifier>old_id</span><span class=special>));</span>
+</pre></blockquote>
+
+<p>In the example, <code>change_id(old_id)</code> is invoked to restore the original
+conditions when the modification results in collisions with some other element.
+The differences in behavior between <code>replace</code>, <code>modify</code> and
+<code>modify</code> with rollback have to be considered by the programmer on a
+case-by-case basis to determine the best updating mechanism.
+</p>
+
+<p align="center">
+<table cellspacing="0">
+  <caption><b>Behavior of the different updating mechanisms.</b></caption>
+<tr>
+  <th align="center">updating function</th>
+  <th>If there is a collision...</th>
+</tr>
+<tr>
+  <td align="center"><code>replace(it,x)</code></td>
+  <td>replacement does not take place.</td>
+</tr>
+<tr class="odd_tr">
+  <td align="center"><code>modify(it,mod)</code></td>
+  <td>the element is erased.</td>
+</tr>
+<tr>
+  <td align="center"><code>modify(it,mod,back)</code></td>
+  <td><code>back</code> is used to restore the original conditions.
+    (If <code>back</code> throws, the element is erased.)
+  </td>
+</tr>
+</table>
+</p>
+
+
+<p>
+Key-based versions of <code>modify</code>, named
+<a href="../reference/ord_indices.html#modify_key"><code>modify_key</code></a>, are
+provided as well. In this case, the modifying functors are passed a reference to
+the <code>key_type</code> part of the element instead of the whole object.
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>change_str</span>
+<span class=special>{</span>
+  <span class=identifier>change_str</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>new_str</span><span class=special>):</span><span class=identifier>new_str</span><span class=special>(</span><span class=identifier>new_str</span><span class=special>){}</span>
+
+  <span class=comment>// note this is passed a string, not an employee</span>
+  <span class=keyword>void</span> <span class=keyword>operator</span><span class=special>()(</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&amp;</span> <span class=identifier>str</span><span class=special>)</span>
+  <span class=special>{</span>
+    <span class=identifier>str</span><span class=special>=</span><span class=identifier>new_str</span><span class=special>;</span>
+  <span class=special>}</span>
+
+<span class=keyword>private</span><span class=special>:</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span> <span class=identifier>new_str</span><span class=special>;</span>
+<span class=special>};</span>
+<span class=special>...</span>
+<span class=keyword>typedef</span> <span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>index</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;::</span><span class=identifier>type</span> <span class=identifier>employee_set_by_name</span><span class=special>;</span>
+<span class=identifier>employee_set_by_name</span><span class=special>&amp;</span> <span class=identifier>name_index</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;();</span>
+
+<span class=identifier>employee_set_by_name</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it</span><span class=special>=</span><span class=identifier>name_index</span><span class=special>.</span><span class=identifier>find</span><span class=special>(</span><span class=string>&quot;Anna Jones&quot;</span><span class=special>);</span>
+<span class=identifier>name_index</span><span class=special>.</span><span class=identifier>modify_key</span><span class=special>(</span><span class=identifier>it</span><span class=special>,</span><span class=identifier>change_str</span><span class=special>(</span><span class=string>&quot;Anna Smith&quot;</span><span class=special>));</span>
+</pre></blockquote>
+
+<p>
+Like <code>modify</code>, there are versions of <code>modify_key</code> with and
+without rollback. <code>modify</code> and
+<code>modify_key</code> are particularly well suited to use in conjunction to
+<a href="../../../../libs/lambda/index.html">Boost.Lambda</a>
+for defining the modifying functors:
+</p>
+
+<blockquote><pre>
+<span class=keyword>using</span> <span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>::</span><span class=identifier>lambda</span><span class=special>;</span>
+
+<span class=keyword>typedef</span> <span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>index</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;::</span><span class=identifier>type</span> <span class=identifier>employee_set_by_name</span><span class=special>;</span>
+<span class=identifier>employee_set_by_name</span><span class=special>&amp;</span> <span class=identifier>name_index</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;();</span>
+
+<span class=identifier>employee_set_by_name</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it</span><span class=special>=</span><span class=identifier>name_index</span><span class=special>.</span><span class=identifier>find</span><span class=special>(</span><span class=string>&quot;Anna Jones&quot;</span><span class=special>);</span>
+<span class=identifier>name_index</span><span class=special>.</span><span class=identifier>modify_key</span><span class=special>(</span><span class=identifier>it</span><span class=special>,</span><span class=identifier>_1</span><span class=special>=</span><span class=string>&quot;Anna Smith&quot;</span><span class=special>);</span>
+</pre></blockquote>
+
+<p>
+<code>modify_key</code> requires that the key extractor be of
+a special type called
+<a href="key_extraction.html#read_write_key_extractors">read/write</a>:
+this is usually, but not always, the case.
+</p>
+
+<h3>
+<a name="seq_indices">Sequenced indices</a>
+</h3>
+
+<p>
+Unlike ordered indices, sequenced indices do not impose a fixed order on the
+elements: instead, these can be arranged in any position on the sequence, in the
+same way as <code>std::list</code> permits. The interface of sequenced indices
+is thus designed upon that of <code>std::list</code>; nearly every operation
+provided in the standard container is replicated here, occasionally with changes
+in the syntax and/or semantics to cope with the constraints imposed by
+Boost.MultiIndex. In particular, there is an important limitation of sequenced
+indices with respect to <code>std::list</code>s, namely that elements of an
+<code>multi_index_container</code> are not mutable through an iterator:
+</p>
+
+<blockquote><pre>
+<span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span><span class=identifier>sequenced</span><span class=special>&lt;&gt;</span> <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>s</span><span class=special>;</span>            <span class=comment>// list-like container</span>
+
+<span class=identifier>s</span><span class=special>.</span><span class=identifier>push_front</span><span class=special>(</span><span class=number>0</span><span class=special>);</span>
+<span class=special>*(</span><span class=identifier>s</span><span class=special>.</span><span class=identifier>begin</span><span class=special>())=</span><span class=number>1</span><span class=special>;</span> <span class=comment>// ERROR: the element cannot be changed</span>
+</pre></blockquote>
+
+<p>
+That is, iterators of a sequenced index (of all types of indices, actually)
+point to constant elements. This limitation might come as a surprise, but
+it is imposed by the way <code>multi_index_container</code>s work; if elements were
+allowed to be changed in this manner, we could introduce inconsistencies
+in other ordered indices of the <code>multi_index_container</code>. Element modification
+can nevertheless be done by means of
+<a href="#seq_updating">update operations</a>.
+</p>
+
+<p>
+Consider a <code>multi_index_container</code> with two or more indices, one of them
+of sequenced type. If an element is inserted through another index,
+then it will be automatically appended to the end of the sequenced index.
+An example will help to clarify this:
+</p>
+
+<blockquote><pre>
+<span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>sequenced</span><span class=special>&lt;&gt;,</span>           <span class=comment>// sequenced type</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=comment>// another index</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>s</span><span class=special>;</span>
+
+<span class=identifier>s</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;().</span><span class=identifier>insert</span><span class=special>(</span><span class=number>1</span><span class=special>);</span> <span class=comment>// insert 1 through index #1</span>
+<span class=identifier>s</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;().</span><span class=identifier>insert</span><span class=special>(</span><span class=number>0</span><span class=special>);</span> <span class=comment>// insert 0 through index #1
+
+// list elements through sequenced index #0</span>
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>copy</span><span class=special>(</span><span class=identifier>s</span><span class=special>.</span><span class=identifier>begin</span><span class=special>(),</span><span class=identifier>s</span><span class=special>.</span><span class=identifier>end</span><span class=special>(),</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>ostream_iterator</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;(</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>cout</span><span class=special>));</span>
+
+<span class=comment>// result: 1 0</span>
+</pre></blockquote>
+
+<p>
+Thus the behavior of sequenced indices when insertions are not made through
+them is to preserve insertion order.
+</p>
+
+<h4><a name="seq_spec">Specification</a></h4>
+
+<p>
+Sequenced indices are specified with the <code>sequenced</code> construct:
+</p>
+
+<blockquote><pre>
+<span class=identifier>sequenced</span><span class=special>&lt;[</span><i>(tag)</i><span class=special>]&gt;</span>
+</pre></blockquote>
+
+<p>
+The <a href="#tagging">tag</a> parameter is optional.
+</p>
+
+<h4><a name="list_ops">List operations</a></h4>
+
+<p>
+As mentioned before, sequenced indices mimic the interface of
+<code>std::list</code>, and most of the original operations therein are
+provided as well. The semantics and complexity of these operations, however,
+do not always coincide with those of the standard container. Differences
+result mainly from the fact that insertions into a sequenced index are not
+guaranteed to succeed, due to the possible banning by other indices
+of the <code>multi_index_container</code>. Consult the
+<a href="../reference/seq_indices.html">reference</a> for further details.
+</p>
+
+<h4><a name="seq_updating">Updating</a></h4>
+
+<p>
+Like ordered indices, sequenced indices provide
+<a href="../reference/seq_indices.html#replace"><code>replace</code></a> and
+<a href="../reference/seq_indices.html#modify"><code>modify</code></a>
+operations, with identical functionality. There is however no analogous
+<code>modify_key</code>, since sequenced indices are not key-based.
+</p>
+
+<h2><a name="projection">Projection of iterators</a></h2>
+
+<p>
+Given indices <code>i1</code> and <code>i2</code> on the same <code>multi_index_container</code>,
+<a href="../reference/multi_index_container.html#projection"><code>project</code></a> can be used to
+retrieve an <code>i2</code>-iterator from an <code>i1</code>-iterator, both of them
+pointing to the same element of the container. This functionality allows the programmer to
+move between different indices of the same <code>multi_index_container</code> when performing
+elaborate operations:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>index</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;::</span><span class=identifier>type</span> <span class=identifier>employee_set_by_name</span><span class=special>;</span>
+<span class=identifier>employee_set_by_name</span><span class=special>&amp;</span> <span class=identifier>name_index</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=identifier>name</span><span class=special>&gt;();</span>
+
+<span class=comment>// list employees by ID starting from Robert Brown's ID</span>
+
+<span class=identifier>employee_set_by_name</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it1</span><span class=special>=</span><span class=identifier>name_index</span><span class=special>.</span><span class=identifier>find</span><span class=special>(</span><span class=string>&quot;Robert Brown&quot;</span><span class=special>);</span>
+
+<span class=comment>// obtain an iterator of index #0 from it1</span>
+<span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it2</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>project</span><span class=special>&lt;</span><span class=number>0</span><span class=special>&gt;(</span><span class=identifier>it1</span><span class=special>);</span> 
+
+<span class=identifier>std</span><span class=special>::</span><span class=identifier>copy</span><span class=special>(</span><span class=identifier>it2</span><span class=special>,</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>end</span><span class=special>(),</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>ostream_iterator</span><span class=special>&lt;</span><span class=identifier>employee</span><span class=special>&gt;(</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>cout</span><span class=special>));</span>
+</pre></blockquote>
+
+<p>
+A slightly more interesting example:
+</p>
+
+<blockquote><pre>
+<span class=identifier>text_container</span> <span class=identifier>tc</span><span class=special>;</span>
+
+<span class=comment>// get a view to index #1 (ordered index on the words)</span>
+<span class=identifier>text_container</span><span class=special>::</span><span class=identifier>nth_index</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;::</span><span class=identifier>type</span><span class=special>&amp;</span> <span class=identifier>sorted_index</span><span class=special>=</span><span class=identifier>tc</span><span class=special>.</span><span class=identifier>get</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;();</span>
+
+<span class=comment>// prepend &quot;older&quot; to all occurrences of &quot;sister&quot;</span>
+
+<span class=identifier>text_container</span><span class=special>::</span><span class=identifier>nth_index</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;::</span><span class=identifier>type</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it1</span><span class=special>=</span>
+  <span class=identifier>sorted_index</span><span class=special>.</span><span class=identifier>lower_bound</span><span class=special>(</span><span class=string>&quot;sister&quot;</span><span class=special>);</span>
+  
+<span class=keyword>while</span><span class=special>(</span><span class=identifier>it1</span><span class=special>!=</span><span class=identifier>sorted_index</span><span class=special>.</span><span class=identifier>end</span><span class=special>()&amp;&amp;*</span><span class=identifier>it1</span><span class=special>==</span><span class=string>&quot;sister&quot;</span><span class=special>){</span>
+  <span class=comment>// convert to an iterator to the sequenced index</span>
+  <span class=identifier>text_container</span><span class=special>::</span><span class=identifier>iterator</span> <span class=identifier>it2</span><span class=special>=</span><span class=identifier>tc</span><span class=special>.</span><span class=identifier>project</span><span class=special>&lt;</span><span class=number>0</span><span class=special>&gt;(</span><span class=identifier>it1</span><span class=special>);</span>
+
+  <span class=identifier>tc</span><span class=special>.</span><span class=identifier>insert</span><span class=special>(</span><span class=identifier>it2</span><span class=special>,</span><span class=string>&quot;older&quot;</span><span class=special>);</span>
+  <span class=special>++</span><span class=identifier>it1</span><span class=special>;</span>
+<span class=special>}</span>
+</pre></blockquote>
+
+<p>
+When provided, <code>project</code> can also be used with
+<a href="#tagging">tags</a>.
+</p>
+
+<h2><a name="complexity">Complexity and exception safety</a></h2>
+
+<p>
+<code>multi_index_container</code> provides the same complexity and exception safety
+guarantees as the equivalent STL containers do. Iterator and reference validity
+is preserved in the face of insertions, even for replace and modify operations.
+</p>
+
+<p>
+Appropriate instantiations of <code>multi_index_container</code> can in fact simulate
+<code>std::set</code>, <code>std::multiset</code> and (with more limitations)
+<code>std::list</code>, as shown in the
+<a href="techniques.html#emulate_std_containers">techniques</a>
+section. These simulations are as nearly as efficient as the original STL
+containers; consult the <a href="../reference/index.html">reference</a> for further
+information on complexity guarantees and the
+<a href="../performance.html">performance section</a> for practical measurements of
+efficiency.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="index.html"><img src="../prev.gif" alt="tutorial" border="0"><br>
+Boost.MultiIndex Tutorial
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex tutorial" border="0"><br>
+Boost.MultiIndex tutorial
+</a></div>
+<div class="next_link"><a href="indices.html"><img src="../next.gif" alt="index types" border="0"><br>
+Index types
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised November 7th 2008</p>
+
+<p>&copy; Copyright 2003-2008 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

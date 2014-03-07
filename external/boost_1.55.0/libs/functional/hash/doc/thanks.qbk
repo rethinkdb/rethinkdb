@@ -1,0 +1,28 @@
+
+[/ Copyright 2005-2008 Daniel James.
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) ]
+
+[section:acknowledgements Acknowledgements]
+
+This library is based on the design by Peter Dimov. During the initial
+development
+Joaquín M López Muñoz made many useful suggestions and contributed fixes.
+
+The formal review was managed by Thorsten Ottosen, and the library reviewed by:
+David Abrahams, Alberto Barbati, Topher Cooper, Caleb Epstein, Dave Harris,
+Chris Jefferson, Bronek Kozicki, John Maddock, Tobias Swinger, Jaap Suter,
+Rob Stewart and Pavel Vozenilek. Since then, further constructive criticism has
+been made by Daniel Krügler, Alexander Nasonov and 沈慧峰.
+
+The implementation of the hash function for pointers is based on suggestions
+made by Alberto Barbati and Dave Harris. Dave Harris also suggested an
+important improvement to [funcref boost::hash_combine] that was taken up.
+
+Some useful improvements to the floating point hash algorithm were suggested
+by Daniel Krügler.
+
+The original implementation came from Jeremy B. Maitin-Shepard's hash table
+library, although this is a complete rewrite.
+
+[endsect]

@@ -1,0 +1,218 @@
+# Copyright 2001, 2002 Dave Abrahams
+# Copyright 2002, 2003 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+import errors ;
+
+
+rule trim-leading-zeroes ( value )
+{
+    return [ CALC $(value) + 0 ] ;
+}
+
+
+rule check ( numbers * )
+{
+    for local n in $(numbers)
+    {
+        switch $(n)
+        {
+            case *[^0-9]* :
+                errors.error $(n) "in" $(numbers) : is not a number ;
+        }
+    }
+}
+
+
+rule increment ( number )
+{
+    return [ CALC $(number) + 1 ] ;
+}
+
+
+rule decrement ( number )
+{
+    return [ CALC $(number) - 1 ] ;
+}
+
+
+rule range ( start finish ? : step ? )
+{
+    if ! $(finish)
+    {
+        finish = $(start) ;
+        start = 1 ;
+    }
+    step ?= 1 ;
+
+    check $(start) $(finish) $(step) ;
+
+    if $(finish) != 0
+    {
+        local result ;
+        while [ less $(start) $(finish) ] || $(start) = $(finish)
+        {
+            result += $(start) ;
+            start = [ CALC $(start) + $(step) ] ;
+        }
+        return $(result) ;
+    }
+}
+
+
+rule less ( n1 n2 )
+{
+    switch [ CALC $(n2) - $(n1) ]
+    {
+        case [1-9]* : return true ;
+    }
+}
+
+
+rule log10 ( number )
+{
+    switch $(number)
+    {
+        case *[^0-9]* : errors.error $(number) is not a number ;
+        case 0 : errors.error can't take log of zero ;
+        case [1-9] : return 0 ;
+        case [1-9]? : return 1 ;
+        case [1-9]?? : return 2 ;
+        case [1-9]??? : return 3 ;
+        case [1-9]???? : return 4 ;
+        case [1-9]????? : return 5 ;
+        case [1-9]?????? : return 6 ;
+        case [1-9]??????? : return 7 ;
+        case [1-9]???????? : return 8 ;
+        case [1-9]????????? : return 9 ;
+        case * :
+        {
+            import sequence ;
+            import string ;
+            local chars = [ string.chars $(number) ] ;
+            while $(chars[1]) = 0
+            {
+                chars = $(chars[2-]) ;
+            }
+            if ! $(chars)
+            {
+                errors.error can't take log of zero ;
+            }
+            else
+            {
+                return [ decrement [ sequence.length $(chars) ] ] ;
+            }
+        }
+    }
+}
+
+
+rule __test__ ( )
+{
+    import assert ;
+
+    assert.result 1 : increment 0 ;
+    assert.result 2 : increment 1 ;
+    assert.result 1 : decrement 2 ;
+    assert.result 0 : decrement 1 ;
+    assert.result 50 : increment 49 ;
+    assert.result 49 : decrement 50 ;
+    assert.result 99 : increment 98 ;
+    assert.result 99 : decrement 100 ;
+    assert.result 100 : increment 99 ;
+    assert.result 999 : decrement 1000 ;
+    assert.result 1000 : increment 999 ;
+
+    assert.result 1 2 3 : range 3 ;
+    assert.result 1 2 3 4 5 6 7 8 9 10 11 12 : range 12 ;
+    assert.result 3 4 5 6 7 8 9 10 11 : range 3 11 ;
+    assert.result : range 0 ;
+    assert.result 1 4 7 10 : range 10 : 3 ;
+    assert.result 2 4 6 8 10 : range 2 10 : 2 ;
+    assert.result 25 50 75 100 : range 25 100 : 25 ;
+
+    assert.result 0           : trim-leading-zeroes 0           ;
+    assert.result 1234        : trim-leading-zeroes 1234        ;
+    assert.result 123456      : trim-leading-zeroes 0000123456  ;
+    assert.result 1000123456  : trim-leading-zeroes 1000123456  ;
+    assert.result 10000       : trim-leading-zeroes 10000       ;
+    assert.result 10000       : trim-leading-zeroes 00010000    ;
+
+    assert.true  less 1 2 ;
+    assert.true  less 1 12 ;
+    assert.true  less 1 21 ;
+    assert.true  less 005 217 ;
+    assert.false less 0 0 ;
+    assert.false less 03 3 ;
+    assert.false less 3 03 ;
+    assert.true  less 005 217 ;
+    assert.true  less 0005 217 ;
+    assert.true  less 5 00217 ;
+
+    # TEMPORARY disabled, because nested "try"/"catch" do not work and I do no
+    # have the time to fix that right now.
+    if $(0)
+    {
+    try ;
+    {
+        decrement 0 ;
+    }
+    catch can't decrement zero! ;
+
+    try ;
+    {
+        check foo ;
+    }
+    catch : not a number ;
+
+    try ;
+    {
+        increment foo ;
+    }
+    catch : not a number ;
+
+    try ;
+    {
+        log10 0 ;
+    }
+    catch can't take log of zero ;
+
+    try ;
+    {
+        log10 000 ;
+    }
+    catch can't take log of zero ;
+
+    }
+
+    assert.result 0 : log10 1 ;
+    assert.result 0 : log10 9 ;
+    assert.result 1 : log10 10 ;
+    assert.result 1 : log10 99 ;
+    assert.result 2 : log10 100 ;
+    assert.result 2 : log10 101 ;
+    assert.result 2 : log10 125 ;
+    assert.result 2 : log10 999 ;
+    assert.result 3 : log10 1000 ;
+    assert.result 10 : log10 12345678901 ;
+
+    for local x in [ range 75 110 : 5 ]
+    {
+        for local y in [ range $(x) 111 : 3 ]
+        {
+            if $(x) != $(y)
+            {
+                assert.true less $(x) $(y) ;
+            }
+        }
+    }
+
+    for local x in [ range 90 110 : 2 ]
+    {
+        for local y in [ range 80 $(x) : 4 ]
+        {
+            assert.false less $(x) $(y) ;
+        }
+    }
+}

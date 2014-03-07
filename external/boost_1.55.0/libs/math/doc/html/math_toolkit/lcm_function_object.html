@@ -1,0 +1,76 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>LCM Function Object</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Math Toolkit">
+<link rel="up" href="../gcd_lcm.html" title="Chapter&#160;10.&#160;Integer Utilities (Greatest Common Divisor and Least Common Multiple)">
+<link rel="prev" href="gcd_function_object.html" title="GCD Function Object">
+<link rel="next" href="run_time.html" title="Run-time GCD &amp; LCM Determination">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="gcd_function_object.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../gcd_lcm.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="run_time.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="math_toolkit.lcm_function_object"></a><a class="link" href="lcm_function_object.html" title="LCM Function Object">LCM Function Object</a>
+</h2></div></div></div>
+<p>
+      <span class="bold"><strong>Header: </strong></span> <a href="../../../../../boost/math/common_factor_rt.hpp" target="_top">&lt;boost/math/common_factor_rt.hpp&gt;</a>
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">IntegerType</span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">lcm_evaluator</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+   <span class="comment">// Types</span>
+   <span class="keyword">typedef</span> <span class="identifier">IntegerType</span>  <span class="identifier">result_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">IntegerType</span>  <span class="identifier">first_argument_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">IntegerType</span>  <span class="identifier">second_argument_type</span><span class="special">;</span>
+
+   <span class="comment">// Function object interface</span>
+   <span class="identifier">result_type</span>  <span class="keyword">operator</span> <span class="special">()(</span> <span class="identifier">first_argument_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="identifier">a</span><span class="special">,</span>
+   <span class="identifier">second_argument_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="identifier">b</span> <span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      The boost::math::lcm_evaluator class template defines a function object class
+      to return the least common multiple of two integers. The template is parameterized
+      by a single type, called IntegerType here. This type should be a numeric type
+      that represents integers. The result of the function object is always nonnegative,
+      even if either of the operator arguments is negative. If the least common multiple
+      is beyond the range of the integer type, the results are undefined.
+    </p>
+<p>
+      This function object class template is used in the corresponding version of
+      the LCM function template. If a numeric type wants to customize evaluations
+      of its least common multiples, then the type should specialize on the lcm_evaluator
+      class template.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="gcd_function_object.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../gcd_lcm.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="run_time.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

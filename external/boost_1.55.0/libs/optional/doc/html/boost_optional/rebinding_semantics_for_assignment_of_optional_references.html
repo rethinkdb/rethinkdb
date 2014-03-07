@@ -1,0 +1,148 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Rebinding semantics for assignment of optional references</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Chapter 1. Boost.Optional">
+<link rel="up" href="../index.html" title="Chapter 1. Boost.Optional">
+<link rel="prev" href="optional_references.html" title="Optional references">
+<link rel="next" href="in_place_factories.html" title="In-Place Factories">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="optional_references.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="in_place_factories.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+<div class="section" title="Rebinding semantics for assignment of optional references">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_optional.rebinding_semantics_for_assignment_of_optional_references"></a><a class="link" href="rebinding_semantics_for_assignment_of_optional_references.html" title="Rebinding semantics for assignment of optional references">Rebinding
+    semantics for assignment of optional references</a>
+</h2></div></div></div>
+<p>
+      If you assign to an <span class="emphasis"><em>uninitialized </em></span> <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&amp;&gt;</span></code>
+      the effect is to bind (for the first time) to the object. Clearly, there is
+      no other choice.
+    </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">x</span> <span class="special">=</span> <span class="number">1</span> <span class="special">;</span>
+<span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">rx</span> <span class="special">=</span> <span class="identifier">x</span> <span class="special">;</span>
+<span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&amp;&gt;</span> <span class="identifier">ora</span> <span class="special">;</span>
+<span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&amp;&gt;</span> <span class="identifier">orb</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span> <span class="special">;</span>
+<span class="identifier">ora</span> <span class="special">=</span> <span class="identifier">orb</span> <span class="special">;</span> <span class="comment">// now 'ora' is bound to 'x' through 'rx'
+</span><span class="special">*</span><span class="identifier">ora</span> <span class="special">=</span> <span class="number">2</span> <span class="special">;</span> <span class="comment">// Changes value of 'x' through 'ora'
+</span><span class="identifier">assert</span><span class="special">(</span><span class="identifier">x</span><span class="special">==</span><span class="number">2</span><span class="special">);</span> 
+</pre>
+<p>
+      If you assign to a bare C++ reference, the assignment is forwarded to the referenced
+      object; it's value changes but the reference is never rebound.
+    </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">a</span> <span class="special">=</span> <span class="number">1</span> <span class="special">;</span>
+<span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">ra</span> <span class="special">=</span> <span class="identifier">a</span> <span class="special">;</span>
+<span class="keyword">int</span> <span class="identifier">b</span> <span class="special">=</span> <span class="number">2</span> <span class="special">;</span>
+<span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">rb</span> <span class="special">=</span> <span class="identifier">b</span> <span class="special">;</span>
+<span class="identifier">ra</span> <span class="special">=</span> <span class="identifier">rb</span> <span class="special">;</span> <span class="comment">// Changes the value of 'a' to 'b'
+</span><span class="identifier">assert</span><span class="special">(</span><span class="identifier">a</span><span class="special">==</span><span class="identifier">b</span><span class="special">);</span>
+<span class="identifier">b</span> <span class="special">=</span> <span class="number">3</span> <span class="special">;</span>
+<span class="identifier">assert</span><span class="special">(</span><span class="identifier">ra</span><span class="special">!=</span><span class="identifier">b</span><span class="special">);</span> <span class="comment">// 'ra' is not rebound to 'b'
+</span></pre>
+<p>
+      Now, if you assign to an <span class="emphasis"><em>initialized </em></span> <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&amp;&gt;</span></code>,
+      the effect is to <span class="bold"><strong>rebind</strong></span> to the new object
+      instead of assigning the referee. This is unlike bare C++ references.
+    </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">a</span> <span class="special">=</span> <span class="number">1</span> <span class="special">;</span>
+<span class="keyword">int</span> <span class="identifier">b</span> <span class="special">=</span> <span class="number">2</span> <span class="special">;</span>
+<span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">ra</span> <span class="special">=</span> <span class="identifier">a</span> <span class="special">;</span>
+<span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">rb</span> <span class="special">=</span> <span class="identifier">b</span> <span class="special">;</span>
+<span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&amp;&gt;</span> <span class="identifier">ora</span><span class="special">(</span><span class="identifier">ra</span><span class="special">)</span> <span class="special">;</span>
+<span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&amp;&gt;</span> <span class="identifier">orb</span><span class="special">(</span><span class="identifier">rb</span><span class="special">)</span> <span class="special">;</span>
+<span class="identifier">ora</span> <span class="special">=</span> <span class="identifier">orb</span> <span class="special">;</span> <span class="comment">// 'ora' is rebound to 'b'
+</span><span class="special">*</span><span class="identifier">ora</span> <span class="special">=</span> <span class="number">3</span> <span class="special">;</span> <span class="comment">// Changes value of 'b' (not 'a')
+</span><span class="identifier">assert</span><span class="special">(</span><span class="identifier">a</span><span class="special">==</span><span class="number">1</span><span class="special">);</span> 
+<span class="identifier">assert</span><span class="special">(</span><span class="identifier">b</span><span class="special">==</span><span class="number">3</span><span class="special">);</span> 
+</pre>
+<a name="boost_optional.rebinding_semantics_for_assignment_of_optional_references.rationale"></a><h4>
+<a name="id579234"></a>
+      <a class="link" href="rebinding_semantics_for_assignment_of_optional_references.html#boost_optional.rebinding_semantics_for_assignment_of_optional_references.rationale">Rationale</a>
+    </h4>
+<p>
+      Rebinding semantics for the assignment of <span class="emphasis"><em>initialized </em></span>
+      <code class="computeroutput"><span class="identifier">optional</span></code> references has been
+      chosen to provide <span class="bold"><strong>consistency among initialization states</strong></span>
+      even at the expense of lack of consistency with the semantics of bare C++ references.
+      It is true that <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">U</span><span class="special">&gt;</span></code> strives
+      to behave as much as possible as <code class="computeroutput"><span class="identifier">U</span></code>
+      does whenever it is initialized; but in the case when <code class="computeroutput"><span class="identifier">U</span></code>
+      is <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span></code>,
+      doing so would result in inconsistent behavior w.r.t to the lvalue initialization
+      state.
+    </p>
+<p>
+      Imagine <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&amp;&gt;</span></code>
+      forwarding assignment to the referenced object (thus changing the referenced
+      object value but not rebinding), and consider the following code:
+    </p>
+<pre class="programlisting"><span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&amp;&gt;</span> <span class="identifier">a</span> <span class="special">=</span> <span class="identifier">get</span><span class="special">();</span>
+<span class="keyword">int</span> <span class="identifier">x</span> <span class="special">=</span> <span class="number">1</span> <span class="special">;</span>
+<span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">rx</span> <span class="special">=</span> <span class="identifier">x</span> <span class="special">;</span>
+<span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&amp;&gt;</span> <span class="identifier">b</span><span class="special">(</span><span class="identifier">rx</span><span class="special">);</span>
+<span class="identifier">a</span> <span class="special">=</span> <span class="identifier">b</span> <span class="special">;</span>
+</pre>
+<p>
+      What does the assignment do?
+    </p>
+<p>
+      If <code class="computeroutput"><span class="identifier">a</span></code> is <span class="emphasis"><em>uninitialized</em></span>,
+      the answer is clear: it binds to <code class="computeroutput"><span class="identifier">x</span></code>
+      (we now have another reference to <code class="computeroutput"><span class="identifier">x</span></code>).
+      But what if <code class="computeroutput"><span class="identifier">a</span></code> is already <span class="emphasis"><em>initialized</em></span>?
+      it would change the value of the referenced object (whatever that is); which
+      is inconsistent with the other possible case.
+    </p>
+<p>
+      If <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&amp;&gt;</span></code>
+      would assign just like <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span></code>
+      does, you would never be able to use Optional's assignment without explicitly
+      handling the previous initialization state unless your code is capable of functioning
+      whether after the assignment, <code class="computeroutput"><span class="identifier">a</span></code>
+      aliases the same object as <code class="computeroutput"><span class="identifier">b</span></code>
+      or not.
+    </p>
+<p>
+      That is, you would have to discriminate in order to be consistency.
+    </p>
+<p>
+      If in your code rebinding to another object is not an option, then is very
+      likely that binding for the fist time isn't either. In such case, assignment
+      to an <span class="emphasis"><em>uninitialized </em></span> <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&amp;&gt;</span></code>
+      shall be prohibited. It is quite possible that in such scenario the precondition
+      that the lvalue must be already initialized exist. If it doesn't, then binding
+      for the first time is OK while rebinding is not which is IMO very unlikely.
+      In such scenario, you can assign the value itself directly, as in:
+    </p>
+<pre class="programlisting"><span class="identifier">assert</span><span class="special">(!!</span><span class="identifier">opt</span><span class="special">);</span>
+<span class="special">*</span><span class="identifier">opt</span><span class="special">=</span><span class="identifier">value</span><span class="special">;</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2003 -2007 Fernando Luis Cacciola Carballal<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="optional_references.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="in_place_factories.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

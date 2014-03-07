@@ -1,0 +1,141 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - History</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">History</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<ol>
+  <li>26 Feb 2002 initial version uploaded to boost
+  <li>27 Feb 2002
+    <ul>
+      <li>divide interface from implementation for class 
+          serialization to permit compiliation on gcc
+      <li>improved template instantanciation for type templates
+    </ul>
+  <li>18 Mar 2002 - draft #2 uploaded to boost
+    <ul>
+      <li>elminated locale effects on archives
+      <li>added signature and library version to archive header
+      <li>improved detection of errors when objects are serializationed 
+          as pointers and subsequently serializationed as objects
+      <li>permit non-portable binary archives
+      <li>implement work around for systems such as MSVC 6.0 that
+          don'tsupport partial ordering
+    </ul>
+  <li>16 May 2002 - draft #3 uploaded to boost
+    <ul>
+      <li>Ability to specify serialization of other templates in a
+          non-intrusive way.
+      <li>Included and example which uses boost::shared_ptr.
+      <li>improved documentation
+      <li>More test cases
+      <li>More testing and documentation of obscure situtations
+      <li>Better code organization for transparency
+      <li>Wide character support implemented and tested with unicode.
+    </ul>
+  <li>28 Jun 2002 - #4 library submission
+    <ul>
+      <li>minor corrections
+      <li>replaced erroneous shared_ptr example with std::auto_ptr example
+      <li>prevention of memory leaks when exceptions are invoked
+    </ul>
+  <li>30 Aug 2002 - #5 library submission
+    <ul>
+      <li>minor corrections
+      <li>Additions to documentation to explicitly address issues of
+          exception safety.
+      <li>More test cases/demos to illustrate handlling of the above issues.
+      <li>Additions to documentation to include rationale for not depending
+          on type_id
+      <li>Implementation of serialization of boost::shared_ptr.
+          This is included as a demo as it depends upon a minor alteration
+          of boost::shared_count.
+    </ul>
+  <li>08 Nov 2002   - #6 library submission
+    <ul>
+      <li>minor corrections
+      <li>corrected error which manifested itself when serializing
+          polymorphic pointers to obects derived from multiple
+          base classes
+      <li>minor adjustments to support plug-ins via virtual
+          save/load/version functions
+      <li>test cases to support the above
+    </ul>
+  <li>08 September 2003- version # 12 library submission
+    <ul>
+      <li>attempts to address all issues raised during the November 2002 review
+    </ul>
+  <li>November 2003 - draft #13 uploaded
+    <ul>
+      <li>corrections, enhancements, change in api for pointer overload
+    </ul>
+  <li>28 December 2003
+    <ul>
+       <li>implementation of save/loadbinary
+       <li>enhancements included archives to permit derivation
+    </ul>
+  <li>1 March 2004 - draft # 17 upload
+    <ul>
+       <li>portability to intel 8.0, and VC 6.0
+       <li>Alter archive implementation to permit derivation.  Make tests.
+       <li>Implement serialize/save/load binary for text and XML archives
+       using <code>base64</code> character encoding.
+       <li>Added documentation and test for serialization of large binary objects.
+       <li>Added "Derivation from an Existing Archive Class" to documentation along
+       with example program.
+       <li>Added PIMPL example
+       <li>certain special situations are now detected and addressed at
+       compile time to generate all in-line code.  For example, for types
+       serialized without class information, and without memory tracking,
+       the serialization process can be reduced to a minimal amount of inline
+       code.
+       <li>All tests have been run in release as well as debug mode
+       <li>Many improvements in code and documentation to improve accuracy and completeness.
+    </ul>
+  <li>11 April 2004 - draft # 18 upload
+    <ul>
+       <li>Reorganization of header and template files.
+       <li>Enhanced documentation to help explain implementation issues.
+       <li>Adjustments to improve support for less conformant compilers.
+       <li>A few bug fixes.
+    </ul>
+  <li>31 May 2004 - draft # 20 upload
+    <ul>
+       <li>Polymorphic archives.
+       <li>A few bug fixes.
+    </ul>
+  <li>1 November 2004 - final changes for first boost official release 1.32 .
+    <ul>
+       <li>Adjustments to address make package compatible with two-phase lookup.
+       <li>Many small adjustments to accomdate quirks of various compilers.
+       <li>A few bug fixes.
+    </ul>
+</ol>
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

@@ -1,0 +1,68 @@
+[/
+ / Copyright (c) 2013 Andrey Semashev
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[article BOOST_EXPLICIT_OPERATOR_BOOL and BOOST_CONSTEXPR_EXPLICIT_OPERATOR_BOOL
+    [quickbook 1.5]
+    [authors [Semashev, Andrey]]
+    [copyright 2013 Andrey Semashev]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[/===============]
+[section Overview]
+[/===============]
+
+`BOOST_EXPLICIT_OPERATOR_BOOL()` and `BOOST_CONSTEXPR_EXPLICIT_OPERATOR_BOOL()` are compatibility helper macros that expand to an explicit conversion operator to `bool`. For compilers not supporting explicit conversion operators introduced in C++11 the macros expand to a conversion operator that implements the [@http://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Safe_bool safe bool idiom]. In case if the compiler is not able to handle safe bool idiom well the macros expand to a regular conversion operator to `bool`.
+
+[endsect]
+
+
+[/===============]
+[section Examples]
+[/===============]
+
+Both macros are intended to be placed within a user's class definition. The generated conversion operators will be implemented in terms of `operator!()` that should be defined by user in this class. In case of `BOOST_CONSTEXPR_EXPLICIT_OPERATOR_BOOL()` the generated conversion operator will be declared `constexpr` which requires the corresponding `operator!()` to also be `constexpr`.
+
+    template< typename T >
+    class my_ptr
+    {
+        T* m_p;
+
+    public:
+        BOOST_EXPLICIT_OPERATOR_BOOL()
+
+        bool operator!() const
+        {
+            return !m_p;
+        }
+    };
+
+Now `my_ptr` can be used in conditional expressions, similarly to a regular pointer:
+
+    my_ptr< int > p;
+    if (p)
+        std::cout << "true" << std::endl;
+
+[endsect]
+
+[/===============]
+[section History]
+[/===============]
+
+[heading boost 1.55]
+
+* The macro was extracted from Boost.Log.
+
+[endsect]
+
+
+
+

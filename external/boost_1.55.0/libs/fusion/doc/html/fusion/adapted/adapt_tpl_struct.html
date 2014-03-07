@@ -1,0 +1,114 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>BOOST_FUSION_ADAPT_TPL_STRUCT</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../adapted.html" title="Adapted">
+<link rel="prev" href="adapt_struct.html" title="BOOST_FUSION_ADAPT_STRUCT">
+<link rel="next" href="adapt_struct_named.html" title="BOOST_FUSION_ADAPT_STRUCT_NAMED">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="adapt_struct.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../adapted.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="adapt_struct_named.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="fusion.adapted.adapt_tpl_struct"></a><a class="link" href="adapt_tpl_struct.html" title="BOOST_FUSION_ADAPT_TPL_STRUCT">BOOST_FUSION_ADAPT_TPL_STRUCT</a>
+</h3></div></div></div>
+<h5>
+<a name="fusion.adapted.adapt_tpl_struct.h0"></a>
+        <span class="phrase"><a name="fusion.adapted.adapt_tpl_struct.description"></a></span><a class="link" href="adapt_tpl_struct.html#fusion.adapted.adapt_tpl_struct.description">Description</a>
+      </h5>
+<p>
+        BOOST_FUSION_ADAPT_TPL_STRUCT is a macro that can be used to generate all
+        the necessary boilerplate to make an arbitrary template struct a model of
+        <a class="link" href="../sequence/concepts/random_access_sequence.html" title="Random Access Sequence">Random Access
+        Sequence</a>.
+      </p>
+<h5>
+<a name="fusion.adapted.adapt_tpl_struct.h1"></a>
+        <span class="phrase"><a name="fusion.adapted.adapt_tpl_struct.synopsis"></a></span><a class="link" href="adapt_tpl_struct.html#fusion.adapted.adapt_tpl_struct.synopsis">Synopsis</a>
+      </h5>
+<pre class="programlisting"><span class="identifier">BOOST_FUSION_ADAPT_TPL_STRUCT</span><span class="special">(</span>
+    <span class="special">(</span><span class="identifier">template_param0</span><span class="special">)(</span><span class="identifier">template_param1</span><span class="special">)...,</span>
+    <span class="special">(</span><span class="identifier">struct_name</span><span class="special">)</span> <span class="special">(</span><span class="identifier">specialization_param0</span><span class="special">)(</span><span class="identifier">specialization_param1</span><span class="special">)...,</span>
+    <span class="special">(</span><span class="identifier">member_type0</span><span class="special">,</span> <span class="identifier">member_name0</span><span class="special">)</span>
+    <span class="special">(</span><span class="identifier">member_type1</span><span class="special">,</span> <span class="identifier">member_name1</span><span class="special">)</span>
+    <span class="special">...</span>
+    <span class="special">)</span>
+</pre>
+<h5>
+<a name="fusion.adapted.adapt_tpl_struct.h2"></a>
+        <span class="phrase"><a name="fusion.adapted.adapt_tpl_struct.semantics"></a></span><a class="link" href="adapt_tpl_struct.html#fusion.adapted.adapt_tpl_struct.semantics">Semantics</a>
+      </h5>
+<p>
+        The above macro generates the necessary code to adapt <code class="computeroutput"><span class="identifier">struct_name</span></code>
+        or an arbitrary specialization of <code class="computeroutput"><span class="identifier">struct_name</span></code>
+        as a model of <a class="link" href="../sequence/concepts/random_access_sequence.html" title="Random Access Sequence">Random
+        Access Sequence</a>. The sequence <code class="computeroutput"><span class="special">(</span><span class="identifier">template_param0</span><span class="special">)(</span><span class="identifier">template_param1</span><span class="special">)...</span></code>
+        declares the names of the template type parameters used. The sequence <code class="computeroutput"><span class="special">(</span><span class="identifier">specialization_param0</span><span class="special">)(</span><span class="identifier">specialization_param1</span><span class="special">)...</span></code> declares the template parameters of the
+        actual specialization of <code class="computeroutput"><span class="identifier">struct_name</span></code>
+        that is adapted as a fusion sequence. The sequence of <code class="computeroutput"><span class="special">(</span><span class="identifier">member_typeN</span><span class="special">,</span>
+        <span class="identifier">member_nameN</span><span class="special">)</span></code>
+        pairs declares the type and names of each of the struct members that are
+        part of the sequence.
+      </p>
+<p>
+        The macro should be used at global scope, and <code class="computeroutput"><span class="identifier">struct_name</span></code>
+        should be the fully namespace qualified name of the struct to be adapted.
+      </p>
+<h5>
+<a name="fusion.adapted.adapt_tpl_struct.h3"></a>
+        <span class="phrase"><a name="fusion.adapted.adapt_tpl_struct.header"></a></span><a class="link" href="adapt_tpl_struct.html#fusion.adapted.adapt_tpl_struct.header">Header</a>
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="keyword">struct</span><span class="special">/</span><span class="identifier">adapt_struct</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">adapt_struct</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h5>
+<a name="fusion.adapted.adapt_tpl_struct.h4"></a>
+        <span class="phrase"><a name="fusion.adapted.adapt_tpl_struct.example"></a></span><a class="link" href="adapt_tpl_struct.html#fusion.adapted.adapt_tpl_struct.example">Example</a>
+      </h5>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">demo</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Name</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Age</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">employee</span>
+    <span class="special">{</span>
+        <span class="identifier">Name</span> <span class="identifier">name</span><span class="special">;</span>
+        <span class="identifier">Age</span> <span class="identifier">age</span><span class="special">;</span>
+    <span class="special">};</span>
+<span class="special">}</span>
+
+<span class="comment">// Any instantiated demo::employee is now a Fusion sequence</span>
+<span class="identifier">BOOST_FUSION_ADAPT_TPL_STRUCT</span><span class="special">(</span>
+    <span class="special">(</span><span class="identifier">Name</span><span class="special">)(</span><span class="identifier">Age</span><span class="special">),</span>
+    <span class="special">(</span><span class="identifier">demo</span><span class="special">::</span><span class="identifier">employee</span><span class="special">)</span> <span class="special">(</span><span class="identifier">Name</span><span class="special">)(</span><span class="identifier">Age</span><span class="special">),</span>
+    <span class="special">(</span><span class="identifier">Name</span><span class="special">,</span> <span class="identifier">name</span><span class="special">)</span>
+    <span class="special">(</span><span class="identifier">Age</span><span class="special">,</span> <span class="identifier">age</span><span class="special">))</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="adapt_struct.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../adapted.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="adapt_struct_named.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

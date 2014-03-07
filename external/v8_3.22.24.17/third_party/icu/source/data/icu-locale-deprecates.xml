@@ -1,0 +1,52 @@
+<!--
+/*
+*******************************************************************************
+* Copyright (C) 2009-2010, International Business Machines Corporation and    *
+* others. All Rights Reserved.                                                *
+*******************************************************************************
+*/
+-->
+<deprecates>
+    <alias from="in_ID" to="id_ID" />
+    <alias from="iw_IL" to="he_IL" />
+    <alias from="ja_JP_TRADITIONAL" to="ja_JP@calendar=japanese" xpath="//ldml/dates/calendars/default[@type='japanese']"/>
+    <alias from="no_NO" to="nb_NO" />
+    <alias from="no_NO_NY" to="nn_NO" />
+    <alias from="en_RH" to="en_ZW" />
+    <alias from="th_TH_TRADITIONAL" to="th_TH@calendar=buddhist" xpath="//ldml/dates/calendars/default[@type='buddhist']" />
+    <aliasLocale locale="az_AZ" />
+    <aliasLocale locale="ha_GH" />
+    <aliasLocale locale="ha_NE" />
+    <aliasLocale locale="ha_NG" />
+    <aliasLocale locale="kk_KZ" />
+    <aliasLocale locale="in" />
+    <aliasLocale locale="iw" />
+    <aliasLocale locale="mo" />
+    <aliasLocale locale="no" />
+    <aliasLocale locale="pa_IN" />
+    <aliasLocale locale="pa_PK" />
+    <aliasLocale locale="sh" />
+    <aliasLocale locale="sh_BA" />
+    <aliasLocale locale="sh_CS" />
+    <aliasLocale locale="sh_YU" />
+    <aliasLocale locale="shi_MA" />
+    <aliasLocale locale="sr_BA" />
+    <aliasLocale locale="sr_CS" />
+    <aliasLocale locale="sr_ME" />
+    <aliasLocale locale="sr_RS" />
+    <aliasLocale locale="sr_YU" />
+    <aliasLocale locale="sr_Cyrl_YU" />
+    <aliasLocale locale="sr_Cyrl_CS" />
+    <aliasLocale locale="sr_Latn_YU" />
+    <aliasLocale locale="sr_Latn_CS" />
+    <aliasLocale locale="tl" />
+    <aliasLocale locale="tl_PH" />
+    <aliasLocale locale="tzm_MA" />
+    <aliasLocale locale="uz_AF" />
+    <aliasLocale locale="uz_UZ" />
+    <aliasLocale locale="zh_CN" />
+    <aliasLocale locale="zh_HK" />
+    <aliasLocale locale="zh_MO" />
+    <aliasLocale locale="zh_SG" />
+    <aliasLocale locale="zh_TW" />
+</deprecates>

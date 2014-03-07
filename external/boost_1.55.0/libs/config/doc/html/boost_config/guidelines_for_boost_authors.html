@@ -1,0 +1,377 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Guidelines for Boost Authors</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Boost.Config">
+<link rel="up" href="../index.html" title="Boost.Config">
+<link rel="prev" href="boost_macro_reference.html" title="Boost Macro Reference">
+<link rel="next" href="rationale.html" title="Rationale">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_macro_reference.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rationale.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_config.guidelines_for_boost_authors"></a><a class="link" href="guidelines_for_boost_authors.html" title="Guidelines for Boost Authors">Guidelines for
+    Boost Authors</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="guidelines_for_boost_authors.html#boost_config.guidelines_for_boost_authors.warnings">Disabling
+      Compiler Warnings</a></span></dt>
+<dt><span class="section"><a href="guidelines_for_boost_authors.html#boost_config.guidelines_for_boost_authors.adding_new_defect_macros">Adding
+      New Defect Macros</a></span></dt>
+<dt><span class="section"><a href="guidelines_for_boost_authors.html#boost_config.guidelines_for_boost_authors.adding_new_feature_test_macros">Adding
+      New Feature Test Macros</a></span></dt>
+<dt><span class="section"><a href="guidelines_for_boost_authors.html#boost_config.guidelines_for_boost_authors.modifying_the_boost_configuration_headers">Modifying
+      the Boost Configuration Headers</a></span></dt>
+</dl></div>
+<p>
+      The <a href="../../../../../boost/config.hpp" target="_top">&lt;boost/config.hpp&gt;</a>
+      header is used to pass configuration information to other boost files, allowing
+      them to cope with platform dependencies such as arithmetic byte ordering, compiler
+      pragmas, or compiler shortcomings. Without such configuration information,
+      many current compilers would not work with the Boost libraries.
+    </p>
+<p>
+      Centralizing configuration information in this header reduces the number of
+      files that must be modified when porting libraries to new platforms, or when
+      compilers are updated. Ideally, no other files would have to be modified when
+      porting to a new platform.
+    </p>
+<p>
+      Configuration headers are controversial because some view them as condoning
+      broken compilers and encouraging non-standard subsets. Adding settings for
+      additional platforms and maintaining existing settings can also be a problem.
+      In other words, configuration headers are a necessary evil rather than a desirable
+      feature. The boost config.hpp policy is designed to minimize the problems and
+      maximize the benefits of a configuration header.
+    </p>
+<p>
+      Note that:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Boost library implementers are not required to "<code class="computeroutput"><span class="preprocessor">#include</span>
+          <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">config</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>", and are not required in any
+          way to support compilers that do not comply with the C++ Standard (ISO/IEC
+          14882).
+        </li>
+<li class="listitem">
+          If a library implementer wishes to support some non-conforming compiler,
+          or to support some platform specific feature, "<code class="computeroutput"><span class="preprocessor">#include</span>
+          <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">config</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>" is the preferred way to obtain
+          configuration information not available from the standard headers such
+          as <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">climits</span><span class="special">&gt;</span></code>, etc.
+        </li>
+<li class="listitem">
+          If configuration information can be deduced from standard headers such
+          as <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">climits</span><span class="special">&gt;</span></code>, use those standard headers rather
+          than <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">config</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>.
+        </li>
+<li class="listitem">
+          Boost files that use macros defined in <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">config</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          should have sensible, standard conforming, default behavior if the macro
+          is not defined. This means that the starting point for porting <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">config</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code> to a new platform is simply to define
+          nothing at all specific to that platform. In the rare case where there
+          is no sensible default behavior, an #error message should describe the
+          problem.
+        </li>
+<li class="listitem">
+          If a Boost library implementer wants something added to <code class="computeroutput"><span class="identifier">config</span><span class="special">.</span><span class="identifier">hpp</span></code>,
+          post a request on the Boost mailing list. There is no guarantee such a
+          request will be honored; the intent is to limit the complexity of config.hpp.
+        </li>
+<li class="listitem">
+          The intent is to support only compilers which appear on their way to becoming
+          C++ Standard compliant, and only recent releases of those compilers at
+          that.
+        </li>
+<li class="listitem">
+          The intent is not to disable mainstream features now well-supported by
+          the majority of compilers, such as namespaces, exceptions, RTTI, or templates.
+        </li>
+</ul></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_config.guidelines_for_boost_authors.warnings"></a><a class="link" href="guidelines_for_boost_authors.html#boost_config.guidelines_for_boost_authors.warnings" title="Disabling Compiler Warnings">Disabling
+      Compiler Warnings</a>
+</h3></div></div></div>
+<p>
+        The header <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">config</span><span class="special">/</span><span class="identifier">warning_disable</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        can be used to disable certain compiler warnings that are hard or impossible
+        to otherwise remove.
+      </p>
+<p>
+        Note that:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            This header <span class="bold"><strong><span class="emphasis"><em>should never be included
+            by another Boost header</em></span></strong></span>, it should only ever be
+            used by a library source file or a test case.
+          </li>
+<li class="listitem">
+            The header should be included <span class="bold"><strong><span class="emphasis"><em>before
+            you include any other header</em></span></strong></span>.
+          </li>
+<li class="listitem">
+            This header only disables warnings that are hard or impossible to otherwise
+            deal with, and which are typically emitted by one compiler only, or in
+            one compilers own standard library headers.
+          </li>
+</ul></div>
+<p>
+        Currently it disables the following warnings:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Compiler
+                </p>
+              </th>
+<th>
+                <p>
+                  Warning
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  Visual C++ 8 and later
+                </p>
+              </td>
+<td>
+                <p>
+                  <a href="http://msdn2.microsoft.com/en-us/library/ttcz0bys(VS.80).aspx" target="_top">C4996</a>:
+                  Error 'function': was declared deprecated
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Intel C++
+                </p>
+              </td>
+<td>
+                <p>
+                  Warning 1786: relates to the use of "deprecated" standard
+                  library functions rather like C4996 in Visual C++.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_config.guidelines_for_boost_authors.adding_new_defect_macros"></a><a class="link" href="guidelines_for_boost_authors.html#boost_config.guidelines_for_boost_authors.adding_new_defect_macros" title="Adding New Defect Macros">Adding
+      New Defect Macros</a>
+</h3></div></div></div>
+<p>
+        When you need to add a new defect macro - either to fix a problem with an
+        existing library, or when adding a new library - distil the issue down to
+        a simple test case; often, at this point other (possibly better) workarounds
+        may become apparent. Secondly always post the test case code to the boost
+        mailing list and invite comments; remember that C++ is complex and that sometimes
+        what may appear a defect, may in fact turn out to be a problem with the authors
+        understanding of the standard.
+      </p>
+<p>
+        When you name the macro, follow the <code class="computeroutput"><span class="identifier">BOOST_NO_</span></code><span class="emphasis"><em>SOMETHING</em></span>
+        naming convention, so that it's obvious that this is a macro reporting a
+        defect.
+      </p>
+<p>
+        Finally, add the test program to the regression tests. You will need to place
+        the test case in a <code class="computeroutput"><span class="special">.</span><span class="identifier">ipp</span></code>
+        file with the following comments near the top:
+      </p>
+<pre class="programlisting"><span class="comment">//  MACRO:         BOOST_NO_FOO</span>
+<span class="comment">//  TITLE:         foo</span>
+<span class="comment">//  DESCRIPTION:   If the compiler fails to support foo</span>
+</pre>
+<p>
+        These comments are processed by the autoconf script, so make sure the format
+        follows the one given. The file should be named "<code class="computeroutput"><span class="identifier">boost_no_foo</span><span class="special">.</span><span class="identifier">ipp</span></code>",
+        where foo is the defect description - try and keep the file name under the
+        Mac 30 character filename limit though. You will also need to provide a function
+        prototype "<code class="computeroutput"><span class="keyword">int</span> <span class="identifier">test</span><span class="special">()</span></code>" that is declared in a namespace with
+        the same name as the macro, but in all lower case, and which returns zero
+        on success:
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost_no_foo</span> <span class="special">{</span>
+<span class="keyword">int</span> <span class="identifier">test</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// test code goes here:</span>
+    <span class="comment">//</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="special">}</span>
+</pre>
+<p>
+        Once the test code is in place in libs/config/test, updating the configuration
+        test system proceeds as:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            cd into <code class="computeroutput"><span class="identifier">libs</span><span class="special">/</span><span class="identifier">config</span><span class="special">/</span><span class="identifier">tools</span></code> and run <code class="computeroutput"><span class="identifier">bjam</span></code>.
+            This generates the <code class="computeroutput"><span class="special">.</span><span class="identifier">cpp</span></code>
+            file test cases from the <code class="computeroutput"><span class="special">.</span><span class="identifier">ipp</span></code> file, updates the libs/config/test/all/Jamfile.v2,
+            <code class="computeroutput"><span class="identifier">config_test</span><span class="special">.</span><span class="identifier">cpp</span></code> and <code class="computeroutput"><span class="identifier">config_info</span><span class="special">.</span><span class="identifier">cpp</span></code>.<br>
+            <br>
+          </li>
+<li class="listitem">
+            cd into <code class="computeroutput"><span class="identifier">libs</span><span class="special">/</span><span class="identifier">config</span><span class="special">/</span><span class="identifier">test</span><span class="special">/</span><span class="identifier">all</span></code> and run <code class="computeroutput"><span class="identifier">bjam</span>
+            </code><span class="emphasis"><em>MACRONAME<code class="computeroutput"> <span class="identifier">compiler</span><span class="special">-</span><span class="identifier">list</span></code></em></span>,
+            where <span class="emphasis"><em>MACRONAME</em></span> is the name of the new macro, and
+            <span class="emphasis"><em><code class="computeroutput"><span class="identifier">compiler</span><span class="special">-</span><span class="identifier">list</span></code></em></span> is a space separated
+            list of compilers to test with.<br> <br> The xxx_pass_test and the
+            xxx_fail_test <span class="bold"><strong>should both report <code class="computeroutput"><span class="special">**</span><span class="identifier">passed</span><span class="special">**</span></code></strong></span>.<br> <br> If <span class="emphasis"><em>MACRONAME</em></span>
+            is not defined when it should be defined, xxx_pass_test will not report
+            <code class="computeroutput"><span class="special">**</span><span class="identifier">passed</span><span class="special">**</span></code>. If <span class="emphasis"><em>MACRONAME</em></span>
+            is defined when it should not be defined, xxx_fail_test will not report
+            <code class="computeroutput"><span class="special">**</span><span class="identifier">passed</span><span class="special">**</span></code>.<br> <br>
+          </li>
+<li class="listitem">
+            cd into <code class="computeroutput"><span class="identifier">libs</span><span class="special">/</span><span class="identifier">config</span><span class="special">/</span><span class="identifier">test</span></code> and run <code class="computeroutput"><span class="identifier">bjam</span>
+            <span class="identifier">config_info</span> <span class="identifier">config_test</span>
+            </code><span class="emphasis"><em><code class="computeroutput"><span class="identifier">compiler</span><span class="special">-</span><span class="identifier">list</span></code></em></span>.
+            <code class="computeroutput"><span class="identifier">config_info</span></code> should build
+            and run cleanly for all the compilers in <span class="emphasis"><em><code class="computeroutput"><span class="identifier">compiler</span><span class="special">-</span><span class="identifier">list</span></code></em></span>
+            while <code class="computeroutput"><span class="identifier">config_test</span></code> should
+            fail for those that have the defect, and pass for those that do not.
+          </li>
+</ul></div>
+<p>
+        Then you should:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Define the defect macro in those config headers that require it.
+          </li>
+<li class="listitem">
+            Document the macro in this documentation (please do not forget this step!!)
+          </li>
+<li class="listitem">
+            Commit everything.
+          </li>
+<li class="listitem">
+            Keep an eye on the regression tests for new failures in Boost.Config
+            caused by the addition.
+          </li>
+<li class="listitem">
+            Start using the macro.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_config.guidelines_for_boost_authors.adding_new_feature_test_macros"></a><a class="link" href="guidelines_for_boost_authors.html#boost_config.guidelines_for_boost_authors.adding_new_feature_test_macros" title="Adding New Feature Test Macros">Adding
+      New Feature Test Macros</a>
+</h3></div></div></div>
+<p>
+        When you need to add a macro that describes a feature that the standard does
+        not require, follow the convention for adding a new defect macro (above),
+        but call the macro <code class="computeroutput"><span class="identifier">BOOST_HAS_FOO</span></code>,
+        and name the test file "<code class="computeroutput"><span class="identifier">boost_has_foo</span><span class="special">.</span><span class="identifier">ipp</span></code>".
+        Try not to add feature test macros unnecessarily, if there is a platform
+        specific macro that can already be used (for example <code class="computeroutput"><span class="identifier">_WIN32</span></code>,
+        <code class="computeroutput"><span class="identifier">__BEOS__</span></code>, or <code class="computeroutput"><span class="identifier">__linux</span></code>) to identify the feature then use
+        that. Try to keep the macro to a feature group, or header name, rather than
+        one specific API (for example <code class="computeroutput"><span class="identifier">BOOST_HAS_NL_TYPES_H</span></code>
+        rather than <code class="computeroutput"><span class="identifier">BOOST_HAS_CATOPEN</span></code>).
+        If the macro describes a POSIX feature group, then add boilerplate code to
+        <a href="../../../../../boost/config/user.hpp" target="_top">&lt;boost/config/suffix.hpp&gt;</a>
+        to auto-detect the feature where possible (if you are wondering why we can't
+        use POSIX feature test macro directly, remember that many of these features
+        can be added by third party libraries, and are not therefore identified inside
+        <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">unistd</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span></code>).
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_config.guidelines_for_boost_authors.modifying_the_boost_configuration_headers"></a><a class="link" href="guidelines_for_boost_authors.html#boost_config.guidelines_for_boost_authors.modifying_the_boost_configuration_headers" title="Modifying the Boost Configuration Headers">Modifying
+      the Boost Configuration Headers</a>
+</h3></div></div></div>
+<p>
+        The aim of boost's configuration setup is that the configuration headers
+        should be relatively stable - a boost user should not have to recompile their
+        code just because the configuration for some compiler that they're not interested
+        in has changed. Separating the configuration into separate compiler/standard
+        library/platform sections provides for part of this stability, but boost
+        authors require some amount of restraint as well, in particular:
+      </p>
+<p>
+        <a href="../../../../../boost/config.hpp" target="_top">&lt;boost/config.hpp&gt;</a>
+        should never change, don't alter this file.
+      </p>
+<p>
+        <a href="../../../../../boost/config/user.hpp" target="_top">&lt;boost/config/user.hpp&gt;</a>
+        is included by default, don't add extra code to this file unless you have
+        to. If you do, please remember to update <a href="../../../tools/configure.in" target="_top">libs/config/tools/configure.in</a>
+        as well.
+      </p>
+<p>
+        <a href="../../../../../boost/config/user.hpp" target="_top">&lt;boost/config/suffix.hpp&gt;</a>
+        is always included so be careful about modifying this file as it breaks dependencies
+        for everyone. This file should include only "boilerplate" configuration
+        code, and generally should change only when new macros are added.
+      </p>
+<p>
+        <a href="../../../../../boost/config/select_compiler_config.hpp" target="_top">&lt;boost/config/select_compiler_config.hpp&gt;</a>,
+        <a href="../../../../../boost/config/select_platform_config.hpp" target="_top">&lt;boost/config/select_platform_config.hpp&gt;</a>
+        and <a href="../../../../../boost/config/select_stdlib_config.hpp" target="_top">&lt;boost/config/select_stdlib_config.hpp&gt;</a>
+        are included by default and should change only if support for a new compiler/standard
+        library/platform is added.
+      </p>
+<p>
+        The compiler/platform/standard library selection code is set up so that unknown
+        platforms are ignored and assumed to be fully standards compliant - this
+        gives unknown platforms a "sporting chance" of working "as
+        is" even without running the configure script.
+      </p>
+<p>
+        When adding or modifying the individual mini-configs, assume that future,
+        as yet unreleased versions of compilers, have all the defects of the current
+        version. Although this is perhaps unnecessarily pessimistic, it cuts down
+        on the maintenance of these files, and experience suggests that pessimism
+        is better placed than optimism here!
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2007 Beman Dawes, Vesa Karvonen, John
+      Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_macro_reference.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rationale.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

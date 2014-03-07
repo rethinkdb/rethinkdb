@@ -1,0 +1,236 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/yo.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/yo.xml
+ */
+yo{
+    Currencies{
+        AED{
+            "AED",
+            "Diami ti Awon Orílẹ́ède Arabu",
+        }
+        AOA{
+            "Kz",
+            "Wansa ti Orílẹ́ède  Àngólà",
+        }
+        AUD{
+            "AU$",
+            "Dọla ti Orílẹ́ède Ástràlìá",
+        }
+        BHD{
+            "BD",
+            "Dina ti Orílẹ́ède Báránì",
+        }
+        BIF{
+            "FBu",
+            "Faransi ti Orílẹ́ède Bùùrúndì",
+        }
+        BWP{
+            "BWP",
+            "Pula ti Orílẹ́ède Bọ̀tìsúwánà",
+        }
+        CAD{
+            "CA$",
+            "Dọla ti Orílẹ́ède Kánádà",
+        }
+        CDF{
+            "CDF",
+            "Faransi ti Orílẹ́ède Kóngò",
+        }
+        CHF{
+            "CHF",
+            "Faransi ti Orílẹ́ède Siwisi",
+        }
+        CNY{
+            "CN¥",
+            "Reminibi ti Orílẹ́ède ṣáínà",
+        }
+        CVE{
+            "CV$",
+            "Kabofediano ti Orílẹ́ède Esuodo",
+        }
+        DJF{
+            "Fdj",
+            "Faransi ti Orílẹ́ède Dibouti",
+        }
+        DZD{
+            "DA",
+            "Dina ti Orílẹ́ède Àlùgèríánì",
+        }
+        EGP{
+            "EGP",
+            "pọọn ti Orílẹ́ède Egipiti",
+        }
+        ERN{
+            "Nfk",
+            "Nakifa ti Orílẹ́ède Eriteriani",
+        }
+        ETB{
+            "Br",
+            "Biri ti Orílẹ́ède Eutopia",
+        }
+        EUR{
+            "€",
+            "Uro",
+        }
+        GBP{
+            "£",
+            "Pọọn ti Orílẹ́ède  Bírítísì",
+        }
+        GHC{
+            "₵",
+            "ṣidi ti Orílẹ́ède Gana",
+        }
+        GMD{
+            "GMD",
+            "Dalasi ti Orílẹ́ède Gamibia",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "Faransi ti Orílẹ́ède Gini",
+        }
+        INR{
+            "Rs",
+            "Rupi ti Orílẹ́ède Indina",
+        }
+        JPY{
+            "JP¥",
+            "Yeni ti Orílẹ́ède Japani",
+        }
+        KES{
+            "Ksh",
+            "ṣiili ti Orílẹ́ède Kenya",
+        }
+        KMF{
+            "CF",
+            "Faransi ti Orílẹ́ède ṣomoriani",
+        }
+        LRD{
+            "L$",
+            "Dọla ti Orílẹ́ède Liberia",
+        }
+        LSL{
+            "LSL",
+            "Loti ti Orílẹ́ède Lesoto",
+        }
+        LYD{
+            "LD",
+            "Dina ti Orílẹ́ède Libiya",
+        }
+        MAD{
+            "MAD",
+            "Dirami ti Orílẹ́ède Moroko",
+        }
+        MGA{
+            "MGA",
+            "Faransi ti Orílẹ́ède Malagasi",
+        }
+        MRO{
+            "UM",
+            "Ouguiya ti Orílẹ́ède Maritania",
+        }
+        MUR{
+            "MURs",
+            "Rupi ti Orílẹ́ède Maritiusi",
+        }
+        MWK{
+            "MWK",
+            "Kaṣa ti Orílẹ́ède Malawi",
+        }
+        MZM{
+            "Mt",
+            "Metika ti Orílẹ́ède Mosamibiki",
+        }
+        NAD{
+            "N$",
+            "Dọla ti Orílẹ́ède Namibia",
+        }
+        NGN{
+            "₦",
+            "Naira ti Orílẹ́ède Nàìjíríà",
+        }
+        RWF{
+            "RWF",
+            "Faransi ti Orílẹ́ède Ruwanda",
+        }
+        SAR{
+            "SR",
+            "Riya ti Orílẹ́ède Saudi",
+        }
+        SCR{
+            "SRe",
+            "Rupi ti Orílẹ́ède Sayiselesi",
+        }
+        SDG{
+            "SDG",
+            "Dina ti Orílẹ́ède Sudani",
+        }
+        SDP{
+            "SDP" /** ===  */,
+            "Pọọun ti Orílẹ́ède Sudani",
+        }
+        SHP{
+            "SH£",
+            "Pọọun ti Orílẹ́ède ̣Elena",
+        }
+        SLL{
+            "Le",
+            "Lioni",
+        }
+        SOS{
+            "Ssh",
+            "Sile ti Orílẹ́ède Somali",
+        }
+        STD{
+            "Db",
+            "Dobira ti Orílẹ́ède Sao tome Ati Pirisipe",
+        }
+        SZL{
+            "SZL",
+            "Lilangeni",
+        }
+        TND{
+            "DT",
+            "Dina ti Orílẹ́ède Tunisia",
+        }
+        TZS{
+            "TSh",
+            "Sile ti Orílẹ́ède Tansania",
+        }
+        UGX{
+            "USh",
+            "Siile ti Orílẹ́ède Uganda",
+        }
+        USD{
+            "US$",
+            "Dọla ti Orílẹ́ède Amerika",
+        }
+        XAF{
+            "FCFA",
+            "Faransi ti Orílẹ́ède BEKA",
+        }
+        XOF{
+            "CFA",
+            "Faransi ti Orílẹ́ède BIKEAO",
+        }
+        ZAR{
+            "R",
+            "Randi ti Orílẹ́ède Ariwa Afirika",
+        }
+        ZMK{
+            "ZK",
+            "Kawaṣa ti Orílẹ́ède Saabia",
+        }
+        ZWD{
+            "Z$",
+            "Dọla ti Orílẹ́ède Siibabuwe",
+        }
+    }
+    Version{"2.0.49.29"}
+}

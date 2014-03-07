@@ -1,0 +1,131 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>The UTF testing tools or tester's toolbox for all occasions</title>
+<link rel="stylesheet" href="../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../index.html" title="Boost Test Library">
+<link rel="up" href="../utf.html" title="Part IV. Boost Test Library: The Unit Test Framework">
+<link rel="prev" href="user-guide/runtime-config/reference.html" title="Runtime parameters reference">
+<link rel="next" href="testing-tools/output-test.html" title="Output testing tool">
+<script language="JavaScript1.2" src="../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../utf.html">The Unit Test Framework</a> &gt; <b>Testing tools</b><a href="usage-recommendations.html">
+      &gt;
+      </a>
+</td>
+<td><div class="spirit-nav">
+<a href="user-guide/runtime-config/reference.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="testing-tools/output-test.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="chapter" lang="en">
+<div class="titlepage"><div><div><h2 class="title">
+<a name="utf.testing-tools"></a>The <acronym class="acronym">UTF</acronym> testing tools  or tester's toolbox for all occasions</h2></div></div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><a href="testing-tools/output-test.html">Output testing tool</a></dt>
+<dt><a href="testing-tools/custom-predicate.html">Custom predicate support</a></dt>
+<dt><a href="testing-tools/floating_point_comparison.html">Floating-point comparison algorithms</a></dt>
+<dt><a href="testing-tools/reference.html">Reference</a></dt>
+</dl>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.testing-tools.intro"></a>Introduction</h4></div></div></div>
+<p class="first-line-indented">
+   The <acronym class="acronym">UTF</acronym>'s supplies a toolbox of testing tools to ease creation and maintenance of test programs and
+   provide a  uniform error reporting mechanism. The toolbox supplied in most part in a form of macro and function
+   declarations. While the functions can be called directly, the usual way to use testing tools is via convenience
+   macros. All macros arguments are calculated once, so it's safe to pass complex expressions in their place.
+   All tools automatically supply an error location: a file name and a line number. The testing tools are intended
+   for unit test  code rather than library or production code, where throwing exceptions,  using assert(),
+   <code class="computeroutput">boost::concept_check</code> or <code class="computeroutput">BOOST_STATIC_ASSERT</code>() may be more suitable
+   ways to detect and report errors. For list of all supplied testing tools and usage examples see the reference.
+  </p>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.testing-tools.flavors"></a>Testing tools flavors</h4></div></div></div>
+<p class="first-line-indented">
+   All the tools are supplied in three flavors(levels): <em class="firstterm">WARN</em>, <em class="firstterm">CHECK</em> and 
+   <em class="firstterm">REQUIRE</em>. For example: <code class="computeroutput"><a class="link" href="testing-tools/reference.html" title="The UTF testing tools reference">BOOST_WARN_EQUAL</a></code>, 
+   <code class="computeroutput"><a class="link" href="testing-tools/reference.html" title="The UTF testing tools reference">BOOST_CHECK_EQUAL</a></code>, <code class="computeroutput"><a class="link" href="testing-tools/reference.html" title="The UTF testing tools reference">BOOST_REQUIRE_EQUAL</a></code>. If an assertion designated by 
+   the tool passes, confirmation message can be printed in log output<sup>[<a name="id657740" href="#ftn.id657740" class="footnote">6</a>]</sup>. If an assertion designated by the tool failed, depending on the level following 
+   will happened<sup>[<a name="id657756" href="#ftn.id657756" class="footnote">7</a>]</sup>:
+  </p>
+<div class="table">
+<a name="utf.testing-tools.levels-diffs"></a><p class="title"><b>Table 5. Testing tools levels differences</b></p>
+<div class="table-contents"><table class="table" summary="Testing tools levels differences">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Level</th>
+<th>Test log content</th>
+<th>Errors counter</th>
+<th>Test execution</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>WARN</td>
+<td>
+       warning in <em class="replaceable"><code>&lt;test case name&gt;</code></em>: condition
+       <em class="replaceable"><code>&lt;assertion description&gt;</code></em> is not satisfied
+      </td>
+<td>not affected</td>
+<td>continues</td>
+</tr>
+<tr>
+<td>CHECK</td>
+<td>
+       error in <em class="replaceable"><code>&lt;test case name&gt;</code></em>: test
+       <em class="replaceable"><code>&lt;assertion description&gt;</code></em> failed
+      </td>
+<td>increased</td>
+<td>continues</td>
+</tr>
+<tr>
+<td>REQUIRE</td>
+<td>
+       fatal error in <em class="replaceable"><code>&lt;test case name&gt;</code></em>: critical test
+       <em class="replaceable"><code>&lt;assertion description&gt;</code></em> failed
+      </td>
+<td>increased</td>
+<td>aborts</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p class="first-line-indented">
+   Regularly you should use CHECK level tools to implement your assertions. You can use WARN level tools to validate
+   aspects less important then correctness: performance, portability, usability etc. You should use REQUIRE level
+   tools only if continuation of the test case doesn't make sense if this assertions fails.
+  </p>
+</div>
+<div class="footnotes">
+<br><hr width="100" align="left">
+<div class="footnote"><p><sup>[<a name="ftn.id657740" href="#id657740" class="simpara">6</a>] </sup>to manage what messages appear 
+   in the test log stream set the proper <a class="link" href="user-guide/test-output/test-log.html" title="Test log output">log 
+   level</a></p></div>
+<div class="footnote"><p><sup>[<a name="ftn.id657756" href="#id657756" class="simpara">7</a>] </sup>in some cases log message can be slightly different to reflect failed tool 
+   specifics</p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="user-guide/runtime-config/reference.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../utf.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="testing-tools/output-test.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<HTML>
+<!-- Copyright 2007 Aaron Windsor
+     
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+  -->
+<HEAD>
+<TITLE>Planar Face Visitor Concept</TITLE>
+</HEAD>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>Planar Face Visitor Concept</H1>
+
+This concept defines the visitor interface for 
+<a href="./planar_face_traversal.html"><tt>planar_face_traversal</tt></a>. 
+Users can define a class with the Planar Face Visitor interface and pass an 
+object of the class to <tt>planar_face_traversal</tt>, thereby augmenting the 
+actions taken during the traversal. Note that objects passed to 
+<tt>planar_face_traversal</tt> are passed by reference.
+
+<h3>Notation</h3>
+
+<table>
+<tbody><tr>
+<td><tt>V</tt></td>
+<td>A type that is a model of Planar Face Visitor.</td>
+</tr>
+
+<tr>
+<td><tt>vis</tt></td>
+<td>An object of type <tt>V</tt>.</td>
+</tr>
+
+<tr>
+<td><tt>G</tt></td>
+<td>A type that is a model of Graph.</td>
+</tr>
+
+<tr>
+<td><tt>e</tt></td>
+<td>An object of type <tt>boost::graph_traits&lt;G&gt;::edge_descriptor</tt>.
+</td>
+</tr>
+
+<tr>
+<td><tt>v</tt></td>
+<td>An object of type <tt>boost::graph_traits&lt;G&gt;::vertex_descriptor</tt>.
+</td>
+</tr>
+
+</tbody></table>
+
+
+<h3>Valid Expressions</h3>
+
+<table border="1">
+<tbody><tr>
+<th>Name</th><th>Expression</th><th>Return Type</th><th>Description</th>
+</tr>
+
+<tr>
+<td>Begin Traversal</td>
+<td><tt>vis.begin_traversal()</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked once per traversal, before the traversal begins.
+</td>
+</tr>
+
+<tr>
+<td>Begin Face</td>
+<td><tt>vis.begin_face()</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked once for each face, before any vertices or edges on the face 
+are visited. 
+</td>
+</tr>
+
+<tr>
+<td>Next Vertex</td>
+<td><tt>vis.next_vertex(v)</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked when a vertex is encountered while traversing a face.
+</td>
+</tr>
+
+
+<tr>
+<td>Next Edge</td>
+<td><tt>vis.next_edge(e)</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked when an edge is encountered while traversing a face.
+</td>
+</tr>
+
+<tr>
+<td>End Face</td>
+<td><tt>vis.end_face()</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked once for each face, after all vertices and edges on the face 
+are visited.
+</td>
+</tr>
+
+
+<tr>
+<td>End Traversal</td>
+<td><tt>vis.end_traversal()</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked once per traversal, after the traversal ends.
+</td>
+</tr>
+
+</tbody></table>
+
+<h3>Models</h3>
+
+<ul>
+ <li> The file <a href="../../../boost/graph/planar_face_traversal.hpp">
+<tt>planar_face_traversal.hpp</tt></a> contains a class 
+<tt>planar_face_traversal_visitor</tt> that implements empty actions for
+all event points of a Planar Face Visitor. In the case where only a few of the 
+event points of Planar Face Visitor need to be implemented, one can derive from
+<tt>planar_face_traversal_visitor</tt> and only implement the necessary event 
+points. <li> The implementation of <a href="./make_maximal_planar.html">
+<tt>make_maximal_planar</tt></a> uses a <tt>triangulation_visitor</tt> that is 
+a model of Planar Face Visitor.
+</li>
+</ul>
+
+<br>
+<HR>
+Copyright &copy; 2007 Aaron Windsor (<a href="mailto:aaron.windsor@gmail.com">
+aaron.windsor@gmail.com</a>)
+</BODY>
+</HTML> 

@@ -1,0 +1,118 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Cygwin (vers 1st April 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/raw_function.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/raw_function.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#functions">Functions</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#raw_function-spec">raw_function</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><code><a href="#raw_function-spec">raw_function</a>(...)</code>
+    is used to convert a function taking a <a
+    href="tuple.html#tuple-spec">tuple</a> and a <a
+    href="dict.html#dict-spec">dict</a> into a Python callable object
+    which accepts a variable number of arguments and arbitrary keyword
+    arguments.
+
+    <h2><a name="functions"></a>Functions</h2>
+    <a name="raw_function-spec"></a>raw_function 
+<pre>
+template &lt;class F&gt;
+object raw_function(F f, std::size_t min_args = 0);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>f(tuple(), dict())</code> is
+      well-formed.</dt>
+
+       <dt><b>Returns:</b> a <a href=
+          "http://www.python.org/doc/current/lib/built-in-funcs.html#l2h-6">callable</a> object which requires at least <code>min_args</code> arguments.  When called, the actual non-keyword arguments will be passed in a <a
+    href="tuple.html#tuple-spec">tuple</a> as the first argument to <code>f</code>, and the keyword arguments will be passed in a  <a
+    href="dict.html#dict-spec">dict</a> as the second argument to <code>f</code>.
+
+      </dd>
+    </dl>
+
+    <h2><a name="examples"></a>Example</h2>
+C++:
+<pre>
+#include &lt;boost/python/def.hpp&gt;
+#include &lt;boost/python/tuple.hpp&gt;
+#include &lt;boost/python/dict.hpp&gt;
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/raw_function.hpp&gt;
+
+using namespace boost::python;
+
+tuple raw(tuple args, dict kw)
+{
+    return make_tuple(args, kw);
+}
+
+BOOST_PYTHON_MODULE(raw_test)
+{
+    def("raw", raw_function(raw));
+}
+</pre>
+
+Python:
+<pre>
+&gt;&gt;&gt; from raw_test import *
+
+&gt;&gt;&gt; raw(3, 4, foo = 'bar', baz = 42)
+((3, 4), {'foo': 'bar', 'baz': 42})
+</pre>
+    <p>
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+     7 March, 2003
+    <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

@@ -1,0 +1,175 @@
+# Boost.Iostreams Library Build Jamfile
+
+# (C) Copyright 2008 CodeRage, LLC (turkanis at coderage dot com)
+# (C) Copyright 2004-2007 Jonathan Turkanis
+# Distributed under the Boost Software License, Version 1.0. (See accompanying 
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.)
+
+# See http://www.boost.org/libs/iostreams for documentation.
+
+project /boost/iostreams : source-location ../src ;
+
+# The biggest trick in this Jamfile is to link to zlib and bzip2 when
+# needed. To configure that, a number of variables are used, which must
+# be set by user with 'path-constant' either in Boost's root Jamfile, or
+# in user-config.jam.
+
+# For each library with either link to existing binary, or build
+# a library from the sources.
+
+import modules ;
+import os ;
+import path ;
+import ac ;
+local debug = [ MATCH (--debug-configuration) : [ modules.peek : ARGV ] ] ;
+
+for local v in NO_COMPRESSION 
+               NO_ZLIB ZLIB_SOURCE ZLIB_INCLUDE ZLIB_BINARY ZLIB_LIBPATH
+               NO_BZIP2 BZIP2_SOURCE BZIP2_INCLUDE BZIP2_BINARY BZIP2_LIBPATH
+{
+    $(v) = [ modules.peek : $(v) ] ;
+}
+
+if $(NO_COMPRESSION) != 1 && $(NO_ZLIB) != 1
+{
+    using zlib : : <build-name>boost_zlib <tag>@tag : : true ;
+}
+else
+{
+    if $(debug)
+    {
+        ECHO "notice: iostreams: not using zlib compression " ;
+    }
+}
+
+
+# Given a name of library, either 'zlib', or 'bzip2', creates the necessary
+# main target and returns it. If compression is disabled, returns nothing.
+# The 'sources' argument is the list of sources names for the library,
+# which will be used if building the library.
+rule create-library ( library-name : windows-name unix-name : sources + : requirements * )
+{
+    local LIB = $(library-name:U) ;
+    if ! $(library-name) in zlib bzip2
+    {
+        EXIT "Wrong library name passed to 'create-library' in libs/iostream/build/Jamfile.v2" ;
+    }
+
+    if [ os.name ] = NT && ! $($(LIB)_SOURCE) && ! $($(LIB)_INCLUDE)
+    {
+        if $(debug)
+        {
+            ECHO "notice: iostreams: not using $(library-name) compression " ;
+        }        
+        NO_$(LIB) = 1 ;
+	
+	# This is necessary to that test Jamfiles don't run compression
+	# tests when not needed. Dirty, but I don't have time to
+	# write full-blow project module for zlib and bzip2.
+	modules.poke : NO_$(LIB) : 1 ;
+    }
+    
+    if $(NO_COMPRESSION)
+    {
+        if ! $(NO_COMPRESSION) in 0 1
+        {
+            ECHO "warning: NO_COMPRESSION should be either '0' or '1'" ;
+        }        
+    }
+    
+    if $(NO_$(LIB))
+    {
+        if ! $(NO_$(LIB)) in 0 1
+        {
+            ECHO "warning: NO_$(LIB) should be either '0' or '1'" ;
+        }        
+    }
+    
+    if  $(NO_COMPRESSION) = 1 || $(NO_$(LIB)) = 1
+    {
+        if $(debug)
+        {
+            ECHO "notice: iostreams: not using $(library-name) compression " ;
+        }        
+    }
+    else    
+    {
+        if ! $($(LIB)_INCLUDE) 
+        {
+            $(LIB)_INCLUDE = $($(LIB)_SOURCE) ;
+        }
+        
+        # Should we use prebuilt library or build it ourselves?        
+        if $($(LIB)_SOURCE)
+        {
+            return [ lib boost_$(library-name) 
+              : [ path.glob $($(LIB)_SOURCE) : $(sources).c ]
+              : <include>$($(LIB)_INCLUDE)
+	        <location-prefix>$(LIB:L)
+	        $(requirements)
+              :
+              : <include>$($(LIB)_INCLUDE)
+              ] ;                        
+        }
+        else
+        {
+            if $(debug)
+            {
+                ECHO "notice: iostreams: using prebuilt $(library-name)" ;
+            }
+            
+            # Should use prebuilt library.
+            if ! $($(LIB)_BINARY)
+            {
+                # No explicit name specified, guess it.
+                if [ os.name ] = NT
+                {
+                    $(LIB)_BINARY = $(windows-name) ;
+                    lib boost_$(library-name) : : <name>$(windows-name) ;
+                }
+                else
+                {
+                    $(LIB)_BINARY = $(unix-name) ;
+                }                                                
+            }            
+            return [ lib boost_$(library-name) 
+              : 
+              : <name>$($(LIB)_BINARY)  
+                <search>$($(LIB)_LIBPATH)  
+              :
+              : <include>$($(LIB)_INCLUDE)
+              ] ;
+
+        }                
+    }        
+}
+
+
+local sources = file_descriptor.cpp mapped_file.cpp ;
+local bz2 = [ create-library bzip2 : libbz2 bz2 : 
+    blocksort bzlib compress crctable decompress huffman randtable :
+    <link>shared:<def-file>$(BZIP2_SOURCE)/libbz2.def ] ;
+
+if $(bz2)
+{
+    sources += boost_bzip2 bzip2.cpp ;
+}
+
+lib boost_iostreams 
+    : $(sources) 
+    : <link>shared:<define>BOOST_IOSTREAMS_DYN_LINK=1 
+      <define>BOOST_IOSTREAMS_USE_DEPRECATED
+      [ ac.check-library /zlib//zlib : <library>/zlib//zlib
+        <source>zlib.cpp <source>gzip.cpp ]
+    :
+    : <link>shared:<define>BOOST_IOSTREAMS_DYN_LINK=1
+    ;
+
+boost-install boost_iostreams ;
+
+
+
+  
+
+
+

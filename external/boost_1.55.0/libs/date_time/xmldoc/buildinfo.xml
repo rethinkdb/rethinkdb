@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2004 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.buildinfo">
+  <title>Build-Compiler Information</title>
+
+  <para>
+    <link linkend="overview">Overview</link> --
+    <link linkend="compile_options">Compilation Options</link> --
+    <link linkend="portability">Compiler/Portability Notes</link> --
+    <link linkend="dir_structure">Directory Structure</link> --
+    <link linkend="other_boost_libs">Required Boost Libraries</link>
+  </para>
+
+  <anchor id="overview" />
+  <bridgehead renderas="sect3">Overview</bridgehead>
+  <para>
+    The library has a few functions that require the creation of a library file (mostly to_string, from_string functions).  Most library users can make effective use of the library WITHOUT building the library, but simply including the required headers. If the library is needed, the Jamfile in the build directory will produce a "static" library (libboost_date_time) and a "dynamic/shared" library (boost_date_time) that contains these functions. Note that to use the library without the library (particularly on windows) may require using the BOOST_DATE_TIME_NO_LIB flag to the compilation options.
+  </para>
+  
+  <anchor id="compile_options" />
+  <bridgehead renderas="sect3">Compilation Options</bridgehead>
+  <para>
+    By default the posix_time system uses a single 64 bit integer internally to provide a microsecond level resolution. As an alternative, a combination of a 64 bit integer and a 32 bit integer (96 bit resolution) can be used to provide nano-second level resolutions. The default implementation may provide better performance and more compact memory usage for many applications that do not require nano-second resolutions. 
+  </para>
+  <para>
+    To use the alternate resolution (96 bit nanosecond) the variable <code>BOOST_DATE_TIME_POSIX_TIME_STD_CONFIG</code> must be defined in the library users project files (ie Makefile, Jamfile, etc). This macro is not used by the Gregorian system and therefore has no effect when building the library.
+  </para>
+  <para>As of version 1.33, the date_time library introduced a new IO streaming system. Some compilers are not capable of utilizing this new system. For those compilers the earlier ("legacy") IO system is still available. Non-supported compilers will select the legacy system automatically but the user can force the usage of the legacy system by defining <code>USE_DATE_TIME_PRE_1_33_FACET_IO</code>.</para>
+
+  <para>As a convenience, <code>date_time</code> has provided some <link linkend="additional_duration_types">additional duration types</link>. Use of these types may have unexpected results due to the snap-to-end-of-month behavior (see <link linkend="snap_to_details">Reversibility of Operations Pitfall</link> for complete details and examples). These types are enabled by default. To disable these types, simply undefine <code>BOOST_DATE_TIME_OPTIONAL_GREGORIAN_TYPES</code> in your project file.</para>
+
+  <para>Another convenience is the default constructors for <code><link linkend="date_time.gregorian.date_class">date</link></code>, and <code><link linkend="date_time.posix_time.ptime_class">ptime</link></code>. These constructors are enabled by default. To disable them, simply define <code>DATE_TIME_NO_DEFAULT_CONSTRUCTOR</code> in your project file.</para>
+
+  <anchor id="portability" />
+  <bridgehead renderas="sect3">Compiler/Portability Notes</bridgehead>
+  <para>
+    The Boost Date-Time library has been built and tested with many compilers and platforms. However, some compilers and standard libraries have issues. While some of these issues can be worked around, others are difficult to work around. The following compilers are known to fully support all aspects of the library:
+    <itemizedlist mark="bullet">
+      <listitem>Codewarrior 9.4 Windows</listitem>
+      <listitem>GCC 3.2 - 3.4, 4.x on Linux</listitem>
+      <listitem>GCC 3.3, 4.x on Darwin</listitem>
+      <listitem>GCC 3.3 - 3.4, 4.x on Solaris</listitem>
+      <listitem>GCC 3.3, 4.x  on HP-UX</listitem>
+      <listitem>QCC 3.3.5 on QNX</listitem>
+      <listitem>MSVC 7.1 Windows </listitem>
+      <listitem>Intel 8.1-9.x Linux and Windows</listitem>
+    </itemizedlist>
+  </para>
+
+  <para>
+     Unfortunately, the VC8 compiler has some issues with date-time code.  
+     The most serious issue is a memory leak which was introduced into the
+     VC8 standard library basic_stream code.  Date-time has code has been changed
+     to avoid this as much as possible, but if you are using the legacy IO option 
+     (NOT the default with VC8) then the issue can still arise.  See the
+
+     <ulink url="http://lists.boost.org/Archives/boost/2006/02/101122.php">mailing list archive</ulink> for more details.
+  </para>
+
+  <para>
+     In addition to the problem above, some versions of the VC8 library have limited 
+     the range of allowed 
+     values in the <code>std::tm</code> structure to positive values.  This was a new 
+     restriction added in the VC8.  The effect is that dates prior to the year
+     1900 will cause exceptions.  There is, unfortunately, no easy workaround for 
+     this issue.  Note that the new 64bit version of the VC8 compiler
+     does not appear to have this limitation.  
+  </para>
+
+  <para>
+    These compilers support all aspects of the library except <code>wstring/wstream</code> 
+    output.
+    <itemizedlist mark="bullet">
+      <listitem>MinGW 3.2, 3.4, 3.5 *</listitem>
+      <listitem>GCC 3.2 (cygwin) *</listitem>
+    </itemizedlist>
+  </para>
+
+  <para>
+    In particular, a lack of support for standard locales limits the ability of the library to support iostream based input output. For these compilers a set of more limited string based input-output is provided. Some compilers/standard libraries with this limitation include: 
+    <itemizedlist mark="bullet">
+      <listitem>Borland 5.6</listitem>
+    </itemizedlist>
+  </para>
+
+  <para>
+    Official support for some older compilers has now been dropped.  This includes:
+    <itemizedlist mark="bullet">
+      <listitem>GCC 2.9x</listitem>
+      <listitem>Borland 5.1.1</listitem>
+      <listitem>MSVC 7.0 and 6 SP5 </listitem>
+    </itemizedlist>
+  </para>
+
+  <bridgehead renderas="sect5">Visual Studio &amp; STLPort</bridgehead>
+  <para>There is a known issue with Visual Studio (7.0 &amp; 7.1) and STLPort. The build errors typically make reference to a type issue or 'no acceptable conversion' and are attempting to instantiate a template with <code>wchar_t</code>. The default build of STLPort does not support <code>wchar_t</code>. There are two possible workarounds for this issue. The simplest is the user can build date_time with no wide stream/string etc. The other is to rebuild STLPort with wchar_t support.
+  </para>
+  <para>To build date_time with no wide stream/string etc, execute the following command from <code>$BOOST_ROOT</code>:
+    <screen>bjam -a "-sTOOLS=vc-7_1-stlport" "-sSTLPORT_PATH=..." \
+     "-sBUILD=&lt;define>BOOST_NO_STD_WSTRING"           \
+     --stagedir=... --with-date_time stage</screen>
+    (replace the ellipsis with the correct paths for the build system and adjust the <code>TOOLS</code> to the proper toolset if necessary)
+  </para>
+  <para>Rebuilding STLPort with <code>wchar_t</code> support involves placing <code>/Zc:wchar_t</code> in the STLPort makefile. Date_time should then be built with the following command from <code>$BOOST_ROOT</code>:
+    <screen>bjam -a "-sTOOLS=vc-7_1-stlport" "-sSTLPORT_PATH=..." \
+     "-sBUILD=&amp;native-wchar_t>on"                     \
+     --stagedir=... --with-date_time stage</screen>
+    (replace the ellipsis with the correct paths for the build system and adjust the <code>TOOLS</code> to the proper toolset if necessary)
+  </para>
+  
+  <anchor id="dir_structure" />
+  <bridgehead renderas="sect3">Directory Structure</bridgehead>
+  <para>
+    The directory tree has the following structure:
+    <programlisting>/boost/date_time                    -- common headers and template code
+/boost/date_time/gregorian          -- Gregorian date system header files
+/boost/date_time/posix_time         -- Posix time system headers
+/boost/date_time/local_time         -- Local time system headers
+/libs/date_time/build               -- build files and output directory
+/libs/date_time/test                -- test battery for generic code
+/libs/date_time/test/gregorian      -- test battery for the Gregorian system
+/libs/date_time/test/posix_time     -- test battery for the posix_time system
+/libs/date_time/test/local_time     -- test battery for the local_time system
+/libs/date_time/examples/gregorian  -- example programs for dates
+/libs/date_time/examples/posix_time -- time example programs
+/libs/date_time/examples/local_time -- nifty example programs
+/libs/date_time/src/gregorian       -- cpp files for libboost_date_time
+/libs/date_time/src/posix_time      -- empty (one file, but no source code...)</programlisting>
+  </para>
+  
+  <anchor id="other_boost_libs" />
+  <bridgehead renderas="sect3">Required Boost Libraries</bridgehead>
+  <para>
+    Various parts of date-time depend on other boost libraries.  These include:
+    <itemizedlist mark="bullet">
+      <listitem><ulink url="boost:/libs/tokenizer/index.html">boost.tokenizer</ulink> </listitem>
+      <listitem><ulink url="boost:/libs/integer/doc/html/boost_integer/cstdint.html">boost.integer(cstdint)</ulink> </listitem>
+      <listitem><ulink url="boost:/libs/utility/operators.htm">boost.operators</ulink> </listitem>
+      <listitem><ulink url="boost:/libs/conversion/lexical_cast.htm">boost.lexical_cast </ulink> </listitem>
+      <listitem><ulink url="boost:/libs/smart_ptr/smart_ptr.htm">boost.smart_ptr (local time only)</ulink> </listitem>
+      <listitem><ulink url="boost:/libs/algorithm/string/index.html">boost::string_algorithms </ulink> </listitem>
+      <listitem><ulink url="boost:/libs/serialization/index.html">boost::serialize (serialization code only) </ulink> </listitem>
+    </itemizedlist>
+    so these libraries need to be installed. 
+  </para>
+</section>

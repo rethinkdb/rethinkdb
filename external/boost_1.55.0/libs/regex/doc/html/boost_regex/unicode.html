@@ -1,0 +1,86 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Unicode and Boost.Regex</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Boost.Regex">
+<link rel="up" href="../index.html" title="Boost.Regex">
+<link rel="prev" href="introduction_and_overview.html" title="Introduction and Overview">
+<link rel="next" href="captures.html" title="Understanding Marked Sub-Expressions and Captures">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction_and_overview.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="captures.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_unicode">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_regex.unicode"></a><a class="link" href="unicode.html" title="Unicode and Boost.Regex">Unicode and Boost.Regex</a>
+</h2></div></div></div>
+<p>
+      There are two ways to use Boost.Regex with Unicode strings:
+    </p>
+<h5>
+<a name="boost_regex.unicode.h0"></a>
+      <span class="phrase"><a name="boost_regex.unicode.rely_on_wchar_t"></a></span><a class="link" href="unicode.html#boost_regex.unicode.rely_on_wchar_t">Rely
+      on wchar_t</a>
+    </h5>
+<p>
+      If your platform's <code class="computeroutput"><span class="keyword">wchar_t</span></code> type
+      can hold Unicode strings, and your platform's C/C++ runtime correctly handles
+      wide character constants (when passed to <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">iswspace</span></code>
+      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">iswlower</span></code> etc), then you can use <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">wregex</span></code>
+      to process Unicode. However, there are several disadvantages to this approach:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          It's not portable: there's no guarantee on the width of <code class="computeroutput"><span class="keyword">wchar_t</span></code>,
+          or even whether the runtime treats wide characters as Unicode at all, most
+          Windows compilers do so, but many Unix systems do not.
+        </li>
+<li class="listitem">
+          There's no support for Unicode-specific character classes: <code class="computeroutput"><span class="special">[[:</span><span class="identifier">Nd</span><span class="special">:]]</span></code>, <code class="computeroutput"><span class="special">[[:</span><span class="identifier">Po</span><span class="special">:]]</span></code>
+          etc.
+        </li>
+<li class="listitem">
+          You can only search strings that are encoded as sequences of wide characters,
+          it is not possible to search UTF-8, or even UTF-16 on many platforms.
+        </li>
+</ul></div>
+<h5>
+<a name="boost_regex.unicode.h1"></a>
+      <span class="phrase"><a name="boost_regex.unicode.use_a_unicode_aware_regular_expression_type_"></a></span><a class="link" href="unicode.html#boost_regex.unicode.use_a_unicode_aware_regular_expression_type_">Use
+      a Unicode Aware Regular Expression Type.</a>
+    </h5>
+<p>
+      If you have the <a href="http://www.ibm.com/software/globalization/icu/" target="_top">ICU
+      library</a>, then Boost.Regex can be <a class="link" href="install.html#boost_regex.install.building_with_unicode_and_icu_support">configured
+      to make use of it</a>, and provide a distinct regular expression type (boost::u32regex),
+      that supports both Unicode specific character properties, and the searching
+      of text that is encoded in either UTF-8, UTF-16, or UTF-32. See: <a class="link" href="ref/non_std_strings/icu.html" title="Working With Unicode and ICU String Types">ICU
+      string class support</a>.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction_and_overview.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="captures.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

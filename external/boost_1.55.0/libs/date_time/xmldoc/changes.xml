@@ -1,0 +1,796 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2006 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.changes">
+  <title>Change History</title>
+
+  <!-- if each new change tgroup has a "Bug Fix" as the first "Type", the columns will line up nicely -->
+
+  <bridgehead renderas="sect3">Changes from Boost 1.41 to 1.44 (date_time 1.08 to 1.09)</bridgehead>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+        <row>
+          <entry>Type</entry>
+          <entry>Description</entry>
+        </row>
+      </thead>
+      <tbody>
+
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            The "%T" and "%R" format specifiers are now processed by the library rather than underlying standard facet.
+            This fixes the cases when the placeholders are not supported by the facet
+            (<ulink url="https://svn.boost.org/trac/boost/ticket/3876">#3876</ulink>).
+          </entry>
+        </row>
+
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+  <bridgehead renderas="sect3">Changes from Boost 1.40 to 1.41 (date_time 1.07 to 1.08)</bridgehead>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+        <row>
+          <entry>Type</entry>
+          <entry>Description</entry>
+        </row>
+      </thead>
+      <tbody>
+
+        <row>
+          <entry>Change</entry>
+          <entry>
+            The default format for time durations is now "%-%O:%M:%S%F" instead of "%-%H:%M:%S%F" that was used previously. In order to retain the old behavior, the format string has to be specified explicitly during the time IO facet construction (<ulink url="https://svn.boost.org/trac/boost/ticket/1861">#1861</ulink>).
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            Gregorian dates now use 32-bit integer type internally on 64-bit platforms (<ulink url="https://svn.boost.org/trac/boost/ticket/3308">#3308</ulink>).
+          </entry>
+        </row>
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            Adjusted UTC time zone offset boundaries in order to allow offsets up to +14 hours (<ulink url="https://svn.boost.org/trac/boost/ticket/2213">#2213</ulink>).
+          </entry>
+        </row>
+
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+  <bridgehead renderas="sect3">Changes from Boost 1.38 to 1.40 (date_time 1.06 to 1.07)</bridgehead>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+        <row>
+          <entry>Type</entry>
+          <entry>Description</entry>
+        </row>
+      </thead>
+      <tbody>
+
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            Minor bug fixes (<ulink url="https://svn.boost.org/trac/boost/ticket/2809">#2809</ulink>,
+            <ulink url="https://svn.boost.org/trac/boost/ticket/2824">#2824</ulink>,
+            <ulink url="https://svn.boost.org/trac/boost/ticket/3015">#3015</ulink>,
+            <ulink url="https://svn.boost.org/trac/boost/ticket/3105">#3105</ulink> and others).
+          </entry>
+        </row>
+
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+  <bridgehead renderas="sect3">Changes from Boost 1.34 to 1.38 (date_time 1.05 to 1.06)</bridgehead>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+    <row>
+      <entry>Type</entry>
+      <entry>Description</entry>
+    </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>Feature</entry>
+          <entry>
+            Added support for formatting and reading time durations longer than 24 hours.
+            A new formatter <code>%O</code> is used indicate such long durations in the
+            format string. The old <code>%H</code> format specifier is thus restricted
+            to represent durations that fit into two characters, in order to retain support
+            for reading durations in ISO format. In case if it is detected that the <code>%H</code>
+            format specifier is used with longer durations, the results are not specified
+            (an assertion in debug builds is raised).
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            Added support for GCC 4.3. Several compilation issues were solved, as well as
+            compiler warnings were taken care of.
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            Added missing streaming operators for the <code>local_time_period</code> class.
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            Added several missing includes in different places. Some includes that are
+            not needed in some configurations were made conditional.
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            Solved compilation problem that was caused by not finding streaming operators
+            for <code>gregorian::date_duration</code> via ADL. The type is now made actually
+            a class rather a typedef for the <code>date_time::date_duration</code> template.
+            The similar change was done for <code>gregorian::weeks</code>.
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            Added a correctly spelled <code>date_time::hundredth</code> time resolution enum
+            value. The old one <code>date_time::hundreth</code> is considered deprecated and
+            to be removed in future releases.
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            Fixed compilation error in <code>format_date_parser.hpp</code> because of incorrect
+            stream type being used.
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            On Windows platform made inclusion of <code>windows.h</code> optional. The header is only used
+            when the <code>BOOST_USE_WINDOWS_H</code> macro is defined. Otherwise (and by default),
+            the library uses internal definitions of symbols from this header.
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            On Windows platform function <code>from_ftime</code> could return incorrect time if
+            the <code>FILETIME</code> that is being passed to the function contained dates before 1970-Jan-01.
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            Fixed a possible crash in <code>gregorian::special_value_from_string</code> if the string
+            did not represent a valid special value.
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            Removed the <code>testfrmwk.hpp</code> file from the public include directory. This file
+            was internal for the library tests and was not documented.
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            Fixed missing include in <code>filetime_functions.hpp</code>
+            (<ulink url="https://svn.boost.org/trac/boost/ticket/2688">#2688</ulink>).
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug fix</entry>
+          <entry>
+            Fixed dereferencing end string iterators in different places of code,
+            which could cause crashes on MSVC
+            (<ulink url="https://svn.boost.org/trac/boost/ticket/2698">#2698</ulink>).
+          </entry>
+        </row>
+
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+
+
+  <bridgehead renderas="sect3">Changes from Boost 1.33 to 1.34 (date_time 1.04 to 1.05)</bridgehead>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+	<row>
+	  <entry>Type</entry>
+	  <entry>Description</entry>
+	</row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>Feature</entry>
+          <entry>
+             Updated the data in the date_time_zonespec.csv file to reflect new US/Canada
+             daylight savings time rules for 2007.  If you upgrade to the new file, be aware
+             that the library will only give correct answers for current/future date
+             conversions.  So if you are converting dates from earlier years the answers
+             will reflect current time zone rules not past rules.  The library doesn't support
+             historic timezone rules presently.
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>
+              Two other dst calculation features have also been update to reflect the new
+              US/Canada timzone rules. This is the boost::date_time::us_dst_rules and
+              dst_calc_engine.  While the us_dst_rules is officially deprecated, a patch
+              by Graham Bennett has been applied which allows this class to work correctly
+              for both historical and future dates.  The dst_calc_engine was updated to also
+              work for historical and future times.  This allows the various local_adjustor
+              classes to work correctly.  There was an interface change for classes using the
+              dst_calc_engine with custom dst traits classes.  The traits classes signatures
+              changed to take a 'year' parameter on most of the methods such as end_month.
+              In addition,  2 new functions are needed on the traits classes:
+                   <code>static date_type local_dst_start_day(year_type year)</code> and
+                   <code>static date_type local_dst_end_day(year_type year)</code>.
+              Implementers should see <code>date_time/local_timezone_defs.hpp</code> for
+              examples.
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Fix DST traits for Austrialia (sf# 1672139) to set end of DST at 3:00 am instead of 2:00 am.
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Fix a problem with potential linking error with multiple definitions due
+                 to I/O code.
+          </entry>
+        </row>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Changed serialization code in both greg_serialize.hpp and time_serialize.hpp
+                 to eliminate warnings due to unused variables for version and file_version.
+                 Thanks to Caleb Epstein for the patch suggestion.
+          </entry>
+        </row>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Fix regression errors that showed up under FreeBSD with GCC and the
+                 LANG environment set to russian -- changed parser to use classic
+                 locale instead of blank locale.
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Changes for tracker issue 1178092 -- change in convert_to_lower to make
+                 local a const static and speed up parsing.
+          </entry>
+        </row>
+
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Patches from Ulrich Eckhardt to fix support for EVC++ 4.
+          </entry>
+        </row>
+
+        <row>
+          <entry>Feature</entry>
+          <entry>Reduce the usage of basic_stringstream as much a possible to work around
+                 a bug in the VC8 standard library. See
+                 <ulink url="http://lists.boost.org/Archives/boost/2006/02/101122.php">mailing list archive</ulink>
+                 for more information.
+          </entry>
+        </row>
+
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+
+  <bridgehead renderas="sect3">Changes from Boost 1.32 to 1.33 (date_time 1.03 to 1.04)</bridgehead>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+	<row>
+	  <entry>Type</entry>
+	  <entry>Description</entry>
+	</row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Period lengths, when beginning and end points are the same, or are consecutive, were being incorrectly calculated. The corrected behavior, where end and beginning points are equal, or a period is created with a zero duration, now return a length of zero. A period where beginning and end points are consecutive will return a length of one.
+          </entry>
+        </row>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Time_input_facet was missing functions to set iso formats. It also failed to parse time values that did not use a separator (%H%M%S). Both these bugs have been corrected.
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>Preliminary names of ptime_facet and ptime_input_facet changed to simply time_facet and time_input_facet. The ptime_* versions have been removed all together.
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>The from_iso_string function failed to parse fractional digits. We added code that correctly parses when input has more digits, or too few digits, that the compiled library precision. Ptimes with only a decimal are also correctly parsed.
+          </entry>
+        </row>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>The parsing mechanism in the new IO would consume the next character after a match was made. This bug presented itself when attempting to parse a period that had special value for it's beginning point.
+          </entry>
+        </row>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>The new IO system failed to provide the ability for the user to "turn on" exceptions on the stream. The failbit was also not set when parsing failed. Both of these problems have been fixed.
+          </entry>
+        </row>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Parsing of special values, by means of from_*_string functions, has been fixed. This also effects the libraries ability to serialize special values. Time_duration now serializes as either a string or individual fields (depending on is_special()).
+          </entry>
+        </row>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Previously, output streaming of <code>partial_date</code> would display the day as either a single or double digit integer (ie '1', or '12'). This has been corrected to always display a double digit integer (ie '01').
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>Major new features related to management of local times.
+                 This includes the introduction of a series of new classes to
+                 represent time zones and local times (see <link linkend="date_time.local_time">Date Time Local Time</link> for complete details).
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>Input and output facets have been re-written to support format-based
+            redefinition of formats (see <link linkend="date_time.date_time_io">Date Time IO</link> for complete details).
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>Functions have been added to facilitate conversions between <code>tm</code> structs for <code>date</code>, <code>ptime</code>, <code>time_duration</code>, and <code>local_date_time</code>. Functions for converting <code>FILETIME</code>, and <code>time_t</code> to <code>ptime</code> are also provided. See the individual sections for details.
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>A <code>universal_time</code> function has been added to the <code>microsec_time_clock</code> (full details of this function can be found <link linkend="ptime_from_clock">here</link>).
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>Functions have been added to facilitate conversions between <code>tm</code> structs for <code>date</code>, <code>ptime</code>, <code>time_duration</code>, and <code>local_date_time</code>. Functions for converting <code>FILETIME</code>, and <code>time_t</code> to <code>ptime</code> are also provided. See the individual sections for details.
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>A <code>universal_time</code> function has been added to the <code>microsec_time_clock</code> (full details of this function can be found <link linkend="ptime_from_clock">here</link>).
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>Date-time now uses reentrant POSIX functions on those platforms that
+                 support them when BOOST_HAS_THREADS is defined.
+          </entry>
+        </row>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Fixed a bug in serialization code where special values
+                (not-a-date-time, infinities, etc) for
+                ptime, time_duration would not read back correctly from an archive.
+                The output serialization code wrote subfields such
+                as time_duration.seconds() which are invalid for special values and
+                thus undefined values.  Thus when read back the values could cause
+                strange behavior including execeptions on construction.
+          </entry>
+        </row>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Fixed multiple warnings generated with various platforms/compilers.
+          </entry>
+        </row>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Construction of a ptime with a time_duration beyond the range of 00:00 to 23:59:59.9... now adjusts the date and time to make the time_duration fall within this range (ie <code>ptime(date(2005,2,1), hours(-5))</code> -> "2005-Jan-31 19:00:00" &amp; <code>ptime(date(2005,2,1), hours(35))</code> -> "2005-Feb-02 11:00:00").
+          </entry>
+        </row>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Time parsing now correctly handles excessive digits for fractional seconds. Leading zeros are dropped ("000100" -> 100 frac_sec), and excessive digits are truncated at the proper place ("123456789876" -> 123456 or 123456789 depending on what precision the library was compiled with).
+          </entry>
+        </row>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Changes to the <code>boost::serialization</code> interface broke serialization compatibility for <code>date_time</code>. The user must provide a function to insure <code>date_time</code> objects are <code>const</code> before they are serialized. The function should be similar to:
+            <screen>template&lt;class archive_type, class temporal_type>
+void save_to(archive_type&amp; ar,
+             const temporal_type&amp; tt)
+{
+  ar &lt;&lt; tt;
+}</screen>
+          </entry>
+        </row>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Use of the depricated <code>boost::tokenizer</code> interface has been updated to the current interface. This fixes compiler errors on some older compilers.
+          </entry>
+        </row>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Templatized formatters in the legacy IO system to accept char type. Also removed calls to <code>boost::lexical_cast</code>.
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+
+  <bridgehead renderas="sect3">Changes from Boost 1.31 to 1.32 (date_time 1.02 to 1.03)</bridgehead>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+	<row>
+	  <entry>Type</entry>
+	  <entry>Description</entry>
+	</row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Snap to end of month behavior corrected for year_functor. Previously, starting
+                 from 2000-Feb-28 (leap year and not end of month) and iterating through the next
+                 leap year would result in 2004-Feb-29 instead of 2004-Feb-28. This behavior has
+                 been corrected to produce the correct result of 2004-Feb-28. Thanks to Bart Garst
+                 for this change.
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>Free function for creating a ptime object from a FILETIME struct. This function
+                 is only available on platforms that define BOOST_HAS_FTIME.
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>Microsecond time clock is now available on most windows compilers as well as
+                 Unix.
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>Use of the boost::serialization library is now available with most of the
+                 date_time classes. Classes capable of serialization are: date_generator classes,
+                 date, days, date_period, greg_month, greg_weekday, greg_day, ptime, time_duration,
+                 and time_period. Thanks to Bart Garst for this change.
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>Functions added to convert date and time classes to wstring. The library now
+                 provides to_*_wstring as well as to_*_string functions for: simple, iso,
+                 iso_extended, and sql for dates and compilers that support wstrings. Thanks to
+                 Bart Garst for this change.
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>Period classes now handle zero length and NULL periods correctly. A NULL period
+                 is a period with a negative length. Thanks to Frank Wolf and Bart Garst for this
+                 change.
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>Added end_of_month function to gregorian::date to return the last day of
+                 the current month represented by the date.  Result is undefined for
+                 not_a_date_time or infinities.
+          </entry>
+        </row>
+        <row>
+          <entry>Bug Fix</entry>
+          <entry>Removed incorrect usage of BOOST_NO_CWCHAR macro throughout library.
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>New names added for some date classes. Original names are still valid but may
+                 some day be deprecated. Changes are:
+            <simplelist type='horiz' columns='3'>
+              <member>date_duration</member>
+              <member>is now</member>
+              <member>days</member>
+              <member>nth_kday_of_month</member>
+              <member>is now</member>
+              <member>nth_day_of_the_week_in_month</member>
+              <member>first_kday_of_month</member>
+              <member>is now</member>
+              <member>first_day_of_the_week_in_month</member>
+              <member>last_kday_of_month</member>
+              <member>is now</member>
+              <member>last_day_of_the_week_in_month</member>
+              <member>first_kday_after</member>
+              <member>is now</member>
+              <member>first_day_of_the_week_after</member>
+              <member>first_kday_before</member>
+              <member>is now</member>
+              <member>first_day_of_the_week_before</member>
+            </simplelist>
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>Free functions for date generators added. Functions are: days_until_weekday, days_before_weekday, next_weekday, and previous_weekday.
+            <screen>days days_until_weekday(date, greg_weekday);
+days days_before_weekday(date, greg_weekday);
+date next_weekday(date, greg_weekday);
+date previous_weekday(date, greg_weekday);</screen>
+	    Thanks to Bart Garst for this change.
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>New experimental duration types added for months, years, and weeks. These classes
+                 also provide mathematical operators for use with date and time classes.  Be aware
+                 that adding of months or years a time or date past the 28th of a month may show
+                 non-normal mathematical properties.  This is a result of 'end-of-month'
+                 snapping used in the calculation.  The last example below illustrates the
+                 issue.
+
+            <screen>months m(12);
+years y(1);
+m == y; // true
+days d(7);
+weeks w(1);
+d == w; // true
+ptime t(...);
+t += months(3);
+date d(2004,Jan,30);
+d += months(1); //2004-Feb-29
+d -= months(1); //2004-Jan-29</screen>
+            Input  streaming is not yet implemented for these types.
+	    Thanks to Bart Garst for this change.
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>Unifying base class for date_generators brought in to gregorian namespace. See <link linkend="date_time.examples.print_holidays">Print Holidays Example</link>.
+          </entry>
+        </row>
+        <row>
+          <entry>Feature</entry>
+          <entry>Added constructors for date and ptime that allow for default construction (both)
+                 and special values construction (ptime, both now support this). Default
+                 constructors initialize the objects to not_a_date_time (NADT).
+                 <screen>ptime p_nadt(not_a_date_time);
+ptime p_posinf(pos_infin);
+ptime p; // p == NADT
+date d;  // d == NADT</screen>
+	    Thanks to Bart Garst for this change.
+          </entry>
+        </row>
+	<row>
+	  <entry>Feature</entry>
+	  <entry>Output streaming now supports wide stream output on compiler / standard library combinations that support wide streams. This allows code like:
+	    <screen>std::wstringstream wss;
+date d(2003,Aug,21);
+wss &lt;&lt; d;</screen>
+	    Thanks to Bart Garst for this change.
+	  </entry>
+	</row>
+	<row>
+	  <entry>Feature</entry>
+          <entry>Input streaming for date and time types is now supported on both wide and narrow streams:
+	    <screen>date d(not_a_date_time);
+std::stringstream ss("2000-FEB-29");
+ss &gt;&gt; d; //Feb 29th, 2000
+std::wstringstream ws("2000-FEB-29");
+ws &gt;&gt; d; //Feb 29th, 2000</screen>
+	    Thanks to Bart Garst for this change.
+	  </entry>
+	</row>
+	<row>
+	  <entry>Bug Fix</entry>
+	  <entry> Fixed bug in duration_from_string() where a string formatted with
+                  less than full amount of fractional digits created an incorrect
+                  time_duration.  With microsecond resolution for time durations
+                  the string "1:01:01.010" created a time duration of
+                  01:01:01.000010 instead of 01:01:01.010000
+          </entry>
+	</row>
+	<row>
+	  <entry>Bug Fix</entry>
+	  <entry>Fixed the special value constructor for gregorian::date and posix_time::ptime
+                 when constructing with min_date_time or max_date_time.  The wrong value was
+                 constructed for these.
+          </entry>
+	</row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+  <bridgehead renderas="sect3">Changes from Boost 1.30 to 1.31 (date_time 1.01 to 1.02)</bridgehead>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+	<row>
+	  <entry>Type</entry>
+	  <entry>Description</entry>
+	</row>
+      </thead>
+      <tbody>
+	<row>
+	  <entry>Bug Fix</entry>
+	  <entry>Build configuration updated so dll, statically, and dynamically linkable library files are now produced with MSVC compilers. See <link linkend="date_time.buildinfo">Build/Compiler Information</link> for more details.</entry>
+	</row>
+	<row>
+	  <entry>Bug Fix</entry>
+	  <entry>Time_duration from_string is now correctly constructed from a negative value. (ie "-0:39:00.000") Code provided by Bart Garst.</entry>
+	</row>
+	<row>
+	  <entry>Bug Fix</entry>
+	  <entry>Fixed many MSVC compiler warnings when compiled with warning level 4.</entry>
+	</row>
+	<row>
+	  <entry>Feature</entry>
+	  <entry>Added prefix decrement operator (--) for date and time iterators. See <link linkend="date_time.posix_time.time_iterators">Time Iterators</link>  and <link linkend="date_time.gregorian.date_iterators">Date Iterators</link> for more details. Code provided by Bart Garst.</entry>
+	</row>
+	<row>
+	  <entry>Feature</entry>
+	  <entry>Special_values functionality added for date_duration, time_duration and time classes. Code provided by Bart Garst.</entry>
+	</row>
+	<row>
+	  <entry>Bug Fix</entry>
+	  <entry>Fixed time_duration_traits calculation bug which was causing time duration to be limited to 32bit range even when 64 bits were available. Thanks to Joe de Guzman for tracking this down.</entry>
+	</row>
+	<row>
+	  <entry>Bug Fix</entry>
+	  <entry>Provided additional operators for duration types (eg: date_duration, time_duration). This includes dividable by integer and fixes to allow +=, -= operators. Thanks to Bart Garst for writing this code. Also, the documentation of <link linkend="date_time.calculations">Calculations</link> has been improved.</entry>
+	</row>
+	<row>
+	  <entry>Bug Fix</entry>
+	  <entry>Added typedefs to boost::gregorian gregorian_types.hpp various date_generator function classes.</entry>
+	</row>
+	<row>
+	  <entry>Feature</entry>
+	  <entry>Added from_time_t function to convert time_t to a ptime.</entry>
+	</row>
+	<row>
+	  <entry>Feature</entry>
+	  <entry>Added a span function for combining periods. See <link linkend="date_time.gregorian.date_period">date period</link> and <link linkend="date_time.posix_time.time_period">time period</link> docs.</entry>
+	</row>
+	<row>
+	  <entry>Feature</entry>
+	  <entry>Added a function to time_duration to get the total number of seconds in a
+                 duration truncating any fractional seconds. In addition, other resolutions
+                 were added to allow for easy conversions. For example
+	    <screen>seconds(1).total_milliseconds() == 1000
+seconds(1).total_microseconds() == 1000000
+hours(1).total_milliseconds() == 3600*1000 //3600 sec/hour
+seconds(1).total_nanoseconds() == 1000000000</screen>
+
+           </entry>
+	</row>
+	<row>
+	  <entry>Feature</entry>
+	  <entry>Added output streaming operators for the <link linkend="date_time.gregorian.date_algorithms">date generator</link> classes - partial_date, first_kday_after, first_kday_before, etc. Thanks to Bart Garst for this work.</entry>
+	</row>
+	<row>
+	  <entry>Feature</entry>
+	  <entry>Added unary- operators for durations for reversing the sign of a time duration. For example:
+	    <screen>time_duration td(5,0,0); //5 hours
+td = -td; //-5 hours</screen>
+	  Thanks to Bart Garst for this work.</entry>
+	</row>
+	<row>
+	  <entry>Feature</entry>
+	  <entry>Added support for parsing strings with 'month names'. Thus creating a date object from string now accepts multiple formats ("2003-10-31","2003-Oct-31", and "2003-October-31"). Thus, date d = from_simple_string("2003-Feb-27") is now allowed. A bad month name string ( from_simple_string("2003-SomeBogusMonthName-27")) will cause a bad_month exception. On most compilers the string compare is case insensitive. Thanks to Bart Garst for this work.</entry>
+	</row>
+	<row>
+	  <entry>Feature</entry>
+	  <entry>In addition to support for month names or numbers, functions have been added to create date objects from multi-ordered date strings. Ex: "January-21-2002", "2002-Jan-21", and "21-Jan-2003". See <link linkend="date_time.gregorian.date_class">Date Class</link> for more details.</entry>
+	</row>
+	<row>
+	  <entry>Bug-Fix</entry><!-- leave '-' so table cell doesn't wrap -->
+	  <entry>Various documentation fixes. Thanks to Bart Garst for updates.</entry>
+	</row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+  <bridgehead renderas="sect3">Changes from Boost 1.29 to 1.30 (date_time 1.00 to 1.01)</bridgehead>
+  <para>
+    Notice: The interface to the partial_date class (see <link linkend="date_time.gregorian.date_algorithms">date_algorithms</link>) was changed. The order of construction parameters was changed which will cause some code to fail execution. This change was made to facilitate more generic local time adjustment code. Thus instead of specifying partial_date pd(Dec,25) the code needs to be changed to partial_date pd(25, Dec);
+  </para>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+	<row>
+	  <entry>Type</entry>
+	  <entry>Description</entry>
+	</row>
+      </thead>
+      <tbody>
+	<row>
+	  <entry>Bug Fix</entry>
+	  <entry>Added new experimental feature for Daylight Savings Time calculations. This allows traits based specification of dst rules.</entry>
+	</row>
+	<row>
+	  <entry>Feature</entry>
+	  <entry>Added new interfaces to calculate julian day and modified julian day to the gregorian date class. See <link linkend="date_time.gregorian.date_class">boost::gregorian::date</link>.</entry>
+	</row>
+	<row>
+	  <entry>Feature</entry>
+	  <entry>Add new interface to calculate iso 8601 week number for a date. See <link linkend="date_time.gregorian.date_class">boost::gregorian::date</link>.</entry>
+	</row>
+	<row>
+	  <entry>Feature</entry>
+	  <entry>Add an iso 8601 time date-time format (eg: YYYYMMDDTHHHMMSS) parsing function. See <link linkend="date_time.posix_time.ptime_class">Class ptime</link> for more information.</entry>
+	</row>
+	<row>
+	  <entry>Feature</entry>
+	  <entry> Added a length function to the period template so that both date_periods and time_periods will now support this function.</entry>
+	</row>
+	<row>
+	  <entry>Bug Fix</entry>
+	  <entry>Split Jamfiles so that libs/date_time/build/Jamfile only builds library and /libs/date_time/libs/test/Jamfile which runs tests.</entry>
+	</row>
+	<row>
+	  <entry>Bug Fix</entry>
+	  <entry>Fixed many minor documentation issues.</entry>
+	</row>
+	<row>
+	  <entry>Bug Fix</entry>
+	  <entry>Removed the DATE_TIME_INLINE macro which was causing link errors. This macro is no longer needed in projects using the library.</entry>
+	</row>
+	<row>
+	  <entry>Bug Fix</entry>
+	  <entry>Added missing typedef for year_iterator to gregorian_types.hpp</entry>
+	</row>
+	<row>
+	  <entry>Bug Fix</entry>
+	  <entry>Fixed problem with gregorian ostream operators that prevented the use of wide streams.</entry>
+	</row>
+	<row>
+	  <entry>Bug-Fix</entry><!-- leave '-' so table cell doesn't wrap -->
+	  <entry>Tighten error handling for dates so that date(2002, 2, 29) will throw a bad_day_of_month exception. Previously the date would be incorrectly constructed. Reported by sourceforge bug: 628054 among others.</entry>
+	</row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+</section>

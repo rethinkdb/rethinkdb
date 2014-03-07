@@ -1,0 +1,52 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/om.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/om.xml
+ */
+om{
+    Currencies{
+        BRL{
+            "R$",
+            "Brazilian Real",
+        }
+        CNY{
+            "CN¥",
+            "Chinese Yuan Renminbi",
+        }
+        ETB{
+            "Br",
+            "Itoophiyaa Birrii",
+        }
+        EUR{
+            "€",
+            "Euro",
+        }
+        GBP{
+            "£",
+            "British Pound Sterling",
+        }
+        INR{
+            "Rs",
+            "Indian Rupee",
+        }
+        JPY{
+            "JP¥",
+            "Japanese Yen",
+        }
+        RUB{
+            "RUB",
+            "Russian Ruble",
+        }
+        USD{
+            "US$",
+            "US Dollar",
+        }
+    }
+    Version{"2.0.48.64"}
+}

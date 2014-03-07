@@ -1,0 +1,168 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Function Template restrict</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Function Template <CODE>restrict</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#description">Description</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+</DL>
+
+<HR>
+
+<A NAME="description"></A>
+<H2>Description</H2>
+
+<P>
+    Given a Filter or Device that provides access to a single character sequence, we can construct a second Filter or Device which provides access to contiguous subsequence of the the original sequence. This second Filter or Device is called a <I>restriction</I> of the original device. Restrictions are represented by instances of the class template <CODE>restriction</CODE>. The function template <CODE>resrict</CODE> is an <A HREF='http://www.boost.org/more/generic_programming.html#object_generator' TARGET='_top'>object generator</A> which returns an appropriate instance of <CODE>resriction</CODE> when passed a Filter or Device and a pair of values indicating the endpoints of the restricted subsequence.
+</P>
+
+<P>
+    The <A HREF='../guide/modes.html'>mode</A> of a <CODE>resriction</CODE> is the same as that of the underlying component. A <CODE>resriction</CODE> is <A HREF='../concepts/closable.html'>Closable</A>, <A HREF='../concepts/flushable.html'>Flushable</A>, <A HREF='../concepts/localizable.html'>Localizable</A> and <A HREF='../concepts/optimally_buffered.html'>OptimallyBuffered</A>.
+</P>
+
+<P>
+    The function template <a href="slice.html"><code>slice</code></a> is available as an alias of <code>restrict</code>, for platforms that treat <code>restrict</code> as a keyword.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/restrict.hpp"><CODE>&lt;boost/iostreams/restrict.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="synopsis"></A>
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#restriction_template_params">Component</A>&gt;
+<SPAN CLASS='keyword'>class</SPAN> <A CLASS='documented' HREF='#restriction'>restriction</A> {
+<SPAN CLASS='keyword'>public:</SPAN>
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='keyword'>typename</SPAN> <A CLASS='documented' HREF='../guide/traits.html#char_type_of_ref'>char_type_of</A>&lt;Component&gt;::type  char_type;
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='omitted'>implementation-defined</SPAN>                  mode;
+
+    <A CLASS='documented' HREF='#restriction_ctor'>restriction</A>( [<SPAN CLASS='keyword'>const</SPAN>] Component&amp; component,
+                 <A CLASS='documented' HREF='positioning.html#synopsis'>stream_offset</A> off, 
+                 <A CLASS='documented' HREF='positioning.html#synopsis'>stream_offset</A> len = <SPAN     CLASS='literal'>-1</SPAN> );
+
+    <SPAN CLASS='comment'>// Filter or Device member functions</SPAN>
+};
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#restrict_template_params">Component</A>&gt;
+<A CLASS='documented' HREF='#restriction'>restriction</A>&lt;Component&gt; 
+<A CLASS='documented' HREF='#restrict'>restrict</A>( [<SPAN CLASS='keyword'>const</SPAN>] Component&amp; component,
+          <A CLASS='documented' HREF='positioning.html#synopsis'>stream_offset</A> off, 
+          <A CLASS='documented' HREF='positioning.html#synopsis'>stream_offset</A> len = <SPAN     CLASS='literal'>-1</SPAN> );
+
+} } // End namespace boost::io</PRE>
+
+<A NAME="restriction"></A>
+<H2>Class Template <CODE>restriction</CODE></H2>
+
+<A NAME="restriction_template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>Component</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A model of <A HREF='../concepts/filter.html'>Filter</A> or <A HREF='../concepts/device.html'>Device</A></TD>
+    </TR>
+</TABLE>
+
+<A NAME="restriction_ctor"></A>
+<H4><CODE>restriction::restriction</CODE></H4>
+
+<PRE CLASS="broken_ie">    restriction( [<SPAN CLASS='keyword'>const</SPAN>] Component&amp; component,
+                 <A CLASS='documented' HREF='positioning.html#synopsis'>stream_offset</A> off, 
+                 <A CLASS='documented' HREF='positioning.html#synopsis'>stream_offset</A> len = <SPAN     CLASS='literal'>-1</SPAN> );</PRE>
+
+<P>
+    Constructs an instance of <CODE>restriction</CODE> based on the given component and offsets. The parameters have the following interpretation:
+</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>component</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The Filter or Device to be restricted. If <CODE>Component</CODE> is a stream or stream buffer type, the function parameter is a non-<CODE>const</CODE> reference; otherwise it is a <CODE>const</CODE> reference.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>off</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The offset of the beginning of the restricted character sequence.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>len</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The length of the restricted character sequence. A value of <CODE>-1</CODE> indicates that the end of the restricted sequence should be the same as that of the unrestricted sequence.</TD>
+    </TR>
+</TABLE>
+
+<A NAME="restrict"></A>
+<H2>Function Template <CODE>restrict</CODE></H2>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Component&gt;
+restriction&lt;Component&gt; 
+restrict( [<SPAN CLASS='keyword'>const</SPAN>] Component&amp; component,
+          <A CLASS='documented' HREF='positioning.html#synopsis'>stream_offset</A> off, 
+          <A CLASS='documented' HREF='positioning.html#synopsis'>stream_offset</A> len = <SPAN     CLASS='literal'>-1</SPAN> );</PRE>
+
+<A NAME="restrict_template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>Component</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A model of <A HREF='../concepts/filter.html'>Filter</A> or <A HREF='../concepts/device.html'>Device</A></TD>
+    </TR>
+</TABLE>
+
+<P>
+    Constructs an instance of an appropriate specialization of <CODE>restriction</CODE> based on the given component and offsets. The parameters have the following interpretation:
+</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>component</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The Filter or Device to be restricted. If <CODE>Component</CODE> is a stream or stream buffer type, the function parameter is a non-<CODE>const</CODE> reference; otherwise it is a <CODE>const</CODE> reference.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>off</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The offset of the beginning of the restricted character sequence.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>len</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The length of the restricted character sequence. A value of <CODE>-1</CODE> indicates that the end of the restricted sequence should be the same as that of the unrestricted sequence.</TD>
+    </TR>
+</TABLE>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

@@ -1,0 +1,235 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/gu.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/gu.xml
+ */
+gu{
+    AuxExemplarCharacters{"[\u200C \u200D]"}
+    ExemplarCharacters{
+        "[ૐ અ આ ઇ ઈ ઉ ઊ ઋ ૠ ઍ એ ઐ ઑ ઓ ઔ ક ખ ગ ઘ ઙ ચ છ જ ઝ ઞ ટ ઠ ડ ઢ ણ ત થ દ ધ ન પ ફ બ"
+        " ભ મ ય ર લ વ શ ષ સ હ \u0ABC \u0A81 \u0A82 ઃ ળ ઽ \u0ACD ા િ ી \u0AC1 \u0AC2 "
+	"\u200C \u200D"
+        "\u0AC3 \u0AC4 \u0AC5 \u0AC7 \u0AC8 ૉ ો ૌ]"
+    }
+    ExemplarCharactersIndex{
+        "[અ આ ઇ ઈ ઉ ઊ ઋ એ ઐ ઓ ઔ ક ખ ગ ઘ ઙ ચ છ જ ઝ ઞ ટ ઠ ડ ઢ ણ ત થ દ ધ ન પ ફ બ ભ મ ય ર"
+        " લ વ શ ષ સ હ ળ]"
+    }
+    LocaleScript{
+        "Gujr",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤ #,##,##0.00"}
+                decimalFormat{"#,##,##0.###"}
+                percentFormat{"#,##,##0%"}
+            }
+        }
+    }
+    Version{"2.0.50.94"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "પૂર્વ મધ્યાહ્ન",
+                "ઉત્તર મધ્યાહ્ન",
+            }
+            DateTimePatterns{
+                "hh:mm:ss a zzzz",
+                "hh:mm:ss a z",
+                "hh:mm:ss a",
+                "hh:mm a",
+                "EEEE, d MMMM, y",
+                "d MMMM, y",
+                "d MMM, y",
+                "d-MM-yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                MMMMd{"d MMMM"}
+                MMdd{"dd-MM"}
+		Md{"d/M"}
+		MEd{"E, d/M"}
+                h{"hh a"}
+                hm{"hh:mm a"}
+                hms{"hh:mm:ss a"}
+                yM{"M/y"}
+                yMd{"d/M/y"}
+                yyQ{"Q yy"}
+                yyyyMM{"MM-yyyy"}
+                yyyyMMMM{"MMMM y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "રવિ",
+                        "સોમ",
+                        "મંગળ",
+                        "બુધ",
+                        "ગુરુ",
+                        "શુક્ર",
+                        "શનિ",
+                    }
+                    wide{
+                        "રવિવાર",
+                        "સોમવાર",
+                        "મંગળવાર",
+                        "બુધવાર",
+                        "ગુરુવાર",
+                        "શુક્રવાર",
+                        "શનિવાર",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ર",
+                        "સો",
+                        "મં",
+                        "બુ",
+                        "ગુ",
+                        "શુ",
+                        "શ",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "ઈલુના જન્મ પહેસાં",
+                    "ઇસવીસન",
+                }
+                narrow{
+                    "ઇ સ પુ",
+                    "ઇસ",
+                }
+                wide{
+                    "ઈસવીસન પૂર્વે",
+                    "ઇસવીસન",
+                }
+            }
+            fields{
+                day{
+                    dn{"દિવસ"}
+                    relative{
+                        "-1"{"ગઈકાસ"}
+                        "-2"{"ગઈકાસ પહેસાંનો દિવસ"}
+                        "-3"{"ત્રણ દિવસો પહેલાં"}
+                        "0"{"આજ"}
+                        "1"{"આવતીકાસ"}
+                        "2"{"આવતીકાસ પછીનો દિવસ"}
+                    }
+                }
+                era{
+                    dn{"યુગ"}
+                }
+                hour{
+                    dn{"કસાક"}
+                }
+                month{
+                    dn{"મહિનો"}
+                }
+                second{
+                    dn{"ક્ષણ"}
+                }
+                week{
+                    dn{"અહવાડિયું"}
+                }
+                year{
+                    dn{"વર્ષ"}
+                }
+                zone{
+                    dn{"વિસ્તાર"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "જાન્યુ",
+                        "ફેબ્રુ",
+                        "માર્ચ",
+                        "એપ્રિલ",
+                        "મે",
+                        "જૂન",
+                        "જુલાઈ",
+                        "ઑગસ્ટ",
+                        "સપ્ટે",
+                        "ઑક્ટો",
+                        "નવે",
+                        "ડિસે",
+                    }
+                    wide{
+                        "જાન્યુઆરી",
+                        "ફેબ્રુઆરી",
+                        "માર્ચ",
+                        "એપ્રિલ",
+                        "મે",
+                        "જૂન",
+                        "જુલાઈ",
+                        "ઑગસ્ટ",
+                        "સપ્ટેમ્બર",
+                        "ઑક્ટ્બર",
+                        "નવેમ્બર",
+                        "ડિસેમ્બર",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "જા",
+                        "ફે",
+                        "મા",
+                        "એ",
+                        "મે",
+                        "જૂ",
+                        "જુ",
+                        "ઑ",
+                        "સ",
+                        "ઑ",
+                        "ન",
+                        "ડિ",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "પેહલા હંત 1",
+                        "ત્રિમાસિક ૨",
+                        "ત્રિમાસિક ૩",
+                        "ચૌતા હંત 4",
+                    }
+                    wide{
+                        "પેહલા હંત 1",
+                        "ડૂસઋા હંત 2",
+                        "તીસઋા હંત 3",
+                        "ચૌતા હંત 4",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"\""}
+        alternateQuotationStart{"\""}
+        quotationEnd{"'"}
+        quotationStart{"'"}
+    }
+    listPattern{
+        standard{
+            2{"{0} અને {1}"}
+            end{"{0} અને {1}"}
+        }
+    }
+    measurementSystemNames{
+        US{"અમેરિકા"}
+        metric{"મેટ્રિક"}
+    }
+}

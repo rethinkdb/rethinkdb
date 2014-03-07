@@ -1,0 +1,260 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Parser Directive Inhibiting Skipping (lexeme[])</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../directive.html" title="Parser Directives">
+<link rel="prev" href="../directive.html" title="Parser Directives">
+<link rel="next" href="no_skip.html" title="Parser Directive Inhibiting Skipping Without Pre-skip (no_skip[])">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../directive.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="no_skip.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.reference.directive.lexeme"></a><a class="link" href="lexeme.html" title="Parser Directive Inhibiting Skipping (lexeme[])">Parser Directive
+          Inhibiting Skipping (<code class="computeroutput"><span class="identifier">lexeme</span><span class="special">[]</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.qi.reference.directive.lexeme.h0"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.lexeme.description"></a></span><a class="link" href="lexeme.html#spirit.qi.reference.directive.lexeme.description">Description</a>
+          </h6>
+<p>
+            The <code class="computeroutput"><span class="identifier">lexeme</span></code> directive
+            makes its subject a primitive. In a logical point of view, lexemes (and
+            primitives) are minimal atomic units (e.g. words, numbers, identifiers,
+            etc). These are the things that you'd normally put in the lexer (hinting
+            at the term "lexeme"), but in a lexer-less world, you put these
+            in a lexeme. Seeing its subject as a primitive, the <code class="computeroutput"><span class="identifier">lexeme</span></code>
+            directive does an initial pre-skip (as all primitives do) and turns off
+            white space skipping.
+          </p>
+<p>
+            At the phrase level, the parser ignores white spaces, possibly including
+            comments. Use <code class="computeroutput"><span class="identifier">lexeme</span></code>
+            in situations where you want to work at the character level instead of
+            the phrase level. Parsers can be made to work at the character level
+            by enclosing the pertinent parts inside the <code class="computeroutput"><span class="identifier">lexeme</span></code>
+            directive. For example, here's a rule that parses integers:
+          </p>
+<pre class="programlisting"><span class="identifier">integer</span> <span class="special">=</span> <span class="identifier">lexeme</span><span class="special">[</span> <span class="special">-(</span><span class="identifier">lit</span><span class="special">(</span><span class="char">'+'</span><span class="special">)</span> <span class="special">|</span> <span class="char">'-'</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="special">+</span><span class="identifier">digit</span> <span class="special">];</span>
+</pre>
+<p>
+            The <code class="computeroutput"><span class="identifier">lexeme</span></code> directive
+            instructs its subject parser to work on the character level. Without
+            it, the <code class="computeroutput"><span class="identifier">integer</span></code> rule
+            would have allowed erroneous embedded white spaces in inputs such as
+            <code class="computeroutput"><span class="string">"1 2 345"</span></code> which
+            will be parsed as <code class="computeroutput"><span class="string">"12345"</span></code>.
+          </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              Keep in mind that <code class="computeroutput"><span class="identifier">lexeme</span><span class="special">[]</span></code> pre-skips spaces. If this is not
+              desired, use the <a class="link" href="no_skip.html" title="Parser Directive Inhibiting Skipping Without Pre-skip (no_skip[])"><code class="computeroutput"><span class="identifier">no_skip</span></code></a> directive instead.
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.directive.lexeme.h1"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.lexeme.header"></a></span><a class="link" href="lexeme.html#spirit.qi.reference.directive.lexeme.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/directive/lexeme.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_lexeme</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.directive.lexeme.h2"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.lexeme.namespace"></a></span><a class="link" href="lexeme.html#spirit.qi.reference.directive.lexeme.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody><tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lexeme</span> <span class="comment">//
+                      alias: boost::spirit::qi::lexeme</span></code>
+                    </p>
+                  </td></tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.directive.lexeme.h3"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.lexeme.model_of"></a></span><a class="link" href="lexeme.html#spirit.qi.reference.directive.lexeme.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../parser_concepts/unaryparser.html" title="UnaryParser"><code class="computeroutput"><span class="identifier">UnaryParser</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a</span></code></span></dt>
+<dd><p>
+                  A <a class="link" href="../parser_concepts/parser.html" title="Parser"><code class="computeroutput"><span class="identifier">Parser</span></code></a>.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.qi.reference.directive.lexeme.h4"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.lexeme.expression_semantics"></a></span><a class="link" href="lexeme.html#spirit.qi.reference.directive.lexeme.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../parser_concepts/unaryparser.html" title="UnaryParser"><code class="computeroutput"><span class="identifier">UnaryParser</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">lexeme</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Pre-skip and turn off white space skipping for the subject
+                      parser, <code class="computeroutput"><span class="identifier">a</span></code> (and
+                      all its children).
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.directive.lexeme.h5"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.lexeme.attributes"></a></span><a class="link" href="lexeme.html#spirit.qi.reference.directive.lexeme.attributes">Attributes</a>
+          </h6>
+<p>
+            See <a class="link" href="../../quick_reference/compound_attribute_rules.html#spirit.qi.quick_reference.compound_attribute_rules.notation">Compound
+            Attribute Notation</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">lexeme</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">lexeme</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">lexeme</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.directive.lexeme.h6"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.lexeme.complexity"></a></span><a class="link" href="lexeme.html#spirit.qi.reference.directive.lexeme.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              The complexity is defined by the complexity of the subject parser,
+              <code class="computeroutput"><span class="identifier">a</span></code>
+            </p></blockquote></div>
+<h6>
+<a name="spirit.qi.reference.directive.lexeme.h7"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.lexeme.example"></a></span><a class="link" href="lexeme.html#spirit.qi.reference.directive.lexeme.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.qi.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">lexeme</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">lit</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">digit</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Simple usage of <code class="computeroutput"><span class="identifier">lexeme</span><span class="special">[]</span></code>:
+          </p>
+<p>
+            The use of lexeme here will prevent skipping in between the digits and
+            the sign making inputs such as <code class="computeroutput"><span class="string">"1 2
+            345"</span></code> erroneous.
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">test_phrase_parser</span><span class="special">(</span><span class="string">"12345"</span><span class="special">,</span> <span class="identifier">lexeme</span><span class="special">[</span> <span class="special">-(</span><span class="identifier">lit</span><span class="special">(</span><span class="char">'+'</span><span class="special">)</span> <span class="special">|</span> <span class="char">'-'</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="special">+</span><span class="identifier">digit</span> <span class="special">]);</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../directive.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="no_skip.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

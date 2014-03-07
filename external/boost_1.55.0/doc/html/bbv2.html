@@ -1,0 +1,163 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;43.&#160;Boost.Build V2 User Manual</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="tools.html" title="Part&#160;II.&#160;Boost Tools">
+<link rel="prev" href="jam/history.html" title="History">
+<link rel="next" href="bbv2/installation.html" title="Installation">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="jam/history.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="tools.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bbv2/installation.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="bbv2"></a>Chapter&#160;43.&#160;Boost.Build V2 User Manual</h2></div>
+<div><p class="copyright">Copyright &#169; 2006-2009 Vladimir Prus</p></div>
+<div><div class="legalnotice">
+<a name="idp261688200"></a><p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="bbv2.html#bbv2.howto">How to use this document</a></span></dt>
+<dt><span class="section"><a href="bbv2/installation.html">Installation</a></span></dt>
+<dt><span class="section"><a href="bbv2/tutorial.html">Tutorial</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="bbv2/tutorial.html#bbv2.tutorial.hello">Hello, world</a></span></dt>
+<dt><span class="section"><a href="bbv2/tutorial.html#bbv2.tutorial.properties">Properties</a></span></dt>
+<dt><span class="section"><a href="bbv2/tutorial.html#bbv2.tutorial.hierarchy">Project Hierarchies</a></span></dt>
+<dt><span class="section"><a href="bbv2/tutorial.html#bbv2.tutorial.libs">Dependent Targets</a></span></dt>
+<dt><span class="section"><a href="bbv2/tutorial.html#bbv2.tutorial.linkage">Static and shared libaries</a></span></dt>
+<dt><span class="section"><a href="bbv2/tutorial.html#bbv2.tutorial.conditions">Conditions and alternatives</a></span></dt>
+<dt><span class="section"><a href="bbv2/tutorial.html#bbv2.tutorial.prebuilt">Prebuilt targets</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="bbv2/overview.html">Overview</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="bbv2/overview.html#bbv2.overview.concepts">Concepts</a></span></dt>
+<dt><span class="section"><a href="bbv2/overview.html#bbv2.overview.jam_language">Boost.Jam Language</a></span></dt>
+<dt><span class="section"><a href="bbv2/overview.html#bbv2.overview.configuration">Configuration</a></span></dt>
+<dt><span class="section"><a href="bbv2/overview.html#bbv2.overview.invocation">Invocation</a></span></dt>
+<dt><span class="section"><a href="bbv2/overview.html#bbv2.overview.targets">Declaring Targets</a></span></dt>
+<dt><span class="section"><a href="bbv2/overview.html#bbv2.overview.projects">Projects</a></span></dt>
+<dt><span class="section"><a href="bbv2/overview.html#bbv2.overview.build_process">The Build Process</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="bbv2/tasks.html">Common tasks</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="bbv2/tasks.html#bbv2.tasks.programs">Programs</a></span></dt>
+<dt><span class="section"><a href="bbv2/tasks.html#bbv2.tasks.libraries">Libraries</a></span></dt>
+<dt><span class="section"><a href="bbv2/tasks.html#bbv2.tasks.alias">Alias</a></span></dt>
+<dt><span class="section"><a href="bbv2/tasks.html#bbv2.tasks.installing">Installing</a></span></dt>
+<dt><span class="section"><a href="bbv2/tasks.html#bbv2.builtins.testing">Testing</a></span></dt>
+<dt><span class="section"><a href="bbv2/tasks.html#bbv2.builtins.raw">Custom commands</a></span></dt>
+<dt><span class="section"><a href="bbv2/tasks.html#bbv2.reference.precompiled_headers">Precompiled Headers</a></span></dt>
+<dt><span class="section"><a href="bbv2/tasks.html#bbv2.reference.generated_headers">Generated headers</a></span></dt>
+<dt><span class="section"><a href="bbv2/tasks.html#bbv2.tasks.crosscompile">Cross-compilation</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="bbv2/reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="bbv2/reference.html#bbv2.reference.general">General information</a></span></dt>
+<dt><span class="section"><a href="bbv2/reference.html#bbv2.reference.rules">Builtin rules</a></span></dt>
+<dt><span class="section"><a href="bbv2/reference.html#bbv2.overview.builtins.features">Builtin features</a></span></dt>
+<dt><span class="section"><a href="bbv2/reference.html#bbv2.reference.tools">Builtin tools</a></span></dt>
+<dt><span class="section"><a href="bbv2/reference.html#bbv2.reference.modules">Builtin modules</a></span></dt>
+<dt><span class="section"><a href="bbv2/reference.html#bbv2.reference.class">Builtin classes</a></span></dt>
+<dt><span class="section"><a href="bbv2/reference.html#bbv2.reference.buildprocess">Build process</a></span></dt>
+<dt><span class="section"><a href="bbv2/reference.html#bbv2.reference.definitions">Definitions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="bbv2/extender.html">Extender Manual</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="bbv2/extender.html#bbv2.extender.intro">Introduction</a></span></dt>
+<dt><span class="section"><a href="bbv2/extender.html#bbv2.extender.example">Example: 1-to-1 generator</a></span></dt>
+<dt><span class="section"><a href="bbv2/extender.html#bbv2.extending.targets">Target types</a></span></dt>
+<dt><span class="section"><a href="bbv2/extender.html#bbv2.extending.tools">Tools and generators</a></span></dt>
+<dt><span class="section"><a href="bbv2/extender.html#bbv2.extending.features">Features</a></span></dt>
+<dt><span class="section"><a href="bbv2/extender.html#bbv2.extending.rules">Main target rules</a></span></dt>
+<dt><span class="section"><a href="bbv2/extender.html#bbv2.extending.toolset_modules">Toolset modules</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="bbv2/faq.html">Frequently Asked Questions</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="bbv2/faq.html#bbv2.faq.featurevalue">
+      How do I get the current value of feature in Jamfile?
+    </a></span></dt>
+<dt><span class="section"><a href="bbv2/faq.html#bbv2.faq.duplicate">
+      I am getting a "Duplicate name of actual target" error. What does that
+      mean?
+    </a></span></dt>
+<dt><span class="section"><a href="bbv2/faq.html#bbv2.faq.envar">
+      Accessing environment variables
+    </a></span></dt>
+<dt><span class="section"><a href="bbv2/faq.html#bbv2.faq.proporder">
+      How to control properties order?
+    </a></span></dt>
+<dt><span class="section"><a href="bbv2/faq.html#bbv2.faq.liborder">
+      How to control the library linking order on Unix?
+    </a></span></dt>
+<dt><span class="section"><a href="bbv2/faq.html#bbv2.faq.external">
+      Can I get capture external program output using a Boost.Jam variable?
+    </a></span></dt>
+<dt><span class="section"><a href="bbv2/faq.html#bbv2.faq.projectroot">
+      How to get the project root (a.k.a. Jamroot) location?
+    </a></span></dt>
+<dt><span class="section"><a href="bbv2/faq.html#bbv2.faq.flags">
+      How to change compilation flags for one file?
+    </a></span></dt>
+<dt><span class="section"><a href="bbv2/faq.html#bbv2.faq.dll-path">
+      Why are the <code class="literal">dll-path</code> and <code class="literal">hardcode-dll-paths
+      </code> properties useful?
+    </a></span></dt>
+<dt><span class="section"><a href="bbv2/faq.html#bbv2.recipies.site-config">Targets in site-config.jam</a></span></dt>
+<dt><span class="section"><a href="bbv2/faq.html#bbv2.faq.header-only-libraries">Header-only libraries</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="bbv2.howto"></a>How to use this document</h2></div></div></div>
+<p>
+      If you've just found out about Boost.Build V2 and want to know
+      if it will work for you, start with <a class="xref" href="bbv2/tutorial.html" title="Tutorial">the section called &#8220;Tutorial&#8221;</a>. You can continue with <a class="xref" href="bbv2/overview.html" title="Overview">the section called &#8220;Overview&#8221;</a>. When you're ready to try Boost.Build
+      in practice, go to <a class="xref" href="bbv2/installation.html" title="Installation">the section called &#8220;Installation&#8221;</a>.
+    </p>
+<p>
+      If you are about to use Boost.Build on your project, or already
+      using it and have a problem, look at <a class="xref" href="bbv2/overview.html" title="Overview">the section called &#8220;Overview&#8221;</a>.
+    </p>
+<p>
+      If you're trying to build a project which uses Boost.Build,
+      see <a class="xref" href="bbv2/installation.html" title="Installation">the section called &#8220;Installation&#8221;</a> and then read about
+      <a class="xref" href="bbv2/overview.html#bbv2.overview.invocation" title="Invocation">the section called &#8220;Invocation&#8221;</a>.
+    </p>
+<p>
+      If you have questions, please post them to our mailing list (<a href="http://boost.org/more/mailing_lists.htm#jamboost" target="_top">http://boost.org/more/mailing_lists.htm#jamboost</a>). The mailing list is
+      also mirrored to the newsgroup <a href="news://news.gmane.org/gmane.comp.lib.boost.build" target="_top">news://news.gmane.org/gmane.comp.lib.boost.build</a>.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="jam/history.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="tools.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bbv2/installation.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

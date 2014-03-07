@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: unpack_args</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./apply-wrap.html" class="navigation-link">Prev</a>&nbsp;<a href="./composition-and-argument-binding.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./apply-wrap.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./invocation.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./invocation.html" class="navigation-link">Invocation</a> / <a href="./unpack-args.html" class="navigation-link">unpack_args</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="unpack-args">
+<h1><a class="toc-backref" href="./invocation.html#id1527">unpack_args</a></h1>
+<div class="section" id="id901">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename F
+    &gt;
+struct <a href="./unpack-args.html" class="identifier">unpack_args</a>
+{
+    // <em>unspecified</em>
+    // <em>...</em>
+};
+</pre>
+</div>
+<div class="section" id="id902">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>A higher-order primitive transforming an <em>n</em>-ary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a> <tt class="literal"><span class="pre">F</span></tt> into
+an unary <a class="reference internal" href="./metafunction-class.html">Metafunction Class</a> <tt class="literal"><span class="pre">g</span></tt> accepting a single sequence of <em>n</em> arguments.</p>
+</div>
+<div class="section" id="id903">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/unpack_args.hpp" class="header">boost/mpl/unpack_args.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id904">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./metafunction-class.html">Metafunction Class</a></p>
+</div>
+<div class="section" id="id905">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="19%" />
+<col width="28%" />
+<col width="53%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">F</span></tt></td>
+<td><a class="reference internal" href="./lambda-expression.html">Lambda Expression</a></td>
+<td>A lambda expression to adopt.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id906">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For an arbitrary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a> <tt class="literal"><span class="pre">f</span></tt>, and arbitrary types <tt class="literal"><span class="pre">a1</span></tt>,... <tt class="literal"><span class="pre">an</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./unpack-args.html" class="identifier">unpack_args</a>&lt;f&gt; g;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="./metafunction-class.html">Metafunction Class</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first"><tt class="literal"><span class="pre">g</span></tt> is a unary <a class="reference internal" href="./metafunction-class.html">Metafunction Class</a> such that</p>
+<pre class="literal-block">
+<a href="./apply-wrap.html" class="identifier">apply_wrap</a><em>n</em>&lt; g, <a href="./vector.html" class="identifier">vector</a>&lt;a1,<em>...</em>a<em>n</em>&gt; &gt;::type
+</pre>
+<p>is identical to</p>
+<pre class="last literal-block">
+<a href="./apply.html" class="identifier">apply</a>&lt;F,a1,<em>...</em>a<em>n</em>&gt;::type
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id907">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( <a href="./apply.html" class="identifier">apply</a>&lt;
+      <a href="./unpack-args.html" class="identifier">unpack_args</a>&lt; is_same&lt;<a href="./placeholders.html" class="identifier">_1</a>,<a href="./placeholders.html" class="identifier">_2</a>&gt; &gt;
+    , <a href="./vector.html" class="identifier">vector</a>&lt;int,int&gt;
+    > ));
+</pre>
+</div>
+<div class="section" id="id908">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./metafunctions.html">Metafunctions</a>, <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a>, <a class="reference internal" href="./metafunction-class.html">Metafunction Class</a>, <a class="reference internal" href="./apply.html">apply</a>, <a class="reference internal" href="./apply-wrap.html">apply_wrap</a>, <a class="reference internal" href="./bind.html">bind</a></p>
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./apply-wrap.html" class="navigation-link">Prev</a>&nbsp;<a href="./composition-and-argument-binding.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./apply-wrap.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./invocation.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

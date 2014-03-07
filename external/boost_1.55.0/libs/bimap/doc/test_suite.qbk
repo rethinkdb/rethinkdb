@@ -1,0 +1,147 @@
+[/license
+
+Boost.Bimap
+
+Copyright (c) 2006-2007 Matias Capeletto
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+]
+
+[/ QuickBook Document version 1.4 ]
+
+[section Test suite]
+
+The Boost.Bimap test suite exercises the whole spectrum of functionalities provided by the library.
+Although the tests are not meant to serve as a learning guide, the interested reader may find it
+useful to inspect the source code to gain familiarity with some of the least common features
+offered by Boost.Bimap.
+
+[table
+[[Program                          ][Description                     ]
+]
+[[[@../../test/test_tagged.cpp 
+    test_tagged.cpp                                                 ]]
+    [Tagged idiom checks                                            ]]
+
+[[[@../../test/test_mutant.cpp 
+    test_mutant.cpp                                                 ]]
+    [Test the mutant idiom                                          ]]
+
+[[[@../../test/test_structured_pair.cpp 
+    test_structured_pair.cpp                                        ]]
+    [Test structured pair class                                     ]]
+
+[[[@../../test/test_mutant_relation.cpp 
+    test_mutant_relation.cpp                                        ]]
+    [Test the relation class                                        ]]
+
+[[[@../../test/test_bimap_set_of.cpp 
+    test_bimap_set_of.cpp                                           ]]
+    [Library interface check                                        ]]
+
+[[[@../../test/test_bimap_multiset_of.cpp 
+    test_bimap_multiset_of.cpp                                      ]]
+    [Library interface check                                        ]]
+
+[[[@../../test/test_bimap_unordered_set_of.cpp 
+    test_bimap_unordered_set_of.cpp                                 ]]
+    [Library interface check                                        ]]
+
+[[[@../../test/test_bimap_unordered_multiset_of.cpp
+    test_bimap_unordered_multiset_of.cpp                            ]]
+    [Library interface check                                        ]]
+
+[[[@../../test/test_bimap_list_of.cpp 
+    test_bimap_list_of.cpp                                          ]]
+    [Library interface check                                        ]]
+
+[[[@../../test/test_bimap_vector_of.cpp 
+    test_bimap_vector_of.cpp                                        ]]
+    [Library interface check                                        ]]
+
+[[[@../../test/test_bimap_convenience_header.cpp 
+    test_bimap_convenience_header.cpp                               ]]
+    [Library interface check                                        ]]
+
+[[[@../../test/test_bimap_ordered.cpp 
+    test_bimap_ordered.cpp                                          ]]
+    [Test set and multiset based bimaps                             ]]
+
+[[[@../../test/test_bimap_unordered.cpp 
+    test_bimap_unordered.cpp                                        ]]
+    [Test unordered_set and unordered_multiset based bimaps         ]]
+
+[[[@../../test/test_bimap_sequenced.cpp 
+    test_bimap_sequenced.cpp                                        ]]
+    [Test list and vector based bimaps                              ]]
+
+[[[@../../test/test_bimap_unconstrained.cpp 
+    test_bimap_unconstrained.cpp                                    ]]
+    [Test bimaps with unconstrained views                           ]]
+
+[[[@../../test/test_bimap_serialization.cpp 
+    test_bimap_serialization.cpp                                    ]]
+    [Serialization support checks                                   ]]
+
+[[[@../../test/test_bimap_property_map.cpp 
+    test_bimap_property_map.cpp                                     ]]
+    [Property map concepts for the set and unordered set views      ]]
+
+[[[@../../test/test_bimap_modify.cpp 
+    test_bimap_modify.cpp                                           ]]
+    [`replace`, `modify` and `operator[]`                           ]]
+
+[[[@../../test/test_bimap_lambda.cpp 
+    test_bimap_lambda.cpp                                           ]]
+    [Test lambda modified idom support                              ]]
+
+[[[@../../test/test_bimap_assign.cpp 
+    test_bimap_assign.cpp                                           ]]
+    [Test Boost.Assign support                                      ]]
+
+[[[@../../test/test_bimap_project.cpp 
+    test_bimap_project.cpp                                          ]]
+    [Projection of iterators support                                ]]
+
+[[[@../../test/test_bimap_operator_bracket.cpp 
+    test_bimap_operator_bracket.cpp                                 ]]
+    [`operator[]` and `at()` functions                              ]]
+
+[[[@../../test/test_bimap_info.cpp 
+    test_bimap_info.cpp                                             ]]
+    [Information hooking support                                    ]]
+
+[[[@../../test/test_bimap_extra.cpp 
+    test_bimap_extra.cpp                                            ]]
+    [Additional checks                                              ]]
+
+[[[@../../test/compile_fail/test_bimap_info_1.cpp 
+    test_bimap_info_1.cpp                                           ]]
+    [Information hooking compilation fail test                      ]]
+
+[[[@../../test/compile_fail/test_bimap_info_2.cpp 
+    test_bimap_info_2.cpp                                           ]]
+    [Information hooking compilation fail test                      ]]
+
+[[[@../../test/compile_fail/test_bimap_info_3.cpp 
+    test_bimap_info_3.cpp                                           ]]
+    [Information hooking compilation fail test                      ]]
+
+[[[@../../test/compile_fail/test_bimap_mutable_1.cpp 
+    test_bimap_mutable_1.cpp                                        ]]
+    [Mutable members compilation fail test                          ]]
+
+[[[@../../test/compile_fail/test_bimap_mutable_2.cpp 
+    test_bimap_mutable_2.cpp                                        ]]
+    [Mutable members compilation fail test                          ]]
+
+[[[@../../test/compile_fail/test_bimap_mutable_3.cpp 
+    test_bimap_mutable_3.cpp                                        ]]
+    [Mutable members compilation fail test                          ]]
+
+]
+
+[endsect]

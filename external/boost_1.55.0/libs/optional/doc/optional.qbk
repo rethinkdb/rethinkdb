@@ -1,0 +1,126 @@
+[library Boost.Optional
+    [quickbook 1.4]
+    [authors [Cacciola Carballal, Fernando Luis]]
+    [copyright 2003-2007 Fernando Luis Cacciola Carballal]
+    [category miscellaneous]
+    [id optional]
+    [dirname optional]
+    [purpose
+        Discriminated-union wrapper for optional values
+    ]
+    [source-mode c++]
+    [license
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+[@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[/ Macros will be used for links so we have a central place to change them ]
+
+
+[/ Cited Boost resources ]
+
+[def __BOOST_VARIANT__ [@../../../variant/index.html Boost.Variant]]
+[def __BOOST_TRIBOOL__ [@../../../../doc/html/tribool.html boost::tribool]]
+
+[def __OPTIONAL_POINTEE__ [@../../../utility/OptionalPointee.html OptionalPointee]]
+[def __COPY_CONSTRUCTIBLE__ [@../../../utility/CopyConstructible.html Copy Constructible]]
+[def __FUNCTION_EQUAL_POINTEES__ [@../../../utility/OptionalPointee.html#equal `equal_pointees()`]]
+[def __FUNCTION_LESS_POINTEES__ [@../../../utility/OptionalPointee.html#less `less_pointees()`]]
+
+[def __IN_PLACE_FACTORY_HPP__ [@../../../../boost/utility/in_place_factory.hpp in_place_factory.hpp]]
+[def __TYPED_IN_PLACE_FACTORY_HPP__ [@../../../../boost/utility/typed_in_place_factory.hpp typed_in_place_factory.hpp]]
+
+[/ Other web resources ]
+
+[def __HASKELL__ [@http://www.haskell.org/ Haskell]]
+[def __SGI_DEFAULT_CONSTRUCTIBLE__ [@http://www.sgi.com/tech/stl/DefaultConstructible.html Default Constructible]]
+
+
+[/ Icons ]
+
+[def __SPACE__ [$images/space.png]]
+[def __GO_TO__ [$images/callouts/R.png]]
+
+
+[section Motivation]
+
+Consider these functions which should return a value but which might not have
+a value to return:
+
+* (A) `double sqrt(double n );`
+* (B) `char get_async_input();`
+* (C) `point polygon::get_any_point_effectively_inside();`
+
+There are different approaches to the issue of not having a value to return.
+
+A typical approach is to consider the existence of a valid return value as a
+postcondition, so that if the function cannot compute the value to return, it
+has either undefined behavior (and can use assert in a debug build) or uses a
+runtime check and throws an exception if the postcondition is violated. This
+is a reasonable choice for example, for function (A), because the lack of a
+proper return value is directly related to an invalid parameter (out of domain
+argument), so it is appropriate to require the callee to supply only parameters
+in a valid domain for execution to continue normally.
+
+However, function (B), because of its asynchronous nature, does not fail just
+because it can't find a value to return; so it is incorrect to consider such
+a situation an error and assert or throw an exception. This function must
+return, and somehow, must tell the callee that it is not returning a meaningful
+value.
+
+A similar situation occurs with function (C): it is conceptually an error to
+ask a ['null-area] polygon to return a point inside itself, but in many
+applications, it is just impractical for performance reasons to treat this as
+an error (because detecting that the polygon has no area might be too expensive
+to be required to be tested previously), and either an arbitrary point
+(typically at infinity) is returned, or some efficient way to tell the callee
+that there is no such point is used.
+
+There are various mechanisms to let functions communicate that the returned
+value is not valid. One such mechanism, which is quite common since it has
+zero or negligible overhead, is to use a special value which is reserved to
+communicate this. Classical examples of such special values are `EOF`,
+`string::npos`, points at infinity, etc...
+
+When those values exist, i.e. the return type can hold all meaningful values
+['plus] the ['signal] value, this mechanism is quite appropriate and well known.
+Unfortunately, there are cases when such values do not exist. In these cases,
+the usual alternative is either to use a wider type, such as `int` in place of
+`char`; or a compound type, such as `std::pair<point,bool>`.
+
+Returning a `std::pair<T,bool>`, thus attaching a boolean flag to the result
+which indicates if the result is meaningful, has the advantage that can be
+turned into a consistent idiom since the first element of the pair can be
+whatever the function would conceptually return. For example, the last two
+functions could have the following interface:
+
+    std::pair<char,bool> get_async_input();
+    std::pair<point,bool> polygon::get_any_point_effectively_inside();
+
+These functions use a consistent interface for dealing with possibly inexistent
+results:
+
+    std::pair<point,bool> p = poly.get_any_point_effectively_inside();
+    if ( p.second )
+        flood_fill(p.first);
+
+However, not only is this quite a burden syntactically, it is also error prone
+since the user can easily use the function result (first element of the pair)
+without ever checking if it has a valid value.
+
+Clearly, we need a better idiom.
+
+[endsect]
+
+
+[include development.qbk]
+[include reference.qbk]
+[include examples.qbk]
+[include special_cases.qbk]
+[include implementation_notes.qbk]
+[include dependencies.qbk]
+[include acknowledgments.qbk]
+
+

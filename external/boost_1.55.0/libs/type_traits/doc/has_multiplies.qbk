@@ -1,0 +1,111 @@
+[/
+  (C) Copyright 2009-2011  Frederic Bron.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:has_multiplies has_multiplies]
+   template <class Lhs, class Rhs=Lhs, class Ret=dont_care>
+   struct has_multiplies : public __tof {};
+
+__inherit
+If (i) `lhs` of type `Lhs` and `rhs` of type `Rhs` can be used in expression `lhs*rhs`,
+and (ii) `Ret=dont_care` or the result of expression `lhs*rhs` is convertible to `Ret`
+then inherits from __true_type,
+otherwise inherits from __false_type.
+
+The default behaviour (`Ret=dont_care`) is to not check for the return value of binary `operator*`.
+If `Ret` is different from the default `dont_care` type, the return value is checked to be convertible to `Ret`.
+Convertible to `Ret` means that the return value of the operator can be used as argument to a function expecting `Ret`:
+``
+void f(Ret);
+Lhs lhs;
+Rhs rhs;
+f(lhs*rhs); // is valid if has_multiplies<Lhs, Rhs, Ret>::value==true
+``
+If `Ret=void`, the return type is checked to be exactly `void`.
+
+__header `#include <boost/type_traits/has_multiplies.hpp>` or `#include <boost/type_traits/has_operator.hpp>` or `#include <boost/type_traits.hpp>`
+
+__examples
+
+[:`has_multiplies<Lhs, Rhs, Ret>::value_type` is the type `bool`.]
+[:`has_multiplies<Lhs, Rhs, Ret>::value` is a `bool` integral constant expression.]
+[:`has_multiplies<int>::value` is a `bool` integral constant expression that evaluates to `true`.]
+[:`has_multiplies<long>` inherits from `__true_type`.]
+
+[:`has_multiplies<int, int, int>` inherits from `__true_type`.]
+[:`has_multiplies<int, int, long>` inherits from `__true_type`.]
+[:`has_multiplies<int, double, double>` inherits from `__true_type`.]
+[:`has_multiplies<int, double, int>` inherits from `__true_type`.]
+[:`has_multiplies<const int, int>::value` inherits from `__true_type`.]
+
+[:`has_multiplies<int, int, std::string>` inherits from `__false_type`.]
+
+
+[*See also:] [link boost_typetraits.category.value_traits.operators Operator Type Traits]
+
+[*Limitation:]
+
+* Requires a compiler with working SFINAE.
+
+[*Known issues:]
+
+* This trait cannot detect whether binary `operator*` is public or not:
+if `operator*` is defined as a private member of `Lhs` then
+instantiating `has_multiplies<Lhs>` will produce a compiler error.
+For this reason `has_multiplies` cannot be used to determine whether a type has a public `operator*` or not.
+``
+struct A { private: void operator*(const A&); };
+boost::has_multiplies<A>::value; // error: A::operator*(const A&) is private
+``
+
+* There is an issue if the operator exists only for type `A` and `B` is
+convertible to `A`. In this case, the compiler will report an ambiguous overload.
+``
+struct A { };
+void operator*(const A&, const A&);
+struct B { operator A(); };
+boost::has_multiplies<A>::value; // this is fine
+boost::has_multiplies<B>::value; // error: ambiguous overload
+``
+
+* There is an issue when applying this trait to template classes.
+If `operator*` is defined but does not bind for a given template type,
+it is still detected by the trait which returns `true` instead of `false`.
+Example:
+``
+#include <boost/type_traits/has_multiplies.hpp>
+#include <iostream>
+
+template <class T>
+struct contains { T data; };
+
+template <class T>
+bool operator*(const contains<T> &lhs, const contains<T> &rhs) {
+	return f(lhs.data, rhs.data);
+}
+
+class bad { };
+class good { };
+bool f(const good&, const good&) { }
+
+int main() {
+	std::cout<<std::boolalpha;
+	// works fine for contains<good>
+	std::cout<<boost::has_multiplies< contains< good > >::value<<'\n'; // true
+	contains<good> g;
+	g*g; // ok
+	// does not work for contains<bad>
+	std::cout<<boost::has_multiplies< contains< bad > >::value<<'\n'; // true, should be false
+	contains<bad> b;
+	b*b; // compile time error
+	return 0;
+}
+``
+
+* `volatile` qualifier is not properly handled and would lead to undefined behavior
+
+[endsect]
+

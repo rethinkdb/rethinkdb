@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Copyright (c) 2002 Douglas Gregor <doug.gregor -at- gmail.com>
+  
+   Distributed under the Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt or copy at
+   http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<section xmlns:xi="http://www.w3.org/2001/XInclude" id="function.tutorial"
+         last-revision="$Date: 2009-07-12 09:13:35 -0700 (Sun, 12 Jul 2009) $">
+<title>Tutorial</title>
+
+<using-namespace name="boost"/>
+
+<para> Boost.Function has two syntactical forms: the preferred form
+and the portable form. The preferred form fits more closely with the
+C++ language and reduces the number of separate template parameters
+that need to be considered, often improving readability; however, the
+preferred form is not supported on all platforms due to compiler
+bugs. The compatible form will work on all compilers supported by
+Boost.Function. Consult the table below to determine which syntactic
+form to use for your compiler.
+
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+            <itemizedlist spacing="compact">
+              <listitem><simpara>GNU C++ 2.95.x, 3.0.x and later versions</simpara></listitem>
+              <listitem><simpara>Comeau C++ 4.2.45.2</simpara></listitem>
+              <listitem><simpara>SGI MIPSpro 7.3.0</simpara></listitem>
+              <listitem><simpara>Intel C++ 5.0, 6.0</simpara></listitem>
+              <listitem><simpara>Compaq's cxx 6.2</simpara></listitem>
+	      <listitem><simpara>Microsoft Visual C++ 7.1 and later versions</simpara></listitem>
+            </itemizedlist>
+          </entry>
+          <entry>
+            <itemizedlist spacing="compact">
+              <listitem><simpara><emphasis>Any compiler supporting the preferred syntax</emphasis></simpara></listitem>
+              <listitem><simpara>Microsoft Visual C++ 6.0, 7.0</simpara></listitem>
+              <listitem><simpara>Borland C++ 5.5.1</simpara></listitem>
+              <listitem><simpara>Sun WorkShop 6 update 2 C++ 5.3</simpara></listitem>
+              <listitem><simpara>Metrowerks CodeWarrior 8.1</simpara></listitem>
+            </itemizedlist>
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+
+</para>
+
+<para> If your compiler does not appear in this list, please try the preferred syntax and report your results to the Boost list so that we can keep this table up-to-date.</para>
+
+<using-class name="boost::function"/>
+
+<section>
+<title>Basic Usage</title> <para> A function wrapper is defined simply
+by instantiating the <computeroutput>function</computeroutput> class
+template with the desired return type and argument types, formulated
+as a C++ function type. Any number of arguments may be supplied, up to
+some implementation-defined limit (10 is the default maximum). The
+following declares a function object wrapper
+<computeroutput>f</computeroutput> that takes two
+<computeroutput>int</computeroutput> parameters and returns a
+<computeroutput>float</computeroutput>:
+
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+<programlisting name="function.tutorial.arith.cxx98"><classname>boost::function</classname>&lt;float (int x, int y)&gt; f;</programlisting>
+</entry>
+<entry>
+<programlisting name="function.tutorial.arith.portable"><classname alt="functionN">boost::function2</classname>&lt;float, int, int&gt; f;</programlisting>
+</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+</para>
+
+<para> By default, function object wrappers are empty, so we can create a 
+function object to assign to <computeroutput>f</computeroutput>:
+
+<programlisting name="function.tutorial.int_div">struct int_div { 
+  float operator()(int x, int y) const { return ((float)x)/y; }; 
+};</programlisting>
+<programlisting name="function.tutorial.use_int_div">f = int_div();</programlisting>
+</para>
+
+<para> Now we can use <computeroutput>f</computeroutput> to execute
+the underlying function object
+<computeroutput>int_div</computeroutput>:
+
+<programlisting name="function.tutorial.call_int_div">std::cout &lt;&lt; f(5, 3) &lt;&lt; std::endl;</programlisting>
+</para>
+
+<para> We are free to assign any compatible function object to
+<computeroutput>f</computeroutput>. If
+<computeroutput>int_div</computeroutput> had been declared to take two
+<computeroutput>long</computeroutput> operands, the implicit
+conversions would have been applied to the arguments without any user
+interference. The only limit on the types of arguments is that they be
+CopyConstructible, so we can even use references and arrays:
+
+  <informaltable>
+    <tgroup cols="1" align="left">
+      <thead><row><entry>Preferred syntax</entry></row></thead>
+      <tbody>
+        <row>
+          <entry>
+<programlisting name="function.tutorial.sum_avg_decl.cxx98"><classname>boost::function</classname>&lt;void (int values[], int n, int&amp; sum, float&amp; avg)&gt; sum_avg;</programlisting>
+</entry>
+        </row>
+      </tbody>
+    </tgroup> 
+  </informaltable>
+  <informaltable>
+    <tgroup cols="1" align="left">
+      <thead><row><entry>Portable syntax</entry></row></thead>
+      <tbody>
+        <row>
+<entry>
+<programlisting name="function.tutorial.sum_avg_decl.portable"><classname alt="functionN">boost::function4</classname>&lt;void, int*, int, int&amp;, float&amp;&gt; sum_avg;</programlisting>
+</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+
+<programlisting name="function.tutorial.sum_avg">void do_sum_avg(int values[], int n, int&amp; sum, float&amp; avg)
+{
+  sum = 0;
+  for (int i = 0; i &lt; n; i++)
+    sum += values[i];
+  avg = (float)sum / n;
+}</programlisting>
+
+
+<programlisting name="function.tutorial.use_sum_avg">sum_avg = &amp;do_sum_avg;</programlisting>
+</para>
+
+<para> Invoking a function object wrapper that does not actually
+contain a function object is a precondition violation, much like
+trying to call through a null function pointer, and will throw a <classname>bad_function_call</classname> exception). We can check for an
+empty function object wrapper by using it in a boolean context (it evaluates <computeroutput>true</computeroutput> if the wrapper is not empty) or compare it against <computeroutput>0</computeroutput>. For instance:
+<programlisting name="function.tutorial.check_empty">if (f)
+  std::cout &lt;&lt; f(5, 3) &lt;&lt; std::endl;
+else
+  std::cout &lt;&lt; "f has no target, so it is unsafe to call" &lt;&lt; std::endl;</programlisting>
+</para>
+
+<para> Alternatively,
+<computeroutput><methodname>empty</methodname>()</computeroutput>
+method will return whether or not the wrapper is empty.  </para>
+
+<para> Finally, we can clear out a function target by assigning it to <computeroutput>0</computeroutput> or by calling the <computeroutput><methodname>clear</methodname>()</computeroutput> member function, e.g., 
+<programlisting name="function.tutorial.clear">f = 0;</programlisting>
+</para>
+
+</section>
+
+<section>
+  <title>Free functions</title>
+<para> Free function pointers can be considered singleton function objects with const function call operators, and can therefore be directly used with the function object wrappers: 
+<programlisting name="function.tutorial.mul_ints">float mul_ints(int x, int y) { return ((float)x) * y; }</programlisting>
+<programlisting name="function.tutorial.use_mul_ints">f = &amp;mul_ints;</programlisting>
+</para>
+
+<para> Note that the <computeroutput>&amp;</computeroutput> isn't really necessary unless you happen to be using Microsoft Visual C++ version 6. </para>
+</section>
+
+<section>
+  <title>Member functions</title>
+
+<para> In many systems, callbacks often call to member functions of a
+particular object. This is often referred to as "argument binding",
+and is beyond the scope of Boost.Function. The use of member functions
+directly, however, is supported, so the following code is valid:
+
+<programlisting name="function.tutorial.X">struct X {
+  int foo(int);
+};</programlisting>
+
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+<programlisting name="function.tutorial.mem_fun.cxx98"><classname>boost::function</classname>&lt;int (X*, int)&gt; f;
+
+f = &amp;X::foo;
+  
+X x;
+f(&amp;x, 5);</programlisting>
+</entry>
+<entry>
+<programlisting name="function.tutorial.mem_fun.portable"><classname alt="functionN">boost::function2</classname>&lt;int, X*, int&gt; f;
+
+f = &amp;X::foo;
+  
+X x;
+f(&amp;x, 5);</programlisting>
+</entry>
+</row>
+</tbody>
+</tgroup>
+</informaltable>
+</para>
+
+<para> Several libraries exist that support argument binding. Three such libraries are summarized below:
+<itemizedlist>
+  <listitem> <para><libraryname>Bind</libraryname>. This library allows binding of
+  arguments for any function object. It is lightweight and very
+  portable.</para></listitem>
+
+  <listitem> <para>The C++ Standard library. Using
+  <computeroutput>std::bind1st</computeroutput> and
+  <computeroutput>std::mem_fun</computeroutput> together one can bind
+  the object of a pointer-to-member function for use with
+  Boost.Function:
+
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+<programlisting name="function.tutorial.std_bind.cxx98">  <classname>boost::function</classname>&lt;int (int)&gt; f;
+X x;
+f = std::bind1st(
+      std::mem_fun(&amp;X::foo), &amp;x);
+f(5); // Call x.foo(5)</programlisting>
+</entry>
+<entry>
+<programlisting name="function.tutorial.std_bind.portable">  <classname alt="functionN">boost::function1</classname>&lt;int, int&gt; f;
+X x;
+f = std::bind1st(
+      std::mem_fun(&amp;X::foo), &amp;x);
+f(5); // Call x.foo(5)</programlisting>
+</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+</para>
+</listitem>
+
+  <listitem><para>The <libraryname>Lambda</libraryname> library. This library provides a powerful composition mechanism to construct function objects that uses very natural C++ syntax. Lambda requires a compiler that is reasonably conformant to the C++ standard. </para></listitem>
+</itemizedlist>
+</para>
+
+</section>
+
+<section>
+  <title>References to Function Objects</title> <para> In some cases it is
+  expensive (or semantically incorrect) to have Boost.Function clone a
+  function object. In such cases, it is possible to request that
+  Boost.Function keep only a reference to the actual function
+  object. This is done using the <computeroutput>ref</computeroutput>
+  and <computeroutput>cref</computeroutput> functions to wrap a
+  reference to a function object:
+
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+<programlisting name="function.tutorial.ref.cxx98">stateful_type a_function_object;
+<classname>boost::function</classname>&lt;int (int)&gt; f;
+f = <functionname>boost::ref</functionname>(a_function_object);
+
+<classname>boost::function</classname>&lt;int (int)&gt; f2(f);</programlisting>
+</entry>
+<entry>
+<programlisting name="function.tutorial.ref.portable">stateful_type a_function_object;
+<classname alt="functionN">boost::function1</classname>&lt;int, int&gt; f;
+f = <functionname>boost::ref</functionname>(a_function_object);
+
+<classname alt="functionN">boost::function1</classname>&lt;int, int&gt; f2(f);</programlisting>
+</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+</para>
+
+<para> Here, <computeroutput>f</computeroutput> will not make a copy
+of <computeroutput>a_function_object</computeroutput>, nor will
+<computeroutput>f2</computeroutput> when it is targeted to
+<computeroutput>f</computeroutput>'s reference to
+<computeroutput>a_function_object</computeroutput>. Additionally, when
+using references to function objects, Boost.Function will not throw
+exceptions during assignment or construction.
+</para>
+</section>
+
+<section>
+  <title>Comparing Boost.Function function objects</title>
+
+  <para>Function object wrappers can be compared via <code>==</code>
+  or <code>!=</code> against any function object that can be stored
+  within the wrapper. If the function object wrapper contains a
+  function object of that type, it will be compared against the given
+  function object (which must be either be
+  <conceptname>EqualityComparable</conceptname> or have an overloaded <functionname>boost::function_equal</functionname>). For instance:</para>
+  
+  <programlisting name="function.tutorial.compare">int compute_with_X(X*, int);
+
+f = &amp;X::foo;
+assert(f == &amp;X::foo);
+assert(&amp;compute_with_X != f);</programlisting>
+
+   <para>When comparing against an instance of
+   <code><classname>reference_wrapper</classname></code>, the address
+   of the object in the
+   <code><classname>reference_wrapper</classname></code> is compared
+   against the address of the object stored by the function object
+   wrapper:</para>
+
+  <programlisting name="function.tutorial.compare-ref">a_stateful_object so1, so2;
+f = <functionname>boost::ref</functionname>(so1);
+assert(f == <functionname>boost::ref</functionname>(so1));
+assert(f == so1); <emphasis>// Only if a_stateful_object is <conceptname>EqualityComparable</conceptname></emphasis>
+assert(f != <functionname>boost::ref</functionname>(so2));</programlisting>
+
+</section>
+
+</section>
+

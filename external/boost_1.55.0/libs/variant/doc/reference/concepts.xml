@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8" ?> 
+<section id="variant.concepts">
+  <title>Concepts</title>
+
+  <using-namespace name="boost"/>
+
+  <section id="variant.concepts.bounded-type">
+    <title><emphasis>BoundedType</emphasis></title>
+
+    <para>The requirements on a <emphasis role="bold">bounded type</emphasis>
+      are as follows:</para>
+
+    <itemizedlist>
+      <listitem><conceptname>CopyConstructible</conceptname> or <conceptname>MoveConstructible</conceptname>.</listitem>
+      <listitem>Destructor upholds the no-throw exception-safety
+        guarantee.</listitem>
+      <listitem>Complete at the point of <code>variant</code> template
+        instantiation. (See
+        <code><classname>boost::recursive_wrapper</classname>&lt;T&gt;</code>
+        for a type wrapper that accepts incomplete types to enable recursive
+        <code>variant</code> types.)</listitem>
+    </itemizedlist>
+
+    <para>Every type specified as a template argument to
+      <code><classname>variant</classname></code> must at minimum fulfill the
+      above requirements. In addition, certain features of <code>variant</code>
+      are available only if its bounded types meet the requirements of these
+      following additional concepts:</para>
+
+    <itemizedlist>
+      <listitem><conceptname>Assignable</conceptname>:
+        <code>variant</code> is itself <emphasis>Assignable</emphasis> if and
+        only if every one of its bounded types meets the requirements of the
+        concept. (Note that top-level <code>const</code>-qualified types and
+        reference types do <emphasis>not</emphasis> meet these
+        requirements.)</listitem>
+      <listitem><conceptname>MoveAssignable</conceptname>:
+        <code>variant</code> is itself <emphasis>MoveAssignable</emphasis> if and
+        only if every one of its bounded types meets the requirements of the
+        concept. (Note that top-level <code>const</code>-qualified types and
+        reference types do <emphasis>not</emphasis> meet these
+        requirements.)</listitem>
+      <listitem><conceptname>DefaultConstructible</conceptname> [20.1.4]:
+        <code>variant</code> is itself
+        <conceptname>DefaultConstructible</conceptname> if and only if its first
+        bounded type (i.e., <code>T1</code>) meets the requirements of the
+        concept.</listitem>
+      <listitem><conceptname>EqualityComparable</conceptname>:
+        <code>variant</code> is itself <conceptname>EqualityComparable</conceptname>
+        if and only if every one of its bounded types meets the requirements
+        of the concept.</listitem>
+      <listitem><conceptname>LessThanComparable</conceptname>:
+        <code>variant</code> is itself <conceptname>LessThanComparable</conceptname>
+        if and only if every one of its bounded types meets the requirements
+        of the concept.</listitem>
+      <listitem><link linkend="variant.concepts.output-streamable"><emphasis>OutputStreamable</emphasis></link>:
+        <code>variant</code> is itself <emphasis>OutputStreamable</emphasis>
+        if and only if every one of its bounded types meets the requirements
+        of the concept.</listitem>
+      <listitem><link linkend="variant.concepts.hashable"><emphasis>Hashable</emphasis></link>:
+        <code>variant</code> is itself <emphasis>Hashable</emphasis>
+        if and only if every one of its bounded types meets the requirements
+        of the concept.</listitem>
+    </itemizedlist>
+  </section>
+
+  <section id="variant.concepts.static-visitor">
+    <title><emphasis>StaticVisitor</emphasis></title>
+
+    <para>The requirements on a <emphasis role="bold">static
+    visitor</emphasis> of a type <code>T</code> are as follows:</para>
+
+    <itemizedlist>
+      <listitem>Must allow invocation as a function by overloading
+        <code>operator()</code>, unambiguously accepting any value of type
+        <code>T</code>.</listitem>
+      <listitem>Must expose inner type <code>result_type</code>. (See 
+        <code><functionname>boost::visitor_ptr</functionname></code> for a
+        solution to using functions as visitors.)</listitem>
+      <listitem>If <code>result_type</code> is not <code>void</code>, then
+        each operation of the function object must return a value implicitly
+        convertible to <code>result_type</code>.</listitem>
+    </itemizedlist>
+
+    <section id="variant.concepts.static-visitor.examples">
+      <title>Examples</title>
+
+      <para>The following class satisfies the requirements of a static visitor
+      of several types (i.e., explicitly: <code>int</code> and
+      <code>std::string</code>; or, e.g., implicitly: <code>short</code> and
+      <code>const char *</code>; etc.):</para>
+
+<programlisting>class my_visitor
+    : public <classname>boost::static_visitor</classname>&lt;int&gt;
+{
+public:
+
+    int operator()(int i)
+    {
+        return i * 2;
+    }
+
+    int operator()(const std::string&amp; s)
+    {
+        return s.length();
+    }
+
+};</programlisting>
+
+      <para>Another example is the following class, whose function-call
+      operator is a member template, allowing it to operate on values of many
+      types. Thus, the following class is a visitor of any type that supports
+      streaming output (e.g., <code>int</code>, <code>double</code>,
+      <code>std::string</code>, etc.):</para>
+
+<programlisting>class printer
+    : public <classname>boost::static_visitor</classname>&lt;&gt;
+{
+    template &lt;typename T&gt;
+    void operator()(const T&amp; t)
+    {
+        std::cout &lt;&lt; t &lt;&lt; std::endl;
+    }
+};</programlisting>
+
+    </section>
+  </section>
+
+  <section id="variant.concepts.output-streamable">
+    <title><emphasis>OutputStreamable</emphasis></title>
+
+    <para>The requirements on an <emphasis role="bold">output
+      streamable</emphasis> type <code>T</code> are as follows:</para>
+
+    <itemizedlist>
+      <listitem>For any object <code>t</code> of type <code>T</code>,
+        <code>std::cout &lt;&lt; t</code> must be a valid
+        expression.</listitem>
+    </itemizedlist>
+  </section>
+
+  <section id="variant.concepts.hashable">
+    <title><emphasis>Hashable</emphasis></title>
+
+    <para>The requirements on an <emphasis role="bold">hashable</emphasis> type <code>T</code> are as follows:</para>
+
+    <itemizedlist>
+      <listitem>For any object <code>t</code> of type <code>T</code>,
+        <code>boost::hash&lt;T&gt;()(t)</code> must be a valid
+        expression.</listitem>
+    </itemizedlist>
+  </section>
+  
+</section>

@@ -1,0 +1,142 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/list.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/list.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#list-spec">Class <code>list</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#list-spec-synopsis">Class <code>list</code>
+              synopsis</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example(s)</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p>Exposes a <a href=
+    "ObjectWrapper.html#TypeWrapper-concept">TypeWrapper</a> for the Python
+    <a href=
+    "http://www.python.org/doc/current/lib/typesseq-mutable.html">list</a>
+    type.</p>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="list-spec"></a>Class <code>list</code></h3>
+
+    <p>Exposes the <a href=
+    "http://www.python.org/doc/current/lib/typesseq-mutable.html">mapping
+    protocol</a> of Python's built-in <code>list</code> type. The semantics
+    of the constructors and member functions defined below can be fully
+    understood by reading the <a href=
+    "ObjectWrapper.html#TypeWrapper-concept">TypeWrapper</a> concept
+    definition. Since <code>list</code> is publicly derived from <code><a
+    href="object.html#object-spec">object</a></code>, the public object
+    interface applies to <code>list</code> instances as well.</p>
+
+    <h4><a name="list-spec-synopsis"></a>Class <code>list</code>
+    synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+  class list : public object
+  {
+   public:
+      list(); // new list
+
+      template &lt;class T&gt;
+      explicit list(T const&amp; sequence);
+
+      template &lt;class T&gt;
+      void append(T const&amp; x);
+
+      template &lt;class T&gt;
+      long count(T const&amp; value) const;
+
+      template &lt;class T&gt;
+      void extend(T const&amp; x);
+
+      template &lt;class T&gt;
+      long index(T const&amp; x) const;
+
+      template &lt;class T&gt;
+      void insert(object const&amp; index, T const&amp; x); // insert object before index
+
+      object pop(); // remove and return item at index (default last)
+      object pop(long index);
+      object pop(object const&amp; index);
+
+      template &lt;class T&gt;
+      void remove(T const&amp; value);
+
+      void reverse(); // reverse *IN PLACE*
+
+      void sort(); //  sort *IN PLACE*; if given, cmpfunc(x, y) -&gt; -1, 0, 1
+
+      template &lt;class T&gt;
+      void sort(T const&amp; value);
+  };
+}}
+</pre>
+
+    <h2><a name="examples"></a>Example</h2>
+<pre>
+using namespace boost::python;
+
+// Return the number of zeroes in the list
+long zeroes(list l)
+{
+   return l.count(0);
+}
+</pre>
+
+    <p>Revised 1 October, 2002</p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

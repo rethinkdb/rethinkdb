@@ -1,0 +1,93 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Localization and Regex Traits]
+
+[h2 Overview]
+
+Matching a regular expression against a string often requires locale-dependent information. For example,
+how are case-insensitive comparisons performed? The locale-sensitive behavior is captured in a traits class.
+xpressive provides three traits class templates: `cpp_regex_traits<>`, `c_regex_traits<>` and `null_regex_traits<>`.
+The first wraps a `std::locale`, the second wraps the global C locale, and the third is a stub traits type for
+use when searching non-character data. All traits templates conform to the
+[link boost_xpressive.user_s_guide.concepts.traits_requirements Regex Traits Concept].
+
+[h2 Setting the Default Regex Trait]
+
+By default, xpressive uses `cpp_regex_traits<>` for all patterns. This causes all regex objects to use
+the global `std::locale`. If you compile with `BOOST_XPRESSIVE_USE_C_TRAITS` defined, then xpressive will use
+`c_regex_traits<>` by default.
+
+[h2 Using Custom Traits with Dynamic Regexes]
+
+To create a dynamic regex that uses a custom traits object, you must use _regex_compiler_.
+The basic steps are shown in the following example:
+
+  // Declare a regex_compiler that uses the global C locale
+  regex_compiler<char const *, c_regex_traits<char> > crxcomp;
+  cregex crx = crxcomp.compile( "\\w+" );
+
+  // Declare a regex_compiler that uses a custom std::locale
+  std::locale loc = /* ... create a locale here ... */;
+  regex_compiler<char const *, cpp_regex_traits<char> > cpprxcomp(loc);
+  cregex cpprx = cpprxcomp.compile( "\\w+" );
+
+The `regex_compiler` objects act as regex factories. Once they have been imbued with a locale,
+every regex object they create will use that locale.
+
+[h2 Using Custom Traits with Static Regexes]
+
+If you want a particular static regex to use a different set of traits, you can use the special `imbue()`
+pattern modifier. For instance:
+
+  // Define a regex that uses the global C locale
+  c_regex_traits<char> ctraits;
+  sregex crx = imbue(ctraits)( +_w );
+
+  // Define a regex that uses a customized std::locale
+  std::locale loc = /* ... create a locale here ... */;
+  cpp_regex_traits<char> cpptraits(loc);
+  sregex cpprx1 = imbue(cpptraits)( +_w );
+
+  // A shorthand for above
+  sregex cpprx2 = imbue(loc)( +_w );
+
+The `imbue()` pattern modifier must wrap the entire pattern. It is an error to `imbue` only
+part of a static regex. For example:
+
+  // ERROR! Cannot imbue() only part of a regex
+  sregex error = _w >> imbue(loc)( _w );
+
+[h2 Searching Non-Character Data With [^null_regex_traits]]
+
+With xpressive static regexes, you are not limitted to searching for patterns in character sequences.
+You can search for patterns in raw bytes, integers, or anything that conforms to the
+[link boost_xpressive.user_s_guide.concepts.chart_requirements Char Concept]. The `null_regex_traits<>` makes it simple. It is a
+stub implementation of the [link boost_xpressive.user_s_guide.concepts.traits_requirements Regex Traits Concept]. It recognizes
+no character classes and does no case-sensitive mappings.
+
+For example, with `null_regex_traits<>`, you can write a static regex to find a pattern in a
+sequence of integers as follows:
+
+    // some integral data to search
+    int const data[] = {0, 1, 2, 3, 4, 5, 6};
+
+    // create a null_regex_traits<> object for searching integers ...
+    null_regex_traits<int> nul;
+
+    // imbue a regex object with the null_regex_traits ...
+    basic_regex<int const *> rex = imbue(nul)(1 >> +((set= 2,3) | 4) >> 5);
+    match_results<int const *> what;
+
+    // search for the pattern in the array of integers ...
+    regex_search(data, data + 7, what, rex);
+
+    assert(what[0].matched);
+    assert(*what[0].first == 1);
+    assert(*what[0].second == 6);
+
+[endsect]

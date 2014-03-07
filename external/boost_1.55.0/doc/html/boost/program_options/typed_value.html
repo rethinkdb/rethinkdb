@@ -1,0 +1,156 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template typed_value</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../program_options/reference.html#header.boost.program_options.value_semantic_hpp" title="Header &lt;boost/program_options/value_semantic.hpp&gt;">
+<link rel="prev" href="typed_value_base.html" title="Class typed_value_base">
+<link rel="next" href="value_idp103082200.html" title="Function value">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="typed_value_base.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../program_options/reference.html#header.boost.program_options.value_semantic_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="value_idp103082200.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.program_options.typed_value"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template typed_value</span></h2>
+<p>boost::program_options::typed_value</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../program_options/reference.html#header.boost.program_options.value_semantic_hpp" title="Header &lt;boost/program_options/value_semantic.hpp&gt;">boost/program_options/value_semantic.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> charT <span class="special">=</span> <span class="keyword">char</span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">:</span> <span class="keyword">public</span> boost::program_options::value_semantic_codecvt_helper&lt; charT &gt;,
+                    <span class="keyword">public</span> boost::program_options::typed_value_base
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="typed_value.html#boost.program_options.typed_valueconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="typed_value.html#idp102305352-bb"><span class="identifier">typed_value</span></a><span class="special">(</span><span class="identifier">T</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="typed_value.html#idp101665528-bb">public member functions</a></span>
+  <a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a class="link" href="typed_value.html#idp101665704-bb"><span class="identifier">default_value</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a class="link" href="typed_value.html#idp101666888-bb"><span class="identifier">default_value</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a class="link" href="typed_value.html#idp101668472-bb"><span class="identifier">implicit_value</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a class="link" href="typed_value.html#idp101932184-bb"><span class="identifier">value_name</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a class="link" href="typed_value.html#idp101933288-bb"><span class="identifier">implicit_value</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a class="link" href="typed_value.html#idp102182120-bb"><span class="identifier">notifier</span></a><span class="special">(</span><span class="identifier">function1</span><span class="special">&lt;</span> <span class="keyword">void</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span> <span class="special">&gt;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a class="link" href="typed_value.html#idp102183240-bb"><span class="identifier">composing</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a class="link" href="typed_value.html#idp102184072-bb"><span class="identifier">multitoken</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a class="link" href="typed_value.html#idp102184872-bb"><span class="identifier">zero_tokens</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a class="link" href="typed_value.html#idp102185960-bb"><span class="identifier">required</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a class="link" href="typed_value.html#idp102186744-bb"><span class="identifier">name</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="typed_value.html#idp97917176-bb"><span class="identifier">is_composing</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">unsigned</span> <a class="link" href="typed_value.html#idp97917544-bb"><span class="identifier">min_tokens</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">unsigned</span> <a class="link" href="typed_value.html#idp97917960-bb"><span class="identifier">max_tokens</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="typed_value.html#idp101489016-bb"><span class="identifier">is_required</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="typed_value.html#idp103060216-bb"><span class="identifier">xparse</span></a><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">any</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="typed_value.html#idp103061608-bb"><span class="identifier">apply_default</span></a><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">any</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="typed_value.html#idp102303896-bb"><span class="identifier">notify</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">any</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">type_info</span> <span class="special">&amp;</span> <a class="link" href="typed_value.html#idp102304936-bb"><span class="identifier">value_type</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp165354536"></a><h2>Description</h2>
+<p>Class which handles value of a specific type. </p>
+<div class="refsect2">
+<a name="idp165354920"></a><h3>
+<a name="boost.program_options.typed_valueconstruct-copy-destruct"></a><code class="computeroutput">typed_value</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp102305352-bb"></a><span class="identifier">typed_value</span><span class="special">(</span><span class="identifier">T</span> <span class="special">*</span> store_to<span class="special">)</span><span class="special">;</span></pre>
+<p>Ctor. The 'store_to' parameter tells where to store the value when it's known. The parameter can be NULL. </p>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp165358776"></a><h3>
+<a name="idp101665528-bb"></a><code class="computeroutput">typed_value</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a name="idp101665704-bb"></a><span class="identifier">default_value</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span> v<span class="special">)</span><span class="special">;</span></pre>
+<p>Specifies default value, which will be used if none is explicitly specified. The type 'T' should provide operator&lt;&lt; for ostream. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a name="idp101666888-bb"></a><span class="identifier">default_value</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span> v<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> textual<span class="special">)</span><span class="special">;</span></pre>
+<p>Specifies default value, which will be used if none is explicitly specified. Unlike the above overload, the type 'T' need not provide operator&lt;&lt; for ostream, but textual representation of default value must be provided by the user. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a name="idp101668472-bb"></a><span class="identifier">implicit_value</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span> v<span class="special">)</span><span class="special">;</span></pre>
+<p>Specifies an implicit value, which will be used if the option is given, but without an adjacent value. Using this implies that an explicit value is optional, but if given, must be strictly adjacent to the option, i.e.: '-ovalue' or '<span style="color: red">&lt;ndash&gt;&lt;/ndash&gt;</span>option=value'. Giving '-o' or '<span style="color: red">&lt;ndash&gt;&lt;/ndash&gt;</span>option' will cause the implicit value to be applied. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a name="idp101932184-bb"></a><span class="identifier">value_name</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> name<span class="special">)</span><span class="special">;</span></pre>
+<p>Specifies the name used to to the value in help message. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a name="idp101933288-bb"></a><span class="identifier">implicit_value</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span> v<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> textual<span class="special">)</span><span class="special">;</span></pre>
+<p>Specifies an implicit value, which will be used if the option is given, but without an adjacent value. Using this implies that an explicit value is optional, but if given, must be strictly adjacent to the option, i.e.: '-ovalue' or '<span style="color: red">&lt;ndash&gt;&lt;/ndash&gt;</span>option=value'. Giving '-o' or '<span style="color: red">&lt;ndash&gt;&lt;/ndash&gt;</span>option' will cause the implicit value to be applied. Unlike the above overload, the type 'T' need not provide operator&lt;&lt; for ostream, but textual representation of default value must be provided by the user. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a name="idp102182120-bb"></a><span class="identifier">notifier</span><span class="special">(</span><span class="identifier">function1</span><span class="special">&lt;</span> <span class="keyword">void</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span> <span class="special">&gt;</span> f<span class="special">)</span><span class="special">;</span></pre>
+<p>Specifies a function to be called when the final value is determined. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a name="idp102183240-bb"></a><span class="identifier">composing</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Specifies that the value is composing. See the 'is_composing' method for explanation. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a name="idp102184072-bb"></a><span class="identifier">multitoken</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Specifies that the value can span multiple tokens. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a name="idp102184872-bb"></a><span class="identifier">zero_tokens</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Specifies that no tokens may be provided as the value of this option, which means that only presense of the option is significant. For such option to be useful, either the 'validate' function should be specialized, or the 'implicit_value' method should be also used. In most cases, you can use the 'bool_switch' function instead of using this method. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="typed_value.html" title="Class template typed_value">typed_value</a> <span class="special">*</span> <a name="idp102185960-bb"></a><span class="identifier">required</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Specifies that the value must occur. </p>
+</li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a name="idp102186744-bb"></a><span class="identifier">name</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">bool</span> <a name="idp97917176-bb"></a><span class="identifier">is_composing</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">unsigned</span> <a name="idp97917544-bb"></a><span class="identifier">min_tokens</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">unsigned</span> <a name="idp97917960-bb"></a><span class="identifier">max_tokens</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">bool</span> <a name="idp101489016-bb"></a><span class="identifier">is_required</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp103060216-bb"></a><span class="identifier">xparse</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">any</span> <span class="special">&amp;</span> value_store<span class="special">,</span> 
+            <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&amp;</span> new_tokens<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Creates an instance of the 'validator' class and calls its operator() to perform the actual conversion. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp103061608-bb"></a><span class="identifier">apply_default</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">any</span> <span class="special">&amp;</span> value_store<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>If default value was specified via previous call to 'default_value', stores that value into 'value_store'. Returns true if default value was stored. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp102303896-bb"></a><span class="identifier">notify</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">any</span> <span class="special">&amp;</span> value_store<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>If an address of variable to store value was specified when creating *this, stores the value there. Otherwise, does nothing. </p>
+</li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">type_info</span> <span class="special">&amp;</span> <a name="idp102304936-bb"></a><span class="identifier">value_type</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2004 Vladimir Prus<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="typed_value_base.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../program_options/reference.html#header.boost.program_options.value_semantic_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="value_idp103082200.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

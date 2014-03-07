@@ -1,0 +1,458 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE chapter PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+     "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<chapter id="bbv2.faq">
+  <title>Frequently Asked Questions</title>
+
+  <section id="bbv2.faq.featurevalue">
+    <title>
+      How do I get the current value of feature in Jamfile?
+    </title>
+
+    <para>
+      This is not possible, since Jamfile does not have "current" value of any
+      feature, be it toolset, build variant or anything else. For a single
+      run of Boost.Build, any given main target can be
+      built with several property sets. For example, user can request two build
+      variants on the command line. Or one library is built as shared when used
+      from one application, and as static when used from another. Each Jamfile
+      is read only once so generally there is no single value of a feature you
+      can access in Jamfile.
+    </para>
+
+    <para>
+      A feature has a specific value only when building a target, and there are
+      two ways you can use that value:
+    </para>
+
+    <itemizedlist>
+      <listitem>
+        <simpara>
+          Use conditional requirements or indirect conditional requirements. See
+          <xref linkend="bbv2.overview.targets.requirements.conditional"/>.
+        </simpara>
+      </listitem>
+      <listitem>
+        Define a custom generator and a custom main target type. The custom
+        generator can do arbitrary processing or properties. See the <xref
+        linkend="bbv2.extender">extender manual</xref>.
+      </listitem>
+    </itemizedlist>
+  </section>
+
+  <section id="bbv2.faq.duplicate">
+    <title>
+      I am getting a "Duplicate name of actual target" error. What does that
+      mean?
+    </title>
+
+    <para>
+      The most likely case is that you are trying to compile the same file
+      twice, with almost the same, but differing properties. For example:
+<programlisting>
+exe a : a.cpp : &lt;include&gt;/usr/local/include ;
+exe b : a.cpp ;
+</programlisting>
+    </para>
+
+    <para>
+      The above snippet requires two different compilations of
+      <code>a.cpp</code>, which differ only in their <literal>include</literal>
+      property. Since the <literal>include</literal> feature is declared as
+      <literal>free</literal> Boost.Build does not create a separate build
+      directory for each of its values and those two builds would both produce
+      object files generated in the same build directory. Ignoring this and
+      compiling the file only once would be dangerous as different includes
+      could potentially cause completely different code to be compiled.
+    </para>
+
+    <para>
+      To solve this issue, you need to decide if the file should be compiled
+      once or twice.
+    </para>
+
+    <orderedlist>
+      <listitem>
+        <para>
+          To compile the file only once, make sure that properties are the same
+          for both target requests:
+<programlisting>
+exe a : a.cpp : &lt;include&gt;/usr/local/include ;
+exe b : a.cpp : &lt;include&gt;/usr/local/include ;
+</programlisting>
+          or:
+<programlisting>
+alias a-with-include : a.cpp : &lt;include&gt;/usr/local/include ;
+exe a : a-with-include ;
+exe b : a-with-include ;
+</programlisting>
+          or if you want the <literal>includes</literal> property not to affect
+          how any other sources added for the built <code>a</code> and
+          <code>b</code> executables would be compiled:
+<programlisting>
+obj a-obj : a.cpp : &lt;include&gt;/usr/local/include ;
+exe a : a-obj ;
+exe b : a-obj ;
+</programlisting>
+        </para>
+        <para>
+          Note that in both of these cases the <literal>include</literal>
+          property will be applied only for building these object files and not
+          any other sources that might be added for targets <code>a</code> and
+          <code>b</code>.
+        </para>
+      </listitem>
+
+      <listitem>
+        <para>
+          To compile the file twice, you can tell Boost.Build to compile it to
+          two separate object files like so:
+<programlisting>
+      obj a_obj : a.cpp : &lt;include&gt;/usr/local/include ;
+      obj b_obj : a.cpp ;
+      exe a : a_obj ;
+      exe b : b_obj ;
+</programlisting>
+          or you can make the object file targets local to the main target:
+<programlisting>
+      exe a : [ obj a_obj : a.cpp : &lt;include&gt;/usr/local/include ] ;
+      exe b : [ obj a_obj : a.cpp ] ;
+</programlisting>
+          which will cause Boost.Build to actually change the generated object
+          file names a bit for you and thus avoid any conflicts.
+        </para>
+        <para>
+          Note that in both of these cases the <literal>include</literal>
+          property will be applied only for building these object files and not
+          any other sources that might be added for targets <code>a</code> and
+          <code>b</code>.
+        </para>
+      </listitem>
+    </orderedlist>
+
+    <para>
+      A good question is why Boost.Build can not use some of the above
+      approaches automatically. The problem is that such magic would only help
+      in half of the cases, while in the other half it would be silently doing
+      the wrong thing. It is simpler and safer to ask the user to clarify his
+      intention in such cases.
+    </para>
+  </section>
+
+  <section id="bbv2.faq.envar">
+    <title>
+      Accessing environment variables
+    </title>
+
+    <para>
+      Many users would like to use environment variables in Jamfiles, for
+      example, to control the location of external libraries. In many cases it
+      is better to declare those external libraries in the site-config.jam file,
+      as documented in the <link linkend="bbv2.recipies.site-config">recipes
+      section</link>. However, if the users already have the environment
+      variables set up, it may not be convenient for them to set up their
+      site-config.jam files as well and using the environment variables might be
+      reasonable.
+    </para>
+
+    <para>
+      Boost.Jam automatically imports all environment variables into its
+      built-in .ENVIRON module so user can read them from there directly or by
+      using the helper os.environ rule. For example:
+<programlisting>
+import os ;
+local unga-unga = [ os.environ UNGA_UNGA ] ;
+ECHO $(unga-unga) ;
+</programlisting>
+      or a bit more realistic:
+<programlisting>
+import os ;
+local SOME_LIBRARY_PATH = [ os.environ SOME_LIBRARY_PATH ] ;
+exe a : a.cpp : &lt;include&gt;$(SOME_LIBRARY_PATH) ;
+</programlisting>
+    </para>
+  </section>
+
+  <section id="bbv2.faq.proporder">
+    <title>
+      How to control properties order?
+    </title>
+
+    <para>
+      For internal reasons, Boost.Build sorts all the properties alphabetically.
+      This means that if you write:
+<programlisting>
+exe a : a.cpp : &lt;include&gt;b &lt;include&gt;a ;
+</programlisting>
+      then the command line with first mention the <code>a</code> include
+      directory, and then <code>b</code>, even though they are specified in the
+      opposite order. In most cases, the user does not care. But sometimes the
+      order of includes, or other properties, is important. For such cases, a
+      special syntax is provided:
+<programlisting>
+exe a : a.cpp : &lt;include&gt;a&amp;&amp;b ;
+</programlisting>
+    </para>
+
+    <para>
+      The <code>&amp;&amp;</code> symbols separate property values and specify
+      that their order should be preserved. You are advised to use this feature
+      only when the order of properties really matters and not as a convenient
+      shortcut. Using it everywhere might negatively affect performance.
+    </para>
+  </section>
+
+  <section id="bbv2.faq.liborder">
+    <title>
+      How to control the library linking order on Unix?
+    </title>
+
+    <para>
+      On Unix-like operating systems, the order in which static libraries are
+      specified when invoking the linker is important, because by default, the
+      linker uses one pass though the libraries list. Passing the libraries in
+      the incorrect order will lead to a link error. Further, this behaviour is
+      often used to make one library override symbols from another. So,
+      sometimes it is necessary to force specific library linking order.
+    </para>
+
+    <para>
+      Boost.Build tries to automatically compute the right order. The primary
+      rule is that if library <code>a</code> "uses" library <code>b</code>, then
+      library <code>a</code> will appear on the command line before library
+      <code>b</code>. Library <code>a</code> is considered to use <code>b</code>
+      if <code>b</code> is present either in the <code>a</code> library's
+      sources or its usage is listed in its requirements. To explicitly specify
+      the <literal>use</literal> relationship one can use the
+      <literal>&lt;use&gt;</literal> feature. For example, both of the following
+      lines will cause <code>a</code> to appear before <code>b</code> on the
+      command line:
+<programlisting>
+lib a : a.cpp b ;
+lib a : a.cpp : &lt;use&gt;b ;
+</programlisting>
+    </para>
+
+    <para>
+      The same approach works for searched libraries as well:
+<programlisting>
+lib z ;
+lib png : : &lt;use&gt;z ;
+exe viewer : viewer png z ;
+</programlisting>
+    </para>
+  </section>
+
+  <section id="bbv2.faq.external">
+    <title>
+      Can I get capture external program output using a Boost.Jam variable?
+    </title>
+
+    <para>
+      The <literal>SHELL</literal> builtin rule may be used for this purpose:
+<programlisting>
+local gtk_includes = [ SHELL "gtk-config --cflags" ] ;
+</programlisting>
+    </para>
+  </section>
+
+  <section id="bbv2.faq.projectroot">
+    <title>
+      How to get the project root (a.k.a. Jamroot) location?
+    </title>
+
+    <para>
+      You might want to use your project's root location in your Jamfiles. To
+      access it just declare a path constant in your Jamroot.jam file using:
+<programlisting>
+path-constant TOP : . ;
+</programlisting>
+      After that, the <code>TOP</code> variable can be used in every Jamfile.
+    </para>
+  </section>
+
+  <section id="bbv2.faq.flags">
+    <title>
+      How to change compilation flags for one file?
+    </title>
+
+    <para>
+      If one file must be compiled with special options, you need to explicitly
+      declare an <code>obj</code> target for that file and then use that target
+      in your <code>exe</code> or <code>lib</code> target:
+<programlisting>
+exe a : a.cpp b ;
+obj b : b.cpp : &lt;optimization&gt;off ;
+</programlisting>
+      Of course you can use other properties, for example to specify specific
+      C/C++ compiler options:
+<programlisting>
+exe a : a.cpp b ;
+obj b : b.cpp : &lt;cflags&gt;-g ;
+</programlisting>
+      You can also use <link linkend="bbv2.tutorial.conditions">conditional
+      properties</link> for finer control:
+<programlisting>
+exe a : a.cpp b ;
+obj b : b.cpp : &lt;variant&gt;release:&lt;optimization&gt;off ;
+</programlisting>
+    </para>
+  </section>
+
+  <section id="bbv2.faq.dll-path">
+    <title>
+      Why are the <literal>dll-path</literal> and <literal>hardcode-dll-paths
+      </literal> properties useful?
+    </title>
+    <note>
+      <para>
+        This entry is specific to Unix systems.
+      </para>
+    </note>
+    <para>
+      Before answering the questions, let us recall a few points about shared
+      libraries. Shared libraries can be used by several applications, or other
+      libraries, without physically including the library in the application
+      which can greatly decrease the total application size. It is also possible
+      to upgrade a shared library when the application is already installed.
+    </para>
+
+    <para>
+      However, in order for application depending on shared libraries to be
+      started the OS may need to find the shared library when the application is
+      started. The dynamic linker will search in a system-defined list of paths,
+      load the library and resolve the symbols. Which means that you should
+      either change the system-defined list, given by the <envar>LD_LIBRARY_PATH
+      </envar> environment variable, or install the libraries to a system
+      location. This can be inconvenient when developing, since the libraries
+      are not yet ready to be installed, and cluttering system paths may be
+      undesirable. Luckily, on Unix there is another way.
+    </para>
+
+    <para>
+      An executable can include a list of additional library paths, which will
+      be searched before system paths. This is excellent for development because
+      the build system knows the paths to all libraries and can include them in
+      the executables. That is done when the <literal>hardcode-dll-paths
+      </literal> feature has the <literal>true</literal> value, which is the
+      default. When the executables should be installed, the story is different.
+    </para>
+
+    <para>
+      Obviously, installed executable should not contain hardcoded paths to your
+      development tree. <!-- Make the following parenthised sentence a footer
+      note --> (The <literal>install</literal> rule explicitly disables the
+      <literal>hardcode-dll-paths</literal> feature for that reason.) However,
+      you can use the <literal>dll-path</literal> feature to add explicit paths
+      manually. For example:
+<programlisting>
+install installed : application : &lt;dll-path&gt;/usr/lib/snake
+                                  &lt;location&gt;/usr/bin ;
+</programlisting>
+      will allow the application to find libraries placed in the <filename>
+      /usr/lib/snake</filename> directory.
+    </para>
+
+    <para>
+      If you install libraries to a nonstandard location and add an explicit
+      path, you get more control over libraries which will be used. A library of
+      the same name in a system location will not be inadvertently used. If you
+      install libraries to a system location and do not add any paths, the
+      system administrator will have more control. Each library can be
+      individually upgraded, and all applications will use the new library.
+    </para>
+
+    <para>
+      Which approach is best depends on your situation. If the libraries are
+      relatively standalone and can be used by third party applications, they
+      should be installed in the system location. If you have lots of libraries
+      which can be used only by your application, it makes sense to install them
+      to a nonstandard directory and add an explicit path, like the example
+      above shows. Please also note that guidelines for different systems differ
+      in this respect. For example, the Debian GNU guidelines prohibit any
+      additional search paths while Solaris guidelines suggest that they should
+      always be used.
+    </para>
+  </section>
+
+  <section id="bbv2.recipies.site-config">
+    <title>Targets in site-config.jam</title>
+
+    <para>
+      It is desirable to declare standard libraries available on a given system.
+      Putting target declaration in a specific project's Jamfile is not really
+      good, since locations of the libraries can vary between different
+      development machines and then such declarations would need to be
+      duplicated in different projects. The solution is to declare the targets
+      in Boost.Build's <filename>site-config.jam</filename> configuration file:
+<programlisting>
+project site-config ;
+lib zlib : : &lt;name&gt;z ;
+</programlisting>
+    </para>
+
+    <para>
+      Recall that both <filename>site-config.jam</filename> and
+      <filename>user-config.jam</filename> are projects, and everything you can
+      do in a Jamfile you can do in those files as well. So, you declare a
+      project id and a target. Now, one can write:
+<programlisting>
+exe hello : hello.cpp /site-config//zlib ;
+</programlisting>
+      in any Jamfile.
+    </para>
+  </section>
+
+  <section id="bbv2.faq.header-only-libraries">
+    <title>Header-only libraries</title>
+
+    <para>
+      In modern C++, libraries often consist of just header files, without any
+      source files to compile. To use such libraries, you need to add proper
+      includes and possibly defines to your project. But with a large number of
+      external libraries it becomes problematic to remember which libraries are
+      header only, and which ones you have to link to. However, with Boost.Build
+      a header-only library can be declared as Boost.Build target and all
+      dependents can use such library without having to remeber whether it is a
+      header-only library or not.
+    </para>
+
+    <para>
+      Header-only libraries may be declared using the <code>alias</code> rule,
+      specifying their include path as a part of its usage requirements, for
+      example:
+<programlisting>
+alias my-lib
+    : # no sources
+    : # no build requirements
+    : # no default build
+    : &lt;include&gt;whatever ;
+</programlisting>
+      The includes specified in usage requirements of <code>my-lib</code> are
+      automatically added to all of its dependants' build properties. The
+      dependants need not care if <code>my-lib</code> is a header-only or not,
+      and it is possible to later make <code>my-lib</code> into a regular
+      compiled library without having to that its dependants' declarations.
+    </para>
+
+    <para>
+      If you already have proper usage requirements declared for a project where
+      a header-only library is defined, you do not need to duplicate them for
+      the <code>alias</code> target:
+<programlisting>
+project my : usage-requirements &lt;include&gt;whatever ;
+alias mylib ;
+</programlisting>
+    </para>
+  </section>
+</chapter>
+
+<!--
+     Local Variables:
+     mode: nxml
+     sgml-indent-data: t
+     sgml-parent-document: ("userman.xml" "chapter")
+     sgml-set-face: t
+     End:
+-->

@@ -1,0 +1,533 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template any&lt;Concept, T &amp;&amp;&gt;</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.any_hpp" title="Header &lt;boost/type_erasure/any.hpp&gt;">
+<link rel="prev" href="any_Concept__c_idp36806616.html" title="Class template any&lt;Concept, const T &amp;&gt;">
+<link rel="next" href="any_cast_idp21896760.html" title="Function any_cast">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="any_Concept__c_idp36806616.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.any_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="any_cast_idp21896760.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.type_erasure.any_Concept,__idp100797896"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template any&lt;Concept, T &amp;&amp;&gt;</span></h2>
+<p>boost::type_erasure::any&lt;Concept, T &amp;&amp;&gt;</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.any_hpp" title="Header &lt;boost/type_erasure/any.hpp&gt;">boost/type_erasure/any.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept<span class="special">,</span> <span class="keyword">typename</span> T<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="any_Concept___idp100797896.html" title="Class template any&lt;Concept, T &amp;&amp;&gt;">any</a><span class="special">&lt;</span><span class="identifier">Concept</span><span class="special">,</span> <span class="identifier">T</span> <span class="special">&amp;&amp;</span><span class="special">&gt;</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="any_Concept___idp100797896.html#boost.type_erasure.any_Concept,__idp100797896construct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> <a class="link" href="any_Concept___idp100797896.html#idp100799336-bb"><span class="identifier">any</span></a><span class="special">(</span><span class="identifier">U</span> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">,</span> <span class="keyword">typename</span> Map<span class="special">&gt;</span> <a class="link" href="any_Concept___idp100797896.html#idp93037224-bb"><span class="identifier">any</span></a><span class="special">(</span><span class="identifier">U</span> <span class="special">&amp;&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="static_binding.html" title="Struct template static_binding">static_binding</a><span class="special">&lt;</span> <span class="identifier">Map</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="any_Concept___idp100797896.html#idp98090072-bb"><span class="identifier">any</span></a><span class="special">(</span><a class="link" href="../any.html" title="Class any">any</a><span class="special">&lt;</span> <span class="identifier">Concept</span><span class="special">,</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Tag2<span class="special">&gt;</span> <a class="link" href="any_Concept___idp100797896.html#idp93650792-bb"><span class="identifier">any</span></a><span class="special">(</span><a class="link" href="../any.html" title="Class any">any</a><span class="special">&lt;</span> <span class="identifier">Concept2</span><span class="special">,</span> <span class="identifier">Tag2</span> <span class="special">&amp;&amp;</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Tag2<span class="special">&gt;</span> <a class="link" href="any_Concept___idp100797896.html#idp36803896-bb"><span class="identifier">any</span></a><span class="special">(</span><a class="link" href="../any.html" title="Class any">any</a><span class="special">&lt;</span> <span class="identifier">Concept2</span><span class="special">,</span> <span class="identifier">Tag2</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Tag2<span class="special">,</span> <span class="keyword">typename</span> Map<span class="special">&gt;</span> 
+    <a class="link" href="any_Concept___idp100797896.html#idp96514920-bb"><span class="identifier">any</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="../any.html" title="Class any">any</a><span class="special">&lt;</span> <span class="identifier">Concept2</span><span class="special">,</span> <span class="identifier">Tag2</span> <span class="special">&amp;&amp;</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="static_binding.html" title="Struct template static_binding">static_binding</a><span class="special">&lt;</span> <span class="identifier">Map</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Tag2<span class="special">,</span> <span class="keyword">typename</span> Map<span class="special">&gt;</span> 
+    <a class="link" href="any_Concept___idp100797896.html#idp96191496-bb"><span class="identifier">any</span></a><span class="special">(</span><a class="link" href="../any.html" title="Class any">any</a><span class="special">&lt;</span> <span class="identifier">Concept2</span><span class="special">,</span> <span class="identifier">Tag2</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="static_binding.html" title="Struct template static_binding">static_binding</a><span class="special">&lt;</span> <span class="identifier">Map</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Tag2<span class="special">&gt;</span> 
+    <a class="link" href="any_Concept___idp100797896.html#idp96522216-bb"><span class="identifier">any</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="../any.html" title="Class any">any</a><span class="special">&lt;</span> <span class="identifier">Concept2</span><span class="special">,</span> <span class="identifier">Tag2</span> <span class="special">&amp;&amp;</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a><span class="special">&lt;</span> <span class="identifier">Concept</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Tag2<span class="special">&gt;</span> 
+    <a class="link" href="any_Concept___idp100797896.html#idp58480024-bb"><span class="identifier">any</span></a><span class="special">(</span><a class="link" href="../any.html" title="Class any">any</a><span class="special">&lt;</span> <span class="identifier">Concept2</span><span class="special">,</span> <span class="identifier">Tag2</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a><span class="special">&lt;</span> <span class="identifier">Concept</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  any&amp; <a class="link" href="any_Concept___idp100797896.html#idp89643176-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="../any.html" title="Class any">any</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> any&amp; <a class="link" href="any_Concept___idp100797896.html#idp34875256-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="identifier">U</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> any&amp; <a class="link" href="any_Concept___idp100797896.html#idp45838920-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">U</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp228216008"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp228216216"></a><h3>
+<a name="boost.type_erasure.any_Concept,__idp100797896construct-copy-destruct"></a><code class="computeroutput">any</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> <a name="idp100799336-bb"></a><span class="identifier">any</span><span class="special">(</span><span class="identifier">U</span> <span class="special">&amp;&amp;</span> arg<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs an <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code> from a reference.</p>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">arg</code></span></p></td>
+<td><p>The object to bind the reference to.</p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>
+<p><code class="computeroutput">U</code> is a model of <code class="computeroutput">Concept</code>. </p>
+<p><code class="computeroutput">Concept</code> must not refer to any non-deduced placeholder besides <code class="computeroutput">T</code>.</p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Nothing. </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">,</span> <span class="keyword">typename</span> Map<span class="special">&gt;</span> 
+  <a name="idp93037224-bb"></a><span class="identifier">any</span><span class="special">(</span><span class="identifier">U</span> <span class="special">&amp;&amp;</span> arg<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="static_binding.html" title="Struct template static_binding">static_binding</a><span class="special">&lt;</span> <span class="identifier">Map</span> <span class="special">&gt;</span> <span class="special">&amp;</span> binding<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs an <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code> from a reference.</p>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">arg</code></span></p></td>
+<td><p>The object to bind the reference to. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">binding</code></span></p></td>
+<td><p>Specifies the actual types that all the placeholders should bind to.</p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>
+<p><code class="computeroutput">U</code> is a model of <code class="computeroutput">Concept</code>. </p>
+<p><code class="computeroutput">Map</code> is an MPL map with an entry for every non-deduced placeholder referred to by <code class="computeroutput">Concept</code>.</p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Nothing. </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp98090072-bb"></a><span class="identifier">any</span><span class="special">(</span><a class="link" href="../any.html" title="Class any">any</a><span class="special">&lt;</span> <span class="identifier">Concept</span><span class="special">,</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs an <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code> from another rvalue reference.</p>
+<p>
+
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">other</code></span></p></td>
+<td>
+<p>The reference to copy.</p>
+<p>The object to bind the reference to.</p>
+</td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>
+<p class="simpara">Nothing. Constructs an <a class="link" href="any.html" title="Class template any">any</a> from another <a class="link" href="any.html" title="Class template any">any</a>.</p>
+<p class="simpara">Nothing. </p>
+</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Tag2<span class="special">&gt;</span> 
+  <a name="idp93650792-bb"></a><span class="identifier">any</span><span class="special">(</span><a class="link" href="../any.html" title="Class any">any</a><span class="special">&lt;</span> <span class="identifier">Concept2</span><span class="special">,</span> <span class="identifier">Tag2</span> <span class="special">&amp;&amp;</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs an <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code> from another rvalue reference.</p>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">other</code></span></p></td>
+<td><p>The reference to copy.</p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>
+<p><code class="computeroutput">Concept</code> must not refer to any non-deduced placeholder besides <code class="computeroutput">T</code>. </p>
+<p>After substituting <code class="computeroutput">T</code> for <code class="computeroutput">Tag2</code>, the requirements of <code class="computeroutput">Concept2</code> must be a superset of the requirements of <code class="computeroutput">Concept</code>.</p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>std::bad_alloc </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Tag2<span class="special">&gt;</span> <a name="idp36803896-bb"></a><span class="identifier">any</span><span class="special">(</span><a class="link" href="../any.html" title="Class any">any</a><span class="special">&lt;</span> <span class="identifier">Concept2</span><span class="special">,</span> <span class="identifier">Tag2</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs an <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code> from another <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code>.</p>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">other</code></span></p></td>
+<td><p>The object to bind the reference to.</p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>
+<p><code class="computeroutput">Concept</code> must not refer to any non-deduced placeholder besides <code class="computeroutput">T</code>. </p>
+<p>After substituting <code class="computeroutput">T</code> for <code class="computeroutput">Tag2</code>, the requirements of <code class="computeroutput">Concept2</code> must be a superset of the requirements of <code class="computeroutput">Concept</code>.</p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>std::bad_alloc </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Tag2<span class="special">,</span> <span class="keyword">typename</span> Map<span class="special">&gt;</span> 
+  <a name="idp96514920-bb"></a><span class="identifier">any</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="../any.html" title="Class any">any</a><span class="special">&lt;</span> <span class="identifier">Concept2</span><span class="special">,</span> <span class="identifier">Tag2</span> <span class="special">&amp;&amp;</span> <span class="special">&gt;</span> <span class="special">&amp;</span> other<span class="special">,</span> 
+      <span class="keyword">const</span> <a class="link" href="static_binding.html" title="Struct template static_binding">static_binding</a><span class="special">&lt;</span> <span class="identifier">Map</span> <span class="special">&gt;</span> <span class="special">&amp;</span> binding<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs an <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code> from another reference.</p>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">binding</code></span></p></td>
+<td><p>Specifies the mapping between the two concepts.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">other</code></span></p></td>
+<td><p>The reference to copy. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>
+<p><code class="computeroutput">Map</code> must be an MPL map with keys for all the non-deduced placeholders used by <code class="computeroutput">Concept</code> and values for the corresponding placeholders in <code class="computeroutput">Concept2</code>. </p>
+<p>After substituting placeholders according to <code class="computeroutput">Map</code>, the requirements of <code class="computeroutput">Concept2</code> must be a superset of the requirements of <code class="computeroutput">Concept</code>.</p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>std::bad_alloc </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Tag2<span class="special">,</span> <span class="keyword">typename</span> Map<span class="special">&gt;</span> 
+  <a name="idp96191496-bb"></a><span class="identifier">any</span><span class="special">(</span><a class="link" href="../any.html" title="Class any">any</a><span class="special">&lt;</span> <span class="identifier">Concept2</span><span class="special">,</span> <span class="identifier">Tag2</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span> other<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="static_binding.html" title="Struct template static_binding">static_binding</a><span class="special">&lt;</span> <span class="identifier">Map</span> <span class="special">&gt;</span> <span class="special">&amp;</span> binding<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs an <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code> from another <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code>.</p>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">binding</code></span></p></td>
+<td><p>Specifies the mapping between the two concepts.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">other</code></span></p></td>
+<td><p>The object to bind the reference to. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>
+<p><code class="computeroutput">Map</code> must be an MPL map with keys for all the non-deduced placeholders used by <code class="computeroutput">Concept</code> and values for the corresponding placeholders in <code class="computeroutput">Concept2</code>. </p>
+<p>After substituting placeholders according to <code class="computeroutput">Map</code>, the requirements of <code class="computeroutput">Concept2</code> must be a superset of the requirements of <code class="computeroutput">Concept</code>.</p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>std::bad_alloc </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Tag2<span class="special">&gt;</span> 
+  <a name="idp96522216-bb"></a><span class="identifier">any</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="../any.html" title="Class any">any</a><span class="special">&lt;</span> <span class="identifier">Concept2</span><span class="special">,</span> <span class="identifier">Tag2</span> <span class="special">&amp;&amp;</span> <span class="special">&gt;</span> <span class="special">&amp;</span> other<span class="special">,</span> 
+      <span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a><span class="special">&lt;</span> <span class="identifier">Concept</span> <span class="special">&gt;</span> <span class="special">&amp;</span> binding<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs an <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code> from another rvalue reference.</p>
+<p>
+
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">binding</code></span></p></td>
+<td><p>Specifies the bindings of placeholders to actual types.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">other</code></span></p></td>
+<td><p>The reference to copy. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>The type stored in <code class="computeroutput">other</code> must match the type expected by <code class="computeroutput">binding</code>.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p>binding_of(*this) == <code class="computeroutput">binding</code> </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Nothing. </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Tag2<span class="special">&gt;</span> 
+  <a name="idp58480024-bb"></a><span class="identifier">any</span><span class="special">(</span><a class="link" href="../any.html" title="Class any">any</a><span class="special">&lt;</span> <span class="identifier">Concept2</span><span class="special">,</span> <span class="identifier">Tag2</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span> other<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a><span class="special">&lt;</span> <span class="identifier">Concept</span> <span class="special">&gt;</span> <span class="special">&amp;</span> binding<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs an <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code> from another <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code>.</p>
+<p>
+
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">binding</code></span></p></td>
+<td><p>Specifies the bindings of placeholders to actual types.</p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">other</code></span></p></td>
+<td><p>The object to bind the reference to. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>The type stored in <code class="computeroutput">other</code> must match the type expected by <code class="computeroutput">binding</code>.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p>binding_of(*this) == <code class="computeroutput">binding</code> </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Nothing. </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout">any&amp; <a name="idp89643176-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="../any.html" title="Class any">any</a> <span class="special">&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>
+<p>Assigns to an <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code>.</p>
+<p>If an appropriate overload of <code class="computeroutput"><a class="link" href="assignable.html" title="Struct template assignable">assignable</a></code> is not available and <code class="computeroutput"><a class="link" href="relaxed.html" title="Struct relaxed">relaxed</a></code> is in <code class="computeroutput">Concept</code>, falls back on constructing from <code class="computeroutput">other</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Whatever the assignment operator of the contained type throws. When falling back on construction, throws <code class="computeroutput">std::bad_alloc</code>. In this case assignment provides the strong exception guarantee. When calling the assignment operator of the contained type, the exception guarantee is whatever the contained type provides. </td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> any&amp; <a name="idp34875256-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="identifier">U</span> <span class="special">&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>
+<p>Assigns to an <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code>.</p>
+<p>If an appropriate overload of <code class="computeroutput"><a class="link" href="assignable.html" title="Struct template assignable">assignable</a></code> is not available and <code class="computeroutput"><a class="link" href="relaxed.html" title="Struct relaxed">relaxed</a></code> is in <code class="computeroutput">Concept</code>, falls back on constructing from <code class="computeroutput">other</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Whatever the assignment operator of the contained type throws. When falling back on construction, throws <code class="computeroutput">std::bad_alloc</code>. In this case assignment provides the strong exception guarantee. When calling the assignment operator of the contained type, the exception guarantee is whatever the contained type provides. </td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> any&amp; <a name="idp45838920-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">U</span> <span class="special">&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>
+<p>Assigns to an <code class="computeroutput"><a class="link" href="any.html" title="Class template any">any</a></code>.</p>
+<p>If an appropriate overload of <code class="computeroutput"><a class="link" href="assignable.html" title="Struct template assignable">assignable</a></code> is not available and <code class="computeroutput"><a class="link" href="relaxed.html" title="Struct relaxed">relaxed</a></code> is in <code class="computeroutput">Concept</code>, falls back on constructing from <code class="computeroutput">other</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Whatever the assignment operator of the contained type throws. When falling back on construction, throws <code class="computeroutput">std::bad_alloc</code>. In this case assignment provides the strong exception guarantee. When calling the assignment operator of the contained type, the exception guarantee is whatever the contained type provides. </td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="any_Concept__c_idp36806616.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.any_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="any_cast_idp21896760.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

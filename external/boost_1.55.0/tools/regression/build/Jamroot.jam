@@ -1,0 +1,101 @@
+# Regression test status reporting tools build Jamfile
+
+# Copyright Rene Rivera
+
+# Distributed under the Boost Software License, Version 1.0.
+# See http://www.boost.org/LICENSE_1_0.txt
+ 
+
+if [ glob ../../../boost-build.jam ]
+{
+    use-project /boost : ../../.. ;
+}
+else
+{
+    import modules ;
+    use-project /boost : [ MATCH --boost=(.*) : [ modules.peek : ARGV ] ] ;
+}
+
+if ! [ glob ../src/process_jam_log.cpp ]
+{
+    project boost/regression
+        :
+        source-location ..
+        ;
+}
+else
+{
+    project boost/regression
+        :
+        source-location ../src
+        ;
+}
+
+obj tiny_xml
+    :
+    detail/tiny_xml.cpp
+    :
+    <define>BOOST_ALL_NO_LIB=1
+    <define>_CRT_SECURE_NO_WARNINGS
+    <implicit-dependency>/boost//headers
+    :
+    release
+    ;
+explicit tiny_xml ;
+
+exe process_jam_log
+    :
+    process_jam_log.cpp
+    tiny_xml
+    /boost/filesystem//boost_filesystem/<link>static
+    :
+    <define>BOOST_ALL_NO_LIB=1
+    <define>_CRT_SECURE_NO_WARNINGS
+    <implicit-dependency>/boost//headers
+    :
+    release
+    ;
+#~ explicit process_jam_log ;
+
+exe compiler_status
+    :
+    compiler_status.cpp
+    tiny_xml
+    /boost/filesystem//boost_filesystem/<link>static
+    :
+    <define>BOOST_ALL_NO_LIB=1
+    <implicit-dependency>/boost//headers
+    :
+    release
+    ;
+explicit compiler_status ;
+
+exe library_status
+    :
+    library_status.cpp
+    tiny_xml
+    /boost/filesystem//boost_filesystem/<link>static
+    :
+    <define>BOOST_ALL_NO_LIB=1
+    <implicit-dependency>/boost//headers
+    :
+    release
+    ;
+explicit library_status ;
+
+exe boost_report
+    :
+    [ glob report/*.cpp ]
+    /boost/filesystem//boost_filesystem/<link>static
+    /boost//filesystem/<link>static
+    /boost//date_time/<link>static
+    /boost//regex/<link>static
+    /boost//program_options/<link>static
+    /boost//iostreams/<link>static
+    :
+    <define>BOOST_ALL_NO_LIB=1
+    <implicit-dependency>/boost//headers
+    :
+    release
+    ;
+explicit boost_report ;

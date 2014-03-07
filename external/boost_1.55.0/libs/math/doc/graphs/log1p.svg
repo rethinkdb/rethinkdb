@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="600" height ="400" version="1.1"
+xmlns:svg ="http://www.w3.org/2000/svg"
+xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+xmlns:cc="http://web.resource.org/cc/"
+xmlns:dc="http://purl.org/dc/elements/1.1/"
+xmlns ="http://www.w3.org/2000/svg"
+>
+<!-- SVG plot written using Boost.Plot program (Creator Jacob Voytko) --> 
+<!-- Use, modification and distribution of Boost.Plot subject to the --> 
+<!-- Boost Software License, Version 1.0.--> 
+<!-- (See accompanying file LICENSE_1_0.txt --> 
+<!-- or copy at http://www.boost.org/LICENSE_1_0.txt) --> 
+
+<!-- SVG Plot Copyright John Maddock 2008 --> 
+<meta name="copyright" content="John Maddock" />
+<meta name="date" content="2008" />
+<!-- Use, modification and distribution of this Scalable Vector Graphic file -->
+<!-- are subject to the Boost Software License, Version 1.0. -->
+<!-- (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+
+<clipPath id="plot_window"><rect x="85.2" y="59" width="487.8" height="281"/></clipPath>
+<g id="imageBackground" stroke="rgb(119,136,153)" fill="rgb(255,255,255)" stroke-width="2"><rect x="0" y="0" width="600" height="400"/></g>
+<g id="plotBackground" stroke="rgb(119,136,153)" fill="rgb(255,255,255)" stroke-width="2"><rect x="84.2" y="58" width="489.8" height="283"/></g>
+<g id="yMinorGrid" stroke="rgb(200,220,255)" stroke-width="0.5"></g>
+<g id="yMajorGrid" stroke="rgb(200,220,255)" stroke-width="1"></g>
+<g id="xMinorGrid" stroke="rgb(200,220,255)" stroke-width="0.5"></g>
+<g id="xMajorGrid" stroke="rgb(200,220,255)" stroke-width="1"></g>
+<g id="yAxis" stroke="rgb(0,0,0)" stroke-width="1"><line x1="127.9" y1="58" x2="127.9" y2="346"/><line x1="84.2" y1="58" x2="84.2" y2="341"/></g>
+<g id="xAxis" stroke="rgb(0,0,0)" stroke-width="1"><line x1="79.2" y1="117.2" x2="574" y2="117.2"/><line x1="79.2" y1="341" x2="574" y2="341"/></g>
+<g id="yMinorTicks" stroke="rgb(0,0,0)" stroke-width="1"><path d="M82.2,89.24 L84.2,89.24 M82.2,61.26 L84.2,61.26 M82.2,117.2 L84.2,117.2 M82.2,145.2 L84.2,145.2 M82.2,173.2 L84.2,173.2 M82.2,201.1 L84.2,201.1 M82.2,229.1 L84.2,229.1 M82.2,257.1 L84.2,257.1 M82.2,285.1 L84.2,285.1 M82.2,313 L84.2,313 M82.2,341 L84.2,341 " fill="none"/></g>
+<g id="xMinorTicks" stroke="rgb(0,0,0)" stroke-width="1"><path d="M182.4,341 L182.4,343 M237,341 L237,343 M291.6,341 L291.6,343 M400.7,341 L400.7,343 M455.3,341 L455.3,343 M509.8,341 L509.8,343 " fill="none"/></g>
+<g id="yMajorTicks" stroke="rgb(0,0,0)" stroke-width="2"><path d="M79.2,117.2 L84.2,117.2 M79.2,117.2 L84.2,117.2 M79.2,229.1 L84.2,229.1 M79.2,341 L84.2,341 " fill="none"/></g>
+<g id="xMajorTicks" stroke="rgb(0,0,0)" stroke-width="2"><path d="M127.9,341 L127.9,346 M346.1,341 L346.1,346 M564.4,341 L564.4,346 M127.9,341 L127.9,346 " fill="none"/></g>
+<g id="xTicksValues">
+<text x="127.9" y="361.6" text-anchor="middle" font-size="12" font-family="Verdana">0</text>
+<text x="346.1" y="361.6" text-anchor="middle" font-size="12" font-family="Verdana">5</text>
+<text x="564.4" y="361.6" text-anchor="middle" font-size="12" font-family="Verdana">10</text>
+<text x="127.9" y="361.6" text-anchor="middle" font-size="12" font-family="Verdana">0</text></g>
+<g id="yTicksValues">
+<text x="73.2" y="119.6" text-anchor="end" font-size="12" font-family="Verdana">0</text>
+<text x="73.2" y="119.6" text-anchor="end" font-size="12" font-family="Verdana">0</text>
+<text x="73.2" y="231.5" text-anchor="end" font-size="12" font-family="Verdana">-5</text>
+<text x="73.2" y="343.4" text-anchor="end" font-size="12" font-family="Verdana">-10</text></g>
+<g id="yLabel">
+<text x="42.9" y="199.5" text-anchor="middle" transform = "rotate(-90 42.9 199.5 )" font-size="14" font-family="Verdana">log1p(z)</text></g>
+<g id="xLabel">
+<text x="329.1" y="376.7" text-anchor="middle" font-size="14" font-family="Verdana">z</text></g>
+<g id="plotLines" stroke-width="2"><g clip-path="url(#plot_window)" stroke="rgb(0,0,139)" stroke-width="1"><path d="M84.2,341 L86.6,182.1 L89,166.6 L91.4,157.5 L93.8,151.1 L96.2,146.1 L98.61,142 L101,138.6 L103.4,135.6 L105.8,132.9 L108.2,130.6 L110.6,128.5 L113,126.5 L115.4,124.7 L117.8,123.1 L120.2,121.5 L122.6,120.1 L125,118.7 L127.4,117.4 L129.8,116.2 L132.2,115.1 L134.6,114 L137,112.9 L139.4,111.9 L141.8,111 L144.2,110.1 L146.6,109.2 L149,108.4 L151.4,107.5 L153.8,106.8 L156.2,106 L158.6,105.3 L161,104.6 L163.4,103.9 L165.8,103.2 L168.2,102.6 L170.6,101.9 L173,101.3 L175.4,100.7 L177.8,100.1 L180.2,99.57 L182.6,99.01 L185,98.47 L187.4,97.95 L189.8,97.43 L192.2,96.93 L194.6,96.44 L197,95.96 L199.4,95.49 L201.8,95.02 L204.2,94.57 L206.6,94.13 L209.1,93.69 L211.5,93.27 L213.9,92.85 L216.3,92.44 L218.7,92.04 L221.1,91.64 L223.5,91.25 L225.9,90.87 L228.3,90.49 L230.7,90.12 L233.1,89.76 L235.5,89.4 L237.9,89.05 L240.3,88.7 L242.7,88.36 L245.1,88.02 L247.5,87.69 L249.9,87.36 L252.3,87.04 L254.7,86.73 L257.1,86.41 L259.5,86.1 L261.9,85.8 L264.3,85.5 L266.7,85.2 L269.1,84.91 L271.5,84.62 L273.9,84.34 L276.3,84.05 L278.7,83.78 L281.1,83.5 L283.5,83.23 L285.9,82.96 L288.3,82.7 L290.7,82.44 L293.1,82.18 L295.5,81.92 L297.9,81.67 L300.3,81.42 L302.7,81.17 L305.1,80.93 L307.5,80.68 L309.9,80.45 L312.3,80.21 L314.7,79.97 L317.1,79.74 L319.5,79.51 L321.9,79.29 L324.3,79.06 L326.7,78.84 L329.1,78.62 L331.5,78.4 L333.9,78.18 L336.3,77.97 L338.7,77.76 L341.1,77.55 L343.5,77.34 L345.9,77.13 L348.3,76.93 L350.7,76.73 L353.1,76.52 L355.5,76.33 L357.9,76.13 L360.3,75.93 L362.7,75.74 L365.1,75.55 L367.5,75.36 L369.9,75.17 L372.3,74.98 L374.7,74.79 L377.1,74.61 L379.5,74.43 L381.9,74.25 L384.3,74.07 L386.7,73.89 L389.1,73.71 L391.5,73.54 L393.9,73.36 L396.3,73.19 L398.7,73.02 L401.1,72.85 L403.5,72.68 L405.9,72.51 L408.3,72.34 L410.7,72.18 L413.1,72.02 L415.5,71.85 L417.9,71.69 L420.3,71.53 L422.7,71.37 L425.1,71.21 L427.5,71.06 L429.9,70.9 L432.3,70.75 L434.7,70.59 L437.1,70.44 L439.5,70.29 L441.9,70.14 L444.3,69.99 L446.7,69.84 L449.1,69.69 L451.6,69.54 L454,69.4 L456.4,69.25 L458.8,69.11 L461.2,68.97 L463.6,68.82 L466,68.68 L468.4,68.54 L470.8,68.4 L473.2,68.26 L475.6,68.13 L478,67.99 L480.4,67.85 L482.8,67.72 L485.2,67.58 L487.6,67.45 L490,67.32 L492.4,67.19 L494.8,67.05 L497.2,66.92 L499.6,66.79 L502,66.67 L504.4,66.54 L506.8,66.41 L509.2,66.28 L511.6,66.16 L514,66.03 L516.4,65.91 L518.8,65.78 L521.2,65.66 L523.6,65.54 L526,65.41 L528.4,65.29 L530.8,65.17 L533.2,65.05 L535.6,64.93 L538,64.81 L540.4,64.7 L542.8,64.58 L545.2,64.46 L547.6,64.35 L550,64.23 L552.4,64.12 L554.8,64 L557.2,63.89 L559.6,63.77 L562,63.66 L564.4,63.55 " fill="none"/></g>
+</g>
+<g id="plotPoints" clip-path="url(#plot_window)"></g>
+<g id="title">
+<text x="300" y="40" text-anchor="middle" font-size="20" font-family="Verdana">log1p</text></g>
+<g id="plotXValues"></g>
+<g id="plotYValues"></g>
+</svg>

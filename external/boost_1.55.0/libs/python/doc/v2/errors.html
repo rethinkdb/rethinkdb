@@ -1,0 +1,289 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/errors.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/errors.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#error_already_set-spec">Class
+          <code>error_already_set</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#error_already_set-spec-synopsis">Class
+              <code>error_already_set</code> synopsis</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#functions">Functions</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#handle_exception-spec">handle_exception</a></dt>
+
+          <dt><a href="#expect_non_null-spec">expect_non_null</a></dt>
+
+          <dt><a href=
+          "#throw_error_already_set-spec">throw_error_already_set</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Examples</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><code>&lt;boost/python/errors.hpp&gt;</code> provides types and
+    functions for managing and translating between Python and C++ exceptions.
+    This is relatively low-level functionality that is mostly used internally
+    by Boost.Python. Users should seldom need it.</p>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="error_already_set-spec"></a>Class
+    <code>error_already_set</code></h3>
+
+    <p><code>error_already_set</code> is an exception type which can be
+    thrown to indicate that a Python error has occurred. If thrown, the
+    precondition is that <a href=
+    "http://www.python.org/doc/2.2/api/exceptionHandling.html#l2h-71">PyErr_Occurred()</a>
+    returns a value convertible to <code>true</code>. Portable code shouldn't
+    throw this exception type directly, but should instead use <code><a href=
+    "#throw_error_already_set-spec">throw_error_already_set</a>()</code>,
+    below.</p>
+
+    <h4><a name="error_already_set-spec-synopsis"></a>Class error_already_set
+    synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+    class error_already_set {};
+}}
+</pre>
+
+    <h2><a name="functions"></a>Functions</h2>
+<pre>
+<a name=
+"handle_exception-spec">template &lt;class T&gt; bool handle_exception</a>(T f) throw();
+
+void handle_exception() throw();
+</pre>
+
+    <dl class="handle_exception-semantics">
+      <dt><b>Requires:</b> The first form requires that the expression
+      <code><a href=
+      "../../../../doc/html/functionN.html">function0</a>&lt;void&gt;(f)</code>
+      is valid. The second form requires that a C++ exception is currently
+      being handled (see section 15.1 in the C++ standard).</dt>
+
+      <dt><b>Effects:</b> The first form calls <code>f()</code> inside a
+      <code>try</code> block which first attempts to use all registered <a
+      href="exception_translator.html">exception translators</a>. If none of
+      those translates the exception, the <code>catch</code> clauses then set
+      an appropriate Python exception for the C++ exception caught, returning
+      <code>true</code> if an exception was thrown, <code>false</code>
+      otherwise. The second form passes a function which rethrows the
+      exception currently being handled to the first form.</dt>
+
+      <dt><b>Postconditions:</b> No exception is being handled</dt>
+
+      <dt><b>Throws:</b> nothing</dt>
+
+      <dt><b>Rationale:</b> At inter-language boundaries it is important to
+      ensure that no C++ exceptions escape, since the calling language
+      usually doesn't have the equipment necessary to properly unwind the
+      stack. Use <code>handle_exception</code> to manage exception
+      translation whenever your C++ code is called directly from the Python
+      API. This is done for you automatically by the usual function wrapping
+      facilities: <code><a href=
+      "make_function.html#make_function-spec">make_function</a>()</code>,
+      <code><a href=
+      "make_function.html#make_constructor-spec">make_constructor</a>()</code>,
+      <code><a href="def.html#class_-spec-modifiers">def</a>()</code> and <code><a href=
+      "class.html#def-spec">class_::def</a>()</code>. The second form can be
+      more convenient to use (see the <a href="#examples">example</a> below),
+      but various compilers have problems when exceptions are rethrown from
+      within an enclosing <code>try</code> block.</dt>
+    </dl>
+<pre>
+<a name=
+"expect_non_null-spec">template &lt;class T&gt; T* expect_non_null(T* x);</a>
+</pre>
+
+    <dl class="expect_non_null-semantics">
+      <dt><b>Returns:</b> <code>x</code></dt>
+
+      <dt><b>Throws:</b> <code><a href=
+      "#error_already_set-spec">error_already_set</a>()</code> iff <code>x ==
+      0</code>.</dt>
+
+      <dt><b>Rationale:</b> Simplifies error-handling when calling functions
+      in the <a href="http://www.python.org/doc/2.2/api/api.html">Python/C
+      API</a> which return 0 on error.</dt>
+    </dl>
+<pre>
+<a name="throw_error_already_set-spec">void throw_error_already_set();</a>
+</pre>
+
+    <dl class="throw_error_already_set-semantics">
+      <dt><b>Effects:</b> <code>throw&nbsp;<a href=
+      "#error_already_set-spec">error_already_set</a>();</code></dt>
+    </dl>
+
+    <dl>
+      <dt><b>Rationale:</b> Many platforms and compilers are not able to
+      consistently catch exceptions thrown across shared library boundaries.
+      Using this function from the Boost.Python library ensures that the
+      appropriate <code>catch</code> block in <code><a href=
+      "#handle_exception-spec">handle_exception</a>()</code> can catch the
+      exception.</dt>
+    </dl>
+
+    <h2><a name="examples"></a>Examples</h2>
+<pre>
+#include &lt;string&gt;
+#include &lt;boost/python/errors.hpp&gt;
+#include &lt;boost/python/object.hpp&gt;
+#include &lt;boost/python/handle.hpp&gt;
+
+// Returns a std::string which has the same value as obj's "__name__"
+// attribute.
+std::string get_name(boost::python::object obj)
+{
+   // throws if there's no __name__ attribute
+   PyObject* p = boost::python::expect_non_null(
+      PyObject_GetAttrString(obj.ptr(), "__name__"));
+
+   char const* s = PyString_AsString(p);
+   if (s != 0) 
+        Py_DECREF(p);
+
+   // throws if it's not a Python string
+   std::string result(
+      boost::python::expect_non_null(
+         PyString_AsString(p)));
+
+   Py_DECREF(p); // Done with p
+   
+   return result;
+}
+
+//
+// Demonstrate form 1 of handle_exception
+//
+
+// Place into result a Python Int object whose value is 1 if a and b have
+// identical "__name__" attributes, 0 otherwise.
+void same_name_impl(PyObject*&amp; result, boost::python::object a, boost::python::object b)
+{
+   result = PyInt_FromLong(
+      get_name(a) == get_name(a2));
+}
+
+object borrowed_object(PyObject* p)
+{
+   return boost::python::object(
+        boost::python::handle&lt;&gt;(
+             boost::python::borrowed(a1)));
+}
+
+// This is an example Python 'C' API interface function
+extern "C" PyObject*
+same_name(PyObject* args, PyObject* keywords)
+{
+   PyObject* a1;
+   PyObject* a2;
+   PyObject* result = 0;
+
+   if (!PyArg_ParseTuple(args, const_cast&lt;char*&gt;("OO"), &amp;a1, &amp;a2))
+      return 0;
+   
+   // Use boost::bind to make an object compatible with
+   // boost::Function0&lt;void&gt;
+   if (boost::python::handle_exception(
+         boost::bind&lt;void&gt;(same_name_impl, boost::ref(result), borrowed_object(a1), borrowed_object(a2))))
+   {
+      // an exception was thrown; the Python error was set by
+      // handle_exception()
+      return 0;
+   }
+
+   return result;
+}
+
+//
+// Demonstrate form 2 of handle_exception. Not well-supported by all
+// compilers.
+//
+extern "C" PyObject*
+same_name2(PyObject* args, PyObject* keywords)
+{
+   PyObject* a1;
+   PyObject* a2;
+   PyObject* result = 0;
+
+   if (!PyArg_ParseTuple(args, const_cast&lt;char*&gt;("OO"), &amp;a1, &amp;a2))
+      return 0;
+
+   try {
+      return PyInt_FromLong(
+         get_name(borrowed_object(a1)) == get_name(borrowed_object(a2)));
+   }
+   catch(...)
+   {
+      // If an exception was thrown, translate it to Python
+      boost::python::handle_exception();
+      return 0;
+   }
+}
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

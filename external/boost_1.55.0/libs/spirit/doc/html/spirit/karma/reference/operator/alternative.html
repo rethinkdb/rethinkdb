@@ -1,0 +1,265 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Alternative Generator (a | b)</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../operator.html" title="Generator Operators">
+<link rel="prev" href="sequence.html" title="Sequence Generator (a &lt;&lt; b)">
+<link rel="next" href="kleene.html" title="Kleene Star Generator (*a)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sequence.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../operator.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="kleene.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.karma.reference.operator.alternative"></a><a class="link" href="alternative.html" title="Alternative Generator (a | b)">Alternative
+          Generator (<code class="computeroutput"><span class="identifier">a</span> <span class="special">|</span>
+          <span class="identifier">b</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.karma.reference.operator.alternative.h0"></a>
+            <span class="phrase"><a name="spirit.karma.reference.operator.alternative.description"></a></span><a class="link" href="alternative.html#spirit.karma.reference.operator.alternative.description">Description</a>
+          </h6>
+<p>
+            Generator alternatives are used to combine different, more primitive
+            generators into alternatives. All generators in an alternative are invoked
+            from left to right until one of them succeeds.
+          </p>
+<h6>
+<a name="spirit.karma.reference.operator.alternative.h1"></a>
+            <span class="phrase"><a name="spirit.karma.reference.operator.alternative.header"></a></span><a class="link" href="alternative.html#spirit.karma.reference.operator.alternative.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/karma/operator/alternative.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma_alternative</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.karma.reference.operator.alternative.h2"></a>
+            <span class="phrase"><a name="spirit.karma.reference.operator.alternative.model_of"></a></span><a class="link" href="alternative.html#spirit.karma.reference.operator.alternative.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../generator_concepts/narygenerator.html" title="NaryGenerator"><code class="computeroutput"><span class="identifier">NaryGenerator</span></code></a>
+            </p></blockquote></div>
+<h6>
+<a name="spirit.karma.reference.operator.alternative.h3"></a>
+            <span class="phrase"><a name="spirit.karma.reference.operator.alternative.expression_semantics"></a></span><a class="link" href="alternative.html#spirit.karma.reference.operator.alternative.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../generator_concepts/narygenerator.html" title="NaryGenerator"><code class="computeroutput"><span class="identifier">NaryGenerator</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">a</span> <span class="special">|</span>
+                      <span class="identifier">b</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The generators <code class="computeroutput"><span class="identifier">a</span></code>
+                      and <code class="computeroutput"><span class="identifier">b</span></code> are executed
+                      sequentially from left to right until one of them succeeds.
+                      A failed generator forces the alternative generator to try
+                      the next one. The alternative fails as a whole only if all
+                      elements of the alternative fail. Each element of the alternative
+                      gets passed the whole attribute of the alternative.
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<p>
+            Alternatives intercept and buffer the output of the currently executed
+            element. This allows to avoid partial outputs from failing elements as
+            the buffered content will be forwarded to the actual output only after
+            an element succeeded.
+          </p>
+<h6>
+<a name="spirit.karma.reference.operator.alternative.h4"></a>
+            <span class="phrase"><a name="spirit.karma.reference.operator.alternative.attributes"></a></span><a class="link" href="alternative.html#spirit.karma.reference.operator.alternative.attributes">Attributes</a>
+          </h6>
+<p>
+            See <a class="link" href="../../quick_reference/compound_attribute_rules.html#spirit.karma.quick_reference.compound_attribute_rules.notation">Compound
+            Attribute Notation</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">a</span> <span class="special">|</span>
+                      <span class="identifier">b</span></code> (alternative)
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">b</span><span class="special">:</span> <span class="identifier">B</span> <span class="special">--&gt;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">|</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">variant</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">&gt;</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">b</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">|</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span><span class="special">,</span> <span class="identifier">b</span><span class="special">:</span> <span class="identifier">B</span> <span class="special">--&gt;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">|</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">B</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span><span class="special">,</span> <span class="identifier">b</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">|</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">Unused</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">b</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">|</span> <span class="identifier">b</span><span class="special">):</span> <span class="identifier">A</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The table above uses <code class="computeroutput"><span class="identifier">variant</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">&gt;</span></code> as a placeholder only. The notation
+              <code class="computeroutput"><span class="identifier">variant</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">&gt;</span></code>
+              stands for the type <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variant</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">&gt;</span></code>.
+            </p></td></tr>
+</table></div>
+<p>
+            The attribute handling of Alternatives is special as their behavior is
+            not completely defined at compile time. First of all the selected alternative
+            element depends on the actual type of the attribute supplied to the alternative
+            generator (i.e. what is stored in the variant). The attribute type supplied
+            at <span class="emphasis"><em>runtime</em></span> narrows the set of considered alternatives
+            to those being compatible attribute wise. The remaining alternatives
+            are tried sequentially until the first of them succeeds. See below for
+            an example of this behavior.
+          </p>
+<h6>
+<a name="spirit.karma.reference.operator.alternative.h5"></a>
+            <span class="phrase"><a name="spirit.karma.reference.operator.alternative.complexity"></a></span><a class="link" href="alternative.html#spirit.karma.reference.operator.alternative.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              The overall complexity of the alternative generator is defined by the
+              sum of the complexities of its elements. The complexity of the alternative
+              itself is O(N), where N is the number of elements in the alternative.
+            </p></blockquote></div>
+<h6>
+<a name="spirit.karma.reference.operator.alternative.h6"></a>
+            <span class="phrase"><a name="spirit.karma.reference.operator.alternative.example"></a></span><a class="link" href="alternative.html#spirit.karma.reference.operator.alternative.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.karma.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some includes:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">support_utree</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">std_pair</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">string</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Basic usage of an alternative. While being only the second alternative,
+            the <code class="computeroutput"><span class="identifier">double_</span></code> generator
+            is chosen for output formatting because the supplied attribute type is
+            not compatible (i.e. not convertible) to the attribute type of the <code class="computeroutput"><span class="identifier">string</span></code> alternative.
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variant</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">v1</span><span class="special">(</span><span class="number">1.0</span><span class="special">);</span>
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">"1.0"</span><span class="special">,</span> <span class="identifier">string</span> <span class="special">|</span> <span class="identifier">double_</span><span class="special">,</span> <span class="identifier">v1</span><span class="special">);</span>
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">"2.0"</span><span class="special">,</span> <span class="identifier">string</span> <span class="special">|</span> <span class="identifier">double_</span><span class="special">,</span> <span class="number">2.0</span><span class="special">);</span>
+</pre>
+<p>
+          </p>
+<p>
+            The same formatting rules may be used to output a string. This time we
+            supply the string <code class="computeroutput"><span class="string">"example"</span></code>,
+            resulting in the first alternative to be chosen for the generated output.
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variant</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">v2</span><span class="special">(</span><span class="string">"example"</span><span class="special">);</span>
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">"example"</span><span class="special">,</span> <span class="identifier">string</span> <span class="special">|</span> <span class="identifier">double_</span><span class="special">,</span> <span class="identifier">v2</span><span class="special">);</span>
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">"example"</span><span class="special">,</span> <span class="identifier">string</span> <span class="special">|</span> <span class="identifier">double_</span><span class="special">,</span> <span class="string">"example"</span><span class="special">);</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sequence.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../operator.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="kleene.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

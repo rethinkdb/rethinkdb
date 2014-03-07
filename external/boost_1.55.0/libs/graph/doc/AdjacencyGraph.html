@@ -1,0 +1,168 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>AdjacencyGraph</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+
+<H2><A NAME="concept:AdjacencyGraph"></A>
+AdjacencyGraph
+</H2>
+
+The AdjacencyGraph concept provides and interface for efficient access
+of the adjacent vertices to a vertex in a graph. This is quite similar
+to the <a href="./IncidenceGraph.html">IncidenceGraph</a> concept (the
+target of an out-edge is an adjacent vertex). Both concepts are
+provided because in some contexts there is only concern for the
+vertices, whereas in other contexts the edges are also important.
+
+<H3>Refinement of</H3>
+
+<a href="Graph.html">Graph</a>
+
+<h3>Notation</h3>
+
+<Table>
+<TR>
+<TD><tt>G</tt></TD>
+<TD>A type that is a model of Graph.</TD>
+</TR>
+
+<TR>
+<TD><tt>g</tt></TD>
+<TD>An object of type <tt>G</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>v</tt></TD>
+<TD>An object of type <tt>boost::graph_traits&lt;G&gt;::vertex_descriptor</tt>.</TD>
+</TR>
+
+</table>
+
+
+<H3>Associated Types</H3>
+
+<Table border>
+
+<tr>
+<td><tt>boost::graph_traits&lt;G&gt;::traversal_category</tt><br><br>
+ This tag type must be convertible to <tt>adjacency_graph_tag</tt>.
+</td>
+</tr>
+
+<TR>
+<TD><pre>boost::graph_traits&lt;G&gt;::adjacency_iterator</pre>
+An adjacency iterator for a vertex <i>v</i> provides access to the
+vertices adjacent to <i>v</i>.  As such, the value type of an
+adjacency iterator is the vertex descriptor type of its graph. An
+adjacency iterator must meet the requirements of <a
+href="../../utility/MultiPassInputIterator.html">MultiPassInputIterator</a>.
+</TD>
+</TR>
+
+</table>
+
+<h3>Valid Expressions</h3>
+
+
+<table border>
+
+<tr>
+<td><a name="sec:adjacent-vertices"><TT>adjacent_vertices(v,&nbsp;g)</TT></a></TD>
+<TD>
+Returns an iterator-range providing access to the vertices adjacent to
+vertex <TT>v</TT> in graph <TT>g</TT>.<a
+href="#1">[1]</a>
+
+<br> Return type:
+<TT>std::pair&lt;adjacency_iterator,&nbsp;adjacency_iterator&gt;</TT>
+</TD>
+</TR>
+
+</table>
+
+<H3>Complexity guarantees</H3>
+
+The <TT>adjacent_vertices()</TT> function must return in constant time.
+
+<H3>See Also</H3>
+
+<a href="./graph_concepts.html">Graph concepts</a>,
+<a href="./adjacency_iterator.html"><tt>adjacency_iterator</tt></a>
+
+<H3>Concept Checking Class</H3>
+
+<PRE>
+  template &lt;class G&gt;
+  struct AdjacencyGraphConcept
+  {
+    typedef typename boost::graph_traits&lt;G&gt;::adjacency_iterator
+      adjacency_iterator;
+    void constraints() {
+      BOOST_CONCEPT_ASSERT(( IncidenceGraphConcept&lt;G&gt; ));
+      BOOST_CONCEPT_ASSERT(( MultiPassInputIteratorConcept&lt;adjacency_iterator&gt; ));
+
+      p = adjacent_vertices(v, g);
+      v = *p.first;
+      const_constraints(g);
+    }
+    void const_constraints(const G&amp; g) {
+      p = adjacent_vertices(v, g);
+    }
+    std::pair&lt;adjacency_iterator,adjacency_iterator&gt; p;
+    typename boost::graph_traits&lt;G&gt;::vertex_descriptor v;
+    G g;
+  };
+</PRE>
+
+<h3>Design Rationale</h3>
+
+The AdjacencyGraph concept is somewhat frivolous since <a
+href="./IncidenceGraph.html">IncidenceGraph</a> really covers the same
+functionality (and more).  The AdjacencyGraph concept exists because
+there are situations when <tt>adjacent_vertices()</tt> is more
+convenient to use than <tt>out_edges()</tt>. If you are constructing a
+graph class and do not want to put in the extra work of creating an
+adjacency iterator, have no fear. There is an adaptor class named <a
+href="./adjacency_iterator.html"> <tt>adjacency_iterator</tt></a> that
+you can use to create an adjacency iterator out of an out-edge
+iterator.
+
+<h3>Notes</h3>
+
+<a name="1">[1]</a>  The case of a
+<I>multigraph</I> (where multiple edges can connect the same two
+vertices) brings up an issue as to whether the iterators returned by
+the <TT>adjacent_vertices()</TT> function access a range that
+includes each adjacent vertex once, or whether it should match the
+behavior of the <TT>out_edges()</TT> function, and access a
+range that may include an adjacent vertex more than once. For now the
+behavior is defined to match that of <TT>out_edges()</TT>,
+though this decision may need to be reviewed in light of more
+experience with graph algorithm implementations.
+
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

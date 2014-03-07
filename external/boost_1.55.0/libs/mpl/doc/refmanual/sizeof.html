@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: sizeof_</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./max.html" class="navigation-link">Prev</a>&nbsp;<a href="./data-types.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./max.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./miscellaneous.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./miscellaneous.html" class="navigation-link">Miscellaneous</a> / <a href="./sizeof.html" class="navigation-link">sizeof_</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="sizeof">
+<h1><a class="toc-backref" href="./miscellaneous.html#id1571">sizeof_</a></h1>
+<div class="section" id="id1207">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename X
+    &gt;
+struct <a href="./sizeof.html" class="identifier">sizeof_</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id1208">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Returns the result of a <tt class="literal"><span class="pre">sizeof(X)</span></tt> expression wrapped into an
+<a class="reference internal" href="./integral-constant.html">Integral Constant</a> of the corresponding type, <tt class="literal"><span class="pre">std::<a href="./size-t.html" class="identifier">size_t</a></span></tt>.</p>
+</div>
+<div class="section" id="id1209">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/sizeof.hpp" class="header">boost/mpl/sizeof.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id1210">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./metafunction.html">Metafunction</a></p>
+</div>
+<div class="section" id="id1211">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="19%" />
+<col width="25%" />
+<col width="56%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">X</span></tt></td>
+<td>Any type</td>
+<td>A type to compute the <tt class="literal"><span class="pre">sizeof</span></tt> for.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1212">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For an arbitrary type <tt class="literal"><span class="pre">x</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./sizeof.html" class="identifier">sizeof_</a>&lt;x&gt;::type n;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="./integral-constant.html">Integral Constant</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><p class="first"><tt class="literal"><span class="pre">x</span></tt> is a complete type.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to</p>
+<pre class="last literal-block">
+typedef <a href="./size-t.html" class="identifier">size_t</a>&lt; sizeof(x) &gt; n;
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1213">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Constant time.</p>
+</div>
+<div class="section" id="id1214">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+struct udt { char a[100]; };
+
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./sizeof.html" class="identifier">sizeof_</a>&lt;char&gt;::value, ==, sizeof(char) );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./sizeof.html" class="identifier">sizeof_</a>&lt;int&gt;::value, ==, sizeof(int) );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./sizeof.html" class="identifier">sizeof_</a>&lt;double&gt;::value, ==, sizeof(double) );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./sizeof.html" class="identifier">sizeof_</a>&lt;udt&gt;::value, ==, sizeof(my) );
+</pre>
+</div>
+<div class="section" id="id1215">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./metafunctions.html">Metafunctions</a>, <a class="reference internal" href="./integral-constant.html">Integral Constant</a>, <a class="reference internal" href="./size-t.html">size_t</a></p>
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./max.html" class="navigation-link">Prev</a>&nbsp;<a href="./data-types.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./max.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./miscellaneous.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

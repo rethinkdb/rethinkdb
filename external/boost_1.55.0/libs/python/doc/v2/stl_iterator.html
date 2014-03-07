@@ -1,0 +1,273 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+
+    <title>Boost.Python - &lt;boost/python/stl_iterator.hpp&gt;</title>
+    <meta name="generator" content=
+"HTML Tidy for Windows (vers 1st August 2002), see www.w3.org"    >
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+header    >
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/stl_iterator.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#stl_input_iterator-spec">Class template
+          <code>stl_input_iterator</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#stl_input_iterator-spec-synopsis">Class
+              <code>stl_input_iterator</code> synopsis</a></dt>
+
+              <dt><a href="#stl_input_iterator-spec-constructors">Class template
+              <code>stl_input_iterator</code> constructors</a></dt>
+
+              <dt><a href="#stl_input_iterator-spec-modifiers">Class template
+              <code>stl_input_iterator</code> modifiers</a></dt>
+
+              <dt><a href="#stl_input_iterator-spec-observers">Class template
+              <code>stl_input_iterator</code> observers</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Examples</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><code>&lt;boost/python/stl_iterator.hpp&gt;</code> provides types
+    for creating <a href="http://www.sgi.com/tech/stl/Iterators.html">C++
+    Iterators</a> from <a href="http://www.python.org/doc/current/lib/typeiter.html">
+    Python iterables</a>.</p>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="stl_input_iterator-spec"></a>Class Template
+    <code>stl_input_iterator</code></h3>
+
+    <p>Instances of <code>stl_input_iterator&lt;T&gt;</code> hold a Python
+    iterator and adapt it for use with STL algorithms.
+    <code>stl_input_iterator&lt;T&gt;</code> satisfies the requirements for
+    an <a href="http://www.sgi.com/tech/stl/InputIterator.html">Input Iterator</a>.
+    </p>
+
+    <table border="1" summary="stl_input_iterator template parameters">
+      <tr>
+        <th>Template Parameter</th>
+
+        <th>Requirements</th>
+
+        <th>Semantics</th>
+
+        <th>Default</th>
+      </tr>
+
+      <tr>
+        <td><code>ValueType</code></td>
+
+        <td><code>ValueType</code> must be CopyConstructible.</td>
+
+        <td>Dereferencing an instance of <code>stl_input_iterator&lt;ValueType&gt;</code>
+        will return an rvalue of type <code>ValueType</code>.</td>
+
+        <td><i>None</i></td>
+      </tr>
+    </table>
+
+    <h4><a name="stl_input_iterator-spec-synopsis"></a>Class Template stl_input_iterator
+    synopsis</h4>
+
+<pre>
+namespace boost { namespace python
+{
+  template &lt;class ValueType&gt;
+  struct stl_input_iterator
+  {
+      typedef std::ptrdiff_t difference_type;
+      typedef ValueType value_type;
+      typedef ValueType* pointer;
+      typedef ValueType reference;
+      typedef std::input_iterator_tag iterator_category;
+
+      stl_input_iterator();
+      stl_input_iterator(<a href="object.html#object-spec">object</a> const&amp; ob);
+
+      stl_input_iterator&amp; operator++();
+      stl_input_iterator operator++(int);
+
+      ValueType operator*() const;
+
+      friend bool operator==(stl_input_iterator const&amp; lhs, stl_input_iterator const&amp; rhs);
+      friend bool operator!=(stl_input_iterator const&amp; lhs, stl_input_iterator const&amp; rhs);
+  private:
+      <a href="object.html#object-spec">object</a> it; // For exposition only
+      <a href="object.html#object-spec">object</a> ob; // For exposition only
+  };
+}}
+</pre>
+
+    <h4>
+      <a name="stl_input_iterator-spec-constructors"></a>Class Template <code>stl_input_iterator</code>
+      constructors
+    </h4>
+
+<pre>
+stl_input_iterator()
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+        Creates a past-the-end input iterator, useful for signifying the end of a sequence.
+      </dt>
+      <dt><b>Postconditions:</b> <code>this</code> is past-the-end.</dt>
+      <dt><b>Throws:</b> Nothing.</dt>
+    </dl>
+
+<pre>
+stl_input_iterator(object const&amp; ob)
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+        Calls <code>ob.attr("__iter__")()</code> and stores the resulting Python iterator
+        object in <code>this-&gt;it</code>. Then, calls <code>this-&gt;it.attr("next")()</code> and
+        stores the result in <code>this-&gt;ob</code>. If the sequence is exhausted, sets
+        <code>this-&gt;ob</code> to <code>object()</code>.
+      </dt>
+
+      <dt><b>Postconditions:</b> <code>this</code> is a dereferenceable or past-the-end.</dt>
+    </dl>
+
+    <h4>
+      <a name="stl_input_iterator-spec-modifiers"></a>Class Template <code>stl_input_iterator</code>
+      modifiers
+    </h4>
+
+<pre>
+stl_input_iterator&amp; operator++()
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+        Calls <code>this-&gt;it.attr("next")()</code> and stores the result in
+        <code>this-&gt;ob</code>. If the sequence is exhausted, sets <code>this-&gt;ob</code>
+        to <code>object()</code>.
+      </dt>
+
+      <dt><b>Postconditions:</b> <code>this</code> is a dereferenceable or past-the-end.</dt>
+
+      <dt><b>Returns:</b> <code>*this</code>.</dt>
+    </dl>
+
+<pre>
+stl_input_iterator operator++(int)
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+        <code>stl_input_iterator tmp = *this; ++*this; return tmp;</code>
+      </dt>
+
+      <dt><b>Postconditions:</b> <code>this</code> is a dereferenceable or past-the-end.</dt>
+    </dl>
+
+    <h4><a name="stl_input_iterator-spec-observers"></a>Class Template<code>stl_input_iterator</code>
+    observers</h4>
+
+<pre>
+ValueType operator*() const
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+        Returns the current element in the sequence.
+      </dt>
+      <dt><b>Returns:</b>
+        <code>extract&lt;ValueType&gt;(this-&gt;ob);</code>
+      </dt>
+    </dl>
+
+<pre>
+friend bool operator==(stl_input_iterator const&amp; lhs, stl_input_iterator const&amp; rhs)
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+        Returns true if both iterators are dereferenceable or if both iterators are past-the-end,
+        false otherwise.
+      </dt>
+      <dt><b>Returns:</b>
+        <code>(lhs.ob == object()) == (rhs.ob == object())</code>
+      </dt>
+    </dl>
+
+<pre>
+friend bool operator!=(stl_input_iterator const&amp; lhs, stl_input_iterator const&amp; rhs)
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+        Returns false if both iterators are dereferenceable or if both iterators are past-the-end,
+        true otherwise.
+      </dt>
+      <dt><b>Returns:</b>
+        <code>!(lhs == rhs)</code>
+      </dt>
+    </dl>
+
+    <h2><a name="examples"></a>Examples</h2>
+<pre>
+#include &lt;boost/python/object.hpp&gt;
+#include &lt;boost/python/stl_iterator.hpp&gt;
+
+#include &lt;list&gt;
+
+using namespace boost::python;
+std::list&lt;int&gt; sequence_to_int_list(object const&amp; ob)
+{
+    stl_input_iterator&lt;int&gt; begin(ob), end;
+    return std::list&lt;int&gt;(begin, end);
+}
+</pre>
+
+<hr>
+        <p>Revised 
+        <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->30 
+October, 2005
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+        </p>
+
+        <p><i>© Copyright Eric Niebler 2005.</i></p>
+  </body>
+</html>

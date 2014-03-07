@@ -1,0 +1,69 @@
+# Boost.MultiIndex examples Jamfile
+#
+# Copyright 2003-2007 Joaquín M López Muñoz.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+#
+# See http://www.boost.org/libs/multi_index for library home page.
+
+exe basic
+    : basic.cpp
+    : <include>$(BOOST_ROOT)
+    ;
+
+exe bimap
+    : bimap.cpp
+    : <include>$(BOOST_ROOT)
+    ;
+
+exe complex_structs
+    : complex_structs.cpp
+    : <include>$(BOOST_ROOT)
+    ;
+
+exe composite_keys
+    : composite_keys.cpp
+    : <include>$(BOOST_ROOT)
+    ;
+
+exe fun_key
+    : fun_key.cpp
+    : <include>$(BOOST_ROOT)
+    ;
+
+exe hashed
+    : hashed.cpp
+    : <include>$(BOOST_ROOT)
+    ;
+
+exe ip_allocator
+    : ip_allocator.cpp
+    : <include>$(BOOST_ROOT) <threading>multi
+    ;
+
+exe non_default_ctor
+    : non_default_ctor.cpp
+    : <include>$(BOOST_ROOT)
+    ;
+
+exe random_access
+    : random_access.cpp
+    : <include>$(BOOST_ROOT)
+    ;
+
+exe rearrange
+    : rearrange.cpp
+    : <include>$(BOOST_ROOT)
+    ;
+
+exe sequenced
+    : sequenced.cpp
+    : <include>$(BOOST_ROOT)
+    ;
+
+exe serialization
+    : serialization.cpp
+      /boost/serialization//boost_serialization
+    : <include>$(BOOST_ROOT)
+    ;

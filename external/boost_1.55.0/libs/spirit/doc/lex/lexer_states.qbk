@@ -1,0 +1,21 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:lexer_states Lexer States]
+
+
+[heading Controlling the Lexer State from Lexer Semantic Actions]
+
+
+[heading Controlling the Lexer State from Parser Semantic Actions]
+
+
+[heading Using a Lexer State for the Skip Parser]
+
+
+[endsect]

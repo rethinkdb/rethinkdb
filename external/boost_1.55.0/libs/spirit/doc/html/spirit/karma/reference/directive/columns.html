@@ -1,0 +1,362 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Generator Directive Separating Output Into Columns (columns[])</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../directive.html" title="Generator Directives">
+<link rel="prev" href="duplicate.html" title="Generator Directive Duplicating Attributes (duplicate[])">
+<link rel="next" href="as.html" title="Generator Directives Forcing Atomic Extraction (as&lt;T&gt;, as_string[], as_wstring[])">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="duplicate.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="as.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.karma.reference.directive.columns"></a><a class="link" href="columns.html" title="Generator Directive Separating Output Into Columns (columns[])">Generator
+          Directive Separating Output Into Columns (<code class="computeroutput"><span class="identifier">columns</span><span class="special">[]</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.karma.reference.directive.columns.h0"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.columns.description"></a></span><a class="link" href="columns.html#spirit.karma.reference.directive.columns.description">Description</a>
+          </h6>
+<p>
+            The <code class="computeroutput"><span class="identifier">columns</span><span class="special">[]</span></code>
+            directive separates the output emitted by the embedded generator by inserting
+            special column separators.
+          </p>
+<h6>
+<a name="spirit.karma.reference.directive.columns.h1"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.columns.header"></a></span><a class="link" href="columns.html#spirit.karma.reference.directive.columns.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/karma/directive/columns.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma_columns</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody><tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">columns</span> <span class="comment">//
+                      alias: boost::spirit::karma::columns</span></code>
+                    </p>
+                  </td></tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.directive.columns.h2"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.columns.model_of"></a></span><a class="link" href="columns.html#spirit.karma.reference.directive.columns.model_of">Model of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../generator_concepts/unarygenerator.html" title="UnaryGenerator"><code class="computeroutput"><span class="identifier">UnaryGenerator</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a</span></code></span></dt>
+<dd><p>
+                  A generator object
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">g</span></code></span></dt>
+<dd><p>
+                  A generator object, or a <a class="link" href="../basics.html#spirit.karma.reference.basics.lazy_argument">Lazy
+                  Argument</a> that evaluates to a generator object, will be used
+                  to emit column separators
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">A</span></code></span></dt>
+<dd>
+<p>
+                  Attribute type of generator <code class="computeroutput"><span class="identifier">a</span></code>
+                </p>
+<p>
+                  [<code class="computeroutput"><span class="identifier">num</span></code>
+                </p>
+<p>
+                  Numeric literal, any unsigned integer value, or a <a class="link" href="../basics.html#spirit.karma.reference.basics.lazy_argument">Lazy
+                  Argument</a> that evaluates to an unsigned integer value defining
+                  the number of items to emit in between the column separators
+                </p>
+</dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.karma.reference.directive.columns.h3"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.columns.expression_semantics"></a></span><a class="link" href="columns.html#spirit.karma.reference.directive.columns.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../generator_concepts/unarygenerator.html" title="UnaryGenerator"><code class="computeroutput"><span class="identifier">UnaryGenerator</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">columns</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The <code class="computeroutput"><span class="identifier">columns</span></code>
+                      directive invokes a generator after each N-th element of the
+                      embedded generator has been emitted. The number of columns
+                      is defined by the preprocessor constant <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_COLUMNS</span></code>.
+                      The column separator used will be <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">eol</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">columns</span><span class="special">(</span><span class="identifier">num</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The <code class="computeroutput"><span class="identifier">columns</span></code>
+                      directive invokes a generator after each N-th element of the
+                      embedded generator has been emitted. The number of columns
+                      is defined by the argument to the directive <code class="computeroutput"><span class="identifier">num</span></code>.
+                      The column separator used will be <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">eol</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">columns</span><span class="special">(</span><span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The <code class="computeroutput"><span class="identifier">columns</span></code>
+                      directive invokes a generator after each N-th element of the
+                      embedded generator has been emitted. The number of columns
+                      is defined by the preprocessor constant <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_COLUMNS</span></code>.
+                      The column separator used will be <code class="computeroutput"><span class="identifier">g</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">columns</span><span class="special">(</span><span class="identifier">num</span><span class="special">,</span>
+                      <span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The <code class="computeroutput"><span class="identifier">columns</span></code>
+                      directive invokes a generator after each N-th element of the
+                      embedded generator has been emitted. The number of columns
+                      is defined by the argument to the directive <code class="computeroutput"><span class="identifier">num</span></code>.
+                      The column separator used will be <code class="computeroutput"><span class="identifier">g</span></code>.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.directive.columns.h4"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.columns.attributes"></a></span><a class="link" href="columns.html#spirit.karma.reference.directive.columns.attributes">Attributes</a>
+          </h6>
+<p>
+            See <a class="link" href="../../quick_reference/compound_attribute_rules.html#spirit.karma.quick_reference.compound_attribute_rules.notation">Compound
+            Attribute Notation</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">columns</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">columns</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">columns</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">columns</span><span class="special">(</span><span class="identifier">num</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">columns</span><span class="special">(</span><span class="identifier">num</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">columns</span><span class="special">(</span><span class="identifier">num</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">columns</span><span class="special">(</span><span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">columns</span><span class="special">(</span><span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">columns</span><span class="special">(</span><span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">columns</span><span class="special">(</span><span class="identifier">num</span><span class="special">,</span>
+                      <span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">columns</span><span class="special">(</span><span class="identifier">num</span><span class="special">,</span> <span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">columns</span><span class="special">(</span><span class="identifier">num</span><span class="special">,</span> <span class="identifier">g</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.directive.columns.h5"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.columns.complexity"></a></span><a class="link" href="columns.html#spirit.karma.reference.directive.columns.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              The overall complexity of the <code class="computeroutput"><span class="identifier">columns</span></code>
+              generator directive depends on the complexity of the embedded generator.
+              The complexity of the <code class="computeroutput"><span class="identifier">columns</span></code>
+              generator directive itself is O(N), where <code class="computeroutput"><span class="identifier">N</span></code>
+              is the number of inserted column separators.
+            </p></blockquote></div>
+<h6>
+<a name="spirit.karma.reference.directive.columns.h6"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.columns.example"></a></span><a class="link" href="columns.html#spirit.karma.reference.directive.columns.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.karma.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some includes:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">support_utree</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">std_pair</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">columns</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">space</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Basic usage of the <code class="computeroutput"><span class="identifier">columns</span></code>
+            generators:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">v</span><span class="special">;</span>
+<span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">1.0</span><span class="special">);</span>
+<span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">2.0</span><span class="special">);</span>
+<span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">3.0</span><span class="special">);</span>
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">"1.0\n2.0\n3.0\n"</span><span class="special">,</span> <span class="identifier">columns</span><span class="special">(</span><span class="number">1</span><span class="special">)[*</span><span class="identifier">double_</span><span class="special">],</span> <span class="identifier">v</span><span class="special">);</span>
+<span class="identifier">test_generator_attr_delim</span><span class="special">(</span><span class="string">"1.0 2.0 \n3.0 \n"</span><span class="special">,</span> <span class="identifier">columns</span><span class="special">(</span><span class="number">2</span><span class="special">)[*</span><span class="identifier">double_</span><span class="special">],</span> <span class="identifier">space</span><span class="special">,</span> <span class="identifier">v</span><span class="special">);</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="duplicate.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="as.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,991 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>ip::icmp::socket</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../ip__icmp.html" title="ip::icmp">
+<link rel="prev" href="resolver.html" title="ip::icmp::resolver">
+<link rel="next" href="type.html" title="ip::icmp::type">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="resolver.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ip__icmp.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="type.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.reference.ip__icmp.socket"></a><a class="link" href="socket.html" title="ip::icmp::socket">ip::icmp::socket</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp87883176"></a> 
+The ICMP socket type.
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">basic_raw_socket</span><span class="special">&lt;</span> <span class="identifier">icmp</span> <span class="special">&gt;</span> <span class="identifier">socket</span><span class="special">;</span>
+</pre>
+<h6>
+<a name="boost_asio.reference.ip__icmp.socket.h0"></a>
+          <span class="phrase"><a name="boost_asio.reference.ip__icmp.socket.types"></a></span><a class="link" href="socket.html#boost_asio.reference.ip__icmp.socket.types">Types</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/broadcast.html" title="basic_raw_socket::broadcast"><span class="bold"><strong>broadcast</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Socket option to permit sending of broadcast messages.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/bytes_readable.html" title="basic_raw_socket::bytes_readable"><span class="bold"><strong>bytes_readable</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    IO control command to get the amount of data that can be read
+                    without blocking.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/debug.html" title="basic_raw_socket::debug"><span class="bold"><strong>debug</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Socket option to enable socket-level debugging.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/do_not_route.html" title="basic_raw_socket::do_not_route"><span class="bold"><strong>do_not_route</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Socket option to prevent routing, use local interfaces only.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/enable_connection_aborted.html" title="basic_raw_socket::enable_connection_aborted"><span class="bold"><strong>enable_connection_aborted</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Socket option to report aborted connections on accept.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/endpoint_type.html" title="basic_raw_socket::endpoint_type"><span class="bold"><strong>endpoint_type</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The endpoint type.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/implementation_type.html" title="basic_raw_socket::implementation_type"><span class="bold"><strong>implementation_type</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The underlying implementation type of I/O object.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/keep_alive.html" title="basic_raw_socket::keep_alive"><span class="bold"><strong>keep_alive</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Socket option to send keep-alives.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/linger.html" title="basic_raw_socket::linger"><span class="bold"><strong>linger</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Socket option to specify whether the socket lingers on close
+                    if unsent data is present.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/lowest_layer_type.html" title="basic_raw_socket::lowest_layer_type"><span class="bold"><strong>lowest_layer_type</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    A basic_socket is always the lowest layer.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/message_flags.html" title="basic_raw_socket::message_flags"><span class="bold"><strong>message_flags</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Bitmask type for flags that can be passed to send and receive
+                    operations.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/native_handle_type.html" title="basic_raw_socket::native_handle_type"><span class="bold"><strong>native_handle_type</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The native representation of a socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/native_type.html" title="basic_raw_socket::native_type"><span class="bold"><strong>native_type</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    (Deprecated: Use native_handle_type.) The native representation
+                    of a socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/non_blocking_io.html" title="basic_raw_socket::non_blocking_io"><span class="bold"><strong>non_blocking_io</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    (Deprecated: Use non_blocking().) IO control command to set the
+                    blocking mode of the socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/protocol_type.html" title="basic_raw_socket::protocol_type"><span class="bold"><strong>protocol_type</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The protocol type.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/receive_buffer_size.html" title="basic_raw_socket::receive_buffer_size"><span class="bold"><strong>receive_buffer_size</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Socket option for the receive buffer size of a socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/receive_low_watermark.html" title="basic_raw_socket::receive_low_watermark"><span class="bold"><strong>receive_low_watermark</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Socket option for the receive low watermark.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/reuse_address.html" title="basic_raw_socket::reuse_address"><span class="bold"><strong>reuse_address</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Socket option to allow the socket to be bound to an address that
+                    is already in use.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/send_buffer_size.html" title="basic_raw_socket::send_buffer_size"><span class="bold"><strong>send_buffer_size</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Socket option for the send buffer size of a socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/send_low_watermark.html" title="basic_raw_socket::send_low_watermark"><span class="bold"><strong>send_low_watermark</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Socket option for the send low watermark.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/service_type.html" title="basic_raw_socket::service_type"><span class="bold"><strong>service_type</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The type of the service that will be used to provide I/O operations.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/shutdown_type.html" title="basic_raw_socket::shutdown_type"><span class="bold"><strong>shutdown_type</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Different ways a socket may be shutdown.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="boost_asio.reference.ip__icmp.socket.h1"></a>
+          <span class="phrase"><a name="boost_asio.reference.ip__icmp.socket.member_functions"></a></span><a class="link" href="socket.html#boost_asio.reference.ip__icmp.socket.member_functions">Member
+          Functions</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/assign.html" title="basic_raw_socket::assign"><span class="bold"><strong>assign</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Assign an existing native socket to the socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/async_connect.html" title="basic_raw_socket::async_connect"><span class="bold"><strong>async_connect</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Start an asynchronous connect.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/async_receive.html" title="basic_raw_socket::async_receive"><span class="bold"><strong>async_receive</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Start an asynchronous receive on a connected socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/async_receive_from.html" title="basic_raw_socket::async_receive_from"><span class="bold"><strong>async_receive_from</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Start an asynchronous receive.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/async_send.html" title="basic_raw_socket::async_send"><span class="bold"><strong>async_send</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Start an asynchronous send on a connected socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/async_send_to.html" title="basic_raw_socket::async_send_to"><span class="bold"><strong>async_send_to</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Start an asynchronous send.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/at_mark.html" title="basic_raw_socket::at_mark"><span class="bold"><strong>at_mark</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Determine whether the socket is at the out-of-band data mark.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/available.html" title="basic_raw_socket::available"><span class="bold"><strong>available</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Determine the number of bytes available for reading.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/basic_raw_socket.html" title="basic_raw_socket::basic_raw_socket"><span class="bold"><strong>basic_raw_socket</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Construct a basic_raw_socket without opening it.
+                  </p>
+                  <p>
+                    Construct and open a basic_raw_socket.
+                  </p>
+                  <p>
+                    Construct a basic_raw_socket, opening it and binding it to the
+                    given local endpoint.
+                  </p>
+                  <p>
+                    Construct a basic_raw_socket on an existing native socket.
+                  </p>
+                  <p>
+                    Move-construct a basic_raw_socket from another.
+                  </p>
+                  <p>
+                    Move-construct a basic_raw_socket from a socket of another protocol
+                    type.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/bind.html" title="basic_raw_socket::bind"><span class="bold"><strong>bind</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Bind the socket to the given local endpoint.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/cancel.html" title="basic_raw_socket::cancel"><span class="bold"><strong>cancel</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Cancel all asynchronous operations associated with the socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/close.html" title="basic_raw_socket::close"><span class="bold"><strong>close</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Close the socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/connect.html" title="basic_raw_socket::connect"><span class="bold"><strong>connect</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Connect the socket to the specified endpoint.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/get_io_service.html" title="basic_raw_socket::get_io_service"><span class="bold"><strong>get_io_service</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get the io_service associated with the object.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/get_option.html" title="basic_raw_socket::get_option"><span class="bold"><strong>get_option</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get an option from the socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/io_control.html" title="basic_raw_socket::io_control"><span class="bold"><strong>io_control</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Perform an IO control command on the socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/is_open.html" title="basic_raw_socket::is_open"><span class="bold"><strong>is_open</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Determine whether the socket is open.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/local_endpoint.html" title="basic_raw_socket::local_endpoint"><span class="bold"><strong>local_endpoint</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get the local endpoint of the socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/lowest_layer.html" title="basic_raw_socket::lowest_layer"><span class="bold"><strong>lowest_layer</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get a reference to the lowest layer.
+                  </p>
+                  <p>
+                    Get a const reference to the lowest layer.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/native.html" title="basic_raw_socket::native"><span class="bold"><strong>native</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    (Deprecated: Use native_handle().) Get the native socket representation.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/native_handle.html" title="basic_raw_socket::native_handle"><span class="bold"><strong>native_handle</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get the native socket representation.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/native_non_blocking.html" title="basic_raw_socket::native_non_blocking"><span class="bold"><strong>native_non_blocking</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Gets the non-blocking mode of the native socket implementation.
+                  </p>
+                  <p>
+                    Sets the non-blocking mode of the native socket implementation.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/non_blocking.html" title="basic_raw_socket::non_blocking"><span class="bold"><strong>non_blocking</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Gets the non-blocking mode of the socket.
+                  </p>
+                  <p>
+                    Sets the non-blocking mode of the socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/open.html" title="basic_raw_socket::open"><span class="bold"><strong>open</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Open the socket using the specified protocol.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/operator_eq_.html" title="basic_raw_socket::operator="><span class="bold"><strong>operator=</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Move-assign a basic_raw_socket from another.
+                  </p>
+                  <p>
+                    Move-assign a basic_raw_socket from a socket of another protocol
+                    type.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/receive.html" title="basic_raw_socket::receive"><span class="bold"><strong>receive</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Receive some data on a connected socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/receive_from.html" title="basic_raw_socket::receive_from"><span class="bold"><strong>receive_from</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Receive raw data with the endpoint of the sender.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/remote_endpoint.html" title="basic_raw_socket::remote_endpoint"><span class="bold"><strong>remote_endpoint</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get the remote endpoint of the socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/send.html" title="basic_raw_socket::send"><span class="bold"><strong>send</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Send some data on a connected socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/send_to.html" title="basic_raw_socket::send_to"><span class="bold"><strong>send_to</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Send raw data to the specified endpoint.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/set_option.html" title="basic_raw_socket::set_option"><span class="bold"><strong>set_option</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Set an option on the socket.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/shutdown.html" title="basic_raw_socket::shutdown"><span class="bold"><strong>shutdown</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Disable sends or receives on the socket.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="boost_asio.reference.ip__icmp.socket.h2"></a>
+          <span class="phrase"><a name="boost_asio.reference.ip__icmp.socket.protected_member_functions"></a></span><a class="link" href="socket.html#boost_asio.reference.ip__icmp.socket.protected_member_functions">Protected
+          Member Functions</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/get_implementation.html" title="basic_raw_socket::get_implementation"><span class="bold"><strong>get_implementation</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get the underlying implementation of the I/O object.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/get_service.html" title="basic_raw_socket::get_service"><span class="bold"><strong>get_service</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get the service associated with the I/O object.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="boost_asio.reference.ip__icmp.socket.h3"></a>
+          <span class="phrase"><a name="boost_asio.reference.ip__icmp.socket.data_members"></a></span><a class="link" href="socket.html#boost_asio.reference.ip__icmp.socket.data_members">Data
+          Members</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/max_connections.html" title="basic_raw_socket::max_connections"><span class="bold"><strong>max_connections</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The maximum length of the queue of pending incoming connections.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/message_do_not_route.html" title="basic_raw_socket::message_do_not_route"><span class="bold"><strong>message_do_not_route</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specify that the data should not be subject to routing.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/message_end_of_record.html" title="basic_raw_socket::message_end_of_record"><span class="bold"><strong>message_end_of_record</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specifies that the data marks the end of a record.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/message_out_of_band.html" title="basic_raw_socket::message_out_of_band"><span class="bold"><strong>message_out_of_band</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Process out-of-band data.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/message_peek.html" title="basic_raw_socket::message_peek"><span class="bold"><strong>message_peek</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Peek at incoming data without removing it from the input queue.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="boost_asio.reference.ip__icmp.socket.h4"></a>
+          <span class="phrase"><a name="boost_asio.reference.ip__icmp.socket.protected_data_members"></a></span><a class="link" href="socket.html#boost_asio.reference.ip__icmp.socket.protected_data_members">Protected
+          Data Members</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/implementation.html" title="basic_raw_socket::implementation"><span class="bold"><strong>implementation</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    (Deprecated: Use get_implementation().) The underlying implementation
+                    of the I/O object.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="../basic_raw_socket/service.html" title="basic_raw_socket::service"><span class="bold"><strong>service</strong></span></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    (Deprecated: Use get_service().) The service associated with
+                    the I/O object.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          The <a class="link" href="../basic_raw_socket.html" title="basic_raw_socket"><code class="computeroutput"><span class="identifier">basic_raw_socket</span></code></a> class template
+          provides asynchronous and blocking raw-oriented socket functionality.
+        </p>
+<h6>
+<a name="boost_asio.reference.ip__icmp.socket.h5"></a>
+          <span class="phrase"><a name="boost_asio.reference.ip__icmp.socket.thread_safety"></a></span><a class="link" href="socket.html#boost_asio.reference.ip__icmp.socket.thread_safety">Thread Safety</a>
+        </h6>
+<p>
+          <span class="emphasis"><em>Distinct</em></span> <span class="emphasis"><em>objects:</em></span> Safe.
+        </p>
+<p>
+          <span class="emphasis"><em>Shared</em></span> <span class="emphasis"><em>objects:</em></span> Unsafe.
+        </p>
+<h6>
+<a name="boost_asio.reference.ip__icmp.socket.h6"></a>
+          <span class="phrase"><a name="boost_asio.reference.ip__icmp.socket.requirements"></a></span><a class="link" href="socket.html#boost_asio.reference.ip__icmp.socket.requirements">Requirements</a>
+        </h6>
+<p>
+          <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/ip/icmp.hpp</code>
+        </p>
+<p>
+          <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="resolver.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ip__icmp.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="type.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+    <meta name="generator" content="HTML Tidy, see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/to_python_value.hpp&gt;</title>
+
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277" alt=
+          "C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header
+          &lt;boost/python/to_python_value.hpp&gt;</h2>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#classes">Classes</a>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#to_python_value-spec">Class
+          <code>to_python_value</code></a>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#to_python_value-spec-synopsis">Class template
+              <code>to_python_value</code> synopsis</a>
+
+              <dt><a href="#to_python_value-spec-observers">Class template
+              <code>to_python_value</code> observer functions</a>
+            </dl>
+        </dl>
+
+    </dl>
+    <hr>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="to_python_value-spec"></a>Class template
+    <code>to_python_value</code></h3>
+
+    <p><code>to_python_value</code> is a model of <a href=
+    "ResultConverter.html#ResultConverter-concept">ResultConverter</a>
+    which copies its argument into a new Python object.
+
+    <h4><a name="to_python_value-spec-synopsis"></a>Class
+    <code>to_python_value</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+   template &lt;class T&gt;
+   struct to_python_value
+   {
+      typedef typename <a href="../../../type_traits/index.html#transformations">add_reference</a>&lt;
+         typename <a href="../../../type_traits/index.html#transformations">add_const</a>&lt;T&gt;::type
+      &gt;::type argument_type;
+
+      static bool convertible();
+      PyObject* operator()(argument_type) const;
+   };
+}}
+</pre>
+
+    <h4><a name="to_python_value-spec-observers"></a>Class
+    <code>to_python_value</code> observers</h4>
+<pre>
+static bool convertible();
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Returns:</b> <code>true</code> iff a converter has been registered which can convert <code>T</code> to python by-value.
+    </dl>
+
+<pre>
+PyObject* operator()(argument_type x) const;
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>convertible()&nbsp;==&nbsp;true</code>
+      <dt><b>Effects:</b> converts <code>x</code> to python 
+      <dt><b>Returns:</b> the resulting Python object iff a converter for <code>T</code> has been registered, <code>0</code> otherwise.
+    </dl>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+
+
+    <p><i>&copy; Copyright <a href="http://www.boost.org/people/dave_abrahams.htm">Dave
+    Abrahams</a> 2002. </i> Distributed under the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)</p>
+

@@ -1,0 +1,140 @@
+<html>
+<head>
+	<title>incompatible.html</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<h4>Incompatibilities</h4>
+	<div>
+		There are several incompatibilities with the previous Boost release (1.28).&nbsp;
+		These fall into roughly three categories:&nbsp;
+	</div>
+	<ul>
+		<li>the horizontal repetition primitives based on <b>BOOST_PP_REPEAT</b></li>
+		<li>the reentrancy syntax</li>
+		<li><i>list</i> folding</li>
+	</ul>
+	<h4>Repetition Targets</h4>
+	<div>
+		First, and probably the most commonly used, is the target macros passed into <b>BOOST_PP_REPEAT</b> and the horizontal repetition contructs that use <b>BOOST_PP_REPEAT</b>.&nbsp;
+		This includes all of the <b>BOOST_PP_REPEAT_</b>* primitives and all of the <b>BOOST_PP_ENUM_</b>* primitives that require a target macro.
+	</div>
+	<div>
+		The incompatiblity is trivial, but it will require that the source be updated.&nbsp;
+	</div>
+	<div>
+		These target macros must now except a <i>third</i> parameter.&nbsp;
+		This extra parameter becomes the <i>first</i> parameter in every target macro.&nbsp;
+		It represents the next repetition dimension and brings <b>BOOST_PP_REPEAT</b> inline with rest of the library.&nbsp;
+	</div>
+	<div>
+		So, what once was:
+	</div>
+	<div class="code">
+		#define <i>macro</i>(<i>n</i>, <i>data</i>) ...<br>
+		<b>BOOST_PP_REPEAT</b>(<i>5</i>, <i>macro</i>, <i>data</i>)
+	</div>
+	<div>
+		...is now:
+	</div>
+	<div class="code">
+		#define <i>macro</i>(<i>z</i>, <i>n</i>, <i>data</i>) ...<br>
+		<b>BOOST_PP_REPEAT</b>(<i>5</i>, <i>macro</i>, <i>data</i>)
+	</div>
+	<div>
+		This parameter can be used for highly efficient reentrance into the <b>BOOST_PP_REPEAT</b> mechanism.&nbsp;
+		However, it is not necessary to use it as the library can automatically detect the next available repetition dimension.
+	</div>
+	<h4>Dimensional Ordering</h4>
+	<div>
+		Because of this detection, however, it is unsafe to use <b>BOOST_PP_REPEAT_1ST</b>, <b>BOOST_PP_REPEAT_2ND</b>, and <b>BOOST_PP_REPEAT_3RD</b> out of order.&nbsp;
+		These macros bypass the <i>automatic-recursion</i> mechanism, and the <i>automatic-recursion</i> mechanism relies on macros being used in the proper order.&nbsp;
+		To clarify, if you use these bypass macros, the outer-most repetition <i>must</i> be <b>BOOST_PP_REPEAT_1ST</b>, then <b>BOOST_PP_REPEAT_2ND</b>, and finally <b>BOOST_PP_REPEAT_3RD</b>.&nbsp;
+		Any other usage is not supported by the library.&nbsp;
+		Sometimes it may work, and other times it won't.
+	</div>
+	<h4>Reentrancy Syntax</h4>
+	<div>
+		<i>Automatic-recursion</i> brings with it another issue as well.&nbsp;Previously, the reentrancy syntax for <b>BOOST_PP_WHILE</b> (and similarly for <b>BOOST_PP_FOR</b>) was:
+	</div>
+	<div class="code">
+		<b>BOOST_PP_WHILE</b> ## <i>d</i>(<i>pred</i>, <i>op</i>, <i>state</i>)
+	</div>
+	<div>
+		...or:
+	</div>
+	<div class="code">
+		<b>BOOST_PP_CAT</b>(<b>BOOST_PP_WHILE</b>, <i>d</i>)(<i>pred</i>, <i>op</i>, <i>state</i>)
+	</div>
+	<div>
+		Under the <i>automatic-recursion</i> model, the <b>BOOST_PP_CAT</b> version breaks.&nbsp;
+		This is because <b>BOOST_PP_CAT</b> allows its arguments to expand prior to concatenation,
+		and <b>BOOST_PP_WHILE</b> is a macro that expands without arguments.&nbsp;
+		The library makes it appear that it takes three parameters, but that is the trick of <i>automatic-recursion</i>.&nbsp;
+		It works similarly to the following:
+	</div>
+	<div class="code">
+		#define A(x, y) ...<br>
+		#define B A<br>
+		// ...<br>
+		B(2, 3)
+	</div>
+	<div>
+		The syntax makes it look like the <i>B</i> macro above takes two arguments, but it doesn't.&nbsp;
+		The <i>automatic-recursion</i> mechanism works in this fashion, except that the "<i>B</i>" macro deduces the next available "<i>A</i>" macro.
+	</div>
+	<div>
+		Because some preprocessors are still slow, direct reentrancy (sans <i>automatic-recursion</i>) is still necessary in non-trivial cases.&nbsp;
+		Consequently, the library uses a new syntax to handle reentrancy:
+	</div>
+	<div class="code">
+		<b>BOOST_PP_FOR_</b> ## <i>r</i>(<i>state</i>, <i>pred</i>, <i>op</i>, <i>macro</i>)<br>
+		<b>BOOST_PP_REPEAT_</b> ## <i>z</i>(<i>count</i>, <i>macro</i>, <i>data</i>)<br>
+		<b>BOOST_PP_WHILE_</b> ## <i>d</i>(<i>pred</i>, <i>op</i>, <i>state</i>)
+	</div>
+	<h4>Folding</h4>
+	<div>
+		Previously, the <b>BOOST_PP_LIST_FOLD_RIGHT</b> macros' arguments were the reverse of <b>BOOST_PP_LIST_FOLD_LEFT</b>.&nbsp;
+		Also, the accumulation macro passed into <b>BOOST_PP_LIST_FOLD_RIGHT</b> was called with reversed parameters as well.&nbsp;
+		This discrepancy has been eliminated.
+	</div>
+	<div>
+		To illustrate, <b>BOOST_PP_LIST_FOLD_RIGHT</b> used to be used like this:
+	</div>
+	<div class="code">
+		#define <i>macro</i>(<i>d</i>, <u><i>elem</i></u>, <u><i>state</i></u>)<br>
+		<b>BOOST_PP_LIST_FOLD_RIGHT</b>(<i>macro</i>, <u><i>list</i></u>, <u><i>state</i></u>)
+	</div>
+	<div>
+		This signature has been replaced by...
+	</div>
+	<div class="code">
+		#define <i>macro</i>(<i>d</i>, <u><i>state</i></u>, <u><i>elem</i></u>)<br>
+		<b>BOOST_PP_LIST_FOLD_RIGHT</b>(<i>macro</i>, <u><i>state</i></u>, <u><i>list</i></u>)
+	</div>
+	<h4>Summary</h4>
+	<div>
+		The library has many new features not present in the 1.28 release, and this list does not attempt to enumerate them.&nbsp;
+		This is simply a list of things that <i>must</i> change for code to be compatible with this new release.
+	</div>
+	<h4>See Also</h4>
+	<ul>
+		<li><a href="../ref/for.html">BOOST_PP_FOR</a></li>
+		<li><a href="../ref/list_fold_right.html">BOOST_PP_LIST_FOLD_RIGHT</a></li>
+		<li><a href="../ref/repeat.html">BOOST_PP_REPEAT</a></li>
+		<li><a href="../ref/while.html">BOOST_PP_WHILE</a></li>
+	</ul>
+	<div class="sig">- Paul Mensonides</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

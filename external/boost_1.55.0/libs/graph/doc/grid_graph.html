@@ -1,0 +1,304 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<!--
+   Copyright &copy; 2009 Trustees of Indiana University
+   
+   Distributed under the Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt or copy at
+   http://www.boost.org/LICENSE_1_0.txt)
+-->
+<html>
+  <head>
+    <title>Boost Graph Library: Grid Graph</title>
+    <style type="text/css">
+    <!--
+       body {
+        color: black;
+        background-color: white;
+      }
+
+      a {
+        color: blue;
+      }
+
+      a:visited {
+        color: #551A8B;
+      }
+
+      .code
+      {
+        border-left-style: groove; 
+        border-left-width: 1px; 
+        padding-left: 2em; 
+      }
+
+    -->
+    </style>
+  </head>
+  <body>
+    <img src="../../../boost.png" alt="C++ Boost" width="277" height="86" />
+    <br />
+    <h1>
+      <tt>grid_graph</tt>
+    </h1>
+
+    <ul>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#creating">Creating a Grid Graph</a></li>
+      <li><a href="#indexing">Indexing</a></li>
+      <li><a href="#member">Grid Graph Member Functions</a></li>
+    </ul>
+
+    <h3 id="overview">Overview</h3>  
+    <p>
+      A <tt>grid_graph</tt> represents a multi-dimensional,
+      rectangular grid of vertices with user-defined dimension lengths
+      and wrapping.
+
+    </p>
+    <p>
+      <tt>grid_graph</tt> models:
+      <ul>
+        <li><a href="IncidenceGraph.html">Incidence Graph</a></li>
+        <li><a href="AdjacencyGraph.html">Adjacency Graph</a></li>
+        <li><a href="VertexListGraph.html">Vertex List Graph</a></li>
+        <li><a href="EdgeListGraph.html">Edge List Graph</a></li>
+        <li><a href="BidirectionalGraph.html">Bidirectional Graph</a></li>
+        <li><a href="AdjacencyMatrix.html">Adjacency Matrix</a></li>
+      </ul>
+    </p>
+    <p>
+      Defined in
+      <a href="../../../boost/graph/grid_graph.hpp"><tt>boost/graph/grid_graph.hpp</tt></a>
+      with all functions in the <tt>boost</tt> namespace.  A simple examples of creating and iterating over a grid_graph is available here <a href="../../../libs/graph/example/grid_graph_example.cpp"><tt>libs/graph/example/grid_graph_example.cpp</tt></a>. An example of adding properties to a grid_graph is also available <a href="../../../libs/graph/example/grid_graph_example.cpp"><tt>libs/graph/example/grid_graph_properties.cpp</tt></a>
+    </p>
+
+    <h4>Template Parameters</h4>
+    <pre class="code">
+<span class="keyword">template</span> &lt;<span class="name">std</span>::<span class="type">size_t</span> <span class="name">Dimensions</span>,
+          <span class="keyword">typename</span> <span class="name">VertexIndex</span> = <span class="name">std</span>::<span class="type">size_t</span>,
+          <span class="keyword">typename</span> <span class="name">EdgeIndex</span> = <span class="name">VertexIndex</span>&gt;
+  <span class="keyword">class</span> grid_graph;
+    </pre>
+    <ul>
+      <li>
+        <tt>Dimensions</tt> - Number of dimensions in the graph
+      </li>
+      <li>
+        <tt>VertexIndex</tt> - Type used for vertex indices, defaults to <tt>std::size_t</tt>
+      </li>
+      <li>
+        <tt>EdgeIndex</tt> - Type used for edge indices, defaults to the same type as <tt>VertexIndex</tt>
+      </li>
+    </ul>
+
+    <h3 id="creating">Creating a Grid Graph</h3>
+    <p>
+      The constructor to <tt>grid_graph</tt> has several overloads to aid in configuring each dimension:
+    </p>
+    <pre class="code">
+<span class="comment">// Defines a grid_graph that does not wrap.</span>
+<span class="type">grid_graph</span>&lt;...&gt;(<span class="name">boost</span>:<span class="type">array</span>&lt;<span class="name">VertexIndex</span>, <span class="name">Dimensions</span>&gt; dimension_lengths);
+
+<span class="comment">// Defines a grid_graph where all dimensions are either wrapped or unwrapped.</span>
+<span class="type">grid_graph</span>&lt;...&gt;(<span class="name">boost</span>:<span class="type">array</span>&lt;<span class="name">VertexIndex</span>, <span class="name">Dimensions</span>&gt; dimension_lengths,
+                <span class="keyword">bool</span> wrap_all_dimensions);
+
+<span class="comment">// Defines a grid_graph where the wrapping for each dimension is specified individually.</span>
+<span class="type">grid_graph</span>&lt;...&gt;(<span class="name">boost</span>:<span class="type">array</span>&lt;<span class="name">VertexIndex</span>, <span class="name">Dimensions</span>&gt; dimension_lengths,
+                <span class="name">boost</span>:<span class="type">array</span>&lt;<span class="keyword">bool</span>, <span class="name">Dimensions</span>&gt; wrap_dimension);
+    </pre>
+
+    <h4>Example</h4>
+    <pre class="code">
+<span class="comment">// Define dimension lengths, a 3x3 in this case</span>
+<span class="name">boost</span>::<span class="type">array</span>&lt;<span class="keyword">int</span>, <span class="literal">2</span>&gt; lengths = { { <span class="literal">3</span>, <span class="literal">3</span> } };
+
+<span class="comment">// Create a 3x3 two-dimensional, unwrapped grid graph (Figure 1)</span>
+<span class="type">grid_graph</span>&lt;<span class="literal">2</span>&gt; graph(lengths);
+
+<span class="comment">// Create a 3x3 two-dimensional, wrapped grid graph (Figure 2)</span>
+<span class="type">grid_graph</span>&lt;<span class="literal">2</span>&gt; graph(lengths, <span class="keyword">true</span>);
+
+    </pre>
+    <p style="margin-left: 10px;">
+      <img src="figs/grid_graph_unwrapped.png" />
+      <br />
+      <em style="font-size: 0.8em"><b>Figure 1:</b> A 3x3 two-dimensional, unwrapped grid graph</em>
+    </p>
+    <br />
+    <p style="margin-left: 10px;">
+      <img src="figs/grid_graph_wrapped.png" />
+      <br />
+      <em style="font-size: 0.8em"><b>Figure 2:</b> A 3x3 two-dimensional, wrapped grid graph</em>
+    </p> 
+    <br />
+
+    <h3 id="indexing">Indexing</h3>
+    <p>
+      The <tt>grid_graph</tt> supports addressing vertices and edges
+      by index. The following functions allow you to convert between
+      vertices, edges, and their associated indices:
+    </p>
+
+    <pre class="code">
+<span class="keyword">typedef</span> <span class="type">grid_graph</span>&lt;...&gt; <span class="name">Graph</span>;
+<span class="keyword">typedef</span> <span class="type">graph_traits</span>&lt;<span class="name">Graph</span>&gt; <span class="name">Traits</span>;
+
+<span class="comment">// Get the vertex associated with vertex_index</span>
+<span class="name">Traits</span>::<span class="type">vertex_descriptor</span>
+vertex(<span class="name">Traits</span>::<span class="type">vertices_size_type</span> vertex_index,
+       <span class="keyword">const</span> <span class="name">Graph&amp;</span> graph);
+
+<span class="comment">// Get the index associated with vertex</span>
+<span class="name">Traits</span>::<span class="type">vertices_size_type</span>
+get(<span class="name">boost</span>::<span class="type">vertex_index_t</span>,
+    <span class="keyword">const</span> <span class="name">Graph&amp;</span> graph,
+    <span class="name">Traits</span>::<span class="type">vertex_descriptor</span> vertex);
+
+<span class="comment">// Get the edge associated with edge_index</span>
+<span class="name">Traits</span>::<span class="type">edge_descriptor</span>
+edge_at(<span class="name">Traits</span>::<span class="type">edges_size_type</span> edge_index,
+        <span class="keyword">const</span> <span class="name">Graph&amp;</span> graph);
+
+<span class="comment">// Get the index associated with edge</span>
+<span class="name">Traits</span>::<span class="type">edges_size_type</span>
+get(<span class="name">boost</span>::<span class="type">edge_index_t</span>,
+    <span class="keyword">const</span> <span class="name">Graph&amp;</span> graph,
+    <span class="name">Traits</span>::<span class="type">edge_descriptor</span> edge);
+
+<span class="comment">// Get the out-edge associated with vertex and out_edge_index</span>
+<span class="name">Traits</span>::<span class="type">edge_descriptor</span>
+out_edge_at(<span class="name">Traits</span>::<span class="type">vertex_descriptor</span> vertex,
+            <span class="name">Traits</span>::<span class="type">degree_size_type</span> out_edge_index,
+            <span class="keyword">const</span> <span class="name">Graph&amp;</span> graph);
+
+<span class="comment">// Get the out-edge associated with vertex and in_edge_index</span>
+<span class="name">Traits</span>::<span class="type">edge_descriptor</span>
+in_edge_at(<span class="name">Traits</span>::<span class="type">vertex_descriptor</span> vertex,
+           <span class="name">Traits</span>::<span class="type">degree_size_type</span> in_edge_index,
+           <span class="keyword">const</span> <span class="name">Graph&amp;</span> graph);
+    </pre>
+
+    <h4>Example</h4>
+    <pre class="code">
+<span class="keyword">typedef</span> <span class="type">grid_graph</span>&lt;2&gt; <span class="name">Graph</span>;
+<span class="keyword">typedef</span> <span class="type">graph_traits</span>&lt;<span class="name">Graph</span>&gt; <span class="name">Traits</span>;
+
+<span class="comment">// Create a 3x3, unwrapped grid_graph (Figure 3)</span>
+<span class="name">boost</span>::<span class="type">array</span>&lt;<span class="keyword">int</span>, <span class="literal">2</span>&gt; lengths = { { <span class="literal">3</span>, <span class="literal">3</span> } };
+<span class="name">Graph</span> graph(lengths);
+
+<span class="comment">// Do a round-trip test of the vertex index functions</span>
+<span class="keyword">for</span> (<span class="name">Traits</span>::<span class="type">vertices_size_type</span> v_index = <span class="literal">0</span>;
+     v_index &lt; num_vertices(graph); ++v_index) {
+
+  <span class="comment">// The two indices should always be equal</span>
+  <span class="name">std</span>::cout &lt;&lt; <span class="literal">&quot;Index of vertex &quot;</span> &lt;&lt; v_index &lt;&lt; <span class="literal">&quot; is &quot;</span> &lt;&lt;
+    get(<span class="name">boost</span>::vertex_index, graph, vertex(v_index, graph)) &lt;&lt; <span class="name">std</span>::endl;
+
+}
+
+<span class="comment">// Do a round-trip test of the edge index functions</span>
+<span class="keyword">for</span> (<span class="name">Traits</span>::<span class="type">edges_size_type</span> e_index = <span class="literal">0</span>;
+     e_index &lt; num_edges(graph); ++e_index) {
+
+  <span class="comment">// The two indices should always be equal</span>
+  <span class="name">std</span>::cout &lt;&lt; <span class="literal">&quot;Index of edge &quot;</span> &lt;&lt; e_index &lt;&lt; <span class="literal">&quot; is &quot;</span> &lt;&lt;
+    get(<span class="name">boost</span>::edge_index, graph, edge_at(e_index, graph)) &lt;&lt; <span class="name">std</span>::endl;
+
+}
+    </pre>
+
+    <p style="margin-left: 10px;">
+      <img src="figs/grid_graph_indexed.png" />
+      <br />
+      <em style="font-size: 0.8em"><b>Figure 3:</b> 3x3 unwrapped grid_graph with vertex and edge indices shown.</em>
+    </p>
+    <br />
+
+    <h3 id="member">Member Functions</h3>
+    <p>
+      There are several <tt>grid_graph</tt> specific member functions available:
+    </p>
+    <pre class="code">
+<span class="keyword">typedef</span> <span class="type">grid_graph</span>&lt;...&gt; <span class="name">Graph</span>;
+<span class="keyword">typedef</span> <span class="type">graph_traits</span>&lt;<span class="name">Graph</span>&gt; <span class="name">Traits</span>;
+
+<span class="comment">// Returns the number of dimensions</span>
+<span class="name">std</span>::<span class="type">size_t</span> dimensions();
+
+<span class="comment">// Returns the length of a dimension</span>
+<span class="name">Traits</span>::<span class="type">vertices_size_type</span> length(<span class="name">std</span>::<span class="type">size_t</span> dimension);
+
+<span class="comment">// Returns true if the dimension wraps, false if not</span>
+<span class="keyword">bool</span> wrapped(<span class="name">std</span>::<span class="type">size_t</span> dimension);
+
+<span class="comment">// Returns the &quot;next&quot; vertex in a dimension at a given distance. If the dimension
+// is unwrapped, next will stop at the last vertex in the dimension.
+</span><span class="name">Traits</span>::<span class="type">vertex_descriptor</span> next(<span class="name">Traits</span>::<span class="type">vertex_descriptor</span> vertex,
+                               <span class="name">std</span>::<span class="type">size_t</span> dimension,
+                               <span class="name">Traits</span>::<span class="type">vertices_size_type</span> distance = <span class="literal">1</span>);
+
+<span class="comment">// Returns the &quot;previous&quot; vertex in a dimension at a given distance. If the
+// dimension is unwrapped, previous will stop at the beginning vertex in the dimension.
+</span><span class="name">Traits</span>::<span class="type">vertex_descriptor</span> previous(<span class="name">Traits</span>::<span class="type">vertex_descriptor</span> vertex,
+                                   <span class="name">std</span>::<span class="type">size_t</span> dimension,
+                                   <span class="name">Traits</span>::<span class="type">vertices_size_type</span> distance = <span class="literal">1</span>); 
+    </pre>
+
+    <h4>Example</h4>
+    <pre class="code">
+<span class="keyword">typedef</span> <span class="type">grid_graph</span>&lt;<span class="literal">3</span>&gt; <span class="name">Graph</span>;
+<span class="keyword">typedef</span> <span class="type">graph_traits</span>&lt;<span class="name">Graph</span>&gt; <span class="name">Traits</span>;
+
+<span class="comment">// Define a 3x5x7 grid_graph where the second dimension doesn&apos;t wrap</span>
+<span class="name">boost</span>::<span class="type">array</span>&lt;<span class="name">std</span>::<span class="type">size_t</span>, <span class="literal">3</span>&gt; lengths = { { <span class="literal">3</span>, <span class="literal">5</span>, <span class="literal">7</span> } };
+<span class="name">boost</span>::<span class="type">array</span>&lt;<span class="keyword">bool</span>, <span class="literal">3</span>&gt; wrapped = { { <span class="keyword">true</span>, <span class="keyword">false</span>, <span class="keyword">true</span> } };
+<span class="name">Graph</span> graph(lengths, wrapped);
+
+<span class="comment">// Print number of dimensions</span>
+<span class="name">std</span>::cout &lt;&lt; graph.dimensions() &lt;&lt; <span class="name">std</span>::endl; <span class="comment">// prints &quot;3&quot;</span>
+
+<span class="comment">// Print dimension lengths (same order as in the lengths array)</span>
+<span class="name">std</span>::cout &lt;&lt; graph.length(<span class="literal">0</span>) &lt;&lt; <span class="literal">&quot;x&quot;</span> &lt;&lt; graph.length(<span class="literal">1</span>) <<
+  <span class="literal">&quot;x&quot;</span> &lt;&lt; graph.length(<span class="literal">2</span>) &lt;&lt; <span class="name">std</span>::endl; <span class="comment">// prints &quot;3x5x7&quot;</span>
+
+<span class="comment">// Print dimension wrapping (W = wrapped, U = unwrapped)</span>
+<span class="name">std</span>::cout &lt;&lt; graph.wrapped(<span class="literal">0</span>) ? <span class="literal">&quot;W&quot;</span> : <span class="literal">&quot;U&quot;</span> &lt;&lt; <span class="literal">&quot;, &quot;</span> <<
+  graph.wrapped(<span class="literal">1</span>) ? <span class="literal">&quot;W&quot;</span> : <span class="literal">&quot;U&quot;</span> &lt;&lt; <span class="literal">&quot;, &quot;</span> <<
+  graph.wrapped(<span class="literal">2</span>) ? <span class="literal">&quot;W&quot;</span> : <span class="literal">&quot;U&quot;</span> &lt;&lt; <span class="name">std</span>::endl; <span class="comment">// prints &quot;W, U, W&quot;</span>
+
+<span class="comment">// Define a simple function to print vertices</span>
+<span class="keyword">void</span> print_vertex(<span class="name">Traits</span>::<span class="type">vertex_descriptor</span> vertex_to_print) {
+  <span class="name">std</span>::cout &lt;&lt; <span class="literal">&quot;(&quot;</span> &lt;&lt; vertex_to_print[<span class="literal">0</span>] &lt;&lt; <span class="literal">&quot;, &quot;</span> &lt;&lt; vertex_to_print[<span class="literal">1</span>] <<
+    <span class="literal">&quot;, &quot;</span> &lt;&lt; vertex_to_print[<span class="literal">2</span>] &lt;&lt; <span class="literal">&quot;)&quot;</span> &lt;&lt; <span class="name">std</span>::endl;
+}
+
+<span class="comment">// Start with the first vertex in the graph</span>
+<span class="name">Traits</span>::<span class="type">vertex_descriptor</span> first_vertex = vertex(<span class="literal">0</span>, graph);
+print_vertex(first_vertex); <span class="comment">// prints &quot;(0, 0, 0)&quot;</span>
+
+<span class="comment">// Print the next vertex in dimension 0</span>
+print_vertex(graph.next(first_vertex, <span class="literal">0</span>)); <span class="comment">// prints &quot;(1, 0, 0)&quot;</span>
+
+<span class="comment">// Print the next vertex in dimension 1</span>
+print_vertex(graph.next(first_vertex, <span class="literal">1</span>)); <span class="comment">// prints &quot;(0, 1, 0)&quot;</span>
+
+<span class="comment">// Print the 5th next vertex in dimension 2</span>
+print_vertex(graph.next(first_vertex, <span class="literal">2</span>, <span class="literal">5</span>)); <span class="comment">// prints &quot;(0, 0, 5)&quot;</span>
+
+<span class="comment">// Print the previous vertex in dimension 0 (wraps)</span>
+print_vertex(graph.previous(first_vertex, <span class="literal">0</span>)); <span class="comment">// prints &quot;(2, 0, 0)&quot;</span>
+
+<span class="comment">// Print the previous vertex in dimension 1 (doesn&apos;t wrap, so it&apos;s the same)</span>
+print_vertex(graph.previous(first_vertex, <span class="literal">1</span>)); <span class="comment">// prints &quot;(0, 0, 0)&quot;</span>
+
+<span class="comment">// Print the 20th previous vertex in dimension 2 (wraps around twice)</span>
+print_vertex(graph.previous(first_vertex, <span class="literal">2</span>, <span class="literal">20</span>)); <span class="comment">// prints &quot;(0, 0, 1)&quot;</span>
+    </pre>
+
+    <hr />
+    Copyright &copy; 2009 Trustees of Indiana University
+
+  </body>
+</html> 

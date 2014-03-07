@@ -1,0 +1,53 @@
+# odeint.idx list of files and keyword to be indexed.
+
+# Copyright (c) 2011 Pierre Talbot
+#
+# Use, modification and distribution is subject to the Boost Software
+# License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+!scan-path "boost/numeric/odeint/" ".*\.*pp" true
+# recurse in any sub-directories.
+
+# List of terms in the docbook (from Quickbook) to be indexed.
+# Convenient to order these alphabetically.
+
+# TODO - add more!
+
+acknowledgements
+book
+# C++ \<C|C++\>
+card
+credit
+deprecated
+Doxygen
+example \<example\w*\>
+equations \<equation\w*\>
+graphics \<graphic\w*\>
+Gumm
+links \<link\w*\>
+images \<image\w*\>
+ISBN
+ISSN
+IBM
+italic \<italic\w*\>
+# index index and indexes (assume not using plural indices!)
+index  \<index\w*\>
+Luhn
+Mastercard
+modulus
+path  \<path\w*\>
+pre-conditions \<pre\w*\>
+post-conditions \<post\w*\>
+remark \<remark\w*\>
+snippet  \<snippet\w*\>
+png
+Quickbook
+Verhoeff
+# version \<version\w*\>
+VISA
+warning \<warning\w*\>
+
+# Remove leading "A" or "The" prefixes from section titles.
+# !rewrite-name "(?:A|An|The)\s+(.*)" "\1"
+

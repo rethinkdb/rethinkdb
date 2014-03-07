@@ -1,0 +1,349 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Design Overview</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../variant.html" title="Chapter&#160;38.&#160;Boost.Variant">
+<link rel="prev" href="../boost/visitor_ptr.html" title="Function template visitor_ptr">
+<link rel="next" href="misc.html" title="Miscellaneous Notes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/visitor_ptr.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../variant.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="misc.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="variant.design"></a>Design Overview</h2></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="design.html#variant.design.never-empty">"Never-Empty" Guarantee</a></span></dt></dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="variant.design.never-empty"></a>"Never-Empty" Guarantee</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="design.html#variant.design.never-empty.guarantee">The Guarantee</a></span></dt>
+<dt><span class="section"><a href="design.html#variant.design.never-empty.problem">The Implementation Problem</a></span></dt>
+<dt><span class="section"><a href="design.html#variant.design.never-empty.memcpy-solution">The "Ideal" Solution: False Hopes</a></span></dt>
+<dt><span class="section"><a href="design.html#variant.design.never-empty.double-storage-solution">An Initial Solution: Double Storage</a></span></dt>
+<dt><span class="section"><a href="design.html#variant.design.never-empty.heap-backup-solution">Current Approach: Temporary Heap Backup</a></span></dt>
+<dt><span class="section"><a href="design.html#variant.design.never-empty.optimizations">Enabling Optimizations</a></span></dt>
+<dt><span class="section"><a href="design.html#variant.design.never-empty.roadmap">Future Direction: Policy-based Implementation</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="variant.design.never-empty.guarantee"></a>The Guarantee</h4></div></div></div>
+<p>All instances <code class="computeroutput">v</code> of type
+        <code class="computeroutput"><a class="link" href="../boost/variant.html" title="Class template variant">variant</a>&lt;T1,T2,...,TN&gt;</code>
+        guarantee that <code class="computeroutput">v</code> has constructed content of one of the
+        types <code class="computeroutput">T<span class="emphasis"><em>i</em></span></code>, even if an operation on
+        <code class="computeroutput">v</code> has previously failed.</p>
+<p>This implies that <code class="computeroutput">variant</code> may be viewed precisely as
+        a union of <span class="emphasis"><em>exactly</em></span> its bounded types. This
+        "never-empty" property insulates the user from the
+        possibility of undefined <code class="computeroutput">variant</code> content and the
+        significant additional complexity-of-use attendant with such a
+        possibility.</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="variant.design.never-empty.problem"></a>The Implementation Problem</h4></div></div></div>
+<p>While the
+        <a class="link" href="design.html#variant.design.never-empty.guarantee" title="The Guarantee">never-empty guarantee</a>
+        might at first seem "obvious," it is in fact not even
+        straightforward how to implement it in general (i.e., without
+        unreasonably restrictive additional requirements on
+        <a class="link" href="reference.html#variant.concepts.bounded-type" title="BoundedType">bounded types</a>).</p>
+<p>The central difficulty emerges in the details of
+        <code class="computeroutput">variant</code> assignment. Given two instances <code class="computeroutput">v1</code>
+        and <code class="computeroutput">v2</code> of some concrete <code class="computeroutput">variant</code> type, there
+        are two distinct, fundamental cases we must consider for the assignment
+        <code class="computeroutput">v1 = v2</code>.</p>
+<p>First consider the case that <code class="computeroutput">v1</code> and <code class="computeroutput">v2</code>
+        each contains a value of the same type. Call this type <code class="computeroutput">T</code>.
+        In this situation, assignment is perfectly straightforward: use
+        <code class="computeroutput">T::operator=</code>.</p>
+<p>However, we must also consider the case that <code class="computeroutput">v1</code> and
+        <code class="computeroutput">v2</code> contain values <span class="emphasis"><em>of distinct types</em></span>.
+        Call these types <code class="computeroutput">T</code> and <code class="computeroutput">U</code>. At this point,
+        since <code class="computeroutput">variant</code> manages its content on the stack, the
+        left-hand side of the assignment (i.e., <code class="computeroutput">v1</code>) must destroy
+        its content so as to permit in-place copy-construction of the content
+        of the right-hand side (i.e., <code class="computeroutput">v2</code>). In the end, whereas
+        <code class="computeroutput">v1</code> began with content of type <code class="computeroutput">T</code>, it ends
+        with content of type <code class="computeroutput">U</code>, namely a copy of the content of
+        <code class="computeroutput">v2</code>.</p>
+<p>The crux of the problem, then, is this: in the event that
+        copy-construction of the content of <code class="computeroutput">v2</code> fails, how can
+        <code class="computeroutput">v1</code> maintain its "never-empty" guarantee?
+        By the time copy-construction from <code class="computeroutput">v2</code> is attempted,
+        <code class="computeroutput">v1</code> has already destroyed its content!</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="variant.design.never-empty.memcpy-solution"></a>The "Ideal" Solution: False Hopes</h4></div></div></div>
+<p>Upon learning of this dilemma, clever individuals may propose the
+        following scheme hoping to solve the problem:
+
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">Provide some "backup" storage, appropriately
+            aligned, capable of holding values of the contained type of the
+            left-hand side.</li>
+<li class="listitem">Copy the memory (e.g., using <code class="computeroutput">memcpy</code>) of the
+            storage of the left-hand side to the backup storage.</li>
+<li class="listitem">Attempt a copy of the right-hand side content to the
+            (now-replicated) left-hand side storage.</li>
+<li class="listitem">In the event of an exception from the copy, restore the
+            backup (i.e., copy the memory from the backup storage back into
+            the left-hand side storage).</li>
+<li class="listitem">Otherwise, in the event of success, now copy the memory
+            of the left-hand side storage to another "temporary"
+            aligned storage.</li>
+<li class="listitem">Now restore the backup (i.e., again copying the memory)
+            to the left-hand side storage; with the "old" content
+            now restored, invoke the destructor of the contained type on the
+            storage of the left-hand side.</li>
+<li class="listitem">Finally, copy the memory of the temporary storage to the
+            (now-empty) storage of the left-hand side.</li>
+</ol></div>
+<p>
+      </p>
+<p>While complicated, it appears such a scheme could provide the
+        desired safety in a relatively efficient manner. In fact, several
+        early iterations of the library implemented this very approach.</p>
+<p>Unfortunately, as Dave Abraham's first noted, the scheme results
+        in undefined behavior:
+
+        </p>
+<div class="blockquote"><blockquote class="blockquote">
+<p>"That's a lot of code to read through, but if it's
+            doing what I think it's doing, it's undefined behavior.</p>
+<p>"Is the trick to move the bits for an existing object
+            into a buffer so we can tentatively construct a new object in
+            that memory, and later move the old bits back temporarily to
+            destroy the old object?</p>
+<p>"The standard does not give license to do that: only one
+            object may have a given address at a time. See 3.8, and
+            particularly paragraph 4."</p>
+</blockquote></div>
+<p>
+      </p>
+<p>Additionally, as close examination quickly reveals, the scheme has
+        the potential to create irreconcilable race-conditions in concurrent
+        environments.</p>
+<p>Ultimately, even if the above scheme could be made to work on
+        certain platforms with particular compilers, it is still necessary to
+        find a portable solution.</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="variant.design.never-empty.double-storage-solution"></a>An Initial Solution: Double Storage</h4></div></div></div>
+<p>Upon learning of the infeasibility of the above scheme, Anthony
+        Williams proposed in
+        <a class="link" href="refs.html#variant.refs.wil02">[Wil02]</a> a scheme that served
+        as the basis for a portable solution in some pre-release
+        implementations of <code class="computeroutput">variant</code>.</p>
+<p>The essential idea to this scheme, which shall be referred to as
+        the "double storage" scheme, is to provide enough space
+        within a <code class="computeroutput">variant</code> to hold two separate values of any of
+        the bounded types.</p>
+<p>With the secondary storage, a copy the right-hand side can be
+        attempted without first destroying the content of the left-hand side;
+        accordingly, the content of the left-hand side remains available in
+        the event of an exception.</p>
+<p>Thus, with this scheme, the <code class="computeroutput">variant</code> implementation
+        needs only to keep track of which storage contains the content -- and
+        dispatch any visitation requests, queries, etc. accordingly.</p>
+<p>The most obvious flaw to this approach is the space overhead
+        incurred. Though some optimizations could be applied in special cases
+        to eliminate the need for double storage -- for certain bounded types
+        or in some cases entirely (see
+        <a class="xref" href="design.html#variant.design.never-empty.optimizations" title="Enabling Optimizations">the section called &#8220;Enabling Optimizations&#8221;</a> for more
+        details) -- many users on the Boost mailing list strongly objected to
+        the use of double storage. In particular, it was noted that the
+        overhead of double storage would be at play at all times -- even if
+        assignment to <code class="computeroutput">variant</code> never occurred. For this reason
+        and others, a new approach was developed.</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="variant.design.never-empty.heap-backup-solution"></a>Current Approach: Temporary Heap Backup</h4></div></div></div>
+<p>Despite the many objections to the double storage solution, it was
+        realized that no replacement would be without drawbacks. Thus, a
+        compromise was desired.</p>
+<p>To this end, Dave Abrahams suggested to include the following in
+        the behavior specification for <code class="computeroutput">variant</code> assignment:
+        "<code class="computeroutput">variant</code> assignment from one type to another may
+        incur dynamic allocation." That is, while <code class="computeroutput">variant</code> would
+        continue to store its content <span class="emphasis"><em>in situ</em></span> after
+        construction and after assignment involving identical contained types,
+        <code class="computeroutput">variant</code> would store its content on the heap after
+        assignment involving distinct contained types.</p>
+<p>The algorithm for assignment would proceed as follows:
+
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">Copy-construct the content of the right-hand side to the
+            heap; call the pointer to this data <code class="computeroutput">p</code>.</li>
+<li class="listitem">Destroy the content of the left-hand side.</li>
+<li class="listitem">Copy <code class="computeroutput">p</code> to the left-hand side
+            storage.</li>
+</ol></div>
+<p>
+
+        Since all operations on pointers are nothrow, this scheme would allow
+        <code class="computeroutput">variant</code> to meet its never-empty guarantee.
+      </p>
+<p>The most obvious concern with this approach is that while it
+        certainly eliminates the space overhead of double storage, it
+        introduces the overhead of dynamic-allocation to <code class="computeroutput">variant</code>
+        assignment -- not just in terms of the initial allocation but also
+        as a result of the continued storage of the content on the heap. While
+        the former problem is unavoidable, the latter problem may be avoided
+        with the following "temporary heap backup" technique:
+
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">Copy-construct the content of the
+            <span class="emphasis"><em>left</em></span>-hand side to the heap; call the pointer to
+            this data <code class="computeroutput">backup</code>.</li>
+<li class="listitem">Destroy the content of the left-hand side.</li>
+<li class="listitem">Copy-construct the content of the right-hand side in the
+            (now-empty) storage of the left-hand side.</li>
+<li class="listitem">In the event of failure, copy <code class="computeroutput">backup</code> to the
+            left-hand side storage.</li>
+<li class="listitem">In the event of success, deallocate the data pointed to
+            by <code class="computeroutput">backup</code>.</li>
+</ol></div>
+<p>
+      </p>
+<p>With this technique: 1) only a single storage is used;
+        2) allocation is on the heap in the long-term only if the assignment
+        fails; and 3) after any <span class="emphasis"><em>successful</em></span> assignment,
+        storage within the <code class="computeroutput">variant</code> is guaranteed. For the
+        purposes of the initial release of the library, these characteristics
+        were deemed a satisfactory compromise solution.</p>
+<p>There remain notable shortcomings, however. In particular, there
+        may be some users for which heap allocation must be avoided at all
+        costs; for other users, any allocation may need to occur via a
+        user-supplied allocator. These issues will be addressed in the future
+        (see <a class="xref" href="design.html#variant.design.never-empty.roadmap" title="Future Direction: Policy-based Implementation">the section called &#8220;Future Direction: Policy-based Implementation&#8221;</a>). For now,
+        though, the library treats storage of its content as an implementation
+        detail. Nonetheless, as described in the next section, there
+        <span class="emphasis"><em>are</em></span> certain things the user can do to ensure the
+        greatest efficiency for <code class="computeroutput">variant</code> instances (see
+        <a class="xref" href="design.html#variant.design.never-empty.optimizations" title="Enabling Optimizations">the section called &#8220;Enabling Optimizations&#8221;</a> for
+        details).</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="variant.design.never-empty.optimizations"></a>Enabling Optimizations</h4></div></div></div>
+<p>As described in
+        <a class="xref" href="design.html#variant.design.never-empty.problem" title="The Implementation Problem">the section called &#8220;The Implementation Problem&#8221;</a>, the central
+        difficulty in implementing the never-empty guarantee is the
+        possibility of failed copy-construction during <code class="computeroutput">variant</code>
+        assignment. Yet types with nothrow copy constructors clearly never
+        face this possibility. Similarly, if one of the bounded types of the
+        <code class="computeroutput">variant</code> is nothrow default-constructible, then such a
+        type could be used as a safe "fallback" type in the event of
+        failed copy construction.</p>
+<p>Accordingly, <code class="computeroutput">variant</code> is designed to enable the
+        following optimizations once the following criteria on its bounded
+        types are met:
+
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">For each bounded type <code class="computeroutput">T</code> that is nothrow
+            copy-constructible (as indicated by
+            <code class="computeroutput">boost::has_nothrow_copy</code>), the
+            library guarantees <code class="computeroutput">variant</code> will use only single
+            storage and in-place construction for <code class="computeroutput">T</code>.</li>
+<li class="listitem">If <span class="emphasis"><em>any</em></span> bounded type is nothrow
+            default-constructible (as indicated by
+            <code class="computeroutput">boost::has_nothrow_constructor</code>),
+            the library guarantees <code class="computeroutput">variant</code> will use only single
+            storage and in-place construction for <span class="emphasis"><em>every</em></span>
+            bounded type in the <code class="computeroutput">variant</code>. Note, however, that in
+            the event of assignment failure, an unspecified nothrow
+            default-constructible bounded type will be default-constructed in
+            the left-hand side operand so as to preserve the never-empty
+            guarantee.</li>
+</ul></div>
+<p>
+
+      </p>
+<p><span class="bold"><strong>Caveat</strong></span>: On most platforms, the
+        <a href="../../../libs/type_traits/index.html" target="_top">Type Traits</a> templates
+        <code class="computeroutput">has_nothrow_copy</code> and <code class="computeroutput">has_nothrow_constructor</code>
+        by default return <code class="computeroutput">false</code> for all <code class="computeroutput">class</code> and
+        <code class="computeroutput">struct</code> types. It is necessary therefore to provide
+        specializations of these templates as appropriate for user-defined
+        types, as demonstrated in the following:
+
+</p>
+<pre class="programlisting">// ...in your code (at file scope)...
+
+namespace boost {
+
+  template &lt;&gt;
+  struct <code class="computeroutput">has_nothrow_copy</code>&lt; myUDT &gt;
+    : <code class="computeroutput">mpl::true_</code>
+  {
+  };
+
+}
+</pre>
+<p>
+
+      </p>
+<p><span class="bold"><strong>Implementation Note</strong></span>: So as to make
+        the behavior of <code class="computeroutput">variant</code> more predictable in the aftermath
+        of an exception, the current implementation prefers to default-construct
+        <code class="computeroutput">boost::blank</code> if specified as a
+        bounded type instead of other nothrow default-constructible bounded
+        types. (If this is deemed to be a useful feature, it will become part
+        of the specification for <code class="computeroutput">variant</code>; otherwise, it may be
+        obsoleted. Please provide feedback to the Boost mailing list.)</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="variant.design.never-empty.roadmap"></a>Future Direction: Policy-based Implementation</h4></div></div></div>
+<p>As the previous sections have demonstrated, much effort has been
+        expended in an attempt to provide a balance between performance, data
+        size, and heap usage. Further, significant optimizations may be
+        enabled in <code class="computeroutput">variant</code> on the basis of certain traits of its
+        bounded types.</p>
+<p>However, there will be some users for whom the chosen compromise
+        is unsatisfactory (e.g.: heap allocation must be avoided at all costs;
+        if heap allocation is used, custom allocators must be used; etc.). For
+        this reason, a future version of the library will support a
+        policy-based implementation of <code class="computeroutput">variant</code>. While this will
+        not eliminate the problems described in the previous sections, it will
+        allow the decisions regarding tradeoffs to be decided by the user
+        rather than the library designers.</p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002, 2003 Eric Friedman, Itay Maman<p>Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+    <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+    </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost/visitor_ptr.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../variant.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="misc.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

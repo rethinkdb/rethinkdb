@@ -1,0 +1,236 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/nd.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/nd.xml
+ */
+nd{
+    Currencies{
+        AED{
+            "AED",
+            "Dola laseArab",
+        }
+        AOA{
+            "Kz",
+            "Kwanza yase  Angola",
+        }
+        AUD{
+            "AU$",
+            "Dola yase Australia",
+        }
+        BHD{
+            "BD",
+            "Dinari yase Bhahareni",
+        }
+        BIF{
+            "FBu",
+            "Fulenki yase Bhurundi",
+        }
+        BWP{
+            "BWP",
+            "Phula yase Botswana",
+        }
+        CAD{
+            "CA$",
+            "Dola yase Khanada",
+        }
+        CDF{
+            "CDF",
+            "Fulenki yase Khongo",
+        }
+        CHF{
+            "CHF",
+            "Fulenki yase Swisi",
+        }
+        CNY{
+            "CN¥",
+            "Yuan Renminbi yase China",
+        }
+        CVE{
+            "CV$",
+            "Escudo Caboverdiano",
+        }
+        DJF{
+            "Fdj",
+            "Fulenki yase Jibhuthi",
+        }
+        DZD{
+            "DA",
+            "Dinali yase Aljeriya",
+        }
+        EGP{
+            "EGP",
+            "Phawundi laseGibhide",
+        }
+        ERN{
+            "Nfk",
+            "Nakfa yase Eritrea",
+        }
+        ETB{
+            "Br",
+            "Dola laseEthiopia",
+        }
+        EUR{
+            "€",
+            "Yuro",
+        }
+        GBP{
+            "£",
+            "Phawundi yase Ngilandi",
+        }
+        GHC{
+            "₵",
+            "Sedi yase Ghana",
+        }
+        GMD{
+            "GMD",
+            "Dalasi yase Gambia",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "Fulenki yase Gine",
+        }
+        INR{
+            "Rs",
+            "Rupi yase Indiya",
+        }
+        JPY{
+            "JP¥",
+            "Yeni yase Japhani",
+        }
+        KES{
+            "Ksh",
+            "Shilingi yase Kenya",
+        }
+        KMF{
+            "CF",
+            "Fulenki yase Khomoro",
+        }
+        LRD{
+            "L$",
+            "Dola yase Libheriya",
+        }
+        LSL{
+            "LSL",
+            "Lothi yase Lesotho",
+        }
+        LYD{
+            "LD",
+            "Dinari yase Libya",
+        }
+        MAD{
+            "MAD",
+            "Dirham yase Morokho",
+        }
+        MGA{
+            "MGA",
+            "Fulenki yase Malagasi",
+        }
+        MRO{
+            "UM",
+            "Ugwiya yase Moritaniya",
+        }
+        MUR{
+            "MURs",
+            "Rupi yase Morishasi",
+        }
+        MWK{
+            "MWK",
+            "Kwacha yase Malawi",
+        }
+        MZM{
+            "Mt",
+            "Metikali yase Mozambiki",
+        }
+        NAD{
+            "N$",
+            "Dola yase Namibiya",
+        }
+        NGN{
+            "₦",
+            "Nayira yase Nijeriya",
+        }
+        RWF{
+            "RWF",
+            "Fulenki yase Ruwanda",
+        }
+        SAR{
+            "SR",
+            "Riyal yase Saudi",
+        }
+        SCR{
+            "SRe",
+            "Rupi yase Seyisheli",
+        }
+        SDG{
+            "SDG",
+            "Dinari yase Sudani",
+        }
+        SDP{
+            "SDP" /** ===  */,
+            "Phawundi yase Sudani",
+        }
+        SHP{
+            "SH£",
+            "Phawundindi laseSt Helena",
+        }
+        SLL{
+            "Le",
+            "Leyoni",
+        }
+        SOS{
+            "Ssh",
+            "Shilingi yase Somaliya",
+        }
+        STD{
+            "Db",
+            "Dobra yase Sao Tome lo Principe",
+        }
+        SZL{
+            "SZL",
+            "Lilangeni",
+        }
+        TND{
+            "DT",
+            "Dinari yase Tunisiya",
+        }
+        TZS{
+            "TSh",
+            "Shilingi yase Tanzaniya",
+        }
+        UGX{
+            "USh",
+            "Shilingi yase Uganda",
+        }
+        USD{
+            "US$",
+            "Dola yase Amelika",
+        }
+        XAF{
+            "FCFA",
+            "Fulenki CFA BEAC",
+        }
+        XOF{
+            "CFA",
+            "Fulenki CFA BCEAO",
+        }
+        ZAR{
+            "R",
+            "Randi yase Afrika ye Zanzi",
+        }
+        ZMK{
+            "ZK",
+            "Kwacha yase Zambiya",
+        }
+        ZWD{
+            "Z$",
+            "Dola yase Zimbabwe",
+        }
+    }
+    Version{"2.0.47.63"}
+}

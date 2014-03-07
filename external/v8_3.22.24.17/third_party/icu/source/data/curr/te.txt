@@ -1,0 +1,52 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/te.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/te.xml
+ */
+te{
+    Currencies{
+        AFN{
+            "Af",
+            "ఆఫ్ఘాన్ ఆఫ్ఘాని",
+        }
+        BRL{
+            "R$",
+            "బ్రజిలియన్ రియల్",
+        }
+        CNY{
+            "CN¥",
+            "చైనా దేశ యువాన్ రెన్‌మిన్‌బి",
+        }
+        EUR{
+            "€",
+            "యురొ",
+        }
+        GBP{
+            "£",
+            "బ్రిటిష్ పౌండ్ స్టెర్లింగ్",
+        }
+        INR{
+            "రూ.",
+            "రూపాయి",
+        }
+        JPY{
+            "JP¥",
+            "జపాను దేశ యెస్",
+        }
+        RUB{
+            "RUB",
+            "రష్యా రూబల్",
+        }
+        USD{
+            "US$",
+            "ఐక్య రాష్ట్ర అమెరిక డాలర్",
+        }
+    }
+    Version{"2.0.50.94"}
+}

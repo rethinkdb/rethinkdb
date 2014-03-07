@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+    <xs:element name="explicit-failures-markup">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="mark-toolset" maxOccurs="unbounded"/>
+                <xs:element ref="library" maxOccurs="unbounded"/>
+                <xs:element ref="note" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="mark-toolset">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="title" type="xs:string" minOccurs="0"/>
+                <xs:element name="description" type="xs:string" minOccurs="0"/>
+            </xs:sequence>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+            <xs:attribute name="status" type="xs:string" use="required"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="library">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="mark-unusable" minOccurs="0" maxOccurs="unbounded"/>
+                <xs:sequence>
+                    <xs:choice minOccurs="0" maxOccurs="unbounded">
+                        <xs:element ref="test"/>
+                        <xs:element ref="mark-expected-failures"/>
+                    </xs:choice>
+                </xs:sequence>
+            </xs:sequence>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="mark-unusable">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="toolset" maxOccurs="unbounded"/>
+                <xs:element ref="note" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="test">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="mark-failure" minOccurs="0" maxOccurs="unbounded"/>
+                <xs:element ref="toolset" minOccurs="0"/>
+                <xs:element ref="note" minOccurs="0"/>
+            </xs:sequence>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+            <xs:attribute name="category" type="xs:string"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="mark-expected-failures">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="test" maxOccurs="unbounded"/>
+                <xs:element ref="toolset" maxOccurs="unbounded"/>
+                <xs:element ref="note"/>
+            </xs:sequence>
+            <xs:attribute name="reason" type="xs:string"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="mark-failure">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="toolset" maxOccurs="unbounded"/>
+                <xs:element ref="note" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="note">
+        <xs:complexType mixed="true">
+            <xs:sequence>
+                <xs:any processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+            <xs:attribute name="refid" type="xs:string"/>
+            <xs:attribute name="author" type="xs:string"/>
+            <xs:attribute name="date" type="xs:string"/>
+            <xs:attribute name="id" type="xs:string"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="toolset">
+        <xs:complexType>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>

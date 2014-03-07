@@ -1,0 +1,239 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Concepts explained</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../intrusive.html" title="Chapter&#160;15.&#160;Boost.Intrusive">
+<link rel="prev" href="any_hooks.html" title="Any Hooks: A single hook for any Intrusive container">
+<link rel="next" href="node_algorithms.html" title="Node algorithms with custom NodeTraits">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="any_hooks.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="node_algorithms.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="intrusive.concepts"></a><a class="link" href="concepts.html" title="Concepts explained">Concepts explained</a>
+</h2></div></div></div>
+<p>
+      This section will expand the explanation of previously presented basic concepts
+      before explaining the customization options of <span class="bold"><strong>Boost.Intrusive</strong></span>.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <span class="bold"><strong>Node Algorithms</strong></span>: A set of static functions
+          that implement basic operations on a group of nodes: initialize a node,
+          link_mode_type a node to a group of nodes, unlink a node from another group
+          of nodes, etc. For example, a circular singly linked list is a group of
+          nodes, where each node has a pointer to the next node. <span class="bold"><strong>Node
+          Algorithms</strong></span> just require a <span class="bold"><strong>NodeTraits</strong></span>
+          template parameter and they can work with any <span class="bold"><strong>NodeTraits</strong></span>
+          class that fulfills the needed interface. As an example, here is a class
+          that implements operations to manage a group of nodes forming a circular
+          singly linked list:
+        </li></ul></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">NodeTraits</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">my_slist_algorithms</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">NodeTraits</span><span class="special">::</span><span class="identifier">node_ptr</span>       <span class="identifier">node_ptr</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">NodeTraits</span><span class="special">::</span><span class="identifier">const_node_ptr</span> <span class="identifier">const_node_ptr</span><span class="special">;</span>
+
+   <span class="comment">//Get the previous node of "this_node"</span>
+   <span class="keyword">static</span> <span class="identifier">node_ptr</span> <span class="identifier">get_prev_node</span><span class="special">(</span><span class="identifier">node_ptr</span> <span class="identifier">this_node</span><span class="special">)</span>
+   <span class="special">{</span>
+      <span class="identifier">node_ptr</span> <span class="identifier">p</span> <span class="special">=</span> <span class="identifier">this_node</span><span class="special">;</span>
+      <span class="keyword">while</span> <span class="special">(</span><span class="identifier">this_node</span> <span class="special">!=</span> <span class="identifier">NodeTraits</span><span class="special">::</span><span class="identifier">get_next</span><span class="special">(</span><span class="identifier">p</span><span class="special">))</span>
+         <span class="identifier">p</span> <span class="special">=</span> <span class="identifier">NodeTraits</span><span class="special">::</span><span class="identifier">get_next</span><span class="special">(</span><span class="identifier">p</span><span class="special">);</span>
+      <span class="keyword">return</span> <span class="identifier">p</span><span class="special">;</span>
+   <span class="special">}</span>
+
+   <span class="comment">// number of elements in the group of nodes containing "this_node"</span>
+   <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">count</span><span class="special">(</span><span class="identifier">const_node_ptr</span> <span class="identifier">this_node</span><span class="special">)</span>
+   <span class="special">{</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">result</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+      <span class="identifier">const_node_ptr</span> <span class="identifier">p</span> <span class="special">=</span> <span class="identifier">this_node</span><span class="special">;</span>
+      <span class="keyword">do</span><span class="special">{</span>
+         <span class="identifier">p</span> <span class="special">=</span> <span class="identifier">NodeTraits</span><span class="special">::</span><span class="identifier">get_next</span><span class="special">(</span><span class="identifier">p</span><span class="special">);</span>
+         <span class="special">++</span><span class="identifier">result</span><span class="special">;</span>
+      <span class="special">}</span> <span class="keyword">while</span> <span class="special">(</span><span class="identifier">p</span> <span class="special">!=</span> <span class="identifier">this_node</span><span class="special">);</span>
+      <span class="keyword">return</span> <span class="identifier">result</span><span class="special">;</span>
+   <span class="special">}</span>
+
+   <span class="comment">// More operations</span>
+   <span class="comment">// ...</span>
+<span class="special">};</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <span class="bold"><strong>Node Traits</strong></span>: A class that encapsulates
+          the basic information and operations on a node within a group of nodes:
+          the type of the node, a function to obtain the pointer to the next node,
+          etc. <span class="bold"><strong>Node Traits</strong></span> specify the configuration
+          information <span class="bold"><strong>Node Algorithms</strong></span> need. Each
+          type of <span class="bold"><strong>Node Algorithm</strong></span> expects an interface
+          that compatible <span class="bold"><strong>Node Traits</strong></span> classes must
+          implement. As an example, this is the definition of a <span class="bold"><strong>Node
+          Traits</strong></span> class that is compatible with the previously presented
+          <code class="computeroutput"><span class="identifier">my_slist_algorithms</span></code>:
+        </li></ul></div>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">my_slist_node_traits</span>
+<span class="special">{</span>
+   <span class="comment">//The type of the node</span>
+   <span class="keyword">struct</span> <span class="identifier">node</span>
+   <span class="special">{</span>
+      <span class="identifier">node</span> <span class="special">*</span><span class="identifier">next_</span><span class="special">;</span>
+   <span class="special">};</span>
+
+   <span class="keyword">typedef</span> <span class="identifier">node</span> <span class="special">*</span>       <span class="identifier">node_ptr</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">node</span> <span class="special">*</span> <span class="identifier">const_node_ptr</span><span class="special">;</span>
+
+   <span class="comment">//A function to obtain a pointer to the next node</span>
+   <span class="keyword">static</span> <span class="identifier">node_ptr</span> <span class="identifier">get_next</span><span class="special">(</span><span class="identifier">const_node_ptr</span> <span class="identifier">n</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">n</span><span class="special">-&gt;</span><span class="identifier">next_</span><span class="special">;</span>  <span class="special">}</span>
+
+   <span class="comment">//A function to set the pointer to the next node</span>
+   <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">set_next</span><span class="special">(</span><span class="identifier">node_ptr</span> <span class="identifier">n</span><span class="special">,</span> <span class="identifier">node_ptr</span> <span class="identifier">next</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="identifier">n</span><span class="special">-&gt;</span><span class="identifier">next_</span> <span class="special">=</span> <span class="identifier">next</span><span class="special">;</span>  <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <span class="bold"><strong>Hook</strong></span>: A class that the user must add as
+          a base class or as a member to his own class to make that class insertable
+          in an intrusive container. Usually the hook contains a node object that
+          will be used to form the group of nodes: For example, the following class
+          is a <span class="bold"><strong>Hook</strong></span> that the user can add as a base
+          class, to make the user class compatible with a singly linked list container:
+        </li></ul></div>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">my_slist_base_hook</span>
+      <span class="comment">//This hook contains a node, that will be used</span>
+      <span class="comment">//to link the user object in the group of nodes</span>
+   <span class="special">:</span> <span class="keyword">private</span> <span class="identifier">my_slist_node_traits</span><span class="special">::</span><span class="identifier">node</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="identifier">my_slist_node_traits</span><span class="special">::</span><span class="identifier">node_ptr</span>       <span class="identifier">node_ptr</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">my_slist_node_traits</span><span class="special">::</span><span class="identifier">const_node_ptr</span> <span class="identifier">const_node_ptr</span><span class="special">;</span>
+
+   <span class="comment">//Converts the generic node to the hook</span>
+   <span class="keyword">static</span> <span class="identifier">my_slist_base_hook</span> <span class="special">*</span><span class="identifier">to_hook_ptr</span><span class="special">(</span><span class="identifier">node_ptr</span> <span class="identifier">p</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="keyword">return</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">my_slist_base_hook</span><span class="special">*&gt;(</span><span class="identifier">p</span><span class="special">);</span> <span class="special">}</span>
+
+   <span class="comment">//Returns the generic node stored by this hook</span>
+   <span class="identifier">node_ptr</span> <span class="identifier">to_node_ptr</span><span class="special">()</span>
+   <span class="special">{</span> <span class="keyword">return</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">node</span> <span class="special">*</span><span class="keyword">const</span><span class="special">&gt;(</span><span class="keyword">this</span><span class="special">);</span> <span class="special">}</span>
+
+   <span class="comment">// More operations</span>
+   <span class="comment">// ...</span>
+<span class="special">};</span>
+
+<span class="comment">//To make MyClass compatible with an intrusive singly linked list</span>
+<span class="comment">//derive our class from the hook.</span>
+<span class="keyword">class</span> <span class="identifier">MyClass</span>
+   <span class="special">:</span>  <span class="keyword">public</span> <span class="identifier">my_slist_base_hook</span>
+<span class="special">{</span>
+   <span class="keyword">void</span> <span class="identifier">set</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">value</span><span class="special">);</span>
+   <span class="keyword">int</span> <span class="identifier">get</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+   <span class="keyword">private</span><span class="special">:</span>
+   <span class="keyword">int</span> <span class="identifier">value_</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <span class="bold"><strong>Intrusive Container</strong></span>: A container that
+          offers a STL-like interface to store user objects. An intrusive container
+          can be templatized to store different value types that use different hooks.
+          An intrusive container is also more elaborate than a group of nodes: it
+          can store the number of elements to achieve constant-time size information,
+          it can offer debugging facilities, etc. For example, an <code class="computeroutput"><a class="link" href="../boost/intrusive/slist.html" title="Class template slist">slist</a></code>
+          container (intrusive singly linked list) should be able to hold <code class="computeroutput"><span class="identifier">MyClass</span></code> objects that might have decided
+          to store the hook as a base class or as a member. Internally, the container
+          will use <span class="bold"><strong>Node Algorithms</strong></span> to implement
+          its operations, and an intrusive container is configured using a template
+          parameter called <span class="bold"><strong>ValueTraits</strong></span>. <span class="bold"><strong>ValueTraits</strong></span> will contain the information to convert
+          user classes in nodes compatible with <span class="bold"><strong>Node Algorithms</strong></span>.
+          For example, this a possible <code class="computeroutput"><a class="link" href="../boost/intrusive/slist.html" title="Class template slist">slist</a></code>
+          implementation:
+        </li></ul></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ValueTraits</span><span class="special">,</span> <span class="special">...&gt;</span>
+<span class="keyword">class</span> <span class="identifier">slist</span>
+<span class="special">{</span>
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">ValueTraits</span><span class="special">::</span><span class="identifier">value_type</span> <span class="identifier">value_type</span><span class="special">;</span>
+
+   <span class="comment">//More typedefs and functions</span>
+   <span class="comment">// ...</span>
+
+   <span class="comment">//Insert the value as the first element of the list</span>
+   <span class="keyword">void</span> <span class="identifier">push_front</span> <span class="special">(</span><span class="identifier">reference</span> <span class="identifier">value</span><span class="special">)</span>
+   <span class="special">{</span>
+      <span class="identifier">node_ptr</span> <span class="identifier">to_insert</span><span class="special">(</span><span class="identifier">ValueTraits</span><span class="special">::</span><span class="identifier">to_node_ptr</span><span class="special">(</span><span class="identifier">value</span><span class="special">));</span>
+      <span class="identifier">circular_list_algorithms</span><span class="special">::</span><span class="identifier">link_after</span><span class="special">(</span><span class="identifier">to_insert</span><span class="special">,</span> <span class="identifier">get_root_node</span><span class="special">());</span>
+   <span class="special">}</span>
+
+   <span class="comment">// More operations</span>
+   <span class="comment">// ...</span>
+<span class="special">};</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <span class="bold"><strong>Semi-Intrusive Container</strong></span>: A semi-intrusive
+          container is similar to an intrusive container, but apart from the values
+          to be inserted in the container, it needs additional memory (for example,
+          auxiliary arrays or indexes).
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>Value Traits</strong></span>: As we can see, to make our
+          classes intrusive-friendly we add a simple hook as a member or base class.
+          The hook contains a generic node that will be inserted in a group of nodes.
+          <span class="bold"><strong>Node Algorithms</strong></span> just work with nodes and
+          don't know anything about user classes. On the other hand, an intrusive
+          container needs to know how to obtain a node from a user class, and also
+          the inverse operation. So we can define <span class="bold"><strong>ValueTraits</strong></span>
+          as the glue between user classes and nodes required by <span class="bold"><strong>Node
+          Algorithms</strong></span>. Let's see a possible implementation of a value traits
+          class that glues MyClass and the node stored in the hook:
+        </li>
+</ul></div>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">my_slist_derivation_value_traits</span>
+<span class="special">{</span>
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="keyword">typedef</span> <span class="identifier">slist_node_traits</span>           <span class="identifier">node_traits</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">MyClass</span>                     <span class="identifier">value_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">node_ptr</span>       <span class="identifier">node_ptr</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">value_type</span><span class="special">*</span>                 <span class="identifier">pointer</span><span class="special">;</span>
+   <span class="comment">//...</span>
+
+   <span class="comment">//Converts user's value to a generic node</span>
+   <span class="keyword">static</span> <span class="identifier">node_ptr</span> <span class="identifier">to_node_ptr</span><span class="special">(</span><span class="identifier">reference</span> <span class="identifier">value</span><span class="special">)</span>
+   <span class="special">{</span> <span class="keyword">return</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">slist_base_hook</span> <span class="special">&amp;&gt;(</span><span class="identifier">value</span><span class="special">).</span><span class="identifier">to_node_ptr</span><span class="special">();</span> <span class="special">}</span>
+
+   <span class="comment">//Converts a generic node into user's value</span>
+   <span class="keyword">static</span> <span class="identifier">value_type</span> <span class="special">*</span><span class="identifier">to_value_ptr</span><span class="special">(</span><span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">node</span> <span class="special">*</span><span class="identifier">n</span><span class="special">)</span>
+   <span class="special">{</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">value_type</span><span class="special">*&gt;(</span><span class="identifier">slist_base_hook</span><span class="special">::</span><span class="identifier">to_hook_ptr</span><span class="special">(</span><span class="identifier">n</span><span class="special">));</span> <span class="special">}</span>
+
+   <span class="comment">// More operations</span>
+   <span class="comment">// ...</span>
+<span class="special">};</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="any_hooks.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="node_algorithms.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

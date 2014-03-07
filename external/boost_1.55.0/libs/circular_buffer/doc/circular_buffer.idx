@@ -1,0 +1,22 @@
+# circular_buffer.idx index script file
+# for Boost.circular_buffer Quickbook Doxygen documentation Auto-indexing forcircular_buffer library.
+
+# Copyright (c) 2011 Paul A. Bristow
+# Copyright (c) 2003 - 2008 Jan Gaspar
+
+# boost-no-inspect
+
+# Use, modification and distribution is subject to the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt
+# or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#  All header files, recursing down to include sub-folders.
+!scan-path "boost/circular_buffer" ".*\.hpp" true 
+
+# All example source files, assuming no sub-folders.
+!scan-path "libs/circular_buffer/example" ".*\.cpp" 
+
+
+
+
+

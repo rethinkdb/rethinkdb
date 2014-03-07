@@ -1,0 +1,377 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Sparse Matrix Ordering Example</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:sparse-matrix-ordering"></A>
+Sparse Matrix Ordering
+</H1>
+
+<P>
+Graph theory was identified as a powerful tool for sparse matrix
+computation when Seymour Parter used undirected graphs to model
+symmetric Gaussian elimination more than 30 years ago&nbsp;[<A HREF="bibliography.html#parter61:_gauss">28</A>].
+Graphs can be used to model symmetric matrices, factorizations and
+algorithms on non-symmetric matrices, such as fill paths in Gaussian
+elimination, strongly connected components in matrix irreducibility,
+bipartite matching, and alternating paths in linear dependence and
+structural singularity. Not only do graphs make it easier to
+understand and analyze sparse matrix algorithms, but they broaden the
+area of manipulating sparse matrices using existing graph algorithms
+and techniques&nbsp;[<A
+ HREF="bibliography.html#george93:graphtheory">13</A>].  In this section, we are
+going to illustrate how to use BGL in sparse matrix computation such
+as ordering algorithms. Before we go further into the sparse matrix
+algorithms, let us take a step back and review a few things.
+
+<P>
+
+<H2>Graphs and Sparse Matrices</H2>
+
+<P>
+A graph is fundamentally a way to represent a binary relation between
+objects. The nonzero pattern of a sparse matrix also describes a
+binary relation between unknowns. Therefore the nonzero pattern of a
+sparse matrix of a linear system can be modeled with a graph
+<I>G(V,E)</I>, whose <I>n</I> vertices in <I>V</I> represent the
+<I>n</I> unknowns, and where there is an edge from vertex <I>i</I> to
+vertex <I>j</I> when <i>A<sub>ij</sub></i> is nonzero.  Thus, when a
+matrix has a symmetric nonzero pattern, the corresponding graph is
+undirected.
+
+<P>
+
+<H2>Sparse Matrix Ordering Algorithms</H2>
+
+<P>
+The process for solving a sparse symmetric positive definite linear
+system, <i>Ax=b</i>, can be divided into four stages as follows:
+<DL>
+<DT><STRONG>Ordering:</STRONG></DT>
+<DD>Find a permutation <i>P</i> of matrix <i>A</i>,
+</DD>
+<DT><STRONG>Symbolic factorization:</STRONG></DT>
+<DD>Set up a data structure for the Cholesky
+ factor <i>L</i> of <i>PAP<sup>T</sup></i>,
+</DD>
+<DT><STRONG>Numerical factorization:</STRONG></DT>
+<DD>Decompose <i>PAP<sup>T</sup></i> into <i>LL<sup>T</sup></i>,
+</DD>
+<DT><STRONG>Triangular system solution:</STRONG></DT>
+<DD>Solve <i>LL<sup>T</sup>Px=Pb</i> for <i>x</i>.
+</DD>
+</DL>
+Because the choice of permutation <i>P</i> will directly determine the
+number of fill-in elements (elements present in the non-zero structure
+of <i>L</i> that are not present in the non-zero structure of
+<i>A</i>), the ordering has a significant impact on the memory and
+computational requirements for the latter stages.  However, finding
+the optimal ordering for <i>A</i> (in the sense of minimizing fill-in)
+has been proven to be NP-complete&nbsp;[<a
+href="bibliography.html#garey79:computers-and-intractability">30</a>]
+requiring that heuristics be used for all but simple (or specially
+structured) cases.
+
+<P>
+A widely used but rather simple ordering algorithm is a variant of the
+Cuthill-McKee orderings, the reverse Cuthill-McKee ordering algorithm.
+This algorithm can be used as a preordering method to improve ordering
+in more sophisticated methods such as minimum degree
+algorithms&nbsp;[<a href="bibliography.html#LIU:MMD">21</a>].
+
+<P>
+
+<H3><A NAME="SECTION001032100000000000000">
+Reverse Cuthill-McKee Ordering Algorithm</A>
+</H3>
+The original Cuthill-McKee ordering algorithm is primarily designed to
+reduce the profile of a matrix&nbsp;[<A
+ HREF="bibliography.html#george81:__sparse_pos_def">14</A>].
+George discovered that the reverse ordering often turned out to be
+superior to the original ordering in 1971. Here we describe the
+Reverse Cuthill-McKee algorithm in terms of a graph:
+
+<OL>
+<LI><I>Finding a starting vertex</I>: Determine a starting vertex
+ <I>r</I> and assign <i>r</i> to <I>x<sub>1</sub></I>.
+</LI>
+<LI><I>Main part</I>: For <I>i=1,...,N</I>, find all
+ the unnumbered neighbors of the vertex <I>x<sub>i</sub></I> and number them
+ in increasing order of degree.
+</LI>
+<LI><I>Reversing ordering</I>: The reverse Cuthill-McKee ordering
+ is given by <I>y<sub>1</sub>,...,y<sub>N</sub></I> where
+ <I>y<sub>i</sub></I> is <I>x<sub>N-i+1</sub></I> for <I>i = 1,...,N</I>.
+</LI>
+</OL>
+In the first step a good starting vertex needs to be determined. The
+study by George and Liu&nbsp;[<A
+HREF="bibliography.html#george81:__sparse_pos_def">14</A>] showed that
+a pair of vertices which are at maximum or near maximum ``distance''
+apart are good ones. They also proposed an algorithm to find such a
+starting vertex in &nbsp;[<A
+HREF="bibliography.html#george81:__sparse_pos_def">14</A>], which we
+show in <A
+HREF="#fig:ggcl_find_starting_vertex">Figure
+1</A> implemented using the BGL interface.
+
+<P>
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:ggcl_find_starting_vertex"></A>
+<table border><tr><td>
+<pre>
+namespace boost {
+  template &lt;class Graph, class Vertex, class Color, class Degree&gt;
+  Vertex 
+  pseudo_peripheral_pair(Graph& G, const Vertex& u, int& ecc,
+                         Color color, Degree degree)
+  {
+    typename property_traits&lt;Color&gt;::value_type c = get(color, u);
+
+    rcm_queue&lt;Vertex, Degree&gt; Q(degree);
+    
+    typename boost::graph_traits&lt;Graph&gt;::vertex_iterator ui, ui_end;
+    for (tie(ui, ui_end) = vertices(G); ui != ui_end; ++ui)
+      put(color, *ui, white(c));
+    breadth_first_search(G, u, Q, bfs_visitor&lt;&gt;(), color);
+
+    ecc = Q.eccentricity(); 
+    return Q.spouse();
+  }
+  
+  template &lt;class Graph, class Vertex, class Color, class Degree&gt; 
+  Vertex find_starting_node(Graph& G, Vertex r, Color c, Degree d) {
+    int eccen_r, eccen_x;
+    Vertex x = pseudo_peripheral_pair(G, r, eccen_r, c, d);
+    Vertex y = pseudo_peripheral_pair(G, x, eccen_x, c, d);
+
+    while (eccen_x &gt; eccen_r) {
+      r = x;
+      eccen_r = eccen_x;
+      x = y;
+      y = pseudo_peripheral_pair(G, x, eccen_x, c, d);
+    }
+    return x;
+  }
+} // namespace boost
+</pre>
+</td></tr></table>
+<CAPTION ALIGN="BOTTOM">
+<table><tr><td>
+<STRONG>Figure 1:</STRONG>
+The BGL implementation of <TT>find_starting_node</TT>. The key
+part <TT>pseudo_peripheral_pair</TT> is BFS with a custom queue
+ type virtually.
+</td></tr></table></CAPTION>
+</DIV>
+<P></P>
+
+The key part of step one is a custom queue type with BFS as shown in
+<A
+HREF="#fig:ggcl_find_starting_vertex">Figure
+1</A>.  The main Cuthill-McKee algorithm shown in Figure&nbsp;<A
+HREF="#fig:cuthill-mckee">Figure 2</A>
+is a fenced priority queue with a generalized BFS. If
+<TT>inverse_permutation</TT> is a normal iterator, the result stored
+is the inverse permutation of original Cuthill-McKee ordering. On the
+other hand, if <TT>inverse_permutation</TT> is a reverse iterator, the
+result stored is the inverse permutation of reverse Cuthill-McKee
+ordering.  Our implementation is quite concise because many components
+from BGL can be reused.
+
+
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:cuthill-mckee"></A><A NAME="6261"></A>
+<table border><tr><td>
+<pre>
+  template &lt; class Graph, class Vertex, class OutputIterator, 
+             class Color, class Degree &gt;
+  inline void 
+  cuthill_mckee_ordering(Graph& G, 
+                         Vertex s,
+                         OutputIterator inverse_permutation, 
+                         Color color, Degree degree)
+  {
+    typedef typename property_traits&lt;Degree&gt;::value_type DS;
+    typename property_traits&lt;Color&gt;::value_type c = get(color, s);
+    typedef indirect_cmp&lt;Degree, std::greater&lt;DS&gt; &gt; Compare;
+    Compare comp(degree);
+    fenced_priority_queue&lt;Vertex, Compare &gt; Q(comp);
+
+    typedef cuthill_mckee_visitor&lt;OutputIterator&gt;  CMVisitor;
+    CMVisitor cm_visitor(inverse_permutation);
+    
+    typename boost::graph_traits&lt;Graph&gt;::vertex_iterator ui, ui_end;
+    for (tie(ui, ui_end) = vertices(G); ui != ui_end; ++ui)
+      put(color, *ui, white(c));
+    breadth_first_search(G, s, Q, cm_visitor, color);
+  }  
+</pre>
+</td></tr></table>
+<CAPTION ALIGN="BOTTOM">
+<TABLE>
+<TR><TD> <STRONG>Figure 2:</STRONG> The BGL implementation of
+Cuthill-McKee algoithm.  </TD></TR> </TABLE></CAPTION> </DIV><P></P>
+<P>
+
+
+<P>
+
+<H3>Minimum Degree Ordering Algorithm</H3>
+
+<P>
+The pattern of another category of high-quality ordering algorithms in
+wide use is based on a greedy approach such that the ordering is
+chosen to minimize some quantity at each step of a simulated -step
+symmetric Gaussian elimination process.  The algorithms using such an
+approach are typically distinguished by their greedy minimization
+criteria&nbsp;[<a href="bibliography.html#ng-raghavan">34</a>].
+
+<P>
+In graph terms, the basic ordering process used by most greedy
+algorithms is as follows:
+
+<OL>
+<LI><EM>Start:</EM> Construct undirected graph <i>G<sup>0</sup></i>
+ corresponding to matrix <i>A</i>
+ 
+</LI>
+<LI><EM>Iterate:</EM> For <i>k = 1, 2, ... </i> until 
+  <i>G<sup>k</sup> = { }</i> do:
+    
+<UL>
+<LI>Choose a vertex <i>v<sup>k</sup></i> from <i>G<sup>k</sup></i>
+      according to some criterion
+</LI>
+<LI>Eliminate <i>v<sup>k</sup></i> from <i>G<sup>k</sup></i> to form 
+  <i>G<sup>k+1</sup></i>
+ 
+</LI>
+</UL>
+</LI>
+</OL>
+The resulting ordering is the sequence of vertices <i>{v<sup>0</sup>,
+v<sup>1</sup>,...}</i> selected by the algorithm.
+
+<P>
+One of the most important examples of such an algorithm is the
+<I>Minimum Degree</I> algorithm.  At each step the minimum degree
+algorithm chooses the vertex with minimum degree in the corresponding
+graph as <i>v<sup>k</sup></i>.  A number of enhancements to the basic
+minimum degree algorithm have been developed, such as the use of a
+quotient graph representation, mass elimination, incomplete degree
+update, multiple elimination, and external degree.  See&nbsp;[<A
+href="bibliography.html#George:evolution">35</a>] for a historical
+survey of the minimum degree algorithm.
+
+<P>
+The BGL implementation of the Minimum Degree algorithm closely follows
+the algorithmic descriptions of the one in &nbsp;[<A
+HREF="bibliography.html#LIU:MMD">21</A>]. The implementation presently
+includes the enhancements for mass elimination, incomplete degree
+update, multiple elimination, and external degree.
+
+<P>
+In particular, we create a graph representation to improve the
+performance of the algorithm. It is based on a templated ``vector of
+vectors.''  The vector container used is an adaptor class built on top
+the STL <TT>std::vector</TT> class.  Particular characteristics of this
+adaptor class include the following:
+
+<UL>
+<LI>Erasing elements does not shrink the associated memory.
+ Adding new elements after erasing will not need to allocate
+  additional memory.
+</LI>
+<LI>Additional memory is allocated efficiently on demand when new
+  elements are added (doubling the capacity every time it is
+  increased).  This property comes from STL vector.
+</LI>
+</UL>
+
+<P>
+Note that this representation is similar to that used in Liu's
+implementation, with some important differences due to dynamic memory
+allocation.  With the dynamic memory allocation we do not need to
+over-write portions of the graph that have been eliminated,
+allowing for a more efficient graph traversal.  More importantly,
+information about the elimination graph is preserved allowing for
+trivial symbolic factorization.  Since symbolic factorization can be
+an expensive part of the entire solution process, improving its
+performance can result in significant computational savings.
+
+<P>
+The overhead of dynamic memory allocation could conceivably compromise
+performance in some cases. However, in practice, memory allocation
+overhead does not contribute significantly to run-time for our
+implementation as shown in &nbsp;[] because it is not
+done very often and the cost gets amortized.
+
+<P>
+
+<H2>Proper Self-Avoiding Walk</H2>
+
+<P>
+The finite element method (FEM) is a flexible and attractive numerical
+approach for solving partial differential equations since it is
+straightforward to handle geometrically complicated domains. However,
+unstructured meshes generated by FEM does not provide an obvious
+labeling (numbering) of the unknowns while it is vital to have it for
+matrix-vector notation of the underlying algebraic equations. Special
+numbering techniques have been developed to optimize memory usage and
+locality of such algorithms. One novel technique is the self-avoiding
+walk&nbsp;[].
+
+<P>
+If we think a mesh is a graph, a self-avoiding walk(SAW) over an
+arbitrary unstructured two-dimensional mesh is an enumeration of all
+the triangles of the mesh such that two successive triangles shares an
+edge or a vertex. A proper SAW is a SAW where jumping twice over the
+same vertex is forbidden for three consecutive triangles in the walk.
+it can be used to improve parallel efficiency of several irregular
+algorithms, in particular issues related to reducing runtime memory
+access (improving locality) and interprocess communications. The
+reference&nbsp;[] has proved the existence
+of A PSAW for any arbitrary triangular mesh by extending an existing
+PSAW over a small piece of mesh to a larger part. The proof
+effectively provides a set of rules to construct a PSAW.
+
+<P>
+The algorithm family of constructing a PSAW on a mesh is to start from
+any random triangle of the mesh, choose new triangles sharing an edge
+with the current sub-mesh and extend the existing partial PSAW over
+the new triangles.
+
+<P>
+Let us define a dual graph of a mesh.  Let a triangle in the mesh be a
+vertex and two triangles sharing an edge in the mesh means there is an
+edge between two vertices in the dual graph. By using a dual graph of
+a mesh, one way to implement the algorithm family of constructing a
+PSAW is to reuse  BGL algorithms such as BFS and DFS with a customized
+visitor to provide operations during
+traversal. The customized visitor has the function <TT>tree_edge()</TT>
+which is to extend partial PSAW in case by case and function
+<TT>start_vertex()</TT> which is to set up the PSAW for the starting vertex.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

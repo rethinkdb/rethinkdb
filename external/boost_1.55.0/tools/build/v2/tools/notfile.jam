@@ -1,0 +1,65 @@
+# Copyright (c) 2005 Vladimir Prus.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import "class" : new ;
+import generators ;
+import project ;
+import targets ;
+import toolset ;
+import type ;
+
+
+type.register NOTFILE_MAIN ;
+
+
+class notfile-generator : generator
+{
+    rule __init__ ( * : * )
+    {
+        generator.__init__ $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8)
+            : $(9) : $(10) : $(11) : $(12) : $(13) : $(14) : $(15) : $(16) :
+            $(17) : $(18) : $(19) ;
+    }
+
+    rule run ( project name ? : property-set : sources * : multiple ? )
+    {
+        local action ;
+        local action-name = [ $(property-set).get <action> ] ;
+        local m = [ MATCH ^@(.*) : $(action-name) ] ;
+        if $(m)
+        {
+            action = [ new action $(sources) : $(m[1]) : $(property-set) ] ;
+        }
+        else
+        {
+            action = [ new action $(sources) : notfile.run : $(property-set) ] ;
+        }
+        local t = [ new notfile-target $(name) : $(project) : $(action) ] ;
+        return [ virtual-target.register $(t) ] ;
+    }
+}
+
+
+generators.register [ new notfile-generator notfile.main : : NOTFILE_MAIN ] ;
+
+
+toolset.flags notfile.run ACTION : <action> ;
+
+
+actions run
+{
+    $(ACTION)
+}
+
+
+rule notfile ( target-name : action + : sources * : requirements * :
+    default-build * )
+{
+    targets.create-typed-target NOTFILE_MAIN : [ project.current ] :
+        $(target-name) : $(sources) : $(requirements) <action>$(action) :
+        $(default-build) ;
+}
+
+IMPORT $(__name__) : notfile : : notfile ;

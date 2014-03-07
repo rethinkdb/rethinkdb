@@ -1,0 +1,93 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Attributes of Primitive Components</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../attributes.html" title="Attributes">
+<link rel="prev" href="../attributes.html" title="Attributes">
+<link rel="next" href="compound_attributes.html" title="Attributes of Compound Components">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../attributes.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../attributes.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="compound_attributes.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.abstracts.attributes.primitive_attributes"></a><a class="link" href="primitive_attributes.html" title="Attributes of Primitive Components">Attributes
+        of Primitive Components</a>
+</h4></div></div></div>
+<p>
+          Parsers and generators in <a href="http://boost-spirit.com" target="_top">Spirit</a>
+          are fully attributed. <span class="emphasis"><em>Spirit.Qi</em></span> parsers always <span class="emphasis"><em>expose</em></span>
+          an attribute specific to their type. This is called <span class="emphasis"><em>synthesized
+          attribute</em></span> as it is returned from a successful match representing
+          the matched input sequence. For instance, numeric parsers, such as <code class="computeroutput"><span class="identifier">int_</span></code> or <code class="computeroutput"><span class="identifier">double_</span></code>,
+          return the <code class="computeroutput"><span class="keyword">int</span></code> or <code class="computeroutput"><span class="keyword">double</span></code> value converted from the matched
+          input sequence. Other primitive parser components have other intuitive
+          attribute types, such as for instance <code class="computeroutput"><span class="identifier">int_</span></code>
+          which has <code class="computeroutput"><span class="keyword">int</span></code>, or <code class="computeroutput"><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">char_</span></code> which has <code class="computeroutput"><span class="keyword">char</span></code>.
+          For primitive parsers apply the normal C++ convertibility rules: you can
+          use any C++ type to receive the parsed value as long as the attribute type
+          of the parser is convertible to the type provided. The following example
+          shows how a synthesized parser attribute (the <code class="computeroutput"><span class="keyword">int</span></code>
+          value) is extracted by calling the API function <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span></code>:
+        </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">value</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span><span class="special">(</span><span class="string">"123"</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">strbegin</span> <span class="special">=</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+<span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span><span class="special">(</span><span class="identifier">strbegin</span><span class="special">,</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">int_</span><span class="special">,</span> <span class="identifier">value</span><span class="special">);</span>   <span class="comment">// value == 123</span>
+</pre>
+<p>
+          The attribute type of a generator defines what data types this generator
+          is able to consume in order to produce its output. <span class="emphasis"><em>Spirit.Karma</em></span>
+          generators always <span class="emphasis"><em>expect</em></span> an attribute specific to
+          their type. This is called <span class="emphasis"><em>consumed attribute</em></span> and
+          is expected to be passed to the generator. The consumed attribute is most
+          of the time the value the generator is designed to emit output for. For
+          primitive generators the normal C++ convertibility rules apply. Any data
+          type convertible to the attribute type of a primitive generator can be
+          used to provide the data to generate. We present a similar example as above,
+          this time the consumed attribute of the <code class="computeroutput"><span class="identifier">int_</span></code>
+          generator (the <code class="computeroutput"><span class="keyword">int</span></code> value)
+          is passed to the API function <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">generate</span></code>:
+        </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">value</span> <span class="special">=</span> <span class="number">123</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">back_insert_iterator</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">out</span><span class="special">(</span><span class="identifier">str</span><span class="special">);</span>
+<span class="identifier">karma</span><span class="special">::</span><span class="identifier">generate</span><span class="special">(</span><span class="identifier">out</span><span class="special">,</span> <span class="identifier">int_</span><span class="special">,</span> <span class="identifier">value</span><span class="special">);</span>                <span class="comment">// str == "123"</span>
+</pre>
+<p>
+          Other primitive generator components have other intuitive attribute types,
+          very similar to the corresponding parser components. For instance, the
+          <code class="computeroutput"><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">char_</span></code> generator has <code class="computeroutput"><span class="keyword">char</span></code>
+          as consumed attribute. For a full list of available parser and generator
+          primitives and their attribute types please see the sections <a class="link" href="../../qi/quick_reference/qi_parsers.html" title="Qi Parsers">Qi
+          Parsers</a> and <a class="link" href="../../karma/quick_reference/primitive_generators.html" title="Karma Generators">Karma
+          Generators</a>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../attributes.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../attributes.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="compound_attributes.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

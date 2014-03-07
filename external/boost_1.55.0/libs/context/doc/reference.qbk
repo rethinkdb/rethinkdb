@@ -1,0 +1,43 @@
+[/
+          Copyright Oliver Kowalke 2009.
+ Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+          http://www.boost.org/LICENSE_1_0.txt
+]
+
+[section:reference Reference]
+
+[heading ARM]
+
+* AAPCS ABI: Procedure Call Standard for the ARM Architecture
+* AAPCS/LINUX: ARM GNU/Linux Application Binary Interface Supplement
+
+
+[heading MIPS]
+
+* O32 ABI: SYSTEM V APPLICATION BINARY INTERFACE, MIPS RISC Processor Supplement
+
+
+[heading PowerPC32]
+
+* SYSV ABI: SYSTEM V APPLICATION BINARY INTERFACE PowerPC Processor Supplement
+
+
+[heading PowerPC64]
+
+* SYSV ABI: PowerPC User Instruction Set Architecture, Book I
+
+
+[heading X86-32]
+
+* SYSV ABI: SYSTEM V APPLICATION BINARY INTERFACE, Intel386TM Architecture Processor Supplement
+* MS PE: [@http://msdn.microsoft.com/en-us/library/k2b2ssfy.aspx Calling Conventions]
+
+
+[heading X86-64]
+
+* SYSV ABI: System V Application Binary Interface, AMD64 Architecture Processor Supplement
+* MS PE: [@http://msdn.microsoft.com/en-us/library/7kcdt6fy%28VS.80%29.aspx x64 Software Conventions]
+
+
+[endsect]

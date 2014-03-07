@@ -1,0 +1,297 @@
+[article Template 1.5
+    [quickbook 1.5]
+]
+
+[section Templates]
+
+[/-------------------------------- nullary arg ]
+
+[template foo0 nullary_arg]
+
+[foo0]
+
+[/-------------------------------- unary arg, phrase syle ]
+
+[template foo1[bar] foo [bar]]
+
+[foo1 baz]
+
+[/-------------------------------- unary arg, block syle ]
+
+[template foo2[bar]
+foo [bar]
+]
+
+[foo2 baz]
+
+[template foo3[bar]
+This is a complete paragraph. [bar] [bar] [bar] [bar] [bar]
+[bar] [bar] [bar] [bar].... blah blah blah......
+]
+
+[foo3 kalamazoo]
+
+[/-------------------------------- unary arg, using punctuation ]
+
+[template ![bar] '''<hey>'''[bar]'''</hey>''']
+
+[!baz]
+
+[/-------------------------------- recursive templates ]
+
+[template foo4[bar]
+[foo3 [bar]]
+]
+
+[foo3 madagascar]
+
+[template foo5[x] zoom [x]]
+[template foo6[x] [x] zoom]
+
+[foo6[foo5 peanut]]
+
+[template kinda_weird[x y] [x] [y]]
+
+[kinda_weird exactly..xanadu]
+
+
+[/-------------------------------- space delimitted args ]
+
+[template simple1[a b] [a][b]]
+
+[simple1 w x]
+
+[template simple2[a b c d] [a][b][c][d]]
+
+[simple2 w x y z][simple2 w x y z trail]
+
+[/-------------------------------- John's templates ]
+
+[template code[x]
+    int main()
+    {
+        std::cout << ``[x]`` << std::endl;
+    }
+]
+
+[code "Hello\, World"]
+
+[template alpha '''&alpha;''']
+[template pow[a b] [a]'''<superscript>'''[b]'''</superscript>''' ]
+[template super[text]'''<superscript>'''[text]'''</superscript>''' ]
+
+[pow x 2]
+
+[pow [alpha] 2]
+
+x[super 2]
+
+[/-------------------------------- Some more ]
+
+[template banana got a banana?]
+[template plantation[bananarama] [bananarama]]
+
+[plantation [banana]]
+
+[/-------------------------------- Not a bug (there was a syntax error here) ]
+
+[template join1[a b] [b][a]]
+[template join2[a b] [a][b]]
+[template test[x] [join1 [join2 0 [x]]...0]]
+[test 0]
+
+[/-------------------------------- Mismatched template ]
+
+[template foo 1]
+[fool]
+
+[template blah 10]
+
+[endsect]
+
+[section Empty Templates]
+
+[template empty1]
+[template empty2 ]
+[template empty3 [/comment]]
+[template empty4 [/comment]
+
+]
+[template empty5
+]
+[template empty6
+
+]
+[template empty7
+[/comment]
+]
+[template empty8
+
+[/comment]
+]
+[template empty_arg1[x]]
+[template empty_arg2[x y]]
+
+[empty1]
+[empty2]
+[empty3]
+[empty4]
+[empty5]
+[empty6]
+[empty7]
+[empty8]
+[empty_arg1 1]
+[empty_arg2 1 2]
+
+[endsect]
+
+[/----------------------------------- Nested templates ]
+
+[section Nested Templates]
+
+[template block[content]
+
+Start block template.
+
+[content]
+
+End block template.
+]
+
+[template phrase[content] Start phrase template. [content] End phrase template.]
+
+Pre [block [block Hello!]] Post
+
+Pre [block [phrase Hello!]] Post
+
+Pre [phrase [block Hello!]] Post
+
+Pre [phrase [phrase Hello!]] Post
+
+[endsect]
+
+[/----------------------------------- Block Markup ]
+
+[section Block Markup]
+
+[template list
+* a
+* b]
+
+[template horizontal
+----]
+
+[template codeblock
+    int main() {}]
+
+[template paragraphs
+Paragraphs 1
+
+Paragraphs 2
+]
+
+[list][horizontal][codeblock][paragraphs]
+
+* [list]
+* [horizontal]
+* [codeblock]
+* [paragraphs]
+
+[endsect]
+
+[/----------------------------------- 1.5+ use static scoping ]
+
+[section Static Scoping]
+
+[template x static scoping]
+[template static_test1[] [x]]
+[template static_test2[x] [static_test1]]
+[static_test2 dynamic scoping]
+
+[/ This should be '[a]' because [a] isn't matched. ]
+[template test1[] [a]]
+[template test2[a] [test1]]
+[test2 1]
+
+[/ In 1.5 template arguments are scoped at the point they are defined]
+
+[template y new]
+[template static_test3[a y] [a]]
+[static_test3 [y] old]
+
+[/ From https://svn.boost.org/trac/boost/ticket/2034 ]
+
+[template same[x] [x]]
+[template echo[a b] [a] [b]]
+[template echo_twice[x] [echo [same [x]]..[same [x]]]]
+[echo_twice foo]
+
+[endsect]
+
+[/----------------------------------- 1.5+ template arguments ]
+
+[section Template Arguments]
+
+[template binary[x y] {[x]-[y]}]
+[binary 1..2]     [/ {1-2} ]
+[binary 1 2]      [/ {1-2} ]
+[binary 1..2 3 4] [/ {1-2 3 4} ]
+[binary 1 2..3 4] [/ {1 2-3 4} ]
+[binary 1 2 3..4] [/ {1 2 3-4} ]
+[binary 1.\.2..3] [/ {1..2-3} ]
+[binary 1.\.2 3]  [/ {1..2-3} ]
+
+[binary [binary 1 2..3]..4] [/ { {1 2-3}-4} ]
+[binary [binary 1 2..3] 4] [/ { {1 2-3}-4} ]
+[binary [binary 1 2 3]..4] [/ { {1-2 3}-4} ]
+
+[binary \[1 2\] 3] [/ {[1-2] 3} ]
+[binary \[1..2\] 3] [/ {[1-2] 3} ]
+[binary \[1 2] [/ {(1-2} ]
+
+[template ternary[x y z] {[x]-[y]-[z]}]
+[ternary 1..2..3]  [/ {1-2-3} ]
+[ternary 1 2 3]    [/ {1-2-3} ]
+
+[endsect]
+
+[/----------------------------------- Block and phrases ]
+
+[section Block and phrase templates]
+
+[template phrase_template[] Some *text*]
+[template block_template[]
+
+A <emphasis>paragraph</emphasis>.
+]
+
+[phrase_template]
+[block_template]
+[`phrase_template]
+[`block_template]
+
+[/ Trailing newline shouldn't be included]
+
+[template named_index[type title]
+'''<index type="'''[type]'''"><title>'''[title]'''</title></index>'''
+]
+
+[named_index things Things]
+
+[endsect]
+
+[/----------------------------------- Escaped templates ]
+
+[section Escaped templates]
+
+[template raw_markup <thingbob>Not real boostbook</thingbob>]
+[template | <thingbob>Also not real boostbook</thingbob>]
+[template escaped1 [|] [`|]]
+[template escaped2 [x] [`x]]
+
+[`raw_markup]
+[`|]
+[escaped1 <thingbob>More fake boostbook</thingbob>]
+[escaped2 <thingbob>Final fake boostbook</thingbob>]
+
+[endsect]

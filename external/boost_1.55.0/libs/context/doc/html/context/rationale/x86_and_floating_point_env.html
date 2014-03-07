@@ -1,0 +1,124 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>x86 and floating-point env</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Context">
+<link rel="up" href="../rationale.html" title="Rationale">
+<link rel="prev" href="other_apis_.html" title="Other APIs">
+<link rel="next" href="../reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="other_apis_.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="context.rationale.x86_and_floating_point_env"></a><a class="link" href="x86_and_floating_point_env.html" title="x86 and floating-point env">x86 and
+      floating-point env</a>
+</h3></div></div></div>
+<h5>
+<a name="context.rationale.x86_and_floating_point_env.h0"></a>
+        <span class="phrase"><a name="context.rationale.x86_and_floating_point_env.i386"></a></span><a class="link" href="x86_and_floating_point_env.html#context.rationale.x86_and_floating_point_env.i386">i386</a>
+      </h5>
+<p>
+        "The FpCsr and the MxCsr register must be saved and restored before
+        any call or return by any procedure that needs to modify them ..."
+        <a href="#ftn.context.rationale.x86_and_floating_point_env.f0" class="footnote" name="context.rationale.x86_and_floating_point_env.f0"><sup class="footnote">[4]</sup></a>.
+      </p>
+<h5>
+<a name="context.rationale.x86_and_floating_point_env.h1"></a>
+        <span class="phrase"><a name="context.rationale.x86_and_floating_point_env.x86_64"></a></span><a class="link" href="x86_and_floating_point_env.html#context.rationale.x86_and_floating_point_env.x86_64">x86_64</a>
+      </h5>
+<h5>
+<a name="context.rationale.x86_and_floating_point_env.h2"></a>
+        <span class="phrase"><a name="context.rationale.x86_and_floating_point_env.windows"></a></span><a class="link" href="x86_and_floating_point_env.html#context.rationale.x86_and_floating_point_env.windows">Windows</a>
+      </h5>
+<p>
+        MxCsr - "A callee that modifies any of the non-volatile fields within
+        MxCsr must restore them before returning to its caller. Furthermore, a caller
+        that has modified any of these fields must restore them to their standard
+        values before invoking a callee ..." <a href="#ftn.context.rationale.x86_and_floating_point_env.f1" class="footnote" name="context.rationale.x86_and_floating_point_env.f1"><sup class="footnote">[5]</sup></a>.
+      </p>
+<p>
+        FpCsr - "A callee that modifies any of the fields within FpCsr must
+        restore them before returning to its caller. Furthermore, a caller that has
+        modified any of these fields must restore them to their standard values before
+        invoking a callee ..." <a href="#ftn.context.rationale.x86_and_floating_point_env.f2" class="footnote" name="context.rationale.x86_and_floating_point_env.f2"><sup class="footnote">[6]</sup></a>.
+      </p>
+<p>
+        "The MMX and floating-point stack registers (MM0-MM7/ST0-ST7) are preserved
+        across context switches. There is no explicit calling convention for these
+        registers." <a href="#ftn.context.rationale.x86_and_floating_point_env.f3" class="footnote" name="context.rationale.x86_and_floating_point_env.f3"><sup class="footnote">[7]</sup></a>.
+      </p>
+<p>
+        "The 64-bit Microsoft compiler does not use ST(0)-ST(7)/MM0-MM7".
+        <a href="#ftn.context.rationale.x86_and_floating_point_env.f4" class="footnote" name="context.rationale.x86_and_floating_point_env.f4"><sup class="footnote">[8]</sup></a>.
+      </p>
+<p>
+        "XMM6-XMM15 must be preserved" <a href="#ftn.context.rationale.x86_and_floating_point_env.f5" class="footnote" name="context.rationale.x86_and_floating_point_env.f5"><sup class="footnote">[9]</sup></a>
+      </p>
+<h5>
+<a name="context.rationale.x86_and_floating_point_env.h3"></a>
+        <span class="phrase"><a name="context.rationale.x86_and_floating_point_env.sysv"></a></span><a class="link" href="x86_and_floating_point_env.html#context.rationale.x86_and_floating_point_env.sysv">SysV</a>
+      </h5>
+<p>
+        "The control bits of the MxCsr register are callee-saved (preserved
+        across calls), while the status bits are caller-saved (not preserved). The
+        x87 status word register is caller-saved, whereas the x87 control word (FpCsr)
+        is callee-saved." <a href="#ftn.context.rationale.x86_and_floating_point_env.f6" class="footnote" name="context.rationale.x86_and_floating_point_env.f6"><sup class="footnote">[10]</sup></a>.
+      </p>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.context.rationale.x86_and_floating_point_env.f0" class="footnote"><p><a href="#context.rationale.x86_and_floating_point_env.f0" class="para"><sup class="para">[4] </sup></a>
+          'Calling Conventions', Agner Fog
+        </p></div>
+<div id="ftn.context.rationale.x86_and_floating_point_env.f1" class="footnote"><p><a href="#context.rationale.x86_and_floating_point_env.f1" class="para"><sup class="para">[5] </sup></a>
+          <a href="http://http://msdn.microsoft.com/en-us/library/yxty7t75.aspx" target="_top">MSDN
+          article 'MxCsr'</a>
+        </p></div>
+<div id="ftn.context.rationale.x86_and_floating_point_env.f2" class="footnote"><p><a href="#context.rationale.x86_and_floating_point_env.f2" class="para"><sup class="para">[6] </sup></a>
+          <a href="http://http://msdn.microsoft.com/en-us/library/ms235300.aspx" target="_top">MSDN
+          article 'FpCsr'</a>
+        </p></div>
+<div id="ftn.context.rationale.x86_and_floating_point_env.f3" class="footnote"><p><a href="#context.rationale.x86_and_floating_point_env.f3" class="para"><sup class="para">[7] </sup></a>
+          <a href="http://msdn.microsoft.com/en-us/library/a32tsf7t%28VS.80%29.aspx" target="_top">MSDN
+          article 'Legacy Floating-Point Support'</a>
+        </p></div>
+<div id="ftn.context.rationale.x86_and_floating_point_env.f4" class="footnote"><p><a href="#context.rationale.x86_and_floating_point_env.f4" class="para"><sup class="para">[8] </sup></a>
+          'Calling Conventions', Agner Fog
+        </p></div>
+<div id="ftn.context.rationale.x86_and_floating_point_env.f5" class="footnote"><p><a href="#context.rationale.x86_and_floating_point_env.f5" class="para"><sup class="para">[9] </sup></a>
+          <a href="http://msdn.microsoft.com/en-us/library/9z1stfyw%28v=vs.100%29.aspx" target="_top">MSDN
+          article 'Register Usage'</a>
+        </p></div>
+<div id="ftn.context.rationale.x86_and_floating_point_env.f6" class="footnote"><p><a href="#context.rationale.x86_and_floating_point_env.f6" class="para"><sup class="para">[10] </sup></a>
+          SysV ABI AMD64 Architecture Processor Supplement Draft Version 0.99.4,
+          3.2.1
+        </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009 Oliver Kowalke<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="other_apis_.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

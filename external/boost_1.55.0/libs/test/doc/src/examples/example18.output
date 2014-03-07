@@ -1,0 +1,10 @@
+> example --log_level=message
+Running 3 test cases...
+setup fixture
+test.cpp(13): error in "test_case1": check i == 1 failed
+teardown fixture
+setup fixture
+test.cpp(19): error in "test_case2": check i == 1 failed [0 != 1]
+teardown fixture
+
+*** 2 failures detected in test suite "example"

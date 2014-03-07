@@ -1,0 +1,81 @@
+GC on EWS4800
+-------------
+
+1. About EWS4800
+   EWS4800 is 32bit/64bit workstation.
+
+     Vender: NEC Corporation
+     OS: UX/4800 R9.* - R13.* (SystemV R4.2)
+     CPU: R4000, R4400, R10000 (MIPS)
+
+2. Compiler
+
+ 32bit:
+   Use ANSI C compiler.
+     CC = /usr/abiccs/bin/cc
+
+ 64bit:
+   Use 64bit ANSI C compiler.
+     CC = /usr/ccs64/bin/cc
+     AR = /usr/ccs64/bin/ar
+
+3. ELF file format
+   *** Caution: The following infomation is empirical. ***
+
+ 32bit:
+   ELF file has an unique format. (See a.out(4) and end(3C).)
+
+     &_start
+        :      text segment
+     &etext
+     DATASTART
+        :      data segment (initialized)
+     &edata
+     DATASTART2
+        :      data segment (uninitialized)
+     &end
+
+   Here, DATASTART and DATASTART2 are macros of GC, and are defined as
+   the following equations. (See include/private/gcconfig.h.)
+   The algorithm for DATASTART is similar with the function
+   GC_SysVGetDataStart() in os_dep.c.
+
+     DATASTART  = ((&etext + 0x3ffff) & ~0x3ffff) + (&etext & 0xffff)
+
+    Dynamically linked:
+     DATASTART2 = (&_gp + 0x8000 + 0x3ffff) & ~0x3ffff
+
+    Statically linked:
+     DATASTART2 = &edata
+
+   GC has to check addresses both between DATASTART and &edata, and
+   between DATASTART2 and &end. If a program accesses between &etext
+   and DATASTART, or between &edata and DATASTART2, the segmentation
+   error occurs and the program stops.
+
+   If a program is statically linked, there is not a gap between
+   &edata and DATASTART2. The global symbol &_DYNAMIC_LINKING is used
+   for the detection.
+
+ 64bit:
+   ELF file has a simple format. (See end(3C).)
+
+     _ftext
+        :      text segment
+     _etext
+     _fdata = DATASTART
+        :      data segment (initialized)
+     _edata
+     _fbss
+        :      data segment (uninitialized)
+     _end = DATAEND
+
+--
+Hironori SAKAMOTO <hsaka@mth.biglobe.ne.jp>
+
+
+When using the new "configure; make" build process, please
+run configure with the --disable-shared option.  "Make check" does not
+yet pass with dynamic libraries.  Ther reasons for that are not yet
+understood.  (HB, paraphrasing message from Hironori SAKAMOTO.)
+

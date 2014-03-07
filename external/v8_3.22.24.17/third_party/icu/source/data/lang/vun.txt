@@ -1,0 +1,61 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/vun.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/vun.xml
+ */
+vun{
+    Languages{
+        ak{"Kiakanyi"}
+        am{"Kiamharyi"}
+        ar{"Kyiarabu"}
+        be{"Kyibelarusi"}
+        bg{"Kyibulgaryia"}
+        bn{"Kyibangla"}
+        cs{"Kyichecki"}
+        de{"Kyijerumani"}
+        el{"Kyigiriki"}
+        en{"Kyingereza"}
+        es{"Kyihispania"}
+        fa{"Kyiajemi"}
+        fr{"Kyifaransa"}
+        ha{"Kyihausa"}
+        hi{"Kyihindi"}
+        hu{"Kyihungari"}
+        id{"Kyiindonesia"}
+        ig{"Kyiigbo"}
+        it{"Kyiitaliano"}
+        ja{"Kyijapani"}
+        jv{"Kyijava"}
+        km{"Kyikambodia"}
+        ko{"Kyikorea"}
+        ms{"Kyimalesia"}
+        my{"Kyiburma"}
+        ne{"Kyinepali"}
+        nl{"Kyiholanzi"}
+        pa{"Kyipunjabi"}
+        pl{"Kyipolandi"}
+        pt{"Kyireno"}
+        ro{"Kyiromania"}
+        ru{"Kyirusi"}
+        rw{"Kyinyarwanda"}
+        so{"Kyisomalyi"}
+        sv{"Kyiswidi"}
+        ta{"Kyitamil"}
+        th{"Kyitailandi"}
+        tr{"Kyiturukyi"}
+        uk{"Kyiukrania"}
+        ur{"Kyiurdu"}
+        vi{"Kyivietinamu"}
+        vun{"Kyivunjo"}
+        yo{"Kyiyoruba"}
+        zh{"Kyichina"}
+        zu{"Kyizulu"}
+    }
+    Version{"2.0.45.90"}
+}

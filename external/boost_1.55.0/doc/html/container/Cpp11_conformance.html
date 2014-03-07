@@ -1,0 +1,217 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>C++11 Conformance</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../container.html" title="Chapter&#160;8.&#160;Boost.Container">
+<link rel="prev" href="extended_functionality.html" title="Extended functionality">
+<link rel="next" href="history_and_reasons.html" title="History and reasons to use Boost.Container">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="extended_functionality.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../container.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="history_and_reasons.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="container.Cpp11_conformance"></a><a class="link" href="Cpp11_conformance.html" title="C++11 Conformance">C++11 Conformance</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="Cpp11_conformance.html#container.Cpp11_conformance.move_emplace">Move and Emplace</a></span></dt>
+<dt><span class="section"><a href="Cpp11_conformance.html#container.Cpp11_conformance.alloc_traits_move_traits">Stateful
+      allocators</a></span></dt>
+<dt><span class="section"><a href="Cpp11_conformance.html#container.Cpp11_conformance.scoped_allocator">Scoped
+      allocators</a></span></dt>
+<dt><span class="section"><a href="Cpp11_conformance.html#container.Cpp11_conformance.initializer_lists">Initializer
+      lists</a></span></dt>
+<dt><span class="section"><a href="Cpp11_conformance.html#container.Cpp11_conformance.forward_list"><code class="computeroutput"><span class="identifier">forward_list</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code></a></span></dt>
+<dt><span class="section"><a href="Cpp11_conformance.html#container.Cpp11_conformance.Vector_bool"><code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span></code></a></span></dt>
+</dl></div>
+<p>
+      <span class="bold"><strong>Boost.Container</strong></span> aims for full C++11 conformance
+      except reasoned deviations, backporting as much as possible for C++03. Obviously,
+      this conformance is a work in progress so this section explains what C++11
+      features are implemented and which of them have been backported to C++03 compilers.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.Cpp11_conformance.move_emplace"></a><a class="link" href="Cpp11_conformance.html#container.Cpp11_conformance.move_emplace" title="Move and Emplace">Move and Emplace</a>
+</h3></div></div></div>
+<p>
+        For compilers with rvalue references and for those C++03 types that use
+        <a href="http://www.boost.org/libs/move" target="_top">Boost.Move</a> rvalue reference
+        emulation <span class="bold"><strong>Boost.Container</strong></span> supports all C++11
+        features related to move semantics: containers are movable, requirements
+        for <code class="computeroutput"><span class="identifier">value_type</span></code> are those
+        specified for C++11 containers.
+      </p>
+<p>
+        For compilers with variadic templates, <span class="bold"><strong>Boost.Container</strong></span>
+        supports placement insertion (<code class="computeroutput"><span class="identifier">emplace</span></code>,
+        ...) functions from C++11. For those compilers without variadic templates
+        support <span class="bold"><strong>Boost.Container</strong></span> uses the preprocessor
+        to create a set of overloads up to a finite (10) number of parameters.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.Cpp11_conformance.alloc_traits_move_traits"></a><a class="link" href="Cpp11_conformance.html#container.Cpp11_conformance.alloc_traits_move_traits" title="Stateful allocators">Stateful
+      allocators</a>
+</h3></div></div></div>
+<p>
+        C++03 was not stateful-allocator friendly. For compactness of container objects
+        and for simplicity, it did not require containers to support allocators with
+        state: Allocator objects need not be stored in container objects. It was
+        not possible to store an allocator with state, say an allocator that holds
+        a pointer to an arena from which to allocate. C++03 allowed implementors
+        to suppose two allocators of the same type always compare equal (that means
+        that memory allocated by one allocator object could be deallocated by another
+        instance of the same type) and allocators were not swapped when the container
+        was swapped.
+      </p>
+<p>
+        C++11 further improves stateful allocator support through <a href="http://en.cppreference.com/w/cpp/memory/allocator_traits" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator_traits</span></code></a>.
+        <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator_traits</span></code> is the protocol between
+        a container and an allocator, and an allocator writer can customize its behaviour
+        (should the container propagate it in move constructor, swap, etc.?) following
+        <code class="computeroutput"><span class="identifier">allocator_traits</span></code> requirements.
+        <span class="bold"><strong>Boost.Container</strong></span> not only supports this model
+        with C++11 but also <span class="bold"><strong>backports it to C++03</strong></span>.
+      </p>
+<p>
+        If possible, a single allocator is hold to construct <code class="computeroutput"><span class="identifier">value_type</span></code>.
+        If the container needs an auxiliary allocator (e.g. a array allocator used
+        by <code class="computeroutput"><span class="identifier">deque</span></code> or <code class="computeroutput"><span class="identifier">stable_vector</span></code>), that allocator is also
+        constructed from the user-supplied allocator when the container is constructed
+        (i.e. it's not constructed on the fly when auxiliary memory is needed).
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.Cpp11_conformance.scoped_allocator"></a><a class="link" href="Cpp11_conformance.html#container.Cpp11_conformance.scoped_allocator" title="Scoped allocators">Scoped
+      allocators</a>
+</h3></div></div></div>
+<p>
+        C++11 improves stateful allocators with the introduction of <a href="http://en.cppreference.com/w/cpp/memory/scoped_allocator_adaptor" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">scoped_allocator_adaptor</span></code></a>
+        class template. <code class="computeroutput"><span class="identifier">scoped_allocator_adaptor</span></code>
+        is instantiated with one outer allocator and zero or more inner allocators.
+      </p>
+<p>
+        A scoped allocator is a mechanism to automatically propagate the state of
+        the allocator to the subobjects of a container in a controlled way. If instantiated
+        with only one allocator type, the inner allocator becomes the <code class="computeroutput"><span class="identifier">scoped_allocator_adaptor</span></code> itself, thus using
+        the same allocator resource for the container and every element within the
+        container and, if the elements themselves are containers, each of their elements
+        recursively. If instantiated with more than one allocator, the first allocator
+        is the outer allocator for use by the container, the second allocator is
+        passed to the constructors of the container's elements, and, if the elements
+        themselves are containers, the third allocator is passed to the elements'
+        elements, and so on.
+      </p>
+<p>
+        <span class="bold"><strong>Boost.Container</strong></span> implements its own <code class="computeroutput"><span class="identifier">scoped_allocator_adaptor</span></code> class and <span class="bold"><strong>backports this feature also to C++03 compilers</strong></span>. Due
+        to C++03 limitations, in those compilers the allocator propagation implemented
+        by <code class="computeroutput"><span class="identifier">scoped_allocator_adaptor</span><span class="special">::</span><span class="identifier">construct</span></code>
+        functions will be based on traits (<code class="computeroutput"><a class="link" href="../boost/container/constructible__idp20699496.html" title="Struct template constructible_with_allocator_suffix">constructible_with_allocator_suffix</a></code>
+        and <code class="computeroutput"><a class="link" href="../boost/container/constructible__idp20704664.html" title="Struct template constructible_with_allocator_prefix">constructible_with_allocator_prefix</a></code>)
+        proposed in <a href="http://www.open-std.org/jtc1/sc22/WG21/docs/papers/2008/n2554.pdf" target="_top">N2554:
+        The Scoped Allocator Model (Rev 2) proposal</a>. In conforming C++11
+        compilers or compilers supporting SFINAE expressions (when <code class="computeroutput"><span class="identifier">BOOST_NO_SFINAE_EXPR</span></code> is NOT defined), traits
+        are ignored and C++11 rules (<code class="computeroutput"><span class="identifier">is_constructible</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span>
+        <span class="identifier">Args</span><span class="special">...,</span>
+        <span class="identifier">inner_allocator_type</span><span class="special">&gt;::</span><span class="identifier">value</span></code> and <code class="computeroutput"><span class="identifier">is_constructible</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span>
+        <span class="identifier">allocator_arg_t</span><span class="special">,</span>
+        <span class="identifier">inner_allocator_type</span><span class="special">,</span>
+        <span class="identifier">Args</span><span class="special">...&gt;::</span><span class="identifier">value</span></code>) will be used to detect if the allocator
+        must be propagated with suffix or prefix allocator arguments.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.Cpp11_conformance.initializer_lists"></a><a class="link" href="Cpp11_conformance.html#container.Cpp11_conformance.initializer_lists" title="Initializer lists">Initializer
+      lists</a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Boost.Container</strong></span> does not support initializer
+        lists when constructing or assigning containers but it will support it for
+        compilers with initialized-list support. This feature won't be backported
+        to C++03 compilers.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.Cpp11_conformance.forward_list"></a><a class="link" href="Cpp11_conformance.html#container.Cpp11_conformance.forward_list" title="forward_list&lt;T&gt;"><code class="computeroutput"><span class="identifier">forward_list</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code></a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Boost.Container</strong></span> does not offer C++11 <code class="computeroutput"><span class="identifier">forward_list</span></code> container yet, but it will
+        be available in future versions.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.Cpp11_conformance.Vector_bool"></a><a class="link" href="Cpp11_conformance.html#container.Cpp11_conformance.Vector_bool" title="vector&lt;bool&gt;"><code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span></code></a>
+</h3></div></div></div>
+<p>
+        <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span></code> specialization
+        has been quite problematic, and there have been several unsuccessful tries
+        to deprecate or remove it from the standard. <span class="bold"><strong>Boost.Container</strong></span>
+        does not implement it as there is a superior <a href="http://www.boost.org/libs/dynamic_bitset/" target="_top">Boost.DynamicBitset</a>
+        solution. For issues with <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span></code>
+        see papers <a href="http://www.gotw.ca/publications/N1211.pdf" target="_top">vector&lt;bool&gt;:
+        N1211: More Problems, Better Solutions</a>, <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2160.html" target="_top">N2160:
+        Library Issue 96: Fixing vector&lt;bool&gt;</a>, <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2204.html" target="_top">N2204
+        A Specification to deprecate vector&lt;bool&gt;</a>.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em>In 1998, admitting that the committee made a mistake
+            was controversial. Since then Java has had to deprecate such significant
+            portions of their libraries that the idea C++ would be ridiculed for
+            deprecating a single minor template specialization seems quaint.</em></span></span>&#8221;</span>
+          </li>
+<li class="listitem">
+            <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em><code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span></code> is not a container and <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;::</span><span class="identifier">iterator</span></code> is not a random-access iterator
+            (or even a forward or bidirectional iterator either, for that matter).
+            This has already broken user code in the field in mysterious ways.</em></span></span>&#8221;</span>
+          </li>
+<li class="listitem">
+            <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em><code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span></code> forces a specific (and potentially
+            bad) optimization choice on all users by enshrining it in the standard.
+            The optimization is premature; different users have different requirements.
+            This too has already hurt users who have been forced to implement workarounds
+            to disable the 'optimization' (e.g., by using a vector&lt;char&gt; and
+            manually casting to/from bool).</em></span></span>&#8221;</span>
+          </li>
+</ul></div>
+<p>
+        So <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">container</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;::</span><span class="identifier">iterator</span></code> returns real <code class="computeroutput"><span class="keyword">bool</span></code>
+        references and works as a fully compliant container. If you need a memory
+        optimized version of <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">container</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span></code>
+        functionalities, please use <a href="http://www.boost.org/libs/dynamic_bitset/" target="_top">Boost.DynamicBitset</a>.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="extended_functionality.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../container.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="history_and_reasons.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 12.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 51448)  --><svg height="120.648" id="Layer_1" inkscape:version="0.42" sodipodi:docbase="F:\openclip\svg da inviare" sodipodi:docname="Attenzione.svg" sodipodi:version="0.32" space="preserve" style="overflow:visible;enable-background:new 0 0 133.878 120.648;" version="1.1" viewBox="0 0 133.878 120.648" width="133.878" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://web.resource.org/cc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:sodipodi="http://inkscape.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:svg="http://www.w3.org/2000/svg">
+  <metadata>
+    <rdf:RDF xmlns:cc="http://web.resource.org/cc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+      <cc:Work rdf:about="">
+        <dc:title>Attenzione</dc:title>
+        <dc:description></dc:description>
+        <dc:subject>
+          <rdf:Bag>
+            <rdf:li>pulsante</rdf:li>
+          </rdf:Bag>
+        </dc:subject>
+        <dc:publisher>
+          <cc:Agent rdf:about="http://www.openclipart.org/">
+            <dc:title>Open Clip Art Library</dc:title>
+          </cc:Agent>
+        </dc:publisher>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>Architetto Francesco Rollandin</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:rights>
+          <cc:Agent>
+            <dc:title>Architetto Francesco Rollandin</dc:title>
+          </cc:Agent>
+        </dc:rights>
+        <dc:date></dc:date>
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+        <cc:license rdf:resource="http://web.resource.org/cc/PublicDomain"/>
+        <dc:language>en</dc:language>
+      </cc:Work>
+      <cc:License rdf:about="http://web.resource.org/cc/PublicDomain">
+        <cc:permits rdf:resource="http://web.resource.org/cc/Reproduction"/>
+        <cc:permits rdf:resource="http://web.resource.org/cc/Distribution"/>
+        <cc:permits rdf:resource="http://web.resource.org/cc/DerivativeWorks"/>
+      </cc:License>
+    </rdf:RDF>
+  </metadata>
+  <defs id="defs43"/>
+  <sodipodi:namedview bordercolor="#666666" borderopacity="1.0" id="base" inkscape:current-layer="Layer_1" inkscape:cx="66.939003" inkscape:cy="60.324001" inkscape:pageopacity="0.0" inkscape:pageshadow="2" inkscape:window-height="510" inkscape:window-width="787" inkscape:window-x="44" inkscape:window-y="58" inkscape:zoom="2.9838869" pagecolor="#ffffff"/>
+  <g id="g3">
+    <linearGradient gradientTransform="matrix(56.9977 90.4964 90.4964 -56.9977 -27343.9609 47971.0547)" gradientUnits="userSpaceOnUse" id="XMLID_4_" x1="-244.5732" x2="-242.8169" y1="455.4199" y2="455.4199">
+      <stop id="stop6" offset="0" style="stop-color:#FFFA5F"/>
+      <stop id="stop8" offset="1" style="stop-color:#9F3300"/>
+    </linearGradient>
+    <path d="M51.333,8.834C34.985,37.343,18.638,65.854,2.289,94.363   c-7.081,12.352,3.352,26.285,16.453,26.285c6.708,0,13.418,0,20.128,0c22.109,0,44.217,0,66.327,0c3.644,0,7.286,0,10.931,0   c13.293,0,20.963-14.273,16.452-26.031c-4.114-10.729-11.861-20.99-17.542-30.922c-8.81-15.403-17.618-30.809-26.429-46.212   c-1.813-3.167-3.622-6.333-5.434-9.5C76.601-3.516,57.616-2.03,51.333,8.834 M53.973,9.064" id="path10" style="fill:url(#XMLID_4_);"/>
+    <path d="M55.474,12.388c-8.247,14.279-16.492,28.559-24.739,42.839   c-5.526,9.567-11.05,19.137-16.577,28.707c-2.732,4.73-7.323,10.456-8.284,16c-3.799,21.9,34.927,15.743,46.734,15.743   c20.073,0,40.144,0,60.215,0c13.716,0,18.636-11.963,12.229-23.063c-6.462-11.195-12.927-22.388-19.389-33.582   c-7.249-12.557-14.499-25.113-21.75-37.671c-1.682-2.916-3.364-5.829-5.049-8.745C73.767,3.785,60.676,3.364,55.474,12.388" id="path12" style="fill-rule:evenodd;clip-rule:evenodd;fill:#FFF200;"/>
+    <path d="M55.474,12.388c-8.247,14.279-16.492,28.559-24.739,42.839c-5.526,9.567-11.05,19.137-16.577,28.707   c-2.732,4.73-7.323,10.456-8.284,16c-3.799,21.9,34.927,15.743,46.734,15.743c20.073,0,40.144,0,60.215,0   c13.716,0,18.636-11.963,12.229-23.063c-6.462-11.195-12.927-22.388-19.389-33.582c-7.249-12.557-14.499-25.113-21.75-37.671   c-1.682-2.916-3.364-5.829-5.049-8.745C73.767,3.785,60.676,3.364,55.474,12.388" id="path14" style="fill:#FFCE00;"/>
+    <path d="M126.731,95.522c-8.733-15.127-17.468-30.253-26.201-45.379   c-5.537-9.595-11.078-19.188-16.616-28.781c-3.938-6.821-7.459-15.689-16.813-15.689c1.013,0,5.901,10.225,6.469,11.196   c5.451,9.314,10.902,18.63,16.352,27.947c9.217,15.749,18.433,31.498,27.646,47.249c2.302,3.933,5.356,10.555,1.308,14.397   c-3.148,2.987-7.99,3.196-12.099,3.196c-7.225,0-14.448,0-21.674,0c-22.125,0-44.251,0-66.377,0c-3.598,0-7.197,0-10.794,0   c5.285,7.909,16.341,6.02,24.546,6.02c13.009,0,26.017,0,39.023,0c11.979,0,23.958,0,35.937,0c2.516,0,5.032,0,7.547,0   C125.136,115.678,131.878,104.435,126.731,95.522" id="path16" style="fill:#FFB600;"/>
+    <path d="M14.615,112.457c-4.483-7.751,1.908-16.103,5.793-22.834   c4.698-8.138,9.398-16.276,14.097-24.414C44.54,47.83,54.574,30.448,64.61,13.069c0.789-1.367,3.725-4.568,2.594-5.539   c-3.913-3.353-10.287,1.936-12.107,5.087c-3.129,5.417-6.258,10.835-9.386,16.252c-11.105,19.226-22.209,38.453-33.313,57.68   c-1.649,2.854-3.299,5.713-4.95,8.569c-4.771,8.265-0.075,19.162,9.658,20.446C16.124,114.65,15.294,113.615,14.615,112.457" id="path18" style="fill-rule:evenodd;clip-rule:evenodd;fill:#FFE600;"/>
+    <path d="M77.076,34.654c0,10.183-1.788,20.758-3.439,30.772   c-0.369,2.239-4.03,23.609-7.796,14.179c-4.247-10.632-4.832-23.419-5.958-34.696c-0.363-3.638-1.538-8.425-0.563-12.06   C61.667,24.099,77.076,25.199,77.076,34.654" id="path20" style="fill-rule:evenodd;clip-rule:evenodd;fill:#FFFFE1;"/>
+    <path d="M77.076,34.654c-2.018,0.995-1.521,8.717-1.797,11.395c-0.685,6.643-1.505,13.282-2.614,19.869   c-0.79,4.701-1.301,10.862-3.954,14.981c-1.642,2.567-3.405-5.958-3.634-6.932c-2.948-12.443-4.464-25.664-5.09-38.43   c-0.272-5.52,5.164-8.854,10.277-7.622c3.87,0.933,5.217,7.36,7.688,6.738c0.009-11.451-19.755-11.453-19.746,0   c0.017,11.956,2.087,24.599,4.423,36.294c0.501,2.507,1.642,12.376,5.449,12.376c4.059-0.021,5.285-11.432,5.79-14.137   c1.261-6.765,2.139-13.605,2.887-20.444C77.084,45.722,79.281,35.942,77.076,34.654" id="path22" style="fill:#FFFFFF;"/>
+    <linearGradient gradientTransform="matrix(68.2284 33.0019 33.0019 -68.2284 1613.9791 39385.6641)" gradientUnits="userSpaceOnUse" id="XMLID_5_" x1="-246.981" x2="-245.2275" y1="458.29" y2="458.29">
+      <stop id="stop25" offset="0" style="stop-color:#FFFA5F"/>
+      <stop id="stop27" offset="1" style="stop-color:#9F3300"/>
+    </linearGradient>
+    <path d="M57.957,34.654c0,10.053,1.632,20.54,3.242,30.431   c0.479,2.936,4.912,26.502,9.99,15.164c4.987-11.134,5.351-25.201,6.386-37.184c0.273-3.169,1.153-7.045,0.421-10.221   C75.628,22.587,57.957,23.788,57.957,34.654 M60.207,34.654c0-8.061,13.138-9.015,15.459-1.792c1.156,3.597-0.13,8.748-0.508,12.38   c-1.135,10.904-2.052,22.602-5.501,33.069c-2.816,8.545-5.546-10.187-5.934-12.522C62.039,55.63,60.207,44.985,60.207,34.654" id="path29" style="fill-rule:evenodd;clip-rule:evenodd;fill:url(#XMLID_5_);"/>
+    <path d="M77.076,96.788c0,11.964-18.555,11.964-18.555,0   C58.521,84.822,77.076,84.822,77.076,96.788" id="path31" style="fill-rule:evenodd;clip-rule:evenodd;fill:#FFFFE1;"/>
+    <path d="M77.076,96.788c-2.605,1.661-2.157,6.757-7.044,8.101c-6.178,1.7-12.033-4.159-10.336-10.335   c1.439-5.23,7.657-7.767,12.341-5.021c2.91,1.704,3.164,7.913,5.915,7.256c0-14.267-22.698-12.238-20.143,1.826   c0.987,5.444,6.375,9.15,11.814,8.162C72.417,106.271,81.44,98.19,77.076,96.788" id="path33" style="fill:#FFFFFF;"/>
+    <linearGradient gradientTransform="matrix(68.2241 32.9998 32.9998 -68.2241 1604.682 39402.625)" gradientUnits="userSpaceOnUse" id="XMLID_6_" x1="-246.998" x2="-245.2348" y1="458.0625" y2="458.0625">
+      <stop id="stop36" offset="0" style="stop-color:#FFFA5F"/>
+      <stop id="stop38" offset="1" style="stop-color:#9F3300"/>
+    </linearGradient>
+    <path d="M57.395,96.788c0,13.41,20.805,13.41,20.805,0   C78.2,83.376,57.395,83.375,57.395,96.788 M59.647,96.788c0-10.514,16.301-10.514,16.301,0   C75.948,107.3,59.647,107.3,59.647,96.788" id="path40" style="fill-rule:evenodd;clip-rule:evenodd;fill:url(#XMLID_6_);"/>
+  </g>
+</svg>

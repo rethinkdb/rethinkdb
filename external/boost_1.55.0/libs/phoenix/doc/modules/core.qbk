@@ -1,0 +1,239 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Core]
+
+Actors are composed to create more complex actors in a tree-like hierarchy. The
+primitives are atomic entities that are like the leaves in the tree. Phoenix is
+extensible. New primitives can be added anytime. Right out of the box, there are
+only a few primitives, these are all defined in the Core module.
+
+This section shall deal with these preset primitives.
+
+[section Values]
+
+
+    #include <boost/phoenix/core/value.hpp>
+
+Whenever we see a constant in a partially applied function, an
+
+    expression::value<T>::type
+
+(where T is the type of the constant) is automatically created for
+us. For instance:
+
+    add(arg1, 6)
+
+Passing a second argument, `6`, an `expression::value<T>::type` is implicitly created
+behind the scenes. This is also equivalent to `add(arg1, val(6))`.
+
+    val(v)
+    
+generates an `expression::value<T>::type` where `T` is the type of `x`. In most
+cases, there's no need to explicitly use `val`, but, as we'll see later on,
+there are situations where this is unavoidable.
+
+[h2 Evaluating a Value]
+
+Like arguments, values are also actors. As such, values can be evaluated.
+Invoking a value gives the value's identity. Example:
+
+    cout << val(3)() << val("Hello World")();
+
+prints out "3 Hello World".
+
+[endsect]
+
+[section References]
+
+    #include <boost/phoenix/core/reference.hpp>
+
+Values are immutable constants. Attempting to modify a value will result in a
+compile time error. When we want the function to modify the parameter, we use a
+reference instead. For instance, imagine a lazy function `add_assign`:
+
+    void add_assign(T& x, T y) { x += y; } // pseudo code
+
+Here, we want the first function argument, x, to be mutable. Obviously, we
+cannot write:
+
+    add_assign(1, 2) // error first argument is immutable
+
+In C++, we can pass in a reference to a variable as the first argument in our
+example above. Yet, by default, the library forces arguments passed to partially
+applied functions to be immutable values (see [link phoenix.modules.core.values
+Values]). To achieve our intent, we use:
+
+    expression::reference<T>::type
+
+This is similar to `expression::value<T>::type` before but instead holds a reference to a
+variable.
+
+We normally don't instantiate `expression::reference<T>::type` objects directly. Instead we
+use:
+
+    ref(v)
+
+For example (where `i` is an `int` variable):
+
+    add_assign(ref(i), 2)
+
+[heading Evaluating a Reference]
+
+References are actors. Hence, references can be evaluated. Such invocation gives
+the reference's identity. Example:
+
+    int i = 3;
+    char const* s = "Hello World";
+    cout << ref(i)() << ref(s)();
+
+prints out "3 Hello World"
+
+
+[heading Constant References]
+
+Another free function
+    
+    cref(cv)
+    
+may also be used. `cref(cv)` creates an
+`expression::reference<T const>::type` object. This is similar to `expression::value<T>::type` but
+when the data to be passed as argument to a function is heavy and expensive to
+copy by value, the `cref(cv)` offers a lighter alternative.
+
+[endsect]
+
+[section Arguments]
+
+    #include <boost/phoenix/core/argument.hpp>
+
+We use an instance of:
+
+    expression::argument<N>::type
+
+to represent the Nth function argument. The argument placeholder acts as an
+imaginary data-bin where a function argument will be placed.
+
+[heading Predefined Arguments]
+
+There are a few predefined instances of `expression::argument<N>::type` named
+`arg1`..`argN`, and its __bll__ counterpart `_1`..`_N`. (where N is a predefined
+maximum).
+
+Here are some sample preset definitions of `arg1`..`argN`
+
+    namespace placeholders
+    {
+        expression::argument<1>::type const arg1 = {};
+        expression::argument<2>::type const arg2 = {};
+        expression::argument<3>::type const arg3 = {};
+    }
+
+and its __bll__ `_1`..`_N` style counterparts:
+
+
+    namespace placeholders
+    {
+        expression::argument<1>::type const _1 = {};
+        expression::argument<2>::type const _2 = {};
+        expression::argument<3>::type const _3 = {};
+    }
+
+[note You can set `BOOST_PHOENIX_ARG_LIMIT`, the predefined maximum
+placeholder index. By default, `BOOST_PHOENIX_ARG_LIMIT` is set to `BOOST_PHOENIX_LIMIT`
+(See [link phoenix.actor Actor]).]
+
+[heading User Defined Arguments]
+
+When appropriate, you can define your own `argument` names. For example:
+
+    expression::argument<1>::type x; // note one based index
+
+`x` may now be used as a parameter to a lazy function:
+
+    add(x, 6)
+
+which is equivalent to:
+
+    add(arg1, 6)
+
+[/note
+When dealing with argument placeholders the question arises whether you can call
+member functions on an `argument` actor.
+
+This is possible by supplying a custom `actor` which has a member
+generator function. See [link phoenix.advanced_topics.extending_actors Extending Actors]
+for more details.
+]
+
+[heading Evaluating an Argument]
+
+An argument, when evaluated, selects the Nth argument from the those passed
+in by the client.
+
+For example:
+
+    char        c = 'A';
+    int         i = 123;
+    const char* s = "Hello World";
+
+    cout << arg1(c) << endl;        //  Get the 1st argument: c
+    cout << arg1(i, s) << endl;     //  Get the 1st argument: i
+    cout << arg2(i, s) << endl;     //  Get the 2nd argument: s
+
+will print out:
+
+    A
+    123
+    Hello World
+
+[heading Extra Arguments]
+
+In C and C++, a function can have extra arguments that are not at all used by
+the function body itself. These extra arguments are simply ignored.
+
+Phoenix also allows extra arguments to be passed. For example, recall our
+original `add` function:
+
+    add(arg1, arg2)
+
+We know now that partially applying this function results to a function that
+expects 2 arguments. However, the library is a bit more lenient and allows the
+caller to supply more arguments than is actually required. Thus, `add` actually
+allows 2 /or more/ arguments. For instance, with:
+
+    add(arg1, arg2)(x, y, z)
+
+the third argument `z` is ignored. Taking this further, in-between arguments are
+also ignored. Example:
+
+    add(arg1, arg5)(a, b, c, d, e)
+
+Here, arguments b, c, and d are ignored. The function `add` takes in the first
+argument (`arg1`) and the fifth argument (`arg5`).
+
+[note There are a few reasons why enforcing strict arity is not
+desirable. A case in point is the callback function. Typical callback functions
+provide more information than is actually needed. Lambda functions are often
+used as callbacks.]
+
+[endsect]
+
+[section Nothing]
+
+    #include <boost/phoenix/core/nothing.hpp>
+
+Finally, the `expression::null<mpl::void_>::type` does nothing; (a "bum", if you will :-) ).
+There's a sole `expression::null<mpl::void_>::type` instance named "nothing". This actor is
+actually useful in situations where we don't want to do anything. (See
+[link phoenix.modules.statement.for_statement for_ Statement] for example).
+
+[endsect]
+
+[endsect]

@@ -1,0 +1,1307 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:directive Generator Directives]
+
+This module includes different generator directives. It includes alignment 
+directives (`left_align[]`, `center[]`, and `right_align[]`), repetition 
+(`repeat[]`), directives controlling automatic delimiting (`verbatim[]`, 
+`no_delimit[]`, and `delimit[]`), controlling case sensitivity (`upper[]` and 
+`lower[]`), field width (`maxwidth[]`), buffering (`buffer[]`), splitting into 
+columns (`columns[]`) and attribute handling (`duplicate[]`, `omit[]`, and 
+`skip[]`).
+
+[heading Module Header]
+
+    // forwards to <boost/spirit/home/karma/directive.hpp>
+    #include <boost/spirit/include/karma_directive.hpp>
+
+Also, see __include_structure__.
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:alignment Alignment Generator Directives (`left_align[]`, `center[]`, `right_align[]`)]
+
+[heading Description]
+
+The alignment directives allow to left align, right align or center output 
+emitted by other generators into columns of a specified width while using 
+an arbitrary generator to create the padding.
+
+[heading Header]
+
+For the `left_align[]` directive:
+
+    // forwards to <boost/spirit/home/karma/directive/left_alignment.hpp>
+    #include <boost/spirit/include/karma_left_alignment.hpp>
+
+For the `center[]` directive:
+
+    // forwards to <boost/spirit/home/karma/directive/center_alignment.hpp>
+    #include <boost/spirit/include/karma_center_alignment.hpp>
+
+For the `right_align[]` directive:
+
+    // forwards to <boost/spirit/home/karma/directive/right_alignment.hpp>
+    #include <boost/spirit/include/karma_right_alignment.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::left_align  // alias: boost::spirit::karma::left_align` ]]
+    [[`boost::spirit::center      // alias: boost::spirit::karma::center` ]]
+    [[`boost::spirit::right_align // alias: boost::spirit::karma::right_align` ]]
+]
+
+[heading Model of]
+
+[:__unary_generator_concept__]
+
+[variablelist Notation
+    [[`a`]            [A generator object]]
+    [[`pad`]          [A generator object, or a __karma_lazy_argument__ that 
+                       evaluates to a generator object]]
+    [[`A`, `Pad`]     [Attribute types of the generators `a` and `pad`]]
+    [[`width`]        [Numeric literal, any unsigned integer value, or
+                       a __karma_lazy_argument__ that evaluates to an unsigned 
+                       integer value]]]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __unary_generator_concept__.
+
+[table 
+    [[Expression]                   [Semantics]]
+    [[`left_align[a]`]              [Generate `a` left aligned in a column of 
+                                     width as defined by the preprocessor constant
+                                     `BOOST_KARMA_DEFAULT_FIELD_LENGTH` 
+                                     (default: 10), while using `space` to emit 
+                                     the necessary padding. This generator succeeds as 
+                                     long as its embedded generator `a` does not 
+                                     fail (unless the underlying output stream 
+                                     reports an error).]]
+    [[`left_align(width)[a]`]       [Generate `a` left aligned in a column of 
+                                     the given `width`, while using `space` to emit 
+                                     the necessary padding. This generator succeeds as 
+                                     long as its embedded generator `a` does not 
+                                     fail (unless the underlying output stream 
+                                     reports an error).]]
+    [[`left_align(pad)[a]`]         [Generate `a` left aligned in a column of 
+                                     width as defined by the preprocessor constant
+                                     `BOOST_KARMA_DEFAULT_FIELD_LENGTH` 
+                                     (default: 10), while using the generator `pad` 
+                                     to emit the necessary padding. This generator 
+                                     succeeds as long as its embedded and padding 
+                                     generators `a` and `pad` do not fail (except 
+                                     if the underlying output stream reports an 
+                                     error).]]
+    [[`left_align(width, pad)[a]`]  [Generate `a` left aligned in a column of 
+                                     the given `width`, while using the generator 
+                                     `pad` to emit the necessary padding. This 
+                                     generator succeeds as long as its embedded 
+                                     and padding generators `a` and `pad` do not 
+                                     fail (unless the underlying output stream 
+                                     reports an error).]]
+
+    [[`center[a]`]                  [Generate `a` centered in a column of 
+                                     width as defined by the preprocessor constant
+                                     `BOOST_KARMA_DEFAULT_FIELD_LENGTH` 
+                                     (default: 10), while using `space` to emit 
+                                     the necessary padding. This generator succeeds as 
+                                     long as its embedded generator `a` does not 
+                                     fail (unless the underlying output stream 
+                                     reports an error).]]
+    [[`center(width)[a]`]           [Generate `a` centered in a column of 
+                                     the given `width`, while using `space` to emit 
+                                     the necessary padding. This generator succeeds as 
+                                     long as its embedded generator `a` does not 
+                                     fail (unless the underlying output stream 
+                                     reports an error).]]
+    [[`center(pad)[a]`]             [Generate `a` centered in a column of 
+                                     width as defined by the preprocessor constant
+                                     `BOOST_KARMA_DEFAULT_FIELD_LENGTH` 
+                                     (default: 10), while using the generator `pad` 
+                                     to emit the necessary padding. This generator 
+                                     succeeds as long as its embedded and padding 
+                                     generators `a` and `pad` do not fail (except 
+                                     if the underlying output stream reports an 
+                                     error).]]
+    [[`center(width, pad)[a]`]      [Generate `a` centered in a column of 
+                                     the given `width`, while using the generator 
+                                     `pad` to emit the necessary padding. This 
+                                     generator succeeds as long as its embedded 
+                                     and padding generators `a` and `pad` do not 
+                                     fail (unless the underlying output stream 
+                                     reports an error).]]
+
+    [[`right_align[a]`]             [Generate `a` right aligned in a column of 
+                                     width as defined by the preprocessor constant
+                                     `BOOST_KARMA_DEFAULT_FIELD_LENGTH` 
+                                     (default: 10), while using `space` to emit 
+                                     the necessary padding. This generator succeeds as 
+                                     long as its embedded generator `a` does not 
+                                     fail (unless the underlying output stream 
+                                     reports an error).]]
+    [[`right_align(width)[a]`]      [Generate `a` right aligned in a column of 
+                                     the given `width`, while using `space` to emit 
+                                     the necessary padding. This generator succeeds as 
+                                     long as its embedded generator `a` does not 
+                                     fail (unless the underlying output stream 
+                                     reports an error).]]
+    [[`right_align(pad)[a]`]        [Generate `a` right aligned in a column of 
+                                     width as defined by the preprocessor constant
+                                     `BOOST_KARMA_DEFAULT_FIELD_LENGTH` 
+                                     (default: 10), while using the generator `pad` 
+                                     to emit the necessary padding. This generator 
+                                     succeeds as long as its embedded and padding 
+                                     generators `a` and `pad` do not fail (except 
+                                     if the underlying output stream reports an 
+                                     error).]]
+    [[`right_align(width, pad)[a]`] [Generate `a` right aligned in a column of 
+                                     the given `width`, while using the generator 
+                                     `pad` to emit the necessary padding. This 
+                                     generator succeeds as long as its embedded 
+                                     and padding generators `a` and `pad` do not 
+                                     fail (unless the underlying output stream 
+                                     reports an error).]]
+]
+
+[note   None of the generator directives listed above limits the emitted output 
+        to the respective column width. If the emitted output is longer than 
+        the specified (or implied) column width, the generated output overruns
+        the column to the right.
+
+        If the output needs to be limited to a specified column width, use the
+        `maxwidth[]` directive, for instance:
+        ``
+            maxwidth(8)[right_align(12)["1234567890"]]
+        ``
+        which will output (without the quotes): ``"  123456"``
+]
+
+[heading Attributes]
+
+See __karma_comp_attr_notation__.
+
+[table 
+    [[Expression]       [Attribute]]
+    [[`left_align[]`]
+[``a: A --> left_align[a]: A
+a: Unused --> left_align[a]: Unused``]]
+    [[`left_align(width)[]`]
+[``a: A --> left_align(width)[a]: A
+a: Unused --> left_align(width)[a]: Unused``]]
+    [[`left_align(pad)[]`]
+[``a: A, pad: Pad --> left_align(pad)[a]: A
+a: Unused, pad: Pad --> left_align(pad)[a]: Unused``]]
+    [[`left_align(pad, width)[]`]
+[``a: A, pad: Pad --> left_align(pad, width)[a]: A
+a: Unused, pad: Pad --> left_align(pad, width)[a]: Unused``]]
+
+    [[`center[]`]
+[``a: A --> center[a]: A
+a: Unused --> center[a]: Unused``]]
+    [[`center(width)[]`]
+[``a: A --> center(width)[a]: A
+a: Unused --> center(width)[a]: Unused``]]
+    [[`center(pad)[]`]
+[``a: A, pad: Pad --> center(pad)[a]: A
+a: Unused, pad: Pad --> center(pad)[a]: Unused``]]
+    [[`center(pad, width)[]`]
+[``a: A, pad: Pad --> center(pad, width)[a]: A
+a: Unused, pad: Pad --> center(pad, width)[a]: Unused``]]
+
+    [[`right_align[]`]
+[``a: A --> right_align[a]: A
+a: Unused --> right_align[a]: Unused``]]
+    [[`right_align(width)[]`]
+[``a: A --> right_align(width)[a]: A
+a: Unused --> right_align(width)[a]: Unused``]]
+    [[`right_align(pad)[]`]
+[``a: A, pad: Pad --> right_align(pad)[a]: A
+a: Unused, pad: Pad --> right_align(pad)[a]: Unused``]]
+    [[`right_align(pad, width)[]`]
+[``a: A, pad: Pad --> right_align(pad, width)[a]: A
+a: Unused, pad: Pad --> right_align(pad, width)[a]: Unused``]]
+]
+
+[heading Complexity]
+
+[:The overall complexity of an alignment generator directive is defined by 
+  the complexity of its embedded and padding generator. The complexity of the 
+  left alignment directive generator itself is O(1). The complexity of the 
+  center and right alignment directive generators is O(N), where `N` is the
+  number of characters emitted by the embedded and padding generators.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_alignment]
+
+Basic usage of the alignment generators:
+
+[reference_karma_alignment]
+
+[endsect] [/ alignment]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:repeat Repetition Generator Directive (`repeat[]`)]
+
+[heading Description]
+
+The repetition directive allows to repeat an arbitrary generator expression 
+while optionally specifying the lower and upper repetition counts. It provides 
+a more powerful and flexible mechanism for repeating a generator. There are 
+grammars that are impractical and cumbersome, if not impossible, for the basic 
+EBNF iteration syntax ([karma_kleene unary `'*'`] and the [karma_plus unary `'+'`]) 
+to specify. Examples:
+
+* A file name may have a maximum of 255 characters only.
+* A specific bitmap file format has exactly 4096 RGB color information.
+* A 256 bit binary string (1..256 1s or 0s).
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/directive/repeat.hpp>
+    #include <boost/spirit/include/karma_repeat.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::repeat    // alias: boost::spirit::karma::repeat` ]]
+    [[`boost::spirit::inf       // alias: boost::spirit::karma::inf` ]]
+]
+
+[heading Model of]
+
+[:__unary_generator_concept__]
+
+[variablelist Notation
+    [[`a`]              [A generator object]]
+    [[`num, num1, num2`][Numeric literals, any unsigned integer value, or
+                         a __karma_lazy_argument__ that evaluates to an 
+                         unsigned integer value]]
+    [[`inf`]            [Placeholder expression standing for 'no upper repeat 
+                         limit']]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __unary_generator_concept__.
+
+[table 
+    [[Expression]                   [Semantics]]
+    [[`repeat[a]`]                  [Repeat the generator `a` zero or more times. 
+                                     This generator succeeds as long as its 
+                                     embedded generator `a` does not fail (except 
+                                     if the underlying output stream reports an 
+                                     error). This variant of `repeat[]` is 
+                                     semantically equivalent to the 
+                                     [karma_kleene Kleene Star operator `*a`]]]
+    [[`repeat(num)[a]`]             [Repeat the generator `a` exactly `num` 
+                                     times. This generator succeeds as long as its 
+                                     embedded generator `a` does not fail and 
+                                     as long as the associated attribute 
+                                     (container) contains at least `num` elements
+                                     (unless the underlying output stream 
+                                     reports an error).]]
+    [[`repeat(num1, num2)[a]`]      [Repeat the generator `a` at least `num1` 
+                                     times but not more than `num2` times. This 
+                                     generator succeeds as long as its 
+                                     embedded generator `a` does not fail and 
+                                     as long as the associated attribute 
+                                     (container) contains at least `num1` elements
+                                     (unless the underlying output stream 
+                                     reports an error). If the associated
+                                     attribute (container) does contain more 
+                                     than `num2` elements, this directive 
+                                     limits the repeat count to `num2`. ]]
+    [[`repeat(num, inf)[a]`]        [Repeat the generator `a` at least `num1` 
+                                     times. No upper limit for the repeat count
+                                     is set. This generator succeeds as long as 
+                                     its embedded generator `a` does not fail 
+                                     and as long as the associated attribute 
+                                     (container) contains at least `num` elements
+                                     (unless the underlying output stream 
+                                     reports an error).]]
+]
+
+[note All failing iterations of the embedded generator will consume one element
+      from the supplied attribute. The overall `repeat[a]` will succeed as long 
+      as the iteration criteria (number of successful invocations of the 
+      embedded generator) is fulfilled (unless the underlying output stream 
+      reports an error).]
+
+[heading Attributes]
+
+See __karma_comp_attr_notation__.
+
+[table 
+    [[Expression]             [Attribute]]
+    [[`repeat[a]`]
+[``a: A --> repeat[a]: vector<A>
+a: Unused --> repeat[a]: Unused``]]
+    [[`repeat(num)[a]`]
+[``a: A --> repeat(num)[a]: vector<A>
+a: Unused --> repeat(num)[a]: Unused``]]
+    [[`repeat(num1, num2)[a]`]
+[``a: A --> repeat(num1, num2)[a]: vector<A>
+a: Unused --> repeat(num1, num2)[a]: Unused``]]
+    [[`repeat(num, inf)[a]`]
+[``a: A --> repeat(num, inf)[a]: vector<A>
+a: Unused --> repeat(num, inf)[a]: Unused``]]
+]
+
+[important The table above uses `vector<A>` as placeholders only. 
+
+           The notation of `vector<A>` stands for /any STL container/ holding
+           elements of type `A`.]
+
+It is important to note, that the `repeat[]` directive does not perform any 
+buffering of the output generated by its embedded elements. That means that 
+any failing element generator might have already generated some output, which 
+is /not/ rolled back. 
+
+[tip    The simplest way to force a `repeat[]` directive to behave as if it did 
+        buffering is to wrap it into a buffering directive (see 
+        __karma_buffer__):
+
+        ``buffer[repeat[a]]``
+
+        which will /not/ generate any output in case of a failing generator 
+        `repeat[a]`. The expression:
+
+        ``repeat[buffer[a]]``
+
+        will not generate any partial output from a generator `a` if it fails
+        generating in the middle of its output. The overall expression will 
+        still generate the output as produced by all succeeded invocations of 
+        the generator `a`.]
+
+[heading Complexity]
+
+[:The overall complexity of the repetition generator is defined by the 
+  complexity of its embedded generator. The complexity of the repeat itself is 
+  O(N), where N is the number of repetitions to execute.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_repeat]
+
+Basic usage of `repeat` generator directive:
+
+[reference_karma_repeat]
+
+[endsect] [/ repeat]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:delimit Generator Directives Controlling Automatic Delimiting (`verbatim[]`, `no_delimit[]`, `delimit[]`)]
+
+[heading Description]
+
+The directives `delimit[]`, `no_delimit[]`, and `verbatim[]` can be used to 
+control automatic delimiting. The directives `verbatim[]` and `no_delimit[]` 
+disable any automatic delimiting, while the directive `delimit[]` (re-)enables 
+automatic delimiting.
+
+[heading Header]
+
+For the `verbatim[]` directive:
+
+    // forwards to <boost/spirit/home/karma/directive/verbatim.hpp>
+    #include <boost/spirit/include/karma_verbatim.hpp>
+
+For the `no_delimit[]` directive:
+
+    // forwards to <boost/spirit/home/karma/directive/no_delimit.hpp>
+    #include <boost/spirit/include/karma_no_delimit.hpp>
+
+For the `delimit[]` directive:
+
+    // forwards to <boost/spirit/home/karma/directive/delimit.hpp>
+    #include <boost/spirit/include/karma_delimit.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::verbatim      // alias: boost::spirit::karma::verbatim` ]]
+    [[`boost::spirit::no_delimit    // alias: boost::spirit::karma::no_delimit` ]]
+    [[`boost::spirit::delimit       // alias: boost::spirit::karma::delimit` ]]
+]
+
+[heading Model of]
+
+[:__unary_generator_concept__]
+
+[variablelist Notation
+    [[`a`]            [A generator object]]
+    [[`d`]            [A generator object, or a __karma_lazy_argument__ that 
+                       evaluates to a generator object]]
+    [[`A`, `D`]       [Attribute types of the generators `a` and `d`]]]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __unary_generator_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`delimit[a]`]     [Enable automatic delimiting for the embedded generator
+                         `a` while using the `space` generator as the 
+                         delimiting generator. If used inside a `verbatim[]` 
+                         directive it re-enables the delimiter generator as used
+                         outside of this `verbatim[]` instead. The directive succeeds
+                         as long as the embedded generator succeeded (unless 
+                         the underlying output stream reports an error).]]
+    [[`delimit(d)[a]`]  [Enable automatic delimiting for the embedded generator
+                         `a` while using the generator `d` as the 
+                         delimiting generator. The directive succeeds
+                         as long as the embedded generator succeeded (unless 
+                         the underlying output stream reports an error).]]
+    [[`verbatim[a]`]    [Disable automatic delimiting for the embedded generator
+                         `a`. The directive succeeds
+                         as long as the embedded generator succeeded (unless 
+                         the underlying output stream reports an error). This 
+                         directive it has no effect if it is used when no 
+                         delimiting is active. When delimiting is active this
+                         directive performs a post-delimit step (which is 
+                         different from the behavior of `no_delimit[]`).]]
+    [[`no_delimit[a]`]    [Disable automatic delimiting for the embedded generator
+                         `a`. The directive succeeds
+                         as long as the embedded generator succeeded (unless 
+                         the underlying output stream reports an error). This 
+                         directive it has no effect if it is used when no 
+                         delimiting is active. When delimiting is active this
+                         directive does not perform a post-delimit step (which is 
+                         different from the behavior of `verbatim[]`.]]
+]
+
+[heading Attributes]
+
+See __karma_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`delimit[a]`]
+[``a: A --> delimit[a]: A
+a: Unused --> delimit[a]: Unused``]]
+    [[`delimit(d)[a]`]
+[``a: A, d: D --> delimit(d)[a]: A
+a: Unused, d: D --> delimit(d)[a]: Unused``]]
+    [[`verbatim[a]`]
+[``a: A --> verbatim[a]: A
+a: Unused --> verbatim[a]: Unused``]]
+    [[`no_delimit[a]`]
+[``a: A --> no_delimit[a]: A
+a: Unused --> no_delimit[a]: Unused``]]
+]
+
+[heading Complexity]
+
+[:The overall complexity of the generator directives `delimit[]`, `verbatim[]`, 
+  and `no_delimit[]` is defined by the complexity of its embedded generators. 
+  The complexity of the directives themselves is O(1).]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes_simple]
+
+Some using declarations:
+
+[reference_karma_using_declarations_delimit]
+
+Basic usage of `delimit` generator directive:
+
+[reference_karma_delimit]
+
+[endsect] [/ verbatim/delimit/no_delimit]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:upperlower Generator Directives Controlling Case Sensitivity (`upper[]`, `lower[]`)]
+
+[heading Description]
+
+The generator directives `ns::lower[]` and `ns::upper[]` force their embedded
+generators to emit lower case or upper case only characters based on the 
+interpretation of the generated characters in the character set defined by 
+`ns` (see __karma_char_encoding_namespace__).
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/directive/upper_lower_case.hpp>
+    #include <boost/spirit/include/karma_upper_lower_case.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`ns::lower`]]
+    [[`ns::upper`]]
+]
+
+In the table above, `ns` represents a __karma_char_encoding_namespace__. 
+
+[heading Model of]
+
+[:The model of `lower[]` and `upper[]` is the model of its subject generator.]
+
+[variablelist Notation
+    [[`a`]            [A generator object]]
+    [[`A`]            [Attribute type of the generator `a`]]
+    [[`ns`]           [A __karma_char_encoding_namespace__.]]]
+
+[heading Expression Semantics]
+
+The `lower[]` and `upper[]` directives have no special generator semantics. 
+They are pure modifier directives. They indirectly influence the way all 
+subject generators work. They add information (the `tag::upper` or `tag::lower`) 
+to the `Modifier` template parameter used while transforming the `proto::expr`
+into the corresponding generator expression. This is achieved by the
+following specializations: 
+
+    namespace boost { namespace spirit
+    {
+        template <typename CharEncoding>
+        struct is_modifier_directive<
+                karma::domain
+              , tag::char_code<tag::lower, CharEncoding> >
+          : mpl::true_ 
+        {};
+
+        template <typename CharEncoding>
+        struct is_modifier_directive<
+                karma::domain
+              , tag::char_code<tag::upper, CharEncoding> >
+          : mpl::true_ 
+    }}
+
+(for more details see the section describing the compilation process of the 
+__boost_proto__ expression into the corresponding generator expressions).
+
+[table
+    [[Expression]       [Semantics]]
+    [[`ns::lower[a]`]   [Generate `a` as lower case, interpreted in the 
+                         character set defined by `ns`. The directive succeeds
+                         as long as the embedded generator succeeded (unless 
+                         the underlying output stream reports an error).]]
+    [[`ns::upper[a]`]   [Generate `a` as upper case, interpreted in the 
+                         character set defined by `ns`. The directive succeeds
+                         as long as the embedded generator succeeded (unless 
+                         the underlying output stream reports an error).]]
+]
+
+[note  If both directives are 'active' with regard to a generator, the  
+       innermost of those directives takes precedence. For instance:
+       ``
+            generate(sink, ascii::lower['A' << ascii::upper['b']])
+       ``
+       will generate `"aB"` (without the quotes).
+
+       Further, the directives will have no effect on generators emitting
+       characters not having an upper case or lower case equivalent in the 
+       character set defined by `ns`.
+]
+
+[heading Attributes]
+
+See __karma_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`ns:lower[a]`]
+[``a: A --> ns:lower[a]: A
+a: Unused --> ns:lower[a]: Unused``]]
+    [[`ns:upper[a]`]
+[``a: A --> ns:upper[a]: A
+a: Unused --> ns:upper[a]: Unused``]]
+]
+
+[heading Complexity]
+
+[:The overall complexity of the generator directives `ns::lower[]` and `ns::upper[]` 
+  is defined by the complexity of its embedded generators. The directives 
+  themselves are compile time only directives, having no impact on runtime 
+  performance.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes_simple]
+
+Some using declarations:
+
+[reference_karma_using_declarations_upperlower]
+
+Basic usage of the `upper` and `lower` generator directives:
+
+[reference_karma_upperlower]
+
+[endsect] [/ upper/lower]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:maxwidth Generator Directives Controlling the Maximum Field Width (`maxwidth[]`)]
+
+[heading Description]
+
+The `maxwidth[]` directive allows to limit (truncate) the overall length of the 
+output generated by the embedded generator.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/directive/maxwidth.hpp>
+    #include <boost/spirit/include/karma_maxwidth.hpp>
+
+Also, see __include_structure__.
+
+[table
+    [[Name]]
+    [[`boost::spirit::maxwidth // alias: boost::spirit::karma::maxwidth` ]]
+]
+
+[heading Model of]
+
+[:__unary_generator_concept__]
+
+[variablelist Notation
+    [[`a`]            [A generator object]]
+    [[`A`]            [Attribute type of the generator `a`]]
+    [[`num`]          [Numeric literal, any unsigned integer value, or
+                       a __karma_lazy_argument__ that evaluates to an unsigned 
+                       integer value]]]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __unary_generator_concept__.
+
+[table
+    [[Expression]           [Semantics]]
+    [[`maxwidth[a]`]        [Limit the overall length of the emitted output of 
+                             the embedded generator (including characters 
+                             generated by automatic delimiting) to the number
+                             of characters as defined by the preprocessor constant
+                             `BOOST_KARMA_DEFAULT_FIELD_MAXWIDTH`. Any additional
+                             output is truncated. The directive succeeds as long 
+                             as the embedded generator succeeded (unless 
+                             the underlying output stream reports an error).]]
+    [[`maxwidth(num)[a]`]   [Limit the overall length of the emitted output of 
+                             the embedded generator (including characters 
+                             generated by automatic delimiting) to the number
+                             of characters as defined by `num`. Any additional
+                             output is truncated. The directive succeeds as long 
+                             as the embedded generator succeeded (unless the 
+                             underlying output stream reports an error).]]
+]
+
+[note   The `maxwidth[]` generator directive does not pad the generated output
+        to fill the specified column width. If the emitted output is shorter 
+        than the specified (or implied) column width, the generated output will
+        be more narrow than the column width.
+
+        If the output needs to always be equal to a specified column width, use 
+        one of the alignment directives `left-align[]`, `center[]`, or 
+        `right_align[]`, for instance:
+        ``
+            maxwidth(8)[left_align(8)["1234"]]
+        ``
+        which will output: `"1234    "` (without the quotes).
+]
+
+[heading Attributes]
+
+See __karma_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`maxwidth[a]`]
+[``a: A --> maxwidth[a]: A
+a: Unused --> maxwidth[a]: Unused``]]
+    [[`maxwidth(num)[a]`]
+[``a: A --> maxwidth(num)[a]: A
+a: Unused --> maxwidth(num)[a]: Unused``]]
+]
+
+[heading Complexity]
+
+[:The overall complexity of the generator directive `maxwidth[]` 
+  is defined by the complexity of its embedded generator. The complexity of the 
+  directive itself is O(N), where `N` is the number of characters generated 
+  by the maxwidth directive.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes_simple]
+
+Some using declarations:
+
+[reference_karma_using_declarations_maxwidth]
+
+Basic usage of `maxwidth` generator directive:
+
+[reference_karma_maxwidth]
+
+[endsect] [/ maxwidth]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:buffer Generator Directive for Temporary Output Buffering (`buffer[]`)]
+
+[heading Description]
+
+All generator components (except the __karma_alternative__ generator) pass 
+their generated output directly to the underlying output stream. If a generator 
+fails halfway through, the output generated so far is not 'rolled back'. The 
+buffering generator directive allows to avoid this unwanted output to be 
+generated. It temporarily redirects the output produced by the embedded 
+generator into a buffer. This buffer is flushed to the underlying stream only
+after the embedded generator succeeded, but is discarded otherwise.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/directive/buffer.hpp>
+    #include <boost/spirit/include/karma_buffer.hpp>
+
+Also, see __include_structure__.
+
+[table
+    [[Name]]
+    [[`boost::spirit::buffer // alias: boost::spirit::karma::buffer` ]]
+]
+
+[heading Model of]
+
+[:__unary_generator_concept__]
+
+[variablelist Notation
+    [[`a`]     [A generator object]]
+    [[`A`]     [Attribute type of generator `a`]]]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __unary_generator_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`buffer[a]`]      [The embedded generator `a` is invoked but its output
+                         is temporarily intercepted and stored in an internal
+                         buffer. If `a` succeeds the buffer content is flushed
+                         to the underlying output stream, otherwise the buffer
+                         content is discarded. The buffer directive succeeds
+                         as long as the embedded generator succeeded (unless 
+                         the underlying output stream reports an error).]]
+]
+
+[tip  If you want to make the buffered generator succeed regardless of the 
+      outcome of the embedded generator, simply wrap the `buffer[a]` into an
+      additional optional: `-buffer[a]` (see __karma_optional__).]
+
+[heading Attributes]
+
+See __karma_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`buffer[a]`]
+[``a: A --> buffer[a]: A
+a: Unused --> buffer[a]: Unused``]]
+]
+
+[heading Complexity]
+
+[:The overall complexity of the buffering generator directive is defined by the 
+  complexity of its embedded generator. The complexity of the buffering 
+  directive generator itself is O(N), where N is the number of characters 
+  buffered.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_buffer]
+
+Basic usage of a buffering generator directive. It shows how the partial 
+output generated in the first example does not show up in the generated output
+as the plus generator fails (no data is available, see __karma_plus__).
+
+[reference_karma_buffer]
+
+[endsect] [/ buffer]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:omit Generator Directives Consuming Attributes (`omit[]` and `skip[]`)]
+
+[heading Description]
+
+The directives `omit[]` and `skip[]` consumes the attribute type of the 
+embedded generator without generating any output. The `omit[]` directive
+will still execute the embedded generator while discarding the generated output
+afterwards. The `skip[]` directive will not execute the embedded generator, but 
+will use it only to extract the exposed attribute type.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/directive/omit.hpp>
+    #include <boost/spirit/include/karma_omit.hpp>
+
+Also, see __include_structure__.
+
+[table
+    [[Name]]
+    [[`boost::spirit::omit // alias: boost::spirit::karma::omit` ]]
+    [[`boost::spirit::skip // alias: boost::spirit::karma::skip` ]]
+]
+
+[heading Model of]
+
+[:__unary_generator_concept__]
+
+[variablelist Notation
+    [[`a`]     [A generator object]]
+    [[`A`]     [Attribute type of generator `a`]]]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __unary_generator_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`omit[a]`]        [The `omit` directive consumes the attribute type of the 
+                         embedded generator `A` without generating any output. 
+                         It succeeds always. The embedded generator is executed
+                         and any generated output is discarded.]]
+    [[`skip[a]`]        [The `skip` directive consumes the attribute type of the 
+                         embedded generator `A` without generating any output. 
+                         It succeeds always. The embedded generator is not 
+                         executed.]]
+]
+
+[heading Attributes]
+
+See __karma_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`omit[a]`]
+[``a: A --> omit[a]: A
+a: Unused --> omit[a]: Unused``]]
+    [[`skip[a]`]
+[``a: A --> skip[a]: A
+a: Unused --> skip[a]: Unused``]]
+]
+
+[heading Complexity]
+
+[:The overall complexity of the `omit[]` directive depends on the complexity
+  of the embedded generator. The overall complexity of the `skip[]` generator 
+  directive is O(1) as it does not generate any output.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_omit]
+
+Basic usage of a `omit` generator directive. It shows how it consumes the first 
+element of the provided attribute without generating anything, leaving the 
+second element of the attribute to the non-wrapped `double_` generator.
+
+[reference_karma_omit]
+
+Generally, this directive is helpful in situations, where the attribute type 
+contains more information (elements) than need to be used to generate the 
+required output. Normally in such situations we would resolve to use semantic 
+actions to explicitly pass the correct parts of the overall attribute to the 
+generators. The `omit` directive helps achieving the same without having to use 
+semantic actions. 
+
+Consider the attribute type:
+
+    typedef fusion::vector<int, double, std::string> attribute_type;
+
+where we need to generate output only from the first and last element:
+
+    typedef std::back_insert:iterator<std::string> iterator_type;
+
+    karma::rule<iterator_type, attribute_type()> r;
+    r = int_[_1 = phoenix::at_c<0>(_val)] << string[_1 = phoenix::at_c<2>(_val)];
+
+    std::string str;
+    iterator_type sink(str);
+    generate(sink, r, attribute_type(1, 2.0, "example"));  // will generate: '1example'
+
+This is error prone and not really readable. The same can be achieved by using 
+the `omit` directive:
+
+    r = int_ << omit[double_] << string;
+
+which is at the same time more readable and more efficient as we don't have to 
+use semantic actions.
+
+The semantics of using the `skip[]` directive are identical to the `omit[]`
+directive, except that it does not actually execute the embedded generator. 
+For this reason it is usually preferable to utilize the `skip[]` directive 
+instead of the `omit[]` directive. On the other hand, the `omit[]` directive
+is very useful whenever the embedded generator produces side effects (has
+semantic actions which need to be executed).
+
+[endsect] [/ omit]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:duplicate Generator Directive Duplicating Attributes (`duplicate[]`)]
+
+[heading Description]
+
+The directive `duplicate[]` duplicates its attribute to all elements of the 
+embedded generator if this is a sequence generator. Otherwise it does nothing.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/directive/duplicate.hpp>
+    #include <boost/spirit/include/karma_duplicate.hpp>
+
+Also, see __include_structure__.
+
+[table
+    [[Name]]
+    [[`boost::spirit::duplicate // alias: boost::spirit::karma::duplicate` ]]
+]
+
+[heading Model of]
+
+[:__unary_generator_concept__]
+
+[variablelist Notation
+    [[`a`]     [A generator object]]
+    [[`A`]     [Attribute type of generator `a`]]]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __unary_generator_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`duplicate[a]`]   [The `duplicate` directive duplicates the supplied 
+                         attribute for all elements of a embedded sequence 
+                         generator. For all other types of embedded generators
+                         it has no effect. It succeeds as long as its embedded
+                         generator does not fail.]]
+]
+
+[heading Attributes]
+
+See __karma_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`duplicate[a]`]
+[``a: A --> duplicate[a]: A
+a: tuple<A, A, ...> --> duplicate[a]: A
+a: Unused --> duplicate[a]: Unused``]]
+]
+
+If the embedded generator of the `duplicate[]` directive is a sequence it is
+expected that all elements of this sequence expose either the same attribute 
+type, an compatible attribute type, or `unused`. In this case, the 
+`duplicate[]` directive exposes the attribute type of its first element. The 
+behavior of the `duplicate[]` directive is undefined if the elements of an 
+embedded sequence do not expose the same attributes. Most likely, the 
+corresponding expression will not compile.
+
+[heading Complexity]
+
+[:The overall complexity of the `duplicate[]` directive depends on the complexity
+  of the embedded generator.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_duplicate]
+
+Basic usage of the `duplicate` generators:
+
+[reference_karma_duplicate]
+
+[endsect] [/ duplicate]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:columns Generator Directive Separating Output Into Columns (`columns[]`)]
+
+[heading Description]
+
+The `columns[]` directive separates the output emitted by the embedded 
+generator by inserting special column separators.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/directive/columns.hpp>
+    #include <boost/spirit/include/karma_columns.hpp>
+
+Also, see __include_structure__.
+
+[table
+    [[Name]]
+    [[`boost::spirit::columns // alias: boost::spirit::karma::columns` ]]
+]
+
+[heading Model of]
+
+[:__unary_generator_concept__]
+
+[variablelist Notation
+    [[`a`]     [A generator object]]
+    [[`g`]     [A generator object, or a __karma_lazy_argument__ that 
+                evaluates to a generator object, will be used to emit column 
+                separators]]
+    [[`A`]     [Attribute type of generator `a`]
+    [[`num`]   [Numeric literal, any unsigned integer value, or
+                a __karma_lazy_argument__ that evaluates to an unsigned 
+                integer value defining the number of items to emit in between
+                the column separators]]]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __unary_generator_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`columns[a]`]     [The `columns` directive invokes a generator after
+                         each N-th element of the embedded generator has been 
+                         emitted. The number of columns is defined by the 
+                         preprocessor constant `BOOST_KARMA_DEFAULT_COLUMNS`.
+                         The column separator used will be `karma::eol`.]]
+    [[`columns(num)[a]`][The `columns` directive invokes a generator after
+                         each N-th element of the embedded generator has been 
+                         emitted. The number of columns is defined by the 
+                         argument to the directive `num`.
+                         The column separator used will be `karma::eol`.]]
+    [[`columns(g)[a]`]  [The `columns` directive invokes a generator after
+                         each N-th element of the embedded generator has been 
+                         emitted. The number of columns is defined by the 
+                         preprocessor constant `BOOST_KARMA_DEFAULT_COLUMNS`.
+                         The column separator used will be `g`.]]
+    [[`columns(num, g)[a]`]  [The `columns` directive invokes a generator after
+                         each N-th element of the embedded generator has been 
+                         emitted. The number of columns is defined by the 
+                         argument to the directive `num`.
+                         The column separator used will be `g`.]]
+]
+
+[heading Attributes]
+
+See __karma_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`columns[a]`]
+[``a: A --> columns[a]: A
+a: Unused --> columns[a]: Unused``]]
+    [[`columns(num)[a]`]
+[``a: A --> columns(num)[a]: A
+a: Unused --> columns(num)[a]: Unused``]]
+    [[`columns(g)[a]`]
+[``a: A --> columns(g)[a]: A
+a: Unused --> columns(g)[a]: Unused``]]
+    [[`columns(num, g)[a]`]
+[``a: A --> columns(num, g)[a]: A
+a: Unused --> columns(num, g)[a]: Unused``]]
+]
+
+[heading Complexity]
+
+[:The overall complexity of the `columns` generator directive depends on the 
+complexity of the embedded generator. The complexity of the `columns` generator 
+directive itself is O(N), where `N` is the number of inserted column 
+separators.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+      __karma_basics_examples__ section.]
+
+Some includes:
+
+[reference_karma_includes]
+
+Some using declarations:
+
+[reference_karma_using_declarations_columns]
+
+Basic usage of the `columns` generators:
+
+[reference_karma_columns]
+
+[endsect] [/ columns]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:as Generator Directives Forcing Atomic Extraction (`as<T>, as_string[], as_wstring[]`)]
+
+[heading Description]
+
+The `as<T>` class forces the atomic extraction of a container type `T` from it's
+consumed attribute. Usually, repetitive generators (such as __karma_kleene__,
+etc) or sequences exposing a `vector<A>` will extract elements from the
+container supplied as their consumed attribute by looping through the
+containers iterators. In some cases, this may be undesirable. The `as<T>`
+class creates a directive that will pass an unnamed temporary object of type
+`T` to it's subject, if extracting `T` from it's consumed attribute determined
+at generation-time to be valid. __customize_valid_as__ is called by `as<T>` to
+determine validity; if it returns false, the generator fails. Subsequent
+extraction is performed by calling __customize_as__.
+
+[note `T` is required to be a container type. If __customize_is_container__ 
+does not return true for `T`, a compile-time error will occur.]
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/karma/directive/as.hpp>
+    #include <boost/spirit/include/karma_as.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::as_string  // alias: boost::spirit::karma::as_string` ]]
+    [[`boost::spirit::as_wstring // alias: boost::spirit::karma::as_wstring` ]]
+]
+
+[heading Synopsis]
+
+    template <typename T>
+    struct as;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]    [Description]                       [Default]]
+    [[`T`]          [A container type.]                 [none]]
+]
+
+[heading Model of]
+
+[:__unary_generator_concept__]
+
+[variablelist Notation
+    [[`a`]      [A __generator_concept__.]]
+    [[`attr`]   [The attribute supplied to the directive.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __unary_generator_concept__.
+
+[table
+    [[Expression]      [Semantics]]
+    [[`as<T>()[a]`]    [Extract an instance of `T` from `attr`, and
+                        invoke the subject generator `a`, supplying 
+                        the unnamed temporary as it's attribute.]]
+    [[`as_string[a]`]  [Equivalent to `as<std::string>()[a]`]]
+    [[`as_wstring[a]`] [Equivalent to `as<std::wstring>()[a]`]] 
+]
+
+[heading Attributes]
+
+See __karma_comp_attr_notation__.
+
+[table
+    [[Expression]   [Attribute]]
+    [[`as<T>()[a]`] [`a: A --> as<T>()[a]: T`]]
+]
+
+[heading Complexity]
+
+[:The complexity is defined by the complexity of the subject generator, `a`, and
+the complexity of the extraction unnamed contianer of type `T` from the 
+attribute `attr`.]
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__karma_basics_examples__ section.]
+
+Some using declarations:
+
+[reference_karma_using_declarations_as]
+
+Simple usage of `as<T>`, `as_string` and `as_wstring`:
+
+[reference_karma_as]
+
+[endsect] [/ as]
+
+[endsect] [/ directives]

@@ -1,0 +1,99 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+[section Symplectic System]
+
+[heading Description]
+
+This concept describes how to define a symplectic system written with generalized coordinate `q` and generalized momentum `p`:
+
+[' q'(t) = f(p) ]
+
+[' p'(t) = g(q) ]
+
+Such a situation is typically found for Hamiltonian systems with a separable Hamiltonian:
+
+[' H(p,q) = H[sub kin](p) + V(q) ]
+
+which gives the equations of motion:
+
+[' q'(t) = dH[sub kin] / dp = f(p) ]
+
+[' p'(t) = dV / dq = g(q) ]
+
+
+The algorithmic implementation of this situation is described by a pair of callable objects for /f/ and /g/ with a specific parameter signature.
+Such a system should be implemented as a std::pair of functions or a functors.
+Symplectic systems are used in symplectic steppers like `symplectic_rkn_sb3a_mclachlan`.
+
+[heading Notation]
+
+[variablelist
+  [[`System`] [A type that is a model of SymplecticSystem]]
+  [[`Coor`] [The type of the coordinate  ['q]]]
+  [[`Momentum`] [The type of the momentum ['p]]]
+  [[`CoorDeriv`] [The type of the derivative of coordinate ['q']]]
+  [[`MomentumDeriv`] [The type of the derivative of momentum ['p']]]
+  [[`sys`] [An object of the type `System`]]
+  [[`q`] [Object of type Coor]]
+  [[`p`] [Object of type Momentum]]
+  [[`dqdt`] [Object of type CoorDeriv]]
+  [[`dpdt`] [Object of type MomentumDeriv]]
+]
+
+[heading Valid expressions]
+
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Check for pair] [`boost::is_pair< System >::type`] [`boost::mpl::true_`] [Check if System is a pair]]
+  [[Calculate ['dq/dt = f(p)]] [`sys.first( p , dqdt )`] [`void`] [Calculates ['f(p)], the result is stored into `dqdt`] ]
+  [[Calculate ['dp/dt = g(q)]] [`sys.second( q , dpdt )`] [`void`] [Calculates ['g(q)], the result is stored into `dpdt`] ]
+]
+
+[endsect]
+
+
+[section Simple Symplectic System]
+
+[heading Description]
+
+In most Hamiltonian systems the kinetic term is a quadratic term in the momentum ['H[sub kin] = p^2 / 2m] and in many cases it is possible to rescale coordinates and set /m=1/ which leads to a trivial equation of motion:
+
+[' q'(t) = f(p) = p. ]
+
+while for /p'/ we still have the general form
+
+[' p'(t) = g(q) ]
+
+As this case is very frequent we introduced a concept where only the nontrivial equation for /p'/ has to be provided to the symplectic stepper.
+We call this concept ['SimpleSymplecticSystem]
+
+[heading Notation]
+
+[variablelist
+  [[System] [A type that is a model of SimpleSymplecticSystem]]
+  [[Coor] [The type of the coordinate  ['q]]]
+  [[MomentumDeriv] [The type of the derivative of momentum ['p']]]
+  [[sys] [An object that models System]]
+  [[q] [Object of type Coor]]
+  [[dpdt] [Object of type MomentumDeriv]]
+]
+
+[heading Valid Expressions]
+
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Check for pair] [`boost::is_pair< System >::type`] [`boost::mpl::false_`] [Check if System is a pair, should be evaluated to false in this case.]]
+  [[Calculate ['dp/dt = g(q)]] [`sys( q , dpdt )`] [`void`] [Calculates ['g(q)], the result is stored into `dpdt`] ]
+]
+
+[endsect]

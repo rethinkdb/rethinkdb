@@ -1,0 +1,148 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Graph</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H2><A NAME="concept:Graph"></A>
+Graph
+</H2>
+
+<P>
+The Graph concept contains a few requirements that are common to all
+the graph concepts. These include some associated types for
+<tt>vertex_descriptor</tt>, <tt>edge_descriptor</tt>, etc. One should
+note that a model of Graph is <B>not</B> required to be a model of <a
+href="http://www.sgi.com/tech/stl/Assignable.html">Assignable</a>,
+so algorithms should pass graph objects by reference.
+
+<P>
+
+<h3>Notation</h3>
+
+<Table>
+<TR>
+<TD><tt>G</tt></TD>
+<TD>A type that is a model of Graph.</TD>
+</TR>
+
+<TR>
+<TD><tt>g</tt></TD>
+<TD>An object of type <tt>G</tt>.</TD>
+</TR>
+</table>
+
+<H3>Associated Types</H3>
+
+<table border>
+<tr>
+<td><pre>boost::graph_traits&lt;G&gt;::vertex_descriptor</pre>
+A vertex descriptor corresponds to a unique vertex in an abstract
+graph instance. A vertex descriptor must be
+<a
+href="http://www.sgi.com/tech/stl/DefaultConstructible.html">Default Constructible</a>,
+<a href="http://www.sgi.com/tech/stl/Assignable.html">Assignable</a>, and
+<a href="http://www.sgi.com/tech/stl/EqualityComparable.html">Equality Comparable</a>.
+</td>
+</tr>
+
+<tr>
+<td><pre>boost::graph_traits&lt;G&gt;::edge_descriptor</pre>
+An edge descriptor corresponds to a unique edge <i>(u,v)</i> in a
+graph.  An edge descriptor must be <a
+href="http://www.sgi.com/tech/stl/DefaultConstructible.html">Default Constructible</I>,
+<a href="http://www.sgi.com/tech/stl/Assignable.html">Assignable</a>, and
+<a href="http://www.sgi.com/tech/stl/EqualityComparable.html">Equality Comparable</a>.
+</td>
+</tr>
+
+<tr>
+<td><pre>boost::graph_traits&lt;G&gt;::directed_category</pre>
+This type shall be convertible to <TT>directed_tag</TT> or <TT>undirected_tag</TT>.
+</td>
+</tr>
+
+<tr>
+<td><pre>boost::graph_traits&lt;G&gt;::edge_parallel_category</pre>
+This describes whether the graph class allows the insertion of
+parallel edges (edges with the same source and target). The two tags
+are <TT>allow_parallel_edge_tag</TT> and <TT>disallow_parallel_edge_tag</TT>.
+</td>
+</tr>
+
+<tr>
+<td><pre>boost::graph_traits&lt;G&gt;::traversal_category</pre>
+This describes the ways in which the vertices and edges of the
+graph can be visited. The choices are <TT>incidence_graph_tag</TT>,
+<TT>adjacency_graph_tag</TT>, <TT>bidirectional_graph_tag</TT>, 
+<TT>vertex_list_graph_tag</TT>, <TT>edge_list_graph_tag</TT>, and 
+<TT>adjacency_matrix_tag</TT>.
+</td>
+</tr>
+
+</table>
+
+<H3>Valid Expressions</H3>
+
+<table border>
+
+<tr>
+<td><pre>boost::graph_traits&lt;G&gt;::null_vertex()</pre></td></TD>
+<td>
+Returns a special <tt>boost::graph_traits&lt;G&gt;::vertex_descriptor</tt> object which does not refer to
+any vertex of graph object which type is <tt>G</tt>.
+<td>
+</tr>
+</table>
+
+
+
+<H3>Concept Checking Class</H3>
+
+<PRE>
+  template &lt;class G&gt;
+  struct GraphConcept
+  {
+    typedef typename boost::graph_traits&lt;G&gt;::vertex_descriptor vertex_descriptor;
+    typedef typename boost::graph_traits&lt;G&gt;::edge_descriptor edge_descriptor;
+    typedef typename boost::graph_traits&lt;G&gt;::directed_category directed_category;
+    typedef typename boost::graph_traits&lt;G&gt;::edge_parallel_category edge_parallel_category;
+    typedef typename boost::graph_traits&lt;G&gt;::traversal_category traversal_category;
+
+    void constraints() {
+      BOOST_CONCEPT_ASSERT(( DefaultConstructibleConcept&lt;vertex_descriptor&gt; ));
+      BOOST_CONCEPT_ASSERT(( EqualityComparableConcept&lt;vertex_descriptor&gt; ));
+      BOOST_CONCEPT_ASSERT(( AssignableConcept&lt;vertex_descriptor&gt; ));
+      BOOST_CONCEPT_ASSERT(( DefaultConstructibleConcept&lt;edge_descriptor&gt; ));
+      BOOST_CONCEPT_ASSERT(( EqualityComparableConcept&lt;edge_descriptor&gt; ));
+      BOOST_CONCEPT_ASSERT(( AssignableConcept&lt;edge_descriptor&gt; ));
+    }
+    G g;
+  };
+</PRE>
+
+<H3>See Also</H3>
+
+<a href="./graph_concepts.html">Graph concepts</a>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

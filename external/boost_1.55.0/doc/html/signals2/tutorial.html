@@ -1,0 +1,999 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Tutorial</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../signals2.html" title="Chapter&#160;28.&#160;Boost.Signals2">
+<link rel="prev" href="../signals2.html" title="Chapter&#160;28.&#160;Boost.Signals2">
+<link rel="next" href="examples.html" title="Example programs">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../signals2.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="examples.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="signals2.tutorial"></a>Tutorial</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="tutorial.html#idp204781752">How to Read this Tutorial</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#idp204785528">Hello, World! (Beginner)</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#idp204789496">Calling Multiple Slots</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#idp204805128">Passing Values to and from Slots</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#idp204830936">Connection Management</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#signals2.tutorial.document-view">Example: Document-View</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#signals2.tutorial.extended-slot-type">Giving a Slot Access to its Connection (Advanced)</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#signals2.tutorial.signal-mutex-template-parameter">Changing the <code class="computeroutput">Mutex</code> Type of a Signal (Advanced).</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#idp204910248">Linking against the Signals2 library</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp204781752"></a>How to Read this Tutorial</h3></div></div></div>
+<p>This tutorial is not meant to be read linearly. Its top-level
+structure roughly separates different concepts in the library
+(e.g., handling calling multiple slots, passing values to and from
+slots) and in each of these concepts the basic ideas are presented
+first and then more complex uses of the library are described
+later. Each of the sections is marked <span class="emphasis"><em>Beginner</em></span>,
+<span class="emphasis"><em>Intermediate</em></span>, or <span class="emphasis"><em>Advanced</em></span> to help guide the
+reader. The <span class="emphasis"><em>Beginner</em></span> sections include information that all
+library users should know; one can make good use of the Signals2
+library after having read only the <span class="emphasis"><em>Beginner</em></span> sections. The
+<span class="emphasis"><em>Intermediate</em></span> sections build on the <span class="emphasis"><em>Beginner</em></span>
+sections with slightly more complex uses of the library. Finally,
+the <span class="emphasis"><em>Advanced</em></span> sections detail very advanced uses of the
+Signals2 library, that often require a solid working knowledge of
+the <span class="emphasis"><em>Beginner</em></span> and <span class="emphasis"><em>Intermediate</em></span> topics; most users
+will not need to read the <span class="emphasis"><em>Advanced</em></span> sections.</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp204785528"></a>Hello, World! (Beginner)</h3></div></div></div>
+<p>The following example writes "Hello, World!" using signals and
+slots. First, we create a signal <code class="computeroutput">sig</code>, a signal that
+takes no arguments and has a void return value. Next, we connect
+the <code class="computeroutput">hello</code> function object to the signal using the
+<code class="computeroutput">connect</code> method. Finally, use the signal
+<code class="computeroutput">sig</code> like a function to call the slots, which in turns
+invokes <code class="computeroutput">HelloWorld::operator()</code> to print "Hello,
+World!".</p>
+<pre class="programlisting"><code class="computeroutput">struct HelloWorld
+{
+  void operator()() const
+  {
+    std::cout &lt;&lt; "Hello, World!" &lt;&lt; std::endl;
+  }
+};
+</code></pre>
+<pre class="programlisting"><code class="computeroutput">  // Signal with no arguments and a void return value
+  boost::signals2::signal&lt;void ()&gt; sig;
+
+  // Connect a HelloWorld slot
+  HelloWorld hello;
+  sig.connect(hello);
+
+  // Call all of the slots
+  sig();
+</code></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp204789496"></a>Calling Multiple Slots</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="tutorial.html#idp204789784">Connecting Multiple Slots (Beginner)</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#idp204795208">Ordering Slot Call Groups (Intermediate)</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp204789784"></a>Connecting Multiple Slots (Beginner)</h4></div></div></div>
+<p>Calling a single slot from a signal isn't very interesting, so
+we can make the Hello, World program more interesting by splitting
+the work of printing "Hello, World!" into two completely separate
+slots. The first slot will print "Hello" and may look like
+this:</p>
+<pre class="programlisting"><code class="computeroutput">struct Hello
+{
+  void operator()() const
+  {
+    std::cout &lt;&lt; "Hello";
+  }
+};
+</code></pre>
+<p>The second slot will print ", World!" and a newline, to complete
+the program. The second slot may look like this:</p>
+<pre class="programlisting"><code class="computeroutput">struct World
+{
+  void operator()() const
+  {
+    std::cout &lt;&lt; ", World!" &lt;&lt; std::endl;
+  }
+};
+</code></pre>
+<p>Like in our previous example, we can create a signal
+<code class="computeroutput">sig</code> that takes no arguments and has a
+<code class="computeroutput">void</code> return value. This time, we connect both a
+<code class="computeroutput">hello</code> and a <code class="computeroutput">world</code> slot to the same
+signal, and when we call the signal both slots will be called.</p>
+<pre class="programlisting"><code class="computeroutput">  boost::signals2::signal&lt;void ()&gt; sig;
+
+  sig.connect(Hello());
+  sig.connect(World());
+
+  sig();
+</code></pre>
+<p>By default, slots are pushed onto the back of the slot list,
+so the output of this program will be as expected:</p>
+<pre class="programlisting">
+Hello, World!
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp204795208"></a>Ordering Slot Call Groups (Intermediate)</h4></div></div></div>
+<p>Slots are free to have side effects, and that can mean that some
+slots will have to be called before others even if they are not connected in that order. The Boost.Signals2
+library allows slots to be placed into groups that are ordered in
+some way. For our Hello, World program, we want "Hello" to be
+printed before ", World!", so we put "Hello" into a group that must
+be executed before the group that ", World!" is in. To do this, we
+can supply an extra parameter at the beginning of the
+<code class="computeroutput">connect</code> call that specifies the group. Group values
+are, by default, <code class="computeroutput">int</code>s, and are ordered by the integer
+&lt; relation. Here's how we construct Hello, World:</p>
+<pre class="programlisting"><code class="computeroutput">  boost::signals2::signal&lt;void ()&gt; sig;
+
+  sig.connect(1, World());  // connect with group 1
+  sig.connect(0, Hello());  // connect with group 0
+</code></pre>
+<p>Invoking the signal will correctly print "Hello, World!", because the
+<code class="computeroutput">Hello</code> object is in group 0, which precedes group 1 where
+the <code class="computeroutput">World</code> object resides. The group
+parameter is, in fact, optional. We omitted it in the first Hello,
+World example because it was unnecessary when all of the slots are
+independent. So what happens if we mix calls to connect that use the
+group parameter and those that don't? The "unnamed" slots (i.e., those
+that have been connected without specifying a group name) can be
+placed at the front or back of the slot list (by passing
+<code class="computeroutput">boost::signals2::at_front</code> or <code class="computeroutput">boost::signals2::at_back</code>
+as the last parameter to <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp101703096-bb">connect</a></code>, respectively),
+and default to the end of the list. When
+a group is specified, the final <code class="computeroutput">at_front</code> or <code class="computeroutput">at_back</code>
+parameter describes where the slot
+will be placed within the group ordering.  Ungrouped slots connected with
+<code class="computeroutput">at_front</code> will always precede all grouped slots.  Ungrouped
+slots connected with <code class="computeroutput">at_back</code> will always succeed all
+grouped slots.
+</p>
+<p>
+  If we add a new slot to our example like this:
+</p>
+<pre class="programlisting"><code class="computeroutput">struct GoodMorning
+{
+  void operator()() const
+  {
+    std::cout &lt;&lt; "... and good morning!" &lt;&lt; std::endl;
+  }
+};
+</code></pre>
+<pre class="programlisting"><code class="computeroutput">  // by default slots are connected at the end of the slot list
+  sig.connect(GoodMorning());
+
+  // slots are invoked this order:
+  // 1) ungrouped slots connected with boost::signals2::at_front
+  // 2) grouped slots according to ordering of their groups
+  // 3) ungrouped slots connected with boost::signals2::at_back
+  sig();
+</code></pre>
+<p>... we will get the result we wanted:</p>
+<pre class="programlisting">
+Hello, World!
+... and good morning!
+</pre>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp204805128"></a>Passing Values to and from Slots</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="tutorial.html#idp204805432">Slot Arguments (Beginner)</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#idp204811928">Signal Return Values (Advanced)</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp204805432"></a>Slot Arguments (Beginner)</h4></div></div></div>
+<p>Signals can propagate arguments to each of the slots they call.
+For instance, a signal that propagates mouse motion events might
+want to pass along the new mouse coordinates and whether the mouse
+buttons are pressed.</p>
+<p>As an example, we'll create a signal that passes two
+<code class="computeroutput">float</code> arguments to its slots. Then we'll create a few
+slots that print the results of various arithmetic operations on
+these values.</p>
+<pre class="programlisting"><code class="computeroutput">void print_args(float x, float y)
+{
+  std::cout &lt;&lt; "The arguments are " &lt;&lt; x &lt;&lt; " and " &lt;&lt; y &lt;&lt; std::endl;
+}
+
+void print_sum(float x, float y)
+{
+  std::cout &lt;&lt; "The sum is " &lt;&lt; x + y &lt;&lt; std::endl;
+}
+
+void print_product(float x, float y)
+{
+  std::cout &lt;&lt; "The product is " &lt;&lt; x * y &lt;&lt; std::endl;
+}
+
+void print_difference(float x, float y)
+{
+  std::cout &lt;&lt; "The difference is " &lt;&lt; x - y &lt;&lt; std::endl;
+}
+
+void print_quotient(float x, float y)
+{
+  std::cout &lt;&lt; "The quotient is " &lt;&lt; x / y &lt;&lt; std::endl;
+}
+</code></pre>
+<pre class="programlisting"><code class="computeroutput">  boost::signals2::signal&lt;void (float, float)&gt; sig;
+
+  sig.connect(&amp;print_args);
+  sig.connect(&amp;print_sum);
+  sig.connect(&amp;print_product);
+  sig.connect(&amp;print_difference);
+  sig.connect(&amp;print_quotient);
+
+  sig(5., 3.);
+</code></pre>
+<p>This program will print out the following:</p>
+<pre class="programlisting">The arguments are 5 and 3
+The sum is 8
+The product is 15
+The difference is 2
+The quotient is 1.66667</pre>
+<p>So any values that are given to <code class="computeroutput">sig</code> when it is
+called like a function are passed to each of the slots. We have to
+declare the types of these values up front when we create the
+signal. The type <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html" title="Class template signal">boost::signals2::signal</a>&lt;void (float,
+float)&gt;</code> means that the signal has a <code class="computeroutput">void</code>
+return value and takes two <code class="computeroutput">float</code> values. Any slot
+connected to <code class="computeroutput">sig</code> must therefore be able to take two
+<code class="computeroutput">float</code> values.</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp204811928"></a>Signal Return Values (Advanced)</h4></div></div></div>
+<p>Just as slots can receive arguments, they can also return
+values. These values can then be returned back to the caller of the
+signal through a <em class="firstterm">combiner</em>. The combiner is a mechanism
+that can take the results of calling slots (there may be no
+results or a hundred; we don't know until the program runs) and
+coalesces them into a single result to be returned to the caller.
+The single result is often a simple function of the results of the
+slot calls: the result of the last slot call, the maximum value
+returned by any slot, or a container of all of the results are some
+possibilities.</p>
+<p>We can modify our previous arithmetic operations example
+slightly so that the slots all return the results of computing the
+product, quotient, sum, or difference. Then the signal itself can
+return a value based on these results to be printed:</p>
+<pre class="programlisting"><code class="computeroutput">float product(float x, float y) { return x * y; }
+float quotient(float x, float y) { return x / y; }
+float sum(float x, float y) { return x + y; }
+float difference(float x, float y) { return x - y; }
+</code></pre>
+<pre class="programlisting">boost::signals2::signal&lt;float (float, float)&gt; sig;</pre>
+<pre class="programlisting"><code class="computeroutput">  sig.connect(&amp;product);
+  sig.connect(&amp;quotient);
+  sig.connect(&amp;sum);
+  sig.connect(&amp;difference);
+
+  // The default combiner returns a boost::optional containing the return
+  // value of the last slot in the slot list, in this case the
+  // difference function.
+  std::cout &lt;&lt; *sig(5, 3) &lt;&lt; std::endl;
+</code></pre>
+<p>This example program will output <code class="computeroutput">2</code>. This is because the
+default behavior of a signal that has a return type
+(<code class="computeroutput">float</code>, the first template argument given to the
+<code class="computeroutput"><a class="link" href="../boost/signals2/signal.html" title="Class template signal">boost::signals2::signal</a></code> class template) is to call all slots and
+then return a <code class="computeroutput">boost::optional</code> containing
+the result returned by the last slot called. This
+behavior is admittedly silly for this example, because slots have
+no side effects and the result is the last slot connected.</p>
+<p>A more interesting signal result would be the maximum of the
+values returned by any slot. To do this, we create a custom
+combiner that looks like this:</p>
+<pre class="programlisting"><code class="computeroutput">// combiner which returns the maximum value returned by all slots
+template&lt;typename T&gt;
+struct maximum
+{
+  typedef T result_type;
+
+  template&lt;typename InputIterator&gt;
+  T operator()(InputIterator first, InputIterator last) const
+  {
+    // If there are no slots to call, just return the
+    // default-constructed value
+    if(first == last ) return T();
+    T max_value = *first++;
+    while (first != last) {
+      if (max_value &lt; *first)
+        max_value = *first;
+      ++first;
+    }
+
+    return max_value;
+  }
+};
+</code></pre>
+<p>The <code class="computeroutput">maximum</code> class template acts as a function
+object. Its result type is given by its template parameter, and
+this is the type it expects to be computing the maximum based on
+(e.g., <code class="computeroutput">maximum&lt;float&gt;</code> would find the maximum
+<code class="computeroutput">float</code> in a sequence of <code class="computeroutput">float</code>s). When a
+<code class="computeroutput">maximum</code> object is invoked, it is given an input
+iterator sequence <code class="computeroutput">[first, last)</code> that includes the
+results of calling all of the slots. <code class="computeroutput">maximum</code> uses this
+input iterator sequence to calculate the maximum element, and
+returns that maximum value.</p>
+<p>We actually use this new function object type by installing it
+as a combiner for our signal. The combiner template argument
+follows the signal's calling signature:</p>
+<pre class="programlisting">
+<code class="computeroutput"><a class="link" href="../boost/signals2/signal.html" title="Class template signal">boost::signals2::signal</a></code>&lt;float (float x, float y),
+              maximum&lt;float&gt; &gt; sig;
+</pre>
+<p>Now we can connect slots that perform arithmetic functions and
+use the signal:</p>
+<pre class="programlisting"><code class="computeroutput">  sig.connect(&amp;product);
+  sig.connect(&amp;quotient);
+  sig.connect(&amp;sum);
+  sig.connect(&amp;difference);
+
+  // Outputs the maximum value returned by the connected slots, in this case
+  // 15 from the product function.
+  std::cout &lt;&lt; "maximum: " &lt;&lt; sig(5, 3) &lt;&lt; std::endl;
+</code></pre>
+<p>The output of this program will be <code class="computeroutput">15</code>, because
+regardless of the order in which the slots are connected, the product
+of 5 and 3 will be larger than the quotient, sum, or
+difference.</p>
+<p>In other cases we might want to return all of the values
+computed by the slots together, in one large data structure. This
+is easily done with a different combiner:</p>
+<pre class="programlisting"><code class="computeroutput">// aggregate_values is a combiner which places all the values returned
+// from slots into a container
+template&lt;typename Container&gt;
+struct aggregate_values
+{
+  typedef Container result_type;
+
+  template&lt;typename InputIterator&gt;
+  Container operator()(InputIterator first, InputIterator last) const
+  {
+    Container values;
+
+    while(first != last) {
+      values.push_back(*first);
+      ++first;
+    }
+    return values;
+  }
+};
+</code></pre>
+<p>
+Again, we can create a signal with this new combiner:
+</p>
+<pre class="programlisting">
+<code class="computeroutput"><a class="link" href="../boost/signals2/signal.html" title="Class template signal">boost::signals2::signal</a></code>&lt;float (float, float),
+    aggregate_values&lt;std::vector&lt;float&gt; &gt; &gt; sig;</pre>
+<pre class="programlisting"><code class="computeroutput">  sig.connect(&amp;quotient);
+  sig.connect(&amp;product);
+  sig.connect(&amp;sum);
+  sig.connect(&amp;difference);
+
+  std::vector&lt;float&gt; results = sig(5, 3);
+  std::cout &lt;&lt; "aggregate values: ";
+  std::copy(results.begin(), results.end(),
+    std::ostream_iterator&lt;float&gt;(std::cout, " "));
+  std::cout &lt;&lt; "\n";
+</code></pre>
+<p>The output of this program will contain 15, 8, 1.6667, and 2. It
+is interesting here that
+the first template argument for the <code class="computeroutput">signal</code> class,
+<code class="computeroutput">float</code>, is not actually the return type of the signal.
+Instead, it is the return type used by the connected slots and will
+also be the <code class="computeroutput">value_type</code> of the input iterators passed
+to the combiner. The combiner itself is a function object and its
+<code class="computeroutput">result_type</code> member type becomes the return type of the
+signal.</p>
+<p>The input iterators passed to the combiner transform dereference
+operations into slot calls. Combiners therefore have the option to
+invoke only some slots until some particular criterion is met. For
+instance, in a distributed computing system, the combiner may ask
+each remote system whether it will handle the request. Only one
+remote system needs to handle a particular request, so after a
+remote system accepts the work we do not want to ask any other
+remote systems to perform the same task. Such a combiner need only
+check the value returned when dereferencing the iterator, and
+return when the value is acceptable. The following combiner returns
+the first non-NULL pointer to a <code class="computeroutput">FulfilledRequest</code> data
+structure, without asking any later slots to fulfill the
+request:</p>
+<pre class="programlisting">
+struct DistributeRequest {
+  typedef FulfilledRequest* result_type;
+
+  template&lt;typename InputIterator&gt;
+  result_type operator()(InputIterator first, InputIterator last) const
+  {
+    while (first != last) {
+      if (result_type fulfilled = *first)
+        return fulfilled;
+      ++first;
+    }
+    return 0;
+  }
+};
+</pre>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp204830936"></a>Connection Management</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="tutorial.html#idp204831192">Disconnecting Slots (Beginner)</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#idp204835992">Blocking Slots (Beginner)</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#idp204839368">Scoped Connections (Intermediate)</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#idp204845368">Disconnecting Equivalent Slots (Intermediate)</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#signals2.tutorial.connection-management">Automatic Connection Management (Intermediate)</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#signals2.tutorial.deconstruct">Postconstructors and Predestructors (Advanced)</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#idp204874408">When Can Disconnections Occur? (Intermediate)</a></span></dt>
+<dt><span class="section"><a href="tutorial.html#idp204878888">Passing Slots (Intermediate)</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp204831192"></a>Disconnecting Slots (Beginner)</h4></div></div></div>
+<p>Slots aren't expected to exist indefinitely after they are
+connected. Often slots are only used to receive a few events and
+are then disconnected, and the programmer needs control to decide
+when a slot should no longer be connected.</p>
+<p>The entry point for managing connections explicitly is the
+<code class="computeroutput"><a class="link" href="../boost/signals2/connection.html" title="Class connection">boost::signals2::connection</a></code> class. The
+<code class="computeroutput">connection</code> class uniquely represents the connection
+between a particular signal and a particular slot. The
+<code class="computeroutput"><a class="link" href="../boost/signals2/connection.html#idp60537160-bb">connected</a>()</code> method checks if the signal and slot are
+still connected, and the <code class="computeroutput"><a class="link" href="../boost/signals2/connection.html#idp89761576-bb">disconnect()</a></code> method
+disconnects the signal and slot if they are connected before it is
+called. Each call to the signal's <code class="computeroutput">connect()</code> method
+returns a connection object, which can be used to determine if the
+connection still exists or to disconnect the signal and slot.</p>
+<pre class="programlisting"><code class="computeroutput">  boost::signals2::connection c = sig.connect(HelloWorld());
+  std::cout &lt;&lt; "c is connected\n";
+  sig(); // Prints "Hello, World!"
+
+  c.disconnect(); // Disconnect the HelloWorld object
+  std::cout &lt;&lt; "c is disconnected\n";
+  sig(); // Does nothing: there are no connected slots
+</code></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp204835992"></a>Blocking Slots (Beginner)</h4></div></div></div>
+<p>Slots can be temporarily "blocked", meaning that they will be
+ignored when the signal is invoked but have not been permanently disconnected.
+This is typically used to prevent infinite recursion in cases where
+otherwise running a slot would cause the signal it is connected to to be
+invoked again.  A
+<code class="computeroutput"><a class="link" href="../boost/signals2/shared_connection_block.html" title="Class shared_connection_block">boost::signals2::shared_connection_block</a></code> object will
+temporarily block a slot.  The connection is unblocked by either
+destroying or calling
+<code class="computeroutput"><a class="link" href="../boost/signals2/shared_connection_block.html#idp51786728-bb">unblock</a></code>
+on all the
+<code class="computeroutput">shared_connection_block</code> objects that reference the connection.
+Here is an example of
+blocking/unblocking slots:</p>
+<pre class="programlisting"><code class="computeroutput">  boost::signals2::connection c = sig.connect(HelloWorld());
+  std::cout &lt;&lt; "c is not blocked.\n";
+  sig(); // Prints "Hello, World!"
+
+  {
+    boost::signals2::shared_connection_block block(c); // block the slot
+    std::cout &lt;&lt; "c is blocked.\n";
+    sig(); // No output: the slot is blocked
+  } // shared_connection_block going out of scope unblocks the slot
+  std::cout &lt;&lt; "c is not blocked.\n";
+  sig(); // Prints "Hello, World!"}
+</code></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp204839368"></a>Scoped Connections (Intermediate)</h4></div></div></div>
+<p>The <code class="computeroutput"><a class="link" href="../boost/signals2/scoped_connection.html" title="Class scoped_connection">boost::signals2::scoped_connection</a></code> class
+references a signal/slot connection that will be disconnected when
+the <code class="computeroutput">scoped_connection</code> class goes out of scope. This
+ability is useful when a connection need only be temporary,
+e.g.,</p>
+<pre class="programlisting"><code class="computeroutput">  {
+    boost::signals2::scoped_connection c(sig.connect(ShortLived()));
+    sig(); // will call ShortLived function object
+  } // scoped_connection goes out of scope and disconnects
+
+  sig(); // ShortLived function object no longer connected to sig
+</code></pre>
+<p>
+  Note, attempts to initialize a scoped_connection with the assignment syntax
+  will fail due to it being noncopyable.  Either the explicit initialization syntax
+  or default construction followed by assignment from a <code class="computeroutput"><a class="link" href="../boost/signals2/connection.html" title="Class connection">signals2::connection</a></code>
+  will work:
+</p>
+<pre class="programlisting">
+// doesn't compile due to compiler attempting to copy a temporary scoped_connection object
+// boost::signals2::scoped_connection c0 = sig.<code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp101703096-bb">connect</a></code>(ShortLived());
+
+// okay
+boost::signals2::scoped_connection c1(sig.<code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp101703096-bb">connect</a></code>(ShortLived()));
+
+// also okay
+boost::signals2::scoped_connection c2;
+c2 = sig.<code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp101703096-bb">connect</a></code>(ShortLived());
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp204845368"></a>Disconnecting Equivalent Slots (Intermediate)</h4></div></div></div>
+<p>One can disconnect slots that are equivalent to a given function
+object using a form of the
+<code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp101978072-bb">signal::disconnect</a></code> method, so long as
+the type of the function object has an accessible <code class="computeroutput">==</code>
+operator. For instance:
+
+</p>
+<pre class="programlisting"><code class="computeroutput">void foo() { std::cout &lt;&lt; "foo"; }
+void bar() { std::cout &lt;&lt; "bar\n"; }
+</code></pre>
+<pre class="programlisting"><code class="computeroutput"><a class="link" href="../boost/signals2/signal.html" title="Class template signal">boost::signals2::signal</a></code>&lt;void ()&gt; sig;</pre>
+</div>
+<pre class="programlisting"><code class="computeroutput">  sig.connect(&amp;foo);
+  sig.connect(&amp;bar);
+  sig();
+
+  // disconnects foo, but not bar
+  sig.disconnect(&amp;foo);
+  sig();
+</code></pre>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="signals2.tutorial.connection-management"></a>Automatic Connection Management (Intermediate)</h4></div></div></div>
+<p>Boost.Signals2 can automatically track the lifetime of objects
+involved in signal/slot connections, including automatic
+disconnection of slots when objects involved in the slot call are
+destroyed. For instance, consider a simple news delivery service,
+where clients connect to a news provider that then sends news to
+all connected clients as information arrives. The news delivery
+service may be constructed like this: </p>
+<pre class="programlisting">
+class NewsItem { /* ... */ };
+
+typedef boost::signals2::signal&lt;void (const NewsItem&amp;)&gt; signal_type;
+signal_type deliverNews;
+</pre>
+<p>Clients that wish to receive news updates need only connect a
+function object that can receive news items to the
+<code class="computeroutput">deliverNews</code> signal. For instance, we may have a
+special message area in our application specifically for news,
+e.g.,:</p>
+<pre class="programlisting">
+struct NewsMessageArea : public MessageArea
+{
+public:
+  // ...
+
+  void displayNews(const NewsItem&amp; news) const
+  {
+    messageText = news.text();
+    update();
+  }
+};
+
+// ...
+NewsMessageArea *newsMessageArea = new NewsMessageArea(/* ... */);
+// ...
+deliverNews.<code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp101703096-bb">connect</a></code>(boost::bind(&amp;NewsMessageArea::displayNews,
+  newsMessageArea, _1));
+</pre>
+<p>However, what if the user closes the news message area,
+destroying the <code class="computeroutput">newsMessageArea</code> object that
+<code class="computeroutput">deliverNews</code> knows about? Most likely, a segmentation
+fault will occur. However, with Boost.Signals2 one may track any object
+which is managed by a shared_ptr, by using
+<code class="computeroutput"><a class="link" href="../boost/signals2/slot.html#idp58467624-bb">slot::track</a></code>.  A slot will automatically
+disconnect when any of its tracked objects expire.  In
+addition, Boost.Signals2 will ensure that no tracked object expires
+while the slot it is associated with is in mid-execution.  It does so by creating
+temporary shared_ptr copies of the slot's tracked objects before executing it.
+To track <code class="computeroutput">NewsMessageArea</code>, we use a shared_ptr to manage
+its lifetime, and pass the shared_ptr to the slot via its
+<code class="computeroutput"><a class="link" href="../boost/signals2/slot.html#idp58467624-bb">slot::track</a></code>
+method before connecting it,
+e.g.:</p>
+<pre class="programlisting">
+// ...
+boost::shared_ptr&lt;NewsMessageArea&gt; newsMessageArea(new NewsMessageArea(/* ... */));
+// ...
+deliverNews.<code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp101703096-bb">connect</a></code>(signal_type::slot_type(&amp;NewsMessageArea::displayNews,
+  newsMessageArea.get(), _1).track(newsMessageArea));
+</pre>
+<p>
+  Note there is no explicit call to bind() needed in the above example.  If the
+  <code class="computeroutput"><a class="link" href="../boost/signals2/slot.html" title="Class template slot">signals2::slot</a></code> constructor is passed more than one
+  argument, it will automatically pass all the arguments to <code class="computeroutput">bind</code> and use the
+  returned function object.
+</p>
+<p>Also note, we pass an ordinary pointer as the
+  second argument to the slot constructor, using <code class="computeroutput">newsMessageArea.get()</code>
+  instead of passing the <code class="computeroutput">shared_ptr</code> itself.  If we had passed the
+  <code class="computeroutput">newsMessageArea</code> itself, a copy of the <code class="computeroutput">shared_ptr</code> would
+  have been bound into the slot function, preventing the <code class="computeroutput">shared_ptr</code>
+  from expiring.  However, the use of
+  <code class="computeroutput"><a class="link" href="../boost/signals2/slot.html#idp58467624-bb">slot::track</a></code>
+  implies we wish to allow the tracked object to expire, and automatically
+  disconnect the connection when this occurs.
+</p>
+<p>
+  <code class="computeroutput">shared_ptr</code> classes other than <code class="computeroutput">boost::shared_ptr</code>
+  (such as <code class="computeroutput">std::shared_ptr</code>) may also be tracked for connection management
+  purposes.  They are supported by the <code class="computeroutput"><a class="link" href="../boost/signals2/slot.html#idp93288856-bb">slot::track_foreign</a></code> method.
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="signals2.tutorial.deconstruct"></a>Postconstructors and Predestructors (Advanced)</h4></div></div></div>
+<p>One limitation of using <code class="computeroutput">shared_ptr</code> for tracking is that
+      an object cannot setup tracking of itself in its constructor.  However, it is
+      possible to set up tracking in a post-constructor which is called after the
+      object has been created and passed to a <code class="computeroutput">shared_ptr</code>.
+      The Boost.Signals2
+      library provides support for post-constructors and pre-destructors
+      via the <code class="computeroutput"><a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct">deconstruct()</a></code> factory function.
+    </p>
+<p>
+      For most cases, the simplest and most robust way to setup postconstructors
+      for a class is to define an associated <code class="computeroutput">adl_postconstruct</code> function
+      which can be found by <code class="computeroutput"><a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct">deconstruct()</a></code>,
+      make the class' constructors private, and give <code class="computeroutput"><a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct">deconstruct</a></code>
+      access to the private constructors by declaring <code class="computeroutput"><a class="link" href="../boost/signals2/deconstruct_access.html" title="Class deconstruct_access">deconstruct_access</a></code>
+      a friend.  This will ensure that objects of the class may only be created
+      through the <code class="computeroutput"><a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct">deconstruct()</a></code> function, and their
+      associated <code class="computeroutput">adl_postconstruct()</code> function will always be called.
+    </p>
+<p>The <a class="link" href="examples.html#signals2.examples.deconstruct" title="Postconstructors and Predestructors with deconstruct()">examples</a> section
+      contains several examples of defining classes with postconstructors and
+      predestructors, and creating objects of these classes using
+      <code class="computeroutput"><a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct">deconstruct()</a></code>
+    </p>
+<p>
+      Be aware that the postconstructor/predestructor support in Boost.Signals2
+      is in no way essential to the use of the library.  The use of
+      <code class="computeroutput"><a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct">deconstruct</a></code>
+      is purely optional.  One alternative is to
+      define static factory functions for your classes.  The
+      factory function can create an object, pass ownership of the object to
+      a <code class="computeroutput">shared_ptr</code>, setup tracking for the object,
+      then return the <code class="computeroutput">shared_ptr</code>.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp204874408"></a>When Can Disconnections Occur? (Intermediate)</h4></div></div></div>
+<p>Signal/slot disconnections occur when any of these conditions
+occur:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>The connection is explicitly disconnected via the connection's
+<code class="computeroutput">disconnect</code> method directly, or indirectly via the
+signal's <code class="computeroutput">disconnect</code> method, or
+<code class="computeroutput">scoped_connection</code>'s destructor.</p></li>
+<li class="listitem"><p>An object tracked by the slot is
+destroyed.</p></li>
+<li class="listitem"><p>The signal is destroyed.</p></li>
+</ul></div>
+<p>These events can occur at any time without disrupting a signal's
+calling sequence. If a signal/slot connection is disconnected at
+any time during a signal's calling sequence, the calling sequence
+will still continue but will not invoke the disconnected slot.
+Additionally, a signal may be destroyed while it is in a calling
+sequence, and which case it will complete its slot call sequence
+but may not be accessed directly.</p>
+<p>Signals may be invoked recursively (e.g., a signal A calls a
+slot B that invokes signal A...). The disconnection behavior does
+not change in the recursive case, except that the slot calling
+sequence includes slot calls for all nested invocations of the
+signal.</p>
+<p>
+  Note, even after a connection is disconnected, its's associated slot
+  may still be in the process of executing.  In other words, disconnection
+  does not block waiting for the connection's associated slot to complete execution.
+  This situation may occur in a multi-threaded environment if the
+  disconnection occurs concurrently with signal invocation,
+  or in a single-threaded environment if a slot disconnects itself.
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp204878888"></a>Passing Slots (Intermediate)</h4></div></div></div>
+<p>Slots in the Boost.Signals2 library are created from arbitrary
+function objects, and therefore have no fixed type. However, it is
+commonplace to require that slots be passed through interfaces that
+cannot be templates. Slots can be passed via the
+<code class="computeroutput">slot_type</code> for each particular signal type and any
+function object compatible with the signature of the signal can be
+passed to a <code class="computeroutput">slot_type</code> parameter. For instance:</p>
+<pre class="programlisting"><code class="computeroutput">// a pretend GUI button
+class Button
+{
+  typedef boost::signals2::signal&lt;void (int x, int y)&gt; OnClick;
+public:
+  typedef OnClick::slot_type OnClickSlotType;
+  // forward slots through Button interface to its private signal
+  boost::signals2::connection doOnClick(const OnClickSlotType &amp; slot);
+
+  // simulate user clicking on GUI button at coordinates 52, 38
+  void simulateClick();
+private:
+  OnClick onClick;
+};
+
+boost::signals2::connection Button::doOnClick(const OnClickSlotType &amp; slot)
+{
+  return onClick.connect(slot);
+}
+
+void Button::simulateClick()
+{
+  onClick(52, 38);
+}
+
+void printCoordinates(long x, long y)
+{
+  std::cout &lt;&lt; "(" &lt;&lt; x &lt;&lt; ", " &lt;&lt; y &lt;&lt; ")\n";
+}
+</code></pre>
+<pre class="programlisting">
+<code class="computeroutput">  Button button;
+  button.doOnClick(&amp;printCoordinates);
+  button.simulateClick();
+</code></pre>
+<p>The <code class="computeroutput">doOnClick</code> method is now functionally equivalent
+to the <code class="computeroutput">connect</code> method of the <code class="computeroutput">onClick</code>
+signal, but the details of the <code class="computeroutput">doOnClick</code> method can be
+hidden in an implementation detail file.</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="signals2.tutorial.document-view"></a>Example: Document-View</h3></div></div></div>
+<p>Signals can be used to implement flexible Document-View
+  architectures. The document will contain a signal to which each of
+  the views can connect. The following <code class="computeroutput">Document</code> class
+  defines a simple text document that supports mulitple views. Note
+  that it stores a single signal to which all of the views will be
+  connected.</p>
+<pre class="programlisting"><code class="computeroutput">class Document
+{
+public:
+    typedef boost::signals2::signal&lt;void ()&gt;  signal_t;
+
+public:
+    Document()
+    {}
+
+    /* Connect a slot to the signal which will be emitted whenever
+      text is appended to the document. */
+    boost::signals2::connection connect(const signal_t::slot_type &amp;subscriber)
+    {
+        return m_sig.connect(subscriber);
+    }
+
+    void append(const char* s)
+    {
+        m_text += s;
+        m_sig();
+    }
+
+    const std::string&amp; getText() const
+    {
+        return m_text;
+    }
+
+private:
+    signal_t    m_sig;
+    std::string m_text;
+};
+</code></pre>
+<p>
+    Next, we can begin to define views. The
+    following <code class="computeroutput">TextView</code> class provides a simple view of the
+    document text.
+  </p>
+<pre class="programlisting"><code class="computeroutput">class TextView
+{
+public:
+    TextView(Document&amp; doc): m_document(doc)
+    {
+        m_connection = m_document.connect(boost::bind(&amp;TextView::refresh, this));
+    }
+
+    ~TextView()
+    {
+        m_connection.disconnect();
+    }
+
+    void refresh() const
+    {
+        std::cout &lt;&lt; "TextView: " &lt;&lt; m_document.getText() &lt;&lt; std::endl;
+    }
+private:
+    Document&amp;               m_document;
+    boost::signals2::connection  m_connection;
+};
+</code></pre>
+<p>Alternatively, we can provide a view of the document
+    translated into hex values using the <code class="computeroutput">HexView</code>
+    view:</p>
+<pre class="programlisting"><code class="computeroutput">class HexView
+{
+public:
+    HexView(Document&amp; doc): m_document(doc)
+    {
+        m_connection = m_document.connect(boost::bind(&amp;HexView::refresh, this));
+    }
+
+    ~HexView()
+    {
+        m_connection.disconnect();
+    }
+
+    void refresh() const
+    {
+        const std::string&amp;  s = m_document.getText();
+
+        std::cout &lt;&lt; "HexView:";
+
+        for (std::string::const_iterator it = s.begin(); it != s.end(); ++it)
+            std::cout &lt;&lt; ' ' &lt;&lt; std::hex &lt;&lt; static_cast&lt;int&gt;(*it);
+
+        std::cout &lt;&lt; std::endl;
+    }
+private:
+    Document&amp;               m_document;
+    boost::signals2::connection  m_connection;
+};
+</code></pre>
+<p>
+    To tie the example together, here is a
+    simple <code class="computeroutput">main</code> function that sets up two views and then
+    modifies the document:
+  </p>
+<pre class="programlisting"><code class="computeroutput">int main(int argc, char* argv[])
+{
+    Document    doc;
+    TextView    v1(doc);
+    HexView     v2(doc);
+
+    doc.append(argc == 2 ? argv[1] : "Hello world!");
+    return 0;
+}
+</code></pre>
+<p>The complete example source, contributed by Keith MacDonald,
+    is available in the <a class="link" href="examples.html#signals2.examples.document-view" title="Document-View">examples</a> section.
+    We also provide variations on the program which employ automatic connection management
+    to disconnect views on their destruction.
+  </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="signals2.tutorial.extended-slot-type"></a>Giving a Slot Access to its Connection (Advanced)</h3></div></div></div>
+<p>
+      You may encounter situations where you wish to disconnect or block a slot's
+      connection from within the slot itself.  For example, suppose you have a group
+      of asynchronous tasks, each of which emits a signal when it completes.
+      You wish to connect a slot to all the tasks to retrieve their results as
+      each completes.  Once a
+      given task completes and the slot is run, the slot no longer needs to be
+      connected to the completed task.
+      Therefore, you may wish to clean up old connections by having the slot
+      disconnect its invoking connection when it runs.
+    </p>
+<p>
+      For a slot to disconnect (or block) its invoking connection, it must have
+      access to a <code class="computeroutput"><a class="link" href="../boost/signals2/connection.html" title="Class connection">signals2::connection</a></code> object which references
+      the invoking signal-slot connection.  The difficulty is,
+      the <code class="computeroutput">connection</code> object is returned by the
+      <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp101703096-bb">signal::connect</a></code>
+      method, and therefore is not available until after the slot is
+      already connected to the signal.  This can be particularly troublesome
+      in a multi-threaded environment where the signal may be invoked
+      concurrently by a different thread while the slot is being connected.
+    </p>
+<p>
+      Therefore, the signal classes provide
+      <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp93055064-bb">signal::connect_extended</a></code>
+      methods, which allow slots which take an extra argument to be connected to a signal.
+      The extra argument is a <code class="computeroutput"><a class="link" href="../boost/signals2/connection.html" title="Class connection">signals2::connection</a></code> object which refers
+      to the signal-slot connection currently invoking the slot.
+      <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp93055064-bb">signal::connect_extended</a></code>
+      uses slots of the type given by the
+      <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#boost.signals2.signal.extended_slot_type">signal::extended_slot_type</a></code>
+      typedef.
+    </p>
+<p>
+      The examples section includes an
+      <a class="link" href="examples.html#signals2.examples.tutorial.extended_slot" title="extended_slot">extended_slot</a>
+      program which demonstrates the syntax for using
+      <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp93055064-bb">signal::connect_extended</a></code>.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="signals2.tutorial.signal-mutex-template-parameter"></a>Changing the <code class="computeroutput">Mutex</code> Type of a Signal (Advanced).</h3></div></div></div>
+<p>
+      For most cases the default type of <code class="computeroutput"><a class="link" href="../boost/signals2/mutex.html" title="Class mutex">boost::signals2::mutex</a></code> for
+      a <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html" title="Class template signal">signals2::signal</a></code>'s <code class="computeroutput">Mutex</code> template type parameter should
+      be fine.  If you wish to use an alternate mutex type, it must be default-constructible
+      and fulfill the <code class="computeroutput">Lockable</code> concept defined by the Boost.Thread library.
+      That is, it must have <code class="computeroutput">lock()</code> and <code class="computeroutput">unlock()</code> methods
+      (the <code class="computeroutput">Lockable</code> concept also includes a <code class="computeroutput">try_lock()</code> method
+      but this library does not require try locking).
+    </p>
+<p>
+      The Boost.Signals2 library provides one alternate mutex class for use with <code class="computeroutput">signal</code>:
+      <code class="computeroutput"><a class="link" href="../boost/signals2/dummy_mutex.html" title="Class dummy_mutex">boost::signals2::dummy_mutex</a></code>.  This is a fake mutex for
+      use in single-threaded programs, where locking a real mutex would be useless
+      overhead.  Other mutex types you could use with <code class="computeroutput">signal</code> include
+      <code class="computeroutput">boost::mutex</code>, or the <code class="computeroutput">std::mutex</code> from
+      C++0x.
+    </p>
+<p>
+      Changing a signal's <code class="computeroutput">Mutex</code> template type parameter can be tedious, due to
+      the large number of template parameters which precede it.  The
+      <code class="computeroutput"><a class="link" href="../boost/signals2/signal_type.html" title="Class template signal_type">signal_type</a></code> metafunction is particularly useful in this case,
+      since it enables named template type parameters for the <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html" title="Class template signal">signals2::signal</a></code>
+      class.  For example, to declare a signal which takes an <code class="computeroutput">int</code> as
+      an argument and uses a <code class="computeroutput"><a class="link" href="../boost/signals2/dummy_mutex.html" title="Class dummy_mutex">boost::signals2::dummy_mutex</a></code>
+      for its <code class="computeroutput">Mutex</code> types, you could write:
+    </p>
+<pre class="programlisting">namespace bs2 = boost::signals2;
+using bs2::keywords;
+bs2::signal_type&lt;void (int), mutex_type&lt;bs2::dummy_mutex&gt; &gt;::type sig;
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp204910248"></a>Linking against the Signals2 library</h3></div></div></div>
+<p>Unlike the original Boost.Signals library, Boost.Signals2 is currently header-only.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: June 12, 2007 at 14:01:23 -0400</small></p></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<br>Copyright &#169; 2007-2009 Frank Mori Hess<p>Distributed under the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../signals2.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="examples.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

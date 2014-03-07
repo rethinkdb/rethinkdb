@@ -1,0 +1,843 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Design Rationale</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="prev" href="compilation.html" title="Compilation">
+<link rel="next" href="quickstart.html" title="Quick Start">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="compilation.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="quickstart.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="geometry.design"></a><a class="link" href="design.html" title="Design Rationale">Design Rationale</a>
+</h2></div></div></div>
+<p>
+      Suppose you need a C++ program to calculate the distance between two points.
+      You might define a struct:
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">mypoint</span>
+<span class="special">{</span>
+    <span class="keyword">double</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">y</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      and a function, containing the algorithm:
+    </p>
+<pre class="programlisting"><span class="keyword">double</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">mypoint</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">mypoint</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">double</span> <span class="identifier">dx</span> <span class="special">=</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">x</span> <span class="special">-</span> <span class="identifier">b</span><span class="special">.</span><span class="identifier">x</span><span class="special">;</span>
+    <span class="keyword">double</span> <span class="identifier">dy</span> <span class="special">=</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">y</span> <span class="special">-</span> <span class="identifier">b</span><span class="special">.</span><span class="identifier">y</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="identifier">sqrt</span><span class="special">(</span><span class="identifier">dx</span> <span class="special">*</span> <span class="identifier">dx</span> <span class="special">+</span> <span class="identifier">dy</span> <span class="special">*</span> <span class="identifier">dy</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      Quite simple, and it is usable, but not generic. For a library it has to be
+      designed way further. The design above can only be used for 2D points, for
+      the struct <span class="bold"><strong>mypoint</strong></span> (and no other struct),
+      in a Cartesian coordinate system. A generic library should be able to calculate
+      the distance:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          for any point class or struct, not on just this <span class="bold"><strong>mypoint</strong></span>
+          type
+        </li>
+<li class="listitem">
+          in more than two dimensions
+        </li>
+<li class="listitem">
+          for other coordinate systems, e.g. over the earth or on a sphere
+        </li>
+<li class="listitem">
+          between a point and a line or between other geometry combinations
+        </li>
+<li class="listitem">
+          in higher precision than <span class="emphasis"><em>double</em></span>
+        </li>
+<li class="listitem">
+          avoiding the square root: often we don't want to do that because it is
+          a relatively expensive function, and for comparing distances it is not
+          necessary
+        </li>
+</ul></div>
+<p>
+      In this and following sections we will make the design step by step more generic.
+    </p>
+<h4>
+<a name="geometry.design.h0"></a>
+      <span class="phrase"><a name="geometry.design.using_templates"></a></span><a class="link" href="design.html#geometry.design.using_templates">Using
+      Templates</a>
+    </h4>
+<p>
+      The distance function can be changed into a template function. This is trivial
+      and allows calculating the distance between other point types than just <span class="bold"><strong>mypoint</strong></span>. We add two template parameters, allowing input
+      of two different point types.
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">P2</span><span class="special">&gt;</span>
+<span class="keyword">double</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">P1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">P2</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">double</span> <span class="identifier">dx</span> <span class="special">=</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">x</span> <span class="special">-</span> <span class="identifier">b</span><span class="special">.</span><span class="identifier">x</span><span class="special">;</span>
+    <span class="keyword">double</span> <span class="identifier">dy</span> <span class="special">=</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">y</span> <span class="special">-</span> <span class="identifier">b</span><span class="special">.</span><span class="identifier">y</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">sqrt</span><span class="special">(</span><span class="identifier">dx</span> <span class="special">*</span> <span class="identifier">dx</span> <span class="special">+</span> <span class="identifier">dy</span> <span class="special">*</span> <span class="identifier">dy</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      This template version is slightly better, but not much.
+    </p>
+<p>
+      Consider a C++ class where member variables are protected... Such a class does
+      not allow to access <code class="computeroutput"><span class="identifier">x</span></code> and
+      <code class="computeroutput"><span class="identifier">y</span></code> members directly. So, this
+      paragraph is short and we just move on.
+    </p>
+<h4>
+<a name="geometry.design.h1"></a>
+      <span class="phrase"><a name="geometry.design.using_traits"></a></span><a class="link" href="design.html#geometry.design.using_traits">Using
+      Traits</a>
+    </h4>
+<p>
+      We need to take a generic approach and allow any point type as input to the
+      distance function. Instead of accessing <code class="computeroutput"><span class="identifier">x</span></code>
+      and <code class="computeroutput"><span class="identifier">y</span></code> members, we will add
+      a few levels of indirection, using a traits system. The function then becomes:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">P2</span><span class="special">&gt;</span>
+<span class="keyword">double</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">P1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">P2</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">double</span> <span class="identifier">dx</span> <span class="special">=</span> <span class="identifier">get</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">a</span><span class="special">)</span> <span class="special">-</span> <span class="identifier">get</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">b</span><span class="special">);</span>
+    <span class="keyword">double</span> <span class="identifier">dy</span> <span class="special">=</span> <span class="identifier">get</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">a</span><span class="special">)</span> <span class="special">-</span> <span class="identifier">get</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">b</span><span class="special">);</span>
+    <span class="keyword">return</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">sqrt</span><span class="special">(</span><span class="identifier">dx</span> <span class="special">*</span> <span class="identifier">dx</span> <span class="special">+</span> <span class="identifier">dy</span> <span class="special">*</span> <span class="identifier">dy</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      This adapted distance function uses a generic get function, with dimension
+      as a template parameter, to access the coordinates of a point. This get forwards
+      to the traits system, defined as following:
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">traits</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">D</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">access</span> <span class="special">{};</span>
+<span class="special">}</span>
+</pre>
+<p>
+      which is then specialized for our <span class="bold"><strong>mypoint</strong></span>
+      type, implementing a static method called <code class="computeroutput"><span class="identifier">get</span></code>:
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">traits</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">access</span><span class="special">&lt;</span><span class="identifier">mypoint</span><span class="special">,</span> <span class="number">0</span><span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">static</span> <span class="keyword">double</span> <span class="identifier">get</span><span class="special">(</span><span class="identifier">mypoint</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">x</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+    <span class="comment">// same for 1: p.y</span>
+    <span class="special">...</span>
+<span class="special">}</span>
+</pre>
+<p>
+      Calling <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">access</span><span class="special">&lt;</span><span class="identifier">mypoint</span><span class="special">,</span> <span class="number">0</span><span class="special">&gt;::</span><span class="identifier">get</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code>
+      now returns us our <code class="computeroutput"><span class="identifier">x</span></code> coordinate.
+      Nice, isn't it? It is too verbose for a function like this, used so often in
+      the library. We can shorten the syntax by adding an extra free function:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">int</span> <span class="identifier">D</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">P</span><span class="special">&gt;</span>
+<span class="keyword">inline</span> <span class="keyword">double</span> <span class="identifier">get</span><span class="special">(</span><span class="identifier">P</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">traits</span><span class="special">::</span><span class="identifier">access</span><span class="special">&lt;</span><span class="identifier">P</span><span class="special">,</span> <span class="identifier">D</span><span class="special">&gt;::</span><span class="identifier">get</span><span class="special">(</span><span class="identifier">p</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      This enables us to call <code class="computeroutput"><span class="identifier">get</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">a</span><span class="special">)</span></code>, for any
+      point having the traits::access specialization, as shown in the distance algorithm
+      at the start of this paragraph. So we wanted to enable classes with methods
+      like <code class="computeroutput"><span class="identifier">x</span><span class="special">()</span></code>,
+      and they are supported as long as there is a specialization of the access
+      <code class="computeroutput"><span class="keyword">struct</span></code> with a static <code class="computeroutput"><span class="identifier">get</span></code> function returning <code class="computeroutput"><span class="identifier">x</span><span class="special">()</span></code> for dimension 0, and similar for 1 and <code class="computeroutput"><span class="identifier">y</span><span class="special">()</span></code>.
+    </p>
+<h4>
+<a name="geometry.design.h2"></a>
+      <span class="phrase"><a name="geometry.design.dimension_agnosticism"></a></span><a class="link" href="design.html#geometry.design.dimension_agnosticism">Dimension
+      Agnosticism</a>
+    </h4>
+<p>
+      Now we can calculate the distance between points in 2D, points of any structure
+      or class. However, we wanted to have 3D as well. So we have to make it dimension
+      agnostic. This complicates our distance function. We can use a <code class="computeroutput"><span class="keyword">for</span></code> loop to walk through dimensions, but for
+      loops have another performance than the straightforward coordinate addition
+      which was there originally. However, we can make more usage of templates and
+      make the distance algorithm as following, more complex but attractive for template
+      fans:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">P2</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">D</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">pythagoras</span>
+<span class="special">{</span>
+    <span class="keyword">static</span> <span class="keyword">double</span> <span class="identifier">apply</span><span class="special">(</span><span class="identifier">P1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">P2</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">double</span> <span class="identifier">d</span> <span class="special">=</span> <span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">-</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">a</span><span class="special">)</span> <span class="special">-</span> <span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">-</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">b</span><span class="special">);</span>
+        <span class="keyword">return</span> <span class="identifier">d</span> <span class="special">*</span> <span class="identifier">d</span> <span class="special">+</span> <span class="identifier">pythagoras</span><span class="special">&lt;</span><span class="identifier">P1</span><span class="special">,</span> <span class="identifier">P2</span><span class="special">,</span> <span class="identifier">D</span><span class="special">-</span><span class="number">1</span><span class="special">&gt;::</span><span class="identifier">apply</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">P2</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">pythagoras</span><span class="special">&lt;</span><span class="identifier">P1</span><span class="special">,</span> <span class="identifier">P2</span><span class="special">,</span> <span class="number">0</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">static</span> <span class="keyword">double</span> <span class="identifier">apply</span><span class="special">(</span><span class="identifier">P1</span> <span class="keyword">const</span><span class="special">&amp;,</span> <span class="identifier">P2</span> <span class="keyword">const</span><span class="special">&amp;)</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      The distance function is calling that <code class="computeroutput"><span class="identifier">pythagoras</span></code>
+      structure, specifying the number of dimensions:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">P2</span><span class="special">&gt;</span>
+<span class="keyword">double</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">P1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">P2</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span> <span class="identifier">dimension</span><span class="special">&lt;</span><span class="identifier">P1</span><span class="special">&gt;::</span><span class="identifier">value</span> <span class="special">==</span> <span class="identifier">dimension</span><span class="special">&lt;</span><span class="identifier">P2</span><span class="special">&gt;::</span><span class="identifier">value</span> <span class="special">));</span>
+
+    <span class="keyword">return</span> <span class="identifier">sqrt</span><span class="special">(</span><span class="identifier">pythagoras</span><span class="special">&lt;</span><span class="identifier">P1</span><span class="special">,</span> <span class="identifier">P2</span><span class="special">,</span> <span class="identifier">dimension</span><span class="special">&lt;</span><span class="identifier">P1</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">&gt;::</span><span class="identifier">apply</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<p>
+      The dimension which is referred to is defined using another traits class:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">traits</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">dimension</span> <span class="special">{};</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<p>
+      which has to be specialized again for the <code class="computeroutput"><span class="keyword">struct</span>
+      <span class="identifier">mypoint</span></code>.
+    </p>
+<p>
+      Because it only has to publish a value, we conveniently derive it from the
+      Boost.MPL <code class="computeroutput"><span class="keyword">class</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">int_</span></code>:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">traits</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">dimension</span><span class="special">&lt;</span><span class="identifier">mypoint</span><span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">int_</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;</span>
+    <span class="special">{};</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<p>
+      Like the free get function, the library also contains a dimension meta-function.
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">dimension</span> <span class="special">:</span> <span class="identifier">traits</span><span class="special">::</span><span class="identifier">dimension</span><span class="special">&lt;</span><span class="identifier">P</span><span class="special">&gt;</span>
+<span class="special">{};</span>
+</pre>
+<p>
+      Below is explained why the extra declaration is useful. Now we have agnosticism
+      in the number of dimensions. Our more generic distance function now accepts
+      points of three or more dimensions. The compile-time assertion will prevent
+      point a having two dimension and point b having three dimensions.
+    </p>
+<h4>
+<a name="geometry.design.h3"></a>
+      <span class="phrase"><a name="geometry.design.coordinate_type"></a></span><a class="link" href="design.html#geometry.design.coordinate_type">Coordinate
+      Type</a>
+    </h4>
+<p>
+      We assumed double above. What if our points are in integer?
+    </p>
+<p>
+      We can easily add a traits class, and we will do that. However, the distance
+      between two integer coordinates can still be a fractionized value. Besides
+      that, a design goal was to avoid square roots. We handle these cases below,
+      in another paragraph. For the moment we keep returning double, but we allow
+      integer coordinates for our point types. To define the coordinate type, we
+      add another traits class, <code class="computeroutput"><span class="identifier">coordinate_type</span></code>,
+      which should be specialized by the library user:
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">traits</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">coordinate_type</span><span class="special">{};</span>
+
+    <span class="comment">// specialization for our mypoint</span>
+    <span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">coordinate_type</span><span class="special">&lt;</span><span class="identifier">mypoint</span><span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">double</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+<span class="special">}</span>
+</pre>
+<p>
+      Like the access function, where we had a free get function, we add a proxy
+      here as well. A longer version is presented later on, the short function would
+      look like this:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">coordinate_type</span> <span class="special">:</span>    <span class="identifier">traits</span><span class="special">::</span><span class="identifier">coordinate_type</span><span class="special">&lt;</span><span class="identifier">P</span><span class="special">&gt;</span> <span class="special">{};</span>
+</pre>
+<p>
+      We now can modify our distance algorithm again. Because it still returns double,
+      we only modify the <code class="computeroutput"><span class="identifier">pythagoras</span></code>
+      computation class. It should return the coordinate type of its input. But,
+      it has two input, possibly different, point types. They might also differ in
+      their coordinate types. Not that that is very likely, but we&#8217;re designing
+      a generic library and we should handle those strange cases. We have to choose
+      one of the coordinate types and of course we select the one with the highest
+      precision. This is not worked out here, it would be too long, and it is not
+      related to geometry. We just assume that there is a meta-function <code class="computeroutput"><span class="identifier">select_most_precise</span></code> selecting the best type.
+    </p>
+<p>
+      So our computation class becomes:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">P2</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">D</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">pythagoras</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">select_most_precise</span>
+        <span class="special">&lt;</span>
+            <span class="keyword">typename</span> <span class="identifier">coordinate_type</span><span class="special">&lt;</span><span class="identifier">P1</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+            <span class="keyword">typename</span> <span class="identifier">coordinate_type</span><span class="special">&lt;</span><span class="identifier">P2</span><span class="special">&gt;::</span><span class="identifier">type</span>
+        <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">computation_type</span><span class="special">;</span>
+
+    <span class="keyword">static</span> <span class="identifier">computation_type</span> <span class="identifier">apply</span><span class="special">(</span><span class="identifier">P1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">P2</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">computation_type</span> <span class="identifier">d</span> <span class="special">=</span> <span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">-</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">a</span><span class="special">)</span> <span class="special">-</span> <span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">-</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">b</span><span class="special">);</span>
+        <span class="keyword">return</span> <span class="identifier">d</span> <span class="special">*</span> <span class="identifier">d</span> <span class="special">+</span> <span class="identifier">pythagoras</span> <span class="special">&lt;</span><span class="identifier">P1</span><span class="special">,</span> <span class="identifier">P2</span><span class="special">,</span> <span class="identifier">D</span><span class="special">-</span><span class="number">1</span><span class="special">&gt;</span> <span class="special">::</span><span class="identifier">apply</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<h4>
+<a name="geometry.design.h4"></a>
+      <span class="phrase"><a name="geometry.design.different_geometries"></a></span><a class="link" href="design.html#geometry.design.different_geometries">Different
+      Geometries</a>
+    </h4>
+<p>
+      We have designed a dimension agnostic system supporting any point type of any
+      coordinate type. There are still some tweaks but they will be worked out later.
+      Now we will see how we calculate the distance between a point and a polygon,
+      or between a point and a line-segment. These formulae are more complex, and
+      the influence on design is even larger. We don&#8217;t want to add a function with
+      another name:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">S</span><span class="special">&gt;</span>
+<span class="keyword">double</span> <span class="identifier">distance_point_segment</span><span class="special">(</span><span class="identifier">P</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">S</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">)</span>
+</pre>
+<p>
+      We want to be generic, the distance function has to be called from code not
+      knowing the type of geometry it handles, so it has to be named distance. We
+      also cannot create an overload because that would be ambiguous, having the
+      same template signature. There are two solutions:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          tag dispatching
+        </li>
+<li class="listitem">
+          SFINAE
+        </li>
+</ul></div>
+<p>
+      We select tag dispatching because it fits into the traits system. The earlier
+      versions (previews) of Boost.Geometry used SFINAE but we found it had several
+      drawbacks for such a big design, so the switch to tag dispatching was made.
+    </p>
+<p>
+      With tag dispatching the distance algorithm inspects the type of geometry of
+      the input parameters. The distance function will be changed into this:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">G1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">G2</span><span class="special">&gt;</span>
+<span class="keyword">double</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">G1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">g1</span><span class="special">,</span> <span class="identifier">G2</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">g2</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">dispatch</span><span class="special">::</span><span class="identifier">distance</span>
+        <span class="special">&lt;</span>
+            <span class="keyword">typename</span> <span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">G1</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+            <span class="keyword">typename</span> <span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">G2</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+            <span class="identifier">G1</span><span class="special">,</span> <span class="identifier">G2</span>
+        <span class="special">&gt;::</span><span class="identifier">apply</span><span class="special">(</span><span class="identifier">g1</span><span class="special">,</span> <span class="identifier">g2</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      It is referring to the tag meta-function and forwarding the call to the <span class="bold"><strong>apply</strong></span> method of a <span class="emphasis"><em>dispatch::distance</em></span>
+      structure. The <span class="bold"><strong>tag</strong></span> meta-function is another
+      traits class, and should be specialized for per point type, both shown here:
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">traits</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">G</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">tag</span> <span class="special">{};</span>
+
+    <span class="comment">// specialization</span>
+    <span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">mypoint</span><span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">point_tag</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+<span class="special">}</span>
+</pre>
+<p>
+      Free meta-function, like coordinate_system and get:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">G</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">tag</span> <span class="special">:</span> <span class="identifier">traits</span><span class="special">::</span><span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">G</span><span class="special">&gt;</span> <span class="special">{};</span>
+</pre>
+<p>
+      <span class="bold"><strong>Tags</strong></span> (<code class="computeroutput"><span class="identifier">point_tag</span></code>,
+      <code class="computeroutput"><span class="identifier">segment_tag</span></code>, etc) are empty
+      structures with the purpose to specialize a dispatch struct. The dispatch struct
+      for distance, and its specializations, are all defined in a separate namespace
+      and look like the following:
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">dispatch</span> <span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">Tag1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Tag2</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">G1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">G2</span> <span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">distance</span>
+    <span class="special">{};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">P2</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">distance</span> <span class="special">&lt;</span> <span class="identifier">point_tag</span><span class="special">,</span> <span class="identifier">point_tag</span><span class="special">,</span> <span class="identifier">P1</span><span class="special">,</span> <span class="identifier">P2</span> <span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">static</span> <span class="keyword">double</span> <span class="identifier">apply</span><span class="special">(</span><span class="identifier">P1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">P2</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="comment">// here we call pythagoras</span>
+            <span class="comment">// exactly like we did before</span>
+            <span class="special">...</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">S</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">distance</span>
+    <span class="special">&lt;</span>
+        <span class="identifier">point_tag</span><span class="special">,</span> <span class="identifier">segment_tag</span><span class="special">,</span> <span class="identifier">P</span><span class="special">,</span> <span class="identifier">S</span>
+    <span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">static</span> <span class="keyword">double</span> <span class="identifier">apply</span><span class="special">(</span><span class="identifier">P</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">S</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="comment">// here we refer to another function</span>
+            <span class="comment">// implementing point-segment</span>
+            <span class="comment">// calculations in 2 or 3</span>
+            <span class="comment">// dimensions...</span>
+            <span class="special">...</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+    <span class="comment">// here we might have many more</span>
+    <span class="comment">// specializations,</span>
+    <span class="comment">// for point-polygon, box-circle, etc.</span>
+
+<span class="special">}</span> <span class="comment">// namespace</span>
+</pre>
+<p>
+      So yes, it is possible; the distance algorithm is generic now in the sense
+      that it also supports different geometry types. One drawback: we have to define
+      two dispatch specializations for point - segment and for segment - point separately.
+      That will also be solved, in the paragraph reversibility below. The example
+      below shows where we are now: different point types, geometry types, dimensions.
+    </p>
+<pre class="programlisting"><span class="identifier">point</span> <span class="identifier">a</span><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="number">1</span><span class="special">);</span>
+<span class="identifier">point</span> <span class="identifier">b</span><span class="special">(</span><span class="number">2</span><span class="special">,</span><span class="number">2</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">segment</span> <span class="identifier">s1</span><span class="special">(</span><span class="number">0</span><span class="special">,</span><span class="number">0</span><span class="special">,</span><span class="number">5</span><span class="special">,</span><span class="number">3</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">s1</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">rgb</span> <span class="identifier">red</span><span class="special">(</span><span class="number">255</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">);</span>
+<span class="identifier">rbc</span> <span class="identifier">orange</span><span class="special">(</span><span class="number">255</span><span class="special">,</span> <span class="number">128</span><span class="special">,</span> <span class="number">0</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"color distance: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">red</span><span class="special">,</span> <span class="identifier">orange</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<h4>
+<a name="geometry.design.h5"></a>
+      <span class="phrase"><a name="geometry.design.kernel_revisited"></a></span><a class="link" href="design.html#geometry.design.kernel_revisited">Kernel
+      Revisited</a>
+    </h4>
+<p>
+      We described above that we had a traits class <code class="computeroutput"><span class="identifier">coordinate_type</span></code>,
+      defined in namespace traits, and defined a separate <code class="computeroutput"><span class="identifier">coordinate_type</span></code>
+      class as well. This was actually not really necessary before, because the only
+      difference was the namespace clause. But now that we have another geometry
+      type, a segment in this case, it is essential. We can call the <code class="computeroutput"><span class="identifier">coordinate_type</span></code> meta-function for any geometry
+      type, point, segment, polygon, etc, implemented again by tag dispatching:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">G</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">coordinate_type</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">dispatch</span><span class="special">::</span><span class="identifier">coordinate_type</span>
+        <span class="special">&lt;</span>
+            <span class="keyword">typename</span> <span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">G</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span> <span class="identifier">G</span>
+        <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      Inside the dispatch namespace this meta-function is implemented twice: a generic
+      version and one specialization for points. The specialization for points calls
+      the traits class. The generic version calls the point specialization, as a
+      sort of recursive meta-function definition:
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">dispatch</span>
+<span class="special">{</span>
+
+    <span class="comment">// Version for any geometry:</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">GeometryTag</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">G</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">coordinate_type</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">point_type</span>
+            <span class="special">&lt;</span>
+                <span class="identifier">GeometryTag</span><span class="special">,</span> <span class="identifier">G</span>
+            <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">point_type</span><span class="special">;</span>
+
+        <span class="comment">// Call specialization on point-tag</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">coordinate_type</span> <span class="special">&lt;</span> <span class="identifier">point_tag</span><span class="special">,</span> <span class="identifier">point_type</span> <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="comment">// Specialization for point-type:</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">coordinate_type</span><span class="special">&lt;</span><span class="identifier">point_tag</span><span class="special">,</span> <span class="identifier">P</span><span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span>
+            <span class="identifier">traits</span><span class="special">::</span><span class="identifier">coordinate_type</span><span class="special">&lt;</span><span class="identifier">P</span><span class="special">&gt;::</span><span class="identifier">type</span>
+            <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+<span class="special">}</span>
+</pre>
+<p>
+      So it calls another meta-function point_type. This is not elaborated in here
+      but realize that it is available for all geometry types, and typedefs the point
+      type which makes up the geometry, calling it type.
+    </p>
+<p>
+      The same applies for the meta-function dimension and for the upcoming meta-function
+      coordinate system.
+    </p>
+<h4>
+<a name="geometry.design.h6"></a>
+      <span class="phrase"><a name="geometry.design.coordinate_system"></a></span><a class="link" href="design.html#geometry.design.coordinate_system">Coordinate
+      System</a>
+    </h4>
+<p>
+      Until here we assumed a Cartesian system. But we know that the Earth is not
+      flat. Calculating a distance between two GPS-points with the system above would
+      result in nonsense. So we again extend our design. We define for each point
+      type a coordinate system type using the traits system again. Then we make the
+      calculation dependant on that coordinate system.
+    </p>
+<p>
+      Coordinate system is similar to coordinate type, a meta-function, calling a
+      dispatch function to have it for any geometry-type, forwarding to its point
+      specialization, and finally calling a traits class, defining a typedef type
+      with a coordinate system. We don&#8217;t show that all here again. We only show
+      the definition of a few coordinate systems:
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">cartesian</span> <span class="special">{};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">DegreeOrRadian</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">geographic</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">DegreeOrRadian</span> <span class="identifier">units</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      So Cartesian is simple, for geographic we can also select if its coordinates
+      are stored in degrees or in radians.
+    </p>
+<p>
+      The distance function will now change: it will select the computation method
+      for the corresponding coordinate system and then call the dispatch struct for
+      distance. We call the computation method specialized for coordinate systems
+      a strategy. So the new version of the distance function is:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">G1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">G2</span><span class="special">&gt;</span>
+<span class="keyword">double</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">G1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">g1</span><span class="special">,</span> <span class="identifier">G2</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">g2</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">strategy_distance</span>
+        <span class="special">&lt;</span>
+            <span class="keyword">typename</span> <span class="identifier">coordinate_system</span><span class="special">&lt;</span><span class="identifier">G1</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+            <span class="keyword">typename</span> <span class="identifier">coordinate_system</span><span class="special">&lt;</span><span class="identifier">G2</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+            <span class="keyword">typename</span> <span class="identifier">point_type</span><span class="special">&lt;</span><span class="identifier">G1</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+            <span class="keyword">typename</span> <span class="identifier">point_type</span><span class="special">&lt;</span><span class="identifier">G2</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+            <span class="identifier">dimension</span><span class="special">&lt;</span><span class="identifier">G1</span><span class="special">&gt;::</span><span class="identifier">value</span>
+        <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">strategy</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="identifier">dispatch</span><span class="special">::</span><span class="identifier">distance</span>
+        <span class="special">&lt;</span>
+            <span class="keyword">typename</span> <span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">G1</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+            <span class="keyword">typename</span> <span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">G2</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+            <span class="identifier">G1</span><span class="special">,</span> <span class="identifier">G2</span><span class="special">,</span> <span class="identifier">strategy</span>
+        <span class="special">&gt;::</span><span class="identifier">apply</span><span class="special">(</span><span class="identifier">g1</span><span class="special">,</span> <span class="identifier">g2</span><span class="special">,</span> <span class="identifier">strategy</span><span class="special">());</span>
+<span class="special">}</span>
+</pre>
+<p>
+      The strategy_distance mentioned here is a struct with specializations for different
+      coordinate systems.
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">P1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">P2</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">D</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">strategy_distance</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">void</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">P2</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">D</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">strategy_distance</span><span class="special">&lt;</span><span class="identifier">cartesian</span><span class="special">,</span> <span class="identifier">cartesian</span><span class="special">,</span> <span class="identifier">P1</span><span class="special">,</span> <span class="identifier">P2</span><span class="special">,</span> <span class="identifier">D</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">pythagoras</span><span class="special">&lt;</span><span class="identifier">P1</span><span class="special">,</span> <span class="identifier">P2</span><span class="special">,</span> <span class="identifier">D</span><span class="special">&gt;</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      So, here is our <code class="computeroutput"><span class="identifier">pythagoras</span></code>
+      again, now defined as a strategy. The distance dispatch function just calls
+      its apply method.
+    </p>
+<p>
+      So this is an important step: for spherical or geographical coordinate systems,
+      another strategy (computation method) can be implemented. For spherical coordinate
+      systems have the haversine formula. So the dispatching traits struct is specialized
+      like this
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">P1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">P2</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">D</span> <span class="special">=</span> <span class="number">2</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">strategy_distance</span><span class="special">&lt;</span><span class="identifier">spherical</span><span class="special">,</span> <span class="identifier">spherical</span><span class="special">,</span> <span class="identifier">P1</span><span class="special">,</span> <span class="identifier">P2</span><span class="special">,</span> <span class="identifier">D</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">haversine</span><span class="special">&lt;</span><span class="identifier">P1</span><span class="special">,</span> <span class="identifier">P2</span><span class="special">&gt;</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="comment">// struct haversine with apply function</span>
+<span class="comment">// is omitted here</span>
+</pre>
+<p>
+      For geography, we have some alternatives for distance calculation. There is
+      the Andoyer method, fast and precise, and there is the Vincenty method, slower
+      and more precise, and there are some less precise approaches as well.
+    </p>
+<p>
+      Per coordinate system, one strategy is defined as the default strategy. To
+      be able to use another strategy as well, we modify our design again and add
+      an overload for the distance algorithm, taking a strategy object as a third
+      parameter.
+    </p>
+<p>
+      This new overload distance function also has the advantage that the strategy
+      can be constructed outside the distance function. Because it was constructed
+      inside above, it could not have construction parameters. But for Andoyer or
+      Vincenty, or the haversine formula, it certainly makes sense to have a constructor
+      taking the radius of the earth as a parameter.
+    </p>
+<p>
+      So, the distance overloaded function is:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">G1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">G2</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">S</span><span class="special">&gt;</span>
+<span class="keyword">double</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">G1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">g1</span><span class="special">,</span> <span class="identifier">G2</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">g2</span><span class="special">,</span> <span class="identifier">S</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">strategy</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">dispatch</span><span class="special">::</span><span class="identifier">distance</span>
+        <span class="special">&lt;</span>
+            <span class="keyword">typename</span> <span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">G1</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+            <span class="keyword">typename</span> <span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">G2</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+            <span class="identifier">G1</span><span class="special">,</span> <span class="identifier">G2</span><span class="special">,</span> <span class="identifier">S</span>
+        <span class="special">&gt;::</span><span class="identifier">apply</span><span class="special">(</span><span class="identifier">g1</span><span class="special">,</span> <span class="identifier">g2</span><span class="special">,</span> <span class="identifier">strategy</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      The strategy has to have a method apply taking two points as arguments (for
+      points). It is not required that it is a static method. A strategy might define
+      a constructor, where a configuration value is passed and stored as a member
+      variable. In those cases a static method would be inconvenient. It can be implemented
+      as a normal method (with the const qualifier).
+    </p>
+<p>
+      We do not list all implementations here, Vincenty would cover half a page of
+      mathematics, but you will understand the idea. We can call distance like this:
+    </p>
+<pre class="programlisting"><span class="identifier">distance</span><span class="special">(</span><span class="identifier">c1</span><span class="special">,</span> <span class="identifier">c2</span><span class="special">)</span>
+</pre>
+<p>
+      where <code class="computeroutput"><span class="identifier">c1</span></code> and <code class="computeroutput"><span class="identifier">c2</span></code> are Cartesian points, or like this:
+    </p>
+<pre class="programlisting"><span class="identifier">distance</span><span class="special">(</span><span class="identifier">g1</span><span class="special">,</span> <span class="identifier">g2</span><span class="special">)</span>
+</pre>
+<p>
+      where <code class="computeroutput"><span class="identifier">g1</span></code> and <code class="computeroutput"><span class="identifier">g2</span></code> are Geographic points, calling the default
+      strategy for Geographic points (e.g. Andoyer), and like this:
+    </p>
+<pre class="programlisting"><span class="identifier">distance</span><span class="special">(</span><span class="identifier">g1</span><span class="special">,</span> <span class="identifier">g2</span><span class="special">,</span> <span class="identifier">vincenty</span><span class="special">&lt;</span><span class="identifier">G1</span><span class="special">,</span> <span class="identifier">G2</span><span class="special">&gt;(</span><span class="number">6275</span><span class="special">))</span>
+</pre>
+<p>
+      where a strategy is specified explicitly and constructed with a radius.
+    </p>
+<h4>
+<a name="geometry.design.h7"></a>
+      <span class="phrase"><a name="geometry.design.point_concept"></a></span><a class="link" href="design.html#geometry.design.point_concept">Point
+      Concept</a>
+    </h4>
+<p>
+      The five traits classes mentioned in the previous sections form together the
+      Point Concept. Any point type for which specializations are implemented in
+      the traits namespace should be accepted a as valid type. So the Point Concept
+      consists of:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          a specialization for <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">tag</span></code>
+        </li>
+<li class="listitem">
+          a specialization for <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">coordinate_system</span></code>
+        </li>
+<li class="listitem">
+          a specialization for <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">coordinate_type</span></code>
+        </li>
+<li class="listitem">
+          a specialization for <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">dimension</span></code>
+        </li>
+<li class="listitem">
+          a specialization for <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">access</span></code>
+        </li>
+</ul></div>
+<p>
+      The last one is a class, containing the method get and the (optional) method
+      set, the first four are metafunctions, either defining type or declaring a
+      value (conform MPL conventions).
+    </p>
+<p>
+      So we now have agnosticism for the number of dimensions, agnosticism for coordinate
+      systems; the design can handle any coordinate type, and it can handle different
+      geometry types. Furthermore we can specify our own strategies, the code will
+      not compile in case of two points with different dimensions (because of the
+      assertion), and it will not compile for two points with different coordinate
+      systems (because there is no specialization). A library can check if a point
+      type fulfills the requirements imposed by the concepts. This is handled in
+      the upcoming section Concept Checking.
+    </p>
+<h4>
+<a name="geometry.design.h8"></a>
+      <span class="phrase"><a name="geometry.design.return_type"></a></span><a class="link" href="design.html#geometry.design.return_type">Return
+      Type</a>
+    </h4>
+<p>
+      We promised that calling <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">sqrt</span></code> was
+      not always necessary. So we define a distance result <code class="computeroutput"><span class="keyword">struct</span></code>
+      that contains the squared value and is convertible to a double value. This,
+      however, only has to be done for <code class="computeroutput"><span class="identifier">pythagoras</span></code>.
+      The spherical distance functions do not take the square root so for them it
+      is not necessary to avoid the expensive square root call; they can just return
+      their distance.
+    </p>
+<p>
+      So the distance result struct is dependant on strategy, therefore made a member
+      type of the strategy. The result struct looks like this:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span> <span class="special">=</span> <span class="keyword">double</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">cartesian_distance</span>
+<span class="special">{</span>
+    <span class="identifier">T</span> <span class="identifier">sq</span><span class="special">;</span>
+    <span class="keyword">explicit</span> <span class="identifier">cartesian_distance</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">v</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">sq</span> <span class="special">(</span><span class="identifier">v</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="keyword">inline</span> <span class="keyword">operator</span> <span class="identifier">T</span><span class="special">()</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">sqrt</span><span class="special">(</span><span class="identifier">sq</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      It also has operators defined to compare itself to other results without taking
+      the square root.
+    </p>
+<p>
+      Each strategy should define its return type, within the strategy class, for
+      example:
+    </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">cartesian_distance</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">return_type</span><span class="special">;</span>
+</pre>
+<p>
+      or:
+    </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="keyword">double</span> <span class="identifier">return_type</span><span class="special">;</span>
+</pre>
+<p>
+      for cartesian (pythagoras) and spherical, respectively.
+    </p>
+<p>
+      Again our distance function will be modified, as expected, to reflect the new
+      return type. For the overload with a strategy it is not complex:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">G1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">G2</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Strategy</span> <span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">Strategy</span><span class="special">::</span><span class="identifier">return_type</span> <span class="identifier">distance</span><span class="special">(</span> <span class="identifier">G1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">G1</span> <span class="special">,</span> <span class="identifier">G2</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">G2</span> <span class="special">,</span> <span class="identifier">S</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">strategy</span><span class="special">)</span>
+</pre>
+<p>
+      But for the one without strategy we have to select strategy, coordinate type,
+      etc. It would be spacious to do it in one line so we add a separate meta-function:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">G1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">G2</span> <span class="special">=</span> <span class="identifier">G1</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">distance_result</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">point_type</span><span class="special">&lt;</span><span class="identifier">G1</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">P1</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">point_type</span><span class="special">&lt;</span><span class="identifier">G2</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">P2</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">strategy_distance</span>
+        <span class="special">&lt;</span>
+            <span class="keyword">typename</span> <span class="identifier">cs_tag</span><span class="special">&lt;</span><span class="identifier">P1</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+            <span class="keyword">typename</span> <span class="identifier">cs_tag</span><span class="special">&lt;</span><span class="identifier">P2</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span>
+            <span class="identifier">P1</span><span class="special">,</span> <span class="identifier">P2</span>
+        <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">S</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">S</span><span class="special">::</span><span class="identifier">return_type</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      and modify our distance function:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">G1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">G2</span><span class="special">&gt;</span>
+<span class="keyword">inline</span> <span class="keyword">typename</span> <span class="identifier">distance_result</span><span class="special">&lt;</span><span class="identifier">G1</span><span class="special">,</span> <span class="identifier">G2</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">G1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">g1</span><span class="special">,</span> <span class="identifier">G2</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">g2</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">// ...</span>
+<span class="special">}</span>
+</pre>
+<p>
+      Of course also the apply functions in the dispatch specializations will return
+      a result like this. They have a strategy as a template parameter everywhere,
+      making the less verbose version possible.
+    </p>
+<h4>
+<a name="geometry.design.h9"></a>
+      <span class="phrase"><a name="geometry.design.summary"></a></span><a class="link" href="design.html#geometry.design.summary">Summary</a>
+    </h4>
+<p>
+      In this design rationale, Boost.Geometry is step by step designed using tag
+      dispatching, concepts, traits, and metaprogramming. We used the well-known
+      distance function to show the design.
+    </p>
+<p>
+      Boost.Geometry is designed like described here, with some more techniques as
+      automatically reversing template arguments, tag casting, and reusing implementation
+      classes or dispatch classes as policies in other dispatch classes.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="compilation.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="quickstart.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Type Traits that Transform One Type to Another</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.TypeTraits">
+<link rel="up" href="../category.html" title="Type Traits by Category">
+<link rel="prev" href="value_traits/operators.html" title="Operator Type Traits">
+<link rel="next" href="alignment.html" title="Synthesizing Types with Specific Alignments">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="value_traits/operators.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../category.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="alignment.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_typetraits.category.transform"></a><a class="link" href="transform.html" title="Type Traits that Transform One Type to Another">Type Traits that
+      Transform One Type to Another</a>
+</h3></div></div></div>
+<p>
+        The following templates transform one type to another, based upon some well-defined
+        rule. Each template has a single member called <code class="computeroutput"><span class="identifier">type</span></code>
+        that is the result of applying the transformation to the template argument
+        <code class="computeroutput"><span class="identifier">T</span></code>.
+      </p>
+<p>
+        <span class="bold"><strong>Synopsis:</strong></span>
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/add_const.html" title="add_const">add_const</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/add_cv.html" title="add_cv">add_cv</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/add_lvalue_reference.html" title="add_lvalue_reference">add_lvalue_reference</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/add_pointer.html" title="add_pointer">add_pointer</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/add_reference.html" title="add_reference">add_reference</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/add_rvalue_reference.html" title="add_rvalue_reference">add_rvalue_reference</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/add_volatile.html" title="add_volatile">add_volatile</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">bool</span> <span class="identifier">B</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">U</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/conditional.html" title="conditional">conditional</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span><span class="special">...</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/common_type.html" title="common_type">common_type</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/decay.html" title="decay">decay</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/floating_point_promotion.html" title="floating_point_promotion">floating_point_promotion</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/integral_promotion.html" title="integral_promotion">integral_promotion</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/make_signed.html" title="make_signed">make_signed</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/make_unsigned.html" title="make_unsigned">make_unsigned</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/promote.html" title="promote">promote</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/remove_all_extents.html" title="remove_all_extents">remove_all_extents</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/remove_const.html" title="remove_const">remove_const</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/remove_cv.html" title="remove_cv">remove_cv</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/remove_extent.html" title="remove_extent">remove_extent</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/remove_pointer.html" title="remove_pointer">remove_pointer</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/remove_reference.html" title="remove_reference">remove_reference</a><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="../reference/remove_volatile.html" title="remove_volatile">remove_volatile</a><span class="special">;</span>
+</pre>
+<h5>
+<a name="boost_typetraits.category.transform.h0"></a>
+        <span><a name="boost_typetraits.category.transform.broken_compiler_workarounds_"></a></span><a class="link" href="transform.html#boost_typetraits.category.transform.broken_compiler_workarounds_">Broken
+        Compiler Workarounds:</a>
+      </h5>
+<p>
+        For all of these templates support for partial specialization of class templates
+        is required to correctly implement the transformation. On the other hand,
+        practice shows that many of the templates from this category are very useful,
+        and often essential for implementing some generic libraries. Lack of these
+        templates is often one of the major limiting factors in porting those libraries
+        to compilers that do not yet support this language feature. As some of these
+        compilers are going to be around for a while, and at least one of them is
+        very wide-spread, it was decided that the library should provide workarounds
+        where possible.
+      </p>
+<p>
+        The basic idea behind the workaround is to manually define full specializations
+        of all type transformation templates for all fundamental types, and all their
+        1st and 2nd rank cv-[un]qualified derivative pointer types, and to provide
+        a user-level macro that will define all the explicit specializations needed
+        for any user-defined type T.
+      </p>
+<p>
+        The first part guarantees the successful compilation of something like this:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="identifier">remove_reference</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&amp;&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+<span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">const</span><span class="special">,</span> <span class="identifier">remove_reference</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">const</span><span class="special">&amp;&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+<span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">volatile</span><span class="special">,</span> <span class="identifier">remove_reference</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">volatile</span><span class="special">&amp;&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+<span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">const</span> <span class="keyword">volatile</span><span class="special">,</span> <span class="identifier">remove_reference</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">const</span> <span class="keyword">volatile</span><span class="special">&amp;&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+<span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">*,</span> <span class="identifier">remove_reference</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">*&amp;&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+<span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*,</span> <span class="identifier">remove_reference</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*&amp;&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+<span class="special">...</span>
+<span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">const</span> <span class="keyword">volatile</span><span class="special">*</span> <span class="keyword">const</span> <span class="keyword">volatile</span><span class="special">*</span> <span class="keyword">const</span> <span class="keyword">volatile</span><span class="special">,</span> <span class="identifier">remove_reference</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">const</span> <span class="keyword">volatile</span><span class="special">*</span> <span class="keyword">const</span> <span class="keyword">volatile</span><span class="special">*</span> <span class="keyword">const</span> <span class="keyword">volatile</span><span class="special">&amp;&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+</pre>
+<p>
+        and the second part provides the library's users with a mechanism to make
+        the above code work not only for <code class="computeroutput"><span class="keyword">char</span></code>,
+        <code class="computeroutput"><span class="keyword">int</span></code> or other built-in type,
+        but for their own types as well:
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">myspace</span><span class="special">{</span>
+   <span class="keyword">struct</span> <span class="identifier">MyClass</span> <span class="special">{};</span>
+<span class="special">}</span>
+<span class="comment">// declare this at global scope:</span>
+<span class="identifier">BOOST_BROKEN_COMPILER_TYPE_TRAITS_SPECIALIZATION</span><span class="special">(</span><span class="identifier">myspace</span><span class="special">::</span><span class="identifier">MyClass</span><span class="special">)</span>
+<span class="comment">// transformations on myspace::MyClass now work:</span>
+<span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="identifier">myspace</span><span class="special">::</span><span class="identifier">MyClass</span><span class="special">,</span> <span class="identifier">remove_reference</span><span class="special">&lt;</span><span class="identifier">myspace</span><span class="special">::</span><span class="identifier">MyClass</span><span class="special">&amp;&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+<span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">((</span><span class="identifier">is_same</span><span class="special">&lt;</span><span class="identifier">myspace</span><span class="special">::</span><span class="identifier">MyClass</span><span class="special">,</span> <span class="identifier">remove_const</span><span class="special">&lt;</span><span class="identifier">myspace</span><span class="special">::</span><span class="identifier">MyClass</span> <span class="keyword">const</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">));</span>
+<span class="comment">// etc.</span>
+</pre>
+<p>
+        Note that the macro BOOST_BROKEN_COMPILER_TYPE_TRAITS_SPECIALIZATION evaluates
+        to nothing on those compilers that <span class="bold"><strong>do</strong></span> support
+        partial specialization.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000, 2011 Adobe Systems Inc, David Abrahams,
+      Frederic Bron, Steve Cleary, Beman Dawes, Aleksey Gurtovoy, Howard Hinnant,
+      Jesse Jones, Mat Marcus, Itay Maman, John Maddock, Alexander Nasonov, Thorsten
+      Ottosen, Roman Perepelitsa, Robert Ramey, Jeremy Siek, Robert Stewart and Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="value_traits/operators.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../category.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="alignment.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

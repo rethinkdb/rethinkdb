@@ -1,0 +1,1251 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>unordered_set_of Reference</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="set_of_reference.html" title="set_of Reference">
+<link rel="next" href="list_of_reference.html" title="list_of Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="set_of_reference.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="list_of_reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_reference_unordered_set_of_reference">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.reference.unordered_set_of_reference"></a><a class="link" href="unordered_set_of_reference.html" title="unordered_set_of Reference">unordered_set_of
+      Reference</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.header__boost_bimap_unordered_set_of_hpp__synopsis">Header
+        "boost/bimap/unordered_set_of.hpp" synopsis</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.header__boost_bimap_unordered_multiset_of_hpp__synopsis">Header
+        "boost/bimap/unordered_multiset_of.hpp" synopsis</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.collection_type_specifiers_unordered_set_of_and_unordered_multiset_of">Collection
+        type specifiers unordered_set_of and unordered_multiset_of</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views">unordered_[multi]set_of
+        Views</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.complexity_signature">Complexity
+          signature</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.instantiation_types">Instantiation
+          types</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.nested_types">Nested
+          types</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.constructors__copy_and_assignment">Constructors,
+          copy and assignment</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.modifiers">Modifiers</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.lookup">Lookup</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.at____info_at___and_operator_______set_of_only">at(),
+          info_at() and operator[] - set_of only</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.hash_policy">Hash
+          policy</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.serialization">Serialization</a></span></dt>
+</dl></dd>
+</dl></div>
+<div class="section boost_bimap_reference_unordered_set_of_reference_header__boost_bimap_unordered_set_of_hpp__synopsis">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.reference.unordered_set_of_reference.header__boost_bimap_unordered_set_of_hpp__synopsis"></a><a class="link" href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.header__boost_bimap_unordered_set_of_hpp__synopsis" title='Header "boost/bimap/unordered_set_of.hpp" synopsis'>Header
+        "boost/bimap/unordered_set_of.hpp" synopsis</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+<span class="keyword">namespace</span> <span class="identifier">bimaps</span> <span class="special">{</span>
+
+
+<span class="keyword">template</span>
+<span class="special">&lt;</span>
+    <span class="keyword">class</span> <span class="identifier">KeyType</span><span class="special">,</span>
+    <span class="keyword">class</span> <span class="identifier">HashFunctor</span>   <span class="special">=</span> <span class="identifier">hash</span><span class="special">&lt;</span> <span class="identifier">KeyType</span> <span class="special">&gt;,</span>
+    <span class="keyword">class</span> <span class="identifier">EqualKey</span>      <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">equal_to</span><span class="special">&lt;</span> <span class="identifier">KeyType</span> <span class="special">&gt;</span>
+<span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">unordered_set_of</span><span class="special">;</span>
+
+
+<span class="keyword">template</span>
+<span class="special">&lt;</span>
+    <span class="keyword">class</span> <span class="identifier">HashFunctor</span>   <span class="special">=</span> <span class="identifier">hash</span><span class="special">&lt;</span> <span class="identifier">_relation</span> <span class="special">&gt;,</span>
+    <span class="keyword">class</span> <span class="identifier">EqualKey</span>      <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">equal_to</span><span class="special">&lt;</span> <span class="identifier">_relation</span> <span class="special">&gt;</span>
+<span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">unordered_set_of_relation</span><span class="special">;</span>
+
+
+<span class="special">}</span> <span class="comment">// namespace bimap</span>
+<span class="special">}</span> <span class="comment">// namespace boost</span>
+</pre>
+</div>
+<div class="section boost_bimap_reference_unordered_set_of_reference_header__boost_bimap_unordered_multiset_of_hpp__synopsis">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.reference.unordered_set_of_reference.header__boost_bimap_unordered_multiset_of_hpp__synopsis"></a><a class="link" href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.header__boost_bimap_unordered_multiset_of_hpp__synopsis" title='Header "boost/bimap/unordered_multiset_of.hpp" synopsis'>Header
+        "boost/bimap/unordered_multiset_of.hpp" synopsis</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+<span class="keyword">namespace</span> <span class="identifier">bimaps</span> <span class="special">{</span>
+
+
+<span class="keyword">template</span>
+<span class="special">&lt;</span>
+    <span class="keyword">class</span> <span class="identifier">KeyType</span><span class="special">,</span>
+    <span class="keyword">class</span> <span class="identifier">HashFunctor</span>   <span class="special">=</span> <span class="identifier">hash</span><span class="special">&lt;</span> <span class="identifier">KeyType</span> <span class="special">&gt;,</span>
+    <span class="keyword">class</span> <span class="identifier">EqualKey</span>      <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">equal_to</span><span class="special">&lt;</span> <span class="identifier">KeyType</span> <span class="special">&gt;</span>
+<span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">unordered_multiset_of</span><span class="special">;</span>
+
+
+<span class="keyword">template</span>
+<span class="special">&lt;</span>
+    <span class="keyword">class</span> <span class="identifier">HashFunctor</span>   <span class="special">=</span> <span class="identifier">hash</span><span class="special">&lt;</span> <span class="identifier">_relation</span> <span class="special">&gt;,</span>
+    <span class="keyword">class</span> <span class="identifier">EqualKey</span>      <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">equal_to</span><span class="special">&lt;</span> <span class="identifier">_relation</span> <span class="special">&gt;</span>
+<span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">unordered_multiset_of_relation</span><span class="special">;</span>
+
+
+<span class="special">}</span> <span class="comment">// namespace bimap</span>
+<span class="special">}</span> <span class="comment">// namespace boost</span>
+</pre>
+</div>
+<div class="section boost_bimap_reference_unordered_set_of_reference_collection_type_specifiers_unordered_set_of_and_unordered_multiset_of">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.reference.unordered_set_of_reference.collection_type_specifiers_unordered_set_of_and_unordered_multiset_of"></a><a class="link" href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.collection_type_specifiers_unordered_set_of_and_unordered_multiset_of" title="Collection type specifiers unordered_set_of and unordered_multiset_of">Collection
+        type specifiers unordered_set_of and unordered_multiset_of</a>
+</h4></div></div></div>
+<p>
+          These collection types specifiers allow for set views without and with
+          allowance of duplicate elements, respectively. The syntax of <code class="computeroutput"><span class="identifier">set_of</span></code> and <code class="computeroutput"><span class="identifier">multiset_of</span></code>
+          coincide, thus we describe them in a grouped manner.
+        </p>
+</div>
+<div class="section boost_bimap_reference_unordered_set_of_reference_unordered___multi__set_of_views">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views"></a><a class="link" href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views" title="unordered_[multi]set_of Views">unordered_[multi]set_of
+        Views</a>
+</h4></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.complexity_signature">Complexity
+          signature</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.instantiation_types">Instantiation
+          types</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.nested_types">Nested
+          types</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.constructors__copy_and_assignment">Constructors,
+          copy and assignment</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.modifiers">Modifiers</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.lookup">Lookup</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.at____info_at___and_operator_______set_of_only">at(),
+          info_at() and operator[] - set_of only</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.hash_policy">Hash
+          policy</a></span></dt>
+<dt><span class="section"><a href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.serialization">Serialization</a></span></dt>
+</dl></div>
+<p>
+          An unordered_[multi]set_of set view is a tr1::unordered[multi]set signature
+          compatible interface to the underlying heap of elements contained in a
+          <code class="computeroutput"><span class="identifier">bimap</span></code>.
+        </p>
+<p>
+          The interface and semantics of <code class="computeroutput"><span class="identifier">unordered_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set_of</span></code>
+          views are modeled according to the proposal for unordered associative containers
+          given in the <a href="http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2005/n1836.pdf" target="_top">C++
+          Standard Library Technical Report</a>, also known as TR1. An <code class="computeroutput"><span class="identifier">unordered_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set_of</span></code> view is particularized according
+          to a given <code class="computeroutput"><span class="identifier">Hash</span></code> function
+          object which returns hash values for the keys and a binary predicate <code class="computeroutput"><span class="identifier">Pred</span></code> acting as an equivalence relation
+          on values of Key.
+        </p>
+<p>
+          There are two variants: unordered_set_of, which do not allow duplicate
+          elements (with respect to its associated comparison predicate) and unordered_multiset_of,
+          which accept those duplicates. The interface of these two variants is the
+          same to a great extent, so they are documented together with their differences
+          explicitly noted when they exist.
+        </p>
+<p>
+          If you look the bimap by a side, you will use a map view and if you looked
+          it as a whole you will be using a set view.
+        </p>
+<p>
+          Except where noted, <code class="computeroutput"><span class="identifier">unordered_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set_of</span></code>
+          views (both unique and non-unique) are models of <code class="literal">Unordered Associative
+          Container</code>. Validity of iterators and references to elements is
+          preserved in all cases. Occasionally, the exception safety guarantees provided
+          are actually stronger than required by the extension draft. We only provide
+          descriptions of those types and operations that are either not present
+          in the concepts modeled or do not exactly conform to the requirements for
+          unordered associative containers.
+        </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+<span class="keyword">namespace</span> <span class="identifier">bimap</span> <span class="special">{</span>
+<span class="keyword">namespace</span> <span class="identifier">views</span> <span class="special">{</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="emphasis"><em>-implementation defined parameter list-</em></span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="emphasis"><em>-implementation defined view name-</em></span>
+<span class="special">{</span>
+    <span class="keyword">public</span><span class="special">:</span>
+
+    <span class="comment">// types</span>
+
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">key_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">value_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">key_compare</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">value_compare</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">hasher</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">key_equal</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">allocator_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">reference</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">const_reference</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">iterator</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">const_iterator</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">size_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">difference_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">pointer</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">const_pointer</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">local_iterator</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">const_local_iterator</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">info_type</span><span class="special">;</span>
+
+    <span class="comment">// construct/destroy/copy:</span>
+
+    <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+    <span class="identifier">allocator_type</span> <span class="identifier">get_allocator</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="comment">// size and capacity</span>
+
+    <span class="keyword">bool</span>      <span class="identifier">empty</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">size_type</span> <span class="identifier">size</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">size_type</span> <span class="identifier">max_size</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="comment">// iterators</span>
+
+    <span class="identifier">iterator</span>       <span class="identifier">begin</span><span class="special">();</span>
+    <span class="identifier">const_iterator</span> <span class="identifier">begin</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">iterator</span>       <span class="identifier">end</span><span class="special">();</span>
+    <span class="identifier">const_iterator</span> <span class="identifier">end</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="comment">// modifiers</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_insert_value">insert</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+    <span class="identifier">iterator</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_insert_iterator_value">insert</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">InputIterator</span> <span class="special">&gt;</span>
+    <span class="keyword">void</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_insert_iterator_iterator">insert</a><span class="special">(</span><span class="identifier">InputIterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">InputIterator</span> <span class="identifier">last</span><span class="special">);</span>
+
+    <span class="identifier">iterator</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_erase_iterator">erase</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">);</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+    <span class="identifier">size_type</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_erase_key">erase</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+    <span class="identifier">iterator</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_erase_iterator_iterator">erase</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">last</span><span class="special">);</span>
+
+    <span class="keyword">bool</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_replace_iterator_value">replace</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+    <span class="comment">// Only in map views</span>
+    <span class="comment">// {</span>
+
+      <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">mapped_type</span><span class="special">;</span>
+      <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">data_type</span><span class="special">;</span> <span class="comment">// Equal to mapped_type</span>
+
+      <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+      <span class="keyword">bool</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_replace_key_iterator_key">replace_key</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+      <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleData</span> <span class="special">&gt;</span>
+      <span class="keyword">bool</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_replace_data_iterator_data">replace_data</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CompatibleData</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+      <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">KeyModifier</span> <span class="special">&gt;</span>
+      <span class="keyword">bool</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_modify_key_iterator_modifier">modify_key</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">KeyModifier</span> <span class="identifier">mod</span><span class="special">);</span>
+
+      <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">DataModifier</span> <span class="special">&gt;</span>
+      <span class="keyword">bool</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_modify_data_iterator_modifier">modify_data</a><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">DataModifier</span> <span class="identifier">mod</span><span class="special">);</span>
+
+    <span class="comment">// }</span>
+
+
+    <span class="keyword">void</span> <span class="identifier">clear</span><span class="special">();</span>
+
+    <span class="comment">// observers</span>
+
+    <span class="identifier">key_from_value</span> <span class="identifier">key_extractor</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">hasher</span>         <span class="identifier">hash_function</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">key_equal</span>      <span class="identifier">key_eq</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="comment">// lookup</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+    <span class="identifier">iterator</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_find_key">find</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+    <span class="identifier">const_iterator</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_find_key">find</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+    <span class="identifier">size_type</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_count_key">count</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span><span class="identifier">iterator</span><span class="special">&gt;</span>
+        <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_equal_range_key">equal_range</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">const_iterator</span><span class="special">,</span><span class="identifier">const_iterator</span><span class="special">&gt;</span>
+        <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_equal_range_key">equal_range</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="comment">// bucket interface</span>
+
+    <span class="identifier">size_type</span> <span class="identifier">bucket_count</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">size_type</span> <span class="identifier">max_bucket_count</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">size_type</span> <span class="identifier">bucket_size</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">size_type</span> <span class="identifier">bucket</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span> <span class="special">&amp;</span> <span class="identifier">k</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="identifier">local_iterator</span>       <span class="identifier">begin</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span>
+    <span class="identifier">const_local_iterator</span> <span class="identifier">begin</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">local_iterator</span>       <span class="identifier">end</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span>
+    <span class="identifier">const_local_iterator</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="comment">// hash policy</span>
+
+    <span class="keyword">float</span> <span class="identifier">load_factor</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="keyword">float</span> <span class="identifier">max_load_factor</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="keyword">void</span>  <span class="identifier">max_load_factor</span><span class="special">(</span><span class="keyword">float</span> <span class="identifier">z</span><span class="special">);</span>
+    <span class="keyword">void</span>  <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_rehash_size">rehash</a><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span>
+
+    <span class="comment">// Only in maps views</span>
+    <span class="comment">// {</span>
+
+    <span class="keyword">typedef</span> <span class="emphasis"><em>-unspecified-</em></span> <span class="identifier">mapped_type</span><span class="special">;</span>
+
+      <span class="comment">// Only in for `unordered_set_of` collection type</span>
+      <span class="comment">// {</span>
+
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">CompatibleKey</span><span class="special">&gt;</span>
+      <span class="keyword">const</span> <span class="identifier">mapped_type</span> <span class="special">&amp;</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_at_key_const">at</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">k</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+        <span class="comment">// Only if the other collection type is mutable</span>
+        <span class="comment">// {</span>
+
+        <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">CompatibleKey</span><span class="special">&gt;</span>
+        <span class="identifier">mapped_type</span> <span class="special">&amp;</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_operator_bracket_key">operator[]</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">k</span><span class="special">);</span>
+
+        <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">CompatibleKey</span><span class="special">&gt;</span>
+        <span class="identifier">mapped_type</span> <span class="special">&amp;</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_at_key">at</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">k</span><span class="special">);</span>
+
+        <span class="comment">// }</span>
+
+        <span class="comment">// Only if info_hook is used</span>
+        <span class="comment">// {</span>
+
+        <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+        <span class="identifier">info_type</span> <span class="special">&amp;</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_info_at_key">info_at</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">k</span><span class="special">);</span>
+
+        <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+        <span class="keyword">const</span> <span class="identifier">info_type</span> <span class="special">&amp;</span> <a class="link" href="unordered_set_of_reference.html#reference_unordered_set_of_info_at_key">info_at</a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">k</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+      <span class="comment">// }</span>
+
+    <span class="comment">// }</span>
+
+<span class="special">};</span>
+
+<span class="special">}</span> <span class="comment">// namespace views</span>
+<span class="special">}</span> <span class="comment">// namespace bimap</span>
+<span class="special">}</span> <span class="comment">// namespace boost</span>
+</pre>
+<p>
+          In the case of a <code class="computeroutput"><span class="identifier">bimap</span><span class="special">&lt;</span> <span class="identifier">unordered_</span><span class="special">{</span><span class="identifier">multi</span><span class="special">}</span><span class="identifier">set_of</span><span class="special">&lt;</span><span class="identifier">Left</span><span class="special">&gt;,</span> <span class="special">...</span> <span class="special">&gt;</span></code>
+        </p>
+<p>
+          In the set view:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">signature</span><span class="special">-</span><span class="identifier">compatible</span> <span class="identifier">with</span> <span class="identifier">relation</span><span class="special">&lt;</span>       <span class="identifier">Left</span><span class="special">,</span> <span class="special">...</span> <span class="special">&gt;</span> <span class="identifier">key_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">signature</span><span class="special">-</span><span class="identifier">compatible</span> <span class="identifier">with</span> <span class="identifier">relation</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="identifier">Left</span><span class="special">,</span> <span class="special">...</span> <span class="special">&gt;</span> <span class="identifier">value_type</span><span class="special">;</span>
+</pre>
+<p>
+          In the left map view:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span>  <span class="identifier">Left</span>  <span class="identifier">key_type</span><span class="special">;</span>
+<span class="keyword">typedef</span>  <span class="special">...</span>   <span class="identifier">mapped_type</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">signature</span><span class="special">-</span><span class="identifier">compatible</span> <span class="identifier">with</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="identifier">Left</span><span class="special">,</span> <span class="special">...</span> <span class="special">&gt;</span> <span class="identifier">value_type</span><span class="special">;</span>
+</pre>
+<p>
+          In the right map view:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span>  <span class="special">...</span>  <span class="identifier">key_type</span><span class="special">;</span>
+<span class="keyword">typedef</span>  <span class="identifier">Left</span> <span class="identifier">mapped_type</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">signature</span><span class="special">-</span><span class="identifier">compatible</span> <span class="identifier">with</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="special">...</span> <span class="special">,</span><span class="keyword">const</span> <span class="identifier">Left</span> <span class="special">&gt;</span> <span class="identifier">value_type</span><span class="special">;</span>
+</pre>
+<div class="section boost_bimap_reference_unordered_set_of_reference_unordered___multi__set_of_views_complexity_signature">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.complexity_signature"></a><a name="unordered_set_of_complexity_signature"></a><a class="link" href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.complexity_signature" title="Complexity signature">Complexity
+          signature</a>
+</h5></div></div></div>
+<p>
+            Here and in the descriptions of operations of <code class="computeroutput"><span class="identifier">unordered_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set_of</span></code>
+            views, we adopt the scheme outlined in the <a class="link" href="bimap_reference.html#complexity_signature_explanation">complexity
+            signature section</a>. The complexity signature of <code class="computeroutput"><span class="identifier">unordered_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set_of</span></code>
+            view is:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                copying: <code class="computeroutput"><span class="identifier">c</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">n</span> <span class="special">*</span> <span class="identifier">log</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code>,
+              </li>
+<li class="listitem">
+                insertion: average case <code class="computeroutput"><span class="identifier">i</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="number">1</span></code> (constant), worst case <code class="computeroutput"><span class="identifier">i</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">n</span></code>,
+              </li>
+<li class="listitem">
+                hinted insertion: average case <code class="computeroutput"><span class="identifier">h</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="number">1</span></code> (constant), worst case <code class="computeroutput"><span class="identifier">h</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">n</span></code>,
+              </li>
+<li class="listitem">
+                deletion: average case <code class="computeroutput"><span class="identifier">d</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="number">1</span></code> (constant), worst case <code class="computeroutput"><span class="identifier">d</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">n</span></code>,
+              </li>
+<li class="listitem">
+                replacement:
+                <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                      if the new element key is equivalent to the original, <code class="computeroutput"><span class="identifier">r</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span>
+                      <span class="special">=</span> <span class="number">1</span></code>
+                      (constant),
+                    </li>
+<li class="listitem">
+                      otherwise, average case <code class="computeroutput"><span class="identifier">r</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span>
+                      <span class="number">1</span></code> (constant), worst case
+                      <code class="computeroutput"><span class="identifier">r</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span>
+                      <span class="special">=</span> <span class="identifier">n</span></code>,
+                    </li>
+</ul></div>
+              </li>
+<li class="listitem">
+                modifying: average case <code class="computeroutput"><span class="identifier">m</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="number">1</span></code> (constant), worst case <code class="computeroutput"><span class="identifier">m</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">n</span></code>.
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_unordered_set_of_reference_unordered___multi__set_of_views_instantiation_types">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.instantiation_types"></a><a class="link" href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.instantiation_types" title="Instantiation types">Instantiation
+          types</a>
+</h5></div></div></div>
+<p>
+            <code class="computeroutput"><span class="identifier">unordered_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set_of</span></code> views are instantiated internally
+            to <code class="computeroutput"><span class="identifier">bimap</span></code> specified by
+            means of the collection type specifiers and the <code class="computeroutput"><span class="identifier">bimap</span></code>
+            itself. Instantiations are dependent on the following types:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">Value</span></code> from <code class="computeroutput"><span class="identifier">bimap</span></code>,
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">Allocator</span></code> from <code class="computeroutput"><span class="identifier">bimap</span></code>,
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">Hash</span></code> from the collection
+                type specifier,
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">Pred</span></code> from the collection
+                type specifier.
+              </li>
+</ul></div>
+<p>
+            <code class="computeroutput"><span class="identifier">Hash</span></code> is a <a href="http://www.sgi.com/tech/stl/UnaryFunction.html" target="_top">Unary
+            Function</a> taking a single argument of type <code class="computeroutput"><span class="identifier">key_type</span></code>
+            and returning a value of type <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span></code>
+            in the range <code class="computeroutput"><span class="special">[</span><span class="number">0</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">&gt;::</span><span class="identifier">max</span><span class="special">())</span></code>. Pred is a <a href="http://www.sgi.com/tech/stl/BinaryPredicate.html" target="_top">Binary
+            Predicate</a> inducing an equivalence relation on elements of <code class="computeroutput"><span class="identifier">key_type</span></code>. It is required that the
+            <code class="computeroutput"><span class="identifier">Hash</span></code> object return the
+            same value for keys equivalent under <code class="computeroutput"><span class="identifier">Pred</span></code>.
+          </p>
+</div>
+<div class="section boost_bimap_reference_unordered_set_of_reference_unordered___multi__set_of_views_nested_types">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.nested_types"></a><a class="link" href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.nested_types" title="Nested types">Nested
+          types</a>
+</h5></div></div></div>
+<pre class="programlisting"><span class="identifier">iterator</span>
+<span class="identifier">const_iterator</span>
+<span class="identifier">local_iterator</span>
+<span class="identifier">const_local_iterator</span>
+</pre>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              These types are models of <a href="http://www.sgi.com/tech/stl/ForwardIterator.html" target="_top">Forward
+              Iterator</a>.
+            </p></blockquote></div>
+</div>
+<div class="section boost_bimap_reference_unordered_set_of_reference_unordered___multi__set_of_views_constructors__copy_and_assignment">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.constructors__copy_and_assignment"></a><a class="link" href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.constructors__copy_and_assignment" title="Constructors, copy and assignment">Constructors,
+          copy and assignment</a>
+</h5></div></div></div>
+<p>
+            As explained in the concepts section, views do not have public constructors
+            or destructors. Assignment, on the other hand, is provided. Upon construction,
+            <code class="computeroutput"><span class="identifier">max_load_factor</span><span class="special">()</span></code>
+            is 1.0.
+          </p>
+<pre class="programlisting"><span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">this_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects: </strong></span> <code class="computeroutput"><span class="identifier">a</span>
+                <span class="special">=</span> <span class="identifier">b</span></code>;
+                where a and b are the <code class="computeroutput"><span class="identifier">bimap</span></code>
+                objects to which <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>
+                and x belong, respectively.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns: </strong></span> <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span><span class="special">.</span></code>
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_unordered_set_of_reference_unordered___multi__set_of_views_modifiers">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.modifiers"></a><a class="link" href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.modifiers" title="Modifiers">Modifiers</a>
+</h5></div></div></div>
+<a name="reference_unordered_set_of_insert_value"></a><pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span><span class="keyword">bool</span><span class="special">&gt;</span> <span class="identifier">insert</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Inserts <code class="computeroutput"><span class="identifier">x</span></code>
+                into the <code class="computeroutput"><span class="identifier">bimap</span></code> to
+                which the view belongs if
+                <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                      the view is non-unique OR no other element with equivalent
+                      key exists,
+                    </li>
+<li class="listitem">
+                      AND insertion is allowed by all other views of the <code class="computeroutput"><span class="identifier">bimap</span></code>.
+                    </li>
+</ul></div>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns:</strong></span> The return value is a pair
+                <code class="computeroutput"><span class="identifier">p</span></code>. <code class="computeroutput"><span class="identifier">p</span><span class="special">.</span><span class="identifier">second</span></code> is <code class="computeroutput"><span class="keyword">true</span></code>
+                if and only if insertion took place. On successful insertion, <code class="computeroutput"><span class="identifier">p</span><span class="special">.</span><span class="identifier">first</span></code> points to the element inserted;
+                otherwise, <code class="computeroutput"><span class="identifier">p</span><span class="special">.</span><span class="identifier">first</span></code> points to an element that
+                caused the insertion to be banned. Note that more than one element
+                can be causing insertion not to be allowed.
+              </li>
+<li class="listitem">
+                <a class="link" href="unordered_set_of_reference.html#unordered_set_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(I(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Strong.
+              </li>
+</ul></div>
+<a name="reference_unordered_set_of_insert_iterator_value"></a><pre class="programlisting"><span class="identifier">iterator</span> <span class="identifier">insert</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid iterator of the view.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is used as a hint to improve the efficiency of the operation. Inserts
+                <code class="computeroutput"><span class="identifier">x</span></code> into the <code class="computeroutput"><span class="identifier">bimap</span></code> to which the view belongs
+                if
+                <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                      the view is non-unique OR no other element with equivalent
+                      key exists,
+                    </li>
+<li class="listitem">
+                      AND insertion is allowed by all other views of the <code class="computeroutput"><span class="identifier">bimap</span></code>.
+                    </li>
+</ul></div>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns:</strong></span> On successful insertion,
+                an iterator to the newly inserted element. Otherwise, an iterator
+                to an element that caused the insertion to be banned. Note that more
+                than one element can be causing insertion not to be allowed.
+              </li>
+<li class="listitem">
+                <a class="link" href="unordered_set_of_reference.html#unordered_set_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(H(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Strong.
+              </li>
+</ul></div>
+<a name="reference_unordered_set_of_insert_iterator_iterator"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">InputIterator</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">insert</span><span class="special">(</span><span class="identifier">InputIterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">InputIterator</span> <span class="identifier">last</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">InputIterator</span></code>
+                is a model of <a href="http://www.sgi.com/tech/stl/InputIterator.html" target="_top">Input
+                Iterator</a> over elements of type <code class="computeroutput"><span class="identifier">value_type</span></code>.
+                <code class="computeroutput"><span class="identifier">first</span></code> and <code class="computeroutput"><span class="identifier">last</span></code> are not iterators into any
+                views of the <code class="computeroutput"><span class="identifier">bimap</span></code>
+                to which this view belongs. <code class="computeroutput"><span class="identifier">last</span></code>
+                is reachable from first.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects: </strong></span> <code class="computeroutput"><span class="identifier">iterator</span>
+                <span class="identifier">hint</span> <span class="special">=</span>
+                <span class="identifier">end</span><span class="special">();</span></code>
+                <code class="computeroutput"><span class="keyword">while</span><span class="special">(</span><span class="identifier">first</span> <span class="special">!=</span>
+                <span class="identifier">last</span><span class="special">)</span>
+                <span class="identifier">hint</span> <span class="special">=</span>
+                <span class="identifier">insert</span><span class="special">(</span><span class="identifier">hint</span><span class="special">,</span>
+                <span class="special">*</span><span class="identifier">first</span><span class="special">++);</span></code>
+              </li>
+<li class="listitem">
+                <a class="link" href="unordered_set_of_reference.html#unordered_set_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(m*H(n+m)), where m is the number of elements in <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span>
+                <span class="identifier">last</span><span class="special">)</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Basic.
+              </li>
+</ul></div>
+<a name="reference_unordered_set_of_erase_iterator"></a><pre class="programlisting"><span class="identifier">iterator</span> <span class="identifier">erase</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid dereferenceable <code class="computeroutput"><span class="identifier">iterator</span></code>
+                of the view.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Deletes the element pointed
+                to by <code class="computeroutput"><span class="identifier">position</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns:</strong></span> An <code class="computeroutput"><span class="identifier">iterator</span></code>
+                pointing to the element immediately following the one that was deleted,
+                or <code class="computeroutput"><span class="identifier">end</span><span class="special">()</span></code>
+                if no such element exists.
+              </li>
+<li class="listitem">
+                <a class="link" href="unordered_set_of_reference.html#unordered_set_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(D(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> nothrow.
+              </li>
+</ul></div>
+<a name="reference_unordered_set_of_erase_key"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+<span class="identifier">size_type</span> <span class="identifier">erase</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Deletes the elements with
+                key equivalent to <code class="computeroutput"><span class="identifier">x</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns:</strong></span> Number of elements deleted.
+              </li>
+<li class="listitem">
+                <a class="link" href="unordered_set_of_reference.html#unordered_set_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                Average case, O(1 + m*D(n)), worst case O(n + m*D(n)), where m is
+                the number of elements deleted.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Basic.
+              </li>
+</ul></div>
+<a name="reference_unordered_set_of_erase_iterator_iterator"></a><pre class="programlisting"><span class="identifier">iterator</span> <span class="identifier">erase</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="identifier">last</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span><span class="identifier">last</span><span class="special">)</span></code>
+                is a valid range of the view.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Deletes the elements in
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span><span class="identifier">last</span><span class="special">)</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns: </strong></span> <code class="computeroutput"><span class="identifier">last</span></code>.
+              </li>
+<li class="listitem">
+                <a class="link" href="unordered_set_of_reference.html#unordered_set_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(m*D(n)), where m is the number of elements in <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span><span class="identifier">last</span><span class="special">)</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> nothrow.
+              </li>
+</ul></div>
+<a name="reference_unordered_set_of_replace_iterator_value"></a><pre class="programlisting"><span class="keyword">bool</span> <span class="identifier">replace</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid dereferenceable <code class="computeroutput"><span class="identifier">iterator</span></code>
+                of the view.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Assigns the value <code class="computeroutput"><span class="identifier">x</span></code> to the element pointed to by
+                <code class="computeroutput"><span class="identifier">position</span></code> into the
+                <code class="computeroutput"><span class="identifier">bimap</span></code> to which the
+                view belongs if, for the value <code class="computeroutput"><span class="identifier">x</span></code>
+                <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                      the view is non-unique OR no other element with equivalent
+                      key exists (except possibly <code class="computeroutput"><span class="special">*</span><span class="identifier">position</span></code>),
+                    </li>
+<li class="listitem">
+                      AND replacing is allowed by all other views of the <code class="computeroutput"><span class="identifier">bimap</span></code>.
+                    </li>
+</ul></div>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Validity of position
+                is preserved in all cases.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns: </strong></span> <code class="computeroutput"><span class="keyword">true</span></code>
+                if the replacement took place, <code class="computeroutput"><span class="keyword">false</span></code>
+                otherwise.
+              </li>
+<li class="listitem">
+                <a class="link" href="unordered_set_of_reference.html#unordered_set_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(R(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Strong. If an
+                exception is thrown by some user-provided operation the <code class="computeroutput"><span class="identifier">bimap</span></code> to which the view belongs
+                remains in its original state.
+              </li>
+</ul></div>
+<a name="reference_unordered_set_of_replace_key_iterator_key"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">replace_key</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid dereferenceable iterator of the set view. <code class="computeroutput"><span class="identifier">CompatibleKey</span></code> can be assigned to
+                <code class="computeroutput"><span class="identifier">key_type</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Assigns the value <code class="computeroutput"><span class="identifier">x</span></code> to <code class="computeroutput"><span class="identifier">e</span><span class="special">.</span><span class="identifier">first</span></code>,
+                where <code class="computeroutput"><span class="identifier">e</span></code> is the element
+                pointed to by <code class="computeroutput"><span class="identifier">position</span></code>
+                into the <code class="computeroutput"><span class="identifier">bimap</span></code> to
+                which the set view belongs if,
+                <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                      the map view is non-unique OR no other element with equivalent
+                      key exists (except possibly <code class="computeroutput"><span class="special">*</span><span class="identifier">position</span></code>),
+                    </li>
+<li class="listitem">
+                      AND replacing is allowed by all other views of the <code class="computeroutput"><span class="identifier">bimap</span></code>.
+                    </li>
+</ul></div>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Validity of position
+                is preserved in all cases.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns: </strong></span> <code class="computeroutput"><span class="keyword">true</span></code>
+                if the replacement took place, <code class="computeroutput"><span class="keyword">false</span></code>
+                otherwise.
+              </li>
+<li class="listitem">
+                <a class="link" href="unordered_set_of_reference.html#unordered_set_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(R(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Strong. If an
+                exception is thrown by some user-provided operation, the <code class="computeroutput"><span class="identifier">bimap</span></code> to which the set view belongs
+                remains in its original state.
+              </li>
+</ul></div>
+<a name="reference_unordered_set_of_replace_data_iterator_data"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleData</span> <span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">replace_data</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">CompatibleData</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid dereferenceable iterator of the set view. <code class="computeroutput"><span class="identifier">CompatibleKey</span></code> can be assigned to
+                <code class="computeroutput"><span class="identifier">mapped_type</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Assigns the value <code class="computeroutput"><span class="identifier">x</span></code> to <code class="computeroutput"><span class="identifier">e</span><span class="special">.</span><span class="identifier">second</span></code>,
+                where <code class="computeroutput"><span class="identifier">e</span></code> is the element
+                pointed to by <code class="computeroutput"><span class="identifier">position</span></code>
+                into the <code class="computeroutput"><span class="identifier">bimap</span></code> to
+                which the set view belongs if,
+                <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                      the map view is non-unique OR no other element with equivalent
+                      key exists (except possibly <code class="computeroutput"><span class="special">*</span><span class="identifier">position</span></code>),
+                    </li>
+<li class="listitem">
+                      AND replacing is allowed by all other views of the <code class="computeroutput"><span class="identifier">bimap</span></code>.
+                    </li>
+</ul></div>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Validity of position
+                is preserved in all cases.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns: </strong></span> <code class="computeroutput"><span class="keyword">true</span></code>
+                if the replacement took place, <code class="computeroutput"><span class="keyword">false</span></code>
+                otherwise.
+              </li>
+<li class="listitem">
+                <a class="link" href="unordered_set_of_reference.html#unordered_set_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(R(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Strong. If an
+                exception is thrown by some user-provided operation, the <code class="computeroutput"><span class="identifier">bimap</span></code> to which the set view belongs
+                remains in its original state.
+              </li>
+</ul></div>
+<a name="reference_unordered_set_of_modify_key_iterator_modifier"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">KeyModifier</span> <span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">modify_key</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">KeyModifier</span> <span class="identifier">mod</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">KeyModifier</span></code>
+                is a model of <a href="http://www.sgi.com/tech/stl/UnaryFunction.html" target="_top">Unary
+                Function</a> accepting arguments of type: <code class="computeroutput"><span class="identifier">key_type</span><span class="special">&amp;</span></code>; <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid dereferenceable iterator of the view.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Calls <code class="computeroutput"><span class="identifier">mod</span><span class="special">(</span><span class="identifier">e</span><span class="special">.</span><span class="identifier">first</span><span class="special">)</span></code> where e is the element pointed to
+                by position and rearranges <code class="computeroutput"><span class="special">*</span><span class="identifier">position</span></code> into all the views of
+                the <code class="computeroutput"><span class="identifier">bimap</span></code>. If the
+                rearrangement fails, the element is erased. Rearrangement is successful
+                if
+                <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                      the map view is non-unique OR no other element with equivalent
+                      key exists,
+                    </li>
+<li class="listitem">
+                      AND rearrangement is allowed by all other views of the <code class="computeroutput"><span class="identifier">bimap</span></code>.
+                    </li>
+</ul></div>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Validity of <code class="computeroutput"><span class="identifier">position</span></code> is preserved if the operation
+                succeeds.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns: </strong></span> <code class="computeroutput"><span class="keyword">true</span></code>
+                if the operation succeeded, <code class="computeroutput"><span class="keyword">false</span></code>
+                otherwise.
+              </li>
+<li class="listitem">
+                <a class="link" href="unordered_set_of_reference.html#unordered_set_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(M(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Basic. If an exception
+                is thrown by some user-provided operation (except possibly mod),
+                then the element pointed to by position is erased.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Note:</strong></span> Only provided for map views.
+              </li>
+</ul></div>
+<a name="reference_unordered_set_of_modify_data_iterator_modifier"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">DataModifier</span> <span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">modify_data</span><span class="special">(</span><span class="identifier">iterator</span> <span class="identifier">position</span><span class="special">,</span> <span class="identifier">DataModifier</span> <span class="identifier">mod</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">DataModifier</span></code>
+                is a model of <a href="http://www.sgi.com/tech/stl/UnaryFunction.html" target="_top">Unary
+                Function</a> accepting arguments of type: <code class="computeroutput"><span class="identifier">mapped_type</span><span class="special">&amp;</span></code>; <code class="computeroutput"><span class="identifier">position</span></code>
+                is a valid dereferenceable iterator of the view.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Calls <code class="computeroutput"><span class="identifier">mod</span><span class="special">(</span><span class="identifier">e</span><span class="special">.</span><span class="identifier">second</span><span class="special">)</span></code> where e is the element pointed to
+                by position and rearranges <code class="computeroutput"><span class="special">*</span><span class="identifier">position</span></code> into all the views of
+                the <code class="computeroutput"><span class="identifier">bimap</span></code>. If the
+                rearrangement fails, the element is erased. Rearrangement is successful
+                if
+                <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                      the oppositte map view is non-unique OR no other element with
+                      equivalent key in that view exists,
+                    </li>
+<li class="listitem">
+                      AND rearrangement is allowed by all other views of the <code class="computeroutput"><span class="identifier">bimap</span></code>.
+                    </li>
+</ul></div>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Validity of <code class="computeroutput"><span class="identifier">position</span></code> is preserved if the operation
+                succeeds.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns: </strong></span> <code class="computeroutput"><span class="keyword">true</span></code>
+                if the operation succeeded, <code class="computeroutput"><span class="keyword">false</span></code>
+                otherwise.
+              </li>
+<li class="listitem">
+                <a class="link" href="unordered_set_of_reference.html#unordered_set_of_complexity_signature"><span class="bold"><strong>Complexity:</strong></span></a>
+                O(M(n)).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Basic. If an exception
+                is thrown by some user-provided operation (except possibly mod),
+                then the element pointed to by position is erased.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Note:</strong></span> Only provided for map views.
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_unordered_set_of_reference_unordered___multi__set_of_views_lookup">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.lookup"></a><a class="link" href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.lookup" title="Lookup">Lookup</a>
+</h5></div></div></div>
+<p>
+            <code class="computeroutput"><span class="identifier">unordered_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set_of</span></code> views provide the full lookup
+            functionality required by unordered associative containers, namely <code class="computeroutput"><span class="identifier">find</span></code>, <code class="computeroutput"><span class="identifier">count</span></code>,
+            and <code class="computeroutput"><span class="identifier">equal_range</span></code>. Additionally,
+            these member functions are templatized to allow for non-standard arguments,
+            so extending the types of search operations allowed. The kind of arguments
+            permissible when invoking the lookup member functions is defined by the
+            following concept.
+          </p>
+<p>
+            A type <code class="computeroutput"><span class="identifier">CompatibleKey</span></code>
+            is said to be a <span class="emphasis"><em>compatible key</em></span> of <code class="computeroutput"><span class="special">(</span><span class="identifier">Hash</span><span class="special">,</span> <span class="identifier">Pred</span><span class="special">)</span></code> if <code class="computeroutput"><span class="special">(</span><span class="identifier">CompatibleKey</span><span class="special">,</span>
+            <span class="identifier">Hash</span><span class="special">,</span>
+            <span class="identifier">Pred</span><span class="special">)</span></code>
+            is a compatible extension of <code class="computeroutput"><span class="special">(</span><span class="identifier">Hash</span><span class="special">,</span> <span class="identifier">Pred</span><span class="special">)</span></code>.
+            This implies that <code class="computeroutput"><span class="identifier">Hash</span></code>
+            and <code class="computeroutput"><span class="identifier">Pred</span></code> accept arguments
+            of type <code class="computeroutput"><span class="identifier">CompatibleKey</span></code>,
+            which usually means they have several overloads of their corresponding
+            <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>
+            member functions.
+          </p>
+<a name="reference_unordered_set_of_find_key"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+<span class="identifier">iterator</span> <span class="identifier">find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+<span class="identifier">const_iterator</span> <span class="identifier">find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Returns a pointer to an
+                element whose key is equivalent to <code class="computeroutput"><span class="identifier">x</span></code>,
+                or <code class="computeroutput"><span class="identifier">end</span><span class="special">()</span></code>
+                if such an element does not exist.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> Average case O(1) (constant),
+                worst case O(n).
+              </li>
+</ul></div>
+<a name="reference_unordered_set_of_count_key"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+<span class="identifier">size_type</span> <span class="identifier">count</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Returns the number of elements
+                with key equivalent to <code class="computeroutput"><span class="identifier">x</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> Average case O(count(x)),
+                worst case O(n).
+              </li>
+</ul></div>
+<a name="reference_unordered_set_of_equal_range_key"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span><span class="identifier">iterator</span><span class="special">&gt;</span>
+    <span class="identifier">equal_range</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">const_iterator</span><span class="special">,</span><span class="identifier">const_iterator</span><span class="special">&gt;</span>
+    <span class="identifier">equal_range</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Returns a range containing
+                all elements with keys equivalent to <code class="computeroutput"><span class="identifier">x</span></code>
+                (and only those).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> Average case O(count(x)),
+                worst case O(n).
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_unordered_set_of_reference_unordered___multi__set_of_views_at____info_at___and_operator_______set_of_only">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.at____info_at___and_operator_______set_of_only"></a><a class="link" href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.at____info_at___and_operator_______set_of_only" title="at(), info_at() and operator[] - set_of only">at(),
+          info_at() and operator[] - set_of only</a>
+</h5></div></div></div>
+<a name="reference_unordered_set_of_at_key_const"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+<span class="keyword">const</span> <span class="identifier">mapped_type</span> <span class="special">&amp;</span> <span class="identifier">at</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">k</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">CompatibleKey</span></code>
+                is a compatible key of <code class="computeroutput"><span class="identifier">key_compare</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Returns the <code class="computeroutput"><span class="identifier">mapped_type</span></code> reference that is associated
+                with <code class="computeroutput"><span class="identifier">k</span></code>, or throws
+                <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">out_of_range</span></code> if such key does not
+                exist.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> Average case O(1) (constant),
+                worst case O(n).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Note:</strong></span> Only provided when <code class="computeroutput"><span class="identifier">unordered_set_of</span></code> is used.
+              </li>
+</ul></div>
+<p>
+            The symmetry of bimap imposes some constraints on <code class="computeroutput"><span class="keyword">operator</span><span class="special">[]</span></code> and the non constant version of at()
+            that are not found in <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">maps</span></code>.
+            Tey are only provided if the other collection type is mutable (<code class="computeroutput"><span class="identifier">list_of</span></code>, <code class="computeroutput"><span class="identifier">vector_of</span></code>
+            and <code class="computeroutput"><span class="identifier">unconstrained_set_of</span></code>).
+          </p>
+<a name="reference_unordered_set_of_operator_bracket_key"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+<span class="identifier">mapped_type</span> <span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">[](</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">k</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">CompatibleKey</span></code>
+                is a compatible key of <code class="computeroutput"><span class="identifier">key_compare</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects: </strong></span> <code class="computeroutput"><span class="keyword">return</span>
+                <span class="identifier">insert</span><span class="special">(</span><span class="identifier">value_type</span><span class="special">(</span><span class="identifier">k</span><span class="special">,</span><span class="identifier">mapped_type</span><span class="special">()))-&gt;</span><span class="identifier">second</span><span class="special">;</span></code>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> If the insertion is
+                performed O(I(n)), else: Average case O(1) (constant), worst case
+                O(n).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Note:</strong></span> Only provided when <code class="computeroutput"><span class="identifier">unordered_set_of</span></code> is used and the
+                other collection type is mutable.
+              </li>
+</ul></div>
+<a name="reference_unordered_set_of_at_key"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+<span class="identifier">mapped_type</span> <span class="special">&amp;</span> <span class="identifier">at</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">k</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">CompatibleKey</span></code>
+                is a compatible key of <code class="computeroutput"><span class="identifier">key_compare</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects: </strong></span> Returns the <code class="computeroutput"><span class="identifier">mapped_type</span></code> reference that is associated
+                with <code class="computeroutput"><span class="identifier">k</span></code>, or throws
+                <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">out_of_range</span></code> if such key does not
+                exist.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> Average case O(1) (constant),
+                worst case O(n).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Note:</strong></span> Only provided when <code class="computeroutput"><span class="identifier">unordered_set_of</span></code> is used and the
+                other collection type is mutable.
+              </li>
+</ul></div>
+<a name="reference_unordered_set_of_info_at_key"></a><pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+<span class="identifier">info_type</span> <span class="special">&amp;</span> <span class="identifier">info_at</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">k</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">CompatibleKey</span> <span class="special">&gt;</span>
+<span class="keyword">const</span> <span class="identifier">info_type</span> <span class="special">&amp;</span> <span class="identifier">info_at</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">CompatibleKey</span> <span class="special">&amp;</span> <span class="identifier">k</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">CompatibleKey</span></code>
+                is a compatible key of <code class="computeroutput"><span class="identifier">key_compare</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Returns the <code class="computeroutput"><span class="identifier">info_type</span></code> reference that is associated
+                with <code class="computeroutput"><span class="identifier">k</span></code>, or throws
+                <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">out_of_range</span></code> if such key does not
+                exist.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> Average case O(1) (constant),
+                worst case O(n).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Note:</strong></span> Only provided when <code class="computeroutput"><span class="identifier">unordered_set_of</span></code> and <code class="computeroutput"><span class="identifier">info_hook</span></code> are used
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_unordered_set_of_reference_unordered___multi__set_of_views_hash_policy">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.hash_policy"></a><a class="link" href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.hash_policy" title="Hash policy">Hash
+          policy</a>
+</h5></div></div></div>
+<a name="reference_unordered_set_of_rehash_size"></a><pre class="programlisting"><span class="keyword">void</span> <span class="identifier">rehash</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Effects:</strong></span> Increases if necessary
+                the number of internal buckets so that <code class="computeroutput"><span class="identifier">size</span><span class="special">()/</span><span class="identifier">bucket_count</span><span class="special">()</span></code> does not exceed the maximum load
+                factor, and <code class="computeroutput"><span class="identifier">bucket_count</span><span class="special">()&gt;=</span><span class="identifier">n</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> Validity of iterators
+                and references to the elements contained is preserved.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Complexity:</strong></span> Average case O(size()),
+                worst case O(size(n)2).
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Exception safety:</strong></span> Strong.
+              </li>
+</ul></div>
+</div>
+<div class="section boost_bimap_reference_unordered_set_of_reference_unordered___multi__set_of_views_serialization">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.serialization"></a><a class="link" href="unordered_set_of_reference.html#boost_bimap.reference.unordered_set_of_reference.unordered___multi__set_of_views.serialization" title="Serialization">Serialization</a>
+</h5></div></div></div>
+<p>
+            Views cannot be serialized on their own, but only as part of the <code class="computeroutput"><span class="identifier">bimap</span></code> into which they are embedded.
+            In describing the additional preconditions and guarantees associated
+            to <code class="computeroutput"><span class="identifier">unordered_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set_of</span></code> views with respect to serialization
+            of their embedding containers, we use the concepts defined in the <code class="computeroutput"><span class="identifier">bimap</span></code> serialization section.
+          </p>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+            <span class="bold"><strong>Operation:</strong></span> saving of a <code class="computeroutput"><span class="identifier">bimap</span></code> b to an output archive (XML archive)
+            ar.
+          </p>
+</div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <span class="bold"><strong>Requires:</strong></span> No additional requirements
+                to those imposed by the container.
+              </li></ul></div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+            <span class="bold"><strong>Operation:</strong></span> loading of a <code class="computeroutput"><span class="identifier">bimap</span></code> b' from an input archive (XML
+            archive) ar.
+          </p>
+</div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Requires:</strong></span> Additionally to the general
+                requirements, <code class="computeroutput"><span class="identifier">key_eq</span><span class="special">()</span></code> must be serialization-compatible
+                with <code class="computeroutput"><span class="identifier">m</span><span class="special">.</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">i</span><span class="special">&gt;().</span><span class="identifier">key_eq</span><span class="special">()</span></code>,
+                where i is the position of the <code class="computeroutput"><span class="identifier">unordered_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set_of</span></code>
+                view in the container.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> On successful loading,
+                the range <code class="computeroutput"><span class="special">[</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">end</span><span class="special">())</span></code> contains restored copies of every
+                element in <code class="computeroutput"><span class="special">[</span><span class="identifier">m</span><span class="special">.</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">i</span><span class="special">&gt;().</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">m</span><span class="special">.</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">i</span><span class="special">&gt;().</span><span class="identifier">end</span><span class="special">())</span></code>, though not necessarily in the
+                same order.
+              </li>
+</ul></div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+            <span class="bold"><strong>Operation:</strong></span> saving of an <code class="computeroutput"><span class="identifier">iterator</span></code> or <code class="computeroutput"><span class="identifier">const_iterator</span></code>
+            <code class="computeroutput"><span class="identifier">it</span></code> to an output archive
+            (XML archive) ar.
+          </p>
+</div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">it</span></code>
+                is a valid <code class="computeroutput"><span class="identifier">iterator</span></code>
+                of the view. The associated <code class="computeroutput"><span class="identifier">bimap</span></code>
+                has been previously saved.
+              </li></ul></div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+            <span class="bold"><strong>Operation:</strong></span> loading of an iterator or
+            <code class="computeroutput"><span class="identifier">const_iterator</span> <span class="identifier">it</span></code>'
+            from an input archive (XML archive) ar.
+          </p>
+</div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> On successful loading,
+                if <code class="computeroutput"><span class="identifier">it</span></code> was dereferenceable
+                then <code class="computeroutput"><span class="special">*</span><span class="identifier">it</span></code>'
+                is the restored copy of <code class="computeroutput"><span class="special">*</span><span class="identifier">it</span></code>, otherwise <code class="computeroutput"><span class="identifier">it</span></code>'<code class="computeroutput">
+                <span class="special">==</span> <span class="identifier">end</span><span class="special">()</span></code>.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Note:</strong></span> It is allowed that <code class="computeroutput"><span class="identifier">it</span></code> be a <code class="computeroutput"><span class="identifier">const_iterator</span></code>
+                and the restored <code class="computeroutput"><span class="identifier">it</span></code>'
+                an <code class="computeroutput"><span class="identifier">iterator</span></code>, or viceversa.
+              </li>
+</ul></div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+            <span class="bold"><strong>Operation:</strong></span> saving of a local_iterator
+            or const_local_iterator it to an output archive (XML archive) ar.
+          </p>
+</div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <span class="bold"><strong>Requires: </strong></span> <code class="computeroutput"><span class="identifier">it</span></code>
+                is a valid local iterator of the view. The associated <code class="computeroutput"><span class="identifier">bimap</span></code> has been previously saved.
+              </li></ul></div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+            <span class="bold"><strong>Operation:</strong></span> loading of a <code class="computeroutput"><span class="identifier">local_iterator</span></code> or <code class="computeroutput"><span class="identifier">const_local_iterator</span></code>
+            <code class="computeroutput"><span class="identifier">it</span></code>' from an input archive
+            (XML archive) ar.
+          </p>
+</div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <span class="bold"><strong>Postconditions:</strong></span> On successful loading,
+                if <code class="computeroutput"><span class="identifier">it</span></code> was dereferenceable
+                then <code class="computeroutput"><span class="special">*</span><span class="identifier">it</span></code>'
+                is the restored copy of <code class="computeroutput"><span class="special">*</span><span class="identifier">it</span></code>; if <code class="computeroutput"><span class="identifier">it</span></code>
+                was <code class="computeroutput"><span class="identifier">m</span><span class="special">.</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">i</span><span class="special">&gt;().</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code>
+                for some n, then <code class="computeroutput"><span class="identifier">it</span></code>'<code class="computeroutput">
+                <span class="special">==</span> <span class="identifier">m</span></code>'<code class="computeroutput"><span class="special">.</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">i</span><span class="special">&gt;().</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code> (where <code class="computeroutput"><span class="identifier">b</span></code>
+                is the original <code class="computeroutput"><span class="identifier">bimap</span></code>,
+                <code class="computeroutput"><span class="identifier">b</span></code>' its restored copy
+                and <code class="computeroutput"><span class="identifier">i</span></code> is the ordinal
+                of the index.)
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Note:</strong></span> It is allowed that <code class="computeroutput"><span class="identifier">it</span></code> be a <code class="computeroutput"><span class="identifier">const_local_iterator</span></code>
+                and the restored <code class="computeroutput"><span class="identifier">it</span></code>'
+                a <code class="computeroutput"><span class="identifier">local_iterator</span></code>,
+                or viceversa.
+              </li>
+</ul></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="set_of_reference.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="list_of_reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

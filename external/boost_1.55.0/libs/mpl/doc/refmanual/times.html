@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: times</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./minus.html" class="navigation-link">Prev</a>&nbsp;<a href="./divides.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./minus.html" class="navigation-link">Back</a>&nbsp;<a href="./divides.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./arithmetic-operations.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./arithmetic-operations.html" class="navigation-link">Arithmetic Operations</a> / <a href="./times.html" class="navigation-link">times</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="times">
+<h1><a class="toc-backref" href="./arithmetic-operations.html#id1538">times</a></h1>
+<div class="section" id="id978">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename T1
+    , typename T2
+    , typename T3 = <em>unspecified</em>
+    <em>...</em>
+    , typename T<em>n</em> = <em>unspecified</em>
+    &gt;
+struct <a href="./times.html" class="identifier">times</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id979">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Returns the product of its arguments.</p>
+</div>
+<div class="section" id="id980">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/times.hpp" class="header">boost/mpl/times.hpp</a>&gt;
+#include &lt;<a href="../../../../boost/mpl/arithmetic.hpp" class="header">boost/mpl/arithmetic.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id981">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./numeric-metafunction.html">Numeric Metafunction</a></p>
+</div>
+<div class="section" id="id982">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="17%" />
+<col width="30%" />
+<col width="53%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">T1</span></tt>, <tt class="literal"><span class="pre">T2</span></tt>,... <tt class="literal"><span class="pre">Tn</span></tt></td>
+<td><a class="reference internal" href="./integral-constant.html">Integral Constant</a></td>
+<td>Operation's arguments.</td>
+</tr>
+</tbody>
+</table>
+<p>[<em>Note:</em> The requirements listed in this specification
+are the ones imposed by the default implementation. See <a class="reference internal" href="./numeric-metafunction.html">Numeric Metafunction</a> concept
+for the details on how to provide an implementation for a user-defined numeric type
+that does not satisfy the <a class="reference internal" href="./integral-constant.html">Integral Constant</a> requirements. — <em>end note</em>]</p>
+</div>
+<div class="section" id="id983">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any <a class="reference internal" href="./integral-constant.html">Integral Constant</a>s <em>c</em><sub>1</sub>,<em>c</em><sub>2</sub>,... <em>c</em><sub>n</sub>:</p>
+<pre class="literal-block">
+typedef <a href="./times.html" class="identifier">times</a>&lt;c1,<em>...</em>c<em>n</em>&gt;::type r;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="./integral-constant.html">Integral Constant</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to</p>
+<pre class="last literal-block">
+typedef <a href="./integral-c.html" class="identifier">integral_c</a>&lt;
+      typeof(c1::value * c2::value)
+    , ( c1::value * c2::value )
+    &gt; c;
+
+typedef <a href="./times.html" class="identifier">times</a>&lt;c,c3,<em>...</em>c<em>n</em>&gt;::type r;
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- .......................................................................... -->
+<pre class="literal-block">
+typedef <a href="./times.html" class="identifier">times</a>&lt;c1,<em>...</em>c<em>n</em>&gt; r;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="./integral-constant.html">Integral Constant</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to</p>
+<pre class="last literal-block">
+struct r : <a href="./times.html" class="identifier">times</a>&lt;c1,<em>...</em>c<em>n</em>&gt;::type {};
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id984">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Amortized constant time.</p>
+</div>
+<div class="section" id="id985">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./times.html" class="identifier">times</a>&lt; <a href="./int.html" class="identifier">int_</a>&lt;-10&gt;, <a href="./int.html" class="identifier">int_</a>&lt;3&gt;, <a href="./long.html" class="identifier">long_</a>&lt;1&gt; &gt;::type r;
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( r::value, ==, -30 );
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; r::<a href="./value-type.html" class="identifier">value_type</a>, long > ));
+</pre>
+</div>
+<div class="section" id="id986">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./metafunctions.html">Metafunctions</a>, <a class="reference internal" href="./numeric-metafunction.html">Numeric Metafunction</a>, <a class="reference internal" href="./numeric-cast.html">numeric_cast</a>, <a class="reference internal" href="./divides.html">divides</a>, <a class="reference internal" href="./modulus.html">modulus</a>, <a class="reference internal" href="./plus.html">plus</a></p>
+<!-- Metafunctions/Arithmetic Operations//divides |40 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./minus.html" class="navigation-link">Prev</a>&nbsp;<a href="./divides.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./minus.html" class="navigation-link">Back</a>&nbsp;<a href="./divides.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./arithmetic-operations.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

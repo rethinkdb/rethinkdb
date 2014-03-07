@@ -1,0 +1,453 @@
+[template perf[name value] [value]]
+[template para[text] '''<para>'''[text]'''</para>''']
+
+[mathpart perf Performance]
+
+[section:perf_over2 Performance Overview]
+[performance_overview]
+[endsect]
+
+[section:interp Interpreting these Results]
+
+In all of the following tables, the best performing
+result in each row, is assigned a relative value of "1" and shown
+in bold, so a score of "2" means ['"twice as slow as the best
+performing result".]  Actual timings in seconds per function call
+are also shown in parenthesis.
+
+Result were obtained on a system
+with an Intel 2.8GHz Pentium 4 processor with 2Gb of RAM and running
+either Windows XP or Mandriva Linux.
+
+[caution As usual with performance results these should be taken with a large pinch
+of salt: relative performance is known to shift quite a bit depending
+upon the architecture of the particular test system used.  Further
+more, our performance results were obtained using our own test data:
+these test values are designed to provide good coverage of our code and test
+all the appropriate corner cases.  They do not necessarily represent
+"typical" usage: whatever that may be!
+]
+
+[note Since these tests were run, most compilers have improved their code optimisation,
+and processor speeds have improved too, so these results are known to be out of date.]
+
+[endsect]
+
+[section:getting_best Getting the Best Performance from this Library]
+
+By far the most important thing you can do when using this library
+is turn on your compiler's optimisation options.  As the following
+table shows the penalty for using the library in debug mode can be
+quite large.
+
+[table  Performance Comparison of Release and Debug Settings
+[[Function]
+      [Microsoft Visual C++ 8.0
+
+      Debug Settings: /Od /ZI
+      ]
+         [Microsoft Visual C++ 8.0
+
+         Release settings: /Ox /arch:SSE2
+         ]]
+
+[[__erf][[perf msvc-debug-erf..[para 16.65][para (1.028e-006s)]]][[perf msvc-erf..[para *1.00*][para (1.483e-007s)]]]]
+[[__erf_inv][[perf msvc-debug-erf_inv..[para 19.28][para (1.215e-006s)]]][[perf msvc-erf_inv..[para *1.00*][para (4.888e-007s)]]]]
+[[__ibeta and __ibetac][[perf msvc-debug-ibeta..[para 8.32][para (1.540e-005s)]]][[perf msvc-ibeta..[para *1.00*][para (1.852e-006s)]]]]
+[[__ibeta_inv and __ibetac_inv][[perf msvc-debug-ibeta_inv..[para 10.25][para (7.492e-005s)]]][[perf msvc-ibeta_inv..[para *1.00*][para (7.311e-006s)]]]]
+[[__ibeta_inva, __ibetac_inva, __ibeta_invb and __ibetac_invb][[perf msvc-debug-ibeta_invab..[para 8.57][para (2.441e-004s)]]][[perf msvc-ibeta_invab..[para *1.00*][para (2.847e-005s)]]]]
+[[__gamma_p and __gamma_q][[perf msvc-debug-igamma..[para 10.98][para (1.044e-005s)]]][[perf msvc-igamma..[para *1.00*][para (9.504e-007s)]]]]
+[[__gamma_p_inv and __gamma_q_inv][[perf msvc-debug-igamma_inv..[para 10.25][para (3.721e-005s)]]][[perf msvc-igamma_inv..[para *1.00*][para (3.631e-006s)]]]]
+[[__gamma_p_inva and __gamma_q_inva][[perf msvc-debug-igamma_inva..[para 11.26][para (1.124e-004s)]]][[perf msvc-igamma_inva..[para *1.00*][para (9.982e-006s)]]]]
+]
+
+[endsect]
+
+[section:comp_compilers Comparing Compilers]
+
+After a good choice of build settings the next most important thing
+you can do, is choose your compiler
+- and the standard C library it sits on top of - very carefully.  GCC-3.x
+in particular has been found to be particularly bad at inlining code,
+and performing the kinds of high level transformations that good C++ performance
+demands (thankfully GCC-4.x is somewhat better in this respect).
+
+[table  Performance Comparison of Various Windows Compilers
+[[Function]
+   [Intel C++ 10.0
+
+   ( /Ox /Qipo /QxN )
+   ]
+      [Microsoft Visual C++ 8.0
+
+      ( /Ox /arch:SSE2 )
+      ]
+      [Cygwin G++ 3.4
+
+      ( /O3 )
+      ]]
+[[__erf][[perf intel-erf..[para *1.00*][para (4.118e-008s)]]][[perf msvc-erf..[para *1.00*][para (1.483e-007s)]]][[perf gcc-erf..[para 3.24][para (1.336e-007s)]]]]
+[[__erf_inv][[perf intel-erf_inv..[para *1.00*][para (4.439e-008s)]]][[perf msvc-erf_inv..[para *1.00*][para (4.888e-007s)]]][[perf gcc-erf_inv..[para 7.88][para (3.500e-007s)]]]]
+[[__ibeta and __ibetac][[perf intel-ibeta..[para *1.00*][para (1.631e-006s)]]][[perf msvc-ibeta..[para 1.14][para (1.852e-006s)]]][[perf gcc-ibeta..[para 3.05][para (4.975e-006s)]]]]
+[[__ibeta_inv and __ibetac_inv][[perf intel-ibeta_inv..[para *1.00*][para (6.133e-006s)]]][[perf msvc-ibeta_inv..[para 1.19][para (7.311e-006s)]]][[perf gcc-ibeta_inv..[para 2.60][para (1.597e-005s)]]]]
+[[__ibeta_inva, __ibetac_inva, __ibeta_invb and __ibetac_invb][[perf intel-ibeta_invab..[para *1.00*][para (2.453e-005s)]]][[perf msvc-ibeta_invab..[para 1.16][para (2.847e-005s)]]][[perf gcc-ibeta_invab..[para 2.83][para (6.947e-005s)]]]]
+[[__gamma_p and __gamma_q][[perf intel-igamma..[para *1.00*][para (6.735e-007s)]]][[perf msvc-igamma..[para 1.41][para (9.504e-007s)]]][[perf gcc-igamma..[para 2.78][para (1.872e-006s)]]]]
+[[__gamma_p_inv and __gamma_q_inv][[perf intel-igamma_inv..[para *1.00*][para (2.637e-006s)]]][[perf msvc-igamma_inv..[para 1.38][para (3.631e-006s)]]][[perf gcc-igamma_inv..[para 3.31][para (8.736e-006s)]]]]
+[[__gamma_p_inva and __gamma_q_inva][[perf intel-igamma_inva..[para *1.00*][para (7.716e-006s)]]][[perf msvc-igamma_inva..[para 1.29][para (9.982e-006s)]]][[perf gcc-igamma_inva..[para 2.56][para (1.974e-005s)]]]]
+]
+
+[endsect]
+
+[section:tuning Performance Tuning Macros]
+
+There are a small number of performance tuning options
+that are determined by configuration macros.  These should be set
+in boost/math/tools/user.hpp; or else reported to the Boost-development
+mailing list so that the appropriate option for a given compiler and
+OS platform can be set automatically in our configuration setup.
+
+[table
+[[Macro][Meaning]]
+[[BOOST_MATH_POLY_METHOD]
+   [Determines how polynomials and most rational functions
+   are evaluated.  Define to one
+   of the values 0, 1, 2 or 3: see below for the meaning of these values.]]
+[[BOOST_MATH_RATIONAL_METHOD]
+   [Determines how symmetrical rational functions are evaluated: mostly
+   this only effects how the Lanczos approximation is evaluated, and how
+   the `evaluate_rational` function behaves.  Define to one
+   of the values 0, 1, 2 or 3: see below for the meaning of these values.
+   ]]
+[[BOOST_MATH_MAX_POLY_ORDER]
+   [The maximum order of polynomial or rational function that will
+   be evaluated by a method other than 0 (a simple "for" loop).
+   ]]
+[[BOOST_MATH_INT_TABLE_TYPE(RT, IT)]
+   [Many of the coefficients to the polynomials and rational functions
+   used by this library are integers.  Normally these are stored as tables
+   as integers, but if mixed integer / floating point arithmetic is much
+   slower than regular floating point arithmetic then they can be stored
+   as tables of floating point values instead.  If mixed arithmetic is slow
+   then add:
+
+      #define BOOST_MATH_INT_TABLE_TYPE(RT, IT) RT
+
+   to boost/math/tools/user.hpp, otherwise the default of:
+
+      #define BOOST_MATH_INT_TABLE_TYPE(RT, IT) IT
+
+   Set in boost/math/config.hpp is fine, and may well result in smaller
+   code.
+   ]]
+]
+
+The values to which `BOOST_MATH_POLY_METHOD` and `BOOST_MATH_RATIONAL_METHOD`
+may be set are as follows:
+
+[table
+[[Value][Effect]]
+[[0][The polynomial or rational function is evaluated using Horner's
+      method, and a simple for-loop.
+
+      Note that if the order of the polynomial
+      or rational function is a runtime parameter, or the order is
+      greater than the value of `BOOST_MATH_MAX_POLY_ORDER`, then
+      this method is always used, irrespective of the value
+      of `BOOST_MATH_POLY_METHOD` or `BOOST_MATH_RATIONAL_METHOD`.]]
+[[1][The polynomial or rational function is evaluated without
+      the use of a loop, and using Horner's method.  This only occurs
+      if the order of the polynomial is known at compile time and is less
+      than or equal to `BOOST_MATH_MAX_POLY_ORDER`. ]]
+[[2][The polynomial or rational function is evaluated without
+      the use of a loop, and using a second order Horner's method.
+      In theory this permits two operations to occur in parallel
+      for polynomials, and four in parallel for rational functions.
+      This only occurs
+      if the order of the polynomial is known at compile time and is less
+      than or equal to `BOOST_MATH_MAX_POLY_ORDER`.]]
+[[3][The polynomial or rational function is evaluated without
+      the use of a loop, and using a second order Horner's method.
+      In theory this permits two operations to occur in parallel
+      for polynomials, and four in parallel for rational functions.
+      This differs from method "2" in that the code is carefully ordered
+      to make the parallelisation more obvious to the compiler: rather than
+      relying on the compiler's optimiser to spot the parallelisation
+      opportunities.
+      This only occurs
+      if the order of the polynomial is known at compile time and is less
+      than or equal to `BOOST_MATH_MAX_POLY_ORDER`.]]
+]
+
+To determine which
+of these options is best for your particular compiler/platform build
+the performance test application with your usual release settings,
+and run the program with the --tune command line option.
+
+In practice the difference between methods is rather small at present,
+as the following table shows.  However, parallelisation /vectorisation
+is likely to become more important in the future: quite likely the methods
+currently supported will need to be supplemented or replaced by ones more
+suited to highly vectorisable processors in the future.
+
+[table A Comparison of Polynomial Evaluation Methods
+[[Compiler/platform][Method 0][Method 1][Method 2][Method 3]]
+[[Microsoft C++ 9.0, Polynomial evaluation] [[perf msvc-Polynomial-method-0..[para 1.26][para (7.421e-008s)]]][[perf msvc-Polynomial-method-1..[para 1.22][para (7.226e-008s)]]][[perf msvc-Polynomial-method-2..[para *1.00*][para (5.901e-008s)]]][[perf msvc-Polynomial-method-3..[para 1.04][para (6.115e-008s)]]]]
+[[Microsoft C++ 9.0, Rational evaluation] [[perf msvc-Rational-method-0..[para *1.00*][para (1.008e-007s)]]][[perf msvc-Rational-method-1..[para *1.00*][para (1.008e-007s)]]][[perf msvc-Rational-method-2..[para 1.43][para (1.445e-007s)]]][[perf msvc-Rational-method-3..[para 1.40][para (1.409e-007s)]]]]
+[[Intel C++ 11.1 (Windows), Polynomial evaluation] [[perf intel-Polynomial-method-0..[para 1.18][para (6.517e-008s)]]][[perf intel-Polynomial-method-1..[para 1.18][para (6.505e-008s)]]][[perf intel-Polynomial-method-2..[para *1.00*][para (5.516e-008s)]]][[perf intel-Polynomial-method-3..[para *1.00*][para (5.516e-008s)]]]]
+[[Intel C++ 11.1 (Windows), Rational evaluation] [[perf intel-Rational-method-0..[para *1.00*][para (8.947e-008s)]]][[perf intel-Rational-method-1..[para 1.02][para (9.130e-008s)]]][[perf intel-Rational-method-2..[para 1.49][para (1.333e-007s)]]][[perf intel-Rational-method-3..[para 1.04][para (9.325e-008s)]]]]
+[[GNU G++ 4.2 (Linux), Polynomial evaluation] [[perf gcc-4_2-ld-Polynomial-method-0..[para 1.61][para (1.220e-007s)]]][[perf gcc-4_2-ld-Polynomial-method-1..[para 1.68][para (1.269e-007s)]]][[perf gcc-4_2-ld-Polynomial-method-2..[para 1.23][para (9.275e-008s)]]][[perf gcc-4_2-ld-Polynomial-method-3..[para *1.00*][para (7.566e-008s)]]]]
+[[GNU G++ 4.2 (Linux), Rational evaluation] [[perf gcc-4_2-ld-Rational-method-0..[para 1.26][para (1.660e-007s)]]][[perf gcc-4_2-ld-Rational-method-1..[para 1.33][para (1.758e-007s)]]][[perf gcc-4_2-ld-Rational-method-2..[para *1.00*][para (1.318e-007s)]]][[perf gcc-4_2-ld-Rational-method-3..[para 1.15][para (1.513e-007s)]]]]
+[[Intel C++ 10.0 (Linux), Polynomial evaluation] [[perf intel-linux-Polynomial-method-0..[para 1.15][para (9.154e-008s)]]][[perf intel-linux-Polynomial-method-1..[para 1.15][para (9.154e-008s)]]][[perf intel-linux-Polynomial-method-2..[para *1.00*][para (7.934e-008s)]]][[perf intel-linux-Polynomial-method-3..[para *1.00*][para (7.934e-008s)]]]]
+[[Intel C++ 10.0 (Linux), Rational evaluation] [[perf intel-linux-Rational-method-0..[para *1.00*][para (1.245e-007s)]]][[perf intel-linux-Rational-method-1..[para *1.00*][para (1.245e-007s)]]][[perf intel-linux-Rational-method-2..[para 1.35][para (1.684e-007s)]]][[perf intel-linux-Rational-method-3..[para 1.04][para (1.294e-007s)]]]]
+]
+
+There is one final performance tuning option that is available as a compile time
+[link policy policy].  Normally when evaluating functions at `double`
+precision, these are actually evaluated at `long double` precision internally:
+this helps to ensure that as close to full `double` precision as possible is
+achieved, but may slow down execution in some environments.  The defaults for
+this policy can be changed by
+[link math_toolkit.pol_ref.policy_defaults
+defining the macro `BOOST_MATH_PROMOTE_DOUBLE_POLICY`]
+to `false`, or
+[link math_toolkit.pol_ref.internal_promotion
+by specifying a specific policy] when calling the special
+functions or distributions.  See also the
+[link math_toolkit.pol_tutorial policy tutorial].
+
+[table  Performance Comparison with and Without Internal Promotion to long double
+[[Function]
+   [GCC 4.2 , Linux
+
+   (with internal promotion of double to long double).
+   ]
+      [GCC 4.2, Linux
+
+      (without promotion of double).
+      ]
+]
+[[__erf][[perf gcc-4_2-ld-erf..[para 1.48][para (1.387e-007s)]]][[perf gcc-4_2-erf..[para *1.00*][para (9.377e-008s)]]]]
+[[__erf_inv][[perf gcc-4_2-ld-erf_inv..[para 1.11][para (4.009e-007s)]]][[perf gcc-4_2-erf_inv..[para *1.00*][para (3.598e-007s)]]]]
+[[__ibeta and __ibetac][[perf gcc-4_2-ld-ibeta..[para 1.29][para (5.354e-006s)]]][[perf gcc-4_2-ibeta..[para *1.00*][para (4.137e-006s)]]]]
+[[__ibeta_inv and __ibetac_inv][[perf gcc-4_2-ld-ibeta_inv..[para 1.44][para (2.220e-005s)]]][[perf gcc-4_2-ibeta_inv..[para *1.00*][para (1.538e-005s)]]]]
+[[__ibeta_inva, __ibetac_inva, __ibeta_invb and __ibetac_invb][[perf gcc-4_2-ld-ibeta_invab..[para 1.25][para (7.009e-005s)]]][[perf gcc-4_2-ibeta_invab..[para *1.00*][para (5.607e-005s)]]]]
+[[__gamma_p and __gamma_q][[perf gcc-4_2-ld-igamma..[para 1.26][para (3.116e-006s)]]][[perf gcc-4_2-igamma..[para *1.00*][para (2.464e-006s)]]]]
+[[__gamma_p_inv and __gamma_q_inv][[perf gcc-4_2-ld-igamma_inv..[para 1.27][para (1.178e-005s)]]][[perf gcc-4_2-igamma_inv..[para *1.00*][para (9.291e-006s)]]]]
+[[__gamma_p_inva and __gamma_q_inva][[perf gcc-4_2-ld-igamma_inva..[para 1.20][para (2.765e-005s)]]][[perf gcc-4_2-igamma_inva..[para *1.00*][para (2.311e-005s)]]]]
+]
+
+[endsect]
+[section:comparisons Comparisons to Other Open Source Libraries]
+
+We've run our performance tests both for our own code, and against other
+open source implementations of the same functions.  The results are
+presented below to give you a rough idea of how they all compare.
+
+[caution
+You should exercise extreme caution when interpreting
+these results, relative performance may vary by platform, the tests use
+data that gives good code coverage of /our/ code, but which may skew the
+results towards the corner cases.  Finally, remember that different
+libraries make different choices with regard to performance verses
+numerical stability.
+]
+
+[heading Comparison to GSL-1.13 and Cephes]
+
+All the results were measured on a 2.0GHz Intel T5800 Core 2 Duo, 4Gb RAM, Windows Vista
+machine, with the test program compiled with Microsoft Visual C++ 2009 using the /Ox option.
+
+[table
+[[Function][Boost][GSL-1.9][Cephes]]
+[[__cbrt]
+   [[perf msvc-cbrt..[para *1.00*][para (4.873e-007s)]]]
+   [N\/A]
+   [[perf msvc-cbrt-cephes..[para *1.00*][para (6.699e-007s)]]]]
+[[__log1p]
+   [[perf msvc-log1p..[para *1.00*][para (1.664e-007s)]]]
+   [[perf msvc-log1p-gsl..[para *1.00*][para (2.677e-007s)]]]
+   [[perf msvc-log1p-cephes..[para *1.00*][para (1.189e-007s)]]]]
+[[__expm1]
+   [[perf msvc-expm1..[para *1.00*][para (8.760e-008s)]]]
+   [[perf msvc-expm1-gsl..[para *1.00*][para (1.248e-007s)]]]
+   [[perf msvc-expm1-cephes..[para *1.00*][para (8.169e-008s)]]]]
+[[__tgamma]
+   [[perf msvc-gamma..[para 1.80][para (2.997e-007s)]]]
+   [[perf msvc-gamma-gsl..[para 1.54][para (2.569e-007s)]]]
+   [[perf msvc-gamma-cephes..[para *1.00*][para (1.666e-007s)]]]]
+[[__lgamma]
+   [[perf msvc-lgamma..[para 2.20][para (3.045e-007s)]]]
+   [[perf msvc-lgamma-gsl..[para 4.14][para (5.713e-007s)]]]
+   [[perf msvc-lgamma-cephes..[para *1.00*][para (1.381e-007s)]]]]
+[[__erf and __erfc]
+   [[perf msvc-erf..[para *1.00*][para (1.483e-007s)]]]
+   [[perf msvc-erf-gsl..[para *1.00*][para (7.052e-007s)]]]
+   [[perf msvc-erf-cephes..[para *1.00*][para (1.722e-007s)]]]]
+[[__gamma_p and __gamma_q]
+   [[perf msvc-igamma..[para *1.00*][para (6.182e-007s)]]]
+   [[perf msvc-igamma-gsl..[para 3.57][para (2.209e-006s)]]]
+   [[perf msvc-igamma-cephes..[para 4.29][para (2.651e-006s)]]]]
+[[__gamma_p_inv and __gamma_q_inv]
+   [[perf msvc-igamma_inv..[para *1.00*][para (1.943e-006s)]]]
+   [N\/A]
+   [+INF [footnote Cephes gets stuck in an infinite loop while trying to execute our test cases.]]]
+[[__ibeta and __ibetac]
+   [[perf msvc-ibeta..[para *1.00*][para (1.670e-006s)]]]
+   [[perf msvc-ibeta-cephes..[para 1.16][para (1.935e-006s)]]]
+   [[perf msvc-ibeta-cephes..[para 1.16][para (1.935e-006s)]]]]
+[[__ibeta_inv and __ibetac_inv]
+   [[perf msvc-ibeta_inv..[para *1.00*][para (6.075e-006s)]]]
+   [N\/A]
+   [[perf msvc-ibeta_inv-cephes..[para 2.45][para (1.489e-005s)]]]]
+[[__cyl_bessel_j]
+   [[perf msvc-cyl_bessel_j..[para 17.89[footnote The performance here is dominated by a few cases where the parameters grow very large:
+   faster asymptotic expansions are available, but are of limited (or even frankly terrible) precision.  The same issue
+   effects all of our Bessel function implementations, but doesn't necessarily show in the current performance data.
+   More investigation is needed here.]][para (4.248e-005s)]]]
+   [[perf msvc-cyl_bessel_j-gsl..[para *1.00*][para (5.214e-006s)]]]
+   [[perf msvc-cyl_bessel_j-cephes..[para *1.00*][para (2.374e-006s)]]]]
+[[__cyl_bessel_i]
+   [[perf msvc-cyl_bessel_i..[para *1.00*][para (5.924e-006s)]]]
+   [[perf msvc-cyl_bessel_i-gsl..[para *1.00*][para (4.487e-006s)]]]
+   [[perf msvc-cyl_bessel_i-cephes..[para *1.00*][para (4.823e-006s)]]]]
+[[__cyl_bessel_k]
+   [[perf msvc-cyl_bessel_k..[para *1.00*][para (2.783e-006s)]]]
+   [[perf msvc-cyl_bessel_k-gsl..[para *1.00*][para (3.927e-006s)]]]
+   [N\/A]]
+[[__cyl_neumann]
+   [[perf msvc-cyl_neumann..[para *1.00*][para (4.465e-006s)]]]
+   [[perf msvc-cyl_neumann-gsl..[para *1.00*][para (1.230e-005s)]]]
+   [[perf msvc-cyl_neumann-cephes..[para *1.00*][para (4.977e-006s)]]]]
+]
+
+[heading Comparison to the R and DCDFLIB Statistical Libraries on Windows]
+
+All the results were measured on a 2.0GHz Intel T5800 Core 2 Duo, 4Gb RAM, Windows Vista
+machine, with the test program compiled with Microsoft Visual C++ 2009, and
+R-2.9.2 compiled in "standalone mode" with MinGW-4.3
+(R-2.9.2 appears not to be buildable with Visual C++).
+
+[table A Comparison to the R Statistical Library on Windows XP
+[[Statistical Function][Boost][R][DCDFLIB]]
+[[__beta_distrib CDF][[perf msvc-dist-beta-cdf..[para 1.08][para (1.385e-006s)]]][[perf msvc-dist-beta-R-cdf..[para *1.00*][para (1.278e-006s)]]][[perf msvc-dist-beta-dcd-cdf..[para 1.06][para (1.349e-006s)]]]]
+[[__beta_distrib Quantile][[perf msvc-dist-beta-quantile..[para *1.00*][para (4.975e-006s)]]][[perf msvc-dist-beta-R-quantile..[para 67.66[footnote There are a small number of our test cases where the R library fails to converge on a result: these tend to dominate the performance result.]][para (3.366e-004s)]]][[perf msvc-dist-beta-dcd-quantile..[para 4.23][para (2.103e-005s)]]]]
+[[__binomial_distrib CDF][[perf msvc-dist-binomial-cdf..[para 1.06][para (4.503e-007s)]]][[perf msvc-dist-binom-R-cdf..[para 1.81][para (7.680e-007s)]]][[perf msvc-dist-binomial-dcd-cdf..[para *1.00*][para (4.239e-007s)]]]]
+[[__binomial_distrib Quantile][[perf msvc-dist-binomial-quantile..[para *1.00*][para (3.254e-006s)]]][[perf msvc-dist-binom-R-quantile..[para 1.15][para (3.746e-006s)]]][[perf msvc-dist-binomial-dcd-quantile..[para 7.25][para (2.358e-005s)]]]]
+[[__cauchy_distrib CDF][[perf msvc-dist-cauchy-cdf..[para *1.00*][para (1.134e-007s)]]][[perf msvc-dist-cauchy-R-cdf..[para 1.08][para (1.227e-007s)]]][NA]]
+[[__cauchy_distrib Quantile][[perf msvc-dist-cauchy-quantile..[para *1.00*][para (1.203e-007s)]]][[perf msvc-dist-cauchy-R-quantile..[para *1.00*][para (1.203e-007s)]]][NA]]
+[[__chi_squared_distrib CDF][[perf msvc-dist-chi_squared-cdf..[para 1.21][para (5.021e-007s)]]][[perf msvc-dist-chisq-R-cdf..[para 2.83][para (1.176e-006s)]]][[perf msvc-dist-chi_squared-dcd-cdf..[para *1.00*][para (4.155e-007s)]]]]
+[[__chi_squared_distrib Quantile][[perf msvc-dist-chi_squared-quantile..[para *1.00*][para (1.930e-006s)]]][[perf msvc-dist-chisq-R-quantile..[para 2.72][para (5.243e-006s)]]][[perf msvc-dist-chi_squared-dcd-quantile..[para 5.73][para (1.106e-005s)]]]]
+[[__exp_distrib CDF][[perf msvc-dist-exponential-cdf..[para *1.00*][para (3.798e-008s)]]][[perf msvc-dist-exp-R-cdf..[para 5.89][para (2.236e-007s)]]][NA]]
+[[__exp_distrib Quantile][[perf msvc-dist-exponential-quantile..[para 1.41][para (9.006e-008s)]]][[perf msvc-dist-exp-R-quantile..[para *1.00*][para (6.380e-008s)]]][NA]]
+[[__F_distrib CDF][[perf msvc-dist-fisher_f-cdf..[para *1.00*][para (9.556e-007s)]]][[perf msvc-dist-f-R-cdf..[para 1.34][para (1.283e-006s)]]][[perf msvc-dist-f-dcd-cdf..[para 1.24][para (1.183e-006s)]]]]
+[[__F_distrib Quantile][[perf msvc-dist-fisher_f-quantile..[para *1.00*][para (6.987e-006s)]]][[perf msvc-dist-f-R-quantile..[para 1.33][para (9.325e-006s)]]][[perf msvc-dist-f-dcd-quantile..[para 3.16][para (2.205e-005s)]]]]
+[[__gamma_distrib CDF][[perf msvc-dist-gamma-cdf..[para 1.52][para (6.240e-007s)]]][[perf msvc-dist-gamma-R-cdf..[para 3.11][para (1.279e-006s)]]][[perf msvc-dist-gam-dcd-cdf..[para *1.00*][para (4.111e-007s)]]]]
+[[__gamma_distrib Quantile][[perf msvc-dist-gamma-quantile..[para 1.24][para (2.179e-006s)]]][[perf msvc-dist-gamma-R-quantile..[para 6.25][para (1.102e-005s)]]][[perf msvc-dist-gam-dcd-quantile..[para *1.00*][para (1.764e-006s)]]]]
+
+[[__hypergeometric_distrib CDF][[perf msvc-dist-hypergeometric-cdf..[para 3.60[footnote This result is somewhat misleading: for small values of the parameters there is  virtually no difference between the two libraries, but for large values the Boost implementation is /much/ slower, albeit with much improved precision.]][para (5.987e-007s)]]][[perf msvc-dist-hypergeo-R-cdf..[para *1.00*][para (1.665e-007s)]]][NA]]
+[[__hypergeometric_distrib Quantile][[perf msvc-dist-hypergeometric-quantile..[para *1.00*][para (5.684e-007s)]]][[perf msvc-dist-hypergeo-R-quantile..[para 3.53][para (2.004e-006s)]]][NA]]
+[[__logistic_distrib CDF][[perf msvc-dist-logistic-cdf..[para *1.00*][para (1.714e-007s)]]][[perf msvc-dist-logis-R-cdf..[para 5.24][para (8.984e-007s)]]][NA]]
+[[__logistic_distrib Quantile][[perf msvc-dist-logistic-quantile..[para 1.02][para (2.084e-007s)]]][[perf msvc-dist-logis-R-quantile..[para *1.00*][para (2.043e-007s)]]][NA]]
+
+[[__lognormal_distrib CDF][[perf msvc-dist-lognormal-cdf..[para *1.00*][para (3.579e-007s)]]][[perf msvc-dist-lnorm-R-cdf..[para 1.49][para (5.332e-007s)]]][NA]]
+[[__lognormal_distrib Quantile][[perf msvc-dist-lognormal-quantile..[para *1.00*][para (9.622e-007s)]]][[perf msvc-dist-lnorm-R-quantile..[para 1.57][para (1.507e-006s)]]][NA]]
+[[__negative_binomial_distrib CDF][[perf msvc-dist-negative_binomial-cdf..[para *1.00*][para (6.227e-007s)]]][[perf msvc-dist-nbinom-R-cdf..[para 2.25][para (1.403e-006s)]]][[perf msvc-dist-negative_binomial-dcd-cdf..[para 2.21][para (1.378e-006s)]]]]
+[[__negative_binomial_distrib Quantile][[perf msvc-dist-negative_binomial-quantile..[para *1.00*][para (8.594e-006s)]]][[perf msvc-dist-nbinom-R-quantile..[para 43.43[footnote The R library appears to use a linear-search strategy, that can perform very badly in a small number of pathological cases, but may or may not be more efficient in "typical" cases]][para (3.732e-004s)]]][[perf msvc-dist-negative_binomial-dcd-quantile..[para 3.48][para (2.994e-005s)]]]]
+
+[[__non_central_chi_squared_distrib CDF][[perf msvc-dist-non_central_chi_squared-cdf..[para 2.16][para (3.926e-006s)]]][[perf msvc-dist-nchisq-R-cdf..[para 79.93][para (1.450e-004s)]]][[perf msvc-dist-non_central_chi_squared-dcd-cdf..[para *1.00*][para (1.814e-006s)]]]]
+[[__non_central_chi_squared_distrib Quantile][[perf msvc-dist-non_central_chi_squared-quantile..[para 5.00][para (3.393e-004s)]]][[perf msvc-dist-nchisq-R-quantile..[para 393.90[footnote There are a small number of our test cases where the R library fails to converge on a result: these tend to dominate the performance result.]][para (2.673e-002s)]]][[perf msvc-dist-non_central_chi_squared-dcd-quantile..[para *1.00*][para (6.786e-005s)]]]]
+[[__non_central_F_distrib CDF][[perf msvc-dist-non_central_f-cdf..[para 1.59][para (1.128e-005s)]]][[perf msvc-dist-nf-R-cdf..[para *1.00*][para (7.087e-006s)]]][[perf msvc-dist-fnc-cdf..[para *1.00*][para (4.274e-006s)]]]]
+[[__non_central_F_distrib Quantile][[perf msvc-dist-non_central_f-quantile..[para *1.00*][para (4.750e-004s)]]][[perf msvc-dist-nf-R-quantile..[para 1.62][para (7.681e-004s)]]][[perf msvc-dist-ncf-quantile..[para *1.00*][para (4.274e-006s)]]]]
+[[__non_central_t_distrib CDF][[perf msvc-dist-non_central_t-cdf..[para 3.41][para (1.852e-005s)]]][[perf msvc-dist-nt-R-cdf..[para *1.00*][para (5.436e-006s)]]][NA]]
+[[__non_central_t_distrib Quantile][[perf msvc-dist-non_central_t-quantile..[para 1.31][para (5.768e-004s)]]][[perf msvc-dist-nt-R-quantile..[para *1.00*[footnote There are a small number of our test cases where the R library fails to converge on a result: these tend to dominate the performance result.]][para (4.411e-004s)]]][NA]]
+
+[[__normal_distrib CDF][[perf msvc-dist-normal-cdf..[para *1.00*][para (8.373e-008s)]]][[perf msvc-dist-norm-R-cdf..[para 1.68][para (1.409e-007s)]]][[perf msvc-dist-nor-dcd-cdf..[para 6.01][para (5.029e-007s)]]]]
+[[__normal_distrib Quantile][[perf msvc-dist-normal-quantile..[para 1.29][para (1.521e-007s)]]][[perf msvc-dist-norm-R-quantile..[para *1.00*][para (1.182e-007s)]]][[perf msvc-dist-nor-dcd-quantile..[para 10.85][para (1.283e-006s)]]]]
+[[__poisson_distrib CDF][[perf msvc-dist-poisson-cdf..[para 1.18][para (5.193e-007s)]]][[perf msvc-dist-pois-R-cdf..[para 2.98][para (1.314e-006s)]]][[perf msvc-dist-poi-dcd-cdf..[para *1.00*][para (4.410e-007s)]]]]
+[[__poisson_distrib][[perf msvc-dist-poisson-quantile..[para *1.00*][para (1.203e-006s)]]][[perf msvc-dist-pois-R-quantile..[para 2.20][para (2.642e-006s)]]][[perf msvc-dist-poi-dcd-quantile..[para 7.86][para (9.457e-006s)]]]]
+[[__students_t_distrib CDF][[perf msvc-dist-students_t-cdf..[para *1.00*][para (8.655e-007s)]]][[perf msvc-dist-t-R-cdf..[para 1.06][para (9.166e-007s)]]][[perf msvc-dist-t-dcd-cdf..[para 1.04][para (8.999e-007s)]]]]
+[[__students_t_distrib Quantile][[perf msvc-dist-students_t-quantile..[para *1.00*][para (2.294e-006s)]]][[perf msvc-dist-t-R-quantile..[para 1.36][para (3.131e-006s)]]][[perf msvc-dist-t-dcd-quantile..[para 4.82][para (1.106e-005s)]]]]
+[[__weibull_distrib CDF][[perf msvc-dist-weibull-cdf..[para *1.00*][para (1.865e-007s)]]][[perf msvc-dist-weibull-R-cdf..[para 2.33][para (4.341e-007s)]]][NA]]
+[[__weibull_distrib Quantile][[perf msvc-dist-weibull-quantile..[para *1.00*][para (3.608e-007s)]]][[perf msvc-dist-weibull-R-quantile..[para 1.22][para (4.410e-007s)]]][NA]]
+]
+
+[heading Comparison to the R Statistical Library on Linux]
+
+All the results were measured on a 2.0GHz Intel T5800 Core 2 Duo, 4Gb RAM, Ubuntu Linux 9
+machine, with the test program and R-2.9.2 compiled with GNU G++ 4.3.3 using -O3 -DNDEBUG=1.
+
+[table A Comparison to the R Statistical Library on Linux
+[[Statistical Function][Boost][R][DCDFLIB]]
+[[__beta_distrib CDF][[perf gcc-4_3_2-dist-beta-cdf..[para 2.09][para (3.189e-006s)]]][[perf gcc-4_3_2-dist-beta-R-cdf..[para *1.00*][para (1.526e-006s)]]][[perf gcc-4_3_2-dist-beta-dcd-cdf..[para 1.19][para (1.822e-006s)]]]]
+[[__beta_distrib Quantile][[perf gcc-4_3_2-dist-beta-quantile..[para *1.00*][para (1.185e-005s)]]][[perf gcc-4_3_2-dist-beta-R-quantile..[para 30.51[footnote There are a small number of our test cases where the R library fails to converge on a result: these tend to dominate the performance result.]][para (3.616e-004s)]]][[perf gcc-4_3_2-dist-beta-dcd-quantile..[para 2.52][para (2.989e-005s)]]]]
+[[__binomial_distrib CDF][[perf gcc-4_3_2-dist-binomial-cdf..[para 4.41][para (9.175e-007s)]]][[perf gcc-4_3_2-dist-binom-R-cdf..[para 3.59][para (7.476e-007s)]]][[perf gcc-4_3_2-dist-binomial-dcd-cdf..[para *1.00*][para (2.081e-007s)]]]]
+[[__binomial_distrib Quantile][[perf gcc-4_3_2-dist-binomial-quantile..[para 1.57][para (6.925e-006s)]]][[perf gcc-4_3_2-dist-binom-R-quantile..[para *1.00*][para (4.407e-006s)]]][[perf gcc-4_3_2-dist-binomial-dcd-quantile..[para 7.43][para (3.274e-005s)]]]]
+[[__cauchy_distrib CDF][[perf gcc-4_3_2-dist-cauchy-cdf..[para *1.00*][para (1.594e-007s)]]][[perf gcc-4_3_2-dist-cauchy-R-cdf..[para 1.04][para (1.654e-007s)]]][NA]]
+[[__cauchy_distrib Quantile][[perf gcc-4_3_2-dist-cauchy-quantile..[para 1.21][para (1.752e-007s)]]][[perf gcc-4_3_2-dist-cauchy-R-quantile..[para *1.00*][para (1.448e-007s)]]][NA]]
+[[__chi_squared_distrib CDF][[perf gcc-4_3_2-dist-chi_squared-cdf..[para 2.61][para (1.376e-006s)]]][[perf gcc-4_3_2-dist-chisq-R-cdf..[para 2.36][para (1.243e-006s)]]][[perf gcc-4_3_2-dist-chi_squared-dcd-cdf..[para *1.00*][para (5.270e-007s)]]]]
+[[__chi_squared_distrib Quantile][[perf gcc-4_3_2-dist-chi_squared-quantile..[para *1.00*][para (4.252e-006s)]]][[perf gcc-4_3_2-dist-chisq-R-quantile..[para 1.34][para (5.700e-006s)]]][[perf gcc-4_3_2-dist-chi_squared-dcd-quantile..[para 3.47][para (1.477e-005s)]]]]
+[[__exp_distrib CDF][[perf gcc-4_3_2-dist-exponential-cdf..[para *1.00*][para (1.342e-007s)]]][[perf gcc-4_3_2-dist-exp-R-cdf..[para 1.25][para (1.677e-007s)]]][NA]]
+[[__exp_distrib Quantile][[perf gcc-4_3_2-dist-exponential-quantile..[para *1.00*][para (8.827e-008s)]]][[perf gcc-4_3_2-dist-exp-R-quantile..[para 1.07][para (9.470e-008s)]]][NA]]
+[[__F_distrib CDF][[perf gcc-4_3_2-dist-fisher_f-cdf..[para 1.62][para (2.324e-006s)]]][[perf gcc-4_3_2-dist-f-R-cdf..[para 1.19][para (1.711e-006s)]]][[perf gcc-4_3_2-dist-f-dcd-cdf..[para *1.00*][para (1.437e-006s)]]]]
+[[__F_distrib Quantile][[perf gcc-4_3_2-dist-fisher_f-quantile..[para 1.53][para (1.577e-005s)]]][[perf gcc-4_3_2-dist-f-R-quantile..[para *1.00*][para (1.033e-005s)]]][[perf gcc-4_3_2-dist-f-dcd-quantile..[para 2.63][para (2.719e-005s)]]]]
+[[__gamma_distrib CDF][[perf gcc-4_3_2-dist-gamma-cdf..[para 3.18][para (1.582e-006s)]]][[perf gcc-4_3_2-dist-gamma-R-cdf..[para 2.63][para (1.309e-006s)]]][[perf gcc-4_3_2-dist-gam-dcd-cdf..[para *1.00*][para (4.980e-007s)]]]]
+[[__gamma_distrib Quantile][[perf gcc-4_3_2-dist-gamma-quantile..[para 2.19][para (4.770e-006s)]]][[perf gcc-4_3_2-dist-gamma-R-quantile..[para 6.94][para (1.513e-005s)]]][[perf gcc-4_3_2-dist-gam-dcd-quantile..[para *1.00*][para (2.179e-006s)]]]]
+
+[[__hypergeometric_distrib CDF][[perf gcc-4_3_2-dist-hypergeometric-cdf..[para 2.20[footnote This result is somewhat misleading: for small values of the parameters there is  virtually no difference between the two libraries, but for large values the Boost implementation is /much/ slower, albeit with much improved precision.]][para (3.522e-007s)]]][[perf gcc-4_3_2-dist-hypergeo-R-cdf..[para *1.00*][para (1.601e-007s)]]][NA]]
+[[__hypergeometric_distrib Quantile][[perf gcc-4_3_2-dist-hypergeometric-quantile..[para *1.00*][para (8.279e-007s)]]][[perf gcc-4_3_2-dist-hypergeo-R-quantile..[para 2.57][para (2.125e-006s)]]][NA]]
+[[__logistic_distrib CDF][[perf gcc-4_3_2-dist-logistic-cdf..[para *1.00*][para (9.398e-008s)]]][[perf gcc-4_3_2-dist-logis-R-cdf..[para 2.75][para (2.588e-007s)]]][NA]]
+[[__logistic_distrib Quantile][[perf gcc-4_3_2-dist-logistic-quantile..[para *1.00*][para (9.893e-008s)]]][[perf gcc-4_3_2-dist-logis-R-quantile..[para 1.30][para (1.285e-007s)]]][NA]]
+
+[[__lognormal_distrib CDF][[perf gcc-4_3_2-dist-lognormal-cdf..[para *1.00*][para (1.831e-007s)]]][[perf gcc-4_3_2-dist-lnorm-R-cdf..[para 1.39][para (2.539e-007s)]]][NA]]
+[[__lognormal_distrib Quantile][[perf gcc-4_3_2-dist-lognormal-quantile..[para 1.10][para (5.551e-007s)]]][[perf gcc-4_3_2-dist-lnorm-R-quantile..[para *1.00*][para (5.037e-007s)]]][NA]]
+[[__negative_binomial_distrib CDF][[perf gcc-4_3_2-dist-negative_binomial-cdf..[para 1.08][para (1.563e-006s)]]][[perf gcc-4_3_2-dist-nbinom-R-cdf..[para *1.00*][para (1.444e-006s)]]][[perf gcc-4_3_2-dist-negative_binomial-dcd-cdf..[para *1.00*][para (1.444e-006s)]]]]
+[[__negative_binomial_distrib Quantile][[perf gcc-4_3_2-dist-negative_binomial-quantile..[para *1.00*][para (1.700e-005s)]]][[perf gcc-4_3_2-dist-nbinom-R-quantile..[para 25.92[footnote The R library appears to use a linear-search strategy, that can perform very badly in a small number of pathological cases, but may or may not be more efficient in "typical" cases]][para (4.407e-004s)]]][[perf gcc-4_3_2-dist-negative_binomial-dcd-quantile..[para 1.93][para (3.274e-005s)]]]]
+
+[[__non_central_chi_squared_distrib CDF][[perf gcc-4_3_2-dist-non_central_chi_squared-cdf..[para 5.06][para (2.841e-005s)]]][[perf gcc-4_3_2-dist-nchisq-R-cdf..[para 25.01][para (1.405e-004s)]]][[perf gcc-4_3_2-dist-non_central_chi_squared-dcd-cdf..[para *1.00*][para (5.617e-006s)]]]]
+[[__non_central_chi_squared_distrib Quantile][[perf gcc-4_3_2-dist-non_central_chi_squared-quantile..[para 8.47][para (1.879e-003s)]]][[perf gcc-4_3_2-dist-nchisq-R-quantile..[para 144.91[footnote There are a small number of our test cases where the R library fails to converge on a result: these tend to dominate the performance result.]][para (3.214e-002s)]]][[perf gcc-4_3_2-dist-non_central_chi_squared-dcd-quantile..[para *1.00*][para (2.218e-004s)]]]]
+[[__non_central_F_distrib CDF][[perf gcc-4_3_2-dist-non_central_f-cdf..[para 10.33][para (5.868e-005s)]]][[perf gcc-4_3_2-dist-nf-R-cdf..[para 1.42][para (8.058e-006s)]]][[perf gcc-4_3_2-dist-fnc-dcd-cdf..[para *1.00*][para (5.682e-006s)]]]]
+[[__non_central_F_distrib Quantile][[perf gcc-4_3_2-dist-non_central_f-quantile..[para 5.64][para (7.869e-004s)]]][[perf gcc-4_3_2-dist-nf-R-quantile..[para 6.63][para (9.256e-004s)]]][[perf gcc-4_3_2-dist-fnc-dcd-quantile..[para *1.00*][para (1.396e-004s)]]]]
+[[__non_central_t_distrib CDF][[perf gcc-4_3_2-dist-non_central_t-cdf..[para 4.91][para (3.357e-005s)]]][[perf gcc-4_3_2-dist-nt-R-cdf..[para *1.00*][para (6.844e-006s)]]][NA]]
+[[__non_central_t_distrib Quantile][[perf gcc-4_3_2-dist-non_central_t-quantile..[para 1.57][para (9.265e-004s)]]][[perf gcc-4_3_2-dist-nt-R-quantile..[para *1.00*[footnote There are a small number of our test cases where the R library fails to converge on a result: these tend to dominate the performance result.]][para (5.916e-004s)]]][NA]]
+
+[[__normal_distrib CDF][[perf gcc-4_3_2-dist-normal-cdf..[para *1.00*][para (1.074e-007s)]]][[perf gcc-4_3_2-dist-norm-R-cdf..[para 1.16][para (1.245e-007s)]]][[perf gcc-4_3_2-dist-nor-dcd-cdf..[para 5.36][para (5.762e-007s)]]]]
+[[__normal_distrib Quantile][[perf gcc-4_3_2-dist-normal-quantile..[para 1.28][para (1.902e-007s)]]][[perf gcc-4_3_2-dist-norm-R-quantile..[para *1.00*][para (1.490e-007s)]]][[perf gcc-4_3_2-dist-nor-dcd-quantile..[para 10.35][para (1.542e-006s)]]]]
+[[__poisson_distrib CDF][[perf gcc-4_3_2-dist-poisson-cdf..[para 2.43][para (1.198e-006s)]]][[perf gcc-4_3_2-dist-pois-R-cdf..[para 2.25][para (1.110e-006s)]]][[perf gcc-4_3_2-dist-poi-dcd-cdf..[para *1.00*][para (4.937e-007s)]]]]
+[[__poisson_distrib][[perf gcc-4_3_2-dist-poisson-quantile..[para 1.11][para (3.032e-006s)]]][[perf gcc-4_3_2-dist-pois-R-quantile..[para *1.00*][para (2.724e-006s)]]][[perf gcc-4_3_2-dist-poi-dcd-quantile..[para 4.07][para (1.110e-005s)]]]]
+[[__students_t_distrib CDF][[perf gcc-4_3_2-dist-students_t-cdf..[para 2.17][para (2.020e-006s)]]][[perf gcc-4_3_2-dist-t-R-cdf..[para *1.00*][para (9.321e-007s)]]][[perf gcc-4_3_2-dist-t-dcd-cdf..[para 1.10][para (1.021e-006s)]]]]
+[[__students_t_distrib Quantile][[perf gcc-4_3_2-dist-students_t-quantile..[para 1.18][para (3.972e-006s)]]][[perf gcc-4_3_2-dist-t-R-quantile..[para *1.00*][para (3.364e-006s)]]][[perf gcc-4_3_2-dist-t-dcd-quantile..[para 3.89][para (1.308e-005s)]]]]
+[[__weibull_distrib CDF][[perf gcc-4_3_2-dist-weibull-cdf..[para *1.00*][para (3.662e-007s)]]][[perf gcc-4_3_2-dist-weibull-R-cdf..[para 1.04][para (3.808e-007s)]]][NA]]
+[[__weibull_distrib Quantile][[perf gcc-4_3_2-dist-weibull-quantile..[para *1.00*][para (4.112e-007s)]]][[perf gcc-4_3_2-dist-weibull-R-quantile..[para 1.05][para (4.317e-007s)]]][NA]]
+]
+
+[endsect]
+
+[section:perf_test_app The Performance Test Application]
+
+Under ['boost-path]\/libs\/math\/performance you will find a
+(fairly rudimentary) performance test application for this library.
+
+To run this application yourself, build the all the .cpp files in
+['boost-path]\/libs\/math\/performance into an application using
+your usual release-build settings.  Run the application with --help
+to see a full list of options, or with --all to test everything
+(which takes quite a while), or with --tune to test the
+[link math_toolkit.tuning available performance tuning options].
+
+If you want to use this application to test the effect of changing
+any of the __policy_section, then you will need to build and run it twice:
+once with the default __policy_section, and then a second time with the
+__policy_section you want to test set as the default.
+
+[endsect]
+
+[endmathpart]
+
+[/
+  Copyright 2006 John Maddock and Paul A. Bristow.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+

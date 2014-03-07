@@ -1,0 +1,144 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Class Template symmetric_filter</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Class Template <CODE>symmetric_filter</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#description">Description</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+  <DT><A href="#examples">Examples</A></DT>
+</DL>
+
+<HR>
+
+<A NAME="description"></A>
+<H2>Description</H2>
+
+<P>
+    The class template <CODE>symmetric_filter</CODE> is tool for generating models of <A HREF="../concepts/dual_use_filter.html">DualUseFilter</A> from models of <A HREF="../concepts/symmetric_filter.html">SymmetricFilter</A>. It is useful for defining filters based on C language APIs.
+</P>
+<P>
+    The Iostreams library uses <CODE>symmetric_filter</CODE> to implement the <A HREF="zlib.html">Zlib</A> and <A HREF="bzip2.html">Bzip2</A> Filters.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/filter/symmetric.hpp"><CODE>&lt;boost/iostreams/filter/symmetric.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt; <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">SymmetricFilter</A>,
+          <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Alloc</A> = std::allocator&lt;...&gt; &gt;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#template_params">symmetric_filter</A> {
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="../guide/traits.html">char_type_of</A>&lt;SymmetricFilter&gt;::type  char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">implementation-defined</SPAN>                        category;
+
+    <SPAN CLASS="keyword">explicit</SPAN> symmetric_filter(<SPAN CLASS="keyword">int</SPAN> buffer_size);
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> T0&gt;
+    symmetric_filter(<SPAN CLASS="keyword">int</SPAN> buffer_size, <SPAN CLASS="keyword">const</SPAN> T0&amp; t0);
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> T0, <SPAN CLASS="keyword">typename</SPAN> T1&gt;
+    symmetric_filter(<SPAN CLASS="keyword">int</SPAN> buffer_size, <SPAN CLASS="keyword">const</SPAN> T0&amp; t0, <SPAN CLASS="keyword">const</SPAN> T1&amp; t1);
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> T0, ..., <SPAN CLASS="keyword">typename</SPAN> TN&gt;
+    symmetric_filter( <SPAN CLASS="keyword">int</SPAN> buffer_size, const T0&amp; t0,
+                      <SPAN CLASS="keyword">const</SPAN> T1&amp; t1, ..., <SPAN CLASS="keyword">const</SPAN> TN&amp; tN );
+
+    <SPAN CLASS="omitted">...</SPAN>
+<SPAN CLASS="keyword">protected</SPAN>:
+    SymmetricFilter&amp; <A CLASS="documented" HREF="#filter">filter</A>();
+    std::basic_string&lt;char_type, Alloc&gt; <A CLASS="documented" HREF="#unconsumed_input">unconsumed_input</A>() <SPAN CLASS="keyword">const</SPAN>;
+};
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A NAME="template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>SymmetricFilter</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A model of <A HREF="../concepts/symmetric_filter.html">SymmetricFilter</A></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>Alloc</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A standard library allocator type (<A CLASS="bib_ref" HREF="../bibliography.html#iso">[ISO]</A>, 20.1.5), used to allocate a character buffer</TD>
+    </TR>
+</TABLE>
+
+<A NAME="first_ctor"></A>
+<H4><CODE>symmetric_filter::symmetric_filter</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">explicit</SPAN> symmetric_filter(<SPAN CLASS="keyword">int</SPAN> buffer_size);</PRE>
+
+<P>Constructs an instance of <CODE>symmetric_filter</CODE> based on a default-constructed instance of the template parameter <A HREF="#template_params"><CODE>SymmetricFilter</CODE></A> and having an internal buffer of size <CODE>buffer_size</CODE>.</P>
+
+<A NAME="forwarding_ctors"></A>
+<H4><CODE>symmetric_filter::symmetric_filter</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> T0&gt;
+    symmetric_filter(<SPAN CLASS="keyword">int</SPAN> buffer_size, <SPAN CLASS="keyword">const</SPAN> T0&amp; t0);
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> T0, <SPAN CLASS="keyword">typename</SPAN> T1&gt;
+    symmetric_filter(<SPAN CLASS="keyword">int</SPAN> buffer_size, <SPAN CLASS="keyword">const</SPAN> T0&amp; t0, <SPAN CLASS="keyword">const</SPAN> T1&amp; t1);
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> T0, ..., <SPAN CLASS="keyword">typename</SPAN> TN&gt;
+    symmetric_filter( <SPAN CLASS="keyword">int</SPAN> buffer_size, <SPAN CLASS="keyword">const</SPAN> T0&amp; t0,
+                              <SPAN CLASS="keyword">const</SPAN> T1&amp; t1, ..., <SPAN CLASS="keyword">const</SPAN> TN&amp; tN );</PRE>
+
+<P>Each member constructs an instance of <CODE>symmetric_filter</CODE> based on an instance of the template parameter <A HREF="#template_params"><CODE>SymmetricFilter</CODE></A> constructed with the given sequence of arguments and having an internal buffer of size <CODE>buffer_size</CODE>.</P>
+
+<A NAME="filter"></A>
+<H4><CODE>symmetric_filter::filter</CODE></H4>
+
+<PRE CLASS="broken_ie">    SymmetricFilter&amp; <A CLASS="documented" HREF="#filter">filter</A>();</PRE>
+
+<P>Returns a reference to the underlying instance of <CODE>SymmetricFilter</CODE>.</P>
+
+<A NAME="unconsumed_input"></A>
+<H4><CODE>symmetric_filter::unconsumed_input</CODE></H4>
+
+<PRE CLASS="broken_ie">    std::basic_string&lt;char_type, Alloc&gt; <A CLASS="documented" HREF="#unconsumed_input">unconsumed_input</A>() <SPAN CLASS="keyword">const</SPAN>;</PRE>
+
+<P>Returns any uncomsumed data remaining in the internal buffer as a standard string. Valid from the time the end of a stream is reached &#8212; that is, from the time <CODE><A HREF="../concepts/symmetric_filter.html">SymmetricFilter::filter</A></CODE> returns <CODE>false</CODE> &#8212; until <CODE>filter</CODE> is invoked to begin processing a new sequence of data.</P>
+
+<A NAME="examples"></A>
+<H2>Examples</H2>
+
+<P>For example uses of <CODE>symmetric_filter</CODE>, see the headers <A CLASS="header" HREF="../../../../boost/iostreams/filter/zlib.hpp"><CODE>&lt;boost/iostreams/filter/zlib.hpp&gt;</CODE></A> and <A CLASS="header" HREF="../../../../boost/iostreams/filter/bzip2.hpp"><CODE>&lt;boost/iostreams/filter/bzip2.hpp&gt;</CODE></A> and the corresponding implementation files <A CLASS="header" HREF="../../src/zlib.cpp"><CODE>&lt;libs/iostreams/src/zlib.cpp&gt;</CODE></A> and <A CLASS="header" HREF="../../src/bzip2.cpp"><CODE>&lt;libs/iostreams/src/bzip2.cpp&gt;</CODE></A>.</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

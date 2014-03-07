@@ -1,0 +1,84 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[/==================]
+[section Hello World]
+[/==================]
+
+Below is a very simple program that uses Proto to build an expression template
+and then execute it.
+
+    #include <iostream>
+    #include <boost/proto/proto.hpp>
+    #include <boost/typeof/std/ostream.hpp>
+    using namespace boost;
+
+    proto::terminal< std::ostream & >::type cout_ = { std::cout };
+
+    template< typename Expr >
+    void evaluate( Expr const & expr )
+    {
+        proto::default_context ctx;
+        proto::eval(expr, ctx);
+    }
+
+    int main()
+    {
+        evaluate( cout_ << "hello" << ',' << " world" );
+        return 0;
+    }
+
+This program outputs the following:
+
+[pre
+hello, world
+]
+
+This program builds an object representing the output operation and passes
+it to an `evaluate()` function, which then executes it.
+
+The basic idea of expression templates is to overload all the operators so
+that, rather than evaluating the expression immediately, they build a tree-like
+representation of the expression so that it can be evaluated later. For each
+operator in an expression, at least one operand must be Protofied in order
+for Proto's operator overloads to be found. In the expression ...
+
+    cout_ << "hello" << ',' << " world"
+
+... the Protofied sub-expression is `cout_`, which is the Proto-ification of
+`std::cout`. The presence of `cout_` "infects" the expression, and brings
+Proto's tree-building operator overloads into consideration. Any literals in
+the expression are then Protofied by wrapping them in a Proto terminal before
+they are combined into larger Proto expressions.
+
+Once Proto's operator overloads have built the expression tree, the expression
+can be lazily evaluated later by walking the tree. That is what `proto::eval()`
+does. It is a general tree-walking expression evaluator, whose behavior is
+customizable via a /context/ parameter. The use of _default_context_ assigns
+the standard meanings to the operators in the expression. (By using a different
+context, you could give the operators in your expressions different semantics.
+By default, Proto makes no assumptions about what operators actually /mean/.)
+
+[/==============================]
+[heading Proto Design Philosophy]
+[/==============================]
+
+Before we continue, let's use the above example to illustrate an important
+design principle of Proto's. The expression template created in the ['hello
+world] example is totally general and abstract. It is not tied in any way to
+any particular domain or application, nor does it have any particular meaning
+or behavior on its own, until it is evaluated in a /context/. Expression
+templates are really just heterogeneous trees, which might mean something in
+one domain, and something else entirely in a different one.
+
+As we'll see later, there is a way to create Proto expression trees that are
+['not] purely abstract, and that have meaning and behaviors independent of any
+context. There is also a way to control which operators are overloaded for your
+particular domain. But that is not the default behavior. We'll see later why
+the default is often a good thing.
+
+[endsect]

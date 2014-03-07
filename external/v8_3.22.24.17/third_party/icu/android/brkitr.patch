@@ -1,0 +1,97 @@
+diff --git a/source/data/brkitr/brklocal.mk b/source/data/brkitr/brklocal.mk
+index 91754f1..ccac4d1 100644
+--- a/source/data/brkitr/brklocal.mk
++++ b/source/data/brkitr/brklocal.mk
+@@ -34,15 +34,15 @@ BRK_RES_ALIAS_SOURCE = $(BRK_RES_SYNTHETIC_ALIAS)
+ 
+ 
+ # List of compact trie dictionary files (ctd).
+-BRK_CTD_SOURCE = thaidict.txt cjdict.txt
++BRK_CTD_SOURCE = thaidict.txt
+ 
+ 
+ # List of break iterator files (brk).
+-# Chrome change: remove word_ja.txt and line_he.txt
+-BRK_SOURCE =  sent_el.txt word_POSIX.txt line_fi.txt char.txt word.txt line.txt sent.txt title.txt char_th.txt
++# Chrome change: remove line_he.txt
++BRK_SOURCE =  sent_el.txt word_POSIX.txt line_fi.txt word_ja.txt char.txt word.txt line.txt sent.txt title.txt char_th.txt
+ 
+ 
+ # Ordinary resources
+-# Chrome change: remove ja.txt and he.txt
++# Chrome change: remove he.txt
+ BRK_RES_SOURCE = el.txt en.txt en_US.txt en_US_POSIX.txt\
+- fi.txt   th.txt
++ fi.txt ja.txt th.txt
+diff --git a/source/data/brkitr/root.txt b/source/data/brkitr/root.txt
+index fb83ac3..5d839bd 100644
+--- a/source/data/brkitr/root.txt
++++ b/source/data/brkitr/root.txt
+@@ -17,8 +17,5 @@ root{
+     }
+     dictionaries{
+         Thai:process(dependency){"thaidict.ctd"}
+-        Hani:process(dependency){"cjdict.ctd"}
+-        Hira:process(dependency){"cjdict.ctd"}
+-        Kata:process(dependency){"cjdict.ctd"}
+     }
+ }
+diff --git a/source/data/brkitr/word.txt b/source/data/brkitr/word.txt
+index 0b49377..a0e1ceb 100644
+--- a/source/data/brkitr/word.txt
++++ b/source/data/brkitr/word.txt
+@@ -60,11 +60,10 @@ $Control        = [\p{Grapheme_Cluster_Break = Control}];
+ $HangulSyllable = [\uac00-\ud7a3];
+ $ComplexContext = [:LineBreak = Complex_Context:];
+ $KanaKanji      = [$Han $Hiragana $Katakana];
+-$dictionaryCJK  = [$KanaKanji $HangulSyllable];
+-$dictionary     = [$ComplexContext $dictionaryCJK];
++$dictionary   = [:LineBreak = Complex_Context:];
+ 
+-# leave CJK scripts out of ALetterPlus
+-$ALetterPlus  = [$ALetter-$dictionaryCJK [$ComplexContext-$Extend-$Control]];
++$ALetterPlus  = [$ALetter [$dictionary-$Extend-$Control]];   # Note:  default ALetter does not
++                                                             #  include the dictionary characters.
+ 
+ 
+ #
+@@ -99,8 +98,7 @@ $CR $LF;
+ #          begins with a group of Format chars, or with a "word" consisting of a single
+ #          char that is not in any of the listed word break categories followed by
+ #          format char(s).
+- #          format char(s), or is not a CJK dictionary character.
+-[^$CR $LF $Newline $dictionaryCJK]? ($Extend |  $Format)+;
++[^$CR $LF $Newline]? ($Extend |  $Format)+;
+ 
+ $NumericEx {100};
+ $ALetterEx {200};
+@@ -155,9 +153,6 @@ $ExtendNumLetEx $ALetterEx  {200};    #  (13b)
+ $ExtendNumLetEx $NumericEx  {100};    #  (13b)
+ $ExtendNumLetEx $KatakanaEx {400};    #  (13b)
+ 
+-# special handling for CJK characters: chain for later dictionary segmentation
+-$HangulSyllable $HangulSyllable {200};
+-$KanaKanji $KanaKanji {400}; #different rule status if both kanji and kana found
+ 
+ 
+ ## -------------------------------------------------
+@@ -179,7 +174,7 @@ $BackHebrewLetEx   = ($Format | $Extend)* $HebrewLet;
+ $LF $CR;
+ 
+ # rule 4
+-($Format | $Extend)*  [^$CR $LF $Newline $dictionaryCJK]?;
++($Format | $Extend)*  [^$CR $LF $Newline]?;
+ 
+ # rule 5
+ 
+@@ -217,10 +212,6 @@ $BackKatakanaEx $BackKatakanaEx;
+ $BackExtendNumLetEx ($BackALetterEx | $BackNumericEx | $BackKatakanaEx | $BackExtendNumLetEx);
+ ($BackALetterEx | $BackNumericEx | $BackKatakanaEx) $BackExtendNumLetEx; 
+ 
+-# special handling for CJK characters: chain for later dictionary segmentation
+-$HangulSyllable $HangulSyllable;
+-$KanaKanji $KanaKanji; #different rule status if both kanji and kana found
+-
+ ## -------------------------------------------------
+ 
+ !!safe_reverse;

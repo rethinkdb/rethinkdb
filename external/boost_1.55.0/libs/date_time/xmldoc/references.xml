@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.references">
+  <title>References</title>
+
+  <para>The design of the library is currently being evolved using Wiki and email discussions. You can find more information at: <ulink url="http://www.crystalclearsoftware.com/cgi-bin/boost_wiki/wiki.pl?GDTL">Boost Wiki GDTL Start Page</ulink>.
+  </para>
+
+  <para>
+    <itemizedlist mark="bullet">
+      <listitem><link linkend="date_ref">Date References</link></listitem>
+      <listitem><link linkend="time_ref">Time References</link></listitem>
+      <listitem><link linkend="other_c_libs">Other C/C++ Libraries</link></listitem>
+      <listitem><link linkend="java_libs">JAVA Date-Time Libraries</link></listitem>
+      <listitem><link linkend="script_libs">Scripting Language Libraries</link></listitem>
+      <listitem><link linkend="related">Related Commercial and Fanciful Pages</link></listitem>
+      <listitem><link linkend="resolution">Resolution, Precision, and Accuracy</link></listitem>
+    </itemizedlist>
+  </para>
+  <anchor id="date_ref" />
+  <bridgehead renderas="sect3">Date Calendar References</bridgehead>
+  <para>
+    <itemizedlist mark="bullet">
+      <listitem>ISO 8601 date time standard -- <ulink url="http://www.cl.cam.ac.uk/~mgk25/iso-time.html">Summary by Markus Kuhn</ulink> </listitem>
+      <listitem><ulink url="http://emr.cs.iit.edu/home/reingold/calendar-book/second-edition/">Calendrical Calculations</ulink> book by Reingold &amp; Dershowitz</listitem>
+      <listitem><ulink url="http://www.tondering.dk/claus/calendar.html">Calendar FAQ by Claus Tøndering</ulink></listitem>
+      <listitem>Calendar zone <ulink url="http://www.calendarzone.com" /> </listitem>
+      <listitem><ulink url="http://www.w3.org/TR/xmlschema-2/#dateTime">XML schema for date time</ulink> </listitem>
+      <listitem>Will Linden's <ulink url="http://www.ecben.net/calendar.shtml">Calendar Links</ulink> </listitem>
+      <listitem><ulink url="http://www21.brinkster.com/lonwolve/melt/index.htm">XMAS calendar melt</ulink> </listitem>
+    </itemizedlist>
+  </para>
+  <anchor id="time_ref" />
+  <bridgehead renderas="sect3">Time</bridgehead>
+  <para>
+    <itemizedlist mark="bullet">
+      <listitem>Martin Folwer on time patterns
+	<itemizedlist override="opencircle">
+	  <listitem><ulink url="http://www.aw.com/cseng/titles/0-201-89542-0/apsupp/events2-1.html">Recurring Events for Calendars</ulink> </listitem>
+	  <listitem>Patterns for things that <ulink url="http://martinfowler.com/ap2/timeNarrative.html">Change with time</ulink> </listitem>
+	</itemizedlist>
+      </listitem>
+      <listitem>US National Institute of Standards and Technology <ulink url="http://nist.time.gov/exhibits.html">Time Exhibits</ulink> </listitem>
+      <listitem>Network Time Protocol at <ulink url="http://www.ntp.org/">NTP.org</ulink> </listitem>
+      <listitem>US Navy <ulink url="http://tycho.usno.navy.mil/systime.html">Systems of Time</ulink> </listitem>
+      <listitem><ulink url="http://www.bipm.fr/enus/5_Scientific/c_time/time_1.html">International Atomic Time</ulink> </listitem>
+	<listitem><ulink url="http://beta.zyprexia.com/docs/pgsql/user/datatype1130.htm">Date-Time type PostgreSQL</ulink> User Guide </listitem>
+    </itemizedlist>
+  </para>
+  <anchor id="other_c_libs" />
+  <bridgehead renderas="sect3">Other C/C++ Libraries</bridgehead>
+  <para>
+    <itemizedlist mark="bullet">
+      <listitem><ulink url="http://www.cplusplus.com/ref/ctime/index.html">ctime C</ulink> Standard library reference at cplusplus.com</listitem>
+      <listitem><ulink url="http://www.cl.cam.ac.uk/~mgk25/c-time/">XTime C extension</ulink> proposal</listitem>
+      <listitem><ulink url="http://david.tribble.com/text/c0xcalendar.html#author-info">Another C library extension proposal</ulink> by David Tribble</listitem>
+      <listitem><ulink url="http://cr.yp.to/libtai.html">libTAI</ulink> is a C based time library</listitem>
+      <listitem><ulink url="http://www.twinsun.com/tz/tz-link.htm">Time Zone Database</ulink> C library for managing timezones/places</listitem>
+      <listitem>International Components for Unicode by IBM (open source)
+	<itemizedlist override="opencircle">
+	  <listitem><ulink url="http://icu.sourceforge.net/userguide/dateCalendar.html">Calendar Class</ulink></listitem>
+	  <listitem><ulink url="http://icu.sourceforge.net/userguide/dateTime.html">Date Time Services</ulink></listitem>
+	  <listitem><ulink url="http://oss.software.ibm.com/userguide/dateTimezone.html">Time Zone Class</ulink></listitem>
+	  <listitem><ulink url="http://oss.software.ibm.com/userguide/formatDateTime.html">Date-Time Formatting</ulink></listitem>
+	</itemizedlist>
+      </listitem>
+      <listitem><ulink url="http://pds-rings.seti.org/toolkits/julian_133_html/aareadme.html">Julian Library in C by Mark Showalter -- NASA</ulink></listitem>
+    </itemizedlist>
+  </para>
+  <anchor id="java_libs" />
+  <bridgehead renderas="sect3">JAVA Date &amp; Time Library Quick Reference</bridgehead>
+  <para>
+    <itemizedlist mark="bullet">
+      <listitem><ulink url="http://java.sun.com/j2se/1.5.0/docs/api/java/util/Calendar.html">Calendar class</ulink></listitem>
+      <listitem><ulink url="http://java.sun.com/j2se/1.5.0/docs/api/java/util/GregorianCalendar.html">Gregorian calendar</ulink></listitem>
+      <listitem><ulink url="http://java.sun.com/j2se/1.5.0/docs/api/java/util/Date.html">Date class</ulink></listitem>
+      <listitem><ulink url="http://java.sun.com/j2se/1.5.0/docs/api/java/util/Time.html">sql.time class</ulink></listitem>
+      <listitem><ulink url="http://java.sun.com/j2se/1.5.0/docs/api/java/util/DateFormatSymbols.html#_top_">Date format symbols</ulink></listitem>
+      <listitem><ulink url="http://java.sun.com/j2se/1.5.0/docs/api/java/util/DateFormat.html">Date format</ulink></listitem>
+      <listitem><ulink url="http://java.sun.com/j2se/1.5.0/docs/api/java/util/SimpleDateFormat.html">Simple Date Format</ulink></listitem>
+<listitem><ulink url="http://java.sun.com/j2se/1.5.0/docs/api/java/util/SimpleTimeZone.html">Simple Time Zone</ulink></listitem>
+      </itemizedlist>
+  </para>
+  <anchor id="script_libs" />
+  <bridgehead renderas="sect3">Scripting Language Libraries</bridgehead>
+  <para>
+    <itemizedlist mark="bullet">
+      <listitem>A python date library <ulink url="http://www.lemburg.com/files/python/mxDateTime.html">MX Date Time</ulink></listitem>
+      <listitem>Perl date-time
+	<itemizedlist override="opencircle">
+	  <listitem><ulink url="http://search-dev.develooper.com/search?m=module&amp;q=date&amp;s=11">Date-Time packages at CPAN</ulink></listitem>
+	  <listitem><ulink url="http://search-dev.develooper.com/~stbey/Date-Calc-5.4/Calc.pod">Date::Calc</ulink> at CPAN</listitem>
+	  <listitem><ulink url="http://search.cpan.org/doc/MORTY/DateConvert-0.16/Convert.pm">Date::Convert</ulink> calendar conversions at CPAN</listitem>
+	</itemizedlist>
+      </listitem>
+    </itemizedlist>
+  </para>
+  <anchor id="related" />
+  <bridgehead renderas="sect3">Related Commercial and Fanciful Pages</bridgehead>
+  <para>
+    <itemizedlist mark="bullet">
+      <listitem><ulink url="http://www.craphound.com/est/">Eastern Standard Tribe</ulink> -- Cory Doctorow science fiction novel with time themes.</listitem>
+      <listitem><ulink url="http://www.leapsecond.com/java/gpsclock.htm">Leapsecond.com time</ulink> page</listitem>
+      <listitem><ulink url="http://www.worldtimeserver.com">World Time Server / TZ database</ulink></listitem>
+      <listitem><ulink url="http://www.longnow.org/10kclock/clock.htm">10000 year clock</ulink> at Long Now Foundation</listitem>
+      <listitem><ulink url="http://www.timezonesforpcs.com">Timezones for PCs</ulink></listitem>
+    </itemizedlist>
+  </para>
+  <anchor id="resolution" />
+  <bridgehead renderas="sect3">Resolution, Precision, and Accuracy</bridgehead>
+  <para>
+    <itemizedlist mark="bullet">
+      <listitem>Definitions with pictures from <ulink url="http://metrologyforum.tm.agilent.com/specs.shtml">Agilent Technologies</ulink></listitem>
+      <listitem>Definitions from <ulink url="http://www.solent.ac.uk/hydrography/notes/errorthe/accuracy.htm">Southampton Institute</ulink></listitem>
+    </itemizedlist>
+  </para>
+</section>

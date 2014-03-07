@@ -1,0 +1,794 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Unsigned Integer Parsers (uint_, etc.)</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../numeric.html" title="Numeric Parsers">
+<link rel="prev" href="../numeric.html" title="Numeric Parsers">
+<link rel="next" href="int.html" title="Signed Integer Parsers (int_, etc.)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../numeric.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../numeric.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="int.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.reference.numeric.uint"></a><a class="link" href="uint.html" title="Unsigned Integer Parsers (uint_, etc.)">Unsigned Integer
+          Parsers (<code class="computeroutput"><span class="identifier">uint_</span></code>, etc.)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.qi.reference.numeric.uint.h0"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.uint.description"></a></span><a class="link" href="uint.html#spirit.qi.reference.numeric.uint.description">Description</a>
+          </h6>
+<p>
+            The <code class="computeroutput"><span class="identifier">uint_parser</span></code> class
+            is the simplest among the members of the numerics package. The <code class="computeroutput"><span class="identifier">uint_parser</span></code> can parse unsigned integers
+            of arbitrary length and size. The <code class="computeroutput"><span class="identifier">uint_parser</span></code>
+            parser can be used to parse ordinary primitive C/C++ integers or even
+            user defined scalars such as bigints (unlimited precision integers) as
+            long as the type follows certain expression requirements (documented
+            below). The <code class="computeroutput"><span class="identifier">uint_parser</span></code>
+            is a template class. Template parameters fine tune its behavior.
+          </p>
+<h6>
+<a name="spirit.qi.reference.numeric.uint.h1"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.uint.header"></a></span><a class="link" href="uint.html#spirit.qi.reference.numeric.uint.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/numeric/uint.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_uint</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.numeric.uint.h2"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.uint.namespace"></a></span><a class="link" href="uint.html#spirit.qi.reference.numeric.uint.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lit</span> <span class="comment">// alias:
+                      boost::spirit::qi::lit</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">bin</span> <span class="comment">// alias:
+                      boost::spirit::qi::bin</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">oct</span> <span class="comment">// alias:
+                      boost::spirit::qi::oct</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">hex</span> <span class="comment">// alias:
+                      boost::spirit::qi::hex</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ushort_</span> <span class="comment">//
+                      alias: boost::spirit::qi::ushort_</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ulong_</span> <span class="comment">//
+                      alias: boost::spirit::qi::ulong_</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">uint_</span> <span class="comment">//
+                      alias: boost::spirit::qi::uint_</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ulong_long</span> <span class="comment">//
+                      alias: boost::spirit::qi::ulong_long</span></code>
+                    </p>
+                  </td></tr>
+</tbody>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              <code class="computeroutput"><span class="identifier">ulong_long</span></code> is only
+              available on platforms where the preprocessor constant <code class="computeroutput"><span class="identifier">BOOST_HAS_LONG_LONG</span></code> is defined (i.e.
+              on platforms having native support for <code class="computeroutput"><span class="keyword">unsigned</span>
+              <span class="keyword">long</span> <span class="keyword">long</span></code>
+              (64 bit) unsigned integer types).
+            </p></td></tr>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              <code class="computeroutput"><span class="identifier">lit</span></code> is reused by the
+              <a class="link" href="../char/char.html" title="Character Parser (char_, lit)">Character Parsers</a>,
+              and the Numeric Parsers. In general, a char parser is created when
+              you pass in a character, and a numeric parser is created when you use
+              a numeric literal.
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.uint.h3"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.uint.synopsis"></a></span><a class="link" href="uint.html#spirit.qi.reference.numeric.uint.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">T</span>
+  <span class="special">,</span> <span class="keyword">unsigned</span> <span class="identifier">Radix</span>
+  <span class="special">,</span> <span class="keyword">unsigned</span> <span class="identifier">MinDigits</span>
+  <span class="special">,</span> <span class="keyword">int</span> <span class="identifier">MaxDigits</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">uint_parser</span><span class="special">;</span>
+</pre>
+<h6>
+<a name="spirit.qi.reference.numeric.uint.h4"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.uint.template_parameters"></a></span><a class="link" href="uint.html#spirit.qi.reference.numeric.uint.template_parameters">Template
+            parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Default
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">T</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The numeric base type of the numeric parser.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      none
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Radix</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The radix base. This can be any base from 2..10 and 16
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      10
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">MinDigits</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The minimum number of digits allowable.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      1
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">MaxDigits</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The maximum number of digits allowable. If this is -1, then
+                      the maximum limit becomes unbounded.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      -1
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.uint.h5"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.uint.model_of"></a></span><a class="link" href="uint.html#spirit.qi.reference.numeric.uint.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../parser_concepts/primitiveparser.html" title="PrimitiveParser"><code class="computeroutput"><span class="identifier">PrimitiveParser</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">n</span></code></span></dt>
+<dd><p>
+                  An object of <code class="computeroutput"><span class="identifier">T</span></code>,
+                  the numeric base type.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">num</span></code></span></dt>
+<dd><p>
+                  Numeric literal, any unsigned integer value, or a <a class="link" href="../basics.html#spirit.qi.reference.basics.lazy_argument">Lazy
+                  Argument</a> that evaluates to a unsigned integer value.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.qi.reference.numeric.uint.h6"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.uint.expression_semantics"></a></span><a class="link" href="uint.html#spirit.qi.reference.numeric.uint.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../parser_concepts/primitiveparser.html" title="PrimitiveParser"><code class="computeroutput"><span class="identifier">PrimitiveParser</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">ushort_</span>
+<span class="identifier">uint_</span>
+<span class="identifier">ulong_</span>
+<span class="identifier">ulong_long</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse an unsigned integer using the default radix (10).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">lit</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">ushort_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">uint_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">ulong_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">ulong_long</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Match the literal <code class="computeroutput"><span class="identifier">num</span></code>
+                      using the default radix (10). The parser will fail if the parsed
+                      value is not equal to the specified value.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">bin</span>
+<span class="identifier">oct</span>
+<span class="identifier">hex</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse an unsigned integer using radix 2 for <code class="computeroutput"><span class="identifier">bin</span></code>,
+                      radix 8 for <code class="computeroutput"><span class="identifier">oct</span></code>,
+                      and radix 16 for <code class="computeroutput"><span class="identifier">hex</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">bin</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">oct</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">hex</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Match the literal <code class="computeroutput"><span class="identifier">num</span></code>
+                      using radix 2 for <code class="computeroutput"><span class="identifier">bin</span></code>,
+                      radix 8 for <code class="computeroutput"><span class="identifier">oct</span></code>,
+                      and radix 16 for <code class="computeroutput"><span class="identifier">hex</span></code>.
+                      The parser will fail if the parsed value is not equal to the
+                      specified value.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">uint_parser</span><span class="special">&lt;</span>
+    <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Radix</span><span class="special">,</span> <span class="identifier">MinDigits</span><span class="special">,</span> <span class="identifier">MaxDigits</span>
+<span class="special">&gt;()</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Parse an unsigned integer of type <code class="computeroutput"><span class="identifier">T</span></code>
+                      using radix <code class="computeroutput"><span class="identifier">Radix</span></code>,
+                      with a minimum of <code class="computeroutput"><span class="identifier">MinDigits</span></code>
+                      and a maximum of <code class="computeroutput"><span class="identifier">MaxDigits</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">uint_parser</span><span class="special">&lt;</span>
+    <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Radix</span><span class="special">,</span> <span class="identifier">MinDigits</span><span class="special">,</span> <span class="identifier">MaxDigits</span>
+<span class="special">&gt;()(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Match the literal <code class="computeroutput"><span class="identifier">num</span></code>
+                      of type <code class="computeroutput"><span class="identifier">T</span></code> using
+                      radix <code class="computeroutput"><span class="identifier">Radix</span></code>,
+                      with a minimum of <code class="computeroutput"><span class="identifier">MinDigits</span></code>
+                      and a maximum of <code class="computeroutput"><span class="identifier">MaxDigits</span></code>.
+                      The parser will fail if the parsed value is not equal to the
+                      specified value.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              All numeric parsers check for overflow conditions based on the type
+              <code class="computeroutput"><span class="identifier">T</span></code> the corresponding
+              <code class="computeroutput"><span class="identifier">uint_parser</span><span class="special">&lt;&gt;</span></code>
+              has been instantiated with. If the parsed number overflows this type
+              the parsing fails. Please be aware that the overflow check is not based
+              on the type of the supplied attribute but solely depends on the template
+              parameter <code class="computeroutput"><span class="identifier">T</span></code>.
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.uint.h7"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.uint.attributes"></a></span><a class="link" href="uint.html#spirit.qi.reference.numeric.uint.attributes">Attributes</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">lit</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">unused</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">ushort_</span>
+<span class="identifier">ushort_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">short</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">uint_</span>
+<span class="identifier">uint_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">bin</span>
+<span class="identifier">bin</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">oct</span>
+<span class="identifier">oct</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+<span class="identifier">hex</span>
+<span class="identifier">hex</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">ulong_</span>
+<span class="identifier">ulong_</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">long</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">ulong_long</span>
+<span class="identifier">ulong_long</span><span class="special">(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">ulong_long_type</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">uint_parser</span><span class="special">&lt;</span>
+    <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Radix</span><span class="special">,</span> <span class="identifier">MinDigits</span><span class="special">,</span> <span class="identifier">MaxDigits</span>
+<span class="special">&gt;()</span>
+<span class="identifier">uint_parser</span><span class="special">&lt;</span>
+    <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Radix</span><span class="special">,</span> <span class="identifier">MinDigits</span><span class="special">,</span> <span class="identifier">MaxDigits</span>
+<span class="special">&gt;()(</span><span class="identifier">num</span><span class="special">)</span>
+</pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">T</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.uint.h8"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.uint.complexity"></a></span><a class="link" href="uint.html#spirit.qi.reference.numeric.uint.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              O(N), where N is the number of digits being parsed.
+            </p></blockquote></div>
+<h6>
+<a name="spirit.qi.reference.numeric.uint.h9"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.uint.minimum_expression_requirements_for__code__phrase_role__identifier__t__phrase___code_"></a></span><a class="link" href="uint.html#spirit.qi.reference.numeric.uint.minimum_expression_requirements_for__code__phrase_role__identifier__t__phrase___code_">Minimum
+            Expression Requirements for <code class="computeroutput"><span class="identifier">T</span></code></a>
+          </h6>
+<p>
+            For the numeric base type, <code class="computeroutput"><span class="identifier">T</span></code>,
+            the expression requirements below must be valid:
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">T</span><span class="special">()</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Default construct.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">T</span><span class="special">(</span><span class="number">0</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Construct from an <code class="computeroutput"><span class="keyword">int</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">n</span> <span class="special">+</span>
+                      <span class="identifier">n</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Addition.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">n</span> <span class="special">*</span>
+                      <span class="identifier">n</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Multiplication.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">is_bounded</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">true</span></code> or <code class="computeroutput"><span class="keyword">false</span></code> if <code class="computeroutput"><span class="identifier">T</span></code>
+                      bounded.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">digits</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Maximum Digits for <code class="computeroutput"><span class="identifier">T</span></code>,
+                      radix digits. Required only if <code class="computeroutput"><span class="identifier">T</span></code>
+                      is bounded.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">digits10</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Maximum Digits for <code class="computeroutput"><span class="identifier">T</span></code>,
+                      base 10. Required only if <code class="computeroutput"><span class="identifier">T</span></code>
+                      is bounded.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">max</span><span class="special">()</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Maximum value for <code class="computeroutput"><span class="identifier">T</span></code>.
+                      Required only if <code class="computeroutput"><span class="identifier">T</span></code>
+                      is bounded.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">min</span><span class="special">()</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Minimum value for <code class="computeroutput"><span class="identifier">T</span></code>.
+                      Required only if <code class="computeroutput"><span class="identifier">T</span></code>
+                      is bounded.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.numeric.uint.h10"></a>
+            <span class="phrase"><a name="spirit.qi.reference.numeric.uint.example"></a></span><a class="link" href="uint.html#spirit.qi.reference.numeric.uint.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.qi.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">val</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">lit</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">uint_</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">uint_parser</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Basic unsigned integers:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// unsigned int</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"12345"</span><span class="special">,</span> <span class="identifier">uint_</span><span class="special">);</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"12345"</span><span class="special">,</span> <span class="identifier">uint_</span><span class="special">(</span><span class="number">12345</span><span class="special">));</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"12345"</span><span class="special">,</span> <span class="identifier">uint_</span><span class="special">(</span><span class="identifier">val</span><span class="special">(</span><span class="number">12345</span><span class="special">)));</span>
+
+<span class="comment">// literals</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"12345"</span><span class="special">,</span> <span class="identifier">lit</span><span class="special">(</span><span class="number">12345</span><span class="special">));</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"12345"</span><span class="special">,</span> <span class="identifier">lit</span><span class="special">(</span><span class="identifier">val</span><span class="special">(</span><span class="number">12345</span><span class="special">)));</span>
+</pre>
+<p>
+          </p>
+<p>
+            Thousand separated number parser:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">uint_parser</span><span class="special">&lt;</span><span class="keyword">unsigned</span><span class="special">,</span> <span class="number">10</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="number">3</span><span class="special">&gt;</span> <span class="identifier">uint3_p</span><span class="special">;</span>        <span class="comment">//  1..3 digits</span>
+<span class="identifier">uint_parser</span><span class="special">&lt;</span><span class="keyword">unsigned</span><span class="special">,</span> <span class="number">10</span><span class="special">,</span> <span class="number">3</span><span class="special">,</span> <span class="number">3</span><span class="special">&gt;</span> <span class="identifier">uint3_3_p</span><span class="special">;</span>      <span class="comment">//  exactly 3 digits</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"12,345,678"</span><span class="special">,</span> <span class="identifier">uint3_p</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="char">','</span> <span class="special">&gt;&gt;</span> <span class="identifier">uint3_3_p</span><span class="special">));</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../numeric.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../numeric.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="int.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

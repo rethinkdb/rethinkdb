@@ -1,0 +1,498 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Concepts</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H1><A NAME="chapter:graph-concepts"></A>
+Graph Concepts
+</H1>
+
+<P>
+The heart of the Boost Graph Library (BGL) is the interface, or
+concepts (in the parlance of generic programming), that define how a
+graph can be examined and manipulated in a data-structure neutral
+fashion. In fact, the BGL interface need not even be implemented using
+a data-structure, as for some problems it is easier or more efficient
+to define a graph implicitly based on some functions.
+
+<P>
+The BGL interface does not appear as a single graph concept.  Instead
+it is factored into much smaller pieces. The reason for this is that
+the purpose of a concept is to summarize the requirements for
+<i>particular</i> algorithms. Any one algorithm does not need every
+kind of graph operation, typically only a small subset.  Furthermore,
+there are many graph data-structures that can not provide efficient
+implementations of all the operations, but provide highly efficient
+implementations of the operations necessary for a particular algorithm.
+By factoring the graph interface into many smaller concepts we
+provide the graph algorithm writer with a good selection from which to
+choose the concept that is the closest match for their algorithm.
+
+Note that because of the use of traits classes rather than member
+types, it is not safe (and often will not work) to define subclasses of BGL
+graph types; those types may be missing important traits and properties that
+were defined externally to the class definition.
+
+<H2>Graph Structure Concepts Overview</H2>
+
+<P>
+<A HREF="#fig:graph-concepts">Figure 1</A> shows the refinements
+relations between the graph concepts. The reason for factoring the
+graph interface into so many concepts is to encourage algorithm
+interfaces to require and use only the minimum interface of a graph,
+thereby increasing the reusability of the algorithm.
+
+
+<p></p>
+<DIV ALIGN="CENTER"><A NAME="fig:graph-concepts"></A></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 1:</STRONG>
+The graph concepts and refinement relationships.
+</CAPTION>
+<TR><TD><IMG SRC="./figs/concepts.gif"></TD></TR>
+</TABLE>
+</DIV>
+<p></p>
+
+<A HREF="#tab:graph-concept-reqs">Table&nbsp;1</A>
+gives a summary of the valid expressions and associated types for the
+graph concepts and provides links to the detailed descriptions of
+each of the concepts. The notation used in the table is as follows.
+
+<h3>Notation</h3>
+
+<Table>
+<TR>
+<TD><tt>G</tt></TD>
+<TD>A type that is a model of Graph.</TD>
+</TR>
+
+<TR>
+<TD><tt>g</tt></TD>
+<TD>An object of type <tt>G</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>e</tt></TD>
+<TD>An object of type <tt>boost::graph_traits&lt;G&gt;::edge_descriptor</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>e_iter</tt></TD>
+<TD>An object of type <tt>boost::graph_traits&lt;G&gt;::out_edge_iterator</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>u,v</tt></TD>
+<TD>Are objects of type <tt>boost::graph_traits&lt;G&gt;::vertex_descriptor</tt>.</TD>
+</TR>
+
+<TR>
+<TD><TT>ep</TT></TD><TD>is an object of type <TT>G::edge_property_type</TT></TD>
+</TR>
+
+<TR>
+<TD><TT>vp</TT></TD><TD>is an object of type <TT>G::vertex_property_type</TT></TD>
+</TR>
+
+<TR>
+<TD><tt>Property</tt></TD>
+<TD>A type used to specify a vertex or edge property.</TD>
+</TR>
+
+<TR>
+<TD><tt>property</tt></TD>
+<TD>An object of type <tt>Property</tt>.</td>
+</TR>
+
+</table>
+
+
+
+
+<P>
+<BR><P></P>
+<DIV ALIGN="CENTER"><A NAME="tab:graph-concept-reqs"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Table 1:</STRONG>
+    Summary of the graph concepts.
+    </CAPTION>
+<TR><TD>  
+<TABLE border>
+<TR><TH ALIGN="LEFT">
+<B>Expression</B> </TH>
+<TH ALIGN="LEFT" VALIGN="TOP"> <B>Return Type or Description</B> </TH>
+</TR>
+<TR><TD ALIGN="LEFT" COLSPAN=2>  
+ <a href="./Graph.html">Graph</a> </TD>
+</TR>
+<TR><TD ALIGN="LEFT">  
+<TT>boost::graph_traits&lt;G&gt;::vertex_descriptor</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP">  The type for
+  vertex representative objects. </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>boost::graph_traits&lt;G&gt;::edge_descriptor</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> The type for
+  edge representative objects. </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>boost::graph_traits&lt;G&gt;::directed_category</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> Directed or undirected? </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>boost::graph_traits&lt;G&gt;::edge_parallel_category</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> Allow parallel edges? </TD>
+</TR>
+<TR><TD ALIGN="LEFT">
+<TT>boost::graph_traits&lt;G&gt;::traversal_category</TT> </TD> <TD
+ALIGN="LEFT" VALIGN="TOP">The ways in which the vertices and edges of
+the graph can be visited.</TD>
+</TR>
+<!---------------------------------------------------------------->
+<TR><TD ALIGN="LEFT" COLSPAN=2>  
+ <a href="./IncidenceGraph.html">IncidenceGraph</a> refines Graph </TD>
+</TR>
+<TR><TD ALIGN="LEFT">  
+<TT>boost::graph_traits&lt;G&gt;::out_edge_iterator</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> Iterate through
+  the out-edges. </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>boost::graph_traits&lt;G&gt;::degree_size_type</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> The integer type for
+vertex degee. </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>out_edges(v, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>std::pair&lt;out_edge_iterator, out_edge_iterator&gt;</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>source(e, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>vertex_descriptor</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>target(e, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>vertex_descriptor</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>out_degree(v, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>degree_size_type</TT> </TD>
+</TR>
+<!---------------------------------------------------------------->
+<TR><TD ALIGN="LEFT" COLSPAN=2>  
+ <a href="./BidirectionalGraph.html">BidirectionalGraph</a> refines
+  IncidenceGraph </TD>
+</TR>
+<TR><TD ALIGN="LEFT">  
+<TT>boost::graph_traits&lt;G&gt;::in_edge_iterator</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> Iterate through the in-edges. </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>in_edges(v, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>std::pair&lt;in_edge_iterator, in_edge_iterator&gt;</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>in_degree(v, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>degree_size_type</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>degree(e, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>degree_size_type</TT> </TD>
+</TR>
+<!---------------------------------------------------------------->
+<TR><TD ALIGN="LEFT" COLSPAN=2>  
+<a href="./AdjacencyGraph.html">AdjacencyGraph</a> refines Graph</TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>boost::graph_traits&lt;G&gt;::adjacency_iterator</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> Iterate through
+  adjacent vertices. </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>adjacent_vertices(v, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"><TT>std::pair&lt;adjacency_iterator, adjacency_iterator&gt;</TT> </TD>
+</TR>
+<!---------------------------------------------------------------->
+<TR><TD ALIGN="LEFT" COLSPAN=2>  
+<a href="./VertexListGraph.html">VertexListGraph</a> refines
+  Graph</TD>
+</TR>
+<TR><TD ALIGN="LEFT">  
+<TT>boost::graph_traits&lt;G&gt;::vertex_iterator</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> Iterate through the
+  graph's vertex set. </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>boost::graph_traits&lt;G&gt;::vertices_size_type</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> The unsigned integer type for
+number of vertices in the graph. </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>vertices(g)</TT>  </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"><TT>std::pair&lt;vertex_iterator, vertex_iterator&gt;</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>num_vertices(g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>vertices_size_type</TT>  </TD>
+</TR>
+<!---------------------------------------------------------------->
+<TR><TD ALIGN="LEFT" COLSPAN=2>  
+<a href="./EdgeListGraph.html">EdgeListGraph</a> refines Graph</TD>
+</TR>
+<TR><TD ALIGN="LEFT">  
+<TT>boost::graph_traits&lt;G&gt;::edge_iterator</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> Iterate through the graph's
+  edge set. </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>boost::graph_traits&lt;G&gt;::edges_size_type</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> The unsigned integer type for
+number of edges in the graph. </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>edges(g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>std::pair&lt;edge_iterator, edge_iterator&gt;</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT">  
+<TT>num_edges(g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>edges_size_type</TT>  </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>source(e, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>vertex_descriptor</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>target(e, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>vertex_descriptor</TT> </TD>
+</TR>
+<!---------------------------------------------------------------->
+<TR><TD ALIGN="LEFT" COLSPAN=2>  
+<a href="./AdjacencyMatrix.html">AdjacencyMatrix</a> refines Graph</TD>
+</TR>
+<TR><TD ALIGN="LEFT">  
+<TT>edge(u, v, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>std::pair&lt;edge_descriptor, bool&gt;</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT" COLSPAN=2>  
+<a href="./MutableGraph.html">MutableGraph</a> refines
+  Graph</TD>
+</TR>
+<TR><TD ALIGN="LEFT">  
+<TT>add_vertex(g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>vertex_descriptor</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT">  
+<TT>clear_vertex(v, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>void</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT">  
+<TT>remove_vertex(v, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>void</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>add_edge(u, v, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>std::pair&lt;edge_descriptor, bool&gt;</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>remove_edge(u, v, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>void</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>remove_edge(e, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>void</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>remove_edge(e_iter, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>void</TT> </TD>
+</TR>
+<!---------------------------------------------------------------->
+<TR><TD ALIGN="LEFT" COLSPAN=2>  
+<a href="./MutablePropertyGraph.html">MutablePropertyGraph</a> refines
+  Graph</TD>
+</TR>
+<TR><TD ALIGN="LEFT">  
+<TT>add_vertex(vp, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>vertex_descriptor</TT> </TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>add_edge(u, v, ep, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> <TT>std::pair&lt;edge_descriptor,
+  bool&gt;</TT> </TD>
+</TR>
+<!---------------------------------------------------------------->
+<TR>
+<TD ALIGN="LEFT" COLSPAN=2>  
+<a href="./PropertyGraph.html">PropertyGraph</a> refines Graph</TD>
+</TR>
+<TR><TD ALIGN="LEFT">  
+<TT>boost::property_map&lt;G, Property&gt;::type</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP">Type for a mutable property map.</TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>boost::property_map&lt;G, Property&gt;::const_type</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP">Type for a non-mutable property map.</TD>
+</TR>
+<TR><TD ALIGN="LEFT"> 
+<TT>get(property, g)</TT> </TD>
+<TD ALIGN="LEFT" VALIGN="TOP"> Function to get a property map. </TD>
+</TR>
+
+<TR><TD ALIGN="LEFT"> 
+<TT>get(property,&nbsp;g,&nbsp;x)</TT>
+</TD>
+<TD ALIGN="LEFT" VALIGN="TOP">Get property value for vertex or edge <tt>x</tt>. </TD>
+</TR>
+
+<TR><TD ALIGN="LEFT"> 
+<TT>put(property,&nbsp;g,&nbsp;x,&nbsp;v)</TT>
+</TD>
+<TD ALIGN="LEFT" VALIGN="TOP">Set property value for vertex or edge
+<tt>x</tt> to <tt>v</tt>. </TD>
+</TR>
+
+</table>
+</table>
+</DIV><P></P>
+<BR>
+
+<P>
+
+<H2><A NAME="sec:undirected-graphs"></A>
+Undirected Graphs
+</H2>
+
+<P>
+The interface that the BGL provides for accessing and manipulating an
+undirected graph is the same as the interface for directed graphs
+described in the following sections, however there are some
+differences in the behaviour and semantics.  For example, in a
+directed graph we can talk about out-edges and in-edges of a vertex.
+In an undirected graph there is no ``in'' and ``out'', there are just
+edges incident to a vertex. Nevertheless, in the BGL we still use the
+<TT>out_edges()</TT> function (or <TT>in_edges()</TT>) to access the
+incident edges in an undirected graph. Similarly, an undirected edge
+has no ``source'' and ``target'' but merely an unordered pair of
+vertices, but in the BGL we still use <TT>source()</TT> and
+<TT>target()</TT> to access these vertices.  The reason the BGL does
+not provide a separate interface for undirected graphs is that many
+algorithms on directed graphs also work on undirected graphs, and it
+would be inconvenient to have to duplicate the algorithms just because
+of an interface difference. When using undirected graphs just mentally
+disregard the directionality in the function names. The example below
+demonstrates using the <TT>out_edges()</TT>, <TT>source()</TT>, and
+<TT>target()</TT> with an undirected graph. The source code for this
+example and the following one can be found in <a
+href="../example/undirected_adjacency_list.cpp"><TT>example/undirected_adjacency_list.cpp</TT></a>.
+
+<P>
+<PRE>
+  const int V = 2;
+  typedef ... UndirectedGraph;
+  UndirectedGraph undigraph(V);
+
+  std::cout &lt;&lt; "the edges incident to v: ";
+  boost::graph_traits&lt;UndirectedGraph&gt;::out_edge_iterator e, e_end;
+  boost::graph_traits&lt;UndirectedGraph&gt;::vertex_descriptor 
+    s = vertex(0, undigraph);
+  for (tie(e, e_end) = out_edges(s, undigraph); e != e_end; ++e)
+    std::cout &lt;&lt; "(" &lt;&lt; source(*e, undigraph) 
+              &lt;&lt; "," &lt;&lt; target(*e, undigraph) &lt;&lt; ")" &lt;&lt; endl;
+</PRE>
+
+<P>
+Even though the interface is the same for undirected graphs, there are
+some behavioral differences because edge equality is defined
+differently. In a directed graph, edge <i>(u,v)</i> is never equal to edge
+<i>(v,u)</i>, but in an undirected graph they may be equal.  If the
+undirected graph is a multigraph then <i>(u,v)</i> and <i>(v,u)</i> might be
+parallel edges. If the graph is not a multigraph then <i>(u,v)</i> and
+<i>(v,u)</i> must be the same edge.
+
+<P>
+In the example below the edge equality test will return <TT>false</TT>
+for the directed graph and <TT>true</TT> for the undirected graph. The
+difference also affects the meaning of <TT>add_edge()</TT>. In the
+example below, if we had also written <TT>add_edge(v, u,
+undigraph)</TT>, this would have added a parallel edge between
+<i>u</i> and <i>v</i> (provided the graph type allows parallel
+edges). The difference in edge equality also affects the association
+of edge properties. In the directed graph, the edges <i>(u,v)</i> and
+<i>(v,u)</i> can have distinct weight values, whereas in the
+undirected graph the weight of <i>(u,v)</i> is the same as the weight
+of <i>(v,u)</i> since they are the same edge.
+
+<P>
+<PRE>
+  typedef ... DirectedGraph;
+  DirectedGraph digraph(V);
+  {
+    boost::graph_traits&lt;DirectedGraph&gt;::vertex_descriptor u, v;
+    u = vertex(0, digraph);
+    v = vertex(1, digraph);
+    add_edge(digraph, u, v, Weight(1.2));
+    add_edge(digraph, v, u, Weight(2.4));
+    boost::graph_traits&lt;DirectedGraph&gt;::edge_descriptor e1, e2;
+    bool found;
+    tie(e1, found) = edge(u, v, digraph);
+    tie(e2, found) = edge(v, u, digraph);
+    std::cout &lt;&lt; "in a directed graph is ";
+    std::cout &lt;&lt; "(u,v) == (v,u) ? " &lt;&lt; (e1 == e2) &lt;&lt; std::endl;
+
+    property_map&lt;DirectedGraph, edge_weight_t&gt;::type
+      weight = get(edge_weight, digraph);
+    cout &lt;&lt; "weight[(u,v)] = " &lt;&lt; get(weight, e1) &lt;&lt; endl;
+    cout &lt;&lt; "weight[(v,u)] = " &lt;&lt; get(weight, e2) &lt;&lt; endl;
+  }
+  {
+    boost::graph_traits&lt;UndirectedGraph&gt;::vertex_descriptor u, v;
+    u = vertex(0, undigraph);
+    v = vertex(1, undigraph);
+    add_edge(undigraph, u, v, Weight(3.1));
+    boost::graph_traits&lt;UndirectedGraph&gt;::edge_descriptor e1, e2;
+    bool found;
+    tie(e1, found) = edge(u, v, undigraph);
+    tie(e2, found) = edge(v, u, undigraph);
+    std::cout &lt;&lt; "in an undirected graph is ";
+    std::cout &lt;&lt; "(u,v) == (v,u) ? " &lt;&lt; (e1 == e2) &lt;&lt; std::endl;
+
+    property_map&lt;UndirectedGraph, edge_weight_t&gt;::type
+      weight = get(edge_weight, undigraph);
+    cout &lt;&lt; "weight[(u,v)] = " &lt;&lt; get(weight, e1) &lt;&lt; endl;
+    cout &lt;&lt; "weight[(v,u)] = " &lt;&lt; get(weight, e2) &lt;&lt; endl;
+  }
+</PRE>
+The output is:
+<PRE>
+in a directed graph is (u,v) == (v,u) ? 0
+weight[(u,v)] = 1.2
+weight[(v,u)] = 2.4
+in an undirected graph is (u,v) == (v,u) ? 1
+weight[(u,v)] = 3.1
+weight[(v,u)] = 3.1
+</PRE>
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

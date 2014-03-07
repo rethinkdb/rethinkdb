@@ -1,0 +1,167 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>basic_stream_socket::native_non_blocking (2 of 3 overloads)</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../native_non_blocking.html" title="basic_stream_socket::native_non_blocking">
+<link rel="prev" href="overload1.html" title="basic_stream_socket::native_non_blocking (1 of 3 overloads)">
+<link rel="next" href="overload3.html" title="basic_stream_socket::native_non_blocking (3 of 3 overloads)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overload1.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../native_non_blocking.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../boost_asio.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="overload3.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_asio.reference.basic_stream_socket.native_non_blocking.overload2"></a><a class="link" href="overload2.html" title="basic_stream_socket::native_non_blocking (2 of 3 overloads)">basic_stream_socket::native_non_blocking
+          (2 of 3 overloads)</a>
+</h5></div></div></div>
+<p>
+            <span class="emphasis"><em>Inherited from basic_socket.</em></span>
+          </p>
+<p>
+            Sets the non-blocking mode of the native socket implementation.
+          </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">native_non_blocking</span><span class="special">(</span>
+    <span class="keyword">bool</span> <span class="identifier">mode</span><span class="special">);</span>
+</pre>
+<p>
+            This function is used to modify the non-blocking mode of the underlying
+            native socket. It has no effect on the behaviour of the socket object's
+            synchronous operations.
+          </p>
+<h6>
+<a name="boost_asio.reference.basic_stream_socket.native_non_blocking.overload2.h0"></a>
+            <span class="phrase"><a name="boost_asio.reference.basic_stream_socket.native_non_blocking.overload2.parameters"></a></span><a class="link" href="overload2.html#boost_asio.reference.basic_stream_socket.native_non_blocking.overload2.parameters">Parameters</a>
+          </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">mode</span></dt>
+<dd><p>
+                  If <code class="computeroutput"><span class="keyword">true</span></code>, the underlying
+                  socket is put into non-blocking mode and direct system calls may
+                  fail with <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">error</span><span class="special">::</span><span class="identifier">would_block</span></code>
+                  (or the equivalent system error).
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="boost_asio.reference.basic_stream_socket.native_non_blocking.overload2.h1"></a>
+            <span class="phrase"><a name="boost_asio.reference.basic_stream_socket.native_non_blocking.overload2.exceptions"></a></span><a class="link" href="overload2.html#boost_asio.reference.basic_stream_socket.native_non_blocking.overload2.exceptions">Exceptions</a>
+          </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">boost::system::system_error</span></dt>
+<dd><p>
+                  Thrown on failure. If the <code class="computeroutput"><span class="identifier">mode</span></code>
+                  is <code class="computeroutput"><span class="keyword">false</span></code>, but the
+                  current value of <code class="computeroutput"><span class="identifier">non_blocking</span><span class="special">()</span></code> is <code class="computeroutput"><span class="keyword">true</span></code>,
+                  this function fails with <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">error</span><span class="special">::</span><span class="identifier">invalid_argument</span></code>,
+                  as the combination does not make sense.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="boost_asio.reference.basic_stream_socket.native_non_blocking.overload2.h2"></a>
+            <span class="phrase"><a name="boost_asio.reference.basic_stream_socket.native_non_blocking.overload2.example"></a></span><a class="link" href="overload2.html#boost_asio.reference.basic_stream_socket.native_non_blocking.overload2.example">Example</a>
+          </h6>
+<p>
+            This function is intended to allow the encapsulation of arbitrary non-blocking
+            system calls as asynchronous operations, in a way that is transparent
+            to the user of the socket object. The following example illustrates how
+            Linux's <code class="computeroutput"><span class="identifier">sendfile</span></code> system
+            call might be encapsulated:
+          </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Handler</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">sendfile_op</span>
+<span class="special">{</span>
+  <span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span><span class="special">&amp;</span> <span class="identifier">sock_</span><span class="special">;</span>
+  <span class="keyword">int</span> <span class="identifier">fd_</span><span class="special">;</span>
+  <span class="identifier">Handler</span> <span class="identifier">handler_</span><span class="special">;</span>
+  <span class="identifier">off_t</span> <span class="identifier">offset_</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">total_bytes_transferred_</span><span class="special">;</span>
+
+  <span class="comment">// Function call operator meeting WriteHandler requirements.</span>
+  <span class="comment">// Used as the handler for the async_write_some operation.</span>
+  <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="identifier">ec</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="comment">// Put the underlying socket into non-blocking mode.</span>
+    <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">ec</span><span class="special">)</span>
+      <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">sock_</span><span class="special">.</span><span class="identifier">native_non_blocking</span><span class="special">())</span>
+        <span class="identifier">sock_</span><span class="special">.</span><span class="identifier">native_non_blocking</span><span class="special">(</span><span class="keyword">true</span><span class="special">,</span> <span class="identifier">ec</span><span class="special">);</span>
+
+    <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">ec</span><span class="special">)</span>
+    <span class="special">{</span>
+      <span class="keyword">for</span> <span class="special">(;;)</span>
+      <span class="special">{</span>
+        <span class="comment">// Try the system call.</span>
+        <span class="identifier">errno</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+        <span class="keyword">int</span> <span class="identifier">n</span> <span class="special">=</span> <span class="special">::</span><span class="identifier">sendfile</span><span class="special">(</span><span class="identifier">sock_</span><span class="special">.</span><span class="identifier">native_handle</span><span class="special">(),</span> <span class="identifier">fd_</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">offset_</span><span class="special">,</span> <span class="number">65536</span><span class="special">);</span>
+        <span class="identifier">ec</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span><span class="special">(</span><span class="identifier">n</span> <span class="special">&lt;</span> <span class="number">0</span> <span class="special">?</span> <span class="identifier">errno</span> <span class="special">:</span> <span class="number">0</span><span class="special">,</span>
+            <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">error</span><span class="special">::</span><span class="identifier">get_system_category</span><span class="special">());</span>
+        <span class="identifier">total_bytes_transferred_</span> <span class="special">+=</span> <span class="identifier">ec</span> <span class="special">?</span> <span class="number">0</span> <span class="special">:</span> <span class="identifier">n</span><span class="special">;</span>
+
+        <span class="comment">// Retry operation immediately if interrupted by signal.</span>
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">ec</span> <span class="special">==</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">error</span><span class="special">::</span><span class="identifier">interrupted</span><span class="special">)</span>
+          <span class="keyword">continue</span><span class="special">;</span>
+
+        <span class="comment">// Check if we need to run the operation again.</span>
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">ec</span> <span class="special">==</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">error</span><span class="special">::</span><span class="identifier">would_block</span>
+            <span class="special">||</span> <span class="identifier">ec</span> <span class="special">==</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">error</span><span class="special">::</span><span class="identifier">try_again</span><span class="special">)</span>
+        <span class="special">{</span>
+          <span class="comment">// We have to wait for the socket to become ready again.</span>
+          <span class="identifier">sock_</span><span class="special">.</span><span class="identifier">async_write_some</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">null_buffers</span><span class="special">(),</span> <span class="special">*</span><span class="keyword">this</span><span class="special">);</span>
+          <span class="keyword">return</span><span class="special">;</span>
+        <span class="special">}</span>
+
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">ec</span> <span class="special">||</span> <span class="identifier">n</span> <span class="special">==</span> <span class="number">0</span><span class="special">)</span>
+        <span class="special">{</span>
+          <span class="comment">// An error occurred, or we have reached the end of the file.</span>
+          <span class="comment">// Either way we must exit the loop so we can call the handler.</span>
+          <span class="keyword">break</span><span class="special">;</span>
+        <span class="special">}</span>
+
+        <span class="comment">// Loop around to try calling sendfile again.</span>
+      <span class="special">}</span>
+    <span class="special">}</span>
+
+    <span class="comment">// Pass result back to user's handler.</span>
+    <span class="identifier">handler_</span><span class="special">(</span><span class="identifier">ec</span><span class="special">,</span> <span class="identifier">total_bytes_transferred_</span><span class="special">);</span>
+  <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Handler</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">async_sendfile</span><span class="special">(</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span><span class="special">&amp;</span> <span class="identifier">sock</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">fd</span><span class="special">,</span> <span class="identifier">Handler</span> <span class="identifier">h</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="identifier">sendfile_op</span><span class="special">&lt;</span><span class="identifier">Handler</span><span class="special">&gt;</span> <span class="identifier">op</span> <span class="special">=</span> <span class="special">{</span> <span class="identifier">sock</span><span class="special">,</span> <span class="identifier">fd</span><span class="special">,</span> <span class="identifier">h</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="number">0</span> <span class="special">};</span>
+  <span class="identifier">sock</span><span class="special">.</span><span class="identifier">async_write_some</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">null_buffers</span><span class="special">(),</span> <span class="identifier">op</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overload1.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../native_non_blocking.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../boost_asio.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="overload3.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

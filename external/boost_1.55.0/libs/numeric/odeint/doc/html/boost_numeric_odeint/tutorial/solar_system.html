@@ -1,0 +1,318 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Solar system</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../tutorial.html" title="Tutorial">
+<link rel="prev" href="harmonic_oscillator.html" title="Harmonic oscillator">
+<link rel="next" href="chaotic_systems_and_lyapunov_exponents.html" title="Chaotic systems and Lyapunov exponents">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="harmonic_oscillator.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="chaotic_systems_and_lyapunov_exponents.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.tutorial.solar_system"></a><a class="link" href="solar_system.html" title="Solar system">Solar system</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="solar_system.html#boost_numeric_odeint.tutorial.solar_system.gravitation_and_energy_conservation">Gravitation
+        and energy conservation</a></span></dt>
+<dt><span class="section"><a href="solar_system.html#boost_numeric_odeint.tutorial.solar_system.define_the_system_function">Define
+        the system function</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numeric_odeint.tutorial.solar_system.gravitation_and_energy_conservation"></a><a class="link" href="solar_system.html#boost_numeric_odeint.tutorial.solar_system.gravitation_and_energy_conservation" title="Gravitation and energy conservation">Gravitation
+        and energy conservation</a>
+</h4></div></div></div>
+<p>
+          The next example in this tutorial is a simulation of the outer solar system,
+          consisting of the sun, Jupiter, Saturn, Uranus, Neptune and Pluto.
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../../solar_system.jpg" alt="solar_system"></span>
+        </p>
+<p>
+          Each planet and of course the sun will be represented by mass points. The
+          interaction force between each object is the gravitational force which
+          can be written as
+        </p>
+<p>
+          <span class="emphasis"><em>F<sub>&#8203;ij</sub> = -&#947; m<sub>&#8203;i</sub> m<sub>&#8203;j</sub> ( q<sub>&#8203;i</sub> - q<sub>&#8203;j</sub> ) / | q<sub>&#8203;i</sub> - q<sub>&#8203;j</sub> | <sup>3</sup></em></span>
+        </p>
+<p>
+          where <span class="emphasis"><em>&#947;</em></span> is the gravitational constant, <span class="emphasis"><em>m<sub>&#8203;i</sub></em></span>
+          and <span class="emphasis"><em>m<sub>&#8203;j</sub></em></span> are the masses and <span class="emphasis"><em>q<sub>&#8203;i</sub></em></span>
+          and <span class="emphasis"><em>q<sub>&#8203;j</sub></em></span> are the locations of the two objects. The equations
+          of motion are then
+        </p>
+<p>
+          <span class="emphasis"><em>dq<sub>&#8203;i</sub> / dt = p<sub>&#8203;i</sub></em></span>
+        </p>
+<p>
+          <span class="emphasis"><em>dp<sub>&#8203;i</sub> / dt = 1 / m<sub>&#8203;i</sub> &#931;<sub>&#8203;ji</sub> F<sub>&#8203;ij</sub></em></span>
+        </p>
+<p>
+          where <span class="emphasis"><em>p<sub>&#8203;i</sub></em></span> is the momenta of object <span class="emphasis"><em>i</em></span>.
+          The equations of motion can also be derived from the Hamiltonian
+        </p>
+<p>
+          <span class="emphasis"><em>H = &#931;<sub>&#8203;i</sub> p<sub>&#8203;i</sub><sup>2</sup> / ( 2 m<sub>&#8203;i</sub> ) + &#931;<sub>&#8203;j</sub> V( q<sub>&#8203;i</sub> , q<sub>&#8203;j</sub> )</em></span>
+        </p>
+<p>
+          with the interaction potential <span class="emphasis"><em>V(q<sub>&#8203;i</sub>,q<sub>&#8203;j</sub>)</em></span>. The Hamiltonian
+          equations give the equations of motion
+        </p>
+<p>
+          <span class="emphasis"><em>dq<sub>&#8203;i</sub> / dt = dH / dp<sub>&#8203;i</sub></em></span>
+        </p>
+<p>
+          <span class="emphasis"><em>dp<sub>&#8203;i</sub> / dt = -dH / dq<sub>&#8203;i</sub></em></span>
+        </p>
+<p>
+          In time independent Hamiltonian system the energy and the phase space volume
+          are conserved and special integration methods have to be applied in order
+          to ensure these conservation laws. The odeint library provides classes
+          for separable Hamiltonian systems, which can be written in the form <span class="emphasis"><em>H
+          = &#931;
+p<sub>&#8203;i</sub><sup>2</sup> / (2m<sub>&#8203;i</sub>) + H<sub>&#8203;q</sub>(q)</em></span>, where <span class="emphasis"><em>H<sub>&#8203;q</sub>(q)</em></span> only
+          depends on the coordinates. Although this functional form might look a
+          bit arbitrary, it covers nearly all classical mechanical systems with inertia
+          and without dissipation, or where the equations of motion can be written
+          in the form <span class="emphasis"><em>dq<sub>&#8203;i</sub> / dt = p<sub>&#8203;i</sub></em></span> / m<sub>&#8203;i</sub> , <span class="emphasis"><em>dp<sub>&#8203;i</sub> / dt =
+          f( q<sub>&#8203;i</sub> )</em></span>.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            A short physical note: While the two-body-problem is known to be integrable,
+            that means it can be solved with purely analytic techniques, already
+            the three-body-problem is not solvable. This was found in the end of
+            the 19th century by H. Poincare which led to the whole new subject of
+            <a href="http://en.wikipedia.org/wiki/Chaos_theory" target="_top">Chaos Theory</a>.
+          </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_numeric_odeint.tutorial.solar_system.define_the_system_function"></a><a class="link" href="solar_system.html#boost_numeric_odeint.tutorial.solar_system.define_the_system_function" title="Define the system function">Define
+        the system function</a>
+</h4></div></div></div>
+<p>
+          To implement this system we define a 3D point type which will represent
+          the space as well as the velocity. Therefore, we use the operators from
+          <a href="http://www.boost.org/doc/libs/release/doc/html/operators.html" target="_top">Boost.Operators</a>:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">/*the point type */</span>
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">T</span> <span class="special">,</span> <span class="identifier">size_t</span> <span class="identifier">Dim</span> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">point</span> <span class="special">:</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">additive1</span><span class="special">&lt;</span> <span class="identifier">point</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">,</span> <span class="identifier">Dim</span> <span class="special">&gt;</span> <span class="special">,</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">additive2</span><span class="special">&lt;</span> <span class="identifier">point</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">,</span> <span class="identifier">Dim</span>  <span class="special">&gt;</span> <span class="special">,</span> <span class="identifier">T</span> <span class="special">,</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiplicative2</span><span class="special">&lt;</span> <span class="identifier">point</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">,</span> <span class="identifier">Dim</span> <span class="special">&gt;</span> <span class="special">,</span> <span class="identifier">T</span>
+    <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span>
+    <span class="special">{</span>
+    <span class="keyword">public</span><span class="special">:</span>
+
+        <span class="keyword">const</span> <span class="keyword">static</span> <span class="identifier">size_t</span> <span class="identifier">dim</span> <span class="special">=</span> <span class="identifier">Dim</span><span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="identifier">T</span> <span class="identifier">value_type</span><span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="identifier">point</span><span class="special">&lt;</span> <span class="identifier">value_type</span> <span class="special">,</span> <span class="identifier">dim</span> <span class="special">&gt;</span> <span class="identifier">point_type</span><span class="special">;</span>
+
+        <span class="comment">// ...</span>
+        <span class="comment">// constructors</span>
+
+        <span class="comment">// ...</span>
+        <span class="comment">// operators</span>
+
+    <span class="keyword">private</span><span class="special">:</span>
+
+        <span class="identifier">T</span> <span class="identifier">m_val</span><span class="special">[</span><span class="identifier">dim</span><span class="special">];</span>
+    <span class="special">};</span>
+
+    <span class="comment">//...</span>
+    <span class="comment">// more operators</span>
+</pre>
+<p>
+        </p>
+<p>
+          The next step is to define a container type storing the values of <span class="emphasis"><em>q</em></span>
+          and <span class="emphasis"><em>p</em></span> and to define system functions. As container
+          type we use <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span></code>
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// we simulate 5 planets and the sun</span>
+<span class="keyword">const</span> <span class="identifier">size_t</span> <span class="identifier">n</span> <span class="special">=</span> <span class="number">6</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">point</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">,</span> <span class="number">3</span> <span class="special">&gt;</span> <span class="identifier">point_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="identifier">point_type</span> <span class="special">,</span> <span class="identifier">n</span> <span class="special">&gt;</span> <span class="identifier">container_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">,</span> <span class="identifier">n</span> <span class="special">&gt;</span> <span class="identifier">mass_type</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          The <code class="computeroutput"><span class="identifier">container_type</span></code> is different
+          from the state type of the ODE. The state type of the ode is simply a
+          <code class="computeroutput"><span class="identifier">pair</span><span class="special">&lt;</span>
+          <span class="identifier">container_type</span> <span class="special">,</span>
+          <span class="identifier">container_type</span> <span class="special">&gt;</span></code>
+          since it needs the information about the coordinates and the momenta.
+        </p>
+<p>
+          Next we define the system's equations. As we will use a stepper that accounts
+          for the Hamiltonian (energy-preserving) character of the system, we have
+          to define the rhs different from the usual case where it is just a single
+          function. The stepper will make use of the separable character, which means
+          the system will be defined by two objects representing <span class="emphasis"><em>f(p) =
+          -dH/dq</em></span> and <span class="emphasis"><em>g(q) = dH/dp</em></span>:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">gravitational_constant</span> <span class="special">=</span> <span class="number">2.95912208286e-4</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">solar_system_coor</span>
+<span class="special">{</span>
+    <span class="keyword">const</span> <span class="identifier">mass_type</span> <span class="special">&amp;</span><span class="identifier">m_masses</span><span class="special">;</span>
+
+    <span class="identifier">solar_system_coor</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">mass_type</span> <span class="special">&amp;</span><span class="identifier">masses</span> <span class="special">)</span> <span class="special">:</span> <span class="identifier">m_masses</span><span class="special">(</span> <span class="identifier">masses</span> <span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="keyword">const</span> <span class="identifier">container_type</span> <span class="special">&amp;</span><span class="identifier">p</span> <span class="special">,</span> <span class="identifier">container_type</span> <span class="special">&amp;</span><span class="identifier">dqdt</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">n</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+            <span class="identifier">dqdt</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">p</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">/</span> <span class="identifier">m_masses</span><span class="special">[</span><span class="identifier">i</span><span class="special">];</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">solar_system_momentum</span>
+<span class="special">{</span>
+    <span class="keyword">const</span> <span class="identifier">mass_type</span> <span class="special">&amp;</span><span class="identifier">m_masses</span><span class="special">;</span>
+
+    <span class="identifier">solar_system_momentum</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">mass_type</span> <span class="special">&amp;</span><span class="identifier">masses</span> <span class="special">)</span> <span class="special">:</span> <span class="identifier">m_masses</span><span class="special">(</span> <span class="identifier">masses</span> <span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="keyword">const</span> <span class="identifier">container_type</span> <span class="special">&amp;</span><span class="identifier">q</span> <span class="special">,</span> <span class="identifier">container_type</span> <span class="special">&amp;</span><span class="identifier">dpdt</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">const</span> <span class="identifier">size_t</span> <span class="identifier">n</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">.</span><span class="identifier">size</span><span class="special">();</span>
+        <span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">n</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">dpdt</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">;</span>
+            <span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">j</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">j</span><span class="special">&lt;</span><span class="identifier">i</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">j</span> <span class="special">)</span>
+            <span class="special">{</span>
+                <span class="identifier">point_type</span> <span class="identifier">diff</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">[</span><span class="identifier">j</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">];</span>
+                <span class="keyword">double</span> <span class="identifier">d</span> <span class="special">=</span> <span class="identifier">abs</span><span class="special">(</span> <span class="identifier">diff</span> <span class="special">);</span>
+                <span class="identifier">diff</span> <span class="special">*=</span> <span class="special">(</span> <span class="identifier">gravitational_constant</span> <span class="special">*</span> <span class="identifier">m_masses</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">*</span> <span class="identifier">m_masses</span><span class="special">[</span><span class="identifier">j</span><span class="special">]</span> <span class="special">/</span> <span class="identifier">d</span> <span class="special">/</span> <span class="identifier">d</span> <span class="special">/</span> <span class="identifier">d</span> <span class="special">);</span>
+                <span class="identifier">dpdt</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">+=</span> <span class="identifier">diff</span><span class="special">;</span>
+                <span class="identifier">dpdt</span><span class="special">[</span><span class="identifier">j</span><span class="special">]</span> <span class="special">-=</span> <span class="identifier">diff</span><span class="special">;</span>
+
+            <span class="special">}</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          In general a three body-system is chaotic, hence we can not expect that
+          arbitrary initial conditions of the system will lead to a solution comparable
+          with the solar system dynamics. That is we have to define proper initial
+          conditions, which are taken from the book of Hairer, Wannier, Lubich <a class="link" href="../literature.html#hairer_geometrical_numeric_integration">[4] </a>.
+        </p>
+<p>
+          As mentioned above, we need to use some special integrators in order to
+          conserve phase space volume. There is a well known family of such integrators,
+          the so-called Runge-Kutta-Nystroem solvers, which we apply here in terms
+          of a <code class="computeroutput"><span class="identifier">symplectic_rkn_sb3a_mclachlan</span></code>
+          stepper:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">symplectic_rkn_sb3a_mclachlan</span><span class="special">&lt;</span> <span class="identifier">container_type</span> <span class="special">&gt;</span> <span class="identifier">stepper_type</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">dt</span> <span class="special">=</span> <span class="number">100.0</span><span class="special">;</span>
+
+<span class="identifier">integrate_const</span><span class="special">(</span>
+        <span class="identifier">stepper_type</span><span class="special">()</span> <span class="special">,</span>
+        <span class="identifier">make_pair</span><span class="special">(</span> <span class="identifier">solar_system_coor</span><span class="special">(</span> <span class="identifier">masses</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">solar_system_momentum</span><span class="special">(</span> <span class="identifier">masses</span> <span class="special">)</span> <span class="special">)</span> <span class="special">,</span>
+        <span class="identifier">make_pair</span><span class="special">(</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span> <span class="identifier">q</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span> <span class="identifier">p</span> <span class="special">)</span> <span class="special">)</span> <span class="special">,</span>
+        <span class="number">0.0</span> <span class="special">,</span> <span class="number">200000.0</span> <span class="special">,</span> <span class="identifier">dt</span> <span class="special">,</span> <span class="identifier">streaming_observer</span><span class="special">(</span> <span class="identifier">cout</span> <span class="special">)</span> <span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          These integration routine was used to produce the above sketch of the solar
+          system. Note, that there are two particularities in this example. First,
+          the state of the symplectic stepper is not <code class="computeroutput"><span class="identifier">container_type</span></code>
+          but a pair of <code class="computeroutput"><span class="identifier">container_type</span></code>.
+          Hence, we must pass such a pair to the integrate function. Since, we want
+          to pass them as references we can simply pack them into <a href="http://www.boost.org/doc/libs/release/doc/html/ref.html" target="_top">Boost.Ref</a>.
+          The second point is the observer, which is called with a state type, hence
+          a pair of <code class="computeroutput"><span class="identifier">container_type</span></code>.
+          The reference wrapper is also passed, but this is not a problem at all:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">streaming_observer</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span><span class="special">&amp;</span> <span class="identifier">m_out</span><span class="special">;</span>
+
+    <span class="identifier">streaming_observer</span><span class="special">(</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&amp;</span><span class="identifier">out</span> <span class="special">)</span> <span class="special">:</span> <span class="identifier">m_out</span><span class="special">(</span> <span class="identifier">out</span> <span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">State</span> <span class="special">&gt;</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="keyword">const</span> <span class="identifier">State</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="keyword">double</span> <span class="identifier">t</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">container_type</span> <span class="special">&amp;</span><span class="identifier">q</span> <span class="special">=</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">first</span><span class="special">;</span>
+        <span class="identifier">m_out</span> <span class="special">&lt;&lt;</span> <span class="identifier">t</span><span class="special">;</span>
+        <span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">q</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span> <span class="identifier">m_out</span> <span class="special">&lt;&lt;</span> <span class="string">"\t"</span> <span class="special">&lt;&lt;</span> <span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">];</span>
+        <span class="identifier">m_out</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            You can use C++11 lambda to create the observers
+          </p></td></tr>
+</table></div>
+<p>
+          The full example can be found here: <a href="../../../../../../../libs/numeric/odeint/examples/solar_system.cpp" target="_top">solar_system.cpp</a>
+        </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="harmonic_oscillator.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="chaotic_systems_and_lyapunov_exponents.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

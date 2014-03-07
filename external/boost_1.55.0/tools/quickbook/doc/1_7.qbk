@@ -1,0 +1,173 @@
+[/
+    Copyright 2002,2004,2006 Joel de Guzman, Eric Niebler
+    Copyright 2012-2013 Daniel James
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section:1_7 Quickbook 1.7]
+
+[section:context_error Error for elements used in incorrect context]
+
+Previously if you used an element in the wrong context it would just be
+unprocessed, which was surprising. People often didn't realise that their
+element hadn't been processed. So now it's an error.
+
+[endsect]
+
+[section:phrase_parse_error Error for invalid phrase elements]
+
+If the body of a phrase element didn't parse, it would be just used
+unprocessed. Now change it to be a hard error.
+
+[endsect]
+
+[section:source_mode Source mode for single entities]
+
+1.7 introduces a new `!` element type for setting the source mode of a single
+entity without changing the source mode otherwise. This can be used for
+code blocks and other elements. For example:
+
+```
+[!c++]
+    void foo() {};
+
+[!python]``\`\`\`\ ``def foo():``\`\`\`\ ``
+```
+
+It can also be used to set the source mode for elements:
+
+```
+[!teletype][table
+    [[code][meaning]]
+    [[`+`][addition]]
+]
+```
+
+When used before a section, it sets the source mode for the section element,
+not the whole section.
+
+Currently it does not support other syntactic entities such as paragraphs
+and lists. It will currently be used to the next code block or element.
+This is a bit messy, but I'm not sure what would be a good idea.
+
+[endsect]
+
+[section:callouts Callouts in code blocks]
+
+Currently callouts can only be used in code snippets. 1.7 adds
+support in normal code blocks. The same syntax is used as in
+code snippets, the callout descriptions appear immediately
+after the code block.
+
+[endsect]
+
+[section:escaped_docinfo_attributes Escaped docbook in docinfo blocks]
+
+Quickbook docinfo attributes will probably never be as rich as docbook
+attributes. To allow more flexible markup that is not supported by quickbook,
+escaped docbook can be included in the docinfo block:
+
+```
+[article Some article
+[quickbook 1.7]
+'''<author>
+    <firstname>John</firstname>
+    <surname>Doe</surname>
+    <email>john.doe@example.com</email>
+</author>'''
+]
+```
+
+The escaped docbook is always placed at the end of the docinfo block,
+so it shouldn't be assumed that it will interleave with markup generated from
+quickbook. A mixture
+of quickbook and docbook attributes for the same information will not work
+well.
+
+[endsect] [/escaped_docinfo_attributes]
+
+[section:listparagraphs Pargraphs in lists]
+
+Paragraphs and block elements can now be used in lists:
+
+[pre
+* Para 1
+
+  Para 2
+  * Nested Para 1
+
+    Nested Para 2
+
+        Code block
+  Para 3
+]
+
+generates:
+
+* Para 1
+
+  Para 2
+  * Nested Para 1
+
+    Nested Para 2
+
+        Code block
+  Para 3
+
+[endsect]
+
+[section:templates_in_link_values Templates in link values]
+
+There's very premilinary support for calling templates in link values. A lot
+more work needs to be done, including:
+
+* Considering other places where templates could be called (e.g. images are
+  quite tricky, as templates could get confused with attributes, should
+  templates be callable from something like an element's id?).
+* Trimming spaces from the body of the template (which can cause surprising
+  results).
+* Checking that the contents of the template are appropriate for the context.
+  Possibly even using a different grammar.
+
+[endsect] [/templates_in_link_values]
+
+[section:list_markup_in_tables List Markup in Nested Blocks]
+
+Can now place list markup in nested blocks, e.g in tables, variables lists etc.
+Unfortunately indented code blocks are more tricky, because the contents of
+these blocks are often indented already. It seemed easier to just not support
+indented code blocks in this context than to try to work out sensible actions
+for the edges cases. If you want to use code blocks in this context, you should
+still be able to use explicit markup.
+
+[endsect]
+
+[section:phrase_block_templates Allow block elements in phrase templates]
+
+Block elements can now be used in phrase templates, but paragraphs breaks aren't
+allowed, so this is an error:
+
+    [template paras[] Something or other.
+
+    Second paragraph.]
+
+If a phrase template only contains block elements, then it's practically
+indistinguishable from a block template. So you'll get the same output from:
+
+    [template foo[] [blurb Blah, blah, blah]]
+
+as:
+
+    [template foo[]
+    [blurb Blah, blah, blah]
+    ]
+
+If a phrase template has phrase content mixed with block elements, it'll generate
+output as if it was expanded inline.
+
+[endsect]
+
+[endsect] [/ Quickbok 1.7]

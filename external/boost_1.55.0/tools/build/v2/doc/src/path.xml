@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<section id="bbv2.reference.modules.path">
+
+  <title>path</title>
+  <indexterm>
+    <primary>path</primary>
+    <secondary>module</secondary>
+  </indexterm>
+
+  <para>
+    Performs various path manipulations. Paths are always in a 'normalized'
+    representation. In it, a path may be either:
+    
+    <itemizedlist>
+      <listitem><para><code>'.'</code>, or</para></listitem>
+      <listitem>
+        <para>
+          <code>['/'] [ ( '..' '/' )* (token '/')* token ]</code>
+        </para>
+      </listitem>
+    </itemizedlist>
+    
+    In plain english, a path can be rooted, <code>'..'</code>
+    elements are allowed only at the beginning, and it never
+    ends in slash, except for the path consisting of slash only.
+  </para>
+
+  <orderedlist>
+    
+    <listitem id="bbv2.reference.modules.path.make">
+      <indexterm zone="bbv2.reference.modules.path.make">
+        <primary>make</primary>
+        <secondary>path</secondary>
+      </indexterm>
+      <code language="jam">rule make ( native )</code>
+      <para>Converts the native path into normalized form.</para>
+    </listitem>
+    
+    <listitem id="bbv2.reference.modules.path.native">
+      <indexterm zone="bbv2.reference.modules.path.native">
+        <primary>native</primary>
+      </indexterm>
+      <code language="jam">rule native ( path )</code>
+      <para>Builds the native representation of the path.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.is-rooted">
+      <indexterm zone="bbv2.reference.modules.path.is-rooted">
+        <primary>is-rooted</primary>
+      </indexterm>
+      <code language="jam">rule is-rooted ( path )</code>
+      <para>Tests if a path is rooted.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.has-parent">
+      <indexterm zone="bbv2.reference.modules.path.has-parent">
+        <primary>has-parent</primary>
+      </indexterm>
+      <code language="jam">rule has-parent ( path )</code>
+      <para>Tests if a path has a parent.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.basename">
+      <indexterm zone="bbv2.reference.modules.path.basename">
+        <primary>basename</primary>
+      </indexterm>
+      <code language="jam">rule basename ( path )</code>
+      <para>Returns the path without any directory components.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.parent">
+      <indexterm zone="bbv2.reference.modules.path.parent">
+        <primary>parent</primary>
+      </indexterm>
+      <code language="jam">rule parent ( path )</code>
+      <para>Returns the parent directory of the path. If no parent exists, an error is issued.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.reverse">
+      <indexterm zone="bbv2.reference.modules.path.reverse">
+        <primary>reverse</primary>
+      </indexterm>
+      <code language="jam">rule reverse ( path )</code>
+      <para>
+        Returns <code language="jam">path2</code> such that
+        <code language="jam">[ join path path2 ] = "."</code>.
+        The path may not contain <code language="jam">".."</code>
+        element or be rooted.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.join">
+      <indexterm zone="bbv2.reference.modules.path.join">
+        <primary>join</primary>
+      </indexterm>
+      <code language="jam">rule join ( elements + )</code>
+      <para>
+        Concatenates the passed path elements. Generates an error if any
+        element other than the first one is rooted. Skips any empty or
+        undefined path elements.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.root">
+      <indexterm zone="bbv2.reference.modules.path.root">
+        <primary>root</primary>
+      </indexterm>
+      <code language="jam">rule root ( path root )</code>
+      <para>
+        If <code language="jam">path</code> is relative, it is rooted at
+        <code language="jam">root</code>. Otherwise, it is unchanged.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.pwd">
+      <indexterm zone="bbv2.reference.modules.path.pwd">
+        <primary>pwd</primary>
+      </indexterm>
+      <code language="jam">rule pwd ( )</code>
+      <para>Returns the current working directory.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.glob">
+      <indexterm zone="bbv2.reference.modules.path.glob">
+        <primary>glob</primary>
+      </indexterm>
+      <code language="jam">rule glob ( dirs * : patterns + : exclude-patterns * )</code>
+      <para>
+        Returns the list of files matching the given pattern in the specified
+        directory. Both directories and patterns are supplied as portable paths. Each
+        pattern should be a non-absolute path, and can't contain "." or ".." elements.
+        Each slash separated element of a pattern can contain the following special
+        characters:
+        <itemizedlist>
+          <listitem>
+            <para>'?' matches any character</para>
+          </listitem>
+          <listitem>
+            <para>'*' matches an arbitrary number of characters</para>
+          </listitem>
+        </itemizedlist>
+        A file $(d)/e1/e2/e3 (where 'd' is in $(dirs)) matches the pattern p1/p2/p3 if and
+        only if e1 matches p1, e2 matches p2 and so on.
+        
+        For example:
+<programlisting language="jam">
+[ glob . : *.cpp ]
+[ glob . : */build/Jamfile ]
+</programlisting>
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.glob-tree">
+      <indexterm zone="bbv2.reference.modules.path.glob-tree">
+        <primary>glob-tree</primary>
+      </indexterm>
+      <code language="jam">rule glob-tree ( roots * : patterns + : exclude-patterns * )</code>
+      <para>
+        Recursive version of <link linkend="bbv2.reference.modules.path.glob">glob</link>.
+        Builds the glob of files while also searching in
+        the subdirectories of the given roots. An optional set of exclusion patterns
+        will filter out the matching entries from the result. The exclusions also
+        apply to the subdirectory scanning, such that directories that match the
+        exclusion patterns will not be searched.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.exists">
+      <indexterm zone="bbv2.reference.modules.path.exists">
+        <primary>exists</primary>
+      </indexterm>
+      <code language="jam">rule exists ( file )</code>
+      <para>Returns true if the specified file exists.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.all-parents">
+      <indexterm zone="bbv2.reference.modules.path.all-parents">
+        <primary>all-parents</primary>
+      </indexterm>
+      <code language="jam">rule all-parents ( path : upper_limit ? : cwd ? )</code>
+      <para>
+        Find out the absolute name of path and return the list of all the parents,
+        starting with the immediate one. Parents are returned as relative names. If
+        <code language="jam">upper_limit</code> is specified, directories above it
+        will be pruned.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.glob-in-parents">
+      <indexterm zone="bbv2.reference.modules.path.glob-in-parents">
+        <primary>glob-in-parents</primary>
+      </indexterm>
+      <code language="jam">rule glob-in-parents ( dir : patterns + : upper-limit ? )</code>
+      <para>
+        Search for <code language="jam">patterns</code> in parent directories
+        of <code language="jam">dir</code>, up to and including
+        <code language="jam">upper_limit</code>, if it is specified, or
+        till the filesystem root otherwise.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.relative">
+      <indexterm zone="bbv2.reference.modules.path.relative">
+        <primary>relative</primary>
+      </indexterm>
+      <code language="jam">rule relative ( child parent : no-error ? )</code>
+      <para>
+        Assuming <code language="jam">child</code> is a subdirectory of
+        <code language="jam">parent</code>, return the relative path from
+        <code language="jam">parent</code> to <code language="jam">child</code>.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.relative-to">
+      <indexterm zone="bbv2.reference.modules.path.relative-to">
+        <primary>relative-to</primary>
+      </indexterm>
+      <code language="jam">rule relative-to ( path1 path2 )</code>
+      <para>Returns the minimal path to path2 that is relative path1.</para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.programs-path">
+      <indexterm zone="bbv2.reference.modules.path.programs-path">
+        <primary>programs-path</primary>
+      </indexterm>
+      <code language="jam">rule programs-path ( )</code>
+      <para>
+        Returns the list of paths which are used by the operating system for
+        looking up programs.
+      </para>
+    </listitem>
+
+    <listitem id="bbv2.reference.modules.path.mkdirs">
+      <indexterm zone="bbv2.reference.modules.path.mkdirs">
+        <primary>mkdirs</primary>
+      </indexterm>
+      <code language="jam">rule makedirs ( path )</code>
+      <para>
+        Creates a directory and all parent directories that do not
+        already exist.
+      </para>
+    </listitem>
+
+  </orderedlist>
+  
+</section>

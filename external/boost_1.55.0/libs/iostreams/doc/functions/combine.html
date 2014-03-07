@@ -1,0 +1,61 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Function Template combine</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Function Template <CODE>combine</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#description">Description</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#synopsis">Synopsis</A></DT>
+</DL>
+
+<A NAME="description"></A>
+<H2>Description</H2>
+
+<P>
+    The class template <CODE>combination</CODE> takes an <A HREF="../concepts/input_filter.html">InputFilter</A>/<A HREF="../concepts/output_filter.html">OutputFilter</A> pair or a <A HREF="../concepts/source.html">Source</A>/<A HREF="../concepts/sink.html">Sink</A> pair and yields a Filter or Device which performs input using the first component and output using the second. The function template <CODE>combine</CODE> takes an <A HREF="../concepts/input_filter.html">InputFilter</A>/<A HREF="../concepts/output_filter.html">OutputFilter</A> pair or a <A HREF="../concepts/source.html">Source</A>/<A HREF="../concepts/sink.html">Sink</A> pair and returns an appropriate specialization of <CODE>combination</CODE>.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/combine.hpp"><CODE>&lt;boost/iostreams/combine.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="synopsis"></A>
+<H2>Synopsis</H2>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+   
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> In, <SPAN CLASS="keyword">typename</SPAN> Out&gt;
+<SPAN CLASS="keyword">class</SPAN> combination;
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> In, <SPAN CLASS="keyword">typename</SPAN> Out&gt;
+combination&lt;In, Out&gt; combine(<SPAN CLASS="keyword">const</SPAN> In&amp; in, <SPAN CLASS="keyword">const</SPAN> Out&amp; out);
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

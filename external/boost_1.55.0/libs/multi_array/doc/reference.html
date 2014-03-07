@@ -1,0 +1,1381 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Boost.MultiArray Reference Manual</title><meta name="generator" content="DocBook XSL Stylesheets V1.76.1"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="article" title="Boost.MultiArray Reference Manual"><div class="titlepage"><div><div><h2 class="title"><a name="idp2304"></a>Boost.MultiArray Reference Manual</h2></div><div><div class="author"><h3 class="author"><span class="firstname">Ronald</span> <span class="surname">Garcia</span></h3><div class="affiliation"><span class="orgname">Indiana University<br></span> <span class="orgdiv">Open Systems Lab<br></span></div></div></div><div><p class="copyright">Copyright © 2002 The Trustees of Indiana University</p></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="sect1"><a href="#synopsis">Library Synopsis</a></span></dt><dt><span class="sect1"><a href="#MultiArray">MultiArray Concept</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idp18427760">Notation</a></span></dt><dt><span class="sect2"><a href="#idp18446208">Associated Types</a></span></dt><dt><span class="sect2"><a href="#idp18501744">Valid expressions</a></span></dt><dt><span class="sect2"><a href="#idp18588736">Complexity guarantees</a></span></dt><dt><span class="sect2"><a href="#idp18591264">Invariants</a></span></dt><dt><span class="sect2"><a href="#view_types">Associated Types for Views</a></span></dt><dt><span class="sect2"><a href="#idp18737792">Models</a></span></dt></dl></dd><dt><span class="sect1"><a href="#array_types">Array Components</a></span></dt><dd><dl><dt><span class="sect2"><a href="#multi_array_class"><code class="literal">multi_array</code></a></span></dt><dt><span class="sect2"><a href="#multi_array_ref"><code class="literal">multi_array_ref</code></a></span></dt><dt><span class="sect2"><a href="#const_multi_array_ref"><code class="literal">const_multi_array_ref</code></a></span></dt></dl></dd><dt><span class="sect1"><a href="#auxiliary">Auxiliary Components</a></span></dt><dd><dl><dt><span class="sect2"><a href="#multi_array_types"><code class="literal">multi_array_types</code></a></span></dt><dt><span class="sect2"><a href="#extent_range"><code class="classname">extent_range</code></a></span></dt><dt><span class="sect2"><a href="#extent_gen"><code class="classname">extent_gen</code></a></span></dt><dt><span class="sect2"><a href="#idp19487120">Global Objects</a></span></dt><dt><span class="sect2"><a href="#generators">View and SubArray Generators</a></span></dt><dt><span class="sect2"><a href="#memory_layout">Memory Layout Specifiers</a></span></dt><dt><span class="sect2"><a href="#range_checking">Range Checking</a></span></dt></dl></dd></dl></div><p>Boost.MultiArray is composed of several components.
+The MultiArray concept defines a generic interface to multidimensional
+containers.
+<code class="literal">multi_array</code> is a general purpose container class
+that models MultiArray. <code class="literal">multi_array_ref</code>
+and <code class="literal">const_multi_array_ref</code> are adapter
+classes. Using them, 
+you can manipulate any block of contiguous data as though it were a
+<code class="literal">multi_array</code>.
+<code class="literal">const_multi_array_ref</code> differs from
+<code class="literal">multi_array_ref</code> in that its elements cannot
+be modified through its interface. Finally, several auxiliary classes are used
+to create and specialize arrays and some global objects are defined as
+part of the library interface.</p><div class="sect1" title="Library Synopsis"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="synopsis"></a>Library Synopsis</h2></div></div></div><p>To use Boost.MultiArray, you must include the header 
+<code class="filename">boost/multi_array.hpp</code> in your source. This file
+brings the following declarations into scope:</p><pre class="programlisting">
+namespace boost {
+  
+  namespace multi_array_types {
+    typedef *unspecified* index;
+    typedef *unspecified* size_type;
+    typedef *unspecified* difference_type;
+    typedef *unspecified* index_range;
+    typedef *unspecified* extent_range;
+    typedef *unspecified* index_gen;
+    typedef *unspecified* extent_gen;
+  }
+
+  template &lt;typename ValueType, 
+            std::size_t NumDims, 
+            typename Allocator = std::allocator&lt;ValueType&gt; &gt;
+  class multi_array;
+
+  template &lt;typename ValueType, 
+            std::size_t NumDims&gt;
+  class multi_array_ref;
+
+  template &lt;typename ValueType, 
+            std::size_t NumDims&gt; 
+  class const_multi_array_ref;
+
+  multi_array_types::extent_gen extents;
+  multi_array_types::index_gen  indices;
+
+  template &lt;typename Array, int N&gt; class subarray_gen;
+  template &lt;typename Array, int N&gt; class const_subarray_gen;
+  template &lt;typename Array, int N&gt; class array_view_gen;
+  template &lt;typename Array, int N&gt; class const_array_view_gen;
+
+  class c_storage_order; 
+  class fortran_storage_order;
+  template &lt;std::size_t NumDims&gt; class general_storage_order;
+
+}
+</pre></div><div class="sect1" title="MultiArray Concept"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="MultiArray"></a>MultiArray Concept</h2></div></div></div><p>The MultiArray
+concept defines an interface to hierarchically nested
+containers.  It specifies operations for accessing elements,
+traversing containers, and creating views
+of array data.
+MultiArray defines
+a flexible memory model that accomodates
+a variety of data layouts.
+</p><p>
+At each level (or dimension) of a MultiArray's
+container hierarchy lie a set of ordered containers, each of which
+contains the same number and type of values. The depth of this
+container hierarchy is the MultiArray's <span class="emphasis"><em>dimensionality</em></span>. 
+MultiArray is recursively defined; the
+containers at each level of the container hierarchy model
+MultiArray as well. While each dimension of a MultiArray
+has its own size, the list of sizes for all dimensions 
+defines the <span class="emphasis"><em>shape</em></span> of the entire MultiArray.
+At the base of this hierarchy lie 1-dimensional
+MultiArrays.  Their values are the contained
+objects of interest and not part of the container hierarchy. These are
+the MultiArray's elements.
+</p><p>
+Like other container concepts, MultiArray exports
+iterators to traverse its values. In addition, values can be
+addressed directly using the familiar bracket notation.
+</p><p>
+MultiArray also specifies
+routines for creating
+specialized views. A <span class="emphasis"><em>view</em></span> lets you treat a 
+subset of the underlying
+elements in a MultiArray as though it were a separate
+MultiArray. Since a view refers to the same underlying elements,
+changes made to a view's elements will be reflected in the original
+MultiArray. For
+example, given a 3-dimensional "cube" of elements, a 2-dimensional
+slice can be viewed as if it were an independent
+MultiArray.
+
+Views are created using <code class="literal">index_gen</code> and
+<code class="literal">index_range</code> objects.
+<code class="literal">index_range</code>s denote elements from a certain
+dimension that are to be included in a
+view. <code class="literal">index_gen</code> aggregates range data and performs
+bookkeeping to determine the view type to be returned.
+
+MultiArray's <code class="literal">operator[]</code>
+ must be passed the result
+of <code class="literal">N</code> chained calls to 
+<code class="literal">index_gen::operator[]</code>, i.e.
+
+</p><pre class="programlisting">indices[a0][a1]...[aN];
+</pre><p>
+
+where <code class="literal">N</code> is the 
+MultiArray's dimensionality and
+<code class="literal">indices</code> an object of type <code class="literal">index_gen</code>.
+
+The view type is dependent upon the number of degenerate dimensions
+specified to <code class="literal">index_gen</code>.  A degenerate dimension
+occurs when a single-index is specified to
+<code class="literal">index_gen</code> for a certain dimension.  For example, if
+<code class="literal">indices</code> is an object of type
+<code class="literal">index_gen</code>, then the following example:
+
+</p><pre class="programlisting">indices[index_range(0,5)][2][index_range(0,4)];
+</pre><p>
+
+has a degenerate second dimension.  The view generated from the above
+specification will have 2 dimensions with shape <code class="literal">5 x 4</code>.
+If the "<code class="literal">2</code>" above were replaced with
+another <code class="literal">index_range</code> object, for example:
+
+</p><pre class="programlisting">indices[index_range(0,5)][index_range(0,2)][index_range(0,4)];
+</pre><p>
+
+then the view would have 3 dimensions.</p><p>
+MultiArray exports
+information regarding the memory
+layout of its contained elements. Its memory model for elements is
+completely defined by 4 properties: the origin, shape, index bases,
+and strides.  The origin is the address in memory of the element
+accessed as <code class="literal">a[0][0]...[0]</code>, where
+<code class="literal">a</code> is a MultiArray. The shape is a list of numbers
+specifying the size of containers at each dimension.  For example, the
+first extent is the size of the outermost container, the second extent
+is the size of its subcontainers, and so on. The index bases are a
+list of signed values specifying the index of the first value in a
+container. All containers at the same dimension share the same index
+base.  Note that since positive index bases are
+possible, the origin need not exist in order to determine the location
+in memory of the MultiArray's elements.
+  The strides determine how index values are mapped to memory offsets. 
+They accomodate a
+number of possible element layouts.  For example, the elements of a 2
+dimensional array can be stored by row (i.e., the elements of each row
+are stored contiguously) or by column (i.e., the elements of each
+column are stored contiguously).
+</p><p>
+Two concept checking classes for the MultiArray concepts
+(<code class="literal">ConstMultiArrayConcept</code> and
+<code class="literal">MutableMultiArrayConcept</code>) are in the namespace
+<code class="literal">boost::multi_array_concepts</code> in
+<code class="literal">&lt;boost/multi_array/concept_checks.hpp&gt;</code>.
+</p><div class="sect2" title="Notation"><div class="titlepage"><div><div><h3 class="title"><a name="idp18427760"></a>Notation</h3></div></div></div><p>What follows are the descriptions of symbols that will be used
+to describe the MultiArray interface.</p><div class="table"><a name="idp18428768"></a><p class="title"><b>Table 1. Notation</b></p><div class="table-contents"><table summary="Notation" border="1"><colgroup><col><col></colgroup><tbody><tr><td><code class="literal">A</code></td><td>A type that is a model of MultiArray
+</td></tr><tr><td><code class="literal">a,b</code></td><td>Objects of type <code class="literal">A</code></td></tr><tr><td><code class="literal">NumDims</code></td><td>The numeric dimension parameter associated with
+<code class="literal">A</code>.</td></tr><tr><td><code class="literal">Dims</code></td><td>Some numeric dimension parameter such that 
+<code class="literal">0&lt;Dims&lt;NumDims</code>.
+</td></tr><tr><td><code class="literal">indices</code></td><td>An object created by some number of chained calls
+to <code class="literal">index_gen::operator[](index_range)</code>.</td></tr><tr><td><code class="literal">index_list</code></td><td>An object whose type models
+<a class="ulink" href="../../utility/Collection.html" target="_top">Collection</a>
+</td></tr><tr><td><code class="literal">idx</code></td><td>A signed integral value.</td></tr><tr><td><code class="literal">tmp</code></td><td>An object of type
+	      <code class="literal">boost::array&lt;index,NumDims&gt;</code></td></tr></tbody></table></div></div><br class="table-break"></div><div class="sect2" title="Associated Types"><div class="titlepage"><div><div><h3 class="title"><a name="idp18446208"></a>Associated Types</h3></div></div></div><p>
+</p><div class="table"><a name="idp18447104"></a><p class="title"><b>Table 2. Associated Types</b></p><div class="table-contents"><table summary="Associated Types" border="1"><colgroup><col><col></colgroup><thead><tr><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code class="literal">value_type</code></td><td>This is the value type of the container.
+  If <code class="literal">NumDims == 1</code>, then this is
+<code class="literal">element</code>. Otherwise, this is the value type of the
+immediately nested containers.
+</td></tr><tr><td>
+<code class="literal">reference</code>
+</td><td>
+This is the reference type of the contained value. 
+If <code class="literal">NumDims == 1</code>, then this is 
+<code class="literal">element&amp;</code>. Otherwise, this is the same type as
+<code class="literal">template subarray&lt;NumDims-1&gt;::type</code>.
+</td></tr><tr><td>
+<code class="literal">const_reference</code>
+</td><td>
+This is the const reference type of the contained value.
+If <code class="literal">NumDims == 1</code>, then this is  
+<code class="literal">const element&amp;</code>. Otherwise, this is the same
+type as
+<code class="literal">template const_subarray&lt;NumDims-1&gt;::type</code>.
+</td></tr><tr><td>
+<code class="literal">size_type</code>
+</td><td>
+This is an unsigned integral type.  It is primarily used to specify array shape.
+</td></tr><tr><td>
+<code class="literal">difference_type</code>
+</td><td>
+This is a signed integral type used to represent the distance between two
+iterators. It is the same type as
+<code class="literal">std::iterator_traits&lt;iterator&gt;::difference_type</code>.
+</td></tr><tr><td><code class="literal">iterator</code></td><td>
+This is an iterator over the values of <code class="literal">A</code>.
+If <code class="literal">NumDims == 1</code>, then it models 
+<a class="ulink" href="http://www.boost.org/doc/html/RandomAccessIterator.html" target="_top">
+<code class="literal">Random Access Iterator</code></a>. 
+Otherwise it models 
+<a class="ulink" href="./iterator_categories.html#concept_RandomAccessTraversalIterator" target="_top">
+Random Access Traversal Iterator</a>,
+<a class="ulink" href="./iterator_categories.html#concept_ReadableIterator" target="_top">
+Readable Iterator</a>,
+<a class="ulink" href="./iterator_categories.html#concept_WritableIterator" target="_top">
+Writable Iterator</a>, and 
+<a class="ulink" href="http://www.boost.org/doc/html/OutputIterator.html" target="_top">
+<code class="literal">Output Iterator</code></a>.
+</td></tr><tr><td>
+<code class="literal">const_iterator</code>
+</td><td>
+This is the const iterator over the values of <code class="literal">A</code>.
+</td></tr><tr><td>
+<code class="literal">reverse_iterator</code>
+</td><td>
+This is the reversed iterator, used to iterate backwards over the values of 
+<code class="literal">A</code>.
+</td></tr><tr><td>
+<code class="literal">const_reverse_iterator</code>
+</td><td>
+This is the reversed const iterator.
+<code class="literal">A</code>.
+</td></tr><tr><td>
+<code class="literal">element</code>
+</td><td>
+This is the type of objects stored at the base of the
+hierarchy of MultiArrays. It is the same as
+<code class="literal">template subarray&lt;1&gt;::value_type</code>
+</td></tr><tr><td>
+<code class="literal">index</code>
+</td><td>
+This is a signed integral type used for indexing into <code class="literal">A</code>. It 
+is also used to represent strides and index bases.
+</td></tr><tr><td>
+<code class="literal">index_gen</code>
+</td><td>
+This type is used to create a tuple of <code class="literal">index_range</code>s 
+passed to <code class="literal">operator[]</code> to create
+an <code class="literal">array_view&lt;Dims&gt;::type</code> object.
+</td></tr><tr><td>
+<code class="literal">index_range</code>
+</td><td>
+This type specifies a range of indices over some dimension of a
+MultiArray.  This range will be visible through an 
+<code class="literal">array_view&lt;Dims&gt;::type</code> object.
+</td></tr><tr><td>
+<code class="literal">template subarray&lt;Dims&gt;::type</code>
+</td><td>
+This is subarray type with <code class="literal">Dims</code> dimensions.
+It is the reference type of the <code class="literal">(NumDims - Dims)</code>
+dimension of <code class="literal">A</code> and also models
+MultiArray.
+</td></tr><tr><td>
+<code class="literal">template const_subarray&lt;Dims&gt;::type</code>
+</td><td>
+This is the const subarray type.
+</td></tr><tr><td>
+<code class="literal">template array_view&lt;Dims&gt;::type</code>
+</td><td>
+This is the view type with <code class="literal">Dims</code> dimensions.  It is
+returned by calling <code class="literal">operator[](<code class="literal">indices</code>)</code>.
+It models MultiArray.
+</td></tr><tr><td>
+<code class="literal">template
+const_array_view&lt;Dims&gt;::type</code>
+</td><td>
+This is the const view type with <code class="literal">Dims</code> dimensions.
+</td></tr></tbody></table></div></div><br class="table-break"></div><div class="sect2" title="Valid expressions"><div class="titlepage"><div><div><h3 class="title"><a name="idp18501744"></a>Valid expressions</h3></div></div></div><div class="table"><a name="idp18502256"></a><p class="title"><b>Table 3. Valid Expressions</b></p><div class="table-contents"><table summary="Valid Expressions" border="1"><colgroup><col><col><col></colgroup><thead><tr><th>Expression</th><th>Return type</th><th>Semantics</th></tr></thead><tbody><tr><td><code class="literal">A::dimensionality</code></td><td><code class="literal">size_type</code></td><td>This compile-time constant represents the number of
+dimensions of the array (note that 
+<code class="literal">A::dimensionality == NumDims</code>).</td></tr><tr><td><code class="literal">a.shape()</code></td><td><code class="literal">const size_type*</code></td><td>
+This returns a list of <code class="literal">NumDims</code> elements specifying the
+extent of each array dimension.
+</td></tr><tr><td><code class="literal">a.strides()</code></td><td><code class="literal">const index*</code></td><td>
+This returns a list of <code class="literal">NumDims</code> elements specifying the
+stride associated with each array dimension. When accessing values,
+strides is used to calculate an element's location in memory.
+</td></tr><tr><td><code class="literal">a.index_bases()</code></td><td><code class="literal">const index*</code></td><td>
+This returns a list of <code class="literal">NumDims</code> elements specifying the
+numeric index of the first element for each array dimension.
+</td></tr><tr><td><code class="literal">a.origin()</code></td><td>
+<code class="literal">element*</code> if <code class="literal">a</code> is mutable,
+<code class="literal">const element*</code> otherwise.
+</td><td>
+This returns the address of the element accessed by the expression
+<code class="literal">a[0][0]...[0].</code>. If the index bases are positive,
+this element won't exist, but the address can still be used to locate
+a valid element given its indices.
+</td></tr><tr><td><code class="literal">a.num_dimensions()</code></td><td><code class="literal">size_type</code></td><td>This returns the number of dimensions of the array
+(note that <code class="literal">a.num_dimensions() == NumDims</code>).</td></tr><tr><td><code class="literal">a.num_elements()</code></td><td><code class="literal">size_type</code></td><td>This returns the number of elements contained
+in the array. It is equivalent to the following code:
+<pre class="programlisting">
+std::accumulate(a.shape(),a.shape+a.num_dimensions(),
+    size_type(1),std::multiplies&lt;size_type&gt;());
+</pre>
+</td></tr><tr><td><code class="literal">a.size()</code></td><td><code class="literal">size_type</code></td><td>
+This returns the number of values contained in
+<code class="literal">a</code>. It is equivalent to <code class="literal">a.shape()[0];</code>
+</td></tr><tr><td><code class="literal">a(index_list)</code></td><td>
+<code class="literal">element&amp;</code>;  if <code class="literal">a</code> is mutable,
+<code class="literal">const element&amp;</code> otherwise.
+            </td><td>
+This expression accesses a specific element of
+<code class="literal">a</code>.<code class="literal">index_list</code> is the unique set
+of indices that address the element returned.  It is 
+equivalent to the following code (disregarding intermediate temporaries):
+<pre class="programlisting">
+    // multiply indices by strides
+    std::transform(index_list.begin(), index_list.end(),
+      a.strides(), tmp.begin(), std::multiplies&lt;index&gt;()),
+
+    // add the sum of the products to the origin
+    *std::accumulate(tmp.begin(), tmp.end(), a.origin());
+</pre>
+</td></tr><tr><td><code class="literal">a.begin()</code></td><td>
+<code class="literal">iterator</code> if <code class="literal">a</code> is mutable,
+<code class="literal">const_iterator</code> otherwise.
+            </td><td>This returns an iterator pointing to the beginning of
+<code class="literal">a</code>.</td></tr><tr><td><code class="literal">a.end()</code></td><td>
+<code class="literal">iterator</code> if <code class="literal">a</code> is mutable,
+<code class="literal">const_iterator</code> otherwise.
+            </td><td>This returns an iterator pointing to the end of
+<code class="literal">a</code>.</td></tr><tr><td><code class="literal">a.rbegin()</code></td><td>
+<code class="literal">reverse_iterator</code> if <code class="literal">a</code> is mutable, 
+<code class="literal">const_reverse_iterator</code> otherwise.
+            </td><td>This returns a reverse iterator pointing to the
+beginning of <code class="literal">a</code> reversed.
+</td></tr><tr><td><code class="literal">a.rend()</code></td><td>
+<code class="literal">reverse_iterator</code> if <code class="literal">a</code> is mutable, 
+<code class="literal">const_reverse_iterator</code> otherwise.
+</td><td>
+This returns a reverse iterator pointing to the end of <code class="literal">a</code>
+reversed.
+</td></tr><tr><td><code class="literal">a[idx]</code></td><td>
+<code class="literal">reference</code> if <code class="literal">a</code> is mutable,
+<code class="literal">const_reference</code> otherwise.
+            </td><td>
+This returns a reference type that is bound to the index
+<code class="literal">idx</code> value of <code class="literal">a</code>.  Note that if
+<code class="literal">i</code> is the index base for this dimension, the above
+expression returns the <code class="literal">(idx-i)</code>th element (counting
+from zero).  The expression is equivalent to
+<code class="literal">*(a.begin()+idx-a.index_bases()[0]);</code>.
+</td></tr><tr><td><code class="literal">a[indices]</code></td><td>
+<code class="literal">array_view&lt;Dims&gt;::type</code> if
+<code class="literal">a</code> is mutable,
+<code class="literal">const_array_view&lt;Dims&gt;::type</code> otherwise.
+            </td><td>
+This expression generates a view of the array determined by the
+<code class="literal">index_range</code> and <code class="literal">index</code> values
+ used to construct <code class="literal">indices</code>.
+</td></tr><tr><td><code class="literal">a == b</code></td><td>bool</td><td>This performs a lexicographical comparison of the
+values of <code class="literal">a</code> and <code class="literal">b</code>.  The element
+type must model <a class="ulink" href="http://www.sgi.com/tech/stl/EqualityComparable.html" target="_top">EqualityComparable</a> for this
+expression to be valid.</td></tr><tr><td><code class="literal">a &lt; b</code></td><td>bool</td><td>This performs a lexicographical comparison of the
+values of <code class="literal">a</code> and <code class="literal">b</code>.  The element
+type must model <a class="ulink" href="http://www.sgi.com/tech/stl/LessThanComparable.html" target="_top">LessThanComparable</a> for this
+expression to be valid.</td></tr><tr><td><code class="literal">a &lt;= b</code></td><td>bool</td><td>This performs a lexicographical comparison of the
+values of <code class="literal">a</code> and <code class="literal">b</code>.  The element
+type must model <a class="ulink" href="http://www.sgi.com/tech/stl/EqualityComparable.html" target="_top">EqualityComparable</a> and
+<a class="ulink" href="http://www.sgi.com/tech/stl/LessThanComparable.html" target="_top">LessThanComparable</a> for this
+expression to be valid.</td></tr><tr><td><code class="literal">a &gt; b</code></td><td>bool</td><td>This performs a lexicographical comparison of the
+values of <code class="literal">a</code> and <code class="literal">b</code>.  The element
+type must model <a class="ulink" href="http://www.sgi.com/tech/stl/EqualityComparable.html" target="_top">EqualityComparable</a> and 
+<a class="ulink" href="http://www.sgi.com/tech/stl/LessThanComparable.html" target="_top">LessThanComparable</a> for this
+expression to be valid.</td></tr><tr><td><code class="literal">a &gt;= b</code></td><td>bool</td><td>This performs a lexicographical comparison of the
+values of <code class="literal">a</code> and <code class="literal">b</code>.  The element
+type must model <a class="ulink" href="http://www.sgi.com/tech/stl/LessThanComparable.html" target="_top">LessThanComparable</a> for this
+expression to be valid.</td></tr></tbody></table></div></div><br class="table-break"></div><div class="sect2" title="Complexity guarantees"><div class="titlepage"><div><div><h3 class="title"><a name="idp18588736"></a>Complexity guarantees</h3></div></div></div><code class="literal">begin()</code> and <code class="literal">end()</code> execute in amortized
+constant time.
+<code class="literal">size()</code> executes in at most linear time in the 
+MultiArray's size. 
+</div><div class="sect2" title="Invariants"><div class="titlepage"><div><div><h3 class="title"><a name="idp18591264"></a>Invariants</h3></div></div></div><div class="table"><a name="idp18591904"></a><p class="title"><b>Table 4. Invariants</b></p><div class="table-contents"><table summary="Invariants" border="1"><colgroup><col><col></colgroup><tbody><tr><td>Valid range</td><td><code class="literal">[a.begin(),a.end())</code> is a valid range.
+            </td></tr><tr><td>Range size</td><td>
+<code class="literal">a.size() == std::distance(a.begin(),a.end());</code>.
+</td></tr><tr><td>Completeness</td><td>
+Iteration through the range 
+<code class="literal">[a.begin(),a.end())</code> will traverse across every
+<code class="literal">value_type</code> of <code class="literal">a</code>.
+</td></tr><tr><td>Accessor Equivalence</td><td>
+Calling <code class="literal">a[a1][a2]...[aN]</code> where <code class="literal">N==NumDims</code>
+yields the same result as calling 
+<code class="literal">a(index_list)</code>, where <code class="literal">index_list</code>
+is a <a class="ulink" href="../../utility/Collection.html" target="_top">Collection</a> containing the values <code class="literal">a1...aN</code>.
+</td></tr></tbody></table></div></div><br class="table-break"></div><div class="sect2" title="Associated Types for Views"><div class="titlepage"><div><div><h3 class="title"><a name="view_types"></a>Associated Types for Views</h3></div></div></div><p>The following MultiArray  associated 
+types define the interface for creating views of existing
+MultiArrays. Their interfaces and roles in the
+concept are described below.</p><div class="sect3" title="index_range"><div class="titlepage"><div><div><h4 class="title"><a name="index_range"></a><code class="literal">index_range</code></h4></div></div></div><p><code class="literal">index_range</code> objects represent half-open
+strided intervals.  They are aggregated (using an
+<code class="literal">index_gen</code> object) and passed to 
+a MultiArray's <code class="literal">operator[]</code>
+to create an array view. When creating a view, 
+each <code class="literal">index_range</code> denotes a range of
+valid indices along one dimension of a MultiArray.
+Elements that are accessed through the set of ranges specified will be 
+included in the constructed view. In some cases, an
+<code class="literal">index_range</code> is created without specifying start
+or finish values.  In those cases, the object is interpreted to
+start at the beginning of a MultiArray dimension
+and end at its end.</p><p>
+<code class="literal">index_range</code> objects can be constructed and modified 
+several ways in order to allow convenient and clear expression of a
+range of indices.  To specify ranges, <code class="literal">index_range</code>
+supports a set of constructors, mutating member functions, and a novel 
+specification involving inequality operators.  Using inequality
+operators,  a half open range [5,10) can be specified as follows:
+</p><pre class="programlisting">5 &lt;= index_range() &lt; 10;</pre><p> or
+</p><pre class="programlisting">4 &lt; index_range() &lt;= 9;</pre><p> and so on.
+
+The following describes the
+<code class="literal">index_range</code> interface.
+</p><div class="table"><a name="idp18614960"></a><p class="title"><b>Table 5. Notation</b></p><div class="table-contents"><table summary="Notation" border="1"><colgroup><col><col></colgroup><tbody><tr><td><code class="literal">i</code></td><td>An object of type <code class="literal">index_range</code>.</td></tr><tr><td><code class="literal">idx,idx1,idx2,idx3</code></td><td>Objects of type <code class="literal">index</code>.</td></tr></tbody></table></div></div><br class="table-break"><div class="table"><a name="idp18620944"></a><p class="title"><b>Table 6. Associated Types</b></p><div class="table-contents"><table summary="Associated Types" border="1"><colgroup><col><col></colgroup><thead><tr><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code class="literal">index</code></td><td>This is a signed integral type. It is used to
+specify the start, finish, and stride values.</td></tr><tr><td><code class="literal">size_type</code></td><td>This is an unsigned integral type. It is used to
+report the size of the range an <code class="literal">index_range</code> 
+represents.</td></tr></tbody></table></div></div><br class="table-break"><div class="table"><a name="idp18627920"></a><p class="title"><b>Table 7. Valid Expressions</b></p><div class="table-contents"><table summary="Valid Expressions" border="1"><colgroup><col><col><col></colgroup><thead><tr><th>Expression</th><th>Return type</th><th>Semantics</th></tr></thead><tbody><tr><td><code class="literal">index_range(idx1,idx2,idx3)</code></td><td><code class="literal">index_range</code></td><td>This constructs an <code class="literal">index_range</code>
+	    representing the interval <code class="literal">[idx1,idx2)</code>
+ with stride <code class="literal">idx3</code>.</td></tr><tr><td><code class="literal">index_range(idx1,idx2)</code></td><td><code class="literal">index_range</code></td><td>This constructs an <code class="literal">index_range</code>
+	    representing the interval <code class="literal">[idx1,idx2)</code>
+ with unit stride. It is equivalent to
+	    <code class="literal">index_range(idx1,idx2,1)</code>.</td></tr><tr><td><code class="literal">index_range()</code></td><td><code class="literal">index_range</code></td><td>This construct an <code class="literal">index_range</code>
+with unspecified start and finish values.</td></tr><tr><td><code class="literal">i.start(idx1)</code></td><td><code class="literal">index&amp;</code></td><td>This sets the start index of <code class="literal">i</code> to
+	    <code class="literal">idx</code>.</td></tr><tr><td><code class="literal">i.finish(idx)</code></td><td><code class="literal">index&amp;</code></td><td>This sets the finish index of <code class="literal">i</code> to 
+            <code class="literal">idx</code>.</td></tr><tr><td><code class="literal">i.stride(idx)</code></td><td><code class="literal">index&amp;</code></td><td>This sets the stride length of <code class="literal">i</code> to
+            <code class="literal">idx</code>.</td></tr><tr><td><code class="literal">i.start()</code></td><td><code class="literal">index</code></td><td>This returns the start index of <code class="literal">i</code>.</td></tr><tr><td><code class="literal">i.finish()</code></td><td><code class="literal">index</code></td><td>This returns the finish index of <code class="literal">i</code>.</td></tr><tr><td><code class="literal">i.stride()</code></td><td><code class="literal">index</code></td><td>This returns the stride length of <code class="literal">i</code>.</td></tr><tr><td><code class="literal">i.get_start(idx)</code></td><td><code class="literal">index</code></td><td>If <code class="literal">i</code> specifies a start
+value, this is equivalent to <code class="literal">i.start()</code>. Otherwise it
+returns <code class="literal">idx</code>.</td></tr><tr><td><code class="literal">i.get_finish(idx)</code></td><td><code class="literal">index</code></td><td>If <code class="literal">i</code> specifies a finish
+value, this is equivalent to <code class="literal">i.finish()</code>. Otherwise it
+returns <code class="literal">idx</code>.</td></tr><tr><td><code class="literal">i.size(idx)</code></td><td><code class="literal">size_type</code></td><td>If <code class="literal">i</code> specifies a both finish and
+start values, this is equivalent to
+<code class="literal">(i.finish()-i.start())/i.stride()</code>. Otherwise it
+returns <code class="literal">idx</code>.</td></tr><tr><td><code class="literal">i &lt; idx</code></td><td><code class="literal">index</code></td><td>This is another syntax for specifying the finish
+value. This notation does not include 
+<code class="literal">idx</code> in the range of valid indices. It is equivalent to 
+<code class="literal">index_range(r.start(), idx, r.stride())</code></td></tr><tr><td><code class="literal">i &lt;= idx</code></td><td><code class="literal">index</code></td><td>This is another syntax for specifying the finish
+value. This notation includes 
+<code class="literal">idx</code> in the range of valid indices. It is equivalent to 
+<code class="literal">index_range(r.start(), idx + 1, r.stride())</code></td></tr><tr><td><code class="literal">idx &lt; i</code></td><td><code class="literal">index</code></td><td>This is another syntax for specifying the start
+value. This notation does not include 
+<code class="literal">idx</code> in the range of valid indices. It is equivalent to 
+<code class="literal">index_range(idx + 1, i.finish(), i.stride())</code>.</td></tr><tr><td><code class="literal">idx &lt;= i</code></td><td><code class="literal">index</code></td><td>This is another syntax for specifying the start
+value. This notation includes
+<code class="literal">idx1</code> in the range of valid indices. It is equivalent to 
+<code class="literal">index_range(idx, i.finish(), i.stride())</code>.</td></tr><tr><td><code class="literal">i + idx</code></td><td><code class="literal">index</code></td><td>This expression shifts the start and finish values
+of <code class="literal">i</code> up by <code class="literal">idx</code>. It is equivalent to 
+<code class="literal">index_range(r.start()+idx1, r.finish()+idx, r.stride())</code></td></tr><tr><td><code class="literal">i - idx</code></td><td><code class="literal">index</code></td><td>This expression shifts the start and finish values
+of <code class="literal">i</code> up by <code class="literal">idx</code>. It is equivalent to 
+<code class="literal">index_range(r.start()-idx1, r.finish()-idx, r.stride())</code></td></tr></tbody></table></div></div><br class="table-break"></div><div class="sect3" title="index_gen"><div class="titlepage"><div><div><h4 class="title"><a name="index_gen"></a><code class="literal">index_gen</code></h4></div></div></div><p> <code class="literal">index_gen</code> aggregates 
+<code class="literal">index_range</code> objects in order to specify view
+parameters.  Chained calls to <code class="literal">operator[]</code> store
+range and dimension information used to 
+instantiate a new view into a MultiArray.
+</p><div class="table"><a name="idp18699808"></a><p class="title"><b>Table 8. Notation</b></p><div class="table-contents"><table summary="Notation" border="1"><colgroup><col><col></colgroup><tbody><tr><td><code class="literal">Dims,Ranges</code></td><td>Unsigned integral values.</td></tr><tr><td><code class="literal">x</code></td><td>An object of type 
+<code class="literal">template gen_type&lt;Dims,Ranges&gt;::type</code>.</td></tr><tr><td><code class="literal">i</code></td><td>An object of type 
+<code class="literal">index_range</code>.</td></tr><tr><td><code class="literal">idx</code></td><td>Objects of type <code class="literal">index</code>.</td></tr></tbody></table></div></div><br class="table-break"><div class="table"><a name="idp18709408"></a><p class="title"><b>Table 9. Associated Types</b></p><div class="table-contents"><table summary="Associated Types" border="1"><colgroup><col><col></colgroup><thead><tr><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code class="literal">index</code></td><td>This is a signed integral type. It is used to
+specify degenerate dimensions.</td></tr><tr><td><code class="literal">size_type</code></td><td>This is an unsigned integral type. It is used to
+report the size of the range an <code class="literal">index_range</code> 
+represents.</td></tr><tr><td>
+<code class="literal">template gen_type::&lt;Dims,Ranges&gt;::type</code></td><td>This type generator names the result of 
+<code class="literal">Dims</code> chained calls to
+<code class="literal">index_gen::operator[]</code>.  The
+<code class="literal">Ranges</code> parameter is determined by the number of
+degenerate ranges specified (i.e. calls to
+<code class="literal">operator[](index)</code>). Note that  
+<code class="classname">index_gen</code> and
+<code class="classname">gen_type&lt;0,0&gt;::type</code> are the same type.</td></tr></tbody></table></div></div><br class="table-break"><div class="table"><a name="idp18721296"></a><p class="title"><b>Table 10. Valid Expressions</b></p><div class="table-contents"><table summary="Valid Expressions" border="1"><colgroup><col><col><col></colgroup><thead><tr><th>Expression</th><th>Return type</th><th>Semantics</th></tr></thead><tbody><tr><td><code class="literal">index_gen()</code></td><td><code class="literal">gen_type&lt;0,0&gt;::type</code></td><td>This constructs an <code class="literal">index_gen</code>
+object. This object can then be used to generate tuples of
+<code class="literal">index_range</code> values.</td></tr><tr><td><code class="literal">x[i]</code></td><td><code class="literal">gen_type&lt;Dims+1,Ranges+1&gt;::type</code>
+</td><td>Returns a new object containing all previous
+<code class="classname">index_range</code> objects in addition to
+<code class="literal">i.</code> Chained calls to
+<code class="function">operator[]</code> are the means by which
+<code class="classname">index_range</code> objects are aggregated.</td></tr><tr><td><code class="literal">x[idx]</code></td><td><code class="literal">gen_type&lt;Dims,Ranges+1&gt;::type</code>
+</td><td>Returns a new object containing all previous
+<code class="classname">index_range</code> objects in addition to a degenerate
+range, <code class="literal">index_range(idx,idx).</code> Note that this is NOT
+equivalent to <code class="literal">x[index_range(idx,idx)].</code>, which will
+return an object of type
+<code class="literal">gen_type&lt;Dims+1,Ranges+1&gt;::type</code>.
+</td></tr></tbody></table></div></div><br class="table-break"></div></div><div class="sect2" title="Models"><div class="titlepage"><div><div><h3 class="title"><a name="idp18737792"></a>Models</h3></div></div></div><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><code class="literal">multi_array</code></li><li class="listitem"><code class="literal">multi_array_ref</code></li><li class="listitem"><code class="literal">const_multi_array_ref</code></li><li class="listitem"><code class="literal">template array_view&lt;Dims&gt;::type</code></li><li class="listitem"><code class="literal">template const_array_view&lt;Dims&gt;::type</code></li><li class="listitem"><code class="literal">template subarray&lt;Dims&gt;::type</code></li><li class="listitem"><code class="literal">template const_subarray&lt;Dims&gt;::type</code></li></ul></div></div></div><div class="sect1" title="Array Components"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="array_types"></a>Array Components</h2></div></div></div><p>
+Boost.MultiArray defines an array class,
+<code class="literal">multi_array</code>, and two adapter classes,
+<code class="literal">multi_array_ref</code> and 
+<code class="literal">const_multi_array_ref</code>. The three classes model 
+MultiArray and so they share a lot of functionality.
+<code class="literal">multi_array_ref</code> differs from
+<code class="literal">multi_array</code> in that the
+<code class="literal">multi_array</code> manages its own memory, while
+<code class="literal">multi_array_ref</code> is passed a block of memory that it
+expects to be externally managed.
+<code class="literal">const_multi_array_ref</code> differs from
+<code class="literal">multi_array_ref</code> in that the underlying elements it
+adapts cannot be modified through its interface, though some array
+properties, including the array shape and index bases, can be altered.
+Functionality the classes have in common is described
+below.
+</p><p title="Note: Preconditions, Effects, and Implementation"><b>Note: Preconditions, Effects, and Implementation. </b>
+Throughout the following sections, small pieces of C++ code are
+used to specify constraints such as preconditions, effects, and
+postconditions.  These do not necessarily describe the underlying
+implementation of array components; rather, they describe the 
+expected input to and
+behavior of the specified operations.  Failure to meet
+preconditions results in undefined behavior. Not all effects
+(i.e. copy constructors, etc.) must be mimicked exactly.  The code
+snippets for effects intend to capture the essence of the described
+operation. 
+</p><p title="Queries"><b>Queries. </b></p><div class="variablelist"><dl><dt><span class="term"><pre class="programlisting">element* data();
+const element* data() const;</pre></span></dt><dd><p>This returns a pointer to the beginning of the
+contiguous block that contains the array's data. If all dimensions of
+the array are 0-indexed and stored in ascending order, this is 
+equivalent to <code class="literal">origin()</code>. Note that
+<code class="literal">const_multi_array_ref</code> only provides the const
+version of this function.
+</p></dd><dt><span class="term"><pre class="programlisting">element* origin();
+const element* origin() const;</pre></span></dt><dd><p>This returns the origin element of the
+<code class="literal">multi_array</code>. Note that
+<code class="literal">const_multi_array_ref</code> only provides the const
+version of this function. (Required by MultiArray)
+</p></dd><dt><span class="term"><code class="function">const index* index_bases();</code></span></dt><dd><p>This returns the index bases for the
+<code class="literal">multi_array</code>. (Required by MultiArray)
+</p></dd><dt><span class="term"><code class="function">const index* strides();</code></span></dt><dd><p>This returns the strides for the
+<code class="literal">multi_array</code>. (Required by MultiArray)
+</p></dd><dt><span class="term"><code class="function">const size_type* shape();</code></span></dt><dd><p>This returns the shape of the
+<code class="literal">multi_array</code>. (Required by MultiArray)
+</p></dd></dl></div><p title="Comparators"><b>Comparators. </b></p><div class="variablelist"><dl><dt><span class="term"><pre class="programlisting">
+bool operator==(const *array-type*&amp; rhs);
+bool operator!=(const *array-type*&amp; rhs);
+bool operator&lt;(const *array-type*&amp; rhs);
+bool operator&gt;(const *array-type*&amp; rhs);
+bool operator&gt;=(const *array-type*&amp; rhs);
+bool operator&lt;=(const *array-type*&amp; rhs);</pre></span></dt><dd><p>Each comparator executes a lexicographical compare over
+the value types of the two arrays.
+(Required by MultiArray)
+</p><p title="Preconditions"><b>Preconditions. </b><code class="literal">element</code> must support the
+comparator corresponding to that called on
+<code class="literal">multi_array</code>.</p><p title="Complexity"><b>Complexity. </b>O(<code class="literal">num_elements()</code>).</p></dd></dl></div><p title="Modifiers"><b>Modifiers. </b></p><div class="variablelist"><dl><dt><span class="term">
+<pre class="programlisting">
+
+template &lt;typename SizeList&gt;
+void reshape(const SizeList&amp; sizes)
+
+</pre>
+</span></dt><dd><p>This changes the shape of the <code class="literal">multi_array</code>.  The
+number of elements and the index bases remain the same, but the number
+of values at each level of the nested container hierarchy may
+change.</p><p title="SizeList Requirements"><b><code class="literal">SizeList</code> Requirements. </b><code class="literal">SizeList</code> must model
+<a class="ulink" href="../../utility/Collection.html" target="_top">Collection</a>.</p><p title="Preconditions"><b>Preconditions. </b>
+</p><pre class="programlisting">
+std::accumulate(sizes.begin(),sizes.end(),size_type(1),std::times&lt;size_type&gt;()) == this-&gt;num_elements();
+sizes.size() == NumDims;
+</pre><p title="Postconditions"><b>Postconditions. </b>
+<code class="literal">std::equal(sizes.begin(),sizes.end(),this-&gt;shape) == true;</code>
+</p></dd><dt><span class="term">
+<pre class="programlisting">
+
+template &lt;typename BaseList&gt;
+void reindex(const BaseList&amp; values);
+
+</pre>
+</span></dt><dd><p>This changes the index bases of the <code class="literal">multi_array</code> to
+correspond to the the values in <code class="literal">values</code>.</p><p title="BaseList Requirements"><b><code class="literal">BaseList</code> Requirements. </b><code class="literal">BaseList</code> must model
+<a class="ulink" href="../../utility/Collection.html" target="_top">Collection</a>.</p><p title="Preconditions"><b>Preconditions. </b><code class="literal">values.size() == NumDims;</code></p><p title="Postconditions"><b>Postconditions. </b><code class="literal">std::equal(values.begin(),values.end(),this-&gt;index_bases());
+</code></p></dd><dt><span class="term">
+<pre class="programlisting">
+
+void reindex(index value);
+
+</pre>
+</span></dt><dd><p>This changes the index bases of all dimensions of the
+<code class="literal">multi_array</code> to <code class="literal">value</code>.</p><p title="Postconditions"><b>Postconditions. </b>
+</p><pre class="programlisting">
+
+std::count_if(this-&gt;index_bases(),this-&gt;index_bases()+this-&gt;num_dimensions(),
+              std::bind_2nd(std::equal_to&lt;index&gt;(),value)) == 
+              this-&gt;num_dimensions();
+
+</pre><p title="Postconditions">
+</p></dd></dl></div><div class="sect2" title="multi_array"><div class="titlepage"><div><div><h3 class="title"><a name="multi_array_class"></a><code class="literal">multi_array</code></h3></div></div></div><p>
+<code class="literal">multi_array</code> is a multi-dimensional container that
+supports random access iteration. Its number of dimensions is
+fixed at compile time, but its shape and the number of elements it
+contains are specified during its construction. The number of elements
+will remain fixed for the duration of a
+<code class="literal">multi_array</code>'s lifetime, but the shape of the container can
+be changed. A <code class="literal">multi_array</code> manages its data elements
+using a replaceable allocator.
+</p><p title="Model Of."><b>Model Of. </b>
+<a class="link" href="#MultiArray" title="MultiArray Concept">MultiArray</a>,
+<a class="ulink" href="../../../libs/utility/CopyConstructible.html" target="_top">CopyConstructible</a>. Depending on the element type, 
+it may also model <a class="ulink" href="http://www.sgi.com/tech/stl/EqualityComparable.html" target="_top">EqualityComparable</a> and <a class="ulink" href="http://www.sgi.com/tech/stl/LessThanComparable.html" target="_top">LessThanComparable</a>. 
+</p><p title="Synopsis"><b>Synopsis. </b></p><pre class="programlisting">
+
+namespace boost {
+
+template &lt;typename ValueType, 
+          std::size_t NumDims, 
+          typename Allocator = std::allocator&lt;ValueType&gt; &gt;
+class multi_array {
+public:
+// types:
+  typedef ValueType                             element;
+  typedef *unspecified*                         value_type;
+  typedef *unspecified*                         reference;
+  typedef *unspecified*                         const_reference;
+  typedef *unspecified*                         difference_type;
+  typedef *unspecified*                         iterator;
+  typedef *unspecified*                         const_iterator;
+  typedef *unspecified*                         reverse_iterator;
+  typedef *unspecified*                         const_reverse_iterator;
+  typedef multi_array_types::size_type          size_type;
+  typedef multi_array_types::index              index;
+  typedef multi_array_types::index_gen          index_gen;
+  typedef multi_array_types::index_range        index_range;
+  typedef multi_array_types::extent_gen         extent_gen;
+  typedef multi_array_types::extent_range       extent_range;
+  typedef *unspecified*                         storage_order_type;
+
+
+  // template typedefs
+  template &lt;std::size_t Dims&gt; struct            subarray;
+  template &lt;std::size_t Dims&gt; struct            const_subarray;
+  template &lt;std::size_t Dims&gt; struct            array_view;
+  template &lt;std::size_t Dims&gt; struct            const_array_view;
+  
+
+  static const std::size_t dimensionality = NumDims;
+  
+
+  // constructors and destructors
+
+  multi_array();
+
+  template &lt;typename ExtentList&gt;
+  explicit multi_array(const ExtentList&amp; sizes,
+                       const storage_order_type&amp; store = c_storage_order(),
+                       const Allocator&amp; alloc = Allocator());
+  explicit multi_array(const extents_tuple&amp; ranges,
+                       const storage_order_type&amp; store = c_storage_order(),
+	               const Allocator&amp; alloc = Allocator());
+  multi_array(const multi_array&amp; x);
+  multi_array(const const_multi_array_ref&lt;ValueType,NumDims&gt;&amp; x);
+  multi_array(const const_subarray&lt;NumDims&gt;::type&amp; x);
+  multi_array(const const_array_view&lt;NumDims&gt;::type&amp; x);
+
+  multi_array(const multi_array_ref&lt;ValueType,NumDims&gt;&amp; x);
+  multi_array(const subarray&lt;NumDims&gt;::type&amp; x);
+  multi_array(const array_view&lt;NumDims&gt;::type&amp; x);
+
+  ~multi_array();
+
+  // modifiers
+
+  multi_array&amp; operator=(const multi_array&amp; x);
+  template &lt;class Array&gt; multi_array&amp; operator=(const Array&amp; x);
+
+  // iterators:
+  iterator				begin();
+  iterator				end();
+  const_iterator			begin() const;
+  const_iterator			end() const;
+  reverse_iterator			rbegin();
+  reverse_iterator			rend();
+  const_reverse_iterator		rbegin() const;
+  const_reverse_iterator		rend() const;
+
+  // capacity:
+  size_type				size() const;
+  size_type				num_elements() const;
+  size_type				num_dimensions() const;
+ 
+  // element access:
+  template &lt;typename IndexList&gt; 
+    element&amp;			operator()(const IndexList&amp; indices);
+  template &lt;typename IndexList&gt;
+    const element&amp;		operator()(const IndexList&amp; indices) const;
+  reference			operator[](index i);
+  const_reference		operator[](index i) const;
+  array_view&lt;Dims&gt;::type	operator[](const indices_tuple&amp; r);
+  const_array_view&lt;Dims&gt;::type	operator[](const indices_tuple&amp; r) const;
+
+  // queries
+  element*			data();
+  const element*		data() const;
+  element*			origin();
+  const element*		origin() const;
+  const size_type*		shape() const;
+  const index*			strides() const;
+  const index*			index_bases() const;
+  const storage_order_type&amp;     storage_order() const;
+
+  // comparators
+  bool operator==(const multi_array&amp; rhs);
+  bool operator!=(const multi_array&amp; rhs);
+  bool operator&lt;(const multi_array&amp; rhs);
+  bool operator&gt;(const multi_array&amp; rhs);
+  bool operator&gt;=(const multi_array&amp; rhs);
+  bool operator&lt;=(const multi_array&amp; rhs);
+
+  // modifiers:
+  template &lt;typename InputIterator&gt;
+    void			assign(InputIterator begin, InputIterator end);
+  template &lt;typename SizeList&gt;
+    void			reshape(const SizeList&amp; sizes)
+  template &lt;typename BaseList&gt;	void reindex(const BaseList&amp; values);
+    void			reindex(index value);
+  template &lt;typename ExtentList&gt;
+    multi_array&amp;		resize(const ExtentList&amp; extents);
+  multi_array&amp;                  resize(extents_tuple&amp; extents);
+};
+
+</pre><p title="Constructors"><b>Constructors. </b></p><div class="variablelist"><dl><dt><span class="term"><pre class="programlisting">template &lt;typename ExtentList&gt;
+explicit multi_array(const ExtentList&amp; sizes,
+                     const storage_order_type&amp; store = c_storage_order(),
+                     const Allocator&amp; alloc = Allocator());
+</pre></span></dt><dd><p>
+This constructs a <code class="literal">multi_array</code> using the specified
+parameters.  <code class="literal">sizes</code> specifies the shape of the
+constructed <code class="literal">multi_array</code>.  <code class="literal">store</code>
+specifies the storage order or layout in memory of the array
+dimensions.  <code class="literal">alloc</code> is used to
+allocate the contained elements.
+</p><p title="ExtentList Requirements"><b><code class="literal">ExtentList</code> Requirements. </b>
+<code class="literal">ExtentList</code> must model <a class="ulink" href="../../utility/Collection.html" target="_top">Collection</a>.
+</p><p title="Preconditions"><b>Preconditions. </b><code class="literal">sizes.size() == NumDims;</code></p></dd><dt><span class="term">
+<pre class="programlisting">explicit multi_array(extent_gen::gen_type&lt;NumDims&gt;::type ranges,
+                     const storage_order_type&amp; store = c_storage_order(),
+                     const Allocator&amp; alloc = Allocator());
+</pre></span></dt><dd><p>
+This constructs a <code class="literal">multi_array</code> using the specified
+    parameters.  <code class="literal">ranges</code> specifies the shape and
+index bases of the constructed multi_array. It is the result of 
+<code class="literal">NumDims</code> chained calls to 
+    <code class="literal">extent_gen::operator[]</code>. <code class="literal">store</code>
+specifies the storage order or layout in memory of the array
+dimensions.  <code class="literal">alloc</code> is the allocator used to
+allocate the memory used to store <code class="literal">multi_array</code>
+elements.
+</p></dd><dt><span class="term"><pre class="programlisting">
+multi_array(const multi_array&amp; x);
+multi_array(const const_multi_array_ref&lt;ValueType,NumDims&gt;&amp; x);
+multi_array(const const_subarray&lt;NumDims&gt;::type&amp; x);
+multi_array(const const_array_view&lt;NumDims&gt;::type&amp; x);
+multi_array(const multi_array_ref&lt;ValueType,NumDims&gt;&amp; x);
+multi_array(const subarray&lt;NumDims&gt;::type&amp; x);
+multi_array(const array_view&lt;NumDims&gt;::type&amp; x);
+</pre></span></dt><dd><p>These constructors all constructs a <code class="literal">multi_array</code> and 
+perform a deep copy of <code class="literal">x</code>. 
+</p><p title="Complexity"><b>Complexity. </b> This performs O(<code class="literal">x.num_elements()</code>) calls to
+<code class="literal">element</code>'s copy 
+constructor.
+</p></dd><dt><span class="term"><pre class="programlisting">
+multi_array();
+</pre></span></dt><dd><p>This constructs a <code class="literal">multi_array</code> whose shape is (0,...,0) and contains no elements.
+</p></dd></dl></div><p title="Note on Constructors"><b>Note on Constructors. </b>
+The  <code class="literal">multi_array</code> construction expressions,
+</p><pre class="programlisting">
+     multi_array&lt;int,3&gt; A(boost::extents[5][4][3]);
+</pre><p title="Note on Constructors">
+and
+</p><pre class="programlisting">
+     boost::array&lt;multi_array_base::index,3&gt; my_extents = {{5, 4, 3}};
+     multi_array&lt;int,3&gt; A(my_extents);
+</pre><p title="Note on Constructors">
+are equivalent.
+</p><p title="Modifiers"><b>Modifiers. </b></p><div class="variablelist"><dl><dt><span class="term"><pre class="programlisting">
+multi_array&amp; operator=(const multi_array&amp; x);
+template &lt;class Array&gt; multi_array&amp; operator=(const Array&amp; x);
+</pre>
+</span></dt><dd><p>This performs an element-wise copy of <code class="literal">x</code>
+into the current <code class="literal">multi_array</code>.</p><p title="Array Requirements"><b><code class="literal">Array</code> Requirements. </b><code class="literal">Array</code> must model MultiArray. 
+</p><p title="Preconditions"><b>Preconditions. </b>
+</p><pre class="programlisting">std::equal(this-&gt;shape(),this-&gt;shape()+this-&gt;num_dimensions(),
+x.shape());</pre><p title="Postconditions"><b>Postconditions. </b>
+</p><pre class="programlisting">(*.this) == x;</pre><p title="Postconditions">
+</p><p title="Complexity"><b>Complexity. </b>The assignment operators perform 
+O(<code class="literal">x.num_elements()</code>) calls to <code class="literal">element</code>'s 
+copy constructor.</p></dd><dt><span class="term">
+<pre class="programlisting">
+
+template &lt;typename InputIterator&gt;
+void assign(InputIterator begin, InputIterator end);
+</pre>
+</span></dt><dd><p>This copies the elements in the range 
+<code class="literal">[begin,end)</code> into the array.  It is equivalent to 
+<code class="literal">std::copy(begin,end,this-&gt;data())</code>.
+</p><p title="Preconditions"><b>Preconditions. </b><code class="literal">std::distance(begin,end) == this-&gt;num_elements();</code>
+</p><p title="Complexity"><b>Complexity. </b>
+The <code class="literal">assign</code> member function performs
+O(<code class="literal">this-&gt;num_elements()</code>) calls to
+<code class="literal">ValueType</code>'s copy constructor.
+</p></dd><dt><span class="term">
+<pre class="programlisting">multi_array&amp; resize(extent_gen::gen_type&lt;NumDims&gt;::type extents);
+template &lt;typename ExtentList&gt;
+  multi_array&amp; resize(const ExtentList&amp; extents);
+
+</pre></span></dt><dd><p>
+This function resizes an array to the shape specified by
+<code class="literal">extents</code>, which is either a generated list of
+extents or a model of the <code class="literal">Collection</code> concept. The
+contents of the array are preserved whenever possible; if the new
+array size is smaller, then some data will be lost. Any new elements
+created by resizing the array are initialized with the
+<code class="literal">element</code> default constructor.
+</p></dd></dl></div><p title="Queries"><b>Queries. </b></p><div class="variablelist"><dl><dt><span class="term"><pre class="programlisting">
+storage_order_type&amp; storage_order() const;
+</pre>
+</span></dt><dd><p>This query returns the storage order object associated with the 
+<code class="literal">multi_array</code> in question.  It can be used to construct a new array with the same storage order.</p></dd></dl></div></div><div class="sect2" title="multi_array_ref"><div class="titlepage"><div><div><h3 class="title"><a name="multi_array_ref"></a><code class="literal">multi_array_ref</code></h3></div></div></div><p>
+<code class="literal">multi_array_ref</code> is a multi-dimensional container
+adaptor.  It provides the MultiArray interface over any contiguous
+block of elements.  <code class="literal">multi_array_ref</code> exports the
+same interface as <code class="literal">multi_array</code>, with the exception
+of the constructors.
+</p><p title="Model Of."><b>Model Of. </b>
+<code class="literal">multi_array_ref</code> models 
+<a class="link" href="#MultiArray" title="MultiArray Concept">MultiArray</a>,
+<a class="ulink" href="../../../libs/utility/CopyConstructible.html" target="_top">CopyConstructible</a>.
+and depending on the element type, it may also model
+<a class="ulink" href="http://www.sgi.com/tech/stl/EqualityComparable.html" target="_top">EqualityComparable</a> and <a class="ulink" href="http://www.sgi.com/tech/stl/LessThanComparable.html" target="_top">LessThanComparable</a>. 
+Detailed descriptions are provided here only for operations that are
+not described in the <code class="literal">multi_array</code> reference.
+</p><p title="Synopsis"><b>Synopsis. </b></p><pre class="programlisting">
+
+namespace boost {
+
+template &lt;typename ValueType, 
+          std::size_t NumDims&gt;
+class multi_array_ref {
+public:
+// types:
+  typedef ValueType                             element;
+  typedef *unspecified*                         value_type;
+  typedef *unspecified*                         reference;
+  typedef *unspecified*                         const_reference;
+  typedef *unspecified*                         difference_type;
+  typedef *unspecified*                         iterator;
+  typedef *unspecified*                         const_iterator;
+  typedef *unspecified*                         reverse_iterator;
+  typedef *unspecified*                         const_reverse_iterator;
+  typedef multi_array_types::size_type          size_type;
+  typedef multi_array_types::index              index;
+  typedef multi_array_types::index_gen          index_gen;
+  typedef multi_array_types::index_range        index_range;
+  typedef multi_array_types::extent_gen         extent_gen;
+  typedef multi_array_types::extent_range       extent_range;
+  typedef *unspecified*                         storage_order_type;
+  
+  // template typedefs
+  template &lt;std::size_t Dims&gt; struct            subarray;
+  template &lt;std::size_t Dims&gt; struct            const_subarray;
+  template &lt;std::size_t Dims&gt; struct            array_view;
+  template &lt;std::size_t Dims&gt; struct            const_array_view;
+  
+
+  static const std::size_t dimensionality = NumDims;
+
+
+  // constructors and destructors
+
+  template &lt;typename ExtentList&gt;
+  explicit multi_array_ref(element* data, const ExtentList&amp; sizes,
+                       const storage_order_type&amp; store = c_storage_order());
+  explicit multi_array_ref(element* data, const extents_tuple&amp; ranges,
+                       const storage_order_type&amp; store = c_storage_order());
+  multi_array_ref(const multi_array_ref&amp; x);
+  ~multi_array_ref();
+
+  // modifiers
+
+  multi_array_ref&amp; operator=(const multi_array_ref&amp; x);
+  template &lt;class Array&gt; multi_array_ref&amp; operator=(const Array&amp; x);
+
+  // iterators:
+  iterator				begin();
+  iterator				end();
+  const_iterator			begin() const;
+  const_iterator			end() const;
+  reverse_iterator			rbegin();
+  reverse_iterator			rend();
+  const_reverse_iterator		rbegin() const;
+  const_reverse_iterator		rend() const;
+
+  // capacity:
+  size_type				size() const;
+  size_type				num_elements() const;
+  size_type				num_dimensions() const;
+ 
+  // element access:
+  template &lt;typename IndexList&gt; 
+    element&amp;			operator()(const IndexList&amp; indices);
+  template &lt;typename IndexList&gt;
+    const element&amp;		operator()(const IndexList&amp; indices) const;
+  reference			operator[](index i);
+  const_reference		operator[](index i) const;
+  array_view&lt;Dims&gt;::type	operator[](const indices_tuple&amp; r);
+  const_array_view&lt;Dims&gt;::type	operator[](const indices_tuple&amp; r) const;
+
+  // queries
+  element*			data();
+  const element*		data() const;
+  element*			origin();
+  const element*		origin() const;
+  const size_type*		shape() const;
+  const index*			strides() const;
+  const index*			index_bases() const;
+  const storage_order_type&amp;     storage_order() const;
+
+  // comparators
+  bool operator==(const multi_array_ref&amp; rhs);
+  bool operator!=(const multi_array_ref&amp; rhs);
+  bool operator&lt;(const multi_array_ref&amp; rhs);
+  bool operator&gt;(const multi_array_ref&amp; rhs);
+  bool operator&gt;=(const multi_array_ref&amp; rhs);
+  bool operator&lt;=(const multi_array_ref&amp; rhs);
+
+  // modifiers:
+  template &lt;typename InputIterator&gt;
+    void			assign(InputIterator begin, InputIterator end);
+  template &lt;typename SizeList&gt;
+    void			reshape(const SizeList&amp; sizes)
+  template &lt;typename BaseList&gt;	void reindex(const BaseList&amp; values);
+  void				reindex(index value);
+};
+
+</pre><p title="Constructors"><b>Constructors. </b></p><div class="variablelist"><dl><dt><span class="term"><pre class="programlisting">template &lt;typename ExtentList&gt;
+explicit multi_array_ref(element* data, 
+                     const ExtentList&amp; sizes,
+                     const storage_order&amp; store = c_storage_order(),
+                     const Allocator&amp; alloc = Allocator());
+</pre></span></dt><dd><p>
+This constructs a <code class="literal">multi_array_ref</code> using the specified
+parameters.  <code class="literal">sizes</code> specifies the shape of the
+constructed <code class="literal">multi_array_ref</code>.  <code class="literal">store</code>
+specifies the storage order or layout in memory of the array
+dimensions.  <code class="literal">alloc</code> is used to
+allocate the contained elements.
+</p><p title="ExtentList Requirements"><b><code class="literal">ExtentList</code> Requirements. </b>
+<code class="literal">ExtentList</code> must model <a class="ulink" href="../../utility/Collection.html" target="_top">Collection</a>.
+</p><p title="Preconditions"><b>Preconditions. </b><code class="literal">sizes.size() == NumDims;</code></p></dd><dt><span class="term">
+<pre class="programlisting">explicit multi_array_ref(element* data,
+                     extent_gen::gen_type&lt;NumDims&gt;::type ranges,
+                     const storage_order&amp; store = c_storage_order());
+</pre></span></dt><dd><p>
+This constructs a <code class="literal">multi_array_ref</code> using the specified
+    parameters.  <code class="literal">ranges</code> specifies the shape and
+index bases of the constructed multi_array_ref. It is the result of 
+<code class="literal">NumDims</code> chained calls to 
+    <code class="literal">extent_gen::operator[]</code>. <code class="literal">store</code>
+specifies the storage order or layout in memory of the array
+dimensions. 
+</p></dd><dt><span class="term"><pre class="programlisting">
+multi_array_ref(const multi_array_ref&amp; x);
+</pre></span></dt><dd><p>This constructs a shallow copy of <code class="literal">x</code>.
+</p><p title="Complexity"><b>Complexity. </b> Constant time (for contrast, compare this to
+the <code class="literal">multi_array</code> class copy constructor.
+</p></dd></dl></div><p title="Modifiers"><b>Modifiers. </b></p><div class="variablelist"><dl><dt><span class="term"><pre class="programlisting">
+multi_array_ref&amp; operator=(const multi_array_ref&amp; x);
+template &lt;class Array&gt; multi_array_ref&amp; operator=(const Array&amp; x);
+</pre>
+</span></dt><dd><p>This performs an element-wise copy of <code class="literal">x</code>
+into the current <code class="literal">multi_array_ref</code>.</p><p title="Array Requirements"><b><code class="literal">Array</code> Requirements. </b><code class="literal">Array</code> must model MultiArray. 
+</p><p title="Preconditions"><b>Preconditions. </b>
+</p><pre class="programlisting">std::equal(this-&gt;shape(),this-&gt;shape()+this-&gt;num_dimensions(),
+x.shape());</pre><p title="Postconditions"><b>Postconditions. </b>
+</p><pre class="programlisting">(*.this) == x;</pre><p title="Postconditions">
+</p><p title="Complexity"><b>Complexity. </b>The assignment operators perform 
+O(<code class="literal">x.num_elements()</code>) calls to <code class="literal">element</code>'s 
+copy constructor.</p></dd></dl></div></div><div class="sect2" title="const_multi_array_ref"><div class="titlepage"><div><div><h3 class="title"><a name="const_multi_array_ref"></a><code class="literal">const_multi_array_ref</code></h3></div></div></div><p>
+<code class="literal">const_multi_array_ref</code> is a multi-dimensional container
+adaptor.  It provides the MultiArray interface over any contiguous
+block of elements.  <code class="literal">const_multi_array_ref</code> exports the
+same interface as <code class="literal">multi_array</code>, with the exception
+of the constructors.
+</p><p title="Model Of."><b>Model Of. </b>
+<code class="literal">const_multi_array_ref</code> models
+<a class="link" href="#MultiArray" title="MultiArray Concept">MultiArray</a>,
+<a class="ulink" href="../../../libs/utility/CopyConstructible.html" target="_top">CopyConstructible</a>.
+and depending on the element type, it may also model
+<a class="ulink" href="http://www.sgi.com/tech/stl/EqualityComparable.html" target="_top">EqualityComparable</a> and <a class="ulink" href="http://www.sgi.com/tech/stl/LessThanComparable.html" target="_top">LessThanComparable</a>. 
+
+Detailed descriptions are provided here only for operations that are
+not described in the <code class="literal">multi_array</code> reference.
+</p><p title="Synopsis"><b>Synopsis. </b></p><pre class="programlisting">
+
+namespace boost {
+
+template &lt;typename ValueType, 
+          std::size_t NumDims, 
+          typename TPtr = const T*&gt;
+class const_multi_array_ref {
+public:
+// types:
+  typedef ValueType                             element;
+  typedef *unspecified*                         value_type;
+  typedef *unspecified*                         reference;
+  typedef *unspecified*                         const_reference;
+  typedef *unspecified*                         difference_type;
+  typedef *unspecified*                         iterator;
+  typedef *unspecified*                         const_iterator;
+  typedef *unspecified*                         reverse_iterator;
+  typedef *unspecified*                         const_reverse_iterator;
+  typedef multi_array_types::size_type          size_type;
+  typedef multi_array_types::index              index;
+  typedef multi_array_types::index_gen          index_gen;
+  typedef multi_array_types::index_range        index_range;
+  typedef multi_array_types::extent_gen         extent_gen;
+  typedef multi_array_types::extent_range       extent_range;
+  typedef *unspecified*                         storage_order_type;
+  
+  // template typedefs
+  template &lt;std::size_t Dims&gt; struct            subarray;
+  template &lt;std::size_t Dims&gt; struct            const_subarray;
+  template &lt;std::size_t Dims&gt; struct            array_view;
+  template &lt;std::size_t Dims&gt; struct            const_array_view;
+  
+
+  // structors
+
+  template &lt;typename ExtentList&gt;
+  explicit const_multi_array_ref(TPtr data, const ExtentList&amp; sizes,
+                       const storage_order_type&amp; store = c_storage_order());
+  explicit const_multi_array_ref(TPtr data, const extents_tuple&amp; ranges,
+                       const storage_order_type&amp; store = c_storage_order());
+  const_multi_array_ref(const const_multi_array_ref&amp; x);
+  ~const_multi_array_ref();
+
+
+
+  // iterators:
+  const_iterator			begin() const;
+  const_iterator			end() const;
+  const_reverse_iterator		rbegin() const;
+  const_reverse_iterator		rend() const;
+
+  // capacity:
+  size_type				size() const;
+  size_type				num_elements() const;
+  size_type				num_dimensions() const;
+ 
+  // element access:
+  template &lt;typename IndexList&gt;
+    const element&amp;		operator()(const IndexList&amp; indices) const;
+  const_reference		operator[](index i) const;
+  const_array_view&lt;Dims&gt;::type	operator[](const indices_tuple&amp; r) const;
+
+  // queries
+  const element*		data() const;
+  const element*		origin() const;
+  const size_type*		shape() const;
+  const index*			strides() const;
+  const index*			index_bases() const;
+  const storage_order_type&amp;     storage_order() const;
+
+  // comparators
+  bool operator==(const const_multi_array_ref&amp; rhs);
+  bool operator!=(const const_multi_array_ref&amp; rhs);
+  bool operator&lt;(const const_multi_array_ref&amp; rhs);
+  bool operator&gt;(const const_multi_array_ref&amp; rhs);
+  bool operator&gt;=(const const_multi_array_ref&amp; rhs);
+  bool operator&lt;=(const const_multi_array_ref&amp; rhs);
+
+  // modifiers:
+  template &lt;typename SizeList&gt;
+  void			reshape(const SizeList&amp; sizes)
+  template &lt;typename BaseList&gt;	void reindex(const BaseList&amp; values);
+  void				reindex(index value);
+};
+
+</pre><p title="Constructors"><b>Constructors. </b></p><div class="variablelist"><dl><dt><span class="term"><pre class="programlisting">template &lt;typename ExtentList&gt;
+explicit const_multi_array_ref(TPtr data, 
+                     const ExtentList&amp; sizes,
+                     const storage_order&amp; store = c_storage_order());
+</pre></span></dt><dd><p>
+This constructs a <code class="literal">const_multi_array_ref</code> using the specified
+parameters.  <code class="literal">sizes</code> specifies the shape of the
+constructed <code class="literal">const_multi_array_ref</code>.  <code class="literal">store</code>
+specifies the storage order or layout in memory of the array
+dimensions.
+</p><p title="ExtentList Requirements"><b><code class="literal">ExtentList</code> Requirements. </b>
+<code class="literal">ExtentList</code> must model <a class="ulink" href="../../utility/Collection.html" target="_top">Collection</a>.
+</p><p title="Preconditions"><b>Preconditions. </b><code class="literal">sizes.size() == NumDims;</code></p></dd><dt><span class="term">
+<pre class="programlisting">explicit const_multi_array_ref(TPtr data,
+                     extent_gen::gen_type&lt;NumDims&gt;::type ranges,
+                     const storage_order&amp; store = c_storage_order());
+</pre></span></dt><dd><p title="Effects"><b>Effects. </b>
+This constructs a <code class="literal">const_multi_array_ref</code> using the specified
+    parameters.  <code class="literal">ranges</code> specifies the shape and
+index bases of the constructed const_multi_array_ref. It is the result of 
+<code class="literal">NumDims</code> chained calls to 
+    <code class="literal">extent_gen::operator[]</code>. <code class="literal">store</code>
+specifies the storage order or layout in memory of the array
+dimensions. 
+</p></dd><dt><span class="term"><pre class="programlisting">
+const_multi_array_ref(const const_multi_array_ref&amp; x);
+</pre></span></dt><dd><p title="Effects"><b>Effects. </b>This constructs a shallow copy of <code class="literal">x</code>.
+</p></dd></dl></div></div></div><div class="sect1" title="Auxiliary Components"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="auxiliary"></a>Auxiliary Components</h2></div></div></div><div class="sect2" title="multi_array_types"><div class="titlepage"><div><div><h3 class="title"><a name="multi_array_types"></a><code class="literal">multi_array_types</code></h3></div></div></div><pre class="programlisting">
+namespace multi_array_types {
+  typedef *unspecified* index;
+  typedef *unspecified* size_type;
+  typedef *unspecified* difference_type;
+  typedef *unspecified* index_range;
+  typedef *unspecified* extent_range;
+  typedef *unspecified* index_gen;
+  typedef *unspecified* extent_gen;
+}
+</pre><p>Namespace <code class="literal">multi_array_types</code> defines types
+associated with <code class="literal">multi_array</code>,
+<code class="literal">multi_array_ref</code>, and
+<code class="literal">const_multi_array_ref</code> that are not
+dependent upon template parameters.  These types find common use with
+all Boost.Multiarray components.  They are defined
+in a namespace from which they can be accessed conveniently.
+With the exception of <code class="literal">extent_gen</code> and 
+<code class="literal">extent_range</code>, these types fulfill the roles of the
+same name required by MultiArray and are described in its
+concept definition.  <code class="literal">extent_gen</code> and
+<code class="literal">extent_range</code> are described below.
+</p></div><div class="sect2" title="extent_range"><div class="titlepage"><div><div><h3 class="title"><a name="extent_range"></a><code class="classname">extent_range</code></h3></div></div></div><p><code class="classname">extent_range</code> objects define half open
+intervals.  They provide shape and index base information to
+<code class="literal">multi_array</code>, <code class="literal">multi_array_ref</code>,
+ and <code class="literal">const_multi_array_ref</code> constructors.
+<code class="classname">extent_range</code>s are passed in
+aggregate to an array constructor (see
+<code class="classname">extent_gen</code> for more details).
+</p><p title="Synopsis"><b>Synopsis. </b></p><pre class="programlisting">
+class extent_range {
+public:
+  typedef multi_array_types::index      index;
+  typedef multi_array_types::size_type  size_type;
+
+  // Structors
+  extent_range(index start, index finish);
+  extent_range(index finish);
+  ~extent_range();
+
+  // Queries
+  index start();
+  index finish();
+  size_type size();
+};</pre><p title="Model Of"><b>Model Of. </b>DefaultConstructible,CopyConstructible</p><p title="Methods and Types"><b>Methods and Types. </b></p><div class="variablelist"><dl><dt><span class="term"><code class="function">extent_range(index start, index finish)</code></span></dt><dd><p>  This constructor defines the half open interval
+<code class="literal">[start,finish)</code>. The expression
+<code class="literal">finish</code> must be greater than <code class="literal">start</code>.
+</p></dd><dt><span class="term"><code class="function">extent_range(index finish)</code></span></dt><dd><p>This constructor defines the half open interval
+<code class="literal">[0,finish)</code>. The value of <code class="literal">finish</code>
+must be positive.</p></dd><dt><span class="term"><code class="function">index start()</code></span></dt><dd><p>This function returns the first index represented by the range</p></dd><dt><span class="term"><code class="function">index finish()</code></span></dt><dd><p>This function returns the upper boundary value of the half-open
+interval.  Note that the range does not include this value.</p></dd><dt><span class="term"><code class="function">size_type size()</code></span></dt><dd><p>This function returns the size of the specified range. It is
+equivalent to <code class="literal">finish()-start()</code>.</p></dd></dl></div></div><div class="sect2" title="extent_gen"><div class="titlepage"><div><div><h3 class="title"><a name="extent_gen"></a><code class="classname">extent_gen</code></h3></div></div></div><p>The <code class="classname">extent_gen</code> class defines an
+interface for aggregating array shape and indexing information to be
+passed to a <code class="literal">multi_array</code>, 
+<code class="literal">multi_array_ref</code>, or <code class="literal">const_multi_array_ref</code>
+constructor. Its interface mimics 
+ the syntax used to declare built-in array types
+in C++. For example, while a 3-dimensional array of 
+<code class="classname">int</code> values in C++ would be
+declared as:
+</p><pre class="programlisting">int A[3][4][5],</pre><p>
+a similar <code class="classname">multi_array</code> would be declared:
+</p><pre class="programlisting">multi_array&lt;int,3&gt; A(extents[3][4][5]).</pre><p>
+</p><p title="Synopsis"><b>Synopsis. </b></p><pre class="programlisting">
+template &lt;std::size_t NumRanges&gt;
+class *implementation_defined* {
+public:
+  typedef multi_array_types::index index;
+  typedef multi_array_types::size_type size_type;
+
+  template &lt;std::size_t NumRanges&gt; class gen_type;
+
+  gen_type&lt;NumRanges+1&gt;::type  operator[](const range&amp; a_range) const;
+  gen_type&lt;NumRanges+1&gt;::type  operator[](index idx) const;
+};
+
+typedef *implementation_defined*&lt;0&gt; extent_gen;
+</pre><p title="Methods and Types"><b>Methods and Types. </b></p><div class="variablelist"><dl><dt><span class="term"><code class="function">template gen_type&lt;Ranges&gt;::type</code></span></dt><dd><p>This type generator is used to specify the result of 
+<code class="literal">Ranges</code> chained calls to
+<code class="literal">extent_gen::operator[].</code> The types
+<code class="classname">extent_gen</code> and
+<code class="classname">gen_type&lt;0&gt;::type</code> are the same.</p></dd><dt><span class="term"><code class="function">gen_type&lt;NumRanges+1&gt;::type  
+operator[](const extent_range&amp; a_range) const;</code></span></dt><dd><p>This function returns a new object containing all previous
+<code class="classname">extent_range</code> objects in addition to
+<code class="literal">a_range.</code> <code class="classname">extent_range</code>
+objects are aggregated by chained calls to
+<code class="function">operator[]</code>.</p></dd><dt><span class="term"><code class="function">gen_type&lt;NumRanges+1&gt;::type
+operator[](index idx) const;</code></span></dt><dd><p>This function returns a new object containing all previous
+<code class="classname">extent_range</code> objects in addition to
+<code class="literal">extent_range(0,idx).</code> This function gives the array
+constructors a similar syntax to traditional C multidimensional array
+declaration.</p></dd></dl></div></div><div class="sect2" title="Global Objects"><div class="titlepage"><div><div><h3 class="title"><a name="idp19487120"></a>Global Objects</h3></div></div></div><p>For syntactic convenience, Boost.MultiArray defines two 
+global objects as part of its
+interface.  These objects play the role of object generators;
+expressions involving them create other objects of interest.
+</p><p> Under some circumstances, the two global objects may be
+considered excessive overhead.  Their construction can be prevented by
+defining the preprocessor symbol
+<code class="literal">BOOST_MULTI_ARRAY_NO_GENERATORS</code> before including
+<code class="filename">boost/multi_array.hpp.</code></p><div class="sect3" title="extents"><div class="titlepage"><div><div><h4 class="title"><a name="extents"></a><code class="literal">extents</code></h4></div></div></div><pre class="programlisting">
+namespace boost {
+  multi_array_base::extent_gen extents;
+}
+</pre><p>Boost.MultiArray's array classes use the
+<code class="literal">extents</code> global object to specify 
+array shape during their construction. 
+For example,
+a 3 by 3 by 3 <code class="classname">multi_array</code> is constructed as follows:
+</p><pre class="programlisting">multi_array&lt;int,3&gt; A(extents[3][3][3]);</pre><p>
+The same array could also be created by explicitly declaring an <code class="literal">extent_gen</code> 
+object locally,, but the global object makes this declaration unnecessary.  
+</p></div><div class="sect3" title="indices"><div class="titlepage"><div><div><h4 class="title"><a name="indices"></a><code class="literal">indices</code></h4></div></div></div><pre class="programlisting">
+namespace boost {
+  multi_array_base::index_gen  indices;
+}
+</pre><p>The MultiArray concept specifies an
+<code class="literal">index_gen</code> associated type that is used to
+create views.
+<code class="literal">indices</code> is a global object that serves the role of
+<code class="literal">index_gen</code> for all array components provided by this
+library and their associated subarrays and views. 
+</p><p>For example, using the <code class="literal">indices</code> object,
+a view of an array <code class="literal">A</code> is constructed as follows:
+</p><pre class="programlisting">
+A[indices[index_range(0,5)][2][index_range(2,4)]];
+</pre><p>
+</p></div></div><div class="sect2" title="View and SubArray Generators"><div class="titlepage"><div><div><h3 class="title"><a name="generators"></a>View and SubArray Generators</h3></div></div></div><p>
+Boost.MultiArray provides traits classes, <code class="literal">subarray_gen</code>,
+<code class="literal">const_subarray_gen</code>,
+<code class="literal">array_view_gen</code>,
+and <code class="literal">const_array_view_gen</code>, for naming of
+array associated types within function templates.  
+In general this is no more convenient to use than the nested 
+type generators, but the library author found that some C++ compilers do not 
+properly handle templates nested within function template parameter types. 
+These generators constitute a workaround for this deficit.  
+The following code snippet illustrates
+the correspondence between the <code class="literal">array_view_gen</code>
+traits class and the <code class="literal">array_view</code> type associated to
+an array:
+
+</p><pre class="programlisting">
+template &lt;typename Array&gt;
+void my_function() {
+  typedef typename Array::template array_view&lt;3&gt;::type view1_t;
+  typedef typename boost::array_view_gen&lt;Array,3&gt;::type view2_t;
+  // ...
+}
+</pre><p>
+
+In the above example, <code class="literal">view1_t</code> and
+<code class="literal">view2_t</code> have the same type.
+</p></div><div class="sect2" title="Memory Layout Specifiers"><div class="titlepage"><div><div><h3 class="title"><a name="memory_layout"></a>Memory Layout Specifiers</h3></div></div></div><p>
+While a multidimensional array represents a hierarchy of containers of
+elements, at some point the elements must be laid out in
+memory.  As a result, a single multidimensional array 
+can be represented in memory more than one way.
+</p><p>For example, consider the two dimensional array shown below in
+matrix notation:
+
+</p><div><img src="matrix.gif"></div><p>
+
+Here is how the above array is expressed in C++:
+</p><pre class="programlisting">
+int a[3][4] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+</pre><p>
+This is an example of row-major storage, where elements of each row
+are stored contiguously.  
+
+While C++ transparently handles accessing elements of an array, you
+can also manage the array and its indexing manually.  One way that 
+this may be expressed in memory is as follows:
+</p><pre class="programlisting">
+int a[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+int s[] = { 4, 1 };
+</pre><p>
+
+With the latter declaration of <code class="literal">a</code> and 
+strides <code class="literal">s</code>, element <code class="literal">a(i,j)</code>
+of the array can be
+accessed using the expression 
+</p><pre class="programlisting">*a+i*s[0]+j*s[1]</pre><p>.
+</p><p>The same two dimensional array could be laid out by column as follows:
+
+</p><pre class="programlisting">
+int a[] = { 0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11 };
+int s[] = { 3, 1 };
+</pre><p>
+Notice that the strides here are different. As a result,
+The expression given above to access values will work with this pair
+of data and strides as well.
+</p><p>In addition to dimension order, it is also possible to
+store any dimension in descending order. For example, returning to the 
+first example, the first dimension of the example array, the 
+rows,  could be stored in 
+reverse, resulting in the following:
+
+</p><pre class="programlisting">
+int data[] = { 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3 };
+int *a = data + 8;
+int s[] = { -4, 1 };
+</pre><p>
+
+Note that in this example <code class="literal">a</code> must be explicitly set
+to the origin. In the previous examples, the
+first element stored in memory was the origin; here this is no longer
+the case. 
+</p><p>
+Alternatively, the second dimension, or the columns, could be reversed
+and the rows stored in ascending order:
+
+</p><pre class="programlisting">
+int data[] = { 3, 2, 1, 0,  7, 6, 5, 4, 11, 10, 9, 8 };
+int *a = data + 3;
+int s[] = { 4, -1 };
+</pre><p>
+</p><p>
+Finally, both dimensions could be stored in descending order:
+
+</p><pre class="programlisting">
+int data[] = {11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
+int *a = data + 11;
+int s[] = { -4, -1 };
+</pre><p>
+<code class="literal">
+</code>
+</p><p>
+All of the above arrays are equivalent. The expression
+given above for <code class="literal">a(i,j)</code> will yield the same value
+regardless of the memory layout.
+
+Boost.MultiArray arrays can be created with customized storage
+parameters as described above. Thus, existing data can be adapted
+(with <code class="literal">multi_array_ref</code> or
+<code class="literal">const_multi_array_ref</code>) as suited to the array
+abstraction.  A common usage of this feature would be to wrap arrays
+that must interoperate with Fortran routines so they can be
+manipulated naturally at both the C++ and Fortran levels. The
+following sections describe the Boost.MultiArray components used to
+specify memory layout.
+</p><div class="sect3" title="c_storage_order"><div class="titlepage"><div><div><h4 class="title"><a name="c_storage_order"></a><code class="literal">c_storage_order</code></h4></div></div></div><pre class="programlisting">
+class c_storage_order {
+  c_storage_order();
+};
+</pre><p><code class="literal">c_storage_order</code> is used to specify that an
+array should store its elements using the same layout as that used by
+primitive C++ multidimensional arrays, that is, from last dimension
+to first. This is the default storage order for the arrays provided by
+this library.</p></div><div class="sect3" title="fortran_storage_order"><div class="titlepage"><div><div><h4 class="title"><a name="fortran_storage_order"></a><code class="literal">fortran_storage_order</code></h4></div></div></div><pre class="programlisting">
+class fortran_storage_order {
+  fortran_storage_order();
+};
+</pre><p><code class="literal">fortran_storage_order</code> is used to specify that
+an array should store its elements using the same memory layout as a
+Fortran multidimensional array would, that is, from first dimension to
+last.</p></div><div class="sect3" title="general_storage_order"><div class="titlepage"><div><div><h4 class="title"><a name="general_storage_order"></a><code class="literal">general_storage_order</code></h4></div></div></div><pre class="programlisting">
+template &lt;std::size_t NumDims&gt; 
+class general_storage_order {
+
+  template &lt;typename OrderingIter, typename AscendingIter&gt;
+  general_storage_order(OrderingIter ordering, AscendingIter ascending);
+};
+</pre><p><code class="literal">general_storage_order</code> allows the user to
+specify an arbitrary memory layout for the contents of an array.  The
+constructed object is passed to the array constructor in order to
+specify storage order.</p><p>
+<code class="literal">OrderingIter</code> and <code class="literal">AscendingIter</code>
+must model the <code class="literal">InputIterator</code> concept.  Both
+iterators must refer to a range of <code class="literal">NumDims</code>
+elements.  <code class="literal">AscendingIter</code> points to objects
+convertible to <code class="literal">bool</code>.  A value of
+<code class="literal">true</code> means that a dimension is stored in ascending
+order while <code class="literal">false</code> means that a dimension is stored
+in descending order.  <code class="literal">OrderingIter</code> specifies the
+order in which dimensions are stored.
+</p></div></div><div class="sect2" title="Range Checking"><div class="titlepage"><div><div><h3 class="title"><a name="range_checking"></a>Range Checking</h3></div></div></div><p>
+By default, the array access methods <code class="literal">operator()</code> and
+<code class="literal">operator[]</code> perform range
+checking.  If a supplied index is out of the range defined for an
+array, an assertion will abort the program.  To disable range
+checking (for performance reasons in production releases), define
+the <code class="literal">BOOST_DISABLE_ASSERTS</code> preprocessor macro prior to
+including multi_array.hpp in an application.
+</p></div></div></div></body></html>

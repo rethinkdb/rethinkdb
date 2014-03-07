@@ -1,0 +1,185 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+	<head>
+		<title>shared_array</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	</head>
+	<body bgcolor="#ffffff" text="#000000">
+		<h1><A href="../../index.htm"><img src="../../boost.png" alt="boost.png (6897 bytes)" align="middle" width="277" height="86"
+					border="0"></A>shared_array class template</h1>
+		<p>The <b>shared_array</b> class template stores a pointer to a dynamically 
+			allocated array. (Dynamically allocated array are allocated with the C++ <b>new[]</b>
+			expression.) The object pointed to is guaranteed to be deleted when the last <b>shared_array</b>
+			pointing to it is destroyed or reset.</p>
+		<p>Every <b>shared_array</b> meets the <b>CopyConstructible</b> and <b>Assignable</b>
+			requirements of the C++ Standard Library, and so can be used in standard 
+			library containers. Comparison operators are supplied so that <b>shared_array</b>
+			works with the standard library's associative containers.</p>
+		<p>Normally, a <b>shared_array</b> cannot correctly hold a pointer to an object 
+			that has been allocated with the non-array form of <STRONG>new</STRONG>. See <a href="shared_ptr.htm">
+				<b>shared_ptr</b></a> for that usage.</p>
+		<p>Because the implementation uses reference counting, cycles of <b>shared_array</b>
+			instances will not be reclaimed. For example, if <b>main()</b> holds a <b>shared_array</b>
+			to <b>A</b>, which directly or indirectly holds a <b>shared_array</b> back to <b>A</b>,
+			<b>A</b>'s use count will be 2. Destruction of the original <b>shared_array</b> 
+			will leave <b>A</b> dangling with a use count of 1.</p>
+		<p>A <b>shared_ptr</b> to a <b>std::vector</b> is an alternative to a <b>shared_array</b>
+			that is a bit heavier duty but far more flexible.</p>
+		<p>The class template is parameterized on <b>T</b>, the type of the object pointed 
+			to. <b>T</b> must meet the smart pointer <a href="smart_ptr.htm#common_requirements">
+				common requirements</a>.</p>
+		<h2>Synopsis</h2>
+		<pre>namespace boost {
+
+  template&lt;class T&gt; class shared_array {
+
+    public:
+      typedef T <a href="#element_type">element_type</a>;
+
+      explicit <a href="#constructors">shared_array</a>(T * p = 0);
+      template&lt;class D&gt; <a href="#constructors">shared_array</a>(T * p, D d);
+      <a href="#destructor">~shared_array</a>(); // never throws
+
+      <a href="#constructors">shared_array</a>(shared_array const &amp; r); // never throws
+
+      shared_array &amp; <a href="#assignment">operator=</a>(shared_array const &amp; r); // never throws
+
+      void <a href="#reset">reset</a>(T * p = 0);
+      template&lt;class D&gt; void <a href="#reset">reset</a>(T * p, D d);
+
+      T &amp; <a href="#indexing">operator[]</a>(std::ptrdiff_t i) const; // never throws
+      T * <a href="#get">get</a>() const; // never throws
+
+      bool <a href="#unique">unique</a>() const; // never throws
+      long <a href="#use_count">use_count</a>() const; // never throws
+
+      operator <A href="#conversions" ><i>unspecified-bool-type</i></A>() const; // never throws
+
+      void <a href="#swap">swap</a>(shared_array&lt;T&gt; &amp; b); // never throws
+  };
+
+  template&lt;class T&gt;
+    bool <a href="#comparison">operator==</a>(shared_array&lt;T&gt; const &amp; a, shared_array&lt;T&gt; const &amp; b); // never throws
+  template&lt;class T&gt;
+    bool <a href="#comparison">operator!=</a>(shared_array&lt;T&gt; const &amp; a, shared_array&lt;T&gt; const &amp; b); // never throws
+  template&lt;class T&gt;
+    bool <a href="#comparison">operator&lt;</a>(shared_array&lt;T&gt; const &amp; a, shared_array&lt;T&gt; const &amp; b); // never throws
+
+  template&lt;class T&gt; void <a href="#free-swap">swap</a>(shared_array&lt;T&gt; &amp; a, shared_array&lt;T&gt; &amp; b); // never throws
+
+}</pre>
+		<h2>Members</h2>
+		<h3><a name="element_type">element_type</a></h3>
+		<pre>typedef T element_type;</pre>
+		<p>Provides the type of the stored pointer.</p>
+		<h3><a name="constructors">constructors</a></h3>
+		<pre>explicit shared_array(T * p = 0);</pre>
+		<p>Constructs a <b>shared_array</b>, storing a copy of <b>p</b>, which must be a 
+			pointer to an array that was allocated via a C++ <b>new[]</b> expression or be 
+			0. Afterwards, the <a href="#use_count">use count</a> is 1 (even if p == 0; see <a href="#destructor">
+				~shared_array</a>). The only exception which may be thrown by this 
+			constructor is <b>std::bad_alloc</b>. If an exception is thrown, <b>delete[] p</b>
+			is called.</p>
+		<pre>template&lt;class D&gt; shared_array(T * p, D d);</pre>
+		<p>Constructs a <b>shared_array</b>, storing a copy of <b>p</b> and of <b>d</b>. 
+			Afterwards, the <a href="#use_count">use count</a> is 1. <b>D</b>'s copy 
+			constructor and destructor must not throw. When the the time comes to delete 
+			the array pointed to by <b>p</b>, the object <b>d</b> is used in the statement <b>d(p)</b>. 
+			Invoking the object <b>d</b> with parameter <b>p</b> in this way must not 
+			throw. The only exception which may be thrown by this constructor is <b>std::bad_alloc</b>. 
+			If an exception is thrown, <b>d(p)</b> is called.</p>
+		<pre>shared_array(shared_array const &amp; r); // never throws</pre>
+		<p>Constructs a <b>shared_array</b>, as if by storing a copy of the pointer stored 
+			in <b>r</b>. Afterwards, the <a href="#use_count">use count</a> for all copies 
+			is 1 more than the initial use count.</p>
+		<h3><a name="destructor">destructor</a></h3>
+		<pre>~shared_array(); // never throws</pre>
+		<p>Decrements the <a href="#use_count">use count</a>. Then, if the use count is 0, 
+			deletes the array pointed to by the stored pointer. Note that <b>delete[]</b> on 
+			a pointer with a value of 0 is harmless. <b>T</b> need not be a complete type. 
+			The guarantee that this does not throw exceptions depends on the requirement 
+			that the deleted object's destructor does not throw exceptions. See the smart 
+			pointer <a href="smart_ptr.htm#common_requirements">common requirements</a>.</p>
+		<h3><a name="assignment">assignment</a></h3>
+		<pre>shared_array &amp; operator=(shared_array const &amp; r); // never throws</pre>
+		<p>Constructs a new <b>shared_array</b> as described <a href="#constructors">above</a>, 
+			then replaces this <b>shared_array</b> with the new one, destroying the 
+			replaced object.</p>
+		<h3><a name="reset">reset</a></h3>
+		<pre>void reset(T * p = 0);</pre>
+		<p>Constructs a new <b>shared_array</b> as described <a href="#constructors">above</a>, 
+			then replaces this <b>shared_array</b> with the new one, destroying the 
+			replaced object. The only exception which may be thrown is <b>std::bad_alloc</b>. 
+			If an exception is thrown, <b>delete[] p</b> is called.</p>
+		<pre>template&lt;class D&gt; void reset(T * p, D d);</pre>
+		<p>Constructs a new <b>shared_array</b> as described <a href="#constructors">above</a>, 
+			then replaces this <b>shared_array</b> with the new one, destroying the 
+			replaced object. <b>D</b>'s copy constructor must not throw. The only exception 
+			which may be thrown is <b>std::bad_alloc</b>. If an exception is thrown, <b>d(p)</b>
+			is called.</p>
+		<h3><a name="indexing">indexing</a></h3>
+		<pre>T &amp; operator[](std::ptrdiff_t i) const; // never throws</pre>
+		<p>Returns a reference to element <b>i</b> of the array pointed to by the stored 
+			pointer. Behavior is undefined and almost certainly undesirable if the stored 
+			pointer is 0, or if <b>i</b> is less than 0 or is greater than or equal to the 
+			number of elements in the array.</p>
+		<h3><a name="get">get</a></h3>
+		<pre>T * get() const; // never throws</pre>
+		<p>Returns the stored pointer. <b>T</b> need not be a complete type. See the smart 
+			pointer <a href="smart_ptr.htm#common_requirements">common requirements</a>.</p>
+		<h3><a name="unique">unique</a></h3>
+		<pre>bool unique() const; // never throws</pre>
+		<p>Returns true if no other <b>shared_array</b> is sharing ownership of the stored 
+			pointer, false otherwise. <b>T</b> need not be a complete type. See the smart 
+			pointer <a href="smart_ptr.htm#common_requirements">common requirements</a>.</p>
+		<h3><a name="use_count">use_count</a></h3>
+		<pre>long use_count() const; // never throws</pre>
+		<p>Returns the number of <b>shared_array</b> objects sharing ownership of the 
+			stored pointer. <b>T</b> need not be a complete type. See the smart pointer <a href="smart_ptr.htm#common_requirements">
+				common requirements</a>.</p>
+		<p>Because <b>use_count</b> is not necessarily efficient to implement for 
+			implementations of <b>shared_array</b> that do not use an explicit reference 
+			count, it might be removed from some future version. Thus it should be used for 
+			debugging purposes only, and not production code.</p>
+		<h3><a name="conversions">conversions</a></h3>
+		<pre>operator <i>unspecified-bool-type</i> () const; // never throws</pre>
+		<p>Returns an unspecified value that, when used in boolean contexts, is equivalent 
+			to <code>get() != 0</code>.</p>
+		<h3><a name="swap">swap</a></h3>
+		<pre>void swap(shared_ptr &amp; b); // never throws</pre>
+		<p>Exchanges the contents of the two smart pointers. <b>T</b> need not be a 
+			complete type. See the smart pointer <a href="smart_ptr.htm#common_requirements">common 
+				requirements</a>.</p>
+		<h2><a name="functions">Free Functions</a></h2>
+		<h3><a name="comparison">comparison</a></h3>
+		<pre>template&lt;class T&gt;
+  bool operator==(shared_array&lt;T&gt; const &amp; a, shared_array&lt;T&gt; const &amp; b); // never throws
+template&lt;class T&gt;
+  bool operator!=(shared_array&lt;T&gt; const &amp; a, shared_array&lt;T&gt; const &amp; b); // never throws
+template&lt;class T&gt;
+  bool operator&lt;(shared_array&lt;T&gt; const &amp; a, shared_array&lt;T&gt; const &amp; b); // never throws</pre>
+		<p>Compares the stored pointers of the two smart pointers. <b>T</b> need not be a 
+			complete type. See the smart pointer <a href="smart_ptr.htm#common_requirements">common 
+				requirements</a>.</p>
+		<p>The <b>operator&lt;</b> overload is provided to define an ordering so that <b>shared_array</b>
+			objects can be used in associative containers such as <b>std::map</b>. The 
+			implementation uses <b>std::less&lt;T *&gt;</b> to perform the comparison. This 
+			ensures that the comparison is handled correctly, since the standard mandates 
+			that relational operations on pointers are unspecified (5.9 [expr.rel] 
+			paragraph 2) but <b>std::less&lt;&gt;</b> on pointers is well-defined (20.3.3 
+			[lib.comparisons] paragraph 8).</p>
+		<h3><a name="free-swap">swap</a></h3>
+		<pre>template&lt;class T&gt;
+  void swap(shared_array&lt;T&gt; &amp; a, shared_array&lt;T&gt; &amp; b) // never throws</pre>
+		<p>Equivalent to <b>a.swap(b)</b>. Matches the interface of <b>std::swap</b>. 
+			Provided as an aid to generic programming.</p>
+		<hr>
+		<p>Revised 
+			<!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B %Y" startspan --> 
+			09 January 2003<!--webbot bot="Timestamp" endspan i-checksum="32310" --></p>
+		<p><small>Copyright 1999 Greg Colvin and Beman Dawes. Copyright 2002 Darin Adler. 
+			Copyright 2002-2005 Peter Dimov. Distributed under the Boost Software License, Version 
+			1.0. See accompanying file <A href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or 
+			copy at <A href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>.</small></p>
+	</body>
+</html>

@@ -1,0 +1,63 @@
+Index: source/i18n/msgfmt.cpp
+===================================================================
+--- source/i18n/msgfmt.cpp	(revision 83674)
++++ source/i18n/msgfmt.cpp	(working copy)
+@@ -769,12 +769,13 @@
+             DateFormat *fullDateTemplate = DateFormat::createDateInstance(DateFormat::kFull, fLocale);
+             DateFormat *defaultTimeTemplate = DateFormat::createTimeInstance(DateFormat::kDefault, fLocale);
+             DateFormat *shortTimeTemplate = DateFormat::createTimeInstance(DateFormat::kShort, fLocale);
+             DateFormat *longTimeTemplate = DateFormat::createTimeInstance(DateFormat::kLong, fLocale);
+             DateFormat *fullTimeTemplate = DateFormat::createTimeInstance(DateFormat::kFull, fLocale);
+ 
+ 
+             appendTo += COMMA;
+             if (formatAlias == *defaultDateTemplate) {
++                // default is medium. no need to handle medium separately.
+                 appendTo += ID_DATE;
+             }
+             else if (formatAlias == *shortDateTemplate) {
+@@ -782,11 +783,6 @@
+                 appendTo += COMMA;
+                 appendTo += ID_SHORT;
+             }
+-            else if (formatAlias == *defaultDateTemplate) {
+-                appendTo += ID_DATE;
+-                appendTo += COMMA;
+-                appendTo += ID_MEDIUM;
+-            }
+             else if (formatAlias == *longDateTemplate) {
+                 appendTo += ID_DATE;
+                 appendTo += COMMA;
+@@ -798,6 +794,7 @@
+                 appendTo += ID_FULL;
+             }
+             else if (formatAlias == *defaultTimeTemplate) {
++                // default is medium. no need to handle medium separately.
+                 appendTo += ID_TIME;
+             }
+             else if (formatAlias == *shortTimeTemplate) {
+@@ -805,11 +802,6 @@
+                 appendTo += COMMA;
+                 appendTo += ID_SHORT;
+             }
+-            else if (formatAlias == *defaultTimeTemplate) {
+-                appendTo += ID_TIME;
+-                appendTo += COMMA;
+-                appendTo += ID_MEDIUM;
+-            }
+             else if (formatAlias == *longTimeTemplate) {
+                 appendTo += ID_TIME;
+                 appendTo += COMMA;
+Index: source/i18n/ucol_sit.cpp
+===================================================================
+--- source/i18n/ucol_sit.cpp	(revision 83674)
++++ source/i18n/ucol_sit.cpp	(working copy)
+@@ -239,7 +239,7 @@
+             spec->variableTopString[i++] = readHexCodeUnit(&string, status);
+         }
+         spec->variableTopStringLen = i;
+-        if(i == locElementCapacity && (*string != 0 || *string != '_')) {
++        if(i == locElementCapacity && *string != 0 && *string != '_') {
+             *status = U_BUFFER_OVERFLOW_ERROR;
+         }
+     } else {

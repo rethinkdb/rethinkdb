@@ -1,0 +1,753 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/fr.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/fr.xml
+ */
+fr{
+    AuxExemplarCharacters{"[á å ä ã ā ē í ì ī ñ ó ò ö ø ú ǔ]"}
+    ExemplarCharacters{
+        "[a à â æ b c ç d e é è ê ë f g h i î ï j k l m n o ô œ p q r s t u ù û ü v w"
+        " x y ÿ z]"
+    }
+    ExemplarCharactersCurrency{"[a b c d e f g h i j k l m n o p q r s t u v w x y z ұ]"}
+    ExemplarCharactersIndex{"[A B C D E F G H I J K L M N O P Q R S T U V W X Y Z]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"#,##0.00 ¤"}
+                decimalFormat{"#,##0.###"}
+                percentFormat{"#,##0 %"}
+                scientificFormat{"#E0"}
+            }
+            symbols{
+                decimal{","}
+                exponential{"E"}
+                group{" "}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"-"}
+                nan{"NaN"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    Version{"2.0.51.59"}
+    calendar{
+        buddhist{
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE d MMMM y G",
+                "d MMMM y G",
+                "d MMM, y G",
+                "d/M/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E d"}
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                M{"L"}
+                MEd{"EEE d/M"}
+                MMM{"LLL"}
+                MMMEd{"E d MMM"}
+                MMMMEd{"EEE d MMMM"}
+                MMMd{"d MMM"}
+                MMMdd{"dd MMM"}
+                MMd{"d/MM"}
+                MMdd{"dd/MM"}
+                Md{"d/M"}
+                d{"d"}
+                ms{"mm:ss"}
+                y{"y G"}
+                yM{"M/y G"}
+                yMEd{"EEE d/M/y G"}
+                yMMM{"MMM y G"}
+                yMMMEd{"EEE d MMM y G"}
+                yQ{"'T'Q y G"}
+                yQQQ{"QQQ y G"}
+                yyMM{"MM/y G"}
+                yyMMM{"MMM y G"}
+                yyMMMEEEd{"EEE d MMM y G"}
+                yyMMMd{"d MMM y G"}
+                yyQ{"'T'Q y G"}
+                yyQQQQ{"QQQQ y G"}
+                yyyyMMMM{"MMMM y G"}
+            }
+            eras{
+                abbreviated{
+                    "ère b.",
+                }
+                narrow{
+                    "E.B.",
+                }
+                wide{
+                    "ère bouddhiste",
+                }
+            }
+        }
+        chinese{
+            monthNames{
+                format{
+                    abbreviated{
+                        "1yuè",
+                        "2yuè",
+                        "3yuè",
+                        "4yuè",
+                        "5yuè",
+                        "6yuè",
+                        "7yuè",
+                        "8yuè",
+                        "9yuè",
+                        "10yuè",
+                        "11yuè",
+                        "12yuè",
+                    }
+                    wide{
+                        "zhēngyuè",
+                        "èryuè",
+                        "sānyuè",
+                        "sìyuè",
+                        "wǔyuè",
+                        "liùyuè",
+                        "qīyuè",
+                        "bāyuè",
+                        "jiǔyuè",
+                        "shíyuè",
+                        "shíyīyuè",
+                        "shí’èryuè",
+                    }
+                }
+            }
+        }
+        gregorian{
+            AmPmMarkers{
+                "AM",
+                "PM",
+            }
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE d MMMM y",
+                "d MMMM y",
+                "d MMM y",
+                "dd/MM/yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E d"}
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                M{"L"}
+                MEd{"EEE d/M"}
+                MMM{"LLL"}
+                MMMEd{"E d MMM"}
+                MMMMEd{"EEE d MMMM"}
+                MMMd{"d MMM"}
+                MMMdd{"dd MMM"}
+                MMd{"d/MM"}
+                MMdd{"dd/MM"}
+                Md{"d/M"}
+                d{"d"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"M/yyyy"}
+                yMEd{"EEE d/M/yyyy"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE d MMM y"}
+                yQ{"'T'Q y"}
+                yQQQ{"QQQ y"}
+                yyMM{"MM/yy"}
+                yyMMM{"MMM yy"}
+                yyMMMEEEd{"EEE d MMM yy"}
+                yyMMMd{"d MMM yy"}
+                yyQ{"'T'Q yy"}
+                yyQQQQ{"QQQQ yy"}
+                yyyyMMMM{"MMMM y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "dim.",
+                        "lun.",
+                        "mar.",
+                        "mer.",
+                        "jeu.",
+                        "ven.",
+                        "sam.",
+                    }
+                    wide{
+                        "dimanche",
+                        "lundi",
+                        "mardi",
+                        "mercredi",
+                        "jeudi",
+                        "vendredi",
+                        "samedi",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "D",
+                        "L",
+                        "M",
+                        "M",
+                        "J",
+                        "V",
+                        "S",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "av. J.-C.",
+                    "ap. J.-C.",
+                }
+                wide{
+                    "avant Jésus-Christ",
+                    "après Jésus-Christ",
+                }
+            }
+            fields{
+                day{
+                    dn{"jour"}
+                    relative{
+                        "-1"{"hier"}
+                        "-2"{"avant-hier"}
+                        "-3"{"avant-avant-hier"}
+                        "0"{"aujourd’hui"}
+                        "1"{"demain"}
+                        "2"{"après-demain"}
+                        "3"{"après-après-demain"}
+                    }
+                }
+                dayperiod{
+                    dn{"cadran"}
+                }
+                era{
+                    dn{"ère"}
+                }
+                hour{
+                    dn{"heure"}
+                }
+                minute{
+                    dn{"minute"}
+                }
+                month{
+                    dn{"mois"}
+                }
+                second{
+                    dn{"seconde"}
+                }
+                week{
+                    dn{"semaine"}
+                }
+                weekday{
+                    dn{"jour de la semaine"}
+                }
+                year{
+                    dn{"année"}
+                }
+                zone{
+                    dn{"fuseau horaire"}
+                }
+            }
+            intervalFormats{
+                H{
+                    H{"HH – HH"}
+                    a{"HH – HH"}
+                }
+                Hm{
+                    H{"HH:mm – HH:mm"}
+                    a{"HH:mm – HH:mm"}
+                    m{"HH:mm – HH:mm"}
+                }
+                Hmv{
+                    H{"HH:mm – HH:mm v"}
+                    a{"HH:mm – HH:mm v"}
+                    m{"HH:mm – HH:mm v"}
+                }
+                Hv{
+                    H{"HH – HH v"}
+                    a{"HH – HH v"}
+                }
+                M{
+                    M{"M–M"}
+                }
+                MEd{
+                    M{"E dd/MM - E dd/MM"}
+                    d{"E dd/MM - E dd/MM"}
+                }
+                MMM{
+                    M{"MMM–MMM"}
+                }
+                MMMEd{
+                    M{"'du' E d MMM 'au' E d MMM"}
+                    d{"'du' E d 'au' E d MMM"}
+                }
+                MMMM{
+                    M{"LLLL–LLLL"}
+                }
+                MMMd{
+                    M{"'du' d MMM 'au' d MMM"}
+                    d{"d–d MMM"}
+                }
+                Md{
+                    M{"dd/MM - dd/MM"}
+                    d{"dd/MM - dd/MM"}
+                }
+                d{
+                    d{"d-d"}
+                }
+                fallback{"{0} – {1}"}
+                h{
+                    a{"h a – h a"}
+                    h{"h – h a"}
+                }
+                hm{
+                    a{"h:mm a – h:mm a"}
+                    h{"h:mm – h:mm a"}
+                    m{"h:mm – h:mm a"}
+                }
+                hmv{
+                    a{"h:mm a – h:mm a v"}
+                    h{"h:mm – h:mm a v"}
+                    m{"h:mm – h:mm a v"}
+                }
+                hv{
+                    a{"h a – h a v"}
+                    h{"h – h a v"}
+                }
+                y{
+                    y{"y-y"}
+                }
+                yM{
+                    M{"MM/yy – MM/yy"}
+                    y{"M/yyyy – M/yyyy"}
+                }
+                yMEd{
+                    M{"E dd/MM/yy – E dd/MM/yy"}
+                    d{"E dd/MM/yy – E dd/MM/yy"}
+                    y{"E d/M/yyyy – E d/M/yyyy"}
+                }
+                yMMM{
+                    M{"MMM–MMM y"}
+                    y{"MMM y – MMM y"}
+                }
+                yMMMEd{
+                    M{"E d MMM – E d MMM y"}
+                    d{"E d – E d MMM y"}
+                    y{"E d MMM y – E d MMM y"}
+                }
+                yMMMM{
+                    M{"MMMM–MMMM y"}
+                    y{"MMMM y – MMMM y"}
+                }
+                yMMMd{
+                    M{"d MMM – d MMM y"}
+                    d{"d–d MMM y"}
+                    y{"d MMM y – d MMM y"}
+                }
+                yMd{
+                    M{"d/M/yy – d/M/yy"}
+                    d{"d/M/yy – d/M/yy"}
+                    y{"d/M/yyyy – d/M/yyyy"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "janv.",
+                        "févr.",
+                        "mars",
+                        "avr.",
+                        "mai",
+                        "juin",
+                        "juil.",
+                        "août",
+                        "sept.",
+                        "oct.",
+                        "nov.",
+                        "déc.",
+                    }
+                    wide{
+                        "janvier",
+                        "février",
+                        "mars",
+                        "avril",
+                        "mai",
+                        "juin",
+                        "juillet",
+                        "août",
+                        "septembre",
+                        "octobre",
+                        "novembre",
+                        "décembre",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "J",
+                        "F",
+                        "M",
+                        "A",
+                        "M",
+                        "J",
+                        "J",
+                        "A",
+                        "S",
+                        "O",
+                        "N",
+                        "D",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "T1",
+                        "T2",
+                        "T3",
+                        "T4",
+                    }
+                    narrow{
+                        "T1",
+                        "T2",
+                        "T3",
+                        "T4",
+                    }
+                    wide{
+                        "1er trimestre",
+                        "2e trimestre",
+                        "3e trimestre",
+                        "4e trimestre",
+                    }
+                }
+            }
+        }
+        hebrew{
+            monthNames{
+                format{
+                    wide{
+                        "Tisseri",
+                        "Hesvan",
+                        "Kislev",
+                        "Tébeth",
+                        "Schébat",
+                        "Adar I",
+                        "Adar",
+                        "Nissan",
+                        "Iyar",
+                        "Sivan",
+                        "Tamouz",
+                        "Ab",
+                        "Elloul",
+                        "Adar II",
+                    }
+                }
+            }
+        }
+        islamic{
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE d MMMM y G",
+                "d MMMM y G",
+                "d MMM, y G",
+                "d/M/y G",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E d"}
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                M{"L"}
+                MEd{"EEE d/M"}
+                MMM{"LLL"}
+                MMMEd{"E d MMM"}
+                MMMMEd{"EEE d MMMM"}
+                MMMd{"d MMM"}
+                MMMdd{"dd MMM"}
+                MMd{"d/MM"}
+                MMdd{"dd/MM"}
+                Md{"d/M"}
+                d{"d"}
+                ms{"mm:ss"}
+                yyMM{"MM/y G"}
+                yyMMM{"MMM y G"}
+                yyMMMEEEd{"EEE d MMM y G"}
+                yyMMMd{"d MMM y G"}
+                yyQ{"'T'Q y G"}
+                yyQQQQ{"QQQQ y G"}
+                yyyy{"y G"}
+                yyyyM{"M/y G"}
+                yyyyMEd{"EEE d/M/y G"}
+                yyyyMMM{"MMM y G"}
+                yyyyMMMEd{"EEE d MMM y G"}
+                yyyyMMMM{"MMMM y G"}
+                yyyyQ{"'T'Q y G"}
+                yyyyQQQ{"QQQ y G"}
+            }
+            eras{
+                abbreviated{
+                    "AH",
+                }
+                narrow:alias{"/LOCALE/calendar/islamic/eras/abbreviated"}
+                wide:alias{"/LOCALE/calendar/islamic/eras/abbreviated"}
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "Mouh.",
+                        "Saf.",
+                        "Rabiʻ-oul-A.",
+                        "Rabiʻ-out-T.",
+                        "Djoum.-l-O.",
+                        "Djoum.-t-T.",
+                        "Radj.",
+                        "Cha.",
+                        "Ram.",
+                        "Chaou.",
+                        "Dou-l-Q.",
+                        "Dou-l-H.",
+                    }
+                    default{"wide"}
+                    narrow:alias{"/LOCALE/calendar/islamic/monthNames/stand-alone/narrow"}
+                    wide{
+                        "Mouharram",
+                        "Safar",
+                        "Rabiʻ-oul-Aououal",
+                        "Rabiʻ-out-Tani",
+                        "Djoumada-l-Oula",
+                        "Djoumada-t-Tania",
+                        "Radjab",
+                        "Chaʻban",
+                        "Ramadan",
+                        "Chaououal",
+                        "Dou-l-Qaʻda",
+                        "Dou-l-Hidjja",
+                    }
+                }
+                stand-alone{
+                    abbreviated:alias{"/LOCALE/calendar/islamic/monthNames/format/abbreviated"}
+                    narrow{
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5",
+                        "6",
+                        "7",
+                        "8",
+                        "9",
+                        "10",
+                        "11",
+                        "12",
+                    }
+                    wide:alias{"/LOCALE/calendar/islamic/monthNames/format/wide"}
+                }
+            }
+        }
+        japanese{
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE d MMMM y G",
+                "d MMMM y G",
+                "d MMM, y G",
+                "d/M/y G",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E d"}
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                M{"L"}
+                MEd{"EEE d/M"}
+                MMM{"LLL"}
+                MMMEd{"E d MMM"}
+                MMMMEd{"EEE d MMMM"}
+                MMMd{"d MMM"}
+                MMMdd{"dd MMM"}
+                MMd{"d/MM"}
+                MMdd{"dd/MM"}
+                Md{"d/M"}
+                d{"d"}
+                ms{"mm:ss"}
+                yyMM{"MM/y G"}
+                yyMMM{"MMM y G"}
+                yyMMMEEEd{"EEE d MMM y G"}
+                yyMMMd{"d MMM y G"}
+                yyQ{"'T'Q y G"}
+                yyQQQQ{"QQQQ y G"}
+                yyyy{"y G"}
+                yyyyM{"M/y G"}
+                yyyyMEd{"EEE d/M/y G"}
+                yyyyMMM{"MMM y G"}
+                yyyyMMMEd{"EEE d MMM y G"}
+                yyyyMMMM{"MMMM y G"}
+                yyyyQ{"'T'Q y G"}
+                yyyyQQQ{"QQQ y G"}
+            }
+        }
+        roc{
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE d MMMM y G",
+                "d MMMM y G",
+                "d MMM, y G",
+                "d/M/y G",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E d"}
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                M{"L"}
+                MEd{"EEE d/M"}
+                MMM{"LLL"}
+                MMMEd{"E d MMM"}
+                MMMMEd{"EEE d MMMM"}
+                MMMd{"d MMM"}
+                MMMdd{"dd MMM"}
+                MMd{"d/MM"}
+                MMdd{"dd/MM"}
+                Md{"d/M"}
+                d{"d"}
+                ms{"mm:ss"}
+                yyMM{"MM/y G"}
+                yyMMM{"MMM y G"}
+                yyMMMEEEd{"EEE d MMM y G"}
+                yyMMMd{"d MMM y G"}
+                yyQ{"'T'Q y G"}
+                yyQQQQ{"QQQQ y G"}
+                yyyy{"y G"}
+                yyyyM{"M/y G"}
+                yyyyMEd{"EEE d/M/y G"}
+                yyyyMMM{"MMM y G"}
+                yyyyMMMEd{"EEE d MMM y G"}
+                yyyyMMMM{"MMMM y G"}
+                yyyyQ{"'T'Q y G"}
+                yyyyQQQ{"QQQ y G"}
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"”"}
+        alternateQuotationStart{"“"}
+        quotationEnd{"»"}
+        quotationStart{"«"}
+    }
+    listPattern{
+        standard{
+            2{"{0} et {1}"}
+            end{"{0} et {1}"}
+        }
+    }
+    measurementSystemNames{
+        US{"américain"}
+        metric{"métrique"}
+    }
+    units{
+        day{
+            one{"{0} jour"}
+            other{"{0} jours"}
+        }
+        hour{
+            one{"{0} heure"}
+            other{"{0} heures"}
+        }
+        minute{
+            one{"{0} minute"}
+            other{"{0} minutes"}
+        }
+        month{
+            one{"{0} mois"}
+            other{"{0} mois"}
+        }
+        second{
+            one{"{0} seconde"}
+            other{"{0} secondes"}
+        }
+        week{
+            one{"{0} semaine"}
+            other{"{0} semaines"}
+        }
+        year{
+            one{"{0} année"}
+            other{"{0} années"}
+        }
+    }
+    unitsShort{
+        day{
+            one{"{0} j"}
+            other{"{0} j"}
+        }
+        hour{
+            one{"{0} h"}
+            other{"{0} h"}
+        }
+        minute{
+            one{"{0} mn"}
+            other{"{0} mn"}
+        }
+        month{
+            one{"{0} mois"}
+            other{"{0} mois"}
+        }
+        second{
+            one{"{0} s"}
+            other{"{0} s"}
+        }
+        week{
+            one{"{0} sem."}
+            other{"{0} sem."}
+        }
+        year{
+            one{"{0} an"}
+            other{"{0} ans"}
+        }
+    }
+}

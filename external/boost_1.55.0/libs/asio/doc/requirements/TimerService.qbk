@@ -1,0 +1,105 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:TimerService Timer service requirements]
+
+A timer service must meet the requirements for an [link
+boost_asio.reference.IoObjectService I/O object service], as well as the
+additional requirements listed below.
+
+In the table below, `X` denotes a timer service class for time type `Time` and
+traits type `TimeTraits`, `a` denotes a value of type `X`, `b` denotes a value
+of type `X::implementation_type`, `t` denotes a value of type `Time`, `d`
+denotes a value of type `TimeTraits::duration_type`, `e` denotes a value of
+type `error_code`, and `h` denotes a value meeting [link
+boost_asio.reference.WaitHandler `WaitHandler`] requirements.
+
+[table TimerService requirements
+  [[expression] [return type] [assertion/note\npre/post-condition]]
+  [
+    [`a.destroy(b);`]
+    []
+    [
+      From [link boost_asio.reference.IoObjectService IoObjectService]
+      requirements. Implicitly cancels asynchronous wait operations, as if by
+      calling `a.cancel(b, e)`.
+    ]
+  ]
+  [
+    [``
+      a.cancel(b, e);
+    ``]
+    [`size_t`]
+    [
+      Causes any outstanding asynchronous wait operations to complete as soon
+      as possible. Handlers for cancelled operations shall be passed the error
+      code `error::operation_aborted`. Sets `e` to indicate success or failure.
+      Returns the number of operations that were cancelled.
+    ]
+  ]
+  [
+    [`a.expires_at(b);`]
+    [`Time`]
+    []
+  ]
+  [
+    [``
+      a.expires_at(b, t, e);
+    ``]
+    [`size_t`]
+    [
+      Implicitly cancels asynchronous wait operations, as if by calling
+      `a.cancel(b, e)`. Returns the number of operations that were cancelled.\n
+      post: `a.expires_at(b) == t`.
+    ]
+  ]
+  [
+    [`a.expires_from_now(b);`]
+    [`TimeTraits::duration_type`]
+    [
+      Returns a value equivalent to `TimeTraits::subtract(a.expires_at(b),
+      TimeTraits::now())`.
+    ]
+  ]
+  [
+    [``
+      a.expires_from_now(b, d, e);
+    ``]
+    [`size_t`]
+    [
+      Equivalent to `a.expires_at(b, TimeTraits::add(TimeTraits::now(), d), e)`.
+    ]
+  ]
+  [
+    [``
+      a.wait(b, e);
+    ``]
+    [`error_code`]
+    [
+      Sets `e` to indicate success or failure. Returns `e`.\n
+      post: `!!e || !TimeTraits::lt(TimeTraits::now(), a.expires_at(b))`.
+    ]
+  ]
+  [
+    [``
+      a.async_wait(b, h);
+    ``]
+    []
+    [
+      Initiates an asynchronous wait operation that is performed via the
+      `io_service` object `a.get_io_service()` and behaves according to [link
+      boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.\n
+      \n
+      The handler shall be posted for execution only if the condition
+      `!!ec || !TimeTraits::lt(TimeTraits::now(), a.expires_at(b))`
+      holds, where `ec` is the error code to be passed to the handler.
+    ]
+  ]
+]
+
+[endsect]

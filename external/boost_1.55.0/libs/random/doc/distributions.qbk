@@ -1,0 +1,106 @@
+[/
+ / Copyright (c) 2009 Steven Watanabe
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See
+ / accompanying file LICENSE_1_0.txt or copy at
+ / http://www.boost.org/LICENSE_1_0.txt)
+]
+
+In addition to the [link boost_random.reference.generators random number generators],
+this library provides distribution functions which map one distribution
+(often a uniform distribution provided by some generator) to another.
+
+Usually, there are several possible implementations of any given mapping.
+Often, there is a choice between using more space, more invocations of the
+underlying source of random numbers, or more time-consuming arithmetic such
+as trigonometric functions. This interface description does not mandate any
+specific implementation. However, implementations which cannot reach certain
+values of the specified distribution or otherwise do not converge
+statistically to it are not acceptable.
+
+[table Uniform Distributions
+  [[distribution] [explanation] [example]]
+  [[__uniform_smallint] [discrete uniform distribution on a small set of integers
+                         (much smaller than the range of the underlying
+                         generator)]
+                        [drawing from an urn]]
+  [[__uniform_int_distribution] [discrete uniform distribution on a set of integers; the
+                    underlying generator may be called several times to gather
+                    enough randomness for the output]
+                   [drawing from an urn]]
+  [[__uniform_01] [continuous uniform distribution on the range [0,1);
+                   important basis for other distributions]
+                  [-]]
+  [[__uniform_real_distribution] [continuous uniform distribution on some range [min, max) of
+                     real numbers]
+                    [for the range [0, 2pi): randomly dropping a stick and
+                     measuring its angle in radians (assuming the angle is
+                     uniformly distributed)]]
+]
+
+[table Bernoulli Distributions
+  [[distribution] [explanation] [example]]
+  [[__bernoulli_distribution] [Bernoulli experiment: discrete boolean valued
+                               distribution with configurable probability]
+                              [tossing a coin (p=0.5)]]
+  [[__binomial_distribution] [counts outcomes of repeated Bernoulli
+                              experiments]
+                             [tossing a coin 20 times and counting how many
+                                front sides are shown]]
+  [[__geometric_distribution] [measures distance between outcomes of repeated
+                             Bernoulli experiments]
+                            [throwing a die several times and counting the
+                             number of tries until a "6" appears for the
+                             first time]]
+  [[__negative_binomial_distribution] [Counts the number of failures of repeated
+                             Bernoulli experiments required to get some constant
+                             number of successes.]
+                            [flipping a coin and counting the number of
+                             heads that show up before we get 3 tails]]
+]
+
+[table Poisson Distributions
+  [[distribution] [explanation] [example]]
+  [[__poisson_distribution][poisson distribution]
+                           [counting the number of alpha particles emitted
+                            by radioactive matter in a fixed period of time]]
+  [[__exponential_distribution] [exponential distribution]
+                                [measuring the inter-arrival time of alpha
+                                 particles emitted by radioactive matter]]
+  [[__gamma_distribution][gamma distribution][-]]
+  [[__weibull_distribution] [weibull distribution] [-]]
+  [[__extreme_value_distribution] [extreme value distribution] [-]]
+]
+
+[table Normal Distributions
+  [[distribution] [explanation] [example]]
+  [[__normal_distribution] [counts outcomes of (infinitely) repeated Bernoulli
+                            experiments]
+                           [tossing a coin 10000 times and counting how many
+                            front sides are shown]]
+  [[__lognormal_distribution] [lognormal distribution (sometimes used in
+                               simulations)]
+                              [measuring the job completion time of an assembly
+                               line worker]]
+  [[__chi_squared_distribution][chi-squared distribution][-]]
+  [[__cauchy_distribution][Cauchy distribution][-]]
+  [[__fisher_f_distribution][Fisher F distribution][-]]
+  [[__student_t_distribution][Student t distribution][-]]
+]
+
+[table Sampling Distributions
+  [[distribution] [explanation] [example]]
+  [[__discrete_distribution][discrete distribution with specific probabilities][rolling an unfair die]]
+  [[__piecewise_constant_distribution][-][-]]
+  [[__piecewise_linear_distribution][-][-]]
+]
+
+
+[table Miscellaneous Distributions
+  [[distribution] [explanation] [example]]
+  [[__triangle_distribution] [triangle distribution] [-]]
+  [[__uniform_on_sphere] [uniform distribution on a unit sphere of arbitrary
+                          dimension]
+                         [choosing a random point on Earth (assumed to be a
+                          sphere) where to spend the next vacations]]
+]

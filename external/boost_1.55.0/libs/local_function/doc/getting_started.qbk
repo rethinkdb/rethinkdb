@@ -1,0 +1,73 @@
+
+[/ Copyright (C) 2009-2012 Lorenzo Caminiti ]
+[/ Distributed under the Boost Software License, Version 1.0 ]
+[/ (see accompanying file LICENSE_1_0.txt or a copy at ]
+[/ http://www.boost.org/LICENSE_1_0.txt) ]
+[/ Home at http://www.boost.org/libs/local_function ]
+
+[section Getting Started]
+
+This section explains how to setup a system to use this library.
+
+[section This Documentation]
+
+Programmers should have enough knowledge to use this library after reading the __Introduction__, __Getting_Started__, and __Tutorial__ sections.
+The __Advanced_Topics__ and __Reference__ sections can be consulted at a later point to gain a more advanced knowledge of the library.
+All the other sections of this documentation can be considered optional.
+
+Some footnotes are marked by the word "*Rationale*".
+They explain reasons behind decisions made during the design and implementation of this library.
+
+In most of the examples presented in this documentation, the Boost.Detail/LightweightTest (=boost/detail/lightweight_test.hpp=) macro `BOOST_TEST` is used to check correctness conditions.
+The `BOOST_TEST` macro is conceptually similar to `assert` but a failure of the checked condition does not abort the program, instead it makes `boost::report_errors` return a non-zero program exit code.
+[footnote
+*Rationale.*
+Using Boost.Detail/LightweightTest allows to add the examples to the library regression tests so to make sure that they always compile and run correctly.
+]
+
+[endsect]
+
+[section Compilers and Platforms]
+
+The implementation of this library uses preprocessor and template meta-programming (as supported by __Boost_Preprocessor__ and __Boost_MPL__), templates with partial specializations and function pointers (similarly to __Boost_Function__), and automatic type deduction (as supported by __Boost_Typeof__).
+The authors originally developed and tested the library on:
+
+# GNU Compiler Collection (GCC) C++ 4.5.1 on Ubuntu Linux 10.
+# GCC 4.3.4 and 4.5.3 (with and without __CXX11__ features enabled `-std=c++0x`) on Cygwin.
+# Miscrosoft Visual C++ (MSVC) 8.0 on Windows XP and Windows 7.
+
+See the library [@http://www.boost.org/development/tests/release/developer/local_function.html regressions test results] for detailed information on supported compilers and platforms.
+
+[endsect]
+
+[section Installation]
+
+This library is composed of header files only.
+Therefore there is no pre-compiled object file which needs to be installed or linked.
+Programmers can simply instruct the C++ compiler where to find the library header files (`-I` option for GCC, `/I` option for MSVC, etc) and they can start compiling code using this library.
+
+The library implementation uses __Boost_Typeof__ to automatically deduce the types of bound variables (see the __Tutorial__ section).
+In order to compile code in type-of emulation mode, all types should be properly registered using `BOOST_TYPEOF_REGISTER_TYPE` and `BOOST_TYPEOF_REGISTER_TEMPLATE`, or appropriate __Boost_Typeof__ headers should be included (see the source code of most examples presented in this documentation).
+
+The followings are part of the library private API, they are not documented, and they should not be directly used by programmers:
+[footnote
+*Rationale.*
+This library concatenates symbols specified by the programmers (e.g., the local function name) with other symbols (e.g., special prefixes or file line numbers) to make internal symbols with unique names to avoid name clashes.
+These symbols are separated by the letter "`X`" when they are concatenated so they read more easily during debugging (the underscore character "`_`" could not be used instead of the letter "`X`" because if the original symbols already contained a leading or trailing underscore, the concatenation could result in a symbol with double underscores "`__`" which is reserved by the C++ standard).
+The "aux" symbols are private to this library while the "detail" symbols may be used within Boost by other libraries but they are still not part of this library public API.
+]
+
+* Any symbol defined by files within the =boost/local_function/aux_/= or =boost/local_function/detail/= directory (these header files should not be directly included by programmers).
+* Any symbol within the `boost::local_function::aux` or `boost::local_function::detail` namespace.
+* Any symbol prefixed by `boost_local_function_aux_...` or `boost_local_function_detail_...` (regardless of its namespace).
+* Any symbol prefixed by `BOOST_LOCAL_FUNCTION_AUX_...` or `BOOST_LOCAL_FUNCTION_DETAIL_...` (regardless of its namespace).
+
+Some of the library behaviour can be changed at compile-time by defining special /configuration macros/.
+If a configuration macro is left undefined, the library will use an appropriate default value for it.
+All configuration macros are defined in the header file [headerref boost/local_function/config.hpp].
+It is strongly recommended not to change the library configuration macro definitions unless strictly necessary.
+
+[endsect]
+
+[endsect]
+

@@ -1,0 +1,50 @@
+# Boost.Geometry (aka GGL, Generic Geometry Library)
+#
+# Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
+# Copyright (c) 2008-2012 Bruno Lalande, Paris, France.
+# Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+#
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+test-suite boost-geometry-algorithms
+    :
+    [ run append.cpp : : : <toolset>msvc:<cxxflags>/bigobj ]
+    [ run area.cpp ]
+    [ run assign.cpp ]
+    [ run buffer.cpp ]
+    [ run centroid.cpp : : : <toolset>msvc:<cxxflags>/bigobj ]
+    [ run comparable_distance.cpp ]
+    [ run convex_hull.cpp ]
+    [ run correct.cpp ]
+    [ run convert.cpp : : : <toolset>msvc:<cxxflags>/bigobj ]
+    [ run covered_by.cpp ]
+    [ run difference.cpp : : : <define>BOOST_GEOMETRY_TEST_ONLY_ONE_TYPE <toolset>msvc:<cxxflags>/bigobj ]
+    [ run disjoint.cpp ]
+    [ run distance.cpp : : : <toolset>msvc:<cxxflags>/bigobj ]
+    [ run envelope.cpp ]
+    [ run equals.cpp ]
+    [ run expand.cpp ]
+    [ run for_each.cpp ]
+    [ run intersection.cpp : : : <define>BOOST_GEOMETRY_TEST_ONLY_ONE_TYPE <toolset>msvc:<cxxflags>/bigobj ]
+    [ run intersects.cpp ]
+    [ run length.cpp ]
+    [ run make.cpp ]
+    [ run overlaps.cpp ]
+    [ run perimeter.cpp ]
+    [ run reverse.cpp ]
+    [ run simplify.cpp ]
+    [ run touches.cpp ]
+    [ run transform.cpp ]
+    [ run union.cpp : : : <define>BOOST_GEOMETRY_TEST_ONLY_ONE_TYPE ]
+    [ run unique.cpp ]
+    [ run within.cpp ]
+    ;
+
+build-project overlay 
+    ;
+    
+build-project detail 
+    ;
+    

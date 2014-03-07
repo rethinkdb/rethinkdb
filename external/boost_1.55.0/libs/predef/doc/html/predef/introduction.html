@@ -1,0 +1,205 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Introduction</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Predef 1.0">
+<link rel="up" href="../index.html" title="Predef 1.0">
+<link rel="prev" href="../index.html" title="Predef 1.0">
+<link rel="next" href="using_the_predefs.html" title="Using the predefs">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../images/home.png" alt="Home"></a><a accesskey="n" href="using_the_predefs.html"><img src="../images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="predef.introduction"></a><a class="link" href="introduction.html" title="Introduction">Introduction</a>
+</h2></div></div></div>
+<p>
+      This library defines a set of compiler, architecture, operating system, library,
+      and other version numbers from the information it can gather of C, C++, Objective
+      C, and Objective C++ predefined macros or those defined in generally available
+      headers. The idea for this library grew out of a proposal to extend the Boost
+      Config library to provide more, and consistent, information than the feature
+      definitions it supports. What follows is an edited version of that brief proposal.
+    </p>
+<h4>
+<a name="predef.introduction.h0"></a>
+      <span class="phrase"><a name="predef.introduction.proposal"></a></span><a class="link" href="introduction.html#predef.introduction.proposal">Proposal</a>
+    </h4>
+<p>
+      The idea is to define a set of macros to identify compilers and consistently
+      represent their version. This includes:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          A unique BOOST_VERSION_NUMBER(major,minor,patch) macro to specify version
+          numbers (unfortunately, the name BOOST_VERSION is already taken to designate
+          the version number of boost itself).
+        </li>
+<li class="listitem">
+          A compiler identification macro, suitable for use in <code class="computeroutput"><span class="preprocessor">#if</span></code>/<code class="computeroutput"><span class="preprocessor">#elif</span></code> directives, for each of the supported
+          compilers. All macros would be defined, regardless of the compiler. The
+          one macro corresponding to the compiler being used would be defined, in
+          terms of BOOST_VERSION_NUMBER, to carry the exact compiler version. All
+          other macros would expand to an expression evaluating to false (for instance,
+          the token 0) to indicate that the corresponding compiler is not present.
+        </li>
+<li class="listitem">
+          "Null values" could be set, for all macros, in boost/config/select_compiler.hpp;
+          then, for each compiler the corresponding identification macro would be
+          #undef and re-#defined in the corresponding boost/compiler/(cc).hpp; however
+          in the context of the Boost.Config infrastructure using a "prefix"
+          header (to be introduced) or boost/config/suffix.hpp is a better solution.
+        </li>
+</ul></div>
+<h4>
+<a name="predef.introduction.h1"></a>
+      <span class="phrase"><a name="predef.introduction.current_library"></a></span><a class="link" href="introduction.html#predef.introduction.current_library">Current
+      Library</a>
+    </h4>
+<p>
+      The current Predef library is now, both an independent library, and expanded
+      in scope. It includes detection and definition of architectures, compilers,
+      languages, libraries, operating systems, and endianness. The key benefits are:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Version numbers that are always defined so that one doesn't have to guard
+          with <code class="computeroutput"><span class="preprocessor">#ifdef</span></code>.
+        </li>
+<li class="listitem">
+          Guard macros that can be used for <code class="computeroutput"><span class="preprocessor">#ifdef</span></code>
+          checks.
+        </li>
+<li class="listitem">
+          All possible definitions are included with the single <code class="computeroutput"><span class="preprocessor">#include</span>
+          <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">predef</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span></code>
+          so that it's friendly to precompiled header usage.
+        </li>
+<li class="listitem">
+          Specific definitions can be included, ex. <code class="computeroutput"><span class="preprocessor">#include</span>
+          <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">predef</span><span class="special">/</span><span class="identifier">os</span><span class="special">/</span><span class="identifier">windows</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span></code>
+          for single checks.
+        </li>
+<li class="listitem">
+          Predefs can be directly used in both preprocessor and compiler expressions
+          for comparison to other similarly defined values.
+        </li>
+<li class="listitem">
+          The headers are usable from multiple languages, that support the C preprocessor.
+          In particular C++, C, Objective C, and Objective C++.
+        </li>
+</ul></div>
+<h4>
+<a name="predef.introduction.h2"></a>
+      <span class="phrase"><a name="predef.introduction.design_choices"></a></span><a class="link" href="introduction.html#predef.introduction.design_choices">Design
+      choices</a>
+    </h4>
+<p>
+      An important design choice concerns how to represent compiler versions by means
+      of a single integer number suitable for use in preprocessing directives. Let's
+      do some calculation. The "basic" signed type for preprocessing constant-expressions
+      is long in C90 (and C++, as of 2006) and intmax_t in C99. The type long shall
+      at least be able to represent the number <code class="literal">+2 147 483 647</code>.
+      This means the most significant digit can only be 0, 1 or 2; and if we want
+      all decimal digits to be able to vary between 0 and 9, the largest range we
+      can consider is <code class="literal">[0, 999 999 999]</code>. Distributing evenly, this
+      means 3 decimal digits for each version number part.
+    </p>
+<p>
+      So we can:
+    </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          use an uneven distribution or
+        </li>
+<li class="listitem">
+          use more bits (a larger type) or
+        </li>
+<li class="listitem">
+          use 3/3/3 and have the particular compiler/platform/stdlib deal with setting
+          the numbers within the 3-digit range.
+        </li>
+</ol></div>
+<p>
+      It appears relatively safe to go for the first option and set it at 2/2/5.
+      That covers CodeWarrior and others, which are up to and past 10 for the major
+      number. Some compilers use the build number in lieu of the patch one; five
+      digits (which is already reached by VC++ 8) seems a reasonable limit even in
+      this case.
+    </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        A 2/2/6 scheme would allow for bigger patch/build numbers at the cost, for
+        instance, of limiting the major version number to 20 (or, with further constraints,
+        to 21).
+      </p></td></tr>
+</table></div>
+<p>
+      It might reassure the reader that this decision is actually encoded in one
+      place in the code; the definition of <code class="computeroutput"><span class="identifier">BOOST_VERSION_NUMBER</span></code>.
+    </p>
+<h4>
+<a name="predef.introduction.h3"></a>
+      <span class="phrase"><a name="predef.introduction.future_work"></a></span><a class="link" href="introduction.html#predef.introduction.future_work">Future
+      work</a>
+    </h4>
+<p>
+      Even though the basics of this library are done, there is much work that can
+      be done:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Right now we limit the detection of libraries to known built-in predefined
+          macros, and to guaranteed to exist system and library headers. It might
+          be interesting to add something like auto-configuration predefs. This way
+          we can add definitions for user specific libraries and features.
+        </li>
+<li class="listitem">
+          Along with the above, it might be good to add some user control as to which
+          headers are included with the top-level header. Although in the current
+          form of the library this is less of an issue as one can include the specific
+          headers one needs.
+        </li>
+<li class="listitem">
+          Additionally, even if there is no auto-configure style option.. It would
+          be good to add optionally included headers so that user can get consistent
+          version number definitions for libraries they use.
+        </li>
+<li class="listitem">
+          Having a consistent set of version number definitions opens the door to
+          improving the user level syntax of libraries that do checks against version
+          numbers. Specifically Boost Config's <code class="computeroutput"><span class="identifier">BOOST_WORKAROUND</span></code>
+          macro would benefit from a more readable syntax. As would the <code class="computeroutput"><span class="identifier">BOOST_TESTED_AT</span></code> detail macro.
+        </li>
+<li class="listitem">
+          And obviously there's lots of work to do in reformulating the existing
+          Boost libraries to use the Predef library once it's accepted.
+        </li>
+<li class="listitem">
+          And there's the continuing work of adding definitions for present and future
+          compilers, platforms, architectures, languages, and libraries.
+        </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Rene Rivera<br>Copyright &#169; 2008-2013 Redshift Software Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../images/home.png" alt="Home"></a><a accesskey="n" href="using_the_predefs.html"><img src="../images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

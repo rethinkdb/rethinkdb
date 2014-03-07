@@ -1,0 +1,33 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:SettableSerialPortOption Settable serial port option requirements]
+
+In the table below, `X` denotes a serial port option class, `a` denotes a value
+of `X`, `ec` denotes a value of type `error_code`, and `s` denotes a value of
+implementation-defined type ['[^storage]] (where ['[^storage]] is the type
+`DCB` on Windows and `termios` on __POSIX__ platforms), and `u` denotes an
+identifier.
+
+[table SettableSerialPortOption requirements
+  [[expression] [type] [assertion/note\npre/post-conditions]]
+  [
+    [
+      `const X& u = a;`\n
+      `u.store(s, ec);`
+    ]
+    [`error_code`]
+    [
+      Saves the value of the serial port option to the storage.\n
+      \n
+      If successful, sets `ec` such that `!ec` is true. If an error occurred,
+      sets `ec` such that `!!ec` is true. Returns `ec`.
+    ]
+  ]
+]
+
+[endsect]

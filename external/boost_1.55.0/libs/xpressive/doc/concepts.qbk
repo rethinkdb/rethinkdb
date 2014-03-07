@@ -1,0 +1,333 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Concepts]
+
+[h2 CharT requirements]
+If type `BidiIterT` is used as a template argument to _basic_regex_, then `CharT` is
+`iterator_traits<BidiIterT>::value_type`. Type `CharT` must have a trivial default
+constructor, copy constructor, assignment operator, and destructor.  In addition
+the following requirements must be met for objects; `c` of type `CharT`, `c1` and `c2` of
+type `CharT const`, and `i` of type `int`:
+
+[table CharT Requirements
+    [
+        [[*Expression]]
+        [[*Return type]]
+        [[*Assertion / Note / Pre- / Post-condition]]
+    ]
+    [
+        [`CharT c`]
+        [`CharT`]
+        [Default constructor (must be trivial).]
+    ]
+    [
+        [`CharT c(c1)`]
+        [`CharT`]
+        [Copy constructor (must be trivial).]
+    ]
+    [
+        [`c1 = c2`]
+        [`CharT`]
+        [Assignment operator (must be trivial).]
+    ]
+    [
+        [`c1 == c2`]
+        [`bool`]
+        [`true` if `c1` has the same value as `c2`.]
+    ]
+    [
+        [`c1 != c2`]
+        [`bool`]
+        [`true` if `c1` and `c2` are not equal.]
+    ]
+    [
+        [`c1 < c2`]
+        [`bool`]
+        [`true` if the value of `c1` is less than `c2`.]
+    ]
+    [
+        [`c1 > c2`]
+        [`bool`]
+        [`true` if the value of `c1` is greater than `c2`.]
+    ]
+    [
+        [`c1 <= c2`]
+        [`bool`]
+        [`true` if `c1` is less than or equal to `c2`.]
+    ]
+    [
+        [`c1 >= c2`]
+        [`bool`]
+        [`true` if `c1` is greater than or equal to `c2`.]
+    ]
+    [
+        [`intmax_t i = c1`]
+        [`int`]
+        [
+            `CharT` must be convertible to an integral type.
+        ]
+    ]
+    [
+        [`CharT c(i);`]
+        [`CharT`]
+        [`CharT` must be constructable from an integral type.]
+    ]
+]
+
+[h2 Traits Requirements]
+In the following table `X` denotes a traits class defining types and functions
+for the character container type `CharT`; `u` is an object of type `X`; `v` is an
+object of type `const X`; `p` is a value of type `const CharT*`; `I1` and `I2` are
+`Input Iterators`; `c` is a value of type `const CharT`; `s` is an object of type
+`X::string_type`; `cs` is an object of type `const X::string_type`; `b` is a value of
+type `bool`; `i` is a value of type `int`; `F1` and `F2` are values of type `const CharT*`;
+`loc` is an object of type `X::locale_type`; and `ch` is an object of `const char`.
+
+[table Traits Requirements
+    [
+        [
+            [*Expression]
+        ]
+        [
+            [*Return type]
+        ]
+        [
+            [*Assertion / Note\n
+                Pre / Post condition]
+        ]
+    ]
+    [
+        [
+            `X::char_type`
+        ]
+        [
+            `CharT`
+        ]
+        [
+            The character container type used in the implementation of class template _basic_regex_.
+        ]
+    ]
+    [
+        [
+            `X::string_type`
+        ]
+        [
+            `std::basic_string<CharT>` or `std::vector<CharT>`
+        ]
+        [
+
+        ]
+    ]
+    [
+        [
+            `X::locale_type`
+        ]
+        [
+            ['Implementation defined]
+        ]
+        [
+            A copy constructible type that represents the locale used by the traits class.
+        ]
+    ]
+    [
+        [
+            `X::char_class_type`
+        ]
+        [
+            ['Implementation defined]
+        ]
+        [
+            A bitmask type representing a particular character classification. Multiple
+                values of this type can be bitwise-or'ed together to obtain a new valid value.
+        ]
+    ]
+    [
+        [
+            `X::hash(c)`
+        ]
+        [
+            `unsigned char`
+        ]
+        [
+            Yields a value between `0` and `UCHAR_MAX` inclusive.
+        ]
+    ]
+    [
+        [
+            `v.widen(ch)`
+        ]
+        [
+            `CharT`
+        ]
+        [
+            Widens the specified `char` and returns the resulting `CharT`.
+        ]
+    ]
+    [
+        [
+            `v.in_range(r1, r2, c)`
+        ]
+        [
+            `bool`
+        ]
+        [
+            For any characters `r1` and `r2`, returns `true` if `r1 <= c && c <= r2`.
+                Requires that `r1 <= r2`.
+        ]
+    ]
+    [
+        [
+            `v.in_range_nocase(r1, r2, c)`
+        ]
+        [
+            `bool`
+        ]
+        [
+            For characters `r1` and `r2`, returns `true` if there is some character
+                `d` for which `v.translate_nocase(d) == v.translate_nocase(c)` and
+                `r1 <= d && d <= r2`. Requires that `r1 <= r2`.
+        ]
+    ]
+    [
+        [
+            `v.translate(c)`
+        ]
+        [
+            `X::char_type`
+        ]
+        [
+            Returns a character such that for any character `d` that is to be considered
+                equivalent to `c` then `v.translate(c) == v.translate(d)`.
+        ]
+    ]
+    [
+        [
+            `v.translate_nocase(c)`
+        ]
+        [
+            `X::char_type`
+        ]
+        [
+            For all characters `C` that are to be considered
+            equivalent to `c` when comparisons are to be performed without regard to case,
+            then `v.translate_nocase(c) == v.translate_nocase(C)`.
+        ]
+    ]
+    [
+        [
+            `v.transform(F1, F2)`
+        ]
+        [
+            `X::string_type`
+        ]
+        [
+            Returns a sort key for the character sequence designated by the iterator range
+                `[F1, F2)` such that if the character sequence `[G1, G2)` sorts before the
+                character sequence `[H1, H2)` then `v.transform(G1, G2) < v.transform(H1, H2)`.
+        ]
+    ]
+    [
+        [
+            `v.transform_primary(F1, F2)`
+        ]
+        [
+            `X::string_type`
+        ]
+        [
+            Returns a sort key for the character sequence designated by the iterator range
+                `[F1, F2)` such that if the character sequence `[G1, G2)` sorts before the
+                character sequence `[H1, H2)` when character case is not considered then
+                `v.transform_primary(G1, G2) < v.transform_primary(H1, H2)`.
+        ]
+    ]
+    [
+        [
+            `v.lookup_classname(F1, F2)`
+        ]
+        [
+            `X::char_class_type`
+        ]
+        [
+            Converts the character sequence designated by the iterator range `[F1,F2)` into a
+                bitmask type that can subsequently be passed to `isctype`. Values returned from
+                `lookup_classname` can be safely bitwise or'ed together. Returns `0` if the
+                character sequence is not the name of a character class recognized by `X`. The
+                value returned shall be independent of the case of the characters in the
+                sequence.
+        ]
+    ]
+    [
+        [
+            `v.lookup_collatename(F1, F2)`
+        ]
+        [
+            `X::string_type`
+        ]
+        [
+            Returns a sequence of characters that represents the collating element
+                consisting of the character sequence designated by the iterator range `[F1, F2)`.
+                Returns an empty string if the character sequence is not a valid collating
+                element.
+        ]
+    ]
+    [
+        [
+            `v.isctype(c, v.lookup_classname(F1, F2))`
+        ]
+        [
+            `bool`
+        ]
+        [
+            Returns `true` if character `c` is a member of the character class designated by
+                the iterator range `[F1, F2)`, `false` otherwise.
+        ]
+    ]
+    [
+        [
+            `v.value(c, i)`
+        ]
+        [
+            `int`
+        ]
+        [
+            Returns the value represented by the digit `c` in base `i` if the character `c` is a
+                valid digit in base `i`; otherwise returns `-1`.\n
+                \[Note: the value of `i` will only be `8`, `10`, or `16`. -end note\]
+        ]
+    ]
+    [
+        [
+            `u.imbue(loc)`
+        ]
+        [
+            `X::locale_type`
+        ]
+        [
+            Imbues `u` with the locale `loc`, returns the previous
+                locale used by `u`.
+        ]
+    ]
+    [
+        [
+            `v.getloc()`
+        ]
+        [
+            `X::locale_type`
+        ]
+        [
+            Returns the current locale used by `v`.
+        ]
+    ]
+]
+
+[h2 Acknowledgements]
+
+This section is adapted from the equivalent page in the _regexpp_ documentation and from the
+_proposal_ to add regular expressions to the Standard Library.
+
+[endsect]

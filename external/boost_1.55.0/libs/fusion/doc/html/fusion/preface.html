@@ -1,0 +1,220 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Preface</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="prev" href="../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="next" href="introduction.html" title="Introduction">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="introduction.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="fusion.preface"></a><a class="link" href="preface.html" title="Preface">Preface</a>
+</h2></div></div></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        <span class="emphasis"><em><span class="quote">&#8220;<span class="quote">Algorithms + Data Structures = Programs.</span>&#8221;</span></em></span>
+      </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        <span class="bold"><strong>--Niklaus Wirth</strong></span>
+      </p></blockquote></div>
+<h4>
+<a name="fusion.preface.h0"></a>
+      <span class="phrase"><a name="fusion.preface.description"></a></span><a class="link" href="preface.html#fusion.preface.description">Description</a>
+    </h4>
+<p>
+      Fusion is a library for working with heterogenous collections of data, commonly
+      referred to as tuples. A set of containers (vector, list, set and map) is provided,
+      along with views that provide a transformed presentation of their underlying
+      data. Collectively the containers and views are referred to as sequences, and
+      Fusion has a suite of algorithms that operate upon the various sequence types,
+      using an iterator concept that binds everything together.
+    </p>
+<p>
+      The architecture is modeled after <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>
+      which in turn is modeled after <a href="http://en.wikipedia.org/wiki/Standard_Template_Library" target="_top">STL</a>.
+      It is named "fusion" because the library is a "fusion"
+      of compile time metaprogramming with runtime programming.
+    </p>
+<h4>
+<a name="fusion.preface.h1"></a>
+      <span class="phrase"><a name="fusion.preface.motivation"></a></span><a class="link" href="preface.html#fusion.preface.motivation">Motivation</a>
+    </h4>
+<p>
+      Tuples are powerful beasts. After having developed two significant projects
+      (<a href="http://spirit.sourceforge.net" target="_top">Spirit</a> and <a href="http://boost.org/libs/spirit/phoenix/index.html" target="_top">Phoenix</a>)
+      that relied heavily metaprogramming, it became apparent that tuples are a powerful
+      means to simplify otherwise tricky tasks; especially those that require a combination
+      of metaprogramming and manipulation of heterogenous data types with values.
+      While <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a> is
+      an extremely powerful metaprogramming tool, <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>
+      focuses on type manipulation only. Ultimately, you'll have to map these types
+      to real values to make them useful in the runtime world where all the real
+      action takes place.
+    </p>
+<p>
+      As <a href="http://spirit.sourceforge.net" target="_top">Spirit</a> and <a href="http://boost.org/libs/spirit/phoenix/index.html" target="_top">Phoenix</a>
+      evolved, patterns and idioms related to tuple manipulation emerged. Soon, it
+      became clear that those patterns and idioms were best assembled in a tuples
+      algorithms library. <a href="http://www.boost.org/people/dave_abrahams.htm" target="_top">David
+      Abrahams</a> outlined such a scheme in 2002. At that time, it just so happened
+      that <a href="http://spirit.sourceforge.net" target="_top">Spirit</a> and <a href="http://boost.org/libs/spirit/phoenix/index.html" target="_top">Phoenix</a>
+      had an adhoc collection of tuple manipulation and traversal routines. It was
+      an instant <span class="emphasis"><em>AHA!</em></span> moment.
+    </p>
+<h4>
+<a name="fusion.preface.h2"></a>
+      <span class="phrase"><a name="fusion.preface.how_to_use_this_manual"></a></span><a class="link" href="preface.html#fusion.preface.how_to_use_this_manual">How
+      to use this manual</a>
+    </h4>
+<p>
+      Some icons are used to mark certain topics indicative of their relevance. These
+      icons precede some text to indicate:
+    </p>
+<div class="table">
+<a name="fusion.preface.t0"></a><p class="title"><b>Table&#160;1.1.&#160;Icons</b></p>
+<div class="table-contents"><table class="table" summary="Icons">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Icon
+              </p>
+            </th>
+<th>
+              <p>
+                Name
+              </p>
+            </th>
+<th>
+              <p>
+                Meaning
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <span class="inlinemediaobject"><img src="../images/note.png" alt="note"></span>
+              </p>
+            </td>
+<td>
+              <p>
+                Note
+              </p>
+            </td>
+<td>
+              <p>
+                Information provided is auxiliary but will give the reader a deeper
+                insight into a specific topic. May be skipped.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="inlinemediaobject"><img src="../images/alert.png" alt="alert"></span>
+              </p>
+            </td>
+<td>
+              <p>
+                Alert
+              </p>
+            </td>
+<td>
+              <p>
+                Information provided is of utmost importance.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="inlinemediaobject"><img src="../images/caution.png" alt="caution"></span>
+              </p>
+            </td>
+<td>
+              <p>
+                Caution
+              </p>
+            </td>
+<td>
+              <p>
+                A mild warning.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <span class="inlinemediaobject"><img src="../images/tip.png" alt="tip"></span>
+              </p>
+            </td>
+<td>
+              <p>
+                Tip
+              </p>
+            </td>
+<td>
+              <p>
+                A potentially useful and helpful piece of information.
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+      This documentation is automatically generated by Boost QuickBook documentation
+      tool. QuickBook can be found in the <a href="http://www.boost.org/tools/index.html" target="_top">Boost
+      Tools</a>.
+    </p>
+<h4>
+<a name="fusion.preface.h3"></a>
+      <span class="phrase"><a name="fusion.preface.support"></a></span><a class="link" href="preface.html#fusion.preface.support">Support</a>
+    </h4>
+<p>
+      Please direct all questions to Spirit's mailing list. You can subscribe to
+      the <a href="https://lists.sourceforge.net/lists/listinfo/spirit-general" target="_top">Spirit
+      Mailing List</a>. The mailing list has a searchable archive. A search link
+      to this archive is provided in <a href="http://spirit.sourceforge.net" target="_top">Spirit</a>'s
+      home page. You may also read and post messages to the mailing list through
+      <a href="news://news.gmane.org/gmane.comp.spirit.general" target="_top">Spirit General
+      NNTP news portal</a> (thanks to <a href="http://www.gmane.org" target="_top">Gmane</a>).
+      The news group mirrors the mailing list. Here is a link to the archives: <a href="http://news.gmane.org/gmane.comp.parsers.spirit.general" target="_top">http://news.gmane.org/gmane.comp.parsers.spirit.general</a>.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="introduction.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

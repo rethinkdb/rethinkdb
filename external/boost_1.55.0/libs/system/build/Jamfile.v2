@@ -1,0 +1,25 @@
+# Boost System Library Build Jamfile
+
+# (C) Copyright Beman Dawes 2002, 2006
+
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or www.boost.org/LICENSE_1_0.txt)
+
+# See library home page at http://www.boost.org/libs/system
+
+project boost/system
+    : source-location ../src
+    : usage-requirements  # pass these requirement to dependents (i.e. users)
+      <link>shared:<define>BOOST_SYSTEM_DYN_LINK=1
+      <link>static:<define>BOOST_SYSTEM_STATIC_LINK=1
+    ;
+
+SOURCES = error_code ;
+
+lib boost_system
+   : $(SOURCES).cpp
+   : <link>shared:<define>BOOST_SYSTEM_DYN_LINK=1
+     <link>static:<define>BOOST_SYSTEM_STATIC_LINK=1
+   ;
+
+boost-install boost_system ;

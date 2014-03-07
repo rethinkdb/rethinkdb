@@ -1,0 +1,152 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>out</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../i_o.html" title="I/O">
+<link rel="prev" href="in.html" title="in">
+<link rel="next" href="../comparison.html" title="Comparison">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="in.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../i_o.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../comparison.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="fusion.sequence.operator.i_o.out"></a><a class="link" href="out.html" title="out">out</a>
+</h5></div></div></div>
+<h6>
+<a name="fusion.sequence.operator.i_o.out.h0"></a>
+            <span class="phrase"><a name="fusion.sequence.operator.i_o.out.description"></a></span><a class="link" href="out.html#fusion.sequence.operator.i_o.out.description">Description</a>
+          </h6>
+<p>
+            Write a <a class="link" href="../../../sequence.html" title="Sequence">Sequence</a> to an output
+            stream.
+          </p>
+<h6>
+<a name="fusion.sequence.operator.i_o.out.h1"></a>
+            <span class="phrase"><a name="fusion.sequence.operator.i_o.out.synopsis"></a></span><a class="link" href="out.html#fusion.sequence.operator.i_o.out.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">OStream</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Sequence</span><span class="special">&gt;</span>
+<span class="identifier">OStream</span><span class="special">&amp;</span>
+<span class="keyword">operator</span><span class="special">&lt;&lt;(</span><span class="identifier">OStream</span><span class="special">&amp;</span> <span class="identifier">os</span><span class="special">,</span> <span class="identifier">Sequence</span><span class="special">&amp;</span> <span class="identifier">seq</span><span class="special">);</span>
+</pre>
+<h6>
+<a name="fusion.sequence.operator.i_o.out.h2"></a>
+            <span class="phrase"><a name="fusion.sequence.operator.i_o.out.parameters"></a></span><a class="link" href="out.html#fusion.sequence.operator.i_o.out.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Requirement
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      os
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      An output stream.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Stream to write information to.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      seq
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A <a class="link" href="../../../sequence.html" title="Sequence">Sequence</a>.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The sequence to write.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="fusion.sequence.operator.i_o.out.h3"></a>
+            <span class="phrase"><a name="fusion.sequence.operator.i_o.out.expression_semantics"></a></span><a class="link" href="out.html#fusion.sequence.operator.i_o.out.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<pre class="programlisting"><span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">seq</span>
+</pre>
+<p>
+            <span class="bold"><strong>Return type</strong></span>: OStream&amp;
+          </p>
+<p>
+            <span class="bold"><strong>Semantics</strong></span>: For each element, <code class="computeroutput"><span class="identifier">e</span></code>, in sequence, <code class="computeroutput"><span class="identifier">seq</span></code>,
+            call <code class="computeroutput"><span class="identifier">os</span> <span class="special">&lt;&lt;</span>
+            <span class="identifier">e</span></code>.
+          </p>
+<h6>
+<a name="fusion.sequence.operator.i_o.out.h4"></a>
+            <span class="phrase"><a name="fusion.sequence.operator.i_o.out.header"></a></span><a class="link" href="out.html#fusion.sequence.operator.i_o.out.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">sequence</span><span class="special">/</span><span class="identifier">io</span><span class="special">/</span><span class="identifier">out</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">out</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="fusion.sequence.operator.i_o.out.h5"></a>
+            <span class="phrase"><a name="fusion.sequence.operator.i_o.out.example"></a></span><a class="link" href="out.html#fusion.sequence.operator.i_o.out.example">Example</a>
+          </h6>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <a class="link" href="../../../container/generation/functions/make_vector.html" title="make_vector"><code class="computeroutput"><span class="identifier">make_vector</span></code></a><span class="special">(</span><span class="number">123</span><span class="special">,</span> <span class="string">"Hello"</span><span class="special">,</span> <span class="char">'x'</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="in.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../i_o.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../comparison.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

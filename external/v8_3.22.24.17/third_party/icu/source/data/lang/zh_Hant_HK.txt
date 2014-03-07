@@ -1,0 +1,31 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/zh_Hant_HK.xml
+// *
+// ***************************************************************************
+zh_Hant_HK{
+    Languages{
+        it{"意大利文"}
+        lol{"蒙古語"}
+    }
+    Scripts{
+        Hang{"韓文字母"}
+    }
+    Types{
+        collation{
+            big5han{"繁體中文順序 - Big5"}
+            gb2312han{"簡體中文順序 - GB2312"}
+        }
+    }
+    Variants{
+        1901{"傳統德國拼字法"}
+        1996{"1996 德國拼字法"}
+        BISKE{"San Giorgio/Bila 方言"}
+        REVISED{"已修訂拼字法"}
+        SCOTLAND{"蘇格蘭標準英語"}
+    }
+    Version{"2.0.46.25"}
+}

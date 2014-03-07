@@ -1,0 +1,252 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Tutorial -Debugging support</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="creation.html">
+<link rel="up" href="index.html">
+<link rel="next" href="techniques.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Tutorial: Debugging support</h1>
+
+<div class="prev_link"><a href="creation.html"><img src="../prev.gif" alt="container creation" border="0"><br>
+Container creation
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex tutorial" border="0"><br>
+Boost.MultiIndex tutorial
+</a></div>
+<div class="next_link"><a href="techniques.html"><img src="../next.gif" alt="techniques" border="0"><br>
+Techniques
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#debugging_support">Debugging support</a></li>
+  <li><a href="#safe_mode">Safe mode</a>
+    <ul>
+       <li><a href="#serialization_and_safe_mode">Serialization and safe mode</a></li>
+    </ul>
+  </li>
+  <li><a href="#invariant_check">Invariant-checking mode</a></li>
+</ul>
+
+<h2><a name="debugging_support">Debugging support</a></h2>
+
+<p>
+The concept of <i>Design by Contract</i>, originally developed as part
+of Bertrand Meyer's <a href="http://www.eiffel.com">Eiffel</a> language,
+revolves around the formulation of a <i>contract</i> between the user
+of a library and the implementor, by which the first is required to
+respect some <i>preconditions</i> on the values passed when invoking
+methods of the library, and the implementor guarantees in return
+that certain constraints on the results are met (<i>postconditions</i>),
+as well as the honoring of specified internal consistency rules, called
+<i>invariants</i>. Eiffel natively supports the three parts of the
+contract just described by means of constructs <code>require</code>,
+<code>ensure</code> and <code>invariant</code>, respectively.
+</p>
+
+<p>
+C++ does not enjoy direct support for Design by Contract techniques: these
+are customarily implemented as assertion code, often turned off in
+release mode for performance reasons. Following this approach,
+Boost.MultiIndex provides two distinct debugging modes:
+<ul>
+  <li><i>Safe mode</i> checks preconditions on the invocations to the
+    facilities of the library,</li>
+  <li><i>invariant-checking mode</i> performs post-execution checks aimed
+    at ensuring that the internal consistency of the library is preserved.</li>
+</ul>
+These two modes are independent of each other and can be set on or off
+individually. It is important to note that errors detected by safe mode are
+due in principle to faulty code in the user's program, while
+invariant-checking mode detects potential <i>internal</i> bugs in the
+implementation of Boost.MultiIndex.
+</p>
+
+<h2><a name="safe_mode">Safe mode</a></h2>
+
+<p>
+The idea of adding precondition checking facilities to STL as a debugging aid
+was first introduced by Cay S. Horstmann in his
+<a href="http://www.horstmann.com/safestl.html">Safe STL</a> library and later
+adopted by <a href="http://www.stlport.com/doc/debug_mode.html">STLport Debug
+Mode</a>. Similarly, Boost.MultiIndex features the so-called <i>safe mode</i>
+in which all sorts of preconditions are checked when dealing with iterators
+and functions of the library.
+</p>
+
+<p>
+Boost.MultiIndex safe mode is set by globally defining the macro
+<code>BOOST_MULTI_INDEX_ENABLE_SAFE_MODE</code>. Error conditions
+are checked via the macro <code>BOOST_MULTI_INDEX_SAFE_MODE_ASSERT</code>, which
+by default resolves to a call to <a href="../../../../libs/utility/assert.html">
+<code>BOOST_ASSERT</code></a>.
+</p>
+
+<p>
+If the user decides to define her own version of
+<code>BOOST_MULTI_INDEX_SAFE_MODE_ASSERT</code>, it has to take the form
+</p>
+
+<blockquote><pre>
+<span class=identifier>BOOST_MULTI_INDEX_SAFE_MODE_ASSERT</span><span class=special>(</span><span class=identifier>expr</span><span class=special>,</span><span class=identifier>error_code</span><span class=special>)</span>
+</pre></blockquote>
+
+<p>
+where <code>expr</code> is the condition checked and <code>error_code</code>
+is one value of the <code>safe_mode::error_code</code> enumeration:
+</p>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>multi_index</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>safe_mode</span><span class=special>{</span>
+
+<span class=keyword>enum</span> <span class=identifier>error_code</span>
+<span class=special>{</span>
+  <span class=identifier>invalid_iterator</span><span class=special>,</span>             <span class=comment>// vg. default cted or pointing to erased element</span>
+  <span class=identifier>not_dereferenceable_iterator</span><span class=special>,</span> <span class=comment>// iterator is not dereferenceable</span>
+  <span class=identifier>not_incrementable_iterator</span><span class=special>,</span>   <span class=comment>// iterator points to end of sequence</span>
+  <span class=identifier>not_decrementable_iterator</span><span class=special>,</span>   <span class=comment>// iterator points to beginning of sequence</span> 
+  <span class=identifier>not_owner</span><span class=special>,</span>                    <span class=comment>// iterator does not belong to the container</span>
+  <span class=identifier>not_same_owner</span><span class=special>,</span>               <span class=comment>// iterators belong to different containers</span>
+  <span class=identifier>invalid_range</span><span class=special>,</span>                <span class=comment>// last not reachable from first</span>
+  <span class=identifier>inside_range</span><span class=special>,</span>                 <span class=comment>// iterator lies within a range (and it mustn't)</span>
+  <span class=identifier>out_of_bounds</span><span class=special>,</span>                <span class=comment>// move attempted beyond container limits</span>
+  <span class=identifier>same_container</span>                <span class=comment>// containers ought to be different</span>
+<span class=special>};</span>
+
+<span class=special>}</span> <span class=comment>// namespace multi_index::safe_mode</span>
+
+<span class=special>}</span> <span class=comment>// namespace multi_index</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<p>
+For instance, the following replacement of
+<code>BOOST_MULTI_INDEX_SAFE_MODE_ASSERT</code> throws an exception instead of
+asserting:
+</p>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>multi_index_container</span><span class=special>/</span><span class=identifier>safe_mode_errors</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=keyword>struct</span> <span class=identifier>safe_mode_exception</span>
+<span class=special>{</span>
+  <span class=identifier>safe_mode_exception</span><span class=special>(</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>safe_mode</span><span class=special>::</span><span class=identifier>error_code</span> <span class=identifier>error_code</span><span class=special>):</span>
+    <span class=identifier>error_code</span><span class=special>(</span><span class=identifier>error_code</span><span class=special>)</span>
+  <span class=special>{}</span>
+
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>::</span><span class=identifier>safe_mode</span><span class=special>::</span><span class=identifier>error_code</span> <span class=identifier>error_code</span><span class=special>;</span>
+<span class=special>};</span>
+
+<span class=preprocessor>#define</span> <span class=identifier>BOOST_MULTI_INDEX_SAFE_MODE_ASSERT</span><span class=special>(</span><span class=identifier>expr</span><span class=special>,</span><span class=identifier>error_code</span><span class=special>)</span> <span class=special>\</span>
+<span class=keyword>if</span><span class=special>(!(</span><span class=identifier>expr</span><span class=special>)){</span><span class=keyword>throw</span> <span class=identifier>safe_mode_exception</span><span class=special>(</span><span class=identifier>error_code</span><span class=special>);}</span>
+
+<span class=comment>// This has to go before the inclusion of any header from Boost.MultiIndex,
+// except possibly safe_error_codes.hpp.</span>
+</pre></blockquote>
+
+<p>
+Other possibilites, like outputting to a log or firing some kind of alert, are
+also implementable.
+</p>
+
+<p>
+<b>Warning:</b> Safe mode adds a very important overhead to the program
+both in terms of space and time used, so in general it should not be set for
+<code>NDEBUG</code> builds. Also, this mode is intended solely as a debugging aid,
+and programs must not rely on it as part of their normal execution flow: in
+particular, no guarantee is made that all possible precondition errors are diagnosed,
+or that the checks remain stable across different versions of the library.
+</p>
+
+<h3><a name="serialization_and_safe_mode">Serialization and safe mode</a></h3>
+
+<p>
+Iterators restored from an archive are not subject to safe mode checks. This is
+so because it is not possible to automatically know the associated
+<code>multi_index_container</code> of an iterator from the serialization
+information alone. However, if desired, a restored iterator can be converted to a
+checked value by using the following workaround:
+</p>
+
+<blockquote><pre>
+<span class=identifier>employee_set</span> <span class=identifier>es</span><span class=special>;</span>
+<span class=identifier>employee_set</span><span class=special>::</span><span class=identifier>nth_index</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;::</span><span class=identifier>iterator</span> <span class=identifier>it</span><span class=special>;</span>
+
+<span class=comment>// restore es and it from an archive ar</span>
+<span class=identifier>ar</span><span class=special>&gt;&gt;</span><span class=identifier>es</span><span class=special>;</span>
+<span class=identifier>ar</span><span class=special>&gt;&gt;</span><span class=identifier>it</span><span class=special>;</span> <span class=comment>// it won't benefit from safe mode checks
+
+// Turn it into a checked value by providing Boost.MultiIndex
+// with info about the associated container.
+// This statement has virtually zero cost if safe mode is turned off.</span>
+<span class=identifier>it</span><span class=special>=</span><span class=identifier>es</span><span class=special>.</span><span class=identifier>project</span><span class=special>&lt;</span><span class=number>1</span><span class=special>&gt;(</span><span class=identifier>it</span><span class=special>);</span>
+</pre></blockquote>
+
+<h2><a name="invariant_check">Invariant-checking mode</a></h2>
+
+<p>
+The so called <i>invariant-checking mode</i> of Boost.MultiIndex can be
+set by globally defining the macro
+<code>BOOST_MULTI_INDEX_ENABLE_INVARIANT_CHECKING</code>.
+When this mode is in effect, all public functions of Boost.MultiIndex
+will perform post-execution tests aimed at ensuring that the basic
+internal invariants of the data structures managed are preserved.
+</p>
+
+<p>
+If an invariant test fails, Boost.MultiIndex will indicate the failure
+by means of the unary macro <code>BOOST_MULTI_INDEX_INVARIANT_ASSERT</code>.
+Unless the user provides a definition for this macro, it defaults to
+<a href="../../../../libs/utility/assert.html">
+<code>BOOST_ASSERT</code></a>. Any assertion of this kind should
+be regarded in principle as a bug in the library. Please report such
+problems, along with as much contextual information as possible, to the
+maintainer of the library.
+</p>
+
+<p>
+It is recommended that users of Boost.MultiIndex always set the
+invariant-checking mode in debug builds.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="creation.html"><img src="../prev.gif" alt="container creation" border="0"><br>
+Container creation
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex tutorial" border="0"><br>
+Boost.MultiIndex tutorial
+</a></div>
+<div class="next_link"><a href="techniques.html"><img src="../next.gif" alt="techniques" border="0"><br>
+Techniques
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised February 6th 2006</p>
+
+<p>&copy; Copyright 2003-2006 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

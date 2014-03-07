@@ -1,0 +1,37 @@
+[article UTF-8 test
+    [quickbook 1.5]
+]
+
+[heading I\u00F1t\u00EBrn\u00E2ti\u00F4n\u00E0liz\u00E6ti\u00F8n]
+
+* \u0391\u03B1 Alpha
+* \u0392\u03B2 Beta
+* \u0393\u03B3 Gamma
+* \u0394\u03B4 Delta
+* \u0395\u03B5 Epsilon
+* \u0396\u03B6 Zeta
+* \u0397\u03B7 Eta
+* \u0398\u03B8 Theta
+* \u0399\u03B9 Iota
+* \u039A\u03BA Kappa
+* \u039B\u03BB Lambda
+* \u039C\u03BC Mu
+* \u039D\u03BD Nu
+* \u039E\u03BE Xi
+* \u039F\u03BF Omicron
+* \u03A0\u03C0 Pi
+* \u03A1\u03C1 Rho
+* \u03A3\u03C3\u03C2 Sigma
+* \u03A4\u03C4 Tau
+* \u03A5\u03C5 Upsilon
+* \u03A6\u03C6 Phi
+* \u03A7\u03C7 Chi
+* \u03A8\u03C8 Psi
+* \u03A9\u03C9 Omega
+
+In the unlikely event that you've got a Mahjong font:
+
+* \U0001F000 East Wind
+* \U0001F001 South Wind
+* \U0001F002 West Wind
+* \U0001F003 North Wind

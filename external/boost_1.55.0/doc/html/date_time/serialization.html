@@ -1,0 +1,149 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Serialization</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../date_time.html" title="Chapter&#160;9.&#160;Boost.Date_Time">
+<link rel="prev" href="date_time_io.html" title="Date Time Input/Output">
+<link rel="next" href="details.html" title="Details">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="date_time_io.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../date_time.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="details.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="date_time.serialization"></a>Serialization</h2></div></div></div>
+<p>
+    The boost::date_time library is compatible with the boost::serialization library's text and xml archives. The list of classes that are serializable are:
+  </p>
+<h4>
+<a name="idp82194728"></a>boost::gregorian</h4>
+<div class="informaltable"><table class="table" width="100%">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><a class="link" href="gregorian.html#date_time.gregorian.date_class" title="Date">date</a></td>
+<td><a class="link" href="gregorian.html#date_time.gregorian.date_duration" title="Date Duration (aka Days)">date_duration</a></td>
+<td><a class="link" href="gregorian.html#date_time.gregorian.date_period" title="Date Period">date_period</a></td>
+</tr>
+<tr>
+<td><a class="link" href="gregorian.html#date_time.gregorian.date_algorithms" title="Date Generators/Algorithms">partial_date</a></td>
+<td><a class="link" href="gregorian.html#date_time.gregorian.date_algorithms" title="Date Generators/Algorithms">nth_day_of_week_in_month</a></td>
+<td><a class="link" href="gregorian.html#date_time.gregorian.date_algorithms" title="Date Generators/Algorithms">first_day_of_week_in_month</a></td>
+</tr>
+<tr>
+<td><a class="link" href="gregorian.html#date_time.gregorian.date_algorithms" title="Date Generators/Algorithms">last_day_of_week_in_month</a></td>
+<td><a class="link" href="gregorian.html#date_time.gregorian.date_algorithms" title="Date Generators/Algorithms">first_day_of_week_before</a></td>
+<td><a class="link" href="gregorian.html#date_time.gregorian.date_algorithms" title="Date Generators/Algorithms">first_day_of_week_after</a></td>
+</tr>
+<tr>
+<td>greg_month</td>
+<td>greg_day</td>
+<td>greg_weekday</td>
+</tr>
+</tbody>
+</table></div>
+<h4>
+<a name="idp82202264"></a>boost::posix_time</h4>
+<div class="informaltable"><table class="table" width="100%">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<tbody><tr>
+<td><a class="link" href="posix_time.html#date_time.posix_time.ptime_class" title="Ptime">ptime</a></td>
+<td><a class="link" href="posix_time.html#date_time.posix_time.time_duration" title="Time Duration">time_duration</a></td>
+<td><a class="link" href="posix_time.html#date_time.posix_time.time_period" title="Time Period">time_period</a></td>
+</tr></tbody>
+</table></div>
+<p>
+    No extra steps are required to build the date_time library for serialization use.
+  </p>
+<p>NOTE: due to a change in the serialization library interface, it is now required that all streamable objects be const prior to writing to the archive. The following template function will allow for this (and is used in the date_time tests). At this time no special steps are necessary to read from an archive.
+    </p>
+<pre class="programlisting">
+      template&lt;class archive_type, class temporal_type&gt;
+      void save_to(archive_type&amp; ar, const temporal_type&amp; tt)
+      {
+        ar &lt;&lt; tt;
+      }
+    </pre>
+<p>
+  </p>
+<p>
+    Example text_archive usage:
+    </p>
+<pre class="programlisting">
+      using namespace boost::posix_time;
+      using namespace boost::gregorian;
+      ptime pt(date(2002, Feb, 14)), hours(10)), pt2(not_a_date_time);
+      std::ofstream ofs("tmp_file");
+      archive::test_oarchive oa(ofs);
+      save_to(oa, pt);                 // NOTE: no macro
+      ofs.close();
+      std::ifstream ifs("tmp_file");
+      archive::text_iarchive ia(ifs);
+      ia &gt;&gt; pt2;                       // NOTE: no macro
+      ifs.close();
+      pt == pt2; // true</pre>
+<p>
+  </p>
+<p>
+    Example xml_archive usage:
+    </p>
+<pre class="programlisting">
+      using namespace boost::gregorian;
+      date d(2002, Feb, 14), d2(not_a_date_time);
+      std::ofstream ofs("tmp_file");
+      archive::xml_oarchive oa(ofs);
+      save_to(oa, BOOST_SERIALIZATION_NVP(d)); // macro required for xml_archive
+      ofs.close();
+      std::ifstream ifs("tmp_file");
+      archive::xml_iarchive ia(ifs);
+      ia &gt;&gt; BOOST_SERIALIZATION_NVP(d2);       // macro required for xml_archive
+      ifs.close();
+      d == d2; // true</pre>
+<p>
+  </p>
+<p>
+    To use the date_time serialization code, the proper header files must be explicitly included. The header files are:
+    </p>
+<pre class="programlisting">
+      boost/date_time/gregorian/greg_serialize.hpp</pre>
+<p>
+    and
+    </p>
+<pre class="programlisting">
+      boost/date_time/posix_time/time_serialize.hpp</pre>
+<p>
+  </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="date_time_io.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../date_time.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="details.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<concept name="EqualityComparable" category="Utility"><!--
+Based on concepts from the SGI Standard Template Library documentation:
+Copyright (c) 1996-1999
+Silicon Graphics Computer Systems, Inc.
+
+Copyright (c) 1994
+Hewlett-Packard Company
+--><!--
+Copyright 2000-2001 University of Notre Dame du Lac.
+Copyright 2001-2002 Indiana University.
+Some concepts based on versions from the MTL draft manual and Boost Graph
+and Property Map documentation:
+Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+-->
+  <param name="X" role="comparable-type"/>
+
+  <models-sentence>The type <arg num="1"/> must be a model of
+  <self/>.</models-sentence>
+
+  <description><para>Equality Comparable types must have <code>==</code> and
+  <code>!=</code> operators.</para></description>
+
+  <notation variables="x y">
+    <sample-value>
+      <type name="X"/>
+    </sample-value>
+  </notation>
+
+  <valid-expression name="Equality test">
+    <equal-to>
+      <sample-value><type name="X"/></sample-value>
+      <sample-value><type name="X"/></sample-value>
+    </equal-to>
+    <return-type>
+      <convertible-to testable="yes">
+	<type name="bool"/>
+      </convertible-to>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Inequality test">
+    <not-equal-to>
+      <sample-value><type name="X"/></sample-value>
+      <sample-value><type name="X"/></sample-value>
+    </not-equal-to>
+    <return-type>
+      <convertible-to testable="yes">
+	<type name="bool"/>
+      </convertible-to>
+    </return-type>
+  </valid-expression>
+
+  <example-model>
+    <type name="int"/>
+  </example-model>
+
+  <example-model>
+    <apply-template name="std::vector">
+      <type name="int"/>
+    </apply-template>
+  </example-model>
+</concept>

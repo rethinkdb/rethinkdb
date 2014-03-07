@@ -1,0 +1,245 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Sets</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../semantics.html" title="Semantics">
+<link rel="prev" href="../semantics.html" title="Semantics">
+<link rel="next" href="maps.html" title="Maps">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../semantics.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../semantics.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="maps.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_semantics_sets" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.semantics.sets"></a><a class="link" href="sets.html" title="Sets">Sets</a>
+</h3></div></div></div>
+<p>
+        For all set types <code class="computeroutput"><span class="identifier">S</span></code> that
+        are models concept <code class="computeroutput"><span class="identifier">Set</span></code> (<a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code>
+        </a>, <code class="computeroutput"><a class="link" href="../../boost/icl/interval_set.html" title="Class template interval_set">interval_set</a></code>,
+        <code class="computeroutput"><a class="link" href="../../boost/icl/separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a></code>
+        and <code class="computeroutput"><a class="link" href="../../boost/icl/split_interval_set.html" title="Class template split_interval_set">split_interval_set</a></code>)
+        most of the well known mathematical <a href="http://en.wikipedia.org/wiki/Algebra_of_sets" target="_top">laws
+        on sets</a> were successfully checked via LaBatea. The next tables are
+        giving an overview over the checked laws ordered by operations. If possible,
+        the laws are formulated with the stronger lexicographical equality (<code class="computeroutput"><span class="keyword">operator</span> <span class="special">==</span></code>)
+        which implies the law's validity for the weaker element equality <code class="computeroutput"><span class="identifier">is_element_equal</span></code>. Throughout this chapter
+        we will denote element equality as <code class="computeroutput"><span class="special">=</span><span class="identifier">e</span><span class="special">=</span></code> instead
+        of <code class="computeroutput"><span class="identifier">is_element_equal</span></code> where
+        a short notation is advantageous.
+      </p>
+<a name="boost_icl.semantics.sets.laws_on_set_union"></a><h6>
+<a name="id1119420"></a>
+        <a class="link" href="sets.html#boost_icl.semantics.sets.laws_on_set_union">Laws on set union</a>
+      </h6>
+<p>
+        For the operation <span class="emphasis"><em><span class="bold"><strong>set union</strong></span></em></span>
+        available as <code class="computeroutput"><span class="keyword">operator</span> <span class="special">+,</span>
+        <span class="special">+=,</span> <span class="special">|,</span> <span class="special">|=</span></code> and the neutral element <code class="computeroutput"><span class="identifier">identity_element</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">()</span></code>
+        which is the empty set <code class="computeroutput"><span class="identifier">S</span><span class="special">()</span></code> these laws hold: 
+</p>
+<pre class="programlisting"><span class="identifier">Associativity</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,+,==</span> <span class="special">&gt;:</span> <span class="identifier">S</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="identifier">a</span><span class="special">+(</span><span class="identifier">b</span><span class="special">+</span><span class="identifier">c</span><span class="special">)</span> <span class="special">==</span> <span class="special">(</span><span class="identifier">a</span><span class="special">+</span><span class="identifier">b</span><span class="special">)+</span><span class="identifier">c</span>
+<span class="identifier">Neutrality</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,+,==</span> <span class="special">&gt;</span>   <span class="special">:</span> <span class="identifier">S</span> <span class="identifier">a</span><span class="special">;</span>       <span class="identifier">a</span><span class="special">+</span><span class="identifier">S</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">a</span>
+<span class="identifier">Commutativity</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,+,==</span> <span class="special">&gt;:</span> <span class="identifier">S</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">;</span>       <span class="identifier">a</span><span class="special">+</span><span class="identifier">b</span> <span class="special">==</span> <span class="identifier">b</span><span class="special">+</span><span class="identifier">a</span>
+</pre>
+<p>
+      </p>
+<a name="boost_icl.semantics.sets.laws_on_set_intersection"></a><h6>
+<a name="id1119741"></a>
+        <a class="link" href="sets.html#boost_icl.semantics.sets.laws_on_set_intersection">Laws on
+        set intersection</a>
+      </h6>
+<p>
+        For the operation <span class="emphasis"><em><span class="bold"><strong>set intersection</strong></span></em></span>
+        available as <code class="computeroutput"><span class="keyword">operator</span> <span class="special">&amp;,</span>
+        <span class="special">&amp;=</span></code> these laws were validated:
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting"><span class="identifier">Associativity</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,&amp;,==</span> <span class="special">&gt;:</span> <span class="identifier">S</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="identifier">a</span><span class="special">&amp;(</span><span class="identifier">b</span><span class="special">&amp;</span><span class="identifier">c</span><span class="special">)</span> <span class="special">==</span> <span class="special">(</span><span class="identifier">a</span><span class="special">&amp;</span><span class="identifier">b</span><span class="special">)&amp;</span><span class="identifier">c</span>
+<span class="identifier">Commutativity</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,&amp;,==</span> <span class="special">&gt;:</span> <span class="identifier">S</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">;</span>       <span class="identifier">a</span><span class="special">&amp;</span><span class="identifier">b</span> <span class="special">==</span> <span class="identifier">b</span><span class="special">&amp;</span><span class="identifier">a</span>
+</pre>
+<p>
+      </p>
+<a name="boost_icl.semantics.sets.laws_on_set_difference"></a><h6>
+<a name="id1119955"></a>
+        <a class="link" href="sets.html#boost_icl.semantics.sets.laws_on_set_difference">Laws on set
+        difference</a>
+      </h6>
+<p>
+        For set difference there are only these laws. It is not associative and not
+        commutative. It's neutrality is non symmetrical.
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting"><span class="identifier">RightNeutrality</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,-,==</span> <span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">S</span> <span class="identifier">a</span><span class="special">;</span>   <span class="identifier">a</span><span class="special">-</span><span class="identifier">S</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">a</span>
+<span class="identifier">Inversion</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,-,==</span> <span class="special">&gt;:</span>        <span class="identifier">S</span> <span class="identifier">a</span><span class="special">;</span>   <span class="identifier">a</span> <span class="special">-</span> <span class="identifier">a</span> <span class="special">==</span> <span class="identifier">S</span><span class="special">()</span>
+</pre>
+<p>
+      </p>
+<p>
+        Summarized in the next table are laws that use <code class="computeroutput"><span class="special">+</span></code>,
+        <code class="computeroutput"><span class="special">&amp;</span></code> and <code class="computeroutput"><span class="special">-</span></code>
+        as a single operation. For all validated laws, the left and right hand sides
+        of the equations are lexicographically equal, as denoted by <code class="computeroutput"><span class="special">==</span></code> in the cells of the table.
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting">                 <span class="special">+</span>    <span class="special">&amp;</span>   <span class="special">-</span>
+<span class="identifier">Associativity</span>    <span class="special">==</span>   <span class="special">==</span> 
+<span class="identifier">Neutrality</span>       <span class="special">==</span>       <span class="special">==</span>
+<span class="identifier">Commutativity</span>    <span class="special">==</span>   <span class="special">==</span>
+<span class="identifier">Inversion</span>                 <span class="special">==</span>
+</pre>
+<p>
+      </p>
+<a name="boost_icl.semantics.sets.distributivity_laws"></a><h6>
+<a name="id1120760"></a>
+        <a class="link" href="sets.html#boost_icl.semantics.sets.distributivity_laws">Distributivity
+        Laws</a>
+      </h6>
+<p>
+        Laws, like distributivity, that use more than one operation can sometimes
+        be instantiated for different sequences of operators as can be seen below.
+        In the two instantiations of the distributivity laws operators <code class="computeroutput"><span class="special">+</span></code> and <code class="computeroutput"><span class="special">&amp;</span></code>
+        are swapped. So we can have small operator signatures like <code class="computeroutput"><span class="special">+,&amp;</span></code> and <code class="computeroutput"><span class="special">&amp;,+</span></code>
+        to describe such instantiations, which will be used below. Not all instances
+        of distributivity laws hold for lexicographical equality. Therefore they
+        are denoted using a <span class="emphasis"><em>variable</em></span> equality <code class="computeroutput"><span class="special">=</span><span class="identifier">v</span><span class="special">=</span></code>
+        below.
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting">     <span class="identifier">Distributivity</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,+,&amp;,=</span><span class="identifier">v</span><span class="special">=</span> <span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">S</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="identifier">a</span> <span class="special">+</span> <span class="special">(</span><span class="identifier">b</span> <span class="special">&amp;</span> <span class="identifier">c</span><span class="special">)</span> <span class="special">=</span><span class="identifier">v</span><span class="special">=</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">+</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">&amp;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">+</span> <span class="identifier">c</span><span class="special">)</span>
+     <span class="identifier">Distributivity</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,&amp;,+,=</span><span class="identifier">v</span><span class="special">=</span> <span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">S</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="identifier">a</span> <span class="special">&amp;</span> <span class="special">(</span><span class="identifier">b</span> <span class="special">+</span> <span class="identifier">c</span><span class="special">)</span> <span class="special">=</span><span class="identifier">v</span><span class="special">=</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">+</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">&amp;</span> <span class="identifier">c</span><span class="special">)</span>
+<span class="identifier">RightDistributivity</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,+,-,=</span><span class="identifier">v</span><span class="special">=</span> <span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">S</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">+</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">-</span> <span class="identifier">c</span> <span class="special">=</span><span class="identifier">v</span><span class="special">=</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">-</span> <span class="identifier">c</span><span class="special">)</span> <span class="special">+</span> <span class="special">(</span><span class="identifier">b</span> <span class="special">-</span> <span class="identifier">c</span><span class="special">)</span>
+<span class="identifier">RightDistributivity</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,&amp;,-,=</span><span class="identifier">v</span><span class="special">=</span> <span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">S</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">-</span> <span class="identifier">c</span> <span class="special">=</span><span class="identifier">v</span><span class="special">=</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">-</span> <span class="identifier">c</span><span class="special">)</span> <span class="special">&amp;</span> <span class="special">(</span><span class="identifier">b</span> <span class="special">-</span> <span class="identifier">c</span><span class="special">)</span>
+</pre>
+<p>
+      </p>
+<p>
+        The next table shows the relationship between law instances, <a class="link" href="../../index.html#boost_icl.introduction.interval_combining_styles" title="Interval Combining Styles">interval
+        combining style</a> and the used equality relation.
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting">                                  <span class="special">+,&amp;</span>    <span class="special">&amp;,+</span>
+     <span class="identifier">Distributivity</span>  <span class="identifier">joining</span>      <span class="special">==</span>     <span class="special">==</span>
+                     <span class="identifier">separating</span>   <span class="special">==</span>     <span class="special">==</span>
+                     <span class="identifier">splitting</span>    <span class="special">=</span><span class="identifier">e</span><span class="special">=</span>    <span class="special">=</span><span class="identifier">e</span><span class="special">=</span>
+                     
+                                  <span class="special">+,-</span>    <span class="special">&amp;,-</span>
+<span class="identifier">RightDistributivity</span>  <span class="identifier">joining</span>      <span class="special">==</span>     <span class="special">==</span>
+                     <span class="identifier">separating</span>   <span class="special">==</span>     <span class="special">==</span>
+                     <span class="identifier">splitting</span>    <span class="special">=</span><span class="identifier">e</span><span class="special">=</span>    <span class="special">==</span>
+</pre>
+<p>
+      </p>
+<p>
+        The table gives an overview over 12 instantiations of the four distributivity
+        laws and shows the equalities which the instantiations holds for. For instance
+        <code class="computeroutput"><span class="identifier">RightDistributivity</span></code> with
+        operator signature <code class="computeroutput"><span class="special">+,-</span></code> instantiated
+        for <code class="computeroutput"><a class="link" href="../../boost/icl/split_interval_set.html" title="Class template split_interval_set">split_interval_sets</a></code>
+        holds only for element equality (denoted as <code class="computeroutput"><span class="special">=</span><span class="identifier">e</span><span class="special">=</span></code>): 
+</p>
+<pre class="programlisting"><span class="identifier">RightDistributivity</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,+,-,=</span><span class="identifier">e</span><span class="special">=</span> <span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">S</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">+</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">-</span> <span class="identifier">c</span> <span class="special">=</span><span class="identifier">e</span><span class="special">=</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">-</span> <span class="identifier">c</span><span class="special">)</span> <span class="special">+</span> <span class="special">(</span><span class="identifier">b</span> <span class="special">-</span> <span class="identifier">c</span><span class="special">)</span>
+</pre>
+<p>
+        The remaining five instantiations of <code class="computeroutput"><span class="identifier">RightDistributivity</span></code>
+        are valid for lexicographical equality (demoted as <code class="computeroutput"><span class="special">==</span></code>)
+        as well.
+      </p>
+<p>
+        <a class="link" href="../../index.html#boost_icl.introduction.interval_combining_styles" title="Interval Combining Styles">Interval
+        combining styles</a> correspond to containers according to 
+</p>
+<pre class="programlisting"><span class="identifier">style</span>       <span class="identifier">set</span>
+<span class="identifier">joining</span>     <span class="identifier">interval_set</span>
+<span class="identifier">separating</span>  <span class="identifier">separate_interval_set</span>
+<span class="identifier">splitting</span>   <span class="identifier">split_interval_set</span>
+</pre>
+<p>
+      </p>
+<p>
+        Finally there are two laws that combine all three major set operations: De
+        Mogans Law and Symmetric Difference.
+      </p>
+<a name="boost_icl.semantics.sets.demorgan_s_law"></a><h6>
+<a name="id1121854"></a>
+        <a class="link" href="sets.html#boost_icl.semantics.sets.demorgan_s_law">DeMorgan's Law</a>
+      </h6>
+<p>
+        De Morgans Law is better known in an incarnation where the unary complement
+        operation <code class="computeroutput"><span class="special">~</span></code> is used. <code class="computeroutput"><span class="special">~(</span><span class="identifier">a</span><span class="special">+</span><span class="identifier">b</span><span class="special">)</span> <span class="special">==</span>
+        <span class="special">~</span><span class="identifier">a</span> <span class="special">*</span> <span class="special">~</span><span class="identifier">b</span></code>.
+        The version below is an adaption for the binary set difference <code class="computeroutput"><span class="special">-</span></code>, which is also called <span class="emphasis"><em><span class="bold"><strong>relative complement</strong></span></em></span>. 
+</p>
+<pre class="programlisting"><span class="identifier">DeMorgan</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,+,&amp;,=</span><span class="identifier">v</span><span class="special">=</span> <span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">S</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="identifier">a</span> <span class="special">-</span> <span class="special">(</span><span class="identifier">b</span> <span class="special">+</span> <span class="identifier">c</span><span class="special">)</span> <span class="special">=</span><span class="identifier">v</span><span class="special">=</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">-</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">&amp;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">-</span> <span class="identifier">c</span><span class="special">)</span>
+<span class="identifier">DeMorgan</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,&amp;,+,=</span><span class="identifier">v</span><span class="special">=</span> <span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">S</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="identifier">a</span> <span class="special">-</span> <span class="special">(</span><span class="identifier">b</span> <span class="special">&amp;</span> <span class="identifier">c</span><span class="special">)</span> <span class="special">=</span><span class="identifier">v</span><span class="special">=</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">-</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">+</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">-</span> <span class="identifier">c</span><span class="special">)</span>
+</pre>
+<p>
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting">                         <span class="special">+,&amp;</span>     <span class="special">&amp;,+</span>
+<span class="identifier">DeMorgan</span>  <span class="identifier">joining</span>        <span class="special">==</span>      <span class="special">==</span>
+          <span class="identifier">separating</span>     <span class="special">==</span>      <span class="special">=</span><span class="identifier">e</span><span class="special">=</span>
+          <span class="identifier">splitting</span>      <span class="special">==</span>      <span class="special">=</span><span class="identifier">e</span><span class="special">=</span>
+</pre>
+<p>
+      </p>
+<p>
+        Again not all law instances are valid for lexicographical equality. The second
+        instantiations only holds for element equality, if the interval sets are
+        non joining.
+      </p>
+<a name="boost_icl.semantics.sets.symmetric_difference"></a><h6>
+<a name="id1122330"></a>
+        <a class="link" href="sets.html#boost_icl.semantics.sets.symmetric_difference">Symmetric Difference</a>
+      </h6>
+<p>
+        
+</p>
+<pre class="programlisting"><span class="identifier">SymmetricDifference</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">,==</span> <span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">S</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">+</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">-</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">==</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">-</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">+</span> <span class="special">(</span><span class="identifier">b</span> <span class="special">-</span> <span class="identifier">a</span><span class="special">)</span>
+</pre>
+<p>
+      </p>
+<p>
+        Finally Symmetric Difference holds for all of icl set types and lexicographical
+        equality.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../semantics.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../semantics.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="maps.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

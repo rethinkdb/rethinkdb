@@ -1,0 +1,286 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>expand</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../algorithms.html" title="Algorithms">
+<link rel="prev" href="equals.html" title="equals">
+<link rel="next" href="for_each.html" title="for_each">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="equals.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../algorithms.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="for_each.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.algorithms.expand"></a><a class="link" href="expand.html" title="expand">expand</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp55032840"></a>
+Expands a box using the bounding box (envelope) of another geometry (box,
+          point)
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.expand.h0"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.expand.synopsis"></a></span><a class="link" href="expand.html#geometry.reference.algorithms.expand.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Box</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Geometry</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">expand</span><span class="special">(</span><span class="identifier">Box</span> <span class="special">&amp;</span> <span class="identifier">box</span><span class="special">,</span> <span class="identifier">Geometry</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry</span><span class="special">)</span></pre>
+<p>
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.expand.h1"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.expand.parameters"></a></span><a class="link" href="expand.html#geometry.reference.algorithms.expand.parameters">Parameters</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Concept
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Box &amp;
+                  </p>
+                </td>
+<td>
+                  <p>
+                    type of the box
+                  </p>
+                </td>
+<td>
+                  <p>
+                    box
+                  </p>
+                </td>
+<td>
+                  <p>
+                    box to be expanded using another geometry, mutable
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Geometry const &amp;
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Any type fulfilling a Geometry Concept
+                  </p>
+                </td>
+<td>
+                  <p>
+                    geometry
+                  </p>
+                </td>
+<td>
+                  <p>
+                    A model of the specified concept geometry which envelope (bounding
+                    box) will be added to the box
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.expand.h2"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.expand.header"></a></span><a class="link" href="expand.html#geometry.reference.algorithms.expand.header">Header</a>
+        </h6>
+<p>
+          Either
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<p>
+          Or
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">expand</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.expand.h3"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.expand.conformance"></a></span><a class="link" href="expand.html#geometry.reference.algorithms.expand.conformance">Conformance</a>
+        </h6>
+<p>
+          The function expand is not defined by OGC.
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.expand.h4"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.expand.behavior"></a></span><a class="link" href="expand.html#geometry.reference.algorithms.expand.behavior">Behavior</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Case
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Behavior
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Box / Point
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Box is expanded to include the specified Point
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Box / Box
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Box is expanded to include the specified Box
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Box / Other geometries
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Not yet supported in this version
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            To use expand with another geometry type then specified, use expand(make_envelope&lt;box_type&gt;(geometry)
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.expand.h5"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.expand.complexity"></a></span><a class="link" href="expand.html#geometry.reference.algorithms.expand.complexity">Complexity</a>
+        </h6>
+<p>
+          Linear
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.expand.h6"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.expand.example"></a></span><a class="link" href="expand.html#geometry.reference.algorithms.expand.example">Example</a>
+        </h6>
+<p>
+          Shows the usage of expand
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">list</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">box</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">point_xy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">d2</span><span class="special">::</span><span class="identifier">point_xy</span><span class="special">&lt;</span><span class="keyword">short</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">point_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">box</span><span class="special">&lt;</span><span class="identifier">point_type</span><span class="special">&gt;</span> <span class="identifier">box_type</span><span class="special">;</span>
+
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">expand</span><span class="special">;</span>
+
+    <span class="identifier">box_type</span> <span class="identifier">box</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">make_inverse</span><span class="special">&lt;</span><span class="identifier">box_type</span><span class="special">&gt;();</span> <a class="co" name="geometry.reference.algorithms.expand.c0" href="expand.html#geometry.reference.algorithms.expand.c1"><img src="../../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a>
+
+    <span class="identifier">expand</span><span class="special">(</span><span class="identifier">box</span><span class="special">,</span> <span class="identifier">point_type</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">));</span>
+    <span class="identifier">expand</span><span class="special">(</span><span class="identifier">box</span><span class="special">,</span> <span class="identifier">point_type</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">));</span>
+    <span class="identifier">expand</span><span class="special">(</span><span class="identifier">box</span><span class="special">,</span> <span class="identifier">point_type</span><span class="special">(</span><span class="number">5</span><span class="special">,</span> <span class="number">4</span><span class="special">));</span>
+    <span class="identifier">expand</span><span class="special">(</span><span class="identifier">box</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">make</span><span class="special">&lt;</span><span class="identifier">box_type</span><span class="special">&gt;(</span><span class="number">3</span><span class="special">,</span> <span class="number">3</span><span class="special">,</span> <span class="number">5</span><span class="special">,</span> <span class="number">5</span><span class="special">));</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">dsv</span><span class="special">(</span><span class="identifier">box</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<div class="calloutlist"><table border="0" summary="Callout list"><tr>
+<td width="5%" valign="top" align="left"><p><a name="geometry.reference.algorithms.expand.c1"></a><a href="#geometry.reference.algorithms.expand.c0"><img src="../../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              expand is usually preceded by a call to assign_inverse or make_inverse
+            </p></td>
+</tr></table></div>
+<p>
+          Output:
+        </p>
+<pre class="programlisting">((0, 0), (5, 5))
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="equals.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../algorithms.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="for_each.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

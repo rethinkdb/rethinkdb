@@ -1,0 +1,255 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - singleton</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center"><code style="white-space: normal">singleton</code></h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<dl class="page-index">
+  <dt><a href="#motivation">Motivation</a>
+  <dt><a href="#features">Features</a>
+  <dt><a href="#classinterface">Class Interface</a>
+  <dt><a href="#requirements">Requirements</a>
+  <dt><a href="#example">Examples</a>
+  <dt><a href="#multithreading">Multi-Threading</a>
+</dl>
+
+<h3><a name="motivation">Motivation</a></h3>
+The serialization library relies on the existence of a number
+of static variables and tables to store information related
+to runtime types.  Examples are tables which relate exported
+names to types and tables which relate base classes to derived
+classes.  Construction, destruction and usage of these variables
+requires consideration of the following issues:
+<ul>
+  <li>Some static data variables and constants  entries refer to others.  
+  The sequence of initialization cannot be arbitrary but must be in proper
+  sequence.</li>
+  <li>A number of static variables aren't referred explicitly and, without
+  special precautions, will be stripped by most code optimizers</li>
+  <li>Many of these variables are created by templates and special care must
+  be taken to be sure that they are instantiated</li>
+  <li>In a multi-threading system, its possible that these static variables
+  will be accessed concurrently by separate threads.  This would create a
+  race condition with unpredictabe behavior</li>
+</ul>
+This singleton class addresses all of the above issues.
+
+<h3><a name="features">Features</a></h3>
+This singleton implementation has the following features:
+<ul>
+  <li>
+    Any instance will be constructed before any attempt is made to access it.</li>
+  <li>
+    Any instance created with a template is guarenteed to be instantiated.
+  <li>
+    Regardless of whether or not an instance has been explicitly
+    referred to, it will not be stripped by the optimizer when the
+    executable is built in release mode.
+  <li>
+    All instances are constructed before 
+    <code style="white-space: normal">main</code> is called
+    regardless of where they might be referenced within the program.
+    In a multi-tasking system, this guarentees that there will be no 
+    race conditions during the construction of any instance.  No
+    thread locking is required to guarentee this.
+  <li>
+    The above implies that any <code style="white-space: normal">const</code>
+    instances are thread-safe during the whole program.  Again, no
+    thread locking is required.
+  <li>
+    If a mutable instance is created, and such an instance is modified
+    after main is called in a mult-threading system, there exists
+    the possibility that a race condition will occur.  The serialization
+    library takes care that in the few places where a mutable
+    singleton is required, it is not altered after 
+    <code style="white-space: normal">main</code> is called.
+    For a more general purpose usage, thread locking on this
+    singleton could easily be implemented.  But as the serialization
+    library didn't require it, it wasn't implemented.
+</ul>
+
+<h3><a name="classinterface">Class Interface</a></h3>
+<pre><code>
+namespace boost { 
+namespace serialization {
+
+template <class T>
+class singleton : public boost::noncopyable
+{
+public:
+    static const T & get_const_instance();
+    static T & get_mutable_instance();
+    static bool is_destroyed();
+};
+
+} // namespace serialization 
+} // namespace boost
+</code></pre>
+
+<dl>
+
+<dt><h4><pre><code>
+static const T & get_const_instance();
+</code></pre></h4></dt>
+<dd>
+Retrieve a constant reference to the singleton for this type.
+</dd>
+
+<dt><h4><pre><code>
+static T & get_mutable_instance();
+</code></pre></h4></dt>
+<dd>
+Retrieve a mutable reference to the singleton for this type.
+</dd>
+
+<dt><h4><pre><code>
+static bool is_destroyed();
+</code></pre></h4></dt>
+<dd>
+Return <code>true</code> if the destructor on this singleton has been 
+called.  Otherwise, return <code>false</code>.
+</dd>
+
+</dl>
+
+<h3><a name="requirements">Requirements</a></h3>
+In order to be used as 
+<a target="singleton.hpp" href = "../../../boost/serialization/singleton.hpp">
+<code style="white-space: normal">
+singleton&lt;T&gt;
+</code>
+</a>, the type T must be default constructable. 
+It doesn't require static variables - though it may have them.
+Since the library guarentees that only one instance of 
+<a target="singleton.hpp" href = "../../../boost/serialization/singleton.hpp">
+<code style="white-space: normal">
+singleton&lt;T&gt;
+</code>
+</a> 
+and all accesss is through the above static interface
+functions, common member functions of T become
+the functional equivalent of 
+<code style="white-space: normal">static</code> functions.
+
+<h3><a name="example">Examples</a></h3>
+There are at least two different ways to use this class template.
+Both are used in the serialization library.
+<p>
+The first way is illustrated by and excerpt from the file
+<code style="white-space: normal"><a target="extended_type_info" href="../src/extended_type_info.cpp">extended_type_info.cpp</a></code>.
+which contains the following code:
+
+<pre><code>
+typedef std::set&lt;const extended_type_info *, key_compare&gt; ktmap;
+...
+void
+extended_type_info::key_register(const char *key) {
+    ...
+    result = singleton&lt;ktmap&gt;::get_mutable_instance().insert(this);
+    ...
+}
+</code></pre>
+Just by referring to the singleton instance anywhere in the program
+will guarentee that one and only one instance for the specified
+type (<code style="white-space: normal">ktmap</code> in this example) 
+will exist throughout the program.  There is no need for anyother
+declaration or definition.
+<p>
+A second way is to use 
+<a target="singleton.hpp" href = "../../../boost/serialization/singleton.hpp">
+<code style="white-space: normal">
+singleton&lt;T&gt;
+</code> 
+</a>
+as one of the base classes of the type.  This is illustrated by a simplified
+excerpt from
+<a target="extended_type_info_typeid.hpp" href = "../../../boost/serialization/extended_type_info_typeid.hpp">
+<code style="white-space: normal">
+extended_type_info_typeid.hpp
+</code> 
+</a>
+
+<pre><code>
+template&lt;class T&gt;
+class extended_type_info_typeid : 
+    public detail::extended_type_info_typeid_0,
+    public singleton&lt;extended_type_info_typeid&lt;const T&gt; &gt;
+{
+    friend class singleton&lt;extended_type_info_typeid&lt;const T&gt; &gt;;
+private:
+    // private constructor to inhibit any existence other than the 
+    // static one.  Note: not all compilers support this !!!
+    extended_type_info_typeid() :
+        detail::extended_type_info_typeid_0()
+    {
+        type_register(typeid(T));
+    }
+    ~extended_type_info_typeid(){}
+    ...
+};
+</code></pre>
+
+This usage will permit a more natural syntax to be used:
+<pre><code>
+extended_type_info_typeid&lt;T&gt;::get_const_instance()
+</code></pre>
+
+Again, including one or more of the above statements anywhere
+in the program will guarentee that one and only one instance
+is created and referred to.
+
+<h3><a name="multithreading">Multi-Threading</a></h3>
+This singleton CAN be safely used in multi-threading applications if one
+is careful follow a simple rule:
+<p>
+<b>Do not call get_mutable_instance when more than one thread is running!</b>
+<'>
+All singletons used in the serialization library follow this rule.  
+In order to help detect accidental violations of this rule there
+exists an singleton lock/unlock functions.
+<pre><code>
+void boost::serialization::singleton_module::lock();
+void boost::serialization::singleton_module::unlock();
+bool boost::serialization::singleton_module::is_locked();
+</code></pre>
+In a program compiled for debug, any invocation of 
+<code style="white-space: normal">get_mutable_instance()</code>
+while the library is in a "locked" state will trap in an assertion.
+The singleton module lock state is initialized as "unlocked" to permit
+alteration of static variables before 
+<code style="white-space: normal">main</code> is called. 
+The <code style="white-space: normal">lock()</code> and
+<code style="white-space: normal">unlock()</code> are "global"
+in they affect ALL the singletons defined by this template.
+All serialization tests invoke <code style="white-space: normal">lock()</code>
+at the start of the progam.  For programs compiled in release
+mode these functions have no effect.
+
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2007. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

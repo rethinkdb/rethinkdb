@@ -1,0 +1,167 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>The Boost Algorithm Library</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost Algorithm Library">
+<link rel="next" href="algorithm/Searching.html" title="Searching Algorithms">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="algorithm/Searching.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="algorithm"></a>The Boost Algorithm Library</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Marshall</span> <span class="surname">Clow</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2010-2012 Marshall Clow</p></div>
+<div><div class="legalnotice">
+<a name="algorithm.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="index.html#algorithm.description_and_rationale">Description and Rationale</a></span></dt>
+<dt><span class="section"><a href="algorithm/Searching.html">Searching Algorithms</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="algorithm/Searching.html#the_boost_algorithm_library.Searching.BoyerMoore">Boyer-Moore
+      Search</a></span></dt>
+<dt><span class="section"><a href="the_boost_algorithm_library/Searching/BoyerMooreHorspool.html">Boyer-Moore-Horspool
+      Search</a></span></dt>
+<dt><span class="section"><a href="the_boost_algorithm_library/Searching/KnuthMorrisPratt.html">Knuth-Morris-Pratt
+      Search</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="algorithm/CXX11.html">C++11 Algorithms</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="algorithm/CXX11.html#the_boost_algorithm_library.CXX11.all_of">all_of</a></span></dt>
+<dt><span class="section"><a href="the_boost_algorithm_library/CXX11/any_of.html">any_of</a></span></dt>
+<dt><span class="section"><a href="the_boost_algorithm_library/CXX11/none_of.html">none_of</a></span></dt>
+<dt><span class="section"><a href="the_boost_algorithm_library/CXX11/one_of.html">one_of</a></span></dt>
+<dt><span class="section"><a href="the_boost_algorithm_library/CXX11/is_sorted.html">is_sorted
+      </a></span></dt>
+<dt><span class="section"><a href="the_boost_algorithm_library/CXX11/is_partitioned.html">is_partitioned
+      </a></span></dt>
+<dt><span class="section"><a href="the_boost_algorithm_library/CXX11/is_permutation.html">is_permutation
+      </a></span></dt>
+<dt><span class="section"><a href="the_boost_algorithm_library/CXX11/partition_point.html">partition_point
+      </a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="algorithm/CXX14.html">C++14 Algorithms</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="algorithm/CXX14.html#the_boost_algorithm_library.CXX14.equal">equal </a></span></dt>
+<dt><span class="section"><a href="the_boost_algorithm_library/CXX14/mismatch.html">mismatch
+      </a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="algorithm/Misc.html">Other Algorithms</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="algorithm/Misc.html#the_boost_algorithm_library.Misc.clamp">clamp</a></span></dt>
+<dt><span class="section"><a href="the_boost_algorithm_library/Misc/gather.html">gather</a></span></dt>
+<dt><span class="section"><a href="the_boost_algorithm_library/Misc/hex.html">hex</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="algorithm/reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="algorithm/reference.html#header.boost.algorithm.clamp_hpp">Header &lt;boost/algorithm/clamp.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx11/all_of_hpp.html">Header &lt;boost/algorithm/cxx11/all_of.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx11/any_of_hpp.html">Header &lt;boost/algorithm/cxx11/any_of.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx11/copy_if_hpp.html">Header &lt;boost/algorithm/cxx11/copy_if.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx11/copy_n_hpp.html">Header &lt;boost/algorithm/cxx11/copy_n.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx11/find_if_not_hpp.html">Header &lt;boost/algorithm/cxx11/find_if_not.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx11/iota_hpp.html">Header &lt;boost/algorithm/cxx11/iota.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx11/is_partitioned_hpp.html">Header &lt;boost/algorithm/cxx11/is_partitioned.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx11/is_permutation_hpp.html">Header &lt;boost/algorithm/cxx11/is_permutation.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx14/is_permutation_hpp.html">Header &lt;boost/algorithm/cxx14/is_permutation.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx11/is_sorted_hpp.html">Header &lt;boost/algorithm/cxx11/is_sorted.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx11/none_of_hpp.html">Header &lt;boost/algorithm/cxx11/none_of.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx11/one_of_hpp.html">Header &lt;boost/algorithm/cxx11/one_of.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx11/partition_copy_hpp.html">Header &lt;boost/algorithm/cxx11/partition_copy.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx11/partition_point_hpp.html">Header &lt;boost/algorithm/cxx11/partition_point.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx14/equal_hpp.html">Header &lt;boost/algorithm/cxx14/equal.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/cxx14/mismatch_hpp.html">Header &lt;boost/algorithm/cxx14/mismatch.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/gather_hpp.html">Header &lt;boost/algorithm/gather.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/hex_hpp.html">Header &lt;boost/algorithm/hex.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/minmax_hpp.html">Header &lt;boost/algorithm/minmax.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/minmax_element_hpp.html">Header &lt;boost/algorithm/minmax_element.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/searching/boyer_moore_hpp.html">Header &lt;boost/algorithm/searching/boyer_moore.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/searching/boyer_moore_horspool_hpp.html">Header &lt;boost/algorithm/searching/boyer_moore_horspool.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/searching/knuth_morris_pratt_hpp.html">Header &lt;boost/algorithm/searching/knuth_morris_pratt.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/string_hpp.html">Header &lt;boost/algorithm/string.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/algorithm/string_regex_hpp.html">Header &lt;boost/algorithm/string_regex.hpp&gt;</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="algorithm.description_and_rationale"></a><a class="link" href="index.html#algorithm.description_and_rationale" title="Description and Rationale">Description and Rationale</a>
+</h2></div></div></div>
+<p>
+      Boost.Algorithm is a collection of general purpose algorithms. While Boost
+      contains many libraries of data structures, there is no single library for
+      general purpose algorithms. Even though the algorithms are generally useful,
+      many tend to be thought of as "too small" for Boost.
+    </p>
+<p>
+      An implementation of Boyer-Moore searching, for example, might take a developer
+      a week or so to implement, including test cases and documentation. However,
+      scheduling a review to include that code into Boost might take several months,
+      and run into resistance because "it is too small". Nevertheless,
+      a library of tested, reviewed, documented algorithms can make the developer's
+      life much easier, and that is the purpose of this library.
+    </p>
+<h4>
+<a name="algorithm.description_and_rationale.h0"></a>
+      <span class="phrase"><a name="algorithm.description_and_rationale.future_plans"></a></span><a class="link" href="index.html#algorithm.description_and_rationale.future_plans">Future
+      plans</a>
+    </h4>
+<p>
+      I will be soliciting submissions from other developers, as well as looking
+      through the literature for existing algorithms to include. The Adobe Source
+      Library, for example, contains many useful algorithms that already have documentation
+      and test cases. Knuth's <span class="underline">The Art of Computer Programming</span>
+      is chock-full of algorithm descriptions, too.
+    </p>
+<p>
+      My goal is to run regular algorithm reviews, similar to the Boost library review
+      process, but with smaller chunks of code.
+    </p>
+<h4>
+<a name="algorithm.description_and_rationale.h1"></a>
+      <span class="phrase"><a name="algorithm.description_and_rationale.dependencies"></a></span><a class="link" href="index.html#algorithm.description_and_rationale.dependencies">Dependencies</a>
+    </h4>
+<p>
+      Boost.Algorithm uses Boost.Range, Boost.Assert, Boost.Array, Boost.TypeTraits,
+      and Boost.StaticAssert.
+    </p>
+<h4>
+<a name="algorithm.description_and_rationale.h2"></a>
+      <span class="phrase"><a name="algorithm.description_and_rationale.acknowledgements"></a></span><a class="link" href="index.html#algorithm.description_and_rationale.acknowledgements">Acknowledgements</a>
+    </h4>
+<p>
+      Thanks to all the people who have reviewed this library and made suggestions
+      for improvements. Steven Watanabe and Sean Parent, in particular, have provided
+      a great deal of help.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:41:36 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="algorithm/Searching.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

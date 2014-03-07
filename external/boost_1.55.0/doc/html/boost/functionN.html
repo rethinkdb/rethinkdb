@@ -1,0 +1,636 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template functionN</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../function/reference.html#header.boost.function_hpp" title="Header &lt;boost/function.hpp&gt;">
+<link rel="prev" href="function_base.html" title="Class function_base">
+<link rel="next" href="functionN/sig.html" title="Struct template sig">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="function_base.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function/reference.html#header.boost.function_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="functionN/sig.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.functionN"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template functionN</span></h2>
+<p>boost::functionN &#8212; A set of generalized function pointers that can be used for callbacks or wrapping function objects.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../function/reference.html#header.boost.function_hpp" title="Header &lt;boost/function.hpp&gt;">boost/function.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> R<span class="special">,</span> <span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a> <span class="special">:</span> <span class="keyword">public</span> <a class="link" href="function_base.html" title="Class function_base">function_base</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">R</span>  <a name="boost.functionN.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">T1</span> <a name="boost.functionN.argument_type"></a><span class="identifier">argument_type</span><span class="special">;</span>         <span class="comment">// If N == 1</span>
+  <span class="keyword">typedef</span> <span class="identifier">T1</span> <a name="boost.functionN.first_argument_type"></a><span class="identifier">first_argument_type</span><span class="special">;</span>   <span class="comment">// If N == 2</span>
+  <span class="keyword">typedef</span> <span class="identifier">T2</span> <a name="boost.functionN.second_argument_type"></a><span class="identifier">second_argument_type</span><span class="special">;</span>  <span class="comment">// If N == 2</span>
+  <span class="keyword">typedef</span> <span class="identifier">T1</span> <a name="boost.functionN.arg1_type"></a><span class="identifier">arg1_type</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <span class="identifier">T2</span> <a name="boost.functionN.arg2_type"></a><span class="identifier">arg2_type</span><span class="special">;</span>           
+     .
+     .
+     .
+  <span class="keyword">typedef</span> <span class="identifier">TN</span> <a name="boost.functionN.argN_type"></a><span class="identifier">argN_type</span><span class="special">;</span>           
+
+  <span class="comment">// static constants</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">arity</span> = <span class="identifier">N</span><span class="special">;</span>
+
+  <span class="comment">// member classes/structs/unions</span>
+
+  <span class="comment">// <a class="link" href="../lambda.html" title="Chapter&#160;16.&#160;Boost.Lambda">Lambda</a> library support</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Args<span class="special">&gt;</span> 
+  <span class="keyword">struct</span> <a class="link" href="functionN/sig.html" title="Struct template sig">sig</a> <span class="special">{</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <span class="identifier">result_type</span> <a class="link" href="functionN/sig.html#boost.functionN.sig.type"><span class="identifier">type</span></a><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="functionN.html#boost.functionNconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="functionN.html#idp36366696-bb"><span class="identifier">functionN</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="functionN.html#idp20052264-bb"><span class="identifier">functionN</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="functionN.html#idp34553864-bb"><span class="identifier">functionN</span></a><span class="special">(</span><a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> F<span class="special">&gt;</span> <a class="link" href="functionN.html#idp21364872-bb"><span class="identifier">functionN</span></a><span class="special">(</span><span class="identifier">F</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> F<span class="special">,</span> <span class="keyword">typename</span> Allocator<span class="special">&gt;</span> <a class="link" href="functionN.html#idp21428440-bb"><span class="identifier">functionN</span></a><span class="special">(</span><span class="identifier">F</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">)</span><span class="special">;</span>
+  functionN&amp; <a class="link" href="functionN.html#idp21278472-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  functionN&amp; <a class="link" href="functionN.html#idp45896904-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="functionN.html#idp53501592-bb"><span class="special">~</span><span class="identifier">functionN</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="functionN.html#idp46058168-bb">modifiers</a></span>
+  <span class="keyword">void</span> <a class="link" href="functionN.html#idp20813176-bb"><span class="identifier">swap</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="functionN.html#idp53175496-bb"><span class="identifier">clear</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="functionN.html#idp21348568-bb">capacity</a></span>
+  <span class="keyword">bool</span> <a class="link" href="functionN.html#idp35196392-bb"><span class="identifier">empty</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="functionN.html#idp36565320-bb"><span class="keyword">operator</span> <span class="identifier">safe_bool</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="functionN.html#idp46436024-bb"><span class="keyword">operator</span><span class="special">!</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="functionN.html#idp46421000-bb">target access</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Functor<span class="special">&gt;</span> <span class="identifier">Functor</span><span class="special">*</span> <a class="link" href="functionN.html#idp21810360-bb"><span class="identifier">target</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Functor<span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">Functor</span><span class="special">*</span> <a class="link" href="functionN.html#idp20231400-bb"><span class="identifier">target</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Functor<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="functionN.html#idp20927320-bb"><span class="identifier">contains</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Functor</span><span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">type_info</span><span class="special">&amp;</span> <a class="link" href="functionN.html#idp35080600-bb"><span class="identifier">target_type</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="functionN.html#idp20358776-bb">invocation</a></span>
+  <span class="identifier">result_type</span> <a class="link" href="functionN.html#idp55029656-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">arg1_type</span><span class="special">,</span> <span class="identifier">arg2_type</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">argN_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span>
+
+<span class="comment">// <a class="link" href="functionN.html#idp21765400-bb">specialized algorithms</a></span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a class="link" href="functionN.html#boost.functionN.swap_idp35979288"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">,</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+<span class="comment">// <a class="link" href="functionN.html#idp53571928-bb">comparison operators</a></span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a class="link" href="functionN.html#idp21650200-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Functor</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a class="link" href="functionN.html#idp21810680-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="identifier">Functor</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a class="link" href="functionN.html#idp52133704-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">,</span> 
+                  <a class="link" href="reference_wrapper.html" title="Class template reference_wrapper">reference_wrapper</a><span class="special">&lt;</span><span class="identifier">Functor</span><span class="special">&gt;</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a class="link" href="functionN.html#idp45726408-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><a class="link" href="reference_wrapper.html" title="Class template reference_wrapper">reference_wrapper</a><span class="special">&lt;</span><span class="identifier">Functor</span><span class="special">&gt;</span><span class="special">,</span> 
+                  <span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> U1<span class="special">,</span> <span class="keyword">typename</span> U2<span class="special">,</span> 
+         <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> UN<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a class="link" href="functionN.html#idp34493240-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">,</span> 
+                  <span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">U1</span><span class="special">,</span> <span class="identifier">U2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">UN</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a class="link" href="functionN.html#idp21140568-bb"><span class="keyword">operator</span><span class="special">!=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Functor</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a class="link" href="functionN.html#idp54489112-bb"><span class="keyword">operator</span><span class="special">!=</span></a><span class="special">(</span><span class="identifier">Functor</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a class="link" href="functionN.html#idp53171384-bb"><span class="keyword">operator</span><span class="special">!=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">,</span> 
+                  <a class="link" href="reference_wrapper.html" title="Class template reference_wrapper">reference_wrapper</a><span class="special">&lt;</span><span class="identifier">Functor</span><span class="special">&gt;</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a class="link" href="functionN.html#idp53201752-bb"><span class="keyword">operator</span><span class="special">!=</span></a><span class="special">(</span><a class="link" href="reference_wrapper.html" title="Class template reference_wrapper">reference_wrapper</a><span class="special">&lt;</span><span class="identifier">Functor</span><span class="special">&gt;</span><span class="special">,</span> 
+                  <span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> U1<span class="special">,</span> <span class="keyword">typename</span> U2<span class="special">,</span> 
+         <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> UN<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a class="link" href="functionN.html#idp54988184-bb"><span class="keyword">operator</span><span class="special">!=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">,</span> 
+                  <span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">U1</span><span class="special">,</span> <span class="identifier">U2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">UN</span><span class="special">&gt;</span><span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp96312936"></a><h2>Description</h2>
+<p>Class template <a class="link" href="functionN.html" title="Class template functionN">functionN</a> is
+      actually a family of related classes <a class="link" href="functionN.html" title="Class template functionN">function0</a>, <a class="link" href="functionN.html" title="Class template functionN">function1</a>, etc., up to some
+      implementation-defined maximum. In this context, <code class="computeroutput">N</code>
+      refers to the number of parameters.</p>
+<div class="refsect2">
+<a name="idp96315112"></a><h3>
+<a name="boost.functionNconstruct-copy-destruct"></a><code class="computeroutput">functionN</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp36366696-bb"></a><span class="identifier">functionN</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><code class="computeroutput">this-&gt;<a class="link" href="functionN.html#idp35196392-bb">empty</a>()</code></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp20052264-bb"></a><span class="identifier">functionN</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&amp;</span> f<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td>Contains a copy of the <code class="computeroutput">f</code>'s target, if it has one, or is empty if <code class="computeroutput">f.<a class="link" href="functionN.html#idp35196392-bb">empty</a>()</code>.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw unless copying the target of <code class="computeroutput">f</code> throws.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp34553864-bb"></a><span class="identifier">functionN</span><span class="special">(</span><a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&amp;&amp;</span> f<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>C++11 compatible compiler.</td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td>Moves the value from <code class="computeroutput">f</code> to <code class="computeroutput">*this</code>. If the argument has its function object allocated on the heap, its buffer will be assigned to <code class="computeroutput">*this</code> leaving argument empty.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw unless argument has its function object allocated not on the heap and copying the target of <code class="computeroutput">f</code> throws.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> F<span class="special">&gt;</span> <a name="idp21364872-bb"></a><span class="identifier">functionN</span><span class="special">(</span><span class="identifier">F</span> f<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>F is a function object Callable from <code class="computeroutput">this</code>.</td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td>
+<code class="computeroutput">*this</code> targets a copy of <code class="computeroutput">f</code> if <code class="computeroutput">f</code> is nonempty, or <code class="computeroutput">this-&gt;<a class="link" href="functionN.html#idp35196392-bb">empty</a>()</code> if <code class="computeroutput">f</code> is empty.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> F<span class="special">,</span> <span class="keyword">typename</span> Allocator<span class="special">&gt;</span> <a name="idp21428440-bb"></a><span class="identifier">functionN</span><span class="special">(</span><span class="identifier">F</span> f<span class="special">,</span> <span class="identifier">Allocator</span> alloc<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>F is a function object Callable from <code class="computeroutput">this</code>, Allocator is an allocator. The copy constructor and destructor of Allocator shall not throw.</td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td>
+<code class="computeroutput">*this</code> targets a copy of <code class="computeroutput">f</code> if <code class="computeroutput">f</code> is nonempty, or <code class="computeroutput">this-&gt;<a class="link" href="functionN.html#idp35196392-bb">empty</a>()</code> if <code class="computeroutput">f</code> is empty.</td>
+</tr>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>If memory allocation is required, the given allocator (or a copy of it) will be used to allocate that memory.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout">functionN&amp; <a name="idp21278472-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&amp;</span> f<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td>If copy construction does not throw, <code class="computeroutput">*this</code> targets a copy of <code class="computeroutput">f</code>'s target, if it has one, or is empty if <code class="computeroutput">f.<a class="link" href="functionN.html#idp35196392-bb">empty</a>()</code>. If copy construction does throw, <code class="computeroutput">this-&gt;<a class="link" href="functionN.html#idp35196392-bb">empty</a>()</code>.</td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout">functionN&amp; <a name="idp45896904-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&amp;&amp;</span> f<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>C++11 compatible compiler.</td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td>Moves the value from <code class="computeroutput">f</code> to <code class="computeroutput">*this</code>. If the argument has its function object allocated on the heap, its buffer will be assigned to <code class="computeroutput">*this</code> leaving argument empty.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw unless argument has its function object allocated not on the heap and copying the target of <code class="computeroutput">f</code> throws.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp53501592-bb"></a><span class="special">~</span><span class="identifier">functionN</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>If <code class="computeroutput">!this-&gt;<a class="link" href="functionN.html#idp35196392-bb">empty</a>()</code>, destroys the target of this.</td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp96361928"></a><h3>
+<a name="idp46058168-bb"></a><code class="computeroutput">functionN</code> modifiers</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp20813176-bb"></a><span class="identifier">swap</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&amp;</span> f<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>Interchanges the targets of <code class="computeroutput">*this</code> and <code class="computeroutput">f</code>.</td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp53175496-bb"></a><span class="identifier">clear</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td>this-&gt;<a class="link" href="functionN.html#idp35196392-bb">empty</a>()</td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp96370760"></a><h3>
+<a name="idp21348568-bb"></a><code class="computeroutput">functionN</code> capacity</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp35196392-bb"></a><span class="identifier">empty</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>
+<code class="computeroutput">false</code> if <code class="computeroutput">this</code> has a target, and <code class="computeroutput">true</code> otherwise.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp36565320-bb"></a><span class="keyword">operator</span> <span class="identifier">safe_bool</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>A <code class="computeroutput">safe_bool</code> that evaluates <code class="computeroutput">false</code> in a boolean context when <code class="computeroutput">this-&gt;<a class="link" href="functionN.html#idp35196392-bb">empty</a>()</code>, and <code class="computeroutput">true</code> otherwise.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp46436024-bb"></a><span class="keyword">operator</span><span class="special">!</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><code class="computeroutput">this-&gt;<a class="link" href="functionN.html#idp35196392-bb">empty</a>()</code></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp96386136"></a><h3>
+<a name="idp46421000-bb"></a><code class="computeroutput">functionN</code> target access</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp21810168-bb"></a><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Functor<span class="special">&gt;</span> <span class="identifier">Functor</span><span class="special">*</span> <a name="idp21810360-bb"></a><span class="identifier">target</span><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Functor<span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">Functor</span><span class="special">*</span> <a name="idp20231400-bb"></a><span class="identifier">target</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>If <code class="computeroutput">this</code> stores a target of type
+        <code class="computeroutput">Functor</code>, returns the address of the
+        target. Otherwise, returns the NULL
+        pointer.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Functor<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp20927320-bb"></a><span class="identifier">contains</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Functor</span><span class="special">&amp;</span> f<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>
+<code class="computeroutput">true</code> if <code class="computeroutput">this-&gt;<a class="link" href="functionN.html#idp21810168-bb">target</a>&lt;Functor&gt;()</code> is non-NULL and <code class="computeroutput"><a class="link" href="function_equal.html" title="Function template function_equal">function_equal</a>(*(this-&gt;target&lt;Functor&gt;()), f)</code>
+</td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">type_info</span><span class="special">&amp;</span> <a name="idp35080600-bb"></a><span class="identifier">target_type</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>
+<code class="computeroutput">typeid</code> of the target function object, or <code class="computeroutput">typeid(void)</code> if <code class="computeroutput">this-&gt;<a class="link" href="functionN.html#idp35196392-bb">empty</a>()</code>.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Will not throw.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp96410104"></a><h3>
+<a name="idp20358776-bb"></a><code class="computeroutput">functionN</code> invocation</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp55029656-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">arg1_type</span> a1<span class="special">,</span> <span class="identifier">arg2_type</span> a2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">argN_type</span> aN<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>
+<code class="computeroutput">f(a1, a2, ..., aN)</code>, where <code class="computeroutput">f</code> is the target of <code class="computeroutput">*this</code>.</td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>if <code class="computeroutput">R</code> is <code class="computeroutput">void</code>, nothing is returned; otherwise, the return value of the call to <code class="computeroutput">f</code> is returned.</td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>
+<code class="computeroutput"><a class="link" href="bad_function_call.html" title="Class bad_function_call">bad_function_call</a></code> if <code class="computeroutput">this-&gt;<a class="link" href="functionN.html#idp35196392-bb">empty</a>()</code>. Otherwise, may through any exception thrown by the target function <code class="computeroutput">f</code>.</td>
+</tr>
+</tbody>
+</table></div>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp96429624"></a><h3>
+<a name="idp21765400-bb"></a><code class="computeroutput">functionN</code> specialized algorithms</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="boost.functionN.swap_idp35979288"></a><span class="identifier">swap</span><span class="special">(</span><a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span> f1<span class="special">,</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span> f2<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td><code class="computeroutput">f1.<a class="link" href="functionN.html#idp20813176-bb">swap</a>(f2)</code></td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp96444104"></a><h3>
+<a name="idp53571928-bb"></a><code class="computeroutput">functionN</code> comparison operators</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<p><a name="boost.functionN.operator==_idp53572120"></a></p>
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a name="idp21650200-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span> f<span class="special">,</span> <span class="identifier">Functor</span> g<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a name="idp21810680-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><span class="identifier">Functor</span> g<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span> f<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a name="idp52133704-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span> f<span class="special">,</span> 
+                  <a class="link" href="reference_wrapper.html" title="Class template reference_wrapper">reference_wrapper</a><span class="special">&lt;</span><span class="identifier">Functor</span><span class="special">&gt;</span> g<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a name="idp45726408-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><a class="link" href="reference_wrapper.html" title="Class template reference_wrapper">reference_wrapper</a><span class="special">&lt;</span><span class="identifier">Functor</span><span class="special">&gt;</span> g<span class="special">,</span> 
+                  <span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span> f<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> U1<span class="special">,</span> <span class="keyword">typename</span> U2<span class="special">,</span> 
+         <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> UN<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp34493240-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span> f1<span class="special">,</span> 
+                  <span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">U1</span><span class="special">,</span> <span class="identifier">U2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">UN</span><span class="special">&gt;</span><span class="special">&amp;</span> f2<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>True when <code class="computeroutput">f</code> stores an object of
+        type <code class="computeroutput">Functor</code> and one of the following conditions applies:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<code class="computeroutput">g</code> is of type
+            <code class="computeroutput"><a class="link" href="reference_wrapper.html" title="Class template reference_wrapper">reference_wrapper</a>&lt;Functor&gt;</code>
+            and <code class="computeroutput">f.target&lt;Functor&gt;() == g.<a class="link" href="reference_wrapper.html#idp89459832-bb">get_pointer</a>()</code>.</li>
+<li class="listitem">
+<code class="computeroutput">g</code> is not of type
+            <code class="computeroutput"><a class="link" href="reference_wrapper.html" title="Class template reference_wrapper">reference_wrapper</a>&lt;Functor&gt;</code>
+            and
+            <code class="computeroutput"><a class="link" href="function_equal.html" title="Function template function_equal">function_equal</a>(*(f.target&lt;Functor&gt;()),
+            g)</code>.</li>
+</ul></div>
+          </td>
+</tr>
+<tr>
+<td><p><span class="term">Notes:</span></p></td>
+<td>
+<code class="computeroutput"><a class="link" href="functionN.html" title="Class template functionN">functionN</a></code>
+        objects are not
+        <a class="link" href="../EqualityComparable.html" title="Concept EqualityComparable">EqualityComparable</a>.</td>
+</tr>
+<tr>
+<td><p><span class="term">Rationale:</span></p></td>
+<td>The <code class="computeroutput">safe_bool</code> conversion
+        opens a loophole whereby two <code class="computeroutput">functionN</code>
+        instances can be compared via <code class="computeroutput">==</code>, although this
+        is not feasible to implement. The undefined <code class="computeroutput">void
+        operator==</code> closes the loophole and ensures a
+        compile-time or link-time error.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<p><a name="boost.functionN.operator!=_idp55026136"></a></p>
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a name="idp21140568-bb"></a><span class="keyword">operator</span><span class="special">!=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span> f<span class="special">,</span> <span class="identifier">Functor</span> g<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a name="idp54489112-bb"></a><span class="keyword">operator</span><span class="special">!=</span><span class="special">(</span><span class="identifier">Functor</span> g<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span> f<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a name="idp53171384-bb"></a><span class="keyword">operator</span><span class="special">!=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span> f<span class="special">,</span> 
+                  <a class="link" href="reference_wrapper.html" title="Class template reference_wrapper">reference_wrapper</a><span class="special">&lt;</span><span class="identifier">Functor</span><span class="special">&gt;</span> g<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> Functor<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a name="idp53201752-bb"></a><span class="keyword">operator</span><span class="special">!=</span><span class="special">(</span><a class="link" href="reference_wrapper.html" title="Class template reference_wrapper">reference_wrapper</a><span class="special">&lt;</span><span class="identifier">Functor</span><span class="special">&gt;</span> g<span class="special">,</span> 
+                  <span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span> f<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T1<span class="special">,</span> <span class="keyword">typename</span> T2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> TN<span class="special">,</span> <span class="keyword">typename</span> U1<span class="special">,</span> <span class="keyword">typename</span> U2<span class="special">,</span> 
+         <span class="special">...</span><span class="special">,</span> <span class="keyword">typename</span> UN<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp54988184-bb"></a><span class="keyword">operator</span><span class="special">!=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span> <span class="identifier">T2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">TN</span><span class="special">&gt;</span><span class="special">&amp;</span> f1<span class="special">,</span> 
+                  <span class="keyword">const</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">U1</span><span class="special">,</span> <span class="identifier">U2</span><span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="identifier">UN</span><span class="special">&gt;</span><span class="special">&amp;</span> f2<span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>True when <code class="computeroutput">f</code> does not store an
+        object of type <code class="computeroutput">Functor</code> or it stores an object of
+        type <code class="computeroutput">Functor</code> and one of the following conditions
+        applies:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<code class="computeroutput">g</code> is of type
+            <code class="computeroutput"><a class="link" href="reference_wrapper.html" title="Class template reference_wrapper">reference_wrapper</a>&lt;Functor&gt;</code>
+            and <code class="computeroutput">f.target&lt;Functor&gt;() != g.<a class="link" href="reference_wrapper.html#idp89459832-bb">get_pointer</a>()</code>.</li>
+<li class="listitem">
+<code class="computeroutput">g</code> is not of type
+            <code class="computeroutput"><a class="link" href="reference_wrapper.html" title="Class template reference_wrapper">reference_wrapper</a>&lt;Functor&gt;</code>
+            and <code class="computeroutput">!<a class="link" href="function_equal.html" title="Function template function_equal">function_equal</a>(*(f.target&lt;Functor&gt;()), g)</code>.</li>
+</ul></div>
+          </td>
+</tr>
+<tr>
+<td><p><span class="term">Notes:</span></p></td>
+<td>
+<code class="computeroutput"><a class="link" href="functionN.html" title="Class template functionN">functionN</a></code>
+        objects are not
+        <a class="link" href="../EqualityComparable.html" title="Concept EqualityComparable">EqualityComparable</a>.</td>
+</tr>
+<tr>
+<td><p><span class="term">Rationale:</span></p></td>
+<td>The <code class="computeroutput">safe_bool</code> conversion
+        opens a loophole whereby two <code class="computeroutput">functionN</code>
+        instances can be compared via <code class="computeroutput">!=</code>, although this
+        is not feasible to implement. The undefined <code class="computeroutput">void
+        operator!=</code> closes the loophole and ensures a
+        compile-time or link-time error.</td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="function_base.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function/reference.html#header.boost.function_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="functionN/sig.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

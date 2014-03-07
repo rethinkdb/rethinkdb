@@ -1,0 +1,38 @@
+[/==============================================================================
+    Copyright (C) <year> <name>
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section <name of component>]
+
+[heading Description]
+
+[/ describe the component here]
+
+[heading Header]
+
+    #include <boost/spirit/repository/include/...>
+
+[heading Synopsis]
+
+[/ short usage synopsis]
+
+[heading Parameters]
+
+[table
+    [[Parameter]               [Description]]
+    [[parameter in synopsis]   [describe parameter]]
+]
+
+[heading Attribute]
+
+[/ describe the rules for attribute construction and propagation of your 
+   component, use the same notation as used in the main Spirit docs]
+
+[heading Example]
+
+[/ describe some examples here, use uiqckbooks import feature to show the code]
+
+[endsect]

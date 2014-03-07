@@ -1,0 +1,111 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>History</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="prev" href="rationale/the_student_and_the_mentor.html" title="The student and the mentor">
+<link rel="next" href="history/multiindex_and_bimap.html" title="MultiIndex and Bimap">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="rationale/the_student_and_the_mentor.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="history/multiindex_and_bimap.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_history">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_bimap.history"></a><a class="link" href="history.html" title="History">History</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="history.html#boost_bimap.history.the_long_path_from_code_project_to_boost">The
+      long path from Code Project to Boost</a></span></dt>
+<dt><span class="section"><a href="history/multiindex_and_bimap.html">MultiIndex
+      and Bimap</a></span></dt>
+</dl></div>
+<div class="section boost_bimap_history_the_long_path_from_code_project_to_boost">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.history.the_long_path_from_code_project_to_boost"></a><a class="link" href="history.html#boost_bimap.history.the_long_path_from_code_project_to_boost" title="The long path from Code Project to Boost">The
+      long path from Code Project to Boost</a>
+</h3></div></div></div>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">2002 - bimap at Code Project</span></dt>
+<dd><p>
+              Joaquin Lopez Mu&#241;oz posted his first <a href="http://www.codeproject.com/vcpp/stl/bimap.asp#test_suite" target="_top">bimap
+              library</a> in 2002. Tons of users have been using it. He then
+              <a href="http://aspn.activestate.com/ASPN/Mail/Message/boost/1404881" target="_top">asked
+              the list for interest</a> in his library in 2003. Luckily, there
+              was a lot of interest and Joaquin started to boostify the code. At
+              some point all the developers seemed to agree that, rather than a bidirectional
+              map, it would be better to work on an N-indexed set that contained
+              Joaquin's library as a particular case.
+            </p></dd>
+<dt><span class="term">2003 - multiindex_set</span></dt>
+<dd><p>
+              The library grew enormously and was ready for a formal review in 2003.
+              At this point, the container was a lot more powerful, but everything
+              comes with a price and this new beast lacked the simplicity of the
+              original bimap.
+            </p></dd>
+<dt><span class="term">2004 - indexed_set</span></dt>
+<dd><p>
+              In 2004, the formal review ended well for the new multi-indexed container.
+              This Swiss army knife introduced several new features, such as non-unique
+              indexes, hashed indices and sequenced indices. In the list of improvements
+              to the library, it was mentioned that a bidirectional map should be
+              coded in top of this container.
+            </p></dd>
+<dt><span class="term">2005 - multi_index_container</span></dt>
+<dd><p>
+              Once in Boost, the library switched to the now familiar name "Boost.MultiIndex".
+              Late in 2004, it formally became a member of Boost. Joaquin continued
+              to enchance the library and added new features such as composite keys
+              and random-access indices.
+            </p></dd>
+<dt><span class="term">2006 - Multi Index Specialized Containers SoC project</span></dt>
+<dd><p>
+              In 2006, during the formal review of Boost.Property_tree, the need
+              for a bidirectional map container built on top of Boost.MultiIndex
+              arose again. Boost entered the Google SoC 2006 as a mentor organization
+              at the same time. Joaquin put himself forward as a mentor. He proposed
+              to build not only a bidirectional map, but a myriad multi-indexed specialized
+              containers. Matias Capeletto presented an application to code Boost.Misc
+              for the SoC and was elected, along with nine other students. Matias's
+              and Joaquin's SoC project ends with a working implementation of the
+              bimap library that was presented in an informal review. By the end
+              of the year the library was queued for a formal review.
+            </p></dd>
+<dt><span class="term">2007 - Boost.Bimap</span></dt>
+<dd><p>
+              The formal review took place at the beggining of the year and Boost.Bimap
+              was accepted in Boost.
+            </p></dd>
+</dl>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="rationale/the_student_and_the_mentor.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="history/multiindex_and_bimap.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

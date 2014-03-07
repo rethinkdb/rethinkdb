@@ -1,0 +1,31 @@
+# *******************************************************************************
+# *
+# *   Copyright (C) 2009, International Business Machines
+# *   Corporation and others.  All Rights Reserved.
+# *
+# *******************************************************************************
+#
+# File created on   Dec 2, 2009
+#
+# This is not a real CNS-11643 table, but a "fake" table to return U+FFFD
+# for every byte sequence valid in ISO-2022-CN(-Ext). Chrome and Android
+# do not want to include the real table for charsets that are extremely
+# rare, if used at all. However, not supporting ISO-2022-CN(-Ext) gets
+# them vulernable to a security issue. By including this 'fake' table,
+# they can be protected while increasing the ICU data size by ~ 10kB.
+<code_set_name>       "NOOP-CNS-11643"
+<char_name_mask>      "AXXXX"
+<mb_cur_max>          3
+<mb_cur_min>          3
+<uconv_class>         "MBCS"
+<subchar>             \x81\x7e\x7e
+
+# (state 0) lead byte, selects the CNS plane (0x80 + plane number)
+<icu:state>           81-90:1
+
+# (1..2) middle and trail bytes for valid but unassigned sequences
+<icu:state>           21-7e:2
+<icu:state>           21-7e.u
+
+CHARMAP
+END CHARMAP

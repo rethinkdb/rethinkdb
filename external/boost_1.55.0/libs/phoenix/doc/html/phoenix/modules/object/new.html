@@ -1,0 +1,80 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>New</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../object.html" title="Object">
+<link rel="prev" href="construction.html" title="Construction">
+<link rel="next" href="delete.html" title="Delete">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="construction.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../object.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="delete.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.modules.object.new"></a><a class="link" href="new.html" title="New">New</a>
+</h4></div></div></div>
+<p>
+          <span class="bold"><strong><span class="emphasis"><em>Lazy new...</em></span></strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">object</span><span class="special">/</span><span class="keyword">new</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          Lazily construct an object, on the heap, from an arbitrary set of arguments:
+        </p>
+<pre class="programlisting"><span class="identifier">new_</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;(</span><span class="identifier">ctor_arg1</span><span class="special">,</span> <span class="identifier">ctor_arg2</span><span class="special">,</span> <span class="special">...,</span> <span class="identifier">ctor_argN</span><span class="special">);</span>
+</pre>
+<p>
+          where the given parameters are the parameters to the contractor of the
+          object of type T (This implies, that type T is expected to have a constructor
+          with a corresponding set of parameter types.).
+        </p>
+<p>
+          Example:
+        </p>
+<pre class="programlisting"><span class="identifier">new_</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">arg2</span><span class="special">)</span> <span class="comment">// note the spelling of new_ (with trailing underscore)</span>
+</pre>
+<p>
+          Creates a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code> from <code class="computeroutput"><span class="identifier">arg1</span></code>
+          and <code class="computeroutput"><span class="identifier">arg2</span></code> on the heap.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The maximum number of actual parameters is limited by the preprocessor
+            constant BOOST_PHOENIX_COMPOSITE_LIMIT. Note though, that this limit
+            should not be greater than BOOST_PHOENIX_LIMIT. By default, <code class="computeroutput"><span class="identifier">BOOST_PHOENIX_COMPOSITE_LIMIT</span></code> is set
+            to <code class="computeroutput"><span class="identifier">BOOST_PHOENIX_LIMIT</span></code>
+            (See <a class="link" href="../../actor.html" title="Actor">Actor</a>).
+          </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="construction.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../object.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="delete.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

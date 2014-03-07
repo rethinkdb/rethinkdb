@@ -1,0 +1,137 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template sub_match</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../xpressive/reference.html#header.boost.xpressive.sub_match_hpp" title="Header &lt;boost/xpressive/sub_match.hpp&gt;">
+<link rel="prev" href="regex_traits.html" title="Struct template regex_traits">
+<link rel="next" href="range_begin.html" title="Function range_begin">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_traits.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.sub_match_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="range_begin.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.xpressive.sub_match"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template sub_match</span></h2>
+<p>boost::xpressive::sub_match &#8212; Class template <code class="computeroutput"><a class="link" href="sub_match.html" title="Struct template sub_match">sub_match</a></code> denotes the sequence of characters matched by a particular marked sub-expression. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../xpressive/reference.html#header.boost.xpressive.sub_match_hpp" title="Header &lt;boost/xpressive/sub_match.hpp&gt;">boost/xpressive/sub_match.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BidiIter<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="sub_match.html" title="Struct template sub_match">sub_match</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">BidiIter</span><span class="special">,</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">iterator_value</span><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>      <a name="boost.xpressive.sub_match.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="identifier">iterator_difference</span><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="boost.xpressive.sub_match.difference_type"></a><span class="identifier">difference_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                           <a name="boost.xpressive.sub_match.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>    
+  <span class="keyword">typedef</span> <span class="identifier">BidiIter</span>                              <a name="boost.xpressive.sub_match.iterator"></a><span class="identifier">iterator</span><span class="special">;</span>       
+
+  <span class="comment">// <a class="link" href="sub_match.html#boost.xpressive.sub_matchconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="sub_match.html#idp163951224-bb"><span class="identifier">sub_match</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="sub_match.html#idp163951288-bb"><span class="identifier">sub_match</span></a><span class="special">(</span><span class="identifier">BidiIter</span><span class="special">,</span> <span class="identifier">BidiIter</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="sub_match.html#idp163944344-bb">public member functions</a></span>
+  <span class="identifier">string_type</span> <a class="link" href="sub_match.html#idp163944552-bb"><span class="identifier">str</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="sub_match.html#idp163945016-bb"><span class="keyword">operator</span> <span class="identifier">string_type</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">difference_type</span> <a class="link" href="sub_match.html#idp163945496-bb"><span class="identifier">length</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="sub_match.html#idp163945960-bb"><span class="keyword">operator</span> <span class="identifier">bool_type</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="sub_match.html#idp163946440-bb"><span class="keyword">operator</span><span class="special">!</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="sub_match.html#idp163946904-bb"><span class="identifier">compare</span></a><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="sub_match.html#idp163948792-bb"><span class="identifier">compare</span></a><span class="special">(</span><a class="link" href="sub_match.html" title="Struct template sub_match">sub_match</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="sub_match.html#idp163950072-bb"><span class="identifier">compare</span></a><span class="special">(</span><span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">*</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="keyword">bool</span> <span class="identifier">matched</span><span class="special">;</span>  <span class="comment">// true if this sub-match participated in the full match. </span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp258057096"></a><h2>Description</h2>
+<p>When the marked sub-expression denoted by an object of type <code class="computeroutput"><a class="link" href="sub_match.html" title="Struct template sub_match">sub_match</a>&lt;&gt;</code> participated in a regular expression match then member <code class="computeroutput">matched</code> evaluates to <code class="computeroutput">true</code>, and members <code class="computeroutput">first</code> and <code class="computeroutput">second</code> denote the range of characters <code class="computeroutput">[first,second)</code> which formed that match. Otherwise <code class="computeroutput">matched</code> is <code class="computeroutput">false</code>, and members <code class="computeroutput">first</code> and <code class="computeroutput">second</code> contained undefined values.</p>
+<p>If an object of type <code class="computeroutput"><a class="link" href="sub_match.html" title="Struct template sub_match">sub_match</a>&lt;&gt;</code> represents sub-expression 0 - that is to say the whole match - then member <code class="computeroutput">matched</code> is always <code class="computeroutput">true</code>, unless a partial match was obtained as a result of the flag <code class="computeroutput">match_partial</code> being passed to a regular expression algorithm, in which case member <code class="computeroutput">matched</code> is <code class="computeroutput">false</code>, and members <code class="computeroutput">first</code> and <code class="computeroutput">second</code> represent the character range that formed the partial match. </p>
+<div class="refsect2">
+<a name="idp258065112"></a><h3>
+<a name="boost.xpressive.sub_matchconstruct-copy-destruct"></a><code class="computeroutput">sub_match</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><a name="idp163951224-bb"></a><span class="identifier">sub_match</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><a name="idp163951288-bb"></a><span class="identifier">sub_match</span><span class="special">(</span><span class="identifier">BidiIter</span> first<span class="special">,</span> <span class="identifier">BidiIter</span> second<span class="special">,</span> <span class="keyword">bool</span> matched_ <span class="special">=</span> <span class="keyword">false</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp258072088"></a><h3>
+<a name="idp163944344-bb"></a><code class="computeroutput">sub_match</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="identifier">string_type</span> <a name="idp163944552-bb"></a><span class="identifier">str</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><a name="idp163945016-bb"></a><span class="keyword">operator</span> <span class="identifier">string_type</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">difference_type</span> <a name="idp163945496-bb"></a><span class="identifier">length</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><a name="idp163945960-bb"></a><span class="keyword">operator</span> <span class="identifier">bool_type</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">bool</span> <a name="idp163946440-bb"></a><span class="keyword">operator</span><span class="special">!</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp163946904-bb"></a><span class="identifier">compare</span><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> str<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Performs a lexicographic string comparison. <p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">str</code></span></p></td>
+<td><p>the string against which to compare </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>the results of <code class="computeroutput">(*this).str().compare(str)</code> </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp163948792-bb"></a><span class="identifier">compare</span><span class="special">(</span><a class="link" href="sub_match.html" title="Struct template sub_match">sub_match</a> <span class="keyword">const</span> <span class="special">&amp;</span> sub<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp163950072-bb"></a><span class="identifier">compare</span><span class="special">(</span><span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">*</span> ptr<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_traits.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.sub_match_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="range_begin.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

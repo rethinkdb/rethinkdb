@@ -1,0 +1,1464 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Using and building the library</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../thread.html" title="Chapter&#160;31.&#160;Thread 4.2.0">
+<link rel="prev" href="../thread.html" title="Chapter&#160;31.&#160;Thread 4.2.0">
+<link rel="next" href="changes.html" title="History">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../thread.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../thread.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="changes.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="thread.build"></a><a class="link" href="build.html" title="Using and building the library">Using and building the library</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="build.html#thread.build.configuration">Configuration</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.limitations">Limitations</a></span></dt>
+</dl></div>
+<p>
+      Boost.Thread is configured following the conventions used to build <a href="http://www.boost.org/doc/libs/1_48_0/libs/config/doc/html/boost_config/boost_macro_reference.html#boost_config.boost_macro_reference.macros_for_libraries_with_separate_source_code" target="_top">libraries
+      with separate source code</a>. Boost.Thread will import/export the code
+      only if the user has specifically asked for it, by defining either BOOST_ALL_DYN_LINK
+      if they want all boost libraries to be dynamically linked, or BOOST_THREAD_DYN_LINK
+      if they want just this one to be dynamically liked.
+    </p>
+<p>
+      The definition of these macros determines whether BOOST_THREAD_USE_DLL is defined.
+      If BOOST_THREAD_USE_DLL is not defined, the library will define BOOST_THREAD_USE_DLL
+      or BOOST_THREAD_USE_LIB depending on whether the platform. On non windows platforms
+      BOOST_THREAD_USE_LIB is defined if is not defined. In windows platforms, BOOST_THREAD_USE_LIB
+      is defined if BOOST_THREAD_USE_DLL and the compiler supports auto-tss cleanup
+      with Boost.Threads (for the time been Msvc and Intel)
+    </p>
+<p>
+      The source code compiled when building the library defines a macros BOOST_THREAD_SOURCE
+      that is used to import or export it. The user must not define this macro in
+      any case.
+    </p>
+<p>
+      Boost.Thread depends on some non header-only libraries.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Boost.System: This dependency is mandatory and you will need to link with
+          the library.
+        </li>
+<li class="listitem">
+          Boost.Chrono: This dependency is optional (see below how to configure)
+          and you will need to link with the library if you use some of the time
+          related interfaces.
+        </li>
+<li class="listitem">
+          Boost.DateTime: This dependency is mandatory, but even if Boost.DateTime
+          is a non header-only library Boost.Thread uses only parts that are header-only,
+          so in principle you should not need to link with the library.
+        </li>
+</ul></div>
+<p>
+      It seems that there are some IDE (as e.g. Visual Studio) that deduce the libraries
+      that a program needs to link to inspecting the sources. Such IDE could force
+      to link to Boost.DateTime and/or Boost.Chrono.
+    </p>
+<p>
+      As the single mandatory dependency is to Boost.System, the following
+    </p>
+<pre class="programlisting"><span class="identifier">bjam</span> <span class="identifier">toolset</span><span class="special">=</span><span class="identifier">msvc</span><span class="special">-</span><span class="number">11.0</span> <span class="special">--</span><span class="identifier">build</span><span class="special">-</span><span class="identifier">type</span><span class="special">=</span><span class="identifier">complete</span> <span class="special">--</span><span class="identifier">with</span><span class="special">-</span><span class="identifier">thread</span>
+</pre>
+<p>
+      will install only boost_thread and boost_system.
+    </p>
+<p>
+      Users of such IDE should force the Boost.Chrono and Boost.DateTime build using
+    </p>
+<pre class="programlisting"><span class="identifier">bjam</span> <span class="identifier">toolset</span><span class="special">=</span><span class="identifier">msvc</span><span class="special">-</span><span class="number">11.0</span> <span class="special">--</span><span class="identifier">build</span><span class="special">-</span><span class="identifier">type</span><span class="special">=</span><span class="identifier">complete</span> <span class="special">--</span><span class="identifier">with</span><span class="special">-</span><span class="identifier">thread</span> <span class="special">--</span><span class="identifier">with</span><span class="special">-</span><span class="identifier">chrono</span> <span class="special">--</span><span class="identifier">with</span><span class="special">-</span><span class="identifier">date_time</span>
+</pre>
+<p>
+      The following section describes all the macros used to configure Boost.Thread.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="thread.build.configuration"></a><a class="link" href="build.html#thread.build.configuration" title="Configuration">Configuration</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="build.html#thread.build.configuration.chrono">Boost.Chrono</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.move">Boost.Move</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.date_time">Boost.DateTime</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.move0">Boost.Atomic</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.thread_eq"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span><span class="special">::</span><span class="keyword">operator</span><span class="special">==</span></code>
+        deprecated</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.condition">boost::condition
+        deprecated</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.nested_lock">Mutex nested
+        lock types deprecated</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.id">thread::id</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.shared_gen">Shared Locking
+        Generic</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.shared_upwards">Shared Locking
+        Upwards Conversion</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.explicit_cnv">Explicit Lock
+        Conversion</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.future">unique_future versus
+        future</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.lazy">promise lazy initialization</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.alloc">promise Allocator
+        constructor</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.terminate">Call to terminate
+        if joinable</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.once_flag">once_flag</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.deprecated">Signature parameter
+        for packaged_task</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.thread_const">-var thread
+        constructor with variadic rvalue parameters</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.get_invalid">future&lt;&gt;::get()
+        invalidates the future</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.intr">Interruptions</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.configuration.version">Version</a></span></dt>
+</dl></div>
+<div class="table">
+<a name="thread.build.configuration.default_values_for_configurable_features"></a><p class="title"><b>Table&#160;31.1.&#160;Default Values for Configurable Features</b></p>
+<div class="table-contents"><table class="table" summary="Default Values for Configurable Features">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Feature
+                </p>
+              </th>
+<th>
+                <p>
+                  Anti-Feature
+                </p>
+              </th>
+<th>
+                <p>
+                  V2
+                </p>
+              </th>
+<th>
+                <p>
+                  V3
+                </p>
+              </th>
+<th>
+                <p>
+                  V4
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  USES_CHRONO
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_USE_CHRONO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES/NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES/NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES/NO
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_INTERRUPTIONS
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_INTERRUPTIONS
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  THROW_IF_PRECONDITION_NOT_SATISFIED
+                </p>
+              </td>
+<td>
+                <p>
+                  -
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_PROMISE_LAZY
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_PROMISE_LAZY
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_BASIC_THREAD_ID
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_BASIC_THREAD_ID
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_GENERIC_SHARED_MUTEX_ON_WIN
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_GENERIC_SHARED_MUTEX_ON_WIN
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_SHARED_MUTEX_UPWARDS_CONVERSION
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_SHARED_MUTEX_UPWARDS_CONVERSION
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_EXPLICIT_LOCK_CONVERSION
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_EXPLICIT_LOCK_CONVERSION
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_FUTURE
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_FUTURE
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_FUTURE_CTOR_ALLOCATORS
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_FUTURE_CTOR_ALLOCATORS
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_THREAD_DESTRUCTOR_CALLS_TERMINATE_IF_JOINABLE
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_THREAD_DESTRUCTOR_CALLS_TERMINATE_IF_JOINABLE
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_ONCE_CXX11
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_ONCE_CXX11
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  USES_MOVE
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_USE_MOVE
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  USES_DATETIME
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_USE_DATETIME
+                </p>
+              </td>
+<td>
+                <p>
+                  YES/NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES/NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES/NO
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_THREAD_EQ
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_THREAD_EQ
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_CONDITION
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_CONDITION
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_NESTED_LOCKS
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_NESTED_LOCKS
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_SIGNATURE_PACKAGED_TASK
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_SIGNATURE_PACKAGED_TASK
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_FUTURE_INVALID_AFTER_GET
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_FUTURE_INVALID_AFTER_GET
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  YES
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  PROVIDES_VARIADIC_THREAD
+                </p>
+              </td>
+<td>
+                <p>
+                  DONT_PROVIDE_VARIADIC_THREAD
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  NO
+                </p>
+              </td>
+<td>
+                <p>
+                  C++11
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.chrono"></a><a class="link" href="build.html#thread.build.configuration.chrono" title="Boost.Chrono">Boost.Chrono</a>
+</h4></div></div></div>
+<p>
+          Boost.Thread uses by default Boost.Chrono for the time related functions
+          and define <code class="computeroutput"><span class="identifier">BOOST_THREAD_USES_CHRONO</span></code>
+          if <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_USE_CHRONO</span></code>
+          is not defined. The user should define <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_USE_CHRONO</span></code>
+          for compilers that don't work well with Boost.Chrono.
+        </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            When defined BOOST_THREAD_PLATFORM_WIN32 BOOST_THREAD_USES_CHRONO is
+            defined independently of user settings.
+          </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.move"></a><a class="link" href="build.html#thread.build.configuration.move" title="Boost.Move">Boost.Move</a>
+</h4></div></div></div>
+<p>
+          Boost.Thread uses by default an internal move semantic implementation.
+          Since version 3.0.0 you can use the move emulation emulation provided by
+          Boost.Move.
+        </p>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">==</span><span class="number">2</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_USES_MOVE</span> </code>
+          if you want to use Boost.Move interface. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;=</span><span class="number">3</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_USE_MOVE</span> </code>
+          if you don't want to use Boost.Move interface.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.date_time"></a><a class="link" href="build.html#thread.build.configuration.date_time" title="Boost.DateTime">Boost.DateTime</a>
+</h4></div></div></div>
+<p>
+          The Boost.DateTime time related functions introduced in Boost 1.35.0, using
+          the <a class="link" href="../date_time.html" title="Chapter&#160;9.&#160;Boost.Date_Time">Boost.Date_Time</a> library are deprecated.
+          These include (but are not limited to):
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <a class="link" href="thread_management.html#thread.thread_management.this_thread.sleep" title="Non-member function sleep() DEPRECATED"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">this_thread</span><span class="special">::</span><span class="identifier">sleep</span><span class="special">()</span></code></a>
+            </li>
+<li class="listitem">
+              <a class="link" href="thread_management.html#thread.thread_management.thread.timed_join" title="Member function timed_join() DEPRECATED"><code class="computeroutput"><span class="identifier">timed_join</span><span class="special">()</span></code></a>
+            </li>
+<li class="listitem">
+              <a class="link" href="synchronization.html#thread.synchronization.condvar_ref.condition_variable.timed_wait" title="bool timed_wait(boost::unique_lock&lt;boost::mutex&gt;&amp; lock,boost::system_time const&amp; abs_time)"><code class="computeroutput"><span class="identifier">timed_wait</span><span class="special">()</span></code></a>
+            </li>
+<li class="listitem">
+              <a class="link" href="synchronization.html#thread.synchronization.mutex_concepts.timed_lockable.timed_lock" title="m.timed_lock(abs_time)"><code class="computeroutput"><span class="identifier">timed_lock</span><span class="special">()</span></code></a>
+            </li>
+</ul></div>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&lt;=</span><span class="number">3</span></code> &amp;&amp;
+          defined BOOST_THREAD_PLATFORM_PTHREAD define <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_USE_DATETIME</span></code>
+          if you don't want to use Boost.DateTime related interfaces. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;</span><span class="number">3</span></code> &amp;&amp; defined BOOST_THREAD_PLATFORM_PTHREAD
+          define <code class="computeroutput"><span class="identifier">BOOST_THREAD_USES_DATETIME</span></code>
+          if you want to use Boost.DateTime related interfaces.
+        </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            When defined BOOST_THREAD_PLATFORM_WIN32 BOOST_THREAD_USES_DATETIME is
+            defined independently of user settings.
+          </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.move0"></a><a class="link" href="build.html#thread.build.configuration.move0" title="Boost.Atomic">Boost.Atomic</a>
+</h4></div></div></div>
+<p>
+          Boost.Thread uses by default an Boost.Atomic in POSIX platforms to implement
+          call_once..
+        </p>
+<p>
+          Define <code class="computeroutput"><span class="identifier">BOOST_THREAD_USES_ATOMIC</span>
+          </code> if you want to use Boost.Atomic. Define <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_USE_ATOMIC</span>
+          </code> if you don't want to use Boost.Atomic or if it is not supported
+          in your platform.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.thread_eq"></a><a class="link" href="build.html#thread.build.configuration.thread_eq" title="boost::thread::operator== deprecated"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span><span class="special">::</span><span class="keyword">operator</span><span class="special">==</span></code>
+        deprecated</a>
+</h4></div></div></div>
+<p>
+          The following operators are deprecated:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span><span class="special">::</span><span class="keyword">operator</span><span class="special">==</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span><span class="special">::</span><span class="keyword">operator</span><span class="special">!=</span></code>
+            </li>
+</ul></div>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_THREAD_EQ</span></code>
+          is defined Boost.Thread provides these deprecated feature.
+        </p>
+<p>
+          Use instead
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span><span class="special">::</span><span class="identifier">id</span><span class="special">::</span><span class="keyword">operator</span><span class="special">==</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span><span class="special">::</span><span class="identifier">id</span><span class="special">::</span><span class="keyword">operator</span><span class="special">!=</span></code>
+            </li>
+</ul></div>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This is a breaking change respect to version 1.x.
+          </p></td></tr>
+</table></div>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;=</span><span class="number">4</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_THREAD_EQ</span>
+          </code> if you want this feature. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&lt;</span><span class="number">4</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_THREAD_EQ</span>
+          </code> if you don't want this feature.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.condition"></a><a class="link" href="build.html#thread.build.configuration.condition" title="boost::condition deprecated">boost::condition
+        deprecated</a>
+</h4></div></div></div>
+<p>
+          <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">condition</span></code> is deprecated. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_CONDITION</span></code> is defined
+          Boost.Thread provides this deprecated feature.
+        </p>
+<p>
+          Use instead <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">condition_variable_any</span></code>.
+        </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This is a breaking change respect to version 1.x.
+          </p></td></tr>
+</table></div>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;</span><span class="number">3</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_CONDITION</span></code>
+          if you want this feature. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&lt;=</span><span class="number">3</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_CONDITION</span></code>
+          if you don't want this feature.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.nested_lock"></a><a class="link" href="build.html#thread.build.configuration.nested_lock" title="Mutex nested lock types deprecated">Mutex nested
+        lock types deprecated</a>
+</h4></div></div></div>
+<p>
+          The following nested typedefs are deprecated:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span><span class="special">::</span><span class="identifier">scoped_lock</span></code>,
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span><span class="special">::</span><span class="identifier">scoped_try_lock</span></code>,
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">timed_mutex</span><span class="special">::</span><span class="identifier">scoped_lock</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">timed_mutex</span><span class="special">::</span><span class="identifier">scoped_try_lock</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">timed_mutex</span><span class="special">::</span><span class="identifier">timed_scoped_timed_lock</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_mutex</span><span class="special">::</span><span class="identifier">scoped_lock</span></code>,
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_mutex</span><span class="special">::</span><span class="identifier">scoped_try_lock</span></code>,
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_timed_mutex</span><span class="special">::</span><span class="identifier">scoped_lock</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_timed_mutex</span><span class="special">::</span><span class="identifier">scoped_try_lock</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_timed_mutex</span><span class="special">::</span><span class="identifier">timed_scoped_timed_lock</span></code>
+            </li>
+</ul></div>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_NESTED_LOCKS</span></code>
+          is defined Boost.Thread provides these deprecated feature.
+        </p>
+<p>
+          Use instead * <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique_lock</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span><span class="special">&gt;</span></code>,
+          * <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique_lock</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span><span class="special">&gt;</span></code>
+          with the <code class="computeroutput"><span class="identifier">try_to_lock_t</span></code>
+          constructor, * <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique_lock</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">timed_mutex</span><span class="special">&gt;</span></code>
+          * <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique_lock</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">timed_mutex</span><span class="special">&gt;</span></code>
+          with the <code class="computeroutput"><span class="identifier">try_to_lock_t</span></code>
+          constructor * <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique_lock</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">timed_mutex</span><span class="special">&gt;</span></code>
+          * <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique_lock</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_mutex</span><span class="special">&gt;</span></code>,
+          * <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique_lock</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_mutex</span><span class="special">&gt;</span></code>
+          with the <code class="computeroutput"><span class="identifier">try_to_lock_t</span></code>
+          constructor, * <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique_lock</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_timed_mutex</span><span class="special">&gt;</span></code>
+          * <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique_lock</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_timed_mutex</span><span class="special">&gt;</span></code>
+          with the <code class="computeroutput"><span class="identifier">try_to_lock_t</span></code>
+          constructor * <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique_lock</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">recursive_timed_mutex</span><span class="special">&gt;</span></code>
+        </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This is a breaking change respect to version 1.x.
+          </p></td></tr>
+</table></div>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;=</span><span class="number">4</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_NESTED_LOCKS</span></code>
+          if you want these features. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&lt;</span><span class="number">4</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_NESTED_LOCKS</span></code>
+          if you don't want thes features.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.id"></a><a class="link" href="build.html#thread.build.configuration.id" title="thread::id">thread::id</a>
+</h4></div></div></div>
+<p>
+          Boost.Thread uses by default a thread::id on Posix based on the pthread
+          type (BOOST_THREAD_PROVIDES_BASIC_THREAD_ID). For backward compatibility
+          and also for compilers that don't work well with this modification the
+          user can define <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_BASIC_THREAD_ID</span></code>.
+        </p>
+<p>
+          Define <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_BASIC_THREAD_ID</span>
+          </code> if you don't want these features.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.shared_gen"></a><a class="link" href="build.html#thread.build.configuration.shared_gen" title="Shared Locking Generic">Shared Locking
+        Generic</a>
+</h4></div></div></div>
+<p>
+          The shared mutex implementation on Windows platform provides currently
+          less functionality than the generic one that is used for PTheads based
+          platforms. In order to have access to these functions, the user needs to
+          define <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_GENERIC_SHARED_MUTEX_ON_WIN</span></code>
+          to use the generic implementation, that while could be less efficient,
+          provides all the functions.
+        </p>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">==</span><span class="number">2</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_GENERIC_SHARED_MUTEX_ON_WIN</span>
+          </code> if you want these features. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;=</span><span class="number">3</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_GENERIC_SHARED_MUTEX_ON_WIN</span>
+          </code> if you don't want these features.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.shared_upwards"></a><a class="link" href="build.html#thread.build.configuration.shared_upwards" title="Shared Locking Upwards Conversion">Shared Locking
+        Upwards Conversion</a>
+</h4></div></div></div>
+<p>
+          Boost.Threads includes in version 3 the Shared Locking Upwards Conversion
+          as defined in <a href="http://home.roadrunner.com/~hinnant/bloomington/shared_mutex.html" target="_top">Shared
+          Locking</a>. These conversions need to be used carefully to avoid deadlock
+          or livelock. The user need to define explicitly <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_SHARED_MUTEX_UPWARDS_CONVERSION</span></code>
+          to get these upwards conversions.
+        </p>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">==</span><span class="number">2</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_SHARED_MUTEX_UPWARDS_CONVERSION</span>
+          </code> if you want these features. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;=</span><span class="number">3</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_SHARED_MUTEX_UPWARDS_CONVERSION</span>
+          </code> if you don't want these features.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.explicit_cnv"></a><a class="link" href="build.html#thread.build.configuration.explicit_cnv" title="Explicit Lock Conversion">Explicit Lock
+        Conversion</a>
+</h4></div></div></div>
+<p>
+          In <a href="http://home.roadrunner.com/~hinnant/bloomington/shared_mutex.html" target="_top">Shared
+          Locking</a> the lock conversions are explicit. As this explicit conversion
+          breaks the lock interfaces, it is provided only if the <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_EXPLICIT_LOCK_CONVERSION</span></code>
+          is defined.
+        </p>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">==</span><span class="number">2</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_EXPLICIT_LOCK_CONVERSION</span>
+          </code> if you want these features. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">==</span><span class="number">3</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_EXPLICIT_LOCK_CONVERSION</span>
+          </code> if you don't want these features.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.future"></a><a class="link" href="build.html#thread.build.configuration.future" title="unique_future versus future">unique_future versus
+        future</a>
+</h4></div></div></div>
+<p>
+          C++11 uses <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">future</span></code>. Versions of Boost.Thread previous
+          to version 3.0.0 uses <code class="computeroutput"><span class="identifier">boost</span><span class="special">:</span><span class="identifier">unique_future</span></code>.
+          Since version 3.0.0 <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">future</span></code>
+          replaces <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique_future</span></code> when <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_FUTURE</span></code>
+          is defined. The documentation doesn't contains anymore however <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique_future</span></code>.
+        </p>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">==</span><span class="number">2</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_FUTURE</span></code>
+          if you want to use boost::future. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;=</span><span class="number">3</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_FUTURE</span></code>
+          if you want to use boost::unique_future.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.lazy"></a><a class="link" href="build.html#thread.build.configuration.lazy" title="promise lazy initialization">promise lazy initialization</a>
+</h4></div></div></div>
+<p>
+          C++11 promise initialize the associated state at construction time. Versions
+          of Boost.Thread previous to version 3.0.0 initialize it lazily at any point
+          in time in which this associated state is needed.
+        </p>
+<p>
+          Since version 3.0.0 this difference in behavior can be configured. When
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_PROMISE_LAZY</span></code>
+          is defined the backward compatible behavior is provided.
+        </p>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">==</span><span class="number">2</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_PROMISE_LAZY</span>
+          </code> if you want to use boost::future. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;=</span><span class="number">3</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_PROMISE_LAZY</span>
+          </code> if you want to use boost::unique_future.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.alloc"></a><a class="link" href="build.html#thread.build.configuration.alloc" title="promise Allocator constructor">promise Allocator
+        constructor</a>
+</h4></div></div></div>
+<p>
+          C++11 std::promise provides constructors with allocators.
+        </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">promise</span>
+<span class="special">{</span>
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+    <span class="keyword">explicit</span> <span class="identifier">promise</span><span class="special">(</span><span class="identifier">allocator_arg_t</span><span class="special">,</span> <span class="identifier">Allocator</span> <span class="identifier">a</span><span class="special">);</span>
+  <span class="comment">// ...</span>
+<span class="special">};</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">R</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Alloc</span><span class="special">&gt;</span> <span class="keyword">struct</span> <span class="identifier">uses_allocator</span><span class="special">&lt;</span><span class="identifier">promise</span><span class="special">&lt;</span><span class="identifier">R</span><span class="special">&gt;,</span><span class="identifier">Alloc</span><span class="special">&gt;:</span> <span class="identifier">true_type</span> <span class="special">{};</span>
+</pre>
+<p>
+          where
+        </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">allocator_arg_t</span> <span class="special">{</span> <span class="special">};</span>
+<span class="keyword">constexpr</span> <span class="identifier">allocator_arg_t</span> <span class="identifier">allocator_arg</span> <span class="special">=</span> <span class="identifier">allocator_arg_t</span><span class="special">();</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Alloc</span><span class="special">&gt;</span> <span class="keyword">struct</span> <span class="identifier">uses_allocator</span><span class="special">;</span>
+</pre>
+<p>
+          Since version 3.0.0 Boost.Thread implements this constructor using the
+          following interface
+        </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+  <span class="keyword">typedef</span> <span class="identifier">container</span><span class="special">::</span><span class="identifier">allocator_arg_t</span> <span class="identifier">allocator_arg_t</span><span class="special">;</span>
+  <span class="keyword">constexpr</span> <span class="identifier">allocator_arg_t</span> <span class="identifier">allocator_arg</span> <span class="special">=</span> <span class="special">{};</span>
+
+  <span class="keyword">namespace</span> <span class="identifier">container</span>
+  <span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">R</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Alloc</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">uses_allocator</span><span class="special">&lt;</span><span class="identifier">promise</span><span class="special">&lt;</span><span class="identifier">R</span><span class="special">&gt;,</span><span class="identifier">Alloc</span><span class="special">&gt;:</span> <span class="identifier">true_type</span> <span class="special">{};</span>
+  <span class="special">}</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Alloc</span><span class="special">&gt;</span>
+  <span class="keyword">struct</span> <span class="identifier">uses_allocator</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">container</span><span class="special">::</span><span class="identifier">uses_allocator</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span><span class="special">&gt;</span> <span class="special">{};</span>
+<span class="special">}</span>
+</pre>
+<p>
+          which introduces a dependency on Boost.Container. This feature is provided
+          only if <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS</span></code>
+          is defined.
+        </p>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">==</span><span class="number">2</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS</span>
+          </code> if you want these features. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;=</span><span class="number">3</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_FUTURE_CTOR_ALLOCATORS</span>
+          </code> if you don't want these features.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.terminate"></a><a class="link" href="build.html#thread.build.configuration.terminate" title="Call to terminate if joinable">Call to terminate
+        if joinable</a>
+</h4></div></div></div>
+<p>
+          C++11 has a different semantic for the thread destructor and the move assignment.
+          Instead of detaching the thread, calls to terminate() if the thread was
+          joinable. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_THREAD_DESTRUCTOR_CALLS_TERMINATE_IF_JOINABLE</span></code>
+          and <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE</span></code>
+          is defined Boost.Thread provides the C++ semantic.
+        </p>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">==</span><span class="number">2</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_THREAD_DESTRUCTOR_CALLS_TERMINATE_IF_JOINABLE</span>
+          </code> if you want these features. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;=</span><span class="number">3</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_THREAD_DESTRUCTOR_CALLS_TERMINATE_IF_JOINABLE</span>
+          </code> if you don't want these features.
+        </p>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">==</span><span class="number">2</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE</span>
+          </code> if you want these features. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;=</span><span class="number">3</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE</span>
+          </code> if you don't want these features.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.once_flag"></a><a class="link" href="build.html#thread.build.configuration.once_flag" title="once_flag">once_flag</a>
+</h4></div></div></div>
+<p>
+          C++11 defines a default constructor for once_flag. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_ONCE_CXX11</span>
+          </code> is defined Boost.Thread provides this C++ semantics. In this case,
+          the previous aggregate syntax is not supported.
+        </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">once_flag</span> <span class="identifier">once</span> <span class="special">=</span> <span class="identifier">BOOST_ONCE_INIT</span><span class="special">;</span>
+</pre>
+<p>
+          You should now just do
+        </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">once_flag</span> <span class="identifier">once</span><span class="special">;</span>
+</pre>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">==</span><span class="number">2</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_ONCE_CXX11</span></code>
+          if you want these features. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;=</span><span class="number">3</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_ONCE_CXX11</span></code>
+          if you don't want these features.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.deprecated"></a><a class="link" href="build.html#thread.build.configuration.deprecated" title="Signature parameter for packaged_task">Signature parameter
+        for packaged_task</a>
+</h4></div></div></div>
+<p>
+          C++11 packaged task class has a Signature template parameter. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK</span>
+          </code> is defined Boost.Thread provides this C++ feature.
+        </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This is a breaking change respect to version 3.x.
+          </p></td></tr>
+</table></div>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&lt;</span><span class="number">4</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK</span></code>
+          if you want this feature. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;=</span><span class="number">4</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_SIGNATURE_PACKAGED_TASK</span></code>
+          if you don't want this feature.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.thread_const"></a><a class="link" href="build.html#thread.build.configuration.thread_const" title="-var thread constructor with variadic rvalue parameters">-var thread
+        constructor with variadic rvalue parameters</a>
+</h4></div></div></div>
+<p>
+          C++11 thread constructor accep a variable number of rvalue argumentshas.
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_VARIADIC_THREAD</span>
+          </code> is defined Boost.Thread provides this C++ feature if the following
+          are not defined
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              BOOST_NO_CXX11_VARIADIC_TEMPLATES
+            </li>
+<li class="listitem">
+              BOOST_NO_CXX11_DECLTYPE
+            </li>
+<li class="listitem">
+              BOOST_NO_CXX11_RVALUE_REFERENCES
+            </li>
+<li class="listitem">
+              BOOST_NO_CXX11_HDR_TUPLE
+            </li>
+</ul></div>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;</span><span class="number">4</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_VARIADIC_THREAD</span>
+          </code> if you don't want this feature.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.get_invalid"></a><a class="link" href="build.html#thread.build.configuration.get_invalid" title="future&lt;&gt;::get() invalidates the future">future&lt;&gt;::get()
+        invalidates the future</a>
+</h4></div></div></div>
+<p>
+          C++11 future&lt;&gt;::get() invalidates the future once its value has been
+          obtained. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET</span>
+          </code> is defined Boost.Thread provides this C++ feature.
+        </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This is a breaking change respect to version 3.x.
+          </p></td></tr>
+</table></div>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&lt;</span><span class="number">4</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET</span></code>
+          if you want this feature. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span><span class="special">&gt;=</span><span class="number">4</span></code> define
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_FUTURE_INVALID_AFTER_GET</span></code>
+          if you don't want this feature.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.intr"></a><a class="link" href="build.html#thread.build.configuration.intr" title="Interruptions">Interruptions</a>
+</h4></div></div></div>
+<p>
+          Thread interruption, while useful, makes any interruption point less efficient
+          than if the thread were not interruptible.
+        </p>
+<p>
+          When <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_INTERRUPTIONS</span></code>
+          is defined Boost.Thread provides interruptions. When <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_INTERRUPTIONS</span></code>
+          is defined Boost.Thread don't provide interruption.
+        </p>
+<p>
+          Boost.Thread defines BOOST_THREAD_PROVIDES_INTERRUPTIONS if neither BOOST_THREAD_PROVIDES_INTERRUPTIONS
+          nor BOOST_THREAD_DONT_PROVIDE_INTERRUPTIONS are defined, so that there
+          is no compatibility break.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.configuration.version"></a><a class="link" href="build.html#thread.build.configuration.version" title="Version">Version</a>
+</h4></div></div></div>
+<p>
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span></code> defines
+          the Boost.Thread version. The default version is 2. In this case the following
+          breaking or extending macros are defined if the opposite is not requested:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_PROMISE_LAZY</span></code>
+            </li></ul></div>
+<p>
+          The user can request the version 3 by defining <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span></code>
+          to 3. In this case the following breaking or extending macros are defined
+          if the opposite is not requested:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Breaking change <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_EXPLICIT_LOCK_CONVERSION</span>
+              </code>
+            </li>
+<li class="listitem">
+              Conformity &amp; Breaking change <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_FUTURE</span></code>
+            </li>
+<li class="listitem">
+              Uniformity <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_GENERIC_SHARED_MUTEX_ON_WIN</span></code>
+            </li>
+<li class="listitem">
+              Extension <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_SHARED_MUTEX_UPWARDS_CONVERSION</span></code>
+            </li>
+<li class="listitem">
+              Conformity <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS</span></code>
+            </li>
+<li class="listitem">
+              Conformity &amp; Breaking change BOOST_THREAD_PROVIDES_THREAD_DESTRUCTOR_CALLS_TERMINATE_IF_JOINABLE
+            </li>
+<li class="listitem">
+              Conformity &amp; Breaking change BOOST_THREAD_PROVIDES_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE
+            </li>
+<li class="listitem">
+              Conformity &amp; Breaking change <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_ONCE_CXX11</span></code>
+            </li>
+<li class="listitem">
+              Breaking change <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_PROMISE_LAZY</span></code>
+            </li>
+</ul></div>
+<p>
+          The user can request the version 4 by defining <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span></code>
+          to 4. In this case the following breaking or extending macros are defined
+          if the opposite is not requested:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Conformity &amp; Breaking change <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK</span>
+              </code>
+            </li>
+<li class="listitem">
+              Conformity &amp; Breaking change <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET</span>
+              </code>
+            </li>
+<li class="listitem">
+              Conformity <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_VARIADIC_THREAD</span></code>
+            </li>
+<li class="listitem">
+              Breaking change <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_THREAD_EQ</span></code>
+            </li>
+<li class="listitem">
+              Breaking change <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_USE_DATETIME</span></code>
+            </li>
+</ul></div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="thread.build.limitations"></a><a class="link" href="build.html#thread.build.limitations" title="Limitations">Limitations</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="build.html#thread.build.limitations.sun">SunPro</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.limitations.vacpp">VACPP</a></span></dt>
+<dt><span class="section"><a href="build.html#thread.build.limitations.ce">WCE</a></span></dt>
+</dl></div>
+<p>
+        Some compilers don't work correctly with some of the added features.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.limitations.sun"></a><a class="link" href="build.html#thread.build.limitations.sun" title="SunPro">SunPro</a>
+</h4></div></div></div>
+<p>
+          If __SUNPRO_CC &lt; 0x5100 the library defines
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_USE_MOVE</span></code>
+            </li></ul></div>
+<p>
+          If __SUNPRO_CC &lt; 0x5100 the library defines
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_FUTURE_CTOR_ALLOCATORS</span></code>
+            </li></ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.limitations.vacpp"></a><a class="link" href="build.html#thread.build.limitations.vacpp" title="VACPP">VACPP</a>
+</h4></div></div></div>
+<p>
+          If __IBMCPP__ &lt; 1100 the library defines
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_USE_CHRONO</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_USES_DATE</span></code>
+            </li>
+</ul></div>
+<p>
+          And Boost.Thread doesn't links with Boost.Chrono.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.build.limitations.ce"></a><a class="link" href="build.html#thread.build.limitations.ce" title="WCE">WCE</a>
+</h4></div></div></div>
+<p>
+          If _WIN32_WCE &amp;&amp; _WIN32_WCE==0x501 the library defines
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_FUTURE_CTOR_ALLOCATORS</span></code>
+            </li></ul></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -11 Anthony Williams<br>Copyright &#169; 2011 -13 Vicente J. Botet Escriba<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../thread.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../thread.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="changes.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

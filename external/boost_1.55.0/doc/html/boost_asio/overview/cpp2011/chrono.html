@@ -1,0 +1,67 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chrono</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../cpp2011.html" title="C++ 2011 Support">
+<link rel="prev" href="shared_ptr.html" title="Shared Pointers">
+<link rel="next" href="futures.html" title="Futures">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="shared_ptr.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../cpp2011.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="futures.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.overview.cpp2011.chrono"></a><a class="link" href="chrono.html" title="Chrono">Chrono</a>
+</h4></div></div></div>
+<p>
+          Boost.Asio provides timers based on the <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">chrono</span></code>
+          facilities via the <a class="link" href="../../reference/basic_waitable_timer.html" title="basic_waitable_timer">basic_waitable_timer</a>
+          class template. The typedefs <a class="link" href="../../reference/system_timer.html" title="system_timer">system_timer</a>,
+          <a class="link" href="../../reference/steady_timer.html" title="steady_timer">steady_timer</a> and
+          <a class="link" href="../../reference/high_resolution_timer.html" title="high_resolution_timer">high_resolution_timer</a>
+          utilise the standard clocks <code class="computeroutput"><span class="identifier">system_clock</span></code>,
+          <code class="computeroutput"><span class="identifier">steady_clock</span></code> and <code class="computeroutput"><span class="identifier">high_resolution_clock</span></code> respectively.
+        </p>
+<p>
+          Support for the <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">chrono</span></code> facilities is automatically enabled
+          for <code class="literal">g++</code> 4.6 and later, when the <code class="literal">-std=c++0x</code>
+          or <code class="literal">-std=gnu++0x</code> compiler options are used. (Note that,
+          for <code class="literal">g++</code>, the draft-standard <code class="computeroutput"><span class="identifier">monotonic_clock</span></code>
+          is used in place of <code class="computeroutput"><span class="identifier">steady_clock</span></code>.)
+          Support may be disabled by defining <code class="computeroutput"><span class="identifier">BOOST_ASIO_DISABLE_STD_CHRONO</span></code>,
+          or explicitly enabled for other compilers by defining <code class="computeroutput"><span class="identifier">BOOST_ASIO_HAS_STD_CHRONO</span></code>.
+        </p>
+<p>
+          When standard <code class="computeroutput"><span class="identifier">chrono</span></code> is
+          unavailable, Boost.Asio will otherwise use the Boost.Chrono library. The
+          <a class="link" href="../../reference/basic_waitable_timer.html" title="basic_waitable_timer">basic_waitable_timer</a>
+          class template may be used with either.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="shared_ptr.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../cpp2011.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="futures.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

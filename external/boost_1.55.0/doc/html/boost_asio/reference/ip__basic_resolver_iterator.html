@@ -1,0 +1,308 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>ip::basic_resolver_iterator</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="ip__basic_resolver_entry/service_name.html" title="ip::basic_resolver_entry::service_name">
+<link rel="next" href="ip__basic_resolver_iterator/basic_resolver_iterator.html" title="ip::basic_resolver_iterator::basic_resolver_iterator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ip__basic_resolver_entry/service_name.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ip__basic_resolver_iterator/basic_resolver_iterator.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.ip__basic_resolver_iterator"></a><a class="link" href="ip__basic_resolver_iterator.html" title="ip::basic_resolver_iterator">ip::basic_resolver_iterator</a>
+</h3></div></div></div>
+<p>
+        An iterator over the entries produced by a resolver.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <a class="link" href="InternetProtocol.html" title="Internet protocol requirements">InternetProtocol</a><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">basic_resolver_iterator</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.ip__basic_resolver_iterator.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.ip__basic_resolver_iterator.types"></a></span><a class="link" href="ip__basic_resolver_iterator.html#boost_asio.reference.ip__basic_resolver_iterator.types">Types</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ip__basic_resolver_iterator/difference_type.html" title="ip::basic_resolver_iterator::difference_type"><span class="bold"><strong>difference_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type used for the distance between two iterators.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ip__basic_resolver_iterator/iterator_category.html" title="ip::basic_resolver_iterator::iterator_category"><span class="bold"><strong>iterator_category</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The iterator category.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ip__basic_resolver_iterator/pointer.html" title="ip::basic_resolver_iterator::pointer"><span class="bold"><strong>pointer</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of the result of applying operator-&gt;() to the iterator.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ip__basic_resolver_iterator/reference.html" title="ip::basic_resolver_iterator::reference"><span class="bold"><strong>reference</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of the result of applying operator*() to the iterator.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ip__basic_resolver_iterator/value_type.html" title="ip::basic_resolver_iterator::value_type"><span class="bold"><strong>value_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of the value pointed to by the iterator.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.ip__basic_resolver_iterator.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.ip__basic_resolver_iterator.member_functions"></a></span><a class="link" href="ip__basic_resolver_iterator.html#boost_asio.reference.ip__basic_resolver_iterator.member_functions">Member
+        Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ip__basic_resolver_iterator/basic_resolver_iterator.html" title="ip::basic_resolver_iterator::basic_resolver_iterator"><span class="bold"><strong>basic_resolver_iterator</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Default constructor creates an end iterator.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ip__basic_resolver_iterator/create.html" title="ip::basic_resolver_iterator::create"><span class="bold"><strong>create</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Create an iterator from an addrinfo list returned by getaddrinfo.
+                </p>
+                <p>
+                  Create an iterator from an endpoint, host name and service name.
+                </p>
+                <p>
+                  Create an iterator from a sequence of endpoints, host and service
+                  name.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ip__basic_resolver_iterator/operator__star_.html" title="ip::basic_resolver_iterator::operator *"><span class="bold"><strong>operator *</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Dereference an iterator.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ip__basic_resolver_iterator/operator_plus__plus_.html" title="ip::basic_resolver_iterator::operator++"><span class="bold"><strong>operator++</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Increment operator (prefix).
+                </p>
+                <p>
+                  Increment operator (postfix).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ip__basic_resolver_iterator/operator_arrow_.html" title="ip::basic_resolver_iterator::operator-&gt;"><span class="bold"><strong>operator-&gt;</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Dereference an iterator.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.ip__basic_resolver_iterator.h2"></a>
+        <span class="phrase"><a name="boost_asio.reference.ip__basic_resolver_iterator.friends"></a></span><a class="link" href="ip__basic_resolver_iterator.html#boost_asio.reference.ip__basic_resolver_iterator.friends">Friends</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ip__basic_resolver_iterator/operator_not__eq_.html" title="ip::basic_resolver_iterator::operator!="><span class="bold"><strong>operator!=</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Test two iterators for inequality.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ip__basic_resolver_iterator/operator_eq__eq_.html" title="ip::basic_resolver_iterator::operator=="><span class="bold"><strong>operator==</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Test two iterators for equality.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        The <a class="link" href="ip__basic_resolver_iterator.html" title="ip::basic_resolver_iterator"><code class="computeroutput"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">basic_resolver_iterator</span></code></a>
+        class template is used to define iterators over the results returned by a
+        resolver.
+      </p>
+<p>
+        The iterator's value_type, obtained when the iterator is dereferenced, is:
+      </p>
+<pre class="programlisting"><span class="keyword">const</span> <span class="identifier">basic_resolver_entry</span><span class="special">&lt;</span><span class="identifier">InternetProtocol</span><span class="special">&gt;</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.ip__basic_resolver_iterator.h3"></a>
+        <span class="phrase"><a name="boost_asio.reference.ip__basic_resolver_iterator.thread_safety"></a></span><a class="link" href="ip__basic_resolver_iterator.html#boost_asio.reference.ip__basic_resolver_iterator.thread_safety">Thread
+        Safety</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Distinct</em></span> <span class="emphasis"><em>objects:</em></span> Safe.
+      </p>
+<p>
+        <span class="emphasis"><em>Shared</em></span> <span class="emphasis"><em>objects:</em></span> Unsafe.
+      </p>
+<h5>
+<a name="boost_asio.reference.ip__basic_resolver_iterator.h4"></a>
+        <span class="phrase"><a name="boost_asio.reference.ip__basic_resolver_iterator.requirements"></a></span><a class="link" href="ip__basic_resolver_iterator.html#boost_asio.reference.ip__basic_resolver_iterator.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/ip/basic_resolver_iterator.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ip__basic_resolver_entry/service_name.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ip__basic_resolver_iterator/basic_resolver_iterator.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

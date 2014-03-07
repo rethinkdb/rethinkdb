@@ -1,0 +1,156 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct fcontext_t and related functions</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Context">
+<link rel="up" href="../context.html" title="Context">
+<link rel="prev" href="../context.html" title="Context">
+<link rel="next" href="../stack.html" title="Stack allocation">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../context.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../context.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../stack.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="context.context.boost_fcontext"></a><a class="link" href="boost_fcontext.html" title="Struct fcontext_t and related functions">Struct <code class="computeroutput"><span class="identifier">fcontext_t</span></code> and related functions</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">stack_t</span>
+<span class="special">{</span>
+    <span class="keyword">void</span>    <span class="special">*</span>   <span class="identifier">sp</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">struct</span> <span class="identifier">fcontext_t</span>
+<span class="special">{</span>
+    <span class="special">&lt;</span> <span class="identifier">platform</span> <span class="identifier">specific</span> <span class="special">&gt;</span>
+
+    <span class="identifier">stack_t</span>  <span class="identifier">fc_stack</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="identifier">intptr_t</span> <span class="identifier">jump_fcontext</span><span class="special">(</span> <span class="identifier">fcontext_t</span> <span class="special">*</span> <span class="identifier">ofc</span><span class="special">,</span> <span class="identifier">fcontext_t</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">nfc</span><span class="special">,</span> <span class="identifier">intptr_t</span> <span class="identifier">vp</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">preserve_fpu</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">);</span>
+<span class="identifier">fcontext_t</span> <span class="special">*</span> <span class="identifier">make_fcontext</span><span class="special">(</span> <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">sp</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">,</span> <span class="keyword">void</span><span class="special">(*</span> <span class="identifier">fn</span><span class="special">)(</span><span class="identifier">intptr_t</span><span class="special">)</span> <span class="special">);</span>
+</pre>
+<h5>
+<a name="context.context.boost_fcontext.h0"></a>
+        <span class="phrase"><a name="context.context.boost_fcontext._code__phrase_role__identifier__sp__phrase___code_"></a></span><a class="link" href="boost_fcontext.html#context.context.boost_fcontext._code__phrase_role__identifier__sp__phrase___code_"><code class="computeroutput"><span class="identifier">sp</span></code></a>
+      </h5>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Member:</span></dt>
+<dd><p>
+              Pointer to the beginning of the stack (depending of the architecture
+              the stack grows downwards or upwards).
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="context.context.boost_fcontext.h1"></a>
+        <span class="phrase"><a name="context.context.boost_fcontext._code__phrase_role__identifier__size__phrase___code_"></a></span><a class="link" href="boost_fcontext.html#context.context.boost_fcontext._code__phrase_role__identifier__size__phrase___code_"><code class="computeroutput"><span class="identifier">size</span></code></a>
+      </h5>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Member:</span></dt>
+<dd><p>
+              Size of the stack in bytes.
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="context.context.boost_fcontext.h2"></a>
+        <span class="phrase"><a name="context.context.boost_fcontext._code__phrase_role__identifier__fc_stack__phrase___code_"></a></span><a class="link" href="boost_fcontext.html#context.context.boost_fcontext._code__phrase_role__identifier__fc_stack__phrase___code_"><code class="computeroutput"><span class="identifier">fc_stack</span></code></a>
+      </h5>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Member:</span></dt>
+<dd><p>
+              Tracks the memory for the context's stack.
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="context.context.boost_fcontext.h3"></a>
+        <span class="phrase"><a name="context.context.boost_fcontext._code__phrase_role__identifier__intptr_t__phrase___phrase_role__identifier__jump_fcontext__phrase__phrase_role__special_____phrase___phrase_role__identifier__fcontext_t__phrase___phrase_role__special_____phrase___phrase_role__identifier__ofc__phrase__phrase_role__special_____phrase___phrase_role__identifier__fcontext_t__phrase___phrase_role__special_____phrase___phrase_role__identifier__nfc__phrase__phrase_role__special_____phrase___phrase_role__identifier__intptr_t__phrase___phrase_role__identifier__p__phrase__phrase_role__special_____phrase___phrase_role__keyword__bool__phrase___phrase_role__identifier__preserve_fpu__phrase___phrase_role__special_____phrase___phrase_role__keyword__true__phrase__phrase_role__special_____phrase___code_"></a></span><a class="link" href="boost_fcontext.html#context.context.boost_fcontext._code__phrase_role__identifier__intptr_t__phrase___phrase_role__identifier__jump_fcontext__phrase__phrase_role__special_____phrase___phrase_role__identifier__fcontext_t__phrase___phrase_role__special_____phrase___phrase_role__identifier__ofc__phrase__phrase_role__special_____phrase___phrase_role__identifier__fcontext_t__phrase___phrase_role__special_____phrase___phrase_role__identifier__nfc__phrase__phrase_role__special_____phrase___phrase_role__identifier__intptr_t__phrase___phrase_role__identifier__p__phrase__phrase_role__special_____phrase___phrase_role__keyword__bool__phrase___phrase_role__identifier__preserve_fpu__phrase___phrase_role__special_____phrase___phrase_role__keyword__true__phrase__phrase_role__special_____phrase___code_"><code class="computeroutput"><span class="identifier">intptr_t</span> <span class="identifier">jump_fcontext</span><span class="special">(</span> <span class="identifier">fcontext_t</span>
+        <span class="special">*</span> <span class="identifier">ofc</span><span class="special">,</span> <span class="identifier">fcontext_t</span>
+        <span class="special">*</span> <span class="identifier">nfc</span><span class="special">,</span> <span class="identifier">intptr_t</span> <span class="identifier">p</span><span class="special">,</span> <span class="keyword">bool</span>
+        <span class="identifier">preserve_fpu</span> <span class="special">=</span>
+        <span class="keyword">true</span><span class="special">)</span></code></a>
+      </h5>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+              Stores the current context data (stack pointer, instruction pointer,
+              and CPU registers) to <code class="computeroutput"><span class="special">*</span><span class="identifier">ofc</span></code> and restores the context data
+              from <code class="computeroutput"><span class="special">*</span><span class="identifier">nfc</span></code>,
+              which implies jumping to <code class="computeroutput"><span class="special">*</span><span class="identifier">nfc</span></code>'s execution context. The intptr_t
+              argument, <code class="computeroutput"><span class="identifier">p</span></code>, is passed
+              to the current context to be returned by the most recent call to <code class="computeroutput"><span class="identifier">jump_fcontext</span><span class="special">()</span></code>
+              in the same thread. The last argument controls if fpu registers have
+              to be preserved.
+            </p></dd>
+<dt><span class="term">Returns:</span></dt>
+<dd><p>
+              The third pointer argument passed to the most recent call to <code class="computeroutput"><span class="identifier">jump_fcontext</span><span class="special">()</span></code>,
+              if any.
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="context.context.boost_fcontext.h4"></a>
+        <span class="phrase"><a name="context.context.boost_fcontext._code__phrase_role__identifier__fcontext_t__phrase___phrase_role__special_____phrase___phrase_role__identifier__make_fcontext__phrase__phrase_role__special_____phrase___phrase_role__keyword__void__phrase___phrase_role__special_____phrase___phrase_role__identifier__sp__phrase__phrase_role__special_____phrase___phrase_role__identifier__std__phrase__phrase_role__special______phrase__phrase_role__identifier__size_t__phrase___phrase_role__identifier__size__phrase__phrase_role__special_____phrase___phrase_role__keyword__void__phrase__phrase_role__special______phrase__phrase_role__identifier__fn__phrase__phrase_role__special______phrase__phrase_role__identifier__intptr_t__phrase__phrase_role__special______phrase___code_"></a></span><a class="link" href="boost_fcontext.html#context.context.boost_fcontext._code__phrase_role__identifier__fcontext_t__phrase___phrase_role__special_____phrase___phrase_role__identifier__make_fcontext__phrase__phrase_role__special_____phrase___phrase_role__keyword__void__phrase___phrase_role__special_____phrase___phrase_role__identifier__sp__phrase__phrase_role__special_____phrase___phrase_role__identifier__std__phrase__phrase_role__special______phrase__phrase_role__identifier__size_t__phrase___phrase_role__identifier__size__phrase__phrase_role__special_____phrase___phrase_role__keyword__void__phrase__phrase_role__special______phrase__phrase_role__identifier__fn__phrase__phrase_role__special______phrase__phrase_role__identifier__intptr_t__phrase__phrase_role__special______phrase___code_"><code class="computeroutput"><span class="identifier">fcontext_t</span> <span class="special">*</span>
+        <span class="identifier">make_fcontext</span><span class="special">(</span>
+        <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">sp</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">,</span> <span class="keyword">void</span><span class="special">(*</span><span class="identifier">fn</span><span class="special">)(</span><span class="identifier">intptr_t</span><span class="special">))</span></code></a>
+      </h5>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Precondition:</span></dt>
+<dd><p>
+              Stack <code class="computeroutput"><span class="identifier">sp</span></code> function pointer
+              <code class="computeroutput"><span class="identifier">fn</span></code> are valid (depending
+              on the architecture <code class="computeroutput"><span class="identifier">sp</span></code>
+              points to the top or bottom of the stack) and <code class="computeroutput"><span class="identifier">size</span></code>
+              &gt; 0.
+            </p></dd>
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+              Creates an fcontext_t at the beginning of the stack and prepares the
+              stack to execute the <span class="emphasis"><em>context-function</em></span> <code class="computeroutput"><span class="identifier">fn</span></code>.
+            </p></dd>
+<dt><span class="term">Returns:</span></dt>
+<dd><p>
+              Returns a pointer to fcontext_t which is placed on the stack.
+            </p></dd>
+</dl>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009 Oliver Kowalke<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../context.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../context.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../stack.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

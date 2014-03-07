@@ -1,0 +1,94 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template eu_dst_trait</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.local_timezone_defs_hpp" title="Header &lt;boost/date_time/local_timezone_defs.hpp&gt;">
+<link rel="prev" href="us_dst_trait.html" title="Struct template us_dst_trait">
+<link rel="next" href="uk_dst_trait.html" title="Struct template uk_dst_trait">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="us_dst_trait.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.local_timezone_defs_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="uk_dst_trait.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.eu_dst_trait"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template eu_dst_trait</span></h2>
+<p>boost::date_time::eu_dst_trait &#8212; Rules for daylight savings start in the EU (Last Sun in Mar) </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.local_timezone_defs_hpp" title="Header &lt;boost/date_time/local_timezone_defs.hpp&gt;">boost/date_time/local_timezone_defs.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> date_type<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="eu_dst_trait.html" title="Struct template eu_dst_trait">eu_dst_trait</a> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">date_type</span><span class="special">::</span><span class="identifier">day_of_week_type</span>                <a name="boost.date_time.eu_dst_trait.day_of_week_type"></a><span class="identifier">day_of_week_type</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <span class="identifier">date_type</span><span class="special">::</span><span class="identifier">month_type</span>                      <a name="boost.date_time.eu_dst_trait.month_type"></a><span class="identifier">month_type</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">date_type</span><span class="special">::</span><span class="identifier">year_type</span>                       <a name="boost.date_time.eu_dst_trait.year_type"></a><span class="identifier">year_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <a class="link" href="last_kday_of_month.html" title="Class template last_kday_of_month">date_time::last_kday_of_month</a><span class="special">&lt;</span> <span class="identifier">date_type</span> <span class="special">&gt;</span> <a name="boost.date_time.eu_dst_trait.start_rule_functor"></a><span class="identifier">start_rule_functor</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <a class="link" href="last_kday_of_month.html" title="Class template last_kday_of_month">date_time::last_kday_of_month</a><span class="special">&lt;</span> <span class="identifier">date_type</span> <span class="special">&gt;</span> <a name="boost.date_time.eu_dst_trait.end_rule_functor"></a><span class="identifier">end_rule_functor</span><span class="special">;</span>  
+
+  <span class="comment">// <a class="link" href="eu_dst_trait.html#idp36570712-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">day_of_week_type</span> <a class="link" href="eu_dst_trait.html#idp20205528-bb"><span class="identifier">start_day</span></a><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">month_type</span> <a class="link" href="eu_dst_trait.html#idp20206296-bb"><span class="identifier">start_month</span></a><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">day_of_week_type</span> <a class="link" href="eu_dst_trait.html#idp51830568-bb"><span class="identifier">end_day</span></a><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">month_type</span> <a class="link" href="eu_dst_trait.html#idp51831384-bb"><span class="identifier">end_month</span></a><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">int</span> <a class="link" href="eu_dst_trait.html#idp20274728-bb"><span class="identifier">dst_start_offset_minutes</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">int</span> <a class="link" href="eu_dst_trait.html#idp20593224-bb"><span class="identifier">dst_end_offset_minutes</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">int</span> <a class="link" href="eu_dst_trait.html#idp20593704-bb"><span class="identifier">dst_shift_length_minutes</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">date_type</span> <a class="link" href="eu_dst_trait.html#idp52070024-bb"><span class="identifier">local_dst_start_day</span></a><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">date_type</span> <a class="link" href="eu_dst_trait.html#idp19349112-bb"><span class="identifier">local_dst_end_day</span></a><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp88170600"></a><h2>Description</h2>
+<p>These amount to the following:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>Start of dst day is last Sunday in March</p></li>
+<li class="listitem"><p>End day of dst is last Sunday in Oct</p></li>
+<li class="listitem"><p>Going forward switch time is 2:00 am (offset 120 minutes)</p></li>
+<li class="listitem"><p>Going back switch time is 3:00 am (off set 180 minutes)</p></li>
+<li class="listitem"><p>Shift duration is one hour (60 minutes) </p></li>
+</ul></div>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp88172392"></a><h3>
+<a name="idp36570712-bb"></a><code class="computeroutput">eu_dst_trait</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">day_of_week_type</span> <a name="idp20205528-bb"></a><span class="identifier">start_day</span><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">month_type</span> <a name="idp20206296-bb"></a><span class="identifier">start_month</span><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">day_of_week_type</span> <a name="idp51830568-bb"></a><span class="identifier">end_day</span><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">month_type</span> <a name="idp51831384-bb"></a><span class="identifier">end_month</span><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="keyword">int</span> <a name="idp20274728-bb"></a><span class="identifier">dst_start_offset_minutes</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="keyword">int</span> <a name="idp20593224-bb"></a><span class="identifier">dst_end_offset_minutes</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="keyword">int</span> <a name="idp20593704-bb"></a><span class="identifier">dst_shift_length_minutes</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">date_type</span> <a name="idp52070024-bb"></a><span class="identifier">local_dst_start_day</span><span class="special">(</span><span class="identifier">year_type</span> year<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">date_type</span> <a name="idp19349112-bb"></a><span class="identifier">local_dst_end_day</span><span class="special">(</span><span class="identifier">year_type</span> year<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="us_dst_trait.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.local_timezone_defs_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="uk_dst_trait.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

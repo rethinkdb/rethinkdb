@@ -1,0 +1,289 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[/=======================]
+[section Hello Calculator]
+[/=======================]
+
+"Hello, world" is nice, but it doesn't get you very far. Let's use Proto to build a 
+EDSL (embedded domain-specific language) for a lazily-evaluated calculator. We'll 
+see how to define the terminals in your mini-language, how to compose them into 
+larger expressions, and how to define an evaluation context so that your 
+expressions can do useful work. When we're done, we'll have a mini-language that 
+will allow us to declare a lazily-evaluated arithmetic expression, such as 
+`(_2 - _1) / _2 * 100`, where `_1` and `_2` are placeholders for values to be 
+passed in when the expression is evaluated.
+
+[/=========================]
+[heading Defining Terminals]
+[/=========================]
+
+The first order of business is to define the placeholders `_1` and `_2`. For that, 
+we'll use the _terminal_ metafunction.
+
+    // Define a placeholder type
+    template<int I>
+    struct placeholder
+    {};
+
+    // Define the Protofied placeholder terminals
+    proto::terminal<placeholder<0> >::type const _1 = {{}};
+    proto::terminal<placeholder<1> >::type const _2 = {{}};
+
+The initialization may look a little odd at first, but there is a good reason
+for doing things this way. The objects `_1` and `_2` above do not require
+run-time construction -- they are ['statically initialized], which means they
+are essentially initialized at compile time. See the
+[link boost_proto.appendices.rationale.static_initialization Static
+Initialization] section in the [link boost_proto.appendices.rationale Rationale]
+appendix for more information.
+
+[/====================================]
+[heading Constructing Expression Trees]
+[/====================================]
+
+Now that we have terminals, we can use Proto's operator overloads to combine
+these terminals into larger expressions. So, for instance, we can immediately
+say things like:
+
+    // This builds an expression template
+    (_2 - _1) / _2 * 100;
+
+This creates an expression tree with a node for each operator. The type of the
+resulting object is large and complex, but we are not terribly interested in it right now.
+
+So far, the object is just a tree representing the expression. It has no
+behavior. In particular, it is not yet a calculator. Below we'll see how
+to make it a calculator by defining an evaluation context.
+
+[/==================================]
+[heading Evaluating Expression Trees]
+[/==================================]
+
+No doubt you want your expression templates to actually /do/ something. One
+approach is to define an ['evaluation context]. The context is like a function
+object that associates behaviors with the node types in your expression tree.
+The following example should make it clear. It is explained below.
+
+    struct calculator_context
+      : proto::callable_context< calculator_context const >
+    {
+        // Values to replace the placeholders
+        std::vector<double> args;
+        
+        // Define the result type of the calculator.
+        // (This makes the calculator_context "callable".)
+        typedef double result_type;
+
+        // Handle the placeholders:
+        template<int I>
+        double operator()(proto::tag::terminal, placeholder<I>) const
+        {
+            return this->args[I];
+        }
+    };
+
+In `calculator_context`, we specify how Proto should evaluate the placeholder
+terminals by defining the appropriate overloads of the function call operator.
+For any other nodes in the expression tree (e.g., arithmetic operations or
+non-placeholder terminals), Proto will evaluate the expression in the "default"
+way. For example, a binary plus node is evaluated by first evaluating the left
+and right operands and adding the results. Proto's default evaluator uses the
+_typeof_ library to compute return types.
+
+Now that we have an evaluation context for our calculator, we can use it to
+evaluate our arithmetic expressions, as below:
+
+    calculator_context ctx;
+    ctx.args.push_back(45); // the value of _1 is 45
+    ctx.args.push_back(50); // the value of _2 is 50
+
+    // Create an arithmetic expression and immediately evaluate it
+    double d = proto::eval( (_2 - _1) / _2 * 100, ctx );
+
+    // This prints "10"
+    std::cout << d << std::endl;
+
+Later, we'll see how to define more interesting evaluation contexts and
+expression transforms that give you total control over how your expressions
+are evaluated.
+
+[/===================================]
+[heading Customizing Expression Trees]
+[/===================================]
+
+Our calculator EDSL is already pretty useful, and for many EDSL scenarios, no more 
+would be needed. But let's keep going. Imagine how much nicer it would be if all 
+calculator expressions overloaded `operator()` so that they could be used as 
+function objects. We can do that by creating a calculator /domain/ and telling 
+Proto that all expressions in the calculator domain have extra members. Here is how 
+to define a calculator domain:
+
+    // Forward-declare an expression wrapper
+    template<typename Expr>
+    struct calculator;
+    
+    // Define a calculator domain. Expression within
+    // the calculator domain will be wrapped in the
+    // calculator<> expression wrapper.
+    struct calculator_domain
+      : proto::domain< proto::generator<calculator> >
+    {};
+
+The `calculator<>` type will be an expression wrapper. It will behave just like the 
+expression that it wraps, but it will have extra member functions that we will 
+define. The `calculator_domain` is what informs Proto about our wrapper. It is used 
+below in the definition of `calculator<>`. Read on for a description.
+
+    // Define a calculator expression wrapper. It behaves just like
+    // the expression it wraps, but with an extra operator() member
+    // function that evaluates the expression.    
+    template<typename Expr>
+    struct calculator
+      : proto::extends<Expr, calculator<Expr>, calculator_domain>
+    {
+        typedef
+            proto::extends<Expr, calculator<Expr>, calculator_domain>
+        base_type;
+
+        calculator(Expr const &expr = Expr())
+          : base_type(expr)
+        {}
+
+        typedef double result_type;
+
+        // Overload operator() to invoke proto::eval() with
+        // our calculator_context.
+        double operator()(double a1 = 0, double a2 = 0) const
+        {
+            calculator_context ctx;
+            ctx.args.push_back(a1);
+            ctx.args.push_back(a2);
+            
+            return proto::eval(*this, ctx);
+        }
+    };
+
+The `calculator<>` struct is an expression /extension/. It uses `proto::extends<>` to effectively add additional members to an expression type. When composing larger expressions from smaller ones, Proto notes what domain the smaller expressions are in. The larger expression is in the same domain and is automatically wrapped in the domain's extension wrapper.
+
+All that remains to be done is to put our placeholders in the calculator domain. We do that by wrapping them in our `calculator<>` wrapper, as below:
+
+    // Define the Protofied placeholder terminals, in the
+    // calculator domain.
+    calculator<proto::terminal<placeholder<0> >::type> const _1;
+    calculator<proto::terminal<placeholder<1> >::type> const _2;
+
+Any larger expression that contain these placeholders will automatically be wrapped in the `calculator<>` wrapper and have our `operator()` overload. That means we can use them as function objects as follows.
+
+    double result = ((_2 - _1) / _2 * 100)(45.0, 50.0);
+    assert(result == (50.0 - 45.0) / 50.0 * 100));
+
+Since calculator expressions are now valid function objects, we can use them with standard algorithms, as shown below:
+
+    double a1[4] = { 56, 84, 37, 69 };
+    double a2[4] = { 65, 120, 60, 70 };
+    double a3[4] = { 0 };
+
+    // Use std::transform() and a calculator expression
+    // to calculate percentages given two input sequences:
+    std::transform(a1, a1+4, a2, a3, (_2 - _1) / _2 * 100);
+
+Now, let's use the calculator example to explore some other useful features of Proto.
+
+[/====================================]
+[heading Detecting Invalid Expressions]
+[/====================================]
+
+You may have noticed that you didn't have to define an overloaded `operator-()` or 
+`operator/()` -- Proto defined them for you. In fact, Proto overloads /all/ the 
+operators for you, even though they may not mean anything in your domain-specific 
+language. That means it may be possible to create expressions that are invalid in 
+your domain. You can detect invalid expressions with Proto by defining the 
+/grammar/ of your domain-specific language.
+
+For simplicity, assume that our calculator EDSL should only allow addition, 
+subtraction, multiplication and division. Any expression involving any other 
+operator is invalid. Using Proto, we can state this requirement by defining the 
+grammar of the calculator EDSL. It looks as follows:
+
+    // Define the grammar of calculator expressions
+    struct calculator_grammar
+      : proto::or_<
+            proto::plus< calculator_grammar, calculator_grammar >
+          , proto::minus< calculator_grammar, calculator_grammar >
+          , proto::multiplies< calculator_grammar, calculator_grammar >
+          , proto::divides< calculator_grammar, calculator_grammar >
+          , proto::terminal< proto::_ >
+        >
+    {};
+
+You can read the above grammar as follows: an expression tree conforms to the calculator grammar if it is a binary plus, minus, multiplies or divides node, where both child nodes also conform to the calculator grammar; or if it is a terminal. In a Proto grammar, _wild_ is a wildcard that matches any type, so `proto::terminal< proto::_ >` matches any terminal, whether it is a placeholder or a literal.
+
+[note This grammar is actually a little looser than we would like. Only placeholders and literals that are convertible to doubles are valid terminals. Later on we'll see how to express things like that in Proto grammars.]
+
+Once you have defined the grammar of your EDSL, you can use the _matches_ metafunction to check whether a given expression type conforms to the grammar. For instance, we might add the following to our `calculator::operator()` overload:
+
+    template<typename Expr>
+    struct calculator
+      : proto::extends< /* ... as before ... */ >
+    {
+        /* ... */
+        double operator()(double a1 = 0, double a2 = 0) const
+        {
+            // Check here that the expression we are about to
+            // evaluate actually conforms to the calculator grammar.
+            BOOST_MPL_ASSERT((proto::matches<Expr, calculator_grammar>));
+            /* ... */
+        }
+    };
+
+The addition of the `BOOST_MPL_ASSERT()` line enforces at compile time that we only 
+evaluate expressions that conform to the calculator EDSL's grammar. With Proto 
+grammars, `proto::matches<>` and `BOOST_MPL_ASSERT()` it is very easy to give the 
+users of your EDSL short and readable compile-time errors when they accidentally 
+misuse your EDSL.
+
+[note `BOOST_MPL_ASSERT()` is part of the Boost Metaprogramming Library. To use it, 
+just `#include <boost/mpl/assert.hpp>`.]
+
+[/=====================================]
+[heading Controlling Operator Overloads]
+[/=====================================]
+
+Grammars and `proto::matches<>` make it possible to detect when a user has created 
+an invalid expression and issue a compile-time error. But what if you want to 
+prevent users from creating invalid expressions in the first place? By using 
+grammars and domains together, you can disable any of Proto's operator overloads 
+that would create an invalid expression. It is as simple as specifying the EDSL's 
+grammar when you define the domain, as shown below:
+
+    // Define a calculator domain. Expression within
+    // the calculator domain will be wrapped in the
+    // calculator<> expression wrapper.
+    // NEW: Any operator overloads that would create an
+    //      expression that does not conform to the
+    //      calculator grammar is automatically disabled.
+    struct calculator_domain
+      : proto::domain< proto::generator<calculator>, calculator_grammar >
+    {};
+
+The only thing we changed is we added `calculator_grammar` as the second template 
+parameter to the `proto::domain<>` template when defining `calculator_domain`. With 
+this simple addition, we disable any of Proto's operator overloads that would 
+create an invalid calculator expression.
+
+[/========================]
+[heading ... And Much More]
+[/========================]
+
+Hopefully, this gives you an idea of what sorts of things Proto can do for you. But 
+this only scratches the surface. The rest of this users' guide will describe all 
+these features and others in more detail.
+
+Happy metaprogramming!
+
+[endsect]

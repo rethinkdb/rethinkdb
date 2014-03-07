@@ -1,0 +1,151 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Spirit V2.2</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../what_s_new.html" title="What's New">
+<link rel="prev" href="spirit_2_3.html" title="Spirit V2.3">
+<link rel="next" href="spirit_2_1.html" title="Spirit V2.1">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="spirit_2_3.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../what_s_new.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="spirit_2_1.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="spirit.what_s_new.spirit_2_2"></a><a class="link" href="spirit_2_2.html" title="Spirit V2.2">Spirit V2.2</a>
+</h3></div></div></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_2.h0"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_2.what_s_changed_in__emphasis_spirit_qi__emphasis__and__emphasis_spirit_karma__emphasis__from_v2_1__boost_v1_41_0__to_v2_2__boost_v1_42_0_"></a></span><a class="link" href="spirit_2_2.html#spirit.what_s_new.spirit_2_2.what_s_changed_in__emphasis_spirit_qi__emphasis__and__emphasis_spirit_karma__emphasis__from_v2_1__boost_v1_41_0__to_v2_2__boost_v1_42_0_">What's
+        changed in <span class="emphasis"><em>Spirit.Qi</em></span> and <span class="emphasis"><em>Spirit.Karma</em></span>
+        from V2.1 (Boost V1.41.0) to V2.2 (Boost V1.42.0)</a>
+      </h5>
+<h5>
+<a name="spirit.what_s_new.spirit_2_2.h1"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_2.new_features"></a></span><a class="link" href="spirit_2_2.html#spirit.what_s_new.spirit_2_2.new_features">New
+        Features</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">auto_</span></code> component
+            in <span class="emphasis"><em>Spirit.Qi</em></span> and <span class="emphasis"><em>Spirit.Karma</em></span>,
+            added API functions <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span></code><a class="link" href="../qi/reference/parse_api/create_parser.html" title="API for Automatic Parser Creation"><code class="computeroutput"><span class="identifier">create_parser</span></code></a> and <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span></code><a class="link" href="../karma/reference/generate_api/create_generator.html" title="API for Automatic Generator Creation"><code class="computeroutput"><span class="identifier">create_generator</span></code></a>.
+          </li>
+<li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">auto_</span></code> based overloads
+            for all API functions taking no attributes (see <a class="link" href="../qi/reference/parse_api.html" title="Parser API"><span class="emphasis"><em>Qi</em></span>
+            API</a> and <a class="link" href="../karma/reference/generate_api.html" title="Generator API"><span class="emphasis"><em>Karma</em></span>
+            API</a>).
+          </li>
+<li class="listitem">
+            Added <a class="link" href="../karma/reference/directive/columns.html" title="Generator Directive Separating Output Into Columns (columns[])"><code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">columns</span></code></a> directive.
+          </li>
+<li class="listitem">
+            Added <a class="link" href="../karma/reference/string/symbols.html" title="Symbols Generator (symbols)"><code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">symbols</span><span class="special">&lt;</span><span class="identifier">Attr</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span></code></a>
+            generator.
+          </li>
+<li class="listitem">
+            The <span class="emphasis"><em>Spirit.Qi</em></span> customization point <a class="link" href="../advanced/customize/store_value/push_back.html" title="Store a Parsed Attribute Value into a Container (Qi)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">push_back_container</span></code></a> now returns
+            a <code class="computeroutput"><span class="keyword">bool</span></code> to report whether
+            the item has been added to the container.
+          </li>
+<li class="listitem">
+            Added an overload for <a class="link" href="../karma/reference/directive/maxwidth.html" title="Generator Directives Controlling the Maximum Field Width (maxwidth[])"><code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">maxwidth</span></code></a> directive allowing
+            to specify an additional parameter (any compatible output iterator) receiving
+            the 'overspilled' output (output not fitting into the maxwidth limit).
+          </li>
+<li class="listitem">
+            It is now possible to use Phoenix expressions as <span class="emphasis"><em>Spirit.Karma</em></span>
+            attributes.
+          </li>
+<li class="listitem">
+            Added <a class="link" href="../support/multi_pass.html#spirit.support.multi_pass.reading_from_standard_input_streams"><code class="computeroutput"><span class="identifier">basic_istream_iterator</span><span class="special">&lt;</span><span class="identifier">Char</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">&gt;</span></code></a>
+            usable as an equivalent for <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">istream_iterator</span></code>
+            except its a <a href="http://www.sgi.com/tech/stl/ForwardIterator.html" target="_top"><code class="computeroutput"><span class="identifier">ForwardIterator</span></code></a> allowing to
+            parse directly from any <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span></code>.
+          </li>
+<li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span></code><a class="link" href="../qi/reference/directive/matches.html" title="Directive Testing if Parser Succeeded (matches[])"><code class="computeroutput"><span class="identifier">matches</span></code></a>
+            directive.
+          </li>
+</ul></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_2.h2"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_2.bug_fixes"></a></span><a class="link" href="spirit_2_2.html#spirit.what_s_new.spirit_2_2.bug_fixes">Bug
+        Fixes</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Fixed karma::alternatives to work with embedded containers of hold_any
+            (i.e. constructs like <code class="computeroutput"><span class="special">*</span><span class="identifier">stream</span> <span class="special">|</span>
+            <span class="string">"empty"</span></code> (which fixes
+            the Karma example basic_facilities.cpp).
+          </li>
+<li class="listitem">
+            Fixed numeric <span class="emphasis"><em>Spirit.Karma</em></span> generators for character
+            types.
+          </li>
+<li class="listitem">
+            Fixed <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">repeat</span><span class="special">[]</span></code>
+            for unused attributes.
+          </li>
+<li class="listitem">
+            Fixed rare compilation problem in <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">repeat</span><span class="special">[]</span></code>.
+          </li>
+<li class="listitem">
+            Fixed sequences in <span class="emphasis"><em>Spirit.Qi</em></span> and <span class="emphasis"><em>Spirit.Karma</em></span>
+            to compile properly if the attribute is a (STL) container of (STL) containers.
+          </li>
+<li class="listitem">
+            Fixed a problem in <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">token_def</span><span class="special">::</span><span class="identifier">what</span></code>.
+          </li>
+<li class="listitem">
+            Fixed <span class="emphasis"><em>Spirit.Qi</em></span> symbols not to match substrings
+            anymore. Added <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">symbols</span><span class="special">::</span><span class="identifier">prefix_find</span></code> to allow matching of (prefix-)
+            substrings.
+          </li>
+<li class="listitem">
+            Inherited parameters for rule's usually have to be wrapped in function
+            objects (i.e. <code class="computeroutput"><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">val</span></code>),
+            for integral values this was not necessary. Now all string types can
+            be passed without being wrapped as well (i.e. <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>,
+            <code class="computeroutput"><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*</span></code>, etc.).
+          </li>
+<li class="listitem">
+            Added concept checks to all relevant <span class="emphasis"><em>Spirit.Qi</em></span> API
+            functions enforcing the iterator to be at least of the type <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">forward_iterator_tag</span></code>.
+          </li>
+<li class="listitem">
+            Fixed the <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">match</span></code> and <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_match</span></code>
+            set of API functions not to internally utilize a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">stream_iterator</span></code>
+            anymore as this iterator is of the type <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">input_iterator_tag</span></code>
+            only, which is not sufficient for <span class="emphasis"><em>Spirit.Qi</em></span>.
+          </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="spirit_2_3.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../what_s_new.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="spirit_2_1.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

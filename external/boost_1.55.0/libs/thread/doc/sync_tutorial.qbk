@@ -1,0 +1,44 @@
+[/
+  (C) Copyright 2012 Vicente J. Botet Escriba.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:tutorial Tutorial]
+
+[@http://home.roadrunner.com/~hinnant/mutexes/locking.html Handling mutexes in C++] is an excellent tutorial. You need just replace std and ting by boost.
+
+[@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2406.html Mutex, Lock, Condition Variable Rationale] adds rationale for the design decisions made for mutexes, locks and condition variables.
+
+
+In addition to the C++11 standard locks, Boost.Thread provides other locks and some utilities that help the user to make their code thread-safe.
+
+[include internal_locking.qbk]
+
+[include external_locking.qbk]
+
+[section:with Executing Around a Function]
+
+In particular, the library provides some lock factories.
+
+  template <class Lockable, class Function>
+  auto with_lock_guard(Lockable& m, Function f) -> decltype(f())
+  {
+    auto&& _ = boost::make_lock_guard(m);
+    f();
+  }
+
+
+that can be used as
+
+  int i = with_lock_guard(mtx, []() 
+  { 
+    // access the protected state 
+    return true;
+  });
+
+
+[endsect] [/ With]
+
+[endsect] [/ Tutorial]

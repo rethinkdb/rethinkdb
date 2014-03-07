@@ -1,0 +1,72 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:TimeTraits Time traits requirements]
+
+In the table below, `X` denotes a time traits class for time type `Time`, `t`,
+`t1`, and `t2` denote values of type `Time`, and `d` denotes a value of type
+`X::duration_type`.
+
+[table TimeTraits requirements
+  [[expression] [return type] [assertion/note\npre/post-condition]]
+  [
+    [`X::time_type`]
+    [`Time`]
+    [
+      Represents an absolute time. Must support default construction, and meet
+      the requirements for `CopyConstructible` and `Assignable`.
+    ]
+  ]
+  [
+    [`X::duration_type`]
+    []
+    [
+      Represents the difference between two absolute times. Must support
+      default construction, and meet the requirements for `CopyConstructible`
+      and `Assignable`. A duration can be positive, negative, or zero.
+    ]
+  ]
+  [
+    [`X::now();`]
+    [`time_type`]
+    [
+      Returns the current time.
+    ]
+  ]
+  [
+    [`X::add(t, d);`]
+    [`time_type`]
+    [
+      Returns a new absolute time resulting from adding the duration `d` to the
+      absolute time `t`.
+    ]
+  ]
+  [
+    [`X::subtract(t1, t2);`]
+    [`duration_type`]
+    [
+      Returns the duration resulting from subtracting `t2` from `t1`.
+    ]
+  ]
+  [
+    [`X::less_than(t1, t2);`]
+    [`bool`]
+    [
+      Returns whether `t1` is to be treated as less than `t2`.
+    ]
+  ]
+  [
+    [`X::to_posix_duration(d);`]
+    [`date_time::time_duration_type`]
+    [
+      Returns the `date_time::time_duration_type` value that most closely
+      represents the duration `d`.
+    ]
+  ]
+]
+
+[endsect]

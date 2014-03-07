@@ -1,0 +1,35 @@
+[/
+          Copyright Oliver Kowalke 2009.
+ Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+          http://www.boost.org/LICENSE_1_0.txt
+]
+
+[section:performance Performance]
+
+Performance of __boost_coroutine__ was measured on the platforms shown in the
+following table. Performance measurements were taken using `rdtsc` and
+`::clock_gettime()`, with overhead corrections, on x86 platforms. In each case,
+stack protection was active, cache warm-up was accounted for, and the one
+running thread was pinned to a single CPU. The code was compiled using the
+build options, 'variant = release cxxflags = -DBOOST_DISABLE_ASSERTS'.
+
+The numbers in the table are the number of cycles per iteration, based upon an
+average computed over 10 iterations.
+
+[table Perfomance of coroutine switch
+    [[Platform] [CPU cycles] [nanoseconds]]
+    [
+        [AMD Athlon 64 DualCore 4400+ (32bit Linux)]
+        [58]
+        [65]
+    ]
+    [
+        [Intel Core2 Q6700 (64bit Linux)]
+        [80]
+        [28]
+    ]
+]
+
+
+[endsect]

@@ -1,0 +1,103 @@
+# Copyright 2004, 2005, 2006 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+# The following #// line will be used by the regression test table generation
+# program as the column heading for HTML tables. Must not include a version
+# number.
+#//<a href="http://www.comeaucomputing.com/">Comeau<br>C++</a>
+
+import toolset ;
+import feature ;
+import toolset : flags ;
+import common ;
+import generators ;
+
+import unix ;
+import como ;
+
+feature.extend-subfeature toolset como : platform : linux ;
+
+toolset.inherit-generators como-linux
+     <toolset>como <toolset-como:platform>linux : unix ;
+generators.override como-linux.prebuilt : builtin.lib-generator ;
+generators.override como-linux.searched-lib-generator : searched-lib-generator ;
+toolset.inherit-flags como-linux : unix ;
+toolset.inherit-rules como-linux : gcc ;
+
+generators.register-c-compiler como-linux.compile.c++ : CPP : OBJ
+    : <toolset>como <toolset-como:platform>linux ;
+generators.register-c-compiler como-linux.compile.c : C : OBJ
+    : <toolset>como <toolset-como:platform>linux ;
+
+
+rule init ( version ? : command * : options * )
+{
+    local condition = [ common.check-init-parameters como-linux
+        : version $(version) ] ;
+
+    command = [ common.get-invocation-command como-linux : como
+        : $(command) ] ;
+
+    common.handle-options como-linux : $(condition) : $(command) : $(options) ;
+}
+
+
+flags como-linux C++FLAGS <exception-handling>off : --no_exceptions ;
+flags como-linux C++FLAGS <exception-handling>on : --exceptions ;
+
+flags como-linux CFLAGS <inlining>off : --no_inlining ;
+flags como-linux CFLAGS <inlining>on <inlining>full : --inlining ;
+
+flags como-linux CFLAGS <optimization>off : -O0 ;
+flags como-linux CFLAGS <optimization>speed : -O3 ;
+flags como-linux CFLAGS <optimization>space : -Os ;
+
+flags como-linux CFLAGS <debug-symbols>on : -g ;
+flags como-linux LINKFLAGS <debug-symbols>on : -g ;
+
+flags como-linux FINDLIBS : m ;
+flags como-linux FINDLIBS : rt ;
+
+flags como-linux CFLAGS <cflags> ;
+flags como-linux C++FLAGS <cxxflags> ;
+flags como-linux DEFINES <define> ;
+flags como-linux UNDEFS <undef> ;
+flags como-linux HDRS <include> ;
+flags como-linux STDHDRS <sysinclude> ;
+flags como-linux LINKFLAGS <linkflags> ;
+flags como-linux ARFLAGS <arflags> ;
+
+flags como-linux.link LIBRARIES <library-file> ;
+flags como-linux.link LINKPATH <library-path> ;
+flags como-linux.link FINDLIBS-ST <find-static-library> ;
+flags como-linux.link FINDLIBS-SA <find-shared-library> ;
+
+flags como-linux.link RPATH <dll-path> ;
+flags como-linux.link RPATH_LINK <xdll-path> ;
+
+
+actions link bind LIBRARIES
+{
+    $(CONFIG_COMMAND) $(LINKFLAGS) -o "$(<[1])" "$(>)" -L"$(LINKPATH)" -Wl,-R$(SPACE)-Wl,"$(RPATH)" -Wl,-rpath-link$(SPACE)-Wl,"$(RPATH_LINK)"  "$(LIBRARIES)"  "$(LIBRARIES)" -l$(FINDLIBS-SA) -l$(FINDLIBS-ST) 2>&1
+}
+
+actions link.dll bind LIBRARIES
+{
+    $(CONFIG_COMMAND) $(LINKFLAGS) -shared -o "$(<[1])" "$(>)" -L"$(LINKPATH)" -Wl,-R$(SPACE)-Wl,"$(RPATH)" -Wl,-rpath-link$(SPACE)-Wl,"$(RPATH_LINK)" "$(LIBRARIES)"  "$(LIBRARIES)" -l$(FINDLIBS-SA) -l$(FINDLIBS-ST) 2>&1
+}
+
+actions compile.c
+{
+    $(CONFIG_COMMAND) -c --c99 --long_long -U$(UNDEFS) -D$(DEFINES) $(CFLAGS) -I"$(HDRS)" -I"$(STDHDRS)" -o "$(<)" "$(>)" 2>&1
+}
+
+actions compile.c++
+{
+    $(CONFIG_COMMAND) -tused -c --long_long -U$(UNDEFS) -D$(DEFINES) $(CFLAGS) $(C++FLAGS) -I"$(HDRS)" -I"$(STDHDRS)"  -o "$(<)" "$(>)" 2>&1
+}
+
+actions archive
+{
+    ar rcu $(<) $(>)
+}

@@ -1,0 +1,787 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Using the Boost Graph Library</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="SECTION00830000000000000000"></A>
+<A NAME="sec:using-adjacency-list"></A>
+<BR>
+Using <TT>adjacency_list</TT>
+</H1>
+
+This section describes the details of how use the
+<tt>adjacency_list</tt> class. The presentation is divided into the
+following topics:
+
+<OL>
+<li><A href="#sec:choosing-graph-type">Choosing the <TT>Edgelist</TT> and <TT>VertexList</TT></A>
+<li><a href="#sec:directed-and-undirected">Directed and Undirected
+Adjacency Lists</a>
+<li><A href="#sec:adjacency-list-properties">Internal Properties</A>
+<li><A href="#sec:custom-storage">Customizing the Adjacency List Storage</A>
+</ol>
+
+<P>
+
+<H2><A NAME="SECTION00831000000000000000"></A>
+<A NAME="sec:choosing-graph-type"></A>
+<BR>
+Choosing the <TT>Edgelist</TT> and <TT>VertexList</TT>
+</H2>
+
+<P>
+This section focuses on how to decide which version of the <a
+href="./adjacency_list.html"><TT>adjacency_list</TT></a> class to use
+in different situations. The <TT>adjacency_list</TT> is like a
+swiss-army knife in that it can be configured in many ways. The
+parameters that we will focus on in this section are <TT>OutEdgeList</TT>
+and <TT>VertexList</TT>, which control the underlying data structures
+that will be used to represent the graph.  The choice of
+<TT>OutEdgeList</TT> and <TT>VertexList</TT> affects the time complexity
+of many of the graph operations and the space complexity of the graph
+object.
+
+<P>
+BGL uses containers from the STL such as
+<a href="http://www.sgi.com/tech/stl/Vector.html"><TT>std::vector</TT></a>,
+<a href="http://www.sgi.com/tech/stl/List.html"><TT>std::list</TT></a>,
+and <a href="http://www.sgi.com/tech/stl/set.html"><TT>std::set</TT></a>
+to represent the set of vertices and the adjacency structure
+(out-edges and in-edges) of the graph.  There are several selector
+types that are used to specify the choice of container for
+<TT>OutEdgeList</TT> and <TT>VertexList</TT>.
+
+<P>
+
+<UL>
+<LI><TT>vecS</TT> selects <TT>std::vector</TT>.</LI>
+<LI><TT>listS</TT> selects <TT>std::list</TT>.</LI>
+<LI><TT>slistS</TT> selects <TT>std::slist</TT>.</LI>
+<LI><TT>setS</TT> selects <TT>std::set</TT>.</LI>
+<LI><TT>multisetS</TT> selects <TT>std::multiset</TT>.</LI>
+<LI><TT>hash_setS</TT> selects <TT>std::hash_set</TT>.</LI>
+</UL>
+
+<P>
+
+<H3>Choosing the <TT>VertexList</TT> type</A></H3>
+
+<P>
+The <TT>VertexList</TT> parameter determines what kind of container
+will be used to represent the vertex set, or two-dimensional structure
+of the graph.  The container must model <a
+href="http://www.sgi.com/tech/stl/Sequence.html">Sequence</a> or
+<a
+href="http://www.sgi.com/tech/stl/RandomAccessContainer.html">RandomAccessContainer</a>. In
+general, <TT>listS</TT> is a good choice if you need to add and remove
+vertices quickly. The price for this is extra space overhead compared
+to choosing <TT>vecS</TT>.
+
+<P>
+
+<H4>Space Complexity</H4>
+
+<P>
+The <TT>std::list</TT> has a higher per-vertex space overhead than the
+<TT>std::vector</TT>, storing three extra pointers per vertex.
+
+<P>
+
+<H4>Time Complexity</H4>
+
+<P>
+The choice of <TT>VertexList</TT> affects the time complexity of the
+following operations.
+
+<ul>
+
+<li>
+<pre>
+add_vertex()
+</PRE>
+This operation is amortized constant time for both <TT>vecS</TT> and
+<TT>listS</TT> (implemented with <TT>push_back()</TT>). However, when
+the <TT>VertexList</TT> type is <TT>vecS</TT> the time for this
+operation is occasionally large because the vector will be
+reallocated and the whole graph copied.
+<P></p>
+
+<li>
+<PRE>
+remove_vertex()
+</PRE>
+This operation is constant time for <TT>listS</TT> and <i>O(V + E)</i> for
+<TT>vecS</TT>. The large time complexity for <TT>vecS</TT> is because
+the vertex descriptors (which in this case are indices that correspond
+to the vertices' place in the vertex list) must be adjusted in the
+out-edges for the whole graph.
+<P></P>
+
+<li>
+<PRE>
+vertex()
+</PRE>
+This operation is constant time for <TT>vecS</TT> and  for
+<TT>listS</TT>. 
+
+</ul>
+
+ 
+<P>
+
+<H3><A NAME="SECTION00831200000000000000">
+Choosing the <TT>OutEdgeList</TT> type</A>
+</H3>
+
+<P>
+The <TT>OutEdgeList</TT> parameter determines what kind of container will
+be used to store the out-edges (and possibly in-edges) for each vertex
+in the graph. The containers used for edge lists must either satisfy
+the requirements for <a
+href="http://www.sgi.com/tech/stl/Sequence.html">Sequence</a> or for
+<a
+href="http://www.sgi.com/tech/stl/AssociativeContainer.html">AssociativeContainer</a>.
+
+<P>
+One of the first things to consider when choosing the
+<TT>OutEdgeList</TT> is whether you want <TT>adjacency_list</TT> to
+enforce the absence of parallel edges in the graph (that is, enforce
+that the graph not become a multi-graph). If you want this enforced
+then use the <TT>setS</TT> or <TT>hash_setS</TT> selectors.  If you
+want to represent a multi-graph, or know that you will not be
+inserting parallel edges into the graph, then choose one of the <a
+href="http://www.sgi.com/tech/stl/Sequence.html">Sequence</a>
+types: <TT>vecS</TT>, <TT>listS</TT>, or <TT>slistS</TT>. 
+You will also want to take into account the differences in time and space
+complexity for the various graph operations. Below we use <i>V</i> for
+the total number of vertices in the graph and <i>E</i> for the total
+number of edges.  Operations not discussed here are constant time.
+
+<P>
+
+<H4>Space Complexity</H4>
+
+<P>
+The selection of the <TT>OutEdgeList</TT> affects the amount of space
+overhead per edge in the graph object. In the order of least space to
+most space, the selectors are <TT>vecS</TT>, <TT>slistS</TT>,
+<TT>listS</TT>, and <TT>setS</TT>.
+
+<P>
+
+<H4>Time Complexity</H4>
+
+<P>
+In the following description of the time complexity for various
+operations, we use <i>E/V</i> inside of the ``big-O'' notation to
+express the length of an out-edge list. Strictly speaking this is not
+accurate because <i>E/V</i> merely gives the average number of edges
+per vertex in a random graph. The worst-case number of out-edges for a
+vertex is <i>V</i> (unless it is a multi-graph). For sparse graphs
+<i>E/V</i> is typically much smaller than <i>V</i> and can be
+considered a constant.
+
+<P>
+ 
+<P> <P>
+<UL>
+<LI>
+<PRE>
+add_edge()
+</PRE>
+When the <TT>OutEdgeList</TT> is a <a
+href="http://www.sgi.com/tech/stl/UniqueAssociativeContainer.html">UniqueAssociativeContainer</a>
+like <TT>std::set</TT> the absence of parallel edges is enforced when
+an edge is added. The extra lookup involved has time complexity
+<i>O(log(E/V))</i>. The <TT>OutEdgeList</TT> types that model <a
+href="http://www.sgi.com/tech/stl/Sequence.html">Sequence</a> do
+not perform this check and therefore <TT>add_edge()</TT> is amortized
+constant time.  This means that it if you don't care whether the graph
+has parallel edges, or know that the input to the graph does not
+contain them, then it is better to use the sequence-based
+<TT>OutEdgeList</TT>. The <TT>add_edge()</TT> for the sequence-based
+<TT>OutEdgeList</TT> is implemented with <TT>push_front()</TT> or
+<TT>push_back()</TT>.  However, for <TT>std::list</TT> and
+<TT>std::slist</TT> this operation will typically be faster than with
+<TT>std::vector</TT> which occasionally reallocates and copies all
+elements.
+<p></p>
+
+<li>
+<PRE>
+remove_edge()
+</PRE>
+For sequence-based <TT>OutEdgeList</TT> types this operation is
+implemented with <TT>std::remove_if()</TT> which means the average
+time is <i>E/V</i>. For set-based <TT>OutEdgeList</TT> types this is
+implemented with the <TT>erase()</TT> member function, which has
+average time <i>log(E/V)</i>.
+<p></p>
+
+<li>
+<PRE>
+edge()
+</PRE>
+The time complexity for this operation is <i>O(E/V)</i> when the
+<TT>OutEdgeList</TT> type is a <a
+href="http://www.sgi.com/tech/stl/Sequence.html">Sequence</a> and it
+is <i>O(log(E/V))</i> when the <TT>OutEdgeList</TT> type is an <a
+href="http://www.sgi.com/tech/stl/AssociativeContainer.html">AssociativeContainer</a>.
+<p></p>
+
+<li>
+<PRE>
+clear_vertex()
+</PRE>
+For directed graphs with sequence-based <TT>OutEdgeList</TT> types the time
+complexity is <i>O(V + E)</i>, while for associative container based
+<TT>OutEdgeList</TT> types the operation is faster, with time complexity
+<i>O(V log(E/V))</i>.  For undirected graphs this operation is
+<i>O(E<sup>2</sup>/V<sup>2</sup>)</i> or <i>O(E/V log(E/V))</i>.
+<p></p>
+
+<li>
+<PRE>
+remove_vertex()
+</PRE>
+The time complexity for this operation is <i>O(V + E)</i> regardless of the
+<TT>OutEdgeList</TT> type.
+<p></p>
+
+<li>
+<PRE>
+out_edge_iterator::operator++()
+</PRE>
+This operation is constant time for all the <TT>OneD</TT> types.
+However, there is a significant constant factor time difference
+between the various types, which is important since this operation is
+the work-horse of most graph algorithms. The speed of
+this operation in order of fastest to slowest is
+<TT>vecS</TT>, <TT>slistS</TT>, <TT>listS</TT>, <TT>setS</TT>,
+<TT>hash_setS</TT>.
+<p></p>
+
+<li>
+<PRE>
+in_edge_iterator::operator++()
+</PRE>
+This operation is constant time and exhibits a similar speed
+ordering as the <TT>out_edge_iterator</TT> with respect to
+the <TT>OutEdgeList</TT> selection.
+<p></p>
+
+<li>
+<PRE>
+vertex_iterator::operator++()
+</PRE>
+This operation is constant time and fast (same speed as incrementing a
+pointer). The selection of <TT>OneD</TT> does not affect the speed of
+this operation.
+<p></p>
+
+<li>
+<PRE>
+edge_iterator::operator++()
+</PRE>
+This operation is constant time and exhibits a similar speed ordering
+as the <TT>out_edge_iterator</TT> with respect to the <TT>OutEdgeList</TT>
+selection. Traversing through the whole edge set is <i>O(V + E)</i>.
+<p></p>
+
+<li>
+<PRE>
+adjacency_iterator::operator++()
+</PRE>
+This operation is constant time and exhibits a similar speed
+ordering as the <TT>out_edge_iterator</TT> with respect to
+the <TT>OutEdgeList</TT> selection.
+<p></p>
+
+</ul>
+
+<P>
+ 
+<P>
+
+<H2><a name="sec:directed-and-undirected">Directed and Undirected Adjacency Lists</H2>
+
+<P>
+The <TT>adjacency_list</TT> class can be used to represent both
+directed and undirected graphs, depending on the argument passed to
+the <TT>Directed</TT> template parameter. Selecting <TT>directedS</TT>
+or <TT>bidirectionalS</TT> choose a directed graph, whereas
+<TT>undirectedS</TT> selects the representation for an undirected
+graph.  See Section <A
+HREF="graph_concepts.html#sec:undirected-graphs">Undirected Graphs</A>
+for a description of the difference between directed and undirected
+graphs in BGL.  The <TT>bidirectionalS</TT> selector specifies that the
+graph will provide the <TT>in_edges()</TT> function as well as the
+<TT>out_edges()</TT> function. This imposes twice as much space
+overhead per edge, which is why <TT>in_edges()</TT> is optional.
+
+<P>
+
+<H2><A NAME="sec:adjacency-list-properties"></A>
+Internal Properties
+</H2>
+
+<P>
+Properties can be attached to the vertices or edges of an
+<TT>adjacency_list</TT> graph via the property interface.  The template
+parameters <TT>VertexProperty</TT> and <TT>EdgeProperty</TT> of the
+<TT>adjacency_list</TT> class are meant to be filled by these interior
+ properties.
+
+<p><b>NOTE</b>: The Boost Graph Library supports two interchangeable methods for 
+specifying interior properties: <a href="bundles.html">bundled properties</a> 
+and property lists. The former is easier to use and requires less effort, 
+whereas the latter is compatible with older, broken compilers and is 
+backward-compatible with Boost versions prior to 1.32.0. If you absolutely
+require these compatibility features, read on to learn about property lists. 
+Otherwise, we strongly suggest that you read about the <a href="bundles.html">bundled
+properties</a> mechanism.
+
+<p>One may specify internal properties via property lists, which are build from instances of the 
+property class declared as follows.
+
+<P>
+<PRE>
+template &lt;class PropertyTag, class T, class NextProperty = no_property&gt;
+struct property;
+</PRE>
+
+<P>
+The <a href="./PropertyTag.html"><TT>PropertyTag</TT></a> template
+parameter is a tag class that simply identifies or gives a unique name
+to the property. There are several predefined tags, and it is easy to
+add more.
+
+<P>
+<PRE>
+  struct vertex_index_t { };
+  struct vertex_index1_t { };
+  struct vertex_index2_t { };
+  struct edge_index_t { };
+  struct graph_name_t { };
+  struct vertex_name_t { };
+  struct edge_name_t { };
+  struct edge_weight_t { };
+  struct edge_weight2_t { };
+  struct edge_capacity_t { };
+  struct edge_residual_capacity_t { };
+  struct edge_reverse_t { };
+  struct vertex_distance_t { };
+  struct vertex_root_t { };
+  struct vertex_all_t { };
+  struct edge_all_t { };
+  struct graph_all_t { };
+  struct vertex_color_t { };
+  struct vertex_rank_t { };
+  struct vertex_predecessor_t { };
+  struct vertex_isomorphism_t { };
+  struct vertex_invariant_t { };
+  struct vertex_invariant1_t { };
+  struct vertex_invariant2_t { };
+  struct vertex_degree_t { };
+  struct vertex_out_degree_t { };
+  struct vertex_in_degree_t { };
+  struct vertex_discover_time_t { };
+  struct vertex_finish_time_t { };
+</PRE>
+
+<P>
+The <b><TT>T</TT></b> template parameter of <TT>property</TT>
+specifies the type of the property values. The type <tt>T</tt> must be
+<a
+href="http://www.sgi.com/tech/stl/DefaultConstructible.html">Default
+Constructible</a>, <a
+href="../../utility/Assignable.html">Assignable</a>, and <a
+href="../../utility/CopyConstructible.html">Copy Constructible</a>.
+Like the containers of the C++ Standard Library, the property objects
+of type <tt>T</tt> are held by-value inside of the graph.
+
+<p>
+The <b><TT>NextProperty</TT></b> parameter allows <TT>property</TT>
+types to be nested, so that an arbitrary number of properties can be
+attached to the same graph.
+
+<P>
+The following code shows how a vertex and edge property type can be
+assembled and used to create a graph type. We have attached a distance
+property with values of type <TT>float</TT> and a name property with
+values of type <TT>std::string</TT> to the vertices of the graph.  We
+have attached a weight property with values of type <TT>float</TT> to
+the edges of the graph.
+
+<P>
+<PRE>
+  typedef property&lt;vertex_distance_t, float, 
+            property&lt;vertex_name_t, std::string&gt; &gt; VertexProperty;
+  typedef property&lt;edge_weight_t, float&gt; EdgeProperty;
+
+  typedef adjacency_list&lt;mapS, vecS, undirectedS, 
+                         VertexProperty, EdgeProperty&gt; Graph;
+
+  Graph g(num_vertices); // construct a graph object
+</PRE>
+
+<P>
+The property values are then read from and written to using property
+maps. See Section <A HREF="using_property_maps.html#sec:interior-properties">Interior
+Properties</A> for a description of how to obtain property maps
+from a graph, and read Section <A
+HREF="./using_property_maps.html">Property Maps</A> for how
+to use property maps.
+
+<P>
+
+<H3><A NAME="sec:custom-edge-properties"></A>
+Custom Edge Properties
+</H3>
+
+<P>
+Creating your own property types and properties is easy; just define
+a tag class for your new property. The property tag class will need to
+define <tt>num</tt> with a unique integer ID, and <tt>kind</tt> which
+should be either <tt>edge_property_tag</tt>,
+<tt>vertex_property_tag</tt>, or <tt>graph_property_tag</tt>.
+
+<P>
+<PRE>
+struct flow_t {
+  typedef edge_property_tag kind;
+};
+
+struct capacity_t { 
+  typedef edge_property_tag kind;
+};
+</PRE>
+
+<p>
+You can also use enum's instead of struct's to create tag types. Create an enum
+type for each property inside the boost namespace. The first part of the name of
+the enum type must be <tt>edge</tt>, <tt>vertex</tt>, or <tt>graph</tt> followed
+by an underscore, the new property name, and a <tt>_t</tt> at the end. Inside
+the enum, define a value with the same name minus the <tt>_t</tt>. Then invoke
+the <tt>BOOST_INSTALL_PROPERTY</tt> macro.
+
+<pre>
+namespace boost {
+  enum edge_flow_t { edge_flow };
+  enum edge_capacity_t { edge_capacity };
+
+  BOOST_INSTALL_PROPERTY(edge, flow);
+  BOOST_INSTALL_PROPERTY(edge, capacity);
+}
+</pre>
+
+<P>
+Now you can use your new property tag in the definition of properties just as
+you would one of the builtin tags.
+
+<P>
+<PRE>
+  typedef property&lt;capacity_t, int&gt; Cap;
+  typedef property&lt;flow_t, int, Cap&gt; EdgeProperty;
+  typedef adjacency_list&lt;vecS, vecS, no_property, EdgeProperty&gt; Graph;
+</PRE>
+
+<P>
+Just as before, the property maps for these properties can be
+obtained from the graph via the
+<TT>get(Property, g)</TT> function.
+
+<P>
+<PRE>
+  property_map&lt;Graph, capacity_t&gt;::type capacity
+    = get(capacity_t(), G);
+  property_map&lt;Graph, flow_t&gt;::type flow
+    = get(flow_t(), G);
+</PRE>
+
+<P>
+The file <TT>edge_property.cpp</TT> shows the complete source
+code for this example.
+
+<P>
+
+<H3><A NAME="SECTION00833200000000000000"></A>
+<A NAME="sec:custom-vertex-properties"></A>
+<BR>
+Custom Vertex Properties
+</H3>
+
+<P>
+Creating your own properties to attach to vertices is just as easy as
+for edges. Here we want to attach people's first names to the vertices
+in the graph.
+
+<P>
+<PRE>
+  struct first_name_t {
+    typedef vertex_property_tag kind;
+  };
+</PRE>
+
+<P>
+Now we can use the new tag in the <TT>property</TT> class and use that in
+the assembly of a graph type. The following code shows creating the
+graph type, and then creating the graph object. We fill in the edges
+and also assign names to the vertices. The edges will represent ``who
+owes who''.
+
+<P>
+<PRE>
+  typedef property&lt;first_name_t, std::string&gt; FirstNameProperty;
+  typedef adjacency_list&lt;vecS, vecS, directedS, 
+                         FirstNameProperty&gt; MyGraphType;
+
+  typedef pair&lt;int,int&gt; Pair;
+  Pair edge_array[11] = { Pair(0,1), Pair(0,2), Pair(0,3), 
+                          Pair(0,4), Pair(2,0), Pair(3,0), 
+                          Pair(2,4), Pair(3,1), Pair(3,4), 
+                          Pair(4,0), Pair(4,1) };
+    
+  MyGraphType G(5);
+  for (int i = 0; i &lt; 11; ++i)
+    add_edge(edge_array[i].first, edge_array[i].second, G);
+
+  property_map&lt;MyGraphType, first_name_t&gt;::type
+    name = get(first_name_t(), G);
+    
+  boost::put(name, 0, "Jeremy");
+  boost::put(name, 1, "Rich");
+  boost::put(name, 2, "Andrew");
+  boost::put(name, 3, "Jeff");
+  name[4] = "Kinis"; // you can use operator[] too
+    
+  who_owes_who(edges(G).first, edges(G).second, G);
+</PRE>
+
+<P>
+The <TT>who_owes_who()</TT> function written for this example was
+implemented in a generic style. The input is templated so we do not
+know the actual graph type. To find out the type of the property
+map for our first-name property, we need to use the
+<TT>property_map</TT> traits class. The <TT>const_type</TT>
+is used since the graph parameter is const. Once we have the property
+map type, we can deduce the value type of the property using the
+<TT>property_traits</TT> class. In this example, we know that the
+property's value type will be <TT>std::string</TT>, but written in this
+generic fashion the <TT>who_owes_who()</TT> function could work with
+other property value types.
+
+<P>
+<PRE>
+  template &lt;class EdgeIter, class Graph&gt;
+  void who_owes_who(EdgeIter first, EdgeIter last, const Graph&amp; G)
+  {
+    // Access the propety acessor type for this graph
+    typedef typename property_map&lt;Graph, 
+      first_name_t&gt;::const_type NameMap;
+    NameMap name = get(first_name, G);
+
+    typedef typename boost::property_traits&lt;NameMap&gt;
+      ::value_type NameType;
+
+    NameType src_name, targ_name;
+
+    while (first != last) {
+      src_name = boost::get(name, source(*first, G));
+      targ_name = boost::get(name, target(*first, G));
+      cout &lt;&lt; src_name &lt;&lt; " owes " 
+           &lt;&lt; targ_name &lt;&lt; " some money" &lt;&lt; endl;
+      ++first;
+    }
+</PRE>
+
+The output is:
+<PRE>
+Jeremy owes Rich some money
+Jeremy owes Andrew some money
+Jeremy owes Jeff some money
+Jeremy owes Kinis some money
+Andrew owes Jeremy some money
+Andrew owes Kinis some money
+Jeff owes Jeremy some money
+Jeff owes Rich some money
+Jeff owes Kinis some money
+Kinis owes Jeremy some money
+Kinis owes Rich some money
+</PRE>
+
+The complete source code to this example is in the file
+<TT>interior_property_map.cpp</TT>.
+
+<P>
+
+<H2><A NAME="sec:custom-storage"></A>
+Customizing the Adjacency List Storage
+</H2>
+
+<P>
+The <TT>adjacency_list</TT> is constructed out of two kinds of
+containers. One type of container to hold all the vertices in the
+graph, and another type of container for the out-edge list (and
+potentially in-edge list) for each vertex. BGL provides selector
+classes that allow the user to choose between several of the containers
+from the STL. It is also possible to use your own container types.
+When customizing the <TT>VertexList</TT> you need to define a container
+generator as described below. When customizing the <TT>OutEdgeList</TT> you
+will need to define a container generator and the parallel edge
+traits. The file <TT>container_gen.cpp</TT> has an example of
+how to use a custom storage type.
+
+<P>
+
+<H3><A NAME="SECTION00834100000000000000">
+Container Generator</A>
+</H3>
+
+<P>
+The <TT>adjacency_list</TT> class uses a traits class called
+<TT>container_gen</TT> to map the <TT>OutEdgeList</TT> and <TT>VertexList</TT>
+selectors to the actual container types used for the graph storage.
+The default version of the traits class is listed below, along with an
+example of how the class is specialized for the <TT>listS</TT> selector.
+
+<P>
+<PRE>
+namespace boost {
+  template &lt;class Selector, class ValueType&gt;
+  struct container_gen { };
+
+  template &lt;class ValueType&gt;
+  struct container_gen&lt;listS, ValueType&gt; {
+    typedef std::list&lt;ValueType&gt; type;
+  };
+}
+</PRE>
+
+<P>
+To use some other container of your choice, define a
+selector class and then specialize the <TT>container_gen</TT>
+for your selector.
+
+<P>
+<PRE>
+  struct custom_containerS { }; // your selector
+
+  namespace boost {
+    // the specialization for your selector
+    template &lt;class ValueType&gt;
+    struct container_gen&lt;custom_containerS, ValueType&gt; {
+      typedef custom_container&lt;ValueType&gt; type;
+    };
+  }
+</PRE>
+
+<P>
+There may also be situations when you want to use a container that has
+more template parameters than just <TT>ValueType</TT>.  For instance,
+you may want to supply the allocator type. One way to do this is to
+hard-code in the extra parameters within the specialization of
+<TT>container_gen</TT>. However, if you want more flexibility then you
+can add a template parameter to the selector class. In the code below
+we show how to create a selector that lets you specify the allocator
+to be used with the <TT>std::list</TT>.
+
+<P>
+<PRE>
+  template &lt;class Allocator&gt;
+  struct list_with_allocatorS { };
+
+  namespace boost {
+    template &lt;class Alloc, class ValueType&gt;
+    struct container_gen&lt;list_with_allocatorS&lt;Alloc&gt;, ValueType&gt;
+    {
+      typedef typename Alloc::template rebind&lt;ValueType&gt;::other Allocator;
+      typedef std::list&lt;ValueType, Allocator&gt; type;
+    };
+  }
+
+  // now you can define a graph using std::list 
+  //   and a specific allocator  
+  typedef adjacency_list&lt; list_with_allocatorS&lt; std::allocator&lt;int&gt; &gt;, vecS, directedS&gt; MyGraph;
+</PRE>
+
+<P>
+
+<H3><A NAME="SECTION00834300000000000000">
+Push and Erase for the Custom Container</A>
+</H3>
+
+<P>
+You must also tell the <TT>adjacency_list</TT> how elements can be
+efficiently added and removed from the custom container. This is
+accomplished by overloading the <TT>push()</TT> and <TT>erase()</TT>
+functions for the custom container type. The <TT>push()</TT> function
+should return an iterator pointing to the newly inserted element and a
+<TT>bool</TT> flag saying whether the edge was inserted.
+
+<PRE>
+  template &lt;class T&gt;
+  std::pair&lt;typename custom_container&lt;T&gt;::iterator, bool&gt;
+  push(custom_container&lt;T&gt;&amp; c, const T&amp; v)
+  {
+    // this implementation may need to change for your container
+    c.push_back(v);
+    return std::make_pair(boost::prior(c.end()), true);
+  }
+
+  template &lt;class T&gt;
+  void erase(custom_container&lt;T&gt;&amp; c, const T&amp; x)
+  {
+    // this implementation may need to change for your container
+    c.erase(std::remove(c.begin(), c.end(), x), c.end());
+  }
+</PRE>
+
+
+<P> There are default <TT>push()</TT> and <TT>erase()</TT> functions
+implemented for the STL container types.
+
+
+<H3><A NAME="SECTION00834200000000000000">
+Parallel Edge Traits</A>
+</H3>
+
+<P>
+When customizing the <TT>OutEdgeList</TT>, you must also specialize
+the <TT>parallel_edge_traits</TT> class to specify whether the
+container type allows parallel edges (and is a <a
+href="http://www.sgi.com/tech/stl/Sequence.html">Sequence</a>) or if
+the container does not allow parallel edges (and is an <a
+href="http://www.sgi.com/tech/stl/AssociativeContainer.html">AssociativeContainer</a>).
+
+<P>
+<PRE>
+  template &lt;&gt;
+  struct parallel_edge_traits&lt;custom_containerS&gt; { 
+    typedef allow_parallel_edge_tag type;
+  };
+</PRE>
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

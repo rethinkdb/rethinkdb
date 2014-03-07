@@ -1,0 +1,339 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Document Structure</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../quickbook.html" title="Chapter&#160;41.&#160;Quickbook 1.6">
+<link rel="prev" href="../syntax.html" title="Syntax Summary">
+<link rel="next" href="phrase.html" title="Phrase Level Elements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../syntax.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../quickbook.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="phrase.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="quickbook.syntax.structure"></a>Document Structure</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="structure.html#quickbook.syntax.structure.docinfo">Document
+      Info</a></span></dt>
+<dt><span class="section"><a href="structure.html#quickbook.syntax.structure.section">Sections</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="quickbook.syntax.structure.docinfo"></a><a name="quickbook.ref.docinfo"></a><a class="link" href="structure.html#quickbook.syntax.structure.docinfo" title="Document Info">Document
+      Info</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="structure.html#quickbook.syntax.structure.docinfo.attributes">Document
+        Info Attributes</a></span></dt>
+<dt><span class="section"><a href="structure.html#quickbook.syntax.structure.docinfo.nesting">Nesting
+        quickbook documents</a></span></dt>
+</dl></div>
+<p>
+        Every document must begin with a Document Info section, which looks something
+        like this:
+      </p>
+<pre class="programlisting">[article The Document Title
+    [quickbook 1.5]
+    [version 1.0]
+    [id the_document_name]
+    [copyright 2000 2002 2003 Joe Blow, Jane Doe]
+    [authors [Blow, Joe] [Doe, Jane]]
+    [license The document's license]
+    [source-mode c++]
+]
+</pre>
+<p>
+        <code class="computeroutput">article</code> is the document type. There are several possible document
+        types, most of these are based on docbook document elements. These are fully
+        described in <a href="http://www.docbook.org/tdg/" target="_top">DocBook: The Definitive
+        Guide</a>:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <a href="http://www.docbook.org/tdg/en/html/book.html" target="_top">book</a>
+          </li>
+<li class="listitem">
+            <a href="http://www.docbook.org/tdg/en/html/article.html" target="_top">article</a>
+          </li>
+<li class="listitem">
+            <a href="http://www.docbook.org/tdg/en/html/chapter.html" target="_top">chapter</a>
+          </li>
+<li class="listitem">
+            <a href="http://www.docbook.org/tdg/en/html/part.html" target="_top">part</a>
+          </li>
+<li class="listitem">
+            <a href="http://www.docbook.org/tdg/en/html/appendix.html" target="_top">appendix</a>
+          </li>
+<li class="listitem">
+            <a href="http://www.docbook.org/tdg/en/html/preface.html" target="_top">preface</a>
+          </li>
+<li class="listitem">
+            <a href="http://www.docbook.org/tdg/en/html/qandadiv.html" target="_top">qandadiv</a>
+          </li>
+<li class="listitem">
+            <a href="http://www.docbook.org/tdg/en/html/qandaset.html" target="_top">qandaset</a>
+          </li>
+<li class="listitem">
+            <a href="http://www.docbook.org/tdg/en/html/reference.html" target="_top">reference</a>
+          </li>
+<li class="listitem">
+            <a href="http://www.docbook.org/tdg/en/html/set.html" target="_top">set</a>
+          </li>
+</ul></div>
+<p>
+        Boostbook also adds another document type <code class="literal"><a class="link" href="../../boostbook/documenting.html#boostbook.defining" title="Defining a BoostBook library">library</a></code>
+        for documenting software libraries.
+      </p>
+<p>
+        So the documentation for the 'foo' library might start:
+      </p>
+<pre class="programlisting">[library Foo
+    [quickbook 1.5]
+    [id foo]
+    [version 1.0]
+]
+</pre>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="quickbook.syntax.structure.docinfo.attributes"></a><a name="quickbook.ref.attributes"></a><a class="link" href="structure.html#quickbook.syntax.structure.docinfo.attributes" title="Document Info Attributes">Document
+        Info Attributes</a>
+</h4></div></div></div>
+<p>
+          The document info block has a few different types of attributes. They are
+          all optional.
+        </p>
+<h5>
+<a name="quickbook.syntax.structure.docinfo.attributes.h0"></a>
+          <span class="phrase"><a name="quickbook.syntax.structure.docinfo.attributes.quickbook_specific_meta_data"></a></span><a class="link" href="structure.html#quickbook.syntax.structure.docinfo.attributes.quickbook_specific_meta_data">Quickbook
+          specific meta data</a>
+        </h5>
+<pre class="programlisting">[quickbook 1.6]
+</pre>
+<p>
+          The <code class="computeroutput">quickbook</code> attribute declares the version of quickbook
+          the document is written for. In its absence, version 1.1 is assumed. It's
+          recommended that you use <code class="computeroutput">[quickbook 1.6]</code> which is the version
+          described here.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+            The quickbook version also makes some changes to the markup that's generated.
+            Most notably, the ids that are automatically for headers and sections
+            are different in later versions. To minimise disruption, you can use
+            the <code class="literal">compatibility-mode</code> attribute to generate similar
+            markup to the old version:
+          </p>
+<pre class="programlisting">[article Article that was original
+         written in quickbook 1.3
+[quickbook 1.6]
+[compatibility-mode 1.3]
+]
+</pre>
+<p>
+            This feature shouldn't be used for new documents, just for porting old
+            documents to the new version.
+          </p>
+</td></tr>
+</table></div>
+<p>
+          Both the <code class="literal">quickbook</code> and <code class="literal">compatibility-mode</code>
+          tags can be used at the start of the file, before the document info block,
+          and also in files that don't have a document info block.
+        </p>
+<pre class="programlisting">[source-mode teletype]
+</pre>
+<p>
+          The <code class="computeroutput">source-mode</code> attribute sets the initial <a class="link" href="phrase.html#quickbook.ref.source_mode">Source
+          Mode</a>. If it is omitted, the default value of <code class="literal">c++</code>
+          will be used.
+        </p>
+<h5>
+<a name="quickbook.syntax.structure.docinfo.attributes.h1"></a>
+          <span class="phrase"><a name="quickbook.syntax.structure.docinfo.attributes.boostbook_docbook_root_element_a"></a></span><a class="link" href="structure.html#quickbook.syntax.structure.docinfo.attributes.boostbook_docbook_root_element_a">Boostbook/Docbook
+          root element attributes</a>
+        </h5>
+<pre class="programlisting">[id foo]
+</pre>
+<p>
+          <code class="computeroutput">id</code> specifies the id of the document element. If it isn't specified
+          the id is automatically generated from the title. This id is also used
+          to generate the nested ids.
+        </p>
+<pre class="programlisting">[lang en]
+</pre>
+<p>
+          <code class="computeroutput">lang</code> specifies the document language. This is used by docbook
+          to localize the documentation. Note that Boostbook doesn't have any localization
+          support so if you use it to generate the reference documentation it will
+          be in English regardless.
+        </p>
+<p>
+          It should be a language code drawn from ISO 639 (perhaps extended with
+          a country code drawn from ISO 3166, as en-US).
+        </p>
+<pre class="programlisting">[dirname foo]
+</pre>
+<p>
+          <code class="computeroutput">dirname</code> is used to specify the directory name of the library
+          in the repository. This is a boostbook extension so it's only valid for
+          <code class="computeroutput">library</code> documentation blocks. It's used for some boostbook
+          functionality, but for pure quickbook documentation has no practical effect.
+        </p>
+<h5>
+<a name="quickbook.syntax.structure.docinfo.attributes.h2"></a>
+          <span class="phrase"><a name="quickbook.syntax.structure.docinfo.attributes.docbook_metadata"></a></span><a class="link" href="structure.html#quickbook.syntax.structure.docinfo.attributes.docbook_metadata">Docbook
+          Metadata</a>
+        </h5>
+<p>
+          <code class="literal">version</code>, <code class="literal">copyright</code>, <code class="literal">authors</code>,
+          <code class="literal">license</code>, <code class="literal">last-revision</code> and <code class="literal">bibliod</code>
+          are optional information.
+        </p>
+<h5>
+<a name="quickbook.syntax.structure.docinfo.attributes.h3"></a>
+          <span class="phrase"><a name="quickbook.syntax.structure.docinfo.attributes.boostbook_metadata"></a></span><a class="link" href="structure.html#quickbook.syntax.structure.docinfo.attributes.boostbook_metadata">Boostbook
+          Metadata</a>
+        </h5>
+<p>
+          <code class="literal">purpose</code> and <code class="literal">category</code> are boostbook
+          attributes which are only valid for <code class="literal">library</code> documents.
+          If you use them for other document types, quickbook will warn about them,
+          but still use them, generating invalid markup, that's just ignored by the
+          style sheets.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="quickbook.syntax.structure.docinfo.nesting"></a><a class="link" href="structure.html#quickbook.syntax.structure.docinfo.nesting" title="Nesting quickbook documents">Nesting
+        quickbook documents</a>
+</h4></div></div></div>
+<p>
+          Docinfo blocks can only appear at the beginning of a quickbook file, so
+          to create a more complicated document you need to use several quickbook
+          files and use the <a class="link" href="block.html#quickbook.ref.include">include tag</a>
+          to nest them. For example, say you wish to create a book with an introduction
+          and a chapter, you first create a file for the book:
+        </p>
+<pre class="programlisting">[book Simple example
+[quickbook 1.6]
+]
+
+[include introduction.qbk]
+[include chapter.qbk]
+</pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Structuring a document like this was introduced in quickbook 1.6, so
+            the <code class="computeroutput">[quickbook 1.6]</code> docinfo field is required.
+          </p></td></tr>
+</table></div>
+<p>
+          The appropriate document type for an introduction is <code class="computeroutput">preface</code>,
+          so the contents of <code class="computeroutput">introduction.qbk</code> should be something like:
+        </p>
+<pre class="programlisting">[preface Introduction
+[quickbook 1.6]
+]
+
+Write the introduction to the book here....
+</pre>
+<p>
+          And <code class="computeroutput">chapter.qbk</code>:
+        </p>
+<pre class="programlisting">[chapter A chapter
+[quickbook 1.6]
+]
+
+Chapter contents....
+</pre>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="quickbook.syntax.structure.section"></a><a name="quickbook.ref.section"></a><a class="link" href="structure.html#quickbook.syntax.structure.section" title="Sections">Sections</a>
+</h3></div></div></div>
+<p>
+        Quickbook documents are structured using 'sections'. These are used to generate
+        the table of contents, and, when generating html, to split the document into
+        pages. This is optional but a good idea for all but the simplest of documents.
+      </p>
+<p>
+        A sectioned document might look like:
+      </p>
+<pre class="programlisting">[book Title
+    [quickbook 1.5]
+]
+
+[section First Section]
+
+[/...]
+
+[endsect]
+
+[section Second Section]
+
+[/...]
+
+[endsect]
+</pre>
+<p>
+        Sections start with the <code class="computeroutput">section</code> tag, and end with the <code class="computeroutput">[endsect]</code>
+        tag. (<code class="computeroutput">[/...]</code> is a comment, <a class="link" href="../syntax.html#quickbook.ref.comments">described
+        later</a>).
+      </p>
+<p>
+        Sections can be given an optional id:
+      </p>
+<pre class="programlisting">[#quickbook.ref.id]
+[section:id The Section Title]
+</pre>
+<p>
+        <code class="computeroutput">id</code> will be the filename of the generated section. If it is not
+        present, "The Section Title" will be normalized and become the
+        id. Valid characters are <code class="literal">a-Z</code>, <code class="literal">A-Z</code>,
+        <code class="literal">0-9</code> and <code class="literal">_</code>. All non-valid characters
+        are converted to underscore and all upper-case are converted to lower case.
+        Thus: "The Section Title" will be normalized to "the_section_title".
+      </p>
+<p>
+        Sections can nest, and that results in a hierarchy in the table of contents.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002, 2004, 2006 Joel de Guzman,
+      Eric Niebler<br>Copyright &#169; 2010, 2011 Daniel James<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../syntax.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../quickbook.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="phrase.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

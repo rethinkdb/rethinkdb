@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: Implementing Division</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./implementing.html" class="navigation-link">Prev</a>&nbsp;<a href="./higher-order.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./implementing.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./dimensional-analysis.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./tutorial-metafunctions.html" class="navigation-link">Tutorial: Metafunctions and Higher-Order Metaprogramming</a> / <a href="./dimensional-analysis.html" class="navigation-link">Dimensional Analysis</a> / <a href="./implementing-division.html" class="navigation-link">Implementing Division</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="implementing-division">
+<h1><a class="toc-backref" href="./dimensional-analysis.html#id46" name="implementing-division">Implementing Division</a></h1>
+<p>Division is similar to multiplication, but instead of adding
+exponents, we must subtract them.  Rather than writing out a near
+duplicate of <tt class="literal"><span class="pre">plus_f</span></tt>, we can use the following trick to make
+<tt class="literal"><span class="pre">minus_f</span></tt> much simpler:</p>
+<pre class="literal-block">
+struct minus_f
+{
+    template &lt;class T1, class T2&gt;
+    struct apply
+      : mpl::minus&lt;T1,T2&gt; {};
+};
+</pre>
+<!-- @ # The following is OK because we showed how to get at mpl_plus
+prefix.append('#include <boost/mpl/minus.hpp>')
+compile(1)  -->
+<p>Here <tt class="literal"><span class="pre">minus_f::apply</span></tt> uses inheritance to expose the nested
+<tt class="literal"><span class="pre">type</span></tt> of its base class, <tt class="literal"><span class="pre">mpl::minus</span></tt>, so we don't have to
+write:</p>
+<pre class="literal-block">
+typedef typename ...::type type
+</pre>
+<!-- @ignore() -->
+<p>We don't have to write
+<tt class="literal"><span class="pre">typename</span></tt> here (in fact, it would be illegal), because the
+compiler knows that dependent names in <tt class="literal"><span class="pre">apply</span></tt>'s initializer
+list must be base classes. <a class="footnote-reference" href="#plus-too" id="id7" name="id7">[2]</a>  This powerful
+simplification is known as <strong>metafunction forwarding</strong>; we'll apply
+it often as the book goes on. <a class="footnote-reference" href="#edg" id="id8" name="id8">[3]</a></p>
+<table class="footnote" frame="void" id="plus-too" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id7" name="plus-too">[2]</a></td><td>In case you're wondering, the same approach could
+have been applied to <tt class="literal"><span class="pre">plus_f</span></tt>, but since it's a little subtle,
+we introduced the straightforward but verbose formulation
+first.</td></tr>
+</tbody>
+</table>
+<table class="footnote" frame="void" id="edg" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id8" name="edg">[3]</a></td><td>Users of EDG-based compilers should consult <a class="reference" href="./resources.html">the book's</a> Appendix C
+for a caveat about metafunction forwarding.  You can tell whether
+you have an EDG compiler by checking the preprocessor symbol
+<tt class="literal"><span class="pre">__EDG_VERSION__</span></tt>, which is defined by all EDG-based compilers.</td></tr>
+</tbody>
+</table>
+<p>Syntactic tricks notwithstanding, writing trivial classes to wrap
+existing metafunctions is going to get boring pretty quickly.  Even
+though the definition of <tt class="literal"><span class="pre">minus_f</span></tt> was far less verbose than that
+of <tt class="literal"><span class="pre">plus_f</span></tt>, it's still an awful lot to type.  Fortunately, MPL gives
+us a <em>much</em> simpler way to pass metafunctions around.  Instead of
+building a whole metafunction class, we can invoke <tt class="literal"><span class="pre">transform</span></tt>
+this way:</p>
+<pre class="literal-block">
+typename mpl::transform&lt;D1,D2, <strong>mpl::minus&lt;_1,_2&gt;</strong> &gt;::type
+</pre>
+<!-- @# Make it harmless but legit C++ so we can syntax check later
+example.wrap('template <class D1,class D2>', 'fff(D1,D2);')
+
+# We explain placeholders below, so we can henceforth use them
+# without qualification -->
+<p>Those funny looking arguments (<tt class="literal"><span class="pre">_1</span></tt> and <tt class="literal"><span class="pre">_2</span></tt>) are known as
+<strong>placeholders</strong>, and they signify that when the <tt class="literal"><span class="pre">transform</span></tt>'s
+<tt class="literal"><span class="pre">BinaryOperation</span></tt> is invoked, its first and second arguments will
+be passed on to <tt class="literal"><span class="pre">minus</span></tt> in the positions indicated by <tt class="literal"><span class="pre">_1</span></tt> and
+<tt class="literal"><span class="pre">_2</span></tt>, respectively.  The whole type <tt class="literal"><span class="pre">mpl::minus&lt;_1,_2&gt;</span></tt> is
+known as a <strong>placeholder expression</strong>.</p>
+<div class="note">
+<p class="admonition-title first">Note</p>
+<p>MPL's placeholders are in the <tt class="literal"><span class="pre">mpl::placeholders</span></tt>
+namespace and defined in <tt class="literal"><span class="pre">boost/mpl/placeholders.hpp</span></tt>.  In
+this book we will usually assume that you have written:</p>
+<pre class="literal-block">
+#include&lt;boost/mpl/placeholders.hpp&gt;
+using namespace mpl::placeholders;
+</pre>
+<p>so that they can be accessed without qualification.</p>
+</div>
+<!-- @ prefix.append(str(example)) # move to common prefix
+ignore() -->
+<p>Here's our division operator written using placeholder
+expressions:</p>
+<pre class="literal-block">
+template &lt;class T, class D1, class D2&gt;
+quantity&lt; 
+    T
+  , typename mpl::transform&lt;D1,D2,<strong>mpl::minus&lt;_1,_2&gt;</strong> &gt;::type
+&gt;
+operator/(quantity&lt;T,D1&gt; x, quantity&lt;T,D2&gt; y)
+{
+   typedef typename 
+     mpl::transform&lt;D1,D2,<strong>mpl::minus&lt;_1,_2&gt;</strong> &gt;::type dim;
+
+   return quantity&lt;T,dim&gt;( x.value() / y.value() );
+}
+</pre>
+<!-- @compile('all', pop = 1) -->
+<p>This code is considerably simpler.  We can simplify it even further
+by factoring the code that calculates the new dimensions into its
+own metafunction:</p>
+<pre class="literal-block">
+template &lt;class D1, class D2&gt;
+struct <strong>divide_dimensions</strong>
+  : mpl::transform&lt;D1,D2,mpl::minus&lt;_1,_2&gt; &gt; // forwarding again
+{};
+
+template &lt;class T, class D1, class D2&gt;
+quantity&lt;T, typename <strong>divide_dimensions&lt;D1,D2&gt;</strong>::type&gt;
+operator/(quantity&lt;T,D1&gt; x, quantity&lt;T,D2&gt; y)
+{
+   return quantity&lt;T, typename <strong>divide_dimensions&lt;D1,D2&gt;</strong>::type&gt;(
+      x.value() / y.value());
+}
+</pre>
+<!-- @compile('all', pop = None) -->
+<p>Now we can verify our &quot;force-on-a-laptop&quot; computation by reversing
+it, as follows:</p>
+<pre class="literal-block">
+quantity&lt;float,mass&gt; m2 = f/a;
+float rounding_error = std::abs((m2 - m).value());
+</pre>
+<!-- @example.wrap('''
+#include <cassert>
+#include <cmath>
+int main()
+{
+    quantity<float,mass> m(5.0f);
+    quantity<float,acceleration> a(9.8f);
+    quantity<float,force> f = m * a;
+''','''
+    assert(rounding_error < .001);
+}''')
+
+dimensional_analysis = stack[:-1] # save for later
+
+run('all') -->
+<p>If we got everything right, <tt class="literal"><span class="pre">rounding_error</span></tt> should be very close
+to zero.  These are boring calculations, but they're just the sort
+of thing that could ruin a whole program (or worse) if you got them
+wrong.  If we had written <tt class="literal"><span class="pre">a/f</span></tt> instead of <tt class="literal"><span class="pre">f/a</span></tt>, there would have
+been a compilation error, preventing a mistake from propagating
+throughout our program.</p>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./implementing.html" class="navigation-link">Prev</a>&nbsp;<a href="./higher-order.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./implementing.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./dimensional-analysis.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

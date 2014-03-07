@@ -1,0 +1,213 @@
+##
+##  Copyright (c) 1999-2010, International Business Machines Corporation and
+##  others. All Rights Reserved.
+##
+##
+##  THE PURPOSE OF THIS TEST
+##
+##     This tests all public header files (
+##  
+##     To run it simply type 'make check'. You SHOULD see:
+##
+##  unicode/uchar.h -	0
+##  unicode/uchriter.h -	0
+##  unicode/ucnv.h -	0
+##
+##    .. etc.  Anything other than zero is an error. (except for the deprecation tests, where '1' is the correct value)
+##              
+##
+##  If a header fails the C compile because it's a C++ header, add it to the
+##  file named 'cxxfiles.txt' in this directory.
+##
+##  If a header fails because it is deprecated, add it to the 'dfiles.txt'
+##
+##
+
+## Source directory information
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+
+top_builddir = ../..
+subdir = test/hdrtst
+
+include $(shell icu-config --incfile)
+DIRS=$(prefix)/include/unicode
+LDIRS=$(prefix)/include/layout
+ECHO_T=@ECHO_T@
+ECHO_C=@ECHO_C@
+ECHO_N=@ECHO_N@
+
+all: 
+	@echo Please read this Makefile for more information.
+	@echo run \'$(MAKE) check\' to run the test 
+	
+E_NUM=8
+E_D="[1/$(E_NUM)] Deprecated: "
+E_C="[2/$(E_NUM)] C  : "
+E_CXX="[3/$(E_NUM)] C++: "
+E_CXX_L="[4/$(E_NUM)] C++ layout: "
+E_DRF="[5/$(E_NUM)] Hide Draft: "
+E_DEP="[6/$(E_NUM)] Hide Deprecated: "
+E_INT="[7/$(E_NUM)] Hide Internal: "
+E_OBS="[8/$(E_NUM)] Hide Obsolete: "
+
+check: dtest ctest cpptest lotest doclean drafttest deprtest internaltest obsoletetest
+	@echo "All header tests have finished. If deprecation #errors appeared, "
+	@echo "       add files to hdrtst/dfiles.txt"
+	@echo "#################################################################"
+	@echo
+
+# break dependency
+doclean:
+	make clean
+
+cpptest:
+	@echo "C++ test #######################################################"
+	@rm -f Makefile.sub
+	@echo 'Testing all header files under C++'
+	@echo 'the number after the hyphen (-) refers to the exit code - should be zero!'
+	@for file in `ls $(prefix)/include/unicode/*.h | fgrep -v -f $(srcdir)/pfiles.txt`; do \
+	  incfile=`basename $$file .h` ; \
+	  echo $(ECHO_N) "$(E_CXX) unicode/$$incfile.h 	- $(ECHO_C)" ; \
+	  echo '#include "'unicode/$$incfile'.h"' > ht_$$incfile.cpp ; \
+	  echo 'void junk(){}' >> ht_$$incfile.cpp ; \
+          $(COMPILE.cc) -c $(cppflags) ht_$$incfile.cpp ; \
+	  echo $$? ; \
+	done
+
+lotest:
+	@echo "Layout test #######################################################"
+	@rm -f Makefile.sub
+	@echo 'Testing all layout  files under C++'
+	@echo 'the number after the hyphen (-) refers to the exit code - should be zero!'
+	@for file in $(prefix)/include/layout/*.h; do \
+	  incfile=`basename $$file .h` ; \
+	  echo $(ECHO_N) "$(E_CXX_L) layout/$$incfile.h 	- $(ECHO_C)" ; \
+	  echo '#include "'layout/$$incfile'.h"' > ht_$$incfile.cpp ; \
+	  echo 'void junk(){}' >> ht_$$incfile.cpp ; \
+          $(COMPILE.cc) -c $(cppflags) -I$(prefix)/include/layout ht_$$incfile.cpp ; \
+	  echo $$? ; \
+	done
+
+dtest:
+	@rm -f Makefile.sub
+	@echo "Deprecation #######################################################"
+	@echo 'Should be 1 in each case if file is properly obsoleted.'
+	@for stub in `cat $(srcdir)/dfiles.txt | grep -v '^#'` ; do \
+	  file=unicode/$$stub \
+	  incfile=`basename $$file .h` ; \
+	  echo $(ECHO_N) "$(E_D) unicode/$$incfile.h 	- $(ECHO_C)" ; \
+	  echo '#include "'unicode/$$incfile'.h"' > ht_$$incfile.cpp ; \
+	  echo 'void junk(){}' >> ht_$$incfile.cpp ; \
+	  echo > ht_dep.junk ; \
+          $(COMPILE.cc) -c $(cppflags) ht_$$incfile.cpp 2>&1 | sed -e 's/^.*#error[^"]*"//' | fgrep -v ht_ | tee ht_dep.junk | fgrep -v "$$incfile.h header is obsolete" ; \
+	  RES=$$? ; \
+	  echo $$RES ; \
+	  fgrep -q "$$incfile.h header is obsolete" ht_dep.junk || echo "** FAIL Header unicode/$$incfile.h is not obsoleted properly" ; \
+	  rm -f unicode/$$stub ; \
+	done
+	@echo "$(E_D): Done. (It is possible there are no deprecated headers at the moment.)"
+
+#  < ht_dep.junk &&  ; \
+
+
+ctest:
+	@echo "C Test #######################################################"
+	@echo "  (if any C++ files show up here, stop the test and add them to hdrtst/cxxfiles.txt) "
+	@rm -f Makefile.sub
+	@echo Building test harness for header files in ../../common and ../../i18n
+	@echo 'the number after the hyphen (-) refers to the exit code - should be zero!'
+	@for file in `ls $(prefix)/include/unicode/*.h | fgrep -v -f $(srcdir)/cxxfiles.txt | tee cfiles.txt`; do \
+	  incfile=`basename $$file .h` ; \
+	  echo $(ECHO_N) "$(E_C) unicode/$$incfile.h 	- $(ECHO_C)" ; \
+	  echo '#include "'unicode/$$incfile'.h"' > ht_$$incfile.c ; \
+	  echo 'void junk(void);' >> ht_$$incfile.c ; \
+	  echo 'void junk(){}' >> ht_$$incfile.c ; \
+          $(COMPILE.c) -c $(cppflags) ht_$$incfile.c ; \
+	  RES=$$? ; \
+	  echo $$RES ; \
+	done
+    
+drafttest:
+	@echo "U_HIDE_DRAFT_API Test #######################################################"
+	@rm -f Makefile.sub
+	@echo Building test harness for header files in ../../common and ../../i18n
+	@echo 'the number after the hyphen (-) refers to the exit code - should be zero!'
+	@for file in `ls $(prefix)/include/unicode/*.h | fgrep -v -f $(srcdir)/pfiles.txt`; do \
+	  incfile=`basename $$file .h` ; \
+	  echo $(ECHO_N) "$(E_DRF) unicode/$$incfile.h 	- $(ECHO_C)" ; \
+	  echo '#define U_HIDE_DRAFT_API' > hd_$$incfile.c; \
+	  echo '#include "'unicode/$$incfile'.h"' >> ht_$$incfile.c ; \
+	  echo 'void junk(void);' >> hd_$$incfile.c ; \
+	  echo 'void junk(){}' >> hd_$$incfile.c ; \
+          $(COMPILE.cc) -c $(cppflags) hd_$$incfile.c ; \
+	  RES=$$? ; \
+	  echo $$RES ; \
+	done
+    
+deprtest:
+	@echo "U_HIDE_DEPRECATED_API Test #######################################################"
+	@rm -f Makefile.sub
+	@echo Building test harness for header files in ../../common and ../../i18n
+	@echo 'the number after the hyphen (-) refers to the exit code - should be zero!'
+	@for file in `ls $(prefix)/include/unicode/*.h | fgrep -v -f $(srcdir)/pfiles.txt`; do \
+	  incfile=`basename $$file .h` ; \
+	  echo $(ECHO_N) "$(E_DEP) unicode/$$incfile.h 	- $(ECHO_C)" ; \
+	  echo '#define U_HIDE_DEPRECATED_API' > hdp_$$incfile.c; \
+	  echo '#include "'unicode/$$incfile'.h"' >> hdp_$$incfile.c ; \
+	  echo 'void junk(void);' >> hdp_$$incfile.c ; \
+	  echo 'void junk(){}' >> hdp_$$incfile.c ; \
+          $(COMPILE.cc) -c $(cppflags) hdp_$$incfile.c ; \
+	  RES=$$? ; \
+	  echo $$RES ; \
+	done
+
+internaltest:
+	@echo "U_HIDE_INTERNAL_API Test #######################################################"
+	@rm -f Makefile.sub
+	@echo Building test harness for header files in ../../common and ../../i18n
+	@echo 'the number after the hyphen (-) refers to the exit code - should be zero!'
+	@for file in `ls $(prefix)/include/unicode/*.h | fgrep -v -f $(srcdir)/pfiles.txt`; do \
+	  incfile=`basename $$file .h` ; \
+	  echo $(ECHO_N) "$(E_INT) unicode/$$incfile.h 	- $(ECHO_C)" ; \
+	  echo '#define U_HIDE_INTERNAL_API' > hin_$$incfile.c; \
+	  echo '#include "'unicode/$$incfile'.h"' >> hin_$$incfile.c ; \
+	  echo 'void junk(void);' >> hin_$$incfile.c ; \
+	  echo 'void junk(){}' >> hin_$$incfile.c ; \
+          $(COMPILE.cc) -c $(cppflags) hin_$$incfile.c ; \
+	  RES=$$? ; \
+	  echo $$RES ; \
+	done
+
+obsoletetest:
+	@echo "U_HIDE_OBSOLETE_API Test #######################################################"
+	@rm -f Makefile.sub
+	@echo Building test harness for header files in ../../common and ../../i18n
+	@echo 'the number after the hyphen (-) refers to the exit code - should be zero!'
+	@for file in `ls $(prefix)/include/unicode/*.h | fgrep -v -f $(srcdir)/pfiles.txt`; do \
+	  incfile=`basename $$file .h` ; \
+	  echo $(ECHO_N) "$(E_OBS) unicode/$$incfile.h 	- $(ECHO_C)" ; \
+	  echo '#define U_HIDE_OBSOLETE_API' > hob_$$incfile.c; \
+	  echo '#include "'unicode/$$incfile'.h"' >> hob_$$incfile.c ; \
+	  echo 'void junk(void);' >> hob_$$incfile.c ; \
+	  echo 'void junk(){}' >> hob_$$incfile.c ; \
+          $(COMPILE.cc) -c $(cppflags) hob_$$incfile.c ; \
+	  RES=$$? ; \
+	  echo $$RES ; \
+	done
+    
+clean:
+	-@echo cleaning..
+	-@rm -f *.h *.c *.cpp *.o *.junk cfiles.txt
+
+distclean: clean
+	-@rm -f Makefile
+
+Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
+	cd $(top_builddir) \
+	&& CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
+
+
+
+.PHONY:	doclean check all cpptest lotest dtest ctest clean distclean
+

@@ -1,0 +1,76 @@
+[/
+    Copyright (c) 2008-2009 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[/ //= Iterator related ===================================================================]
+[section Iterator related]
+
+
+[table
+[[['*Synopsis Complexities*]]                [__ch_itv_sets__][__ch_itv_maps__][__ch_ele_sets__][__ch_ele_maps__]   ]
+[[`J T::begin()`]                                  [__O1__]    [__O1__]   [__O1__]    [__O1__]   ]
+[[`J T::end()`]                                    [__O1__]    [__O1__]   [__O1__]    [__O1__]   ]
+[[`J T::rbegin()`]                                 [__O1__]    [__O1__]   [__O1__]    [__O1__]   ]
+[[`J T::rend()`]                                   [__O1__]    [__O1__]   [__O1__]    [__O1__]   ]
+[[`J T::lower_bound(const key_type&)`]            [__Olgn__]  [__Olgn__] [__Olgn__]  [__Olgn__] ]
+[[`J T::upper_bound(const key_type&)`]            [__Olgn__]  [__Olgn__] [__Olgn__]  [__Olgn__] ]
+[[`pair<J,J> T::equal_range(const key_type&)`]    [__Olgn__]  [__Olgn__] [__Olgn__]  [__Olgn__] ]
+]
+
+[table
+[[['*Iterator related*]]                                                                                    []     ]
+[[``      iterator T::begin()
+const_iterator T::begin()const``]                          [Returns an iterator to the first value of the container.]                        ]
+[[``      iterator T::end()
+const_iterator T::end()const``]                            [Returns an iterator to a position `end()` after the last value of the container.]]
+[[``      reverse_iterator T::rbegin()
+const_reverse_iterator T::rbegin()const``]                 [Returns a reverse iterator to the last value of the container.]                  ]
+[[``      reverse_iterator T::rend()
+const_reverse_iterator T::rend()const``]                   [Returns a reverse iterator to a position `rend()` before the first value of the container.]]
+[[``      iterator T::lower_bound(const key_type& k)
+const_iterator T::lower_bound(const key_type& key)const``][Returns an iterator that points to the first element `first`, that does not compare less than `key_type key`.
+                                                            `first` can be equal or greater than `key`, or it may overlap `key` for interval containers.]]
+[[``      iterator T::upper_bound(const key_type&)
+const_iterator T::upper_bound(const key_type&)const``]    [Returns an iterator that points to the first element `past`, that compares greater than `key_type key`.]]
+[[``
+            pair<iterator,iterator> T::equal_range(const key_type& key)
+pair<const_iterator,const_iterator> T::equal_range(const key_type& key)const
+``
+]                                                                                                           
+    [Returns a range `[first, past)` of iterators to all elements of the container
+     that compare neither less than nor greater than `key_type key`.
+     For element containers __icl_set__ and __icl_map__, `equal_range` 
+     contains at most one iterator pointing the element equal to `key`,
+     if it exists.
+     
+     For interval containers `equal_range` contains iterators to all
+     intervals that overlap interval `key`.
+    ]]
+]
+
+[/
+Functions `begin`, `end`, `rbegin`, `rend` need ['*constant time*].
+Complexity of `lower_bound`, `upper_bound` and `equal_range` are 
+['*logarithmic*] in the `iterative_size` of the container. 
+]
+
+['*See also . . .*]
+[table
+[]
+[[[link boost_icl.function_reference.element_iteration ['*Element iteration*]] ]]
+]
+['*Back to section . . .*]
+[table
+[]
+[[[link function_synopsis_table ['*Function Synopsis*]]    ]]
+[[[link boost_icl.interface ['*Interface*]]                ]]
+]
+
+[endsect][/ Iterator related]
+
+

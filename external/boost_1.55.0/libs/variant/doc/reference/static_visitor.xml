@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<header name="boost/variant/static_visitor.hpp">
+  <namespace name="boost">
+
+    <class name="static_visitor">
+      <template>
+        <template-type-parameter name="ResultType"/>
+      </template>
+
+      <purpose>Convenient base type for static visitors.</purpose>
+      <description>
+        <simpara>Denotes the intent of the deriving class as meeting the
+          requirements of a static visitor of some type. Also exposes the
+          inner type <code>result_type</code> as required by the
+          <link linkend="variant.concepts.static-visitor"><emphasis>StaticVisitor</emphasis></link>
+          concept.</simpara>
+        <simpara><emphasis role="bold">Notes</emphasis>:
+          <code>static_visitor</code> is intended for use as a base type only
+          and is therefore noninstantiable.</simpara>
+      </description>
+
+      <typedef name="result_type">
+        <type>ResultType</type>
+        <purpose>Exposes result_type member as required by StaticVisitor concept.</purpose>
+      </typedef>
+    </class>
+
+  </namespace>
+</header>

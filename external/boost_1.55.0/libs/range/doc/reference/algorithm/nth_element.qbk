@@ -1,0 +1,67 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:nth_element nth_element]
+
+[heading Prototype]
+
+``
+template<class RandomAccessRange>
+RandomAccessRange& nth_element(
+    RandomAccessRange& rng,
+    typename range_iterator<RandomAccessRange>::type nth);
+
+template<class RandomAccessRange>
+const RandomAccessRange& nth_element(
+    const RandomAccessRange& rng,
+    typename range_iterator<const RandomAccessRange>::type nth);
+
+template<class RandomAccessRange>
+RandomAccessRange& nth_element(
+    RandomAccessRange& rng,
+    typename range_iterator<RandomAccessRange>::type nth,
+    BinaryPredicate sort_pred);
+
+template<class RandomAccessRange>
+const RandomAccessRange& nth_element(
+    const RandomAccessRange& rng,
+    typename range_iterator<const RandomAccessRange>::type nth,
+    BinaryPredicate sort_pred);
+``
+
+[heading Description]
+
+`nth_element` partially orders a range of elements. `nth_element` arranges the range `rng` such that the element corresponding with the iterator `nth` is the same as the element that would be in that position if `rng` has been sorted.
+
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/nth_element.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate version:]
+
+* `RandomAccessRange` is a model of the __random_access_range__ Concept.
+* `RandomAccessRange` is mutable.
+* `RandomAccessRange`'s value type is a model of the `LessThanComparableConcept`.
+* The ordering relation on `RandomAccessRange`'s value type is a [*/strict weak ordering/], as defined in the `LessThanComparableConcept` requirements.
+
+
+[*For the predicate version:]
+
+* `RandomAccessRange` is a model of the __random_access_range__ Concept.
+* `RandomAccessRange` is mutable.
+* `BinaryPredicate` is a model of the `StrictWeakOrderingConcept`.
+* `RandomAccessRange`'s value type is convertible to both of `BinaryPredicate`'s argument types.
+
+
+[heading Complexity]
+
+On average, linear in `distance(rng)`.
+
+[endsect]
+
+

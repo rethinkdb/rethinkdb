@@ -1,0 +1,279 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Tag Types</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.FunctionTypes 2.5">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="synthesis.html" title="Class templates for type synthesis">
+<link rel="next" href="macros.html" title="Macros">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="synthesis.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="macros.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_functiontypes.reference.tag_types"></a><a class="link" href="tag_types.html" title="Tag Types">Tag Types</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="tag_types.html#boost_functiontypes.reference.tag_types.variadic">variadic</a></span></dt>
+<dt><span class="section"><a href="tag_types.html#boost_functiontypes.reference.tag_types.non_variadic">non_variadic</a></span></dt>
+<dt><span class="section"><a href="tag_types.html#boost_functiontypes.reference.tag_types.default_cc">default_cc</a></span></dt>
+<dt><span class="section"><a href="tag_types.html#boost_functiontypes.reference.tag_types.const_qualified">const_qualified</a></span></dt>
+<dt><span class="section"><a href="tag_types.html#boost_functiontypes.reference.tag_types.non_const">non_const</a></span></dt>
+<dt><span class="section"><a href="tag_types.html#boost_functiontypes.reference.tag_types.volatile_qualified">volatile_qualified</a></span></dt>
+<dt><span class="section"><a href="tag_types.html#boost_functiontypes.reference.tag_types.non_volatile">non_volatile</a></span></dt>
+<dt><span class="section"><a href="tag_types.html#boost_functiontypes.reference.tag_types.non_cv">non_cv</a></span></dt>
+<dt><span class="section"><a href="tag_types.html#boost_functiontypes.reference.tag_types.const_non_volatile">const_non_volatile</a></span></dt>
+<dt><span class="section"><a href="tag_types.html#boost_functiontypes.reference.tag_types.volatile_non_const">volatile_non_const</a></span></dt>
+<dt><span class="section"><a href="tag_types.html#boost_functiontypes.reference.tag_types.cv_qualfied">cv_qualfied</a></span></dt>
+<dt><span class="section"><a href="tag_types.html#boost_functiontypes.reference.tag_types.null_tag">null_tag</a></span></dt>
+<dt><span class="section"><a href="tag_types.html#boost_functiontypes.reference.tag_types.tag">tag</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.tag_types.variadic"></a><a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.variadic" title="variadic">variadic</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span> <span class="identifier">variadic</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">property_tags</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          States that a function type takes a variable number of arguments through
+          an ellipsis parameter (such as <code class="literal">printf</code>).
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.tag_types.non_variadic"></a><a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.non_variadic" title="non_variadic">non_variadic</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span> <span class="identifier">non_variadic</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">property_tags</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          States that a function type does not have an ellipsis parameter.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.tag_types.default_cc"></a><a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.default_cc" title="default_cc">default_cc</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span> <span class="identifier">default_cc</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">property_tags</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          States that a function type encodes the default calling convention.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.tag_types.const_qualified"></a><a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.const_qualified" title="const_qualified">const_qualified</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span> <span class="identifier">const_qualified</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">property_tags</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          States that a function type is const qualified.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.tag_types.non_const"></a><a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.non_const" title="non_const">non_const</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span> <span class="identifier">non_const</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">property_tags</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          States that a function type is not const qualified.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.tag_types.volatile_qualified"></a><a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.volatile_qualified" title="volatile_qualified">volatile_qualified</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span> <span class="identifier">volatile_qualified</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">property_tags</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          States that a function type is volatile qualified.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.tag_types.non_volatile"></a><a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.non_volatile" title="non_volatile">non_volatile</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span> <span class="identifier">non_volatile</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">property_tags</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          States that a function type is not volatile qualified.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.tag_types.non_cv"></a><a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.non_cv" title="non_cv">non_cv</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span> <span class="identifier">non_cv</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">property_tags</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          States that a function type is neither const nor volatile qualified. Equivalent
+          to <code class="computeroutput"><span class="identifier">__tag</span><span class="special">&lt;</span><span class="identifier">__non_const</span><span class="special">,</span><span class="identifier">__non_volatile</span><span class="special">&gt;</span></code>,
+          but involves fewer template instantiations when evaluated.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.tag_types.const_non_volatile"></a><a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.const_non_volatile" title="const_non_volatile">const_non_volatile</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span> <span class="identifier">const_non_volatile</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">property_tags</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          States that a function type is const but not volatile qualified. Equivalent
+          to <code class="computeroutput"><span class="identifier">__tag</span><span class="special">&lt;</span><span class="identifier">__const_qualified</span><span class="special">,</span><span class="identifier">__non_volatile</span><span class="special">&gt;</span></code>,
+          but involves fewer template instantiations when evaluated.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.tag_types.volatile_non_const"></a><a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.volatile_non_const" title="volatile_non_const">volatile_non_const</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span> <span class="identifier">volatile_non_const</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">property_tags</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          States that a function type is volatile but not const qualified. Equivalent
+          to <code class="computeroutput"><span class="identifier">__tag</span><span class="special">&lt;</span><span class="identifier">__volatile_qualified</span><span class="special">,</span><span class="identifier">__non_const</span><span class="special">&gt;</span></code>,
+          but involves fewer template instantiations when evaluated.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.tag_types.cv_qualfied"></a><a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.cv_qualfied" title="cv_qualfied">cv_qualfied</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span> <span class="identifier">cv_qualified</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">property_tags</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          States that a function type is both const and volatile qualified. Equivalent
+          to <code class="computeroutput"><span class="identifier">__tag</span><span class="special">&lt;</span><span class="identifier">__const_qualified</span><span class="special">,</span><span class="identifier">__volatile_qualified</span><span class="special">&gt;</span></code>,
+          but involves fewer template instantiations when evaluated.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.tag_types.null_tag"></a><a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.null_tag" title="null_tag">null_tag</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span> <span class="identifier">null_tag</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">property_tags</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          States nothing.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.tag_types.tag"></a><a class="link" href="tag_types.html#boost_functiontypes.reference.tag_types.tag" title="tag">tag</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Tag1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tag2</span><span class="special">,</span> 
+    <span class="keyword">class</span> <span class="identifier">Tag3</span> <span class="special">=</span> <span class="identifier">null_tag</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Tag4</span> <span class="special">=</span> <span class="identifier">null_tag</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">tag</span><span class="special">;</span>
+</pre>
+<p>
+          <span class="bold"><strong>Header</strong></span>
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">function_types</span><span class="special">/</span><span class="identifier">property_tags</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term"><code class="literal">Tag<span class="emphasis"><em>N</em></span></code></span></dt>
+<dd><p>
+                Property tag
+              </p></dd>
+<dt><span class="term"><code class="literal">tag&lt;Tag1,Tag2...&gt;</code></span></dt>
+<dd><p>
+                Compound property tag
+              </p></dd>
+</dl>
+</div>
+<p>
+          Combination of up to four property tags. If the arguments describe different
+          values for the same property the value of the rightmost argument is used.
+        </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2004-2007 Tobias
+      Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="synthesis.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="macros.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

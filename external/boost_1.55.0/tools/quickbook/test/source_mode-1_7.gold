@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="source_mode_test" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Source Mode Test</title>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <tbody>
+        <row>
+          <entry>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">main</phrase><phrase role="special">()</phrase> <phrase role="special">{}</phrase></programlisting>
+          </entry>
+          <entry>
+<programlisting><phrase role="keyword">void</phrase> <phrase role="identifier">foo</phrase><phrase role="special">()</phrase> <phrase role="special">{}</phrase></programlisting>
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+<programlisting>Plain text...</programlisting>
+  <para>
+    <code><phrase role="keyword">int</phrase> <phrase role="identifier">main</phrase><phrase
+    role="special">()</phrase> <phrase role="special">{}</phrase></code> but <code>plain
+    text</code>.
+  </para>
+  <itemizedlist>
+    <listitem>
+      <simpara>
+        Sadly this doesn't work.
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        <code>int main() {}</code>
+      </simpara>
+    </listitem>
+  </itemizedlist>
+</article>

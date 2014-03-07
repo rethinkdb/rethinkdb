@@ -1,0 +1,79 @@
+<?xml version="1.0" ?>
+<!--
+  Copyright 2008 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<concept name="Transform" category="utility">
+  <param name="Tn" role="transform-type" />
+  <param name="Expr" role="expression-type" />
+  <param name="State" role="state-type" />
+  <param name="Data" role="data-type" />
+
+  <models-sentence>
+    The type <arg num="1" /> must be a model of <self/>.
+  </models-sentence>
+
+  <description>
+    <para>
+      A Transform is a PrimitiveTransform, a CallableTransform
+      or an ObjectTransform.
+    </para>
+  </description>
+
+  <notation variables="expr">
+    <sample-value>
+      <type name="Expr" />
+    </sample-value>
+  </notation>
+
+  <notation variables="state">
+    <sample-value>
+      <type name="State" />
+    </sample-value>
+  </notation>
+
+  <notation variables="data">
+    <sample-value>
+      <type name="Data" />
+    </sample-value>
+  </notation>
+
+  <associated-type name="result_type">
+    <get-member-type name="type">
+      <apply-template name="boost::result_of">
+        <type name="when&lt; _, Tn &gt;(Expr, State, Data)"/>
+      </apply-template>
+    </get-member-type>
+    <description>
+      <simpara>The result of applying the Transform.</simpara>
+    </description>
+  </associated-type>
+
+  <valid-expression name="Apply Transform">
+    <apply-function name="when&lt; _, Tn &gt;()">
+      <sample-value>
+        <type name="Expr" />
+      </sample-value>
+      <sample-value>
+        <type name="State" />
+      </sample-value>
+      <sample-value>
+        <type name="Data" />
+      </sample-value>
+    </apply-function>
+    <return-type>
+      <require-same-type testable="yes">
+        <type name="result_type"/>
+      </require-same-type>
+    </return-type>
+    <semantics>Applies the transform.</semantics>
+  </valid-expression>
+
+  <example-model>
+    <type name="boost::proto::_child(boost::proto::_left)" />
+  </example-model>
+
+</concept>

@@ -1,0 +1,148 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:synopsis Synopsis]
+
+``
+namespace boost
+{
+    //
+    // Single Pass Range metafunctions
+    //
+
+    template< class T >
+    struct range_iterator;
+
+    template< class T >
+    struct range_value;
+
+    template< class T >
+    struct range_reference;
+
+    template< class T >
+    struct range_pointer;
+
+    template< class T >
+    struct range_category;
+
+    //
+    // Forward Range metafunctions
+    //
+
+    template< class T >
+    struct range_difference;
+
+    //
+    // Bidirectional Range metafunctions
+    //
+
+    template< class T >
+    struct range_reverse_iterator;
+
+    //
+    // Single Pass Range functions
+    //
+
+    template< class T >
+    typename range_iterator<T>::type
+    begin( T& r );
+
+    template< class T >
+    typename range_iterator<const T>::type
+    begin( const T& r );
+
+    template< class T >
+    typename range_iterator<T>::type
+    end( T& r );
+
+    template< class T >
+    typename range_iterator<const T>::type
+    end( const T& r );
+
+    template< class T >
+    bool
+    empty( const T& r );
+
+    //
+    // Forward Range functions
+    //
+
+    template< class T >
+    typename range_difference<T>::type
+    distance( const T& r );
+
+    //
+    // Bidirectional Range functions
+    //
+
+    template< class T >
+    typename range_reverse_iterator<T>::type
+    rbegin( T& r );
+
+    template< class T >
+    typename range_reverse_iterator<const T>::type
+    rbegin( const T& r );
+
+    template< class T >
+    typename range_reverse_iterator<T>::type
+    rend( T& r );
+
+    template< class T >
+    typename range_reverse_iterator<const T>::type
+    rend( const T& r );
+
+    //
+    // Random Access Range functions
+    //
+
+    template< class T >
+    typename range_difference<T>::type
+    size( const T& r );
+
+    //
+    // Special const Range functions
+    //
+
+    template< class T >
+    typename range_iterator<const T>::type
+    const_begin( const T& r );
+
+    template< class T >
+    typename range_iterator<const T>::type
+    const_end( const T& r );
+
+    template< class T >
+    typename range_reverse_iterator<const T>::type
+    const_rbegin( const T& r );
+
+    template< class T >
+    typename range_reverse_iterator<const T>::type
+    const_rend( const T& r );
+
+    //
+    // String utilities
+    //
+
+    template< class T >
+    iterator_range< ... see below ... >
+    as_literal( T& r );
+
+    template< class T >
+    iterator_range< ... see below ... >
+    as_literal( const T& r );
+
+    template< class T >
+    iterator_range< typename range_iterator<T>::type >
+    as_array( T& r );
+
+    template< class T >
+    iterator_range< typename range_iterator<const T>::type >
+    as_array( const T& r );
+
+} // namespace 'boost'
+``
+
+[endsect]
+

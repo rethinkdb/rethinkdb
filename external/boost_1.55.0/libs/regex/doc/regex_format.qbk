@@ -1,0 +1,59 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:regex_format regex_format (Deprecated)]
+
+The algorithm `regex_format` is deprecated; new code should use 
+[match_results_format] instead.  Existing code will continue to compile, 
+the following documentation is taken from the previous version of Boost.Regex and 
+will not be further updated:
+
+[h4 Algorithm regex_format]
+
+   #include <boost/regex.hpp>
+
+The algorithm `regex_format` takes the results of a match and creates a 
+new string based upon a format string, `regex_format` can be used for 
+search and replace operations:
+
+   template <class OutputIterator, class iterator, class Allocator, class Formatter>
+   OutputIterator regex_format(OutputIterator out,
+                              const match_results<iterator, Allocator>& m,
+                              Formatter fmt,
+                              match_flag_type flags = 0);
+
+The library also defines the following convenience variation of 
+`regex_format`, which returns the result directly as a string, rather 
+than outputting to an iterator.
+
+[note This version may not be available, or may be available in a more limited 
+form, depending upon your compilers capabilities]
+
+   template <class iterator, class Allocator, class Formatter>
+   std::basic_string<charT> regex_format
+                                    (const match_results<iterator, Allocator>& m, 
+                                    Formatter fmt,
+                                    match_flag_type flags = 0);
+
+Parameters to the main version of the function are passed as follows:
+
+[table
+[[Parameter][Description]]
+[[`OutputIterator out`][An output iterator type, the output string is sent to this iterator. Typically this would be a std::ostream_iterator. 	 ]]
+[[`const match_results<iterator, Allocator>& m`][An instance of [match_results] obtained from one of the matching algorithms above, and denoting what matched. 	 ]]
+[[`Formatter fmt`][Either a format string that determines how the match is transformed into the new string, or a functor that computes the new string from /m/ - see [match_results_format]. 	 ]]
+[[`unsigned flags`][Optional flags which describe how the format string is to be interpreted. 	 ]]
+]
+
+Format flags are described under [match_flag_type].
+
+The format string syntax (and available options) is described more fully 
+under [link boost_regex.format format strings].
+
+[endsect]
+

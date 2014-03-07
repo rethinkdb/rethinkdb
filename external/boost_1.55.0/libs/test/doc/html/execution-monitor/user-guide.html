@@ -1,0 +1,164 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>The Execution Monitor user's guide</title>
+<link rel="stylesheet" href="../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../index.html" title="Boost Test Library">
+<link rel="up" href="../execution-monitor.html" title="Part I. Boost Test Library: The Execution Monitor">
+<link rel="prev" href="compilation.html" title="The Execution Monitor compilation variants and procedures">
+<link rel="next" href="reference.html" title="The Execution Monitor reference">
+<script language="JavaScript1.2" src="../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../execution-monitor.html">The Execution Monitor</a><a href="../prg-exec-monitor.html">
+      &gt;
+      </a><b>User's guide</b>
+</td>
+<td><div class="spirit-nav">
+<a href="compilation.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="reference.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="execution-monitor.user-guide"></a>The Execution Monitor user's guide</h3></div></div></div>
+<p class="first-line-indented">
+   The Execution Monitor is designed to solve the problem of executing potentially dangerous function that may result
+   in any number of error conditions, in monitored environment that should prevent any undesirable exceptions to 
+   propagate out of function call and produce consistent result report for all 
+   <a class="link" href="user-guide.html#execution-monitor.user-guide.monitor-outcomes" title="Monitored function execution">outcomes</a>. The Execution Monitor is able to 
+   produce informative report for all standard C++ exceptions and intrinsic types. All other exceptions are reported as
+   unknown. If you prefer different message for your exception class or need to perform any action, the Execution 
+   Monitor supports <a class="link" href="user-guide.html#execution-monitor.user-guide.errors-reporting" title="Errors reporting and translation">custom exception translators</a>.
+   There are several other <a class="link" href="user-guide.html#execution-monitor.user-guide.monitor-params" title="The execution monitor parameters">parameters</a> of the 
+   monitored environment can be configured by setting appropriate properties of the Execution Monitor.
+  </p>
+<p class="first-line-indented">
+   All symbols in the Execution Monitor implementation are located in the namespace boost. To use the Execution
+   Monitor you need to:
+  </p>
+<div class="orderedlist"><ol type="1">
+<li>
+     #include &lt;<a href="../../../../../boost/test/execution_monitor.hpp" target="_top"><code class="filename">boost/test/execution_monitor.hpp</code></a>&gt;
+    </li>
+<li>Make an instance of <code class="computeroutput"><a class="link" href="reference.html#boost.execution_monitor" title="Class execution_monitor">execution_monitor</a></code>
+</li>
+<li>
+     Optionally register custom exception translators for exception classes which require special processing.
+    </li>
+</ol></div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="execution-monitor.user-guide.monitor-outcomes"></a>Monitored function execution</h4></div></div></div>
+<p class="first-line-indented">
+    To start the monitored function, invoke the method <code class="computeroutput"><a class="link" href="reference.html#id270361-bb">execution_monitor::execute</a></code> and pass 
+    the monitored function as an argument. If the call succeeds, the method returns the result code produced by the
+    monitored function. If any of the following conditions occur:
+   </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>Uncaught C++ exception.</li>
+<li>Hardware or software signal, trap, or other exception.</li>
+<li>Timeout reached.</li>
+<li>Debug assert event occurred (under Microsoft Visual C++ or compatible compiler).</li>
+</ul></div>
+<p>
+    then the method throws the <code class="computeroutput"><a class="link" href="reference.html#boost.execution_exception" title="Class execution_exception">execution_exception</a></code>. The exception contains unique 
+    <code class="computeroutput">error_code</code> value identifying the error condition and the detailed message that can be used to report 
+    the error.
+   </p>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="execution-monitor.user-guide.monitor-params"></a>The execution monitor parameters</h4></div></div></div>
+<p class="first-line-indented">
+    All parameters are implemented as public read-write properties of class <code class="computeroutput"><a class="link" href="reference.html#boost.execution_monitor" title="Class execution_monitor">execution_monitor</a></code>.
+   </p>
+<p class="first-line-indented">
+    The <em class="firstterm">p_catch_system_errors</em> property is a boolean flag (default value is true) specifying whether
+    or not <code class="computeroutput"><a class="link" href="reference.html#boost.execution_monitor" title="Class execution_monitor">execution_monitor</a></code> should trap system level exceptions (second category in above list).
+    Set this property to false, for example, if you wish to force coredump file creation. The Unit Test Framework 
+    provides a runtime parameter --catch_system_errors=yes to alter the behavior in monitored test cases. 
+   </p>
+<p class="first-line-indented">
+    The <em class="firstterm">p_auto_start_dbg</em> property is a boolean flag (default value is false) specifying whether or
+    not <code class="computeroutput"><a class="link" href="reference.html#boost.execution_monitor" title="Class execution_monitor">execution_monitor</a></code> should try to attach debugger in case system error is caught.
+   </p>
+<p class="first-line-indented">
+    The <em class="firstterm">p_timeout property</em> is an integer timeout (in seconds) for monitored function execution. Use
+    this parameter to monitor code with possible deadlocks or indefinite loops. This feature is only available for some 
+    operating systems (not yet Microsoft Windows).
+   </p>
+<p class="first-line-indented">
+    The <em class="firstterm">p_use_alt_stack</em> property is a boolean flag (default value is false) specifying whether or
+    not <code class="computeroutput"><a class="link" href="reference.html#boost.execution_monitor" title="Class execution_monitor">execution_monitor</a></code> should use an alternative stack for the 
+    <code class="computeroutput">sigaction</code> based signal catching. When enabled the signals are delivered to the 
+    <code class="computeroutput"><a class="link" href="reference.html#boost.execution_monitor" title="Class execution_monitor">execution_monitor</a></code> on a stack different from current execution stack, which is safer in case 
+    if it is corrupted by monitored function. For more details on alternative stack handling see appropriate 
+    <a href="http://www.opengroup.org/onlinepubs/000095399/functions/sigaltstack.html" target="_top">manuals</a>.
+   </p>
+<p class="first-line-indented">
+    The <em class="firstterm">p_detect_fp_exceptions</em> property is a boolean flag (default value is false) specifying 
+    whether or not <code class="computeroutput"><a class="link" href="reference.html#boost.execution_monitor" title="Class execution_monitor">execution_monitor</a></code> should install hardware traps for the floating point 
+    exception on platforms where it's supported.
+   </p>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="execution-monitor.user-guide.errors-reporting"></a>Errors reporting and translation</h4></div></div></div>
+<p class="first-line-indented">
+    If you need to report an error inside monitored function execution you have to throw an exception. Do not use the
+    <code class="computeroutput"><a class="link" href="reference.html#boost.execution_exception" title="Class execution_exception">execution_exception</a></code> - it's not intended to be used for this purpose. The simplest choice is 
+    to use one of the following C++ types as an exception:
+   </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>C string.</li>
+<li>std:string.</li>
+<li>any exception class in std::exception hierarchy.</li>
+</ul></div>
+<p class="first-line-indented">
+    In case if you prefer to use your own exception classes or can't govern what exceptions are generated by monitored 
+    function and would like to see proper error message in a report, the Execution Monitor allows you to register the
+    translator for any exception class. You can register as many independent translators as you like. See 
+    <code class="computeroutput"><a class="link" href="reference.html#boost.execution_monitor" title="Class execution_monitor">execution_monitor</a></code> specification for requirements on translator function. Also see below 
+    for usage example.
+   </p>
+<p class="first-line-indented">
+     Finally, if you need to abort the monitored function execution without reporting any errors, you can throw an 
+     exception <code class="computeroutput"><a class="link" href="reference.html#boost.execution_aborted" title="Class execution_aborted">execution_aborted</a></code>. As a result the execution is aborted and zero result code
+     is produced by the method <code class="computeroutput"><a class="link" href="reference.html#id270361-bb">execution_monitor::execute</a></code>.
+   </p>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="execution-monitor.user-guide.mem-leaks-detection"></a>Memory leaks detection</h4></div></div></div>
+<p class="first-line-indented">
+    The Execution Monitor provides a limited ability to detect memory leaks during program execution, and to
+    break program execution on specific memory allocation order-number (1 - first allocation of memory in program, 2 -
+    second and so on). Unfortunately this feature is, at the moment, implemented only for the Microsoft family of
+    compilers (and Intel, if it employs Microsoft C Runtime Library). Also it can not be tuned per instance of the
+    monitor and is only triggered globally and reported after the whole program execution is done. In a future this
+    ought to be improved. An interface is composed from two free functions residing in namespace boost:
+   </p>
+<pre class="programlisting">void detect_memory_leaks( bool on_off );
+void break_memory_alloc( long mem_alloc_order_num );</pre>
+<p class="first-line-indented">
+    Use function detect_memory_leaks to switch memory leaks detection on/off. Use break_memory_alloc to break a
+    program execution at allocation specified by mem_alloc_order_num argument. The Unit Test Framework
+    provides a runtime parameter (--detect_memory_leak=yes or no) allowing you to manage this feature during monitored
+    unit tests.
+   </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="compilation.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../execution-monitor.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>ssl::context::use_certificate_chain (2 of 2 overloads)</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../use_certificate_chain.html" title="ssl::context::use_certificate_chain">
+<link rel="prev" href="overload1.html" title="ssl::context::use_certificate_chain (1 of 2 overloads)">
+<link rel="next" href="../use_certificate_chain_file.html" title="ssl::context::use_certificate_chain_file">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overload1.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../use_certificate_chain.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../boost_asio.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../use_certificate_chain_file.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_asio.reference.ssl__context.use_certificate_chain.overload2"></a><a class="link" href="overload2.html" title="ssl::context::use_certificate_chain (2 of 2 overloads)">ssl::context::use_certificate_chain
+          (2 of 2 overloads)</a>
+</h5></div></div></div>
+<p>
+            Use a certificate chain from a memory buffer.
+          </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="identifier">use_certificate_chain</span><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">const_buffer</span> <span class="special">&amp;</span> <span class="identifier">chain</span><span class="special">,</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="special">&amp;</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+            This function is used to load a certificate chain into the context from
+            a buffer.
+          </p>
+<h6>
+<a name="boost_asio.reference.ssl__context.use_certificate_chain.overload2.h0"></a>
+            <span class="phrase"><a name="boost_asio.reference.ssl__context.use_certificate_chain.overload2.parameters"></a></span><a class="link" href="overload2.html#boost_asio.reference.ssl__context.use_certificate_chain.overload2.parameters">Parameters</a>
+          </h6>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">chain</span></dt>
+<dd><p>
+                  The buffer containing the certificate chain. The certificate chain
+                  must use the PEM format.
+                </p></dd>
+<dt><span class="term">ec</span></dt>
+<dd><p>
+                  Set to indicate what error occurred, if any.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="boost_asio.reference.ssl__context.use_certificate_chain.overload2.h1"></a>
+            <span class="phrase"><a name="boost_asio.reference.ssl__context.use_certificate_chain.overload2.remarks"></a></span><a class="link" href="overload2.html#boost_asio.reference.ssl__context.use_certificate_chain.overload2.remarks">Remarks</a>
+          </h6>
+<p>
+            Calls <code class="computeroutput"><span class="identifier">SSL_CTX_use_certificate</span></code>
+            and SSL_CTX_add_extra_chain_cert.
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="overload1.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../use_certificate_chain.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../boost_asio.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../use_certificate_chain_file.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

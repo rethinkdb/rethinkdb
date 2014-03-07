@@ -1,0 +1,88 @@
+Copyright 1988, 1989 Hans-J. Boehm, Alan J. Demers
+Copyright (c) 1991-1995 by Xerox Corporation.  All rights reserved.
+Copyright (c) 1996-1999 by Silicon Graphics.  All rights reserved.
+Copyright (c) 1999-2001 by Hewlett-Packard. All rights reserved.
+
+THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY EXPRESSED
+OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.
+
+Permission is hereby granted to use or copy this program
+for any purpose,  provided the above notices are retained on all copies.
+Permission to modify the code and to distribute modified code is granted,
+provided the above notices are retained, and a notice that the code was
+modified is included with the above copyright notice.
+
+A few files have other copyright holders. A few of the files needed
+to use the GNU-style build procedure come with a modified GPL license
+that appears not to significantly restrict use of the collector, though
+use of those files for a purpose other than building the collector may
+require the resulting code to be covered by the GPL.
+
+For more details and the names of other contributors, see the
+doc/README* files and include/gc.h.  This file describes typical use of
+the collector on a machine that is already supported.
+
+For the version number, see doc/README or version.h.
+
+INSTALLATION:
+Under UN*X, Linux:
+Alternative 1 (the old way): type "make test" in this directory.
+	Link against gc.a.  With the most recent GC distributions
+	you may have to copy Makefile.direct to Makefile first.
+
+Alternative 2 (the new way): type
+	"./configure --prefix=<dir>; make; make check; make install".
+	Link against <dir>/lib/libgc.a or <dir>/lib/libgc.so.
+	See README.autoconf for details
+
+Under Windows 95, 98, Me, NT, or 2000:
+copy the appropriate makefile to MAKEFILE, read it, and type "nmake test".
+(Under Windows, this assumes you have Microsoft command-line tools
+installed, and suitably configured.)
+Read the machine specific README in the doc directory if one exists.
+
+If you need thread support, you will need to follow the special
+platform-dependent instructions (win32), or define GC_THREADS
+as described in Makefile (Makefile.direct), or possibly use
+--enable-threads=posix when running the configure script.
+
+If you wish to use the cord (structured string) library with the stand-alone
+Makefile.direct, type "make cords", after copying to "Makefile".
+(This requires an ANSI C compiler.  You may
+need to redefine CC in the Makefile. The CORD_printf implementation in
+cordprnt.c is known to be less than perfectly portable.  The rest of the
+package should still work.)
+
+If you wish to use the collector from C++, type "make c++", or use
+--enable-cplusplus with the configure script.   With Makefile.direct,
+hese add further files to gc.a and to the include subdirectory.  With the
+alternat build process,this generates libgccpp.
+See cord/cord.h and include/gc_cpp.h.
+
+TYPICAL USE:
+Include "gc.h" from the include subdirectory.  Link against the
+appropriate library ("gc.a" under UN*X).  Replace calls to malloc
+by calls to GC_MALLOC, and calls to realloc by calls to GC_REALLOC.
+If the object is known to never contain pointers, use GC_MALLOC_ATOMIC
+instead of GC_MALLOC.
+
+Define GC_DEBUG before including gc.h for additional checking.
+
+More documentation on the collector interface can be found at
+http://www.hpl.hp.com/personal/Hans_Boehm/gc/gcinterface.html,
+in doc/README and other files in the doc directory, and in include/gc.h .
+
+WARNINGS:
+
+Do not store the only pointer to an object in memory allocated
+with system malloc, since the collector usually does not scan
+memory allocated in this way.
+
+Use with threads may be supported on your system, but requires the
+collector to be built with thread support.  See Makefile.  The collector
+does not guarantee to scan thread-local storage (e.g. of the kind
+accessed with pthread_getspecific()).  The collector does scan
+thread stacks though, so generally the best solution is to ensure that
+any pointers stored in thread-local storage are also stored on the
+thread's stack for the duration of their lifetime.
+

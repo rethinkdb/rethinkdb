@@ -1,0 +1,158 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com .
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Derivation from an Existing Archive</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Derivation from an Existing Archive</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<dl class="page-index">
+</dl>
+
+<h3>Log Archive</h3>
+It may happen that one wants to create a new archive class by derivation from one
+of the included ones. Included is a sample program that shows how to derive a 
+new archive from one of the ones included with the library.  The first example is
+<a href="../example/demo_log.cpp" target="demo_log_cpp">
+demo_log.cpp</a>.
+<p>
+This derivation from the xml archive writes output in xml without the extra
+information required to read the data back into the application.  It might be
+used to export one's data as simple xml for other applications or for logging
+data while debugging.
+<p>
+To this end it is derived from the included xml archive and the save functions for
+some types are specialized for this application.  
+<p>
+The serialization library is
+implemented using the <b>C</b>uriously <b>R</b>ecurring <b>T</b>emplate 
+<b>P</b>attern (<b>CRTP</b>).  Also, all common code is factored out into
+separate modules to minimize code repetition. This makes derivation from
+an existing archive less straight forward than it would otherwise be.
+<p> 
+This example illustrates several issues that have to be addressed when doing
+something like this
+<ol>
+    <li><i>It is derived from</i> <code style="white-space: normal">xml_oarchive_impl<log_archive></code> 
+        <b>NOT</b> <code style="white-space: normal">xml_oarchive</code> <br>
+As described in the comments in
+<a href="../../../boost/archive/xml_oarchive.hpp" target="xml_oarchive_hpp">xml_oarchive.hpp</a>.
+<code style="white-space: normal">xml_oarchive</code> really a shorthand name for 
+<code style="white-space: normal">xml_oarchive_impl&lt;xml_oarchive&gt;</code>.  So we should derive
+from <code style="white-space: normal">xml_oarchive_impl&lt;log_archive&gt;</code> rather
+than <code style="white-space: normal">xml_oarchive</code>.
+<pre><code>
+class log_archive :
+    // don't derive from xml_oarchive !!!
+    public xml_oarchive_impl&lt;log_archive&gt;
+{
+...
+</code></pre>
+    <li><i>Note the</i> <code style="white-space: normal">log_archive</code> <i>between the</i> &lt;&gt;
+This is required so that base classes can downcast their <code style="white-space: normal">this</code> pointer
+to the most derived class.  This is referred to as <b>C</b>uriously <b>R</b>ecurring
+<b>T</b>emplate <b>P</b>attern (<b>CRTP</b>) <a href="bibliography.html#11">[11]</a>.  
+It is used to implement static polymorphism.
+    <li><i>Base classes need to be explicitly given access to the derived class.</i>
+This can be done by making members public or by including friend declarations for
+the base classes.
+<pre><code>
+    friend class detail::common_oarchive&lt;log_archive&gt;;
+    friend class basic_xml_oarchive&lt;log_archive&gt;;
+    friend class boost::serialization::save_access;
+</code></pre>
+
+    <li><i></i>Reread <a target="detail" href="headers.html#archiveinternals">Archive Internals</a>.
+This describes the class hierarchy so that you know what to override.
+    <li><i>Note the usage of PFTO.</i>  Some compilers fail to provide support for
+partial function template ordering.  The serialization library works around by
+using <a target="detail" href="implementation.html#functiontemplateordering">
+<b>P</b>artial <b>F</b>unction <b>T</b>emplate <b>O</b>rdering</a> in several places.
+In archive classes, this takes
+. This is done
+in several places, including the archive classes themselves.
+    <li><i>Base class functions will usually need to be explicitly invoked</i>
+We commonly specialize the function name <code style="white-space: normal">save_override</code> 
+for saving primitives. Usage of a function name in a derived class
+"hides" similarly named functions of the base class.  That is, 
+function name overloading doesn't automatically
+include base classes.  To address this, we can use:
+<pre><code>
+    using xml_oarchive_impl&lt;derived_t&gt;::save;
+    void save(const unsigned int t);
+    ...
+</code></pre>
+which should work on conforming compilers. However, I have found
+that the following equivalent works on more compilers.
+<pre><code>
+    // default fall through for any types not specified here
+    template&lt;class T&gt;
+    void save(const T & t){
+        xml_oarchive_impl&lt;derived_t&gt;::save(t);
+    }
+    void save(const unsigned int t);
+    ...
+</code></pre>
+so it's what I use.
+    <li><i>Template definitions of base classes may have to be explicitly instantiated.</i>
+    The demo includes
+<pre><code>
+// explicitly instantiate for this type of binary stream
+#include &lt;boost/archive/basic_binary_oprimitive.ipp&gt;
+</code></pre>
+for just this purpose.  Failure to include required template definitions
+will result in undefined symbol errors when the program is linked.
+    <li><i>Without alteration, this class cannot be further derived from</i><br>
+Base classes using <b>CRTP</b> must be templates with a parameter corresponding to
+the most derived class.  As presented here, this class doesn't qualify, so
+it cannot be used as a base class.  In order to derive further from this class,
+it would have to be reorganized along the lines of the original <code style="white-space: normal">xml_oarchive</code>.
+Specifically, it would look something like:
+<pre><code>
+template&lt;class Archive&gt;
+class log_archive_impl :
+    // don't derive from xml_oarchive !!!
+    public xml_oarchive_impl&lt;Archive&gt;
+{
+    ...
+);
+
+// do not derived from this class !!!
+class log_archive : 
+    public log_archive_impl&lt;log_archive&gt;
+{
+public:
+    log_archive(std::ostream & os, unsigned int flags = 0) :
+        log_archive_impl&lt;xml_oarchive&gt;(os, flags)
+    {}
+};
+</code></pre>
+
+</ol>  
+
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

@@ -1,0 +1,7 @@
+> example --log_level=warning
+Running 1 test case...
+test.cpp(9): warning in "test": condition sizeof(int) == sizeof(short) is not satisfied
+test.cpp(10): error in "test": check i == 1 failed
+test.cpp(11): fatal error in "test": critical check i > 5 failed
+
+*** 2 failures detected in test suite "example"

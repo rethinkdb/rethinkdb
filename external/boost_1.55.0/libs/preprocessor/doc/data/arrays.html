@@ -1,0 +1,53 @@
+<html>
+<head>
+	<title>arrays.html</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<h4>Arrays</h4>
+	<div>
+		An <i>array</i> is a data structure consisting of a two-element <i>tuple</i>.&nbsp;
+		The first element is the number of elements in the <i>array</i>.&nbsp;
+		The second element is another <i>tuple</i> of the elements in the <i>array</i>.&nbsp;
+		For example,
+	</div>
+	<div class="code">
+		(<i>3</i>, (<i>a</i>, <i>b</i>, <i>c</i>))
+	</div>
+	<div>
+		...is an <i>array</i> of <i>3</i> elements--<i>a</i>, <i>b</i>, and <i>c</i>.
+	</div>
+	<div>
+		The primary strength of <i>arrays</i> is that they store their own size.&nbsp;
+		Because of this, access to elements does not require the size.&nbsp;
+		It only requires that an element exists at a certain index.
+	</div>
+	<div>
+		This allows macro parameters to be variable in size and allows data states to change
+		size without the user explicitly keeping track of the size independently.
+	</div>
+	<div>
+		Elements of an <i>array</i> can be extracted with <b>BOOST_PP_ARRAY_ELEM</b>,
+		an <i>array's</i> size can be extracted with <b>BOOST_PP_ARRAY_SIZE</b>, and
+		an <i>array</i> can be converted to the more primitive <i>tuple</i> data structure
+		with <b>BOOST_PP_ARRAY_DATA</b>.
+	</div>
+	<h4>Primitives</h4>
+		<ul>
+			<li><a href="../ref/array_data.html">BOOST_PP_ARRAY_DATA</a></li>
+			<li><a href="../ref/array_elem.html">BOOST_PP_ARRAY_ELEM</a></li>
+			<li><a href="../ref/array_size.html">BOOST_PP_ARRAY_SIZE</a></li>
+		</ul>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

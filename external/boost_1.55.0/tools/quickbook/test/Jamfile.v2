@@ -1,0 +1,132 @@
+#
+#   Copyright (c) 2005 João Abecasis
+#
+#   Distributed under the Boost Software License, Version 1.0. (See
+#   accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#
+
+project quickbook/test
+    : requirements
+        <toolset>msvc:<debug-symbols>off
+    ;
+
+build-project doc-info ;
+build-project unit ;
+build-project command-line ;
+build-project snippets ;
+build-project "include" ;
+build-project versions ;
+build-project xinclude ;
+
+import quickbook-testing : quickbook-test quickbook-error-test ;
+
+test-suite quickbook.test :
+    [ quickbook-test anchor-1_1 ]
+    [ quickbook-test anchor-1_6 ]
+    [ quickbook-test blocks-1_5 ]
+    [ quickbook-test callouts-1_5 ]
+    [ quickbook-test callouts-1_7 ]
+    [ quickbook-test code-1_1 ]
+    [ quickbook-test code-1_5 ]
+    [ quickbook-test code_cpp-1_5 ]
+    [ quickbook-error-test code_cpp_mismatched_escape-1_4-fail ]
+    [ quickbook-test code_python-1_5 ]
+    [ quickbook-error-test code_python_mismatched_escape-1_4-fail ]
+    [ quickbook-test code_snippet-1_1 ]
+    [ quickbook-test code_teletype-1_5 ]
+    [ quickbook-error-test code_unclosed_block-1_6-fail ]
+    [ quickbook-test command_line_macro-1_1 : : :
+        <quickbook-test-define>__macro__=*bold*
+        <quickbook-test-define>__empty__ ]
+    [ quickbook-error-test command_line_macro-1_1-invalid :
+        command_line_macro-1_1.quickbook :
+        <testing.arg>-Dsomething[] ]
+    [ quickbook-test cond_phrase-1_5 ]
+    [ quickbook-test elements-1_5 ]
+    [ quickbook-test elements-1_6 ]
+    [ quickbook-test escape-1_1 ]
+    [ quickbook-test escape-1_6 ]
+    [ quickbook-error-test escape-mismatched-1_5-fail ]
+    [ quickbook-test heading-1_1 ]
+    [ quickbook-test heading-1_3 ]
+    [ quickbook-test heading-1_5 ]
+    [ quickbook-test heading-1_6 ]
+    [ quickbook-error-test heading_unclosed-1_4-fail ]
+    [ quickbook-test hr-1_5 ]
+    [ quickbook-test hr-1_6 ]
+    [ quickbook-test identifier-1_5 ]
+    [ quickbook-test identifier-1_6 ]
+    [ quickbook-test image-1_5 ]
+    [ quickbook-test image-1_6 ]
+    [ quickbook-error-test import-1_1-fail ]
+    [ quickbook-error-test include-1_1-fail ]
+    [ quickbook-test include-1_5 ]
+    [ quickbook-test include-1_6 ]
+    [ quickbook-test include2-1_6 ]
+    [ quickbook-error-test include_win_path-1_6-fail ]
+    [ quickbook-test link-1_1 ]
+    [ quickbook-test link-1_6 ]
+    [ quickbook-test link-1_7 ]
+    [ quickbook-error-test link-1_7-fail ]
+    [ quickbook-error-test link-1_7-fail2 ]
+    [ quickbook-test list_test-1_5 ]
+    [ quickbook-test list_test-1_6 ]
+    [ quickbook-error-test list_test-1_6-fail ]
+    [ quickbook-test list_test-1_7 ]
+    [ quickbook-error-test list_test-1_7-fail1 ]
+    [ quickbook-test macro-1_5 ]
+    [ quickbook-test macro-1_6 ]
+    [ quickbook-error-test mismatched_brackets-1_1-fail ]
+    [ quickbook-test mismatched_brackets1-1_1 ]
+    [ quickbook-test mismatched_brackets2-1_1 ]
+    [ quickbook-test mismatched_brackets3-1_1 ]
+    [ quickbook-test newline-1_1 ]
+    [ quickbook-test para_test-1_5 ]
+    [ quickbook-error-test post_process-fail ]
+    [ quickbook-test preformatted-1_1 ]
+    [ quickbook-test preformatted-1_6 ]
+    [ quickbook-test role-1_6 ]
+    [ quickbook-test role-1_7 ]
+    [ quickbook-error-test role-1_7-fail ]
+    [ quickbook-test section-1_4 ]
+    [ quickbook-test section-1_5-unclosed ]
+    [ quickbook-test section-1_5 ]
+    [ quickbook-test simple_markup-1_5 ]
+    [ quickbook-test source_mode-1_7 ]
+    [ quickbook-test svg-1_1 ]
+    [ quickbook-test table-1_3 ]
+    [ quickbook-test table-1_5 ]
+    [ quickbook-test table-1_6 ]
+    [ quickbook-test table-1_7 ]
+    [ quickbook-error-test template_arguments1-1_1-fail ]
+    [ quickbook-error-test template_arguments2-1_1-fail ]
+    [ quickbook-error-test template_arguments3-1_1-fail ]
+    [ quickbook-test template_section-1_5 ]
+    [ quickbook-error-test template_section1-1_5-fail ]
+    [ quickbook-error-test template_section2-1_5-fail ]
+    [ quickbook-error-test template_section3-1_5-fail ]
+    [ quickbook-test templates-1_3 ]
+    [ quickbook-test templates-1_4 ]
+    [ quickbook-test templates-1_5 ]
+    [ quickbook-test templates-1_6 ]
+    [ quickbook-error-test templates-1_6-fail1 ]
+    [ quickbook-test templates-1_7 ]
+    [ quickbook-error-test templates-1_7-fail1 ]
+    [ quickbook-test unicode_escape-1_5 ]
+    [ quickbook-test unmatched_element-1_5 ]
+    [ quickbook-test unmatched_element-1_6 ]
+    [ quickbook-error-test utf16be_bom-1_5-fail ]
+    [ quickbook-error-test utf16le_bom-1_5-fail ]
+    [ quickbook-test utf8-1_5 ]
+    [ quickbook-test utf8_bom-1_5 ]
+    [ quickbook-error-test variablelist-1_5-fail ]
+    [ quickbook-test variablelist-1_5 ]
+    [ quickbook-error-test version-0_1-fail ]
+    [ quickbook-error-test version-1_8-fail ]
+    [ quickbook-error-test version-2_0-fail ]
+    [ quickbook-test xml_escape-1_2 ]
+    [ quickbook-test xml_escape-1_5 ]
+
+    [ quickbook-test quickbook_manual-1_4 ]
+    ;

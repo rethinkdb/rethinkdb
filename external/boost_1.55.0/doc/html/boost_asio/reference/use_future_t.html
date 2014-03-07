@@ -1,0 +1,175 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>use_future_t</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="use_future.html" title="use_future">
+<link rel="next" href="use_future_t/allocator_type.html" title="use_future_t::allocator_type">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="use_future.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="use_future_t/allocator_type.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.use_future_t"></a><a class="link" href="use_future_t.html" title="use_future_t">use_future_t</a>
+</h3></div></div></div>
+<p>
+        Class used to specify that an asynchronous operation should return a future.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">Allocator</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;&gt;</span>
+<span class="keyword">class</span> <span class="identifier">use_future_t</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.use_future_t.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.use_future_t.types"></a></span><a class="link" href="use_future_t.html#boost_asio.reference.use_future_t.types">Types</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  <a class="link" href="use_future_t/allocator_type.html" title="use_future_t::allocator_type"><span class="bold"><strong>allocator_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The allocator type. The allocator is used when constructing the
+                  std::promise object for a given asynchronous operation.
+                </p>
+              </td>
+</tr></tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.use_future_t.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.use_future_t.member_functions"></a></span><a class="link" href="use_future_t.html#boost_asio.reference.use_future_t.member_functions">Member
+        Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="use_future_t/get_allocator.html" title="use_future_t::get_allocator"><span class="bold"><strong>get_allocator</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Obtain allocator.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="use_future_t/operator_lb__rb_.html" title="use_future_t::operator[]"><span class="bold"><strong>operator[]</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Specify an alternate allocator.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="use_future_t/use_future_t.html" title="use_future_t::use_future_t"><span class="bold"><strong>use_future_t</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Construct using default-constructed allocator.
+                </p>
+                <p>
+                  Construct using specified allocator.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        The <a class="link" href="use_future_t.html" title="use_future_t"><code class="computeroutput"><span class="identifier">use_future_t</span></code></a>
+        class is used to indicate that an asynchronous operation should return a
+        std::future object. A <a class="link" href="use_future_t.html" title="use_future_t"><code class="computeroutput"><span class="identifier">use_future_t</span></code></a> object may be passed
+        as a handler to an asynchronous operation, typically using the special value
+        <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">use_future</span></code>. For example:
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">future</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">&gt;</span> <span class="identifier">my_future</span>
+  <span class="special">=</span> <span class="identifier">my_socket</span><span class="special">.</span><span class="identifier">async_read_some</span><span class="special">(</span><span class="identifier">my_buffer</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">use_future</span><span class="special">);</span>
+</pre>
+<p>
+        The initiating function (async_read_some in the above example) returns a
+        future that will receive the result of the operation. If the operation completes
+        with an error_code indicating failure, it is converted into a system_error
+        and passed back to the caller via the future.
+      </p>
+<h5>
+<a name="boost_asio.reference.use_future_t.h2"></a>
+        <span class="phrase"><a name="boost_asio.reference.use_future_t.requirements"></a></span><a class="link" href="use_future_t.html#boost_asio.reference.use_future_t.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/use_future.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="use_future.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="use_future_t/allocator_type.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

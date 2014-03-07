@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<library name="Signals" dirname="signals" 
+         xmlns:xi="http://www.w3.org/2001/XInclude" id="signals" 
+         last-revision="$Date: 2004-05-04 11:17:23 -0700 (Tue, 04 May 2004) $">
+<libraryinfo>
+  <author>
+    <firstname>Douglas</firstname>
+    <surname>Gregor</surname>
+    <!-- <email>gregod@cs.rpi.edu</email> -->
+  </author>
+
+  <copyright>
+    <year>2001</year>
+    <year>2002</year>
+    <year>2003</year>
+    <year>2004</year>
+    <holder>Douglas Gregor</holder>
+  </copyright>
+
+  <legalnotice>
+    <para>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <filename>LICENSE_1_0.txt</filename> or copy at <ulink
+    url="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</ulink>)</para>
+  </legalnotice>
+
+  <librarypurpose>Managed signals &amp; slots callback implementation</librarypurpose>
+  <librarycategory name="category:higher-order"/>
+</libraryinfo>
+
+<title>Boost.Signals</title>
+  <xi:include href="introduction.xml"/>
+  <xi:include href="tutorial.xml"/>
+  <xi:include href="reference/reference.xml"/>
+  <xi:include href="faq.xml"/>
+  <xi:include href="design.xml"/>
+  <xi:include href="rationale.xml"/>
+  <xi:include href="tests.xml"/>
+</library>

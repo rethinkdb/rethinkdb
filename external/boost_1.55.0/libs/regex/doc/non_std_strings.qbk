@@ -1,0 +1,30 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:non_std_strings Interfacing With Non-Standard String Types]
+
+The Boost.Regex algorithms and iterators are all iterator-based, 
+with convenience overloads of the algorithms provided that convert 
+standard library string types to iterator pairs internally.  If you want 
+to search a non-standard string type then the trick is to convert that string 
+into an iterator pair: so far I haven't come across any string types that 
+can't be handled this way, even if they're not officially iterator based.  
+Certainly any string type that provides access to it's internal buffer, along 
+with it's length, can be converted into a pair of pointers (which can be 
+used as iterators).
+
+Some non-standard string types are sufficiently common that wappers have been 
+provided for them already: currently this includes the ICU and MFC string class
+types.
+
+[include icu_strings.qbk]
+[include mfc_strings.qbk]
+
+[endsect]
+
+
+

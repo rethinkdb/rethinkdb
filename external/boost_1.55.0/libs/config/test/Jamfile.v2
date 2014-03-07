@@ -1,0 +1,69 @@
+#
+# Copyright John Maddock 2008.
+# Use, modification and distribution are subject to the
+# Boost Software License, Version 1.0. (See accompanying file
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+# If you need to alter build preferences then set them in
+# the template defined in options_v2.jam.
+#
+
+project
+    : requirements
+      <toolset>gcc:<cxxflags>-Wno-deprecated-declarations
+;
+
+
+import modules ;
+
+local is_unix = [ modules.peek : UNIX ] ;
+
+if $(is_unix)
+{
+	local osname = [ SHELL uname ] ;
+
+	switch $(osname)
+	{
+		case "Sun*" : OTHERFLAGS = "-lpthread -lrt" ;
+		case "*BSD*" : OTHERFLAGS = "-lpthread" ;
+	}
+}
+
+test-suite config
+  :
+    [ compile config_test_c.c ]
+    [ run config_test.cpp
+          : #args
+          : #input-files
+          : #requirements
+          <threading>multi
+          : config_test_threaded
+    ]
+    [ run config_test.cpp
+          : #args
+          : #input-files
+          : #requirements
+          <threading>single <toolset>msvc:<runtime-link>static <toolset>msvc:<link>static
+          <target-os>linux:<linkflags>-lpthread
+          <target-os>linux:<linkflags>-lrt
+          <toolset>gcc:<linkflags>$(OTHERFLAGS)
+    ]
+     [ run config_info.cpp : : : <test-info>always_show_run_output <threading>single <toolset>msvc:<runtime-link>static <toolset>msvc:<link>static ]
+     [ run config_info.cpp : : : <test-info>always_show_run_output <threading>multi : config_info_threaded ]
+     [ run math_info.cpp : : : <test-info>always_show_run_output <toolset>borland:<runtime-link>static <toolset>borland:<link>static ]
+     [ run abi/abi_test.cpp abi/main.cpp ]
+     [ run limits_test.cpp ../../test/build//boost_test_exec_monitor ]
+     [ run link/main.cpp link//link_test
+          : #args
+          : #input-files
+          : #requirements
+          <runtime-link>shared
+          <define>BOOST_DYN_LINK=1
+          <define>BOOST_CONFIG_NO_LIB=1
+          :
+          config_link_test
+    ]
+    [ compile-fail threads/test_thread_fail1.cpp ]
+    [ compile-fail threads/test_thread_fail2.cpp ]
+    [ compile boost_fallthrough_test.cpp : <toolset>clang:<cxxflags>"-std=c++11 -Wimplicit-fallthrough" <warnings-as-errors>on <warnings>all ]
+  ;

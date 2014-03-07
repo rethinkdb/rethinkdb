@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Copyright 2010 Daniel James.
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+-->
+<header name="example.hpp">
+  <para>
+    Fake reference documentation, so that the syntax highlighter will kick in.
+  </para>
+
+  <macro name="foo">
+    <description>
+      <programlisting>/* C style comment */</programlisting>
+      <programlisting>/* Broken C style comment</programlisting>
+      <programlisting>
+/* Multi-line
+ *comment
+ */</programlisting>
+      <programlisting>/*/ Tricky comment */</programlisting>
+      <programlisting>/**/</programlisting>
+      <programlisting>/***/</programlisting>
+      <programlisting>// Single line comment</programlisting>
+      <programlisting>// Single line comment
+</programlisting>
+    </description>
+  </macro>
+
+</header>

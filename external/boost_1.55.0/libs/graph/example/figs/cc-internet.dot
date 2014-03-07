@@ -1,0 +1,67 @@
+graph G {
+rankdir="LR";
+size="5.625,7.75";
+ratio="fill";
+subgraph cluster0 {
+color="white"
+"engr-fe21.gw.nd.edu"
+"radole.lcs.mit.edu"
+"shub-e27.gw.nd.edu"
+"ihtfp.mit.edu"
+"core1-ord1-oc48.ord2.above.net"
+"albnxg1.ip.tele.dk"
+}
+subgraph cluster1 {
+color="white"
+"nycmny1-cr1.bbnplanet.net"
+"ccn-nerif35.Berkeley.EDU"
+"rip.Berkeley.EDU"
+"chicago1-nbr1.bbnplanet.net"
+"ccngw-ner-cc.Berkeley.EDU"
+"above-bbn-45Mbps.ord.above.net"
+}
+subgraph cluster2 {
+color="white"
+"gw-dkuug.oeb.tdk.ne"
+"vabi1-gige-1-1.google.com"
+}
+subgraph cluster3 {
+color="white"
+"boston1-br1.bbnplanet.net"
+"cambridge1-nbr2.bbnplanet.net"
+"helios.ee.lbl.gov"
+"lilac-dmc.Berkeley.EDU"
+"teledk.bbnplanet.net"
+"albnxg1.ip.tele.dk"
+}
+
+edge[style="bold"];
+
+"engr-fe21.gw.nd.edu" -- "shub-e27.gw.nd.edu"
+"shub-e27.gw.nd.edu" -- "chicago1-nbr1.bbnplanet.net"
+"shub-e27.gw.nd.edu" -- "core1-ord1-oc48.ord2.above.net"
+"chicago1-nbr1.bbnplanet.net" -- "above-bbn-45Mbps.ord.above.net"
+"above-bbn-45Mbps.ord.above.net" -- "engr-fe21.gw.nd.edu"
+"above-bbn-45Mbps.ord.above.net" -- "core1-ord1-oc48.ord2.above.net"
+"core1-ord1-oc48.ord2.above.net" -- "vabi1-gige-1-1.google.com"
+"vabi1-gige-1-1.google.com" -- "chicago1-nbr1.bbnplanet.net"
+
+"cambridge1-nbr2.bbnplanet.net" -- "boston1-br1.bbnplanet.net"
+"ihtfp.mit.edu" -- "boston1-br1.bbnplanet.net"
+"cambridge1-nbr2.bbnplanet.net" -- "radole.lcs.mit.edu"
+"ihtfp.mit.edu" -- "radole.lcs.mit.edu"
+
+"helios.ee.lbl.gov" -- "lilac-dmc.Berkeley.EDU"
+"lilac-dmc.Berkeley.EDU" -- "ccngw-ner-cc.Berkeley.EDU"
+"ccngw-ner-cc.Berkeley.EDU" -- "ccn-nerif35.Berkeley.EDU"
+"ccn-nerif35.Berkeley.EDU" -- "rip.Berkeley.EDU"
+"helios.ee.lbl.gov" -- "ccn-nerif35.Berkeley.EDU"
+"lilac-dmc.Berkeley.EDU" -- "rip.Berkeley.EDU"
+
+"nycmny1-cr1.bbnplanet.net" -- "teledk.bbnplanet.net"
+"teledk.bbnplanet.net" -- "albnxg1.ip.tele.dk"
+"albnxg1.ip.tele.dk" -- "gw-dkuug.oeb.tdk.ne"
+"nycmny1-cr1.bbnplanet.net" -- "gw-dkuug.oeb.tdk.ne"
+"nycmny1-cr1.bbnplanet.net" -- "albnxg1.ip.tele.dk"
+
+}

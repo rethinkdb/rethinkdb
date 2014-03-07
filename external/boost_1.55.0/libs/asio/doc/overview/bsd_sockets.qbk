@@ -1,0 +1,270 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:bsd_sockets The BSD Socket API and Boost.Asio]
+
+The Boost.Asio library includes a low-level socket interface based on the BSD socket
+API, which is widely implemented and supported by extensive literature. It is
+also used as the basis for networking APIs in other languages, like Java. This
+low-level interface is designed to support the development of efficient and
+scalable applications. For example, it permits programmers to exert finer
+control over the number of system calls, avoid redundant data copying, minimise
+the use of resources like threads, and so on.
+
+Unsafe and error prone aspects of the BSD socket API not included. For example,
+the use of `int` to represent all sockets lacks type safety. The socket
+representation in Boost.Asio uses a distinct type for each protocol, e.g. for TCP one
+would use `ip::tcp::socket`, and for UDP one uses `ip::udp::socket`.
+
+The following table shows the mapping between the BSD socket API and Boost.Asio:
+
+[table
+  [
+    [BSD Socket API Elements]
+    [Equivalents in Boost.Asio]
+  ]
+  [
+    [socket descriptor - `int` (POSIX) or `SOCKET` (Windows)]
+    [ For TCP: [link boost_asio.reference.ip__tcp.socket ip::tcp::socket],
+               [link boost_asio.reference.ip__tcp.acceptor ip::tcp::acceptor]
+
+      For UDP: [link boost_asio.reference.ip__udp.socket ip::udp::socket]
+
+               [link boost_asio.reference.basic_socket basic_socket],
+               [link boost_asio.reference.basic_stream_socket basic_stream_socket],
+               [link boost_asio.reference.basic_datagram_socket basic_datagram_socket],
+               [link boost_asio.reference.basic_raw_socket basic_raw_socket] ]
+  ]
+  [
+    [`in_addr`,
+     `in6_addr`]
+    [          [link boost_asio.reference.ip__address ip::address],
+               [link boost_asio.reference.ip__address ip::address_v4],
+               [link boost_asio.reference.ip__address ip::address_v6] ]
+  ]
+  [
+    [`sockaddr_in`,
+     `sockaddr_in6`]
+    [ For TCP: [link boost_asio.reference.ip__tcp.endpoint ip::tcp::endpoint]
+    
+      For UDP: [link boost_asio.reference.ip__udp.endpoint ip::udp::endpoint]
+
+               [link boost_asio.reference.ip__basic_endpoint ip::basic_endpoint] ]
+  ]
+  [
+    [`accept()`]
+    [ For TCP: [link boost_asio.reference.basic_socket_acceptor.accept ip::tcp::acceptor::accept()]
+
+               [link boost_asio.reference.basic_socket_acceptor.accept basic_socket_acceptor::accept()] ]
+  ]
+  [
+    [`bind()`]
+    [ For TCP: [link boost_asio.reference.basic_socket.bind ip::tcp::acceptor::bind()],
+               [link boost_asio.reference.basic_socket.bind ip::tcp::socket::bind()]
+
+      For UDP: [link boost_asio.reference.basic_socket.bind ip::udp::socket::bind()]
+
+               [link boost_asio.reference.basic_socket.bind basic_socket::bind()] ]
+  ]
+  [
+    [`close()`]
+    [ For TCP: [link boost_asio.reference.basic_socket.close ip::tcp::acceptor::close()],
+               [link boost_asio.reference.basic_socket.close ip::tcp::socket::close()]
+
+      For UDP: [link boost_asio.reference.basic_socket.close ip::udp::socket::close()]
+
+               [link boost_asio.reference.basic_socket.close basic_socket::close()] ]
+  ]
+  [
+    [`connect()`]
+    [ For TCP: [link boost_asio.reference.basic_socket.connect ip::tcp::socket::connect()]
+
+      For UDP: [link boost_asio.reference.basic_socket.connect ip::udp::socket::connect()]
+
+               [link boost_asio.reference.basic_socket.connect basic_socket::connect()] ]
+  ]
+  [
+    [`getaddrinfo()`,
+     `gethostbyaddr()`,
+     `gethostbyname()`,
+     `getnameinfo()`,
+     `getservbyname()`,
+     `getservbyport()`]
+    [ For TCP: [link boost_asio.reference.ip__basic_resolver.resolve ip::tcp::resolver::resolve()],
+               [link boost_asio.reference.ip__basic_resolver.async_resolve ip::tcp::resolver::async_resolve()]
+
+      For UDP: [link boost_asio.reference.ip__basic_resolver.resolve ip::udp::resolver::resolve()],
+               [link boost_asio.reference.ip__basic_resolver.async_resolve ip::udp::resolver::async_resolve()]
+
+               [link boost_asio.reference.ip__basic_resolver.resolve ip::basic_resolver::resolve()],
+               [link boost_asio.reference.ip__basic_resolver.async_resolve ip::basic_resolver::async_resolve()] ]
+  ]
+  [
+    [`gethostname()`]
+    [          [link boost_asio.reference.ip__host_name ip::host_name()] ]
+  ]
+  [
+    [`getpeername()`]
+    [ For TCP: [link boost_asio.reference.basic_socket.remote_endpoint ip::tcp::socket::remote_endpoint()]
+
+      For UDP: [link boost_asio.reference.basic_socket.remote_endpoint ip::udp::socket::remote_endpoint()]
+
+               [link boost_asio.reference.basic_socket.remote_endpoint basic_socket::remote_endpoint()] ]
+  ]
+  [
+    [`getsockname()`]
+    [ For TCP: [link boost_asio.reference.basic_socket.local_endpoint ip::tcp::acceptor::local_endpoint()],
+               [link boost_asio.reference.basic_socket.local_endpoint ip::tcp::socket::local_endpoint()]
+
+      For UDP: [link boost_asio.reference.basic_socket.local_endpoint ip::udp::socket::local_endpoint()]
+
+               [link boost_asio.reference.basic_socket.local_endpoint basic_socket::local_endpoint()] ]
+  ]
+  [
+    [`getsockopt()`]
+    [ For TCP: [link boost_asio.reference.basic_socket.get_option ip::tcp::acceptor::get_option()],
+               [link boost_asio.reference.basic_socket.get_option ip::tcp::socket::get_option()]
+
+      For UDP: [link boost_asio.reference.basic_socket.get_option ip::udp::socket::get_option()]
+
+               [link boost_asio.reference.basic_socket.get_option basic_socket::get_option()] ]
+  ]
+  [
+    [`inet_addr()`,
+     `inet_aton()`,
+     `inet_pton()`]
+    [          [link boost_asio.reference.ip__address.from_string ip::address::from_string()],
+               [link boost_asio.reference.ip__address.from_string ip::address_v4::from_string()],
+               [link boost_asio.reference.ip__address.from_string ip_address_v6::from_string()] ]
+  ]
+  [
+    [`inet_ntoa()`,
+     `inet_ntop()`]
+    [          [link boost_asio.reference.ip__address.to_string ip::address::to_string()],
+               [link boost_asio.reference.ip__address.to_string ip::address_v4::to_string()],
+               [link boost_asio.reference.ip__address.to_string ip_address_v6::to_string()] ]
+  ]
+  [
+    [`ioctl()`]
+    [ For TCP: [link boost_asio.reference.basic_socket.io_control ip::tcp::socket::io_control()]
+
+      For UDP: [link boost_asio.reference.basic_socket.io_control ip::udp::socket::io_control()]
+
+               [link boost_asio.reference.basic_socket.io_control basic_socket::io_control()] ]
+  ]
+  [
+    [`listen()`]
+    [ For TCP: [link boost_asio.reference.basic_socket_acceptor.listen ip::tcp::acceptor::listen()]
+
+               [link boost_asio.reference.basic_socket_acceptor.listen basic_socket_acceptor::listen()] ]
+  ]
+  [
+    [`poll()`,
+     `select()`,
+     `pselect()`]
+    [          [link boost_asio.reference.io_service.run io_service::run()],
+               [link boost_asio.reference.io_service.run_one io_service::run_one()],
+               [link boost_asio.reference.io_service.poll io_service::poll()],
+               [link boost_asio.reference.io_service.poll_one io_service::poll_one()]
+
+      Note: in conjunction with asynchronous operations. ]
+  ]
+  [
+    [`readv()`,
+     `recv()`,
+     `read()`]
+    [ For TCP: [link boost_asio.reference.basic_stream_socket.read_some ip::tcp::socket::read_some()],
+               [link boost_asio.reference.basic_stream_socket.async_read_some ip::tcp::socket::async_read_some()],
+               [link boost_asio.reference.basic_stream_socket.receive ip::tcp::socket::receive()],
+               [link boost_asio.reference.basic_stream_socket.async_receive ip::tcp::socket::async_receive()]
+
+      For UDP: [link boost_asio.reference.basic_datagram_socket.receive ip::udp::socket::receive()],
+               [link boost_asio.reference.basic_datagram_socket.async_receive ip::udp::socket::async_receive()]
+
+               [link boost_asio.reference.basic_stream_socket.read_some basic_stream_socket::read_some()],
+               [link boost_asio.reference.basic_stream_socket.async_read_some basic_stream_socket::async_read_some()],
+               [link boost_asio.reference.basic_stream_socket.receive basic_stream_socket::receive()],
+               [link boost_asio.reference.basic_stream_socket.async_receive basic_stream_socket::async_receive()],
+               [link boost_asio.reference.basic_datagram_socket.receive basic_datagram_socket::receive()],
+               [link boost_asio.reference.basic_datagram_socket.async_receive basic_datagram_socket::async_receive()] ]
+  ]
+  [
+    [`recvfrom()`]
+    [ For UDP: [link boost_asio.reference.basic_datagram_socket.receive_from ip::udp::socket::receive_from()],
+               [link boost_asio.reference.basic_datagram_socket.async_receive_from ip::udp::socket::async_receive_from()]
+
+               [link boost_asio.reference.basic_datagram_socket.receive_from basic_datagram_socket::receive_from()],
+               [link boost_asio.reference.basic_datagram_socket.async_receive_from basic_datagram_socket::async_receive_from()] ]
+  ]
+  [
+    [`send()`,
+     `write()`,
+     `writev()`]
+    [ For TCP: [link boost_asio.reference.basic_stream_socket.write_some ip::tcp::socket::write_some()],
+               [link boost_asio.reference.basic_stream_socket.async_write_some ip::tcp::socket::async_write_some()],
+               [link boost_asio.reference.basic_stream_socket.send ip::tcp::socket::send()],
+               [link boost_asio.reference.basic_stream_socket.async_send ip::tcp::socket::async_send()]
+
+      For UDP: [link boost_asio.reference.basic_datagram_socket.send ip::udp::socket::send()],
+               [link boost_asio.reference.basic_datagram_socket.async_send ip::udp::socket::async_send()]
+
+               [link boost_asio.reference.basic_stream_socket.write_some basic_stream_socket::write_some()],
+               [link boost_asio.reference.basic_stream_socket.async_write_some basic_stream_socket::async_write_some()],
+               [link boost_asio.reference.basic_stream_socket.send basic_stream_socket::send()],
+               [link boost_asio.reference.basic_stream_socket.async_send basic_stream_socket::async_send()],
+               [link boost_asio.reference.basic_datagram_socket.send basic_datagram_socket::send()],
+               [link boost_asio.reference.basic_datagram_socket.async_send basic_datagram_socket::async_send()] ]
+  ]
+  [
+    [`sendto()`]
+    [ For UDP: [link boost_asio.reference.basic_datagram_socket.send_to ip::udp::socket::send_to()],
+               [link boost_asio.reference.basic_datagram_socket.async_send_to ip::udp::socket::async_send_to()]
+
+               [link boost_asio.reference.basic_datagram_socket.send_to basic_datagram_socket::send_to()],
+               [link boost_asio.reference.basic_datagram_socket.async_send_to basic_datagram_socket::async_send_to()] ]
+  ]
+  [
+    [`setsockopt()`]
+    [ For TCP: [link boost_asio.reference.basic_socket.set_option ip::tcp::acceptor::set_option()],
+               [link boost_asio.reference.basic_socket.set_option ip::tcp::socket::set_option()]
+
+      For UDP: [link boost_asio.reference.basic_socket.set_option ip::udp::socket::set_option()]
+
+               [link boost_asio.reference.basic_socket.set_option basic_socket::set_option()] ]
+  ]
+  [
+    [`shutdown()`]
+    [ For TCP: [link boost_asio.reference.basic_socket.shutdown ip::tcp::socket::shutdown()]
+
+      For UDP: [link boost_asio.reference.basic_socket.shutdown ip::udp::socket::shutdown()]
+
+               [link boost_asio.reference.basic_socket.shutdown basic_socket::shutdown()] ]
+  ]
+  [
+    [`sockatmark()`]
+    [ For TCP: [link boost_asio.reference.basic_socket.at_mark ip::tcp::socket::at_mark()]
+
+               [link boost_asio.reference.basic_socket.at_mark basic_socket::at_mark()] ]
+  ]
+  [
+    [`socket()`]
+    [ For TCP: [link boost_asio.reference.basic_socket.open ip::tcp::acceptor::open()],
+               [link boost_asio.reference.basic_socket.open ip::tcp::socket::open()]
+
+      For UDP: [link boost_asio.reference.basic_socket.open ip::udp::socket::open()]
+
+               [link boost_asio.reference.basic_socket.open basic_socket::open()] ]
+  ]
+  [
+    [`socketpair()`]
+    [          [link boost_asio.reference.local__connect_pair local::connect_pair()]
+
+      Note: POSIX operating systems only. ]
+  ]
+]
+
+[endsect]

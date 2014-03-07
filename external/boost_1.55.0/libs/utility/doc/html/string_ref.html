@@ -1,0 +1,280 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>String_Ref</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="string_ref.html" title="String_Ref">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"></div>
+<div class="article">
+<div class="titlepage">
+<div>
+<div><h2 class="title">
+<a name="string_ref"></a>String_Ref</h2></div>
+<div><div class="authorgroup"><div class="author"><h3 class="author">
+<span class="firstname">Marshall</span> <span class="surname">Clow</span>
+</h3></div></div></div>
+<div><p class="copyright">Copyright &#169; 2012 Marshall Clow</p></div>
+<div><div class="legalnotice">
+<a name="string_ref.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div>
+<hr>
+</div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><span class="section"><a href="string_ref.html#string_ref.overview">Overview</a></span></dt>
+<dt><span class="section"><a href="string_ref.html#string_ref.examples">Examples</a></span></dt>
+<dt><span class="section"><a href="string_ref.html#string_ref.reference">Reference </a></span></dt>
+<dt><span class="section"><a href="string_ref.html#string_ref.history">History</a></span></dt>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="string_ref.overview"></a><a class="link" href="string_ref.html#string_ref.overview" title="Overview">Overview</a>
+</h2></div></div></div>
+<p>
+      Boost.StringRef is an implementation of Jeffrey Yaskin's <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3442.html" target="_top">N3442:
+      string_ref: a non-owning reference to a string</a>.
+    </p>
+<p>
+      When you are parsing/processing strings from some external source, frequently
+      you want to pass a piece of text to a procedure for specialized processing.
+      The canonical way to do this is as a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>,
+      but that has certain drawbacks:
+    </p>
+<p>
+      1) If you are processing a buffer of text (say a HTTP response or the contents
+      of a file), then you have to create the string from the text you want to pass,
+      which involves memory allocation and copying of data.
+    </p>
+<p>
+      2) if a routine receives a constant <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>
+      and wants to pass a portion of that string to another routine, then it must
+      create a new string of that substring.
+    </p>
+<p>
+      3) A routine receives a constant <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>
+      and wants to return a portion of the string, then it must create a new string
+      to return.
+    </p>
+<p>
+      <code class="computeroutput"><span class="identifier">string_ref</span></code> is designed to solve
+      these efficiency problems. A <code class="computeroutput"><span class="identifier">string_ref</span></code>
+      is a read-only reference to a contiguous sequence of characters, and provides
+      much of the functionality of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>.
+      A <code class="computeroutput"><span class="identifier">string_ref</span></code> is cheap to create,
+      copy and pass by value, because it does not actually own the storage that it
+      points to.
+    </p>
+<p>
+      A <code class="computeroutput"><span class="identifier">string_ref</span></code> is implemented
+      as a small struct that contains a pointer to the start of the character data
+      and a count. A <code class="computeroutput"><span class="identifier">string_ref</span></code> is
+      cheap to create and cheap to copy.
+    </p>
+<p>
+      <code class="computeroutput"><span class="identifier">string_ref</span></code> acts as a container;
+      it includes all the methods that you would expect in a container, including
+      iteration support, <code class="computeroutput"><span class="keyword">operator</span> <span class="special">[]</span></code>,
+      <code class="computeroutput"><span class="identifier">at</span></code> and <code class="computeroutput"><span class="identifier">size</span></code>.
+      It can be used with any of the iterator-based algorithms in the STL - as long
+      as you don't need to change the underlying data (<code class="computeroutput"><span class="identifier">sort</span></code>
+      and <code class="computeroutput"><span class="identifier">remove</span></code>, for example, will
+      not work)
+    </p>
+<p>
+      Besides generic container functionality, <code class="computeroutput"><span class="identifier">string_ref</span></code>
+      provides a subset of the interface of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>.
+      This makes it easy to replace parameters of type <code class="computeroutput"><span class="keyword">const</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span></code>
+      with <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">string_ref</span></code>. Like <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>,
+      <code class="computeroutput"><span class="identifier">string_ref</span></code> has a static member
+      variable named <code class="computeroutput"><span class="identifier">npos</span></code> to denote
+      the result of failed searches, and to mean "the end".
+    </p>
+<p>
+      Because a <code class="computeroutput"><span class="identifier">string_ref</span></code> does not
+      own the data that it "points to", it introduces lifetime issues into
+      code that uses it. The programmer must ensure that the data that a <code class="computeroutput"><span class="identifier">string_ref</span></code> refers to exists as long as the
+      <code class="computeroutput"><span class="identifier">string_ref</span></code> does.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="string_ref.examples"></a><a class="link" href="string_ref.html#string_ref.examples" title="Examples">Examples</a>
+</h2></div></div></div>
+<p>
+      Integrating <code class="computeroutput"><span class="identifier">string_ref</span></code> into
+      your code is fairly simple. Wherever you pass a <code class="computeroutput"><span class="keyword">const</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span></code>
+      or <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code> as a parameter, that's a candidate
+      for passing a <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">string_ref</span></code>.
+    </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">extract_part</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span><span class="identifier">bar</span> <span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">bar</span><span class="special">.</span><span class="identifier">substr</span> <span class="special">(</span> <span class="number">2</span><span class="special">,</span> <span class="number">3</span> <span class="special">);</span>
+    <span class="special">}</span>
+
+<span class="keyword">if</span> <span class="special">(</span> <span class="identifier">extract_part</span> <span class="special">(</span> <span class="string">"ABCDEFG"</span> <span class="special">).</span><span class="identifier">front</span><span class="special">()</span> <span class="special">==</span> <span class="char">'C'</span> <span class="special">)</span> <span class="special">{</span> <span class="comment">/* do something */</span> <span class="special">}</span>
+</pre>
+<p>
+      Let's figure out what happens in this (contrived) example.
+    </p>
+<p>
+      First, a temporary string is created from the string literal <code class="computeroutput"><span class="string">"ABCDEFG"</span></code>, and it is passed (by reference)
+      to the routine <code class="computeroutput"><span class="identifier">extract_part</span></code>.
+      Then a second string is created in the call <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">substr</span></code>
+      and returned to <code class="computeroutput"><span class="identifier">extract_part</span></code>
+      (this copy may be elided by RVO). Then <code class="computeroutput"><span class="identifier">extract_part</span></code>
+      returns that string back to the caller (again this copy may be elided). The
+      first temporary string is deallocated, and <code class="computeroutput"><span class="identifier">front</span></code>
+      is called on the second string, and then it is deallocated as well.
+    </p>
+<p>
+      Two <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>s are created, and two copy operations.
+      That's (potentially) four memory allocations and deallocations, and the associated
+      copying of data.
+    </p>
+<p>
+      Now let's look at the same code with <code class="computeroutput"><span class="identifier">string_ref</span></code>:
+    </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">string_ref</span> <span class="identifier">extract_part</span> <span class="special">(</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">string_ref</span> <span class="identifier">bar</span> <span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">bar</span><span class="special">.</span><span class="identifier">substr</span> <span class="special">(</span> <span class="number">2</span><span class="special">,</span> <span class="number">3</span> <span class="special">);</span>
+    <span class="special">}</span>
+
+<span class="keyword">if</span> <span class="special">(</span> <span class="identifier">extract_part</span> <span class="special">(</span> <span class="string">"ABCDEFG"</span> <span class="special">).</span><span class="identifier">front</span><span class="special">()</span> <span class="special">==</span> <span class="string">"C"</span> <span class="special">)</span> <span class="special">{</span> <span class="comment">/* do something */</span> <span class="special">}</span>
+</pre>
+<p>
+      No memory allocations. No copying of character data. No changes to the code
+      other than the types. There are two <code class="computeroutput"><span class="identifier">string_ref</span></code>s
+      created, and two <code class="computeroutput"><span class="identifier">string_ref</span></code>s
+      copied, but those are cheap operations.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="string_ref.reference"></a><a class="link" href="string_ref.html#string_ref.reference" title="Reference">Reference </a>
+</h2></div></div></div>
+<p>
+      The header file "string_ref.hpp" defines a template <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">basic_string_ref</span></code>,
+      and four specializations - for <code class="computeroutput"><span class="keyword">char</span></code>
+      / <code class="computeroutput"><span class="keyword">wchar_t</span></code> / <code class="computeroutput"><span class="keyword">char16_t</span></code>
+      / <code class="computeroutput"><span class="keyword">char32_t</span></code> .
+    </p>
+<p>
+      <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">string_ref</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+    </p>
+<p>
+      Construction and copying:
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_CONSTEXPR</span> <span class="identifier">basic_string_ref</span> <span class="special">();</span>    <span class="comment">// Constructs an empty string_ref</span>
+<span class="identifier">BOOST_CONSTEXPR</span> <span class="identifier">basic_string_ref</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">str</span><span class="special">);</span> <span class="comment">// Constructs from a NULL-terminated string</span>
+<span class="identifier">BOOST_CONSTEXPR</span> <span class="identifier">basic_string_ref</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">str</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="identifier">len</span><span class="special">);</span> <span class="comment">// Constructs from a pointer, length pair</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Allocator</span><span class="special">&gt;</span>
+<span class="identifier">basic_string_ref</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">charT</span><span class="special">,</span> <span class="identifier">traits</span><span class="special">,</span> <span class="identifier">Allocator</span><span class="special">&gt;&amp;</span> <span class="identifier">str</span><span class="special">);</span> <span class="comment">// Constructs from a std::string</span>
+<span class="identifier">basic_string_ref</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">basic_string_ref</span> <span class="special">&amp;</span><span class="identifier">rhs</span><span class="special">);</span>
+<span class="identifier">basic_string_ref</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">basic_string_ref</span> <span class="special">&amp;</span><span class="identifier">rhs</span><span class="special">);</span>
+</pre>
+<p>
+      <code class="computeroutput"><span class="identifier">string_ref</span></code> does not define
+      a move constructor nor a move-assignment operator because copying a <code class="computeroutput"><span class="identifier">string_ref</span></code> is just a cheap as moving one.
+    </p>
+<p>
+      Basic container-like functions:
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_CONSTEXPR</span> <span class="identifier">size_type</span> <span class="identifier">size</span><span class="special">()</span>     <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">BOOST_CONSTEXPR</span> <span class="identifier">size_type</span> <span class="identifier">length</span><span class="special">()</span>   <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">BOOST_CONSTEXPR</span> <span class="identifier">size_type</span> <span class="identifier">max_size</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">BOOST_CONSTEXPR</span> <span class="keyword">bool</span> <span class="identifier">empty</span><span class="special">()</span>         <span class="keyword">const</span> <span class="special">;</span>
+
+<span class="comment">// All iterators are const_iterators</span>
+<span class="identifier">BOOST_CONSTEXPR</span> <span class="identifier">const_iterator</span>  <span class="identifier">begin</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">BOOST_CONSTEXPR</span> <span class="identifier">const_iterator</span> <span class="identifier">cbegin</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">BOOST_CONSTEXPR</span> <span class="identifier">const_iterator</span>    <span class="identifier">end</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">BOOST_CONSTEXPR</span> <span class="identifier">const_iterator</span>   <span class="identifier">cend</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">const_reverse_iterator</span>         <span class="identifier">rbegin</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">const_reverse_iterator</span>        <span class="identifier">crbegin</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">const_reverse_iterator</span>           <span class="identifier">rend</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">const_reverse_iterator</span>          <span class="identifier">crend</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">;</span>
+</pre>
+<p>
+      Access to the individual elements (all of which are const):
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_CONSTEXPR</span> <span class="keyword">const</span> <span class="identifier">charT</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">[](</span><span class="identifier">size_type</span> <span class="identifier">pos</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="keyword">const</span> <span class="identifier">charT</span><span class="special">&amp;</span> <span class="identifier">at</span><span class="special">(</span><span class="identifier">size_t</span> <span class="identifier">pos</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">BOOST_CONSTEXPR</span> <span class="keyword">const</span> <span class="identifier">charT</span><span class="special">&amp;</span> <span class="identifier">front</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">BOOST_CONSTEXPR</span> <span class="keyword">const</span> <span class="identifier">charT</span><span class="special">&amp;</span> <span class="identifier">back</span><span class="special">()</span>  <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">BOOST_CONSTEXPR</span> <span class="keyword">const</span> <span class="identifier">charT</span><span class="special">*</span> <span class="identifier">data</span><span class="special">()</span>  <span class="keyword">const</span> <span class="special">;</span>
+</pre>
+<p>
+      Modifying the <code class="computeroutput"><span class="identifier">string_ref</span></code> (but
+      not the underlying data):
+    </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">clear</span><span class="special">();</span>
+<span class="keyword">void</span> <span class="identifier">remove_prefix</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span>
+<span class="keyword">void</span> <span class="identifier">remove_suffix</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">);</span>
+</pre>
+<p>
+      Searching:
+    </p>
+<pre class="programlisting"><span class="identifier">size_type</span> <span class="identifier">find</span><span class="special">(</span><span class="identifier">basic_string_ref</span> <span class="identifier">s</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">size_type</span> <span class="identifier">find</span><span class="special">(</span><span class="identifier">charT</span> <span class="identifier">c</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">size_type</span> <span class="identifier">rfind</span><span class="special">(</span><span class="identifier">basic_string_ref</span> <span class="identifier">s</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">size_type</span> <span class="identifier">rfind</span><span class="special">(</span><span class="identifier">charT</span> <span class="identifier">c</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">size_type</span> <span class="identifier">find_first_of</span><span class="special">(</span><span class="identifier">charT</span> <span class="identifier">c</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">size_type</span> <span class="identifier">find_last_of</span> <span class="special">(</span><span class="identifier">charT</span> <span class="identifier">c</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+
+<span class="identifier">size_type</span> <span class="identifier">find_first_of</span><span class="special">(</span><span class="identifier">basic_string_ref</span> <span class="identifier">s</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">size_type</span> <span class="identifier">find_last_of</span><span class="special">(</span><span class="identifier">basic_string_ref</span> <span class="identifier">s</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">size_type</span> <span class="identifier">find_first_not_of</span><span class="special">(</span><span class="identifier">basic_string_ref</span> <span class="identifier">s</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">size_type</span> <span class="identifier">find_first_not_of</span><span class="special">(</span><span class="identifier">charT</span> <span class="identifier">c</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">size_type</span> <span class="identifier">find_last_not_of</span><span class="special">(</span><span class="identifier">basic_string_ref</span> <span class="identifier">s</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="identifier">size_type</span> <span class="identifier">find_last_not_of</span><span class="special">(</span><span class="identifier">charT</span> <span class="identifier">c</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+</pre>
+<p>
+      String-like operations:
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_CONSTEXPR</span> <span class="identifier">basic_string_ref</span> <span class="identifier">substr</span><span class="special">(</span><span class="identifier">size_type</span> <span class="identifier">pos</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">=</span><span class="identifier">npos</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span> <span class="comment">// Creates a new string_ref</span>
+<span class="keyword">bool</span> <span class="identifier">starts_with</span><span class="special">(</span><span class="identifier">charT</span> <span class="identifier">c</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="keyword">bool</span> <span class="identifier">starts_with</span><span class="special">(</span><span class="identifier">basic_string_ref</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="keyword">bool</span> <span class="identifier">ends_with</span><span class="special">(</span><span class="identifier">charT</span> <span class="identifier">c</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+<span class="keyword">bool</span> <span class="identifier">ends_with</span><span class="special">(</span><span class="identifier">basic_string_ref</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">;</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="string_ref.history"></a><a class="link" href="string_ref.html#string_ref.history" title="History">History</a>
+</h2></div></div></div>
+<h4>
+<a name="string_ref.history.h0"></a>
+      <span><a name="string_ref.history.boost_1_53"></a></span><a class="link" href="string_ref.html#string_ref.history.boost_1_53">boost
+      1.53</a>
+    </h4>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">
+          Introduced
+        </li></ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 27, 2013 at 21:01:34 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"></div>
+</body>
+</html>

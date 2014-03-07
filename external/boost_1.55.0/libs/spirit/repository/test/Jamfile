@@ -1,0 +1,38 @@
+#==============================================================================
+#   Copyright (c) 2001-2009 Joel de Guzman
+#   Copyright (c) 2001-2009 Hartmut Kaiser
+#
+#   Use, modification and distribution is subject to the Boost Software
+#   License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+project spirit_v2_repository/test
+    : requirements
+        <include>.
+        <toolset>gcc:<cxxflags>-ftemplate-depth-300 <linkflags>-lrt
+        <toolset>darwin:<cxxflags>-ftemplate-depth-300
+    :
+    :
+    ;
+
+# bring in rules for testing
+import testing ;
+
+{
+    test-suite spirit_v2_repository :
+
+    # run Qi repository tests
+    [ run qi/advance.cpp                    : : : : qi_repo_advance ]
+    [ run qi/confix.cpp                     : : : : qi_repo_confix ]
+    [ run qi/distinct.cpp                   : : : : qi_repo_distinct ]
+    [ run qi/subrule.cpp                    : : : : qi_repo_subrule ]
+    [ run qi/keywords.cpp                   : : : : qi_repo_keywords ]
+    [ run qi/seek.cpp                       : : : : qi_repo_seek ]
+
+    # run Karma repository tests
+    [ run karma/confix.cpp                  : : : : karma_repo_confix ]
+    [ run karma/subrule.cpp                 : : : : karma_repo_subrule ]
+
+    ;
+}
+

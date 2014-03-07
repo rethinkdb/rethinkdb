@@ -1,0 +1,109 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template format_named_scope_terminal</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../expressions.html#header.boost.log.expressions.formatters.named_scope_hpp" title="Header &lt;boost/log/expressions/formatters/named_scope.hpp&gt;">
+<link rel="prev" href="if_.html" title="Function template if_">
+<link rel="next" href="format_named_scope_actor.html" title="Class template format_named_scope_actor">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="if_.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../expressions.html#header.boost.log.expressions.formatters.named_scope_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="format_named_scope_actor.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.expressions.format_named_s_idp26413592"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template format_named_scope_terminal</span></h2>
+<p>boost::log::expressions::format_named_scope_terminal</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../expressions.html#header.boost.log.expressions.formatters.named_scope_hpp" title="Header &lt;boost/log/expressions/formatters/named_scope.hpp&gt;">boost/log/expressions/formatters/named_scope.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FallbackPolicyT<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="format_named_s_idp26413592.html" title="Class template format_named_scope_terminal">format_named_scope_terminal</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="keyword">void</span>                                  <a name="boost.log.expressions.format_named_s_idp26413592._is_boost_log_terminal"></a><span class="identifier">_is_boost_log_terminal</span><span class="special">;</span>   <span class="comment">// Internal typedef for type categorization. </span>
+  <span class="keyword">typedef</span> <span class="identifier">attributes</span><span class="special">::</span><span class="identifier">named_scope</span><span class="special">::</span><span class="identifier">value_type</span>   <a name="boost.log.expressions.format_named_s_idp26413592.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>               <span class="comment">// Attribute value type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">FallbackPolicyT</span>                       <a name="boost.log.expressions.format_named_s_idp26413592.fallback_policy"></a><span class="identifier">fallback_policy</span><span class="special">;</span>          <span class="comment">// Fallback policy. </span>
+  <span class="keyword">typedef</span> <span class="identifier">CharT</span>                                 <a name="boost.log.expressions.format_named_s_idp26413592.char_type"></a><span class="identifier">char_type</span><span class="special">;</span>                <span class="comment">// Character type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">char_type</span> <span class="special">&gt;</span>        <a name="boost.log.expressions.format_named_s_idp26413592.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>              <span class="comment">// String type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">basic_formatting_ostream</span><span class="special">&lt;</span> <span class="identifier">char_type</span> <span class="special">&gt;</span> <a name="boost.log.expressions.format_named_s_idp26413592.stream_type"></a><span class="identifier">stream_type</span><span class="special">;</span>              <span class="comment">// Formatting stream type. </span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                           <a name="boost.log.expressions.format_named_s_idp26413592.formatter_function_type"></a><span class="identifier">formatter_function_type</span><span class="special">;</span>  <span class="comment">// Formatter function. </span>
+  <span class="keyword">typedef</span> <span class="identifier">string_type</span>                           <a name="boost.log.expressions.format_named_s_idp26413592.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>              <span class="comment">// Function result type. </span>
+
+  <span class="comment">// <a class="link" href="format_named_s_idp26413592.html#boost.log.expressions.format_named_s_idp26413592construct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FormatT<span class="special">&gt;</span> 
+    <a class="link" href="format_named_s_idp26413592.html#idp26423800-bb"><span class="identifier">format_named_scope_terminal</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">fallback_policy</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">FormatT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                <span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">value_type</span><span class="special">::</span><span class="identifier">size_type</span><span class="special">,</span> 
+                                <span class="identifier">scope_iteration_direction</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="format_named_s_idp26413592.html#idp26426536-bb"><span class="identifier">format_named_scope_terminal</span></a><span class="special">(</span><a class="link" href="format_named_s_idp26413592.html" title="Class template format_named_scope_terminal">format_named_scope_terminal</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="format_named_s_idp26413592.html#idp26427256-bb"><span class="identifier">format_named_scope_terminal</span></a><span class="special">(</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="format_named_s_idp26413592.html#idp26418872-bb">public member functions</a></span>
+  <span class="identifier">attribute_name</span> <a class="link" href="format_named_s_idp26413592.html#idp26419080-bb"><span class="identifier">get_name</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">fallback_policy</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a class="link" href="format_named_s_idp26413592.html#idp26419704-bb"><span class="identifier">get_fallback_policy</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">formatter_function_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a class="link" href="format_named_s_idp26413592.html#idp26420360-bb"><span class="identifier">get_formatter_function</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ContextT<span class="special">&gt;</span> <span class="identifier">result_type</span> <a class="link" href="format_named_s_idp26413592.html#idp26421016-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">ContextT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ContextT<span class="special">&gt;</span> <span class="identifier">result_type</span> <a class="link" href="format_named_s_idp26413592.html#idp26422408-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">ContextT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp59241896"></a><h2>Description</h2>
+<p>Named scope formatter terminal. </p>
+<div class="refsect2">
+<a name="idp59242280"></a><h3>
+<a name="boost.log.expressions.format_named_s_idp26413592construct-copy-destruct"></a><code class="computeroutput">format_named_scope_terminal</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FormatT<span class="special">&gt;</span> 
+  <a name="idp26423800-bb"></a><span class="identifier">format_named_scope_terminal</span><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span> name<span class="special">,</span> 
+                              <span class="identifier">fallback_policy</span> <span class="keyword">const</span> <span class="special">&amp;</span> fallback<span class="special">,</span> 
+                              <span class="identifier">FormatT</span> <span class="keyword">const</span> <span class="special">&amp;</span> element_format<span class="special">,</span> 
+                              <span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> delimiter<span class="special">,</span> 
+                              <span class="identifier">value_type</span><span class="special">::</span><span class="identifier">size_type</span> depth<span class="special">,</span> 
+                              <span class="identifier">scope_iteration_direction</span> direction<span class="special">)</span><span class="special">;</span></pre>Initializing constructor. </li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp26426536-bb"></a><span class="identifier">format_named_scope_terminal</span><span class="special">(</span><a class="link" href="format_named_s_idp26413592.html" title="Class template format_named_scope_terminal">format_named_scope_terminal</a> <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>Copy constructor. </li>
+<li class="listitem"><pre class="literallayout"><a name="idp26427256-bb"></a><span class="identifier">format_named_scope_terminal</span><span class="special">(</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp59259016"></a><h3>
+<a name="idp26418872-bb"></a><code class="computeroutput">format_named_scope_terminal</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">attribute_name</span> <a name="idp26419080-bb"></a><span class="identifier">get_name</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns attribute name. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">fallback_policy</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a name="idp26419704-bb"></a><span class="identifier">get_fallback_policy</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns fallback policy. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">formatter_function_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a name="idp26420360-bb"></a><span class="identifier">get_formatter_function</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Retruns formatter function. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ContextT<span class="special">&gt;</span> <span class="identifier">result_type</span> <a name="idp26421016-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">ContextT</span> <span class="keyword">const</span> <span class="special">&amp;</span> ctx<span class="special">)</span><span class="special">;</span></pre>Invokation operator. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ContextT<span class="special">&gt;</span> <span class="identifier">result_type</span> <a name="idp26422408-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">ContextT</span> <span class="keyword">const</span> <span class="special">&amp;</span> ctx<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Invokation operator. </li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="if_.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../expressions.html#header.boost.log.expressions.formatters.named_scope_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="format_named_scope_actor.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

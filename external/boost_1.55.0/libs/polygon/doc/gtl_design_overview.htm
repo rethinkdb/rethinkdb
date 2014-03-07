@@ -1,0 +1,224 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+ xmlns:v="urn:schemas-microsoft-com:vml"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:(null)1="http://www.w3.org/TR/REC-html40" lang="en">
+<head>
+<!--
+    Copyright 2009-2010 Intel Corporation
+    license banner
+-->
+  <title>Boost Polygon Library: Overview</title>
+  <meta http-equiv="content-type" content="text/html;charset=ISO-8859-1" />
+<!-- <link type="text/css" rel="stylesheet" href="adobe_source.css"> -->
+</head>
+<body>
+<table style="margin: 0pt; padding: 0pt; width: 100%;" border="0"
+ cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top">
+      <div style="padding: 5px;" align="center"> <img
+ src="images/boost.png" border="0" height="86" width="277" /><a
+ title="www.boost.org home page" href="http://www.boost.org/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      <div style="margin: 5px;">
+      <h3 class="navbar">Contents</h3>
+      <ul>
+        <li><a href="index.htm">Boost.Polygon Main Page</a></li>
+        <li>Design Overview</li>
+        <li><a href="gtl_isotropy.htm">Isotropy</a></li>
+        <li><a href="gtl_coordinate_concept.htm">Coordinate Concept</a></li>
+        <li><a href="gtl_interval_concept.htm">Interval Concept</a></li>
+        <li> <a href="gtl_point_concept.htm">Point Concept</a></li>
+        <li><a href="gtl_segment_concept.htm">Segment Concept</a></li>
+        <li><a href="gtl_rectangle_concept.htm">Rectangle Concept</a></li>
+        <li><a href="gtl_polygon_90_concept.htm">Polygon 90 Concept</a></li>
+        <li><a href="gtl_polygon_90_with_holes_concept.htm">Polygon 90
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_45_concept.htm">Polygon 45 Concept</a></li>
+        <li><a href="gtl_polygon_45_with_holes_concept.htm">Polygon 45
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_concept.htm">Polygon Concept</a></li>
+        <li><a href="gtl_polygon_with_holes_concept.htm">Polygon With
+Holes Concept</a></li>
+        <li><a href="gtl_polygon_90_set_concept.htm">Polygon 90 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_45_set_concept.htm">Polygon 45 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_set_concept.htm">Polygon Set Concept</a></li>
+        <li><a href="gtl_connectivity_extraction_90.htm">Connectivity
+Extraction 90</a></li>
+        <li><a href="gtl_connectivity_extraction_45.htm">Connectivity
+Extraction 45</a></li>
+        <li><a href="gtl_connectivity_extraction.htm">Connectivity
+Extraction</a></li>
+        <li><a href="gtl_property_merge_90.htm">Property Merge 90</a></li>
+        <li><a href="gtl_property_merge_45.htm">Property Merge 45</a></li>
+        <li><a href="gtl_property_merge.htm">Property Merge</a></li>
+        <li><a href="voronoi_main.htm">Voronoi Main Page<br />
+          </a></li>
+        <li><a href="voronoi_benchmark.htm">Voronoi Benchmark</a><br />
+        </li>
+        <li><a href="voronoi_builder.htm">Voronoi Builder</a></li>
+        <li><a href="voronoi_diagram.htm">Voronoi Diagram</a></li>
+      </ul>
+      <h3 class="navbar">Other Resources</h3>
+      <ul>
+        <li><a href="GTL_boostcon2009.pdf">GTL Boostcon 2009 Paper</a></li>
+        <li><a href="GTL_boostcon_draft03.pdf">GTL Boostcon 2009
+Presentation</a></li>
+        <li><a href="analysis.htm">Performance Analysis</a></li>
+        <li><a href="gtl_tutorial.htm">Layout Versus Schematic Tutorial</a></li>
+        <li><a href="gtl_minkowski_tutorial.htm">Minkowski Sum Tutorial</a></li>
+        <li><a href="voronoi_basic_tutorial.htm">Voronoi Basic Tutorial</a></li>
+        <li><a href="voronoi_advanced_tutorial.htm">Voronoi Advanced
+Tutorial</a></li>
+      </ul>
+      </div>
+      <h3 class="navbar">Polygon Sponsor</h3>
+      <div style="padding: 5px;" align="center"> <img
+ src="images/intlogo.gif" border="0" height="51" width="127" /><a
+ title="www.adobe.com home page" href="http://www.adobe.com/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      </td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%">
+<!-- End Header --><br />
+      <p>
+      </p>
+      <h1>Polygon Library Design Overview</h1>
+      <p> </p>
+      <p>The Polygon library uses C++-Concepts inspired template
+programming to provide generic library functions overloaded on concept
+type.&nbsp; There are currently thirteen concepts in the Polygon
+library type system.&nbsp; A concept object in the Polygon library is
+just an empty struct similar to a tag that would be used for tag
+dispatching.&nbsp;&nbsp; These concepts are shown in the refinement
+diagram below.</p>
+      <img src="images/refinements.png" border="0" height="369"
+ width="466" />
+      <p>The arrows between diagram bubbles show concept refinement
+relationships.&nbsp; This is similar, but not identical to, inheritance
+relationships between normal classes.&nbsp; A refinement of a concept
+narrows down the definition of a more general concept.&nbsp; For
+example, the rectangle concept is a refinement of a polygon concept
+because it restricts the polygon to a four sided, axis-parallel,
+rectilinear figure.&nbsp; A refinement of a concept is always
+acceptable to an API that expects read only access to a given concept,
+but never acceptable to an API that expects to write to that
+concept.&nbsp; There are three types of geometry in the polygon
+library, the general case, the case restricted to angles that are
+multiples of 45 degrees, and the Manhattan/rectilinear case where
+angles are restricted to multiples of 90 degrees.&nbsp;&nbsp; The
+refinement diagram shows that 90 degree concepts are refinements of 45
+degree concepts, which are themselves refinements of the general
+case.&nbsp; This allows the compiler to choose between the three
+implementations of algorithms to select the best algorithm for the
+conceptual data types passed to an overload of a function including
+heterogeneous combinations of 90, 45 and general case geometry.&nbsp;
+To provide the
+      <font face="Courier New">operator&amp;</font> that performs the
+intersection on any pair of objects from the ten conceptual types
+related to each other through refinement in the diagraph above fully
+one hundred distinct combinations of conceptual types are supported by
+the library, but only three overloads are required to implement the
+operator (one for 90, one for 45 and one for arbitrary angle version of
+the intersection operation) because refinement generalizes the
+implementation of the interface.&nbsp; In this way a fully symmetric,
+complete and internally consistent API is implemented to provide
+meaningful and correct behaviors for all combinations of argument types
+in all APIs where those types make sense.&nbsp; For example, it doesn't
+make sense to copy data from a polygon into a rectangle, so attempting
+to do so yields a syntax error, while copying a rectangle into a
+polygon does make sense.&nbsp; The <font face="Courier New">
+assign()</font> function that is used to copy geometry data between
+concepts instantiates for the 49 combinations of concepts that make
+sense, but not for the 51 combinations that are illegal.&nbsp; The
+syntax error you will see when attempting an illegal assign operation
+is simple and clear because use of SFINAE by the library to overload
+generic functions means no matching function is found by the compiler
+in cases where no overload is provided.</p>
+      <p>
+      <font face="Courier New">error: no matching function for call to
+'assign(rectangle_data&lt;int&gt;&amp;, polygon_data&lt;int&gt;&amp;)'</font></p>
+      <p>Associated with each concept is a traits struct that generally
+must be specialized for a given data type to provide the concept
+mapping between the interfaces of the data type and the expected
+behaviors of an object of that type required by the library.&nbsp; The
+library also provides its own data types for each concept that conform
+to the default traits definition.&nbsp; These library provided data
+types are no more than dumb containers that provide access to their
+data and rely on the generic library functions to enforce invariants
+and provide useful behaviors specific to their type of geometry that
+would normally be member functions of the data type in an OO
+design.&nbsp; The library data types conform to the default traits
+associated with their related geometry concept and are registered as
+models of that concept.&nbsp; When a data type has been mapped to a
+concept through traits it needs to be registered as that conceptual
+type with the library by specializing the geometry_concept
+meta-function.&nbsp; Once mapped and registered, a user data type can
+be used interchangeably with library data types in the generic free
+functions that are overloaded on concept.</p>
+      <p>Traits for mapping a data type to a concept are broken down
+into mutable and read only traits.&nbsp; Read only traits are
+specialized internally to work with any types that are refinements of a
+concept.&nbsp; The mutable traits are defined only for objects that
+exactly model the concept.&nbsp; Both read only traits and mutable
+traits need to be defined for a type to model a concept, but a type can
+be used without defining the mutable traits as long as no API that
+needs to modify the object is used with that type.&nbsp; For example, a
+triangle type could be registered as a polygon_concept and the read
+only traits but not the mutable traits defined for that triangle
+type.&nbsp; This would allow the triangle type to be passed into any
+API that expects a const reference to an object that models
+polygon.&nbsp; </p>
+      <p>An object that is a model of a given concept can usually be
+viewed as a model of any of its refinements if it is determined at
+runtime to conform to the restrictions of those concepts.&nbsp; This
+concept casting is accomplished through the
+      <font face="Courier New">view_as&lt;&gt;()</font> function.&nbsp;
+For example if an object of conceptual type polygon 90 has four sides
+it must be a rectangle, and can be viewed as a rectangle with the
+following syntax:</p>
+      <p><font face="Courier New">view_as&lt;rectangle_concept&gt;(polygon_90_object)</font></p>
+      <p>The return value of <font face="Courier New">view_as&lt;&gt;()</font>
+can be passed into any interface that expects an object of the
+conceptual type specified in its template parameter.&nbsp; The
+exception to this ability to concept cast geometric objects is that
+polygon set objects cannot be viewed as individual polygons or
+rectangles.</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top"> &nbsp;</td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%">
+      <table class="docinfo" id="table1" frame="void" rules="none">
+        <colgroup> <col class="docinfo-name" /><col
+ class="docinfo-content" /> </colgroup> <tbody valign="top">
+          <tr>
+            <th class="docinfo-name">Copyright:</th>
+            <td>Copyright © Intel Corporation 2008-2010.</td>
+          </tr>
+          <tr class="field">
+            <th class="docinfo-name">License:</th>
+            <td class="field-body">Distributed under the Boost Software
+License, Version 1.0. (See accompanying file <tt class="literal"> <span
+ class="pre">LICENSE_1_0.txt</span></tt> or copy at <a
+ class="reference" target="_top"
+ href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+          </tr>
+        </tbody>
+      </table>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>

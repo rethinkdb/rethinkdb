@@ -1,0 +1,287 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Scope]
+
+Up until now, the most basic ingredient is missing: creation of and access to
+local variables in the stack. When recursion comes into play, you will soon
+realize the need to have true local variables. It may seem that we do not need
+this at all since an unnamed lambda function cannot call itself anyway; at least
+not directly. With some sort of arrangement, situations will arise where a
+lambda function becomes recursive. A typical situation occurs when we store a
+lambda function in a [@http://www.boost.org/libs/function Boost.Function],
+essentially naming the unnamed lambda.
+
+There will also be situations where a lambda function gets passed as an argument
+to another function. This is a more common situation. In this case, the lambda
+function assumes a new scope; new arguments and possibly new local variables.
+
+This section deals with local variables and nested lambda scopes.
+
+[section Local Variables]
+
+    #include <boost/phoenix/scope/local_variable.hpp>
+
+We use an instance of:
+
+    expression::local_variable<Key>::type
+
+to represent a local variable. The local variable acts as an imaginary data-bin
+where a local, stack based data will be placed. `Key` is an arbitrary type that
+is used to identify the local variable. Example:
+
+    struct size_key;
+    expression::local_variable<size_key>::type size;
+
+[*Predefined Local Variables]
+
+There are a few predefined instances of `expression::local_variable<Key>::type`
+named `_a`..`_z` that you can already use. To make use of them, simply use the
+`namespace boost::phoenix::local_names`:
+
+    using namespace boost::phoenix::local_names;
+
+[endsect]
+[section let]
+
+    #include <boost/phoenix/scope/let.hpp>
+
+You declare local variables using the syntax:
+
+    let(local-declarations)
+    [
+        let-body
+    ]
+
+`let` allows 1..N local variable declarations (where N ==
+`BOOST_PHOENIX_LOCAL_LIMIT`). Each declaration follows the form:
+
+    local-id = lambda-expression
+
+[note You can set `BOOST_PHOENIX_LOCAL_LIMIT`, the predefined maximum local
+variable declarations in a let expression. By default, `BOOST_PHOENIX_LOCAL_LIMIT` is
+set to `BOOST_PHOENIX_LIMIT`.]
+
+Example:
+
+    let(_a = 123, _b = 456)
+    [
+        _a + _b
+    ]
+
+[*Reference Preservation]
+
+The type of the local variable assumes the type of the lambda- expression. Type
+deduction is reference preserving. For example:
+
+    let(_a = arg1, _b = 456)
+
+`_a` assumes the type of `arg1`: a reference to an argument, while `_b` has type
+`int`.
+
+Consider this:
+
+    int i = 1;
+
+    let(_a = arg1)
+    [
+        cout << --_a << ' '
+    ]
+    (i);
+
+    cout << i << endl;
+
+the output of above is : 0 0
+
+While with this:
+
+    int i = 1;
+
+    let(_a = val(arg1))
+    [
+        cout << --_a << ' '
+    ]
+    (i);
+
+    cout << i << endl;
+
+the output is : 0 1
+
+Reference preservation is necessary because we need to have L-value access to
+outer lambda-scopes (especially the arguments). `arg`s and `ref`s are L-values.
+`val`s are R-values.
+
+[*Visibility]
+[#phoenix.modules.scope.let.visibility]
+
+The scope and lifetimes of the local variables is limited within the let-body.
+`let` blocks can be nested. A local variable may hide an outer local variable.
+For example:
+
+    let(_x = 1, _y = ", World")
+    [
+        // _x here is an int: 1
+
+        let(_x = "Hello") // hides the outer _x
+        [
+            cout << _x << _y // prints "Hello, World"
+        ]
+    ]
+
+The RHS (right hand side lambda-expression) of each local-declaration cannot
+refer to any LHS local-id. At this point, the local-ids are not in scope yet;
+they will only be in scope in the let-body. The code below is in error:
+
+    let(
+        _a = 1
+      , _b = _a // Error: _a is not in scope yet
+    )
+    [
+        // _a and _b's scope starts here
+        /*. body .*/
+    ]
+
+However, if an outer let scope is available, this will be searched. Since
+the scope of the RHS of a local-declaration is the outer scope enclosing
+the let, the RHS of a local-declaration can refer to a local variable of
+an outer scope:
+
+    let(_a = 1)
+    [
+        let(
+            _a = 1
+          , _b = _a // Ok. _a refers to the outer _a
+        )
+        [
+            /*. body .*/
+        ]
+    ]
+
+[endsect]
+[section lambda]
+
+    #include <boost/phoenix/scope/lambda.hpp>
+
+A lot of times, you'd want to write a lazy function that accepts one or more
+functions (higher order functions). STL algorithms come to mind, for example.
+Consider a lazy version of `stl::for_each`:
+
+    struct for_each_impl
+    {
+        template <typename C, typename F>
+        struct result
+        {
+            typedef void type;
+        };
+
+        template <typename C, typename F>
+        void operator()(C& c, F f) const
+        {
+            std::for_each(c.begin(), c.end(), f);
+        }
+    };
+
+    function<for_each_impl> const for_each = for_each_impl();
+
+Notice that the function accepts another function, `f` as an argument. The scope
+of this function, `f`, is limited within the `operator()`. When `f` is called
+inside `std::for_each`, it exists in a new scope, along with new arguments and,
+possibly, local variables. This new scope is not at all related to the outer
+scopes beyond the `operator()`.
+
+Simple syntax:
+
+    lambda
+    [
+        lambda-body
+    ]
+
+Like `let`, local variables may be declared, allowing 1..N local variable
+declarations (where N == `BOOST_PHOENIX_LOCAL_LIMIT`):
+
+    lambda(local-declarations)
+    [
+        lambda-body
+    ]
+
+The same restrictions apply with regard to scope and visibility. The RHS
+(right hand side lambda-expression) of each local-declaration cannot refer
+to any LHS local-id. The local-ids are not in scope yet; they will be in
+scope only in the lambda-body:
+
+    lambda(
+        _a = 1
+      , _b = _a // Error: _a is not in scope yet
+    )
+
+See [link phoenix.modules.scope.let.visibility `let` Visibility] for more information.
+
+Example: Using our lazy `for_each` let's print all the elements in a container:
+
+    for_each(arg1, lambda[cout << arg1])
+
+As far as the arguments are concerned (arg1..argN), the scope in which the
+lambda-body exists is totally new. The left `arg1` refers to the argument passed
+to `for_each` (a container). The right `arg1` refers to the argument passed by
+`std::for_each` when we finally get to call `operator()` in our `for_each_impl`
+above (a container element).
+
+Yet, we may wish to get information from outer scopes. While we do not have
+access to arguments in outer scopes, what we still have is access to local
+variables from outer scopes. We may only be able to pass argument related
+information from outer `lambda` scopes through the local variables.
+
+[note This is a crucial difference between `let` and `lambda`: `let`
+does not introduce new arguments; `lambda` does.]
+
+Another example: Using our lazy `for_each`, and a lazy `push_back`:
+
+    struct push_back_impl
+    {
+        template <typename C, typename T>
+        struct result
+        {
+            typedef void type;
+        };
+
+        template <typename C, typename T>
+        void operator()(C& c, T& x) const
+        {
+            c.push_back(x);
+        }
+    };
+
+    function<push_back_impl> const push_back = push_back_impl();
+
+write a lambda expression that accepts:
+
+# a 2-dimensional container (e.g. `vector<vector<int> >`)
+# a container element (e.g. `int`)
+
+and pushes-back the element to each of the `vector<int>`.
+
+Solution:
+
+    for_each(arg1,
+        lambda(_a = arg2)
+        [
+            push_back(arg1, _a)
+        ]
+    )
+
+Since we do not have access to the arguments of the outer scopes beyond the
+lambda-body, we introduce a local variable `_a` that captures the second outer
+argument: `arg2`. Hence: _a = arg2. This local variable is visible inside the
+lambda scope.
+
+(See [@../../example/lambda.cpp lambda.cpp])
+
+[endsect]
+
+[endsect]

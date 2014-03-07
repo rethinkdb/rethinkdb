@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Function Template imbue</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Function Template <CODE>imbue</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#description">Description</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+</DL>
+
+<A NAME="description"></A>
+<H2>Description</H2>
+
+<P>
+    The function template <CODE>imbue</CODE> is invoked automatically by the Iostreams library when the <CODE>std::locale</CODE> of a library stream or stream buffer is set using <CODE>std::basic_ios::imbue</CODE> or <CODE>std::basic_streambuf::pubimbue</CODE>. When the <CODE>std::locale</CODE> of an instance of <A HREF="../guide/generic_streams.html#stream_buffer"><CODE>stream_buffer</CODE></A> or <A HREF="../guide/generic_streams.html#stream"><CODE>stream</CODE></A> is set, <CODE>imbue</CODE> is invoked on the underlying Device; when the <CODE>std::locale</CODE> of a <A HREF="../classes/filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A> or <A HREF="../classes/filtering_streambuf.html"><CODE>filtering_stream</CODE></A> is set, <CODE>imbue</CODE> is invoked on each Filter and Device in the underlying chain.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/imbue.hpp"><CODE>&lt;boost/iostreams/detail/imbue.hpp&gt;</CODE></A></DT>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><CODE>&lt;boost/iostreams/detail/operations.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="synopsis"></A>
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+              
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">T</A>&gt;     
+<SPAN CLASS="keyword">void</SPAN> <A CLASS="documented" HREF="#semantics">imbue</A>(T&amp; t, <SPAN CLASS="keyword">const</SPAN> std::locale&amp; loc);
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A NAME="template_params"></A>
+<H4>Template Parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>T</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A model of one of the <A HREF="../guide/concepts.html#filter_concepts">Filter</A> or <A HREF="../guide/concepts.html#device_concepts">Device</A> concepts</TD>
+    </TR>
+</TABLE>
+
+<A NAME="semantics"></A>
+<H4>Semantics</H4>
+
+<P>The semantics of <CODE>imbue</CODE> for a Filter or Device type <CODE>T</CODE> depends on its <A HREF="../guide/traits.html#category">category</A> as follows:</P>
+
+<TABLE STYLE="margin-left:2em; margin-bottom:2em" BORDER=1 CELLPADDING=4>
+    <TR><TH><CODE>category_of&lt;T&gt;::type</CODE></TH><TH>semantics</TH></TR>
+    <TR>
+        <TD VALIGN="top">Convertible to <A HREF="../guide/traits.html#category_tags"><CODE>streambuf_tag</CODE></A></TD>
+        <TD>calls <CODE>t.pubimbue(loc)</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top">Convertible to <A HREF="../guide/traits.html#category_tags"><CODE>localizable_tag</CODE></A> but not to <A HREF="../guide/traits.html#category_tags"><CODE>streambuf_tag</CODE></A></TD>
+        <TD>calls <CODE>t.imbue(loc)</CODE></TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>otherwise</I></TD>
+        <TD>no-op</TD>
+    </TR>
+</TABLE>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

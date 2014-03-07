@@ -1,0 +1,488 @@
+# Copyright 2003 Douglas Gregor
+# Copyright 2002, 2003, 2005 Rene Rivera
+# Copyright 2002, 2003, 2004, 2005 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+# Utilities for generating format independent output. Using these
+# will help in generation of documentation in at minimum plain/console
+# and html.
+
+import modules ;
+import numbers ;
+import string ;
+import regex ;
+import "class" ;
+import scanner ;
+import path ;
+
+# The current output target. Defaults to console.
+output-target = console ;
+
+# The current output type. Defaults to plain. Other possible values are "html".
+output-type = plain ;
+
+# Whitespace.
+.whitespace = [ string.whitespace ] ;
+
+
+# Set the target and type of output to generate. This sets both the destination
+# output and the type of docs to generate to that output. The target can be
+# either a file or "console" for echoing to the console. If the type of output
+# is not specified it defaults to plain text.
+#
+rule output (
+    target  # The target file or device; file or "console".
+    type ?  # The type of output; "plain" or "html".
+)
+{
+    type ?= plain ;
+    if $(output-target) != $(target)
+    {
+        output-target = $(target) ;
+        output-type = $(type) ;
+        if $(output-type) = html
+        {
+            text
+                "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">"
+                "<html>"
+                "<head>"
+                "</head>"
+                "<body link=\"#0000ff\" vlink=\"#800080\">"
+                : true
+                : prefix ;
+            text
+                "</body>"
+                "</html>"
+                :
+                : suffix ;
+        }
+    }
+}
+
+
+# Generate a section with a description. The type of output can be controlled by
+# the value of the 'output-type' variable.
+#
+rule section (
+    name  # The name of the section.
+    description *  # A number of description lines.
+)
+{
+    if $(output-type) = plain
+    {
+        lines [ split-at-words $(name): ] ;
+        lines ;
+    }
+    else if $(output-type) = html
+    {
+        name = [ escape-html $(name) ] ;
+        text <h3>$(name)</h3> <p> ;
+    }
+    local pre = ;
+    while $(description)
+    {
+        local paragraph = ;
+        while $(description) && [ string.is-whitespace $(description[1]) ] { description = $(description[2-]) ; }
+        if $(pre)
+        {
+            while $(description) && (
+                $(pre) = " $(description[1])" ||
+                ( $(pre) < [ string.chars [ MATCH "^([$(.whitespace)]*)" : " $(description[1])" ] ] )
+                )
+                { paragraph += $(description[1]) ; description = $(description[2-]) ; }
+            while [ string.is-whitespace $(paragraph[-1]) ] { paragraph = $(paragraph[1--2]) ; }
+            pre = ;
+            if $(output-type) = plain
+            {
+                lines $(paragraph) "" : "  " "  " ;
+            }
+            else if $(output-type) = html
+            {
+                text <blockquote> ;
+                lines $(paragraph) ;
+                text </blockquote> ;
+            }
+        }
+        else
+        {
+            while $(description) && ! [ string.is-whitespace $(description[1]) ]
+                { paragraph += $(description[1]) ; description = $(description[2-]) ; }
+            if $(paragraph[1]) = :: && ! $(paragraph[2])
+            {
+                pre = " " ;
+            }
+            if $(paragraph[1]) = ::
+            {
+                if $(output-type) = plain
+                {
+                    lines $(paragraph[2-]) "" : "  " "  " ;
+                    lines ;
+                }
+                else if $(output-type) = html
+                {
+                    text <blockquote> ;
+                    lines $(paragraph[2-]) ;
+                    text </blockquote> ;
+                }
+            }
+            else
+            {
+                local p = [ MATCH "(.*)(::)$" : $(paragraph[-1]) ] ;
+                local pws = [ MATCH "([ 	]*)$" : $(p[1]) ] ;
+                p = [ MATCH "(.*)($(pws))($(p[2]))$" :  $(paragraph[-1]) ] ;
+                if $(p[3]) = ::
+                {
+                    pre = [ string.chars [ MATCH "^([$(.whitespace)]*)" : " $(p[1])" ] ] ;
+                    if ! $(p[2]) || $(p[2]) = "" { paragraph = $(paragraph[1--2]) $(p[1]): ; }
+                    else { paragraph = $(paragraph[1--2]) $(p[1]) ; }
+                    if $(output-type) = plain
+                    {
+                        lines [ split-at-words " " $(paragraph) ] : "  " "  " ;
+                        lines ;
+                    }
+                    else if $(output-type) = html
+                    {
+                        text </p> <p> [ escape-html $(paragraph) ] ;
+                    }
+                }
+                else
+                {
+                    if $(output-type) = plain
+                    {
+                        lines [ split-at-words " " $(paragraph) ] : "  " "  " ;
+                        lines ;
+                    }
+                    else if $(output-type) = html
+                    {
+                        text </p> <p> [ escape-html $(paragraph) ] ;
+                    }
+                }
+            }
+        }
+    }
+    if $(output-type) = html
+    {
+        text </p> ;
+    }
+}
+
+
+# Generate the start of a list of items. The type of output can be controlled by
+# the value of the 'output-type' variable.
+#
+rule list-start ( )
+{
+    if $(output-type) = plain
+    {
+    }
+    else if $(output-type) = html
+    {
+        text <ul> ;
+    }
+}
+
+
+# Generate an item in a list. The type of output can be controlled by the value
+# of the 'output-type' variable.
+#
+rule list-item (
+    item +  # The item to list.
+)
+{
+    if $(output-type) = plain
+    {
+        lines [ split-at-words "*" $(item) ] : "    " "  " ;
+    }
+    else if $(output-type) = html
+    {
+        text <li> [ escape-html $(item) ] </li> ;
+    }
+}
+
+
+# Generate the end of a list of items. The type of output can be controlled by
+# the value of the 'output-type' variable.
+#
+rule list-end ( )
+{
+    if $(output-type) = plain
+    {
+        lines ;
+    }
+    else if $(output-type) = html
+    {
+        text </ul> ;
+    }
+}
+
+
+# Split the given text into separate lines, word-wrapping to a margin. The
+# default margin is 78 characters.
+#
+rule split-at-words (
+    text +  # The text to split.
+    : margin ?  # An optional margin, default is 78.
+)
+{
+    local lines = ;
+    text = [ string.words $(text:J=" ") ] ;
+    text = $(text:J=" ") ;
+    margin ?= 78 ;
+    local char-match-1 = ".?" ;
+    local char-match = "" ;
+    while $(margin) != 0
+    {
+        char-match = $(char-match)$(char-match-1) ;
+        margin = [ numbers.decrement $(margin) ] ;
+    }
+    while $(text)
+    {
+        local s = "" ;
+        local t = "" ;
+        # divide s into the first X characters and the rest
+        s = [ MATCH "^($(char-match))(.*)" : $(text) ] ;
+
+        if $(s[2])
+        {
+            # split the first half at a space
+            t = [ MATCH "^(.*)[\\ ]([^\\ ]*)$" : $(s[1]) ] ;
+        }
+        else
+        {
+            t = $(s) ;
+        }
+
+        if ! $(t[2])
+        {
+            t += "" ;
+        }
+
+        text = $(t[2])$(s[2]) ;
+        lines += $(t[1]) ;
+    }
+    return $(lines) ;
+}
+
+
+# Generate a set of fixed lines. Each single item passed in is output on a
+# separate line. For console this just echos each line, but for html this will
+# split them with <br>.
+#
+rule lines (
+    text *      # The lines of text.
+    : indent ?  # Optional indentation prepended to each line after the first.
+    outdent ?   # Optional indentation to prepend to the first line.
+)
+{
+    text ?= "" ;
+    indent ?= "" ;
+    outdent ?= "" ;
+    if $(output-type) = plain
+    {
+        text $(outdent)$(text[1]) $(indent)$(text[2-]) ;
+    }
+    else if $(output-type) = html
+    {
+        local indent-chars = [ string.chars $(indent) ] ;
+        indent = "" ;
+        for local c in $(indent-chars)
+        {
+            if $(c) = " " { c = "&nbsp;" ; }
+            else if $(c) = "	" { c = "&nbsp;&nbsp;&nbsp;&nbsp;" ; }
+            indent = $(indent)$(c) ;
+        }
+        local html-text = [ escape-html $(text) : "&nbsp;" ] ;
+        text $(html-text[1])<br> $(indent)$(html-text[2-])<br> ;
+    }
+}
+
+
+# Output text directly to the current target. When doing output to a file, one
+# can indicate if the text should be output to "prefix" it, as the "body"
+# (default), or "suffix" of the file. This is independant of the actual
+# execution order of the text rule. This rule invokes a singular action, one
+# action only once, which does the build of the file. Therefore actions on the
+# target outside of this rule will happen entirely before and/or after all
+# output using this rule.
+#
+rule text (
+    strings *               # The strings of text to output.
+    : overwrite ?           # True to overwrite the output (if it is a file).
+    : prefix-body-suffix ?  # Indication to output prefix, body, or suffix (for
+                            # a file).
+)
+{
+    prefix-body-suffix ?= body ;
+    if $(output-target) = console
+    {
+        if ! $(strings)
+        {
+            ECHO ;
+        }
+        else
+        {
+            for local s in $(strings)
+            {
+                ECHO $(s) ;
+            }
+        }
+    }
+    if ! $($(output-target).did-action)
+    {
+        $(output-target).did-action = yes ;
+        $(output-target).text-prefix = ;
+        $(output-target).text-body = ;
+        $(output-target).text-suffix = ;
+
+        nl on $(output-target) = "
+" ;
+        text-redirect on $(output-target) = ">>" ;
+        if $(overwrite)
+        {
+            text-redirect on $(output-target) = ">" ;
+        }
+        text-content on $(output-target) = ;
+
+        text-action $(output-target) ;
+
+        if $(overwrite) && $(output-target) != console
+        {
+            check-for-update $(output-target) ;
+        }
+    }
+    $(output-target).text-$(prefix-body-suffix) += $(strings) ;
+    text-content on $(output-target) =
+        $($(output-target).text-prefix)
+        $($(output-target).text-body)
+        $($(output-target).text-suffix) ;
+}
+
+
+# Outputs the text to the current targets, after word-wrapping it.
+#
+rule wrapped-text ( text + )
+{
+    local lines = [ split-at-words $(text) ] ;
+    text $(lines) ;
+}
+
+
+# Escapes text into html/xml printable equivalents. Does not know about tags and
+# therefore tags fed into this will also be escaped. Currently escapes space,
+# "<", ">", and "&".
+#
+rule escape-html (
+    text +  # The text to escape.
+    : space ?  # What to replace spaces with, defaults to " ".
+)
+{
+    local html-text = ;
+    while $(text)
+    {
+        local html = $(text[1]) ;
+        text = $(text[2-]) ;
+        html = [ regex.replace $(html) "&" "&amp;" ] ;
+        html = [ regex.replace $(html) "<" "&lt;" ] ;
+        html = [ regex.replace $(html) ">" "&gt;" ] ;
+        if $(space)
+        {
+            html = [ regex.replace $(html) " " "$(space)" ] ;
+        }
+        html-text += $(html) ;
+    }
+    return $(html-text) ;
+}
+
+
+# Outputs the text strings collected by the text rule to the output file.
+#
+actions quietly text-action
+{
+    @($(STDOUT):E=$(text-content:J=$(nl))) $(text-redirect) "$(<)"
+}
+
+
+rule get-scanner ( )
+{
+    if ! $(.scanner)
+    {
+        .scanner = [ class.new print-scanner ] ;
+    }
+    return $(.scanner) ;
+}
+
+
+# The following code to update print targets when their contents change is a
+# horrible hack. It basically creates a target which binds to this file
+# (print.jam) and installs a scanner on it which reads the target and compares
+# its contents to the new contents that we are writing.
+#
+rule check-for-update ( target )
+{
+    local scanner = [ get-scanner ] ;
+    local file = [ path.native [ modules.binding $(__name__) ] ] ;
+    local g = [ MATCH <(.*)> : $(target:G) ] ;
+    local dependency-target = $(__file__:G=$(g:E=)-$(target:G=)-$(scanner)) ;
+    DEPENDS $(target) : $(dependency-target) ;
+    SEARCH on $(dependency-target) = $(file:D) ;
+    ISFILE $(dependency-target) ;
+    NOUPDATE $(dependency-target) ;
+    base on $(dependency-target) = $(target) ;
+    scanner.install $(scanner) : $(dependency-target) ;
+    return $(dependency-target) ;
+}
+
+
+class print-scanner : scanner
+{
+    import path ;
+    import os ;
+
+    rule pattern ( )
+    {
+        return "(One match...)" ;
+    }
+
+    rule process ( target : matches * : binding )
+    {
+        local base = [ on $(target) return $(base) ] ;
+        local nl = [ on $(base) return $(nl) ] ;
+        local text-content = [ on $(base) return $(text-content) ] ;
+        local dir = [ on $(base) return $(LOCATE) ] ;
+        if $(dir)
+        {
+            dir = [ path.make $(dir) ] ;
+        }
+        local file = [ path.native [ path.join $(dir) $(base:G=) ] ] ;
+        local actual-content ;
+        if [ os.name ] = NT
+        {
+            actual-content = [ SHELL "type \"$(file)\" 2>nul" ] ;
+        }
+        else
+        {
+            actual-content = [ SHELL "cat \"$(file)\" 2>/dev/null" ] ;
+        }
+        if $(text-content:J=$(nl)) != $(actual-content)
+        {
+            ALWAYS $(base) ;
+        }
+    }
+}
+
+
+rule __test__ ( )
+{
+    import assert ;
+
+    assert.result one two three   : split-at-words one two three : 5 ;
+    assert.result "one two" three : split-at-words one two three : 8 ;
+    assert.result "one two" three : split-at-words one two three : 9 ;
+    assert.result "one two three" : split-at-words one two three ;
+
+    # VP, 2004-12-03 The following test fails for some reason, so commenting it
+    # out.
+    #assert.result "one&nbsp;two&nbsp;three" "&amp;&lt;&gt;" :
+    #    escape-html "one two three" "&<>" ;
+}

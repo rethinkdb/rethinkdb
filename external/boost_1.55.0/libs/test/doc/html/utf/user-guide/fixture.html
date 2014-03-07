@@ -1,0 +1,120 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Fixtures or let me repeat myself</title>
+<link rel="stylesheet" href="../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Boost Test Library">
+<link rel="up" href="../user-guide.html" title="Unit Test Framework: User's guide">
+<link rel="prev" href="test-organization/expected-failures.html" title="Expected failures specification">
+<link rel="next" href="fixture/model.html" title="Generic fixture model">
+<script language="JavaScript1.2" src="../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../utf.html">The Unit Test Framework</a> &gt; <a href="../user-guide.html">User's guide</a><a href="../testing-tools.html">
+      &gt;
+      </a><b>Fixtures</b><a href="test-output.html">
+      &gt;
+      </a>
+</td>
+<td><div class="spirit-nav">
+<a href="test-organization/expected-failures.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="fixture/model.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.user-guide.fixture"></a>Fixtures  or let me repeat myself</h4></div></div></div>
+<p class="first-line-indented">
+  In general terms a test fixture or test context is the collection of one or more of the following items, required
+  to perform the test:
+ </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>preconditions</li>
+<li>particular states of tested unites</li>
+<li>necessary cleanup procedures</li>
+</ul></div>
+<p class="first-line-indented">
+  Though these tasks are encountered in many if not all test cases, what makes a test fixture different is
+  repetition. Where a normal test case implementation does all preparatory and cleanup work itself, a test fixture
+  allows this to be implemented in a separate reusable unit.
+ </p>
+<p class="first-line-indented">
+  With introduction of extreme programming (XP), the testing style, that require test setup/cleanup repetition, is
+  becoming more and more popular. Single XP adopted test modules may contain hundreds of single assertion test cases,
+  many requiring very similar test setup/cleanup. This is the problem that the test fixture is designed to solve.
+ </p>
+<p class="first-line-indented">
+  In practice a test fixture usually is a combination of setup and teardown functions, associated with test case.
+  The former serves the purposes of test setup; the later is dedicated to the cleanup tasks. Ideally it's
+  preferable that a test module author is able to define variables used in fixtures on the stack and the same time
+  is able to refer to them directly in test case.
+ </p>
+<p class="first-line-indented">
+  It's important to understand that C++ provides a way to implement a straightforward test fixture solution
+  that almost satisfies our requirements without any extra support from the test framework. This may explain why
+  test fixtures support was introduced in the <acronym class="acronym">UTF</acronym> somewhat late in its life cycle. Here is how simple test module
+  with such a fixture may look like:
+ </p>
+<pre class="programlisting">struct MyFixture {
+     MyFixture() { i = new int; *i = 0 }
+     ~ MyFixture() { delete i; }
+
+    int* i;
+};
+
+BOOST_AUTO_TEST_CASE( test_case1 )
+{
+    MyFixture f;
+
+    // do something involving f.i
+}
+
+BOOST_AUTO_TEST_CASE( test_case2 )
+{
+    MyFixture f;
+
+    // do something involving f.i
+}
+</pre>
+<p class="first-line-indented">
+  This is a generic solution that can be used to implement any kind of shared setup or cleanup procedure. Still
+  there are several more or less minor practical issues with this pure C++ based fixtures solution:
+ </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>
+    We need to add a fixture declaration statement into each test case manually.
+   </li>
+<li>
+    Objects defined in fixture are references with "&lt;fixture-instance-name&gt;." prefix.
+   </li>
+<li>
+    There is no place to execute a "global" fixture, which performs "global" setup/cleanup
+    procedures before and after testing.
+   </li>
+</ul></div>
+<p class="first-line-indented">
+  While there is little the <acronym class="acronym">UTF</acronym> can do to address these issues for manually registered test units, it's
+  possible to resolve them for test units that are automatically registered. To do this the <acronym class="acronym">UTF</acronym> defines a
+  <a class="link" href="fixture/model.html" title="Generic fixture model">generic fixture model</a> - fixed interfaces that both setup and
+  teardown fixture functions should comply to. Based on the generic fixture model, the <acronym class="acronym">UTF</acronym> presents solution for
+  the following tasks:
+ </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li><a class="link" href="fixture/per-test-case.html" title="Per test case fixture">per test case fixture automation</a></li>
+<li><a class="link" href="fixture/test-suite-shared.html" title="Test suite level fixture">shared test suite level fixture</a></li>
+<li><a class="link" href="fixture/global.html" title="Global fixture">"global" fixture support</a></li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="test-organization/expected-failures.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../user-guide.html"><img src="../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="fixture/model.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template managed_shared_ptr</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../interprocess/indexes_reference.html#header.boost.interprocess.smart_ptr.shared_ptr_hpp" title="Header &lt;boost/interprocess/smart_ptr/shared_ptr.hpp&gt;">
+<link rel="prev" href="to_raw_pointer_idp28351496.html" title="Function template to_raw_pointer">
+<link rel="next" href="make_managed_s_idp28380936.html" title="Function template make_managed_shared_ptr">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="to_raw_pointer_idp28351496.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.smart_ptr.shared_ptr_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_managed_s_idp28380936.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.interprocess.managed_shared_ptr"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template managed_shared_ptr</span></h2>
+<p>boost::interprocess::managed_shared_ptr</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../interprocess/indexes_reference.html#header.boost.interprocess.smart_ptr.shared_ptr_hpp" title="Header &lt;boost/interprocess/smart_ptr/shared_ptr.hpp&gt;">boost/interprocess/smart_ptr/shared_ptr.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> ManagedMemory<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="managed_shared_ptr.html" title="Struct template managed_shared_ptr">managed_shared_ptr</a> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">ManagedMemory</span><span class="special">::</span><span class="keyword">template</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">::</span><a class="link" href="managed_shared_ptr.html#boost.interprocess.managed_shared_ptr.type">type</a> <a name="boost.interprocess.managed_shared_ptr.void_allocator"></a><span class="identifier">void_allocator</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">ManagedMemory</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">deleter</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><a class="link" href="managed_shared_ptr.html#boost.interprocess.managed_shared_ptr.type">type</a>      <a name="boost.interprocess.managed_shared_ptr.deleter"></a><span class="identifier">deleter</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <a class="link" href="shared_ptr.html" title="Class template shared_ptr">shared_ptr</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">void_allocator</span><span class="special">,</span> <span class="identifier">deleter</span> <span class="special">&gt;</span>        <a name="boost.interprocess.managed_shared_ptr.type"></a><span class="identifier">type</span><span class="special">;</span>          
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp117591784"></a><h2>Description</h2>
+<p>Returns the type of a shared pointer of type T with the allocator <a class="link" href="allocator.html" title="Class template allocator">boost::interprocess::allocator</a> allocator and <a class="link" href="deleter.html" title="Class template deleter">boost::interprocess::deleter</a> deleter that can be constructed in the given managed segment type. </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="to_raw_pointer_idp28351496.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.smart_ptr.shared_ptr_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_managed_s_idp28380936.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

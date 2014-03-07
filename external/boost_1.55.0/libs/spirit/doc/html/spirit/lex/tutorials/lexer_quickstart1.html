@@ -1,0 +1,310 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Quickstart 1 - A word counter using Spirit.Lex</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Spirit.Lex Tutorials">
+<link rel="prev" href="lexer_tutorials.html" title="Spirit.Lex Tutorials Overview">
+<link rel="next" href="lexer_quickstart2.html" title="Quickstart 2 - A better word counter using Spirit.Lex">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lexer_tutorials.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lexer_quickstart2.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.lex.tutorials.lexer_quickstart1"></a><a class="link" href="lexer_quickstart1.html" title="Quickstart 1 - A word counter using Spirit.Lex">Quickstart
+        1 - A word counter using <span class="emphasis"><em>Spirit.Lex</em></span></a>
+</h4></div></div></div>
+<p>
+          <span class="emphasis"><em>Spirit.Lex</em></span> is very modular, which follows the general
+          building principle of the <a href="http://boost-spirit.com" target="_top">Spirit</a>
+          libraries. You never pay for features you don't use. It is nicely integrated
+          with the other parts of <a href="http://boost-spirit.com" target="_top">Spirit</a>
+          but nevertheless can be used separately to build stand alone lexical analyzers.
+          The first quick start example describes a stand alone application: counting
+          characters, words, and lines in a file, very similar to what the well known
+          Unix command <code class="computeroutput"><span class="identifier">wc</span></code> is doing
+          (for the full example code see here: <a href="../../../../../example/lex/word_count_functor.cpp" target="_top">word_count_functor.cpp</a>).
+        </p>
+<h6>
+<a name="spirit.lex.tutorials.lexer_quickstart1.h0"></a>
+          <span class="phrase"><a name="spirit.lex.tutorials.lexer_quickstart1.prerequisites"></a></span><a class="link" href="lexer_quickstart1.html#spirit.lex.tutorials.lexer_quickstart1.prerequisites">Prerequisites</a>
+        </h6>
+<p>
+          The only required <code class="computeroutput"><span class="preprocessor">#include</span></code>
+          specific to <span class="emphasis"><em>Spirit.Lex</em></span> follows. It is a wrapper for
+          all necessary definitions to use <span class="emphasis"><em>Spirit.Lex</em></span> in a stand
+          alone fashion, and on top of the <a href="http://www.benhanson.net/lexertl.html" target="_top">Lexertl</a>
+          library. Additionally we <code class="computeroutput"><span class="preprocessor">#include</span></code>
+          two of the Boost headers to define <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">bind</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span><span class="special">()</span></code>.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">lex_lexertl</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bind</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">ref</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        </p>
+<p>
+          To make all the code below more readable we introduce the following namespaces.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">lex</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lex</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="spirit.lex.tutorials.lexer_quickstart1.h1"></a>
+          <span class="phrase"><a name="spirit.lex.tutorials.lexer_quickstart1.defining_tokens"></a></span><a class="link" href="lexer_quickstart1.html#spirit.lex.tutorials.lexer_quickstart1.defining_tokens">Defining
+          Tokens</a>
+        </h6>
+<p>
+          The most important step while creating a lexer using <span class="emphasis"><em>Spirit.Lex</em></span>
+          is to define the tokens to be recognized in the input sequence. This is
+          normally done by defining the regular expressions describing the matching
+          character sequences, and optionally their corresponding token ids. Additionally
+          the defined tokens need to be associated with an instance of a lexer object
+          as provided by the library. The following code snippet shows how this can
+          be done using <span class="emphasis"><em>Spirit.Lex</em></span>.
+        </p>
+<p>
+          The template <code class="computeroutput"><span class="identifier">word_count_tokens</span></code>
+          defines three different tokens: <code class="computeroutput"><span class="identifier">ID_WORD</span></code>,
+          <code class="computeroutput"><span class="identifier">ID_EOL</span></code>, and <code class="computeroutput"><span class="identifier">ID_CHAR</span></code>, representing a word (anything
+          except a whitespace or a newline), a newline character, and any other character
+          (<code class="computeroutput"><span class="identifier">ID_WORD</span></code>, <code class="computeroutput"><span class="identifier">ID_EOL</span></code>, and <code class="computeroutput"><span class="identifier">ID_CHAR</span></code>
+          are enum values representing the token ids, but could be anything else
+          convertible to an integer as well). The direct base class of any token
+          definition class needs to be the template <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;&gt;</span></code>, where the corresponding template
+          parameter (here: <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;</span><span class="identifier">BaseIterator</span><span class="special">&gt;</span></code>)
+          defines which underlying lexer engine has to be used to provide the required
+          state machine functionality. In this example we use the Lexertl based lexer
+          engine as the underlying lexer type.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Lexer</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">word_count_tokens</span> <span class="special">:</span> <span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;</span><span class="identifier">Lexer</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">word_count_tokens</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="comment">// define tokens (the regular expression to match and the corresponding</span>
+        <span class="comment">// token id) and add them to the lexer </span>
+        <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">self</span><span class="special">.</span><span class="identifier">add</span>
+            <span class="special">(</span><span class="string">"[^ \t\n]+"</span><span class="special">,</span> <span class="identifier">ID_WORD</span><span class="special">)</span> <span class="comment">// words (anything except ' ', '\t' or '\n')</span>
+            <span class="special">(</span><span class="string">"\n"</span><span class="special">,</span> <span class="identifier">ID_EOL</span><span class="special">)</span>         <span class="comment">// newline characters</span>
+            <span class="special">(</span><span class="string">"."</span><span class="special">,</span> <span class="identifier">ID_CHAR</span><span class="special">)</span>         <span class="comment">// anything else is a plain character</span>
+        <span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="spirit.lex.tutorials.lexer_quickstart1.h2"></a>
+          <span class="phrase"><a name="spirit.lex.tutorials.lexer_quickstart1.doing_the_useful_work"></a></span><a class="link" href="lexer_quickstart1.html#spirit.lex.tutorials.lexer_quickstart1.doing_the_useful_work">Doing
+          the Useful Work</a>
+        </h6>
+<p>
+          We will use a setup, where we want the <span class="emphasis"><em>Spirit.Lex</em></span>
+          library to invoke a given function after any of of the generated tokens
+          is recognized. For this reason we need to implement a functor taking at
+          least the generated token as an argument and returning a boolean value
+          allowing to stop the tokenization process. The default token type used
+          in this example carries a token value of the type <a href="../../../../../../../libs/range/doc/html/range/reference/utilities/iterator_range.html" target="_top"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_range</span></code></a><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">BaseIterator</span><span class="special">&gt;</span></code>
+          pointing to the matched range in the underlying input sequence.
+        </p>
+<p>
+          In this example the struct 'counter' is used as a functor counting the
+          characters, words and lines in the analyzed input sequence by identifying
+          the matched tokens as passed from the <span class="emphasis"><em>Spirit.Lex</em></span> library.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">counter</span>
+<span class="special">{</span>
+    <span class="comment">// the function operator gets called for each of the matched tokens</span>
+    <span class="comment">// c, l, w are references to the counters used to keep track of the numbers</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Token</span><span class="special">&gt;</span>
+    <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Token</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">t</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">&amp;</span> <span class="identifier">c</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">&amp;</span> <span class="identifier">w</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">&amp;</span> <span class="identifier">l</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">switch</span> <span class="special">(</span><span class="identifier">t</span><span class="special">.</span><span class="identifier">id</span><span class="special">())</span> <span class="special">{</span>
+        <span class="keyword">case</span> <span class="identifier">ID_WORD</span><span class="special">:</span>       <span class="comment">// matched a word</span>
+        <span class="comment">// since we're using a default token type in this example, every </span>
+        <span class="comment">// token instance contains a `iterator_range&lt;BaseIterator&gt;` as its token</span>
+        <span class="comment">// attribute pointing to the matched character sequence in the input </span>
+            <span class="special">++</span><span class="identifier">w</span><span class="special">;</span> <span class="identifier">c</span> <span class="special">+=</span> <span class="identifier">t</span><span class="special">.</span><span class="identifier">value</span><span class="special">().</span><span class="identifier">size</span><span class="special">();</span>
+            <span class="keyword">break</span><span class="special">;</span>
+        <span class="keyword">case</span> <span class="identifier">ID_EOL</span><span class="special">:</span>        <span class="comment">// matched a newline character</span>
+            <span class="special">++</span><span class="identifier">l</span><span class="special">;</span> <span class="special">++</span><span class="identifier">c</span><span class="special">;</span>
+            <span class="keyword">break</span><span class="special">;</span>
+        <span class="keyword">case</span> <span class="identifier">ID_CHAR</span><span class="special">:</span>       <span class="comment">// matched something else</span>
+            <span class="special">++</span><span class="identifier">c</span><span class="special">;</span>
+            <span class="keyword">break</span><span class="special">;</span>
+        <span class="special">}</span>
+        <span class="keyword">return</span> <span class="keyword">true</span><span class="special">;</span>        <span class="comment">// always continue to tokenize</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          All what is left is to write some boilerplate code helping to tie together
+          the pieces described so far. To simplify this example we call the <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">tokenize</span><span class="special">()</span></code>
+          function implemented in <span class="emphasis"><em>Spirit.Lex</em></span> (for a more detailed
+          description of this function see here: <span class="bold"><strong>FIXME</strong></span>),
+          even if we could have written a loop to iterate over the lexer iterators
+          [<code class="computeroutput"><span class="identifier">first</span></code>, <code class="computeroutput"><span class="identifier">last</span></code>)
+          as well.
+        </p>
+<h6>
+<a name="spirit.lex.tutorials.lexer_quickstart1.h3"></a>
+          <span class="phrase"><a name="spirit.lex.tutorials.lexer_quickstart1.pulling_everything_together"></a></span><a class="link" href="lexer_quickstart1.html#spirit.lex.tutorials.lexer_quickstart1.pulling_everything_together">Pulling
+          Everything Together</a>
+        </h6>
+<p>
+          The main function simply loads the given file into memory (as a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>), instantiates an instance of
+          the token definition template using the correct iterator type (<code class="computeroutput"><span class="identifier">word_count_tokens</span><span class="special">&lt;</span><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*&gt;</span></code>), and finally calls <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">tokenize</span></code>, passing an instance of the
+          counter function object. The return value of <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">tokenize</span><span class="special">()</span></code> will be <code class="computeroutput"><span class="keyword">true</span></code>
+          if the whole input sequence has been successfully tokenized, and <code class="computeroutput"><span class="keyword">false</span></code> otherwise.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+    <span class="comment">// these variables are used to count characters, words and lines</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">c</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">w</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">l</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+
+    <span class="comment">// read input from the given file</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span> <span class="special">(</span><span class="identifier">read_from_file</span><span class="special">(</span><span class="number">1</span> <span class="special">==</span> <span class="identifier">argc</span> <span class="special">?</span> <span class="string">"word_count.input"</span> <span class="special">:</span> <span class="identifier">argv</span><span class="special">[</span><span class="number">1</span><span class="special">]));</span>
+
+    <span class="comment">// create the token definition instance needed to invoke the lexical analyzer</span>
+    <span class="identifier">word_count_tokens</span><span class="special">&lt;</span><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">word_count_functor</span><span class="special">;</span>
+
+    <span class="comment">// tokenize the given string, the bound functor gets invoked for each of </span>
+    <span class="comment">// the matched tokens</span>
+    <span class="keyword">char</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">first</span> <span class="special">=</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">c_str</span><span class="special">();</span>
+    <span class="keyword">char</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">last</span> <span class="special">=</span> <span class="special">&amp;</span><span class="identifier">first</span><span class="special">[</span><span class="identifier">str</span><span class="special">.</span><span class="identifier">size</span><span class="special">()];</span>
+    <span class="keyword">bool</span> <span class="identifier">r</span> <span class="special">=</span> <span class="identifier">lex</span><span class="special">::</span><span class="identifier">tokenize</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">word_count_functor</span><span class="special">,</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bind</span><span class="special">(</span><span class="identifier">counter</span><span class="special">(),</span> <span class="identifier">_1</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">c</span><span class="special">),</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">w</span><span class="special">),</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">l</span><span class="special">)));</span>
+
+    <span class="comment">// print results</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">r</span><span class="special">)</span> <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"lines: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">l</span> <span class="special">&lt;&lt;</span> <span class="string">", words: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">w</span>
+                  <span class="special">&lt;&lt;</span> <span class="string">", characters: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">c</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">else</span> <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">rest</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">);</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Lexical analysis failed\n"</span> <span class="special">&lt;&lt;</span> <span class="string">"stopped at: \""</span>
+                  <span class="special">&lt;&lt;</span> <span class="identifier">rest</span> <span class="special">&lt;&lt;</span> <span class="string">"\"\n"</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="spirit.lex.tutorials.lexer_quickstart1.h4"></a>
+          <span class="phrase"><a name="spirit.lex.tutorials.lexer_quickstart1.comparing__emphasis_spirit_lex__emphasis__with__ulink_url__http___flex_sourceforge_net___flex__ulink_"></a></span><a class="link" href="lexer_quickstart1.html#spirit.lex.tutorials.lexer_quickstart1.comparing__emphasis_spirit_lex__emphasis__with__ulink_url__http___flex_sourceforge_net___flex__ulink_">Comparing
+          <span class="emphasis"><em>Spirit.Lex</em></span> with Flex</a>
+        </h6>
+<p>
+          This example was deliberately chosen to be as much as possible similar
+          to the equivalent <a href="http://flex.sourceforge.net/" target="_top">Flex</a>
+          program (see below), which isn't too different from what has to be written
+          when using <span class="emphasis"><em>Spirit.Lex</em></span>.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Interestingly enough, performance comparisons of lexical analyzers written
+            using <span class="emphasis"><em>Spirit.Lex</em></span> with equivalent programs generated
+            by <a href="http://flex.sourceforge.net/" target="_top">Flex</a> show that both
+            have comparable execution speeds! Generally, thanks to the highly optimized
+            <a href="http://www.benhanson.net/lexertl.html" target="_top">Lexertl</a> library
+            and due its carefully designed integration with <a href="http://boost-spirit.com" target="_top">Spirit</a>
+            the abstraction penalty to be paid for using <span class="emphasis"><em>Spirit.Lex</em></span>
+            is negligible.
+          </p></td></tr>
+</table></div>
+<p>
+          The remaining examples in this tutorial will use more sophisticated features
+          of <span class="emphasis"><em>Spirit.Lex</em></span>, mainly to allow further simplification
+          of the code to be written, while maintaining the similarity with corresponding
+          features of <a href="http://flex.sourceforge.net/" target="_top">Flex</a>. <span class="emphasis"><em>Spirit.Lex</em></span>
+          has been designed to be as similar to <a href="http://flex.sourceforge.net/" target="_top">Flex</a>
+          as possible. That is why this documentation will provide the corresponding
+          <a href="http://flex.sourceforge.net/" target="_top">Flex</a> code for the shown
+          <span class="emphasis"><em>Spirit.Lex</em></span> examples almost everywhere. So consequently,
+          here is the <a href="http://flex.sourceforge.net/" target="_top">Flex</a> code
+          corresponding to the example as shown above.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="special">%{</span>
+    <span class="preprocessor">#define</span> <span class="identifier">ID_WORD</span> <span class="number">1000</span>
+    <span class="preprocessor">#define</span> <span class="identifier">ID_EOL</span>  <span class="number">1001</span>
+    <span class="preprocessor">#define</span> <span class="identifier">ID_CHAR</span> <span class="number">1002</span>
+    <span class="keyword">int</span> <span class="identifier">c</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">w</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">l</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">%}</span>
+<span class="special">%%</span>
+<span class="special">[^</span> <span class="special">\</span><span class="identifier">t</span><span class="special">\</span><span class="identifier">n</span><span class="special">]+</span>  <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">ID_WORD</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">\</span><span class="identifier">n</span>         <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">ID_EOL</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">.</span>          <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">ID_CHAR</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">%%</span>
+<span class="keyword">bool</span> <span class="identifier">count</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">tok</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">switch</span> <span class="special">(</span><span class="identifier">tok</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">case</span> <span class="identifier">ID_WORD</span><span class="special">:</span> <span class="special">++</span><span class="identifier">w</span><span class="special">;</span> <span class="identifier">c</span> <span class="special">+=</span> <span class="identifier">yyleng</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+    <span class="keyword">case</span> <span class="identifier">ID_EOL</span><span class="special">:</span>  <span class="special">++</span><span class="identifier">l</span><span class="special">;</span> <span class="special">++</span><span class="identifier">c</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+    <span class="keyword">case</span> <span class="identifier">ID_CHAR</span><span class="special">:</span> <span class="special">++</span><span class="identifier">c</span><span class="special">;</span> <span class="keyword">break</span><span class="special">;</span>
+    <span class="keyword">default</span><span class="special">:</span>
+        <span class="keyword">return</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">return</span> <span class="keyword">true</span><span class="special">;</span>
+<span class="special">}</span>
+<span class="keyword">void</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">tok</span> <span class="special">=</span> <span class="identifier">EOF</span><span class="special">;</span>
+    <span class="keyword">do</span> <span class="special">{</span>
+        <span class="identifier">tok</span> <span class="special">=</span> <span class="identifier">yylex</span><span class="special">();</span>
+        <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">count</span><span class="special">(</span><span class="identifier">tok</span><span class="special">))</span>
+            <span class="keyword">break</span><span class="special">;</span>
+    <span class="special">}</span> <span class="keyword">while</span> <span class="special">(</span><span class="identifier">EOF</span> <span class="special">!=</span> <span class="identifier">tok</span><span class="special">);</span>
+    <span class="identifier">printf</span><span class="special">(</span><span class="string">"%d %d %d\n"</span><span class="special">,</span> <span class="identifier">l</span><span class="special">,</span> <span class="identifier">w</span><span class="special">,</span> <span class="identifier">c</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lexer_tutorials.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lexer_quickstart2.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

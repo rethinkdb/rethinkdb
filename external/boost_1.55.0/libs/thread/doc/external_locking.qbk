@@ -1,0 +1,592 @@
+[/
+ / Copyright (c) 2008,2012 Vicente J. Botet Escriba
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section  External Locking -- `strict_lock` and `externally_locked` classes]
+
+
+[note This tutorial is an adaptation of the paper of Andrei Alexandrescu "Multithreading and the C++ Type System"
+to the Boost library.]
+
+[/
+[section  Internal locking]
+
+Consider, for example, modeling a bank account class that supports simultaneous deposits and withdrawals from multiple locations (arguably the "Hello, World" of multi-threaded programming). In the code below, guard's constructor locks the passed-in object this, and guard's destructor unlocks this.
+
+  class BankAccount {
+      boost::mutex mtx_; // explicit mutex declaration 
+      int balance_;
+  public:
+      void Deposit(int amount) {
+          boost::lock_guard<boost::mutex> guard(mtx_);
+          balance_ += amount;
+      }
+      void Withdraw(int amount) {
+          boost::lock_guard<boost::mutex> guard(mtx_);
+          balance_ -= amount;
+      }
+      int GetBalance() {
+          boost::lock_guard<boost::mutex> guard(mtx_);
+          return balance_;
+      }
+  };
+
+The object-level locking idiom doesn't cover the entire richness of a threading model. For example, the model above is quite deadlock-prone when you try to coordinate multi-object transactions. Nonetheless, object-level locking is useful in many cases, and in combination with other mechanisms can provide a satisfactory solution to many threaded access problems in object-oriented programs.
+
+[endsect]
+
+[section  Internal and external locking]
+
+The BankAccount class above uses internal locking. Basically, a class that uses internal locking guarantees that any concurrent calls to its public member functions don't corrupt an instance of that class. This is typically ensured by having each public member function acquire a lock on the object upon entry. This way, for any given object of that class, there can be only one member function call active at any moment, so the operations are nicely serialized.
+
+This approach is reasonably easy to implement and has an attractive simplicity. Unfortunately, "simple" might sometimes morph into "simplistic."
+
+Internal locking is insufficient for many real-world synchronization tasks. Imagine that you want to implement an ATM withdrawal transaction with the BankAccount class. The requirements are simple. The ATM transaction consists of two withdrawals-one for the actual money and one for the $2 commission. The two withdrawals must appear in strict sequence; that is, no other transaction can exist between them.
+
+The obvious implementation is erratic:
+
+  void ATMWithdrawal(BankAccount& acct, int sum) {
+      acct.Withdraw(sum);
+      // preemption possible
+      acct.Withdraw(2);
+  }
+
+The problem is that between the two calls above, another thread can perform another operation on the account, thus breaking the second design requirement.
+
+In an attempt to solve this problem, let's lock the account from the outside during the two operations:
+
+  void ATMWithdrawal(BankAccount& acct, int sum) {
+      boost::lock_guard<boost::mutex> guard(acct.mtx_); // mtx_ field is private
+      acct.Withdraw(sum);
+      acct.Withdraw(2);
+  }
+
+
+Notice that the code above doesn't compiles, the `mtx_` field is private.
+We have two possibilities:
+
+* make `mtx_` public which seams odd
+* make the `BankAccount` lockable by adding the lock/unlock functions
+
+We can add these functions explicitly
+
+  class BankAccount {
+      boost::mutex mtx_;
+      int balance_;
+  public:
+      void Deposit(int amount) {
+          boost::lock_guard<boost::mutex> guard(mtx_);
+          balance_ += amount;
+      }
+      void Withdraw(int amount) {
+          boost::lock_guard<boost::mutex> guard(mtx_);
+          balance_ -= amount;
+      }
+      void lock() {
+          mtx_.lock();
+      }
+      void unlock() {
+          mtx_.unlock();
+      }
+  };
+
+or inheriting from a class which add these lockable functions.
+
+The `basic_lockable_adapter` class helps to define the `BankAccount` class as
+
+  class BankAccount
+  : public basic_lockable_adapter<thread_mutex>
+  {
+      int balance_;
+  public:
+      void Deposit(int amount) {
+          boost::lock_guard<BankAccount> guard(*this);
+  //        boost::lock_guard<boost::mutex> guard(*this->mutex());
+          balance_ += amount;
+      }
+      void Withdraw(int amount) {
+          boost::lock_guard<BankAccount> guard(*this);
+  //        boost::lock_guard<boost::mutex> guard(*this->mutex());
+          balance_ -= amount;
+      }
+      int GetBalance() {
+          boost::lock_guard<BankAccount> guard(*this);
+  //        boost::lock_guard<boost::mutex> guard(*this->mutex());
+          return balance_;
+      }
+  };
+
+
+
+and the code that does not compiles becomes
+
+  void ATMWithdrawal(BankAccount& acct, int sum) {
+  //    boost::lock_guard<boost::mutex> guard(*acct.mutex());
+      boost::lock_guard<BankAccount> guard(acct);
+      acct.Withdraw(sum);
+      acct.Withdraw(2);
+  }
+
+Notice that now acct is being locked by Withdraw after it has already been locked by guard. When running such code, one of two things happens.
+
+* Your mutex implementation might support the so-called recursive mutex semantics. This means that the same thread can lock the same mutex several times successfully. In this case, the implementation works but has a performance overhead due to unnecessary locking. (The locking/unlocking sequence in  the two Withdraw calls is not needed but performed anyway-and that costs time.)
+* Your mutex implementation might not support recursive locking, which means that as soon as you try     to acquire it the second time, it blocks-so the ATMWithdrawal function enters the dreaded deadlock.
+
+As `boost::mutex` is not recursive, we need to use its recursive version `boost::recursive_mutex`.
+
+  class BankAccount
+  : public basic_lockable_adapter<recursive_mutex>
+  {
+  
+      // ...
+  };
+
+The caller-ensured locking approach is more flexible and the most efficient, but very dangerous. In an implementation using caller-ensured locking, BankAccount still holds a mutex, but its member functions don't manipulate it at all. Deposit and Withdraw are not thread-safe anymore. Instead, the client code is responsible for locking BankAccount properly.
+
+    class BankAccount
+        : public basic_lockable_adapter<boost:mutex> {
+        int balance_;
+    public:
+        void Deposit(int amount) {
+            balance_ += amount;
+        }
+        void Withdraw(int amount) {
+            balance_ -= amount;
+        }
+    };
+
+Obviously, the caller-ensured locking approach has a safety problem. BankAccount's implementation code is finite, and easy to reach and maintain, but there's an unbounded amount of client code that manipulates BankAccount objects. In designing applications, it's important to differentiate between requirements imposed on bounded code and unbounded code. If your class makes undue requirements on unbounded code, that's usually a sign that encapsulation is out the window.
+
+To conclude, if in designing a multi-threaded class you settle on internal locking, you expose yourself to inefficiency or deadlocks. On the other hand, if you rely on caller-provided locking, you make your class error-prone and difficult to use. Finally, external locking completely avoids the issue by leaving it all to the client code.
+[endsect]
+]
+[section  Locks as Permits]
+
+So what to do? Ideally, the BankAccount class should do the following:
+
+* Support both locking models (internal and external).
+* Be efficient; that is, use no unnecessary locking.
+* Be safe; that is, BankAccount objects cannot be manipulated without appropriate locking.
+
+Let's make a worthwhile observation: Whenever you lock a BankAccount, you do so by using a `lock_guard<BankAccount>` object. Turning this statement around, wherever there's a `lock_guard<BankAccount>`, there's also a locked `BankAccount` somewhere. Thus, you can think of-and use-a `lock_guard<BankAccount>` object as a permit. Owning a `lock_guard<BankAccount>` gives you rights to do certain things. The `lock_guard<BankAccount>` object should not be copied or aliased (it's not a transmissible permit).
+
+# As long as a permit is still alive, the `BankAccount` object stays locked.
+# When the `lock_guard<BankAccount>` is destroyed, the `BankAccount`'s mutex is released.
+
+The net effect is that at any point in your code, having access to a `lock_guard<BankAccount>` object guarantees that a `BankAccount` is locked. (You don't know exactly which `BankAccount` is locked, however-an issue that we'll address soon.)
+
+For now, let's make a couple of enhancements to the `lock_guard` class template defined in Boost.Thread. 
+We'll call the enhanced version `strict_lock`. Essentially, a `strict_lock`'s role is only to live on the stack as an automatic variable. 
+`strict_lock` must adhere to a non-copy and non-alias policy. 
+`strict_lock` disables copying by making the copy constructor and the assignment operator private. 
+While we're at it, let's disable operator new and operator delete. 
+
+[/
+`strict_lock` are not intended to be allocated on the heap. 
+`strict_lock` avoids aliasing by using a slightly less orthodox and less well-known technique: disable address taking.
+]
+
+    template <typename Lockable>
+    class strict_lock  {
+    public:
+        typedef Lockable lockable_type;
+        
+        
+        explicit strict_lock(lockable_type& obj) : obj_(obj) {
+            obj.lock(); // locks on construction
+        }
+        strict_lock() = delete;
+        strict_lock(strict_lock const&) = delete;
+        strict_lock& operator=(strict_lock const&) = delete;
+        
+        ~strict_lock() { obj_.unlock(); } //  unlocks on destruction 
+
+        bool owns_lock(mutex_type const* l) const noexcept // strict lockers specific function 
+        { 
+          return l == &obj_;
+        }
+    private:
+        lockable_type& obj_;
+    };
+
+Silence can be sometimes louder than words-what's forbidden to do with a `strict_lock` is as important as what you can do. Let's see what you can and what you cannot do with a `strict_lock` instantiation:
+
+* You can create a `strict_lock<T>` only starting from a valid T object. Notice that there is no other way you can create a `strict_lock<T>`.
+
+    BankAccount myAccount("John Doe", "123-45-6789");
+    strict_lock<BankAccount> myLock(myAccount); // ok
+
+* You cannot copy `strict_lock`s to one another. In particular, you cannot pass `strict_lock`s by value to functions or have them returned by functions:
+
+      extern strict_lock<BankAccount> Foo(); // compile-time error
+      extern void Bar(strict_lock<BankAccount>); // compile-time error
+
+* However, you still can pass `strict_lock`s by reference to and from functions:
+
+    // ok, Foo returns a reference to strict_lock<BankAccount>
+    extern strict_lock<BankAccount>& Foo();
+    // ok, Bar takes a reference to strict_lock<BankAccount>
+    extern void Bar(strict_lock<BankAccount>&);
+
+[/
+* You cannot allocate a `strict_lock` on the heap. However, you still can put `strict_lock`s on the heap if they're members of a class.
+
+    strict_lock<BankAccount>* pL =
+        new strict_lock<BankAccount>(myAcount); //error!
+        // operator new is not accessible
+    class Wrapper {
+        strict_lock memberLock_;
+        ...
+    };
+    Wrapper* pW = new Wrapper; // ok
+
+(Making `strict_lock` a member variable of a class is not recommended. Fortunately, disabling copying and default construction makes `strict_lock` quite an unfriendly member variable.)
+
+* You cannot take the address of a `strict_lock` object. This interesting feature, implemented by disabling unary operator&, makes it very unlikely to alias a `strict_lock` object. Aliasing is still possible by taking references to a `strict_lock`:
+
+    strict_lock<BankAccount> myLock(myAccount); // ok
+    strict_lock<BankAccount>* pAlias = &myLock; // error!
+        // strict_lock<BankAccount>::operator& is not accessible
+    strict_lock<BankAccount>& rAlias = myLock; // ok
+
+Fortunately, references don't engender as bad aliasing as pointers because they're much less versatile (references cannot be copied or reseated).
+]
+[/* You can even make `strict_lock` final; that is, impossible to derive from. This task is left in the form of an exercise to the reader.
+]
+
+All these rules were put in place with one purpose-enforcing that owning a `strict_lock<T>` is a reasonably strong guarantee that
+
+# you locked a T object, and
+# that object will be unlocked at a later point.
+
+Now that we have such a strict `strict_lock`, how do we harness its power in defining a safe, flexible interface for BankAccount? The idea is as follows:
+
+* Each of BankAccount's interface functions (in our case, Deposit and Withdraw) comes in two overloaded variants.
+* One version keeps the same signature as before, and the other takes an additional argument of type `strict_lock<BankAccount>`. The first version is internally locked; the second one requires external locking. External locking is enforced at compile time by requiring client code to create a `strict_lock<BankAccount>` object.
+* BankAccount avoids code bloating by having the internal locked functions forward to the external locked functions, which do the actual job.
+
+A little code is worth 1,000 words, a (hacked into) saying goes, so here's the new BankAccount class:
+
+    class BankAccount
+    : public basic_lockable_adapter<boost:recursive_mutex>
+    {
+        int balance_;
+    public:
+        void Deposit(int amount, strict_lock<BankAccount>&) {
+            // Externally locked
+            balance_ += amount;
+        }
+        void Deposit(int amount) {
+            strict_lock<boost:mutex> guard(*this); // Internally locked
+            Deposit(amount, guard);
+        }
+        void Withdraw(int amount, strict_lock<BankAccount>&) {
+            // Externally locked
+            balance_ -= amount;
+        }
+        void Withdraw(int amount) {
+            strict_lock<boost:mutex> guard(*this); // Internally locked
+            Withdraw(amount, guard);
+        }
+    };
+
+Now, if you want the benefit of internal locking, you simply call Deposit(int) and Withdraw(int). If you want to use external locking, you lock the object by constructing a `strict_lock<BankAccount>` and then you call `Deposit(int, strict_lock<BankAccount>&)` and `Withdraw(int, strict_lock<BankAccount>&)`. For example, here's the `ATMWithdrawal` function implemented correctly:
+
+    void ATMWithdrawal(BankAccount& acct, int sum) {
+        strict_lock<BankAccount> guard(acct);
+        acct.Withdraw(sum, guard);
+        acct.Withdraw(2, guard);
+    }
+
+This function has the best of both worlds-it's reasonably safe and efficient at the same time.
+
+It's worth noting that `strict_lock` being a template gives extra safety compared to a straight polymorphic approach. In such a design, BankAccount would derive from a Lockable interface. `strict_lock` would manipulate Lockable references so there's no need for templates. This approach is sound; however, it provides fewer compile-time guarantees. Having a `strict_lock` object would only tell that some object derived from Lockable is currently locked. In the templated approach, having a `strict_lock<BankAccount>` gives a stronger guarantee-it's a `BankAccount` that stays locked.
+
+There's a weasel word in there-I mentioned that ATMWithdrawal is reasonably safe. It's not really safe because there's no enforcement that the `strict_lock<BankAccount>` object locks the appropriate BankAccount object. The type system only ensures that some BankAccount object is locked. For example, consider the following phony implementation of ATMWithdrawal:
+
+    void ATMWithdrawal(BankAccount& acct, int sum) {
+        BankAccount fakeAcct("John Doe", "123-45-6789");
+        strict_lock<BankAccount> guard(fakeAcct);
+        acct.Withdraw(sum, guard);
+        acct.Withdraw(2, guard);
+    }
+
+This code compiles warning-free but obviously doesn't do the right thing-it locks one account and uses another.
+
+It's important to understand what can be enforced within the realm of the C++ type system and what needs to be enforced at runtime. The mechanism we've put in place so far ensures that some BankAccount object is locked during the call to `BankAccount::Withdraw(int, strict_lock<BankAccount>&)`. We must enforce at runtime exactly what object is locked.
+
+If our scheme still needs runtime checks, how is it useful? An unwary or malicious programmer can easily lock the wrong object and manipulate any BankAccount without actually locking it.
+
+First, let's get the malice issue out of the way. C is a language that requires a lot of attention and discipline from the programmer. C++ made some progress by asking a little less of those, while still fundamentally trusting the programmer. These languages are not concerned with malice (as Java is, for example). After all, you can break any C/C++ design simply by using casts "appropriately" (if appropriately is an, er, appropriate word in this context).
+
+The scheme is useful because the likelihood of a programmer forgetting about any locking whatsoever is much greater than the likelihood of a programmer who does remember about locking, but locks the wrong object.
+
+Using `strict_lock` permits compile-time checking of the most common source of errors, and runtime checking of the less frequent problem.
+
+Let's see how to enforce that the appropriate BankAccount object is locked. First, we need to add a member function to the `strict_lock` class template. 
+The `bool strict_lock<T>::owns_lock(Loclable*)` function returns a reference to the locked object.
+
+    template <class Lockable> class strict_lock {
+        ... as before ...
+    public:
+        bool owns_lock(Lockable* mtx) const { return mtx==&obj_; }
+    };
+
+Second, BankAccount needs to use this function compare the locked object against this:
+
+    class BankAccount {
+    : public basic_lockable_adapter<boost::recursive_mutex>
+        int balance_;
+    public:
+        void Deposit(int amount, strict_lock<BankAccount>& guard) {
+            // Externally locked
+            if (!guard.owns_lock(*this))
+                throw "Locking Error: Wrong Object Locked";
+            balance_ += amount;
+        }
+    // ...
+    };
+
+The overhead incurred by the test above is much lower than locking a recursive mutex for the second time.
+
+[endsect]
+
+[section  Improving External Locking]
+
+Now let's assume that BankAccount doesn't use its own locking at all, and has only a thread-neutral implementation:
+
+    class BankAccount {
+        int balance_;
+    public:
+        void Deposit(int amount) {
+            balance_ += amount;
+        }
+        void Withdraw(int amount) {
+            balance_ -= amount;
+        }
+    };
+
+Now you can use BankAccount in single-threaded and multi-threaded applications alike, but you need to provide your own synchronization in the latter case.
+
+Say we have an AccountManager class that holds and manipulates a BankAccount object:
+
+    class AccountManager
+    : public basic_lockable_adapter<boost::mutex>
+    {
+        BankAccount checkingAcct_;
+        BankAccount savingsAcct_;
+        ...
+    };
+
+Let's also assume that, by design, AccountManager must stay locked while accessing its BankAccount members. The question is, how can we express this design constraint using the C++ type system? How can we state "You have access to this BankAccount object only after locking its parent AccountManager object"?
+
+The solution is to use a little bridge template `externally_locked` that controls access to a BankAccount.
+
+  template <typename  T, typename Lockable>
+  class externally_locked {
+      BOOST_CONCEPT_ASSERT((LockableConcept<Lockable>));
+  
+  public:
+      externally_locked(T& obj, Lockable& lockable)
+          : obj_(obj)
+          , lockable_(lockable)
+      {}
+  
+      externally_locked(Lockable& lockable)
+          : obj_()
+          , lockable_(lockable)
+      {}
+  
+      T& get(strict_lock<Lockable>& lock) {
+  
+  #ifdef BOOST_THREAD_THROW_IF_PRECONDITION_NOT_SATISFIED
+          if (!lock.owns_lock(&lockable_)) throw lock_error(); run time check throw if not locks the same
+  #endif
+          return obj_;
+      }
+      void set(const T& obj, Lockable& lockable) {
+          obj_ = obj;
+          lockable_=lockable;
+      }
+  private:
+      T obj_;
+      Lockable& lockable_;
+  };
+
+`externally_locked` cloaks an object of type T, and actually provides full access to that object through the get and set member functions, provided you pass a reference to a `strict_lock<Owner>` object.
+
+Instead of making `checkingAcct_` and `savingsAcct_` of type `BankAccount`, `AccountManager` holds objects of type `externally_locked<BankAccount, AccountManager>`:
+
+  class AccountManager
+      : public basic_lockable_adapter<thread_mutex>
+  {
+  public:
+      typedef basic_lockable_adapter<thread_mutex> lockable_base_type;
+      AccountManager()
+          : checkingAcct_(*this)
+          , savingsAcct_(*this)
+      {}
+      inline void Checking2Savings(int amount);
+      inline void AMoreComplicatedChecking2Savings(int amount);
+  private:
+      
+      externally_locked<BankAccount, AccountManager> checkingAcct_;
+      externally_locked<BankAccount, AccountManager> savingsAcct_;
+  };
+
+The pattern is the same as before - to access the BankAccount object cloaked by `checkingAcct_`, you need to call `get`. To call `get`, you need to pass it a `strict_lock<AccountManager>`. The one thing you have to take care of is to not hold pointers or references you obtained by calling `get`. If you do that, make sure that you don't use them after the strict_lock has been destroyed. That is, if you alias the cloaked objects, you're back from "the compiler takes care of that" mode to "you must pay attention" mode.
+
+Typically, you use `externally_locked` as shown below. Suppose you want to execute an atomic transfer from your checking account to your savings account:
+
+  void AccountManager::Checking2Savings(int amount) {
+      strict_lock<AccountManager> guard(*this);
+      checkingAcct_.get(guard).Withdraw(amount);
+      savingsAcct_.get(guard).Deposit(amount);
+  }
+
+We achieved two important goals. First, the declaration of `checkingAcct_` and `savingsAcct_` makes it clear to the code reader that that variable is protected by a lock on an AccountManager. Second, the design makes it impossible to manipulate the two accounts without actually locking a BankAccount. `externally_locked` is what could be called active documentation.
+
+[endsect]
+
+[section  Allowing other strict locks]
+
+Now imagine that the AccountManager function needs to take a `unique_lock` in order to reduce the critical regions. And at some time it needs to access to the `checkingAcct_`. As `unique_lock` is not a strict lock the following code doesn't compiles:
+
+  void AccountManager::AMoreComplicatedChecking2Savings(int amount) {
+      unique_lock<AccountManager> guard(*this, defer_lock);
+      if (some_condition()) {
+          guard.lock();
+      }
+      checkingAcct_.get(guard).Withdraw(amount); // COMPILE ERROR
+      savingsAcct_.get(guard).Deposit(amount);  // COMPILE ERROR
+      do_something_else();
+  }
+
+We need a way to transfer the ownership from the `unique_lock` to a `strict_lock` the time we are working with `savingsAcct_` and then restore the ownership on `unique_lock`.
+
+  void AccountManager::AMoreComplicatedChecking2Savings(int amount) {
+      unique_lock<AccountManager> guard1(*this, defer_lock);
+      if (some_condition()) {
+          guard1.lock();
+      }
+      {
+          strict_lock<AccountManager> guard(guard1);
+          checkingAcct_.get(guard).Withdraw(amount);
+          savingsAcct_.get(guard).Deposit(amount);
+      }
+      guard1.unlock();
+  }
+
+In order to make this code compilable we need to store either a Lockable or a `unique_lock<Lockable>` reference depending on the constructor. Store which kind of reference we have stored,and in the destructor call either to the Lockable `unlock` or restore the ownership.
+
+This seams too complicated to me. Another possibility is to define a nested strict lock class. The drawback is that instead of having only one strict lock we have two and we need either to duplicate every function taking a `strict_lock` or make these function templates functions. The problem with template functions is that we don't profit anymore of the C++ type system. We must add some static metafunction that check that the Locker parameter is a strict lock. The problem is that we can not really check this or can we?. The `is_strict_lock` metafunction must be specialized by the strict lock developer. We need to belive it "sur parole". The advantage is that now we can manage with more than two strict locks without changing our code. This is really nice.
+
+Now we need to state that both classes are `strict_lock`s.
+
+    template <typename Locker>
+    struct is_strict_lock : mpl::false_ {};
+
+    template <typename Lockable>
+    struct is_strict_lock<strict_lock<Lockable> > : mpl::true_ {}
+
+    template <typename Locker>
+    struct is_strict_lock<nested_strict_lock<Locker> > : mpl::true_ {}
+
+
+Well let me show how this `nested_strict_lock` class looks like and the impacts on the `externally_locked` class and the `AccountManager::AMoreComplicatedFunction` function.
+
+First `nested_strict_lock` class will store on a temporary lock the `Locker`, and transfer the lock ownership on the constructor. On destruction he will restore the ownership. Note also that the Locker needs to have already a reference to the mutex otherwise an exception is thrown and the use of the `lock_traits`.
+
+  template <typename Locker >
+  class nested_strict_lock
+      {
+        BOOST_CONCEPT_ASSERT((MovableLockerConcept<Locker>));
+  public:
+      typedef typename lockable_type<Locker>::type lockable_type;
+      typedef typename syntactic_lock_traits<lockable_type>::lock_error lock_error;
+  
+      nested_strict_lock(Locker& lock)
+          : lock_(lock)  // Store reference to locker
+          , tmp_lock_(lock.move()) // Move ownership to temporaty locker 
+      {
+          #ifdef BOOST_THREAD_THROW_IF_PRECONDITION_NOT_SATISFIED
+          if (tmp_lock_.mutex()==0) {
+              lock_=tmp_lock_.move(); // Rollback for coherency purposes 
+              throw lock_error();
+          }
+          #endif
+          if (!tmp_lock_) tmp_lock_.lock(); // ensures it is locked 
+      }
+      ~nested_strict_lock() {
+          lock_=tmp_lock_.move(); // Move ownership to nesting locker 
+      }
+      bool owns_lock() const { return true; }
+      lockable_type* mutex() const { return tmp_lock_.mutex(); }
+      bool owns_lock(lockable_type* l) const { return l==mutex(); }
+  
+  
+  private:
+      Locker& lock_;
+      Locker tmp_lock_;
+  };
+
+[/
+      typedef bool (nested_strict_lock::*bool_type)() const;
+      operator bool_type() const { return &nested_strict_lock::owns_lock; }
+      bool operator!() const { return false; }
+      
+      BOOST_ADRESS_OF_DELETE(nested_strict_lock)
+      BOOST_HEAP_ALLOCATEION_DELETE(nested_strict_lock)
+      BOOST_DEFAULT_CONSTRUCTOR_DELETE(nested_strict_lock)
+      BOOST_COPY_CONSTRUCTOR_DELETE(nested_strict_lock)
+      BOOST_COPY_ASSIGNEMENT_DELETE(nested_strict_lock)
+      
+]
+
+The `externally_locked` get function is now a template function taking a Locker as parameters instead of a `strict_lock`. 
+We can add test in debug mode that ensure that the Lockable object is locked.
+
+  template <typename  T, typename Lockable>
+  class externally_locked {
+  public:
+      // ...
+      template <class Locker>
+      T& get(Locker& lock) {
+          BOOST_CONCEPT_ASSERT((StrictLockerConcept<Locker>));
+  
+          BOOST_STATIC_ASSERT((is_strict_lock<Locker>::value)); // locker is a strict locker "sur parole" 
+          BOOST_STATIC_ASSERT((is_same<Lockable,
+                  typename lockable_type<Locker>::type>::value)); // that locks the same type 
+  #ifndef BOOST_THREAD_EXTERNALLY_LOCKED_DONT_CHECK_OWNERSHIP  // define BOOST_THREAD_EXTERNALLY_LOCKED_NO_CHECK_OWNERSHIP if you don't want to check locker ownership
+          if (! lock ) throw lock_error(); // run time check throw if no locked 
+  #endif
+  #ifdef BOOST_THREAD_THROW_IF_PRECONDITION_NOT_SATISFIED
+          if (!lock.owns_lock(&lockable_)) throw lock_error();
+  #endif
+          return obj_;
+      }
+  };
+      
+The `AccountManager::AMoreComplicatedFunction` function needs only to replace the `strict_lock` by a `nested_strict_lock`.
+
+  void AccountManager::AMoreComplicatedChecking2Savings(int amount) {
+      unique_lock<AccountManager> guard1(*this);
+      if (some_condition()) {
+          guard1.lock();
+      }
+      {
+          nested_strict_lock<unique_lock<AccountManager> > guard(guard1);
+          checkingAcct_.get(guard).Withdraw(amount);
+          savingsAcct_.get(guard).Deposit(amount);
+      }
+      guard1.unlock();
+  }
+  
+[endsect]
+
+[endsect]
+
+

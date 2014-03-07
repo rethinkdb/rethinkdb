@@ -1,0 +1,67 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:tokenized tokenized]
+
+[table
+    [[Syntax] [Code]]
+    [
+        [Pipe]
+        [
+            ``
+            rng | boost::adaptors::tokenized(regex)
+            rng | boost::adaptors::tokenized(regex, i)
+            rng | boost::adaptors::tokenized(regex, rndRng)
+            rng | boost::adaptors::tokenized(regex, i, flags)
+            rng | boost::adaptors::tokenized(regex, rndRng, flags)
+            ``
+        ]
+    ]
+    [
+        [Function]
+        [
+            ``
+            boost::adaptors::tokenize(rng, regex)
+            boost::adaptors::tokenize(rng, regex, i)
+            boost::adaptors::tokenize(rng, regex, rndRng)
+            boost::adaptors::tokenize(rng, regex, i, flags)
+            boost::adaptors::tokenize(rng, regex, rndRng, flags)
+            ``
+        ]
+    ]
+]
+
+* [*Precondition:]
+    * Let `T` denote `typename range_value<decltype(rng)>::type`, then `regex` has the type `basic_regex<T>` or is implicitly convertible to one of these types.
+    * `i` has the type `int`.
+    * the `value_type` of `rndRng` is `int`.
+    * `flags` has the type `regex_constants::syntax_option_type`.
+* [*Returns:] A range whose iterators behave as if they were the original iterators wrapped in `regex_token_iterator`. The first iterator in the range would be constructed by forwarding all the arguments of `tokenized()` to the `regex_token_iterator` constructor.
+* [*Throws:] Whatever constructing and copying equivalent `regex_token_iterator`s might throw.
+* [*Range Category:] __random_access_range__
+* [*Range Return Type:] `boost::tokenized_range<typeof(rng)>`
+* [*Returned Range Category:] __random_access_range__
+
+[section:tokenized_example tokenized_example]
+[import ../../../test/adaptor_test/tokenized_example.cpp]
+[tokenized_example]
+[endsect]
+
+This would produce the output:
+``
+a
+b
+c
+d
+e
+f
+g
+hijklmnopqrstuvwxyz
+
+``
+
+[endsect]
+
+

@@ -1,0 +1,207 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Broken Compiler Workarounds</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<STYLE> 
+    DT A { /*text-decoration:none*/ } 
+    LI A { /*text-decoration:none;*/ font: 80% Verdana, Tahoma, Arial, Helvetica, sans-serif }
+</STYLE>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Broken Compiler Workarounds</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#reference">Reference</A>
+    <DL class="page-index">
+      <DT><A href="#ios">1. Standard header <CODE>&lt;ios&gt;</CODE></A></DT>
+      <DT><A href="#streams">2. Templated Streams</A></DT>
+      <DT><A href="#streambufs">3. Templated Stream Buffers</A></DT>
+      <DT><A href="#streambufs">4. Character Traits</A></DT>
+      <DT><A href="#component_access">5. Chain Component Access</A></DT>
+    </DL>
+  </DT>
+</DL>
+
+<HR>
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    The Boost Iostreams library contains several macros useful for writing code which works with compilers which fail to support certain core language features and with defective standard library implementations, such as those which do not provide template streams.
+</P>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="ios"></A>
+<H3>1. Standard header <CODE>&lt;ios&gt;</CODE></H3>
+
+<A NAME="ios_headers"></A>
+<H3>Headers</H3>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/detail/ios.hpp"><CODE>&lt;boost/iostreams/detail/ios.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="ios_synopsis"></A>
+<H3>Synopsis</H3>
+
+<PRE CLASS='broken_ie'><SPAN CLASS='preprocessor'>#define</SPAN> <A CLASS='documented' HREF="#boost_iostreams_basic_ios">BOOST_IOSTREAMS_BASIC_IOS</A>(ch, tr) ...
+<SPAN CLASS='preprocessor'>#define</SPAN> <A CLASS='documented' HREF="#boost_ios">BOOST_IOS</A> ...
+<SPAN CLASS='preprocessor'>#define</SPAN> <A CLASS='documented' HREF="#boost_iostreams_failure">BOOST_IOSTREAMS_FAILURE</A> ...</PRE>
+
+<A NAME="boost_iostreams_basic_ios"></A>
+<H4><CODE>BOOST_IOSTREAMS_BASIC_IOS</CODE></H4>
+
+<P>Expands to <CODE>std::basic_ios&lt;ch, tr&gt;</CODE> for standard libraries which support templated streams, and to <CODE>std::ios</CODE> otherwise.</P>
+
+<A NAME="boost_ios"></A>
+<H4><CODE>BOOST_IOS</CODE></H4>
+
+<P>Expands to <CODE>std::ios_base</CODE> if available, and to <CODE>std::ios</CODE> otherwise. To access the nested class <CODE>std::ios_base::failure</CODE>, use <A HREF="#boost_iostreams_failure"><CODE>BOOST_IOSTREAMS_FAILURE</CODE></A>.
+
+<A NAME="boost_iostreams_failure"></A>
+<H4><CODE>BOOST_IOSTREAMS_FAILURE</CODE></H4>
+
+<P>Expands to <CODE>std::ios_base::failure</CODE> if available, and to a suitable derived class of <CODE>std::exception</CODE> otherwise.</P>
+
+<A NAME="streams"></A>
+<H3>2. Templated Streams</H3>
+
+<A NAME="streams_headers"></A>
+<H3>Headers</H3>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/detail/iostream.hpp"><CODE>&lt;boost/iostreams/detail/iostream.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="streams_synopsis"></A>
+<H3>Synopsis</H3>
+
+<PRE CLASS='broken_ie'><SPAN CLASS='preprocessor'>#define</SPAN> <A CLASS='documented' HREF="#boost_iostreams_basic_istream">BOOST_IOSTREAMS_BASIC_ISTREAM</A>(ch, tr) ...
+#define</SPAN> <A CLASS='documented' HREF="#boost_iostreams_basic_ostream">BOOST_IOSTREAMS_BASIC_OSTREAM</A>(ch, tr) ...
+#define</SPAN> <A CLASS='documented' HREF="#boost_iostreams_basic_iostream">BOOST_IOSTREAMS_BASIC_IOSTREAM</A>(ch, tr) ...</PRE>
+
+<A NAME="boost_iostreams_basic_istream"></A>
+<H4><CODE>BOOST_IOSTREAMS_BASIC_ISTREAM</CODE></H4>
+
+<P>Expands to <CODE>std::basic_istream&lt;ch, tr&gt;</CODE> for standard libraries which support templated streams, and to <CODE>std::istream</CODE> otherwise.</P>
+
+<A NAME="boost_iostreams_basic_ostream"></A>
+<H4><CODE>BOOST_IOSTREAMS_BASIC_OSTREAM</CODE></H4>
+
+<P>Expands to <CODE>std::basic_ostream&lt;ch, tr&gt;</CODE> for standard libraries which support templated streams, and to <CODE>std::ostream</CODE> otherwise.</P>
+
+<A NAME="boost_iostreams_basic_iostream"></A>
+<H4><CODE>BOOST_IOSTREAMS_BASIC_IOSTREAM</CODE></H4>
+
+<P>Expands to <CODE>std::basic_iostream&lt;ch, tr&gt;</CODE> for standard libraries which support templated streams, and to <CODE>std::iostream</CODE> otherwise.</P>
+
+<A NAME="streambufs"></A>
+<H3>3. Templated Stream Buffers</H3>
+
+<A NAME="streambufs_headers"></A>
+<H3>Headers</H3>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/detail/iostream.hpp"><CODE>&lt;boost/iostreams/detail/streambuf.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="streambufs_synopsis"></A>
+<H3>Synopsis</H3>
+
+<PRE CLASS='broken_ie'><SPAN CLASS='preprocessor'>#define</SPAN> <A CLASS='documented' HREF="#boost_iostreams_basic_streambuf">BOOST_IOSTREAMS_BASIC_STREAMBUF</A>(ch, tr) ...
+#define</SPAN> <A CLASS='documented' HREF="#boost_iostreams_pubseekoff">BOOST_IOSTREAMS_PUBSEEKOFF</A> ...
+#define</SPAN> <A CLASS='documented' HREF="#boost_iostreams_pubseekpos">BOOST_IOSTREAMS_PUBSEEKPOS</A> ...
+#define</SPAN> <A CLASS='documented' HREF="#boost_iostreams_pubsync">BOOST_IOSTREAMS_PUBSYNC</A> ...</PRE>
+
+<A NAME="boost_iostreams_basic_streambuf"></A>
+<H4><CODE>BOOST_IOSTREAMS_BASIC_STREAMBUF</CODE></H4>
+
+<P>Expands to <CODE>std::basic_streambuf&lt;ch, tr&gt;</CODE> for standard libraries which support <CODE>std::basic_streambuf</CODE>, and to <CODE>std::streambuf</CODE> otherwise.</P>
+
+
+<A NAME="boost_iostreams_pubseekoff"></A>
+<H4><CODE>BOOST_IOSTREAMS_PUBSEEKOFF</CODE></H4>
+
+<P>Expands to <CODE>pubseekoff</CODE> for standard libraries which support <CODE>std::basic_streambuf::pubseekoff</CODE>, and to <CODE>seekoff</CODE> otherwise.</P>
+
+<A NAME="boost_iostreams_pubseekpos"></A>
+<H4><CODE>BOOST_IOSTREAMS_PUBSEEKPOS</CODE></H4>
+
+<P>Expands to <CODE>pubseekpos</CODE> for standard libraries which support <CODE>std::basic_streambuf::pubseekpos</CODE>, and to <CODE>seekpos</CODE> otherwise.</P>
+
+<A NAME="boost_iostreams_pubsync"></A>
+<H4><CODE>BOOST_IOSTREAMS_PUBSYNC</CODE></H4>
+
+<P>Expands to <CODE>pubsync</CODE> for standard libraries which support <CODE>std::basic_streambuf::pubsync</CODE>, and to <CODE>sync</CODE> otherwise.</P>
+
+<A NAME="char_traits"></A>
+<H3>4. Character Traits</H3>
+
+<A NAME="char_traits_headers"></A>
+<H3>Headers</H3>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/detail/char_traits.hpp"><CODE>&lt;boost/iostreams/detail/char_traits.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="char_traits_synopsis"></A>
+<H3>Synopsis</H3>
+
+<PRE CLASS='broken_ie'><SPAN CLASS='preprocessor'>#define</SPAN> <A CLASS='documented' HREF="#boost_iostreams_char_traits">BOOST_IOSTREAMS_CHAR_TRAITS</A>(ch) ...</PRE>
+
+<A NAME="boost_iostreams_char_traits"></A>
+<H4><CODE>BOOST_IOSTREAMS_CHAR_TRAITS</CODE></H4>
+
+
+<P>Expands to <CODE>std::char_traits&lt;ch&gt;</CODE> for standard libraries which support <CODE>std::char_traits</CODE>, and to a substitute for <CODE>std::char_traits&lt;char&gt;</CODE> otherwise.</P>
+<A NAME="component_access"></A>
+<H3>5. Chain Component Access</H3>
+
+<A NAME="component_access_headers"></A>
+<H3>Headers</H3>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/chain.hpp"><CODE>&lt;boost/iostreams/chain.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="component_access_synopsis"></A>
+<H3>Synopsis</H3>
+
+<PRE CLASS='broken_ie'><SPAN CLASS='preprocessor'>#define</SPAN> <A CLASS='documented' HREF="#boost_iostreams_component_type">BOOST_IOSTREAMS_COMPONENT_TYPE</A>(chain, n) ...
+<SPAN CLASS='preprocessor'>#define</SPAN> <A CLASS='documented' HREF="#boost_iostreams_component">BOOST_IOSTREAMS_COMPONENT</A>(chain, n, t) ...</PRE>
+
+<A NAME="boost_iostreams_component_type"></A>
+<H4><CODE>BOOST_IOSTREAMS_COMPONENT_TYPE</CODE></H4>
+
+<P>Used in place of <CODE>chain.component_type(n)</CODE> for compilers which don't support explicit specification of member function template arguments. <CODE>chain</CODE> can be an instance of <A HREF="../classes/filtering_stream.html"><CODE>filtering_stream</CODE></A>, <A HREF="../classes/filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A> or <A HREF="../classes/chain.html"><CODE>basic_chain</CODE></A>.</P>
+
+<P><I>This macro is deprecated. Use <CODE>chain.component_type(n)</CODE> instead.</I></P>
+
+<A NAME="boost_iostreams_component"></A>
+<H4><CODE>BOOST_IOSTREAMS_COMPONENT</CODE></H4>
+
+<P>Used in place of <CODE>chain.component&lt;t&gt;(n)</CODE> for compilers which don't support explicit specification of member function template arguments. <CODE>chain</CODE> can be an instance of <A HREF="../classes/filtering_stream.html"><CODE>filtering_stream</CODE></A>, <A HREF="../classes/filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A> or <A HREF="../classes/chain.html"><CODE>basic_chain</CODE></A>.</P>
+
+<HR STYLE="margin-top:1em">
+
+<!-- Begin Footer -->
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a><br/>Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

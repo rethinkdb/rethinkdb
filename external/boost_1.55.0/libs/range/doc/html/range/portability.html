@@ -1,0 +1,92 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Portability</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="prev" href="upgrade/upgrade_from_1_34.html" title="Upgrade from version 1.34">
+<link rel="next" href="faq.html" title="FAQ">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="upgrade/upgrade_from_1_34.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="faq.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_portability">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="range.portability"></a><a class="link" href="portability.html" title="Portability">Portability</a>
+</h2></div></div></div>
+<p>
+      A huge effort has been made to port the library to as many compilers as possible.
+    </p>
+<p>
+      Full support for built-in arrays require that the compiler supports class template
+      partial specialization. For non-conforming compilers there might be a chance
+      that it works anyway thanks to workarounds in the type traits library. Visual
+      C++ 6/7.0 has a limited support for arrays: as long as the arrays are of built-in
+      type it should work.
+    </p>
+<p>
+      Notice also that some compilers cannot do function template ordering properly.
+      In that case one must rely of <a class="link" href="reference/concept_implementation/semantics/metafunctions.html" title="Metafunctions"><code class="computeroutput"><span class="identifier">range_iterator</span></code></a> and a single function
+      definition instead of overloaded versions for const and non-const arguments.
+      So if one cares about old compilers, one should not pass rvalues to the functions.
+    </p>
+<p>
+      For maximum portability you should follow these guidelines:
+    </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          do not use built-in arrays,
+        </li>
+<li class="listitem">
+          do not pass rvalues to <a class="link" href="reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">begin</span></code></a><code class="computeroutput"><span class="special">()</span></code>,
+          <a class="link" href="reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">end</span></code></a><code class="computeroutput"><span class="special">()</span></code>
+          and <a class="link" href="reference/utilities/iterator_range.html" title="Class iterator_range"><code class="computeroutput"><span class="identifier">iterator_range</span></code></a> Range constructors
+          and assignment operators,
+        </li>
+<li class="listitem">
+          use <a class="link" href="reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">const_begin</span></code></a><code class="computeroutput"><span class="special">()</span></code>
+          and <a class="link" href="reference/concept_implementation/semantics/functions.html" title="Functions"><code class="computeroutput"><span class="identifier">const_end</span></code></a><code class="computeroutput"><span class="special">()</span></code>
+          whenever your code by intention is read-only; this will also solve most
+          rvalue problems,
+        </li>
+<li class="listitem">
+          do not rely on ADL:
+          <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                if you overload functions, include that header before the headers
+                in this library,
+              </li>
+<li class="listitem">
+                put all overloads in namespace boost.
+              </li>
+</ul></div>
+        </li>
+</ol></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="upgrade/upgrade_from_1_34.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="faq.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

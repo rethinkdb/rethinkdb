@@ -1,0 +1,251 @@
+[/
+    Boost.Optional
+
+    Copyright (c) 2003-2007 Fernando Luis Cacciola Carballal
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section Development]
+
+[section The models]
+
+In C++, we can ['declare] an object (a variable) of type `T`, and we can give this
+variable an ['initial value] (through an ['initializer]. (c.f. 8.5)).
+When a declaration includes a non-empty initializer (an initial value is given),
+it is said that the object has been initialized.
+If the declaration uses an empty initializer (no initial value is given), and
+neither default nor value initialization applies, it is said that the object is
+[*uninitialized]. Its actual value exist but has an ['indeterminate initial value]
+(c.f. 8.5.9).
+`optional<T>` intends to formalize the notion of initialization (or lack of it)
+allowing a program to test whether an object has been initialized and stating
+that access to the value of an uninitialized object is undefined behavior. That
+is, when a variable is declared as `optional<T>` and no initial value is given,
+the variable is ['formally] uninitialized. A formally uninitialized optional object
+has conceptually no value at all and this situation can be tested at runtime. It
+is formally ['undefined behavior] to try to access the value of an uninitialized
+optional. An uninitialized optional can be assigned a value, in which case its initialization state changes to initialized. Furthermore, given the formal
+treatment of initialization states in optional objects, it is even possible to
+reset an optional to ['uninitialized].
+
+In C++ there is no formal notion of uninitialized objects, which means that
+objects always have an initial value even if indeterminate.
+As discussed on the previous section, this has a drawback because you need
+additional information to tell if an object has been effectively initialized.
+One of the typical ways in which this has been historically dealt with is via
+a special value: `EOF`, `npos`, -1, etc... This is equivalent to adding the
+special value to the set of possible values of a given type. This super set of
+`T` plus some ['nil_t]—were `nil_t` is some stateless POD-can be modeled in modern
+languages as a [*discriminated union] of T and nil_t. Discriminated unions are
+often called ['variants]. A variant has a ['current type], which in our case is either
+`T` or `nil_t`.
+Using the __BOOST_VARIANT__ library, this model can be implemented in terms of `boost::variant<T,nil_t>`.
+There is precedent for a discriminated union as a model for an optional value:
+the __HASKELL__ [*Maybe] built-in type constructor. Thus, a discriminated union
+`T+nil_t` serves as a conceptual foundation.
+
+A `variant<T,nil_t>` follows naturally from the traditional idiom of extending
+the range of possible values adding an additional sentinel value with the
+special meaning of ['Nothing].  However, this additional ['Nothing] value is largely
+irrelevant for our purpose since our goal is to formalize the notion of
+uninitialized objects and, while a special extended value can be used to convey
+that meaning, it is not strictly necessary in order to do so.
+
+The observation made in the last paragraph about the irrelevant nature of the
+additional `nil_t` with respect to [_purpose] of `optional<T>` suggests an 
+alternative model: a ['container] that either has a value of `T` or nothing.
+
+As of this writing I don't know of any precedence for a variable-size
+fixed-capacity (of 1) stack-based container model for optional values, yet I
+believe this is the consequence of the lack of practical implementations of
+such a container rather than an inherent shortcoming of the container model.
+
+In any event, both the discriminated-union or the single-element container
+models serve as a conceptual ground for a class representing optional—i.e.
+possibly uninitialized—objects.
+For instance, these models show the ['exact] semantics required for a wrapper
+of optional values:
+
+Discriminated-union:
+
+* [*deep-copy] semantics: copies of the variant implies copies of the value.
+* [*deep-relational] semantics: comparisons between variants matches both
+current types and values
+* If the variant's current type is `T`, it is modeling an ['initialized] optional.
+* If the variant's current type is not `T`, it is modeling an ['uninitialized]
+optional.
+* Testing if the variant's current type is `T` models testing if the optional
+is initialized
+* Trying to extract a `T` from a variant when its current type is not `T`, models
+the undefined behavior of trying to access the value of an uninitialized optional
+
+Single-element container:
+
+* [*deep-copy] semantics: copies of the container implies copies of the value.
+* [*deep-relational] semantics: comparisons between containers compare container
+size and if match, contained value
+* If the container is not empty (contains an object of type `T`), it is modeling
+an ['initialized] optional.
+* If the container is empty, it is modeling an ['uninitialized] optional.
+* Testing if the container is empty models testing if the optional is
+initialized
+* Trying to extract a `T` from an empty container models the undefined behavior
+of trying to access the value of an uninitialized optional
+
+[endsect]
+
+[section The semantics]
+
+Objects of type `optional<T>` are intended to be used in places where objects of
+type `T` would but which might be uninitialized. Hence, `optional<T>`'s purpose is
+to formalize the additional possibly uninitialized state.
+From the perspective of this role, `optional<T>` can have the same operational
+semantics of `T` plus the additional semantics corresponding to this special
+state.
+As such, `optional<T>` could be thought of as a ['supertype] of `T`. Of course, we 
+can't do that in C++, so we need to compose the desired semantics using a
+different mechanism.
+Doing it the other way around, that is, making `optional<T>` a ['subtype] of `T`
+is not only conceptually wrong but also impractical: it is not allowed to
+derive from a non-class type, such as a built-in type.
+
+We can draw from the purpose of `optional<T>` the required basic semantics:
+
+* [*Default Construction:] To introduce a formally uninitialized wrapped
+object.
+* [*Direct Value Construction via copy:] To introduce a formally initialized
+wrapped object whose value is obtained as a copy of some object.
+* [*Deep Copy Construction:] To obtain a new yet equivalent wrapped object.
+* [*Direct Value Assignment (upon initialized):] To assign a value to the
+wrapped object.
+* [*Direct Value Assignment (upon uninitialized):] To initialize the wrapped
+object with a value obtained as a copy of some object.
+* [*Assignment (upon initialized):] To assign to the wrapped object the value
+of another wrapped object.
+* [*Assignment (upon uninitialized):] To initialize the wrapped object with
+value of another wrapped object.
+* [*Deep Relational Operations (when supported by the type T):] To compare
+wrapped object values taking into account the presence of uninitialized states.
+* [*Value access:] To unwrap the wrapped object.
+* [*Initialization state query:] To determine if the object is formally
+initialized or not.
+* [*Swap:] To exchange wrapped objects. (with whatever exception safety
+guarantees are provided by `T`'s swap).
+* [*De-initialization:] To release the wrapped object (if any) and leave the
+wrapper in the uninitialized state.
+
+Additional operations are useful, such as converting constructors and
+converting assignments, in-place construction and assignment, and safe
+value access via a pointer to the wrapped object or null.
+
+[endsect]
+
+[section The Interface]
+
+Since the purpose of optional is to allow us to use objects with a formal
+uninitialized additional state, the interface could try to follow the
+interface of the underlying `T` type as much as possible. In order to choose
+the proper degree of adoption of the native `T` interface, the following must
+be noted: Even if all the operations supported by an instance of type `T` are
+defined for the entire range of values for such a type, an `optional<T>`
+extends such a set of values with a new value for which most
+(otherwise valid) operations are not defined in terms of `T`.
+
+Furthermore, since `optional<T>` itself is merely a `T` wrapper (modeling a `T`
+supertype), any attempt to define such operations upon uninitialized optionals
+will be totally artificial w.r.t. `T`.
+
+This library chooses an interface which follows from `T`'s interface only for
+those operations which are well defined (w.r.t the type `T`) even if any of the
+operands are uninitialized. These operations include: construction,
+copy-construction, assignment, swap and relational operations.
+
+For the value access operations, which are undefined (w.r.t the type `T`) when
+the operand is uninitialized, a different interface is chosen (which will be
+explained next).
+
+Also, the presence of the possibly uninitialized state requires additional
+operations not provided by `T` itself which are supported by a special interface.
+
+[heading Lexically-hinted Value Access in the presence of possibly
+untitialized optional objects: The operators * and ->]
+
+A relevant feature of a pointer is that it can have a [*null pointer value].
+This is a ['special] value which is used to indicate that the pointer is not
+referring to any object at all. In other words, null pointer values convey
+the notion of inexistent objects.
+
+This meaning of the null pointer value allowed pointers to became a ['de
+facto] standard for handling optional objects because all you have to do
+to refer to a value which you don't really have is to use a null pointer
+value of the appropriate type. Pointers have been used for decades—from
+the days of C APIs to modern C++ libraries—to ['refer] to optional (that is,
+possibly inexistent) objects; particularly as optional arguments to a
+function, but also quite often as optional data members.
+
+The possible presence of a null pointer value makes the operations that
+access the pointee's value possibly undefined, therefore, expressions which
+use dereference and access operators, such as: `( *p = 2 )` and `( p->foo() )`,
+implicitly convey the notion of optionality, and this information is tied to
+the ['syntax] of the expressions. That is, the presence of operators `*` and `->`
+tell by themselves —without any additional context— that the expression will
+be undefined unless the implied pointee actually exist.
+
+Such a ['de facto] idiom for referring to optional objects can be formalized
+in the form of a concept: the __OPTIONAL_POINTEE__ concept.
+This concept captures the syntactic usage of operators `*`, `->` and
+conversion to `bool` to convey the notion of optionality.
+
+However, pointers are good to [_refer] to optional objects, but not particularly
+good to handle the optional objects in all other respects, such as initializing
+or moving/copying them. The problem resides in the shallow-copy of pointer
+semantics: if you need to effectively move or copy the object, pointers alone
+are not enough. The problem is that copies of pointers do not imply copies of
+pointees. For example, as was discussed in the motivation, pointers alone
+cannot be used to return optional objects from a function because the object
+must move outside from the function and into the caller's context.
+
+A solution to the shallow-copy problem that is often used is to resort to
+dynamic allocation and use a smart pointer to automatically handle the details
+of this. For example, if a function is to optionally return an object `X`, it can
+use `shared_ptr<X>` as the return value. However, this requires dynamic allocation
+of `X`. If `X` is a built-in or small POD, this technique is very poor in terms of
+required resources. Optional objects are essentially values so it is very
+convenient to be able to use automatic storage and deep-copy semantics to
+manipulate optional values just as we do with ordinary values. Pointers do
+not have this semantics, so are inappropriate for the initialization and
+transport of optional values, yet are quite convenient for handling the access
+to the possible undefined value because of the idiomatic aid present in the
+__OPTIONAL_POINTEE__ concept incarnated by pointers.
+
+
+[heading Optional<T> as a model of OptionalPointee]
+
+For value access operations `optional<>` uses operators `*` and `->` to
+lexically warn about the possibly uninitialized state appealing to the
+familiar pointer semantics w.r.t. to null pointers.
+
+[warning
+However, it is particularly important to note that `optional<>` objects
+are not pointers. [_`optional<>` is not, and does not model, a pointer].
+]
+
+For instance, `optional<>` does not have shallow-copy so does not alias:
+two different optionals never refer to the ['same] value unless `T` itself is
+a reference (but may have ['equivalent] values).
+The difference between an `optional<T>` and a pointer must be kept in mind,
+particularly because the semantics of relational operators are different:
+since `optional<T>` is a value-wrapper, relational operators are deep: they
+compare optional values; but relational operators for pointers are shallow:
+they do not compare pointee values.
+As a result, you might be able to replace `optional<T>` by `T*` on some
+situations but not always. Specifically, on generic code written for both,
+you cannot use relational operators directly, and must use the template
+functions __FUNCTION_EQUAL_POINTEES__ and __FUNCTION_LESS_POINTEES__ instead.
+
+[endsect]
+
+[endsect]

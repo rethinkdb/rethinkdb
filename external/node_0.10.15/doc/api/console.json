@@ -1,0 +1,174 @@
+{
+  "source": "doc/api/console.markdown",
+  "globals": [
+    {
+      "textRaw": "console",
+      "name": "console",
+      "stability": 4,
+      "stabilityText": "API Frozen",
+      "type": "global",
+      "desc": "<p>For printing to stdout and stderr.  Similar to the console object functions\nprovided by most web browsers, here the output is sent to stdout or stderr.\n\n</p>\n<p>The console functions are synchronous when the destination is a terminal or\na file (to avoid lost messages in case of premature exit) and asynchronous\nwhen it&#39;s a pipe (to avoid blocking for long periods of time).\n\n</p>\n<p>That is, in the following example, stdout is non-blocking while stderr\nis blocking:\n\n</p>\n<pre><code>$ node script.js 2&gt; error.log | tee info.log</code></pre>\n<p>In daily use, the blocking/non-blocking dichotomy is not something you\nshould worry about unless you log huge amounts of data.\n\n\n</p>\n",
+      "methods": [
+        {
+          "textRaw": "console.log([data], [...])",
+          "type": "method",
+          "name": "log",
+          "desc": "<p>Prints to stdout with newline. This function can take multiple arguments in a\n<code>printf()</code>-like way. Example:\n\n</p>\n<pre><code>console.log(&#39;count: %d&#39;, count);</code></pre>\n<p>If formatting elements are not found in the first string then <code>util.inspect</code>\nis used on each argument.  See [util.format()][] for more information.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "data",
+                  "optional": true
+                },
+                {
+                  "name": "...",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "console.info([data], [...])",
+          "type": "method",
+          "name": "info",
+          "desc": "<p>Same as <code>console.log</code>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "data",
+                  "optional": true
+                },
+                {
+                  "name": "...",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "console.error([data], [...])",
+          "type": "method",
+          "name": "error",
+          "desc": "<p>Same as <code>console.log</code> but prints to stderr.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "data",
+                  "optional": true
+                },
+                {
+                  "name": "...",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "console.warn([data], [...])",
+          "type": "method",
+          "name": "warn",
+          "desc": "<p>Same as <code>console.error</code>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "data",
+                  "optional": true
+                },
+                {
+                  "name": "...",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "console.dir(obj)",
+          "type": "method",
+          "name": "dir",
+          "desc": "<p>Uses <code>util.inspect</code> on <code>obj</code> and prints resulting string to stdout.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "obj"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "console.time(label)",
+          "type": "method",
+          "name": "time",
+          "desc": "<p>Mark a time.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "label"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "console.timeEnd(label)",
+          "type": "method",
+          "name": "timeEnd",
+          "desc": "<p>Finish timer, record output. Example:\n\n</p>\n<pre><code>console.time(&#39;100-elements&#39;);\nfor (var i = 0; i &lt; 100; i++) {\n  ;\n}\nconsole.timeEnd(&#39;100-elements&#39;);</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "label"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "console.trace(label)",
+          "type": "method",
+          "name": "trace",
+          "desc": "<p>Print a stack trace to stderr of the current position.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "label"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "console.assert(expression, [message])",
+          "type": "method",
+          "name": "assert",
+          "desc": "<p>Same as [assert.ok()][] where if the <code>expression</code> evaluates as <code>false</code> throw an\nAssertionError with <code>message</code>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "expression"
+                },
+                {
+                  "name": "message",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

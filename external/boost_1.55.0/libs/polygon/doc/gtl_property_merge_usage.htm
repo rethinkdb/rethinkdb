@@ -1,0 +1,127 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Property Merge Usage</title>
+</head>
+
+<body>
+
+<p><font face="Courier New">/*<br>
+Copyright 2008 Intel Corporation<br>
+<br>
+Use, modification and distribution are subject to the Boost Software License,<br>
+Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at<br>
+http://www.boost.org/LICENSE_1_0.txt).<br>
+*/<br>
+#include &lt;boost/polygon/polygon.hpp&gt;<br>
+#include &lt;cassert&gt;<br>
+namespace gtl = boost::polygon;<br>
+using namespace boost::polygon::operators;<br>
+<br>//just a little meta-programming to get things off on the right foot<br>
+template &lt;typename T&gt;<br>
+struct lookup_polygon_set_type { typedef gtl::polygon_set_data&lt;int&gt; type; };<br>
+template &lt;typename T, typename T2&gt;<br>
+struct lookup_polygon_set_type&lt;gtl::property_merge_90&lt;T, T2&gt; &gt; { <br>
+&nbsp; typedef gtl::polygon_90_set_data&lt;int&gt; type; };<br>
+<br>
+//This function works with both the 90 and general versions<br>
+//of property merge/map overlay algorithm<br>
+template &lt;typename pm_type&gt;<br>
+void test_pm() {<br>
+&nbsp; std::vector&lt;gtl::rectangle_data&lt;int&gt; &gt; test_data;<br>
+&nbsp; test_data.push_back(gtl::rectangle_data&lt;int&gt;(11, 10, 31, 30));<br>
+&nbsp; test_data.push_back(gtl::rectangle_data&lt;int&gt;(1, 0, 21, 20));<br>
+&nbsp; test_data.push_back(gtl::rectangle_data&lt;int&gt;(6, 15, 16, 25));<br>
+<br>
+&nbsp; pm_type pm;<br>
+<br>
+&nbsp; //insert our test geometry into the property merge algorithm<br>
+&nbsp; for(unsigned int i = 0; i &lt; test_data.size(); ++i) {<br>
+&nbsp;&nbsp;&nbsp; pm.insert(test_data[i], i); //notice I use the index as the 
+property value<br>
+&nbsp; }<br>
+<br>
+&nbsp; typedef typename lookup_polygon_set_type&lt;pm_type&gt;::type polygon_set_type;<br>
+&nbsp; typedef std::map&lt;std::set&lt;int&gt;, polygon_set_type&gt; 
+property_merge_result_type;<br>
+<br>
+&nbsp; std::set&lt;int&gt; key;<br>
+<br>
+&nbsp; //There are 8 different combinations of our input geometries<br>
+&nbsp; //null combination is not interesting, so really 7<br>
+<br>
+&nbsp; property_merge_result_type result;<br>
+&nbsp; pm.merge(result);<br>
+<br>
+&nbsp; //lets enumerate boolean combinations of inputs (hold onto your hats)<br>
+&nbsp; for(unsigned int i = 0; i &lt; 8; ++i) {<br>
+&nbsp;&nbsp;&nbsp; bool bits[3] = {i &amp; 1, i &amp; 2, i &amp; 4}; //break out bit array<br>
+&nbsp;&nbsp;&nbsp; polygon_set_type test_set;<br>
+&nbsp;&nbsp;&nbsp; std::set&lt;int&gt; key;<br>
+&nbsp;&nbsp;&nbsp; for(unsigned int j = 0; j &lt; 3; ++j) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(bits[j]) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; key.insert(key.end(), j);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; test_set += test_data[j];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; for(unsigned int j = 0; j &lt; 3; ++j) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(bits[j]) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; test_set *= test_data[j];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; for(unsigned int j = 0; j &lt; 3; ++j) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(!bits[j])<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; test_set -= test_data[j];<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; if(test_set.empty()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //only the null combination should not exist<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; assert(i == 0);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //a combination that does not exist should not<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //be present in result<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; assert(result.find(key) == result.end());<br>
+&nbsp;&nbsp;&nbsp; } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; assert(gtl::equivalence(result[key], test_set));<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; }<br>
+<br>
+&nbsp; //Notice that we have to do O(2^n) booleans to compose the same<br>
+&nbsp; //result that is produced in one pass of property merge<br>
+&nbsp; //given n input layers (8 = 2^3 in this example)<br>
+}<br>
+<br>
+int main() {<br>
+&nbsp;
+test_pm&lt;gtl::property_merge_90&lt;int, int&gt; &gt;();<br>
+&nbsp;
+test_pm&lt;gtl::property_merge&lt;int, int&gt; &gt;();<br>
+&nbsp;
+return 0;<br>
+}<br>
+//Now you know how to use the manhattan and arbitrary angle property<br>
+//merge algorithms to perform map overlay on n layers of input geometry<br>
+&nbsp;</font></p>
+
+
+<table class="docinfo" rules="none" frame="void" id="table1">
+	<colgroup>
+		<col class="docinfo-name"><col class="docinfo-content">
+	</colgroup>
+	<tbody vAlign="top">
+		<tr>
+			<th class="docinfo-name">Copyright:</th>
+			<td>Copyright © Intel Corporation 2008-2010.</td>
+		</tr>
+		<tr class="field">
+			<th class="docinfo-name">License:</th>
+			<td class="field-body">Distributed under the Boost Software License, 
+			Version 1.0. (See accompanying file <tt class="literal">
+			<span class="pre">LICENSE_1_0.txt</span></tt> or copy at
+			<a class="reference" target="_top" href="http://www.boost.org/LICENSE_1_0.txt">
+			http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+		</tr>
+</table>
+
+</body>
+
+</html>

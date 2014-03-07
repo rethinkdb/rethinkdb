@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: transform_view</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./single-view.html" class="navigation-link">Prev</a>&nbsp;<a href="./zip-view.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./single-view.html" class="navigation-link">Back</a>&nbsp;<a href="./zip-view.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./views.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./sequences.html" class="navigation-link">Sequences</a> / <a href="./views.html" class="navigation-link">Views</a> / <a href="./transform-view.html" class="navigation-link">transform_view</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="transform-view">
+<h1><a class="toc-backref" href="./views.html#id1422">transform_view</a></h1>
+<div class="section" id="id159">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename Sequence
+    , typename F
+    &gt;
+struct <a href="./transform-view.html" class="identifier">transform_view</a>
+{
+    // <em>unspecified</em>
+    // <em>...</em>
+};
+</pre>
+</div>
+<div class="section" id="id160">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>A view the full range of <tt class="literal"><span class="pre">Sequence</span></tt>'s transformed elements.</p>
+</div>
+<div class="section" id="id161">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/transform_view.hpp" class="header">boost/mpl/transform_view.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id162">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<ul class="simple">
+<li><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></li>
+</ul>
+</div>
+<div class="section" id="id163">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="19%" />
+<col width="40%" />
+<col width="40%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">Sequence</span></tt></td>
+<td><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></td>
+<td>A sequence to wrap.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">F</span></tt></td>
+<td>Unary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a></td>
+<td>A transformation.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id164">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>The semantics of an expression are defined only
+where they differ from, or are not defined in <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a>.</p>
+<p>In the following table, <tt class="literal"><span class="pre">v</span></tt> is an instance of <tt class="literal"><span class="pre"><a href="./transform-view.html" class="identifier">transform_view</a></span></tt>, <tt class="literal"><span class="pre">s</span></tt> is an arbitrary
+<a class="reference internal" href="./forward-sequence.html">Forward Sequence</a>, and <tt class="literal"><span class="pre">f</span></tt> is an unary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a>.</p>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="37%" />
+<col width="63%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Expression</th>
+<th class="head">Semantics</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><pre class="first last literal-block">
+<a href="./transform-view.html" class="identifier">transform_view</a>&lt;s,f&gt;
+<a href="./transform-view.html" class="identifier">transform_view</a>&lt;s,f&gt;::type
+</pre>
+</td>
+<td>A lazy <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> such that for each <tt class="literal"><span class="pre">i</span></tt> in the
+range [<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;v&gt;::type</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;v&gt;::type</span></tt>) and each <tt class="literal"><span class="pre">j</span></tt> in for in the range
+[<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;s&gt;::type</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;s&gt;::type</span></tt>) <tt class="literal"><span class="pre"><a href="./deref.html" class="identifier">deref</a>&lt;i&gt;::type</span></tt> is identical to
+<tt class="literal"><span class="pre"><a href="./apply.html" class="identifier">apply</a>&lt;</span> <span class="pre">f,</span> <span class="pre"><a href="./deref.html" class="identifier">deref</a>&lt;j&gt;::type</span> <span class="pre">&gt;::type</span></tt>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;v&gt;::type</span></tt></td>
+<td>The size of <tt class="literal"><span class="pre">v</span></tt>;
+<tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;v&gt;::value</span> <span class="pre">==</span> <span class="pre"><a href="./size.html" class="identifier">size</a>&lt;s&gt;::value</span></tt>;
+linear complexity; see <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id165">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<p>Find the largest type in a sequence.</p>
+<pre class="literal-block">
+typedef <a href="./vector.html" class="identifier">vector</a>&lt;int,long,char,char[50],double&gt; types;
+typedef <a href="./max-element.html" class="identifier">max_element</a>&lt;
+      <a href="./transform-view.html" class="identifier">transform_view</a>&lt; types, size_of&lt;_&gt; &gt;
+    &gt;::type iter;
+
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./deref.html" class="identifier">deref</a>&lt;iter&gt;::type::value, ==, 50 );
+</pre>
+</div>
+<div class="section" id="id166">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./sequences.html">Sequences</a>, <a class="reference internal" href="./views.html">Views</a>, <a class="reference internal" href="./filter-view.html">filter_view</a>, <a class="reference internal" href="./joint-view.html">joint_view</a>, <a class="reference internal" href="./zip-view.html">zip_view</a>, <a class="reference internal" href="./iterator-range.html">iterator_range</a></p>
+<!-- Sequences/Views//zip_view -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./single-view.html" class="navigation-link">Prev</a>&nbsp;<a href="./zip-view.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./single-view.html" class="navigation-link">Back</a>&nbsp;<a href="./zip-view.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./views.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

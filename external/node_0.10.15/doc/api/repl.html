@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>REPL Node.js v0.10.15 Manual &amp; Documentation</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/sh.css">
+  <link rel="canonical" href="http://nodejs.org/api/repl.html">
+</head>
+<body class="alt apidoc" id="api-section-repl">
+    <div id="intro" class="interior">
+        <a href="/" title="Go back to the home page">
+            <img id="logo" src="http://nodejs.org/images/logo-light.png" alt="node.js">
+        </a>
+    </div>
+    <div id="content" class="clearfix">
+        <div id="column2" class="interior">
+            <ul>
+                <li><a href="/" class="home">Home</a></li>
+                <li><a href="/download/" class="download">Download</a></li>
+                <li><a href="/about/" class="about">About</a></li>
+                <li><a href="http://npmjs.org/" class="npm">npm Registry</a></li>
+                <li><a href="http://nodejs.org/api/" class="docs current">Docs</a></li>
+                <li><a href="http://blog.nodejs.org" class="blog">Blog</a></li>
+                <li><a href="/community/" class="community">Community</a></li>
+                <li><a href="/logos/" class="logos">Logos</a></li>
+                <li><a href="http://jobs.nodejs.org/" class="jobs">Jobs</a></li>
+            </ul>
+            <p class="twitter"><a href="http://twitter.com/nodejs">@nodejs</a></p>
+        </div>
+
+        <div id="column1" class="interior">
+          <header>
+            <h1>Node.js v0.10.15 Manual &amp; Documentation</h1>
+            <div id="gtoc">
+              <p>
+                <a href="index.html" name="toc">Index</a> |
+                <a href="all.html">View on single page</a> |
+                <a href="repl.json">View as JSON</a>
+              </p>
+            </div>
+            <hr>
+          </header>
+
+          <div id="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+<li><a href="#repl_repl">REPL</a><ul>
+<li><a href="#repl_repl_start_options">repl.start(options)</a><ul>
+<li><a href="#repl_event_exit">Event: &#39;exit&#39;</a></li>
+</ul>
+</li>
+<li><a href="#repl_repl_features">REPL Features</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+
+          <div id="apicontent">
+            <h1>REPL<span><a class="mark" href="#repl_repl" id="repl_repl">#</a></span></h1>
+<p>A Read-Eval-Print-Loop (REPL) is available both as a standalone program and
+easily includable in other programs. The REPL provides a way to interactively
+run JavaScript and see the results.  It can be used for debugging, testing, or
+just trying things out.
+
+</p>
+<p>By executing <code>node</code> without any arguments from the command-line you will be
+dropped into the REPL. It has simplistic emacs line-editing.
+
+</p>
+<pre><code>mjr:~$ node
+Type &#39;.help&#39; for options.
+&gt; a = [ 1, 2, 3];
+[ 1, 2, 3 ]
+&gt; a.forEach(function (v) {
+...   console.log(v);
+...   });
+1
+2
+3</code></pre>
+<p>For advanced line-editors, start node with the environmental variable
+<code>NODE_NO_READLINE=1</code>. This will start the main and debugger REPL in canonical
+terminal settings which will allow you to use with <code>rlwrap</code>.
+
+</p>
+<p>For example, you could add this to your bashrc file:
+
+</p>
+<pre><code>alias node=&quot;env NODE_NO_READLINE=1 rlwrap node&quot;</code></pre>
+<h2>repl.start(options)<span><a class="mark" href="#repl_repl_start_options" id="repl_repl_start_options">#</a></span></h2>
+<p>Returns and starts a <code>REPLServer</code> instance. Accepts an &quot;options&quot; Object that
+takes the following values:
+
+</p>
+<ul>
+<li><p><code>prompt</code> - the prompt and <code>stream</code> for all I/O. Defaults to <code>&gt; </code>.</p>
+</li>
+<li><p><code>input</code> - the readable stream to listen to. Defaults to <code>process.stdin</code>.</p>
+</li>
+<li><p><code>output</code> - the writable stream to write readline data to. Defaults to
+<code>process.stdout</code>.</p>
+</li>
+<li><p><code>terminal</code> - pass <code>true</code> if the <code>stream</code> should be treated like a TTY, and
+have ANSI/VT100 escape codes written to it. Defaults to checking <code>isTTY</code>
+on the <code>output</code> stream upon instantiation.</p>
+</li>
+<li><p><code>eval</code> - function that will be used to eval each given line. Defaults to
+an async wrapper for <code>eval()</code>. See below for an example of a custom <code>eval</code>.</p>
+</li>
+<li><p><code>useColors</code> - a boolean which specifies whether or not the <code>writer</code> function
+should output colors. If a different <code>writer</code> function is set then this does
+nothing. Defaults to the repl&#39;s <code>terminal</code> value.</p>
+</li>
+<li><p><code>useGlobal</code> - if set to <code>true</code>, then the repl will use the <code>global</code> object,
+instead of running scripts in a separate context. Defaults to <code>false</code>.</p>
+</li>
+<li><p><code>ignoreUndefined</code> - if set to <code>true</code>, then the repl will not output the
+return value of command if it&#39;s <code>undefined</code>. Defaults to <code>false</code>.</p>
+</li>
+<li><p><code>writer</code> - the function to invoke for each command that gets evaluated which
+returns the formatting (including coloring) to display. Defaults to
+<code>util.inspect</code>.</p>
+</li>
+</ul>
+<p>You can use your own <code>eval</code> function if it has following signature:
+
+</p>
+<pre><code>function eval(cmd, context, filename, callback) {
+  callback(null, result);
+}</code></pre>
+<p>Multiple REPLs may be started against the same running instance of node.  Each
+will share the same global object but will have unique I/O.
+
+</p>
+<p>Here is an example that starts a REPL on stdin, a Unix socket, and a TCP socket:
+
+</p>
+<pre><code>var net = require(&quot;net&quot;),
+    repl = require(&quot;repl&quot;);
+
+connections = 0;
+
+repl.start({
+  prompt: &quot;node via stdin&gt; &quot;,
+  input: process.stdin,
+  output: process.stdout
+});
+
+net.createServer(function (socket) {
+  connections += 1;
+  repl.start({
+    prompt: &quot;node via Unix socket&gt; &quot;,
+    input: socket,
+    output: socket
+  }).on(&#39;exit&#39;, function() {
+    socket.end();
+  })
+}).listen(&quot;/tmp/node-repl-sock&quot;);
+
+net.createServer(function (socket) {
+  connections += 1;
+  repl.start({
+    prompt: &quot;node via TCP socket&gt; &quot;,
+    input: socket,
+    output: socket
+  }).on(&#39;exit&#39;, function() {
+    socket.end();
+  });
+}).listen(5001);</code></pre>
+<p>Running this program from the command line will start a REPL on stdin.  Other
+REPL clients may connect through the Unix socket or TCP socket. <code>telnet</code> is useful
+for connecting to TCP sockets, and <code>socat</code> can be used to connect to both Unix and
+TCP sockets.
+
+</p>
+<p>By starting a REPL from a Unix socket-based server instead of stdin, you can
+connect to a long-running node process without restarting it.
+
+</p>
+<p>For an example of running a &quot;full-featured&quot; (<code>terminal</code>) REPL over
+a <code>net.Server</code> and <code>net.Socket</code> instance, see: <a href="https://gist.github.com/2209310">https://gist.github.com/2209310</a>
+
+</p>
+<p>For an example of running a REPL instance over <code>curl(1)</code>,
+see: <a href="https://gist.github.com/2053342">https://gist.github.com/2053342</a>
+
+</p>
+<h3>Event: &#39;exit&#39;<span><a class="mark" href="#repl_event_exit" id="repl_event_exit">#</a></span></h3>
+<p><code>function () {}</code>
+
+</p>
+<p>Emitted when the user exits the REPL in any of the defined ways. Namely, typing
+<code>.exit</code> at the repl, pressing Ctrl+C twice to signal SIGINT, or pressing Ctrl+D
+to signal &quot;end&quot; on the <code>input</code> stream.
+
+</p>
+<p>Example of listening for <code>exit</code>:
+
+</p>
+<pre><code>r.on(&#39;exit&#39;, function () {
+  console.log(&#39;Got &quot;exit&quot; event from repl!&#39;);
+  process.exit();
+});</code></pre>
+<h2>REPL Features<span><a class="mark" href="#repl_repl_features" id="repl_repl_features">#</a></span></h2>
+<!-- type=misc -->
+
+<p>Inside the REPL, Control+D will exit.  Multi-line expressions can be input.
+Tab completion is supported for both global and local variables.
+
+</p>
+<p>The special variable <code>_</code> (underscore) contains the result of the last expression.
+
+</p>
+<pre><code>&gt; [ &quot;a&quot;, &quot;b&quot;, &quot;c&quot; ]
+[ &#39;a&#39;, &#39;b&#39;, &#39;c&#39; ]
+&gt; _.length
+3
+&gt; _ += 1
+4</code></pre>
+<p>The REPL provides access to any variables in the global scope. You can expose
+a variable to the REPL explicitly by assigning it to the <code>context</code> object
+associated with each <code>REPLServer</code>.  For example:
+
+</p>
+<pre><code>// repl_test.js
+var repl = require(&quot;repl&quot;),
+    msg = &quot;message&quot;;
+
+repl.start(&quot;&gt; &quot;).context.m = msg;</code></pre>
+<p>Things in the <code>context</code> object appear as local within the REPL:
+
+</p>
+<pre><code>mjr:~$ node repl_test.js
+&gt; m
+&#39;message&#39;</code></pre>
+<p>There are a few special REPL commands:
+
+</p>
+<ul>
+<li><code>.break</code> - While inputting a multi-line expression, sometimes you get lost
+or just don&#39;t care about completing it. <code>.break</code> will start over.</li>
+<li><code>.clear</code> - Resets the <code>context</code> object to an empty object and clears any
+multi-line expression.</li>
+<li><code>.exit</code> - Close the I/O stream, which will cause the REPL to exit.</li>
+<li><code>.help</code> - Show this list of special commands.</li>
+<li><code>.save</code> - Save the current REPL session to a file<blockquote>
+<p>.save ./file/to/save.js</p>
+</blockquote>
+</li>
+<li><code>.load</code> - Load a file into the current REPL session.<blockquote>
+<p>.load ./file/to/load.js</p>
+</blockquote>
+</li>
+</ul>
+<p>The following key combinations in the REPL have these special effects:
+
+</p>
+<ul>
+<li><code>&lt;ctrl&gt;C</code> - Similar to the <code>.break</code> keyword.  Terminates the current
+command.  Press twice on a blank line to forcibly exit.</li>
+<li><code>&lt;ctrl&gt;D</code> - Similar to the <code>.exit</code> keyword.</li>
+</ul>
+
+          </div>
+        </div>
+    </div>
+    <div id="footer">
+        <a href="http://joyent.com" class="joyent-logo">Joyent</a>
+        <ul class="clearfix">
+            <li><a href="/">Node.js</a></li>
+            <li><a href="/download/">Download</a></li>
+            <li><a href="/about/">About</a></li>
+            <li><a href="http://npmjs.org/">npm Registry</a></li>
+            <li><a href="http://nodejs.org/api/">Docs</a></li>
+            <li><a href="http://blog.nodejs.org">Blog</a></li>
+            <li><a href="/community/">Community</a></li>
+            <li><a href="/logos/">Logos</a></li>
+            <li><a href="http://jobs.nodejs.org/">Jobs</a></li>
+            <li><a href="http://twitter.com/nodejs" class="twitter">@nodejs</a></li>
+        </ul>
+
+        <p>Copyright <a href="http://joyent.com/">Joyent, Inc</a>, Node.js is a <a href="/trademark-policy.pdf">trademark</a> of Joyent, Inc. View <a href="https://raw.github.com/joyent/node/v0.10.15/LICENSE">license</a>.</p>
+    </div>
+
+  <script src="../sh_main.js"></script>
+  <script src="../sh_javascript.min.js"></script>
+  <script>highlight(undefined, undefined, 'pre');</script>
+  <script>
+    window._gaq = [['_setAccount', 'UA-10874194-2'], ['_trackPageview']];
+    (function(d, t) {
+      var g = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      g.src = '//www.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+  </script>
+</body>
+</html>
+

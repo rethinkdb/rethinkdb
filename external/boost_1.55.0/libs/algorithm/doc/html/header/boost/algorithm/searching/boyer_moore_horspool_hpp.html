@@ -1,0 +1,69 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Header &lt;boost/algorithm/searching/boyer_moore_horspool.hpp&gt;</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="The Boost Algorithm Library">
+<link rel="up" href="../../../../algorithm/reference.html" title="Reference">
+<link rel="prev" href="../../../../boost/algorithm/boyer_moore_se_idp20633800.html" title="Function template boyer_moore_search">
+<link rel="next" href="../../../../boost/algorithm/boyer_moore_horspool.html" title="Class template boyer_moore_horspool">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../../boost/algorithm/boyer_moore_se_idp20633800.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../../algorithm/reference.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../../boost/algorithm/boyer_moore_horspool.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.algorithm.searching.boyer_moore_horspool_hpp"></a>Header &lt;<a href="../../../../../../../../boost/algorithm/searching/boyer_moore_horspool.hpp" target="_top">boost/algorithm/searching/boyer_moore_horspool.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">algorithm</span> <span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> patIter<span class="special">,</span> <span class="keyword">typename</span> traits <span class="special">=</span> <span class="identifier">detail</span><span class="special">::</span><span class="identifier">BM_traits</span><span class="special">&lt;</span><span class="identifier">patIter</span><span class="special">&gt;</span> <span class="special">&gt;</span> 
+      <span class="keyword">class</span> <a class="link" href="../../../../boost/algorithm/boyer_moore_horspool.html" title="Class template boyer_moore_horspool">boyer_moore_horspool</a><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> patIter<span class="special">,</span> <span class="keyword">typename</span> corpusIter<span class="special">&gt;</span> 
+      <span class="identifier">corpusIter</span> <a class="link" href="../../../../boost/algorithm/boyer_moore_ho_idp20651672.html" title="Function template boyer_moore_horspool_search"><span class="identifier">boyer_moore_horspool_search</span></a><span class="special">(</span><span class="identifier">corpusIter</span><span class="special">,</span> <span class="identifier">corpusIter</span><span class="special">,</span> <span class="identifier">patIter</span><span class="special">,</span> 
+                                             <span class="identifier">patIter</span><span class="special">)</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> PatternRange<span class="special">,</span> <span class="keyword">typename</span> corpusIter<span class="special">&gt;</span> 
+      <span class="identifier">corpusIter</span> <a name="boost.algorithm.boyer_moore_ho_idp20655448"></a><span class="identifier">boyer_moore_horspool_search</span><span class="special">(</span><span class="identifier">corpusIter</span> corpus_first<span class="special">,</span> 
+                                             <span class="identifier">corpusIter</span> corpus_last<span class="special">,</span> 
+                                             <span class="keyword">const</span> <span class="identifier">PatternRange</span> <span class="special">&amp;</span> pattern<span class="special">)</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> patIter<span class="special">,</span> <span class="keyword">typename</span> CorpusRange<span class="special">&gt;</span> 
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lazy_disable_if_c</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_same</span><span class="special">&lt;</span> <span class="identifier">CorpusRange</span><span class="special">,</span> <span class="identifier">patIter</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">value</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span> <span class="identifier">CorpusRange</span> <span class="special">&gt;</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+      <a name="boost.algorithm.boyer_moore_ho_idp20657512"></a><span class="identifier">boyer_moore_horspool_search</span><span class="special">(</span><span class="identifier">CorpusRange</span> <span class="special">&amp;</span> corpus<span class="special">,</span> <span class="identifier">patIter</span> pat_first<span class="special">,</span> 
+                                  <span class="identifier">patIter</span> pat_last<span class="special">)</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> PatternRange<span class="special">,</span> <span class="keyword">typename</span> CorpusRange<span class="special">&gt;</span> 
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span> <span class="identifier">CorpusRange</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+      <a name="boost.algorithm.boyer_moore_ho_idp20659672"></a><span class="identifier">boyer_moore_horspool_search</span><span class="special">(</span><span class="identifier">CorpusRange</span> <span class="special">&amp;</span> corpus<span class="special">,</span> 
+                                  <span class="keyword">const</span> <span class="identifier">PatternRange</span> <span class="special">&amp;</span> pattern<span class="special">)</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Range<span class="special">&gt;</span> 
+      <a class="link" href="../../../../boost/algorithm/boyer_moore_horspool.html" title="Class template boyer_moore_horspool">boost::algorithm::boyer_moore_horspool</a><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="identifier">Range</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="special">&gt;</span> 
+      <a name="boost.algorithm.make_boyer_moo_idp20661432"></a><span class="identifier">make_boyer_moore_horspool</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Range</span> <span class="special">&amp;</span> r<span class="special">)</span><span class="special">;</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Range<span class="special">&gt;</span> 
+      <a class="link" href="../../../../boost/algorithm/boyer_moore_horspool.html" title="Class template boyer_moore_horspool">boost::algorithm::boyer_moore_horspool</a><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span> <span class="identifier">Range</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="special">&gt;</span> 
+      <a name="boost.algorithm.make_boyer_moo_idp20662760"></a><span class="identifier">make_boyer_moore_horspool</span><span class="special">(</span><span class="identifier">Range</span> <span class="special">&amp;</span> r<span class="special">)</span><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2010-2012 Marshall Clow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../../boost/algorithm/boyer_moore_se_idp20633800.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../../algorithm/reference.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../../boost/algorithm/boyer_moore_horspool.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

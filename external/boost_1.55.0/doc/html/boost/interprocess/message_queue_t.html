@@ -1,0 +1,164 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template message_queue_t</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp" title="Header &lt;boost/interprocess/interprocess_fwd.hpp&gt;">
+<link rel="prev" href="weak_ptr.html" title="Class template weak_ptr">
+<link rel="next" href="offset_type_alignment.html" title="Global offset_type_alignment">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="weak_ptr.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="offset_type_alignment.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.interprocess.message_queue_t"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template message_queue_t</span></h2>
+<p>boost::interprocess::message_queue_t</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp" title="Header &lt;boost/interprocess/interprocess_fwd.hpp&gt;">boost/interprocess/interprocess_fwd.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> VoidPointer<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="message_queue_t.html" title="Class template message_queue_t">message_queue_t</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="message_queue_t.html#boost.interprocess.message_queue_tconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="message_queue_t.html#idp28180648-bb"><span class="identifier">message_queue_t</span></a><span class="special">(</span><a class="link" href="create_only_t.html" title="Struct create_only_t">create_only_t</a><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> 
+                  <span class="keyword">const</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a> <span class="special">&amp;</span> <span class="special">=</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="message_queue_t.html#idp28183576-bb"><span class="identifier">message_queue_t</span></a><span class="special">(</span><a class="link" href="open_or_create_t.html" title="Struct open_or_create_t">open_or_create_t</a><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> 
+                  <span class="keyword">const</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a> <span class="special">&amp;</span> <span class="special">=</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="message_queue_t.html#idp28186600-bb"><span class="identifier">message_queue_t</span></a><span class="special">(</span><a class="link" href="open_only_t.html" title="Struct open_only_t">open_only_t</a><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="message_queue_t.html#idp28187768-bb"><span class="special">~</span><span class="identifier">message_queue_t</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="message_queue_t.html#idp28164520-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="message_queue_t.html#idp28164728-bb"><span class="identifier">send</span></a><span class="special">(</span><span class="keyword">const</span> <span class="keyword">void</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="message_queue_t.html#idp28166600-bb"><span class="identifier">try_send</span></a><span class="special">(</span><span class="keyword">const</span> <span class="keyword">void</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="message_queue_t.html#idp28168520-bb"><span class="identifier">timed_send</span></a><span class="special">(</span><span class="keyword">const</span> <span class="keyword">void</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">,</span> 
+                  <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="message_queue_t.html#idp28170888-bb"><span class="identifier">receive</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="message_queue_t.html#idp28173176-bb"><span class="identifier">try_receive</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="message_queue_t.html#idp28175512-bb"><span class="identifier">timed_receive</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&amp;</span><span class="special">,</span> 
+                     <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="message_queue_t.html#idp28178280-bb"><span class="identifier">get_max_msg</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="message_queue_t.html#idp28179096-bb"><span class="identifier">get_max_msg_size</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="message_queue_t.html#idp28179928-bb"><span class="identifier">get_num_msg</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="message_queue_t.html#idp28188440-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="message_queue_t.html#idp28188648-bb"><span class="identifier">remove</span></a><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp116421784"></a><h2>Description</h2>
+<p>A class that allows sending messages between processes. </p>
+<div class="refsect2">
+<a name="idp116422184"></a><h3>
+<a name="boost.interprocess.message_queue_tconstruct-copy-destruct"></a><code class="computeroutput">message_queue_t</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp28180648-bb"></a><span class="identifier">message_queue_t</span><span class="special">(</span><a class="link" href="create_only_t.html" title="Struct create_only_t">create_only_t</a> create_only<span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> name<span class="special">,</span> 
+                <span class="identifier">size_type</span> max_num_msg<span class="special">,</span> <span class="identifier">size_type</span> max_msg_size<span class="special">,</span> 
+                <span class="keyword">const</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a> <span class="special">&amp;</span> perm <span class="special">=</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Creates a process shared message queue with name "name". For this message queue, the maximum number of messages will be "max_num_msg" and the maximum message size will be "max_msg_size". Throws on error and if the queue was previously created. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28183576-bb"></a><span class="identifier">message_queue_t</span><span class="special">(</span><a class="link" href="open_or_create_t.html" title="Struct open_or_create_t">open_or_create_t</a> open_or_create<span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> name<span class="special">,</span> 
+                <span class="identifier">size_type</span> max_num_msg<span class="special">,</span> <span class="identifier">size_type</span> max_msg_size<span class="special">,</span> 
+                <span class="keyword">const</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a> <span class="special">&amp;</span> perm <span class="special">=</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Opens or creates a process shared message queue with name "name". If the queue is created, the maximum number of messages will be "max_num_msg" and the maximum message size will be "max_msg_size". If queue was previously created the queue will be opened and "max_num_msg" and "max_msg_size" parameters are ignored. Throws on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28186600-bb"></a><span class="identifier">message_queue_t</span><span class="special">(</span><a class="link" href="open_only_t.html" title="Struct open_only_t">open_only_t</a> open_only<span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> name<span class="special">)</span><span class="special">;</span></pre>
+<p>Opens a previously created process shared message queue with name "name". If the queue was not previously created or there are no free resources, throws an error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28187768-bb"></a><span class="special">~</span><span class="identifier">message_queue_t</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destroys *this and indicates that the calling process is finished using the resource. All opened message queues are still valid after destruction. The destructor function will deallocate any system resources allocated by the system for use by this process for this resource. The resource can still be opened again calling the open constructor overload. To erase the message queue from the system use remove(). </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp116445656"></a><h3>
+<a name="idp28164520-bb"></a><code class="computeroutput">message_queue_t</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28164728-bb"></a><span class="identifier">send</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">void</span> <span class="special">*</span> buffer<span class="special">,</span> <span class="identifier">size_type</span> buffer_size<span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> priority<span class="special">)</span><span class="special">;</span></pre>
+<p>Sends a message stored in buffer "buffer" with size "buffer_size" in the message queue with priority "priority". If the message queue is full the sender is blocked. Throws interprocess_error on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28166600-bb"></a><span class="identifier">try_send</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">void</span> <span class="special">*</span> buffer<span class="special">,</span> <span class="identifier">size_type</span> buffer_size<span class="special">,</span> 
+              <span class="keyword">unsigned</span> <span class="keyword">int</span> priority<span class="special">)</span><span class="special">;</span></pre>
+<p>Sends a message stored in buffer "buffer" with size "buffer_size" through the message queue with priority "priority". If the message queue is full the sender is not blocked and returns false, otherwise returns true. Throws interprocess_error on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28168520-bb"></a><span class="identifier">timed_send</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">void</span> <span class="special">*</span> buffer<span class="special">,</span> <span class="identifier">size_type</span> buffer_size<span class="special">,</span> 
+                <span class="keyword">unsigned</span> <span class="keyword">int</span> priority<span class="special">,</span> 
+                <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span> abs_time<span class="special">)</span><span class="special">;</span></pre>
+<p>Sends a message stored in buffer "buffer" with size "buffer_size" in the message queue with priority "priority". If the message queue is full the sender retries until time "abs_time" is reached. Returns true if the message has been successfully sent. Returns false if timeout is reached. Throws interprocess_error on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28170888-bb"></a><span class="identifier">receive</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span> buffer<span class="special">,</span> <span class="identifier">size_type</span> buffer_size<span class="special">,</span> <span class="identifier">size_type</span> <span class="special">&amp;</span> recvd_size<span class="special">,</span> 
+             <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&amp;</span> priority<span class="special">)</span><span class="special">;</span></pre>
+<p>Receives a message from the message queue. The message is stored in buffer "buffer", which has size "buffer_size". The received message has size "recvd_size" and priority "priority". If the message queue is empty the receiver is blocked. Throws interprocess_error on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28173176-bb"></a><span class="identifier">try_receive</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span> buffer<span class="special">,</span> <span class="identifier">size_type</span> buffer_size<span class="special">,</span> <span class="identifier">size_type</span> <span class="special">&amp;</span> recvd_size<span class="special">,</span> 
+                 <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&amp;</span> priority<span class="special">)</span><span class="special">;</span></pre>
+<p>Receives a message from the message queue. The message is stored in buffer "buffer", which has size "buffer_size". The received message has size "recvd_size" and priority "priority". If the message queue is empty the receiver is not blocked and returns false, otherwise returns true. Throws interprocess_error on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28175512-bb"></a><span class="identifier">timed_receive</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span> buffer<span class="special">,</span> <span class="identifier">size_type</span> buffer_size<span class="special">,</span> 
+                   <span class="identifier">size_type</span> <span class="special">&amp;</span> recvd_size<span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">&amp;</span> priority<span class="special">,</span> 
+                   <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span> abs_time<span class="special">)</span><span class="special">;</span></pre>
+<p>Receives a message from the message queue. The message is stored in buffer "buffer", which has size "buffer_size". The received message has size "recvd_size" and priority "priority". If the message queue is empty the receiver retries until time "abs_time" is reached. Returns true if the message has been successfully sent. Returns false if timeout is reached. Throws interprocess_error on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp28178280-bb"></a><span class="identifier">get_max_msg</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the maximum number of messages allowed by the queue. The message queue must be opened or created previously. Otherwise, returns 0. Never throws </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp28179096-bb"></a><span class="identifier">get_max_msg_size</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the maximum size of message allowed by the queue. The message queue must be opened or created previously. Otherwise, returns 0. Never throws </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp28179928-bb"></a><span class="identifier">get_num_msg</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the number of messages currently stored. Never throws </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp116493592"></a><h3>
+<a name="idp28188440-bb"></a><code class="computeroutput">message_queue_t</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="idp28188648-bb"></a><span class="identifier">remove</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> name<span class="special">)</span><span class="special">;</span></pre>
+<p>Removes the message queue from the system. Returns false on error. Never throws </p>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="weak_ptr.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="offset_type_alignment.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

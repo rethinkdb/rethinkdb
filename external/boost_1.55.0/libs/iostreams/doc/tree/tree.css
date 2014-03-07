@@ -1,0 +1,34 @@
+/*
+ * (C) Copyright 2008 CodeRage, LLC (turkanis at coderage dot com)
+ * (C) Copyright 2003-2007 Jonathan Turkanis
+ * Distributed under the Boost Software License, Version 1.0. (See accompanying
+ * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.)
+ */
+
+BODY { padding:5; margin:5 }
+HR { width:95%; text-align:center }
+DIV.tree-item { font-family:"Times New Roman",serif }
+SPAN.tree-icon { color:#0000ee }
+A.tree-icon, A.tree-text { text-decoration:none }
+A.tree-text { color:#0000ee }
+A:visited.tree-text { color:#0000ee }
+.lib-name, .tree-caption
+{ 
+    margin-bottom:0;
+    font-size:108%;
+    font-family:Verdana,Tahoma,Arial,Helvetica,sans-serif;
+    text-align:center;
+    color:black
+}
+.tree-sync 
+{ 
+    font-size:10px;
+    font-family:Verdana,Tahoma,Arial,Helvetica,sans-serif;
+    text-decoration:none;
+    color:#0000ee 
+}
+P.tree-sync 
+{ 
+    text-align:center;
+    margin-bottom:1em
+}

@@ -1,0 +1,160 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Interval</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../examples.html" title="Examples">
+<link rel="prev" href="party.html" title="Party">
+<link rel="next" href="dynamic_interval.html" title="Dynamic interval">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="party.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="dynamic_interval.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_examples_interval" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.examples.interval"></a><a class="link" href="interval.html" title="Interval">Interval</a>
+</h3></div></div></div>
+<p>
+        Example <span class="bold"><strong>interval</strong></span> shows some basic functionality
+        of <code class="computeroutput"><a class="link" href="../../boost/icl/interval.html" title="Struct template interval">intervals</a></code>.
+      </p>
+<div class="itemizedlist"><ul type="disc">
+<li>
+          Different instances of <code class="computeroutput"><a class="link" href="../../boost/icl/interval.html" title="Struct template interval">intervals</a></code>
+          for integral (<code class="literal">int, Time</code>) and continuous types (<code class="literal">double,
+          std::string</code>) are used.
+        </li>
+<li>
+          The examples uses open and closed intervals bounds.
+        </li>
+<li>
+          Some borderline functions calls on open interval borders are tested e.g.:
+          <code class="computeroutput"><span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;::</span><span class="identifier">rightopen</span><span class="special">(</span><span class="number">1</span><span class="special">/</span><span class="identifier">sqrt</span><span class="special">(</span><span class="number">2.0</span><span class="special">),</span>
+          <span class="identifier">sqrt</span><span class="special">(</span><span class="number">2.0</span><span class="special">)).</span><span class="identifier">contains</span><span class="special">(</span><span class="identifier">sqrt</span><span class="special">(</span><span class="number">2.0</span><span class="special">));</span></code>
+</li>
+</ul></div>
+<p>
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">math</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span>
+
+<span class="comment">// Dynamically bounded intervals
+</span><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">discrete_interval</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">continuous_interval</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">// Statically bounded intervals
+</span><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">right_open_interval</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">left_open_interval</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">closed_interval</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">open_interval</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="string">"../toytime.hpp"</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">rational</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">icl</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"&gt;&gt;Interval Container Library: Sample interval.cpp &lt;&lt;\n"</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"----------------------------------------------------\n"</span><span class="special">;</span>
+
+    <span class="comment">// Class template discrete_interval can be used for discrete data types
+</span>    <span class="comment">// like integers, date and time and other types that have a least steppable
+</span>    <span class="comment">// unit.
+</span>    <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span>      <span class="identifier">int_interval</span>  
+        <span class="special">=</span> <span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;(</span><span class="number">3</span><span class="special">,</span> <span class="number">7</span><span class="special">,</span> <span class="identifier">interval_bounds</span><span class="special">::</span><span class="identifier">closed</span><span class="special">());</span>
+
+    <span class="comment">// Class template continuous_interval can be used for continuous data types
+</span>    <span class="comment">// like double, boost::rational or strings.
+</span>    <span class="identifier">continuous_interval</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">sqrt_interval</span> 
+        <span class="special">=</span> <span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">continuous_interval</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="special">&gt;(</span><span class="number">1</span><span class="special">/</span><span class="identifier">sqrt</span><span class="special">(</span><span class="number">2.0</span><span class="special">),</span> <span class="identifier">sqrt</span><span class="special">(</span><span class="number">2.0</span><span class="special">));</span>
+                                                 <span class="comment">//interval_bounds::right_open() is default
+</span>    <span class="identifier">continuous_interval</span><span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">city_interval</span> 
+        <span class="special">=</span> <span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">continuous_interval</span><span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="special">&gt;(</span><span class="string">"Barcelona"</span><span class="special">,</span> <span class="string">"Boston"</span><span class="special">,</span> <span class="identifier">interval_bounds</span><span class="special">::</span><span class="identifier">left_open</span><span class="special">());</span>
+
+    <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">Time</span><span class="special">&gt;</span>     <span class="identifier">time_interval</span> 
+        <span class="special">=</span> <span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">Time</span><span class="special">&gt;</span> <span class="special">&gt;(</span><span class="identifier">Time</span><span class="special">(</span><span class="identifier">monday</span><span class="special">,</span><span class="number">8</span><span class="special">,</span><span class="number">30</span><span class="special">),</span> <span class="identifier">Time</span><span class="special">(</span><span class="identifier">monday</span><span class="special">,</span><span class="number">17</span><span class="special">,</span><span class="number">20</span><span class="special">),</span> 
+                                              <span class="identifier">interval_bounds</span><span class="special">::</span><span class="identifier">open</span><span class="special">());</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Dynamically bounded intervals:\n"</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"  discrete_interval&lt;int&gt;:    "</span> <span class="special">&lt;&lt;</span> <span class="identifier">int_interval</span>  <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"continuous_interval&lt;double&gt;: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">sqrt_interval</span> <span class="special">&lt;&lt;</span> <span class="string">" does "</span> 
+                                            <span class="special">&lt;&lt;</span> <span class="identifier">string</span><span class="special">(</span><span class="identifier">contains</span><span class="special">(</span><span class="identifier">sqrt_interval</span><span class="special">,</span> <span class="identifier">sqrt</span><span class="special">(</span><span class="number">2.0</span><span class="special">))?</span><span class="string">""</span><span class="special">:</span><span class="string">"NOT"</span><span class="special">)</span> 
+                                            <span class="special">&lt;&lt;</span> <span class="string">" contain sqrt(2)"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"continuous_interval&lt;string&gt;: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">city_interval</span> <span class="special">&lt;&lt;</span> <span class="string">" does "</span>  
+                                            <span class="special">&lt;&lt;</span> <span class="identifier">string</span><span class="special">(</span><span class="identifier">contains</span><span class="special">(</span><span class="identifier">city_interval</span><span class="special">,</span><span class="string">"Barcelona"</span><span class="special">)?</span><span class="string">""</span><span class="special">:</span><span class="string">"NOT"</span><span class="special">)</span> 
+                                            <span class="special">&lt;&lt;</span> <span class="string">" contain 'Barcelona'"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"continuous_interval&lt;string&gt;: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">city_interval</span> <span class="special">&lt;&lt;</span> <span class="string">" does "</span>  
+                                            <span class="special">&lt;&lt;</span> <span class="identifier">string</span><span class="special">(</span><span class="identifier">contains</span><span class="special">(</span><span class="identifier">city_interval</span><span class="special">,</span> <span class="string">"Berlin"</span><span class="special">)?</span><span class="string">""</span><span class="special">:</span><span class="string">"NOT"</span><span class="special">)</span> 
+                                            <span class="special">&lt;&lt;</span> <span class="string">" contain 'Berlin'"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"  discrete_interval&lt;Time&gt;:   "</span> <span class="special">&lt;&lt;</span> <span class="identifier">time_interval</span> <span class="special">&lt;&lt;</span> <span class="string">"\n\n"</span><span class="special">;</span>
+
+    <span class="comment">// There are statically bounded interval types with fixed interval borders
+</span>    <span class="identifier">right_open_interval</span><span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>   <span class="identifier">fix_interval1</span><span class="special">;</span> <span class="comment">// You will probably use one kind of static intervals
+</span>                                                 <span class="comment">// right_open_intervals are recommended.
+</span>    <span class="identifier">closed_interval</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">fix_interval2</span><span class="special">;</span> <span class="comment">// ... static closed, left_open and open intervals
+</span>    <span class="identifier">left_open_interval</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">&gt;</span>     <span class="identifier">fix_interval3</span><span class="special">;</span> <span class="comment">// are implemented for sake of completeness but
+</span>    <span class="identifier">open_interval</span><span class="special">&lt;</span><span class="keyword">short</span><span class="special">&gt;</span>          <span class="identifier">fix_interval4</span><span class="special">;</span> <span class="comment">// are of minor practical importance.
+</span>
+    <span class="identifier">right_open_interval</span><span class="special">&lt;</span><span class="identifier">rational</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">range1</span><span class="special">(</span><span class="identifier">rational</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="number">0</span><span class="special">,</span><span class="number">1</span><span class="special">),</span>  <span class="identifier">rational</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="number">2</span><span class="special">,</span><span class="number">3</span><span class="special">));</span>
+    <span class="identifier">right_open_interval</span><span class="special">&lt;</span><span class="identifier">rational</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">range2</span><span class="special">(</span><span class="identifier">rational</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="number">1</span><span class="special">,</span><span class="number">3</span><span class="special">),</span>  <span class="identifier">rational</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="number">1</span><span class="special">,</span><span class="number">1</span><span class="special">));</span>
+
+    <span class="comment">// This middle third of the unit interval [0,1)
+</span>    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Statically bounded interval:\n"</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"right_open_interval&lt;rational&lt;int&gt;&gt;: "</span> <span class="special">&lt;&lt;</span> <span class="special">(</span><span class="identifier">range1</span> <span class="special">&amp;</span> <span class="identifier">range2</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// Program output:
+</span>
+<span class="comment">//&gt;&gt;Interval Container Library: Sample interval.cpp &lt;&lt;
+</span><span class="comment">//----------------------------------------------------
+</span><span class="comment">//Dynamically bounded intervals
+</span><span class="comment">//  discrete_interval&lt;int&gt;:    [3,7]
+</span><span class="comment">//continuous_interval&lt;double&gt;: [0.707107,1.41421) does NOT contain sqrt(2)
+</span><span class="comment">//continuous_interval&lt;string&gt;: (Barcelona,Boston] does NOT contain 'Barcelona'
+</span><span class="comment">//continuous_interval&lt;string&gt;: (Barcelona,Boston] does  contain 'Berlin'
+</span><span class="comment">//  discrete_interval&lt;Time&gt;:   (mon:08:30,mon:17:20)
+</span><span class="comment">//
+</span><span class="comment">//Statically bounded interval
+</span><span class="comment">//right_open_interval&lt;rational&lt;int&gt;&gt;: [1/3,2/3)
+</span>
+</pre>
+<p>
+        </p>
+<p>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="party.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="dynamic_interval.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

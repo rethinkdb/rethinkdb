@@ -1,0 +1,270 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Filter</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+    <STYLE> P.concept { margin:.5em } </STYLE>
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Filter</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<H2>Description</H2>
+
+<P>
+    A Filter operates on the character sequence or sequences controlled by a <A HREF="device.html">Device</A>, providing access to a filtered input sequence, output sequence or both. Informally, when a Filter <CODE>f</CODE> is used in conjunction with a Device <CODE>d</CODE>, data read from the input sequence of <CODE>d</CODE> is processed by <CODE>f</CODE> before being returned to the user, data written to the output sequence of <CODE>d</CODE> is first processed by <CODE>f</CODE>, and repositioning operations are processed by <CODE>f</CODE> before being conveyed to <CODE>d</CODE>. 
+</P> 
+<P>
+    Filters are class types which define one or more member functions <CODE>get</CODE>, <CODE>put</CODE>, <CODE>read</CODE>, <CODE>write</CODE> and <CODE>seek</CODE>; each function takes a reference to a Device as its first argument. Whenever a Filter is used to perform an i/o operation, a reference to the Device being filtered is passed to the Filter as a function argument.
+</P> 
+<P>
+    Each Filter type has an associated character type and category. The <A HREF="../guide/traits.html#char_type">character type</A> is the type of the characters in the input and output sequences. The <A HREF="../guide/traits.html#category">category</A> is a tag structure which the Iostreams library relies on to determine which operations the Filter type supports. Its function is similar to the <CODE>iterator_category</CODE> member of <CODE>std::iterator_traits</CODE>.<A CLASS="footnote_ref" NAME="note_1_ref" HREF="#note_1"><SUP>[1]</SUP></A>
+</P>
+<P>
+    There is one refinement of Filter for each of the eight <A HREF="../guide/modes.html">modes</A>, and each such refinement corresponds to a refinement of <A HREF="device.html">Device</A>. In order to express this corresponce cleanly, it is helpful to include the requirements of the various refinements of Filter in the definition of Filter itself, qualified by category. The various refinements of Filter can then be characterized exactly by the following definitions. For convenience, the requirements of the four most common Filter refinements are also documented individually.
+</P>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Concept</TH><TH>Definition</TH></TR>
+    <TR>
+        <TD><A href="input_filter.html">InputFilter</A></TD>
+        <TD>Refinement of Filter with mode convertible to <A HREF="../guide/modes.html#input"><CODE>input</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD><A href="output_filter.html">OutputFilter</A></TD>
+        <TD>Refinement of Filter with mode convertible to <A HREF="../guide/modes.html#output"><CODE>output</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD><A href="bidirectional_filter.html">BidirectionalFilter</A></TD>
+        <TD>Refinement of Filter with mode convertible to <A HREF="../guide/modes.html#bidirectional"><CODE>bidirectional</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD><A href="seekable_filter.html">SeekableFilter</A></TD>
+        <TD>Refinement of Filter with mode convertible to <A HREF="../guide/modes.html#seekable"><CODE>seekable</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD>InputSeekableFilter</TD>
+        <TD>Refinement of Filter with mode convertible to <A HREF="../guide/modes.html#input_seekable"><CODE>input_seekable</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD>OutputSeekableFilter</TD>
+        <TD>Refinement of Filter with mode convertible to <A HREF="../guide/modes.html#output_seekable"><CODE>output_seekable</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD>BidirectionalSeekableFilter</TD>
+        <TD>Refinement of Filter with mode convertible to <A HREF="../guide/modes.html#bidirectional_seekable"><CODE>bidirectional_seekable</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD>DualSeekableFilter</TD>
+        <TD>Refinement of Filter with mode convertible to <A HREF="../guide/modes.html#dual_seekable"><CODE>dual_seekable</CODE></A></TD>
+    </TR>
+</TABLE>
+
+<H2>Refinement of</H2>
+
+<A NAME="types"></A>
+<H2>Associated Types</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TD>Character type</TD><TD>The type of the characters in the filtered sequences</TD></TR>
+    <TR>
+        <TD>Category</TD>
+        <TD>
+            A type convertible to <A HREF="../guide/traits.html#category_tags"><CODE>filter_tag</CODE></A> and to a unique <I>most-derived</I> <A HREF="../guide/modes.html#mode_tags">mode tag</A>
+        </TD>
+    </TR>
+    <TR>
+        <TD>Mode</TD>
+        <TD>
+            The unique <I>most-derived</I> <A HREF="../guide/modes.html#mode_tags">mode tag</A> to which Category is convertible
+        </TD>
+    </TR>
+</TABLE>
+
+<H2>Notation</H2>
+
+<TABLE CELLPADDING="2">
+    <TR><TD><CODE>F</CODE></TD><TD>- A type which is a model of Filter</TD></TR>
+    <TR><TD><CODE>D</CODE></TD><TD>- A type which is a model of <A HREF="device.html">Device</A>, with the same character type as <CODE>F</CODE> and with mode refining the mode of <CODE>F</CODE></TD></TR>
+    <TR><TD><CODE>Ch</CODE></TD><TD>- The character type of <CODE>F</CODE></TD></TR>
+    <TR><TD><CODE>Tr</CODE></A></TD><TD>- <A HREF="../classes/char_traits.html"><CODE>boost::iostreams::char_traits&lt;Ch&gt;</CODE></A></TD></TR>
+    <TR><TD><CODE>f</CODE></TD><TD>- Object of type <CODE>F</CODE></TD></TR>
+    <TR><TD><CODE>d</CODE></TD><TD>- Object of type <CODE>D</CODE></TD></TR>
+    <TR><TD><CODE>c</CODE></TD><TD>- Object of type <CODE>Ch</CODE></TD></TR>
+    <TR><TD><CODE>s1</CODE></TD><TD>- Object of type <CODE>Ch*</CODE></TD></TR>
+    <TR><TD><CODE>s2</CODE></TD><TD>- Object of type <CODE>const Ch*</CODE></TD></TR>
+    <TR><TD><CODE>n</CODE></TD><TD>- Object of type <CODE>std::streamsize</CODE></TD></TR>
+    <TR><TD><CODE>off</CODE></TD><TD>- Object of type <A HREF="../functions/positioning.html#synopsis"><CODE>stream_offset</CODE></A></TD></TR>
+    <TR><TD><CODE>way</CODE></TD><TD>- Object of type <CODE>std::ios_base::seekdir</CODE></TD></TR>
+    <TR><TD><CODE>which</CODE></TD><TD>- Object of type <CODE>std::ios_base::openmode</CODE></TD></TR>
+    <TR><TD><CODE>io</CODE></TD><TD>- Alias for namespace <CODE>boost::iostreams</CODE></TD></TR>
+</TABLE>
+
+
+<A NAME="expressions"></A>
+<H2>Valid Expressions &#8212; Typenames</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH></TR>
+    <TR>
+        <TD><CODE>typename <A HREF="../guide/traits.html#char_type_of_ref">char_type_of</A>&lt;F&gt;::type</CODE></TD>
+        <TD><CODE>typename</CODE> of the character type</TD>
+    </TR>
+    <TR>
+        <TD><CODE>typename <A HREF="../guide/traits.html#category_ref">category_of</A>&lt;F&gt;::type</CODE></TD>
+        <TD><CODE>typename</CODE> of the category</TD>
+    </TR>
+</TABLE>
+
+<H2>Valid Expressions / Semantics &#8212; Input</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH><TH>Category Precondition</TH><TH>Semantics</TH></TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>f.get(d)</CODE></PRE></TD>
+        <TD><CODE>Tr::int_type</CODE></TD>
+        <TD>
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>input</CODE></A> but not to <A HREF="../guide/traits.html#category_tags"><CODE>multichar_tag</CODE></A>
+        </TD>
+        <TD>
+            Returns the next character in the input sequence controlled by <CODE>f</CODE>, <CODE>Tr::eof()</CODE> if the end of the sequence has been reached or <CODE>Tr::would_block()</CODE> if input is temporarily unavilable because a call to <CODE>d</CODE> has produced fewer characters than requested. The input sequence controlled by <CODE>d</CODE> may be accessed using <A HREF="../functions/get.html"><CODE>io::get</CODE></A>, <A HREF="../functions/read.html"><CODE>io::read</CODE></A> and <A HREF="../functions/putback.html"><CODE>io::putback</CODE></A>.
+        </TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>f.read(d, s1, n)</CODE></PRE></TD>
+        <TD><PRE CLASS="plain_code"><CODE>std::streamsize</CODE></PRE></TD>
+        <TD>
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>input</CODE></A> and to <A HREF="../guide/traits.html#category_tags"><CODE>multichar_tag</CODE></A>
+        </TD>
+        <TD>
+            Reads up to <CODE>n</CODE> characters from the input sequence controlled by <CODE>f</CODE> into the buffer <CODE>s1</CODE>, returning the number of characters read or <CODE>-1</CODE> to indicate end-of-sequence. A value less than <CODE>n</CODE> may be returned only at end-of-sequence or if input is temporarily unavilable because a call to <CODE>d</CODE> has produced fewer characters than requested. The input sequence controlled by <CODE>d</CODE> may be accessed using <A HREF="../functions/get.html"><CODE>io::get</CODE></A>, <A HREF="../functions/read.html"><CODE>io::read</CODE></A> and <A HREF="../functions/putback.html"><CODE>io::putback</CODE></A>.
+        </TD>
+    </TR>
+</TABLE>
+
+<H2>Valid Expressions / Semantics &#8212; Output</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH><TH>Category Precondition</TH><TH>Semantics</TH></TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>f.put(d, c)</CODE></PRE></TD>
+        <TD><CODE>bool</CODE></TD>
+        <TD>
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>output</CODE></A> but not to <A HREF="../guide/traits.html#category_tags"><CODE>multichar_tag</CODE></A>
+        </TD>
+        <TD>
+            Attempts to writes the character <CODE>c</CODE> to the output sequence controlled by <CODE>f</CODE>, returning <CODE>false</CODE> if <CODE>c</CODE> cannot be consumed because a call to <CODE>d</CODE> has consumed fewer characters than requested. The output sequence controlled by <CODE>d</CODE> may be accessed using <A HREF="../functions/put.html"><CODE>io::put</CODE></A> and <A HREF="../functions/write.html"><CODE>io::write</CODE></A>.
+        </TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>f.write(d, s2, n)</CODE></PRE></TD>
+        <TD><PRE CLASS="plain_code"><CODE>std::streamsize</CODE></PRE></TD>
+        <TD>
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>output</CODE></A> and to <A HREF="../guide/traits.html#category_tags"><CODE>multichar_tag</CODE></A>
+        </TD>
+        <TD>
+            Writes up to <CODE>n</CODE> characters from the buffer <CODE>s2</CODE> to the output sequence controlled by <CODE>d</CODE>, returning the number of characters written. A value less than <CODE>n</CODE> may be returned only if a call to <CODE>d</CODE> has consumed fewer characters than requested. The output sequence controlled by <CODE>d</CODE> may be accessed using <A HREF="../functions/put.html"><CODE>io::put</CODE></A> and <A HREF="../functions/write.html"><CODE>io::write</CODE></A>.
+        </TD>
+    </TR>
+</TABLE>
+
+<H2>Valid Expressions / Semantics &#8212; Random-Access</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH><TH>Category Precondition</TH><TH>Semantics</TH></TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>f.seek(d, off, way)</CODE></PRE></TD>
+        <TD><CODE>std::streampos</CODE></TD>
+        <TD>
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>seekable</CODE></A> but not to <A HREF="../guide/traits.html#category_tags"><CODE>direct_tag</CODE></A>
+        </TD>
+        <TD>
+            <P CLASS="concept">
+                Advances the read/write head by <CODE>off</CODE> characters, returning the new position, where the offset is calculated from:
+            </P>
+            <UL STYLE="margin:0,0,0,auto">
+                <LI STYLE="list-style-type:disc;list-style-image:none">the start of the sequence if <CODE>way</CODE> is <CODE>ios_base::beg</CODE>
+                <LI STYLE="list-style-type:disc;list-style-image:none">the current position if <CODE>way</CODE> is <CODE>ios_base::cur</CODE>
+                <LI STYLE="list-style-type:disc;list-style-image:none">the end of the sequence if <CODE>way</CODE> is <CODE>ios_base::end</CODE>
+            </UL>
+            <P CLASS="concept">
+                The input sequence controlled by <CODE>d</CODE> may be accessed using <A HREF="../functions/read.html"><CODE>io::seek</CODE></A> and using <A HREF="../functions/putback.html"><CODE>io::write</CODE></A> if the <A HREF="../guide/modes.html">mode</A> of <CODE>F</CODE> is convertible to <A HREF="../guide/modes.html#output"><CODE>output</CODE></A>.
+            </P>
+        </TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>f.seek(d, off, way, which)</CODE></PRE></TD>
+        <TD><CODE>std::streampos</CODE></TD>
+        <TD>
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>dual_seekable</CODE></A> or <A HREF="../guide/modes.html#mode_tags"><CODE>bidirectional_seekable</CODE></A> but not to <A HREF="../guide/traits.html#category_tags"><CODE>direct_tag</CODE></A>
+        </TD>
+        <TD>
+            <P CLASS="concept">
+                Advances the read head (if <CODE>which</CODE> is <CODE>std::ios_base::in</CODE>), the write head (if <CODE>which</CODE> is <CODE>std::ios_base::out</CODE>) or both heads (if <CODE>which</CODE> is <CODE>std::ios_base::in | std::ios_base::out</CODE>) by <CODE>off</CODE> characters, returning the new position, where the offset is calculated from
+            </P>
+            <UL STYLE="margin:0,0,0,auto">
+                <LI STYLE="list-style-type:disc;list-style-image:none">the start of the sequence if <CODE>way</CODE> is <CODE>ios_base::beg</CODE>
+                <LI STYLE="list-style-type:disc;list-style-image:none">the current position if <CODE>way</CODE> is <CODE>ios_base::cur</CODE>
+                <LI STYLE="list-style-type:disc;list-style-image:none">the end of the sequence if <CODE>way</CODE> is <CODE>ios_base::end</CODE>
+            </UL>
+            <P CLASS="concept">
+                The input sequence controlled by <CODE>d</CODE> may be accessed using <A HREF="../functions/read.html"><CODE>io::seek</CODE></A>, and using <A HREF="../functions/putback.html"><CODE>io::write</CODE></A> if the <A HREF="../guide/modes.html">mode</A> of <CODE>F</CODE> is convertible to <A HREF="../guide/modes.html#output"><CODE>output</CODE></A>.
+            </P>
+            <P CLASS="concept">
+                The result is undefined if <CODE>way</CODE> is <CODE>ios_base::cur</CODE> and <CODE>which</CODE> is <CODE>(std::ios_base::in | std::ios_base::out)</CODE>.
+            </P>
+        </TD>
+    </TR>
+</TABLE>
+
+<H2>Exceptions</H2>
+
+<P>
+    Errors which occur during the execution of <CODE>get</CODE>, <CODE>put</CODE>, <CODE>read</CODE>, <CODE>write</CODE> or <CODE>seek</CODE> are indicated by throwing exceptions. Reaching the end of the input sequence is not an error, but attempting to write past the end of the output sequence is.
+</P>
+
+<P>
+    After an exception is thrown, a Filter must be in a consistent state; further i/o operations may throw exceptions but must have well-defined behaviour. Furthermore, unless it is <A HREF="closable.html">Closable</A>, it must be ready to begin processing a new character sequence.
+</P>
+
+
+<H2>Models</H2>
+
+<P>
+    See <A HREF="input_filter.html">InputFilter</A>, <A HREF="output_filter.html">OutputFilter</A>, <A HREF="bidirectional_filter.html">BidirectionalFilter</A> and <A HREF="seekable_filter.html">SeekableFilter</A>.
+</P>
+
+<H2>Acknowledgments</H2>
+
+<P>
+    The concept Filter was inspired by the <I>inserters</I> and <I>extractors</I> of <A CLASS="footnote_ref" HREF="../bibliography.html#kanze">[Kanze]</A>.
+</P>
+
+<!-- Begin Footnotes -->
+
+<HR>
+
+<P>
+    <A CLASS="footnote_ref" NAME="note_1" HREF="#note_1_ref"><SUP>[1]</SUP></A><A CLASS="bib_ref" HREF="../bibliography.html#iso">[I<SPAN STYLE="font-size:80%">SO</SPAN>]</A>, 24.3.1. <I>See</I> <A HREF="http://www.boost.org/more/generic_programming.html#tag_dispatching" TARGET="_top">Tag Dispatching</A> for a discussion.
+</P>
+
+<!-- End Footnotes -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

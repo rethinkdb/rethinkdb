@@ -1,0 +1,257 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title>make_shared and allocate_shared</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  </head>
+  <body text="#000000" bgColor="#ffffff" link="#0000ff" vlink="#0000ff">
+    <h1><IMG height="86" alt="boost.png (6897 bytes)" src="../../boost.png" 
+      width="277" align="middle" border="0">make_shared and allocate_shared 
+      for arrays</h1>
+    <p><A href="#Introduction">Introduction</A><br>
+      <A href="#Synopsis">Synopsis</A><br>
+      <A href="#functions">Free Functions</A><br>
+      <A href="#example">Example</A><br>
+      <A href="#history">History</A><br></p>
+    <h2><a name="Introduction">Introduction</a></h2>
+    <p>Originally the Boost function templates <code>make_shared</code> and 
+      <code>allocate_shared</code> were for efficient allocation of single 
+      objects only. There was a need to have efficient, single, allocation of 
+      arrays. One criticism of <a href="shared_array.htm">shared_array</a> was 
+      always the lack of a <a href="make_shared.html">make_shared</a> utility 
+      which ensures only a single allocation for an array.</p>
+    <p>The header files &lt;boost/smart_ptr/make_shared_array.hpp&gt; and 
+      &lt;boost/smart_ptr/allocate_shared_array.hpp&gt; provide new function 
+      templates, <code>make_shared</code> and <code>allocate_shared</code>, 
+      to address this need. <code>make_shared</code> uses the global 
+      operator <code>new</code> to allocate memory, whereas 
+      <code>allocate_shared</code> uses an user-supplied allocator, 
+      allowing finer control.</p>
+    <h2><a name="Synopsis">Synopsis</a></h2>
+    <pre>namespace boost {
+    template&lt;typename U&gt; // U = T[]
+    shared_ptr&lt;U&gt; <a href="#functions">make_shared</a>(size_t size);
+
+    template&lt;typename U, typename A&gt; // U = T[]
+    shared_ptr&lt;U&gt; <a href="#functions">allocate_shared</a>(const A&amp; allocator, size_t size);
+
+#if !defined(BOOST_NO_CXX11_VARIADIC_TEMPLATES) &amp;&amp; !defined(BOOST_NO_CXX11_RVALUE_REFERENCES)   
+    template&lt;typename U, typename... Args&gt; // U = T[]
+    shared_ptr&lt;U&gt; <a href="#functions">make_shared</a>(size_t size, Args&amp;&amp;... args);
+
+    template&lt;typename U, typename... Args&gt; // U = T[N]
+    shared_ptr&lt;U&gt; <a href="#functions">make_shared</a>(Args&amp;&amp;... args);
+
+    template&lt;typename U, typename A, typename... Args&gt; // U = T[]
+    shared_ptr&lt;U&gt; <a href="#functions">allocate_shared</a>(const A&amp; allocator, size_t size, Args&amp;&amp;... args);
+
+    template&lt;typename U, typename A, typename... Args&gt; // U = T[N]
+    shared_ptr&lt;U&gt; <a href="#functions">allocate_shared</a>(const A&amp; allocator, Args&amp;&amp;... args);
+#endif
+
+#if !defined(BOOST_NO_CXX11_UNIFIED_INITIALIZATION_SYNTAX)    
+    template&lt;typename U, typename... Args&gt; // U = T[N]
+    shared_ptr&lt;U&gt; <a href="#functions">make_shared</a>(const T (&amp;list)[N]);
+
+    template&lt;typename U, typename... Args&gt; // U = T[][N]
+    shared_ptr&lt;U&gt; <a href="#functions">make_shared</a>(size_t size, const T (&amp;list)[N]);
+
+    template&lt;typename U, typename... Args&gt; // U = T[M][N]
+    shared_ptr&lt;U&gt; <a href="#functions">make_shared</a>(const T (&amp;list)[N]);
+
+    template&lt;typename U, typename A, typename... Args&gt; // U = T[N]
+    shared_ptr&lt;T[&gt; <a href="#functions">allocate_shared</a>(const A&amp; allocator, const T (&amp;list)[N]);
+
+    template&lt;typename U, typename A, typename... Args&gt; // U = T[][N]
+    shared_ptr&lt;U&gt; <a href="#functions">allocate_shared</a>(const A&amp; allocator, size_t size, const T (&amp;list)[N]);
+
+    template&lt;typename U, typename A, typename... Args&gt; // U = T[M][N]
+    shared_ptr&lt;U&gt; <a href="#functions">allocate_shared</a>(const A&amp; allocator, const T (&amp;list)[N]);
+
+#if !defined(BOOST_NO_CXX11_HDR_INITIALIZER_LIST)
+    template&lt;typename U, typename... Args&gt; // U = T[]
+    shared_ptr&lt;U&gt; <a href="#functions">make_shared</a>(initializer_list&lt;T&gt; list);
+
+    template&lt;typename U, typename A, typename... Args&gt; // U = T[]
+    shared_ptr&lt;U&gt; <a href="#functions">allocate_shared</a>(const A&amp; allocator, initializer_list&lt;T&gt; list);
+#endif
+
+#if !defined(BOOST_NO_CXX11_RVALUE_REFERENCES)    
+    template&lt;typename U&gt; // U = T[]
+    shared_ptr&lt;U&gt; <a href="#functions">make_shared</a>(size_t size, T&amp;&amp; value);
+
+    template&lt;typename U&gt; // U = T[N]
+    shared_ptr&lt;U&gt; <a href="#functions">make_shared</a>(T&amp;&amp; value);
+
+    template&lt;typename U, typename A&gt; // U = T[]
+    shared_ptr&lt;U&gt; <a href="#functions">allocate_shared</a>(const A&amp; allocator, size_t size, T&amp;&amp; value);
+
+    template&lt;typename U, typename A&gt; // U = T[N]
+    shared_ptr&lt;U&gt; <a href="#functions">allocate_shared</a>(const A&amp; allocator, T&amp;&amp; value);
+#endif
+#endif
+
+    template&lt;typename U&gt; // U = T[]
+    shared_ptr&lt;U&gt; <a href="#functions">make_shared_noinit</a>(size_t size);
+
+    template&lt;typename U&gt; // U = T[N]
+    shared_ptr&lt;U&gt; <a href="#functions">make_shared_noinit</a>();
+
+    template&lt;typename U, typename A&gt; // U = T[]
+    shared_ptr&lt;U&gt; <a href="#functions">allocate_shared_noinit</a>(const A&amp; allocator, size_t size);
+
+    template&lt;typename U, typename A&gt; // U = T[N]
+    shared_ptr&lt;U&gt; <a href="#functions">allocate_shared_noinit</a>(const A&amp; allocator);
+}</pre>
+    <h2><a name="functions">Free Functions</a></h2>
+    <pre>template&lt;typename U, typename... Args&gt; // U = T[]
+shared_ptr&lt;U&gt; make_shared(size_t size, Args&amp;&amp;... args);
+
+template&lt;typename U, typename A, typename... Args&gt; // U = T[]
+shared_ptr&lt;U&gt; allocate_shared(const A&amp; allocator, size_t size, Args&amp;&amp;... args);</pre> 
+    <blockquote>
+      <p><b>Requires:</b> The expression 
+        <code>new(pointer) T(forward&lt;Args&gt;(args)...)</code>, where 
+        <code>pointer</code> is a <code>void*</code> pointing to storage 
+        suitable to hold an object of type <code>T</code>, shall be 
+        well-formed. <code>A</code> shall be an <em>Allocator</em>, as 
+        described in section 20.1.5 (<strong>Allocator requirements</strong>) 
+        of the C++ Standard.  The copy constructor and destructor of 
+        <code>A</code> shall not throw.</p>
+      <p><b>Effects:</b> Allocates memory suitable for an array of type 
+        <code>T</code> and size <code>size</code> and constructs an array 
+        of objects in it via the placement new expression 
+        <code>new(pointer) T()</code> or 
+        <code>new(pointer) T(args...)</code>.
+        <code>allocate_shared</code> uses a copy of 
+        <code>allocator</code> to allocate memory.  If an exception is thrown, 
+        has no effect.</p>
+      <p><b>Returns:</b> A <code>shared_ptr</code> instance that stores and 
+        owns the address of the newly constructed array of type <code>T</code> 
+        and size <code>size</code>.</p>
+      <p><b>Postconditions:</b> 
+        <code>get() != 0 &amp;&amp; use_count() == 1</code>.</p>
+      <p><b>Throws:</b> <code>bad_alloc</code>, or an exception thrown from 
+        <code>A::allocate</code> or the constructor of <code>T</code>.</p>
+      <p><b>Notes:</b> This implementation allocates the memory required for 
+        the returned <code>shared_ptr</code> and an array of type 
+        <code>T</code> of size <code>size</code> in a single allocation. This 
+        provides efficiency to equivalent to an intrusive smart array 
+        pointer.</p>
+      <p>The prototypes shown above are used if your compiler supports r-value
+        references and variadic templates. They perfectly forward the 
+        <code>args</code> parameters to the constructors of 
+        <code>T</code> for each array element.</p>
+      <p>Otherwise, you can use the overloads which take only the array size 
+        (and the allocator in case of <code>allocate_shared</code>) and do not 
+        take any constructor arguments. These overloads invoke the default 
+        constructor of <code>T</code> for each array element.</p>
+    </blockquote>
+    <pre>template&lt;typename U, typename... Args&gt; // U = T[N]
+shared_ptr&lt;U&gt; make_shared(Args&amp;&amp;... args);
+
+template&lt;typename U, typename A, typename... Args&gt; // U = T[N]
+shared_ptr&lt;U&gt; allocate_shared(const A&amp; allocator, Args&amp;&amp;... args);</pre>
+    <blockquote>
+      <p><b>Description:</b> These overloads of the utilities above are for a 
+        fixed size array.</p>
+    </blockquote>
+    <pre>template&lt;typename U, typename... Args&gt; // U = T[]
+shared_ptr&lt;U&gt; make_shared(initializer_list&lt;T&gt; list);
+
+template&lt;typename U, typename A, typename... Args&gt; // U = T[]
+shared_ptr&lt;U&gt; allocate_shared(const A&amp; allocator, initializer_list&lt;T&gt; list);</pre>
+    <blockquote>
+      <p><b>Description:</b> These overloads initialize the array elements 
+        from the initializer list.</p>
+    </blockquote>
+    <pre>template&lt;typename U, typename... Args&gt; // U = T[N]
+shared_ptr&lt;U&gt; make_shared(const T (&amp;list)[N]);
+
+template&lt;typename U, typename A, typename... Args&gt; // U = T[N]
+shared_ptr&lt;U&gt; allocate_shared(const A&amp; allocator, const T (&amp;list)[N]);</pre>
+    <blockquote>
+      <p><b>Description:</b> These overloads of the utilities above are for a 
+        fixed size array.</p>
+    </blockquote>
+    <pre>template&lt;typename U, typename... Args&gt; // U = T[][N]
+shared_ptr&lt;U&gt; make_shared(size_t size, const T (&amp;list)[N]);
+
+template&lt;typename U, typename A, typename... Args&gt; // U = T[][N]
+shared_ptr&lt;U&gt; allocate_shared(const A&amp; allocator, size_t size, const T (&amp;list)[N]);</pre>
+    <blockquote>
+      <p><b>Description:</b> These overloads initialize inner array elements 
+        from the initializer list.</p>
+    </blockquote>
+    <pre>template&lt;typename U, typename... Args&gt; // U = T[M][N]
+shared_ptr&lt;U&gt; make_shared(const T (&amp;list)[N]);
+
+template&lt;typename U, typename A, typename... Args&gt; // U = T[M][N]
+shared_ptr&lt;U&gt; allocate_shared(const A&amp; allocator, const T (&amp;list)[N]);</pre>
+    <blockquote>
+      <p><b>Description:</b> These overloads of the utilities above are for a 
+        fixed size array.</p>
+    </blockquote>   
+    <pre>template&lt;typename U&gt; // U = T[]
+shared_ptr&lt;U&gt; make_shared(size_t size, T&amp;&amp; value);
+
+template&lt;typename U, typename A&gt; // U = T[]
+shared_ptr&lt;U&gt; allocate_shared(const A&amp; allocator, size_t size, T&amp;&amp; value);</pre>
+    <blockquote>
+      <p><b>Description:</b> These overloads initialize array elements with  
+        the given value.</p>
+    </blockquote>
+    <pre>template&lt;typename U&gt; // U = T[N]
+shared_ptr&lt;U&gt; make_shared(T&amp;&amp; value);
+
+template&lt;typename U, typename A&gt; // U = T[N]
+shared_ptr&lt;U&gt; allocate_shared(const A&amp; allocator, T&amp;&amp; value);</pre>
+    <blockquote>
+      <p><b>Description:</b> These overloads of the utilities above are for a 
+        fixed size array.</p>
+    </blockquote>
+    <pre>template&lt;typename U&gt; // U = T[]
+shared_ptr&lt;U&gt; make_shared_noinit(size_t size);
+
+template&lt;typename U, typename A&gt; // U = T[]
+shared_ptr&lt;U&gt; allocate_shared_noinit(const A&amp; allocator, size_t size);</pre>
+    <blockquote>
+      <p><b>Description:</b> These overloads do not perform any value 
+        initialization of elements.</p>
+    </blockquote>
+    <pre>template&lt;typename U&gt; // U = T[N]
+shared_ptr&lt;U&gt; make_shared_noinit();
+
+template&lt;typename U, typename A&gt; // U = T[N]
+shared_ptr&lt;U&gt; allocate_shared_noinit(const A&amp; allocator);</pre>
+    <blockquote>
+      <p><b>Description:</b> These overloads of the utilities above are for a 
+        fixed size array.</p>
+    </blockquote>
+    <h2><a name="example">Example</a></h2>
+    <p>An example of each overload of make_shared for arrays:</p>
+    <blockquote>
+    <pre>boost::shared_ptr&lt;int[]&gt; a1 = boost::make_shared&lt;int[]&gt;(size);
+boost::shared_ptr&lt;point[]&gt; a2 = boost::make_shared&lt;point[]&gt;(size, x, y);
+boost::shared_ptr&lt;point[5]&gt; a3 = boost::make_shared&lt;point[5]&gt;(x, y);
+boost::shared_ptr&lt;int[]&gt; a4 = boost::make_shared&lt;int[]&gt;({1, 2, 3});
+boost::shared_ptr&lt;int[3]&gt; a5 = boost::make_shared&lt;int[3]&gt;({1, 2, 3});
+boost::shared_ptr&lt;int[][3]&gt; a6 = boost::make_shared&lt;int[][3]&gt;(size, {1, 2, 3});
+boost::shared_ptr&lt;int[5][3]&gt; a7 = boost::make_shared&lt;int[5][3]&gt;({1, 2, 3});
+boost::shared_ptr&lt;point[]&gt; a8 = boost::make_shared&lt;point[]&gt;(size, {x, y});
+boost::shared_ptr&lt;point[5]&gt; a9 = boost::make_shared&lt;point[5]&gt;({x, y});
+boost::shared_ptr&lt;int[]&gt; a10 = boost::make_shared_noinit&lt;int[]&gt;(size);
+boost::shared_ptr&lt;int[5]&gt; a11 = boost::make_shared_noinit&lt;int[5]&gt;();</pre>
+    </blockquote>
+    <h2><a name="history">History</a></h2>
+    <p>November 2012. Glen Fernandes contributed implementations of 
+      make_shared and allocate_shared for arrays.</p>
+    <hr>
+    <p>$Date: 2012-10-30 10:12:25 -0800 (Tue, 30 Oct 2012) $</p>
+    <p><small>Copyright 2012 Glen Fernandes. Distributed under the Boost 
+      Software License, Version 1.0. See accompanying file 
+      <A href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or copy at 
+      <A href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt</A>.</small></p>
+  </body>
+</html>

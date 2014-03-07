@@ -1,0 +1,43 @@
+# Boost.Geometry (aka GGL, Generic Geometry Library)
+#
+# Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
+# Copyright (c) 2008-2012 Bruno Lalande, Paris, France.
+# Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+#
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+test-suite boost-geometry-multi-algorithms
+    :
+    [ run multi_area.cpp ]
+    [ run multi_centroid.cpp ]
+    [ run multi_convert.cpp ]
+    [ run multi_convex_hull.cpp ]
+    [ run multi_correct.cpp ]
+    [ run multi_covered_by.cpp ]
+    [ run multi_difference.cpp  : : : <toolset>msvc:<cxxflags>/bigobj ]
+    [ run multi_difference_spike.cpp : : : <toolset>msvc:<cxxflags>/bigobj ]
+    [ run multi_disjoint.cpp ]
+    [ run multi_distance.cpp ]
+    [ run multi_envelope.cpp ]
+    [ run multi_equals.cpp ]
+    [ run multi_for_each.cpp ]
+    [ run multi_intersection.cpp : : : <toolset>msvc:<cxxflags>/bigobj ]
+    [ run multi_intersects.cpp ]
+    [ run multi_length.cpp ]
+    [ run multi_num_geometries.cpp ]
+    [ run multi_num_interior_rings.cpp ]
+    [ run multi_num_points.cpp ]
+    [ run multi_perimeter.cpp ]
+    [ run multi_reverse.cpp ]
+    [ run multi_simplify.cpp ]
+    [ run multi_touches.cpp ]
+    [ run multi_transform.cpp ]
+    [ run multi_union.cpp : : : <toolset>msvc:<cxxflags>/bigobj ]
+    [ run multi_unique.cpp ]
+    [ run multi_within.cpp ]
+    ;
+
+build-project overlay 
+    ;

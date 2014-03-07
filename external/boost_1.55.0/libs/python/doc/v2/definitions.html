@@ -1,0 +1,102 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - Definitions</title>
+  </head>
+
+  <body link="#0000ff" vlink="#800080">
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Definitions</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <dl class="definitions">
+      <dt><b><a name="arity">arity</a>:</b> The number of arguments accepted
+      by a function or member function. Unless otherwise specified, the
+      hidden "<code>this</code>" argument to member functions is not counted
+      when specifying arity</dt>
+
+      <dd><br>
+      </dd>
+
+      <dt><b><a name="ntbs">ntbs</a>:</b> Null-Terminated Byte String, or
+      `C'-string. C++ string literals are <strong>ntbs</strong>es. An
+      <strong>ntbs</strong> must never be null.</dt>
+
+      <dd><br>
+      </dd>
+
+      <dt><b><a name="raise">raise</a>:</b> Exceptions in Python are
+      "raised", not "thrown", as they are in C++. When this documentation
+      says that some Python exception is "raised" in the context of C++ code,
+      it means that the corresponding Python exception is set via the <a
+      href=
+      "http://www.python.org/doc/current/api/exceptionHandling.html">Python/'C'
+      API</a>, and <code><a href=
+      "errors.html#throw_error_already_set-spec">throw_error_already_set</a>()</code>
+      is called.</dt>
+
+      <dd><br>
+      </dd>
+
+      <dt><b><a name="POD">POD</a>:</b> A technical term from the C++
+      standard. Short for "Plain Ol'Data": A POD-struct is an aggregate class
+      that has no non-static data members of type pointer to member,
+      non-POD-struct, non-POD-union (or array of such types) or reference,
+      and has no user-defined copy assign- ment operator and no user-defined
+      destructor. Similarly, a POD-union is an aggregate union that has no
+      non-static data members of type pointer to member, non-POD-struct,
+      non-POD-union (or array of such types) or reference, and has no
+      user-defined copy assignment operator and no user-defined destructor. A
+      POD class is a class that is either a POD-struct or a POD-union. An
+      aggregate is an array or a class (clause 9) with no user-declared
+      constructors (12.1), no private or protected non-static data members
+      (clause 11), no base classes (clause 10), and no virtual functions
+      (10.3).</dt>
+
+      <dd><br>
+      </dd>
+
+      <dt><b><a name="ODR">ODR</a>:</b> The &quot;One Definition
+      Rule&quot;, which says that any entity in a C++ program must have the same definition in all translation units (object files) which make up a program.
+      </dt>
+
+      <dd><br>
+      </dd>
+
+
+    </dl>
+    <hr>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

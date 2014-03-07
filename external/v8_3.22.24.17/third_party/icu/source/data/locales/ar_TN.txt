@@ -1,0 +1,85 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ar_TN.xml
+// *
+// ***************************************************************************
+ar_TN{
+    NumberElements{
+        default{"latn"}
+        latn{
+            patterns{
+                currencyFormat{"¤#0.00"}
+                decimalFormat{"#0.###;#0.###-"}
+            }
+        }
+    }
+    Version{"2.0.48.49"}
+    calendar{
+        gregorian{
+            DateTimeElements:intvector{
+                7,
+                4,
+            }
+            DateTimePatterns{
+                "zzzz h:mm:ss a",
+                "z h:mm:ss a",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE، d MMMM، y",
+                "d MMMM، y",
+                "yyyy/MM/dd",
+                "yyyy/M/d",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                MMdd{"MM/dd"}
+                Md{"M/d"}
+                yM{"yyyy/M"}
+                yyyyMM{"yyyy/MM"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "الأحد",
+                        "الاثنين",
+                        "الثلاثاء",
+                        "الأربعاء",
+                        "الخميس",
+                        "الجمعة",
+                        "السبت",
+                    }
+                }
+            }
+            intervalFormats{
+                M{
+                    M{"M‏-M"}
+                }
+                MMMd{
+                    d{"d‏-d MMM"}
+                }
+                d{
+                    d{"d‏-d"}
+                }
+                y{
+                    y{"y‏-y"}
+                }
+                yMMMd{
+                    d{"d‏-d MMM، y"}
+                }
+            }
+            weekend:intvector{
+                6,
+                0,
+                7,
+                86400000,
+            }
+        }
+    }
+}

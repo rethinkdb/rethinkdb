@@ -1,0 +1,16 @@
+#==============================================================================
+#   Copyright (c) 2001-2011 Joel de Guzman
+#   Copyright (c) 2001-2011 Hartmut Kaiser
+#   Copyright (C) 2011      Bryce Lelbach
+#
+#   Distributed under the Boost Software License, Version 1.0. (See accompanying
+#   file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+project spirit-support-example
+    : requirements <toolset>gcc:<c++-template-depth>300
+    :
+    :
+    ;
+
+exe multi_pass : multi_pass.cpp ;
+exe parse_sexpr : utree/parse_sexpr.cpp ;

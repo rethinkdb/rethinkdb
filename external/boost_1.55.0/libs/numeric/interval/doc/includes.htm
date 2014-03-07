@@ -1,0 +1,218 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../../../../boost.css">
+
+  <title>Headers Inclusion</title>
+</head>
+
+<body lang="en">
+  <h1>Headers Inclusion</h1>
+
+  <p>The easiest way to access to the library is by including the main
+  header:</p>
+  <pre>
+#include &lt;boost/numeric/interval.hpp&gt;
+</pre>
+
+  <p>This header will include almost all the other headers (except the ones
+  listed as extensions). However, you may not want to access all the
+  functionalities of the library. So this page stands as a reminder for the
+  whole structure of the library.
+  <code>&lt;boost/numeric/interval.hpp&gt;</code> is the only header to be
+  located directly under <code>boost/numeric</code>; all the other headers
+  are located in the subdirectory <code>boost/numeric/interval</code>. And
+  each time this documentation will refer to
+  <code>interval/something.hpp</code>, it is
+  <code>&lt;boost/numeric/interval/something.hpp&gt;</code>.</p>
+
+  <p>Please also note that all the following headers are independent and can
+  easily be pre-compiled if necessary (for compilers which support
+  pre-compiled headers of course).</p>
+
+  <h2>Function definitions</h2>
+
+  <p>The following headers contain the definition of the
+  <code>interval</code> class and all the friendly functions and
+  operators.</p>
+
+  <h3><code>interval/interval.hpp</code></h3>
+
+  <p>This header contains the definition and the declaration of the
+  <code>interval</code> class. However, this class is templated and the
+  default template parameters are not available by this header. In
+  particular, this header does not provide the default specialization of the
+  <code>interval</code> class for the floating-point types
+  (<code>interval&lt;float&gt;</code>, <code>interval&lt;double&gt;</code>
+  and <code>interval&lt;long double&gt;</code>). So, unless you use your own
+  policies, this header is not really useful on its own.</p>
+
+  <h3><code>interval/utility.hpp</code></h3>
+
+  <p>In this header are all the functions that do not expect any arithmetic
+  property from the base number type. It only expects the bounds to be
+  ordered; but it should not surprise you since it is a requirement of the
+  whole library. You will find in this header the definitions of access and
+  related functions: <code>lower</code>, <code>upper</code>,
+  <code>checked_lower</code>, <code>checked_upper</code>,
+  <code>median</code>, <code>width</code>, <code>widen</code>. There are also
+  the set-like functions: <code>in,</code> <code>zero_in</code>,
+  <code>empty</code>, <code>subset</code>, <code>proper_subset</code>,
+  <code>overlap</code>, <code>singleton</code>, <code>equal</code>,
+  <code>intersect</code>, <code>hull</code>, <code>bisect</code>. Finally,
+  <code>abs</code>, <code>min</code>, and <code>max</code> are defined.</p>
+
+  <h3><code>interval/arith.hpp</code></h3>
+
+  <p>Here are the binary operators <code>+</code>, <code>-</code>,
+  <code>*</code>, <code>/</code> and the unary operator <code>-</code>.</p>
+
+  <h3><code>interval/arith2.hpp</code></h3>
+
+  <p>This header defines <code>fmod</code>, <code>square</code>,
+  <code>sqrt</code>, <code>pow</code>, and <code>root</code>.</p>
+
+  <h3><code>interval/arith3.hpp</code></h3>
+
+  <p>The third arithmetic header: it provides the functions <code>add</code>,
+  <code>sub</code>, <code>mul</code>, and <code>div</code>. The type of their
+  arguments is the base number type.</p>
+
+  <h3><code>interval/transc.hpp</code></h3>
+
+  <p>It is the last of the headers with mathematical functions; it provides
+  the following functions: <code>cos</code>, <code>sin</code>,
+  <code>tan</code>, <code>acos</code>, <code>asin</code>, <code>atan</code>,
+  <code>cosh</code>, <code>sinh</code>, <code>tanh</code>,
+  <code>acosh</code>, <code>asinh</code>, <code>atanh</code>,
+  <code>exp</code>, and <code>log</code>.</p>
+
+  <h2>Policies</h2>
+
+  <p>The following headers define some policies. They may be needed if you
+  use the default policies.</p>
+
+  <h3><code>interval/rounded_arith.hpp</code></h3>
+
+  <p>This header defines the three provided rounding policies for the
+  arithmetic functions: <code>rounded_arith_std</code>,
+  <code>rounded_arith_opp</code>, <code>rounded_arith_exact</code>.</p>
+
+  <h3><code>interval/rounded_transc.hpp</code></h3>
+
+  <p>This header defines the three provided rounding policies for the
+  transcendental functions: <code>rounded_transc_std</code>,
+  <code>rounded_transc_opp</code>, <code>rounded_transc_exact</code>. It is
+  separated from <code>rounded_arith.hpp</code> since the transcendental part
+  of the rounding policy is probably less useful than the arithmetic
+  part.</p>
+
+  <h3><code>interval/hw_rounding.hpp</code></h3>
+
+  <p>Here are full rounding policies for the basic floating-point types. The
+  policies are processor-dependent; and to allow the user code to be
+  portable, they only define the common subset of the hardware available
+  functions, which are the arithmetic functions of the rounding policy.</p>
+
+  <h3><code>interval/checking.hpp</code></h3>
+
+  <p>This header provides the predefined checking policies:
+  <code>checking_base</code>, <code>checking_no_empty</code>,
+  <code>checking_no_nan</code>, <code>checking_catch_nan</code>,
+  <code>checking_strict</code>.</p>
+
+  <h3><code>interval/policies.hpp</code></h3>
+
+  <p>Here are defined the helpers for manipulating policies. It contains
+  <code>policies</code> (and so is needed for using default policies),
+  <code>change_rounding</code>, <code>change_checking</code>,
+  <code>unprotect</code>, etc.</p>
+
+  <h2>Comparisons</h2>
+
+  <h3><code>interval/compare.hpp</code></h3>
+
+  <p>This header includes all the following headers. They provide some
+  predefined comparison namespaces.</p>
+
+  <h3><code>interval/compare/certain.hpp</code></h3>
+
+  <p>Here is <code>compare::certain</code>.</p>
+
+  <h3><code>interval/compare/possible.hpp</code></h3>
+
+  <p>And here is its friend <code>compare::possible</code>.</p>
+
+  <h3><code>interval/compare/explicit.hpp</code></h3>
+
+  <p>The explicit comparison functions <code>cerlt</code>,
+  <code>posge</code>, etc are defined in this header.</p>
+
+  <h3><code>interval/compare/lexicographic.hpp</code></h3>
+
+  <p>This header provides <code>compare::lexicographic</code>.</p>
+
+  <h3><code>interval/compare/set.hpp</code></h3>
+
+  <p>This header provides <code>compare::set</code>.</p>
+
+  <h2>Extensions</h2>
+
+  <p>The following headers are not included by <code>interval.hpp</code> and
+  will usually provide not always desirable capabilities.</p>
+
+  <h3><code>interval/io.hpp</code></h3>
+
+  <p>Here are defined basic stream operators <code>&lt;&lt;</code> and
+  <code>&gt;&gt;</code>. They should only be used as a first approach and
+  later be replaced by a customized version.</p>
+
+  <h3><code>interval/limits.hpp</code></h3>
+
+  <p>A specialization of <code>std::numeric_limits</code> adapted to the
+  interval type.</p>
+
+  <h3><code>interval/compare/tribool.hpp</code></h3>
+
+  <p>This header provides a comparison namespace
+  <code>compare::tribool</code> especially adapted to a tristate boolean.</p>
+
+  <h3><code>interval/ext/integer.hpp</code></h3>
+
+  <p>This header provides mixed operations between intervals and integers. It
+  is done by converting the integer to the base number type. Because this
+  comparison is not always correct (for a big <code>int</code> may not be
+  exactly convertible to <code>float</code>), this header is not
+  automatically included and the user should ensure that this behavior is
+  compatible with what she wants to do (if it is only to multiply some
+  intervals by 2, it probably is a good thing to include this header).</p>
+
+  <h3><code>interval/ext/x86_fast_rounding_control.hpp</code></h3>
+
+  <p>This header defines a new rounding policy allowing to workaround the
+  precision problem of the x86 processors (and so speeding up the
+  computations). However, it only is a partial solution and it shouldn't be
+  used when there is a possibility of underflow or overflow.</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%Y-%m-%d" startspan -->2006-12-24<!--webbot bot="Timestamp" endspan i-checksum="12172" --></p>
+
+  <p><i>Copyright &copy; 2002 Guillaume Melquiond, Sylvain Pion, Herv&eacute;
+  Br&ouml;nnimann, Polytechnic University<br>
+  Copyright &copy; 2003-2006 Guillaume Melquiond, ENS Lyon</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+  or copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

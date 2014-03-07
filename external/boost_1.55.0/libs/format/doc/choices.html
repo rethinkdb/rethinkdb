@@ -1,0 +1,327 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+
+  <title>Type-safe 'printf-like' format class</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000">
+  <h1><img align="middle" alt="boost.png (6897 bytes)" height="86" src=
+  "../../../boost.png" width="277">Type-safe 'printf-like' <b>format
+  class</b></h1>
+
+  <h2>Choices made</h2>
+
+  <p>"Le pourquoi du comment" ( - "the why of the how")</p>
+  <hr>
+
+  <h3>The syntax of the format-string</h3>
+
+  <p>Format is a new library. One of its goal is to provide a replacement for
+  printf, that means format can parse a format-string designed for printf,
+  apply it to the given arguments, and produce the same result as printf
+  would have.<br>
+  With this constraint, there were roughly 3 possible choices for the syntax
+  of the format-string :</p>
+
+  <ol>
+    <li>Use the exact same syntax of printf. It's well known by many
+    experienced users, and fits almost all needs. But with C++ streams, the
+    type-conversion character, crucial to determine the end of a directive,
+    is only useful to set some associated formatting options, in a C++
+    streams context (%x for setting hexa, etc..) It would be better to make
+    this obligatory type-conversion character, with modified meaning,
+    optional.</li>
+
+    <li>extend printf syntax while maintaining compatibility, by using
+    characters and constructs not yet valid as printf syntax. e.g. : "%1%",
+    "%[1]", "%|1$d|", .. Using begin / end marks, all sort of extension can
+    be considered.</li>
+
+    <li>Provide a non-legacy mode, in parallel of the printf-compatible one,
+    that can be designed to fit other objectives without constraints of
+    compatibilty with the existing printf syntax.<br>
+    But Designing a replacement to printf's syntax, that would be clearly
+    better, and as much powerful, is yet another task than building a format
+    class. When such a syntax is designed, we should consider splitting
+    Boost.format into 2 separate libraries : one working hand in hand with
+    this new syntax, and another supporting the legacy syntax (possibly a
+    fast version, built with safety improvement above snprintf or the
+    like).</li>
+  </ol>In the absence of a full, clever, new syntax clearly better adapted to
+  C++ streams than printf, the second approach was chosen. Boost.format uses
+  printf's syntax, with extensions (tabulations, centered alignements) that
+  can be expressed using extensions to this syntax.<br>
+  And alternate compatible notations are provided to address the weaknesses
+  of printf's :
+
+  <ul>
+    <li><i>"%<b>N</b>%"</i> as a simpler positional, typeless and optionless
+    notation.</li>
+
+    <li><i>%|spec|</i> as a way to encapsulate printf directive in movre
+    visually evident structures, at the same time making printf's
+    'type-conversion character' optional.</li>
+  </ul>
+  <hr>
+
+  <h3>Why are arguments passed through an operator rather than a function
+  call ?</h3><br>
+  The inconvenience of the operator approach (for some people) is that it
+  might be confusing. It's a usual warning that too much of overloading
+  operators gets people real confused.<br>
+  Since the use of format objects will be in specific contexts ( most often
+  right after a "cout &lt;&lt; ") and look like a formatting string followed
+  by arguments indeed :
+
+  <blockquote>
+    <pre>
+format(" %s at %s  with %s\n") % x % y % z;
+</pre>
+  </blockquote>we can hope it wont confuse people that much.
+
+  <p>An other fear about operators, is precedence problems. What if I someday
+  write <b>format("%s") % x+y</b><br>
+  instead of <i>format("%s") % (x+y)</i> ??<br>
+  It will make a mistake at compile-time, so the error will be immediately
+  detected.<br>
+  indeed, this line calls <i>tmp = operator%( format("%s"), x)</i><br>
+  and then <i>operator+(tmp, y)</i><br>
+  tmp will be a format object, for which no implicit conversion is defined,
+  and thus the call to operator+ will fail. (except if you define such an
+  operator, of course). So you can safely assume precedence mistakes will be
+  noticed at compilation.</p>
+
+  <p><br>
+  On the other hand, the function approach has a true inconvenience. It needs
+  to define lots of template function like :</p>
+
+  <blockquote>
+    <pre>
+template &lt;class T1, class T2,  .., class TN&gt; 
+string format(string s,  const T1&amp; x1, .... , const T1&amp; xN);
+
+</pre>
+  </blockquote>and even if we define those for N up to 500, that is still a
+  limitation, that C's printf does not have.<br>
+  Also, since format somehow emulates printf in some cases, but is far from
+  being fully equivalent to printf, it's best to use a radically different
+  appearance, and using operator calls succeeds very well in that !
+
+  <p><br>
+  Anyhow, if we actually chose the formal function call templates system, it
+  would only be able to print Classes T for which there is an</p>
+
+  <blockquote>
+    <pre>
+operator&lt;&lt; ( stream,   const T&amp;)
+</pre>
+  </blockquote>Because allowing both const and non const produces a
+  combinatorics explosion - if we go up to 10 arguments, we need 2^10
+  functions.<br>
+  (providing overloads on T&amp; / const T&amp; is at the frontier of defects
+  of the C++ standard, and thus is far from guaranteed to be supported. But
+  right now several compilers support those overloads)<br>
+  There is a lot of chances that a class which only provides the non-const
+  equivalent is badly designed, but yet it is another unjustified restriction
+  to the user.<br>
+  Also, some manipulators are functions, and can not be passed as const
+  references. The function call approach thus does not support manipulators
+  well.
+
+  <p>In conclusion, using a dedicated binary operator is the simplest, most
+  robust, and least restrictive mechanism to pass arguments when you can't
+  know the number of arguments at compile-time.</p>
+  <hr>
+
+  <h3>Why operator% rather than a member function 'with(..)'
+  ??</h3>technically,
+
+  <blockquote>
+    <pre>
+format(fstr) % x1 % x2 % x3;
+</pre>
+  </blockquote>has the same structure as
+
+  <blockquote>
+    <pre>
+format(fstr).with( x1 ).with( x2 ).with( x3 );
+</pre>
+  </blockquote>which does not have any precedence problem. The only drawback,
+  is it's harder for the eye to catch what is done in this line, than when we
+  are using operators. calling .with(..), it looks just like any other line
+  of code. So it may be a better solution, depending on tastes. The extra
+  characters, and overall cluttered aspect of the line of code using
+  'with(..)' were enough for me to opt for a true operator.
+  <hr>
+
+  <h3>Why operator% rather than usual formatting operator&lt;&lt; ??</h3>
+
+  <ul>
+    <li>because passing arguments to a format object is *not* the same as
+    sending variables, sequentially, into a stream, and because a format
+    object is not a stream, nor a manipulator.<br>
+      We use an operator to pass arguments. format will use them as a
+      function would, it simply takes arguments one by one.<br>
+      format objects can not provide stream-like behaviour. When you try to
+      implement a format object that acts like a manipulator, returning a
+      stream, you make the user beleive it is completely like a
+      stream-manipulator. And sooner or later, the user is deceived by this
+      point of view.<br>
+      The most obvious example of that difference in behaviour is
+
+      <blockquote>
+        <pre>
+cout &lt;&lt; format("%s %s ") &lt;&lt; x;
+cout &lt;&lt; y ;  // uh-oh, format is not really a stream manipulator
+</pre>
+      </blockquote>
+    </li>
+
+    <li>precedence of % is higher than that of &lt;&lt;. It can be viewd as a
+    problem, because + and - thus needs to be grouped inside parentheses,
+    while it is not necessary with '&lt;&lt;'. But if the user forgets, the
+    mistake is catched at compilation, and hopefully he won't forget
+    again.<br>
+      On the other hand, the higher precedence makes format's behaviour very
+      straight-forward.
+
+      <blockquote>
+        <pre>
+cout &lt;&lt; format("%s %s ") % x % y &lt;&lt; endl;
+</pre>
+      </blockquote>is treated exaclt like :
+
+      <blockquote>
+        <pre>
+cout &lt;&lt; ( format("%s %s ") % x % y ) &lt;&lt; endl;
+</pre>
+      </blockquote>So using %, the life of a format object does not interfere
+      with the surrounding stream context. This is the simplest possible
+      behaviour, and thus the user is able to continue using the stream after
+      the format object.<br>
+      <br>
+      With operator&lt;&lt;, things are much more problematic in this
+      situation. This line :
+
+      <blockquote>
+        <pre>
+cout &lt;&lt; format("%s %s ") &lt;&lt;  x  &lt;&lt;  y &lt;&lt; endl;
+</pre>
+      </blockquote>is understood as :
+
+      <blockquote>
+        <pre>
+( ( ( cout &lt;&lt; format("%s %s ") ) &lt;&lt; x ) &lt;&lt;  y ) &lt;&lt; endl;
+</pre>
+      </blockquote>Several alternative implementations chose
+      operator&lt;&lt;, and there is only one way to make it work :<br>
+      the first call to
+
+      <blockquote>
+        <pre>
+operator&lt;&lt;( ostream&amp;, format const&amp;)
+</pre>
+      </blockquote>returns a proxy, encapsulating both the final destination
+      (cout) and the format-string information<br>
+      Passing arguments to format, or to the final destination after
+      completion of the format are indistinguishable. This is a problem.
+
+      <p>I examined several possible implementations, and none is completely
+      satsifying.<br>
+      E.g. : In order to catch users mistake, it makes sense to raise
+      exceptions when the user passes too many arguments. But in this
+      context, supplementary arguments are most certainly aimed at the final
+      destination. There are several choices here :</p>
+
+      <ul>
+        <li>You can give-up detection of arity excess, and have the proxy's
+        template member operator&lt;&lt;( const T&amp;) simply forward all
+        supplementary arguments to cout.</li>
+
+        <li>Require the user to close the format arguments with a special
+        manipulator, 'endf', in this way :
+
+          <blockquote>
+            <pre>
+cout &lt;&lt; format("%s %s ") &lt;&lt;  x  &lt;&lt;  y &lt;&lt; endf &lt;&lt; endl;
+</pre>
+          </blockquote>You can define endf to be a function that returns the
+          final destination stored inside the proxy. Then it's okay, after
+          endf the user is calling &lt;&lt; on cout again.
+        </li>
+
+        <li>An intermediate solution, is to adress the most frequent use,
+        where the user simply wants to output one more manipulator item to
+        cout (a std::flush, or endl, ..)
+
+          <blockquote>
+            <pre>
+cout &lt;&lt; format("%s %s \n") &lt;&lt;  x  &lt;&lt;  y &lt;&lt; flush ;
+</pre>
+          </blockquote>Then, the solution is to overload the operator&lt;&lt;
+          for manipulators. This way You don't need endf, but outputting a
+          non-manipulator item right after the format arguments is a mistake.
+        </li>
+      </ul><br>
+      The most complete solution is the one with the endf manipualtor. With
+      operator%, there is no need for this end-format function, plus you
+      instantly see which arguments are going into the format object, and
+      which are going to the stream.
+    </li>
+
+    <li>Esthetically : '%' is the same letter as used inside the
+    format-string. That is quite nice to have the same letter used for
+    passing each argument. '&lt;&lt;' is 2 letters, '%' is one. '%' is also
+    smaller in size. It overall improves visualisation (we see what goes with
+    what) :
+
+      <blockquote>
+        <pre>
+cout &lt;&lt; format("%s %s %s") %x %y %z &lt;&lt; "And  avg is" &lt;&lt; format("%s\n") %avg;
+</pre>
+      </blockquote>compared to :
+
+      <blockquote>
+        <pre>
+cout &lt;&lt; format("%s %s %s") &lt;&lt; x &lt;&lt; y &lt;&lt; z &lt;&lt; endf &lt;&lt;"And avg is" &lt;&lt; format("%s\n") &lt;&lt; avg;
+</pre>
+      </blockquote>"&lt;&lt;" misleadingly puts the arguments at the same
+      level as any object passed to the stream.
+    </li>
+
+    <li>python also uses % for formatting, so you see it's not so "unheard
+    of" ;-)</li>
+  </ul>
+  <hr>
+
+  <h3>Why operator% rather than operator(), or operator[] ??</h3>
+
+  <p>operator() has the merit of being the natural way to send an argument
+  into a function. And some think that operator[] 's meaning apply well to
+  the usage in format.<br>
+  They're as good as operator% technically, but quite ugly. (that's a matter
+  of taste)<br>
+  And deepd down, using operator% for passing arguments that were referred to
+  by "%" in the format string seems much more natural to me than using those
+  operators.</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->02 December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38510" --></p>
+
+  <p><i>Copyright &copy; 2001 Samuel Krempp</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

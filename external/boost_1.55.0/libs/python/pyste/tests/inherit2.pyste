@@ -1,0 +1,2 @@
+Class('inherit2::B', 'inherit2.h')
+Class('inherit2::D', 'inherit2.h')

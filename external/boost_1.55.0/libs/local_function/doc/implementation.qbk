@@ -1,0 +1,50 @@
+
+[/ Copyright (C) 2009-2012 Lorenzo Caminiti ]
+[/ Distributed under the Boost Software License, Version 1.0 ]
+[/ (see accompanying file LICENSE_1_0.txt or a copy at ]
+[/ http://www.boost.org/LICENSE_1_0.txt) ]
+[/ Home at http://www.boost.org/libs/local_function ]
+
+[section:implementation Annex: Implementation]
+
+This section gives an overview of the key programming techniques used to implement this library.
+
+[note
+The code listed here can be used by curious readers and library maintainers as a reference in trying to understand the library source code.
+There is absolutely no guarantee that the library implementation uses the exact code listed here.
+]
+
+[heading Local Classes as Template Parameters]
+
+This library uses a local class to implement the local function object.
+However, in __CXX03__ local classes (and therefore the local function objects they implement) cannot be passed as template parameters (e.g., to the `std::for_each` algorithm), this is instead possible in __CXX11__, MSVC, and some other compilers (see __N2657__ and __Boost_Config__'s `BOOST_NO_LOCAL_CLASS_TEMPLATE_PARAMETERS`).
+To work around this limitation, this library investigated the following two "tricks" (both tricks can be extended to support function default parameters):
+
+# The /casting functor trick/ uses a non-local functor that calls a static member function of the local class via a function pointer.
+The static member function then calls the correct local function body after type casting the object from a `void*` pointer (local classes can always be used for type casting via `static_cast` or similar).
+
+# The /virtual functor trick/ derives the local functor class from a non-local base class.
+The correct overridden implementation of the virtual `operator()` is then called via dynamic binding.
+
+For example (see also [@../../example/impl_tparam_tricks.cpp =impl_tparam_tricks.cpp=]):
+
+[impl_tparam_tricks]
+
+The casting functor trick measured slightly better run-time performances than the virtual functor trick so the current implementation of this library uses the casting functor trick (probably because in addition to the indirect function call, the virtual functor trick also requires accessing the [@http://en.wikipedia.org/wiki/Virtual_method_table virtual function table]).
+However, neither one of the two tricks was observed to allow for compiler optimizations that inline the local function calls (because they rely on one indirect function call via either a function pointer or a virtual function respectively).
+Therefore, on compilers that accept local classes as template parameters (MSVC, __CXX11__, etc, see __N2657__ and __Boost_Config__'s `BOOST_NO_LOCAL_CLASS_TEMPLATE_PARAMETERS`), this library automatically generates code that passes the local class type directly as template parameter without using neither one of these two tricks in order to take full advantage of compiler optimizations that inline the local function calls.
+
+[heading Parsing Macros]
+
+This library macros can parse the list of specified parameters and detect if any of the bound variable names matches the token `this_` (to generate special code to bind the object in scope), or if the variable is bound by `const` (to generate special code to bind by constant), etc.
+The parameter tokens are inspected using preprocessor meta-programming and specifically using the macros defined by the files in the =boost/local_function/detail/preprocessor/keyword/= directory.
+[footnote
+This technique is at the core of even more complex preprocessor parsing macros like the ones that parse the __Contractpp__ syntax.
+]
+
+For example, the following code defines a macro that allows the preprocessor to detect if a set of space-separated tokens ends with `this_` or not (see also [@../../example/impl_pp_keyword.cpp =impl_pp_keyword.cpp=]):
+
+[impl_pp_keyword]
+
+[endsect]
+

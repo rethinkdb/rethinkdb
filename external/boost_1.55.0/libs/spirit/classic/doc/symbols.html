@@ -1,0 +1,204 @@
+<html>
+<head>
+<title>Symbols</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr>
+    <td width="10">
+    </td>
+    <td width="85%">
+      <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Symbols</b></font>
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="distinct.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="trees.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>This class symbols implements a symbol table. The symbol table holds a dictionary
+  of symbols where each symbol is a sequence of CharTs (a <tt>char</tt>, <tt>wchar_t</tt>,
+  <tt>int</tt>, enumeration etc.) . The template class, parameterized by the character
+  type (CharT), can work efficiently with 8, 16, 32 and even 64 bit characters.
+  Mutable data of type T is associated with each symbol.<br>
+</p>
+<p>Traditionally, symbol table management is maintained seperately outside the
+  BNF grammar through semantic actions. Contrary to standard practice, the Spirit
+  symbol table class <tt>symbols</tt> is-a parser. An instance of which may be
+  used anywhere in the EBNF grammar specification. It is an example of a dynamic
+  parser. A dynamic parser is characterized by its ability to modify its behavior
+  at run time. Initially, an empty symbols object matches nothing. At any time,
+  symbols may be added, thus, dynamically altering its behavior.</p>
+<p>Each entry in a symbol table has an associated mutable data slot. In this regard,
+  one can view the symbol table as an associative container (or map) of key-value
+  pairs where the keys are strings. </p>
+<p>The symbols class expects two template parameters (actually there is a third,
+  see detail box). The first parameter <tt>T</tt> specifies the data type associated
+  with each symbol (defaults to <tt>int</tt>) and the second parameter <tt>CharT</tt>
+  specifies the character type of the symbols (defaults to <tt>char</tt>). </p>
+<pre><span class=identifier>    </span><span class=keyword>template
+    </span><span class=special>&lt;
+        </span><span class=keyword>typename </span><span class=identifier>T </span><span class=special>= </span><span class=keyword>int</span><span class=special>,
+        </span><span class=keyword>typename </span><span class=identifier>CharT </span><span class=special>= </span><span class=keyword>char</span><span class=special>,
+        </span><span class=keyword>typename </span><span class=identifier>SetT </span><span class=special>= </span><span class=identifier>impl</span><span class=special>::</span><span class=identifier>tst</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>, </span><span class=identifier>CharT</span><span class=special>&gt;
+    </span><span class=special>&gt;
+    </span><span class=keyword>class </span><span class=identifier>symbols</span><span class=special>;</span></pre>
+<table width="80%" border="0" align="center">
+  <tr>
+    <td class="note_box"><img src="theme/lens.gif" width="15" height="16"> <b>Ternary
+      State Trees</b><br>
+      <br>
+      The actual set implementation is supplied by the SetT template parameter
+      (3rd template parameter of the symbols class) . By default, this uses the
+      tst class which is an implementation of the Ternary Search Tree. <br>
+      <br>
+      Ternary Search Trees are faster than hashing for many typical search problems
+      especially when the search interface is iterator based. Searching for a
+      string of length k in a ternary search tree with n strings will require
+      at most O(log n+k) character comparisons. TSTs are many times faster than
+      hash tables for unsuccessful searches since mismatches are discovered earlier
+      after examining only a few characters. Hash tables always examine an entire
+      key when searching.<br>
+      <br>
+      For details see <a href="http://www.cs.princeton.edu/%7Ers/strings/">http://www.cs.princeton.edu/~rs/strings/</a>.</td>
+  </tr>
+</table>
+<p>Here are some sample declarations:</p>
+<pre><span class=identifier>    </span><span class=identifier>symbols</span><span class=special>&lt;&gt; </span><span class=identifier>sym</span><span class=special>;
+    </span><span class=identifier>symbols</span><span class=special>&lt;</span><span class=keyword>short</span><span class=special>, </span><span class=keyword>wchar_t</span><span class=special>&gt; </span><span class=identifier>sym2</span><span class=special>;
+
+    </span><span class=keyword>struct </span><span class=identifier>my_info
+    </span><span class=special>{
+        </span><span class=keyword>int     </span><span class=identifier>id</span><span class=special>;
+        </span><span class=keyword>double  </span><span class=identifier>value</span><span class=special>;
+    </span><span class=special>};
+
+    </span><span class=identifier>symbols</span><span class=special>&lt;</span><span class=identifier>my_info</span><span class=special>&gt; </span><span class=identifier>sym3</span><span class=special>;</span></pre>
+<p>After having declared our symbol tables, symbols may be added statically using
+  the construct:</p>
+<pre><span class=identifier>    sym </span><span class=special>= </span><span class=identifier>a</span><span class=special>, </span><span class=identifier>b</span><span class=special>, </span><span class=identifier>c</span><span class=special>, </span><span class=identifier>d </span><span class=special>...;</span></pre>
+<p>where <tt>sym</tt> is a symbol table and <tt>a..d</tt> etc. are strings. <img src="theme/note.gif" width="16" height="16">Note
+  that the comma operator is separating the items being added to the symbol table,
+  through an assignment. Due to operator overloading this is possible and correct
+  (though it may take a little getting used to) and is a concise way to initialize
+  the symbol table with many symbols. Also, it is perfectly valid to make multiple
+  assignments to a symbol table to iteratively add symbols (or groups of symbols)
+  at different times.</p>
+<p>Simple example:<br>
+</p>
+<pre><span class=identifier>    sym </span><span class=special>= </span><span class=string>&quot;pineapple&quot;</span><span class=special>, </span><span class=string>&quot;orange&quot;</span><span class=special>, </span><span class=string>&quot;banana&quot;</span><span class=special>, </span><span class=string>&quot;apple&quot;</span><span class=special>, </span><span class=string>&quot;mango&quot;</span><span class=special>;</span></pre>
+<p>Note that it is invalid to add the same symbol multiple times to a symbol table,
+  though you may modify the value associated with a symbol artibrarily many times.</p>
+<p>Now, we may use sym in the grammar. Example:</p>
+<pre><span class=identifier>    fruits </span><span class=special>= </span><span class=identifier>sym </span><span class=special>&gt;&gt; </span><span class=special>*(</span><span class=literal>',' </span><span class=special>&gt;&gt; </span><span class=identifier>sym</span><span class=special>);</span></pre>
+<p>Alternatively, symbols may be added dynamically through the member functor
+  <tt>add</tt> (see <tt><a href="#symbol_inserter">symbol_inserter</a></tt> below).
+  The member functor <tt>add</tt> may be attached to a parser as a semantic action
+  taking in a begin/end pair:</p>
+<pre><span class=identifier>    p</span><span class=special>[</span><span class=identifier>sym</span><span class=special>.</span><span class=identifier>add</span><span class=special>]</span></pre>
+<p>where p is a parser (and sym is a symbol table). On success, the matching portion
+  of the input is added to the symbol table.</p>
+<p><tt>add</tt> may also be used to directly initialize data. Examples:</p>
+<pre><span class=identifier>    sym</span><span class=special>.</span><span class=identifier>add</span><span class=special>(</span><span class=string>&quot;hello&quot;</span><span class=special>, </span><span class=number>1</span><span class=special>)(</span><span class=string>&quot;crazy&quot;</span><span class=special>, </span><span class=number>2</span><span class=special>)(</span><span class=string>&quot;world&quot;</span><span class=special>, </span><span class=number>3</span><span class=special>);</span></pre>
+<p>Assuming of course that the data slot associated with <tt>sym</tt> is an integer.</p>
+<p>The data associated with each symbol may be modified any time. The most obvious
+  way of course is through <a href="semantic_actions.html">semantic actions</a>.
+  A function or functor, as usual, may be attached to the symbol table. The symbol
+  table expects a function or functor compatible with the signature:</p>
+<p><b>Signature for functions:</b></p>
+<pre><code><font color="#000000"><span class=identifier>    </span><span class=keyword>void </span><span class=identifier>func</span><span class=special>(</span><span class=identifier>T</span><span class="special">&amp;</span><span class=identifier> data</span><span class=special>);</span></font></code></pre>
+<p><b>Signature for functors:</b><br>
+</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>struct </span><span class=identifier>ftor
+    </span><span class=special>{
+        </span><span class=keyword>void </span><span class=keyword>operator</span><span class=special>()(</span><span class=identifier>T</span><span class="special">&amp;</span><span class=identifier> data</span><span class=special>) </span><span class=keyword>const</span><span class=special>;
+    </span><span class=special>};</span></font></code></pre>
+<p>Where <tt>T</tt> is the data type of the symbol table (the <tt>T</tt> in its
+  template parameter list). When the symbol table successfully matches something
+  from the input, the data associated with the matching entry in the symbol table
+  is reported to the semantic action.</p>
+<h2>Symbol table utilities</h2>
+<p>Sometimes, one may wish to deal with the symbol table directly. Provided are
+  some symbol table utilities.</p>
+<p><b>add</b></p>
+<pre><span class=identifier>    </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>T</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>CharT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>SetT</span><span class=special>&gt;
+    </span><span class=identifier>T</span><span class=special>*  </span><span class=identifier>add</span><span class=special>(</span><span class=identifier>symbols</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>, </span><span class=identifier>CharT</span><span class=special>, </span><span class=identifier>SetT</span><span class=special>&gt;&amp; </span><span class=identifier>table</span><span class=special>, </span><span class=identifier>CharT </span><span class=keyword>const</span><span class=special>* </span><span class=identifier>sym</span><span class=special>, </span><span class=identifier>T </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>data </span><span class=special>= </span><span class=identifier>T</span><span class=special>());</span></pre>
+<p>adds a symbol <tt>sym</tt> (C string) to a symbol table <tt>table</tt> plus
+  an optional data <tt>data</tt> associated with the symbol. Returns a pointer
+  to the data associated with the symbol or <tt>NULL</tt> if add failed (e.g.
+  when the symbol is already added before).<br>
+  <br>
+  <b>find</b></p>
+<pre><span class=special>    </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>T</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>CharT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>SetT</span><span class=special>&gt;
+    </span><span class=identifier>T</span><span class=special>*  </span><span class=identifier>find</span><span class=special>(</span><span class=identifier>symbols</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>, </span><span class=identifier>CharT</span><span class=special>, </span><span class=identifier>SetT</span><span class=special>&gt; </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>table</span><span class=special>, </span><span class=identifier>CharT </span><span class=keyword>const</span><span class=special>* </span><span class=identifier>sym</span><span class=special>);</span></pre>
+<p>finds a symbol <tt>sym</tt> (C string) from a symbol table <tt>table</tt>.
+  Returns a pointer to the data associated with the symbol or <tt>NULL</tt> if
+  not found</p>
+<h2><a name="symbol_inserter"></a>symbol_inserter</h2>
+<p>The symbols class holds an instance of this class named <tt>add</tt>. This
+  can be called directly just like a member function, passing in a first/last
+  iterator and optional data:<br>
+  <br>
+</p>
+<pre><span class=identifier>    sym</span><span class=special>.</span><span class=identifier>add</span><span class=special>(</span><span class=identifier>first</span><span class=special>, </span><span class=identifier>last</span><span class=special>, </span><span class=identifier>data</span><span class=special>);</span></pre>
+<p>Or, passing in a C string and optional data:<br>
+</p>
+<pre><span class=identifier>    sym</span><span class=special>.</span><span class=identifier>add</span><span class=special>(</span><span class=identifier>c_string</span><span class=special>, </span><span class=identifier>data</span><span class=special>);</span></pre>
+<p>where <tt>sym</tt> is a symbol table. The <tt>data</tt> argument is optional.
+  The nice thing about this scheme is that it can be cascaded. We've seen this
+  applied above. Here's a snippet from the roman numerals parser</p>
+<pre>    <span class=comment>//  Parse roman numerals (1..9) using the symbol table.
+
+</span>    <span class=keyword>struct </span><span class=identifier>ones </span><span class=special>: </span><span class=identifier>symbols</span><span class=special>&lt;</span><span class=keyword>unsigned</span><span class=special>&gt;
+    </span><span class=special>{
+    	</span><span class=identifier>ones</span><span class=special>()
+    	</span><span class=special>{
+            </span><span class=identifier>add
+                </span><span class=special>(</span><span class=string>&quot;I&quot;    </span><span class=special>, </span><span class=number>1</span><span class=special>)
+                </span><span class=special>(</span><span class=string>&quot;II&quot;   </span><span class=special>, </span><span class=number>2</span><span class=special>)
+                </span><span class=special>(</span><span class=string>&quot;III&quot;  </span><span class=special>, </span><span class=number>3</span><span class=special>)
+                </span><span class=special>(</span><span class=string>&quot;IV&quot;   </span><span class=special>, </span><span class=number>4</span><span class=special>)
+                </span><span class=special>(</span><span class=string>&quot;V&quot;    </span><span class=special>, </span><span class=number>5</span><span class=special>)
+                </span><span class=special>(</span><span class=string>&quot;VI&quot;   </span><span class=special>, </span><span class=number>6</span><span class=special>)
+                </span><span class=special>(</span><span class=string>&quot;VII&quot;  </span><span class=special>, </span><span class=number>7</span><span class=special>)
+                </span><span class=special>(</span><span class=string>&quot;VIII&quot; </span><span class=special>, </span><span class=number>8</span><span class=special>)
+                </span><span class=special>(</span><span class=string>&quot;IX&quot;   </span><span class=special>, </span><span class=number>9</span><span class=special>)
+    		</span><span class=special>;
+    	</span><span class=special>}
+
+    </span><span class=special>} </span><span class=identifier>ones_p</span><span class=special>;</span></pre>
+<p>Notice that a user defined struct <tt>ones</tt> is subclassed from <tt>symbols</tt>.
+  Then at construction time, we added all the symbols using the <tt>add</tt> symbol_inserter.</p>
+<p> <img height="16" width="15" src="theme/lens.gif"> The full source code can be <a href="../example/fundamental/roman_numerals.cpp">viewed here</a>. This is part of the Spirit distribution.</p>
+<p>Again, <tt>add</tt> may also be used as a semantic action since it conforms
+  to the action interface (see semantic actions):<br>
+</p>
+<pre><span class=special></span><span class=identifier>    p</span><span class=special>[</span><span class=identifier>sym</span><span class=special>.</span><span class=identifier>add</span><span class=special>]</span></pre>
+<p>where p is a parser of course.<span class=special><br>
+  </span></p>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="distinct.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="trees.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<section id="variant.intro">
+  <title>Introduction</title>
+
+  <using-namespace name="boost"/>
+
+<section id="variant.abstract">
+  <title>Abstract</title>
+
+<para>The <code>variant</code> class template is a safe, generic, stack-based
+discriminated union container, offering a simple solution for manipulating an
+object from a heterogeneous set of types in a uniform manner. Whereas
+standard containers such as <code>std::vector</code> may be thought of as
+"<emphasis role="bold">multi-value, single type</emphasis>,"
+<code>variant</code> is "<emphasis role="bold">multi-type,
+single value</emphasis>."</para>
+
+<para>Notable features of <code><classname>boost::variant</classname></code>
+include:</para>
+
+<itemizedlist>
+  <listitem>Full value semantics, including adherence to standard
+    overload resolution rules for conversion operations.</listitem>
+  <listitem>Compile-time type-safe value visitation via
+    <code><functionname>boost::apply_visitor</functionname></code>.</listitem>
+  <listitem>Run-time checked explicit value retrieval via
+    <code><functionname>boost::get</functionname></code>.</listitem>
+  <listitem>Support for recursive variant types via both
+    <code><classname>boost::make_recursive_variant</classname></code> and
+    <code><classname>boost::recursive_wrapper</classname></code>.</listitem>
+  <listitem>Efficient implementation -- stack-based when possible (see
+    <xref linkend="variant.design.never-empty"/> for more details).</listitem>
+</itemizedlist>
+
+</section>
+
+<section id="variant.motivation">
+  <title>Motivation</title>
+
+<section id="variant.motivation.problem">
+  <title>Problem</title>
+
+<para>Many times, during the development of a C++ program, the
+programmer finds himself in need of manipulating several distinct
+types in a uniform manner. Indeed, C++ features direct language
+support for such types through its <code>union</code> 
+keyword:</para>
+
+<programlisting>union { int i; double d; } u;
+u.d = 3.14;
+u.i = 3; // overwrites u.d (OK: u.d is a POD type)</programlisting>
+
+<para>C++'s <code>union</code> construct, however, is nearly
+useless in an object-oriented environment. The construct entered
+the language primarily as a means for preserving compatibility with
+C, which supports only POD (Plain Old Data) types, and so does not
+accept types exhibiting non-trivial construction or
+destruction:</para>
+
+<programlisting>union {
+  int i;
+  std::string s; // illegal: std::string is not a POD type!
+} u;</programlisting>
+
+<para>Clearly another approach is required. Typical solutions
+feature the dynamic-allocation of objects, which are subsequently
+manipulated through a common base type (often a virtual base class
+    [<link linkend="variant.refs.hen01">Hen01</link>]
+or, more dangerously, a <code>void*</code>). Objects of
+concrete type may be then retrieved by way of a polymorphic downcast
+construct (e.g., <code>dynamic_cast</code>,
+<code><functionname>boost::any_cast</functionname></code>, etc.).</para>
+
+<para>However, solutions of this sort are highly error-prone, due
+to the following:</para>
+
+<itemizedlist>
+  <listitem><emphasis>Downcast errors cannot be detected at
+    compile-time.</emphasis> Thus, incorrect usage of downcast
+    constructs will lead to bugs detectable only at run-time.</listitem>
+  <listitem><emphasis>Addition of new concrete types may be 
+    ignored.</emphasis> If a new concrete type is added to the
+    hierarchy, existing downcast code will continue to work as-is,
+    wholly ignoring the new type. Consequently, the programmer must
+    manually locate and modify code at numerous locations, which often
+    results in run-time errors that are difficult to find.</listitem>
+</itemizedlist>
+
+<para>Furthermore, even when properly implemented, these solutions tend
+to incur a relatively significant abstraction penalty due to the use of
+the heap, virtual function calls, and polymorphic downcasts.</para>
+
+</section>
+
+<section id="variant.motivation.solution">
+  <title>Solution: A Motivating Example</title>
+
+<para>The <code><classname>boost::variant</classname></code> class template
+addresses these issues in a safe, straightforward, and efficient manner. The
+following example demonstrates how the class can be used:</para>
+
+<programlisting>#include "boost/variant.hpp"
+#include &lt;iostream&gt;
+
+class my_visitor : public <classname>boost::static_visitor</classname>&lt;int&gt;
+{
+public:
+    int operator()(int i) const
+    {
+        return i;
+    }
+    
+    int operator()(const <classname>std::string</classname> &amp; str) const
+    {
+        return str.length();
+    }
+};
+
+int main()
+{
+    <classname>boost::variant</classname>&lt; int, std::string &gt; u("hello world");
+    std::cout &lt;&lt; u; // output: hello world
+
+    int result = <functionname>boost::apply_visitor</functionname>( my_visitor(), u );
+    std::cout &lt;&lt; result; // output: 11 (i.e., length of "hello world")
+}
+</programlisting>
+
+</section>
+
+</section>
+
+</section>

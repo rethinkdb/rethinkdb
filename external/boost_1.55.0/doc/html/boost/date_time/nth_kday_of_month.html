@@ -1,0 +1,98 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template nth_kday_of_month</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.date_generators_hpp" title="Header &lt;boost/date_time/date_generators.hpp&gt;">
+<link rel="prev" href="partial_date.html" title="Class template partial_date">
+<link rel="next" href="first_kday_of_month.html" title="Class template first_kday_of_month">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="partial_date.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.date_generators_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="first_kday_of_month.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.nth_kday_of_month"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template nth_kday_of_month</span></h2>
+<p>boost::date_time::nth_kday_of_month &#8212; Useful generator functor for finding holidays. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.date_generators_hpp" title="Header &lt;boost/date_time/date_generators.hpp&gt;">boost/date_time/date_generators.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> date_type<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="nth_kday_of_month.html" title="Class template nth_kday_of_month">nth_kday_of_month</a> <span class="special">:</span>
+  <span class="keyword">public</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">date_time</span><span class="special">::</span><span class="identifier">year_based_generator</span><span class="special">&lt;</span> <span class="identifier">date_type</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">date_type</span><span class="special">::</span><span class="identifier">calendar_type</span>        <a name="boost.date_time.nth_kday_of_month.calendar_type"></a><span class="identifier">calendar_type</span><span class="special">;</span>   
+  <span class="keyword">typedef</span> <span class="identifier">calendar_type</span><span class="special">::</span><span class="identifier">day_of_week_type</span> <a name="boost.date_time.nth_kday_of_month.day_of_week_type"></a><span class="identifier">day_of_week_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">calendar_type</span><span class="special">::</span><span class="identifier">month_type</span>       <a name="boost.date_time.nth_kday_of_month.month_type"></a><span class="identifier">month_type</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">calendar_type</span><span class="special">::</span><span class="identifier">year_type</span>        <a name="boost.date_time.nth_kday_of_month.year_type"></a><span class="identifier">year_type</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">date_type</span><span class="special">::</span><span class="identifier">duration_type</span>        <a name="boost.date_time.nth_kday_of_month.duration_type"></a><span class="identifier">duration_type</span><span class="special">;</span>   
+
+  <span class="keyword">enum</span> <a name="boost.date_time.nth_kday_of_month.week_num"></a>week_num <span class="special">{</span> first = =1, second, third, fourth, fifth <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="nth_kday_of_month.html#boost.date_time.nth_kday_of_monthconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="nth_kday_of_month.html#idp34771848-bb"><span class="identifier">nth_kday_of_month</span></a><span class="special">(</span><span class="identifier">week_num</span><span class="special">,</span> <span class="identifier">day_of_week_type</span><span class="special">,</span> <span class="identifier">month_type</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="nth_kday_of_month.html#idp19075560-bb">public member functions</a></span>
+  <span class="identifier">date_type</span> <a class="link" href="nth_kday_of_month.html#idp19075768-bb"><span class="identifier">get_date</span></a><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">month_type</span> <a class="link" href="nth_kday_of_month.html#idp22107592-bb"><span class="identifier">month</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">week_num</span> <a class="link" href="nth_kday_of_month.html#idp22108056-bb"><span class="identifier">nth_week</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">day_of_week_type</span> <a class="link" href="nth_kday_of_month.html#idp21136328-bb"><span class="identifier">day_of_week</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> <a class="link" href="nth_kday_of_month.html#idp21136792-bb"><span class="identifier">nth_week_as_str</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a class="link" href="nth_kday_of_month.html#idp21137256-bb"><span class="identifier">to_string</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp85451160"></a><h2>Description</h2>
+<p>Based on the idea in Cal. Calc. for finding holidays that are the 'first Monday of September'. When instantiated with 'fifth' kday of month, the result will be the last kday of month which can be the fourth or fifth depending on the structure of the month.</p>
+<p>The algorithm here basically guesses for the first day of the month. Then finds the first day of the correct type. That is, if the first of the month is a Tuesday and it needs Wenesday then we simply increment by a day and then we can add the length of a week until we get to the 'nth kday'. There are probably more efficient algorithms based on using a mod 7, but this one works reasonably well for basic applications. </p>
+<div class="refsect2">
+<a name="idp85452328"></a><h3>
+<a name="boost.date_time.nth_kday_of_monthconstruct-copy-destruct"></a><code class="computeroutput">nth_kday_of_month</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><a name="idp34771848-bb"></a><span class="identifier">nth_kday_of_month</span><span class="special">(</span><span class="identifier">week_num</span> week_no<span class="special">,</span> <span class="identifier">day_of_week_type</span> dow<span class="special">,</span> <span class="identifier">month_type</span> m<span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp85457016"></a><h3>
+<a name="idp19075560-bb"></a><code class="computeroutput">nth_kday_of_month</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">date_type</span> <a name="idp19075768-bb"></a><span class="identifier">get_date</span><span class="special">(</span><span class="identifier">year_type</span> y<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Return a concrete date when provided with a year specific year. </li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">month_type</span> <a name="idp22107592-bb"></a><span class="identifier">month</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">week_num</span> <a name="idp22108056-bb"></a><span class="identifier">nth_week</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="identifier">day_of_week_type</span> <a name="idp21136328-bb"></a><span class="identifier">day_of_week</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> <a name="idp21136792-bb"></a><span class="identifier">nth_week_as_str</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <a name="idp21137256-bb"></a><span class="identifier">to_string</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns string suitable for use in POSIX time zone string. <p>Returns a string formatted as "M4.3.0" ==&gt; 3rd Sunday in April. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="partial_date.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.date_generators_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="first_kday_of_month.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

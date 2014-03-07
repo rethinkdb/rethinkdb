@@ -1,0 +1,232 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Quick Start</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="prev" href="design.html" title="Design Rationale">
+<link rel="next" href="spatial_indexes.html" title="Spatial Indexes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="design.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="spatial_indexes.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="geometry.quickstart"></a><a class="link" href="quickstart.html" title="Quick Start">Quick Start</a>
+</h2></div></div></div>
+<p>
+      This Quick Start section shows some of the features of Boost.Geometry in the
+      form of annotated, relatively simple, code snippets.
+    </p>
+<p>
+      The code below assumes that <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span></code> is included,
+      and that <code class="computeroutput"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span></code>
+      is used. Boost.Geometry is header only, so including headerfiles is enough.
+      There is no linking with any library necessary.
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">point_xy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">polygon</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">;</span>
+</pre>
+<p>
+    </p>
+<h4>
+<a name="geometry.quickstart.h0"></a>
+      <span class="phrase"><a name="geometry.quickstart.cartesian"></a></span><a class="link" href="quickstart.html#geometry.quickstart.cartesian">Cartesian</a>
+    </h4>
+<p>
+      It is possible to use only a small part of the library. For example: the distance
+      between two points is a common use case. Boost.Geometry can calculate it from
+      various types. Using one of its own types:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">model</span><span class="special">::</span><span class="identifier">d2</span><span class="special">::</span><span class="identifier">point_xy</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">p1</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">1</span><span class="special">),</span> <span class="identifier">p2</span><span class="special">(</span><span class="number">2</span><span class="special">,</span> <span class="number">2</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Distance p1-p2 is: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">p1</span><span class="special">,</span> <span class="identifier">p2</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+    </p>
+<p>
+      If the right headers are included and the types are bound to a coordinate system,
+      various other types can be used as points: plain C array's, Boost.Array's,
+      Boost.Tuple's, Boost.Fusion imported structs, your own classes...
+    </p>
+<p>
+      Registering and using a C array:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">c_array</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_GEOMETRY_REGISTER_C_ARRAY_CS</span><span class="special">(</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">cartesian</span><span class="special">)</span>
+</pre>
+<p>
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">a</span><span class="special">[</span><span class="number">2</span><span class="special">]</span> <span class="special">=</span> <span class="special">{</span><span class="number">1</span><span class="special">,</span><span class="number">1</span><span class="special">};</span>
+<span class="keyword">int</span> <span class="identifier">b</span><span class="special">[</span><span class="number">2</span><span class="special">]</span> <span class="special">=</span> <span class="special">{</span><span class="number">2</span><span class="special">,</span><span class="number">3</span><span class="special">};</span>
+<span class="keyword">double</span> <span class="identifier">d</span> <span class="special">=</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Distance a-b is: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">d</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+    </p>
+<p>
+      Another often used algorithm is point-in-polygon. It is implemented in Boost.Geometry
+      under the name <code class="computeroutput"><span class="identifier">within</span></code>. We show
+      its usage here checking a Boost.Tuple (as a point) located within a polygon,
+      filled with C Array point pairs.
+    </p>
+<p>
+      But it is first necessary to register a Boost.Tuple, like the C array:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">boost_tuple</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_GEOMETRY_REGISTER_BOOST_TUPLE_CS</span><span class="special">(</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">cartesian</span><span class="special">)</span>
+</pre>
+<p>
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">double</span> <span class="identifier">points</span><span class="special">[][</span><span class="number">2</span><span class="special">]</span> <span class="special">=</span> <span class="special">{{</span><span class="number">2.0</span><span class="special">,</span> <span class="number">1.3</span><span class="special">},</span> <span class="special">{</span><span class="number">4.1</span><span class="special">,</span> <span class="number">3.0</span><span class="special">},</span> <span class="special">{</span><span class="number">5.3</span><span class="special">,</span> <span class="number">2.6</span><span class="special">},</span> <span class="special">{</span><span class="number">2.9</span><span class="special">,</span> <span class="number">0.7</span><span class="special">},</span> <span class="special">{</span><span class="number">2.0</span><span class="special">,</span> <span class="number">1.3</span><span class="special">}};</span>
+<span class="identifier">model</span><span class="special">::</span><span class="identifier">polygon</span><span class="special">&lt;</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">d2</span><span class="special">::</span><span class="identifier">point_xy</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">poly</span><span class="special">;</span>
+<span class="identifier">append</span><span class="special">(</span><span class="identifier">poly</span><span class="special">,</span> <span class="identifier">points</span><span class="special">);</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">p</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span><span class="number">3.7</span><span class="special">,</span> <span class="number">2.0</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Point p is in polygon? "</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">boolalpha</span> <span class="special">&lt;&lt;</span> <span class="identifier">within</span><span class="special">(</span><span class="identifier">p</span><span class="special">,</span> <span class="identifier">poly</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+    </p>
+<p>
+      We can calculate the area of a polygon:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Area: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">area</span><span class="special">(</span><span class="identifier">poly</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+    </p>
+<p>
+      By the nature of a template library, it is possible to mix point types. We
+      calculate distance again, now using a C array point and a Boost.Tuple point:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">double</span> <span class="identifier">d2</span> <span class="special">=</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">p</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Distance a-p is: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">d2</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+    </p>
+<p>
+      The snippets listed above generate the following output:
+    </p>
+<pre class="programlisting">Distance p1-p2 is: 1.41421
+Distance a-b is: 2.23607
+Point p is in polygon? true
+Area: 3.015
+Distance a-p is: 2.87924
+</pre>
+<h4>
+<a name="geometry.quickstart.h1"></a>
+      <span class="phrase"><a name="geometry.quickstart.non_cartesian"></a></span><a class="link" href="quickstart.html#geometry.quickstart.non_cartesian">Non-Cartesian</a>
+    </h4>
+<p>
+      It is also possible to use non-Cartesian points. For example: points on a sphere.
+      When then an algorithm such as distance is used the library "inspects"
+      that it is handling spherical points and calculates the distance over the sphere,
+      instead of applying the Pythagorean theorem.
+    </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        Boost.Geometry supports a geographical coordinate system, but that is in
+        an extension and not released in the current Boost release.
+      </p></td></tr>
+</table></div>
+<p>
+      We approximate the Earth as a sphere and calculate the distance between Amsterdam
+      and Paris:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">point</span>
+    <span class="special">&lt;</span>
+        <span class="keyword">double</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">spherical_equatorial</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">degree</span><span class="special">&gt;</span>
+    <span class="special">&gt;</span> <span class="identifier">spherical_point</span><span class="special">;</span>
+
+<span class="identifier">spherical_point</span> <span class="identifier">amsterdam</span><span class="special">(</span><span class="number">4.90</span><span class="special">,</span> <span class="number">52.37</span><span class="special">);</span>
+<span class="identifier">spherical_point</span> <span class="identifier">paris</span><span class="special">(</span><span class="number">2.35</span><span class="special">,</span> <span class="number">48.86</span><span class="special">);</span>
+
+<span class="keyword">double</span> <span class="keyword">const</span> <span class="identifier">earth_radius</span> <span class="special">=</span> <span class="number">3959</span><span class="special">;</span> <span class="comment">// miles</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Distance in miles: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">amsterdam</span><span class="special">,</span> <span class="identifier">paris</span><span class="special">)</span> <span class="special">*</span> <span class="identifier">earth_radius</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+    </p>
+<p>
+      It writes:
+    </p>
+<pre class="programlisting">Distance in miles: 267.02</pre>
+<h4>
+<a name="geometry.quickstart.h2"></a>
+      <span class="phrase"><a name="geometry.quickstart.adapted_structs"></a></span><a class="link" href="quickstart.html#geometry.quickstart.adapted_structs">Adapted
+      structs</a>
+    </h4>
+<p>
+      Finally an example from a totally different domain: developing window-based
+      applications, for example using QtWidgets. As soon as Qt classes are registered
+      in Boost.Geometry we can use them. We can, for example, check if two rectangles
+      overlap and if so, move the second one to another place:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">QRect</span> <span class="identifier">r1</span><span class="special">(</span><span class="number">100</span><span class="special">,</span> <span class="number">200</span><span class="special">,</span> <span class="number">15</span><span class="special">,</span> <span class="number">15</span><span class="special">);</span>
+<span class="identifier">QRect</span> <span class="identifier">r2</span><span class="special">(</span><span class="number">110</span><span class="special">,</span> <span class="number">210</span><span class="special">,</span> <span class="number">20</span><span class="special">,</span> <span class="number">20</span><span class="special">);</span>
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">overlaps</span><span class="special">(</span><span class="identifier">r1</span><span class="special">,</span> <span class="identifier">r2</span><span class="special">))</span>
+<span class="special">{</span>
+    <span class="identifier">assign_values</span><span class="special">(</span><span class="identifier">r2</span><span class="special">,</span> <span class="number">200</span><span class="special">,</span> <span class="number">300</span><span class="special">,</span> <span class="number">220</span><span class="special">,</span> <span class="number">320</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<h4>
+<a name="geometry.quickstart.h3"></a>
+      <span class="phrase"><a name="geometry.quickstart.more"></a></span><a class="link" href="quickstart.html#geometry.quickstart.more">More</a>
+    </h4>
+<p>
+      In the reference many more examples can be found.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="design.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="spatial_indexes.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

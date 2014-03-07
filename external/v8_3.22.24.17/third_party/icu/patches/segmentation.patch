@@ -1,0 +1,3587 @@
+--- source/common/brkeng.cpp	2009-11-11 07:47:22.000000000 -0800
++++ source/common/brkeng.cpp	2011-01-21 14:12:45.479922000 -0800
+@@ -226,6 +226,30 @@
+             case USCRIPT_THAI:
+                 engine = new ThaiBreakEngine(dict, status);
+                 break;
++                
++            case USCRIPT_HANGUL:
++                engine = new CjkBreakEngine(dict, kKorean, status);
++                break;
++
++            // use same BreakEngine and dictionary for both Chinese and Japanese
++            case USCRIPT_HIRAGANA:
++            case USCRIPT_KATAKANA:
++            case USCRIPT_HAN:
++                engine = new CjkBreakEngine(dict, kChineseJapanese, status);
++                break;
++#if 0
++            // TODO: Have to get some characters with script=common handled
++            // by CjkBreakEngine (e.g. U+309B). Simply subjecting
++            // them to CjkBreakEngine does not work. The engine has to
++            // special-case them.
++            case USCRIPT_COMMON:
++            {
++                UBlockCode block = ublock_getCode(code);
++                if (block == UBLOCK_HIRAGANA || block == UBLOCK_KATAKANA)
++                   engine = new CjkBreakEngine(dict, kChineseJapanese, status);
++                break;
++            }
++#endif
+             default:
+                 break;
+             }
+@@ -281,6 +305,13 @@
+             dict = NULL;
+         }
+         return dict;
++    } else if (dictfname != NULL){
++        //create dummy dict if dictionary filename not valid
++        UChar c = 0x0020;
++        status = U_ZERO_ERROR;
++        MutableTrieDictionary *mtd = new MutableTrieDictionary(c, status, TRUE);
++        mtd->addWord(&c, 1, status, 1);
++        return new CompactTrieDictionary(*mtd, status);  
+     }
+     return NULL;
+ }
+--- source/common/dictbe.cpp	2008-06-13 12:21:12.000000000 -0700
++++ source/common/dictbe.cpp	2011-01-21 14:12:45.468928000 -0800
+@@ -16,6 +16,9 @@
+ #include "unicode/ubrk.h"
+ #include "uvector.h"
+ #include "triedict.h"
++#include "uassert.h"
++#include "unicode/normlzr.h"
++#include "cmemory.h"
+ 
+ U_NAMESPACE_BEGIN
+ 
+@@ -422,6 +425,294 @@
+     return wordsFound;
+ }
+ 
++/*
++ ******************************************************************
++ * CjkBreakEngine
++ */
++static const uint32_t kuint32max = 0xFFFFFFFF;
++CjkBreakEngine::CjkBreakEngine(const TrieWordDictionary *adoptDictionary, LanguageType type, UErrorCode &status)
++: DictionaryBreakEngine(1<<UBRK_WORD), fDictionary(adoptDictionary){
++    if (!adoptDictionary->getValued()) {
++        status = U_ILLEGAL_ARGUMENT_ERROR;
++        return;
++    }
++
++    // Korean dictionary only includes Hangul syllables
++    fHangulWordSet.applyPattern(UNICODE_STRING_SIMPLE("[\\uac00-\\ud7a3]"), status);
++    fHanWordSet.applyPattern(UNICODE_STRING_SIMPLE("[:Han:]"), status);
++    fKatakanaWordSet.applyPattern(UNICODE_STRING_SIMPLE("[[:Katakana:]\\uff9e\\uff9f]"), status);
++    fHiraganaWordSet.applyPattern(UNICODE_STRING_SIMPLE("[:Hiragana:]"), status);
++
++    if (U_SUCCESS(status)) {
++        // handle Korean and Japanese/Chinese using different dictionaries
++        if (type == kKorean) {
++            setCharacters(fHangulWordSet);
++        } else { //Chinese and Japanese
++            UnicodeSet cjSet;
++            cjSet.addAll(fHanWordSet);
++            cjSet.addAll(fKatakanaWordSet);
++            cjSet.addAll(fHiraganaWordSet);
++            cjSet.add(UNICODE_STRING_SIMPLE("\\uff70\\u30fc"));
++            setCharacters(cjSet);
++        }
++    }
++}
++
++CjkBreakEngine::~CjkBreakEngine(){
++    delete fDictionary;
++}
++
++// The katakanaCost values below are based on the length frequencies of all
++// katakana phrases in the dictionary
++static const int kMaxKatakanaLength = 8;
++static const int kMaxKatakanaGroupLength = 20;
++static const uint32_t maxSnlp = 255;
++
++static inline uint32_t getKatakanaCost(int wordLength){
++    //TODO: fill array with actual values from dictionary!
++    static const uint32_t katakanaCost[kMaxKatakanaLength + 1]
++                                       = {8192, 984, 408, 240, 204, 252, 300, 372, 480};
++    return (wordLength > kMaxKatakanaLength) ? 8192 : katakanaCost[wordLength];
++}
++
++static inline bool isKatakana(uint16_t value) {
++    return (value >= 0x30A1u && value <= 0x30FEu && value != 0x30FBu) ||
++            (value >= 0xFF66u && value <= 0xFF9fu);
++}
++
++// A very simple helper class to streamline the buffer handling in
++// divideUpDictionaryRange. 
++template<class T, size_t N>
++class AutoBuffer {
++ public:
++  AutoBuffer(size_t size) : buffer(stackBuffer), capacity(N) {
++    if (size > N) {
++      buffer = reinterpret_cast<T*>(uprv_malloc(sizeof(T)*size));
++      capacity = size;
++    }
++  }
++  ~AutoBuffer() {
++    if (buffer != stackBuffer)
++      uprv_free(buffer);
++  }
++#if 0
++  T* operator& () {
++    return buffer;
++  }
++#endif
++  T* elems() {
++    return buffer;
++  }
++  const T& operator[] (size_t i) const {
++    return buffer[i];
++  }
++  T& operator[] (size_t i) {
++    return buffer[i];
++  }
++
++  // resize without copy
++  void resize(size_t size) {
++    if (size <= capacity)
++      return;
++    if (buffer != stackBuffer)
++      uprv_free(buffer);
++    buffer = reinterpret_cast<T*>(uprv_malloc(sizeof(T)*size));
++    capacity = size;
++  }
++ private:
++  T stackBuffer[N];
++  T* buffer;
++  AutoBuffer();
++  size_t capacity;
++};
++
++
++/*
++ * @param text A UText representing the text
++ * @param rangeStart The start of the range of dictionary characters
++ * @param rangeEnd The end of the range of dictionary characters
++ * @param foundBreaks Output of C array of int32_t break positions, or 0
++ * @return The number of breaks found
++ */
++int32_t 
++CjkBreakEngine::divideUpDictionaryRange( UText *text,
++        int32_t rangeStart,
++        int32_t rangeEnd,
++        UStack &foundBreaks ) const {
++    if (rangeStart >= rangeEnd) {
++        return 0;
++    }
++
++    const size_t defaultInputLength = 80;
++    size_t inputLength = rangeEnd - rangeStart;
++    AutoBuffer<UChar, defaultInputLength> charString(inputLength);
++
++    // Normalize the input string and put it in normalizedText.
++    // The map from the indices of the normalized input to the raw
++    // input is kept in charPositions.
++    UErrorCode status = U_ZERO_ERROR;
++    utext_extract(text, rangeStart, rangeEnd, charString.elems(), inputLength, &status);
++    if (U_FAILURE(status))
++        return 0;
++
++    UnicodeString inputString(charString.elems(), inputLength);
++    UNormalizationMode norm_mode = UNORM_NFKC;
++    UBool isNormalized =
++        Normalizer::quickCheck(inputString, norm_mode, status) == UNORM_YES ||
++        Normalizer::isNormalized(inputString, norm_mode, status);
++
++    AutoBuffer<int32_t, defaultInputLength> charPositions(inputLength + 1);
++    int numChars = 0;
++    UText normalizedText = UTEXT_INITIALIZER;
++    // Needs to be declared here because normalizedText holds onto its buffer.
++    UnicodeString normalizedString;
++    if (isNormalized) {
++        int32_t index = 0;
++        charPositions[0] = 0;
++        while(index < inputString.length()) {
++            index = inputString.moveIndex32(index, 1);
++            charPositions[++numChars] = index;
++        }
++        utext_openUnicodeString(&normalizedText, &inputString, &status);
++    }
++    else {
++        Normalizer::normalize(inputString, norm_mode, 0, normalizedString, status);
++        if (U_FAILURE(status))
++            return 0;
++        charPositions.resize(normalizedString.length() + 1);
++        Normalizer normalizer(charString.elems(), inputLength, norm_mode);
++        int32_t index = 0;
++        charPositions[0] = 0;
++        while(index < normalizer.endIndex()){
++            UChar32 uc = normalizer.next();
++            charPositions[++numChars] = index = normalizer.getIndex();
++        }
++        utext_openUnicodeString(&normalizedText, &normalizedString, &status);
++    }
++
++    if (U_FAILURE(status))
++        return 0;
++
++    // From this point on, all the indices refer to the indices of
++    // the normalized input string.
++
++    // bestSnlp[i] is the snlp of the best segmentation of the first i
++    // characters in the range to be matched.
++    AutoBuffer<uint32_t, defaultInputLength> bestSnlp(numChars + 1);
++    bestSnlp[0] = 0;
++    for(int i=1; i<=numChars; i++){
++        bestSnlp[i] = kuint32max;
++    }
++
++    // prev[i] is the index of the last CJK character in the previous word in 
++    // the best segmentation of the first i characters.
++    AutoBuffer<int, defaultInputLength> prev(numChars + 1);
++    for(int i=0; i<=numChars; i++){
++        prev[i] = -1;
++    }
++
++    const size_t maxWordSize = 20;
++    AutoBuffer<uint16_t, maxWordSize> values(numChars);
++    AutoBuffer<int32_t, maxWordSize> lengths(numChars);
++
++    // Dynamic programming to find the best segmentation.
++    bool is_prev_katakana = false;
++    for (int i = 0; i < numChars; ++i) {
++        //utext_setNativeIndex(text, rangeStart + i);
++        utext_setNativeIndex(&normalizedText, i);
++        if (bestSnlp[i] == kuint32max)
++            continue;
++
++        int count;
++        // limit maximum word length matched to size of current substring
++        int maxSearchLength = (i + maxWordSize < (size_t) numChars)? maxWordSize: numChars - i; 
++
++        fDictionary->matches(&normalizedText, maxSearchLength, lengths.elems(), count, maxSearchLength, values.elems());
++
++        // if there are no single character matches found in the dictionary 
++        // starting with this charcter, treat character as a 1-character word 
++        // with the highest value possible, i.e. the least likely to occur.
++        // Exclude Korean characters from this treatment, as they should be left
++        // together by default.
++        if((count == 0 || lengths[0] != 1) &&
++                !fHangulWordSet.contains(utext_current32(&normalizedText))){
++            values[count] = maxSnlp;
++            lengths[count++] = 1;
++        }
++
++        for (int j = 0; j < count; j++){
++            //U_ASSERT(values[j] >= 0 && values[j] <= maxSnlp);
++            uint32_t newSnlp = bestSnlp[i] + values[j];
++            if (newSnlp < bestSnlp[lengths[j] + i]) {
++                bestSnlp[lengths[j] + i] = newSnlp;
++                prev[lengths[j] + i] = i;
++            }
++        }
++
++        // In Japanese,
++        // Katakana word in single character is pretty rare. So we apply
++        // the following heuristic to Katakana: any continuous run of Katakana
++        // characters is considered a candidate word with a default cost
++        // specified in the katakanaCost table according to its length.
++        //utext_setNativeIndex(text, rangeStart + i);
++        utext_setNativeIndex(&normalizedText, i);
++        bool is_katakana = isKatakana(utext_current32(&normalizedText));
++        if (!is_prev_katakana && is_katakana) {
++            int j = i + 1;
++            utext_next32(&normalizedText);
++            // Find the end of the continuous run of Katakana characters
++            while (j < numChars && (j - i) < kMaxKatakanaGroupLength &&
++                    isKatakana(utext_current32(&normalizedText))) {
++                utext_next32(&normalizedText);
++                ++j;
++            }
++            if ((j - i) < kMaxKatakanaGroupLength) {
++                uint32_t newSnlp = bestSnlp[i] + getKatakanaCost(j - i);
++                if (newSnlp < bestSnlp[j]) {
++                    bestSnlp[j] = newSnlp;
++                    prev[j] = i;
++                }
++            }
++        }
++        is_prev_katakana = is_katakana;
++    }
++
++    // Start pushing the optimal offset index into t_boundary (t for tentative).
++    // prev[numChars] is guaranteed to be meaningful.
++    // We'll first push in the reverse order, i.e.,
++    // t_boundary[0] = numChars, and afterwards do a swap.
++    AutoBuffer<int, maxWordSize> t_boundary(numChars + 1);
++
++    int numBreaks = 0;
++    // No segmentation found, set boundary to end of range
++    if (bestSnlp[numChars] == kuint32max) {
++        t_boundary[numBreaks++] = numChars;
++    } else {
++        for (int i = numChars; i > 0; i = prev[i]){
++            t_boundary[numBreaks++] = i;
++    
++        }
++        U_ASSERT(prev[t_boundary[numBreaks-1]] == 0);
++    }
++
++    // Reverse offset index in t_boundary.
++    // Don't add a break for the start of the dictionary range if there is one
++    // there already.
++    if (foundBreaks.size() == 0 || foundBreaks.peeki() < rangeStart) {
++        t_boundary[numBreaks++] = 0;
++    }
++
++    // Now that we're done, convert positions in t_bdry[] (indices in 
++    // the normalized input string) back to indices in the raw input string
++    // while reversing t_bdry and pushing values to foundBreaks.
++    for (int i = numBreaks-1; i >= 0; i--) {
++        foundBreaks.push(charPositions[t_boundary[i]] + rangeStart, status);
++    }
++
++    utext_close(&normalizedText);
++    return numBreaks;
++}
++
+ U_NAMESPACE_END
+ 
+ #endif /* #if !UCONFIG_NO_BREAK_ITERATION */
+--- source/common/dictbe.h	2006-09-29 17:37:45.000000000 -0700
++++ source/common/dictbe.h	2011-01-21 14:12:45.492920000 -0800
+@@ -1,8 +1,8 @@
+ /**
+- *******************************************************************************
+- * Copyright (C) 2006, International Business Machines Corporation and others. *
+- * All Rights Reserved.                                                        *
+- *******************************************************************************
++ **********************************************************************************
++ * Copyright (C) 2006-2010, International Business Machines Corporation and others.
++ * All Rights Reserved.                                                       
++ **********************************************************************************
+  */
+ 
+ #ifndef DICTBE_H
+@@ -65,31 +65,31 @@
+    */
+   virtual ~DictionaryBreakEngine();
+ 
+- /**
+-  * <p>Indicate whether this engine handles a particular character for
+-  * a particular kind of break.</p>
+-  *
+-  * @param c A character which begins a run that the engine might handle
+-  * @param breakType The type of text break which the caller wants to determine
+-  * @return TRUE if this engine handles the particular character and break
+-  * type.
+-  */
++  /**
++   * <p>Indicate whether this engine handles a particular character for
++   * a particular kind of break.</p>
++   *
++   * @param c A character which begins a run that the engine might handle
++   * @param breakType The type of text break which the caller wants to determine
++   * @return TRUE if this engine handles the particular character and break
++   * type.
++   */
+   virtual UBool handles( UChar32 c, int32_t breakType ) const;
+ 
+- /**
+-  * <p>Find any breaks within a run in the supplied text.</p>
+-  *
+-  * @param text A UText representing the text. The
+-  * iterator is left at the end of the run of characters which the engine
+-  * is capable of handling.
+-  * @param startPos The start of the run within the supplied text.
+-  * @param endPos The end of the run within the supplied text.
+-  * @param reverse Whether the caller is looking for breaks in a reverse
+-  * direction.
+-  * @param breakType The type of break desired, or -1.
+-  * @param foundBreaks An allocated C array of the breaks found, if any
+-  * @return The number of breaks found.
+-  */
++  /**
++   * <p>Find any breaks within a run in the supplied text.</p>
++   *
++   * @param text A UText representing the text. The iterator is left at
++   * the end of the run of characters which the engine is capable of handling 
++   * that starts from the first (or last) character in the range.
++   * @param startPos The start of the run within the supplied text.
++   * @param endPos The end of the run within the supplied text.
++   * @param reverse Whether the caller is looking for breaks in a reverse
++   * direction.
++   * @param breakType The type of break desired, or -1.
++   * @param foundBreaks An allocated C array of the breaks found, if any
++   * @return The number of breaks found.
++   */
+   virtual int32_t findBreaks( UText *text,
+                               int32_t startPos,
+                               int32_t endPos,
+@@ -114,7 +114,7 @@
+ //  virtual void setBreakTypes( uint32_t breakTypes );
+ 
+  /**
+-  * <p>Divide up a range of known dictionary characters.</p>
++  * <p>Divide up a range of known dictionary characters handled by this break engine.</p>
+   *
+   * @param text A UText representing the text
+   * @param rangeStart The start of the range of dictionary characters
+@@ -171,7 +171,7 @@
+ 
+  protected:
+  /**
+-  * <p>Divide up a range of known dictionary characters.</p>
++  * <p>Divide up a range of known dictionary characters handled by this break engine.</p>
+   *
+   * @param text A UText representing the text
+   * @param rangeStart The start of the range of dictionary characters
+@@ -186,6 +186,66 @@
+ 
+ };
+ 
++/*******************************************************************
++ * CjkBreakEngine
++ */
++
++//indicates language/script that the CjkBreakEngine will handle
++enum LanguageType {
++    kKorean,
++    kChineseJapanese
++};
++
++/**
++ * <p>CjkBreakEngine is a kind of DictionaryBreakEngine that uses a
++ * TrieWordDictionary with costs associated with each word and
++ * Viterbi decoding to determine CJK-specific breaks.</p>
++ */
++class CjkBreakEngine : public DictionaryBreakEngine {
++ protected:
++    /**
++     * The set of characters handled by this engine
++     * @internal
++     */
++  UnicodeSet                fHangulWordSet;
++  UnicodeSet                fHanWordSet;
++  UnicodeSet                fKatakanaWordSet;
++  UnicodeSet                fHiraganaWordSet;
++
++  const TrieWordDictionary  *fDictionary;
++
++ public:
++
++    /**
++     * <p>Default constructor.</p>
++     *
++     * @param adoptDictionary A TrieWordDictionary to adopt. Deleted when the
++     * engine is deleted. The TrieWordDictionary must contain costs for each word
++     * in order for the dictionary to work properly.
++     */
++  CjkBreakEngine(const TrieWordDictionary *adoptDictionary, LanguageType type, UErrorCode &status);
++
++    /**
++     * <p>Virtual destructor.</p>
++     */
++  virtual ~CjkBreakEngine();
++
++ protected:
++    /**
++     * <p>Divide up a range of known dictionary characters handled by this break engine.</p>
++     *
++     * @param text A UText representing the text
++     * @param rangeStart The start of the range of dictionary characters
++     * @param rangeEnd The end of the range of dictionary characters
++     * @param foundBreaks Output of C array of int32_t break positions, or 0
++     * @return The number of breaks found
++     */
++  virtual int32_t divideUpDictionaryRange( UText *text,
++          int32_t rangeStart,
++          int32_t rangeEnd,
++          UStack &foundBreaks ) const;
++
++};
+ 
+ U_NAMESPACE_END
+ 
+--- source/common/rbbi.cpp	2010-07-22 17:15:37.000000000 -0700
++++ source/common/rbbi.cpp	2011-01-21 14:12:45.457938000 -0800
+@@ -1555,10 +1555,12 @@
+                             int32_t endPos,
+                             UBool reverse) {
+     // Reset the old break cache first.
+-    uint32_t dictionaryCount = fDictionaryCharCount;
+     reset();
+ 
+-    if (dictionaryCount <= 1 || (endPos - startPos) <= 1) {
++    // note: code segment below assumes that dictionary chars are in the 
++    // startPos-endPos range
++    // value returned should be next character in sequence
++    if ((endPos - startPos) <= 1) {
+         return (reverse ? startPos : endPos);
+     }
+     
+@@ -1711,7 +1713,7 @@
+             // proposed break by one of the breaks we found. Use following() and
+             // preceding() to do the work. They should never recurse in this case.
+             if (reverse) {
+-                return preceding(endPos - 1);
++                return preceding(endPos);
+             }
+             else {
+                 return following(startPos);
+--- source/common/triedict.cpp	2008-02-13 01:35:50.000000000 -0800
++++ source/common/triedict.cpp	2011-01-21 14:12:45.271006000 -0800
+@@ -20,6 +20,7 @@
+ #include "uvector.h"
+ #include "uvectr32.h"
+ #include "uarrsort.h"
++#include "hash.h"
+ 
+ //#define DEBUG_TRIE_DICT 1
+ 
+@@ -27,6 +28,11 @@
+ #include <sys/times.h>
+ #include <limits.h>
+ #include <stdio.h>
++#include <time.h>
++#ifndef CLK_TCK
++#define CLK_TCK      CLOCKS_PER_SEC
++#endif
++
+ #endif
+ 
+ U_NAMESPACE_BEGIN
+@@ -45,6 +51,11 @@
+  * MutableTrieDictionary
+  */
+ 
++//#define MAX_VALUE 65535
++
++// forward declaration
++inline uint16_t scaleLogProbabilities(double logprob);
++
+ // Node structure for the ternary, uncompressed trie
+ struct TernaryNode : public UMemory {
+     UChar       ch;         // UTF-16 code unit
+@@ -77,7 +88,8 @@
+     delete high;
+ }
+ 
+-MutableTrieDictionary::MutableTrieDictionary( UChar median, UErrorCode &status ) {
++MutableTrieDictionary::MutableTrieDictionary( UChar median, UErrorCode &status,
++                                              UBool containsValue /* = FALSE */  ) {
+     // Start the trie off with something. Having the root node already present
+     // cuts a special case out of the search/insertion functions.
+     // Making it a median character cuts the worse case for searches from
+@@ -91,14 +103,19 @@
+     if (U_SUCCESS(status) && fIter == NULL) {
+         status = U_MEMORY_ALLOCATION_ERROR;
+     }
++
++    fValued = containsValue;
+ }
+ 
+-MutableTrieDictionary::MutableTrieDictionary( UErrorCode &status ) {
++MutableTrieDictionary::MutableTrieDictionary( UErrorCode &status, 
++                                              UBool containsValue /* = false */ ) {
+     fTrie = NULL;
+     fIter = utext_openUChars(NULL, NULL, 0, &status);
+     if (U_SUCCESS(status) && fIter == NULL) {
+         status = U_MEMORY_ALLOCATION_ERROR;
+     }
++
++    fValued = containsValue;
+ }
+ 
+ MutableTrieDictionary::~MutableTrieDictionary() {
+@@ -108,12 +125,13 @@
+ 
+ int32_t
+ MutableTrieDictionary::search( UText *text,
+-                                   int32_t maxLength,
+-                                   int32_t *lengths,
+-                                   int &count,
+-                                   int limit,
+-                                   TernaryNode *&parent,
+-                                   UBool &pMatched ) const {
++                               int32_t maxLength,
++                               int32_t *lengths,
++                               int &count,
++                               int limit,
++                               TernaryNode *&parent,
++                               UBool &pMatched,
++                               uint16_t *values /*=NULL*/) const {
+     // TODO: current implementation works in UTF-16 space
+     const TernaryNode *up = NULL;
+     const TernaryNode *p = fTrie;
+@@ -121,6 +139,10 @@
+     pMatched = TRUE;
+     int i;
+ 
++    if (!fValued) {
++        values = NULL;
++    }
++
+     UChar uc = utext_current32(text);
+     for (i = 0; i < maxLength && p != NULL; ++i) {
+         while (p != NULL) {
+@@ -141,7 +163,11 @@
+             break;
+         }
+         // Must be equal to get here
+-        if (limit > 0 && (p->flags & kEndsWord)) {
++        if (limit > 0 && (p->flags > 0)) {
++            //is there a more efficient way to add values? ie. remove if stmt
++            if(values != NULL) {
++                values[mycount] = p->flags;
++            }
+             lengths[mycount++] = i+1;
+             --limit;
+         }
+@@ -161,13 +187,14 @@
+ void
+ MutableTrieDictionary::addWord( const UChar *word,
+                                 int32_t length,
+-                                UErrorCode &status ) {
+-#if 0
+-    if (length <= 0) {
++                                UErrorCode &status,
++                                uint16_t value /* = 0 */ ) {
++    // dictionary cannot store zero values, would interfere with flags
++    if (length <= 0 || (!fValued && value > 0) || (fValued && value == 0)) {
+         status = U_ILLEGAL_ARGUMENT_ERROR;
+         return;
+     }
+-#endif
++
+     TernaryNode *parent;
+     UBool pMatched;
+     int count;
+@@ -177,7 +204,7 @@
+     matched = search(fIter, length, NULL, count, 0, parent, pMatched);
+     
+     while (matched++ < length) {
+-        UChar32 uc = utext_next32(fIter);  // TODO:  supplemetary support?
++        UChar32 uc = utext_next32(fIter);  // TODO:  supplementary support?
+         U_ASSERT(uc != U_SENTINEL);
+         TernaryNode *newNode = new TernaryNode(uc);
+         if (newNode == NULL) {
+@@ -199,30 +226,23 @@
+         parent = newNode;
+     }
+ 
+-    parent->flags |= kEndsWord;
+-}
+-
+-#if 0
+-void
+-MutableTrieDictionary::addWords( UEnumeration *words,
+-                                  UErrorCode &status ) {
+-    int32_t length;
+-    const UChar *word;
+-    while ((word = uenum_unext(words, &length, &status)) && U_SUCCESS(status)) {
+-        addWord(word, length, status);
++    if(fValued && value > 0){
++        parent->flags = value;
++    } else {
++        parent->flags |= kEndsWord;
+     }
+ }
+-#endif
+ 
+ int32_t
+ MutableTrieDictionary::matches( UText *text,
+                                 int32_t maxLength,
+                                 int32_t *lengths,
+                                 int &count,
+-                                int limit ) const {
++                                int limit,
++                                uint16_t *values /*=NULL*/) const {
+     TernaryNode *parent;
+     UBool pMatched;
+-    return search(text, maxLength, lengths, count, limit, parent, pMatched);
++    return search(text, maxLength, lengths, count, limit, parent, pMatched, values);
+ }
+ 
+ // Implementation of iteration for MutableTrieDictionary
+@@ -277,7 +297,7 @@
+                     break;
+                 }
+             case kEqual:
+-                emit = (node->flags & kEndsWord) != 0;
++                emit = node->flags > 0;
+                 equal = (node->equal != NULL);
+                 // If this node should be part of the next emitted string, append
+                 // the UChar to the string, and make sure we pop it when we come
+@@ -299,7 +319,7 @@
+                 }
+             case kGreaterThan:
+                 // If this node's character is in the string, remove it.
+-                if (node->equal != NULL || (node->flags & kEndsWord)) {
++                if (node->equal != NULL || node->flags > 0) {
+                     unistr.truncate(unistr.length()-1);
+                 }
+                 if (node->high != NULL) {
+@@ -354,12 +374,75 @@
+  * CompactTrieDictionary
+  */
+ 
++//TODO further optimization:
++// minimise size of trie with logprobs by storing values
++// for terminal nodes directly in offsets[]
++// --> calculating from next offset *might* be simpler, but would have to add
++// one last offset for logprob of last node
++// --> if calculate from current offset, need to factor in possible overflow
++// as well.
++// idea: store in offset, set first bit to indicate logprob storage-->won't
++// have to access additional node
++
++// {'Dic', 1}, version 1: uses old header, no values
++#define COMPACT_TRIE_MAGIC_1 0x44696301
++// version 2: uses new header (more than 2^16 nodes), no values
++#define COMPACT_TRIE_MAGIC_2 0x44696302
++// version 3: uses new header, includes values
++#define COMPACT_TRIE_MAGIC_3 0x44696303
++
+ struct CompactTrieHeader {
+     uint32_t        size;           // Size of the data in bytes
+     uint32_t        magic;          // Magic number (including version)
++    uint32_t        nodeCount;      // Number of entries in offsets[]
++    uint32_t        root;           // Node number of the root node
++    uint32_t        offsets[1];     // Offsets to nodes from start of data
++};
++
++// old version of CompactTrieHeader kept for backwards compatibility
++struct CompactTrieHeaderV1 {
++    uint32_t        size;           // Size of the data in bytes
++    uint32_t        magic;          // Magic number (including version)
+     uint16_t        nodeCount;      // Number of entries in offsets[]
+     uint16_t        root;           // Node number of the root node
+-    uint32_t        offsets[1];      // Offsets to nodes from start of data
++    uint32_t        offsets[1];     // Offsets to nodes from start of data
++};
++
++// Helper class for managing CompactTrieHeader and CompactTrieHeaderV1
++struct CompactTrieInfo {
++    uint32_t        size;           // Size of the data in bytes
++    uint32_t        magic;          // Magic number (including version)
++    uint32_t        nodeCount;      // Number of entries in offsets[]
++    uint32_t        root;           // Node number of the root node
++    uint32_t        *offsets;       // Offsets to nodes from start of data
++    uint8_t         *address;       // pointer to header bytes in memory
++
++    CompactTrieInfo(const void *data, UErrorCode &status){
++        CompactTrieHeader *header = (CompactTrieHeader *) data;
++        if (header->magic != COMPACT_TRIE_MAGIC_1 && 
++                header->magic != COMPACT_TRIE_MAGIC_2 &&
++                header->magic != COMPACT_TRIE_MAGIC_3) {
++            status = U_ILLEGAL_ARGUMENT_ERROR;
++        } else {
++            size = header->size;
++            magic = header->magic;
++
++            if (header->magic == COMPACT_TRIE_MAGIC_1) {
++                CompactTrieHeaderV1 *headerV1 = (CompactTrieHeaderV1 *) header;
++                nodeCount = headerV1->nodeCount;
++                root = headerV1->root;
++                offsets = &(headerV1->offsets[0]);
++                address = (uint8_t *)headerV1;
++            } else {
++                nodeCount = header->nodeCount;
++                root = header->root;
++                offsets = &(header->offsets[0]);
++                address = (uint8_t *)header;
++            }
++        }
++    }
++
++    ~CompactTrieInfo(){}
+ };
+ 
+ // Note that to avoid platform-specific alignment issues, all members of the node
+@@ -375,10 +458,14 @@
+ enum CompactTrieNodeFlags {
+     kVerticalNode   = 0x1000,       // This is a vertical node
+     kParentEndsWord = 0x2000,       // The node whose equal link points to this ends a word
+-    kReservedFlag1  = 0x4000,
+-    kReservedFlag2  = 0x8000,
++    kExceedsCount   = 0x4000,       // new MSB for count >= 4096, originally kReservedFlag1
++    kEqualOverflows = 0x8000,       // Links to nodeIDs > 2^16, orig. kReservedFlag2
+     kCountMask      = 0x0FFF,       // The count portion of flagscount
+-    kFlagMask       = 0xF000        // The flags portion of flagscount
++    kFlagMask       = 0xF000,       // The flags portion of flagscount
++    kRootCountMask  = 0x7FFF        // The count portion of flagscount in the root node
++
++    //offset flags:
++    //kOffsetContainsValue = 0x80000000       // Offset contains value for parent node
+ };
+ 
+ // The two node types are distinguished by the kVerticalNode flag.
+@@ -402,63 +489,177 @@
+     uint16_t        chars[1];       // Code units
+ };
+ 
+-// {'Dic', 1}, version 1
+-#define COMPACT_TRIE_MAGIC_1 0x44696301
+-
+ CompactTrieDictionary::CompactTrieDictionary(UDataMemory *dataObj,
+                                                 UErrorCode &status )
+ : fUData(dataObj)
+ {
+-    fData = (const CompactTrieHeader *) udata_getMemory(dataObj);
++    fInfo = (CompactTrieInfo *)uprv_malloc(sizeof(CompactTrieInfo));
++    *fInfo = CompactTrieInfo(udata_getMemory(dataObj), status);
+     fOwnData = FALSE;
+-    if (fData->magic != COMPACT_TRIE_MAGIC_1) {
+-        status = U_ILLEGAL_ARGUMENT_ERROR;
+-        fData = NULL;
+-    }
+ }
++
+ CompactTrieDictionary::CompactTrieDictionary( const void *data,
+                                                 UErrorCode &status )
+ : fUData(NULL)
+ {
+-    fData = (const CompactTrieHeader *) data;
++    fInfo = (CompactTrieInfo *)uprv_malloc(sizeof(CompactTrieInfo));
++    *fInfo = CompactTrieInfo(data, status);
+     fOwnData = FALSE;
+-    if (fData->magic != COMPACT_TRIE_MAGIC_1) {
+-        status = U_ILLEGAL_ARGUMENT_ERROR;
+-        fData = NULL;
+-    }
+ }
+ 
+ CompactTrieDictionary::CompactTrieDictionary( const MutableTrieDictionary &dict,
+                                                 UErrorCode &status )
+ : fUData(NULL)
+ {
+-    fData = compactMutableTrieDictionary(dict, status);
++    const CompactTrieHeader* header = compactMutableTrieDictionary(dict, status);
++    if (U_SUCCESS(status)) {
++        fInfo = (CompactTrieInfo *)uprv_malloc(sizeof(CompactTrieInfo));
++        *fInfo = CompactTrieInfo(header, status);
++    }
++
+     fOwnData = !U_FAILURE(status);
+ }
+ 
+ CompactTrieDictionary::~CompactTrieDictionary() {
+     if (fOwnData) {
+-        uprv_free((void *)fData);
++        uprv_free((void *)(fInfo->address));
+     }
++    uprv_free((void *)fInfo);
++
+     if (fUData) {
+         udata_close(fUData);
+     }
+ }
+ 
++UBool CompactTrieDictionary::getValued() const{
++    return fInfo->magic == COMPACT_TRIE_MAGIC_3;
++}
++
+ uint32_t
+ CompactTrieDictionary::dataSize() const {
+-    return fData->size;
++    return fInfo->size;
+ }
+ 
+ const void *
+ CompactTrieDictionary::data() const {
+-    return fData;
++    return fInfo->address;
++}
++
++//This function finds the address of a node for us, given its node ID
++static inline const CompactTrieNode *
++getCompactNode(const CompactTrieInfo *info, uint32_t node) {
++    if(node < info->root-1) {
++        return (const CompactTrieNode *)(&info->offsets[node]);
++    } else {
++        return (const CompactTrieNode *)(info->address + info->offsets[node]);
++    }
+ }
+ 
+-// This function finds the address of a node for us, given its node ID
++//this version of getCompactNode is currently only used in compactMutableTrieDictionary()
+ static inline const CompactTrieNode *
+-getCompactNode(const CompactTrieHeader *header, uint16_t node) {
+-    return (const CompactTrieNode *)((const uint8_t *)header + header->offsets[node]);
++getCompactNode(const CompactTrieHeader *header, uint32_t node) {
++    if(node < header->root-1) {
++        return (const CompactTrieNode *)(&header->offsets[node]);
++    } else {
++        return (const CompactTrieNode *)((const uint8_t *)header + header->offsets[node]);
++    }
++}
++
++
++/**
++ * Calculates the number of links in a node
++ * @node The specified node
++ */
++static inline const uint16_t
++getCount(const CompactTrieNode *node){
++    return (node->flagscount & kCountMask);
++    //use the code below if number of links ever exceed 4096
++    //return (node->flagscount & kCountMask) + ((node->flagscount & kExceedsCount) >> 2);
++}
++
++/**
++ * calculates an equal link node ID of a horizontal node
++ * @hnode The horizontal node containing the equal link
++ * @param index The index into hnode->entries[]
++ * @param nodeCount The length of hnode->entries[]
++ */
++static inline uint32_t calcEqualLink(const CompactTrieVerticalNode *vnode){
++    if(vnode->flagscount & kEqualOverflows){
++        // treat overflow bits as an extension of chars[]
++        uint16_t *overflow = (uint16_t *) &vnode->chars[getCount((CompactTrieNode*)vnode)];
++        return vnode->equal + (((uint32_t)*overflow) << 16);
++    }else{
++        return vnode->equal;
++    }
++}
++
++/**
++ * calculates an equal link node ID of a horizontal node
++ * @hnode The horizontal node containing the equal link
++ * @param index The index into hnode->entries[]
++ * @param nodeCount The length of hnode->entries[]
++ */
++static inline uint32_t calcEqualLink(const CompactTrieHorizontalNode *hnode, uint16_t index, uint16_t nodeCount){
++    if(hnode->flagscount & kEqualOverflows){
++        //set overflow to point to the uint16_t containing the overflow bits 
++        uint16_t *overflow = (uint16_t *) &hnode->entries[nodeCount];
++        overflow += index/4;
++        uint16_t extraBits = (*overflow >> (3 - (index % 4)) * 4) % 0x10;
++        return hnode->entries[index].equal + (((uint32_t)extraBits) << 16);
++    } else {
++        return hnode->entries[index].equal;
++    }
++}
++
++/**
++ * Returns the value stored in the specified node which is associated with its
++ * parent node.
++ * TODO: how to tell that value is stored in node or in offset? check whether
++ * node ID < fInfo->root!
++ */
++static inline uint16_t getValue(const CompactTrieHorizontalNode *hnode){
++    uint16_t count = getCount((CompactTrieNode *)hnode);
++    uint16_t overflowSize = 0; //size of node ID overflow storage in bytes
++
++    if(hnode->flagscount & kEqualOverflows)
++        overflowSize = (count + 3) / 4 * sizeof(uint16_t);
++    return *((uint16_t *)((uint8_t *)&hnode->entries[count] + overflowSize)); 
++}
++
++static inline uint16_t getValue(const CompactTrieVerticalNode *vnode){
++    // calculate size of total node ID overflow storage in bytes
++    uint16_t overflowSize = (vnode->flagscount & kEqualOverflows)? sizeof(uint16_t) : 0;
++    return *((uint16_t *)((uint8_t *)&vnode->chars[getCount((CompactTrieNode *)vnode)] + overflowSize)); 
++}
++
++static inline uint16_t getValue(const CompactTrieNode *node){
++    if(node->flagscount & kVerticalNode)
++        return getValue((const CompactTrieVerticalNode *)node);
++    else
++        return getValue((const CompactTrieHorizontalNode *)node);
++}
++
++//returns index of match in CompactTrieHorizontalNode.entries[] using binary search
++inline int16_t 
++searchHorizontalEntries(const CompactTrieHorizontalEntry *entries, 
++        UChar uc, uint16_t nodeCount){
++    int low = 0;
++    int high = nodeCount-1;
++    int middle;
++    while (high >= low) {
++        middle = (high+low)/2;
++        if (uc == entries[middle].ch) {
++            return middle;
++        }
++        else if (uc < entries[middle].ch) {
++            high = middle-1;
++        }
++        else {
++            low = middle+1;
++        }
++    }
++
++    return -1;
+ }
+ 
+ int32_t
+@@ -466,17 +667,38 @@
+                                 int32_t maxLength,
+                                 int32_t *lengths,
+                                 int &count,
+-                                int limit ) const {
++                                int limit,
++                                uint16_t *values /*= NULL*/) const {
++    if (fInfo->magic == COMPACT_TRIE_MAGIC_2)
++        values = NULL;
++
+     // TODO: current implementation works in UTF-16 space
+-    const CompactTrieNode *node = getCompactNode(fData, fData->root);
++    const CompactTrieNode *node = getCompactNode(fInfo, fInfo->root);
+     int mycount = 0;
+ 
+     UChar uc = utext_current32(text);
+     int i = 0;
+ 
++    // handle root node with only kEqualOverflows flag: assume horizontal node without parent
++    if(node != NULL){
++        const CompactTrieHorizontalNode *root = (const CompactTrieHorizontalNode *) node;
++        int index = searchHorizontalEntries(root->entries, uc, root->flagscount & kRootCountMask);
++        if(index > -1){
++            node = getCompactNode(fInfo, calcEqualLink(root, index, root->flagscount & kRootCountMask));
++            utext_next32(text);
++            uc = utext_current32(text);
++            ++i;
++        }else{
++            node = NULL;
++        }
++    }
++
+     while (node != NULL) {
+         // Check if the node we just exited ends a word
+         if (limit > 0 && (node->flagscount & kParentEndsWord)) {
++            if(values != NULL){
++                values[mycount] = getValue(node);
++            }
+             lengths[mycount++] = i;
+             --limit;
+         }
+@@ -487,7 +709,7 @@
+             break;
+         }
+ 
+-        int nodeCount = (node->flagscount & kCountMask);
++        int nodeCount = getCount(node);
+         if (nodeCount == 0) {
+             // Special terminal node; return now
+             break;
+@@ -507,35 +729,27 @@
+             // To get here we must have come through the whole list successfully;
+             // go on to the next node. Note that a word cannot end in the middle
+             // of a vertical node.
+-            node = getCompactNode(fData, vnode->equal);
++            node = getCompactNode(fInfo, calcEqualLink(vnode));
+         }
+         else {
+             // Horizontal node; do binary search
+             const CompactTrieHorizontalNode *hnode = (const CompactTrieHorizontalNode *)node;
+-            int low = 0;
+-            int high = nodeCount-1;
+-            int middle;
+-            node = NULL;    // If we don't find a match, we'll fall out of the loop
+-            while (high >= low) {
+-                middle = (high+low)/2;
+-                if (uc == hnode->entries[middle].ch) {
+-                    // We hit a match; get the next node and next character
+-                    node = getCompactNode(fData, hnode->entries[middle].equal);
+-                    utext_next32(text);
+-                    uc = utext_current32(text);
+-                    ++i;
+-                    break;
+-                }
+-                else if (uc < hnode->entries[middle].ch) {
+-                    high = middle-1;
+-                }
+-                else {
+-                    low = middle+1;
+-                }
++            const CompactTrieHorizontalEntry *entries;
++            entries = hnode->entries;
++
++            int index = searchHorizontalEntries(entries, uc, nodeCount);
++            if(index > -1){  //
++                // We hit a match; get the next node and next character
++                node = getCompactNode(fInfo, calcEqualLink(hnode, index, nodeCount));
++                utext_next32(text);
++                uc = utext_current32(text);
++                ++i;
++            }else{
++                node = NULL;    // If we don't find a match, we'll fall out of the loop              
+             }
+         }
+     }
+-exit:
++    exit:
+     count = mycount;
+     return i;
+ }
+@@ -545,16 +759,16 @@
+ private:
+     UVector32               fNodeStack;     // Stack of nodes to process
+     UVector32               fIndexStack;    // Stack of where in node we are
+-    const CompactTrieHeader *fHeader;       // Trie data
++    const CompactTrieInfo   *fInfo;         // Trie data
+ 
+ public:
+     static UClassID U_EXPORT2 getStaticClassID(void);
+     virtual UClassID getDynamicClassID(void) const;
+ public:
+-    CompactTrieEnumeration(const CompactTrieHeader *header, UErrorCode &status) 
++    CompactTrieEnumeration(const CompactTrieInfo *info, UErrorCode &status) 
+         : fNodeStack(status), fIndexStack(status) {
+-        fHeader = header;
+-        fNodeStack.push(header->root, status);
++        fInfo = info;
++        fNodeStack.push(info->root, status);
+         fIndexStack.push(0, status);
+         unistr.remove();
+     }
+@@ -564,14 +778,14 @@
+     
+     virtual StringEnumeration *clone() const {
+         UErrorCode status = U_ZERO_ERROR;
+-        return new CompactTrieEnumeration(fHeader, status);
++        return new CompactTrieEnumeration(fInfo, status);
+     }
+     
+     virtual const UnicodeString * snext(UErrorCode &status);
+ 
+     // Very expensive, but this should never be used.
+     virtual int32_t count(UErrorCode &status) const {
+-        CompactTrieEnumeration counter(fHeader, status);
++        CompactTrieEnumeration counter(fInfo, status);
+         int32_t result = 0;
+         while (counter.snext(status) != NULL && U_SUCCESS(status)) {
+             ++result;
+@@ -582,7 +796,7 @@
+     virtual void reset(UErrorCode &status) {
+         fNodeStack.removeAllElements();
+         fIndexStack.removeAllElements();
+-        fNodeStack.push(fHeader->root, status);
++        fNodeStack.push(fInfo->root, status);
+         fIndexStack.push(0, status);
+         unistr.remove();
+     }
+@@ -595,26 +809,34 @@
+     if (fNodeStack.empty() || U_FAILURE(status)) {
+         return NULL;
+     }
+-    const CompactTrieNode *node = getCompactNode(fHeader, fNodeStack.peeki());
++    const CompactTrieNode *node = getCompactNode(fInfo, fNodeStack.peeki());
+     int where = fIndexStack.peeki();
+     while (!fNodeStack.empty() && U_SUCCESS(status)) {
+-        int nodeCount = (node->flagscount & kCountMask);
++        int nodeCount;
++
++        bool isRoot = fNodeStack.peeki() == static_cast<int32_t>(fInfo->root);
++        if(isRoot){
++            nodeCount = node->flagscount & kRootCountMask;
++        } else {
++            nodeCount = getCount(node);
++        }
++
+         UBool goingDown = FALSE;
+         if (nodeCount == 0) {
+             // Terminal node; go up immediately
+             fNodeStack.popi();
+             fIndexStack.popi();
+-            node = getCompactNode(fHeader, fNodeStack.peeki());
++            node = getCompactNode(fInfo, fNodeStack.peeki());
+             where = fIndexStack.peeki();
+         }
+-        else if (node->flagscount & kVerticalNode) {
++        else if ((node->flagscount & kVerticalNode) && !isRoot) {
+             // Vertical node
+             const CompactTrieVerticalNode *vnode = (const CompactTrieVerticalNode *)node;
+             if (where == 0) {
+                 // Going down
+-                unistr.append((const UChar *)vnode->chars, (int32_t) nodeCount);
++                unistr.append((const UChar *)vnode->chars, nodeCount);
+                 fIndexStack.setElementAt(1, fIndexStack.size()-1);
+-                node = getCompactNode(fHeader, fNodeStack.push(vnode->equal, status));
++                node = getCompactNode(fInfo, fNodeStack.push(calcEqualLink(vnode), status));
+                 where = fIndexStack.push(0, status);
+                 goingDown = TRUE;
+             }
+@@ -623,7 +845,7 @@
+                 unistr.truncate(unistr.length()-nodeCount);
+                 fNodeStack.popi();
+                 fIndexStack.popi();
+-                node = getCompactNode(fHeader, fNodeStack.peeki());
++                node = getCompactNode(fInfo, fNodeStack.peeki());
+                 where = fIndexStack.peeki();
+             }
+         }
+@@ -638,7 +860,7 @@
+                 // Push on next node
+                 unistr.append((UChar)hnode->entries[where].ch);
+                 fIndexStack.setElementAt(where+1, fIndexStack.size()-1);
+-                node = getCompactNode(fHeader, fNodeStack.push(hnode->entries[where].equal, status));
++                node = getCompactNode(fInfo, fNodeStack.push(calcEqualLink(hnode, where, nodeCount), status));
+                 where = fIndexStack.push(0, status);
+                 goingDown = TRUE;
+             }
+@@ -646,12 +868,14 @@
+                 // Going up
+                 fNodeStack.popi();
+                 fIndexStack.popi();
+-                node = getCompactNode(fHeader, fNodeStack.peeki());
++                node = getCompactNode(fInfo, fNodeStack.peeki());
+                 where = fIndexStack.peeki();
+             }
+         }
++
+         // Check if the parent of the node we've just gone down to ends a
+         // word. If so, return it.
++        // The root node should never end up here.
+         if (goingDown && (node->flagscount & kParentEndsWord)) {
+             return &unistr;
+         }
+@@ -664,7 +888,7 @@
+     if (U_FAILURE(status)) {
+         return NULL;
+     }
+-    return new CompactTrieEnumeration(fData, status);
++    return new CompactTrieEnumeration(fInfo, status);
+ }
+ 
+ //
+@@ -672,21 +896,36 @@
+ // and back again
+ //
+ 
+-// Helper classes to construct the compact trie
++enum CompactTrieNodeType {
++    kHorizontalType = 0,
++    kVerticalType = 1,
++    kValueType = 2
++};
++
++/**
++ * The following classes (i.e. BuildCompactTrie*Node) are helper classes to 
++ * construct the compact trie by storing information for each node and later 
++ * writing the node to memory in a sequential format.
++ */
+ class BuildCompactTrieNode: public UMemory {
+- public:
++public:
+     UBool           fParentEndsWord;
+-    UBool           fVertical;
++    CompactTrieNodeType fNodeType;
+     UBool           fHasDuplicate;
++    UBool           fEqualOverflows;
+     int32_t         fNodeID;
+     UnicodeString   fChars;
++    uint16_t        fValue;
+ 
+- public:
+-    BuildCompactTrieNode(UBool parentEndsWord, UBool vertical, UStack &nodes, UErrorCode &status) {
++public:
++    BuildCompactTrieNode(UBool parentEndsWord, CompactTrieNodeType nodeType, 
++            UStack &nodes, UErrorCode &status, uint16_t value = 0) {
+         fParentEndsWord = parentEndsWord;
+         fHasDuplicate = FALSE;
+-        fVertical = vertical;
++        fNodeType = nodeType;
++        fEqualOverflows = FALSE;
+         fNodeID = nodes.size();
++        fValue = parentEndsWord? value : 0;
+         nodes.push(this, status);
+     }
+     
+@@ -694,87 +933,225 @@
+     }
+     
+     virtual uint32_t size() {
+-        return sizeof(uint16_t);
++        if(fValue > 0)
++            return sizeof(uint16_t) * 2;
++        else
++            return sizeof(uint16_t);
+     }
+     
+     virtual void write(uint8_t *bytes, uint32_t &offset, const UVector32 &/*translate*/) {
+         // Write flag/count
+-        *((uint16_t *)(bytes+offset)) = (fChars.length() & kCountMask)
+-            | (fVertical ? kVerticalNode : 0) | (fParentEndsWord ? kParentEndsWord : 0 );
++
++        // if this ever fails, a flag bit (i.e. kExceedsCount) will need to be
++        // used as a 5th MSB.
++        U_ASSERT(fChars.length() < 4096 || fNodeID == 2);
++
++        *((uint16_t *)(bytes+offset)) = (fEqualOverflows? kEqualOverflows : 0) | 
++        ((fNodeID == 2)? (fChars.length() & kRootCountMask): 
++            (
++                    (fChars.length() & kCountMask) | 
++                    //((fChars.length() << 2) & kExceedsCount) |
++                    (fNodeType == kVerticalType ? kVerticalNode : 0) | 
++                    (fParentEndsWord ? kParentEndsWord : 0 )
++            )
++        );
+         offset += sizeof(uint16_t);
+     }
++
++    virtual void writeValue(uint8_t *bytes, uint32_t &offset) {
++        if(fValue > 0){
++            *((uint16_t *)(bytes+offset)) = fValue;
++            offset += sizeof(uint16_t);
++        }
++    }
++
++};
++
++/**
++ * Stores value of parent terminating nodes that have no more subtries. 
++ */
++class BuildCompactTrieValueNode: public BuildCompactTrieNode {
++public:
++    BuildCompactTrieValueNode(UStack &nodes, UErrorCode &status, uint16_t value)
++        : BuildCompactTrieNode(TRUE, kValueType, nodes, status, value){
++    }
++
++    virtual ~BuildCompactTrieValueNode(){
++    }
++
++    virtual uint32_t size() {
++        return sizeof(uint16_t) * 2;
++    }
++
++    virtual void write(uint8_t *bytes, uint32_t &offset, const UVector32 &translate) {
++        // don't write value directly to memory but store it in offset to be written later
++        //offset = fValue & kOffsetContainsValue;
++        BuildCompactTrieNode::write(bytes, offset, translate);
++        BuildCompactTrieNode::writeValue(bytes, offset);
++    }
+ };
+ 
+ class BuildCompactTrieHorizontalNode: public BuildCompactTrieNode {
+  public:
+     UStack          fLinks;
++    UBool           fMayOverflow; //intermediate value for fEqualOverflows
+ 
+  public:
+-    BuildCompactTrieHorizontalNode(UBool parentEndsWord, UStack &nodes, UErrorCode &status)
+-        : BuildCompactTrieNode(parentEndsWord, FALSE, nodes, status), fLinks(status) {
++    BuildCompactTrieHorizontalNode(UBool parentEndsWord, UStack &nodes, UErrorCode &status, uint16_t value = 0)
++    : BuildCompactTrieNode(parentEndsWord, kHorizontalType, nodes, status, value), fLinks(status) {
++        fMayOverflow = FALSE;
+     }
+     
+     virtual ~BuildCompactTrieHorizontalNode() {
+     }
+     
++    // It is impossible to know beforehand exactly how much space the node will
++    // need in memory before being written, because the node IDs in the equal
++    // links may or may not overflow after node coalescing. Therefore, this method 
++    // returns the maximum size possible for the node.
+     virtual uint32_t size() {
+-        return offsetof(CompactTrieHorizontalNode,entries) +
+-                (fChars.length()*sizeof(CompactTrieHorizontalEntry));
++        uint32_t estimatedSize = offsetof(CompactTrieHorizontalNode,entries) +
++        (fChars.length()*sizeof(CompactTrieHorizontalEntry));
++
++        if(fValue > 0)
++            estimatedSize += sizeof(uint16_t);
++
++        //estimate extra space needed to store overflow for node ID links
++        //may be more than what is actually needed
++        for(int i=0; i < fChars.length(); i++){
++            if(((BuildCompactTrieNode *)fLinks[i])->fNodeID > 0xFFFF){
++                fMayOverflow = TRUE;
++                break;
++            }          
++        }
++        if(fMayOverflow) // added space for overflow should be same as ceil(fChars.length()/4) * sizeof(uint16_t)
++            estimatedSize += (sizeof(uint16_t) * fChars.length() + 2)/4;
++
++        return estimatedSize;
+     }
+     
+     virtual void write(uint8_t *bytes, uint32_t &offset, const UVector32 &translate) {
+-        BuildCompactTrieNode::write(bytes, offset, translate);
+         int32_t count = fChars.length();
++
++        //if largest nodeID > 2^16, set flag
++        //large node IDs are more likely to be at the back of the array
++        for (int32_t i = count-1; i >= 0; --i) {
++            if(translate.elementAti(((BuildCompactTrieNode *)fLinks[i])->fNodeID) > 0xFFFF){
++                fEqualOverflows = TRUE;
++                break;
++            }
++        }
++
++        BuildCompactTrieNode::write(bytes, offset, translate);
++
++        // write entries[] to memory
+         for (int32_t i = 0; i < count; ++i) {
+             CompactTrieHorizontalEntry *entry = (CompactTrieHorizontalEntry *)(bytes+offset);
+             entry->ch = fChars[i];
+             entry->equal = translate.elementAti(((BuildCompactTrieNode *)fLinks[i])->fNodeID);
+ #ifdef DEBUG_TRIE_DICT
+-            if (entry->equal == 0) {
++
++            if ((entry->equal == 0) && !fEqualOverflows) {
+                 fprintf(stderr, "ERROR: horizontal link %d, logical node %d maps to physical node zero\n",
+                         i, ((BuildCompactTrieNode *)fLinks[i])->fNodeID);
+             }
+ #endif
+             offset += sizeof(CompactTrieHorizontalEntry);
+         }
++
++        // append extra bits of equal nodes to end if fEqualOverflows
++        if (fEqualOverflows) {
++            uint16_t leftmostBits = 0;
++            for (int16_t i = 0; i < count; i++) {
++                leftmostBits = (leftmostBits << 4) | getLeftmostBits(translate, i);
++
++                // write filled uint16_t to memory
++                if(i % 4 == 3){
++                    *((uint16_t *)(bytes+offset)) = leftmostBits;
++                    leftmostBits = 0;
++                    offset += sizeof(uint16_t);
++                }
++            }
++
++            // pad last uint16_t with zeroes if necessary
++            int remainder = count % 4;
++            if (remainder > 0) {
++                *((uint16_t *)(bytes+offset)) = (leftmostBits << (16 - 4 * remainder));
++                offset += sizeof(uint16_t);
++            }
++        }
++
++        BuildCompactTrieNode::writeValue(bytes, offset);
++    }
++
++    // returns leftmost bits of physical node link
++    uint16_t getLeftmostBits(const UVector32 &translate, uint32_t i){
++        uint16_t leftmostBits = (uint16_t) (translate.elementAti(((BuildCompactTrieNode *)fLinks[i])->fNodeID) >> 16);
++#ifdef DEBUG_TRIE_DICT
++        if (leftmostBits > 0xF) {
++            fprintf(stderr, "ERROR: horizontal link %d, logical node %d exceeds maximum possible node ID value\n",
++                    i, ((BuildCompactTrieNode *)fLinks[i])->fNodeID);
++        }
++#endif
++        return leftmostBits;
+     }
+     
+     void addNode(UChar ch, BuildCompactTrieNode *link, UErrorCode &status) {
+         fChars.append(ch);
+         fLinks.push(link, status);
+     }
++
+ };
+ 
+ class BuildCompactTrieVerticalNode: public BuildCompactTrieNode {
+- public:
++public:
+     BuildCompactTrieNode    *fEqual;
+ 
+- public:
+-    BuildCompactTrieVerticalNode(UBool parentEndsWord, UStack &nodes, UErrorCode &status)
+-        : BuildCompactTrieNode(parentEndsWord, TRUE, nodes, status) {
++public:
++    BuildCompactTrieVerticalNode(UBool parentEndsWord, UStack &nodes, UErrorCode &status, uint16_t value = 0)
++    : BuildCompactTrieNode(parentEndsWord, kVerticalType, nodes, status, value) {
+         fEqual = NULL;
+     }
+     
+     virtual ~BuildCompactTrieVerticalNode() {
+     }
+     
++    // Returns the maximum possible size of this node. See comment in 
++    // BuildCompactTrieHorizontal node for more information.
+     virtual uint32_t size() {
+-        return offsetof(CompactTrieVerticalNode,chars) + (fChars.length()*sizeof(uint16_t));
++        uint32_t estimatedSize = offsetof(CompactTrieVerticalNode,chars) + (fChars.length()*sizeof(uint16_t));
++        if(fValue > 0){
++            estimatedSize += sizeof(uint16_t);
++        }
++
++        if(fEqual->fNodeID > 0xFFFF){
++            estimatedSize += sizeof(uint16_t);
++        }
++        return estimatedSize;
+     }
+     
+     virtual void write(uint8_t *bytes, uint32_t &offset, const UVector32 &translate) {
+         CompactTrieVerticalNode *node = (CompactTrieVerticalNode *)(bytes+offset);
++        fEqualOverflows = (translate.elementAti(fEqual->fNodeID) > 0xFFFF);
+         BuildCompactTrieNode::write(bytes, offset, translate);
+         node->equal = translate.elementAti(fEqual->fNodeID);
+         offset += sizeof(node->equal);
+ #ifdef DEBUG_TRIE_DICT
+-        if (node->equal == 0) {
++        if ((node->equal == 0) && !fEqualOverflows) {
+             fprintf(stderr, "ERROR: vertical link, logical node %d maps to physical node zero\n",
+                     fEqual->fNodeID);
+         }
+ #endif
+         fChars.extract(0, fChars.length(), (UChar *)node->chars);
+-        offset += sizeof(uint16_t)*fChars.length();
++        offset += sizeof(UChar)*fChars.length();
++
++        // append 16 bits of to end for equal node if fEqualOverflows
++        if (fEqualOverflows) {
++            *((uint16_t *)(bytes+offset)) = (translate.elementAti(fEqual->fNodeID) >> 16);
++            offset += sizeof(uint16_t);
++        }
++
++        BuildCompactTrieNode::writeValue(bytes, offset);
+     }
+     
+     void addChar(UChar ch) {
+@@ -784,60 +1161,85 @@
+     void setLink(BuildCompactTrieNode *node) {
+         fEqual = node;
+     }
++    
+ };
+ 
+ // Forward declaration
+ static void walkHorizontal(const TernaryNode *node,
+                             BuildCompactTrieHorizontalNode *building,
+                             UStack &nodes,
+-                            UErrorCode &status);
++                            UErrorCode &status,
++                            Hashtable *values);
+ 
+-// Convert one node. Uses recursion.
++// Convert one TernaryNode into a BuildCompactTrieNode. Uses recursion.
+ 
+ static BuildCompactTrieNode *
+-compactOneNode(const TernaryNode *node, UBool parentEndsWord, UStack &nodes, UErrorCode &status) {
++compactOneNode(const TernaryNode *node, UBool parentEndsWord, UStack &nodes, 
++        UErrorCode &status, Hashtable *values = NULL, uint16_t parentValue = 0) {
+     if (U_FAILURE(status)) {
+         return NULL;
+     }
+     BuildCompactTrieNode *result = NULL;
+     UBool horizontal = (node->low != NULL || node->high != NULL);
+     if (horizontal) {
+-        BuildCompactTrieHorizontalNode *hResult =
+-                new BuildCompactTrieHorizontalNode(parentEndsWord, nodes, status);
++        BuildCompactTrieHorizontalNode *hResult;
++        if(values != NULL){
++            hResult = new BuildCompactTrieHorizontalNode(parentEndsWord, nodes, status, parentValue);
++        } else {
++            hResult = new BuildCompactTrieHorizontalNode(parentEndsWord, nodes, status);
++        }
++
+         if (hResult == NULL) {
+             status = U_MEMORY_ALLOCATION_ERROR;
+             return NULL;
+         }
+         if (U_SUCCESS(status)) {
+-            walkHorizontal(node, hResult, nodes, status);
++            walkHorizontal(node, hResult, nodes, status, values);
+             result = hResult;
+         }
+     }
+     else {
+-        BuildCompactTrieVerticalNode *vResult =
+-                new BuildCompactTrieVerticalNode(parentEndsWord, nodes, status);
++        BuildCompactTrieVerticalNode *vResult;
++        if(values != NULL){
++            vResult = new BuildCompactTrieVerticalNode(parentEndsWord, nodes, status, parentValue);
++        } else { 
++            vResult = new BuildCompactTrieVerticalNode(parentEndsWord, nodes, status);
++        }
++
+         if (vResult == NULL) {
+             status = U_MEMORY_ALLOCATION_ERROR;
++            return NULL;
+         }
+         else if (U_SUCCESS(status)) {
+-            UBool   endsWord = FALSE;
++            uint16_t   value = 0;
++            UBool endsWord = FALSE;
+             // Take up nodes until we end a word, or hit a node with < or > links
+             do {
+                 vResult->addChar(node->ch);
+-                endsWord = (node->flags & kEndsWord) != 0;
++                value = node->flags;
++                endsWord = value > 0;
+                 node = node->equal;
+             }
+             while(node != NULL && !endsWord && node->low == NULL && node->high == NULL);
++
+             if (node == NULL) {
+                 if (!endsWord) {
+                     status = U_ILLEGAL_ARGUMENT_ERROR;  // Corrupt input trie
+                 }
+-                else {
++                else if(values != NULL){
++                    UnicodeString key(value); //store value as a single-char UnicodeString
++                    BuildCompactTrieValueNode *link = (BuildCompactTrieValueNode *) values->get(key);
++                    if(link == NULL){
++                        link = new BuildCompactTrieValueNode(nodes, status, value); //take out nodes?
++                        values->put(key, link, status);
++                    }
++                    vResult->setLink(link);
++                } else {
+                     vResult->setLink((BuildCompactTrieNode *)nodes[1]);
+                 }
+             }
+             else {
+-                vResult->setLink(compactOneNode(node, endsWord, nodes, status));
++                vResult->setLink(compactOneNode(node, endsWord, nodes, status, values, value));
+             }
+             result = vResult;
+         }
+@@ -849,19 +1251,28 @@
+ // Uses recursion.
+ 
+ static void walkHorizontal(const TernaryNode *node,
+-                            BuildCompactTrieHorizontalNode *building,
+-                            UStack &nodes,
+-                            UErrorCode &status) {
++                           BuildCompactTrieHorizontalNode *building,
++                           UStack &nodes,
++                           UErrorCode &status, Hashtable *values = NULL) {
+     while (U_SUCCESS(status) && node != NULL) {
+         if (node->low != NULL) {
+-            walkHorizontal(node->low, building, nodes, status);
++            walkHorizontal(node->low, building, nodes, status, values);
+         }
+         BuildCompactTrieNode *link = NULL;
+         if (node->equal != NULL) {
+-            link = compactOneNode(node->equal, (node->flags & kEndsWord) != 0, nodes, status);
++            link = compactOneNode(node->equal, node->flags > 0, nodes, status, values, node->flags);
+         }
+-        else if (node->flags & kEndsWord) {
+-            link = (BuildCompactTrieNode *)nodes[1];
++        else if (node->flags > 0) {
++            if(values != NULL) {
++                UnicodeString key(node->flags); //store value as a single-char UnicodeString
++                link = (BuildCompactTrieValueNode *) values->get(key);
++                if(link == NULL) {
++                    link = new BuildCompactTrieValueNode(nodes, status, node->flags); //take out nodes?
++                    values->put(key, link, status);
++                }
++            } else {
++                link = (BuildCompactTrieNode *)nodes[1];
++            }
+         }
+         if (U_SUCCESS(status) && link != NULL) {
+             building->addNode(node->ch, link, status);
+@@ -881,13 +1292,15 @@
+ _sortBuildNodes(const void * /*context*/, const void *voidl, const void *voidr) {
+     BuildCompactTrieNode *left = *(BuildCompactTrieNode **)voidl;
+     BuildCompactTrieNode *right = *(BuildCompactTrieNode **)voidr;
++
+     // Check for comparing a node to itself, to avoid spurious duplicates
+     if (left == right) {
+         return 0;
+     }
++
+     // Most significant is type of node. Can never coalesce.
+-    if (left->fVertical != right->fVertical) {
+-        return left->fVertical - right->fVertical;
++    if (left->fNodeType != right->fNodeType) {
++        return left->fNodeType - right->fNodeType;
+     }
+     // Next, the "parent ends word" flag. If that differs, we cannot coalesce.
+     if (left->fParentEndsWord != right->fParentEndsWord) {
+@@ -898,12 +1311,19 @@
+     if (result != 0) {
+         return result;
+     }
++
++    // If the node value differs, we should not coalesce.
++    // If values aren't stored, all fValues should be 0.
++    if (left->fValue != right->fValue) {
++        return left->fValue - right->fValue;
++    }
++
+     // We know they're both the same node type, so branch for the two cases.
+-    if (left->fVertical) {
++    if (left->fNodeType == kVerticalType) {
+         result = ((BuildCompactTrieVerticalNode *)left)->fEqual->fNodeID
+-                            - ((BuildCompactTrieVerticalNode *)right)->fEqual->fNodeID;
++        - ((BuildCompactTrieVerticalNode *)right)->fEqual->fNodeID;
+     }
+-    else {
++    else if(left->fChars.length() > 0 && right->fChars.length() > 0){
+         // We need to compare the links vectors. They should be the
+         // same size because the strings were equal.
+         // We compare the node IDs instead of the pointers, to handle
+@@ -914,9 +1334,10 @@
+         int32_t count = hleft->fLinks.size();
+         for (int32_t i = 0; i < count && result == 0; ++i) {
+             result = ((BuildCompactTrieNode *)(hleft->fLinks[i]))->fNodeID -
+-                     ((BuildCompactTrieNode *)(hright->fLinks[i]))->fNodeID;
++            ((BuildCompactTrieNode *)(hright->fLinks[i]))->fNodeID;
+         }
+     }
++
+     // If they are equal to each other, mark them (speeds coalescing)
+     if (result == 0) {
+         left->fHasDuplicate = TRUE;
+@@ -1031,20 +1452,25 @@
+     // Add node 0, used as the NULL pointer/sentinel.
+     nodes.addElement((int32_t)0, status);
+ 
++    Hashtable *values = NULL;                           // Index of (unique) values
++    if (dict.fValued) {
++        values = new Hashtable(status);
++    }
++
+     // Start by creating the special empty node we use to indicate that the parent
+     // terminates a word. This must be node 1, because the builder assumes
+-    // that.
++    // that. This node will never be used for tries storing numerical values.
+     if (U_FAILURE(status)) {
+         return NULL;
+     }
+-    BuildCompactTrieNode *terminal = new BuildCompactTrieNode(TRUE, FALSE, nodes, status);
++    BuildCompactTrieNode *terminal = new BuildCompactTrieNode(TRUE, kHorizontalType, nodes, status);
+     if (terminal == NULL) {
+         status = U_MEMORY_ALLOCATION_ERROR;
+     }
+ 
+     // This call does all the work of building the new trie structure. The root
+-    // will be node 2.
+-    BuildCompactTrieNode *root = compactOneNode(dict.fTrie, FALSE, nodes, status);
++    // will have node ID 2 before writing to memory.
++    BuildCompactTrieNode *root = compactOneNode(dict.fTrie, FALSE, nodes, status, values);
+ #ifdef DEBUG_TRIE_DICT
+     (void) ::times(&timing);
+     fprintf(stderr, "Compact trie built, %d nodes, time user %f system %f\n",
+@@ -1077,21 +1503,37 @@
+         return NULL;
+     }
+ 
++    //map terminal value nodes
++    int valueCount = 0;
++    UVector valueNodes(status);
++    if(values != NULL) {
++        valueCount = values->count(); //number of unique terminal value nodes
++    }
++     
++    // map non-terminal nodes
++    int valuePos = 1;//, nodePos = valueCount + valuePos;
++    nodeCount = valueCount + valuePos;
+     for (i = 1; i < count; ++i) {
+         node = (BuildCompactTrieNode *)nodes[i];
+         if (node->fNodeID == i) {
+             // Only one node out of each duplicate set is used
+-            if (i >= translate.size()) {
++            if (node->fNodeID >= translate.size()) {
+                 // Logically extend the mapping table
+-                translate.setSize(i+1);
++                translate.setSize(i + 1);
++            }
++            //translate.setElementAt(object, index)!
++            if(node->fNodeType == kValueType) {
++                valueNodes.addElement(node, status);
++               translate.setElementAt(valuePos++, i);
++             } else {
++                translate.setElementAt(nodeCount++, i);
+             }
+-            translate.setElementAt(nodeCount++, i);
+             totalSize += node->size();
+         }
+     }
+-    
+-    // Check for overflowing 16 bits worth of nodes.
+-    if (nodeCount > 0x10000) {
++
++    // Check for overflowing 20 bits worth of nodes.
++    if (nodeCount > 0x100000) {
+         status = U_ILLEGAL_ARGUMENT_ERROR;
+         return NULL;
+     }
+@@ -1111,9 +1553,14 @@
+         status = U_MEMORY_ALLOCATION_ERROR;
+         return NULL;
+     }
+-
++    
+     CompactTrieHeader *header = (CompactTrieHeader *)bytes;
+-    header->size = totalSize;
++    //header->size = totalSize;
++    if(dict.fValued){
++        header->magic = COMPACT_TRIE_MAGIC_3;
++    } else {
++        header->magic = COMPACT_TRIE_MAGIC_2;
++    }
+     header->nodeCount = nodeCount;
+     header->offsets[0] = 0;                     // Sentinel
+     header->root = translate.elementAti(root->fNodeID);
+@@ -1123,23 +1570,40 @@
+     }
+ #endif
+     uint32_t offset = offsetof(CompactTrieHeader,offsets)+(nodeCount*sizeof(uint32_t));
+-    nodeCount = 1;
++    nodeCount = valueCount + 1;
++
++    // Write terminal value nodes to memory
++    for (i=0; i < valueNodes.size(); i++) {
++        //header->offsets[i + 1] = offset;
++        uint32_t tmpOffset = 0;
++        node = (BuildCompactTrieNode *) valueNodes.elementAt(i);
++        //header->offsets[i + 1] = (uint32_t)node->fValue;
++        node->write((uint8_t *)&header->offsets[i+1], tmpOffset, translate);
++    }
++
+     // Now write the data
+     for (i = 1; i < count; ++i) {
+         node = (BuildCompactTrieNode *)nodes[i];
+-        if (node->fNodeID == i) {
++        if (node->fNodeID == i && node->fNodeType != kValueType) {
+             header->offsets[nodeCount++] = offset;
+             node->write(bytes, offset, translate);
+         }
+     }
++
++    //free all extra space
++    uprv_realloc(bytes, offset);
++    header->size = offset;
++
+ #ifdef DEBUG_TRIE_DICT
++    fprintf(stdout, "Space freed: %d\n", totalSize-offset);
++
+     (void) ::times(&timing);
+     fprintf(stderr, "Trie built, time user %f system %f\n",
+         (double)(timing.tms_utime-previous.tms_utime)/CLK_TCK,
+         (double)(timing.tms_stime-previous.tms_stime)/CLK_TCK);
+     previous = timing;
+     fprintf(stderr, "Final offset is %d\n", offset);
+-    
++
+     // Collect statistics on node types and sizes
+     int hCount = 0;
+     int vCount = 0;
+@@ -1148,68 +1612,85 @@
+     size_t hItemCount = 0;
+     size_t vItemCount = 0;
+     uint32_t previousOff = offset;
+-    for (uint16_t nodeIdx = nodeCount-1; nodeIdx >= 2; --nodeIdx) {
++    uint32_t numOverflow = 0;
++    uint32_t valueSpace = 0;
++    for (uint32_t nodeIdx = nodeCount-1; nodeIdx >= 2; --nodeIdx) {
+         const CompactTrieNode *node = getCompactNode(header, nodeIdx);
+-        if (node->flagscount & kVerticalNode) {
++        int itemCount;
++        if(nodeIdx == header->root)
++            itemCount = node->flagscount & kRootCountMask;
++        else
++            itemCount = getCount(node);
++        if(node->flagscount & kEqualOverflows){
++            numOverflow++;
++        }
++        if (node->flagscount & kVerticalNode && nodeIdx != header->root) {
+             vCount += 1;
+-            vItemCount += (node->flagscount & kCountMask);
++            vItemCount += itemCount;
+             vSize += previousOff-header->offsets[nodeIdx];
+         }
+         else {
+             hCount += 1;
+-            hItemCount += (node->flagscount & kCountMask);
+-            hSize += previousOff-header->offsets[nodeIdx];
++            hItemCount += itemCount;
++            if(nodeIdx >= header->root) {
++                hSize += previousOff-header->offsets[nodeIdx];
++            }
+         }
++        
++        if(header->magic == COMPACT_TRIE_MAGIC_3 && node->flagscount & kParentEndsWord)
++            valueSpace += sizeof(uint16_t);
+         previousOff = header->offsets[nodeIdx];
+     }
+     fprintf(stderr, "Horizontal nodes: %d total, average %f bytes with %f items\n", hCount,
+                 (double)hSize/hCount, (double)hItemCount/hCount);
+     fprintf(stderr, "Vertical nodes: %d total, average %f bytes with %f items\n", vCount,
+                 (double)vSize/vCount, (double)vItemCount/vCount);
++    fprintf(stderr, "Number of nodes with overflowing nodeIDs: %d \n", numOverflow);
++    fprintf(stderr, "Space taken up by values: %d \n", valueSpace);
+ #endif
+ 
+     if (U_FAILURE(status)) {
+         uprv_free(bytes);
+         header = NULL;
+     }
+-    else {
+-        header->magic = COMPACT_TRIE_MAGIC_1;
+-    }
+     return header;
+ }
+ 
+ // Forward declaration
+ static TernaryNode *
+-unpackOneNode( const CompactTrieHeader *header, const CompactTrieNode *node, UErrorCode &status );
+-
++unpackOneNode( const CompactTrieInfo *info, const CompactTrieNode *node, UErrorCode &status );
+ 
+ // Convert a horizontal node (or subarray thereof) into a ternary subtrie
+ static TernaryNode *
+-unpackHorizontalArray( const CompactTrieHeader *header, const CompactTrieHorizontalEntry *array,
+-                            int low, int high, UErrorCode &status ) {
++unpackHorizontalArray( const CompactTrieInfo *info, const CompactTrieHorizontalNode *hnode,
++        int low, int high, int nodeCount, UErrorCode &status) {
+     if (U_FAILURE(status) || low > high) {
+         return NULL;
+     }
+     int middle = (low+high)/2;
+-    TernaryNode *result = new TernaryNode(array[middle].ch);
++    TernaryNode *result = new TernaryNode(hnode->entries[middle].ch);
+     if (result == NULL) {
+         status = U_MEMORY_ALLOCATION_ERROR;
+         return NULL;
+     }
+-    const CompactTrieNode *equal = getCompactNode(header, array[middle].equal);
++    const CompactTrieNode *equal = getCompactNode(info, calcEqualLink(hnode, middle, nodeCount));
+     if (equal->flagscount & kParentEndsWord) {
+-        result->flags |= kEndsWord;
++        if(info->magic == COMPACT_TRIE_MAGIC_3){
++            result->flags = getValue(equal);
++        }else{
++            result->flags |= kEndsWord;
++        }
+     }
+-    result->low = unpackHorizontalArray(header, array, low, middle-1, status);
+-    result->high = unpackHorizontalArray(header, array, middle+1, high, status);
+-    result->equal = unpackOneNode(header, equal, status);
++    result->low = unpackHorizontalArray(info, hnode, low, middle-1, nodeCount, status);
++    result->high = unpackHorizontalArray(info, hnode, middle+1, high, nodeCount, status);
++    result->equal = unpackOneNode(info, equal, status);
+     return result;
+ }                            
+ 
+ // Convert one compact trie node into a ternary subtrie
+ static TernaryNode *
+-unpackOneNode( const CompactTrieHeader *header, const CompactTrieNode *node, UErrorCode &status ) {
+-    int nodeCount = (node->flagscount & kCountMask);
++unpackOneNode( const CompactTrieInfo *info, const CompactTrieNode *node, UErrorCode &status ) {
++    int nodeCount = getCount(node);
+     if (nodeCount == 0 || U_FAILURE(status)) {
+         // Failure, or terminal node
+         return NULL;
+@@ -1234,29 +1715,41 @@
+             previous = latest;
+         }
+         if (latest != NULL) {
+-            const CompactTrieNode *equal = getCompactNode(header, vnode->equal);
++            const CompactTrieNode *equal = getCompactNode(info, calcEqualLink(vnode));
+             if (equal->flagscount & kParentEndsWord) {
+-                latest->flags |= kEndsWord;
++                if(info->magic == COMPACT_TRIE_MAGIC_3){
++                    latest->flags = getValue(equal);
++                } else {
++                    latest->flags |= kEndsWord;
++                }
+             }
+-            latest->equal = unpackOneNode(header, equal, status);
++            latest->equal = unpackOneNode(info, equal, status);
+         }
+         return head;
+     }
+     else {
+         // Horizontal node
+         const CompactTrieHorizontalNode *hnode = (const CompactTrieHorizontalNode *)node;
+-        return unpackHorizontalArray(header, &hnode->entries[0], 0, nodeCount-1, status);
++        return unpackHorizontalArray(info, hnode, 0, nodeCount-1, nodeCount, status);
+     }
+ }
+ 
++// returns a MutableTrieDictionary generated from the CompactTrieDictionary
+ MutableTrieDictionary *
+ CompactTrieDictionary::cloneMutable( UErrorCode &status ) const {
+-    MutableTrieDictionary *result = new MutableTrieDictionary( status );
++    MutableTrieDictionary *result = new MutableTrieDictionary( status, fInfo->magic == COMPACT_TRIE_MAGIC_3 );
+     if (result == NULL) {
+         status = U_MEMORY_ALLOCATION_ERROR;
+         return NULL;
+     }
+-    TernaryNode *root = unpackOneNode(fData, getCompactNode(fData, fData->root), status);
++    // treat root node as special case: don't call unpackOneNode() or unpackHorizontalArray() directly
++    // because only kEqualOverflows flag should be checked in root's flagscount
++    const CompactTrieHorizontalNode *hnode = (const CompactTrieHorizontalNode *) 
++    getCompactNode(fInfo, fInfo->root);
++    uint16_t nodeCount = hnode->flagscount & kRootCountMask;
++    TernaryNode *root = unpackHorizontalArray(fInfo, hnode, 0, nodeCount-1, 
++            nodeCount, status);
++
+     if (U_FAILURE(status)) {
+         delete root;    // Clean up
+         delete result;
+@@ -1270,8 +1763,8 @@
+ 
+ U_CAPI int32_t U_EXPORT2
+ triedict_swap(const UDataSwapper *ds, const void *inData, int32_t length, void *outData,
+-           UErrorCode *status) {
+-
++        UErrorCode *status) {
++    
+     if (status == NULL || U_FAILURE(*status)) {
+         return 0;
+     }
+@@ -1286,14 +1779,14 @@
+     //
+     const UDataInfo *pInfo = (const UDataInfo *)((const uint8_t *)inData+4);
+     if(!(  pInfo->dataFormat[0]==0x54 &&   /* dataFormat="TrDc" */
+-           pInfo->dataFormat[1]==0x72 &&
+-           pInfo->dataFormat[2]==0x44 &&
+-           pInfo->dataFormat[3]==0x63 &&
+-           pInfo->formatVersion[0]==1  )) {
++            pInfo->dataFormat[1]==0x72 &&
++            pInfo->dataFormat[2]==0x44 &&
++            pInfo->dataFormat[3]==0x63 &&
++            pInfo->formatVersion[0]==1  )) {
+         udata_printError(ds, "triedict_swap(): data format %02x.%02x.%02x.%02x (format version %02x) is not recognized\n",
+-                         pInfo->dataFormat[0], pInfo->dataFormat[1],
+-                         pInfo->dataFormat[2], pInfo->dataFormat[3],
+-                         pInfo->formatVersion[0]);
++                pInfo->dataFormat[0], pInfo->dataFormat[1],
++                pInfo->dataFormat[2], pInfo->dataFormat[3],
++                pInfo->formatVersion[0]);
+         *status=U_UNSUPPORTED_ERROR;
+         return 0;
+     }
+@@ -1311,8 +1804,10 @@
+     //
+     const uint8_t  *inBytes =(const uint8_t *)inData+headerSize;
+     const CompactTrieHeader *header = (const CompactTrieHeader *)inBytes;
+-    if (ds->readUInt32(header->magic) != COMPACT_TRIE_MAGIC_1
+-            || ds->readUInt32(header->size) < sizeof(CompactTrieHeader))
++    uint32_t magic = ds->readUInt32(header->magic);
++    if (magic != COMPACT_TRIE_MAGIC_1 && magic != COMPACT_TRIE_MAGIC_2 && magic != COMPACT_TRIE_MAGIC_3
++            || magic == COMPACT_TRIE_MAGIC_1 && ds->readUInt32(header->size) < sizeof(CompactTrieHeaderV1)
++            || magic != COMPACT_TRIE_MAGIC_1 && ds->readUInt32(header->size) < sizeof(CompactTrieHeader))
+     {
+         udata_printError(ds, "triedict_swap(): CompactTrieHeader is invalid.\n");
+         *status=U_UNSUPPORTED_ERROR;
+@@ -1333,10 +1828,10 @@
+     //
+     if (length < sizeWithUData) {
+         udata_printError(ds, "triedict_swap(): too few bytes (%d after ICU Data header) for trie data.\n",
+-                            totalSize);
++                totalSize);
+         *status=U_INDEX_OUTOFBOUNDS_ERROR;
+         return 0;
+-        }
++    }
+ 
+     //
+     // Swap the Data.  Do the data itself first, then the CompactTrieHeader, because
+@@ -1355,20 +1850,38 @@
+     }
+ 
+     // We need to loop through all the nodes in the offset table, and swap each one.
+-    uint16_t nodeCount = ds->readUInt16(header->nodeCount);
++    uint32_t nodeCount, rootId;
++    if(header->magic == COMPACT_TRIE_MAGIC_1) {
++        nodeCount = ds->readUInt16(((CompactTrieHeaderV1 *)header)->nodeCount);
++        rootId = ds->readUInt16(((CompactTrieHeaderV1 *)header)->root);
++    } else {
++        nodeCount = ds->readUInt32(header->nodeCount);
++        rootId = ds->readUInt32(header->root);
++    }
++
+     // Skip node 0, which should always be 0.
+-    for (int i = 1; i < nodeCount; ++i) {
++    for (uint32_t i = 1; i < nodeCount; ++i) {
+         uint32_t nodeOff = ds->readUInt32(header->offsets[i]);
+         const CompactTrieNode *inNode = (const CompactTrieNode *)(inBytes + nodeOff);
+         CompactTrieNode *outNode = (CompactTrieNode *)(outBytes + nodeOff);
+         uint16_t flagscount = ds->readUInt16(inNode->flagscount);
+-        uint16_t itemCount = flagscount & kCountMask;
++        uint16_t itemCount = getCount(inNode);
++        //uint16_t itemCount = flagscount & kCountMask;
+         ds->writeUInt16(&outNode->flagscount, flagscount);
+         if (itemCount > 0) {
+-            if (flagscount & kVerticalNode) {
++            uint16_t overflow = 0; //number of extra uint16_ts needed to be swapped
++            if (flagscount & kVerticalNode && i != rootId) {
++                if(flagscount & kEqualOverflows){
++                    // include overflow bits
++                    overflow += 1;
++                }
++                if (header->magic == COMPACT_TRIE_MAGIC_3 && flagscount & kEndsParentWord) {
++                    //include values
++                    overflow += 1;
++                }
+                 ds->swapArray16(ds, inBytes+nodeOff+offsetof(CompactTrieVerticalNode,chars),
+-                                    itemCount*sizeof(uint16_t),
+-                                    outBytes+nodeOff+offsetof(CompactTrieVerticalNode,chars), status);
++                        (itemCount + overflow)*sizeof(uint16_t),
++                        outBytes+nodeOff+offsetof(CompactTrieVerticalNode,chars), status);
+                 uint16_t equal = ds->readUInt16(inBytes+nodeOff+offsetof(CompactTrieVerticalNode,equal);
+                 ds->writeUInt16(outBytes+nodeOff+offsetof(CompactTrieVerticalNode,equal));
+             }
+@@ -1381,26 +1894,62 @@
+                     word = ds->readUInt16(inHNode->entries[j].equal);
+                     ds->writeUInt16(&outHNode->entries[j].equal, word);
+                 }
++
++                // swap overflow/value information
++                if(flagscount & kEqualOverflows){
++                    overflow += (itemCount + 3) / 4;
++                }
++
++                if (header->magic == COMPACT_TRIE_MAGIC_3 && i != rootId && flagscount & kEndsParentWord) {
++                    //include values
++                    overflow += 1;
++                }
++
++                uint16_t *inOverflow = (uint16_t *) &inHNode->entries[itemCount];
++                uint16_t *outOverflow = (uint16_t *) &outHNode->entries[itemCount];
++                for(int j = 0; j<overflow; j++){
++                    uint16_t extraInfo = ds->readUInt16(*inOverflow);
++                    ds->writeUInt16(outOverflow, extraInfo);
++
++                    inOverflow++;
++                    outOverflow++;
++                }
+             }
+         }
+     }
+ #endif
+ 
+-    // All the data in all the nodes consist of 16 bit items. Swap them all at once.
+-    uint16_t nodeCount = ds->readUInt16(header->nodeCount);
+-    uint32_t nodesOff = offsetof(CompactTrieHeader,offsets)+((uint32_t)nodeCount*sizeof(uint32_t));
+-    ds->swapArray16(ds, inBytes+nodesOff, totalSize-nodesOff, outBytes+nodesOff, status);
+-
+     // Swap the header
+     ds->writeUInt32(&outputHeader->size, totalSize);
+-    uint32_t magic = ds->readUInt32(header->magic);
+     ds->writeUInt32(&outputHeader->magic, magic);
+-    ds->writeUInt16(&outputHeader->nodeCount, nodeCount);
+-    uint16_t root = ds->readUInt16(header->root);
+-    ds->writeUInt16(&outputHeader->root, root);
+-    ds->swapArray32(ds, inBytes+offsetof(CompactTrieHeader,offsets),
+-            sizeof(uint32_t)*(int32_t)nodeCount,
+-            outBytes+offsetof(CompactTrieHeader,offsets), status);
++
++    uint32_t nodeCount;
++    uint32_t offsetPos;
++    if (header->magic == COMPACT_TRIE_MAGIC_1) {
++        CompactTrieHeaderV1 *headerV1 = (CompactTrieHeaderV1 *)header;
++        CompactTrieHeaderV1 *outputHeaderV1 = (CompactTrieHeaderV1 *)outputHeader;
++
++        nodeCount = ds->readUInt16(headerV1->nodeCount);
++        ds->writeUInt16(&outputHeaderV1->nodeCount, nodeCount);
++        uint16_t root = ds->readUInt16(headerV1->root);
++        ds->writeUInt16(&outputHeaderV1->root, root);
++        offsetPos = offsetof(CompactTrieHeaderV1,offsets);
++    } else {
++        nodeCount = ds->readUInt32(header->nodeCount);
++        ds->writeUInt32(&outputHeader->nodeCount, nodeCount);
++        uint32_t root = ds->readUInt32(header->root);
++        ds->writeUInt32(&outputHeader->root, root);
++        offsetPos = offsetof(CompactTrieHeader,offsets);
++    }
++
++    // All the data in all the nodes consist of 16 bit items. Swap them all at once.
++    uint32_t nodesOff = offsetPos+((uint32_t)nodeCount*sizeof(uint32_t));
++    ds->swapArray16(ds, inBytes+nodesOff, totalSize-nodesOff, outBytes+nodesOff, status);
++
++    //swap offsets
++    ds->swapArray32(ds, inBytes+offsetPos,
++            sizeof(uint32_t)*(uint32_t)nodeCount,
++            outBytes+offsetPos, status);
+ 
+     return sizeWithUData;
+ }
+--- source/common/triedict.h	2006-06-06 15:38:49.000000000 -0700
++++ source/common/triedict.h	2011-01-21 14:12:45.496927000 -0800
+@@ -47,7 +47,6 @@
+ U_NAMESPACE_BEGIN
+ 
+ class StringEnumeration;
+-struct CompactTrieHeader;
+ 
+ /*******************************************************************
+  * TrieWordDictionary
+@@ -72,23 +71,29 @@
+    */
+   virtual ~TrieWordDictionary();
+ 
++  /**
++   * <p>Returns true if the dictionary contains values associated with each word.</p>
++   */
++  virtual UBool getValued() const = 0;
++
+  /**
+   * <p>Find dictionary words that match the text.</p>
+   *
+   * @param text A UText representing the text. The
+   * iterator is left after the longest prefix match in the dictionary.
+-  * @param start The current position in text.
+   * @param maxLength The maximum number of code units to match.
+   * @param lengths An array that is filled with the lengths of words that matched.
+   * @param count Filled with the number of elements output in lengths.
+   * @param limit The size of the lengths array; this limits the number of words output.
++  * @param values An array that is filled with the values associated with the matched words.
+   * @return The number of characters in text that were matched.
+   */
+   virtual int32_t matches( UText *text,
+                               int32_t maxLength,
+                               int32_t *lengths,
+                               int &count,
+-                              int limit ) const = 0;
++                              int limit,
++                              uint16_t *values = NULL) const = 0;
+ 
+   /**
+    * <p>Return a StringEnumeration for iterating all the words in the dictionary.</p>
+@@ -128,6 +133,12 @@
+ 
+   UText    *fIter;
+ 
++    /**
++     * A UText for internal use
++     * @internal
++     */
++  UBool fValued;
++
+   friend class CompactTrieDictionary;   // For fast conversion
+ 
+  public:
+@@ -138,14 +149,29 @@
+   * @param median A UChar around which to balance the trie. Ideally, it should
+   * begin at least one word that is near the median of the set in the dictionary
+   * @param status A status code recording the success of the call.
++  * @param containsValue True if the dictionary stores values associated with each word.
+   */
+-  MutableTrieDictionary( UChar median, UErrorCode &status );
++  MutableTrieDictionary( UChar median, UErrorCode &status, UBool containsValue = FALSE );
+ 
+   /**
+    * <p>Virtual destructor.</p>
+    */
+   virtual ~MutableTrieDictionary();
+ 
++  /**
++   * Indicate whether the MutableTrieDictionary stores values associated with each word
++   */
++  void setValued(UBool valued){
++      fValued = valued;
++  }
++
++  /**
++   * <p>Returns true if the dictionary contains values associated with each word.</p>
++   */
++  virtual UBool getValued() const {
++      return fValued;
++  }
++
+  /**
+   * <p>Find dictionary words that match the text.</p>
+   *
+@@ -155,13 +181,15 @@
+   * @param lengths An array that is filled with the lengths of words that matched.
+   * @param count Filled with the number of elements output in lengths.
+   * @param limit The size of the lengths array; this limits the number of words output.
++  * @param values An array that is filled with the values associated with the matched words.
+   * @return The number of characters in text that were matched.
+   */
+   virtual int32_t matches( UText *text,
+                               int32_t maxLength,
+                               int32_t *lengths,
+                               int &count,
+-                              int limit ) const;
++                              int limit,
++                              uint16_t *values = NULL) const;
+ 
+   /**
+    * <p>Return a StringEnumeration for iterating all the words in the dictionary.</p>
+@@ -173,15 +201,17 @@
+   virtual StringEnumeration *openWords( UErrorCode &status ) const;
+ 
+  /**
+-  * <p>Add one word to the dictionary.</p>
++  * <p>Add one word to the dictionary with an optional associated value.</p>
+   *
+   * @param word A UChar buffer containing the word.
+   * @param length The length of the word.
+-  * @param status The resultant status
++  * @param status The resultant status.
++  * @param value The nonzero value associated with this word.
+   */
+   virtual void addWord( const UChar *word,
+                         int32_t length,
+-                        UErrorCode &status);
++                        UErrorCode &status,
++                        uint16_t value = 0);
+ 
+ #if 0
+  /**
+@@ -203,8 +233,9 @@
+   * @param lengths An array that is filled with the lengths of words that matched.
+   * @param count Filled with the number of elements output in lengths.
+   * @param limit The size of the lengths array; this limits the number of words output.
+-  * @param parent The parent of the current node
+-  * @param pMatched The returned parent node matched the input
++  * @param parent The parent of the current node.
++  * @param pMatched The returned parent node matched the input/
++  * @param values An array that is filled with the values associated with the matched words.
+   * @return The number of characters in text that were matched.
+   */
+   virtual int32_t search( UText *text,
+@@ -213,40 +244,46 @@
+                               int &count,
+                               int limit,
+                               TernaryNode *&parent,
+-                              UBool &pMatched ) const;
++                              UBool &pMatched,
++                              uint16_t *values = NULL) const;
+ 
+ private:
+  /**
+   * <p>Private constructor. The root node it not allocated.</p>
+   *
+   * @param status A status code recording the success of the call.
++  * @param containsValues True if the dictionary will store a value associated 
++  * with each word added.
+   */
+-  MutableTrieDictionary( UErrorCode &status );
++  MutableTrieDictionary( UErrorCode &status, UBool containsValues = false );
+ };
+ 
+ /*******************************************************************
+  * CompactTrieDictionary
+  */
+ 
++//forward declarations
++struct CompactTrieHeader;
++struct CompactTrieInfo;
++
+ /**
+  * <p>CompactTrieDictionary is a TrieWordDictionary that has been compacted
+  * to save space.</p>
+  */
+ class U_COMMON_API CompactTrieDictionary : public TrieWordDictionary {
+  private:
+-    /**
+-     * The root node of the trie
+-     */
++  /**
++   * The header of the CompactTrieDictionary which contains all info
++   */
+ 
+-  const CompactTrieHeader   *fData;
+-
+-    /**
+-     * A UBool indicating whether or not we own the fData.
+-     */
++  CompactTrieInfo                 *fInfo; 
+ 
++  /**
++   * A UBool indicating whether or not we own the fData.
++   */
+   UBool                     fOwnData;
+ 
+-    UDataMemory              *fUData;
++  UDataMemory              *fUData;
+  public:
+   /**
+    * <p>Construct a dictionary from a UDataMemory.</p>
+@@ -277,6 +314,11 @@
+    */
+   virtual ~CompactTrieDictionary();
+ 
++  /**
++   * <p>Returns true if the dictionary contains values associated with each word.</p>
++   */
++  virtual UBool getValued() const;
++
+  /**
+   * <p>Find dictionary words that match the text.</p>
+   *
+@@ -286,13 +328,15 @@
+   * @param lengths An array that is filled with the lengths of words that matched.
+   * @param count Filled with the number of elements output in lengths.
+   * @param limit The size of the lengths array; this limits the number of words output.
++  * @param values An array that is filled with the values associated with the matched words.
+   * @return The number of characters in text that were matched.
+   */
+   virtual int32_t matches( UText *text,
+-                              int32_t rangeEnd,
++                              int32_t maxLength,
+                               int32_t *lengths,
+                               int &count,
+-                              int limit ) const;
++                              int limit,
++                              uint16_t *values = NULL) const;
+ 
+   /**
+    * <p>Return a StringEnumeration for iterating all the words in the dictionary.</p>
+@@ -311,7 +355,7 @@
+   virtual uint32_t dataSize() const;
+   
+  /**
+-  * <p>Return a void * pointer to the compact data, platform-endian.</p>
++  * <p>Return a void * pointer to the (unmanaged) compact data, platform-endian.</p>
+   *
+   * @return The data for the compact dictionary, suitable for passing to the
+   * constructor.
+@@ -342,5 +386,5 @@
+ 
+ U_NAMESPACE_END
+ 
+-    /* TRIEDICT_H */
++/* TRIEDICT_H */
+ #endif
+--- source/data/Makefile.in	2010-10-29 13:21:33.000000000 -0700
++++ source/data/Makefile.in	2011-01-26 16:24:24.856798000 -0800
+@@ -509,8 +520,9 @@
+ ####################################################    CTD
+ # CTD FILES
+ 
+-$(BRKBLDDIR)/%.ctd: $(BRKSRCDIR)/%.txt $(TOOLBINDIR)/genctd$(TOOLEXEEXT) $(DAT_FILES)
+-	$(INVOKE) $(TOOLBINDIR)/genctd -c -i $(BUILDDIR) -o $@ $<
++# .ctd file now generated regardless of whether dictionary file exists
++$(BRKBLDDIR)/%.ctd: $(TOOLBINDIR)/genctd$(TOOLEXEEXT) $(DAT_FILES)
++	$(INVOKE) $(TOOLBINDIR)/genctd -c -i $(BUILDDIR) -o $@ $(BRKSRCDIR)/$(*F).txt
+ 
+ ####################################################    CFU
+ # CFU FILES
+--- source/data/brkitr/root.txt	2010-07-28 17:18:28.000000000 -0700
++++ source/data/brkitr/root.txt	2011-01-21 14:12:45.653922000 -0800
+@@ -17,5 +17,8 @@
+     }
+     dictionaries{
+         Thai:process(dependency){"thaidict.ctd"}
++        Hani:process(dependency){"cjdict.ctd"}
++        Hira:process(dependency){"cjdict.ctd"}
++        Kata:process(dependency){"cjdict.ctd"}
+     }
+ }
+--- source/data/xml/brkitr/root.xml	2010-03-01 15:13:18.000000000 -0800
++++ source/data/xml/brkitr/root.xml	2011-01-21 14:12:45.735922000 -0800
+@@ -25,6 +25,9 @@
+             </icu:boundaries>
+             <icu:dictionaries>
+                 <icu:dictionary type="Thai" icu:dependency="thaidict.ctd"/>
++                <icu:dictionary type="Hani" icu:dependency="cjdict.ctd"/>
++                <icu:dictionary type="Hira" icu:dependency="cjdict.ctd"/>
++                <icu:dictionary type="Kata" icu:dependency="cjdict.ctd"/>
+             </icu:dictionaries>
+         </icu:breakIteratorData>
+     </special>
+--- source/test/cintltst/creststn.c	2010-10-28 10:44:02.000000000 -0700
++++ source/test/cintltst/creststn.c	2011-01-21 14:12:44.995020000 -0800
+@@ -2188,21 +2188,21 @@
+       
+ 
+       {
+-            UResourceBundle* ja = ures_open(U_ICUDATA_BRKITR,"ja", &status);
++            UResourceBundle* th = ures_open(U_ICUDATA_BRKITR,"th", &status);
+             const UChar *got = NULL, *exp=NULL;
+             int32_t gotLen = 0, expLen=0;
+-            ja = ures_getByKey(ja, "boundaries", ja, &status);
+-            exp = tres_getString(ja, -1, "word", &expLen, &status);
++            th = ures_getByKey(th, "boundaries", th, &status);
++            exp = tres_getString(th, -1, "grapheme", &expLen, &status);
+               
+             tb = ures_getByKey(aliasB, "boundaries", tb, &status);
+-            got = tres_getString(tb, -1, "word", &gotLen, &status);
++            got = tres_getString(tb, -1, "grapheme", &gotLen, &status);
+                 
+             if(U_FAILURE(status)) {
+                 log_err("%s trying to read str boundaries\n", u_errorName(status));
+             } else if(gotLen != expLen || u_strncmp(exp, got, gotLen) != 0) {
+                 log_err("Referencing alias didn't get the right data\n");
+             }
+-            ures_close(ja);
++            ures_close(th);
+             status = U_ZERO_ERROR;
+       }
+       /* simple alias */
+--- source/test/intltest/rbbiapts.cpp	2010-07-12 11:03:29.000000000 -0700
++++ source/test/intltest/rbbiapts.cpp	2011-01-21 14:12:45.033014000 -0800
+@@ -156,9 +156,13 @@
+     if(*a!=*b){
+         errln("Failed: boilerplate method operator!= does not return correct results");
+     }
+-    BreakIterator* c = BreakIterator::createWordInstance(Locale("ja"),status);
+-    if(a && c){
+-        if(*c==*a){
++    // Japanese word break iteratos is identical to root with
++    // a dictionary-based break iterator, but Thai character break iterator
++    // is still different from Root. 
++    BreakIterator* c = BreakIterator::createCharacterInstance(Locale("ja"),status);
++    BreakIterator* d = BreakIterator::createCharacterInstance(Locale("th"),status);
++    if(c && d){
++        if(*c==*d){
+             errln("Failed: boilerplate method opertator== does not return correct results");
+         }
+     }else{
+@@ -167,6 +171,7 @@
+     delete a;
+     delete b;
+     delete c;
++    delete d;
+ }
+ 
+ void RBBIAPITest::TestgetRules()
+@@ -635,21 +640,21 @@
+ //
+ void RBBIAPITest::TestRuleStatus() {
+      UChar str[30];
+-     u_unescape("plain word 123.45 \\u9160\\u9161 \\u30a1\\u30a2 \\u3041\\u3094",
+-              // 012345678901234567  8      9    0  1      2    3  4      5    6
+-              //                    Ideographic    Katakana       Hiragana
++     //no longer test Han or hiragana breaking here: ruleStatusVec would return nothing
++     // changed UBRK_WORD_KANA to UBRK_WORD_IDEO
++     u_unescape("plain word 123.45 \\u30a1\\u30a2 ",
++              // 012345678901234567  8      9    0      
++              //                     Katakana      
+                 str, 30);
+      UnicodeString testString1(str);
+-     int32_t bounds1[] = {0, 5, 6, 10, 11, 17, 18, 19, 20, 21, 23, 24, 25, 26};
++     int32_t bounds1[] = {0, 5, 6, 10, 11, 17, 18, 20, 21};
+      int32_t tag_lo[]  = {UBRK_WORD_NONE,     UBRK_WORD_LETTER, UBRK_WORD_NONE,    UBRK_WORD_LETTER,
+                           UBRK_WORD_NONE,     UBRK_WORD_NUMBER, UBRK_WORD_NONE,
+-                          UBRK_WORD_IDEO,     UBRK_WORD_IDEO,   UBRK_WORD_NONE,
+-                          UBRK_WORD_KANA,     UBRK_WORD_NONE,   UBRK_WORD_KANA,    UBRK_WORD_KANA};
++                          UBRK_WORD_IDEO,     UBRK_WORD_NONE};
+ 
+      int32_t tag_hi[]  = {UBRK_WORD_NONE_LIMIT, UBRK_WORD_LETTER_LIMIT, UBRK_WORD_NONE_LIMIT, UBRK_WORD_LETTER_LIMIT,
+                           UBRK_WORD_NONE_LIMIT, UBRK_WORD_NUMBER_LIMIT, UBRK_WORD_NONE_LIMIT,
+-                          UBRK_WORD_IDEO_LIMIT, UBRK_WORD_IDEO_LIMIT,   UBRK_WORD_NONE_LIMIT,
+-                          UBRK_WORD_KANA_LIMIT, UBRK_WORD_NONE_LIMIT,   UBRK_WORD_KANA_LIMIT, UBRK_WORD_KANA_LIMIT};
++                          UBRK_WORD_IDEO_LIMIT, UBRK_WORD_NONE_LIMIT};
+ 
+      UErrorCode status=U_ZERO_ERROR;
+ 
+@@ -888,9 +893,11 @@
+ 
+     URegistryKey key = BreakIterator::registerInstance(ja_word, "xx", UBRK_WORD, status);
+     {
++#if 0 // With a dictionary based word breaking, ja_word is identical to root.
+         if (ja_word && *ja_word == *root_word) {
+             errln("japan not different from root");
+         }
++#endif
+     }
+ 
+     {
+--- source/test/intltest/rbbitst.cpp	2010-10-08 18:23:28.000000000 -0700
++++ source/test/intltest/rbbitst.cpp	2011-01-21 14:12:45.180030000 -0800
+@@ -35,6 +35,8 @@
+ #include <string.h>
+ #include <stdio.h>
+ #include <stdlib.h>
++#include "unicode/numfmt.h"
++#include "unicode/uscript.h"
+ 
+ #define TEST_ASSERT(x) {if (!(x)) { \
+     errln("Failure in file %s, line %d", __FILE__, __LINE__);}}
+@@ -138,11 +140,13 @@
+             if (exec) TestThaiBreaks();                        break;
+         case 23: name = "TestTailoredBreaks";
+             if (exec) TestTailoredBreaks();                    break;
++        case 24: name = "TestTrieDictWithValue";
++            if(exec) TestTrieDictWithValue();                  break;
+ #else
+-        case 21: case 22: case 23: name = "skip";
++        case 21: case 22: case 23: case 24: name = "skip";
+             break;
+ #endif
+-        case 24: name = "TestDictRules";
++        case 25: name = "TestDictRules";
+             if (exec) TestDictRules();                         break;
+         case 25: name = "TestBug5532";
+             if (exec) TestBug5532();                           break;
+@@ -607,6 +611,8 @@
+ 
+ 
+ void RBBITest::TestJapaneseWordBreak() {
++// TODO: Rewrite this test for a dictionary-based word breaking.
++#if 0
+     UErrorCode status = U_ZERO_ERROR;
+     BITestData   japaneseWordSelection(status);
+ 
+@@ -628,6 +634,7 @@
+ 
+     generalIteratorTest(*e, japaneseWordSelection);
+     delete e;
++#endif
+ }
+ 
+ void RBBITest::TestTrieDict() {
+@@ -849,6 +856,372 @@
+     delete compact2;
+ }
+ 
++/*TODO: delete later*/
++inline void writeEnumerationToFile(StringEnumeration *enumer, char *filename){
++    UErrorCode      status  = U_ZERO_ERROR;
++    FILE *outfile = fopen(filename,"w");
++    UConverter *cvt = ucnv_open("UTF-8", &status);
++    if (U_FAILURE(status))
++        return;
++    if(outfile != NULL){
++        status = U_ZERO_ERROR;
++        const UnicodeString *word = enumer->snext(status);
++        while (word != NULL && U_SUCCESS(status)) {
++            char u8word[500];
++            status = U_ZERO_ERROR;
++            ucnv_fromUChars(cvt, u8word, 500, word->getBuffer(), word->length(),
++                    &status);
++            fprintf(outfile,"%s\n", u8word);
++            status = U_ZERO_ERROR;
++            word = enumer->snext(status);
++        }
++        fclose(outfile);
++    }
++    ucnv_close(cvt);
++}
++
++// A very simple helper class to streamline the buffer handling in
++// TestTrieDictWithValue
++template<class T, size_t N>
++class AutoBuffer {
++ public:
++  AutoBuffer(size_t size) : buffer(stackBuffer) {
++    if (size > N)
++      buffer = new T[size];
++  }
++  ~AutoBuffer() {
++    if (buffer != stackBuffer) 
++      delete [] buffer;
++  }
++  T* elems() {
++    return buffer;
++  }
++  const T& operator[] (size_t i) const {
++    return buffer[i];
++  }
++  T& operator[] (size_t i) {
++    return buffer[i];
++  }
++ private:
++  T stackBuffer[N]; 
++  T* buffer;
++  AutoBuffer();
++};
++
++//----------------------------------------------------------------------------
++//
++// TestTrieDictWithValue    Test trie dictionaries with logprob values and 
++// more than 2^16 nodes after compaction.
++//
++//----------------------------------------------------------------------------
++void RBBITest::TestTrieDictWithValue() {
++    UErrorCode      status  = U_ZERO_ERROR;
++
++    //
++    //  Open and read the test data file.
++    //
++    const char *testDataDirectory = IntlTest::getSourceTestData(status);
++    const char *filename = "cjdict-truncated.txt";
++    char testFileName[1000];
++    if (testDataDirectory == NULL || strlen(testDataDirectory) + strlen(filename) + 10 >= sizeof(testFileName)) {
++        errln("Can't open test data.  Path too long.");
++        return;
++    }
++    strcpy(testFileName, testDataDirectory);
++    strcat(testFileName, filename);
++
++    // Items needing deleting at the end
++    MutableTrieDictionary *mutableDict = NULL;
++    CompactTrieDictionary *compactDict = NULL;
++    UnicodeSet            *breaks      = NULL;
++    UChar                 *testFile    = NULL;
++    StringEnumeration     *enumer1     = NULL;
++    StringEnumeration     *enumer2     = NULL;
++    MutableTrieDictionary *mutable2    = NULL;
++    StringEnumeration     *cloneEnum   = NULL;
++    CompactTrieDictionary *compact2    = NULL;
++    NumberFormat          *nf           = NULL;
++    UText *originalText = NULL, *cloneText = NULL;
++
++    const UnicodeString *originalWord = NULL;
++    const UnicodeString *cloneWord    = NULL;
++    UChar *current;
++    UChar *word;
++    UChar uc;
++    int32_t wordLen;
++    int32_t wordCount;
++    int32_t testCount;
++    int32_t valueLen;
++    int counter = 0;
++
++    int    len;
++    testFile = ReadAndConvertFile(testFileName, len, NULL, status);
++    if (U_FAILURE(status)) {
++        goto cleanup; /* something went wrong, error already output */
++    }
++
++    mutableDict = new MutableTrieDictionary(0x0E1C, status, TRUE);
++    if (U_FAILURE(status)) {
++        errln("Error creating MutableTrieDictionary: %s\n", u_errorName(status));
++        goto cleanup;
++    }
++
++    breaks = new UnicodeSet;
++    breaks->add(0x000A);     // Line Feed
++    breaks->add(0x000D);     // Carriage Return
++    breaks->add(0x2028);     // Line Separator
++    breaks->add(0x2029);     // Paragraph Separator
++    breaks->add(0x0009);     // Tab character
++
++    // Now add each non-comment line of the file as a word.
++    current = testFile;
++    word = current;
++    uc = *current++;
++    wordLen = 0;
++    wordCount = 0;
++    nf = NumberFormat::createInstance(status);
++
++    while (uc) {
++        UnicodeString ucharValue;
++        valueLen = 0;
++
++        if (uc == 0x0023) {     // #comment line, skip
++            while (uc && !breaks->contains(uc)) {
++                uc = *current++;
++            }
++        }
++        else{
++            while (uc && !breaks->contains(uc)) {
++                ++wordLen;
++                uc = *current++;
++            }
++            if(uc == 0x0009){ //separator is a tab char, read in num after tab
++                uc = *current++;
++                while (uc && !breaks->contains(uc)) {
++                    ucharValue.append(uc);
++                    uc = *current++;
++                }
++            }
++        }
++        if (wordLen > 0) {
++            Formattable value((int32_t)0);
++            nf->parse(ucharValue.getTerminatedBuffer(), value, status);
++            
++            if(U_FAILURE(status)){
++                errln("parsing of value failed when reading in dictionary\n");
++                goto cleanup;
++            }
++            mutableDict->addWord(word, wordLen, status, value.getLong());
++            if (U_FAILURE(status)) {
++                errln("Could not add word to mutable dictionary; status %s\n", u_errorName(status));
++                goto cleanup;
++            }
++            wordCount += 1;
++        }
++
++        // Find beginning of next line
++        while (uc && breaks->contains(uc)) {
++            uc = *current++;
++        }
++        word = current-1;
++        wordLen = 0;
++    }
++    
++    if (wordCount < 50) {
++        errln("Word count (%d) unreasonably small\n", wordCount);
++        goto cleanup;
++    }
++
++    enumer1 = mutableDict->openWords(status);
++    if (U_FAILURE(status)) {
++        errln("Could not open mutable dictionary enumerator: %s\n", u_errorName(status));
++        goto cleanup;
++    }
++
++    testCount = 0;
++    if (wordCount != (testCount = enumer1->count(status))) {
++        errln("MutableTrieDictionary word count (%d) differs from file word count (%d), with status %s\n",
++                testCount, wordCount, u_errorName(status));
++        goto cleanup;
++    }
++    
++    // Now compact it
++    compactDict = new CompactTrieDictionary(*mutableDict, status);
++    if (U_FAILURE(status)) {
++        errln("Failed to create CompactTrieDictionary: %s\n", u_errorName(status));
++        goto cleanup;
++    }
++    
++    enumer2 = compactDict->openWords(status);
++    if (U_FAILURE(status)) {
++        errln("Could not open compact trie dictionary enumerator: %s\n", u_errorName(status));
++        goto cleanup;
++    }
++
++
++    //delete later
++//    writeEnumerationToFile(enumer1, "/home/jchye/mutable.txt");
++//    writeEnumerationToFile(enumer2, "/home/jchye/compact.txt");
++
++    enumer1->reset(status);
++    enumer2->reset(status);
++
++    originalWord = enumer1->snext(status);
++    cloneWord = enumer2->snext(status);
++    while (U_SUCCESS(status) && originalWord != NULL && cloneWord != NULL) {
++        if (*originalWord != *cloneWord) {
++            errln("MutableTrieDictionary and CompactTrieDictionary word mismatch at %d, lengths are %d and %d\n", 
++                    counter, originalWord->length(), cloneWord->length());
++            goto cleanup;
++        }
++        
++        // check if attached values of the same word in both dictionaries tally
++#if 0
++        int32_t lengths1[originalWord->length()], lengths2[cloneWord->length()];
++        uint16_t values1[originalWord->length()], values2[cloneWord->length()];
++#endif
++        AutoBuffer<int32_t, 20> lengths1(originalWord->length());
++        AutoBuffer<int32_t, 20> lengths2(cloneWord->length());
++        AutoBuffer<uint16_t, 20> values1(originalWord->length());
++        AutoBuffer<uint16_t, 20> values2(cloneWord->length());
++      
++        originalText = utext_openConstUnicodeString(originalText, originalWord, &status);
++        cloneText = utext_openConstUnicodeString(cloneText, cloneWord, &status);
++        
++        int count1, count2;
++        mutableDict->matches(originalText, originalWord->length(), lengths1.elems(), count1, originalWord->length(), values1.elems());
++        compactDict->matches(cloneText, cloneWord->length(), lengths2.elems(), count2, cloneWord->length(), values2.elems());
++        
++        if(values1[count1-1] != values2[count2-1]){
++            errln("Values of word %d in MutableTrieDictionary and CompactTrieDictionary do not match, with values %d and %d\n", 
++                  counter, values1[count1-1], values2[count2-1]);
++            goto cleanup;
++        }
++        
++        counter++;
++        originalWord = enumer1->snext(status);
++        cloneWord = enumer2->snext(status);
++    }
++    if (enumer1->getDynamicClassID() == enumer2->getDynamicClassID()) {
++        errln("CompactTrieEnumeration and MutableTrieEnumeration ClassIDs are the same");
++    }
++    
++    delete enumer1;
++    enumer1 = NULL;
++    delete enumer2;
++    enumer2 = NULL;
++
++    // Now un-compact it
++    mutable2 = compactDict->cloneMutable(status);
++    if (U_FAILURE(status)) {
++        errln("Could not clone CompactTrieDictionary to MutableTrieDictionary: %s\n", u_errorName(status));
++        goto cleanup;
++    }
++
++    cloneEnum = mutable2->openWords(status);
++    if (U_FAILURE(status)) {
++        errln("Could not create cloned mutable enumerator: %s\n", u_errorName(status));
++        goto cleanup;
++    }
++
++    if (wordCount != (testCount = cloneEnum->count(status))) {
++        errln("Cloned MutableTrieDictionary word count (%d) differs from file word count (%d), with status %s\n",
++                testCount, wordCount, u_errorName(status));
++        goto cleanup;
++    }
++
++    // Compact original dictionary to clone. Note that we can only compare the same kind of
++    // dictionary as the order of the enumerators is not guaranteed to be the same between
++    // different kinds
++    enumer1 = mutableDict->openWords(status);
++    if (U_FAILURE(status)) {
++        errln("Could not re-open mutable dictionary enumerator: %s\n", u_errorName(status));
++        goto cleanup;
++    }
++
++    counter = 0;
++    originalWord = enumer1->snext(status);
++    cloneWord = cloneEnum->snext(status);
++    while (U_SUCCESS(status) && originalWord != NULL && cloneWord != NULL) {
++        if (*originalWord != *cloneWord) {
++            errln("Original and cloned MutableTrieDictionary word mismatch\n");
++            goto cleanup;
++        }
++
++        // check if attached values of the same word in both dictionaries tally
++        AutoBuffer<int32_t, 20> lengths1(originalWord->length());
++        AutoBuffer<int32_t, 20> lengths2(cloneWord->length());
++        AutoBuffer<uint16_t, 20> values1(originalWord->length());
++        AutoBuffer<uint16_t, 20> values2(cloneWord->length());
++        originalText = utext_openConstUnicodeString(originalText, originalWord, &status);
++        cloneText = utext_openConstUnicodeString(cloneText, cloneWord, &status);
++        
++        int count1, count2;
++        mutableDict->matches(originalText, originalWord->length(), lengths1.elems(), count1, originalWord->length(), values1.elems());
++        mutable2->matches(cloneText, cloneWord->length(), lengths2.elems(), count2, cloneWord->length(), values2.elems());
++        
++        if(values1[count1-1] != values2[count2-1]){
++            errln("Values of word %d in original and cloned MutableTrieDictionary do not match, with values %d and %d\n", 
++                  counter, values1[count1-1], values2[count2-1]);
++            goto cleanup;
++        }
++        
++        counter++;
++
++        originalWord = enumer1->snext(status);
++        cloneWord = cloneEnum->snext(status);
++    }
++
++    if (U_FAILURE(status)) {
++        errln("Enumeration failed: %s\n", u_errorName(status));
++        goto cleanup;
++    }
++
++    if (originalWord != cloneWord) {
++        errln("Original and cloned MutableTrieDictionary ended enumeration at different points\n");
++        goto cleanup;
++    }
++
++    // Test the data copying constructor for CompactTrieDict, and the data access APIs.
++    compact2 = new CompactTrieDictionary(compactDict->data(), status);
++    if (U_FAILURE(status)) {
++        errln("CompactTrieDictionary(const void *,...) failed\n");
++        goto cleanup;
++    }
++
++    if (compact2->dataSize() == 0) {
++        errln("CompactTrieDictionary->dataSize() == 0\n");
++        goto cleanup;
++    }
++
++    // Now count the words via the second dictionary
++    delete enumer1;
++    enumer1 = compact2->openWords(status);
++    if (U_FAILURE(status)) {
++        errln("Could not open compact trie dictionary 2 enumerator: %s\n", u_errorName(status));
++        goto cleanup;
++    }
++
++    if (wordCount != (testCount = enumer1->count(status))) {
++        errln("CompactTrieDictionary 2 word count (%d) differs from file word count (%d), with status %s\n",
++                testCount, wordCount, u_errorName(status));
++        goto cleanup;
++    }
++
++    cleanup:
++    delete compactDict;
++    delete mutableDict;
++    delete breaks;
++    delete[] testFile;
++    delete enumer1;
++    delete mutable2;
++    delete cloneEnum;
++    delete compact2;
++    utext_close(originalText);
++    utext_close(cloneText);
++
++ 
++}
+ 
+ //----------------------------------------------------------------------------
+ //
+@@ -1870,8 +2243,15 @@
+ // Don't break in runs of hiragana or runs of ideograph, where the latter includes \u3005 \u3007 \u303B (cldrbug #2009).
+ static const char    jaWordText[]     = "\\u79C1\\u9054\\u306B\\u4E00\\u3007\\u3007\\u3007\\u306E\\u30B3\\u30F3\\u30D4\\u30E5\\u30FC\\u30BF"
+                                         "\\u304C\\u3042\\u308B\\u3002\\u5948\\u3005\\u306F\\u30EF\\u30FC\\u30C9\\u3067\\u3042\\u308B\\u3002";
++#if 0 
+ static const int32_t jaWordTOffsets[] = {    2, 3,          7, 8, 14,         17, 18,     20, 21, 24,         27, 28 };
+ static const int32_t jaWordROffsets[] = { 1, 2, 3, 4, 5, 6, 7, 8, 14, 15, 16, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28 };
++#endif
++// There's no separate Japanese word break iterator. Root is the same as Japanese.
++// Our dictionary-based iterator has to be tweaked to better handle U+3005,
++// U+3007, U+300B and some other cases.
++static const int32_t jaWordTOffsets[] = { 1, 2, 3, 4, 5,    7, 8, 12, 13, 14, 15, 17, 18, 20, 21, 22, 23, 24, 25, 27, 28 };
++static const int32_t jaWordROffsets[] = { 1, 2, 3, 4, 5,    7, 8, 12, 13, 14, 15, 17, 18, 20, 21, 22, 23, 24, 25, 27, 28 };
+ 
+ // UBreakIteratorType UBRK_SENTENCE, Locale "el"
+ // Add break after Greek question mark (cldrbug #2069).
+@@ -2672,6 +3052,8 @@
+     UnicodeSet  *fNewlineSet;
+     UnicodeSet  *fKatakanaSet;
+     UnicodeSet  *fALetterSet;
++    // TODO(jungshik): Do we still need this change? 
++    // UnicodeSet  *fALetterSet; // matches ALetterPlus in word.txt
+     UnicodeSet  *fMidNumLetSet;
+     UnicodeSet  *fMidLetterSet;
+     UnicodeSet  *fMidNumSet;
+@@ -2680,6 +3062,7 @@
+     UnicodeSet  *fOtherSet;
+     UnicodeSet  *fExtendSet;
+     UnicodeSet  *fExtendNumLetSet;
++    UnicodeSet  *fDictionaryCjkSet;
+ 
+     RegexMatcher  *fMatcher;
+ 
+@@ -2696,12 +3079,24 @@
+     fCRSet           = new UnicodeSet(UNICODE_STRING_SIMPLE("[\\p{Word_Break = CR}]"),           status);
+     fLFSet           = new UnicodeSet(UNICODE_STRING_SIMPLE("[\\p{Word_Break = LF}]"),           status);
+     fNewlineSet      = new UnicodeSet(UNICODE_STRING_SIMPLE("[\\p{Word_Break = Newline}]"),      status);
+-    fALetterSet      = new UnicodeSet(UNICODE_STRING_SIMPLE("[\\p{Word_Break = ALetter}]"),      status);
++    fDictionaryCjkSet= new UnicodeSet("[[\\uac00-\\ud7a3][:Han:][:Hiragana:]]", status);
++    // Exclude Hangul syllables from ALetterSet during testing.
++    // Leave CJK dictionary characters out from the monkey tests!
++#if 0 
++    fALetterSet      = new UnicodeSet("[\\p{Word_Break = ALetter}"
++                                      "[\\p{Line_Break = Complex_Context}"
++                                      "-\\p{Grapheme_Cluster_Break = Extend}"
++                                      "-\\p{Grapheme_Cluster_Break = Control}"
++                                      "]]",
++                                      status);
++#endif
++    fALetterSet      = new UnicodeSet(UNICODE_STRING_SIMPLE("[\\p{Word_Break = ALetter}]"), status);
++    fALetterSet->removeAll(*fDictionaryCjkSet);
+     fKatakanaSet     = new UnicodeSet(UNICODE_STRING_SIMPLE("[\\p{Word_Break = Katakana}]"),     status);
+     fMidNumLetSet    = new UnicodeSet(UNICODE_STRING_SIMPLE("[\\p{Word_Break = MidNumLet}]"),    status);
+     fMidLetterSet    = new UnicodeSet(UNICODE_STRING_SIMPLE("[\\p{Word_Break = MidLetter}]"),    status);
+     fMidNumSet       = new UnicodeSet(UNICODE_STRING_SIMPLE("[\\p{Word_Break = MidNum}]"),       status);
+-    fNumericSet      = new UnicodeSet(UNICODE_STRING_SIMPLE("[\\p{Word_Break = Numeric}]"),      status);
++    fNumericSet      = new UnicodeSet(UNICODE_STRING_SIMPLE("[\\p{Word_Break = Numeric}[\\uff10-\\uff19]]"),      status);
+     fFormatSet       = new UnicodeSet(UNICODE_STRING_SIMPLE("[\\p{Word_Break = Format}]"),       status);
+     fExtendNumLetSet = new UnicodeSet(UNICODE_STRING_SIMPLE("[\\p{Word_Break = ExtendNumLet}]"), status);
+     fExtendSet       = new UnicodeSet(UNICODE_STRING_SIMPLE("[\\p{Word_Break = Extend}]"),       status);
+@@ -2725,13 +3120,14 @@
+     fOtherSet->removeAll(*fFormatSet);
+     fOtherSet->removeAll(*fExtendSet);
+     // Inhibit dictionary characters from being tested at all.
++    fOtherSet->removeAll(*fDictionaryCjkSet);
+     fOtherSet->removeAll(UnicodeSet(UNICODE_STRING_SIMPLE("[\\p{LineBreak = Complex_Context}]"), status));
+ 
+     fSets->addElement(fCRSet,        status);
+     fSets->addElement(fLFSet,        status);
+     fSets->addElement(fNewlineSet,   status);
+     fSets->addElement(fALetterSet,   status);
+-    fSets->addElement(fKatakanaSet,  status);
++    //fSets->addElement(fKatakanaSet,  status); //TODO: work out how to test katakana
+     fSets->addElement(fMidLetterSet, status);
+     fSets->addElement(fMidNumLetSet, status);
+     fSets->addElement(fMidNumSet,    status);
+@@ -3978,6 +4374,7 @@
+     for (i = bi->last(); i != BreakIterator::DONE; i = bi->previous()) {
+         count --;
+         if (forward[count] != i) {
++            printStringBreaks(ustr, expected, expectedcount);
+             test->errln("happy break test previous() failed: expected %d but got %d",
+                         forward[count], i);
+             break;
+@@ -4011,23 +4408,25 @@
+     UErrorCode    status = U_ZERO_ERROR;
+     // BreakIterator  *bi = BreakIterator::createCharacterInstance(locale, status);
+     BreakIterator *bi = BreakIterator::createWordInstance(locale, status);
++    // Replaced any C+J characters in a row with a random sequence of characters
++    // of the same length to make our C+J segmentation not get in the way.
+     static const char *strlist[] =
+     {
+     "\\U000e0032\\u0097\\u0f94\\uc2d8\\u05f4\\U000e0031\\u060d",
+-    "\\U000e0037\\u4666\\u1202\\u003a\\U000e0031\\u064d\\u0bea\\u591c\\U000e0040\\u003b",
++    "\\U000e0037\\u2666\\u1202\\u003a\\U000e0031\\u064d\\u0bea\\u091c\\U000e0040\\u003b",
+     "\\u0589\\u3e99\\U0001d7f3\\U000e0074\\u1810\\u200e\\U000e004b\\u0027\\U000e0061\\u003a",
+     "\\u398c\\U000104a5\\U0001d173\\u102d\\u002e\\uca3b\\u002e\\u002c\\u5622",
+-    "\\u90ca\\u3588\\u009c\\u0953\\u194b",
++    "\\uac00\\u3588\\u009c\\u0953\\u194b",
+     "\\u200e\\U000e0072\\u0a4b\\U000e003f\\ufd2b\\u2027\\u002e\\u002e",
+     "\\u0602\\u2019\\ua191\\U000e0063\\u0a4c\\u003a\\ub4b5\\u003a\\u827f\\u002e",
+-    "\\u7f1f\\uc634\\u65f8\\u0944\\u04f2\\uacdf\\u1f9c\\u05f4\\u002e",
++    "\\u2f1f\\u1634\\u05f8\\u0944\\u04f2\\u0cdf\\u1f9c\\u05f4\\u002e",
+     "\\U000e0042\\u002e\\u0fb8\\u09ef\\u0ed1\\u2044",
+     "\\u003b\\u024a\\u102e\\U000e0071\\u0600",
+     "\\u2027\\U000e0067\\u0a47\\u00b7",
+     "\\u1fcd\\u002c\\u07aa\\u0027\\u11b0",
+     "\\u002c\\U000e003c\\U0001d7f4\\u003a\\u0c6f\\u0027",
+     "\\u0589\\U000e006e\\u0a42\\U000104a5",
+-    "\\u4f66\\ub523\\u003a\\uacae\\U000e0047\\u003a",
++    "\\u0f66\\u2523\\u003a\\u0cae\\U000e0047\\u003a",
+     "\\u003a\\u0f21\\u0668\\u0dab\\u003a\\u0655\\u00b7",
+     "\\u0027\\u11af\\U000e0057\\u0602",
+     "\\U0001d7f2\\U000e007\\u0004\\u0589",
+@@ -4039,7 +4438,7 @@
+     "\\u0be8\\u002e\\u0c68\\u066e\\u136d\\ufc99\\u59e7",
+     "\\u0233\\U000e0020\\u0a69\\u0d6a",
+     "\\u206f\\u0741\\ub3ab\\u2019\\ubcac\\u2019",
+-    "\\u58f4\\U000e0049\\u20e7\\u2027",
++    "\\u18f4\\U000e0049\\u20e7\\u2027",
+     "\\ub315\\U0001d7e5\\U000e0073\\u0c47\\u06f2\\u0c6a\\u0037\\u10fe",
+     "\\ua183\\u102d\\u0bec\\u003a",
+     "\\u17e8\\u06e7\\u002e\\u096d\\u003b",
+@@ -4049,7 +4448,7 @@
+     "\\U000e005d\\u2044\\u0731\\u0650\\u0061",
+     "\\u003a\\u0664\\u00b7\\u1fba",
+     "\\u003b\\u0027\\u00b7\\u47a3",
+-    "\\u2027\\U000e0067\\u0a42\\u00b7\\ubddf\\uc26c\\u003a\\u4186\\u041b",
++    "\\u2027\\U000e0067\\u0a42\\u00b7\\u4edf\\uc26c\\u003a\\u4186\\u041b",
+     "\\u0027\\u003a\\U0001d70f\\U0001d7df\\ubf4a\\U0001d7f5\\U0001d177\\u003a\\u0e51\\u1058\\U000e0058\\u00b7\\u0673",
+     "\\uc30d\\u002e\\U000e002c\\u0c48\\u003a\\ub5a1\\u0661\\u002c",
+     };
+@@ -4104,12 +4503,12 @@
+     "\\U0001d7f2\\U000e007d\\u0004\\u0589",
+     "\\u82ab\\u17e8\\u0736\\u2019\\U0001d64d",
+     "\\u0e01\\ub55c\\u0a68\\U000e0037\\u0cd6\\u002c\\ub959",
+-    "\\U000e0065\\u302c\\uc986\\u09ee\\U000e0068",
++    "\\U000e0065\\u302c\\u09ee\\U000e0068",
+     "\\u0be8\\u002e\\u0c68\\u066e\\u136d\\ufc99\\u59e7",
+     "\\u0233\\U000e0020\\u0a69\\u0d6a",
+     "\\u206f\\u0741\\ub3ab\\u2019\\ubcac\\u2019",
+     "\\u58f4\\U000e0049\\u20e7\\u2027",
+-    "\\ub315\\U0001d7e5\\U000e0073\\u0c47\\u06f2\\u0c6a\\u0037\\u10fe",
++    "\\U0001d7e5\\U000e0073\\u0c47\\u06f2\\u0c6a\\u0037\\u10fe",
+     "\\ua183\\u102d\\u0bec\\u003a",
+     "\\u17e8\\u06e7\\u002e\\u096d\\u003b",
+     "\\u003a\\u0e57\\u0fad\\u002e",
+--- source/test/intltest/rbbitst.h	2010-07-22 17:15:37.000000000 -0700
++++ source/test/intltest/rbbitst.h	2011-01-21 14:12:45.152007000 -0800
+@@ -70,6 +70,7 @@
+     void TestBug5775();
+     void TestThaiBreaks();
+     void TestTailoredBreaks();
++    void TestTrieDictWithValue();
+     void TestDictRules();
+     void TestBug5532();
+ 
+--- source/test/testdata/rbbitst.txt	2010-07-28 17:18:28.000000000 -0700
++++ source/test/testdata/rbbitst.txt	2011-01-21 14:12:45.221011000 -0800
+@@ -161,7 +161,23 @@
+ <data>•abc<200>\U0001D800•def<200>\U0001D3FF• •</data>
+ 
+ # Hiragana & Katakana stay together, but separates from each other and Latin.
+-<data>•abc<200>\N{HIRAGANA LETTER SMALL A}<300>\N{HIRAGANA LETTER VU}\N{COMBINING ACUTE ACCENT}<300>\N{HIRAGANA ITERATION MARK}<300>\N{KATAKANA LETTER SMALL A}\N{KATAKANA ITERATION MARK}\N{HALFWIDTH KATAKANA LETTER WO}\N{HALFWIDTH KATAKANA LETTER N}<300>def<200>#•</data>
++# *** what to do about theoretical combos of chars? i.e. hiragana + accent
++#<data>•abc<200>\N{HIRAGANA LETTER SMALL A}<300>\N{HIRAGANA LETTER VU}\N{COMBINING ACUTE ACCENT}<300>\N{HIRAGANA ITERATION MARK}<300>\N{KATAKANA LETTER SMALL A}\N{KATAKANA ITERATION MARK}\N{HALFWIDTH KATAKANA LETTER WO}\N{HALFWIDTH KATAKANA LETTER N}<300>def<200>#•</data>
++
++# test normalization/dictionary handling of halfwidth katakana: same dictionary phrase in fullwidth and halfwidth
++<data>•芽キャベツ<400>芽キャﾍﾞツ<400></data>
++
++# more Japanese tests
++# TODO: Currently, U+30FC and other characters (script=common) in the Hiragana
++# and the Katakana block are not treated correctly. Enable this later.
++#<data>•どー<400>せ<400>日本語<400>を<400>勉強<400>する<400>理由<400>について<400>　•て<400>こと<400>は<400>我<400>でも<400>知<400>ら<400>も<400>い<400>こと<400>なん<400>だ<400>。•</data>
++<data>•日本語<400>を<400>勉強<400>する<400>理由<400>について<400>　•て<400>こと<400>は<400>我<400>でも<400>知<400>ら<400>も<400>い<400>こと<400>なん<400>だ<400>。•</data>
++
++# Testing of word boundary for dictionary word containing both kanji and kana
++<data>•中だるみ<400>蔵王の森<400>ウ離島<400></data>
++
++# Testing of Chinese segmentation (taken from a Chinese news article)
++<data>•400<100>余<400>名<400>中央<400>委员<400>和<400>中央<400>候补<400>委员<400>都<400>领<400>到了<400>“•推荐<400>票<400>”•，•有<400>资格<400>在<400>200<100>多<400>名<400>符合<400>条件<400>的<400>63<100>岁<400>以下<400>中共<400>正<400>部<400>级<400>干部<400>中<400>，•选出<400>他们<400>属意<400>的<400>中央<400>政治局<400>委员<400>以<400>向<400>政治局<400>常委<400>会<400>举荐<400>。•</data>
+ 
+ # Words with interior formatting characters
+ <data>•def\N{COMBINING ACUTE ACCENT}\N{SYRIAC ABBREVIATION MARK}ghi<200> •</data>
+@@ -169,6 +185,8 @@
+ # to test for bug #4097779
+ <data>•aa\N{COMBINING GRAVE ACCENT}a<200> •</data>
+ 
++# fullwidth numeric, midletter characters etc should be treated like their halfwidth counterparts
++<data>•ＩＳＮ'Ｔ<200> •１９<100>日<400></data>
+ 
+ #      to test for bug #4098467
+ #      What follows is a string of Korean characters (I found it in the Yellow Pages
+@@ -178,9 +196,15 @@
+ #      precomposed syllables...
+ <data>•\uc0c1\ud56d<200> •\ud55c\uc778<200> •\uc5f0\ud569<200> •\uc7a5\ub85c\uad50\ud68c<200> •\u1109\u1161\u11bc\u1112\u1161\u11bc<200> •\u1112\u1161\u11ab\u110b\u1175\u11ab<200> •\u110b\u1167\u11ab\u1112\u1161\u11b8<200> •\u110c\u1161\u11bc\u1105\u1169\u1100\u116d\u1112\u116c<200> •</data>
+ 
+-<data>•abc<200>\u4e01<400>\u4e02<400>\u3005<200>\u4e03<400>\u4e03<400>abc<200> •</data>
++# more Korean tests (Jamo not tested here, not counted as dictionary characters)
++# Disable them now because we don't include a Korean dictionary.
++#<data>•\ud55c\uad6d<200>\ub300\ud559\uad50<200>\uc790\uc5f0<200>\uacfc\ud559<200>\ub300\ud559<200>\ubb3c\ub9ac\ud559\uacfc<200></data>
++#<data>•\ud604\uc7ac<200>\ub294<200> •\uac80\ucc30<200>\uc774<200> •\ubd84\uc2dd<200>\ud68c\uacc4<200>\ubb38\uc81c<200>\ub97c<200> •\uc870\uc0ac<200>\ud560<200> •\uac00\ub2a5\uc131<200>\uc740<200> •\uc5c6\ub2e4<200>\u002e•</data>
++
++<data>•abc<200>\u4e01<400>\u4e02<400>\u3005<400>\u4e03\u4e03<400>abc<200> •</data>
++
++<data>•\u06c9<200>\uc799<200>\ufffa•</data>
+ 
+-<data>•\u06c9\uc799\ufffa<200></data>
+ 
+ #      
+ #      Try some words from other scripts.
+@@ -491,8 +515,7 @@
+ <data>•\uc0c1•\ud56d •\ud55c•\uc778 •\uc5f0•\ud569 •\uc7a5•\ub85c•\uad50•\ud68c•</data>
+ 
+ #      conjoining jamo...
+-#      TODO:  rules update needed
+-#<data>•\u1109\u1161\u11bc•\u1112\u1161\u11bc •\u1112\u1161\u11ab•\u110b\u1175\u11ab #•\u110b\u1167\u11ab•\u1112\u1161\u11b8 •\u110c\u1161\u11bc•\u1105\u1169•\u1100\u116d•\u1112\u116c•</data>
++<data>•\u1109\u1161\u11bc•\u1112\u1161\u11bc •\u1112\u1161\u11ab•\u110b\u1175\u11ab •\u110b\u1167\u11ab•\u1112\u1161\u11b8 •\u110c\u1161\u11bc•\u1105\u1169•\u1100\u116d•\u1112\u116c•</data>
+ 
+ #      to test for bug #4117554: Fullwidth .!? should be treated as postJwrd
+ <data>•\u4e01\uff0e•\u4e02\uff01•\u4e03\uff1f•</data>
+--- source/test/testdata/testaliases.txt	2009-11-12 13:53:42.000000000 -0800
++++ source/test/testdata/testaliases.txt	2011-01-21 14:12:45.204005000 -0800
+@@ -28,7 +28,7 @@
+     LocaleScript:alias { "/ICUDATA/ja/LocaleScript" }
+ 
+     // aliasing using position
+-    boundaries:alias { "/ICUDATA-brkitr/ja" } // Referencing corresponding resource in another bundle
++    boundaries:alias { "/ICUDATA-brkitr/th" } // Referencing corresponding resource in another bundle
+ 
+     // aliasing arrays
+     zoneTests {
+--- source/tools/genctd/genctd.cpp	2009-08-04 14:09:17.000000000 -0700
++++ source/tools/genctd/genctd.cpp	2011-01-21 14:12:45.564923000 -0800
+@@ -1,6 +1,6 @@
+ /*
+ **********************************************************************
+-*   Copyright (C) 2002-2009, International Business Machines
++*   Copyright (C) 2002-2010, International Business Machines
+ *   Corporation and others.  All Rights Reserved.
+ **********************************************************************
+ *
+@@ -34,12 +34,15 @@
+ #include "unicode/udata.h"
+ #include "unicode/putil.h"
+ 
++//#include "unicode/ustdio.h"
++
+ #include "uoptions.h"
+ #include "unewdata.h"
+ #include "ucmndata.h"
+ #include "rbbidata.h"
+ #include "triedict.h"
+ #include "cmemory.h"
++#include "uassert.h"
+ 
+ #include <stdio.h>
+ #include <stdlib.h>
+@@ -199,147 +202,191 @@
+     long        wordFileSize;
+     FILE        *file;
+     char        *wordBufferC;
+-
++    MutableTrieDictionary *mtd = NULL;
++    
+     file = fopen(wordFileName, "rb");
+-    if( file == 0 ) {
+-        fprintf(stderr, "Could not open file \"%s\"\n", wordFileName);
+-        exit(-1);
+-    }
+-    fseek(file, 0, SEEK_END);
+-    wordFileSize = ftell(file);
+-    fseek(file, 0, SEEK_SET);
+-    wordBufferC = new char[wordFileSize+10];
+-
+-    result = (long)fread(wordBufferC, 1, wordFileSize, file);
+-    if (result != wordFileSize)  {
+-        fprintf(stderr, "Error reading file \"%s\"\n", wordFileName);
+-        exit (-1);
+-    }
+-    wordBufferC[wordFileSize]=0;
+-    fclose(file);
+-
+-    //
+-    // Look for a Unicode Signature (BOM) on the word file
+-    //
+-    int32_t        signatureLength;
+-    const char *   wordSourceC = wordBufferC;
+-    const char*    encoding = ucnv_detectUnicodeSignature(
+-                           wordSourceC, wordFileSize, &signatureLength, &status);
+-    if (U_FAILURE(status)) {
+-        exit(status);
+-    }
+-    if(encoding!=NULL ){
+-        wordSourceC  += signatureLength;
+-        wordFileSize -= signatureLength;
+-    }
+-
+-    //
+-    // Open a converter to take the rule file to UTF-16
+-    //
+-    UConverter* conv;
+-    conv = ucnv_open(encoding, &status);
+-    if (U_FAILURE(status)) {
+-        fprintf(stderr, "ucnv_open: ICU Error \"%s\"\n", u_errorName(status));
+-        exit(status);
+-    }
+-
+-    //
+-    // Convert the words to UChar.
+-    //  Preflight first to determine required buffer size.
+-    //
+-    uint32_t destCap = ucnv_toUChars(conv,
+-                       NULL,           //  dest,
+-                       0,              //  destCapacity,
+-                       wordSourceC,
+-                       wordFileSize,
+-                       &status);
+-    if (status != U_BUFFER_OVERFLOW_ERROR) {
+-        fprintf(stderr, "ucnv_toUChars: ICU Error \"%s\"\n", u_errorName(status));
+-        exit(status);
+-    };
+-
+-    status = U_ZERO_ERROR;
+-    UChar *wordSourceU = new UChar[destCap+1];
+-    ucnv_toUChars(conv,
+-                  wordSourceU,     //  dest,
+-                  destCap+1,
+-                  wordSourceC,
+-                  wordFileSize,
+-                  &status);
+-    if (U_FAILURE(status)) {
+-        fprintf(stderr, "ucnv_toUChars: ICU Error \"%s\"\n", u_errorName(status));
+-        exit(status);
+-    };
+-    ucnv_close(conv);
+-
+-    // Get rid of the original file buffer
+-    delete[] wordBufferC;
+-
+-    // Create a MutableTrieDictionary, and loop through all the lines, inserting
+-    // words.
+-
+-    // First, pick a median character.
+-    UChar *current = wordSourceU + (destCap/2);
+-    UChar uc = *current++;
+-    UnicodeSet breaks;
+-    breaks.add(0x000A);     // Line Feed
+-    breaks.add(0x000D);     // Carriage Return
+-    breaks.add(0x2028);     // Line Separator
+-    breaks.add(0x2029);     // Paragraph Separator
+-
+-    do { 
+-        // Look for line break
+-        while (uc && !breaks.contains(uc)) {
+-            uc = *current++;
+-        }
+-        // Now skip to first non-line-break
+-        while (uc && breaks.contains(uc)) {
+-            uc = *current++;
++    if( file == 0 ) { //cannot find file
++        //create 1-line dummy file: ie 1 char, 1 value
++        UNewDataMemory *pData;
++        char msg[1024];
++
++        /* write message with just the name */
++        sprintf(msg, "%s not found, genctd writes dummy %s", wordFileName, outFileName);
++        fprintf(stderr, "%s\n", msg);
++
++        UChar c = 0x0020;
++        mtd = new MutableTrieDictionary(c, status, TRUE);
++        mtd->addWord(&c, 1, status, 1);
++
++    } else { //read words in from input file
++        fseek(file, 0, SEEK_END);
++        wordFileSize = ftell(file);
++        fseek(file, 0, SEEK_SET);
++        wordBufferC = new char[wordFileSize+10];
++    
++        result = (long)fread(wordBufferC, 1, wordFileSize, file);
++        if (result != wordFileSize)  {
++            fprintf(stderr, "Error reading file \"%s\"\n", wordFileName);
++            exit (-1);
+         }
+-    }
+-    while (uc && (breaks.contains(uc) || u_isspace(uc)));
+-
+-    MutableTrieDictionary *mtd = new MutableTrieDictionary(uc, status);
++        wordBufferC[wordFileSize]=0;
++        fclose(file);
+     
+-    if (U_FAILURE(status)) {
+-        fprintf(stderr, "new MutableTrieDictionary: ICU Error \"%s\"\n", u_errorName(status));
+-        exit(status);
+-    }
++        //
++        // Look for a Unicode Signature (BOM) on the word file
++        //
++        int32_t        signatureLength;
++        const char *   wordSourceC = wordBufferC;
++        const char*    encoding = ucnv_detectUnicodeSignature(
++                               wordSourceC, wordFileSize, &signatureLength, &status);
++        if (U_FAILURE(status)) {
++            exit(status);
++        }
++        if(encoding!=NULL ){
++            wordSourceC  += signatureLength;
++            wordFileSize -= signatureLength;
++        }
+     
+-    // Now add the words. Words are non-space characters at the beginning of
+-    // lines, and must be at least one UChar.
+-    current = wordSourceU;
+-    UChar *candidate = current;
+-    uc = *current++;
+-    int32_t length = 0;
+-
+-    while (uc) {
+-        while (uc && !u_isspace(uc)) {
+-            ++length;
+-            uc = *current++;
++        //
++        // Open a converter to take the rule file to UTF-16
++        //
++        UConverter* conv;
++        conv = ucnv_open(encoding, &status);
++        if (U_FAILURE(status)) {
++            fprintf(stderr, "ucnv_open: ICU Error \"%s\"\n", u_errorName(status));
++            exit(status);
+         }
+-        if (length > 0) {
+-            mtd->addWord(candidate, length, status);
+-            if (U_FAILURE(status)) {
+-                fprintf(stderr, "MutableTrieDictionary::addWord: ICU Error \"%s\"\n",
+-                        u_errorName(status));
+-                exit(status);
++    
++        //
++        // Convert the words to UChar.
++        //  Preflight first to determine required buffer size.
++        //
++        uint32_t destCap = ucnv_toUChars(conv,
++                           NULL,           //  dest,
++                           0,              //  destCapacity,
++                           wordSourceC,
++                           wordFileSize,
++                           &status);
++        if (status != U_BUFFER_OVERFLOW_ERROR) {
++            fprintf(stderr, "ucnv_toUChars: ICU Error \"%s\"\n", u_errorName(status));
++            exit(status);
++        };
++    
++        status = U_ZERO_ERROR;
++        UChar *wordSourceU = new UChar[destCap+1];
++        ucnv_toUChars(conv,
++                      wordSourceU,     //  dest,
++                      destCap+1,
++                      wordSourceC,
++                      wordFileSize,
++                      &status);
++        if (U_FAILURE(status)) {
++            fprintf(stderr, "ucnv_toUChars: ICU Error \"%s\"\n", u_errorName(status));
++            exit(status);
++        };
++        ucnv_close(conv);
++    
++        // Get rid of the original file buffer
++        delete[] wordBufferC;
++    
++        // Create a MutableTrieDictionary, and loop through all the lines, inserting
++        // words.
++    
++        // First, pick a median character.
++        UChar *current = wordSourceU + (destCap/2);
++        UChar uc = *current++;
++        UnicodeSet breaks;
++        breaks.add(0x000A);     // Line Feed
++        breaks.add(0x000D);     // Carriage Return
++        breaks.add(0x2028);     // Line Separator
++        breaks.add(0x2029);     // Paragraph Separator
++    
++        do { 
++            // Look for line break
++            while (uc && !breaks.contains(uc)) {
++                uc = *current++;
++            }
++            // Now skip to first non-line-break
++            while (uc && breaks.contains(uc)) {
++                uc = *current++;
+             }
+         }
+-        // Find beginning of next line
+-        while (uc && !breaks.contains(uc)) {
+-            uc = *current++;
++        while (uc && (breaks.contains(uc) || u_isspace(uc)));
++    
++        mtd = new MutableTrieDictionary(uc, status);
++        
++        if (U_FAILURE(status)) {
++            fprintf(stderr, "new MutableTrieDictionary: ICU Error \"%s\"\n", u_errorName(status));
++            exit(status);
+         }
+-        while (uc && breaks.contains(uc)) {
+-            uc = *current++;
++        
++        // Now add the words. Words are non-space characters at the beginning of
++        // lines, and must be at least one UChar. If a word has an associated value,
++        // the value should follow the word on the same line after a tab character.
++        current = wordSourceU;
++        UChar *candidate = current;
++        uc = *current++;
++        int32_t length = 0;
++        int count = 0;
++                
++        while (uc) {
++            while (uc && !u_isspace(uc)) {
++                ++length;
++                uc = *current++;
++            }
++            
++            UnicodeString valueString;
++            UChar candidateValue;
++            if(uc == 0x0009){ //separator is a tab char, read in number after space
++            	while (uc && u_isspace(uc)) {
++            		uc = *current++;
++            	}
++                while (uc && !u_isspace(uc)) {
++                    valueString.append(uc);
++                    uc = *current++;
++                }
++            }
++            
++            if (length > 0) {
++                count++;
++                if(valueString.length() > 0){
++                    mtd->setValued(TRUE);
++    
++                    uint32_t value = 0;
++                    char* s = new char[valueString.length()];
++                    valueString.extract(0,valueString.length(), s, valueString.length());
++                    int n = sscanf(s, "%ud", &value);
++                    U_ASSERT(n == 1);
++                    U_ASSERT(value >= 0); 
++                    mtd->addWord(candidate, length, status, (uint16_t)value);
++                    delete[] s;
++                } else {
++                    mtd->addWord(candidate, length, status);
++                }
++    
++                if (U_FAILURE(status)) {
++                    fprintf(stderr, "MutableTrieDictionary::addWord: ICU Error \"%s\" at line %d in input file\n",
++                            u_errorName(status), count);
++                    exit(status);
++                }
++            }
++    
++            // Find beginning of next line
++            while (uc && !breaks.contains(uc)) {
++                uc = *current++;
++            }
++            // Find next non-line-breaking character
++            while (uc && breaks.contains(uc)) {
++                uc = *current++;
++            }
++            candidate = current-1;
++            length = 0;
+         }
+-        candidate = current-1;
+-        length = 0;
++    
++        // Get rid of the Unicode text buffer
++        delete[] wordSourceU;
+     }
+ 
+-    // Get rid of the Unicode text buffer
+-    delete[] wordSourceU;
+-
+     // Now, create a CompactTrieDictionary from the mutable dictionary
+     CompactTrieDictionary *ctd = new CompactTrieDictionary(*mtd, status);
+     if (U_FAILURE(status)) {
+@@ -393,4 +440,3 @@
+ 
+ #endif /* #if !UCONFIG_NO_BREAK_ITERATION */
+ }
+-
+--- source/tools/genctd/Makefile.in	2006-12-16 13:07:01.000000000 -0800
++++ source/tools/genctd/Makefile.in	2011-01-21 14:12:45.555920000 -0800
+@@ -23,13 +23,13 @@
+ ## Extra files to remove for 'make clean'
+ CLEANFILES = *~ $(DEPS) $(MAN_FILES)
+ 
+-## Target information
++## Target informationcd 
+ TARGET = $(BINDIR)/$(TARGET_STUB_NAME)$(EXEEXT)
+ 
+ ifneq ($(top_builddir),$(top_srcdir))
+ CPPFLAGS += -I$(top_builddir)/common
+ endif
+-CPPFLAGS += -I$(top_srcdir)/common -I$(srcdir)/../toolutil
++CPPFLAGS += -I$(top_srcdir)/common -I$(srcdir)/../toolutil -I$(top_srcdir)/i18n
+ LIBS = $(LIBICUTOOLUTIL) $(LIBICUI18N) $(LIBICUUC) $(DEFAULT_LIBS) $(LIB_M)
+ 
+ OBJECTS = genctd.o

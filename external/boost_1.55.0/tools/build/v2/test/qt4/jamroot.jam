@@ -1,0 +1,82 @@
+#  (c) Copyright Juergen Hunold 2008
+#  Use, modification, and distribution are subject to the
+#  Boost Software License, Version 1.0. (See accompanying file
+#  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import qt4 ;
+import testing ;
+import cast ;
+
+
+
+if [ qt4.initialized ]
+{
+    use-project /boost : ../../../../.. ;
+
+    project qttest
+      : requirements
+          <library>/boost/test//boost_unit_test_framework
+      ;
+
+    alias qt-tests :
+      # Check for explicit libraries, <use>/qt should not link any lib
+      [ link-fail qtcorefail.cpp : <use>/qt ]
+
+      [ run qtcore.cpp /qt//QtCore ]
+      [ run qtsql.cpp  /qt//QtSql  ]
+      [ run qtxml.cpp  /qt//QtXml  ]
+      [ run qtnetwork.cpp /qt//QtNetwork ]
+      [ run qtscript.cpp  /qt//QtScript  ]
+      [ run qtscripttools.cpp  /qt//QtScriptTools  ]
+      [ run qtxmlpatterns.cpp  /qt//QtXmlPatterns  ]
+
+      # ToDo: runable example code
+      [ link qtsvg.cpp /qt//QtSvg ]
+      [ link qtgui.cpp /qt//QtGui ]
+
+      # Multimedia toolkits.
+      [ link qtwebkit.cpp /qt//QtWebKit ]
+      [ link phonon.cpp   /qt//phonon  ]
+      [ link qtmultimedia.cpp /qt//QtMultimedia ]
+
+      # QML
+      [ link qtdeclarative.cpp /qt//QtDeclarative ]
+
+      # Help systems.
+      [ link qthelp.cpp      /qt//QtHelp ]
+      [ link qtassistant.cpp /qt//QtAssistantClient : <conditional>@check_for_assistant ]
+
+      # Check working and disabled Qt3Support
+      [ link qt3support.cpp /qt//Qt3Support : <qt3support>on ]
+      [ compile-fail qt3support.cpp /qt//Qt3Support : <qt3support>off ]
+
+      # Testing using QtTest. Simple sample
+      # ToDo: better support for "automoc" aka '#include "qttest.moc"'
+      [ run qttest.cpp [ cast _ moccable-cpp : qttest.cpp ] /qt//QtTest : : : <define>TEST_MOCK ]
+
+      # Test moc rule
+      [ run mock.cpp mock.h /qt//QtCore : : : <define>TEST_MOCK ]
+
+      # Test resource compiler
+      [ run rcc.cpp rcc.qrc /qt//QtCore : : : <rccflags>"-compress 9 -threshold 10" ]
+
+   : # requirements
+   : # default-build
+   : # usage-requirements
+   ;
+}
+
+# QtAssistant is removed from Qt >= 4.6
+rule check_for_assistant ( properties * )
+{
+    # Extract version number from toolset
+    local version = [ MATCH "<qt>([0-9.]+).*"
+        : $(properties) ] ;
+
+    if $(version) > "4.6.99"
+    {
+       result += <build>no ;
+    }
+}
+
+

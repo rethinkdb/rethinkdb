@@ -1,0 +1,562 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Serial port service requirements</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="SeqPacketSocketService.html" title="Sequenced packet socket service requirements">
+<link rel="next" href="Service.html" title="Service requirements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="SeqPacketSocketService.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="Service.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.SerialPortService"></a><a class="link" href="SerialPortService.html" title="Serial port service requirements">Serial port service
+      requirements</a>
+</h3></div></div></div>
+<p>
+        A serial port service must meet the requirements for an <a class="link" href="IoObjectService.html" title="I/O object service requirements">I/O
+        object service</a> with support for movability, as well as the additional
+        requirements listed below.
+      </p>
+<p>
+        In the table below, <code class="computeroutput"><span class="identifier">X</span></code> denotes
+        a serial port service class, <code class="computeroutput"><span class="identifier">a</span></code>
+        and <code class="computeroutput"><span class="identifier">ao</span></code> denote values of type
+        <code class="computeroutput"><span class="identifier">X</span></code>, <code class="computeroutput"><span class="identifier">d</span></code>
+        denotes a serial port device name of type <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>,
+        <code class="computeroutput"><span class="identifier">b</span></code> and <code class="computeroutput"><span class="identifier">c</span></code>
+        denote values of type <code class="computeroutput"><span class="identifier">X</span><span class="special">::</span><span class="identifier">implementation_type</span></code>, <code class="computeroutput"><span class="identifier">n</span></code>
+        denotes a value of type <code class="computeroutput"><span class="identifier">X</span><span class="special">::</span><span class="identifier">native_handle_type</span></code>,
+        <code class="computeroutput"><span class="identifier">ec</span></code> denotes a value of type
+        <code class="computeroutput"><span class="identifier">error_code</span></code>, <code class="computeroutput"><span class="identifier">s</span></code> denotes a value meeting <a class="link" href="SettableSerialPortOption.html" title="Settable serial port option requirements"><code class="computeroutput"><span class="identifier">SettableSerialPortOption</span></code></a> requirements,
+        <code class="computeroutput"><span class="identifier">g</span></code> denotes a value meeting
+        <a class="link" href="GettableSerialPortOption.html" title="Gettable serial port option requirements"><code class="computeroutput"><span class="identifier">GettableSerialPortOption</span></code></a> requirements,
+        <code class="computeroutput"><span class="identifier">mb</span></code> denotes a value satisfying
+        <a class="link" href="MutableBufferSequence.html" title="Mutable buffer sequence requirements">mutable buffer
+        sequence</a> requirements, <code class="computeroutput"><span class="identifier">rh</span></code>
+        denotes a value meeting <a class="link" href="ReadHandler.html" title="Read handler requirements"><code class="computeroutput"><span class="identifier">ReadHandler</span></code></a> requirements, <code class="computeroutput"><span class="identifier">cb</span></code> denotes a value satisfying <a class="link" href="ConstBufferSequence.html" title="Constant buffer sequence requirements">constant
+        buffer sequence</a> requirements, and <code class="computeroutput"><span class="identifier">wh</span></code>
+        denotes a value meeting <a class="link" href="WriteHandler.html" title="Write handler requirements"><code class="computeroutput"><span class="identifier">WriteHandler</span></code></a> requirements. and
+        <code class="computeroutput"><span class="identifier">u</span></code> and <code class="computeroutput"><span class="identifier">v</span></code>
+        denote identifiers.
+      </p>
+<div class="table">
+<a name="boost_asio.reference.SerialPortService.t0"></a><p class="title"><b>Table&#160;25.&#160;SerialPortService requirements</b></p>
+<div class="table-contents"><table class="table" summary="SerialPortService requirements">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  expression
+                </p>
+              </th>
+<th>
+                <p>
+                  return type
+                </p>
+              </th>
+<th>
+                <p>
+                  assertion/note<br> pre/post-condition
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">X</span><span class="special">::</span><span class="identifier">native_handle_type</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+<td>
+                <p>
+                  The implementation-defined native representation of a serial port.
+                  Must satisfy the requirements of <code class="computeroutput"><span class="identifier">CopyConstructible</span></code>
+                  types (C++ Std, 20.1.3), and the requirements of <code class="computeroutput"><span class="identifier">Assignable</span></code> types (C++ Std, 23.1).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">construct</span><span class="special">(</span><span class="identifier">b</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+<td>
+                <p>
+                  From <a class="link" href="IoObjectService.html" title="I/O object service requirements">IoObjectService</a>
+                  requirements.<br> post: <code class="computeroutput"><span class="special">!</span><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">destroy</span><span class="special">(</span><span class="identifier">b</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+<td>
+                <p>
+                  From <a class="link" href="IoObjectService.html" title="I/O object service requirements">IoObjectService</a>
+                  requirements. Implicitly cancels asynchronous operations, as if
+                  by calling <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">close</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span>
+                  <span class="identifier">ec</span><span class="special">)</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">.</span><span class="identifier">move_construct</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">c</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+              </td>
+<td>
+                <p>
+                  From <a class="link" href="IoObjectService.html" title="I/O object service requirements">IoObjectService</a>
+                  requirements. The underlying native representation is moved from
+                  <code class="computeroutput"><span class="identifier">c</span></code> to <code class="computeroutput"><span class="identifier">b</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">.</span><span class="identifier">move_assign</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">ao</span><span class="special">,</span> <span class="identifier">c</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+              </td>
+<td>
+                <p>
+                  From <a class="link" href="IoObjectService.html" title="I/O object service requirements">IoObjectService</a>
+                  requirements. Implicitly cancels asynchronous operations associated
+                  with <code class="computeroutput"><span class="identifier">b</span></code>, as if by
+                  calling <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">close</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span>
+                  <span class="identifier">ec</span><span class="special">)</span></code>.
+                  Then the underlying native representation is moved from <code class="computeroutput"><span class="identifier">c</span></code> to <code class="computeroutput"><span class="identifier">b</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">u</span> <span class="special">=</span> <span class="identifier">d</span><span class="special">;</span>
+<span class="identifier">a</span><span class="special">.</span><span class="identifier">open</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">u</span><span class="special">,</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">error_code</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="special">!</span><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.<br> post: <code class="computeroutput"><span class="special">!!</span><span class="identifier">ec</span> <span class="special">||</span>
+                  <span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">.</span><span class="identifier">assign</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">n</span><span class="special">,</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">error_code</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="special">!</span><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.<br> post: <code class="computeroutput"><span class="special">!!</span><span class="identifier">ec</span> <span class="special">||</span>
+                  <span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">bool</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="keyword">const</span> <span class="identifier">X</span><span class="special">&amp;</span> <span class="identifier">u</span> <span class="special">=</span> <span class="identifier">a</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="identifier">X</span><span class="special">::</span><span class="identifier">implementation_type</span><span class="special">&amp;</span> <span class="identifier">v</span> <span class="special">=</span> <span class="identifier">b</span><span class="special">;</span>
+<span class="identifier">u</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">v</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">bool</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">.</span><span class="identifier">close</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">error_code</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  If <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">()</span></code>
+                  is true, causes any outstanding asynchronous operations to complete
+                  as soon as possible. Handlers for cancelled operations shall be
+                  passed the error code <code class="computeroutput"><span class="identifier">error</span><span class="special">::</span><span class="identifier">operation_aborted</span></code>.<br>
+                  post: <code class="computeroutput"><span class="special">!</span><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">.</span><span class="identifier">native_handle</span><span class="special">(</span><span class="identifier">b</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">X</span><span class="special">::</span><span class="identifier">native_handle_type</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">.</span><span class="identifier">cancel</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">error_code</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.<br>
+                  Causes any outstanding asynchronous operations to complete as soon
+                  as possible. Handlers for cancelled operations shall be passed
+                  the error code <code class="computeroutput"><span class="identifier">error</span><span class="special">::</span><span class="identifier">operation_aborted</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">.</span><span class="identifier">set_option</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">s</span><span class="special">,</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">error_code</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">.</span><span class="identifier">get_option</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">g</span><span class="special">,</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">error_code</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="keyword">const</span> <span class="identifier">X</span><span class="special">&amp;</span> <span class="identifier">u</span> <span class="special">=</span> <span class="identifier">a</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="identifier">X</span><span class="special">::</span><span class="identifier">implementation_type</span><span class="special">&amp;</span> <span class="identifier">v</span> <span class="special">=</span> <span class="identifier">b</span><span class="special">;</span>
+<span class="identifier">u</span><span class="special">.</span><span class="identifier">get_option</span><span class="special">(</span><span class="identifier">v</span><span class="special">,</span> <span class="identifier">g</span><span class="special">,</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">error_code</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">.</span><span class="identifier">send_break</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">error_code</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">read_some</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span>
+                  <span class="identifier">mb</span><span class="special">,</span>
+                  <span class="identifier">ec</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">size_t</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.<br>
+                  <br> Reads one or more bytes of data from a serial port <code class="computeroutput"><span class="identifier">b</span></code>.<br> <br> The mutable buffer
+                  sequence <code class="computeroutput"><span class="identifier">mb</span></code> specifies
+                  memory where the data should be placed. The operation shall always
+                  fill a buffer in the sequence completely before proceeding to the
+                  next.<br> <br> If successful, returns the number of bytes read.
+                  Otherwise returns <code class="computeroutput"><span class="number">0</span></code>.
+                  If the total size of all buffers in the sequence <code class="computeroutput"><span class="identifier">mb</span></code> is <code class="computeroutput"><span class="number">0</span></code>,
+                  the function shall return <code class="computeroutput"><span class="number">0</span></code>
+                  immediately.<br> <br> If the operation completes due to graceful
+                  connection closure by the peer, the operation shall fail with
+                  <code class="computeroutput"><span class="identifier">error</span><span class="special">::</span><span class="identifier">eof</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">async_read_some</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span>
+                  <span class="identifier">mb</span><span class="special">,</span>
+                  <span class="identifier">rh</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">void</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.<br>
+                  <br> Initiates an asynchronous operation to read one or more
+                  bytes of data from a serial port <code class="computeroutput"><span class="identifier">b</span></code>.
+                  The operation is performed via the <code class="computeroutput"><span class="identifier">io_service</span></code>
+                  object <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">get_io_service</span><span class="special">()</span></code>
+                  and behaves according to <a class="link" href="asynchronous_operations.html" title="Requirements on asynchronous operations">asynchronous
+                  operation</a> requirements.<br> <br> The mutable buffer
+                  sequence <code class="computeroutput"><span class="identifier">mb</span></code> specifies
+                  memory where the data should be placed. The operation shall always
+                  fill a buffer in the sequence completely before proceeding to the
+                  next.<br> <br> The implementation shall maintain one or more
+                  copies of <code class="computeroutput"><span class="identifier">mb</span></code> until
+                  such time as the read operation no longer requires access to the
+                  memory specified by the buffers in the sequence. The program must
+                  ensure the memory is valid until:<br> <br> &#8212; the last copy of
+                  <code class="computeroutput"><span class="identifier">mb</span></code> is destroyed,
+                  or<br> <br> &#8212; the handler for the asynchronous operation is invoked,<br>
+                  <br> whichever comes first. If the total size of all buffers
+                  in the sequence <code class="computeroutput"><span class="identifier">mb</span></code>
+                  is <code class="computeroutput"><span class="number">0</span></code>, the asynchronous
+                  read operation shall complete immediately and pass <code class="computeroutput"><span class="number">0</span></code> as the argument to the handler
+                  that specifies the number of bytes read.<br> <br> If the operation
+                  completes due to graceful connection closure by the peer, the operation
+                  shall fail with <code class="computeroutput"><span class="identifier">error</span><span class="special">::</span><span class="identifier">eof</span></code>.<br>
+                  <br> If the operation completes successfully, the <code class="computeroutput"><span class="identifier">ReadHandler</span></code> object <code class="computeroutput"><span class="identifier">rh</span></code> is invoked with the number
+                  of bytes transferred. Otherwise it is invoked with <code class="computeroutput"><span class="number">0</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">write_some</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span>
+                  <span class="identifier">cb</span><span class="special">,</span>
+                  <span class="identifier">ec</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">size_t</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.<br>
+                  <br> Writes one or more bytes of data to a serial port <code class="computeroutput"><span class="identifier">b</span></code>.<br> <br> The constant
+                  buffer sequence <code class="computeroutput"><span class="identifier">cb</span></code>
+                  specifies memory where the data to be written is located. The operation
+                  shall always write a buffer in the sequence completely before proceeding
+                  to the next.<br> <br> If successful, returns the number of
+                  bytes written. Otherwise returns <code class="computeroutput"><span class="number">0</span></code>.
+                  If the total size of all buffers in the sequence <code class="computeroutput"><span class="identifier">cb</span></code> is <code class="computeroutput"><span class="number">0</span></code>,
+                  the function shall return <code class="computeroutput"><span class="number">0</span></code>
+                  immediately.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">async_write_some</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span>
+                  <span class="identifier">cb</span><span class="special">,</span>
+                  <span class="identifier">wh</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">void</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  pre: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span></code>.<br>
+                  <br> Initiates an asynchronous operation to write one or more
+                  bytes of data to a serial port <code class="computeroutput"><span class="identifier">b</span></code>.
+                  The operation is performed via the <code class="computeroutput"><span class="identifier">io_service</span></code>
+                  object <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">get_io_service</span><span class="special">()</span></code>
+                  and behaves according to <a class="link" href="asynchronous_operations.html" title="Requirements on asynchronous operations">asynchronous
+                  operation</a> requirements.<br> <br> The constant buffer
+                  sequence <code class="computeroutput"><span class="identifier">cb</span></code> specifies
+                  memory where the data to be written is located. The operation shall
+                  always write a buffer in the sequence completely before proceeding
+                  to the next.<br> <br> The implementation shall maintain one
+                  or more copies of <code class="computeroutput"><span class="identifier">cb</span></code>
+                  until such time as the write operation no longer requires access
+                  to the memory specified by the buffers in the sequence. The program
+                  must ensure the memory is valid until:<br> <br> &#8212; the last copy
+                  of <code class="computeroutput"><span class="identifier">cb</span></code> is destroyed,
+                  or<br> <br> &#8212; the handler for the asynchronous operation is invoked,<br>
+                  <br> whichever comes first. If the total size of all buffers
+                  in the sequence <code class="computeroutput"><span class="identifier">cb</span></code>
+                  is <code class="computeroutput"><span class="number">0</span></code>, the asynchronous
+                  operation shall complete immediately and pass <code class="computeroutput"><span class="number">0</span></code>
+                  as the argument to the handler that specifies the number of bytes
+                  read.<br> <br> If the operation completes successfully, the
+                  <code class="computeroutput"><span class="identifier">WriteHandler</span></code> object
+                  <code class="computeroutput"><span class="identifier">wh</span></code> is invoked with
+                  the number of bytes transferred. Otherwise it is invoked with
+                  <code class="computeroutput"><span class="number">0</span></code>.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="SeqPacketSocketService.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="Service.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

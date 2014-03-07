@@ -1,0 +1,32 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:transformed transformed]
+
+[table
+    [[Syntax] [Code]]
+    [[Pipe] [`rng | boost::adaptors::transformed(fun)`]]
+    [[Function] [`boost::adaptors::transform(rng, fun)`]]
+]
+
+* [*Precondition:] The `value_type` of the range is convertible to the argument type of `fun`.
+* [*Postcondition:] For all elements `x` in the returned range, `x` is the result of `fun(y)` where `y` is the corresponding element in the original range.
+* [*Throws:] Whatever the copy-constructor of `fun` might throw.
+* [*Range Category:] __single_pass_range__
+* [*Range Return Type:] `boost::transformed_range<typeof(rng)>`
+* [*Returned Range Category:] The range category of `rng`.
+
+[section:transformed_example transformed example]
+[import ../../../test/adaptor_test/transformed_example.cpp]
+[transformed_example]
+[endsect]
+
+This would produce the output:
+``
+2,4,6,8,10,12,14,16,18,20,
+``
+[endsect]
+
+

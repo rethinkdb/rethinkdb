@@ -1,0 +1,34 @@
+#
+#          Copyright Andrey Semashev 2007 - 2013.
+# Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+#
+
+project
+    : requirements
+        <link>shared:<define>BOOST_ALL_DYN_LINK
+        <toolset>msvc:<define>_SCL_SECURE_NO_WARNINGS
+        <toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+        <toolset>msvc:<define>_CRT_SECURE_NO_WARNINGS
+        <toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+        <toolset>msvc:<cxxflags>/bigobj
+        <toolset>msvc:<cxxflags>/wd4503 # decorated name length exceeded, name was truncated
+        <toolset>intel-win:<define>_SCL_SECURE_NO_WARNINGS
+        <toolset>intel-win:<define>_SCL_SECURE_NO_DEPRECATE
+        <toolset>intel-win:<define>_CRT_SECURE_NO_WARNINGS
+        <toolset>intel-win:<define>_CRT_SECURE_NO_DEPRECATE
+        <toolset>darwin:<cxxflags>-ftemplate-depth-1024
+        <toolset>gcc:<cxxflags>-ftemplate-depth-1024
+        <toolset>gcc:<cxxflags>-fno-strict-aliasing  # avoids strict aliasing violations in other Boost components
+        <library>/boost/log//boost_log
+        <library>/boost/date_time//boost_date_time
+        <library>/boost/filesystem//boost_filesystem
+        <library>/boost/system//boost_system
+        <library>/boost/thread//boost_thread
+        <threading>multi
+    ;
+
+exe async_log
+    : main.cpp
+    ;

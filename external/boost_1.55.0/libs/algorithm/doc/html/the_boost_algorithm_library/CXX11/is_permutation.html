@@ -1,0 +1,177 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>is_permutation</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost Algorithm Library">
+<link rel="up" href="../../algorithm/CXX11.html" title="C++11 Algorithms">
+<link rel="prev" href="is_partitioned.html" title="is_partitioned">
+<link rel="next" href="partition_point.html" title="partition_point">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="is_partitioned.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../algorithm/CXX11.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="partition_point.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="the_boost_algorithm_library.CXX11.is_permutation"></a><a class="link" href="is_permutation.html" title="is_permutation">is_permutation
+      </a>
+</h3></div></div></div>
+<p>
+        The header file 'is_permutation.hpp' contains six variants of a single algorithm,
+        <code class="computeroutput"><span class="identifier">is_permutation</span></code>. The algorithm
+        tests to see if one sequence is a permutation of a second one; in other words,
+        it contains all the same members, possibly in a different order.
+      </p>
+<p>
+        The routine <code class="computeroutput"><span class="identifier">is_permutation</span></code>
+        takes two sequences and an (optional) predicate. It returns true if the two
+        sequences contain the same members. If it is passed a predicate, it uses
+        the predicate to compare the elements of the sequence to see if they are
+        the same.
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">is_permutation</span></code> come in three
+        forms. The first one takes two iterators to define the first range, and the
+        starting iterator of the second range. The second form takes a two iterators
+        to define the first range and two more to define the second range. The third
+        form takes a single range parameter, and uses Boost.Range to traverse it.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.CXX11.is_permutation.h0"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.CXX11.is_permutation.interface"></a></span><a class="link" href="is_permutation.html#the_boost_algorithm_library.CXX11.is_permutation.interface">Interface</a>
+      </h5>
+<p>
+        The function <code class="computeroutput"><span class="identifier">is_permutation</span></code>
+        returns true if the two input sequences contain the same elements. There
+        are six versions; two take three iterators, two take four iterators, and
+        the other two take two ranges.
+      </p>
+<p>
+        In general, you should prefer the four iterator versions over the three iterator
+        ones. The three iterator version has to "create" the fourth iterator
+        internally by calling <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">advance</span><span class="special">(</span><span class="identifier">first2</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">distance</span><span class="special">(</span><span class="identifier">first1</span><span class="special">,</span><span class="identifier">last1</span><span class="special">))</span></code>,
+        and if the second sequence is shorter than the first, that's undefined behavior.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">ForwardIterator1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ForwardIterator2</span> <span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">is_permutation</span> <span class="special">(</span> <span class="identifier">ForwardIterator1</span> <span class="identifier">first1</span><span class="special">,</span> <span class="identifier">ForwardIterator1</span> <span class="identifier">last1</span><span class="special">,</span> <span class="identifier">ForwardIterator2</span> <span class="identifier">first2</span> <span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">ForwardIterator1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ForwardIterator2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">BinaryPredicate</span> <span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">is_permutation</span> <span class="special">(</span> <span class="identifier">ForwardIterator1</span> <span class="identifier">first1</span><span class="special">,</span> <span class="identifier">ForwardIterator1</span> <span class="identifier">last1</span><span class="special">,</span>
+                      <span class="identifier">ForwardIterator2</span> <span class="identifier">first2</span><span class="special">,</span> <span class="identifier">BinaryPredicate</span> <span class="identifier">p</span> <span class="special">);</span>
+
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">ForwardIterator1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ForwardIterator2</span> <span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">is_permutation</span> <span class="special">(</span> <span class="identifier">ForwardIterator1</span> <span class="identifier">first1</span><span class="special">,</span> <span class="identifier">ForwardIterator1</span> <span class="identifier">last1</span><span class="special">,</span> <span class="identifier">ForwardIterator2</span> <span class="identifier">first2</span><span class="special">,</span> <span class="identifier">ForwardIterator2</span> <span class="identifier">last2</span> <span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">ForwardIterator1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ForwardIterator2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">BinaryPredicate</span> <span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">is_permutation</span> <span class="special">(</span> <span class="identifier">ForwardIterator1</span> <span class="identifier">first1</span><span class="special">,</span> <span class="identifier">ForwardIterator1</span> <span class="identifier">last1</span><span class="special">,</span>
+                      <span class="identifier">ForwardIterator2</span> <span class="identifier">first2</span><span class="special">,</span> <span class="identifier">ForwardIterator2</span> <span class="identifier">last2</span><span class="special">,</span>
+                      <span class="identifier">BinaryPredicate</span> <span class="identifier">p</span> <span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Range</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">ForwardIterator</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">is_permutation</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">Range</span> <span class="special">&amp;</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">ForwardIterator</span> <span class="identifier">first2</span> <span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Range</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">ForwardIterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">BinaryPredicate</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">is_permutation</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">Range</span> <span class="special">&amp;</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">ForwardIterator</span> <span class="identifier">first2</span><span class="special">,</span> <span class="identifier">BinaryPredicate</span> <span class="identifier">pred</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.CXX11.is_permutation.h1"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.CXX11.is_permutation.examples"></a></span><a class="link" href="is_permutation.html#the_boost_algorithm_library.CXX11.is_permutation.examples">Examples</a>
+      </h5>
+<p>
+        Given the container <code class="computeroutput"><span class="identifier">c1</span></code> containing
+        <code class="computeroutput"><span class="special">{</span> <span class="number">0</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span>
+        <span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">,</span> <span class="number">14</span><span class="special">,</span> <span class="number">15</span> <span class="special">}</span></code>,
+        and <code class="computeroutput"><span class="identifier">c2</span></code> containing <code class="computeroutput"><span class="special">{</span> <span class="number">15</span><span class="special">,</span>
+        <span class="number">14</span><span class="special">,</span> <span class="number">3</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="number">2</span> <span class="special">}</span></code>,
+        then
+</p>
+<pre class="programlisting"><span class="identifier">is_permutation</span> <span class="special">(</span> <span class="identifier">c1</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span>     <span class="identifier">c1</span><span class="special">.</span><span class="identifier">end</span> <span class="special">(),</span> <span class="identifier">c2</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c2</span><span class="special">.</span><span class="identifier">end</span> <span class="special">())</span> <span class="special">--&gt;</span> <span class="keyword">false</span>
+<span class="identifier">is_permutation</span> <span class="special">(</span> <span class="identifier">c1</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">+</span> <span class="number">1</span><span class="special">,</span> <span class="identifier">c1</span><span class="special">.</span><span class="identifier">end</span> <span class="special">(),</span> <span class="identifier">c2</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c2</span><span class="special">.</span><span class="identifier">end</span> <span class="special">())</span> <span class="special">--&gt;</span> <span class="keyword">true</span>
+
+<span class="identifier">is_permutation</span> <span class="special">(</span> <span class="identifier">c1</span><span class="special">.</span><span class="identifier">end</span> <span class="special">(),</span> <span class="identifier">c1</span><span class="special">.</span><span class="identifier">end</span> <span class="special">(),</span> <span class="identifier">c2</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">c2</span><span class="special">.</span><span class="identifier">end</span> <span class="special">())</span> <span class="special">--&gt;</span> <span class="keyword">true</span>  <span class="comment">// all empty ranges are permutations of each other</span>
+</pre>
+<p>
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.CXX11.is_permutation.h2"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.CXX11.is_permutation.iterator_requirements"></a></span><a class="link" href="is_permutation.html#the_boost_algorithm_library.CXX11.is_permutation.iterator_requirements">Iterator
+        Requirements</a>
+      </h5>
+<p>
+        <code class="computeroutput"><span class="identifier">is_permutation</span></code> works on forward
+        iterators or better.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.CXX11.is_permutation.h3"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.CXX11.is_permutation.complexity"></a></span><a class="link" href="is_permutation.html#the_boost_algorithm_library.CXX11.is_permutation.complexity">Complexity</a>
+      </h5>
+<p>
+        All of the variants of <code class="computeroutput"><span class="identifier">is_permutation</span></code>
+        run in <span class="emphasis"><em>O(N^2)</em></span> (quadratic) time; that is, they compare
+        against each element in the list (potentially) N times. If passed random-access
+        iterators, <code class="computeroutput"><span class="identifier">is_permutation</span></code>
+        can return quickly if the sequences are different sizes.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.CXX11.is_permutation.h4"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.CXX11.is_permutation.exception_safety"></a></span><a class="link" href="is_permutation.html#the_boost_algorithm_library.CXX11.is_permutation.exception_safety">Exception
+        Safety</a>
+      </h5>
+<p>
+        All of the variants of <code class="computeroutput"><span class="identifier">is_permutation</span></code>
+        take their parameters by value, and do not depend upon any global state.
+        Therefore, all the routines in this file provide the strong exception guarantee.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.CXX11.is_permutation.h5"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.CXX11.is_permutation.notes"></a></span><a class="link" href="is_permutation.html#the_boost_algorithm_library.CXX11.is_permutation.notes">Notes</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The three iterator versions of the routine <code class="computeroutput"><span class="identifier">is_permutation</span></code>
+            are part of the C++11 standard. When compiled using a C++11 implementation,
+            the implementation from the standard library will be used.
+          </li>
+<li class="listitem">
+            The four iterator versions of the routine <code class="computeroutput"><span class="identifier">is_permutation</span></code>
+            are part of the proposed C++14 standard. When C++14 standard libraries
+            become available, the implementation should be changed to use the implementation
+            from the standard library (if available).
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">is_permutation</span></code> returns
+            true when passed a pair of empty ranges, no matter what predicate is
+            passed to test with.
+          </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2010-2012 Marshall Clow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="is_partitioned.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../algorithm/CXX11.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="partition_point.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

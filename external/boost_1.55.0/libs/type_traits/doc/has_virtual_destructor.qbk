@@ -1,0 +1,32 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:has_virtual_destructor has_virtual_destructor]
+   template <class T>
+   struct has_virtual_destructor : public __tof {};
+  
+__inherit If T is a (possibly cv-qualified) type with a virtual destructor
+then inherits from __true_type, otherwise inherits from __false_type.
+
+__compat This trait is provided for completeness, since it's part of the
+Technical Report on C++ Library Extensions.  However, there is currently no 
+way to portably implement this trait.  The default version provided 
+always inherits from __false_type, and has to be explicitly specialized for 
+types with virtual destructors unless the compiler used has compiler __intrinsics
+that enable the trait to do the right thing: 
+Currently (May 2011) compilers more recent than Visual C++ 8, GCC-4.3, Greenhills 6.0, 
+Intel-11.0, and Codegear have the necessary compiler __intrinsics to ensure that this 
+trait "just works".  You may also test to see if the necessary __intrinsics are available 
+by checking to see if the macro `BOOST_HAS_VIRTUAL_DESTRUCTOR` is defined.
+
+
+__std_ref 12.4.
+
+__header ` #include <boost/type_traits/has_virtual_destructor.hpp>` or ` #include <boost/type_traits.hpp>`
+
+[endsect]
+

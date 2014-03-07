@@ -1,0 +1,484 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Customizing Boost.Interprocess</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../interprocess.html" title="Chapter&#160;14.&#160;Boost.Interprocess">
+<link rel="prev" href="architecture.html" title="Architecture and internals">
+<link rel="next" href="acknowledgements_notes.html" title="Acknowledgements, notes and links">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="architecture.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="acknowledgements_notes.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="interprocess.customizing_interprocess"></a><a class="link" href="customizing_interprocess.html" title="Customizing Boost.Interprocess">Customizing Boost.Interprocess</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="customizing_interprocess.html#interprocess.customizing_interprocess.custom_interprocess_alloc">Writing
+      a new shared memory allocation algorithm</a></span></dt>
+<dt><span class="section"><a href="customizing_interprocess.html#interprocess.customizing_interprocess.custom_allocators">Building
+      custom STL compatible allocators for Boost.Interprocess</a></span></dt>
+<dt><span class="section"><a href="customizing_interprocess.html#interprocess.customizing_interprocess.custom_indexes">Building
+      custom indexes</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.customizing_interprocess.custom_interprocess_alloc"></a><a class="link" href="customizing_interprocess.html#interprocess.customizing_interprocess.custom_interprocess_alloc" title="Writing a new shared memory allocation algorithm">Writing
+      a new shared memory allocation algorithm</a>
+</h3></div></div></div>
+<p>
+        If the default algorithm does not satisfy user requirements, it's easy to
+        provide different algorithms like bitmapping or more advanced segregated
+        lists to meet requirements. The class implementing the algorithm must be
+        compatible with shared memory, so it shouldn't have any virtual function
+        or virtual inheritance or any indirect base class with virtual function or
+        inheritance.
+      </p>
+<p>
+        This is the interface to be implemented:
+      </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">my_algorithm</span>
+<span class="special">{</span>
+   <span class="keyword">public</span><span class="special">:</span>
+
+   <span class="comment">//!The mutex type to be used by the rest of Interprocess framework</span>
+   <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span>   <span class="identifier">mutex_family</span><span class="special">;</span>
+
+   <span class="comment">//!The pointer type to be used by the rest of Interprocess framework</span>
+   <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span>   <span class="identifier">void_pointer</span><span class="special">;</span>
+
+   <span class="comment">//!Constructor. "size" is the total size of the managed memory segment,</span>
+   <span class="comment">//!"extra_hdr_bytes" indicates the extra bytes after the sizeof(my_algorithm)</span>
+   <span class="comment">//!that the allocator should not use at all.</span>
+   <span class="identifier">my_algorithm</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">extra_hdr_bytes</span><span class="special">);</span>
+
+   <span class="comment">//!Obtains the minimum size needed by the algorithm</span>
+   <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">get_min_size</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">extra_hdr_bytes</span><span class="special">);</span>
+
+   <span class="comment">//!Allocates bytes, returns 0 if there is not more memory</span>
+   <span class="keyword">void</span><span class="special">*</span> <span class="identifier">allocate</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">nbytes</span><span class="special">);</span>
+
+   <span class="comment">//!Deallocates previously allocated bytes</span>
+   <span class="keyword">void</span>  <span class="identifier">deallocate</span> <span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="identifier">adr</span><span class="special">);</span>
+
+   <span class="comment">//!Returns the size of the memory segment</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">get_size</span><span class="special">()</span>  <span class="keyword">const</span><span class="special">;</span>
+
+   <span class="comment">//!Increases managed memory in extra_size bytes more</span>
+   <span class="keyword">void</span> <span class="identifier">grow</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">extra_size</span><span class="special">);</span>
+   <span class="comment">/*...*/</span>
+<span class="special">};</span>
+</pre>
+<p>
+        Let's see the public typedefs to define:
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="comment">/* . . . */</span> <span class="identifier">void_pointer</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="comment">/* . . . */</span> <span class="identifier">mutex_family</span><span class="special">;</span>
+</pre>
+<p>
+        The <code class="computeroutput"><span class="identifier">void_pointer</span></code> typedef
+        specifies the pointer type to be used in the <span class="bold"><strong>Boost.Interprocess</strong></span>
+        framework that uses the algorithm. For example, if we define
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">void_pointer</span><span class="special">;</span>
+</pre>
+<p>
+        all <span class="bold"><strong>Boost.Interprocess</strong></span> framework using this
+        algorithm will use raw pointers as members. But if we define:
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span> <span class="identifier">void_pointer</span><span class="special">;</span>
+</pre>
+<p>
+        then all <span class="bold"><strong>Boost.Interprocess</strong></span> framework will
+        use relative pointers.
+      </p>
+<p>
+        The <code class="computeroutput"><span class="identifier">mutex_family</span></code> is a structure
+        containing typedefs for different interprocess_mutex types to be used in
+        the <span class="bold"><strong>Boost.Interprocess</strong></span> framework. For example
+        the defined
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">mutex_family</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">interprocess_mutex</span>             <span class="identifier">mutex_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">interprocess_recursive_mutex</span>   <span class="identifier">recursive_mutex_type</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        defines all interprocess_mutex types using boost::interprocess interprocess_mutex
+        types. The user can specify the desired mutex family.
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">mutex_family</span> <span class="identifier">mutex_family</span><span class="special">;</span>
+</pre>
+<p>
+        The new algorithm (let's call it <span class="bold"><strong>my_algorithm</strong></span>)
+        must implement all the functions that boost::interprocess::rbtree_best_fit
+        class offers:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong>my_algorithm</strong></span>'s constructor must take
+            2 arguments:
+            <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                  <span class="bold"><strong>size</strong></span> indicates the total size
+                  of the managed memory segment, and <span class="bold"><strong>my_algorithm</strong></span>
+                  object will be always constructed a at offset 0 of the memory segment.
+                </li>
+<li class="listitem">
+                  The <span class="bold"><strong>extra_hdr_bytes</strong></span> parameter
+                  indicates the number of bytes after the offset <code class="computeroutput"><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">my_algorithm</span><span class="special">)</span></code> that <span class="bold"><strong>my_algorithm</strong></span>
+                  can't use at all. This extra bytes will be used to store additional
+                  data that should not be overwritten. So, <span class="bold"><strong>my_algorithm</strong></span>
+                  will be placed at address XXX of the memory segment, and will manage
+                  the <span class="bold"><strong>[XXX + sizeof(my_algorithm) + extra_hdr_bytes,
+                  XXX + size)</strong></span> range of the segment.
+                </li>
+</ul></div>
+          </li>
+<li class="listitem">
+            The <span class="bold"><strong>get_min_size()</strong></span> function should return
+            the minimum space the algorithm needs to be valid with the passed <span class="bold"><strong>extra_hdr_bytes</strong></span> parameter. This function will
+            be used to check if the memory segment is big enough to place the algorithm
+            there.
+          </li>
+<li class="listitem">
+            The <span class="bold"><strong>allocate()</strong></span> function must return
+            0 if there is no more available memory. The memory returned by <span class="bold"><strong>my_algorithm</strong></span> must be aligned to the most restrictive
+            memory alignment of the system, for example, to the value returned by
+            <span class="bold"><strong>ipcdetail::alignment_of&lt;boost::detail::max_align&gt;::value</strong></span>.
+            This function should be executed with the synchronization capabilities
+            offered by <code class="computeroutput"><span class="keyword">typename</span> <span class="identifier">mutex_family</span><span class="special">::</span><span class="identifier">mutex_type</span></code>
+            interprocess_mutex. That means, that if we define <code class="computeroutput"><span class="keyword">typedef</span>
+            <span class="identifier">mutex_family</span> <span class="identifier">mutex_family</span><span class="special">;</span></code> then this function should offer the
+            same synchronization as if it was surrounded by an interprocess_mutex
+            lock/unlock. Normally, this is implemented using a member of type <code class="computeroutput"><span class="identifier">mutex_family</span><span class="special">::</span><span class="identifier">mutex_type</span></code>, but it could be done using
+            atomic instructions or lock free algorithms.
+          </li>
+<li class="listitem">
+            The <span class="bold"><strong>deallocate()</strong></span> function must make
+            the returned buffer available for new allocations. This function should
+            offer the same synchronization as <code class="computeroutput"><span class="identifier">allocate</span><span class="special">()</span></code>.
+          </li>
+<li class="listitem">
+            The <span class="bold"><strong>size()</strong></span> function will return the
+            passed <span class="bold"><strong>size</strong></span> parameter in the constructor.
+            So, <span class="bold"><strong>my_algorithm</strong></span> should store the size
+            internally.
+          </li>
+<li class="listitem">
+            The <span class="bold"><strong>grow()</strong></span> function will expand the
+            managed memory by <span class="bold"><strong>my_algorithm</strong></span> in <span class="bold"><strong>extra_size</strong></span> bytes. So <span class="bold"><strong>size()</strong></span>
+            function should return the updated size, and the new managed memory range
+            will be (if the address where the algorithm is constructed is XXX):
+            <span class="bold"><strong>[XXX + sizeof(my_algorithm) + extra_hdr_bytes,
+            XXX + old_size + extra_size)</strong></span>. This function should offer the
+            same synchronization as <code class="computeroutput"><span class="identifier">allocate</span><span class="special">()</span></code>.
+          </li>
+</ul></div>
+<p>
+        That's it. Now we can create new managed shared memory that uses our new
+        algorithm:
+      </p>
+<pre class="programlisting"><span class="comment">//Managed memory segment to allocate named (c-string) objects</span>
+<span class="comment">//using a user-defined memory allocation algorithm</span>
+<span class="identifier">basic_managed_shared_memory</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span>
+                         <span class="special">,</span><span class="identifier">my_algorithm</span>
+                         <span class="special">,</span><span class="identifier">flat_map_index</span><span class="special">&gt;</span>
+   <span class="identifier">my_managed_shared_memory</span><span class="special">;</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.customizing_interprocess.custom_allocators"></a><a class="link" href="customizing_interprocess.html#interprocess.customizing_interprocess.custom_allocators" title="Building custom STL compatible allocators for Boost.Interprocess">Building
+      custom STL compatible allocators for Boost.Interprocess</a>
+</h3></div></div></div>
+<p>
+        If provided STL-like allocators don't satisfy user needs, the user can implement
+        another STL compatible allocator using raw memory allocation and named object
+        construction functions. The user can this way implement more suitable allocation
+        schemes on top of basic shared memory allocation schemes, just like more
+        complex allocators are built on top of new/delete functions.
+      </p>
+<p>
+        When using a managed memory segment, <span class="bold"><strong>get_segment_manager()</strong></span>
+        function returns a pointer to the segment manager. With this pointer, the
+        raw memory allocation and named object construction functions can be called
+        directly:
+      </p>
+<pre class="programlisting"><span class="comment">//Create the managed shared memory and initialize resources</span>
+<span class="identifier">managed_shared_memory</span> <span class="identifier">segment</span>
+   <span class="special">(</span><span class="identifier">create_only</span>
+   <span class="special">,</span><span class="string">"/MySharedMemory"</span>   <span class="comment">//segment name</span>
+   <span class="special">,</span><span class="number">65536</span><span class="special">);</span>             <span class="comment">//segment size in bytes</span>
+
+<span class="comment">//Obtain the segment manager</span>
+<span class="identifier">managed_shared_memory</span><span class="special">::</span><span class="identifier">segment_manager</span> <span class="special">*</span><span class="identifier">segment_mngr</span>
+   <span class="special">=</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">get_segment_manager</span><span class="special">();</span>
+
+<span class="comment">//With the segment manager, now we have access to all allocation functions</span>
+<span class="identifier">segment_mngr</span><span class="special">-&gt;</span><span class="identifier">deallocate</span><span class="special">(</span><span class="identifier">segment_mngr</span><span class="special">-&gt;</span><span class="identifier">allocate</span><span class="special">(</span><span class="number">32</span><span class="special">));</span>
+<span class="identifier">segment_mngr</span><span class="special">-&gt;</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="string">"My_Int"</span><span class="special">)[</span><span class="number">32</span><span class="special">](</span><span class="number">0</span><span class="special">);</span>
+<span class="identifier">segment_mngr</span><span class="special">-&gt;</span><span class="identifier">destroy</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="string">"My_Int"</span><span class="special">);</span>
+
+<span class="comment">//Initialize the custom, managed memory segment compatible</span>
+<span class="comment">//allocator with the segment manager.</span>
+<span class="comment">//</span>
+<span class="comment">//MySTLAllocator uses segment_mngr-&gt;xxx functions to</span>
+<span class="comment">//implement its allocation scheme</span>
+<span class="identifier">MySTLAllocator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">stl_alloc</span><span class="special">(</span><span class="identifier">segment_mngr</span><span class="special">);</span>
+
+<span class="comment">//Alias a new vector type that uses the custom STL compatible allocator</span>
+<span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">MySTLAllocator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">MyVect</span><span class="special">;</span>
+
+<span class="comment">//Construct the vector in shared memory with the allocator as constructor parameter</span>
+<span class="identifier">segment</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">MyVect</span><span class="special">&gt;(</span><span class="string">"MyVect_instance"</span><span class="special">)(</span><span class="identifier">stl_alloc</span><span class="special">);</span>
+</pre>
+<p>
+        The user can create new STL compatible allocators that use the segment manager
+        to access to all memory management/object construction functions. All <span class="bold"><strong>Boost.Interprocess</strong></span>' STL compatible allocators are
+        based on this approach. <span class="bold"><strong>Remember</strong></span> that to
+        be compatible with managed memory segments, allocators should define their
+        <span class="bold"><strong>pointer</strong></span> typedef as the same pointer family
+        as <code class="computeroutput"><span class="identifier">segment_manager</span><span class="special">::</span><span class="identifier">void_pointer</span></code> typedef. This means that if
+        <code class="computeroutput"><span class="identifier">segment_manager</span><span class="special">::</span><span class="identifier">void_pointer</span></code> is <code class="computeroutput"><span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span></code>,
+        <code class="computeroutput"><span class="identifier">MySTLAllocator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code> should
+        define <code class="computeroutput"><span class="identifier">pointer</span></code> as <code class="computeroutput"><span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code>. The
+        reason for this is that allocators are members of containers, and if we want
+        to put the container in a managed memory segment, the allocator should be
+        ready for that.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.customizing_interprocess.custom_indexes"></a><a class="link" href="customizing_interprocess.html#interprocess.customizing_interprocess.custom_indexes" title="Building custom indexes">Building
+      custom indexes</a>
+</h3></div></div></div>
+<p>
+        The managed memory segment uses a name/object index to speed up object searching
+        and creation. Default specializations of managed memory segments (<code class="computeroutput"><span class="identifier">managed_shared_memory</span></code> for example), use
+        <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">flat_map</span></code> as index.
+      </p>
+<p>
+        However, the index type can be chosen via template parameter, so that the
+        user can define its own index type if he needs that. To construct a new index
+        type, the user must create a class with the following guidelines:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            The interface of the index must follow the common public interface of
+            std::map and std::tr1::unordered_map including public typedefs. The
+            <code class="computeroutput"><span class="identifier">value_type</span></code> typedef can
+            be of type:
+          </li></ul></div>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">key_type</span><span class="special">,</span> <span class="identifier">mapped_type</span><span class="special">&gt;</span>
+</pre>
+<p>
+        or
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">key_type</span><span class="special">,</span> <span class="identifier">mapped_type</span><span class="special">&gt;</span>
+</pre>
+<p>
+        so that ordered arrays or deques can be used as index types. Some known classes
+        following this basic interface are <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unordered_map</span></code>,
+        <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">flat_map</span></code> and <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">map</span></code>.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            The class must be a class template taking only a traits struct of this
+            type:
+          </li></ul></div>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">index_traits</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="comment">/*...*/</span>   <span class="identifier">key_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="comment">/*...*/</span>   <span class="identifier">mapped_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="comment">/*...*/</span>   <span class="identifier">segment_manager</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">IndexTraits</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">my_index_type</span><span class="special">;</span>
+</pre>
+<p>
+        The <code class="computeroutput"><span class="identifier">key_type</span></code> typedef of the
+        passed <code class="computeroutput"><span class="identifier">index_traits</span></code> will
+        be a specialization of the following class:
+      </p>
+<pre class="programlisting"><span class="comment">//!The key of the named allocation information index. Stores a to</span>
+<span class="comment">//!a null string and the length of the string to speed up sorting</span>
+<span class="keyword">template</span><span class="special">&lt;...&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">index_key</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="comment">/*...*/</span>                              <span class="identifier">char_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="comment">/*...*/</span>                              <span class="identifier">const_char_ptr_t</span><span class="special">;</span>
+
+   <span class="comment">//Pointer to the object's name (null terminated)</span>
+   <span class="identifier">const_char_ptr_t</span>                             <span class="identifier">mp_str</span><span class="special">;</span>
+
+   <span class="comment">//Length of the name buffer (null NOT included)</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span>                                  <span class="identifier">m_len</span><span class="special">;</span>
+
+   <span class="comment">//!Constructor of the key</span>
+   <span class="identifier">index_key</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">CharT</span> <span class="special">*</span><span class="identifier">name</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">length</span><span class="special">);</span>
+
+   <span class="comment">//!Less than function for index ordering</span>
+   <span class="keyword">bool</span> <span class="keyword">operator</span> <span class="special">&lt;</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">index_key</span> <span class="special">&amp;</span> <span class="identifier">right</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+   <span class="comment">//!Equal to function for index ordering</span>
+   <span class="keyword">bool</span> <span class="keyword">operator</span> <span class="special">==</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">index_key</span> <span class="special">&amp;</span> <span class="identifier">right</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        The <code class="computeroutput"><span class="identifier">mapped_type</span></code> is not directly
+        modified by the customized index but it is needed to define the index type.
+        The <span class="bold"><strong>segment_manager</strong></span> will be the type of
+        the segment manager that will manage the index. <code class="computeroutput"><span class="identifier">segment_manager</span></code>
+        will define interesting internal types like <code class="computeroutput"><span class="identifier">void_pointer</span></code>
+        or <code class="computeroutput"><span class="identifier">mutex_family</span></code>.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            The constructor of the customized index type must take a pointer to segment_manager
+            as constructor argument:
+          </li></ul></div>
+<pre class="programlisting"><span class="identifier">constructor</span><span class="special">(</span><span class="identifier">segment_manager</span> <span class="special">*</span><span class="identifier">segment_mngr</span><span class="special">);</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            The index must provide a memory reservation function, that optimizes
+            the index if the user knows the number of elements to be inserted in
+            the index:
+          </li></ul></div>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">reserve</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">n</span><span class="special">);</span>
+</pre>
+<p>
+        For example, the index type <code class="computeroutput"><span class="identifier">flat_map_index</span></code>
+        based in <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">flat_map</span></code> is just defined as:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">interprocess</span> <span class="special">{</span>
+
+<span class="comment">//!Helper class to define typedefs from IndexTraits</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">MapConfig</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">flat_map_index_aux</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">MapConfig</span><span class="special">::</span><span class="identifier">key_type</span>            <span class="identifier">key_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">MapConfig</span><span class="special">::</span><span class="identifier">mapped_type</span>         <span class="identifier">mapped_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">MapConfig</span><span class="special">::</span>
+      <span class="identifier">segment_manager_base</span>                   <span class="identifier">segment_manager_base</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="identifier">key_type</span><span class="special">&gt;</span>                     <span class="identifier">key_less</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">key_type</span><span class="special">,</span> <span class="identifier">mapped_type</span><span class="special">&gt;</span>        <span class="identifier">value_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">allocator</span><span class="special">&lt;</span><span class="identifier">value_type</span>
+                    <span class="special">,</span><span class="identifier">segment_manager_base</span><span class="special">&gt;</span>   <span class="identifier">allocator_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">flat_map</span><span class="special">&lt;</span><span class="identifier">key_type</span><span class="special">,</span>  <span class="identifier">mapped_type</span><span class="special">,</span>
+                    <span class="identifier">key_less</span><span class="special">,</span> <span class="identifier">allocator_type</span><span class="special">&gt;</span>      <span class="identifier">index_t</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="comment">//!Index type based in flat_map. Just derives from flat_map and</span>
+<span class="comment">//!defines the interface needed by managed memory segments.</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">MapConfig</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">flat_map_index</span>
+   <span class="comment">//Derive class from flat_map specialization</span>
+   <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">flat_map_index_aux</span><span class="special">&lt;</span><span class="identifier">MapConfig</span><span class="special">&gt;::</span><span class="identifier">index_t</span>
+<span class="special">{</span>
+   <span class="comment">/// @cond</span>
+   <span class="keyword">typedef</span> <span class="identifier">flat_map_index_aux</span><span class="special">&lt;</span><span class="identifier">MapConfig</span><span class="special">&gt;</span>  <span class="identifier">index_aux</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">index_aux</span><span class="special">::</span><span class="identifier">index_t</span>    <span class="identifier">base_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">index_aux</span><span class="special">::</span>
+      <span class="identifier">segment_manager_base</span>          <span class="identifier">segment_manager_base</span><span class="special">;</span>
+   <span class="comment">/// @endcond</span>
+
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="comment">//!Constructor. Takes a pointer to the segment manager. Can throw</span>
+   <span class="identifier">flat_map_index</span><span class="special">(</span><span class="identifier">segment_manager_base</span> <span class="special">*</span><span class="identifier">segment_mngr</span><span class="special">)</span>
+      <span class="special">:</span> <span class="identifier">base_type</span><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">index_aux</span><span class="special">::</span><span class="identifier">key_less</span><span class="special">(),</span>
+                  <span class="keyword">typename</span> <span class="identifier">index_aux</span><span class="special">::</span><span class="identifier">allocator_type</span><span class="special">(</span><span class="identifier">segment_mngr</span><span class="special">))</span>
+   <span class="special">{}</span>
+
+   <span class="comment">//!This reserves memory to optimize the insertion of n elements in the index</span>
+   <span class="keyword">void</span> <span class="identifier">reserve</span><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">segment_manager_base</span><span class="special">::</span><span class="identifier">size_type</span> <span class="identifier">n</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">reserve</span><span class="special">(</span><span class="identifier">n</span><span class="special">);</span>  <span class="special">}</span>
+
+   <span class="comment">//!This frees all unnecessary memory</span>
+   <span class="keyword">void</span> <span class="identifier">shrink_to_fit</span><span class="special">()</span>
+   <span class="special">{</span>  <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">shrink_to_fit</span><span class="special">();</span>   <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="special">}}</span>   <span class="comment">//namespace boost { namespace interprocess</span>
+</pre>
+<p>
+      </p>
+<p>
+        If the user is defining a node container based index (a container whose iterators
+        are not invalidated when inserting or erasing other elements), <span class="bold"><strong>Boost.Interprocess</strong></span> can optimize named object destruction
+        when destructing via pointer. <span class="bold"><strong>Boost.Interprocess</strong></span>
+        can store an iterator next to the object and instead of using the name of
+        the object to erase the index entry, it uses the iterator, which is a faster
+        operation. So if you are creating a new node container based index (for example,
+        a tree), you should define an specialization of <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">is_node_index</span><span class="special">&lt;...&gt;</span></code> defined in <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">detail</span><span class="special">/</span><span class="identifier">utilities</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>:
+      </p>
+<pre class="programlisting"><span class="comment">//!Trait classes to detect if an index is a node</span>
+<span class="comment">//!index. This allows more efficient operations</span>
+<span class="comment">//!when deallocating named objects.</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">MapConfig</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">is_node_index</span>
+   <span class="special">&lt;</span><span class="identifier">my_index</span><span class="special">&lt;</span><span class="identifier">MapConfig</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        Interprocess also defines other index types:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong>boost::map_index</strong></span> uses <span class="bold"><strong>boost::interprocess::map</strong></span>
+            as index type.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>boost::null_index</strong></span> that uses an dummy
+            index type if the user just needs anonymous allocations and wants to
+            save some space and class instantations.
+          </li>
+</ul></div>
+<p>
+        Defining a new managed memory segment that uses the new index is easy. For
+        example, a new managed shared memory that uses the new index:
+      </p>
+<pre class="programlisting"><span class="comment">//!Defines a managed shared memory with a c-strings as</span>
+<span class="comment">//!a keys, the red-black tree best fit algorithm (with process-shared mutexes</span>
+<span class="comment">//!and offset_ptr pointers) as raw shared memory management algorithm</span>
+<span class="comment">//!and a custom index</span>
+<span class="keyword">typedef</span>
+   <span class="identifier">basic_managed_shared_memory</span> <span class="special">&lt;</span>
+                              <span class="keyword">char</span><span class="special">,</span>
+                              <span class="identifier">rbtree_best_fit</span><span class="special">&lt;</span><span class="identifier">mutex_family</span><span class="special">&gt;,</span>
+                              <span class="identifier">my_index_type</span>
+                             <span class="special">&gt;</span>
+   <span class="identifier">my_managed_shared_memory</span><span class="special">;</span>
+</pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="architecture.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="acknowledgements_notes.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

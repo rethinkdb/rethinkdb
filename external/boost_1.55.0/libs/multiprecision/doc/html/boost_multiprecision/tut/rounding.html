@@ -1,0 +1,191 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Rounding Rules for Conversions</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../tut.html" title="Tutorial">
+<link rel="prev" href="lits.html" title="Literal Types and constexpr Support">
+<link rel="next" href="mixed.html" title="Mixed Precision Arithmetic">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lits.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mixed.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_multiprecision.tut.rounding"></a><a class="link" href="rounding.html" title="Rounding Rules for Conversions">Rounding Rules for
+      Conversions</a>
+</h3></div></div></div>
+<p>
+        As a general rule, all conversions between unrelated types are performed
+        using basic arithmetic operations, therefore conversions are either exact,
+        or follow the same rounding rules as arithmetic for the type in question.
+      </p>
+<p>
+        The following table summarises the situation for conversions from native
+        types:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Backend
+                </p>
+              </th>
+<th>
+                <p>
+                  Rounding Rules
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ints/cpp_int.html" title="cpp_int">cpp_int</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Conversions from integer types are exact if the target has sufficient
+                  precision, otherwise they truncate to the first 2^MaxBits bits
+                  (modulo arithmetic). Conversions from floating point types are
+                  truncating to the nearest integer.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ints/gmp_int.html" title="gmp_int">gmp_int</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Conversions are performed by the GMP library except for conversion
+                  from <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">double</span></code>
+                  which is truncating.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ints/tom_int.html" title="tom_int">tom_int</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Conversions from floating point types are truncating, all others
+                  are performed by libtommath and are exact.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="floats/gmp_float.html" title="gmp_float">gmp_float</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Conversions are performed by the GMP library except for conversion
+                  from <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">double</span></code>
+                  which should be exact provided the target type has as much precision
+                  as a <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">double</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="floats/mpfr_float.html" title="mpfr_float">mpfr_float</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  All conversions are performed by the underlying MPFR library.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="floats/cpp_dec_float.html" title="cpp_dec_float">cpp_dec_float</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  All conversions are performed using basic arithmetic operations
+                  and are truncating.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="rational/gmp_rational.html" title="gmp_rational">gmp_rational</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  See <a class="link" href="ints/gmp_int.html" title="gmp_int">gmp_int</a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="rational/cpp_rational.html" title="cpp_rational">cpp_rational</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  See <a class="link" href="ints/cpp_int.html" title="cpp_int">cpp_int</a>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="rational/tommath_rational.html" title="tommath_rational">tommath_rational</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  See <a class="link" href="ints/tom_int.html" title="tom_int">tom_int</a>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lits.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mixed.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

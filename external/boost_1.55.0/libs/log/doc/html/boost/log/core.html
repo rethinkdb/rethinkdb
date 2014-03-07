@@ -1,0 +1,669 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class core</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../core_components.html#header.boost.log.core.core_hpp" title="Header &lt;boost/log/core/core.hpp&gt;">
+<link rel="prev" href="../../core_components.html" title="Core components">
+<link rel="next" href="record.html" title="Class record">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../core_components.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../core_components.html#header.boost.log.core.core_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="record.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.core"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class core</span></h2>
+<p>boost::log::core &#8212; Logging library core class. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../core_components.html#header.boost.log.core.core_hpp" title="Header &lt;boost/log/core/core.hpp&gt;">boost/log/core/core.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="core.html" title="Class core">core</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <a name="boost.log.core.exception_handler_type"></a><span class="identifier">exception_handler_type</span><span class="special">;</span>  <span class="comment">// Exception handler function type. </span>
+
+  <span class="comment">// <a class="link" href="core.html#boost.log.coreconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="core.html#idp25212008-bb"><span class="identifier">core</span></a><span class="special">(</span><a class="link" href="core.html" title="Class core">core</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span>
+  core&amp; <a class="link" href="core.html#idp25212680-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="core.html" title="Class core">core</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span>
+  <a class="link" href="core.html#idp25211656-bb"><span class="special">~</span><span class="identifier">core</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="core.html#idp25167928-bb">public member functions</a></span>
+  <span class="keyword">bool</span> <a class="link" href="core.html#idp25168136-bb"><span class="identifier">set_logging_enabled</span></a><span class="special">(</span><span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="core.html#idp25170504-bb"><span class="identifier">get_logging_enabled</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="core.html#idp25171416-bb"><span class="identifier">set_filter</span></a><span class="special">(</span><span class="identifier">filter</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="core.html#idp25172904-bb"><span class="identifier">reset_filter</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="core.html#idp25173688-bb"><span class="identifier">add_sink</span></a><span class="special">(</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">sink</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="core.html#idp25175320-bb"><span class="identifier">remove_sink</span></a><span class="special">(</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">sink</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="core.html#idp25176872-bb"><span class="identifier">remove_all_sinks</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="core.html#idp25177672-bb"><span class="identifier">flush</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">attribute_set</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> 
+  <a class="link" href="core.html#idp25178936-bb"><span class="identifier">add_global_attribute</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">attribute</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="core.html#idp25181704-bb"><span class="identifier">remove_global_attribute</span></a><span class="special">(</span><span class="identifier">attribute_set</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">attribute_set</span> <a class="link" href="core.html#idp25183960-bb"><span class="identifier">get_global_attributes</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="core.html#idp25184728-bb"><span class="identifier">set_global_attributes</span></a><span class="special">(</span><span class="identifier">attribute_set</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">attribute_set</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> 
+  <a class="link" href="core.html#idp25186776-bb"><span class="identifier">add_thread_attribute</span></a><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">attribute</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="core.html#idp25189960-bb"><span class="identifier">remove_thread_attribute</span></a><span class="special">(</span><span class="identifier">attribute_set</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">attribute_set</span> <a class="link" href="core.html#idp25192248-bb"><span class="identifier">get_thread_attributes</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="core.html#idp25193032-bb"><span class="identifier">set_thread_attributes</span></a><span class="special">(</span><span class="identifier">attribute_set</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="core.html#idp25195080-bb"><span class="identifier">set_exception_handler</span></a><span class="special">(</span><span class="identifier">exception_handler_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="record.html" title="Class record">record</a> <a class="link" href="core.html#idp25198744-bb"><span class="identifier">open_record</span></a><span class="special">(</span><span class="identifier">attribute_set</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="record.html" title="Class record">record</a> <a class="link" href="core.html#idp25202104-bb"><span class="identifier">open_record</span></a><span class="special">(</span><span class="identifier">attribute_value_set</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="record.html" title="Class record">record</a> <a class="link" href="core.html#idp25205464-bb"><span class="identifier">open_record</span></a><span class="special">(</span><span class="identifier">attribute_value_set</span> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="core.html#idp25208888-bb"><span class="identifier">push_record</span></a><span class="special">(</span><a class="link" href="record.html" title="Class record">record</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="core.html#idp25213352-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">core_ptr</span> <a class="link" href="core.html#idp25213560-bb"><span class="identifier">get</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp53788920"></a><h2>Description</h2>
+<p>The logging core is used to interconnect log sources and sinks. It also provides a number of basic features, like global filtering and global and thread-specific attribute storage.</p>
+<p>The logging core is a singleton. Users can acquire the core instance by calling the static method <code class="computeroutput">get</code>. </p>
+<div class="refsect2">
+<a name="idp53790008"></a><h3>
+<a name="boost.log.coreconstruct-copy-destruct"></a><code class="computeroutput">core</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><a name="idp25212008-bb"></a><span class="identifier">core</span><span class="special">(</span><a class="link" href="core.html" title="Class core">core</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">core&amp; <a name="idp25212680-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="core.html" title="Class core">core</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp25211656-bb"></a><span class="special">~</span><span class="identifier">core</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destructor. Destroys the core, releases any sinks and attributes that were registered. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp53800504"></a><h3>
+<a name="idp25167928-bb"></a><code class="computeroutput">core</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp25168136-bb"></a><span class="identifier">set_logging_enabled</span><span class="special">(</span><span class="keyword">bool</span> enabled <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method enables or disables logging.</p>
+<p>Setting this status to <code class="computeroutput">false</code> allows you to completely wipe out any logging activity, including filtering and generation of attribute values. It is useful if you want to completely disable logging in a running application. The state of logging does not alter any other properties of the logging library, such as filters or sinks, so you can enable logging with the very same settings that you had when the logging was disabled. This feature may also be useful if you want to perform major changes to logging configuration and don't want your application to block on opening or pushing a log record.</p>
+<p>By default logging is enabled.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">enabled</code></span></p></td>
+<td><p>The actual flag of logging activity. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The previous value of enabled/disabled logging flag </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp25170504-bb"></a><span class="identifier">get_logging_enabled</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method allows to detect if logging is enabled. See the comment for <code class="computeroutput">set_logging_enabled</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25171416-bb"></a><span class="identifier">set_filter</span><span class="special">(</span><span class="identifier">filter</span> <span class="keyword">const</span> <span class="special">&amp;</span> filter<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets the global logging filter. The filter is applied to every log record that is processed.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">filter</code></span></p></td>
+<td><p>The filter function object to be installed. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25172904-bb"></a><span class="identifier">reset_filter</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method removes the global logging filter. All log records are passed to sinks without global filtering applied. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25173688-bb"></a><span class="identifier">add_sink</span><span class="special">(</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">sink</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> s<span class="special">)</span><span class="special">;</span></pre>
+<p>The method adds a new sink. The sink is included into logging process immediately after being added and until being removed. No sink can be added more than once at the same time. If the sink is already registered, the call is ignored.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">s</code></span></p></td>
+<td><p>The sink to be registered. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25175320-bb"></a><span class="identifier">remove_sink</span><span class="special">(</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span> <span class="identifier">sinks</span><span class="special">::</span><span class="identifier">sink</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> s<span class="special">)</span><span class="special">;</span></pre>
+<p>The method removes the sink from the output. The sink will not receive any log records after removal. The call has no effect if the sink is not registered.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">s</code></span></p></td>
+<td><p>The sink to be unregistered. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25176872-bb"></a><span class="identifier">remove_all_sinks</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method removes all registered sinks from the output. The sinks will not receive any log records after removal. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25177672-bb"></a><span class="identifier">flush</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method performs flush on all registered sinks.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>This method may take long time to complete as it may block until all sinks manage to process all buffered log records. The call will also block all logging attempts until the operation completes. </p></td></tr>
+</table></div>
+<p>
+</p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">attribute_set</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> 
+<a name="idp25178936-bb"></a><span class="identifier">add_global_attribute</span><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span> name<span class="special">,</span> <span class="identifier">attribute</span> <span class="keyword">const</span> <span class="special">&amp;</span> attr<span class="special">)</span><span class="special">;</span></pre>
+<p>The method adds an attribute to the global attribute set. The attribute will be implicitly added to every log record.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">attr</code></span></p></td>
+<td><p>The attribute factory. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">name</code></span></p></td>
+<td><p>The attribute name. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A pair of values. If the second member is <code class="computeroutput">true</code>, then the attribute is added and the first member points to the attribute. Otherwise the attribute was not added and the first member points to the attribute that prevents addition. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25181704-bb"></a><span class="identifier">remove_global_attribute</span><span class="special">(</span><span class="identifier">attribute_set</span><span class="special">::</span><span class="identifier">iterator</span> it<span class="special">)</span><span class="special">;</span></pre>
+<p>The method removes an attribute from the global attribute set.</p>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">it</code></span></p></td>
+<td><p>Iterator to the previously added attribute. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>The attribute was added with the <code class="computeroutput">add_global_attribute</code> call. </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p>The attribute is no longer registered as a global attribute. The iterator is invalidated after removal.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">attribute_set</span> <a name="idp25183960-bb"></a><span class="identifier">get_global_attributes</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method returns a copy of the complete set of currently registered global attributes. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25184728-bb"></a><span class="identifier">set_global_attributes</span><span class="special">(</span><span class="identifier">attribute_set</span> <span class="keyword">const</span> <span class="special">&amp;</span> attrs<span class="special">)</span><span class="special">;</span></pre>
+<p>The method replaces the complete set of currently registered global attributes with the provided set.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>The method invalidates all iterators and references that may have been returned from the <code class="computeroutput">add_global_attribute</code> method.</p></td></tr>
+</table></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">attrs</code></span></p></td>
+<td><p>The set of attributes to be installed. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">attribute_set</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> 
+<a name="idp25186776-bb"></a><span class="identifier">add_thread_attribute</span><span class="special">(</span><span class="identifier">attribute_name</span> <span class="keyword">const</span> <span class="special">&amp;</span> name<span class="special">,</span> <span class="identifier">attribute</span> <span class="keyword">const</span> <span class="special">&amp;</span> attr<span class="special">)</span><span class="special">;</span></pre>
+<p>The method adds an attribute to the thread-specific attribute set. The attribute will be implicitly added to every log record made in the current thread.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>In single-threaded build the effect is the same as adding the attribute globally. This, however, does not imply that iterators to thread-specific and global attributes are interchangeable.</p></td></tr>
+</table></div>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">attr</code></span></p></td>
+<td><p>The attribute factory. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">name</code></span></p></td>
+<td><p>The attribute name. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A pair of values. If the second member is <code class="computeroutput">true</code>, then the attribute is added and the first member points to the attribute. Otherwise the attribute was not added and the first member points to the attribute that prevents addition. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25189960-bb"></a><span class="identifier">remove_thread_attribute</span><span class="special">(</span><span class="identifier">attribute_set</span><span class="special">::</span><span class="identifier">iterator</span> it<span class="special">)</span><span class="special">;</span></pre>
+<p>The method removes an attribute from the thread-specific attribute set.</p>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">it</code></span></p></td>
+<td><p>Iterator to the previously added attribute. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>The attribute was added with the <code class="computeroutput">add_thread_attribute</code> call. </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p>The attribute is no longer registered as a thread-specific attribute. The iterator is invalidated after removal.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">attribute_set</span> <a name="idp25192248-bb"></a><span class="identifier">get_thread_attributes</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method returns a copy of the complete set of currently registered thread-specific attributes. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25193032-bb"></a><span class="identifier">set_thread_attributes</span><span class="special">(</span><span class="identifier">attribute_set</span> <span class="keyword">const</span> <span class="special">&amp;</span> attrs<span class="special">)</span><span class="special">;</span></pre>
+<p>The method replaces the complete set of currently registered thread-specific attributes with the provided set.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>The method invalidates all iterators and references that may have been returned from the <code class="computeroutput">add_thread_attribute</code> method.</p></td></tr>
+</table></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">attrs</code></span></p></td>
+<td><p>The set of attributes to be installed. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25195080-bb"></a><span class="identifier">set_exception_handler</span><span class="special">(</span><span class="identifier">exception_handler_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> handler<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets exception handler function. The function will be called with no arguments in case if an exception occurs during either <code class="computeroutput">open_record</code> or <code class="computeroutput">push_record</code> method execution. Since exception handler is called from a <code class="computeroutput">catch</code> statement, the exception can be rethrown in order to determine its type.</p>
+<p>By default no handler is installed, thus any exception is propagated as usual.</p>
+<p><span class="bold"><strong>See Also:</strong></span></p>
+<p>See also: <code class="computeroutput">utility/exception_handler.hpp</code> </p>
+<p>
+
+</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>The exception handler can be invoked in several threads concurrently. Thread interruptions are not affected by exception handlers. </p></td></tr>
+</table></div>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">handler</code></span></p></td>
+<td><p>Exception handling function</p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="record.html" title="Class record">record</a> <a name="idp25198744-bb"></a><span class="identifier">open_record</span><span class="special">(</span><span class="identifier">attribute_set</span> <span class="keyword">const</span> <span class="special">&amp;</span> source_attributes<span class="special">)</span><span class="special">;</span></pre>
+<p>The method attempts to open a new record to be written. While attempting to open a log record all filtering is applied. A successfully opened record can be pushed further to sinks by calling the <code class="computeroutput">push_record</code> method or simply destroyed by destroying the returned object.</p>
+<p>More than one open records are allowed, such records exist independently. All attribute values are acquired during opening the record and do not interact between records.</p>
+<p>The returned records can be copied, however, they must not be passed between different threads.</p>
+<p>
+
+<span class="bold"><strong>Throws:</strong></span> If an exception handler is installed, only throws if the handler throws. Otherwise may throw if one of the sinks throws, or some system resource limitation is reached. </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">source_attributes</code></span></p></td>
+<td><p>The set of source-specific attributes to be attached to the record to be opened. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A valid log record if the record is opened, an invalid record object if not (e.g. because it didn't pass filtering).</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="record.html" title="Class record">record</a> <a name="idp25202104-bb"></a><span class="identifier">open_record</span><span class="special">(</span><span class="identifier">attribute_value_set</span> <span class="keyword">const</span> <span class="special">&amp;</span> source_attributes<span class="special">)</span><span class="special">;</span></pre>
+<p>The method attempts to open a new record to be written. While attempting to open a log record all filtering is applied. A successfully opened record can be pushed further to sinks by calling the <code class="computeroutput">push_record</code> method or simply destroyed by destroying the returned object.</p>
+<p>More than one open records are allowed, such records exist independently. All attribute values are acquired during opening the record and do not interact between records.</p>
+<p>The returned records can be copied, however, they must not be passed between different threads.</p>
+<p>
+
+<span class="bold"><strong>Throws:</strong></span> If an exception handler is installed, only throws if the handler throws. Otherwise may throw if one of the sinks throws, or some system resource limitation is reached. </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">source_attributes</code></span></p></td>
+<td><p>The set of source-specific attribute values to be attached to the record to be opened. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A valid log record if the record is opened, an invalid record object if not (e.g. because it didn't pass filtering).</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="record.html" title="Class record">record</a> <a name="idp25205464-bb"></a><span class="identifier">open_record</span><span class="special">(</span><span class="identifier">attribute_value_set</span> <span class="special">&amp;&amp;</span> source_attributes<span class="special">)</span><span class="special">;</span></pre>
+<p>The method attempts to open a new record to be written. While attempting to open a log record all filtering is applied. A successfully opened record can be pushed further to sinks by calling the <code class="computeroutput">push_record</code> method or simply destroyed by destroying the returned object.</p>
+<p>More than one open records are allowed, such records exist independently. All attribute values are acquired during opening the record and do not interact between records.</p>
+<p>The returned records can be copied, however, they must not be passed between different threads.</p>
+<p>
+
+<span class="bold"><strong>Throws:</strong></span> If an exception handler is installed, only throws if the handler throws. Otherwise may throw if one of the sinks throws, or some system resource limitation is reached. </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">source_attributes</code></span></p></td>
+<td><p>The set of source-specific attribute values to be attached to the record to be opened. The contents of this container are unspecified after this call. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A valid log record if the record is opened, an invalid record object if not (e.g. because it didn't pass filtering).</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25208888-bb"></a><span class="identifier">push_record</span><span class="special">(</span><a class="link" href="record.html" title="Class record">record</a> <span class="special">&amp;&amp;</span> rec<span class="special">)</span><span class="special">;</span></pre>
+<p>The method pushes the record to sinks. The record is moved from in the process.</p>
+<p>
+
+
+<span class="bold"><strong>Throws:</strong></span> If an exception handler is installed, only throws if the handler throws. Otherwise may throw if one of the sinks throws. </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">rec</code></span></p></td>
+<td><p>A previously successfully opened log record.</p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p><code class="computeroutput">!!rec == true</code> </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p><code class="computeroutput">!rec == true</code> </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp53922376"></a><h3>
+<a name="idp25213352-bb"></a><code class="computeroutput">core</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">core_ptr</span> <a name="idp25213560-bb"></a><span class="identifier">get</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The method returns a pointer to the logging core singleton instance. </p></td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../core_components.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../core_components.html#header.boost.log.core.core_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="record.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

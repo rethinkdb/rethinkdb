@@ -1,0 +1,128 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:collating_names Collating Names]
+
+[section:digraphs Digraphs]
+
+The following are treated as valid digraphs when used as a collating name:
+
+"ae", "Ae", "AE", "ch", "Ch", "CH", "ll", "Ll", "LL", "ss", "Ss", "SS", "nj", "Nj", "NJ", "dz", "Dz", "DZ", "lj", "Lj", "LJ".
+
+So for example the expression:
+
+[pre \[\[.ae.\]-c\] ]
+
+will match any character that collates between the digraph "ae" and the character "c".
+
+[endsect]
+
+[section:posix_symbolic_names POSIX Symbolic Names]
+
+The following symbolic names are recognised as valid collating element names, 
+in addition to any single character, this allows you to write for example:
+
+[pre \[\[.left-square-bracket.\]\[.right-square-bracket.\]\]]
+
+if you wanted to match either "\[" or "\]".
+
+[table
+[[Name][Character]]
+[[NUL] 	[\\x00]]
+[[SOH] 	[\\x01]]
+[[STX] 	[\\x02]]
+[[ETX] 	[\\x03]]
+[[EOT] 	[\\x04]]
+[[ENQ] 	[\\x05]]
+[[ACK] 	[\\x06]]
+[[alert] 	[\\x07]]
+[[backspace] 	[\\x08]]
+[[tab] 	[\\t]]
+[[newline] 	[\\n]]
+[[vertical-tab] 	[\\v]]
+[[form-feed] 	[\\f]]
+[[carriage-return] 	[\\r]]
+[[SO] 	[\\xE]]
+[[SI] 	[\\xF]]
+[[DLE] 	[\\x10]]
+[[DC1] 	[\\x11]]
+[[DC2] 	[\\x12]]
+[[DC3] 	[\\x13]]
+[[DC4] 	[\\x14]]
+[[NAK] 	[\\x15]]
+[[SYN] 	[\\x16]]
+[[ETB] 	[\\x17]]
+[[CAN] 	[\\x18]]
+[[EM] 	[\\x19]]
+[[SUB] 	[\\x1A]]
+[[ESC] 	[\\x1B]]
+[[IS4] 	[\\x1C]]
+[[IS3] 	[\\x1D]]
+[[IS2] 	[\\x1E]]
+[[IS1] 	[\\x1F]]
+[[space] 	[\\x20]]
+[[exclamation-mark] 	[!]]
+[[quotation-mark] 	["]]
+[[number-sign] 	[#]]
+[[dollar-sign] 	[$]]
+[[percent-sign] 	[%]]
+[[ampersand] 	[&]]
+[[apostrophe] 	[\']]
+[[left-parenthesis] 	[(]]
+[[right-parenthesis] 	[)]]
+[[asterisk] 	[\*]]
+[[plus-sign] 	[+]]
+[[comma] 	[,]]
+[[hyphen] 	[-]]
+[[period] 	[.]]
+[[slash] 	[ / ]]
+[[zero] 	[0]]
+[[one] 	[1]]
+[[two] 	[2]]
+[[three] 	[3]]
+[[four] 	[4]]
+[[five] 	[5]]
+[[six] 	[6]]
+[[seven] 	[7]]
+[[eight] 	[8]]
+[[nine] 	[9]]
+[[colon] 	[\:]]
+[[semicolon] 	[;]]
+[[less-than-sign] 	[<]]
+[[equals-sign] 	[=]]
+[[greater-than-sign] 	[>]]
+[[question-mark] 	[?]]
+[[commercial-at] 	[@]]
+[[left-square-bracket] 	[\[]]
+[[backslash][\\]]
+[[right-square-bracket][\]]]
+[[circumflex][~]]
+[[underscore][_]]
+[[grave-accent][`]]
+[[left-curly-bracket][{]]
+[[vertical-line][|]]
+[[right-curly-bracket][}]]
+[[tilde][~]]
+[[DEL][\\x7F]]
+]
+
+[endsect]
+
+[section:named_unicode Named Unicode Characters]
+
+When using [link boost_regex.unicode Unicode aware regular expressions] (with the `u32regex` type), all 
+the normal symbolic names for Unicode characters (those given in Unidata.txt) 
+are recognised.  So for example:
+
+[pre \[\[.CYRILLIC CAPITAL LETTER I.\]\] ]
+
+would match the Unicode character 0x0418.
+
+[endsect]
+[endsect]
+

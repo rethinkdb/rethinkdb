@@ -1,0 +1,156 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Topological Sort</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H1><A NAME="sec:topological-sort">
+<img src="figs/python.gif" alt="(Python)"/>
+<TT>topological_sort</TT>
+</H1>
+
+<PRE>
+template &lt;typename VertexListGraph, typename OutputIterator,
+          typename P, typename T, typename R&gt;
+void topological_sort(VertexListGraph&amp; g, OutputIterator result,
+    const bgl_named_params&lt;P, T, R&gt;&amp; params = <i>all defaults</i>)
+</PRE>
+
+<P>
+The topological sort algorithm creates a linear ordering of the
+vertices such that if edge <i>(u,v)</i> appears in the graph, then
+<i>v</i> comes before <i>u</i> in the ordering. The graph must be a
+directed acyclic graph (DAG). The implementation consists mainly of a
+call to <a
+href="./depth_first_search.html"><tt>depth_first_search()</tt></a>.
+</p>
+
+<h3>Where Defined:</h3>
+<a href="../../../boost/graph/topological_sort.hpp"><TT>boost/graph/topological_sort.hpp</TT></a>
+
+<h3>Parameters</h3>
+
+IN: <tt>VertexListGraph&amp; g</tt>
+<blockquote>
+  A directed acylic graph (DAG). The graph type must
+  be a model of <a href="./VertexListGraph.html">Vertex List Graph</a>
+  and <a href="./IncidenceGraph.html">Incidence Graph</a>.
+  If the graph is not a DAG then a <a href="./exception.html#not_a_dag"><tt>not_a_dag</tt></a>
+  exception will be thrown and the
+  user should discard the contents of <tt>result</tt> range.<br>
+  <b>Python</b>: The parameter is named <tt>graph</tt>.
+</blockquote>
+
+OUT: <tt>OutputIterator result</tt>
+<blockquote>
+The vertex descriptors of the graph will be output to the
+<TT>result</TT> output iterator in <b>reverse</b> topological order.  The
+iterator type must model <a
+href="http://www.sgi.com/tech/stl/OutputIterator.html">Output
+Iterator</a>.<br>
+
+<b>Python</b>: This parameter is not used in Python. Instead, a
+Python <tt>list</tt> containing the vertices in topological order is
+returned.
+</blockquote>
+
+<h3>Named Parameters</h3>
+
+UTIL/OUT: <tt>color_map(ColorMap color)</tt>
+<blockquote>
+  This is used by the algorithm to keep track of its progress through
+  the graph. The type <tt>ColorMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a> and its key type must be the graph's vertex
+  descriptor type and the value type of the color map must model
+  <a href="./ColorValue.html">ColorValue</a>.<br>
+  <b>Default:</b> an <a
+  href="../../property_map/doc/iterator_property_map.html">
+  </tt>iterator_property_map</tt></a> created from a
+  <tt>std::vector</tt> of <tt>default_color_type</tt> of size
+  <tt>num_vertices(g)</tt> and using the <tt>i_map</tt> for the index
+  map.<br>
+
+  <b>Python</b>: The color map must be a <tt>vertex_color_map</tt> for
+  the graph.
+</blockquote>
+
+IN: <tt>vertex_index_map(VertexIndexMap i_map)</tt>
+<blockquote>
+  This maps each vertex to an integer in the range <tt>[0,
+  num_vertices(g))</tt>. This parameter is only necessary when the
+  default color property map is used. The type <tt>VertexIndexMap</tt>
+  must be a model of <a
+  href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+  Map</a>. The value type of the map must be an integer type. The
+  vertex descriptor type of the graph needs to be usable as the key
+  type of the map.<br>
+
+  <b>Default:</b> <tt>get(vertex_index, g)</tt>
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacenty_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.
+   <br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+
+<H3>Complexity</H3>
+
+The time complexity is <i>O(V + E)</i>.
+
+
+<H3>Example</H3>
+
+<P>
+Calculate a topological ordering of the vertices.
+
+<P>
+<PRE>
+  typedef adjacency_list&lt; vecS, vecS, directedS, color_property&lt;&gt; &gt; Graph;
+  typedef boost::graph_traits&lt;Graph&gt;::vertex_descriptor Vertex;
+  Pair edges[6] = { Pair(0,1), Pair(2,4),
+                    Pair(2,5),
+                    Pair(0,3), Pair(1,4),
+                    Pair(4,3) };
+  Graph G(6, edges, edges + 6);
+
+  typedef std::vector&lt; Vertex &gt; container;
+  container c;
+  topological_sort(G, std::back_inserter(c));
+
+  cout &lt;&lt; "A topological ordering: ";
+  for ( container::reverse_iterator ii=c.rbegin(); ii!=c.rend(); ++ii)
+    cout &lt;&lt; index(*ii) &lt;&lt; " ";
+  cout &lt;&lt; endl;
+</PRE>
+The output is:
+<PRE>
+  A topological ordering: 2 5 0 1 4 3
+</PRE>
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

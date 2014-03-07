@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library-reference PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<library-reference xmlns:xi="http://www.w3.org/2001/XInclude" 
+                   last-revision="$Date: 2007-11-25 10:38:02 -0800 (Sun, 25 Nov 2007) $">
+  <xi:include href="signal_header.xml"/>
+  <xi:include href="slot.xml"/>
+  <xi:include href="trackable.xml"/>
+  <xi:include href="connection.xml"/>
+  <xi:include href="visit_each.xml"/>
+  <xi:include href="last_value.xml"/>
+</library-reference>

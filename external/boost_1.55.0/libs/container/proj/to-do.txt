@@ -1,0 +1,63 @@
+->Change "insert" and "push_back"/"push_front" to catch non-const rvalues
+->Add an example with stateful allocators
+->Add test to check convertible types in push_back/insert
+->Add SCARY iterators.
+->Align with C++11 [multi]map::insert(P &&p) overload.
+->Unify all allocator version traits in one class (starting from stable_vector_detail::allocator_version_wrapper)
+   maybe in allocator_traits?
+->Fix code marked with "//to-do: if possible, an efficient way to deallocate allocated blocks"
+->Add BOOST_CONTAINER_TRY, etc. macros to allow disabling exceptions only in this library (just like Boost.Intrusive)
+->Add macro to change the default allocator std::allocator to another one
+->Add front()/back() to string
+
+
+Review allocator traits
+-> Avoid any rebind<>::other
+-> Review select_on_container_copy_xxx
+-> Review propagate_on_xxx
+-> Put default constructed containers with their own constructor (different nothrow guarantees). Optimization, not needed
+-> Default + swap move constructors correct?
+-> Review container documentation in swap/copy/move regarding allocators
+
+Check all move constructors: swap might not be a valid idiom, allocators must be move constructed,
+intrusive containers are now movable
+
+Add and test:
+
+Test different propagation values and with inequal allocators
+
+propagate_on_container_move_assignment
+select_on_container_copy_construction
+propagate_on_container_swap
+propagate_on_container_copy_assignment
+
+Test move constructors with data values and unequal allocators
+
+An allocator should use a smart allocator not constructible from raw pointers to catch missing pointer_traits calls
+
+Add initializer lists
+
+Write forward_list
+
+check move if noexcept conditions in vector, deque and stable_vector
+
+Add noexcept testing using static_assert (Howard Hinnants's suggestion):
+
+   #include <type_traits>
+
+   struct A
+   {
+      void foo() noexcept;
+   };
+
+   static_assert(noexcept(std::declval<A&>().foo()), "A::foo() should be noexcept");
+
+Detect always equal or unequal allocators at compiler time. operator== returns true_type or false_type
+
+change virtual functions with pointers to avoid template instantiation for every type
+
+Add hash for containers
+
+Add std:: hashing support
+
+Fix trivial destructor after move and other optimizing traits

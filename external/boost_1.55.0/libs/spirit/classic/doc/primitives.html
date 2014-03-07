@@ -1,0 +1,250 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+
+<title>Primitives</title><meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css"></head>
+<body>
+<table background="theme/bkd2.gif" border="0" cellspacing="2" width="100%">
+  <tbody><tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> 
+      <font face="Verdana, Arial, Helvetica, sans-serif" size="6"><b>Primitives</b></font>
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" align="right" border="0" height="48" width="112"></a></td>
+  </tr>
+</tbody></table>
+<br>
+<table border="0">
+  <tbody><tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="organization.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="operators.html"><img src="theme/r_arr.gif" border="0"></a></td>
+   </tr>
+</tbody></table>
+<p>The framework predefines some parser primitives. These are the most basic building 
+  blocks that the client uses to build more complex parsers. These primitive parsers 
+  are template classes, making them very flexible.</p>
+<p>These primitive parsers can be instantiated directly or through a templatized 
+  helper function. Generally, the helper function is far simpler to deal with 
+  as it involves less typing.</p>
+<p>We have seen the character literal parser before through the generator function 
+  <tt>ch_p</tt> which is not really a parser but, rather, a parser generator. 
+  Class <tt>chlit&lt;CharT&gt;</tt> is the actual template class behind the character 
+  literal parser. To instantiate a <tt>chlit</tt> object, you must explicitly 
+  provide the character type, <tt>CharT</tt>, as a template parameter which determines 
+  the type of the character. This type typically corresponds to the input type, 
+  usually <tt>char</tt> or <tt>wchar_t</tt>. The following expression creates 
+  a temporary parser object which will recognize the single letter <span class="quotes">'X'</span>.</p>
+<pre><code><font color="#000000"><span class="identifier">    </span><span class="identifier">chlit</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;(</span><span class="literal">'X'</span><span class="special">);</span></font></code></pre>
+<p>Using <tt>chlit</tt>'s generator function <tt>ch_p</tt> simplifies the usage 
+  of the <tt>chlit&lt;&gt;</tt> class (this is true of most Spirit parser classes 
+  since most have corresponding generator functions). It is convenient to call 
+  the function because the compiler will deduce the template type through argument 
+  deduction for us. The example above could be expressed less verbosely using 
+  the <tt>ch_p </tt>helper function. </p>
+<pre><code><font color="#000000"><span class="special">    </span><span class="identifier">ch_p</span><span class="special">(</span><span class="literal">'X'</span><span class="special">)  </span><span class="comment">// equivalent to chlit&lt;char&gt;('X') object</span></font></code></pre>
+<table align="center" border="0" width="80%">
+  <tbody><tr> 
+    <td class="note_box"><img src="theme/lens.gif" height="16" width="15"> <b>Parser 
+      generators</b><br>
+      <br>
+      Whenever you see an invocation of the parser generator function, it is equivalent 
+      to the parser itself. Therefore, we often call <tt>ch_p</tt> a character 
+      parser, even if, technically speaking, it is a function that generates a 
+      character parser.</td>
+  </tr>
+</tbody></table>
+<p>The following grammar snippet shows these forms in action:</p>
+<pre><code><span class="comment">    </span><span class="comment">// a rule can "store" a parser object.  They're covered<br>    </span><span class="comment">// later, but for now just consider a rule as an opaque type<br>    </span><span class="identifier">rule</span><span class="special">&lt;&gt; </span><span class="identifier">r1</span><span class="special">, </span><span class="identifier">r2</span><span class="special">, </span><span class="identifier">r3</span><span class="special">;<br><br>    </span><span class="identifier">chlit</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt; </span><span class="identifier">x</span><span class="special">(</span><span class="literal">'X'</span><span class="special">);     </span><span class="comment">// declare a parser named x<br><br>    </span><span class="identifier">r1 </span><span class="special">= </span><span class="identifier">chlit</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;(</span><span class="literal">'X'</span><span class="special">);  </span><span class="comment">//  explicit declaration<br>    </span><span class="identifier">r2 </span><span class="special">= </span><span class="identifier">x</span><span class="special">;                 </span><span class="comment">//  using x<br>    </span><span class="identifier">r3 </span><span class="special">= </span><span class="identifier">ch_p</span><span class="special">(</span><span class="literal">'X'</span><span class="special">)          </span><span class="comment">//  using the generator</span></code></pre>
+<h2> chlit and ch_p</h2>
+<p>Matches a single character literal. <tt>chlit</tt> has a single template type 
+  parameter which defaults to <tt>char</tt> (i.e. <tt>chlit&lt;&gt;</tt> is equivalent 
+  to <tt>chlit&lt;char&gt;</tt>). This type parameter is the character type that 
+  <tt>chlit</tt> will recognize when parsing. The function generator version deduces 
+  the template type parameters from the actual function arguments. The <tt>chlit</tt> 
+  class constructor accepts a single parameter: the character it will match the 
+  input against. Examples:</p>
+<pre><code><span class="comment">    </span><span class="identifier">r1 </span><span class="special">= </span><span class="identifier">chlit</span><span class="special">&lt;&gt;(</span><span class="literal">'X'</span><span class="special">);<br>    </span><span class="identifier">r2 </span><span class="special">= </span><span class="identifier">chlit</span><span class="special">&lt;</span><span class="keyword">wchar_t</span><span class="special">&gt;(</span><span class="identifier">L</span><span class="literal">'X'</span><span class="special">);<br>    </span><span class="identifier">r3 </span><span class="special">= </span><span class="identifier">ch_p</span><span class="special">(</span><span class="literal">'X'</span><span class="special">);</span></code></pre>
+<p>Going back to our original example:</p>
+<pre><code><span class="special">    </span><span class="identifier">group </span><span class="special">= </span><span class="literal">'(' </span><span class="special">&gt;&gt; </span><span class="identifier">expr </span><span class="special">&gt;&gt; </span><span class="literal">')'</span><span class="special">;<br>    </span><span class="identifier">expr1 </span><span class="special">= </span><span class="identifier">integer </span><span class="special">| </span><span class="identifier">group</span><span class="special">;<br>    </span><span class="identifier">expr2 </span><span class="special">= </span><span class="identifier">expr1 </span><span class="special">&gt;&gt; </span><span class="special">*((</span><span class="literal">'*' </span><span class="special">&gt;&gt; </span><span class="identifier">expr1</span><span class="special">) </span><span class="special">| </span><span class="special">(</span><span class="literal">'/' </span><span class="special">&gt;&gt; </span><span class="identifier">expr1</span><span class="special">));<br>    </span><span class="identifier">expr  </span><span class="special">= </span><span class="identifier">expr2 </span><span class="special">&gt;&gt; </span><span class="special">*((</span><span class="literal">'+' </span><span class="special">&gt;&gt; </span><span class="identifier">expr2</span><span class="special">) </span><span class="special">| </span><span class="special">(</span><span class="literal">'-' </span><span class="special">&gt;&gt; </span><span class="identifier">expr2</span><span class="special">));</span></code></pre>
+<p></p>
+<p>the character literals <tt class="quotes">'('</tt>, <tt class="quotes">')'</tt>, 
+  <tt class="quotes">'+'</tt>, <tt class="quotes">'-'</tt>, <tt class="quotes">'*'</tt> 
+  and <tt class="quotes">'/'</tt> in the grammar declaration are <tt>chlit</tt> 
+  objects that are implicitly created behind the scenes.</p>
+<table align="center" border="0" width="80%">
+  <tbody><tr> 
+    <td class="note_box"><img src="theme/lens.gif" height="16" width="15"> <b>char 
+      operands</b> <br>
+      <br>
+      The reason this works is from two special templatized overloads of <tt>operator<span class="operators">&gt;&gt;</span></tt> 
+      that takes a (<tt>char</tt>, <tt> ParserT</tt>), or (<tt>ParserT</tt>, <tt>char</tt>). 
+      These functions convert the character into a <tt>chlit</tt> object.</td>
+  </tr>
+</tbody></table>
+<p> One may prefer to declare these explicitly as:</p>
+<pre><code><span class="special">    </span><span class="identifier">chlit</span><span class="special">&lt;&gt; </span><span class="identifier">plus</span><span class="special">(</span><span class="literal">'+'</span><span class="special">);<br>    </span><span class="identifier">chlit</span><span class="special">&lt;&gt; </span><span class="identifier">minus</span><span class="special">(</span><span class="literal">'-'</span><span class="special">);<br>    </span><span class="identifier">chlit</span><span class="special">&lt;&gt; </span><span class="identifier">times</span><span class="special">(</span><span class="literal">'*'</span><span class="special">);<br>    </span><span class="identifier">chlit</span><span class="special">&lt;&gt; </span><span class="identifier">divide</span><span class="special">(</span><span class="literal">'/'</span><span class="special">);<br>    </span><span class="identifier">chlit</span><span class="special">&lt;&gt; </span><span class="identifier">oppar</span><span class="special">(</span><span class="literal">'('</span><span class="special">);<br>    </span><span class="identifier">chlit</span><span class="special">&lt;&gt; </span><span class="identifier">clpar</span><span class="special">(</span><span class="literal">')'</span><span class="special">);</span></code></pre>
+<h2>range and range_p</h2>
+<p>A <tt>range</tt> of characters is created from a low/high character pair. Such 
+  a parser matches a single character that is in the <tt>range</tt>, including 
+  both endpoints. Like <tt>chlit</tt>, <tt>range</tt> has a single template type 
+  parameter which defaults to <tt>char</tt>. The <tt>range</tt> class constructor 
+  accepts two parameters: the character range (<i>from</i> and <i>to</i>, inclusive) 
+  it will match the input against. The function generator version is <tt>range_p</tt>. 
+  Examples:</p>
+<pre><code><span class="special">    </span><span class="identifier">range</span><span class="special">&lt;&gt;(</span><span class="literal">'A'</span><span class="special">,</span><span class="literal">'Z'</span><span class="special">)    </span><span class="comment">// matches 'A'..'Z'<br>    </span><span class="identifier">range_p</span><span class="special">(</span><span class="literal">'a'</span><span class="special">,</span><span class="literal">'z'</span><span class="special">)    </span><span class="comment">// matches 'a'..'z'</span></code></pre>
+<p>Note, the first character must be "before" the second, according 
+  to the underlying character encoding characters. The range, like chlit is a 
+  single character parser.</p>
+<table align="center" border="0" width="80%">
+  <tbody><tr>
+    <td class="note_box"><img src="theme/alert.gif" height="16" width="16"><b> 
+      Character mapping</b><br>
+      <br>
+      Character mapping to is inherently platform dependent. It is not guaranteed 
+      in the standard for example that 'A' &lt; 'Z', however, in many occasions, 
+      we are well aware of the character set we are using such as ASCII, ISO-8859-1 
+      or Unicode. Take care though when porting to another platform.</td>
+  </tr>
+</tbody></table>
+<h2> strlit and str_p</h2>
+<p>This parser matches a string literal. <tt>strlit</tt> has a single template 
+  type parameter: an iterator type. Internally, <tt>strlit</tt> holds a begin/end 
+  iterator pair pointing to a string or a container of characters. The <tt>strlit</tt> 
+  attempts to match the current input stream with this string. The template type 
+  parameter defaults to <tt>char const<span class="operators">*</span></tt>. <tt>strlit</tt> 
+  has two constructors. The first accepts a null-terminated character pointer. 
+  This constructor may be used to build <tt>strlits</tt> from quoted string literals. 
+  The second constructor takes in a first/last iterator pair. The function generator 
+  version is <tt>str_p</tt>. Examples:</p>
+<pre><code><span class="comment">    </span><span class="identifier">strlit</span><span class="special">&lt;&gt;(</span><span class="string">"Hello World"</span><span class="special">)<br>    </span><span class="identifier">str_p</span><span class="special">(</span><span class="string">"Hello World"</span><span class="special">)<br><br>    </span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string </span><span class="identifier">msg</span><span class="special">(</span><span class="string">"Hello World"</span><span class="special">);<br>    </span><span class="identifier">strlit</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">const_iterator</span><span class="special">&gt;(</span><span class="identifier">msg</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(), </span><span class="identifier">msg</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span></code></pre>
+<table align="center" border="0" width="80%">
+  <tbody><tr>
+    <td class="note_box"><img src="theme/note.gif" height="16" width="16"> <b>Character 
+      and phrase level parsing</b><br>
+      <br>
+      Typical parsers regard the processing of characters (symbols that form words 
+      or lexemes) and phrases (words that form sentences) as separate domains. 
+      Entities such as reserved words, operators, literal strings, numerical constants, 
+      etc., which constitute the terminals of a grammar are usually extracted 
+      first in a separate lexical analysis stage.<br>
+      <br>
+      At this point, as evident in the examples we have so far, it is important 
+      to note that, contrary to standard practice, the Spirit framework handles 
+      parsing tasks at both the character level as well as the phrase level. One 
+      may consider that a lexical analyzer is seamlessly integrated in the Spirit 
+      framework.<br>
+      <br>
+      Although the Spirit parser library does not need a separate lexical analyzer, 
+      there is no reason why we cannot have one. One can always have as many parser 
+      layers as needed. In theory, one may create a preprocessor, a lexical analyzer 
+      and a parser proper, all using the same framework.</td>
+  </tr>
+</tbody></table>
+<h2>chseq and chseq_p</h2>
+<p>Matches a character sequence. <tt>chseq</tt> has the same template type parameters 
+  and constructor parameters as strlit. The function generator version is <tt>chseq_p</tt>. 
+  Examples:</p>
+<pre><code><span class="special">    </span><span class="identifier">chseq</span><span class="special">&lt;&gt;(</span><span class="string">"ABCDEFG"</span><span class="special">)<br>    </span><span class="identifier">chseq_p</span><span class="special">(</span><span class="string">"ABCDEFG"</span><span class="special">)</span></code></pre>
+<p><tt>strlit</tt> is an implicit lexeme. That is, it works solely on the character 
+  level. <tt>chseq</tt>, <tt>strlit</tt>'s twin, on the other hand, can work on 
+  both the character and phrase levels. What this simply means is that it can 
+  ignore white spaces in between the string characters. For example:</p>
+<pre><code><span class="special">    </span><span class="identifier">chseq</span><span class="special">&lt;&gt;(</span><span class="string">"ABCDEFG"</span><span class="special">)</span></code></pre>
+<p>can parse:</p>
+<pre><span class="special">    </span><span class="identifier">ABCDEFG<br>    </span><span class="identifier">A </span><span class="identifier">B </span><span class="identifier">C </span><span class="identifier">D </span><span class="identifier">E </span><span class="identifier">F </span><span class="identifier">G<br>    </span><span class="identifier">AB </span><span class="identifier">CD </span><span class="identifier">EFG</span></pre>
+<h2>More character parsers</h2>
+<p>The framework also predefines the full repertoire of single character parsers:</p>
+<table align="center" border="0" width="90%">
+  <tbody><tr> 
+    <td class="table_title" colspan="2">Single character parsers</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="30%"><b>anychar_p</b></td>
+    <td class="table_cells" width="70%">Matches any single character (including 
+      the null terminator: '\0')</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="30%"><b>alnum_p</b></td>
+    <td class="table_cells" width="70%">Matches alpha-numeric characters</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="30%"><b>alpha_p</b></td>
+    <td class="table_cells" width="70%">Matches alphabetic characters</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="30%"><b>blank_p</b></td>
+    <td class="table_cells" width="70%">Matches spaces or tabs</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="30%"><b>cntrl_p</b></td>
+    <td class="table_cells" width="70%">Matches control characters</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="30%"><b>digit_p</b></td>
+    <td class="table_cells" width="70%">Matches numeric digits</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="30%"><b>graph_p</b></td>
+    <td class="table_cells" width="70%">Matches non-space printing characters</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="30%"><b>lower_p</b></td>
+    <td class="table_cells" width="70%">Matches lower case letters</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="30%"><b>print_p</b></td>
+    <td class="table_cells" width="70%">Matches printable characters</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="30%"><b>punct_p</b></td>
+    <td class="table_cells" width="70%">Matches punctuation symbols</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="30%"><b>space_p</b></td>
+    <td class="table_cells" width="70%">Matches spaces, tabs, returns, and newlines</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="30%"><b>upper_p</b></td>
+    <td class="table_cells" width="70%">Matches upper case letters</td>
+  </tr>
+  <tr> 
+    <td class="table_cells" width="30%"><b>xdigit_p</b></td>
+    <td class="table_cells" width="70%">Matches hexadecimal digits</td>
+  </tr>
+</tbody></table>
+<h2><a name="negation"></a>negation ~</h2>
+<p>Single character parsers such as the <tt>chlit</tt>, <tt>range</tt>, <tt>anychar_p</tt>, 
+  <tt>alnum_p</tt> etc. can be negated. For example:</p>
+<pre><code><span class="special">    ~</span><span class="identifier">ch_p</span><span class="special">(</span><span class="literal">'x'</span><span class="special">)</span></code></pre>
+<p>matches any character except <tt>'x'</tt>. Double negation of a character parser 
+  cancels out the negation. <tt>~~alpha_p</tt> is equivalent to <tt>alpha_p</tt>.</p>
+<h2>eol_p</h2>
+<p>Matches the end of line (CR/LF and combinations thereof).</p>
+<h2><b>nothing_p</b></h2>
+<p>Never matches anything and always fails.</p>
+<h2>end_p</h2>
+<p>Matches the end of input (returns a sucessful match with 0 length when the 
+  input is exhausted)</p><h2>eps_p</h2>
+<p>The <strong>Epsilon</strong> (<tt>epsilon_p</tt> and <tt>eps_p</tt>) is a multi-purpose 
+  parser that returns a zero length match. See <a href="epsilon.html">Epsilon</a> for details.</p><p></p>
+<table border="0">
+  <tbody><tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="organization.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="operators.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</tbody></table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright © 1998-2003 Joel de Guzman<br>
+  Copyright © 2003 Martin Wille<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<p>&nbsp;</p>
+</body></html>

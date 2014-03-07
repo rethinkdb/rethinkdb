@@ -1,0 +1,983 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content=
+"HTML Tidy for Linux/x86 (vers 1st March 2004), see www.w3.org" />
+<meta http-equiv="Content-Type" content=
+"text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Sparse Matrix</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Sparse Matricies</h1>
+<div class="toc" id="toc"></div>
+<h2><a name="mapped_matrix"></a>Mapped Matrix</h2>
+<h4>Description</h4>
+<p>The templated class <code>mapped_matrix&lt;T, F, A&gt;</code> is
+the base container adaptor for sparse matricies using element maps.
+For a <em>(m xn</em>)-dimensional sparse matrix and <em>0 &lt;= i &lt; m</em>,
+<em>0 &lt;= j &lt; n</em> the non-zero elements
+<em>m</em><sub><em>i, j</em></sub> are mapped via <em>(i x n +
+j)</em> for row major orientation or via <em>(i + j x m)</em> for
+column major orientation to consecutive elements of the associative
+container, i.e. for elements <em>k</em> =
+<em>m</em><sub><em>i</em></sub><sub><sub><em>1</em></sub></sub><sub>
+<em>,j</em></sub><sub><sub><em>1</em></sub></sub>and <em>k + 1 =
+m</em><sub><em>i</em></sub><sub><sub><em>2</em></sub></sub><sub><em>
+,j</em></sub><sub><sub><em>2</em></sub></sub>of the container holds
+<em>i</em><sub><em>1</em></sub> <em>&lt;
+i</em><sub><em>2</em></sub> or <em>(i</em><sub><em>1</em></sub>
+<em>= i</em><sub><em>2</em></sub> and
+<em>j</em><sub><em>1</em></sub> <em>&lt;
+j</em><sub><em>2</em></sub><em>)</em> with row major orientation or
+<em>j</em><sub><em>1</em></sub> <em>&lt;
+j</em><sub><em>2</em></sub> or <em>(j</em><sub><em>1</em></sub>
+<em>= j</em><sub><em>2</em></sub> and
+<em>i</em><sub><em>1</em></sub> <em>&lt;
+i</em><sub><em>2</em></sub><em>)</em> with column major
+orientation.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix_sparse.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    mapped_matrix&lt;double&gt; m (3, 3, 3 * 3);
+    for (unsigned i = 0; i &lt; m.size1 (); ++ i)
+        for (unsigned j = 0; j &lt; m.size2 (); ++ j)
+            m (i, j) = 3 * i + j;
+    std::cout &lt;&lt; m &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header matrix_sparse.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The type of object stored in the mapped matrix.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>F</code></td>
+<td>Functor describing the storage organization. <a href=
+"#mapped_matrix_1">[1]</a></td>
+<td><code>row_major</code></td>
+</tr>
+<tr>
+<td><code>A</code></td>
+<td>The type of the adapted array. <a href=
+"#mapped_matrix_2">[2]</a></td>
+<td><code>map_std&lt;std::size_t, T&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="container_concept.htm#matrix">Matrix</a> .</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"container_concept.htm#matrix">Matrix</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_container&lt;mapped_matrix&lt;T, F, A&gt;
+&gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>mapped_matrix ()</code></td>
+<td>Allocates a <code>mapped_matrix</code> that holds at most zero
+rows of zero elements.</td>
+</tr>
+<tr>
+<td><code>mapped_matrix (size_type size1, size_type2, size_type non_zeros = 0)</code></td>
+<td>Allocates a <code>mapped_matrix</code> that holds at most
+<code>size1</code> rows of <code>size2</code> elements.</td>
+</tr>
+<tr>
+<td><code>mapped_matrix (const mapped_matrix &amp;m)</code></td>
+<td>The copy constructor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+mapped_matrix (size_type non_zeros, const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>The extended copy constructor.</td>
+</tr>
+<tr>
+<td><code>void resize (size_type size1, size_type size2, bool preserve = true)</code></td>
+<td>Reallocates a <code>mapped_matrix</code> to hold at most
+<code>size1</code> rows of <code>size2</code> elements. The
+existing elements of the <code>mapped_matrix</code> are preseved
+when specified.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns the value of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i, size_type
+j)</code></td>
+<td>Returns a reference of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>mapped_matrix &amp;operator = (const mapped_matrix
+&amp;m)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>mapped_matrix &amp;assign_temporary (mapped_matrix
+&amp;m)</code></td>
+<td>Assigns a temporary. May change the mapped matrix
+<code>m</code> .</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+mapped_matrix &amp;operator = (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+mapped_matrix &amp;assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a matrix expression to the mapped matrix. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+mapped_matrix &amp;operator += (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Adds the matrix expression to
+the mapped matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+mapped_matrix &amp;plus_assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Adds a matrix expression to the mapped matrix. Left and right
+hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+mapped_matrix &amp;operator -= (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the matrix expression
+from the mapped matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+mapped_matrix &amp;minus_assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Subtracts a matrix expression from the mapped matrix. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+mapped_matrix &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the mapped matrix
+with a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+mapped_matrix &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the mapped matrix
+through a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (mapped_matrix &amp;m)</code></td>
+<td>Swaps the contents of the mapped matrices.</td>
+</tr>
+<tr>
+<td><code>true_refrence insert_element (size_type i, size_type j, const_reference
+t)</code></td>
+<td>Inserts the value <code>t</code> at the <code>j</code>-th
+element of the <code>i</code>-th row. Duplicates elements are not allowed.</td>
+</tr>
+<tr>
+<td><code>void erase_element (size_type i, size_type j)</code></td>
+<td>Erases the value at the <code>j</code>-th element of the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>void clear ()</code></td>
+<td>Clears the mapped matrix.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the <code>mapped_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the <code>mapped_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 begin1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the beginning of
+the <code>mapped_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 end1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the end of the
+<code>mapped_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the <code>mapped_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the <code>mapped_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 begin2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the beginning of
+the <code>mapped_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 end2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the end of the
+<code>mapped_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed <code>mapped_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed <code>mapped_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rbegin1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the
+beginning of the reversed <code>mapped_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rend1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the end of
+the reversed <code>mapped_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed <code>mapped_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed <code>mapped_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rbegin2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the
+beginning of the reversed <code>mapped_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rend2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the end of
+the reversed <code>mapped_matrix</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notes</h4>
+<p><a name="mapped_matrix_1">[1]</a> Supported
+parameters for the storage organization are <code>row_major</code>
+and <code>column_major</code>.</p>
+<p><a name="mapped_matrix_2">[2]</a> Supported
+parameters for the adapted array are
+<code>map_array&lt;std::size_t, T&gt;</code> and
+<code>map_std&lt;std::size_t, T&gt;</code>. The latter is
+equivalent to <code>std::map&lt;std::size_t, T&gt;</code>.</p>
+<h2><a name="compressed_matrix"></a>Compressed Matrix</h2>
+<h4>Description</h4>
+<p>The templated class <code>compressed_matrix&lt;T, F, IB, IA,
+TA&gt;</code> is the base container adaptor for compressed
+matrices. For a <em>(m x n</em> )-dimensional compressed matrix and
+<em>0 &lt;= i &lt; m</em>, <em>0 &lt;= j &lt; n</em> the non-zero
+elements <em>m</em><sub><em>i, j</em></sub> are mapped via <em>(i x
+n + j)</em> for row major orientation or via <em>(i + j x m)</em>
+for column major orientation to consecutive elements of the index
+and value containers, i.e. for elements <em>k</em> =
+<em>m</em><sub><em>i</em></sub><sub><sub><em>1</em></sub></sub><sub>
+<em>,j</em></sub><sub><sub><em>1</em></sub></sub>and <em>k + 1 =
+m</em><sub><em>i</em></sub><sub><sub><em>2</em></sub></sub><sub><em>
+,j</em></sub><sub><sub><em>2</em></sub></sub>of the container holds
+<em>i</em><sub><em>1</em></sub> <em>&lt;
+i</em><sub><em>2</em></sub> or <em>(i</em><sub><em>1</em></sub>
+<em>= i</em><sub><em>2</em></sub> and
+<em>j</em><sub><em>1</em></sub> <em>&lt;
+j</em><sub><em>2</em></sub><em>)</em> with row major orientation or
+<em>j</em><sub><em>1</em></sub> <em>&lt;
+j</em><sub><em>2</em></sub> or <em>(j</em><sub><em>1</em></sub>
+<em>= j</em><sub><em>2</em></sub> and
+<em>i</em><sub><em>1</em></sub> <em>&lt;
+i</em><sub><em>2</em></sub><em>)</em> with column major
+orientation.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix_sparse.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    compressed_matrix&lt;double&gt; m (3, 3, 3 * 3);
+    for (unsigned i = 0; i &lt; m.size1 (); ++ i)
+        for (unsigned j = 0; j &lt; m.size2 (); ++ j)
+            m (i, j) = 3 * i + j;
+    std::cout &lt;&lt; m &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header matrix_sparse.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The type of object stored in the compressed matrix.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>F</code></td>
+<td>Functor describing the storage organization. <a href=
+"#compressed_matrix_1">[1]</a></td>
+<td><code>row_major</code></td>
+</tr>
+<tr>
+<td><code>IB</code></td>
+<td>The index base of the compressed vector. <a href=
+"#compressed_matrix_2">[2]</a></td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>IA</code></td>
+<td>The type of the adapted array for indices. <a href=
+"#compressed_matrix_3">[3]</a></td>
+<td><code>unbounded_array&lt;std::size_t&gt;</code></td>
+</tr>
+<tr>
+<td><code>TA</code></td>
+<td>The type of the adapted array for values. <a href=
+"#compressed_matrix_3">[3]</a></td>
+<td><code>unbounded_array&lt;T&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="container_concept.htm#matrix">Matrix</a> .</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"container_concept.htm#matrix">Matrix</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_container&lt;compressed_matrix&lt;T, F, IB, IA,
+TA&gt; &gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>compressed_matrix ()</code></td>
+<td>Allocates a <code>compressed_matrix</code> that holds at most
+zero rows of zero elements.</td>
+</tr>
+<tr>
+<td><code>compressed_matrix (size_type size1, size_type2, size_type non_zeros = 0)</code></td>
+<td>Allocates a <code>compressed_matrix</code> that holds at most
+<code>size1</code> rows of <code>size2</code> elements.</td>
+</tr>
+<tr>
+<td><code>compressed_matrix (const compressed_matrix
+&amp;m)</code></td>
+<td>The copy constructor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+compressed_matrix (size_type non_zeros, const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>The extended copy constructor.</td>
+</tr>
+<tr>
+<td><code>void resize (size_type size1, size_type size2, bool preserve = true)</code></td>
+<td>Reallocates a <code>compressed_matrix</code> to hold at most
+<code>size1</code> rows of <code>size2</code> elements. The
+existing elements of the <code>compressed_matrix</code> are
+preseved when specified.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns the value of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i, size_type
+j)</code></td>
+<td>Returns a reference of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>compressed_matrix &amp;operator = (const
+compressed_matrix &amp;m)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>compressed_matrix &amp;assign_temporary
+(compressed_matrix &amp;m)</code></td>
+<td>Assigns a temporary. May change the compressed matrix
+<code>m</code>.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+compressed_matrix &amp;operator = (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+compressed_matrix &amp;assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a matrix expression to the compressed matrix. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+compressed_matrix &amp;operator += (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Adds the matrix expression to
+the compressed matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+compressed_matrix &amp;plus_assign (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Adds a matrix expression to the compressed matrix. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+compressed_matrix &amp;operator -= (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the matrix expression
+from the compressed matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+compressed_matrix &amp;minus_assign (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Subtracts a matrix expression from the compressed matrix. Left
+and right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+compressed_matrix &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the compressed
+matrix with a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+compressed_matrix &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the compressed matrix
+through a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (compressed_matrix &amp;m)</code></td>
+<td>Swaps the contents of the compressed matrices.</td>
+</tr>
+<tr>
+<td><code>true_reference insert_element (size_type i, size_type j, const_reference
+t)</code></td>
+<td>Inserts the value <code>t</code> at the <code>j</code>-th
+element of the <code>i</code>-th row. Duplicates elements are not allowed.</td>
+</tr>
+<tr>
+<td><code>void erase_element (size_type i, size_type j)</code></td>
+<td>Erases the value at the <code>j</code>-th element of the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>void clear ()</code></td>
+<td>Clears the compressed matrix.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the <code>compressed_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the <code>compressed_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 begin1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the beginning of
+the <code>compressed_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 end1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the end of the
+<code>compressed_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the <code>compressed_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the <code>compressed_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 begin2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the beginning of
+the <code>compressed_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 end2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the end of the
+<code>compressed_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed <code>compressed_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed <code>compressed_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rbegin1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the
+beginning of the reversed <code>compressed_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rend1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the end of
+the reversed <code>compressed_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed <code>compressed_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed <code>compressed_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rbegin2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the
+beginning of the reversed <code>compressed_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rend2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the end of
+the reversed <code>compressed_matrix</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notes</h4>
+<p><a name="compressed_matrix_1">[1]</a>
+Supported parameters for the storage organization are
+<code>row_major</code> and <code>column_major</code>.</p>
+<p><a name="compressed_matrix_2">[2]</a>
+Supported parameters for the index base are <code>0</code> and
+<code>1</code> at least.</p>
+<p><a name="compressed_matrix_3">[3]</a>
+Supported parameters for the adapted array are
+<code>unbounded_array&lt;&gt;</code> ,
+<code>bounded_array&lt;&gt;</code> and
+<code>std::vector&lt;&gt;</code> .</p>
+<h2><a name="coordinate_matrix"></a>Coordinate Matrix</h2>
+<h4>Description</h4>
+<p>The templated class <code>coordinate_matrix&lt;T, F, IB, IA,
+TA&gt;</code> is the base container adaptor for compressed
+matrices. For a <em>(m x n</em> )-dimensional sorted coordinate
+matrix and <em>0 &lt;= i &lt; m</em>, <em>0 &lt;= j &lt; n</em> the
+non-zero elements <em>m</em><sub><em>i, j</em></sub> are mapped via
+<em>(i x n + j)</em> for row major orientation or via <em>(i + j x
+m)</em> for column major orientation to consecutive elements of the
+index and value containers, i.e. for elements <em>k</em> =
+<em>m</em><sub><em>i</em></sub><sub><sub><em>1</em></sub></sub><sub>
+<em>,j</em></sub><sub><sub><em>1</em></sub></sub>and <em>k + 1 =
+m</em><sub><em>i</em></sub><sub><sub><em>2</em></sub></sub><sub><em>
+,j</em></sub><sub><sub><em>2</em></sub></sub>of the container holds
+<em>i</em><sub><em>1</em></sub> <em>&lt;
+i</em><sub><em>2</em></sub> or <em>(i</em><sub><em>1</em></sub>
+<em>= i</em><sub><em>2</em></sub> and
+<em>j</em><sub><em>1</em></sub> <em>&lt;
+j</em><sub><em>2</em></sub><em>)</em> with row major orientation or
+<em>j</em><sub><em>1</em></sub> <em>&lt;
+j</em><sub><em>2</em></sub> or <em>(j</em><sub><em>1</em></sub>
+<em>= j</em><sub><em>2</em></sub> and
+<em>i</em><sub><em>1</em></sub> <em>&lt;
+i</em><sub><em>2</em></sub><em>)</em> with column major
+orientation.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/matrix_sparse.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    coordinate_matrix&lt;double&gt; m (3, 3, 3 * 3);
+    for (unsigned i = 0; i &lt; m.size1 (); ++ i)
+        for (unsigned j = 0; j &lt; m.size2 (); ++ j)
+            m (i, j) = 3 * i + j;
+    std::cout &lt;&lt; m &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header matrix_sparse.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The type of object stored in the coordinate matrix.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>F</code></td>
+<td>Functor describing the storage organization. <a href=
+"#coordinate_matrix_1">[1]</a></td>
+<td><code>row_major</code></td>
+</tr>
+<tr>
+<td><code>IB</code></td>
+<td>The index base of the coordinate vector. <a href=
+"#coordinate_matrix_2">[2]</a></td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>IA</code></td>
+<td>The type of the adapted array for indices. <a href=
+"#coordinate_matrix_3">[3]</a></td>
+<td><code>unbounded_array&lt;std::size_t&gt;</code></td>
+</tr>
+<tr>
+<td><code>TA</code></td>
+<td>The type of the adapted array for values. <a href=
+"#coordinate_matrix_3">[3]</a></td>
+<td><code>unbounded_array&lt;T&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="container_concept.htm#matrix">Matrix</a> .</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"container_concept.htm#matrix">Matrix</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_container&lt;coordinate_matrix&lt;T, F, IB, IA,
+TA&gt; &gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>coordinate_matrix ()</code></td>
+<td>Allocates a <code>coordinate_matrix</code> that holds at most
+zero rows of zero elements.</td>
+</tr>
+<tr>
+<td><code>coordinate_matrix (size_type size1, size_type2, size_type non_zeros = 0)</code></td>
+<td>Allocates a <code>coordinate_matrix</code> that holds at most
+<code>size1</code> rows of <code>size2</code> elements.</td>
+</tr>
+<tr>
+<td><code>coordinate_matrix (const coordinate_matrix
+&amp;m)</code></td>
+<td>The copy constructor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+coordinate_matrix (size_type non_zeros, const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>The extended copy constructor.</td>
+</tr>
+<tr>
+<td><code>void resize (size_type size1, size_type size2, bool preserve = true)</code></td>
+<td>Reallocates a <code>coordinate_matrix</code> to hold at most
+<code>size1</code> rows of <code>size2</code> elements. The
+existing elements of the <code>coordinate_matrix</code> are
+preseved when specified.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns the value of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i, size_type
+j)</code></td>
+<td>Returns a reference of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>coordinate_matrix &amp;operator = (const
+coordinate_matrix &amp;m)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>coordinate_matrix &amp;assign_temporary
+(coordinate_matrix &amp;m)</code></td>
+<td>Assigns a temporary. May change the coordinate matrix
+<code>m</code>.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+coordinate_matrix &amp;operator = (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+coordinate_matrix &amp;assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a matrix expression to the coordinate matrix. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+coordinate_matrix &amp;operator += (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Adds the matrix expression to
+the coordinate matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+coordinate_matrix &amp;plus_assign (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Adds a matrix expression to the coordinate matrix. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+coordinate_matrix &amp;operator -= (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the matrix expression
+from the coordinate matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+coordinate_matrix &amp;minus_assign (const
+matrix_expression&lt;AE&gt; &amp;ae)</code></td>
+<td>Subtracts a matrix expression from the coordinate matrix. Left
+and right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+coordinate_matrix &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the coordinate
+matrix with a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+coordinate_matrix &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the coordinate matrix
+through a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (coordinate_matrix &amp;m)</code></td>
+<td>Swaps the contents of the coordinate matrices.</td>
+</tr>
+<tr>
+<td><code>true_reference insert_element (size_type i, size_type j, const_reference
+t)</code></td>
+<td>Inserts the value <code>t</code> at the <code>j</code>-th
+element of the <code>i</code>-th row. Duplicates elements are not allowed.</td>
+</tr>
+<tr>
+<td><code>void append_element (size_type i, size_type j, const_reference t)</code></td>
+<td>Appends the value <code>t</code> at the <code>j</code>-th element of the <code>i</code>-th row.
+Duplicate elements can be appended to a <code>coordinate_matrix</code>. They are merged into a single
+arithmetically summed element by the <code>sort</code> function.</td>
+</tr>
+<tr>
+<td><code>void erase_element (size_type i, size_type j)</code></td>
+<td>Erases the value at the <code>j</code>-th element of the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>void clear ()</code></td>
+<td>Clears the coordinate matrix.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the <code>coordinate_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the <code>coordinate_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 begin1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the beginning of
+the <code>coordinate_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 end1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the end of the
+<code>coordinate_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the <code>coordinate_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the <code>coordinate_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 begin2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the beginning of
+the <code>coordinate_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 end2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the end of the
+<code>coordinate_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed <code>coordinate_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed <code>coordinate_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rbegin1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the
+beginning of the reversed <code>coordinate_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rend1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the end of
+the reversed <code>coordinate_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed <code>coordinate_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed <code>coordinate_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rbegin2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the
+beginning of the reversed <code>coordinate_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rend2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the end of
+the reversed <code>coordinate_matrix</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notes</h4>
+<p><a name="coordinate_matrix_1">[1]</a>
+Supported parameters for the storage organization are
+<code>row_major</code> and <code>column_major</code>.</p>
+<p><a name="coordinate_matrix_2">[2]</a>
+Supported parameters for the index base are <code>0</code> and
+<code>1</code> at least.</p>
+<p><a name="coordinate_matrix_3">[3]</a>
+Supported parameters for the adapted array are
+<code>unbounded_array&lt;&gt;</code> ,
+<code>bounded_array&lt;&gt;</code> and
+<code>std::vector&lt;&gt;</code> .</p>
+<hr />
+<p>Copyright (&copy;) 2000-2002 Joerg Walter, Mathias Koch<br />
+   Use, modification and distribution are subject to the
+   Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt
+   or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+</p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

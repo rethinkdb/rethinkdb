@@ -1,0 +1,131 @@
+<html><head><!-- Copyright 2007 Aaron Windsor
+     
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+  --><title>Boost Graph Library: Planar Canonical Ordering</title>
+</head>
+<body alink="#ff0000" 
+      bgcolor="#ffffff" 
+      link="#0000ee" 
+      text="#000000" 
+      vlink="#551a8b"> 
+<img src="../../../boost.png" alt="C++ Boost" height="86" width="277"> 
+
+<br clear="">
+
+<h1>Planar Canonical Ordering</h1>
+
+<pre>template &lt;typename Graph, typename PlanarEmbedding, typename OutputIterator, typename VertexIndexMap&gt;
+void planar_canonical_ordering(const Graph&amp; g, PlanarEmbedding embedding, OutputIterator ordering, VertexIndexMap vm);
+</pre>
+
+<p>
+A <i>planar canonical ordering</i> is an ordering <i>v<sub>1</sub>, 
+v<sub>2</sub>, ..., v<sub>n</sub></i> of the vertices of a 
+<a href="make_maximal_planar.html">maximal</a> 
+<a href="planar_graphs.html">planar</a> graph having the property that, for 
+each <i>k</i>, <i>3 &lt;= k &lt; n</i>, the graph induced by 
+<i>v<sub>1</sub>, v<sub>2</sub>, ..., v<sub>k</sub></i>
+</p><ul>
+<li>is biconnected and contains the edge <i>{v<sub>1</sub>, v<sub>2</sub>}</i> 
+on its outer face.
+</li><li>has any vertices in the range <i>v<sub>1</sub>, v<sub>2</sub>, ..., 
+v<sub>k</sub></i> that are adjacent to <i>v<sub>(k+1)</sub></i> on its outer 
+face, and these vertices form a path along the outer face.
+</li></ul>
+
+Let <i>G<sub>k</sub></i> be the graph induced by the first <i>k</i> vertices in
+the canonical ordering, along with all edges between any of the first <i>k</i> 
+vertices. After <i>G<sub>k</sub></i> has been drawn, the <i>(k+1)</i>st vertex 
+can be drawn easily without edge crossings, since it's adjacent only to a 
+consecutive sequence of vertices on the outer face of <i>G<sub>k</sub></i>. 
+<p>
+</p><blockquote>
+<center>
+<img src="./figs/canonical_ordering.png">
+</center>
+</blockquote>
+
+A planar canonical ordering exists for every maximal planar graph with at
+least 2 vertices. <tt>planar_canonical_ordering</tt> expects the input graph
+to have at least 2 vertices.
+<p>
+
+The planar canonical ordering is used as an input in some planar graph drawing 
+algorithms, particularly those that create a straight line embedding. 
+de Fraysseix, Pach, and Pollack 
+[<a href="./bibliography.html#defraysseixpachpollack90">72</a>] 
+first proved the 
+existence of such an ordering and showed how to compute one in time 
+<i>O(n)</i> on a maximal planar graph with <i>n</i> vertices.
+
+
+<h3>Complexity</h3>
+If the vertex index map provides constant-time access to indices, this
+function takes time <i>O(n + m)</i> for a planar graph with <i>n</i> vertices 
+and <i>m</i> edges. Note that 
+in a simple planar graph with <i>f</i> faces, <i>m</i> edges, and <i>n</i> 
+vertices, both <i>f</i> and <i>m</i> are <i>O(n)</i>. 
+
+<h3>Where Defined</h3>
+
+<p>
+<a href="../../../boost/graph/planar_canonical_ordering.hpp">
+<tt>boost/graph/planar_canonical_ordering.hpp</tt></a>
+
+</p><h3>Parameters</h3>
+
+IN: <tt>Graph&amp; g</tt>
+
+<blockquote>
+An undirected graph. The graph type must be a model of 
+<a href="VertexAndEdgeListGraph.html">VertexAndEdgeListGraph</a>.
+The graph must:
+<ul>
+<li>Be maximal planar.</li>
+<li>Have at least two vertices.</li>
+</ul>
+</blockquote>
+
+IN: <tt>PlanarEmbedding</tt> 
+
+<blockquote>
+A model of <a href="PlanarEmbedding.html">PlanarEmbedding</a>.
+</blockquote>
+
+IN: <tt>OutputIterator</tt>
+
+<blockquote>
+An OutputIterator with <tt>value_type</tt> equal to 
+<tt>graph_traits&lt;Graph&gt;::vertex_descriptor</tt>. The canonical ordering
+will be written to this iterator.
+</blockquote>
+
+IN: <tt>VertexIndexMap vm</tt>
+
+<blockquote>
+A <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map
+</a> that maps vertices from <tt>g</tt> to distinct integers in the range 
+<tt>[0, num_vertices(g) )</tt><br>
+<b>Default</b>: <tt>get(vertex_index,g)</tt><br>
+</blockquote>
+
+<h3>Example</h3>
+
+<p>
+<a href="../example/canonical_ordering.cpp">
+<tt>examples/canonical_ordering.cpp</tt></a>
+
+</p><h3>See Also</h3>
+
+<p>
+<a href="planar_graphs.html">Planar Graphs in the Boost Graph Library</a>
+
+<br>
+</p><hr>
+Copyright © 2007 Aaron Windsor (<a href="mailto:aaron.windsor@gmail.com">
+aaron.windsor@gmail.com</a>)
+ 
+</body></html>

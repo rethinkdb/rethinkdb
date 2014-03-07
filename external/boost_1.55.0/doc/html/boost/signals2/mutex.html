@@ -1,0 +1,99 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class mutex</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../signals2/reference.html#header.boost.signals2.mutex_hpp" title="Header &lt;boost/signals2/mutex.hpp&gt;">
+<link rel="prev" href="no_slots_error.html" title="Class no_slots_error">
+<link rel="next" href="optional_last_value.html" title="Class template optional_last_value">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="no_slots_error.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../signals2/reference.html#header.boost.signals2.mutex_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="optional_last_value.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.signals2.mutex"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class mutex</span></h2>
+<p>boost::signals2::mutex &#8212; A header-only mutex which implements the Lockable concept of Boost.Thread.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../signals2/reference.html#header.boost.signals2.mutex_hpp" title="Header &lt;boost/signals2/mutex.hpp&gt;">boost/signals2/mutex.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="mutex.html" title="Class mutex">mutex</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="keyword">void</span> <a class="link" href="mutex.html#idp94538152-bb"><span class="identifier">lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="mutex.html#idp22033016-bb"><span class="identifier">try_lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="mutex.html#idp93751352-bb"><span class="identifier">unlock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp205409160"></a><h2>Description</h2>
+<p>
+            The <code class="computeroutput">mutex</code> class implements the <code class="computeroutput">Lockable</code>
+            concept of Boost.Thread, and is the default <code class="computeroutput">Mutex</code> template parameter
+            type for signals.
+            If boost has detected thread support in your compiler, the <code class="computeroutput">mutex</code>
+            class will map to a CRITICAL_SECTION on Windows
+            or a pthread_mutex on POSIX.  If thread support is not detected, <code class="computeroutput">mutex</code>
+            will behave similarly to a <a class="link" href="dummy_mutex.html" title="Class dummy_mutex">dummy_mutex</a>.
+            The header file <code class="computeroutput">boost/config.hpp</code>
+            defines the macro <code class="computeroutput">BOOST_HAS_THREADS</code> when boost detects threading support.
+            The user may globally disable thread support
+            in boost by defining BOOST_DISABLE_THREADS before any boost header files are included.
+          </p>
+<p>
+            If you are already using the Boost.Thread library, you may prefer to use its
+            boost::mutex class instead as the mutex type for your signals.
+          </p>
+<p>
+            You may wish to use a thread-unsafe signal, if
+            the signal is only used by a single thread.  In that case, you may prefer to
+            use the <a class="link" href="dummy_mutex.html" title="Class dummy_mutex">signals2::dummy_mutex</a> class as the <code class="computeroutput">Mutex</code>
+            template type for your signal.
+          </p>
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp94538152-bb"></a><span class="identifier">lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Locks the mutex.
+              </p>
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp22033016-bb"></a><span class="identifier">try_lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Makes a non-blocking attempt to lock the mutex.
+              </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> on success.</p></td>
+</tr></tbody>
+</table></div>
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp93751352-bb"></a><span class="identifier">unlock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Unlocks the mutex.
+              </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<br>Copyright &#169; 2007-2009 Frank Mori Hess<p>Distributed under the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="no_slots_error.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../signals2/reference.html#header.boost.signals2.mutex_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="optional_last_value.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

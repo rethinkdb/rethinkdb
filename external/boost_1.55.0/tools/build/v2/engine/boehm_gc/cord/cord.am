@@ -1,0 +1,17 @@
+
+lib_LTLIBRARIES += libcord.la
+
+libcord_la_LIBADD = $(top_builddir)/libgc.la
+libcord_la_LDFLAGS = -version-info 1:3:0 -no-undefined
+
+libcord_la_SOURCES = \
+	cord/cordbscs.c				\
+	cord/cordprnt.c				\
+	cord/cordtest.c				\
+	cord/cordxtra.c				
+
+
+EXTRA_DIST += \
+	cord/cordbscs.c cord/cordtest.c cord/de.c \
+	cord/cordprnt.c cord/cordxtra.c cord/de_cmds.h \
+	cord/de_win.h cord/de_win.c cord/de_win.RC cord/de_win.ICO

@@ -1,0 +1,44 @@
+# Copyright Eric Niebler 2006
+
+# Use, modification, and distribution is subject to the Boost Software
+# License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+#project
+#    : requirements <library>../../../../boost/libs/regex/build//boost_regex
+#    ;
+
+BOOST_REGEX_SOURCES =
+   c_regex_traits
+   cpp_regex_traits
+   cregex
+   fileiter
+   icu
+   instances
+   posix_api
+   regex
+   regex_debug
+   regex_raw_buffer
+   regex_traits_defaults
+   static_mutex
+   w32_regex_traits
+   wc_regex_traits
+   wide_posix_api
+   winstances
+   usinstances ;
+
+exe xprperf 
+    : 
+        command_line.cpp
+        main.cpp
+        time_boost.cpp
+        time_dynamic_xpressive.cpp
+        time_static_xpressive.cpp
+        $(BOOST_ROOT)/libs/regex/src/$(BOOST_REGEX_SOURCES).cpp
+    :
+        <include>$(BOOST_ROOT)
+        <define>BOOST_REGEX_NO_LIB=1
+        <define>BOOST_REGEX_RECURSIVE
+        <define>BOOST_REGEX_USE_CPP_LOCALE
+        <define>BOOST_XPRESSIVE_USE_CPP_TRAITS
+    ;

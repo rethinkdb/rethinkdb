@@ -1,0 +1,111 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>TODO in future releases</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="prev" href="changelog.html" title="Changelog">
+<link rel="next" href="acknowledgments.html" title="Acknowledgments">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="changelog.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="acknowledgments.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="log.todo"></a><a class="link" href="todo.html" title="TODO in future releases">TODO in future releases</a>
+</h2></div></div></div>
+<p>
+      Points in this section are not necessarily going to be implemented. These are
+      mainly some thoughts on further improvements of the library.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Optimize single-threaded configuration. In many places dynamic memory allocation
+          can be avoided if multithreading support is disabled.
+        </li>
+<li class="listitem">
+          SNMP support. The idea is to implement a sink backend that would emit SNMP
+          traps as a result of processing log records. This needs quite an amount
+          of research and thinking over.
+        </li>
+<li class="listitem">
+          Provide a compile-time option to remove all logging from the application
+          (the compiled binary should contain no traces of logging internally). There
+          are two reasons for this request: attempting to achieve maximum performance
+          and concealing internal information, such as function names and internal
+          messages, to prevent reverse engineering in no-logging builds. Effectively,
+          this would require not only all library macros to be redefined to emptiness,
+          but also to provide dummy implementations of many library components. Needs
+          more consideration. Perhaps, suppressing only macros would be sufficient.
+        </li>
+<li class="listitem">
+          Provide a macro, like <code class="computeroutput"><span class="identifier">BOOST_LOG_FUNCTION</span></code>,
+          but with ability to automatically log all function arguments.
+        </li>
+<li class="listitem">
+          Think over a header-only configuration. Perhaps, with a reduced functionality.
+        </li>
+<li class="listitem">
+          Update syslog support to <a href="http://tools.ietf.org/html/rfc5424" target="_top">RFC
+          5424</a>.
+        </li>
+<li class="listitem">
+          Provide some kind of shared formatters. The idea is that several sinks
+          may use the same formatter. If a log record passes filtering to multiple
+          such sinks, the formatting is done just once for all sinks that share the
+          formatter. Maybe, it will require refactoring the sinks architecture, transforming
+          them into pipelines with formatter and backends being just steps in log
+          record processing.
+        </li>
+<li class="listitem">
+          Allow to change the locale for the file stream in the text file backend.
+          The locale can alter the character code conversion in wide-character logging.
+        </li>
+<li class="listitem">
+          Improve file collection in the file sink. Make it possible to (i) rename
+          collected files and (ii) collect files in a dedicated thread.
+        </li>
+<li class="listitem">
+          Provide headers with forward declarations of the library components.
+        </li>
+<li class="listitem">
+          Make it possible to update library configuration after loading settings
+          from a file. Probably, this will require a new configuration entity that
+          will be able to detect and apply changes between settings.
+        </li>
+<li class="listitem">
+          Develop a statistics gathering framework. The basic idea is to provide
+          a specific log source and a pin. The user can pin his data or explicitly
+          indicate events by invoking the log source. The source would automatically
+          collect the data from the pinned variables. This source should have a better
+          integration with filters to be able which pins should be collected and
+          which should not.
+        </li>
+<li class="listitem">
+          Allow to specify a process ID in the file name pattern for file-based sinks.
+        </li>
+<li class="listitem">
+          Improve support for <code class="computeroutput"><span class="identifier">format</span></code>
+          formatter, implement placeholder format flags.
+        </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="changelog.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="acknowledgments.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

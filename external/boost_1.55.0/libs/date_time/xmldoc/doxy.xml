@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2004 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.doxy" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Library Reference</title>
+  
+  <para>
+    The following is a detailed reference of the date_time library. A click on any of the reference links will take you to a list of the header files found in that section. Following one of those links will take you to a list of the items declared in that header file. Further sublinks take you to detailed descriptions of each individual item.
+  </para>
+
+  <xi:include href="date_time_autodoc.xml"/>
+  <xi:include href="gregorian_autodoc.xml"/>
+  <xi:include href="posix_time_autodoc.xml"/>
+  <xi:include href="local_time_autodoc.xml"/>
+</section>
+

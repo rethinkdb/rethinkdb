@@ -1,0 +1,611 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Emulations</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../thread.html" title="Chapter&#160;31.&#160;Thread 4.2.0">
+<link rel="prev" href="time.html" title="Time Requirements">
+<link rel="next" href="acknowledgements.html" title="Acknowledgments">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="time.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../thread.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="acknowledgements.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="thread.emulations"></a><a class="link" href="emulations.html" title="Emulations">Emulations</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="emulations.html#thread.emulations.delete"><code class="computeroutput"><span class="special">=</span><span class="keyword">delete</span></code> emulation</a></span></dt>
+<dt><span class="section"><a href="emulations.html#thread.emulations.move">Move semantics</a></span></dt>
+<dt><span class="section"><a href="emulations.html#thread.emulations.bool_explicit_conversion">Bool explicit
+      conversion</a></span></dt>
+<dt><span class="section"><a href="emulations.html#thread.emulations.scoped_enums">Scoped Enums</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="thread.emulations.delete"></a><a class="link" href="emulations.html#thread.emulations.delete" title="=delete emulation"><code class="computeroutput"><span class="special">=</span><span class="keyword">delete</span></code> emulation</a>
+</h3></div></div></div>
+<p>
+        C++11 allows to delete some implicitly generated functions as constructors
+        and assignment using '= delete' as in
+      </p>
+<pre class="programlisting"><span class="keyword">public</span><span class="special">:</span>
+  <span class="identifier">thread</span><span class="special">(</span><span class="identifier">thread</span> <span class="keyword">const</span><span class="special">&amp;)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span>
+</pre>
+<p>
+        On compilers not supporting this feature, Boost.Thread relays on a partial
+        simulation, it declares the function as private without definition.
+      </p>
+<pre class="programlisting"><span class="keyword">private</span><span class="special">:</span>
+  <span class="identifier">thread</span><span class="special">(</span><span class="identifier">thread</span> <span class="special">&amp;);</span>
+</pre>
+<p>
+        The emulation is partial as the private function can be used for overload
+        resolution for some compilers and prefer it to other overloads that need
+        a conversion. See below the consequences on the move semantic emulation.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="thread.emulations.move"></a><a class="link" href="emulations.html#thread.emulations.move" title="Move semantics">Move semantics</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="emulations.html#thread.emulations.move.deprecated">Deprecated Version
+        2 interface</a></span></dt>
+<dt><span class="section"><a href="emulations.html#thread.emulations.move.portable">Portable interface</a></span></dt>
+</dl></div>
+<p>
+        In order to implement Movable classes, move parameters and return types Boost.Thread
+        uses the rvalue reference when the compiler support it. On compilers not
+        supporting it Boost.Thread uses either the emulation provided by Boost.Move
+        or the emulation provided by the previous versions of Boost.Thread depending
+        whether <code class="computeroutput"><span class="identifier">BOOST_THREAD_USES_MOVE</span></code>
+        is defined or not. This macros is unset by default when <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span></code>
+        is 2. Since <code class="computeroutput"><span class="identifier">BOOST_THREAD_VERSION</span></code>
+        3, <code class="computeroutput"><span class="identifier">BOOST_THREAD_USES_MOVE</span></code>
+        is defined.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.emulations.move.deprecated"></a><a class="link" href="emulations.html#thread.emulations.move.deprecated" title="Deprecated Version 2 interface">Deprecated Version
+        2 interface</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="emulations.html#thread.emulations.move.deprecated.Helper">Helpers
+          class and function</a></span></dt>
+<dt><span class="section"><a href="emulations.html#thread.emulations.move.deprecated.movable">Movable
+          emulation</a></span></dt>
+</dl></div>
+<p>
+          Previous to version 1.50, Boost.Thread make use of its own move semantic
+          emulation which had more limitations than the provided by Boost.Move. In
+          addition, it is of interest of the whole Boost community that Boost.Thread
+          uses Boost.Move so that boost::thread can be stored on Movable aware containers.
+        </p>
+<p>
+          To preserve backward compatibility at least during some releases, Boost.Thread
+          allows the user to use the deprecated move semantic emulation defining
+          BOOST_THREAD_DONT_USE_MOVE.
+        </p>
+<p>
+          Many aspects of move semantics can be emulated for compilers not supporting
+          rvalue references and Boost.Thread legacy offers tools for that purpose.
+        </p>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.emulations.move.deprecated.Helper"></a><a class="link" href="emulations.html#thread.emulations.move.deprecated.Helper" title="Helpers class and function">Helpers
+          class and function</a>
+</h5></div></div></div>
+<p>
+            Next follows the interface of the legacy move semantic helper class and
+            function.
+          </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">detail</span>
+  <span class="special">{</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+      <span class="keyword">struct</span> <span class="identifier">thread_move_t</span>
+      <span class="special">{</span>
+        <span class="keyword">explicit</span> <span class="identifier">thread_move_t</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">t_</span><span class="special">);</span>
+        <span class="identifier">T</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">*()</span> <span class="keyword">const</span><span class="special">;</span>
+        <span class="identifier">T</span><span class="special">*</span> <span class="keyword">operator</span><span class="special">-&gt;()</span> <span class="keyword">const</span><span class="special">;</span>
+      <span class="keyword">private</span><span class="special">:</span>
+        <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">thread_move_t</span><span class="special">&amp;);</span>
+      <span class="special">};</span>
+  <span class="special">}</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">thread_move_t</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">move</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">thread_move_t</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">t</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.emulations.move.deprecated.movable"></a><a class="link" href="emulations.html#thread.emulations.move.deprecated.movable" title="Movable emulation">Movable
+          emulation</a>
+</h5></div></div></div>
+<p>
+            We can write a MovableOny class as follows. You just need to follow these
+            simple steps:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                Add a conversion to the <code class="computeroutput"><span class="identifier">detail</span><span class="special">::</span><span class="identifier">thread_move_t</span><span class="special">&lt;</span><span class="identifier">classname</span><span class="special">&gt;</span></code>
+              </li>
+<li class="listitem">
+                Make the copy constructor private.
+              </li>
+<li class="listitem">
+                Write a constructor taking the parameter as <code class="computeroutput"><span class="identifier">detail</span><span class="special">::</span><span class="identifier">thread_move_t</span><span class="special">&lt;</span><span class="identifier">classname</span><span class="special">&gt;</span></code>
+              </li>
+<li class="listitem">
+                Write an assignment taking the parameter as <code class="computeroutput"><span class="identifier">detail</span><span class="special">::</span><span class="identifier">thread_move_t</span><span class="special">&lt;</span><span class="identifier">classname</span><span class="special">&gt;</span></code>
+              </li>
+</ul></div>
+<p>
+            For example the thread class defines the following:
+          </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">thread</span>
+<span class="special">{</span>
+  <span class="comment">// ...</span>
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">thread</span><span class="special">(</span><span class="identifier">thread</span><span class="special">&amp;);</span>
+    <span class="identifier">thread</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">thread</span><span class="special">&amp;);</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">detail</span><span class="special">::</span><span class="identifier">thread_move_t</span><span class="special">&lt;</span><span class="identifier">thread</span><span class="special">&gt;</span> <span class="identifier">move</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="identifier">detail</span><span class="special">::</span><span class="identifier">thread_move_t</span><span class="special">&lt;</span><span class="identifier">thread</span><span class="special">&gt;</span> <span class="identifier">x</span><span class="special">(*</span><span class="keyword">this</span><span class="special">);</span>
+        <span class="keyword">return</span> <span class="identifier">x</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">operator</span> <span class="identifier">detail</span><span class="special">::</span><span class="identifier">thread_move_t</span><span class="special">&lt;</span><span class="identifier">thread</span><span class="special">&gt;()</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">move</span><span class="special">();</span>
+    <span class="special">}</span>
+    <span class="identifier">thread</span><span class="special">(</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">thread_move_t</span><span class="special">&lt;</span><span class="identifier">thread</span><span class="special">&gt;</span> <span class="identifier">x</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">thread_info</span><span class="special">=</span><span class="identifier">x</span><span class="special">-&gt;</span><span class="identifier">thread_info</span><span class="special">;</span>
+        <span class="identifier">x</span><span class="special">-&gt;</span><span class="identifier">thread_info</span><span class="special">.</span><span class="identifier">reset</span><span class="special">();</span>
+    <span class="special">}</span>
+    <span class="identifier">thread</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">thread_move_t</span><span class="special">&lt;</span><span class="identifier">thread</span><span class="special">&gt;</span> <span class="identifier">x</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">thread</span> <span class="identifier">new_thread</span><span class="special">(</span><span class="identifier">x</span><span class="special">);</span>
+        <span class="identifier">swap</span><span class="special">(</span><span class="identifier">new_thread</span><span class="special">);</span>
+        <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="comment">// ...</span>
+
+<span class="special">};</span>
+</pre>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.emulations.move.portable"></a><a class="link" href="emulations.html#thread.emulations.move.portable" title="Portable interface">Portable interface</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="emulations.html#thread.emulations.move.portable.NO_COPYABLE"><code class="computeroutput"><span class="identifier">BOOST_THREAD_NO_COPYABLE</span><span class="special">(</span><span class="identifier">CLASS</span><span class="special">)</span></code></a></span></dt>
+<dt><span class="section"><a href="emulations.html#thread.emulations.move.portable.MOVABLE"><code class="computeroutput"><span class="identifier">BOOST_THREAD_MOVABLE</span><span class="special">(</span><span class="identifier">CLASS</span><span class="special">)</span></code></a></span></dt>
+<dt><span class="section"><a href="emulations.html#thread.emulations.move.portable.MOVABLE_ONLY"><code class="computeroutput"><span class="identifier">BOOST_THREAD_MOVABLE_ONLY</span><span class="special">(</span><span class="identifier">CLASS</span><span class="special">)</span></code></a></span></dt>
+<dt><span class="section"><a href="emulations.html#thread.emulations.move.portable.COPYABLE_AND_MOVABLE"><code class="computeroutput"><span class="identifier">BOOST_THREAD_COPYABLE_AND_MOVABLE</span><span class="special">(</span><span class="identifier">CLASS</span><span class="special">)</span></code></a></span></dt>
+<dt><span class="section"><a href="emulations.html#thread.emulations.move.portable.RV_REF"><code class="computeroutput"><span class="identifier">BOOST_THREAD_RV_REF</span><span class="special">(</span><span class="identifier">TYPE</span><span class="special">)</span></code>,
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_RV_REF_BEG</span></code>
+          and <code class="computeroutput"><span class="identifier">BOOST_THREAD_RV_REF_END</span></code></a></span></dt>
+<dt><span class="section"><a href="emulations.html#thread.emulations.move.portable.RV"><code class="computeroutput"><span class="identifier">BOOST_THREAD_RV</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code></a></span></dt>
+<dt><span class="section"><a href="emulations.html#thread.emulations.move.portable.MAKE_RV_REF"><code class="computeroutput"><span class="identifier">BOOST_THREAD_MAKE_RV_REF</span><span class="special">(</span><span class="identifier">RVALUE</span><span class="special">)</span></code></a></span></dt>
+<dt><span class="section"><a href="emulations.html#thread.emulations.move.portable.DCL_MOVABLE"><code class="computeroutput"><span class="identifier">BOOST_THREAD_DCL_MOVABLE</span></code>, <code class="computeroutput"><span class="identifier">BOOST_THREAD_DCL_MOVABLE_BEG</span><span class="special">(</span><span class="identifier">T1</span><span class="special">)</span></code> and
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DCL_MOVABLE_END</span></code></a></span></dt>
+</dl></div>
+<p>
+          In order to make the library code portable Boost.Thread uses some macros
+          that will use either the ones provided by Boost.Move or the deprecated
+          move semantics provided by previous versions of Boost.Thread.
+        </p>
+<p>
+          See the Boost.Move documentation for a complete description on how to declare
+          new Movable classes and its limitations.
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_RV_REF</span><span class="special">(</span><span class="identifier">TYPE</span><span class="special">)</span></code> is the equivalent of <code class="computeroutput"><span class="identifier">BOOST_RV_REF</span><span class="special">(</span><span class="identifier">TYPE</span><span class="special">)</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_RV_REF_BEG</span></code>
+              is the equivalent of <code class="computeroutput"><span class="identifier">BOOST_RV_REF_BEG</span><span class="special">(</span><span class="identifier">TYPE</span><span class="special">)</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_RV_REF_END</span></code>
+              is the equivalent of <code class="computeroutput"><span class="identifier">BOOST_RV_REF_END</span><span class="special">(</span><span class="identifier">TYPE</span><span class="special">)</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_FWD_REF</span><span class="special">(</span><span class="identifier">TYPE</span><span class="special">)</span></code> is the equivalent of `BOOST_FWD_REF(TYPE)
+            </li>
+</ul></div>
+<p>
+          In addition the following macros are needed to make the code portable:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_RV</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>
+              macro to access the rvalue from a BOOST_THREAD_RV_REF(TYPE),
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_MAKE_RV_REF</span><span class="special">(</span><span class="identifier">RVALUE</span><span class="special">)</span></code> makes a rvalue.
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_DCL_MOVABLE</span><span class="special">(</span><span class="identifier">CLASS</span><span class="special">)</span></code> to avoid conflicts with Boost.Move
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_DCL_MOVABLE_BEG</span><span class="special">(</span><span class="identifier">T1</span><span class="special">)</span></code> and <code class="computeroutput"><span class="identifier">BOOST_THREAD_DCL_MOVABLE_END</span></code>
+              are variant of <code class="computeroutput"><span class="identifier">BOOST_THREAD_DCL_MOVABLE</span></code>
+              when the parameter is a template instantiation.
+            </li>
+</ul></div>
+<p>
+          Other macros are provided and must be included on the public section:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_NO_COPYABLE</span></code>
+              declares a class no-copyable either deleting the copy constructors
+              and copy assignment or moving them to the private section.
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_MOVABLE</span><span class="special">(</span><span class="identifier">CLASS</span><span class="special">)</span></code> declares all the implicit conversions
+              to an rvalue-reference.
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_MOVABLE_ONLY</span><span class="special">(</span><span class="identifier">CLASS</span><span class="special">)</span></code> is the equivalent of <code class="computeroutput"><span class="identifier">BOOST_MOVABLE_BUT_NOT_COPYABLE</span><span class="special">(</span><span class="identifier">CLASS</span><span class="special">)</span></code>
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">BOOST_THREAD_COPYABLE_AND_MOVABLE</span><span class="special">(</span><span class="identifier">CLASS</span><span class="special">)</span></code> is the equivalent of <code class="computeroutput"><span class="identifier">BOOST_COPYABLE_AND_MOVABLE</span><span class="special">(</span><span class="identifier">CLASS</span><span class="special">)</span></code>
+            </li>
+</ul></div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.emulations.move.portable.NO_COPYABLE"></a><a class="link" href="emulations.html#thread.emulations.move.portable.NO_COPYABLE" title="BOOST_THREAD_NO_COPYABLE(CLASS)"><code class="computeroutput"><span class="identifier">BOOST_THREAD_NO_COPYABLE</span><span class="special">(</span><span class="identifier">CLASS</span><span class="special">)</span></code></a>
+</h5></div></div></div>
+<p>
+            This macro marks a class as no copyable, disabling copy construction
+            and assignment.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.emulations.move.portable.MOVABLE"></a><a class="link" href="emulations.html#thread.emulations.move.portable.MOVABLE" title="BOOST_THREAD_MOVABLE(CLASS)"><code class="computeroutput"><span class="identifier">BOOST_THREAD_MOVABLE</span><span class="special">(</span><span class="identifier">CLASS</span><span class="special">)</span></code></a>
+</h5></div></div></div>
+<p>
+            This macro marks a class as movable, declaring all the implicit conversions
+            to an rvalue-reference.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.emulations.move.portable.MOVABLE_ONLY"></a><a class="link" href="emulations.html#thread.emulations.move.portable.MOVABLE_ONLY" title="BOOST_THREAD_MOVABLE_ONLY(CLASS)"><code class="computeroutput"><span class="identifier">BOOST_THREAD_MOVABLE_ONLY</span><span class="special">(</span><span class="identifier">CLASS</span><span class="special">)</span></code></a>
+</h5></div></div></div>
+<p>
+            This macro marks a type as movable but not copyable, disabling copy construction
+            and assignment. The user will need to write a move constructor/assignment
+            to fully write a movable but not copyable class.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.emulations.move.portable.COPYABLE_AND_MOVABLE"></a><a class="link" href="emulations.html#thread.emulations.move.portable.COPYABLE_AND_MOVABLE" title="BOOST_THREAD_COPYABLE_AND_MOVABLE(CLASS)"><code class="computeroutput"><span class="identifier">BOOST_THREAD_COPYABLE_AND_MOVABLE</span><span class="special">(</span><span class="identifier">CLASS</span><span class="special">)</span></code></a>
+</h5></div></div></div>
+<p>
+            This macro marks a type as copyable and movable. The user will need to
+            write a move constructor/assignment and a copy assignment to fully write
+            a copyable and movable class.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.emulations.move.portable.RV_REF"></a><a class="link" href="emulations.html#thread.emulations.move.portable.RV_REF" title="BOOST_THREAD_RV_REF(TYPE), BOOST_THREAD_RV_REF_BEG and BOOST_THREAD_RV_REF_END"><code class="computeroutput"><span class="identifier">BOOST_THREAD_RV_REF</span><span class="special">(</span><span class="identifier">TYPE</span><span class="special">)</span></code>,
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_RV_REF_BEG</span></code>
+          and <code class="computeroutput"><span class="identifier">BOOST_THREAD_RV_REF_END</span></code></a>
+</h5></div></div></div>
+<p>
+            This macro is used to achieve portable syntax in move constructors and
+            assignments for classes marked as <code class="computeroutput"><span class="identifier">BOOST_THREAD_COPYABLE_AND_MOVABLE</span></code>
+            or <code class="computeroutput"><span class="identifier">BOOST_THREAD_MOVABLE_ONLY</span></code>.
+          </p>
+<p>
+            <code class="computeroutput"><span class="identifier">BOOST_THREAD_RV_REF_BEG</span></code>
+            and <code class="computeroutput"><span class="identifier">BOOST_THREAD_RV_REF_END</span></code>
+            are used when the parameter end with a <code class="computeroutput"><span class="special">&gt;</span></code>
+            to avoid the compiler error.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.emulations.move.portable.RV"></a><a class="link" href="emulations.html#thread.emulations.move.portable.RV" title="BOOST_THREAD_RV(V)"><code class="computeroutput"><span class="identifier">BOOST_THREAD_RV</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code></a>
+</h5></div></div></div>
+<p>
+            While Boost.Move emulation allows to access an rvalue reference <code class="computeroutput"><span class="identifier">BOOST_THREAD_RV_REF</span><span class="special">(</span><span class="identifier">TYPE</span><span class="special">)</span></code>
+            using the dot operator, the legacy defines the <code class="computeroutput"><span class="keyword">operator</span><span class="special">-&gt;</span></code>. We need then a macro <code class="computeroutput"><span class="identifier">BOOST_THREAD_RV</span></code> that mask this difference.
+            E.g.
+          </p>
+<pre class="programlisting"><span class="identifier">thread</span><span class="special">(</span><span class="identifier">BOOST_THREAD_RV_REF</span><span class="special">(</span><span class="identifier">thread</span><span class="special">)</span> <span class="identifier">x</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">thread_info</span><span class="special">=</span><span class="identifier">BOOST_THREAD_RV</span><span class="special">(</span><span class="identifier">x</span><span class="special">).</span><span class="identifier">thread_info</span><span class="special">;</span>
+    <span class="identifier">BOOST_THREAD_RV</span><span class="special">(</span><span class="identifier">x</span><span class="special">).</span><span class="identifier">thread_info</span><span class="special">.</span><span class="identifier">reset</span><span class="special">();</span>
+<span class="special">}</span>
+</pre>
+<p>
+            The use of this macros has reduced considerably the size of the Boost.Thread
+            move related code.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.emulations.move.portable.MAKE_RV_REF"></a><a class="link" href="emulations.html#thread.emulations.move.portable.MAKE_RV_REF" title="BOOST_THREAD_MAKE_RV_REF(RVALUE)"><code class="computeroutput"><span class="identifier">BOOST_THREAD_MAKE_RV_REF</span><span class="special">(</span><span class="identifier">RVALUE</span><span class="special">)</span></code></a>
+</h5></div></div></div>
+<p>
+            While Boost.Move is the best C++03 move emulation there are some limitations
+            that impact the way the library can be used. For example, with the following
+            declarations
+          </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">thread</span> <span class="special">{</span>
+  <span class="comment">// ...</span>
+<span class="keyword">private</span><span class="special">:</span>
+  <span class="identifier">thread</span><span class="special">(</span><span class="identifier">thread</span> <span class="special">&amp;);</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="identifier">thread</span><span class="special">(</span><span class="identifier">rv</span><span class="special">&lt;</span><span class="identifier">thread</span><span class="special">&gt;&amp;);</span>
+  <span class="comment">// ...</span>
+<span class="special">};</span>
+</pre>
+<p>
+            This could not work on some compilers even if thread is convertible to
+            <code class="computeroutput"><span class="identifier">rv</span><span class="special">&lt;</span><span class="identifier">thread</span><span class="special">&gt;</span></code>
+            because the compiler prefers the private copy constructor.
+          </p>
+<pre class="programlisting"><span class="identifier">thread</span> <span class="identifier">mkth</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">return</span> <span class="identifier">thread</span><span class="special">(</span><span class="identifier">f</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+            On these compilers we need to use instead an explicit conversion. The
+            library provides a move member function that allows to workaround the
+            issue.
+          </p>
+<pre class="programlisting"><span class="identifier">thread</span> <span class="identifier">mkth</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">return</span> <span class="identifier">thread</span><span class="special">(</span><span class="identifier">f</span><span class="special">).</span><span class="identifier">move</span><span class="special">();</span>
+<span class="special">}</span>
+</pre>
+<p>
+            Note that <code class="computeroutput"><span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span></code>
+            can not be used in this case as thread is not implicitly convertible
+            to <code class="computeroutput"><span class="identifier">thread</span><span class="special">&amp;</span></code>.
+          </p>
+<pre class="programlisting"><span class="identifier">thread</span> <span class="identifier">mkth</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">return</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span><span class="special">(</span><span class="identifier">thread</span><span class="special">(</span><span class="identifier">f</span><span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<p>
+            To make the code portable Boost.Thread the user needs to use a macro
+            <code class="computeroutput"><span class="identifier">BOOST_THREAD_MAKE_RV_REF</span></code>
+            that can be used as in
+          </p>
+<pre class="programlisting"><span class="identifier">thread</span> <span class="identifier">mkth</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">return</span> <span class="identifier">BOOST_THREAD_MAKE_RV_REF</span><span class="special">(</span><span class="identifier">thread</span><span class="special">(</span><span class="identifier">f</span><span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<p>
+            Note that this limitation is shared also by the legacy Boost.Thread move
+            emulation.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.emulations.move.portable.DCL_MOVABLE"></a><a class="link" href="emulations.html#thread.emulations.move.portable.DCL_MOVABLE" title="BOOST_THREAD_DCL_MOVABLE, BOOST_THREAD_DCL_MOVABLE_BEG(T1) and BOOST_THREAD_DCL_MOVABLE_END"><code class="computeroutput"><span class="identifier">BOOST_THREAD_DCL_MOVABLE</span></code>, <code class="computeroutput"><span class="identifier">BOOST_THREAD_DCL_MOVABLE_BEG</span><span class="special">(</span><span class="identifier">T1</span><span class="special">)</span></code> and
+          <code class="computeroutput"><span class="identifier">BOOST_THREAD_DCL_MOVABLE_END</span></code></a>
+</h5></div></div></div>
+<p>
+            As Boost.Move defines also the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span></code>
+            function we need to specialize the <code class="computeroutput"><span class="identifier">has_move_emulation_enabled_aux</span></code>
+            metafunction.
+          </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">has_move_emulation_enabled_aux</span><span class="special">&lt;</span><span class="identifier">thread</span><span class="special">&gt;</span>
+  <span class="special">:</span> <span class="identifier">BOOST_MOVE_BOOST_NS</span><span class="special">::</span><span class="identifier">integral_constant</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">,</span> <span class="keyword">true</span><span class="special">&gt;</span>
+<span class="special">{};</span>
+</pre>
+<p>
+            so that the following Boost.Move overload is disabled
+          </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">inline</span> <span class="keyword">typename</span> <span class="identifier">BOOST_MOVE_BOOST_NS</span><span class="special">::</span><span class="identifier">disable_if</span><span class="special">&lt;</span><span class="identifier">has_move_emulation_enabled_aux</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;,</span> <span class="identifier">T</span><span class="special">&amp;&gt;::</span><span class="identifier">type</span> <span class="identifier">move</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">);</span>
+</pre>
+<p>
+            The macros <code class="computeroutput"><span class="identifier">BOOST_THREAD_DCL_MOVABLE</span><span class="special">(</span><span class="identifier">CLASS</span><span class="special">)</span></code>, <code class="computeroutput"><span class="identifier">BOOST_THREAD_DCL_MOVABLE_BEG</span><span class="special">(</span><span class="identifier">T1</span><span class="special">)</span></code> and <code class="computeroutput"><span class="identifier">BOOST_THREAD_DCL_MOVABLE_END</span></code>
+            are used for this purpose. E.g.
+          </p>
+<pre class="programlisting"><span class="identifier">BOOST_THREAD_DCL_MOVABLE</span><span class="special">(</span><span class="identifier">thread</span><span class="special">)</span>
+</pre>
+<p>
+            and
+          </p>
+<pre class="programlisting"><span class="identifier">BOOST_THREAD_DCL_MOVABLE_BEG</span><span class="special">(</span><span class="identifier">T</span><span class="special">)</span> <span class="identifier">promise</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">BOOST_THREAD_DCL_MOVABLE_END</span>
+</pre>
+</div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="thread.emulations.bool_explicit_conversion"></a><a class="link" href="emulations.html#thread.emulations.bool_explicit_conversion" title="Bool explicit conversion">Bool explicit
+      conversion</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="emulations.html#thread.emulations.bool_explicit_conversion.bool_conversion"><code class="computeroutput"><span class="keyword">operator</span> </code><span class="emphasis"><em>unspecified-bool-type</em></span><code class="computeroutput"><span class="special">()</span> <span class="keyword">const</span></code></a></span></dt>
+<dt><span class="section"><a href="emulations.html#thread.emulations.bool_explicit_conversion.operator_not"><code class="computeroutput"><span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">!()</span> <span class="keyword">const</span></code></a></span></dt>
+</dl></div>
+<p>
+        Locks provide an explicit bool conversion operator when the compiler provides
+        them.
+      </p>
+<pre class="programlisting"><span class="keyword">explicit</span> <span class="keyword">operator</span> <span class="keyword">bool</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+        The library provides un implicit conversion to an undefined type that can
+        be used as a conditional expression.
+      </p>
+<pre class="programlisting"><span class="preprocessor">#if</span> <span class="identifier">defined</span><span class="special">(</span><span class="identifier">BOOST_NO_EXPLICIT_CONVERSION_OPERATORS</span><span class="special">)</span>
+    <span class="keyword">operator</span> <span class="emphasis"><em>unspecified-bool-type</em></span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">!()</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="preprocessor">#else</span>
+    <span class="keyword">explicit</span> <span class="keyword">operator</span> <span class="keyword">bool</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="preprocessor">#endif</span>
+</pre>
+<p>
+        The user should use the lock.owns_lock() when a explicit conversion is required.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.emulations.bool_explicit_conversion.bool_conversion"></a><a class="link" href="emulations.html#thread.emulations.bool_explicit_conversion.bool_conversion" title="operator unspecified-bool-type() const"><code class="computeroutput"><span class="keyword">operator</span> </code><span class="emphasis"><em>unspecified-bool-type</em></span><code class="computeroutput"><span class="special">()</span> <span class="keyword">const</span></code></a>
+</h4></div></div></div>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Returns:</span></dt>
+<dd><p>
+                If <a class="link" href="synchronization.html#thread.synchronization.locks.unique_lock.owns_lock" title="bool owns_lock() const"><code class="computeroutput"><span class="identifier">owns_lock</span><span class="special">()</span></code></a>
+                would return <code class="computeroutput"><span class="keyword">true</span></code>, a
+                value that evaluates to <code class="computeroutput"><span class="keyword">true</span></code>
+                in boolean contexts, otherwise a value that evaluates to <code class="computeroutput"><span class="keyword">false</span></code> in boolean contexts.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing.
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.emulations.bool_explicit_conversion.operator_not"></a><a class="link" href="emulations.html#thread.emulations.bool_explicit_conversion.operator_not" title="bool operator!() const"><code class="computeroutput"><span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">!()</span> <span class="keyword">const</span></code></a>
+</h4></div></div></div>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Returns:</span></dt>
+<dd><p>
+                <code class="computeroutput"><span class="special">!</span></code> <a class="link" href="synchronization.html#thread.synchronization.locks.unique_lock.owns_lock" title="bool owns_lock() const"><code class="computeroutput"><span class="identifier">owns_lock</span><span class="special">()</span></code></a>.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing.
+              </p></dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="thread.emulations.scoped_enums"></a><a class="link" href="emulations.html#thread.emulations.scoped_enums" title="Scoped Enums">Scoped Enums</a>
+</h3></div></div></div>
+<p>
+        Some of the enumerations defined in the standard library are scoped enums.
+      </p>
+<p>
+        On compilers that don't support them, the library uses a class to wrap the
+        underlying type. Instead of
+      </p>
+<pre class="programlisting"><span class="keyword">enum</span> <span class="keyword">class</span> <span class="identifier">future_errc</span>
+<span class="special">{</span>
+    <span class="identifier">broken_promise</span><span class="special">,</span>
+    <span class="identifier">future_already_retrieved</span><span class="special">,</span>
+    <span class="identifier">promise_already_satisfied</span><span class="special">,</span>
+    <span class="identifier">no_state</span>
+<span class="special">};</span>
+</pre>
+<p>
+        the library declare these types as
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_SCOPED_ENUM_DECLARE_BEGIN</span><span class="special">(</span><span class="identifier">future_errc</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">broken_promise</span><span class="special">,</span>
+    <span class="identifier">future_already_retrieved</span><span class="special">,</span>
+    <span class="identifier">promise_already_satisfied</span><span class="special">,</span>
+    <span class="identifier">no_state</span>
+<span class="special">}</span>
+<span class="identifier">BOOST_SCOPED_ENUM_DECLARE_END</span><span class="special">(</span><span class="identifier">future_errc</span><span class="special">)</span>
+</pre>
+<p>
+        These macros allows to use 'future_errc' in almost all the cases as an scoped
+        enum.
+      </p>
+<p>
+        There are however some limitations:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The type is not a C++ enum, so 'is_enum&lt;future_errc&gt;' will be false_type.
+          </li>
+<li class="listitem">
+            The emulated scoped enum can not be used in switch nor in template arguments.
+            For these cases the user needs to use some macros.
+          </li>
+</ul></div>
+<p>
+        Instead of
+      </p>
+<pre class="programlisting">    <span class="keyword">switch</span> <span class="special">(</span><span class="identifier">ev</span><span class="special">)</span>
+    <span class="special">{</span>
+    <span class="keyword">case</span> <span class="identifier">future_errc</span><span class="special">::</span><span class="identifier">broken_promise</span><span class="special">:</span>
+<span class="comment">// ...</span>
+</pre>
+<p>
+        use
+      </p>
+<pre class="programlisting"><span class="keyword">switch</span> <span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">native_value</span><span class="special">(</span><span class="identifier">ev</span><span class="special">))</span>
+<span class="special">{</span>
+<span class="keyword">case</span> <span class="identifier">future_errc</span><span class="special">::</span><span class="identifier">broken_promise</span><span class="special">:</span>
+</pre>
+<p>
+        And instead of
+      </p>
+<pre class="programlisting"><span class="preprocessor">#ifdef</span> <span class="identifier">BOOST_NO_SCOPED_ENUMS</span>
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">BOOST_SYMBOL_VISIBLE</span> <span class="identifier">is_error_code_enum</span><span class="special">&lt;</span><span class="identifier">future_errc</span><span class="special">&gt;</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">true_type</span> <span class="special">{</span> <span class="special">};</span>
+<span class="preprocessor">#endif</span>
+</pre>
+<p>
+        use
+      </p>
+<pre class="programlisting"><span class="preprocessor">#ifdef</span> <span class="identifier">BOOST_NO_SCOPED_ENUMS</span>
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">BOOST_SYMBOL_VISIBLE</span> <span class="identifier">is_error_code_enum</span><span class="special">&lt;</span><span class="identifier">future_errc</span><span class="special">::</span><span class="identifier">enum_type</span><span class="special">&gt;</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">true_type</span> <span class="special">{</span> <span class="special">};</span>
+<span class="preprocessor">#endif</span>
+</pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -11 Anthony Williams<br>Copyright &#169; 2011 -13 Vicente J. Botet Escriba<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="time.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../thread.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="acknowledgements.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

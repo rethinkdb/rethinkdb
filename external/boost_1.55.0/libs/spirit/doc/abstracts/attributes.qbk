@@ -1,0 +1,310 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:attributes Attributes]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:primitive_attributes Attributes of Primitive Components]
+
+Parsers and generators in __spirit__ are fully attributed. __qi__ parsers always 
+/expose/ an attribute specific to their type. This is called /synthesized
+attribute/ as it is returned from a successful match representing the matched 
+input sequence. For instance, numeric parsers, such as `int_` or `double_`, 
+return the `int` or `double` value converted from the matched input sequence.
+Other primitive parser components have other intuitive attribute types, such as 
+for instance `int_` which has `int`, or `ascii::char_` which has `char`. For 
+primitive parsers apply the normal C++ convertibility rules: you can use any 
+C++ type to receive the parsed value as long as the attribute type of the 
+parser is convertible to the type provided. The following example shows how a 
+synthesized parser attribute (the `int` value) is extracted by calling the 
+API function `qi::parse`:
+
+    int value = 0;
+    std::string str("123");
+    std::string::iterator strbegin = str.begin();
+    qi::parse(strbegin, str.end(), int_, value);   // value == 123
+
+The attribute type of a generator defines what data types this generator is 
+able to consume in order to produce its output. __karma__ generators always 
+/expect/ an attribute specific to their type. This is called /consumed 
+attribute/ and is expected to be passed to the generator. The consumed 
+attribute is most of the time the value the generator is designed to emit 
+output for. For primitive generators the normal C++ convertibility rules apply. 
+Any data type convertible to the attribute type of a primitive generator can be 
+used to provide the data to generate. We present a similar example as above, 
+this time the consumed attribute of the `int_` generator (the `int` value)
+is passed to the API function `karma::generate`:
+
+    int value = 123;
+    std::string str;
+    std::back_insert_iterator<std::string> out(str);
+    karma::generate(out, int_, value);                // str == "123"
+
+Other primitive generator components have other intuitive attribute types, very
+similar to the corresponding parser components.  For instance, the
+`ascii::char_` generator has `char` as consumed attribute. For a full list of 
+available parser and generator primitives and their attribute types please see 
+the sections __sec_qi_primitive__ and __sec_karma_primitive__.
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:compound_attributes Attributes of Compound Components]
+
+__qi__ and __karma__ implement well defined attribute type propagation rules 
+for all compound parsers and generators, such as sequences, alternatives, 
+Kleene star, etc. The main attribute propagation rule for a sequences is for 
+instance:
+
+[table
+    [[Library]      [Sequence attribute propagation rule]]
+    [[Qi]           [`a: A, b: B --> (a >> b): tuple<A, B>`]]
+    [[Karma]        [`a: A, b: B --> (a << b): tuple<A, B>`]]
+]
+
+which reads as:
+
+[:Given `a` and `b` are parsers (generators), and `A` is the attribute type of 
+  `a`, and `B` is the attribute type of `b`, then the attribute type of 
+  `a >> b` (`a << b`) will be `tuple<A, B>`.]
+
+[note The notation `tuple<A, B>` is used as a placeholder expression for any 
+      fusion sequence holding the types A and B, such as 
+      `boost::fusion::tuple<A, B>` or `std::pair<A, B>` (for more information 
+      see __fusion__).]
+
+As you can see, in order for a type to be compatible with the attribute type 
+of a compound expression it has to 
+
+* either be convertible to the attribute type, 
+* or it has to expose certain functionalities, i.e. it needs to conform to a 
+  concept compatible with the component.
+
+Each compound component implements its own set of attribute propagation rules.
+For a full list of how the different compound generators consume attributes
+see the sections __sec_qi_compound__ and __sec_karma_compound__.
+
+[heading The Attribute of Sequence Parsers and Generators]
+
+Sequences require an attribute type to expose the concept of a fusion sequence,
+where all elements of that fusion sequence have to be compatible with the 
+corresponding element of the component sequence. For example, the expression:
+
+[table
+    [[Library]      [Sequence expression]]
+    [[Qi]           [`double_ >> double_`]]
+    [[Karma]        [`double_ << double_`]]
+]
+
+is compatible with any fusion sequence holding two types, where both types have
+to be compatible with `double`. The first element of the fusion sequence has to 
+be compatible with the attribute of the first `double_`, and the second element 
+of the fusion sequence has to be compatible with the attribute of the second 
+`double_`. If we assume to have an instance of a `std::pair<double, double>`, 
+we can directly use the expressions above to do both, parse input to fill the
+attribute:
+
+    // the following parses "1.0 2.0" into a pair of double
+    std::string input("1.0 2.0");
+    std::string::iterator strbegin = input.begin();
+    std::pair<double, double> p;
+    qi::phrase_parse(strbegin, input.end(), 
+        qi::double_ >> qi::double_,       // parser grammar 
+        qi::space,                        // delimiter grammar
+        p);                               // attribute to fill while parsing
+
+and generate output for it:
+
+    // the following generates: "1.0 2.0" from the pair filled above
+    std::string str;
+    std::back_insert_iterator<std::string> out(str);
+    karma::generate_delimited(out, 
+        karma::double_ << karma::double_, // generator grammar (format description)
+        karma::space,                     // delimiter grammar
+        p);                               // data to use as the attribute 
+
+(where the `karma::space` generator is used as the delimiter, allowing to 
+automatically skip/insert delimiting spaces in between all primitives). 
+
+[tip  *For sequences only:* __qi__ and __karma__ expose a set of API functions 
+      usable mainly with sequences. Very much like the functions of the `scanf` 
+      and `printf` families these functions allow to pass the attributes for 
+      each of the elements of the sequence separately. Using the corresponding 
+      overload of /Qi's/ parse or /Karma's/ `generate()` the expression above 
+      could be rewritten as:
+      ``
+          double d1 = 0.0, d2 = 0.0;
+          qi::phrase_parse(begin, end, qi::double_ >> qi::double_, qi::space, d1, d2);
+          karma::generate_delimited(out, karma::double_ << karma::double_, karma::space, d1, d2);
+      ``
+      where the first attribute is used for the first `double_`, and 
+      the second attribute is used for the second `double_`.
+]
+
+[heading The Attribute of Alternative Parsers and Generators]
+
+Alternative parsers and generators are all about - well - alternatives. In 
+order to store possibly different result (attribute) types from the different 
+alternatives we use the data type __boost_variant__. The main attribute 
+propagation rule of these components is:
+
+    a: A, b: B --> (a | b): variant<A, B>
+
+Alternatives have a second very important attribute propagation rule:
+
+    a: A, b: A --> (a | b): A
+
+often allowing to simplify things significantly. If all sub expressions of 
+an alternative expose the same attribute type, the overall alternative 
+will expose exactly the same attribute type as well. 
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:more_compound_attributes More About Attributes of Compound Components]
+
+While parsing input or generating output it is often desirable to combine some 
+constant elements with variable parts. For instance, let us look at the example
+of parsing or formatting a complex number, which is written as `(real, imag)`, 
+where `real` and `imag ` are the variables representing the real and imaginary 
+parts of our complex number. This can be achieved by writing:
+
+[table
+    [[Library]      [Sequence expression]]
+    [[Qi]           [`'(' >> double_ >> ", " >> double_ >> ')'`]]
+    [[Karma]        [`'(' << double_ << ", " << double_ << ')'`]]
+]
+
+Fortunately, literals (such as `'('` and `", "`) do /not/ expose any attribute
+(well actually, they do expose the special type `unused_type`, but in this 
+context `unused_type` is interpreted as if the component does not expose any 
+attribute at all). It is very important to understand that the literals don't 
+consume any of the elements of a fusion sequence passed to this component
+sequence. As said, they just don't expose any attribute and don't produce 
+(consume) any data. The following example shows this:
+
+    // the following parses "(1.0, 2.0)" into a pair of double
+    std::string input("(1.0, 2.0)");
+    std::string::iterator strbegin = input.begin();
+    std::pair<double, double> p;
+    qi::parse(strbegin, input.end(), 
+        '(' >> qi::double_ >> ", " >> qi::double_ >> ')', // parser grammar 
+        p);                                               // attribute to fill while parsing
+
+and here is the equivalent __karma__ code snippet:
+
+    // the following generates: (1.0, 2.0)
+    std::string str;
+    std::back_insert_iterator<std::string> out(str);
+    generate(out, 
+        '(' << karma::double_ << ", " << karma::double_ << ')', // generator grammar (format description)
+        p);                                                     // data to use as the attribute 
+
+where the first element of the pair passed in as the data to generate is still
+associated with the first `double_`, and the second element is associated with 
+the second `double_` generator. 
+
+This behavior should be familiar as it conforms to the way other input and 
+output formatting libraries such as `scanf`, `printf` or `boost::format` are 
+handling their variable parts. In this context you can think about __qi__'s 
+and __karma__'s primitive components (such as the `double_` above) as of being 
+type safe placeholders for the attribute values.
+
+[tip  Similarly to the tip provided above, this example could be rewritten 
+      using /Spirit's/ multi-attribute API function:
+      ``
+          double d1 = 0.0, d2 = 0.0;
+          qi::parse(begin, end, '(' >> qi::double_ >> ", " >> qi::double_ >> ')', d1, d2);
+          karma::generate(out, '(' << karma::double_ << ", " << karma::double_ << ')', d1, d2);
+      ``
+      which provides a clear and comfortable syntax, more similar to the 
+      placeholder based syntax as exposed by `printf` or `boost::format`.
+]
+
+Let's take a look at this from a more formal perspective. The sequence attribute 
+propagation rules define a special behavior if generators exposing `unused_type` 
+as their attribute are involved (see __sec_karma_compound__):
+
+[table
+    [[Library]      [Sequence attribute propagation rule]]
+    [[Qi]           [`a: A, b: Unused --> (a >> b): A`]]
+    [[Karma]        [`a: A, b: Unused --> (a << b): A`]]
+]
+
+which reads as:
+
+[:Given `a` and `b` are parsers (generators), and `A` is the attribute type of 
+  `a`, and `unused_type` is the attribute type of `b`, then the attribute type 
+  of `a >> b` (`a << b`) will be `A` as well. This rule applies regardless of 
+  the position the element exposing the `unused_type` is at.]
+
+This rule is the key to the understanding of the attribute handling in 
+sequences as soon as literals are involved. It is as if elements with 
+`unused_type` attributes 'disappeared' during attribute propagation. Notably, 
+this is not only true for sequences but for any compound components. For 
+instance, for alternative components the corresponding rule is:
+
+    a: A, b: Unused --> (a | b): A
+
+again, allowing to simplify the overall attribute type of an expression.
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:nonterminal_attributes Attributes of Rules and Grammars]
+
+Nonterminals are well known from parsers where they are used as the main means 
+of constructing more complex parsers out of simpler ones. The nonterminals in 
+the parser world are very similar to functions in an imperative programming 
+language. They can be used to encapsulate parser expressions for a particular 
+input sequence. After being defined, the nonterminals can be used as 'normal' 
+parsers in more complex expressions whenever the encapsulated input needs to be 
+recognized. Parser nonterminals in __qi__ may accept /parameters/ (inherited 
+attributes) and usually return a value (the synthesized attribute). 
+
+Both, the types of the inherited and the synthesized attributes have to be 
+explicitly specified while defining the particular `grammar` or the `rule`
+(the Spirit __repo__ additionally has `subrules` which conform to a similar
+interface). As an example, the following code declares a __qi__ `rule` 
+exposing an `int` as its synthesized attribute, while expecting a single 
+`double` as its inherited attribute (see the section about the __qi__ __rule__ 
+for more information):
+
+    qi::rule<Iterator, int(double)> r;
+
+In the world of generators, nonterminals are just as useful as in the parser
+world. Generator nonterminals encapsulate a format description for a particular 
+data type, and, whenever we need to emit output for this data type, the 
+corresponding nonterminal is invoked in a similar way as the predefined 
+__karma__ generator primitives. The __karma__ [karma_nonterminal nonterminals]
+are very similar to the __qi__ nonterminals. Generator nonterminals may accept
+/parameters/ as well, and we call those inherited attributes too. The main 
+difference is that they do not expose a synthesized attribute (as parsers do),
+but they require a special /consumed attribute/. Usually the consumed attribute 
+is the value the generator creates its output from. Even if the consumed 
+attribute is not 'returned' from the generator we chose to use the same 
+function style declaration syntax as used in __qi__. The example below declares 
+a __karma__ `rule` consuming a `double` while not expecting any additional 
+inherited attributes.
+
+    karma::rule<OutputIterator, double()> r;
+
+The inherited attributes of nonterminal parsers and generators are normally
+passed to the component during its invocation. These are the /parameters/ the
+parser or generator may accept and they can be used to parameterize the
+component depending on the context they are invoked from.
+
+
+[/
+* attribute propagation
+  * explicit and operator%=
+]
+
+[endsect]
+
+[endsect]  [/ Attributes]

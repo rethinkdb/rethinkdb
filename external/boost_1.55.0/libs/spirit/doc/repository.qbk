@@ -1,0 +1,17 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:repository Spirit Repository]
+
+The __spirit__ repository is a community effort collecting different reusable
+components (primitives, directives, grammars, etc.) for __qi__ parsers and 
+__karma__ generators. All components in the repository have been peer reviewed 
+or discussed on the __spirit_list__. For more information about the
+repository see [@../../repository/doc/html/index.html here].
+
+[endsect]

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: Placeholders</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./lambda-details.html" class="navigation-link">Prev</a>&nbsp;<a href="./placeholder-expression.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./placeholder-expression.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./lambda-details.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./tutorial-metafunctions.html" class="navigation-link">Tutorial: Metafunctions and Higher-Order Metaprogramming</a> / <a href="./lambda-details.html" class="navigation-link">Lambda Details</a> / <a href="./placeholders.html" class="navigation-link">Placeholders</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="placeholders">
+<h1><a class="toc-backref" href="./lambda-details.html#id55" name="placeholders">Placeholders</a></h1>
+<p>The definition of &quot;placeholder&quot; may surprise you:</p>
+<div class="admonition-definition admonition">
+<p class="admonition-title first">Definition</p>
+<p>A <strong>placeholder</strong> is a metafunction class of the form <tt class="literal"><span class="pre">mpl::arg&lt;X&gt;</span></tt>.</p>
+</div>
+<div class="section" id="implementation">
+<h2><a name="implementation">Implementation</a></h2>
+<p>The convenient names <tt class="literal"><span class="pre">_1</span></tt>, <tt class="literal"><span class="pre">_2</span></tt>,... <tt class="literal"><span class="pre">_5</span></tt> are actually
+<tt class="literal"><span class="pre">typedef</span></tt>s for specializations of <tt class="literal"><span class="pre">mpl::arg</span></tt> that simply
+select the <em>N</em>th argument for any <em>N</em>. <a class="footnote-reference" href="#config" id="id12" name="id12">[6]</a>  The
+implementation of placeholders looks something like this:</p>
+<table class="footnote" frame="void" id="config" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id12" name="config">[6]</a></td><td>MPL provides five placeholders by default.  See
+the Configuration Macros section of <a class="reference" href="./reference-manual.html">the MPL reference manual</a> for a
+description of how to change the number of placeholders
+provided.</td></tr>
+</tbody>
+</table>
+<pre class="literal-block">
+namespace boost { namespace mpl { namespace placeholders {
+
+template &lt;int N&gt; struct arg; // forward declarations
+struct void_;
+
+template &lt;&gt;
+struct arg&lt;<strong>1</strong>&gt;
+{
+    template &lt;
+      class <strong>A1</strong>, class A2 = void_, ... class A<em>m</em> = void_&gt;
+    struct apply
+    {
+        typedef <strong>A1</strong> type; // return the first argument
+    };
+};
+typedef <strong>arg&lt;1&gt; _1</strong>;
+
+template &lt;&gt;
+struct arg&lt;<strong>2</strong>&gt;
+{
+    template &lt;
+      class A1, class <strong>A2</strong>, class A3 = void_, ...class A<em>m</em> = void_
+    &gt;
+    struct apply
+    {
+        typedef <strong>A2</strong> type; // return the second argument
+    };
+};
+typedef <strong>arg&lt;2&gt; _2</strong>;
+
+<em>more specializations and typedefs...</em>
+
+}}}
+</pre>
+<!-- @example.replace('...','') -->
+<p>Remember that invoking a metafunction class is the same as invoking
+its nested <tt class="literal"><span class="pre">apply</span></tt> metafunction.  When a placeholder in a lambda
+expression is evaluated, it is invoked on the expression's actual
+arguments, returning just one of them.  The results are then
+substituted back into the lambda expression and the evaluation
+process continues.</p>
+</div>
+<div class="section" id="the-unnamed-placeholder">
+<h2><a name="the-unnamed-placeholder">The Unnamed Placeholder</a></h2>
+<p>There's one special placeholder, known as the <strong>unnamed
+placeholder</strong>, that we haven't yet defined:</p>
+<pre class="literal-block">
+namespace boost { namespace mpl { namespace placeholders {
+
+<strong>typedef arg&lt;-1&gt; _;</strong> // the unnamed placeholder
+
+}}}
+</pre>
+<!-- @ stack[-2].prepend('namespace shield {') 
+example.append('}') # so we don't conflict with the prefix
+compile('all') -->
+<p>The details of its implementation aren't important; all you really
+need to know about the unnamed placeholder is that it gets special
+treatment.  When a lambda expression is being transformed into a
+metafunction class by <tt class="literal"><span class="pre">mpl::lambda</span></tt>,</p>
+<blockquote>
+the <em>n</em>th appearance of the unnamed placeholder <em>in a given
+template specialization</em> is replaced with <tt class="literal"><span class="pre">_</span></tt><em>n</em>.</blockquote>
+<p>So, for example, every row of Table 1.1
+below contains two equivalent lambda expressions.</p>
+<table border="1" class="table">
+<caption>Unnamed Placeholder Semantics</caption>
+<colgroup>
+<col width="48%" />
+<col width="52%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><pre class="first last literal-block">
+mpl::plus&lt;_,_&gt;
+</pre>
+</td>
+<td><pre class="first last literal-block">
+mpl::plus&lt;_1,_2&gt;
+</pre>
+</td>
+</tr>
+<tr><td><pre class="first last literal-block">
+boost::is_same&lt;
+    _
+  , boost::add_pointer&lt;_&gt;
+&gt;
+</pre>
+</td>
+<td><pre class="first last literal-block">
+boost::is_same&lt;
+    _1
+  , boost::add_pointer&lt;_1&gt;
+&gt;
+</pre>
+</td>
+</tr>
+<tr><td><pre class="first last literal-block">
+mpl::multiplies&lt;
+   mpl::plus&lt;_,_&gt;
+ , mpl::minus&lt;_,_&gt;
+&gt;
+</pre>
+</td>
+<td><pre class="first last literal-block">
+mpl::multiplies&lt;
+   mpl::plus&lt;_1,_2&gt;
+ , mpl::minus&lt;_1,_2&gt;
+&gt;
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- @ for n in range(len(stack)):
+    stack[n].wrap('typedef ', 'type%d;' % n)
+compile('all') -->
+<p>Especially when used in simple lambda expressions, the unnamed
+placeholder often eliminates just enough syntactic &quot;noise&quot; to
+significantly improve readability.</p>
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./lambda-details.html" class="navigation-link">Prev</a>&nbsp;<a href="./placeholder-expression.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./placeholder-expression.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./lambda-details.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

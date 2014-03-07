@@ -1,0 +1,266 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Generator Directive for Temporary Output Buffering (buffer[])</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../directive.html" title="Generator Directives">
+<link rel="prev" href="maxwidth.html" title="Generator Directives Controlling the Maximum Field Width (maxwidth[])">
+<link rel="next" href="omit.html" title="Generator Directives Consuming Attributes (omit[] and skip[])">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="maxwidth.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="omit.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.karma.reference.directive.buffer"></a><a class="link" href="buffer.html" title="Generator Directive for Temporary Output Buffering (buffer[])">Generator
+          Directive for Temporary Output Buffering (<code class="computeroutput"><span class="identifier">buffer</span><span class="special">[]</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.karma.reference.directive.buffer.h0"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.buffer.description"></a></span><a class="link" href="buffer.html#spirit.karma.reference.directive.buffer.description">Description</a>
+          </h6>
+<p>
+            All generator components (except the <a class="link" href="../operator/alternative.html" title="Alternative Generator (a | b)">Alternative
+            (<code class="computeroutput"><span class="special">|</span></code>)</a> generator) pass
+            their generated output directly to the underlying output stream. If a
+            generator fails halfway through, the output generated so far is not 'rolled
+            back'. The buffering generator directive allows to avoid this unwanted
+            output to be generated. It temporarily redirects the output produced
+            by the embedded generator into a buffer. This buffer is flushed to the
+            underlying stream only after the embedded generator succeeded, but is
+            discarded otherwise.
+          </p>
+<h6>
+<a name="spirit.karma.reference.directive.buffer.h1"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.buffer.header"></a></span><a class="link" href="buffer.html#spirit.karma.reference.directive.buffer.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/karma/directive/buffer.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma_buffer</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody><tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">buffer</span> <span class="comment">//
+                      alias: boost::spirit::karma::buffer</span></code>
+                    </p>
+                  </td></tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.directive.buffer.h2"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.buffer.model_of"></a></span><a class="link" href="buffer.html#spirit.karma.reference.directive.buffer.model_of">Model of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../generator_concepts/unarygenerator.html" title="UnaryGenerator"><code class="computeroutput"><span class="identifier">UnaryGenerator</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a</span></code></span></dt>
+<dd><p>
+                  A generator object
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">A</span></code></span></dt>
+<dd><p>
+                  Attribute type of generator <code class="computeroutput"><span class="identifier">a</span></code>
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.karma.reference.directive.buffer.h3"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.buffer.expression_semantics"></a></span><a class="link" href="buffer.html#spirit.karma.reference.directive.buffer.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../generator_concepts/unarygenerator.html" title="UnaryGenerator"><code class="computeroutput"><span class="identifier">UnaryGenerator</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">buffer</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The embedded generator <code class="computeroutput"><span class="identifier">a</span></code>
+                      is invoked but its output is temporarily intercepted and stored
+                      in an internal buffer. If <code class="computeroutput"><span class="identifier">a</span></code>
+                      succeeds the buffer content is flushed to the underlying output
+                      stream, otherwise the buffer content is discarded. The buffer
+                      directive succeeds as long as the embedded generator succeeded
+                      (unless the underlying output stream reports an error).
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              If you want to make the buffered generator succeed regardless of the
+              outcome of the embedded generator, simply wrap the <code class="computeroutput"><span class="identifier">buffer</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code> into an additional optional: <code class="computeroutput"><span class="special">-</span><span class="identifier">buffer</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code> (see <a class="link" href="../operator/optional.html" title="Optional Generator (-a)">Optional
+              (unary <code class="computeroutput"><span class="special">-</span></code>)</a>).
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.directive.buffer.h4"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.buffer.attributes"></a></span><a class="link" href="buffer.html#spirit.karma.reference.directive.buffer.attributes">Attributes</a>
+          </h6>
+<p>
+            See <a class="link" href="../../quick_reference/compound_attribute_rules.html#spirit.karma.quick_reference.compound_attribute_rules.notation">Compound
+            Attribute Notation</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">buffer</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">buffer</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">buffer</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.directive.buffer.h5"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.buffer.complexity"></a></span><a class="link" href="buffer.html#spirit.karma.reference.directive.buffer.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              The overall complexity of the buffering generator directive is defined
+              by the complexity of its embedded generator. The complexity of the
+              buffering directive generator itself is O(N), where N is the number
+              of characters buffered.
+            </p></blockquote></div>
+<h6>
+<a name="spirit.karma.reference.directive.buffer.h6"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.buffer.example"></a></span><a class="link" href="buffer.html#spirit.karma.reference.directive.buffer.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.karma.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some includes:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">support_utree</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">std_pair</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Basic usage of a buffering generator directive. It shows how the partial
+            output generated in the first example does not show up in the generated
+            output as the plus generator fails (no data is available, see <a class="link" href="../operator/plus.html" title="Plus Generator (+a)">Plus
+            (unary <code class="computeroutput"><span class="special">+</span></code>)</a>).
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">v</span><span class="special">;</span>                <span class="comment">// empty container</span>
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">""</span><span class="special">,</span> <span class="special">-</span><span class="identifier">buffer</span><span class="special">[</span><span class="char">'['</span> <span class="special">&lt;&lt;</span> <span class="special">+</span><span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="char">']'</span><span class="special">],</span> <span class="identifier">v</span><span class="special">);</span>
+
+<span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">1.0</span><span class="special">);</span>                     <span class="comment">// now, fill the container</span>
+<span class="identifier">v</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">2.0</span><span class="special">);</span>
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">"[1.02.0]"</span><span class="special">,</span> <span class="identifier">buffer</span><span class="special">[</span><span class="char">'['</span> <span class="special">&lt;&lt;</span> <span class="special">+</span><span class="identifier">double_</span> <span class="special">&lt;&lt;</span> <span class="char">']'</span><span class="special">],</span> <span class="identifier">v</span><span class="special">);</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="maxwidth.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="omit.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

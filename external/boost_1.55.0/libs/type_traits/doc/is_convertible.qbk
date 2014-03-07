@@ -1,0 +1,67 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_convertible is_convertible]
+   template <class From, class To>
+   struct is_convertible : public __tof {};
+  
+__inherit If an imaginary rvalue of type `From` is convertible to type `To` then 
+inherits from __true_type, otherwise inherits from __false_type.
+
+Type From must not be an incomplete type.
+
+Type To must not be an incomplete, or function type.
+
+No types are considered to be convertible to array types or abstract-class types.
+
+This template can not detect whether a converting-constructor is `public` or not: if
+type `To` has a `private` converting constructor from type `From` then instantiating
+`is_convertible<From, To>` will produce a compiler error.  For this reason `is_convertible`
+can not be used to determine whether a type has a `public` copy-constructor or not.
+
+This template will also produce compiler errors if the conversion is ambiguous, 
+for example:
+
+   struct A {};
+   struct B : A {};
+   struct C : A {};
+   struct D : B, C {};
+   // This produces a compiler error, the conversion is ambiguous:
+   bool const y = boost::is_convertible<D*,A*>::value;
+
+__std_ref 4 and 8.5.
+
+__compat This template is currently broken with Borland C++ Builder 5 (and earlier), 
+for constructor-based conversions, and for the Metrowerks 7 (and earlier) 
+compiler in all cases.  If the compiler does not support `__is_abstract`, then the
+template parameter `To` must not be an abstract type.
+
+__header ` #include <boost/type_traits/is_convertible.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__examples
+
+[:`is_convertible<int, double>` inherits from `__true_type`.]
+
+[:`is_convertible<const int, double>::type` is the type `__true_type`.]
+
+[:`is_convertible<int* const, int*>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_convertible<int const*, int*>::value` is an integral constant 
+expression that evaluates to /false/: the conversion would require a `const_cast`.]
+
+[:`is_convertible<int const&, long>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_convertible<int, int>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_convertible<T, T>::value_type` is the type `bool`.]
+
+[endsect]
+
+

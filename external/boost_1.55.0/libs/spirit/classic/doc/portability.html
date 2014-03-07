@@ -1,0 +1,74 @@
+<html>
+<head>
+<title>Portability</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Portability</b></font></td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="includes.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="style_guide.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>Historically, Spirit supported a lot of compilers, including (to some extent) 
+  poorly conforming compilers such as VC6. Spirit v1.6.x will be the last release 
+  that will support older poorly conforming compilers. Starting from Spirit v1.8.0, 
+  ill conforming compilers will not be supported. If you are still using one of 
+  these older compilers, you can still use Spirit v1.6.x.</p>
+<p>The reason why Spirit v1.6.x worked on old non-conforming compilers is that 
+  the authors laboriously took the trouble of searching for workarounds to make 
+  these compilers happy. The process takes a lot of time and energy, especially 
+  when one encounters the dreaded ICE or &quot;Internal Compiler Error&quot;. 
+  Sometimes searching for a single workaround takes days or even weeks. Sometimes, 
+  there are no known workarounds. This stifles progress a lot. And, as the library 
+  gets more progressive and takes on more advanced C++ techniques, the difficulty 
+  is escalated to even new heights.</p>
+<p>Spirit v1.6.x will still be supported. Maintenance will still happen and bug 
+  fixes will still be applied. There will still be active development for the 
+  back-porting of new features introduced in Spirit v1.8.0 (and Spirit 1.9.0) 
+  to lesser able compilers; hopefully, fueled by contributions from the community. 
+  We welcome active support from the C++ community, especially those with special 
+  expertise on compilers such as older Borland and MSVC++ compilers.</p>
+<p>Spirit 1.8 has been tested to compile and run properly on these compilers:</p>
+<ol>
+  <li>g++ 3.1 and above</li>
+  <li>Comeau 4.24.5 </li>
+  <li>MSVC 7.1</li>
+  <li>Intel 7.1</li>
+</ol>
+<p>If your compiler is sufficiently conforming, chances are, you can compile Spirit 
+  as it is or with minimal portability fixes here and there. Please inform us 
+  if your compiler is known to be ISO/ANSI conforming and is not in this list 
+  above. Feel free to post feedback to <a href="https://lists.sourceforge.net/lists/listinfo/spirit-general">Spirit-general 
+  mailing list</a> [Spirit-general@lists.sourceforge.net].</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="includes.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="style_guide.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

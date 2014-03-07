@@ -1,0 +1,297 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>deque</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../container.html" title="Container">
+<link rel="prev" href="list.html" title="list">
+<link rel="next" href="front_extended_deque.html" title="front_extended_deque">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="list.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../container.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="front_extended_deque.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="fusion.container.deque"></a><a class="link" href="deque.html" title="deque">deque</a>
+</h3></div></div></div>
+<h5>
+<a name="fusion.container.deque.h0"></a>
+        <span class="phrase"><a name="fusion.container.deque.description"></a></span><a class="link" href="deque.html#fusion.container.deque.description">Description</a>
+      </h5>
+<p>
+        <code class="computeroutput"><span class="identifier">deque</span></code> is a simple <a class="link" href="../sequence/concepts/bidirectional_sequence.html" title="Bidirectional Sequence">Bidirectional
+        Sequence</a> that supports constant-time insertion and removal of elements
+        at both ends. Like the <a class="link" href="list.html" title="list"><code class="computeroutput"><span class="identifier">list</span></code></a> and <a class="link" href="cons.html" title="cons"><code class="computeroutput"><span class="identifier">cons</span></code></a>, <code class="computeroutput"><span class="identifier">deque</span></code>
+        is more efficient than <a class="link" href="vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a> (especially at compile time)
+        when the target sequence is constructed piecemeal (a data at a time, e.g.
+        when constructing expression templates). Like the <a class="link" href="list.html" title="list"><code class="computeroutput"><span class="identifier">list</span></code></a> and <a class="link" href="cons.html" title="cons"><code class="computeroutput"><span class="identifier">cons</span></code></a>, runtime cost of access to
+        each element is peculiarly constant (see <a class="link" href="../notes.html#fusion.notes.recursive_inlined_functions">Recursive
+        Inlined Functions</a>).
+      </p>
+<p>
+        Element insertion and removal are done by special <code class="computeroutput"><span class="identifier">deque</span></code>
+        helper classes <a class="link" href="front_extended_deque.html" title="front_extended_deque"><code class="computeroutput"><span class="identifier">front_extended_deque</span></code></a> and <a class="link" href="back_extended_deque.html" title="back_extended_deque"><code class="computeroutput"><span class="identifier">back_extended_deque</span></code></a>.
+      </p>
+<h5>
+<a name="fusion.container.deque.h1"></a>
+        <span class="phrase"><a name="fusion.container.deque.header"></a></span><a class="link" href="deque.html#fusion.container.deque.header">Header</a>
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">container</span><span class="special">/</span><span class="identifier">deque</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">deque</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">container</span><span class="special">/</span><span class="identifier">list</span><span class="special">/</span><span class="identifier">deque_fwd</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">deque_fwd</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h5>
+<a name="fusion.container.deque.h2"></a>
+        <span class="phrase"><a name="fusion.container.deque.synopsis"></a></span><a class="link" href="deque.html#fusion.container.deque.synopsis">Synopsis</a>
+      </h5>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="special">...</span><span class="identifier">Elements</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">deque</span><span class="special">;</span>
+</pre>
+<p>
+        For C++11 compilers, the variadic class interface has no upper bound.
+      </p>
+<p>
+        For C++03 compilers, the variadic class interface accepts <code class="computeroutput"><span class="number">0</span></code>
+        to <code class="computeroutput"><span class="identifier">FUSION_MAX_DEQUE_SIZE</span></code>
+        elements, where <code class="computeroutput"><span class="identifier">FUSION_MAX_DEQUE_SIZE</span></code>
+        is a user definable predefined maximum that defaults to <code class="computeroutput"><span class="number">10</span></code>.
+        Example:
+      </p>
+<pre class="programlisting"><span class="identifier">deque</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">char</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;</span>
+</pre>
+<p>
+        You may define the preprocessor constant <code class="computeroutput"><span class="identifier">FUSION_MAX_DEQUE_SIZE</span></code>
+        before including any Fusion header to change the default. Example:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">FUSION_MAX_DEQUE_SIZE</span> <span class="number">20</span>
+</pre>
+<h5>
+<a name="fusion.container.deque.h3"></a>
+        <span class="phrase"><a name="fusion.container.deque.template_parameters"></a></span><a class="link" href="deque.html#fusion.container.deque.template_parameters">Template
+        parameters</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Parameter
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+<th>
+                <p>
+                  Default
+                </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">Elements</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Element types
+                </p>
+              </td>
+<td>
+              </td>
+</tr></tbody>
+</table></div>
+<h5>
+<a name="fusion.container.deque.h4"></a>
+        <span class="phrase"><a name="fusion.container.deque.model_of"></a></span><a class="link" href="deque.html#fusion.container.deque.model_of">Model
+        of</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            <a class="link" href="../sequence/concepts/bidirectional_sequence.html" title="Bidirectional Sequence">Bidirectional
+            Sequence</a>
+          </li></ul></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">D</span></code></span></dt>
+<dd><p>
+              A <code class="computeroutput"><span class="identifier">deque</span></code> type
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">d</span></code>, <code class="computeroutput"><span class="identifier">d2</span></code></span></dt>
+<dd><p>
+              Instances of <code class="computeroutput"><span class="identifier">deque</span></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">e0</span></code>...<code class="computeroutput"><span class="identifier">en</span></code></span></dt>
+<dd><p>
+              Heterogeneous values
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">s</span></code></span></dt>
+<dd><p>
+              A <a class="link" href="../sequence/concepts/forward_sequence.html" title="Forward Sequence">Forward
+              Sequence</a>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">N</span></code></span></dt>
+<dd><p>
+              An <a href="http://www.boost.org/libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+              Integral Constant</a>
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="fusion.container.deque.h5"></a>
+        <span class="phrase"><a name="fusion.container.deque.expression_semantics"></a></span><a class="link" href="deque.html#fusion.container.deque.expression_semantics">Expression
+        Semantics</a>
+      </h5>
+<p>
+        Semantics of an expression is defined only where it differs from, or is not
+        defined in <a class="link" href="../sequence/concepts/bidirectional_sequence.html" title="Bidirectional Sequence">Bidirectional
+        Sequence</a>.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Semantics
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">D</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Creates a deque with default constructed elements.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">D</span><span class="special">(</span><span class="identifier">e0</span><span class="special">,</span>
+                  <span class="identifier">e1</span><span class="special">,...</span>
+                  <span class="identifier">en</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Creates a deque with elements <code class="computeroutput"><span class="identifier">e0</span></code>...<code class="computeroutput"><span class="identifier">en</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">D</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Copy constructs a deque from a <a class="link" href="../sequence/concepts/forward_sequence.html" title="Forward Sequence">Forward
+                  Sequence</a>, <code class="computeroutput"><span class="identifier">s</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">d</span> <span class="special">=</span>
+                  <span class="identifier">s</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Assigns to a deque, <code class="computeroutput"><span class="identifier">d</span></code>,
+                  from a <a class="link" href="../sequence/concepts/forward_sequence.html" title="Forward Sequence">Forward
+                  Sequence</a>, <code class="computeroutput"><span class="identifier">s</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><a class="link" href="../sequence/intrinsic/functions/at.html" title="at"><code class="computeroutput"><span class="identifier">at</span></code></a><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;(</span><span class="identifier">d</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The Nth element from the beginning of the sequence; see <a class="link" href="../sequence/intrinsic/functions/at.html" title="at"><code class="computeroutput"><span class="identifier">at</span></code></a>.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+        <span class="inlinemediaobject"><img src="../../images/note.png" alt="note"></span> <code class="computeroutput"><a class="link" href="../sequence/intrinsic/functions/at.html" title="at"><code class="computeroutput"><span class="identifier">at</span></code></a><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;(</span><span class="identifier">d</span><span class="special">)</span></code> is provided
+        for convenience, despite <code class="computeroutput"><span class="identifier">deque</span></code>
+        being a <a class="link" href="../sequence/concepts/bidirectional_sequence.html" title="Bidirectional Sequence">Bidirectional
+        Sequence</a> only (<code class="computeroutput"><span class="identifier">at</span></code>
+        is supposed to be a <a class="link" href="../sequence/concepts/random_access_sequence.html" title="Random Access Sequence">Random
+        Access Sequence</a> requirement). The runtime complexity of <a class="link" href="../sequence/intrinsic/functions/at.html" title="at"><code class="computeroutput"><span class="identifier">at</span></code></a> is constant (see <a class="link" href="../notes.html#fusion.notes.recursive_inlined_functions">Recursive
+        Inlined Functions</a>). <code class="computeroutput"><span class="identifier">deque</span></code>
+        element access utilizes operator overloading with argument dependent lookup
+        (ADL) of the proper element getter function given a static constant index
+        parameter. Interestingly, with modern C++ compilers, this lookup is very
+        fast and rivals recursive template instantiations in compile time-speed,
+        so much so that <code class="computeroutput"><span class="identifier">deque</span></code> relies
+        on ADL for all element access (indexing) as well as iteration.
+      </p>
+</div>
+<h5>
+<a name="fusion.container.deque.h6"></a>
+        <span class="phrase"><a name="fusion.container.deque.example"></a></span><a class="link" href="deque.html#fusion.container.deque.example">Example</a>
+      </h5>
+<pre class="programlisting"><span class="identifier">deque</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">float</span><span class="special">&gt;</span> <span class="identifier">d</span><span class="special">(</span><span class="number">12</span><span class="special">,</span> <span class="number">5.5f</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <a class="link" href="../sequence/intrinsic/functions/at_c.html" title="at_c"><code class="computeroutput"><span class="identifier">at_c</span></code></a><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">d</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <a class="link" href="../sequence/intrinsic/functions/at_c.html" title="at_c"><code class="computeroutput"><span class="identifier">at_c</span></code></a><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">d</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="list.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../container.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="front_extended_deque.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

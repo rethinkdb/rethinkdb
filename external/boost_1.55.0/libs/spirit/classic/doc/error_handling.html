@@ -1,0 +1,212 @@
+<html>
+<head>
+<title>Error Handling</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Error 
+      Handling </b></font></td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="debugging.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="quickref.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>C++'s exception handling mechanism is a perfect match for error handling in 
+  the framework. Imagine a complete parser as a maze. At each branch, the input 
+  dictates where we will turn. Given an erroneous input, we may reach a dead end. 
+  If we ever reach one, it would be a waste of time to backtrack from where we 
+  came from. Instead, we supply guards in strategic points. Beyond a certain point, 
+  we put put parser assertions in places where one is not allowed to go. </p>
+<p>The assertions are like springs that catapult us back to the guard. If we ever 
+  reach a brick wall given a specific input pattern, everything unwinds quickly 
+  and we are thrown right back to the guard. This can be a very effective optimization 
+  when used wisely. Right back at the guard, we have a chance to correct the situation, 
+  if possible. The following illustration depicts the scenario.</p>
+<table border="0" align="center">
+  <tr>
+    <td><img src="theme/error_handling.png" width="313" height="238"></td>
+  </tr>
+</table>
+<a name="the_parser_exception"></a> 
+<h2>Parser Errors</h2>
+<p> The <tt>parser_error</tt> class is the generic parser exception class used 
+  by Spirit. This is the base class for all parser exceptions.</p>
+<pre>    <code><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ErrorDescrT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>IteratorT </span><span class=special>= </span><span class=keyword>char </span><span class=keyword>const</span><span class=special>*&gt;
+    </span><span class=keyword>class </span><span class=identifier>parser_error </span><span class=special>
+    {
+    </span><span class=keyword>public</span><span class=special>:
+        </span><span class=identifier>parser_error</span><span class=special>(</span><span class=identifier>IteratorT </span><span class=identifier>where</span><span class=special>, </span><span class=identifier>ErrorDescrT </span><span class=identifier>descriptor</span><span class=special>);
+        </span><span class=identifier>IteratorT </span><span class=identifier>where</span><span class=special>;
+        </span><span class=identifier>ErrorDescrT</span><span class=identifier> descriptor</span><span class=special>;
+    </span><span class=special>};
+</span></code></pre>
+<p> The exception holds the iterator position where the error was encountered 
+  in its <tt>where</tt> member variable. In addition to the iterator, <tt>parser_error</tt> 
+  also holds information regarding the error (error descriptor) in its <tt>descriptor 
+  </tt> member variable.</p>
+<p> Semantic actions are free to throw parser exceptions when necessary. A utility 
+  function <tt>throw_</tt> may be called. This function creates and throws a <tt>parser_error</tt> 
+  given an iterator and an error descriptor:</p>
+<pre>
+    <code><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ErrorDescrT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>IteratorT</span><span class=special>&gt;
+    </span><span class=keyword>void </span><span class=identifier>throw_</span><span class=special>(</span><span class=identifier>IteratorT where</span><span class=special>, </span><span class=identifier>ErrorDescrT descriptor</span><span class=special>);
+</span></code></pre>
+<a name="the_parser_assertion"></a>
+<h2>Parser Assertions</h2>
+<p> Assertions may be put in places where we don't have any other option other 
+  than expect parsing to succeed. If parsing fails, a specific type of exception 
+  is thrown.</p>
+<p> Before declaring the grammar, we declare some assertion objects. <tt>assertion</tt> 
+  is a template class parameterized by the type of error that will be thrown once 
+  the assertion fails. The following assertions are parameterized by a user defined 
+  Error enumeration.</p>
+<a name="examples"></a>
+<h3>Examples</h3>
+<pre>
+    <code><span class=keyword>enum </span><span class=identifier>Errors
+    </span><span class=special>{
+        </span><span class=identifier>program_expected</span><span class=special>,
+        </span><span class=identifier>begin_expected</span><span class=special>,
+        </span><span class=identifier>end_expected
+    </span><span class=special>};
+
+    </span><span class=identifier>assertion</span><span class=special>&lt;</span><span class=identifier>Errors</span><span class=special>&gt; </span><span class=identifier>expect_program</span><span class=special>(</span><span class=identifier>program_expected</span><span class=special>);
+    </span><span class=identifier>assertion</span><span class=special>&lt;</span><span class=identifier>Errors</span><span class=special>&gt; </span><span class=identifier>expect_begin</span><span class=special>(</span><span class=identifier>begin_expected</span><span class=special>);
+    </span><span class=identifier>assertion</span><span class=special>&lt;</span><span class=identifier>Errors</span><span class=special>&gt; </span><span class=identifier>expect_end</span><span class=special>(</span><span class=identifier>end_expected</span><span class=special>);
+</span></code></pre>
+<p> The example above uses enums to hold the information regarding the error, 
+  we are free to use other types such as integers and strings. For example, <tt>assertion&lt;string&gt;</tt> 
+  accepts a string as its info. It is advisable to use light-weight objects though, 
+  after all, error descriptors are usually static. Enums are convenient for error 
+  handlers to detect and easily catch since C++ treats enums as unique types.</p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"> <b><img src="theme/lens.gif" width="15" height="16"> 
+      The assertive_parser</b><br>
+      <br>
+      Actually, the expression <tt>expect_end(str_p(&quot;end&quot;))</tt>creates 
+      an assertive_parser object. An assertive_parser is a parser that throws 
+      an exception in response to a parsing failure. The assertive_parser throws 
+      a parser_error exception rather than returning an unsuccessful match to 
+      signal that the parser failed to match the input. During parsing, parsers 
+      are given an iterator of type <tt>IteratorT</tt>. This is combined with 
+      the error descriptor type <tt>ErrorDescrT</tt> of the assertion (in this 
+      case enum <tt>Errors</tt>). Both are used to create a <tt>parser_error&lt;Errors, 
+      IteratorT&gt;</tt> which is then thrown to signal the exception. </td>
+  </tr>
+</table>
+<p> The predeclared <tt>expect_end</tt> assertion object may now be used in the 
+  grammar as wrappers around parsers. For example:</p>
+<pre>
+    <code><span class=identifier>expect_end</span><span class=special>(</span><span class=identifier>str_p</span><span class=special>(</span><span class=string>&quot;end&quot;</span><span class=special>))
+</span></code></pre>
+<p> This will throw an exception if it fails to see &quot;end&quot; from the input.</p>
+<a name="the_guard"></a>
+<h2>The Guard</h2>
+<p> The <tt>guard</tt> is used to catch a specific type of <tt>parser_error</tt>. 
+  guards are typically predeclared just like assertions. Extending our previous 
+  example:</p>
+<pre>
+    <code><span class=identifier>guard</span><span class=special>&lt;</span><span class=identifier>Errors</span><span class=special>&gt; </span><span class=identifier>my_guard</span><span class=special>;
+</span></code></pre>
+<p> <tt>Errors</tt>, in this example is the error descriptor type we want to detect. 
+  This is the same enum as above. <tt>my_guard</tt> may now be used in a grammar 
+  declaration:</p>
+<pre>    <code><span class=identifier>my_guard</span><span class=special>(</span><span class=identifier>p</span><span class=special>)[</span><span class=identifier>error_handler</span><span class=special>]</span></code></pre>
+<p> where <tt>p</tt> is an expression that evaluates to a parser. Somewhere inside 
+  <tt>p</tt>, a parser may throw a parser exception. <tt>error_handler</tt> is 
+  the error handler which may be a function or functor compatible with the interface:</p>
+<pre>    <code>error_status<span class=special>&lt;</span>T<span class=special>&gt;</span><span class=identifier>
+    f</span><span class=special>(</span>ScannerT const&amp; scan, ErrorT error<span class=special>);
+</span></code></pre>
+<p> Where scan points to the scanner state prior to parsing and error is the error 
+  that arose. The handler is allowed to move the scanner position as it sees fit, 
+  possibly in an attempt to perform error correction. The handler must then return 
+  an <tt>error_status&lt;T&gt;</tt> object. </p>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"> <b><img src="theme/lens.gif" width="15" height="16"> 
+      The fallback_parser </b><br>
+      <br>
+      The expression <tt>my_guard(expr, error_handler)</tt>creates a fallback_parser 
+      object. The fallback_parser handles parser_error exceptions of a specific 
+      type. Since <tt>my_guard</tt> is declared as <tt>guard&lt;Errors&gt;</tt>, 
+      the fallback_parser catches <tt>Errors</tt> specific parser errors: <tt>parser_error&lt;Errors, 
+      IteratorT&gt;</tt>. The class sets up a try block. When an exception is 
+      caught, the catch block then calls the error_handler. </td>
+  </tr>
+</table>
+<h2>error_status&lt;T&gt;</h2>
+<pre>
+    <code><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>T </span><span class=special>= </span><span class=identifier>nil_t</span><span class=special>&gt;
+    </span><span class=keyword>struct </span><span class=identifier>error_status
+    </span><span class=special>{
+        </span><span class=keyword>enum </span><span class=identifier>result_t </span><span class=special>{ </span><span class=identifier>fail</span><span class=special>, </span><span class=identifier>retry</span><span class=special>, </span><span class=identifier>accept</span><span class=special>, </span><span class=identifier>rethrow </span><span class=special>};
+
+        </span><span class=identifier>error_status</span><span class=special>(</span><span class=identifier>
+            result_t result </span><span class=special>= </span><span class=identifier>fail</span><span class=special>, 
+            </span><span class=keyword>int </span><span class=identifier>length      </span><span class=special>= -</span><span class=number>1</span><span class=special>, 
+            </span><span class=identifier>T </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>value  </span><span class=special>= </span><span class=identifier>T</span><span class=special>());
+</span>        
+        <span class=identifier>result_t    result</span><span class=special>;
+        </span><span class=keyword>int         </span><span class=identifier>length</span><span class=special>;
+        </span><span class=identifier>T           value</span><span class=special>;
+    };</span></code></pre>
+<p>Where <tt>T</tt> is an attribute type compatible with the match attribute of 
+  the <tt>fallback_parser</tt>'s subject (defaults to <tt>nil_t</tt>). The class 
+  <tt>error_status</tt> reports the result of an error handler. This result can 
+  be one of: </p>
+<table width="90%" border="0" align="center">
+  <tr> 
+    <td class="table_title" colspan="8"> error_status result </td>
+  </tr>
+  <tr>
+  <tr>
+    <td class="table_cells"><b>fail</b></td>
+    <td class="table_cells">quit and fail. Return a <tt>no_match</tt></td>
+  </tr>
+    <td class="table_cells"><b>retry</b></td>
+  <td class="table_cells">attempt error recovery, possibly moving the scanner</td>
+  </tr>
+    <td class="table_cells"><b>accept</b></td>
+  <td class="table_cells">force success returning a matching length, moving the 
+    scanner appropriately and returning an attribute value</td>
+  </tr>
+    <td class="table_cells"><b>rethrow</b></td>
+  <td class="table_cells">rethrows the error</td>
+  </tr>
+</table>
+<p><img src="theme/lens.gif" width="15" height="16"> See <a href="../example/fundamental/error_handling.cpp">error_handling.cpp</a> for a compilable example. This is part of the Spirit distribution.</p>
+<table width="80%" border="0" align="center">
+</table>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="debugging.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="quickref.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+<font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

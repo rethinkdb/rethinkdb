@@ -1,0 +1,700 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Alignment Generator Directives (left_align[], center[], right_align[])</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../directive.html" title="Generator Directives">
+<link rel="prev" href="../directive.html" title="Generator Directives">
+<link rel="next" href="repeat.html" title="Repetition Generator Directive (repeat[])">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../directive.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="repeat.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.karma.reference.directive.alignment"></a><a class="link" href="alignment.html" title="Alignment Generator Directives (left_align[], center[], right_align[])">Alignment
+          Generator Directives (<code class="computeroutput"><span class="identifier">left_align</span><span class="special">[]</span></code>, <code class="computeroutput"><span class="identifier">center</span><span class="special">[]</span></code>, <code class="computeroutput"><span class="identifier">right_align</span><span class="special">[]</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.karma.reference.directive.alignment.h0"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.alignment.description"></a></span><a class="link" href="alignment.html#spirit.karma.reference.directive.alignment.description">Description</a>
+          </h6>
+<p>
+            The alignment directives allow to left align, right align or center output
+            emitted by other generators into columns of a specified width while using
+            an arbitrary generator to create the padding.
+          </p>
+<h6>
+<a name="spirit.karma.reference.directive.alignment.h1"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.alignment.header"></a></span><a class="link" href="alignment.html#spirit.karma.reference.directive.alignment.header">Header</a>
+          </h6>
+<p>
+            For the <code class="computeroutput"><span class="identifier">left_align</span><span class="special">[]</span></code>
+            directive:
+          </p>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/karma/directive/left_alignment.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma_left_alignment</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            For the <code class="computeroutput"><span class="identifier">center</span><span class="special">[]</span></code>
+            directive:
+          </p>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/karma/directive/center_alignment.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma_center_alignment</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            For the <code class="computeroutput"><span class="identifier">right_align</span><span class="special">[]</span></code>
+            directive:
+          </p>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/karma/directive/right_alignment.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma_right_alignment</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.karma.reference.directive.alignment.h2"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.alignment.namespace"></a></span><a class="link" href="alignment.html#spirit.karma.reference.directive.alignment.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">left_align</span> <span class="comment">//
+                      alias: boost::spirit::karma::left_align</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">center</span> <span class="comment">//
+                      alias: boost::spirit::karma::center</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">right_align</span> <span class="comment">//
+                      alias: boost::spirit::karma::right_align</span></code>
+                    </p>
+                  </td></tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.directive.alignment.h3"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.alignment.model_of"></a></span><a class="link" href="alignment.html#spirit.karma.reference.directive.alignment.model_of">Model of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../generator_concepts/unarygenerator.html" title="UnaryGenerator"><code class="computeroutput"><span class="identifier">UnaryGenerator</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a</span></code></span></dt>
+<dd><p>
+                  A generator object
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">pad</span></code></span></dt>
+<dd><p>
+                  A generator object, or a <a class="link" href="../basics.html#spirit.karma.reference.basics.lazy_argument">Lazy
+                  Argument</a> that evaluates to a generator object
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">A</span></code>, <code class="computeroutput"><span class="identifier">Pad</span></code></span></dt>
+<dd><p>
+                  Attribute types of the generators <code class="computeroutput"><span class="identifier">a</span></code>
+                  and <code class="computeroutput"><span class="identifier">pad</span></code>
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">width</span></code></span></dt>
+<dd><p>
+                  Numeric literal, any unsigned integer value, or a <a class="link" href="../basics.html#spirit.karma.reference.basics.lazy_argument">Lazy
+                  Argument</a> that evaluates to an unsigned integer value
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.karma.reference.directive.alignment.h4"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.alignment.expression_semantics"></a></span><a class="link" href="alignment.html#spirit.karma.reference.directive.alignment.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../generator_concepts/unarygenerator.html" title="UnaryGenerator"><code class="computeroutput"><span class="identifier">UnaryGenerator</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">left_align</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      left aligned in a column of width as defined by the preprocessor
+                      constant <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_FIELD_LENGTH</span></code>
+                      (default: 10), while using <code class="computeroutput"><span class="identifier">space</span></code>
+                      to emit the necessary padding. This generator succeeds as long
+                      as its embedded generator <code class="computeroutput"><span class="identifier">a</span></code>
+                      does not fail (unless the underlying output stream reports
+                      an error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">left_align</span><span class="special">(</span><span class="identifier">width</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      left aligned in a column of the given <code class="computeroutput"><span class="identifier">width</span></code>,
+                      while using <code class="computeroutput"><span class="identifier">space</span></code>
+                      to emit the necessary padding. This generator succeeds as long
+                      as its embedded generator <code class="computeroutput"><span class="identifier">a</span></code>
+                      does not fail (unless the underlying output stream reports
+                      an error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">left_align</span><span class="special">(</span><span class="identifier">pad</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      left aligned in a column of width as defined by the preprocessor
+                      constant <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_FIELD_LENGTH</span></code>
+                      (default: 10), while using the generator <code class="computeroutput"><span class="identifier">pad</span></code>
+                      to emit the necessary padding. This generator succeeds as long
+                      as its embedded and padding generators <code class="computeroutput"><span class="identifier">a</span></code>
+                      and <code class="computeroutput"><span class="identifier">pad</span></code> do
+                      not fail (except if the underlying output stream reports an
+                      error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">left_align</span><span class="special">(</span><span class="identifier">width</span><span class="special">,</span> <span class="identifier">pad</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      left aligned in a column of the given <code class="computeroutput"><span class="identifier">width</span></code>,
+                      while using the generator <code class="computeroutput"><span class="identifier">pad</span></code>
+                      to emit the necessary padding. This generator succeeds as long
+                      as its embedded and padding generators <code class="computeroutput"><span class="identifier">a</span></code>
+                      and <code class="computeroutput"><span class="identifier">pad</span></code> do
+                      not fail (unless the underlying output stream reports an error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">center</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      centered in a column of width as defined by the preprocessor
+                      constant <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_FIELD_LENGTH</span></code>
+                      (default: 10), while using <code class="computeroutput"><span class="identifier">space</span></code>
+                      to emit the necessary padding. This generator succeeds as long
+                      as its embedded generator <code class="computeroutput"><span class="identifier">a</span></code>
+                      does not fail (unless the underlying output stream reports
+                      an error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">center</span><span class="special">(</span><span class="identifier">width</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      centered in a column of the given <code class="computeroutput"><span class="identifier">width</span></code>,
+                      while using <code class="computeroutput"><span class="identifier">space</span></code>
+                      to emit the necessary padding. This generator succeeds as long
+                      as its embedded generator <code class="computeroutput"><span class="identifier">a</span></code>
+                      does not fail (unless the underlying output stream reports
+                      an error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">center</span><span class="special">(</span><span class="identifier">pad</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      centered in a column of width as defined by the preprocessor
+                      constant <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_FIELD_LENGTH</span></code>
+                      (default: 10), while using the generator <code class="computeroutput"><span class="identifier">pad</span></code>
+                      to emit the necessary padding. This generator succeeds as long
+                      as its embedded and padding generators <code class="computeroutput"><span class="identifier">a</span></code>
+                      and <code class="computeroutput"><span class="identifier">pad</span></code> do
+                      not fail (except if the underlying output stream reports an
+                      error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">center</span><span class="special">(</span><span class="identifier">width</span><span class="special">,</span>
+                      <span class="identifier">pad</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      centered in a column of the given <code class="computeroutput"><span class="identifier">width</span></code>,
+                      while using the generator <code class="computeroutput"><span class="identifier">pad</span></code>
+                      to emit the necessary padding. This generator succeeds as long
+                      as its embedded and padding generators <code class="computeroutput"><span class="identifier">a</span></code>
+                      and <code class="computeroutput"><span class="identifier">pad</span></code> do
+                      not fail (unless the underlying output stream reports an error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">right_align</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      right aligned in a column of width as defined by the preprocessor
+                      constant <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_FIELD_LENGTH</span></code>
+                      (default: 10), while using <code class="computeroutput"><span class="identifier">space</span></code>
+                      to emit the necessary padding. This generator succeeds as long
+                      as its embedded generator <code class="computeroutput"><span class="identifier">a</span></code>
+                      does not fail (unless the underlying output stream reports
+                      an error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">right_align</span><span class="special">(</span><span class="identifier">width</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      right aligned in a column of the given <code class="computeroutput"><span class="identifier">width</span></code>,
+                      while using <code class="computeroutput"><span class="identifier">space</span></code>
+                      to emit the necessary padding. This generator succeeds as long
+                      as its embedded generator <code class="computeroutput"><span class="identifier">a</span></code>
+                      does not fail (unless the underlying output stream reports
+                      an error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">right_align</span><span class="special">(</span><span class="identifier">pad</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      right aligned in a column of width as defined by the preprocessor
+                      constant <code class="computeroutput"><span class="identifier">BOOST_KARMA_DEFAULT_FIELD_LENGTH</span></code>
+                      (default: 10), while using the generator <code class="computeroutput"><span class="identifier">pad</span></code>
+                      to emit the necessary padding. This generator succeeds as long
+                      as its embedded and padding generators <code class="computeroutput"><span class="identifier">a</span></code>
+                      and <code class="computeroutput"><span class="identifier">pad</span></code> do
+                      not fail (except if the underlying output stream reports an
+                      error).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">right_align</span><span class="special">(</span><span class="identifier">width</span><span class="special">,</span> <span class="identifier">pad</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Generate <code class="computeroutput"><span class="identifier">a</span></code>
+                      right aligned in a column of the given <code class="computeroutput"><span class="identifier">width</span></code>,
+                      while using the generator <code class="computeroutput"><span class="identifier">pad</span></code>
+                      to emit the necessary padding. This generator succeeds as long
+                      as its embedded and padding generators <code class="computeroutput"><span class="identifier">a</span></code>
+                      and <code class="computeroutput"><span class="identifier">pad</span></code> do
+                      not fail (unless the underlying output stream reports an error).
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+              None of the generator directives listed above limits the emitted output
+              to the respective column width. If the emitted output is longer than
+              the specified (or implied) column width, the generated output overruns
+              the column to the right.
+            </p>
+<p>
+              If the output needs to be limited to a specified column width, use
+              the <code class="computeroutput"><span class="identifier">maxwidth</span><span class="special">[]</span></code>
+              directive, for instance:
+</p>
+<pre class="programlisting"><span class="identifier">maxwidth</span><span class="special">(</span><span class="number">8</span><span class="special">)[</span><span class="identifier">right_align</span><span class="special">(</span><span class="number">12</span><span class="special">)[</span><span class="string">"1234567890"</span><span class="special">]]</span>
+</pre>
+<p>
+              which will output (without the quotes):
+</p>
+<pre class="programlisting"><span class="string">"  123456"</span></pre>
+<p>
+            </p>
+</td></tr>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.directive.alignment.h5"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.alignment.attributes"></a></span><a class="link" href="alignment.html#spirit.karma.reference.directive.alignment.attributes">Attributes</a>
+          </h6>
+<p>
+            See <a class="link" href="../../quick_reference/compound_attribute_rules.html#spirit.karma.quick_reference.compound_attribute_rules.notation">Compound
+            Attribute Notation</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">left_align</span><span class="special">[]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">left_align</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">left_align</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">left_align</span><span class="special">(</span><span class="identifier">width</span><span class="special">)[]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">left_align</span><span class="special">(</span><span class="identifier">width</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">left_align</span><span class="special">(</span><span class="identifier">width</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">left_align</span><span class="special">(</span><span class="identifier">pad</span><span class="special">)[]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">pad</span><span class="special">:</span> <span class="identifier">Pad</span> <span class="special">--&gt;</span> <span class="identifier">left_align</span><span class="special">(</span><span class="identifier">pad</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span><span class="special">,</span> <span class="identifier">pad</span><span class="special">:</span> <span class="identifier">Pad</span> <span class="special">--&gt;</span> <span class="identifier">left_align</span><span class="special">(</span><span class="identifier">pad</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">left_align</span><span class="special">(</span><span class="identifier">pad</span><span class="special">,</span> <span class="identifier">width</span><span class="special">)[]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">pad</span><span class="special">:</span> <span class="identifier">Pad</span> <span class="special">--&gt;</span> <span class="identifier">left_align</span><span class="special">(</span><span class="identifier">pad</span><span class="special">,</span> <span class="identifier">width</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span><span class="special">,</span> <span class="identifier">pad</span><span class="special">:</span> <span class="identifier">Pad</span> <span class="special">--&gt;</span> <span class="identifier">left_align</span><span class="special">(</span><span class="identifier">pad</span><span class="special">,</span> <span class="identifier">width</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">center</span><span class="special">[]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">center</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">center</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">center</span><span class="special">(</span><span class="identifier">width</span><span class="special">)[]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">center</span><span class="special">(</span><span class="identifier">width</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">center</span><span class="special">(</span><span class="identifier">width</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">center</span><span class="special">(</span><span class="identifier">pad</span><span class="special">)[]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">pad</span><span class="special">:</span> <span class="identifier">Pad</span> <span class="special">--&gt;</span> <span class="identifier">center</span><span class="special">(</span><span class="identifier">pad</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span><span class="special">,</span> <span class="identifier">pad</span><span class="special">:</span> <span class="identifier">Pad</span> <span class="special">--&gt;</span> <span class="identifier">center</span><span class="special">(</span><span class="identifier">pad</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">center</span><span class="special">(</span><span class="identifier">pad</span><span class="special">,</span>
+                      <span class="identifier">width</span><span class="special">)[]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">pad</span><span class="special">:</span> <span class="identifier">Pad</span> <span class="special">--&gt;</span> <span class="identifier">center</span><span class="special">(</span><span class="identifier">pad</span><span class="special">,</span> <span class="identifier">width</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span><span class="special">,</span> <span class="identifier">pad</span><span class="special">:</span> <span class="identifier">Pad</span> <span class="special">--&gt;</span> <span class="identifier">center</span><span class="special">(</span><span class="identifier">pad</span><span class="special">,</span> <span class="identifier">width</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">right_align</span><span class="special">[]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">right_align</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">right_align</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">right_align</span><span class="special">(</span><span class="identifier">width</span><span class="special">)[]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">right_align</span><span class="special">(</span><span class="identifier">width</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">right_align</span><span class="special">(</span><span class="identifier">width</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">right_align</span><span class="special">(</span><span class="identifier">pad</span><span class="special">)[]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">pad</span><span class="special">:</span> <span class="identifier">Pad</span> <span class="special">--&gt;</span> <span class="identifier">right_align</span><span class="special">(</span><span class="identifier">pad</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span><span class="special">,</span> <span class="identifier">pad</span><span class="special">:</span> <span class="identifier">Pad</span> <span class="special">--&gt;</span> <span class="identifier">right_align</span><span class="special">(</span><span class="identifier">pad</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">right_align</span><span class="special">(</span><span class="identifier">pad</span><span class="special">,</span> <span class="identifier">width</span><span class="special">)[]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">pad</span><span class="special">:</span> <span class="identifier">Pad</span> <span class="special">--&gt;</span> <span class="identifier">right_align</span><span class="special">(</span><span class="identifier">pad</span><span class="special">,</span> <span class="identifier">width</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span><span class="special">,</span> <span class="identifier">pad</span><span class="special">:</span> <span class="identifier">Pad</span> <span class="special">--&gt;</span> <span class="identifier">right_align</span><span class="special">(</span><span class="identifier">pad</span><span class="special">,</span> <span class="identifier">width</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.directive.alignment.h6"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.alignment.complexity"></a></span><a class="link" href="alignment.html#spirit.karma.reference.directive.alignment.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              The overall complexity of an alignment generator directive is defined
+              by the complexity of its embedded and padding generator. The complexity
+              of the left alignment directive generator itself is O(1). The complexity
+              of the center and right alignment directive generators is O(N), where
+              <code class="computeroutput"><span class="identifier">N</span></code> is the number of
+              characters emitted by the embedded and padding generators.
+            </p></blockquote></div>
+<h6>
+<a name="spirit.karma.reference.directive.alignment.h7"></a>
+            <span class="phrase"><a name="spirit.karma.reference.directive.alignment.example"></a></span><a class="link" href="alignment.html#spirit.karma.reference.directive.alignment.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.karma.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some includes:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">support_utree</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">std_pair</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">left_align</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">center</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">right_align</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Basic usage of the alignment generators:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">p</span> <span class="special">(</span><span class="number">1.0</span><span class="special">,</span> <span class="number">2.0</span><span class="special">);</span>
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">"1.0     |2.0"</span><span class="special">,</span> <span class="identifier">left_align</span><span class="special">(</span><span class="number">8</span><span class="special">)[</span><span class="identifier">double_</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="char">'|'</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span><span class="special">,</span> <span class="identifier">p</span><span class="special">);</span>
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">"   1.0  |2.0"</span><span class="special">,</span> <span class="identifier">center</span><span class="special">(</span><span class="number">8</span><span class="special">)[</span><span class="identifier">double_</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="char">'|'</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span><span class="special">,</span> <span class="identifier">p</span><span class="special">);</span>
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">"     1.0|2.0"</span><span class="special">,</span> <span class="identifier">right_align</span><span class="special">(</span><span class="number">8</span><span class="special">)[</span><span class="identifier">double_</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="char">'|'</span> <span class="special">&lt;&lt;</span> <span class="identifier">double_</span><span class="special">,</span> <span class="identifier">p</span><span class="special">);</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../directive.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="repeat.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

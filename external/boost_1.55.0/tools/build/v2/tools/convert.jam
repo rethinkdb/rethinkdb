@@ -1,0 +1,62 @@
+# Copyright (c) 2009 Vladimir Prus
+#
+# Use, modification and distribution is subject to the Boost Software
+# License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# Implements 'convert' target that takes a bunch of source and
+# tries to convert each one to the specified type.
+#
+# For example:
+#
+#   convert objects obj : a.cpp b.cpp ;
+#
+
+import targets ;
+import generators ;
+import project ;
+import type ;
+import "class" : new ;
+
+class convert-target-class : typed-target
+{
+    rule __init__ ( name : project : type
+    : sources * : requirements * : default-build * : usage-requirements * )
+    {
+        typed-target.__init__ $(name) : $(project) : $(type)
+          : $(sources) : $(requirements) : $(default-build) : $(usage-requirements) ;
+    }
+
+    rule construct ( name : source-targets * : property-set )
+    {
+        local r = [ generators.construct $(self.project) : $(self.type)
+          : [ property-set.create [ $(property-set).raw ] # [ feature.expand
+              <main-target-type>$(self.type) ]
+          # ]
+            : $(source-targets) ] ;
+        if ! $(r)
+        {
+            errors.error "unable to construct" [ full-name ] ;
+        }
+
+        return $(r) ;
+    }
+
+}
+
+rule convert ( name type : sources * : requirements * : default-build *
+    : usage-requirements * )
+{
+    local project = [ project.current ] ;
+
+    # This is a circular module dependency, so it must be imported here
+    modules.import targets ;
+    targets.main-target-alternative
+      [ new convert-target-class $(name) : $(project) : [ type.type-from-rule-name $(type) ]
+        : [ targets.main-target-sources $(sources) : $(name) ]
+        : [ targets.main-target-requirements $(requirements) : $(project) ]
+        : [ targets.main-target-default-build $(default-build) : $(project) ]
+        : [ targets.main-target-usage-requirements $(usage-requirements) : $(project) ]
+      ] ;
+}
+IMPORT $(__name__) : convert : : convert ;

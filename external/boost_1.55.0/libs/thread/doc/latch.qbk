@@ -1,0 +1,419 @@
+[/
+  (C) Copyright 2013 Vicente J. Botet Escriba.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:latches Latches -- EXPERIMENTAL]
+
+[////////////////////]
+[section Introdcution]
+
+Latches are a thread co-ordination mechanism that allow one or more threads to block until one or more threads have reached a point. 
+
+[/
+An individual latch is a reusable object; once the operation has been completed, the threads can re-use the same barrier. It is thus useful for managing repeated tasks handled by multiple threads.
+
+A completion latch is like a latch that allows to associate a completion function which will be called once the internal counter reaches the value 0 and all the consumer threads have taken care of the notification. 
+]
+
+[endsect]
+[////////////////]
+[section Examples]
+
+Sample use cases for the latch include:
+
+* Setting multiple threads to perform a task, and then waiting until all threads have reached a common point.
+* Creating multiple threads, which wait for a signal before advancing beyond a common point.
+
+An example of the first use case would be as follows:
+
+  void DoWork(thread_pool* pool) {
+    latch completion_latch(NTASKS);
+    for (int i = 0; i < NTASKS; ++i) {
+      pool->submit([&] {
+        // perform work
+        ...
+        completion_latch.count_down();
+      }));
+    }
+    // Block until work is done
+    completion_latch.wait();
+  }
+
+An example of the second use case is shown below. We need to load data and then process it using a number of threads. Loading the data is I/O bound, whereas starting threads and creating data structures is CPU bound. By running these in parallel, throughput can be increased.
+
+  void DoWork() {
+    latch start_latch(1);
+    vector<thread*> workers;
+    for (int i = 0; i < NTHREADS; ++i) {
+      workers.push_back(new thread([&] {
+        // Initialize data structures. This is CPU bound.
+        ...
+        start_latch.wait();
+        // perform work
+        ...
+      }));
+    }
+    // Load input data. This is I/O bound.
+    ...
+    // Threads can now start processing
+    start_latch.count_down();
+    }
+
+[/
+The completion latches can be used to co-ordinate also a set of threads carrying out a repeated task. The number of threads can be adjusted dynamically to respond to changing requirements.
+
+In the example below, a number of threads are performing a multi-stage task. Some tasks may require fewer steps than others, meaning that some threads may finish before others. We reduce the number of threads waiting on the latch when this happens.
+
+  void DoWork() {
+    Tasks& tasks;
+    size_t initial_threads;
+    atomic<size_t> current_threads(initial_threads)
+    vector<thread*> workers;
+
+    // Create a barrier, and set a lambda that will be invoked every time the
+    // barrier counts down. If one or more active threads have completed,
+    // reduce the number of threads.
+    completion_latch task_barrier(n_threads);
+    task_barrier.then([&] {
+      task_barrier.reset(current_threads);
+    });
+
+    for (int i = 0; i < n_threads; ++i) {
+        workers.push_back(new thread([&] {
+        bool active = true;
+        while(active) {
+          Task task = tasks.get();
+          // perform task
+          ...
+          if (finished(task)) {
+            current_threads--;
+            active = false;
+          }
+          task_barrier.count_down_and_wait();
+         }
+       });
+    }
+
+    // Read each stage of the task until all stages are complete.
+    while (!finished()) {
+      GetNextStage(tasks);
+    }
+  }
+]
+
+[endsect]
+[///////////////////////////]
+[section:latch Class `latch`]
+
+    #include <boost/thread/latch.hpp>
+
+    class latch
+    {
+    public:
+        latch(latch const&) = delete;
+        latch& operator=(latch const&) = delete;
+
+        latch(std::size_t count);
+        ~latch();
+
+        void wait();
+        bool try_wait();
+        template <class Rep, class Period>
+        cv_status wait_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class lock_type, class Clock, class Duration>
+        cv_status wait_until(const chrono::time_point<Clock, Duration>& abs_time);
+        void count_down();
+        void count_down_and_wait();
+
+    };
+
+
+[/
+        void reset(std::size_t count);
+]
+
+A latch maintains an internal counter that is initialized when the latch is created. One or more threads may block waiting until the counter is decremented to 0. 
+
+Instances of __latch__ are not copyable or movable.
+
+[///////////////////]
+[section Constructor `latch(std::size_t)`]
+
+    latch(std::size_t count);
+
+[variablelist
+
+[[Effects:] [Construct a latch with is initial value for the internal counter.]]
+
+[[Note:] [The counter could be zero.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[//////////////////]
+[section Destructor `~latch()`]
+
+    ~latch();
+
+[variablelist
+
+[[Precondition:] [No threads are waiting or invoking  count_down on `*this`.]]
+
+[[Effects:] [Destroys `*this` latch.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[/////////////////////////////////////]
+[section:wait Member Function `wait()`]
+
+    void wait();
+
+[variablelist
+
+[[Effects:] [Block the calling thread until the internal count reaches the value zero. Then all waiting threads
+are unblocked. ]]
+
+[[Throws:] [
+ - __thread_resource_error__ if an error occurs. 
+
+ - __thread_interrupted__ if the wait was interrupted by a call to __interrupt__ on the __thread__ object associated with the current thread of execution.
+]]
+
+[[Notes:] [`wait()` is an ['interruption point].]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////]
+[section:try_wait Member Function `try_wait()`]
+
+        bool try_wait();
+
+[variablelist
+
+[[Returns:] [Returns true if the internal count is 0, and false otherwise. Does not block the calling thread. ]]
+
+[[Throws:] [
+ - __thread_resource_error__ if an error occurs. 
+]]
+
+]
+
+[endsect]
+[//////////////////////////////////////////////]
+[section:wait_for Member Function `wait_for() `]
+
+        template <class Rep, class Period>
+        cv_status wait_for(const chrono::duration<Rep, Period>& rel_time);
+
+[variablelist
+
+[[Effects:] [Block the calling thread until the internal count reaches the value zero or the duration has been elapsed. If no timeout, all waiting threads are unblocked. ]]
+[[Returns:] [cv_status::no_timeout  if the internal count is 0, and cv_status::timeout if duration has been elapsed. ]]
+
+[[Throws:] [
+ - __thread_resource_error__ if an error occurs. 
+
+ - __thread_interrupted__ if the wait was interrupted by a call to __interrupt__ on the __thread__ object associated with the current thread of execution.
+]]
+
+[[Notes:] [`wait_for()` is an ['interruption point].]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////]
+[section:wait_until Member Function `wait_until()`]
+
+        template <class lock_type, class Clock, class Duration>
+        cv_status wait_until(const chrono::time_point<Clock, Duration>& abs_time);
+
+[variablelist
+
+[[Effects:] [Block the calling thread until the internal count reaches the value zero or the time_point has been reached. If no timeout, all waiting threads are unblocked. ]]
+[[Returns:] [cv_status::no_timeout  if the internal count is 0, and cv_status::timeout if time_point has been reached.]]
+
+[[Throws:] [
+ - __thread_resource_error__ if an error occurs. 
+
+ - __thread_interrupted__ if the wait was interrupted by a call to __interrupt__ on the __thread__ object associated with the current thread of execution.
+]]
+
+[[Notes:] [`wait_until()` is an ['interruption point].]]
+
+]
+
+[endsect]
+[/////////////////////////////////////////////////]
+[section:count_down Member Function `count_down()`]
+
+        void count_down();
+
+[variablelist
+
+[[Requires:] [The internal counter is non zero.]]
+[[Effects:] [Decrements the internal count by 1, and returns. If the count reaches 0, any threads blocked in wait() will be released. ]]
+
+[[Throws:] [
+ - __thread_resource_error__ if an error occurs. 
+
+ - __thread_interrupted__ if the wait was interrupted by a call to __interrupt__ on the __thread__ object associated with the current thread of execution.
+]]
+[[Notes:] [`count_down()` is an ['interruption point].]]
+
+]
+
+[endsect]
+[///////////////////////////////////////////////////////////////////]
+[section:count_down_and_wait Member Function `count_down_and_wait()`]
+
+        void count_down_and_wait();
+
+[variablelist
+
+[[Requires:] [The internal counter is non zero.]]
+[[Effects:] [Decrements the internal count by 1. If the resulting count is not 0, blocks the calling thread until the internal count is decremented to 0 by one or more other threads calling count_down() or count_down_and_wait(). ]]
+
+[[Throws:] [
+ - __thread_resource_error__ if an error occurs. 
+
+ - __thread_interrupted__ if the wait was interrupted by a call to __interrupt__ on the __thread__ object associated with the current thread of execution.
+]]
+[[Notes:] [`count_down_and_wait()` is an ['interruption point].]]
+
+]
+
+[endsect]
+[///////////////////////////////////////]
+[
+[section:reset Member Function `reset()`]
+
+    reset( size_t );
+
+[variablelist
+
+[[Requires:] [This function may only be invoked when there are no other threads currently inside the waiting functions.]]
+
+[[Returns:] [Resets the latch with a new value for the initial thread count.  ]]
+
+[[Throws:] [
+ - __thread_resource_error__ if an error occurs. 
+]]
+
+]
+
+[endsect]
+]
+[endsect] [/ latch]
+
+[/
+[//////////////////////////////////////////////////]
+[section:completion_latch Class `completion_latch `]
+
+    #include <boost/thread/completion_latch.hpp>
+
+    class completion_latch
+    {
+    public:
+        typedef 'implementation defined' completion_function;
+
+        completion_latch(completion_latch const&) = delete;
+        completion_latch& operator=(completion_latch const&) = delete;
+
+        completion_latch(std::size_t count);
+        template <typename F>
+        completion_latch(std::size_t count, F&& funct);
+        ~completion_latch();
+
+        void wait();
+        bool try_wait();
+        template <class Rep, class Period>
+        cv_status wait_for(const chrono::duration<Rep, Period>& rel_time);
+        template <class lock_type, class Clock, class Duration>
+        cv_status wait_until(const chrono::time_point<Clock, Duration>& abs_time);
+        void count_down();
+        void count_down_and_wait();
+        void reset(std::size_t count);
+        template <typename F>
+        completion_function then(F&& funct);
+    };
+
+
+A completion latch is like a latch that allows to associate a completion function which will be called once the internal counter reaches the value 0 and all the consumer threads have taken care of the notification. 
+
+Instances of completion_latch are not copyable or movable.
+
+Only the additional functions are documented.
+
+[/////////////////////]
+[section:c Constructor]
+
+    completion_latch(std::size_t count);
+
+[variablelist
+
+[[Effects:] [Construct a completion_latch with is initial value for the internal counter and a noop completion function.]]
+
+[[Note:] [The counter could be zero and rest later.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[///////////////////////////////////////////////]
+[section:cf Constructor with completion function]
+
+        template <typename F>
+        completion_latch(std::size_t count, F&& funct);
+
+[variablelist
+
+[[Effects:] [Construct a completion_latch with is initial value for the internal counter and the completion function `funct`.]]
+
+[[Note:] [The counter could be zero and reset later.]]
+
+[[Throws:] [
+
+ - Any exception thrown by the copy/move construction of funct. 
+
+]]
+
+]
+
+[endsect]
+[///////////////////////////////////]
+[section:then Member Function `then`]
+
+        template <typename F>
+        completion_function then(F&& funct);
+
+[variablelist
+
+[[Requires:] [This function may only be invoked when there are no other threads currently inside the waiting functions. It may also be invoked from within the registered completion function. ]]
+
+[[Effects:] [Associates the parameter `funct` as completion function of the latch. The next time the internal count reaches 0, this function will be invoked.]]
+[[Returns:] [The old completion function.]]
+
+[[Throws:] [
+ - __thread_resource_error__ if an error occurs. 
+
+ - Any exception thrown by the copy/move construction of completion functions. 
+]]
+
+]
+
+[endsect]
+
+[endsect] [/ completion_latch]
+]
+
+[endsect] [/ Latches]

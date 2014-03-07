@@ -1,0 +1,527 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content=
+"HTML Tidy for Linux/x86 (vers 1st March 2004), see www.w3.org" />
+<meta http-equiv="Content-Type" content=
+"text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Vector Proxies</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Vector Proxies</h1>
+<div class="toc" id="toc"></div>
+<h2><a name="vector_range"></a>Vector Range</h2>
+<h4>Description</h4>
+<p>The templated class <code>vector_range&lt;V&gt;</code> allows
+addressing a sub-range of a vector's element.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/vector.hpp&gt;
+#include &lt;boost/numeric/ublas/vector_proxy.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    vector&lt;double&gt; v (3);
+    vector_range&lt;vector&lt;double&gt; &gt; vr (v, range (0, 3));
+    for (unsigned i = 0; i &lt; vr.size (); ++ i)
+        vr (i) = i;
+    std::cout &lt;&lt; vr &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header vector_proxy.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>V</code></td>
+<td>The type of vector referenced.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#vector_expression">Vector Expression</a>
+.</p>
+<p>If the specified range falls outside that of the index range of
+the vector, then the <code>vector_range</code> is not a well formed
+Vector Expression. That is, access to an element which is outside
+of index range of the vector is <i>undefined</i>.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#vector_expression">Vector Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>vector_expression&lt;vector_range&lt;V&gt; &gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>vector_range (vector_type &amp;data, const range
+&amp;r)</code></td>
+<td>Constructs a sub vector.</td>
+</tr>
+<tr>
+<td><code>size_type start () const</code></td>
+<td>Returns the start of the sub vector.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td>Returns the size of the sub vector.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i)
+const</code></td>
+<td>Returns the value of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i)</code></td>
+<td>Returns a reference of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>const_reference operator [] (size_type i)
+const</code></td>
+<td>Returns the value of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>reference operator [] (size_type i)</code></td>
+<td>Returns a reference of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>vector_range &amp;operator = (const vector_range
+&amp;vr)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>vector_range &amp;assign_temporary (vector_range
+&amp;vr)</code></td>
+<td>Assigns a temporary. May change the vector range
+<code>vr</code> .</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector_range &amp;operator = (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector_range &amp;assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a vector expression to the sub vector. Left and right
+hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector_range &amp;operator += (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Adds the vector expression to
+the sub vector.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector_range &amp;plus_assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Adds a vector expression to the sub vector. Left and right hand
+side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector_range &amp;operator -= (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the vector expression
+from the sub vector.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector_range &amp;minus_assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Subtracts a vector expression from the sub vector. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+vector_range &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the sub vector with
+a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+vector_range &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the sub vector through
+a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (vector_range &amp;vr)</code></td>
+<td>Swaps the contents of the sub vectors.</td>
+</tr>
+<tr>
+<td><code>const_iterator begin () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the beginning
+of the <code>vector_range</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator end () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the end of
+the <code>vector_range</code>.</td>
+</tr>
+<tr>
+<td><code>iterator begin ()</code></td>
+<td>Returns a <code>iterator</code> pointing to the beginning of
+the <code>vector_range</code>.</td>
+</tr>
+<tr>
+<td><code>iterator end ()</code></td>
+<td>Returns a <code>iterator</code> pointing to the end of the
+<code>vector_range</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rbegin () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+beginning of the reversed <code>vector_range</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rend () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+end of the reversed <code>vector_range</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rbegin ()</code></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the
+beginning of the reversed <code>vector_range</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rend ()</code></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the end of
+the reversed <code>vector_range</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3>Simple Projections</h3>
+<h4>Description</h4>
+<p>The free <code>subrange</code> functions support the construction
+of vector ranges.</p>
+<h4>Prototypes</h4>
+<pre><code>
+    template&lt;class V&gt;
+    vector_range&lt;V&gt; subrange (V &amp;data,
+       V::size_type start, V::size_type stop);
+    template&lt;class V&gt;
+    const vector_range&lt;const V&gt; subrange (const V &amp;data,
+       V::size_type start, V::size_type stop);
+</code></pre>
+<h3>Generic Projections</h3>
+<h4>Description</h4>
+<p>The free <code>project</code> functions support the construction
+of vector ranges. Existing <code>matrix_range</code>'s can be composed with a further range. The resulting range is computed using this existing range's <code>compose</code> function.</p>
+<h4>Prototypes</h4>
+<pre><code>
+    template&lt;class V&gt;
+    vector_range&lt;V&gt; project (V &amp;data, const range &amp;r);
+    template&lt;class V&gt;
+    const vector_range&lt;const V&gt; project (const V &amp;data, const range &amp;r);
+    template&lt;class V&gt;
+    vector_range&lt;V&gt; project (vector_range&lt;V&gt; &amp;data, const range &amp;r);
+    template&lt;class V&gt;
+    const vector_range&lt;V&gt; project (const vector_range&lt;V&gt; &amp;data, const range &amp;r);
+</code></pre>
+<h4>Definition</h4>
+<p>Defined in the header vector_proxy.hpp.</p>
+<h4>Type requirements</h4>
+<ul>
+<li><code>V</code> is a model of <a href=
+"expression_concept.htm#vector_expression">Vector Expression</a> .</li>
+</ul>
+<h4>Complexity</h4>
+<p>Linear depending from the size of the range.</p>
+<h4>Examples</h4>
+<pre>
+#include &lt;boost/numeric/ublas/vector.hpp&gt;
+#include &lt;boost/numeric/ublas/vector_proxy.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    vector&lt;double&gt; v (3);
+    for (int i = 0; i &lt; 3; ++ i)
+        project (v, range (0, 3)) (i) = i;
+    std::cout &lt;&lt; project (v, range (0, 3)) &lt;&lt; std::endl;
+}
+</pre>
+<h2><a name="vector_slice"></a>Vector Slice</h2>
+<h4>Description</h4>
+<p>The templated class <code>vector_slice&lt;V&gt;</code> allows
+addressing a slice of a vector.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/vector.hpp&gt;
+#include &lt;boost/numeric/ublas/vector_proxy.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    vector&lt;double&gt; v (3);
+    vector_slice&lt;vector&lt;double&gt; &gt; vs (v, slice (0, 1, 3));
+    for (unsigned i = 0; i &lt; vs.size (); ++ i)
+        vs (i) = i;
+    std::cout &lt;&lt; vs &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header vector_proxy.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>V</code></td>
+<td>The type of vector referenced.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#vector_expression">Vector Expression</a>
+.</p>
+<p>If the specified slice falls outside that of the index range of
+the vector, then the <code>vector_slice</code> is not a well formed
+Vector Expression. That is, access to an element which is outside
+of index range of the vector is <i>undefined</i>.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#vector_expression">Vector Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>vector_expression&lt;vector_slice&lt;V&gt; &gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>vector_slice (vector_type &amp;data, const slice
+&amp;s)</code></td>
+<td>Constructs a sub vector.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td>Returns the size of the sub vector.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i)
+const</code></td>
+<td>Returns the value of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i)</code></td>
+<td>Returns a reference of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>const_reference operator [] (size_type i)
+const</code></td>
+<td>Returns the value of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>reference operator [] (size_type i)</code></td>
+<td>Returns a reference of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>vector_slice &amp;operator = (const vector_slice
+&amp;vs)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>vector_slice &amp;assign_temporary (vector_slice
+&amp;vs)</code></td>
+<td>Assigns a temporary. May change the vector slice
+<code>vs</code> .</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector_slice &amp;operator = (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector_slice &amp;assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a vector expression to the sub vector. Left and right
+hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector_slice &amp;operator += (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Adds the vector expression to
+the sub vector.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector_slice &amp;plus_assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Adds a vector expression to the sub vector. Left and right hand
+side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector_slice &amp;operator -= (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the vector expression
+from the sub vector.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector_slice &amp;minus_assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Subtracts a vector expression from the sub vector. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+vector_slice &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the sub vector with
+a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+vector_slice &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the sub vector through
+a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (vector_slice &amp;vs)</code></td>
+<td>Swaps the contents of the sub vectors.</td>
+</tr>
+<tr>
+<td><code>const_iterator begin () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the beginning
+of the <code>vector_slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator end () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the end of
+the <code>vector_slice</code>.</td>
+</tr>
+<tr>
+<td><code>iterator begin ()</code></td>
+<td>Returns a <code>iterator</code> pointing to the beginning of
+the <code>vector_slice</code>.</td>
+</tr>
+<tr>
+<td><code>iterator end ()</code></td>
+<td>Returns a <code>iterator</code> pointing to the end of the
+<code>vector_slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rbegin () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+beginning of the reversed <code>vector_slice</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rend () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+end of the reversed <code>vector_slice</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rbegin ()</code></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the
+beginning of the reversed <code>vector_slice</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rend ()</code></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the end of
+the reversed <code>vector_slice</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3>Simple Projections</h3>
+<h4>Description</h4>
+<p>The free <code>subslice</code> functions support the construction
+of vector slices.</p>
+<h4>Prototypes</h4>
+<pre><code>
+    template&lt;class V&gt;
+    vector_slice&lt;V&gt; subslice (V &amp;data,
+       V::size_type start, V::difference_type stride, V::size_type size);
+    template&lt;class V&gt;
+    const vector_slice&lt;const V&gt; subslice (const V &amp;data,
+       V::size_type start, V::difference_type stride, V::size_type size);
+</code></pre>
+<h3>Generic Projections</h3>
+<h4>Description</h4>
+<p>The free <code>project</code> functions support the construction
+of vector slices. Existing <code>vector_slice</code>'s can be composed with a further range or slices. The resulting slice is computed using this existing slices's <code>compose</code> function.</p>
+<h4>Prototypes</h4>
+<pre><code>
+    template&lt;class V&gt;
+    vector_slice&lt;V&gt; project (V &amp;data, const slice &amp;s);
+    template&lt;class V&gt;
+    const vector_slice&lt;const V&gt; project (const V &amp;data, const slice &amp;s);
+    template&lt;class V&gt;
+    vector_slice&lt;V&gt; project (vector_slice&lt;V&gt; &amp;data, const range &amp;r);
+    template&lt;class V&gt;
+    const vector_slice&lt;V&gt; project (const vector_slice&lt;V&gt; &amp;data, const range &amp;r);
+    template&lt;class V&gt;
+    vector_slice&lt;V&gt; project (vector_slice&lt;V&gt; &amp;data, const slice &amp;s);
+    template&lt;class V&gt;
+    const vector_slice&lt;V&gt; project (const vector_slice&lt;V&gt; &amp;data, const slice &amp;s);
+</code></pre>
+<h4>Definition</h4>
+<p>Defined in the header vector_proxy.hpp.</p>
+<h4>Type requirements</h4>
+<ul>
+<li><code>V</code> is a model of <a href=
+"expression_concept.htm#vector_expression">Vector Expression</a> .</li>
+</ul>
+<h4>Complexity</h4>
+<p>Linear depending from the size of the slice.</p>
+<h4>Examples</h4>
+<pre>
+#include &lt;boost/numeric/ublas/vector.hpp&gt;
+#include &lt;boost/numeric/ublas/vector_proxy.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    vector&lt;double&gt; v (3);
+    for (int i = 0; i &lt; 3; ++ i)
+        project (v, slice (0, 1, 3)) (i) = i;
+    std::cout &lt;&lt; project (v, slice (0, 1, 3)) &lt;&lt; std::endl;
+}
+</pre>
+<hr />
+<p>Copyright (&copy;) 2000-2002 Joerg Walter, Mathias Koch<br />
+   Use, modification and distribution are subject to the
+   Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt
+   or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+</p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

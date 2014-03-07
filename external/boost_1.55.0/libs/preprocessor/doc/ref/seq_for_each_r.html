@@ -1,0 +1,77 @@
+<html>
+	<head>
+		<title>BOOST_PP_SEQ_FOR_EACH_R</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+	</head>
+	<body>
+		<div style="margin-left:  0px;">
+			The <b>BOOST_PP_SEQ_FOR_EACH_R</b> macro repeats a macro for each element in a <i>seq</i>.&nbsp; 
+			It reenters <b>BOOST_PP_FOR</b> with maximum efficiency.
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_FOR_EACH_R</b>(<i>r</i>, <i>macro</i>, <i>data</i>, <i>seq</i>)
+		</div>
+		<h4>
+			Arguments
+		</h4>
+		<dl>
+			<dt>r</dt>
+			<dd>
+				The next available <b>BOOST_PP_FOR</b> repetition.
+			</dd>
+			<dt>macro</dt>
+			<dd>
+				A ternary macro of the form <i>macro</i>(<i>r</i>, <i>data</i>, <i>elem</i>).&nbsp; 
+				This macro is expanded by <b>BOOST_PP_SEQ_FOR_EACH</b> with each element in <i>seq</i>.&nbsp; 
+				It is expanded with the next available <b>BOOST_PP_FOR</b> repetition, the 
+				auxiliary <i>data</i>, and the current element.
+			</dd>
+			<dt>data</dt>
+			<dd>
+				Auxiliary data passed to <i>macro</i>.
+			</dd>
+			<dt>seq</dt>
+			<dd>
+				The <i>seq</i> for which <i>macro</i> will be invoked on each element.
+			</dd>
+		</dl>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			This macro is a repetition construct.&nbsp; If <i>seq</i> is (<i>a</i>)(<i>b</i>)(<i>c</i>), 
+			it expands to the sequence:
+			<div>
+				<i>macro</i>(<i>r</i>, <i>data</i>, <i>a</i>) <i>macro</i>(<i>r</i>, <i>data</i>,
+				<i>b</i>) <i>macro</i>(<i>r</i>, <i>data</i>, <i>c</i>)
+			</div>
+		</div>
+		<h4>
+			See Also
+		</h4>
+		<ul>
+			<li>
+				<a href="seq_for_each.html">BOOST_PP_SEQ_FOR_EACH</a></li>
+		</ul>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/for_each.html">&lt;boost/preprocessor/seq/for_each.hpp&gt;</a>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+	</body>
+</html>

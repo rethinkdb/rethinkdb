@@ -1,0 +1,163 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/implicit.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/implicit.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#functions">Functions</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#implicitly_convertible-spec">Function Template
+          <code>implicitly_convertible</code></a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+    <code>implicitly_convertible</code> allows Boost.Python to implicitly
+    take advantage of a C++ implicit or explicit conversion when matching
+    Python objects to C++ argument types. 
+
+    <h2><a name="functions"></a>Functions</h2>
+
+    <h3><a name="implicitly_convertible-spec"></a>Function template
+    <code>implicitly_convertible</code></h3>
+<pre>
+template &lt;class Source, class Target&gt;
+void implicitly_convertible();
+</pre>
+
+    <table border="1" summary="implicitly_convertible template parameters">
+      <caption>
+        <b><code>implicitly_convertible</code> template parameters</b><br>
+      </caption>
+
+      <tr>
+        <th>Parameter</th>
+
+        <th>Description</th>
+      </tr>
+
+      <tr>
+        <td><code>Source</code></td>
+
+        <td>The source type of the implicit conversion</td>
+      </tr>
+
+      <tr>
+        <td><code>Target</code></td>
+
+        <td>The target type of the implicit conversion</td>
+      </tr>
+    </table>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> The declaration <code>Target t(s);</code>, where
+      <code>s</code> is of type <code>Source</code>, is valid.</dt>
+
+      <dt><b>Effects:</b> registers an rvalue <code>from_python</code>
+      converter to <code>Target</code> which can succeed for any
+      <code>PyObject*&nbsp;p</code> iff there exists any registered converter
+      which can produce <code>Source</code> rvalues</dt>
+
+      <dt><b>Rationale:</b> C++ users expect to be able to take advantage of
+      the same sort of interoperability in Python as they do in C++.</dt>
+    </dl>
+
+    <h2><a name="examples"></a>Example</h2>
+
+    <h3>C++ module definition</h3>
+<pre>
+#include &lt;boost/python/class.hpp&gt;
+#include &lt;boost/python/implicit.hpp&gt;
+#include &lt;boost/python/module.hpp&gt;
+
+using namespace boost::python;
+
+struct X
+{
+    X(int x) : v(x) {}
+    operator int() const { return v; }
+    int v;
+};
+
+int x_value(X const&amp; x)
+{
+    return x.v;
+}
+
+X make_x(int n) { return X(n); }
+
+BOOST_PYTHON_MODULE(implicit_ext)
+{
+    def("x_value", x_value);
+    def("make_x", make_x);
+
+    class_&lt;X&gt;("X", 
+        init&lt;int&gt;())
+        ;
+
+    implicitly_convertible&lt;X,int&gt;();
+    implicitly_convertible&lt;int,X&gt;();
+}
+</pre>
+
+    <h3>Python code</h3>
+<pre>
+&gt;&gt;&gt; from implicit_ext import *
+&gt;&gt;&gt; x_value(X(42))
+42
+&gt;&gt;&gt; x_value(42)
+42
+&gt;&gt;&gt; x = make_x(X(42))
+&gt;&gt;&gt; x_value(x)
+42
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

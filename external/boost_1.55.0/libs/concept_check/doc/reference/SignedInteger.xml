@@ -1,0 +1,549 @@
+<?xml version="1.0"?>
+<concept name="SignedInteger" category="Utility"><!--
+Based on concepts from the SGI Standard Template Library documentation:
+Copyright (c) 1996-1999
+Silicon Graphics Computer Systems, Inc.
+
+Copyright (c) 1994
+Hewlett-Packard Company
+--><!--
+Copyright 2000-2001 University of Notre Dame du Lac.
+Copyright 2001-2002 Indiana University.
+Some concepts based on versions from the MTL draft manual and Boost Graph
+and Property Map documentation:
+Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+-->
+  <param name="T" role="integral-type"/>
+
+  <models-sentence>Integer type <arg num="1"/> must be a model of <self/>.</models-sentence>
+
+  <refines const="no" concept="CopyConstructible"/>
+  <refines const="no" concept="Assignable"/>
+  <refines const="no" concept="DefaultConstructible"/>
+  <refines const="no" concept="EqualityComparable"/>
+  <refines const="no" concept="LessThanComparable"/>
+
+  <notation variables="x y z">
+    <sample-value><type name="T"/></sample-value>
+  </notation>
+  <notation variables="a b">
+    <sample-value><type name="int"/></sample-value>
+  </notation>
+
+  <!--
+  <valid-type-expression name="int-ness">
+    <documentation>Should this really be required?</documentation>
+    <type name="T"/>
+    <return-type>
+      <require-same-type>
+	<type name="int"/>
+      </require-same-type>
+    </return-type>
+  </valid-type-expression>
+  -->
+
+  <valid-expression name="Conversion from int">
+    <construct template-parameters="">
+      <type name="T"/>
+      <sample-value><type name="int"/></sample-value>
+    </construct>
+    <return-type><require-same-type testable="yes">
+      <type name="T"/>
+    </require-same-type></return-type>
+  </valid-expression>
+
+  <valid-expression name="Preincrement">
+    <preincrement>
+      <sample-value>
+	<reference-to><type name="T"/></reference-to>
+      </sample-value>
+    </preincrement>
+    <return-type>
+      <require-same-type testable="yes">
+	<reference-to><type name="T"/></reference-to>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Predecrement">
+    <predecrement>
+      <sample-value>
+	<reference-to><type name="T"/></reference-to>
+      </sample-value>
+    </predecrement>
+    <return-type>
+      <require-same-type testable="yes">
+	<reference-to><type name="T"/></reference-to>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Postincrement">
+    <postincrement>
+      <sample-value>
+	<reference-to><type name="T"/></reference-to>
+      </sample-value>
+    </postincrement>
+    <return-type>
+      <require-same-type testable="yes">
+	<type name="T"/>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Postdecrement">
+    <postdecrement>
+      <sample-value>
+	<reference-to><type name="T"/></reference-to>
+      </sample-value>
+    </postdecrement>
+    <return-type>
+      <require-same-type testable="yes">
+	<type name="T"/>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Sum">
+    <add>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+    </add>
+    <return-type>
+      <require-same-type testable="yes">
+	<type name="T"/>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Sum with int">
+    <add>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="int"/>
+      </sample-value>
+    </add>
+    <return-type>
+      <require-same-type testable="yes">
+	<type name="T"/>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Sum-assignment">
+    <add-assign>
+      <sample-value>
+	<reference-to><type name="T"/></reference-to>
+      </sample-value>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+    </add-assign>
+    <return-type>
+      <require-same-type testable="yes">
+	<reference-to><type name="T"/></reference-to>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Sum-assignment with int">
+    <add-assign>
+      <sample-value>
+	<reference-to><type name="T"/></reference-to>
+      </sample-value>
+      <sample-value>
+	<type name="int"/>
+      </sample-value>
+    </add-assign>
+    <return-type>
+      <require-same-type testable="yes">
+	<reference-to><type name="T"/></reference-to>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Difference">
+    <subtract>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+    </subtract>
+    <return-type>
+      <require-same-type testable="yes">
+	<type name="T"/>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Difference with int">
+    <subtract>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="int"/>
+      </sample-value>
+    </subtract>
+    <return-type>
+      <require-same-type testable="yes">
+	<type name="T"/>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Product">
+    <multiply>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+    </multiply>
+    <return-type>
+      <require-same-type testable="yes">
+	<type name="T"/>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Product with int">
+    <multiply>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="int"/>
+      </sample-value>
+    </multiply>
+    <return-type>
+      <require-same-type testable="yes">
+	<type name="T"/>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Product-assignment with int">
+    <multiply-assign>
+      <sample-value>
+	<reference-to><type name="T"/></reference-to>
+      </sample-value>
+      <sample-value>
+	<type name="int"/>
+      </sample-value>
+    </multiply-assign>
+    <return-type>
+      <require-same-type testable="yes">
+	<reference-to><type name="T"/></reference-to>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Product with int on left">
+    <multiply>
+      <sample-value>
+	<type name="int"/>
+      </sample-value>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+    </multiply>
+    <return-type>
+      <require-same-type testable="yes">
+	<type name="T"/>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Quotient">
+    <divide>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+    </divide>
+    <return-type>
+      <require-same-type testable="yes">
+	<type name="T"/>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Quotient with int">
+    <divide>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="int"/>
+      </sample-value>
+    </divide>
+    <return-type>
+      <require-same-type testable="yes">
+	<type name="T"/>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Right-shift">
+    <shift-right>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+    </shift-right>
+    <return-type>
+      <require-same-type testable="yes">
+	<type name="T"/>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Right-shift with int">
+    <shift-right>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="int"/>
+      </sample-value>
+    </shift-right>
+    <return-type>
+      <require-same-type testable="yes">
+	<type name="T"/>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Right-shift-assignment with int">
+    <shift-right-assign>
+      <sample-value>
+	<reference-to><type name="T"/></reference-to>
+      </sample-value>
+      <sample-value>
+	<type name="int"/>
+      </sample-value>
+    </shift-right-assign>
+    <return-type>
+      <require-same-type testable="yes">
+	<reference-to><type name="T"/></reference-to>
+      </require-same-type>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Less-than comparison">
+    <less-than>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+    </less-than>
+    <return-type>
+      <convertible-to testable="yes">
+	<type name="bool"/>
+      </convertible-to>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Less-than comparison with int">
+    <less-than>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="int"/>
+      </sample-value>
+    </less-than>
+    <return-type>
+      <convertible-to testable="yes">
+	<type name="bool"/>
+      </convertible-to>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Less-than comparison with size_t">
+    <less-than>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="std::size_t"/>
+      </sample-value>
+    </less-than>
+    <return-type>
+      <convertible-to testable="yes">
+	<type name="bool"/>
+      </convertible-to>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Greater-than comparison">
+    <greater-than>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+    </greater-than>
+    <return-type>
+      <convertible-to testable="yes">
+	<type name="bool"/>
+      </convertible-to>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Greater-than comparison with int">
+    <greater-than>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="int"/>
+      </sample-value>
+    </greater-than>
+    <return-type>
+      <convertible-to testable="yes">
+	<type name="bool"/>
+      </convertible-to>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Less-than-or-equal comparison">
+    <less-than-or-equal>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+    </less-than-or-equal>
+    <return-type>
+      <convertible-to testable="yes">
+	<type name="bool"/>
+      </convertible-to>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Less-than-or-equal comparison with int">
+    <less-than-or-equal>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="int"/>
+      </sample-value>
+    </less-than-or-equal>
+    <return-type>
+      <convertible-to testable="yes">
+	<type name="bool"/>
+      </convertible-to>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Greater-than-or-equal comparison">
+    <greater-than-or-equal>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+    </greater-than-or-equal>
+    <return-type>
+      <convertible-to testable="yes">
+	<type name="bool"/>
+      </convertible-to>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Greater-than-or-equal comparison with int">
+    <greater-than-or-equal>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="int"/>
+      </sample-value>
+    </greater-than-or-equal>
+    <return-type>
+      <convertible-to testable="yes">
+	<type name="bool"/>
+      </convertible-to>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Greater-than-or-equal comparison with int on left">
+    <greater-than-or-equal>
+      <sample-value>
+	<type name="int"/>
+      </sample-value>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+    </greater-than-or-equal>
+    <return-type>
+      <convertible-to testable="yes">
+	<type name="bool"/>
+      </convertible-to>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Equality comparison">
+    <equal-to>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+    </equal-to>
+    <return-type>
+      <convertible-to testable="yes">
+	<type name="bool"/>
+      </convertible-to>
+    </return-type>
+  </valid-expression>
+
+  <valid-expression name="Equality comparison with int">
+    <equal-to>
+      <sample-value>
+	<type name="T"/>
+      </sample-value>
+      <sample-value>
+	<type name="int"/>
+      </sample-value>
+    </equal-to>
+    <return-type>
+      <convertible-to testable="yes">
+	<type name="bool"/>
+      </convertible-to>
+    </return-type>
+  </valid-expression>
+
+  <valid-type-expression name="Conversion to int">
+    <documentation/>
+    <type name="T"/>
+    <return-type>
+      <convertible-to testable="yes">
+	<type name="int"/>
+      </convertible-to>
+    </return-type>
+  </valid-type-expression>
+
+</concept>

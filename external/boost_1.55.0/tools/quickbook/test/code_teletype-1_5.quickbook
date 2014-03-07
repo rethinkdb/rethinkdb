@@ -1,0 +1,13 @@
+[article Code Block Teletype 1
+    [quickbook 1.5]
+    [source-mode teletype]
+]
+
+[section A code block]
+
+[def __text__ text]
+
+    Just some plain __text__.
+    ``With some *quickbook* thrown in?``
+
+[endsect]

@@ -1,0 +1,414 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Options for POSIX Basic Regular Expressions</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Boost.Regex">
+<link rel="up" href="../syntax_option_type.html" title="syntax_option_type">
+<link rel="prev" href="syntax_option_type_extended.html" title="Options for POSIX Extended Regular Expressions">
+<link rel="next" href="syntax_option_type_literal.html" title="Options for Literal Strings">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="syntax_option_type_extended.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../syntax_option_type.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="syntax_option_type_literal.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_ref_syntax_option_type_syntax_option_type_basic">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_regex.ref.syntax_option_type.syntax_option_type_basic"></a><a class="link" href="syntax_option_type_basic.html" title="Options for POSIX Basic Regular Expressions">Options
+        for POSIX Basic Regular Expressions</a>
+</h4></div></div></div>
+<p>
+          Exactly one of the following must always be set for POSIX basic regular
+          expressions:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Element
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Standardized
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Effect When Set
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    basic
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Yes
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specifies that the grammar recognized by the regular expression
+                    engine is the same as that used by <a class="link" href="../../syntax/basic_syntax.html" title="POSIX Basic Regular Expression Syntax">POSIX
+                    basic regular expressions</a> in IEEE Std 1003.1-2001, Portable
+                    Operating System Interface (POSIX ), Base Definitions and Headers,
+                    Section 9, Regular Expressions (FWD.1).
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    sed
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    As Above.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    grep
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Yes
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specifies that the grammar recognized by the regular expression
+                    engine is the same as that used by POSIX utility <code class="computeroutput"><span class="identifier">grep</span></code> in IEEE Std 1003.1-2001,
+                    Portable Operating System Interface (POSIX ), Shells and Utilities,
+                    Section 4, Utilit\ies, grep (FWD.1).
+                  </p>
+                  <p>
+                    That is to say, the same as <a class="link" href="../../syntax/basic_syntax.html" title="POSIX Basic Regular Expression Syntax">POSIX
+                    basic syntax</a>, but with the newline character acting as
+                    an alternation character; the expression is treated as a newline
+                    separated list of alternatives.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    emacs
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specifies that the grammar recognised is the superset of the
+                    <a class="link" href="../../syntax/basic_syntax.html" title="POSIX Basic Regular Expression Syntax">POSIX-Basic syntax</a>
+                    used by the emacs program.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          The following options may also be set when using POSIX basic regular expressions:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Element
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Standardized
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Effect when set
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    icase
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Yes
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specifies that matching of regular expressions against a character
+                    container sequence shall be performed without regard to case.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    nosubs
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Yes
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specifies that when a regular expression is matched against a
+                    character container sequence, then no sub-expression matches
+                    are to be stored in the supplied <a class="link" href="../match_results.html" title="match_results"><code class="computeroutput"><span class="identifier">match_results</span></code></a> structure.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    optimize
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Yes
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specifies that the regular expression engine should pay more
+                    attention to the speed with which regular expressions are matched,
+                    and less to the speed with which regular expression objects are
+                    constructed. Otherwise it has no detectable effect on the program
+                    output. This currently has no effect for Boost.Regex.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    collate
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Yes
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specifies that character ranges of the form <code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">-</span><span class="identifier">b</span><span class="special">]</span></code>
+                    should be locale sensitive. This bit is on by default for <a class="link" href="../../syntax/basic_syntax.html" title="POSIX Basic Regular Expression Syntax">POSIX-Basic regular
+                    expressions</a>, but can be unset to force ranges to be compared
+                    by code point only.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    newline_alt
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Specifies that the \n character has the same effect as the alternation
+                    operator |. Allows newline separated lists to be used as a list
+                    of alternatives. This bit is already set, if you use the <code class="computeroutput"><span class="identifier">grep</span></code> option.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    no_char_classes
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    When set then character classes such as <code class="computeroutput"><span class="special">[[:</span><span class="identifier">alnum</span><span class="special">:]]</span></code>
+                    are not allowed.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    no_escape_in_lists
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    When set this makes the escape character ordinary inside lists,
+                    so that <code class="computeroutput"><span class="special">[\</span><span class="identifier">b</span><span class="special">]</span></code> would match either '\' or 'b'.
+                    This bit is on by default for <a class="link" href="../../syntax/basic_syntax.html" title="POSIX Basic Regular Expression Syntax">POSIX-basic
+                    regular expressions</a>, but can be unset to force escapes
+                    to be recognised inside lists.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    no_intervals
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    When set then bounded repeats such as a{2,3} are not permitted.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    bk_plus_qm
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    When set then <code class="computeroutput"><span class="special">\?</span></code>
+                    acts as a zero-or-one repeat operator, and <code class="computeroutput"><span class="special">\+</span></code>
+                    acts as a one-or-more repeat operator.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    bk_vbar
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    When set then <code class="computeroutput"><span class="special">\|</span></code>
+                    acts as the alternation operator.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    no_except
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Prevents <a class="link" href="../basic_regex.html" title="basic_regex"><code class="computeroutput"><span class="identifier">basic_regex</span></code></a> from throwing
+                    an exception when an invalid expression is encountered.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    save_subexpression_location
+                  </p>
+                </td>
+<td>
+                  <p>
+                    No
+                  </p>
+                </td>
+<td>
+                  <p>
+                    When set then the locations of individual sub-expressions within
+                    the <span class="emphasis"><em>original regular expression string</em></span> can
+                    be accessed via the <a class="link" href="../basic_regex.html#boost_regex.basic_regex.subexpression"><code class="computeroutput"><span class="identifier">subexpression</span><span class="special">()</span></code></a>
+                    member function of <code class="computeroutput"><span class="identifier">basic_regex</span></code>.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="syntax_option_type_extended.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../syntax_option_type.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="syntax_option_type_literal.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

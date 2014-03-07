@@ -1,0 +1,145 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>posix::descriptor_base</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="posix__basic_stream_descriptor/write_some/overload2.html" title="posix::basic_stream_descriptor::write_some (2 of 2 overloads)">
+<link rel="next" href="posix__descriptor_base/bytes_readable.html" title="posix::descriptor_base::bytes_readable">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="posix__basic_stream_descriptor/write_some/overload2.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="posix__descriptor_base/bytes_readable.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.posix__descriptor_base"></a><a class="link" href="posix__descriptor_base.html" title="posix::descriptor_base">posix::descriptor_base</a>
+</h3></div></div></div>
+<p>
+        The <a class="link" href="posix__descriptor_base.html" title="posix::descriptor_base"><code class="computeroutput"><span class="identifier">posix</span><span class="special">::</span><span class="identifier">descriptor_base</span></code></a> class is used as
+        a base for the <a class="link" href="posix__basic_stream_descriptor.html" title="posix::basic_stream_descriptor"><code class="computeroutput"><span class="identifier">posix</span><span class="special">::</span><span class="identifier">basic_stream_descriptor</span></code></a> class template
+        so that we have a common place to define the associated IO control commands.
+      </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">descriptor_base</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.posix__descriptor_base.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.posix__descriptor_base.types"></a></span><a class="link" href="posix__descriptor_base.html#boost_asio.reference.posix__descriptor_base.types">Types</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__descriptor_base/bytes_readable.html" title="posix::descriptor_base::bytes_readable"><span class="bold"><strong>bytes_readable</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  IO control command to get the amount of data that can be read without
+                  blocking.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="posix__descriptor_base/non_blocking_io.html" title="posix::descriptor_base::non_blocking_io"><span class="bold"><strong>non_blocking_io</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  (Deprecated: Use non_blocking().) IO control command to set the
+                  blocking mode of the descriptor.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.posix__descriptor_base.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.posix__descriptor_base.protected_member_functions"></a></span><a class="link" href="posix__descriptor_base.html#boost_asio.reference.posix__descriptor_base.protected_member_functions">Protected
+        Member Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  <a class="link" href="posix__descriptor_base/_descriptor_base.html" title="posix::descriptor_base::~descriptor_base"><span class="bold"><strong>~descriptor_base</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Protected destructor to prevent deletion through this type.
+                </p>
+              </td>
+</tr></tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.posix__descriptor_base.h2"></a>
+        <span class="phrase"><a name="boost_asio.reference.posix__descriptor_base.requirements"></a></span><a class="link" href="posix__descriptor_base.html#boost_asio.reference.posix__descriptor_base.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/posix/descriptor_base.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="posix__basic_stream_descriptor/write_some/overload2.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="posix__descriptor_base/bytes_readable.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

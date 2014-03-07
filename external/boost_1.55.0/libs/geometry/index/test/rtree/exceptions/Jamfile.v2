@@ -1,0 +1,21 @@
+# Boost.Geometry Index
+#
+# Copyright (c) 2011-2013 Adam Wulkiewicz, Lodz, Poland.
+#
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+rule test_all
+{
+   local all_rules = ;
+
+   for local fileb in [ glob *.cpp ]
+   {
+      all_rules += [ run $(fileb) ] ;
+   }
+
+   return $(all_rules) ;
+}
+
+test-suite boost-geometry-index-rtree-exceptions : [ test_all r ] ;

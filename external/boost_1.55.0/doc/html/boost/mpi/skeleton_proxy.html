@@ -1,0 +1,93 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template skeleton_proxy</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../mpi/reference.html#header.boost.mpi.skeleton_and_content_hpp" title="Header &lt;boost/mpi/skeleton_and_content.hpp&gt;">
+<link rel="prev" href="request.html" title="Class request">
+<link rel="next" href="content.html" title="Class content">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="request.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.skeleton_and_content_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="content.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.mpi.skeleton_proxy"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template skeleton_proxy</span></h2>
+<p>boost::mpi::skeleton_proxy &#8212; A proxy that requests that the skeleton of an object be transmitted. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../mpi/reference.html#header.boost.mpi.skeleton_and_content_hpp" title="Header &lt;boost/mpi/skeleton_and_content.hpp&gt;">boost/mpi/skeleton_and_content.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="skeleton_proxy.html" title="Struct template skeleton_proxy">skeleton_proxy</a> <span class="special">{</span>
+  <span class="comment">// <a class="link" href="skeleton_proxy.html#boost.mpi.skeleton_proxyconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="skeleton_proxy.html#idp94765560-bb"><span class="identifier">skeleton_proxy</span></a><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="identifier">T</span> <span class="special">&amp;</span> <span class="identifier">object</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp162811896"></a><h2>Description</h2>
+<p>The <code class="computeroutput"><a class="link" href="skeleton_proxy.html" title="Struct template skeleton_proxy">skeleton_proxy</a></code> is a lightweight proxy object used to indicate that the skeleton of an object, not the object itself, should be transmitted. It can be used with the <code class="computeroutput">send</code> and <code class="computeroutput">recv</code> operations of communicators or the <code class="computeroutput">broadcast</code> collective. When a <code class="computeroutput"><a class="link" href="skeleton_proxy.html" title="Struct template skeleton_proxy">skeleton_proxy</a></code> is sent, Boost.MPI generates a description containing the structure of the stored object. When that skeleton is received, the receiving object is reshaped to match the structure. Once the skeleton of an object as been transmitted, its <code class="computeroutput">content</code> can be transmitted separately (often several times) without changing the structure of the object. </p>
+<div class="refsect2">
+<a name="idp162815480"></a><h3>
+<a name="boost.mpi.skeleton_proxyconstruct-copy-destruct"></a><code class="computeroutput">skeleton_proxy</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp94765560-bb"></a><span class="identifier">skeleton_proxy</span><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><code class="computeroutput"><a class="link" href="skeleton_proxy.html" title="Struct template skeleton_proxy">skeleton_proxy</a></code></code> that references object <code class="computeroutput">x</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">x</code></span></p></td>
+<td><p>the object whose structure will be transmitted or altered. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2007 Douglas Gregor,
+      Matthias Troyer, Trustees of Indiana University<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="request.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.skeleton_and_content_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="content.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

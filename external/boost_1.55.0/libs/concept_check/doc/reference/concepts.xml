@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library-reference PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<library-reference id="concepts.reference" 
+         xmlns:xi="http://www.w3.org/2001/XInclude" 
+         last-revision="$Date: 2009-07-26 13:11:03 -0700 (Sun, 26 Jul 2009) $">
+  <sectioninfo>
+    <copyright>
+      <year>2001</year>
+      <year>2002</year>
+      <holder>Indiana University</holder>
+    </copyright>
+
+    <copyright>
+      <year>2000</year>
+      <year>2001</year>
+      <holder>University of Notre Dame du Lac</holder>
+    </copyright>
+
+    <copyright>
+      <year>2000</year>
+      <holder>Jeremy Siek</holder>
+      <holder>Lie-Quan Lee</holder>
+      <holder>Andrew Lumsdaine</holder>
+    </copyright>
+
+    <copyright>
+      <year>1996</year>
+      <year>1997</year>
+      <year>1998</year>
+      <year>1999</year>
+      <holder>Silicon Graphics Computer Systems, Inc.</holder>
+    </copyright>
+
+    <copyright>
+      <year>1994</year>
+      <holder>Hewlett-Packard Company</holder>
+    </copyright>
+
+    <legalnotice>
+      <para>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <filename>LICENSE_1_0.txt</filename> or copy at 
+      <ulink
+      url="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</ulink>)
+      </para>
+
+      <para>This product includes software developed at the University
+      of Notre Dame and the Pervasive Technology Labs at Indiana
+      University. For technical information contact Andrew Lumsdaine
+      at the Pervasive Technology Labs at Indiana University.  For
+      administrative and license questions contact the Advanced
+      Research and Technology Institute at 351 West 10th Street.
+      Indianapolis, Indiana 46202, phone 317-278-4100, fax
+      317-274-5902.</para>
+
+      <para>Some concepts based on versions from the MTL draft manual
+      and Boost Graph and Property Map documentation, the SGI Standard
+      Template Library documentation and the Hewlett-Packard STL,
+      under the following license: 
+        <blockquote><simpara>Permission to use, copy, modify, distribute and
+        sell this software and its documentation for any purpose is
+        hereby granted without fee, provided that the above copyright
+        notice appears in all copies and that both that copyright
+        notice and this permission notice appear in supporting
+        documentation.  Silicon Graphics makes no representations
+        about the suitability of this software for any purpose.  It is
+        provided "as is" without express or implied
+        warranty.</simpara></blockquote></para>
+    </legalnotice>
+  </sectioninfo>
+  <title>Concept reference</title>
+
+  <xi:include href="Assignable.xml"/>
+  <xi:include href="InputIterator.xml"/>
+  <xi:include href="OutputIterator.xml"/>
+  <xi:include href="ForwardIterator.xml"/>
+  <xi:include href="BidirectionalIterator.xml"/>
+  <xi:include href="RandomAccessIterator.xml"/>
+  <xi:include href="DefaultConstructible.xml"/>
+  <xi:include href="CopyConstructible.xml"/>
+  <xi:include href="EqualityComparable.xml"/>
+  <xi:include href="LessThanComparable.xml"/>
+  <xi:include href="SignedInteger.xml"/>
+</library-reference>

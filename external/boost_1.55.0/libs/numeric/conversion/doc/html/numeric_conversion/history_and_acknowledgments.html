@@ -1,0 +1,105 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>History and Acknowledgments</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="numeric_conversion.history_and_acknowledgments"></a><a class="link" href="history_and_acknowledgments.html" title="History and Acknowledgments">History
+    and Acknowledgments</a>
+</h2></div></div></div>
+    
+    <h4>
+<a name="numeric_conversion.history_and_acknowledgments.h0"></a>
+      <span><a name="numeric_conversion.history_and_acknowledgments.pre_formal_review"></a></span><a class="link" href="history_and_acknowledgments.html#numeric_conversion.history_and_acknowledgments.pre_formal_review">Pre-formal
+      review</a>
+    </h4>
+    <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+        
+          Kevlin Henney, with help from David Abrahams and Beman Dawes, originally
+          contributed the previous version of <code class="computeroutput"><span class="identifier">numeric_cast</span><span class="special">&lt;&gt;</span></code> which already presented the idea
+          of a runtime range check.
+        
+      </li>
+<li class="listitem">
+        
+          Later, Eric Ford, Kevin Lynch and the author spotted some genericity problems
+          with that <code class="computeroutput"><span class="identifier">numeric_cast</span><span class="special">&lt;&gt;</span></code> which prevented it from being used
+          in a generic layer of math functions.
+        
+      </li>
+<li class="listitem">
+        
+          An improved <code class="computeroutput"><span class="identifier">numeric_cast</span><span class="special">&lt;&gt;</span></code> which properly handled all combinations
+          of arithmetic types was presented.
+        
+      </li>
+<li class="listitem">
+        
+          David Abrahams and Beman Dawes acknowledged the need of an improved version
+          of <code class="computeroutput"><span class="identifier">numeric_cast</span><span class="special">&lt;&gt;</span></code>
+          and supported the submission as originally laid out. Daryl Walker and Darin
+          Adler made some important comments and proposed fixes to the original submission.
+        
+      </li>
+<li class="listitem">
+        
+          Special thanks go to Bj&#246;rn Karlsoon who helped the author considerably.
+          Having found the problems with <code class="computeroutput"><span class="identifier">numeric_cast</span><span class="special">&lt;&gt;</span></code> himself, he revised very carefully
+          the original submission and spot a subtle bug in the range checking implementation.
+          He also wrote part of this documentation and proof-read and corrected other
+          parts. And most importantly: the features now presented here in this library
+          evolved from the original submission as a result of the useful private
+          communications between Bj&#246;rn and the author.
+        
+      </li>
+</ul></div>
+    <h4>
+<a name="numeric_conversion.history_and_acknowledgments.h1"></a>
+      <span><a name="numeric_conversion.history_and_acknowledgments.post_formal_review"></a></span><a class="link" href="history_and_acknowledgments.html#numeric_conversion.history_and_acknowledgments.post_formal_review">Post-formal
+      review</a>
+    </h4>
+    <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+        
+          Guillaume Melquiond spoted some documentation and code issues, particularly
+          about rounding conversions.
+        
+      </li>
+<li class="listitem">
+        
+          The following people contributed an important review of the design, documentation
+          and c ode: Kevin Lynch, Thorsten Ottosen, Paul Bristow, Daryle Walker,
+          Jhon Torjo, Eric Ford, Gennadiy Rozental.
+        
+      </li>
+</ul></div>
+  </div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+</body>
+</html>

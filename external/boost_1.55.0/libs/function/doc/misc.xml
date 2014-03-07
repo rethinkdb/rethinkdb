@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Copyright (c) 2002 Douglas Gregor <doug.gregor -at- gmail.com>
+  
+   Distributed under the Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt or copy at
+   http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<section id="function.misc" last-revision="$Date: 2008-07-14 11:32:29 -0700 (Mon, 14 Jul 2008) $">
+  <title>Miscellaneous Notes</title>
+
+  <section>
+    <title>Boost.Function vs. Function Pointers</title>
+<para>Boost.Function has several advantages over function pointers, namely:
+
+<itemizedlist spacing="compact">
+   <listitem><para>Boost.Function allows arbitrary compatible function objects to be targets (instead of requiring an exact function signature).</para></listitem>
+   <listitem><para>Boost.Function may be used with argument-binding and other function object construction libraries.</para></listitem>
+   <listitem><para>Boost.Function has predictible behavior when an empty function object is called. </para></listitem>
+</itemizedlist></para>
+
+<para> And, of course, function pointers have several advantages over Boost.Function:
+
+<itemizedlist spacing="compact">
+    <listitem><para> Function pointers are smaller (the size of one pointer instead of four or more) </para></listitem>
+    <listitem><para> Function pointers are faster (Boost.Function may require two calls through function pointers) </para></listitem>
+    <listitem><para> Function pointers are backward-compatible with C libraries.</para></listitem>
+    <listitem><para> More readable error messages. </para></listitem>
+</itemizedlist>
+</para>
+  </section>
+
+  <section>
+    <title>Performance</title>
+
+<section>
+  <title>Function object wrapper size</title>
+  <para> Function object wrappers will be the size of a struct containing a member function pointer and two data pointers. The actual size can vary significantly depending on the underlying platform; on 32-bit Mac OS X with GCC, this amounts to 16 bytes, while it is 32 bytes Windows with Visual C++. Additionally, the function object target may be allocated on the heap, if it cannot be placed into the small-object buffer in the <code>boost::function</code> object.</para>
+</section>
+
+<section>
+  <title>Copying efficiency</title>
+  <para> Copying function object wrappers may require allocating memory for a copy of the function object target. The default allocator may be replaced with a faster custom allocator or one may choose to allow the function object wrappers to only store function object targets by reference (using <computeroutput>ref</computeroutput>) if the cost of this cloning becomes prohibitive. Small function objects can be stored within the <code>boost::function</code> object itself, improving copying efficiency.</para>
+ </section>
+
+<section>
+  <title>Invocation efficiency</title>
+<para> With a properly inlining compiler, an invocation of a function object requires one call through a function pointer. If the call is to a free function pointer, an additional call must be made to that function pointer (unless the compiler has very powerful interprocedural analysis).</para>
+  </section>
+</section>
+
+  <section>
+    <title>Combatting virtual function "bloat"</title>
+<para> The use of virtual functions tends to cause 'code bloat' on many compilers. When a class contains a virtual function, it is necessary to emit an additional function that classifies the type of the object. It has been our experience that these auxiliary functions increase the size of the executable significantly when many <computeroutput>boost::function</computeroutput> objects are used. </para>
+
+<para> In Boost.Function, an alternative but equivalent approach was taken using free functions instead of virtual functions. The Boost.Function object essentially holds two pointers to make a valid target call: a void pointer to the function object it contains and a void pointer to an "invoker" that can call the function object, given the function pointer. This invoker function performs the argument and return value conversions Boost.Function provides. A third pointer points to a free function called the "manager", which handles the cloning and destruction of function objects. The scheme is typesafe because the only functions that actually handle the function object, the invoker and the manager, are instantiated given the type of the function object, so they can safely cast the incoming void pointer (the function object pointer) to the appropriate type.</para>
+  </section>
+
+  <section>
+    <title>Acknowledgements</title> 
+
+    <para> Many people were involved in the construction of this
+    library. William Kempf, Jesse Jones and Karl Nelson were all
+    extremely helpful in isolating an interface and scope for the
+    library. John Maddock managed the formal review, and many
+    reviewers gave excellent comments on interface, implementation,
+    and documentation. Peter Dimov led us to the function
+    declarator-based syntax.</para>
+  </section>
+</section>

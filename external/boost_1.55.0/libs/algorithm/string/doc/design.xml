@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+
+<!-- Copyright (c) 2002-2006 Pavol Droba.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="string_algo.design" last-revision="$Date: 2010-04-21 16:00:35 -0700 (Wed, 21 Apr 2010) $">
+    <title>Design Topics</title>
+
+    <using-namespace name="boost"/>
+    <using-namespace name="boost::algorithm"/>
+
+    <section id="string_algo.string">
+        <title>String Representation</title>
+
+        <para>
+            As the name suggest, this library works mainly with strings. However, in the context of this library,
+            a string is not restricted to any particular implementation (like <code>std::basic_string</code>),
+            rather it is a concept. This allows the algorithms in this library to be reused for any string type,
+            that satisfies the given requirements.
+        </para>
+        <para>
+            <emphasis role="bold">Definition:</emphasis> A string is a 
+            <ulink url="../../libs/range/index.html">range</ulink> of characters accessible in sequential
+            ordered fashion. Character is any value type with "cheap" copying and assignment.                
+        </para>
+        <para>
+            First requirement of string-type is that it must accessible using 
+            <ulink url="../../libs/range/index.html">Boost.Range</ulink>. This facility allows to access
+            the elements inside the string in a uniform iterator-based fashion. 
+            This is sufficient for our library
+        </para>
+        <para>            
+            Second requirement defines the way in which the characters are stored in the string. Algorithms in 
+            this library work with an assumption that copying a character is cheaper then allocating extra 
+            storage to cache results. This is a natural assumption for common character types. Algorithms will 
+            work even if this requirement is not satisfied, however at the cost of performance degradation.
+        <para>
+        </para>
+            In addition some algorithms have additional requirements on the string-type. Particularly, it is required
+            that an algorithm can create a new string of the given type. In this case, it is required that
+            the type satisfies the sequence (Std &sect;23.1.1) requirements.
+        </para>
+        <para>
+            In the reference and also in the code, requirement on the string type is designated by the name of
+            template argument. <code>RangeT</code> means that the basic range requirements must hold.
+            <code>SequenceT</code> designates extended sequence requirements.
+        </para>
+    </section>
+    
+    <section id="string_algo.sequence_traits">
+        <title>Sequence Traits</title>
+
+        <para>
+            The major difference between <code>std::list</code> and <code>std::vector</code> is not in the interfaces
+            they provide, but rather in the inner details of the class and the way how it performs 
+            various operations. The problem is that it is not possible to infer this difference from the 
+            definitions of classes without some special mechanism.
+            However, some algorithms can run significantly faster with the knowledge of the properties
+            of a particular container.
+        </para>
+        <para>
+            Sequence traits allow one to specify additional properties of a sequence container (see Std.&sect;32.2).
+            These properties are then used by algorithms to select optimized handling for some operations.
+            The sequence traits are declared in the header 
+            <headername>boost/algorithm/string/sequence_traits.hpp</headername>.
+        </para>
+
+        <para>
+            In the table C denotes a container and c is an object of C.
+        </para>
+        <table>
+            <title>Sequence Traits</title>
+            <tgroup cols="2" align="left">
+                <thead>
+                    <row>   
+                        <entry>Trait</entry>
+                        <entry>Description</entry>
+                    </row>
+                </thead>
+                <tbody>
+                    <row>
+                        <entry><classname>has_native_replace&lt;C&gt;</classname>::value</entry>
+                        <entry>Specifies that the sequence has std::string like replace method</entry>
+                    </row>
+                    <row>
+                        <entry><classname>has_stable_iterators&lt;C&gt;</classname>::value</entry>
+                        <entry>
+                            Specifies that the sequence has stable iterators. It means,
+                            that operations like <code>insert</code>/<code>erase</code>/<code>replace</code> 
+                            do not invalidate iterators.
+                        </entry>
+                    </row>
+                    <row>
+                        <entry><classname>has_const_time_insert&lt;C&gt;</classname>::value</entry>
+                        <entry>
+                            Specifies that the insert method of the sequence has 
+                            constant time complexity.
+                        </entry>
+                    </row>
+                    <row>
+                        <entry><classname>has_const_time_erase&lt;C&gt;</classname>::value</entry>
+                        <entry>
+                            Specifies that the erase method of the sequence has constant time complexity
+                        </entry>
+                    </row>
+                    </tbody>
+            </tgroup>
+        </table>
+        
+        <para>
+            Current implementation contains specializations for std::list&lt;T&gt; and
+            std::basic_string&lt;T&gt; from the standard library and SGI's std::rope&lt;T&gt; and std::slist&lt;T&gt;.
+        </para>
+    </section>
+    <section id="string_algo.find">
+        <title>Find Algorithms</title>
+
+        <para>
+            Find algorithms have similar functionality to <code>std::search()</code> algorithm. They provide a different 
+            interface which is more suitable for common string operations. 
+            Instead of returning just the start of matching subsequence they return a range which is necessary 
+            when the length of the matching subsequence is not known beforehand. 
+            This feature also allows a partitioning of  the input sequence into three 
+            parts: a prefix, a substring and a suffix. 
+        </para>
+        <para>
+            Another difference is an addition of various searching methods besides find_first, including find_regex. 
+        </para>
+        <para>
+            It the library, find algorithms are implemented in terms of 
+            <link linkend="string_algo.finder_concept">Finders</link>. Finders are used also by other facilities 
+            (replace,split).
+            For convenience, there are also function wrappers for these finders to simplify find operations.
+        </para>
+        <para>
+            Currently the library contains only naive implementation of find algorithms with complexity 
+            O(n * m) where n is the size of the input sequence and m is the size of the search sequence. 
+            There are algorithms with complexity O(n), but for smaller sequence a constant overhead is 
+            rather big. For small m &lt;&lt; n (m by magnitude smaller than n) the current implementation 
+            provides acceptable efficiency. 
+            Even the C++ standard defines the required complexity for search algorithm as O(n * m). 
+            It is possible that a future version of library will also contain algorithms with linear 
+            complexity as an option
+        </para>
+    </section>
+    <section id="string_algo.replace">
+        <title>Replace Algorithms</title>
+
+        <para>
+            The implementation of replace algorithms follows the layered structure of the library. The 
+            lower layer implements generic substitution of a range in the input sequence. 
+            This layer takes a <link linkend="string_algo.finder_concept">Finder</link> object and a 
+            <link linkend="string_algo.formatter_concept">Formatter</link> object as an input. These two 
+            functors define what to replace and what to replace it with. The upper layer functions 
+            are just wrapping calls to the lower layer. Finders are shared with the find and split facility. 
+        </para>
+        <para>
+            As usual, the implementation of the lower layer is designed to work with a generic sequence while
+            taking advantage of specific features if possible 
+            (by using <link linkend="string_algo.sequence_traits">Sequence traits</link>)
+        </para>         
+    </section>
+    <section id="string_algo.split">
+        <title>Find Iterators &amp; Split Algorithms</title>
+
+        <para>
+            Find iterators are a logical extension of the <link linkend="string_algo.find">find facility</link>.
+            Instead of searching for one match, the whole input can be iteratively searched for multiple matches.
+            The result of the search is then used to partition the input. It depends on the algorithms which parts 
+            are returned as the result. They can be the matching parts (<classname>find_iterator</classname>) of the parts in
+            between (<classname>split_iterator</classname>). 
+        </para>
+        <para>
+            In addition the split algorithms like <functionname>find_all()</functionname> and <functionname>split()</functionname>
+            can simplify the common operations. They use a find iterator to search the whole input and copy the 
+            matches they found into the supplied container.
+        </para>
+    </section>
+    <section id="string_algo.exception">
+        <title>Exception Safety</title>
+
+        <para>
+            The library requires that all operations on types used as template
+            or function arguments provide the <emphasis>basic exception-safety guarantee</emphasis>. 
+            In turn, all functions and algorithms in this library, except where stated
+            otherwise, will provide the <emphasis>basic exception-safety guarantee</emphasis>.
+            In other words:
+            The library maintains its invariants and does not leak resources in
+            the face of exceptions.  Some library operations give stronger
+            guarantees, which are documented on an individual basis.
+        </para>
+        
+        <para>
+            Some functions can provide the <emphasis>strong exception-safety guarantee</emphasis>.
+            That means that following statements are true:    
+            <itemizedlist>
+                <listitem>
+                    If an exception is thrown, there are no effects other than those
+                    of the function 
+                </listitem>
+                <listitem>
+                    If an exception is thrown other than by the function, there are no effects
+                </listitem>
+            </itemizedlist>
+            This guarantee can be provided under the condition that the operations 
+            on the types used for arguments for these functions either
+            provide the strong exception guarantee or do not alter the global state .
+         </para>
+        <para>
+            In the reference, under the term <emphasis>strong exception-safety guarantee</emphasis>, we mean the
+            guarantee as defined above.            
+        </para>
+        <para>
+            For more information about the exception safety topics, follow this 
+            <ulink url="http://www.boost.org/more/generic_exception_safety.html">link</ulink>
+        </para>        
+    </section>
+</section>

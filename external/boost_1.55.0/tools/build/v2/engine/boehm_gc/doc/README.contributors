@@ -1,0 +1,57 @@
+This is an attempt to acknowledge early contributions to the garbage
+collector.  Later contributions should instead be mentioned in
+README.changes.
+
+HISTORY -
+
+  Early versions of this collector were developed as a part of research
+projects supported in part by the National Science Foundation
+and the Defense Advance Research Projects Agency.
+
+The garbage collector originated as part of the run-time system for
+the Russell programming language implementation. The first version of the
+garbage collector was written primarily by Al Demers.  It was then refined
+and mostly rewritten, primarily by Hans-J. Boehm, at Cornell U., 
+the University of Washington, Rice University (where it was first used for
+C and assembly code), Xerox PARC, SGI, and HP Labs.  However, significant
+contributions have also been made by many others.
+
+Some other contributors:  
+
+More recent contributors are mentioned in the modification history in
+README.changes.  My apologies for any omissions.
+
+The SPARC specific code was originally contributed by Mark Weiser.
+The Encore Multimax modifications were supplied by
+Kevin Kenny (kenny@m.cs.uiuc.edu).  The adaptation to the IBM PC/RT is largely
+due to Vernon Lee, on machines made available to Rice by IBM.
+Much of the HP specific code and a number of good suggestions for improving the
+generic code are due to Walter Underwood.
+Robert Brazile (brazile@diamond.bbn.com) originally supplied the ULTRIX code.
+Al Dosser (dosser@src.dec.com) and Regis Cridlig (Regis.Cridlig@cl.cam.ac.uk)
+subsequently provided updates and information on variation between ULTRIX
+systems.  Parag Patel (parag@netcom.com) supplied the A/UX code.
+Jesper Peterson(jep@mtiame.mtia.oz.au), Michel Schinz, and
+Martin Tauchmann (martintauchmann@bigfoot.com) supplied the Amiga port.
+Thomas Funke (thf@zelator.in-berlin.de(?)) and
+Brian D.Carlstrom (bdc@clark.lcs.mit.edu) supplied the NeXT ports.
+Douglas Steel (doug@wg.icl.co.uk) provided ICL DRS6000 code.
+Bill Janssen (janssen@parc.xerox.com) supplied the SunOS dynamic loader
+specific code. Manuel Serrano (serrano@cornas.inria.fr) supplied linux and
+Sony News specific code.  Al Dosser provided Alpha/OSF/1 code.  He and
+Dave Detlefs(detlefs@src.dec.com) also provided several generic bug fixes.
+Alistair G. Crooks(agc@uts.amdahl.com) supplied the NetBSD and 386BSD ports.
+Jeffrey Hsu (hsu@soda.berkeley.edu) provided the FreeBSD port.
+Brent Benson (brent@jade.ssd.csd.harris.com) ported the collector to
+a Motorola 88K processor running CX/UX (Harris NightHawk).
+Ari Huttunen (Ari.Huttunen@hut.fi) generalized the OS/2 port to
+nonIBM development environments (a nontrivial task).
+Patrick Beard (beard@cs.ucdavis.edu) provided the initial MacOS port.
+David Chase, then at Olivetti Research, suggested several improvements.
+Scott Schwartz (schwartz@groucho.cse.psu.edu) supplied some of the
+code to save and print call stacks for leak detection on a SPARC.
+Jesse Hull and John Ellis supplied the C++ interface code.
+Zhong Shao performed much of the experimentation that led to the
+current typed allocation facility.  (His dynamic type inference code hasn't
+made it into the released version of the collector, yet.)
+

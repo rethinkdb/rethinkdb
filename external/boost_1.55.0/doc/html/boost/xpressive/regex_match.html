@@ -1,0 +1,147 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function regex_match</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../xpressive/reference.html#header.boost.xpressive.regex_algorithms_hpp" title="Header &lt;boost/xpressive/regex_algorithms.hpp&gt;">
+<link rel="prev" href="construct_idp163632632.html" title="Function template construct">
+<link rel="next" href="regex_search.html" title="Function regex_search">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="construct_idp163632632.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.regex_algorithms_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="regex_search.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.xpressive.regex_match"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function regex_match</span></h2>
+<p>boost::xpressive::regex_match &#8212; See if a regex matches a sequence from beginning to end. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../xpressive/reference.html#header.boost.xpressive.regex_algorithms_hpp" title="Header &lt;boost/xpressive/regex_algorithms.hpp&gt;">boost/xpressive/regex_algorithms.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BidiIter<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <span class="identifier">regex_match</span><span class="special">(</span><span class="identifier">BidiIter</span> begin<span class="special">,</span> <span class="identifier">BidiIter</span> end<span class="special">,</span> 
+                   <a class="link" href="match_results.html" title="Struct template match_results">match_results</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="special">&amp;</span> what<span class="special">,</span> 
+                   <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> re<span class="special">,</span> 
+                   <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> flags <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BidiIter<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <span class="identifier">regex_match</span><span class="special">(</span><span class="identifier">BidiIter</span> begin<span class="special">,</span> <span class="identifier">BidiIter</span> end<span class="special">,</span> 
+                   <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> re<span class="special">,</span> 
+                   <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> flags <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Char<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <span class="identifier">regex_match</span><span class="special">(</span><span class="identifier">Char</span> <span class="special">*</span> begin<span class="special">,</span> <a class="link" href="match_results.html" title="Struct template match_results">match_results</a><span class="special">&lt;</span> <span class="identifier">Char</span> <span class="special">*</span> <span class="special">&gt;</span> <span class="special">&amp;</span> what<span class="special">,</span> 
+                   <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">Char</span> <span class="special">*</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> re<span class="special">,</span> 
+                   <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> flags <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BidiRange<span class="special">,</span> <span class="keyword">typename</span> BidiIter<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <span class="identifier">regex_match</span><span class="special">(</span><span class="identifier">BidiRange</span> <span class="special">&amp;</span> rng<span class="special">,</span> <a class="link" href="match_results.html" title="Struct template match_results">match_results</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="special">&amp;</span> what<span class="special">,</span> 
+                   <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> re<span class="special">,</span> 
+                   <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> flags <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">,</span> 
+                   <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BidiRange<span class="special">,</span> <span class="keyword">typename</span> BidiIter<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <span class="identifier">regex_match</span><span class="special">(</span><span class="identifier">BidiRange</span> <span class="keyword">const</span> <span class="special">&amp;</span> rng<span class="special">,</span> <a class="link" href="match_results.html" title="Struct template match_results">match_results</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="special">&amp;</span> what<span class="special">,</span> 
+                   <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> re<span class="special">,</span> 
+                   <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> flags <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">,</span> 
+                   <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Char<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <span class="identifier">regex_match</span><span class="special">(</span><span class="identifier">Char</span> <span class="special">*</span> begin<span class="special">,</span> <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">Char</span> <span class="special">*</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> re<span class="special">,</span> 
+                   <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> flags <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BidiRange<span class="special">,</span> <span class="keyword">typename</span> BidiIter<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <span class="identifier">regex_match</span><span class="special">(</span><span class="identifier">BidiRange</span> <span class="special">&amp;</span> rng<span class="special">,</span> <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> re<span class="special">,</span> 
+                   <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> flags <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">,</span> 
+                   <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BidiRange<span class="special">,</span> <span class="keyword">typename</span> BidiIter<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <span class="identifier">regex_match</span><span class="special">(</span><span class="identifier">BidiRange</span> <span class="keyword">const</span> <span class="special">&amp;</span> rng<span class="special">,</span> <a class="link" href="basic_regex.html" title="Struct template basic_regex">basic_regex</a><span class="special">&lt;</span> <span class="identifier">BidiIter</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> re<span class="special">,</span> 
+                   <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_flag_type</span> flags <span class="special">=</span> <span class="identifier">regex_constants</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">,</span> 
+                   <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp256302088"></a><h2>Description</h2>
+<p>Determines whether there is an exact match between the regular expression <code class="computeroutput">re</code>, and all of the sequence <code class="computeroutput">[begin, end)</code>.</p>
+<p>
+
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">begin</code></span></p></td>
+<td><p>The beginning of the sequence. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">end</code></span></p></td>
+<td><p>The end of the sequence. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">flags</code></span></p></td>
+<td><p>Optional match flags, used to control how the expression is matched against the sequence. (See <code class="computeroutput">match_flag_type</code>.) </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">re</code></span></p></td>
+<td><p>The regular expression object to use </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">what</code></span></p></td>
+<td><p>The <code class="computeroutput"><code class="computeroutput"><a class="link" href="match_results.html" title="Struct template match_results">match_results</a></code></code> struct into which the sub_matches will be written </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td>
+<p>Type <code class="computeroutput">BidiIter</code> meets the requirements of a Bidirectional Iterator (24.1.4). </p>
+<p><code class="computeroutput">[begin,end)</code> denotes a valid iterator range. </p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if a match is found, <code class="computeroutput">false</code> otherwise </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>
+<a class="link" href="regex_error.html" title="Struct regex_error">regex_error</a> on stack exhaustion </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="construct_idp163632632.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.regex_algorithms_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="regex_search.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: max_element</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./min-element.html" class="navigation-link">Prev</a>&nbsp;<a href="./equal.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./min-element.html" class="navigation-link">Back</a>&nbsp;<a href="./equal.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./querying-algorithms.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./algorithms.html" class="navigation-link">Algorithms</a> / <a href="./querying-algorithms.html" class="navigation-link">Querying Algorithms</a> / <a href="./max-element.html" class="navigation-link">max_element</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="max-element">
+<h1><a class="toc-backref" href="./querying-algorithms.html#id1483">max_element</a></h1>
+<div class="section" id="id599">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename Sequence
+    , typename Pred = <a href="./less.html" class="identifier">less</a>&lt;<a href="./placeholders.html" class="identifier">_1</a>,<a href="./placeholders.html" class="identifier">_2</a>&gt;
+    &gt;
+struct <a href="./max-element.html" class="identifier">max_element</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id600">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Returns an iterator to the largest element in <tt class="literal"><span class="pre">Sequence</span></tt>.</p>
+</div>
+<div class="section" id="id601">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/max_element.hpp" class="header">boost/mpl/max_element.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id602">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="19%" />
+<col width="38%" />
+<col width="43%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">Sequence</span></tt></td>
+<td><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></td>
+<td>A sequence to be searched.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">Pred</span></tt></td>
+<td>Binary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a></td>
+<td>A comparison criteria.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id603">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> <tt class="literal"><span class="pre">s</span></tt> and binary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a> <tt class="literal"><span class="pre">pred</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./max-element.html" class="identifier">max_element</a>&lt;s,pred&gt;::type i;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="./forward-iterator.html">Forward Iterator</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first"><tt class="literal"><span class="pre">i</span></tt> is the first iterator in [<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;s&gt;::type</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;s&gt;::type</span></tt>) such that for every iterator <tt class="literal"><span class="pre">j</span></tt>
+in [<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;s&gt;::type</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;s&gt;::type</span></tt>),</p>
+<pre class="last literal-block">
+<a href="./apply.html" class="identifier">apply</a>&lt; pred, <a href="./deref.html" class="identifier">deref</a>&lt;i&gt;::type, <a href="./deref.html" class="identifier">deref</a>&lt;j&gt;::type &gt;::type::value == false
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id604">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Linear. Zero comparisons if <tt class="literal"><span class="pre">s</span></tt> is empty, otherwise exactly <tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;s&gt;::value</span> <span class="pre">-</span> <span class="pre">1</span></tt>
+comparisons.</p>
+</div>
+<div class="section" id="id605">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./vector.html" class="identifier">vector</a>&lt;bool,char[50],long,double&gt; types;
+typedef <a href="./max-element.html" class="identifier">max_element</a>&lt;
+      <a href="./transform-view.html" class="identifier">transform_view</a>&lt; types,<a href="./sizeof.html" class="identifier">sizeof_</a>&lt;<a href="./placeholders.html" class="identifier">_1</a>&gt; &gt;
+    &gt;::type iter;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; <a href="./deref.html" class="identifier">deref</a>&lt;iter::base&gt;::type, char[50]> ));
+</pre>
+</div>
+<div class="section" id="id606">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./querying-algorithms.html">Querying Algorithms</a>, <a class="reference internal" href="./min-element.html">min_element</a>, <a class="reference internal" href="./find-if.html">find_if</a>, <a class="reference internal" href="./upper-bound.html">upper_bound</a>, <a class="reference internal" href="./find.html">find</a></p>
+<!-- Algorithms/Querying Algorithms//equal |100 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./min-element.html" class="navigation-link">Prev</a>&nbsp;<a href="./equal.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./min-element.html" class="navigation-link">Back</a>&nbsp;<a href="./equal.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./querying-algorithms.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

@@ -1,0 +1,43 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:user_defined User Defined Specializations]
+
+Occationally the end user may need to provide their own specialization 
+for one of the type traits - typically where intrinsic compiler support 
+is required to implement a specific trait fully.  
+These specializations should derive from boost::__true_type or boost::__false_type 
+as appropriate:
+
+   #include <boost/type_traits/is_pod.hpp>
+   #include <boost/type_traits/is_class.hpp>
+   #include <boost/type_traits/is_union.hpp>
+
+   struct my_pod{};
+   struct my_union
+   {
+      char c;
+      int i;
+   };
+
+   namespace boost
+   {
+      template<>
+      struct __is_pod<my_pod> : public __true_type{};
+         
+      template<>
+      struct __is_pod<my_union> : public __true_type{};
+      
+      template<>
+      struct __is_union<my_union> : public __true_type{};
+      
+      template<>
+      struct __is_class<my_union> : public __false_type{};
+   }
+
+[endsect]
+

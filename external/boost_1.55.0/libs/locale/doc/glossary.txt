@@ -1,0 +1,79 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page glossary Glossary
+
+-   \anchor term_bmp <b>Basic Multilingual Plane (BMP)</b> -- a part of 
+    the <i>Universal Character Set</i> with code points in the range U-0000--U-FFFF.
+    The most commonly used UCS characters lay in this plane, including all Western, Cyrillic, Hebrew, Thai, Arabic and CJK characters.
+    However there are many characters that lay outside the BMP and they are absolutely required for correct support of East Asian languages.
+-   \b Code \b Point -- a unique number that represents a "character" in the Universal Character Set. Code points lay in the range of
+    0-0x10FFFF, and are usually displayed as U+XXXX or U+XXXXXX, where X represents a hexadecimal digit.
+-   \anchor term_collation \b Collation -- a sorting order for text, usually alphabetical. It can differ between languages and countries, even for the same
+    characters.
+-   \b Encoding - a representation of a character set. Some encodings are capable of representing the full UCS range, like UTF-8, and
+    others can only represent a subset of it -- ISO-8859-8 represents only a small subset of about 250 characters of the UCS.
+    \n
+    Non-Unicode encodings are still very popular, for example the Latin-1 (or ISO-8859-1) encoding covers most of the characters for
+    Western European languages and significantly simplifies the processing of text for applications designed to handle only such languages.
+    \n
+    For Boost.Locale you should provide an eight-bit (\c std::string) encoding as part of the locale name, like \c en_US.UTF-8 or
+    \c he_IL.cp1255 . \c UTF-8 is recommended.
+-   \b Facet - or \c std::locale::facet -- a base class that every object that describes a specific locale is derived from. Facets can be
+    added to a locale to provide additional culture information.
+-   \b Formatting - representation of various values according to locale preferences. For example, a number 1234.5 (C representation)
+    should be displayed as 1,234.5 in the US locale and 1.234,5 in the Russian locale. The date November 1st, 2005 would be represented as
+    11/01/2005 in the United States, and 01.11.2005 in Russia. This is an important part of localization.
+    \n 
+    For example: does "You have to bring 134,230 kg of rice on 04/01/2010" means "134 tons of rice on the first of April" or "134 kg 230 g
+    of rice on January 4th"? That is quite different.
+-   \b Gettext - The GNU localization library used for message formatting. Today it is the de-facto standard localization library in the
+    Open Source world. Boost.Locale message formatting is entirely built on Gettext message catalogs.
+-   \b Locale - a set of parameters that define specific preferences for users in different cultures. It is generally defined by language,
+    country, variants, and encoding, and provides information like: collation order, date-time formatting, message formatting, number
+    formatting and many others. In C++, locale information is represented by the \c std::locale class.
+-   \b Message \b Formatting -- the representation of user interface strings in the user's language. The process of translation of UI
+    strings is generally done using some dictionary provided by the program's translator.
+-   \b Message \b Domain -- in \a gettext terms, the keyword that represents a message catalog. This is usually an application name. When
+    \a gettext and Boost.Locale search for a specific message catalog, they search in the specified path for a file named after the domain.
+-   \anchor term_normalization
+    \b Normalization - Unicode normalization is the process of converting strings to a standard form, suitable for text processing and
+    comparison. For example, character "ü" can be represented by a single code point or a combination of the character "u" and the
+    diaeresis "¨". Normalization is an important part of Unicode text processing.
+    \n
+    Normalization is not locale-dependent, but because it is an important part of Unicode processing, it is included in the Boost.Locale
+    library.
+-   \b UCS-2 - a fixed-width Unicode encoding, capable of representing only code points in the <i>Basic Multilingual Plane (BMP)</i>.
+    It is a legacy encoding and is not recommended for use.
+-   \b Unicode -- the industry standard that defines the representation and manipulation of text suitable for most languages and countries. 
+    It should not be confused with the <i>Universal Character Set</i>, it is a much larger standard that also defines algorithms like
+    bidirectional display order, Arabic shaping, etc.
+-   <b>Universal Character Set (UCS)</b> - an international standard that defines a set of characters for many scripts and their
+    \a code \a points.
+-   \b UTF-8 - a variable-width Unicode transformation format. Each UCS code point is represented as a sequence of between 1 and 4 octets
+    that can be easily distinguished. It includes ASCII as a subset. It is the most popular Unicode encoding for web applications, data
+    transfer and storage, and is the de-facto standard encoding for most POSIX operation systems.
+-   \b UTF-16 - a variable-width Unicode transformation format. Each UCS code point is represented as a sequence of one or two 16-bit words.
+    It is a very popular encoding for platforms such as the Win32 API, Java, C#, Python, etc. However, it is frequently confused with the
+    _UCS-2_ fixed-width encoding, which can only represent characters in the <i>Basic Multilingual Plane (BMP)</i>.
+    \n
+    This encoding is used for \c std::wstring under the Win32 platform, where <tt>sizeof(wchar_t)==2</tt>.
+-   \b UTF-32/UCS-4 - a fixed-width Unicode transformation format, where each code point is represented as a single 32-bit word. It has
+    the advantage of simple code point representation, but is wasteful in terms of memory usage. It is used for \c std::wstring encoding
+    for most POSIX platforms, where <tt>sizeof(wchar_t)==4</tt>.
+-   \anchor term_case_folding <b>Case Folding</b> - is a process of converting a text to case independent representation.
+    For example case folding for a word "Grüßen" is "grüssen" - where the letter "ß" is represented in case independent way as "ss".
+-   \anchor term_title_case <b>Title Case</b> -
+    Is a text conversion where the words are capitalized. For example "hello world" is converted
+    to "Hello World"
+
+*/
+
+

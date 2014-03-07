@@ -1,0 +1,304 @@
+# Copyright 2008 - 2013 Roland Schwarz
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# Boost library support module.
+#
+# This module allows to use the boost library from boost-build projects. The
+# location of a boost source tree or the path to a pre-built version of the
+# library can be configured from either site-config.jam or user-config.jam. If
+# no location is configured the module looks for a BOOST_ROOT environment
+# variable, which should point to a boost source tree. As a last resort it tries
+# to use pre-built libraries from the standard search path of the compiler.
+#
+# If the location to a source tree is known, the module can be configured from
+# the *-config.jam files:
+#
+# using boost : 1.35 : <root>/path-to-boost-root ;
+#
+# If the location to a pre-built version is known:
+#
+# using boost : 1.34
+#   : <include>/usr/local/include/boost_1_34
+#     <library>/usr/local/lib
+#   ;
+#
+# It is legal to configure more than one boost library version in the config
+# files. The version identifier is used to disambiguate between them. The first
+# configured version becomes the default.
+#
+# To use a boost library you need to put a 'use' statement into your Jamfile:
+#
+# import boost ;
+#
+# boost.use-project 1.35 ;
+#
+# If you do not care about a specific version you just can omit the version
+# part, in which case the default is picked up:
+#
+# boost.use-project ;
+#
+# The library can be referenced with the project identifier '/boost'. To
+# reference the program_options you would specify:
+#
+# exe myexe : mysrc.cpp : <library>/boost//program_options ;
+#
+# Note that the requirements are automatically transformed into suitable tags to
+# find the correct pre-built library.
+#
+
+import common ;
+import modules ;
+import numbers ;
+import project ;
+import property-set ;
+import regex ;
+import toolset ;
+
+.boost.auto_config = [ property-set.create <layout>system ] ;
+
+if [ MATCH (--debug-configuration) : [ modules.peek : ARGV ] ]
+{
+    .debug-configuration = true ;
+}
+
+# Configuration of the boost library to use.
+#
+# This can either be a boost source tree or pre-built libraries. The 'version'
+# parameter must be a valid boost version number, e.g. 1.35, if specifying a
+# pre-built version with versioned layout. It may be a symbolic name, e.g.
+# 'trunk' if specifying a source tree. The options are specified as named
+# parameters (like properties). The following paramters are available:
+#
+# <root>/path-to-boost-root            : Specify a source tree.
+# <include>/path-to-include            : The include directory to search.
+# <library>/path-to-library            : The library directory to search.
+# <layout>system or <layout>versioned  : Built library layout.
+# <build-id>my_build_id                : The custom build id to use.
+#
+rule init
+(
+    version     # Version identifier.
+    : options * # Set the option properties.
+)
+{
+    if $(.boost.$(version))
+    {
+        import errors ;
+        errors.user-error Boost $(version) already configured. ;
+    }
+    else
+    {
+        if $(.debug-configuration)
+        {
+            if ! $(.boost_default)
+            {
+                echo notice: configuring default boost library $(version) ;
+            }
+            echo notice: configuring boost library $(version) ;
+        }
+        .boost_default ?= $(version) ; # the first configured is default
+        .boost.$(version) = [ property-set.create $(options) ] ;
+    }
+}
+
+# Use a certain version of the library.
+#
+# The use-project rule causes the module to define a boost project of searchable
+# pre-built boost libraries, or references a source tree of the boost library.
+# If the 'version' parameter is omitted either the configured default (first in
+# config files) is used or an auto configuration will be attempted.
+#
+rule use-project
+(
+    version ? # The version of the library to use.
+)
+{
+    project.push-current [ project.current ] ;
+    version ?= $(.boost_default) ;
+    version ?= auto_config ;
+
+    if $(.initialized)
+    {
+        if $(.initialized) != $(version)
+        {
+            import errors ;
+            errors.user-error Attempt to use $(__name__) with different
+                parameters. ;
+        }
+    }
+    else
+    {
+        if $(.boost.$(version))
+        {
+            local opt  = $(.boost.$(version)) ;
+            local root = [ $(opt).get <root> ] ;
+            local inc  = [ $(opt).get <include> ] ;
+            local lib  = [ $(opt).get <library> ] ;
+
+            if $(.debug-configuration)
+            {
+                echo notice: using boost library $(version) [ $(opt).raw ] ;
+            }
+
+            .layout = [ $(opt).get <layout> ] ;
+            .layout ?= versioned ;
+            .build_id = [ $(opt).get <build-id> ] ;
+            .version_tag = [ regex.replace $(version) "[*\\/:.\"\' ]" "_" ] ;
+            .initialized = $(version) ;
+
+            if ( $(root) && $(inc) )
+                || ( $(root) && $(lib) )
+                || ( $(lib) && ! $(inc) )
+                || ( ! $(lib) && $(inc) )
+            {
+                import errors ;
+                errors.user-error Ambiguous parameters, use either <root> or
+                    <include> with <library>. ;
+            }
+            else if ! $(root) && ! $(inc)
+            {
+                root = [ modules.peek : BOOST_ROOT ] ;
+            }
+
+            local prj = [ project.current ] ;
+            local mod = [ $(prj).project-module ] ;
+
+            if $(root)
+            {
+                modules.call-in $(mod) : use-project boost : $(root) ;
+            }
+            else
+            {
+                project.initialize $(__name__) ;
+                # It is possible to overide the setup of the searched libraries
+                # per version. The (unlikely) 0.0.1 tag is meant as an example
+                # template only.
+                switch $(version)
+                {
+                    case 0.0.1 : boost_0_0_1 $(inc) $(lib) ;
+                    case * : boost_std $(inc) $(lib) ;
+                }
+            }
+        }
+        else
+        {
+            import errors ;
+            errors.user-error Reference to unconfigured boost version. ;
+        }
+    }
+    project.pop-current ;
+}
+
+local rule boost_lib_std ( id : shared-lib-define )
+{
+    lib $(id) : : : : <link>shared:<define>$(shared-lib-define) ;
+}
+
+rule boost_std ( inc ? lib ? )
+{
+#   The default definitions for pre-built libraries.
+
+    project boost
+        : usage-requirements <include>$(inc) <define>BOOST_ALL_NO_LIB
+        : requirements <tag>@tag_std <search>$(lib)
+        ;
+
+    alias headers ;
+    boost_lib_std chrono              : BOOST_CHRONO_DYN_LINK ;
+    boost_lib_std date_time           : BOOST_DATE_TIME_DYN_LINK ;
+    boost_lib_std filesystem          : BOOST_FILE_SYSTEM_DYN_LINK ;
+    boost_lib_std graph               : BOOST_GRAPH_DYN_LINK ;
+    boost_lib_std graph_parallel      : BOOST_GRAPH_DYN_LINK ;
+    boost_lib_std iostreams           : BOOST_IOSTREAMS_DYN_LINK ;
+    boost_lib_std locale              : BOOST_LOCALE_DYN_LINK ;
+    boost_lib_std math_tr1            : BOOST_MATH_TR1_DYN_LINK ;
+    boost_lib_std math_tr1f           : BOOST_MATH_TR1_DYN_LINK ;
+    boost_lib_std math_tr1l           : BOOST_MATH_TR1_DYN_LINK ;
+    boost_lib_std math_c99            : BOOST_MATH_TR1_DYN_LINK ;
+    boost_lib_std math_c99f           : BOOST_MATH_TR1_DYN_LINK ;
+    boost_lib_std math_c99l           : BOOST_MATH_TR1_DYN_LINK ;
+    boost_lib_std mpi                 : BOOST_MPI_DYN_LINK  ;
+    boost_lib_std program_options     : BOOST_PROGRAM_OPTIONS_DYN_LINK ;
+    boost_lib_std python              : BOOST_PYTHON_DYN_LINK ;
+    boost_lib_std python3             : BOOST_PYTHON_DYN_LINK ;
+    boost_lib_std random              : BOOST_RANDOM_DYN_LINK ;
+    boost_lib_std regex               : BOOST_REGEX_DYN_LINK  ;
+    boost_lib_std serialization       : BOOST_SERIALIZATION_DYN_LINK ;
+    boost_lib_std wserialization      : BOOST_SERIALIZATION_DYN_LINK ;
+    boost_lib_std signals             : BOOST_SIGNALS_DYN_LINK  ;
+    boost_lib_std system              : BOOST_SYSTEM_DYN_LINK  ;
+    boost_lib_std unit_test_framework : BOOST_TEST_DYN_LINK  ;
+    boost_lib_std prg_exec_monitor    : BOOST_TEST_DYN_LINK ;
+    boost_lib_std test_exec_monitor   : BOOST_TEST_DYN_LINK ;
+    boost_lib_std thread              : BOOST_THREAD_DYN_DLL  ;
+    boost_lib_std wave                : BOOST_WAVE_DYN_LINK  ;
+}
+
+# Example placeholder for rules defining Boost library project & library targets
+# for a specific Boost library version. Copy under a different name and model
+# after the boost_std rule. Please note that it is also possible to have a per
+# version taging rule in case the tagging algorithm changes between versions.
+#
+rule boost_0_0_1 ( inc ? lib ? )
+{
+    echo "You are trying to use an example placeholder for boost libs." ;
+}
+
+rule tag_std ( name : type ? : property-set )
+{
+    name = boost_$(name) ;
+    if  ( [ $(property-set).get <link> ] in static ) &&
+        ( [ $(property-set).get <target-os> ] in windows )
+    {
+        name = lib$(name) ;
+    }
+
+    local result ;
+    if $(.layout) = system
+    {
+        local version = [ MATCH ^([0-9]+)_([0-9]+) : $(.version_tag) ] ;
+        if $(version[1]) = "1" && [ numbers.less $(version[2]) 39 ]
+        {
+            result = [ tag_tagged $(name) : $(type) : $(property-set) ] ;
+        }
+        else
+        {
+            result = [ tag_system $(name) : $(type) : $(property-set) ] ;
+        }
+    }
+    else if $(.layout) = tagged
+    {
+        result = [ tag_tagged $(name) : $(type) : $(property-set) ] ;
+    }
+    else if $(.layout) = versioned
+    {
+        result = [ tag_versioned $(name) : $(type) : $(property-set) ] ;
+    }
+    else
+    {
+        import errors ;
+        errors.error Missing layout. ;
+    }
+
+    return $(result) ;
+}
+
+rule tag_system ( name : type ? : property-set )
+{
+    return [ common.format-name <base> -$(.build_id) : $(name) : $(type) :
+        $(property-set) ] ;
+}
+
+rule tag_tagged ( name : type ? : property-set )
+{
+    return [ common.format-name <base> <threading> <runtime> -$(.build_id) :
+        $(name) : $(type) : $(property-set) ] ;
+}
+
+rule tag_versioned ( name : type ? : property-set )
+{
+    return [ common.format-name <base> <toolset> <threading> <runtime>
+        -$(.version_tag) -$(.build_id) : $(name) : $(type) : $(property-set) ] ;
+}

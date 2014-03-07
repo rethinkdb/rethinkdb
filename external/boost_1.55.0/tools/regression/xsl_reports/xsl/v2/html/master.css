@@ -1,0 +1,654 @@
+/*
+
+Copyright MetaCommunications, Inc. 2003-2005.
+
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+*/
+
+/* All reports */
+
+body
+{
+    background-color: white;
+}
+
+body.user-toc
+{
+    background-color: #f0f0f0;
+}
+
+body.developer-toc
+{
+    background-color: #f0f5ff;
+}
+
+span.super
+{
+    vertical-align: super;
+    font-size: 80%;
+    margin-left: 3pt;
+}
+
+h1.page-title
+{ 
+    text-align: left;
+    text-transform: capitalize;
+    margin-top: 5pt;
+    margin-bottom: 10pt;
+}
+
+img
+{
+    display: inline;
+}
+
+ a.hover-link:link
+,a.hover-link:visited
+,a.hover-link:active
+{
+    color: black;
+    text-decoration: none;
+}
+
+a.hover-link:hover
+{
+    color: black;
+    text-decoration: underline;
+}
+
+ a.warning-link:link
+,a.warning-link:visited
+,a.warning-link:active
+{
+    color: red;
+    text-decoration: none;
+}
+
+a.warning-link:hover
+{
+    color: red;
+    text-decoration: underline;
+}
+
+a.view-link
+{
+    text-transform: capitalize;
+}
+
+div.statistics
+{
+    width: 80%;
+    padding-bottom: 5pt;
+}
+
+div.legend
+{
+    width: 80%;
+    background-color: #f5f5f5;
+    margin-top: 10pt;    
+    margin-bottom: 10pt;
+}
+
+div.comment
+{
+    width: 80%;
+    background-color: #f5f5f5;
+    padding-left: 10pt;
+    padding-right: 10pt;
+    padding-bottom: 10pt;
+}
+
+div.links
+{
+    margin-top: 0pt;
+    margin-bottom: 0pt;
+}
+
+table.header-table
+{
+    margin-left: 10pt;
+    margin-top: 20pt;
+    margin-bottom: 10pt;
+    width: 80%;
+}
+
+td.header-item
+{ 
+    text-align: left;
+    vertical-align: top;
+    font-weight: bold;
+}
+
+td.header-item-content
+{ 
+    padding-left: 20pt;
+    padding-bottom: 10pt;
+}
+
+td.legend-item
+{ 
+    padding: 0pt;
+    width: 50pt;
+}
+
+td.legend-explanation
+{ 
+    padding-left: 5pt;
+}
+
+div.acknowledgement
+{
+    text-align: left;
+    margin-top: 10pt;
+    margin-left: 5pt;
+    margin-bottom: 10pt;
+}
+
+div.report-info
+{ 
+    text-align: left;
+    margin-bottom: 10pt;
+    width: 80%;
+}
+
+div.report-warning
+{ 
+    color: red;
+}
+
+div.library-name
+{ 
+    margin-top: 20pt;
+    margin-bottom: 10pt;
+    text-align: left;
+    font-size: 125%;
+    font-weight: bold;
+}
+
+span.run-type-incremental
+{
+    margin-left: 3pt;
+    padding-left: 1pt;
+    padding-right: 1pt;
+    background-color: yellow;
+}
+
+ span.timestamp-1
+,span.timestamp-2 
+{
+    color: #555555;
+}
+
+ span.timestamp-3
+,span.timestamp-4 
+,span.timestamp-5
+,span.timestamp-6
+,span.timestamp-7
+{
+    color: #999999;
+}
+
+ span.timestamp-8
+,span.timestamp-9 
+,span.timestamp-10
+,span.timestamp-11
+,span.timestamp-12
+,span.timestamp-13
+,span.timestamp-14
+,span.timestamp-15
+,span.timestamp-16
+,span.timestamp-17
+,span.timestamp-18
+,span.timestamp-19
+,span.timestamp-20
+,span.timestamp-21
+,span.timestamp-22
+,span.timestamp-23
+,span.timestamp-24
+,span.timestamp-25
+,span.timestamp-26
+,span.timestamp-27
+,span.timestamp-28
+,span.timestamp-29
+,span.timestamp-30
+{
+    color: #dddddd;
+}
+
+
+table.summary-table
+,table.library-table
+{ 
+    border-collapse: collapse;
+    border: 2px solid black;
+    margin: 5px;
+}
+
+ table.summary-table td
+,table.library-table td
+{ 
+    text-align: center;
+    border-left: 1px solid black;
+    border-right: 1px solid black;
+}
+
+ a.log-link:link
+,a.log-link:visited
+{
+     color: black; 
+}
+
+ a.log-link:active
+,a.log-link:hover
+,a.legend-link:link
+,a.legend-link:visited
+,a.legend-link:active
+,a.legend-link:hover
+{
+    color: black; 
+    text-decoration: underline;
+}
+
+td.runner
+{
+    color: black;
+    font-weight: bold;
+    border-top: 1px solid black;
+    padding-left: 3pt;
+    padding-right: 3pt;
+
+}
+
+td.timestamp
+{
+    color: black;
+    border-bottom: 1px solid black;
+    padding-left: 3pt;
+    padding-right: 3pt;
+}
+
+ td.toolset-name
+,td.required-toolset-name
+{
+    vertical-align: middle;
+    padding-left: 3pt;
+    padding-right: 3pt;
+    word-spacing: -3pt;
+}
+
+td.required-toolset-name
+{
+    font-weight: bold;
+}
+
+td.library-test-category-header
+{
+    border-top: 1px solid gray;
+}
+
+tr.summary-row-first td
+, tr.library-row-first td 
+{
+    border-top: 1px solid gray;
+    border-bottom: 0px;
+}
+
+tr.summary-row-last td
+, tr.library-row-last td 
+{
+    border-top: 0px;
+    border-bottom: 1px solid gray;
+}
+
+tr.summary-row-single td
+, tr.library-row-single td 
+{
+    border-top: 1px solid gray;
+    border-bottom: 1px solid gray;
+}
+
+tr.summary-row td
+, tr.library-row td 
+{
+    border-bottom: 0px;
+    border-top: 0px; 
+}
+
+  td.library-success-expected
+, td.summary-success-expected
+, td.summary-fail-expected
+, td.summary-unknown-status
+, td.summary-fail-expected-unresearched
+{ 
+    width: 60pt;
+    text-align: center;
+    background-color: lightgreen;
+    border-left: 1px solid black;
+    border-right: 1px solid black;
+    padding-left: 2pt;
+    padding-right: 2pt;
+}
+
+  td.summary-unknown-status
+{
+    background-color: white;
+}
+
+ td.library-success-unexpected
+,td.summary-success-unexpected
+{ 
+    width: 60pt;
+    text-align: center;
+    background-color: green;
+    color: white;
+    border: 0px;
+    padding-left: 2pt;
+    padding-right: 2pt;
+}
+
+  td.user-library-success-unexpected
+, td.user-summary-success-unexpected
+{ 
+    background-color: lightgreen;
+    color: black;
+}
+
+ td.library-success-unexpected a.log-link:link
+,td.library-success-unexpected a.log-link:visited
+,td.library-success-unexpected a.log-link:active
+,td.library-success-unexpected a.log-link:hover
+{
+     color: white;
+}
+
+  td.user-library-success-unexpected a.log-link:link
+, td.user-library-success-unexpected a.log-link:visited
+, td.user-library-success-unexpected a.log-link:active
+, td.user-library-success-unexpected a.log-link:hover
+{
+     color: black;
+}
+
+  td.summary-unusable
+, td.library-unusable
+, td.library-fail-expected
+{
+    width: 60pt;  
+    text-align: center;
+    background-color: silver;
+    color: black;
+    border: 0px;
+    padding-left: 2pt;
+    padding-right: 2pt;
+}
+
+
+ tr.summary-row         td.summary-fail-unexpected
+,tr.summary-row-first   td.summary-fail-unexpected
+,tr.summary-row-last    td.summary-fail-unexpected
+,tr.summary-row-single  td.summary-fail-unexpected  
+{ 
+    width: 60pt;
+    text-align: center;
+    background-color: red;
+    color: black;
+    border: 2px solid black; 
+    padding-left: 2pt;
+    padding-right: 2pt;
+}
+
+  td.summary-missing
+, td.library-missing
+{
+    width: 60pt;
+    text-align: center;
+    background-color: white;
+    color: black;
+    border: 0px;
+    padding-left: 2pt;
+    padding-right: 2pt;
+}
+
+td.library-fail-expected-unresearched
+{
+    width: 60pt;
+    text-align: center;
+    background-color: white;
+    color: black;
+    border: 1px solid black;
+    padding-left: 2pt;
+    padding-right: 2pt;
+}
+
+
+  tr.summary-row-first  td.summary-missing
+, tr.summary-row-single td.summary-missing
+, tr.library-row-first  td.library-missing
+, tr.library-row-single td.library-missing
+{
+    border-top: 1px solid black;
+}
+
+  tr.summary-row-last   td.summary-missing
+, tr.summary-row-single td.summary-missing
+, tr.library-row-last   td.library-missing
+, tr.library-row-single td.library-missing
+{
+    border-bottom: 1px solid black;
+}
+
+
+/* Summary */
+
+table.summary-table td.library-name
+{
+    width: 100pt;
+    padding-left: 6pt;
+    padding-right: 6pt;
+    border-top: 1px solid gray;
+    border-bottom: 1px solid gray;
+    text-align: left;
+}
+
+  tr.summary-row        td.summary-fail-unexpected-new
+, tr.summary-row-first  td.summary-fail-unexpected-new
+, tr.summary-row-last   td.summary-fail-unexpected-new
+, tr.summary-row-single td.summary-fail-unexpected-new
+
+, tr.library-row        td.library-fail-unexpected-new
+, tr.library-row-first  td.library-fail-unexpected-new
+, tr.library-row-last   td.library-fail-unexpected-new
+, tr.library-row-single td.library-fail-unexpected-new 
+
+, tr.summary-row        td.user-summary-fail-expected-unresearched
+, tr.summary-row-first  td.user-summary-fail-expected-unresearched
+, tr.summary-row-last   td.user-summary-fail-expected-unresearched
+, tr.summary-row-single td.user-summary-fail-expected-unresearched
+
+, tr.library-row        td.user-library-fail-expected-unresearched
+, tr.library-row-first  td.user-library-fail-expected-unresearched
+, tr.library-row-last   td.user-library-fail-expected-unresearched
+, tr.library-row-single td.user-library-fail-expected-unresearched
+{ 
+    width: 60pt;
+    text-align: center;
+    background-color: yellow;
+    color: black;
+    border: 2px solid black; 
+}
+
+/* Detailed */
+
+.library-conf-problem
+{
+    font-size: 70%;
+    font-weight: normal;
+}
+
+div.library-toc
+{ 
+    margin: 5pt;
+}
+
+
+li.library-toc-entry
+{ 
+    margin-left: 5pt;
+    list-style-type: square;
+}
+
+
+div.library-footer
+{ 
+    margin: 5px;
+}
+
+
+table.library-table td.test-name
+{
+    width: 150pt;
+    padding-left: 6pt;
+    padding-right: 6pt;
+    border-right: 0;
+    border-top: 1px solid gray;
+    border-bottom: 1px solid gray;
+    text-align: left;
+}
+
+table.library-table td.test-type
+{
+    padding-right: 5px;
+    border-left: 0;
+    border-right: 0;
+    border-top: 1px solid gray;
+    border-bottom: 1px solid gray;
+    text-align: right;
+}
+
+  tr.library-row        td.library-fail-unexpected
+, tr.library-row-first  td.library-fail-unexpected
+, tr.library-row-last   td.library-fail-unexpected
+, tr.library-row-single td.library-fail-unexpected
+{ 
+    width: 60pt;
+    text-align: center;
+    background-color: red;
+    font-weight: bold;
+    color: black;
+    border: 2px solid black; 
+}
+
+table.library-library-notes
+{
+    background-color: LemonChiffon;
+    width: 80%;
+    margin-left: 5px;
+    margin-right: 5px; 
+}
+
+tr.library-library-note
+{
+}
+
+div.note
+{
+    padding: 3pt;
+}
+
+span.note-header
+{
+    font-weight: bold;
+}
+
+span.auto-note
+{
+    font-style: italic;
+}
+
+span.internal-error-note
+{
+    color: red;
+}
+
+/* Log */
+
+div.log-test-title
+{
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+div.log-test-header
+{
+    border-bottom: 1px solid black;
+    margin-bottom: 5pt;
+}
+
+div.notes-title
+{
+    font-weight: bold;
+    background-color: #ffffcc;
+}
+
+div.notes
+{
+    padding: 3pt;
+    background-color: #ffffcc;
+}
+
+div.notes-title
+{
+    font-weight: bold;
+}
+
+div.log-compiler-output-title
+{
+    font-weight: bold;
+}
+
+div.log-linker-output-title
+{
+  font-weight: bold;
+}
+
+div.log-run-output-title
+{
+  font-weight: bold;
+}
+
+span.output-fail
+{
+  color: red;
+}
+
+
+/* Issues page */
+
+table.library-issues-table
+{
+    border-collapse: collapse;
+    border: 2px solid black;
+}
+
+table.library-issues-table td
+{
+    border: 1px solid #c0c0c0;
+    text-align: center;
+    margin-right: 5px;
+}
+
+table.library-issues-table td.failures-row
+{
+    text-align: left;
+    padding: 0px;
+}
+
+ table.issue-box tr.library-row-single td.library-fail-unexpected-new
+,table.issue-box tr.library-row-single td.library-fail-unexpected
+{
+    border: 0px;
+    font-weight: normal;
+}

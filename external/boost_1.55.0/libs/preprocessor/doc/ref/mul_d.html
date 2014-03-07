@@ -1,0 +1,91 @@
+<html>
+<head>
+	<title>BOOST_PP_MUL_D</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_MUL_D</b> macro expands to the product of its second and third arguments.&nbsp;
+		It reenters <b>BOOST_PP_WHILE</b> with maximum efficiency.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_MUL_D</b>(<i>d</i>, <i>x</i>, <i>y</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>d</dt>
+			<dd>
+				The next available <b>BOOST_PP_WHILE</b> iteration.&nbsp;
+			</dd>
+			<dt>x</dt>
+			<dd>
+				The multiplicand of the operation.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+			<dt>y</dt>
+			<dd>
+				The multiplier of the operation.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			If the product of <i>x</i> and <i>y</i> is greater than <b>BOOST_PP_LIMIT_MAG</b>, the result is saturated to <b>BOOST_PP_LIMIT_MAG</b>.
+		</div>
+		<div>
+			This macro is the most efficient when <i>x</i> is less than or equal to <i>y</i>.&nbsp;
+			However, the efficiency gain is not worth actually comparing the two arguments prior to invocation.&nbsp;
+			In other words, <i>x</i> should be the value that is <i>most likely</i> to be the largest of the two operands.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+			<li><a href="mul.html">BOOST_PP_MUL</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/arithmetic/mul.html">&lt;boost/preprocessor/arithmetic/mul.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/arithmetic/dec.html">boost/preprocessor/arithmetic/dec.hpp</a>&gt;
+#include &lt;<a href="../headers/arithmetic/mul.html">boost/preprocessor/arithmetic/mul.hpp</a>&gt;
+#include &lt;<a href="../headers/control/while.html">boost/preprocessor/control/while.hpp</a>&gt;
+#include &lt;<a href="../headers/tuple/elem.html">boost/preprocessor/tuple/elem.hpp</a>&gt;
+
+#define PRED(d, data) <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(3, 0, data)
+
+#define OP(d, data) \
+   ( \
+      <a href="dec.html">BOOST_PP_DEC</a>( \
+         <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(3, 0, data) \
+      ), \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(3, 1, data), \
+      <a href="mul_d.html">BOOST_PP_MUL_D</a>( \
+         d, \
+         <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(3, 2, data), \
+         <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(3, 1, data) \
+      ) \
+   ) \
+   /**/
+
+// raise 'x' to the 'n'-th power
+#define EXP(x, n) <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(3, 2, <a href="while.html">BOOST_PP_WHILE</a>(PRED, OP, (n, x, 1)))
+
+EXP(4, 2) // expands to 16
+EXP(2, 3) // expands to 8
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

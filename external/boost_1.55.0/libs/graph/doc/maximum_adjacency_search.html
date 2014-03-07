@@ -1,0 +1,284 @@
+<html>
+<!--
+    Copyright (c) Fernando Vilas 2013
+
+
+    Some content from the Stoer-Wagner Min Cut documentation,
+    Copyright (c) Daniel Trebbien 2010
+
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<head>
+<title>Boost Graph Library: Maximum Adjacency Search</Title>
+<body>
+<img src="../../../boost.png" alt="C++ Boost" width="277" height="86">
+
+<h1><a name="sec:maximum-adjacency-search"></a>
+<tt>maximum_adjacency_search</tt>
+</h1>
+
+<p>
+<pre>
+<em>// named parameter versions</em>
+template &lt;class Graph, class class P, class T, class R&gt;
+void
+maximum_adjacency_search(const Graph&amp; g,
+       const bgl_named_params&lt;P, T, R&gt;&amp; params);
+
+<i>// non-named parameter versions</i>
+template &lt;class Graph, class WeightMap, class MASVisitor&gt;
+void
+maximum_adjacency_search(const Graph&amp; g, WeightMap weights, MASVisitor vis,
+       const typename graph_traits&lt;Graph&gt;::vertex_descriptor start);
+
+</pre>
+
+<p>
+The <tt>maximum_adjacency_search()</tt> function performs a traversal
+of the vertices in an undirected graph. The next vertex visited is the
+vertex that has the most visited neighbors at any time. In the case of
+an unweighted, undirected graph, the number of visited neighbors of the
+very last vertex visited in the graph is also the number of edge-disjoint
+paths between that vertex and the next-to-last vertex visited. These can be
+retrieved from a visitor, an example of which is in the test harness
+mas_test.cpp.
+</p>
+
+<p>
+The <tt>maximum_adjacency_search()</tt> function invokes user-defined
+actions at certain event-points within the algorithm. This provides a
+mechanism for adapting the generic MAS algorithm to the many situations
+in which it can be used. In the pseudo-code below, the event points
+for MAS are the labels on the right. The user-defined actions must be
+provided in the form of a visitor object, that is, an object whose type
+meets the requirements for a MAS Visitor.
+</p>
+
+<table>
+<tr>
+<td valign="top">
+<pre>
+MAS(<i>G</i>)
+  <b>for</b> each vertex <i>u in V</i> 
+    <i>reach_count[u] := 0</i>
+  <b>end for</b>
+  // for the starting vertex s
+  <i>reach_count[s] := 1</i>
+  <b>for</b> each unvisited vertex <i>u in V</i>
+    <b>call</b> MAS-VISIT(<i>G</i>, <i>u</i>)
+    remove u from the list on unvisited vertices
+    <b>for</b> each out edge from <i>u</i> to <i>t</i>
+       <b>if</b> <i>t</i> has not yet been visited
+         increment <i>reach_count[t]</i>
+       <b>end if</b>
+    <b>end for</b> each out edge
+    <b>call</b> MAS-VISIT(<i>G</i>, <i>u</i>)
+  <b>end for</b> each unvisited vertex
+<pre>
+</td>
+<td valign="top">
+<pre>
+-
+-
+initialize vertex <i>u</i>
+-
+-
+-
+-
+examine vertex <i>u</i>
+-
+examine edge <i>(u,t)</i>
+-
+-
+-
+-
+finish vertex <i>u</i>
+-
+</pre>
+</td>
+</tr>
+</table>
+
+<h3>Where Defined</h3>
+
+<p>
+<a href="../../../boost/graph/maximum_adjacency_search.hpp"><tt>boost/graph/maximum_adjacency_search.hpp</tt></a></p>
+
+<h3>Parameters</h3>
+
+IN: <tt>const UndirectedGraph&amp; g</tt></p>
+<blockquote>
+  A connected, directed graph. The graph type must
+  be a model of <a href="./IncidenceGraph.html">Incidence Graph</a>
+  and <a href="./VertexListGraph.html">Vertex List Graph</a>.<br>
+</blockquote>
+
+<h3>Named Parameters</h3>
+
+<p>IN: <tt>WeightMap weights</tt></p>
+<blockquote>
+  The weight or length of each edge in the graph. The
+  <tt>WeightMap</tt> type must be a model of
+  <a href="../../property_map/doc/ReadablePropertyMap.html">Readable
+  Property Map</a> and its value type must be <a class="external"
+  href="http://www.sgi.com/tech/stl/LessThanComparable.html">
+  Less Than Comparable</a> and summable. The key type of this map
+  needs to be the graph's edge descriptor type.
+  <b>Default:</b> <tt>get(edge_weight, g)</tt><br>
+</blockquote>
+
+IN: <tt>visitor(MASVisitor vis)</tt></p>
+<blockquote>
+  A visitor object that is invoked inside the algorithm at the
+  event-points specified by the MAS Visitor concept. The visitor
+  object is passed by value <a href="#1">[1]</a>. <br>
+  <b>Default:</b> <tt>mas_visitor&lt;null_visitor&gt;</tt><br>
+</blockquote>
+
+IN: <tt>root_vertex(typename
+graph_traits&lt;VertexListGraph&gt;::vertex_descriptor start)</tt></p>
+<blockquote>
+  This specifies the vertex that the depth-first search should
+  originate from. The type is the type of a vertex descriptor for the
+  given graph.<br>
+  <b>Default:</b> <tt>*vertices(g).first</tt><br>
+</blockquote>
+
+<h4>Expert Parameters</h4>
+
+<p>IN: <tt>vertex_index_map(VertexIndexMap vertexIndices)</tt> </p>
+<blockquote>
+  This maps each vertex to an integer in the range
+  [0, <tt>num_vertices(g)</tt>). This is only necessary if the default is
+  used for the assignment, index-in-heap, or distance maps.
+  <tt>VertexIndexMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+  Map</a>. The value type of the map must be an integer type. The
+  key type must be the graph's vertex descriptor type.<br>
+  <b>Default:</b> <tt>get(boost::vertex_index, g)</tt>
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacency_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.
+</blockquote>
+
+<p>UTIL: <tt>vertex_assignment_map(AssignmentMap assignments)</tt></p>
+<blockquote>
+  <tt>AssignmentMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write Property
+  Map</a>. The key and value types must be the graph's vertex descriptor
+  type.<br>
+  <b>Default:</b> A <tt>boost::iterator_property_map</tt> using a
+  <tt>std::vector</tt> of <tt>num_vertices(g)</tt> vertex descriptors and
+  <tt>vertexIndices</tt> for the index map.
+</blockquote>
+
+<p>UTIL: <tt>max_priority_queue(MaxPriorityQueue&amp; pq)</tt></p>
+<blockquote>
+  <tt>MaxPriorityQueue</tt> must be a model of <a
+  href="./KeyedUpdatableQueue.html">Keyed Updatable Queue</a> and a
+  max-<a href="./UpdatableQueue.html#concept%3AUpdatablePriorityQueue">
+  Updatable Priority Queue</a>. The value type must be the graph's vertex
+  descriptor and the key type must be the weight type.
+  <b>Default:</b> A <tt>boost::d_ary_heap_indirect</tt> using a default
+  index-in-heap and distance map.
+</blockquote>
+
+<p>UTIL: <tt>index_in_heap_map(IndexInHeapMap indicesInHeap)</tt></p>
+<blockquote>
+  This parameter only has an effect when the default max-priority queue is used.<br>
+  <tt>IndexInHeapMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write Property
+  Map</a>. The key type must be the graph's vertex descriptor type. The
+  value type must be a size type
+  (<tt>typename&nbsp;std::vector&lt;vertex_descriptor&gt;::size_type</tt>).<br>
+  <b>Default:</b> A <tt>boost::iterator_property_map</tt> using a
+  <tt>std::vector</tt> of <tt>num_vertices(g)</tt> size type objects and
+  <tt>vertexIndices</tt> for the index map.
+</blockquote>
+
+<p>UTIL: <tt>distance_map(DistanceMap wAs)</tt></p>
+<blockquote>
+  This parameter only has an effect when the default max-priority queue is used.<br>
+  <tt>DistanceMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write Property
+  Map</a>. The key type must be the graph's vertex descriptor type. The
+  value type must be the weight type
+  (<tt>typename&nbsp;boost::property_traits&lt;WeightMap&gt;::value_type</tt>).
+  <br>
+  <b>Default:</b> A <tt>boost::iterator_property_map</tt> using a
+  <tt>std::vector</tt> of <tt>num_vertices(g)</tt> weight type objects
+  and <tt>vertexIndices</tt> for the index map.
+</blockquote>
+
+<h3>Returns</h3>
+<p>void</p>
+
+<h3>Throws</h3>
+
+<p><tt>bad_graph</tt>
+<blockquote>
+  If <tt>num_vertices(g)</tt> is less than 2
+</blockquote></p>
+
+<p><tt>std::invalid_argument</tt>
+<blockquote>
+  If a max-priority queue is given as an argument and it is not empty
+</blockquote>.
+
+<h3><a name="SECTION001340300000000000000">
+Complexity</a>
+</h3>
+
+<p>
+The time complexity is <i>O(E + V)</i>.
+</p>
+
+<h3>References</h3>
+<ul>
+<li>David Matula (1993). <q><a href="http://dl.acm.org/citation.cfm?id=313872&dl=ACM&coll=DL&CFID=85991501&CFTOKEN=44461131">A linear time 2 + epsilon approximation algorightm for edge connectivity</a></q>
+</li>
+<li>Cai, Weiqing and Matula, David W. 
+Partitioning by maximum adjacency search of graphs. 
+Partitioning Data Sets: Dimacs Workshop, April 19-21, 1993. 
+Vol 19. Page 55. 1995. Amer Mathematical Society</li>
+}
+</ul>
+
+<h3>Visitor Event Points</h3>
+
+<ul>
+<li><b><tt>vis.initialize_vertex(s, g)</tt></b> is invoked on every
+  vertex of the graph before the start of the graph search.</li>
+
+<li><b><tt>vis.start_vertex(s, g)</tt></b> is invoked on the source
+  vertex once before processing its out edges.</li>
+
+<li><b><tt>vis.examine_edge(e, g)</tt></b> is invoked on every out-edge
+  of each vertex after it is started.</li>
+
+<li><b><tt>vis.finish_vertex(u, g)</tt></b> is invoked on a vertex after
+  all of its out edges have been examined and the reach counts of the
+  unvisited targets have been updated.</li>
+</ul>
+
+<h3>Notes</h3>
+
+<p><a name="1">[1]</a> 
+  Since the visitor parameter is passed by value, if your visitor
+  contains state then any changes to the state during the algorithm
+  will be made to a copy of the visitor object, not the visitor object
+  passed in. Therefore you may want the visitor to hold this state by
+  pointer or reference.</p>
+
+<hr>
+<table>
+<tr valign=top>
+<td nowrap>Copyright &copy; 2012</td><td>
+Fernando Vilas
+</td></tr></table>
+
+</body>
+</html> 

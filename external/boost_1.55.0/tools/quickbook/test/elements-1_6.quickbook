@@ -1,0 +1,21 @@
+[article 1.6 Elements
+[quickbook 1.6]
+]
+
+[/ elements from 1.6]
+
+[ordered_list [item1][item2]]
+
+[itemized_list [item1][item2]]
+
+[ordered_list
+    [
+        Check that
+        *bold text*
+        isn't confused with a list.
+    ]
+]
+
+[block'''<simplesect><title>'''A *simplesect*!'''</title>''']
+
+[block'''</simplesect>''']

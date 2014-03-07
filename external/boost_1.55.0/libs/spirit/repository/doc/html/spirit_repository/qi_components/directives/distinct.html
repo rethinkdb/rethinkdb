@@ -1,0 +1,325 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Qi Distinct Parser Directive</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit Repository 0.2">
+<link rel="up" href="../directives.html" title="Qi Parser Directives">
+<link rel="prev" href="confix.html" title="Qi Confix Parser Directive">
+<link rel="next" href="kwd.html" title="Qi Keyword Parser Directive">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="confix.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directives.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="kwd.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit_repository.qi_components.directives.distinct"></a><a class="link" href="distinct.html" title="Qi Distinct Parser Directive">Qi
+        Distinct Parser Directive</a>
+</h4></div></div></div>
+<h6>
+<a name="spirit_repository.qi_components.directives.distinct.h0"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.distinct.description"></a></span><a class="link" href="distinct.html#spirit_repository.qi_components.directives.distinct.description">Description</a>
+        </h6>
+<p>
+          The <span class="emphasis"><em>Spirit.Qi</em></span> <code class="computeroutput"><span class="identifier">distinct</span></code>
+          parser is a directive component allowing to avoid partial matches while
+          parsing using a skipper. A simple example is the common task of matching
+          a C keyword. Consider:
+        </p>
+<pre class="programlisting"><span class="string">"description"</span> <span class="special">&gt;&gt;</span> <span class="special">-</span><span class="identifier">lit</span><span class="special">(</span><span class="string">":"</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="identifier">eol</span><span class="special">)</span>
+</pre>
+<p>
+          intended to match a line in a configuration file. Let's assume further,
+          that this rule is used with a <code class="computeroutput"><span class="identifier">space</span></code>
+          skipper and that we have the following strings in the input:
+        </p>
+<pre class="programlisting"><span class="string">"description: ident\n"</span>
+<span class="string">"description ident\n"</span>
+<span class="string">"descriptionident\n"</span>
+</pre>
+<p>
+          It might seem unexpected, but the parser above matches all three inputs
+          just fine, even if the third input should not match at all! In order to
+          avoid the unwanted match we are forced to make our rule more complicated:
+        </p>
+<pre class="programlisting"><span class="identifier">lexeme</span><span class="special">[</span><span class="string">"description"</span> <span class="special">&gt;&gt;</span> <span class="special">!</span><span class="identifier">char_</span><span class="special">(</span><span class="string">"a-zA-Z_0-9"</span><span class="special">)]</span> <span class="special">&gt;&gt;</span> <span class="special">-</span><span class="identifier">lit</span><span class="special">(</span><span class="string">":"</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="identifier">eol</span><span class="special">)</span>
+</pre>
+<p>
+          (the rule reads as: match <code class="computeroutput"><span class="string">"description"</span></code>
+          as long as it's not <span class="emphasis"><em>directly</em></span> followed by a valid identifier).
+        </p>
+<p>
+          The <code class="computeroutput"><span class="identifier">distinct</span><span class="special">[]</span></code>
+          directive is meant to simplify the rule above:
+        </p>
+<pre class="programlisting"><span class="identifier">distinct</span><span class="special">(</span><span class="identifier">char_</span><span class="special">(</span><span class="string">"a-zA-Z_0-9"</span><span class="special">))[</span><span class="string">"description"</span><span class="special">]</span> <span class="special">&gt;&gt;</span> <span class="special">-</span><span class="identifier">lit</span><span class="special">(</span><span class="string">":"</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="identifier">eol</span><span class="special">)</span>
+</pre>
+<p>
+          Using the <code class="computeroutput"><span class="identifier">distinct</span><span class="special">[]</span></code>
+          component instead of the explicit sequence has the advantage of being able
+          to encapsulate the tail (i.e the <code class="computeroutput"><span class="identifier">char_</span><span class="special">(</span><span class="string">"a-zA-Z_0-9"</span><span class="special">)</span></code>) as a separate parser construct. The following
+          code snippet illustrates the idea (for the full code of this example please
+          see <a href="../../../../../test/qi/distinct.cpp" target="_top">distinct.cpp</a>):
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">spirit</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">;</span>
+<span class="keyword">namespace</span> <span class="identifier">ascii</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">;</span>
+<span class="keyword">namespace</span> <span class="identifier">repo</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">repository</span><span class="special">;</span>
+
+<span class="comment">// Define metafunctions allowing to compute the type of the distinct()</span>
+<span class="comment">// and ascii::char_() constructs</span>
+<span class="keyword">namespace</span> <span class="identifier">traits</span>
+<span class="special">{</span>
+    <span class="comment">// Metafunction allowing to get the type of any repository::distinct(...) </span>
+    <span class="comment">// construct</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Tail</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">distinct_spec</span>
+      <span class="special">:</span> <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">terminal</span><span class="special">&lt;</span><span class="identifier">repo</span><span class="special">::</span><span class="identifier">tag</span><span class="special">::</span><span class="identifier">distinct</span><span class="special">(</span><span class="identifier">Tail</span><span class="special">)&gt;</span>
+    <span class="special">{};</span>
+
+    <span class="comment">// Metafunction allowing to get the type of any ascii::char_(...) construct</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">String</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">char_spec</span>
+      <span class="special">:</span> <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">terminal</span><span class="special">&lt;</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">tag</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">char_</span><span class="special">(</span><span class="identifier">String</span><span class="special">)&gt;</span>
+    <span class="special">{};</span>
+<span class="special">};</span>
+
+<span class="comment">// Define a helper function allowing to create a distinct() construct from </span>
+<span class="comment">// an arbitrary tail parser</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Tail</span><span class="special">&gt;</span>
+<span class="keyword">inline</span> <span class="keyword">typename</span> <span class="identifier">traits</span><span class="special">::</span><span class="identifier">distinct_spec</span><span class="special">&lt;</span><span class="identifier">Tail</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">distinct_spec</span><span class="special">(</span><span class="identifier">Tail</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">tail</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">repo</span><span class="special">::</span><span class="identifier">distinct</span><span class="special">(</span><span class="identifier">tail</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="comment">// Define a helper function allowing to create a ascii::char_() construct </span>
+<span class="comment">// from an arbitrary string representation</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">String</span><span class="special">&gt;</span>
+<span class="keyword">inline</span> <span class="keyword">typename</span> <span class="identifier">traits</span><span class="special">::</span><span class="identifier">char_spec</span><span class="special">&lt;</span><span class="identifier">String</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">char_spec</span><span class="special">(</span><span class="identifier">String</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">str</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">char_</span><span class="special">(</span><span class="identifier">str</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="comment">// the following constructs the type of a distinct_spec holding a</span>
+<span class="comment">// charset("0-9a-zA-Z_") as its tail parser</span>
+<span class="keyword">typedef</span> <span class="identifier">traits</span><span class="special">::</span><span class="identifier">char_spec</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">charset_tag_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">traits</span><span class="special">::</span><span class="identifier">distinct_spec</span><span class="special">&lt;</span><span class="identifier">charset_tag_type</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">keyword_tag_type</span><span class="special">;</span>
+
+<span class="comment">// Define a new Qi 'keyword' directive usable as a shortcut for a</span>
+<span class="comment">// repository::distinct(char_(std::string("0-9a-zA-Z_")))</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span> <span class="identifier">keyword_spec</span><span class="special">(</span><span class="string">"0-9a-zA-Z_"</span><span class="special">);</span>
+<span class="identifier">keyword_tag_type</span> <span class="keyword">const</span> <span class="identifier">keyword</span> <span class="special">=</span> <span class="identifier">distinct_spec</span><span class="special">(</span><span class="identifier">char_spec</span><span class="special">(</span><span class="identifier">keyword_spec</span><span class="special">));</span>
+</pre>
+<p>
+        </p>
+<p>
+          These definitions define a new Qi parser recognizing keywords! This allows
+          to rewrite our declaration parser expression as:
+        </p>
+<pre class="programlisting"><span class="identifier">keyword</span><span class="special">[</span><span class="string">"description"</span><span class="special">]</span> <span class="special">&gt;&gt;</span> <span class="special">-</span><span class="identifier">lit</span><span class="special">(</span><span class="string">":"</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="identifier">eol</span><span class="special">)</span>
+</pre>
+<p>
+          which is much more readable and concise if compared to the original parser
+          expression. In addition the new <code class="computeroutput"><span class="identifier">keyword</span><span class="special">[]</span></code> directive has the advantage to be usable
+          for wrapping any parser expression, not only strings as in the example
+          above.
+        </p>
+<h6>
+<a name="spirit_repository.qi_components.directives.distinct.h1"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.distinct.header"></a></span><a class="link" href="distinct.html#spirit_repository.qi_components.directives.distinct.header">Header</a>
+        </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/repository/home/qi/directive/distinct.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">repository</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_distinct</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="spirit_repository.qi_components.directives.distinct.h2"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.distinct.synopsis"></a></span><a class="link" href="distinct.html#spirit_repository.qi_components.directives.distinct.synopsis">Synopsis</a>
+        </h6>
+<pre class="programlisting"><span class="identifier">distinct</span><span class="special">(</span><span class="identifier">tail</span><span class="special">)[</span><span class="identifier">subject</span><span class="special">]</span>
+</pre>
+<h6>
+<a name="spirit_repository.qi_components.directives.distinct.h3"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.distinct.parameters"></a></span><a class="link" href="distinct.html#spirit_repository.qi_components.directives.distinct.parameters">Parameters</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">tail</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The parser construct specifying what whould not follow the subject
+                    in order to match the overall expression.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">subject</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The parser construct to use to match the current input. The distinct
+                    directive makes sure that no unexpected partial matches occur.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          All two parameters can be arbitrary complex parsers themselves.
+        </p>
+<h6>
+<a name="spirit_repository.qi_components.directives.distinct.h4"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.distinct.attribute"></a></span><a class="link" href="distinct.html#spirit_repository.qi_components.directives.distinct.attribute">Attribute</a>
+        </h6>
+<p>
+          The <code class="computeroutput"><span class="identifier">distinct</span></code> component
+          exposes the attribute type of its subject as its own attribute type. If
+          the <code class="computeroutput"><span class="identifier">subject</span></code> does not expose
+          any attribute (the type is <code class="computeroutput"><span class="identifier">unused_type</span></code>),
+          then the <code class="computeroutput"><span class="identifier">distinct</span></code> does
+          not expose any attribute either.
+        </p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">b</span><span class="special">:</span> <span class="identifier">B</span> <span class="special">--&gt;</span> <span class="identifier">distinct</span><span class="special">(</span><span class="identifier">b</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+</pre>
+<h6>
+<a name="spirit_repository.qi_components.directives.distinct.h5"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.distinct.example"></a></span><a class="link" href="distinct.html#spirit_repository.qi_components.directives.distinct.example">Example</a>
+        </h6>
+<p>
+          The following example shows simple use cases of the <code class="computeroutput"><span class="identifier">distinct</span></code>
+          parser. <a href="../../../../../example/qi/distinct.cpp" target="_top">distinct.cpp</a>)
+        </p>
+<h6>
+<a name="spirit_repository.qi_components.directives.distinct.h6"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.distinct.prerequisites"></a></span><a class="link" href="distinct.html#spirit_repository.qi_components.directives.distinct.prerequisites">Prerequisites</a>
+        </h6>
+<p>
+          In addition to the main header file needed to include the core components
+          implemented in <span class="emphasis"><em>Spirit.Qi</em></span> we add the header file needed
+          for the new <code class="computeroutput"><span class="identifier">distinct</span></code> generator.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">repository</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_distinct</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        </p>
+<p>
+          To make all the code below more readable we introduce the following namespaces.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">repository</span><span class="special">::</span><span class="identifier">distinct</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="spirit_repository.qi_components.directives.distinct.h7"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.directives.distinct.using_the_distinct_directive_to_match_keywords"></a></span><a class="link" href="distinct.html#spirit_repository.qi_components.directives.distinct.using_the_distinct_directive_to_match_keywords">Using
+          The Distinct Directive to Match keywords</a>
+        </h6>
+<p>
+          We show several examples of how the <code class="computeroutput"><span class="identifier">distinct</span><span class="special">[]</span></code> directive can be used to force correct
+          behavior while matching keywords. The first two code snippets show the
+          correct matching of the <code class="computeroutput"><span class="identifier">description</span></code>
+          keyword (in this hypothetical example we allow keywords to be directly
+          followed by an optional <code class="computeroutput"><span class="string">"--"</span></code>):
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span><span class="special">(</span><span class="string">"description ident"</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">first</span><span class="special">(</span><span class="identifier">str</span><span class="special">.</span><span class="identifier">begin</span><span class="special">());</span>
+    <span class="keyword">bool</span> <span class="identifier">r</span> <span class="special">=</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_parse</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span>
+      <span class="special">,</span> <span class="identifier">distinct</span><span class="special">(</span><span class="identifier">alnum</span> <span class="special">|</span> <span class="char">'_'</span><span class="special">)[</span><span class="string">"description"</span><span class="special">]</span> <span class="special">&gt;&gt;</span> <span class="special">-</span><span class="identifier">lit</span><span class="special">(</span><span class="string">"--"</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="special">+(</span><span class="identifier">alnum</span> <span class="special">|</span> <span class="char">'_'</span><span class="special">)</span>
+      <span class="special">,</span> <span class="identifier">space</span><span class="special">);</span>
+    <span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">r</span> <span class="special">&amp;&amp;</span> <span class="identifier">first</span> <span class="special">==</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span><span class="special">(</span><span class="string">"description--ident"</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">first</span><span class="special">(</span><span class="identifier">str</span><span class="special">.</span><span class="identifier">begin</span><span class="special">());</span>
+    <span class="keyword">bool</span> <span class="identifier">r</span> <span class="special">=</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_parse</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span>
+      <span class="special">,</span> <span class="identifier">distinct</span><span class="special">(</span><span class="identifier">alnum</span> <span class="special">|</span> <span class="char">'_'</span><span class="special">)[</span><span class="string">"description"</span><span class="special">]</span> <span class="special">&gt;&gt;</span> <span class="special">-</span><span class="identifier">lit</span><span class="special">(</span><span class="string">"--"</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="special">+(</span><span class="identifier">alnum</span> <span class="special">|</span> <span class="char">'_'</span><span class="special">)</span>
+      <span class="special">,</span> <span class="identifier">space</span><span class="special">);</span>
+    <span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">r</span> <span class="special">&amp;&amp;</span> <span class="identifier">first</span> <span class="special">==</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          The last example shows that the <code class="computeroutput"><span class="identifier">distinct</span><span class="special">[]</span></code> parser component correctly refuses to
+          match "description-ident":
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span><span class="special">(</span><span class="string">"description-ident"</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">first</span><span class="special">(</span><span class="identifier">str</span><span class="special">.</span><span class="identifier">begin</span><span class="special">());</span>
+    <span class="keyword">bool</span> <span class="identifier">r</span> <span class="special">=</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_parse</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span>
+      <span class="special">,</span> <span class="identifier">distinct</span><span class="special">(</span><span class="identifier">alnum</span> <span class="special">|</span> <span class="char">'_'</span><span class="special">)[</span><span class="string">"description"</span><span class="special">]</span> <span class="special">&gt;&gt;</span> <span class="special">-</span><span class="identifier">lit</span><span class="special">(</span><span class="string">"--"</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="special">+(</span><span class="identifier">alnum</span> <span class="special">|</span> <span class="char">'_'</span><span class="special">)</span>
+      <span class="special">,</span> <span class="identifier">space</span><span class="special">);</span>
+    <span class="identifier">BOOST_ASSERT</span><span class="special">(!</span><span class="identifier">r</span> <span class="special">&amp;&amp;</span> <span class="identifier">first</span> <span class="special">==</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">begin</span><span class="special">());</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="confix.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directives.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="kwd.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

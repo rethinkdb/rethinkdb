@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: Placeholder Expression Definition</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./placeholders.html" class="navigation-link">Prev</a>&nbsp;<a href="./lambda-and-non.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./placeholders.html" class="navigation-link">Back</a>&nbsp;<a href="./lambda-and-non.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./lambda-details.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./tutorial-metafunctions.html" class="navigation-link">Tutorial: Metafunctions and Higher-Order Metaprogramming</a> / <a href="./lambda-details.html" class="navigation-link">Lambda Details</a> / <a href="./placeholder-expression.html" class="navigation-link">Placeholder Expression Definition</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="placeholder-expression">
+<h1><a class="toc-backref" href="./lambda-details.html#id56" name="placeholder-expression">Placeholder Expression Definition</a></h1>
+<p>Now that you know just what <em>placeholder</em> means, we can define
+<em>placeholder expression</em>:</p>
+<div class="admonition-definition admonition">
+<p class="admonition-title first">Definition</p>
+<p>A placeholder expression is either:</p>
+<blockquote>
+<blockquote>
+<ul class="simple">
+<li>a placeholder</li>
+</ul>
+</blockquote>
+<p><em>or</em></p>
+<blockquote>
+<ul class="simple">
+<li>a template specialization with at least one argument that
+is a placeholder expression.</li>
+</ul>
+</blockquote>
+</blockquote>
+</div>
+<p>In other words, a placeholder expression always involves a
+placeholder.</p>
+<!-- DWA: I'm still not sure we shouldn't be at least mentioning the
+pitfall, but for now it's commented out.
+
+Lambda and Nullary Metafunctions
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+The definition of *placeholder expression* above has an interesting
+implication: an ordinary nullary metafunction is never a placeholder
+expression.  In other words, even though ``add_pointer<int>`` is a
+nullary metafunction, it won't be invoked in the expression below;
+the assertion will always fail:
+
+.. parsed-literal::
+
+   BOOST_STATIC_ASSERT((
+       mpl::apply<
+           boost::is_same<**boost::add_pointer<int>**,_1>
+         , int\*
+       >::type::value
+   ));
+
+In order to allow a nullary metafunction to be used as a lambda
+expression, MPL provides this definition of ``arg``:
+
+.. parsed-literal::
+
+    // primary template definition (not a specialization)
+    template <class F>
+    struct arg
+    {
+        template <class A1 = void\_, class A2 = void\_, ... class *Am* = void\_>
+        struct apply : F
+        {
+        };
+    };
+
+When applied to a lambda expression's actual arguments, ``arg<F>``
+ignores them and simply returns ``F::type``.  In other words, if
+``F`` is a nullary metafunction, ``arg<F>`` is a metafunction class
+that invokes ``F`` and returns the result.  So we can transform
+add_pointer<int> into a placeholder and get the desired result
+with:
+
+.. parsed-literal::
+
+   BOOST_STATIC_ASSERT((
+       mpl::apply<
+           boost::is_same<
+                **mpl::arg<boost::add_pointer<int> >**
+              , _1
+           >
+         , int\*
+       >::type::value
+   )); -->
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./placeholders.html" class="navigation-link">Prev</a>&nbsp;<a href="./lambda-and-non.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./placeholders.html" class="navigation-link">Back</a>&nbsp;<a href="./lambda-and-non.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./lambda-details.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

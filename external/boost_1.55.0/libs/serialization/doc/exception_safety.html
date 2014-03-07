@@ -1,0 +1,115 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Reference</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Exception Safety</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+The process of loading an archive may result in the creation of new objects.  That
+same process may throw an exception at some point. In order to prevent memory leaks
+and invalid pointers, these situations must be considered.  Unfortunately, there is
+no simple universal solution to this problem.  The manner of addressing this must
+depend on the design of the data structures to be serialized.  Below, we discuss
+varying scenarios in increasing order of difficulty.  This discussion presumes that
+the class member functions are exception safe before considering serialization.  
+That is, the destructor could be called at anytime without referencing 
+an invalid pointer, or creating a memory leak.
+<ol>
+    <li><h4>class contains no pointers</h4>
+    No problem here.
+    <p>
+    <li><h4>class contains only <i>owned</i> pointers</h4>
+    From here on, we have to make a distinction between pointers used
+    to manage heap storage (<i>owned</i> pointers) and pointers used to refer
+    to related objects (<i>referenced</i> pointers).  Programs containing <i>owned</i>
+    pointers must contain code for deleting these objects and returning the
+    deallocated storage to the heap.  Programs containing <i>referenced</i> pointers
+    must be designed to ensure that no such <i>referenced</i> pointers are de-referenced
+    after the object pointed to has been destroyed and its storage returned
+    to the heap. If a pointer is stored in only one place, it must be an <i>owned</i>
+    pointer.
+    <p>
+    The load function traps any exceptions that occur between the time an object
+    is created and its pointer is stored.  Should an exception occur while
+    reading an archive, the created object is deleted and the de-serialized
+    pointer is set to NULL.  This ensures that there are no memory leaks.
+    The fact that there are no other copies of this pointer ensures that
+    no pointers are left invalid. The object's destructor should
+    be able to delete any other existing objects in the normal manner
+    without problem.
+    <a href="../test/test_delete_pointer.cpp" target="test_delete_pointer.cpp">test_delete_pointer.cpp</a>
+    illustrates this case.
+    <p>
+    <li><h4>class contains one or more <i>referenced</i> pointers</h4>
+    This situation can be further subdivided into two cases
+    <p>
+    <ol>
+        <li><h4><i>owned</i> pointers are always serialized before <i>referenced</i> pointers</h4>
+        Object tracking will ensure that no new objects will be created
+        by the loading of a <i>referenced</i> pointer.
+        If an exception occurs, <i>referenced</i> pointers will not need to be deleted
+        so there will be no memory leaks. The destructor of this class won't attempt to
+        delete these pointers so there will be no problem with dangling references.
+        <i>owned</i> pointers are handled exactly as described above.
+        <p>
+        <li><h4>class contains <i>referenced</i> pointers which might be created by load</h4>
+        If a <i>referenced</i> pointer is loaded before its corresponding <i>owned</i>
+        pointer, the object will be allocated on the heap.  In certain cases
+        it cannot be known which pointers were created by their owners and which
+        were created by the load function.  To address this:
+        <ul>
+        <li>Trap exceptions with a <code style="white-space: normal">try/catch</code> block.
+        <li>Within the catch part, invoke the archive function 
+        <code style="white-space: normal">delete_created_pointers()</code> to delete any pointers
+        created by the class load.  Without out other action, objects created in
+        this way would end up as memory leaks as they are not considered <i>owned</i>
+        pointers and hence aren't destroyed.
+        <li>The object's destructor won't try
+        to delete <i>referenced</i> pointers so any dangling references will
+        cause no harm.
+    </ul>
+    <a href="../example/demo_exception.cpp" target="demo_exception.cpp">demo_exception.cpp</a>
+        is a program that illustrates this case.
+        <p>
+    </ol>
+    <p>
+    <li><h4>Other cases</h4>
+    Situations not covered above are pointers for which the classifications of 
+    <i>referenced</i> and <i>owned</i> are not applicable.  This might occur where
+    pointers are created by one class but consumed and deleted by another.  These
+    may be addressed with an ad hoc analysis similar to the above.  As the
+    situation becomes more complex this becomes more difficult and error prone.
+    Eventually, it will be have to addressed by building heap management into the
+    pointer itself - that is into <code style="white-space: normal">boost::shared_ptr</code>. 
+    The library includes serialization of <code style="white-space: normal">boost::shared_ptr</code>.  As
+    previously mentioned, this required a tiny alteration in one of the
+    <code style="white-space: normal">boost::shared_ptr</code> implementation files in order to permit
+    access by the serialization system.
+</ol>
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

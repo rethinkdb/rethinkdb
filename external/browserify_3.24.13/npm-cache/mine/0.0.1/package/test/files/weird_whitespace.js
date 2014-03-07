@@ -1,0 +1,6 @@
+function qqq () {
+    require
+        (
+        "c"
+    );
+}

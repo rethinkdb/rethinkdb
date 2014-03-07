@@ -1,0 +1,161 @@
+# Boost serialization Library test Jamfile
+
+#  (C) Copyright Robert Ramey 2002-2004.
+#  Use, modification, and distribution are subject to the 
+#  Boost Software License, Version 1.0. (See accompanying file 
+#  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+
+project libs/serialization/test
+    : id serialization_test
+    : requirements <source>/boost/filesystem
+    ;
+
+# import rules from the boost serialization test
+# import ../util/test : test-bsl-run-no-lib ;
+import ../util/test :
+    run-template
+    run-invoke
+    run-winvoke
+    test-bsl-run-no-lib
+    test-bsl-run
+    test-bsl-run_archive
+    test-bsl-run_files
+    test-bsl-run_polymorphic_archive
+;
+
+BOOST_ARCHIVE_LIST = [ modules.peek : BOOST_ARCHIVE_LIST ] ;
+
+lib dll_a_lib 
+    : 
+        dll_a.cpp
+        ../build//boost_serialization
+    : 
+    ;
+
+lib dll_base_lib 
+    : 
+        dll_base.cpp
+        ../build//boost_serialization
+    : 
+    ;
+    
+lib dll_derived2_lib
+    :
+        dll_derived2.cpp 
+        dll_base_lib
+        ../build//boost_serialization
+    : 
+    ;
+
+lib dll_polymorphic_derived2_lib
+    :
+        polymorphic_derived2.cpp 
+        ../build//boost_serialization
+    : 
+    ;
+
+test-suite "serialization" :
+     [ test-bsl-run_files test_array : A ]
+     [ test-bsl-run_files test_binary ]
+     [ test-bsl-run_files test_bitset ]
+     [ test-bsl-run_files test_complex ]
+     [ test-bsl-run_files test_contained_class : A ]
+     [ test-bsl-run_files test_cyclic_ptrs : A ]
+     [ test-bsl-run_files test_delete_pointer ]
+     [ test-bsl-run_files test_deque : A ]
+     [ test-bsl-run_files test_derived ]
+     [ test-bsl-run_files test_derived_class : A ]
+     [ test-bsl-run_files test_derived_class_ptr : A ]
+     [ test-bsl-run_files test_diamond ]
+     [ test-bsl-run_files test_diamond_complex ]
+     [ test-bsl-run_files test_exported : polymorphic_base ]
+     [ test-bsl-run_files test_class_info_load ]
+     [ test-bsl-run_files test_class_info_save ]
+     [ test-bsl-run_files test_object ]
+     [ test-bsl-run_files test_primitive ]
+     [ test-bsl-run_files test_list : A ]
+     [ test-bsl-run_files test_list_ptrs : A ]
+     [ test-bsl-run_files test_map : A ]
+     [ test-bsl-run_files test_mi ]
+     [ test-bsl-run_files test_multiple_ptrs : A ]
+     [ test-bsl-run_files test_multiple_inheritance ]
+     [ test-bsl-run_files test_no_rtti : polymorphic_base polymorphic_derived1 ]
+     [ test-bsl-run_files test_non_intrusive ]
+     [ test-bsl-run_files test_non_default_ctor ]
+     [ test-bsl-run_files test_non_default_ctor2 ]
+     [ test-bsl-run_files test_null_ptr ]
+     [ test-bsl-run_files test_nvp : A ]
+     [ test-bsl-run_files test_recursion : A ]
+     [ test-bsl-run_files test_registered ]
+     [ test-bsl-run_files test_set : A ]
+     [ test-bsl-run_files test_simple_class : A ]
+     [ test-bsl-run_files test_simple_class_ptr : A ]
+     [ test-bsl-run_files test_split ]
+     [ test-bsl-run_files test_tracking ]
+     [ test-bsl-run_files test_unregistered ]
+     [ test-bsl-run_files test_valarray ]
+     [ test-bsl-run_files test_variant : A ]
+     [ test-bsl-run_files test_vector : A ]
+     [ test-bsl-run_files test_new_operator : A ]
+     [ test-bsl-run_files test_optional ]
+     [ test-bsl-run_files test_shared_ptr ]
+     [ test-bsl-run_files test_shared_ptr_multi_base ]
+     [ test-bsl-run_files test_shared_ptr_132 ]
+     [ test-bsl-run_polymorphic_archive test_polymorphic : test_polymorphic_A A ]
+     [ test-bsl-run_polymorphic_archive test_polymorphic2 : test_polymorphic2imp ]
+    ;
+
+if ! $(BOOST_ARCHIVE_LIST) {
+    test-suite "serialization2" : 
+        [ test-bsl-run test_dll_exported : : dll_polymorphic_derived2_lib ]
+        [ test-bsl-run test_dll_simple : : dll_a_lib ]
+        [ compile test_dll_plugin.cpp ]
+        # Running the following test requires that the test know the directory 
+        # in which the dll is stored. I don't know how to extract this from bjam
+        # [ test-bsl-run test_dll_plugin : : dll_polymorphic_derived2_lib ]
+        [ test-bsl-run test_private_ctor ]
+        [ test-bsl-run test_reset_object_address : A ]
+        [ test-bsl-run test_void_cast ]
+        [ test-bsl-run test_mult_archive_types ]
+        
+        [ test-bsl-run-no-lib test_iterators ]
+        [ test-bsl-run-no-lib test_iterators_base64 ]
+	    [ test-bsl-run-no-lib test_inclusion ]
+        [ test-bsl-run-no-lib test_smart_cast ]
+        
+        [ test-bsl-run-no-lib test_utf8_codecvt 
+            : ../src/utf8_codecvt_facet
+            : <dependency>../../config/test/all//BOOST_NO_STD_WSTREAMBUF
+        ]
+        [ test-bsl-run-no-lib test_codecvt_null 
+            : ../src/codecvt_null 
+            : <dependency>../../config/test/all//BOOST_NO_STD_WSTREAMBUF
+        ]
+
+        # should fail compilation
+        [ compile-fail test_not_serializable.cpp ]
+        [ compile-fail test_traits_fail.cpp ]
+        [ compile-fail test_const_load_fail1.cpp ]
+        [ compile-fail test_const_load_fail2.cpp ]
+        [ compile-fail test_const_load_fail3.cpp ]
+        [ compile-fail test_const_load_fail1_nvp.cpp ]
+        [ compile-fail test_const_load_fail2_nvp.cpp ]
+        [ compile-fail test_const_load_fail3_nvp.cpp ]
+        [ compile-fail test_check.cpp ]
+
+        # should compile with a warning message
+        [ compile test_static_warning.cpp ]
+        [ compile test_const_save_warn1.cpp ]
+        [ compile test_const_save_warn2.cpp ]
+        [ compile test_const_save_warn3.cpp ]
+        # note - library unable to detect these errors for now
+        #[ compile test_const_save_warn1_nvp.cpp ]
+        #[ compile test_const_save_warn2_nvp.cpp ]
+        #[ compile test_const_save_warn3_nvp.cpp ]
+        
+        # should compile
+        [ compile test_traits_pass.cpp ]
+        [ compile test_const_pass.cpp ]
+    ;
+}

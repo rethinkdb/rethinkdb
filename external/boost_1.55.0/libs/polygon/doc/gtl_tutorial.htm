@@ -1,0 +1,658 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Polygon Usage</title>
+</head>
+
+<body>
+
+<h1>Layout Versus Schematic Tutorial</h1> 
+<p>In this tutorial we will implement a toy VLSI layout verification 
+application.&nbsp; In VLSI CAD an important step of design is the sign off check 
+that verifies that the physical layout as drawn by mask designers and automated 
+tools implements the logical schematic specified by design engineers.&nbsp; 
+Physical layout is modeled as polygons on layers that are used to print the 
+layout to the silicon wafer during manufacture.&nbsp; It is much better to find 
+physical design mistakes before spending millions of dollars to prepare 
+lithography masks and run a test lot of wafers.</p>
+<p>Real layout file formats are binary and often compressed and represent a 
+folded hierarchical model of layout where a group of polygons can be grouped 
+into a cell and instantiated as a group into other cells.&nbsp; For this 
+tutorial we assume a simplified ascii layout file format with no design 
+hierarchy, which we would call &quot;flat&quot; in VLSI jargon.&nbsp; Similarly we assume 
+a flat, ascii logical schematic net list file format.&nbsp; A net is a named 
+electrical connection in a circuit design.&nbsp; The goal of the layout 
+verification tutorial is to parse these two file formats, apply geometry 
+operations provided by Boost.Polygon on the layout data to generate a logical 
+schematic that represents what is implemented in the physical layout and then 
+compare the input schematic with the generated schematic to determine whether 
+they are the same.</p>
+<p>First let us define some objects that we will need in the design of our toy 
+layout verification application:</p>
+<p>Layout Rectangle: An axis-parallel rectangle with a layer associated<br>
+Layout Pin: An axis-parallel rectangle with a layer and net (electrical signal) 
+name associated<br>
+Layout Database: An associative container of layer name to polygon set<br>
+Connectivity Database: An associative container of net name to layout database<br>
+Physical Device: A specific geometric arrangement on several layers with one or 
+more input net and one output net<br>
+Logical Net: A named graph node<br>
+Logical Device: An un-named graph node with a device type<br>
+Logical Pin: A special net that defines an input or output for the circuit<br>
+Schematic Database: A graph consisting of nets and logical 
+devices</p>
+<p>Next let's define the sequence of operations performed by our toy 
+layout versus schematic application:</p>
+<p>Parse Layout: Stream layout rectangles and polygons into a layout database 
+and stream layout pins into a connectivity database<br>
+Extract Connectivity: Add polygons from layout database to connectivity database 
+by physical touch or overlap relationship<br>
+Extract Devices: Populate a schematic database with logical devices based on 
+physical devices identified within the layout geometry and extract their 
+terminals from the 
+connectivity database<br>
+Extract Net List: Complete graph represented in schematic database derived from 
+layout<br>
+Parse Schematic: Stream logical nets, devices and pins into a schematic 
+database<br>
+Compare Schematics: Evaluate whether extracted schematic database is equivalent 
+to input schematic database and output result</p>
+<p>To test our application we will extract single logic gates.&nbsp; A logic 
+gate is several transistors that work together to perform a specific logic 
+function.&nbsp; Logic functions include the commonly understood Boolean logic 
+operations such as Boolean AND, OR, XOR and INVERT.&nbsp; Also frequently used 
+are NAND and NOR, which are respectively AND and OR operations followed by an 
+INVERT operation.&nbsp; A NAND gate can be implemented in the CMOS circuit 
+family with four transistors.&nbsp; The NAND gate has two inputs and one output.&nbsp; 
+Each input goes to two transistors, one p-type transistor and one n-type 
+transistor.&nbsp; The &quot;p&quot; stands for positive and the &quot;n&quot; stands for negative.&nbsp; 
+When the p-type transistor is on 
+it pulls the output up to the same voltage as the voltage source.&nbsp; When the 
+n-type transistor is on it pulls the output down to the same voltage as the 
+ground.&nbsp; The process of creating a p-type transistor begins by &quot;doping&quot; the silicon 
+substrate to create n-type material.&nbsp; This area of n-type material will be 
+called the NWELL layer in our test data.&nbsp; Within the area of NWELL a 
+p-diffusion area is created by further doping the silicon to create p-type 
+material.&nbsp; This area of p-type material will be called PDIFF in our test 
+data.&nbsp; Through the middle of a PDIFF area bars of poly-silicon are grown 
+that create conductive lines over the diffusion area.&nbsp; The area of 
+poly-silicon material will be called POLY in our test data.&nbsp; Under some of these 
+poly-silicon lines a thin layer of silicon-oxide provides insulation but allows 
+the voltage field of the poly-silicon to interact with the diffusion.&nbsp; Each 
+of these insulated poly-silicon lines is the &quot;gate&quot; of a transistor.&nbsp; 
+The gate area will be called GATE in our test data.&nbsp; When the 
+voltage at the gate is the same as the ground voltage the p-type transistor is 
+&quot;on&quot; and can pass current from the voltage source to the output .&nbsp; The 
+poly-silicon lines that are not insulated create electrical connections to the 
+transistor for output signals and source voltage.&nbsp; The n-type transistor 
+differs from the p-type in that its diffusion is n-type material outside of NWELL area.&nbsp; Current can pass from the output to the ground when the 
+voltage at the gate of the n-type transistor is at the source voltage level.&nbsp; 
+Above the poly-silicon layer is a layer of silicon-oxide insulator with holes 
+cut out of it that get filled in with metal.&nbsp; These metal filled holes are 
+called vias and we will refer to this layer as VIA0 in our test data.&nbsp; On 
+top of VIA0 is a layer of metal polygons with silicon oxide insulator between 
+them.&nbsp; These metal polygons are wires and we will call them METAL1 in our 
+test data.&nbsp; The Layout Pins in our test data will be on METAL1.&nbsp; In a 
+NAND gate the two n-type transistors are configured in series, meaning that the 
+output of one is the input voltage source of the other.&nbsp; Only if both 
+n-type transistors of a NAND gate are &quot;on&quot; will the output be connected to 
+ground, signifying a logical &quot;false&quot;.&nbsp; The two p-type transistors in a NAND 
+gate are configured in parallel.&nbsp; If either input to the NAND gate is a 
+logical &quot;false&quot; the p-type transistor it is connected to will be &quot;on&quot; and the 
+output of the gate will be a logical &quot;true&quot; because the transistor will connect 
+it to the voltage supply.&nbsp; The diagram below is an example of how a NAND 
+gate might be laid out and is not drawn to scale for any real process 
+technology.&nbsp; The diffusion material is intended to be cut away under the 
+gate material by a Boolean NOT operation and is represented as solid bars under 
+the gates of transistors only for convenience of drawing.</p>
+<p>
+<img border="0" src="images/NAND.PNG" width="602" height="387"></p>
+<p>The following is the input layout file for the above NAND gate layout, 
+rectangle format is XL XH YL YH:</p>
+<p><font face="Courier New" size="2">Rectangle 0 60 24 48 NWELL<br>
+Rectangle 3 57 32 43 PDIFF<br>
+Rectangle 3 57 5 16 NDIFF<br>
+Rectangle 5 7 0 17 POLY<br>
+Rectangle 5 7 22 45 POLY<br>
+Rectangle 17 19 3 45 POLY<br>
+Rectangle 29 31 31 48 POLY<br>
+Rectangle 41 43 3 45 POLY<br>
+Rectangle 53 55 3 45 POLY<br>
+Rectangle 17 19 4 17 GATE<br>
+Rectangle 17 19 31 44 GATE<br>
+Rectangle 41 43 4 17 GATE<br>
+Rectangle 41 43 31 44 GATE<br>
+Rectangle 5 7 0 2 VIA0<br>
+Rectangle 5 7 23 25 VIA0<br>
+Rectangle 17 19 28 30 VIA0<br>
+Rectangle 29 31 46 48 VIA0<br>
+Rectangle 41 43 18 20 VIA0<br>
+Rectangle 53 55 23 25 VIA0<br>
+Rectangle 0 60 0 2 METAL1<br>
+Rectangle 3 57 28 30 METAL1<br>
+Rectangle 0 60 46 48 METAL1<br>
+Rectangle 3 57 18 20 METAL1<br>
+Rectangle 3 57 23 25 METAL1<br>
+Pin 29 31 0 2 METAL1 GND<br>
+Pin 29 31 23 25 METAL1 OUTPUT</font><font face="Courier New" size="2"><br>
+Pin 29 31 28 30 METAL1 INPUT1</font><font face="Courier New" size="2"><br>
+Pin 29 31 46 48 METAL1 VDD<br>
+Pin 29 31 18 20 METAL1 INPUT2</font></p>
+<p>
+<img border="0" src="images/nands.PNG" width="421" height="402"></p>
+<p>The following is the logic schematic net list file for the above NAND gate 
+schematic:</p>
+<p><font face="Courier New" size="2">Pin OUTPUT<br>Pin INPUT1<br>Pin INPUT2<br>
+Pin VDD<br>Pin GND<br>Device PTRANS VDD INPUT1 OUTPUT<br>Device PTRANS VDD 
+INPUT2 OUTPUT<br>Device NTRANS GND INPUT1 NET1<br>Device NTRANS NET1 INPUT2 
+OUTPUT</font></p>
+<p>A human can look at this schematic and compare it to the drawn layout of the 
+NAND gate above to verify that the drawn layout matches what the schematic says 
+in a few seconds.&nbsp; If you do that now you will probably find the p and 
+n-type transistors and trace the connectivity of the inputs and power to the 
+terminals of the transistors and then to the output.&nbsp; Since there are on 
+the order of one billion transistors on a single chip these days we need to go a 
+lot faster than humans can inspect layout and make fewer mistakes.&nbsp; Using polygon set operations 
+and polygon connectivity extraction provided by Boost.Polygon we will automate 
+the identification of transistors and the tracing of connectivity.&nbsp; Based 
+on this
+<a href="analysis.htm">analysis</a> of Boost.Polygon performance we can expect 
+this methodology to easily scale up to million gate blocks on standard 
+workstations and arbitrarily large designs given sufficient system memory.&nbsp; 
+let's start 
+by implementing some data structures for our application.</p>
+<p><font face="Courier New" size="2">struct layout_rectangle {<br>
+&nbsp; int xl, yl, xh, yh;<br>
+&nbsp; std::string layer;<br>
+};</font></p>
+<p>Our layout rectangle is nice and minimal, just enough to store its data.&nbsp; 
+It is defined in <a href="tutorial/layout_rectangle.hpp">layout_rectangle.hpp</a>. Next 
+let's implement the layout 
+pin in a similar way.</p>
+<p><font face="Courier New" size="2">struct layout_pin {<br>
+&nbsp; int xl, yl, xh, yh;<br>
+&nbsp; std::string layer;<br>
+&nbsp; std::string net;<br>
+};</font></p>
+<p>Our layout pin is defined in <a href="tutorial/layout_pin.hpp">layout_pin.hpp</a>.&nbsp; Now 
+let's define a layout database object and populate it from our parsed 
+layout data in in <a href="tutorial/layout_database.hpp">layout_database.hpp</a>.</p>
+<p><font face="Courier New" size="2">typedef std::map&lt;std::string, 
+boost::polygon::polygon_90_set_data&lt;int&gt; &gt; layout_database;<br>
+<br>
+//map the layout rectangle data type to the boost::polygon::rectangle_concept<br>
+namespace boost { namespace polygon{<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct rectangle_traits&lt;layout_rectangle&gt; {<br>
+&nbsp;&nbsp;&nbsp; typedef int coordinate_type;<br>
+&nbsp;&nbsp;&nbsp; typedef interval_data&lt;int&gt; interval_type;<br>
+&nbsp;&nbsp;&nbsp; static inline interval_type get(const layout_rectangle&amp; 
+rectangle, orientation_2d orient) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(orient == HORIZONTAL)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return interval_type(rectangle.xl, 
+rectangle.xh);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return interval_type(rectangle.yl, rectangle.yh);<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; };<br>
+<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct geometry_concept&lt;layout_rectangle&gt; { typedef rectangle_concept 
+type; };<br>
+}}<br>
+<br>
+//insert layout rectangles into a layout database<br>
+inline void populate_layout_database(layout_database&amp; layout, std::vector&lt;layout_rectangle&gt;&amp; 
+rects) {<br>
+&nbsp; for(std::size_t i = 0; i &lt; rects.size(); ++i) {<br>
+&nbsp;&nbsp;&nbsp; layout[rects[i].layer].insert(rects[i]);<br>
+&nbsp; }<br>
+}</font></p>
+<p>We don't need to insert pins into the layout database because it doesn't know 
+anything about connectivity, just geometry.&nbsp; However, we do need to know 
+something about connectivity to compare a schematic to a layout, so we need to 
+define our connectivity database and some logical objects.&nbsp; First we define 
+an object for a logical device in <a href="tutorial/device.hpp">device.hpp</a>.&nbsp; 
+Since we are lazy this object does double duty as a pin and both types of 
+transistor.&nbsp; A traditional object oriented design might declare a base 
+class with virtual destructor and derive every device from that.&nbsp; Since we 
+aren't paid by the line of code let's just keep things simple.</p>
+<p><font face="Courier New" size="2">struct device {<br>
+&nbsp; std::string type;<br>
+&nbsp; std::vector&lt;std::string&gt; terminals;<br>
+};</font></p>
+<p>Now let's define a schematic database object in
+<a href="tutorial/schematic_database.hpp">schematic_database.hpp</a> and populate it from our parsed 
+schematic data.</p>
+<p><font face="Courier New"><font size="2">struct schematic_database{<br>
+&nbsp; std::vector&lt;device&gt; devices;<br>
+&nbsp; std::map&lt;std::string, std::set&lt;std::size_t&gt; &gt; nets;<br>
+};<br>
+<br>
+//given a vector of devices populate the map of net name to set of device index<br>
+inline void extract_netlist(std::map&lt;std::string, std::set&lt;std::size_t&gt; &gt;&amp; nets,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+std::vector&lt;device&gt;&amp; devices) {<br>
+&nbsp; for(std::size_t i = 0; i &lt; devices.size(); ++i) {<br>
+&nbsp;&nbsp;&nbsp; for(std::size_t j = 0; j &lt; devices[i].terminals.size(); ++j) 
+{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //create association between net name and device 
+id<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+nets[devices[i].terminals[j]].insert(nets[devices[i].terminals[j]].end(), i);<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; }<br>
+}</font></font></p>
+<p>Our schematic database is just a vector of devices, which are associated to 
+nets by name through their terminals and a map of net name to set of device 
+index into the vector, which completes the graph by associating nets with their 
+devices.&nbsp; Given the devices and their terminal nets we easily build the 
+mapping from nets to devices with the extract_netlist operation.&nbsp; Now we 
+are ready to start working on extracting our layout to a derived schematic 
+database.&nbsp; However, first we need to build a physical connectivity database 
+with geometry in it before we can build a logical connectivity database from the 
+layout.&nbsp; We define a simple connectivity database in
+<a href="tutorial/connectivity_database.hpp">connectivity_database.hpp</a> as a 
+map of net name to layout database of geometry connected to that net and 
+populate it with the layout database and pin data.</p>
+<p><font size="2" face="Courier New">typedef std::map&lt;std::string, 
+layout_database &gt; connectivity_database;<br>
+<br>
+//map layout pin data type to boost::polygon::rectangle_concept<br>
+namespace boost { namespace polygon{<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct rectangle_traits&lt;layout_pin&gt; {<br>
+&nbsp;&nbsp;&nbsp; typedef int coordinate_type;<br>
+&nbsp;&nbsp;&nbsp; typedef interval_data&lt;int&gt; interval_type;<br>
+&nbsp;&nbsp;&nbsp; static inline interval_type get(const layout_pin&amp; pin, 
+orientation_2d orient) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(orient == HORIZONTAL)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return interval_type(pin.xl, pin.xh);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return interval_type(pin.yl, pin.yh);<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; };<br>
+<br>
+&nbsp; template &lt;&gt;<br>
+&nbsp; struct geometry_concept&lt;layout_pin&gt; { typedef rectangle_concept type; };<br>
+}}</font></p>
+<p><font size="2" face="Courier New">//given a layout_database we populate a 
+connectivity database<br>
+inline void populate_connectivity_database(connectivity_database&amp; connectivity,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+std::vector&lt;layout_pin&gt;&amp; pins, layout_database&amp; layout) {<br>
+&nbsp; using namespace boost::polygon;<br>
+&nbsp; using namespace boost::polygon::operators;<br>
+&nbsp; for(std::size_t i = 0; i &lt; pins.size(); ++i) {<br>
+&nbsp;&nbsp;&nbsp; connectivity[pins[i].net][pins[i].layer].insert(pins[i]);<br>
+&nbsp; }<br>
+&nbsp; int internal_net_suffix = 0;<br>
+&nbsp; //connect metal1 layout to pins which were on metal1<br>
+&nbsp; connect_layout_to_layer(connectivity, layout[&quot;METAL1&quot;], &quot;METAL1&quot;, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+&quot;METAL1&quot;, &quot;__internal_net_&quot;, internal_net_suffix);<br>
+&nbsp; //connect via0 layout to metal1<br>
+&nbsp; connect_layout_to_layer(connectivity, layout[&quot;VIA0&quot;], &quot;VIA0&quot;, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+&quot;METAL1&quot;, &quot;__internal_net_&quot;, internal_net_suffix);<br>
+&nbsp; //poly needs to have gates subtracted from it to prevent shorting through 
+transistors<br>
+&nbsp; polygon_set poly_not_gate = layout[&quot;POLY&quot;] - layout[&quot;GATE&quot;];<br>
+&nbsp; //connect poly minus gate to via0<br>
+&nbsp; connect_layout_to_layer(connectivity, poly_not_gate, &quot;POLY&quot;, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+&quot;VIA0&quot;, &quot;__internal_net_&quot;, internal_net_suffix);<br>
+&nbsp; //we don't want to short signals through transistors so we subtract the 
+gate regions<br>
+&nbsp; //from the diffusions<br>
+&nbsp; polygon_set diff_not_gate = (layout[&quot;PDIFF&quot;] + layout[&quot;NDIFF&quot;]) - 
+layout[&quot;GATE&quot;];<br>
+&nbsp; //connect diffusion minus gate to poly<br>
+&nbsp; //Note that I made up the DIFF layer name for combined P and NDIFF<br>
+&nbsp; connect_layout_to_layer(connectivity, diff_not_gate, &quot;DIFF&quot;, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+&quot;POLY&quot;, &quot;__internal_net_&quot;, internal_net_suffix);<br>
+&nbsp; //connect gate to poly to make connections through gates on poly<br>
+&nbsp; connect_layout_to_layer(connectivity, layout[&quot;GATE&quot;], &quot;GATE&quot;, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+&quot;POLY&quot;, &quot;__internal_net_&quot;, internal_net_suffix);<br>
+&nbsp; //now we have traced connectivity of the layout down to the transistor 
+level<br>
+&nbsp; //any polygons not connected to pins have been assigned internal net 
+names<br>
+}</font></p>
+<p>This populate connectivity database function is our first real use of 
+Boost.Polygon in our application.&nbsp; Here we are doing Boolean (polygon set) 
+operations on layout layers to merge together the PDIFF and NDIFF layers and cut 
+away the GATE layer from the result, for example.&nbsp; We connect up the layout 
+starting from the pins and working our way down the layer stack to the 
+transistor level.&nbsp; It would work equally well to work our way up the layer 
+stack, or connect things up in any order, really, but this way produces fewer 
+internal temporary nets that need to be merged when connections between them are 
+discovered later.&nbsp; The connect layout to layer function used above needs to 
+be implemented before we can populate our connectivity database.</p>
+<p><font size="2" face="Courier New">inline void 
+connect_layout_to_layer(connectivity_database&amp; connectivity, polygon_set&amp; 
+layout, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+std::string layout_layer, std::string layer,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+std::string net_prefix, int&amp; net_suffix) {<br>
+&nbsp; if(layout_layer.empty())<br>
+&nbsp;&nbsp;&nbsp; return;<br>
+&nbsp; boost::polygon::connectivity_extraction_90&lt;int&gt; ce;<br>
+&nbsp; std::vector&lt;std::string&gt; net_ids;<br>
+&nbsp; for(connectivity_database::iterator itr = connectivity.begin(); itr != 
+connectivity.end(); ++itr) {<br>
+&nbsp;&nbsp;&nbsp; net_ids.push_back((*itr).first);<br>
+&nbsp;&nbsp;&nbsp; ce.insert((*itr).second[layer]);<br>
+&nbsp; }<br>
+&nbsp; std::vector&lt;polygon&gt; polygons;<br>
+&nbsp; layout.get_polygons(polygons);<br>
+&nbsp; std::size_t polygon_id_offset = net_ids.size();<br>
+&nbsp; for(std::size_t i = 0; i &lt; polygons.size(); ++i) {<br>
+&nbsp;&nbsp;&nbsp; ce.insert(polygons[i]);<br>
+&nbsp; }<br>
+&nbsp; std::vector&lt;std::set&lt;int&gt; &gt; graph(polygons.size() + net_ids.size(), 
+std::set&lt;int&gt;());<br>
+&nbsp; ce.extract(graph);<br>
+&nbsp; std::vector&lt;int&gt; polygon_color(polygons.size() + net_ids.size(), 0);<br>
+&nbsp; //for each net in net_ids populate connected component with net<br>
+&nbsp; for(std::size_t node_id = 0; node_id &lt; net_ids.size(); ++node_id) {<br>
+&nbsp;&nbsp;&nbsp; populate_connected_component(connectivity, polygons, 
+polygon_color, graph, node_id, <br>
+&nbsp;&nbsp;&nbsp; polygon_id_offset, net_ids[node_id], net_ids, <br>
+&nbsp;&nbsp;&nbsp; net_prefix, layout_layer);<br>
+&nbsp; }<br>
+&nbsp; //for each polygon_color that is zero populate connected component with 
+net_prefix + net_suffix++<br>
+&nbsp; for(std::size_t i = 0; i &lt; polygons.size(); ++i) {<br>
+&nbsp;&nbsp;&nbsp; if(polygon_color[i + polygon_id_offset] == 0) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; std::stringstream ss(std::stringstream::in | 
+std::stringstream::out);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ss &lt;&lt; net_prefix &lt;&lt; net_suffix++;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; std::string internal_net; <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ss &gt;&gt; internal_net;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; populate_connected_component(connectivity, 
+polygons, polygon_color, graph, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; i + polygon_id_offset, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; polygon_id_offset, internal_net, net_ids, <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; net_prefix, layout_layer);<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; }<br>
+}</font></p>
+<p>The connect layout to layer function uses the connectivity extraction feature 
+of Boost.Polyon to build a connectivity graph for polygons on the input polygon 
+set and in the connectivity database on the specified layer.&nbsp; It then finds 
+polygons associated with existing nets in the connectivity database through 
+graph traversal and inserts them into the connectivity database.&nbsp; Finally, 
+polygons that weren't connected to existing nets are inserted into the 
+connectivity database on auto-generated internal net names.&nbsp; The insertion 
+of a connected component into the connectivity database is handled by the 
+recursive traversal of the connectivity graph that we implement next.</p>
+<p><font size="2" face="Courier New">inline void populate_connected_component<br>
+(connectivity_database&amp; connectivity, std::vector&lt;polygon&gt;&amp; polygons, <br>
+&nbsp;std::vector&lt;int&gt; polygon_color, std::vector&lt;std::set&lt;int&gt; &gt;&amp; graph, <br>
+&nbsp;std::size_t node_id, std::size_t polygon_id_offset, std::string&amp; net, <br>
+&nbsp;std::vector&lt;std::string&gt;&amp; net_ids, std::string net_prefix,<br>
+&nbsp;std::string&amp; layout_layer) {<br>
+&nbsp; if(polygon_color[node_id] == 1)<br>
+&nbsp;&nbsp;&nbsp; return;<br>
+&nbsp; polygon_color[node_id] = 1;<br>
+&nbsp; if(node_id &lt; polygon_id_offset &amp;&amp; net_ids[node_id] != net) {<br>
+&nbsp;&nbsp;&nbsp; //merge nets in connectivity database<br>
+&nbsp;&nbsp;&nbsp; //if one of the nets is internal net merge it into the other<br>
+&nbsp;&nbsp;&nbsp; std::string net1 = net_ids[node_id];<br>
+&nbsp;&nbsp;&nbsp; std::string net2 = net;<br>
+&nbsp;&nbsp;&nbsp; if(net.compare(0, net_prefix.length(), net_prefix) == 0) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; net = net1;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; std::swap(net1, net2);<br>
+&nbsp;&nbsp;&nbsp; } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; net_ids[node_id] = net;<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; connectivity_database::iterator itr = 
+connectivity.find(net1);<br>
+&nbsp;&nbsp;&nbsp; if(itr != connectivity.end()) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(layout_database::iterator itr2 = (*itr).second.begin();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; itr2 != (*itr).second.end(); 
+++itr2) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; connectivity[net2][(*itr2).first].insert((*itr2).second);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; connectivity.erase(itr);<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; }<br>
+&nbsp; if(node_id &gt;= polygon_id_offset)<br>
+&nbsp; connectivity[net][layout_layer].insert(polygons[node_id - 
+polygon_id_offset]);<br>
+&nbsp; for(std::set&lt;int&gt;::iterator itr = graph[node_id].begin();<br>
+&nbsp; itr != graph[node_id].end(); ++itr) {<br>
+&nbsp;&nbsp;&nbsp; populate_connected_component(connectivity, polygons, 
+polygon_color, graph, <br>
+&nbsp;&nbsp;&nbsp; *itr, polygon_id_offset, net, net_ids, net_prefix, 
+layout_layer);<br>
+&nbsp; }<br>
+}<br>
+<br>
+</font>We want to merge internally generated nets into pin nets, which is the 
+most complicated part of this simple procedure.&nbsp; Now that we have our 
+connectivity database extracted from pins down to transistors we need to extract 
+our transistors and establish the relationship between transistor terminals and 
+nets in our connectivity database.&nbsp; First let's extract transistors with 
+the functions defined in defined in <a href="tutorial/extract_devices.hpp">
+extract_devices.hpp</a>.</p>
+<p><font size="2" face="Courier New">typedef boost::polygon::connectivity_extraction_90&lt;int&gt; 
+connectivity_extraction;<br>
+inline std::vector&lt;std::set&lt;int&gt; &gt;<br>
+extract_layer(connectivity_extraction&amp; ce, std::vector&lt;std::string&gt;&amp; net_ids,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+connectivity_database&amp; connectivity, polygon_set&amp; layout,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+std::string layer) {<br>
+&nbsp; for(connectivity_database::iterator itr = connectivity.begin(); itr != 
+connectivity.end(); ++itr) {<br>
+&nbsp;&nbsp;&nbsp; net_ids.push_back((*itr).first);<br>
+&nbsp;&nbsp;&nbsp; ce.insert((*itr).second[layer]);<br>
+&nbsp; }<br>
+&nbsp; std::vector&lt;polygon&gt; polygons;<br>
+&nbsp; layout.get_polygons(polygons);<br>
+&nbsp; for(std::size_t i = 0; i &lt; polygons.size(); ++i) {<br>
+&nbsp;&nbsp;&nbsp; ce.insert(polygons[i]);<br>
+&nbsp; }<br>
+&nbsp; std::vector&lt;std::set&lt;int&gt; &gt; graph(polygons.size() + net_ids.size(), 
+std::set&lt;int&gt;());<br>
+&nbsp; ce.extract(graph);<br>
+&nbsp; return graph;<br>
+}</font></p>
+<p>This extract layer algorithm constructs a connectivity graph between polygons 
+in the input polygon set and polygons in the given layer of the connectivity 
+database.&nbsp; It is used to form the association between transistors and their 
+terminal nets in the function for extracting a specific transistor type.</p>
+<p><font size="2" face="Courier New">inline void extract_device_type(std::vector&lt;device&gt;&amp; 
+devices, connectivity_database&amp; connectivity,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+polygon_set&amp; layout, std::string type) {<br>
+&nbsp; //recall that P and NDIFF were merged into one DIFF layer in the 
+connectivity database<br>
+&nbsp; //find the two nets on the DIFF layer that interact with each transistor<br>
+&nbsp; //and then find the net on the poly layer that interacts with each 
+transistor<br>
+&nbsp; boost::polygon::connectivity_extraction_90&lt;int&gt; cediff;<br>
+&nbsp; std::vector&lt;std::string&gt; net_ids_diff;<br>
+&nbsp; std::vector&lt;std::set&lt;int&gt; &gt; graph_diff =<br>
+&nbsp;&nbsp;&nbsp; extract_layer(cediff, net_ids_diff, connectivity, layout, 
+&quot;DIFF&quot;);<br>
+&nbsp; boost::polygon::connectivity_extraction_90&lt;int&gt; cepoly;<br>
+&nbsp; std::vector&lt;std::string&gt; net_ids_poly;<br>
+&nbsp; std::vector&lt;std::set&lt;int&gt; &gt; graph_poly =<br>
+&nbsp;&nbsp;&nbsp; extract_layer(cepoly, net_ids_poly, connectivity, layout, 
+&quot;POLY&quot;);<br>
+&nbsp; std::vector&lt;device&gt; tmp_devices(graph_diff.size() - net_ids_poly.size());<br>
+&nbsp; for(std::size_t i = net_ids_poly.size(); i &lt; graph_diff.size(); ++i) {<br>
+&nbsp;&nbsp;&nbsp; tmp_devices[i - net_ids_diff.size()].type = type;<br>
+&nbsp;&nbsp;&nbsp; tmp_devices[i - net_ids_diff.size()].terminals = std::vector&lt;std::string&gt;(3, 
+std::string());<br>
+&nbsp;&nbsp;&nbsp; std::size_t j = 0;<br>
+&nbsp;&nbsp;&nbsp; for(std::set&lt;int&gt;::iterator itr = graph_diff[i].begin();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; itr != graph_diff[i].end(); ++itr, 
+++j) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(j == 0) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tmp_devices[i - net_ids_diff.size()].terminals[0] 
+= net_ids_diff[*itr];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else if(j == 1) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tmp_devices[i - net_ids_diff.size()].terminals[2] 
+= net_ids_diff[*itr];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //error, too many diff connections<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tmp_devices[i - net_ids_diff.size()].terminals 
+= std::vector&lt;std::string&gt;(3, std::string());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; j = 0;<br>
+&nbsp;&nbsp;&nbsp; for(std::set&lt;int&gt;::iterator itr = graph_poly[i].begin();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; itr != graph_poly[i].end(); ++itr, 
+++j) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(j == 0) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tmp_devices[i - net_ids_diff.size()].terminals[1] 
+= net_ids_poly[*itr];<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } else {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //error, too many poly connections<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; tmp_devices[i - net_ids_poly.size()].terminals 
+= std::vector&lt;std::string&gt;(3, std::string());<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>
+&nbsp;&nbsp;&nbsp; }<br>
+&nbsp; }<br>
+<br>
+&nbsp; devices.insert(devices.end(), tmp_devices.begin(), tmp_devices.end());<br>
+}</font></p>
+<p>We append transistors onto the vector of devices with their terminals 
+populated with net names extracted from the connectivity database.&nbsp; 
+Transistors' terminals are connected through the POLY and DIFF layers where DIFF 
+contains both PDIFF and NDIFF.&nbsp; The connection to POLY layer is the gate of 
+the transistor while the connections to DIFF on either side of the channel of 
+the transistor are the source and drain.&nbsp; We can use this to extract are p 
+and n-type transistors. <font size="2" face="Courier New"><br>
+<br>
+//populates vector of devices based on connectivity and layout data<br>
+inline void extract_devices(std::vector&lt;device&gt;&amp; devices, connectivity_database&amp; 
+connectivity,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+layout_database&amp; layout) {<br>
+&nbsp; using namespace boost::polygon::operators;<br>
+&nbsp; //p-type transistors are gate that interact with p diffusion and nwell<br>
+&nbsp; polygon_set ptransistors = layout[&quot;GATE&quot;];<br>
+&nbsp; ptransistors.interact(layout[&quot;PDIFF&quot;]);<br>
+&nbsp; ptransistors.interact(layout[&quot;NWELL&quot;]);<br>
+&nbsp; //n-type transistors are gate that interact with n diffusion and not 
+nwell<br>
+&nbsp; polygon_set ntransistors = layout[&quot;GATE&quot;];<br>
+&nbsp; ntransistors.interact(layout[&quot;NDIFF&quot;]);<br>
+&nbsp; polygon_set not_ntransistors = ntransistors;<br>
+&nbsp; not_ntransistors.interact(layout[&quot;NWELL&quot;]);<br>
+&nbsp; ntransistors -= not_ntransistors;<br>
+&nbsp; extract_device_type(devices, connectivity, ptransistors, &quot;PTRANS&quot;);<br>
+&nbsp; extract_device_type(devices, connectivity, ntransistors, &quot;NTRANS&quot;);<br>
+}</font></p>
+<p>The extract devices procedure makes some more use of Boost.Polygon Boolean 
+operations on the layout data when we exclude GATE material over NDIFF that 
+isn't also over NWELL to extract our n-type transistors.&nbsp; We also are using 
+the &quot;interact&quot; operation on polygon gets, which is implemented in terms of 
+connectivity extraction and retains all polygons of a polygon set that touch or 
+overlap polygons from another polygon set.&nbsp; Now that we have a vector of 
+devices we can build a schematic database by calling the extract_netlist 
+function.&nbsp; We can then compare the extracted schematic from the schematic 
+read in from file with the functions defined in
+<a href="tutorial/compare_schematics.hpp">compare_schematics.hpp</a>.&nbsp; 
+Since comparing two schematics has no geometric aspect we won't go into that 
+procedure here in the tutorial and will skip to the integration of all these 
+procedures in defined in <a href="tutorial/extract.cpp">extract.cpp</a> to build 
+the layout to schematic comparison algorithm.</p>
+<p><font size="2" face="Courier New">bool compare_files(std::string layout_file, 
+std::string schematic_file) {<br>
+&nbsp; std::ifstream sin(schematic_file.c_str());<br>
+&nbsp; std::ifstream lin(layout_file.c_str());<br>
+<br>
+&nbsp; std::vector&lt;layout_rectangle&gt; rects;<br>
+&nbsp; std::vector&lt;layout_pin&gt; pins;<br>
+&nbsp; parse_layout(rects, pins, lin);<br>
+<br>
+&nbsp; schematic_database reference_schematic;<br>
+&nbsp; parse_schematic_database(reference_schematic, sin);<br>
+<br>
+&nbsp; layout_database layout;<br>
+&nbsp; populate_layout_database(layout, rects);<br>
+<br>
+&nbsp; connectivity_database connectivity;<br>
+&nbsp; populate_connectivity_database(connectivity, pins, layout);<br>
+<br>
+&nbsp; schematic_database schematic;<br>
+&nbsp; std::vector&lt;device&gt;&amp; devices = schematic.devices;<br>
+&nbsp; for(std::size_t i = 0; i &lt; pins.size(); ++i) {<br>
+&nbsp;&nbsp;&nbsp; devices.push_back(device());<br>
+&nbsp;&nbsp;&nbsp; devices.back().type = &quot;PIN&quot;;<br>
+&nbsp;&nbsp;&nbsp; devices.back().terminals.push_back(pins[i].net);<br>
+&nbsp; }<br>
+&nbsp; extract_devices(devices, connectivity, layout);<br>
+&nbsp; extract_netlist(schematic.nets, devices);<br>
+&nbsp; return compare_schematics(reference_schematic, schematic);<br>
+}</font></p>
+<p><font face="Courier New" size="2">int main(int argc, char **argv) {<br>
+&nbsp; if(argc &lt; 3) {<br>
+&nbsp;&nbsp;&nbsp; std::cout &lt;&lt; &quot;usage: &quot; &lt;&lt; argv[0] &lt;&lt; &quot; &lt;layout_file&gt; &lt;schematic_file&gt;&quot; 
+&lt;&lt; std::endl;<br>
+&nbsp;&nbsp;&nbsp; return -1;<br>
+&nbsp; }<br>
+&nbsp; bool result = compare_files(argv[1], argv[2]);<br>
+&nbsp; if(result == false) {<br>
+&nbsp;&nbsp;&nbsp; std::cout &lt;&lt; &quot;Layout does not match schematic.&quot; &lt;&lt; std::endl;<br>
+&nbsp;&nbsp;&nbsp; return 1;<br>
+&nbsp; } <br>
+&nbsp; std::cout &lt;&lt; &quot;Layout does match schematic.&quot; &lt;&lt; std::endl;<br>
+&nbsp; return 0;<br>
+}<br>
+<br>
+</font>We test the program with two schematics and three layouts.&nbsp; These 
+include a nand and a nor gate layout and schematic as well as an incorrect nand 
+gate layout.&nbsp; The nand layout and schematic are the same as shown above.<font face="Courier New" size="2">
+</font></p>
+<p><font face="Courier New" size="2">&gt; lvs<br>
+usage: lvs &lt;layout_file&gt; &lt;schematic_file&gt;<br>
+&gt; lvs nand.layout nand.schematic <br>
+Layout does match schematic.<br>
+&gt; lvs nand_short.layout nand.schematic <br>
+Layout does not match schematic.<br>
+&gt; lvs nand.layout nor.schematic <br>
+Layout does not match schematic.<br>
+&gt; lvs nor.layout nor.schematic <br>
+Layout does match schematic.<br>
+&gt; lvs nor.layout nand.schematic <br>
+Layout does not match schematic.</font></p>
+<p>This concludes our tutorial on how to build a simple layout to schematic 
+verification application based on Boost.Polygon library capabilities.&nbsp; The 
+implementation of this application made many simplifying assumptions that are 
+not valid in the real world and hard coded a lot of things that need to be 
+configurable in a real layout verification application.&nbsp; However, it does 
+give an idea of how to use Boost.Polygon to solve real problems and points in 
+the direction of how a real application might use Boost.Polygon.</p>
+
+
+<table class="docinfo" rules="none" frame="void" id="table1">
+	<colgroup>
+		<col class="docinfo-name"><col class="docinfo-content">
+	</colgroup>
+	<tbody vAlign="top">
+		<tr>
+			<th class="docinfo-name">Copyright:</th>
+			<td>Copyright © Intel Corporation 2008-2010.</td>
+		</tr>
+		<tr class="field">
+			<th class="docinfo-name">License:</th>
+			<td class="field-body">Distributed under the Boost Software License, 
+			Version 1.0. (See accompanying file <tt class="literal">
+			<span class="pre">LICENSE_1_0.txt</span></tt> or copy at
+			<a class="reference" target="_top" href="http://www.boost.org/LICENSE_1_0.txt">
+			http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+		</tr>
+</table>
+
+</body>
+
+</html>

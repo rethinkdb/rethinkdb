@@ -1,0 +1,21 @@
+[article Missing Id test
+[quickbook 1.5]
+]
+
+[section Missing Id test 1]
+[endsect]
+
+[include id1-no-docinfo.quickbook]
+
+[section Missing Id test 2]
+[endsect]
+
+[include id1-docinfo-no-id.quickbook]
+
+[section Missing Id test 3]
+[endsect]
+
+[include id1-no-docinfo.quickbook]
+
+[section Missing Id test 4]
+[endsect]

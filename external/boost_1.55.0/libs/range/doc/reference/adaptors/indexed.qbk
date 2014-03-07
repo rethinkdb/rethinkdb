@@ -1,0 +1,38 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:indexed indexed]
+
+[table
+    [[Syntax] [Code]]
+    [[Pipe] [`rng | boost::adaptors::indexed(start_index)`]]
+    [[Function] [`boost::adaptors::index(rng, start_index)`]]
+]
+
+* [*Returns:] A range adapted to return both the element and the associated index. The returned range consists of iterators that have in addition to the usual iterator member functions an `index()` member function that returns the appropriate index for the element in the sequence corresponding with the iterator.
+* [*Range Category:] __single_pass_range__
+* [*Range Return Type:] `boost::indexed_range<typeof(rng)>`
+* [*Returned Range Category:] The range category of `rng`
+
+[section:indexed_example indexed example]
+[import ../../../test/adaptor_test/indexed_example.cpp]
+[indexed_example]
+[endsect]
+
+This would produce the output:
+``
+Element = 10 Index = 0
+Element = 20 Index = 1
+Element = 30 Index = 2
+Element = 40 Index = 3
+Element = 50 Index = 4
+Element = 60 Index = 5
+Element = 70 Index = 6
+Element = 80 Index = 7
+Element = 90 Index = 8
+``
+[endsect]
+
+

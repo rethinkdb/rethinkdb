@@ -1,0 +1,195 @@
+################################################################################
+#
+# Copyright (c) 2007-2008 Dario Senic, Jurko Gospodnetic.
+#
+# Use, modification and distribution is subject to the Boost Software
+# License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+# http://www.boost.org/LICENSE_1_0.txt)
+#
+################################################################################
+
+################################################################################
+#
+#   Boost Build wxFormBuilder generator tool module.
+#
+#   wxFormBuilder is a GUI designer tool for the wxWidgets library. It can then
+# generate C++ sources modeling the designed GUI using the wxWidgets library
+# APIs.
+#
+#   This module defines a wxFormBuilder project file type and rules needed to
+# generate C++ source files from those projects. With it you can simply list
+# wxFormBuilder projects as sources for some target and Boost Build will
+# automatically convert them to C++ sources and process from there.
+#
+#   The wxFormBuilder executable location may be provided as a parameter when
+# configuring this toolset. Otherwise the default wxFormBuilder.exe executable
+# name is used located in the folder pointed to by the WXFORMBUILDER environment
+# variable.
+#
+#   Current limitations:
+#
+#   * Works only on Windows.
+#   * Works only when run via Boost Jam using the native Windows cmd.exe command
+#     interpreter, i.e. the default native Windows Boost Jam build.
+#   * Used wxFormBuilder projects need to have their output file names defined
+#     consistently with target names assumed by this build script. This means
+#     that their target names must use the prefix 'wxFormBuilderGenerated_' and
+#     have no output folder defined where the base name is equal to the .fpb
+#     project file's name.
+#
+################################################################################
+
+################################################################################
+#
+# Implementation note:
+#
+#   Avoiding the limitation on the generated target file names can be done but
+# would require depending on external tools to copy the wxFormBuilder project to
+# a temp location and then modify it in-place to set its target file names. On
+# the other hand wxFormBuilder is expected to add command-line options for
+# choosing the target file names from the command line which will allow us to
+# remove this limitation in a much cleaner way.
+#                                                    (23.08.2008.) (Jurko)
+#
+################################################################################
+
+import generators ;
+import os         ;
+import path       ;
+import toolset    ;
+import type       ;
+
+
+################################################################################
+#
+# wxFormBuilder.generate()
+# ------------------------
+#
+#   Action for processing WX_FORM_BUILDER_PROJECT types.
+#
+################################################################################
+#
+# Implementation notes:
+#
+#   wxFormBuilder generated CPP and H files need to be moved to the location
+# where the Boost Build target system expects them so that the generated CPP
+# file can be included into the compile process and that the clean rule
+# succesfully deletes both CPP and H files. We expect wxFormBuilder to generate
+# files in the same location where the provided WX_FORM_BUILDER_PROJECT file is
+# located.
+#                                                    (15.05.2007.) (Dario)
+#
+################################################################################
+
+actions generate
+{
+    start "" /wait "$(EXECUTABLE)" /g "$(2)"
+    move "$(1[1]:BSR=$(2:P))" "$(1[1]:P)"
+    move "$(1[2]:BSR=$(2:P))" "$(1[2]:P)"
+}
+
+
+################################################################################
+#
+# wxFormBuilder.init()
+# --------------------
+#
+#   Main toolset initialization rule called via the toolset.using rule.
+#
+################################################################################
+
+rule init ( executable ? )
+{
+    if $(.initialized)
+    {
+        if $(.debug-configuration)
+        {
+            ECHO notice: [wxFormBuilder-cfg] Repeated initialization request
+                (executable \"$(executable:E="")\") detected and ignored. ;
+        }
+    }
+    else
+    {
+        local environmentVariable = WXFORMBUILDER ;
+
+        if $(.debug-configuration)
+        {
+            ECHO notice: [wxFormBuilder-cfg] Configuring wxFormBuilder... ;
+        }
+
+        # Deduce the path to the used wxFormBuilder executable.
+        if ! $(executable)
+        {
+            executable = "wxFormBuilder.exe" ;
+            local executable-path = [ os.environ $(environmentVariable) ] ;
+            if $(executable-path)-is-not-empty
+            {
+                executable = [ path.root $(executable) $(executable-path) ] ;
+            }
+            else if $(.debug-configuration)
+            {
+                ECHO notice: [wxFormBuilder-cfg] No wxFormBuilder path
+                    configured either explicitly or using the
+                    $(environmentVariable) environment variable. ;
+                ECHO notice: [wxFormBuilder-cfg] To avoid complications please
+                    update your configuration to includes a correct path to the
+                    wxFormBuilder executable. ;
+                ECHO notice: [wxFormBuilder-cfg] wxFormBuilder executable will
+                    be searched for on the system path. ;
+            }
+        }
+        if $(.debug-configuration)
+        {
+            ECHO notice: [wxFormBuilder-cfg] Will use wxFormBuilder executable
+                \"$(executable)\". ;
+        }
+
+        # Now we are sure we have everything we need to initialize this toolset.
+        .initialized = true ;
+
+        # Store the path to the used wxFormBuilder executable.
+        .executable = $(executable) ;
+
+        # Type registration.
+        type.register WX_FORM_BUILDER_PROJECT : fbp ;
+
+        # Parameters to be forwarded to the action rule.
+        toolset.flags wxFormBuilder.generate EXECUTABLE : $(.executable) ;
+
+        # Generator definition and registration.
+        generators.register-standard wxFormBuilder.generate :
+            WX_FORM_BUILDER_PROJECT : CPP(wxFormBuilderGenerated_%)
+            H(wxFormBuilderGenerated_%) ;
+    }
+}
+
+
+################################################################################
+#
+# wxFormBuilder.is-initialized()
+# ------------------------------
+#
+#   Returns whether this toolset has been initialized.
+#
+################################################################################
+
+rule is-initialized ( )
+{
+    return $(.initialized) ;
+}
+
+
+################################################################################
+#
+#   Startup code executed when loading this module.
+#
+################################################################################
+
+# Global variables for this module.
+.executable = ;
+.initialized = ;
+
+if [ MATCH (--debug-configuration) : [ modules.peek : ARGV ] ]
+{
+    .debug-configuration = true ;
+}

@@ -1,0 +1,138 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright 2003..2006 Haufe Mediengruppe. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/opaque_pointer_converter.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header
+          &lt;boost/python/opaque_pointer_converter.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#opaque-spec">Class template
+          <code>opaque&lt;Pointee&gt;</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#opaque-spec-synopsis">Class template
+              <code>opaque</code> synopsis</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#macros">Macros</a></dt>
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#BOOST_PYTHON_OPAQUE_SPECIALIZED_TYPE_ID-spec">Macro
+          <code>BOOST_PYTHON_OPAQUE_SPECIALIZED_TYPE_ID</code></a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#see-also">See Also</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="opaque-spec"></a>Class template
+    <code>opaque&lt;P&gt;</code></h3>
+
+    <p><code>opaque&lt;&gt;</code> registers itself as a converter from
+      Python objects to pointers to undefined types and vice versa.</p>
+
+    <h4><a name="opaque-spec-synopsis"></a>Class template
+    <code>opaque</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+    template&lt;class Pointee&gt;
+    struct opaque
+    {
+        opaque();
+    };
+}}
+</pre>
+
+    <h4><a name="opaque-spec-constructor"></a>Class template
+    <code>opaque</code> constructor</h4>
+<pre>
+opaque();
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+    <ul>
+        <li>Registers the instance as a 
+        <a href="lvalue_from_pytype.html#lvalue_from_pytype-spec"> <code>lvalue_from_pytype</code></a>
+        converter from Python objects into opaque pointers.</p>
+        <p>The Python Objects created are named after the type pointed to
+          by the opaque pointer being wrapped.</p></li>
+        <li>Registers the instance as a 
+          <a href="to_python_converter.html#to_python_converter-spec"> <code>to_python_converter</code></a>
+        from opaque pointers to Python objects.</p></li>
+    </ul>
+    <p>If there is already an instance registered by another module, this
+      instance doesn't try to register again in order to avoid warnings
+      about multiple registrations.</p>
+
+    <h4>Note</h4>
+    <p>Normally only a single instance of this class is created for every
+      Pointee.</p>
+    </dt>
+    </dl>
+
+    <h2><a name="macros"></a>Macros</h2>
+
+    <h3><a name="BOOST_PYTHON_OPAQUE_SPECIALIZED_TYPE_ID-spec"></a>
+      Macro BOOST_PYTHON_OPAQUE_SPECIALIZED_TYPE_ID(Pointee)</h3>
+    <p>This macro must be used to define specializations of the 
+      <a href="type_id.html#type_id-spec">type_id</a> function
+      which can't be instantiated for incomplete types.</p>
+    <h4>Note</h4>
+    <p>The macro must be invoked in every translation unit which uses the
+      opaque converter.</p>
+
+    <h2><a name="see-also"></a>See Also</h2>
+        <p>
+          <a href="return_opaque_pointer.html">return_opaque_pointer</a>
+        </p>
+
+    <p>Revised 
+  10 September, 2006
+    </p>
+
+    <p><i>&copy; Copyright 2003..2006 Haufe Mediengruppe. All Rights
+    Reserved.</i></p>
+  </body>
+</html>
+

@@ -1,0 +1,86 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Tuple helper classes</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../class_template_tuple.html" title="Class template tuple">
+<link rel="prev" href="tuple_creation_functions.html" title="Tuple creation functions">
+<link rel="next" href="element_access.html" title="Element access">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tuple_creation_functions.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../class_template_tuple.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="element_access.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="fusion.tuple.class_template_tuple.tuple_helper_classes"></a><a class="link" href="tuple_helper_classes.html" title="Tuple helper classes">Tuple
+        helper classes</a>
+</h4></div></div></div>
+<h6>
+<a name="fusion.tuple.class_template_tuple.tuple_helper_classes.h0"></a>
+          <span class="phrase"><a name="fusion.tuple.class_template_tuple.tuple_helper_classes.description"></a></span><a class="link" href="tuple_helper_classes.html#fusion.tuple.class_template_tuple.tuple_helper_classes.description">Description</a>
+        </h6>
+<p>
+          The <a href="http://std.dkuug.dk/jtc1/sc22/wg21/docs/papers/2002/n1403.pdf" target="_top">TR1
+          Tuple</a> provides 2 helper traits, for compile time access to the
+          tuple size, and the element types.
+        </p>
+<h6>
+<a name="fusion.tuple.class_template_tuple.tuple_helper_classes.h1"></a>
+          <span class="phrase"><a name="fusion.tuple.class_template_tuple.tuple_helper_classes.specification"></a></span><a class="link" href="tuple_helper_classes.html#fusion.tuple.class_template_tuple.tuple_helper_classes.specification">Specification</a>
+        </h6>
+<pre class="programlisting"><span class="identifier">tuple_size</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">value</span>
+</pre>
+<p>
+          <span class="bold"><strong>Requires</strong></span>: <code class="computeroutput"><span class="identifier">T</span></code>
+          is any fusion sequence type, including <code class="computeroutput"><span class="identifier">tuple</span></code>.
+        </p>
+<p>
+          <span class="bold"><strong>Type</strong></span>: <a href="http://www.boost.org/libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+          Integral Constant</a>
+        </p>
+<p>
+          <span class="bold"><strong>Value</strong></span>: The number of elements in the sequence.
+          Equivalent to <code class="computeroutput"><a class="link" href="../../sequence/intrinsic/metafunctions/size.html" title="size"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">size</span></code></a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+        </p>
+<pre class="programlisting"><span class="identifier">tuple_element</span><span class="special">&lt;</span><span class="identifier">I</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">type</span>
+</pre>
+<p>
+          <span class="bold"><strong>Requires</strong></span>: <code class="computeroutput"><span class="identifier">T</span></code>
+          is any fusion sequence type, including <code class="computeroutput"><span class="identifier">tuple</span></code>.
+          <code class="computeroutput"><span class="number">0</span> <span class="special">&lt;=</span>
+          <span class="identifier">I</span> <span class="special">&lt;</span>
+          <span class="identifier">N</span></code> or the program is ill formed.
+        </p>
+<p>
+          <span class="bold"><strong>Value</strong></span>: The type of the <code class="computeroutput"><span class="identifier">I</span></code>th
+          element of <code class="computeroutput"><span class="identifier">T</span></code>. Equivalent
+          to <code class="computeroutput"><a class="link" href="../../sequence/intrinsic/metafunctions/value_at.html" title="value_at"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">value_at</span></code></a><span class="special">&lt;</span><span class="identifier">I</span><span class="special">,</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tuple_creation_functions.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../class_template_tuple.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="element_access.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,2247 @@
+[/
+ / Copyright (c) 2008 Howard Hinnant
+ / Copyright (c) 2006, 2008 Beman Dawes
+ / Copyright (c) 2009-2011 Vicente J. Botet Escriba
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[library Boost.Ratio
+    [quickbook 1.5]
+    [version 2.0.0]
+    [authors [Hinnant, Howard]]
+    [authors [Dawes, Beman]]
+    [authors [Botet Escriba, Vicente J.]]
+    [copyright 2008 Howard Hinnant]
+    [copyright 2006, 2008 Beman Dawes]
+    [copyright 2009-2012 Vicente J. Botet Escriba]
+    [category math]
+    [id ratio]
+    [dirname ratio]
+    [purpose 
+        Compile time rational arithmetic.
+    ]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[/==================]
+[def __Boost_Ratio [*Boost.Ratio]]
+
+[/===============================================]
+
+[def __time_point `time_point`]
+[def __hours `hours`]
+
+[/===============================================]
+[def __ratio [link ratio.reference.std.ratio_hpp.ratio `ratio`]]
+
+[template ratio_conf[link_text] [link ratio.reference.std.ratio_hpp.conf [link_text]]]
+
+[def __BOOST_RATIO_USES_STATIC_ASSERT [link ratio.reference.config_hpp.assert `BOOST_RATIO_USES_STATIC_ASSERT`]]
+[def __BOOST_RATIO_USES_MPL_ASSERT [link ratio.reference.config_hpp.assert `BOOST_RATIO_USES_MPL_ASSERT`]]
+[def __BOOST_RATIO_USES_ARRAY_ASSERT [link ratio.reference.config_hpp.assert `BOOST_RATIO_USES_ARRAY_ASSERT`]]
+
+[def __BOOST_RATIO_EXTENSIONS [link ratio.reference.config_hpp.ext `BOOST_RATIO_EXTENSIONS`]]
+[def __BOOST_RATIO_PROVIDES_DEPRECATED_FEATURES_SINCE_V2_0_0 [link ratio.reference.config_hpp.deprecated `BOOST_RATIO_PROVIDES_DEPRECATED_FEATURES_SINCE_V2_0_0`]]
+[def __BOOST_RATIO_DONT_PROVIDE_DEPRECATED_FEATURES_SINCE_V2_0_0 [link ratio.reference.config_hpp.deprecated `BOOST_RATIO_DONT_PROVIDE_DEPRECATED_FEATURES_SINCE_V2_0_0 `]]
+[def __BOOST_RATIO_VERSION [link ratio.reference.config_hpp.version `BOOST_RATIO_VERSION `]]
+
+
+[template ratio_arithmetic[link_text] [link ratio.reference.std.ratio_hpp.ratio_arithmetic [link_text]]]
+[def __ratio_add [link ratio.reference.std.ratio_hpp.ratio_arithmetic `ratio_add`]]
+[def __ratio_subtract [link ratio.reference.std.ratio_hpp.ratio_arithmetic `ratio_subtract`]]
+[def __ratio_multiply [link ratio.reference.std.ratio_hpp.ratio_arithmetic `ratio_multiply`]]
+[def __ratio_divide [link ratio.reference.std.ratio_hpp.ratio_arithmetic `ratio_divide`]]
+[def __ratio_negate [link ratio.reference.std.ratio_hpp.ratio_arithmetic `ratio_negate`]]
+[def __ratio_abs [link ratio.reference.std.ratio_hpp.ratio_arithmetic `ratio_abs`]]
+[def __ratio_sign [link ratio.reference.std.ratio_hpp.ratio_arithmetic `ratio_sign`]]
+[def __ratio_gcd [link ratio.reference.std.ratio_hpp.ratio_arithmetic `ratio_gcd`]]
+[def __ratio_lcm [link ratio.reference.std.ratio_hpp.ratio_arithmetic `ratio_lcm`]]
+
+
+[template ratio_comparison[link_text] [link ratio.reference.std.ratio_hpp.ratio_comparison [link_text]]]
+[def __ratio_equal [link ratio.reference.std.ratio_hpp.ratio_comparison `ratio_equal`]]
+[def __ratio_not_equal [link ratio.reference.std.ratio_hpp.ratio_comparison `ratio_not_equal`]]
+[def __ratio_less [link ratio.reference.std.ratio_hpp.ratio_comparison `ratio_less`]]
+[def __ratio_less_equal [link ratio.reference.std.ratio_hpp.ratio_comparison `ratio_less_equal`]]
+[def __ratio_greater [link ratio.reference.std.ratio_hpp.ratio_comparison `ratio_greater`]]
+[def __ratio_greater_equal [link ratio.reference.std.ratio_hpp.ratio_comparison `ratio_greater_equal`]]
+
+
+[template ratio_si_typedefs[link_text] [link ratio.reference.std.ratio_hpp.ratio_si_typedefs [link_text]]]
+[def __atto [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `atto`]]
+[def __femto [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `femto`]]
+[def __pico [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `pico`]]
+[def __nano [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `nano`]]
+[def __micro [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `micro`]]
+[def __milli [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `milli`]]
+[def __centi [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `centi`]]
+[def __deci [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `deci`]]
+[def __deca [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `deca`]]
+[def __hecto [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `hecto`]]
+[def __kilo [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `kilo`]]
+[def __mega [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `mega`]]
+[def __giga [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `giga`]]
+[def __tera [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `tera`]]
+[def __peta [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `peta`]]
+[def __exa [link ratio.reference.std.ratio_hpp.ratio_si_typedefs `exa`]]
+
+[template mu[]'''&#x3BC;'''] [/ µ Greek small letter mu]
+
+[def __Rational_Constant [link ratio.reference.mpl.rational_constant Rational Constant]]
+
+
+[/warning Ratio is not part of the Boost libraries.]
+
+[/===============]
+[section Overview]
+[/===============]
+
+
+[/====================================]
+[heading How to Use This Documentation]
+[/====================================]
+
+This documentation makes use of the following naming and formatting conventions.
+
+* Code is in `fixed width font` and is syntax-highlighted.
+* Replaceable text that you will need to supply is in [~italics].
+* Free functions are rendered in the code font followed by `()`, as in `free_function()`.
+* If a name refers to a class template, it is specified like this:   `class_template<>`; that is, it is in code font and its name is followed by `<>`   to indicate that it is a class template.
+* If a name refers to a function-like macro, it is specified like this: `MACRO()`;
+  that is, it is uppercase in code font and its name is followed by `()` to   indicate that it is a function-like macro. Object-like macros appear without the   trailing `()`.
+* Names that refer to /concepts/ in the generic programming sense are  specified in CamelCase.
+
+[note In addition, notes such as this one specify non-essential information that provides additional background or rationale.]
+
+Finally, you can mentally add the following to any code fragments in this document:
+
+    // Include all of Ratio files
+    #include <boost/ratio.hpp>
+    using namespace boost;
+
+[/=================]
+[section Motivation]
+[/=================]
+
+__Boost_Ratio aims to implement the compile time ratio facility in C++0x, as proposed in [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2661.htm [*N2661 - A Foundation to Sleep On]].  That document provides background and motivation for key design decisions and is the source of a good deal of information in this documentation.
+
+[endsect]
+
+[/==================]
+[section Description]
+[/==================]
+
+The __Boost_Ratio library provides:
+
+* A class template, __ratio, for specifying compile time rational constants such as 1/3 of a nanosecond or the number of inches per meter.  __ratio represents a compile time ratio of compile time constants with support for compile time arithmetic with overflow and division by zero protection.
+
+* It provides a textual representation of `boost::ratio<N, D>` in the form of a `std::basic_string` which can be useful for I/O.
+
+* Some extension related to the __Rational_Constant concept enabling the use of __ratio<> in the context of [*Boost.MPL] numeric metafunctions.
+
+[endsect]
+
+[endsect]
+
+
+[/==============================]
+[section:users_guide User's Guide]
+[/==============================]
+
+[/======================================]
+[section:getting_started Getting Started]
+[/======================================]
+
+[/======================================]
+[section:install Installing Ratio]
+[/======================================]
+
+[/=================================]
+[heading Getting Boost.Ratio ]
+[/=================================]
+
+Boost.Ratio is in the latest Boost release in the folder `/boost/ratio`.  Documentation, tests and examples folder are at `boost/libs/ratio/`.
+
+You can also access the latest (unstable?) state from the [@http://svn.boost.org/svn/boost/trunk Boost trunk] directories `boost/ratio` and `libs/ratio`. 
+
+Just go to [@http://svn.boost.org/trac/boost/wiki/BoostSubversion the wiki] and follow the instructions there for anonymous SVN access.
+
+[/==========================================]
+[heading Where to install Boost.Ratio? ]
+[/==========================================]
+
+The simple way is to decompress (or checkout from SVN) the files in your BOOST_ROOT directory.
+
+[/=================================]
+[heading Building Boost.Ratio ]
+[/=================================]
+
+__Boost_Ratio is a header only library, so no need to compile anything, you just need to `include <boost/ratio.hpp>`.
+
+
+[/===================]
+[heading Requirements]
+[/===================]
+
+__Boost_Ratio depends on some Boost libraries. For these specific parts you must use either Boost version 1.39.0 or later (even older versions may work).
+
+In particular, __Boost_Ratio depends on:
+
+[variablelist
+[
+    [[@http://www.boost.org/libs/config [*Boost.Config]]] [for configuration purposes, ...]
+]
+[
+    [[@http://www.boost.org/libs/integer [*Boost.Integer]]] [for cstdint conformance, and integer traits ...]
+]
+[
+    [[@http://www.boost.org/libs/mpl [*Boost.MPL]]] [for MPL Assert and bool, logical ...]
+]
+[
+    [[@http://www.boost.org/libs/static_assert [*Boost.StaticAssert]]] [for STATIC_ASSERT, ...]
+]
+[
+    [[@http://www.boost.org/libs/type_traits [*Boost.TypeTraits]]] [for is_base, is_convertible ...]
+]
+[
+    [[@http://www.boost.org/libs/utility [*Boost.Utility/EnableIf]]] [for enable_if, ...]
+]
+]
+
+
+[/=========================================================]
+[heading Building an executable that uses __Boost_Ratio ]
+[/=========================================================]
+
+No link is needed.
+
+
+[/=========================]
+[heading Exception safety ]
+[/=========================]
+
+All functions in the library are exception-neutral, providing the strong exception safety guarantee.
+
+[/=====================]
+[heading Thread safety ]
+[/=====================]
+
+All functions in the library are thread-unsafe except when noted explicitly.
+
+[/========================]
+[heading Tested compilers ]
+[/========================]
+
+__Boost_Ratio should work with an C++03 conforming compiler.  The current version has been tested on:
+
+Windows with
+
+* MSVC 10.0
+* MSVC 9.0 Express
+* MSVC 8.0
+
+Cygwin 1.5 with
+
+* GCC 3.4.4
+
+Cygwin 1.7 with
+
+* GCC 4.3.4
+
+MinGW with
+
+* GCC 4.4.0
+* GCC 4.5.0
+* GCC 4.5.0 -std=c++0x
+* GCC 4.6.0
+* GCC 4.6.0 -std=c++0x
+
+Ubuntu 10.10
+
+* GCC 4.4.5
+* GCC 4.4.5 -std=c++0x
+* GCC 4.5.1
+* GCC 4.5.1 -std=c++0x
+* clang 2.8
+
+Initial versions were tested on:
+
+MacOS with GCC 4.2.4
+
+Ubuntu Linux with GCC 4.2.4
+
+[note Please let us know how this works on other platforms/compilers.]
+
+[note Please send any questions, comments and bug reports to boost <at> lists <dot> boost <dot> org.]
+
+[endsect]
+[endsect]
+
+
+[section Tutorial]
+
+[heading Ratio]
+
+__ratio is a general purpose utility inspired by Walter Brown allowing one to easily and safely compute rational values at compile-time. The __ratio class catches all errors (such as divide by zero and overflow) at compile time. It is used in the duration and __time_point classes to efficiently create units of time. It can also be used in other "quantity" libraries or anywhere there is a rational constant which is known at compile-time. The use of this utility can greatly reduce the chances of run-time overflow because the __ratio (and any ratios resulting from __ratio arithmetic) are always reduced to the lowest terms.
+
+__ratio is a template taking two `intmax_ts`, with the second defaulted to 1. In addition to copy constructors and assignment, it only has two public members, both of which are `static const intmax_t`. One is the numerator of the __ratio and the other is the denominator. The __ratio is always normalized such that it is expressed in lowest terms, and the denominator is always positive. When the numerator is 0, the denominator is always 1.
+
+[*Example:]
+
+    typedef __ratio<5, 3>   five_thirds;       
+    // five_thirds::num == 5, five_thirds::den == 3
+    
+    typedef __ratio<25, 15> also_five_thirds;  
+    // also_five_thirds::num == 5, also_five_thirds::den == 3
+    
+    typedef ratio_divide<five_thirds, also_five_thirds>::type one;  
+    // one::num == 1, one::den == 1
+
+This facility also includes convenience typedefs for the SI prefixes __atto through __exa corresponding to their internationally recognized definitions (in terms of __ratio). This is a tremendous syntactic convenience. It will prevent errors in specifying constants as one no longer has to double count the number of zeros when trying to write millions or billions.
+
+[*Example:]
+
+    typedef ratio_multiply<__ratio<5>, giga>::type _5giga;  
+    // _5giga::num == 5000000000, _5giga::den == 1
+    
+    typedef ratio_multiply<__ratio<5>, nano>::type _5nano;  
+    // _5nano::num == 1, _5nano::den == 200000000
+
+[heading Ratio I/O]
+
+For each `ratio<N, D>` there exists a `ratio_string<ratio<N, D>, CharT>` for which you can query two strings: `symbol` and `prefix`. For those `ratio`'s that correspond to an [@http://en.wikipedia.org/wiki/SI_prefix#List_of_SI_prefixes SI prefix] prefix corresponds to the internationally recognized prefix, stored as a `basic_string<CharT>`. For example `ratio_string<mega, char>::prefix()` returns `string("mega")`. For those `ratio`s that correspond to an [@http://en.wikipedia.org/wiki/SI_prefix#List_of_SI_prefixes SI prefix] `symbol` corresponds to the internationally recognized symbol, stored as a `basic_string<CharT>`. For example, `ratio_string<mega, char>::symbol()` returns `string("M")`. For all other `ratio`s, both `prefix()` and `symbol()` return a `basic_string` containing "[`ratio::num/ratio::den`]".
+
+`ratio_string<ratio<N, D>, CharT>` is only defined for four character types:
+
+* `char`: UTF-8 
+* `char16_t`: UTF-16
+* `char32_t`: UTF-32
+* `wchar_t`: UTF-16 (if wchar_t is 16 bits) or UTF-32
+
+When the character is char, UTF-8 will be used to encode the names. When the character is `char16_t`, UTF-16 will be used to encode the names. When the character is `char32_t`, UTF-32 will be used to encode the names. When the character is `wchar_t`, the encoding will be UTF-16 if `wchar_t` is 16 bits, and otherwise UTF-32.
+
+The `symbol` (Greek mu or [mu]) for micro is defined by [@http://www.unicode.org/charts/PDF/U0080.pdf Unicode] to be U+00B5. 
+
+[*Examples:]
+
+    #include <boost/ratio/ratio_io.hpp>
+    #include <iostream>
+
+    int main()
+    {
+        using namespace std;
+        using namespace boost;
+
+        cout << "ratio_string<deca, char>::prefix() = "
+             <<  ratio_string<deca, char>::prefix() << '\n';
+        cout << "ratio_string<deca, char>::symbol() = "
+             <<  ratio_string<deca, char>::symbol() << '\n';
+
+        cout << "ratio_string<giga, char>::prefix() = "
+             <<  ratio_string<giga, char>::prefix() << '\n';
+        cout << "ratio_string<giga, char>::symbol() = "
+             <<  ratio_string<giga, char>::symbol() << '\n';
+
+        cout << "ratio_string<ratio<4, 6>, char>::prefix() = "
+             <<  ratio_string<ratio<4, 6>, char>::prefix() << '\n';
+        cout << "ratio_string<ratio<4, 6>, char>::symbol() = "
+             <<  ratio_string<ratio<4, 6>, char>::symbol() << '\n';
+    }
+
+The output will be
+
+    ratio_string<deca, char>::prefix() = deca
+    ratio_string<deca, char>::symbol() = da
+    ratio_string<giga, char>::prefix() = giga
+    ratio_string<giga, char>::symbol() = G
+    ratio_string<ratio<4, 6>, char>::prefix() = [2/3]
+    ratio_string<ratio<4, 6>, char>::symbol() = [2/3]
+
+
+[heading Ratio MPL Numeric Metafunctions]
+
+With the view of the _ratio class as a __Rational_Constant we can mix _ratio<> and [*Boost.MPL] Integral Constants in the same expression, as in
+
+    typedef mpl::times<int_<5>, giga>::type _5giga;  
+    // _5giga::num == 5000000000, _5giga::den == 1
+    
+    typedef mpl::times<int_<5>, nano>::type _5nano;  
+    // _5nano::num == 1, _5nano::den == 200000000
+
+
+[endsect]
+[/===============]
+[section:Examples Example]
+[/===============]
+
+[/===============]
+[section SI units]
+[/===============]
+
+This example illustrates the use of type-safe physics code interoperating with `boost::chrono::duration` types, taking advantage of the __Boost_Ratio infrastructure and design philosophy.
+
+Let's start by defining a `length` class template that mimics `boost::chrono::duration`, which represents a time duration in various units, but restricts the representation to `double` and uses __Boost_Ratio for length unit conversions:
+
+
+    template <class Ratio>
+    class length {
+    private:
+        double len_;
+    public:
+        typedef Ratio ratio;
+        length() : len_(1) {}
+        length(const double& len) : len_(len) {}
+
+        template <class R>
+        length(const length<R>& d)
+                : len_(d.count() * boost::ratio_divide<Ratio, R>::type::den /
+                                   boost::ratio_divide<Ratio, R>::type::num) {}
+
+        double count() const {return len_;}
+
+        length& operator+=(const length& d) {len_ += d.count(); return *this;}
+        length& operator-=(const length& d) {len_ -= d.count(); return *this;}
+
+        length operator+() const {return *this;}
+        length operator-() const {return length(-len_);}
+
+        length& operator*=(double rhs) {len_ *= rhs; return *this;}
+        length& operator/=(double rhs) {len_ /= rhs; return *this;}
+    };
+
+
+Here's a small sampling of length units:
+
+    typedef length<boost::__ratio<1> >          meter;        // set meter as "unity"
+    typedef length<boost::__centi>              centimeter;   // 1/100 meter
+    typedef length<boost::__kilo>               kilometer;    // 1000  meters
+    typedef length<boost::__ratio<254, 10000> > inch;         // 254/10000 meters
+
+Note that since `length`'s template parameter is actually a generic ratio type, so we can use boost::ratio allowing for more complex length units:
+
+    typedef length<boost::ratio_multiply<boost::__ratio<12>, inch::__ratio>::type>   foot;  // 12 inchs
+    typedef length<boost::ratio_multiply<boost::__ratio<5280>, foot::__ratio>::type> mile;  // 5280 feet
+
+Now we need a floating point-based definition of seconds:
+
+    typedef boost::chrono::duration<double> seconds;                         // unity
+
+We can even support sub-nanosecond durations:
+
+    typedef boost::chrono::duration<double,  boost::__pico> picosecond;  // 10^-12 seconds
+    typedef boost::chrono::duration<double, boost::__femto> femtosecond; // 10^-15 seconds
+    typedef boost::chrono::duration<double,  boost::__atto> attosecond;  // 10^-18 seconds
+
+Finally, we can write a proof-of-concept of an SI units library, hard-wired for meters and floating point seconds, though it will accept other units:
+
+    template <class R1, class R2>
+    class quantity
+    {
+        double q_;
+    public:
+        typedef R1 time_dim;
+        typedef R2 distance_dim;
+        quantity() : q_(1) {}
+
+        double get() const {return q_;}
+        void set(double q) {q_ = q;}
+    };
+
+    template <>
+    class quantity<boost::__ratio<1>, boost::__ratio<0> >
+    {
+        double q_;
+    public:
+        quantity() : q_(1) {}
+        quantity(seconds d) : q_(d.count()) {}  // note:  only User1::seconds needed here
+
+        double get() const {return q_;}
+        void set(double q) {q_ = q;}
+    };
+
+    template <>
+    class quantity<boost::__ratio<0>, boost::__ratio<1> >
+    {
+        double q_;
+    public:
+        quantity() : q_(1) {}
+        quantity(meter d) : q_(d.count()) {}  // note:  only User1::meter needed here
+
+        double get() const {return q_;}
+        void set(double q) {q_ = q;}
+    };
+
+    template <>
+    class quantity<boost::__ratio<0>, boost::__ratio<0> >
+    {
+        double q_;
+    public:
+        quantity() : q_(1) {}
+        quantity(double d) : q_(d) {}
+
+        double get() const {return q_;}
+        void set(double q) {q_ = q;}
+    };
+
+That allows us to create some useful SI-based unit types:
+
+    typedef quantity<boost::__ratio<0>, boost::__ratio<0> >  Scalar;
+    typedef quantity<boost::__ratio<1>, boost::__ratio<0> >  Time;         // second
+    typedef quantity<boost::__ratio<0>, boost::__ratio<1> >  Distance;     // meter
+    typedef quantity<boost::__ratio<-1>, boost::__ratio<1> > Speed;        // meter/second
+    typedef quantity<boost::__ratio<-2>, boost::__ratio<1> > Acceleration; // meter/second^2
+
+To make quantity useful, we need to be able to do arithmetic:
+
+    template <class R1, class R2, class R3, class R4>
+    quantity<typename boost::ratio_subtract<R1, R3>::type, 
+             typename boost::ratio_subtract<R2, R4>::type>
+    operator/(const quantity<R1, R2>& x, const quantity<R3, R4>& y)
+    {
+        typedef quantity<typename boost::ratio_subtract<R1, R3>::type,
+                        typename boost::ratio_subtract<R2, R4>::type> R;
+        R r;
+        r.set(x.get() / y.get());
+        return r;
+    }
+
+    template <class R1, class R2, class R3, class R4>
+    quantity<typename boost::ratio_add<R1, R3>::type, 
+             typename boost::ratio_add<R2, R4>::type>
+    operator*(const quantity<R1, R2>& x, const quantity<R3, R4>& y)
+    {
+        typedef quantity<typename boost::ratio_add<R1, R3>::type,
+                        typename boost::ratio_add<R2, R4>::type> R;
+        R r;
+        r.set(x.get() * y.get());
+        return r;
+    }
+
+    template <class R1, class R2>
+    quantity<R1, R2>
+    operator+(const quantity<R1, R2>& x, const quantity<R1, R2>& y)
+    {
+        typedef quantity<R1, R2> R;
+        R r;
+        r.set(x.get() + y.get());
+        return r;
+    }
+
+    template <class R1, class R2>
+    quantity<R1, R2>
+    operator-(const quantity<R1, R2>& x, const quantity<R1, R2>& y)
+    {
+        typedef quantity<R1, R2> R;
+        R r;
+        r.set(x.get() - y.get());
+        return r;
+    }
+
+With all of the foregoing scaffolding, we can now write an exemplar of a type-safe physics function:
+
+    Distance
+    compute_distance(Speed v0, Time t, Acceleration a)
+    {
+        return v0 * t + Scalar(.5) * a * t * t;  // if a units mistake is made here it won't compile
+    }
+
+
+Finally, we can exercise what we've created, even using custom time durations (`User1::seconds`) as well as Boost time durations (`boost::chrono::hours`).  The input can be in arbitrary, though type-safe, units, the output is always in SI units.  (A complete Units library would support other units, of course.)
+
+    int main()
+    {
+        typedef boost::__ratio<8, BOOST_INTMAX_C(0x7FFFFFFFD)> R1;
+        typedef boost::__ratio<3, BOOST_INTMAX_C(0x7FFFFFFFD)> R2;
+        typedef User1::quantity<boost::ratio_subtract<boost::__ratio<0>, boost::__ratio<1> >::type,
+                                 boost::ratio_subtract<boost::__ratio<1>, boost::__ratio<0> >::type > RR;
+        typedef boost::ratio_subtract<R1, R2>::type RS;
+        std::cout << RS::num << '/' << RS::den << '\n';
+
+
+        std::cout << "*************\n";
+        std::cout << "* testUser1 *\n";
+        std::cout << "*************\n";
+        User1::Distance d( User1::mile(110) );
+        User1::Time t( boost::chrono::__hours(2) );
+
+        RR r=d / t;
+        //r.set(d.get() / t.get());
+
+        User1::Speed rc= r;
+
+        User1::Speed s = d / t;
+        std::cout << "Speed = " << s.get() << " meters/sec\n";
+        User1::Acceleration a = User1::Distance( User1::foot(32.2) ) / User1::Time() / User1::Time();
+        std::cout << "Acceleration = " << a.get() << " meters/sec^2\n";
+        User1::Distance df = compute_distance(s, User1::Time( User1::seconds(0.5) ), a);
+        std::cout << "Distance = " << df.get() << " meters\n";
+        std::cout << "There are " 
+            << User1::mile::ratio::den << '/' << User1::mile::ratio::num << " miles/meter";
+        User1::meter mt = 1;
+        User1::mile mi = mt;
+        std::cout << " which is approximately " << mi.count() << '\n';
+        std::cout << "There are " 
+            << User1::mile::ratio::num << '/' << User1::mile::ratio::den << " meters/mile";
+        mi = 1;
+        mt = mi;
+        std::cout << " which is approximately " << mt.count() << '\n';
+        User1::attosecond as(1);
+        User1::seconds sec = as;
+        std::cout << "1 attosecond is " << sec.count() << " seconds\n";
+        std::cout << "sec = as;  // compiles\n";
+        sec = User1::seconds(1);
+        as = sec;
+        std::cout << "1 second is " << as.count() << " attoseconds\n";
+        std::cout << "as = sec;  // compiles\n";
+        std::cout << "\n";
+        return 0;
+    }
+
+['See the source file [@../../example/si_physics.cpp example/si_physics.cpp]]
+
+[endsect]
+
+
+[endsect]
+
+[/================================]
+[section:ext_references External Resources]
+[/================================]
+
+[variablelist
+
+[
+    [[@http://www.open-std.org/jtc1/sc22/wg21 [*C++ Standards Committee's current Working Paper]]]
+    [The most authoritative reference material for the library is the C++ Standards Committee's current Working Paper (WP). 20.6 Compile-time rational arithmetic "ratio"]
+]
+
+[
+    [[@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2661.htm [*N2661 - A Foundation to Sleep On]]]
+    [From Howard E. Hinnant, Walter E. Brown, Jeff Garland  and Marc Paterno. Is very informative and provides motivation for key design decisions]
+]
+
+
+[
+    [[@http://lwg.github.com/issues/lwg-defects.html#1281 [*LWG 1281. CopyConstruction and Assignment between ratios having the same normalized form]]]
+    [From Vicente Juan Botet Escriba.]
+]
+
+
+]
+
+[endsect]
+
+[endsect]
+
+[/=================]
+[section:reference Reference ]
+[/=================]
+
+[/=================================================]
+[section:config_hpp Header `<boost/ratio/config.hpp>`]
+[/=================================================]
+
+
+    // Configuration macros
+    #define __BOOST_RATIO_VERSION
+    #define __BOOST_RATIO_EXTENSIONS
+    #define __BOOST_RATIO_PROVIDES_DEPRECATED_FEATURES_SINCE_V2_0_0
+    #define __BOOST_RATIO_DONT_PROVIDE_DEPRECATED_FEATURES_SINCE_V2_0_0
+    #define __BOOST_RATIO_USES_STATIC_ASSERT
+    #define __BOOST_RATIO_USES_MPL_ASSERT
+    #define __BOOST_RATIO_USES_ARRAY_ASSERT
+
+
+[section:ext Extensions]
+
+When __BOOST_RATIO_EXTENSIONS is defined, __Boost_Ratio provides in addition some extension to the C++ standard, see below.
+
+[endsect]
+[section:deprecated Deprecated]
+
+When __BOOST_RATIO_PROVIDES_DEPRECATED_FEATURES_SINCE_V2_0_0 is defined the deprecated features stated as DEPRECATED V2 are provided.
+
+When __BOOST_RATIO_DONT_PROVIDE_DEPRECATED_FEATURES_SINCE_V2_0_0 is defined the deprecated features stated as DEPRECATED V2 are NOT provided.
+
+[endsect]
+[section:version Version]
+
+__BOOST_RATIO_VERSION stands for the Boost.Ratio version which can be 1 or 2. The default up to 1.55 is version 1. Since 1.56 it will be 2.
+
+When __BOOST_RATIO_VERSION is 1 __BOOST_RATIO_PROVIDES_DEPRECATED_FEATURES_SINCE_V2_0_0 is defined by default. 
+
+When __BOOST_RATIO_VERSION is 2 __BOOST_RATIO_DONT_PROVIDE_DEPRECATED_FEATURES_SINCE_V2_0_0 is defined by default. 
+
+[endsect]
+[section:assert Static Assert]
+
+When BOOST_NO_STATIC_ASSERT is defined, the user can select the way static assertions are reported. Define
+
+* __BOOST_RATIO_USES_STATIC_ASSERT to use Boost.StaticAssert.
+* __BOOST_RATIO_USES_MPL_ASSERT to use [*Boost.MPL] static assertions.
+* __BOOST_RATIO_USES_ARRAY_ASSERT to use __Boost_Ratio internal static assertions.
+
+The default behavior is as if __BOOST_RATIO_USES_ARRAY_ASSERT was defined.
+
+When __BOOST_RATIO_USES_MPL_ASSERT is not defined the following symbols are defined as shown:
+
+    #define BOOST_RATIO_OVERFLOW_IN_ADD "overflow in ratio add"
+    #define BOOST_RATIO_OVERFLOW_IN_SUB "overflow in ratio sub"
+    #define BOOST_RATIO_OVERFLOW_IN_MUL "overflow in ratio mul"
+    #define BOOST_RATIO_OVERFLOW_IN_DIV "overflow in ratio div"
+    #define BOOST_RATIO_NUMERATOR_IS_OUT_OF_RANGE "ratio numerator is out of range"
+    #define BOOST_RATIO_DIVIDE_BY_0 "ratio divide by 0"
+    #define BOOST_RATIO_DENOMINATOR_IS_OUT_OF_RANGE "ratio denominator is out of range"
+
+Depending upon the static assertion system used, a hint as to the failing assertion will appear in some form in the compiler diagnostic output.
+
+
+[endsect]
+[endsect]
+
+[/=================================================]
+[section:std C++0x Recommendation]
+[/=================================================]
+
+[/=================================================]
+[section:ratio_ratio_hpp Header `<boost/ratio.hpp>`]
+[/=================================================]
+
+This header includes all the ratio related header files
+
+    #include <boost/ratio/ratio.hpp>
+    #include <boost/ratio/ratio_io.hpp>
+    #include <boost/ratio/rational_constant.hpp>
+
+[endsect]
+
+[/========================================================]
+[section:ratio_fwdhpp Header `<boost/ratio/ratio_fwd.hpp>`]
+[/========================================================]
+
+This header provides forward declarations for the `<boost/ratio/ratio.hpp>` file.
+
+    namespace boost  {
+
+        template <boost::intmax_t N, boost::intmax_t D = 1> class __ratio;
+
+        // ratio arithmetic
+        template <class R1, class R2> struct __ratio_add;
+        template <class R1, class R2> struct __ratio_subtract;
+        template <class R1, class R2> struct __ratio_multiply;
+        template <class R1, class R2> struct __ratio_divide;
+        template <class R> struct __ratio_negate;
+        template <class R> struct __ratio_sign;
+        template <class R> struct __ratio_abs;
+        template <class R1, class R2> struct __ratio_gcd;
+        template <class R1, class R2> struct __ratio_lcm;
+
+        // ratio comparison
+        template <class R1, class R2> struct __ratio_equal;
+        template <class R1, class R2> struct __ratio_not_equal;
+        template <class R1, class R2> struct __ratio_less;
+        template <class R1, class R2> struct __ratio_less_equal;
+        template <class R1, class R2> struct __ratio_greater;
+        template <class R1, class R2> struct __ratio_greater_equal;
+
+        // convenience SI typedefs
+        typedef ratio<1LL, 1000000000000000000LL> __atto;
+        typedef ratio<1LL,    1000000000000000LL> __femto;
+        typedef ratio<1LL,       1000000000000LL> __pico;
+        typedef ratio<1LL,          1000000000LL> __nano;
+        typedef ratio<1LL,             1000000LL> __micro;
+        typedef ratio<1LL,                1000LL> __milli;
+        typedef ratio<1LL,                 100LL> __centi;
+        typedef ratio<1LL,                  10LL> __deci;
+        typedef ratio<                 10LL, 1LL> __deca;
+        typedef ratio<                100LL, 1LL> __hecto;
+        typedef ratio<               1000LL, 1LL> __kilo;
+        typedef ratio<            1000000LL, 1LL> __mega;
+        typedef ratio<         1000000000LL, 1LL> __giga;
+        typedef ratio<      1000000000000LL, 1LL> __tera;
+        typedef ratio<   1000000000000000LL, 1LL> __peta;
+        typedef ratio<1000000000000000000LL, 1LL> __exa;
+    }
+
+[endsect]
+
+
+[/=================================================]
+[section:ratio_hpp Header `<boost/ratio/ratio.hpp>`]
+[/=================================================]
+
+__ratio is a facility which is useful in specifying compile-time rational constants. Compile-time rational arithmetic is supported with protection against overflow and divide by zero. Such a facility is very handy to efficiently represent 1/3 of a nanosecond, or to specify an inch in terms of meters (for example 254/10000 meters - which __ratio will reduce to 127/5000 meters).
+
+[section:ratio Class Template `ratio<>`]
+
+        template <boost::intmax_t N, boost::intmax_t D>
+        class ratio {
+        public:
+            static const boost::intmax_t num;
+            static const boost::intmax_t den;
+            typedef ratio<num, den> type;
+
+            #ifdef __BOOST_RATIO_EXTENSIONS    
+            typedef mpl::rational_c_tag tag;
+            typedef boost::rational<boost::intmax_t> value_type;
+            typedef boost::intmax_t num_type;
+            typedef boost::intmax_t den_type;
+            
+            ratio() = default;
+
+            template <intmax_t _N2, intmax_t _D2>
+            ratio(const ratio<_N2, _D2>&);
+
+            template <intmax_t _N2, intmax_t _D2>
+            ratio& operator=(const ratio<_N2, _D2>&);
+            
+            static value_type value();
+            value_type operator()() const;
+            #endif
+        };
+
+A diagnostic will be emitted if __ratio is instantiated with `D == 0`, or if the absolute value of `N` or `D` cannot be represented. [*Note:] These rules ensure that infinite ratios are avoided and that for any negative input, there exists a representable value of its absolute value which is positive. In a two's complement representation, this excludes the most negative value.
+
+The members num and den will be normalized values of the template arguments N and D computed as follows. Let `gcd` denote the greatest common divisor of `N`'s absolute value and of `D`'s absolute value. Then:
+
+* `num` has the value `sign(N)*sign(D)*abs(N)/gcd`.
+
+* `den` has the value `abs(D)/gcd`.
+
+The nested typedef `type` denotes the normalized form of this __ratio type. It should be 
+used when the normalized form of the template arguments are required, since the arguments are not necessarily normalized.
+
+Two __ratio classes `__ratio<N1,D1>` and `__ratio<N2,D2>` have the same normalized form if `__ratio<N1,D1>::type` is the same type as `__ratio<N2,D2>::type`
+
+[section:ca Construction and Assignment]
+
+Included only if __BOOST_RATIO_EXTENSIONS is defined.
+
+[heading Default Constructor]
+
+      ratio()=default;
+
+[*Effects:] Constructs a __ratio object.
+
+[heading Copy Constructor]
+
+    template <intmax_t N2, intmax_t D2>
+      ratio(const __ratio<N2, D2>& r);
+
+[*Effects:] Constructs a __ratio object.
+
+[*Remarks:] This constructor will not participate in overload resolution unless `r` has the same normalized form as `*this`.
+
+[heading Assignement]
+
+    template <intmax_t N2, intmax_t D2>
+      __ratio& operator=(const __ratio<N2, D2>& r);
+
+[*Effects:] Assigns a __ratio object.
+
+[*Returns:] *this.
+
+[*Remarks:] This operator will not participate in overload resolution unless `r` has the same normalized form as `*this`.
+
+[endsect]
+
+[section:mpl MPL Numeric Metafunctions]
+
+Included only if __BOOST_RATIO_EXTENSIONS is defined.
+
+In order to work with [*Boost.MPL] numeric metafunctions as a __Rational_Constant, the following has beed added:
+
+            typedef mpl::rational_c_tag tag;
+            typedef boost::rational<boost::intmax_t> value_type;
+            typedef boost::intmax_t num_type;
+            typedef boost::intmax_t den_type;
+[endsect]
+
+[section:obs Observers]
+
+Included only if __BOOST_RATIO_EXTENSIONS is defined.
+
+            static value_type value();
+            value_type operator()() const;
+
+[*Returns:] value_type(num,den);
+
+[endsect]
+
+[endsect]
+
+
+[section:ratio_arithmetic `ratio` Arithmetic]
+
+For each of the class templates in this section, each template parameter refers to a `ratio`. If the implementation is unable to form the indicated __ratio due to overflow, a diagnostic will be issued.
+
+[heading `ratio_add<>`]
+
+        template <class R1, class R2> struct ratio_add {
+           typedef [/see below] type;
+        };
+
+The nested typedef `type` is a synonym for `__ratio<R1::num * R2::den + R2::num * R1::den, R1::den * R2::den>::type`.
+
+[heading `ratio_subtract<>`]
+
+        template <class R1, class R2> struct ratio_subtract {
+           typedef  [/see below]  type;
+        };
+
+The nested typedef `type` is a synonym for `__ratio<R1::num * R2::den - R2::num * R1::den, R1::den * R2::den>::type`.
+
+[heading `ratio_multiply<>`]
+
+        template <class R1, class R2> struct ratio_multiply {
+           typedef  [/see below]  type;
+        };
+
+The nested typedef `type` is a synonym for `__ratio<R1::num * R2::num, R1::den * R2::den>::type`.
+
+[heading `ratio_divide<>`]
+
+        template <class R1, class R2> struct ratio_divide {
+           typedef  [/see below]  type;
+        };
+
+The nested typedef `type` is a synonym for `__ratio<R1::num * R2::den, R2::num * R1::den>::type`.
+
+[heading `ratio_negate<>`]
+
+This extension of the C++ standard helps in the definition of some [*Boost.MPL] numeric metafunctions.
+
+
+        template <class R> struct ratio_negate {
+           typedef  [/see below]  type;
+        };
+
+The nested typedef `type` is a synonym for `__ratio<-R::num, R::den>::type`.
+
+[heading `ratio_abs<>`]
+
+This extension of the C++ standard helps in the definition of some [*Boost.MPL] numeric metafunctions.
+
+        template <class R> struct ratio_abs {
+           typedef  [/see below]  type;
+        };
+
+The nested typedef `type` is a synonym for `__ratio<abs_c<intmax_t,R::num>::value, R::den>::type`.
+
+[heading `ratio_sign<>`]
+
+This extension of the C++ standard helps in the definition of some [*Boost.MPL] numeric metafunctions.
+
+        template <class R> struct ratio_sign {
+           typedef  [/see below]  type;
+        };
+
+The nested typedef `type` is a synonym for `sign_c<intmax_t,R::num>::type`.
+
+[heading `ratio_gcd<>`]
+
+This extension of the C++ standard helps in the definition of some [*Boost.MPL] numeric metafunctions.
+
+        template <class R1, class R2> struct ratio_gcd {
+           typedef  [/see below]  type;
+        };
+
+The nested typedef `type` is a synonym for `ratio<gcd_c<intmax_t, R1::num, R2::num>::value, mpl::lcm_c<intmax_t, R1::den, R2::den>::value>::type`.
+
+[heading `ratio_lcm<>`]
+
+This extension of the C++ standard helps in the definition of some [*Boost.MPL] numeric metafunctions.
+
+        template <class R1, class R2> struct ratio_lcm {
+           typedef  [/see below]  type;
+        };
+
+The nested typedef `type` is a synonym for `ratio<lcm_c<intmax_t, R1::num, R2::num>::value, gcd_c<intmax_t, R1::den, R2::den>::value>::type`.
+
+[endsect]
+
+[section:ratio_comparison `ratio` Comparison]
+
+[heading `ratio_equal<>`]
+
+        template <class R1, class R2>  struct ratio_equal
+            : public boost::integral_constant<bool, [/see below] > {};
+
+If R1::num == R2::num && R1::den == R2::den, ratio_equal derives from true_type, else derives from false_type.
+
+[heading `ratio_not_equal<>`]
+
+    template <class R1, class R2>  struct ratio_not_equal
+        : public boost::integral_constant<bool, !ratio_equal<R1, R2>::value> {};
+
+[heading `ratio_less<>`]
+
+        template <class R1, class R2>
+        struct ratio_less
+            : public boost::integral_constant<bool, [/see below] > {};
+
+If R1::num * R2::den < R2::num * R1::den, ratio_less derives from true_type, else derives from false_type.
+
+[heading `ratio_less_equal<>`]
+
+    template <class R1, class R2> struct ratio_less_equal
+        : public boost::integral_constant<bool, !ratio_less<R2, R1>::value> {};
+
+[heading `ratio_greater<>`]
+
+    template <class R1, class R2> struct ratio_greater
+        : public boost::integral_constant<bool, ratio_less<R2, R1>::value> {};
+
+[heading `ratio_greater_equal<>`]
+
+    template <class R1, class R2> struct ratio_greater_equal
+        : public boost::integral_constant<bool, !ratio_less<R1, R2>::value> {};
+
+
+[endsect]
+
+[section:ratio_si_typedefs SI typedefs]
+
+The [@http://en.wikipedia.org/wiki/SI_prefix#List_of_SI_prefixes International System of Units]  specifies twenty SI prefixes. __Boost_Ratio defines all except  `yocto`, `zepto`, `zetta`, and `yotta`
+
+        // convenience SI typedefs
+        typedef __ratio<1LL, 1000000000000000000LL> atto;
+        typedef __ratio<1LL,    1000000000000000LL> femto;
+        typedef __ratio<1LL,       1000000000000LL> pico;
+        typedef __ratio<1LL,          1000000000LL> nano;
+        typedef __ratio<1LL,             1000000LL> micro;
+        typedef __ratio<1LL,                1000LL> milli;
+        typedef __ratio<1LL,                 100LL> centi;
+        typedef __ratio<1LL,                  10LL> deci;
+        typedef __ratio<                 10LL, 1LL> deca;
+        typedef __ratio<                100LL, 1LL> hecto;
+        typedef __ratio<               1000LL, 1LL> kilo;
+        typedef __ratio<            1000000LL, 1LL> mega;
+        typedef __ratio<         1000000000LL, 1LL> giga;
+        typedef __ratio<      1000000000000LL, 1LL> tera;
+        typedef __ratio<   1000000000000000LL, 1LL> peta;
+        typedef __ratio<1000000000000000000LL, 1LL> exa;
+
+[endsect]
+
+
+[section:limitations Limitations]
+
+The following are limitations of Boost.Ratio relative to the specification in the C++0x draft standard:
+ 
+* Four of the SI units typedefs -- `yocto`, `zepto`, `zetta`, and `yotta` -- are to be conditionally supported, if the range of `intmax_t` allows, but are not supported by __Boost_Ratio.
+* Ratio values should be of type static `constexpr intmax_t` (see [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2010/n3135.html#1122 Ratio values should be constexpr]), but for compiler not supporting `constexpr` today, __Boost_Ratio uses `static const intmax_t` instead.
+* Rational arithmetic should use template aliases (see [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2010/n3134.html#921 Rational Arithmetic should use template aliases]), but those are not available in C++03, so inheritance is used instead.
+
+[endsect]
+
+[section:extensions Extensions]
+
+When __BOOST_RATIO_EXTENSIONS is defined __Boost_Ratio provides the following extensions:
+
+* Extends the requirements of the C++0x draft standard by making the copy constructor and copy assignment operator have the same normalized form (see [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2010/n3133.html#1281 copy constructor and assignment between ratios having the same normalized form]).
+* More C++ standard like metafunctions applied to ratio types, like __static_abs or __static_negate. 
+* An __Boost_Mpl rational constant concept and the associated __Boost_Mpl arithmetic and comparison specializations including __numeric_cast, __plus, __equal_to between others. 
+
+[endsect]
+
+[endsect]
+[endsect]
+[section:io Ratio I/O]
+
+[/=======================================================]
+[section:ratio_io_hpp Header `<boost/ratio/ratio_io.hpp>`]
+[/=======================================================]
+
+This header provides `ratio_string<>` which can generate a textual representation of a `ratio<>` in the form of a `std::basic_string<>`.  These strings can be useful for I/O.
+
+    namespace boost {
+        template <class Ratio, class charT> struct ratio_string;
+
+        template <> struct ratio_string<atto, char>;
+        template <> struct ratio_string<atto, char16_t>;
+        template <> struct ratio_string<atto, char32_t>;
+        template <> struct ratio_string<atto, wchar_t>;
+
+        template <> struct ratio_string<femto, char>;
+        template <> struct ratio_string<femto, char16_t>;
+        template <> struct ratio_string<femto, char32_t>;
+        template <> struct ratio_string<femto, wchar_t>;
+
+        template <> struct ratio_string<pico, char>;
+        template <> struct ratio_string<pico, char16_t>;
+        template <> struct ratio_string<pico, char32_t>;
+        template <> struct ratio_string<pico, wchar_t>;
+
+        template <> struct ratio_string<nano, char>;
+        template <> struct ratio_string<nano, char16_t>;
+        template <> struct ratio_string<nano, char32_t>;
+        template <> struct ratio_string<nano, wchar_t>;
+
+        template <> struct ratio_string<micro, char>;
+        template <> struct ratio_string<micro, char16_t>;
+        template <> struct ratio_string<micro, char32_t>;
+        template <> struct ratio_string<micro, wchar_t>;
+
+        template <> struct ratio_string<milli, char>;
+        template <> struct ratio_string<milli, char16_t>;
+        template <> struct ratio_string<milli, char32_t>;
+        template <> struct ratio_string<milli, wchar_t>;
+
+        template <> struct ratio_string<centi, char>;
+        template <> struct ratio_string<centi, char16_t>;
+        template <> struct ratio_string<centi, char32_t>;
+        template <> struct ratio_string<centi, wchar_t>;
+
+        template <> struct ratio_string<deci, char>;
+        template <> struct ratio_string<deci, char16_t>;
+        template <> struct ratio_string<deci, char32_t>;
+        template <> struct ratio_string<deci, wchar_t>;
+
+        template <> struct ratio_string<deca, char>;
+        template <> struct ratio_string<deca, char16_t>;
+        template <> struct ratio_string<deca, char32_t>;
+        template <> struct ratio_string<deca, wchar_t>;
+
+        template <> struct ratio_string<hecto, char>;
+        template <> struct ratio_string<hecto, char16_t>;
+        template <> struct ratio_string<hecto, char32_t>;
+        template <> struct ratio_string<hecto, wchar_t>;
+
+        template <> struct ratio_string<kilo, char>;
+        template <> struct ratio_string<kilo, char16_t>;
+        template <> struct ratio_string<kilo, char32_t>;
+        template <> struct ratio_string<kilo, wchar_t>;
+
+        template <> struct ratio_string<mega, char>;
+        template <> struct ratio_string<mega, char16_t>;
+        template <> struct ratio_string<mega, char32_t>;
+        template <> struct ratio_string<mega, wchar_t>;
+
+        template <> struct ratio_string<giga, char>;
+        template <> struct ratio_string<giga, char16_t>;
+        template <> struct ratio_string<giga, char32_t>;
+        template <> struct ratio_string<giga, wchar_t>;
+
+        template <> struct ratio_string<tera, char>;
+        template <> struct ratio_string<tera, char16_t>;
+        template <> struct ratio_string<tera, char32_t>;
+        template <> struct ratio_string<tera, wchar_t>;
+
+        template <> struct ratio_string<peta, char>;
+        template <> struct ratio_string<peta, char16_t>;
+        template <> struct ratio_string<peta, char32_t>;
+        template <> struct ratio_string<peta, wchar_t>;
+
+        template <> struct ratio_string<exa, char>;
+        template <> struct ratio_string<exa, char16_t>;
+        template <> struct ratio_string<exa, char32_t>;
+        template <> struct ratio_string<exa, wchar_t>;
+    }
+
+[section:ratio_string Template Class `ratio_string<>`]
+
+        template <class Ratio, class CharT>
+        struct ratio_string
+        {
+            static std::basic_string<CharT> symbol();
+            static std::basic_string<CharT> prefix();
+            static std::basic_string<CharT> short_name(); // DEPRECATED V2
+            static std::basic_string<CharT> long_name(); // DEPRECATED V2
+        };
+
+The class template ratio_string provides textual representations of the associated ratio appropriate for the character type charT.
+
+The primary template provides generic strings. Specializations provide the same static member functions but these functions return the English SI prefix and symbol names as specified by the General Conference on Weights and Measures.
+
+[section:prefix Static Member function `prefix()`]
+
+  template<class Ratio, class CharT>
+  basic_string<charT>
+  ratio_string<Ratio, CharT>::prefix();
+
+[*Returns]: A basic_string of the form: [Ratio::num/Ratio::den]
+
+[*Example]: `ratio_string<ratio<2, 60>, wchar_t>::prefix()` returns `L"[1/30]"`.
+
+[endsect]
+
+[section:symbol Static Member function `symbol()`]
+
+  template<class Ratio, class CharT>
+  basic_string<charT>
+  ratio_string<Ratio, CharT>::symbol();
+
+[*Returns]: prefix().
+
+
+[endsect]
+[section:long_name Static Member function `long_name()` DEPRECATED V2]
+
+  template<class Ratio, class CharT>
+  basic_string<charT>
+  ratio_string<Ratio, CharT>::long_name();
+
+[*Returns]: prefix().
+
+[endsect]
+[section:short_name Static Member function `short_name()` DEPRECATED V2]
+
+  template<class Ratio, class CharT>
+  basic_string<charT>
+  ratio_string<Ratio, CharT>::short_name();
+
+[*Returns]: symbol().
+
+[endsect]
+[endsect]
+
+
+[section:spe Specializations for `ratio_string<>`]
+
+For each specialization the table gives the return value for `prefix()` and `symbol()`. 
+
+[table The return values of specializations of ratio_string
+    [[Specialization][`prefix()`] [`symbol()`]]
+    [[`ratio_string<atto, char>`][`"atto"`] [`"a"`]]
+    [[`ratio_string<atto, char16_t>`][`u"atto"`] [`u"a"`]]
+    [[`ratio_string<atto, char32_t>`][`U"atto"`] [`U"a"`]]
+    [[`ratio_string<atto, wchar_t>`][`L"atto"`] [`L"a"`]]
+
+    [[`ratio_string<femto, char>`][`"femto"`] [`"f"`]]
+    [[`ratio_string<femto, char16_t>`][`u"femto"`] [`u"f"`]]
+    [[`ratio_string<femto, char32_t>`][`U"femto"`] [`U"f"`]]
+    [[`ratio_string<femto, wchar_t>`][`L"femto"`] [`L"f"`]]
+
+    [[`ratio_string<pico, char>`][`"pico"`] [`"p"`]]
+    [[`ratio_string<pico, char16_t>`][`u"pico"`] [`u"p"`]]
+    [[`ratio_string<pico, char32_t>`][`U"pico"`] [`U"p"`]]
+    [[`ratio_string<pico, wchar_t>`][`L"pico"`] [`L"p"`]]
+
+    [[`ratio_string<nano, char>`][`"nano"`] [`"a"`]]
+    [[`ratio_string<nano, char16_t>`][`u"nano"`] [`u"a"`]]
+    [[`ratio_string<nano, char32_t>`][`U"nano"`] [`U"a"`]]
+    [[`ratio_string<nano, wchar_t>`][`L"nano"`] [`L"a"`]]
+
+    [[`ratio_string<micro, char>`][`"micro"`] [`u8"\u00B5"`]]
+    [[`ratio_string<micro, char16_t>`][`u"micro"`] [`u"\u00B5"`]]
+    [[`ratio_string<micro, char32_t>`][`U"micro"`] [`U"\u00B5"`]]
+    [[`ratio_string<micro, wchar_t>`][`L"micro"`] [`Lu8"\u00B5"`]]
+
+    [[`ratio_string<milli, char>`][`"milli"`] [`"m"`]]
+    [[`ratio_string<milli, char16_t>`][`u"milli"`] [`u"m"`]]
+    [[`ratio_string<milli, char32_t>`][`U"milli"`] [`U"m"`]]
+    [[`ratio_string<milli, wchar_t>`][`L"milli"`] [`L"m"`]]
+
+    [[`ratio_string<centi, char>`][`"centi"`] [`"c"`]]
+    [[`ratio_string<centi, char16_t>`][`u"centi"`] [`u"c"`]]
+    [[`ratio_string<centi, char32_t>`][`U"centi"`] [`U"c"`]]
+    [[`ratio_string<centi, wchar_t>`][`L"centi"`] [`L"c"`]]
+
+    [[`ratio_string<deci, char>`][`"deci"`] [`"d"`]]
+    [[`ratio_string<deci, char16_t>`][`u"deci"`] [`u"d"`]]
+    [[`ratio_string<deci, char32_t>`][`U"deci"`] [`U"d"`]]
+    [[`ratio_string<deci, wchar_t>`][`L"deci"`] [`L"d"`]]
+
+    [[`ratio_string<deca, char>`][`"deca"`] [`"da"`]]
+    [[`ratio_string<deca, char16_t>`][`u"deca"`] [`u"da"`]]
+    [[`ratio_string<deca, char32_t>`][`U"deca"`] [`U"da"`]]
+    [[`ratio_string<deca, wchar_t>`][`L"deca"`] [`L"da"`]]
+
+    [[`ratio_string<hecto, char>`][`"hecto"`] [`"h"`]]
+    [[`ratio_string<hecto, char16_t>`][`u"hecto"`] [`u"h"`]]
+    [[`ratio_string<hecto, char32_t>`][`U"hecto"`] [`U"h"`]]
+    [[`ratio_string<hecto, wchar_t>`][`L"hecto"`] [`L"h"`]]
+
+    [[`ratio_string<kilo, char>`][`"kilo"`] [`"k"`]]
+    [[`ratio_string<kilo, char16_t>`][`u"kilo"`] [`u"k"`]]
+    [[`ratio_string<kilo, char32_t>`][`U"kilo"`] [`U"k"`]]
+    [[`ratio_string<kilo, wchar_t>`][`L"kilo"`] [`L"k"`]]
+
+    [[`ratio_string<mega, char>`][`"mega"`] [`"M"`]]
+    [[`ratio_string<mega, char16_t>`][`u"mega"`] [`u"M"`]]
+    [[`ratio_string<mega, char32_t>`][`U"mega"`] [`U"M"`]]
+    [[`ratio_string<mega, wchar_t>`][`L"mega"`] [`L"M"`]]
+
+    [[`ratio_string<giga, char>`][`"giga"`] [`"G"`]]
+    [[`ratio_string<giga, char16_t>`][`u"giga"`] [`u"G"`]]
+    [[`ratio_string<giga, char32_t>`][`U"giga"`] [`U"G"`]]
+    [[`ratio_string<giga, wchar_t>`][`L"giga"`] [`L"G"`]]
+
+    [[`ratio_string<tera, char>`][`"tera"`] [`"T"`]]
+    [[`ratio_string<tera, char16_t>`][`u"tera"`] [`u"T"`]]
+    [[`ratio_string<tera, char32_t>`][`U"tera"`] [`U"T"`]]
+    [[`ratio_string<tera, wchar_t>`][`L"tera"`] [`L"T"`]]
+
+    [[`ratio_string<peta, char>`][`"peta"`] [`"P"`]]
+    [[`ratio_string<peta, char16_t>`][`u"peta"`] [`u"P"`]]
+    [[`ratio_string<peta, char32_t>`][`U"peta"`] [`U"P"`]]
+    [[`ratio_string<peta, wchar_t>`][`L"peta"`] [`L"P"`]]
+
+    [[`ratio_string<exa, char>`][`"exa"`] [`"E"`]]
+    [[`ratio_string<exa, char16_t>`][`u"exa"`] [`u"E"`]]
+    [[`ratio_string<exa, char32_t>`][`U"exa"`] [`U"E"`]]
+    [[`ratio_string<exa, wchar_t>`][`L"exa"`] [`L"E"`]]
+
+]
+
+[endsect]
+[endsect]
+[endsect]
+[section:mpl Rational Constant]
+
+[/===========================================]
+[section:rational_constant Rational Constant Concept]
+[/===========================================]
+
+[heading Description]
+
+A __Rational_Constant is a holder class for a compile-time value of a rational type. Every __Rational_Constant is also a nullary Metafunction, returning itself. A rational constant object is implicitly convertible to the corresponding run-time value of the rational type.
+
+[heading Expression requirements]
+
+In the following table and subsequent specifications, r is a model of __Rational_Constant.
+
+[table
+    [[Expression][Type] [Complexity]]
+    [[`r::tag`][`rational_c_tag`] [Constant time]]
+    [[`r::value_type`][A rational type] [Constant time]]
+    [[`r::num_type`][An integral type] [Constant time]]
+    [[`r::den_type`][An integral type] [Constant time]]
+    [[`r::num`][An Integral constant expression] [Constant time]]
+    [[`r::den`][An Integral constant expression] [Constant time]]
+    [[`r::type`][__Rational_Constant] [Constant time]]
+    [[`r::value_type const c=r()`][] [Constant time]]
+]    
+
+[heading Expression semantics]
+
+[table
+    [[Expression][Semantics]]
+    [[`r::tag`][r's tag type; r::tag::value is r's conversion rank.]]
+    [[`r::value_type`][A cv-unqualified type of `r()`]]
+    [[`r::num_type`][A cv-unqualified type of `r::num`]]
+    [[`r::den_type`][A cv-unqualified type of `r::den`]]
+    [[`r::num`][The numerator of the rational constant]]
+    [[`r::den`][The denominator of the rational constant]]
+    [[`r::type`][equal_to<n::type,n>::value == true.]]
+    [[`r::value_type const c=r()`][`r::value_type const c=r::value_type(r::num,r::den)`]]
+]    
+
+[heading Models]
+
+* __ratio<>
+
+[endsect]
+
+[/===========================================]
+[section:rational_constant_hpp Header `<boost/ratio/mpl/rational_constant.hpp>`]
+[/===========================================]
+
+This header includes all the rational constant related header files
+
+    #include <boost/ratio/mpl/rational_c_tag.hpp>
+    #include <boost/ratio/mpl/numeric_cast.hpp>
+    #include <boost/ratio/mpl/arithmetic.hpp>
+    #include <boost/ratio/mpl/comparison.hpp>
+
+
+[endsect] [/section:rational_constant_hpp Header `<boost/ratio/rational_constant.hpp>`]
+
+[/===========================================]
+[section:mpl_rational_c_tag_hpp Header `<boost/ratio/mpl/rational_c_tag.hpp>`]
+[/===========================================]
+
+    namespace boost {
+    namespace mpl {
+
+        struct rational_c_tag : int_<10> {};
+
+    }
+    }
+
+[endsect] [/section:mpl_rational_c_tag_hpp Header `<boost/ratio/mpl/rational_c_tag.hpp>`]
+
+[/===========================================]
+[section:mpl_numeric_cast_hpp Header `<boost/ratio/mpl/numeric_cast.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+
+        template<> struct numeric_cast< integral_c_tag,rational_c_tag >;
+        
+    }
+    }
+
+[section:numeric_cast `mpl::numeric_cast<>` Specialization]
+
+A Integral Constant is seen as a ratio with numerator the Integral Constant value and denominator 1.
+
+        template<> struct numeric_cast< integral_c_tag,rational_c_tag >
+        {
+            template< typename N > struct apply
+                : ratio< N::value, 1 >
+            {
+            };
+        };
+
+[endsect] [/section:numeric_cast `mpl::numeric_cast<>` Specialization]
+
+[endsect] [/section:mpl_numeric_cast_hpp Header `<boost/ratio/mpl/numeric_cast.hpp>`]
+
+[/===========================================]
+[section:mpl_arithmetic_hpp Header `<boost/ratio/mpl/arithmetic.hpp>`]
+[/===========================================]
+
+This header includes all the rational constant arithmetic MPL specializations.
+
+    #include <boost/ratio/mpl/plus.hpp>
+    #include <boost/ratio/mpl/minus.hpp>
+    #include <boost/ratio/mpl/times.hpp>
+    #include <boost/ratio/mpl/divides.hpp>
+    #include <boost/ratio/mpl/negate.hpp>
+    #include <boost/ratio/mpl/abs.hpp>
+    #include <boost/ratio/mpl/sign.hpp>
+    #include <boost/ratio/mpl/gcd.hpp>
+    #include <boost/ratio/mpl/lcm.hpp>
+
+
+[endsect] [/section:mpl_arithmetic_hpp Header `<boost/ratio/mpl/arithmetic.hpp>`]
+
+[/===========================================]
+[section:mpl_plus_hpp Header `<boost/ratio/mpl/plus.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+        template<>
+        struct plus_impl< rational_c_tag,rational_c_tag >;    
+    }
+    }
+
+[section:plus_impl `mpl::plus_impl<>` Specialization]
+
+The specialization relays on the __ratio_add template class.
+
+        template<>
+        struct plus_impl< rational_c_tag,rational_c_tag >
+        {
+            template< typename R1, typename R2 > struct apply
+                : __ratio_add<R1, R2>
+            {
+            };
+        };    
+
+[endsect] [/section:plus_impl `mpl::plus_impl<>` Specialization]
+[endsect] [/section:mpl_plus_hpp Header `<boost/ratio/mpl/plus.hpp>`]
+
+[/===========================================]
+[section:mpl_minus_hpp Header `<boost/ratio/mpl/minus.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+        template<>
+        struct minus_impl< rational_c_tag,rational_c_tag >;    
+    }
+    }
+
+[section:minus_impl `mpl::minus_impl<>` Specialization]
+
+The specialization relays on the __ratio_subtract template class.
+
+        template<>
+        struct plus_impl< rational_c_tag,rational_c_tag >
+        {
+            template< typename R1, typename R2 > struct apply
+                : __ratio_subtract<R1, R2>
+            {
+            };
+        };    
+
+[endsect] [/section:minus_impl `mpl::minus_impl<>` Specialization]
+[endsect] [/section:mpl_minus_hpp Header `<boost/ratio/mpl/minus.hpp>`]
+
+[/===========================================]
+[section:mpl_times_hpp Header `<boost/ratio/mpl/times.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+        template<>
+        struct times_impl< rational_c_tag,rational_c_tag >;    
+    }
+    }
+
+[section:times_impl `mpl::times_impl<>` Specialization]
+
+The specialization relays on the __ratio_multiply template class.
+
+        template<>
+        struct times_impl< rational_c_tag,rational_c_tag >
+        {
+            template< typename R1, typename R2 > struct apply
+                : __ratio_multiply<R1, R2>
+            {
+            };
+        };    
+
+[endsect] [/section:times_impl `mpl::times_impl<>` Specialization]
+[endsect] [/section:mpl_times_hpp Header `<boost/ratio/mpl/times.hpp>`]
+
+[/===========================================]
+[section:mpl_divides_hpp Header `<boost/ratio/mpl/divides.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+        template<>
+        struct divides_impl< rational_c_tag,rational_c_tag >;    
+    }
+    }
+
+[section:divides_impl `mpl::divides_impl<>` Specialization]
+
+The specialization relays on the __ratio_divide template class.
+
+        template<>
+        struct divides_impl< rational_c_tag,rational_c_tag >
+        {
+            template< typename R1, typename R2 > struct apply
+                : __ratio_divide<R1, R2>
+            {
+            };
+        };    
+
+[endsect] [/section:divides_impl `mpl::divides_impl<>` Specialization]
+[endsect] [/section:mpl_divides_hpp Header `<boost/ratio/mpl/divides.hpp>`]
+
+[/===========================================]
+[section:mpl_gcd_hpp Header `<boost/ratio/mpl/gcd.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+        template<>
+        struct gcd_impl< rational_c_tag,rational_c_tag >;    
+    }
+    }
+
+[section:gcd_impl `mpl::gcd_impl<>` Specialization]
+
+The specialization relays on the __ratio_gcd template class.
+
+        template<>
+        struct gcd_impl< rational_c_tag,rational_c_tag >
+        {
+            template< typename R1, typename R2 > struct apply
+                : __ratio_gcd<R1, R2>
+            {
+            };
+        };    
+
+[endsect] [/section:gcd_impl `mpl::gcd_impl<>` Specialization]
+[endsect] [/section:mpl_gcd_hpp Header `<boost/ratio/mpl/gcd.hpp>`]
+
+[/===========================================]
+[section:mpl_lcm_hpp Header `<boost/ratio/mpl/lcm.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+        template<>
+        struct lcm_impl< rational_c_tag,rational_c_tag >;    
+    }
+    }
+
+[section:lcm_impl `mpl::lcm_impl<>` Specialization]
+
+The specialization relays on the __ratio_lcm template class.
+
+        template<>
+        struct lcm_impl< rational_c_tag,rational_c_tag >
+        {
+            template< typename R1, typename R2 > struct apply
+                : __ratio_lcm<R1, R2>
+            {
+            };
+        };    
+
+[endsect] [/section:lcm_impl `mpl::lcm_impl<>` Specialization]
+[endsect] [/section:mpl_lcm_hpp Header `<boost/ratio/mpl/lcm.hpp>`]
+
+[/===========================================]
+[section:mpl_negate_hpp Header `<boost/ratio/mpl/negate.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+        template<>
+        struct negate_impl< rational_c_tag >;    
+    }
+    }
+
+[section:negate_impl `mpl::negate_impl<>` Specialization]
+
+The specialization relays on the __ratio_negate template class.
+
+        template<>
+        struct negate_impl< rational_c_tag >
+        {
+            template< typename R > struct apply
+                : __ratio_negate<R>
+            {
+            };
+        };    
+
+[endsect] [/section:negate_impl `mpl::negate_impl<>` Specialization]
+[endsect] [/section:mpl_negate_hpp Header `<boost/ratio/mpl/negate.hpp>`]
+
+[/===========================================]
+[section:mpl_abs_hpp Header `<boost/ratio/mpl/abs.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+        template<>
+        struct abs_impl< rational_c_tag >;    
+    }
+    }
+
+[section:abs_impl `mpl::abs_impl<>` Specialization]
+
+The specialization relays on the __ratio_abs template class.
+
+        template<>
+        struct abs_impl< rational_c_tag >
+        {
+            template< typename R > struct apply
+                : __ratio_abs<R>
+            {
+            };
+        };    
+
+[endsect] [/section:abs_impl `mpl::abs_impl<>` Specialization]
+[endsect] [/section:mpl_abs_hpp Header `<boost/ratio/mpl/abs.hpp>`]
+
+[/===========================================]
+[section:mpl_sign_hpp Header `<boost/ratio/mpl/sign.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+        template<>
+        struct sign_impl< rational_c_tag >;    
+    }
+    }
+
+[section:sign_impl `mpl::sign_impl<>` Specialization]
+
+The specialization relays on the __ratio_sign template class.
+
+        template<>
+        struct sign_impl< rational_c_tag >
+        {
+            template< typename R > struct apply
+                : __ratio_sign<R>
+            {
+            };
+        };    
+
+[endsect] [/section:sign_impl `mpl::sign_impl<>` Specialization]
+[endsect] [/section:mpl_sign_hpp Header `<boost/ratio/mpl/sign.hpp>`]
+
+[/===========================================]
+[section:mpl_comparison_hpp Header `<boost/ratio/mpl/comparison.hpp>`]
+[/===========================================]
+
+This header includes all the rational constant comparison MPL specializations.
+
+    #include <boost/ratio/mpl/equal_to.hpp>
+    #include <boost/ratio/mpl/not_equal_to.hpp>
+    #include <boost/ratio/mpl/less.hpp>
+    #include <boost/ratio/mpl/less_equal.hpp>
+    #include <boost/ratio/mpl/greater.hpp>
+    #include <boost/ratio/mpl/greater_equal.hpp>
+
+
+[endsect] [/section:mpl_comparison_hpp Header `<boost/ratio/mpl/mpl_comparison_hpp.hpp>`]
+
+[/===========================================]
+[section:mpl_equal_to_hpp Header `<boost/ratio/mpl/equal_to.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+        template<>
+        struct equal_to_impl< rational_c_tag,rational_c_tag >;    
+    }
+    }
+    
+[section:equal_to `mpl::equal_to_impl<>` Specialization]
+
+The specialization relays on the __ratio_equal template class.
+
+        template<>
+        struct equal_to_impl< rational_c_tag,rational_c_tag >
+        {
+            template< typename R1, typename R2 > struct apply
+                : __ratio_equal<R1, R2>
+            {
+            };
+        };    
+
+[endsect] [/section:equal_to `mpl::equal_to_impl<>` Specialization]   
+[endsect] [/section:mpl_equal_to_hpp Header `<boost/ratio/mpl/equal_to.hpp>`]
+
+[/===========================================]
+[section:mpl_not_equal_to_hpp Header `<boost/ratio/mpl/not_equal_to.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+        template<>
+        struct not_equal_to_impl< rational_c_tag,rational_c_tag >;    
+    }
+    }
+    
+[section:not_equal_to `mpl::not_equal_to_impl<>` Specialization]
+
+The specialization relays on the __ratio_not_equal template class.
+
+        template<>
+        struct not_equal_to_impl< rational_c_tag,rational_c_tag >
+        {
+            template< typename R1, typename R2 > struct apply
+                : __ratio_not_equal<R1, R2>
+            {
+            };
+        };    
+
+[endsect] [/section:not_equal_to `mpl::not_equal_to_impl<>` Specialization]   
+[endsect] [/section:mpl_not_equal_to_hpp Header `<boost/ratio/mpl/not_equal_to.hpp>`]
+
+[/===========================================]
+[section:mpl_less_hpp Header `<boost/ratio/mpl/less.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+        template<>
+        struct less_impl< rational_c_tag,rational_c_tag >;    
+    }
+    }
+    
+[section:less `mpl::less_impl<>` Specialization]
+
+The specialization relays on the __ratio_less template class.
+
+        template<>
+        struct less_impl< rational_c_tag,rational_c_tag >
+        {
+            template< typename R1, typename R2 > struct apply
+                : ratio_less<R1, R2>
+            {
+            };
+        };    
+
+[endsect] [/section:less `mpl::less_impl<>` Specialization]   
+[endsect] [/section:mpl_less_hpp Header `<boost/ratio/mpl/less.hpp>`]
+
+[/===========================================]
+[section:mpl_less_equal_hpp Header `<boost/ratio/mpl/less_equal.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+        template<>
+        struct less_equal_impl< rational_c_tag,rational_c_tag >;    
+    }
+    }
+    
+[section:less_equal `mpl::less_equal_impl<>` Specialization]
+
+The specialization relays on the __ratio_less_equal template class.
+
+        template<>
+        struct less_equal_impl< rational_c_tag,rational_c_tag >
+        {
+            template< typename R1, typename R2 > struct apply
+                : ratio_less_equal<R1, R2>
+            {
+            };
+        };    
+
+[endsect] [/section:less_equal `mpl::less_equal_impl<>` Specialization]   
+[endsect] [/section:mpl_less_equal_hpp Header `<boost/ratio/mpl/less_equal.hpp>`]
+
+[/===========================================]
+[section:mpl_greater_hpp Header `<boost/ratio/mpl/greater.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+        template<>
+        struct greater_impl< rational_c_tag,rational_c_tag >;    
+    }
+    }
+    
+[section:greater `mpl::greater_impl<>` Specialization]
+
+The specialization relays on the __ratio_greater template class.
+
+        template<>
+        struct greater_impl< rational_c_tag,rational_c_tag >
+        {
+            template< typename R1, typename R2 > struct apply
+                : ratio_greater<R1, R2>
+            {
+            };
+        };    
+
+[endsect] [/section:greater `mpl::greater_impl<>` Specialization]   
+[endsect] [/section:mpl_greater_hpp Header `<boost/ratio/mpl/greater.hpp>`]
+
+
+[/===========================================]
+[section:mpl_greater_equal_hpp Header `<boost/ratio/mpl/greater_equal.hpp>`]
+[/===========================================]
+
+    namespace boost { 
+    namespace mpl {
+        template<>
+        struct greater_equal_impl< rational_c_tag,rational_c_tag >;    
+    }
+    }
+    
+[section:greater_equal `mpl::greater_equal_impl<>` Specialization]
+
+The specialization relays on the __ratio_greater_equal template class.
+
+        template<>
+        struct greater_equal_impl< rational_c_tag,rational_c_tag >
+        {
+            template< typename R1, typename R2 > struct apply
+                : ratio_greater_equal<R1, R2>
+            {
+            };
+        };    
+
+[endsect] [/section:greater_equal `mpl::greater_equal_impl<>` Specialization]   
+[endsect] [/section:mpl_greater_equal_hpp Header `<boost/ratio/mpl/greater_equal.hpp>`]
+
+
+[endsect]
+[endsect]
+
+
+[/=================]
+[section Appendices]
+[/=================]
+[/==================================]
+[section:history Appendix A: History]
+[/==================================]
+
+[section [*Version 2.0.0, November 1, 2012 - 1.52] ]
+
+[*Features:]
+
+* Replace the short_name and long_name functions by symbol and prefix functions respectively.
+
+[*Deprecated:]
+
+The ratio_string<>::short_name and ratio_string<>::long_name are deprecated. Use ratio_string<>::symbol and ratio_string<>::prefix respectively. These functions be removed in 1.55.
+
+[endsect]
+
+[section [*Version 1.0.3, August 1, 2012 - 1.51] ]
+
+[*Fixes:]
+
+* [@http://svn.boost.org/trac/boost/ticket/7075 #7075] Workaround for error: the type of partial specialization template parameter constant "n1" depends on another template parameter.
+
+[endsect]
+
+[section [*Version 1.0.2, April 1, 2012 - 1.50] ]
+
+[*Fixes:]
+
+* [@http://svn.boost.org/trac/boost/ticket/6498 #6498] boost::ratio won't compile with default settings.
+
+[endsect]
+
+[section [*Version 1.0.1, Jan 8, 2011 ] ]
+
+[*Features:]
+
+* Added MPL Rational Constant and the associated numeric metafunction specializations.
+
+[endsect]
+
+[section [*Version 1.0.0, Jan 2, 2011] ]
+
+* Moved ratio to trunk.
+* Documentation revision.
+
+[endsect]
+
+[section [*Version 0.2.1, September 27, 2010] ]
+[*Fixes:]
+
+* Removal of LLVM adapted files due to incompatible License issue.
+
+[endsect]
+
+[section [*Version 0.2.0, September 22, 2010] ]
+[*Features:]
+
+* Added ratio_string traits.
+
+[*Fixes:]
+
+* ratio_less overflow avoided following the algorithm from libc++.
+
+[*Test:]
+
+* A more complete test has been included adapted from the test of from libc++/ratio.
+
+[endsect]
+
+[section [*Version 0.1.0, September 10, 2010] ]
+[*Features:]
+
+* Ratio has been extracted from Boost.Chrono.
+
+[endsect]
+
+[endsect] [/section:history Appendix A: History]
+
+[/======================================]
+[section:rationale Appendix B: Rationale]
+
+[heading Why ratio needs CopyConstruction and Assignment from ratios having the same normalized form]
+
+Current [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2009/n3000.pdf [*N3000]] doesn't allows to copy-construct or assign ratio instances of ratio classes having the same normalized form.
+
+This simple example
+
+    __ratio<1,3> r1;
+    __ratio<3,9> r2;
+    r1 = r2; // (1)
+
+fails to compile in (1). Other example
+
+    __ratio<1,3> r1;
+    __ratio_subtract<__ratio<2,3>,__ratio<1,3> > r2=r1;  // (2)
+
+The type of `__ratio_subtract<__ratio<2,3>,__ratio<1,3> >` could be `__ratio<3,9>` so the compilation could fail in (2). It could also be __ratio<1,3> and the compilation succeeds.
+
+[heading Why ratio needs the nested normalizer typedef type]
+
+The current resolution of issue LWG 1281 acknowledges the need for a nested type typedef, so Boost.Ratio is tracking the likely final version of std::ratio.
+
+[endsect] [/section:rationale Appendix B: Rationale]
+
+
+[/======================================================]
+[section:implementation Appendix C: Implementation Notes]
+
+[heading How does Boost.Ratio try to avoid compile-time rational arithmetic overflow?]
+
+When the result is representable, but a simple application of arithmetic rules would result in overflow, e.g. `ratio_multiply<ratio<INTMAX_MAX,2>,ratio<2,INTMAX_MAX>>` can be reduced to `ratio<1,1>`, but the direct result of `ratio<INTMAX_MAX*2,INTMAX_MAX*2>` would result in overflow. 
+
+Boost.Ratio implements some simplifications in order to reduce the possibility of overflow. The general ideas are:
+
+* The `num` and `den` `ratio<>` fields are normalized.
+* Use the gcd of some of the possible products that can overflow, and simplify before doing the product.
+* Use some equivalences relations that avoid addition or subtraction that can overflow or underflow.
+
+The following subsections cover each case in more detail.
+
+[*ratio_add]
+
+In 
+
+    (n1/d1)+(n2/d2)=(n1*d2+n2*d1)/(d1*d2)
+
+either n1*d2+n2*d1 or d1*d2 can overflow. 
+
+      ( (n1 * d2)  + (n2 * d1) )
+      --------------------------
+               (d1 * d2)   
+
+Dividing by gcd(d1,d2) on both num and den
+
+      ( (n1 * (d2/gcd(d1,d2)))  + (n2 * (d1/gcd(d1,d2))) )
+      ----------------------------------------------------
+                     ((d1 * d2) / gcd(d1,d2))  
+
+
+Multipliying and diving by gcd(n1,n2) in numerator
+
+      ( ((gcd(n1,n2)*(n1/gcd(n1,n2))) * (d2/gcd(d1,d2)))  + 
+        ((gcd(n1,n2)*(n2/gcd(n1,n2))) * (d1/gcd(d1,d2))) 
+      )
+      --------------------------------------------------
+               ( (d1 * d2) / gcd(d1,d2) )
+
+Factorizing gcd(n1,n2)
+
+      ( gcd(n1,n2) * 
+        ( ((n1/gcd(n1,n2)) * (d2/gcd(d1,d2))) + ((n2/gcd(n1,n2)) * (d1/gcd(d1,d2))) )
+      )
+      -------------------------------------------------------------------------------
+                                  ( (d1 * d2) / gcd(d1,d2) )
+
+Regrouping
+
+      ( gcd(n1,n2) * 
+        ( ((n1/gcd(n1,n2)) * (d2/gcd(d1,d2))) + ((n2/gcd(n1,n2)) * (d1/gcd(d1,d2))) )
+      )
+      -------------------------------------------------------------------------------
+                                ( (d1 / gcd(d1,d2)) * d2 )
+
+Dividing by (d1 / gcd(d1,d2))
+
+      ( ( gcd(n1,n2) / (d1 / gcd(d1,d2)) ) * 
+        ( ((n1/gcd(n1,n2)) * (d2/gcd(d1,d2))) + ((n2/gcd(n1,n2)) * (d1/gcd(d1,d2))) )
+      )
+      -------------------------------------------------------------------------------
+                                             d2
+
+
+Dividing by d2
+
+    ( gcd(n1,n2) / (d1 / gcd(d1,d2)) ) * 
+    ( ((n1/gcd(n1,n2)) * (d2/gcd(d1,d2))) + ((n2/gcd(n1,n2)) * (d1/gcd(d1,d2))) / d2 )
+
+This expression correspond to the multiply of two ratios that have less risk of overflow as the initial numerators and denominators appear now in most of the cases divided by a gcd.
+
+
+For ratio_subtract the reasoning is the same.
+
+[*ratio_multiply]
+
+In 
+
+    (n1/d1)*(n2/d2)=((n1*n2)/(d1*d2))
+
+either n1*n2 or d1*d2 can overflow. 
+
+Dividing by gcc(n1,d2) numerator and denominator
+
+        (((n1/gcc(n1,d2))*n2)
+        ---------------------
+        (d1*(d2/gcc(n1,d2))))
+
+Dividing by gcc(n2,d1)
+
+        ((n1/gcc(n1,d2))*(n2/gcc(n2,d1)))
+        ---------------------------------
+        ((d1/gcc(n2,d1))*(d2/gcc(n1,d2)))
+
+And now all the initial numerator and denominators have been reduced, avoiding the overflow.
+
+For ratio_divide the reasoning is similar.
+
+[*ratio_less]
+
+In order to evaluate 
+
+    (n1/d1)<(n2/d2)
+    
+without moving to floating-point numbers, two techniques are used:
+
+* First compare the sign of the numerators.
+
+If sign(n1) < sign(n2) the result is true.
+
+If sign(n1) == sign(n2) the result depends on the following after making the numerators positive
+
+* When the sign is equal the technique used is to work with integer division and modulo when the signs are equal.
+
+Let call Qi the integer division of ni and di, and Mi the modulo of ni and di.
+
+    ni = Qi * di + Mi and Mi < di
+    
+Form
+
+    ((n1*d2)<(d1*n2))
+
+we get
+
+    (((Q1 * d1 + M1)*d2)<(d1*((Q2 * d2 + M2))))
+
+Developing
+
+    ((Q1 * d1 * d2)+ (M1*d2))<((d1 * Q2 * d2) + (d1*M2))
+    
+Dividing by d1*d2    
+
+    Q1 + (M1/d1) < Q2 + (M2/d2)
+
+If Q1=Q2 the result depends on
+
+    (M1/d1) < (M2/d2)
+
+If M1==0==M2 the result is false
+
+If M1=0 M2!=0 the result is true
+
+If M1!=0 M2==0 the result is false
+
+If M1!=0 M2!=0 the result depends on
+
+    (d2/M2) < (d1/M1)
+
+If Q1!=Q2, the result of
+
+    Q1 + (M1/d1) < Q2 + (M2/d2)
+
+depends only on Q1 and Q2 as Qi are integers and (Mi/di) <1 because Mi<di.
+
+if Q1>Q2, Q1==Q2+k, k>=1
+
+    Q2+k + (M1/d1) < Q2 + (M2/d2)
+    k + (M1/d1) < (M2/d2)
+    k < (M2/d2) - (M1/d1) 
+
+but the difference between two numbers between 0 and 1 can not be greater than 1, so the result is false.
+
+if Q2>Q1, Q2==Q1+k, k>=1
+
+    Q1 + (M1/d1) < Q1+k + (M2/d2)
+    (M1/d1) < k + (M2/d2)
+    (M1/d1) - (M2/d2) < k
+    
+which is always true, so the result is true.  
+
+The following table recapitulates this analisys
+
+[table
+    [[ratio<n1,d1>][ratio<n2,d2>] [Q1] [Q2] [M1] [M2] [Result]]
+    [[ratio<n1,d1>][ratio<n2,d2>] [Q1] [Q2] [!=0] [!=0] [Q1 < Q2]]
+    [[ratio<n1,d1>][ratio<n2,d2>] [Q] [Q] [0] [0] [false]]
+    [[ratio<n1,d1>][ratio<n2,d2>] [Q] [Q] [0] [!=0] [true]]
+    [[ratio<n1,d1>][ratio<n2,d2>] [Q] [Q] [!=0] [0] [false]]
+    [[ratio<n1,d1>][ratio<n2,d2>] [Q] [Q] [!=0] [!=0] [ratio_less<ratio<d2,M2>, ratio<d1/M1>>]]
+]
+
+[endsect] [/section:implementation Appendix C: Implementation Notes]
+
+[/======================================================]
+[section:faq Appendix D: FAQ]
+[/======================================================]
+
+[endsect] [/section:faq Appendix D: FAQ]
+
+
+[/====================================================]
+[section:acknowledgements Appendix E: Acknowledgements]
+[/====================================================]
+
+The library code was derived from Howard Hinnant's `time2_demo` prototype. Many thanks to Howard for making his code available under the Boost license. The original code was modified by Beman Dawes to conform to Boost conventions.
+
+`time2_demo` contained this comment:
+
+Much thanks to Andrei Alexandrescu, Walter Brown, Peter Dimov, Jeff Garland, Terry Golubiewski, Daniel Krugler, Anthony Williams.
+
+Howard Hinnant, who is the real author of the library, has provided valuable feedback and suggestions during the development of the library. In particular, The ratio_io.hpp source has been adapted from the experimental header `<ratio_io>` from Howard Hinnant.
+
+The acceptance review of Boost.Ratio took place between October 2nd and 11th 2010. Many thanks to Anthony Williams, the review manager, and to all the reviewers: Bruno Santos, Joel Falcou, Robert Stewart, Roland Bock, Tom Tan and Paul A. Bristol. 
+
+Thanks to Andrew Chinoff and Paul A. Bristol for his help polishing the documentation.
+
+[endsect] [/section:acknowledgements Appendix E: Acknowledgements]
+
+[/====================================================]
+[section:tests  Appendix F: Tests]
+[/====================================================]
+
+In order to test you need to run
+
+    bjam libs/ratio/test
+
+You can also run a specific suite of test by doing
+
+    cd libs/chrono/test
+    bjam ratio
+
+
+[section `ratio`]
+[table
+    [[Name]         [kind]          [Description]                                                                                   [Result] [Ticket]]
+    [[typedefs.pass] [run]          [check the num/den are correct for the predefined typedefs]                                     [Pass]   [#]]
+    [[ratio.pass]   [run]           [check the num/den are correctly simplified]                                                    [Pass]   [#]]
+    [[ratio1.fail]  [compile-fails] [The template argument D shall not be zero]                                                     [Pass]   [#]]
+    [[ratio2.fail]  [compile-fails] [the absolute values of the template arguments N and D shall be representable by type intmax_t] [Pass]   [#]]
+    [[ratio3.fail]  [compile-fails] [the absolute values of the template arguments N and D shall be representable by type intmax_t] [Pass]   [#]]
+]
+[endsect]
+
+[section `comparison`]
+[table
+    [[Name]                     [kind]  [Description]                                   [Result] [Ticket]]
+    [[ratio_equal.pass]         [run]   [check ratio_equal metafunction class]          [Pass]   [#]]
+    [[ratio_not_equal.pass]     [run]   [check ratio_not_equal metafunction  class]     [Pass]   [#]]
+    [[ratio_less.pass]          [run]   [check ratio_less metafunction class]           [Pass]   [#]]
+    [[ratio_less_equal.pass]    [run]   [check ratio_less_equal metafunction class]     [Pass]   [#]]
+    [[ratio_greater.pass]       [run]   [check ratio_greater metafunction class]        [Pass]   [#]]
+    [[ratio_greater_equal.pass] [run]   [check ratio_greater_equal metafunction class]  [Pass]   [#]]
+]
+[endsect]
+
+[section `arithmetic`]
+[table
+    [[Name]                 [kind]          [Description]                                           [Result] [Ticket]]
+    [[ratio_add.pass]       [run]           [check ratio_add metafunction class]                    [Pass]   [#]]
+    [[ratio_subtract.pass] [run]           [check ratio_subtract metafunction  class]             [Pass]   [#]]
+    [[ratio_multiply.pass]  [run]           [check ratio_multiply metafunction class]               [Pass]   [#]]
+    [[ratio_divide.pass]    [run]           [check ratio_divide metafunction class]                 [Pass]   [#]]
+    [[ratio_add.fail]       [compile-fails] [check ratio_add overflow metafunction class]           [Pass]   [#]]
+    [[ratio_subtract.fail] [compile-fails] [check ratio_subtract underflow metafunction  class]   [Pass]   [#]]
+    [[ratio_multiply.fail]  [compile-fails] [check ratio_multiply overflow metafunction class]      [Pass]   [#]]
+    [[ratio_divide.fail]    [compile-fails] [check ratio_divide overflow metafunction class]        [Pass]   [#]]
+]
+[endsect]
+
+[endsect] [/section:tests  Appendix F: Tests]
+
+[/=====================================]
+[section:tickets  Appendix G: Tickets]
+[/=====================================]
+
+[table
+    [[Ticket]             [Description]          [Resolution] [State]]
+    [[1]    [result of metafunctions ratio_multiply and ratio_divide were not normalized ratios.] [Use of the nested ratio typedef type on ratio arithmetic operations.]                  [Closed]]
+    [[2]    [INTMAX_C is not always defined.] [Replace INTMAX_C by BOOST_INTMAX_C until boost/cstdint.hpp ensures INTMAX_C is always defined.]                  [Closed]]
+    
+    [[3]    [MSVC reports a warning instead of an error when there is an integral constant overflow.] [manage with MSVC reporting a warning instead of an error when there is an integral constant overflow.]                  [Closed]]
+    [[4]    [ration_less overflow on cases where it can be avoided.] [Change the algorithm as implemented in libc++.]                  [Closed]]
+    [/[#]    [XXXX] [XXXX]                  [Closed]]
+]
+
+[endsect] [/section:tickets  Appendix G: Tickets]
+
+
+[/=====================================]
+[section:todo  Appendix H: Future Plans]
+[/=====================================]
+
+[heading For later releases]
+
+* Use template aliases on compiler providing it.
+* Implement [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2010/n3135.html#3135 multiple arguments] ratio arithmetic.
+
+[endsect] [/section:todo  Appendix H: Future Plans]
+
+
+[endsect] [/section Appendices]
+

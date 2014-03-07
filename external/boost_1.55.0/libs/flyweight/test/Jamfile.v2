@@ -1,0 +1,34 @@
+# Boost.Flyweight tests Jamfile
+#
+# Copyright 2006-2008 Joaquín M López Muñoz.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+#
+# See http://www.boost.org/libs/flyweight for library home page.
+
+project
+    : requirements
+      <os>LINUX:<threading>multi
+    ;
+
+test-suite "flyweight" :
+    [ run test_assoc_cont_factory.cpp test_assoc_cont_fact_main.cpp ]
+    [ run test_basic.cpp              test_basic_main.cpp           ]
+    [ run test_custom_factory.cpp     test_custom_factory_main.cpp  ]
+    [ run test_init.cpp               test_init_main.cpp            ]
+    [ run test_intermod_holder.cpp    test_intermod_holder_main.cpp
+          intermod_holder_dll                                       
+        : # command line
+        : # input files
+        : # requirements
+          <threading>multi                                          ]
+    [ run test_multictor.cpp          test_multictor_main.cpp       ]
+    [ run test_no_locking.cpp         test_no_locking_main.cpp      ]
+    [ run test_no_tracking.cpp        test_no_tracking_main.cpp     ]
+    [ run test_set_factory.cpp        test_set_factory_main.cpp     ]
+    ;
+
+lib intermod_holder_dll : intermod_holder_dll.cpp : 
+    <link>shared
+    <define>BOOST_FLYWEIGHT_TEST_INTERMOD_HOLDER_DLL_SOURCE=1 ;

@@ -1,0 +1,383 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>How to use Boost.Intrusive</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../intrusive.html" title="Chapter&#160;15.&#160;Boost.Intrusive">
+<link rel="prev" href="intrusive_vs_nontrusive.html" title="Intrusive and non-intrusive containers">
+<link rel="next" href="usage_when.html" title="When to use?">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="intrusive_vs_nontrusive.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="usage_when.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="intrusive.usage"></a><a class="link" href="usage.html" title="How to use Boost.Intrusive">How to use Boost.Intrusive</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="usage.html#intrusive.usage.usage_base_hook">Using base hooks</a></span></dt>
+<dt><span class="section"><a href="usage.html#intrusive.usage.usage_member_hook">Using member hooks</a></span></dt>
+<dt><span class="section"><a href="usage.html#intrusive.usage.usage_both_hooks">Using both hooks</a></span></dt>
+<dt><span class="section"><a href="usage.html#intrusive.usage.usage_lifetime">Object lifetime</a></span></dt>
+</dl></div>
+<p>
+      If you plan to insert a class in an intrusive container, you have to make some
+      decisions influencing the class definition itself. Each class that will be
+      used in an intrusive container needs some appropriate data members storing
+      the information needed by the container. We will take a simple intrusive container,
+      the intrusive list (<code class="computeroutput"><a class="link" href="../boost/intrusive/list.html" title="Class template list">boost::intrusive::list</a></code>),
+      for the following examples, but all <span class="bold"><strong>Boost.Intrusive</strong></span>
+      containers are very similar. To compile the example using <code class="computeroutput"><a class="link" href="../boost/intrusive/list.html" title="Class template list">boost::intrusive::list</a></code>,
+      just include:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+      Every class to be inserted in an intrusive container, needs to contain a hook
+      that will offer the necessary data and resources to be insertable in the container.
+      With <span class="bold"><strong>Boost.Intrusive</strong></span> you just choose the hook
+      to be a public base class or a public member of the class to be inserted.
+      <span class="bold"><strong>Boost.Intrusive</strong></span> also offers more flexible
+      hooks for advanced users, as explained in the chapter <a class="link" href="function_hooks.html" title="Using function hooks">Using
+      function hooks</a>, but usually base or member hooks are good enough for
+      most users.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.usage.usage_base_hook"></a><a class="link" href="usage.html#intrusive.usage.usage_base_hook" title="Using base hooks">Using base hooks</a>
+</h3></div></div></div>
+<p>
+        For <code class="computeroutput"><a class="link" href="../boost/intrusive/list.html" title="Class template list">list</a></code>, you can publicly
+        derive from <code class="computeroutput"><a class="link" href="../boost/intrusive/list_base_hook.html" title="Class template list_base_hook">list_base_hook</a></code>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="special">...</span><span class="identifier">Options</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">list_base_hook</span><span class="special">;</span>
+</pre>
+<p>
+        The class can take several options. <span class="bold"><strong>Boost.Intrusive</strong></span>
+        classes receive arguments in the form <code class="computeroutput"><span class="identifier">option_name</span><span class="special">&lt;</span><span class="identifier">option_value</span><span class="special">&gt;</span></code>. You can specify the following options:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">tag</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Tag</span><span class="special">&gt;</span></code></strong></span>:
+            this argument serves as a tag, so you can derive from more than one
+            <code class="computeroutput"><a class="link" href="../boost/intrusive/list_base_hook.html" title="Class template list_base_hook">list_base_hook</a></code>
+            and hence put an object in multiple intrusive lists at the same time.
+            An incomplete type can serve as a tag. If you specify two base hooks,
+            you <span class="bold"><strong>must</strong></span> specify a different tag for
+            each one. Example: <code class="computeroutput"><span class="identifier">list_base_hook</span><span class="special">&lt;</span> <span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">tag1</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>.
+            If no tag is specified a default one will be used (more on default tags
+            later).
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">link_mode</span><span class="special">&lt;</span><span class="identifier">link_mode_type</span>
+            <span class="identifier">LinkMode</span><span class="special">&gt;</span></code></strong></span>:
+            The second template argument controls the linking policy. <span class="bold"><strong>Boost.Intrusive</strong></span>
+            currently supports 3 modes: <code class="computeroutput"><span class="identifier">normal_link</span></code>,
+            <code class="computeroutput"><span class="identifier">safe_link</span></code> and <code class="computeroutput"><span class="identifier">auto_unlink</span></code>. By default, <code class="computeroutput"><span class="identifier">safe_link</span></code> mode is used. More about
+            these in sections <a class="link" href="safe_hook.html" title="Safe hooks">Safe hooks</a>
+            and <a class="link" href="auto_unlink_hooks.html" title="Auto-unlink hooks">Auto-unlink hooks</a>.
+            Example: <code class="computeroutput"><span class="identifier">list_base_hook</span><span class="special">&lt;</span> <span class="identifier">link_mode</span><span class="special">&lt;</span><span class="identifier">auto_unlink</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">void_pointer</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">VoidPointer</span><span class="special">&gt;</span></code></strong></span>:
+            this option is the pointer type to be used internally in the hook. The
+            default value is <code class="computeroutput"><span class="keyword">void</span> <span class="special">*</span></code>,
+            which means that raw pointers will be used in the hook. More about this
+            in the section titled <a class="link" href="using_smart_pointers.html" title="Using smart pointers with Boost.Intrusive containers">Using
+            smart pointers with Boost.Intrusive containers</a>. Example: <code class="computeroutput"><span class="identifier">list_base_hook</span><span class="special">&lt;</span>
+            <span class="identifier">void_pointer</span><span class="special">&lt;</span>
+            <span class="identifier">my_smart_ptr</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>
+          </li>
+</ul></div>
+<p>
+        For the following examples, let's forget the options and use the default
+        values:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="keyword">class</span> <span class="identifier">Foo</span>
+   <span class="comment">//Base hook with default tag, raw pointers and safe_link mode</span>
+   <span class="special">:</span>  <span class="keyword">public</span> <span class="identifier">list_base_hook</span><span class="special">&lt;&gt;</span>
+<span class="special">{</span> <span class="comment">/**/</span> <span class="special">};</span>
+</pre>
+<p>
+        After that, we can define the intrusive list:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="special">...</span><span class="identifier">Options</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">list</span><span class="special">;</span>
+</pre>
+<p>
+        <code class="computeroutput"><span class="identifier">list</span></code> receives the type to
+        be inserted in the container (<code class="computeroutput"><span class="identifier">T</span></code>)
+        as the first parameter and optionally, the user can specify options. We have
+        3 option types:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">base_hook</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Hook</span><span class="special">&gt;</span></code></strong></span>
+            / <span class="bold"><strong><code class="computeroutput"><span class="identifier">member_hook</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Hook</span><span class="special">,</span> <span class="identifier">Hook</span> <span class="identifier">T</span><span class="special">::*</span> <span class="identifier">PtrToMember</span><span class="special">&gt;</span></code></strong></span>
+            / <span class="bold"><strong><code class="computeroutput"><span class="identifier">value_traits</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ValueTraits</span><span class="special">&gt;</span></code></strong></span>:
+            All these options specify the relationship between the type <code class="computeroutput"><span class="identifier">T</span></code> to be inserted in the list and the
+            hook (since we can have several hooks in the same <code class="computeroutput"><span class="identifier">T</span></code>
+            type). <code class="computeroutput"><span class="identifier">member_hook</span></code> will
+            be explained a bit later and <code class="computeroutput"><span class="identifier">value_traits</span></code>
+            will be explained in the <a class="link" href="value_traits.html" title="Containers with custom ValueTraits">Containers
+            with custom ValueTraits</a> section. <span class="bold"><strong>If no option
+            is specified, the container will be configured to use the base hook with
+            the default tag</strong></span>. Some options configured for the hook (the
+            type of the pointers, link mode, etc.) will be propagated to the container.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">constant_time_size</span><span class="special">&lt;</span><span class="keyword">bool</span> <span class="identifier">Enabled</span><span class="special">&gt;</span></code></strong></span>:
+            Specifies if a constant time <code class="computeroutput"><span class="identifier">size</span><span class="special">()</span></code> function is demanded for the container.
+            This will instruct the intrusive container to store an additional member
+            to keep track of the current size of the container. By default, constant-time
+            size is activated.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">size_type</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">SizeType</span><span class="special">&gt;</span></code></strong></span>:
+            Specifies an unsigned type that can hold the size of the container. This
+            type will be the type returned by <code class="computeroutput"><span class="identifier">list</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span></code> and the type stored in the intrusive
+            container if <code class="computeroutput"><span class="identifier">constant_time_size</span><span class="special">&lt;</span><span class="keyword">true</span><span class="special">&gt;</span></code> is requested. The user normally will
+            not need to change this type, but some containers can have a <code class="computeroutput"><span class="identifier">size_type</span></code> that might be different from
+            <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span></code> (for example, STL-like containers
+            use the <code class="computeroutput"><span class="identifier">size_type</span></code> defined
+            by their allocator). <span class="bold"><strong>Boost.Intrusive</strong></span>
+            can be used to implement such containers specifying the the type of the
+            size. By default the type is <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span></code>.
+          </li>
+</ul></div>
+<p>
+        Example of a constant-time size intrusive list that will store Foo objects,
+        using the base hook with the default tag:
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">Foo</span><span class="special">&gt;</span> <span class="identifier">FooList</span><span class="special">;</span>
+</pre>
+<p>
+        Example of an intrusive list with non constant-time size that will store
+        Foo objects:
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">Foo</span><span class="special">,</span> <span class="identifier">constant_time_size</span><span class="special">&lt;</span><span class="keyword">false</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">FooList</span><span class="special">;</span>
+</pre>
+<p>
+        Remember that the user must specify the base hook in the container declaration
+        if the base hook has no default tag, because that usually means that the
+        type has more than one base hook, and a container shall know which hook will
+        be using:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">my_tag1</span><span class="special">;</span>
+<span class="keyword">struct</span> <span class="identifier">my_tag2</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">list_base_hook</span><span class="special">&lt;</span> <span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">my_tag</span><span class="special">&gt;</span>  <span class="special">&gt;</span> <span class="identifier">BaseHook</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">list_base_hook</span><span class="special">&lt;</span> <span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">my_tag2</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">BaseHook2</span><span class="special">;</span>
+<span class="keyword">class</span> <span class="identifier">Foo</span>   <span class="special">:</span>  <span class="keyword">public</span> <span class="identifier">BaseHook</span><span class="special">,</span> <span class="keyword">public</span> <span class="identifier">BaseHook2</span>
+<span class="special">{</span> <span class="comment">/**/</span> <span class="special">};</span>
+
+<span class="keyword">typedef</span> <span class="identifier">list</span><span class="special">&lt;</span> <span class="identifier">Foo</span><span class="special">,</span> <span class="identifier">base_hook</span><span class="special">&lt;</span><span class="identifier">BaseHook</span><span class="special">&gt;</span>  <span class="special">&gt;</span> <span class="identifier">FooList</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">list</span><span class="special">&lt;</span> <span class="identifier">Foo</span><span class="special">,</span> <span class="identifier">base_hook</span><span class="special">&lt;</span><span class="identifier">BaseHook2</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">FooList2</span><span class="special">;</span>
+</pre>
+<p>
+        Once the list is defined, we can use it:
+      </p>
+<pre class="programlisting"><span class="comment">//An object to be inserted in the list</span>
+<span class="identifier">Foo</span> <span class="identifier">foo_object</span><span class="special">;</span>
+<span class="identifier">FooList</span> <span class="identifier">list</span><span class="special">;</span>
+
+<span class="identifier">list</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">object</span><span class="special">);</span>
+
+<span class="identifier">assert</span><span class="special">(&amp;</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">front</span><span class="special">()</span> <span class="special">==</span> <span class="special">&amp;</span><span class="identifier">foo_object</span><span class="special">);</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.usage.usage_member_hook"></a><a class="link" href="usage.html#intrusive.usage.usage_member_hook" title="Using member hooks">Using member hooks</a>
+</h3></div></div></div>
+<p>
+        Sometimes an 'is-a' relationship between list hooks and the list value types
+        is not desirable. In this case, using a member hook as a data member instead
+        of 'disturbing' the hierarchy might be the right way: you can add a public
+        data member <code class="computeroutput"><span class="identifier">list_member_hook</span><span class="special">&lt;...&gt;</span></code> to your class. This class can
+        be configured with the same options as <code class="computeroutput"><span class="identifier">list_base_hook</span></code>
+        except the option <code class="computeroutput"><span class="identifier">tag</span></code>:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="special">...</span><span class="identifier">Options</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">list_member_hook</span><span class="special">;</span>
+</pre>
+<p>
+        Example:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">class</span> <span class="identifier">Foo</span>
+<span class="special">{</span>
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="identifier">list_member_hook</span><span class="special">&lt;&gt;</span> <span class="identifier">hook_</span><span class="special">;</span>
+   <span class="comment">//...</span>
+<span class="special">};</span>
+</pre>
+<p>
+        When member hooks are used, the <code class="computeroutput"><span class="identifier">member_hook</span></code>
+        option is used to configure the list:
+      </p>
+<pre class="programlisting"><span class="comment">//This option will configure "list" to use the member hook</span>
+<span class="keyword">typedef</span> <span class="identifier">member_hook</span><span class="special">&lt;</span><span class="identifier">Foo</span><span class="special">,</span> <span class="identifier">list_member_hook</span><span class="special">&lt;&gt;,</span> <span class="special">&amp;</span><span class="identifier">Foo</span><span class="special">::</span><span class="identifier">hook_</span><span class="special">&gt;</span> <span class="identifier">MemberHookOption</span><span class="special">;</span>
+
+<span class="comment">//This list will use the member hook</span>
+<span class="keyword">typedef</span> <span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">Foo</span><span class="special">,</span> <span class="identifier">MemberHookOption</span><span class="special">&gt;</span> <span class="identifier">FooList</span><span class="special">;</span>
+</pre>
+<p>
+        Now we can use the container:
+      </p>
+<pre class="programlisting"><span class="comment">//An object to be inserted in the list</span>
+<span class="identifier">Foo</span> <span class="identifier">foo_object</span><span class="special">;</span>
+<span class="identifier">FooList</span> <span class="identifier">list</span><span class="special">;</span>
+
+<span class="identifier">list</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">object</span><span class="special">);</span>
+
+<span class="identifier">assert</span><span class="special">(&amp;</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">front</span><span class="special">()</span> <span class="special">==</span> <span class="special">&amp;</span><span class="identifier">foo_object</span><span class="special">);</span>
+</pre>
+</div>
+<p>
+      However, member hooks have some implementation limitations: If there is a virtual
+      inheritance relationship between the parent and the member hook, then the distance
+      between the parent and the hook is not a compile-time fixed value so obtaining
+      the address of the parent from the member hook is not possible without reverse
+      engineering compiler produced RTTI. Apart from this, the non-standard pointer
+      to member implementation for classes with complex inheritance relationships
+      in MSVC ABI compatible-compilers is not supported by member hooks since it
+      also depends on compiler-produced RTTI information.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.usage.usage_both_hooks"></a><a class="link" href="usage.html#intrusive.usage.usage_both_hooks" title="Using both hooks">Using both hooks</a>
+</h3></div></div></div>
+<p>
+        You can insert the same object in several intrusive containers at the same
+        time, using one hook per container. This is a full example using base and
+        member hooks:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="keyword">class</span> <span class="identifier">MyClass</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">list_base_hook</span><span class="special">&lt;&gt;</span>
+<span class="special">{</span>
+   <span class="keyword">int</span> <span class="identifier">int_</span><span class="special">;</span>
+
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="identifier">list_member_hook</span><span class="special">&lt;&gt;</span> <span class="identifier">member_hook_</span><span class="special">;</span>
+
+   <span class="identifier">MyClass</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">)</span> <span class="special">:</span>  <span class="identifier">int_</span><span class="special">(</span><span class="identifier">i</span><span class="special">)</span>  <span class="special">{}</span>
+<span class="special">};</span>
+
+<span class="comment">//Define a list that will store MyClass using the base hook</span>
+<span class="keyword">typedef</span> <span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;</span> <span class="identifier">BaseList</span><span class="special">;</span>
+
+<span class="comment">//Define a list that will store MyClass using the member hook</span>
+<span class="keyword">typedef</span> <span class="identifier">member_hook</span>
+   <span class="special">&lt;</span> <span class="identifier">MyClass</span><span class="special">,</span> <span class="identifier">list_member_hook</span><span class="special">&lt;&gt;,</span> <span class="special">&amp;</span><span class="identifier">MyClass</span><span class="special">::</span><span class="identifier">member_hook_</span><span class="special">&gt;</span> <span class="identifier">MemberOption</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">,</span> <span class="identifier">MemberOption</span><span class="special">&gt;</span> <span class="identifier">MemberList</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;::</span><span class="identifier">iterator</span> <span class="identifier">VectIt</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;::</span><span class="identifier">reverse_iterator</span> <span class="identifier">VectRit</span><span class="special">;</span>
+
+   <span class="comment">//Create several MyClass objects, each one with a different value</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;</span> <span class="identifier">values</span><span class="special">;</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">100</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>  <span class="identifier">values</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">MyClass</span><span class="special">(</span><span class="identifier">i</span><span class="special">));</span>
+
+   <span class="identifier">BaseList</span> <span class="identifier">baselist</span><span class="special">;</span>
+   <span class="identifier">MemberList</span> <span class="identifier">memberlist</span><span class="special">;</span>
+
+   <span class="comment">//Now insert them in the reverse order in the base hook list</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="identifier">VectIt</span> <span class="identifier">it</span><span class="special">(</span><span class="identifier">values</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()),</span> <span class="identifier">itend</span><span class="special">(</span><span class="identifier">values</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+      <span class="special">;</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">itend</span>  <span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">){</span>
+      <span class="identifier">baselist</span><span class="special">.</span><span class="identifier">push_front</span><span class="special">(*</span><span class="identifier">it</span><span class="special">);</span>
+   <span class="special">}</span>
+
+   <span class="comment">//Now insert them in the same order as in vector in the member hook list</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="identifier">VectIt</span> <span class="identifier">it</span><span class="special">(</span><span class="identifier">values</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()),</span> <span class="identifier">itend</span><span class="special">(</span><span class="identifier">values</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">itend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">)</span>
+      <span class="identifier">memberlist</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(*</span><span class="identifier">it</span><span class="special">);</span>
+
+   <span class="comment">//Now test lists</span>
+   <span class="special">{</span>
+      <span class="identifier">BaseList</span><span class="special">::</span><span class="identifier">reverse_iterator</span> <span class="identifier">rbit</span><span class="special">(</span><span class="identifier">baselist</span><span class="special">.</span><span class="identifier">rbegin</span><span class="special">());</span>
+      <span class="identifier">MemberList</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">mit</span><span class="special">(</span><span class="identifier">memberlist</span><span class="special">.</span><span class="identifier">begin</span><span class="special">());</span>
+      <span class="identifier">VectIt</span>  <span class="identifier">it</span><span class="special">(</span><span class="identifier">values</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()),</span> <span class="identifier">itend</span><span class="special">(</span><span class="identifier">values</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span>
+
+      <span class="comment">//Test the objects inserted in the base hook list</span>
+      <span class="keyword">for</span><span class="special">(;</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">itend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">,</span> <span class="special">++</span><span class="identifier">rbit</span><span class="special">)</span>
+         <span class="keyword">if</span><span class="special">(&amp;*</span><span class="identifier">rbit</span> <span class="special">!=</span> <span class="special">&amp;*</span><span class="identifier">it</span><span class="special">)</span>   <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+
+      <span class="comment">//Test the objects inserted in the member hook list</span>
+      <span class="keyword">for</span><span class="special">(</span><span class="identifier">it</span> <span class="special">=</span> <span class="identifier">values</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">itend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">,</span> <span class="special">++</span><span class="identifier">mit</span><span class="special">)</span>
+         <span class="keyword">if</span><span class="special">(&amp;*</span><span class="identifier">mit</span> <span class="special">!=</span> <span class="special">&amp;*</span><span class="identifier">it</span><span class="special">)</span>    <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+   <span class="special">}</span>
+
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.usage.usage_lifetime"></a><a class="link" href="usage.html#intrusive.usage.usage_lifetime" title="Object lifetime">Object lifetime</a>
+</h3></div></div></div>
+<p>
+        Even if the interface of <code class="computeroutput"><a class="link" href="../boost/intrusive/list.html" title="Class template list">list</a></code>
+        is similar to <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span></code>, its usage is a bit different: You
+        always have to keep in mind that you directly store objects in intrusive
+        containers, not copies. The lifetime of a stored object is not bound to or
+        managed by the container:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            When the container gets destroyed before the object, the object is not
+            destroyed, so you have to be careful to avoid resource leaks.
+          </li>
+<li class="listitem">
+            When the object is destroyed before the container, your program is likely
+            to crash, because the container contains a pointer to an non-existing
+            object.
+          </li>
+</ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="intrusive_vs_nontrusive.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="usage_when.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

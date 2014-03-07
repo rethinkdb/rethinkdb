@@ -1,0 +1,80 @@
+# Boost.Bimap
+#
+# Copyright (c) 2006-2007 Matias Capeletto
+#
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# bring in rules for testing
+import testing ;
+
+
+test-suite "tagged_test"
+    :
+    [ run test_tagged.cpp                                                     ]
+    ;
+
+
+test-suite "relation_test"
+    :
+    [ run test_structured_pair.cpp                                            ]
+    [ run test_mutant.cpp                                                     ]
+    [ run test_mutant_relation.cpp                                            ]
+    ;
+
+
+test-suite "bimap_test"
+    :
+
+    # Check library user interface
+    [ run test_bimap_set_of.cpp                                               ]
+    [ run test_bimap_multiset_of.cpp                                          ]
+    [ run test_bimap_unordered_set_of.cpp                                     ]
+    [ run test_bimap_unordered_multiset_of.cpp                                ]
+    [ run test_bimap_list_of.cpp                                              ]
+    [ run test_bimap_vector_of.cpp                                            ]
+
+    # Test bimap container
+    [ run test_bimap_ordered.cpp                                              ]
+    [ run test_bimap_unordered.cpp                                            ]
+    [ run test_bimap_sequenced.cpp                                            ]
+    [ run test_bimap_unconstrained.cpp                                        ]
+    [ run test_bimap_assign.cpp                                               ]
+    [ run test_bimap_property_map.cpp                                         ]
+    [ run test_bimap_modify.cpp                                               ]
+    [ run test_bimap_range.cpp                                                ]
+    [ run test_bimap_operator_bracket.cpp                                     ]
+    [ run test_bimap_lambda.cpp                                               ]
+    [ run test_bimap_mutable.cpp                                              ]
+    [ run test_bimap_extra.cpp                                                ]
+    [ run test_bimap_convenience_header.cpp                                   ]
+    [ run test_bimap_project.cpp                                              ]
+    [ run test_bimap_serialization.cpp
+          /boost/serialization//boost_serialization                           ]
+    [ run test_bimap_info.cpp                                                 ]
+    ;
+
+test-suite "compile_fail_test"
+    :
+
+    [ compile-fail compile_fail/test_bimap_mutable_1.cpp                      ]
+    [ compile-fail compile_fail/test_bimap_mutable_2.cpp                      ]
+    [ compile-fail compile_fail/test_bimap_mutable_3.cpp                      ]
+    [ compile-fail compile_fail/test_bimap_info_1.cpp                         ]
+    [ compile-fail compile_fail/test_bimap_info_2.cpp                         ]
+    [ compile-fail compile_fail/test_bimap_info_3.cpp                         ]
+    ;
+
+test-suite "bimap_and_boost"
+    :
+    [ run     ../example/bimap_and_boost/property_map.cpp                     ]
+    [ run     ../example/bimap_and_boost/range.cpp                            ]
+    [ run     ../example/bimap_and_boost/foreach.cpp                          ]
+    [ run     ../example/bimap_and_boost/lambda.cpp                           ]
+    [ run     ../example/bimap_and_boost/assign.cpp                           ]
+    [ run     ../example/bimap_and_boost/xpressive.cpp                        ]
+    [ run     ../example/bimap_and_boost/typeof.cpp                           ]
+    [ compile ../example/bimap_and_boost/serialization.cpp
+                    /boost/serialization//boost_serialization                 ]
+    ;

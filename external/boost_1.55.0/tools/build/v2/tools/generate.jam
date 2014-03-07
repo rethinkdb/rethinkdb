@@ -1,0 +1,108 @@
+# Copyright 2006 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+# Declares main target 'generate' used to produce targets by calling a
+# user-provided rule that takes and produces virtual targets.
+
+import "class" : new ;
+import errors ;
+import feature ;
+import project ;
+import property ;
+import property-set ;
+import targets ;
+import regex ;
+
+
+feature.feature generating-rule : : free ;
+
+
+class generated-target-class : basic-target
+{
+    import errors ;
+    import indirect ;
+    import virtual-target ;
+
+    rule __init__ ( name : project : sources * : requirements *
+        : default-build * : usage-requirements * )
+    {
+        basic-target.__init__ $(name) : $(project) : $(sources)
+            : $(requirements) : $(default-build) : $(usage-requirements) ;
+
+        if ! [ $(self.requirements).get <generating-rule> ]
+        {
+            errors.user-error "The generate rule requires the <generating-rule>"
+                "property to be set" ;
+        }
+    }
+
+    rule construct ( name : sources * : property-set )
+    {
+        local result ;
+        local gr = [ $(property-set).get <generating-rule> ] ;
+
+        # FIXME: this is a copy-paste from virtual-target.jam. We should add a
+        # utility rule to call a rule like this.
+        local rule-name = [ MATCH ^@(.*) : $(gr) ] ;
+        if $(rule-name)
+        {
+            if $(gr[2])
+            {
+                local target-name = [ full-name ] ;
+                errors.user-error "Multiple <generating-rule> properties"
+                    "encountered for target $(target-name)." ;
+            }
+
+            result = [ indirect.call $(rule-name) $(self.project) $(name)
+                : $(property-set) : $(sources) ] ;
+
+            if ! $(result)
+            {
+                ECHO "warning: Unable to construct" [ full-name ] ;
+            }
+        }
+
+        local ur ;
+        local targets ;
+
+        if $(result)
+        {
+            if  [ class.is-a $(result[1]) : property-set ]
+            {
+                ur = $(result[1]) ;
+                targets = $(result[2-]) ;
+            }
+            else
+            {
+                ur = [ property-set.empty ] ;
+                targets = $(result) ;
+            }
+        }
+        # FIXME: the following loop should be doable using sequence.transform or
+        # some similar utility rule.
+        local rt ;
+        for local t in $(targets)
+        {
+            rt += [ virtual-target.register $(t) ] ;
+        }
+        return $(ur) $(rt) ;
+    }
+}
+
+
+rule generate ( name : sources * : requirements * : default-build *
+    : usage-requirements * )
+{
+    local project = [ project.current ] ;
+
+    targets.main-target-alternative
+        [ new generated-target-class $(name) : $(project)
+            : [ targets.main-target-sources $(sources) : $(name) ]
+            : [ targets.main-target-requirements $(requirements) : $(project) ]
+            : [ targets.main-target-default-build $(default-build) : $(project) ]
+            : [ targets.main-target-usage-requirements $(usage-requirements) : $(project) ]
+        ] ;
+}
+
+IMPORT $(__name__) : generate : : generate ;

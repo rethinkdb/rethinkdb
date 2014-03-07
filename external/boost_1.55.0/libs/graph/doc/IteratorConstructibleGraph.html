@@ -1,0 +1,161 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>IteratorConstructibleGraph</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="concept:IteratorConstructibleGraph"></A>
+IteratorConstructibleGraph
+</H1>
+
+The IteratorConstructibleGraph concept describes the interface for
+graph types that can be constructed using a kind of edge iterator. The
+edge iterator can be any <a
+href="http://www.sgi.com/tech/stl/InputIterator.html">InputIterator</a>
+that dereferences to a pair of integers <i>(i,j)</i>, which represent
+an edge that should be in the graph. The two integers <i>i</i> and
+<i>j</i> represent vertices where <i>0 <= i < |V|</i> and <i>0 <= j <
+|V|</i>.  The edge iterator's value type should be
+<tt>std::pair&lt;T,T&gt;</tt> (or at least be a structure that has
+members <tt>first</tt> and <tt>second</tt>) and the value type
+<tt>T</tt> of the pair must be convertible to the
+<tt>vertices_size_type</tt> of the graph (an integer).
+
+There are two valid expressions required by this concept, both of
+which are constructors. The first creates a graph object from a
+first/last iterator range. The second constructor also takes a
+first/last iterator range and in addition requires the number of
+vertices and number of edges. For some graph and edge iterator types
+the second constructor can be more efficient than the first.
+
+<h3>Example</h3>
+
+The following exampe creates two graph objects from an array of edges
+(vertex pairs). The type <tt>Edge*</tt> satisfies the requirements for
+an <a
+href="http://www.sgi.com/tech/stl/InputIterator.html">InputIterator</a>
+and can therefore be used to construct a graph.
+
+<pre>
+  typedef ... IteratorConstructibleGraph;
+  typedef boost::graph_traits<IteratorConstructibleGraph> Traits;
+
+  typedef std::pair<Traits::vertices_size_type, 
+    Traits::vertices_size_type> Edge;
+  Edge edge_array[] =
+    { Edge(0,1), Edge(0,2), Edge(0,3), Edge(0,4), Edge(0,5),
+      Edge(1, 2), Edge(1,5), Edge(1,3),
+      Edge(2, 4), Edge(2,5),
+      Edge(3, 2), 
+      Edge(4, 3), Edge(4,1),
+      Edge(5, 4) };
+  Edge* first = edge_array,
+    last = edge_array + sizeof(edge_array)/sizeof(Edge);
+
+  IteratorConstructibleGraph G1(first, last);
+  // do something with G1 ...
+  
+  Traits::vertices_size_type size_V = 6;
+  Traits::edges_size_type size_E = sizeof(edge_array)/sizeof(Edge);
+  IteratorConstructibleGraph G2(first, last, size_V, size_E);
+  // do something with G2 ...
+</pre>
+
+<h3>Refinement of</h3>
+
+<a href="Graph.html">Graph</a>
+
+<h3>Notation</h3>
+
+<Table>
+<tr>
+<td><tt>G</tt></td>
+<td>is a graph type that models IteratorConstructibleGraph.</td>
+<tr>
+
+<tr>
+<td><tt>g</tt></td>
+<td>is an object of type <tt>G</tt>.</td>
+</tr>
+
+<tr>
+<td><tt>first, last</tt></td>
+<td>are edge iterators (see above).</td>
+</tr>
+
+<tr>
+<td><tt>Tr</tt></td>
+<td>is an object of type <tt>graph_traits&lt;G&gt;</tt>.</td>
+</tr>
+
+<tr>
+<td><tt>n_vertices</tt></td>
+<td>is an object of type <tt>Tr::vertices_size_type</tt>.</td>
+</tr>
+
+<tr>
+<td><tt>n_edges</tt></td>
+<td>is an object of type <tt>Tr::edges_size_type</tt>.</td>
+</tr>
+
+</Table>
+
+
+<h3>Valid Expressions</h3>
+
+<Table border>
+
+<tr>
+<td>
+<pre>G g(first, last);</pre>
+Construct graph object <tt>g</tt> given an edge range <tt>[first,last)</tt>.
+</td>
+<tr>
+
+<tr>
+<td>
+<pre>G g(first, last, n_vertices, n_edges);</pre>
+Construct graph object <tt>g</tt> given an edge range
+<tt>[first,last)</tt>, the number of vertices, and the number of
+edges.  Sometimes this constructor is more efficient than the
+constructor lacking the graph size information.
+</td>
+</tr>
+
+</Table>
+
+
+<!--
+<H3>Concept Checking Class</H3>
+
+<PRE>
+</PRE>
+-->
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

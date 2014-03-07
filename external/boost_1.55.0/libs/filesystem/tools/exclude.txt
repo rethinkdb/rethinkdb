@@ -1,0 +1,14 @@
+.svn
+.obj
+.exe
+.log
+.user
+.filters
+.sdf
+.ncb
+.ipch
+ipch
+Debug
+Release
+v3_operations_test
+temp_fs_test_dir

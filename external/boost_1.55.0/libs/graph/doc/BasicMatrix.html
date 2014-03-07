@@ -1,0 +1,103 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>BasicMatrix</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="concept:BasicMatrix"></A>
+BasicMatrix
+</H1>
+
+The BasicMatrix concept provides a minimalist interface for
+accessing elements from a 2 dimensional table of values.
+
+
+<H3>Refinement of</H3>
+
+none
+
+<h3>Notation</h3>
+
+<Table>
+<TR>
+<TD>{<tt>M,I,V</tt>}</TD>
+<TD>The matrix, index, and values types that together model the BasicMatrix concept.</TD>
+</TR>
+
+<TR>
+<TD><tt>A</tt></TD>
+<TD>An object of type <tt>M</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>i, j</tt></TD>
+<TD>Objects of type <tt>I</tt>.</TD>
+</TR>
+
+</table>
+
+<H3>Associated Types</H3>
+
+none
+
+<h3>Valid Expressions</h3>
+
+<Table border>
+
+<tr>
+<td><a name="sec:elt-access"><TT>A[i][j]</TT></a></TD>
+<TD>Returns a reference to the element object stored at index <tt>(i,j)</tt><br>
+Return type: <TT>V&amp;</TT> for mutable <tt>A</tt> or <TT>const V&amp;</TT>
+for constant <tt>A</tt>.
+</TD>
+</TR>
+
+</table>
+
+<H3>Complexity guarantees</H3>
+
+Element access is constant time.
+
+<H3>Concept Checking Class</H3>
+
+<pre>
+  template &lt;class M, class I, class V&gt;
+  struct BasicMatrixConcept
+  {
+    void constraints() {
+      V&amp; elt = A[i][j];
+      const_constraints(A);
+      ignore_unused_variable_warning(elt);      
+    }
+    void const_constraints(const M&amp; A) {
+      const V&amp; elt = A[i][j];
+      ignore_unused_variable_warning(elt);      
+    }
+    M A;
+    I i, j;
+  };
+</pre>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

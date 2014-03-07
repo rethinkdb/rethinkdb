@@ -1,0 +1,234 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/enum.hpp&gt;</title>
+  </head>
+
+  <body link="#0000ff" vlink="#800080">
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/enum.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#enum_-spec">Class template
+          <code>enum_</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#enum_-spec-synopsis">Class template <code>enum_</code>
+              synopsis</a></dt>
+
+              <dt><a href="#enum_-spec-ctors">Class template <code>enum_</code>
+              constructors</a></dt>
+
+              <dt><a href="#enum_-spec-modifiers">Class template <code>enum_</code>
+              modifier functions</a></dt>
+            </dl>
+          </dd>
+
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example(s)</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><code>&lt;boost/python/enum.hpp&gt;</code> defines the
+    interface through which users expose their C++ enumeration types
+    to Python. It declares the
+    <code>enum_</code> class template, which is parameterized on the
+    enumeration type being exposed. </p>
+
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="enum_-spec"></a>Class template
+    <code>enum_&lt;T&gt;</code></h3>
+
+    <p>Creates a Python class derived from Python's <code>int</code>
+    type which is associated with the C++ type passed as its first
+    parameter. 
+
+    <h4><a name="enum_-spec-synopsis"></a>Class template <code>enum_</code>
+    synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+  template &lt;class T&gt;
+  class enum_ : public <a href="object.html#object-spec">object</a>
+  {
+    enum_(char const* name, char const* doc = 0);
+    enum_&lt;T&gt;&amp; value(char const* name, T);
+    enum_&lt;T&gt;&amp; export_values();
+  };
+}}
+</pre>
+
+    <h4><a name="enum_-spec-ctors"></a>Class template <code>enum_</code>
+    constructors</h4>
+<pre>
+enum_(char const* name, char const* doc=0);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>name</code> is an <a href=
+      "definitions.html#ntbs">ntbs</a> which conforms to Python's <a href=
+      "http://www.python.org/doc/current/ref/identifiers.html">identifier
+      naming rules</a>. 
+
+      <dt><b>Effects:</b> Constructs an <code>enum_</code> object
+      holding a Python extension type derived from <code>int</code>
+      which is named <code>name</code>. The
+      <code>name</code>d attribute of the <a href=
+      "scope.html#introduction">current scope</a> is bound to the new
+      extension type.</dt>
+    </dl>
+
+    <h4><a name="enum_-spec-modifiers"></a>Class template
+    <code>enum_</code> modifier functions</h4>
+<pre>
+inline enum_&lt;T&gt;&amp; value(char const* name, T x);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>name</code> is an <a href=
+      "definitions.html#ntbs">ntbs</a> which conforms to Python's <a
+      href=
+      "http://www.python.org/doc/current/ref/identifiers.html">identifier
+      naming rules</a>.
+
+      <dt><b>Effects:</b> adds an instance of the wrapped enumeration
+      type with value <code>x</code> to the type's dictionary as the
+      <code>name</code>d attribute.</dt>
+
+      <dt><b>Returns:</b> <code>*this</code></dt>
+
+    </dl>
+
+<pre>
+inline enum_&lt;T&gt;&amp; export_values();
+</pre>
+
+    <dl class="function-semantics">
+
+      <dt><b>Effects:</b> sets attributes in the current <a
+        href="scope.html#scope-spec"><code>scope</code></a> with the
+        same names and values as all enumeration values exposed so far
+        by calling <code>value()</code>.</dt>
+
+      <dt><b>Returns:</b> <code>*this</code></dt>
+
+    </dl>
+
+    <h2><a name="examples"></a>Example(s)</h2>
+
+    <p>C++ module definition
+<pre>
+#include &lt;boost/python/enum.hpp&gt;
+#include &lt;boost/python/def.hpp&gt;
+#include &lt;boost/python/module.hpp&gt;
+
+using namespace boost::python;
+
+enum color { red = 1, green = 2, blue = 4 };
+
+color identity_(color x) { return x; }
+
+BOOST_PYTHON_MODULE(enums)
+{
+    enum_&lt;color&gt;(&quot;color&quot;)
+        .value(&quot;red&quot;, red)
+        .value(&quot;green&quot;, green)
+        .export_values()
+        .value(&quot;blue&quot;, blue)
+        ;
+    
+    def(&quot;identity&quot;, identity_);
+}
+</pre>
+    <p>Interactive Python:
+<pre>
+&gt;&gt;&gt; from enums import *
+
+&gt;&gt;&gt; identity(red)
+enums.color.red
+
+&gt;&gt;&gt; identity(color.red)
+enums.color.red
+
+&gt;&gt;&gt; identity(green)
+enums.color.green
+
+&gt;&gt;&gt; identity(color.green)
+enums.color.green
+
+&gt;&gt;&gt; identity(blue)
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in ?
+NameError: name blue' is not defined
+
+&gt;&gt;&gt; identity(color.blue)
+enums.color.blue
+
+&gt;&gt;&gt; identity(color(1))
+enums.color.red
+
+&gt;&gt;&gt; identity(color(2))
+enums.color.green
+
+&gt;&gt;&gt; identity(color(3))
+enums.color(3)
+
+&gt;&gt;&gt; identity(color(4))
+enums.color.blue
+
+&gt;&gt;&gt; identity(1)
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in ?
+TypeError: bad argument type for built-in operation
+</pre>
+    <hr>
+
+    Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 December, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+     
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

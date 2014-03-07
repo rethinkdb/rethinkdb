@@ -1,0 +1,833 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>High Level Class RegEx (Deprecated)</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Boost.Regex">
+<link rel="up" href="../deprecated_interfaces.html" title="Deprecated Interfaces">
+<link rel="prev" href="regex_split.html" title="regex_split (deprecated)">
+<link rel="next" href="../internal_details.html" title="Internal Details">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_split.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../deprecated_interfaces.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../internal_details.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_ref_deprecated_interfaces_old_regex">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_regex.ref.deprecated_interfaces.old_regex"></a><a class="link" href="old_regex.html" title="High Level Class RegEx (Deprecated)">High
+        Level Class RegEx (Deprecated)</a>
+</h4></div></div></div>
+<p>
+          The high level wrapper class RegEx is now deprecated and does not form
+          part of the regular expression standardization proposal. This type still
+          exists, and existing code will continue to compile, however the following
+          documentation is unlikely to be further updated.
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">cregex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          The class RegEx provides a high level simplified interface to the regular
+          expression library, this class only handles narrow character strings, and
+          regular expressions always follow the "normal" syntax - that
+          is the same as the perl / ECMAScript synatx.
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="keyword">bool</span> <span class="special">(*</span><span class="identifier">GrepCallback</span><span class="special">)(</span><span class="keyword">const</span> <span class="identifier">RegEx</span><span class="special">&amp;</span> <span class="identifier">expression</span><span class="special">);</span>
+<span class="keyword">typedef</span> <span class="keyword">bool</span> <span class="special">(*</span><span class="identifier">GrepFileCallback</span><span class="special">)(</span><span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">file</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">RegEx</span><span class="special">&amp;</span> <span class="identifier">expression</span><span class="special">);</span>
+<span class="keyword">typedef</span> <span class="keyword">bool</span> <span class="special">(*</span><span class="identifier">FindFilesCallback</span><span class="special">)(</span><span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">file</span><span class="special">);</span>
+
+<span class="keyword">class</span>  <span class="identifier">RegEx</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+   <span class="identifier">RegEx</span><span class="special">();</span>
+   <span class="identifier">RegEx</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">RegEx</span><span class="special">&amp;</span> <span class="identifier">o</span><span class="special">);</span>
+   <span class="special">~</span><span class="identifier">RegEx</span><span class="special">();</span>
+   <span class="identifier">RegEx</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">c</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">icase</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">);</span>
+   <span class="keyword">explicit</span> <span class="identifier">RegEx</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">icase</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">);</span>
+   <span class="identifier">RegEx</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">RegEx</span><span class="special">&amp;</span> <span class="identifier">o</span><span class="special">);</span>
+   <span class="identifier">RegEx</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">p</span><span class="special">);</span>
+   <span class="identifier">RegEx</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">);</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">SetExpression</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">p</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">icase</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">);</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">SetExpression</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">icase</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">);</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">Expression</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="comment">//</span>
+   <span class="comment">// now matching operators: </span>
+   <span class="comment">// </span>
+   <span class="keyword">bool</span> <span class="identifier">Match</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="keyword">bool</span> <span class="identifier">Match</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="keyword">bool</span> <span class="identifier">Search</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="keyword">bool</span> <span class="identifier">Search</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">Grep</span><span class="special">(</span><span class="identifier">GrepCallback</span> <span class="identifier">cb</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">p</span><span class="special">,</span>
+                     <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">Grep</span><span class="special">(</span><span class="identifier">GrepCallback</span> <span class="identifier">cb</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span>
+                     <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">Grep</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;&amp;</span> <span class="identifier">v</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">p</span><span class="special">,</span>
+                     <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">Grep</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;&amp;</span> <span class="identifier">v</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span>
+                     <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">Grep</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">&gt;&amp;</span> <span class="identifier">v</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">p</span><span class="special">,</span>
+                     <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">Grep</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">&gt;&amp;</span> <span class="identifier">v</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span>
+                     <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">GrepFiles</span><span class="special">(</span><span class="identifier">GrepFileCallback</span> <span class="identifier">cb</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">files</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">recurse</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">,</span>
+                          <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">GrepFiles</span><span class="special">(</span><span class="identifier">GrepFileCallback</span> <span class="identifier">cb</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">files</span><span class="special">,</span>
+                          <span class="keyword">bool</span> <span class="identifier">recurse</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">,</span>
+                          <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">FindFiles</span><span class="special">(</span><span class="identifier">FindFilesCallback</span> <span class="identifier">cb</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">files</span><span class="special">,</span>
+                          <span class="keyword">bool</span> <span class="identifier">recurse</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">,</span>
+                          <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">FindFiles</span><span class="special">(</span><span class="identifier">FindFilesCallback</span> <span class="identifier">cb</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">files</span><span class="special">,</span>
+                          <span class="keyword">bool</span> <span class="identifier">recurse</span> <span class="special">=</span> <span class="keyword">false</span><span class="special">,</span>
+                          <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">Merge</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">in</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">fmt</span><span class="special">,</span>
+                     <span class="keyword">bool</span> <span class="identifier">copy</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">Merge</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">in</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">fmt</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">copy</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">,</span>
+                     <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span>
+   <span class="keyword">unsigned</span> <span class="identifier">Split</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;&amp;</span> <span class="identifier">v</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span>
+                  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span> <span class="special">=</span> <span class="identifier">match_default</span><span class="special">,</span>
+                  <span class="keyword">unsigned</span> <span class="identifier">max_count</span> <span class="special">=</span> <span class="special">~</span><span class="number">0</span><span class="special">);</span>
+   <span class="comment">// </span>
+   <span class="comment">// now operators for returning what matched in more detail: </span>
+   <span class="comment">// </span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">Position</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">Length</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">bool</span> <span class="identifier">Matched</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">Line</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">Marks</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">What</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">operator</span><span class="special">[](</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">)</span><span class="keyword">const</span> <span class="special">;</span>
+
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">npos</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+          Member functions for class RegEx are defined as follows:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Member
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">RegEx</span><span class="special">();</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Default constructor, constructs an instance of RegEx without
+                    any valid expression.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">RegEx</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">RegEx</span><span class="special">&amp;</span> <span class="identifier">o</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Copy constructor, all the properties of parameter <span class="emphasis"><em>o</em></span>
+                    are copied.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">RegEx</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">c</span><span class="special">,</span> <span class="keyword">bool</span>
+                    <span class="identifier">icase</span> <span class="special">=</span>
+                    <span class="keyword">false</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Constructs an instance of RegEx, setting the expression to <span class="emphasis"><em>c</em></span>,
+                    if <span class="emphasis"><em>icase</em></span> is true then matching is insensitive
+                    to case, otherwise it is sensitive to case. Throws <a class="link" href="../bad_expression.html" title="bad_expression"><code class="computeroutput"><span class="identifier">bad_expression</span></code></a> on failure.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">RegEx</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span> <span class="keyword">bool</span>
+                    <span class="identifier">icase</span> <span class="special">=</span>
+                    <span class="keyword">false</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Constructs an instance of RegEx, setting the expression to <span class="emphasis"><em>s</em></span>,
+                    if <span class="emphasis"><em>icase</em></span> is true then matching is insensitive
+                    to case, otherwise it is sensitive to case. Throws <a class="link" href="../bad_expression.html" title="bad_expression"><code class="computeroutput"><span class="identifier">bad_expression</span></code></a> on failure.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">RegEx</span><span class="special">&amp;</span>
+                    <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">RegEx</span><span class="special">&amp;</span> <span class="identifier">o</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Default assignment operator.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">RegEx</span><span class="special">&amp;</span>
+                    <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">p</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Assignment operator, equivalent to calling <code class="computeroutput"><span class="identifier">SetExpression</span><span class="special">(</span><span class="identifier">p</span><span class="special">,</span> <span class="keyword">false</span><span class="special">)</span></code>. Throws <a class="link" href="../bad_expression.html" title="bad_expression"><code class="computeroutput"><span class="identifier">bad_expression</span></code></a> on failure.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">RegEx</span><span class="special">&amp;</span>
+                    <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Assignment operator, equivalent to calling <code class="computeroutput"><span class="identifier">SetExpression</span><span class="special">(</span><span class="identifier">s</span><span class="special">,</span> <span class="keyword">false</span><span class="special">)</span></code>. Throws <a class="link" href="../bad_expression.html" title="bad_expression"><code class="computeroutput"><span class="identifier">bad_expression</span></code></a> on failure.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">SetExpression</span><span class="special">(</span><span class="identifier">constchar</span><span class="special">*</span>
+                    <span class="identifier">p</span><span class="special">,</span>
+                    <span class="keyword">bool</span> <span class="identifier">icase</span>
+                    <span class="special">=</span> <span class="keyword">false</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Sets the current expression to <span class="emphasis"><em>p</em></span>, if <span class="emphasis"><em>icase</em></span>
+                    is true then matching is insensitive to case, otherwise it is
+                    sensitive to case. Throws <a class="link" href="../bad_expression.html" title="bad_expression"><code class="computeroutput"><span class="identifier">bad_expression</span></code></a> on failure.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">SetExpression</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span> <span class="keyword">bool</span>
+                    <span class="identifier">icase</span> <span class="special">=</span>
+                    <span class="keyword">false</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Sets the current expression to <span class="emphasis"><em>s</em></span>, if <span class="emphasis"><em>icase</em></span>
+                    is true then matching is insensitive to case, otherwise it is
+                    sensitive to case. Throws <a class="link" href="../bad_expression.html" title="bad_expression"><code class="computeroutput"><span class="identifier">bad_expression</span></code></a> on failure.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">Expression</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns a copy of the current regular expression.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">Match</span><span class="special">(</span><span class="keyword">const</span>
+                    <span class="keyword">char</span><span class="special">*</span>
+                    <span class="identifier">p</span><span class="special">,</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span>
+                    <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Attempts to match the current expression against the text <span class="emphasis"><em>p</em></span>
+                    using the match flags <span class="emphasis"><em>flags</em></span> - see <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a>.
+                    Returns <span class="emphasis"><em>true</em></span> if the expression matches the
+                    whole of the input string.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">Match</span><span class="special">(</span><span class="keyword">const</span>
+                    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span>
+                    <span class="identifier">s</span><span class="special">,</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span>
+                    <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Attempts to match the current expression against the text <span class="emphasis"><em>s</em></span>
+                    using the <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a> <span class="emphasis"><em>flags</em></span>.
+                    Returns <span class="emphasis"><em>true</em></span> if the expression matches the
+                    whole of the input string.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">Search</span><span class="special">(</span><span class="keyword">const</span>
+                    <span class="keyword">char</span><span class="special">*</span>
+                    <span class="identifier">p</span><span class="special">,</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span>
+                    <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Attempts to find a match for the current expression somewhere
+                    in the text <span class="emphasis"><em>p</em></span> using the <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a> <span class="emphasis"><em>flags</em></span>.
+                    Returns <span class="emphasis"><em>true</em></span> if the match succeeds.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">Search</span><span class="special">(</span><span class="keyword">const</span>
+                    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span>
+                    <span class="identifier">s</span><span class="special">,</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span>
+                    <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Attempts to find a match for the current expression somewhere
+                    in the text <span class="emphasis"><em>s</em></span> using the <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a> flags.
+                    Returns <span class="emphasis"><em>true</em></span> if the match succeeds.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">Grep</span><span class="special">(</span><span class="identifier">GrepCallback</span> <span class="identifier">cb</span><span class="special">,</span> <span class="keyword">const</span>
+                    <span class="keyword">char</span><span class="special">*</span>
+                    <span class="identifier">p</span><span class="special">,</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span>
+                    <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Finds all matches of the current expression in the text <span class="emphasis"><em>p</em></span>
+                    using the <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a> <span class="emphasis"><em>flags</em></span>.
+                    For each match found calls the call-back function cb as: <code class="computeroutput"><span class="identifier">cb</span><span class="special">(*</span><span class="keyword">this</span><span class="special">);</span></code>
+                    If at any stage the call-back function returns <span class="emphasis"><em>false</em></span>
+                    then the grep operation terminates, otherwise continues until
+                    no further matches are found. Returns the number of matches found.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">Grep</span><span class="special">(</span><span class="identifier">GrepCallback</span> <span class="identifier">cb</span><span class="special">,</span> <span class="keyword">const</span>
+                    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span>
+                    <span class="identifier">s</span><span class="special">,</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span>
+                    <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Finds all matches of the current expression in the text <span class="emphasis"><em>s</em></span>
+                    using the <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a> flags.
+                    For each match found calls the call-back function cb as: <code class="computeroutput"><span class="identifier">cb</span><span class="special">(*</span><span class="keyword">this</span><span class="special">);</span></code>
+                    If at any stage the call-back function returns false then the
+                    grep operation terminates, otherwise continues until no further
+                    matches are found. Returns the number of matches found.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">Grep</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;&amp;</span>
+                    <span class="identifier">v</span><span class="special">,</span>
+                    <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span>
+                    <span class="identifier">flags</span> <span class="special">=</span>
+                    <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Finds all matches of the current expression in the text <span class="emphasis"><em>p</em></span>
+                    using the <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a> flags.
+                    For each match pushes a copy of what matched onto <span class="emphasis"><em>v</em></span>.
+                    Returns the number of matches found.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">Grep</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;&amp;</span>
+                    <span class="identifier">v</span><span class="special">,</span>
+                    <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span>
+                    <span class="identifier">flags</span> <span class="special">=</span>
+                    <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Finds all matches of the current expression in the text <span class="emphasis"><em>s</em></span>
+                    using the <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a> <span class="emphasis"><em>flags</em></span>.
+                    For each match pushes a copy of what matched onto <span class="emphasis"><em>v</em></span>.
+                    Returns the number of matches found.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">Grep</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">&gt;&amp;</span> <span class="identifier">v</span><span class="special">,</span> <span class="keyword">const</span>
+                    <span class="keyword">char</span><span class="special">*</span>
+                    <span class="identifier">p</span><span class="special">,</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span>
+                    <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Finds all matches of the current expression in the text <span class="emphasis"><em>p</em></span>
+                    using the <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a> <span class="emphasis"><em>flags</em></span>.
+                    For each match pushes the starting index of what matched onto
+                    <span class="emphasis"><em>v</em></span>. Returns the number of matches found.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">Grep</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">&gt;&amp;</span> <span class="identifier">v</span><span class="special">,</span> <span class="keyword">const</span>
+                    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span>
+                    <span class="identifier">s</span><span class="special">,</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span>
+                    <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Finds all matches of the current expression in the text <span class="emphasis"><em>s</em></span>
+                    using the <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a> <span class="emphasis"><em>flags</em></span>.
+                    For each match pushes the starting index of what matched onto
+                    <span class="emphasis"><em>v</em></span>. Returns the number of matches found.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">GrepFiles</span><span class="special">(</span><span class="identifier">GrepFileCallback</span> <span class="identifier">cb</span><span class="special">,</span> <span class="keyword">const</span>
+                    <span class="keyword">char</span><span class="special">*</span>
+                    <span class="identifier">files</span><span class="special">,</span>
+                    <span class="keyword">bool</span> <span class="identifier">recurse</span>
+                    <span class="special">=</span> <span class="keyword">false</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span>
+                    <span class="identifier">flags</span> <span class="special">=</span>
+                    <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Finds all matches of the current expression in the files files
+                    using the <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a> <span class="emphasis"><em>flags</em></span>.
+                    For each match calls the call-back function cb. If the call-back
+                    returns false then the algorithm returns without considering
+                    further matches in the current file, or any further files.
+                  </p>
+                  <p>
+                    The parameter <span class="emphasis"><em>files</em></span> can include wild card
+                    characters '*' and '?', if the parameter recurse is true then
+                    searches sub-directories for matching file names.
+                  </p>
+                  <p>
+                    Returns the total number of matches found.
+                  </p>
+                  <p>
+                    May throw an exception derived from <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+                    if file io fails.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">GrepFiles</span><span class="special">(</span><span class="identifier">GrepFileCallback</span> <span class="identifier">cb</span><span class="special">,</span> <span class="keyword">const</span>
+                    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span>
+                    <span class="identifier">files</span><span class="special">,</span>
+                    <span class="keyword">bool</span> <span class="identifier">recurse</span>
+                    <span class="special">=</span> <span class="keyword">false</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span>
+                    <span class="identifier">flags</span> <span class="special">=</span>
+                    <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Finds all matches of the current expression in the files files
+                    using the <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a> <span class="emphasis"><em>flags</em></span>.
+                    For each match calls the call-back function cb.
+                  </p>
+                  <p>
+                    If the call-back returns false then the algorithm returns without
+                    considering further matches in the current file, or any further
+                    files.
+                  </p>
+                  <p>
+                    The parameter <span class="emphasis"><em>files</em></span> can include wild card
+                    characters '*' and '?', if the parameter recurse is true then
+                    searches sub-directories for matching file names.
+                  </p>
+                  <p>
+                    Returns the total number of matches found.
+                  </p>
+                  <p>
+                    May throw an exception derived from <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+                    if file io fails.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">FindFiles</span><span class="special">(</span><span class="identifier">FindFilesCallback</span> <span class="identifier">cb</span><span class="special">,</span> <span class="keyword">const</span>
+                    <span class="keyword">char</span><span class="special">*</span>
+                    <span class="identifier">files</span><span class="special">,</span>
+                    <span class="keyword">bool</span> <span class="identifier">recurse</span>
+                    <span class="special">=</span> <span class="keyword">false</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span>
+                    <span class="identifier">flags</span> <span class="special">=</span>
+                    <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Searches files to find all those which contain at least one match
+                    of the current expression using the <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a> <span class="emphasis"><em>flags</em></span>.
+                    For each matching file calls the call-back function cb. If the
+                    call-back returns false then the algorithm returns without considering
+                    any further files.
+                  </p>
+                  <p>
+                    The parameter <span class="emphasis"><em>files</em></span> can include wild card
+                    characters '*' and '?', if the parameter <span class="emphasis"><em>recurse</em></span>
+                    is true then searches sub-directories for matching file names.
+                  </p>
+                  <p>
+                    Returns the total number of files found.
+                  </p>
+                  <p>
+                    May throw an exception derived from <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+                    if file io fails.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">FindFiles</span><span class="special">(</span><span class="identifier">FindFilesCallback</span> <span class="identifier">cb</span><span class="special">,</span> <span class="keyword">const</span>
+                    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span>
+                    <span class="identifier">files</span><span class="special">,</span>
+                    <span class="keyword">bool</span> <span class="identifier">recurse</span>
+                    <span class="special">=</span> <span class="keyword">false</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span>
+                    <span class="identifier">flags</span> <span class="special">=</span>
+                    <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Searches files to find all those which contain at least one match
+                    of the current expression using the <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a> <span class="emphasis"><em>flags</em></span>.
+                    For each matching file calls the call-back function cb.
+                  </p>
+                  <p>
+                    If the call-back returns false then the algorithm returns without
+                    considering any further files.
+                  </p>
+                  <p>
+                    The parameter <span class="emphasis"><em>files</em></span> can include wild card
+                    characters '*' and '?', if the parameter <span class="emphasis"><em>recurse</em></span>
+                    is true then searches sub-directories for matching file names.
+                  </p>
+                  <p>
+                    Returns the total number of files found.
+                  </p>
+                  <p>
+                    May throw an exception derived from <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+                    if file io fails.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">Merge</span><span class="special">(</span><span class="keyword">const</span>
+                    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span>
+                    <span class="identifier">in</span><span class="special">,</span>
+                    <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">fmt</span><span class="special">,</span> <span class="keyword">bool</span>
+                    <span class="identifier">copy</span> <span class="special">=</span>
+                    <span class="keyword">true</span><span class="special">,</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span>
+                    <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Performs a search and replace operation: searches through the
+                    string <span class="emphasis"><em>in</em></span> for all occurrences of the current
+                    expression, for each occurrence replaces the match with the format
+                    string <span class="emphasis"><em>fmt</em></span>. Uses <span class="emphasis"><em>flags</em></span>
+                    to determine what gets matched, and how the format string should
+                    be treated. If <span class="emphasis"><em>copy</em></span> is true then all unmatched
+                    sections of input are copied unchanged to output, if the flag
+                    <span class="emphasis"><em>format_first_only</em></span> is set then only the first
+                    occurance of the pattern found is replaced. Returns the new string.
+                    See also <a class="link" href="../../format.html" title="Search and Replace Format String Syntax">format string syntax</a>,
+                    and <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">Merge</span><span class="special">(</span><span class="keyword">const</span>
+                    <span class="keyword">char</span><span class="special">*</span>
+                    <span class="identifier">in</span><span class="special">,</span>
+                    <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">fmt</span><span class="special">,</span> <span class="keyword">bool</span>
+                    <span class="identifier">copy</span> <span class="special">=</span>
+                    <span class="keyword">true</span><span class="special">,</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span> <span class="identifier">flags</span>
+                    <span class="special">=</span> <span class="identifier">match_default</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Performs a search and replace operation: searches through the
+                    string <span class="emphasis"><em>in</em></span> for all occurrences of the current
+                    expression, for each occurrence replaces the match with the format
+                    string <span class="emphasis"><em>fmt</em></span>. Uses <span class="emphasis"><em>flags</em></span>
+                    to determine what gets matched, and how the format string should
+                    be treated. If <span class="emphasis"><em>copy</em></span> is true then all unmatched
+                    sections of input are copied unchanged to output, if the flag
+                    <span class="emphasis"><em>format_first_only</em></span> is set then only the first
+                    occurance of the pattern found is replaced. Returns the new string.
+                    See also <a class="link" href="../../format.html" title="Search and Replace Format String Syntax">format string syntax</a>,
+                    and <a class="link" href="../match_flag_type.html" title="match_flag_type"><code class="computeroutput"><span class="identifier">match_flag_type</span></code></a>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="identifier">Split</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;&amp;</span> <span class="identifier">v</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">match_flag_type</span>
+                    <span class="identifier">flags</span> <span class="special">=</span>
+                    <span class="identifier">match_default</span><span class="special">,</span>
+                    <span class="keyword">unsigned</span> <span class="identifier">max_count</span>
+                    <span class="special">=</span> <span class="special">~</span><span class="number">0</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Splits the input string and pushes each one onto the vector.
+                    If the expression contains no marked sub-expressions, then one
+                    string is outputted for each section of the input that does not
+                    match the expression. If the expression does contain marked sub-expressions,
+                    then outputs one string for each marked sub-expression each time
+                    a match occurs. Outputs no more than <span class="emphasis"><em>max_count</em></span>
+                    strings. Before returning, deletes from the input string <span class="emphasis"><em>s</em></span>
+                    all of the input that has been processed (all of the string if
+                    <span class="emphasis"><em>max_count</em></span> was not reached). Returns the
+                    number of strings pushed onto the vector.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">Position</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span>
+                    <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns the position of what matched sub-expression <span class="emphasis"><em>i</em></span>.
+                    If <code class="computeroutput"><span class="identifier">i</span> <span class="special">=</span>
+                    <span class="number">0</span></code> then returns the position
+                    of the whole match. Returns <code class="computeroutput"><span class="identifier">RegEx</span><span class="special">::</span><span class="identifier">npos</span></code>
+                    if the supplied index is invalid, or if the specified sub-expression
+                    did not participate in the match.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">Length</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span>
+                    <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns the length of what matched sub-expression i. If <code class="computeroutput"><span class="identifier">i</span> <span class="special">=</span>
+                    <span class="number">0</span></code> then returns the length
+                    of the whole match. Returns <code class="computeroutput"><span class="identifier">RegEx</span><span class="special">::</span><span class="identifier">npos</span></code>
+                    if the supplied index is invalid, or if the specified sub-expression
+                    did not participate in the match.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">Matched</span><span class="special">(</span><span class="keyword">int</span>
+                    <span class="identifier">i</span> <span class="special">=</span>
+                    <span class="number">0</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns true if sub-expression <span class="emphasis"><em>i</em></span> was matched,
+                    false otherwise.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">Line</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns the line on which the match occurred, indexes start from
+                    1 not zero, if no match occurred then returns <code class="computeroutput"><span class="identifier">RegEx</span><span class="special">::</span><span class="identifier">npos</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span>
+                    <span class="identifier">Marks</span><span class="special">()</span>
+                    <span class="keyword">const</span><span class="special">;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns the number of marked sub-expressions contained in the
+                    expression. Note that this includes the whole match (sub-expression
+                    zero), so the value returned is always &gt;= 1.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">What</span><span class="special">(</span><span class="keyword">int</span>
+                    <span class="identifier">i</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns a copy of what matched sub-expression <span class="emphasis"><em>i</em></span>.
+                    If <code class="computeroutput"><span class="identifier">i</span> <span class="special">=</span>
+                    <span class="number">0</span></code> then returns a copy of
+                    the whole match. Returns a null string if the index is invalid
+                    or if the specified sub-expression did not participate in a match.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">operator</span><span class="special">[](</span><span class="keyword">int</span>
+                    <span class="identifier">i</span><span class="special">)</span><span class="keyword">const</span> <span class="special">;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">what</span><span class="special">(</span><span class="identifier">i</span><span class="special">);</span></code> Can be used to simplify access
+                    to sub-expression matches, and make usage more perl-like.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="regex_split.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../deprecated_interfaces.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../internal_details.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

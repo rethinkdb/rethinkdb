@@ -1,0 +1,139 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function deconstruct</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../signals2/reference.html#header.boost.signals2.deconstruct_hpp" title="Header &lt;boost/signals2/deconstruct.hpp&gt;">
+<link rel="prev" href="scoped_connection.html" title="Class scoped_connection">
+<link rel="next" href="deconstruct_access.html" title="Class deconstruct_access">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="scoped_connection.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../signals2/reference.html#header.boost.signals2.deconstruct_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="deconstruct_access.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.signals2.deconstruct"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function deconstruct</span></h2>
+<p>boost::signals2::deconstruct &#8212; Create a <code class="computeroutput">shared_ptr</code> with support for post-constructors and pre-destructors.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../signals2/reference.html#header.boost.signals2.deconstruct_hpp" title="Header &lt;boost/signals2/deconstruct.hpp&gt;">boost/signals2/deconstruct.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <a class="link" href="postconstructor_invoker.html" title="Class postconstructor_invoker">postconstructor_invoker</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">deconstruct</span><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> A1<span class="special">&gt;</span> 
+  <a class="link" href="postconstructor_invoker.html" title="Class postconstructor_invoker">postconstructor_invoker</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">deconstruct</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">A1</span> <span class="special">&amp;</span> arg1<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> A1<span class="special">,</span> <span class="keyword">typename</span> A2<span class="special">&gt;</span> 
+  <a class="link" href="postconstructor_invoker.html" title="Class postconstructor_invoker">postconstructor_invoker</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="identifier">deconstruct</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">A1</span> <span class="special">&amp;</span> arg1<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">A2</span> <span class="special">&amp;</span> arg2<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> A1<span class="special">,</span> <span class="keyword">typename</span> A2, ...<span class="special">,</span> <span class="keyword">typename</span> AN<span class="special">&gt;</span> 
+  <a class="link" href="postconstructor_invoker.html" title="Class postconstructor_invoker">postconstructor_invoker</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> 
+  <span class="identifier">deconstruct</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">A1</span> <span class="special">&amp;</span> arg1<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">A2</span> <span class="special">&amp;</span> arg2<span class="special">,</span> <span class="special">...</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">AN</span> <span class="special">&amp;</span> argN<span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp205202056"></a><h2>Description</h2>
+<p>Creates an object and its owning <code class="computeroutput">shared_ptr&lt;T&gt;</code>
+            (wrapped inside a <code class="computeroutput"><a class="link" href="postconstructor_invoker.html" title="Class postconstructor_invoker">postconstructor_invoker</a></code>)
+            using only a single allocation,
+            in a manner similar
+            to that of <code class="computeroutput">boost::make_shared()</code>.  In addition, <code class="computeroutput">deconstruct</code>
+            supports postconstructors and predestructors.  The returned
+            <code class="computeroutput">shared_ptr</code> is wrapped inside a <code class="computeroutput"><a class="link" href="postconstructor_invoker.html" title="Class postconstructor_invoker">postconstructor_invoker</a></code>
+            in order to provide the user with an opportunity to pass arguments to a postconstructor,
+            while insuring the postconstructor is run before the wrapped
+            <code class="computeroutput">shared_ptr</code> is accessible.
+          </p>
+<p>
+            In order to use <code class="computeroutput">deconstruct</code> you must define a postconstructor for your class.
+            More specifically, you must define
+            an <code class="computeroutput">adl_postconstruct</code> function which can be found via argument-dependent
+            lookup.  Typically, this means defining an <code class="computeroutput">adl_postconstruct</code> function
+            in the same namespace as its associated class.  See the reference for
+            <code class="computeroutput"><a class="link" href="postconstructor_invoker.html" title="Class postconstructor_invoker">postconstructor_invoker</a></code>
+            for a specification of what arguments are passed to the <code class="computeroutput">adl_postconstruct</code>
+            call.
+          </p>
+<p>
+            Optionally, you may define a predestructor for your class.  This is done by
+            defining an <code class="computeroutput">adl_predestruct</code> function which may be found
+            by argument-dependent lookup.  The deleter of the <code class="computeroutput">shared_ptr</code>
+            created by <code class="computeroutput">deconstruct</code> will make an unqualified call to
+            <code class="computeroutput">adl_predestruct</code> with a single
+            argument: a pointer to the object which is about to be deleted.
+            As a convenience, the pointer will always be cast to point to a non-const type
+            before being passed to <code class="computeroutput">adl_predestruct</code>.
+            If no user-defined <code class="computeroutput">adl_predestruct</code> function is found via
+            argument-dependent lookup, a default function (which does nothing) will
+            be used.  After <code class="computeroutput">adl_predestruct</code> is called, the deleter
+            will delete the object with
+            <code class="computeroutput">checked_delete</code>.
+          </p>
+<p>
+            Any arguments passed to a
+            <code class="computeroutput">deconstruct()</code> call are forwarded to the matching constructor of the
+            template type
+            <code class="computeroutput">T</code>.  Arguments may also be passed to the class' associated
+            <code class="computeroutput">adl_postconstruct</code> function by using the
+            <code class="computeroutput"><a class="link" href="postconstructor_invoker.html#idp93725592-bb">postconstructor_invoker::postconstruct()</a></code> methods.
+          </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Notes:</span></p></td>
+<td>
+<p>If your compiler supports the C++0x features of rvalue references
+            and variadic templates, then <code class="computeroutput">deconstruct</code> will perform perfect
+            forwarding of arguments to the <code class="computeroutput">T</code> constructor, using
+            a prototype of:
+          </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span><span class="special">...</span> <span class="identifier">Args</span> <span class="special">&gt;</span> <span class="identifier">postconstructor_invoker</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="identifier">deconstruct</span><span class="special">(</span> <span class="identifier">Args</span> <span class="special">&amp;&amp;</span> <span class="special">...</span> <span class="identifier">args</span> <span class="special">)</span><span class="special">;</span></pre>
+<p>Otherwise, argument forwarding is performed via const references, as specified in
+            the synopsis.  In order to pass non-const references to a constructor, you will need
+            to wrap them in reference wrappers using boost::ref.
+          </p>
+<p>You may give all the <code class="computeroutput">deconstruct</code> overloads access to your class'
+            private and protected constructors by
+            declaring <a class="link" href="deconstruct_access.html" title="Class deconstruct_access">deconstruct_access</a> a friend.  Using private
+            constructors in conjunction with <a class="link" href="deconstruct_access.html" title="Class deconstruct_access">deconstruct_access</a>
+            can be useful to
+            ensure your objects are only created by <code class="computeroutput">deconstruct</code>, and thus
+            their postconstructors or predestructors will always be called.
+          </p>
+</td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A <code class="computeroutput">postconstructor_invoker&lt;T&gt;</code> owning a newly allocated object of
+            type <code class="computeroutput">T</code>.</p></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<br>Copyright &#169; 2007-2009 Frank Mori Hess<p>Distributed under the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="scoped_connection.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../signals2/reference.html#header.boost.signals2.deconstruct_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="deconstruct_access.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

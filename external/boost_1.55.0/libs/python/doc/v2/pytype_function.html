@@ -1,0 +1,370 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright Nikolay Mladenov 2007. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+<head>
+  <meta http-equiv="Content-Type" content=
+  "text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../boost.css">
+
+  <title>Boost.Python -
+  &lt;boost/python/doobject/pytype_function.hpp&gt;</title>
+</head>
+
+<body>
+  <table border="0" cellpadding="7" cellspacing="0" width="100%"
+  summary="header">
+    <tr>
+      <td valign="top" width="300">
+        <h3><a href="../../../../index.htm"><img height="86" width=
+        "277" alt="C++ Boost" src="../../../../boost.png" border=
+        "0"></a></h3>
+      </td>
+
+      <td valign="top">
+        <h1 align="center"><a href=
+        "../index.html">Boost.Python</a></h1>
+
+        <h2 align="center">Header
+        &lt;boost/python/converter/pytype_function.hpp&gt;</h2>
+      </td>
+    </tr>
+  </table>
+  <hr>
+
+  <h2>Contents</h2>
+
+  <dl class="page-index">
+    <dt><a href="#introduction">Introduction</a></dt>
+
+    <dt><a href="#classes">Classes</a></dt>
+
+    <dd>
+      <dl class="page-index">
+        <dt><a href="#wrap_pytype-spec">Class
+        <code>wrap_pytype</code></a></dt>
+
+        <dd>
+          <dl class="page-index">
+            <dt><a href="#wrap_pytype-spec-synopsis">Class
+            <code>wrap_pytype</code> synopsis</a></dt>
+
+          </dl>
+        </dd>
+      </dl>
+    </dd>
+
+    <dd>
+      <dl class="page-index">
+        <dt><a href="#registered_pytype-spec">Class
+        <code>registered_pytype</code></a></dt>
+
+        <dd>
+          <dl class="page-index">
+            <dt><a href="#registered_pytype-spec-synopsis">Class
+            <code>registered_pytype</code> synopsis</a></dt>
+
+          </dl>
+        </dd>
+      </dl>
+    </dd>
+
+    <dd>
+      <dl class="page-index">
+        <dt><a href="#expected_from_python_type-spec">Class
+        <code>expected_from_python_type</code></a></dt>
+
+        <dd>
+          <dl class="page-index">
+            <dt><a href="#expected_from_python_type-spec-synopsis">Class
+            <code>expected_from_python_type</code> synopsis</a></dt>
+
+          </dl>
+        </dd>
+      </dl>
+    </dd>
+
+    <dd>
+      <dl class="page-index">
+        <dt><a href="#to_python_target_type-spec">Class
+        <code>to_python_target_type</code></a></dt>
+
+        <dd>
+          <dl class="page-index">
+            <dt><a href="#to_python_target_type-spec-synopsis">Class
+            <code>to_python_target_type</code> synopsis</a></dt>
+
+          </dl>
+        </dd>
+      </dl>
+    </dd>
+
+    <dt><a href="#examples">Examples</a></dt>
+  </dl>
+  <hr>
+
+  <h2><a name="introduction" id=
+  "introduction"></a>Introduction</h2>
+
+  <p>To support Pythonic signatures the converters should supply a <code>get_pytype</code> function
+  returning a pointer to the associated <code>PyTypeObject</code>. See for example
+  <a href="ResultConverter.html#ResultConverter-concept">ResultConverter</a> or 
+  <a href="to_python_converter.html#to_python_converter-spec">to_python_converter</a>.
+  The classes in this header file are meant to be used when implmenting <code>get_pytype</code>.
+  There are also <code>_direct</code> versions of the templates of <code>class T</code> which
+  should be used with undecorated type parameter, expected to be in the conversion registry when the module loads.
+  </p>
+
+  <h2><a name="classes" id="classes"></a>Classes</h2>
+
+  <h3><a name="wrap_pytype-spec" id=
+  "wrap_pytype-spec"></a>Class
+  <code>wrap_pytype</code></h3>
+
+  <p>
+   This template generates a static <code>get_pytype</code> member returning the template parameter.
+  </p>
+
+  <h4><a name="wrap_pytype-spec-synopsis" id=
+  "wrap_pytype-spec-synopsis"></a>Class
+  <code>wrap_pytype</code> synopsis</h4>
+  <pre>
+namespace boost { namespace python { namespace converter{
+
+    template &lt; PyTypeObject const *pytype &gt;
+    class wrap_pytype 
+    {
+      public:
+          static PyTypeObject const *get_pytype(){return pytype; }
+    };
+
+}}}
+</pre>
+
+
+  <h3><a name="registered_pytype-spec" id=
+  "registered_pytype-spec"></a>Class
+  <code>registered_pytype</code></h3>
+
+  <p>
+   This template should be used with template parameters which are (possibly decorated)
+   types exported to python using <a href="class.html"><code>class_</code></a>.
+   The generated a static <code>get_pytype</code> member 
+   returns the corresponding python type.
+  </p>
+
+  <h4><a name="registered_pytype-spec-synopsis" id=
+  "registered_pytype-spec-synopsis"></a>Class
+  <code>registered_pytype</code> synopsis</h4>
+  <pre>
+namespace boost { namespace python { namespace converter{
+
+    template &lt; class T &gt;
+    class registered_pytype 
+    {
+      public:
+          static PyTypeObject const *get_pytype();
+    };
+
+}}}
+</pre>
+
+
+  <h3><a name="expected_from_python_type-spec" id=
+  "expected_from_python_type-spec"></a>Class
+  <code>expected_from_python_type</code></h3>
+
+  <p>
+   This template generates a static <code>get_pytype</code> member which inspects the registered
+   <code>from_python</code> converters for the type <code>T</code> and returns a matching python type.
+  </p>
+
+  <h4><a name="expected_from_python_type-spec-synopsis" id=
+  "expected_from_python_type-spec-synopsis"></a>Class
+  <code>expected_from_python_type</code> synopsis</h4>
+  <pre>
+namespace boost { namespace python { namespace converter{
+
+    template &lt; class T &gt;
+    class expected_from_python_type 
+    {
+      public:
+          static PyTypeObject const *get_pytype();
+    };
+
+}}}
+</pre>
+
+
+  <h3><a name="to_python_target_type-spec" id=
+  "to_python_target_type-spec"></a>Class
+  <code>to_python_target_type</code></h3>
+
+  <p>
+   This template generates a static <code>get_pytype</code> member returning the 
+   python type to which T can be converted.
+  </p>
+
+  <h4><a name="to_python_target_type-spec-synopsis" id=
+  "to_python_target_type-spec-synopsis"></a>Class
+  <code>to_python_target_type</code> synopsis</h4>
+  <pre>
+namespace boost { namespace python { namespace converter{
+
+    template &lt; class T &gt;
+    class to_python_target_type 
+    {
+      public:
+          static PyTypeObject const *get_pytype();
+    };
+
+}}}
+</pre>
+
+
+  <h2><a name="examples" id="examples"></a>Examples</h2>
+
+    This example presumes that someone has implemented the standard <a href=
+    "http://www.python.org/doc/2.2/ext/dnt-basics.html">noddy example
+    module</a> from the Python documentation, and placed the corresponding
+    declarations in <code>"noddy.h"</code>. Because
+    <code>noddy_NoddyObject</code> is the ultimate trivial extension type,
+    the example is a bit contrived: it wraps a function for which all
+    information is contained in the <i>type</i> of its return value.
+
+    <h3>C++ module definition</h3>
+<pre>
+#include &lt;boost/python/reference.hpp&gt;
+#include &lt;boost/python/module.hpp&gt;
+#include "noddy.h"
+
+struct tag {};
+tag make_tag() { return tag(); }
+
+using namespace boost::python;
+
+struct tag_to_noddy 
+#if defined BOOST_PYTHON_SUPPORTS_PY_SIGNATURES //unnecessary overhead if py signatures are not supported
+: wrap_pytype<&amp;noddy_NoddyType> //inherits get_pytype from wrap_pytype
+#endif
+{
+    static PyObject* convert(tag const&amp; x)
+    {
+        return PyObject_New(noddy_NoddyObject, &amp;noddy_NoddyType);
+    }
+};
+
+BOOST_PYTHON_MODULE(to_python_converter)
+{
+    def("make_tag", make_tag);
+    to_python_converter&lt;tag, tag_to_noddy
+#if defined BOOST_PYTHON_SUPPORTS_PY_SIGNATURES //invalid if py signatures are not supported
+          , true
+#endif
+          &gt;(); //"true" because tag_to_noddy has member get_pytype
+}
+</pre>
+
+
+<p>The following example registers to and from python converters using the templates
+<code>expected_from_python_type</code> and <code>to_pyhton_target_type</code>.
+</p>
+<pre>
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/def.hpp&gt;
+#include &lt;boost/python/extract.hpp&gt;
+#include &lt;boost/python/to_python_converter.hpp&gt;
+#include &lt;boost/python/class.hpp&gt;
+
+using namespace boost::python;
+
+struct A
+{
+};
+
+struct B
+{
+  A a;
+  B(const A& a_):a(a_){}
+};
+
+// Converter from A to python int
+struct BToPython 
+#if defined BOOST_PYTHON_SUPPORTS_PY_SIGNATURES //unnecessary overhead if py signatures are not supported
+   : converter::to_python_target_type&lt;A&gt;  //inherits get_pytype
+#endif
+{
+  static PyObject* convert(const B& b)
+  {
+    return incref(object(b.a).ptr());
+  }
+};
+
+// Conversion from python int to A
+struct BFromPython
+{
+  BFromPython()
+  {
+    boost::python::converter::registry::push_back
+        ( &amp;convertible
+        , &amp;construct
+        , type_id&lt; B &gt;()
+#if defined BOOST_PYTHON_SUPPORTS_PY_SIGNATURES //invalid if py signatures are not supported
+        , &amp;converter::expected_from_python_type&lt;A&gt;::get_pytype//convertible to A can be converted to B
+#endif
+        );
+  }
+
+  static void* convertible(PyObject* obj_ptr)
+  {
+      extract&lt;const A&&gt; ex(obj_ptr);
+      if (!ex.check()) return 0;
+      return obj_ptr;
+  }
+
+  static void construct(
+      PyObject* obj_ptr,
+      converter::rvalue_from_python_stage1_data* data)
+  {
+    void* storage = (
+        (converter::rvalue_from_python_storage&lt; B &gt;*)data)-&gt; storage.bytes;
+
+    extract&lt;const A&&gt; ex(obj_ptr);
+    new (storage) B(ex());
+    data->convertible = storage;
+  }
+};
+
+
+B func(const B& b) { return b ; }
+
+BOOST_PYTHON_MODULE(pytype_function_ext)
+{
+  to_python_converter&lt; B , BToPython
+#if defined BOOST_PYTHON_SUPPORTS_PY_SIGNATURES //invalid if py signatures are not supported
+             ,true 
+#endif
+             &gt;(); //has get_pytype
+  BFromPython();
+
+  class_&lt;A&gt;("A") ;
+
+  def("func", &amp;func);
+
+}
+
+
+
+&gt;&gt;&gt; from pytype_function_ext import *
+&gt;&gt;&gt; print func.__doc__
+func( (A)arg1) -> A :
+    C++ signature:
+         struct B func(struct B)
+</pre>
+
+
+  <p><i>&copy; Copyright <a href="mailto:nickm at sitius dot com">Nikolay Mladenov</a> 2007.</i></p>
+</body>
+</html>

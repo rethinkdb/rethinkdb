@@ -1,0 +1,117 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+This quick reference section is provided for convenience. You can use
+this section as a sort of a "cheat-sheet" on the most commonly used Lex
+components. It is not intended to be complete, but should give you an
+easy way to recall a particular component without having to dig through
+pages and pages of reference documentation.
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section Common Notation]
+
+[variablelist Notation
+    [[`L`]              [Lexer type]]
+    [[`l, a, b, c, d`]  [Lexer objects]]
+    [[`Iterator`]       [The type of an iterator referring to the underlying 
+                         input sequence]]
+    [[`IdType`]         [The token id type]]
+    [[`Context`]        [The lexer components `Context` type]]
+    [[`ch`]             [Character-class specific character (See __char_class_types__)]]
+    [[`Ch`]             [Character-class specific character type (See __char_class_types__)]]
+    [[`str`]            [Character-class specific string (See __char_class_types__)]]
+    [[`Str`]            [Character-class specific string type (See __char_class_types__)]]
+    [[`Attrib`]         [An attribute type]]
+    [[`fa`]             [A semantic action function with a signature: 
+                         `void f(Iterator&, Iterator&, pass_flag&, Idtype&, Context&)`.]]
+]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:lexers Primitive Lexer Components]
+
+[table 
+    [[Expression]        [Attribute]         [Description]]
+    [[`ch`]              [n/a]               [Matches `ch`]]
+    [[`char_(ch)`]       [n/a]               [Matches `ch`]]
+    [[`str`]             [n/a]               [Matches regular expression `str`]]
+    [[`string(str)`]     [n/a]               [Matches regular expression `str`]]
+    [[`token_def<Attrib>`] [`Attrib`]        [Matches the immediate argument]]
+    [[`a | b`]           [n/a]               [Matches any of the expressions `a` or `b`]]
+    [[`l[fa]`]           [Attribute of `l`]  [Call semantic action `fa` (after matching `l`).]]
+]
+
+[note  The column /Attribute/ in the table above lists the parser attribute 
+       exposed by the lexer component if it is used as a parser (see 
+       __attribute__). A 'n/a' in this columns means the lexer component is not
+       usable as a parser.]
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section Semantic Actions]
+
+Has the form:
+
+    l[f]
+
+where `f` is a function with the signatures:
+
+    void f();
+    void f(Iterator&, Iterator&);
+    void f(Iterator&, Iterator&, pass_flag&);
+    void f(Iterator&, Iterator&, pass_flag&, Idtype&);
+    void f(Iterator&, Iterator&, pass_flag&, Idtype&, Context&);
+
+You can use __boost_bind__ to bind member functions. For function
+objects, the allowed signatures are:
+
+    void operator()(unused_type, unused_type, unused_type, unused_type, unused_type) const;
+    void operator()(Iterator&, Iterator&, unused_type, unused_type, unused_type) const;
+    void operator()(Iterator&, Iterator&, pass_flag&, unused_type, unused_type) const;
+    void operator()(Iterator&, Iterator&, pass_flag&, Idtype&, unused_type) const;
+    void operator()(Iterator&, Iterator&, pass_flag&, Idtype&, Context&) const;
+
+The `unused_type` is used in the signatures above to signify 'don't
+care'.
+
+For more information see __lex_actions__.
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section Phoenix]
+
+__boost_phoenix__ makes it easier to attach semantic actions. You just
+inline your lambda expressions:
+
+    l[phoenix-lambda-expression]
+
+__lex__ provides some __boost_phoenix__ placeholders to access important
+information from the `Context` that are otherwise difficult to extract.
+
+[variablelist Spirit.Lex specific Phoenix placeholders
+    [[`_start, _end`]          [Iterators pointing to the begin and the end of the
+                                matched input sequence.]]
+    [[`_pass`]                 [Assign `lex::pass_flags::pass_fail` to `_pass` to force the current match to fail.]]
+    [[`_tokenid`]              [The token id of the matched token.]]
+    [[`_val`]                  [The token value of the matched token.]]
+    [[`_state`]                [The lexer state the token has been matched in.]]
+    [[`_eoi`]                  [Iterator referring to the current end of the input sequence.]]
+]
+
+[tip  All of the placeholders in the list above (except `_eoi`) can be changed 
+      from the inside of the semantic action allowing to modify the lexer 
+      behavior. They are defined in the namespace `boost::spirit::lex`.]
+
+For more information see __lex_actions__.
+
+[endsect]
+
+

@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>Zip Iterator</title>
+<meta name="author" content="David Abrahams, Thomas Becker" />
+<meta name="organization" content="Boost Consulting, Zephyr Associates, Inc." />
+<meta name="date" content="2006-09-11" />
+<meta name="copyright" content="Copyright David Abrahams and Thomas Becker 2003." />
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="zip-iterator">
+<h1 class="title">Zip Iterator</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>David Abrahams, Thomas Becker</td></tr>
+<tr><th class="docinfo-name">Contact:</th>
+<td><a class="first reference external" href="mailto:dave&#64;boost-consulting.com">dave&#64;boost-consulting.com</a>, <a class="last reference external" href="mailto:thomas&#64;styleadvisor.com">thomas&#64;styleadvisor.com</a></td></tr>
+<tr><th class="docinfo-name">Organization:</th>
+<td><a class="first reference external" href="http://www.boost-consulting.com">Boost Consulting</a>, <a class="last reference external" href="http://www.styleadvisor.com">Zephyr Associates, Inc.</a></td></tr>
+<tr><th class="docinfo-name">Date:</th>
+<td>2006-09-11</td></tr>
+<tr><th class="docinfo-name">Copyright:</th>
+<td>Copyright David Abrahams and Thomas Becker 2003.</td></tr>
+</tbody>
+</table>
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">abstract:</th><td class="field-body"><!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+The zip iterator provides the ability to parallel-iterate
+over several controlled sequences simultaneously. A zip
+iterator is constructed from a tuple of iterators. Moving
+the zip iterator moves all the iterators in parallel.
+Dereferencing the zip iterator returns a tuple that contains
+the results of dereferencing the individual iterators.</td>
+</tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#zip-iterator-synopsis" id="id1"><tt class="docutils literal"><span class="pre">zip_iterator</span></tt> synopsis</a></li>
+<li><a class="reference internal" href="#zip-iterator-requirements" id="id2"><tt class="docutils literal"><span class="pre">zip_iterator</span></tt> requirements</a></li>
+<li><a class="reference internal" href="#zip-iterator-models" id="id3"><tt class="docutils literal"><span class="pre">zip_iterator</span></tt> models</a></li>
+<li><a class="reference internal" href="#zip-iterator-operations" id="id4"><tt class="docutils literal"><span class="pre">zip_iterator</span></tt> operations</a></li>
+<li><a class="reference internal" href="#examples" id="id5">Examples</a></li>
+</ul>
+</div>
+<div class="section" id="zip-iterator-synopsis">
+<h1><a class="toc-backref" href="#id1"><tt class="docutils literal"><span class="pre">zip_iterator</span></tt> synopsis</a></h1>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+template&lt;typename IteratorTuple&gt;
+class zip_iterator
+{
+
+public:
+  typedef /* see below */ reference;
+  typedef reference value_type;
+  typedef value_type* pointer;
+  typedef /* see below */ difference_type;
+  typedef /* see below */ iterator_category;
+
+  zip_iterator();
+  zip_iterator(IteratorTuple iterator_tuple);
+
+  template&lt;typename OtherIteratorTuple&gt;
+  zip_iterator(
+        const zip_iterator&lt;OtherIteratorTuple&gt;&amp; other
+      , typename enable_if_convertible&lt;
+              OtherIteratorTuple
+            , IteratorTuple&gt;::type* = 0     // exposition only
+  );
+
+  const IteratorTuple&amp; get_iterator_tuple() const;
+
+private:
+  IteratorTuple m_iterator_tuple;     // exposition only
+};
+
+template&lt;typename IteratorTuple&gt;
+zip_iterator&lt;IteratorTuple&gt;
+make_zip_iterator(IteratorTuple t);
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">reference</span></tt> member of <tt class="docutils literal"><span class="pre">zip_iterator</span></tt> is the type of the tuple
+made of the reference types of the iterator types in the <tt class="docutils literal"><span class="pre">IteratorTuple</span></tt>
+argument.</p>
+<p>The <tt class="docutils literal"><span class="pre">difference_type</span></tt> member of <tt class="docutils literal"><span class="pre">zip_iterator</span></tt> is the <tt class="docutils literal"><span class="pre">difference_type</span></tt>
+of the first of the iterator types in the <tt class="docutils literal"><span class="pre">IteratorTuple</span></tt> argument.</p>
+<p>The <tt class="docutils literal"><span class="pre">iterator_category</span></tt> member of <tt class="docutils literal"><span class="pre">zip_iterator</span></tt> is convertible to the
+minimum of the traversal categories of the iterator types in the <tt class="docutils literal"><span class="pre">IteratorTuple</span></tt>
+argument. For example, if the <tt class="docutils literal"><span class="pre">zip_iterator</span></tt> holds only vector
+iterators, then <tt class="docutils literal"><span class="pre">iterator_category</span></tt> is convertible to
+<tt class="docutils literal"><span class="pre">boost::random_access_traversal_tag</span></tt>. If you add a list iterator, then
+<tt class="docutils literal"><span class="pre">iterator_category</span></tt> will be convertible to <tt class="docutils literal"><span class="pre">boost::bidirectional_traversal_tag</span></tt>,
+but no longer to <tt class="docutils literal"><span class="pre">boost::random_access_traversal_tag</span></tt>.</p>
+</div>
+<div class="section" id="zip-iterator-requirements">
+<h1><a class="toc-backref" href="#id2"><tt class="docutils literal"><span class="pre">zip_iterator</span></tt> requirements</a></h1>
+<p>All iterator types in the argument <tt class="docutils literal"><span class="pre">IteratorTuple</span></tt> shall model Readable Iterator.</p>
+</div>
+<div class="section" id="zip-iterator-models">
+<h1><a class="toc-backref" href="#id3"><tt class="docutils literal"><span class="pre">zip_iterator</span></tt> models</a></h1>
+<p>The resulting <tt class="docutils literal"><span class="pre">zip_iterator</span></tt> models Readable Iterator.</p>
+<p>The fact that the <tt class="docutils literal"><span class="pre">zip_iterator</span></tt> models only Readable Iterator does not
+prevent you from modifying the values that the individual iterators point
+to. The tuple returned by the <tt class="docutils literal"><span class="pre">zip_iterator</span></tt>'s <tt class="docutils literal"><span class="pre">operator*</span></tt> is a tuple
+constructed from the reference types of the individual iterators, not
+their value types. For example, if <tt class="docutils literal"><span class="pre">zip_it</span></tt> is a <tt class="docutils literal"><span class="pre">zip_iterator</span></tt> whose
+first member iterator is an <tt class="docutils literal"><span class="pre">std::vector&lt;double&gt;::iterator</span></tt>, then the
+following line will modify the value which the first member iterator of
+<tt class="docutils literal"><span class="pre">zip_it</span></tt> currently points to:</p>
+<pre class="literal-block">
+zip_it-&gt;get&lt;0&gt;() = 42.0;
+</pre>
+<p>Consider the set of standard traversal concepts obtained by taking
+the most refined standard traversal concept modeled by each individual
+iterator type in the <tt class="docutils literal"><span class="pre">IteratorTuple</span></tt> argument.The <tt class="docutils literal"><span class="pre">zip_iterator</span></tt>
+models the least refined standard traversal concept in this set.</p>
+<p><tt class="docutils literal"><span class="pre">zip_iterator&lt;IteratorTuple1&gt;</span></tt> is interoperable with
+<tt class="docutils literal"><span class="pre">zip_iterator&lt;IteratorTuple2&gt;</span></tt> if and only if <tt class="docutils literal"><span class="pre">IteratorTuple1</span></tt>
+is interoperable with <tt class="docutils literal"><span class="pre">IteratorTuple2</span></tt>.</p>
+</div>
+<div class="section" id="zip-iterator-operations">
+<h1><a class="toc-backref" href="#id4"><tt class="docutils literal"><span class="pre">zip_iterator</span></tt> operations</a></h1>
+<p>In addition to the operations required by the concepts modeled by
+<tt class="docutils literal"><span class="pre">zip_iterator</span></tt>, <tt class="docutils literal"><span class="pre">zip_iterator</span></tt> provides the following
+operations.</p>
+<p><tt class="docutils literal"><span class="pre">zip_iterator();</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">An instance of <tt class="docutils literal"><span class="pre">zip_iterator</span></tt> with <tt class="docutils literal"><span class="pre">m_iterator_tuple</span></tt>
+default constructed.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">zip_iterator(IteratorTuple</span> <span class="pre">iterator_tuple);</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">An instance of <tt class="docutils literal"><span class="pre">zip_iterator</span></tt> with <tt class="docutils literal"><span class="pre">m_iterator_tuple</span></tt>
+initialized to <tt class="docutils literal"><span class="pre">iterator_tuple</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<pre class="literal-block">
+template&lt;typename OtherIteratorTuple&gt;
+zip_iterator(
+      const zip_iterator&lt;OtherIteratorTuple&gt;&amp; other
+    , typename enable_if_convertible&lt;
+            OtherIteratorTuple
+          , IteratorTuple&gt;::type* = 0     // exposition only
+);
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">An instance of <tt class="docutils literal"><span class="pre">zip_iterator</span></tt> that is a copy of <tt class="docutils literal"><span class="pre">other</span></tt>.</td>
+</tr>
+<tr class="field"><th class="field-name">Requires:</th><td class="field-body"><tt class="docutils literal"><span class="pre">OtherIteratorTuple</span></tt> is implicitly convertible to <tt class="docutils literal"><span class="pre">IteratorTuple</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">const</span> <span class="pre">IteratorTuple&amp;</span> <span class="pre">get_iterator_tuple()</span> <span class="pre">const;</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">m_iterator_tuple</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">reference</span> <span class="pre">operator*()</span> <span class="pre">const;</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">A tuple consisting of the results of dereferencing all iterators in
+<tt class="docutils literal"><span class="pre">m_iterator_tuple</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">zip_iterator&amp;</span> <span class="pre">operator++();</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body">Increments each iterator in <tt class="docutils literal"><span class="pre">m_iterator_tuple</span></tt>.</td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">*this</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">zip_iterator&amp;</span> <span class="pre">operator--();</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body">Decrements each iterator in <tt class="docutils literal"><span class="pre">m_iterator_tuple</span></tt>.</td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">*this</span></tt></td>
+</tr>
+</tbody>
+</table>
+<pre class="literal-block">
+template&lt;typename IteratorTuple&gt;
+zip_iterator&lt;IteratorTuple&gt;
+make_zip_iterator(IteratorTuple t);
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">An instance of <tt class="docutils literal"><span class="pre">zip_iterator&lt;IteratorTuple&gt;</span></tt> with <tt class="docutils literal"><span class="pre">m_iterator_tuple</span></tt>
+initialized to <tt class="docutils literal"><span class="pre">t</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+template&lt;typename IteratorTuple&gt;
+zip_iterator&lt;IteratorTuple&gt;
+make_zip_iterator(IteratorTuple t);
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">An instance of <tt class="docutils literal"><span class="pre">zip_iterator&lt;IteratorTuple&gt;</span></tt> with <tt class="docutils literal"><span class="pre">m_iterator_tuple</span></tt>
+initialized to <tt class="docutils literal"><span class="pre">t</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+</div>
+<div class="section" id="examples">
+<h1><a class="toc-backref" href="#id5">Examples</a></h1>
+<p>There are two main types of applications of the <tt class="docutils literal"><span class="pre">zip_iterator</span></tt>. The first
+one concerns runtime efficiency: If one has several controlled sequences
+of the same length that must be somehow processed, e.g., with the
+<tt class="docutils literal"><span class="pre">for_each</span></tt> algorithm, then it is more efficient to perform just
+one parallel-iteration rather than several individual iterations. For an
+example, assume that <tt class="docutils literal"><span class="pre">vect_of_doubles</span></tt> and <tt class="docutils literal"><span class="pre">vect_of_ints</span></tt>
+are two vectors of equal length containing doubles and ints, respectively,
+and consider the following two iterations:</p>
+<pre class="literal-block">
+std::vector&lt;double&gt;::const_iterator beg1 = vect_of_doubles.begin();
+std::vector&lt;double&gt;::const_iterator end1 = vect_of_doubles.end();
+std::vector&lt;int&gt;::const_iterator beg2 = vect_of_ints.begin();
+std::vector&lt;int&gt;::const_iterator end2 = vect_of_ints.end();
+
+std::for_each(beg1, end1, func_0());
+std::for_each(beg2, end2, func_1());
+</pre>
+<p>These two iterations can now be replaced with a single one as follows:</p>
+<pre class="literal-block">
+std::for_each(
+  boost::make_zip_iterator(
+    boost::make_tuple(beg1, beg2)
+    ),
+  boost::make_zip_iterator(
+    boost::make_tuple(end1, end2)
+    ),
+  zip_func()
+  );
+</pre>
+<p>A non-generic implementation of <tt class="docutils literal"><span class="pre">zip_func</span></tt> could look as follows:</p>
+<pre class="literal-block">
+struct zip_func :
+  public std::unary_function&lt;const boost::tuple&lt;const double&amp;, const int&amp;&gt;&amp;, void&gt;
+{
+  void operator()(const boost::tuple&lt;const double&amp;, const int&amp;&gt;&amp; t) const
+  {
+    m_f0(t.get&lt;0&gt;());
+    m_f1(t.get&lt;1&gt;());
+  }
+
+private:
+  func_0 m_f0;
+  func_1 m_f1;
+};
+</pre>
+<p>The second important application of the <tt class="docutils literal"><span class="pre">zip_iterator</span></tt> is as a building block
+to make combining iterators. A combining iterator is an iterator
+that parallel-iterates over several controlled sequences and, upon
+dereferencing, returns the result of applying a functor to the values of the
+sequences at the respective positions. This can now be achieved by using the
+<tt class="docutils literal"><span class="pre">zip_iterator</span></tt> in conjunction with the <tt class="docutils literal"><span class="pre">transform_iterator</span></tt>.</p>
+<p>Suppose, for example, that you have two vectors of doubles, say
+<tt class="docutils literal"><span class="pre">vect_1</span></tt> and <tt class="docutils literal"><span class="pre">vect_2</span></tt>, and you need to expose to a client
+a controlled sequence containing the products of the elements of
+<tt class="docutils literal"><span class="pre">vect_1</span></tt> and <tt class="docutils literal"><span class="pre">vect_2</span></tt>. Rather than placing these products
+in a third vector, you can use a combining iterator that calculates the
+products on the fly. Let us assume that <tt class="docutils literal"><span class="pre">tuple_multiplies</span></tt> is a
+functor that works like <tt class="docutils literal"><span class="pre">std::multiplies</span></tt>, except that it takes
+its two arguments packaged in a tuple. Then the two iterators
+<tt class="docutils literal"><span class="pre">it_begin</span></tt> and <tt class="docutils literal"><span class="pre">it_end</span></tt> defined below delimit a controlled
+sequence containing the products of the elements of <tt class="docutils literal"><span class="pre">vect_1</span></tt> and
+<tt class="docutils literal"><span class="pre">vect_2</span></tt>:</p>
+<pre class="literal-block">
+typedef boost::tuple&lt;
+  std::vector&lt;double&gt;::const_iterator,
+  std::vector&lt;double&gt;::const_iterator
+  &gt; the_iterator_tuple;
+
+typedef boost::zip_iterator&lt;
+  the_iterator_tuple
+  &gt; the_zip_iterator;
+
+typedef boost::transform_iterator&lt;
+  tuple_multiplies&lt;double&gt;,
+  the_zip_iterator
+  &gt; the_transform_iterator;
+
+the_transform_iterator it_begin(
+  the_zip_iterator(
+    the_iterator_tuple(
+      vect_1.begin(),
+      vect_2.begin()
+      )
+    ),
+  tuple_multiplies&lt;double&gt;()
+  );
+
+the_transform_iterator it_end(
+  the_zip_iterator(
+    the_iterator_tuple(
+      vect_1.end(),
+      vect_2.end()
+      )
+    ),
+  tuple_multiplies&lt;double&gt;()
+  );
+</pre>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+<a class="reference external" href="zip_iterator.rst">View document source</a>.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

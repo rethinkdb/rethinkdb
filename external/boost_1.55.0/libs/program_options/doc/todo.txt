@@ -1,0 +1,238 @@
+
+Say that variables_map is actually derived from std::map.
+
+Make parse_config_file("foo.cfg", desc) work.
+
+Document handling of positional options which depends on precedding options. 
+I.e scanning the parsed options and creating new variables_map when we see
+a positional option. (Email from Tony).
+
+> My instinctive reaction is to provide both via an options argument to
+> split_command_line (a name that would now be more appropriate). But I
+> haven't devoted much time to thinking this through, so I may be wrong. :-)
+> 
+> In any event, the tokenization isn't much fun. I'd expect the library to
+> provide a convenient mechanism for parsing a response file.
+
+
+> Similarly, is there some easy to use hook for customizing the "arg" to
+> indicate the type of the data (similar to how the textual representation
+> of the default argument can be changed, e.g.
+> value<Infile>(&forests_file)->default_value(default_in,"STDIN"), so that
+> I could get something like: "-f filename (=STDIN)   :" instead of "-f
+> arg (=STDIN)  :"?
+
+> A minor nit pick, with option groups (chained options_description), the
+> colons for the same group align but not across groups.
+
+
+There's another possibility:
+
+   value<type>(&variable, "filename")->......
+
+something like that was in the pre-review version, with the difference that the value name was also used to specify flags, e.g "filename?" would mean the value is optional.
+
+
+Should we also store the name specified on the command line in basic_option,
+so that validation_error can mention the *specified* option name?
+
+
+The config file is a bit different from command line. E.g. 'bool_switch' can't
+be specified in the config file. Further, it's not possible to specify a list
+of values in config file. For example, you can't write
+
+   include=a,b,c,d
+
+(or some other separator). You need:
+
+   include=a
+   ...
+   include=d
+
+
+ 
+> I often find it beneficial to start a log file, by tracing all options
+> in effect. Thus, it would be nice if one could iterate over all values
+> in a variable_map and get a string representation of all values. Perhaps
+> as an iterator range to the original string that was parsed into the
+> value in the first place. Using as<string> delegates to boost::any and
+> only succeeds if the value is indeed a string (a design decision I can
+> only applaud, btw), so I'm out of luck there.
+
+
+
+
+UML diagram?
+
+src/cmdline.cpp: function strncmp_nocase():
+>     maybe it can be replaced by something from string_algorithms
+>     library. AFAIK the library should be in 1.32.
+
+> 24. the documentation may contain info what source files are needed
+>     for which feature or whether they need to be included always all.
+
+The program_options.reference.html may contain one-liner
+   overview for every header and every class/typedef/function
+   listed here - just for quick browsing and overview.
+
+
+> > > 5. Maybe more overcommented code examples can be added into
+> > >    docs, each exploring single feature of library.
+> > >
+> > >    Some people learn mostly from such examples.
+> > >
+> > >    Later note: definitely would be useful, IMO.
+> >
+> > Maybe. Do you have specific ideas what the examples can be about?
+>
+> One tiny example concentrating on one feature as short/long options,
+> multiple sources, hidden options, positional options, INI handling etc.
+> Something what user can skim over and cut/paste into app.
+
+
+> I would prefer that all occurrences of ASCII be capitalized.  It is the
+> abbreviation of the name of the Standard.  You may show it in lower case,
+> though, to distinguish "char strings in local 8-bit encoding" from the
+> Standard but it may confuse some readers.  I can't think of a good
+> alternative right now.
+
+> [By the way, "positional options" _desperately_ needs an entry in the
+> glossary. It's the most mystifying term in the library.]
+
+> If not already stated, you should note that all options must appear in the
+> options description layer (or class or object).  No options may make their
+> first appearance in the runtime configuration file, for instance.  The
+> library doesn't like surprises.  (I bring this up because other
+> initialization libraries allow an option to be declared in the
+> configuration file alone.  The file reader stores the option and parses it
+> to determine its type, for example, Boolean, double, integer or string.)
+
+-----------
+> "In the simplest case, the name is explicitly specified, which allows the
+> program to decide if such an option is known."
+>
+> or
+>
+> "In the simplest case, the name is explicitly specified and the program
+> decides that the option is known."
+> (This paragraph is a bit hard to read.  Maybe when I understand the library
+> better I can suggest some wording which flows more smoothly.)
+
+Maybe some explanation can help. Most of the time, input source contains both 
+the name of option and the value, for example, --foo=10. In this case, we 
+just lookup the option name, decide we know this option, and process it.
+
+In one specific case -- positional command line options, we don't have 
+explicit name. For example:
+
+   my_prog 1 2 3
+
+so more complex logic is necessary.
+
+
+> Rather than clutter up this list it might be better for the word "sources"
+> to be a link to another part of the document which lists the sources and
+> the order of precedence.
+
+Style of 'screen' in docs.
+
+> Perhaps you should include some sample output to show correct and incorrect
+> locale support or include a link to somewhere else in Boost where the
+> reader can find more information.  I wouldn't know a Unicode if it came up
+> and bit me on the ankle.
+
+
+> "Common cases are when the value is explicitly specified by the user, and
+> when the value cannot be specified by the user, but the presense of the
+> option implies some value (for example, <code>true</code>). So, the parser
+> checks that the value is specified when needed and not specified when not
+> needed, and returns new (name, value) pair."
+>
+> This wording is quite stiff and I can't decipher it, especially the "not
+> specified when not needed" phrase.  Can you rewrite this?
+
+> While I'm thinking about it, can you add the "Last revised..." line at the
+> bottom of each HTML page as it is on program_options.html or it that
+> governed by an xsl file?
+
+> If it doesn't already exist, there should be something in the tutorial to
+> explicitly define the steps required prior to the use of a configuration
+> variable as:
+> 1. declaration
+> 2. addition or composition
+> 3. storage or insertion
+> 4. notification.
+
+
+> I think a few lines should be added to aid the library user with the test
+> programs.  You could place them here in howto.xml or elsewhere or in a new
+> section entirely.  Users will want to know if their compiler is known to
+> work with the library and should be directed to the Boost Compiler Status
+> Tables page (\status\compiler_status.html or similar) or directly to the
+> Compiler Status Summary (http://boost.sourceforge.net/regression-logs/).
+
+> Many users will want to run the test programs on their own computer.  Your
+> documentation should answer these questions:
+> Which libraries must be linked to build the programs? (Dynamic? Static?)
+> Are there any other special considerations or any compiler switches to be
+> set? For those without a full Boost package, which other Boost libraries
+> are "included" by the test programs and, therefore, must be available?
+
+Basically, it's assumed that test programs with be run with Boost.Build. 
+Maybe it's worth noting that if a user wants to compiler them himself, 
+he should link the program_options library.
+
+> If you decide to make a separate section to describe the implementation of
+> the test programs, you might move the "test_convert" paragraphs starting at
+> line 379 of howto.xml there and put a referring link in its place.
+
+> I thought there was a bit of correspondence on one of the Boost mailing
+> lists concerning the inability of program_options to show the stored
+> variables 'en masse' but I can't find it now.  You should include that in
+> the documentation. Most users will be searching for a method to verify that
+> command line and configuration file values were actually stored in place of
+> the default values, for instance.  You could put in a line or two stating
+> that there is no one function which will send the entire database to a file
+> for later review.  (I think it had something to do with the fact that
+> program_options doesn't "know" the type of each option.)  I think it will
+> acquire the status of a Frequently-Asked Question.)
+
+
+> > Agreed. Though it's no FAQ section yet.... maybe, I can add this to howto
+>
+> section, though a question without full solution is not good.
+>
+> For the time being, those who want to know if such a display function
+> exists will have their question answered and the reason for it.  I suppose
+> that the library user could insert a series of statements in his program
+> immediately after the "notify" function which would write each known option
+> to a file for later examination.  Some people may use a number of "assert"
+> statements instead. They would only come into play in the debug mode.
+
+More visibility for bool_switch.
+
+
+> BTW: I thought of one other comment. One of the things I missed a little
+> in the documentation is a description of the config file format, as well
+> as what can be achieved with the po::command_line_style::style_t enum. I
+> think most users will need this information sooner or later. A few
+> examples would be fine... But then again time is such a precious thing
+
+> Does the library supports sections in config files
+
+> What about the combination of (if some user-settable switch is thrown,
+> but not by default):
+> 
+> * allowing unknown options -- these are considered positional parameters
+> * rearranging the argument list such that all positional parameters
+> are moved to the end
+> 
+> This way:
+> 
+> program --unknown 42 --known-flag --known-arg value
+> 
+> is handled as if it were (in standard UNIX command-line-ese):
+> 
+> program --known-flag --known-arg value -- --unknown 42
+
+

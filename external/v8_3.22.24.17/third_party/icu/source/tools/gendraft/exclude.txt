@@ -1,0 +1,7 @@
+#*
+#*******************************************************************************
+#*   Copyright (C) 2006, International Business Machines
+#*   Corporation and others.  All Rights Reserved.
+#*******************************************************************************
+#*
+# file that contains function names that need to be excluded from generation

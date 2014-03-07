@@ -1,0 +1,150 @@
+<html>
+<!--
+     Copyright (c) 2013 Eurodecision
+     Authors: Guillaume Pinot
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+
+<head>
+<title>Compose Property Map Adaptor</title>
+</head>
+
+<body bgcolor="#ffffff" link="#0000ee" text="#000000" vlink="#551a8b" 
+      alink="#ff0000"> 
+<img src="../../../boost.png" 
+     alt="C++ Boost" width="277" height="86"> 
+
+<br Clear>
+
+
+<h2>
+<a name="sec:compose-property-map"></a>Compose Property Map
+Adaptor
+</h2>
+
+<pre>
+compose_property_map&lt;FPMap, GPMap&gt;
+</pre>
+
+<p>
+This property map is an adaptor that composes two property map.  The
+new property map will of the same model
+as <tt>FPMap</tt>. <tt>GPMap</tt> must
+model <a href="./ReadablePropertyMap.html">Readable Property Map</a>.
+</p>
+
+<h3>Example</h3>
+
+<a href="../example/compose_property_map_example.cpp">compose_property_map_example.cpp</a>:
+<pre>
+#include &lt;boost/property_map/compose_property_map.hpp&gt;
+#include &lt;iostream&gt;
+
+int main()
+{
+    const int idx[] = {2, 0, 4, 1, 3};
+    double v[] = {1., 3., 0., 4., 2.};
+    boost::compose_property_map&lt;double*, const int*&gt; cpm(v, idx);
+
+    for (int i = 0; i < 5; ++i)
+        std::cout << get(cpm, i) << " ";
+    std::cout << std::endl;
+
+    for (int i = 0; i < 5; ++i)
+        ++cpm[i];
+
+    for (int i = 0; i < 5; ++i)
+        std::cout << get(cpm, i) << " ";
+    std::cout << std::endl;
+
+    for (int i = 0; i < 5; ++i)
+        put(cpm, i, 42.);
+
+    for (int i = 0; i < 5; ++i)
+        std::cout << get(cpm, i) << " ";
+    std::cout << std::endl;
+
+    return 0;
+}
+</pre>
+
+<p>Output:</p>
+<pre>
+0 1 2 3 4 
+1 2 3 4 5 
+42 42 42 42 42 
+</pre>
+
+<h3>Where Defined</h3>
+
+<p>
+<a href="../../../boost/property_map/compose_property_map.hpp"><tt>boost/property_map/compose_property_map.hpp</tt></a>
+</p>
+
+<h3>Template Parameters</h3>
+
+<P>
+
+<table border>
+
+<tr>
+<th>Parameter</th><th>Description</th>
+</tr>
+
+<tr>
+<td><tt>FPMap</tt></td> 
+<td>Must be a property map of any kind.</td>
+</tr>
+
+<tr>
+<td><tt>GPMap</tt></td>
+<td>Must be a model of <a href="./ReadablePropertyMap.html">Readable Property Map</a>.</td>
+</tr>
+
+</table>
+
+<H3>Members</H3>
+
+<p>
+In addition to the methods and functions required by property maps,
+this class has the following members:
+</p>
+
+<hr>
+
+<pre>
+compose_property_map(const FPMap&amp; f, const GPMap&amp; g);
+</pre>
+Constructor.
+
+<hr>
+
+<h3>Non-Member functions</h3>
+
+<hr>
+
+<pre>
+  template &lt;class FPMap, class GPMap&gt;
+  compose_property_map&lt;FPMap, GPMap&gt;
+  make_compose_property_map(const FPMap&amp; f, const GPMap&amp; g);
+</pre>
+Returns a <tt>compose_property_map</tt> using the given property maps type.
+
+<hr>
+
+<table>
+<tr valign="top">
+<td nowrap>Copyright &copy; 2013</td>
+<td>Eurodecision</td>
+</tr>
+<tr valign="top">
+<td nowrap>Author:</td>
+<td>Guillaume Pinot</td>
+</tr>
+</table>
+
+</body>
+</html> 

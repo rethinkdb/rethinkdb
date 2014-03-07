@@ -1,0 +1,19 @@
+/* My first conjure program */
+
+int pow2(n)
+{
+    int a = 2;
+    int i = 1;
+    while (i < n)
+    {
+        a = a * 2;
+        i = i + 1;
+    }
+    return a;
+}
+
+int main()
+{
+    return pow2(10);
+}
+

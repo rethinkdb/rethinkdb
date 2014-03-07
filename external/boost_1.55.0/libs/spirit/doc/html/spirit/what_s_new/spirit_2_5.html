@@ -1,0 +1,247 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Spirit V2.5</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../what_s_new.html" title="What's New">
+<link rel="prev" href="spirit_2_5_1.html" title="Spirit V2.5.1">
+<link rel="next" href="spirit_2_4_2.html" title="Spirit V2.4.2">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="spirit_2_5_1.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../what_s_new.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="spirit_2_4_2.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="spirit.what_s_new.spirit_2_5"></a><a class="link" href="spirit_2_5.html" title="Spirit V2.5">Spirit V2.5</a>
+</h3></div></div></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_5.h0"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_5.what_s_changed_in__emphasis_spirit_qi__emphasis__and__emphasis_spirit_karma__emphasis__from_v2_4_2__boost_v1_46_0__to_v2_5__boost_v1_47_0_"></a></span><a class="link" href="spirit_2_5.html#spirit.what_s_new.spirit_2_5.what_s_changed_in__emphasis_spirit_qi__emphasis__and__emphasis_spirit_karma__emphasis__from_v2_4_2__boost_v1_46_0__to_v2_5__boost_v1_47_0_">What's
+        changed in <span class="emphasis"><em>Spirit.Qi</em></span> and <span class="emphasis"><em>Spirit.Karma</em></span>
+        from V2.4.2 (Boost V1.46.0) to V2.5 (Boost V1.47.0)</a>
+      </h5>
+<p>
+        This version of <a href="http://boost-spirit.com" target="_top">Spirit</a> now supports
+        the new version of <a href="../../../../../../libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>
+        (V3), which has been released as part of Boost V1.47. Please note that this
+        support is purely preliminary and should not be considered production quality.
+        The reason why we are releasing this now is to enable people who want to
+        use the new version of <a href="../../../../../../libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>
+        in their code to do so without any conflicts with existing code using <a href="http://boost-spirit.com" target="_top">Spirit</a>. Generally, no <a href="http://boost-spirit.com" target="_top">Spirit</a>
+        code needs to be changed. To activate the use of <a href="../../../../../../libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>
+        V3 for <a href="http://boost-spirit.com" target="_top">Spirit</a> you need to define
+        the following preprocessor constant for your builds (before including any
+        of Spirit's include files):
+      </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_SPIRIT_USE_PHOENIX_V3</span> <span class="number">1</span>
+</pre>
+<h5>
+<a name="spirit.what_s_new.spirit_2_5.h1"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_5.new_features_in_qi_or_karma"></a></span><a class="link" href="spirit_2_5.html#spirit.what_s_new.spirit_2_5.new_features_in_qi_or_karma">New Features
+        in Qi or Karma</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Added <a class="link" href="../support/utree.html" title="The utree data structure"><code class="computeroutput"><span class="identifier">utree</span></code></a>,
+            a generic, hierarchical, and dynamic data structure that can represent
+            abstract syntax trees. It's well integrated with <span class="emphasis"><em>Spirit.Qi</em></span>
+            and <span class="emphasis"><em>Spirit.Karma</em></span>. It can be passed as an attribute
+            while parsing to almost any grammar. At the same time, it can be used
+            as an attribute to generate output from.
+          </li>
+<li class="listitem">
+            Added a new macro <code class="computeroutput"><span class="identifier">BOOST_SPIRIT_TERMINAL_NAME</span></code>
+            which takes in two parameters (the terminal name and its type). Before,
+            there was only one parameter (the terminal name) and the type assumed
+            the terminal name with <code class="computeroutput"><span class="identifier">_type</span></code>
+            appended. This produced invalid C++ identifiers with terminals such as
+            <code class="computeroutput"><span class="identifier">int_</span></code>, which resulted
+            in generated a type <code class="computeroutput"><span class="identifier">int__type</span></code>
+            with a bogus double underscore that is reserved for system use in C++.
+          </li>
+<li class="listitem">
+            The numeric parsers now allow arbitrary radix from 2..10 and 16
+          </li>
+<li class="listitem">
+            The placeholder <code class="computeroutput"><span class="identifier">_val</span></code>
+            now can be used in top level semantic actions outside of any right hand
+            side of a rule. Here is an example:
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span>
+<span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">test_attr</span><span class="special">(</span><span class="string">"456"</span><span class="special">,</span> <span class="identifier">int_</span><span class="special">[</span><span class="identifier">_val</span> <span class="special">=</span> <span class="identifier">_1</span><span class="special">],</span> <span class="identifier">i</span><span class="special">)</span> <span class="special">&amp;&amp;</span> <span class="identifier">i</span> <span class="special">==</span> <span class="number">456</span><span class="special">);</span>
+</pre>
+            In this case _val refers to the attribute value, which is passed in to
+            the <code class="computeroutput"><span class="identifier">parse</span><span class="special">()</span></code>
+            or <code class="computeroutput"><span class="identifier">phrase_parse</span><span class="special">()</span></code>
+            functions. Similar constructs are now possible in <span class="emphasis"><em>Spirit.Karma</em></span>
+            as well:
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">123</span><span class="special">;</span>
+<span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">test</span><span class="special">(</span><span class="string">"123"</span><span class="special">,</span> <span class="identifier">int_</span><span class="special">[</span><span class="identifier">_1</span> <span class="special">=</span> <span class="identifier">_val</span><span class="special">],</span> <span class="identifier">i</span><span class="special">));</span>
+</pre>
+            This change unifies the handling of the <code class="computeroutput"><span class="identifier">_val</span></code>
+            placeholder allowing to use it everywhere, not only in semantic actions
+            attached to the right hand sides of a rule.
+          </li>
+<li class="listitem">
+            Added support for <span class="emphasis"><em>Spirit.Karma</em></span> <a class="link" href="../karma/reference/numeric/unsigned_int.html" title="Unsigned Integer Number Generators (uint_, etc.)">unsigned
+            numeric generators</a> with arbitrary radix values in the (inclusive)
+            range from <code class="computeroutput"><span class="number">2</span></code> .. <code class="computeroutput"><span class="number">36</span></code>.
+          </li>
+</ul></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_5.h2"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_5.bug_fixes_in_qi_or_karma"></a></span><a class="link" href="spirit_2_5.html#spirit.what_s_new.spirit_2_5.bug_fixes_in_qi_or_karma">Bug Fixes
+        in Qi or Karma</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="emphasis"><em>Spirit.Qi</em></span> integer literals (like <code class="computeroutput"><span class="identifier">int_</span><span class="special">(</span><span class="number">10</span><span class="special">)</span></code>)
+            do not consume input on failure anymore.
+          </li>
+<li class="listitem">
+            Fixed Boost ticket #5246: mmap_file_iterator Fails to initialize correctly.
+          </li>
+<li class="listitem">
+            Fixed Boost ticket #5246: mmap_file_iterator Fails to initialize correctly.
+          </li>
+<li class="listitem">
+            Fixed a const correctness problem in <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">real_policies</span><span class="special">&lt;&gt;</span></code> preventing the use of const floating
+            point types with the generator. Thanks to Jeroen Habraken (a.k.a. VeXocide)
+            for reporting it and for submitting a patch and a test.
+          </li>
+<li class="listitem">
+            Fixed the <span class="emphasis"><em>Spirit.Qi</em></span> <a class="link" href="../qi/reference/auxiliary/attr.html" title="Attribute Parser (attr)"><code class="computeroutput"><span class="identifier">attr</span><span class="special">(</span><span class="identifier">attrib</span><span class="special">)</span></code></a>
+            parser, the <span class="emphasis"><em>Spirit.Qi</em></span> <a class="link" href="../qi/reference/string/symbols.html" title="Symbols Parser (symbols)"><code class="computeroutput"><span class="identifier">symbols</span><span class="special">&lt;&gt;</span></code></a>
+            parser, and the <span class="emphasis"><em>Spirit.Karma</em></span> <a class="link" href="../karma/reference/string/symbols.html" title="Symbols Generator (symbols)"><code class="computeroutput"><span class="identifier">symbols</span><span class="special">&lt;&gt;</span></code></a>
+            generator to properly handle container attributes. These were broken
+            in Boost V1.46.1 (thanks to Aaron Graham and Joerg Becker for reporting
+            the problems).
+          </li>
+<li class="listitem">
+            Fixed the <a class="link" href="../qi/reference/stream/stream.html" title="Stream Parsers (stream, wstream, etc.)"><code class="computeroutput"><span class="identifier">stream</span></code></a> parser to properly adjust
+            the iterator of the underlying input stream in the case when the stream
+            parser component was successful. Thanks to Brian O'Kennedy who reported
+            the problem on Stackoverflow.
+          </li>
+<li class="listitem">
+            Fixed failing Karma numerics generators when used with adapted ADTs (thanks
+            to Colin Rundel for reporting that problem).
+          </li>
+</ul></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_5.h3"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_5.breaking_changes"></a></span><a class="link" href="spirit_2_5.html#spirit.what_s_new.spirit_2_5.breaking_changes">Breaking
+        Changes</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The <span class="emphasis"><em>Spirit.Qi</em></span> directive <a class="link" href="../qi/reference/directive/repeat.html" title="Repetition Parser Directive (repeat[])"><code class="computeroutput"><span class="identifier">repeat</span></code></a> erroneously implemented
+            commit/rollback semantics for its attribute, leaving it untouched if
+            the directive failed. This behaviour has been removed as it is inconsistent
+            with similar components. Existing code relying on this functionality
+            will break. Please refer to the <span class="emphasis"><em>Spirit.Qi</em></span> directive
+            <a class="link" href="../qi/reference/directive/hold.html" title="Parser Directive for Attribute Commit/Rollback (hold[])"><code class="computeroutput"><span class="identifier">hold</span></code></a>
+            to see how to fix your code.
+          </li>
+<li class="listitem">
+            Added a preprocessor define <code class="computeroutput"><span class="identifier">BOOST_SPIRIT_NO_PREDEFINED_TERMINALS</span></code>
+            to prevent instantiations of predefined terminal objects which slows
+            down compile time a lot. When <code class="computeroutput"><span class="identifier">BOOST_SPIRIT_NO_PREDEFINED_TERMINALS</span></code>
+            is defined, the user instantiates the terminals that he needs. So, instead
+            of writing <code class="computeroutput"><span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">uint_</span></code>
+            one writes instead: <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">uint_type</span>
+            <span class="identifier">uint_</span></code>.
+          </li>
+</ul></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_5.h4"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_5.new_features_in_lex"></a></span><a class="link" href="spirit_2_5.html#spirit.what_s_new.spirit_2_5.new_features_in_lex">New
+        Features in Lex</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Added the possibility to specify a token id while creating a token definition
+            using <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">char_</span></code> and <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">string</span></code>.
+            Both primitives now accept a second parameter which will be interpreted
+            as the requested token id for any token generated from this definition.
+          </li>
+<li class="listitem">
+            Added a new token type <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">position_token</span><span class="special">&lt;&gt;</span></code>, which is essentially plup-in
+            compatible with the existing <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">token</span><span class="special">&lt;&gt;</span></code> class. However it additionally
+            stores the pair of iterators pointing to the underlying matched input
+            sequence as an iterator_range.
+          </li>
+</ul></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_5.h5"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_5.bug_fixes_in_lex"></a></span><a class="link" href="spirit_2_5.html#spirit.what_s_new.spirit_2_5.bug_fixes_in_lex">Bug
+        Fixes in Lex</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Fixed a problem with associating token definitions with all states (using
+            <code class="computeroutput"><span class="string">"*"</span></code> as the state
+            name) when actions were attached to them.
+          </li></ul></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_5.h6"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_5.making_stuff_work"></a></span><a class="link" href="spirit_2_5.html#spirit.what_s_new.spirit_2_5.making_stuff_work">Making
+        Stuff Work</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Added the <span class="emphasis"><em>Spirit.Karma</em></span> customization point <a class="link" href="../advanced/customize/extract_from_container.html" title="Extract From a Container Attribute Value to Generate Output (Karma)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">extract_from_container</span></code></a>, which
+            will be invoked instead of the older customization point <a class="link" href="../advanced/customize/extract_from.html" title="Extract an Attribute Value to Generate Output (Karma)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">extract_from</span></code></a> if the attribute
+            is a container (<a class="link" href="../advanced/customize/is_container.html" title="Determine if a Type Should be Treated as a Container (Qi and Karma)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">is_container</span></code></a> returns <code class="computeroutput"><span class="keyword">true</span></code> for the attribute).
+          </li>
+<li class="listitem">
+            The type <code class="computeroutput"><span class="identifier">hold_any</span></code> now
+            takes a template argument: <code class="computeroutput"><span class="identifier">basic_hold_any</span><span class="special">&lt;</span><span class="identifier">Char</span><span class="special">&gt;</span></code>, where <code class="computeroutput"><span class="identifier">Char</span></code>
+            is the character type used for the streaming operators (<code class="computeroutput"><span class="keyword">operator</span><span class="special">&gt;&gt;()</span></code>
+            and <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;&lt;()</span></code>).
+            The <code class="computeroutput"><span class="identifier">hold_any</span></code> is still
+            available as a <code class="computeroutput"><span class="keyword">typedef</span> <span class="identifier">basic_hold_any</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="identifier">hold_any</span></code>;
+          </li>
+<li class="listitem">
+            Semantic actions now support attribute compatibility. This is a breaking
+            change but #define BOOST_SPIRIT_ACTIONS_ALLOW_ATTR_COMPAT must be defined
+            in order for the new behavior to kick in. By default, the old behavior
+            is still in place.
+          </li>
+<li class="listitem">
+            Alternatives now support attribute compatibility.
+          </li>
+<li class="listitem">
+            The attribute handling for container attributes of sequences and container
+            components (list, Kleene, Plus, and repeat) has been completely rewritten.
+            It now supports many more use cases and behaves much more predictable
+            than the older version. Thanks to Thomas Taylor, Richard Crossley, Semen,
+            Adalberto Castelo, and many others for reporting bugs and helping in
+            making the new code behave as expected.
+          </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="spirit_2_5_1.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../what_s_new.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="spirit_2_4_2.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

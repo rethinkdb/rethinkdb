@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.gregorian" 
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Gregorian</title>
+  <bridgehead renderas="sect2">Gregorian Date System</bridgehead>
+  <para>
+    <link linkend="greg_intro">Introduction</link> -- 
+    <link linkend="greg_ex">Usage Examples</link>
+  </para>
+
+  <anchor id="greg_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>The gregorian date system provides a date programming system based the Gregorian Calendar. The first introduction of the Gregorian calendar was in 1582 to fix an error in the Julian Calendar. However, many local jurisdictions did not adopt this change until much later. Thus there is potential confusion with historical dates. 
+  </para>
+  <para>The implemented calendar is a "proleptic Gregorian calendar" which extends dates back prior to the Gregorian Calendar's first adoption in 1582. The current implementation supports dates in the range 1400-Jan-01 to 9999-Dec-31. Many references will represent dates prior to 1582 using the Julian Calendar, so caution is in order if accurate calculations are required on historic dates. See <ulink url="http://emr.cs.iit.edu/home/reingold/calendar-book/second-edition">Calendrical Calculations</ulink> by Reingold &amp; Dershowitz for more details. Date information from Calendrical Calculations has been used to cross-test the correctness of the Gregorian calendar implementation. 
+  </para>
+  <para>All types for the gregorian system are found in namespace boost::gregorian. The library supports a convenience header boost/date_time/gregorian/gregorian_types.hpp that will include all the classes of the library with no input/output dependency. Another header boost/date_time/gregorian/gregorian.hpp will include the types and the input/output code. 
+  </para>
+  <para>The class <link linkend="date_time.gregorian.date_class">boost::gregorian::date</link> is the primary temporal type for users. If you are interested in learning about writing programs that do specialized date calculations such as finding the "first sunday in april" see the date <link linkend="date_time.gregorian.date_algorithms">generators and algorithms page</link>. 
+  </para>
+
+  <anchor id="greg_ex" />
+  <bridgehead renderas="sect3">Usage Examples</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry>Example</entry>
+	    <entry>Description</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+            <entry valign="top"><literallayout>
+<link linkend="date_time.examples.days_alive">Days Alive</link> &nbsp; 
+<link linkend="date_time.examples.days_between_new_year">Days Between New Years</link></literallayout></entry>
+	    <entry>Simple date arithmetic. Retrieve current day from clock.</entry>
+	  </row>
+	  <row>
+	    <entry valign="top"><literallayout><link linkend="date_time.examples.dates_as_strings">Dates as strings</link></literallayout></entry>
+	    <entry>Simple parsing and formatting of dates from/to strings</entry>
+	  </row>
+	  <row>
+	    <entry valign="top"><literallayout><link linkend="date_time.examples.date_period_calc">Date Period Calculations</link></literallayout></entry>
+	    <entry>See if a date is in a set of date periods (eg: is it a holiday/weekend)</entry>
+	  </row>
+	  <row>
+	    <entry valign="top"><literallayout><link linkend="date_time.examples.print_month">Print a month</link></literallayout></entry>
+	    <entry>Small utility program which prints out all the days in a month from command line. Need to know if 1999-Jan-1 was a Friday or a Saturday? This program shows how to do it.</entry>
+	  </row>
+          <row>
+	    <entry valign="top"><literallayout><link linkend="date_time.examples.print_holidays">Print Holidays</link></literallayout></entry>
+	    <entry>Uses date generators to convert abstract specification into concrete set of dates.</entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <xi:include href="date_class.xml" /> 
+  <xi:include href="date_duration.xml" />
+  <xi:include href="date_period.xml" />
+  <xi:include href="date_iterators.xml" />
+  <xi:include href="date_algorithms.xml" />
+  <xi:include href="gregorian_calendar.xml" />
+  
+</section>

@@ -1,0 +1,29 @@
+#
+#   Copyright (c) 2011 Daniel James
+#
+#   Distributed under the Boost Software License, Version 1.0. (See
+#   accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#
+
+import testing ;
+
+project quickbook/test/unit-tests
+    : requirements
+        <include>../../src
+        <warnings>all
+        <library>/boost//filesystem
+        <toolset>gcc:<cflags>-g0
+        <toolset>darwin:<cflags>-g0
+        <toolset>msvc:<cflags>/wd4709
+        <toolset>gcc:<define>BOOST_DETAIL_CONTAINER_FWD
+        <toolset>darwin:<define>BOOST_DETAIL_CONTAINER_FWD
+    ;
+
+run values_test.cpp ../../src/values.cpp ../../src/files.cpp ;
+run post_process_test.cpp ../../src/post_process.cpp ;
+run source_map_test.cpp ../../src/files.cpp ;
+
+# Copied from spirit
+run symbols_tests.cpp ;
+run symbols_find_null.cpp ;

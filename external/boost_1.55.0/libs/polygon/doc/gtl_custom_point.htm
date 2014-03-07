@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252"><title>Custom Point</title></head><body>
+
+<p><font face="Courier New">/*<br>
+Copyright 2008 Intel Corporation<br>
+<br>
+Use, modification and distribution are subject to the Boost Software License,<br>
+Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at<br>
+http://www.boost.org/LICENSE_1_0.txt).<br>
+*/<br>
+#include &lt;boost/polygon/polygon.hpp&gt;<br>
+#include &lt;cassert&gt;<br>
+namespace gtl = boost::polygon;<br>
+using namespace boost::polygon::operators;<br><br>
+//lets make the body of main from point_usage.cpp<br>//a generic function parameterized by point type<br>template &lt;typename Point&gt;<br>void test_point() {<br>&nbsp; 
+&nbsp; //constructing a gtl point<br>&nbsp; &nbsp; 
+int x = 10;<br>&nbsp; &nbsp; 
+int y = 20;<br>&nbsp; &nbsp; 
+//Point pt(x, y);<br>&nbsp; &nbsp; 
+Point pt = gtl::construct&lt;Point&gt;(x, y);<br>&nbsp; &nbsp; 
+assert(gtl::x(pt) == 10);<br>&nbsp; &nbsp; 
+assert(gtl::y(pt) == 20);<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+//a quick primer in isotropic point access<br>&nbsp; &nbsp; 
+typedef gtl::orientation_2d O;<br>&nbsp; &nbsp; 
+using gtl::HORIZONTAL;<br>&nbsp; &nbsp; 
+using gtl::VERTICAL;<br>&nbsp; &nbsp; 
+O o = HORIZONTAL;<br>&nbsp; &nbsp; 
+assert(gtl::x(pt) == gtl::get(pt, o));<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+o = o.get_perpendicular();<br>&nbsp; &nbsp; 
+assert(o == VERTICAL);<br>&nbsp; &nbsp; 
+assert(gtl::y(pt) == gtl::get(pt, o));<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+gtl::set(pt, o, 30);<br>&nbsp; &nbsp; 
+assert(gtl::y(pt) == 30);<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+//using some of the library functions<br>&nbsp; &nbsp; 
+//Point pt2(10, 30);<br>&nbsp; &nbsp; 
+Point pt2 = gtl::construct&lt;Point&gt;(10, 30);<br>&nbsp; &nbsp; 
+assert(gtl::equivalence(pt, pt2));<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+gtl::transformation&lt;int&gt; tr(gtl::axis_transformation::SWAP_XY);<br>&nbsp; &nbsp; 
+gtl::transform(pt, tr);<br>&nbsp; &nbsp; 
+assert(gtl::equivalence(pt, gtl::construct&lt;Point&gt;(30, 10)));<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+gtl::transformation&lt;int&gt; tr2 = tr.inverse();<br>&nbsp; &nbsp; 
+assert(tr == tr2); //SWAP_XY is its own inverse transform<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+gtl::transform(pt, tr2);<br>&nbsp; &nbsp; 
+assert(gtl::equivalence(pt, pt2)); //the two points are equal again<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+gtl::move(pt, o, 10); //move pt 10 units in y<br>&nbsp; &nbsp; 
+assert(gtl::euclidean_distance(pt, pt2) == 10.0f);<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+gtl::move(pt, o.get_perpendicular(), 10); //move pt 10 units in x<br>&nbsp; &nbsp; 
+assert(gtl::manhattan_distance(pt, pt2) == 20);<br>}<br>&nbsp; &nbsp; 
+<br>//Now lets declare our own point type<br>//Bjarne says that if a class doesn't maintain an<br>//invariant just use a struct.<br>struct CPoint {<br>&nbsp; &nbsp; 
+int x;<br>&nbsp; &nbsp; 
+int y;<br>};<br>&nbsp; &nbsp; 
+<br>//There, nice a simple...but wait, it doesn't do anything<br>//how do we use it to do all the things a point needs to do?<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+<br>//First we register it as a point with boost polygon<br>namespace boost { 
+namespace polygon {<br>&nbsp;&nbsp;&nbsp; 
+template &lt;&gt;<br>&nbsp; &nbsp; 
+struct geometry_concept&lt;CPoint&gt; { typedef point_concept type; };<br>&nbsp;<br>&nbsp; &nbsp; 
+<br>&nbsp;&nbsp;&nbsp; //Then we specialize the gtl point traits for our point type<br>&nbsp; &nbsp; 
+template &lt;&gt;<br>&nbsp; &nbsp; 
+struct point_traits&lt;CPoint&gt; {<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+typedef int coordinate_type;<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+static inline coordinate_type get(const CPoint&amp; point, <br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+orientation_2d orient) {<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+if(orient == HORIZONTAL)<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+return point.x;<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+return point.y;<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+}<br>&nbsp; &nbsp; 
+};<br>&nbsp; &nbsp; 
+<br>&nbsp; &nbsp; 
+template &lt;&gt;<br>&nbsp; &nbsp; 
+struct point_mutable_traits&lt;CPoint&gt; {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; typedef int coordinate_type;<br>
+<br>
+</font></p>
+<p><font face="Courier New">&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+static inline void set(CPoint&amp; point, orientation_2d orient, int value) {<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+if(orient == HORIZONTAL)<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+point.x = value;<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+else<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+point.y = value;<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+}<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+static inline CPoint construct(int x_value, int y_value) {<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+CPoint retval;<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+retval.x = x_value;<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+retval.y = y_value; <br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+return retval;<br>&nbsp; &nbsp; 
+&nbsp; &nbsp; 
+}<br>&nbsp; &nbsp; 
+};<br>} }<br>&nbsp; &nbsp; 
+<br>//Now lets see if the CPoint works with the library functions<br>int main() {<br>&nbsp; &nbsp; 
+test_point&lt;CPoint&gt;(); //yay! All your testing is done for you.<br>&nbsp; &nbsp; 
+return 0;<br>}<br>&nbsp; &nbsp; 
+<br>//Now you know how to map a user type to the library point concept<br>//and how to write a generic function parameterized by point type<br>//using the library interfaces to access it.<br>&nbsp; &nbsp; 
+&nbsp;</font></p>
+
+
+
+<table class="docinfo" id="table1" frame="void" rules="none">
+	<colgroup>
+		<col class="docinfo-name"><col class="docinfo-content">
+	</colgroup>
+	<tbody valign="top">
+		<tr>
+			<th class="docinfo-name">Copyright:</th>
+			<td>Copyright © Intel Corporation 2008-2010.</td>
+		</tr>
+		<tr class="field">
+			<th class="docinfo-name">License:</th>
+			<td class="field-body">Distributed under the Boost Software License, 
+			Version 1.0. (See accompanying file <tt class="literal">
+			<span class="pre">LICENSE_1_0.txt</span></tt> or copy at
+			<a class="reference" target="_top" href="http://www.boost.org/LICENSE_1_0.txt">
+			http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+		</tr>
+</tbody></table>
+
+</body></html>

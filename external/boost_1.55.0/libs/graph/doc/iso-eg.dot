@@ -1,0 +1,159 @@
+digraph "g" {
+	graph [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+		color = "black"
+                size = "4,2.5"
+                ratio = "fill"
+	]
+	node [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+		shape = "circle"
+		color = "black"
+	]
+	edge [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+		color = "black"
+	]
+	"c (0)" [
+		label = "\N"
+		color = "black"
+		width = "0.833333"
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+                peripheries = 2
+	]
+	"a (1)" [
+		label = "\N"
+		color = "black"
+		width = "0.833333"
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+	]
+	"b (2)" [
+		label = "\N"
+		color = "black"
+		width = "0.833333"
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+	]
+	"d (3)" [
+		label = "\N"
+		color = "black"
+		width = "0.833333"
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+	]
+	"e (4)" [
+		label = "\N"
+		color = "black"
+		width = "0.833333"
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+	]
+	"f (5)" [
+		label = "\N"
+		color = "black"
+		width = "0.833333"
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+                peripheries = 2
+	]
+	"g (6)" [
+		label = "\N"
+		color = "black"
+		width = "0.833333"
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+	]
+	"h (7)" [
+		label = "\N"
+		color = "black"
+		width = "0.833333"
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+	]
+	"c (0)" -> "a (1)" [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+		color = "black"
+		style = "bold"
+	]
+	"a (1)" -> "b (2)" [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+		color = "black"
+		style = "bold"
+	]
+	"a (1)" -> "d (3)" [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+		color = "black"
+		style = "bold"
+	]
+	"c (0)" -> "e (4)" [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+		color = "black"
+		style = "bold"
+	]
+	"f (5)" -> "g (6)" [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+		color = "black"
+		style = "bold"
+	]
+	"g (6)" -> "h (7)" [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+		color = "black"
+		style = "bold"
+	]
+	"d (3)" -> "b (2)" [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+		color = "black"
+		style = "dashed"
+	]
+	"c (0)" -> "d (3)" [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+		color = "black"
+		style = "dashed"
+	]
+	"g (6)" -> "e (4)" [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+		color = "black"
+		style = "dashed"
+	]
+	"h (7)" -> "f (5)" [
+		fontsize = "14"
+		fontname = "Times-Roman"
+		fontcolor = "black"
+		color = "black"
+		style = "dashed"
+	]
+}

@@ -1,0 +1,38 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:remove_copy_if remove_copy_if]
+
+[heading Prototype]
+
+``
+template<class ForwardRange, class Outputiterator, class UnaryPred>
+OutputIterator
+remove_copy_if(ForwardRange& rng, OutputIterator out, UnaryPred pred);
+
+template<class ForwardRange, class OutputIterator, class UnaryPred>
+OutputIterator
+remove_copy_if(const ForwardRange& rng, OutputIterator out, UnaryPred pred);
+``
+
+[heading Description]
+
+`remove_copy_if` copied all of the elements `x` from `rng` for which `pred(x)` is `false`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/remove_copy_if.hpp`
+
+[heading Requirements]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange` is mutable.
+* `UnaryPred` is a model of the `UnaryPredicateConcept`.
+
+[heading Complexity]
+
+Linear. `remove_copy_if` performs exactly `distance(rng)` comparisons with UnaryPred.
+
+[endsect]

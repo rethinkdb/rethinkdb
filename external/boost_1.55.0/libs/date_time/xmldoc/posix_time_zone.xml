@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.local_time.posix_time_zone">
+  <title>Posix Time Zone</title>
+
+  <link linkend="posix_time_zone_intro">Introduction</link> --
+  <link linkend="posix_time_zone_notes">Important Notes</link> --
+  <link linkend="posix_time_zone_header">Header</link> --
+  <link linkend="posix_time_zone_constr">Construction</link> --
+  <link linkend="posix_time_zone_accessors">Accessors</link>
+
+  <anchor id="posix_time_zone_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>
+    A posix_time_zone object is a set of data and rules that provide information about a time zone. Information such as the offset from UTC, it's name and abbreviation, as well as daylight savings rules, called <link linkend="date_time.local_time.dst_calc_rules">dst_calc_rules</link>. These rules are stored as a boost::shared_ptr&lt;dst_calc_rules&gt;.
+  </para>
+  <para>
+    As a convenience, a typedef for shared_ptr&lt;dst_calc_rules&gt; is provided.
+    <programlisting>typedef boost::shared_ptr&lt;dst_calc_rules&gt; local_time::dst_calc_rule_ptr;</programlisting>
+  </para>
+  <para>
+    A posix_time_zone is unique in that the object is created from a Posix time zone string (IEEE Std 1003.1). A POSIX time zone string takes the form of:
+    <literallayout>
+      "std offset dst [offset],start[/time],end[/time]" (w/no spaces).</literallayout>'std' specifies the abbrev of the time zone. 'offset' is the offset from UTC. 'dst' specifies the abbrev of the time zone during daylight savings time. The second offset is how many hours changed during DST. 'start' and 'end' are the dates when DST goes into (and out of) effect. 'offset' takes the form of:
+    <literallayout>
+      [+|-]hh[:mm[:ss]] {h=0-23, m/s=0-59}</literallayout>'time' and 'offset' take the same form. 'start' and 'end' can be one of three forms:
+    <literallayout>
+      Mm.w.d {month=1-12, week=1-5 (5 is always last), day=0-6}
+      Jn {n=1-365 Feb29 is never counted}
+      n {n=0-365 Feb29 is counted in leap years}</literallayout>
+  </para>
+  <para>
+    Exceptions will be thrown under the following conditions:
+    <itemizedlist>
+      <listitem>An exception will be thrown for an invalid date spec (see <link linkend="date_time.gregorian.date_class">date class</link>).</listitem>
+      <listitem>A boost::local_time::bad_offset exception will be thrown for:</listitem>
+      <listitem>A DST start or end offset that is negative or more than 24 hours.</listitem>
+      <listitem>A UTC zone that is greater than +14 or less than -12 hours.</listitem>
+      <listitem>A boost::local_time::bad_adjustment exception will be thrown for a DST adjustment that is 24 hours or more (positive or negative)</listitem>
+    </itemizedlist>
+  </para>
+  <para>As stated above, the 'offset' and '/time' portions of the string are not required. If they are not given they default to 01:00 for 'offset', and 02:00 for both occurrences of '/time'.
+  </para>
+  <para>
+    Some examples are:
+    <literallayout>
+      "PST-8PDT01:00:00,M4.1.0/02:00:00,M10.1.0/02:00:00"
+      "PST-8PDT,M4.1.0,M10.1.0"</literallayout>These two are actually the same specification (defaults were used in the second string). This zone lies eight hours west of GMT and makes a one hour shift forward during daylight savings time. Daylight savings for this zone starts on the first Sunday of April at 2am, and ends on the first Sunday of October at 2am.
+    <literallayout>
+      "MST-7"</literallayout>This zone is as simple as it gets. This zone lies seven hours west of GMT and has no daylight savings.
+    <literallayout>
+      "EST10EDT,M10.5.0,M3.5.0/03"</literallayout>This string describes the time zone for Sydney Australia. It lies ten hours east of GMT and makes a one hour shift forward during daylight savings. Being located in the southern hemisphere, daylight savings begins on the last Sunday in October at 2am and ends on the last Sunday in March at 3am.
+    <literallayout>
+      "FST+3FDT02:00,J60/00,J304/02"</literallayout>This specification describes a fictitious zone that lies three hours east of GMT. It makes a two hour shift forward for daylight savings which begins on March 1st at midnight, and ends on October 31st at 2am. The 'J' designation in the start/end specs signifies that counting starts at one and February 29th is never counted.
+    <literallayout>
+      "FST+3FDT,59,304"</literallayout>This specification is significant because of the '59'. The lack of 'J' for the start and end dates, indicates that the Julian day-count begins at zero and ends at 365. If you do the math, you'll see that allows for a total of 366 days. This is fine in leap years, but in non-leap years '59' (Feb-29) does not exist. This will construct a valid posix_time_zone object but an exception will be thrown if the date of '59' is accessed in a non-leap year. Ex:
+    <programlisting>posix_time_zone leap_day(std::string("FST+3FDT,59,304"));
+leap_day.dst_local_start_time(2004); // ok
+leap_day.dst_local_start_time(2003); // Exception thrown</programlisting>
+  </para>
+  <para>
+    The posix_time_zone objects are used via a boost::shared_ptr&lt;local_time::time_zone_base&gt;. As a convenience, a typedef for boost::shared_ptr&lt;local_time::time_zone_base&gt; is provided:
+    <programlisting>typedef boost::shared_ptr&lt;time_zone_base&gt; local_time::time_zone_ptr;</programlisting>
+  </para>
+  <para>
+    See <link linkend="date_time.examples.simple_time_zone">Simple time zone</link> for a side by side example of time_zone and posix_time_zone usage.
+  </para>
+
+  <anchor id="posix_time_zone_notes" />
+  <bridgehead renderas="sect3">Important Notes</bridgehead>
+  <itemizedlist>
+    <listitem>posix_time_zone objects use the standard and daylight savings abbreviations in place of the full names (see <link linkend="posix_time_zone_accessors">Accessors</link> below).</listitem>
+    <listitem>'Jn' and 'n' date specifications can not be mixed in a specification string. Ex: "FST+3FDT,59,J304" </listitem>
+    <listitem>'n' date specification of 59 represents Feb-29. Do not attempt to access in a non-leap year or an exception will be thrown.</listitem>
+  </itemizedlist>
+
+  <anchor id="posix_time_zone_header" />
+  <bridgehead renderas="sect3">Header</bridgehead>
+  <para>
+    The inclusion of a single header will bring in all boost::local_time types, functions, and IO operators.
+    <programlisting>#include "boost/date_time/local_time/local_time.hpp"</programlisting>
+  </para>
+
+  <anchor id="posix_time_zone_constr" />
+  <bridgehead renderas="sect3">Construction</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry>Syntax</entry>
+            <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top"><screen>posix_time_zone(std::string)</screen></entry>
+            <entry><screen>std::string nyc("EST-5EDT,M4.1.0,M10.5.0");
+time_zone_ptr zone(new posix_time_zone(nyc));</screen>
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <anchor id="posix_time_zone_accessors" />
+  <bridgehead renderas="sect3">Accessors</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+            <entry>Example</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>std::string dst_zone_abbrev()</screen></entry>
+            <entry>Returns the daylight savings abbreviation for the represented time zone.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr-&gt;dst_zone_abbrev(); // "EDT"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>std::string std_zone_abbrev()</screen></entry>
+            <entry>Returns the standard abbreviation for the represented time zone.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr-&gt;std_zone_abbrev(); // "EST"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>std::string dst_zone_name()</screen></entry>
+            <entry>Returns the daylight savings ABBREVIATION for the represented time zone.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr-&gt;dst_zone_name(); // "EDT"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>std::string std_zone_name()</screen></entry>
+            <entry>Returns the standard ABBREVIATION for the represented time zone.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr-&gt;std_zone_name(); // "EST"</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>bool has_dst()</screen></entry>
+            <entry>Returns true when time_zone's shared_ptr to dst_calc_rules is not NULL.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr-&gt;has_dst(); // true
+phx_zone_sh_ptr-&gt;has_dst(); // false</screen>
+            </entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>
+ptime dst_local_start_time(greg_year)</screen></entry>
+            <entry>The date and time daylight savings time begins in given year. Returns not_a_date_time if this zone has no daylight savings.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr-&gt;dst_local_start_time(2004);
+// 2004-Apr-04 02:00</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>
+ptime dst_local_end_time(greg_year)</screen></entry>
+            <entry>The date and time daylight savings time ends in given year. Returns not_a_date_time if this zone has no daylight savings.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr-&gt;dst_local_end_time(2004);
+// 2004-Oct-31 02:00</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>
+time_duration base_utc_offset()</screen></entry>
+            <entry>The amount of time offset from UTC (typically in hours).</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr-&gt;base_utc_offset(); // -05:00</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>posix_time::time_duration dst_offset()</screen></entry>
+            <entry>The amount of time shifted during daylight savings.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr-&gt;dst_offset(); // 01:00</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>std::string to_posix_string()</screen></entry>
+            <entry>Returns a posix time zone string representation of this time_zone_base object. Depending on how the time_zone object was created, the date-spec format of the string will be in either 'M' notation or 'n' notation. Every possible date-spec that can be represented in 'J' notation can also be represented in 'n' notation. The reverse is not true so only 'n' notation is used for these types of date-specs. For a detailed description of a posix time zone string see <link linkend="date_time.local_time.posix_time_zone">posix_time_zone</link>.</entry>
+          </row>
+          <row>
+            <entry><screen>nyc_zone_sh_ptr-&gt;to_posix_string();
+// "EST-05EDT+01,M4.1.0/02:00,M10.5.0/02:00"
+phx_zone_sh_ptr-&gt;to_posix_string();
+// "MST-07"
+            </screen></entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+</section>

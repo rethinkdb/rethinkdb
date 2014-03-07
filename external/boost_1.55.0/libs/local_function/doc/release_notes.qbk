@@ -1,0 +1,54 @@
+
+[/ Copyright (C) 2009-2012 Lorenzo Caminiti ]
+[/ Distributed under the Boost Software License, Version 1.0 ]
+[/ (see accompanying file LICENSE_1_0.txt or a copy at ]
+[/ http://www.boost.org/LICENSE_1_0.txt) ]
+[/ Home at http://www.boost.org/libs/local_function ]
+
+[section Release Notes]
+
+This section lists the major changes between different library releases (in chronological order).
+
+[heading Version 1.0.0 (2012-04-12)]
+
+# Incorporated all comments from the [@http://lists.boost.org/boost-announce/2011/12/0340.php Boost review of this library].
+# Removed local blocks and local exits.
+# Renamed the library from Boost.Local to Boost.LocalFunction.
+# Using `this_` instead of `this` also in the local function declaration (not just the body).
+# Made changes that allow to return local functions (similar to closures).
+# Added GCC lambda and constant block examples.
+# Moved `overloaded_function` to Boost.Functional/OverloadedFunction.
+# Moved `BOOST_IDENTITY_TYPE` to Boost.Utility/IdentityType.
+# Completely removed use of Boost.Typeof when bound and result types are explicitly specified.
+# Added `..._ID` macros for multiple expansions on the same line.
+# Fixed compilation on Boost regression test platforms.
+
+[heading Version 0.2.0 (2011-05-14)]
+
+# Replaced parenthesized syntax with variadic and sequencing macro syntaxes.
+# Profiled library performances against other approaches.
+# Replaced virtual functor trick with casting functor trick (for smaller run-time).
+# Optimized library run-time (rearranging code and not using casting functor trick on compilers that accept local classes as template parameters).
+# Supported inline and recursive local functions.
+# Added type-of macro to expose bound types.
+# Allowed to explicitly specify bound types.
+# Removed using `boost::function` instead of exposing internal local functor as public API.
+# Added functor to overload local functions (and functors in general).
+# Implemented support for nesting local functions, blocks, and exits into one another.
+
+[heading Version 0.1.1 (2011-01-10)]
+
+# Uploaded library source into Boost SVN sandbox.
+# Fixed prev/next arrows and other minor layouts in documentation.
+# Added Release section to documentation.
+
+[heading Version 0.1.0 (2011-01-03)]
+
+# Shared with Boost for first round of comments.
+
+[heading Version 0.0.1 (2010-12-15)]
+
+# Completed development, examples, and documentation.
+
+[endsect]
+

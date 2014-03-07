@@ -1,0 +1,298 @@
+<html>
+	<head>
+		<title>reentrancy.html</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+	</head>
+	<body>
+		<h4>
+			Reentrancy
+		</h4>
+		<div>
+			Macro expansion in the preprocessor is entirely functional.&nbsp; Therefore, 
+			there is no iteration.&nbsp; Unfortunately, the preprocessor also disallows 
+			recursion.&nbsp; This means that the library must fake iteration or recursion 
+			by defining sets of macros that are implemented similarly.&nbsp;
+		</div>
+		<div>
+			To illustrate, here is a simple concatenation macro:
+		</div>
+		<div class="code">
+			<pre>
+#define CONCAT(a, b) CONCAT_D(a, b)
+#define CONCAT_D(a, b) a ## b
+
+CONCAT(a, CONCAT(b, c)) // abc
+</pre>
+		</div>
+		<div>
+			This is fine for a simple case like the above, but what happens in a scenario 
+			like the following:
+		</div>
+		<div class="code">
+			<pre>
+#define AB(x, y) CONCAT(x, y)
+
+CONCAT(A, B(p, q)) // CONCAT(p, q)
+</pre>
+		</div>
+		<div>
+			Because there is no recursion, the example above expands to <code>CONCAT(p, q)</code>
+			rather than <code>pq</code>.
+		</div>
+		<div>
+			There are only two ways to "fix" the above.&nbsp; First, it can be documented 
+			that <code>AB</code> uses <code>CONCAT</code> and disallow usage similar to the 
+			above.&nbsp; Second, multiple concatenation macros can be provided....
+		</div>
+		<div class="code">
+			<pre>
+#define CONCAT_1(a, b) CONCAT_1_D(a, b)
+#define CONCAT_1_D(a, b) a ## b
+
+#define CONCAT_2(a, b) CONCAT_2_D(a, b)
+#define CONCAT_2_D(a, b) a ## b
+
+#define AB(x, y) CONCAT_2(x, y)
+
+CONCAT_1(A, B(p, q)) // pq
+</pre>
+		</div>
+		<div>
+			This solves the problem.&nbsp; However, it is now necessary to know that <code>AB</code>
+			uses, not only <i>a</i> concatenation macro, but <code>CONCAT_2</code> specifically.
+		</div>
+		<div>
+			A better solution is to abstract <i>which</i> concatenation macro is used....
+		</div>
+		<div class="code">
+			<pre>
+#define AB(c, x, y) CONCAT_ ## c(x, y)
+
+CONCAT_1(A, B(2, p, q)) // pq
+</pre>
+		</div>
+		<div>
+			This is an example of <i>generic reentrance</i>, in this case, into a fictional 
+			set of concatenation macros.&nbsp; The <code>c</code> parameter represents the 
+			"state" of the concatenation construct, and as long as the user keeps track of 
+			this state, <code>AB</code> can be used inside of a concatenation macro.
+		</div>
+		<div>
+			The library has the same choices.&nbsp; It either has to disallow a construct 
+			being inside itself or provide multiple, equivalent definitions of a construct 
+			and provide a uniform way to <i>reenter</i> that construct.&nbsp; There are 
+			several contructs that <i>require</i> recursion (such as <b>BOOST_PP_WHILE</b>).&nbsp; 
+			Consequently, the library chooses to provide several sets of macros with 
+			mechanisms to reenter the set at a macro that has not already been used.
+		</div>
+		<div>
+			In particular, the library must provide reentrance for <b>BOOST_PP_FOR</b>, <b>BOOST_PP_REPEAT</b>, 
+			and <b>BOOST_PP_WHILE</b>.&nbsp; There are two mechanisms that are used to 
+			accomplish this:&nbsp; state parameters (like the above concatenation example) 
+			and <i>automatic recursion</i>.
+		</div>
+		<h4>
+			State Parameters
+		</h4>
+		<div>
+			Each of the above constructs (<b>BOOST_PP_FOR</b>, <b>BOOST_PP_REPEAT</b>, and <b>BOOST_PP_WHILE</b>) 
+			has an associated state.&nbsp; This state provides the means to reenter the 
+			respective construct.
+		</div>
+		<div>
+			Several user-defined macros are passed to each of these constructs (for use as 
+			predicates, operations, etc.).&nbsp; Every time a user-defined macro is 
+			invoked, it is passed the current state of the construct that invoked it so 
+			that the macro can reenter the respective set if necessary.
+		</div>
+		<div>
+			These states are used in one of two ways--either by concatenating to or passing 
+			to another macro.
+		</div>
+		<div>
+			There are three types of macros that use these state parameters.&nbsp; First, 
+			the set itself which is reentered through concatenation.&nbsp; Second, 
+			corresponding sets that act like they are a part of the the primary set.&nbsp; 
+			These are also reentered through concatenation.&nbsp; And third, macros that 
+			internally use the first or second type of macro.&nbsp; These macros take the 
+			state as an additional argument.
+		</div>
+		<div>
+			The state of <b>BOOST_PP_WHILE</b> is symbolized by the letter <i>D</i>.&nbsp; 
+			Two user-defined macros are passed to <b>BOOST_PP_WHILE</b>--a predicate and an 
+			operation.&nbsp; When <b>BOOST_PP_WHILE</b> expands these macros, it passes 
+			along its state so that these macros can reenter the <b>BOOST_PP_WHILE</b> set.&nbsp;
+		</div>
+		<div>
+			Consider the following multiplication implementation that illustrates this 
+			technique:
+		</div>
+		<div class="code">
+			<pre>
+// The addition interface macro.
+// The _D signifies that it reenters
+// BOOST_PP_WHILE with concatenation.
+
+#define ADD_D(d, x, y) \
+   BOOST_PP_TUPLE_ELEM( \
+      2, 0, \
+      BOOST_PP_WHILE_ ## d(ADD_P, ADD_O, (x, y)) \
+   ) \
+   /**/
+
+// The predicate that is passed to BOOST_PP_WHILE.
+// It returns "true" until "y" becomes zero.
+
+#define ADD_P(d, xy) BOOST_PP_TUPLE_ELEM(2, 1, xy)
+
+// The operation that is passed to BOOST_PP_WHILE.
+// It increments "x" and decrements "y" which will
+// eventually cause "y" to equal zero and therefore
+// cause the predicate to return "false."
+
+#define ADD_O(d, xy) \
+   ( \
+      BOOST_PP_INC( \
+         BOOST_PP_TUPLE_ELEM(2, 0, xy) \
+      ), \
+      BOOST_PP_DEC( \
+         BOOST_PP_TUPLE_ELEM(2, 1, xy) \
+      ) \
+   ) \
+   /**/
+
+// The multiplication interface macro.
+
+#define MUL(x, y) \
+   BOOST_PP_TUPLE_ELEM( \
+      3, 0, \
+      BOOST_PP_WHILE(MUL_P, MUL_O, (0, x, y)) \
+   ) \
+   /**/
+
+// The predicate that is passed to BOOST_PP_WHILE.
+// It returns "true" until "y" becomes zero.
+
+#define MUL_P(d, rxy) BOOST_PP_TUPLE_ELEM(3, 2, rxy)
+
+// The operation that is passed to BOOST_PP_WHILE.
+// It adds "x" to "r" and decrements "y" which will
+// eventually cause "y" to equal zero and therefore
+// cause the predicate to return "false."
+
+#define MUL_O(d, rxy) \
+   ( \
+      ADD_D( \
+         d, /* pass the state on to ADD_D */ \
+         BOOST_PP_TUPLE_ELEM(3, 0, rxy), \
+         BOOST_PP_TUPLE_ELEM(3, 1, rxy) \
+      ), \
+      BOOST_PP_TUPLE_ELEM(3, 1, rxy), \
+      BOOST_PP_DEC( \
+         BOOST_PP_TUPLE_ELEM(3, 2, rxy) \
+      ) \
+   ) \
+   /**/
+
+MUL(3, 2) // expands to 6
+</pre>
+		</div>
+		<div>
+			There are a couple things to note in the above implementation.&nbsp; First, 
+			note how <code>ADD_D</code> reenters <b>BOOST_PP_WHILE</b> using the <i>d</i> state 
+			parameter.&nbsp; Second, note how <code>MUL</code>'s operation, which is 
+			expanded by <b>BOOST_PP_WHILE</b>, passes the state on to <code>ADD_D</code>.&nbsp; 
+			This illustrates state reentrance by both argument and concatenation.
+		</div>
+		<div>
+			For every macro in the library that uses <b>BOOST_PP_WHILE</b>, there is a 
+			state reentrant variant.&nbsp; If that variant uses an argument rather than 
+			concatenation, it is suffixed by <code>_D</code> to symbolize its method of 
+			reentrance.&nbsp; Examples or this include the library's own <b>BOOST_PP_ADD_D</b>
+			and <b>BOOST_PP_MUL_D</b>.&nbsp; If the variant uses concatenation, it is 
+			suffixed by an underscore.&nbsp; It is completed by concatenation of the 
+			state.&nbsp; This includes <b>BOOST_PP_WHILE</b> itself with <b>BOOST_PP_WHILE_</b>
+			## <i>d</i> and, for example, <b>BOOST_PP_LIST_FOLD_LEFT</b> with <b>BOOST_PP_LIST_FOLD_LEFT_</b>
+			## <i>d</i>.
+		</div>
+		<div>
+			The same set of conventions are used for <b>BOOST_PP_FOR</b> and <b>BOOST_PP_REPEAT</b>, 
+			but with the letters <i>R</i> and <i>Z</i>, respectively, to symbolize their 
+			states.
+		</div>
+		<div>
+			Also note that the above <code>MUL</code> implementation, though not 
+			immediately obvious, is using <i>all three</i> types of reentrance.&nbsp; Not 
+			only is it using both types of <i>state</i> reentrance, it is also using <i>automatic 
+				recursion</i>....
+		</div>
+		<h4>
+			Automatic Recursion
+		</h4>
+		<div>
+			Automatic recursion is a technique that vastly simplifies the use of reentrant 
+			constructs.&nbsp; It is used by simply <i>not</i> using any state parameters at 
+			all.
+		</div>
+		<div>
+			The <code>MUL</code> example above uses automatic recursion when it uses <b>BOOST_PP_WHILE</b>
+			by itself.&nbsp; In other words, <code>MUL</code> can <i>still</i> be used 
+			inside <b>BOOST_PP_WHILE</b> even though it doesn't reenter <b>BOOST_PP_WHILE</b>
+			by concatenating the state to <b>BOOST_PP_WHILE_</b>.
+		</div>
+		<div>
+			To accomplish this, the library uses a "trick."&nbsp; Despite what it looks 
+			like, the macro <b>BOOST_PP_WHILE</b> does not take three arguments.&nbsp; In 
+			fact, it takes no arguments at all.&nbsp; Instead, the <b>BOOST_PP_WHILE</b> macro 
+			expands <i>to</i> a macro that takes three arguments.&nbsp; It simply detects 
+			what the next available <b>BOOST_PP_WHILE_</b> ## <i>d</i> macro is and returns 
+			it.&nbsp; This detection process is somewhat involved, so I won't go into <i>how</i>
+			it works here, but suffice to say it <i>does</i> work.
+		</div>
+		<div>
+			Using automatic recursion to reenter various sets of macros is obviously much 
+			simpler.&nbsp; It completely hides the underlying implementation details.&nbsp; 
+			So, if it is so much easier to use, why do the state parameters still 
+			exist?&nbsp; The reason is simple as well.&nbsp; When state parameters are 
+			used, the state is <i>known</i> at all times.&nbsp; This is not the case when 
+			automatic recursion is used.&nbsp; The automatic recursion mechanism has to <i>deduce</i>
+			the state at each point that it is used.&nbsp; This implies a cost in macro 
+			complexity that in some situations--notably at deep macro depths--will slow 
+			some preprocessors to a crawl.
+		</div>
+		<h4>
+			Conclusion
+		</h4>
+		<div>
+			It is really a tradeoff whether to use state parameters or automatic recursion 
+			for reentrancy.&nbsp; The strengths of automatic recursion are ease of use and 
+			implementation encapsulation.&nbsp; These come at a performance cost on some 
+			preprocessors in some situations.&nbsp; The primary strength of state 
+			parameters, on the other hand, is efficiency.&nbsp; Use of the state parameters 
+			is the only way to achieve <i>maximum</i> efficiency.&nbsp; This efficiency 
+			comes at the cost of both code complexity and exposition of implementation.
+		</div>
+		<h4>
+			See Also
+		</h4>
+		<ul>
+			<li><a href="../ref/for.html">BOOST_PP_FOR</a></li>
+			<li><a href="../ref/repeat.html">BOOST_PP_REPEAT</a></li>
+			<li><a href="../ref/while.html">BOOST_PP_WHILE</a></li>
+		</ul>
+		<div class="sig">
+			- Paul Mensonides
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+	</body>
+</html>

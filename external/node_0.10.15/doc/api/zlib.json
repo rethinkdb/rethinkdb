@@ -1,0 +1,358 @@
+{
+  "source": "doc/api/zlib.markdown",
+  "modules": [
+    {
+      "textRaw": "Zlib",
+      "name": "zlib",
+      "stability": 3,
+      "stabilityText": "Stable",
+      "desc": "<p>You can access this module with:\n\n</p>\n<pre><code>var zlib = require(&#39;zlib&#39;);</code></pre>\n<p>This provides bindings to Gzip/Gunzip, Deflate/Inflate, and\nDeflateRaw/InflateRaw classes.  Each class takes the same options, and\nis a readable/writable Stream.\n\n</p>\n<h2>Examples</h2>\n<p>Compressing or decompressing a file can be done by piping an\nfs.ReadStream into a zlib stream, then into an fs.WriteStream.\n\n</p>\n<pre><code>var gzip = zlib.createGzip();\nvar fs = require(&#39;fs&#39;);\nvar inp = fs.createReadStream(&#39;input.txt&#39;);\nvar out = fs.createWriteStream(&#39;input.txt.gz&#39;);\n\ninp.pipe(gzip).pipe(out);</code></pre>\n<p>Compressing or decompressing data in one step can be done by using\nthe convenience methods.\n\n</p>\n<pre><code>var input = &#39;.................................&#39;;\nzlib.deflate(input, function(err, buffer) {\n  if (!err) {\n    console.log(buffer.toString(&#39;base64&#39;));\n  }\n});\n\nvar buffer = new Buffer(&#39;eJzT0yMAAGTvBe8=&#39;, &#39;base64&#39;);\nzlib.unzip(buffer, function(err, buffer) {\n  if (!err) {\n    console.log(buffer.toString());\n  }\n});</code></pre>\n<p>To use this module in an HTTP client or server, use the\n<a href=\"http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.3\">accept-encoding</a>\non requests, and the\n<a href=\"http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.11\">content-encoding</a>\nheader on responses.\n\n</p>\n<p><strong>Note: these examples are drastically simplified to show\nthe basic concept.</strong>  Zlib encoding can be expensive, and the results\nought to be cached.  See <a href=\"#zlib_memory_usage_tuning\">Memory Usage Tuning</a>\nbelow for more information on the speed/memory/compression\ntradeoffs involved in zlib usage.\n\n</p>\n<pre><code>// client request example\nvar zlib = require(&#39;zlib&#39;);\nvar http = require(&#39;http&#39;);\nvar fs = require(&#39;fs&#39;);\nvar request = http.get({ host: &#39;izs.me&#39;,\n                         path: &#39;/&#39;,\n                         port: 80,\n                         headers: { &#39;accept-encoding&#39;: &#39;gzip,deflate&#39; } });\nrequest.on(&#39;response&#39;, function(response) {\n  var output = fs.createWriteStream(&#39;izs.me_index.html&#39;);\n\n  switch (response.headers[&#39;content-encoding&#39;]) {\n    // or, just use zlib.createUnzip() to handle both cases\n    case &#39;gzip&#39;:\n      response.pipe(zlib.createGunzip()).pipe(output);\n      break;\n    case &#39;deflate&#39;:\n      response.pipe(zlib.createInflate()).pipe(output);\n      break;\n    default:\n      response.pipe(output);\n      break;\n  }\n});\n\n// server example\n// Running a gzip operation on every request is quite expensive.\n// It would be much more efficient to cache the compressed buffer.\nvar zlib = require(&#39;zlib&#39;);\nvar http = require(&#39;http&#39;);\nvar fs = require(&#39;fs&#39;);\nhttp.createServer(function(request, response) {\n  var raw = fs.createReadStream(&#39;index.html&#39;);\n  var acceptEncoding = request.headers[&#39;accept-encoding&#39;];\n  if (!acceptEncoding) {\n    acceptEncoding = &#39;&#39;;\n  }\n\n  // Note: this is not a conformant accept-encoding parser.\n  // See http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.3\n  if (acceptEncoding.match(/\\bdeflate\\b/)) {\n    response.writeHead(200, { &#39;content-encoding&#39;: &#39;deflate&#39; });\n    raw.pipe(zlib.createDeflate()).pipe(response);\n  } else if (acceptEncoding.match(/\\bgzip\\b/)) {\n    response.writeHead(200, { &#39;content-encoding&#39;: &#39;gzip&#39; });\n    raw.pipe(zlib.createGzip()).pipe(response);\n  } else {\n    response.writeHead(200, {});\n    raw.pipe(response);\n  }\n}).listen(1337);</code></pre>\n",
+      "methods": [
+        {
+          "textRaw": "zlib.createGzip([options])",
+          "type": "method",
+          "name": "createGzip",
+          "desc": "<p>Returns a new <a href=\"#zlib_class_zlib_gzip\">Gzip</a> object with an\n<a href=\"#zlib_options\">options</a>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "options",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "zlib.createGunzip([options])",
+          "type": "method",
+          "name": "createGunzip",
+          "desc": "<p>Returns a new <a href=\"#zlib_class_zlib_gunzip\">Gunzip</a> object with an\n<a href=\"#zlib_options\">options</a>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "options",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "zlib.createDeflate([options])",
+          "type": "method",
+          "name": "createDeflate",
+          "desc": "<p>Returns a new <a href=\"#zlib_class_zlib_deflate\">Deflate</a> object with an\n<a href=\"#zlib_options\">options</a>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "options",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "zlib.createInflate([options])",
+          "type": "method",
+          "name": "createInflate",
+          "desc": "<p>Returns a new <a href=\"#zlib_class_zlib_inflate\">Inflate</a> object with an\n<a href=\"#zlib_options\">options</a>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "options",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "zlib.createDeflateRaw([options])",
+          "type": "method",
+          "name": "createDeflateRaw",
+          "desc": "<p>Returns a new <a href=\"#zlib_class_zlib_deflateraw\">DeflateRaw</a> object with an\n<a href=\"#zlib_options\">options</a>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "options",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "zlib.createInflateRaw([options])",
+          "type": "method",
+          "name": "createInflateRaw",
+          "desc": "<p>Returns a new <a href=\"#zlib_class_zlib_inflateraw\">InflateRaw</a> object with an\n<a href=\"#zlib_options\">options</a>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "options",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "zlib.createUnzip([options])",
+          "type": "method",
+          "name": "createUnzip",
+          "desc": "<p>Returns a new <a href=\"#zlib_class_zlib_unzip\">Unzip</a> object with an\n<a href=\"#zlib_options\">options</a>.\n\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "options",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "zlib.deflate(buf, callback)",
+          "type": "method",
+          "name": "deflate",
+          "desc": "<p>Compress a string with Deflate.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "buf"
+                },
+                {
+                  "name": "callback"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "zlib.deflateRaw(buf, callback)",
+          "type": "method",
+          "name": "deflateRaw",
+          "desc": "<p>Compress a string with DeflateRaw.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "buf"
+                },
+                {
+                  "name": "callback"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "zlib.gzip(buf, callback)",
+          "type": "method",
+          "name": "gzip",
+          "desc": "<p>Compress a string with Gzip.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "buf"
+                },
+                {
+                  "name": "callback"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "zlib.gunzip(buf, callback)",
+          "type": "method",
+          "name": "gunzip",
+          "desc": "<p>Decompress a raw Buffer with Gunzip.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "buf"
+                },
+                {
+                  "name": "callback"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "zlib.inflate(buf, callback)",
+          "type": "method",
+          "name": "inflate",
+          "desc": "<p>Decompress a raw Buffer with Inflate.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "buf"
+                },
+                {
+                  "name": "callback"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "zlib.inflateRaw(buf, callback)",
+          "type": "method",
+          "name": "inflateRaw",
+          "desc": "<p>Decompress a raw Buffer with InflateRaw.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "buf"
+                },
+                {
+                  "name": "callback"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "zlib.unzip(buf, callback)",
+          "type": "method",
+          "name": "unzip",
+          "desc": "<p>Decompress a raw Buffer with Unzip.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "buf"
+                },
+                {
+                  "name": "callback"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "textRaw": "Class: zlib.Zlib",
+          "type": "class",
+          "name": "zlib.Zlib",
+          "desc": "<p>Not exported by the <code>zlib</code> module. It is documented here because it is the base\nclass of the compressor/decompressor classes.\n\n</p>\n",
+          "methods": [
+            {
+              "textRaw": "zlib.flush(callback)",
+              "type": "method",
+              "name": "flush",
+              "desc": "<p>Flush pending data. Don&#39;t call this frivolously, premature flushes negatively\nimpact the effectiveness of the compression algorithm.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "callback"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "zlib.reset()",
+              "type": "method",
+              "name": "reset",
+              "desc": "<p>Reset the compressor/decompressor to factory defaults. Only applicable to\nthe inflate and deflate algorithms.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "Class: zlib.Gzip",
+          "type": "class",
+          "name": "zlib.Gzip",
+          "desc": "<p>Compress data using gzip.\n\n</p>\n"
+        },
+        {
+          "textRaw": "Class: zlib.Gunzip",
+          "type": "class",
+          "name": "zlib.Gunzip",
+          "desc": "<p>Decompress a gzip stream.\n\n</p>\n"
+        },
+        {
+          "textRaw": "Class: zlib.Deflate",
+          "type": "class",
+          "name": "zlib.Deflate",
+          "desc": "<p>Compress data using deflate.\n\n</p>\n"
+        },
+        {
+          "textRaw": "Class: zlib.Inflate",
+          "type": "class",
+          "name": "zlib.Inflate",
+          "desc": "<p>Decompress a deflate stream.\n\n</p>\n"
+        },
+        {
+          "textRaw": "Class: zlib.DeflateRaw",
+          "type": "class",
+          "name": "zlib.DeflateRaw",
+          "desc": "<p>Compress data using deflate, and do not append a zlib header.\n\n</p>\n"
+        },
+        {
+          "textRaw": "Class: zlib.InflateRaw",
+          "type": "class",
+          "name": "zlib.InflateRaw",
+          "desc": "<p>Decompress a raw deflate stream.\n\n</p>\n"
+        },
+        {
+          "textRaw": "Class: zlib.Unzip",
+          "type": "class",
+          "name": "zlib.Unzip",
+          "desc": "<p>Decompress either a Gzip- or Deflate-compressed stream by auto-detecting\nthe header.\n\n</p>\n"
+        }
+      ],
+      "miscs": [
+        {
+          "textRaw": "Convenience Methods",
+          "name": "Convenience Methods",
+          "type": "misc",
+          "desc": "<p>All of these take a string or buffer as the first argument, and call the\nsupplied callback with <code>callback(error, result)</code>.  The\ncompression/decompression engine is created using the default settings\nin all convenience methods.  To supply different options, use the\nzlib classes directly.\n\n</p>\n"
+        },
+        {
+          "textRaw": "Options",
+          "name": "Options",
+          "type": "misc",
+          "desc": "<p>Each class takes an options object.  All options are optional.  (The\nconvenience methods use the default settings for all options.)\n\n</p>\n<p>Note that some options are only relevant when compressing, and are\nignored by the decompression classes.\n\n</p>\n<ul>\n<li>flush (default: <code>zlib.Z_NO_FLUSH</code>)</li>\n<li>chunkSize (default: 16*1024)</li>\n<li>windowBits</li>\n<li>level (compression only)</li>\n<li>memLevel (compression only)</li>\n<li>strategy (compression only)</li>\n<li>dictionary (deflate/inflate only, empty dictionary by default)</li>\n</ul>\n<p>See the description of <code>deflateInit2</code> and <code>inflateInit2</code> at\n</p>\n<p><a href=\"http://zlib.net/manual.html#Advanced\">http://zlib.net/manual.html#Advanced</a> for more information on these.\n\n</p>\n"
+        },
+        {
+          "textRaw": "Memory Usage Tuning",
+          "name": "Memory Usage Tuning",
+          "type": "misc",
+          "desc": "<p>From <code>zlib/zconf.h</code>, modified to node&#39;s usage:\n\n</p>\n<p>The memory requirements for deflate are (in bytes):\n\n</p>\n<pre><code>(1 &lt;&lt; (windowBits+2)) +  (1 &lt;&lt; (memLevel+9))</code></pre>\n<p>that is: 128K for windowBits=15  +  128K for memLevel = 8\n(default values) plus a few kilobytes for small objects.\n\n</p>\n<p>For example, if you want to reduce\nthe default memory requirements from 256K to 128K, set the options to:\n\n</p>\n<pre><code>{ windowBits: 14, memLevel: 7 }</code></pre>\n<p>Of course this will generally degrade compression (there&#39;s no free lunch).\n\n</p>\n<p>The memory requirements for inflate are (in bytes)\n\n</p>\n<pre><code>1 &lt;&lt; windowBits</code></pre>\n<p>that is, 32K for windowBits=15 (default value) plus a few kilobytes\nfor small objects.\n\n</p>\n<p>This is in addition to a single internal output slab buffer of size\n<code>chunkSize</code>, which defaults to 16K.\n\n</p>\n<p>The speed of zlib compression is affected most dramatically by the\n<code>level</code> setting.  A higher level will result in better compression, but\nwill take longer to complete.  A lower level will result in less\ncompression, but will be much faster.\n\n</p>\n<p>In general, greater memory usage options will mean that node has to make\nfewer calls to zlib, since it&#39;ll be able to process more data in a\nsingle <code>write</code> operation.  So, this is another factor that affects the\nspeed, at the cost of memory usage.\n\n</p>\n"
+        },
+        {
+          "textRaw": "Constants",
+          "name": "Constants",
+          "type": "misc",
+          "desc": "<p>All of the constants defined in zlib.h are also defined on\n<code>require(&#39;zlib&#39;)</code>.\nIn the normal course of operations, you will not need to ever set any of\nthese.  They are documented here so that their presence is not\nsurprising.  This section is taken almost directly from the <a href=\"http://zlib.net/manual.html#Constants\">zlib\ndocumentation</a>.  See\n</p>\n<p><a href=\"http://zlib.net/manual.html#Constants\">http://zlib.net/manual.html#Constants</a> for more details.\n\n</p>\n<p>Allowed flush values.\n\n</p>\n<ul>\n<li><code>zlib.Z_NO_FLUSH</code></li>\n<li><code>zlib.Z_PARTIAL_FLUSH</code></li>\n<li><code>zlib.Z_SYNC_FLUSH</code></li>\n<li><code>zlib.Z_FULL_FLUSH</code></li>\n<li><code>zlib.Z_FINISH</code></li>\n<li><code>zlib.Z_BLOCK</code></li>\n<li><code>zlib.Z_TREES</code></li>\n</ul>\n<p>Return codes for the compression/decompression functions. Negative\nvalues are errors, positive values are used for special but normal\nevents.\n\n</p>\n<ul>\n<li><code>zlib.Z_OK</code></li>\n<li><code>zlib.Z_STREAM_END</code></li>\n<li><code>zlib.Z_NEED_DICT</code></li>\n<li><code>zlib.Z_ERRNO</code></li>\n<li><code>zlib.Z_STREAM_ERROR</code></li>\n<li><code>zlib.Z_DATA_ERROR</code></li>\n<li><code>zlib.Z_MEM_ERROR</code></li>\n<li><code>zlib.Z_BUF_ERROR</code></li>\n<li><code>zlib.Z_VERSION_ERROR</code></li>\n</ul>\n<p>Compression levels.\n\n</p>\n<ul>\n<li><code>zlib.Z_NO_COMPRESSION</code></li>\n<li><code>zlib.Z_BEST_SPEED</code></li>\n<li><code>zlib.Z_BEST_COMPRESSION</code></li>\n<li><code>zlib.Z_DEFAULT_COMPRESSION</code></li>\n</ul>\n<p>Compression strategy.\n\n</p>\n<ul>\n<li><code>zlib.Z_FILTERED</code></li>\n<li><code>zlib.Z_HUFFMAN_ONLY</code></li>\n<li><code>zlib.Z_RLE</code></li>\n<li><code>zlib.Z_FIXED</code></li>\n<li><code>zlib.Z_DEFAULT_STRATEGY</code></li>\n</ul>\n<p>Possible values of the data_type field.\n\n</p>\n<ul>\n<li><code>zlib.Z_BINARY</code></li>\n<li><code>zlib.Z_TEXT</code></li>\n<li><code>zlib.Z_ASCII</code></li>\n<li><code>zlib.Z_UNKNOWN</code></li>\n</ul>\n<p>The deflate compression method (the only one supported in this version).\n\n</p>\n<ul>\n<li><code>zlib.Z_DEFLATED</code></li>\n</ul>\n<p>For initializing zalloc, zfree, opaque.\n\n</p>\n<ul>\n<li><code>zlib.Z_NULL</code></li>\n</ul>\n"
+        }
+      ],
+      "type": "module",
+      "displayName": "Zlib"
+    }
+  ]
+}

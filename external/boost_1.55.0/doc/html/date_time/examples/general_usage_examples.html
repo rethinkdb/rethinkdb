@@ -1,0 +1,134 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>General Usage Examples</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time.html" title="Chapter&#160;9.&#160;Boost.Date_Time">
+<link rel="prev" href="../../date_time.html" title="Chapter&#160;9.&#160;Boost.Date_Time">
+<link rel="next" href="../gregorian.html" title="Gregorian">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../date_time.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../gregorian.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="date_time.examples.general_usage_examples"></a>General Usage Examples</h2></div></div></div>
+<p>
+    The following provides some sample usage of dates.
+    See <a class="link" href="../gregorian.html" title="Gregorian">Date Programming</a> 
+    for more details.
+
+    </p>
+<pre class="programlisting"><span class="keyword">using namespace</span> boost::gregorian;
+    date weekstart(<span class="number">2002</span>,Feb,<span class="number">1</span>);
+    date weekend  = weekstart + weeks(<span class="number">1</span>);
+    date d2 = d1 + days(<span class="number">5</span>);
+    date today = day_clock::local_day();
+    if (d2 &gt;= today) {} <span class="comment">//date comparison operators</span> 
+
+    date_period thisWeek(d1,d2);
+    <span class="keyword">if</span> (thisWeek.contains(today)) {}<span class="comment">//do something 
+
+    //iterate and print the week</span>
+    day_iterator itr(weekstart);
+    <span class="keyword">while</span> (itr &lt;= weekend) {
+     std::cout &lt;&lt; (*itr) &lt;&lt; std::endl;
+     ++itr;
+    }  
+    <span class="comment">//input streaming</span> 
+    std::stringstream ss(<span class="string">"2004-Jan-1"</span>);
+    ss &gt;&gt; d3;
+
+    <span class="comment">//date generator functions</span> 
+    date d5 = next_weekday(d4, Sunday); <span class="comment">//calculate Sunday following d4
+
+    //US labor day is first Monday in Sept</span> 
+	<span class="keyword">typedef</span> nth_day_of_the_week_in_month nth_dow;
+    nth_dow labor_day(nth_dow::first,Monday, Sep); 
+    <span class="comment">//calculate a specific date for 2004 from functor</span> 
+    date d6 = labor_day.get_date(<span class="number">2004</span>); 
+    </pre>
+<p>    
+
+      The following provides some example code using times.
+      See <a class="link" href="../posix_time.html" title="Posix Time">Time Programming</a> 
+      for more details.
+
+    </p>
+<pre class="programlisting"><span class="keyword">using namespace</span> boost::posix_time; 
+    date d(<span class="number">2002</span>,Feb,<span class="number">1</span>); <span class="comment">//an arbitrary date</span> 
+    ptime t1(d, hours(<span class="number">5</span>)+nanosec(<span class="number">100</span>)); <span class="comment">//date + time of day offset</span> 
+    ptime t2 = t1 - minutes(<span class="number">4</span>)+seconds(<span class="number">2</span>);
+    ptime now = second_clock::local_time(); <span class="comment">//use the clock</span> 
+    date today = now.date(); <span class="comment">//Get the date part out of the time</span> 
+    date tomorrow = today + date_duration(<span class="number">1</span>);
+    ptime tomorrow_start(tomorrow); <span class="comment">//midnight 
+
+    //input streaming</span> 
+    std::stringstream ss(<span class="string">"2004-Jan-1 05:21:33.20"</span>);
+    ss &gt;&gt; t2;
+
+    <span class="comment">//starting at current time iterator adds by one hour</span>
+    time_iterator titr(now,hours(<span class="number">1</span>)); 
+    <span class="keyword">for</span> (; titr &lt; tomorrow_start; ++titr) {
+     std::cout &lt;&lt; (*titr) &lt;&lt; std::endl;
+    }
+    </pre>
+<p>    
+  </p>
+<p>
+      The following provides some example code using times.
+      See <a class="link" href="../local_time.html" title="Local Time">Local Time Programming</a> 
+      for more details.
+
+    </p>
+<pre class="programlisting">
+    <span class="keyword">using namespace</span> boost::local_time; 
+    <span class="comment">//setup some timezones for creating and adjusting times
+    //first time zone uses the time zone file for regional timezone definitions</span>
+    tz_database tz_db;
+    tz_db.load_from_file(<span class="string">"date_time_zonespec.csv"</span>);
+    time_zone_ptr nyc_tz = tz_db.time_zone_from_region(<span class="string">"America/New_York"</span>);
+    <span class="comment">//This timezone uses a posix time zone string definition to create a time zone</span>
+    time_zone_ptr phx_tz(new posix_time_zone(<span class="string">"MST-07:00:00"</span>));
+
+    <span class="comment">//local departure time in phoenix is 11 pm on April 2 2005 
+    // Note that New York changes to daylight savings on Apr 3 at 2 am)</span>
+    local_date_time phx_departure(date(<span class="number">2005</span>, Apr, <span class="number">2</span>), hours(<span class="number">23</span>), phx_tz, 
+                                  local_date_time::NOT_DATE_TIME_ON_ERROR);
+
+    time_duration flight_length = hours(<span class="number">4</span>) + minutes(<span class="number">30</span>);
+    local_date_time phx_arrival = phx_departure + flight_length;
+    <span class="comment">//convert the phx time to a nyz time</span>
+    local_date_time nyc_arrival = phx_arrival.local_time_in(nyc_tz);
+
+    <span class="comment">//2005-Apr-03 06:30:00 EDT</span>
+    std::cout &lt;&lt; nyc_arrival &lt;&lt; std::endl;
+    </pre>
+<p>    
+  </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../date_time.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../gregorian.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

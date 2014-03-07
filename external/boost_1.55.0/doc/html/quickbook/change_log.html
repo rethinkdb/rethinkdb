@@ -1,0 +1,813 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Change Log</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../quickbook.html" title="Chapter&#160;41.&#160;Quickbook 1.6">
+<link rel="prev" href="../quickbook.html" title="Chapter&#160;41.&#160;Quickbook 1.6">
+<link rel="next" href="syntax.html" title="Syntax Summary">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../quickbook.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../quickbook.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="syntax.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="quickbook.change_log"></a>Change Log</h2></div></div></div>
+<h3>
+<a name="quickbook.change_log.h0"></a>
+      <span class="phrase"><a name="quickbook.change_log.version_1_1"></a></span><a class="link" href="change_log.html#quickbook.change_log.version_1_1">Version
+      1.1 - Boost 1.33.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          First version to be included in boost.
+        </li></ul></div>
+<h3>
+<a name="quickbook.change_log.h1"></a>
+      <span class="phrase"><a name="quickbook.change_log.version_1_3"></a></span><a class="link" href="change_log.html#quickbook.change_log.version_1_3">Version
+      1.3 - Boost 1.34.0 to 1.34.1</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Quickbook file inclusion [include].
+        </li>
+<li class="listitem">
+          Better xml output (pretty layout). Check out the generated XML.
+        </li>
+<li class="listitem">
+          Regression testing facility: to make sure your document will always be
+          compatible (full backward compatibility) regardless of changes to QuickBook.
+        </li>
+<li class="listitem">
+          Code cleanup and refactoring.
+        </li>
+<li class="listitem">
+          Allow phrase markup in the doc-info.
+        </li>
+<li class="listitem">
+          Preformatted code blocks via ``code`` (double ticks) allows code in tables
+          and lists, for example.
+        </li>
+<li class="listitem">
+          Quickbook versioning; allows full backward compatibility. You have to add
+          [quickbook 1.3] to the doc-info header to enable the new features. Without
+          this, QuickBook will assume that the document is a pre-1.3 document.
+        </li>
+<li class="listitem">
+<p class="simpara">
+          Better (intuitive) paragraph termination. Some markups may terminate a
+          paragraph. Example:
+        </p>
+<pre class="programlisting">[section x]
+blah...
+[endsect]</pre>
+</li>
+<li class="listitem">
+          Fully qualified section and headers. Subsection names are concatenated
+          to the ID to avoid clashing. Example: <code class="computeroutput">doc_name.sect_name.sub_sect_name.sub_sub_sect_name</code>
+        </li>
+<li class="listitem">
+          Better &amp;nbsp; and whitespace handling in code snippets.
+        </li>
+<li class="listitem">
+          [xinclude] fixes up the relative path to the target XML file when input_directory
+          is not the same as the output_directory.
+        </li>
+<li class="listitem">
+          Allow untitled tables.
+        </li>
+<li class="listitem">
+          Allow phrase markups in section titles.
+        </li>
+<li class="listitem">
+          Allow escaping back to QuickBook from code, code blocks and inline code.
+        </li>
+<li class="listitem">
+          Footnotes, with the [footnote This is the footnote] syntax.
+        </li>
+<li class="listitem">
+          Post-processor bug fix for escaped XML code that it does not recognize.
+        </li>
+<li class="listitem">
+          Replaceable, with the [~replacement] syntax.
+        </li>
+</ul></div>
+<h3>
+<a name="quickbook.change_log.h2"></a>
+      <span class="phrase"><a name="quickbook.change_log.version_1_4"></a></span><a class="link" href="change_log.html#quickbook.change_log.version_1_4">Version
+      1.4 - Boost 1.35.0 to 1.40.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Generic Headers
+        </li>
+<li class="listitem">
+          Code changes to allow full recursion (i.e. Collectors and push/pop functions)
+        </li>
+<li class="listitem">
+          Various code cleanup/maintenance
+        </li>
+<li class="listitem">
+          Templates!
+        </li>
+<li class="listitem">
+          [conceptref] for referencing BoostBook &lt;concept&gt; entities.
+        </li>
+<li class="listitem">
+          Allow escape of spaces. The escaped space is removed from the output. Syntax:
+          <code class="computeroutput">\ </code>.
+        </li>
+<li class="listitem">
+          Nested comments are now allowed.
+        </li>
+<li class="listitem">
+          Quickbook blocks can nest inside comments.
+        </li>
+<li class="listitem">
+          <a class="link" href="syntax/block.html#quickbook.ref.import">Import</a> facility.
+        </li>
+<li class="listitem">
+          Callouts on imported code
+        </li>
+<li class="listitem">
+          Simple markups can now span a whole block.
+        </li>
+<li class="listitem">
+          <a class="link" href="syntax/block.html#quickbook.ref.blurbs">Blurbs</a>, <a class="link" href="syntax/block.html#quickbook.ref.admonitions">Admonitions</a>
+          and table cells (see <a class="link" href="syntax/block.html#quickbook.ref.tables">Tables</a>)
+          may now contain paragraphs.
+        </li>
+<li class="listitem">
+          <code class="computeroutput">\n</code> and <code class="computeroutput">[br]</code> are now deprecated.
+        </li>
+<li class="listitem">
+          <a class="link" href="syntax/phrase.html#quickbook.ref.cond">Conditional Generation</a>. Ala C++
+          #ifdef.
+        </li>
+<li class="listitem">
+          Searching of included and imported files in an extensible search path with
+          <code class="computeroutput">--include-path</code> (<code class="computeroutput">-I</code>) option.
+        </li>
+</ul></div>
+<h3>
+<a name="quickbook.change_log.h3"></a>
+      <span class="phrase"><a name="quickbook.change_log.version_1_5"></a></span><a class="link" href="change_log.html#quickbook.change_log.version_1_5">Version
+      1.5 - Boost 1.41.0 to 1.42.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Support multiple copyright entrys in document info.
+        </li>
+<li class="listitem">
+          Improved SVG support.
+        </li>
+<li class="listitem">
+          [globalref] for referencing BoostBook &lt;global&gt; entities.
+        </li>
+<li class="listitem">
+          Fail on error.
+        </li>
+<li class="listitem">
+          Fix crash for templates with too many arguments or trailing space.
+        </li>
+<li class="listitem">
+          Improved handling of unexpected characters in code blocks.
+        </li>
+<li class="listitem">
+          Improved handling of unmatched escape in code blocks.
+        </li>
+<li class="listitem">
+          Support for python snippets.
+        </li>
+<li class="listitem">
+          <code class="computeroutput">teletype</code> source mode.
+        </li>
+<li class="listitem">
+          Use static scoping in templates, should be a lot more intuitive.
+        </li>
+<li class="listitem">
+          Accept a space between <code class="computeroutput">section:</code> and the section id.
+        </li>
+<li class="listitem">
+          Support table ids.
+        </li>
+</ul></div>
+<h3>
+<a name="quickbook.change_log.h4"></a>
+      <span class="phrase"><a name="quickbook.change_log.version_1_5_1___boost_1_43_0"></a></span><a class="link" href="change_log.html#quickbook.change_log.version_1_5_1___boost_1_43_0">Version
+      1.5.1 - Boost 1.43.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Improve the post processor's list of block elements. <code class="computeroutput">table</code>,
+          <code class="computeroutput">entry</code> and <code class="computeroutput">varlistentry</code> are treated as blocks.
+          <code class="computeroutput">replaceable</code> is treated as an inline element.
+        </li>
+<li class="listitem">
+          Check that <code class="computeroutput">[section]</code> and <code class="computeroutput">[endsect]</code> tags are balanced
+          in templates.
+        </li>
+<li class="listitem">
+          Add unicode escape characters, eg. <code class="computeroutput">\u03B1</code> for &#945;.
+        </li>
+<li class="listitem">
+          Support UTF-8 files with a unicode byte order mark.
+        </li>
+<li class="listitem">
+          Disallow <code class="computeroutput">[</code> in simple markup. Fixes some errors with mismatched
+          punctuation.
+        </li>
+<li class="listitem">
+          Add command line flag to define macros at the command line, e.g. <code class="computeroutput">quickbook
+          "-D__italic_foo__=/foo/"</code>.
+        </li>
+</ul></div>
+<h3>
+<a name="quickbook.change_log.h5"></a>
+      <span class="phrase"><a name="quickbook.change_log.version_1_5_2___boost_1_44_0"></a></span><a class="link" href="change_log.html#quickbook.change_log.version_1_5_2___boost_1_44_0">Version
+      1.5.2 - Boost 1.44.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Use the cygwin 1.7 API for better path handling.
+        </li>
+<li class="listitem">
+          Improved boostbook generation:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                XML encode the documentation info correctly.
+              </li>
+<li class="listitem">
+                Avoid generating empty paragraphs.
+              </li>
+<li class="listitem">
+                No longer wraps block templates in paragraphs.
+              </li>
+<li class="listitem">
+                Warns if you use invalid doc_info members for docbook document types.
+              </li>
+<li class="listitem">
+                Fixes some other causes of invalid boostbook, although it still generates
+                invalid boostbook in places.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          Improved grammar:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Supports multiple categories in library doc_info.
+              </li>
+<li class="listitem">
+                No longer requires commas between authors in docinfo.
+              </li>
+<li class="listitem">
+                Allows empty document bodies.
+              </li>
+<li class="listitem">
+                A line containing only a comment is no longer interpreted as a paragraph
+                break.
+              </li>
+<li class="listitem">
+                If a line starts with a comment, interpret it as a paragraph even
+                if it's followed by whitespace or a list character.
+              </li>
+<li class="listitem">
+                Doesn't treat several consecutive blank lines as multiple paragraph
+                breaks.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          Fixes duplicate image attribute detection.
+        </li>
+<li class="listitem">
+          Fixes using code snippets more than once.
+        </li>
+<li class="listitem">
+          Early work on quickbook 1.6, available using the <code class="computeroutput">[quickbook 1.6]</code>
+          version switch, but liable to change in future versions.
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                When automatically generating ids for headers, use the quickbook
+                source, rather than the generated docbook.
+              </li>
+<li class="listitem">
+                Fix id generation in included files. It wasn't correctly using the
+                main document's documentation id.
+              </li>
+<li class="listitem">
+                Correctly restore the quickbook version switch after including a
+                file with a different version.
+              </li>
+</ul></div>
+        </li>
+</ul></div>
+<h3>
+<a name="quickbook.change_log.h6"></a>
+      <span class="phrase"><a name="quickbook.change_log.version_1_5_3___boost_1_45_0"></a></span><a class="link" href="change_log.html#quickbook.change_log.version_1_5_3___boost_1_45_0">Version
+      1.5.3 - Boost 1.45.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Fix command line flag for defining macros.
+        </li>
+<li class="listitem">
+          Fix a couple of issues with the code block parser:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                A comment with no indentation will now end a code block.
+              </li>
+<li class="listitem">
+                Code blocks no longer have to be followed by a blank line.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          Improved tracking of file position in templates and imported code blocks.
+        </li>
+<li class="listitem">
+          Better generated markup for callout lists.
+        </li>
+<li class="listitem">
+          In docbook, variable list entries can only have one <code class="computeroutput">listitem</code>,
+          so if an entry has multiple values, merge them into one <code class="computeroutput">listitem</code>.
+        </li>
+<li class="listitem">
+          Support nested code snippets.
+        </li>
+<li class="listitem">
+          Support nested blocks in document info comments.
+        </li>
+<li class="listitem">
+          Revert xml escaping document info, it broke some documentation files (now
+          a 1.6 feature).
+        </li>
+<li class="listitem">
+          Further work on quickbook 1.6, still not stable.
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Allow heading to have ids, using the syntax: <code class="computeroutput">[heading:id title]</code>.
+              </li>
+<li class="listitem">
+                XML escape documentation fields, with escapes to allow encoding unicode
+                in ASCII.
+              </li>
+</ul></div>
+        </li>
+</ul></div>
+<h3>
+<a name="quickbook.change_log.h7"></a>
+      <span class="phrase"><a name="quickbook.change_log.version_1_5_4___boost_1_46_1"></a></span><a class="link" href="change_log.html#quickbook.change_log.version_1_5_4___boost_1_46_1">Version
+      1.5.4 - Boost 1.46.1</a>
+    </h3>
+<p>
+      Boost 1.46.0:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Add support for <code class="computeroutput">lang</code> attribute in documentation info.
+        </li>
+<li class="listitem">
+          Improved anchor implementation. Especially for using an anchor before a
+          section or heading.
+        </li>
+<li class="listitem">
+          Fixed some more issues where lines containing comments were treated as
+          blank lines.
+        </li>
+<li class="listitem">
+          Allow import, include and xinclude in conditional phrases. Will allow more
+          block elements in a future version.
+        </li>
+<li class="listitem">
+          Rearrange the structure of the grammar.
+        </li>
+<li class="listitem">
+          Use filesystem 3. Remove cygwin 1.5 support.
+        </li>
+</ul></div>
+<p>
+      Boost 1.46.1:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          Work around optimization bug in g++ 4.4 on 64 bit linux.
+        </li></ul></div>
+<h3>
+<a name="quickbook.change_log.h8"></a>
+      <span class="phrase"><a name="quickbook.change_log.version_1_5_5___boost_1_47"></a></span><a class="link" href="change_log.html#quickbook.change_log.version_1_5_5___boost_1_47">Version
+      1.5.5 - Boost 1.47</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Tweak anchor placement for titles.
+        </li>
+<li class="listitem">
+          Hard code the quickbook path into the quickbook testing tools. This means
+          that they can be used from multiple locations.
+        </li>
+<li class="listitem">
+          Generate an id for boostbook <code class="computeroutput">bridgehead</code> elements. This results
+          in more consistent html, since docbook generates a random id if they don't
+          have one.
+        </li>
+<li class="listitem">
+          Improved unicode support on windows. Unicode can now be used from the command
+          line, and unicode filenames are supported. Unicode output is a bit weak.
+        </li>
+<li class="listitem">
+          Check for windows paths, and warn about them.
+        </li>
+<li class="listitem">
+          Fix relative path detection on windows.
+        </li>
+<li class="listitem">
+          Reverse deprecation of <code class="computeroutput">[br]</code>, printing a single warning about
+          generating invalid boostbook.
+        </li>
+<li class="listitem">
+          Fix handling empty category attributes.
+        </li>
+<li class="listitem">
+          Store data from the parser in a dynamic data structure. This simplifies
+          the implementation and makes it easier to parse more complicated data structures.
+        </li>
+<li class="listitem">
+          Improved error messages for unknown doc info attributes.
+        </li>
+<li class="listitem">
+          Richer copyright syntax. Now understands: <code class="computeroutput">[copyright 2001-2006, 2010
+          One person, 2008 Another person]</code>.
+        </li>
+<li class="listitem">
+          Fix delimeter checking for simple markup.
+        </li>
+<li class="listitem">
+          Allow more block elements to be nested.
+        </li>
+<li class="listitem">
+          Go back to using invalid markup for lists. It generates better html.
+        </li>
+<li class="listitem">
+          Better anchor placement for lists.
+        </li>
+<li class="listitem">
+          Pass-thru comments in code snippets.
+        </li>
+<li class="listitem">
+          Use relative paths for <code class="computeroutput">__FILENAME__</code> macro.
+        </li>
+<li class="listitem">
+          Rewrite xinclude path generator so that it doesn't use deprecated filesystem
+          functions.
+        </li>
+<li class="listitem">
+          Allow quickbook escapes inside comments in syntax highlighted code.
+        </li>
+<li class="listitem">
+          Quickbook 1.6:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Scope source mode changes to the file they're made in.
+              </li>
+<li class="listitem">
+                Explicit markup for lists. e.g. <code class="computeroutput">[ordered_list [item1][item2]]</code>
+                or <code class="computeroutput">[itemized_list [item1][item2]]</code>.
+              </li>
+</ul></div>
+        </li>
+</ul></div>
+<h3>
+<a name="quickbook.change_log.h9"></a>
+      <span class="phrase"><a name="quickbook.change_log.version_1_5_6___boost_1_48"></a></span><a class="link" href="change_log.html#quickbook.change_log.version_1_5_6___boost_1_48">Version
+      1.5.6 - Boost 1.48</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Xml encode escaped punctuation (eg. <code class="computeroutput">\&lt;</code> is correctly encodes
+          to &lt;).
+        </li>
+<li class="listitem">
+          Rename duplicate generated ids.
+        </li>
+<li class="listitem">
+          Close open sections at end of document (still warns about them).
+        </li>
+<li class="listitem">
+          New anchor markup for headers, will hopefully generate better pdfs.
+        </li>
+<li class="listitem">
+          Remove some whitespace around code from post processed output.
+        </li>
+</ul></div>
+<h3>
+<a name="quickbook.change_log.h10"></a>
+      <span class="phrase"><a name="quickbook.change_log.version_1_5_7___boost_1_49"></a></span><a class="link" href="change_log.html#quickbook.change_log.version_1_5_7___boost_1_49">Version
+      1.5.7 - Boost 1.49</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Several internal changes.
+        </li>
+<li class="listitem">
+          Some improved error messages.
+        </li>
+<li class="listitem">
+          Better handling of block templates expanded in a phrase context.
+        </li>
+<li class="listitem">
+          Avoids empty simple markup (i.e. // is not treated as an italic empty space.
+        </li>
+<li class="listitem">
+          Better anchor markup for headers, which should be better for printing -
+          suggested by John Maddock.
+        </li>
+<li class="listitem">
+          Further improvements to the id generator.
+        </li>
+<li class="listitem">
+          If sections are left unopened at the end of a document, then close them
+          in the generated markup.
+        </li>
+<li class="listitem">
+          Try to handle whitespace better at the beginning and end of code blocks.
+        </li>
+<li class="listitem">
+          Handle lists that come immediately after an anchor.
+        </li>
+<li class="listitem">
+          Make horizontal rules followed by multi-line comments a little more sensible.
+        </li>
+<li class="listitem">
+          Better support for empty ids and titles in docinfo.
+        </li>
+<li class="listitem">
+          Fix some minor regressions in SVG handling.
+        </li>
+<li class="listitem">
+          Better handling of invalid command line macros.
+        </li>
+<li class="listitem">
+          When auto-building quickbook, build the release version.
+        </li>
+<li class="listitem">
+          Lots of changes for 1.6:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Scope templates in included files.
+              </li>
+<li class="listitem">
+                Support import of templates and macros.
+              </li>
+<li class="listitem">
+                Including top level quickbook blocks from source files.
+              </li>
+<li class="listitem">
+                Use doc info blocks in included quickbook files.
+              </li>
+<li class="listitem">
+                Better handling of macros with the same name.
+              </li>
+<li class="listitem">
+                <code class="computeroutput">block</code> element.
+              </li>
+<li class="listitem">
+                Better handling of significant punctuation (e.g. escapes, square
+                brackets).
+              </li>
+<li class="listitem">
+                Support escapes in links, anchors, images, includes etc.
+              </li>
+<li class="listitem">
+                Improved table title syntax.
+              </li>
+<li class="listitem">
+                Paragraphs nested in lists.
+              </li>
+<li class="listitem">
+                New docinfo attributes:
+                <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: square; ">
+<li class="listitem">
+                      <code class="computeroutput">compatibility-mode</code> to make it possible to upgrade
+                      documents without breaking ids.
+                    </li>
+<li class="listitem">
+                      <code class="computeroutput">xmlbase</code> for escaped <code class="computeroutput">xi:include</code>s.
+                    </li>
+</ul></div>
+              </li>
+<li class="listitem">
+                Allow some docinfo attributes to be used before, or without, a doc
+                info block (<code class="computeroutput">quickbook</code>, <code class="computeroutput">compatibility-mode</code>,
+                <code class="computeroutput">source-mode</code>).
+              </li>
+<li class="listitem">
+                Only add explicit alt text to images.
+              </li>
+<li class="listitem">
+                Don't put 'inline' code blocks inside paragraphs.
+              </li>
+</ul></div>
+        </li>
+</ul></div>
+<h3>
+<a name="quickbook.change_log.h11"></a>
+      <span class="phrase"><a name="quickbook.change_log.version_1_5_8___boost_1_50"></a></span><a class="link" href="change_log.html#quickbook.change_log.version_1_5_8___boost_1_50">Version
+      1.5.8 - Boost 1.50</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Write dependencies to a file, using <code class="computeroutput">--output-deps</code> (<a href="https://svn.boost.org/trac/boost/ticket/6691" target="_top">#6691</a>).
+        </li>
+<li class="listitem">
+          Fix handling of section tags in lists.
+        </li>
+<li class="listitem">
+          Fix indented code blocks in lists.
+        </li>
+<li class="listitem">
+          Fix handling UTF-8 code points in the syntax highlighter. Was treating
+          each individual byte as a character. Still doesn't deal with combining
+          code points.
+        </li>
+<li class="listitem">
+          Internal changes:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                A lot of restructuring.
+              </li>
+<li class="listitem">
+                Stop using 'v3' filesystem paths and namespaces, it's now the default
+                version.
+              </li>
+<li class="listitem">
+                Remove awkward intrusive reference counting implementation, avoids
+                a gcc internal compiler error (<a href="http://svn.boost.org/trac/boost/ticket/6794" target="_top">#6794</a>),
+                but is also a cleaner implementation.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          1.6 changes:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Better handling of brackets in link values.
+              </li>
+<li class="listitem">
+                Improved handling of escaped characters in include paths.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          Starting to develop 1.7:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Source mode for single entities.
+              </li>
+<li class="listitem">
+                Callouts in code blocks.
+              </li>
+<li class="listitem">
+                Escaped docbook in docinfo blocks.
+              </li>
+<li class="listitem">
+                Starting to implement calling templates from link values.
+              </li>
+</ul></div>
+        </li>
+</ul></div>
+<h3>
+<a name="quickbook.change_log.h12"></a>
+      <span class="phrase"><a name="quickbook.change_log.version_1_5_9___boost_1_54"></a></span><a class="link" href="change_log.html#quickbook.change_log.version_1_5_9___boost_1_54">Version
+      1.5.9 - Boost 1.54</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          When code blocks are indented using a mixture of tabs and spaces, convert
+          indentation to spaces.
+        </li>
+<li class="listitem">
+          In the C++ systax highlighter, fix syntax highlighting for <code class="computeroutput">#</code>,
+          so that it's used for preprocessor statements at the start of a line, and
+          as a 'special' character elsewhere (<a href="https://svn.boost.org/trac/boost/ticket/8510" target="_top">#8510</a>,
+          <a href="https://svn.boost.org/trac/boost/ticket/8511" target="_top">#8511</a>).
+        </li>
+<li class="listitem">
+          Add C++11 keywords to syntax highlighter (<a href="https://svn.boost.org/trac/boost/ticket/8541" target="_top">#8541</a>).
+        </li>
+<li class="listitem">
+          Hidden options for formatting of <code class="computeroutput">--output-deps</code>. Not really
+          for public use
+        </li>
+<li class="listitem">
+          yet.
+        </li>
+<li class="listitem">
+          1.6 changes:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Better template argument parsing, so that it understands things like
+                escaped markup.
+              </li>
+<li class="listitem">
+                Support for using macros in the doc info block.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          Internal changes:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Convert to use <code class="computeroutput">boost::string_ref</code>.
+              </li>
+<li class="listitem">
+                Clean up the source map implementation (used to get the correct location
+                for error messages in things like templates and snippets).
+              </li>
+</ul></div>
+        </li>
+</ul></div>
+<h3>
+<a name="quickbook.change_log.h13"></a>
+      <span class="phrase"><a name="quickbook.change_log.version_1_6_0_beta_1___boost_1_55_beta"></a></span><a class="link" href="change_log.html#quickbook.change_log.version_1_6_0_beta_1___boost_1_55_beta">Version
+      1.6.0 beta 1 - Boost 1.55 beta</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Remove nested blocks in lists from 1.6, move to 1.7. (Can still nest block
+          elements in lists though).
+        </li>
+<li class="listitem">
+          Don't break out of lists after a nested block element.
+        </li>
+<li class="listitem">
+          Check for errors when writing dependency files.
+        </li>
+<li class="listitem">
+          Improved markup for lists.
+        </li>
+<li class="listitem">
+          Make escaping templates with a punctuation identifier illegal. Escaping
+          templates with an alphanumeric identifier is still fine.
+        </li>
+<li class="listitem">
+          Fix detection of code blocks at the start of a file.
+        </li>
+<li class="listitem">
+          XML encode the contents of the <code class="computeroutput">change_log.qbk</code> macro.
+        </li>
+<li class="listitem">
+          1.7 changes:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Make it an error to use an element in the wrong context.
+              </li>
+<li class="listitem">
+                Error if the body of a phrase element doesn't parse.
+              </li>
+<li class="listitem">
+                List markup in nested blocks.
+              </li>
+<li class="listitem">
+                Allow block elements in phrase templates.
+              </li>
+<li class="listitem">
+                Make it an error to put a paragraph break (i.e. a blank line) in
+                a phrase template.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          Internal changes:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                Clean up the id manager implementation.
+              </li></ul></div>
+        </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002, 2004, 2006 Joel de Guzman,
+      Eric Niebler<br>Copyright &#169; 2010, 2011 Daniel James<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../quickbook.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../quickbook.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="syntax.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

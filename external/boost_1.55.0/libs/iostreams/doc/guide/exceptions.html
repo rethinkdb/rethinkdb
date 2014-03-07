@@ -1,0 +1,156 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Exceptions</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+    <STYLE> 
+        OL LI { list-style-image:none; list-style-type: decimal } 
+        OL LI LI { list-style-image:none; list-style-type: lower-alpha } 
+     </STYLE>
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">User's Guide</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+     <A HREF='views.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='guide.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='buffering.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<A NAME="overview"></A>
+<H2>3.10 Exceptions</H2>
+
+<DL class="page-index">
+  <DT><A href="#standard_iostreams">The Standard Iostreams library</A></DT>
+  <DT><A href="#boost_iostreams">The Boost Iostreams library</A></DT>
+  <DT><A href="#safety">Exception Safety</A></DT>
+  <DT><A href="#acknowledgments">Acknowledgments</A></DT>
+</DL>
+
+<HR STYLE="margin-top:1em">
+
+<A NAME="standard_iostreams"></A>
+<H2>The Standard Iostreams library</H2>
+
+<P>
+    The <CODE>public</CODE> member functions of <CODE>std::basic_streambuf</CODE> which perform i/o &#8212; <CODE>sgetn()</CODE>, <CODE>sputn()</CODE>, <CODE>pubsync(), <I>etc.</I> </CODE> &#8212; are implemented using the <CODE>protected virtual</CODE> interface of <CODE>std::basic_streambuf</CODE> &#8212; <CODE>underflow()</CODE>, <CODE>overflow()</CODE>, <CODE>sync()</CODE>, <I>etc</I>. Most of these <CODE>protected virtual</CODE> functions are allowed to signal failure either by throwing an exception or by returning an error indicator (often <CODE>traits_type::eof()</CODE>). All exceptions thrown are propogated by the <CODE>public</CODE> member functions, so users of raw stream buffers must in principle be prepared to handle exceptions. However, the stream buffers which ship with most standard library implementations do not throw exceptions.
+</P>
+
+<P>
+    Standard streams, by contrast, throw no exceptions by default: users must set the <I>exception mask</I> to request that exceptional conditions be reported using exceptions. If <CODE>ios_base::badbit</CODE> is set in a stream's exception mask, all exceptions thrown by the underlying stream buffer will be caught and rethrown.
+</P>
+
+<P>
+    With streams, therefore, the user has a choice whether to enable exceptions; with stream buffers, the implementor has a choice, but the user has none.
+</P>
+
+<A NAME="boost_iostreams"></A>
+<H2>The Boost Iostreams library</H2>
+
+<H5>Policy</H5>
+
+<P>
+    The fundamental stream buffer template in the Boost Iostreams library, <A HREF="generic_streams.html#stream_buffer"><CODE>stream_buffer</CODE></A>, implements the <CODE>protected virtual</CODE> memeber functions of <CODE>std::basic_streambuf</CODE> by delegating to the i/o functions <A HREF="../functions/read.html"><CODE>read</CODE></A>, <A HREF="../functions/write.html"><CODE>write</CODE></A>, <A HREF="../functions/put.html"><CODE>put</CODE></A>, <A HREF="../functions/get.html"><CODE>get</CODE></A>, <I>etc.</I>, which in turn delegate to member functions of Filters and Devices. <I>These member functions throw exceptions to report errors.</I> The exceptions are propagated by the <CODE>protected virtual</CODE> members of <CODE>stream_buffer</CODE> and by the public members of <CODE>std::basic_streambuf</CODE>. 
+</P>
+
+<P>
+    It is recommended that all exceptions thrown by user-defined Filters and Devices 
+    derive from <CODE>std::ios_base::failure</CODE>.<SUP><A CLASS="footnote_ref" NAME="note_1_ref" HREF="#note_1">[1]</A></SUP>
+</P>
+
+<H5>Rationale</H5>
+
+<P>
+    An alternative formulation would have been to require Filter and Device member functions with return type <CODE>std::streamsize</CODE> to return <CODE>-1</CODE> to indicate errors, and to modify the specification of functions returning <CODE>void</CODE> so that they return a <CODE>bool</CODE> indicating success. The decision to rely on exceptions to report errors was made to allow implementors a means to convey aditional information about the cause of errors, and to free them from having to remember which return values are designated as error indicators.
+</P>
+
+<P>
+    A third possibility would have been to follow the example of <CODE>std::basic_streambuf</CODE> and allow member functions of Filters and Devices to signal errors either by throwing exceptions or by returning designated error indicators. This was rejected because it would have complicated the specifications of the various <A HREF="concepts.html#filter_concepts">Filter</A> and <A HREF="concepts.html#device_concepts">Device</A> concepts and made the internals of <CODE>stream_buffer</CODE> more difficult to understand and maintain.<SUP><A CLASS="footnote_ref" NAME="note_2_ref" HREF="#note_2">[2]</A></SUP>
+</P>
+
+<A NAME="safety"></A>
+<H2>Exception Safety</H2>
+
+The Iostreams library aims to provide to following guarantees if an exception is thrown during an i/o operation:
+
+<OL>
+    <LI>Resources are freed by calling destructors or <A HREF="../functions/close.html"><CODE>close</CODE></A>, if appropriate.
+    <LI>
+        The invariants specified by the C++ standard library for streams and stream buffers are maintained. Attempting to perform additional i/o is allowed but may cause further exceptions.
+    </LI>
+    <LI>The invariants specified by the Boost Iostreams library for streams and stream buffers are maintained. Specifically,
+        <OL>
+            <LI>
+                A <A HREF="generic_streams.html#stream_buffer"><CODE>stream_buffer</CODE></A> or <A HREF="generic_streams.html#stream"><CODE>stream</CODE></A> can be closed and reopened to perform additional i/o with a new instance of the underlying <A HREF="concepts.html#filter_concepts">Filter</A> or <A HREF="concepts.html#device_concepts">Device</A> type.
+            </LI>
+            <LI>
+                A <A HREF="../classes/filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A>'s or <A HREF="../classes/filtering_stream.html"><CODE>filtering_stream</CODE></A>'s chain of Filters and Devices is in a consistent state. If the current Device is removed from the chain and a new one added the user may perform i/o as if the the stream or stream buffer were newly constructed.
+            </LI>
+        </OL> 
+    </LI>
+</OL>
+
+<P>
+    Conditions 2. and 3. rely on the specification of the <A HREF="concepts.html#filter_concepts">Filter</A> and <A HREF="concepts.html#device_concepts">Device</A> concepts. Note that there is <I>no</I> guarantee that a stream's or stream buffer's character sequences are in a consistent state, <I>i.e.</I>, that data has not been corrupted, and no way in general to determine the state of these sequences after an exception.
+</P>
+
+<P>
+    These conditions amount to what is known as the <I>basic guarantee</I> of exception safety (<I>see</I> <A CLASS="bib_ref" HREF="../bibliography.html#abrahams1">[Abrahams1]</A>.)
+</P>
+
+<A NAME="acknowledgments"></A>
+<H2>Acknowledgments</H2>
+
+<P>Thanks to Angelika Langer and John Torjo for discussion of exceptions.</P>
+
+<!-- Begin Footnotes -->
+
+<HR>
+
+<P>
+    <A CLASS="footnote_ref" NAME="note_1" HREF="#note_1_ref"><SUP>[1]</SUP></A>The C++ standard describes <CODE>std::ios_base::failure</CODE> as "the base class for the types of all objects thrown as exceptions, by functions in the Iostreams library, to report errors detected during stream buffer operations." (<A CLASS="bib_ref" HREF="../bibliography.html#iso">[ISO]</A>, section 27.4.2.1.1.) There is a difference of opinion among commentators whether this means that <I>all</I> exceptions thrown by stream buffer member functions must be of type <CODE>failure</CODE>.
+</P>
+
+<P>
+    A leading text on C++ iostreams interprets the language in the standard to mean that exceptions "may be of any type" but that "if the exception is rasied due to an error situation <I>discovered by any of the IOStreams operations</I>, it is of the type <CODE>failure</CODE>" (<A CLASS="bib_ref" HREF="../bibliography.html#langer">[Langer]</A>, p. 36, emphasis added). As an example, the authors state that a <CODE>std::bad_alloc</CODE> generated during buffer allocation need not be caught and rethrown as a <CODE>failure</CODE>.
+</P>
+
+<P>
+    Another leading text, however, takes the view that <I>all</I> exceptions must derive 
+    from <CODE>failure</CODE>. (<A CLASS="bib_ref" HREF="../bibliography.html#josuttis1">[Josuttis1]</A>, p. 602.) 
+</P>
+<P>
+    The Iostreams library takes a neutral position on this matter: all exceptions thrown
+    internally by the library are of type <CODE>failure</CODE> or a derived class, but exceptions
+    thrown by user-defined types are propogated <I>as-is</I>. 
+</P>
+
+<P>
+    <A CLASS="footnote_ref" NAME="note_2" HREF="#note_2_ref"><SUP>[2]</SUP></A>As Herb Sutter writes, "it is always poor design to allow an operation to report the same error in two different ways....It complicates the interface and the semantics. And it makes the caller's life harder because the caller must be able to handle both flavors of error reporting." (<A CLASS="bib_ref" HREF="../bibliography.html#sutter">[Sutter]</A>, p. 130.)
+</P>
+
+<!-- End Footnotes -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

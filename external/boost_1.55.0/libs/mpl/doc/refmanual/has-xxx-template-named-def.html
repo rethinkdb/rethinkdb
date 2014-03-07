@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: BOOST_MPL_HAS_XXX_TEMPLATE_NAMED_DEF</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./has-xxx-template-def.html" class="navigation-link">Prev</a>&nbsp;<a href="./has-xxx-trait-def.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./has-xxx-template-def.html" class="navigation-link">Back</a>&nbsp;<a href="./has-xxx-trait-def.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./introspection.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./macros.html" class="navigation-link">Macros</a> / <a href="./introspection.html" class="navigation-link">Introspection</a> / <a href="./has-xxx-template-named-def.html" class="navigation-link">BOOST_MPL_HAS_XXX_TEMPLATE_NAMED_DEF</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="boost-mpl-has-xxx-template-named-def">
+<h1><a class="toc-backref" href="./introspection.html#id1594">BOOST_MPL_HAS_XXX_TEMPLATE_NAMED_DEF</a></h1>
+<div class="section" id="id1322">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+#define <a href="./has-xxx-template-named-def.html" class="identifier">BOOST_MPL_HAS_XXX_TEMPLATE_NAMED_DEF</a>(trait, name, default_) \
+    <em>unspecified token sequence</em> \
+/**/
+</pre>
+</div>
+<div class="section" id="id1323">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Expands into the definition of a boolean <a class="reference internal" href="./metafunction.html">Metafunction</a> <tt class="literal"><span class="pre">trait</span></tt> such
+that for any type <tt class="literal"><span class="pre">x</span></tt> <tt class="literal"><span class="pre">trait&lt;x&gt;::value</span> <span class="pre">==</span> <span class="pre">true</span></tt> if and only if
+<tt class="literal"><span class="pre">x</span></tt> is a class type and has a nested template member <tt class="literal"><span class="pre">x::template</span>
+<span class="pre">name</span></tt> with no more than <a class="reference internal" href="./limit-metafunction-arity.html">BOOST_MPL_LIMIT_METAFUNCTION_ARITY</a>
+parameters.</p>
+<p>On deficient compilers not capable of performing the detection,
+<tt class="literal"><span class="pre">trait&lt;x&gt;::value</span></tt> always returns a fallback value <tt class="literal"><span class="pre">default_</span></tt>.  A
+boolean configuration macro, <a class="reference internal" href="./cfg-no-has-xxx-template.html">BOOST_MPL_CFG_NO_HAS_XXX_TEMPLATE</a>, is
+provided to signal or override the &quot;deficient&quot; status of a particular
+compiler.  [<em>Note:</em> The fallback value can also be provided at the
+point of the metafunction invocation; see the <cite>Expression semantics</cite>
+section for details — <em>end note</em>]</p>
+</div>
+<div class="section" id="id1324">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/has_xxx.hpp" class="header">boost/mpl/has_xxx.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id1325">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="15%" />
+<col width="32%" />
+<col width="53%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">trait</span></tt></td>
+<td>A legal identifier token</td>
+<td>A name of the metafunction to be generated.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">name</span></tt></td>
+<td>A legal identifier token</td>
+<td>A name of the member being detected.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">default_</span></tt></td>
+<td>An boolean constant</td>
+<td>A fallback value for the deficient compilers.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1326">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any legal C++ identifiers <tt class="literal"><span class="pre">trait</span></tt> and <tt class="literal"><span class="pre">name</span></tt>, boolean constant
+expression <tt class="literal"><span class="pre">c1</span></tt>, boolean <a class="reference internal" href="./integral-constant.html">Integral Constant</a> <tt class="literal"><span class="pre">c2</span></tt>, and arbitrary
+type <tt class="literal"><span class="pre">x</span></tt>:</p>
+<pre class="literal-block">
+<a href="./has-xxx-template-named-def.html" class="identifier">BOOST_MPL_HAS_XXX_TEMPLATE_NAMED_DEF</a>(trait, name, c1)
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><p class="first">Appears at namespace scope.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">None.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Expands into an equivalent of the following class template
+definition</p>
+<pre class="literal-block">
+template&lt;
+    typename X
+  , typename fallback = boost::mpl::<a href="./bool.html" class="identifier">bool_</a>&lt;c1&gt;
+&gt;
+struct trait
+{
+    // <em>unspecified</em>
+    // ...
+};
+</pre>
+<p>where <tt class="literal"><span class="pre">trait</span></tt> is a boolean <a class="reference internal" href="./metafunction.html">Metafunction</a> with the following
+semantics:</p>
+<pre class="literal-block">
+typedef trait&lt;x&gt;::type r;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="./integral-constant.html">Integral Constant</a>.</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body">If <a class="reference internal" href="./cfg-no-has-xxx-template.html">BOOST_MPL_CFG_NO_HAS_XXX_TEMPLATE</a> is defined, <tt class="literal"><span class="pre">r::value</span>
+<span class="pre">==</span> <span class="pre">c1</span></tt>; otherwise, <tt class="literal"><span class="pre">r::value</span> <span class="pre">==</span> <span class="pre">true</span></tt> if and only if <tt class="literal"><span class="pre">x</span></tt>
+is a class type that has a nested template member <tt class="literal"><span class="pre">x::template</span>
+<span class="pre">name</span></tt> with no more than <a class="reference internal" href="./limit-metafunction-arity.html">BOOST_MPL_LIMIT_METAFUNCTION_ARITY</a>.</td>
+</tr>
+</tbody>
+</table>
+<pre class="literal-block">
+typedef trait&lt; x, c2 &gt;::type r;
+</pre>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="./integral-constant.html">Integral Constant</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">If <a class="reference internal" href="./cfg-no-has-xxx-template.html">BOOST_MPL_CFG_NO_HAS_XXX_TEMPLATE</a> is defined, <tt class="literal"><span class="pre">r::value</span>
+<span class="pre">==</span> <span class="pre">c2::value</span></tt>; otherwise, equivalent to</p>
+<pre class="last literal-block">
+typedef trait&lt;x&gt;::type r;
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1327">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+<a href="./has-xxx-template-named-def.html" class="identifier">BOOST_MPL_HAS_XXX_TEMPLATE_NAMED_DEF</a>(
+    has_xxx, xxx, false
+)
+
+struct test1  {};
+struct test2  { void xxx(); };
+struct test3  { int xxx; };
+struct test4  { static int xxx(); };
+struct test5  { typedef int xxx; };
+struct test6  { struct xxx; };
+struct test7  { typedef void (*xxx)(); };
+struct test8  { typedef void (xxx)(); };
+struct test9  { template&lt; class T &gt; struct xxx {}; };
+
+<a href="./assert-not.html" class="identifier">BOOST_MPL_ASSERT_NOT</a>(( has_xxx&lt;test1&gt; ));
+<a href="./assert-not.html" class="identifier">BOOST_MPL_ASSERT_NOT</a>(( has_xxx&lt;test2&gt; ));
+<a href="./assert-not.html" class="identifier">BOOST_MPL_ASSERT_NOT</a>(( has_xxx&lt;test3&gt; ));
+<a href="./assert-not.html" class="identifier">BOOST_MPL_ASSERT_NOT</a>(( has_xxx&lt;test4&gt; ));
+<a href="./assert-not.html" class="identifier">BOOST_MPL_ASSERT_NOT</a>(( has_xxx&lt;test5&gt; ));
+<a href="./assert-not.html" class="identifier">BOOST_MPL_ASSERT_NOT</a>(( has_xxx&lt;test6&gt; ));
+<a href="./assert-not.html" class="identifier">BOOST_MPL_ASSERT_NOT</a>(( has_xxx&lt;test7&gt; ));
+<a href="./assert-not.html" class="identifier">BOOST_MPL_ASSERT_NOT</a>(( has_xxx&lt;test8&gt; ));
+
+#if !defined(<a href="./cfg-no-has-xxx-template.html" class="identifier">BOOST_MPL_CFG_NO_HAS_XXX_TEMPLATE</a>)
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( has_xxx&lt;test9&gt; ));
+#endif
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( has_xxx&lt;test9, <a href="./bool.html" class="identifier">true_</a>&gt; ));
+</pre>
+</div>
+<div class="section" id="id1328">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./macros.html">Macros</a>, <a class="reference internal" href="./has-xxx-template-def.html">BOOST_MPL_HAS_XXX_TEMPLATE_DEF</a>,
+<a class="reference internal" href="./cfg-no-has-xxx-template.html">BOOST_MPL_CFG_NO_HAS_XXX_TEMPLATE</a>, <a class="reference internal" href="./limit-metafunction-arity.html">BOOST_MPL_LIMIT_METAFUNCTION_ARITY</a></p>
+<!-- Macros/Introspection//BOOST_MPL_HAS_XXX_TRAIT_DEF -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./has-xxx-template-def.html" class="navigation-link">Prev</a>&nbsp;<a href="./has-xxx-trait-def.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./has-xxx-template-def.html" class="navigation-link">Back</a>&nbsp;<a href="./has-xxx-trait-def.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./introspection.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"></div></td></tr></table></body>
+</html>

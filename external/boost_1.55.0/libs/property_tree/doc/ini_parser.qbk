@@ -1,0 +1,37 @@
+[/
+ / Copyright (c) 2008 Marcin Kalicinski (kalita <at> poczta dot onet dot pl)
+ / Copyright (c) 2009 Sebastian Redl (sebastian dot redl <at> getdesigned dot at)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+[section INI Parser]
+[def __ini__ [@http://en.wikipedia.org/wiki/INI INI format]]
+The __ini__ was once widely used in the world of Windows. It is now deprecated,
+but is still used by a surprisingly large number of applications. The reason is
+probably its simplicity, plus that Microsoft recommends using the registry as
+a replacement, which not all developers want to do.
+
+INI is a simple key-value format with a single level of sectioning. It is thus
+less rich than the property tree dataset, which means that not all property
+trees can be serialized as INI files.
+
+The INI parser creates a tree node for every section, and a child node for
+every property in that section. All properties not in a section are directly
+added to the root node. Empty sections are ignored. (They don't round-trip, as
+described below.)
+
+The INI serializer reverses this process. It first writes out every child of the
+root that contains data, but no child nodes, as properties. Then it creates a
+section for every child that contains child nodes, but no data. The children of
+the sections must only contain data. It is an error if the root node contains
+data, or any child of the root contains both data and content, or there's more
+than three levels of hierarchy. There must also not be any duplicate keys.
+
+An empty tree node is assumed to be an empty property. There is no way to create
+empty sections.
+
+Since the Windows INI parser discards trailing spaces and does not support
+quoting, the property tree parser follows this example. This means that
+property values containing trailing spaces do not round-trip.
+[endsect] [/ini_parser]

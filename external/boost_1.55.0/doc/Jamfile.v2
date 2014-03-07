@@ -1,0 +1,135 @@
+# Copyright (c) 2002 Douglas Gregor <doug.gregor -at- gmail.com>
+#
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+project boost/doc ;
+import boostbook : boostbook ;
+
+alias asio : ../libs/asio/doc//asio/<xsl:param>boost.libraries=../../libs/libraries.htm ;
+
+#
+# Note that when refering to libraries that use auto-index we must process all the way to
+# docbook before including here.  We must also ensure that auto-index uses it's own index
+# generation, otherwise we get one big index that's repeated in each library.  Xslt's index
+# generation is also so slow that it's impractical for a build this large (takes ~ 9 hrs
+# to build with just 3 indexed libraries).  Hence we refer to these libraries as for example:
+#
+# ../libs/interprocess/doc//standalone/<format>docbook
+#
+# Within each library that uses this, make sure that the boostbook target contains
+#
+# <format>docbook:<auto-index-internal>on
+#
+# And if boost.root is set, restrict it to local html builds using:
+#
+# <format>html:<xsl:param>boost.root=../../../..
+# <format>html:<xsl:param>boost.libraries=../../../../libs/libraries.htm
+#
+# Finally, in boost.xml we xi:include interproces.auto_index.docbook which is the final
+# post-index generation docbook, rather than interprocess.xml which is the pre-indexed boostbook.
+#
+
+boostbook doc
+    :
+    src/boost.xml
+    :
+    ## Build the various generated docs (Doxygen and QuickBook)...
+
+    <dependency>../libs/accumulators/doc//accdoc.xml
+    <dependency>../libs/accumulators/doc//statsdoc.xml
+    <dependency>../libs/accumulators/doc//opdoc.xml
+    <dependency>../libs/accumulators/doc//accumulators
+    <dependency>../libs/circular_buffer/doc//standalone/<format>docbook
+    <dependency>../libs/conversion/doc//lexical_cast
+    <dependency>../libs/chrono/doc//chrono
+    <dependency>../libs/program_options/doc//autodoc.xml
+    <dependency>../libs/algorithm/string/doc//autodoc.xml
+    <dependency>../libs/logic/doc//reference.xml
+    <dependency>../libs/functional/hash/doc//hash
+    #<dependency>../libs/type_traits/doc//type_traits
+    <dependency>../libs/static_assert/doc//static_assert
+    <dependency>../libs/tr1/doc//tr1
+    <dependency>../libs/foreach/doc//foreach
+    <dependency>../libs/mpi/doc//mpi
+    <dependency>../libs/mpi/doc//mpi_autodoc.xml
+    <dependency>../libs/property_tree/doc//autodoc.xml
+    <dependency>../libs/property_tree/doc//property_tree
+    #<dependency>../libs/proto/doc//protodoc.xml
+    <dependency>../libs/proto/doc//proto
+    <dependency>../libs/ratio/doc//ratio
+    <dependency>../libs/typeof/doc//typeof
+    <dependency>../libs/xpressive/doc//autodoc.xml
+    <dependency>../libs/xpressive/doc//xpressive
+    <dependency>../libs/date_time/xmldoc//date_time_autodoc.xml
+    <dependency>../libs/date_time/xmldoc//gregorian_autodoc.xml
+    <dependency>../libs/date_time/xmldoc//posix_time_autodoc.xml
+    <dependency>../libs/date_time/xmldoc//local_time_autodoc.xml
+    <dependency>../tools/build/v2/doc//jam_docs
+    <dependency>../tools/quickbook/doc//quickbook
+    <dependency>../libs/interprocess/doc//standalone/<format>docbook
+    <dependency>../libs/intrusive/doc//standalone/<format>docbook
+    <dependency>../libs/move/doc//autodoc.xml
+    <dependency>../libs/move/doc//move
+    <dependency>../libs/container/doc//standalone/<format>docbook
+    <dependency>../libs/units/doc//units
+    <dependency>../libs/unordered/doc//unordered
+    <dependency>../libs/thread/doc//thread
+    <dependency>../libs/signals2/doc//hello_world_def_code_snippet.xml
+    <dependency>../libs/random/doc//random
+    #<dependency>../libs/spirit/doc//spirit
+    <dependency>../libs/heap/doc//autodoc.xml
+    <dependency>../libs/heap/doc//heap
+    <dependency>../libs/lockfree/doc//autodoc.xml
+    <dependency>../libs/lockfree/doc//lockfree
+    <dependency>../libs/atomic/doc//atomic
+    <dependency>../libs/type_erasure/doc//type_erasure
+
+    ## Add path references to the QuickBook generated docs...
+
+    <implicit-dependency>../libs/accumulators/doc//accumulators
+    <implicit-dependency>../libs/chrono/doc//chrono
+    <implicit-dependency>../libs/conversion/doc//lexical_cast
+    <implicit-dependency>../libs/functional/hash/doc//hash
+    #<implicit-dependency>../libs/type_traits/doc//type_traits
+    <implicit-dependency>../libs/static_assert/doc//static_assert
+    <implicit-dependency>../libs/tr1/doc//tr1
+    <implicit-dependency>../libs/foreach/doc//foreach
+    <implicit-dependency>../libs/property_tree/doc//property_tree
+    <implicit-dependency>../libs/proto/doc//proto
+    <implicit-dependency>../libs/ratio/doc//ratio
+    <implicit-dependency>../libs/typeof/doc//typeof
+    <implicit-dependency>../libs/xpressive/doc//xpressive
+    <implicit-dependency>../tools/build/v2/doc//jam_docs
+    <implicit-dependency>../tools/quickbook/doc//quickbook
+    <implicit-dependency>../libs/mpi/doc//mpi
+    <implicit-dependency>../libs/circular_buffer/doc//standalone/<format>docbook
+    <implicit-dependency>../libs/container/doc//standalone/<format>docbook
+    <implicit-dependency>../libs/interprocess/doc//standalone/<format>docbook
+    <implicit-dependency>../libs/intrusive/doc//standalone/<format>docbook
+    <implicit-dependency>../libs/move/doc//move
+    <implicit-dependency>../libs/units/doc//units
+    <implicit-dependency>../libs/unordered/doc//unordered
+    <implicit-dependency>../libs/thread/doc//thread
+    <implicit-dependency>../libs/signals2/doc//hello_world_def_code_snippet.xml
+    <implicit-dependency>../libs/random/doc//random
+    #<implicit-dependency>../libs/spirit/doc//spirit
+    <implicit-dependency>../libs/heap/doc//heap
+    <implicit-dependency>../libs/lockfree/doc//lockfree
+    <implicit-dependency>../libs/atomic/doc//atomic
+    <implicit-dependency>../libs/type_erasure/doc//type_erasure
+
+    <xsl:param>boost.libraries=../../libs/libraries.htm
+
+    <dependency>images
+    <dependency>callouts
+    ;
+
+install images : [ glob src/images/*.png ] : <location>html/images ;
+explicit images ;
+install callouts : [ glob src/images/callouts/*.png ] : <location>html/images/callouts ;
+explicit callouts ;
+
+
+
+

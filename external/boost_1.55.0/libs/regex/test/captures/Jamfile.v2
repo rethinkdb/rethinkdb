@@ -1,0 +1,38 @@
+# copyright John Maddock 2003
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or copy at 
+# http://www.boost.org/LICENSE_1_0.txt.
+
+project
+    : source-location ../../src
+    ;
+
+EX_SOURCES = 
+   c_regex_traits.cpp
+   cpp_regex_traits.cpp
+   cregex.cpp
+   fileiter.cpp
+   icu.cpp
+   instances.cpp
+   posix_api.cpp
+   regex.cpp
+   regex_debug.cpp
+   regex_raw_buffer.cpp
+   regex_traits_defaults.cpp
+   static_mutex.cpp
+   w32_regex_traits.cpp
+   wc_regex_traits.cpp
+   wide_posix_api.cpp
+   winstances.cpp 
+   usinstances.cpp ;
+       
+lib boost_regex_extra : $(EX_SOURCES)
+    : 
+        <define>BOOST_REGEX_MATCH_EXTRA=1
+	     <link>shared:<define>BOOST_REGEX_DYN_LINK=1
+    : 
+    ;
+
+
+
+

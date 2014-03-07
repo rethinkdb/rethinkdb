@@ -1,0 +1,204 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Primitive Lexer Components</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../quick_reference.html" title="Quick Reference">
+<link rel="prev" href="common_notation.html" title="Common Notation">
+<link rel="next" href="semantic_actions.html" title="Semantic Actions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="common_notation.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../quick_reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="semantic_actions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.lex.quick_reference.lexers"></a><a class="link" href="lexers.html" title="Primitive Lexer Components">Primitive Lexer
+        Components</a>
+</h4></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Attribute
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">ch</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    n/a
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Matches <code class="computeroutput"><span class="identifier">ch</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">char_</span><span class="special">(</span><span class="identifier">ch</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    n/a
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Matches <code class="computeroutput"><span class="identifier">ch</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">str</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    n/a
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Matches regular expression <code class="computeroutput"><span class="identifier">str</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">string</span><span class="special">(</span><span class="identifier">str</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    n/a
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Matches regular expression <code class="computeroutput"><span class="identifier">str</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">token_def</span><span class="special">&lt;</span><span class="identifier">Attrib</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Attrib</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Matches the immediate argument
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">a</span> <span class="special">|</span>
+                    <span class="identifier">b</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    n/a
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Matches any of the expressions <code class="computeroutput"><span class="identifier">a</span></code>
+                    or <code class="computeroutput"><span class="identifier">b</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">l</span><span class="special">[</span><span class="identifier">fa</span><span class="special">]</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Attribute of <code class="computeroutput"><span class="identifier">l</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Call semantic action <code class="computeroutput"><span class="identifier">fa</span></code>
+                    (after matching <code class="computeroutput"><span class="identifier">l</span></code>).
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The column <span class="emphasis"><em>Attribute</em></span> in the table above lists the
+            parser attribute exposed by the lexer component if it is used as a parser
+            (see Attribute). A 'n/a' in this columns means the lexer component is
+            not usable as a parser.
+          </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="common_notation.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../quick_reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="semantic_actions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

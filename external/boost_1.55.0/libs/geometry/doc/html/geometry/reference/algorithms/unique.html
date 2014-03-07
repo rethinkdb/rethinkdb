@@ -1,0 +1,323 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>unique</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../algorithms.html" title="Algorithms">
+<link rel="prev" href="union_.html" title="union_">
+<link rel="next" href="within.html" title="within">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="union_.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../algorithms.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="within.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.algorithms.unique"></a><a class="link" href="unique.html" title="unique">unique</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp57250088"></a>
+Calculates the minimal set of a geometry.
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.unique.h0"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.unique.description"></a></span><a class="link" href="unique.html#geometry.reference.algorithms.unique.description">Description</a>
+        </h6>
+<p>
+          The free function unique calculates the minimal set (where duplicate consecutive
+          points are removed) of a geometry.
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.unique.h1"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.unique.synopsis"></a></span><a class="link" href="unique.html#geometry.reference.algorithms.unique.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">unique</span><span class="special">(</span><span class="identifier">Geometry</span> <span class="special">&amp;</span> <span class="identifier">geometry</span><span class="special">)</span></pre>
+<p>
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.unique.h2"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.unique.parameters"></a></span><a class="link" href="unique.html#geometry.reference.algorithms.unique.parameters">Parameters</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Concept
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    Geometry &amp;
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Any type fulfilling a Geometry Concept
+                  </p>
+                </td>
+<td>
+                  <p>
+                    geometry
+                  </p>
+                </td>
+<td>
+                  <p>
+                    A model of the specified concept which will be made unique
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.unique.h3"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.unique.header"></a></span><a class="link" href="unique.html#geometry.reference.algorithms.unique.header">Header</a>
+        </h6>
+<p>
+          Either
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<p>
+          Or
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">unique</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.unique.h4"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.unique.conformance"></a></span><a class="link" href="unique.html#geometry.reference.algorithms.unique.conformance">Conformance</a>
+        </h6>
+<p>
+          The function unique is not defined by OGC.
+        </p>
+<p>
+          The function unique conforms to the std::unique function of the C++ std-library.
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.unique.h5"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.unique.behavior"></a></span><a class="link" href="unique.html#geometry.reference.algorithms.unique.behavior">Behavior</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Case
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Behavior
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Point
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Nothing happens, geometry is unchanged
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Segment
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Nothing happens, geometry is unchanged
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Box
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Nothing happens, geometry is unchanged
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Linestring
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Removes all consecutive duplicate points
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Ring
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Removes all consecutive duplicate points
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Polygon
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Removes all consecutive duplicate points in all rings
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Multi Point
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Nothing happens, geometry is unchanged. Even if two equal points
+                    happen to be stored consecutively, they are kept
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Multi Linestring
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Removes all consecutive duplicate points in all contained linestrings
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Multi Polygon
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Removes all consecutive duplicate points in all contained polygons
+                    (all rings)
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.unique.h6"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.unique.complexity"></a></span><a class="link" href="unique.html#geometry.reference.algorithms.unique.complexity">Complexity</a>
+        </h6>
+<p>
+          Linear
+        </p>
+<h6>
+<a name="geometry.reference.algorithms.unique.h7"></a>
+          <span class="phrase"><a name="geometry.reference.algorithms.unique.example"></a></span><a class="link" href="unique.html#geometry.reference.algorithms.unique.example">Example</a>
+        </h6>
+<p>
+          Shows how to make a so-called minimal set of a polygon by removing duplicate
+          points
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">polygon</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">boost_tuple</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_GEOMETRY_REGISTER_BOOST_TUPLE_CS</span><span class="special">(</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">cartesian</span><span class="special">)</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">polygon</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">poly</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">read_wkt</span><span class="special">(</span><span class="string">"POLYGON((0 0,0 0,0 5,5 5,5 5,5 5,5 0,5 0,0 0,0 0,0 0,0 0))"</span><span class="special">,</span> <span class="identifier">poly</span><span class="special">);</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">unique</span><span class="special">(</span><span class="identifier">poly</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">wkt</span><span class="special">(</span><span class="identifier">poly</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Output:
+        </p>
+<pre class="programlisting">POLYGON((0 0,0 5,5 5,5 0,0 0))
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="union_.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../algorithms.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="within.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

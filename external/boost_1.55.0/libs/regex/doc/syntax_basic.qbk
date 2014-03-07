@@ -1,0 +1,289 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:basic_syntax POSIX Basic Regular Expression Syntax]
+
+[h3 Synopsis]
+
+The POSIX-Basic regular expression syntax is used by the Unix utility `sed`, 
+and variations are used by `grep` and `emacs`.  You can construct POSIX 
+basic regular expressions in Boost.Regex by passing the flag `basic` to the 
+regex constructor (see [syntax_option_type]), for example:
+
+   // e1 is a case sensitive POSIX-Basic expression:
+   boost::regex e1(my_expression, boost::regex::basic);
+   // e2 a case insensitive POSIX-Basic expression:
+   boost::regex e2(my_expression, boost::regex::basic|boost::regex::icase);
+
+[#boost_regex.posix_basic][h3 POSIX Basic Syntax]
+
+In POSIX-Basic regular expressions, all characters are match themselves except 
+for the following special characters:
+
+[pre .\[\\*^$]
+
+[h4 Wildcard:]
+
+The single character '.' when used outside of a character set will match any 
+single character except:
+
+* The NULL character when the flag `match_no_dot_null` is passed to the 
+matching algorithms.
+* The newline character when the flag `match_not_dot_newline` is passed to 
+the matching algorithms.
+
+[h4 Anchors:]
+
+A '^' character shall match the start of a line when used as the first 
+character of an expression, or the first character of a sub-expression.
+
+A '$' character shall match the end of a line when used as the last 
+character of an expression, or the last character of a sub-expression.
+
+[h4 Marked sub-expressions:]
+
+A section beginning `\(` and ending `\)` acts as a marked sub-expression.  
+Whatever matched the sub-expression is split out in a separate field by the 
+matching algorithms.  Marked sub-expressions can also repeated, or 
+referred-to by a back-reference.
+
+[h4 Repeats:]
+
+Any atom (a single character, a marked sub-expression, or a character class) 
+can be repeated with the \* operator.
+
+For example `a*` will match any number of letter a's repeated zero or more 
+times (an atom repeated zero times matches an empty string), so the 
+expression `a*b` will match any of the following:
+
+[pre
+b
+ab
+aaaaaaaab
+]
+
+An atom can also be repeated with a bounded repeat:
+
+`a\{n\}`  Matches 'a' repeated exactly n times.
+
+`a\{n,\}`  Matches 'a' repeated n or more times.
+
+`a\{n, m\}`  Matches 'a' repeated between n and m times inclusive.
+
+For example:
+
+[pre ^a\{2,3\}$]
+
+Will match either of:
+
+[pre
+aa
+aaa
+]
+
+But neither of:
+
+[pre
+a
+aaaa
+]
+
+It is an error to use a repeat operator, if the preceding construct can not be 
+repeated, for example:
+
+[pre a\(*\)]
+
+Will raise an error, as there is nothing for the \* operator to be applied to.
+
+[h4 Back references:]
+
+An escape character followed by a digit /n/, where /n/ is in the range 1-9, 
+matches the same string that was matched by sub-expression /n/.  For example 
+the expression:
+
+[pre ^\\(a\*\\).\*\\1$]
+
+Will match the string:
+
+[pre aaabbaaa]
+
+But not the string:
+
+[pre aaabba]
+
+[h4 Character sets:]
+
+A character set is a bracket-expression starting with \[ and ending with \], 
+it defines a set of characters, and matches any single character that is a 
+member of that set.
+
+A bracket expression may contain any combination of the following:
+
+[h5 Single characters:]
+
+For example `[abc]`, will match any of the characters 'a', 'b', or 'c'.
+
+[h5 Character ranges:]
+
+For example `[a-c]` will match any single character in the range 'a' to 'c'.  
+By default, for POSIX-Basic regular expressions, a character /x/ is within the 
+range /y/ to /z/, if it collates within that range; this results in 
+locale specific behavior.  This behavior can be turned off by unsetting 
+the `collate` option flag when constructing the regular expression 
+- in which case whether a character appears within 
+a range is determined by comparing the code points of the characters only.
+
+[h5 Negation:]
+
+If the bracket-expression begins with the ^ character, then it matches the 
+complement of the characters it contains, for example `[^a-c]` matches 
+any character that is not in the range a-c.
+
+[h5 Character classes:]
+
+An expression of the form `[[:name:]]` matches the named character class "name", 
+for example `[[:lower:]]` matches any lower case character.  
+See [link boost_regex.syntax.character_classes character class names].
+
+[h5 Collating Elements:]
+
+An expression of the form `[[.col.]` matches the collating element /col/.  
+A collating element is any single character, or any sequence of 
+characters that collates as a single unit.  Collating elements may also 
+be used as the end point of a range, for example: `[[.ae.]-c]` matches 
+the character sequence "ae", plus any single character in the rangle "ae"-c, 
+assuming that "ae" is treated as a single collating element in the current locale.
+
+Collating elements may be used in place of escapes (which are not 
+normally allowed inside character sets), for example `[[.^.]abc]` would 
+match either one of the characters 'abc^'.
+
+As an extension, a collating element may also be specified via its 
+symbolic name, for example:
+
+[pre \[\[\.NUL\.\]\]]
+
+matches a 'NUL' character.  
+See [link boost_regex.syntax.collating_names collating element names].
+
+[h5 Equivalence classes:]
+
+An expression of theform `[[=col=]]`, matches any character or collating 
+element whose primary sort key is the same as that for collating element 
+/col/, as with collating elements the name /col/ may be a 
+[link boost_regex.syntax.collating_names collating symbolic name].  
+A primary sort key is one that ignores case, accentation, or 
+locale-specific tailorings; so for example `[[=a=]]` matches any of 
+the characters: a, '''&#xC0;''', '''&#xC1;''', '''&#xC2;''', 
+'''&#xC3;''', '''&#xC4;''', '''&#xC5;''', A, '''&#xE0;''', '''&#xE1;''', 
+'''&#xE2;''', '''&#xE3;''', '''&#xE4;''' and '''&#xE5;'''.  
+Unfortunately implementation of this is reliant on the platform's 
+collation and localisation support; this feature can not be relied 
+upon to work portably across all platforms, or even all locales on one platform.
+
+[h5 Combinations:]
+
+All of the above can be combined in one character set declaration, for 
+example: `[[:digit:]a-c[.NUL.]].`
+
+[h4 Escapes]
+
+With the exception of the escape sequences \\{, \\}, \\(, and \\), 
+which are documented above, an escape followed by any character matches 
+that character.  This can be used to make the special characters 
+
+[pre .\[\\\*^$]
+
+"ordinary".  Note that the escape character loses its special meaning 
+inside a character set, so `[\^]` will match either a literal '\\' or a '^'.
+
+[h3 What Gets Matched]
+
+When there is more that one way to match a regular expression, the 
+"best" possible match is obtained using the 
+[link boost_regex.syntax.leftmost_longest_rule leftmost-longest rule].
+
+[h3 Variations]
+
+[#boost_regex.grep_syntax][h4 Grep]
+
+When an expression is compiled with the flag `grep` set, then the 
+expression is treated as a newline separated list of 
+[link boost_regex.posix_basic POSIX-Basic expressions], 
+a match is found if any of the expressions in the list match, for example:
+
+   boost::regex e("abc\ndef", boost::regex::grep);
+
+will match either of the [link boost_regex.posix_basic POSIX-Basic expressions] 
+"abc" or "def".
+
+As its name suggests, this behavior is consistent with the Unix utility grep.
+
+[h4 emacs]
+
+In addition to the [link boost_regex.posix_basic POSIX-Basic features] 
+the following characters are also special:
+
+[table
+[[Character][Description]]
+[[+][repeats the preceding atom one or more times.]]
+[[?][repeats the preceding atom zero or one times.]]
+[[*?][A non-greedy version of *.]]
+[[+?][A non-greedy version of +.]]
+[[??][A non-greedy version of ?.]]
+]
+
+And the following escape sequences are also recognised:
+
+[table
+[[Escape][Description]]
+[[\\|][specifies an alternative.]]
+[[\\(?:  ...  \)][is a non-marking grouping construct - allows you to lexically group something without spitting out an extra sub-expression.]]
+[[\\w][matches any word character.]]
+[[\\W][matches any non-word character.]]
+[[\\sx][matches any character in the syntax group x, the following 
+   emacs groupings are supported: 's', ' ', '_', 'w', '.', ')', '(', '"', '\\'', '>' and '<'.  Refer to the emacs docs for details.]]
+[[\\Sx][matches any character not in the syntax grouping x.]]
+[[\\c and \\C][These are not supported.]]
+[[\\`][matches zero characters only at the start of a buffer (or string being matched).]]
+[[\\'][matches zero characters only at the end of a buffer (or string being matched).]]
+[[\\b][matches zero characters at a word boundary.]]
+[[\\B][matches zero characters, not at a word boundary.]]
+[[\\<][matches zero characters only at the start of a word.]]
+[[\\>][matches zero characters only at the end of a word.]]
+]
+
+Finally, you should note that emacs style regular expressions are matched 
+according to the 
+[link boost_regex.syntax.perl_syntax.what_gets_matched Perl "depth first search" rules].  
+Emacs expressions are 
+matched this way because they contain Perl-like extensions, that do not 
+interact well with the 
+[link boost_regex.syntax.leftmost_longest_rule POSIX-style leftmost-longest rule].
+
+[h3 Options]
+
+There are a [link boost_regex.ref.syntax_option_type.syntax_option_type_basic variety of flags] that may be combined with the `basic` and `grep` 
+options when constructing the regular expression, in particular note 
+that the 
+[link boost_regex.ref.syntax_option_type.syntax_option_type_basic `newline_alt`, `no_char_classes`, `no-intervals`, `bk_plus_qm` 
+and `bk_plus_vbar`] options all alter the syntax, while the 
+[link boost_regex.ref.syntax_option_type.syntax_option_type_basic `collate` and `icase` options] modify how the case and locale sensitivity 
+are to be applied.
+
+[h3 References]
+
+[@http://www.opengroup.org/onlinepubs/000095399/basedefs/xbd_chap09.html IEEE Std 1003.1-2001, Portable Operating System Interface (POSIX ), Base Definitions and Headers, Section 9, Regular Expressions (FWD.1).]
+
+[@http://www.opengroup.org/onlinepubs/000095399/utilities/grep.html IEEE Std 1003.1-2001, Portable Operating System Interface (POSIX ), Shells and Utilities, Section 4, Utilities, grep (FWD.1).]
+
+[@http://www.gnu.org/software/emacs/ Emacs Version 21.3.]
+
+[endsect]
+
+

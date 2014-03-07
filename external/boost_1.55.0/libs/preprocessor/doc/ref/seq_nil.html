@@ -1,0 +1,81 @@
+<html>
+<head>
+        <title>BOOST_PP_SEQ_NIL</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+		<div style="margin-left: 0px;">
+			The <b>BOOST_PP_SEQ_NIL</b> macro is a placeholder macro for an empty <i>seq</i>.&nbsp; 
+			It is only valid if it's elements are appended to the end of this empty 
+			"seq."&nbsp;
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_NIL</b>
+		</div>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			This macro is a utility macro intended as a empty starting point for appending 
+			to the tail.&nbsp; It is <i>not</i> a nil <i>seq</i>.&nbsp; When an element is 
+			appended to this macro, it expands on the element and to the element--thereby 
+			removing itself.&nbsp; For example, both <b>BOOST_PP_SEQ_NIL</b>(<i>x</i>) and <b>BOOST_PP_SEQ_PUSH_BACK</b>(<b>BOOST_PP_SEQ_NIL</b>,
+			<i>x</i>) expand to <i>x</i>.
+		</div>
+		<div>
+			If any <b>BOOST_PP_SEQ_</b>* macro (other than <b>BOOST_PP_SEQ_PUSH_BACK</b>) 
+			is invoked with an argument that contains <b>BOOST_PP_SEQ_NIL</b>, the behavior 
+			is undefined and in most cases will result in obscure errors.
+		</div>
+		<div>
+			The closest thing available to <b>BOOST_PP_SEQ_NIL</b> for appending to the 
+			head is <b>BOOST_PP_EMPTY</b>.&nbsp; After all the elements have been 
+			prepended, empty parenthesis can be invoked on the tail to remove the <b>BOOST_PP_EMPTY</b>.&nbsp; 
+			As with <b>BOOST_PP_SEQ_NIL</b>, passing an argument that contains <b>BOOST_PP_EMPTY</b>
+			to any <b>BOOST_PP_SEQ_</b>* macro (other than <b>BOOST_PP_SEQ_PUSH_FRONT</b>) 
+			is undefined.&nbsp;
+		</div>
+		<div>
+			(It is also possible to start with an extra element and pop it off when you 
+			have finished appending to it.)
+		</div>
+		<div>
+			In C99, neither of these macros are necessary since it is legal to pass empty 
+			arguments.
+		</div>
+		<h4>
+			See Also
+		</h4>
+		<ul>
+			<li>
+				<a href="empty.html">BOOST_PP_EMPTY</a></li>
+		</ul>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/seq.html">&lt;boost/preprocessor/seq/seq.hpp&gt;</a>
+		</div>
+		<h4>
+			Sample Code
+		</h4>
+		<div>
+			<pre>#include &lt;<a href="../headers/facilities/empty.html">boost/preprocessor/facilities/empty.hpp</a>&gt;<br>#include &lt;<a href="../headers/seq/push_back.html">boost/preprocessor/seq/push_back.hpp</a>&gt;<br>#include &lt;<a href="../headers/seq/push_front.html">boost/preprocessor/seq/push_front.hpp</a>&gt;<br>#include &lt;<a href="../headers/seq/seq.html">boost/preprocessor/seq/seq.hpp</a>&gt;<br><br>#define SEQ_L <a href="seq_nil.html">BOOST_PP_SEQ_NIL</a>
+#define SEQ_R <a href="empty.html">BOOST_PP_EMPTY</a>
+<a href="seq_push_back.html">BOOST_PP_SEQ_PUSH_BACK</a>(<br>   <a href="seq_push_back.html">BOOST_PP_SEQ_PUSH_BACK</a>(SEQ_L, a), b<br>)<br><br>// expands to (a)(b)<br><br><a href="seq_push_front.html">BOOST_PP_SEQ_PUSH_FRONT</a>(<br>   <a href="seq_push_front.html">BOOST_PP_SEQ_PUSH_FRONT</a>(SEQ_R, a), b<br>)()<br><br>// expands to (b)(a)<br></pre>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		<br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

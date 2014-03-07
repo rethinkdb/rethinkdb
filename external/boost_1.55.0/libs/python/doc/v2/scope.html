@@ -1,0 +1,173 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/scope.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/scope.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#scope-spec">Class <code>scope</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#scope-spec-synopsis">Class <code>scope</code>
+              synopsis</a></dt>
+
+              <dt><a href="#scope-spec-ctors">Class <code>scope</code>
+              constructors and destructor</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p>Defines facilities for querying and controlling the Python scope
+    (namespace) which will contain new wrapped classes and functions.</p>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="scope-spec"></a>Class <code>scope</code></h3>
+
+    <p>The <code>scope</code> class has an associated global Python
+    object which controls the Python namespace in which new extension
+    classes and wrapped functions will be defined as
+    attributes. Default-constructing a new <code>scope</code> object
+    binds it to the associated global Python object. Constructing a
+    <code>scope</code> object with an argument changes the associated
+    global Python object to the one held by the argument, until the
+    lifetime of the <code>scope</code> object ends, at which time the
+    associated global Python object reverts to what it was before the
+    <code>scope</code> object was constructed.</p>
+
+    <h4><a name="scope-spec-synopsis"></a>Class <code>scope</code>
+    synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+  class scope : public <a href=
+"object.html#object-spec">object</a>
+  {
+   public:
+      scope(scope const&amp;);
+      scope(object const&amp;);
+      scope();
+      ~scope()
+   private:
+      void operator=(scope const&amp;);
+  };
+}}
+</pre>
+
+    <h4><a name="scope-spec-ctors"></a>Class <code>scope</code> constructors
+    and destructor</h4>
+<pre>
+explicit scope(scope const&amp; x);
+explicit scope(object const&amp; x);
+</pre>
+    Stores a reference to the current associated scope object, and sets the
+    associated scope object to the one referred to by <code>x.ptr()</code>.
+    The <code>object</code> base class is initialized with <code>x</code>. 
+<pre>
+scope();
+</pre>
+    Stores a reference to the current associated scope object. The
+    <code>object</code> base class is initialized with the current associated
+    scope object. Outside any module initialization function, the current
+    associated Python object is <code>None</code>. 
+<pre>
+~scope()
+</pre>
+    Sets the current associated Python object to the stored object. 
+
+    <h2><a name="examples"></a>Example</h2>
+    The following example shows how scope setting can be used to define
+    nested classes. 
+
+    <p>C++ Module definition:</p>
+<pre>
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/class.hpp&gt;
+#include &lt;boost/python/scope.hpp&gt;
+using namespace boost::python;
+
+struct X
+{
+  void f() {}
+
+  struct Y { int g() { return 42; } };
+};
+
+BOOST_PYTHON_MODULE(nested)
+{
+   // add some constants to the current (module) scope
+   scope().attr("yes") = 1;
+   scope().attr("no") = 0;
+
+   // Change the current scope 
+   scope outer
+       = class_&lt;X&gt;("X")
+            .def("f", &amp;X::f)
+            ;
+
+   // Define a class Y in the current scope, X
+   class_&lt;X::Y&gt;("Y")
+      .def("g", &amp;X::Y::g)
+      ;
+}
+</pre>
+    Interactive Python: 
+<pre>
+&gt;&gt;&gt; import nested
+&gt;&gt;&gt; nested.yes
+1
+&gt;&gt;&gt; y = nested.X.Y()
+&gt;&gt;&gt; y.g()
+42
+</pre>
+
+    <p>Revised 09 October, 2002</p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

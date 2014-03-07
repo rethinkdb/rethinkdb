@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<header name="boost/signals/connection.hpp" last-revision="$Date: 2007-11-25 10:38:02 -0800 (Sun, 25 Nov 2007) $">
+  <namespace name="boost">
+    <namespace name="signals">
+      <class name="connection">
+        <!-- Models LessThanComparable and EqualityComparable -->
+        <purpose>Query/disconnect a signal-slot connection.</purpose>
+
+        <description>
+          <para>The <classname>connection</classname> class represents
+          a connection between a Signal and a Slot. It is a
+          lightweight object that has the ability to query whether the
+          signal and slot are currently connected, and to disconnect
+          the signal and slot. It is always safe to query or
+          disconnect a connection.</para>
+        </description>
+
+        <constructor>
+          <effects><para>Sets the currently represented connection to the
+          NULL connection.</para></effects>
+          <postconditions><para><computeroutput>!this-><methodname>connected</methodname>()</computeroutput>.</para></postconditions>
+          <throws><para>Will not throw.</para></throws>
+        </constructor>
+
+        <constructor>
+          <parameter name="other"> 
+            <paramtype>const <classname>connection</classname>&amp;</paramtype>
+          </parameter>
+
+          <effects><para><computeroutput>this</computeroutput> references
+          the connection referenced by
+          <computeroutput>other</computeroutput>.</para></effects>
+
+          <throws><para>Will not throw.</para></throws>
+        </constructor>
+
+        <copy-assignment>
+          <parameter name="other"> 
+            <paramtype>const <classname>connection</classname>&amp;</paramtype>
+          </parameter>
+
+          <effects><para><computeroutput>this</computeroutput> references
+          the connection referenced by
+          <computeroutput>other</computeroutput>.</para></effects>
+
+          <throws><para>Will not throw.</para></throws>
+        </copy-assignment>
+
+        <method-group name="connection management">
+          <method name="disconnect" cv="const">
+             <type>void</type>
+             <effects><para>If
+             <computeroutput>this-&gt;<methodname>connected</methodname>()</computeroutput>,
+             disconnects the signal and slot referenced by this;
+             otherwise, this operation is a no-op.</para></effects>
+
+             <postconditions><para><computeroutput>!this-&gt;<methodname>connected</methodname>()</computeroutput>.</para></postconditions>
+          </method>
+
+          <method name="connected" cv="const">
+            <type>bool</type>
+            <returns><para><computeroutput>true</computeroutput> if this
+            references a non-NULL connection that is still active
+            (connected), and <computeroutput>false</computeroutput>
+            otherwise.</para></returns>
+            <throws><para>Will not throw.</para></throws>
+          </method>
+        </method-group>
+
+        <method-group name="blocking">
+          <method name="block">
+            <type>void</type>
+            <parameter name="should_block">
+              <paramtype>bool</paramtype>
+              <default>true</default>
+            </parameter>
+            <requires><simpara><code>connected()</code></simpara></requires>
+            <postconditions><simpara><code>blocked() == should_block</code></simpara></postconditions>
+            <throws><simpara>Will not throw.</simpara></throws>
+          </method>
+          <method name="unblock">
+            <type>void</type>
+            <requires><simpara><code>connected()</code></simpara></requires>
+            <postconditions><simpara><code>!blocked()</code></simpara></postconditions>
+            <throws><simpara>Will not throw.</simpara></throws>
+          </method>
+          <method name="blocked" cv="const">
+            <type>bool</type>
+            <returns><simpara><code>true</code> if the associated slot is either disconnected or blocked, <code>false</code> otherwise.</simpara></returns>
+            <throws><simpara>Will not throw.</simpara></throws>
+          </method>
+        </method-group>
+
+        <method-group name="modifiers">
+          <method name="swap">
+            <type>void</type>
+            <parameter name="other">
+              <paramtype>const <classname>connection</classname>&amp;</paramtype>
+            </parameter>
+            <effects><para>Swaps the connections referenced in
+            <computeroutput>this</computeroutput> and
+            <computeroutput>other</computeroutput>.</para></effects>
+ 
+            <throws><para>Will not throw.</para></throws>
+          </method> 
+        </method-group>
+
+        <method-group name="comparisons">
+          <method name="operator==" cv="const">
+            <type>bool</type>
+            <parameter name="other">
+              <paramtype>const <classname>connection</classname>&amp;</paramtype>
+            </parameter>
+
+            <returns><para><computeroutput>true</computeroutput> if
+            <computeroutput>this</computeroutput> and
+            <computeroutput>other</computeroutput> reference the same
+            connection or both reference the NULL connection, and
+            <computeroutput>false</computeroutput>
+            otherwise.</para></returns>
+
+            <throws><para>Will not throw.</para></throws>
+          </method>
+
+          <method name="operator&lt;" cv="const">
+            <type>bool</type>
+            <parameter name="other">
+              <paramtype>const <classname>connection</classname>&amp;</paramtype>
+            </parameter>
+
+            <returns><para><computeroutput>true</computeroutput> if the
+            connection referenced by
+            <computeroutput>this</computeroutput> precedes the
+            connection referenced by
+            <computeroutput>other</computeroutput> based on some
+            unspecified ordering, and
+            <computeroutput>false</computeroutput>
+            otherwise.</para></returns>
+
+            <throws><para>Will not throw.</para></throws>
+          </method>
+        </method-group>
+
+        <free-function-group name="specialized algorithms">
+          <function name="swap">
+            <type>void</type>
+            <parameter name="x">
+              <paramtype><classname>connection</classname>&amp;</paramtype>
+            </parameter>
+            <parameter name="y">
+              <paramtype><classname>connection</classname>&amp;</paramtype>
+            </parameter>
+
+            <effects><para><computeroutput>x.swap(y)</computeroutput></para></effects>
+            <throws><para>Will not throw.</para></throws>
+          </function>
+        </free-function-group>
+      </class>
+
+      <class name="scoped_connection">
+        <inherit access="private">
+          <type><classname>noncopyable</classname></type>
+          <purpose>Exposition only</purpose>
+        </inherit>
+        <purpose>Limits a signal-slot connection lifetime to a particular scope.</purpose>
+
+        <constructor>
+          <parameter name="other"> 
+            <paramtype>const <classname>connection</classname>&amp;</paramtype>
+          </parameter>
+
+          <effects><para><computeroutput>this</computeroutput> references
+          the connection referenced by
+          <computeroutput>other</computeroutput>.</para></effects>
+
+          <throws><para>Will not throw.</para></throws>
+        </constructor>
+
+        <destructor>
+          <effects><para>If
+          <computeroutput>this-&gt;<methodname>connected</methodname>()</computeroutput>,
+          disconnects the signal-slot connection.</para></effects>
+        </destructor>
+
+        <method-group name="connection management">
+          <method name="disconnect" cv="const">
+            <type>void</type>
+             <effects><para>If
+             <computeroutput>this-&gt;<methodname>connected</methodname>()</computeroutput>,
+             disconnects the signal and slot referenced by this;
+             otherwise, this operation is a no-op.</para></effects>
+
+             <postconditions><para><computeroutput>!this-&gt;<methodname>connected</methodname>()</computeroutput>.</para></postconditions>
+          </method>
+
+          <method name="connected" cv="const">
+            <type>bool</type>
+            <returns><para><computeroutput>true</computeroutput> if this
+            references a non-NULL connection that is still active
+            (connected), and <computeroutput>false</computeroutput>
+            otherwise.</para></returns>
+            <throws><para>Will not throw.</para></throws>
+          </method>
+        </method-group>
+      </class>
+    </namespace>
+  </namespace>
+</header>

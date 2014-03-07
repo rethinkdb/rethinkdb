@@ -1,0 +1,63 @@
+# Copyright 2003 Dave Abrahams
+# Copyright 2003 Douglas Gregor
+# Copyright 2006 Rene Rivera
+# Copyright 2002, 2003, 2004, 2005, 2006 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# This module defines the 'make' main target rule.
+
+import "class" : new ;
+import project ;
+import property-set ;
+import targets ;
+
+
+class make-target-class : basic-target
+{
+    import "class" : new ;
+    import type ;
+    import virtual-target ;
+
+    rule __init__ ( name : project : sources * : requirements *
+        : default-build * : usage-requirements * )
+    {
+        basic-target.__init__ $(name) : $(project) : $(sources) :
+            $(requirements) : $(default-build) : $(usage-requirements) ;
+    }
+
+    rule construct ( name : source-targets * : property-set )
+    {
+        local action-name = [ $(property-set).get <action> ] ;
+        # 'm' will always be set -- we add '@' ourselves in the 'make' rule
+        # below.
+        local m = [ MATCH ^@(.*) : $(action-name) ] ;
+
+        local a = [ new action $(source-targets) : $(m[1]) : $(property-set) ] ;
+        local t = [ new file-target $(self.name) exact : [ type.type
+            $(self.name) ] : $(self.project) : $(a) ] ;
+        return [ property-set.empty ] [ virtual-target.register $(t) ] ;
+    }
+}
+
+
+# Declares the 'make' main target.
+#
+rule make ( target-name : sources * : generating-rule + : requirements * :
+    usage-requirements * )
+{
+    # The '@' sign causes the feature.jam module to qualify rule name with the
+    # module name of current project, if needed.
+    local m = [ MATCH ^(@).* : $(generating-rule) ] ;
+    if ! $(m)
+    {
+        generating-rule = @$(generating-rule) ;
+    }
+    targets.create-metatarget make-target-class : [ project.current ] :
+        $(target-name) : $(sources) : $(requirements) <action>$(generating-rule)
+        : : $(usage-requirements) ;
+}
+
+
+IMPORT $(__name__) : make : : make ;

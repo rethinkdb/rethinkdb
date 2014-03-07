@@ -1,0 +1,24 @@
+# (C) Copyright 2004: Eric Niebler
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+project
+    : requirements
+        <toolset>msvc-8.0:<define>_SCL_SECURE_NO_DEPRECATE
+        <toolset>msvc-9.0:<define>_SCL_SECURE_NO_DEPRECATE
+        <toolset>msvc,<stdlib>stlport:<define>_STLP_EXPOSE_GLOBALS_IMPLEMENTATION
+    ;
+
+exe examples 
+    :
+        main.cpp
+    :
+        <include>$(BOOST_ROOT)
+    ;
+
+exe numbers
+    :
+        numbers.cpp
+    :
+        <include>$(BOOST_ROOT)
+    ;

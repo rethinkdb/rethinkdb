@@ -1,0 +1,199 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Kruskal Minimum Spanning Tree</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H1><A NAME="sec:kruskal">
+<img src="figs/python.gif" alt="(Python)"/>
+<TT>kruskal_minimum_spanning_tree</TT>
+</H1>
+
+<PRE>
+template &lt;class Graph, class OutputIterator, class P, class T, class R&gt;
+OutputIterator
+kruskal_minimum_spanning_tree(Graph&amp; g, OutputIterator tree_edges, 
+    const bgl_named_params&lt;P, T, R&gt;&amp; params = <i>all defaults</i>);
+</PRE>
+
+<P>
+The <tt>kruskal_minimum_spanning_tree()</tt> function find a minimum
+spanning tree (MST) in an undirected graph with weighted edges. A MST is a
+set of edges that connects all the vertices in the graph where the
+total weight of the edges in the tree is minimized.  For more details,
+see section <a
+href="graph_theory_review.html#sec:minimum-spanning-tree">Minimum
+Spanning Tree Problem</a>.  The edges in the MST are output to the
+<tt>tree_edges</tt> output iterator.  This function uses Kruskal's
+algorithm to compute the MST&nbsp;[<A
+HREF="bibliography.html#kruskal56">18</A>,<A
+HREF="bibliography.html#clr90">8</A>,<A
+HREF="bibliography.html#tarjan83:_data_struct_network_algo">27</A>,<A
+HREF="bibliography.html#graham85">15</A>].
+</p>
+<p>
+Kruskal's algorithm starts with each vertex in a tree by itself, and
+with no edges in the minimum spanning tree <i>T</i>. The algorithm
+then examines each edge in the graph in order of increasing edge
+weight. If an edge connects two vertices in different trees the
+algorithm merges the two trees into a single tree and adds the edge to
+<i>T</i>. We use the ``union by rank'' and ``path compression''
+heuristics to provide fast implementations of the disjoint set
+operations (<tt>MAKE-SET</tt>, <tt>FIND-SET</tt>, and
+<tt>UNION-SET</tt>).  The algorithm is as follows:
+</p>
+
+<pre>
+KRUSKAL-MST(<i>G</i>, <i>w</i>) 
+  <i>T := &Oslash;</i> 
+  <b>for</b> each vertex <i>u in V</i> 
+    MAKE-SET(<i>DS</i>, <i>u</i>) 
+  <b>end for</b>
+  <b>for</b> each edge <i>(u,v) in E</i> in order of nondecreasing weight 
+    <b>if</b> FIND-SET(<i>DS</i>, <i>u</i>) != FIND-SET(<i>DS</i>, <i>v</i>) 
+      UNION-SET(<i>DS</i>, <i>u</i>, <i>v</i>) 
+      <i>T := T U {(u,v)}</i> 
+  <b>end for</b>
+  <b>return</b> <i>T</i>
+</pre>
+
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/kruskal_min_spanning_tree.hpp"><TT>boost/graph/kruskal_min_spanning_tree.hpp</TT></a>
+
+<P>
+
+<h3>Parameters</h3>
+
+IN: <tt>const Graph&amp; g</tt> 
+<blockquote>
+  An undirected graph. The graph type must be a model of
+  <a href="./VertexListGraph.html">Vertex List Graph</a>
+  and <a href="./EdgeListGraph.html">Edge List Graph</a>.<br>
+
+  <b>Python</b>: The parameter is named <tt>graph</tt>.
+</blockquote>
+
+IN: <tt>OutputIterator spanning_tree_edges</tt>
+<blockquote>
+   The edges of the minimum spanning tree are output to this <a
+   href="http://www.sgi.com/tech/stl/OutputIterator.html">Output
+   Iterator</a>.<br>
+
+   <b>Python</b>: This parameter is not used in Python. Instead, a
+   Python <tt>list</tt> containing all of the spanning tree edges is
+   returned.
+</blockquote>
+
+
+<h3>Named Parameters</h3>
+
+IN: <tt>weight_map(WeightMap w_map)</tt> 
+<blockquote>
+The weight or ``length'' of
+  each edge in the graph.  The <tt>WeightMap</tt> type must be a model
+  of <a href="../../property_map/doc/ReadablePropertyMap.html">Readable
+  Property Map</a> and its value type must be <a
+  href="http://www.sgi.com/tech/stl/LessThanComparable.html">Less Than
+  Comparable</a>. The key type of this map needs to be the graph's
+  edge descriptor type.<br>
+  <b>Default:</b> <tt>get(edge_weight, g)</tt><br>
+  <b>Python</b>: Must be an <tt>edge_double_map</tt> for the graph.<br>
+  <b>Python default</b>: <tt>graph.get_edge_double_map("weight")</tt>
+</blockquote>
+
+UTIL: <tt>rank_map(RankMap r_map)</tt> 
+<blockquote>
+  This is used by the disjoint sets data structure.
+  The type <tt>RankMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a>. The vertex descriptor type of the graph needs to
+  be usable as the key type of the rank map. The value type of the
+  rank map must be an integer type.<br>
+  <b>Default:</b> an <a
+  href="../../property_map/doc/iterator_property_map.html">
+  <tt>iterator_property_map</tt></a> created from a
+  <tt>std::vector</tt> of the integers of size
+  <tt>num_vertices(g)</tt> and using the <tt>i_map</tt> for the index
+  map.<br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+UTIL: <tt>predecessor_map(PredecessorMap p_map)</tt> 
+<blockquote>
+  This is used by the disjoint sets data structure, and is <b>not</b>
+  used for storing predecessors in the spanning tree.  The predecessors
+  of the spanning tree can be obtained from the spanning tree edges
+  output. The type <tt>PredecessorMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a>. The key type value types of the predecessor map
+  must be the vertex descriptor type of the graph. <br>
+  <b>Default:</b> an <a
+  href="../../property_map/doc/iterator_property_map.html">
+  <tt>iterator_property_map</tt></a> created from a
+  <tt>std::vector</tt> of vertex descriptors of size
+  <tt>num_vertices(g)</tt> and using the <tt>i_map</tt> for the index
+  map.<br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+IN: <tt>vertex_index_map(VertexIndexMap i_map)</tt> 
+<blockquote>
+  This maps each vertex to an integer in the range <tt>[0,
+  num_vertices(g))</tt>. This is only necessary if the default is used
+  for the rank or predecessor maps. The type <tt>VertexIndexMap</tt>
+  must be a model of <a
+  href="../../property_map/doc/ReadablePropertyMap.html">Readable Property
+  Map</a>. The value type of the map must be an integer type. The
+  vertex descriptor type of the graph needs to be usable as the key
+  type of the map.<br>
+  <b>Default:</b> <tt>get(vertex_index, g)</tt>
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacenty_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.
+   <br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+
+<H3>Complexity</H3>
+
+<P>
+The time complexity is <i>O(E log E)</i>
+
+<H3>Example</H3>
+
+<P>
+The file <a
+href="../example/kruskal-example.cpp"><TT>examples/kruskal-example.cpp</TT></a>
+contains an example of using Kruskal's algorithm.
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

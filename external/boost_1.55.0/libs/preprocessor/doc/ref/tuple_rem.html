@@ -1,0 +1,59 @@
+<html>
+  <head>
+    <title>BOOST_PP_TUPLE_REM</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+  </head>
+  <body>
+	<div style="margin-left: 0px;">
+		The <b>BOOST_PP_TUPLE_REM</b> macro expands to a macro that removes the parentheses from a <i>tuple</i>.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_TUPLE_REM</b>(<i>size</i>)<br>
+<br>
+or<br>
+<br>
+<b>BOOST_PP_TUPLE_REM</b>(<i>size</i>) <sup>(v)</sup><br>
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>size</dt>
+			<dd>
+				The size of the <i>tuple</i> from which the parentheses are to be removed.&nbsp;
+				Valid <i>tuple</i> sizes range from <i>1</i> to <b>BOOST_PP_LIMIT_TUPLE</b>.&nbsp;
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			The <i>size</i> argument must be the actual size of the <i>tuple</i> in the non-variadic version.<br>
+<br>
+For the variadic version <sup>(v)</sup>&nbsp;the
+size may be left out
+completely so that the macro can be invoked as BOOST_PP_TUPLE_REM(); you may get a warning from some compilers, but the
+functionality will still work. If you specify a size in the variadic
+version, it will be ignored, but the warning from some compilers will
+not occur.<br>
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="limit_tuple.html">BOOST_PP_LIMIT_TUPLE</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/tuple/rem.html">&lt;boost/preprocessor/tuple/rem.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>#include &lt;<a href="../headers/tuple/elem.html">boost/preprocessor/tuple/rem.hpp</a>&gt;<br><br><a href="tuple_rem.html">BOOST_PP_TUPLE_REM</a>(3)(x, y, z) // expands to x, y, z<br><br>// or for the variadic version <sup>(v)</sup><br><br><a href="tuple_rem.html">BOOST_PP_TUPLE_REM</a>()(x, y, z) // expands to x, y, z<br></pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		<br><i>© Copyright Paul Mensonides 2002<br>
+</i><i>© Copyright Edward Diener 2011</i><br>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+  </body>
+</html>

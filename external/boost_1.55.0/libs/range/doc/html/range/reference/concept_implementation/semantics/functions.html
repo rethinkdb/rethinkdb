@@ -1,0 +1,411 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Functions</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../semantics.html" title="Semantics">
+<link rel="prev" href="metafunctions.html" title="Metafunctions">
+<link rel="next" href="../../adaptors.html" title="Range Adaptors">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="metafunctions.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../semantics.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../adaptors.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_reference_concept_implementation_semantics_functions">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="range.reference.concept_implementation.semantics.functions"></a><a class="link" href="functions.html" title="Functions">Functions</a>
+</h5></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Return type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Returns
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Complexity
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">begin</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">p</span><span class="special">.</span><span class="identifier">first</span></code> if <code class="computeroutput"><span class="identifier">p</span></code>
+                      is of type <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code> <code class="computeroutput"><span class="identifier">a</span></code>
+                      if <code class="computeroutput"><span class="identifier">a</span></code> is an
+                      array <code class="computeroutput"><span class="identifier">range_begin</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code> if that expression would invoke
+                      a function found by ADL <code class="computeroutput"><span class="identifier">t</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span></code> otherwise
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      constant time
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">end</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">p</span><span class="special">.</span><span class="identifier">second</span></code> if <code class="computeroutput"><span class="identifier">p</span></code>
+                      is of type <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code> <code class="computeroutput"><span class="identifier">a</span>
+                      <span class="special">+</span> <span class="identifier">sz</span></code>
+                      if <code class="computeroutput"><span class="identifier">a</span></code> is an
+                      array of size <code class="computeroutput"><span class="identifier">sz</span></code>
+                      <code class="computeroutput"><span class="identifier">range_end</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                      if that expression would invoke a function found by ADL <code class="computeroutput"><span class="identifier">t</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span></code>
+                      otherwise
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      constant time
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">empty</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">bool</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span>
+                      <span class="special">==</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      constant time
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">distance</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_difference</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">distance</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">x</span><span class="special">),</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">x</span><span class="special">))</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      -
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">size</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_size</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_calculate_size</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code> which by default is <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span>
+                      <span class="special">-</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>. Users may supply alternative
+                      implementations by implementing <code class="computeroutput"><span class="identifier">range_calculate_size</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code> so that it will be found via
+                      ADL
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      constant time
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">rbegin</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">x</span><span class="special">))</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      constant time
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">rend</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">x</span><span class="special">))</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      constant time
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">const_begin</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span>
+                      <span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span>
+                      <span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">x</span><span class="special">))</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      constant time
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">const_end</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span>
+                      <span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span>
+                      <span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">x</span><span class="special">))</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      constant time
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">const_rbegin</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="keyword">const</span>
+                      <span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="keyword">const</span>
+                      <span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rbegin</span><span class="special">(</span><span class="identifier">x</span><span class="special">))</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      constant time
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">const_rend</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="keyword">const</span>
+                      <span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="keyword">const</span>
+                      <span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rend</span><span class="special">(</span><span class="identifier">x</span><span class="special">))</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      constant time
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">as_literal</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">iterator_range</span><span class="special">&lt;</span><span class="identifier">U</span><span class="special">&gt;</span></code> where <code class="computeroutput"><span class="identifier">U</span></code>
+                      is <code class="computeroutput"><span class="identifier">Char</span><span class="special">*</span></code>
+                      if <code class="computeroutput"><span class="identifier">x</span></code> is a pointer
+                      to a string and <code class="computeroutput"><span class="identifier">U</span></code>
+                      is <code class="computeroutput"><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                      otherwise
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="special">[</span><span class="identifier">s</span><span class="special">,</span><span class="identifier">s</span>
+                      <span class="special">+</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">char_traits</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">length</span><span class="special">(</span><span class="identifier">s</span><span class="special">))</span></code> if <code class="computeroutput"><span class="identifier">s</span></code>
+                      is a <code class="computeroutput"><span class="identifier">Char</span><span class="special">*</span></code>
+                      or an array of <code class="computeroutput"><span class="identifier">Char</span></code>
+                      <code class="computeroutput"><span class="special">[</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">x</span><span class="special">),</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">x</span><span class="special">))</span></code> otherwise
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      linear time for pointers to a string or arrays of <code class="computeroutput"><span class="identifier">Char</span></code>, constant time otherwise
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">as_array</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">iterator_range</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="special">[</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">x</span><span class="special">),</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">x</span><span class="special">))</span></code>
+                    </p>
+                  </td>
+<td class="auto-generated">&#160;</td>
+</tr>
+</tbody>
+</table></div>
+<p>
+            The special <code class="computeroutput"><span class="identifier">const_</span></code>-named
+            functions are useful when you want to document clearly that your code
+            is read-only.
+          </p>
+<p>
+            <code class="computeroutput"><span class="identifier">as_literal</span><span class="special">()</span></code>
+            can be used <span class="emphasis"><em><span class="bold"><strong>internally</strong></span></em></span>
+            in string algorithm libraries such that arrays of characters are handled
+            correctly.
+          </p>
+<p>
+            <code class="computeroutput"><span class="identifier">as_array</span><span class="special">()</span></code>
+            can be used with string algorithm libraries to make it clear that arrays
+            of characters are handled like an array and not like a string.
+          </p>
+<p>
+            Notice that the above functions should always be called with qualification
+            (<code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span></code>)
+            to prevent <span class="emphasis"><em><span class="bold"><strong>unintended</strong></span></em></span>
+            Argument Dependent Lookup (ADL).
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="metafunctions.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../semantics.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../adaptors.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

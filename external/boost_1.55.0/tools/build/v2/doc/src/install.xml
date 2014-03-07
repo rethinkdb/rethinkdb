@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE chapter PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+  <chapter id="bbv2.installation">
+    <title>Installation</title>
+
+    <para>
+      To install Boost.Build from an official release or a nightly build, as
+      available on the <ulink url="http://boost.org/boost-build2">official web site</ulink>,
+      follow these steps:
+    </para>
+
+    <orderedlist>
+      <listitem>
+        <simpara>
+          Unpack the release. On the command line, go to the root of the
+          unpacked tree.
+        </simpara>
+      </listitem>
+
+      <listitem>
+        <simpara>
+          Run either <command>.\bootstrap.bat</command> (on Windows), or
+          <command>./bootstrap.sh</command> (on other operating systems).
+        </simpara>
+      </listitem>
+
+      <listitem>
+        <simpara>
+          Run 
+          <screen>./b2 install --prefix=<replaceable>PREFIX</replaceable></screen>
+          where <replaceable>PREFIX</replaceable> is a directory where you
+          want Boost.Build to be installed.
+        </simpara>
+      </listitem>
+
+      <listitem>
+        <simpara>
+          Optionally, add <filename><replaceable>PREFIX</replaceable>/bin</filename>
+          to your <envar>PATH</envar> environment variable.
+        </simpara>
+      </listitem>
+    </orderedlist>
+
+    <para>If you are not using a Boost.Build package, but rather the version
+    bundled with the Boost C++ Libraries, the above commands should be run
+    in the <filename>tools/build/v2</filename> directory.</para>
+
+    <para>
+      Now that Boost.Build is installed, you can try some of the examples. Copy
+      <filename><replaceable>PREFIX</replaceable>/share/boost-build/examples/hello</filename>
+      to a different directory, then change to that directory and run:
+<screen><filename><replaceable>PREFIX</replaceable>/bin/b2</filename></screen>
+      A simple executable should be built.
+    </para>
+
+      <!--
+      <simpara>
+          Configure Boost.Build to recognize the build resources (such
+          as compilers and libraries) you have installed on your
+          system.  Open the
+          <filename>user-config.jam</filename> file in the Boost.Build
+          root directory and follow the instructions there to describe
+          your toolsets and libraries, and, if necessary, where they
+          are located.
+        </simpara>
+      </listitem>
+      -->
+
+    <!-- This part should not go into intoduction docs, but we need to
+         place it somewhere. 
+
+    <para>It is slighly better way is to copy
+    <filename>new/user-config.jam</filename> into one of the locations
+    where it can be found (given in <link linkend=
+    "bbv2.reference.init.config">this table</link>). This prevent you
+    from accidentally overwriting your config when updating.</para>
+
+    -->
+
+    <!--
+    <bridgehead>Information for distributors</bridgehead>
+
+        <para>
+          If you're planning to package Boost.Build for a Linux distribution,
+          please follow these guidelines:
+
+          <itemizedlist>
+            <listitem><para>Create a separate package for Boost.Jam.</para></listitem>
+
+            <listitem>
+              <para>Create another package for Boost.Build, and make
+              this package install all Boost.Build files to
+              <filename>/usr/share/boost-build</filename> directory. After
+              install, that directory should contain everything you see in
+              Boost.Build release package, except for
+              <filename>jam_src</filename> directory.  If you're using Boost CVS
+              to obtain Boost.Build, as opposed to release package, take
+              everything from the <filename>tools/build/v2</filename> directory.
+              For a check, make sure that
+              <filename>/usr/share/boost-build/boost-build.jam</filename> is installed.
+              </para>
+
+              <para>Placing Boost.Build into <filename>/usr/share/boost-build</filename>
+              will make sure that <command>bjam</command> will find Boost.Build
+              without any additional setup.</para>
+            </listitem>
+
+            <listitem><para>Provide a
+            <filename>/etc/site-config.jam</filename> configuration file that will
+            contain:
+<programlisting>
+using gcc ;
+</programlisting>
+             You might want to add dependency from Boost.Build package to gcc,
+             to make sure that users can always build Boost.Build examples.
+            </para></listitem>
+          </itemizedlist>
+        </para>
+
+        <para>If those guidelines are met, users will be able to invoke
+        <command>bjam</command> without any explicit configuration.
+        </para>
+
+    
+      -->
+
+
+  </chapter>
+
+<!--
+     Local Variables:
+     mode: nxml
+     sgml-indent-data:t
+     sgml-parent-document:("userman.xml" "chapter")
+     sgml-set-face: t
+     sgml-omittag:nil
+     sgml-shorttag:nil
+     sgml-namecase-general:t
+     sgml-general-insert-case:lower
+     sgml-minimize-attributes:nil
+     sgml-always-quote-attributes:t
+     sgml-indent-step:2
+     sgml-exposed-tags:nil
+     sgml-local-catalogs:nil
+     sgml-local-ecat-files:nil
+     End:
+-->
+

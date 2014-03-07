@@ -1,0 +1,120 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>FAQ</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../map.html" title="Roadmap">
+<link rel="prev" href="todo.html" title="TODO">
+<link rel="next" href="ack.html" title="Acknowledgements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="todo.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../map.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ack.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_multiprecision.map.faq"></a><a class="link" href="faq.html" title="FAQ">FAQ</a>
+</h3></div></div></div>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Why do I get compiler errors when passing a <code class="computeroutput"><span class="identifier">number</span></code>
+          to a template function?</span></dt>
+<dd><p>
+              Most likely you are actually passing an expression template type to
+              the function and template-argument-deduction deduces the "wrong"
+              type. Try casting the arguments involving expressions to the actual
+              number type, or as a last resort turning off expression template support
+              in the number type you are using.
+            </p></dd>
+<dt><span class="term">When is expression template support a performance gain?</span></dt>
+<dd><p>
+              As a general rule, expression template support adds a small runtime
+              overhead creating and unpacking the expression templates, but greatly
+              reduces the number of temporaries created. So it's most effective in
+              improving performance when the cost of creating a temporary is high:
+              for example when creating a temporary involves a memory allocation.
+              It is least effective (and may even be a dis-optimisation) when temporaries
+              are cheap: for example if the number type is basically a thin wrapper
+              around a native arithmetic type. In addition, since the library makes
+              extensive use of thin inline wrapper functions, turning on compiler
+              optimization is essential to achieving high performance.
+            </p></dd>
+<dt><span class="term">Do expression templates reorder operations?</span></dt>
+<dd><p>
+              Yes they do, sometimes quite radically so, if this is a concern then
+              they should be turned off for the number type you are using.
+            </p></dd>
+<dt><span class="term">I can't construct my number type from <span class="emphasis"><em>some other type</em></span>,
+          but the docs indicate that the conversion should be allowed, what's up?</span></dt>
+<dd><p>
+              Some conversions are <span class="emphasis"><em>explicit</em></span>, that includes construction
+              from a string, or constructing from any type that may result in loss
+              of precision (for example constructing an integer type from a float).
+            </p></dd>
+<dt><span class="term">Why do I get an exception thrown (or the program crash due to an
+          uncaught exception) when using the bitwise operators on a checked <code class="computeroutput"><span class="identifier">cpp_int</span></code>?</span></dt>
+<dd><p>
+              Bitwise operations on negative values (or indeed any signed integer
+              type) are unspecified by the standard. As a result any attempt to carry
+              out a bitwise operation on a negative checked-integer will result in
+              a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">range_error</span></code> being thrown.
+            </p></dd>
+<dt><span class="term">Why do I get compiler errors when trying to use the complement operator?</span></dt>
+<dd><p>
+              Use of the complement operator on signed types is problematic as the
+              result is unspecified by the standard, and is further complicated by
+              the fact that most extended precision integer types use a sign-magnitude
+              representation rather than the 2's complement one favored by most native
+              integer types. As a result the complement operator is deliberately
+              disabled for checked <code class="computeroutput"><span class="identifier">cpp_int</span></code>'s.
+              Unchecked <code class="computeroutput"><span class="identifier">cpp_int</span></code>'s
+              give the same valued result as a 2's complement type would, but not
+              the same bit-pattern.
+            </p></dd>
+<dt><span class="term">Why can't I negate an unsigned type?</span></dt>
+<dd><p>
+              The unary negation operator is deliberately disabled for unsigned integer
+              types as its use would almost always be a programming error.
+            </p></dd>
+<dt><span class="term">Why doesn't the library use proto?</span></dt>
+<dd><p>
+              A very early version of the library did use proto, but compile times
+              became too slow for the library to be usable. Since the library only
+              required a tiny fraction of what proto has to offer anyway, a lightweight
+              expression template mechanism was used instead. Compile times are still
+              too slow...
+            </p></dd>
+<dt><span class="term">Why not abstract out addition/multiplication algorithms?</span></dt>
+<dd><p>
+              This was deemed not to be practical: these algorithms are intimately
+              tied to the actual data representation used.
+            </p></dd>
+</dl>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="todo.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../map.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ack.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

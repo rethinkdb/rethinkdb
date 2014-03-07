@@ -1,0 +1,144 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Readable Property Map</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+	ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H2><A NAME="concept:ReadablePropertyMap"></A>
+Readable Property Map
+</H2>
+
+A Readable Property Map provides read-access to the value  associated with a given key via a call to the <tt>get()</tt> function.
+The return type of the <tt>get()</tt>function   is either the <tt>value_type</tt> of the property map or a (const or non-const) reference to that type.
+
+<h3>Refinement of</h3>
+
+<a href="../../utility/CopyConstructible.html">Copy Constructible</a>
+
+<h3>Notation</h3>
+
+<Table>
+<TR>
+<TD><tt>PMap</tt></TD>
+<TD>A type that is a model of Readable Property Map.</TD>
+</TR>
+<TR>
+<TD><tt>pmap</tt></TD>
+<TD>An object of type <tt>PMap</tt>.</td>
+</TR>
+<TR>
+<TD><tt>key</tt></TD>
+<TD>An object of type <tt>boost::property_traits&lt;PMap&gt;::key_type</tt>.</td>
+</TR>
+
+</table>
+
+<h3>Associated Types</h3>
+
+<table border>
+
+<tr>
+<td>Value Type</td>
+<td><TT>boost::property_traits&lt;PMap&gt;::value_type</TT></td> 
+<td>The type of the property.</td>
+</tr>
+
+<tr>
+<td>Reference Type</td>
+<td><TT>boost::property_traits&lt;PMap&gt;::reference</TT></td> 
+<td>
+A type that is convertible to the value type.
+</td>
+</tr>
+
+<tr>
+<td>Key Type</td>
+<td><TT>boost::property_traits&lt;PMap&gt;::key_type</TT></td> 
+<td>
+The type of the key object used to look up the property.  The property
+map may be templated on the key type, in which case this
+typedef can be <TT>void</TT>.
+</td>
+</tr>
+
+<tr>
+<td>Property Map Category</td>
+<td><TT>boost::property_traits&lt;PMap&gt;::category</TT></td>
+<td>
+The category of the property: a type convertible to
+<TT>readable_property_map_tag</TT>.
+</td>
+</tr>
+
+</table>
+
+<h3>Valid Expressions</h3>
+
+<table border>
+<tr>
+<th>Name</th><th>Expression</th><th>Return Type</th><th>Description</th>
+</tr>
+
+<tr>
+<td>Get Property Value </td>
+<TD><TT>get(pmap, key)</TT></TD>
+<TD><TT>reference</TT></TD>
+<TD>Lookup the value associated with <TT>key</TT>.</TD>
+</TR>
+
+</TABLE>
+
+<h3>Concept Checking Class</h3>
+
+<pre>  template &lt;class PMap, class Key&gt;
+  struct ReadablePropertyMapConcept
+  {
+    typedef typename property_traits&lt;PMap&gt;::key_type key_type;
+    typedef typename property_traits&lt;PMap&gt;::category Category;
+    typedef boost::readable_property_map_tag ReadableTag;
+    void constraints() {
+      function_requires&lt; ConvertibleConcept&lt;Category, ReadableTag&gt; &gt;();
+
+      val = get(pmap, k);
+    }
+    PMap pmap;
+    Key k;
+    typename property_traits&lt;PMap&gt;::value_type val;
+  };</pre>
+
+<h3>See Also</h3>
+
+<a href="./property_map.html">Property map concepts</a>
+
+<h3>Design Notes</h3>
+
+At various times the name &quot;read-only&quot; was considered for
+this concept. However, that name is inappropriate because concepts are
+inherently positive, not negative. This becomes obvious when we define
+the Read Write Property Map, which refines both the Readable Property
+Map and the Writable Property Map concept. It would not make much
+sense to combine &quot;read-only&quot; and &quot;write-only&quot;
+concepts!
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy 2000</TD><TD>
+<a HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a>, Univ.of Notre Dame (<A HREF="mailto:jsiek@lsc.nd.edu">jsiek@lsc.nd.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

@@ -1,0 +1,36 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:fill_n fill_n]
+
+[heading Prototype]
+
+``
+template<class ForwardRange, class Size, class Value>
+ForwardRange& fill( ForwardRange& rng, Size n, const Value& val );
+``
+
+[heading Description]
+
+`fill_n` assigns the value `val` to `n` elements in the range `rng` beginning with `boost::begin(rng)`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/fill_n.hpp`
+
+[heading Requirements]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange` is mutable.
+* `Value` is a model of the `AssignableConcept`.
+* `Value` is convertible to `ForwardRange`'s value type.
+
+[heading Complexity]
+
+Linear. Exactly `n` assignments are performed.
+
+[endsect]
+
+

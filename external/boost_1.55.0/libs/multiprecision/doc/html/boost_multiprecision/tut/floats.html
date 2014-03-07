@@ -1,0 +1,243 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Floating Point Numbers</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../tut.html" title="Tutorial">
+<link rel="prev" href="ints/egs/bitops.html" title="Bit Operations">
+<link rel="next" href="floats/cpp_dec_float.html" title="cpp_dec_float">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ints/egs/bitops.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="floats/cpp_dec_float.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_multiprecision.tut.floats"></a><a class="link" href="floats.html" title="Floating Point Numbers">Floating Point Numbers</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="floats/cpp_dec_float.html">cpp_dec_float</a></span></dt>
+<dt><span class="section"><a href="floats/gmp_float.html">gmp_float</a></span></dt>
+<dt><span class="section"><a href="floats/mpfr_float.html">mpfr_float</a></span></dt>
+<dt><span class="section"><a href="floats/float128.html">float128</a></span></dt>
+<dt><span class="section"><a href="floats/fp_eg.html">Examples</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="floats/fp_eg/aos.html">Area of
+          Circle</a></span></dt>
+<dt><span class="section"><a href="floats/fp_eg/jel.html">Defining
+          a Special Function.</a></span></dt>
+<dt><span class="section"><a href="floats/fp_eg/nd.html">Calculating
+          a Derivative</a></span></dt>
+<dt><span class="section"><a href="floats/fp_eg/gi.html">Calculating
+          an Integral</a></span></dt>
+<dt><span class="section"><a href="floats/fp_eg/poly_eg.html">Polynomial
+          Evaluation</a></span></dt>
+</dl></dd>
+</dl></div>
+<p>
+        The following back-ends provide floating point arithmetic:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Backend Type
+                </p>
+              </th>
+<th>
+                <p>
+                  Header
+                </p>
+              </th>
+<th>
+                <p>
+                  Radix
+                </p>
+              </th>
+<th>
+                <p>
+                  Dependencies
+                </p>
+              </th>
+<th>
+                <p>
+                  Pros
+                </p>
+              </th>
+<th>
+                <p>
+                  Cons
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">cpp_dec_float</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  boost/multiprecision/cpp_dec_float.hpp
+                </p>
+              </td>
+<td>
+                <p>
+                  10
+                </p>
+              </td>
+<td>
+                <p>
+                  None
+                </p>
+              </td>
+<td>
+                <p>
+                  Header only, all C++ implementation. Boost licence.
+                </p>
+              </td>
+<td>
+                <p>
+                  Approximately 2x slower than the <a href="http://www.mpfr.org" target="_top">MPFR</a>
+                  or <a href="http://gmplib.org" target="_top">GMP</a> libraries.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">mpf_float</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  boost/multiprecision/gmp.hpp
+                </p>
+              </td>
+<td>
+                <p>
+                  2
+                </p>
+              </td>
+<td>
+                <p>
+                  <a href="http://gmplib.org" target="_top">GMP</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Very fast and efficient back-end.
+                </p>
+              </td>
+<td>
+                <p>
+                  Dependency on GNU licensed <a href="http://gmplib.org" target="_top">GMP</a>
+                  library.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">mpfr_float</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  boost/multiprecision/mpfr.hpp
+                </p>
+              </td>
+<td>
+                <p>
+                  2
+                </p>
+              </td>
+<td>
+                <p>
+                  <a href="http://gmplib.org" target="_top">GMP</a> and <a href="http://www.mpfr.org" target="_top">MPFR</a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Very fast and efficient back-end, with its own standard library
+                  implementation.
+                </p>
+              </td>
+<td>
+                <p>
+                  Dependency on GNU licensed <a href="http://gmplib.org" target="_top">GMP</a>
+                  and <a href="http://www.mpfr.org" target="_top">MPFR</a> libraries.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">float128</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  boost/multiprecision/float128.hpp
+                </p>
+              </td>
+<td>
+                <p>
+                  2
+                </p>
+              </td>
+<td>
+                <p>
+                  Either <a href="http://gcc.gnu.org/onlinedocs/libquadmath/" target="_top">libquadmath</a>
+                  or the Intel C++ Math library.
+                </p>
+              </td>
+<td>
+                <p>
+                  Very fast and efficient back-end for 128-bit floating point values
+                  (113-bit mantissa, equivalent to FORTRAN's QUAD real)
+                </p>
+              </td>
+<td>
+                <p>
+                  Depends on the compiler being either recent GCC or Intel C++ versions.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ints/egs/bitops.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="floats/cpp_dec_float.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

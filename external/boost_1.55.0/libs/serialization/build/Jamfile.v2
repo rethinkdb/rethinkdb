@@ -1,0 +1,115 @@
+# Boost serialization Library Build Jamfile
+#  (C) Copyright Robert Ramey 2002-2004.
+#  Use, modification, and distribution are subject to the 
+#  Boost Software License, Version 1.0. (See accompanying file 
+#  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org/libs/serialization for the library home page.
+
+project boost/serialization
+    : source-location ../src
+    : requirements
+      <conditional>@include-spirit
+;
+
+SPIRIT_ROOT = [ modules.peek : SPIRIT_ROOT ] ;
+rule include-spirit ( properties * )
+{
+    local old-compiler ;
+    if <toolset>borland in $(properties)
+    {
+        if ! <toolset-borland:version>6.1.0 in $(properties)  
+        {  
+            old-compiler = true ;  
+        }  
+
+    }
+    else if <toolset>msvc in $(properties)
+    {
+        if <toolset-msvc:version>6.5 in $(properties)
+          || <toolset-msvc:version>7.0 in $(properties)
+        {            
+            old-compiler = true ;
+        }        
+    }
+        
+    local result ;
+    if $(old-compiler)
+    {        
+        if $(SPIRIT_ROOT)
+        {
+            # note - we can't use <include>$(SPIRIT_ROOT) because 
+            # it puts -I$(SPIRIT_ROOT) AFTER the "../../.." in the command line.
+            # so use these instead 
+            result = <cxxflags>-I$(SPIRIT_ROOT) ;
+        }
+        else 
+        {
+            echo **** spirit 1.6x required to build library with this compiler **** ;
+            result = <build>no ;
+        }
+    }    
+    return $(result) ;
+}
+
+SOURCES = 
+    basic_archive
+    basic_iarchive
+    basic_iserializer
+    basic_oarchive
+    basic_oserializer
+    basic_pointer_iserializer
+    basic_pointer_oserializer
+    basic_serializer_map
+    basic_text_iprimitive
+    basic_text_oprimitive
+    basic_xml_archive
+    binary_iarchive
+    binary_oarchive
+    extended_type_info
+    extended_type_info_typeid
+    extended_type_info_no_rtti
+    polymorphic_iarchive
+    polymorphic_oarchive
+    stl_port
+    text_iarchive
+    text_oarchive
+    void_cast
+    archive_exception
+    xml_grammar
+    xml_iarchive
+    xml_oarchive
+    xml_archive_exception
+    shared_ptr_helper
+;
+    
+WSOURCES = 
+    basic_text_wiprimitive
+    basic_text_woprimitive
+    text_wiarchive
+    text_woarchive
+    utf8_codecvt_facet
+    xml_wgrammar
+    xml_wiarchive
+    xml_woarchive
+    codecvt_null
+;
+
+
+lib boost_serialization 
+    : $(SOURCES).cpp
+    : 
+    <toolset>msvc:<cxxflags>/Gy
+    #<toolset>gcc:<cxxflags>"-fvisibility=hidden"
+    <link>shared:<define>BOOST_SERIALIZATION_DYN_LINK=1
+    ;
+
+lib boost_wserialization 
+    : $(WSOURCES).cpp boost_serialization 
+    :     
+    <toolset>msvc:<cxxflags>/Gy 
+    #<toolset>gcc:<cxxflags>"-fvisibility=hidden"
+    <link>shared:<define>BOOST_SERIALIZATION_DYN_LINK=1
+    ;
+
+boost-install boost_serialization boost_wserialization ;

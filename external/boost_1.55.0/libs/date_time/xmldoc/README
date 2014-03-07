@@ -1,0 +1,38 @@
+I couldn't get the date_time.xml to validate, however, it works anyway.
+The build process with fail with adequate error messages to fix
+any errors.
+
+/********************************/
+Do not place a dtd declaration in the doc xml files.
+Begin each file with:
+<section ...
+
+/********************************/
+Including files into sections has some quirks to it. Unless there is a 
+section in the parent file, the first included file will display
+instead of link.
+
+Example.
+In date_time.xml:
+
+  <xi:include href="subsection.xml" />
+
+And in subsection/xml:
+  <section id="date_time.my_subsection"
+     xmlns:xi="http://www.w3.org/2001/XInclude">
+     <para>
+       ...
+     </para>
+     <xi:include href="another.xml" />
+
+/********************************/
+To crosslink use:
+<link linkend="date_time.section.subsection">optional text</link>
+
+If you use '<link linkend="top">top</link>' the link will automatically
+go to the top of the page it ends up in.
+
+# Copyright (c) 2002-2006 CrystalClear Software, Inc.
+# Use, modification and distribution is subject to the 
+# Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)

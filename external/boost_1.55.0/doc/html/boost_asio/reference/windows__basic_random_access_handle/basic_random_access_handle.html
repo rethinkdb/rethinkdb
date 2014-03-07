@@ -1,0 +1,70 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>windows::basic_random_access_handle::basic_random_access_handle</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../windows__basic_random_access_handle.html" title="windows::basic_random_access_handle">
+<link rel="prev" href="async_write_some_at.html" title="windows::basic_random_access_handle::async_write_some_at">
+<link rel="next" href="basic_random_access_handle/overload1.html" title="windows::basic_random_access_handle::basic_random_access_handle (1 of 3 overloads)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="async_write_some_at.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../windows__basic_random_access_handle.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_random_access_handle/overload1.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.reference.windows__basic_random_access_handle.basic_random_access_handle"></a><a class="link" href="basic_random_access_handle.html" title="windows::basic_random_access_handle::basic_random_access_handle">windows::basic_random_access_handle::basic_random_access_handle</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp102014584"></a> 
+Construct
+          a <a class="link" href="../windows__basic_random_access_handle.html" title="windows::basic_random_access_handle"><code class="computeroutput"><span class="identifier">windows</span><span class="special">::</span><span class="identifier">basic_random_access_handle</span></code></a> without
+          opening it.
+        </p>
+<pre class="programlisting"><span class="keyword">explicit</span> <a class="link" href="basic_random_access_handle/overload1.html" title="windows::basic_random_access_handle::basic_random_access_handle (1 of 3 overloads)">basic_random_access_handle</a><span class="special">(</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span> <span class="special">&amp;</span> <span class="identifier">io_service</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="basic_random_access_handle/overload1.html" title="windows::basic_random_access_handle::basic_random_access_handle (1 of 3 overloads)">more...</a></em></span>
+</pre>
+<p>
+          Construct a <a class="link" href="../windows__basic_random_access_handle.html" title="windows::basic_random_access_handle"><code class="computeroutput"><span class="identifier">windows</span><span class="special">::</span><span class="identifier">basic_random_access_handle</span></code></a> on
+          an existing native handle.
+        </p>
+<pre class="programlisting"><a class="link" href="basic_random_access_handle/overload2.html" title="windows::basic_random_access_handle::basic_random_access_handle (2 of 3 overloads)">basic_random_access_handle</a><span class="special">(</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">io_service</span> <span class="special">&amp;</span> <span class="identifier">io_service</span><span class="special">,</span>
+    <span class="keyword">const</span> <span class="identifier">native_handle_type</span> <span class="special">&amp;</span> <span class="identifier">handle</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="basic_random_access_handle/overload2.html" title="windows::basic_random_access_handle::basic_random_access_handle (2 of 3 overloads)">more...</a></em></span>
+</pre>
+<p>
+          Move-construct a <a class="link" href="../windows__basic_random_access_handle.html" title="windows::basic_random_access_handle"><code class="computeroutput"><span class="identifier">windows</span><span class="special">::</span><span class="identifier">basic_random_access_handle</span></code></a> from
+          another.
+        </p>
+<pre class="programlisting"><a class="link" href="basic_random_access_handle/overload3.html" title="windows::basic_random_access_handle::basic_random_access_handle (3 of 3 overloads)">basic_random_access_handle</a><span class="special">(</span>
+    <span class="identifier">basic_random_access_handle</span> <span class="special">&amp;&amp;</span> <span class="identifier">other</span><span class="special">);</span>
+  <span class="emphasis"><em>&#187; <a class="link" href="basic_random_access_handle/overload3.html" title="windows::basic_random_access_handle::basic_random_access_handle (3 of 3 overloads)">more...</a></em></span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="async_write_some_at.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../windows__basic_random_access_handle.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_random_access_handle/overload1.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,254 @@
+[library Boost.Icl
+    [quickbook 1.4]
+    [authors [Faulhaber, Joachim]]
+    [copyright 2007-2010 Joachim Faulhaber]
+    [copyright 1999-2006 Cortex Software GmbH]
+    [category container]
+    [id optional]
+    [dirname optional]
+    [purpose
+        Implements sets and maps as sets and maps of intervals
+    ]
+    [source-mode c++]
+    [license
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+[@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+
+
+[/ Macros will be used for links so we have a central place to change them ]
+[def __itv__          [classref boost::icl::interval interval]]
+[def __Itv__          [classref boost::icl::interval Interval]]
+
+[def __itv_tr__       [classref boost::icl::interval_traits interval_traits]]
+[def __Itv_tr__       [classref boost::icl::interval_traits Interval_traits]]
+
+[def __ro_itv__       [classref boost::icl::right_open_interval right_open_interval]]
+[def __lo_itv__       [classref boost::icl::left_open_interval  left_open_interval]]
+[def __op_itv__       [classref boost::icl::open_interval       open_interval]]
+[def __cl_itv__       [classref boost::icl::closed_interval     closed_interval]]
+
+[def __dc_itv__       [classref boost::icl::discrete_interval   discrete_interval]]
+[def __ct_itv__       [classref boost::icl::continuous_interval continuous_interval]]
+
+
+[def __itvs__         [classref boost::icl::interval intervals]]
+[def __icl_itvs__     [classref boost::icl::interval icl::intervals]]
+[def __Itvs__         [classref boost::icl::interval Intervals]]
+[def __itv_set__      [classref boost::icl::interval_set interval_set]]
+[def __itv_sets__     [classref boost::icl::interval_set interval_sets]]
+[def __itv_bset__     [classref boost::icl::interval_base_set interval_set]]
+[def __Itv_bset__     [classref boost::icl::interval_base_set Interval_set]]
+[def __itv_bsets__    [classref boost::icl::interval_base_set interval_sets]]
+[def __itv_bset_s__   [classref boost::icl::interval_base_set interval_set's]]
+[def __Itv_bsets__    [classref boost::icl::interval_base_set Interval_sets]]
+
+[def __ele_set__      [@http://www.cplusplus.com/reference/stl/set/ `std::set` ]]
+[def __ele_sets__     [@http://www.cplusplus.com/reference/stl/set/ `std::sets`]]
+[def __icl_set__      [@http://www.cplusplus.com/reference/stl/set/ `std::set` ]]
+[def __icl_sets__     [@http://www.cplusplus.com/reference/stl/set/ `std::sets`]]
+[def __std_set__      [@http://www.cplusplus.com/reference/stl/set/ `std::set` ]]
+[def __Std_set__      [@http://www.cplusplus.com/reference/stl/set/ `Std::set` ]]
+[def __std_sets__     [@http://www.cplusplus.com/reference/stl/set/ `std::sets`]]
+[def __std_map__      [@http://www.cplusplus.com/reference/stl/set/ `std::map` ]]
+[def __std_maps__     [@http://www.cplusplus.com/reference/stl/set/ `std::maps`]]
+
+[def __Itv_set__      [classref boost::icl::interval_set Interval_set]]
+[def __Itv_sets__     [classref boost::icl::interval_set Interval_sets]]
+[def __spl_itv_set__  [classref boost::icl::split_interval_set split_interval_set]]
+[def __spl_itv_sets__ [classref boost::icl::split_interval_set split_interval_sets]]
+[def __spl_itv_set_s__ [classref boost::icl::split_interval_set split_interval_set's]]
+[def __Spl_itv_set__  [classref boost::icl::split_interval_set Split_interval_set]]
+[def __sep_itv_set__  [classref boost::icl::separate_interval_set separate_interval_set]]
+[def __sep_itv_sets__ [classref boost::icl::separate_interval_set separate_interval_sets]]
+[def __Sep_itv_set__  [classref boost::icl::separate_interval_set Separate_interval_set]]
+[def __itv_map__      [classref boost::icl::interval_map interval_map]]
+[def __itv_maps__     [classref boost::icl::interval_map interval_maps]]
+[def __itv_map_s__    [classref boost::icl::interval_map interval_map's]]
+[def __itv_bmap__     [classref boost::icl::interval_base_map interval_map]]
+[def __Itv_bmap__     [classref boost::icl::interval_base_map Interval_map]]
+[def __itv_bmaps__    [classref boost::icl::interval_base_map interval_maps]]
+[def __Itv_bmaps__    [classref boost::icl::interval_base_map Interval_maps]]
+[def __itv_bmap_s__   [classref boost::icl::interval_base_map interval_map's]]
+[def __Itv_map__      [classref boost::icl::interval_map Interval_map]]
+[def __spl_itv_map__  [classref boost::icl::split_interval_map split_interval_map]]
+[def __Spl_itv_map__  [classref boost::icl::split_interval_map Split_interval_map]]
+[def __spl_itv_maps__ [classref boost::icl::split_interval_map split_interval_maps]]
+
+[def __inverse__      [classref boost::icl::inverse inverse]]
+[def __ip_cross__     [classref boost::icl::inplace_cross    inplace_cross]]
+[def __ip_dash__      [classref boost::icl::inplace_dash     inplace_dash]]
+[def __ip_plus__      [classref boost::icl::inplace_plus     inplace_plus]]
+[def __ip_minus__     [classref boost::icl::inplace_minus    inplace_minus]]
+[def __ip_star__      [classref boost::icl::inplace_star     inplace_star]]
+[def __ip_slash__     [classref boost::icl::inplace_slash    inplace_slash]]
+[def __ip_times__     [classref boost::icl::inplace_times    inplace_times]]
+[def __ip_divide__    [classref boost::icl::inplace_divide   inplace_divide]]
+[def __ip_pipe__      [classref boost::icl::inplace_pipe     inplace_pipe]]
+[def __ip_et__        [classref boost::icl::inplace_et       inplace_et]]
+[def __ip_caret__     [classref boost::icl::inplace_caret    inplace_caret]]
+[def __ip_min__       [classref boost::icl::inplace_min      inplace_min]]
+[def __ip_max__       [classref boost::icl::inplace_max      inplace_max]]
+[def __ip_identity__  [classref boost::icl::inplace_identity inplace_identity]]
+[def __ip_erasure__   [classref boost::icl::inplace_erasure  inplace_erasure]]
+[def __ip_bitset_union__      [classref boost::icl::inplace_bitset_union      inplace_bitset_union]]
+[def __ip_bitset_difference__ [classref boost::icl::inplace_bitset_difference inplace_bitset_difference]]
+
+[def __itv_bmap_add__ [memberref boost::icl::interval_base_map::add add]]
+
+
+[def __ele_map__      [classref boost::icl::map map]]
+[def __ele_maps__     [classref boost::icl::map maps]]
+[def __icl_map__      [classref boost::icl::map icl::map]]
+[def __icl_maps__     [classref boost::icl::map icl::maps]]
+[def __icl_map_s__    [classref boost::icl::map icl::map's]]
+
+[def __pabsorber__     [classref boost::icl::partial_absorber partial_absorber]]
+[def __penricher__     [classref boost::icl::partial_enricher partial_enricher]]
+[def __penrichers__    [classref boost::icl::partial_enricher partial_enrichers]]
+[def __tabsorber__     [classref boost::icl::total_absorber  total_absorber]]
+[def __tenricher__     [classref boost::icl::total_absorber  total_enricher]]
+
+[def __itv_bse_set__  [classref boost::icl::interval_base_set interval_base_set]]
+[def __e              [link element_type *e*]]
+[def __i              [link interval_type *i*]]
+[def __s              [link itl_set_type *s*]]
+[def __S              [link interval_set_types *S*]]
+[def __b              [link element_mapping_type *b*]]
+[def __p              [link interval_mapping_type *p*]]
+[def __m              [link itl_map_type *m*]]
+[def __M              [link interval_map_types *M*]]
+[def __d              [link discrete_types *d*]]
+[def __c              [link continuous_types *c*]]
+
+[def __ei             [link element_type *e*] [link interval_type *i*]]
+[def __bp             [link element_mapping_type *b*] [link interval_mapping_type *p*]]
+[def __eS             [link element_type *e*] [link interval_set_types *S*]]
+[def __es             [link element_type *e*] [link itl_set_type *s*]]
+[def __bM             [link element_mapping_type *b*] [link interval_map_types *M*]]
+[def __bm             [link element_mapping_type *b*] [link itl_map_type *m*]]
+[def __ebm            [link element_type *e*] [link element_mapping_type *b*] [link itl_map_type *m*]]
+[def __eiS            [link element_type *e*] [link interval_type *i*] [link interval_set_types *S*]]
+[def __bpM            [link element_mapping_type *b*] [link interval_mapping_type *p*] [link interval_map_types *M*]]
+[def __dc             [link discrete_types *d*] [link continuous_types *c*]]
+
+[def __S1             [link ph_def_S1 *S1*]]
+[def __S2             [link ph_def_S2 *S2*]]
+[def __S3             [link ph_def_S3 *S3*]]
+
+[def __M1             [link ph_def_M1 *M1*]]
+[def __M3             [link ph_def_M3 *M3*]]
+
+[def __eiS_phs__      [link element_type placeholders]]
+[def __eiS_Phs__      [link element_type Placeholders]]
+
+[def __eibpsSmM__     [link element_type *e*] [link interval_type *i*] 
+                      [link element_mapping_type *b*] [link interval_mapping_type *p*]
+                      [link itl_set_type *s*] [link interval_set_types *S*]
+                      [link itl_map_type *m*] [link interval_map_types *M*]]
+
+[def __biLConsCopyDest__ [link boost_icl.function_reference.construct__copy__destruct ['*Construct, copy, destruct*]]]
+[def __biLContainedness__  [link boost_icl.function_reference.containedness ['*Containedness*]]]
+[def __biLcontainedness__  [link boost_icl.function_reference.containedness ['*containedness*]]]
+[def __biLEquivsOrderings__   [link boost_icl.function_reference.equivalences_and_orderings ['*Equivalences and Orderings*]]]
+[def __biLSize__         [link boost_icl.function_reference.size ['*Size*]]]
+[def __biLRange__        [link boost_icl.function_reference.range ['*Range*]]]
+[def __biLHull__         [link boost_icl.function_reference.range ['*Hull*]]]
+[def __biLSelection__    [link boost_icl.function_reference.selection ['*Selection*]]]
+[def __biLAddition__     [link boost_icl.function_reference.addition ['*Addition*]]]
+[def __biLadd__          [link boost_icl.function_reference.addition ['*add*]]]
+[def __biLSubtraction__  [link boost_icl.function_reference.subtraction ['*Subtraction*]]]
+[def __biLsubtraction__  [link boost_icl.function_reference.subtraction ['*subtraction*]]]
+[def __biLInsertion__    [link boost_icl.function_reference.insertion ['*Insertion*]]]
+[def __biLErasure__      [link boost_icl.function_reference.erasure ['*Erasure*]]]
+[def __biLerasure__      [link boost_icl.function_reference.erasure ['*erasure*]]]
+[def __biLIntersection__ [link boost_icl.function_reference.intersection ['*Intersection*]]]
+[def __biLintersection__ [link boost_icl.function_reference.intersection ['*intersection*]]]
+[def __biLSymmetricDifference__ [link boost_icl.function_reference.symmetric_difference ['*Symmetric difference*]]]
+[def __biLIteratorRelated__ [link boost_icl.function_reference.iterator_related ['*Iteration*]]]
+[def __biLElementIteration__ [link boost_icl.function_reference.element_iteration ['*Element iteration*]]]
+[def __biLStreaming__    [link boost_icl.function_reference.streaming__conversion ['*Streaming, conversion*]]]
+
+[def __biLIntervalConstruct__  [link boost_icl.function_reference.interval_construction ['*Construction*]]]
+[def __biLIntervalOrderings__  [link boost_icl.function_reference.additional_interval_orderings ['*Orderings*]]]
+[def __biLIntervalMiscellaneous__  [link boost_icl.function_reference.miscellaneous_interval_functions ['*Miscellaneous*]]]
+
+
+[/ column headers]
+[def __ch_itvs__       intervals]
+
+[def __ch_dom_t__      domain\ntype]
+[def __ch_itv_t__      interval\ntype]
+[def __ch_dom_mp_t__   domain\nmapping\ntype]
+[def __ch_itv_mp_t__   interval\nmapping\ntype]
+
+[def __ch_itv_sets__   interval\nsets]
+[def __ch_itv_maps__   interval\nmaps]
+[def __ch_itl_set__    std::set]
+[def __ch_itl_map__    icl::map]
+[def __ch_icl_set__    std::set]
+[def __ch_icl_map__    icl::map]
+
+[def __ch_ele_sets__   element\nsets]
+[def __ch_ele_maps__   element\nmaps]
+[def __ch_ele_set__    element\nset]
+[def __ch_ele_map__    element\nmap]
+
+[def __ch_dsc_itv__    discrete\n_interval]
+[def __ch_cnt_itv__    continuous\n_interval]
+[def __ch_ro_itv__     right_open\n_interval]
+[def __ch_lo_itv__     left_open\n_interval]
+[def __ch_cl_itv__     closed\n_interval]
+[def __ch_op_itv__     open\n_interval]
+
+[def __bi_conceptual__ ['*fundamental*]]
+[def __conceptual__    fundamental]
+[def __Conceptual__    Fundamental]
+
+[def __bi_iterative__  ['*segmental*]]
+[def __iterative__     segmental]
+[def __Iterative__     Segmental]
+
+[def __O1__            ['O(1)]]
+[def __aO1__           ['amortized O(1)]]
+[def __On__            ['O(n)]]
+[def __Om__            ['O(m)]]
+[def __Ok__            ['O(k)]]
+[def __Onpm__          ['O(n+m)]]
+[def __Olgn__          ['O(log n)]]
+[def __a_Olgn__        ['amortized\nO(log n)]]
+[def __Onlgn__         ['O(n log n)]]
+[def __Omlgn__         ['O(m log n)]]
+[def __Omlgnpm__       ['O(m log(n+m))]]
+
+[def __inpops__        `+= -= &= ^=`]
+[def __ainpop__        `o=`]
+
+
+[/ Cited Boost resources ]
+
+[/ Other web resources ]
+
+[/ Icons ]
+
+[def __SPACE__ [$images/space.png]]
+[def __GO_TO__ [$images/callouts/R.png]]
+
+
+[include introduction.qbk]
+[include examples.qbk]
+[include projects.qbk]
+[include concepts.qbk]
+[include semantics.qbk]
+[include interface.qbk]
+[include customization.qbk]
+[include implementation.qbk]
+[include functions.qbk]
+[include acknowledgments.qbk]
+[xinclude icldoc.xml]
+
+
+14:46 15.10.2010

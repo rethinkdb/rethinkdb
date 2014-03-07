@@ -1,0 +1,196 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page using_localization_backends Using Localization Backends
+
+By default, Boost.Locale uses ICU for all localization and text manipulation tasks.
+This is the most powerful library available, but sometimes we don't need
+the full power of this library or we want to reduce dependencies from third-party
+libraries, and ICU is by no means a small library.
+
+Boost.Locale provides an option to use non-ICU based localization
+backends. Although usually less powerful, these often provide all you need:
+message formatting, currency, date, time, number formatting, basic collation and 
+case manipulation. They are implemented using the standard OS API or a C or C++ library.
+
+\section when_to_use_non_icu_backends When to use non-ICU backends
+
+There are situations when using non-ICU based localization is appropriate:
+
+- Embedded systems, where the ICU library is very hefty.
+- Applications where only basic features like message, date, and time formatting and
+  basic collation are required, and using a third-party library like ICU would be too
+  complicated.
+- Performance. ICU is a very powerful library, but it is generally slower than the standard
+  library. Sometimes it's better to use a simpler but faster localization backend.
+
+
+\section non_icu_backends Non-ICU Backends
+
+All of the alternate backends have these limitations:
+
+- Only the Gregorian calendar is supported and it is based
+  on capabilites of mktime functionality (including dates range)
+- No boundary analysis.
+- Case handling is very simple and based on single codepoint conversions,
+  though they still handle UTF-8 better than the standard library.
+- Time zone specification is very limited: either local time or a time zone
+  in the format "GMT+HH:MM".
+- No percent formatting, no spellout or ordinal number formatting.
+- Collation, with exception of the \c winapi backend, is limited to a single level,
+  similar to what is done by \c strcoll.
+
+
+\subsection std_backend std - The standard C++ library backend
+
+This localization backend is based on the standard C++ library.
+
+It is supported on all platforms, but is only actually useful on platforms where
+the standard library supports locales besides "C" and "POSIX": on Linux with GCC
+or Intel compilers, and under the MSVC compiler.
+
+It works around some common standard library bugs like invalid UTF-8 generation for numeric
+formatting, and it gives otherwise-absent POSIX locales names and UTF-8 support under MSVC.
+
+It is very useful when the compiler and the library actually give fine localization
+support, like GCC under Linux or MSVC under Windows.
+
+\subsection posix_backend posix - POSIX 2008 C library
+
+This backend is based on the latest POSIX 2008 standards, and uses POSIX api functions like
+\c newlocale, \c freelocale, \c strftime_l  etc. It is available on the Linux and Mac OS X
+platforms.
+
+It gives you simple and ready-made localization support, most notably under Mac OS X where
+GCC's \c libstdc++ does not support locales.
+
+\note The POSIX backend only supports UTF-8, single-byte, and double-byte encodings.
+
+\subsection winapi_backend winapi - Win32 API.
+
+The Win32API-based localization backend provides decent UTF-8/UTF-16 locale support.
+It is based on Windows API functions like \c GetLocaleInfoW, \c LCMapStringW, \c GetDateFormatW etc and
+provides good localization support even on the MinGW and Cygwin platforms, which normally have
+problems with this.
+
+\note
+
+- If you using GCC compiler under Windows you need GCC-4.x series to use it, GCC-3.4 is not supported
+- Only UTF-8 as narrow locale encoding and UTF-16 as wide encoding are supported. 
+
+\section supported_features_by_backends Supported Features
+
+<table border="1" sellpadding="5" sellspacing="3">
+<tr>
+  <th>Backend</th>
+  <th>icu</th><th>posix</th><th>winapi</th><th>std</th>
+</tr>
+<tr>
+  <th>Message Formatting</th>
+  <td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td>
+</tr>
+<tr>
+  <th>Non UTF-8 encodings</th>
+  <td>Yes</td><td>Yes</td><td>No</td><td>Yes</td>
+</tr>
+<tr>
+  <th>Date/Time Formatting/Parsing</th>
+  <td>Yes</td><td>Formatting Only</td><td>Formatting Only</td><td>Formatting Only</td>
+</tr>
+<tr>
+  <th>Monetary Formatting/Parsing</th>
+  <td>Yes</td><td>Formatting Only</td><td>Formatting Only</td><td>Yes</td>
+</tr>
+<tr>
+  <th>Number Formatting/Parsing</th>
+  <td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td>
+</tr>
+<tr>
+  <th>Numbers as Percent, Spelled Out</th>
+  <td>Yes</td><td>No</td><td>No</td><td>No</td>
+</tr>
+<tr>
+  <th>Case Manipulation</th>
+  <td>Yes</td><td>Basic</td><td>Basic</td><td>Basic</td>
+</tr>
+<tr>
+  <th>Collation</th>
+  <td>Full</td><td>Linux - 1 level<br>Mac OS X - broken</td><td>3 levels</td><td>1 level</td>
+</tr>
+<tr>
+  <th>Calendar</th>
+  <td>Yes</td><td>Gregorian Only</td><td>Gregorian Only</td><td>Gregorian Only</td>
+</tr>
+<tr>
+  <th>Boundary Analysis</th>
+  <td>Yes</td><td>No</td><td>No</td><td>No</td>
+</tr>
+<tr>
+  <th>Unicode Normalization</th>
+  <td>Yes</td><td>No</td><td>Vista and above</td><td>No</td>
+</tr>
+<tr>
+  <th>C++0x characters</th>
+  <td>Yes</td><td>No</td><td>No</td><td>Yes</td>
+</tr>
+<tr>
+  <th>OS Support</th>
+  <td>Any</td><td>Linux, Mac OS X</td><td>Windows, Cygwin</td><td>Any</td>
+</tr>
+<tr>
+  <th>Useful on</th>
+  <td>Any Platform</td><td>Linux and Mac OS X</td><td>Windows/MinGW/Cygwin</td><td>Linux with GCC or Intel<br>Windows with MSVC</td>
+</tr>
+</table>
+
+
+\section using_localization_backends Using Localization Backends
+
+Accessing a localization backend is done via the boost::locale::localization_backend_manager class.
+
+You can create your own boost::locale::localization_backend_manager by starting with a global backend
+via the boost::locale::localization_backend_manager::global static member function and modifying it.
+
+For example:
+
+\code
+    localization_backend_manager my = localization_backend_manager::global(); 
+    // Get global backend
+
+    my.select("std"); 
+    // select std backend as default
+
+    generator gen(my); 
+    // create a generator that uses this backend.
+
+    localization_backend_manager::global(my);
+    // set this backend globally
+
+    generator gen2();
+    // now this one would use the new global backend.
+\endcode
+
+You can also create a mixture of several backends, using
+for example \c icu for one kind of operation and \c std
+for all others:
+
+\code
+    localization_backend_manager my = localization_backend_manager::global(); 
+    // Get global backend
+
+    my.select("std"); 
+    // select std backend as default for all categories
+    my.select("icu",boundary_facet); 
+    // select icu backend for boundary analysis (since it is not supported by \c std)
+\endcode
+
+*/
+
+

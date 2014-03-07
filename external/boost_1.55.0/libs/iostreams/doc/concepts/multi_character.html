@@ -1,0 +1,59 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Multi-Character Filter</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Multi-Character Filter</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<H2>Description</H2>
+
+<P><A HREF="filter.html">Filter</A> which provides access to its controlled sequence or sequences several characters at a time. The difference between a Filter which is Multi-Character and one which is not is reflected in the specifications of the various Filter refinements. <I>See</I>, <I>e.g.</I>, <A HREF="input_filter.html">InputFilter</A> and <A HREF="output_filter.html">OutputFilter</A>.</P>
+
+<H2>Refinement of</H2>
+
+<P><A HREF="filter.html">Filter</A>.</P>
+
+<A NAME="types"></A>
+<H2>Associated Types</H2>
+
+<P>Same as <A HREF="filter.html#types">Filter</A>, with the following additional requirements:</P>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TD>Category</TD><TD>A type convertible to <A HREF="../guide/traits.html#category_tags"><CODE>filter_tag</CODE></A> and to <A HREF="../guide/traits.html#category_tags"><CODE>multichar_tag</CODE></A></TD></TR>
+</TABLE>
+
+<A NAME="expressions"></A>
+<H2>Valid Expressions / Semantics</H2>
+
+<P>Same as <A HREF="filter.html">Filter</A>.</P>
+
+<H2>Models</H2>
+
+<UL>
+    <LI>The compression and decompression Filters
+    <LI><A HREF="../classes/regex_filter.html"><CODE>basic_regex_filter</CODE></A>
+    <LI><A HREF="../classes/aggregate.html"><CODE>aggregate_filter</CODE></A>
+    <LI><A HREF="../classes/symmetric_filter.html"><CODE>symmetric_filter</CODE></A>
+</UL>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

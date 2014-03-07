@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Douglas Gregor 2001-2004
+Copyright Frank Mori Hess 2007-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<section last-revision="$Date: 2007-06-12 14:01:23 -0400 (Tue, 12 Jun 2007) $" id="signals2.examples">
+  <title>Example programs</title>
+
+  <using-namespace name="boost::signals2"/>
+  <using-namespace name="boost"/>
+
+  <section id="signals2.examples.misc">
+    <title>Miscellaneous Tutorial Examples</title>
+    <section id="signals2.examples.tutorial.hello_world_slot">
+      <title>hello_world_slot</title>
+      <para>
+        This example is a basic example of connecting a slot to a signal
+        and then invoking the signal.
+      </para>
+      <para>
+        Download <ulink url="boost:/libs/signals2/example/hello_world_slot.cpp">hello_world_slot.cpp</ulink>.
+      </para>
+    </section>
+    <section id="signals2.examples.tutorial.hello_world_multi_slot">
+      <title>hello_world_multi_slot</title>
+      <para>
+        This example extends the hello_world_slot example slightly by connecting more than one
+        slot to the signal before invoking it.
+      </para>
+      <para>
+        Download <ulink url="boost:/libs/signals2/example/hello_world_multi_slot.cpp">hello_world_multi_slot.cpp</ulink>.
+      </para>
+    </section>
+    <section id="signals2.examples.tutorial.ordering_slots">
+      <title>ordering_slots</title>
+      <para>
+        This example extends the hello_world_multi_slot example slightly by
+        using slot groups to specify
+        the order slots should be invoked.
+      </para>
+      <para>
+        Download <ulink url="boost:/libs/signals2/example/ordering_slots.cpp">ordering_slots.cpp</ulink>.
+      </para>
+    </section>
+    <section id="signals2.examples.tutorial.slot_arguments">
+      <title>slot_arguments</title>
+      <para>
+        The slot_arguments program shows how to pass arguments from a signal invocation to slots.
+      </para>
+      <para>
+        Download <ulink url="boost:/libs/signals2/example/slot_arguments.cpp">slot_arguments.cpp</ulink>.
+      </para>
+    </section>
+    <section id="signals2.examples.tutorial.signal_return_value">
+      <title>signal_return_value</title>
+      <para>
+        This example shows how to return a value from slots to the signal invocation.
+        It uses the default <classname>optional_last_value</classname> combiner.
+      </para>
+      <para>
+        Download <ulink url="boost:/libs/signals2/example/signal_return_value.cpp">signal_return_value.cpp</ulink>.
+      </para>
+    </section>
+    <section id="signals2.examples.tutorial.custom_combiners">
+      <title>custom_combiners</title>
+      <para>
+        This example shows more returning of values from slots to the signal invocation.
+        This time, custom combiners are defined and used.
+      </para>
+      <para>
+        Download <ulink url="boost:/libs/signals2/example/custom_combiners.cpp">custom_combiners.cpp</ulink>.
+      </para>
+    </section>
+    <section id="signals2.examples.tutorial.disconnect_and_block">
+      <title>disconnect_and_block</title>
+      <para>
+        This example demonstrates various means of manually disconnecting slots, as well as temporarily
+        blocking them via <classname>shared_connection_block</classname>.
+      </para>
+      <para>
+        Download <ulink url="boost:/libs/signals2/example/disconnect_and_block.cpp">disconnect_and_block.cpp</ulink>.
+      </para>
+    </section>
+    <section id="signals2.examples.tutorial.passing_slots">
+      <title>passing_slots</title>
+      <para>
+        This example demonstrates the passing of slot functions to a private signal
+        through a non-template interface.
+      </para>
+      <para>
+        Download <ulink url="boost:/libs/signals2/example/passing_slots.cpp">passing_slots.cpp</ulink>.
+      </para>
+    </section>
+    <section id="signals2.examples.tutorial.extended_slot">
+      <title>extended_slot</title>
+      <para>
+        This example demonstrates connecting an extended slot to a signal.  An extended slot
+        accepts a reference to its invoking signal-slot connection as an additional argument,
+        permitting the slot to temporarily block or permanently disconnect itself.
+      </para>
+      <para>
+        Download <ulink url="boost:/libs/signals2/example/extended_slot.cpp">extended_slot.cpp</ulink>.
+      </para>
+    </section>
+  </section>
+  <section id="signals2.examples.document-view">
+    <title>Document-View</title>
+    <section id="signals2.examples.document-view.doc_view">
+      <title>doc_view</title>
+      <para>
+        This is the document-view example program which is described in the
+        <link linkend="signals2.tutorial.document-view">tutorial</link>.  It shows
+        usage of a signal and slots to implement two different views of
+        a text document.
+      </para>
+      <para>
+        Download <ulink url="boost:/libs/signals2/example/doc_view.cpp">doc_view.cpp</ulink>.
+      </para>
+    </section>
+    <section id="signals2.examples.document-view.doc_view_acm">
+      <title>doc_view_acm</title>
+      <para>
+        This program modifies the original doc_view.cpp example to employ
+        automatic connection management.
+      </para>
+      <para>
+        Download <ulink url="boost:/libs/signals2/example/doc_view_acm.cpp">doc_view_acm.cpp</ulink>.
+      </para>
+    </section>
+    <section id="signals2.examples.document-view.doc_view_acm_deconstruct">
+      <title>doc_view_acm_deconstruct</title>
+      <para>
+        This program modifies the doc_view_acm.cpp example to use postconstructors
+        and the <functionname>deconstruct()</functionname> factory function.
+      </para>
+      <para>
+        Download <ulink url="boost:/libs/signals2/example/doc_view_acm_deconstruct.cpp">doc_view_acm_deconstruct.cpp</ulink>.
+      </para>
+    </section>
+  </section>
+  <section id="signals2.examples.deconstruct">
+    <title>Postconstructors and Predestructors with <code>deconstruct()</code></title>
+    <section id="signals2.examples.deconstruct.postconstructor_ex1">
+      <title>postconstructor_ex1</title>
+      <para>
+        This program is a basic example of how to define a class with a postconstructor which
+        uses <functionname>deconstruct()</functionname> as its factory function.
+      </para>
+      <para>
+        Download <ulink url="boost:/libs/signals2/example/postconstructor_ex1.cpp">postconstructor_ex1</ulink>.
+      </para>
+    </section>
+    <section id="signals2.examples.deconstruct.postconstructor_ex2">
+      <title>postconstructor_ex2</title>
+      <para>
+        This program extends the postconstructor_ex1 example slightly, by additionally passing arguments from
+        the <functionname>deconstruct()</functionname> call through to the class' constructor
+        and postconstructor.
+      </para>
+      <para>
+        Download <ulink url="boost:/libs/signals2/example/postconstructor_ex2.cpp">postconstructor_ex2</ulink>.
+      </para>
+    </section>
+    <section id="signals2.examples.deconstruct.predestructor_example">
+      <title>predestructor_example</title>
+      <para>
+        This program is a basic example of how to define a class with a predestructor which
+        uses <functionname>deconstruct()</functionname> as its factory function.
+      </para>
+      <para>
+        Download <ulink url="boost:/libs/signals2/example/predestructor_example.cpp">predestructor_example</ulink>.
+      </para>
+    </section>
+  </section>
+</section>

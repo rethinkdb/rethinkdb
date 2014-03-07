@@ -1,0 +1,353 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Tutorial - Container creation</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="key_extraction.html">
+<link rel="up" href="index.html">
+<link rel="next" href="debug.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Tutorial: Container creation</h1>
+
+<div class="prev_link"><a href="key_extraction.html"><img src="../prev.gif" alt="key extraction" border="0"><br>
+Key extraction
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex tutorial" border="0"><br>
+Boost.MultiIndex tutorial
+</a></div>
+<div class="next_link"><a href="debug.html"><img src="../next.gif" alt="debugging support" border="0"><br>
+Debugging support
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#value_semantics">Value semantics</a></li>
+  <li><a href="#ctor_args_list">Use of <code>ctor_args_list</code></a></li>
+  <li><a href="#special_allocator">Special allocator support</a></li>
+  <li><a href="#serialization">Serialization</a></li>
+</ul>
+
+<h2><a name="value_semantics">Value semantics</a></h2>
+
+<p>
+<code>multi_index_container</code>s have the usual value semantics associated
+to copy construction and assignment, i.e. copies of the elements from the source
+container are created and inserted into the destination container.
+More interestingly, copying also recreates the original order in which
+elements are arranged for <i>every index</i> of the container.
+This implies that equality of all indices is preserved under copying
+or assignment, for those index types where equality is defined. This behavior
+can be regarded as a natural extension to the general rule on copy semantics
+stating that if <code>y</code> is a copy of <code>x</code>, then
+<code>y==x</code>.
+</p>
+
+<h2><a name="ctor_args_list">Use of <code>ctor_args_list</code></a></h2>
+
+<p>
+Although in most cases <code>multi_index_container</code>s will be default constructed
+(or copied from a preexisting <code>multi_index_container</code>), sometimes it is
+necessary to specify particular values for the internal objects used (key extractors,
+comparison predicates, allocator), for instance if some of these objects do not have
+a default constructor. The same situation can arise with standard STL containers,
+which allow for the optional specification of such objects:
+</p>
+
+<blockquote><pre>
+<span class=comment>// example of non-default constructed std::set</span>
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>IntegralType</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>modulo_less</span>
+<span class=special>{</span>
+  <span class=identifier>modulo_less</span><span class=special>(</span><span class=identifier>IntegralType</span> <span class=identifier>m</span><span class=special>):</span><span class=identifier>modulo</span><span class=special>(</span><span class=identifier>m</span><span class=special>){}</span>
+
+  <span class=keyword>bool</span> <span class=keyword>operator</span><span class=special>()(</span><span class=identifier>IntegralType</span> <span class=identifier>x</span><span class=special>,</span><span class=identifier>IntegralType</span> <span class=identifier>y</span><span class=special>)</span><span class=keyword>const</span>
+  <span class=special>{</span>
+    <span class=keyword>return</span> <span class=special>(</span><span class=identifier>x</span><span class=special>%</span><span class=identifier>modulo</span><span class=special>)&lt;(</span><span class=identifier>y</span><span class=special>%</span><span class=identifier>modulo</span><span class=special>);</span>
+  <span class=special>}</span>
+
+<span class=keyword>private</span><span class=special>:</span>
+  <span class=identifier>IntegralType</span> <span class=identifier>modulo</span><span class=special>;</span>
+<span class=special>};</span>
+
+<span class=keyword>typedef</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>set</span><span class=special>&lt;</span><span class=keyword>unsigned</span> <span class=keyword>int</span><span class=special>,</span><span class=identifier>modulo_less</span><span class=special>&lt;</span><span class=keyword>unsigned</span> <span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>modulo_set</span><span class=special>;</span>
+
+<span class=identifier>modulo_set</span> <span class=identifier>m</span><span class=special>(</span><span class=identifier>modulo_less</span><span class=special>&lt;</span><span class=keyword>unsigned</span> <span class=keyword>int</span><span class=special>&gt;(</span><span class=number>10</span><span class=special>));</span>
+</pre></blockquote>
+
+<p>
+<code>multi_index_container</code> does also provide this functionality, though in a
+considerably more complex fashion, due to the fact that the constructor
+of a <code>multi_index_container</code> has to accept values for all the internal
+objects of its indices. The full form of <code>multi_index_container</code> constructor
+is
+</p>
+
+<blockquote><pre>
+<span class=keyword>explicit</span> <span class=identifier>multi_index_container</span><span class=special>(</span>
+    <span class=keyword>const</span> <span class=identifier>ctor_args_list</span><span class=special>&amp;</span> <span class=identifier>args_list</span><span class=special>=</span><span class=identifier>ctor_args_list</span><span class=special>(),</span>
+    <span class=keyword>const</span> <span class=identifier>allocator_type</span><span class=special>&amp;</span> <span class=identifier>al</span><span class=special>=</span><span class=identifier>allocator_type</span><span class=special>());</span>
+</pre></blockquote>
+
+<p>
+The specification of the allocator object poses no particular problems;
+as for the <code>ctor_args_list</code>, this object is designed so as to hold
+the necessary construction values for every index in the <code>multi_index_container</code>.
+From the point of view of the user, <code>ctor_args_list</code> is equivalent
+to the type
+</p>
+
+<blockquote><pre>
+<span class=identifier>boost</span><span class=special>::</span><span class=identifier>tuple</span><span class=special>&lt;</span><span class=identifier>C<sub>0</sub></span><span class=special>,...,</span><span class=identifier>C<sub>I-1</sub></span><span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+where <code>I</code> is the number of indices, and <code>C<sub>i</sub></code> is
+</p>
+
+<blockquote><pre>
+<span class=identifier>nth_index</span><span class=special>&lt;</span><span class=identifier>i</span><span class=special>&gt;::</span><span class=identifier>type</span><span class=special>::</span><span class=identifier>ctor_args</span>
+</pre></blockquote>
+
+<p>
+that is, the nested type <code>ctor_args</code> of the <code>i</code>-th index. Each
+<code>ctor_args</code> type is in turn a tuple holding values for constructor
+arguments of the associated index: so, ordered indices demand a key extractor object
+and a comparison predicate, hashed indices take an initial number of buckets,
+a key extractor, a hash function and an equality predicate; while sequenced 
+and random access indices do not need any construction argument. For instance,
+given the definition
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>unsigned</span> <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>hashed_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>unsigned</span> <span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>ordered_non_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>unsigned</span> <span class=keyword>int</span><span class=special>&gt;,</span> <span class=identifier>modulo_less</span><span class=special>&lt;</span><span class=keyword>unsigned</span> <span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+    <span class=identifier>sequenced</span><span class=special>&lt;&gt;,</span>
+    <span class=identifier>random_access</span><span class=special>&lt;&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>modulo_indexed_set</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+the corresponding <code>ctor_args_list</code> type is equivalent to
+</p>
+
+<blockquote><pre>
+<span class=identifier>boost</span><span class=special>::</span><span class=identifier>tuple</span><span class=special>&lt;</span>
+  <span class=comment>// ctr_args of index #0</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>tuple</span><span class=special>&lt;</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>size_t</span><span class=special>,</span> <span class=comment>// initial number of buckets; 0 if unspecified</span>
+    <span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>unsigned</span> <span class=keyword>int</span><span class=special>&gt;,</span>
+    <span class=identifier>boost</span><span class=special>::</span><span class=identifier>hash</span><span class=special>&lt;</span><span class=keyword>unsigned</span> <span class=keyword>int</span><span class=special>&gt;,</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>equal_to</span><span class=special>&lt;</span><span class=keyword>unsigned</span> <span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;,</span>    
+
+  <span class=comment>// ctr_args of index #1</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>tuple</span><span class=special>&lt;</span>
+    <span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>unsigned</span> <span class=keyword>int</span><span class=special>&gt;,</span>
+    <span class=identifier>modulo_less</span><span class=special>&lt;</span><span class=keyword>unsigned</span> <span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;,</span>
+  
+  <span class=comment>// sequenced indices do not have any construction argument</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>tuple</span><span class=special>&lt;&gt;,</span>
+
+  <span class=comment>// neither do random access indices</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>tuple</span><span class=special>&lt;&gt;</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+Such a <code>modulo_indexed_set</code> cannot be default constructed, because
+<code>modulo_less</code> does not provide a default constructor. The following shows
+how the construction can be done:
+</p>
+
+<blockquote><pre>
+<span class=identifier>modulo_indexed_set</span><span class=special>::</span><span class=identifier>ctor_args_list</span> <span class=identifier>args_list</span><span class=special>=</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>make_tuple</span><span class=special>(</span>
+    <span class=comment>// ctor_args for index #0 is default constructible</span>
+    <span class=identifier>modulo_indexed_set</span><span class=special>::</span><span class=identifier>nth_index</span><span class=special>&lt;</span><span class=number>0</span><span class=special>&gt;::</span><span class=identifier>type</span><span class=special>::</span><span class=identifier>ctor_args</span><span class=special>(),</span>
+    
+    <span class=identifier>boost</span><span class=special>::</span><span class=identifier>make_tuple</span><span class=special>(</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>unsigned</span> <span class=keyword>int</span><span class=special>&gt;(),</span><span class=identifier>modulo_less</span><span class=special>&lt;</span><span class=keyword>unsigned</span> <span class=keyword>int</span><span class=special>&gt;(</span><span class=number>10</span><span class=special>)),</span>
+    
+    <span class=comment>// these are also default constructible (actually, empty tuples)</span> 
+    <span class=identifier>modulo_indexed_set</span><span class=special>::</span><span class=identifier>nth_index</span><span class=special>&lt;</span><span class=number>2</span><span class=special>&gt;::</span><span class=identifier>type</span><span class=special>::</span><span class=identifier>ctor_args</span><span class=special>(),</span>
+    <span class=identifier>modulo_indexed_set</span><span class=special>::</span><span class=identifier>nth_index</span><span class=special>&lt;</span><span class=number>3</span><span class=special>&gt;::</span><span class=identifier>type</span><span class=special>::</span><span class=identifier>ctor_args</span><span class=special>()</span>
+  <span class=special>);</span>
+
+<span class=identifier>modulo_indexed_set</span> <span class=identifier>m</span><span class=special>(</span><span class=identifier>args_list</span><span class=special>);</span>
+</pre></blockquote>
+
+<p>
+A program is provided in the <a href="../examples.html#example3">examples section</a> that
+puts in practise these concepts.
+</p>
+
+<h2><a name="special_allocator">Special allocator support</a></h2>
+
+<p>
+Boost.MultiIndex allows for a slightly more general class of allocators
+than strictly required by the C++ standard, as explained in detail in the
+<a href="../reference/multi_index_container.html#instantiation_types">reference</a>.
+An important type of non-standard allocators supported are those provided by the
+<a href="../../../interprocess/index.html">Boost Interprocess Library</a>;
+this opens up the possibility of placing <code>multi_index_container</code>s
+in shared memory.
+</p>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>interprocess</span><span class=special>/</span><span class=identifier>allocators</span><span class=special>/</span><span class=identifier>allocator</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>interprocess</span><span class=special>/</span><span class=identifier>managed_shared_memory</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+
+<span class=keyword>namespace</span> <span class=identifier>bip</span><span class=special>=</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>interprocess</span><span class=special>;</span>
+
+<span class=comment>// a shared memory compatible allocator of ints</span>
+<span class=keyword>typedef</span> <span class=identifier>bip</span><span class=special>::</span><span class=identifier>allocator</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span><span class=identifier>bip</span><span class=special>::</span><span class=identifier>managed_shared_memory</span><span class=special>::</span><span class=identifier>segment_manager</span>
+<span class=special>&gt;</span> <span class=identifier>shared_int_allocator</span><span class=special>;</span>
+
+<span class=comment>// define a shared memory compatible multi_index_container
+// using shared_int_allocator</span>
+<span class=keyword>typedef</span> <span class=identifier>multi_index_container</span><span class=special>&lt;</span>
+  <span class=keyword>int</span><span class=special>,</span>
+  <span class=identifier>indexed_by</span><span class=special>&lt;</span>
+    <span class=identifier>sequenced</span><span class=special>&lt;&gt;,</span>
+    <span class=identifier>ordered_unique</span><span class=special>&lt;</span><span class=identifier>identity</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+  <span class=special>&gt;,</span>
+  <span class=identifier>shared_int_allocator</span>
+<span class=special>&gt;</span> <span class=identifier>unique_int_list</span><span class=special>;</span>
+
+<span class=special>...</span>
+
+<span class=comment>// create a managed memory segment</span>
+<span class=identifier>bip</span><span class=special>::</span><span class=identifier>managed_shared_memory</span> <span class=identifier>seg</span><span class=special>(</span>
+  <span class=identifier>bip</span><span class=special>::</span><span class=identifier>create_only</span><span class=special>,</span><span class=string>&quot;SharedMemoryID&quot;</span><span class=special>,</span><span class=number>65536</span><span class=special>);</span>
+
+<span class=comment>// construct a unique_int_list into the segment</span>
+<span class=identifier>unique_int_list</span><span class=special>*</span> <span class=identifier>puil</span><span class=special>=</span><span class=identifier>seg</span><span class=special>.</span><span class=identifier>construct</span><span class=special>&lt;</span><span class=identifier>unique_int_list</span><span class=special>&gt;</span>
+  <span class=special>(</span><span class=string>&quot;UniqueIntListID&quot;</span><span class=special>)</span> <span class=comment>// object identifier within the segment
+  // Construction args: first a ctor arg list, then a
+  // shared memory allocator obtained from the segment object.</span>
+  <span class=special>(</span><span class=identifier>unique_int_list</span><span class=special>::</span><span class=identifier>ctor_args_list</span><span class=special>(),</span>
+   <span class=identifier>unique_int_list</span><span class=special>::</span><span class=identifier>allocator_type</span><span class=special>(</span><span class=identifier>seg</span><span class=special>.</span><span class=identifier>get_segment_manager</span><span class=special>()));</span>
+   </pre></blockquote>
+
+<p>
+The examples section includes a <a href="../examples.html#example12">program</a>
+that further explores this capability.
+</p>
+
+<h2><a name="serialization">Serialization</a></h2>
+
+<p>
+<code>multi_index_container</code>s can be archived and retrieved by means of the
+<a href="../../../serialization/index.html">Boost Serialization Library</a>. Both regular
+and XML archives are supported. The usage is straightforward and does not
+differ from that of any other serializable type. For instance:
+</p>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>archive</span><span class=special>/</span><span class=identifier>text_oarchive</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>archive</span><span class=special>/</span><span class=identifier>text_iarchive</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>fstream</span><span class=special>&gt;</span>
+
+<span class=special>...</span>
+
+<span class=keyword>void</span> <span class=identifier>save</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>employee_set</span><span class=special>&amp;</span> <span class=identifier>es</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>ofstream</span> <span class=identifier>ofs</span><span class=special>(</span><span class=string>&quot;data&quot;</span><span class=special>);</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>archive</span><span class=special>::</span><span class=identifier>text_oarchive</span> <span class=identifier>oa</span><span class=special>(</span><span class=identifier>ofs</span><span class=special>);</span>
+  <span class=identifier>oa</span><span class=special>&lt;&lt;</span><span class=identifier>es</span><span class=special>;</span>
+<span class=special>}</span>
+
+<span class=keyword>void</span> <span class=identifier>load</span><span class=special>(</span><span class=identifier>employee_set</span><span class=special>&amp;</span> <span class=identifier>es</span><span class=special>)</span>
+<span class=special>{</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>ifstream</span> <span class=identifier>ifs</span><span class=special>(</span><span class=string>&quot;data&quot;</span><span class=special>);</span>
+  <span class=identifier>boost</span><span class=special>::</span><span class=identifier>archive</span><span class=special>::</span><span class=identifier>text_iarchive</span> <span class=identifier>ia</span><span class=special>(</span><span class=identifier>ifs</span><span class=special>);</span>
+  <span class=identifier>ia</span><span class=special>&gt;&gt;</span><span class=identifier>es</span><span class=special>;</span>
+<span class=special>}</span>
+
+<span class=special>...</span>
+
+<span class=identifier>employee_set</span> <span class=identifier>es</span><span class=special>;</span>
+<span class=special>...</span> <span class=comment>// fill it with data</span>
+<span class=identifier>save</span><span class=special>(</span><span class=identifier>es</span><span class=special>);</span>
+
+<span class=special>...</span>
+
+<span class=identifier>employee_set</span> <span class=identifier>restored_es</span><span class=special>;</span>
+<span class=identifier>load</span><span class=special>(</span><span class=identifier>restored_es</span><span class=special>);</span>
+</pre></blockquote>
+
+<p>
+Serialization capabilities are automatically provided by just linking with
+the appropriate Boost.Serialization library module: it is not necessary
+to explicitly include any header from Boost.Serialization,
+apart from those declaring the type of archive used in the process. If not used,
+however, serialization support can be disabled by globally defining the macro
+<code>BOOST_MULTI_INDEX_DISABLE_SERIALIZATION</code>. Disabling serialization
+for Boost.MultiIndex can yield a small improvement in build times, and may
+be necessary in those defective compilers that fail to correctly process
+Boost.Serialization headers.
+</p>
+
+<p>
+In accordance with Boost.MultiIndex
+<a href="#value_semantics">value semantics</a>, retrieving an
+archived <code>multi_index_container</code> restores not only
+the elements, but also the order they were arranged into for
+every index of the container. There is an exception to this rule,
+though: for <a href="indices.html#hashed_indices">hashed
+indices</a>, no guarantee is made about the order in which elements will
+be iterated in the restored container; in general, it is unwise to rely on
+the ordering of elements of a hashed index, since it can change in arbitrary
+ways during insertion or rehashing --this is precisely the reason why
+hashed indices and TR1 unordered associative containers do not define
+an equality operator.
+</p>
+
+<p>
+Iterators to indices of a <code>multi_index_container</code> can also be
+serialized. Serialization of iterators must be done only after serializing
+their corresponding container.
+</p>
+
+<p>
+<a href="../examples.html#example9">Example 9</a> in the examples section shows
+the serialization capabilities of Boost.MultiIndex.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="key_extraction.html"><img src="../prev.gif" alt="key extraction" border="0"><br>
+Key extraction
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.MultiIndex tutorial" border="0"><br>
+Boost.MultiIndex tutorial
+</a></div>
+<div class="next_link"><a href="debug.html"><img src="../next.gif" alt="debugging support" border="0"><br>
+Debugging support
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised July 17th 2007</p>
+
+<p>&copy; Copyright 2003-2007 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

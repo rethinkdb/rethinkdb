@@ -1,0 +1,132 @@
+<!DOCTYPE HTML>
+<html lang="en-us">
+  <head>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+    <title>Qwery tests</title>
+    <style type="text/css">
+      #fixtures {
+        position: absolute;
+        top: -9999px;
+      }
+    </style>
+    <link rel="stylesheet" href="../node_modules/sink-test/src/sink.css" type="text/css">
+    <script src="../node_modules/sink-test/src/sink.js"></script>
+    <script src="../src/qwery.js"></script>
+    <script src="../pseudos/qwery-pseudos.js"></script>
+    <script type="text/javascript">
+      var Q = qwery
+    </script>
+  </head>
+  <body>
+    <h1>Qwery Tests</h1>
+    <div id="fixtures">
+      <ol id="list">
+        <li>hello</li>
+        <li>world</li>
+        <ol>
+          <li>world</li>
+          <li id="attr-child-boosh" attr="boosh">hello</li>
+        </ol>
+        <li>humans</li>
+      </ol>
+      <div id="spaced-tokens">
+        <p><em><a href="#"></a></em></p>
+        <p></p>
+      </div>
+      <div id="pseudos">
+        <div class="odd pseudos pseudo-1"></div>
+        <div class="even pseudos pseudo-2"></div>
+        <div class="odd"></div>
+        <div class="even"></div>
+        <a class="odd"></a>
+        <div class="even"></div>
+        <div class="odd"></div>
+      </div>
+      <div foo="bar"></div>
+      <div class="a"></div>
+      <div class="class-with-dashes"></div>
+      <div id="boosh">
+        <!-- comment -->
+        <!-- comment -->
+        <div class="a b">
+          <div class="d e" test="fg" id="booshTest"></div>
+          <!-- comment -->
+          <em nopass="copyrighters" rel="copyright booshrs" test="f g"></em>
+          <span class="h i a"></span>
+        </div>
+        <!-- comment -->
+      </div>
+      <div id="lonelyBoosh"></div>
+      <div id="attr-test1" -data-attr></div>
+      <div id="attr-test2" -data-attr></div>
+      <div id="attr-test3" class="found you" -data-attr title="whatup duders"></div>
+      <div id="attributes">
+        <div test="one" unique-test="baz" id="attr-test-1"></div>
+        <div test="two-foo" id="attr-test-2"></div>
+        <div test=" three " id="attr-test-3"></div>
+        <a href="#aname" id="attr-test-4">aname</a>
+      </div>
+      <div class="idless">
+        <div class="tokens" title="one" id="token-one"></div>
+        <div class="tokens" title="one two" id="token-two"></div>
+        <div class="tokens" title="one two three #%" id="token-three">
+          <a href="foo"  id="token-four">
+            <div id="token-five"></div>
+          </a>
+        </div>
+      </div>
+      <div id="order-matters" class="order-matters">
+        <p class="order-matters"></p>
+        <a class="order-matters">
+          <em class="order-matters"></em><b class="order-matters"></b>
+        </a>
+      </div>
+      <div id="direct-descend" class="oogabooga">
+        <div></div>
+        <div class="direct-descend">
+          <span></span>
+          <div class="direct-descend">
+            <div class="lvl2" id="toodeep"><span></span></div>
+          </div>
+	  <div class="direct-descend"><span></span></div>
+          <div class="lvl2" id="l2">
+            <span></span>
+            <div class="direct-descend"><span></span></div>
+          </div>
+          <div class="lvl2" id="l3"></div>
+        </div>
+        <div class="ignoreme"></div>
+        <div class="direct-descend">
+          <div class="direct-descend"></div>
+          <div class="lvl2" id="l4"></div>
+        </div>
+        <div></div>
+      </div>
+      <div id="sibling-selector"></div>
+      <div class="sibling-selector" id="sib1">
+       <div class="sibling-selector"></div>
+       <div class="sibling-selector"></div>
+      </div>
+      <div class="sibling-selector" id="sib2">
+       <div class="sibling-selector">
+         <div class="sibling-selector"></div>
+       </div>
+      </div>
+      <div class="parent">
+        <h1 class="sibling oldest"></h1>
+        <h2 class="sibling older"></h2>
+        <h3 class="sibling middle"></h3>
+        <h4 class="sibling younger"></h4>
+        <h5 class="sibling youngest"></h5>
+      </div>
+      <form>
+        <button></button>
+        <input type="text">
+        <input type="hidden">
+      </form>
+    </div>
+     <ol id="tests"></ol>
+     <iframe id="frame" style="width: 0; height: 0; margin-left: -1000px;"></iframe>
+     <script src="tests.js"></script>
+  </body>
+</html>

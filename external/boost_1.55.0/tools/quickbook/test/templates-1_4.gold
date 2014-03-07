@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="template_1_4" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Template 1.4</title>
+  <para>
+    dynamic scoping
+  </para>
+  <para>
+    old
+  </para>
+  <para>
+    {1-2} {1-2} {1-2 3 4} {1 2-3 4} {1 2 3-4} {[1-2} {1..2-3} {1..2-3}
+  </para>
+  <para>
+    {[binary 1 2-3} 4]
+  </para>
+  <para>
+    {1-2-3} {1-2-3} {1-2-3 4} {1 2-3-4} {[1-2-3}
+  </para>
+  <section id="template_1_4.escaped_templates">
+    <title><link linkend="template_1_4.escaped_templates">Escaped templates</link></title>
+    <para>
+      <thingbob>Not real boostbook</thingbob> <thingbob>Also not real boostbook</thingbob>
+      <thingbob>More fake boostbook</thingbob> <thingbob>Final fake boostbook</thingbob>
+    </para>
+  </section>
+</article>

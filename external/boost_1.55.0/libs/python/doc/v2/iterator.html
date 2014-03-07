@@ -1,0 +1,398 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/iterator.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/iterator.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#iterator-spec">Class template
+          <code>iterator</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#iterator-spec-synopsis">Class
+              <code>iterator</code> synopsis</a></dt>
+
+              <dt><a href="#iterator-spec-constructors">Class template
+              <code>iterator</code> constructor</a></dt>
+            </dl>
+          </dd>
+        </dl>
+
+        <dl class="page-index">
+          <dt><a href="#iterators-spec">Class template
+          <code>iterators</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#iterators-spec-synopsis">Class
+              <code>iterators</code> synopsis</a></dt>
+
+              <dt><a href="#iterators-spec-types">Class template
+              <code>iterators</code> nested types</a></dt>
+
+              <dt><a href="#iterators-spec-statics">Class template
+              <code>iterators</code> static functions</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#functions">Functions</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#range-spec">range</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Examples</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><code>&lt;boost/python/iterator.hpp&gt;</code> provides types and
+    functions for creating <a href=
+    "http://www.python.org/doc/current/lib/typeiter.html">Python
+    iterators</a> from <a href=
+    "http://www.sgi.com/tech/stl/Container.html">C++ Containers</a> and <a
+    href="http://www.sgi.com/tech/stl/Iterators.html">Iterators</a>. Note
+    that if your <code>class_</code> supports random-access iterators,
+    implementing <code><a href=
+    "http://www.python.org/doc/current/ref/sequence-types.html#l2h-128">__getitem__</a></code>
+    (also known as the Sequence Protocol) may serve you better than using
+    this facility: Python will automatically create an iterator type for you
+    (see <a href=
+    "http://www.python.org/doc/current/lib/built-in-funcs.html#l2h-35">iter()</a>),
+    and each access can be range-checked, leaving no possiblity of accessing
+    through an invalidated C++ iterator.</p>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="iterator-spec"></a>Class Template <code>iterator</code></h3>
+
+    <p>Instances of <code>iterator&lt;C,P&gt;</code> hold a reference to a
+    callable Python object which, when invoked from Python, expects a single
+    argument <code>c</code> convertible to <code>C</code> and creates a
+    Python iterator that traverses [<code>c.begin()</code>,
+    <code>c.end()</code>). The optional <a href=
+    "CallPolicies.html">CallPolicies</a> <code>P</code> can be used to
+    control how elements are returned during iteration.</p>
+
+    <p>In the table below, <code><b>c</b></code> is an instance of
+    <code>Container</code>.</p>
+
+    <table border="1" summary="iterator template parameters">
+      <tr>
+        <th>Template Parameter</th>
+
+        <th>Requirements</th>
+
+        <th>Semantics</th>
+
+        <th>Default</th>
+      </tr>
+
+      <tr>
+        <td><code>Container</code></td>
+
+        <td>[c.begin(),c.end()) is a valid <a href=
+        "http://www.sgi.com/tech/stl/Iterators.html">Iterator range</a>.</td>
+
+        <td>The result will convert its argument to <code>c</code> and call
+        <code>c.begin()</code> and <code>c.end()</code> to acquire iterators.
+        To invoke <code>Container</code>'s <code>const</code>
+        <code>begin()</code> and <code>end()</code> functions, make it
+        <code>const</code>.</td>
+      </tr>
+
+      <tr>
+        <td><code>NextPolicies</code></td>
+
+        <td>A default-constructible model of <a href=
+        "CallPolicies.html#CallPolicies-concept">CallPolicies</a>.</td>
+
+        <td>Applied to the resulting iterators' <code>next()</code>
+        method.</td>
+
+        <td>An unspecified model of <a href=
+        "CallPolicies.html#CallPolicies-concept">CallPolicies</a> which
+        always makes a copy of the result of deferencing the underlying C++
+        iterator</td>
+      </tr>
+    </table>
+
+    <h4><a name="iterator-spec-synopsis"></a>Class Template iterator
+    synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+  template &lt;class Container
+             , class NextPolicies = <i>unspecified</i>&gt;
+  struct iterator : <a href="object.html#object-spec">object</a>
+  {
+      iterator();
+  };
+}}
+</pre>
+
+    <h4><a name="iterator-spec-constructors"></a>Class Template iterator
+    constructor</h4>
+<pre>
+iterator()
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b></dt>
+
+      <dd>
+        Initializes its base class with the result of: 
+<pre>
+range&lt;NextPolicies&gt;(&amp;iterators&lt;Container&gt;::begin, &amp;iterators&lt;Container&gt;::end)
+</pre>
+      </dd>
+
+      <dt><b>Postconditions:</b> <code>this-&gt;get()</code> points to a
+      Python callable object which creates a Python iterator as described
+      above.</dt>
+
+      <dt><b>Rationale:</b> Provides an easy way to create iterators for the
+      common case where a C++ class being wrapped provides
+      <code>begin()</code> and <code>end()</code>.</dt>
+    </dl>
+    <!-- -->
+
+    <h3><a name="iterators-spec"></a>Class Template
+    <code>iterators</code></h3>
+
+    <p>A utility class template which provides a way to reliably call its
+    argument's <code>begin()</code> and <code>end()</code> member functions.
+    Note that there is no portable way to take the address of a member
+    function of a C++ standard library container, so
+    <code>iterators&lt;&gt;</code> can be particularly helpful when wrapping
+    them.</p>
+
+    <p>In the table below, <code><b>x</b></code> is an instance of
+    <code>C</code>.</p>
+
+    <table border="1" summary="iterator template parameters">
+      <tr>
+        <th>Required Valid Expression</th>
+
+        <th>Type</th>
+      </tr>
+
+      <tr>
+        <td><code>x.begin()</code></td>
+
+        <td>Convertible to <code>C::const_iterator</code> if <code>C</code>
+        is a <code>const</code> type; convertible to <code>C::iterator</code>
+        otherwise.</td>
+      </tr>
+
+      <tr>
+        <td><code>x.end()</code></td>
+
+        <td>Convertible to <code>C::const_iterator</code> if <code>C</code>
+        is a <code>const</code> type; convertible to <code>C::iterator</code>
+        otherwise.</td>
+      </tr>
+    </table>
+
+    <h4><a name="iterators-spec-synopsis"></a>Class Template iterators
+    synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+  template &lt;class C&gt;
+  struct iterators
+  {
+      typedef typename C::[const_]iterator iterator;
+      static iterator begin(C&amp; x);
+      static iterator end(C&amp; x);
+  };
+}}
+
+</pre>
+
+    <h4><a name="iterators-spec-types"></a>Class Template iterators nested
+    types</h4>
+    If C is a <code>const</code> type, 
+<pre>
+typedef typename C::const_iterator iterator;
+</pre>
+    Otherwise: 
+<pre>
+typedef typename C::iterator iterator;
+</pre>
+
+    <h4><a name="iterators-spec-statics"></a>Class Template iterators static
+    functions</h4>
+<pre>
+static iterator begin(C&amp;);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Returns:</b> <code>x.begin()</code></dt>
+    </dl>
+<pre>
+static iterator end(C&amp;);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Returns:</b> <code>x.end()</code></dt>
+    </dl>
+    <!-- -->
+
+    <h2><a name="functions"></a>Functions</h2>
+<pre>
+<a name=
+"range-spec">template</a> &lt;class NextPolicies, class Target, class Accessor1, class Accessor2&gt;
+<a href=
+"object.html#object-spec">object</a> range(Accessor1 start, Accessor2 finish);
+
+template &lt;class NextPolicies, class Accessor1, class Accessor2&gt;
+<a href=
+"object.html#object-spec">object</a> range(Accessor1 start, Accessor2 finish);
+
+template &lt;class Accessor1, class Accessor2&gt;
+<a href=
+"object.html#object-spec">object</a> range(Accessor1 start, Accessor2 finish);
+</pre>
+
+    <dl class="range-semantics">
+      <dt><b>Requires:</b> <code>NextPolicies</code> is a
+      default-constructible model of <a href=
+      "CallPolicies.html#CallPolicies-concept">CallPolicies</a>.</dt>
+
+      <dt><b>Effects:</b></dt>
+
+      <dd>
+        <dl>
+          <dt>The first form creates a Python callable object which, when
+          invoked, converts its argument to a <code>Target</code> object
+          <code>x</code>, and creates a Python iterator which traverses
+          [<code><a href=
+          "../../../bind/bind.html">bind</a>(start,_1)(x)</code>,&nbsp;<code><a
+           href="../../../bind/bind.html">bind</a>(finish,_1)(x)</code>),
+          applying <code>NextPolicies</code> to the iterator's
+          <code>next()</code> function.</dt>
+
+          <dt>The second form is identical to the first, except that
+          <code>Target</code> is deduced from <code>Accessor1</code> as
+          follows:</dt>
+
+          <dd>
+            <ol>
+              <li>If <code>Accessor1</code> is a function type,
+              <code>Target</code> is the type of its first argument.</li>
+
+              <li>If <code>Accessor1</code> is a data member pointer of the
+              form <code>R&nbsp;(T::*)</code>, <code>Target</code> is
+              identical to <code>T</code>.</li>
+
+              <li>If <code>Accessor1</code> is a member function pointer of
+              the form
+              <code>R&nbsp;(T::*)(</code><i>arguments...</i><code>)</code>&nbsp;
+              <i>cv-opt</i>, where <i>cv-opt</i> is an optional
+              <code>cv-qualifier</code>, <code>Target</code> is identical to
+              <code>T</code>.</li>
+            </ol>
+          </dd>
+
+          <dt>The third form is identical to the second, except that
+          <code>NextPolicies</code> is an unspecified model of <a href=
+          "CallPolicies.html#CallPolicies-concept">CallPolicies</a> which
+          always makes a copy of the result of deferencing the underlying C++
+          iterator</dt>
+        </dl>
+      </dd>
+
+      <dt><b>Rationale:</b> The use of <code><a href=
+      "../../../bind/bind.html">boost::bind</a>()</code> allows C++ iterators
+      to be accessed through functions, member functions or data member
+      pointers. Customization of <code>NextPolicies</code> (e.g. using
+      <code><a href=
+      "return_internal_reference.html#return_internal_reference-spec">return_internal_reference</a></code>)
+      is useful when it is expensive to copy sequence elements of a wrapped
+      class type. Customization of <code>Target</code> is useful when
+      <code>Accessor1</code> is a function object, or when a base class of
+      the intended target type would otherwise be deduced.</dt>
+    </dl>
+
+    <h2><a name="examples"></a>Examples</h2>
+<pre>
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/class.hpp&gt;
+
+#include &lt;vector&gt;
+
+using namespace boost::python;
+BOOST_PYTHON_MODULE(demo)
+{
+    class_&lt;std::vector&lt;double&gt; &gt;("dvec")
+        .def("__iter__", iterator&lt;std::vector&lt;double&gt; &gt;())
+        ;
+}
+</pre>
+    A more comprehensive example can be found in: 
+
+    <dl>
+      <dt><code><a href=
+      "../../test/iterator.cpp">libs/python/test/iterator.cpp</a></code></dt>
+
+      <dt><code><a href=
+      "../../test/input_iterator.cpp">libs/python/test/input_iterator.cpp</a></code></dt>
+
+      <dt><code><a href=
+      "../../test/iterator.py">libs/python/test/input_iterator.py</a></code></dt>
+
+    </dl>
+<hr>
+        <p>Revised 
+        <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+        </p>
+
+        <p><i>&copy; Copyright <a href=
+        "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

@@ -1,0 +1,166 @@
+{
+  "source": "doc/api/os.markdown",
+  "modules": [
+    {
+      "textRaw": "os",
+      "name": "os",
+      "stability": 4,
+      "stabilityText": "API Frozen",
+      "desc": "<p>Provides a few basic operating-system related utility functions.\n\n</p>\n<p>Use <code>require(&#39;os&#39;)</code> to access this module.\n\n</p>\n",
+      "methods": [
+        {
+          "textRaw": "os.tmpdir()",
+          "type": "method",
+          "name": "tmpdir",
+          "desc": "<p>Returns the operating system&#39;s default directory for temp files.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "os.endianness()",
+          "type": "method",
+          "name": "endianness",
+          "desc": "<p>Returns the endianness of the CPU. Possible values are <code>&quot;BE&quot;</code> or <code>&quot;LE&quot;</code>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "os.hostname()",
+          "type": "method",
+          "name": "hostname",
+          "desc": "<p>Returns the hostname of the operating system.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "os.type()",
+          "type": "method",
+          "name": "type",
+          "desc": "<p>Returns the operating system name.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "os.platform()",
+          "type": "method",
+          "name": "platform",
+          "desc": "<p>Returns the operating system platform.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "os.arch()",
+          "type": "method",
+          "name": "arch",
+          "desc": "<p>Returns the operating system CPU architecture.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "os.release()",
+          "type": "method",
+          "name": "release",
+          "desc": "<p>Returns the operating system release.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "os.uptime()",
+          "type": "method",
+          "name": "uptime",
+          "desc": "<p>Returns the system uptime in seconds.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "os.loadavg()",
+          "type": "method",
+          "name": "loadavg",
+          "desc": "<p>Returns an array containing the 1, 5, and 15 minute load averages.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "os.totalmem()",
+          "type": "method",
+          "name": "totalmem",
+          "desc": "<p>Returns the total amount of system memory in bytes.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "os.freemem()",
+          "type": "method",
+          "name": "freemem",
+          "desc": "<p>Returns the amount of free system memory in bytes.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "os.cpus()",
+          "type": "method",
+          "name": "cpus",
+          "desc": "<p>Returns an array of objects containing information about each CPU/core\ninstalled: model, speed (in MHz), and times (an object containing the number of\nmilliseconds the CPU/core spent in: user, nice, sys, idle, and irq).\n\n</p>\n<p>Example inspection of os.cpus:\n\n</p>\n<pre><code>[ { model: &#39;Intel(R) Core(TM) i7 CPU         860  @ 2.80GHz&#39;,\n    speed: 2926,\n    times:\n     { user: 252020,\n       nice: 0,\n       sys: 30340,\n       idle: 1070356870,\n       irq: 0 } },\n  { model: &#39;Intel(R) Core(TM) i7 CPU         860  @ 2.80GHz&#39;,\n    speed: 2926,\n    times:\n     { user: 306960,\n       nice: 0,\n       sys: 26980,\n       idle: 1071569080,\n       irq: 0 } },\n  { model: &#39;Intel(R) Core(TM) i7 CPU         860  @ 2.80GHz&#39;,\n    speed: 2926,\n    times:\n     { user: 248450,\n       nice: 0,\n       sys: 21750,\n       idle: 1070919370,\n       irq: 0 } },\n  { model: &#39;Intel(R) Core(TM) i7 CPU         860  @ 2.80GHz&#39;,\n    speed: 2926,\n    times:\n     { user: 256880,\n       nice: 0,\n       sys: 19430,\n       idle: 1070905480,\n       irq: 20 } },\n  { model: &#39;Intel(R) Core(TM) i7 CPU         860  @ 2.80GHz&#39;,\n    speed: 2926,\n    times:\n     { user: 511580,\n       nice: 20,\n       sys: 40900,\n       idle: 1070842510,\n       irq: 0 } },\n  { model: &#39;Intel(R) Core(TM) i7 CPU         860  @ 2.80GHz&#39;,\n    speed: 2926,\n    times:\n     { user: 291660,\n       nice: 0,\n       sys: 34360,\n       idle: 1070888000,\n       irq: 10 } },\n  { model: &#39;Intel(R) Core(TM) i7 CPU         860  @ 2.80GHz&#39;,\n    speed: 2926,\n    times:\n     { user: 308260,\n       nice: 0,\n       sys: 55410,\n       idle: 1071129970,\n       irq: 880 } },\n  { model: &#39;Intel(R) Core(TM) i7 CPU         860  @ 2.80GHz&#39;,\n    speed: 2926,\n    times:\n     { user: 266450,\n       nice: 1480,\n       sys: 34920,\n       idle: 1072572010,\n       irq: 30 } } ]</code></pre>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "os.networkInterfaces()",
+          "type": "method",
+          "name": "networkInterfaces",
+          "desc": "<p>Get a list of network interfaces:\n\n</p>\n<pre><code>{ lo0: \n   [ { address: &#39;::1&#39;, family: &#39;IPv6&#39;, internal: true },\n     { address: &#39;fe80::1&#39;, family: &#39;IPv6&#39;, internal: true },\n     { address: &#39;127.0.0.1&#39;, family: &#39;IPv4&#39;, internal: true } ],\n  en1: \n   [ { address: &#39;fe80::cabc:c8ff:feef:f996&#39;, family: &#39;IPv6&#39;,\n       internal: false },\n     { address: &#39;10.0.1.123&#39;, family: &#39;IPv4&#39;, internal: false } ],\n  vmnet1: [ { address: &#39;10.99.99.254&#39;, family: &#39;IPv4&#39;, internal: false } ],\n  vmnet8: [ { address: &#39;10.88.88.1&#39;, family: &#39;IPv4&#39;, internal: false } ],\n  ppp0: [ { address: &#39;10.2.0.231&#39;, family: &#39;IPv4&#39;, internal: false } ] }</code></pre>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "textRaw": "os.EOL",
+          "name": "EOL",
+          "desc": "<p>A constant defining the appropriate End-of-line marker for the operating system.\n</p>\n"
+        }
+      ],
+      "type": "module",
+      "displayName": "os"
+    }
+  ]
+}

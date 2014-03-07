@@ -1,0 +1,50 @@
+project libs/date_time/example 
+    : requirements
+      <link>static:<define>BOOST_DATE_TIME_STATIC_LINK
+      <library>../build//boost_date_time
+    ;
+
+exe dates_as_strings   : gregorian/dates_as_strings.cpp ;
+exe days_alive         : gregorian/days_alive.cpp ;
+exe days_till_new_year : gregorian/days_till_new_year.cpp ;
+
+exe days_between_new_years  : gregorian/days_between_new_years.cpp ;
+exe find_last_day_of_months : gregorian/find_last_day_of_months.cpp ;
+
+exe month_add : gregorian/month_add.cpp ;
+
+exe localization   : gregorian/localization.cpp ;
+exe print_holidays : gregorian/print_holidays.cpp ;
+exe print_month    : gregorian/print_month.cpp ;
+exe period_calc    : gregorian/period_calc.cpp ;
+
+exe days_since_year_start : gregorian/days_since_year_start.cpp ;
+
+exe local_utc_conversion : posix_time/local_utc_conversion.cpp
+                : <define>BOOST_DATE_TIME_POSIX_TIME_STD_CONFIG  
+                ;
+
+exe print_hours : posix_time/print_hours.cpp
+                : <define>BOOST_DATE_TIME_POSIX_TIME_STD_CONFIG  
+                ;
+
+exe time_math   : posix_time/time_math.cpp
+                : <define>BOOST_DATE_TIME_POSIX_TIME_STD_CONFIG  
+                ;
+
+exe time_periods : posix_time/time_periods.cpp
+                 : <define>BOOST_DATE_TIME_POSIX_TIME_STD_CONFIG  
+                 ;
+
+exe simple_time_zone : local_time/simple_time_zone.cpp ;
+exe calc_rules       : local_time/calc_rules.cpp ;
+exe seconds_since_epoch : local_time/seconds_since_epoch.cpp ;
+exe flight      : local_time/flight.cpp ;
+exe io_tutorial : tutorial/io_tutorial.cpp ;
+
+# Copyright (c) 2002-2005
+# CrystalClear Software, Inc.
+# Subject to the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or 
+# http://www.boost.org/LICENSE_1_0.txt)
+

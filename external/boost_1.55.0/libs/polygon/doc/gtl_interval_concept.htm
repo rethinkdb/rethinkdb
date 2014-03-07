@@ -1,0 +1,620 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+ xmlns:v="urn:schemas-microsoft-com:vml"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:(null)1="http://www.w3.org/TR/REC-html40" lang="en">
+<head>
+<!--
+    Copyright 2009-2010 Intel Corporation
+    license banner
+-->
+  <title>Boost Polygon Library: Interval Concept</title>
+  <meta http-equiv="content-type" content="text/html;charset=ISO-8859-1" />
+<!-- <link type="text/css" rel="stylesheet" href="adobe_source.css"> -->
+</head>
+<body>
+<table style="margin: 0pt; padding: 0pt; width: 100%;" border="0"
+ cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top">
+      <div style="padding: 5px;" align="center"> <img
+ src="images/boost.png" border="0" height="86" width="277" /><a
+ title="www.boost.org home page" href="http://www.boost.org/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      <div style="margin: 5px;">
+      <h3 class="navbar">Contents</h3>
+      <ul>
+        <li><a href="index.htm">Boost.Polygon Main Page</a></li>
+        <li><a href="gtl_design_overview.htm">Design Overview</a></li>
+        <li><a href="gtl_isotropy.htm">Isotropy</a></li>
+        <li><a href="gtl_coordinate_concept.htm">Coordinate Concept</a></li>
+        <li>Interval Concept</li>
+        <li><a href="gtl_point_concept.htm">Point Concept</a></li>
+        <li><a href="gtl_segment_concept.htm">Segment Concept</a></li>
+        <li><a href="gtl_rectangle_concept.htm">Rectangle Concept</a></li>
+        <li><a href="gtl_polygon_90_concept.htm">Polygon 90 Concept</a></li>
+        <li><a href="gtl_polygon_90_with_holes_concept.htm">Polygon 90
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_45_concept.htm">Polygon 45 Concept</a></li>
+        <li><a href="gtl_polygon_45_with_holes_concept.htm">Polygon 45
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_concept.htm">Polygon Concept</a></li>
+        <li><a href="gtl_polygon_with_holes_concept.htm">Polygon With
+Holes Concept</a></li>
+        <li><a href="gtl_polygon_90_set_concept.htm">Polygon 90 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_45_set_concept.htm">Polygon 45 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_set_concept.htm">Polygon Set Concept</a></li>
+        <li><a href="gtl_connectivity_extraction_90.htm">Connectivity
+Extraction 90</a></li>
+        <li><a href="gtl_connectivity_extraction_45.htm">Connectivity
+Extraction 45</a></li>
+        <li><a href="gtl_connectivity_extraction.htm">Connectivity
+Extraction</a></li>
+        <li><a href="gtl_property_merge_90.htm">Property Merge 90</a></li>
+        <li><a href="gtl_property_merge_45.htm">Property Merge 45</a></li>
+        <li><a href="gtl_property_merge.htm">Property Merge</a></li>
+        <li><a href="voronoi_main.htm">Voronoi Main Page<br />
+          </a></li>
+        <li><a href="voronoi_benchmark.htm">Voronoi Benchmark</a><br />
+        </li>
+        <li><a href="voronoi_builder.htm">Voronoi Builder</a></li>
+        <li><a href="voronoi_diagram.htm">Voronoi Diagram</a></li>
+      </ul>
+      <h3 class="navbar">Other Resources</h3>
+      <ul>
+        <li><a href="GTL_boostcon2009.pdf">GTL Boostcon 2009 Paper</a></li>
+        <li><a href="GTL_boostcon_draft03.pdf">GTL Boostcon 2009
+Presentation</a></li>
+        <li><a href="analysis.htm">Performance Analysis</a></li>
+        <li><a href="gtl_tutorial.htm">Layout Versus Schematic Tutorial</a></li>
+        <li><a href="gtl_minkowski_tutorial.htm">Minkowski Sum Tutorial</a></li>
+        <li><a href="voronoi_basic_tutorial.htm">Voronoi Basic Tutorial</a></li>
+        <li><a href="voronoi_advanced_tutorial.htm">Voronoi Advanced
+Tutorial</a></li>
+      </ul>
+      </div>
+      <h3 class="navbar">Polygon Sponsor</h3>
+      <div style="padding: 5px;" align="center"> <img
+ src="images/intlogo.gif" border="0" height="51" width="127" /><a
+ title="www.adobe.com home page" href="http://www.adobe.com/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      </td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%">
+<!-- End Header --><br />
+      <p>
+      </p>
+      <h1>Interval Concept</h1>
+      <p> </p>
+      <p>The interval concept tag is <font face="Courier New">
+interval_concept</font></p>
+      <p> To register a user defined type as a model of interval
+concept, specialize the geometry concept meta-function for that
+type.&nbsp; In the example below CInterval is registered as a model of
+interval&nbsp; concept.</p>
+      <p> <font face="Courier New">template &lt;&gt;<br />
+struct geometry_concept&lt;CInterval&gt; { typedef interval_concept
+type; };</font></p>
+      <p> <font face="Times New Roman">The semantic of an interval is
+that it has a low and high coordinate and there is an invariant that
+low is less than or equal to high.&nbsp; This invariant is enforced by
+the generic library functions that operate on intervals, and is not
+expected of the data type itself or the concept mapping of that data
+type to the interval concept through its traits.&nbsp; In this way a
+std::pair&lt;int, int&gt;, boost::tuple&lt;int, int&gt; or
+boost::array&lt;int, 2&gt; could all be made models of interval by
+simply providing indirect access to their elements through traits.</font></p>
+      <p> <font face="Times New Roman">Below is shown the default
+interval traits.&nbsp; Specialization of these traits is required for
+types that don't conform to the default behavior.</font></p>
+      <p> <font face="Courier New">template &lt;typename T&gt;<br />
+struct interval_traits {<br />
+&nbsp; typedef typename T::coordinate_type coordinate_type;<br />
+      <br />
+&nbsp; static inline coordinate_type get(const T&amp; interval,
+direction_1d dir) {<br />
+&nbsp;&nbsp;&nbsp; return interval.get(dir); <br />
+&nbsp; }<br />
+};<br />
+      <br />
+template &lt;typename T&gt;<br />
+struct interval_mutable_traits {<br />
+&nbsp; </font><font face="Courier New">typedef typename
+T::coordinate_type coordinate_type;</font><br />
+      <font face="Courier New"><br />
+&nbsp; static inline void set(T&amp; interval, direction_1d dir, </font>
+      <br />
+      <font face="Courier New">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+typename interval_traits&lt;T&gt;::coordinate_type value) {<br />
+&nbsp;&nbsp;&nbsp;
+interval.set(dir, value); <br />
+&nbsp;
+}<br />
+&nbsp;
+static inline T construct(typename
+interval_traits&lt;T&gt;::coordinate_type low_value,
+      <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+typename interval_traits&lt;T&gt;::coordinate_type high_value) {<br />
+&nbsp;&nbsp;&nbsp;
+return T(low_value, high_value); <br />
+&nbsp;
+}<br />
+};</font></p>
+      <h2>Functions</h2>
+      <table id="table1" border="1" width="100%">
+        <tbody>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+coordinate_type <b>get</b>(const T&amp; interval, direction_1d)</font></td>
+            <td><font face="Times New Roman">Expects a model of
+interval.&nbsp; Returns the low or high coordinate of the interval,
+depending on the direction_1d value.</font><font face="Courier New"><br />
+&nbsp;</font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T, typename coordinate_type&gt;<br />
+void <b>set</b>(T&amp; interval, direction_1d, coordinate_type)</font></td>
+            <td><font face="Times New Roman">Expects a model of
+interval.&nbsp;&nbsp; Sets the low or high coordinate of the interval
+to the coordinate, depending on the direction_1d value.&nbsp; If low
+would be greater than high after this change then both are set to the
+input coordinate value.</font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T <b>construct</b>(coordinate_type low, coordinate_type high)</font></td>
+            <td>Construct an object that is a model of interval given
+low and high coordinate values.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>assign</b>(T1&amp; left, const T2&amp; right)</font></td>
+            <td>Copies data from right object that models interval into
+left object that models interval.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T, typename T2&gt;<br />
+bool <b>equivalence</b>(const T&amp; interval1, const T2&amp;
+interval2)</font></td>
+            <td>Given two objects that model interval, compares and
+returns true if their low and high values are respectively equal to
+each other.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+bool <b>contains</b>(const T&amp;, coordinate_type, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+bool consider_touch=true)</font></td>
+            <td>Given an object that models interval and a coordinate,
+returns true if the interval contains the coordinate.&nbsp; If the
+consider_touch flag is true will return true if the coordinate is equal
+to one of the interval ends.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+bool <b>contains</b>(const T1&amp; a, const T2&amp; b, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+bool consider_touch = true) </font></td>
+            <td>Returns true if model of interval a contains both ends
+of model of interval b.&nbsp; If the consider_touch flag is true will
+consider the end of b contained within a even if it is equal to an end
+of a.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename interval_type&gt;<br />
+coordinate_type <b>low</b>(const interval_type&amp; interval)</font></td>
+            <td>Returns the low end of an object that models interval.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename interval_type&gt;<br />
+coordinate_type <b>high</b>(const interval_type&amp; interval)</font></td>
+            <td>Returns the high end of an object that models interval.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">// get the center
+coordinate<br />
+template &lt;typename interval_type&gt;<br />
+coordinate_type <b>center</b>(const interval_type&amp; interval)</font></td>
+            <td>Returns the center coordinate of an object that models
+interval.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename interval_type&gt;<br />
+void <b>low</b>(interval_type&amp; interval, coordinate_type )</font></td>
+            <td>Sets the low end of the object that models interval to
+the coordinate value.&nbsp; If the low end would be set to larger than
+high end then both are set to the coordinate value.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename interval_type&gt;<br />
+void <b>high</b>(interval_type&amp; interval, coordinate_type )</font></td>
+            <td>Sets the high end of the object that models interval to
+the coordinate value.&nbsp; If the high end would be set to less than
+low end then both are set to the coordinate value.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename interval_type&gt;<br />
+coordinate_difference <b>delta</b>(const interval_type&amp; interval)</font></td>
+            <td>Returns the distance from low to high end of an object
+that models interval.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename interval_type&gt;<br />
+interval_type&amp; <b>flip</b>(interval_type&amp; interval,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+coordinate_type axis = 0)</font></td>
+            <td>Flips an object that models interval about the axis
+coordinate.&nbsp; If no axis is provided the interval is flipped across
+the the origin.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename interval_type&gt;<br />
+interval_type&amp; <b>scale_up</b>(interval_type&amp; interval, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+unsigned_area_type factor)</font></td>
+            <td>Multiplies low and high ends of an object that models
+interval by unsigned factor.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename interval_type&gt;<br />
+interval_type&amp; <b>scale_down</b>(interval_type&amp; interval, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+unsigned_area_type factor)</font></td>
+            <td>Divides low and high ends of an object that models
+interval by unsigned factor.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename interval_type&gt;<br />
+interval_type&amp; <b>scale</b>(interval_type&amp; interval,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+double factor) </font></td>
+            <td>Multiplies low and high ends of an object that models
+interval by floating point value.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename interval_type&gt;<br />
+interval_type&amp; <b>move</b>(interval_type&amp; interval,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+coordinate_difference displacement)</font></td>
+            <td>Adds displacement value to low and high ends of an
+object that models interval.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename interval_type&gt;<br />
+interval_type&amp; <b>convolve</b>(interval_type&amp; interval,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+coordinate_type b)</font></td>
+            <td>Adds coordinate value to low and high ends of an object
+that models interval.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename interval_type&gt;<br />
+interval_type&amp; <b>deconvolve</b>(interval_type&amp; interval,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+coordinate_type b)</font></td>
+            <td>Subtracts coordinate value from low and high ends of an
+object that models interval.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>convolve</b>(T1&amp; a, const T2&amp; b)</font></td>
+            <td>Adds low end of b to low end of a and adds high end of
+b to high end of a.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>deconvolve</b>(T1&amp; a, const T2&amp; b)</font></td>
+            <td>Subtracts low end of b from low end of a and subtracts
+high end of b from high end of a. </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>reflected_convolve</b>(T1&amp; a, const T2&amp; b)</font></td>
+            <td>Adds high end of b to low end of a and adds low end of
+b to high end of a.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T1&amp; <b>reflected_deconvolve</b>(T1&amp; a, const T2&amp; b)</font></td>
+            <td>Subtracts high end of b from low end of a and subtracts
+low end of b from high end of a.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+coordinate_difference <b>euclidean_distance</b>(const T&amp;,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+coordinate_type)</font></td>
+            <td>Returns the distance from an object that models
+interval to a coordinate.&nbsp; Returns zero if the coordinate is equal
+to an end of the interval or contained within the interval.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+bool <b>intersects</b>(const T1&amp; interval, const T2&amp; b, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+bool consider_touch = true)</font></td>
+            <td>Returns true if two objects that model interval
+overlap.&nbsp; If the consider_touch flag is true touching at the
+endpoints is considered overlap.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+bool <b>boundaries_intersect</b>(const T1&amp; interval, const T2&amp;
+b, <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+bool consider_touch = true)</font></td>
+            <td>Returns true is two objects that model interval
+partially overlap such that one end point of each is contained within
+the other.&nbsp; If the consider_touch flag is true a coordinate is
+considered contained even if it is equal to an end.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+bool <b>abuts</b>(const T1&amp; a, const T2&amp; b,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+direction_1d dir) </font></td>
+            <td>Returns true if interval b abuts but down not overlap
+interval a on the end of interval a specified by dir.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+bool <b>abuts</b>(const T1&amp; a, const T2&amp; b)</font></td>
+            <td>Returns true if interval b abuts but down not overlap
+interval a.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+bool <b>intersect</b>(T1&amp; a, const T2&amp; b,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+bool consider_touch = true) </font></td>
+            <td>Sets interval a to the intersection of interval a and
+interval b and return true.&nbsp; If the two intervals do not intersect
+interval a is unchanged and the function returns false.&nbsp; If the
+flag consider_touch is true intervals that abut are considered to
+intersect.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+T&amp; <b>generalized_intersect</b>(T1&amp; a, const T2&amp; b)</font></td>
+            <td>Same as intersect, but if they do not intersect set a
+to the interval between a and b.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T&amp; <b>bloat</b>(T&amp; interval, coordinate_type)</font></td>
+            <td>Adds the coordinate value to high end of interval and
+subtracts it from low end of interval.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T&amp; <b>bloat</b>(T&amp; interval, direction_1d, coordinate_type)</font></td>
+            <td>Adds the coordinate value to high end of interval or
+subtracts it from low end of interval depending on the direction_1d.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T&amp; <b>shrink</b>(T&amp; interval, coordinate_type)</font></td>
+            <td>Subtracts the coordinate value from high end of
+interval and adds it to low end of interval.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+T&amp; <b>shrink</b>(T&amp; interval, direction_1d, coordinate_type)</font></td>
+            <td>Subtracts the coordinate value from high end of
+interval or adds it to low end of interval depending on the
+direction_1d.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T1, typename T2&gt;<br />
+bool <b>encompass</b>(T1&amp; a, const T2&amp; b)</font></td>
+            <td>Sets low of a to min of low of a and low of b and sets
+high of a to max of high of a and high of b.&nbsp; Returns true if b
+was not contained within a to begin with.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename T&gt;<br />
+bool <b>encompass</b>(T&amp; a, coordinate_type)</font></td>
+            <td>Sets low of a to min of low of a and coordinate value
+and sets high of a to max of high of a and coordinate value.&nbsp;
+Returns true if coordinate value was not contained within a to begin
+with.</td>
+          </tr>
+        </tbody>
+      </table>
+      <h1>Interval Data</h1>
+      <p> </p>
+      <p>The library provides a model of interval concept declared
+      <font face="Courier New">template&lt;typename T&gt; interval_data
+      </font>where T is the coordinate type.</p>
+      <p>This data type is used internally when an interval is needed
+and is available to the library user who finds it convenient to use a
+library interval data type instead of providing their own.&nbsp; The
+data type is implemented to be convenient to use with the library
+traits.</p>
+      <h2>Members</h2>
+      <table id="table2" border="1" width="100%">
+        <tbody>
+          <tr>
+            <td width="586"><b><font face="Courier New">geometry_type</font></b></td>
+            <td><font face="Times New Roman">interval_concept</font></td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">coordinate_type</font></b></td>
+            <td><font face="Times New Roman">T</font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New"><b>interval_data</b>()</font></td>
+            <td><font face="Times New Roman">Default constructs the two
+coordinate values of the interval.</font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New"><b>interval_data</b>(T
+low, T high)</font></td>
+            <td><font face="Times New Roman">Constructs an interval
+with two coordinates.</font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New"><b>interval_data</b>(const
+interval_data&amp; that)</font></td>
+            <td><font face="Times New Roman">Copy construct</font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">interval_data&amp;
+            <b>operator=</b>(const interval_data&amp; that)</font></td>
+            <td>Assignment operator.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename IntervalType&gt;<b>&nbsp; <br />
+            </b>interval_data&amp; <b>operator=</b>(</font><font
+ face="Courier New">const IntervalType</font><font face="Courier New">&amp;
+that) const</font></td>
+            <td>Assign from an object that is a model of interval.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New"><b>bool<b>
+operator==</b>(const </b></font><b><font face="Courier New">interval_data</font><font
+ face="Courier New">&amp; that) const</font></b></td>
+            <td>Equality operator overload.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">bool<b> operator!=</b>(const
+            </font><font face="Courier New">interval_data</font><font
+ face="Courier New">&amp; that) const</font></td>
+            <td>Inequality operator overload.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">bool<b>
+operator&lt;</b>(const </font><font face="Courier New">interval_data</font><font
+ face="Courier New">&amp; that) const</font></td>
+            <td>Compares low coordinates then high coordinates to break
+ties.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">bool<b>
+operator&lt;=</b>(const </font><font face="Courier New">interval_data</font><font
+ face="Courier New">&amp; that) const</font></td>
+            <td>Compares low coordinates then high coordinates to break
+ties.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">bool<b>
+operator&gt;</b>(const </font><font face="Courier New">interval_data</font><font
+ face="Courier New">&amp; that) const</font></td>
+            <td>Compares low coordinates then high coordinates to break
+ties.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">bool<b>
+operator&gt;=</b>(const </font><font face="Courier New">interval_data</font><font
+ face="Courier New">&amp; that) const</font></td>
+            <td>Compares low coordinates then high coordinates to break
+ties.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">T <b>get</b>(direction_1d
+dir) const</font></td>
+            <td>Get the coordinate in the given direction.</td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;"><font face="Courier New">T
+            <span style="font-weight: bold;">low</span>() const</font></td>
+            <td style="vertical-align: top;">Retrieves the low value.</td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;"><font face="Courier New">T
+            <span style="font-weight: bold;">high</span>() const</font></td>
+            <td style="vertical-align: top;">Retrieves the high
+endpoint.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">void <b>set</b>(direction_1d
+dir, T value)</font></td>
+            <td>Sets the coordinate in the given direction to the value.</td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;"><font face="Courier New">interval_data&amp;
+            <span style="font-weight: bold;">low</span>(T value)</font></td>
+            <td style="vertical-align: top;">Sets the low value.</td>
+          </tr>
+          <tr>
+            <td style="vertical-align: top;"><font face="Courier New">interval_data&amp;
+            <span style="font-weight: bold;">high</span>(T value)</font></td>
+            <td style="vertical-align: top;">Sets the high value.</td>
+          </tr>
+        </tbody>
+      </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top"> &nbsp;</td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%">
+      <table class="docinfo" id="table3" frame="void" rules="none">
+        <colgroup> <col class="docinfo-name" /><col
+ class="docinfo-content" /> </colgroup> <tbody valign="top">
+          <tr>
+            <th class="docinfo-name">Copyright:</th>
+            <td>Copyright © Intel Corporation 2008-2010.</td>
+          </tr>
+          <tr class="field">
+            <th class="docinfo-name">License:</th>
+            <td class="field-body">Distributed under the Boost Software
+License, Version 1.0. (See accompanying file <tt class="literal"> <span
+ class="pre">LICENSE_1_0.txt</span></tt> or copy at <a
+ class="reference" target="_top"
+ href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+          </tr>
+        </tbody>
+      </table>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>

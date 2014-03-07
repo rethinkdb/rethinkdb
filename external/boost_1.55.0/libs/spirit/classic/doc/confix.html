@@ -1,0 +1,185 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Confix Parsers</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>&nbsp;</b></font></td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Confix Parsers</b></font></td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="character_sets.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="list_parsers.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p><a name="confix_parser"></a><b>Confix Parsers</b></p>
+<p>Confix Parsers recognize a sequence out of three independent elements: an
+	opening, an expression and a closing. A simple example is a C comment:
+</p>
+<pre><code class="comment">    /* This is a C comment */</code></pre>
+<p>which could be parsed through the following rule definition:<code><font color="#000000"> 
+  </font></code> </p>
+<pre><span class=identifier>    </span><span class=identifier>rule</span><span class=special>&lt;&gt; </span><span class=identifier>c_comment_rule
+        </span><span class=special>=   </span><span class=identifier>confix_p</span><span class=special>(</span><span class=literal>"/*"</span><span class=special>, </span><span class=special>*</span><span class=identifier>anychar_p</span><span class=special>, </span><span class=literal>"*/"</span><span class=special>)
+        </span><span class=special>;</span></pre>
+<p>The <tt>confix_p</tt> parser generator 
+  should be used for generating the required Confix Parser. The 
+  three parameters to <tt>confix_p</tt> can be single 
+  characters (as above), strings or, if more complex parsing logic is required, 
+  auxiliary parsers, each of which is automatically converted to the corresponding 
+  parser type needed for successful parsing.</p>
+<p>The generated parser is equivalent to the following rule: </p>
+<pre><code>    <span class=identifier>open </span><span class=special>&gt;&gt; (</span><span class=identifier>expr </span><span class=special>- </span><span class=identifier>close</span><span class=special>) &gt;&gt; </span><span class=identifier>close</span></code></pre>
+<p>If the expr parser is an <tt>action_parser_category</tt> type parser (a parser 
+  with an attached semantic action) we have to do something special. This happens, 
+  if the user wrote something like:</p>
+<pre><code><span class=identifier>    confix_p</span><span class=special>(</span><span class=identifier>open</span><span class=special>, </span><span class=identifier>expr</span><span class=special>[</span><span class=identifier>func</span><span class=special>], </span><span class=identifier>close</span><span class=special>)</span></code></pre>
+<p>where <code>expr</code> is the parser matching the expr of the confix sequence 
+  and <code>func</code> is a functor to be called after matching the <code>expr</code>. 
+  If we would do nothing, the resulting code would parse the sequence as follows:</p>
+<pre><code>    <span class=identifier>open </span><span class=special>&gt;&gt; (</span><span class=identifier>expr</span><span class=special>[</span><span class=identifier>func</span><span class=special>] - </span><span class=identifier>close</span><span class=special>) &gt;&gt; </span><span class=identifier>close</span></code></pre>
+<p>which in most cases is not what the user expects. (If this <u>is</u> what you've 
+  expected, then please use the <tt>confix_p</tt> generator 
+  function <tt>direct()</tt>, which will inhibit the parser refactoring). To make 
+  the confix parser behave as expected:</p> 
+<pre><code><span class=identifier>    open </span><span class=special>&gt;&gt; (</span><span class=identifier>expr </span><span class=special>- </span><span class=identifier>close</span><span class=special>)[</span><span class=identifier>func</span><span class=special>] &gt;&gt; </span><span class=identifier>close</span></code></pre>
+<p>the actor attached to the <code>expr</code> parser has to be re-attached to 
+  the <code>(expr - close)</code> parser construct, which will make the resulting 
+  confix parser 'do the right thing'. This refactoring is done by the help of 
+  the <a href="refactoring.html">Refactoring Parsers</a>. Additionally special 
+  care must be taken, if the expr parser is a <tt>unary_parser_category</tt> type 
+  parser as </p>
+<pre><code><span class=identifier>    confix_p</span><span class=special>(</span><span class=identifier>open</span><span class=special>, *</span><span class=identifier>anychar_p</span><span class=special>, </span><span class=identifier>close</span><span class=special>)</span></code></pre>
+<p>which without any refactoring would result in </p>
+<pre><code>    <span class=identifier>open</span> <span class=special>&gt;&gt; (*</span><span class=identifier>anychar_p </span><span class=special>- </span><span class=identifier>close</span><span class=special>) &gt;&gt; </span><span class=identifier>close</span></code></pre>
+<p>and will not give the expected result (*anychar_p will eat up all the input up 
+to the end of the input stream). So we have to refactor this into:
+<pre><code><span class=identifier>    open </span><span class=special>&gt;&gt; *(</span><span class=identifier>anychar_p </span><span class=special>- </span><span class=identifier>close</span><span class=special>) &gt;&gt; </span><span class=identifier>close</span></code></pre>
+<p>what will give the correct result. </p>
+<p>The case, where the expr parser is a combination of the two mentioned problems 
+  (i.e. the expr parser is a unary parser with an attached action), is handled 
+  accordingly too, so: </p>
+<pre><code><span class=identifier>    confix_p</span><span class=special>(</span><span class=identifier>open</span><span class=special>, (*</span><span class=identifier>anychar_p</span><span class=special>)[</span><span class=identifier>func</span><span class=special>], </span>close<span class=special>)</span></code></pre>
+<p>will be parsed as expected: </p>
+<pre><code>    <span class=identifier>open</span> <span class=special>&gt;&gt; (*(</span><span class=identifier>anychar_p </span><span class=special>- </span><span class=identifier>end</span><span class=special>))[</span><span class=identifier>func</span><span class=special>] &gt;&gt; </span>close</code></pre>
+<p>The required refactoring is implemented here with the help of the <a href="refactoring.html">Refactoring 
+  Parsers</a> too.</p>
+<table width="90%" border="0" align="center">
+  <tr> 
+    <td colspan="2" class="table_title"><b>Summary of Confix Parser refactorings</b></td>
+  </tr>
+  <tr class="table_title"> 
+    <td width="40%"><b>You write it as:</b></td>
+    <td width="60%"><code><font face="Verdana, Arial, Helvetica, sans-serif">It 
+      is refactored to:</font></code></td>
+  </tr>
+  <tr> 
+    <td width="40%" class="table_cells"><code>confix_p<span class="special">(</span><span class=identifier>open</span><span class="special">,</span> 
+      expr<span class="special">,</span> close<span class="special">)</span></code></td>
+    <td width="60%" class="table_cells"> <p><code>open <span class=special>&gt;&gt; 
+        (</span>expr <span class=special>-</span> close<span class=special>)</span><font color="#0000FF"> 
+        </font><span class=special>&gt;&gt;</span> close</code></p>
+    </td>
+  </tr>
+  <tr> 
+    <td width="40%" class="table_cells"><code>confix_p<span class="special">(</span><span class=identifier>open</span><span class="special">,</span> 
+      expr<span class="special">[</span>func<span class="special">],</span> close<span class="special">)</span></code></td>
+    <td width="60%" class="table_cells"> <p><code>open <span class=special>&gt;&gt; 
+        (</span>expr <span class=special>-</span> close<span class="special">)[</span>func<span class="special">] 
+        <font color="#0000FF" class="special">&gt;&gt;</font></span> close</code></p>
+    </td>
+  </tr>
+  <tr> 
+    <td width="40%" class="table_cells" height="9"><code>confix_p<span class="special">(</span><span class=identifier>open</span><span class="special">, 
+      *</span>expr<span class="special">,</span> close<span class="special">)</span></code></td>
+    <td width="60%" class="table_cells" height="9"> <p><code>open <font color="#0000FF"><span class="special">&gt;&gt;</span></font> 
+        <span class="special"><font color="#0000FF" class="special">*</font>(</span>expr 
+        <font color="#0000FF" class="special">-</font> close<span class="special">) 
+        <font color="#0000FF" class="special">&gt;&gt;</font></span> close</code></p>
+    </td>
+  </tr>
+  <tr> 
+    <td width="40%" class="table_cells"><code>confix_p<span class="special">(</span><span class=identifier>open</span><span class="special">, 
+      (*</span>expr<span class="special">)[</span>func<span class="special">], 
+      close</span><span class="special">)</span></code></td>
+    <td width="60%" class="table_cells"> <p><code>open <font color="#0000FF"><span class="special">&gt;&gt;</span></font><span class="special"> 
+        (<font color="#0000FF" class="special">*</font>(</span>expr <font color="#0000FF" class="special">-</font> 
+        close<span class="special">))[</span>func<span class="special">] <font color="#0000FF" class="special">&gt;&gt;</font></span> 
+        close</code></p>
+    </td>
+  </tr>
+</table>
+<p><a name="comment_parsers"></a><b>Comment Parsers</b></p>
+<p>The Comment Parser generator template <tt>comment_p</tt>
+  is helper for generating a correct <a href="#confix_parser">Confix Parser</a> 
+  from auxiliary parameters, which is able to parse comment constructs as follows: 
+</p>
+<pre><code>    StartCommentToken <span class="special">&gt;&gt;</span> Comment text <span class="special">&gt;&gt;</span> EndCommentToken</code></pre>
+<p>There are the following types supported as parameters: parsers, single 
+  characters and strings (see as_parser). If it
+  is used with one parameter, a comment starting with the given first parser 
+  parameter up to the end of the line is matched. So for instance the following 
+  parser matches C++ style comments:</p>
+  
+<pre><code><span class=identifier>    comment_p</span><span class=special>(</span><span class=string>"//"</span><span class=special>)</span></code></pre>
+<p>If it is used with two parameters, a comment starting with the first parser 
+  parameter up to the second parser parameter is matched. For instance a C style 
+  comment parser could be constrcuted as:</p>
+<pre><code>    <span class=identifier>comment_p</span><span class=special>(</span><span class=string>"/*"</span><span class=special>, </span><span class=string>"*/"</span><span class=special>)</span></code></pre>
+<p>The <tt>comment_p</tt> parser generator allows to generate parsers for matching 
+  non-nested comments (as for C/C++ comments). Sometimes it is necessary to parse 
+  nested comments as for instance allowed in Pascal.</p>
+<pre><code class="comment">    { This is a { nested } PASCAL-comment }</code></pre>
+<p>Such nested comments are 
+  parseable through parsers generated by the <tt>comment_nest_p</tt> generator 
+  template functor. The following example shows a parser, which can be used for 
+  parsing the two different (nestable) Pascal comment styles:</p>
+<pre><code>    <span class=identifier>rule</span><span class=special>&lt;&gt; </span><span class=identifier>pascal_comment
+        </span><span class=special>=   </span><span class=identifier>comment_nest_p</span><span class=special>(</span><span class=string>"(*"</span><span class=special>, </span><span class=string>"*)"</span><span class=special>)
+        |   </span><span class=identifier>comment_nest_p</span><span class=special>(</span><span class=literal>'{'</span><span class=special>, </span><span class=literal>'}'</span><span class=special>)
+        ;</span></code></pre>
+<p>Please note, that a comment is parsed implicitly as if the whole <tt>comment_p(...)</tt> 
+  statement were embedded into a <tt>lexeme_d[]</tt> directive, i.e. during parsing 
+  of a comment no token skipping will occur, even if you've defined a skip parser 
+for your whole parsing process.</p>
+<p> <img height="16" width="15" src="theme/lens.gif"> <a href="../example/fundamental/comments.cpp">comments.cpp</a> demonstrates various comment parsing schemes: </p>
+<ol>
+  <li>Parsing of different comment styles  </li>
+  <ul>
+    <li>parsing C/C++-style comment</li>
+    <li>parsing C++-style comment</li>
+    <li>parsing PASCAL-style comment</li>
+  </ul>
+  <li>Parsing tagged data with the help of the confix_parser</li>
+  <li>Parsing tagged data with the help of the confix_parser but the semantic<br>
+  action is directly attached to the body sequence parser</li>
+</ol>
+<p>This is part of the Spirit distribution.</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="character_sets.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="list_parsers.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2001-2002 Hartmut Kaiser<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+</body>
+</html>

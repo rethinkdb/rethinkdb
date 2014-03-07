@@ -1,0 +1,81 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Macro BOOST_SCOPE_EXIT_TPL</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.ScopeExit 1.1.0">
+<link rel="up" href="reference.html#header.boost.scope_exit_hpp" title="Header &lt;boost/scope_exit.hpp&gt;">
+<link rel="prev" href="BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">
+<link rel="next" href="BOOST_SCOPE_EXIT_ID.html" title="Macro BOOST_SCOPE_EXIT_ID">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_SCOPE_EXIT.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="reference.html#header.boost.scope_exit_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_SCOPE_EXIT_ID.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="BOOST_SCOPE_EXIT_TPL"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Macro BOOST_SCOPE_EXIT_TPL</span></h2>
+<p>BOOST_SCOPE_EXIT_TPL &#8212; This macro is a workaround for various versions of GCC to declare scope exits within templates. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="reference.html#header.boost.scope_exit_hpp" title="Header &lt;boost/scope_exit.hpp&gt;">boost/scope_exit.hpp</a>&gt;
+
+</span>BOOST_SCOPE_EXIT_TPL(capture_list)</pre></div>
+<div class="refsect1">
+<a name="id835969"></a><h2>Description</h2>
+<p>Various versions of the GCC compiler do not compile  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code> inside function templates. As a workaround,  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code> should be used instead of  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code> in these cases:</p>
+<pre class="programlisting">    <span class="special">{</span> <span class="comment">// Some local scope.</span>
+        <span class="special">...</span>
+        <span class="identifier">BOOST_SCOPE_EXIT_TPL</span><span class="special">(</span><span class="identifier">capture_list</span><span class="special">)</span> <span class="special">{</span>
+            <span class="special">...</span> <span class="comment">// Body code.</span>
+        <span class="special">}</span> <span class="identifier">BOOST_SCOPE_EXIT_END</span>
+        <span class="special">...</span>
+    <span class="special">}</span>
+</pre>
+<p>The syntax of  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code> is the exact same as the one of  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code> (see  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code> for more information).</p>
+<p>On C++11 compilers,  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code> is not needed because  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code> always compiles on GCC versions that support C++11. However,  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code> is still provided on C++11 so to write code that is portable between C++03 and C++11 compilers. It is recommended to always use  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code> within templates so to maximize portability.</p>
+<p>In general, the special macro  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_ID_TPL.html" title="Macro BOOST_SCOPE_EXIT_ID_TPL">BOOST_SCOPE_EXIT_ID_TPL</a></code> must be used instead of  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code> when it is necessary to expand multiple scope exit declarations on the same line within templates.</p>
+<p><span class="bold"><strong>Note:</strong></span> The issue in compiling scope exit declarations that some GCC versions have is illustrated by the following code (see also <a href="http://gcc.gnu.org/bugzilla/show_bug.cgi?id=37920" target="_top">GCC bug 37920</a>): </p>
+<pre class="programlisting">    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">void</span> <span class="identifier">f</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+        <span class="keyword">struct</span> <span class="identifier">local</span> <span class="special">{</span>
+            <span class="keyword">typedef</span> <span class="identifier">__typeof__</span><span class="special">(</span><span class="identifier">i</span><span class="special">)</span> <span class="identifier">typeof_i</span><span class="special">;</span>
+            <span class="keyword">typedef</span> <span class="identifier">__typeof__</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span> <span class="identifier">typeof_x</span><span class="special">;</span>
+        <span class="special">}</span><span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="identifier">local</span><span class="special">::</span><span class="identifier">typeof_i</span> <span class="identifier">i_type</span><span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="identifier">local</span><span class="special">::</span><span class="identifier">typeof_x</span> <span class="identifier">x_type</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="special">{</span> <span class="identifier">f</span><span class="special">(</span><span class="number">0</span><span class="special">)</span><span class="special">;</span> <span class="special">}</span>
+</pre>
+<p> This can be fixed by adding <code class="computeroutput">typename</code> in front of <code class="computeroutput">local::typeof_i</code> and <code class="computeroutput">local::typeof_x</code> (which is the approach followed by the implementation of the  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code> macro).</p>
+<p><span class="bold"><strong>Note:</strong></span> Although  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_TPL.html" title="Macro BOOST_SCOPE_EXIT_TPL">BOOST_SCOPE_EXIT_TPL</a></code> has the same suffix as <code class="computeroutput">BOOST_TYPEOF_TPL</code>, it does not follow the Boost.Typeof convention.</p>
+<p><span class="bold"><strong>See:</strong></span>  <a class="link" href="scope_exit/tutorial.html" title="Tutorial"> Tutorial</a> section,  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT.html" title="Macro BOOST_SCOPE_EXIT">BOOST_SCOPE_EXIT</a></code>,  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_END.html" title="Macro BOOST_SCOPE_EXIT_END">BOOST_SCOPE_EXIT_END</a></code>,  <code class="computeroutput"><a class="link" href="BOOST_SCOPE_EXIT_ID_TPL.html" title="Macro BOOST_SCOPE_EXIT_ID_TPL">BOOST_SCOPE_EXIT_ID_TPL</a></code>. </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Alexander Nasonov, Lorenzo Caminiti<p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or a copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_SCOPE_EXIT.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="reference.html#header.boost.scope_exit_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_SCOPE_EXIT_ID.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

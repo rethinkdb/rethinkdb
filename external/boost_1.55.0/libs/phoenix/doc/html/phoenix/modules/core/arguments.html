@@ -1,0 +1,194 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Arguments</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../core.html" title="Core">
+<link rel="prev" href="references.html" title="References">
+<link rel="next" href="nothing.html" title="Nothing">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="references.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="nothing.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.modules.core.arguments"></a><a class="link" href="arguments.html" title="Arguments">Arguments</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">argument</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          We use an instance of:
+        </p>
+<pre class="programlisting"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;::</span><span class="identifier">type</span>
+</pre>
+<p>
+          to represent the Nth function argument. The argument placeholder acts as
+          an imaginary data-bin where a function argument will be placed.
+        </p>
+<h6>
+<a name="phoenix.modules.core.arguments.h0"></a>
+          <span class="phrase"><a name="phoenix.modules.core.arguments.predefined_arguments"></a></span><a class="link" href="arguments.html#phoenix.modules.core.arguments.predefined_arguments">Predefined
+          Arguments</a>
+        </h6>
+<p>
+          There are a few predefined instances of <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+          named <code class="computeroutput"><span class="identifier">arg1</span></code>..<code class="computeroutput"><span class="identifier">argN</span></code>, and its <a href="http://www.boost.org/libs/lambda/doc/index.html" target="_top">BLL</a>
+          counterpart <code class="computeroutput"><span class="identifier">_1</span></code>..<code class="computeroutput"><span class="identifier">_N</span></code>. (where N is a predefined maximum).
+        </p>
+<p>
+          Here are some sample preset definitions of <code class="computeroutput"><span class="identifier">arg1</span></code>..<code class="computeroutput"><span class="identifier">argN</span></code>
+        </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">placeholders</span>
+<span class="special">{</span>
+    <span class="identifier">expression</span><span class="special">::</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span> <span class="identifier">arg1</span> <span class="special">=</span> <span class="special">{};</span>
+    <span class="identifier">expression</span><span class="special">::</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span> <span class="identifier">arg2</span> <span class="special">=</span> <span class="special">{};</span>
+    <span class="identifier">expression</span><span class="special">::</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="number">3</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span> <span class="identifier">arg3</span> <span class="special">=</span> <span class="special">{};</span>
+<span class="special">}</span>
+</pre>
+<p>
+          and its <a href="http://www.boost.org/libs/lambda/doc/index.html" target="_top">BLL</a>
+          <code class="computeroutput"><span class="identifier">_1</span></code>..<code class="computeroutput"><span class="identifier">_N</span></code>
+          style counterparts:
+        </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">placeholders</span>
+<span class="special">{</span>
+    <span class="identifier">expression</span><span class="special">::</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span> <span class="identifier">_1</span> <span class="special">=</span> <span class="special">{};</span>
+    <span class="identifier">expression</span><span class="special">::</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span> <span class="identifier">_2</span> <span class="special">=</span> <span class="special">{};</span>
+    <span class="identifier">expression</span><span class="special">::</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="number">3</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span> <span class="identifier">_3</span> <span class="special">=</span> <span class="special">{};</span>
+<span class="special">}</span>
+</pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            You can set <code class="computeroutput"><span class="identifier">BOOST_PHOENIX_ARG_LIMIT</span></code>,
+            the predefined maximum placeholder index. By default, <code class="computeroutput"><span class="identifier">BOOST_PHOENIX_ARG_LIMIT</span></code>
+            is set to <code class="computeroutput"><span class="identifier">BOOST_PHOENIX_LIMIT</span></code>
+            (See <a class="link" href="../../actor.html" title="Actor">Actor</a>).
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="phoenix.modules.core.arguments.h1"></a>
+          <span class="phrase"><a name="phoenix.modules.core.arguments.user_defined_arguments"></a></span><a class="link" href="arguments.html#phoenix.modules.core.arguments.user_defined_arguments">User Defined
+          Arguments</a>
+        </h6>
+<p>
+          When appropriate, you can define your own <code class="computeroutput"><span class="identifier">argument</span></code>
+          names. For example:
+        </p>
+<pre class="programlisting"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">x</span><span class="special">;</span> <span class="comment">// note one based index</span>
+</pre>
+<p>
+          <code class="computeroutput"><span class="identifier">x</span></code> may now be used as a
+          parameter to a lazy function:
+        </p>
+<pre class="programlisting"><span class="identifier">add</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span> <span class="number">6</span><span class="special">)</span>
+</pre>
+<p>
+          which is equivalent to:
+        </p>
+<pre class="programlisting"><span class="identifier">add</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="number">6</span><span class="special">)</span>
+</pre>
+<h6>
+<a name="phoenix.modules.core.arguments.h2"></a>
+          <span class="phrase"><a name="phoenix.modules.core.arguments.evaluating_an_argument"></a></span><a class="link" href="arguments.html#phoenix.modules.core.arguments.evaluating_an_argument">Evaluating
+          an Argument</a>
+        </h6>
+<p>
+          An argument, when evaluated, selects the Nth argument from the those passed
+          in by the client.
+        </p>
+<p>
+          For example:
+        </p>
+<pre class="programlisting"><span class="keyword">char</span>        <span class="identifier">c</span> <span class="special">=</span> <span class="char">'A'</span><span class="special">;</span>
+<span class="keyword">int</span>         <span class="identifier">i</span> <span class="special">=</span> <span class="number">123</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">s</span> <span class="special">=</span> <span class="string">"Hello World"</span><span class="special">;</span>
+
+<span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>        <span class="comment">//  Get the 1st argument: c</span>
+<span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span><span class="special">(</span><span class="identifier">i</span><span class="special">,</span> <span class="identifier">s</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>     <span class="comment">//  Get the 1st argument: i</span>
+<span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg2</span><span class="special">(</span><span class="identifier">i</span><span class="special">,</span> <span class="identifier">s</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>     <span class="comment">//  Get the 2nd argument: s</span>
+</pre>
+<p>
+          will print out:
+        </p>
+<pre class="programlisting"><span class="identifier">A</span>
+<span class="number">123</span>
+<span class="identifier">Hello</span> <span class="identifier">World</span>
+</pre>
+<h6>
+<a name="phoenix.modules.core.arguments.h3"></a>
+          <span class="phrase"><a name="phoenix.modules.core.arguments.extra_arguments"></a></span><a class="link" href="arguments.html#phoenix.modules.core.arguments.extra_arguments">Extra
+          Arguments</a>
+        </h6>
+<p>
+          In C and C++, a function can have extra arguments that are not at all used
+          by the function body itself. These extra arguments are simply ignored.
+        </p>
+<p>
+          Phoenix also allows extra arguments to be passed. For example, recall our
+          original <code class="computeroutput"><span class="identifier">add</span></code> function:
+        </p>
+<pre class="programlisting"><span class="identifier">add</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">arg2</span><span class="special">)</span>
+</pre>
+<p>
+          We know now that partially applying this function results to a function
+          that expects 2 arguments. However, the library is a bit more lenient and
+          allows the caller to supply more arguments than is actually required. Thus,
+          <code class="computeroutput"><span class="identifier">add</span></code> actually allows 2
+          <span class="emphasis"><em>or more</em></span> arguments. For instance, with:
+        </p>
+<pre class="programlisting"><span class="identifier">add</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">arg2</span><span class="special">)(</span><span class="identifier">x</span><span class="special">,</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">z</span><span class="special">)</span>
+</pre>
+<p>
+          the third argument <code class="computeroutput"><span class="identifier">z</span></code> is
+          ignored. Taking this further, in-between arguments are also ignored. Example:
+        </p>
+<pre class="programlisting"><span class="identifier">add</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">arg5</span><span class="special">)(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">c</span><span class="special">,</span> <span class="identifier">d</span><span class="special">,</span> <span class="identifier">e</span><span class="special">)</span>
+</pre>
+<p>
+          Here, arguments b, c, and d are ignored. The function <code class="computeroutput"><span class="identifier">add</span></code>
+          takes in the first argument (<code class="computeroutput"><span class="identifier">arg1</span></code>)
+          and the fifth argument (<code class="computeroutput"><span class="identifier">arg5</span></code>).
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            There are a few reasons why enforcing strict arity is not desirable.
+            A case in point is the callback function. Typical callback functions
+            provide more information than is actually needed. Lambda functions are
+            often used as callbacks.
+          </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="references.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="nothing.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

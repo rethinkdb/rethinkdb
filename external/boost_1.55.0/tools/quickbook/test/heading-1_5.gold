@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="heading_test_1_5" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Heading Test 1.5</title>
+  <bridgehead renderas="sect2" id="heading_test_1_5.h0">
+    <phrase id="heading_test_1_5.generic_header"/><link linkend="heading_test_1_5.generic_header">Generic
+    header</link>
+  </bridgehead>
+  <bridgehead renderas="sect1" id="heading_test_1_5.h2">
+    <phrase id="heading_test_1_5.level_1"/><link linkend="heading_test_1_5.level_1">Level
+    1</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="heading_test_1_5.h3">
+    <phrase id="heading_test_1_5.level_2"/><link linkend="heading_test_1_5.level_2">Level
+    2</link>
+  </bridgehead>
+  <bridgehead renderas="sect3" id="heading_test_1_5.h4">
+    <phrase id="heading_test_1_5.level_3"/><link linkend="heading_test_1_5.level_3">Level
+    3</link>
+  </bridgehead>
+  <bridgehead renderas="sect4" id="heading_test_1_5.h5">
+    <phrase id="heading_test_1_5.level_4"/><link linkend="heading_test_1_5.level_4">Level
+    4</link>
+  </bridgehead>
+  <bridgehead renderas="sect5" id="heading_test_1_5.h6">
+    <phrase id="heading_test_1_5.level_5"/><link linkend="heading_test_1_5.level_5">Level
+    5</link>
+  </bridgehead>
+  <bridgehead renderas="sect6" id="heading_test_1_5.h8">
+    <phrase id="heading_test_1_5.level_6"/><link linkend="heading_test_1_5.level_6">Level
+    6</link>
+  </bridgehead>
+  <bridgehead renderas="sect1" id="heading_test_1_5.h9">
+    <phrase id="heading_test_1_5._emphasis_role__bold__bold__emphasis_"/><link linkend="heading_test_1_5._emphasis_role__bold__bold__emphasis_"><emphasis
+    role="bold">Bold</emphasis></link>
+  </bridgehead>
+  <bridgehead renderas="sect1" id="heading_test_1_5.h10">
+    <phrase id="heading_test_1_5.comment"/><link linkend="heading_test_1_5.comment">Comment</link>
+  </bridgehead>
+  <bridgehead renderas="sect1" id="heading_test_1_5.h11">
+    <phrase id="heading_test_1_5._notanid"/><link linkend="heading_test_1_5._notanid">:notanid</link>
+  </bridgehead>
+  <bridgehead renderas="sect1" id="heading_test_1_5.h12">
+    <phrase id="heading_test_1_5._also_not_an_id"/><link linkend="heading_test_1_5._also_not_an_id">:also
+    not an id</link>
+  </bridgehead>
+  <bridgehead renderas="sect1" id="heading_test_1_5.h13">
+    <phrase id="heading_test_1_5._anchor_id__anchor___anchor_heading"/><link linkend="heading_test_1_5._anchor_id__anchor___anchor_heading"><anchor
+    id="anchor"/>Anchor heading</link>
+  </bridgehead>
+  <bridgehead renderas="sect1" id="heading_test_1_5.h14">
+    <phrase id="heading_test_1_5._link_linkend__anchor__link_heading__link_"/><link
+    linkend="heading_test_1_5._link_linkend__anchor__link_heading__link_"><link linkend="anchor">Link
+    heading</link></link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="heading_test_1_5.h15">
+    <phrase id="heading_test_1_5.h1"/><link linkend="heading_test_1_5.h1">H1</link>
+  </bridgehead>
+  <section id="heading_test_1_5.s1">
+    <title><link linkend="heading_test_1_5.s1">S1</link></title>
+    <bridgehead renderas="sect2" id="heading_test_1_5.s1.h0">
+      <phrase id="heading_test_1_5.s1.h2"/><link linkend="heading_test_1_5.s1.h2">H2</link>
+    </bridgehead>
+    <section id="heading_test_1_5.s1.s2">
+      <title><link linkend="heading_test_1_5.s1.s2">S2</link></title>
+      <bridgehead renderas="sect3" id="heading_test_1_5.s1.s2.h0">
+        <phrase id="heading_test_1_5.s1.s2.h3"/><link linkend="heading_test_1_5.s1.s2.h3">H3</link>
+      </bridgehead>
+    </section>
+    <bridgehead renderas="sect2" id="heading_test_1_5.s1.h1">
+      <phrase id="heading_test_1_5.s1.h4"/><link linkend="heading_test_1_5.s1.h4">H4</link>
+    </bridgehead>
+    <section id="heading_test_1_5.s1.s3">
+      <title><link linkend="heading_test_1_5.s1.s3">S3</link></title>
+      <bridgehead renderas="sect4" id="heading_test_1_5.s1.s3.h0">
+        <phrase id="heading_test_1_5.s1.s3.h5"/><link linkend="heading_test_1_5.s1.s3.h5">H5</link>
+      </bridgehead>
+    </section>
+    <bridgehead renderas="sect2" id="heading_test_1_5.s1.h3">
+      <phrase id="heading_test_1_5.s1.h6"/><link linkend="heading_test_1_5.s1.h6">H6</link>
+    </bridgehead>
+  </section>
+  <bridgehead renderas="sect1" id="heading_test_1_5.h16">
+    <phrase id="heading_test_1_5.h7"/><link linkend="heading_test_1_5.h7">H7</link>
+  </bridgehead>
+</article>

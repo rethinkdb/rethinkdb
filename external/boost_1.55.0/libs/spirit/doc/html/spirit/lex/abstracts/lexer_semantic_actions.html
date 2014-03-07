@@ -1,0 +1,513 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Lexer Semantic Actions</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../abstracts.html" title="Abstracts">
+<link rel="prev" href="lexer_tokenizing.html" title="Tokenizing Input Data">
+<link rel="next" href="lexer_static_model.html" title="The Static Lexer Model">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lexer_tokenizing.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../abstracts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lexer_static_model.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.lex.abstracts.lexer_semantic_actions"></a><a class="link" href="lexer_semantic_actions.html" title="Lexer Semantic Actions">Lexer
+        Semantic Actions</a>
+</h4></div></div></div>
+<p>
+          The main task of a lexer normally is to recognize tokens in the input.
+          Traditionally this has been complemented with the possibility to execute
+          arbitrary code whenever a certain token has been detected. <span class="emphasis"><em>Spirit.Lex</em></span>
+          has been designed to support this mode of operation as well. We borrow
+          from the concept of semantic actions for parsers (<span class="emphasis"><em>Spirit.Qi</em></span>)
+          and generators (<span class="emphasis"><em>Spirit.Karma</em></span>). Lexer semantic actions
+          may be attached to any token definition. These are C++ functions or function
+          objects that are called whenever a token definition successfully recognizes
+          a portion of the input. Say you have a token definition <code class="computeroutput"><span class="identifier">D</span></code>,
+          and a C++ function <code class="computeroutput"><span class="identifier">f</span></code>, you
+          can make the lexer call <code class="computeroutput"><span class="identifier">f</span></code>
+          whenever it matches an input by attaching <code class="computeroutput"><span class="identifier">f</span></code>:
+        </p>
+<pre class="programlisting"><span class="identifier">D</span><span class="special">[</span><span class="identifier">f</span><span class="special">]</span>
+</pre>
+<p>
+          The expression above links <code class="computeroutput"><span class="identifier">f</span></code>
+          to the token definition, <code class="computeroutput"><span class="identifier">D</span></code>.
+          The required prototype of <code class="computeroutput"><span class="identifier">f</span></code>
+          is:
+        </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">f</span> <span class="special">(</span><span class="identifier">Iterator</span><span class="special">&amp;</span> <span class="identifier">start</span><span class="special">,</span> <span class="identifier">Iterator</span><span class="special">&amp;</span> <span class="identifier">end</span><span class="special">,</span> <span class="identifier">pass_flag</span><span class="special">&amp;</span> <span class="identifier">matched</span><span class="special">,</span> <span class="identifier">Idtype</span><span class="special">&amp;</span> <span class="identifier">id</span><span class="special">,</span> <span class="identifier">Context</span><span class="special">&amp;</span> <span class="identifier">ctx</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b>where:</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Iterator</span><span class="special">&amp;</span>
+            <span class="identifier">start</span></code></span></dt>
+<dd><p>
+                This is the iterator pointing to the begin of the matched range in
+                the underlying input sequence. The type of the iterator is the same
+                as specified while defining the type of the <code class="computeroutput"><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">actor_lexer</span><span class="special">&lt;...&gt;</span></code> (its first template parameter).
+                The semantic action is allowed to change the value of this iterator
+                influencing, the matched input sequence.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Iterator</span><span class="special">&amp;</span>
+            <span class="identifier">end</span></code></span></dt>
+<dd><p>
+                This is the iterator pointing to the end of the matched range in
+                the underlying input sequence. The type of the iterator is the same
+                as specified while defining the type of the <code class="computeroutput"><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">actor_lexer</span><span class="special">&lt;...&gt;</span></code> (its first template parameter).
+                The semantic action is allowed to change the value of this iterator
+                influencing, the matched input sequence.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">pass_flag</span><span class="special">&amp;</span>
+            <span class="identifier">matched</span></code></span></dt>
+<dd><p>
+                This value is pre/initialized to <code class="computeroutput"><span class="identifier">pass_normal</span></code>.
+                If the semantic action sets it to <code class="computeroutput"><span class="identifier">pass_fail</span></code>
+                this behaves as if the token has not been matched in the first place.
+                If the semantic action sets this to <code class="computeroutput"><span class="identifier">pass_ignore</span></code>
+                the lexer ignores the current token and tries to match a next token
+                from the input.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Idtype</span><span class="special">&amp;</span>
+            <span class="identifier">id</span></code></span></dt>
+<dd><p>
+                This is the token id of the type Idtype (most of the time this will
+                be a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span></code>) for the matched token.
+                The semantic action is allowed to change the value of this token
+                id, influencing the if of the created token.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Context</span><span class="special">&amp;</span>
+            <span class="identifier">ctx</span></code></span></dt>
+<dd><p>
+                This is a reference to a lexer specific, unspecified type, providing
+                the context for the current lexer state. It can be used to access
+                different internal data items and is needed for lexer state control
+                from inside a semantic action.
+              </p></dd>
+</dl>
+</div>
+<p>
+          When using a C++ function as the semantic action the following prototypes
+          are allowed as well:
+        </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">f</span> <span class="special">(</span><span class="identifier">Iterator</span><span class="special">&amp;</span> <span class="identifier">start</span><span class="special">,</span> <span class="identifier">Iterator</span><span class="special">&amp;</span> <span class="identifier">end</span><span class="special">,</span> <span class="identifier">pass_flag</span><span class="special">&amp;</span> <span class="identifier">matched</span><span class="special">,</span> <span class="identifier">Idtype</span><span class="special">&amp;</span> <span class="identifier">id</span><span class="special">);</span>
+<span class="keyword">void</span> <span class="identifier">f</span> <span class="special">(</span><span class="identifier">Iterator</span><span class="special">&amp;</span> <span class="identifier">start</span><span class="special">,</span> <span class="identifier">Iterator</span><span class="special">&amp;</span> <span class="identifier">end</span><span class="special">,</span> <span class="identifier">pass_flag</span><span class="special">&amp;</span> <span class="identifier">matched</span><span class="special">);</span>
+<span class="keyword">void</span> <span class="identifier">f</span> <span class="special">(</span><span class="identifier">Iterator</span><span class="special">&amp;</span> <span class="identifier">start</span><span class="special">,</span> <span class="identifier">Iterator</span><span class="special">&amp;</span> <span class="identifier">end</span><span class="special">);</span>
+<span class="keyword">void</span> <span class="identifier">f</span> <span class="special">();</span>
+</pre>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            In order to use lexer semantic actions you need to use type <code class="computeroutput"><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">actor_lexer</span><span class="special">&lt;&gt;</span></code>
+            as your lexer class (instead of the type <code class="computeroutput"><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;&gt;</span></code> as described in earlier examples).
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.lex.abstracts.lexer_semantic_actions.h0"></a>
+          <span class="phrase"><a name="spirit.lex.abstracts.lexer_semantic_actions.the_context_of_a_lexer_semantic_action"></a></span><a class="link" href="lexer_semantic_actions.html#spirit.lex.abstracts.lexer_semantic_actions.the_context_of_a_lexer_semantic_action">The
+          context of a lexer semantic action</a>
+        </h6>
+<p>
+          The last parameter passed to any lexer semantic action is a reference to
+          an unspecified type (see the <code class="computeroutput"><span class="identifier">Context</span></code>
+          type in the table above). This type is unspecified because it depends on
+          the token type returned by the lexer. It is implemented in the internals
+          of the iterator type exposed by the lexer. Nevertheless, any context type
+          is expected to expose a couple of functions allowing to influence the behavior
+          of the lexer. The following table gives an overview and a short description
+          of the available functionality.
+        </p>
+<div class="table">
+<a name="spirit.lex.abstracts.lexer_semantic_actions.functions_exposed_by_any_context_passed_to_a_lexer_semantic_action"></a><p class="title"><b>Table&#160;8.&#160;Functions exposed by any context passed to a lexer semantic action</b></p>
+<div class="table-contents"><table class="table" summary="Functions exposed by any context passed to a lexer semantic action">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Iterator</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">get_eoi</span><span class="special">()</span> <span class="keyword">const</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The function <code class="computeroutput"><span class="identifier">get_eoi</span><span class="special">()</span></code> may be used by to access the
+                    end iterator of the input stream the lexer has been initialized
+                    with
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">more</span><span class="special">()</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The function <code class="computeroutput"><span class="identifier">more</span><span class="special">()</span></code> tells the lexer that the next
+                    time it matches a rule, the corresponding token should be appended
+                    onto the current token value rather than replacing it.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Iterator</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">less</span><span class="special">(</span><span class="identifier">Iterator</span>
+                    <span class="keyword">const</span><span class="special">&amp;</span>
+                    <span class="identifier">it</span><span class="special">,</span>
+                    <span class="keyword">int</span> <span class="identifier">n</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The function <code class="computeroutput"><span class="identifier">less</span><span class="special">()</span></code> returns an iterator positioned
+                    to the nth input character beyond the current token start iterator
+                    (i.e. by passing the return value to the parameter <code class="computeroutput"><span class="identifier">end</span></code> it is possible to return
+                    all but the first n characters of the current token back to the
+                    input stream.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">lookahead</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span>
+                    <span class="identifier">id</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The function <code class="computeroutput"><span class="identifier">lookahead</span><span class="special">()</span></code> can be used to implement lookahead
+                    for lexer engines not supporting constructs like flex' <code class="computeroutput"><span class="identifier">a</span><span class="special">/</span><span class="identifier">b</span></code> (match <code class="computeroutput"><span class="identifier">a</span></code>,
+                    but only when followed by <code class="computeroutput"><span class="identifier">b</span></code>).
+                    It invokes the lexer on the input following the current token
+                    without actually moving forward in the input stream. The function
+                    returns whether the lexer was able to match a token with the
+                    given token-id <code class="computeroutput"><span class="identifier">id</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">get_state</span><span class="special">()</span> <span class="keyword">const</span></code>
+                    and <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">set_state</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span>
+                    <span class="identifier">state</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The functions <code class="computeroutput"><span class="identifier">get_state</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">set_state</span><span class="special">()</span></code> may be used to introspect and
+                    change the current lexer state.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">token_value_type</span> <span class="identifier">get_value</span><span class="special">()</span>
+                    <span class="keyword">const</span></code> and <code class="computeroutput"><span class="keyword">void</span> <span class="identifier">set_value</span><span class="special">(</span><span class="identifier">Value</span>
+                    <span class="keyword">const</span><span class="special">&amp;)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The functions <code class="computeroutput"><span class="identifier">get_value</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">set_value</span><span class="special">()</span></code> may be used to introspect and
+                    change the current token value.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><h6>
+<a name="spirit.lex.abstracts.lexer_semantic_actions.h1"></a>
+          <span class="phrase"><a name="spirit.lex.abstracts.lexer_semantic_actions.lexer_semantic_actions_using_phoenix"></a></span><a class="link" href="lexer_semantic_actions.html#spirit.lex.abstracts.lexer_semantic_actions.lexer_semantic_actions_using_phoenix">Lexer
+          Semantic Actions Using Phoenix</a>
+        </h6>
+<p>
+          Even if it is possible to write your own function object implementations
+          (i.e. using Boost.Lambda or Boost.Bind), the preferred way of defining
+          lexer semantic actions is to use <a href="../../../../../../../libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>.
+          In this case you can access the parameters described above by using the
+          predefined <a href="http://boost-spirit.com" target="_top">Spirit</a> placeholders:
+        </p>
+<div class="table">
+<a name="spirit.lex.abstracts.lexer_semantic_actions.predefined_phoenix_placeholders_for_lexer_semantic_actions"></a><p class="title"><b>Table&#160;9.&#160;Predefined Phoenix placeholders for lexer semantic actions</b></p>
+<div class="table-contents"><table class="table" summary="Predefined Phoenix placeholders for lexer semantic actions">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Placeholder
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">_start</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Refers to the iterator pointing to the beginning of the matched
+                    input sequence. Any modifications to this iterator value will
+                    be reflected in the generated token.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">_end</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Refers to the iterator pointing past the end of the matched input
+                    sequence. Any modifications to this iterator value will be reflected
+                    in the generated token.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">_pass</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    References the value signaling the outcome of the semantic action.
+                    This is pre-initialized to <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">pass_flags</span><span class="special">::</span><span class="identifier">pass_normal</span></code>.
+                    If this is set to <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">pass_flags</span><span class="special">::</span><span class="identifier">pass_fail</span></code>,
+                    the lexer will behave as if no token has been matched, if is
+                    set to <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">pass_flags</span><span class="special">::</span><span class="identifier">pass_ignore</span></code>, the lexer will
+                    ignore the current match and proceed trying to match tokens from
+                    the input.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">_tokenid</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Refers to the token id of the token to be generated. Any modifications
+                    to this value will be reflected in the generated token.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">_val</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Refers to the value the next token will be initialized from.
+                    Any modifications to this value will be reflected in the generated
+                    token.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">_state</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Refers to the lexer state the input has been match in. Any modifications
+                    to this value will be reflected in the lexer itself (the next
+                    match will start in the new state). The currently generated token
+                    is not affected by changes to this variable.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">_eoi</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    References the end iterator of the overall lexer input. This
+                    value cannot be changed.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+          The context object passed as the last parameter to any lexer semantic action
+          is not directly accessible while using <a href="../../../../../../../libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>
+          expressions. We rather provide predefined Phoenix functions allowing to
+          invoke the different support functions as mentioned above. The following
+          table lists the available support functions and describes their functionality:
+        </p>
+<div class="table">
+<a name="spirit.lex.abstracts.lexer_semantic_actions.support_functions_usable_from_phoenix_expressions_inside_lexer_semantic_actions"></a><p class="title"><b>Table&#160;10.&#160;Support functions usable from Phoenix expressions inside lexer semantic
+          actions</b></p>
+<div class="table-contents"><table class="table" summary="Support functions usable from Phoenix expressions inside lexer semantic
+          actions">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Plain function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Phoenix function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">ctx</span><span class="special">.</span><span class="identifier">more</span><span class="special">()</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">more</span><span class="special">()</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The function <code class="computeroutput"><span class="identifier">more</span><span class="special">()</span></code> tells the lexer that the next
+                    time it matches a rule, the corresponding token should be appended
+                    onto the current token value rather than replacing it.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">ctx</span><span class="special">.</span><span class="identifier">less</span><span class="special">()</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">less</span><span class="special">(</span><span class="identifier">n</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The function <code class="computeroutput"><span class="identifier">less</span><span class="special">()</span></code> takes a single integer parameter
+                    <code class="computeroutput"><span class="identifier">n</span></code> and returns
+                    an iterator positioned to the nth input character beyond the
+                    current token start iterator (i.e. by assigning the return value
+                    to the placeholder <code class="computeroutput"><span class="identifier">_end</span></code>
+                    it is possible to return all but the first <code class="computeroutput"><span class="identifier">n</span></code>
+                    characters of the current token back to the input stream.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">ctx</span><span class="special">.</span><span class="identifier">lookahead</span><span class="special">()</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">lookahead</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">)</span></code>
+                    or <code class="computeroutput"><span class="identifier">lookahead</span><span class="special">(</span><span class="identifier">token_def</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The function <code class="computeroutput"><span class="identifier">lookahead</span><span class="special">()</span></code> takes a single parameter specifying
+                    the token to match in the input. The function can be used for
+                    instance to implement lookahead for lexer engines not supporting
+                    constructs like flex' <code class="computeroutput"><span class="identifier">a</span><span class="special">/</span><span class="identifier">b</span></code>
+                    (match <code class="computeroutput"><span class="identifier">a</span></code>, but
+                    only when followed by <code class="computeroutput"><span class="identifier">b</span></code>).
+                    It invokes the lexer on the input following the current token
+                    without actually moving forward in the input stream. The function
+                    returns whether the lexer was able to match the specified token.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lexer_tokenizing.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../abstracts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lexer_static_model.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

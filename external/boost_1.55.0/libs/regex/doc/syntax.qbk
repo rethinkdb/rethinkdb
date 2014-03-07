@@ -1,0 +1,33 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:syntax Regular Expression Syntax]
+
+This section covers the regular expression syntax used by this library, 
+this is a programmers guide, the actual syntax presented to your program's 
+users will depend upon the flags used during expression compilation.
+
+There are three main syntax options available, depending upon how you 
+construct the regular expression object:
+
+* [link boost_regex.syntax.perl_syntax Perl (this is the default behavior)].
+* [link boost_regex.syntax.basic_extended POSIX extended (including the egrep and awk variations)].
+* [link boost_regex.syntax.basic_syntax POSIX Basic (including the grep and emacs variations)].
+
+You can also construct a regular expression that treats every character as a 
+literal, but that's not really a "syntax"!
+
+[include syntax_perl.qbk]
+[include syntax_extended.qbk]
+[include syntax_basic.qbk]
+[include character_class_names.qbk]
+[include collating_names.qbk]
+[include leftmost_longest.qbk]
+
+[endsect]
+

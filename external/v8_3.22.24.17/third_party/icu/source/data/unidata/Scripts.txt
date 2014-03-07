@@ -1,0 +1,2043 @@
+# Scripts-6.0.0.txt
+# Date: 2010-08-19, 00:48:47 GMT [MD]
+#
+# Unicode Character Database
+# Copyright (c) 1991-2010 Unicode, Inc.
+# For terms of use, see http://www.unicode.org/terms_of_use.html
+# For documentation, see http://www.unicode.org/reports/tr44/
+
+# ================================================
+
+# Property:	Script
+
+#  All code points not explicitly listed for Script
+#  have the value Unknown (Zzzz).
+
+# @missing: 0000..10FFFF; Unknown
+
+# ================================================
+
+0000..001F    ; Common
+0020          ; Common
+0021..0023    ; Common
+0024          ; Common
+0025..0027    ; Common
+0028          ; Common
+0029          ; Common
+002A          ; Common
+002B          ; Common
+002C          ; Common
+002D          ; Common
+002E..002F    ; Common
+0030..0039    ; Common
+003A..003B    ; Common
+003C..003E    ; Common
+003F..0040    ; Common
+005B          ; Common
+005C          ; Common
+005D          ; Common
+005E          ; Common
+005F          ; Common
+0060          ; Common
+007B          ; Common
+007C          ; Common
+007D          ; Common
+007E          ; Common
+007F..009F    ; Common
+00A0          ; Common
+00A1          ; Common
+00A2..00A5    ; Common
+00A6..00A7    ; Common
+00A8          ; Common
+00A9          ; Common
+00AB          ; Common
+00AC          ; Common
+00AD          ; Common
+00AE          ; Common
+00AF          ; Common
+00B0          ; Common
+00B1          ; Common
+00B2..00B3    ; Common
+00B4          ; Common
+00B5          ; Common
+00B6          ; Common
+00B7          ; Common
+00B8          ; Common
+00B9          ; Common
+00BB          ; Common
+00BC..00BE    ; Common
+00BF          ; Common
+00D7          ; Common
+00F7          ; Common
+02B9..02C1    ; Common
+02C2..02C5    ; Common
+02C6..02D1    ; Common
+02D2..02DF    ; Common
+02E5..02E9    ; Common
+02EC          ; Common
+02ED          ; Common
+02EE          ; Common
+02EF..02FF    ; Common
+0374          ; Common
+037E          ; Common
+0385          ; Common
+0387          ; Common
+0589          ; Common
+060C          ; Common
+061B          ; Common
+061F          ; Common
+0640          ; Common
+0660..0669    ; Common
+06DD          ; Common
+0964..0965    ; Common
+0970          ; Common
+0E3F          ; Common
+0FD5..0FD8    ; Common
+10FB          ; Common
+16EB..16ED    ; Common
+1735..1736    ; Common
+1802..1803    ; Common
+1805          ; Common
+1CD3          ; Common
+1CE1          ; Common
+1CE9..1CEC    ; Common
+1CEE..1CF1    ; Common
+1CF2          ; Common
+2000..200A    ; Common
+200B          ; Common
+200E..200F    ; Common
+2010..2015    ; Common
+2016..2017    ; Common
+2018          ; Common
+2019          ; Common
+201A          ; Common
+201B..201C    ; Common
+201D          ; Common
+201E          ; Common
+201F          ; Common
+2020..2027    ; Common
+2028          ; Common
+2029          ; Common
+202A..202E    ; Common
+202F          ; Common
+2030..2038    ; Common
+2039          ; Common
+203A          ; Common
+203B..203E    ; Common
+203F..2040    ; Common
+2041..2043    ; Common
+2044          ; Common
+2045          ; Common
+2046          ; Common
+2047..2051    ; Common
+2052          ; Common
+2053          ; Common
+2054          ; Common
+2055..205E    ; Common
+205F          ; Common
+2060..2064    ; Common
+206A..206F    ; Common
+2070          ; Common
+2074..2079    ; Common
+207A..207C    ; Common
+207D          ; Common
+207E          ; Common
+2080..2089    ; Common
+208A..208C    ; Common
+208D          ; Common
+208E          ; Common
+20A0..20B9    ; Common
+2100..2101    ; Common
+2102          ; Common
+2103..2106    ; Common
+2107          ; Common
+2108..2109    ; Common
+210A..2113    ; Common
+2114          ; Common
+2115          ; Common
+2116..2117    ; Common
+2118          ; Common
+2119..211D    ; Common
+211E..2123    ; Common
+2124          ; Common
+2125          ; Common
+2127          ; Common
+2128          ; Common
+2129          ; Common
+212C..212D    ; Common
+212E          ; Common
+212F..2131    ; Common
+2133..2134    ; Common
+2135..2138    ; Common
+2139          ; Common
+213A..213B    ; Common
+213C..213F    ; Common
+2140..2144    ; Common
+2145..2149    ; Common
+214A          ; Common
+214B          ; Common
+214C..214D    ; Common
+214F          ; Common
+2150..215F    ; Common
+2189          ; Common
+2190..2194    ; Common
+2195..2199    ; Common
+219A..219B    ; Common
+219C..219F    ; Common
+21A0          ; Common
+21A1..21A2    ; Common
+21A3          ; Common
+21A4..21A5    ; Common
+21A6          ; Common
+21A7..21AD    ; Common
+21AE          ; Common
+21AF..21CD    ; Common
+21CE..21CF    ; Common
+21D0..21D1    ; Common
+21D2          ; Common
+21D3          ; Common
+21D4          ; Common
+21D5..21F3    ; Common
+21F4..22FF    ; Common
+2300..2307    ; Common
+2308..230B    ; Common
+230C..231F    ; Common
+2320..2321    ; Common
+2322..2328    ; Common
+2329          ; Common
+232A          ; Common
+232B..237B    ; Common
+237C          ; Common
+237D..239A    ; Common
+239B..23B3    ; Common
+23B4..23DB    ; Common
+23DC..23E1    ; Common
+23E2..23F3    ; Common
+2400..2426    ; Common
+2440..244A    ; Common
+2460..249B    ; Common
+249C..24E9    ; Common
+24EA..24FF    ; Common
+2500..25B6    ; Common
+25B7          ; Common
+25B8..25C0    ; Common
+25C1          ; Common
+25C2..25F7    ; Common
+25F8..25FF    ; Common
+2600..266E    ; Common
+266F          ; Common
+2670..26FF    ; Common
+2701..2767    ; Common
+2768          ; Common
+2769          ; Common
+276A          ; Common
+276B          ; Common
+276C          ; Common
+276D          ; Common
+276E          ; Common
+276F          ; Common
+2770          ; Common
+2771          ; Common
+2772          ; Common
+2773          ; Common
+2774          ; Common
+2775          ; Common
+2776..2793    ; Common
+2794..27BF    ; Common
+27C0..27C4    ; Common
+27C5          ; Common
+27C6          ; Common
+27C7..27CA    ; Common
+27CC          ; Common
+27CE..27E5    ; Common
+27E6          ; Common
+27E7          ; Common
+27E8          ; Common
+27E9          ; Common
+27EA          ; Common
+27EB          ; Common
+27EC          ; Common
+27ED          ; Common
+27EE          ; Common
+27EF          ; Common
+27F0..27FF    ; Common
+2900..2982    ; Common
+2983          ; Common
+2984          ; Common
+2985          ; Common
+2986          ; Common
+2987          ; Common
+2988          ; Common
+2989          ; Common
+298A          ; Common
+298B          ; Common
+298C          ; Common
+298D          ; Common
+298E          ; Common
+298F          ; Common
+2990          ; Common
+2991          ; Common
+2992          ; Common
+2993          ; Common
+2994          ; Common
+2995          ; Common
+2996          ; Common
+2997          ; Common
+2998          ; Common
+2999..29D7    ; Common
+29D8          ; Common
+29D9          ; Common
+29DA          ; Common
+29DB          ; Common
+29DC..29FB    ; Common
+29FC          ; Common
+29FD          ; Common
+29FE..2AFF    ; Common
+2B00..2B2F    ; Common
+2B30..2B44    ; Common
+2B45..2B46    ; Common
+2B47..2B4C    ; Common
+2B50..2B59    ; Common
+2E00..2E01    ; Common
+2E02          ; Common
+2E03          ; Common
+2E04          ; Common
+2E05          ; Common
+2E06..2E08    ; Common
+2E09          ; Common
+2E0A          ; Common
+2E0B          ; Common
+2E0C          ; Common
+2E0D          ; Common
+2E0E..2E16    ; Common
+2E17          ; Common
+2E18..2E19    ; Common
+2E1A          ; Common
+2E1B          ; Common
+2E1C          ; Common
+2E1D          ; Common
+2E1E..2E1F    ; Common
+2E20          ; Common
+2E21          ; Common
+2E22          ; Common
+2E23          ; Common
+2E24          ; Common
+2E25          ; Common
+2E26          ; Common
+2E27          ; Common
+2E28          ; Common
+2E29          ; Common
+2E2A..2E2E    ; Common
+2E2F          ; Common
+2E30..2E31    ; Common
+2FF0..2FFB    ; Common
+3000          ; Common
+3001..3003    ; Common
+3004          ; Common
+3006          ; Common
+3008          ; Common
+3009          ; Common
+300A          ; Common
+300B          ; Common
+300C          ; Common
+300D          ; Common
+300E          ; Common
+300F          ; Common
+3010          ; Common
+3011          ; Common
+3012..3013    ; Common
+3014          ; Common
+3015          ; Common
+3016          ; Common
+3017          ; Common
+3018          ; Common
+3019          ; Common
+301A          ; Common
+301B          ; Common
+301C          ; Common
+301D          ; Common
+301E..301F    ; Common
+3020          ; Common
+3030          ; Common
+3031..3035    ; Common
+3036..3037    ; Common
+303C          ; Common
+303D          ; Common
+303E..303F    ; Common
+309B..309C    ; Common
+30A0          ; Common
+30FB          ; Common
+30FC          ; Common
+3190..3191    ; Common
+3192..3195    ; Common
+3196..319F    ; Common
+31C0..31E3    ; Common
+3220..3229    ; Common
+322A..3250    ; Common
+3251..325F    ; Common
+327F          ; Common
+3280..3289    ; Common
+328A..32B0    ; Common
+32B1..32BF    ; Common
+32C0..32CF    ; Common
+3358..33FF    ; Common
+4DC0..4DFF    ; Common
+A700..A716    ; Common
+A717..A71F    ; Common
+A720..A721    ; Common
+A788          ; Common
+A789..A78A    ; Common
+A830..A835    ; Common
+A836..A837    ; Common
+A838          ; Common
+A839          ; Common
+FD3E          ; Common
+FD3F          ; Common
+FDFD          ; Common
+FE10..FE16    ; Common
+FE17          ; Common
+FE18          ; Common
+FE19          ; Common
+FE30          ; Common
+FE31..FE32    ; Common
+FE33..FE34    ; Common
+FE35          ; Common
+FE36          ; Common
+FE37          ; Common
+FE38          ; Common
+FE39          ; Common
+FE3A          ; Common
+FE3B          ; Common
+FE3C          ; Common
+FE3D          ; Common
+FE3E          ; Common
+FE3F          ; Common
+FE40          ; Common
+FE41          ; Common
+FE42          ; Common
+FE43          ; Common
+FE44          ; Common
+FE45..FE46    ; Common
+FE47          ; Common
+FE48          ; Common
+FE49..FE4C    ; Common
+FE4D..FE4F    ; Common
+FE50..FE52    ; Common
+FE54..FE57    ; Common
+FE58          ; Common
+FE59          ; Common
+FE5A          ; Common
+FE5B          ; Common
+FE5C          ; Common
+FE5D          ; Common
+FE5E          ; Common
+FE5F..FE61    ; Common
+FE62          ; Common
+FE63          ; Common
+FE64..FE66    ; Common
+FE68          ; Common
+FE69          ; Common
+FE6A..FE6B    ; Common
+FEFF          ; Common
+FF01..FF03    ; Common
+FF04          ; Common
+FF05..FF07    ; Common
+FF08          ; Common
+FF09          ; Common
+FF0A          ; Common
+FF0B          ; Common
+FF0C          ; Common
+FF0D          ; Common
+FF0E..FF0F    ; Common
+FF10..FF19    ; Common
+FF1A..FF1B    ; Common
+FF1C..FF1E    ; Common
+FF1F..FF20    ; Common
+FF3B          ; Common
+FF3C          ; Common
+FF3D          ; Common
+FF3E          ; Common
+FF3F          ; Common
+FF40          ; Common
+FF5B          ; Common
+FF5C          ; Common
+FF5D          ; Common
+FF5E          ; Common
+FF5F          ; Common
+FF60          ; Common
+FF61          ; Common
+FF62          ; Common
+FF63          ; Common
+FF64..FF65    ; Common
+FF70          ; Common
+FF9E..FF9F    ; Common
+FFE0..FFE1    ; Common
+FFE2          ; Common
+FFE3          ; Common
+FFE4          ; Common
+FFE5..FFE6    ; Common
+FFE8          ; Common
+FFE9..FFEC    ; Common
+FFED..FFEE    ; Common
+FFF9..FFFB    ; Common
+FFFC..FFFD    ; Common
+10100..10101  ; Common
+10102         ; Common
+10107..10133  ; Common
+10137..1013F  ; Common
+10190..1019B  ; Common
+101D0..101FC  ; Common
+1D000..1D0F5  ; Common
+1D100..1D126  ; Common
+1D129..1D164  ; Common
+1D165..1D166  ; Common
+1D16A..1D16C  ; Common
+1D16D..1D172  ; Common
+1D173..1D17A  ; Common
+1D183..1D184  ; Common
+1D18C..1D1A9  ; Common
+1D1AE..1D1DD  ; Common
+1D300..1D356  ; Common
+1D360..1D371  ; Common
+1D400..1D454  ; Common
+1D456..1D49C  ; Common
+1D49E..1D49F  ; Common
+1D4A2         ; Common
+1D4A5..1D4A6  ; Common
+1D4A9..1D4AC  ; Common
+1D4AE..1D4B9  ; Common
+1D4BB         ; Common
+1D4BD..1D4C3  ; Common
+1D4C5..1D505  ; Common
+1D507..1D50A  ; Common
+1D50D..1D514  ; Common
+1D516..1D51C  ; Common
+1D51E..1D539  ; Common
+1D53B..1D53E  ; Common
+1D540..1D544  ; Common
+1D546         ; Common
+1D54A..1D550  ; Common
+1D552..1D6A5  ; Common
+1D6A8..1D6C0  ; Common
+1D6C1         ; Common
+1D6C2..1D6DA  ; Common
+1D6DB         ; Common
+1D6DC..1D6FA  ; Common
+1D6FB         ; Common
+1D6FC..1D714  ; Common
+1D715         ; Common
+1D716..1D734  ; Common
+1D735         ; Common
+1D736..1D74E  ; Common
+1D74F         ; Common
+1D750..1D76E  ; Common
+1D76F         ; Common
+1D770..1D788  ; Common
+1D789         ; Common
+1D78A..1D7A8  ; Common
+1D7A9         ; Common
+1D7AA..1D7C2  ; Common
+1D7C3         ; Common
+1D7C4..1D7CB  ; Common
+1D7CE..1D7FF  ; Common
+1F000..1F02B  ; Common
+1F030..1F093  ; Common
+1F0A0..1F0AE  ; Common
+1F0B1..1F0BE  ; Common
+1F0C1..1F0CF  ; Common
+1F0D1..1F0DF  ; Common
+1F100..1F10A  ; Common
+1F110..1F12E  ; Common
+1F130..1F169  ; Common
+1F170..1F19A  ; Common
+1F1E6..1F1FF  ; Common
+1F201..1F202  ; Common
+1F210..1F23A  ; Common
+1F240..1F248  ; Common
+1F250..1F251  ; Common
+1F300..1F320  ; Common
+1F330..1F335  ; Common
+1F337..1F37C  ; Common
+1F380..1F393  ; Common
+1F3A0..1F3C4  ; Common
+1F3C6..1F3CA  ; Common
+1F3E0..1F3F0  ; Common
+1F400..1F43E  ; Common
+1F440         ; Common
+1F442..1F4F7  ; Common
+1F4F9..1F4FC  ; Common
+1F500..1F53D  ; Common
+1F550..1F567  ; Common
+1F5FB..1F5FF  ; Common
+1F601..1F610  ; Common
+1F612..1F614  ; Common
+1F616         ; Common
+1F618         ; Common
+1F61A         ; Common
+1F61C..1F61E  ; Common
+1F620..1F625  ; Common
+1F628..1F62B  ; Common
+1F62D         ; Common
+1F630..1F633  ; Common
+1F635..1F640  ; Common
+1F645..1F64F  ; Common
+1F680..1F6C5  ; Common
+1F700..1F773  ; Common
+E0001         ; Common
+E0020..E007F  ; Common
+
+# Total code points: 6379
+
+# ================================================
+
+0041..005A    ; Latin
+0061..007A    ; Latin
+00AA          ; Latin
+00BA          ; Latin
+00C0..00D6    ; Latin
+00D8..00F6    ; Latin
+00F8..01BA    ; Latin
+01BB          ; Latin
+01BC..01BF    ; Latin
+01C0..01C3    ; Latin
+01C4..0293    ; Latin
+0294          ; Latin
+0295..02AF    ; Latin
+02B0..02B8    ; Latin
+02E0..02E4    ; Latin
+1D00..1D25    ; Latin
+1D2C..1D5C    ; Latin
+1D62..1D65    ; Latin
+1D6B..1D77    ; Latin
+1D79..1D9A    ; Latin
+1D9B..1DBE    ; Latin
+1E00..1EFF    ; Latin
+2071          ; Latin
+207F          ; Latin
+2090..209C    ; Latin
+212A..212B    ; Latin
+2132          ; Latin
+214E          ; Latin
+2160..2182    ; Latin
+2183..2184    ; Latin
+2185..2188    ; Latin
+2C60..2C7C    ; Latin
+2C7D          ; Latin
+2C7E..2C7F    ; Latin
+A722..A76F    ; Latin
+A770          ; Latin
+A771..A787    ; Latin
+A78B..A78E    ; Latin
+A790..A791    ; Latin
+A7A0..A7A9    ; Latin
+A7FA          ; Latin
+A7FB..A7FF    ; Latin
+FB00..FB06    ; Latin
+FF21..FF3A    ; Latin
+FF41..FF5A    ; Latin
+
+# Total code points: 1267
+
+# ================================================
+
+0370..0373    ; Greek
+0375          ; Greek
+0376..0377    ; Greek
+037A          ; Greek
+037B..037D    ; Greek
+0384          ; Greek
+0386          ; Greek
+0388..038A    ; Greek
+038C          ; Greek
+038E..03A1    ; Greek
+03A3..03E1    ; Greek
+03F0..03F5    ; Greek
+03F6          ; Greek
+03F7..03FF    ; Greek
+1D26..1D2A    ; Greek
+1D5D..1D61    ; Greek
+1D66..1D6A    ; Greek
+1DBF          ; Greek
+1F00..1F15    ; Greek
+1F18..1F1D    ; Greek
+1F20..1F45    ; Greek
+1F48..1F4D    ; Greek
+1F50..1F57    ; Greek
+1F59          ; Greek
+1F5B          ; Greek
+1F5D          ; Greek
+1F5F..1F7D    ; Greek
+1F80..1FB4    ; Greek
+1FB6..1FBC    ; Greek
+1FBD          ; Greek
+1FBE          ; Greek
+1FBF..1FC1    ; Greek
+1FC2..1FC4    ; Greek
+1FC6..1FCC    ; Greek
+1FCD..1FCF    ; Greek
+1FD0..1FD3    ; Greek
+1FD6..1FDB    ; Greek
+1FDD..1FDF    ; Greek
+1FE0..1FEC    ; Greek
+1FED..1FEF    ; Greek
+1FF2..1FF4    ; Greek
+1FF6..1FFC    ; Greek
+1FFD..1FFE    ; Greek
+2126          ; Greek
+10140..10174  ; Greek
+10175..10178  ; Greek
+10179..10189  ; Greek
+1018A         ; Greek
+1D200..1D241  ; Greek
+1D242..1D244  ; Greek
+1D245         ; Greek
+
+# Total code points: 511
+
+# ================================================
+
+0400..0481    ; Cyrillic
+0482          ; Cyrillic
+0483..0484    ; Cyrillic
+0487          ; Cyrillic
+0488..0489    ; Cyrillic
+048A..0527    ; Cyrillic
+1D2B          ; Cyrillic
+1D78          ; Cyrillic
+2DE0..2DFF    ; Cyrillic
+A640..A66D    ; Cyrillic
+A66E          ; Cyrillic
+A66F          ; Cyrillic
+A670..A672    ; Cyrillic
+A673          ; Cyrillic
+A67C..A67D    ; Cyrillic
+A67E          ; Cyrillic
+A67F          ; Cyrillic
+A680..A697    ; Cyrillic
+
+# Total code points: 408
+
+# ================================================
+
+0531..0556    ; Armenian
+0559          ; Armenian
+055A..055F    ; Armenian
+0561..0587    ; Armenian
+058A          ; Armenian
+FB13..FB17    ; Armenian
+
+# Total code points: 90
+
+# ================================================
+
+0591..05BD    ; Hebrew
+05BE          ; Hebrew
+05BF          ; Hebrew
+05C0          ; Hebrew
+05C1..05C2    ; Hebrew
+05C3          ; Hebrew
+05C4..05C5    ; Hebrew
+05C6          ; Hebrew
+05C7          ; Hebrew
+05D0..05EA    ; Hebrew
+05F0..05F2    ; Hebrew
+05F3..05F4    ; Hebrew
+FB1D          ; Hebrew
+FB1E          ; Hebrew
+FB1F..FB28    ; Hebrew
+FB29          ; Hebrew
+FB2A..FB36    ; Hebrew
+FB38..FB3C    ; Hebrew
+FB3E          ; Hebrew
+FB40..FB41    ; Hebrew
+FB43..FB44    ; Hebrew
+FB46..FB4F    ; Hebrew
+
+# Total code points: 133
+
+# ================================================
+
+0600..0603    ; Arabic
+0606..0608    ; Arabic
+0609..060A    ; Arabic
+060B          ; Arabic
+060D          ; Arabic
+060E..060F    ; Arabic
+0610..061A    ; Arabic
+061E          ; Arabic
+0620..063F    ; Arabic
+0641..064A    ; Arabic
+0656..065E    ; Arabic
+066A..066D    ; Arabic
+066E..066F    ; Arabic
+0671..06D3    ; Arabic
+06D4          ; Arabic
+06D5          ; Arabic
+06D6..06DC    ; Arabic
+06DE          ; Arabic
+06DF..06E4    ; Arabic
+06E5..06E6    ; Arabic
+06E7..06E8    ; Arabic
+06E9          ; Arabic
+06EA..06ED    ; Arabic
+06EE..06EF    ; Arabic
+06F0..06F9    ; Arabic
+06FA..06FC    ; Arabic
+06FD..06FE    ; Arabic
+06FF          ; Arabic
+0750..077F    ; Arabic
+FB50..FBB1    ; Arabic
+FBB2..FBC1    ; Arabic
+FBD3..FD3D    ; Arabic
+FD50..FD8F    ; Arabic
+FD92..FDC7    ; Arabic
+FDF0..FDFB    ; Arabic
+FDFC          ; Arabic
+FE70..FE74    ; Arabic
+FE76..FEFC    ; Arabic
+10E60..10E7E  ; Arabic
+
+# Total code points: 1051
+
+# ================================================
+
+0700..070D    ; Syriac
+070F          ; Syriac
+0710          ; Syriac
+0711          ; Syriac
+0712..072F    ; Syriac
+0730..074A    ; Syriac
+074D..074F    ; Syriac
+
+# Total code points: 77
+
+# ================================================
+
+0780..07A5    ; Thaana
+07A6..07B0    ; Thaana
+07B1          ; Thaana
+
+# Total code points: 50
+
+# ================================================
+
+0900..0902    ; Devanagari
+0903          ; Devanagari
+0904..0939    ; Devanagari
+093A          ; Devanagari
+093B          ; Devanagari
+093C          ; Devanagari
+093D          ; Devanagari
+093E..0940    ; Devanagari
+0941..0948    ; Devanagari
+0949..094C    ; Devanagari
+094D          ; Devanagari
+094E..094F    ; Devanagari
+0950          ; Devanagari
+0953..0957    ; Devanagari
+0958..0961    ; Devanagari
+0962..0963    ; Devanagari
+0966..096F    ; Devanagari
+0971          ; Devanagari
+0972..0977    ; Devanagari
+0979..097F    ; Devanagari
+A8E0..A8F1    ; Devanagari
+A8F2..A8F7    ; Devanagari
+A8F8..A8FA    ; Devanagari
+A8FB          ; Devanagari
+
+# Total code points: 150
+
+# ================================================
+
+0981          ; Bengali
+0982..0983    ; Bengali
+0985..098C    ; Bengali
+098F..0990    ; Bengali
+0993..09A8    ; Bengali
+09AA..09B0    ; Bengali
+09B2          ; Bengali
+09B6..09B9    ; Bengali
+09BC          ; Bengali
+09BD          ; Bengali
+09BE..09C0    ; Bengali
+09C1..09C4    ; Bengali
+09C7..09C8    ; Bengali
+09CB..09CC    ; Bengali
+09CD          ; Bengali
+09CE          ; Bengali
+09D7          ; Bengali
+09DC..09DD    ; Bengali
+09DF..09E1    ; Bengali
+09E2..09E3    ; Bengali
+09E6..09EF    ; Bengali
+09F0..09F1    ; Bengali
+09F2..09F3    ; Bengali
+09F4..09F9    ; Bengali
+09FA          ; Bengali
+09FB          ; Bengali
+
+# Total code points: 92
+
+# ================================================
+
+0A01..0A02    ; Gurmukhi
+0A03          ; Gurmukhi
+0A05..0A0A    ; Gurmukhi
+0A0F..0A10    ; Gurmukhi
+0A13..0A28    ; Gurmukhi
+0A2A..0A30    ; Gurmukhi
+0A32..0A33    ; Gurmukhi
+0A35..0A36    ; Gurmukhi
+0A38..0A39    ; Gurmukhi
+0A3C          ; Gurmukhi
+0A3E..0A40    ; Gurmukhi
+0A41..0A42    ; Gurmukhi
+0A47..0A48    ; Gurmukhi
+0A4B..0A4D    ; Gurmukhi
+0A51          ; Gurmukhi
+0A59..0A5C    ; Gurmukhi
+0A5E          ; Gurmukhi
+0A66..0A6F    ; Gurmukhi
+0A70..0A71    ; Gurmukhi
+0A72..0A74    ; Gurmukhi
+0A75          ; Gurmukhi
+
+# Total code points: 79
+
+# ================================================
+
+0A81..0A82    ; Gujarati
+0A83          ; Gujarati
+0A85..0A8D    ; Gujarati
+0A8F..0A91    ; Gujarati
+0A93..0AA8    ; Gujarati
+0AAA..0AB0    ; Gujarati
+0AB2..0AB3    ; Gujarati
+0AB5..0AB9    ; Gujarati
+0ABC          ; Gujarati
+0ABD          ; Gujarati
+0ABE..0AC0    ; Gujarati
+0AC1..0AC5    ; Gujarati
+0AC7..0AC8    ; Gujarati
+0AC9          ; Gujarati
+0ACB..0ACC    ; Gujarati
+0ACD          ; Gujarati
+0AD0          ; Gujarati
+0AE0..0AE1    ; Gujarati
+0AE2..0AE3    ; Gujarati
+0AE6..0AEF    ; Gujarati
+0AF1          ; Gujarati
+
+# Total code points: 83
+
+# ================================================
+
+0B01          ; Oriya
+0B02..0B03    ; Oriya
+0B05..0B0C    ; Oriya
+0B0F..0B10    ; Oriya
+0B13..0B28    ; Oriya
+0B2A..0B30    ; Oriya
+0B32..0B33    ; Oriya
+0B35..0B39    ; Oriya
+0B3C          ; Oriya
+0B3D          ; Oriya
+0B3E          ; Oriya
+0B3F          ; Oriya
+0B40          ; Oriya
+0B41..0B44    ; Oriya
+0B47..0B48    ; Oriya
+0B4B..0B4C    ; Oriya
+0B4D          ; Oriya
+0B56          ; Oriya
+0B57          ; Oriya
+0B5C..0B5D    ; Oriya
+0B5F..0B61    ; Oriya
+0B62..0B63    ; Oriya
+0B66..0B6F    ; Oriya
+0B70          ; Oriya
+0B71          ; Oriya
+0B72..0B77    ; Oriya
+
+# Total code points: 90
+
+# ================================================
+
+0B82          ; Tamil
+0B83          ; Tamil
+0B85..0B8A    ; Tamil
+0B8E..0B90    ; Tamil
+0B92..0B95    ; Tamil
+0B99..0B9A    ; Tamil
+0B9C          ; Tamil
+0B9E..0B9F    ; Tamil
+0BA3..0BA4    ; Tamil
+0BA8..0BAA    ; Tamil
+0BAE..0BB9    ; Tamil
+0BBE..0BBF    ; Tamil
+0BC0          ; Tamil
+0BC1..0BC2    ; Tamil
+0BC6..0BC8    ; Tamil
+0BCA..0BCC    ; Tamil
+0BCD          ; Tamil
+0BD0          ; Tamil
+0BD7          ; Tamil
+0BE6..0BEF    ; Tamil
+0BF0..0BF2    ; Tamil
+0BF3..0BF8    ; Tamil
+0BF9          ; Tamil
+0BFA          ; Tamil
+
+# Total code points: 72
+
+# ================================================
+
+0C01..0C03    ; Telugu
+0C05..0C0C    ; Telugu
+0C0E..0C10    ; Telugu
+0C12..0C28    ; Telugu
+0C2A..0C33    ; Telugu
+0C35..0C39    ; Telugu
+0C3D          ; Telugu
+0C3E..0C40    ; Telugu
+0C41..0C44    ; Telugu
+0C46..0C48    ; Telugu
+0C4A..0C4D    ; Telugu
+0C55..0C56    ; Telugu
+0C58..0C59    ; Telugu
+0C60..0C61    ; Telugu
+0C62..0C63    ; Telugu
+0C66..0C6F    ; Telugu
+0C78..0C7E    ; Telugu
+0C7F          ; Telugu
+
+# Total code points: 93
+
+# ================================================
+
+0C82..0C83    ; Kannada
+0C85..0C8C    ; Kannada
+0C8E..0C90    ; Kannada
+0C92..0CA8    ; Kannada
+0CAA..0CB3    ; Kannada
+0CB5..0CB9    ; Kannada
+0CBC          ; Kannada
+0CBD          ; Kannada
+0CBE          ; Kannada
+0CBF          ; Kannada
+0CC0..0CC4    ; Kannada
+0CC6          ; Kannada
+0CC7..0CC8    ; Kannada
+0CCA..0CCB    ; Kannada
+0CCC..0CCD    ; Kannada
+0CD5..0CD6    ; Kannada
+0CDE          ; Kannada
+0CE0..0CE1    ; Kannada
+0CE2..0CE3    ; Kannada
+0CE6..0CEF    ; Kannada
+0CF1..0CF2    ; Kannada
+
+# Total code points: 86
+
+# ================================================
+
+0D02..0D03    ; Malayalam
+0D05..0D0C    ; Malayalam
+0D0E..0D10    ; Malayalam
+0D12..0D3A    ; Malayalam
+0D3D          ; Malayalam
+0D3E..0D40    ; Malayalam
+0D41..0D44    ; Malayalam
+0D46..0D48    ; Malayalam
+0D4A..0D4C    ; Malayalam
+0D4D          ; Malayalam
+0D4E          ; Malayalam
+0D57          ; Malayalam
+0D60..0D61    ; Malayalam
+0D62..0D63    ; Malayalam
+0D66..0D6F    ; Malayalam
+0D70..0D75    ; Malayalam
+0D79          ; Malayalam
+0D7A..0D7F    ; Malayalam
+
+# Total code points: 98
+
+# ================================================
+
+0D82..0D83    ; Sinhala
+0D85..0D96    ; Sinhala
+0D9A..0DB1    ; Sinhala
+0DB3..0DBB    ; Sinhala
+0DBD          ; Sinhala
+0DC0..0DC6    ; Sinhala
+0DCA          ; Sinhala
+0DCF..0DD1    ; Sinhala
+0DD2..0DD4    ; Sinhala
+0DD6          ; Sinhala
+0DD8..0DDF    ; Sinhala
+0DF2..0DF3    ; Sinhala
+0DF4          ; Sinhala
+
+# Total code points: 80
+
+# ================================================
+
+0E01..0E30    ; Thai
+0E31          ; Thai
+0E32..0E33    ; Thai
+0E34..0E3A    ; Thai
+0E40..0E45    ; Thai
+0E46          ; Thai
+0E47..0E4E    ; Thai
+0E4F          ; Thai
+0E50..0E59    ; Thai
+0E5A..0E5B    ; Thai
+
+# Total code points: 86
+
+# ================================================
+
+0E81..0E82    ; Lao
+0E84          ; Lao
+0E87..0E88    ; Lao
+0E8A          ; Lao
+0E8D          ; Lao
+0E94..0E97    ; Lao
+0E99..0E9F    ; Lao
+0EA1..0EA3    ; Lao
+0EA5          ; Lao
+0EA7          ; Lao
+0EAA..0EAB    ; Lao
+0EAD..0EB0    ; Lao
+0EB1          ; Lao
+0EB2..0EB3    ; Lao
+0EB4..0EB9    ; Lao
+0EBB..0EBC    ; Lao
+0EBD          ; Lao
+0EC0..0EC4    ; Lao
+0EC6          ; Lao
+0EC8..0ECD    ; Lao
+0ED0..0ED9    ; Lao
+0EDC..0EDD    ; Lao
+
+# Total code points: 65
+
+# ================================================
+
+0F00          ; Tibetan
+0F01..0F03    ; Tibetan
+0F04..0F12    ; Tibetan
+0F13..0F17    ; Tibetan
+0F18..0F19    ; Tibetan
+0F1A..0F1F    ; Tibetan
+0F20..0F29    ; Tibetan
+0F2A..0F33    ; Tibetan
+0F34          ; Tibetan
+0F35          ; Tibetan
+0F36          ; Tibetan
+0F37          ; Tibetan
+0F38          ; Tibetan
+0F39          ; Tibetan
+0F3A          ; Tibetan
+0F3B          ; Tibetan
+0F3C          ; Tibetan
+0F3D          ; Tibetan
+0F3E..0F3F    ; Tibetan
+0F40..0F47    ; Tibetan
+0F49..0F6C    ; Tibetan
+0F71..0F7E    ; Tibetan
+0F7F          ; Tibetan
+0F80..0F84    ; Tibetan
+0F85          ; Tibetan
+0F86..0F87    ; Tibetan
+0F88..0F8C    ; Tibetan
+0F8D..0F97    ; Tibetan
+0F99..0FBC    ; Tibetan
+0FBE..0FC5    ; Tibetan
+0FC6          ; Tibetan
+0FC7..0FCC    ; Tibetan
+0FCE..0FCF    ; Tibetan
+0FD0..0FD4    ; Tibetan
+0FD9..0FDA    ; Tibetan
+
+# Total code points: 207
+
+# ================================================
+
+1000..102A    ; Myanmar
+102B..102C    ; Myanmar
+102D..1030    ; Myanmar
+1031          ; Myanmar
+1032..1037    ; Myanmar
+1038          ; Myanmar
+1039..103A    ; Myanmar
+103B..103C    ; Myanmar
+103D..103E    ; Myanmar
+103F          ; Myanmar
+1040..1049    ; Myanmar
+104A..104F    ; Myanmar
+1050..1055    ; Myanmar
+1056..1057    ; Myanmar
+1058..1059    ; Myanmar
+105A..105D    ; Myanmar
+105E..1060    ; Myanmar
+1061          ; Myanmar
+1062..1064    ; Myanmar
+1065..1066    ; Myanmar
+1067..106D    ; Myanmar
+106E..1070    ; Myanmar
+1071..1074    ; Myanmar
+1075..1081    ; Myanmar
+1082          ; Myanmar
+1083..1084    ; Myanmar
+1085..1086    ; Myanmar
+1087..108C    ; Myanmar
+108D          ; Myanmar
+108E          ; Myanmar
+108F          ; Myanmar
+1090..1099    ; Myanmar
+109A..109C    ; Myanmar
+109D          ; Myanmar
+109E..109F    ; Myanmar
+AA60..AA6F    ; Myanmar
+AA70          ; Myanmar
+AA71..AA76    ; Myanmar
+AA77..AA79    ; Myanmar
+AA7A          ; Myanmar
+AA7B          ; Myanmar
+
+# Total code points: 188
+
+# ================================================
+
+10A0..10C5    ; Georgian
+10D0..10FA    ; Georgian
+10FC          ; Georgian
+2D00..2D25    ; Georgian
+
+# Total code points: 120
+
+# ================================================
+
+1100..11FF    ; Hangul
+302E..302F    ; Hangul
+3131..318E    ; Hangul
+3200..321E    ; Hangul
+3260..327E    ; Hangul
+A960..A97C    ; Hangul
+AC00..D7A3    ; Hangul
+D7B0..D7C6    ; Hangul
+D7CB..D7FB    ; Hangul
+FFA0..FFBE    ; Hangul
+FFC2..FFC7    ; Hangul
+FFCA..FFCF    ; Hangul
+FFD2..FFD7    ; Hangul
+FFDA..FFDC    ; Hangul
+
+# Total code points: 11739
+
+# ================================================
+
+1200..1248    ; Ethiopic
+124A..124D    ; Ethiopic
+1250..1256    ; Ethiopic
+1258          ; Ethiopic
+125A..125D    ; Ethiopic
+1260..1288    ; Ethiopic
+128A..128D    ; Ethiopic
+1290..12B0    ; Ethiopic
+12B2..12B5    ; Ethiopic
+12B8..12BE    ; Ethiopic
+12C0          ; Ethiopic
+12C2..12C5    ; Ethiopic
+12C8..12D6    ; Ethiopic
+12D8..1310    ; Ethiopic
+1312..1315    ; Ethiopic
+1318..135A    ; Ethiopic
+135D..135F    ; Ethiopic
+1360          ; Ethiopic
+1361..1368    ; Ethiopic
+1369..137C    ; Ethiopic
+1380..138F    ; Ethiopic
+1390..1399    ; Ethiopic
+2D80..2D96    ; Ethiopic
+2DA0..2DA6    ; Ethiopic
+2DA8..2DAE    ; Ethiopic
+2DB0..2DB6    ; Ethiopic
+2DB8..2DBE    ; Ethiopic
+2DC0..2DC6    ; Ethiopic
+2DC8..2DCE    ; Ethiopic
+2DD0..2DD6    ; Ethiopic
+2DD8..2DDE    ; Ethiopic
+AB01..AB06    ; Ethiopic
+AB09..AB0E    ; Ethiopic
+AB11..AB16    ; Ethiopic
+AB20..AB26    ; Ethiopic
+AB28..AB2E    ; Ethiopic
+
+# Total code points: 495
+
+# ================================================
+
+13A0..13F4    ; Cherokee
+
+# Total code points: 85
+
+# ================================================
+
+1400          ; Canadian_Aboriginal
+1401..166C    ; Canadian_Aboriginal
+166D..166E    ; Canadian_Aboriginal
+166F..167F    ; Canadian_Aboriginal
+18B0..18F5    ; Canadian_Aboriginal
+
+# Total code points: 710
+
+# ================================================
+
+1680          ; Ogham
+1681..169A    ; Ogham
+169B          ; Ogham
+169C          ; Ogham
+
+# Total code points: 29
+
+# ================================================
+
+16A0..16EA    ; Runic
+16EE..16F0    ; Runic
+
+# Total code points: 78
+
+# ================================================
+
+1780..17B3    ; Khmer
+17B4..17B5    ; Khmer
+17B6          ; Khmer
+17B7..17BD    ; Khmer
+17BE..17C5    ; Khmer
+17C6          ; Khmer
+17C7..17C8    ; Khmer
+17C9..17D3    ; Khmer
+17D4..17D6    ; Khmer
+17D7          ; Khmer
+17D8..17DA    ; Khmer
+17DB          ; Khmer
+17DC          ; Khmer
+17DD          ; Khmer
+17E0..17E9    ; Khmer
+17F0..17F9    ; Khmer
+19E0..19FF    ; Khmer
+
+# Total code points: 146
+
+# ================================================
+
+1800..1801    ; Mongolian
+1804          ; Mongolian
+1806          ; Mongolian
+1807..180A    ; Mongolian
+180B..180D    ; Mongolian
+180E          ; Mongolian
+1810..1819    ; Mongolian
+1820..1842    ; Mongolian
+1843          ; Mongolian
+1844..1877    ; Mongolian
+1880..18A8    ; Mongolian
+18A9          ; Mongolian
+18AA          ; Mongolian
+
+# Total code points: 153
+
+# ================================================
+
+3041..3096    ; Hiragana
+309D..309E    ; Hiragana
+309F          ; Hiragana
+1B001         ; Hiragana
+1F200         ; Hiragana
+
+# Total code points: 91
+
+# ================================================
+
+30A1..30FA    ; Katakana
+30FD..30FE    ; Katakana
+30FF          ; Katakana
+31F0..31FF    ; Katakana
+32D0..32FE    ; Katakana
+3300..3357    ; Katakana
+FF66..FF6F    ; Katakana
+FF71..FF9D    ; Katakana
+1B000         ; Katakana
+
+# Total code points: 300
+
+# ================================================
+
+02EA..02EB    ; Bopomofo
+3105..312D    ; Bopomofo
+31A0..31BA    ; Bopomofo
+
+# Total code points: 70
+
+# ================================================
+
+2E80..2E99    ; Han
+2E9B..2EF3    ; Han
+2F00..2FD5    ; Han
+3005          ; Han
+3007          ; Han
+3021..3029    ; Han
+3038..303A    ; Han
+303B          ; Han
+3400..4DB5    ; Han
+4E00..9FCB    ; Han
+F900..FA2D    ; Han
+FA30..FA6D    ; Han
+FA70..FAD9    ; Han
+20000..2A6D6  ; Han
+2A700..2B734  ; Han
+2B740..2B81D  ; Han
+2F800..2FA1D  ; Han
+
+# Total code points: 75960
+
+# ================================================
+
+A000..A014    ; Yi
+A015          ; Yi
+A016..A48C    ; Yi
+A490..A4C6    ; Yi
+
+# Total code points: 1220
+
+# ================================================
+
+10300..1031E  ; Old_Italic
+10320..10323  ; Old_Italic
+
+# Total code points: 35
+
+# ================================================
+
+10330..10340  ; Gothic
+10341         ; Gothic
+10342..10349  ; Gothic
+1034A         ; Gothic
+
+# Total code points: 27
+
+# ================================================
+
+10400..1044F  ; Deseret
+
+# Total code points: 80
+
+# ================================================
+
+0300..036F    ; Inherited
+0485..0486    ; Inherited
+064B..0655    ; Inherited
+065F          ; Inherited
+0670          ; Inherited
+0951..0952    ; Inherited
+1CD0..1CD2    ; Inherited
+1CD4..1CE0    ; Inherited
+1CE2..1CE8    ; Inherited
+1CED          ; Inherited
+1DC0..1DE6    ; Inherited
+1DFC..1DFF    ; Inherited
+200C..200D    ; Inherited
+20D0..20DC    ; Inherited
+20DD..20E0    ; Inherited
+20E1          ; Inherited
+20E2..20E4    ; Inherited
+20E5..20F0    ; Inherited
+302A..302D    ; Inherited
+3099..309A    ; Inherited
+FE00..FE0F    ; Inherited
+FE20..FE26    ; Inherited
+101FD         ; Inherited
+1D167..1D169  ; Inherited
+1D17B..1D182  ; Inherited
+1D185..1D18B  ; Inherited
+1D1AA..1D1AD  ; Inherited
+E0100..E01EF  ; Inherited
+
+# Total code points: 523
+
+# ================================================
+
+1700..170C    ; Tagalog
+170E..1711    ; Tagalog
+1712..1714    ; Tagalog
+
+# Total code points: 20
+
+# ================================================
+
+1720..1731    ; Hanunoo
+1732..1734    ; Hanunoo
+
+# Total code points: 21
+
+# ================================================
+
+1740..1751    ; Buhid
+1752..1753    ; Buhid
+
+# Total code points: 20
+
+# ================================================
+
+1760..176C    ; Tagbanwa
+176E..1770    ; Tagbanwa
+1772..1773    ; Tagbanwa
+
+# Total code points: 18
+
+# ================================================
+
+1900..191C    ; Limbu
+1920..1922    ; Limbu
+1923..1926    ; Limbu
+1927..1928    ; Limbu
+1929..192B    ; Limbu
+1930..1931    ; Limbu
+1932          ; Limbu
+1933..1938    ; Limbu
+1939..193B    ; Limbu
+1940          ; Limbu
+1944..1945    ; Limbu
+1946..194F    ; Limbu
+
+# Total code points: 66
+
+# ================================================
+
+1950..196D    ; Tai_Le
+1970..1974    ; Tai_Le
+
+# Total code points: 35
+
+# ================================================
+
+10000..1000B  ; Linear_B
+1000D..10026  ; Linear_B
+10028..1003A  ; Linear_B
+1003C..1003D  ; Linear_B
+1003F..1004D  ; Linear_B
+10050..1005D  ; Linear_B
+10080..100FA  ; Linear_B
+
+# Total code points: 211
+
+# ================================================
+
+10380..1039D  ; Ugaritic
+1039F         ; Ugaritic
+
+# Total code points: 31
+
+# ================================================
+
+10450..1047F  ; Shavian
+
+# Total code points: 48
+
+# ================================================
+
+10480..1049D  ; Osmanya
+104A0..104A9  ; Osmanya
+
+# Total code points: 40
+
+# ================================================
+
+10800..10805  ; Cypriot
+10808         ; Cypriot
+1080A..10835  ; Cypriot
+10837..10838  ; Cypriot
+1083C         ; Cypriot
+1083F         ; Cypriot
+
+# Total code points: 55
+
+# ================================================
+
+2800..28FF    ; Braille
+
+# Total code points: 256
+
+# ================================================
+
+1A00..1A16    ; Buginese
+1A17..1A18    ; Buginese
+1A19..1A1B    ; Buginese
+1A1E..1A1F    ; Buginese
+
+# Total code points: 30
+
+# ================================================
+
+03E2..03EF    ; Coptic
+2C80..2CE4    ; Coptic
+2CE5..2CEA    ; Coptic
+2CEB..2CEE    ; Coptic
+2CEF..2CF1    ; Coptic
+2CF9..2CFC    ; Coptic
+2CFD          ; Coptic
+2CFE..2CFF    ; Coptic
+
+# Total code points: 135
+
+# ================================================
+
+1980..19AB    ; New_Tai_Lue
+19B0..19C0    ; New_Tai_Lue
+19C1..19C7    ; New_Tai_Lue
+19C8..19C9    ; New_Tai_Lue
+19D0..19D9    ; New_Tai_Lue
+19DA          ; New_Tai_Lue
+19DE..19DF    ; New_Tai_Lue
+
+# Total code points: 83
+
+# ================================================
+
+2C00..2C2E    ; Glagolitic
+2C30..2C5E    ; Glagolitic
+
+# Total code points: 94
+
+# ================================================
+
+2D30..2D65    ; Tifinagh
+2D6F          ; Tifinagh
+2D70          ; Tifinagh
+2D7F          ; Tifinagh
+
+# Total code points: 57
+
+# ================================================
+
+A800..A801    ; Syloti_Nagri
+A802          ; Syloti_Nagri
+A803..A805    ; Syloti_Nagri
+A806          ; Syloti_Nagri
+A807..A80A    ; Syloti_Nagri
+A80B          ; Syloti_Nagri
+A80C..A822    ; Syloti_Nagri
+A823..A824    ; Syloti_Nagri
+A825..A826    ; Syloti_Nagri
+A827          ; Syloti_Nagri
+A828..A82B    ; Syloti_Nagri
+
+# Total code points: 44
+
+# ================================================
+
+103A0..103C3  ; Old_Persian
+103C8..103CF  ; Old_Persian
+103D0         ; Old_Persian
+103D1..103D5  ; Old_Persian
+
+# Total code points: 50
+
+# ================================================
+
+10A00         ; Kharoshthi
+10A01..10A03  ; Kharoshthi
+10A05..10A06  ; Kharoshthi
+10A0C..10A0F  ; Kharoshthi
+10A10..10A13  ; Kharoshthi
+10A15..10A17  ; Kharoshthi
+10A19..10A33  ; Kharoshthi
+10A38..10A3A  ; Kharoshthi
+10A3F         ; Kharoshthi
+10A40..10A47  ; Kharoshthi
+10A50..10A58  ; Kharoshthi
+
+# Total code points: 65
+
+# ================================================
+
+1B00..1B03    ; Balinese
+1B04          ; Balinese
+1B05..1B33    ; Balinese
+1B34          ; Balinese
+1B35          ; Balinese
+1B36..1B3A    ; Balinese
+1B3B          ; Balinese
+1B3C          ; Balinese
+1B3D..1B41    ; Balinese
+1B42          ; Balinese
+1B43..1B44    ; Balinese
+1B45..1B4B    ; Balinese
+1B50..1B59    ; Balinese
+1B5A..1B60    ; Balinese
+1B61..1B6A    ; Balinese
+1B6B..1B73    ; Balinese
+1B74..1B7C    ; Balinese
+
+# Total code points: 121
+
+# ================================================
+
+12000..1236E  ; Cuneiform
+12400..12462  ; Cuneiform
+12470..12473  ; Cuneiform
+
+# Total code points: 982
+
+# ================================================
+
+10900..10915  ; Phoenician
+10916..1091B  ; Phoenician
+1091F         ; Phoenician
+
+# Total code points: 29
+
+# ================================================
+
+A840..A873    ; Phags_Pa
+A874..A877    ; Phags_Pa
+
+# Total code points: 56
+
+# ================================================
+
+07C0..07C9    ; Nko
+07CA..07EA    ; Nko
+07EB..07F3    ; Nko
+07F4..07F5    ; Nko
+07F6          ; Nko
+07F7..07F9    ; Nko
+07FA          ; Nko
+
+# Total code points: 59
+
+# ================================================
+
+1B80..1B81    ; Sundanese
+1B82          ; Sundanese
+1B83..1BA0    ; Sundanese
+1BA1          ; Sundanese
+1BA2..1BA5    ; Sundanese
+1BA6..1BA7    ; Sundanese
+1BA8..1BA9    ; Sundanese
+1BAA          ; Sundanese
+1BAE..1BAF    ; Sundanese
+1BB0..1BB9    ; Sundanese
+
+# Total code points: 55
+
+# ================================================
+
+1C00..1C23    ; Lepcha
+1C24..1C2B    ; Lepcha
+1C2C..1C33    ; Lepcha
+1C34..1C35    ; Lepcha
+1C36..1C37    ; Lepcha
+1C3B..1C3F    ; Lepcha
+1C40..1C49    ; Lepcha
+1C4D..1C4F    ; Lepcha
+
+# Total code points: 74
+
+# ================================================
+
+1C50..1C59    ; Ol_Chiki
+1C5A..1C77    ; Ol_Chiki
+1C78..1C7D    ; Ol_Chiki
+1C7E..1C7F    ; Ol_Chiki
+
+# Total code points: 48
+
+# ================================================
+
+A500..A60B    ; Vai
+A60C          ; Vai
+A60D..A60F    ; Vai
+A610..A61F    ; Vai
+A620..A629    ; Vai
+A62A..A62B    ; Vai
+
+# Total code points: 300
+
+# ================================================
+
+A880..A881    ; Saurashtra
+A882..A8B3    ; Saurashtra
+A8B4..A8C3    ; Saurashtra
+A8C4          ; Saurashtra
+A8CE..A8CF    ; Saurashtra
+A8D0..A8D9    ; Saurashtra
+
+# Total code points: 81
+
+# ================================================
+
+A900..A909    ; Kayah_Li
+A90A..A925    ; Kayah_Li
+A926..A92D    ; Kayah_Li
+A92E..A92F    ; Kayah_Li
+
+# Total code points: 48
+
+# ================================================
+
+A930..A946    ; Rejang
+A947..A951    ; Rejang
+A952..A953    ; Rejang
+A95F          ; Rejang
+
+# Total code points: 37
+
+# ================================================
+
+10280..1029C  ; Lycian
+
+# Total code points: 29
+
+# ================================================
+
+102A0..102D0  ; Carian
+
+# Total code points: 49
+
+# ================================================
+
+10920..10939  ; Lydian
+1093F         ; Lydian
+
+# Total code points: 27
+
+# ================================================
+
+AA00..AA28    ; Cham
+AA29..AA2E    ; Cham
+AA2F..AA30    ; Cham
+AA31..AA32    ; Cham
+AA33..AA34    ; Cham
+AA35..AA36    ; Cham
+AA40..AA42    ; Cham
+AA43          ; Cham
+AA44..AA4B    ; Cham
+AA4C          ; Cham
+AA4D          ; Cham
+AA50..AA59    ; Cham
+AA5C..AA5F    ; Cham
+
+# Total code points: 83
+
+# ================================================
+
+1A20..1A54    ; Tai_Tham
+1A55          ; Tai_Tham
+1A56          ; Tai_Tham
+1A57          ; Tai_Tham
+1A58..1A5E    ; Tai_Tham
+1A60          ; Tai_Tham
+1A61          ; Tai_Tham
+1A62          ; Tai_Tham
+1A63..1A64    ; Tai_Tham
+1A65..1A6C    ; Tai_Tham
+1A6D..1A72    ; Tai_Tham
+1A73..1A7C    ; Tai_Tham
+1A7F          ; Tai_Tham
+1A80..1A89    ; Tai_Tham
+1A90..1A99    ; Tai_Tham
+1AA0..1AA6    ; Tai_Tham
+1AA7          ; Tai_Tham
+1AA8..1AAD    ; Tai_Tham
+
+# Total code points: 127
+
+# ================================================
+
+AA80..AAAF    ; Tai_Viet
+AAB0          ; Tai_Viet
+AAB1          ; Tai_Viet
+AAB2..AAB4    ; Tai_Viet
+AAB5..AAB6    ; Tai_Viet
+AAB7..AAB8    ; Tai_Viet
+AAB9..AABD    ; Tai_Viet
+AABE..AABF    ; Tai_Viet
+AAC0          ; Tai_Viet
+AAC1          ; Tai_Viet
+AAC2          ; Tai_Viet
+AADB..AADC    ; Tai_Viet
+AADD          ; Tai_Viet
+AADE..AADF    ; Tai_Viet
+
+# Total code points: 72
+
+# ================================================
+
+10B00..10B35  ; Avestan
+10B39..10B3F  ; Avestan
+
+# Total code points: 61
+
+# ================================================
+
+13000..1342E  ; Egyptian_Hieroglyphs
+
+# Total code points: 1071
+
+# ================================================
+
+0800..0815    ; Samaritan
+0816..0819    ; Samaritan
+081A          ; Samaritan
+081B..0823    ; Samaritan
+0824          ; Samaritan
+0825..0827    ; Samaritan
+0828          ; Samaritan
+0829..082D    ; Samaritan
+0830..083E    ; Samaritan
+
+# Total code points: 61
+
+# ================================================
+
+A4D0..A4F7    ; Lisu
+A4F8..A4FD    ; Lisu
+A4FE..A4FF    ; Lisu
+
+# Total code points: 48
+
+# ================================================
+
+A6A0..A6E5    ; Bamum
+A6E6..A6EF    ; Bamum
+A6F0..A6F1    ; Bamum
+A6F2..A6F7    ; Bamum
+16800..16A38  ; Bamum
+
+# Total code points: 657
+
+# ================================================
+
+A980..A982    ; Javanese
+A983          ; Javanese
+A984..A9B2    ; Javanese
+A9B3          ; Javanese
+A9B4..A9B5    ; Javanese
+A9B6..A9B9    ; Javanese
+A9BA..A9BB    ; Javanese
+A9BC          ; Javanese
+A9BD..A9C0    ; Javanese
+A9C1..A9CD    ; Javanese
+A9CF          ; Javanese
+A9D0..A9D9    ; Javanese
+A9DE..A9DF    ; Javanese
+
+# Total code points: 91
+
+# ================================================
+
+ABC0..ABE2    ; Meetei_Mayek
+ABE3..ABE4    ; Meetei_Mayek
+ABE5          ; Meetei_Mayek
+ABE6..ABE7    ; Meetei_Mayek
+ABE8          ; Meetei_Mayek
+ABE9..ABEA    ; Meetei_Mayek
+ABEB          ; Meetei_Mayek
+ABEC          ; Meetei_Mayek
+ABED          ; Meetei_Mayek
+ABF0..ABF9    ; Meetei_Mayek
+
+# Total code points: 56
+
+# ================================================
+
+10840..10855  ; Imperial_Aramaic
+10857         ; Imperial_Aramaic
+10858..1085F  ; Imperial_Aramaic
+
+# Total code points: 31
+
+# ================================================
+
+10A60..10A7C  ; Old_South_Arabian
+10A7D..10A7E  ; Old_South_Arabian
+10A7F         ; Old_South_Arabian
+
+# Total code points: 32
+
+# ================================================
+
+10B40..10B55  ; Inscriptional_Parthian
+10B58..10B5F  ; Inscriptional_Parthian
+
+# Total code points: 30
+
+# ================================================
+
+10B60..10B72  ; Inscriptional_Pahlavi
+10B78..10B7F  ; Inscriptional_Pahlavi
+
+# Total code points: 27
+
+# ================================================
+
+10C00..10C48  ; Old_Turkic
+
+# Total code points: 73
+
+# ================================================
+
+11080..11081  ; Kaithi
+11082         ; Kaithi
+11083..110AF  ; Kaithi
+110B0..110B2  ; Kaithi
+110B3..110B6  ; Kaithi
+110B7..110B8  ; Kaithi
+110B9..110BA  ; Kaithi
+110BB..110BC  ; Kaithi
+110BD         ; Kaithi
+110BE..110C1  ; Kaithi
+
+# Total code points: 66
+
+# ================================================
+
+1BC0..1BE5    ; Batak
+1BE6          ; Batak
+1BE7          ; Batak
+1BE8..1BE9    ; Batak
+1BEA..1BEC    ; Batak
+1BED          ; Batak
+1BEE          ; Batak
+1BEF..1BF1    ; Batak
+1BF2..1BF3    ; Batak
+1BFC..1BFF    ; Batak
+
+# Total code points: 56
+
+# ================================================
+
+11000         ; Brahmi
+11001         ; Brahmi
+11002         ; Brahmi
+11003..11037  ; Brahmi
+11038..11046  ; Brahmi
+11047..1104D  ; Brahmi
+11052..11065  ; Brahmi
+11066..1106F  ; Brahmi
+
+# Total code points: 108
+
+# ================================================
+
+0840..0858    ; Mandaic
+0859..085B    ; Mandaic
+085E          ; Mandaic
+
+# Total code points: 29
+
+# EOF

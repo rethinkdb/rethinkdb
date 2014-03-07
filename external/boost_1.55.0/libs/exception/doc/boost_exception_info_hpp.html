@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN'
+'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
+<head>
+	<meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+	<title>boost/exception/info.hpp</title>
+	<link href='reno.css' type='text/css' rel='stylesheet'/>
+</head>
+<body>
+<div class="body-0">
+<div class="body-1">
+<div class="body-2">
+<div>
+<div id="boost_logo">
+<a href="http://www.boost.org"><img style="border:0" src="../../../boost.png" alt="Boost" width="277" height="86"/></a>
+</div>
+<h1>Boost Exception</h1>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="RenoIncludeDIV"><div class="RenoAutoDIV"><h2>boost/exception/info.hpp</h2>
+</div>
+<h3>Synopsis</h3>
+<div class="RenoIncludeDIV"><pre>#include &lt;<span class="RenoLink"><a href="boost_exception_exception_hpp.html">boost/exception/exception.hpp</a></span>&gt;
+
+namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    <span class="RenoIncludeSPAN">template &lt;class Tag,class T&gt;
+    class
+    <span class="RenoLink"><a href="error_info.html">error_info</a></span>
+        {
+        public:
+    
+    <span class="RenoIncludeSPAN">    typedef T <span class="RenoLink"><a href="error_info_value_type.html">value_type</a></span>;</span>    
+    
+    <span class="RenoIncludeSPAN">    <span class="RenoLink"><a href="error_info_error_info.html">error_info</a></span>( <span class="RenoLink"><a href="error_info_value_type.html">value_type</a></span> const &amp; v );</span>    
+    <span class="RenoIncludeSPAN">    <span class="RenoLink"><a href="error_info_value_type.html">value_type</a></span> const &amp; <span class="RenoLink"><a href="error_info_value.html">value</a></span>() const;
+        <span class="RenoLink"><a href="error_info_value_type.html">value_type</a></span> &amp; <span class="RenoLink"><a href="error_info_value.html">value</a></span>();</span>    
+        };</span>    
+    
+    <span class="RenoIncludeSPAN">template &lt;class E, class Tag, class T&gt;
+    E const &amp; <span class="RenoLink"><a href="exception_operator_shl.html">operator&lt;&lt;</a></span>( E const &amp; x, <span class="RenoLink"><a href="error_info.html">error_info</a></span>&lt;Tag,T&gt; const &amp; v );</span></span>
+    }</pre>
+</div></div><div class="RenoAutoDIV"><div class="RenoHR"><hr/></div>
+See also: <span class="RenoPageList"><a href="boost_exception_all_hpp.html">boost/exception/all.hpp</a>&nbsp;| <a href="boost_exception_info_tuple_hpp.html">boost/exception/info_tuple.hpp</a>&nbsp;| <a href="error_info.html">error_info</a>&nbsp;| <a href="error_info_error_info.html">error_info::error_info</a>&nbsp;| <a href="error_info_value.html">error_info::value</a>&nbsp;| <a href="error_info_value_type.html">error_info::value_type</a>&nbsp;| <a href="exception_operator_shl.html">exception/operator&lt;&lt;</a>&nbsp;| <a href="synopsis.html">Synopsis</a></span>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div id="footer">
+<p>
+<a class="logo" href="http://jigsaw.w3.org/css-validator/check/referer"><img class="logo_pic" src="valid-css.png" alt="Valid CSS" height="31" width="88"/></a>
+<a class="logo" href="http://validator.w3.org/check?uri=referer"><img class="logo_pic" src="valid-xhtml.png" alt="Valid XHTML 1.0" height="31" width="88"/></a>
+<small>Copyright (c) 2006-2009 by Emil Dotchevski and Reverge Studios, Inc.<br/>
+Distributed under the <a href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License, Version 1.0</a>.</small>
+</p>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

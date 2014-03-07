@@ -1,0 +1,268 @@
+
+[library Boost.Iterator
+    [/ version 1.0.1]
+    [authors [Abrahams, David], [Siek, Jeremy], [Witt, Thomas]]
+    [copyright 2003 2005 David Abrahams Jeremy Siek Thomas Witt]
+    [category iterator]
+    [id iterator]
+    [dirname iterator]
+    [purpose
+    ]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        <ulink url="http://www.boost.org/LICENSE_1_0.txt">
+            http://www.boost.org/LICENSE_1_0.txt
+        </ulink>)
+    ]
+]
+
+[/ QuickBook Document version 1.0 ]
+
+[/  Images   ]
+
+[def _note_               [$images/note.png]]
+[def _alert_              [$images/caution.png]]
+[def _detail_             [$images/note.png]]
+[def _tip_                [$images/tip.png]]
+
+[/  Links   ]
+
+[def _iterator_           [@../../libs/iterator/doc/index.html Boost.Iterator]]
+
+[section:intro Introduction]
+
+[def _concepts_ [@http://www.boost.org/more/generic_programming.html#concept concepts]]
+
+The Boost Iterator Library contains two parts. The first
+is a system of _concepts_ which extend the C++ standard
+iterator requirements. The second is a framework of
+components for building iterators based on these
+extended concepts and includes several useful iterator
+adaptors. The extended iterator concepts have been
+carefully designed so that old-style iterators
+can fit in the new concepts and so that new-style
+iterators will be compatible with old-style algorithms,
+though algorithms may need to be updated if they want to
+take full advantage of the new-style iterator
+capabilities.  Several components of this library have
+been accepted into the C++ standard technical report.
+The components of the Boost Iterator Library replace the
+older Boost Iterator Adaptor Library.
+
+
+[h2 New-Style Iterators]
+
+[def _N1185_      [@http://www.gotw.ca/publications/N1185.pdf N1185]]
+[def _N1211_      [@http://www.gotw.ca/publications/N1211.pdf N1211]]
+[def _GOTW_50_    [@http://www.gotw.ca/gotw/050.htm Guru of the Week]]
+
+The iterator categories defined in C++98 are extremely limiting
+because they bind together two orthogonal concepts: traversal and
+element access.  For example, because a random access iterator is
+required to return a reference (and not a proxy) when dereferenced,
+it is impossible to capture the capabilities of
+`vector<bool>::iterator` using the C++98 categories.  This is the
+infamous "`vector<bool>` is not a container, and its iterators
+aren't random access iterators", debacle about which Herb Sutter
+wrote two papers for the standards comittee (_N1185_ and _N1211_),
+and a _GOTW_50_.  New-style iterators go well beyond
+patching up `vector<bool>`, though: there are lots of other
+iterators already in use which can't be adequately represented by
+the existing concepts.  For details about the new iterator
+concepts, see our [@./new-iter-concepts.html Standard Proposal for New-Style Iterators].
+
+[h2 Iterator Facade and Adaptor]
+
+[def _facade_ [@./iterator_facade.html facade]]
+[def _adaptor_ [@./iterator_adaptor.html adaptor]]
+
+Writing standard-conforming iterators is tricky, but the need comes
+up often.  In order to ease the implementation of new iterators,
+the Boost.Iterator library provides the _facade_ class template,
+which implements many useful defaults and compile-time checks
+designed to help the iterator author ensure that his iterator is
+correct.  
+
+It is also common to define a new iterator that is similar to some
+underlying iterator or iterator-like type, but that modifies some
+aspect of the underlying type's behavior.  For that purpose, the
+library supplies the _adaptor_ class template, which is specially
+designed to take advantage of as much of the underlying type's
+behavior as possible.
+
+Both _facade_ and _adaptor_ as well as many of the `specialized
+adaptors`_ mentioned below have been proposed for standardization 
+([@./facade-and-adaptor.html Standard Proposal For Iterator Facade and Adaptor]).
+
+[h2 Specialized Adaptors]
+
+The iterator library supplies a useful suite of standard-conforming
+iterator templates based on the Boost [link
+intro.iterator_facade_and_adaptor iterator facade and adaptor]
+templates.
+
+[def _counting_    [@./counting_iterator.html         `counting_iterator`]]
+[def _filter_      [@./filter_iterator.html           `filter_iterator`]]
+[def _function_    [@./function_output_iterator.html  `function_output_iterator`]]
+[def _indirect_    [@./indirect_iterator.html         `indirect_iterator`]]
+[def _permutation_ [@./permutation_iterator.html      `permutation_iterator`]]
+[def _reverse_     [@./reverse_iterator.html          `reverse_iterator`]]
+[def _shared_      [@./shared_container_iterator.html `shared_container_iterator`]]
+[def _transform_   [@./transform_iterator.html        `transform_iterator`]]
+[def _zip_         [@./zip_iterator.html              `zip_iterator`]]
+
+[def _shared_ptr_  [@../../smart_ptr/shared_ptr.htm `shared_ptr`]]
+
+* _counting_: an iterator over a sequence of consecutive values.
+  Implements a "lazy sequence"
+
+* _filter_: an iterator over the subset of elements of some
+  sequence which satisfy a given predicate
+
+* _function_: an output iterator wrapping a unary function
+  object; each time an element is written into the dereferenced
+  iterator, it is passed as a parameter to the function object.
+
+* _indirect_: an iterator over the objects *pointed-to* by the
+  elements of some sequence.
+
+* _permutation_: an iterator over the elements of some random-access
+  sequence, rearranged according to some sequence of integer indices.
+
+* _reverse_: an iterator which traverses the elements of some
+  bidirectional sequence in reverse.  Corrects many of the
+  shortcomings of C++98's ``std::reverse_iterator``.
+
+* _shared_: an iterator over elements of a container whose
+  lifetime is maintained by a _shared_ptr_ stored in the iterator.
+
+* _transform_: an iterator over elements which are the result of
+  applying some functional transformation to the elements of an
+  underlying sequence.  This component also replaces the old
+  ``projection_iterator_adaptor``.
+
+* _zip_: an iterator over tuples of the elements at corresponding
+  positions of heterogeneous underlying iterators.
+
+[h2 Iterator Utilities]
+
+[h3 Traits]
+
+[def _pointee_          [@./pointee.html         `pointee.hpp`]]
+[def _iterator_traits_  [@./iterator_traits.html `iterator_traits.hpp`]]
+[def _interoperable_    [@./interoperable.html   `interoperable.hpp`]]
+[def _MPL_              [@../../mpl/doc/index.html   [*MPL]]]
+
+* _pointee_: Provides the capability to deduce the referent types
+  of pointers, smart pointers and iterators in generic code.  Used
+  in _indirect_.
+
+* _iterator_traits_: Provides _MPL_ compatible metafunctions which
+  retrieve an iterator's traits.  Also corrects for the deficiencies
+  of broken implementations of `std::iterator_traits`.
+
+[\ * |interoperable|_ (PDF__): Provides an _MPL_ compatible metafunction for
+     testing iterator interoperability
+]
+
+[h3 Testing and Concept Checking]
+
+[def _iterator_concepts_  [@./iterator_concepts.html `iterator_concepts.hpp`]]
+[def _iterator_archetypes_  [@./iterator_archetypes.html `iterator_archetypes.hpp`]]
+
+* _iterator_concepts_: Concept checking classes for the new iterator concepts.
+
+* _iterator_archetypes_: Concept archetype classes for the new iterators concepts.
+
+[endsect]
+
+[include concepts.qbk]
+
+[section:generic Generic Iterators]
+
+[include facade.qbk]
+
+[include adaptor.qbk]
+
+[endsect]
+
+[include specialized_adaptors.qbk]
+
+[section:utilities Utilities]
+
+[include archetypes.qbk]
+
+[include concept_checking.qbk]
+
+[include traits.qbk]
+
+[include utilities.qbk]
+
+[endsect]
+
+[section:upgrading Upgrading from the old Boost Iterator Adaptor Library]
+
+[def _type_generator_ [@http://www.boost.org/more/generic_programming.html#type_generator type generator]]
+
+If you have been using the old Boost Iterator Adaptor library to
+implement iterators, you probably wrote a `Policies` class which
+captures the core operations of your iterator.  In the new library
+design, you'll move those same core operations into the body of the
+iterator class itself.  If you were writing a family of iterators,
+you probably wrote a _type_generator_ to build the
+`iterator_adaptor` specialization you needed; in the new library
+design you don't need a type generator (though may want to keep it
+around as a compatibility aid for older code) because, due to the
+use of the Curiously Recurring Template Pattern (CRTP) [Cop95]_,
+you can now define the iterator class yourself and acquire
+functionality through inheritance from `iterator_facade` or
+`iterator_adaptor`.  As a result, you also get much finer control
+over how your iterator works: you can add additional constructors,
+or even override the iterator functionality provided by the
+library.
+
+
+If you're looking for the old `projection_iterator` component,
+its functionality has been merged into _transform_iterator_: as
+long as the function object's `result_type` (or the `Reference`
+template argument, if explicitly specified) is a true reference
+type, _transform_iterator_ will behave like
+`projection_iterator` used to.
+
+[endsect]
+
+[section:history History]
+
+In 2000 Dave Abrahams was writing an iterator for a container of
+pointers, which would access the pointed-to elements when
+dereferenced.  Naturally, being a library writer, he decided to
+generalize the idea and the Boost Iterator Adaptor library was born.
+Dave was inspired by some writings of Andrei Alexandrescu and chose a
+policy based design (though he probably didn't capture Andrei's idea
+very well - there was only one policy class for all the iterator's
+orthogonal properties).  Soon Jeremy Siek realized he would need the
+library and they worked together to produce a "Boostified" version,
+which was reviewed and accepted into the library.  They wrote a paper
+and made several important revisions of the code.
+
+Eventually, several shortcomings of the older library began to make
+the need for a rewrite apparent.  Dave and Jeremy started working
+at the Santa Cruz C++ committee meeting in 2002, and had quickly
+generated a working prototype.  At the urging of Mat Marcus, they
+decided to use the GenVoca/CRTP pattern approach, and moved the
+policies into the iterator class itself.  Thomas Witt expressed
+interest and became the voice of strict compile-time checking for
+the project, adding uses of the SFINAE technique to eliminate false
+converting constructors and operators from the overload set.  He
+also recognized the need for a separate `iterator_facade`, and
+factored it out of `iterator_adaptor`.  Finally, after a
+near-complete rewrite of the prototype, they came up with the
+library you see today.
+
+[:\[Coplien, 1995\] Coplien, J., Curiously Recurring Template
+   Patterns, C++ Report, February 1995, pp. 24-27.]
+
+[endsect]
+
+  

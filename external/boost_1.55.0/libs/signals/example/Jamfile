@@ -1,0 +1,28 @@
+# Boost.Signals Library 
+
+# Copyright Douglas Gregor 2001-2003. Use, modification and
+# distribution is subject to the Boost Software License, Version
+# 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# For more information, see http://www.boost.org
+
+project : requirements <library>../build//boost_signals ;
+
+exe button_click : button_click.cpp ;
+
+exe difference_connection : difference_connection.cpp ;
+
+exe disconnect_all : disconnect_all.cpp ;
+
+exe first_positive : first_positive.cpp ;
+
+exe maximum : maximum.cpp ;
+
+exe print_sum_product : print_sum_product.cpp ;
+
+exe quotient_controlling : quotient_controlling.cpp ;
+
+exe quotient_named : quotient_named.cpp ;
+
+exe no_function : no_function.cpp ;

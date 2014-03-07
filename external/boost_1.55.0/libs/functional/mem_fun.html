@@ -1,0 +1,201 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+
+  <title>Boost Function Object Adapter Library</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000">
+  <table border="1" bgcolor="#007F7F" cellpadding="2" summary="">
+    <tr>
+      <td bgcolor="#FFFFFF"><img src="../../boost.png" alt=
+      "boost.png (6897 bytes)" width="277" height="86"></td>
+
+      <td><a href="../../index.htm"><font face="Arial" color=
+      "#FFFFFF"><big>Home</big></font></a></td>
+
+      <td><a href="../libraries.htm"><font face="Arial" color=
+      "#FFFFFF"><big>Libraries</big></font></a></td>
+
+      <td><a href="http://www.boost.org/people/people.htm"><font face="Arial" color=
+      "#FFFFFF"><big>People</big></font></a></td>
+
+      <td><a href="http://www.boost.org/more/faq.htm"><font face="Arial" color=
+      "#FFFFFF"><big>FAQ</big></font></a></td>
+
+      <td><a href="../../more/index.htm"><font face="Arial" color=
+      "#FFFFFF"><big>More</big></font></a></td>
+    </tr>
+  </table>
+
+  <h1>Member Function Adapters</h1>
+
+  <p>The header <a href="../../boost/functional.hpp">functional.hpp</a>
+  includes improved versions of the full range of member function adapters
+  from the the C++ Standard Library (&sect;20.3.8):</p>
+
+  <ul>
+    <li><tt>mem_fun_t</tt></li>
+
+    <li><tt>mem_fun1_t</tt></li>
+
+    <li><tt>const_mem_fun_t</tt></li>
+
+    <li><tt>const_mem_fun1_t</tt></li>
+
+    <li><tt>mem_fun_ref_t</tt></li>
+
+    <li><tt>mem_fun1_ref_t</tt></li>
+
+    <li><tt>const_mem_fun_ref_t</tt></li>
+
+    <li><tt>const_mem_fun1_ref_t</tt></li>
+  </ul>
+
+  <p>as well as the corresponding overloaded helper functions</p>
+
+  <ul>
+    <li><tt>mem_fun</tt></li>
+
+    <li><tt>mem_fun_ref</tt></li>
+  </ul>
+
+  <p>The following changes have been made to the adapters as specified in the
+  Standard:</p>
+
+  <ul>
+    <li>The <tt>first_argument_type</tt> typedef has been corrected for the
+    <tt>const_</tt> family of member function adapters (see <a href=
+    "#firstarg">below</a>).</li>
+
+    <li>The argument passed to <tt>mem_fun1_t</tt> and its variants is passed
+    using the <tt>call_traits::param_type</tt> for the member function's
+    argument type.</li>
+  </ul>
+
+  <h3 id="firstarg">first_argument_type</h3>
+
+  <p>The standard specifies <tt>const_mem_fun1_t</tt>, for example, like
+  this:</p>
+
+  <blockquote>
+    <pre>
+template &lt;class S, class T, class A&gt; class const_mem_fun1_t
+  : public binary_function&lt;<strong>T*</strong>, A, S&gt; {
+public:
+  explicit const_mem_fun1_t(S (T::*p)(A) const);
+  S operator()(<strong>const T*</strong> p, A x) const;
+};
+</pre>
+  </blockquote>
+
+  <p>Note that the first argument to <tt>binary_function</tt> is <tt>T*</tt>
+  despite the fact that the first argument to <tt>operator()</tt> is actually
+  of type <tt><em>const</em>&nbsp;T*</tt>.</p>
+
+  <p>Does this matter? Well, consider what happens when we write</p>
+
+  <blockquote>
+    <pre>
+struct Foo { void bar(int) const; };
+const Foo *cp = new Foo;
+std::bind1st(std::mem_fun(&amp;Foo::bar), cp);
+</pre>
+  </blockquote>
+
+  <p>We have created a <tt>const_mem_fun1_t</tt> object which will
+  effectively contain the following</p>
+
+  <blockquote>
+    <pre>
+typedef Foo* first_argument_type;
+</pre>
+  </blockquote>
+
+  <p>The <tt>bind1st</tt> will then create a <tt>binder1st</tt> object that
+  will use this <tt>typedef</tt> as the type of a member which will be
+  initialised with <tt>cp</tt>. In other words, we will need to initialise a
+  <tt>Foo*</tt> member with a <tt>const&nbsp;Foo*</tt> pointer! Clearly this
+  is not possible, so to implement this your Standard Library vendor will
+  have had to cast away the constness of <tt>cp</tt>, probably within the
+  body of <tt>bind1st</tt>.</p>
+
+  <p>This hack will not suffice with the improved <a href=
+  "binders.html">binders</a> in this library, so we have had to provide
+  corrected versions of the member function adapters as well.</p>
+
+  <h3 id="args">Argument Types</h3>
+
+  <p>The standard defines <tt>mem_fun1_t</tt>, for example, like this
+  (&sect;20.3.8&nbsp;&para;2):</p>
+
+  <blockquote>
+    <pre>
+template &lt;class S, class T, class A&gt; class mem_fun1_t
+  : public binary_function&lt;T*, A, S&gt; {
+public:
+  explicit mem_fun1_t(S (T::*p)(<strong>A</strong>));
+  S operator()(T* p, <strong>A</strong> x) const;
+};
+</pre>
+  </blockquote>
+
+  <p>Note that the second argument to <tt>operator()</tt> is exactly the same
+  type as the argument to the member function. If this is a value type, the
+  argument will be passed by value and copied twice.</p>
+
+  <p>However, if we were to try and eliminate this inefficiency by instead
+  declaring the argument as <tt>const&nbsp;A&amp;</tt>, then if A were a
+  reference type, we would have a reference to a reference, which is
+  currently illegal (but see <a href=
+  "http://anubis.dkuug.dk/jtc1/sc22/wg21/docs/cwg_active.html#106">C++ core
+  language issue number 106)</a></p>
+
+  <p>So the way in which we want to declare the second argument for
+  <tt>operator()</tt> depends on whether or not the member function's
+  argument is a reference. If it is a reference, we want to declare it simply
+  as <tt>A</tt>; if it is a value we want to declare it as
+  <tt>const&nbsp;A&amp;</tt>.</p>
+
+  <p>The Boost <a href="../utility/call_traits.htm">call_traits</a> class
+  template contains a <tt>param_type</tt> typedef, which uses partial
+  specialisation to make precisely this decision. By declaring the
+  <tt>operator()</tt> as</p>
+
+  <blockquote>
+    <pre>
+S operator()(T* p, typename call_traits&lt;A&gt;::param_type x) const
+</pre>
+  </blockquote>
+
+  <p>we achieve the desired result - we improve efficiency without generating
+  references to references.</p>
+
+  <h3>Limitations</h3>
+
+  <p>The call traits template used to realise some improvements relies on
+  partial specialisation, so these improvements are only available on
+  compilers that support that feature. With other compilers, the argument
+  passed to the member function (in the <tt>mem_fun1_t</tt> family) will
+  always be passed by reference, thus generating the possibility of
+  references to references.</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->02 December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38510" --></p>
+
+  <p><i>Copyright &copy; 2000 Cadenza New Zealand Ltd.</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

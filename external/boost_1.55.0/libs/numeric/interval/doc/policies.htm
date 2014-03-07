@@ -1,0 +1,80 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../../../../boost.css">
+
+  <title>Policies</title>
+</head>
+
+<body lang="en">
+  <h1>Policies</h1>
+
+  <p>The <code>interval</code> template requires two arguments. The first
+  corresponds to the base type chosen for the bounds. And the second defines
+  the <a href="rounding.htm">rounding</a> and <a href=
+  "checking.htm">checking</a> behaviors of the newly constructed class. This
+  second argument is not mandatory but may need some customizations. In order
+  to ease the manipulations, some helper templates are provided in
+  <code>interval/policies.hpp</code>.</p>
+  <pre>
+namespace boost {
+namespace numeric {
+namespace interval_lib {
+
+template&lt;class Rounding, class Checking&gt;
+struct policies {
+  typedef Rounding rounding;
+  typedef Checking checking;
+};
+
+template&lt;class OldInterval, class NewRounding&gt;
+struct change_rounding {
+  typedef ... type;
+};
+
+template&lt;class OldInterval, class NewChecking&gt;
+struct change_checking {
+  typedef ... type;
+};
+
+template&lt;class OldInterval&gt;
+struct unprotect {
+  typedef ... type;
+};
+
+} // namespace interval_lib
+} // namespace numeric
+} // namespace boost
+</pre>
+
+  <p>The <code>policies</code> template should be used whenever the user
+  needs to define a policy structure for an <code>interval</code> class.
+  <code>change_rounding</code> and <code>change_checking</code> can be used
+  to get the type of a new interval by changing one of the policies of an old
+  interval; the new type is available thanks to the type definition
+  <code>type</code>. Finally, <code>unprotect</code> looks like
+  <code>change_rounding</code> and directly changes the rounding of an
+  interval to its unprotected version (a better explanation is available
+  <a href="rounding.htm#perfexp">here</a>).</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%Y-%m-%d" startspan -->2006-12-24<!--webbot bot="Timestamp" endspan i-checksum="12172" --></p>
+
+  <p><i>Copyright &copy; 2002 Guillaume Melquiond, Sylvain Pion, Herv&eacute;
+  Br&ouml;nnimann, Polytechnic University</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+  or copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

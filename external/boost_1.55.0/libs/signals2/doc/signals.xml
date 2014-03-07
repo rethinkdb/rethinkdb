@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Douglas Gregor 2001-2004
+Copyright Frank Mori Hess 2007-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<library name="Signals2" dirname="signals2"
+         xmlns:xi="http://www.w3.org/2001/XInclude" id="signals2"
+         last-revision="$Date: 2007-06-12 14:01:23 -0400 (Tue, 12 Jun 2007) $">
+<libraryinfo>
+  <author>
+    <firstname>Douglas</firstname>
+    <surname>Gregor</surname>
+    <!-- <email>gregod@cs.rpi.edu</email> -->
+  </author>
+  <author>
+    <firstname>Frank</firstname>
+    <othername>Mori</othername>
+    <surname>Hess</surname>
+    <!-- <email>fmhess@users.sourceforge.net</email> -->
+  </author>
+
+  <copyright>
+    <year>2001</year>
+    <year>2002</year>
+    <year>2003</year>
+    <year>2004</year>
+    <holder>Douglas Gregor</holder>
+  </copyright>
+  <copyright>
+    <year>2007</year>
+    <year>2008</year>
+    <year>2009</year>
+    <holder>Frank Mori Hess</holder>
+  </copyright>
+
+  <legalnotice>
+    <para>Distributed under the Boost
+    Software License, Version 1.0. (See accompanying file
+    <filename>LICENSE_1_0.txt</filename> or copy at <ulink
+    url="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</ulink>)</para>
+  </legalnotice>
+
+  <librarypurpose>Managed signals &amp; slots callback implementation</librarypurpose>
+  <librarycategory name="category:higher-order"/>
+</libraryinfo>
+
+<title>Boost.Signals2</title>
+  <xi:include href="introduction.xml"/>
+  <xi:include href="tutorial.xml"/>
+  <xi:include href="examples.xml"/>
+  <xi:include href="reference/reference.xml"/>
+  <xi:include href="thread_safety.xml"/>
+  <xi:include href="faq.xml"/>
+  <xi:include href="rationale.xml"/>
+  <xi:include href="porting.xml"/>
+  <xi:include href="tests.xml"/>
+</library>

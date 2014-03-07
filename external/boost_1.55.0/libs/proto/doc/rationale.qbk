@@ -1,0 +1,51 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:rationale Appendix C: Rationale]
+
+[/==================================================]
+[section:static_initialization Static Initialization]
+[/==================================================]
+
+Proto expression types are PODs (Plain Old Data), and do not have constructors. They are brace-initialized, as follows:
+
+    terminal<int>::type const _i = {1};
+
+The reason is so that expression objects like `_i` above can be ['statically 
+initialized]. Why is static initialization important? The terminals of many embedded
+domain-specific languages are likely to be global const objects, like `_1` and 
+`_2` from the Boost Lambda Library. Were these object to require run-time 
+initialization, it might be possible to use these objects before they are 
+initialized. That would be bad. Statically initialized objects cannot be misused 
+that way.
+
+[endsect]
+
+[/=========================================================]
+[section:preprocessor Why Not Reuse MPL, Fusion, et cetera?]
+[/=========================================================]
+
+Anyone who has peeked at Proto's source code has probably wondered, "Why all the 
+dirty preprocessor gunk? Couldn't this have been all implemented cleanly on top of 
+libraries like MPL and Fusion?" The answer is that Proto could have been 
+implemented this way, and in fact was at one point. The problem is that template 
+metaprogramming (TMP) makes for longer compile times. As a foundation upon which 
+other TMP-heavy libraries will be built, Proto itself should be as lightweight as 
+possible. That is achieved by prefering preprocessor metaprogramming to template 
+metaprogramming. Expanding a macro is far more efficient than instantiating a 
+template. In some cases, the "clean" version takes 10x longer to compile than the 
+"dirty" version.
+
+The "clean and slow" version of Proto can still be found at 
+http://svn.boost.org/svn/boost/branches/proto/v3. Anyone who is interested can 
+download it and verify that it is, in fact, unusably slow to compile. Note that 
+this branch's development was abandoned, and it does not conform exactly with 
+Proto's current interface.
+
+[endsect]
+
+[endsect]

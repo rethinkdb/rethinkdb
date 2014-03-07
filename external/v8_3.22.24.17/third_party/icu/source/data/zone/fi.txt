@@ -1,0 +1,496 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/fi.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/fi.xml
+ */
+fi{
+    Version{"2.0.51.9"}
+    zoneStrings{
+        "Africa:Algiers"{
+            ec{"Alger"}
+        }
+        "Africa:Cairo"{
+            ec{"Kairo"}
+        }
+        "America:Cancun"{
+            ec{"Cancún"}
+        }
+        "America:El_Salvador"{
+            ec{"San Salvador"}
+        }
+        "America:Godthab"{
+            ec{"Nuuk"}
+        }
+        "America:Havana"{
+            ec{"Havanna"}
+        }
+        "America:Mexico_City"{
+            ec{"Ciudad de México"}
+        }
+        "America:North_Dakota:Center"{
+            ec{"keskinen Pohjois-Dakota"}
+        }
+        "America:Sao_Paulo"{
+            ec{"São Paulo"}
+        }
+        "America:Scoresbysund"{
+            ec{"Ittoqqortoormiit"}
+        }
+        "America:St_Johns"{
+            ec{"St. Johns"}
+        }
+        "America:Thule"{
+            ec{"Thule"}
+        }
+        "Antarctica:South_Pole"{
+            ec{"Etelänapa"}
+        }
+        "Asia:Aqtobe"{
+            ec{"Aqtöbe"}
+        }
+        "Asia:Damascus"{
+            ec{"Damaskos"}
+        }
+        "Asia:Dushanbe"{
+            ec{"Dušanbe"}
+        }
+        "Asia:Kamchatka"{
+            ec{"Kamtšatka"}
+        }
+        "Asia:Krasnoyarsk"{
+            ec{"Krasnojarsk"}
+        }
+        "Asia:Nicosia"{
+            ec{"Nikosia"}
+        }
+        "Asia:Sakhalin"{
+            ec{"Sahalin"}
+        }
+        "Asia:Tashkent"{
+            ec{"Taškent"}
+        }
+        "Asia:Tehran"{
+            ec{"Teheran"}
+        }
+        "Asia:Tokyo"{
+            ec{"Tokio"}
+        }
+        "Asia:Yakutsk"{
+            ec{"Jakutsk"}
+        }
+        "Asia:Yekaterinburg"{
+            ec{"Jekaterinburg"}
+        }
+        "Asia:Yerevan"{
+            ec{"Jerevan"}
+        }
+        "Atlantic:Azores"{
+            ec{"Azorit"}
+        }
+        "Atlantic:Canary"{
+            ec{"Kanariansaaret"}
+        }
+        "Etc:Unknown"{
+            ec{"tuntematon"}
+        }
+        "Europe:Athens"{
+            ec{"Ateena"}
+        }
+        "Europe:Belgrade"{
+            ec{"Belgrad"}
+        }
+        "Europe:Berlin"{
+            ec{"Berliini"}
+        }
+        "Europe:Brussels"{
+            ec{"Bryssel"}
+        }
+        "Europe:Bucharest"{
+            ec{"Bukarest"}
+        }
+        "Europe:Copenhagen"{
+            ec{"Kööpenhamina"}
+        }
+        "Europe:Kiev"{
+            ec{"Kiova"}
+        }
+        "Europe:Lisbon"{
+            ec{"Lissabon"}
+        }
+        "Europe:London"{
+            ec{"Lontoo"}
+        }
+        "Europe:Mariehamn"{
+            ec{"Maarianhamina"}
+        }
+        "Europe:Moscow"{
+            ec{"Moskova"}
+        }
+        "Europe:Paris"{
+            ec{"Pariisi"}
+        }
+        "Europe:Riga"{
+            ec{"Riika"}
+        }
+        "Europe:Rome"{
+            ec{"Rooma"}
+        }
+        "Europe:Stockholm"{
+            ec{"Tukholma"}
+        }
+        "Europe:Tallinn"{
+            ec{"Tallinna"}
+        }
+        "Europe:Tirane"{
+            ec{"Tirana"}
+        }
+        "Europe:Uzhgorod"{
+            ec{"Užgorod"}
+        }
+        "Europe:Vienna"{
+            ec{"Wien"}
+        }
+        "Europe:Vilnius"{
+            ec{"Vilna"}
+        }
+        "Europe:Warsaw"{
+            ec{"Varsova"}
+        }
+        "Europe:Zaporozhye"{
+            ec{"Zaporižžja"}
+        }
+        "Europe:Zurich"{
+            ec{"Zürich"}
+        }
+        "Pacific:Easter"{
+            ec{"Pääsiäissaari"}
+        }
+        "meta:Africa_Central"{
+            ls{"Keski-Afrikan aika"}
+        }
+        "meta:Africa_Eastern"{
+            ls{"Itä-Afrikan aika"}
+        }
+        "meta:Africa_Southern"{
+            lg{"Etelä-Afrikan aika"}
+            ls{"Etelä-Afrikan normaaliaika"}
+        }
+        "meta:Africa_Western"{
+            ld{"Länsi-Afrikan kesäaika"}
+            ls{"Länsi-Afrikan aika"}
+        }
+        "meta:Alaska"{
+            ld{"Alaskan kesäaika"}
+            ls{"Alaskan normaaliaika"}
+        }
+        "meta:Amazon"{
+            ld{"Amazonin kesäaika"}
+            ls{"Amazonin aika"}
+        }
+        "meta:America_Central"{
+            ld{"Yhdysvaltain keskinen kesäaika"}
+            lg{"Yhdysvaltain keskinen aika"}
+            ls{"Yhdysvaltain keskinen normaaliaika"}
+        }
+        "meta:America_Eastern"{
+            ld{"Yhdysvaltain itäinen kesäaika"}
+            lg{"Yhdysvaltain itäinen aika"}
+            ls{"Yhdysvaltain itäinen normaaliaika"}
+        }
+        "meta:America_Mountain"{
+            ld{"Kalliovuorten kesäaika"}
+            lg{"Kalliovuorten aika"}
+            ls{"Kalliovuorten normaaliaika"}
+        }
+        "meta:America_Pacific"{
+            ld{"Yhdysvaltain Tyynenmeren kesäaika"}
+            lg{"Yhdysvaltain Tyynenmeren aika"}
+            ls{"Yhdysvaltain Tyynenmeren normaaliaika"}
+        }
+        "meta:Arabian"{
+            ld{"Saudi-Arabian kesäaika"}
+            lg{"Saudi-Arabian aika"}
+            ls{"Saudi-Arabian normaaliaika"}
+        }
+        "meta:Armenia"{
+            ls{"Armenian aika"}
+        }
+        "meta:Ashkhabad"{
+            ld{"Ašgabatin kesäaika"}
+            ls{"Ašgabatin aika"}
+        }
+        "meta:Atlantic"{
+            ld{"Kanadan Atlantin kesäaika"}
+            lg{"Kanadan Atlantin aika"}
+            ls{"Kanadan Atlantin normaaliaika"}
+        }
+        "meta:Australia_Central"{
+            ld{"Keski-Australian kesäaika"}
+            lg{"Keski-Australian aika"}
+        }
+        "meta:Australia_CentralWestern"{
+            ld{"Läntisen Keski-Australian kesäaika"}
+            lg{"Läntisen Keski-Australian aika"}
+            ls{"Läntisen Keski-Australian normaaliaika"}
+        }
+        "meta:Australia_Eastern"{
+            ld{"Itä-Australian kesäaika"}
+            lg{"Itä-Australian aika"}
+            ls{"Itä-Australian normaaliaika"}
+        }
+        "meta:Australia_Western"{
+            ld{"Länsi-Australian kesäaika"}
+            lg{"Länsi-Australian aika"}
+            ls{"Länsi-Australian normaaliaika"}
+        }
+        "meta:Azerbaijan"{
+            ld{"Azerbaidžanin kesäaika"}
+            ls{"Azerbaidžanin aika"}
+        }
+        "meta:Azores"{
+            ld{"Azorien kesäaika"}
+            ls{"Azorien aika"}
+        }
+        "meta:Baku"{
+            ld{"Bakun kesäaika"}
+        }
+        "meta:Bangladesh"{
+            ls{"Bangladeshin aika"}
+        }
+        "meta:Bhutan"{
+            ls{"Bhutanin aika"}
+        }
+        "meta:Borneo"{
+            ld{"Borneon kesäaika"}
+            ls{"Borneon aika"}
+        }
+        "meta:Brunei"{
+            ls{"Brunein aika"}
+        }
+        "meta:Cape_Verde"{
+            ld{"Kap Verden kesäaika"}
+            ls{"Kap Verden aika"}
+        }
+        "meta:China"{
+            ld{"Kiinan kesäaika"}
+            lg{"Kiinan aika"}
+            ls{"Kiinan normaaliaika"}
+            sd{"CDT (Kiina)"}
+            sg{"CT (Kiina)"}
+            ss{"CST (Kiina)"}
+        }
+        "meta:Choibalsan"{
+            ld{"Tšoibalsan kesäaika"}
+        }
+        "meta:Christmas"{
+            ls{"Joulusaaren aika"}
+        }
+        "meta:Cocos"{
+            ls{"Kookossaarten aika"}
+        }
+        "meta:Europe_Central"{
+            ld{"Keski-Euroopan kesäaika"}
+            ls{"Keski-Euroopan normaaliaika"}
+        }
+        "meta:Europe_Eastern"{
+            ld{"Itä-Euroopan kesäaika"}
+            ls{"Itä-Euroopan normaaliaika"}
+        }
+        "meta:Europe_Western"{
+            ld{"Länsi-Euroopan kesäaika"}
+            ls{"Länsi-Euroopan aika"}
+        }
+        "meta:Falkland"{
+            ld{"Falklandinsaarten kesäaika"}
+        }
+        "meta:French_Southern"{
+            ls{"Ranskan eteläisten ja antarktisten alueiden aika"}
+        }
+        "meta:Frunze"{
+            ld{"Biškekin kesäaika"}
+            ls{"Biškekin aika"}
+        }
+        "meta:GMT"{
+            ls{"Greenwichin normaaliaika"}
+        }
+        "meta:Georgia"{
+            ld{"Georgian kesäaika"}
+            ls{"Georgian aika"}
+        }
+        "meta:Gulf"{
+            ls{"Arabiemiirikuntien normaaliaika"}
+        }
+        "meta:Hong_Kong"{
+            ld{"Hongkongin kesäaika"}
+            ls{"Hongkongin aika"}
+        }
+        "meta:Hovd"{
+            ld{"Hovdin kesäaika"}
+        }
+        "meta:India"{
+            ls{"Intian normaaliaika"}
+        }
+        "meta:Indochina"{
+            ls{"Indokiinan aika"}
+        }
+        "meta:Indonesia_Central"{
+            ls{"Keski-Indonesian aika"}
+        }
+        "meta:Indonesia_Eastern"{
+            ls{"Itä-Indonesian aika"}
+        }
+        "meta:Indonesia_Western"{
+            ls{"Länsi-Indonesian aika"}
+        }
+        "meta:Israel"{
+            ld{"Israelin kesäaika"}
+            ls{"Israelin normaaliaika"}
+            ss{"IST (Israel)"}
+        }
+        "meta:Japan"{
+            ld{"Japanin kesäaika"}
+            ls{"Japanin normaaliaika"}
+        }
+        "meta:Karachi"{
+            ls{"Karachin aika"}
+        }
+        "meta:Korea"{
+            lg{"Korean aika"}
+            ls{"Korean normaaliaika"}
+        }
+        "meta:Krasnoyarsk"{
+            ld{"Krasnojarskin kesäaika"}
+            ls{"Krasnojarskin aika"}
+        }
+        "meta:Kuybyshev"{
+            ld{"Kuybyshevin kesäaika"}
+            ls{"Kuybyshevin aika"}
+        }
+        "meta:Lanka"{
+            ls{"Sri Lankan aika"}
+        }
+        "meta:Lord_Howe"{
+            ld{"Lord Howen kesäaika"}
+            lg{"Lord Howen aika"}
+            ls{"Lord Howen normaaliaika"}
+        }
+        "meta:Macau"{
+            ld{"Macaon kesäaika"}
+        }
+        "meta:Malaya"{
+            ls{"Malaijan aika"}
+        }
+        "meta:Maldives"{
+            ls{"Malediivien aika"}
+        }
+        "meta:Mauritius"{
+            ls{"Mauritiuksen aika"}
+        }
+        "meta:Mongolia"{
+            ld{"Ulaanbaatarin kesäaika"}
+        }
+        "meta:Moscow"{
+            ld{"Moskovan kesäaika"}
+            lg{"Moskovan aika"}
+            ls{"Moskovan normaaliaika"}
+        }
+        "meta:Myanmar"{
+            ls{"Myanmarin aika"}
+        }
+        "meta:Nepal"{
+            ls{"Nepalin aika"}
+        }
+        "meta:New_Zealand"{
+            ld{"Uuden-Seelannin kesäaika"}
+            lg{"Uuden-Seelannin aika"}
+            ls{"Uuden-Seelannin normaaliaika"}
+        }
+        "meta:Newfoundland"{
+            ld{"Newfoundlandin kesäaika"}
+            ls{"Newfoundlandin normaaliaika"}
+        }
+        "meta:Novosibirsk"{
+            ld{"Novosibirskin kesäaika"}
+            ls{"Novosibirskin aika"}
+        }
+        "meta:Omsk"{
+            ld{"Omskin kesäaika"}
+            ls{"Omskin aika"}
+        }
+        "meta:Pakistan"{
+            ld{"Pakistanin kesäaika"}
+            ls{"Pakistanin aika"}
+        }
+        "meta:Philippines"{
+            ld{"Filippiinien kesäaika"}
+            ls{"Filippiinien aika"}
+        }
+        "meta:Sakhalin"{
+            ls{"Sahalinin aika"}
+        }
+        "meta:Samara"{
+            ld{"Samaran kesäaika"}
+            ls{"Samaran aika"}
+        }
+        "meta:South_Georgia"{
+            ls{"Etelä-Georgian aika"}
+        }
+        "meta:Tajikistan"{
+            ls{"Tadžikistanin aika"}
+        }
+        "meta:Tashkent"{
+            ld{"Taškentin kesäaika"}
+            ls{"Taškentin aika"}
+        }
+        "meta:Tbilisi"{
+            ls{"Tbilisin aika"}
+        }
+        "meta:Turkey"{
+            ld{"Turkin kesäaika"}
+        }
+        "meta:Turkmenistan"{
+            ld{"Turkmenistanin kesäaika"}
+            ls{"Turkmenistanin aika"}
+        }
+        "meta:Uralsk"{
+            ld{"Oralin kesäaika"}
+            ls{"Oralin aika"}
+        }
+        "meta:Urumqi"{
+            ls{"Ürümqin aika"}
+        }
+        "meta:Uzbekistan"{
+            ld{"Uzbekistanin kesäaika"}
+            ls{"Uzbekistanin aika"}
+        }
+        "meta:Vladivostok"{
+            ls{"Vladivostokin aika"}
+        }
+        "meta:Volgograd"{
+            ld{"Volgogradin kesäaika"}
+            ls{"Volgogradin aika"}
+        }
+        "meta:Yakutsk"{
+            ld{"Jakutskin kesäaika"}
+            ls{"Jakutskin aika"}
+        }
+        "meta:Yekaterinburg"{
+            ld{"Jekaterinburgin kesäaika"}
+            ls{"Jekaterinburgin aika"}
+        }
+        "meta:Yerevan"{
+            ld{"Jerevanin kesäaika"}
+            ls{"Jerevanin aika"}
+        }
+        fallbackFormat{"{1} ({0})"}
+        gmtFormat{"UTC{0}"}
+        gmtZeroFormat{"UTC"}
+        hourFormat{"+H.mm;-H.mm"}
+    }
+}

@@ -1,0 +1,168 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Release Notes</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.LocalFunction 1.0.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.LocalFunction 1.0.0">
+<link rel="prev" href="../BOOST_LOCAL_FUNCTION_CONFIG_LOCALS_AS_TPARAMS.html" title="Macro BOOST_LOCAL_FUNCTION_CONFIG_LOCALS_AS_TPARAMS">
+<link rel="next" href="bibliography.html" title="Bibliography">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../BOOST_LOCAL_FUNCTION_CONFIG_LOCALS_AS_TPARAMS.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bibliography.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_localfunction_release_notes">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_localfunction.release_notes"></a><a class="link" href="release_notes.html" title="Release Notes">Release Notes</a>
+</h2></div></div></div>
+<p>
+      This section lists the major changes between different library releases (in
+      chronological order).
+    </p>
+<h4>
+<a name="boost_localfunction.release_notes.h0"></a>
+      <span><a name="boost_localfunction.release_notes.version_1_0_0__2012_04_12_"></a></span><a class="link" href="release_notes.html#boost_localfunction.release_notes.version_1_0_0__2012_04_12_">Version
+      1.0.0 (2012-04-12)</a>
+    </h4>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          Incorporated all comments from the <a href="http://lists.boost.org/boost-announce/2011/12/0340.php" target="_top">Boost
+          review of this library</a>.
+        </li>
+<li class="listitem">
+          Removed local blocks and local exits.
+        </li>
+<li class="listitem">
+          Renamed the library from Boost.Local to Boost.LocalFunction.
+        </li>
+<li class="listitem">
+          Using <code class="computeroutput"><span class="identifier">this_</span></code> instead of
+          <code class="computeroutput"><span class="keyword">this</span></code> also in the local function
+          declaration (not just the body).
+        </li>
+<li class="listitem">
+          Made changes that allow to return local functions (similar to closures).
+        </li>
+<li class="listitem">
+          Added GCC lambda and constant block examples.
+        </li>
+<li class="listitem">
+          Moved <code class="computeroutput"><span class="identifier">overloaded_function</span></code>
+          to Boost.Functional/OverloadedFunction.
+        </li>
+<li class="listitem">
+          Moved <code class="computeroutput"><span class="identifier">BOOST_IDENTITY_TYPE</span></code>
+          to Boost.Utility/IdentityType.
+        </li>
+<li class="listitem">
+          Completely removed use of Boost.Typeof when bound and result types are
+          explicitly specified.
+        </li>
+<li class="listitem">
+          Added <code class="computeroutput"><span class="special">...</span><span class="identifier">_ID</span></code>
+          macros for multiple expansions on the same line.
+        </li>
+<li class="listitem">
+          Fixed compilation on Boost regression test platforms.
+        </li>
+</ol></div>
+<h4>
+<a name="boost_localfunction.release_notes.h1"></a>
+      <span><a name="boost_localfunction.release_notes.version_0_2_0__2011_05_14_"></a></span><a class="link" href="release_notes.html#boost_localfunction.release_notes.version_0_2_0__2011_05_14_">Version
+      0.2.0 (2011-05-14)</a>
+    </h4>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          Replaced parenthesized syntax with variadic and sequencing macro syntaxes.
+        </li>
+<li class="listitem">
+          Profiled library performances against other approaches.
+        </li>
+<li class="listitem">
+          Replaced virtual functor trick with casting functor trick (for smaller
+          run-time).
+        </li>
+<li class="listitem">
+          Optimized library run-time (rearranging code and not using casting functor
+          trick on compilers that accept local classes as template parameters).
+        </li>
+<li class="listitem">
+          Supported inline and recursive local functions.
+        </li>
+<li class="listitem">
+          Added type-of macro to expose bound types.
+        </li>
+<li class="listitem">
+          Allowed to explicitly specify bound types.
+        </li>
+<li class="listitem">
+          Removed using <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">function</span></code> instead of exposing internal
+          local functor as public API.
+        </li>
+<li class="listitem">
+          Added functor to overload local functions (and functors in general).
+        </li>
+<li class="listitem">
+          Implemented support for nesting local functions, blocks, and exits into
+          one another.
+        </li>
+</ol></div>
+<h4>
+<a name="boost_localfunction.release_notes.h2"></a>
+      <span><a name="boost_localfunction.release_notes.version_0_1_1__2011_01_10_"></a></span><a class="link" href="release_notes.html#boost_localfunction.release_notes.version_0_1_1__2011_01_10_">Version
+      0.1.1 (2011-01-10)</a>
+    </h4>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          Uploaded library source into Boost SVN sandbox.
+        </li>
+<li class="listitem">
+          Fixed prev/next arrows and other minor layouts in documentation.
+        </li>
+<li class="listitem">
+          Added Release section to documentation.
+        </li>
+</ol></div>
+<h4>
+<a name="boost_localfunction.release_notes.h3"></a>
+      <span><a name="boost_localfunction.release_notes.version_0_1_0__2011_01_03_"></a></span><a class="link" href="release_notes.html#boost_localfunction.release_notes.version_0_1_0__2011_01_03_">Version
+      0.1.0 (2011-01-03)</a>
+    </h4>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+          Shared with Boost for first round of comments.
+        </li></ol></div>
+<h4>
+<a name="boost_localfunction.release_notes.h4"></a>
+      <span><a name="boost_localfunction.release_notes.version_0_0_1__2010_12_15_"></a></span><a class="link" href="release_notes.html#boost_localfunction.release_notes.version_0_0_1__2010_12_15_">Version
+      0.0.1 (2010-12-15)</a>
+    </h4>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+          Completed development, examples, and documentation.
+        </li></ol></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Lorenzo
+      Caminiti<p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or a copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../BOOST_LOCAL_FUNCTION_CONFIG_LOCALS_AS_TPARAMS.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bibliography.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

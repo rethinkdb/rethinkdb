@@ -1,0 +1,97 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Number List - stuffing numbers into a std::vector</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Tutorials">
+<link rel="prev" href="sum___adding_numbers.html" title="Sum - adding numbers">
+<link rel="next" href="number_list_redux___list_syntax.html" title="Number List Redux - list syntax">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sum___adding_numbers.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="number_list_redux___list_syntax.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.qi.tutorials.number_list___stuffing_numbers_into_a_std__vector"></a><a class="link" href="number_list___stuffing_numbers_into_a_std__vector.html" title="Number List - stuffing numbers into a std::vector">Number
+        List - stuffing numbers into a std::vector</a>
+</h4></div></div></div>
+<p>
+          This sample demonstrates a parser for a comma separated list of numbers.
+          The numbers are inserted in a vector using phoenix.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">parse_numbers</span><span class="special">(</span><span class="identifier">Iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;&amp;</span> <span class="identifier">v</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_parse</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">_1</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">push_back</span><span class="special">;</span>
+
+    <span class="keyword">bool</span> <span class="identifier">r</span> <span class="special">=</span> <span class="identifier">phrase_parse</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span>
+
+        <span class="comment">//  Begin grammar</span>
+        <span class="special">(</span>
+            <span class="identifier">double_</span><span class="special">[</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">v</span><span class="special">),</span> <span class="identifier">_1</span><span class="special">)]</span>
+                <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="char">','</span> <span class="special">&gt;&gt;</span> <span class="identifier">double_</span><span class="special">[</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">v</span><span class="special">),</span> <span class="identifier">_1</span><span class="special">)])</span>
+        <span class="special">)</span>
+        <span class="special">,</span>
+        <span class="comment">//  End grammar</span>
+
+        <span class="identifier">space</span><span class="special">);</span>
+
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">first</span> <span class="special">!=</span> <span class="identifier">last</span><span class="special">)</span> <span class="comment">// fail if we did not get a full match</span>
+        <span class="keyword">return</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="identifier">r</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          The full cpp file for this example can be found here: <a href="../../../../../example/qi/num_list2.cpp" target="_top">../../example/qi/num_list2.cpp</a>
+        </p>
+<p>
+          This, again, is the same parser as before. This time, instead of summing
+          up the numbers, we stuff them in a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span></code>.
+          <code class="computeroutput"><span class="identifier">push_back</span></code> is supplied by
+          <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a>. The expression:
+        </p>
+<pre class="programlisting"><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">v</span><span class="special">),</span> <span class="identifier">_1</span><span class="special">)</span>
+</pre>
+<p>
+          appends the parsed number. Like before, <code class="computeroutput"><span class="identifier">_1</span></code>
+          is a <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a> placeholder
+          for the parsed result attribute. Also, like before, <code class="computeroutput"><span class="identifier">ref</span><span class="special">(</span><span class="identifier">v</span><span class="special">)</span></code>
+          tells <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a> that
+          <code class="computeroutput"><span class="identifier">v</span></code>, the <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span></code>,
+          is a mutable reference.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sum___adding_numbers.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="number_list_redux___list_syntax.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

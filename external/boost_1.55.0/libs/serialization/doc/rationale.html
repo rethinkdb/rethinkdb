@@ -1,0 +1,125 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Seriealization - Rationale</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="http://www.boost.org"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Rationale</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<dl class="index">
+  <dt><a href="#serialization">The term "serialization" is preferred to "persistence"</a></dt>
+  <dt><a href="#archives">Archives are not streams</a></dt>
+  <dt><a href="#strings">Strings are treated specially in text archives</a></dt>
+  <dt><a href="#typeid"><code style="white-space: normal">typeid</code> information is not included in archives</a></dt>
+  <!--
+  <dt><a href="#footnotes">Footnotes</a></dt>
+  -->
+</dl>
+<h2><a name="serialization"></a>The term "serialization" is preferred to "persistence"</h2>
+<p>
+I found that persistence is often used to refer
+to something quite different. Examples are storage of class
+instances (objects) in database schema <a href="bibliography.html#4">[4]</a>
+This library will be useful in other contexts besides implementing persistence. The
+most obvious case is that of marshalling data for transmission to another system.
+<h2><a name="archives"></a>Archives are not streams</h2>
+<p>
+Archive classes are <strong>NOT</strong> derived from
+streams even though they have similar syntax rules.
+<ul>
+    <li>Archive classes are not kinds of streams though they
+    are implemented in terms of streams. This
+    distinction is addressed in <a href="bibliography.html#5">[5]</a> item number item 41 .
+    <li>We don't want users to insert/extract&nbsp;data
+    directly into/from &nbsp;the stream .&nbsp; This could
+    create a corrupted archive. Were archives
+    derived from streams, it would possible to
+    accidentally do this. So archive classes
+    only define operations which are safe and necessary.
+    <li>The usage of streams to implement the archive classes that
+    are included in the library is merely convenient - not necessary.
+    Library users may well want to define their own archive format
+    which doesn't use streams at all.
+</ul>
+<h2><a name="primitives"></a>Archive Members are Templates 
+Rather than Virtual Functions</h2>
+The previous version of this library defined virtual functions for all
+primitive types.  These were overridden by each archive class.  There were
+two issues related to this:
+</ul>
+    <li>Some disliked virtual functions because of the added execution time
+    overhead.
+    <li>This caused implementation difficulties since the set of primitive
+    data types varies between platforms.  Attempting to define the correct
+    set of virtual functions, (think <code style="white-space: normal">long long</code>, 
+    <code style="white-space: normal">__int64</code>, 
+    etc.) resulted in messy and fragile code.  Replacing this with templates
+    and letting the compiler generate the code for the primitive types actually
+    used, resolved this problem.  Of course, the ripple effects of this design
+    change were significant, but in the end led to smaller, faster, more
+    maintainable code.
+</ul>
+<h2><a name="strings"></a><code style="white-space: normal">std::strings</code> are treated specially in text files</h2>
+<p>
+Treating strings as STL vectors would result in minimal code size. This was
+not done because:
+<ul>
+     <li>In text archives it is convenient to be able to view strings.  Our text
+     implementation stores single characters as integers.  Storing strings
+     as a vector of characters would waste space and render the archives
+     inconvenient for debugging.
+     <li>Stream implementations have special functions for <code style="white-space: normal">std::string</code>
+     and <code style="white-space: normal">std::wstring</code>.
+     Presumably they optimize appropriately.
+     <li>Other specializations of <code style="white-space: normal">std::basic_string</code> are in fact handled
+     as vectors of the element type.
+</ul>
+</p>
+<h2><a name="typeid"></a><code style="white-space: normal">typeid</code> information is not included in archives</h2>
+<p>
+I originally thought that I had to save the name of the class specified by <code style="white-space: normal">std::type_of::name()</code>
+in the archive. This created difficulties as <code style="white-space: normal">std::type_of::name()</code> is not portable and
+not guaranteed to return the class name. This makes it almost useless for implementing
+archive portability.  This topic is explained in much more detail in
+<a href="bibliography.html#6">[7] page 206</a>. It turned out that it was not necessary.
+As long as objects are loaded in the exact sequence as they were saved, the type
+is available when loading.  The only exception to this is the case of polymorphic
+pointers never before loaded/saved.  This is addressed with the <code style="white-space: normal">register_type()</code>
+and/or <code style="white-space: normal">export</code> facilities described in the reference.  
+In effect, <code style="white-space: normal">export</code> generates a portable equivalent to
+<code style="white-space: normal">typeid</code> information.
+
+<!--
+<h2><a name="footnotes"></a>Footnotes</h2>
+<dl>
+  <dt><a name="footnote1" class="footnote">(1)</a> {{text}}</dt>
+  <dt><a name="footnote2" class="footnote">(2)</a> {{text}}</dt>
+</dl>
+-->
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

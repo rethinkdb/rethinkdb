@@ -1,0 +1,41 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[def __is_cleared__ is cleared]
+[def __this_function__ clear]
+
+[heading_conformance_no_ogc __this_function__]
+[conformance_std __this_function__..__this_function__() method]
+
+[include generated/clear_status.qbk]
+
+[heading Behavior]
+[table
+[[Case] [Behavior] ]
+[[__point__][__does_nothing__]]
+[[__segment__][__does_nothing__]]
+[[__box__][__does_nothing__]]
+[[__linestring__][__linestring__ __is_cleared__]]
+[[__ring__][__ring__ is cleared]]
+[[__polygon__][The exterior ring __is_cleared__ and all interior rings are removed]]
+[[__multi_point__][__multi_point__ __is_cleared__]]
+[[__multi_linestring__][__multi_linestring__ __is_cleared__]]
+[[__multi_polygon__][__multi_polygon__ __is_cleared__]]
+]
+
+[heading Complexity]
+Constant
+
+[heading Example]
+[clear]
+[clear_output]
+

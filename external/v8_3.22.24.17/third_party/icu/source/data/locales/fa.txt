@@ -1,0 +1,565 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/fa.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/fa.xml
+ */
+fa{
+    AuxExemplarCharacters{
+        "[\u200C \u200D \u200E \u200F \u064E \u0650 \u064F \u0652 \u0656 \u0670 ۰ ۱ ۲"
+        " ۳ ۴ ۵ ۶ ۷ ۸ ۹]"
+    }
+    ExemplarCharacters{
+        "[\u064B \u064D \u064C \u0651 \u0654 آ ا ء أ ؤ ئ ب پ ت ث ج چ ح خ د ذ ر ز ژ س "
+        "ش ص ض ط ظ ع غ ف ق ک گ ل م ن و ه ة ی]"
+    }
+    ExemplarCharactersCurrency{"[a b c d e f g h i j k l m n o p q r s t u v w x y z ﷼]"}
+    LocaleScript{
+        "Arab",
+    }
+    NumberElements{
+        arabext{
+            symbols{
+                decimal{"٫"}
+                exponential{"×۱۰^"}
+                group{"٬"}
+                list{"؛"}
+                perMille{"؉"}
+                percentSign{"٪"}
+            }
+        }
+        default{"arabext"}
+        latn{
+            patterns{
+                currencyFormat{"#,##0.00 ¤;'‪'-#,##0.00'‬' ¤"}
+                decimalFormat{"#,##0.###;'‪'-#,##0.###'‬'"}
+                percentFormat{"'‪'%#,##0'‬'"}
+                scientificFormat{"#E0"}
+            }
+            symbols{
+                decimal{"/"}
+                exponential{"E"}
+                group{"،"}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"−"}
+                nan{"NaN"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    Version{"2.0.50.94"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "قبل از ظهر",
+                "بعد از ظهر",
+            }
+            DateTimePatterns{
+                "H:mm:ss (zzzz)",
+                "H:mm:ss (z)",
+                "H:mm:ss",
+                "H:mm",
+                "EEEE, MMMM d, y",
+                "MMMM d, y",
+                "MMM d, y",
+                "M/d/yy",
+                "{1}،‏ {0}",
+                "{1}، ساعت {0}",
+                "{1}، ساعت {0}",
+                "{1}،‏ {0}",
+                "{1}،‏ {0}",
+            }
+            appendItems{
+                Day-Of-Week{"{1} {0}"}
+            }
+            availableFormats{
+                EEEd{"EEE d"}
+                GGGGyyyyMMMMd{"d MMMM y GGGG"}
+                H{"H"}
+                HHmmZ{"HH:mm (Z)"}
+                Hm{"H:mm"}
+                Hms{"H:mm:ss"}
+                M{"L"}
+                MEd{"E M/d"}
+                MMM{"LLL"}
+                MMMEd{"E d LLL"}
+                MMMMEd{"E d LLLL"}
+                MMMMd{"d LLLL"}
+                MMMd{"d LLL"}
+                Md{"M/d"}
+                d{"d"}
+                mmss{"mm:ss"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"yyyy/M"}
+                yMEd{"E yyyy/M/d"}
+                yMMM{"MMM y"}
+                yMMMEd{"E d MMM y"}
+                yMMMM{"MMMM y"}
+                yQ{"yyyy Q"}
+                yQQQ{"y QQQ"}
+                yyyyM{"yyyy/M"}
+                yyyyMMMM{"MMMM y"}
+                yyyyMMMMEEEEd{"EEEE d MMMM y"}
+            }
+            dayNames{
+                format{
+                    wide{
+                        "یکشنبه",
+                        "دوشنبه",
+                        "سه‌شنبه",
+                        "چهارشنبه",
+                        "پنجشنبه",
+                        "جمعه",
+                        "شنبه",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ی",
+                        "د",
+                        "س",
+                        "چ",
+                        "پ",
+                        "ج",
+                        "ش",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "ق.م.",
+                    "ب. م.",
+                }
+                narrow{
+                    "ق",
+                    "م",
+                }
+                wide{
+                    "قبل از میلاد",
+                    "میلادی",
+                }
+            }
+            fields{
+                day{
+                    dn{"روز"}
+                    relative{
+                        "-1"{"دیروز"}
+                        "-2"{"پریروز"}
+                        "-3"{"سه روز پیش"}
+                        "0"{"امروز"}
+                        "1"{"فردا"}
+                        "2"{"پس‌فردا"}
+                        "3"{"سه روز بعد"}
+                    }
+                }
+                dayperiod{
+                    dn{"قبل/بعد از ظهر"}
+                }
+                era{
+                    dn{"دوره"}
+                }
+                hour{
+                    dn{"ساعت"}
+                }
+                minute{
+                    dn{"دقیقه"}
+                }
+                month{
+                    dn{"ماه"}
+                }
+                second{
+                    dn{"ثانیه"}
+                }
+                week{
+                    dn{"هفته"}
+                }
+                weekday{
+                    dn{"روز هفته"}
+                }
+                year{
+                    dn{"سال"}
+                }
+                zone{
+                    dn{"منطقهٔ زمانی"}
+                }
+            }
+            intervalFormats{
+                H{
+                    H{"H تا H"}
+                    a{"H تا H"}
+                }
+                Hm{
+                    H{"H:mm تا H:mm"}
+                    a{"H:mm تا H:mm"}
+                    m{"H:mm تا H:mm"}
+                }
+                Hmv{
+                    H{"H:mm تا H:mm (v)"}
+                    a{"H:mm تا H:mm (v)"}
+                    m{"H:mm تا H:mm (v)"}
+                }
+                Hv{
+                    H{"H تا H (v)"}
+                    a{"H تا H (v)"}
+                }
+                M{
+                    M{"M تا M"}
+                }
+                MEd{
+                    M{"E M/d تا E M/d"}
+                    d{"E M/d تا E M/d"}
+                }
+                MMM{
+                    M{"LLL تا LLL"}
+                }
+                MMMEd{
+                    M{"E d LLL تا E d LLL"}
+                    d{"E d LLL تا E d LLL"}
+                }
+                MMMM{
+                    M{"LLLL تا LLLL"}
+                }
+                MMMd{
+                    M{"d LLL تا d LLL"}
+                    d{"d تا d LLL"}
+                }
+                Md{
+                    M{"M/d تا M/d"}
+                    d{"d/M تا d/M"}
+                }
+                d{
+                    d{"d تا d"}
+                }
+                fallback{"{0} تا {1}"}
+                h{
+                    a{"h a تا h a"}
+                    h{"h تا h a"}
+                }
+                hm{
+                    a{"h:mm a تا h:mm a"}
+                    h{"h:mm تا h:mm a"}
+                    m{"h:mm تا h:mm a"}
+                }
+                hmv{
+                    a{"h:mm a تا h:mm a (v)"}
+                    h{"h:mm تا h:mm a (v)"}
+                    m{"h:mm تا h:mm a (v)"}
+                }
+                hv{
+                    a{"h a تا h a (v)"}
+                    h{"h تا h a (v)"}
+                }
+                y{
+                    y{"y تا y"}
+                }
+                yM{
+                    M{"yyyy/M تا yyyy/M"}
+                    y{"yyyy/M تا yyyy/M"}
+                }
+                yMEd{
+                    M{"E yyyy/M/d تا E yyyy/M/d"}
+                    d{"E yyyy/M/d تا E yyyy/M/d"}
+                    y{"E yyyy/M/d تا E yyyy/M/d"}
+                }
+                yMMM{
+                    M{"LLL تا MMM y"}
+                    y{"MMM y تا MMM y"}
+                }
+                yMMMEd{
+                    M{"E d LLL تا E d MMM y"}
+                    d{"E d LLL تا E d MMM y"}
+                    y{"E d MMM y تا E d MMM y"}
+                }
+                yMMMM{
+                    M{"LLLL تا MMMM y"}
+                    y{"MMMM y تا MMMM y"}
+                }
+                yMMMd{
+                    M{"d LLL تا d MMM y"}
+                    d{"d تا d MMM y"}
+                    y{"d MMM y تا d MMM y"}
+                }
+                yMd{
+                    M{"yyyy/M/d تا yyyy/M/d"}
+                    d{"yyyy/M/d تا yyyy/M/d"}
+                    y{"yyyy/M/d تا yyyy/M/d"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "ژانویهٔ",
+                        "فوریهٔ",
+                        "مارس",
+                        "آوریل",
+                        "می",
+                        "جون",
+                        "جولای",
+                        "اوت",
+                        "سپتامبر",
+                        "اکتبر",
+                        "نوامبر",
+                        "دسامبر",
+                    }
+                    wide{
+                        "ژانویهٔ",
+                        "فوریهٔ",
+                        "مارس",
+                        "آوریل",
+                        "می",
+                        "جون",
+                        "جولای",
+                        "آگوست",
+                        "سپتامبر",
+                        "اکتبر",
+                        "نوامبر",
+                        "دسامبر",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ژ",
+                        "ف",
+                        "م",
+                        "آ",
+                        "می",
+                        "ژ",
+                        "ژ",
+                        "ا",
+                        "س",
+                        "ا",
+                        "ن",
+                        "د",
+                    }
+                    wide{
+                        "ژانویه",
+                        "فوریه",
+                        "مارس",
+                        "آوریل",
+                        "مه",
+                        "ژوئن",
+                        "ژوئیه",
+                        "اوت",
+                        "سپتامبر",
+                        "اکتبر",
+                        "نوامبر",
+                        "دسامبر",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "س‌م۱",
+                        "س‌م۲",
+                        "س‌م۳",
+                        "س‌م۴",
+                    }
+                    wide{
+                        "سه‌ماههٔ اول",
+                        "سه‌ماههٔ دوم",
+                        "سه‌ماههٔ سوم",
+                        "سه‌ماههٔ چهارم",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "۱",
+                        "۲",
+                        "۳",
+                        "۴",
+                    }
+                }
+            }
+        }
+        hebrew{
+            monthNames{
+                format{
+                    wide{
+                        "تشری",
+                        "حشوان",
+                        "کسلو",
+                        "طوت",
+                        "شباط",
+                        "آذار",
+                        "واذار",
+                        "نیسان",
+                        "ایار",
+                        "سیوان",
+                        "تموز",
+                        "آب",
+                        "ایلول",
+                        "واذار الثانی",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ت",
+                        "ح",
+                        "ک",
+                        "ط",
+                        "ش",
+                        "آ",
+                        "و",
+                        "ن",
+                        "ا",
+                        "س",
+                        "ت",
+                        "آ",
+                        "ا",
+                        "و",
+                    }
+                }
+            }
+        }
+        islamic{
+            DateTimePatterns{
+                "H:mm:ss (zzzz)",
+                "H:mm:ss (z)",
+                "H:mm:ss",
+                "H:mm",
+                "EEEE d MMMM y GGGG",
+                "d MMMM y G",
+                "yyyy/M/d G",
+                "yy/M/d G",
+                "{1}،‏ {0}",
+                "{1}، ساعت {0}",
+                "{1}، ساعت {0}",
+                "{1}،‏ {0}",
+                "{1}،‏ {0}",
+            }
+            eras{
+                abbreviated{
+                    "ه‍. ق.",
+                }
+                wide{
+                    "هجری قمری",
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "محرم",
+                        "صفر",
+                        "ربیع الاول",
+                        "ربیع الثانی",
+                        "جمادی الاول",
+                        "جمادی الثانی",
+                        "رجب",
+                        "شعبان",
+                        "رمضان",
+                        "شوال",
+                        "ذیقعدهٔ",
+                        "ذیحجهٔ",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "م",
+                        "ص",
+                        "ر",
+                        "ر",
+                        "ج",
+                        "ج",
+                        "ر",
+                        "ش",
+                        "ر",
+                        "ش",
+                        "ذ",
+                        "ذ",
+                    }
+                }
+            }
+        }
+        persian{
+            eras{
+                abbreviated{
+                    "ه‍. ش.",
+                }
+                wide{
+                    "هجری شمسی",
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "فروردین",
+                        "اردیبهشت",
+                        "خرداد",
+                        "تیر",
+                        "مرداد",
+                        "شهریور",
+                        "مهر",
+                        "آبان",
+                        "آذر",
+                        "دی",
+                        "بهمن",
+                        "اسفند",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ف",
+                        "ا",
+                        "خ",
+                        "ت",
+                        "م",
+                        "ش",
+                        "م",
+                        "آ",
+                        "آ",
+                        "د",
+                        "ب",
+                        "ا",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"›"}
+        alternateQuotationStart{"‹"}
+        quotationEnd{"»"}
+        quotationStart{"«"}
+    }
+    layout{
+        characters{"right-to-left"}
+        lines{"top-to-bottom"}
+    }
+    measurementSystemNames{
+        US{"امریکایی"}
+        metric{"متریک"}
+    }
+    units{
+        day{
+            other{"{0} روز"}
+        }
+        hour{
+            other{"{0} ساعت"}
+        }
+        minute{
+            other{"{0} دقیقه"}
+        }
+        month{
+            other{"{0} ماه"}
+        }
+        second{
+            other{"{0} ثانیه"}
+        }
+        week{
+            other{"{0} هفته"}
+        }
+        year{
+            other{"{0} سال"}
+        }
+    }
+}

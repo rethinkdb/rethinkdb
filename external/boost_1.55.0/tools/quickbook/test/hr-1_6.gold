@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="horizontal_rule" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Horizontal Rule</title>
+  <para/>
+  <para>
+    This should be displayed.
+  </para>
+  <para/>
+  <para/>
+  <para>
+    * This shouldn't be a list
+  </para>
+  <para/>
+  <itemizedlist>
+    <listitem>
+      <simpara>
+        This should be a list
+      </simpara>
+    </listitem>
+  </itemizedlist>
+  <para/>
+  <itemizedlist>
+    <listitem>
+      <simpara>
+        This should be a list
+      </simpara>
+    </listitem>
+  </itemizedlist>
+  <para/>
+  <para>
+    <emphasis role="bold">This should be displayed. Maybe that's wrong?</emphasis>
+  </para>
+  <para/>
+  <para>
+    Odd way to get text displayed.
+  </para>
+</article>

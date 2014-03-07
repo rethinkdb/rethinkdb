@@ -1,0 +1,96 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:ConvertibleToMutableBuffer Convertible to mutable buffer requirements]
+
+A type that meets the requirements for convertibility to a mutable buffer must
+meet the requirements of `CopyConstructible` types (C++ Std, 20.1.3), and the
+requirements of `Assignable` types (C++ Std, 23.1).
+
+In the table below, `X` denotes a class meeting the requirements for
+convertibility to a mutable buffer, `a` and `b` denote values of type `X`, and
+`u`, `v` and `w` denote identifiers.
+
+[table ConvertibleToMutableBuffer requirements
+  [[expression][postcondition]]
+  [
+    [``
+      mutable_buffer u(a);
+      mutable_buffer v(a);
+    ``]
+    [``
+      buffer_cast<void*>(u) == buffer_cast<void*>(v)
+        && buffer_size(u) == buffer_size(v)
+    ``]
+  ]
+  [
+    [``
+      mutable_buffer u(a);
+      mutable_buffer v = a;
+    ``]
+    [``
+      buffer_cast<void*>(u) == buffer_cast<void*>(v)
+        && buffer_size(u) == buffer_size(v)
+    ``]
+  ]
+  [
+    [``
+      mutable_buffer u(a);
+      mutable_buffer v; v = a;
+    ``]
+    [``
+      buffer_cast<void*>(u) == buffer_cast<void*>(v)
+        && buffer_size(u) == buffer_size(v)
+    ``]
+  ]
+  [
+    [``
+      mutable_buffer u(a);
+      const X& v = a;
+      mutable_buffer w(v);
+    ``]
+    [``
+      buffer_cast<void*>(u) == buffer_cast<void*>(w)
+        && buffer_size(u) == buffer_size(w)
+    ``]
+  ]
+  [
+    [``
+      mutable_buffer u(a);
+      X v(a);
+      mutable_buffer w(v);
+    ``]
+    [``
+      buffer_cast<void*>(u) == buffer_cast<void*>(w)
+        && buffer_size(u) == buffer_size(w)
+    ``]
+  ]
+  [
+    [``
+      mutable_buffer u(a);
+      X v = a;
+      mutable_buffer w(v);
+    ``]
+    [``
+      buffer_cast<void*>(u) == buffer_cast<void*>(w)
+        && buffer_size(u) == buffer_size(w)
+    ``]
+  ]
+  [
+    [``
+      mutable_buffer u(a);
+      X v(b); v = a;
+      mutable_buffer w(v);
+    ``]
+    [``
+      buffer_cast<void*>(u) == buffer_cast<void*>(w)
+        && buffer_size(u) == buffer_size(w)
+    ``]
+  ]
+]
+
+[endsect]

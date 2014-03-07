@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: Partial Metafunction Application</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./more-lambda-capabilities.html" class="navigation-link">Prev</a>&nbsp;<a href="./metafunction-composition.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./metafunction-composition.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./more-lambda-capabilities.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./tutorial-metafunctions.html" class="navigation-link">Tutorial: Metafunctions and Higher-Order Metaprogramming</a> / <a href="./more-lambda-capabilities.html" class="navigation-link">More Lambda Capabilities</a> / <a href="./partial-metafunction.html" class="navigation-link">Partial Metafunction Application</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="partial-metafunction">
+<h1><a class="toc-backref" href="./more-lambda-capabilities.html#id52" name="partial-metafunction">Partial Metafunction Application</a></h1>
+<p>Consider the lambda expression <tt class="literal"><span class="pre">mpl::plus&lt;_1,_1&gt;</span></tt>.  A single
+argument is directed to both of <tt class="literal"><span class="pre">plus</span></tt>'s parameters, thereby
+adding a number to itself.  Thus, a <em>binary</em> metafunction,
+<tt class="literal"><span class="pre">plus</span></tt>, is used to build a <em>unary</em> lambda expression.  In other
+words, we've created a whole new computation!  We're not done yet,
+though:  By supplying a non-placeholder as one of the arguments, we
+can build a unary lambda expression that adds a fixed value, say
+42, to its argument:</p>
+<pre class="literal-block">
+mpl::plus&lt;_1, mpl::int_&lt;42&gt; &gt;
+</pre>
+<!-- @ apply_test = 'enum { value = mpl::apply<', ''' >::type::value };
+              BOOST_STATIC_ASSERT(value == %d);'''
+
+example.wrap(apply_test[0], 
+             ', mpl::int_<3>' + apply_test[1] % 45)
+compile() -->
+<p>The process of binding argument values to a subset of a function's
+parameters is known in the world of functional programming as
+<strong>partial function application</strong>.</p>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./more-lambda-capabilities.html" class="navigation-link">Prev</a>&nbsp;<a href="./metafunction-composition.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./metafunction-composition.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./more-lambda-capabilities.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

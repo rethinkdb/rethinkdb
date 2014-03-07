@@ -1,0 +1,13 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Han_Latin_Names.txt
+# Generated from CLDR 
+#
+::Han-Spacedhan();
+沈→shěn;
+曾→zēng;
+::Han-Latin();

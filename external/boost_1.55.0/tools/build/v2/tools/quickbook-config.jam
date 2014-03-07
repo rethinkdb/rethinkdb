@@ -1,0 +1,44 @@
+#~ Copyright 2005 Rene Rivera.
+#~ Distributed under the Boost Software License, Version 1.0.
+#~ (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+# Automatic configuration for BoostBook tools. To use, just import this module.
+
+import os ;
+import toolset : using ;
+
+if [ os.name ] = NT
+{
+    local boost-dir = ;
+    for local R in snapshot cvs 1.33.0
+    {
+        boost-dir += [ W32_GETREG
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Boost.org\\$(R)"
+            : "InstallRoot" ] ;
+    }
+    local quickbook-path = [ GLOB "$(boost-dir)\\bin" "\\Boost\\bin" : quickbook.exe ] ;
+    quickbook-path = $(quickbook-path[1]) ;
+    
+    if $(quickbook-path)
+    {
+        if --debug-configuration in [ modules.peek : ARGV ]
+        {
+            ECHO "notice:" using quickbook ":" $(quickbook-path) ;
+        }
+        using quickbook : $(quickbook-path) ;
+    }
+}
+else
+{
+    local quickbook-path = [ GLOB "/usr/local/bin" "/usr/bin" "/opt/bin" : quickbook ] ;
+    quickbook-path = $(quickbook-path[1]) ;
+    
+    if $(quickbook-path)
+    {
+        if --debug-configuration in [ modules.peek : ARGV ]
+        {
+            ECHO "notice:" using quickbook ":" $(quickbook-path) ;
+        }
+        using quickbook : $(quickbook-path) ;
+    }
+}

@@ -1,0 +1,14 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Bengali_Malayalam.txt
+# Generated from CLDR 
+#
+::[।-॥\u0981-ঃঅ-ঌএ-ঐও-নপ-রলশ-হ\u09BC-\u09C4ে-ৈো-\u09CDৗড়-ঢ়য়-\u09E3০-৺ৎ];
+::NFD;
+::Bengali-InterIndic;
+::InterIndic-Malayalam;
+::NFC;

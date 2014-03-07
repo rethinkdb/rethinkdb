@@ -1,0 +1,102 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template time_resolution_traits</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.time_resolution_traits_hpp" title="Header &lt;boost/date_time/time_resolution_traits.hpp&gt;">
+<link rel="prev" href="time_resolutio_idp51443096.html" title="Struct time_resolution_traits_adapted64_impl">
+<link rel="next" href="counted_time_rep.html" title="Struct template counted_time_rep">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="time_resolutio_idp51443096.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.time_resolution_traits_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="counted_time_rep.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.time_resolution_traits"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template time_resolution_traits</span></h2>
+<p>boost::date_time::time_resolution_traits</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.time_resolution_traits_hpp" title="Header &lt;boost/date_time/time_resolution_traits.hpp&gt;">boost/date_time/time_resolution_traits.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> frac_sec_type<span class="special">,</span> <span class="identifier">time_resolutions</span> res<span class="special">,</span> 
+         <span class="preprocessor">#if</span><span class="special">(</span><span class="identifier">defined</span><span class="special">(</span><span class="identifier">BOOST_MSVC</span><span class="special">)</span><span class="special">&amp;&amp;</span><span class="special">(</span><span class="identifier">_MSC_VER</span><span class="special">&lt;</span> <span class="number">1300</span><span class="special">)</span><span class="special">)</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">int64_t</span> resolution_adjust<span class="special">,</span> 
+         <span class="preprocessor">#else</span> <span class="keyword">typename</span> <span class="identifier">frac_sec_type</span><span class="special">::</span><span class="identifier">int_type</span> resolution_adjust<span class="special">,</span> 
+         <span class="preprocessor">#endif</span> <span class="keyword">unsigned</span> <span class="keyword">short</span> frac_digits<span class="special">,</span> <span class="keyword">typename</span> v_type <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">int32_t</span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="time_resolution_traits.html" title="Class template time_resolution_traits">time_resolution_traits</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">frac_sec_type</span><span class="special">::</span><span class="identifier">int_type</span>  <a name="boost.date_time.time_resolution_traits.fractional_seconds_type"></a><span class="identifier">fractional_seconds_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">frac_sec_type</span><span class="special">::</span><span class="identifier">int_type</span>  <a name="boost.date_time.time_resolution_traits.tick_type"></a><span class="identifier">tick_type</span><span class="special">;</span>              
+  <span class="keyword">typedef</span> <span class="identifier">frac_sec_type</span><span class="special">::</span><span class="identifier">impl_type</span> <a name="boost.date_time.time_resolution_traits.impl_type"></a><span class="identifier">impl_type</span><span class="special">;</span>              
+  <span class="keyword">typedef</span> <span class="identifier">v_type</span>                   <a name="boost.date_time.time_resolution_traits.day_type"></a><span class="identifier">day_type</span><span class="special">;</span>               
+  <span class="keyword">typedef</span> <span class="identifier">v_type</span>                   <a name="boost.date_time.time_resolution_traits.hour_type"></a><span class="identifier">hour_type</span><span class="special">;</span>              
+  <span class="keyword">typedef</span> <span class="identifier">v_type</span>                   <a name="boost.date_time.time_resolution_traits.min_type"></a><span class="identifier">min_type</span><span class="special">;</span>               
+  <span class="keyword">typedef</span> <span class="identifier">v_type</span>                   <a name="boost.date_time.time_resolution_traits.sec_type"></a><span class="identifier">sec_type</span><span class="special">;</span>               
+
+  <span class="comment">// <a class="link" href="time_resolution_traits.html#idp18840840-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">fractional_seconds_type</span> <a class="link" href="time_resolution_traits.html#idp18841048-bb"><span class="identifier">as_number</span></a><span class="special">(</span><span class="identifier">impl_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="time_resolution_traits.html#idp35572984-bb"><span class="identifier">is_adapted</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">time_resolutions</span> <a class="link" href="time_resolution_traits.html#idp52212392-bb"><span class="identifier">resolution</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">unsigned</span> <span class="keyword">short</span> <a class="link" href="time_resolution_traits.html#idp52212872-bb"><span class="identifier">num_fractional_digits</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">fractional_seconds_type</span> <a class="link" href="time_resolution_traits.html#idp21686360-bb"><span class="identifier">res_adjust</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">tick_type</span> 
+  <a class="link" href="time_resolution_traits.html#idp21686808-bb"><span class="identifier">to_tick_count</span></a><span class="special">(</span><span class="identifier">hour_type</span><span class="special">,</span> <span class="identifier">min_type</span><span class="special">,</span> <span class="identifier">sec_type</span><span class="special">,</span> <span class="identifier">fractional_seconds_type</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="time_resolution_traits.html#idp34590808-bb">public member functions</a></span>
+   <a class="link" href="time_resolution_traits.html#idp34590968-bb"><span class="identifier">BOOST_STATIC_CONSTANT</span></a><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">int64_t</span><span class="special">,</span> <span class="identifier">ticks_per_second</span> <span class="special">=</span> <span class="identifier">resolution_adjust</span><span class="special">)</span><span class="special">;</span>
+   <a class="link" href="time_resolution_traits.html#idp52227496-bb"><span class="identifier">BOOST_STATIC_CONSTANT</span></a><span class="special">(</span><span class="identifier">fractional_seconds_type</span><span class="special">,</span> 
+                         <span class="identifier">ticks_per_second</span> <span class="special">=</span> <span class="identifier">resolution_adjust</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp90710040"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp90710248"></a><h3>
+<a name="idp18840840-bb"></a><code class="computeroutput">time_resolution_traits</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">fractional_seconds_type</span> <a name="idp18841048-bb"></a><span class="identifier">as_number</span><span class="special">(</span><span class="identifier">impl_type</span> i<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="idp35572984-bb"></a><span class="identifier">is_adapted</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">time_resolutions</span> <a name="idp52212392-bb"></a><span class="identifier">resolution</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="keyword">unsigned</span> <span class="keyword">short</span> <a name="idp52212872-bb"></a><span class="identifier">num_fractional_digits</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">fractional_seconds_type</span> <a name="idp21686360-bb"></a><span class="identifier">res_adjust</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">tick_type</span> 
+<a name="idp21686808-bb"></a><span class="identifier">to_tick_count</span><span class="special">(</span><span class="identifier">hour_type</span> hours<span class="special">,</span> <span class="identifier">min_type</span> minutes<span class="special">,</span> <span class="identifier">sec_type</span> seconds<span class="special">,</span> 
+              <span class="identifier">fractional_seconds_type</span> fs<span class="special">)</span><span class="special">;</span></pre>Any negative argument results in a negative tick_count. </li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp90729176"></a><h3>
+<a name="idp34590808-bb"></a><code class="computeroutput">time_resolution_traits</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"> <a name="idp34590968-bb"></a><span class="identifier">BOOST_STATIC_CONSTANT</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">int64_t</span><span class="special">,</span> <span class="identifier">ticks_per_second</span> <span class="special">=</span> <span class="identifier">resolution_adjust</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"> <a name="idp52227496-bb"></a><span class="identifier">BOOST_STATIC_CONSTANT</span><span class="special">(</span><span class="identifier">fractional_seconds_type</span><span class="special">,</span> 
+                       <span class="identifier">ticks_per_second</span> <span class="special">=</span> <span class="identifier">resolution_adjust</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="time_resolutio_idp51443096.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.time_resolution_traits_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="counted_time_rep.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

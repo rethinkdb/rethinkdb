@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Tutorial</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Tutorial</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='dual_use_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next_disabled.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<A NAME="finite_state"></A>
+<H2>2.2.10. Finite State Filters</H2>
+
+<A NAME="finite_state_machine"></A>
+<H4>Finite State Machines</H4>
+
+<P>
+    In this section I show how to construct <A HREF="../concepts/dual_use_filter.html">Dual-Use Filters</A> from finite state machines. For purposes of this section, a finite state machine consists of a collection of <SPAN>states</SPAN>, represented as <CODE>int</CODE>s, a distinguished <SPAN>initial state</SPAN>, a <SPAN>transition table</SPAN>, a collection of <SPAN>event handlers</SPAN> and a stack of characters. These finite state machines were inspired by the finite state machine examples that accompany the <A HREF="../../../mpl/doc/index.html" TARGET="_top"><CODE>Boost Metaprogamming library</CODE></A>. <I>See</I>, <I>e.g.</I>, <A HREF="../../../mpl/example/fsm/player1.cpp" TARGET="_top"><CODE>&lt;libs/mpl/example/player1.cpp&gt;</CODE></A>
+</P>
+
+<P>
+    For us, an <SPAN>event</SPAN> is simply a character. A transition table is an <A HREF="../../../mpl/doc/refmanual/forward-sequence.html" TARGET="_top">MPL Forward Sequence</A> of <SPAN>rows</SPAN>. Each row is a 4-tuple consisting of a <SPAN>current state</SPAN>, a <SPAN>character class</SPAN>, a <SPAN>next state</SPAN> and an <SPAN>event handler</SPAN>. During the operation of a finite state machine, its transition table is consulted to determine how the machine's state should be updated and which event handler to call. When an event <CODE>e</CODE> occurs, the transition table is searched for the first row whose current state is equal to the current state of the machine, and whose character class matches <CODE>e</CODE>. The machine's state is then updated to the row's next state, and the event handler is called with <CODE>e</CODE> as an argument.
+</P>
+
+<P>
+    A character class is a class type with a <CODE>static</CODE> member function <CODE>test</CODE> taking a character and a <CODE>std::locale</CODE> as arguments. <I>E.g.</I>,
+
+<PRE class="broken_ie">    <SPAN CLASS="keyword">struct</SPAN> is_any {
+        <SPAN CLASS="keyword">static</SPAN> <SPAN CLASS="keyword">bool</SPAN> test(<SPAN CLASS="keyword">char</SPAN>, <SPAN CLASS="keyword">const</SPAN> std::locale&amp;);
+    };</PRE>
+
+<P>
+    There are several built in character classes. The character class <CODE>is_any</CODE> matches any character. For any character <CODE>c</CODE>, the character class <CODE>is&lt;c&gt;</CODE> only matches <CODE>c</CODE>. The character classes <CODE>alnum</CODE>, <CODE>is_alpha</CODE>, <CODE>is_cntrl</CODE>, <CODE>is_digit</CODE>, <CODE>is_graph</CODE>, <CODE>is_lower</CODE>, <CODE>is_print</CODE>, <CODE>is_punct</CODE>, <CODE>is_space</CODE>, <CODE>is_upper</CODE>, <CODE>is_xdigit</CODE> implement <CODE>locale</CODE>-sensitive character classification.
+</P>
+
+<P>
+    Event handlers are member functions of a finite state machine which take a single character as argument and return <CODE>void</CODE>. The implementation of an event handler typically examines the given character and pushes zero or more characters of filtered data onto the stack. A special event handler <CODE>on_eof</CODE> takes no arguments and is called automatically after the last character in a sequence is processed.
+</P>
+
+<P>
+    There are three built-in event handlers, <CODE>on_any</CODE>, <CODE>push</CODE> and <CODE>skip</CODE>. The handler <CODE>on_any</CODE> is called automatically when an event occurs which is not covered by any row in the transition table. The default behavior of <CODE>on_any</CODE> is to do nothing. The handler <CODE>push</CODE> pushes the given character onto the stack. The handler <CODE>skip</CODE> ignores the current character. The handlers <CODE>push</CODE> and <CODE>skip</CODE> are not defined by default; in order to make them available, the macro <CODE>BOOST_IOSTREAM_FSM</CODE> should be invoked within the class definition of a finite state machine, passing the state machine's name as the macro argument.
+</P>
+
+<P>
+    Finite state machines must derive from the class template <CODE>boost::iostreams::finite_state_machine</CODE>, defined in the header <A HREF="../../example/finite_state_filter.hpp"><CODE>&lt;libs/iostreams/example/finite_state_filter.hpp&gt;</CODE></A>. The first template argument to <CODE>finite_state_machine</CODE> should be the derived class itself; the second template argument should be the character type. 
+<P>
+    A finite state machine's transition table should be declared as a member type named <CODE>transition_table</CODE>. Its event handlers should be implemented as member functions. A finite state machine may define a <CODE>static</CODE> integral constant named <CODE>initial_state</CODE>, which will be treated as the machine's initial state. Alternatively, the definition of the initial state can be omitted, in which case it will default to <CODE>0</CODE>.
+</P>
+
+<P>
+    Given a finite state machine <CODE>my_fsm</CODE>, you can define a <A HREF="../concepts/dual_use_filter.html">Dual-Use Filter</A> as follows:
+</P>
+
+<PRE class="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> io = boost::iostreams;
+
+<SPAN CLASS="keyword">typedef</SPAN> io::finite_state_filter&lt;my_fsm&gt; my_finite_state_filter;</PRE>
+
+<A NAME="dos2unix_fsm"></A>
+<H4><CODE>dos2unix_fsm</CODE></H4>
+
+<P>The following state machine can be used to convert line endings from <CODE>DOS</CODE> to <CODE>UNIX</CODE>. The constant <CODE>initial_state</CODE>, the class template <CODE>row</CODE> and the character classes <CODE>is</CODE> and <CODE>is_any</CODE> are members of the base class <CODE>boost::iostreams::finite_state_machine</CODE>.</P>
+
+<PRE class="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/mpl/vector.hpp"><SPAN CLASS="literal">&lt;boost/mpl/vector&gt;</SPAN></A>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../example/finite_state_filter.hpp"><SPAN CLASS="literal">&lt;libs/iostreams/example/finite_state_filter.hpp&gt;</SPAN></A>
+
+<SPAN CLASS="keyword">namespace</SPAN> io = boost::iostreams;
+
+<SPAN CLASS="keyword">struct</SPAN> dos2unix_fsm : io::finite_state_machine&lt;dos2unix_fsm&gt; {
+    BOOST_IOSTREAMS_FSM(dos2unix_fsm) <SPAN CLASS='comment'>// Define skip and push.</SPAN>
+    <SPAN CLASS="keyword">typedef</SPAN> dos2unix_fsm self;
+    <SPAN CLASS="keyword">typedef</SPAN> boost::mpl::vector&lt;
+                row&lt;initial_state, is&lt;<SPAN CLASS="literal">'\r'</SPAN>&gt;, initial_state, &amp;self::skip&gt;,
+                row&lt;initial_state, is_any,   initial_state, &amp;self::push&gt;
+            &gt; transition_table;
+};</PRE>
+
+<P>
+    This machine has just a single state. Its transition table can be understood as follows: if the current character is <CODE>'\r'</CODE>, ignore it; otherwise, forward it unchanged.
+</P>
+
+<A NAME="unix2dos_fsm"></A>
+<H4><CODE>unix2dos_fsm</CODE></H4>
+
+<P>The following state machine can be used to convert line endings from <CODE>UNIX</CODE> to <CODE>DOS</CODE>:</P>
+
+<PRE class="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/mpl/vector.hpp"><SPAN CLASS="literal">&lt;boost/mpl/vector&gt;</SPAN></A>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../example/finite_state_filter.hpp"><SPAN CLASS="literal">&lt;libs/iostreams/example/finite_state_filter.hpp&gt;</SPAN></A>
+
+<SPAN CLASS="keyword">namespace</SPAN> io = boost::iostreams;
+
+<SPAN CLASS="keyword">struct</SPAN> unix2dos_fsm : io::finite_state_machine&lt;unix2dos_fsm&gt; {
+    BOOST_IOSTREAMS_FSM(unix2dos_fsm) <SPAN CLASS='comment'>// Define skip and push.</SPAN>
+    <SPAN CLASS="keyword">typedef</SPAN> unix2dos_fsm self;
+
+    <SPAN CLASS="keyword">void</SPAN> on_lf(<SPAN CLASS="keyword">char</SPAN>) { push(<SPAN CLASS="literal">'\r'</SPAN>); push(<SPAN CLASS="literal">'\n'</SPAN>); }
+
+    <SPAN CLASS="keyword">typedef</SPAN> boost::mpl::vector&lt;
+                row&lt;initial_state, is&lt;<SPAN CLASS="literal">'\n'</SPAN>&gt;, initial_state, &amp;self::on_lf&gt;,
+                row&lt;initial_state, is_any,   initial_state, &amp;self::push&gt;
+            &gt; transition_table;
+};</PRE>
+
+<P>
+    This machine also has just a single state. The event handler <CODE>on_lf</CODE> pushes a <CODE>DOS</CODE> line-ending sequence onto the stack. The transition table can be understood as follows: if the current character is <CODE>'\n'</CODE>, write a <CODE>DOS</CODE> line-ending sequence; otherwise, forward it unchanged.
+</P>
+
+<A NAME="uncommenting_fsm"></A>
+<H4><CODE>uncommenting_fsm</CODE></H4>
+
+<P>The following state machine removes C-style comments. Although it's not quite sophisticated enough for processing source code, it's a good illustration of a multi-state machine.</P>
+
+<PRE class="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/mpl/vector.hpp"><SPAN CLASS="literal">&lt;boost/mpl/vector&gt;</SPAN></A>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../example/finite_state_filter.hpp"><SPAN CLASS="literal">&lt;libs/iostreams/example/finite_state_filter.hpp&gt;</SPAN></A>
+
+
+<SPAN CLASS="keyword">namespace</SPAN> io = boost::iostreams;
+
+<SPAN CLASS="keyword">struct</SPAN> uncommenting_fsm : io::finite_state_machine&lt;uncommenting_fsm&gt; {
+    BOOST_IOSTREAMS_FSM(uncommenting_fsm) <SPAN CLASS='comment'>// Define skip and push.</SPAN>
+    <SPAN CLASS="keyword">typedef</SPAN> uncommenting_fsm self;
+
+    <SPAN CLASS="keyword">static</SPAN> <SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> no_comment   = initial_state;
+    <SPAN CLASS="keyword">static</SPAN> <SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> pre_comment  = no_comment <SPAN CLASS='numeric_literal'>+ 1</SPAN>;
+    <SPAN CLASS="keyword">static</SPAN> <SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> comment      = pre_comment <SPAN CLASS='numeric_literal'>+ 1</SPAN>;
+    <SPAN CLASS="keyword">static</SPAN> <SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> post_comment = comment <SPAN CLASS='numeric_literal'>+ 1</SPAN>;
+
+    <SPAN CLASS="keyword">void</SPAN> push_slash(<SPAN CLASS="keyword">char</SPAN> c) { push('/'); push(c); }
+
+    <SPAN CLASS="keyword">typedef</SPAN> boost::mpl::vector&lt;
+                row&lt;no_comment,   is&lt;<SPAN CLASS='literal'>'/'</SPAN>&gt;, pre_comment,  &amp;self::skip&gt;,
+                row&lt;no_comment,   is_any,  no_comment,   &amp;self::push&gt;,
+                row&lt;pre_comment,  is&lt;<SPAN CLASS='literal'>'*'</SPAN>&gt;, comment,      &amp;self::skip&gt;,
+                row&lt;pre_comment,  is&lt;<SPAN CLASS='literal'>'/'</SPAN>&gt;, pre_comment,  &amp;self::push&gt;,
+                row&lt;pre_comment,  is_any,  no_comment,   &amp;self::push_slash&gt;,
+                row&lt;comment,      is&lt;<SPAN CLASS='literal'>'*'</SPAN>&gt;, post_comment, &amp;self::skip&gt;,
+                row&lt;comment,      is_any,  comment,      &amp;self::skip&gt;,
+                row&lt;post_comment, is&lt;<SPAN CLASS='literal'>'/'</SPAN>&gt;, no_comment,   &amp;self::skip&gt;,
+                row&lt;post_comment, is&lt;<SPAN CLASS='literal'>'*'</SPAN>&gt;, post_comment, &amp;self::skip&gt;,
+                row&lt;post_comment, is_any,  comment,      &amp;self::skip&gt;
+            &gt; transition_table;
+};</PRE>
+
+<P>
+    This machine has four states and one user-defined event handler. I'll leave it as an exercise to discover how it works.
+</P>
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='dual_use_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next_disabled.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Use, modification, and distribution are subject to the Boost Software License, Version 2.0. (See accompanying file <A HREF="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+<!-- End Footer -->
+
+</BODY>

@@ -1,0 +1,44 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:reactor Reactor-Style Operations]
+
+Sometimes a program must be integrated with a third-party library that wants to
+perform the I/O operations itself. To facilitate this, Boost.Asio includes a
+`null_buffers` type that can be used with both read and write operations. A
+`null_buffers` operation doesn't return until the I/O object is "ready" to
+perform the operation.
+
+As an example, to perform a non-blocking read something like the
+following may be used:
+
+  ip::tcp::socket socket(my_io_service);
+  ...
+  socket.non_blocking(true);
+  ...
+  socket.async_read_some(null_buffers(), read_handler);
+  ...
+  void read_handler(boost::system::error_code ec)
+  {
+    if (!ec)
+    {
+      std::vector<char> buf(socket.available());
+      socket.read_some(buffer(buf));
+    }
+  }
+  
+These operations are supported for sockets on all platforms, and for the POSIX
+stream-oriented descriptor classes.
+
+[heading See Also]
+
+[link boost_asio.reference.null_buffers null_buffers],
+[link boost_asio.reference.basic_socket.non_blocking basic_socket::non_blocking()],
+[link boost_asio.reference.basic_socket.native_non_blocking basic_socket::native_non_blocking()],
+[link boost_asio.examples.cpp03_examples.nonblocking nonblocking example].
+
+[endsect]

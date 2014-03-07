@@ -1,0 +1,90 @@
+[/
+  (C) Copyright 2007-8 Anthony Williams.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:time Time Requirements]
+
+As of Boost 1.50.0, the __boost_thread__ library uses Boost.Chrono library for all operations that require a
+time out as defined in the standard c++11. These include (but are not limited to):
+
+* `boost::this_thread::__sleep_for`
+* `boost::this_thread::__sleep_until`
+* `boost::__thread::__try_join_for`
+* `boost::__thread::__try_join_until`
+* `boost::__condition_variable::__wait_for`
+* `boost::__condition_variable::__wait_until`
+* `boost::__condition_variable_any::__cvany_wait_for`
+* `boost::__condition_variable_any::__cvany_wait_until`
+* `__TimedLockable::__try_lock_for`
+* `__TimedLockable::__try_lock_until`
+
+[section:deprecated Deprecated]
+The time related functions introduced in Boost 1.35.0, using the [link date_time Boost.Date_Time] library are deprecated. These include (but are not limited to):
+
+* __sleep__
+* __timed_join__
+* __cond_timed_wait__
+* __timed_lock_ref__
+
+For the overloads that accept an absolute time parameter, an object of type [link thread.time.deprecated.system_time `boost::system_time`] is
+required. Typically, this will be obtained by adding a duration to the current time, obtained with a call to [link
+thread.time.deprecated.get_system_time `boost::get_system_time()`]. e.g.
+
+    boost::system_time const timeout=boost::get_system_time() + boost::posix_time::milliseconds(500);
+
+    extern bool done;
+    extern boost::mutex m;
+    extern boost::condition_variable cond;
+
+    boost::unique_lock<boost::mutex> lk(m);
+    while(!done)
+    {
+        if(!cond.timed_wait(lk,timeout))
+        {
+            throw "timed out";
+        }
+    }
+
+For the overloads that accept a ['TimeDuration] parameter, an object of any type that meets the [link
+date_time.posix_time.time_duration Boost.Date_Time Time Duration requirements] can be used, e.g.
+
+    boost::this_thread::sleep(boost::posix_time::milliseconds(25));
+    
+    boost::mutex m;
+    if(m.timed_lock(boost::posix_time::nanoseconds(100)))
+    {
+        //  ...
+    }
+
+[section:system_time Typedef `system_time`]
+
+    #include <boost/thread/thread_time.hpp>
+
+    typedef boost::posix_time::ptime system_time;
+
+See the documentation for [link date_time.posix_time.ptime_class `boost::posix_time::ptime`] in the Boost.Date_Time library.
+
+[endsect]
+
+[section:get_system_time Non-member function `get_system_time()`]
+
+    #include <boost/thread/thread_time.hpp>
+
+    system_time get_system_time();
+
+[variablelist
+
+[[Returns:] [The current time.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[endsect]
+
+
+[endsect]

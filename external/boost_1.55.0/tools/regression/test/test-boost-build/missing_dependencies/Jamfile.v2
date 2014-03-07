@@ -1,0 +1,9 @@
+project 
+    : requirements
+      <library>/boost/filesystem//boost_filesystem
+      <define>BOOST_ALL_NO_LIB
+    ;
+
+   test-suite "missing_dependencies" :
+       [ run test.cpp  lib//<link>static ]                  
+       ;

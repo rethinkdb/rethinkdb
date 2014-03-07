@@ -1,0 +1,114 @@
+<html>
+<head>
+<title>Includes</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr>
+    <td width="10">
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Includes</b></font>
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="quickref.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="portability.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<h2>Modules</h2>
+<p>Spirit is designed to be header only. Generally, there are no libraries to build
+and link against. Certain features, however, require additional libraries; in particular
+the <a href="regular_expression_parser.html">regular expression parser</a> requires
+<a href="http://www.boost.org/libs/regex/index.html">Boost.Regex</a> and <a href="grammar.html#multithreading">multithreading support</a>
+requires <a href="http://www.boost.org/libs/thread/doc/index.html">Boost.Threads.</a></p>
+<p>Using Spirit is as easy as including the main header file:</p>
+<pre>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">.</span>hpp<span class="special">&gt;</span></pre>
+<p>Doing so will include all the header files. This might not be desirable. A
+  low cholesterol alternative is to include only the module that you need. Each
+  of the modules has its own header file. The master spirit header file actually
+  includes all the module files. To avoid unnecessary inclusion of features that
+  you do not need, it is better to include only the modules that you need.</p>
+<pre>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>actor<span class="special">.</span>hpp<span class="special">&gt;<br>    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>attribute<span class="special">.</span>hpp<span class="special">&gt;
+    <span class="preprocessor">#include</span> &lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>core<span class="special">.</span>hpp<span class="special">&gt;</span><span class="special">
+</span><span class="special"></span><span class="special">    <span class="preprocessor">#include</span> &lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>debug<span class="special">.</span>hpp<span class="special">&gt;</span><span class="special">
+</span><span class="special">    <span class="preprocessor">#include</span> &lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>dynamic<span class="special">.</span>hpp<span class="special">&gt;</span><span class="special">
+    <span class="preprocessor">#include</span> &lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>error_handling<span class="special">.</span>hpp<span class="special">&gt;</span><span class="special"></span><span class="special">
+    <span class="preprocessor">#include</span> &lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>iterator<span class="special">.</span>hpp<span class="special">&gt;
+    <span class="preprocessor">#include</span> &lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>meta<span class="special">.</span>hpp<span class="special">&gt;</span><span class="special">
+</span><span class="special"></span><span class="special">    <span class="preprocessor">#include</span> &lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>symbols<span class="special">.</span>hpp<span class="special">&gt;</span><span class="special"></span><span class="special">
+    <span class="preprocessor">#include</span> &lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>tree<span class="special">.</span>hpp<span class="special">&gt;</span><span class="special"></span><span class="special">
+    <span class="preprocessor">#include</span> &lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>utility<span class="special">.</span>hpp<span class="special">&gt;</span><span class="special"></span><span class="special"></span></pre>
+<h2>Sub-Modules</h2>
+<p> For even finer control over header file inclusion, you can include only the
+  specific files that you need. Each module is in its own sub-directory:</p>
+<h3>actor</h3>
+<pre>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>actor<span class="special">/</span><span class="identifier">assign_actor</span><span class="special">.</span>hpp<span class="special">&gt;<br></span>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>actor<span class="special">/</span><span class="identifier">assign_key</span><span class="special">.</span>hpp<span class="special">&gt;</span><span class="special"></span><span class="special"></span>
+    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>actor<span class="special">/</span><span class="identifier">clear_actor</span><span class="special">.</span>hpp<span class="special">&gt;</span><span class="special"></span><span class="special"></span>
+    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>actor<span class="special">/</span><span class="identifier">decrement_actor</span><span class="special">.</span>hpp<span class="special">&gt;</span><span class="special"></span><span class="special"></span>
+    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>actor<span class="special">/</span><span class="identifier">erase_actor</span><span class="special">.</span>hpp<span class="special">&gt;</span><span class="special"></span> <br>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>actor<span class="special">/</span><span class="identifier">increment_actor</span><span class="special">.</span>hpp<span class="special">&gt;<br></span>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>actor<span class="special">/</span><span class="identifier">insert_key_actor</span><span class="special">.</span>hpp<span class="special">&gt;</span><span class="special"></span><span class="special"></span>
+    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>actor<span class="special">/</span><span class="identifier">push_back_actor</span><span class="special">.</span>hpp<span class="special">&gt;</span><span class="special"></span><span class="special"></span>
+    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>actor<span class="special">/</span><span class="identifier">push_front_actor</span><span class="special">.</span>hpp<span class="special">&gt;</span><span class="special"></span><span class="special"></span>
+    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>actor<span class="special">/</span><span class="identifier">swap_actor</span><span class="special">.</span>hpp<span class="special">&gt;</span><span class="special"></span><span class="special"></span></pre>
+<h3>attribute</h3>
+<pre>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>attribute<span class="special">/</span><span class="identifier">closure</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;<br></span>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>attribute<span class="special">/</span>closure_context.hpp<span class="special">&gt;</span><span class="special"></span><span class="special"></span>
+    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>attribute<span class="special">/</span>parametric.hpp<span class="special">&gt;</span></pre>
+<h3>debug</h3>
+<p><img src="theme/alert.gif" width="16" height="16"> The debug module should
+  not be directly included. See <a href="debugging.html">Debugging</a> for more
+  info on how to use Spirit's debugger. </p>
+<h3>dynamic</h3>
+<pre>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>dynamic<span class="special">/</span><span class="identifier">for</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;<br></span>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>dynamic<span class="special">/</span>if.hpp<span class="special">&gt;</span><span class="special"></span><span class="special"></span>
+    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">dynamic</span><span class="special">/</span>lazy.hpp<span class="special">&gt; <br>    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">dynamic</span><span class="special">/</span>rule_alias.hpp<span class="special">&gt;
+    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">dynamic</span><span class="special">/</span>select.hpp<span class="special">&gt;
+    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">dynamic</span><span class="special">/</span>stored_rule.hpp<span class="special">&gt;
+    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">dynamic</span><span class="special">/</span>switch.hpp<span class="special">&gt;
+    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">dynamic</span><span class="special">/</span>while.hpp<span class="special">&gt; </span></pre>
+<h3>error_handling</h3>
+<pre>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>error_handling<span class="special">/</span><span class="identifier">exceptions</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></pre>
+<h3>iterator</h3>
+<pre>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>iterator<span class="special">/</span><span class="identifier">file_iterator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;<br></span>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">iterator</span><span class="special">/</span>fixed_size_queue.hpp<span class="special">&gt;</span><span class="special"></span><span class="special"></span>
+    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">iterator</span><span class="special">/</span>multi_pass.hpp<span class="special">&gt; <br>    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">iterator</span><span class="special">/</span>position_iterator.hpp<span class="special">&gt;</span></pre>
+<h3>meta</h3>
+<pre>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>meta<span class="special">/</span><span class="identifier">as_parser</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;<br></span>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">meta</span><span class="special">/</span>fundamental.hpp<span class="special">&gt;</span><span class="special"></span><span class="special"></span>
+    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">meta</span><span class="special">/</span>parser_traits.hpp<span class="special">&gt; <br>    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">meta</span><span class="special">/</span>refactoring.hpp<span class="special">&gt;<br>    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">meta</span><span class="special">/</span>traverse.hpp<span class="special">&gt;</span></pre>
+<h3>tree</h3>
+<pre>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">tree</span><span class="special">/</span><span class="identifier">ast</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;<br></span>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">tree</span><span class="special">/</span>parse_tree.hpp<span class="special">&gt;</span><span class="special"></span><span class="special"></span>
+    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">tree</span><span class="special">/</span>parse_tree_utils.hpp<span class="special">&gt;</span><span class="special"><br>    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">tree</span><span class="special">/</span>tree_to_xml.hpp<span class="special">&gt;</span></pre>
+<h3>utility</h3>
+<pre>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">chset</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt; <br></span>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">chset_operators</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;<br>    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">confix</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;
+    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">distinct</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;
+    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">escape_char</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;
+    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">flush_multi_pass</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;
+    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">functor_parser</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;
+    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">lists</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;
+    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">loops</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;
+    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">regex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;
+    </span><span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span><span class="identifier">utility</span><span class="special">/</span><span class="identifier">scoped_lock</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;
+</span></pre>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="quickref.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="portability.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

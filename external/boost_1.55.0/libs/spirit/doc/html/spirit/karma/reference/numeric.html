@@ -1,0 +1,85 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Numeric Generators</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="nonterminal/grammar.html" title="Generator Grammar">
+<link rel="next" href="numeric/unsigned_int.html" title="Unsigned Integer Number Generators (uint_, etc.)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="nonterminal/grammar.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="numeric/unsigned_int.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.karma.reference.numeric"></a><a class="link" href="numeric.html" title="Numeric Generators">Numeric Generators</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="numeric/unsigned_int.html">Unsigned
+          Integer Number Generators (<code class="computeroutput"><span class="identifier">uint_</span></code>,
+          etc.)</a></span></dt>
+<dt><span class="section"><a href="numeric/signed_int.html">Signed
+          Integer Number Generators (<code class="computeroutput"><span class="identifier">int_</span></code>,
+          etc.)</a></span></dt>
+<dt><span class="section"><a href="numeric/real_number.html">Real
+          Number Generators (<code class="computeroutput"><span class="identifier">float_</span></code>,
+          <code class="computeroutput"><span class="identifier">double_</span></code>, etc.)</a></span></dt>
+<dt><span class="section"><a href="numeric/boolean.html">Boolean Generators
+          (<code class="computeroutput"><span class="identifier">bool_</span></code>)</a></span></dt>
+</dl></div>
+<p>
+          The library includes a couple of predefined objects for generating booleans,
+          signed and unsigned integers, and real numbers. These generators are fully
+          parametric. Most of the important aspects of numeric generation can be
+          finely adjusted to suit. This includes the radix base, the exponent, the
+          fraction etc. Policies control the real number generators' behavior. There
+          are some predefined policies covering the most common real number formats
+          but the user can supply her own when needed.
+        </p>
+<p>
+          The numeric parsers are fine tuned (employing loop unrolling and extensive
+          template metaprogramming) with exceptional performance that rivals the
+          low level C functions such as <code class="computeroutput"><span class="identifier">ltoa</span></code>,
+          <code class="computeroutput"><span class="identifier">ssprintf</span></code>, and <code class="computeroutput"><span class="identifier">_gcvt</span></code>. Benchmarks reveal up to 2X speed
+          over the C counterparts (see here: <a class="link" href="../performance_measurements/numeric_performance.html" title="Performance of Numeric Generators">Performance
+          of Numeric Generators</a>). This goes to show that you can write extremely
+          tight generic C++ code that rivals, if not surpasses C.
+        </p>
+<h6>
+<a name="spirit.karma.reference.numeric.h0"></a>
+          <span class="phrase"><a name="spirit.karma.reference.numeric.module_header"></a></span><a class="link" href="numeric.html#spirit.karma.reference.numeric.module_header">Module
+          Header</a>
+        </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/karma/numeric.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma_numeric</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          Also, see <a class="link" href="../../structure/include.html" title="Include">Include Structure</a>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="nonterminal/grammar.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="numeric/unsigned_int.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

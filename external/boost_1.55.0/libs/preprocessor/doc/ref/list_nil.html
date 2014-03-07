@@ -1,0 +1,68 @@
+<html>
+<head>
+	<title>BOOST_PP_LIST_NIL</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_LIST_NIL</b> macro is a nil <i>list</i> constructor.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_LIST_NIL</b>
+		</div>
+	<h4>Remarks</h4>
+		<div>
+			This macro represents the end of a <i>list</i>.
+		</div>
+		<div>
+			This macro is no longer necessary.&nbsp;
+			It simply expands to <b>BOOST_PP_NIL</b>.&nbsp;
+			Because of this, this macro is deprecated.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="nil.html">BOOST_PP_NIL</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/list/adt.html">&lt;boost/preprocessor/list/adt.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/list/adt.html">boost/preprocessor/list/adt.hpp</a>&gt;
+
+#define OLD \
+   <a href="list_cons.html">BOOST_PP_LIST_CONS</a>( \
+      a, \
+      <a href="list_cons.html">BOOST_PP_LIST_CONS</a>( \
+         b, \
+         <a href="list_cons.html">BOOST_PP_LIST_CONS</a>( \
+            c, \
+            <a href="list_nil.html">BOOST_PP_LIST_NIL</a> \
+         ) \
+      ) \
+   ) \
+   /**/
+
+#define NEW (a, (b, (c, <a href="nil.html">BOOST_PP_NIL</a>)))
+
+<a href="list_first.html">BOOST_PP_LIST_FIRST</a>(OLD) == <a href="list_first.html">BOOST_PP_LIST_FIRST</a>(NEW)
+   // expands to a == a
+
+<a href="list_rest.html">BOOST_PP_LIST_REST</a>(OLD) == <a href="list_rest.html">BOOST_PP_LIST_RESTK</a>(NEW)
+   // expands to (b, (c, <a href="nil.html">BOOST_PP_NIL</a>)) == (b, (c, <a href="nil.html">BOOST_PP_NIL</a>))
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

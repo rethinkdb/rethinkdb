@@ -1,0 +1,226 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/bm.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/bm.xml
+ */
+bm{
+    AuxExemplarCharacters{"[q v x]"}
+    ExemplarCharacters{"[a b c d e ɛ f g h i j k l m n ɲ ŋ o ɔ p r s t u w y z]"}
+    ExemplarCharactersIndex{"[A B C D E Ɛ F G H I J K L M N Ɲ Ŋ O Ɔ P R S T U W Y Z]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤#,##0.00;(¤#,##0.00)"}
+            }
+        }
+    }
+    Version{"2.0.47.53"}
+    calendar{
+        gregorian{
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE d MMMM y",
+                "d MMMM y",
+                "d MMM, y",
+                "d/M/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                M{"M"}
+                MMM{"MMM"}
+                MMMEd{"E d MMM"}
+                MMMMEd{"EEE d MMMM"}
+                MMMMd{"d MMMM"}
+                MMMd{"d MMM"}
+                MMMdd{"dd MMM"}
+                MMd{"d/MM"}
+                MMdd{"dd/MM"}
+                Md{"d/M"}
+                Med{"EEE d/M"}
+                ms{"m:ss"}
+                y{"y"}
+                yM{"M/y"}
+                yMEd{"EEE d/M/y"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE d MMM y"}
+                yMMMM{"MMMM y"}
+                yQ{"'T'Q y"}
+                yQQQ{"QQQ y"}
+                yyMM{"MM/y"}
+                yyMMM{"MMM yy"}
+                yyMMMEEEd{"EEE d MMM yy"}
+                yyMMMd{"d MMM yy"}
+                yyyyMMMM{"MMMM yyyy"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "kar",
+                        "ntɛ",
+                        "tar",
+                        "ara",
+                        "ala",
+                        "jum",
+                        "sib",
+                    }
+                    wide{
+                        "kari",
+                        "ntɛnɛ",
+                        "tarata",
+                        "araba",
+                        "alamisa",
+                        "juma",
+                        "sibiri",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "K",
+                        "N",
+                        "T",
+                        "A",
+                        "A",
+                        "J",
+                        "S",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "J.-C. ɲɛ",
+                    "ni J.-C.",
+                }
+                wide{
+                    "jezu krisiti ɲɛ",
+                    "jezu krisiti minkɛ",
+                }
+            }
+            fields{
+                day{
+                    dn{"don"}
+                    relative{
+                        "-1"{"kunu"}
+                        "0"{"bi"}
+                        "1"{"sini"}
+                    }
+                }
+                dayperiod{
+                    dn{"sɔgɔma/tile/wula/su"}
+                }
+                era{
+                    dn{"tile"}
+                }
+                hour{
+                    dn{"lɛrɛ"}
+                }
+                minute{
+                    dn{"miniti"}
+                }
+                month{
+                    dn{"kalo"}
+                }
+                second{
+                    dn{"sekondi"}
+                }
+                week{
+                    dn{"dɔgɔkun"}
+                }
+                weekday{
+                    dn{"don"}
+                }
+                year{
+                    dn{"san"}
+                }
+                zone{
+                    dn{"sigikun tilena"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "zan",
+                        "feb",
+                        "nar",
+                        "awi",
+                        "mɛ",
+                        "zuw",
+                        "zul",
+                        "uti",
+                        "sɛt",
+                        "ɔku",
+                        "now",
+                        "des",
+                    }
+                    wide{
+                        "zanwuye",
+                        "feburuye",
+                        "marisi",
+                        "awirili",
+                        "mɛ",
+                        "zuwɛn",
+                        "zuluye",
+                        "uti",
+                        "sɛtanburu",
+                        "ɔkutɔburu",
+                        "nowanburu",
+                        "desanburu",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "Z",
+                        "F",
+                        "M",
+                        "A",
+                        "M",
+                        "Z",
+                        "Z",
+                        "U",
+                        "S",
+                        "Ɔ",
+                        "N",
+                        "D",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "KS1",
+                        "KS2",
+                        "KS3",
+                        "KS4",
+                    }
+                    wide{
+                        "kalo saba fɔlɔ",
+                        "kalo saba filanan",
+                        "kalo saba sabanan",
+                        "kalo saba naaninan",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"”"}
+        alternateQuotationStart{"“"}
+        quotationEnd{"»"}
+        quotationStart{"«"}
+    }
+}

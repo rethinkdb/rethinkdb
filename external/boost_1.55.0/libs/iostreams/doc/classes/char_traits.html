@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Class Template chain</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Class Template <CODE>char_traits</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#description">Description</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+</DL>
+
+<HR>
+
+<A NAME="description"></A>
+<H2>Description</H2>
+
+<P>
+    The class template <CODE>boost::iostreams::char_traits</CODE> is a derived class of <CODE>std::char_traits</CODE> which has an additional static function <A HREF='#would_block_function'><CODE>would_block</CODE></A>, used to indicate that an attempt to read a character has failed because no input is currently available. 
+</P>
+
+<P>
+    The constants <CODE>WOULD_BLOCK</CODE> and <CODE>WWOULD_BLOCK</CODE> are provided for convenience.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/char_traits.hpp"><CODE>&lt;boost/iostreams/char_traits.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="synopsis"></A>
+<H3>Synopsis</H3>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword">int</SPAN> <A CLASS="documented" HREF="#WOULD_BLOCK">WOULD_BLOCK</A>;
+
+<SPAN CLASS="keyword">const</SPAN> std::wint_t <A CLASS="documented" HREF="#WWOULD_BLOCK">WWOULD_BLOCK</A>;
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Ch</A>&gt;
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#template_params">char_traits</A> : public std::char_traits&lt;Ch&gt; {
+    <SPAN CLASS='keyword'>static</SPAN> <SPAN CLASS='keyword'>typename</SPAN> std::char_traits&lt;Ch&gt;::int_type <A CLASS='documented' HREF='#would_block_function'>would_block</A>();
+};
+
+} } // End namespace boost::io</PRE>
+
+<A NAME="WOULD_BLOCK"></A>
+<H3>Constant <CODE>WOULD_BLOCK</CODE></H3>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword">int</SPAN> WOULD_BLOCK;</PRE>
+
+<P>The return value of <CODE>char_traits&lt;char&gt;::would_block</CODE>. Used by the function template <A HREF="../functions/get.html"><CODE>get</CODE></A> to indicate that no character could be returned because input was temporarily unavailable.</P>
+
+<A NAME="WWOULD_BLOCK"></A>
+<H3>Constant <CODE>WWOULD_BLOCK</CODE></H3>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">const</SPAN> std::wint_t WWOULD_BLOCK;</PRE>
+
+<P>The return value of <CODE>char_traits&lt;wchar_t&gt;::would_block</CODE>. Used by the function template <A HREF="../functions/get.html"><CODE>get</CODE></A> to indicate that no character could be returned because input was temporarily unavailable.</P>
+
+<A NAME="char_traits"></A>
+<H3>Class Template <CODE>boost::iostreams::char_traits</CODE></H3>
+
+<A NAME="template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+    <TR>
+        <TD VALIGN="top"><I>Ch</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The character type</TD>
+    </TR>
+</TABLE>
+
+<A NAME="would_block_function"></A>
+<H4><CODE>char_traits::would_block</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS='keyword'>static</SPAN> <SPAN CLASS='keyword'>typename</SPAN> std::char_traits&lt;Ch&gt;::int_type would_block();</PRE>
+
+<P>
+    Returns an instance of <CODE>int_type</CODE> used by the function template <A HREF='../functions/get.html'><CODE>get</CODE></A> to indicate that an attempt to read a character from a <A HREF='../concepts/source.html'>Source</A> has failed because no input is currently available. Future attempts to read a character may succeed.
+</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

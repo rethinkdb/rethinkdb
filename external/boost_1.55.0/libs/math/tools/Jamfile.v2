@@ -1,0 +1,58 @@
+# Copyright John Maddock 2010
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or copy at 
+# http://www.boost.org/LICENSE_1_0.txt.
+# \math_toolkit\libs\math\test\jamfile.v2
+# Runs all math toolkit tests, functions & distributions,
+# and build math examples.
+
+# bring in the rules for testing
+import modules ;
+import path ;
+
+local ntl-path = [ modules.peek : NTL_PATH ] ;
+
+project  
+    : requirements 
+      <toolset>gcc:<cxxflags>-Wno-missing-braces
+      <toolset>darwin:<cxxflags>-Wno-missing-braces
+      <toolset>acc:<cxxflags>+W2068,2461,2236,4070,4069
+      <toolset>intel-win:<cxxflags>-nologo 
+      <toolset>intel-win:<linkflags>-nologo 
+      <toolset>msvc:<warnings>all
+      <toolset>msvc:<asynch-exceptions>on
+      <toolset>msvc:<cxxflags>/wd4996
+      <toolset>msvc:<cxxflags>/wd4512 
+      <toolset>msvc:<cxxflags>/wd4610 
+      <toolset>msvc:<cxxflags>/wd4510 
+      <toolset>msvc:<cxxflags>/wd4127 
+      <toolset>msvc:<cxxflags>/wd4701 # needed for lexical cast - temporary.
+      <link>static
+      <toolset>borland:<runtime-link>static
+      <include>../../..
+      <define>BOOST_ALL_NO_LIB=1
+      <define>BOOST_UBLAS_UNSUPPORTED_COMPILER=0
+      <include>.
+      <include>$(ntl-path)/include
+    ;
+
+
+if $(ntl-path)
+{
+   lib ntl : [ GLOB $(ntl-path)/src : *.cpp ] ;
+}
+else
+{
+   lib ntl ;
+}
+
+for local source in [ glob *_data.cpp ] generate_test_values.cpp igamma_temme_large_coef.cpp lanczos_generator.cpp factorial_tables.cpp generate_rational_test.cpp
+{
+   exe $(source:B) : $(source) ntl ;
+   install $(source:B)_bin : $(source:B) : <location>bin ;
+}
+
+exe generate_rational_code : generate_rational_code.cpp ;
+exe process_perf_results : process_perf_results.cpp ../../regex/build//boost_regex ;
+
+install bin : generate_rational_code process_perf_results ;

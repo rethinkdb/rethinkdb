@@ -1,0 +1,114 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>is_base_of</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.TypeTraits">
+<link rel="up" href="../reference.html" title="Alphabetical Reference">
+<link rel="prev" href="is_array.html" title="is_array">
+<link rel="next" href="is_class.html" title="is_class">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="is_array.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_class.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_typetraits.reference.is_base_of"></a><a class="link" href="is_base_of.html" title="is_base_of">is_base_of</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Base</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Derived</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">is_base_of</span> <span class="special">:</span> <span class="keyword">public</span> <em class="replaceable"><code><a class="link" href="integral_constant.html" title="integral_constant">true_type</a>-or-<a class="link" href="integral_constant.html" title="integral_constant">false_type</a></code></em> <span class="special">{};</span>
+</pre>
+<p>
+        <span class="bold"><strong>Inherits:</strong></span> If Base is base class of type
+        Derived or if both types are the same class type then inherits from <a class="link" href="integral_constant.html" title="integral_constant">true_type</a>,
+        otherwise inherits from <a class="link" href="integral_constant.html" title="integral_constant">false_type</a>.
+      </p>
+<p>
+        This template will detect non-public base classes, and ambiguous base classes.
+        It also detects indirect base classes - which is to say <a class="link" href="is_base_of.html" title="is_base_of">is_base_of</a>&lt;B,
+        D&gt; inherits from <a class="link" href="integral_constant.html" title="integral_constant">true_type</a>
+        if B is located anywhere in the inheritance tree of D.
+      </p>
+<p>
+        Note that <code class="computeroutput"><span class="identifier">is_base_of</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">,</span><span class="identifier">X</span><span class="special">&gt;</span></code> will inherit from <a class="link" href="integral_constant.html" title="integral_constant">true_type</a>
+        if X is a class type. This is a change in behaviour from Boost-1.39.0 in
+        order to track the emerging C++0x standard.
+      </p>
+<p>
+        Types <code class="computeroutput"><span class="identifier">Base</span></code> and <code class="computeroutput"><span class="identifier">Derived</span></code> must not be incomplete types.
+      </p>
+<p>
+        <span class="bold"><strong>C++ Standard Reference:</strong></span> 10.
+      </p>
+<p>
+        <span class="bold"><strong>Header:</strong></span> <code class="computeroutput"> <span class="preprocessor">#include</span>
+        <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">/</span><span class="identifier">is_base_of</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        or <code class="computeroutput"> <span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+      </p>
+<p>
+        <span class="bold"><strong>Compiler Compatibility:</strong></span> If the compiler
+        does not support partial-specialization of class templates, then this template
+        can not be used with function types. There are some older compilers which
+        will produce compiler errors if <code class="computeroutput"><span class="identifier">Base</span></code>
+        is a private base class of <code class="computeroutput"><span class="identifier">Derived</span></code>,
+        or if <code class="computeroutput"><span class="identifier">Base</span></code> is an ambiguous
+        base of <code class="computeroutput"><span class="identifier">Derived</span></code>. These compilers
+        include Borland C++, older versions of Sun Forte C++, Digital Mars C++, and
+        older versions of EDG based compilers.
+      </p>
+<p>
+        <span class="bold"><strong>Examples:</strong></span>
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          Given: <code class="computeroutput"> <span class="keyword">class</span> <span class="identifier">Base</span><span class="special">{};</span> <span class="keyword">class</span> <span class="identifier">Derived</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">Base</span><span class="special">{};</span></code>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">is_base_of</span><span class="special">&lt;</span><span class="identifier">Base</span><span class="special">,</span> <span class="identifier">Derived</span><span class="special">&gt;</span></code>
+          inherits from <code class="computeroutput"><a class="link" href="integral_constant.html" title="integral_constant">true_type</a></code>.
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">is_base_of</span><span class="special">&lt;</span><span class="identifier">Base</span><span class="special">,</span> <span class="identifier">Derived</span><span class="special">&gt;::</span><span class="identifier">type</span></code> is the type <code class="computeroutput"><a class="link" href="integral_constant.html" title="integral_constant">true_type</a></code>.
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">is_base_of</span><span class="special">&lt;</span><span class="identifier">Base</span><span class="special">,</span> <span class="identifier">Derived</span><span class="special">&gt;::</span><span class="identifier">value</span></code> is an integral constant expression
+          that evaluates to <span class="emphasis"><em>true</em></span>.
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">is_base_of</span><span class="special">&lt;</span><span class="identifier">Base</span><span class="special">,</span> <span class="identifier">Base</span><span class="special">&gt;::</span><span class="identifier">value</span></code> is an integral constant expression
+          that evaluates to <span class="emphasis"><em>true</em></span>: a class is regarded as it's
+          own base.
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <code class="computeroutput"><span class="identifier">is_base_of</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">value_type</span></code>
+          is the type <code class="computeroutput"><span class="keyword">bool</span></code>.
+        </p></blockquote></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000, 2011 Adobe Systems Inc, David Abrahams,
+      Frederic Bron, Steve Cleary, Beman Dawes, Aleksey Gurtovoy, Howard Hinnant,
+      Jesse Jones, Mat Marcus, Itay Maman, John Maddock, Alexander Nasonov, Thorsten
+      Ottosen, Roman Perepelitsa, Robert Ramey, Jeremy Siek, Robert Stewart and Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="is_array.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_class.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

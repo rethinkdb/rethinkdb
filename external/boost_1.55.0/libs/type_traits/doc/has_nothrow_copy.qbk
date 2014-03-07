@@ -1,0 +1,36 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:has_nothrow_copy has_nothrow_copy]
+
+   template <class T>
+   struct has_nothrow_copy : public __tof {};
+  
+   template <class T>
+   struct has_nothrow_copy_constructor : public __tof {};
+  
+__inherit If T is a (possibly cv-qualified) type with a non-throwing copy-constructor
+then inherits from __true_type, otherwise inherits from __false_type.  Type `T`
+must be a complete type.
+
+These two traits are synonyms for each other.
+
+__compat If the compiler does not support partial-specialization of class 
+templates, then this template can not be used with function types.
+
+Without some (as yet unspecified) help from the compiler, 
+`has_nothrow_copy` will never report that a class or struct has a 
+non-throwing copy-constructor; this is always safe, if possibly sub-optimal.
+Currently (May 2011) compilers more recent than Visual C++ 8, GCC-4.3, Greenhills 6.0, 
+Intel-11.0, and Codegear have the necessary compiler __intrinsics to ensure that this 
+trait "just works".  You may also test to see if the necessary __intrinsics are available 
+by checking to see if the macro `BOOST_HAS_NOTHROW_COPY` is defined.
+
+__header ` #include <boost/type_traits/has_nothrow_copy.hpp>` or ` #include <boost/type_traits.hpp>`
+
+[endsect]
+

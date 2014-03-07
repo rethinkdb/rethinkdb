@@ -1,0 +1,30 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:strided strided]
+
+[table
+    [[Syntax] [Code]]
+    [[Pipe] [`rng | boost::adaptors::strided(n)`]]
+    [[Function] [`boost::adaptors::stride(rng, n)`]]
+]
+
+* [*Precondition:] `0 <= n`.
+* [*Returns:] A new range based on `rng` where traversal is performed in steps of `n`.
+* [*Range Category:] __single_pass_range__
+* [*Returned Range Category:] The range category of `rng`.
+
+[section:strided_example strided example]
+[import ../../../test/adaptor_test/strided_example.cpp]
+[strided_example]
+[endsect]
+
+This would produce the output:
+``
+1,3,5,7,9,
+``
+[endsect]
+
+

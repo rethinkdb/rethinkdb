@@ -1,0 +1,194 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Std transform</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../examples.html" title="Examples">
+<link rel="prev" href="std_copy.html" title="Std copy">
+<link rel="next" href="custom_interval.html" title="Custom interval">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="std_copy.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="custom_interval.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_examples_std_transform" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.examples.std_transform"></a><a class="link" href="std_transform.html" title="Std transform">Std transform</a>
+</h3></div></div></div>
+<p>
+        Instead of writing loops, the standard algorithm <a href="http://www.cplusplus.com/reference/algorithm/transform/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">transform</span></code></a>
+        can be used to fill interval containers from std containers of user defined
+        objects. We need a function, that maps the <span class="emphasis"><em>user defined object</em></span>
+        into the <span class="emphasis"><em>segement type</em></span> of an interval map or the <span class="emphasis"><em>interval
+        type</em></span> of an interval set. Based on that we can use <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">transform</span></code>
+        with an <code class="computeroutput"><span class="identifier">icl</span><span class="special">::</span><span class="identifier">inserter</span></code> or <code class="computeroutput"><span class="identifier">icl</span><span class="special">::</span><span class="identifier">adder</span></code>
+        to transform the user objects into interval containers.
+      </p>
+<p>
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">algorithm</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">split_interval_map</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">separate_interval_set</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">icl</span><span class="special">;</span>
+
+<span class="comment">// Suppose we are working with a class called MyObject, containing some
+</span><span class="comment">// information about interval bounds e.g. _from, _to and some data members
+</span><span class="comment">// that carry associated information like e.g. _value.
+</span><span class="keyword">class</span> <span class="identifier">MyObject</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">MyObject</span><span class="special">(){}</span>
+    <span class="identifier">MyObject</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">from</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">to</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">value</span><span class="special">):</span> <span class="identifier">_from</span><span class="special">(</span><span class="identifier">from</span><span class="special">),</span> <span class="identifier">_to</span><span class="special">(</span><span class="identifier">to</span><span class="special">),</span> <span class="identifier">_value</span><span class="special">(</span><span class="identifier">value</span><span class="special">){}</span>
+    <span class="keyword">int</span> <span class="identifier">from</span><span class="special">()</span><span class="keyword">const</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">_from</span><span class="special">;}</span>
+    <span class="keyword">int</span> <span class="identifier">to</span><span class="special">()</span><span class="keyword">const</span>   <span class="special">{</span><span class="keyword">return</span> <span class="identifier">_to</span><span class="special">;}</span>
+    <span class="keyword">int</span> <span class="identifier">value</span><span class="special">()</span><span class="keyword">const</span><span class="special">{</span><span class="keyword">return</span> <span class="identifier">_value</span><span class="special">;}</span>
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="keyword">int</span> <span class="identifier">_from</span><span class="special">;</span>
+    <span class="keyword">int</span> <span class="identifier">_to</span><span class="special">;</span>
+    <span class="keyword">int</span> <span class="identifier">_value</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="comment">// ... in order to use the std::transform algorithm to fill
+</span><span class="comment">// interval maps with MyObject data we need a function
+</span><span class="comment">// 'to_segment' that maps an object of type MyObject into
+</span><span class="comment">// the value type to the interval map we want to tranform to ...
+</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">to_segment</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">MyObject</span><span class="special">&amp;</span> <span class="identifier">myObj</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;,</span> <span class="keyword">int</span> <span class="special">&gt;</span>
+        <span class="special">(</span><span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">closed</span><span class="special">(</span><span class="identifier">myObj</span><span class="special">.</span><span class="identifier">from</span><span class="special">(),</span> <span class="identifier">myObj</span><span class="special">.</span><span class="identifier">to</span><span class="special">()),</span> <span class="identifier">myObj</span><span class="special">.</span><span class="identifier">value</span><span class="special">());</span>
+<span class="special">}</span>
+
+<span class="comment">// ... there may be another function that returns the interval
+</span><span class="comment">// of an object only
+</span><span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">to_interval</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">MyObject</span><span class="special">&amp;</span> <span class="identifier">myObj</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">closed</span><span class="special">(</span><span class="identifier">myObj</span><span class="special">.</span><span class="identifier">from</span><span class="special">(),</span> <span class="identifier">myObj</span><span class="special">.</span><span class="identifier">to</span><span class="special">());</span>
+<span class="special">}</span>
+
+
+<span class="comment">// ... make_object computes a sequence of objects to test.
+</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">MyObject</span><span class="special">&gt;</span> <span class="identifier">make_objects</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">MyObject</span><span class="special">&gt;</span> <span class="identifier">object_vec</span><span class="special">;</span>
+    <span class="identifier">object_vec</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">MyObject</span><span class="special">(</span><span class="number">2</span><span class="special">,</span><span class="number">3</span><span class="special">,</span><span class="number">1</span><span class="special">));</span>
+    <span class="identifier">object_vec</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">MyObject</span><span class="special">(</span><span class="number">4</span><span class="special">,</span><span class="number">4</span><span class="special">,</span><span class="number">1</span><span class="special">));</span>
+    <span class="identifier">object_vec</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">MyObject</span><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">,</span><span class="number">1</span><span class="special">));</span>
+    <span class="keyword">return</span> <span class="identifier">object_vec</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// ... show_objects displays the sequence of input objects.
+</span><span class="keyword">void</span> <span class="identifier">show_objects</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">MyObject</span><span class="special">&gt;&amp;</span> <span class="identifier">objects</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">MyObject</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span> <span class="identifier">iter</span> <span class="special">=</span> <span class="identifier">objects</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+    <span class="keyword">while</span><span class="special">(</span><span class="identifier">iter</span> <span class="special">!=</span> <span class="identifier">objects</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+    <span class="special">{</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"(["</span> <span class="special">&lt;&lt;</span> <span class="identifier">iter</span><span class="special">-&gt;</span><span class="identifier">from</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">","</span> <span class="special">&lt;&lt;</span> <span class="identifier">iter</span><span class="special">-&gt;</span><span class="identifier">to</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">"],"</span> 
+             <span class="special">&lt;&lt;</span> <span class="identifier">iter</span><span class="special">-&gt;</span><span class="identifier">value</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">")"</span><span class="special">;</span>
+        <span class="special">++</span><span class="identifier">iter</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+
+
+<span class="keyword">void</span> <span class="identifier">std_transform</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// This time we want to transform objects into a splitting interval map:
+</span>    <span class="identifier">split_interval_map</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">segmap</span><span class="special">;</span>
+    <span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">MyObject</span><span class="special">&gt;</span> <span class="identifier">myObjects</span> <span class="special">=</span> <span class="identifier">make_objects</span><span class="special">();</span>
+
+    <span class="comment">// Display the input
+</span>    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"input sequence: "</span><span class="special">;</span> <span class="identifier">show_objects</span><span class="special">(</span><span class="identifier">myObjects</span><span class="special">);</span> <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"\n\n"</span><span class="special">;</span>
+
+    <span class="comment">// Use an icl::inserter to fill the interval map via inserts
+</span>    <span class="identifier">std</span><span class="special">::</span><span class="identifier">transform</span><span class="special">(</span><span class="identifier">myObjects</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">myObjects</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+                   <span class="identifier">icl</span><span class="special">::</span><span class="identifier">inserter</span><span class="special">(</span><span class="identifier">segmap</span><span class="special">,</span> <span class="identifier">segmap</span><span class="special">.</span><span class="identifier">end</span><span class="special">()),</span>
+                   <span class="identifier">to_segment</span><span class="special">);</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"icl::inserting: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">segmap</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">segmap</span><span class="special">.</span><span class="identifier">clear</span><span class="special">();</span>
+
+    <span class="comment">// In order to compute aggregation results on associated values, we
+</span>    <span class="comment">// usually want to use an icl::adder instead of an std or icl::inserter
+</span>    <span class="identifier">std</span><span class="special">::</span><span class="identifier">transform</span><span class="special">(</span><span class="identifier">myObjects</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">myObjects</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+                   <span class="identifier">icl</span><span class="special">::</span><span class="identifier">adder</span><span class="special">(</span><span class="identifier">segmap</span><span class="special">,</span> <span class="identifier">segmap</span><span class="special">.</span><span class="identifier">end</span><span class="special">()),</span>
+                   <span class="identifier">to_segment</span><span class="special">);</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"icl::adding   : "</span> <span class="special">&lt;&lt;</span> <span class="identifier">segmap</span> <span class="special">&lt;&lt;</span> <span class="string">"\n\n"</span><span class="special">;</span>
+
+    <span class="identifier">separate_interval_set</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">segset</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">transform</span><span class="special">(</span><span class="identifier">myObjects</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">myObjects</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+                   <span class="identifier">icl</span><span class="special">::</span><span class="identifier">adder</span>   <span class="special">(</span><span class="identifier">segset</span><span class="special">,</span> <span class="identifier">segset</span><span class="special">.</span><span class="identifier">end</span><span class="special">()),</span>
+    <span class="comment">// could be a  icl::inserter(segset, segset.end()), here: same effect 
+</span>                   <span class="identifier">to_interval</span><span class="special">);</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Using std::transform to fill a separate_interval_set:\n\n"</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"icl::adding   : "</span> <span class="special">&lt;&lt;</span> <span class="identifier">segset</span> <span class="special">&lt;&lt;</span> <span class="string">"\n\n"</span><span class="special">;</span>
+<span class="special">}</span>
+
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"&gt;&gt;  Interval Container Library: Example std_transform.cpp  &lt;&lt;\n"</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"------------------------------------------------------------\n"</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Using std::transform to fill a split_interval_map:\n\n"</span><span class="special">;</span>
+
+    <span class="identifier">std_transform</span><span class="special">();</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// Program output:
+</span><span class="comment">/*----------------------------------------------------------
+&gt;&gt;  Interval Container Library: Example std_transform.cpp  &lt;&lt;
+------------------------------------------------------------
+Using std::transform to fill a split_interval_map:
+
+input sequence: ([2,3],1)([4,4],1)([1,2],1)
+
+icl::inserting: {([1,2)-&gt;1)([2,3]-&gt;1)([4,4]-&gt;1)}
+icl::adding   : {([1,2)-&gt;1)([2,2]-&gt;2)((2,3]-&gt;1)([4,4]-&gt;1)}
+
+Using std::transform to fill a separate_interval_set:
+
+icl::adding   : {[1,3][4,4]}
+----------------------------------------------------------*/</span>
+</pre>
+<p>
+        </p>
+<p>
+      </p>
+<p>
+        To get clear about the different behaviors of interval containers in the
+        example, you may want to refer to the section about <a class="link" href="../../index.html#boost_icl.introduction.interval_combining_styles" title="Interval Combining Styles">interval
+        combining styles</a> that uses the same data.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="std_copy.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="custom_interval.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

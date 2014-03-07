@@ -1,0 +1,240 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>BOOST_GEOMETRY_REGISTER_POINT_2D</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../register.html" title="Macro's for adaption">
+<link rel="prev" href="boost_geometry_register_multi_polygon_templated.html" title="BOOST_GEOMETRY_REGISTER_MULTI_POLYGON_TEMPLATED">
+<link rel="next" href="boost_geometry_register_point_2d_const.html" title="BOOST_GEOMETRY_REGISTER_POINT_2D_CONST">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_geometry_register_multi_polygon_templated.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../register.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost_geometry_register_point_2d_const.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.adapted.register.boost_geometry_register_point_2d"></a><a class="link" href="boost_geometry_register_point_2d.html" title="BOOST_GEOMETRY_REGISTER_POINT_2D">BOOST_GEOMETRY_REGISTER_POINT_2D</a>
+</h5></div></div></div>
+<p>
+            <a class="indexterm" name="idp51463032"></a>
+Macro to register a 2D point type.
+          </p>
+<h6>
+<a name="geometry.reference.adapted.register.boost_geometry_register_point_2d.h0"></a>
+            <span class="phrase"><a name="geometry.reference.adapted.register.boost_geometry_register_point_2d.description"></a></span><a class="link" href="boost_geometry_register_point_2d.html#geometry.reference.adapted.register.boost_geometry_register_point_2d.description">Description</a>
+          </h6>
+<p>
+            The macro BOOST_GEOMETRY_REGISTER_POINT_2D registers a two-dimensional
+            point type such that it is recognized by Boost.Geometry and that Boost.Geometry
+            functionality can used with the specified type.
+          </p>
+<h6>
+<a name="geometry.reference.adapted.register.boost_geometry_register_point_2d.h1"></a>
+            <span class="phrase"><a name="geometry.reference.adapted.register.boost_geometry_register_point_2d.synopsis"></a></span><a class="link" href="boost_geometry_register_point_2d.html#geometry.reference.adapted.register.boost_geometry_register_point_2d.synopsis">Synopsis</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_GEOMETRY_REGISTER_POINT_2D</span><span class="special">(</span><span class="identifier">Point</span><span class="special">,</span> <span class="identifier">CoordinateType</span><span class="special">,</span> <span class="identifier">CoordinateSystem</span><span class="special">,</span> <span class="identifier">Field0</span><span class="special">,</span> <span class="identifier">Field1</span><span class="special">)</span></pre>
+<p>
+          </p>
+<h6>
+<a name="geometry.reference.adapted.register.boost_geometry_register_point_2d.h2"></a>
+            <span class="phrase"><a name="geometry.reference.adapted.register.boost_geometry_register_point_2d.parameters"></a></span><a class="link" href="boost_geometry_register_point_2d.html#geometry.reference.adapted.register.boost_geometry_register_point_2d.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Name
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Point
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Point type to be registered
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      CoordinateType
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Type of the coordinates of the point (e.g. double)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      CoordinateSystem
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Coordinate system (e.g. cs::cartesian)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Field0
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Member containing first (usually x) coordinate
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Field1
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Member containing second (usually y) coordinate
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.adapted.register.boost_geometry_register_point_2d.h3"></a>
+            <span class="phrase"><a name="geometry.reference.adapted.register.boost_geometry_register_point_2d.header"></a></span><a class="link" href="boost_geometry_register_point_2d.html#geometry.reference.adapted.register.boost_geometry_register_point_2d.header">Header</a>
+          </h6>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="keyword">register</span><span class="special">/</span><span class="identifier">point</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<div class="caution"><table border="0" summary="Caution">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Caution]" src="../../../../../../../../doc/src/images/caution.png"></td>
+<th align="left">Caution</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              Use the macro outside any namespace
+            </p></td></tr>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              A point can include a namespace
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="geometry.reference.adapted.register.boost_geometry_register_point_2d.h4"></a>
+            <span class="phrase"><a name="geometry.reference.adapted.register.boost_geometry_register_point_2d.examples"></a></span><a class="link" href="boost_geometry_register_point_2d.html#geometry.reference.adapted.register.boost_geometry_register_point_2d.examples">Examples</a>
+          </h6>
+<p>
+            Show the use of the macro BOOST_GEOMETRY_REGISTER_POINT_2D
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="keyword">register</span><span class="special">/</span><span class="identifier">point</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<a class="co" name="geometry.reference.adapted.register.boost_geometry_register_point_2d.c0" href="boost_geometry_register_point_2d.html#geometry.reference.adapted.register.boost_geometry_register_point_2d.c1"><img src="../../../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a>
+<span class="keyword">struct</span> <span class="identifier">legacy_point</span>
+<span class="special">{</span>
+    <span class="keyword">double</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">y</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="identifier">BOOST_GEOMETRY_REGISTER_POINT_2D</span><span class="special">(</span><span class="identifier">legacy_point</span><span class="special">,</span> <span class="keyword">double</span><span class="special">,</span> <span class="identifier">cs</span><span class="special">::</span><span class="identifier">cartesian</span><span class="special">,</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">y</span><span class="special">)</span> <a class="co" name="geometry.reference.adapted.register.boost_geometry_register_point_2d.c2" href="boost_geometry_register_point_2d.html#geometry.reference.adapted.register.boost_geometry_register_point_2d.c3"><img src="../../../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">legacy_point</span> <span class="identifier">p1</span><span class="special">,</span> <span class="identifier">p2</span><span class="special">;</span>
+
+    <span class="keyword">namespace</span> <span class="identifier">bg</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">;</span>
+
+    <a class="co" name="geometry.reference.adapted.register.boost_geometry_register_point_2d.c4" href="boost_geometry_register_point_2d.html#geometry.reference.adapted.register.boost_geometry_register_point_2d.c5"><img src="../../../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a>
+    <span class="identifier">bg</span><span class="special">::</span><span class="identifier">assign_values</span><span class="special">(</span><span class="identifier">p1</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="number">1</span><span class="special">);</span>
+    <span class="identifier">bg</span><span class="special">::</span><span class="identifier">assign_values</span><span class="special">(</span><span class="identifier">p2</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="number">2</span><span class="special">);</span>
+
+    <span class="keyword">double</span> <span class="identifier">d</span> <span class="special">=</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">distance</span><span class="special">(</span><span class="identifier">p1</span><span class="special">,</span> <span class="identifier">p2</span><span class="special">);</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Distance: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">d</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<div class="calloutlist"><table border="0" summary="Callout list">
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="geometry.reference.adapted.register.boost_geometry_register_point_2d.c1"></a><a href="#geometry.reference.adapted.register.boost_geometry_register_point_2d.c0"><img src="../../../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+                Somewhere, any legacy point struct is defined
+              </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="geometry.reference.adapted.register.boost_geometry_register_point_2d.c3"></a><a href="#geometry.reference.adapted.register.boost_geometry_register_point_2d.c2"><img src="../../../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+                The magic: adapt it to Boost.Geometry Point Concept
+              </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="geometry.reference.adapted.register.boost_geometry_register_point_2d.c5"></a><a href="#geometry.reference.adapted.register.boost_geometry_register_point_2d.c4"><img src="../../../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+                Any Boost.Geometry function can be used for legacy point now. Here:
+                assign_values and distance
+              </p></td>
+</tr>
+</table></div>
+<p>
+            Output:
+          </p>
+<pre class="programlisting">Distance: 1.41421
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost_geometry_register_multi_polygon_templated.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../register.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost_geometry_register_point_2d_const.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

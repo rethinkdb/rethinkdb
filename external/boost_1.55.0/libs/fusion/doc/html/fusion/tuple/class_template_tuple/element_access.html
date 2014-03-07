@@ -1,0 +1,94 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Element access</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../class_template_tuple.html" title="Class template tuple">
+<link rel="prev" href="tuple_helper_classes.html" title="Tuple helper classes">
+<link rel="next" href="relational_operators.html" title="Relational operators">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tuple_helper_classes.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../class_template_tuple.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="relational_operators.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="fusion.tuple.class_template_tuple.element_access"></a><a class="link" href="element_access.html" title="Element access">Element
+        access</a>
+</h4></div></div></div>
+<h6>
+<a name="fusion.tuple.class_template_tuple.element_access.h0"></a>
+          <span class="phrase"><a name="fusion.tuple.class_template_tuple.element_access.description"></a></span><a class="link" href="element_access.html#fusion.tuple.class_template_tuple.element_access.description">Description</a>
+        </h6>
+<p>
+          The <a href="http://std.dkuug.dk/jtc1/sc22/wg21/docs/papers/2002/n1403.pdf" target="_top">TR1
+          Tuple</a> provides the <code class="computeroutput"><span class="identifier">get</span></code>
+          function to provide access to it's elements by zero based numeric index.
+        </p>
+<h6>
+<a name="fusion.tuple.class_template_tuple.element_access.h1"></a>
+          <span class="phrase"><a name="fusion.tuple.class_template_tuple.element_access.specification"></a></span><a class="link" href="element_access.html#fusion.tuple.class_template_tuple.element_access.specification">Specification</a>
+        </h6>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">int</span> <span class="identifier">I</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="identifier">RJ</span> <span class="identifier">get</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">t</span><span class="special">);</span>
+</pre>
+<p>
+          <span class="bold"><strong>Requires</strong></span>: <code class="computeroutput"><span class="number">0</span>
+          <span class="special">&lt;</span> <span class="identifier">I</span>
+          <span class="special">&lt;=</span> <span class="identifier">N</span></code>.
+          The program is ill formed if <code class="computeroutput"><span class="identifier">I</span></code>
+          is out of bounds. <code class="computeroutput"><span class="identifier">T</span></code> is
+          any fusion sequence type, including <code class="computeroutput"><span class="identifier">tuple</span></code>.
+        </p>
+<p>
+          <span class="bold"><strong>Return type</strong></span>: <code class="computeroutput"><span class="identifier">RJ</span></code>
+          is equivalent to <code class="computeroutput"><a class="link" href="../../sequence/intrinsic/metafunctions/at_c.html" title="at_c"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">at_c</span></code></a><span class="special">&lt;</span><span class="identifier">I</span><span class="special">,</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+        </p>
+<p>
+          <span class="bold"><strong>Returns</strong></span>: A reference to the <code class="computeroutput"><span class="identifier">I</span></code>th element of <code class="computeroutput"><span class="identifier">T</span></code>.
+        </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">int</span> <span class="identifier">I</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="identifier">PJ</span> <span class="identifier">get</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">t</span><span class="special">);</span>
+</pre>
+<p>
+          <span class="bold"><strong>Requires</strong></span>: <code class="computeroutput"><span class="number">0</span>
+          <span class="special">&lt;</span> <span class="identifier">I</span>
+          <span class="special">&lt;=</span> <span class="identifier">N</span></code>.
+          The program is ill formed if <code class="computeroutput"><span class="identifier">I</span></code>
+          is out of bounds. <code class="computeroutput"><span class="identifier">T</span></code> is
+          any fusion sequence type, including <code class="computeroutput"><span class="identifier">tuple</span></code>.
+        </p>
+<p>
+          <span class="bold"><strong>Return type</strong></span>: <code class="computeroutput"><span class="identifier">PJ</span></code>
+          is equivalent to <code class="computeroutput"><a class="link" href="../../sequence/intrinsic/metafunctions/at_c.html" title="at_c"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">at_c</span></code></a><span class="special">&lt;</span><span class="identifier">I</span><span class="special">,</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+        </p>
+<p>
+          <span class="bold"><strong>Returns</strong></span>: A const reference to the <code class="computeroutput"><span class="identifier">I</span></code>th element of <code class="computeroutput"><span class="identifier">T</span></code>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tuple_helper_classes.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../class_template_tuple.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="relational_operators.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

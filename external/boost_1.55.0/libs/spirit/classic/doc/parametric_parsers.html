@@ -1,0 +1,149 @@
+<html>
+<head>
+<title>Parametric Parsers</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Parametric 
+      Parsers</b></font> </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="predefined_actors.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="functional.html"><img src="theme/r_arr.gif" border="0"></a></td>
+   </tr>
+</table>
+<p>We already have a hint of the dynamic nature of the Spirit framework. This 
+  capability is fundamental to Spirit. Dynamic parsing is a very powerful concept. 
+  We shall take this concept further through run-time parametric parsers. We are 
+  able to handle parsing tasks that are impossible to do with any EBNF syntax 
+  alone.</p>
+<h2>A Little Secret</h2>
+<p> A little critter called <tt>boost::ref</tt> lurking in the boost distribution 
+  is quite powerful beast when used with Spirit's primitive parsers. We are used 
+  to seeing the Spirit primitive parsers created with string or character literals 
+  such as:</p>
+<pre>
+    <code><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'A'</span><span class=special>)
+    </span><span class=identifier>range_p</span><span class=special>(</span><span class=literal>'A'</span><span class=special>, </span><span class=literal>'Z'</span><span class=special>)
+    </span><span class=identifier>str_p</span><span class=special>(</span><span class=string>&quot;Hello World&quot;</span><span class=special>)</span></code></pre>
+<p> str_p has a second form that accepts two iterators over the string:</p>
+<pre>
+    <code><span class=keyword>char </span><span class=keyword>const</span><span class=special>* </span><span class=identifier>first </span><span class=special>= </span><span class=string>&quot;My oh my&quot;</span><span class=special>;
+    </span><span class=keyword>char </span><span class=keyword>const</span><span class=special>* </span><span class=identifier>last </span><span class=special>= </span><span class=identifier>first </span><span class=special>+ </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>strlen</span><span class=special>(</span><span class=identifier>first</span><span class=special>);
+
+    </span><span class=identifier>str_p</span><span class=special>(</span><span class=identifier>first</span><span class=special>, </span><span class=identifier>last</span><span class=special>)</span></code></pre>
+<p> What is not obvious is that we can use <tt>boost::ref</tt> as well:</p>
+<pre>
+    <code><span class=keyword>char </span><span class=identifier>ch </span><span class=special>= </span><span class=literal>'A'</span><span class=special>;
+    </span><span class=keyword>char </span><span class=identifier>from </span><span class=special>= </span><span class=literal>'A'</span><span class=special>;
+    </span><span class=keyword>char </span><span class=identifier>to </span><span class=special>= </span><span class=literal>'Z'</span><span class=special>;
+
+    </span><span class=identifier>ch_p</span><span class=special>(</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>ref</span><span class=special>(</span><span class=identifier>ch</span><span class=special>))
+    </span><span class=identifier>range_p</span><span class=special>(</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>ref</span><span class=special>(</span><span class=identifier>from</span><span class=special>), </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>ref</span><span class=special>(</span><span class=identifier>to</span><span class=special>))</span></code></pre>
+<p> When <tt>boost::ref</tt> is used, the actual parameters to <tt>ch_p</tt> and 
+  <tt>range_p</tt> are held by reference. This means that we can change the values 
+  of <tt>ch</tt>, <tt>from</tt> and <tt>to</tt> anytime and the corresponding 
+  <tt>ch_p</tt> and <tt>range_p</tt> parser will follow their dynamic values. 
+  Of course, since they are held by reference, you must make sure that the referenced 
+  object is not destructed while parsing.</p>
+<p> What about <tt>str_p</tt>?</p>
+<p> While the first form of <tt>str_p</tt> (the single argument form) is reserved 
+  for null terminated string constants, the second form (the two argument first/last 
+  iterator form) may be used:</p>
+<pre>
+    <code><span class=keyword>char </span><span class=keyword>const</span><span class=special>* </span><span class=identifier>first </span><span class=special>= </span><span class=string>&quot;My oh my&quot;</span><span class=special>;
+    </span><span class=keyword>char </span><span class=keyword>const</span><span class=special>* </span><span class=identifier>last </span><span class=special>= </span><span class=identifier>first </span><span class=special>+ </span><span class=identifier>std</span><span class=special>::</span><span class=identifier>strlen</span><span class=special>(</span><span class=identifier>first</span><span class=special>);
+
+    </span><span class=identifier>str_p</span><span class=special>(</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>ref</span><span class=special>(</span><span class=identifier>first</span><span class=special>), </span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>ref</span><span class=special>(</span><span class=identifier>last</span><span class=special>))</span></code></pre>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"> <img src="theme/note.gif" width="16" height="16"> Hey, 
+      don't forget <tt>chseq_p</tt>. All these apply to this seldom used primitive 
+      as well. </td>
+  </tr>
+</table>
+<h2>Functional Parametric Primitives</h2>
+<pre>    <span class="preprocessor">#include</span> <span class="special">&lt;</span>boost<span class="special">/</span>spirit<span class="special">/</span>attribute<span class="special">/</span><span class="identifier">parametric</span><span class="special">.</span>hpp<span class="special">&gt;</span></pre>
+<p> Taking this further, Spirit includes functional versions of the primitives. 
+  Rather than taking in characters, strings or references to characters and strings 
+  (using boost::ref), the functional versions take in functions or functors.</p>
+<h3>f_chlit and f_ch_p</h3>
+<p> The functional version of <tt>chlit</tt>. This parser takes in a function 
+  or functor (function object). The function is expected to have an interface 
+  compatible with:</p>
+<pre>
+    <code><span class=identifier>CharT </span><span class=identifier>func</span><span class=special>()</span></code></pre>
+<p> where CharT is the character type (e.g. <tt>char</tt>, <tt>int</tt>, <tt>wchar_t</tt>).</p>
+<p> The functor is expected to have an interface compatible with:</p>
+<pre>
+    <code><span class=keyword>struct </span><span class=identifier>functor
+    </span><span class=special>{
+        </span><span class=identifier>CharT </span><span class=keyword>operator</span><span class=special>()() </span><span class=keyword>const</span><span class=special>;
+    </span><span class=special>};</span></code></pre>
+<p> where CharT is the character type (e.g. <tt>char</tt>, <tt>int</tt>, <tt>wchar_t</tt>).</p>
+<p> Here's a contrived example:</p>
+<pre>
+    <code><span class=keyword>struct </span><span class=identifier>X
+    </span><span class=special>{
+        </span><span class=keyword>char </span><span class=keyword>operator</span><span class=special>()() </span><span class=keyword>const
+        </span><span class=special>{
+            </span><span class=keyword>return </span><span class=literal>'X'</span><span class=special>; </span><span class=special>
+        }
+    </span><span class=special>};</span></code></pre>
+<p> Now we can use X to create our f_chlit parser:</p>
+<pre>
+    <code><span class=identifier>f_ch_p</span><span class=special>(</span><span class=identifier>X</span><span class=special>())</span></code></pre>
+<h3>f_range and f_range_p</h3>
+<p> The functional version of <tt>range</tt>. This parser takes in a function 
+  or functor compatible with the interfaces above. The difference is that <tt>f_range</tt> 
+  (and <tt>f_range_p</tt>) expects two functors. One for the start and one for 
+  the end of the range.</p>
+<h3>f_chseq and f_chseq_p</h3>
+<p> The functional version of <tt>chseq</tt>. This parser takes in two functions 
+  or functors. One for the begin iterator and one for the end iterator. The function 
+  is expected to have an interface compatible with:</p>
+<pre>
+    <code><span class=identifier>IteratorT </span><span class=identifier>func</span><span class=special>()</span></code></pre>
+<p> where <tt>IteratorT</tt> is the iterator type (e.g. <tt>char const*</tt>, 
+  <tt>wchar_t const*</tt>).</p>
+<p> The functor is expected to have an interface compatible with:</p>
+<pre>
+    <code><span class=keyword>struct </span><span class=identifier>functor
+    </span><span class=special>{
+        </span><span class=identifier>IteratorT </span><span class=keyword>operator</span><span class=special>()() </span><span class=keyword>const</span><span class=special>;
+    </span><span class=special>};</span></code></pre>
+<p> where <tt>IteratorT</tt> is the iterator type (e.g. <tt>char const*</tt>, 
+  <tt>wchar_t const*</tt>).</p>
+<h3>f_strlit and f_str_p</h3>
+<p> The functional version of <tt>strlit</tt>. This parser takes in two functions 
+  or functors compatible with the interfaces that <tt>f_chseq</tt> expects.</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="predefined_actors.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="functional.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

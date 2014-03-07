@@ -1,0 +1,3 @@
+INPUT = windows-paths-check.hpp
+GENERATE_HTML = NO
+GENERATE_LATEX = NO

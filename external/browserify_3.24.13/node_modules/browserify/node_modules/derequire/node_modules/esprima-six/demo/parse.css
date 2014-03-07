@@ -1,0 +1,82 @@
+.tabs textarea {
+    padding: 7px 0px 7px 7px;
+}
+
+.tabs {
+    position: relative;
+    display: block;
+    margin-top: 30px;
+    height: 1px;
+}
+
+.tabs ul, .tabs li {
+    list-style-type: none;
+    margin: 0;
+    line-height: 0px;
+}
+
+.tabs h3 {
+    float: left;
+    position: relative;
+    margin: 0 6px 0 0;
+    border: 1px solid #bbb;
+    background-color: #eee;
+    border-bottom: none;
+    cursor: pointer;
+    z-index: 0;
+    -moz-border-radius-topleft: 6px;
+    -webkit-border-top-left-radius: 6px;
+    -ms-border-top-left-radius: 6px;
+    -o-border-top-left-radius: 6px;
+    border-top-left-radius: 6px;
+    -moz-border-radius-topright: 6px;
+    -webkit-border-top-right-radius: 6px;
+    -ms-border-top-right-radius: 6px;
+    -o-border-top-right-radius: 6px;
+    border-top-right-radius: 6px
+}
+
+.tabs .active h3 {
+    background-color: #fff;
+    border-bottom-color: #fff;
+    z-index: 2
+}
+
+.tabs h3 a {
+    padding: 0 10px;
+    line-height: 29px;
+    font-size: 13px;
+    font-weight: normal;
+}
+
+.tabs a {
+    color: black;
+    text-decoration: none;
+}
+
+.tabs a:visited {
+    color: black;
+}
+
+.tabs .tab {
+    position: absolute;
+    display: none;
+    left: 0;
+    top: 29px;
+    right: 0;
+    border-top: 1px solid #bbb;
+    z-index: 1;
+    padding: 25px 60px 50px 5px;
+}
+
+.pages div {
+    display: none;
+}
+
+.pages div.active {
+    display: block;
+}
+
+.tabs .active .tab {
+    display: block;
+}

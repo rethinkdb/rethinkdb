@@ -1,0 +1,148 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Style Guide</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../notes.html" title="Notes">
+<link rel="prev" href="porting_from_spirit_1_8_x.html" title="Porting from Spirit 1.8.x">
+<link rel="next" href="../rationale.html" title="Rationale">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="porting_from_spirit_1_8_x.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../notes.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../rationale.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="spirit.notes.style_guide"></a><a class="link" href="style_guide.html" title="Style Guide">Style Guide</a>
+</h3></div></div></div>
+<p>
+        At some point, especially when there are lots of semantic actions attached
+        to various points, the grammar tends to be quite difficult to follow. In
+        order to keep an easy-to-read, consistent and aesthetically pleasing look
+        to the Spirit code, the following coding style guide is advised.
+      </p>
+<p>
+        This coding style is adapted and extended from the ANTLR/PCCTS style and
+        <a href="http://www.boost.org/development/requirements.html" target="_top">Boost Library
+        Requirements and Guidelines</a> and is the combined work of Joel de Guzman,
+        Chris Uzdavinis, and Hartmut Kaiser.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Rule names use std C++ (Boost) convention. The rule name may be very
+            long.
+          </li>
+<li class="listitem">
+            The '=' is neatly indented 4 spaces below. Like in Boost, use spaces
+            instead of tabs.
+          </li>
+<li class="listitem">
+            Breaking the operands into separate lines puts the semantic actions neatly
+            to the right.
+          </li>
+<li class="listitem">
+            Semicolon at the last line terminates the rule.
+          </li>
+<li class="listitem">
+            The adjacent parts of a sequence should be indented accordingly to have
+            all, what belongs to one level, at one indentation level.
+          </li>
+</ul></div>
+<pre class="programlisting"><span class="identifier">program</span>
+    <span class="special">=</span>   <span class="identifier">program_heading</span> <span class="special">[</span><span class="identifier">heading_action</span><span class="special">]</span>
+        <span class="special">&gt;&gt;</span> <span class="identifier">block</span> <span class="special">[</span><span class="identifier">block_action</span><span class="special">]</span>
+        <span class="special">&gt;&gt;</span> <span class="char">'.'</span>
+    <span class="special">|</span>   <span class="identifier">another_sequence</span>
+        <span class="special">&gt;&gt;</span> <span class="identifier">etc</span>
+    <span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Prefer literals in the grammar instead of identifiers. e.g. <code class="computeroutput"><span class="string">"program"</span></code> instead of <code class="computeroutput"><span class="identifier">PROGRAM</span></code>, <code class="computeroutput"><span class="char">'&gt;='</span></code>
+            instead of <code class="computeroutput"><span class="identifier">GTE</span></code> and <code class="computeroutput"><span class="char">'.'</span></code> instead of <code class="computeroutput"><span class="identifier">DOT</span></code>.
+            This makes it much easier to read. If this isn't possible (for instance
+            where the used tokens must be identified through integers) capitalized
+            identifiers should be used instead.
+          </li>
+<li class="listitem">
+            Breaking the operands may not be needed for short expressions. e.g.
+            <code class="computeroutput"><span class="special">*(</span><span class="char">','</span>
+            <span class="special">&gt;&gt;</span> <span class="identifier">file_identifier</span><span class="special">)</span></code> as long as the line does not exceed
+            80 characters.
+          </li>
+<li class="listitem">
+            If a sequence fits on one line, put spaces inside the parentheses to
+            clearly separate them from the rules.
+          </li>
+</ul></div>
+<pre class="programlisting"><span class="identifier">program_heading</span>
+    <span class="special">=</span>   <span class="identifier">no_case</span><span class="special">[</span><span class="string">"program"</span><span class="special">]</span>
+        <span class="special">&gt;&gt;</span> <span class="identifier">identifier</span>
+        <span class="special">&gt;&gt;</span> <span class="char">'('</span>
+        <span class="special">&gt;&gt;</span> <span class="identifier">file_identifier</span>
+        <span class="special">&gt;&gt;</span> <span class="special">*(</span> <span class="char">','</span> <span class="special">&gt;&gt;</span> <span class="identifier">file_identifier</span> <span class="special">)</span>
+        <span class="special">&gt;&gt;</span> <span class="char">')'</span>
+        <span class="special">&gt;&gt;</span> <span class="char">';'</span>
+    <span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Nesting directives: If a rule does not fit on one line (80 characters)
+            it should be continued on the next line intended by one level. The brackets
+            of directives, semantic expressions (using Phoenix or LL lambda expressions)
+            or parsers should be placed as follows.
+          </li></ul></div>
+<pre class="programlisting"><span class="identifier">identifier</span>
+    <span class="special">=</span>   <span class="identifier">no_case</span>
+        <span class="special">[</span>
+            <span class="identifier">lexeme</span>
+            <span class="special">[</span>
+                <span class="identifier">alpha</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="identifier">alnum</span> <span class="special">|</span> <span class="char">'_'</span><span class="special">)</span> <span class="special">[</span><span class="identifier">id_action</span><span class="special">]</span>
+            <span class="special">]</span>
+        <span class="special">]</span>
+   <span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Nesting unary operators (e.g.Kleene star): Unary rule operators (Kleene
+            star, <code class="computeroutput"><span class="char">'!'</span></code>, <code class="computeroutput"><span class="char">'+'</span></code>
+            etc.) should be moved out one space before the corresponding indentation
+            level, if this rule has a body or a sequence after it, which does not
+            fit on on line. This makes the formatting more consistent and moves the
+            rule 'body' at the same indentation level as the rule itself, highlighting
+            the unary operator.
+          </li></ul></div>
+<pre class="programlisting"><span class="identifier">block</span>
+   <span class="special">=</span>  <span class="special">*(</span>   <span class="identifier">label_declaration_part</span>
+       <span class="special">|</span>   <span class="identifier">constant_definition_part</span>
+       <span class="special">|</span>   <span class="identifier">type_definition_part</span>
+       <span class="special">|</span>   <span class="identifier">variable_declaration_part</span>
+       <span class="special">|</span>   <span class="identifier">procedure_and_function_declaration_part</span>
+       <span class="special">)</span>
+       <span class="special">&gt;&gt;</span> <span class="identifier">statement_part</span>
+   <span class="special">;</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="porting_from_spirit_1_8_x.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../notes.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../rationale.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

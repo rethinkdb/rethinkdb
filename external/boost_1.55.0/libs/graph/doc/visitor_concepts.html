@@ -1,0 +1,63 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine  2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Visitor Concepts</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:visitor-concepts"></A>
+Visitor Concepts
+</H1>
+
+<P>
+The visitor concepts plays the same role in BGL as <a
+href="http://www.sgi.com/tech/stl/functors.html">functors</a>
+play in the STL. Functors provide a mechanism for extending an
+algorithm; for customizing what is done at each step of the algorithm.
+Visitors allow the user to insert their own operations at various
+steps within a graph algorithm. Unlike the STL algorithms, graph
+algorithms typically have multiple event points where one may want to
+insert a call-back via a functor. Therefore visitors do not have a
+single <tt>operator()</tt> method like a functor, but instead have
+several methods that correspond to the various event points. Each
+algorithm has a different set of event points, which are described by
+the following visitor concepts:
+
+<ul>
+  <li> <a href="./BFSVisitor.html">BFS Visitor</a>
+  <li> <a href="./DFSVisitor.html">DFS Visitor</a>
+  <li> <a href="./DijkstraVisitor.html">Dijkstra Visitor</a>
+  <li> <a href="./BellmanFordVisitor.html">Bellman Ford Visitor</a>
+  <li> <a href="./AStarVisitor.html">A* Visitor</a>
+  <li> <a href="./EventVisitor.html">Event Visitor</a>
+  <li> <a href="./PlanarFaceVisitor.html">Planar Face Visitor</a>
+  <li> <a href="./TSPTourVisitor.html">TSP Tour Visitor</a>
+</ul>
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

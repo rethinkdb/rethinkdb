@@ -1,0 +1,110 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Arabic_Latin.txt
+# Generated from CLDR 
+#
+:: [[:Arabic:][:block=ARABIC:][‎ⁿ،؛؟ـ\u064B-\u0655٠-٬۰-۹﷼ښ]] ;
+:: NFKD (NFC);
+$disambig =  \u0331 ;
+$disambig2 =  \u0330 ;
+$under =  \u0323 ;
+$descender = ˌ;
+$notAbove = [[:^ccc=0:]&[:^ccc=230:]];
+[:Nd:]{٫}[:Nd:] ↔ [:Nd:]{','}[:Nd:] ; # ARABIC DECIMAL SEPARATOR
+[:Nd:]{٬}[:Nd:] ↔ [:Nd:]{'.'}[:Nd:] ; # ARABIC THOUSANDS SEPARATOR
+٫ ↔ ',' $disambig ; # ARABIC DECIMAL SEPARATOR
+٬ ↔ '.' $disambig ; # ARABIC THOUSANDS SEPARATOR
+، ↔ ',' ; # ARABIC COMMA
+؛ ↔ ';' ; # ARABIC SEMICOLON
+؟ ↔ '?' ; # ARABIC QUESTION MARK
+٪ ↔ '%' ; # ARABIC PERCENT SIGN
+۰ ↔ 0 $disambig ; # EXTENDED ARABIC-INDIC DIGIT ZERO
+۱ ↔ 1 $disambig ; # EXTENDED ARABIC-INDIC DIGIT ONE
+۲ ↔ 2 $disambig ; # EXTENDED ARABIC-INDIC DIGIT TWO
+۳ ↔ 3 $disambig ; # EXTENDED ARABIC-INDIC DIGIT THREE
+۴ ↔ 4 $disambig ; # EXTENDED ARABIC-INDIC DIGIT FOUR
+۵ ↔ 5 $disambig ; # EXTENDED ARABIC-INDIC DIGIT FIVE
+۶ ↔ 6 $disambig ; # EXTENDED ARABIC-INDIC DIGIT SIX
+۷ ↔ 7 $disambig ; # EXTENDED ARABIC-INDIC DIGIT SEVEN
+۸ ↔ 8 $disambig ; # EXTENDED ARABIC-INDIC DIGIT EIGHT
+۹ ↔ 9 $disambig ; # EXTENDED ARABIC-INDIC DIGIT NINE
+٠ ↔ 0 ; # ARABIC-INDIC DIGIT ZERO
+١ ↔ 1 ; # ARABIC-INDIC DIGIT ONE
+٢ ↔ 2 ; # ARABIC-INDIC DIGIT TWO
+٣ ↔ 3 ; # ARABIC-INDIC DIGIT THREE
+٤ ↔ 4 ; # ARABIC-INDIC DIGIT FOUR
+٥ ↔ 5 ; # ARABIC-INDIC DIGIT FIVE
+٦ ↔ 6 ; # ARABIC-INDIC DIGIT SIX
+٧ ↔ 7 ; # ARABIC-INDIC DIGIT SEVEN
+٨ ↔ 8 ; # ARABIC-INDIC DIGIT EIGHT
+٩ ↔ 9 ; # ARABIC-INDIC DIGIT NINE
+\u064Eا↔ a\u0304 ; # ARABIC FATHA, ARABIC LETTER ALEF
+\u064Fو ↔ u\u0304 ; # ARABIC DAMMA, ARABIC LETTER WAW
+\u0650ي ↔ i\u0304 ; # ARABIC KASRA, ARABIC LETTER YEH
+ث ↔ t h $disambig ; # ARABIC LETTER THEH
+ذ ↔ d h $disambig ; # ARABIC LETTER THAL
+ش ↔ s h $disambig ; # ARABIC LETTER SHEEN
+ص ↔ s $under ; # ARABIC LETTER SAD
+ض ↔ d $under ; # ARABIC LETTER DAD
+ط ↔ t $under ; # ARABIC LETTER TAH
+ظ ↔ z $under ; # ARABIC LETTER ZAH
+غ ↔ g h $disambig ; # ARABIC LETTER GHAIN
+ة ↔ t \u0308 ; # ARABIC LETTER TEH MARBUTA
+ة | $1 ← t ($notAbove+) \u0308 ; # ARABIC LETTER TEH MARBUTA
+ژ ↔ z h $disambig ; # ARABIC LETTER JEH
+ڭ ↔ n $disambig g ; # ARABIC LETTER NG
+ۋ ↔ v $disambig ; # ARABIC LETTER VE
+ی ↔ y $disambig2 ; # ARABIC LETTER FARSI YEH
+ښ ↔ s $descender;
+ء ↔ ʾ ; # ARABIC LETTER HAMZA
+ا ↔ a $under; # ARABIC LETTER ALEF
+ب ↔ b ; # ARABIC LETTER BEH
+ت ↔ t ; # ARABIC LETTER TEH
+ج ↔ j ; # ARABIC LETTER JEEM
+ح ↔ h $under ; # ARABIC LETTER HAH
+خ ↔ k h $disambig ; # ARABIC LETTER KHAH
+د ↔ d ; # ARABIC LETTER DAL
+ر ↔ r ; # ARABIC LETTER REH
+ز ↔ z ; # ARABIC LETTER ZAIN
+س ↔ s ; # ARABIC LETTER SEEN
+ع ↔ ʿ ; # ARABIC LETTER AIN
+ـ → ; # ARABIC TATWEEL
+ف ↔ f ; # ARABIC LETTER FEH
+ق ↔ q ; # ARABIC LETTER QAF
+ک ↔ k $disambig ; # ARABIC LETTER KEHEH
+ك ↔ k ; # ARABIC LETTER KAF
+ل ↔ l ; # ARABIC LETTER LAM
+م ↔ m ; # ARABIC LETTER MEEM
+ن ↔ n ; # ARABIC LETTER NOON
+ه ↔ h ; # ARABIC LETTER HEH
+و ↔ w ; # ARABIC LETTER WAW
+ى ↔ y $disambig ; # ARABIC LETTER ALEF MAKSURA
+ي ↔ y ; # ARABIC LETTER YEH
+\u064B ↔ aⁿ ; # ARABIC FATHATAN
+\u064C ↔ uⁿ ; # ARABIC DAMMATAN
+\u064D ↔ iⁿ ; # ARABIC KASRATAN
+\u064E ↔ a ; # ARABIC FATHA
+\u064F ↔ u ; # ARABIC DAMMA
+\u0650 ↔ i ; # ARABIC KASRA
+\u0651 ↔   \u0303 ; # ARABIC SHADDA
+\u0652 ↔   \u030A ; # ARABIC SUKUN
+\u0653 ↔  \u0302 ; # ARABIC MADDAH ABOVE
+\u0654 ↔  \u0309 ; # ARABIC HAMZA ABOVE
+\u0655 ↔  \u0339 ; # ARABIC HAMZA BELOW
+پ ↔ p ; # ARABIC LETTER PEH
+چ ↔ c h $disambig ; # ARABIC LETTER TCHEH
+ڤ ↔ v ; # ARABIC LETTER VEH
+گ ↔ g ; # ARABIC LETTER GAF
+| s ← c } [eiy];
+| k ← c ;
+| i ← e ;
+| u ← o ;
+| ks ← x ;
+| n ← ‎ⁿ;
+:: (lower) ;
+::NFC (NFD);
+:: ( [[:Latin:] [%,.0-9;?ʾ-ʿ\u0302-\u0304\u0308-\u030A\u0323\u0330-\u0331\u0339;ˌ]] );

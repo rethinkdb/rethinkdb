@@ -1,0 +1,229 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/sg.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/sg.xml
+ */
+sg{
+    AuxExemplarCharacters{"[c q x]"}
+    ExemplarCharacters{"[a â ä b d e ê ë f g h i î ï j k l m n o ô ö p r s t u ù û ü v w y z]"}
+    ExemplarCharactersIndex{"[A B D E F G H I J K L M N O P R S T U V W Y Z]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤#,##0.00;¤-#,##0.00"}
+            }
+            symbols{
+                decimal{","}
+                group{"."}
+            }
+        }
+    }
+    Version{"2.0.46.85"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "ND",
+                "LK",
+            }
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE d MMMM y",
+                "d MMMM y",
+                "d MMM, y",
+                "d/M/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                M{"M"}
+                MMM{"MMM"}
+                MMMEd{"E d MMM"}
+                MMMMEd{"EEE d MMMM"}
+                MMMMd{"d MMMM"}
+                MMMd{"d MMM"}
+                MMMdd{"dd MMM"}
+                MMd{"d/MM"}
+                MMdd{"dd/MM"}
+                Md{"d/M"}
+                Med{"EEE d/M"}
+                ms{"m:ss"}
+                y{"y"}
+                yM{"M/y"}
+                yMEd{"EEE d/M/y"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE d MMM y"}
+                yMMMM{"MMMM y"}
+                yQ{"'F'Q y"}
+                yQQQ{"QQQ y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "Bk1",
+                        "Bk2",
+                        "Bk3",
+                        "Bk4",
+                        "Bk5",
+                        "Lâp",
+                        "Lây",
+                    }
+                    wide{
+                        "Bikua-ôko",
+                        "Bïkua-ûse",
+                        "Bïkua-ptâ",
+                        "Bïkua-usïö",
+                        "Bïkua-okü",
+                        "Lâpôsö",
+                        "Lâyenga",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "K",
+                        "S",
+                        "T",
+                        "S",
+                        "K",
+                        "P",
+                        "Y",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "KnK",
+                    "NpK",
+                }
+                wide{
+                    "Kôzo na Krîstu",
+                    "Na pekô tî Krîstu",
+                }
+            }
+            fields{
+                day{
+                    dn{"Lâ"}
+                    relative{
+                        "-1"{"Bîrï"}
+                        "0"{"Lâsô"}
+                        "1"{"Kêkerêke"}
+                    }
+                }
+                dayperiod{
+                    dn{"Na lâ"}
+                }
+                era{
+                    dn{"Kùotângo"}
+                }
+                hour{
+                    dn{"Ngbonga"}
+                }
+                minute{
+                    dn{"Ndurü ngbonga"}
+                }
+                month{
+                    dn{"Nze"}
+                }
+                second{
+                    dn{"Nzîna ngbonga"}
+                }
+                week{
+                    dn{"Dimâsi"}
+                }
+                weekday{
+                    dn{"Bïkua"}
+                }
+                year{
+                    dn{"Ngû"}
+                }
+                zone{
+                    dn{"Zukangbonga"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "Nye",
+                        "Ful",
+                        "Mbä",
+                        "Ngu",
+                        "Bêl",
+                        "Fön",
+                        "Len",
+                        "Kük",
+                        "Mvu",
+                        "Ngb",
+                        "Nab",
+                        "Kak",
+                    }
+                    wide{
+                        "Nyenye",
+                        "Fulundïgi",
+                        "Mbängü",
+                        "Ngubùe",
+                        "Bêläwü",
+                        "Föndo",
+                        "Lengua",
+                        "Kükürü",
+                        "Mvuka",
+                        "Ngberere",
+                        "Nabändüru",
+                        "Kakauka",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "N",
+                        "F",
+                        "M",
+                        "N",
+                        "B",
+                        "F",
+                        "L",
+                        "K",
+                        "M",
+                        "N",
+                        "N",
+                        "K",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "F4-1",
+                        "F4-2",
+                        "F4-3",
+                        "F4-4",
+                    }
+                    wide{
+                        "Fângbisïö ôko",
+                        "Fângbisïö ûse",
+                        "Fângbisïö otâ",
+                        "Fângbisïö usïö",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"’"}
+        alternateQuotationStart{"“"}
+        quotationEnd{"»"}
+        quotationStart{"«"}
+    }
+}

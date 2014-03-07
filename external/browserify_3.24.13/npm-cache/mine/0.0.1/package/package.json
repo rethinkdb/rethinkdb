@@ -1,0 +1,22 @@
+{
+  "name": "mine",
+  "version": "0.0.1",
+  "description": "Digs into a javascript file looking for require calls. Used to statically extract common js dependencies.",
+  "main": "mine.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/creationix/miner.git"
+  },
+  "author": "Tim Caswell <tim@creationix.com>",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "devDependencies": {
+    "tap": "~0.4.8"
+  },
+  "scripts": {
+    "test": "tap test/*.js"
+  }
+}

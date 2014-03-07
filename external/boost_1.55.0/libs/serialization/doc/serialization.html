@@ -1,0 +1,930 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Serialization of Classes</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Serializable Concept</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<dl class="page-index">
+  <dt><a href="#primitiveoperators">Primitive Types</a>
+  <dt><a href="#classoperators">Class Types</a>
+  <dl class="page-index">
+    <dt><a href="#member">Member Function</a>
+    <dt><a href="#free">Free Function</a>
+    <dl class="page-index">
+      <dt><a href="#namespaces">Namespaces for Free Function Overrides</a>
+    </dl>
+    <dt><a href="#classmembers">Class Members</a>
+    <dl class="page-index">
+      <dt><a href="#base">Base Classes</a>
+      <dt><a href="#const"><code style="white-space: normal">const</code> Members</a>
+      <dt><a href="#templates">Templates</a>
+    </dl>
+    <dt><a href="#versioning">Versioning</a>
+    <dt><a href="#splitting">Splitting <code style="white-space: normal">serialize</code> into 
+      <code style="white-space: normal">save/load</code></a>
+      <dl class="page-index">
+        <dt><a href="#splittingmemberfunctions">Member Functions</a>
+        <dt><a href="#splittingfreefunctions">Free Functions</a>
+      </dl>
+  </dl>
+  <dt><a href="#pointeroperators">Pointers</a>
+    <dl class="page-index">
+      <dt><a href="#constructors">Non-Default Constructors</a>
+      <dt><a href="#derivedpointers">Pointers to Objects of Derived Classes</a>
+      <dl class="page-index">
+        <dt><a href="#registration">Registration</a>
+        <dt><a href="#export">Export</a>
+        <dt><a href="#instantiation">Instantiation</a>
+        <dt><a href="#selectivetracking">Selective Tracking</a>
+        <dt><a href="#runtimecasting">Runtime Casting</a>
+      </dl>
+    </dl>
+  <dt><a href="#references">References</a>
+  <dt><a href="#arrays">Arrays</a>
+  <dt><a href="traits.html">Class Serialization Traits</a>
+  <dt><a href="wrappers.html">Serialization Wrappers</a>
+  <dt><a href="#models">Models - Serialization Implementations Included in the Library</a>
+</dl>
+
+A type <code style="white-space: normal">T</code> is <strong>Serializable</strong> 
+if and only if one of the following is true:
+<ul>
+  <li>it is a primitive type.<br>
+    By <i>primitive type</i> we mean a C++ built-in type and <i>ONLY</i>
+    a C++ built-in type. Arithmetic (including characters), bool, enum are primitive types.
+    Below in <a target="detail" href="traits.html#Traits">serialization traits</a>,
+    we define a "primitive" implementation level in a different way for a 
+    different purpose.  This can be a source of confusion.
+  <li>It is a class type and one of the following has been declared according
+    to the prototypes detailed below:
+    <ul>
+    <li>a class member function <code style="white-space: normal">serialize</code>
+    <li>a global function <code style="white-space: normal">serialize</code>
+    </ul>
+  <li>it is a pointer to a <strong>Serializable</strong> type.
+  <li>it is a reference to a <strong>Serializable</strong> type.
+  <li>it is a native C++ Array of <strong>Serializable</strong> type.
+</ul>
+
+<h2><a name="primitiveoperators">Primitive Types</a></h2>
+The template operators &amp;, &lt;&lt;, and &gt;&gt; of the archive classes 
+described above will generate code to save/load all primitive types
+to/from an archive.  This code will usually just add the
+data to the archive according to the archive format.
+For example, a four byte integer is appended to a binary archive
+as 4 binary bytes while a to a text archive it would be 
+rendered as a space followed by a string representation.
+
+<h2><a name="classoperators">Class Types</a></h2>
+For class/struct types, the template operators &amp;, &lt;&lt;, and &gt;&gt;
+will generate code that invokes the programmer's serialization code for the
+particular data type.  There is no default.  An attempt to serialize a
+class/struct for which no serialization has been explicitly specified
+will result in a compile time error.  The serialiation of a class can
+be specified via either a class member function or a free funcation which
+takes a reference to an instance of the class as an argument.
+
+<h3><a name="member">Member Function</a></h3>
+The serialization library invokes the following code to save or load a class instance
+to/from and archive.
+<pre><code>
+template&lt;class Archive, class T&gt;
+inline void serialize(
+    Archive &amp; ar, 
+    T &amp; t, 
+    const unsigned int file_version
+){
+    // invoke member function for class T
+    t.serialize(ar, file_version);
+}
+</code></pre>
+That is, the default definition of template <code style="white-space: normal">serialize</code> 
+presumes the existence of a class member function template of the following 
+signature:
+<pre><code>
+template&lt;class Archive&gt;
+void serialize(Archive &amp;ar, const unsigned int version){
+    ...
+}
+</code></pre>
+If such a member function is not declared, a compile time error will occur.  In order
+that the member function generated by this template can be called to
+append the data to an archive, it either must be public or the class must
+be made accessible to the serialization library by including:
+<pre><code>
+friend class boost::serialization::access;
+</code></pre>
+in the class definition.  This latter method should be preferred over the option
+of making member function public. This will prevent serialization functions from 
+being called from outside the library.  This is almost certainly an error.  Unfortunately,
+it may appear to function but fail in a way that is very difficult to find.
+<p>
+It may not be immediately obvious how this one template serves for both
+saving data to an archive as well as loading data from the archive.
+The key is that the <code style="white-space: normal">&amp;</code> operator is 
+defined as <code style="white-space: normal">&lt;&lt;</code>
+for output archives and as <code style="white-space: normal">&gt;&gt;</code> input archives.  The
+"polymorphic" behavior of the <code style="white-space: normal">&amp;</code> permits the same template
+to be used for both save and load operations.  This is very convenient in that it
+saves a lot of typing and guarantees that the saving and loading of class
+data members are always in sync.  This is the key to the whole serialization
+system.
+
+<h3><a name="free">Free Function</a></h3>
+Of course we're not restricted to using the default implementation described
+above. We can override the default one with our own.  Doing this will
+permit us to implement serialization of a class without altering
+the class definition itself.  We call this <strong>non-intrusive</strong>
+serialization.  Suppose our class is named <code style="white-space: normal">my_class</code>, the
+override would be specified as:
+<pre><code>
+// namespace selection
+
+template&lt;class Archive&gt;
+inline void serialize(
+    Archive &amp; ar, 
+    my_class &amp; t, 
+    const unsigned int file_version
+){
+    ...
+}
+</code></pre>
+
+Note that we have called this override "non-intrusive".  This is slightly
+inaccurate.  It does not require that the class have special functions, that
+it be derived from some common base class or any other fundamental design changes.
+However, it will require access to the class members that are to
+be saved and loaded.  If these members are <code style="white-space: normal">private</code>, it won't be
+possible to serialize them.  So in some instances, minor modifications to the
+class to be serialized will be necessary even when using this "non-intrusive"
+method.  In practice this may not be such a problem as many libraries 
+(E.G. STL) expose enough information to permit implementation of non-intrusive
+serialization with absolutly no changes to the library.
+
+<h4><a name="namespaces">Namespaces for Free Function Overrides</a></h4>
+For maximum portability, include any free functions templates and definitions in the 
+namespace <code style="white-space: normal">boost::serialization</code>.  If portability is not a concern and the
+compiler being used supports ADL (Argument Dependent Lookup) the free functions and
+templates can be in any of the following namespaces:
+<ul>
+<li><code style="white-space: normal">boost::serialization</code>
+<li>namespace of the archive class
+<li>namespace of the type being serialized
+</ul>
+<p>
+Note that, at first glance, this suggestion may seem to be wrong for compilers which implement
+two phase lookup.  In fact, the serialization library used a perhaps overly clever 
+method to support this rule even for such compilers.  Those with an interest in studying
+this furter will find more information in 
+<a target=serialization_hpp href="../../../boost/serialization/serialization.hpp">serialization.hpp</a>
+
+<h3><a name="classmembers">Serialization of Class Members</a></h3>
+Regardless of which of the above methods is used,  the body of the serialize function must
+specify the data to be saved/loaded by sequential application of the archive
+<code style="white-space: normal">operator &amp;</code> to all the data members of the class.
+<pre><code>
+{
+    // save/load class member variables
+    ar &amp; member1;
+    ar &amp; member2;
+}
+</code></pre>
+
+<h4><a name="base">Base Classes</a></h4>
+The header file 
+<a href="../../../boost/serialization/base_object.hpp" target="base_object_hpp">
+base_object.hpp
+</a>
+includes the template:
+<pre><code>
+template&lt;class Base, class Derived&gt;
+Base & base_object(Derived &d);
+</code></pre>
+which should be used to create a reference to an object of the base
+which can be used as an argument to the archive serialization operators.
+So for a class of <strong>Serializable</strong> type
+<code style="white-space: normal">T</code> the base class state should be 
+serialized like this:
+<pre><code>
+{
+    // invoke serialization of the base class 
+    ar &amp; boost::serialization::base_object&lt;base_class_of_T&gt;(*this);
+    // save/load class member variables
+    ar &amp; member1;
+    ar &amp; member2;
+}
+</code></pre>
+Resist the temptation to just cast <code style="white-space: normal">*this</code> to the base class.
+This might seem to work but may fail to invoke code necessary for
+proper serialization.
+<p>
+Note that this is <strong>NOT</strong> the same as calling the <code style="white-space: normal">serialize</code>
+function of the base class. This might seem to work but will circumvent
+certain code used for tracking of objects, and registering base-derived
+relationships and other bookkeeping that is required for the serialization
+system to function as designed.  For this reason, all <code style="white-space: normal">serialize</code>
+member functions should be <code style="white-space: normal">private</code>.
+
+<h4><a name="const"><code style="white-space: normal">const</code> Members</a></h4>
+Saving <code style="white-space: normal">const</code> members to an archive 
+requires no special considerations.
+Loading <code style="white-space: normal">const</code> members can be addressed by using a
+<code style="white-space: normal">const_cast</code>:
+<pre><code>
+    ar &amp; const_cast&lt;T &amp;&gt;(t);
+</code></pre>
+Note that this violates the spirit and intention of the <code style="white-space: normal">const</code>
+keyword. <code style="white-space: normal">const</code> members are intialized when a class instance
+is constructed and not changed thereafter.  However, this may
+be most appropriate in many cases.  Ultimately, it comes down to 
+the question about what <code style="white-space: normal">const</code> means in the context
+of serialization. 
+
+<h4><a name="templates"></a>Templates</h4>
+Implementation serialization for templates is exactly the same process 
+as for normal classes and requires no additional considerations.  Among
+other things, this implies that serialization of compositions of templates
+are automatically generated when required if serialization of the 
+component templates is defined.  For example, this library includes
+definition of serialization for <code style="white-space: normal">boost::shared_ptr&lt;T&gt;</code> and for
+<code style="white-space: normal">std::list&lt;T&gt;</code>. If I have defined serialization for my own
+class <code style="white-space: normal">my_t</code>, then serialization for 
+<code style="white-space: normal">std::list&lt; boost::shared_ptr&lt; my_t&gt; &gt;</code> is already available
+for use.
+<p>
+See for an example that shows how this idea might be implemented for your own
+class templates, see
+<a href="../example/demo_auto_ptr.cpp" target="demo_auto_ptr.cpp">
+demo_auto_ptr.cpp</a>.
+This shows how non-intrusive serialization
+for the template <code style="white-space: normal">auto_ptr</code> from the standard library
+can be implemented.
+<p>
+A somewhat trickier addition of serialization to a standard template
+can be found in the example 
+<a href="../../../boost/serialization/shared_ptr.hpp" target="shared_ptr_hpp">
+shared_ptr.hpp
+</a>
+<!--
+Only the most minimal change to
+<code>shared_count.hpp</code>
+(to gain access to some private members) was necessary to achieve this.
+This should demonstrate how easy it is to non-intrusively
+implement serialization to any data type or template. 
+-->
+<p>
+In the specification of serialization for templates, its common
+to split <code style="white-space: normal">serialize</code> 
+into a <code style="white-space: normal">load/save</code> pair. 
+Note that the convenience macro described 
+<a href="#BOOST_SERIALIZATION_SPLIT_FREE">above</a>
+isn't helpful in these cases as the number and kind of
+template class arguments won't match those used when splitting
+<code style="white-space: normal">serialize</code> for a simple class.  Use the override
+syntax instead.
+
+<h3><a name="versioning">Versioning</a></h3>
+It will eventually occur that class definitions change after archives have
+been created. When a class instance is saved, the current version
+in included in the class information stored in the archive.  When the class instance
+is loaded from the archive, the original version number is passed as an
+argument to the loading function.  This permits the load function to include
+logic to accommodate older definitions for the class and reconcile them
+with latest version.  Save functions always save the current version.  So this
+results in automatically converting older format archives to the newest versions.
+Version numbers are maintained independently for each class.  This results in 
+a simple system for permitting access to older files and conversion of same.
+The current version of the class is assigned as a
+<a href="traits.html">Class Serialization Trait</a> described later in this manual.
+<pre><code>
+{
+    // invoke serialization of the base class 
+    ar &amp; boost::serialization::base_object&lt;base_class_of_T&gt;(*this);
+    // save/load class member variables
+    ar &amp; member1;
+    ar &amp; member2;
+    // if its a recent version of the class
+    if(1 &lt; file_version)
+        // save load recently added class members
+        ar &amp; member3;
+}
+</code></pre>
+
+<h3><a name="splitting">Splitting <code style="white-space: normal">serialize</code> into Save/Load</a></h3>
+There are times when it is inconvenient to use the same
+template for both save and load functions.  For example, this might occur if versioning
+gets complex.  
+
+<h4><a name="splittingmemberfunctions">Splitting Member Functions</a></h4>
+For member functions this can be addressed by including
+the header file <a href="../../../boost/serialization/split_member.hpp" target="split_member_hpp">
+boost/serialization/split_member.hpp</a> including code like this in the class:
+<pre><code>
+template&lt;class Archive&gt;
+void save(Archive &amp; ar, const unsigned int version) const
+{
+    // invoke serialization of the base class 
+    ar &lt;&lt; boost::serialization::base_object&lt;const base_class_of_T&gt;(*this);
+    ar &lt;&lt; member1;
+    ar &lt;&lt; member2;
+    ar &lt;&lt; member3;
+}
+
+template&lt;class Archive&gt;
+void load(Archive &amp; ar, const unsigned int version)
+{
+    // invoke serialization of the base class 
+    ar &gt;&gt; boost::serialization::base_object&lt;base_class_of_T&gt;(*this);
+    ar &gt;&gt; member1;
+    ar &gt;&gt; member2;
+    if(version &gt; 0)
+        ar &gt;&gt; member3;
+}
+
+template&lt;class Archive&gt;
+void serialize(
+    Archive &amp; ar,
+    const unsigned int file_version 
+){
+    boost::serialization::split_member(ar, *this, file_version);
+}
+</code></pre>
+This splits the serialization into two separate functions <code style="white-space: normal">save</code>
+and <code style="white-space: normal">load</code>.  Since the new <code style="white-space: normal">serialize</code> template
+is always the same it can be generated by invoking the macro
+BOOST_SERIALIZATION_SPLIT_MEMBER() defined in the header file
+<a href="../../../boost/serialization/split_member.hpp" target="split_member_hpp">
+boost/serialization/split_member.hpp
+</a>.
+So the entire <code style="white-space: normal">serialize</code> function above can be replaced with:
+<pre><code>
+BOOST_SERIALIZATION_SPLIT_MEMBER()
+</code></pre>
+<h4><a name="splittingfreefunctions">Splitting Free Functions</a></h4>
+The situation is same for non-intrusive serialization with the free
+<code style="white-space: normal">serialize</code> function template.
+
+<a name="BOOST_SERIALIZATION_SPLIT_FREE">
+To use <code style="white-space: normal">save</code> and 
+<code style="white-space: normal">load</code> function templates rather than 
+<code style="white-space: normal">serialize</code>:
+<pre><code>
+namespace boost { namespace serialization {
+template&lt;class Archive&gt;
+void save(Archive &amp; ar, const my_class &amp; t, unsigned int version)
+{
+    ...
+}
+template&lt;class Archive&gt;
+void load(Archive &amp; ar, my_class &amp; t, unsigned int version)
+{
+    ...
+}
+}}
+</code></pre>
+include the header file 
+<a href="../../../boost/serialization/split_free.hpp" target="split_free_hpp">
+boost/serialization/split_free.hpp
+</a>.
+and override the free <code style="white-space: normal">serialize</code> function template:
+<pre><code>
+namespace boost { namespace serialization {
+template&lt;class Archive&gt;
+inline void serialize(
+    Archive &amp; ar,
+    my_class &amp; t,
+    const unsigned int file_version
+){
+    split_free(ar, t, file_version); 
+}
+}}
+</code></pre>
+To shorten typing, the above template can be replaced with
+the macro:
+<pre><code>
+BOOST_SERIALIZATION_SPLIT_FREE(my_class)
+</code></pre>
+
+Note that although the functionality to split the <code style="white-space: normal">
+serialize</code> function into <code style="white-space: normal">save/load</code>
+has been provided, the usage of the <code style="white-space: normal">serialize</code>
+function with the corresponding <code style="white-space: normal">&amp;</code> operator
+is preferred.  The key to the serialization implementation is that objects are saved 
+and loaded in exactly the same sequence.  Using the <code style="white-space: normal">&amp;</code> 
+operator and <code style="white-space: normal">serialize</code>
+function guarantees that this is always the case and will minimize the
+occurence of hard to find errors related to synchronization of 
+<code style="white-space: normal">save</code> and <code style="white-space: normal">load</code> 
+functions.
+<p>
+Also note that <code style="white-space: normal">BOOST_SERIALIZATION_SPLIT_FREE</code>
+must be used outside of any namespace.
+
+<h2><a name="pointeroperators">Pointers</a></h2>
+A pointer to any class instance can be serialized with any of the archive 
+save/load operators.
+<p>
+To properly save and restore an object through a pointer the
+following situations must be addressed:
+<ol>
+    <li>If the same object is saved multiple times through different
+    pointers, only one copy of the object need be saved.
+    <li>If an object is loaded multiple times through different pointers,
+    only one new object should be created and all returned pointers
+    should point to it.
+    <li>The system must detect the case where an object is first
+    saved through a pointer then the object itself is saved.
+    Without taking extra precautions, loading would result in the
+    creation of multiple copies of the original object. This system detects
+    this case when saving and throws an exception - see below.
+    <li>An object of a derived class may be stored through a
+    pointer to the base class. The true type of the object must
+    be determined and saved. Upon restoration the correct type
+    must be created and its address correctly cast to the base
+    class. That is, polymorphic pointers have to be considered.
+    <li>NULL pointers must be dectected when saved and restored
+    to NULL when deserialized.
+</ol>
+
+This serialization library addresses all of the above
+considerations. The process of saving and loading an object
+through a pointer is non-trivial. It can be summarized as
+follows:
+<p>Saving a pointer:
+<ol>
+    <li>determine the true type of the object being pointed to.
+    <li>write a special tag to the archive
+    <li>if the object pointed to has not already been written
+    to the archive, do so now
+</ol>
+Loading a pointer:
+<ol>
+    <li>read a tag from the archive.
+    <li>determine the type of object to be created
+    <li>if the object has already been loaded, return it's address.
+    <li>otherwise, create a new instance of the object
+    <li>read the data back in using the operators described above
+    <li>return the address of the newly created object.
+</ol>
+
+Given that class instances are saved/loaded to/from the archive
+only once, regardless of how many times they are serialized with
+the <code style="white-space: normal">&lt;&lt;</code> 
+and <code style="white-space: normal">&gt;&gt;</code> operators
+<ul>
+    <li>Loading the same pointer object multiple times
+    results in only one object being created, thereby replicating
+    the original pointer configuration. 
+    <li>Structures such as collections of polymorphic pointers,
+    are handled with no special effort on the part of users of this library.
+</ul>
+Serialization of pointers of derived types through a pointer to the
+base class may require a little extra "help".  Also, the programmer
+may desire to modify the process described above for his own reasons.
+For example, it might be desired to suppress the tracking of objects
+as it is known a priori that the application in question can never
+create duplicate objects.  Serialization of pointers can be "fine tuned"
+via the specification of <a target="detail" href="traits.html#Traits">Class Serialization Traits</a>
+as described in
+<a target="detail" href="special.html#derivedpointers">
+another section of this manual
+</a>
+
+<h3><a name="constructors">Non-Default Constructors</a></h3>
+Serialization of pointers is implemented in the library with code
+similar to the following:
+<pre><code>
+// load data required for construction and invoke constructor in place
+template&lt;class Archive, class T&gt;
+inline void load_construct_data(
+    Archive &amp; ar, T * t, const unsigned int file_version
+){
+    // default just uses the default constructor to initialize
+    // previously allocated memory. 
+    ::new(t)T();
+}
+</code></pre>
+The default <code style="white-space: normal">load_construct_data</code> invokes the
+default constructor "in-place" to initialize the memory.
+<p>
+If there is no such default constructor, the function templates
+<code style="white-space: normal">load_construct_data</code> and 
+perhaps <code style="white-space: normal">save_construct_data</code>
+will have to be overridden.  Here is a simple example:
+<pre><code>
+class my_class {
+private:
+    friend class boost::serialization::access;
+    const int m_attribute;  // some immutable aspect of the instance
+    int m_state;            // mutable state of this instance
+    template&lt;class Archive&gt;
+    void serialize(Archive &amp;ar, const unsigned int file_version){
+        ar &amp; m_state;
+    }
+public:
+    // no default construct guarentees that no invalid object
+    // ever exists
+    my_class(int attribute) :
+        m_attribute(attribute),
+        m_state(0)
+    {}
+};
+</code></pre>
+the overrides would be:
+<pre><code>
+namespace boost { namespace serialization {
+template&lt;class Archive&gt;
+inline void save_construct_data(
+    Archive &amp; ar, const my_class * t, const unsigned int file_version
+){
+    // save data required to construct instance
+    ar &lt;&lt; t-&gt;m_attribute;
+}
+
+template&lt;class Archive&gt;
+inline void load_construct_data(
+    Archive &amp; ar, my_class * t, const unsigned int file_version
+){
+    // retrieve data from archive required to construct new instance
+    int attribute;
+    ar &gt;&gt; attribute;
+    // invoke inplace constructor to initialize instance of my_class
+    ::new(t)my_class(attribute);
+}
+}} // namespace ...
+</code></pre>
+In addition to the deserialization of pointers, these overrides are used
+in the deserialization of STL containers whose element type has no default
+constructor.
+
+<h3><a name="derivedpointers">Pointers to Objects of Derived Classes</a></h3>
+<h4><a name="registration">Registration</a></h4>
+Consider the following:
+<pre><code>
+class base {
+    ...
+};
+class derived_one : public base {
+    ...
+};
+class derived_two : public base {
+    ...
+};
+main(){
+    ...
+    base *b;
+    ...
+    ar &amp; b; 
+}
+</code></pre>
+When saving <code style="white-space: normal">b</code> what kind of object should be saved? 
+When loading <code style="white-space: normal">b</code> what kind of object should be created? 
+Should it be an object of class <code style="white-space: normal">derived_one</code>,
+<code style="white-space: normal">derived_two</code>, or maybe <code style="white-space: normal">base</code>?
+<p>
+It turns out that the kind of object serialized depends upon whether the base class
+(<code style="white-space: normal">base</code> in this case) is polymophic or not.
+If <code style="white-space: normal">base</code> is not polymorphic, that is if it has no
+virtual functions, then an object of the type <code style="white-space: normal">base</code>
+will be serialized. Information in any derived classes will be lost. If this is what is desired
+(it usually isn't) then no other effort is required.
+<p>
+
+If the base class is polymorphic, an object of the most derived type
+(<code style="white-space: normal">derived_one</code>
+or <code style="white-space: normal">derived_two</code>
+in this case) will be serialized.  The question of which type of object is to be
+serialized is (almost) automatically handled by the library.
+<p>
+The system "registers" each class in an archive the first time an object of that
+class it is serialized and assigns a sequential number to it.  Next time an
+object of that class is serialized in that same archive, this number is written
+in the archive.  So every class is identified uniquely within the archive.  
+When the archive is read back in, each new sequence number is re-associated with 
+the class being read.  Note that this implies that "registration" has to occur
+during both save and load so that the class-integer table built on load
+is identical to the class-integer table built on save. In fact, the key to
+whole serialization system is that things are always saved and loaded in
+the same sequence.  This includes "registration".
+<p>
+Expanding our previous example:
+<pre><code>
+main(){
+    derived_one d1;
+    derived_two d2:
+    ...
+    ar &amp; d1;
+    ar &amp; d2;
+    // A side effect of serialization of objects d1 and d2 is that
+    // the classes derived_one and derived_two become known to the archive.
+    // So subsequent serialization of those classes by base pointer works
+    // without any special considerations.
+    base *b;
+    ...
+    ar &amp; b; 
+}
+</code></pre>
+When <code style="white-space: normal">b</code> is read it is
+preceded by a unique (to the archive) class identifier which
+has previously been related to class <code style="white-space: normal">derived_one</code> or
+<code style="white-space: normal">derived_two</code>.
+<p>
+If a derived class has NOT been automatically "registered" as described
+above, an <a target="detail" href="exceptions.html#unregistered_class">
+<code style="white-space: normal">unregistered_class</code></a> exception 
+will be thrown when serialization is invoked.
+<p>
+This can be addressed by registering the derived class explicitly.  All archives are
+derived from a base class which implements the following template:
+<pre><code>
+template&lt;class T&gt;
+register_type();
+</code></pre>
+So our problem could just as well be addressed by writing:
+<pre><code>
+main(){
+    ...
+    ar.template register_type&lt;derived_one&gt;();
+    ar.template register_type&lt;derived_two&gt;();
+    base *b;
+    ...
+    ar &amp; b; 
+}
+</code></pre>
+Note that if the serialization function is split between save and load, both
+functions must include the registration.  This is required to keep the save
+and corresponding load in syncronization.
+
+<h4><a name="export">Export</a></h4>
+The above will work but may be inconvenient.  We don't always know which derived
+classes we are going to serialize when we write the code to serialize through
+a base class pointer.  Every time a new derived class is written we have to
+go back to all the places where the base class is serialized and update the
+code.
+<p>
+So we have another method:
+<pre><code>
+#include &lt;boost/serialization/export.hpp&gt;
+...
+BOOST_CLASS_EXPORT_GUID(derived_one, "derived_one")
+BOOST_CLASS_EXPORT_GUID(derived_two, "derived_two")
+
+main(){
+    ...
+    base *b;
+    ...
+    ar &amp; b; 
+}
+</code></pre>
+The macro <code style="white-space: normal">BOOST_CLASS_EXPORT_GUID</code> associates a string literal
+with a class. In the above example we've used a string rendering
+of the class name. If a object of such an "exported" class is serialized
+through a pointer and is otherwise unregistered, the "export" string is 
+included in the archive. When the archive 
+is later read, the string literal is used to find the class which 
+should be created by the serialization library.
+This permits each class to be in a separate header file along with its 
+string identifier. There is no need to maintain a separate "pre-registration" 
+of derived classes that might be serialized.  This method of
+registration is referred to as "key export".  More information on this
+topic is found in the section Class Traits - 
+<a target="detail" href="traits.html#export">Export Key</a>.
+<p>
+<h4><a name="instantiation">Instantiation</a></h4>
+Registration by means of any of the above methods fulfill another role 
+whose importance might not be obvious.  This system relies on templated
+functions of the form <code style="white-space: normal">template&lt;class Archive, class T&gt;</code>.
+This means that serialization code must be instantiated for each
+combination of archive and data type that is serialized in the program.
+<p>
+Polymorphic pointers of derived classes may never be referred to 
+explictly by the program so normally code to serialize such classes
+would never be instantiated.  So in addition to including export key
+strings in an archive, <code style="white-space: normal">BOOST_CLASS_EXPORT_GUID</code> explicitly
+instantiates the class serialization code for all archive classes used 
+by the program.  
+
+<h4><a name="selectivetracking">Selective Tracking</a></h4>
+Whether or not an object is tracked is determined by its
+<a target="detail" href="traits.html#tracking">object tracking trait</a>.
+The default setting for user defined types is <code style="white-space: normal">track_selectively</code>.
+That is, track objects if and only if they are serialized through pointers anywhere
+in the program. Any  objects that are "registered" by any of the above means are presumed
+to be serialized through pointers somewhere in the program and therefore
+would be tracked. In certain situations this could lead to an inefficiency.
+Suppose we have a class module used by multiple programs.  Because
+some programs serializes polymorphic pointers to objects of this class, we 
+<a target="detail" href="traits.html#export">export</a> a class
+identifier by specifying <code style="white-space: normal">BOOST_CLASS_EXPORT</code> in the
+class header.  When this module is included by another program,
+objects of this class will always be tracked even though it
+may not be necessary.  This situation could be addressed by using 
+<a target="detail" href="traits.html#tracking"><code style="white-space: normal">track_never</code></a>  
+in those programs.
+<p>
+It could also occur that even though a program serializes through 
+a pointer, we are more concerned with efficiency than avoiding the
+the possibility of creating duplicate objects.  It could be
+that we happen to know that there will be no duplicates.  It could
+also be that the creation of a few duplicates is benign and not
+worth avoiding given the runtime cost of tracking duplicates.
+Again, <a target="detail" href="traits.html#tracking"><code style="white-space: normal">track_never</code></a>  
+can be used.
+<h4><a name="runtimecasting">Runtime Casting</a></h4>
+In order to properly translate between base and derived pointers
+at runtime, the system requires each base/derived pair be found
+in a table.  A side effect of serializing a base object with
+<code style="white-space: normal">boost::serialization::base_object&lt;Base&gt;(Derived &)</code>
+is to ensure that the base/derived pair is added to the table
+before the <code style="white-space: normal">main</code> function is entered.
+This is very convenient and results in a clean syntax.  The only
+problem is that it can occur where a derived class serialized
+through a pointer has no need to invoke the serialization of
+its base class.  In such a case, there are two choices.  The obvious
+one is to invoke the base class serialization with <code style="white-space: normal">base_object</code>
+and specify an empty function for the base class serialization.
+The alternative is to "register" the Base/Derived relationship
+explicitly by invoking the template 
+<code style="white-space: normal">void_cast_register&lt;Derived, Base&gt;();</code>.
+Note that this usage of the term "register" is not related
+to its usage in the previous section.  Here is an example of how this is done:
+<pre><code>
+#include &lt;sstream&gt;
+#include &lt;boost/serialization/serialization.hpp&gt;
+#include &lt;boost/archive/text_iarchive.hpp&gt;
+#include &lt;boost/serialization/export.hpp&gt;
+
+class base {
+    friend class boost::serialization::access;
+    //...
+    // only required when using method 1 below
+    // no real serialization required - specify a vestigial one
+    template&lt;class Archive&gt;
+    void serialize(Archive &amp; ar, const unsigned int file_version){}
+};
+
+class derived : public base {
+    friend class boost::serialization::access;
+    template&lt;class Archive&gt;
+    void serialize(Archive &amp; ar, const unsigned int file_version){
+        // method 1 : invoke base class serialization
+        ar & boost::serialization::base_object&lt;base&gt;(*this);
+        // method 2 : explicitly register base/derived relationship
+        boost::serialization::void_cast_register&lt;derived, base&gt;(
+            static_cast&lt;derived *&gt;=NULL),
+            static_cast&lt;base *&gt;(NULL)
+        )
+    }
+};
+
+BOOST_CLASS_EXPORT_GUID(derived, "derived")
+
+main(){
+    //...
+    std::stringstream ss;
+    boost::archive::text_iarchive ar(ss);
+    base *b;
+    ar &gt;&gt; b; 
+}
+</code></pre>
+<p>
+
+In order for this template to be invoked in code compiled by non-conforming
+compilers, the following syntax may be used:
+<pre><code>
+boost::serialization::void_cast_register(
+    static_cast&lt;Derived *&gt;(NULL),
+    static_cast&lt;Base *&gt;(NULL)
+);
+</code></pre>
+For more information, see <a target="detail" href="implementation.html#tempatesyntax">Template Invocation syntax</a>
+
+<h3><a name="references"></a>References</h3>
+Classes that contain reference members will generally require
+non-default constructors as references can only be set when
+an instance is constructed. The example of the previous section
+is slightly more complex if the class has reference members.
+This raises the question of how and where the objects being
+referred to are stored and how are they created. Also there is the question about
+references to polymorphic base classes.  Basically, these
+are the same questions that arise regarding pointers.  This is
+no surprise as references are really a special kind of pointer.
+We address these questions by serializing references as though
+they were pointers.
+<pre><code>
+class object;
+class my_class {
+private:
+    friend class boost::serialization::access;
+    int member1;
+    object &amp; member2;
+    template&lt;class Archive&gt;
+    void serialize(Archive &amp;ar, const unsigned int file_version);
+public:
+    my_class(int m, object &amp; o) :
+        member1(m), 
+        member2(o)
+    {}
+};
+</code></pre>
+the overrides would be:
+<pre><code>
+namespace boost { namespace serialization {
+template&lt;class Archive&gt;
+inline void save_construct_data(
+    Archive &amp; ar, const my_class * t, const unsigned int file_version
+){
+    // save data required to construct instance
+    ar &lt;&lt; t.member1;
+    // serialize reference to object as a pointer
+    ar &lt;&lt; &amp; t.member2;
+}
+
+template&lt;class Archive&gt;
+inline void load_construct_data(
+    Archive &amp; ar, my_class * t, const unsigned int file_version
+){
+    // retrieve data from archive required to construct new instance
+    int m;
+    ar &gt;&gt; m;
+    // create and load data through pointer to object
+    // tracking handles issues of duplicates.
+    object * optr;
+    ar &gt;&gt; optr;
+    // invoke inplace constructor to initialize instance of my_class
+    ::new(t)my_class(m, *optr);
+}
+}} // namespace ...
+</code></pre>
+
+<h3><a name="arrays"></a>Arrays</h3>
+If <code style="white-space: normal">T</code> is a serializable type, 
+then any native C++ array of type T is a serializable type.
+That is, if <code style="white-space: normal">T</code>
+is a serializable type, then the following
+is automatically available and will function as expected:
+<pre><code>
+T t[4];
+ar &lt;&lt; t;
+    ...
+ar &gt;&gt; t;
+</code></pre>
+
+<h2><a href="traits.html">Class Serialization Traits</a></h2>
+
+<h2><a href="wrappers.html">Serialization Wrappers</a></h2>
+
+<h2><a name="models"></a>Models - Serialization Implementations Included in the Library</h2>
+The facilities described above are sufficient to implement 
+serialization for all STL containers.  In fact, this has been done
+and has been included in the library.  For example, in order to use
+the included serialization code for <code style="white-space: normal">std::list</code>, use:
+<pre><code>
+#include &lt;boost/serialization/list.hpp&gt;
+</code></pre>
+rather than
+<pre><code>
+#include &lt;list&gt;
+</code></pre>
+Since the former includes the latter, this all that is necessary.
+The same holds true for all STL collections as well as templates
+required to support them (e.g. <code style="white-space: normal">std::pair</code>).
+<p>
+As of this writing, the library contains serialization of the following boost clases:
+<ul>
+  <li>optional
+  <li>variant
+  <li>scoped_ptr
+  <li>shared_ptr
+  <li>auto_ptr (demo)
+</ul>
+Others are being added to the list so check the boost files section and headers for
+new implementations!
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

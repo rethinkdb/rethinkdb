@@ -1,0 +1,218 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/shi_Tfng.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/shi_Tfng.xml
+ */
+shi_Tfng{
+    %%ParentIsRoot:int{1}
+    ExemplarCharacters{"[ⴰ ⴱ ⴳ {ⴳⵯ} ⴷ ⴹ ⴻ ⴼ ⴽ {ⴽⵯ} ⵀ ⵃ ⵄ ⵅ ⵇ ⵉ ⵊ ⵍ ⵎ ⵏ ⵓ ⵔ ⵕ ⵖ ⵙ ⵚ ⵛ ⵜ ⵟ ⵡ ⵢ ⵣ ⵥ]"}
+    ExemplarCharactersIndex{"[ⴰ ⴱ ⴳ ⴷ ⴹ ⴻ ⴼ ⴽ ⵀ ⵃ ⵄ ⵅ ⵇ ⵉ ⵊ ⵍ ⵎ ⵏ ⵓ ⵔ ⵕ ⵖ ⵙ ⵚ ⵛ ⵜ ⵟ ⵡ ⵢ ⵣ ⵥ]"}
+    LocaleScript{
+        "Tfng",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"#,##0.00¤"}
+            }
+            symbols{
+                decimal{","}
+                group{" "}
+            }
+        }
+    }
+    Version{"2.0.46.25"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "ⵜⵉⴼⴰⵡⵜ",
+                "ⵜⴰⴷⴳⴳⵯⴰⵜ",
+            }
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE d MMMM y",
+                "d MMMM y",
+                "d MMM, y",
+                "d/M/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                M{"M"}
+                MMM{"MMM"}
+                MMMEd{"E d MMM"}
+                MMMMEd{"EEE d MMMM"}
+                MMMMd{"d MMMM"}
+                MMMd{"d MMM"}
+                MMMdd{"dd MMM"}
+                MMd{"d/MM"}
+                MMdd{"dd/MM"}
+                Md{"d/M"}
+                Med{"EEE d/M"}
+                ms{"m:ss"}
+                y{"y"}
+                yM{"M/y"}
+                yMEd{"EEE d/M/y"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE d MMM y"}
+                yMMMM{"MMMM y"}
+                yQ{"ⴰⴽQ y"}
+                yQQQ{"QQQ y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "ⴰⵙⴰ",
+                        "ⴰⵢⵏ",
+                        "ⴰⵙⵉ",
+                        "ⴰⴽⵕ",
+                        "ⴰⴽⵡ",
+                        "ⴰⵙⵉⵎ",
+                        "ⴰⵙⵉⴹ",
+                    }
+                    wide{
+                        "ⴰⵙⴰⵎⴰⵙ",
+                        "ⴰⵢⵏⴰⵙ",
+                        "ⴰⵙⵉⵏⴰⵙ",
+                        "ⴰⴽⵕⴰⵙ",
+                        "ⴰⴽⵡⴰⵙ",
+                        "ⵙⵉⵎⵡⴰⵙ",
+                        "ⴰⵙⵉⴹⵢⴰⵙ",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "ⴷⴰⵄ",
+                    "ⴷⴼⵄ",
+                }
+                wide{
+                    "ⴷⴰⵜ ⵏ ⵄⵉⵙⴰ",
+                    "ⴷⴼⴼⵉⵔ ⵏ ⵄⵉⵙⴰ",
+                }
+            }
+            fields{
+                day{
+                    dn{"ⴰⵙⵙ"}
+                    relative{
+                        "-1"{"ⵉⴹⵍⵍⵉ"}
+                        "0"{"ⴰⵙⵙⴰ"}
+                        "1"{"ⴰⵙⴽⴽⴰ"}
+                    }
+                }
+                dayperiod{
+                    dn{"ⵜⵉⵣⵉ ⴳ ⵡⴰⵙⵙ: ⵜⵉⴼⴰⵡⵜ/ⵜⴰⴷⴳⴳⵯⴰⵜ"}
+                }
+                era{
+                    dn{"ⵜⴰⵙⵓⵜ"}
+                }
+                hour{
+                    dn{"ⵜⴰⵙⵔⴰⴳⵜ"}
+                }
+                minute{
+                    dn{"ⵜⵓⵙⴷⵉⴷⵜ"}
+                }
+                month{
+                    dn{"ⴰⵢⵢⵓⵔ"}
+                }
+                second{
+                    dn{"ⵜⴰⵙⵉⵏⵜ"}
+                }
+                week{
+                    dn{"ⵉⵎⴰⵍⴰⵙⵙ"}
+                }
+                weekday{
+                    dn{"ⴰⵙⵙ ⴳ ⵉⵎⴰⵍⴰⵙⵙ"}
+                }
+                year{
+                    dn{"ⴰⵙⴳⴳⵯⴰⵙ"}
+                }
+                zone{
+                    dn{"ⴰⴽⵓⴷ ⵏ ⵓⴳⵎⵎⴰⴹ"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "ⵉⵏⵏ",
+                        "ⴱⵕⴰ",
+                        "ⵎⴰⵕ",
+                        "ⵉⴱⵔ",
+                        "ⵎⴰⵢ",
+                        "ⵢⵓⵏ",
+                        "ⵢⵓⵍ",
+                        "ⵖⵓⵛ",
+                        "ⵛⵓⵜ",
+                        "ⴽⵜⵓ",
+                        "ⵏⵓⵡ",
+                        "ⴷⵓⵊ",
+                    }
+                    wide{
+                        "ⵉⵏⵏⴰⵢⵔ",
+                        "ⴱⵕⴰⵢⵕ",
+                        "ⵎⴰⵕⵚ",
+                        "ⵉⴱⵔⵉⵔ",
+                        "ⵎⴰⵢⵢⵓ",
+                        "ⵢⵓⵏⵢⵓ",
+                        "ⵢⵓⵍⵢⵓⵣ",
+                        "ⵖⵓⵛⵜ",
+                        "ⵛⵓⵜⴰⵏⴱⵉⵔ",
+                        "ⴽⵜⵓⴱⵔ",
+                        "ⵏⵓⵡⴰⵏⴱⵉⵔ",
+                        "ⴷⵓⵊⴰⵏⴱⵉⵔ",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ⵉ",
+                        "ⴱ",
+                        "ⵎ",
+                        "ⵉ",
+                        "ⵎ",
+                        "ⵢ",
+                        "ⵢ",
+                        "ⵖ",
+                        "ⵛ",
+                        "ⴽ",
+                        "ⵏ",
+                        "ⴷ",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "ⴰⴽ 1",
+                        "ⴰⴽ 2",
+                        "ⴰⴽ 3",
+                        "ⴰⴽ 4",
+                    }
+                    wide{
+                        "ⴰⴽⵕⴰⴹⵢⵓⵔ 1",
+                        "ⴰⴽⵕⴰⴹⵢⵓⵔ 2",
+                        "ⴰⴽⵕⴰⴹⵢⵓⵔ 3",
+                        "ⴰⴽⵕⴰⴹⵢⵓⵔ 4",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"”"}
+        alternateQuotationStart{"„"}
+        quotationEnd{"»"}
+        quotationStart{"«"}
+    }
+}

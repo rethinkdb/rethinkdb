@@ -1,0 +1,815 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.10: http://docutils.sourceforge.net/" />
+<title>Boost Pointer Container Library</title>
+<style type="text/css">
+
+/*
+:Author: David Goodger
+:Contact: goodger@users.sourceforge.net
+:Date: $Date: 2008-07-16 14:03:47 -0700 (Wed, 16 Jul 2008) $
+:Revision: $Revision: 47494 $
+:Copyright: This stylesheet has been placed in the public domain.
+
+Default cascading style sheet for the HTML output of Docutils.
+
+See http://docutils.sf.net/docs/howto/html-stylesheets.html for how to
+customize this style sheet.
+*/
+
+/* "! important" is used here to override other ``margin-top`` and
+   ``margin-bottom`` styles that are later in the stylesheet or 
+   more specific.  See http://www.w3.org/TR/CSS1#the-cascade */
+.first {
+  margin-top: 0 ! important }
+
+.last, .with-subtitle {
+  margin-bottom: 0 ! important }
+
+.hidden {
+  display: none }
+
+a.toc-backref {
+  text-decoration: none ;
+  color: black }
+
+blockquote.epigraph {
+  margin: 2em 5em ; }
+
+dl.docutils dd {
+  margin-bottom: 0.5em }
+
+/* Uncomment (and remove this text!) to get bold-faced definition list terms
+dl.docutils dt {
+  font-weight: bold }
+*/
+
+div.abstract {
+  margin: 2em 5em }
+
+div.abstract p.topic-title {
+  font-weight: bold ;
+  text-align: center }
+
+div.admonition, div.attention, div.caution, div.danger, div.error,
+div.hint, div.important, div.note, div.tip, div.warning {
+  margin: 2em ;
+  border: medium outset ;
+  padding: 1em }
+
+div.admonition p.admonition-title, div.hint p.admonition-title,
+div.important p.admonition-title, div.note p.admonition-title,
+div.tip p.admonition-title {
+  font-weight: bold ;
+  font-family: sans-serif }
+
+div.attention p.admonition-title, div.caution p.admonition-title,
+div.danger p.admonition-title, div.error p.admonition-title,
+div.warning p.admonition-title {
+  color: red ;
+  font-weight: bold ;
+  font-family: sans-serif }
+
+/* Uncomment (and remove this text!) to get reduced vertical space in
+   compound paragraphs.
+div.compound .compound-first, div.compound .compound-middle {
+  margin-bottom: 0.5em }
+
+div.compound .compound-last, div.compound .compound-middle {
+  margin-top: 0.5em }
+*/
+
+div.dedication {
+  margin: 2em 5em ;
+  text-align: center ;
+  font-style: italic }
+
+div.dedication p.topic-title {
+  font-weight: bold ;
+  font-style: normal }
+
+div.figure {
+  margin-left: 2em }
+
+div.footer, div.header {
+  clear: both;
+  font-size: smaller }
+
+div.line-block {
+  display: block ;
+  margin-top: 1em ;
+  margin-bottom: 1em }
+
+div.line-block div.line-block {
+  margin-top: 0 ;
+  margin-bottom: 0 ;
+  margin-left: 1.5em }
+
+div.sidebar {
+  margin-left: 1em ;
+  border: medium outset ;
+  padding: 1em ;
+  background-color: #ffffee ;
+  width: 40% ;
+  float: right ;
+  clear: right }
+
+div.sidebar p.rubric {
+  font-family: sans-serif ;
+  font-size: medium }
+
+div.system-messages {
+  margin: 5em }
+
+div.system-messages h1 {
+  color: red }
+
+div.system-message {
+  border: medium outset ;
+  padding: 1em }
+
+div.system-message p.system-message-title {
+  color: red ;
+  font-weight: bold }
+
+div.topic {
+  margin: 2em }
+
+h1.section-subtitle, h2.section-subtitle, h3.section-subtitle,
+h4.section-subtitle, h5.section-subtitle, h6.section-subtitle {
+  margin-top: 0.4em }
+
+h1.title {
+  text-align: center }
+
+h2.subtitle {
+  text-align: center }
+
+hr.docutils {
+  width: 75% }
+
+img.align-left {
+  clear: left }
+
+img.align-right {
+  clear: right }
+
+img.borderless {
+  border: 0 }
+
+ol.simple, ul.simple {
+  margin-bottom: 1em }
+
+ol.arabic {
+  list-style: decimal }
+
+ol.loweralpha {
+  list-style: lower-alpha }
+
+ol.upperalpha {
+  list-style: upper-alpha }
+
+ol.lowerroman {
+  list-style: lower-roman }
+
+ol.upperroman {
+  list-style: upper-roman }
+
+p.attribution {
+  text-align: right ;
+  margin-left: 50% }
+
+p.caption {
+  font-style: italic }
+
+p.credits {
+  font-style: italic ;
+  font-size: smaller }
+
+p.label {
+  white-space: nowrap }
+
+p.rubric {
+  font-weight: bold ;
+  font-size: larger ;
+  color: maroon ;
+  text-align: center }
+
+p.sidebar-title {
+  font-family: sans-serif ;
+  font-weight: bold ;
+  font-size: larger }
+
+p.sidebar-subtitle {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+p.topic-title {
+  font-weight: bold }
+
+pre.address {
+  margin-bottom: 0 ;
+  margin-top: 0 ;
+  font-family: serif ;
+  font-size: 100% }
+
+pre.line-block {
+  font-family: serif ;
+  font-size: 100% }
+
+pre.literal-block, pre.doctest-block {
+  margin-left: 2em ;
+  margin-right: 2em ;
+  background-color: #eeeeee }
+
+span.classifier {
+  font-family: sans-serif ;
+  font-style: oblique }
+
+span.classifier-delimiter {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+span.interpreted {
+  font-family: sans-serif }
+
+span.option {
+  white-space: nowrap }
+
+span.pre {
+  white-space: pre }
+
+span.problematic {
+  color: red }
+
+span.section-subtitle {
+  /* font-size relative to parent (h1..h6 element) */
+  font-size: 80% }
+
+table.citation {
+  border-left: solid thin gray }
+
+table.docinfo {
+  margin: 2em 4em }
+
+table.docutils {
+  margin-top: 0.5em ;
+  margin-bottom: 0.5em }
+
+table.footnote {
+  border-left: solid thin black }
+
+table.docutils td, table.docutils th,
+table.docinfo td, table.docinfo th {
+  padding-left: 0.5em ;
+  padding-right: 0.5em ;
+  vertical-align: top }
+
+table.docutils th.field-name, table.docinfo th.docinfo-name {
+  font-weight: bold ;
+  text-align: left ;
+  white-space: nowrap ;
+  padding-left: 0 }
+
+h1 tt.docutils, h2 tt.docutils, h3 tt.docutils,
+h4 tt.docutils, h5 tt.docutils, h6 tt.docutils {
+  font-size: 100% }
+
+tt.docutils {
+  background-color: #eeeeee }
+
+ul.auto-toc {
+  list-style-type: none }
+
+</style>
+</head>
+<body>
+<div class="document" id="boost-pointer-container-library">
+<h1 class="title"><img alt="Boost" src="boost.png" /> Pointer Container Library</h1>
+<h2 class="subtitle" id="reference">Reference</h2>
+<p>The documentation is divided into an explanation for 
+each container. When containers have the same interface, that common interface is explained only once,
+but links are always provided to more relevant information.
+Please make sure you understand 
+the <a class="reference" href="reference.html#the-Clonable-concept">Clonable</a> concept and 
+the <a class="reference" href="reference.html#the-clone-allocator-concept">Clone Allocator</a> concept.</p>
+<ul class="simple">
+<li><a class="reference" href="conventions.html">Conventions</a></li>
+<li><a class="reference" href="#the-clonable-concept">The Clonable concept</a></li>
+<li><a class="reference" href="#the-clone-allocator-concept">The Clone Allocator concept</a></li>
+<li><a class="reference" href="#class-hierarchy">Class hierarchy</a>:<ul>
+<li><a class="reference" href="reversible_ptr_container.html">reversible_ptr_container</a><ul>
+<li><a class="reference" href="ptr_sequence_adapter.html">ptr_sequence_adapter</a><ul>
+<li><a class="reference" href="ptr_vector.html">ptr_vector</a></li>
+<li><a class="reference" href="ptr_list.html">ptr_list</a></li>
+<li><a class="reference" href="ptr_deque.html">ptr_deque</a></li>
+<li><a class="reference" href="ptr_array.html">ptr_array</a></li>
+</ul>
+</li>
+<li><a class="reference" href="associative_ptr_container.html">associative_ptr_container</a><ul>
+<li><a class="reference" href="ptr_set_adapter.html">ptr_set_adapter</a></li>
+<li><a class="reference" href="ptr_multiset_adapter.html">ptr_multiset_adapter</a></li>
+<li><a class="reference" href="ptr_map_adapter.html">ptr_map_adapter</a></li>
+<li><a class="reference" href="ptr_multimap_adapter.html">ptr_multi_map_adapter</a><ul>
+<li><a class="reference" href="ptr_set.html">ptr_set</a></li>
+<li><a class="reference" href="ptr_multiset.html">ptr_multi_set</a></li>
+<li><a class="reference" href="ptr_map.html">ptr_map</a></li>
+<li><a class="reference" href="ptr_multimap.html">ptr_multimap</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference" href="#serialization">Serialization</a></li>
+<li><a class="reference" href="indirect_fun.html">Indirected functions</a></li>
+<li><a class="reference" href="ptr_inserter.html">Insert iterators</a></li>
+<li><a class="reference" href="#class-nullable">Class nullable</a></li>
+<li><a class="reference" href="#exception-classes">Exception classes</a></li>
+<li><a class="reference" href="#disabling-the-use-of-exceptions">Disabling the use of exceptions</a></li>
+</ul>
+<!-- - Class `reversible_ptr_container <reversible_ptr_container.html>`_
+- Class `associative_ptr_container <associative_ptr_container.html>`_
+- `Pointer container adapters`_
+
+  - `ptr_sequence_adapter <ptr_sequence_adapter.html>`_
+  - `ptr_set_adapter <ptr_set_adapter.html>`_
+  - `ptr_multiset_adapter <ptr_multiset_adapter.html>`_
+  - `ptr_map_adapter <ptr_map_adapter.html>`_
+  - `ptr_multimap_adapter <ptr_multimap_adapter.html>`_    
+- `Sequence containers`_
+
+  - `ptr_vector <ptr_vector.html>`_
+  - `ptr_deque <ptr_deque.html>`_
+  - `ptr_list <ptr_list.html>`_
+  - `ptr_array <ptr_array.html>`_
+- `Associative containers`_
+
+  - `ptr_set <ptr_set.html>`_
+  - `ptr_multiset <ptr_multiset.html>`_
+  - `ptr_map <ptr_map.html>`_
+  - `ptr_multimap <ptr_multimap.html>`_ -->
+<div class="section">
+<h1><a id="the-clonable-concept" name="the-clonable-concept">The Clonable concept</a></h1>
+<p><strong>Refinement of</strong></p>
+<ul class="simple">
+<li>Heap Allocable</li>
+<li>Heap Deallocable</li>
+</ul>
+<p>The Clonable concept is introduced to formalize the requirements for 
+copying heap-allocated objects.  A type <tt class="docutils literal"><span class="pre">T</span></tt> might be Clonable even though it 
+is not Assignable or Copy Constructible.  Notice that many operations on 
+the containers do not even require the stored type to be Clonable.</p>
+<p><strong>Notation</strong></p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="21%" />
+<col width="41%" />
+<col width="18%" />
+<col width="20%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><strong>Type</strong></td>
+<td><strong>Object</strong> (<tt class="docutils literal"><span class="pre">const</span></tt> or non-<tt class="docutils literal"><span class="pre">const</span></tt>)</td>
+<td><strong>Pointer</strong></td>
+<td><strong>Describes</strong></td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">T</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">a</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">ptr</span></tt></td>
+<td>A Clonable type</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Valid expressions</strong></p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="19%" />
+<col width="14%" />
+<col width="46%" />
+<col width="20%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><strong>Expression</strong></td>
+<td><strong>Type</strong></td>
+<td><strong>Semantics</strong></td>
+<td><strong>Postcondition</strong></td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">new_clone(a);</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">T*</span></tt></td>
+<td>Allocate a new object that can be considered equivalent to the <tt class="docutils literal"><span class="pre">a</span></tt> object</td>
+<td><tt class="docutils literal"><span class="pre">typeid(*new_clone(a))</span> <span class="pre">==</span> <span class="pre">typeid(a)</span></tt></td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">delete_clone(ptr);</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">void</span></tt></td>
+<td>Deallocate an object previously allocated with <tt class="docutils literal"><span class="pre">allocate_clone()</span></tt>. Must not throw</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<div class="section">
+<h2><a id="default-implementation" name="default-implementation">Default implementation</a></h2>
+<p>In the <tt class="docutils literal"><span class="pre">&lt;boost/ptr_container/clone_allocator.hpp&gt;</span></tt> header a default implementation
+of the two functions is given:</p>
+<pre class="literal-block">
+namespace boost
+{
+    template&lt; class T &gt;
+    inline T* new_clone( const T&amp; t )
+    {
+        return new T( t );
+    }
+
+    template&lt; class T &gt;
+    void delete_clone( const T* t )
+    {
+        checked_delete( t );
+    }
+}
+</pre>
+<p>Notice that this implementation  makes normal Copy Constructible classes automatically 
+Clonable unless <tt class="docutils literal"><span class="pre">operator</span> <span class="pre">new()</span></tt> or <tt class="docutils literal"><span class="pre">operator</span> <span class="pre">delete()</span></tt> are hidden.</p>
+<p>The two functions represent a layer of indirection which is necessary to support 
+classes that are not Copy Constructible by default.  Notice that the implementation 
+relies on argument-dependent lookup (ADL) to find the right version of 
+<tt class="docutils literal"><span class="pre">new_clone()</span></tt> and <tt class="docutils literal"><span class="pre">delete_clone()</span></tt>. This means that one does not need to overload or specialize 
+the function in the boost namespace, but it can be placed together with 
+the rest of the interface of the class.  If you are implementing a class 
+inline in headers, remember to forward declare the functions.</p>
+<p><strong>Warning: We are considering the removal of default implementation above. Therefore always make sure that you overload the functions for your types and do not rely on the defaults in any way.</strong></p>
+</div>
+</div>
+<div class="section">
+<h1><a id="the-clone-allocator-concept" name="the-clone-allocator-concept">The Clone Allocator concept</a></h1>
+<p>The Clone Allocator concept is introduced to formalize the way
+pointer containers control memory of
+the stored objects (and not the pointers to the stored objects).
+The clone allocator allows
+users to apply custom allocators/deallocators for the cloned objects.</p>
+<p>More information can be found below:</p>
+<div class="contents local topic">
+<ul class="simple">
+<li><a class="reference" href="#clone-allocator-requirements" id="id19" name="id19">Clone Allocator requirements</a></li>
+<li><a class="reference" href="#class-heap-clone-allocator" id="id20" name="id20">Class <tt class="docutils literal"><span class="pre">heap_clone_allocator</span></tt></a></li>
+<li><a class="reference" href="#class-view-clone-allocator" id="id21" name="id21">Class <tt class="docutils literal"><span class="pre">view_clone_allocator</span></tt></a></li>
+</ul>
+</div>
+<div class="section">
+<h2><a class="toc-backref" href="#id19" id="clone-allocator-requirements" name="clone-allocator-requirements">Clone Allocator requirements</a></h2>
+<p><strong>Notation</strong></p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="39%" />
+<col width="43%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><strong>Type</strong></td>
+<td><strong>Object</strong> (<tt class="docutils literal"><span class="pre">const</span></tt> or non-<tt class="docutils literal"><span class="pre">const</span></tt>)</td>
+<td><strong>Describes</strong></td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">T</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">a</span></tt></td>
+<td>A type</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">T*</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">ptr</span></tt></td>
+<td>A pointer to <tt class="docutils literal"><span class="pre">T</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Valid expressions</strong></p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="23%" />
+<col width="7%" />
+<col width="39%" />
+<col width="31%" />
+</colgroup>
+<tbody valign="top">
+<tr><td><strong>Expression</strong></td>
+<td><strong>Type</strong></td>
+<td><strong>Semantics</strong></td>
+<td><strong>Postcondition</strong></td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">CloneAllocator::allocate_clone(a);</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">T*</span></tt></td>
+<td>Allocate a new object that can be considered equivalent to the
+<tt class="docutils literal"><span class="pre">a</span></tt> object</td>
+<td><tt class="docutils literal"><span class="pre">typeid(*CloneAllocator::allocate_clone(a))</span> <span class="pre">==</span> <span class="pre">typeid(a)</span></tt></td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">CloneAllocator::deallocate_clone(ptr);</span></tt></td>
+<td><tt class="docutils literal"><span class="pre">void</span></tt></td>
+<td>Deallocate an object previously allocated with
+<tt class="docutils literal"><span class="pre">CloneAllocator::allocate_clone()</span></tt> or a compatible allocator.
+Must not throw.</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<p>The library comes with two predefined clone allocators.</p>
+</div>
+<div class="section">
+<h2><a class="toc-backref" href="#id20" id="class-heap-clone-allocator" name="class-heap-clone-allocator">Class <tt class="docutils literal docutils literal"><span class="pre">heap_clone_allocator</span></tt></a></h2>
+<p>This is the default clone allocator used by all pointer containers. For most
+purposes you will never have to change this default.</p>
+<p><strong>Definition</strong></p>
+<pre class="literal-block">
+namespace boost
+{        
+    struct heap_clone_allocator
+    {
+        template&lt; class U &gt;
+        static U* allocate_clone( const U&amp; r )
+        {
+            return new_clone( r );
+        }
+
+        template&lt; class U &gt;
+        static void deallocate_clone( const U* r )
+        {
+            delete_clone( r );
+        }
+    };
+}
+</pre>
+<p>Notice that the above definition allows you to support custom allocation
+schemes by relying on <tt class="docutils literal"><span class="pre">new_clone()</span></tt> and <tt class="docutils literal"><span class="pre">delete_clone()</span></tt>.</p>
+</div>
+<div class="section">
+<h2><a class="toc-backref" href="#id21" id="class-view-clone-allocator" name="class-view-clone-allocator">Class <tt class="docutils literal docutils literal"><span class="pre">view_clone_allocator</span></tt></a></h2>
+<p>This class provides a way to remove ownership properties of the
+pointer containers. As its name implies, this means that you can
+instead use the pointer containers as a view into an existing
+container.</p>
+<p><strong>Definition</strong></p>
+<pre class="literal-block">
+namespace boost
+{
+    struct view_clone_allocator
+    {
+        template&lt; class U &gt;
+        static U* allocate_clone( const U&amp; r )
+        {
+            return const_cast&lt;U*&gt;(&amp;r);
+        }
+
+        template&lt; class U &gt;
+        static void deallocate_clone( const U* )
+        {
+            // empty
+        }
+    };
+}
+</pre>
+<!-- **See also**
+
+- `Changing the clone allocator <examples.html#changing-the-clone-allocator>`_ -->
+</div>
+</div>
+<div class="section">
+<h1><a id="class-hierarchy" name="class-hierarchy">Class hierarchy</a></h1>
+<p>The library consists of the following types of classes:</p>
+<ol class="arabic simple">
+<li>Pointer container adapters</li>
+</ol>
+<!--  -->
+<ol class="arabic simple" start="2">
+<li>Pointer containers</li>
+</ol>
+<p>The pointer container adapters are used when you
+want to make a pointer container starting from
+your own &quot;normal&quot; container. For example, you
+might have a map class that extends <tt class="docutils literal"><span class="pre">std::map</span></tt>
+in some way; the adapter class then allows you
+to use your map class as a basis for a new
+pointer container.</p>
+<p>The library provides an adapter for each type
+of standard container highlighted as links below:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">reversible_ptr_container</span></tt><ul>
+<li><a class="reference" href="ptr_sequence_adapter.html">ptr_sequence_adapter</a><ul>
+<li><tt class="docutils literal"><span class="pre">ptr_vector</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">ptr_list</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">ptr_deque</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">ptr_array</span></tt></li>
+</ul>
+</li>
+<li><tt class="docutils literal"><span class="pre">associative_ptr_container</span></tt><ul>
+<li><a class="reference" href="ptr_set_adapter.html">ptr_set_adapter</a></li>
+<li><a class="reference" href="ptr_multiset_adapter.html">ptr_multiset_adapter</a></li>
+<li><a class="reference" href="ptr_map_adapter.html">ptr_map_adapter</a></li>
+<li><a class="reference" href="ptr_multimap_adapter.html">ptr_multi_map_adapter</a><ul>
+<li><tt class="docutils literal"><span class="pre">ptr_set</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">ptr_multi_set</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">ptr_map</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">ptr_multimap</span></tt></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>The pointer containers of this library are all built using
+the adapters. There is a pointer container
+for each type of &quot;normal&quot; standard container highlighted as links below.</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">reversible_ptr_container</span></tt><ul>
+<li><tt class="docutils literal"><span class="pre">ptr_sequence_adapter</span></tt><ul>
+<li><a class="reference" href="ptr_vector.html">ptr_vector</a></li>
+<li><a class="reference" href="ptr_list.html">ptr_list</a></li>
+<li><a class="reference" href="ptr_deque.html">ptr_deque</a></li>
+<li><a class="reference" href="ptr_array.html">ptr_array</a></li>
+</ul>
+</li>
+<li><tt class="docutils literal"><span class="pre">associative_ptr_container</span></tt><ul>
+<li><tt class="docutils literal"><span class="pre">ptr_set_adapter</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">ptr_multiset_adapter</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">ptr_map_adapter</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">ptr_multi_map_adapter</span></tt><ul>
+<li><a class="reference" href="ptr_set.html">ptr_set</a></li>
+<li><a class="reference" href="ptr_multiset.html">ptr_multi_set</a></li>
+<li><a class="reference" href="ptr_map.html">ptr_map</a></li>
+<li><a class="reference" href="ptr_multimap.html">ptr_multimap</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section">
+<h1><a id="serialization" name="serialization">Serialization</a></h1>
+<p>As of version 1.34.0 of Boost, the library supports
+serialization via <a class="reference" href="../../serialization/index.html">Boost.Serialization</a>.</p>
+<p>Of course, for serialization to work it is required
+that the stored type itself is serializable. For maps, both
+the key type and the mapped type must be serializable.</p>
+<p>When dealing with serialization (and serialization of polymophic objects in particular), 
+pay special attention to these parts of Boost.Serialization:</p>
+<ol class="arabic">
+<li><p class="first">Output/saving requires a const-reference:</p>
+<pre class="literal-block">
+//
+// serialization helper: we can't save a non-const object
+// 
+template&lt; class T &gt;
+inline T const&amp; as_const( T const&amp; r )
+{
+    return r;
+}
+...
+Container cont;
+
+std::ofstream ofs(&quot;filename&quot;);
+boost::archive::text_oarchive oa(ofs);
+oa &lt;&lt; as_const(cont);
+</pre>
+<p>See <a class="reference" href="../../serialization/doc/rationale.html#trap">Compile time trap when saving a non-const value</a> for
+details.</p>
+</li>
+</ol>
+<ol class="arabic" start="2">
+<li><p class="first">Derived classes need to call <tt class="docutils literal"><span class="pre">base_object()</span></tt> function:</p>
+<pre class="literal-block">
+struct Derived : Base
+{
+    template&lt; class Archive &gt;
+    void serialize( Archive&amp; ar, const unsigned int version )
+    {
+        ar &amp; boost::serialization::base_object&lt;Base&gt;( *this );
+        ...
+    }   
+};
+</pre>
+<p>For details, see <a class="reference" href="../../serialization/doc/tutorial.html#derivedclasses">Derived Classes</a>.</p>
+</li>
+</ol>
+<ol class="arabic" start="3">
+<li><p class="first">You need to use <tt class="docutils literal"><span class="pre">BOOST_CLASS_EXPORT</span></tt> to register the
+derived classes in your class hierarchy:</p>
+<pre class="literal-block">
+BOOST_CLASS_EXPORT( Derived )
+</pre>
+<p>See <a class="reference" href="../../serialization/doc/traits.html#export">Export Key</a> and <a class="reference" href="../../serialization/doc/special.html">Object Tracking</a>
+for details.</p>
+</li>
+</ol>
+<p>Remember these three issues and it might save you some trouble.</p>
+<!-- Map iterator operations
++++++++++++++++++++++++
+
+The map iterators are a bit different compared to the normal ones.  The 
+reason is that it is a bit clumsy to access the key and the mapped object 
+through i->first and i->second, and one tends to forget what is what. 
+Moreover, and more importantly, we also want to hide the pointer as much as possibble.
+The new style can be illustrated with a small example:: 
+
+    typedef ptr_map<string,int> map_t;
+    map_t  m;
+    m[ "foo" ] = 4; // insert pair
+    m[ "bar" ] = 5; // ditto
+    ...
+    for( map_t::iterator i = m.begin(); i != m.end(); ++i )
+    {
+             *i += 42; // add 42 to each value
+             cout << "value=" << *i << ", key=" << i.key() << "n";
+    } 
+    
+So the difference from the normal map iterator is that 
+
+- ``operator*()`` returns a reference to the mapped object (normally it returns a reference to a ``std::pair``, and
+- that the key can be accessed through the ``key()`` function.  -->
+</div>
+<div class="section">
+<h1><a id="class-nullable" name="class-nullable">Class <tt class="docutils literal"><span class="pre">nullable</span></tt></a></h1>
+<p>The purpose of the class is simply to tell the containers
+that null values should be allowed. Its definition is
+trivial:</p>
+<pre class="literal-block">
+namespace boost
+{
+    template&lt; class T &gt;
+    struct nullable
+    {
+        typedef T type;
+    };  
+}
+</pre>
+<p>Please notice that <tt class="docutils literal"><span class="pre">nullable</span></tt> has no effect on the containers
+interface (except for <tt class="docutils literal"><span class="pre">is_null()</span></tt> functions). For example, it
+does not make sense to do</p>
+<pre class="literal-block">
+boost::ptr_vector&lt; boost::nullable&lt;T&gt; &gt; vec;
+vec.push_back( 0 );                      // ok
+vec.push_back( new boost::nullable&lt;T&gt; ); // no no!
+boost::nullable&lt;T&gt;&amp; ref = vec[0];        // also no no!
+</pre>
+</div>
+<div class="section">
+<h1><a id="exception-classes" name="exception-classes">Exception classes</a></h1>
+<p>There are three exceptions that are thrown by this library.  The exception 
+hierarchy looks as follows:</p>
+<pre class="literal-block">
+namespace boost
+{
+    class bad_ptr_container_operation : public std::exception
+    {
+    public:
+        bad_ptr_container_operation( const char* what );
+    };
+    
+    class bad_index : public bad_ptr_container_operation
+    {
+    public:
+        bad_index( const char* what );
+    };
+
+    class bad_pointer : public bad_ptr_container_operation
+    {
+    public:
+        bad_pointer();
+        bad_pointer( const char* what );
+    };
+}
+</pre>
+</div>
+<div class="section">
+<h1><a id="disabling-the-use-of-exceptions" name="disabling-the-use-of-exceptions">Disabling the use of exceptions</a></h1>
+<p>As of version 1.34.0 of Boost, the library allows you to disable exceptions
+completely. This means the library is more fit for domains where exceptions
+are not used. Furthermore, it also speeds up a operations a little. Instead
+of throwing an exception, the library simply calls <a class="reference" href="../../utility/assert.html">BOOST_ASSERT</a>.</p>
+<p>To disable exceptions, simply define this macro before including any header:</p>
+<pre class="literal-block">
+#define BOOST_PTR_CONTAINER_NO_EXCEPTIONS 1
+#include &lt;boost/ptr_container/ptr_vector.hpp&gt;
+</pre>
+<p>It is, however, recommended that you define the macro on the command-line, so
+you are absolutely certain that all headers are compiled the same way. Otherwise
+you might end up breaking the One Definition Rule.</p>
+<p>If <tt class="docutils literal"><span class="pre">BOOST_NO_EXCEPTIONS</span></tt> is defined, then <tt class="docutils literal"><span class="pre">BOOST_PTR_CONTAINER_NO_EXCEPTIONS</span></tt>
+is also defined.</p>
+<hr><p><strong>Navigate:</strong></p>
+<ul class="simple">
+<li><a class="reference" href="ptr_container.html">home</a></li>
+</ul>
+<hr><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Copyright:</th><td class="field-body">Thorsten Ottosen 2004-2007. Use, modification and distribution is subject to the Boost Software License, Version 1.0 (see <a class="reference" href="http://www.boost.org/LICENSE_1_0.txt">LICENSE_1_0.txt</a>).</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,506 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Determine if a Type Should be Treated as a String (Qi and Karma)</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../customize.html" title="Customization of Spirit's Attribute Handling">
+<link rel="prev" href="is_container.html" title="Determine if a Type Should be Treated as a Container (Qi and Karma)">
+<link rel="next" href="handles_container.html" title="Determine Whether a Component Handles Container Attributes (Qi and Karma)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="is_container.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../customize.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="handles_container.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.advanced.customize.is_string"></a><a class="link" href="is_string.html" title="Determine if a Type Should be Treated as a String (Qi and Karma)">Determine if a
+        Type Should be Treated as a String (Qi and Karma)</a>
+</h4></div></div></div>
+<h6>
+<a name="spirit.advanced.customize.is_string.h0"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_string.is_string"></a></span><a class="link" href="is_string.html#spirit.advanced.customize.is_string.is_string">is_string</a>
+        </h6>
+<p>
+          The <code class="computeroutput"><span class="identifier">is_string</span></code> customization
+          point is a template meta-function. It is used by <span class="emphasis"><em>Qi</em></span>
+          <a class="link" href="../../qi/reference/string/string.html" title="String Parsers (string, lit)">String Literals</a>
+          (<code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="identifier">str</span><span class="special">)</span></code>),
+          <span class="emphasis"><em>Qi</em></span> <a class="link" href="../../qi/reference/char/char.html" title="Character Parser (char_, lit)">Character
+          Literals</a> (<code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>),
+          <span class="emphasis"><em>Karma</em></span> <a class="link" href="../../karma/reference/string/string.html" title="String Generators (string, lit)">String
+          Literals</a> (<code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="identifier">str</span><span class="special">)</span></code>),
+          <span class="emphasis"><em>Karma</em></span> <a class="link" href="../../karma/reference/char/char_generator.html" title="Character Generators (char_, lit)">Character
+          Literals</a> (<code class="computeroutput"><span class="identifier">lit</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span></code>) and
+          other Spirit components. It determines whether a supplied type can be treated
+          as a string.
+        </p>
+<h6>
+<a name="spirit.advanced.customize.is_string.h1"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_string.module_headers"></a></span><a class="link" href="is_string.html#spirit.advanced.customize.is_string.module_headers">Module Headers</a>
+        </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">support</span><span class="special">/</span><span class="identifier">string_traits</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          Also, see <a class="link" href="../../structure/include.html" title="Include">Include Structure</a>.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This header file does not need to be included directly by any user program
+            as it is normally included by other Spirit header files relying on its
+            content.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.is_string.h2"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_string.namespace"></a></span><a class="link" href="is_string.html#spirit.advanced.customize.is_string.namespace">Namespace</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                  <p>
+                    Name
+                  </p>
+                </th></tr></thead>
+<tbody><tr><td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">traits</span></code>
+                  </p>
+                </td></tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.is_string.h3"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_string.synopsis"></a></span><a class="link" href="is_string.html#spirit.advanced.customize.is_string.synopsis">Synopsis</a>
+        </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">is_string</span>
+<span class="special">{</span>
+    <span class="special">&lt;</span><span class="identifier">unspecified</span><span class="special">&gt;;</span>
+<span class="special">};</span>
+</pre>
+<h6>
+<a name="spirit.advanced.customize.is_string.h4"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_string.template_parameters"></a></span><a class="link" href="is_string.html#spirit.advanced.customize.is_string.template_parameters">Template
+          parameters</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Default
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">T</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The type, <code class="computeroutput"><span class="identifier">T</span></code> which
+                    needs to be tested as a string
+                  </p>
+                </td>
+<td>
+                  <p>
+                    none
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">T</span></code></span></dt>
+<dd><p>
+                An arbitrary type.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">N</span></code></span></dt>
+<dd><p>
+                An arbitrary integral constant.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Char</span></code></span></dt>
+<dd><p>
+                A character type.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Traits</span></code></span></dt>
+<dd><p>
+                A character traits type.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Allocator</span></code></span></dt>
+<dd><p>
+                A standard allocator type.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.advanced.customize.is_string.h5"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_string.expression_semantics"></a></span><a class="link" href="is_string.html#spirit.advanced.customize.is_string.expression_semantics">Expression
+          Semantics</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">is_string</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Result of the metafunction that evalutes to mpl::true_ if a given
+                    type, <code class="computeroutput"><span class="identifier">T</span></code>, is to
+                    be treated as a string and mpl::false_ otherwise. Generally,
+                    any implementation of <code class="computeroutput"><span class="identifier">is_string</span></code>
+                    needs to behave as if if was a <a href="../../../../../../../libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+                    Boolean Constant</a>.
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.is_string.h6"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_string.predefined_specializations"></a></span><a class="link" href="is_string.html#spirit.advanced.customize.is_string.predefined_specializations">Predefined
+          Specializations</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">T</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">false_</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">T</span> <span class="keyword">const</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">is_string</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">wchar_t</span> <span class="keyword">const</span><span class="special">*</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">char</span><span class="special">*</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">wchar_t</span><span class="special">*</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">char</span><span class="special">[</span><span class="identifier">N</span><span class="special">]</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">wchar_t</span><span class="special">[</span><span class="identifier">N</span><span class="special">]</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">char</span> <span class="keyword">const</span><span class="special">[</span><span class="identifier">N</span><span class="special">]</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">wchar_t</span> <span class="keyword">const</span><span class="special">[</span><span class="identifier">N</span><span class="special">]</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">char</span><span class="special">(&amp;)[</span><span class="identifier">N</span><span class="special">]</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">wchar_t</span><span class="special">(&amp;)[</span><span class="identifier">N</span><span class="special">]</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">char</span> <span class="keyword">const</span><span class="special">(&amp;)[</span><span class="identifier">N</span><span class="special">]</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">wchar_t</span> <span class="keyword">const</span><span class="special">(&amp;)[</span><span class="identifier">N</span><span class="special">]</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span><span class="identifier">Char</span><span class="special">,</span>
+                    <span class="identifier">Traits</span><span class="special">,</span>
+                    <span class="identifier">Allocator</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.is_string.h7"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_string.when_to_implement"></a></span><a class="link" href="is_string.html#spirit.advanced.customize.is_string.when_to_implement">When to
+          implement</a>
+        </h6>
+<p>
+          This customization point needs to be implemented to use user-defined string
+          classes that do not correspond to std::string syntax and semantics.
+        </p>
+<h6>
+<a name="spirit.advanced.customize.is_string.h8"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.is_string.related_attribute_customization_points"></a></span><a class="link" href="is_string.html#spirit.advanced.customize.is_string.related_attribute_customization_points">Related
+          Attribute Customization Points</a>
+        </h6>
+<p>
+          If this customization point is implemented, the following other customization
+          points need to be implemented as well.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Name
+                  </p>
+                </th>
+<th>
+                  <p>
+                    When to implement
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="string_traits/is_char.html" title="Determine if a Type is a Character"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">is_char</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    For string types whose underlying character type is not <code class="computeroutput"><span class="keyword">char</span></code> or <code class="computeroutput"><span class="keyword">wchar_t</span></code>,
+                    <code class="computeroutput"><span class="identifier">is_char</span></code> must
+                    be implemented.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="string_traits/char_type_of.html" title="Determine the Character Type of a String"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">char_type_of</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Whenever <code class="computeroutput"><span class="identifier">is_string</span></code>
+                    is implemented.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="string_traits/extract_c_string.html" title="Get a C-style String from a String Type"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">extract_c_string</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Whenever <code class="computeroutput"><span class="identifier">is_string</span></code>
+                    is implemented.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="is_container.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../customize.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="handles_container.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

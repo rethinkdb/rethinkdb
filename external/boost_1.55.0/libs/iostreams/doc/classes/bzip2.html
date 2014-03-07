@@ -1,0 +1,324 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Bzip2 Filters</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Bzip2 Filters</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#acknowledgments">Acknowledgments</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#synopsis">Synopsis</A></DT>
+  <DT><A HREF="#reference">Reference</A>
+    <DL class="page-index">
+      <DT><A HREF="#constants">namespace <CODE>boost::iostreams::bzip2</CODE></A></DT>
+      <DT><A HREF="#bzip2_params">Class <CODE>bzip2_params</CODE></A></DT>
+      <DT><A HREF="#basic_bzip2_compressor">Class template <CODE>bzip2_compressor</CODE></A></DT>
+      <DT><A HREF="#basic_bzip2_decompressor">Class template <CODE>bzip2_decompressor</CODE></A></DT>
+      <DT><A HREF="#bzip2_error">Class <CODE>bzip2_error</CODE></A></DT>
+    </DL>
+  </DT>
+  <DT><A href="#examples">Examples</A></DT>
+  <DT><A href="#installation">Installation</A></DT>
+</DL>
+
+<A NAME="overview"></A>
+<H2>Overview</H2>
+
+<P>
+    The class templates <A HREF="#basic_bzip2_compressor"><CODE>basic_bzip2_compressor</CODE></A> and <A HREF="#basic_bzip2_decompressor"><CODE>basic_bzip2_decompressor</CODE></A> perform compression and decompression using Julian Seward's libbzip2 compression library (<A CLASS="bib_ref" HREF="../bibliography.html#seward">[Seward]</A>). 
+</P>
+<P>
+    The bzip2 Filters are <A HREF="../concepts/dual_use_filter.html">DualUseFilters</A> so that they may be used for either input or output. Most commonly, however, the compression Filters will be used for output and the decompression Filters for input.
+</P>
+
+<A NAME="acknowledgments"></A>
+<H2>Acknowledgments</H2>
+
+<P>
+    The bzip2 Filters were influences by the work of Jeff Garland (<A CLASS="bib_ref" HREF="../bibliography.html#garland">[Garland]</A>) and Jonathan de Halleux (<A CLASS="bib_ref" HREF="../bibliography.html#de_halleux">[de Halleux]</A>).
+</P>
+
+Thanks to <A HREF="mailto:jseward@acm.org">Julian Seward</A> for making his excellent library available to the public with a <A HREF="http://www.boost.org/more/lib_guide.htm#Requirements">Boost-compatible</A> license.
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL>
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/filter/bzip2.hpp"><CODE>&lt;boost/iostreams/filter/bzip2.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="synopsis"></A>
+<H2>Synopsis</H2>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost { <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">namespace</SPAN> <A CLASS="documented" HREF="#constants">bzip2</A> {
+                    
+    <SPAN CLASS="comment">// Error codes</SPAN>
+
+<SPAN CLASS="keyword">extern</SPAN> <SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword">int</SPAN> <A CLASS="documented" HREF="#data_error">data_error</A>;
+<SPAN CLASS="keyword">extern</SPAN> <SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword">int</SPAN> <A CLASS="documented" HREF="#data_error_magic">data_error_magic</A>;
+<SPAN CLASS="keyword">extern</SPAN> <SPAN CLASS="keyword">const</SPAN> <SPAN CLASS="keyword">int</SPAN> <A CLASS="documented" HREF="#config_error">config_error</A>;
+
+}   <SPAN CLASS="comment">// End namespace boost::iostreams::bzip2</SPAN>
+
+<SPAN CLASS="keyword">struct</SPAN> <A CLASS="documented" HREF="#bzip2_params">bzip2_params</A>;
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Alloc = std::allocator<<SPAN CLASS="keyword">char</SPAN>&gt; >
+<SPAN CLASS="keyword">struc</SPAN>t <A CLASS="documented" HREF="#basic_bzip2_compressor">basic_bzip2_compressor</A>;
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Alloc = std::allocator<<SPAN CLASS="keyword">char</SPAN>&gt; >
+<SPAN CLASS="keyword">struct</SPAN> <A CLASS="documented" HREF="#basic_bzip2_decompressor">basic_bzip2_decompressor</A>;
+
+<SPAN CLASS="keyword">typedef</SPAN> basic_bzip2_compressor&lt;&gt;   <SPAN CLASS="defined">bzip2_compressor</SPAN>;
+<SPAN CLASS="keyword">typedef</SPAN> basic_bzip2_decompressor&lt;&gt; <SPAN CLASS="defined">bzip2_decompressor</SPAN>;
+
+<SPAN CLASS="keyword">class</SPAN> <A CLASS="documented" HREF="#bzip2_error">bzip2_error</A>;
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="constants"></A>
+<H3>Namespace <CODE>boost::iostreams::bzip2</CODE></H3>
+
+<P>The namespace <CODE>boost::iostreams::bzip2</CODE> contains integral error codes. The constants have the following interpretations. <I>See</I> <A CLASS="bib_ref" HREF="../bibliography.html#seward">[Seward]</A> for additional details.</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=1 CELLPADDING=4>
+<TR><TH>Constant</TH><TH>Interpretation</TH></TR>
+    <TR>
+        <TD VALIGN="top"><A NAME="data_error"></A><CODE>data_error</CODE></TD>
+        <TD>Indicates that the compressed data stream is corrupted. Equal to <CODE>BZ_DATA_ERROR</CODE>.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><A NAME="data_error_magic"></A><CODE>data_error_magic</CODE></TD>
+        <TD>Indicates that the compressed data stream does not begin with the 'magic' sequence <CODE>'B' 'Z' 'h'</CODE>. Equal to <CODE>BZ_DATA_ERROR_MAGIC</CODE>.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><A NAME="config_error"></A><CODE>config_error</CODE></TD>
+        <TD>Indicates that libbzip2 has been improperly configured for the current platform. Equal to <CODE>BZ_CONFIG_ERROR</CODE>.</TD>
+    </TR>
+</TABLE>
+
+<A NAME="bzip2_params"></A>
+<H3>Class <CODE>bzip2_params</CODE></H3>
+
+<H4>Description</H4>
+
+<P>Encapsulates the parameters used to configure <A HREF="#basic_bzip2_compressor"><CODE>basic_bzip2_compressor</CODE></A> and <A HREF="#basic_bzip2_decompressor"><CODE>basic_bzip2_decompressor</CODE></A>.</P>
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">struct</SPAN> <SPAN CLASS="defined">bzip2_params</SPAN> {
+
+    <SPAN CLASS="comment">// Non-explicit constructor for compression</SPAN>
+    <A CLASS="documented" HREF="#bzip2_params_constructors">bzip2_params</A>( <SPAN CLASS="keyword">int</SPAN> block_size   = <SPAN CLASS="omitted">default value</SPAN>,
+                  <SPAN CLASS="keyword">int</SPAN> work_factor  = <SPAN CLASS="omitted">default value</SPAN> );
+
+    <SPAN CLASS="comment">// Constructor for decompression.</SPAN>
+    <A CLASS="documented" HREF="#bzip2_params_constructors">bzip2_params</A>( <SPAN CLASS="keyword">bool</SPAN> small );
+
+    <SPAN CLASS="keyword">union</SPAN> {
+        <SPAN CLASS="keyword">int</SPAN>   <A CLASS="documented" HREF="#block_size">block_size</A>;    <SPAN CLASS="comment">// For compression</SPAN>
+        <SPAN CLASS="keyword">bool</SPAN>  <A CLASS="documented" HREF="#small">small</A>;         <SPAN CLASS="comment">// For decompression</SPAN>
+    };
+    <SPAN CLASS="keyword">int</SPAN>       <A CLASS="documented" HREF="#work_factor">work_factor</A>;   <SPAN CLASS="comment">// For compression</SPAN>
+};</PRE>
+
+<A NAME="bzip2_params_constructors"></A>
+<H4><CODE>bzip2_params::bzip2_params</CODE></H4>
+
+<PRE CLASS="broken_ie">    bzip2_params( <SPAN CLASS="keyword">int</SPAN> block_size   = <SPAN CLASS="omitted">default value</SPAN>,
+                  <SPAN CLASS="keyword">int</SPAN> work_factor  = <SPAN CLASS="omitted">default value</SPAN> );
+    bzip2_params( <SPAN CLASS="keyword">bool</SPAN> small );</PRE>
+
+<P>The first member constructs a <CODE>bzip2_params</CODE> object for configuring <CODE>basic_bzip2_compressor</CODE>.</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><A NAME="block_size"></A><I>block_size</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>Block size to use for compression; actual block size is <CODE>100000 * </CODE><I>block_size</I>. Must be in range <CODE>1-9</CODE>.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><A NAME="work_factor"></A><I>work_factor</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>Controls behavior of compression with worst case data. Must be in the range 0-250.</TD>
+    </TR>
+</TABLE>
+
+<P>The second constructs a <CODE>bzip2_params</CODE> object for configuring <CODE>basic_bzip2_decompressor</CODE>.</P>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><A NAME="small"></A><I>small</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>Indicates whether a slower decompression algorithm, using less memory, should be used.</TD>
+    </TR>
+</TABLE>
+
+<P><I>See</I> <A CLASS="bib_ref" HREF="../bibliography.html#seward">[Seward]</A> for additional details.</P>
+
+<A NAME="basic_bzip2_compressor"></A>
+<H3>Class template <CODE>basic_bzip2_compressor</CODE></H3>
+
+<H4>Description</H4>
+
+Model of <A HREF="../concepts/dual_use_filter.html">DualUseFilter</A> which performs compression using libbzip2 (<A CLASS="bib_ref" HREF="../bibliography.html#seward">[Seward]</A>).
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#basic_bzip2_compressor_params">Alloc</A> = std::allocator&lt;<SPAN CLASS="keyword">char</SPAN>&gt; &gt;
+<SPAN CLASS="keyword">struct</SPAN> <A CLASS="documented" HREF="#basic_bzip2_compressor_params">basic_bzip2_compressor</A> {
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="keyword">char</SPAN>                    char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">implementation-defined</SPAN>  category;
+
+    <A CLASS="documented" HREF="#basic_bzip2_compressor_constructors">basic_bzip2_compressor</A>( <SPAN CLASS="keyword">const</SPAN> <A CLASS="documented" HREF="#bzip2_params">bzip2_params</A>&amp; = <SPAN CLASS="omitted">bzip2::default_block_size</SPAN>,
+                            std::streamsize buffer_size = <SPAN CLASS="omitted">default value</SPAN> );
+    <SPAN CLASS="omitted">...</SPAN>
+};
+
+<SPAN CLASS="keyword">typedef</SPAN> basic_bzip2_compressor&lt;&gt; <SPAN CLASS="defined">bzip2_compressor</SPAN>;</PRE>
+
+<A NAME="basic_bzip2_compressor_params"></A>
+<H4>Template Parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>Alloc</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A C++ standard library allocator type (<A CLASS="bib_ref" HREF="../bibliography.html#iso">[ISO]</A>, 20.1.5), used to allocate a character buffer and to configure libbzip2.</TD>
+    </TR>
+</TABLE>
+
+<A NAME="basic_bzip2_compressor_constructors"></A>
+<H4><CODE>basic_bzip2_compressor::basic_bzip2_compressor</CODE></H4>
+
+<PRE CLASS="broken_ie">    basic_bzip2_compressor(<SPAN CLASS="keyword">const</SPAN> <A CLASS="documented" HREF="#bzip2_params">bzip2_params</A>&amp;, std::streamsize buffer_size);</PRE>
+
+<P>Constructs an instance of <CODE>basic_bzip2_compressor</CODE> with the given parameters and buffer size. Since a <A CLASS="documented" HREF="#bzip2_params"><CODE>bzip2_params</CODE></A> object is implicitly constructible from an <CODE>int</CODE> representing a block size, an <CODE>int</CODE> may be passed as the first constructor argument.</P>
+
+<A NAME="basic_bzip2_decompressor"></A>
+<H3>Class template <CODE>basic_bzip2_decompressor</CODE></H3>
+
+<H4>Description</H4>
+
+Model of <A HREF="../concepts/dual_use_filter.html">DualUseFilter</A> which performs decompression using libbzip2 (<A CLASS="bib_ref" HREF="../bibliography.html#seward">[Seward]</A>).
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#basic_bzip2_decompressor_params">Alloc</A> = std::allocator&lt;<SPAN CLASS="keyword">char</SPAN>&gt; &gt;
+<SPAN CLASS="keyword">struct</SPAN> <A CLASS="documented" HREF="#basic_bzip2_decompressor_params">basic_bzip2_decompressor</A> {
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="keyword">char</SPAN>                    char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">implementation-defined</SPAN>  category;
+
+    <A CLASS="documented" HREF="#basic_bzip2_decompressor_constructors">basic_bzip2_decompressor</A>( <SPAN CLASS="keyword">bool</SPAN> small = <SPAN CLASS="omitted">false</SPAN>, 
+                              std::streamsize buffer_size = 
+                                  <SPAN CLASS="omitted">default value</SPAN> );
+    <SPAN CLASS="omitted">...</SPAN>
+};
+
+<SPAN CLASS="keyword">typedef</SPAN> basic_bzip2_decompressor&lt;&gt; <SPAN CLASS="defined">bzip2_decompressor</SPAN>;</PRE>
+
+<A NAME="basic_bzip2_decompressor_params"></A>
+<H4>Template Parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>Alloc</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A C++ standard library allocator type (<A CLASS="bib_ref" HREF="../bibliography.html#iso">[ISO]</A>, 20.1.5), used to allocate a character buffer and to configure libbzip2.</TD>
+    </TR>
+</TABLE>
+
+<A NAME="basic_bzip2_decompressor_constructors"></A>
+<H4><CODE>basic_bzip2_decompressor::basic_bzip2_decompressor</CODE></H4>
+
+<PRE CLASS="broken_ie">    basic_bzip2_decompressor(<SPAN CLASS="keyword">bool</SPAN> small, std::streamsize buffer_size);</PRE>
+
+<P>Constructs an instance of <CODE>basic_bzip2_decompressor</CODE> with the given value for <A HREF="#small">small</A> and the given buffer size.</P>
+
+<A NAME="bzip2_error"></A>
+<H3>Class <CODE>bzip2_error</CODE></H3>
+
+<H4>Description</H4>
+
+Used by the bzip2 Filters to report errors.
+
+<H4>Synopsis</H4>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">class</SPAN> <SPAN CLASS="defined">bzip2_error</SPAN> : <SPAN CLASS="keyword">public</SPAN> std::ios_base::failure {
+<SPAN CLASS="keyword">public:</SPAN>
+    <A CLASS="documented" HREF="#bzip2_error_constructor">bzip2_error</A>(<SPAN CLASS="keyword">int</SPAN> error);
+    <SPAN CLASS="keyword">int</SPAN> <A CLASS="documented" HREF="#bzip2_error_error">error</A>() const;
+};</PRE>
+
+<A NAME="bzip2_error_constructor"></A>
+<H4><CODE>bzip2_error::bzip2_error</CODE></H4>
+
+<PRE CLASS="broken_ie">    bzip2_error(<SPAN CLASS="keyword">int</SPAN> error);</PRE>
+
+<P>Constructs an instance of <CODE>bzip2_error</CODE> with the given error code from the namespace <A HREF="#constants"><CODE>boost::iostreams::bzip2</CODE></A>.</P>
+
+<A NAME="bzip2_error_error"></A>
+<H4><CODE>bzip2_error::error</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">void</SPAN> error() <SPAN CLASS="keyword">const</SPAN>;</PRE>
+
+<P>Returns an error code from the namespace <A HREF="#constants"><CODE>boost::iostreams::bzip2</CODE></A>.</P>
+
+<A NAME="examples"></A>
+<H2>Examples</H2>
+
+The following code decompresses data from a file and writes it to standard output.
+
+<PRE CLASS="broken_ie"><SPAN CLASS="preprocessor">#include</SPAN> <SPAN CLASS="literal">&lt;fstream&gt;</SPAN>
+<SPAN CLASS="preprocessor">#include</SPAN> <SPAN CLASS="literal">&lt;iostream&gt;</SPAN>
+<SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/filtering_streambuf.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/filtering_streambuf.hpp&gt;</SPAN></A>
+<SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/copy.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/copy.hpp&gt;</SPAN></A>
+<SPAN CLASS="preprocessor">#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/filter/bzip2.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/filter/bzip2.hpp&gt;</SPAN></A>
+
+int main() 
+{
+    <SPAN CLASS="keyword">using</SPAN> <SPAN CLASS="keyword">namespace</SPAN> std;
+    <SPAN CLASS="keyword">using</SPAN> <SPAN CLASS="keyword">namespace</SPAN> boost::iostreams;
+
+    ifstream file(<SPAN CLASS="literal">"hello.bz2"</SPAN>, ios_base::in | ios_base::binary);
+    filtering_streambuf&lt;input&gt; in;
+    in.push(bzip2_decompressor());
+    in.push(file);
+    boost::iostreams::copy(in, cout);
+}</PRE>
+
+<A NAME="installation"></A>
+<H3>Installation</H3>
+
+<P>
+     The bzip2 Filters depend on the third-party libbz2 library, which is <I>not</I> included in the Boost distribution. Prebuilt libbz2 binaries are available on most UNIX and UNIX-like systems, and will be found automatically by the Boost build system. Users can also configure the Boost Iostream library to build libbz2 from the source code, which is available at the <A HREF="http://www.bzip.org/" TARGET="_top">libbz2 homepage</A>. For details on configuring the build system to find your libbz2 installation, please see <A HREF="../installation.html">Installation</A>.
+</P>
+
+<!-- Adler's obfuscated address is copied from his homepage -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

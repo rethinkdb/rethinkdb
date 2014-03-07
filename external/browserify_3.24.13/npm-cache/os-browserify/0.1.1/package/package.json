@@ -1,0 +1,11 @@
+{
+	"name": "os-browserify",
+	"version": "0.1.1",
+	"author": "Drew Young",
+	"main": "main.js",
+	"browser": "browser.js",
+	"repository": {
+		"type": "git",
+		"url": "http://github.com/drewyoung1/os-browserify.git"
+	}
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="karel_vom_u00e1_u010dka_and_tom_" lang="en" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Karel Vom&#xE1;&#x10D;ka and Tom&#xE1;&#x161; Martin&#xED;k</title>
+  <articleinfo>
+    <authorgroup>
+    <author>
+      <firstname>Matti</firstname> <surname>Meik&#xE4;l&#xE4;inen</surname>
+    </author>
+    <author>
+      <firstname>Pero</firstname> <surname>Peri&#x107;</surname>
+    </author>
+    </authorgroup>
+    <copyright>
+      <year>2010</year> <holder>Me&#xF0;al-J&#xF3;n and J&#xF3;na J&#xF3;nsd&#xF3;ttir</holder>
+    </copyright>
+    <articlepurpose>
+      Inline code test: <code>1 + 2</code>
+    </articlepurpose>
+    <articlecategory name="category:tests"></articlecategory> <articlecategory name="category:irrelevance"></articlecategory>
+    <biblioid class="uri">http://www.boost.org/tools/quickbook/test/doc-info-1.quickbook</biblioid>
+  </articleinfo>
+</article>

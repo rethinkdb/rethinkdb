@@ -1,0 +1,229 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Self expanding lattices</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../tutorial.html" title="Tutorial">
+<link rel="prev" href="using_arbitrary_precision_floating_point_types.html" title="Using arbitrary precision floating point types">
+<link rel="next" href="using_cuda__or_openmp__tbb_______via_thrust.html" title="Using CUDA (or OpenMP, TBB, ...) via Thrust">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using_arbitrary_precision_floating_point_types.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="using_cuda__or_openmp__tbb_______via_thrust.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.tutorial.self_expanding_lattices"></a><a class="link" href="self_expanding_lattices.html" title="Self expanding lattices">Self
+      expanding lattices</a>
+</h3></div></div></div>
+<p>
+        odeint supports changes of the state size during integration if a state_type
+        is used which can be resized, like <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span></code>.
+        The adjustment of the state's size has to be done from outside and the stepper
+        has to be instantiated with <code class="computeroutput"><span class="identifier">always_resizer</span></code>
+        as the template argument for the <code class="computeroutput"><span class="identifier">resizer_type</span></code>.
+        In this configuration, the stepper checks for changes in the state size and
+        adjust it's internal storage accordingly.
+      </p>
+<p>
+        We show this for a Hamiltonian system of nonlinear, disordered oscillators
+        with nonlinear nearest neighbor coupling.
+      </p>
+<p>
+        The system function is implemented in terms of a class that also provides
+        functions for calculating the energy. Note, that this class stores the random
+        potential internally which is not resized, but rather a start index is kept
+        which should be changed whenever the states' size change.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">vector</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span> <span class="identifier">coord_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">coord_type</span> <span class="special">,</span> <span class="identifier">coord_type</span> <span class="special">&gt;</span> <span class="identifier">state_type</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">compacton_lattice</span>
+<span class="special">{</span>
+    <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">m_max_N</span><span class="special">;</span>
+    <span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">m_beta</span><span class="special">;</span>
+    <span class="keyword">int</span> <span class="identifier">m_pot_start_index</span><span class="special">;</span>
+    <span class="identifier">vector</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span> <span class="identifier">m_pot</span><span class="special">;</span>
+
+    <span class="identifier">compacton_lattice</span><span class="special">(</span> <span class="keyword">int</span> <span class="identifier">max_N</span> <span class="special">,</span> <span class="keyword">double</span> <span class="identifier">beta</span> <span class="special">,</span> <span class="keyword">int</span> <span class="identifier">pot_start_index</span> <span class="special">)</span>
+        <span class="special">:</span> <span class="identifier">m_max_N</span><span class="special">(</span> <span class="identifier">max_N</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">m_beta</span><span class="special">(</span> <span class="identifier">beta</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">m_pot_start_index</span><span class="special">(</span> <span class="identifier">pot_start_index</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">m_pot</span><span class="special">(</span> <span class="identifier">max_N</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">srand</span><span class="special">(</span> <span class="identifier">time</span><span class="special">(</span> <span class="identifier">NULL</span> <span class="special">)</span> <span class="special">);</span>
+        <span class="comment">// fill random potential with iid values from [0,1]</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mt19937</span> <span class="identifier">rng</span><span class="special">;</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_real</span><span class="special">&lt;&gt;</span> <span class="identifier">unif</span><span class="special">(</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">1.0</span> <span class="special">);</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">variate_generator</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mt19937</span><span class="special">&amp;,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uniform_real</span><span class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">gen</span><span class="special">(</span> <span class="identifier">rng</span> <span class="special">,</span> <span class="identifier">unif</span> <span class="special">);</span>
+        <span class="identifier">generate</span><span class="special">(</span> <span class="identifier">m_pot</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">m_pot</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">gen</span> <span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="keyword">const</span> <span class="identifier">coord_type</span> <span class="special">&amp;</span><span class="identifier">q</span> <span class="special">,</span> <span class="identifier">coord_type</span> <span class="special">&amp;</span><span class="identifier">dpdt</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="comment">// calculate dpdt = -dH/dq of this hamiltonian system</span>
+        <span class="comment">// dp_i/dt = - V_i * q_i^3 - beta*(q_i - q_{i-1})^3 + beta*(q_{i+1} - q_i)^3</span>
+        <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">N</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">.</span><span class="identifier">size</span><span class="special">();</span>
+        <span class="keyword">double</span> <span class="identifier">diff</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">q</span><span class="special">[</span><span class="identifier">N</span><span class="special">-</span><span class="number">1</span><span class="special">];</span>
+        <span class="keyword">for</span><span class="special">(</span> <span class="keyword">int</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">N</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">dpdt</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">=</span> <span class="special">-</span> <span class="identifier">m_pot</span><span class="special">[</span><span class="identifier">m_pot_start_index</span><span class="special">+</span><span class="identifier">i</span><span class="special">]</span> <span class="special">*</span> <span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">]*</span><span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">]*</span><span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">-</span>
+                    <span class="identifier">m_beta</span> <span class="special">*</span> <span class="identifier">diff</span><span class="special">*</span><span class="identifier">diff</span><span class="special">*</span><span class="identifier">diff</span><span class="special">;</span>
+            <span class="identifier">diff</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">[(</span><span class="identifier">i</span><span class="special">+</span><span class="number">1</span><span class="special">)</span> <span class="special">%</span> <span class="identifier">N</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">];</span>
+            <span class="identifier">dpdt</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">+=</span> <span class="identifier">m_beta</span> <span class="special">*</span> <span class="identifier">diff</span><span class="special">*</span><span class="identifier">diff</span><span class="special">*</span><span class="identifier">diff</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">energy_distribution</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">coord_type</span> <span class="special">&amp;</span><span class="identifier">q</span> <span class="special">,</span> <span class="keyword">const</span> <span class="identifier">coord_type</span> <span class="special">&amp;</span><span class="identifier">p</span> <span class="special">,</span> <span class="identifier">coord_type</span> <span class="special">&amp;</span><span class="identifier">energies</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="comment">// computes the energy per lattice site normalized by total energy</span>
+        <span class="keyword">const</span> <span class="identifier">size_t</span> <span class="identifier">N</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">.</span><span class="identifier">size</span><span class="special">();</span>
+        <span class="keyword">double</span> <span class="identifier">en</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">;</span>
+        <span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">N</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">++</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">diff</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">[(</span><span class="identifier">i</span><span class="special">+</span><span class="number">1</span><span class="special">)</span> <span class="special">%</span> <span class="identifier">N</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">];</span>
+            <span class="identifier">energies</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">p</span><span class="special">[</span><span class="identifier">i</span><span class="special">]*</span><span class="identifier">p</span><span class="special">[</span><span class="identifier">i</span><span class="special">]/</span><span class="number">2.0</span>
+                <span class="special">+</span> <span class="identifier">m_pot</span><span class="special">[</span><span class="identifier">m_pot_start_index</span><span class="special">+</span><span class="identifier">i</span><span class="special">]*</span><span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">]*</span><span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">]*</span><span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">]*</span><span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">]/</span><span class="number">4.0</span>
+                <span class="special">+</span> <span class="identifier">m_beta</span><span class="special">/</span><span class="number">4.0</span> <span class="special">*</span> <span class="identifier">diff</span><span class="special">*</span><span class="identifier">diff</span><span class="special">*</span><span class="identifier">diff</span><span class="special">*</span><span class="identifier">diff</span><span class="special">;</span>
+            <span class="identifier">en</span> <span class="special">+=</span> <span class="identifier">energies</span><span class="special">[</span><span class="identifier">i</span><span class="special">];</span>
+        <span class="special">}</span>
+        <span class="identifier">en</span> <span class="special">=</span> <span class="number">1.0</span><span class="special">/</span><span class="identifier">en</span><span class="special">;</span>
+        <span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">N</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">++</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">energies</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">*=</span> <span class="identifier">en</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">}</span>
+
+    <span class="keyword">double</span> <span class="identifier">energy</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">coord_type</span> <span class="special">&amp;</span><span class="identifier">q</span> <span class="special">,</span> <span class="keyword">const</span> <span class="identifier">coord_type</span> <span class="special">&amp;</span><span class="identifier">p</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="comment">// calculates the total energy of the excitation</span>
+        <span class="keyword">const</span> <span class="identifier">size_t</span> <span class="identifier">N</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">.</span><span class="identifier">size</span><span class="special">();</span>
+        <span class="keyword">double</span> <span class="identifier">en</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">;</span>
+        <span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">N</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">++</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">diff</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">[(</span><span class="identifier">i</span><span class="special">+</span><span class="number">1</span><span class="special">)</span> <span class="special">%</span> <span class="identifier">N</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">];</span>
+            <span class="identifier">en</span> <span class="special">+=</span> <span class="identifier">p</span><span class="special">[</span><span class="identifier">i</span><span class="special">]*</span><span class="identifier">p</span><span class="special">[</span><span class="identifier">i</span><span class="special">]/</span><span class="number">2.0</span>
+                <span class="special">+</span> <span class="identifier">m_pot</span><span class="special">[</span><span class="identifier">m_pot_start_index</span><span class="special">+</span><span class="identifier">i</span><span class="special">]*</span><span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">]*</span><span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">]*</span><span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">]*</span><span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">/</span> <span class="number">4.0</span>
+                <span class="special">+</span> <span class="identifier">m_beta</span><span class="special">/</span><span class="number">4.0</span> <span class="special">*</span> <span class="identifier">diff</span><span class="special">*</span><span class="identifier">diff</span><span class="special">*</span><span class="identifier">diff</span><span class="special">*</span><span class="identifier">diff</span><span class="special">;</span>
+        <span class="special">}</span>
+        <span class="keyword">return</span> <span class="identifier">en</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="identifier">change_pot_start</span><span class="special">(</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">delta</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">m_pot_start_index</span> <span class="special">+=</span> <span class="identifier">delta</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        The total size we allow is 1024 and we start with an initial state size of
+        60.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">//start with 60 sites</span>
+<span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">N_start</span> <span class="special">=</span> <span class="number">60</span><span class="special">;</span>
+<span class="identifier">coord_type</span> <span class="identifier">q</span><span class="special">(</span> <span class="identifier">N_start</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">);</span>
+<span class="identifier">q</span><span class="special">.</span><span class="identifier">reserve</span><span class="special">(</span> <span class="identifier">max_N</span> <span class="special">);</span>
+<span class="identifier">coord_type</span> <span class="identifier">p</span><span class="special">(</span> <span class="identifier">N_start</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">);</span>
+<span class="identifier">p</span><span class="special">.</span><span class="identifier">reserve</span><span class="special">(</span> <span class="identifier">max_N</span> <span class="special">);</span>
+<span class="comment">// start with uniform momentum distribution over 20 sites</span>
+<span class="identifier">fill</span><span class="special">(</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()+</span><span class="number">20</span> <span class="special">,</span> <span class="identifier">p</span><span class="special">.</span><span class="identifier">end</span><span class="special">()-</span><span class="number">20</span> <span class="special">,</span> <span class="number">1.0</span><span class="special">/</span><span class="identifier">sqrt</span><span class="special">(</span><span class="number">20.0</span><span class="special">)</span> <span class="special">);</span>
+
+<span class="identifier">coord_type</span> <span class="identifier">distr</span><span class="special">(</span> <span class="identifier">N_start</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">);</span>
+<span class="identifier">distr</span><span class="special">.</span><span class="identifier">reserve</span><span class="special">(</span> <span class="identifier">max_N</span> <span class="special">);</span>
+
+<span class="comment">// create the system</span>
+<span class="identifier">compacton_lattice</span> <span class="identifier">lattice</span><span class="special">(</span> <span class="identifier">max_N</span> <span class="special">,</span> <span class="identifier">beta</span> <span class="special">,</span> <span class="special">(</span><span class="identifier">max_N</span><span class="special">-</span><span class="identifier">N_start</span><span class="special">)/</span><span class="number">2</span> <span class="special">);</span>
+
+<span class="comment">//create the stepper, note that we use an always_resizer because state size might change during steps</span>
+<span class="keyword">typedef</span> <span class="identifier">symplectic_rkn_sb3a_mclachlan</span><span class="special">&lt;</span> <span class="identifier">coord_type</span> <span class="special">,</span> <span class="identifier">coord_type</span> <span class="special">,</span> <span class="keyword">double</span> <span class="special">,</span> <span class="identifier">coord_type</span> <span class="special">,</span> <span class="identifier">coord_type</span> <span class="special">,</span> <span class="keyword">double</span> <span class="special">,</span>
+        <span class="identifier">range_algebra</span> <span class="special">,</span> <span class="identifier">default_operations</span> <span class="special">,</span> <span class="identifier">always_resizer</span> <span class="special">&gt;</span> <span class="identifier">hamiltonian_stepper</span><span class="special">;</span>
+<span class="identifier">hamiltonian_stepper</span> <span class="identifier">stepper</span><span class="special">;</span>
+<span class="identifier">hamiltonian_stepper</span><span class="special">::</span><span class="identifier">state_type</span> <span class="identifier">state</span> <span class="special">=</span> <span class="identifier">make_pair</span><span class="special">(</span> <span class="identifier">q</span> <span class="special">,</span> <span class="identifier">p</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        The lattice gets resized whenever the energy distribution comes close to
+        the borders <code class="computeroutput"><span class="identifier">distr</span><span class="special">[</span><span class="number">10</span><span class="special">]</span> <span class="special">&gt;</span>
+        <span class="number">1E-150</span></code>, <code class="computeroutput"><span class="identifier">distr</span><span class="special">[</span><span class="identifier">distr</span><span class="special">.</span><span class="identifier">size</span><span class="special">()-</span><span class="number">10</span><span class="special">]</span> <span class="special">&gt;</span>
+        <span class="number">1E-150</span></code>. If we increase to the left,
+        <code class="computeroutput"><span class="identifier">q</span></code> and <code class="computeroutput"><span class="identifier">p</span></code>
+        have to be rotated because their resize function always appends at the end.
+        Additionally, the start index of the potential changes in this case.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">double</span> <span class="identifier">t</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">dt</span> <span class="special">=</span> <span class="number">0.1</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">steps</span> <span class="special">=</span> <span class="number">10000</span><span class="special">;</span>
+<span class="keyword">for</span><span class="special">(</span> <span class="keyword">int</span> <span class="identifier">step</span> <span class="special">=</span> <span class="number">0</span> <span class="special">;</span> <span class="identifier">step</span> <span class="special">&lt;</span> <span class="identifier">steps</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">step</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">stepper</span><span class="special">.</span><span class="identifier">do_step</span><span class="special">(</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">lattice</span><span class="special">)</span> <span class="special">,</span> <span class="identifier">state</span> <span class="special">,</span> <span class="identifier">t</span> <span class="special">,</span> <span class="identifier">dt</span> <span class="special">);</span>
+    <span class="identifier">lattice</span><span class="special">.</span><span class="identifier">energy_distribution</span><span class="special">(</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">first</span> <span class="special">,</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">second</span> <span class="special">,</span> <span class="identifier">distr</span> <span class="special">);</span>
+    <span class="keyword">if</span><span class="special">(</span> <span class="identifier">distr</span><span class="special">[</span><span class="number">10</span><span class="special">]</span> <span class="special">&gt;</span> <span class="number">1E-150</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">do_resize</span><span class="special">(</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">first</span> <span class="special">,</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">second</span> <span class="special">,</span> <span class="identifier">distr</span> <span class="special">,</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">first</span><span class="special">.</span><span class="identifier">size</span><span class="special">()+</span><span class="number">20</span> <span class="special">);</span>
+        <span class="identifier">rotate</span><span class="special">(</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">first</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">first</span><span class="special">.</span><span class="identifier">end</span><span class="special">()-</span><span class="number">20</span> <span class="special">,</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">first</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">);</span>
+        <span class="identifier">rotate</span><span class="special">(</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">second</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">second</span><span class="special">.</span><span class="identifier">end</span><span class="special">()-</span><span class="number">20</span> <span class="special">,</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">second</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">);</span>
+        <span class="identifier">lattice</span><span class="special">.</span><span class="identifier">change_pot_start</span><span class="special">(</span> <span class="special">-</span><span class="number">20</span> <span class="special">);</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">t</span> <span class="special">&lt;&lt;</span> <span class="string">": resized left to "</span> <span class="special">&lt;&lt;</span> <span class="identifier">distr</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">", energy = "</span> <span class="special">&lt;&lt;</span> <span class="identifier">lattice</span><span class="special">.</span><span class="identifier">energy</span><span class="special">(</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">first</span> <span class="special">,</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">second</span> <span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">if</span><span class="special">(</span> <span class="identifier">distr</span><span class="special">[</span><span class="identifier">distr</span><span class="special">.</span><span class="identifier">size</span><span class="special">()-</span><span class="number">10</span><span class="special">]</span> <span class="special">&gt;</span> <span class="number">1E-150</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">do_resize</span><span class="special">(</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">first</span> <span class="special">,</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">second</span> <span class="special">,</span> <span class="identifier">distr</span> <span class="special">,</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">first</span><span class="special">.</span><span class="identifier">size</span><span class="special">()+</span><span class="number">20</span> <span class="special">);</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">t</span> <span class="special">&lt;&lt;</span> <span class="string">": resized right to "</span> <span class="special">&lt;&lt;</span> <span class="identifier">distr</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">", energy = "</span> <span class="special">&lt;&lt;</span> <span class="identifier">lattice</span><span class="special">.</span><span class="identifier">energy</span><span class="special">(</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">first</span> <span class="special">,</span> <span class="identifier">state</span><span class="special">.</span><span class="identifier">second</span> <span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="identifier">t</span> <span class="special">+=</span> <span class="identifier">dt</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        The <code class="computeroutput"><span class="identifier">do_resize</span></code> function simply
+        calls <code class="computeroutput"><span class="identifier">vector</span><span class="special">.</span><span class="identifier">resize</span></code> of <code class="computeroutput"><span class="identifier">q</span></code>
+        , <code class="computeroutput"><span class="identifier">p</span></code> and <code class="computeroutput"><span class="identifier">distr</span></code>.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">do_resize</span><span class="special">(</span> <span class="identifier">coord_type</span> <span class="special">&amp;</span><span class="identifier">q</span> <span class="special">,</span> <span class="identifier">coord_type</span> <span class="special">&amp;</span><span class="identifier">p</span> <span class="special">,</span> <span class="identifier">coord_type</span> <span class="special">&amp;</span><span class="identifier">distr</span> <span class="special">,</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">N</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">q</span><span class="special">.</span><span class="identifier">resize</span><span class="special">(</span> <span class="identifier">N</span> <span class="special">);</span>
+    <span class="identifier">p</span><span class="special">.</span><span class="identifier">resize</span><span class="special">(</span> <span class="identifier">N</span> <span class="special">);</span>
+    <span class="identifier">distr</span><span class="special">.</span><span class="identifier">resize</span><span class="special">(</span> <span class="identifier">N</span> <span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        The full example can be found in <a href="../../../../../../../libs/numeric/odeint/examples/resizing_lattice.cpp" target="_top">resizing_lattice.cpp</a>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using_arbitrary_precision_floating_point_types.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="using_cuda__or_openmp__tbb_______via_thrust.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

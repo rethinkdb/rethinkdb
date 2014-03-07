@@ -1,0 +1,257 @@
+[/
+    Copyright (c) 2008-2009 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[/ //= Addition ===============================================================]
+[section Addition]
+
+[section Synopsis]
+
+[table
+
+[[Addition]                                [__ch_itv_sets__][__ch_itv_maps__][__ch_ele_sets__][__ch_ele_maps__] ]
+
+[[`T& T::add(const P&)`]                           [__ei]    [__bp]   [ ]     [__b]  ]
+[[`T& add(T&, const P&)`]                          [__ei]    [__bp]   [__e]   [__b]  ]
+[[`T& T::add(J pos, const P&)`]                    [__i]     [__p]    [ ]     [__b]  ]
+[[`T& add(T&, J pos, const P&)`]                   [__i]     [__p]    [__e]   [__b]  ]
+
+[[`T& operator +=(T&, const P&)`]                  [__eiS]   [__bpM]  [__es]  [__bm] ]
+[[`T operator + (T, const P&)`\n
+  `T operator + (const P&, T)`]
+                                                   [__eiS]   [__bpM]  [__es]  [__bm] ]
+[[`T& operator |=(      T&, const P&)`]            [__eiS]   [__bpM]  [__es]  [__bm] ]
+[[`T operator | (T, const P&)`\n
+  `T operator | (const P&, T)`]
+                                                   [__eiS]   [__bpM]  [__es]  [__bm] ]
+
+]
+
+Functions and operators that implement ['*Addition*] on *icl* objects
+are given in the table above.
+`operator |=` and `operator |` are behavioral identical to 
+`operator +=` and `operator +`.
+This is a redundancy that has been introduced deliberately, because 
+a /set union/ semantics is often attached `operators |=` and `|`. 
+
+[table
+[[]      [Description of Addition]]
+[[`Sets`][Addition on Sets implements ['*set union*]]]
+[[`Maps`][Addition on Maps implements a ['*map union*] function similar to /set union/.
+          If, on insertion of an element value pair `(k,v)` it's key `k` is in the map 
+          already, the addition function is propagated to the associated value.
+          This functionality has been introduced as /aggregate on collision/
+          for element maps and /aggregate on overlap/ for interval maps. 
+        
+          Find more on 
+          [link boost_icl.concepts.aggrovering ['addability of maps]]
+          and related 
+          [link boost_icl.semantics.maps ['semantic issues]] 
+          following the links. 
+        
+          Examples, demonstrating Addition on interval containers are
+          [link boost_icl.examples.overlap_counter ['overlap counter]],
+          [link boost_icl.examples.party ['party]] and
+          [link boost_icl.examples.partys_height_average ['party's height average.]] 
+         ]]
+]
+
+For `Sets` ['*addition*] and ['*insertion*] are implemented identically.
+Functions `add` and `insert` collapse to the same function. 
+For `Maps` ['*addition*] and ['*insertion*] work differently. 
+Function `add` performs aggregations on collision or overlap, 
+while function `insert` only inserts values that do not yet have key values. 
+
+[endsect][/ Synopsis]
+
+[section Functions][/ Addition]
+
+The admissible combinations of types for member function 
+`T& T::add(const P&)` can be summarized in the 
+['*overload table*] below:
+
+``
+// overload table for    T\P| e i b p  
+T& T::add(const P&)      ---+--------
+T& add(T&, const P&)      s | s
+                          m |     m
+                          S | S S      
+                          M |     M M  
+``
+
+The next table contains complexity characteristics for `add`.
+
+[table Time Complexity for member function add on icl containers
+[[`T& T::add(const P&)`\n
+  `T& add(T&, const P&)`]      [__ch_dom_t__][__ch_itv_t__][__ch_dom_mp_t__][__ch_itv_mp_t__]]
+[[__icl_set__]                 [__Olgn__] []          []        []          ]
+[[__icl_map__]                 []         []          [__Olgn__][]          ]
+[[__itv_set__\n__sep_itv_set__][__Olgn__] [__a_Olgn__][]        []          ]
+[[__spl_itv_set__]             [__Olgn__] [__On__]    []        []          ]
+[[__itv_map__\n__spl_itv_map__][]         []          [__Olgn__][__On__]    ]
+]
+
+[h5 Hinted addition]
+
+Function `T& T::add(T::iterator prior, const P& addend)` allows
+for an addition in ['*constant time*], if `addend` can be inserted
+right after iterator `prior` without collision. If this is not possible
+the complexity characteristics are as stated for the non hinted addition
+above. Hinted addition is available for these combinations of types:
+``
+// overload table for addition with hint        T\P| e i b p   
+T& T::add(T::iterator prior, const P&)          ---+--------
+T& add(T&, T::iterator prior, const P&)          s | s
+                                                 m |     m
+                                                 S |   S      
+                                                 M |       M   
+``
+
+[endsect][/ Functions Addition]
+
+[section Inplace operators]
+
+The possible overloads of inplace `T& operator += (T&, const P&)`
+are given by two tables, that show admissible combinations of types.
+Row types show instantiations of argument type `T`. Columns types
+show show instantiations of argument type `P`. If a combination
+of argument types is possible, the related table cell contains
+the result type of the operation. 
+__eiS_Phs__ __eibpsSmM__ will be used to denote 
+/elements, intervals, 
+element value pairs, interval value pairs, 
+element sets, interval sets, 
+element maps/ and /interval maps/. 
+The first table shows the 
+overloads of `+=` for /element containers/ the second table
+refers to /interval containers/. 
+
+``
+// overload tables for             element containers:     interval containers:  
+T& operator += (T&, const P&)      += | e b s m            += | e i b p S M    
+                                   ---+--------            ---+------------    
+                                   s  | s   s              S  | S S     S       
+                                   m  |   m   m            M  |     M M   M    
+``
+
+For the definition of admissible overloads
+we separate /element containers/ from /interval containers/.
+Within each group all combinations of types are supported 
+for an operation, that are in line with the *icl's* 
+design and the sets of laws, that establish the *icl's*
+[link boost_icl.semantics semantics].
+
+
+Overloads between /element containers/ and /interval containers/
+could also be defined. But this has not been done for
+pragmatical reasons: Each additional combination of types
+for an operation enlarges the space of possible overloads.
+This makes the overload resolution by compilers more complex,
+error prone and slows down compilation speed. Error messages
+for unresolvable or ambiguous overloads are difficult
+to read and understand. Therefore overloading of namespace
+global functions in the *icl* are limited to a reasonable
+field of combinations, that are described here.
+
+[endsect][/ Inplace operators]
+
+
+[h4 Complexity]
+
+For different combinations of argument types `T` and `P`
+different implementations of the `operator +=` are 
+selected. These implementations show different complexity
+characteristics. 
+If `T` is a container type, 
+the combination of 
+domain elements (__e) or element value pairs (__b)
+is faster than a combination of intervals (__i) or
+interval value pairs (__p) which in turn is faster than
+the combination of element or interval containers.
+The next table shows /time complexities/ of addition for
+*icl's* element containers.
+
+Sizes `n` and `m` are in the complexity statements are sizes
+of objects `T y` and `P x`:
+``
+n = iterative_size(y);
+m = iterative_size(x); //if P is a container type
+``
+Note, that for an interval container the number of elements `T::size` is
+different from the number of intervals that you can iterate over.
+Therefore a function `T::iterative_size()` is used that provides the
+desired kind of size.
+
+[table Time Complexity for inplace Addition on element containers
+[[`T& operator += (T& y, const P& x)`][__ch_dom_t__][__ch_dom_mp_t__][__ch_icl_sets__][__ch_icl_maps__]]
+[[__icl_set__]                        [__Olgn__]    []               [__Om__]         []               ]
+[[__icl_map__]                        []            [__Olgn__]       []               [__Om__]         ]
+]
+
+Time complexity characteristics of inplace addition for interval containers
+is given by this table.
+
+[table Time Complexity for inplace Addition on interval containers
+[[`T& operator += (T& y, const P& x)`][][__ch_dom_t__][__ch_itv_t__][__ch_dom_mp_t__][__ch_itv_mp_t__][__ch_itv_sets__][__ch_itv_maps__]]
+[[interval_sets][__itv_set__\n__sep_itv_set__][__Olgn__] [__a_Olgn__][]        []        [__Omlgnpm__]    []               ]
+[[]             [__spl_itv_set__]             [__Olgn__] [__On__]    []        []        [__Omlgnpm__]    []               ]
+[[interval_maps][]                            []         []          [__Olgn__][__On__]  []               [__Omlgnpm__]    ]
+]
+
+Since the implementation of
+element and interval containers is based on the 
+[link boost_icl.implementation link red-black tree implementation]
+of std::AssociativeContainers, we have a logarithmic complexity for
+addition of elements.
+Addition of intervals or interval value pairs is amortized logarithmic
+for __itv_sets__ and __sep_itv_sets__ and linear for __spl_itv_sets__
+and __itv_maps__.
+Addition is linear for element containers and
+loglinear for interval containers.
+
+
+[section Infix operators]
+
+The admissible type combinations for infix `operator +`
+are defined by the overload tables below. 
+
+``
+// overload tables for          element containers:     interval containers:
+T operator + (T, const P&)      +  | e b s m            +  | e  i  b  p  S1 S2 S3 M1 M3  
+T operator + (const P&, T)      ---+--------            ---+---------------------------
+                                e  |     s              e  |             S1 S2 S3 
+                                b  |       m            i  |             S1 S2 S3 
+                                s  | s   s              b  |                      M1 M3  
+                                m  |   m   m            p  |                      M1 M3
+                                                        S1 | S1 S1       S1 S2 S3 
+                                                        S2 | S2 S2       S2 S2 S3 
+                                                        S3 | S3 S3       S3 S3 S3 
+                                                        M1 |       M1 M1          M1 M3
+                                                        M3 |       M3 M3          M3 M3
+``
+
+[endsect][/ Infix operators]
+
+
+['*See also . . .*]
+[table
+[]
+[[[link boost_icl.function_reference.subtraction ['*Subtraction*]]   ]]
+[[[link boost_icl.function_reference.insertion ['*Insertion*]]       ]]
+]
+
+['*Back to section . . .*]
+[table
+[]
+[[[link function_synopsis_table ['*Function Synopsis*]]    ]]
+[[[link boost_icl.interface ['*Interface*]]                ]]
+]
+
+[endsect][/ Addition]
+
+

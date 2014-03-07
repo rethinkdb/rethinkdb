@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="unbalanced" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Test include ids with unbalanced sections</title>
+  <section id="include1.inc1">
+    <title><link linkend="include1.inc1">Include 1</link></title>
+    <bridgehead renderas="sect3" id="include1.inc1.h0">
+      <phrase id="include1.inc1.inc1_1"/><link linkend="include1.inc1.inc1_1">Heading
+      1</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="include1a.h0">
+      <phrase id="include1a.inc1a_1"/><link linkend="include1a.inc1a_1">Heading 1</link>
+    </bridgehead>
+    <section id="include1a.inc1a">
+      <title><link linkend="include1a.inc1a">Include 1a</link></title>
+      <bridgehead renderas="sect4" id="include1a.inc1a.h0">
+        <phrase id="include1a.inc1a.inc1a_2"/><link linkend="include1a.inc1a.inc1a_2">Heading
+        2</link>
+      </bridgehead>
+      <bridgehead renderas="sect4" id="include1a.inc1a.h1">
+        <phrase id="include1a.inc1a.inc1_2"/><link linkend="include1a.inc1a.inc1_2">Heading
+        2</link>
+      </bridgehead>
+      <bridgehead renderas="sect4" id="include1a.inc1a.h2">
+        <phrase id="include1a.inc1a.x1"/><link linkend="include1a.inc1a.x1">X1</link>
+      </bridgehead>
+    </section>
+    <bridgehead renderas="sect3" id="include1.inc1.h1">
+      <phrase id="include1.inc1.x2"/><link linkend="include1.inc1.x2">X2</link>
+    </bridgehead>
+  </section>
+  <section id="unbalanced.sect1">
+    <title><link linkend="unbalanced.sect1">Section 1</link></title>
+    <bridgehead renderas="sect3" id="unbalanced.sect1.h0">
+      <phrase id="unbalanced.sect1.x1"/><link linkend="unbalanced.sect1.x1">X1</link>
+    </bridgehead>
+    <section id="unbalanced.sect1.sect2">
+      <title><link linkend="unbalanced.sect1.sect2">Section 2</link></title>
+      <bridgehead renderas="sect4" id="unbalanced.sect1.sect2.h0">
+        <phrase id="unbalanced.sect1.sect2.x2"/><link linkend="unbalanced.sect1.sect2.x2">X2</link>
+      </bridgehead>
+      <bridgehead renderas="sect4" id="include2.h0">
+        <phrase id="include2.inc2_1"/><link linkend="include2.inc2_1">Heading 1</link>
+      </bridgehead>
+    </section>
+    <bridgehead renderas="sect3" id="include2.h1">
+      <phrase id="include2.inc2_2"/><link linkend="include2.inc2_2">Heading 2</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="include2a.h0">
+      <phrase id="include2a.inc2a_1"/><link linkend="include2a.inc2a_1">Heading 1</link>
+    </bridgehead>
+  </section>
+  <bridgehead renderas="sect2" id="include2a.h1">
+    <phrase id="include2a.inc2a_2"/><link linkend="include2a.inc2a_2">Heading 2</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="include2.h2">
+    <phrase id="include2.inc2_3"/><link linkend="include2.inc2_3">Heading 3</link>
+  </bridgehead>
+</article>

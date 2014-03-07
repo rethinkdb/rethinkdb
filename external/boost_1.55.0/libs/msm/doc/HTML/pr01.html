@@ -1,0 +1,61 @@
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+   <title>Preface</title><link rel="stylesheet" href="boostbook.css" type="text/css"><meta name="generator" content="DocBook XSL-NS Stylesheets V1.75.2"><link rel="home" href="index.html" title="Meta State Machine (MSM)"><link rel="up" href="index.html" title="Meta State Machine (MSM)"><link rel="prev" href="index.html" title="Meta State Machine (MSM)"><link rel="next" href="pt01.html" title="Part&nbsp;I.&nbsp;User' guide"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Preface</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="index.html">Prev</a>&nbsp;</td><th width="60%" align="center">&nbsp;</th><td width="20%" align="right">&nbsp;<a accesskey="n" href="pt01.html">Next</a></td></tr></table><hr></div><div class="preface" title="Preface"><div class="titlepage"><div><div><h2 class="title"><a name="d0e22"></a>Preface</h2></div></div></div><p>MSM is a library allowing you to easily and quickly define state machines of very high
+            performance. From this point, two main questions usually quickly arise, so please allow
+            me to try answering them upfront.</p><p>
+            </p><div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem"><p>When do I need a state machine?</p><p>More often that you think. Very often, one defined a state machine
+                        informally without even noticing it. For example, one declares inside a
+                        class some boolean attribute, say to remember that a task has been
+                        completed. Later the boolean actually needs a third value, so it becomes an
+                        int. A few weeks, a second attribute is needed. Then a third. Soon, you find
+                        yourself writing:</p><p><code class="code">void incoming_data(data)</code></p><p><code class="code">{</code></p><p><code class="code"> if (data == packet_3 &amp;&amp; flag1 == work_done &amp;&amp; flag2
+                            &gt; step3)...</code></p><p><code class="code">}</code></p><p>This starts to look like event processing (contained inside data) if some
+                        stage of the object life has been achieved (but is ugly).</p><p>This could be a protocol definition and it is a common use case for state
+                        machines. Another common one is a user interface. The stage of the user's
+                        interaction defines if some button is active, a functionality is available,
+                        etc.</p><p>But there are many more use cases if you start looking. Actually, a whole
+                        model-driven development method, Executable UML
+                        (http://en.wikipedia.org/wiki/Executable_UML) specifies its complete dynamic
+                        behavior using state machines. Class diagram, state machine diagrams, and an
+                        action language are all you absolutely need in the Executable UML
+                        world.</p></li><li class="listitem"><p>Another state machine library? What for?</p><p>True, there are many state machine libraries. This should already be an
+                        indication that if you're not using any of them, you might be missing
+                        something. Why should you use this one? Unfortunately, when looking for a
+                        good state machine library, you usually pretty fast hit one or several of
+                        the following snags:</p><div class="itemizedlist"><ul class="itemizedlist" type="circle"><li class="listitem"><p>speed: "state machines are slow" is usually the first
+                                    criticism you might hear. While it is often an excuse not to use
+                                    any and instead resort to dirty, hand-written implementations (I
+                                    mean, no, yours are not dirty of course, I'm talking about other
+                                    developers). MSM removes this often feeble excuse because it is
+                                    blazingly fast. Most hand-written implementations will be beaten
+                                    by MSM.</p></li><li class="listitem"><p>ease of use: good argument. If you used another library, you
+                                    are probably right. Many state machine definitions will look
+                                    similar to:</p><p><code class="code">state s1 = new State; // a state</code></p><p><code class="code">state s2 = new State; // another state</code></p><p><code class="code">event e = new Event; // event</code></p><p><code class="code">s1-&gt;addTransition(e,s2); // transition s1 -&gt;
+                                    s2</code></p><p>The more transitions you have, the less readable it is. A long
+                                    time ago, there was not so much Java yet, and many electronic
+                                    systems were built with a state machine defined by a simple
+                                    transition table. You could easily see the whole structure and
+                                    immediately see if you forgot some transitions. Thanks to our
+                                    new OO techniques, this ease of use was gone. MSM gives you back
+                                    the transition table and reduces the noise to the
+                                    minimum.</p></li><li class="listitem"><p>expressiveness: MSM offers several front-ends and constantly
+                                    tries to improve state machine definition techniques. For
+                                    example, you can define a transition with eUML (one of MSM's
+                                    front-ends) as:</p><p><code class="code">state1 == state2 + event [condition] /
+                                    action</code></p><p>This is not simply syntactic sugar. Such a formalized,
+                                    readable structure allows easy communication with domain experts
+                                    of a software to be constructed. Having domain experts
+                                    understand your code will greatly reduce the number of
+                                    bugs.</p></li><li class="listitem"><p>model-driven-development: a common difficulty of a
+                                    model-driven development is the complexity of making a
+                                    round-trip (generating code from model and then model from
+                                    code). This is due to the fact that if a state machine structure
+                                    is hard for you to read, chances are that your parsing tool will
+                                    also have a hard time. MSM's syntax will hopefully help tool
+                                    writers.</p></li><li class="listitem"><p>features: most developers use only 20% of the richly defined
+                                    UML standard. Unfortunately, these are never the same 20% for
+                                    all. And so, very likely, one will need something from the
+                                    standard which is not implemented. MSM offers a very large part
+                                    of the standard, with more on the way.</p></li></ul></div><p>Let us not wait any longer, I hope you will enjoy MSM and have fun with
+                        it!</p></li></ul></div><p>
+        </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="index.html">Prev</a>&nbsp;</td><td width="20%" align="center">&nbsp;</td><td width="40%" align="right">&nbsp;<a accesskey="n" href="pt01.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Meta State Machine (MSM)&nbsp;</td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top">&nbsp;Part&nbsp;I.&nbsp;User' guide</td></tr></table></div></body></html>

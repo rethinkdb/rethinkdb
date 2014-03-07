@@ -1,0 +1,33 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[def __this_function__ union]
+
+[heading_conformance_ogc __this_function__..Union]
+[note __boost_geometry__ adds an underscore to avoid using the `union` keyword]
+
+[heading Behavior]
+[table
+[[Case] [Behavior] ]
+[[[qbk_out __polygon__]][Calculates union polygons of input (multi)polygons and/or boxes]]
+]
+
+[include reference/algorithms/geometry_rules.qbk]
+
+[heading Example]
+[union]
+[union_output]
+
+[heading See also]
+* [link geometry.reference.algorithms.intersection intersection]
+* [link geometry.reference.algorithms.difference difference]
+* [link geometry.reference.algorithms.sym_difference sym_difference (symmetric difference)]

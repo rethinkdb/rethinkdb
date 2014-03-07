@@ -1,0 +1,543 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Nested Types</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="prev" href="tti_detail_has_function.html" title="Introspecting an inner function">
+<link rel="next" href="tti_func_sig.html" title="Nested Types and Function Signatures">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_detail_has_function.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_func_sig.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="the_type_traits_introspection_library.tti_nested_type"></a><a class="link" href="tti_nested_type.html" title="Nested Types">Nested
+    Types</a>
+</h2></div></div></div>
+<p>
+      Besides the functionality of the TTI library which queries whether some inner
+      element of a given name within a type exists, the library also includes functionality
+      for generating a nested type if it exists, else a marker type if it does not
+      exist. By marker type is meant a type either internally created by the library,
+      with no functionality, or designated by the end-user to represent the same
+      idea.
+    </p>
+<p>
+      First I will explain the syntax and use of this functionality and then the
+      reason it exists in the library.
+    </p>
+<p>
+      The functionality is a metafunction created by the macro <code class="computeroutput"><a class="link" href="../BOOST_TTI_MEMBER_TYPE.html" title="Macro BOOST_TTI_MEMBER_TYPE">BOOST_TTI_MEMBER_TYPE</a></code>.
+      The macro takes a single parameter, which is the name of a nested type. We
+      will call this our 'named type'. The macro generates a metafunction called
+      <code class="computeroutput"><span class="identifier">member_type_</span><span class="char">'named_type'</span></code>
+      which, passed an enclosing type, returns the named type if it exists, else
+      a marker type if it does not.
+    </p>
+<p>
+      As with our other macros we can use the alternative form of the macro <code class="computeroutput"><a class="link" href="../BOOST_TTI_TRAIT_MEMBER_TYPE.html" title="Macro BOOST_TTI_TRAIT_MEMBER_TYPE">BOOST_TTI_TRAIT_MEMBER_TYPE</a></code> to
+      pass first the name of the metafunction to be generated and then the name of
+      the 'named type'. After that the functionality of our resulting metafunction
+      is exactly the same.
+    </p>
+<p>
+      Its general explanation is given as:
+    </p>
+<div class="table">
+<a name="the_type_traits_introspection_library.tti_nested_type.tbmacronested"></a><p class="title"><b>Table&#160;1.3.&#160;TTI Nested Type Macro Metafunction</b></p>
+<div class="table-contents"><table class="table" summary="TTI Nested Type Macro Metafunction">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Inner Element
+              </p>
+            </th>
+<th>
+              <p>
+                Macro
+              </p>
+            </th>
+<th>
+              <p>
+                Template
+              </p>
+            </th>
+<th>
+              <p>
+                Specific Header File
+              </p>
+            </th>
+</tr></thead>
+<tbody><tr>
+<td>
+              <p>
+                Type
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../BOOST_TTI_MEMBER_TYPE.html" title="Macro BOOST_TTI_MEMBER_TYPE">BOOST_TTI_MEMBER_TYPE</a></code>(name)
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">member_type_</span><span class="char">'name'</span></code>
+              </p>
+              <p>
+                class T = enclosing type class U = (optional) marker type
+              </p>
+              <p>
+                returns = the type of 'name' if it exists, else a marker type, as
+                the typedef 'type'.
+              </p>
+              <p>
+                The invoked metafunction also holds the marker type as the typedef
+                'boost_tti_marker_type'. This is done for convenience so that the
+                marker type does not have to be remembered.
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../header/boost/tti/member_type_hpp.html" title="Header &lt;boost/tti/member_type.hpp&gt;">member_type.hpp</a></code>
+              </p>
+            </td>
+</tr></tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+      The marker type is purely optional. If not specified a type internal to the
+      TTI library, which has no functionality, is used. Unless there is a specific
+      reason for the end-user to provide his own marker type, he should let the TTI
+      library use its own internal marker type.
+    </p>
+<p>
+      A simple example of this functionality would be:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tti</span><span class="special">/</span><span class="identifier">member_type</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_TTI_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">ANamedType</span><span class="special">)</span>
+
+<span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">member_type_ANamedType</span><span class="special">&lt;</span><span class="identifier">EnclosingType</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">AType</span><span class="special">;</span>
+</pre>
+<p>
+      If type 'ANamedType' is a nested type of 'EnclosingType' then AType is the
+      same type as 'ANamedType', otherwise AType is a marker type internal to the
+      TTI library.
+    </p>
+<p>
+      Now that we have explained the syntax of BOOST_TTI_MEMBER_TYPE we can now answer
+      the question of why this functionality to create a 'type' exists when looking
+      for a nested type of an enclosing type.
+    </p>
+<h4>
+<a name="the_type_traits_introspection_library.tti_nested_type.h0"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_nested_type.the_problem"></a></span><a class="link" href="tti_nested_type.html#the_type_traits_introspection_library.tti_nested_type.the_problem">The
+      problem</a>
+    </h4>
+<p>
+      The metafunctions generated by the TTI macros all work with various types,
+      whether in specifying an enclosing type or in specifying the type of some inner
+      element, which may also involve types in the signature of that element, such
+      as a parameter or return type of a function. The C++ notation for a nested
+      type, given an enclosing type 'T' and an inner type 'InnerType', is 'T::InnerType'.
+      If either the enclosing type 'T' does not exist, or the inner type 'InnerType'
+      does not exist within 'T', the expression 'T::InnerType' will give a compiler
+      error if we attempt to use it in our template instantiation of one of TTI's
+      macro metafunctions.
+    </p>
+<p>
+      This is a problem if we want to be able to introspect for the existence of
+      inner elements to an enclosing type without producing compiler errors. Of course
+      if we absolutely know what types we have and that a nested type exists, and
+      these declarations are within our scope, we can always use an expression like
+      'T::InnerType' without compiler error. But this is often not the case when
+      doing template programming since the type being passed to us at compile-time
+      in a class or function template is chosen at instantiation time and is created
+      by the user of a template.
+    </p>
+<p>
+      One solution to this is afforded by the library itself. Given an enclosing
+      type 'T' which we know must exist, either because it is a top-level type we
+      know about or it is passed to us in some template as a 'class T' or 'typename
+      T', and given an inner type named 'InnerType' whose existence we would like
+      ascertain, we can use a <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_TYPE</span><span class="special">(</span><span class="identifier">InnerType</span><span class="special">)</span></code> macro and it's related <code class="computeroutput"><span class="identifier">has_type_InnerType</span></code>
+      metafunction to determine if the nested type 'InnerType' exists. This solution
+      is perfectly valid, and in conjunction with Boost MPL's selection metafunctions,
+      we can do compile-time selection to generate the correct template code.
+    </p>
+<p>
+      However this does not scale that well syntactically if we need to drill down
+      further from a top-level enclosing type to a deeply nested type, or even to
+      look for some deeply nested type's inner elements. We are going to be generating
+      a great deal of <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">if_</span></code>
+      and/or <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">eval_if</span></code>
+      type selection statements to get to some final condition where we know we can
+      generate the compile-time code which we want.
+    </p>
+<h4>
+<a name="the_type_traits_introspection_library.tti_nested_type.h1"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_nested_type.the_solution"></a></span><a class="link" href="tti_nested_type.html#the_type_traits_introspection_library.tti_nested_type.the_solution">The
+      solution</a>
+    </h4>
+<p>
+      The solution given by BOOST_TTI_MEMBER_TYPE is that we can create a type as
+      the return from our metafunction, which is the same type as a nested type if
+      it exists or some other marker type if it does not, and then work with that
+      returned type without producing a compiler error. If we had to use the 'T::InnerType'
+      syntax to specify our type, where 'T' represents out enclosing type and 'InnerType'
+      our nested type, and there was no nested type 'InnerType' within the enclosing
+      type 'T, the compiler would give us an error immediately.
+    </p>
+<p>
+      By using BOOST_TTI_MEMBER_TYPE we have a type to work with even when such a
+      type really does not exist. Naturally if the type does not exist, the type
+      which we have to work with, being a marker type, will generally not fulfill
+      any other further functionality we want from it. This is good and will normally
+      produce the correct results in further uses of the type when doing metafunction
+      programming. Occasionally the TTI produced marker type, when our nested type
+      does not exist, is not sufficient for further metafunction programming. In
+      that rare case the end-user can produce his own marker type to be used if the
+      nested type does not exist. In any case, whether the nested type exists, whether
+      the TTI default supplied marker type is used, or whether an end-user marker
+      type is used, template metaprogramming can continue without a compilation problem.
+      Furthermore this scales better than having to constant check for nested type
+      existence via BOOST_TTI_HAS_TYPE in complicated template metaprogramming code.
+    </p>
+<h4>
+<a name="the_type_traits_introspection_library.tti_nested_type.h2"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_nested_type.checking_if_the_member_type_exists"></a></span><a class="link" href="tti_nested_type.html#the_type_traits_introspection_library.tti_nested_type.checking_if_the_member_type_exists">Checking
+      if the member type exists</a>
+    </h4>
+<p>
+      Once we use BOOST_TTI_MEMBER_TYPE to generate a nested type if it exists we
+      will normally use that type in further metafunction programming. Occasionally,
+      given the type we generate, we will want to ask if the type is really our nested
+      type or the marker type instead. Essentially we are asking if the type generated
+      is the marker type or not. If it is the marker type, then the type generated
+      is not the nested type we had hoped for. If it is not the marker type, then
+      the type generated is the nested type we had hoped for. This is easy enough
+      to do for the template metaprogrammer but TTI makes it easier by providing
+      either of two metafunctions to do this calculation. These two metafunctions
+      are 'boost::tti::valid_member_type' and 'boost::tti::valid_member_metafunction':
+    </p>
+<div class="table">
+<a name="the_type_traits_introspection_library.tti_nested_type.existtbmacronested"></a><p class="title"><b>Table&#160;1.4.&#160;TTI Nested Type Macro Metafunction Existence</b></p>
+<div class="table-contents"><table class="table" summary="TTI Nested Type Macro Metafunction Existence">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Inner Element
+              </p>
+            </th>
+<th>
+              <p>
+                Macro
+              </p>
+            </th>
+<th>
+              <p>
+                Template
+              </p>
+            </th>
+<th>
+              <p>
+                Specific Header File
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                Type
+              </p>
+            </td>
+<td>
+              <p>
+                None
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/tti/valid_member_type.html" title="Struct template valid_member_type">boost::tti::valid_member_type</a></code>
+              </p>
+              <p>
+                class T = a type class U = (optional) marker type
+              </p>
+              <p>
+                returns = true if the type exists, false if it does not. 'Existence'
+                is determined by whether the type does not equal the marker type
+                of BOOST_TTI_MEMBER_TYPE.
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../header/boost/tti/member_type_hpp.html" title="Header &lt;boost/tti/member_type.hpp&gt;">member_type.hpp</a></code>
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Type
+              </p>
+            </td>
+<td>
+              <p>
+                None
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../boost/tti/valid_member_metafunction.html" title="Struct template valid_member_metafunction">boost::tti::valid_member_metafunction</a></code>
+              </p>
+              <p>
+                class T = a metafunction type
+              </p>
+              <p>
+                returns = true if the return 'type' of the metafunction exists, false
+                if it does not.'Existence' is determined by whether the return 'type'
+                does not equal the marker type of BOOST_TTI_MEMBER_TYPE.
+              </p>
+            </td>
+<td>
+              <p>
+                <code class="computeroutput"><a class="link" href="../header/boost/tti/member_type_hpp.html" title="Header &lt;boost/tti/member_type.hpp&gt;">member_type.hpp</a></code>
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+      In our first metafunction, 'boost::tti::valid_member_type', the first parameter
+      is the return 'type' from invoking the metafunction generated by BOOST_TTI_MEMBER_TYPE.
+      If when the metafunction was invoked a user-defined marker type had been specified,
+      then the second optional parameter is that marker type, else it is not necessary
+      to specify the optional second template parameter. Since the marker type is
+      saved as the nested type boost::tti::marker_type once we invoke the metafunction
+      generated by BOOST_TTI_MEMBER_TYPE we can always use that as our second template
+      parameter to 'boost::tti::valid_member_type' if we like.
+    </p>
+<p>
+      The second metafunction, boost::tti::valid_member_metafunction, makes the process
+      of passing our nested 'type' and our marker type a bit easier. Here the single
+      template parameter is the invoked metafunction generated by BOOST_TTI_MEMBER_TYPE
+      itself. It then picks out from the invoked metafunction both the return 'type'
+      and the nested boost::tti::marker_type to do the correct calculation.
+    </p>
+<p>
+      A simple example of this functionality would be:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tti</span><span class="special">/</span><span class="identifier">member_type</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">struct</span> <span class="identifier">UDMarkerType</span> <span class="special">{</span> <span class="special">};</span>
+
+<span class="identifier">BOOST_TTI_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">ANamedType</span><span class="special">)</span>
+
+<span class="keyword">typedef</span> <span class="identifier">member_type_ANamedType</span><span class="special">&lt;</span><span class="identifier">EnclosingType</span><span class="special">&gt;</span> <span class="identifier">IMType</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">member_type_ANamedType</span><span class="special">&lt;</span><span class="identifier">EnclosingType</span><span class="special">,</span><span class="identifier">UDMarkerType</span><span class="special">&gt;</span> <span class="identifier">IMTypeWithMarkerType</span><span class="special">;</span>
+</pre>
+<p>
+      then
+    </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">tti</span><span class="special">::</span><span class="identifier">valid_member_type</span><span class="special">&lt;</span><span class="identifier">IMType</span><span class="special">::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">value</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">tti</span><span class="special">::</span><span class="identifier">valid_member_type</span><span class="special">&lt;</span><span class="identifier">IMTypeWithMarkerType</span><span class="special">::</span><span class="identifier">type</span><span class="special">,</span><span class="identifier">IMTypeWithMarkerType</span><span class="special">::</span><span class="identifier">boost_tti_marker_type</span><span class="special">&gt;::</span><span class="identifier">value</span>
+</pre>
+<p>
+      or
+    </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">tti</span><span class="special">::</span><span class="identifier">valid_member_metafunction</span><span class="special">&lt;</span><span class="identifier">IMType</span><span class="special">&gt;::</span><span class="identifier">value</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">tti</span><span class="special">::</span><span class="identifier">valid_member_metafunction</span><span class="special">&lt;</span><span class="identifier">IMTypeWithMarkerType</span><span class="special">&gt;::</span><span class="identifier">value</span>
+</pre>
+<p>
+      gives us our compile-time result.
+    </p>
+<h4>
+<a name="the_type_traits_introspection_library.tti_nested_type.h3"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_nested_type.an_extended_nested_type_example"></a></span><a class="link" href="tti_nested_type.html#the_type_traits_introspection_library.tti_nested_type.an_extended_nested_type_example">An
+      extended nested type example</a>
+    </h4>
+<p>
+      As an extended example, given a type T, let us create a metafunction where
+      there is a nested type FindType whose enclosing type is eventually T, as represented
+      by the following structure:
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">T</span>
+  <span class="special">{</span>
+  <span class="keyword">struct</span> <span class="identifier">AType</span>
+    <span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">BType</span>
+      <span class="special">{</span>
+      <span class="keyword">struct</span> <span class="identifier">CType</span>
+        <span class="special">{</span>
+        <span class="keyword">struct</span> <span class="identifier">FindType</span>
+          <span class="special">{</span>
+          <span class="special">};</span>
+        <span class="special">}</span>
+      <span class="special">};</span>
+    <span class="special">};</span>
+  <span class="special">};</span>
+</pre>
+<p>
+      In our TTI code we first create a series of member type macros for each of
+      our nested types:
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">FindType</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">AType</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">BType</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">CType</span><span class="special">)</span>
+</pre>
+<p>
+      Next we can create a typedef to reflect a nested type called FindType which
+      has the relationship as specified above by instantiating our macro metafunctions.
+      We have to do this in the reverse order of our hypothetical 'struct T' above
+      since the metafunction <code class="computeroutput"><span class="identifier">BOOST_TTI_MEMBER_TYPE</span></code>
+      takes its enclosing type as its template parameter.
+    </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="keyword">typename</span>
+<span class="identifier">member_type_FindType</span>
+  <span class="special">&lt;</span>
+  <span class="keyword">typename</span> <span class="identifier">member_type_CType</span>
+    <span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">member_type_BType</span>
+      <span class="special">&lt;</span>
+      <span class="keyword">typename</span> <span class="identifier">member_type_AType</span>
+        <span class="special">&lt;</span>
+        <span class="identifier">T</span>
+        <span class="special">&gt;::</span><span class="identifier">type</span>
+      <span class="special">&gt;::</span><span class="identifier">type</span>
+    <span class="special">&gt;::</span><span class="identifier">type</span>
+  <span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">MyFindType</span><span class="special">;</span>
+</pre>
+<p>
+      We can use the above typedef to pass the type as FindType to one of our macro
+      metafunctions. FindType may not actually exist but we will not generate a compiler
+      error when we use it. It will only generate, if it does not exist, an eventual
+      failure by having whatever metafunction uses such a type return a false value
+      at compile-time.
+    </p>
+<p>
+      As one example, let's ask whether FindType has a static member data called
+      MyData of type 'int'. We add:
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_STATIC_MEMBER_DATA</span><span class="special">(</span><span class="identifier">MyData</span><span class="special">)</span>
+</pre>
+<p>
+      Next we create our metafunction:
+    </p>
+<pre class="programlisting"><span class="identifier">has_static_member_data_MyData</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">MyFindType</span><span class="special">,</span>
+  <span class="keyword">int</span>
+  <span class="special">&gt;</span>
+</pre>
+<p>
+      and use this in our metaprogramming code. Our metafunction now tells us whether
+      the nested type FindType has a static member data called MyData of type 'int',
+      even if FindType does not actually exist as we have specified it as a type.
+      If we had tried to do this using normal C++ nested type notation our metafunction
+      code above would be:
+    </p>
+<pre class="programlisting"><span class="identifier">has_static_member_data_MyData</span>
+  <span class="special">&lt;</span>
+  <span class="keyword">typename</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">AType</span><span class="special">::</span><span class="identifier">BType</span><span class="special">::</span><span class="identifier">CType</span><span class="special">::</span><span class="identifier">FindType</span><span class="special">,</span>
+  <span class="keyword">int</span>
+  <span class="special">&gt;</span>
+</pre>
+<p>
+      But this fails with a compiler error if there is no such nested type, and that
+      is exactly what we do not want in our compile-time metaprogramming code.
+    </p>
+<p>
+      In the above metafunction we are asking whether or not FindType has a static
+      member data element called 'MyData', and the result will be 'false' if either
+      FindType does not exist or if it does exist but does not have a static member
+      data of type 'int' called 'MyData'. In neither situation will we produce a
+      compiler error.
+    </p>
+<p>
+      We may also be interested in ascertaining whether the deeply nested type 'FindType'
+      actually exists. Our metafunction, using BOOST_TTI_MEMBER_TYPE and repeating
+      our macros from above, could be:
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">FindType</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">AType</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">BType</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_MEMBER_TYPE</span><span class="special">(</span><span class="identifier">CType</span><span class="special">)</span>
+
+<span class="identifier">BOOST_TTI_HAS_TYPE</span><span class="special">(</span><span class="identifier">FindType</span><span class="special">)</span>
+
+<span class="identifier">has_type_FindType</span>
+  <span class="special">&lt;</span>
+  <span class="keyword">typename</span>
+  <span class="identifier">member_type_CType</span>
+    <span class="special">&lt;</span>
+    <span class="keyword">typename</span>
+    <span class="identifier">member_type_BType</span>
+      <span class="special">&lt;</span>
+      <span class="keyword">typename</span>
+      <span class="identifier">member_type_AType</span>
+        <span class="special">&lt;</span>
+        <span class="identifier">T</span>
+        <span class="special">&gt;::</span><span class="identifier">type</span>
+      <span class="special">&gt;::</span><span class="identifier">type</span>
+    <span class="special">&gt;::</span><span class="identifier">type</span>
+  <span class="special">&gt;</span>
+</pre>
+<p>
+      But this duplicates much of our code when we generated the 'MyFindType' typedef.
+      Instead we use the functionality already provided by 'boost::tti::valid_member_type'.
+      Using this functionality with our 'MyFindType' type above we create the nullary
+      metafunction:
+    </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">tti</span><span class="special">::</span><span class="identifier">valid_member_type</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">MyFindType</span>
+  <span class="special">&gt;</span>
+</pre>
+<p>
+      directly instead of replicating the same functionality with our 'has_type_FindType'
+      metafunction.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Tropic Software
+      East Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_detail_has_function.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_func_sig.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

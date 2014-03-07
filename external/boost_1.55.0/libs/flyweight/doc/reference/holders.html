@@ -1,0 +1,243 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Flyweight Documentation - Holders reference</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="factories.html">
+<link rel="up" href="index.html">
+<link rel="next" href="locking.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="Boost logo" align=
+"middle" width="277" height="86">Boost.Flyweight
+Holders reference</h1>
+
+<div class="prev_link"><a href="factories.html"><img src="../prev.gif" alt="factories" border="0"><br>
+Factories
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div>
+<div class="next_link"><a href="locking.html"><img src="../next.gif" alt="locking policies" border="0"><br>
+Locking policies
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#holder">Holders and holder specifiers</a></li>
+  <li><a href="#holder_tag_synopsis">Header
+    <code>"boost/flyweight/holder_tag.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#is_holder">Class template <code>is_holder</code></a></li>
+      <li><a href="#holder_construct">Class template <code>holder</code></a></li>
+    </ul>    
+  </li>
+  <li><a href="#static_holder_fwd_synopsis">Header
+    <code>"boost/flyweight/static_holder_fwd.hpp"</code> synopsis</a>
+  </li>
+  <li><a href="#static_holder_synopsis">Header
+    <code>"boost/flyweight/static_holder.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#static_holder_class">Class template <code>static_holder_class</code></a></li>
+      <li><a href="#static_holder">Class <code>static_holder</code></a></li>
+    </ul>    
+  </li>
+  <li><a href="#intermodule_holder_fwd_synopsis">Header
+    <code>"boost/flyweight/intermodule_holder_fwd.hpp"</code> synopsis</a>
+  </li>
+  <li><a href="#intermodule_holder_synopsis">Header
+    <code>"boost/flyweight/intermodule_holder.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#intermodule_holder_class">Class template <code>intermodule_holder_class</code></a></li>
+      <li><a href="#intermodule_holder">Class <code>intermodule_holder</code></a></li>
+    </ul>    
+  </li>
+</ul>
+
+<h2><a name="holder">Holders and holder specifiers</a></h2>
+
+<p>
+Given a type <code>C</code>, a type <code>Holder</code> is said to be a <i>holder
+of <code>C</code></i> if the expression <code>Holder::get()</code> returns
+a reference to a default initialized <code>C</code> object unique to
+<code>Holder</code>. No invocation of <code>Holder::get()</code>, except possibly
+the first one in the program, does throw.
+<a href="flyweight.html#flyweight"><code>flyweight</code></a>
+privately uses a holder to instantiate a <a href="factories.html#factory">factory</a>
+and some additional data (like a <a href="locking.html#preliminary">mutex</a> for
+internal synchronization) unique to each instantiation type of the class template.
+</p>
+
+<p>
+A type <code>S</code> is a <i>holder specifier</i> if:
+<ol>
+  <li>One of the following conditions is satisfied:
+    <ol type="a">
+      <li><a href="#is_holder"><code>is_holder&lt;S&gt;::type</code></a> is
+      <a href="../../../mpl/doc/refmanual/bool.html"><code>boost::mpl::true_</code></a>,</li>
+      <li><code>S</code> is of the form <a href="#holder_construct"><code>holder&lt;S'&gt;</code></a>.</li>
+    </ol>
+  </li>
+  <li><code>S</code>, or <code>S'</code> if (b) applies, is an
+    <a href="../../../mpl/doc/refmanual/lambda-expression.html"><code>MPL Lambda
+    Expression</code></a> such that invoking it with type <code>C</code> resolves to
+    a holder of <code>C</code>.
+  </li>
+</ol>
+</p>
+
+<h2><a name="holder_tag_synopsis">Header
+<a href="../../../../boost/flyweight/holder_tag.hpp"><code>"boost/flyweight/holder_tag.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>struct</span> <span class=identifier>holder_marker</span><span class=special>;</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>is_holder</span><span class=special>;</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>holder</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::flyweights</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<h3><a name="is_holder">Class template <code>is_holder</code></a></h3>
+
+<p>
+Unless specialized by the user, <code>is_holder&lt;T&gt;::type</code> is
+<a href="../../../mpl/doc/refmanual/bool.html"><code>boost::mpl::true_</code></a>
+if <code>T</code> is derived from <code>holder_marker</code>, and it is
+<a href="../../../mpl/doc/refmanual/bool.html"><code>boost::mpl::false_</code></a>
+otherwise.
+</p>
+
+<h3><a name="holder_construct">Class template <code>holder</code></a></h3>
+
+<p>
+<code>holder&lt;T&gt;</code> is a syntactic construct meant to indicate
+that <code>T</code> is a holder specifier without resorting to the
+mechanisms provided by the <code>is_holder</code> class template.
+</p>
+
+<h2><a name="static_holder_fwd_synopsis">Header
+<a href="../../../../boost/flyweight/static_holder_fwd.hpp"><code>"boost/flyweight/static_holder_fwd.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>C</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>static_holder_class</span><span class=special>;</span>
+
+<span class=keyword>struct</span> <span class=identifier>static_holder</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::flyweights</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<p>
+<code>static_holder_fwd.hpp</code> forward declares 
+<a href="#static_holder_class"><code>static_holder_class</code></a>
+and <a href="#static_holder"><code>static_holder</code></a>.
+</p>
+
+<h2><a name="static_holder_synopsis">Header
+<a href="../../../../boost/flyweight/static_holder.hpp"><code>"boost/flyweight/static_holder.hpp"</code></a> synopsis</a></h2>
+
+<h3><a name="static_holder_class">Class template <code>static_holder_class</code></a></h3>
+
+<p>
+<code>static_holder_class&lt;C&gt;</code> keeps its unique instance of <code>C</code> as a
+local static object.
+</p>
+
+<h3><a name="static_holder">Class <code>static_holder</code></a></h3>
+
+<p>
+<a href="#holder"><code>Holder Specifier</code></a> for <a href="#static_holder_class"><code>static_holder_class</code></a>.
+</p>
+
+<h2><a name="intermodule_holder_fwd_synopsis">Header
+<a href="../../../../boost/flyweight/intermodule_holder_fwd.hpp"><code>"boost/flyweight/intermodule_holder_fwd.hpp"</code></a> synopsis</a></h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>C</span><span class=special>&gt;</span>
+<span class=keyword>struct</span> <span class=identifier>intermodule_holder_class</span><span class=special>;</span>
+
+<span class=keyword>struct</span> <span class=identifier>intermodule_holder</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::flyweights</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<p>
+<code>intermodule_holder_fwd.hpp</code> forward declares 
+<a href="#intermodule_holder_class"><code>intermodule_holder_class</code></a>
+and <a href="#intermodule_holder"><code>intermodule_holder</code></a>.
+</p>
+
+<h2><a name="intermodule_holder_synopsis">Header
+<a href="../../../../boost/flyweight/intermodule_holder.hpp"><code>"boost/flyweight/intermodule_holder.hpp"</code></a> synopsis</a></h2>
+
+<h3><a name="intermodule_holder_class">Class template <code>intermodule_holder_class</code></a></h3>
+
+<p>
+<code>intermodule_holder_class&lt;C&gt;</code> maintains a <code>C</code>
+instance which is unique even across different dynamically linked modules of
+the program using this same type. In general, this guarantee is not provided by
+<a href="#static_holder_class"><code>static_holder_class</code></a>, as most
+C++ implementations are not able to merge duplicates of static variables stored
+in different dynamic modules of a program.
+</p>
+
+<h3><a name="intermodule_holder">Class <code>intermodule_holder</code></a></h3>
+
+<p>
+<a href="#holder"><code>Holder Specifier</code></a> for <a href="#intermodule_holder_class"><code>intermodule_holder_class</code></a>.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="factories.html"><img src="../prev.gif" alt="factories" border="0"><br>
+Factories
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div>
+<div class="next_link"><a href="locking.html"><img src="../next.gif" alt="locking policies" border="0"><br>
+Locking policies
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised August 11th 2008</p>
+
+<p>&copy; Copyright 2006-2008 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

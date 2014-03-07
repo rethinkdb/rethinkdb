@@ -1,0 +1,205 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template linear_feedback_shift_engine</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_random/reference.html#header.boost.random.linear_feedback_shift_hpp" title="Header &lt;boost/random/linear_feedback_shift.hpp&gt;">
+<link rel="prev" href="minstd_rand.html" title="Type definition minstd_rand">
+<link rel="next" href="lognormal_distribution.html" title="Class template lognormal_distribution">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="minstd_rand.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_random/reference.html#header.boost.random.linear_feedback_shift_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lognormal_distribution.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.random.linear_feedbac_idp59966824"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template linear_feedback_shift_engine</span></h2>
+<p>boost::random::linear_feedback_shift_engine</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_random/reference.html#header.boost.random.linear_feedback_shift_hpp" title="Header &lt;boost/random/linear_feedback_shift.hpp&gt;">boost/random/linear_feedback_shift.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> UIntType<span class="special">,</span> <span class="keyword">int</span> w<span class="special">,</span> <span class="keyword">int</span> k<span class="special">,</span> <span class="keyword">int</span> q<span class="special">,</span> <span class="keyword">int</span> s<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">UIntType</span> <a name="boost.random.linear_feedbac_idp59966824.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="linear_feedbac_idp59966824.html#boost.random.linear_feedbac_idp59966824construct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="linear_feedbac_idp59966824.html#idp60074840-bb"><span class="identifier">linear_feedback_shift_engine</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="linear_feedbac_idp59966824.html#idp60075592-bb"><span class="identifier">linear_feedback_shift_engine</span></a><span class="special">(</span><span class="identifier">UIntType</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SeedSeq<span class="special">&gt;</span> <span class="keyword">explicit</span> <a class="link" href="linear_feedbac_idp59966824.html#idp60076808-bb"><span class="identifier">linear_feedback_shift_engine</span></a><span class="special">(</span><span class="identifier">SeedSeq</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> It<span class="special">&gt;</span> <a class="link" href="linear_feedbac_idp59966824.html#idp60078440-bb"><span class="identifier">linear_feedback_shift_engine</span></a><span class="special">(</span><span class="identifier">It</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">It</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="linear_feedbac_idp59966824.html#idp59948024-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">result_type</span> <a class="link" href="linear_feedbac_idp59966824.html#idp59948232-bb"><span class="identifier">min</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">result_type</span> <a class="link" href="linear_feedbac_idp59966824.html#idp59948968-bb"><span class="identifier">max</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="linear_feedbac_idp59966824.html#idp59949704-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="linear_feedbac_idp59966824.html#idp59949912-bb"><span class="identifier">seed</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="linear_feedbac_idp59966824.html#idp59978648-bb"><span class="identifier">seed</span></a><span class="special">(</span><span class="identifier">UIntType</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SeedSeq<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="linear_feedbac_idp59966824.html#idp59980328-bb"><span class="identifier">seed</span></a><span class="special">(</span><span class="identifier">SeedSeq</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> It<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="linear_feedbac_idp59966824.html#idp59982456-bb"><span class="identifier">seed</span></a><span class="special">(</span><span class="identifier">It</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">It</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">result_type</span> <a class="link" href="linear_feedbac_idp59966824.html#idp60071064-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Iter<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="linear_feedbac_idp59966824.html#idp60071768-bb"><span class="identifier">generate</span></a><span class="special">(</span><span class="identifier">Iter</span><span class="special">,</span> <span class="identifier">Iter</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="linear_feedbac_idp59966824.html#idp60073560-bb"><span class="identifier">discard</span></a><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="linear_feedbac_idp59966824.html#idp59973352-bb">friend functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+    <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+    <a class="link" href="linear_feedbac_idp59966824.html#idp59973560-bb"><span class="keyword">operator</span><span class="special">&lt;&lt;</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+               <span class="keyword">const</span> <a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+    <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+    <a class="link" href="linear_feedbac_idp59966824.html#idp59976168-bb"><span class="keyword">operator</span><span class="special">&gt;&gt;</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+               <span class="keyword">const</span> <a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">friend</span> <span class="keyword">bool</span> <a class="link" href="linear_feedbac_idp59966824.html#idp59967800-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a> <span class="special">&amp;</span><span class="special">,</span> 
+                         <span class="keyword">const</span> <a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">friend</span> <span class="keyword">bool</span> <a class="link" href="linear_feedbac_idp59966824.html#idp59969704-bb"><span class="keyword">operator</span><span class="special">!=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a> <span class="special">&amp;</span><span class="special">,</span> 
+                         <span class="keyword">const</span> <a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">has_fixed_range</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">word_size</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">exponent1</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">exponent2</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">step_size</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">UIntType</span> <span class="identifier">default_seed</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp194689496"></a><h2>Description</h2>
+<p>Instatiations of <code class="computeroutput">linear_feedback_shift</code> model a  <a class="link" href="../../boost_random/reference.html#boost_random.reference.concepts.pseudo_random_number_generator" title="Pseudo-Random Number Generator">pseudo-random number generator</a> . It was originally proposed in</p>
+<p> </p>
+<div class="blockquote"><blockquote class="blockquote"><p>  "Random numbers generated by linear recurrence modulo two.", Tausworthe, R. C.(1965), Mathematics of Computation 19, 201-209.  </p></blockquote></div>
+<p>  </p>
+<div class="refsect2">
+<a name="idp194691320"></a><h3>
+<a name="boost.random.linear_feedbac_idp59966824construct-copy-destruct"></a><code class="computeroutput">linear_feedback_shift_engine</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp60074840-bb"></a><span class="identifier">linear_feedback_shift_engine</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><code class="computeroutput"><a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a></code></code>, using the default seed. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp60075592-bb"></a><span class="identifier">linear_feedback_shift_engine</span><span class="special">(</span><span class="identifier">UIntType</span> s0<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><code class="computeroutput"><a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a></code></code>, seeding it with s0. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SeedSeq<span class="special">&gt;</span> 
+  <span class="keyword">explicit</span> <a name="idp60076808-bb"></a><span class="identifier">linear_feedback_shift_engine</span><span class="special">(</span><span class="identifier">SeedSeq</span> <span class="special">&amp;</span> seq<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><code class="computeroutput"><a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a></code></code>, seeding it with seq. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> It<span class="special">&gt;</span> <a name="idp60078440-bb"></a><span class="identifier">linear_feedback_shift_engine</span><span class="special">(</span><span class="identifier">It</span> <span class="special">&amp;</span> first<span class="special">,</span> <span class="identifier">It</span> last<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><code class="computeroutput"><a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a></code></code>, seeding it with values from the range [first, last). </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp194709288"></a><h3>
+<a name="idp59948024-bb"></a><code class="computeroutput">linear_feedback_shift_engine</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">result_type</span> <a name="idp59948232-bb"></a><span class="identifier">min</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns the smallest value that the generator can produce. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">result_type</span> <a name="idp59948968-bb"></a><span class="identifier">max</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns the largest value that the generator can produce. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp194715496"></a><h3>
+<a name="idp59949704-bb"></a><code class="computeroutput">linear_feedback_shift_engine</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp59949912-bb"></a><span class="identifier">seed</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Seeds a <code class="computeroutput"><code class="computeroutput"><a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a></code></code> with the default seed. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp59978648-bb"></a><span class="identifier">seed</span><span class="special">(</span><span class="identifier">UIntType</span> s0<span class="special">)</span><span class="special">;</span></pre>
+<p>Seeds a <code class="computeroutput"><code class="computeroutput"><a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a></code></code> with <code class="computeroutput">s0</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SeedSeq<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp59980328-bb"></a><span class="identifier">seed</span><span class="special">(</span><span class="identifier">SeedSeq</span> <span class="special">&amp;</span> seq<span class="special">)</span><span class="special">;</span></pre>
+<p>Seeds a <code class="computeroutput"><code class="computeroutput"><a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a></code></code> with values produced by <code class="computeroutput">seq.generate()</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> It<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp59982456-bb"></a><span class="identifier">seed</span><span class="special">(</span><span class="identifier">It</span> <span class="special">&amp;</span> first<span class="special">,</span> <span class="identifier">It</span> last<span class="special">)</span><span class="special">;</span></pre>
+<p>Seeds a <code class="computeroutput"><code class="computeroutput"><a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a></code></code> with values from the range [first, last). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp60071064-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns the next value of the generator. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Iter<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp60071768-bb"></a><span class="identifier">generate</span><span class="special">(</span><span class="identifier">Iter</span> first<span class="special">,</span> <span class="identifier">Iter</span> last<span class="special">)</span><span class="special">;</span></pre>
+<p>Fills a range with random values </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp60073560-bb"></a><span class="identifier">discard</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">uintmax_t</span> z<span class="special">)</span><span class="special">;</span></pre>
+<p>Advances the state of the generator by <code class="computeroutput">z</code>. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp194745304"></a><h3>
+<a name="idp59973352-bb"></a><code class="computeroutput">linear_feedback_shift_engine</code> friend functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+  <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+  <a name="idp59973560-bb"></a><span class="keyword">operator</span><span class="special">&lt;&lt;</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_ostream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> os<span class="special">,</span> 
+             <span class="keyword">const</span> <a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre>
+<p>Writes the textual representation of the generator to a <code class="computeroutput">std::ostream</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> Traits<span class="special">&gt;</span> 
+  <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> 
+  <a name="idp59976168-bb"></a><span class="keyword">operator</span><span class="special">&gt;&gt;</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;</span> <span class="identifier">CharT</span><span class="special">,</span> <span class="identifier">Traits</span> <span class="special">&gt;</span> <span class="special">&amp;</span> is<span class="special">,</span> 
+             <span class="keyword">const</span> <a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre>
+<p>Reads the textual representation of the generator from a <code class="computeroutput">std::istream</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">friend</span> <span class="keyword">bool</span> <a name="idp59967800-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a> <span class="special">&amp;</span> x<span class="special">,</span> 
+                       <span class="keyword">const</span> <a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a> <span class="special">&amp;</span> y<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns true if the two generators will produce identical sequences of outputs. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">friend</span> <span class="keyword">bool</span> <a name="idp59969704-bb"></a><span class="keyword">operator</span><span class="special">!=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a> <span class="special">&amp;</span> lhs<span class="special">,</span> 
+                       <span class="keyword">const</span> <a class="link" href="linear_feedbac_idp59966824.html" title="Class template linear_feedback_shift_engine">linear_feedback_shift_engine</a> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p>Returns true if the two generators will produce different sequences of outputs. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2005 Jens Maurer<br>Copyright &#169; 2009, 2010 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="minstd_rand.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_random/reference.html#header.boost.random.linear_feedback_shift_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="lognormal_distribution.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Tutorial</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Tutorial</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='multichar_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='finite_state_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<A NAME="dual_use"></A>
+<H2>2.2.9. Dual-Use Filters</H2>
+
+
+<P>
+    It can be confusing to maintain two separate filters &#8212; one for input and the other for output &#8212; to implement the same filtering algorithm. One way to avoid this is to use the <A HREF="writing_filters.html#filter_helpers">filter helpers</A> mentioned above. The filter helpers produce filters which can be used for either input or output, but not both simultaneously. Such filters are called <A HREF="../concepts/dual_use_filter.html">Dual-Use Filters</A>.
+</P>
+
+<P>
+    A <A HREF="../concepts/dual_use_filter.html">Dual-Use Filter</A> can be produced by merging the implementations of an <A HREF="../concepts/input_filter.html">InputFilter</A> and an <A HREF="../concepts/output_filter.html">OutputFilter</A>, and giving the resulting class a <A HREF="../guide/traits.html#category">category</A> convertible to <A HREF="../guide/traits.html#category_tags"><CODE>dual_use_filter_tag</CODE></A>. For example, you can implement a <A HREF="shell_comments_filters.html">shell comments Filter</A> as a Dual-Use Filter as follows:
+</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/char_traits.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/char_traits.hpp&gt;</SPAN></A> <SPAN CLASS="comment">// EOF, WOULD_BLOCK</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A>    <SPAN CLASS="comment">// input_filter</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="header" HREF="../../../../boost/iostreams/operations.hpp"><SPAN CLASS="literal">&lt;boost/iostreams/operations.hpp&gt;</SPAN></A>  <SPAN CLASS="comment">// get</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS="keyword">class</SPAN> shell_comments_input_filter : <SPAN CLASS="keyword"><SPAN CLASS="keyword"><SPAN CLASS="keyword">public</SPAN></SPAN></SPAN> dual_use_filter {
+<SPAN CLASS="keyword">public</SPAN>:
+    <SPAN CLASS="keyword">explicit</SPAN> shell_comments_input_filter(<SPAN CLASS="keyword">char</SPAN> comment_char = <SPAN CLASS="literal">'#'</SPAN>)
+        : comment_char_(comment_char), skip_(<SPAN CLASS="keyword">false</SPAN>)
+        { }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Source&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> get(Source&amp; src)
+    {
+        <SPAN CLASS='comment'>/* same as shell_comments_input_filter::get() */</SPAN>
+    }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Sink&gt;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">bool</SPAN></SPAN> put(Sink&amp; dest, <SPAN CLASS="keyword"><SPAN CLASS="keyword">int</SPAN></SPAN> c)
+    {
+        <SPAN CLASS='comment'>/* same as shell_comments_output_filter::put() */</SPAN>
+    }
+
+    <SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Device&gt;
+    <SPAN CLASS="keyword">void</SPAN> close(Device&amp;, std::ios_base::openmode)
+    { 
+        skip_ = <SPAN CLASS="keyword">false</SPAN>; 
+    }
+<SPAN CLASS="keyword">private</SPAN>:
+    <SPAN CLASS="keyword">char</SPAN> comment_char_;
+    <SPAN CLASS="keyword"><SPAN CLASS="keyword">bool</SPAN></SPAN> skip_;
+};
+
+} } } <SPAN CLASS="comment">// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>
+    When a <A HREF="../guide/filtering_streams.html">filtering stream or stream buffer</A> containing a <A HREF="../concepts/closable.html">Closable</A> <A HREF="../concepts/dual_use_filter.html">Dual-Use Filter</A> is closed, the Filter's member function <CODE>close</CODE> is called with one of the values <CODE>std::ios_base::in</CODE> or <CODE>std::ios_base::out</CODE> as the second function argument, indicating whether the Filter was used for input or output.
+</P>
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='multichar_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='finite_state_filters.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Use, modification, and distribution are subject to the Boost Software License, Version 2.0. (See accompanying file <A HREF="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+<!-- End Footer -->
+
+</BODY>

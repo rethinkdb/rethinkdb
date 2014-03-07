@@ -1,0 +1,77 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Why the TTI Library ?</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="prev" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="next" href="tti_terminology.html" title="Terminology">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_terminology.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="the_type_traits_introspection_library.tti_reason"></a><a class="link" href="tti_reason.html" title="Why the TTI Library ?">Why the
+    TTI Library ?</a>
+</h2></div></div></div>
+<p>
+      In the Boost Type Traits library there is compile time functionality for querying
+      information about a C++ type. This information is very useful during template
+      metaprogramming and forms the basis, along with the constructs of the Boost
+      MPL library, and some other compile time libraries, for much of the template
+      metaprogramming in Boost.
+    </p>
+<p>
+      One area which is mostly missing in the Type Traits library is the ability
+      to determine what C++ inner elements are part of a type, where the inner element
+      may be a nested type, function or data member, static function or static data
+      member, or class template.
+    </p>
+<p>
+      There has been some of this functionality in Boost, both in already existing
+      libraries and in libraries on which others have worked but which were never
+      submitted for acceptance into Boost. An example with an existing Boost library
+      is Boost MPL, where there is functionality, in the form of macros and metafunctions,
+      to determine whether an enclosing type has a particular nested type or nested
+      class template. An example with a library which was never submitted to Boost
+      is the Concept Traits Library from which much of the functionality of this
+      library, related to type traits, was taken and expanded.
+    </p>
+<p>
+      It may also be possible that some other Boost libraries, highly dependent on
+      advanced template metaprogramming techniques, also have internal functionality
+      to introspect a type's elements at compile time. But to the best of my knowledge
+      this sort of functionality has never been incorporated in a single Boost library.
+      This library is an attempt to do so, and to bring a recognizable set of interfaces
+      to compile-time type introspection to Boost so that other metaprogramming libraries
+      can use them for their own needs.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Tropic Software
+      East Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_terminology.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

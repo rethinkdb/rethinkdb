@@ -1,0 +1,319 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Getting Started</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boostbook.html" title="Chapter&#160;40.&#160;The BoostBook Documentation Format">
+<link rel="prev" href="../../boostbook.html" title="Chapter&#160;40.&#160;The BoostBook Documentation Format">
+<link rel="next" href="../documenting.html" title="Documenting libraries">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../boostbook.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boostbook.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../documenting.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boostbook.getting.started"></a>Getting Started</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="started.html#boostbook.setup.autounix">Automatic setup for Unix-like systems</a></span></dt>
+<dt><span class="section"><a href="started.html#boostbook.setup.manual">Manual setup for all systems</a></span></dt>
+<dt><span class="section"><a href="started.html#boostbook.setup.running">Running BoostBook</a></span></dt>
+<dt><span class="section"><a href="started.html#boostbook.setup.troubleshooting">Troubleshooting</a></span></dt>
+</dl></div>
+<p>To use the Boost documentation tools, you will need several tools:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<p class="simpara"><span class="command"><strong>xsltproc</strong></span>:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">Windows with <a href="http://www.cygwin.com/" target="_top">Cygwin</a>: select the libxml2 and libxslt packages.</li>
+<li class="listitem">Windows without Cygwin: Download the <a href="http://www.zlatkovic.com/pub/libxml/" target="_top">binary packages</a>
+            from Igor Zlatkovic. At the very least, you'll need iconv, zlib, libxml2 and libxslt.</li>
+<li class="listitem">Mac OS X with Fink: Get the <code class="computeroutput">libxslt</code> package.</li>
+<li class="listitem">Mac OS X without Fink: <a href="http://www.zveno.com/open_source/libxml2xslt.html" target="_top">Download the libxslt binaries</a>
+</li>
+<li class="listitem">Any platform: <a href="http://xmlsoft.org/XSLT/" target="_top">libxslt source</a>.</li>
+</ul></div>
+</li>
+<li class="listitem">
+<p class="simpara"><span class="command"><strong>doxygen</strong></span>:</p> Available from <a href="http://www.doxygen.org" target="_top">http://www.doxygen.org</a>
+</li>
+</ul></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boostbook.setup.autounix"></a>Automatic setup for Unix-like systems</h3></div></div></div>
+<p>BoostBook provides a nearly-automatic setup script. Once
+      you have downloaded and
+      installed <span class="command"><strong>xsltproc</strong></span>, <span class="command"><strong>doxygen</strong></span>,
+      and (optionally) <span class="command"><strong>java</strong></span>, the setup script can
+      download the required DocBook stylesheets, DocBook DTD, and
+      (when Java is enabled) Apache FOP for PDF output. It will then
+      configure Boost.Build version 2 to build BoostBook
+      documentation.</p>
+<p>The script requires: <span class="command"><strong>sh</strong></span>,
+      <span class="command"><strong>curl</strong></span> and <span class="command"><strong>gunzip</strong></span>.
+      To perform the installation, execute the
+      script <span class="command"><strong>tools/boostbook/setup_boostbook.sh</strong></span>
+      from a directory where you would like the resulting XSL, DTD,
+      and Apache FOP installations to occur. </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boostbook.setup.manual"></a>Manual setup for all systems</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="started.html#boostbook.setup.xsltproc">Configuring <span class="command"><strong>xsltproc</strong></span></a></span></dt>
+<dt><span class="section"><a href="started.html#boostbook.setup.docbook">Configuring local DocBook XSL and DTD distributions</a></span></dt>
+<dt><span class="section"><a href="started.html#boostbook.setup.doxygen">Configuring Doxygen for Documentation Extraction</a></span></dt>
+<dt><span class="section"><a href="started.html#boostbook.setup.fop">Configuring Apache FOP</a></span></dt>
+</dl></div>
+<p>This section describes how to manually configure Boost
+      Boost version 2 (BBv@) for BoostBook. If you can use the
+      automatic setup script, you should. All configuration will
+      happen in the BBv2 user configuration file,
+      <code class="filename">user-config.jam</code>. If you do not have a copy
+      of this file in your home directory, you should copy the one
+      that resides in <code class="computeroutput">tools/build/v2</code> to your home
+      directory. Alternatively, you can edit
+      <code class="filename">tools/build/v2/user-config.jam</code> directly or
+      a site-wide <code class="filename">site-config.jam</code> file.</p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boostbook.setup.xsltproc"></a>Configuring <span class="command"><strong>xsltproc</strong></span>
+</h4></div></div></div>
+<p>To configure <span class="command"><strong>xsltproc</strong></span> manually, you
+        will need to add a directive to
+        <code class="filename">user-config.jam</code> telling it where to find
+        <span class="command"><strong>xsltproc</strong></span>. If the program is in your path,
+        just add the following line to
+        <code class="filename">user-config.jam</code>:</p>
+<pre class="programlisting">using xsltproc ;</pre>
+<p>If <span class="command"><strong>xsltproc</strong></span> is somewhere else, use
+        this directive, where <code class="computeroutput">XSLTPROC</code> is the full
+        pathname to <span class="command"><strong>xsltproc</strong></span> (including
+        <span class="command"><strong>xsltproc</strong></span>):</p>
+<pre class="programlisting">using xsltproc : XSLTPROC ;</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boostbook.setup.docbook"></a>Configuring local DocBook XSL and DTD distributions</h4></div></div></div>
+<p>This section describes how to configure Boost.Build to
+        use local copies of the DocBook DTD and XSL stylesheets to
+        improve processing time. You will first need to download two
+        packages:
+
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>Norman Walsh's DocBook XSL stylesheets,
+          available at the <a href="http://docbook.sourceforge.net" target="_top">DocBook sourceforge
+          site</a>. Extract the DocBook XSL stylesheets to a
+          directory on your hard disk (which we'll refer to as the
+          <code class="computeroutput">DOCBOOK_XSL_DIR</code>).</p></li>
+<li class="listitem"><p>The DocBook DTD, available as a ZIP archive
+          at the <a href="http://www.oasis-open.org/docbook/xml/4.2/" target="_top">OASIS
+          DocBook site</a>. The package is called "DocBook XML
+          4.2". Extract the DocBook DTD to a directory on your hard
+          disk (which we'll refer to as the
+          <code class="computeroutput">DOCBOOK_DTD_DIR</code>). You will want to extract this
+          archive in a subdirectory!</p></li>
+</ul></div>
+<p>
+        </p>
+<p>Add the following directive telling BBv2 where to find
+        the DocBook DTD and XSL stylesheets:</p>
+<pre class="programlisting">#  BoostBook configuration
+using boostbook 
+  : DOCBOOK_XSL_DIR
+  : DOCBOOK_DTD_DIR
+  ;</pre>
+<p>Whenever you change this directive, you will need to
+        remove the <code class="computeroutput">bin.v2</code> directory that BBv2 generates.
+        This is due to longstanding bug we are trying to fix.</p>
+<p>At this point, you should be able to build HTML
+        documentation for libraries that do not require Doxygen. To
+        test this, change into the directory <code class="filename">$BOOST_ROOT/libs/function/doc</code> and
+        run the command <code class="computeroutput">bjam</code>: it should produce HTML
+        documentation for the Boost.Function library in the
+        <code class="computeroutput">html</code> subdirectory.</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boostbook.setup.doxygen"></a>Configuring Doxygen for Documentation Extraction</h4></div></div></div>
+<p>Doxygen is required to build the documentation for
+        several Boost libraries. You will need a recent version of
+        <a href="http://www.doxygen.org" target="_top">Doxygen</a> (most of
+        the 1.3.x and 1.4.x versions will suffice). BBv2 by adding the
+        following directive to
+        <code class="filename">user-config.jam</code>:</p>
+<pre class="programlisting">using doxygen : DOXYGEN ;</pre>
+<p><code class="filename">DOXYGEN</code> should be replaced with the
+        name of the <span class="command"><strong>doxygen</strong></span> executable (with full
+        path name). If the right <span class="command"><strong>doxygen</strong></span> executable
+        can be found via the path, this parameter can be
+        omitted, e.g.</p>
+<pre class="programlisting">using doxygen ;</pre>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>The relative order of declarations in
+          <code class="filename">user-config.jam</code> /
+          <code class="filename">site-config.jam</code> files is
+          significant. In particular, the <code class="literal">using
+          doxygen</code> line should come
+          <span class="emphasis"><em>after</em></span> the <code class="literal">using
+          boostbook</code> declaration.
+          </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boostbook.setup.fop"></a>Configuring Apache FOP</h4></div></div></div>
+<p>In order to generate PDF and PostScript output using
+      Apache FOP, you will need a <a href="http://java.sun.com" target="_top">Java interpreter</a> and <a href="http://xml.apache.org/fop/download.html" target="_top">Apache FOP</a>
+      (version 0.20.5 is best). Unpack Apache FOP to some
+      directory. The top level directory of the FOP tool should
+      contain a main script called <code class="filename">fop.sh</code> on Unix
+      and <code class="filename">fop.bat</code> on Windows. You need to specify
+      the location of that script and Java location to
+      Boost.Build. Add the following to your
+      <code class="filename">user-config.jam</code> or
+      <code class="filename">site-config.jam</code>:
+</p>
+<pre class="programlisting">
+using fop : FOP_COMMAND 
+          : JAVA_HOME 
+          ;
+</pre>
+<p> replacing
+      <code class="computeroutput">FOP_COMMAND</code> with the full path to the FOP main script, and
+      replacing <code class="computeroutput">JAVA_HOME</code> with the directory where Java is
+      installed. If the <code class="envar">JAVA_HOME</code> environment variable is
+      already set, you don't need to specify it above.
+      </p>
+<p>
+        Proper generation of images in PDFs depends on the <a href="http://java.sun.com/products/jimi/#" target="_top">Jimi Image
+        Library</a>.  To get FOP to use Jimi, extract the
+        <code class="filename">JimiProClasses.zip</code> file from the Jimi SDK
+        and rename it&#8212;if on Windows, to
+        <code class="filename">jimi-1.0.jar</code>, or if on *nix, to
+        <code class="filename">JimiProClasses.jar</code>&#8212;and place it in the
+        <code class="filename">lib/</code> subdirectory of your FOP
+        installation.
+      </p>
+<p>To test PDF generation, switch to the directory <code class="filename">$BOOST_ROOT/libs/function/doc</code> and
+      execute the command <span class="command"><strong>bjam pdf</strong></span>. In the
+      absence of any errors, Apache FOP will be executed to transform
+      the XSL:FO output of DocBook into a PDF file.</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boostbook.setup.running"></a>Running BoostBook</h3></div></div></div>
+<p>Once BoostBook has been configured, we can build some
+    documentation. First, change to the directory
+    <code class="computeroutput">$BOOST_ROOT/doc</code> and remove (or make writable) the
+    <code class="computeroutput">.html</code> files in
+    <code class="computeroutput">$BOOST_ROOT/doc/html</code>. Then, run <code class="computeroutput">bjam</code>
+    to build HTML documentation. You should see several
+    warnings like these while DocBook documentation is being built
+    from BoostBook documentation:</p>
+<pre class="programlisting">Cannot find function named 'checked_delete'
+Cannot find function named 'checked_array_delete'
+Cannot find function named 'next'</pre>
+<p>These warnings are emitted when the Boost documentation
+    tools cannot find documentation for functions, methods, or classes
+    that are referenced in the source, and are not harmful in any
+    way. Once Boost.Jam has completed its execution, HTML
+    documentation for Boost will be available in
+    <code class="computeroutput">$BOOST_ROOT/doc/html</code>. You can also create HTML
+    documentation in a single (large!) HTML file with the command line
+    <code class="computeroutput">bjam onehtml</code>, or Unix man pages with the command
+    line <code class="computeroutput">bjam man</code>. The complete list of output
+    formats is listed in <a class="xref" href="started.html#boostbook.output.formats" title="Table&#160;40.1.&#160;BoostBook Output Formats">Table&#160;40.1, &#8220;BoostBook Output Formats&#8221;</a>. Several output formats can
+    be passed to a single invocation of <code class="computeroutput">bjam</code>, e.g.,
+    <code class="computeroutput">bjam html man docbook</code> would generate HTML
+    (multiple files), man pages, and DocBook documentation.</p>
+<div class="table">
+<a name="boostbook.output.formats"></a><p class="title"><b>Table&#160;40.1.&#160;BoostBook Output Formats</b></p>
+<div class="table-contents"><table class="table" summary="BoostBook Output Formats">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Format</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>html</td>
+<td><p>HTML output (multiple files). This is the default</p></td>
+</tr>
+<tr>
+<td>onehtml</td>
+<td><p>HTML output in a single HTML file.</p></td>
+</tr>
+<tr>
+<td>man</td>
+<td><p>Unix man pages.</p></td>
+</tr>
+<tr>
+<td>pdf</td>
+<td><p>PDF. Requires <a href="http://xml.apache.org/fop/index.html" target="_top">Apache FOP</a>.</p></td>
+</tr>
+<tr>
+<td>ps</td>
+<td><p>Postscript. Requires <a href="http://xml.apache.org/fop/index.html" target="_top">Apache FOP</a>.</p></td>
+</tr>
+<tr>
+<td>docbook</td>
+<td>
+<a href="http://www.docbook.org/" target="_top">DocBook</a>.</td>
+</tr>
+<tr>
+<td>fo</td>
+<td><a href="http://www.w3.org/TR/xsl/" target="_top">XSL Formatting Objects</a></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boostbook.setup.troubleshooting"></a>Troubleshooting</h3></div></div></div>
+<p>The Boost documentation tools are still in their early phase of 
+      development, and some things don't work as seamlessly as we would like 
+      them to, yet. In particular, error messages can be somewhat 
+      uninformative at times. If you find yourself in the situation when 
+      you have double checked everything, and yet things still don't work as 
+      expected, consider helping the tools by deleting 
+      <code class="literal">bin.v2</code> build directory.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2005 Douglas Gregor<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file LICENSE_1_0.txt or copy at
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../boostbook.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boostbook.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../documenting.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

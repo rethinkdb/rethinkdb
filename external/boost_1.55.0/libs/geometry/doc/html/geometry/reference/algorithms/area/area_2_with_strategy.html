@@ -1,0 +1,481 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>area (with strategy)</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../area.html" title="area">
+<link rel="prev" href="area_1.html" title="area">
+<link rel="next" href="../assign.html" title="assign">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="area_1.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../area.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../assign.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.algorithms.area.area_2_with_strategy"></a><a class="link" href="area_2_with_strategy.html" title="area (with strategy)">area
+          (with strategy)</a>
+</h5></div></div></div>
+<p>
+            <a class="indexterm" name="idp51929896"></a>
+Calculates the area of a geometry using the specified strategy.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.area.area_2_with_strategy.h0"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.area.area_2_with_strategy.description"></a></span><a class="link" href="area_2_with_strategy.html#geometry.reference.algorithms.area.area_2_with_strategy.description">Description</a>
+          </h6>
+<p>
+            The free function area calculates the area of a geometry using the specified
+            strategy. Reasons to specify a strategy include: use another coordinate
+            system for calculations; construct the strategy beforehand (e.g. with
+            the radius of the Earth); select a strategy when there are more than
+            one available for a calculation.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.area.area_2_with_strategy.h1"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.area.area_2_with_strategy.synopsis"></a></span><a class="link" href="area_2_with_strategy.html#geometry.reference.algorithms.area.area_2_with_strategy.synopsis">Synopsis</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Strategy</span><span class="special">&gt;</span>
+<span class="identifier">Strategy</span><span class="special">::</span><span class="identifier">return_type</span> <span class="identifier">area</span><span class="special">(</span><span class="identifier">Geometry</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry</span><span class="special">,</span> <span class="identifier">Strategy</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">strategy</span><span class="special">)</span></pre>
+<p>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.area.area_2_with_strategy.h2"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.area.area_2_with_strategy.parameters"></a></span><a class="link" href="area_2_with_strategy.html#geometry.reference.algorithms.area.area_2_with_strategy.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Concept
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Name
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Geometry const &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Geometry Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      geometry
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A model of the specified concept
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Strategy const &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Area Strategy Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      strategy
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The strategy which will be used for area calculations
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.area.area_2_with_strategy.h3"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.area.area_2_with_strategy.returns"></a></span><a class="link" href="area_2_with_strategy.html#geometry.reference.algorithms.area.area_2_with_strategy.returns">Returns</a>
+          </h6>
+<p>
+            The calculated area
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.area.area_2_with_strategy.h4"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.area.area_2_with_strategy.header"></a></span><a class="link" href="area_2_with_strategy.html#geometry.reference.algorithms.area.area_2_with_strategy.header">Header</a>
+          </h6>
+<p>
+            Either
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<p>
+            Or
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">area</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.area.area_2_with_strategy.h5"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.area.area_2_with_strategy.conformance"></a></span><a class="link" href="area_2_with_strategy.html#geometry.reference.algorithms.area.area_2_with_strategy.conformance">Conformance</a>
+          </h6>
+<p>
+            The function area implements function Area from the <a href="http://www.opengeospatial.org/standards/sfa" target="_top">OGC
+            Simple Feature Specification</a>.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.area.area_2_with_strategy.h6"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.area.area_2_with_strategy.behavior"></a></span><a class="link" href="area_2_with_strategy.html#geometry.reference.algorithms.area.area_2_with_strategy.behavior">Behavior</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Case
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Behavior
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      pointlike (e.g. point)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Returns 0
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      linear (e.g. linestring)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Returns 0
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      areal (e.g. polygon)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Returns the area
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Cartesian
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Returns the area in the same units as the input coordinates
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Spherical
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Returns the area on a unit sphere (or another sphere, if specified
+                      as such in the constructor of the strategy)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Reversed polygon (coordinates not according their orientiation)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Returns the negative area
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.area.area_2_with_strategy.h7"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.area.area_2_with_strategy.supported_geometries"></a></span><a class="link" href="area_2_with_strategy.html#geometry.reference.algorithms.area.area_2_with_strategy.supported_geometries">Supported
+            geometries</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Geometry
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Status
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Point
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Segment
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Box
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Linestring
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Ring
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Polygon
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      MultiPoint
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      MultiLinestring
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      MultiPolygon
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.area.area_2_with_strategy.h8"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.area.area_2_with_strategy.complexity"></a></span><a class="link" href="area_2_with_strategy.html#geometry.reference.algorithms.area.area_2_with_strategy.complexity">Complexity</a>
+          </h6>
+<p>
+            Linear
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.area.area_2_with_strategy.h9"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.area.area_2_with_strategy.example"></a></span><a class="link" href="area_2_with_strategy.html#geometry.reference.algorithms.area.area_2_with_strategy.example">Example</a>
+          </h6>
+<p>
+            Calculate the area of a polygon
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">point_xy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">polygon</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">io</span><span class="special">/</span><span class="identifier">wkt</span><span class="special">/</span><span class="identifier">wkt</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">bg</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">;</span> <a class="co" name="geometry.reference.algorithms.area.area_2_with_strategy.c0" href="area_2_with_strategy.html#geometry.reference.algorithms.area.area_2_with_strategy.c1"><img src="../../../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Calculate the area of a cartesian polygon</span>
+    <span class="identifier">bg</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">polygon</span><span class="special">&lt;</span><span class="identifier">bg</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">d2</span><span class="special">::</span><span class="identifier">point_xy</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">poly</span><span class="special">;</span>
+    <span class="identifier">bg</span><span class="special">::</span><span class="identifier">read_wkt</span><span class="special">(</span><span class="string">"POLYGON((0 0,0 7,4 2,2 0,0 0))"</span><span class="special">,</span> <span class="identifier">poly</span><span class="special">);</span>
+    <span class="keyword">double</span> <span class="identifier">area</span> <span class="special">=</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">area</span><span class="special">(</span><span class="identifier">poly</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Area: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">area</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="comment">// Calculate the area of a spherical polygon (for latitude: 0 at equator)</span>
+    <span class="identifier">bg</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">polygon</span><span class="special">&lt;</span><span class="identifier">bg</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">point</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">spherical_equatorial</span><span class="special">&lt;</span><span class="identifier">bg</span><span class="special">::</span><span class="identifier">degree</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">sph_poly</span><span class="special">;</span>
+    <span class="identifier">bg</span><span class="special">::</span><span class="identifier">read_wkt</span><span class="special">(</span><span class="string">"POLYGON((0 0,0 45,45 0,0 0))"</span><span class="special">,</span> <span class="identifier">sph_poly</span><span class="special">);</span>
+    <span class="identifier">area</span> <span class="special">=</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">area</span><span class="special">(</span><span class="identifier">sph_poly</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Area: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">area</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<div class="calloutlist"><table border="0" summary="Callout list"><tr>
+<td width="5%" valign="top" align="left"><p><a name="geometry.reference.algorithms.area.area_2_with_strategy.c1"></a><a href="#geometry.reference.algorithms.area.area_2_with_strategy.c0"><img src="../../../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+                Convenient namespace alias
+              </p></td>
+</tr></table></div>
+<p>
+            Output:
+          </p>
+<pre class="programlisting">Area: 16
+Area: 0.339837
+</pre>
+<h6>
+<a name="geometry.reference.algorithms.area.area_2_with_strategy.h10"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.area.area_2_with_strategy.available_strategies"></a></span><a class="link" href="area_2_with_strategy.html#geometry.reference.algorithms.area.area_2_with_strategy.available_strategies">Available
+            Strategies</a>
+          </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <a class="link" href="../../strategies/strategy_area_surveyor.html" title="strategy::area::surveyor">Surveyor
+                (cartesian)</a>
+              </li>
+<li class="listitem">
+                <a class="link" href="../../strategies/strategy_area_huiller.html" title="strategy::area::huiller">Huiller
+                (spherical)</a>
+              </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="area_1.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../area.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../assign.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

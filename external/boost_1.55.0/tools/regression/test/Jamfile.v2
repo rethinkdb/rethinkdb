@@ -1,0 +1,27 @@
+# Copyright Misha Bergal 2006
+#
+# Distributed under the Boost Software License, Version 1.0.
+# See http://www.boost.org/LICENSE_1_0.txt
+
+test-suite testlib :
+    [ compile-fail compile-fail_fail.cpp ]
+    [ compile-fail compile-fail_pass.cpp ]
+    [ compile compile_fail.cpp  ]
+    [ compile compile_pass.cpp  ]
+    [ compile compile_warn.cpp  ]
+#  The link test .cpp files were apparently never committed to the repository,
+#  and were lost.   
+#    [ link link_fail.cpp ]
+#    [ link link_pass.cpp ]
+#    [ link-fail link-fail_fail.cpp ]
+#    [ link-fail link-fail_pass.cpp ]
+    [ run-fail run-fail_compile-fail.cpp ]
+    [ run-fail run-fail_fail-warn.cpp ]
+    [ run-fail run-fail_fail.cpp ]
+    [ run-fail run-fail_pass.cpp ]
+    [ run run_fail.cpp ]
+    [ run run_note.cpp ]
+    [ run run_pass.cpp ]
+    [ run run_warn-note.cpp ]
+    [ run run_warn.cpp ]
+    ;

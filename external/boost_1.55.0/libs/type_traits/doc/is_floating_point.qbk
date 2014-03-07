@@ -1,0 +1,31 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_floating_point is_floating_point]
+   template <class T>
+   struct is_floating_point : public __tof {};
+  
+__inherit If T is a (possibly cv-qualified) floating point type then inherits from __true_type, 
+otherwise inherits from __false_type.
+
+__std_ref 3.9.1p8.
+
+__header ` #include <boost/type_traits/is_floating_point.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__examples
+
+[:`is_floating_point<float>` inherits from `__true_type`.]
+
+[:`is_floating_point<double>::type` is the type `__true_type`.]
+
+[:`is_floating_point<long double>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_floating_point<T>::value_type` is the type `bool`.]
+
+[endsect]
+

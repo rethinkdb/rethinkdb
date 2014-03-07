@@ -1,0 +1,500 @@
+
+[/ Copyright (C) 2006-2009, 2012 Alexander Nasonov ]
+[/ Copyright (C) 2012 Lorenzo Caminiti ]
+[/ Distributed under the Boost Software License, Version 1.0 ]
+[/ (see accompanying file LICENSE_1_0.txt or a copy at ]
+[/ http://www.boost.org/LICENSE_1_0.txt) ]
+[/ Home at http://www.boost.org/libs/scope_exit ]
+
+[library Boost.ScopeExit
+    [quickbook 1.5]
+    [version 1.1.0]
+    [copyright 2006-2012 Alexander Nasonov, Lorenzo Caminiti]
+    [purpose execute arbitrary code at scope exit]
+    [license
+        Distributed under the Boost Software License, Version 1.0
+        (see accompanying file LICENSE_1_0.txt or a copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+    [authors
+        [Nasonov, Alexander]
+        [Caminiti <email>lorcaminiti@gmail.com</email>, Lorenzo]
+    ]
+    [category utility]
+    [id scope_exit]
+    [dirname scope_exit]
+]
+
+[def __Introduction__ [link scope_exit.introduction Introduction]]
+[def __Getting_Started__ [link scope_exit.getting_started Getting Started]]
+[def __Tutorial__ [link scope_exit.tutorial Tutorial]]
+[def __No_Variadic_Macros__ [link scope_exit.no_variadic_macros No Variadic Macros]]
+[def __Reference__ [@reference.html Reference]]
+[def __Boost_ScopeExit__ [link scope_exit Boost.ScopeExit]]
+[def __Boost_Lambda__ [@http://www.boost.org/libs/lambda Boost.Lambda]]
+[def __Boost_Phoenix__ [@http://www.boost.org/libs/phoenix Boost.Phoenix]]
+[def __Boost_Typeof__ [@http://www.boost.org/libs/typeof Boost.Typeof]]
+[def __typeof_emulation__ [@http://www.boost.org/libs/typeof type-of emulation]]
+[def __Boost_Preprocessor__ [@http://www.boost.org/libs/preprocessor Boost.Preprocessor]]
+[def __Boost_Config__ [@http://www.boost.org/libs/config Boost.Config]]
+[def __Boost_PointerContainer__ [@http://www.boost.org/libs/ptr_container Boost.PointerContainer]]
+[def __Boost_Multi_Index__ [@http://www.boost.org/libs/multi_index Boost.Multi-Index]]
+[def __ScopeGuard__ [@http://www.ddj.com/dept/cpp/184403758 ScopeGuard]]
+[def __D__ [@http://www.digitalmars.com/d/index.html D]]
+[def __D_scope_exit__ [@http://www.digitalmars.com/d/2.0/statement.html#ScopeGuardStatement scope(exit)]]
+[def __RAII__ [@http://www.research.att.com/~bs/glossary.html#Gresource-acquisition-is-initialization RAII]]
+[def __strong_guarantee__ [@http://www.research.att.com/~bs/glossary.html#Gstrong-guarantee strong guarantee]]
+
+[import ../test/world.cpp]
+[import ../test/world_seq.cpp]
+[import ../test/world_checkpoint.cpp]
+[import ../test/world_this.cpp]
+[import ../test/world_void.cpp]
+[import ../test/world_checkpoint_all.cpp]
+[import ../test/world_tpl.cpp]
+[import ../test/same_line.cpp]
+[import ../example/try_catch.cpp]
+[import ../example/scope_guard.cpp]
+[import ../example/world_cxx11_lambda.cpp]
+
+This library allows to execute arbitrary code when the enclosing scope exits.
+
+[section Introduction]
+
+Nowadays, every C++ developer is familiar with the Resource Acquisition Is Initialization (__RAII__) technique.
+It binds resource acquisition and release to initialization and destruction of a variable that holds the resource.
+There are times when writing a special class for such a variable is not worth the effort.
+This is when __Boost_ScopeExit__ comes into play.
+
+Programmers can put resource acquisition directly in their code and next to it, they can write code that releases the resource using this library.
+For example (see also [@../../test/world.cpp =world.cpp=]):
+[footnote
+Older versions of this library used a __Boost_Preprocessor__ sequence to specify the list of captured variables.
+While maintaining full backward compatibility, it is now possible to specify the captured variables also using a comma-separated list (which is the preferred syntax).
+See the __No_Variadic_Macros__ section for more information.
+]
+
+[world]
+
+[endsect]
+
+[section Getting Started]
+
+This section explains how to setup a system to use this library.
+
+[section This Documentation]
+
+Programmers should have enough knowledge to use this library after reading the __Introduction__, __Getting_Started__, and __Tutorial__ sections.
+The __Reference__ section can be consulted at a later point for quick reference.
+All the other sections of this documentation can be considered optional. 
+
+Some footnotes are marked by the word "*Rationale*".
+They explain reasons behind decisions made during the design and implementation of this library.
+
+In most of the examples presented in this documentation, the Boost.Detail/LightweightTest (=boost/detail/lightweight_test.hpp=) macro `BOOST_TEST` is used to check correctness conditions.
+The `BOOST_TEST` macro is conceptually similar to `assert` but a failure of the checked condition does not abort the program, instead it makes `boost::report_errors` return a non-zero program exit code.
+[footnote
+*Rationale.*
+Using Boost.Detail/LightweightTest allows to add the examples to the library regression tests so to make sure that they always compile and run correctly.
+]
+
+[endsect]
+
+[section Compilers and Platforms]
+
+The authors originally developed and tested the library on GNU Compiler Collection (GCC) C++ 3.3, 3.4, 4.1, 4.2, 4.5.3 (with and without C++11 features [^-std=c++0x]), Microsoft Visual C++ (MSVC) 8.0, and Intel 10.1 under Linux, Cygwin, and Windows 7.
+However, this library should be usable on any compiler that supports __Boost_Typeof__ except:
+
+* MSVC 7.1 and 8.0 fail to link if a function with __Boost_ScopeExit__ is included by multiple translation units.
+* GCC 3.3 cannot compile __Boost_ScopeExit__ inside a template (see [@http://lists.boost.org/Archives/boost/2007/02/116235.php] for details).
+
+See the library [@http://www.boost.org/development/tests/release/developer/scope_exit.html regression test results] for detailed information on supported compilers and platforms.
+Check the library regression test [@../../test/Jamfile.v2 =Jamfile.v2=] for any special configuration that might be required for a specific compiler.
+
+[endsect]
+
+[section Installation]
+
+This library is composed of header files only.
+Therefore there is no pre-compiled object file which needs to be installed.
+Programmers can simply instruct the compiler where to find the library header files (`-I` option on GCC, `/I` option on MSVC, etc) and compile code using the library.
+
+The library implementation uses __Boost_Typeof__ to automatically deduce the types of the __Boost_ScopeExit__ captured variables (see the __Tutorial__ section).
+In order to compile code in __typeof_emulation__ mode, all types should be properly registered using `BOOST_TYPEOF_REGISTER_TYPE` and `BOOST_TYPEOF_REGISTER_TEMPLATE`, or appropriate __Boost_Typeof__ headers should be included (see the source code of most examples presented in this documentation).
+
+[endsect]
+
+[endsect]
+
+[section Tutorial]
+
+This section illustrates how to use this library.
+
+[section Capturing Variables]
+
+Imagine that we want to make many modifications to data members of some `world` class in its `world::add_person` member function.
+We start with adding a new `person` object to a vector of persons:
+
+    void world::add_person(person const& a_person) {
+        bool commit = false;
+
+        persons_.push_back(a_person);           // (1) direct action
+        ...
+
+Some operations down the road may throw an exception and all changes to involved objects should be rolled back.
+This all-or-nothing semantic is also known as __strong_guarantee__.
+
+In particular, the last added person must be deleted from `persons_` if the function throws.
+All we need is to define a delayed action (release of a resource) right after the direct action (resource acquisition).
+For example (see also [@../../test/world.cpp =world.cpp=]):
+
+[world]
+
+The block below point =(1)= is a __Boost_ScopeExit__ declaration.
+Unlike point =(1)=, an execution of the __Boost_ScopeExit__ body will be delayed until the end of the current scope. In this case it will be executed either after point =(4)= or on any exception.
+(On various versions of the GCC compiler, it is necessary to use [macroref BOOST_SCOPE_EXIT_TPL] instead of [macroref BOOST_SCOPE_EXIT] within templates, see later in this section for details.)
+
+The __Boost_ScopeExit__ declaration starts with the [macroref BOOST_SCOPE_EXIT] macro invocation which accepts a comma-separated list of captured variables (a __Boost_Preprocessor__ sequence is also accepted for compilers that do not support variadic macros and for backward compatibility with older versions of this library, see the __No_Variadic_Macros__ section).
+If a capture starts with the ampersand sign `&`, a reference to the captured variable will be available inside the __Boost_ScopeExit__ body; otherwise, a copy of the variable will be made after the __Boost_ScopeExit__ declaration at point =(1)= and only the copy will be available inside the body (in this case, the captured variable's type must be [@http://www.boost.org/doc/libs/release/doc/html/CopyConstructible.html `CopyConstructible`]).
+
+In the example above, the variables `commit` and `persons_` are captured by reference because the final value of the `commit` variable should be used to determine whether to execute rollback actions or not, and the action should modify the `persons_` object, not its copy.
+This is the most common case but passing a variable by value is sometimes useful as well.
+
+Finally, the end of the __Boost_ScopeExit__ body must be marked by the [macroref BOOST_SCOPE_EXIT_END] macro which must follow the closing curly bracket `}` of the __Boost_ScopeExit__ body.
+
+[important
+In order to comply with the [@http://www.stlport.org/doc/exception_safety.html STL exception safety requirements], the __Boost_ScopeExit__ body must never throw (because the library implementation executes the body within a destructor call).
+This is true for all __Boost_ScopeExit__ macros (including [macroref BOOST_SCOPE_EXIT_TPL] and [macroref BOOST_SCOPE_EXIT_ALL] seen below) on both C++03 and C++11.
+]
+
+Consider a more complex example where `world::add_person` can save intermediate states at some point and roll back to the last saved state.
+We use `person::evolution_` to store a version of the changes and increment it to cancel all rollback actions associated with those changes.
+If we pass a current value of `evolution_` stored in the `checkpoint` variable by value, it remains unchanged within the __Boost_ScopeExit__ body so we can compare it with the final value of `evolution_`.
+If the latter was not incremented since we saved it, the rollback action inside the __Boost_ScopeExit__ body should be executed.
+For example (see also [@../../test/world_checkpoint.cpp =world_checkpoint.cpp=]):
+
+[world_checkpoint]
+
+When multiple __Boost_ScopeExit__ blocks are declared within the same enclosing scope, the __Boost_ScopeExit__ bodies are executed in the reversed order of their declarations.
+
+[endsect]
+
+[section Capturing The Object `this`]
+
+Within a member function, it is also possible to capture the object `this`.
+However, the special symbol `this_` must be used instead of `this` in the __Boost_ScopeExit__ declaration and body to capture and access the object.
+For example (see also [@../../test/world_this.cpp =world_this.cpp=]):
+
+[world_this]
+
+It is not possible to capture the object `this_` by reference because C++ does not allow to take a reference to `this`.
+If the enclosing member function is constant then the captured object will also be constant, otherwise the captured object will be mutable.
+
+[endsect]
+
+[section Capturing No Variable]
+
+A __Boost_ScopeExit__ declaration can also capture no variable.
+In this case, the list of captured variables is replaced by the `void` keyword (similarly to the C++ syntax that allows to declare a function with no parameter using [^['result-type function-name]]`(void)`).
+[footnote
+*Rationale.*
+Unfortunately, it is not possible to simply invoke the __Boost_ScopeExit__ macro with no parameters as in `BOOST_SCOPE_EXIT()` because the C++ preprocessor cannot detect emptiness of a macro parameter when the parameter can start with a non-alphanumeric symbol (which is the case when capturing a variable by reference `&variable`).
+]
+For example, this can be useful when the __Boost_ScopeExit__ body only needs to access global variables (see also [@../../test/world_void.cpp =world_void.cpp=]):
+
+[world_void]
+
+(Both compilers with and without variadic macros use this same syntax for capturing no variable, see the __No_Variadic_Macros__ section for more information.)
+
+[endsect]
+
+[section Capturing All Variables (C++11 Only)]
+
+On C++11 compliers, it is also possible to capture all the variables in scope without naming them one-by-one using the special macro [macroref BOOST_SCOPE_EXIT_ALL] instead of [macroref BOOST_SCOPE_EXIT].
+[footnote
+*Rationale.*
+The [macroref BOOST_SCOPE_EXIT_ALL] macro is only defined on C++11 compilers for which the __Boost_Config__ macro `BOOST_NO_CXX11_LAMBDAS` is not defined.
+Using [macroref BOOST_SCOPE_EXIT_ALL] on C++03 compilers for which `BOOST_NO_CXX11_LAMBDAS` is defined will generate (possibly cryptic) compiler errors.
+Note that a new macro [macroref BOOST_SCOPE_EXIT_ALL] needed to be introduced instead of reusing [macroref BOOST_SCOPE_EXIT] because `BOOST_SCOPE_EXIT(&)` and `BOOST_SCOPE_EXIT(=)` cannot be distinguished from `BOOST_SCOPE_EXIT(void)` or `BOOST_SCOPE_EXIT(this_)` using the C++ preprocessor given that the symbols `&` and `=` are neither prefxied nor postfixed by alphanumeric tokens (this is not an issue for [macroref BOOST_SCOPE_EXIT_ALL] which always has the non-alphanumeric `&` or `=` as the first capture so the first capture tokens are simply never compared with neither `void` nor `this_` for this macro).
+]
+
+Following the same syntax adopted by C++11 lambda functions, the [macroref BOOST_SCOPE_EXIT_ALL] macro accepts a comma-separated list of captures which must start with either `&` or `=` to capture all variables in scope respectively by reference or by value (note that no variable name is specified by these leading captures).
+Additional captures of specific variables can follow the leading `&` or `=` and they will override the default reference or value captures.
+For example (see also [@../../test/world_checkpoint_all.cpp =world_checkpoint_all.cpp=]):
+
+[world_checkpoint_all]
+
+The first __Boost_ScopeExit__ declaration captures all variables in scope by reference but the variable `checkpoint` and the object `this` which are explicitly captured by value (in particular, `p` and `persons_` are implicitly captured by reference here).
+The second __Boost_ScopeExit__ declaration instead captures all variables in scope by value but `p` which is explicitly captured by reference (in particular, `checkpoint`, `prev_id`, and `this` are implicitly captured by value here).
+
+Note that the [macroref BOOST_SCOPE_EXIT_ALL] macro follows the C++11 lambda function syntax which is unfortunately different from the [macroref BOOST_SCOPE_EXIT] macro syntax.
+In particular:
+
+# The [macroref BOOST_SCOPE_EXIT_ALL] macro cannot capture data members without capturing the object `this` while that is not the case for [macroref BOOST_SCOPE_EXIT].
+[footnote
+At present, there seems to be some discussion to allow C++11 lambda functions to capture data members without capturing the object `this`.
+If the C++11 standard were changed to allow this, the [macroref BOOST_SCOPE_EXIT_ALL] macro syntax could be extended to be a superset of the [macroref BOOST_SCOPE_EXIT] macro while keeping full backward compatibility.
+]
+# The [macroref BOOST_SCOPE_EXIT_ALL] macro captures the object in scope using `this` instead of `this_`.
+[footnote
+On compilers that support the use of the `typename` outside templates as allowed by the C++11 standard, [macroref BOOST_SCOPE_EXIT_ALL] can use both `this` and `this_` to capture the object in scope (notably, this is not the case for the MSVC 10.0 compiler).
+]
+# The [macroref BOOST_SCOPE_EXIT_ALL] body is terminated by a semicolon `;` instead than by the [macroref BOOST_SCOPE_EXIT_END] macro.
+
+If programmers define the configuration macro [macroref BOOST_SCOPE_EXIT_CONFIG_USE_LAMBDAS] then the [macroref BOOST_SCOPE_EXIT] macro implementation will use C++11 lamda functions and the [macroref BOOST_SCOPE_EXIT] macro will follow the same syntax of [macroref BOOST_SCOPE_EXIT_ALL] macro, which is the C++11 lambda function syntax.
+However, [macroref BOOST_SCOPE_EXIT] will no longer be backward compatible and older code using [macroref BOOST_SCOPE_EXIT] might no longer compile (if data members were explicitly captured).
+
+[endsect]
+
+[section Template Workaround (GCC)]
+
+Various versions of the GCC compiler do not compile [macroref BOOST_SCOPE_EXIT] inside templates (see the __Reference__ section for more information).
+As a workaround, [macroref BOOST_SCOPE_EXIT_TPL] should be used instead of [macroref BOOST_SCOPE_EXIT] in these cases.
+[footnote
+*Rationale.*
+GCC versions compliant with C++11 do not present this issue and given that [macroref BOOST_SCOPE_EXIT_ALL] is only available on C++11 compilers, there is no need for a `BOOST_SCOPE_EXIT_ALL_TPL` macro.
+]
+The [macroref BOOST_SCOPE_EXIT_TPL] macro has the exact same syntax of [macroref BOOST_SCOPE_EXIT].
+For example (see also [@../../test/world_tpl.cpp =world_tpl.cpp=]):
+
+[world_tpl]
+
+It is recommended to always use [macroref BOOST_SCOPE_EXIT_TPL] within templates so to maximize portability among different compilers.
+
+[endsect]
+
+[section Same Line Expansions]
+
+In general, it is not possible to expand the [macroref BOOST_SCOPE_EXIT], [macroref BOOST_SCOPE_EXIT_TPL], [macroref BOOST_SCOPE_EXIT_END], and [macroref BOOST_SCOPE_EXIT_ALL] macros multiple times on the same line.
+[footnote
+*Rationale.*
+The library macros internally use `__LINE__` to generate unique identifiers.
+Therefore, if the same macro is expanded more than on time on the same line, the generated identifiers will no longer be unique and the code will not compile.
+(This restriction does not apply to MSVC and other compilers that provide the non-standard `__COUNTER__` macro.)
+]
+
+Therefore, this library provides additional macros [macroref BOOST_SCOPE_EXIT_ID], [macroref BOOST_SCOPE_EXIT_ID_TPL], [macroref BOOST_SCOPE_EXIT_END_ID], and [macroref BOOST_SCOPE_EXIT_ALL_ID] which can be expanded multiple times on the same line as long as programmers specify a unique identifiers as the macros' first parameters.
+The unique identifier can be any token (not just numeric) that can be concatenated by the C++ preprocessor (e.g., `scope_exit_number_1_at_line_123`).
+[footnote
+Because there are restrictions on the set of tokens that the C++ preprocessor can concatenate and because not all compilers correctly implement these restrictions, it is in general recommended to specify unique identifiers as a combination of alphanumeric tokens.
+]
+
+The [macroref BOOST_SCOPE_EXIT_ID], [macroref BOOST_SCOPE_EXIT_ID_TPL], and [macroref BOOST_SCOPE_EXIT_ALL_ID] macros accept a capture list using the exact same syntax as [macroref BOOST_SCOPE_EXIT] and [macroref BOOST_SCOPE_EXIT_ALL] respectively.
+For example (see also [@../../test/same_line.cpp =same_line.cpp=]):
+
+[same_line]
+
+As shown by the example above, the [macroref BOOST_SCOPE_EXIT_ID], [macroref BOOST_SCOPE_EXIT_ID_TPL], [macroref BOOST_SCOPE_EXIT_END_ID], and [macroref BOOST_SCOPE_EXIT_ALL_ID] macros are especially useful when it is necessary to invoke them multiple times within user-defined macros (because the C++ preprocessor expands all nested macros on the same line).
+
+[endsect]
+
+[endsect]
+
+[section:alternatives Annex: Alternatives]
+
+This section presents some alternative and related work to __Boost_ScopeExit__.
+
+[heading Try-Catch]
+
+This is an example of using a badly designed `file` class. 
+An instance of `file` does not close the file in its destructor, a programmer is expected to call the `close` member function explicitly.
+For example (see also [@../../example/try_catch.cpp =try_catch.cpp=]):
+
+[try_catch_bad]
+
+Note the following issues with this approach:
+
+# The `passwd` object is defined outside of the `try` block because this object is required inside the `catch` block to close the file.
+# The `passwd` object is not fully constructed until after the `open`
+member function returns.
+# If opening throws, the `passwd.close()` should not be called, hence the call to `passwd.is_open()`.
+
+The __Boost_ScopeExit__ approach does not have any of these issues.
+For example (see also [@../../example/try_catch.cpp =try_catch.cpp=]):
+
+[try_catch_good]
+
+[heading RAII]
+
+__RAII__ is absolutely perfect for the `file` class introduced above.
+Use of a properly designed `file` class would look like:
+
+	try {
+	    file passwd("/etc/passwd");
+	    // ...
+	} catch(...) {
+	    std::clog << "could not get user info" << std::endl;
+	    throw;
+	}
+
+However, using __RAII__ to build up a __strong_guarantee__ could introduce a lot of non-reusable __RAII__ types.
+For example:
+
+	persons_.push_back(a_person);
+	pop_back_if_not_commit pop_back_if_not_commit_guard(commit, persons_);
+
+The `pop_back_if_not_commit` class is either defined out of the scope or as a local class:
+
+	class pop_back_if_not_commit {
+	    bool commit_;
+	    std::vector<person>& vec_;
+	    // ...
+	    ~pop_back_if_not_commit() {
+	        if(!commit_) vec_.pop_back();
+	    }
+	};
+
+In some cases __strong_guarantee__ can be accomplished with standard utilities:
+
+	std::auto_ptr<Person> superman_ptr(new superman());
+	persons_.push_back(superman_ptr.get());
+	superman_ptr.release(); // persons_ successfully took ownership
+
+Or with specialized containers such as __Boost_PointerContainer__ or __Boost_Multi_Index__.
+
+[heading Scope Guards]
+
+Imagine that a new currency rate is introduced before performing a transaction (see also []):
+
+[scope_guard_decl]
+	
+If the transaction does not complete, the currency must be erased from `rates`.
+This can be done with __ScopeGuard__ and __Boost_Lambda__ (or __Boost_Phoenix__):
+	
+    using namespace boost::lambda;
+
+    ON_BLOCK_EXIT(
+        if_(currency_rate_inserted && !_1) [
+            bind(
+                static_cast<
+                    std::map<std::string, double>::size_type 
+                    (std::map<std::string, double>::*)(std::string const&)
+                >(&std::map<std::string, double>::erase)
+              , &rates
+              , currency
+            )
+        ]
+      , boost::cref(commit)
+      );
+
+    // ...
+
+    commit = true;
+
+Note the following issues with this approach:
+
+# __Boost_Lambda__ expressions are hard to write correctly (e.g., overloaded functions must be explicitly casted, as demonstrated in the example above).
+# The condition in the `if_` expression refers to `commit` variable indirectly through the `_1` placeholder reducing readability.
+# Setting a breakpoint inside `if_[...]` requires in-depth knowledge of __Boost_Lambda__ and debugging techniques.
+
+This code will look much better with C++11 lambdas:
+
+    ON_BLOCK_EXIT(
+        [currency_rate_inserted, &commit, &rates, &currency]() {
+            if(currency_rate_inserted && !commit) rates.erase(currency);
+        }
+    );
+    
+    // ...
+    
+    commit = true;
+
+With __Boost_ScopeExit__ we can simply do the following (see also [@../../example/scope_guard.cpp =scope_guard.cpp=]):
+
+[scope_guard_exit]
+
+[heading The D Programming Language]
+
+__Boost_ScopeExit__ is similar to __D_scope_exit__ feature built into the __D__ programming language.
+
+A curious reader may notice that the library does not implement `scope(success)` and `scope(failure)` of the __D__ language.
+Unfortunately, these are not possible in C++ because failure or success conditions cannot be determined by calling `std::uncaught_exception` (see [@http://www.gotw.ca/gotw/047.htm Guru of the Week #47] for details about `std::uncaught_exception` and if it has any good use at all).
+However, this is not a big problem because these two __D__'s constructs can be expressed in terms of __D_scope_exit__ and a `bool commit` variable (similarly to some examples presented in the __Tutorial__ section).
+
+[heading C++11 Lambdas]
+
+Using C++11 lambdas, it is relatively easy to implement the __Boost_ScopeExit__ construct.
+For example (see also [@../../example/world_cxx11_lambda.cpp =world_cxx11_lambda.cpp=]):
+
+[world_cxx11_lambda]
+
+However, this library allows to program the __Boost_ScopeExit__ construct in a way that is portable between C++03 and C++11 compilers.
+
+[endsect]
+
+[section:no_variadic_macros Annex: No Variadic Macros]
+
+This section presents an alternative syntax for compilers without variadic macro support.
+
+[heading Sequence Syntax]
+
+Most modern compilers support variadic macros (notably, these include GCC, MSVC, and all C++11 compilers).
+[footnote
+A C++ compiler does not support variadic macros if the __Boost_Config__ macro `BOOST_NO_CXX11_VARIADIC_MACROS` is defined for that compiler.
+]
+However, in the rare case that programmers need to use this library on a complier without variaidc macros, this library also allows to specify the capture list using a __Boost_Preprocessor__ sequence where tokens are separated by round parenthesis `()`:
+
+    (capture1) (capture2) ... // All compilers.
+
+Instead of the comma-separated list that we have seen so far which requires variadic macros:
+
+    capture1, capture2, ... // Only compilers with variadic macros.
+
+For example, the following syntax is accepted on all compilers with and without variadic macros (see also [@../../test/world_seq.cpp =world_seq.cpp=] and [@../../test/world.cpp =world.cpp=]):
+
+[table
+[ [Boost.Preprocessor Sequence (All Compilers)] [Comma-Separated List (Variadic Macros Only)] ]
+[ [[world_seq]] [[world]] ]
+]
+
+Note how the same macros accept both syntaxes on compilers with variadic macros and only the __Boost_Preprocessor__ sequence syntax on compilers without variadic macros.
+Older versions of this library used to only support the __Boost_Preprocessor__ sequence syntax so this syntax is supported also for backward compatibility.
+However, in the current version of this library and on compilers with variadic macros, the comma-separated syntax is preferred because it is more readable.
+
+Finally, an empty capture list is always specified using `void` on compilers with and without variaidc macros (see also [@../../test/world_void.cpp =world_void.cpp=]):
+
+[world_void]
+
+[heading Examples]
+
+For reference, the following is a list of most of the examples presented in this documentation reprogrammed using the __Boost_Preprocessor__ sequence syntax instead of comma-separated lists (in alphabetic order):
+
+[table
+    [ [Files] ]
+    [ [[@../../test/same_line_seq.cpp =same_line_seq.cpp=]] ]
+    [ [[@../../example/scope_guard_seq.cpp =scope_guard_seq.cpp=]] ]
+    [ [[@../../example/try_catch_seq.cpp =try_catch_seq.cpp=]] ]
+    [ [[@../../test/world_checkpoint_all_seq.cpp =world_checkpoint_all_seq.cpp=]] ]
+    [ [[@../../test/world_checkpoint_seq.cpp =world_checkpoint_seq.cpp=]] ]
+    [ [[@../../test/world_this_seq.cpp =world_this_seq.cpp=]] ]
+    [ [[@../../test/world_tpl_seq.cpp =world_tpl_seq.cpp=]] ]
+]
+
+[endsect]
+
+[xinclude reference.xml]
+
+[section Acknowledgements]
+
+Alexander Nasonov is the original library author.
+
+Lorenzo Caminiti added variadic macro support, capture of the object `this_`, empty captures using `void`, and `BOOST_SCOPE_EXIT_ALL`.
+
+Thanks to the following people (in chronological order):
+
+Maxim Yegorushkin for sharing code where he used a local struct to clean up resources;
+
+Andrei Alexandrescu for pointing out the __D_scope_exit__ construct of the __D__ programming language;
+
+Pavel Vozenilek and Maxim Yanchenko for reviews of early drafts of the library;
+
+Steven Watanabe for his valuable ideas;
+
+Jody Hagins for good comments that helped to significantly improve the documentation;
+
+Richard Webb for testing the library on MSVC compiler;
+
+Adam Butcher for a workaround to error C2355 when deducing the type of `this` on some MSVC versions.
+
+[endsect]
+

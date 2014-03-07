@@ -1,0 +1,67 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Values]
+
+Values are functions! Examples:
+
+    val(3)
+    val("Hello, World")
+
+The first evaluates to a nullary function (a function taking no arguments) that
+returns an `int`, `3`. The second evaluates to a nullary function that returns
+a `char const(&)[13]`, `"Hello, World"`.
+
+[heading Lazy Evaluation]
+
+Confused? `val` is a unary function and `val(3)` invokes it, you say?
+Yes. However, read carefully: /"evaluates to a nullary function"/.
+`val(3)` evaluates to (returns) a nullary function. Aha! `val(3)`
+returns a function! So, since `val(3)` returns a function, you can
+invoke it. Example:
+
+    std::cout << val(3)() << std::endl;
+
+(See [@../../example/values.cpp values.cpp])
+
+[blurb __tip__ Learn more about values [link phoenix.modules.core.values here.]]
+
+The second function call (the one with no arguments) calls the nullary function
+which then returns `3`. The need for a second function call is the reason why
+the function is said to be [*/Lazily Evaluated/]. The first call doesn't do
+anything. You need a second call to finally evaluate the thing. The first call
+lazily evaluates the function; i.e. doesn't do anything and defers the evaluation
+for later.
+
+[heading Callbacks]
+
+It may not be immediately apparent how lazy evaluation can be useful by just
+looking at the example above. Putting the first and second function call in a
+single line is really not very useful. However, thinking of `val(3)` as a
+callback function (and in most cases they are actually used that way), will make
+it clear. Example:
+
+    template <typename F>
+    void print(F f)
+    {
+        cout << f() << endl;
+    }
+
+    int
+    main()
+    {
+        print(val(3));
+        print(val("Hello World"));
+        return 0;
+    }
+
+(See [@../../example/callback.cpp callback.cpp])
+
+[endsect]
+

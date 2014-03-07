@@ -1,0 +1,214 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/mr.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/mr.xml
+ */
+mr{
+    AuxExemplarCharacters{"[\u200C \u200D]"}
+    ExemplarCharacters{
+        "[\u093C ० १ २ ३ ४ ५ ६ ७ ८ ९ ॐ \u0902 \u0901 ः अ आ इ ई उ ऊ ऋ ऌ ऍ ए ऐ ऑ ओ औ क "
+        "ख ग घ ङ च छ ज झ ञ ट ठ ड ढ ण त थ द ध न प फ ब भ म य र ल व श ष स ह ळ ऽ ा ि ी "
+	"\u200C \u200D"
+        "\u0941 \u0942 \u0943 \u0944 \u0945 \u0947 \u0948 ॉ ो ौ \u094D]"
+    }
+    ExemplarCharactersIndex{
+        "[\u200D ॐ \u0902 ः अ आ इ ई उ ऊ ऋ ऌ ए ऐ ऑ ओ औ क ख ग घ ङ च छ ज झ ञ ट ठ ड ढ ण त"
+        " थ द ध न प फ ब भ म य र ल व श ष स ह ळ ऽ \u0945 \u094D]"
+    }
+    LocaleScript{
+        "Deva",
+    }
+    NumberElements{
+        default{"deva"}
+        latn{
+            patterns{
+                currencyFormat{"¤ #,##,##0.00"}
+                decimalFormat{"#,##,##0.###"}
+                percentFormat{"#,##,##0%"}
+            }
+        }
+    }
+    Version{"2.0.50.94"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "am",
+                "pm",
+            }
+            DateTimePatterns{
+                "h-mm-ss a zzzz",
+                "h-mm-ss a z",
+                "h-mm-ss a",
+                "h-mm a",
+                "EEEE d MMMM y",
+                "d MMMM y",
+                "d MMM y",
+                "d-M-yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Hm{"H-mm"}
+                Hms{"H-mm-ss"}
+                M{"M"}
+                Md{"d/M"}
+                MEd{"E, d/M"}
+                MMMMd{"d MMMM"}
+                MMdd{"dd-MM"}
+                yyQ{"Q yy"}
+                yyyyMM{"MM-yyyy"}
+                yyyyMMMM{"MMMM y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "रवि",
+                        "सोम",
+                        "मंगळ",
+                        "बुध",
+                        "गुरु",
+                        "शुक्र",
+                        "शनि",
+                    }
+                    wide{
+                        "रविवार",
+                        "सोमवार",
+                        "मंगळवार",
+                        "बुधवार",
+                        "गुरुवार",
+                        "शुक्रवार",
+                        "शनिवार",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "र",
+                        "सो",
+                        "मं",
+                        "बु",
+                        "गु",
+                        "शु",
+                        "श",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "ई.स.पू.",
+                    "ई.स.",
+                }
+                wide{
+                    "ईसवीसनपूर्व",
+                    "ईसवीसन",
+                }
+            }
+            fields{
+                day{
+                    dn{"दिवस"}
+                    relative{
+                        "1"{"उद्या"}
+                        "2"{"परवा"}
+                    }
+                }
+                era{
+                    dn{"युग"}
+                }
+                hour{
+                    dn{"तास"}
+                }
+                minute{
+                    dn{"मिनिट"}
+                }
+                month{
+                    dn{"महिना"}
+                }
+                second{
+                    dn{"सेकंद"}
+                }
+                week{
+                    dn{"आठवडा"}
+                }
+                weekday{
+                    dn{"आठवड्याचा दिवस"}
+                }
+                year{
+                    dn{"वर्ष"}
+                }
+                zone{
+                    dn{"झोन"}
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "जानेवारी",
+                        "फेब्रुवारी",
+                        "मार्च",
+                        "एप्रिल",
+                        "मे",
+                        "जून",
+                        "जुलै",
+                        "ऑगस्ट",
+                        "सप्टेंबर",
+                        "ऑक्टोबर",
+                        "नोव्हेंबर",
+                        "डिसेंबर",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "जा",
+                        "फे",
+                        "मा",
+                        "ए",
+                        "मे",
+                        "जू",
+                        "जु",
+                        "ऑ",
+                        "स",
+                        "ऑ",
+                        "नो",
+                        "डि",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "Q1",
+                        "Q2",
+                        "Q3",
+                        "Q4",
+                    }
+                    wide{
+                        "प्रथम तिमाही",
+                        "द्वितीय तिमाही",
+                        "तृतीय तिमाही",
+                        "चतुर्थ तिमाही",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"\""}
+        alternateQuotationStart{"\""}
+        quotationEnd{"'"}
+        quotationStart{"'"}
+    }
+    listPattern{
+        standard{
+            2{"{0} आणि {1}"}
+            end{"{0}  आणि  {1}"}
+        }
+    }
+}

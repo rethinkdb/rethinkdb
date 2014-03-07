@@ -1,0 +1,254 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:cpp2011 C++ 2011 Support]
+
+
+[link boost_asio.overview.cpp2011.move_objects Movable I/O Objects]
+
+[link boost_asio.overview.cpp2011.move_handlers Movable Handlers]
+
+[link boost_asio.overview.cpp2011.variadic Variadic Templates]
+
+[link boost_asio.overview.cpp2011.array Array Container]
+
+[link boost_asio.overview.cpp2011.atomic Atomics]
+
+[link boost_asio.overview.cpp2011.shared_ptr Shared Pointers]
+
+[link boost_asio.overview.cpp2011.chrono Chrono]
+
+[link boost_asio.overview.cpp2011.futures Futures]
+
+
+[section:move_objects Movable I/O Objects]
+
+When move support is available (via rvalue references), Boost.Asio allows move
+construction and assignment of sockets, serial ports, POSIX descriptors and
+Windows handles.
+
+Move support allows you to write code like:
+
+  tcp::socket make_socket(io_service& i)
+  {
+    tcp::socket s(i);
+    ...
+    std::move(s);
+  }
+
+or:
+
+  class connection : public enable_shared_from_this<connection>
+  {
+  private:
+    tcp::socket socket_;
+    ...
+  public:
+    connection(tcp::socket&& s) : socket_(std::move(s)) {}
+    ...
+  };
+
+  ...
+
+  class server
+  {
+  private:
+    tcp::acceptor acceptor_;
+    tcp::socket socket_;
+    ...
+    void handle_accept(error_code ec)
+    {
+      if (!ec)
+        std::make_shared<connection>(std::move(socket_))->go();
+      acceptor_.async_accept(socket_, ...);
+    }
+    ...
+  };
+
+as well as:
+
+  std::vector<tcp::socket> sockets;
+  sockets.push_back(tcp::socket(...));
+
+A word of warning: There is nothing stopping you from moving these objects
+while there are pending asynchronous operations, but it is unlikely to be a
+good idea to do so. In particular, composed operations like [link
+boost_asio.reference.async_read async_read()] store a reference to the stream object.
+Moving during the composed operation means that the composed operation may
+attempt to access a moved-from object.
+
+Move support is automatically enabled for [^g++] 4.5 and later, when the
+[^-std=c++0x] or [^-std=gnu++0x] compiler options are used. It may be disabled
+by defining `BOOST_ASIO_DISABLE_MOVE`, or explicitly enabled for other compilers by
+defining `BOOST_ASIO_HAS_MOVE`. Note that these macros also affect the availability
+of [link boost_asio.overview.cpp2011.move_handlers movable handlers].
+
+[endsect]
+
+[section:move_handlers Movable Handlers]
+
+As an optimisation, user-defined completion handlers may provide move
+constructors, and Boost.Asio's implementation will use a handler's move constructor
+in preference to its copy constructor. In certain circumstances, Boost.Asio may be
+able to eliminate all calls to a handler's copy constructor. However, handler
+types are still required to be copy constructible.
+
+When move support is enabled, asynchronous that are documented as follows:
+
+  template <typename Handler>
+  void async_XYZ(..., Handler handler);
+
+are actually declared as:
+
+  template <typename Handler>
+  void async_XYZ(..., Handler&& handler);
+
+The handler argument is perfectly forwarded and the move construction occurs
+within the body of `async_XYZ()`. This ensures that all other function
+arguments are evaluated prior to the move. This is critical when the other
+arguments to `async_XYZ()` are members of the handler. For example:
+
+  struct my_operation
+  {
+    shared_ptr<tcp::socket> socket;
+    shared_ptr<vector<char>> buffer;
+    ...
+    void operator(error_code ec, size_t length)
+    {
+      ...
+      socket->async_read_some(boost::asio::buffer(*buffer), std::move(*this));
+      ...
+    }
+  };
+
+Move support is automatically enabled for [^g++] 4.5 and later, when the
+[^-std=c++0x] or [^-std=gnu++0x] compiler options are used. It may be disabled
+by defining `BOOST_ASIO_DISABLE_MOVE`, or explicitly enabled for other compilers by
+defining `BOOST_ASIO_HAS_MOVE`. Note that these macros also affect the availability
+of [link boost_asio.overview.cpp2011.move_objects movable I/O objects].
+
+[endsect]
+
+[section:variadic Variadic Templates]
+
+When supported by a compiler, Boost.Asio can use variadic templates to implement the
+[link boost_asio.reference.basic_socket_streambuf.connect
+basic_socket_streambuf::connect()] and [link
+boost_asio.reference.basic_socket_iostream.connect basic_socket_iostream::connect()]
+functions.
+
+Support for variadic templates is automatically enabled for [^g++] 4.3 and
+later, when the [^-std=c++0x] or [^-std=gnu++0x] compiler options are used. It
+may be disabled by defining `BOOST_ASIO_DISABLE_VARIADIC_TEMPLATES`, or explicitly
+enabled for other compilers by defining `BOOST_ASIO_HAS_VARIADIC_TEMPLATES`.
+
+[endsect]
+
+[section:array Array Container]
+
+Where the standard library provides `std::array<>`, Boost.Asio:
+
+* Provides overloads for the [link boost_asio.reference.buffer buffer()] function.
+
+* Uses it in preference to `boost::array<>` for the
+  [link boost_asio.reference.ip__address_v4.bytes_type ip::address_v4::bytes_type] and
+  [link boost_asio.reference.ip__address_v6.bytes_type ip::address_v6::bytes_type]
+  types.
+
+* Uses it in preference to `boost::array<>` where a fixed size array type is
+  needed in the implementation.
+
+Support for `std::array<>` is automatically enabled for [^g++] 4.3 and later,
+when the [^-std=c++0x] or [^-std=gnu++0x] compiler options are used, as well as
+for Microsoft Visual C++ 10. It may be disabled by defining
+`BOOST_ASIO_DISABLE_STD_ARRAY`, or explicitly enabled for other compilers by
+defining `BOOST_ASIO_HAS_STD_ARRAY`.
+
+[endsect]
+
+[section:atomic Atomics]
+
+Boost.Asio's implementation can use `std::atomic<>` in preference to
+`boost::detail::atomic_count`.
+
+Support for the standard atomic integer template is automatically enabled for
+[^g++] 4.5 and later, when the [^-std=c++0x] or [^-std=gnu++0x] compiler
+options are used. It may be disabled by defining `BOOST_ASIO_DISABLE_STD_ATOMIC`, or
+explicitly enabled for other compilers by defining `BOOST_ASIO_HAS_STD_ATOMIC`.
+
+[endsect]
+
+[section:shared_ptr Shared Pointers]
+
+Boost.Asio's implementation can use `std::shared_ptr<>` and `std::weak_ptr<>` in
+preference to the Boost equivalents.
+
+Support for the standard smart pointers is automatically enabled for [^g++] 4.3
+and later, when the [^-std=c++0x] or [^-std=gnu++0x] compiler options are used,
+as well as for Microsoft Visual C++ 10. It may be disabled by defining
+`BOOST_ASIO_DISABLE_STD_SHARED_PTR`, or explicitly enabled for other compilers by
+defining `BOOST_ASIO_HAS_STD_SHARED_PTR`.
+
+[endsect]
+
+[section:chrono Chrono]
+
+Boost.Asio provides timers based on the `std::chrono` facilities via the [link
+boost_asio.reference.basic_waitable_timer basic_waitable_timer] class template.
+The typedefs [link boost_asio.reference.system_timer system_timer], [link
+boost_asio.reference.steady_timer steady_timer] and [link
+boost_asio.reference.high_resolution_timer high_resolution_timer] utilise the
+standard clocks `system_clock`, `steady_clock` and `high_resolution_clock`
+respectively.
+
+Support for the `std::chrono` facilities is automatically enabled for [^g++]
+4.6 and later, when the [^-std=c++0x] or [^-std=gnu++0x] compiler options are
+used. (Note that, for [^g++], the draft-standard `monotonic_clock` is used in
+place of `steady_clock`.) Support may be disabled by defining
+`BOOST_ASIO_DISABLE_STD_CHRONO`, or explicitly enabled for other compilers by
+defining `BOOST_ASIO_HAS_STD_CHRONO`.
+
+When standard `chrono` is unavailable, Boost.Asio will otherwise use the Boost.Chrono
+library. The [link boost_asio.reference.basic_waitable_timer basic_waitable_timer]
+class template may be used with either.
+
+[endsect]
+
+[section:futures Futures]
+
+The `boost::asio::use_future` special value provides first-class support for returning a
+C++11 `std::future` from an asynchronous operation's initiating function.
+
+To use `boost::asio::use_future`, pass it to an asynchronous operation instead of
+a normal completion handler. For example:
+
+  std::future<std::size_t> length =
+    my_socket.async_read_some(my_buffer, boost::asio::use_future);
+
+Where a handler signature has the form:
+
+  void handler(boost::system::error_code ec, result_type result);
+
+the initiating function returns a `std::future` templated on `result_type`.
+In the above example, this is `std::size_t`. If the asynchronous operation
+fails, the `error_code` is converted into a `system_error` exception and
+passed back to the caller through the future.
+
+Where a handler signature has the form:
+
+  void handler(boost::system::error_code ec);
+
+the initiating function returns `std::future<void>`. As above, an error
+is passed back in the future as a `system_error` exception.
+
+[link boost_asio.reference.use_future use_future],
+[link boost_asio.reference.use_future_t use_future_t],
+[link boost_asio.examples.cpp11_examples.futures Futures example (C++11)].
+
+[endsect]
+
+[endsect]

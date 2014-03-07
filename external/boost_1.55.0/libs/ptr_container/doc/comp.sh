@@ -1,0 +1,17 @@
+#//
+#// Boost.Pointer Container
+#//
+#//  Copyright Thorsten Ottosen 2003-2005. Use, modification and
+#//  distribution is subject to the Boost Software License, Version
+#//  1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#//  http://www.boost.org/LICENSE_1_0.txt)
+#//
+#// For more information, see http://www.boost.org/libs/ptr_container/
+#//
+
+sh comp_ptr_container.sh
+sh comp_reversible_ptr_container.sh
+sh comp_ptr_sequence_adapter.sh
+sh comp_associative_ptr_container.sh
+sh comp_ptr_set_adapter.sh
+

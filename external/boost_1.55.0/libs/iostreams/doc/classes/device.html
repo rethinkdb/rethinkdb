@@ -1,0 +1,127 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Class Template device</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Class Template <CODE>device</CODE></H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<DL class="page-index">
+  <DT><A href="#description">Description</A></DT>
+  <DT><A href="#headers">Headers</A></DT>
+  <DT><A href="#reference">Reference</A></DT>
+</DL>
+
+<HR>
+
+<A NAME="description"></A>
+<H2>Description</H2>
+
+<P>
+    The class template <CODE>device</CODE>, its subclass <CODE>wdevice</CODE> and their specializations <CODE>source</CODE>, <CODE>sink</CODE>, <CODE>wsource</CODE> and <CODE>wsink</CODE> are provided by the Iostreams library to ease the definitions of new models of the various <A HREF="../guide/concepts.html#device_concepts">Device Concepts</A>. These templates and <CODE>typedef</CODE>s are intended to be used as base classes for user-defined Devices. They supply the member types <CODE>char_type</CODE> and <CODE>category</CODE> used by the Iostreams library.
+</P>
+<P>
+    The supplied <CODE>category</CODE> member is convertible to <A HREF="../guide/traits.html#category_tags"><CODE>closable_tag</CODE></A> and to <A HREF="../guide/traits.html#category_tags"><CODE>localizable_tag</CODE></A>. This allows users to define models of the concepts <A HREF="../concepts/closable.html">Closable</A> and <A HREF="../concepts/closable.html">Localizable</A> simply by providing definitions of member functions <CODE>close</CODE> and <CODE>imbue</CODE>.
+</P>
+
+<A NAME="headers"></A>
+<H2>Headers</H2>
+
+<DL class="page-index">
+  <DT><A CLASS="header" HREF="../../../../boost/iostreams/concepts.hpp"><CODE>&lt;boost/iostreams/concepts.hpp&gt;</CODE></A></DT>
+</DL>
+
+<A NAME="reference"></A>
+<H2>Reference</H2>
+
+<A NAME="synopsis"></A>
+<H3>Synopsis</H3>
+
+<PRE CLASS="broken_ie"><SPAN CLASS="keyword">namespace</SPAN> boost{ <SPAN CLASS="keyword">namespace</SPAN> iostreams {
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Mode, <SPAN CLASS="keyword">typename</SPAN> Ch = <SPAN CLASS="keyword">char</SPAN>&gt;
+<SPAN CLASS="keyword">struct</SPAN> <A CLASS="documented" HREF="#description">device</A>;
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> Mode, <SPAN CLASS="keyword">typename</SPAN> Ch = <SPAN CLASS="keyword">wchar_t</SPAN>&gt;
+<SPAN CLASS="keyword">struct</SPAN> <SPAN CLASS="defined">wdevice</SPAN> : device&lt;Mode, Ch&gt; { };
+
+<SPAN CLASS="keyword">typedef</SPAN> device&lt;input&gt;    <SPAN CLASS="defined">source</SPAN></A>;
+<SPAN CLASS="keyword">typedef</SPAN> device&lt;output&gt;   <SPAN CLASS="defined">sink</SPAN>;
+<SPAN CLASS="keyword">typedef</SPAN> wdevice&lt;input&gt;   <SPAN CLASS="defined">wsource</SPAN>;
+<SPAN CLASS="keyword">typedef</SPAN> wdevice&lt;output&gt;  <SPAN CLASS="defined">wsink</SPAN>;
+
+<SPAN CLASS="keyword">template</SPAN>&lt;<SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Mode</A>, <SPAN CLASS="keyword">typename</SPAN> <A CLASS="documented" HREF="#template_params">Ch</A> = <SPAN CLASS="keyword">char</SPAN>&gt;
+<SPAN CLASS="keyword">struct</SPAN> <A CLASS="documented" HREF="#description">device</A> {
+    <SPAN CLASS="keyword">typedef</SPAN> Ch         char_type;
+    <SPAN CLASS="keyword">typedef</SPAN> <A STYLE="text-decoration:none" HREF="#category"><SPAN CLASS="omitted">see below</SPAN></A>  category;
+    <SPAN CLASS="keyword">void</SPAN> <A CLASS="documented" HREF="#close">close</A>();
+    <SPAN CLASS="keyword">void</SPAN> <A CLASS="documented" HREF="#close">close</A>(std::ios_base::openmode);
+    <SPAN CLASS="keyword">void</SPAN> <A CLASS="documented" HREF="#imbue">imbue</A>(<SPAN CLASS="keyword">const</SPAN> std::locale&amp;);
+};
+
+} } <SPAN CLASS="comment">// End namespace boost::io</SPAN></PRE>
+
+<A NAME="template_params"></A>
+<H4>Template parameters</H4>
+
+<TABLE STYLE="margin-left:2em" BORDER=0 CELLPADDING=2>
+<TR>
+    <TR>
+        <TD VALIGN="top"><I>Mode</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>A <A HREF="../guide/modes.html#mode_tags">mode tag</A>.</TD>
+    </TR>
+    <TR>
+        <TD VALIGN="top"><I>Ch</I></TD><TD WIDTH="2em" VALIGN="top">-</TD>
+        <TD>The character type</TD>
+    </TR>
+</TABLE>
+
+<A NAME="category"></A>
+<H4><CODE>device::category</CODE></H4>
+
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">typedef</SPAN> <SPAN CLASS="omitted">see below</SPAN> category;</PRE>
+
+<P>
+    A category tag convertible to <A HREF="#template_params"><CODE>Mode</CODE></A>, <A HREF="../guide/traits.html#category_tags"><CODE>device_tag</CODE></A>, <A HREF="../guide/traits.html#category_tags"><CODE>closable_tag</CODE></A> and <A HREF="../guide/traits.html#category_tags"><CODE>localizable_tag</CODE></A>.
+</P>
+    
+<A NAME="close"></A>
+<H4><CODE>device::close</CODE></H4>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">void</SPAN> <A CLASS="documented" HREF="#close">close</A>();
+    <SPAN CLASS="keyword">void</SPAN> <A CLASS="documented" HREF="#close">close</A>(std::ios_base::openmode);</PRE>
+
+<P>
+    Both overloads are implemented as no-ops. The second is available only if <A HREF="#template_params">Mode</A> is convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>bidirectional</CODE></A>. The first is available only if Mode is <I>not</I> convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>bidirectional</CODE></A>.
+</P>
+<P>
+    Required by <A HREF="../concepts/closable.html">Closable</A>.
+</P>
+
+<A NAME="imbue"></A>
+<H4><CODE>device::imbue</CODE></H4>
+<PRE CLASS="broken_ie">    <SPAN CLASS="keyword">void</SPAN> <A CLASS="documented" HREF="#imbue">imbue</A>(<SPAN CLASS="keyword">const</SPAN> std::locale&amp;);</PRE>
+
+<P>
+    Implemented as a no-op. Required by <A HREF="../concepts/localizable.html">Localizable</A>.
+</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

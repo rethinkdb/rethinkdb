@@ -1,0 +1,126 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Pitfalls</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../foreach.html" title="Chapter&#160;10.&#160;Boost.Foreach">
+<link rel="prev" href="portability.html" title="Portability">
+<link rel="next" href="history_and_acknowledgements.html" title="History and Acknowledgements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="portability.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../foreach.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="history_and_acknowledgements.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="foreach.pitfalls"></a><a class="link" href="pitfalls.html" title="Pitfalls">Pitfalls</a>
+</h2></div></div></div>
+<p>
+      This section describes some common pitfalls with <code class="literal">BOOST_FOREACH</code>.
+    </p>
+<h3>
+<a name="foreach.pitfalls.h0"></a>
+      <span class="phrase"><a name="foreach.pitfalls.types_with_commas"></a></span><a class="link" href="pitfalls.html#foreach.pitfalls.types_with_commas">Types
+      With Commas</a>
+    </h3>
+<p>
+      Since <code class="literal">BOOST_FOREACH</code> is a macro, it must have exactly two
+      arguments, with exactly one comma separating them. That's not always convenient,
+      especially when the type of the loop variable is a template. Consider trying
+      to iterate over a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span></code>:
+    </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">m</span><span class="special">;</span>
+
+<span class="comment">// ERROR! Too many arguments to BOOST_FOREACH macro.</span>
+<span class="identifier">BOOST_FOREACH</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">m</span><span class="special">)</span> <span class="comment">// ...</span>
+</pre>
+<p>
+      One way to fix this is with a typedef.
+    </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">m</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">pair_t</span><span class="special">;</span>
+
+<span class="identifier">BOOST_FOREACH</span><span class="special">(</span><span class="identifier">pair_t</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">m</span><span class="special">)</span> <span class="comment">// ...</span>
+</pre>
+<p>
+      Another way to fix it is to predeclare the loop variable:
+    </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">m</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">p</span><span class="special">;</span>
+
+<span class="identifier">BOOST_FOREACH</span><span class="special">(</span><span class="identifier">p</span><span class="special">,</span> <span class="identifier">m</span><span class="special">)</span> <span class="comment">// ...</span>
+</pre>
+<h3>
+<a name="foreach.pitfalls.h1"></a>
+      <span class="phrase"><a name="foreach.pitfalls.hoisting_and_iterator_invalidation"></a></span><a class="link" href="pitfalls.html#foreach.pitfalls.hoisting_and_iterator_invalidation">Hoisting
+      and Iterator Invalidation</a>
+    </h3>
+<p>
+      Under the covers, <code class="literal">BOOST_FOREACH</code> uses iterators to traverse
+      the element sequence. Before the loop is executed, the end iterator is cached
+      in a local variable. This is called <span class="emphasis"><em>hoisting</em></span>, and it is
+      an important optimization. It assumes, however, that the end iterator of the
+      sequence is stable. It usually is, but if we modify the sequence by adding
+      or removing elements while we are iterating over it, we may end up hoisting
+      ourselves on our own petard.
+    </p>
+<p>
+      Consider the following code:
+    </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">vect</span><span class="special">(</span><span class="number">4</span><span class="special">,</span> <span class="number">4</span><span class="special">);</span>
+<span class="identifier">BOOST_FOREACH</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">,</span> <span class="identifier">vect</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">vect</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">i</span> <span class="special">+</span> <span class="number">1</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+      This code will compile, but it has undefined behavior. That is because it is
+      logically equivalent to the following:
+    </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">vect</span><span class="special">(</span><span class="number">4</span><span class="special">,</span> <span class="number">4</span><span class="special">);</span>
+<span class="keyword">for</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">iterator</span> <span class="identifier">it1</span> <span class="special">=</span> <span class="identifier">vect</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">it2</span> <span class="special">=</span> <span class="identifier">vect</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span>
+    <span class="identifier">it1</span> <span class="special">!=</span> <span class="identifier">it2</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it1</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="special">*</span><span class="identifier">it1</span><span class="special">;</span>
+    <span class="identifier">vect</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">i</span> <span class="special">+</span> <span class="number">1</span><span class="special">);</span> <span class="comment">// Oops! This invalidates it1 and it2!</span>
+<span class="special">}</span>
+</pre>
+<p>
+      The call to <code class="computeroutput"><span class="identifier">vect</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">()</span></code>
+      will cause all iterators into <code class="computeroutput"><span class="identifier">vect</span></code>
+      to become invalid, including <code class="computeroutput"><span class="identifier">it1</span></code>
+      and <code class="computeroutput"><span class="identifier">it2</span></code>. The next iteration
+      through the loop will cause the invalid iterators to be used. That's bad news.
+    </p>
+<p>
+      The moral of the story is to think twice before adding and removing elements
+      from the sequence over which you are iterating. If doing so could cause iterators
+      to become invalid, don't do it. Use a regular <code class="computeroutput"><span class="keyword">for</span></code>
+      loop instead.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2004 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="portability.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../foreach.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="history_and_acknowledgements.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

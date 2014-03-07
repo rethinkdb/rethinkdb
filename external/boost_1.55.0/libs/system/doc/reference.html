@@ -1,0 +1,825 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Language" content="en-us">
+<meta name="GENERATOR" content="Microsoft FrontPage 5.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>System Library Reference</title>
+<link rel="stylesheet" type="text/css" href="../../../doc/src/minimal.css">
+</head>
+
+<body>
+
+<table border="0" cellpadding="5" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="637">
+  <tr>
+    <td width="277">
+<a href="../../../index.htm">
+<img src="../../../boost.png" alt="boost.png (6897 bytes)" align="middle" width="277" height="86" border="0"></a></td>
+    <td width="337" align="middle">
+    <font size="7">System Library</font>
+    </td>
+  </tr>
+</table>
+
+<table border="0" cellpadding="5" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" bgcolor="#D7EEFF" width="100%">
+  <tr>
+    <td><a href="../../../index.htm">Boost Home</a>&nbsp;&nbsp;&nbsp; <a href="index.html">
+    Library Home</a>&nbsp;&nbsp; Tutorial&nbsp;&nbsp; <a href="reference.html">
+    Reference</a></td>
+  </tr>
+</table>
+
+<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" align="right">
+  <tr>
+    <td width="100%" bgcolor="#D7EEFF" align="center">
+      <i><b>Contents</b></i></td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#E8F5FF">
+      <a href="#Introduction">Introduction</a><br>
+      <a href="#C++11">C++11</a><br>
+      <a href="#Macros">Macros</a><br>
+      <a href="#Deprecated-names">Deprecated names</a><br>
+      <a href="#Breaking-changes">Breaking changes</a><br>
+      <a href="#Header-error_code">Header &lt;boost/system/error_code.hpp&gt;</a><br>
+      <a href="#Class-error_category">Class <code>error_category</code></a><br>
+      &nbsp;&nbsp;&nbsp;<a href="#Class-error_category-synopsis">Class <code>error_category</code> synopsis</a><br>
+      &nbsp;&nbsp;&nbsp;<a href="#Class-error_category-virtual-members">Class <code>error_category</code> virtual members</a><br>
+      &nbsp;&nbsp;&nbsp;<a href="#Class-error_category-non-virtual-members">Class <code>error_category</code> non-virtual members</a><br>
+&nbsp;&nbsp; <a href="#Class-error_category-non-member-functions">Class <code>error_category</code> 
+      non-member functions</a><br>
+      &nbsp;&nbsp;&nbsp;<a href="#Class-error_category-predefined-objects">Class <code>error_category</code> predefined objects</a><br>
+      <a href="#Class-error_code">Class <code>error_code</code></a><br>
+      &nbsp;&nbsp;&nbsp;<a href="#Class-error_code-synopsis">Class <code>error_code</code> synopsis</a><br>
+      &nbsp;&nbsp;&nbsp;<a href="#Class-error_code-constructors">Class <code>error_code</code> constructors</a><br>
+      &nbsp;&nbsp;&nbsp;<a href="#Class-error_code-modifiers">Class <code>error_code</code> modifiers</a><br>
+      &nbsp;&nbsp;&nbsp;<a href="#Class-error_code-observers">Class <code>error_code</code> observers</a><br>
+      <a href="#Class-error_condition">Class <code>error_condition</code></a><br>
+      &nbsp;&nbsp;&nbsp;<a href="#Class-error_condition-synopsis">Class <code>error_condition</code> synopsis</a><br>
+      &nbsp;&nbsp;&nbsp;<a href="#Class-error_condition-constructors">Class <code>error_condition</code> constructors</a><br>
+      &nbsp;&nbsp;&nbsp;<a href="#Class-error_condition-modifiers">Class <code>error_condition</code> modifiers</a><br>
+      &nbsp;&nbsp;&nbsp;<a href="#Class-error_condition-observers">Class <code>error_condition</code> observers</a><br>
+      <a href="#throws-object"><code>throws</code> object</a><br>
+      <a href="#Semantics-of-throws">Semantics of <code>throws</code> object</a><br>
+      <a href="#Non-member-functions">Non-member functions</a><br>
+      <a href="#Header-system_error">Header &lt;boost/system/system_error.hpp&gt;</a><br>
+      &nbsp;&nbsp;&nbsp;<a href="#Class-system_error">Class <code>system_error</code></a><br>
+    </td>
+  </tr>
+</table>
+
+<h2><a name="Introduction">Introduction</a></h2>
+
+<p>This reference documentation describes components that&nbsp;programs may use to report error conditions originating from the operating 
+system or other low-level application program interfaces.</p>
+<p>Boost.System library components never change the value of <code>
+errno</code>.</p>
+<h2><a name="C++11">C++11</a></h2>
+<p>The library is documented to use several C++11 features, including <code>
+noexcept</code> and explicit conversion operators. The actual implementation 
+uses C++11 features only when they are available, and otherwise falls back on 
+C++03 features.</p>
+<h2><a name="Macros">Macros</a></h2>
+<p>Users may defined the following macros if desired. Sensible defaults are 
+provided, so users may ignore these macros if they prefer.</p>
+<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" height="368">
+  <tr>
+    <td height="16"><b><i>Macro Name</i></b></td>
+    <td height="16"><b><i>Default</i></b></td>
+    <td height="16"><b><i>Effect if defined</i></b></td>
+  </tr>
+  <tr>
+    <td valign="top" height="64"><code>BOOST_SYSTEM_DYN_LINK</code></td>
+    <td valign="top" height="64">Defined if <code>BOOST_ALL_DYN_LINK</code> is defined, 
+    otherwise not defined.</td>
+    <td valign="top" height="64">Boost.System library is dynamically linked. If not defined, 
+    static linking is assumed.</td>
+  </tr>
+  <tr>
+    <td valign="top" height="47"><code>BOOST_SYSTEM_NO_LIB</code></td>
+    <td valign="top" height="47">Defined if <code>BOOST_ALL_NO_LIB</code> is defined, 
+    otherwise not defined.</td>
+    <td valign="top" height="47">Boost.System library does not use the Boost auto-link 
+    facility.</td>
+  </tr>
+  <tr>
+    <td valign="top" height="32"><code>BOOST_SYSTEM_NO_DEPRECATED</code></td>
+    <td valign="top" height="32">Not defined.</td>
+    <td valign="top" height="32">Deprecated features are excluded.</td>
+  </tr>
+  </table>
+<h2><a name="Deprecated-names">Deprecated names</a></h2>
+<p>In the process of adding Boost.System to C++0x standard library, the C++ 
+committee changed some  
+names. To ease transition, Boost.System deprecates the old 
+names, but continues to provide them unless macro <code>BOOST_SYSTEM_NO_DEPRECATED</code> 
+is defined.</p>
+<table border="1" cellpadding="5" cellspacing="1" style="border-collapse: collapse" bordercolor="#111111">
+  <tr>
+    <td><b><i>Old usage, now deprecated</i></b></td>
+    <td><b><i>Replacement</i></b></td>
+  </tr>
+  <tr>
+    <td><code>get_generic_category()</code></td>
+    <td><code>generic_category()</code></td>
+  </tr>
+  <tr>
+    <td><code>get_system_category()</code></td>
+    <td><code>system_category()</code></td>
+  </tr>
+  <tr>
+    <td><code>namespace posix</code></td>
+    <td><code>namespace errc</code></td>
+  </tr>
+  <tr>
+    <td><code>namespace posix_error</code></td>
+    <td><code>namespace errc</code></td>
+  </tr>
+  <tr>
+    <td><code>enum posix_errno</code></td>
+    <td><code>enum errc_t</code></td>
+  </tr>
+  <tr>
+    <td><code>get_posix_category()</code></td>
+    <td><code>generic_category()</code></td>
+  </tr>
+  <tr>
+    <td><code>posix_category</code></td>
+    <td><code>generic_category()</code></td>
+  </tr>
+  <tr>
+    <td><code>errno_ecat</code></td>
+    <td><code>generic_category()</code></td>
+  </tr>
+  <tr>
+    <td><code>native_ecat</code></td>
+    <td><code>system_category()</code></td>
+  </tr>
+</table>
+<h2><a name="Breaking-changes">Breaking changes</a></h2>
+<p>Two static consts are replaced by functions. These are breaking changes best 
+fixed by globally adding () to these names to turn them into function calls.</p>
+<table border="1" cellpadding="5" cellspacing="1" style="border-collapse: collapse" bordercolor="#111111">
+  <tr>
+    <td><b><i>Old usage, now broken</i></b></td>
+    <td><b><i>Replacement</i></b></td>
+  </tr>
+  <tr>
+    <td><code>generic_category</code></td>
+    <td><code>generic_category()</code></td>
+  </tr>
+  <tr>
+    <td><code>system_category</code></td>
+    <td><code>system_category()</code></td>
+  </tr>
+  </table>
+<p>User-defined BOOST_POSIX_API and BOOST_WINDOWS_API macros are no longer supported.</p>
+<h2><a name="Header-error_code">Header &lt;boost/system/error_code.hpp&gt;</a></h2>
+<h3>&lt;boost/system/error_code.hpp&gt; synopsis</h3>
+<blockquote>
+<pre>namespace boost
+{
+  namespace system
+  {
+    class <a href="#Class-error_category">error_category</a>;
+    const error_category &amp;  <a href="#system_category">system_category</a>() noexcept;
+    const error_category &amp;  <a href="#generic_category">generic_category</a>() noexcept;
+
+    class <a href="#Class-error_code">error_code</a>;
+    class <a href="#Class-error_condition">error_condition</a>;
+
+    //  "Concept" helpers
+    template< class T="" >
+      struct is_error_code_enum { static const bool value = false; };
+
+    template< class T="" >
+      struct is_error_condition_enum { static const bool value = false; };
+
+    //  generic error_conditions
+    namespace errc
+    {
+      enum errc_t
+      {
+        success = 0,
+        address_family_not_supported,   //EAFNOSUPPORT
+        address_in_use,                 //EADDRINUSE
+        address_not_available,          //EADDRNOTAVAIL
+        already_connected,              //EISCONN
+        argument_list_too_long,         //E2BIG
+        argument_out_of_domain,         //EDOM
+        bad_address,                    //EFAULT
+        bad_file_descriptor,            //EBADF
+        bad_message,                    //EBADMSG
+        broken_pipe,                    //EPIPE
+        connection_aborted,             //ECONNABORTED
+        connection_already_in_progress, //EALREADY
+        connection_refused,             //ECONNREFUSED
+        connection_reset,               //ECONNRESET
+        cross_device_link,              //EXDEV
+        destination_address_required,   //EDESTADDRREQ
+        device_or_resource_busy,        //EBUSY
+        directory_not_empty,            //ENOTEMPTY
+        executable_format_error,        //ENOEXEC
+        file_exists,                    //EEXIST
+        file_too_large,                 //EFBIG
+        filename_too_long,              //ENAMETOOLONG
+        function_not_supported,         //ENOSYS
+        host_unreachable,               //EHOSTUNREACH
+        identifier_removed,             //EIDRM
+        illegal_byte_sequence,          //EILSEQ
+        inappropriate_io_control_operation,//ENOTTY
+        interrupted,                    //EINTR
+        invalid_argument,               //EINVAL
+        invalid_seek,                   //ESPIPE
+        io_error,                       //EIO
+        is_a_directory,                 //EISDIR
+        message_size,                   //EMSGSIZE
+        network_down,                   //ENETDOWN
+        network_reset,                  //ENETRESET
+        network_unreachable,            //ENETUNREACH
+        no_buffer_space,                //ENOBUFS
+        no_child_process,               //ECHILD
+        no_link,                        //ENOLINK
+        no_lock_available,              //ENOLCK
+        no_message_available,           //ENODATA
+        no_message,                     //ENOMSG
+        no_protocol_option,             //ENOPROTOOPT
+        no_space_on_device,             //ENOSPC
+        no_stream_resources,            //ENOSR
+        no_such_device_or_address,      //ENXIO
+        no_such_device,                 //ENODEV
+        no_such_file_or_directory,      //ENOENT
+        no_such_process,                //ESRCH
+        not_a_directory,                //ENOTDIR
+        not_a_socket,                   //ENOTSOCK
+        not_a_stream,                   //ENOSTR
+        not_connected,                  //ENOTCONN
+        not_enough_memory,              //ENOMEM
+        not_supported,                  //ENOTSUP
+        operation_canceled,             //ECANCELED
+        operation_in_progress,          //EINPROGRESS
+        operation_not_permitted,        //EPERM
+        operation_not_supported,        //EOPNOTSUPP
+        operation_would_block,          //EWOULDBLOCK
+        owner_dead,                     //EOWNERDEAD
+        permission_denied,              //EACCES
+        protocol_error,                 //EPROTO
+        protocol_not_supported,         //EPROTONOSUPPORT
+        read_only_file_system,          //EROFS
+        resource_deadlock_would_occur,  //EDEADLK
+        resource_unavailable_try_again, //EAGAIN
+        result_out_of_range,            //ERANGE
+        state_not_recoverable,          //ENOTRECOVERABLE
+        stream_timeout,                 //ETIME
+        text_file_busy,                 //ETXTBSY
+        timed_out,                      //ETIMEDOUT
+        too_many_files_open_in_system,  //ENFILE
+        too_many_files_open,            //EMFILE
+        too_many_links,                 //EMLINK
+        too_many_synbolic_link_levels,  //ELOOP
+        value_too_large,                //EOVERFLOW
+        wrong_protocol_type             //EPROTOTYPE
+      };
+
+    } // namespace errc
+
+    template<> struct is_error_condition_enum<posix::posix_errno>&lt;errc::errc_t&gt;
+      { static const bool value = true; };
+
+    //  <a href="#Non-member-functions">non-member functions</a>
+
+    bool operator==( const error_code &amp; lhs, const error_code &amp; rhs ) noexcept;
+    bool operator==( const error_code &amp; code, const error_condition &amp; condition ) noexcept;
+    bool operator==( const error_condition &amp; condition, const error_code &amp; code ) noexcept;
+    bool operator==( const error_condition &amp; lhs, const error_condition &amp; rhs ) noexcept;
+
+    bool operator!=( const error_code &amp; lhs, const error_code &amp; rhs ) noexcept;
+    bool operator!=( const error_code &amp; code, const error_condition &amp; condition ) noexcept;
+    bool operator!=( const error_condition &amp; condition, const error_code &amp; code ) noexcept;
+    bool operator!=( const error_condition &amp; lhs, const error_condition &amp; rhs ) noexcept;
+
+    bool operator&lt;( const error_code &amp; lhs, const error_code &amp; rhs ) noexcept;
+    bool operator&lt;( const error_condition &amp; lhs, const error_condition &amp; rhs ) noexcept;
+
+    error_code make_error_code( errc::errc_t e ) noexcept;
+    error_condition make_error_condition( errc::errc_t e ) noexcept;
+
+    template &lt;class charT, class traits&gt;
+      std::basic_ostream&lt;charT,traits&gt;&amp;
+        operator&lt;&lt;( basic_ostream&lt;charT,traits&gt;&amp; os, const error_code &amp; ec );
+
+    size_t hash_value( const error_code &amp; ec );
+  }
+}</pre>
+</blockquote>
+<p>The value of each<code> errc_t</code> constant shall be the same as the 
+value of the <code>&lt;cerrno&gt;</code> macro shown in the above synopsis.</p>
+<p>Users may specialize <code>is_error_code_enum</code> and <code>
+is_error_condition_enum</code> templates to indicate that a type is eligible for 
+class <code>error_code</code> and <code>error_condition</code> automatic 
+conversions respectively.</p>
+
+<pre>const error_category &amp; <a name="system_category">system_category</a>();</pre>
+<blockquote>
+  <p><i>Returns:</i> A reference to a <code>error_category</code> object 
+  identifying errors originating from the operating system.</p>
+</blockquote>
+<pre>const error_category &amp; <a name="generic_category">generic_category</a>();</pre>
+<blockquote>
+  <p><i>Returns:</i> A reference to a <code>error_category</code> object 
+  identifying portable error conditions.</p>
+</blockquote>
+
+<h2><a name="Class-error_category">Class <code>error_category</code></a></h2>
+<p>The class <code>error_category</code> defines the base class for types used 
+to identify the source and encoding of a particular category of error code.</p>
+<p><i>[Note:</i> Classes may be derived from <code>error_category</code> 
+to support additional categories of errors. <i>--end note]</i></p>
+<p>The class <code>error_category</code> serves as a base class for types used 
+to identify the source and encoding of a particular category of error code. 
+Classes may be derived from <code>error_category</code> to support categories of 
+errors in addition to those defined in the Boost System library. Such classes 
+shall behave as specified in this subclause. [<i> Note:</i> <code>error_category</code> 
+objects are passed by reference, and two such objects are equal if they have the 
+same address. This means that applications using custom <code>error_category</code> 
+types should create a single object of each such type. <i>—end note</i> ]</p>
+<h3><a name="Class-error_category-synopsis">Class <code>error_category</code> synopsis</a></h3>
+<blockquote>
+<pre>namespace boost
+{
+  namespace system
+  {
+    class error_category : public noncopyable
+    {
+    public:
+      virtual ~error_category();
+
+      virtual const char *     name() const noexcept = 0;
+      virtual string           message( int ev ) const = 0;
+      virtual error_condition  default_error_condition( int ev ) const noexcept;
+      virtual bool             equivalent( int code, const error_condition &amp; condition )
+                                 const noexcept;
+      virtual bool             equivalent( const error_code &amp; code, int condition ) const noexcept;
+
+      bool operator==( const error_category &amp; rhs ) const noexcept;
+      bool operator!=( const error_category &amp; rhs ) const noexcept;
+      bool operator&lt; ( const error_category &amp; rhs ) const noexcept;
+    };
+  }
+}</pre>
+</blockquote>
+<h3><a name="Class-error_category-virtual-members">Class <code>error_category</code> virtual members</a></h3>
+<p>Classes derived from <code>error_category</code> shall behave as specified in 
+this subclause.</p>
+<pre>virtual const char * name() const noexcept =0;</pre>
+<blockquote>
+  <p><i>Returns: </i>a string naming the error category.</p>
+</blockquote>
+<pre>virtual string message( int ev ) const noexcept =0;</pre>
+<blockquote>
+  <p><i>Returns:</i> A string that describes the error denoted by
+  <code>ev</code>.</p>
+</blockquote>
+<pre>virtual error_condition default_error_condition( int ev ) const noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i>&nbsp; <code>error_condition( ev, *this )</code>.</p>
+  <blockquote>
+    <p dir="ltr">&nbsp;[<i>--Note:</i> Derived classes will typically convert <code>ev</code> 
+    to some portable <code>error_category</code>, such as <code>generic_category()</code>, 
+    and return it as an <code>error_condition</code> for that category. <i>--end 
+    note</i>]</p>
+  </blockquote>
+  </blockquote>
+<pre>virtual bool equivalent( int code, const error_condition &amp; condition ) const noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>default_error_condition( code ) == condition</code>.</p>
+  </blockquote>
+<pre>virtual bool equivalent( const error_code &amp; code, int condition ) const noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>*this == code.category() &amp;&amp; code.value() == condition</code>.</p>
+  </blockquote>
+<h3><a name="Class-error_category-non-virtual-members">Class <code>error_category</code> non-virtual members</a></h3>
+<pre>bool operator==( const error_category &amp; rhs ) const noexcept;</pre>
+<blockquote>
+<p><i>Returns:</i> <code>this == &amp;rhs</code>.</p>
+</blockquote>
+<pre>bool operator!=( const error_category &amp; rhs ) const noexcept;</pre>
+<blockquote>
+<p><i>Returns:</i> <code>this != &amp;rhs</code>.</p>
+</blockquote>
+
+<pre>bool operator&lt;( const error_category &amp; rhs ) const noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>std::less&lt;const error_category*&gt;()( this, &amp;rhs&nbsp; 
+  noexcept)</code>.</p>
+  <blockquote>
+    <p><i>[Note:</i> <code>std::less</code> provides a total ordering for 
+    pointers. <i>--end note]</i></p>
+  </blockquote>
+</blockquote>
+<h2><a name="Class-error_code">Class <code>
+error_code</code></a></h2>
+<p>The class <code>error_code</code> describes an object used to hold error code 
+values, such as those originating from the operating<br>
+system or other low-level application program interfaces. <i>[ Note: </i>Class
+<code>error_code</code> is an adjunct to error reporting by<br>
+exception. <i>—end note ]</i></p>
+<h3><a name="Class-error_code-synopsis">Class <code>
+error_code</code> synopsis</a></h3>
+<blockquote>
+<pre>namespace boost
+{
+  namespace system
+  {
+    class error_code {
+    public:
+
+      // constructors:
+      error_code() noexcept;
+      error_code( val, const error_category &amp; cat ) noexcept;
+      template &lt;class <code>ErrorCodeEnum</code>&gt;
+        error_code(<code> ErrorCodeEnum</code> e ) noexcept;
+
+      // modifiers:
+      void assign( int val, const error_category &amp; cat ) noexcept;
+      template&lt;typename <code>ErrorCodeEnum</code>&gt;
+        error_code &amp; operator=( <code>ErrorCodeEnum</code> val ) noexcept;
+      void clear() noexcept;
+
+      // observers:
+      int                    value() const noexcept;
+      cont error_category &amp;  category() const noexcept;
+      error_condition        default_error_condition() const noexcept;
+      string                 message() const;
+      operator unspecified-bool-type() const;
+
+    private:
+      int val_;                     // <i>exposition only</i>
+      const error_category * cat_;  // <i>exposition only</i>
+    };
+  }
+}</pre>
+</blockquote>
+<h3><a name="Class-error_code-constructors">Class <code>
+error_code</code> constructors</a></h3>
+<pre>error_code() noexcept;</pre>
+<blockquote>
+  <p><i>Effects: </i>Constructs an object of type <code>error_code</code>.</p>
+  <p><i>Postconditions:</i> <code>val_ == 0 &amp;&amp; cat_ == &amp;system_category()</code>.</p>
+</blockquote>
+<pre>error_code( int val, const error_category &amp; cat ) noexcept;</pre>
+<blockquote>
+  <p><i>Effects: </i>Constructs an object of type <code>error_code</code>.</p>
+  <p><i>Postconditions:</i> <code>val_ == val &amp;&amp; cat_ == &amp;cat</code>.</p>
+</blockquote>
+<pre>template &lt;class <code>ErrorCodeEnum</code>&gt;
+  error_code(<code> ErrorCodeEnum</code> val ) noexcept;</pre>
+<blockquote>
+  <p><i>Effects: </i>Constructs an object of type <code>error_code</code>.</p>
+  <p><i>Postconditions:</i> <code>*this == make_error_code( val )</code>.</p>
+  <p><i>Remarks:</i> This constructor shall not participate in overload 
+  resolution unless <code>is_error_code_enum&lt;ErrorCodeEnum&gt;::value</code> is
+  <code>true</code>.</p>
+</blockquote>
+<h3><a name="Class-error_code-modifiers">Class <code>
+error_code</code> modifiers</a></h3>
+<pre>void assign( int val, const error_category &amp; cat ) noexcept;</pre>
+<blockquote>
+  <p><i>Postconditions:</i> <code>val_ == val &amp;&amp; cat_ == &amp;cat</code>.</p>
+</blockquote>
+<pre>template&lt;typename <code>ErrorCodeEnum</code>&gt;
+  error_code &amp; operator=( <code>ErrorCodeEnum</code> val ) noexcept;</pre>
+<blockquote>
+  <p><i>Postconditions:</i> <code>*this == make_error_code( val )</code>.</p>
+  <p><i>Remarks:</i> This operator shall not participate in overload resolution 
+  unless <code>is_error_code_enum&lt;ErrorCodeEnum&gt;::value</code> is <code>true</code>.</p>
+</blockquote>
+<pre><code>void clear() noexcept;</code></pre>
+<blockquote>
+  <p><i>postcondition:</i> <code>value() == 0 &amp;&amp; category() == 
+  system_category()</code></p>
+</blockquote>
+  <h3><a name="Class-error_code-observers">Class <code>
+error_code</code> observers</a></h3>
+  <pre><code>int value() const noexcept;</code></pre>
+<blockquote>
+<p><i>Returns:</i> <code>val_</code>.</p>
+  </blockquote>
+<pre><code>const error_category &amp; category() const noexcept;</code></pre>
+<blockquote>
+<p><i>Returns:</i> <code>*cat_</code>.</p>
+  </blockquote>
+  <pre>error_condition default_error_condition() const noexcept;</pre>
+<blockquote>
+<p><i>Returns:</i>&nbsp; <code>category().default_error_condition( value())</code>.</p>
+</blockquote>
+  <pre><code>string message() const;</code></pre>
+<blockquote>
+<p><i>Returns:</i>&nbsp; <code>category().message( value())</code>.</p>
+  <p><i>Throws:</i> Nothing.</p>
+</blockquote>
+<pre>operator unspecified-bool-type() const;</pre>
+<blockquote>
+<p><i>Returns:</i> if <code>value() != 0</code>, returns a value that will evaluate
+<code>true</code> in a boolean context; otherwise, returns a value that will 
+evaluate <code>false</code> in a boolean context. The value type returned shall 
+not be convertible to <code>int</code>.</p>
+<p><i>Throws:</i> nothing.</p>
+<p><i>[Note: </i>This conversion can be used in contexts where a <code>bool</code> 
+is expected ( e.g., an <code>if</code> condition ); however, implicit conversions 
+( e.g., to <code>int</code>) that can occur with <code>bool</code> are not 
+allowed, eliminating some sources of user error. One possible implementation 
+choice for this type is pointer-to-member. <i>--end note ]</i></p>
+</blockquote>
+<h2><a name="Class-error_condition">Class <code>error_condition</code></a></h2>
+<p>The class <code>error_condition</code> describes an object used to hold 
+values identifying error conditions. <i>[ Note: </i><code>error_condition</code> 
+values are portable abstractions, while <code>error_code</code> values are 
+implementation specific. <i>--end note ]</i></p>
+<h3><a name="Class-error_condition-synopsis">Class <code>error_condition</code> synopsis</a></h3>
+<blockquote>
+<pre>namespace boost
+{
+  namespace system
+  {
+    class error_condition
+    {
+    public:
+
+      // constructors:
+      error_condition() noexcept;
+      error_condition( int val, const error_category &amp; cat ) noexcept;
+      template &lt;class ErrorConditionEnum&gt;
+        error_condition( errorConditionEnum val ) noexcept;
+
+      // modifiers:
+      void assign( int val, const error_category &amp; cat ) noexcept;
+      template&lt;typename ErrorConditionEnum&gt;
+        error_condition &amp; operator=( ErrorConditionEnum val ) noexcept;
+      void clear() noexcept;
+
+      // observers:
+      int value() const noexcept;
+      const error_category &amp; category() const noexcept;
+      string message() const;
+      operator unspecified-bool-type () const noexcept;
+
+    private:
+      int val_;                      // <i>exposition only</i>
+      const error_category * cat_;   // <i>exposition only</i>
+    };
+  }
+}</pre>
+</blockquote>
+<h3><a name="Class-error_condition-constructors">Class <code>error_condition</code> 
+constructors</a></h3>
+<pre>error_condition() noexcept; </pre>
+<blockquote>
+  <p><i>Effects:</i> Constructs an object of type <code>error_condition</code>.</p>
+  <p><i>Postconditions:</i> <code>val_ == 0 and cat_ == &amp;generic_category()</code>.</p>
+</blockquote>
+<pre>error_condition( int val, const error_category &amp; cat ) noexcept;</pre>
+<blockquote>
+  <p><i>Effects: </i>Constructs an object of type error_condition.</p>
+  <p><i>Postconditions:</i> <code>val_ == val and cat_ == &amp;cat</code>.</p>
+</blockquote>
+<pre>template &lt;class ErrorConditionEnum&gt;
+  error_condition( ErrorConditionEnum e ) noexcept;</pre>
+<blockquote>
+  <p><i>Effects:</i> Constructs an object of type <code>error_condition</code>.</p>
+  <p><i>Postconditions:</i> <code>*this == make_error_condition(e)</code>.</p>
+  <p><i>Remarks:</i> This constructor shall not participate in overload 
+  resolution unless <code>is_error_condition_enum&lt;ErrorConditionEnum&gt;::value</code> 
+  is <code>true</code>.</p>
+</blockquote>
+<h3><a name="Class-error_condition-modifiers">Class <code>error_condition</code> 
+modifiers</a></h3>
+<pre>void assign( int val, const error_category &amp; cat ) noexcept; </pre>
+<blockquote>
+  <p><i>Postconditions:</i> <code>val_ == val and cat_ == &amp;cat</code>. </p>
+</blockquote>
+<pre>template&lt;typename ErrorConditionEnum&gt;
+  error_condition &amp; operator=( ErrorConditionEnum e ) noexcept;</pre>
+<blockquote>
+  <p><i>Postconditions:</i> <code>*this == make_error_condition( e )</code>.</p>
+  <p><i>Returns:</i> <code>*this</code>.</p>
+  <p><i>Remarks:</i> This operator shall not participate in overload resolution 
+  unless <code>is_error_condition_enum&lt;ErrorConditionEnum&gt;::value</code> is
+  <code>true</code>.</p>
+</blockquote>
+<pre>void clear() noexcept;</pre>
+<blockquote>
+  <p><i>Postcondition:</i> <code>value() == 0 &amp;&amp; category() == generic_category()</code></p>
+</blockquote>
+<h3><a name="Class-error_condition-observers">Class <code>error_condition</code> 
+observers</a></h3>
+<pre>int value() const noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>val_</code>.</p>
+</blockquote>
+<pre>const error_category &amp; category() const noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>*cat_</code>.</p>
+</blockquote>
+<pre>string message() const;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>category().message( value() )</code>.</p>
+</blockquote>
+<pre>operator unspecified-bool-type () const;</pre>
+<blockquote>
+  <p><i>Returns: </i>If <code>value() != 0</code>, returns a value that will 
+  evaluate <code>true</code> in a boolean context; otherwise, returns a value 
+  that will evaluate <code>false</code>. The return type shall not be 
+  convertible to <code>int</code>. </p>
+  <p><i>Throws:</i> Nothing.</p>
+  <p><i>&nbsp;[ Note:</i> This conversion can be used in contexts where a <code>bool</code> 
+  is expected ( e.g., an if condition ); however, implicit conversions ( e.g., to
+  <code>int</code>) that can occur with <code>bool</code> are not allowed, 
+  eliminating some sources of user error. One possible implementation choice for 
+  this type is pointer to member. <i>--end note</i> <i>]</i></p>
+</blockquote>
+  <h2><a name="throws-object"><code>throws</code> object</a></h2>
+  <pre>extern error_code throws;</pre>
+<p>The predefined <code>error_code</code> object <code>throws</code> is supplied 
+for use as a &quot;throw on error&quot; tag.</p>
+<h2><a name="Semantics-of-throws">Semantics of <code>throws</code></a> object</h2>
+<p>Functions that specify an argument in the form <code>error_code&amp; ec=throws</code>, 
+with appropriate namespace qualifiers, have the following error handling 
+semantics:</p>
+<blockquote>
+  <p><i>Postconditions:</i></p>
+  <blockquote>
+    <p>If <code>&amp;ec != &amp;throws</code> and an error occurred:</p>
+    <ul>
+      <li> <code>ec.value()</code> returns the implementation specific error 
+      number for the particular error that occurred.</li>
+      <li><code>ec.category()</code> returns the <code>
+    <a href="#Class-error_category">error_category</a></code> for <code>ec.value()</code>.</li>
+    </ul>
+    <p>if <code>&amp;ec != &amp;throws</code> and an error did not occur, <code>ec.clear()</code>.</p>
+  </blockquote>
+  <p><i>Throws:</i></p>
+  <blockquote>
+  <p>If an error occurs and <code>&amp;ec == &amp;throws</code>, throws an exception of type
+  <code><a href="#Class-system_error">system_error</a></code> or of a type 
+  derived from <code><a href="#Class-system_error">system_error</a></code>. The 
+  exception's <code>code()</code> member function returns a reference to an
+  <code>error_code</code> object with the behavior specified in <i>
+  Postconditions</i>.</p>
+  </blockquote>
+</blockquote>
+<h2><a name="Non-member-functions">Non-member functions</a></h2>
+  <pre>bool operator==( const error_code &amp; lhs, const error_code &amp; rhs ) noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>lhs.category() == rhs.category() &amp;&amp; lhs.value() == 
+  rhs.value()</code>.</p>
+</blockquote>
+<pre>bool operator==( const error_code &amp; code, const error_condition &amp; condition ) noexcept;
+bool operator==( const error_condition &amp; condition, const error_code &amp; code ) noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>code.category().equivalent( code.value(), condition )<br>
+  || condition.category().equivalent( code, condition.value() )</code>.</p>
+</blockquote>
+<pre>bool operator==( const error_condition &amp; lhs, const error_condition &amp; rhs ) noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>lhs.category() == rhs.category() &amp;&amp; lhs.value() == 
+  rhs.value()</code>.</p>
+</blockquote>
+<pre>bool operator!=( const error_code &amp; lhs, const error_code &amp; rhs ) noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>!(lhs == rhs )</code>.</p>
+</blockquote>
+<pre>bool operator!=( const error_code &amp; code, const error_condition &amp; condition ) noexcept;
+bool operator!=( const error_condition &amp; condition, const error_code &amp; code ) noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i><code> !( code ==&nbsp; condition )</code>.</p>
+</blockquote>
+<pre>bool operator!=( const error_condition &amp; lhs, const error_condition &amp; rhs ) noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>!(lhs == rhs )</code>.</p>
+</blockquote>
+<pre>bool operator&lt;( const error_code &amp; lhs, const error_code &amp; rhs ) noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>lhs.category() &lt; rhs.category()<br>
+  &nbsp; || (lhs.category() == rhs.category() &amp;&amp; lhs.value() &lt; rhs.value())</code>.</p>
+</blockquote>
+<pre>bool operator&lt;( const error_condition &amp; lhs, const error_condition &amp; rhs ) noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>lhs.category() &lt; rhs.category()<br>
+  &nbsp; || (lhs.category() == rhs.category() &amp;&amp; lhs.value() &lt; rhs.value())</code>.</p>
+</blockquote>
+<pre>error_code make_error_code( errc::errc_t e ) noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>error_code( e, generic_category())</code>.</p>
+</blockquote>
+<pre>error_condition make_error_condition( errc::errc_t e ) noexcept;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>error_condition( static_cast&lt;int&gt;( e ), generic_category())</code>.</p>
+</blockquote>
+
+<pre>template &lt;class charT, class traits&gt;
+  std::basic_ostream&lt;charT,traits&gt;&amp;
+    operator&lt;&lt;( basic_ostream&lt;charT,traits&gt;&amp; os, const error_code &amp; ec );</pre>
+<blockquote>
+<p><i>Effects:</i> <code>os &lt;&lt; ec.category().name() &lt;&lt; ':' &lt;&lt; ec.value()</code>.</p>
+<p><i>Returns:</i> <code>os</code>.</p>
+</blockquote>
+<pre>size_t <a name="hash_value">hash_value</a>( const error_code &amp; ec );</pre>
+<blockquote>
+  <p><i>Returns: </i>&nbsp;A hash value representing <code>ec</code>.</p>
+</blockquote>
+
+<h2><a name="Header-system_error">Header &lt;boost/system/system_error.hpp&gt;</a></h2>
+
+<h3><a name="Class-system_error">Class <code>
+system_error</code></a></h3>
+<p>The class <code>system_error</code> describes an exception object used to 
+report errors that have an associated <code><a href="#Class-error_code">error_code</a></code>. Such errors typically originate from operating system or other low-level 
+application program interfaces.</p>
+<blockquote>
+<pre>namespace boost
+{
+  namespace system
+  {
+    class system_error : public std::runtime_error
+    {
+    public:
+      system_error( error_code ec );
+      system_error( error_code ec, const char * what_arg );
+      system_error( error_code ec, const std::string &amp; what_arg );
+      system_error( int ev, const error_category &amp; ecat,
+                    const char * what_arg );
+      system_error( int ev, const error_category &amp; ecat,
+                    const std::string &amp; what_arg );
+      system_error( int ev, const error_category &amp; ecat);
+
+      const error_code &amp; code() const throw();
+      const char *       what() const throw();
+    };
+  }
+}</pre>
+</blockquote>
+<pre>system_error( error_code ec );</pre>
+<blockquote>
+  <p><i>Effects:</i> Constructs an object of class <code>system_error</code>.</p>
+  <p><i>Postcondition:</i> <code>code() == ec <br>
+&nbsp; &amp;&amp; std::strcmp( this-&gt;runtime_error::what(), &quot;&quot; ) == 0</code></p>
+</blockquote>
+<pre>system_error( error_code ec, const char * what_arg );</pre>
+<blockquote>
+  <p><i>Effects:</i> Constructs an object of class <code>system_error</code>.</p>
+  <p><i>Postcondition:</i> <code>code() == ec <br>
+&nbsp; &amp;&amp; std::strcmp( this-&gt;runtime_error::what(), what_arg ) == 0</code></p>
+</blockquote>
+<pre>system_error( error_code ec, const std::string &amp; what_arg );</pre>
+<blockquote>
+  <p><i>Effects:</i> Constructs an object of class <code>system_error</code>.</p>
+  <p><i>Postcondition:</i> <code>code() == ec <br>
+&nbsp; &amp;&amp; std::strcmp( this-&gt;runtime_error::what(), what_arg.c_str() ) == 0</code></p>
+</blockquote>
+<pre>system_error( int ev, const error_category &amp; ecat,
+             const char * what_arg );</pre>
+<blockquote>
+  <p><i>Effects:</i> Constructs an object of class <code>system_error</code>.</p>
+  <p><i>Postcondition:</i> <code>code() == error_code( ev, ecat )<br>
+&nbsp; &amp;&amp; std::strcmp( this-&gt;runtime_error::what(), what_arg ) == 0</code></p>
+</blockquote>
+<pre>system_error( int ev, const error_category &amp; ecat,
+             const std::string &amp; what_arg );</pre>
+<blockquote>
+  <p><i>Effects:</i> Constructs an object of class <code>system_error</code>.</p>
+  <p><i>Postcondition:</i> <code>code() == error_code( ev, ecat )<br>
+&nbsp; &amp;&amp; std::strcmp( this-&gt;runtime_error::what(), what_arg.c_str() ) == 0</code></p>
+</blockquote>
+<pre>system_error( int ev, const error_category &amp; ecat );</pre>
+<blockquote>
+  <p><i>Effects:</i> Constructs an object of class <code>system_error</code>.</p>
+  <p><i>Postcondition:</i> <code>code() == error_code( ev, ecat )<br>
+&nbsp; &amp;&amp; std::strcmp( this-&gt;runtime_error::what(), &quot;&quot; ) == 0</code></p>
+</blockquote>
+<pre>const error_code &amp; code() const;</pre>
+<blockquote>
+  <p><i>Returns:</i> <code>ec</code> or <code>error_code( ev, ecat )</code>, from 
+  the constructor, as appropriate.</p>
+</blockquote>
+<pre>const char * what() const;</pre>
+<blockquote>
+  <p><i>Returns: </i>A string incorporating <code>
+  this-&gt;runtime_error::what()</code> and <code>
+  code.message()</code>.</p>
+</blockquote>
+<hr>
+
+<p>Revised 
+<!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%B %d, %Y" startspan -->February 27, 2013<!--webbot bot="Timestamp" endspan i-checksum="41547" --> </font>
+</p>
+
+<p>© Copyright Beman Dawes, 2006, 2007, 2008, 2013</p>
+
+<p>Distributed under the Boost Software License, Version 1.0. See
+<a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a></p>
+
+</body>
+
+</html>

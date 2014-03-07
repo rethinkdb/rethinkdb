@@ -1,0 +1,129 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/sw.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/sw.xml
+ */
+sw{
+    Languages{
+        af{"Kiafrikana"}
+        ak{"Kiakan"}
+        am{"Kiamhari"}
+        ar{"Kiarabu"}
+        az{"Kiazabaijani"}
+        be{"Kibelarusi"}
+        bg{"Kibulgaria"}
+        bn{"Kibangla"}
+        br{"Kibreton"}
+        bs{"Kibosnia"}
+        ca{"Kikatalani"}
+        co{"Kikosikani"}
+        cs{"Kicheki"}
+        cy{"Kiwelisi"}
+        da{"Kidenmaki"}
+        de{"Kijerumani"}
+        el{"Kigiriki"}
+        en{"Kiingereza"}
+        eo{"Kiesperanto"}
+        es{"Kihispania"}
+        et{"Kiestonia"}
+        eu{"Kibaski"}
+        fa{"Kiajemi"}
+        fil{"Kifilipino"}
+        fo{"Kifaroe"}
+        fr{"Kifaransa"}
+        fy{"Kifrisia cha Magharibi"}
+        ga{"Kiayalandi"}
+        gd{"Kigaeli"}
+        gl{"Kigalisia"}
+        gn{"Kiguarani"}
+        gu{"Kigujarati"}
+        ha{"Kihausa"}
+        he{"Kiyahudi"}
+        hi{"Kihindi"}
+        hr{"Kikroeshia"}
+        hu{"Kihungari"}
+        hy{"Kiarmenia"}
+        ia{"Kiintalingua"}
+        id{"Kiindonesia"}
+        ig{"Kiigbo"}
+        is{"Kiaislandi"}
+        it{"Kiitaliano"}
+        ja{"Kijapani"}
+        jv{"Kijava"}
+        jw{"Kijava"}
+        ka{"Kijojia"}
+        kk{"Kikazakhi"}
+        km{"Kikambodia"}
+        kn{"Kikannada"}
+        ko{"Kikorea"}
+        ku{"Kikurdi"}
+        ky{"Kikirgizi"}
+        la{"Kilatini"}
+        ln{"Kilingala"}
+        lo{"Kilaosi"}
+        lt{"Kilithuania"}
+        lv{"Kilatvia"}
+        mk{"Kimasedonia"}
+        ml{"Kimalayam"}
+        mn{"Kimongolia"}
+        mo{"Kimoldavia"}
+        mr{"Kimarathi"}
+        ms{"Kimalesia"}
+        mt{"Kimalta"}
+        my{"Kiburma"}
+        nb{"Kinorwe (Bokmål)"}
+        ne{"Kinepali"}
+        nl{"Kiholanzi"}
+        nn{"Kinorwe (Nynorsk)"}
+        no{"Kinorwe"}
+        oc{"Kiositani"}
+        or{"Kioriya"}
+        pa{"Kipunjabi"}
+        pl{"Kipolandi"}
+        ps{"Kipashto"}
+        pt{"Kireno"}
+        qu{"Kiquechua"}
+        rm{"Kirumi cha Raetia"}
+        ro{"Kiromania"}
+        ru{"Kirusi"}
+        rw{"Kinyarwanda"}
+        sd{"Kisindhi"}
+        sh{"Kiserbia-Kikroeshia"}
+        si{"Kisinhali"}
+        sk{"Kislovakia"}
+        sl{"Kislovenia"}
+        sn{"Kishona"}
+        so{"Kisomali"}
+        sq{"Kialbania"}
+        sr{"Kiserbia"}
+        st{"Kisotho"}
+        su{"Kinubi"}
+        sv{"Kiswidi"}
+        sw{"Kiswahili"}
+        ta{"Kitamil"}
+        te{"Kitelugu"}
+        tg{"Kitajiki"}
+        th{"Kitailandi"}
+        ti{"Kitigrinya"}
+        tk{"Kiturukimeni"}
+        to{"Kitonga"}
+        tr{"Kituruki"}
+        tt{"Kitatari"}
+        tw{"Kitwii"}
+        ug{"Kiuigur"}
+        uk{"Kiukrania"}
+        ur{"Kiurdu"}
+        uz{"Kiuzbeki"}
+        vi{"Kivietinamu"}
+        yo{"Kiyoruba"}
+        zh{"Kichina"}
+        zu{"Kizulu"}
+    }
+    Version{"2.0.49.7"}
+}

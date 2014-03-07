@@ -1,0 +1,121 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct deduce_domain</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../proto/reference.html#header.boost.proto.domain_hpp" title="Header &lt;boost/proto/domain.hpp&gt;">
+<link rel="prev" href="basic_default_domain.html" title="Struct basic_default_domain">
+<link rel="next" href="is_domain.html" title="Struct template is_domain">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_default_domain.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.domain_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_domain.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.deduce_domain"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct deduce_domain</span></h2>
+<p>boost::proto::deduce_domain &#8212; A pseudo-domain for use in functions and metafunctions that require a domain parameter.
+          It indicates that the domain of the parent node should be inferred from the domains of the child nodes.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../proto/reference.html#header.boost.proto.domain_hpp" title="Header &lt;boost/proto/domain.hpp&gt;">boost/proto/domain.hpp</a>&gt;
+
+</span>
+<span class="keyword">struct</span> <a class="link" href="deduce_domain.html" title="Struct deduce_domain">deduce_domain</a> <span class="special">{</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp176525560"></a><h2>Description</h2>
+<p>
+            When <code class="computeroutput">proto::deduce_domain</code> is used as a domain &#8212; either
+            explicitly or implicitly by
+            <code class="computeroutput"><a class="link" href="make_expr_idp66958136.html" title="Function make_expr">proto::make_expr</a>()</code>,
+            <code class="computeroutput"><a class="link" href="unpack_expr_idp66974776.html" title="Function unpack_expr">proto::unpack_expr</a>()</code>,
+            or Proto's operator overloads &#8212; Proto will use the domains of the child expressions to
+            compute the domain of the parent. It is done in such a way that (A) expressions in domains
+            that share a common super-domain are interoperable, and (B) expressions that are in
+            the default domain (or a sub-domain thereof) are interoperable with <span class="emphasis"><em>all</em></span>
+            expressions. The rules are as follows:
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                A sub-domain is <span class="emphasis"><em>stronger</em></span> than its super-domain.
+              </li>
+<li class="listitem">
+<code class="computeroutput"><a class="link" href="default_domain.html" title="Struct default_domain">proto::default_domain</a></code>,
+                <code class="computeroutput"><a class="link" href="basic_default_domain.html" title="Struct basic_default_domain">proto::basic_default_domain</a></code>
+                and all their sub-domains are <span class="emphasis"><em>weaker</em></span> than all other domains.
+              </li>
+<li class="listitem">
+<code class="computeroutput"><a class="link" href="basic_default_domain.html" title="Struct basic_default_domain">proto::basic_default_domain</a></code>
+                is weaker than
+                <code class="computeroutput"><a class="link" href="default_domain.html" title="Struct default_domain">proto::default_domain</a></code>.
+              </li>
+<li class="listitem">
+                For each child, define a set of domains <span class="emphasis"><em>S<sub>N</sub></em></span>
+                that includes the child's domain and all its super-domains.
+              </li>
+<li class="listitem">
+                Define a set <span class="emphasis"><em>I<sub>S</sub></em></span> that is the intersection of
+                all the individual sets <span class="emphasis"><em>S<sub>N</sub></em></span> that don't contain
+                <code class="computeroutput"><a class="link" href="default_domain.html" title="Struct default_domain">proto::default_domain</a></code> or
+                <code class="computeroutput"><a class="link" href="basic_default_domain.html" title="Struct basic_default_domain">proto::basic_default_domain</a></code>.
+              </li>
+<li class="listitem">
+                Define a set <span class="emphasis"><em>I<sub>W</sub></em></span> that is the intersection of
+                all the individual sets <span class="emphasis"><em>S<sub>N</sub></em></span> that contain
+                <code class="computeroutput"><a class="link" href="default_domain.html" title="Struct default_domain">proto::default_domain</a></code> or
+                <code class="computeroutput"><a class="link" href="basic_default_domain.html" title="Struct basic_default_domain">proto::basic_default_domain</a></code>.
+              </li>
+<li class="listitem">
+                Define a set <span class="emphasis"><em>P</em></span> that is the union of
+                <span class="emphasis"><em>I<sub>S</sub></em></span> and
+                <span class="emphasis"><em>I<sub>W</sub></em></span>.
+              </li>
+<li class="listitem">
+                The common domain is the strongest domain in set <span class="emphasis"><em>P</em></span>, with the
+                following caveats.
+              </li>
+<li class="listitem">
+                Let <span class="emphasis"><em>U</em></span> be the union of all sets
+                <span class="emphasis"><em>S<sub>N</sub></em></span>. If the result is 
+                <code class="computeroutput"><a class="link" href="default_domain.html" title="Struct default_domain">proto::default_domain</a></code> or
+                <code class="computeroutput"><a class="link" href="basic_default_domain.html" title="Struct basic_default_domain">proto::basic_default_domain</a></code>
+                and <span class="emphasis"><em>U</em></span> contains an element that is <span class="emphasis"><em>not </em></span><code class="computeroutput"><a class="link" href="default_domain.html" title="Struct default_domain">proto::default_domain</a></code> or
+                <code class="computeroutput"><a class="link" href="basic_default_domain.html" title="Struct basic_default_domain">proto::basic_default_domain</a></code>,
+                it is an error.
+              </li>
+</ul></div>
+<p>
+          </p>
+<p>
+            Note: the above description sounds like it would be expensive to compute at compile time.
+            In fact, it can all be done using C++ function overloading.
+          </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_default_domain.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.domain_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_domain.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

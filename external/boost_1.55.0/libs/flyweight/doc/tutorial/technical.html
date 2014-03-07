@@ -1,0 +1,199 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Flyweight Documentation - Tutorial - Technical issues</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="extension.html">
+<link rel="up" href="index.html">
+<link rel="next" href="lambda_expressions.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="Boost logo" align=
+"middle" width="277" height="86">Boost.Flyweight Tutorial: Technical issues</h1>
+
+<div class="prev_link"><a href="extension.html"><img src="../prev.gif" alt="extending Boost.Flyweight" border="0"><br>
+Extending Boost.Flyweight
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight tutorial" border="0"><br>
+Boost.Flyweight tutorial
+</a></div>
+<div class="next_link"><a href="lambda_expressions.html"><img src="../next.gif" alt="annex: MPL lambda expressions" border="0"><br>
+Annex: MPL lambda expressions
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#static_init">Static data initialization</a></li>
+</ul>
+
+<h2><a name="static_init">Static data initialization</a></h2>
+
+<p>
+For any given <code>T</code>, the type <code>flyweight&lt;T&gt;</code>
+maintains some class-wide or static data that needs to be properly
+initialized before the class can be used. The internal machinery of
+Boost.Flyweight guarantees that static data initialization
+takes place automatically before the first use of the particular
+<code>flyweight&lt;T&gt;</code> instantiation in the program, and in
+any case always during the so-called <i>dynamic initialization phase</i>
+of the program startup sequence. Although this is not strictly
+required by the C++ standard, in current practice dynamic initialization
+is completed before <code>main()</code> begins.
+</p>
+
+<p>
+So, for all practical purposes, static data initialization is performed
+before <code>main()</code> or before the first pre-<code>main()</code>
+usage of the class, for instance if we declare a global
+<code>static flyweight&lt;T&gt;</code> object. This covers the vast
+majority of usage cases in a transparent manner, but there are
+some scenarios where the automatic static data initialization
+policy of Boost.Flyweight can fail:
+</p>
+
+<blockquote><pre>
+<span class=comment>// global thread pool</span>
+
+<span class=keyword>class</span> <span class=identifier>thread_pool</span>
+<span class=special>{</span>
+<span class=keyword>public</span><span class=special>:</span>
+  <span class=identifier>thread_pool</span><span class=special>()</span>
+  <span class=special>{</span>
+    <span class=keyword>for</span><span class=special>(</span><span class=keyword>int</span> <span class=identifier>i</span><span class=special>=</span><span class=number>0</span><span class=special>;</span><span class=identifier>i</span><span class=special>&lt;</span><span class=number>100</span><span class=special>;++</span><span class=identifier>i</span><span class=special>)</span><span class=identifier>p</span><span class=special>[</span><span class=identifier>i</span><span class=special>]=</span><span class=identifier>shared_ptr</span><span class=special>&lt;</span><span class=identifier>thread</span><span class=special>&gt;(</span><span class=keyword>new</span> <span class=identifier>thread</span><span class=special>(</span><span class=identifier>thread_fun</span><span class=special>));</span>
+  <span class=special>}</span>
+
+<span class=keyword>private</span><span class=special>:</span>
+  <span class=keyword>static</span> <span class=keyword>void</span> <span class=identifier>thread_fun</span><span class=special>()</span>
+  <span class=special>{</span>
+    <span class=comment>// uses flyweight&lt;std::string&gt;</span>
+  <span class=special>}</span>
+  <span class=identifier>array</span><span class=special>&lt;</span><span class=identifier>shared_ptr</span><span class=special>&lt;</span><span class=identifier>thread</span><span class=special>&gt;,</span><span class=number>100</span><span class=special>&gt;</span> <span class=identifier>p</span><span class=special>;</span>
+<span class=special>};</span>
+
+<span class=keyword>static</span> <span class=identifier>thread_pool</span> <span class=identifier>thpool</span><span class=special>;</span>
+
+<span class=keyword>int</span> <span class=identifier>main</span><span class=special>()</span>
+<span class=special>{</span>
+  <span class=special>...</span>
+</pre></blockquote>
+
+<p>
+The global pool of the example launches several threads, each of which
+internally uses <code>flyweight&lt;std::string&gt;</code>.
+Static data initialization can potentially be executed twice concurrently
+if two threads happen to collide on the first usage of
+<code>flyweight&lt;std::string&gt;</code>: Boost.Flyweight initialization
+does not consider thread safety. So, we need to explicitly take care of
+static data initialization in a thread safe context before launching
+the threads:
+</p>
+
+<blockquote><pre>
+<span class=keyword>class</span> <span class=identifier>thread_pool</span>
+<span class=special>{</span>
+<span class=keyword>public</span><span class=special>:</span>
+  <span class=identifier>thread_pool</span><span class=special>()</span>
+  <span class=special>{</span>
+    <b><span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;::</span><span class=identifier>init</span><span class=special>();</span></b>
+    <span class=keyword>for</span><span class=special>(</span><span class=keyword>int</span> <span class=identifier>i</span><span class=special>=</span><span class=number>0</span><span class=special>;</span><span class=identifier>i</span><span class=special>&lt;</span><span class=number>100</span><span class=special>;++</span><span class=identifier>i</span><span class=special>)</span><span class=identifier>p</span><span class=special>[</span><span class=identifier>i</span><span class=special>]=</span><span class=identifier>shared_ptr</span><span class=special>&lt;</span><span class=identifier>thread</span><span class=special>&gt;(</span><span class=keyword>new</span> <span class=identifier>thread</span><span class=special>(</span><span class=identifier>thread_fun</span><span class=special>));</span>
+  <span class=special>}</span>
+  <span class=special>...</span>
+</pre></blockquote>
+
+<p>
+The static member function <code>init</code> is not thread safe, either: in our particular
+example it just happens to be called in a single threaded environment.
+When concurrency can happen, <code>flyweight&lt;T&gt;::init</code> must
+be properly synchronized by the programmer by using some mutual exclusion
+mechanisms of her own.
+</p>
+
+<p>
+The following is another example where the default static initialization
+provided by Boost.Flyweight can fail:
+</p>
+
+<blockquote><pre>
+<span class=keyword>static</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>vector</span><span class=special>&lt;</span><span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>v</span><span class=special>;</span>
+
+<span class=keyword>int</span> <span class=identifier>main</span><span class=special>()</span>
+<span class=special>{</span>
+  <span class=comment>// use v</span>
+<span class=special>}</span>
+</pre></blockquote>
+
+<p>
+In some environments, the program above fails when exiting. For instance, if run
+from Microsoft Visual C++ environment in debug mode, a breakpoint is triggered
+at termination time and the debug output window shows a message along the following:
+</p>
+
+<blockquote><pre>
+HEAP[test.exe]: HEAP: Free Heap block 3a6488 modified at 3a6650 after it was
+freed
+Windows has triggered a breakpoint in test.exe.
+This may be due to a corruption of the heap, and indicates a bug in test.exe
+or any of the DLLs it has loaded.
+The output window may have more diagnostic information
+</pre></blockquote>
+
+<p>
+What is the problem? Although the type of <code>v</code> involves
+<code>flyweight&lt;std::string&gt;</code>, constructing <code>v</code> as an empty vector
+need not create any flyweight object proper; so,
+it is perfectly possible that the static initialization of
+<code>flyweight&lt;std::string&gt;</code> happens <i>after</i> the construction
+of <code>v</code>; when this is the case, the static destruction of
+the associated factory will occur <i>before</i> <code>v</code>'s
+destruction, leaving the vector with dangling flyweights.
+Again, the solution consists in explicitly forcing the static instantiation
+of <code>flyweight&lt;std::string&gt;</code> before <code>v</code> is
+created. Here, calling
+the function <code>flyweight&lt;std::string&gt;::init</code> is a little
+cumbersome, so we can resort to the utility type
+<code>flyweight&lt;std::string&gt;::initializer</code> to do that job for us:
+</p>
+
+<blockquote><pre>
+<span class=comment>// equivalent to calling flyweight&lt;std::string&gt;::init()</span>
+<b><span class=keyword>static</span> <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;::</span><span class=identifier>initializer</span>  <span class=identifier>fwinit</span><span class=special>;</span></b>
+<span class=keyword>static</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>vector</span><span class=special>&lt;</span><span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>v</span><span class=special>;</span>
+
+<span class=keyword>int</span> <span class=identifier>main</span><span class=special>()</span>
+<span class=special>{</span>
+  <span class=comment>// use v; no dangling flyweights at termination now</span>
+<span class=special>}</span>
+</pre></blockquote>
+
+<hr>
+
+<div class="prev_link"><a href="extension.html"><img src="../prev.gif" alt="extending Boost.Flyweight" border="0"><br>
+Extending Boost.Flyweight
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight tutorial" border="0"><br>
+Boost.Flyweight tutorial
+</a></div>
+<div class="next_link"><a href="lambda_expressions.html"><img src="../next.gif" alt="annex: MPL lambda expressions" border="0"><br>
+Annex: MPL lambda expressions
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised Octber 16th 2010</p>
+
+<p>&copy; Copyright 2006-2010 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

@@ -1,0 +1,41 @@
+[article Link tests
+]
+
+[section Different types of links]
+
+[@http://www.boost.org/]
+[@  http://www.boost.org/ Boost]
+[link link-id]
+[link link-id Link Text]
+[#link-id]
+[funcref foo]
+[funcref foo link text]
+[classref foo]
+[classref foo link text]
+[memberref foo]
+[memberref foo link text]
+[enumref foo]
+[enumref foo link text]
+[macroref foo]
+[macroref foo link text]
+[headerref foo]
+[headerref foo link text]
+[conceptref foo]
+[conceptref foo link text]
+[globalref foo]
+[globalref foo link text]
+
+[link link[/ comment]description]
+
+[endsect]
+
+[section Side-by-side links]
+
+[link x] and [link y] are two distinct links, which should be separated by
+whitespace when they appear together as in [link x] [link y]. Also in [link x]
+[link y], and in
+[link x]
+[link y]
+as well.
+
+[endsect]

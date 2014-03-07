@@ -1,0 +1,47 @@
+#
+# (C) Copyright 2005, 2006 Trustees of Indiana University
+# (C) Copyright 2005 Douglas Gregor
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying 
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.)
+
+
+# use-project /boost/mpi : ../build ;
+
+project /boost/graph_parallel/test 
+    : requirements <library>../build//boost_graph_parallel <library>../../system/build//boost_system ;
+    
+import mpi : mpi-test ;
+
+if [ mpi.configured ]
+{
+test-suite graph_parallel
+  :
+  [ mpi-test distributed_property_map_test : : : 2 ]
+  [ mpi-test distributed_queue_test : : : 2 ]
+  [ mpi-test process_group_serialization : : : 2 ]
+  [ mpi-test adjlist_build_test : : : 2 ]
+  [ mpi-test adjlist_redist_test : : : 2 ]
+  [ mpi-test adjlist_remove_test : : : 2 ]
+  [ mpi-test distributed_adjacency_list_test : : : 2 ]
+  [ mpi-test distributed_connected_components_test : : : 2 ]
+  [ mpi-test distributed_page_rank_test : : : 2 ]
+  [ mpi-test distributed_csr_test : : : 2 ]
+  [ mpi-test distributed_dfs_test : : : 2 ]
+  [ mpi-test distributed_graph_coloring_test : : : 2 ]
+  [ mpi-test distributed_mst_test : : : 2 ]
+  [ mpi-test distributed_strong_components_test : : : 2 ]
+  [ mpi-test hohberg_biconnected_components_test : : : 2 ]
+  [ mpi-test mesh_generator_test : : <testing.arg>"1000 1000 1 0" : 2 ]
+  [ mpi-test named_vertices_seq : : : 1 ]
+  [ mpi-test distributed_shortest_paths_test : : : 2 ]
+  [ mpi-test distributed_csr_algorithm_test : : : 1 ]
+  [ mpi-test distributed_betweenness_centrality_test : : : 2 ]
+  [ mpi-test distributed_dimacs_reader : : : 2 ]
+  [ mpi-test distributed_rmat_cc_ps : : : 2 ]
+  [ mpi-test distributed_rmat_cc : : : 2 ]
+  [ mpi-test distributed_rmat_pagerank : : : 2 ]
+  [ mpi-test distributed_st_connected_test : : : 2 ]
+  ;
+}
+

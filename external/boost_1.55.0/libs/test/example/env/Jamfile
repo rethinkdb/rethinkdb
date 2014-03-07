@@ -1,0 +1,31 @@
+#  (C) Copyright Gennadiy Rozental 2001-2006.
+#  Use, modification, and distribution are subject to the 
+#  Boost Software License, Version 1.0. (See accompanying file 
+#  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org/libs/test for the library home page.
+
+subproject libs/test/example/env ;
+
+# bring in the rules for testing
+import testing ;
+
+# Make tests run by default.
+DEPENDS all : test ;
+
+rule boost-runtime-param-example ( example-name  )
+{
+   return [ compile $(example-name).cpp
+            : <stlport-iostream>on <borland><*><cxxflags>-w-8080 
+            : $(example-name)
+          ] ;
+}
+
+test-suite "cla_examples"
+    [ boost-runtime-param-example custom_interpreter_env ]  
+    [ boost-runtime-param-example env_var_default_value ] 
+    [ boost-runtime-param-example environment_ex ] 
+    [ boost-runtime-param-example global_id ] 
+    [ boost-runtime-param-example modifier_combination ] 
+    [ boost-runtime-param-example variable_ex ] 
+;

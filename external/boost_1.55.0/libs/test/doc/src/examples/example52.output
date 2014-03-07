@@ -1,0 +1,2 @@
+> example --report_level=no
+<TestLog><Error file="test.cpp" line="18">check false failed</Error></TestLog>

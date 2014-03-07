@@ -1,0 +1,330 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!-- Copyright (c) 2000 Jeremy Siek and Andrew Lumsdaine, 2007 David Abrahams -->
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for Linux/x86 (vers 1 September 2005), see www.w3.org" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+  <title>Concept Check Library</title>
+  <link rel="stylesheet" href="../../rst.css" type="text/css" />
+</head>
+
+<body bgcolor="#FFFFFF" link="#0000EE" text="#000000" vlink="#551A8B" alink=
+"#FF0000">
+  <img src="../../boost.png" alt="C++ Boost" width="277" height=
+  "86" /><br clear="none" />
+
+  <h1>The Boost Concept Check Library (BCCL)</h1>
+
+  <blockquote>
+    The Concept Check library allows one to add explicit statement and
+    checking of <a href=
+    "http://www.boost.org/more/generic_programming.html#concept">concepts</a> in the style
+    of the <a href=
+    "http://www.generic-programming.org/languages/conceptcpp/specification/">proposed
+    C++ language extension</a>.
+  </blockquote>
+
+  <h2><a name="sec:concept-checking" id="sec:concept-checking"></a>Synopsis</a></h2>
+
+  <p>Generic programming in C++ is characterized by the use of template
+  parameters to represent abstract data types (or “<a href=
+  "http://www.boost.org/more/generic_programming.html#concept">concepts</a>”). However, the
+  C++ language itself does not provide a mechanism for the writer of a class
+  or function template to explicitly state the concept that the user-supplied
+  template argument should model (or conform to). Template parameters are
+  commonly named after the concept they're required to model as a hint to the
+  user, and to make the concept requirements explicit in code. However, the
+  compiler doesn't treat these special names specially: a parameter named
+  <code>RandomAccessIterator</code> is no different to the compiler than one
+  named <code>T</code>. Furthermore,</p>
+
+  <ul>
+    <li>Compiler error messages resulting from incorrect template arguments
+    can be particularly difficult to decipher. Often times the error does not
+    point to the location of the template call-site, but instead exposes the
+    internals of the template, which the user should never have to see.</li>
+
+    <li>Without checking from the compiler, the documented requirements are
+    oftentimes vague, incorrect, or nonexistent, so a user cannot know
+    exactly what kind of arguments are expected.</li>
+
+    <li>The documented concept requirements may not fully <i>cover</i> the
+    needs of the actual template, meaning the user could get a compiler error
+    even though the supplied template arguments meet the documented
+    requirements.</li>
+
+    <li>The documented concept requirements may be too stringent, requiring
+    more than is really needed by the template.</li>
+
+    <li>Concept names in code may drift out-of-sync with the documented
+    requirements.</li>
+  </ul><p>The Boost Concept Checking Library provides:
+
+  <ul>
+    <li>A mechanism for inserting compile-time checks on template parameters
+    at their point of use.</li>
+
+    <li>A framework for specifying concept requirements though concept
+    checking classes.</li>
+
+    <li>A mechanism for verifying that concept requirements cover the
+    template.</li>
+
+    <li>A suite of concept checking classes and archetype classes that match
+    the concept requirements in the C++ Standard Library.</li>
+
+    <li>An alternative to the use of traits classes for accessing associated
+    types that mirrors the syntax proposed for the next C++ standard.</li>
+  </ul><p>The mechanisms use standard C++ and introduce no run-time overhead.
+  The main cost of using the mechanism is in compile-time.</p>
+
+  <p><strong>Every programmer writing class or function templates ought to
+  make concept checking a normal part of their code writing routine.</strong>
+  A concept check should be inserted for each template parameter in a
+  component's public interface. If the concept is one of the ones from the
+  Standard Library, then simply use the matching concept checking class in
+  the BCCL. If not, then write a new concept checking class - after all, they
+  are typically only a few lines long. For new concepts, a matching archetype
+  class should also be created, which is a minimal skeleton-implementation of
+  the concept</p>
+
+  <p>The documentation is organized into the following sections.</p>
+
+  <ol>
+    <li><a href="#introduction">Introduction</a></li>
+
+    <li><a href="#motivating-example">Motivating Example</a></li>
+
+    <li><a href="#history">History</a></li>
+
+    <li><a href="#publications">Publications</a></li>
+
+    <li><a href="#acknowledgements">Acknowledgements</a></li>
+
+    <li><a href="./using_concept_check.htm">Using Concept Checks</a></li>
+
+    <li><a href="creating_concepts.htm">Creating Concept Checking
+    Classes</a></li>
+
+    <li><a href="./concept_covering.htm">Concept Covering and
+    Archetypes</a></li>
+
+    <li><a href="./prog_with_concepts.htm">Programming With Concepts</a></li>
+
+    <li><a href="./implementation.htm">Implementation</a></li>
+
+    <li><a href="./reference.htm">Reference</a></li>
+  </ol>
+
+  <p><a href="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a> contributed this
+  library. <a href="http://www.boost.org/people/beman_dawes.html">Beman Dawes</a> managed
+  the formal review. <a href="http://www.boost.org/people/dave_abrahams.htm">Dave
+  Abrahams</a> contributed a rewrite that updated syntax to be more
+  compatible with proposed syntax for concept support the C++ core
+  language.</p>
+
+  <h2><a name="introduction" id="introduction">Introduction</a></h2><p>A
+  <i>concept</i> is a set of requirements (valid expressions, associated
+  types, semantic invariants, complexity guarantees, etc.) that a type must
+  fulfill to be correctly used as arguments in a call to a generic algorithm.
+  In C++, concepts are represented by formal template parameters to function
+  templates (generic algorithms). However, C++ has no explicit mechanism for
+  representing concepts—template parameters are merely placeholders. By
+  convention, these parameters are given names corresponding to the concept
+  that is required, but a C++ compiler does not enforce compliance to the
+  concept when the template parameter is bound to an actual type.
+
+  <p>Naturally, if a generic algorithm is invoked with a type that does not
+  fulfill at least the syntactic requirements of the concept, a compile-time
+  error will occur. However, this error will not <i>per se</i> reflect the
+  fact that the type did not meet all of the requirements of the concept.
+  Rather, the error may occur deep inside the instantiation hierarchy at the
+  point where an expression is not valid for the type, or where a presumed
+  associated type is not available. The resulting error messages are largely
+  uninformative and basically impenetrable.</p>
+
+  <p>What is required is a mechanism for enforcing
+  “concept safety” at (or close to) the point
+  of instantiation. The Boost Concept Checking Library uses some standard C++
+  constructs to enforce early concept compliance and that provides more
+  informative error messages upon non-compliance.</p>
+
+  <p>Note that this technique only addresses the syntactic requirements of
+  concepts (the valid expressions and associated types). We do not address
+  the semantic invariants or complexity guarantees, which are also part of
+  concept requirements..</p>
+
+  <h2><a name="motivating-example" id="motivating-example">Motivating
+  Example</a></h2>
+
+  <p>We present a simple example to illustrate incorrect usage of a template
+  library and the resulting error messages. In the code below, the generic
+  <tt>std::stable_sort()</tt> algorithm from the Standard Template Library
+  (STL)[<a href="bibliography.htm#austern99:_gener_progr_stl">3</a>, <a href=
+  "bibliography.htm#IB-H965502">4</a>,<a href=
+  "bibliography.htm#stepa.lee-1994:the.s:TR">5</a>] is applied to a linked
+  list.</p>
+  <pre>
+  <a href="./bad_error_eg.cpp">bad_error_eg.cpp</a>:
+<font color="gray">1</font> #include &lt;vector&gt;
+<font color="gray">2</font color="gray"> #include &lt;complex&gt;
+<font color="gray">3</font color="gray"> #include &lt;algorithm&gt;
+<font color="gray">4</font color="gray"> 
+<font color="gray">5</font color="gray"> int main()
+<font color="gray">6</font color="gray"> {
+<font color="gray">7</font color="gray">     std::vector&lt;std::complex&lt;float&gt; &gt; v;
+<font color="gray">8</font color="gray">     std::stable_sort(v.begin(), v.end());
+<font color="gray">9</font color="gray"> }
+</pre>
+
+  <p>Here, the <tt>std::stable_sort()</tt> algorithm is prototyped as
+  follows:</p>
+  <pre>
+  template &lt;class RandomAccessIterator&gt;
+  void stable_sort(RandomAccessIterator first, RandomAccessIterator last);
+</pre>
+
+  <p>Attempting to compile this code with Gnu C++ produces the following
+  compiler error:</p>
+  <pre>
+/usr/include/c++/4.1.2/bits/stl_algo.h: In function ‘void std::
+  __insertion_sort(_RandomAccessIterator, _RandomAccessIterator) [with 
+  _RandomAccessIterator = __gnu_cxx::__normal_iterator&lt;std::complex&lt;float
+  &gt;*, std::vector&lt;std::complex&lt;float&gt;, std::allocator&lt;std::complex&lt;
+  float&gt; &gt; &gt; &gt;]’:
+/usr/include/c++/4.1.2/bits/stl_algo.h:3066:   instantiated from ‘void 
+  std::__inplace_stable_sort(_RandomAccessIterator, 
+  _RandomAccessIterator) [with _RandomAccessIterator = __gnu_cxx::
+  __normal_iterator&lt;std::complex&lt;float&gt;*, std::vector&lt;std::complex&lt;
+  float&gt;, std::allocator&lt;std::complex&lt;float&gt; &gt; &gt; &gt;]’
+/usr/include/c++/4.1.2/bits/stl_algo.h:3776:   instantiated from ‘void 
+  std::stable_sort(_RandomAccessIterator, _RandomAccessIterator) [with 
+  _RandomAccessIterator = __gnu_cxx::__normal_iterator&lt;std::complex&lt;float
+  &gt;*, std::vector&lt;std::complex&lt;float&gt;, std::allocator&lt;std::complex&lt;
+  float&gt; &gt; &gt; &gt;]’
+bad_error_eg.cpp:8:   instantiated from here
+/usr/include/c++/4.1.2/bits/stl_algo.h:2277: error: no match for 
+  ‘operator&lt;’ in ‘__val &lt; __first. __gnu_cxx::__normal_iterator&lt;
+  _Iterator, _Container&gt;::operator* [with _Iterator = std::complex&lt;float
+  &gt;*, _Container = std::vector&lt;std::complex&lt;float&gt;, std::allocator&lt;
+  std::complex&lt;float&gt; &gt; &gt;]()’
+</pre>
+
+  <p>In this case, the fundamental error is
+  that <tt>std:complex&lt;float&gt;</tt> does not model the <a href=
+  "http://www.sgi.com/tech/stl/LessThanComparable.html">LessThanComparable</a>
+  concept.  Unfortunately, there is nothing in the error message to
+  indicate that to the user.</p>
+
+  <p>The error may be obvious to a C++ programmer having enough
+  experience with template libraries, but there are several reasons
+  why this message could be hard for the uninitiated to
+  understand:</p>
+
+  <ol>
+    <li>There is no textual correlation between the error message and the
+    documented requirements for <tt>std::stable_sort()</tt> and for <a href=
+    "http://www.sgi.com/tech/stl/LessThanComparable.html">LessThanComparable</a>.</li>
+
+    <li>The error message is overly long, listing functions internal
+    to the STL (e.g. <code>__insertion_sort</code>) that the user
+    does not (and should not!) know or care about.</li>
+
+    <li>With so many internal library functions listed in the error message,
+    the programmer could easily infer that the problem is in the library,
+    rather than in his or her own code.</li>
+  </ol>
+
+  <p>The following is an example of what we might expect from a more
+  informative message (and is in fact what the Boost Concept Checking Library
+  produces):</p>
+  <pre>
+boost/concept_check.hpp: In destructor ‘boost::LessThanComparable&lt;TT&gt;::~
+  LessThanComparable() [with TT = std::complex&lt;float&gt;]’:
+boost/concept/detail/general.hpp:29:   instantiated from ‘static void boost::
+  concepts::requirement&lt;Model&gt;::failed() [with Model = boost::
+  LessThanComparable&lt;std::complex&lt;float&gt; &gt;]’
+boost/concept/requires.hpp:30:   instantiated from ‘boost::_requires_&lt;void
+  (*)(boost::LessThanComparable&lt;std::complex&lt;float&gt; &gt;)&gt;’
+bad_error_eg.cpp:8:   instantiated from here
+boost/concept_check.hpp:236: error: no match for ‘operator&lt;’ in ‘((boost::
+  LessThanComparable&lt;std::complex&lt;float&gt; &gt;*)this)-&gt;boost::
+  LessThanComparable&lt;std::complex&lt;float&gt; &gt;::a &lt; ((boost::
+  LessThanComparable&lt;std::complex&lt;float&gt; &gt;*)this)-&gt;boost::
+  LessThanComparable&lt;std::complex&lt;float&gt; &gt;::b’
+</pre>
+
+  <p>This message rectifies several of the shortcomings of the standard error
+  messages.</p>
+
+  <ul>
+    <li>The message refers explicitly to concepts that the user can look up
+    in the STL documentation (<a href=
+    "http://www.sgi.com/tech/stl/LessThanComparable.html">LessThanComparable</a>).</li>
+
+    <li>The error message is now much shorter and does not reveal
+    internal STL functions, nor indeed does it even point
+    to <code>std::stable_sort</code>.</li>
+
+    <li>The presence of <tt>concept_check.hpp</tt> in the error message
+    alerts the user to the fact that the error lies in the user code and not
+    in the library implementation.</li>
+  </ul>
+
+  <h2><a name="history" id="history">History</a></h2>
+
+  <p>The first version of this concept checking system was developed
+  by Jeremy Siek while working at SGI in their C++ compiler and
+  library group. That version is now part of the SGI STL
+  distribution. The system originally introduced as the boost concept
+  checking library differs from concept checking in the SGI STL in
+  that the definition of concept checking classes was greatly
+  simplified, at the price of less helpful verbiage in the error
+  messages. In 2006 the system was rewritten (preserving backward
+  compatibility) by Dave Abrahams to be easier to use, more similar to
+  the proposed concept support the C++ core language, and to give
+  better error messages.
+</p>
+
+  <h2><a name="publications" id="publications">Publications</a></h2>
+
+  <ul>
+    <li><a href="http://www.oonumerics.org/tmpw00/">C++ Template Workshop
+    2000</a>, Concept Checking</li>
+  </ul>
+
+  <h2><a name="acknowledgements" id=
+  "acknowledgements">Acknowledgements</a></h2><p>The idea to use function
+  pointers to cause instantiation is due to Alexander Stepanov. We are not sure
+  of the origin of the idea to use expressions to do up-front checking of
+  templates, but it did appear in D&amp;E[ <a href=
+  "bibliography.htm#stroustrup94:_design_evolution">2</a>]. Thanks to Matt
+  Austern for his excellent documentation and organization of the STL
+  concepts, upon which these concept checks are based. Thanks to Boost
+  members for helpful comments and reviews.
+
+  <p><a href="./using_concept_check.htm">Next: Using Concept
+  Checks</a><br /></p>
+  <hr />
+
+  <table>
+    <tr valign="top">
+      <td nowrap="nowrap">Copyright &copy; 2000</td>
+
+      <td><a href="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a>(<a href=
+      "mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</a>) Andrew
+      Lumsdaine(<a href="mailto:lums@osl.iu.edu">lums@osl.iu.edu</a>),
+        2007 <a href="mailto:dave@boost-consulting.com">David Abrahams</a>.
+</td>
+    </tr>
+  </table>
+</body>
+</html>

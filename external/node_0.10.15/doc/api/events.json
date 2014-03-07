@@ -1,0 +1,214 @@
+{
+  "source": "doc/api/events.markdown",
+  "modules": [
+    {
+      "textRaw": "Events",
+      "name": "Events",
+      "stability": 4,
+      "stabilityText": "API Frozen",
+      "type": "module",
+      "desc": "<p>Many objects in Node emit events: a <code>net.Server</code> emits an event each time\na peer connects to it, a <code>fs.readStream</code> emits an event when the file is\nopened. All objects which emit events are instances of <code>events.EventEmitter</code>.\nYou can access this module by doing: <code>require(&quot;events&quot;);</code>\n\n</p>\n<p>Typically, event names are represented by a camel-cased string, however,\nthere aren&#39;t any strict restrictions on that, as any string will be accepted.\n\n</p>\n<p>Functions can then be attached to objects, to be executed when an event\nis emitted. These functions are called <em>listeners</em>. Inside a listener\nfunction, <code>this</code> refers to the <code>EventEmitter</code> that the listener was\nattached to.\n\n\n</p>\n",
+      "classes": [
+        {
+          "textRaw": "Class: events.EventEmitter",
+          "type": "class",
+          "name": "events.EventEmitter",
+          "desc": "<p>To access the EventEmitter class, <code>require(&#39;events&#39;).EventEmitter</code>.\n\n</p>\n<p>When an <code>EventEmitter</code> instance experiences an error, the typical action is\nto emit an <code>&#39;error&#39;</code> event.  Error events are treated as a special case in node.\nIf there is no listener for it, then the default action is to print a stack\ntrace and exit the program.\n\n</p>\n<p>All EventEmitters emit the event <code>&#39;newListener&#39;</code> when new listeners are\nadded and <code>&#39;removeListener&#39;</code> when a listener is removed.\n\n</p>\n",
+          "methods": [
+            {
+              "textRaw": "emitter.addListener(event, listener)",
+              "type": "method",
+              "name": "addListener",
+              "desc": "<p>Adds a listener to the end of the listeners array for the specified event.\n\n</p>\n<pre><code>server.on(&#39;connection&#39;, function (stream) {\n  console.log(&#39;someone connected!&#39;);\n});</code></pre>\n<p>Returns emitter, so calls can be chained.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "event"
+                    },
+                    {
+                      "name": "listener"
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "event"
+                    },
+                    {
+                      "name": "listener"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "emitter.on(event, listener)",
+              "type": "method",
+              "name": "on",
+              "desc": "<p>Adds a listener to the end of the listeners array for the specified event.\n\n</p>\n<pre><code>server.on(&#39;connection&#39;, function (stream) {\n  console.log(&#39;someone connected!&#39;);\n});</code></pre>\n<p>Returns emitter, so calls can be chained.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "event"
+                    },
+                    {
+                      "name": "listener"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "emitter.once(event, listener)",
+              "type": "method",
+              "name": "once",
+              "desc": "<p>Adds a <strong>one time</strong> listener for the event. This listener is\ninvoked only the next time the event is fired, after which\nit is removed.\n\n</p>\n<pre><code>server.once(&#39;connection&#39;, function (stream) {\n  console.log(&#39;Ah, we have our first user!&#39;);\n});</code></pre>\n<p>Returns emitter, so calls can be chained.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "event"
+                    },
+                    {
+                      "name": "listener"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "emitter.removeListener(event, listener)",
+              "type": "method",
+              "name": "removeListener",
+              "desc": "<p>Remove a listener from the listener array for the specified event.\n<strong>Caution</strong>: changes array indices in the listener array behind the listener.\n\n</p>\n<pre><code>var callback = function(stream) {\n  console.log(&#39;someone connected!&#39;);\n};\nserver.on(&#39;connection&#39;, callback);\n// ...\nserver.removeListener(&#39;connection&#39;, callback);</code></pre>\n<p>Returns emitter, so calls can be chained.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "event"
+                    },
+                    {
+                      "name": "listener"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "emitter.removeAllListeners([event])",
+              "type": "method",
+              "name": "removeAllListeners",
+              "desc": "<p>Removes all listeners, or those of the specified event.\n\n</p>\n<p>Returns emitter, so calls can be chained.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "event",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "emitter.setMaxListeners(n)",
+              "type": "method",
+              "name": "setMaxListeners",
+              "desc": "<p>By default EventEmitters will print a warning if more than 10 listeners are\nadded for a particular event. This is a useful default which helps finding memory leaks.\nObviously not all Emitters should be limited to 10. This function allows\nthat to be increased. Set to zero for unlimited.\n\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "n"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "emitter.listeners(event)",
+              "type": "method",
+              "name": "listeners",
+              "desc": "<p>Returns an array of listeners for the specified event.\n\n</p>\n<pre><code>server.on(&#39;connection&#39;, function (stream) {\n  console.log(&#39;someone connected!&#39;);\n});\nconsole.log(util.inspect(server.listeners(&#39;connection&#39;))); // [ [Function] ]</code></pre>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "event"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "emitter.emit(event, [arg1], [arg2], [...])",
+              "type": "method",
+              "name": "emit",
+              "desc": "<p>Execute each of the listeners in order with the supplied arguments.\n\n</p>\n<p>Returns <code>true</code> if event had listeners, <code>false</code> otherwise.\n\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "event"
+                    },
+                    {
+                      "name": "arg1",
+                      "optional": true
+                    },
+                    {
+                      "name": "arg2",
+                      "optional": true
+                    },
+                    {
+                      "name": "...",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "classMethods": [
+            {
+              "textRaw": "Class Method: EventEmitter.listenerCount(emitter, event)",
+              "type": "classMethod",
+              "name": "listenerCount",
+              "desc": "<p>Return the number of listeners for a given event.\n\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "emitter"
+                    },
+                    {
+                      "name": "event"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "events": [
+            {
+              "textRaw": "Event: 'newListener'",
+              "type": "event",
+              "name": "newListener",
+              "params": [],
+              "desc": "<p>This event is emitted any time someone adds a new listener.  It is unspecified\nif <code>listener</code> is in the list returned by <code>emitter.listeners(event)</code>.\n\n\n</p>\n"
+            },
+            {
+              "textRaw": "Event: 'removeListener'",
+              "type": "event",
+              "name": "removeListener",
+              "params": [],
+              "desc": "<p>This event is emitted any time someone removes a listener.  It is unspecified\nif <code>listener</code> is in the list returned by <code>emitter.listeners(event)</code>.\n</p>\n"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

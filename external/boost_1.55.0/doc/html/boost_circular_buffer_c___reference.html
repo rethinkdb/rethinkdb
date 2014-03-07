@@ -1,0 +1,133 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Boost.Circular_buffer C++ Reference</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="circular_buffer.html" title="Chapter&#160;6.&#160;Boost.Circular Buffer">
+<link rel="prev" href="circular_buffer/version_id.html" title="Documentation Version Info">
+<link rel="next" href="BOOST_CB_ENABLE_DEBUG.html" title="Macro BOOST_CB_ENABLE_DEBUG">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="circular_buffer/version_id.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="circular_buffer.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_CB_ENABLE_DEBUG.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_circular_buffer_c___reference"></a>Boost.Circular_buffer C++ Reference</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="boost_circular_buffer_c___reference.html#header.boost.circular_buffer_hpp">Header &lt;boost/circular_buffer.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="boost_circular_buffer_c___reference.html#header.boost.circular_buffer.base_hpp">Header &lt;boost/circular_buffer/base.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="boost_circular_buffer_c___reference.html#header.boost.circular_buffer.debug_hpp">Header &lt;boost/circular_buffer/debug.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="boost_circular_buffer_c___reference.html#header.boost.circular_buffer.details_hpp">Header &lt;boost/circular_buffer/details.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="boost_circular_buffer_c___reference.html#header.boost.circular_buffer.space_optimized_hpp">Header &lt;boost/circular_buffer/space_optimized.hpp&gt;</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.circular_buffer_hpp"></a>Header &lt;<a href="../../boost/circular_buffer.hpp" target="_top">boost/circular_buffer.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis">
+
+<a class="link" href="BOOST_CB_ENABLE_DEBUG.html" title="Macro BOOST_CB_ENABLE_DEBUG">BOOST_CB_ENABLE_DEBUG</a>
+<a class="link" href="BOOST_CB_ASSERT.html" title="Macro BOOST_CB_ASSERT">BOOST_CB_ASSERT</a>(Expr)
+<a class="link" href="BOOST_CB_STATIC_ASSERT.html" title="Macro BOOST_CB_STATIC_ASSERT">BOOST_CB_STATIC_ASSERT</a>(Expr)
+<a class="link" href="BOOST_CB_IS_CONVERTIBLE.html" title="Macro BOOST_CB_IS_CONVERTIBLE">BOOST_CB_IS_CONVERTIBLE</a>(Iterator, Type)
+<a class="link" href="BOOST_CB_ASSERT_TEMPLATED_ITERATOR_CONSTRUCTORS.html" title="Macro BOOST_CB_ASSERT_TEMPLATED_ITERATOR_CONSTRUCTORS">BOOST_CB_ASSERT_TEMPLATED_ITERATOR_CONSTRUCTORS</a></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.circular_buffer.base_hpp"></a>Header &lt;<a href="../../boost/circular_buffer/base.hpp" target="_top">boost/circular_buffer/base.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> 
+    <span class="keyword">bool</span> <a class="link" href="boost/operator___idp20964104.html" title="Function template operator=="><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+                    <span class="keyword">const</span> <a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> 
+    <span class="keyword">bool</span> <a class="link" href="boost/operator_idp20970856.html" title="Function template operator&lt;"><span class="keyword">operator</span><span class="special">&lt;</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+                   <span class="keyword">const</span> <a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> 
+    <span class="keyword">bool</span> <a class="link" href="boost/operator___idp20977592.html" title="Function template operator!="><span class="keyword">operator</span><span class="special">!=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+                    <span class="keyword">const</span> <a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> 
+    <span class="keyword">bool</span> <a class="link" href="boost/operator_idp20984680.html" title="Function template operator&gt;"><span class="keyword">operator</span><span class="special">&gt;</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+                   <span class="keyword">const</span> <a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> 
+    <span class="keyword">bool</span> <a class="link" href="boost/operator___idp20991800.html" title="Function template operator&lt;="><span class="keyword">operator</span><span class="special">&lt;=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+                    <span class="keyword">const</span> <a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> 
+    <span class="keyword">bool</span> <a class="link" href="boost/operator___idp20998920.html" title="Function template operator&gt;="><span class="keyword">operator</span><span class="special">&gt;=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> 
+                    <span class="keyword">const</span> <a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="boost/swap_idp21006040.html" title="Function template swap"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span></pre>
+</div>
+<div class="section"><div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.circular_buffer.debug_hpp"></a>Header &lt;<a href="../../boost/circular_buffer/debug.hpp" target="_top">boost/circular_buffer/debug.hpp</a>&gt;</h3></div></div></div></div>
+<div class="section"><div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.circular_buffer.details_hpp"></a>Header &lt;<a href="../../boost/circular_buffer/details.hpp" target="_top">boost/circular_buffer/details.hpp</a>&gt;</h3></div></div></div></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.circular_buffer.space_optimized_hpp"></a>Header &lt;<a href="../../boost/circular_buffer/space_optimized.hpp" target="_top">boost/circular_buffer/space_optimized.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> <span class="keyword">class</span> <a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a><span class="special">;</span>
+
+  <span class="comment">// Test two space optimized circular buffers for equality. </span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> 
+    <span class="keyword">bool</span> <a name="boost.operator==_idp21486296"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> lhs<span class="special">,</span> 
+                    <span class="keyword">const</span> <a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// Lexicographical comparison. </span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> 
+    <span class="keyword">bool</span> <a name="boost.operator_idp21488664"></a><span class="keyword">operator</span><span class="special">&lt;</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> lhs<span class="special">,</span> 
+                   <span class="keyword">const</span> <a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// Test two space optimized circular buffers for non-equality. </span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> 
+    <span class="keyword">bool</span> <a name="boost.operator!=_idp21491000"></a><span class="keyword">operator</span><span class="special">!=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> lhs<span class="special">,</span> 
+                    <span class="keyword">const</span> <a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// Lexicographical comparison. </span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> 
+    <span class="keyword">bool</span> <a name="boost.operator_idp21493368"></a><span class="keyword">operator</span><span class="special">&gt;</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> lhs<span class="special">,</span> 
+                   <span class="keyword">const</span> <a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// Lexicographical comparison. </span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> 
+    <span class="keyword">bool</span> <a name="boost.operator_=_idp21495704"></a><span class="keyword">operator</span><span class="special">&lt;=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> lhs<span class="special">,</span> 
+                    <span class="keyword">const</span> <a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// Lexicographical comparison. </span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> 
+    <span class="keyword">bool</span> <a name="boost.operator_=_idp21498040"></a><span class="keyword">operator</span><span class="special">&gt;=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> lhs<span class="special">,</span> 
+                    <span class="keyword">const</span> <a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// Swap the contents of two space optimized circular buffers. </span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> Alloc<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a name="boost.swap_idp21500376"></a><span class="identifier">swap</span><span class="special">(</span><a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> lhs<span class="special">,</span> 
+              <a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span>
+<span class="special">}</span></pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Jan Gaspar<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="circular_buffer/version_id.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="circular_buffer.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_CB_ENABLE_DEBUG.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

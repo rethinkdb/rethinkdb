@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="callout_tests" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Callout Tests</title>
+  <para>
+    Example 1:
+  </para>
+  <para>
+    Now we can define a function that simulates an ordinary six-sided die.
+  </para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">roll_die</phrase><phrase role="special">()</phrase> <phrase role="special">{</phrase>
+  <phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="identifier">dist</phrase><phrase role="special">(</phrase><phrase role="number">1</phrase><phrase role="special">,</phrase> <phrase role="number">6</phrase><phrase role="special">);</phrase> <co id="callout_tests.c0" linkends="callout_tests.c1" />
+<phrase role="special">}</phrase>
+</programlisting>
+  <calloutlist>
+    <callout arearefs="callout_tests.c0" id="callout_tests.c1">
+      <para>
+        create a uniform_int distribution
+      </para>
+    </callout>
+  </calloutlist>
+  <para>
+    Example 2:
+  </para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">roll_die</phrase><phrase role="special">()</phrase> <phrase role="special">{</phrase>
+  <co id="callout_tests.c2" linkends="callout_tests.c3" /><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">variate_generator</phrase><phrase role="special">&lt;</phrase><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">mt19937</phrase><phrase role="special">&amp;,</phrase> <phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="special">&gt;</phrase> <phrase role="identifier">die</phrase><phrase role="special">(</phrase><phrase role="identifier">gen</phrase><phrase role="special">,</phrase> <phrase role="identifier">dist</phrase><phrase role="special">);</phrase>
+<phrase role="special">}</phrase>
+</programlisting>
+  <calloutlist>
+    <callout arearefs="callout_tests.c2" id="callout_tests.c3">
+      <important>
+        <para>
+          test
+        </para>
+      </important>
+    </callout>
+  </calloutlist>
+  <para>
+    Example 3:
+  </para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">roll_die</phrase><phrase role="special">()</phrase> <phrase role="special">{</phrase>
+  <co id="callout_tests.c4" linkends="callout_tests.c5" /><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">variate_generator</phrase><phrase role="special">&lt;</phrase><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">mt19937</phrase><phrase role="special">&amp;,</phrase> <phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="special">&gt;</phrase> <phrase role="identifier">die</phrase><phrase role="special">(</phrase><phrase role="identifier">gen</phrase><phrase role="special">,</phrase> <phrase role="identifier">dist</phrase><phrase role="special">);</phrase>
+<phrase role="special">}</phrase>
+</programlisting>
+  <calloutlist>
+    <callout arearefs="callout_tests.c4" id="callout_tests.c5">
+      <important>
+        <para>
+          test
+        </para>
+      </important>
+    </callout>
+  </calloutlist>
+  <para>
+    Example 3 (again!):
+  </para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">roll_die</phrase><phrase role="special">()</phrase> <phrase role="special">{</phrase>
+  <co id="callout_tests.c6" linkends="callout_tests.c7" /><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">variate_generator</phrase><phrase role="special">&lt;</phrase><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">mt19937</phrase><phrase role="special">&amp;,</phrase> <phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="special">&gt;</phrase> <phrase role="identifier">die</phrase><phrase role="special">(</phrase><phrase role="identifier">gen</phrase><phrase role="special">,</phrase> <phrase role="identifier">dist</phrase><phrase role="special">);</phrase>
+<phrase role="special">}</phrase>
+</programlisting>
+  <calloutlist>
+    <callout arearefs="callout_tests.c6" id="callout_tests.c7">
+      <important>
+        <para>
+          test
+        </para>
+      </important>
+    </callout>
+  </calloutlist>
+  <para>
+    Example 4:
+  </para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">roll_die</phrase><phrase role="special">()</phrase> <phrase role="special">{</phrase>
+  <co id="callout_tests.c8" linkends="callout_tests.c9" /><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">variate_generator</phrase><phrase role="special">&lt;</phrase><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">mt19937</phrase><phrase role="special">&amp;,</phrase> <phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="special">&gt;</phrase> <phrase role="identifier">die</phrase><phrase role="special">(</phrase><phrase role="identifier">gen</phrase><phrase role="special">,</phrase> <phrase role="identifier">dist</phrase><phrase role="special">);</phrase>
+  <co id="callout_tests.c10" linkends="callout_tests.c11" /><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="identifier">dist</phrase><phrase role="special">(</phrase><phrase role="number">1</phrase><phrase role="special">,</phrase> <phrase role="number">6</phrase><phrase role="special">);</phrase> <co id="callout_tests.c12" linkends="callout_tests.c13" />
+<phrase role="special">}</phrase>
+</programlisting>
+  <calloutlist>
+    <callout arearefs="callout_tests.c8" id="callout_tests.c9">
+      <para>
+        callout 1
+      </para>
+    </callout>
+    <callout arearefs="callout_tests.c10" id="callout_tests.c11">
+      <para>
+        callout 2
+      </para>
+    </callout>
+    <callout arearefs="callout_tests.c12" id="callout_tests.c13">
+      <para>
+        create a uniform_int distribution
+      </para>
+    </callout>
+  </calloutlist>
+<programlisting><co id="callout_tests.c14" linkends="callout_tests.c15" /><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="identifier">dist</phrase><phrase role="special">(</phrase><phrase role="number">1</phrase><phrase role="special">,</phrase> <phrase role="number">6</phrase><phrase role="special">);</phrase> <co id="callout_tests.c16" linkends="callout_tests.c17" />
+</programlisting>
+  <calloutlist>
+    <callout arearefs="callout_tests.c14" id="callout_tests.c15">
+      <para>
+        callout 2
+      </para>
+    </callout>
+    <callout arearefs="callout_tests.c16" id="callout_tests.c17">
+      <para>
+        create a uniform_int distribution
+      </para>
+    </callout>
+  </calloutlist>
+  <section id="callout_tests.test_section">
+    <title><link linkend="callout_tests.test_section">Try callouts in a section</link></title>
+    <para>
+      Example 1:
+    </para>
+    <para>
+      Now we can define a function that simulates an ordinary six-sided die.
+    </para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">roll_die</phrase><phrase role="special">()</phrase> <phrase role="special">{</phrase>
+  <phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="identifier">dist</phrase><phrase role="special">(</phrase><phrase role="number">1</phrase><phrase role="special">,</phrase> <phrase role="number">6</phrase><phrase role="special">);</phrase> <co id="callout_tests.test_section.c0" linkends="callout_tests.test_section.c1" />
+<phrase role="special">}</phrase>
+</programlisting>
+    <calloutlist>
+      <callout arearefs="callout_tests.test_section.c0" id="callout_tests.test_section.c1">
+        <para>
+          create a uniform_int distribution
+        </para>
+      </callout>
+    </calloutlist>
+    <para>
+      Example 2:
+    </para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">roll_die</phrase><phrase role="special">()</phrase> <phrase role="special">{</phrase>
+  <co id="callout_tests.test_section.c2" linkends="callout_tests.test_section.c3" /><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">variate_generator</phrase><phrase role="special">&lt;</phrase><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">mt19937</phrase><phrase role="special">&amp;,</phrase> <phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="special">&gt;</phrase> <phrase role="identifier">die</phrase><phrase role="special">(</phrase><phrase role="identifier">gen</phrase><phrase role="special">,</phrase> <phrase role="identifier">dist</phrase><phrase role="special">);</phrase>
+<phrase role="special">}</phrase>
+</programlisting>
+    <calloutlist>
+      <callout arearefs="callout_tests.test_section.c2" id="callout_tests.test_section.c3">
+        <important>
+          <para>
+            test
+          </para>
+        </important>
+      </callout>
+    </calloutlist>
+    <para>
+      Example 3:
+    </para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">roll_die</phrase><phrase role="special">()</phrase> <phrase role="special">{</phrase>
+  <co id="callout_tests.test_section.c4" linkends="callout_tests.test_section.c5" /><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">variate_generator</phrase><phrase role="special">&lt;</phrase><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">mt19937</phrase><phrase role="special">&amp;,</phrase> <phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="special">&gt;</phrase> <phrase role="identifier">die</phrase><phrase role="special">(</phrase><phrase role="identifier">gen</phrase><phrase role="special">,</phrase> <phrase role="identifier">dist</phrase><phrase role="special">);</phrase>
+<phrase role="special">}</phrase>
+</programlisting>
+    <calloutlist>
+      <callout arearefs="callout_tests.test_section.c4" id="callout_tests.test_section.c5">
+        <important>
+          <para>
+            test
+          </para>
+        </important>
+      </callout>
+    </calloutlist>
+    <para>
+      Example 3 (again!):
+    </para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">roll_die</phrase><phrase role="special">()</phrase> <phrase role="special">{</phrase>
+  <co id="callout_tests.test_section.c6" linkends="callout_tests.test_section.c7" /><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">variate_generator</phrase><phrase role="special">&lt;</phrase><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">mt19937</phrase><phrase role="special">&amp;,</phrase> <phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="special">&gt;</phrase> <phrase role="identifier">die</phrase><phrase role="special">(</phrase><phrase role="identifier">gen</phrase><phrase role="special">,</phrase> <phrase role="identifier">dist</phrase><phrase role="special">);</phrase>
+<phrase role="special">}</phrase>
+</programlisting>
+    <calloutlist>
+      <callout arearefs="callout_tests.test_section.c6" id="callout_tests.test_section.c7">
+        <important>
+          <para>
+            test
+          </para>
+        </important>
+      </callout>
+    </calloutlist>
+    <para>
+      Example 4:
+    </para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">roll_die</phrase><phrase role="special">()</phrase> <phrase role="special">{</phrase>
+  <co id="callout_tests.test_section.c8" linkends="callout_tests.test_section.c9" /><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">variate_generator</phrase><phrase role="special">&lt;</phrase><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">mt19937</phrase><phrase role="special">&amp;,</phrase> <phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="special">&gt;</phrase> <phrase role="identifier">die</phrase><phrase role="special">(</phrase><phrase role="identifier">gen</phrase><phrase role="special">,</phrase> <phrase role="identifier">dist</phrase><phrase role="special">);</phrase>
+  <co id="callout_tests.test_section.c10" linkends="callout_tests.test_section.c11" /><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="identifier">dist</phrase><phrase role="special">(</phrase><phrase role="number">1</phrase><phrase role="special">,</phrase> <phrase role="number">6</phrase><phrase role="special">);</phrase> <co id="callout_tests.test_section.c12" linkends="callout_tests.test_section.c13" />
+<phrase role="special">}</phrase>
+</programlisting>
+    <calloutlist>
+      <callout arearefs="callout_tests.test_section.c8" id="callout_tests.test_section.c9">
+        <para>
+          callout 1
+        </para>
+      </callout>
+      <callout arearefs="callout_tests.test_section.c10" id="callout_tests.test_section.c11">
+        <para>
+          callout 2
+        </para>
+      </callout>
+      <callout arearefs="callout_tests.test_section.c12" id="callout_tests.test_section.c13">
+        <para>
+          create a uniform_int distribution
+        </para>
+      </callout>
+    </calloutlist>
+<programlisting><co id="callout_tests.test_section.c14" linkends="callout_tests.test_section.c15" /><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="identifier">dist</phrase><phrase role="special">(</phrase><phrase role="number">1</phrase><phrase role="special">,</phrase> <phrase role="number">6</phrase><phrase role="special">);</phrase> <co id="callout_tests.test_section.c16" linkends="callout_tests.test_section.c17" />
+</programlisting>
+    <calloutlist>
+      <callout arearefs="callout_tests.test_section.c14" id="callout_tests.test_section.c15">
+        <para>
+          callout 2
+        </para>
+      </callout>
+      <callout arearefs="callout_tests.test_section.c16" id="callout_tests.test_section.c17">
+        <para>
+          create a uniform_int distribution
+        </para>
+      </callout>
+    </calloutlist>
+  </section>
+  <section id="callout_tests.blocks">
+    <title><link linkend="callout_tests.blocks">Callouts in code blocks</link></title>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">roll_die</phrase><phrase role="special">()</phrase> <phrase role="special">{</phrase>
+  <phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="identifier">dist</phrase><phrase role="special">(</phrase><phrase role="number">1</phrase><phrase role="special">,</phrase> <phrase role="number">6</phrase><phrase role="special">);</phrase> <co id="callout_tests.blocks.c0" linkends="callout_tests.blocks.c1" />
+<phrase role="special">}</phrase>
+</programlisting>
+    <calloutlist>
+      <callout arearefs="callout_tests.blocks.c0" id="callout_tests.blocks.c1">
+        <para>
+          create a uniform_int distribution
+        </para>
+      </callout>
+    </calloutlist>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">roll_die</phrase><phrase role="special">()</phrase> <phrase role="special">{</phrase>
+  <co id="callout_tests.blocks.c2" linkends="callout_tests.blocks.c3" /><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">variate_generator</phrase><phrase role="special">&lt;</phrase><phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">mt19937</phrase><phrase role="special">&amp;,</phrase> <phrase role="identifier">boost</phrase><phrase role="special">::</phrase><phrase role="identifier">uniform_int</phrase><phrase role="special">&lt;&gt;</phrase> <phrase role="special">&gt;</phrase> <phrase role="identifier">die</phrase><phrase role="special">(</phrase><phrase role="identifier">gen</phrase><phrase role="special">,</phrase> <phrase role="identifier">dist</phrase><phrase role="special">);</phrase>
+<phrase role="special">}</phrase>
+</programlisting>
+    <calloutlist>
+      <callout arearefs="callout_tests.blocks.c2" id="callout_tests.blocks.c3">
+        <important>
+          <para>
+            test
+          </para>
+        </important>
+      </callout>
+    </calloutlist>
+    <para>
+      <code><phrase role="comment">/*&lt; This shouldn't be a callout &gt;*/</phrase></code>
+    </para>
+  </section>
+</article>

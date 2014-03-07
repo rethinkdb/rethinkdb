@@ -1,0 +1,58 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:AsyncRandomAccessWriteDevice Buffer-oriented asynchronous
+random-access write device requirements]
+
+In the table below, `a` denotes an asynchronous write stream object, `o`
+denotes an offset of type `boost::uint64_t`, `cb` denotes an object satisfying
+[link boost_asio.reference.ConstBufferSequence constant buffer sequence]
+requirements, and `h` denotes an object satisfying [link
+boost_asio.reference.WriteHandler write handler] requirements.
+
+[table Buffer-oriented asynchronous random-access write device requirements
+  [[operation] [type] [semantics, pre/post-conditions]]
+  [
+    [`a.get_io_service();`]
+    [`io_service&`]
+    [Returns the `io_service` object through which the `async_write_some_at`
+    handler `h` will be invoked.]
+  ]
+  [
+    [`a.async_write_some_at(o, cb, h);`]
+    [`void`]
+    [
+      Initiates an asynchronous operation to write one or more bytes of data to
+      the device `a` at offset `o`. The operation is performed via the
+      `io_service` object `a.get_io_service()` and behaves according to [link
+      boost_asio.reference.asynchronous_operations asynchronous operation]
+      requirements.\n
+      \n
+      The constant buffer sequence `cb` specifies memory where the data to be
+      written is located. The `async_write_some_at` operation shall always
+      write a buffer in the sequence completely before proceeding to the
+      next.\n
+      \n
+      The implementation shall maintain one or more copies of `cb` until such
+      time as the write operation no longer requires access to the memory
+      specified by the buffers in the sequence. The program must ensure the
+      memory is valid until:\n
+      \n
+      [mdash] the last copy of `cb` is destroyed, or\n
+      \n
+      [mdash] the handler for the asynchronous write operation is invoked,\n
+      \n
+      whichever comes first.\n
+      \n
+      If the total size of all buffers in the sequence `cb` is `0`, the
+      asynchronous write operation shall complete immediately and pass `0` as
+      the argument to the handler that specifies the number of bytes written.
+    ]
+  ]
+]
+
+[endsect]

@@ -1,0 +1,83 @@
+{
+  "name": "browserify",
+  "version": "3.24.13",
+  "description": "browser-side require() the node way",
+  "main": "index.js",
+  "bin": {
+    "browserify": "bin/cmd.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/substack/node-browserify.git"
+  },
+  "keywords": [
+    "browser",
+    "require",
+    "commonjs",
+    "commonj-esque",
+    "bundle",
+    "npm",
+    "javascript"
+  ],
+  "dependencies": {
+    "module-deps": "~1.4.0",
+    "browser-pack": "~2.0.0",
+    "deps-sort": "~0.1.1",
+    "shell-quote": "~0.0.1",
+    "through": "~2.3.4",
+    "duplexer": "~0.1.1",
+    "stream-combiner": "~0.0.2",
+    "concat-stream": "~1.4.1",
+    "insert-module-globals": "~3.1.2",
+    "syntax-error": "~0.1.0",
+    "browser-resolve": "~1.2.1",
+    "inherits": "~2.0.1",
+    "JSONStream": "~0.7.1",
+    "umd": "~2.0.0",
+    "parents": "~0.0.1",
+    "deep-equal": "~0.1.0",
+    "constants-browserify": "~0.0.1",
+    "os-browserify": "~0.1.1",
+    "console-browserify": "~1.0.1",
+    "vm-browserify": "~0.0.1",
+    "zlib-browserify": "~0.0.3",
+    "assert": "~1.1.0",
+    "http-browserify": "~1.1.0",
+    "crypto-browserify": "~1.0.9",
+    "util": "~0.10.1",
+    "events": "~1.0.0",
+    "native-buffer-browserify": "~2.0.0",
+    "url": "~0.7.9",
+    "https-browserify": "~0.0.0",
+    "path-browserify": "~0.0.0",
+    "querystring": "https://github.com/substack/querystring/archive/0.2.0-ie8.tar.gz",
+    "stream-browserify": "~0.1.0",
+    "string_decoder": "~0.0.0",
+    "tty-browserify": "~0.0.0",
+    "timers-browserify": "~1.0.1",
+    "punycode": "~1.2.3",
+    "defined": "~0.0.0",
+    "domain-browser": "~1.1.0",
+    "minimist": "~0.0.5",
+    "derequire": "~0.6.0",
+    "commondir": "0.0.1",
+    "shallow-copy": "0.0.1"
+  },
+  "devDependencies": {
+    "tap": "~0.4.0",
+    "mkdirp": "~0.3.3",
+    "backbone": "~0.9.2",
+    "dnode": "~1.0.3",
+    "seq": "0.3.3",
+    "coffee-script": "~1.5.0"
+  },
+  "author": {
+    "name": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net"
+  },
+  "scripts": {
+    "test": "tap test/*.js"
+  },
+  "license": "MIT"
+}

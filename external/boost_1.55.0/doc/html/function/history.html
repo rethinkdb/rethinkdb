@@ -1,0 +1,158 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>History &amp; Compatibility Notes</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../function.html" title="Chapter&#160;11.&#160;Boost.Function">
+<link rel="prev" href="../function.html" title="Chapter&#160;11.&#160;Boost.Function">
+<link rel="next" href="tutorial.html" title="Tutorial">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../function.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutorial.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="function.history"></a>History &amp; Compatibility Notes</h2></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: disc; ">
+<li class="listitem">
+<p><span class="bold"><strong>Version 1.52.0</strong></span>: </p>
+<div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: circle; "><li class="listitem"><p>Move constructors and move assignment 
+      operators added (only for compilers with C++11 rvalue 
+      references support). Original patch
+      contributed by Antony Polukhin.</p></li></ul></div>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>Version 1.37.0</strong></span>: </p>
+<div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: circle; ">
+<li class="listitem"><p>Improved the performance of Boost.Function's
+      swap() operation for large function objects. Original patch
+      contributed by Niels Dekker.</p></li>
+<li class="listitem"><p>Added a new header &lt;boost/function/function_typeof.hpp&gt; that provides support for using the Boost.Typeof library on Boost.Function objects.</p></li>
+<li class="listitem"><p>Added a new header &lt;boost/function/function_fwd.hpp&gt; that provides support for using the Boost.Typeof library on Boost.Function objects.</p></li>
+<li class="listitem"><p>The <code class="computeroutput"><a class="link" href="../boost/function.html#idp35162824-bb">target</a></code>()
+      function now respects the cv-qualifiers of function objects
+      stored by reference
+      (using <code class="computeroutput"><a class="link" href="../boost/reference_wrapper.html" title="Class template reference_wrapper">boost::reference_wrapper</a></code>), such
+      that a reference to a <code class="computeroutput">const</code> function object cannot
+      be accessed as a reference to a non-<code class="computeroutput">const</code> function
+      object.</p></li>
+</ul></div>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>Version 1.36.0</strong></span>: </p>
+<div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: circle; "><li class="listitem"><p>Boost.Function now implements allocator support
+      in the same way that is is provided in C++0x, based on C++
+      committee
+      proposal <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2308.html" target="_top">N2308</a>. This
+      change removes the <code class="computeroutput">Allocator</code>
+      template parameter of <code class="computeroutput"><a class="link" href="../boost/function.html" title="Class template function">boost::function</a></code> in
+      favor of a constructor that takes an argument. While this is a
+      backward-incompatible change, it is likely to affect only a few
+      users. This change to Function was contributed by Emil
+      Dotchevski, which also authored the corresponding C++ committee
+      proposal.</p></li></ul></div>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>Version 1.34.0</strong></span>: </p>
+<div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: circle; "><li class="listitem"><p>Boost.Function now implements a small buffer optimization, which can drastically improve the performance when copying or construction Boost.Function objects storing small function objects. For instance, <code class="computeroutput">bind(&amp;X:foo, &amp;x, _1, _2)</code> requires no heap allocation when placed into a Boost.Function object. Note that some exception-safety guarantees have changed: assignment provides the basic exception guarantee and <code class="computeroutput">swap()</code> may throw.</p></li></ul></div>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>Version 1.30.0</strong></span>: </p>
+<div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: circle; ">
+<li class="listitem"><p>All features deprecated in version 1.29.0 have
+      been removed from Boost.Function.</p></li>
+<li class="listitem"><p><code class="computeroutput"><a class="link" href="../boost/function.html" title="Class template function">boost::function</a></code>
+      and <code class="computeroutput"><a class="link" href="../boost/functionN.html" title="Class template functionN">boost::functionN</a></code> objects
+      can be assigned to 0 (semantically equivalent to calling
+      <code class="computeroutput"><a class="link" href="../boost/function.html#idp22184616-bb">clear</a>()</code>) and
+      compared against 0 (semantically equivalent to calling
+      <code class="computeroutput"><a class="link" href="../boost/function.html#idp54857000-bb">empty</a>()</code>).</p></li>
+<li class="listitem"><p>The Boost.Function code is now generated
+      entirely by the <a href="../../../libs/preprocessor/index.html" target="_top">Preprocessor</a> library,
+      so it is now possible to generate
+      <code class="computeroutput"><a class="link" href="../boost/function.html" title="Class template function">boost::function</a></code> and
+      <code class="computeroutput"><a class="link" href="../boost/functionN.html" title="Class template functionN">boost::functionN</a></code> class
+      templates for any number of arguments.</p></li>
+<li class="listitem"><p>The
+      <code class="computeroutput"><a class="link" href="../boost/bad_function_call.html" title="Class bad_function_call">boost::bad_function_call</a></code> exception class
+      was introduced.</p></li>
+</ul></div>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>Version 1.29.0</strong></span>:
+  Boost.Function has been partially redesigned to minimize the
+  interface and make it cleaner. Several seldom- or never-used
+  features of the older Boost.Function have been deprecated and will
+  be removed in the near future. Here is a list of features that have
+  been deprecated, the likely impact of the deprecations, and how to
+  adjust your code:
+
+</p>
+<div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: circle; ">
+<li class="listitem">
+<p>The <code class="computeroutput">boost::function</code> class template syntax has
+  changed. The old syntax, e.g., <code class="computeroutput">boost::function&lt;int, float,
+  double, std::string&gt;</code>, has been changed to a more natural
+  syntax <code class="computeroutput">boost::function&lt;int (float, double,
+  std::string)&gt;</code>, where all return and argument types are
+  encoded in a single function type parameter. Any other template
+  parameters (e.g., the <code class="computeroutput">Allocator</code>) follow this single
+  parameter.</p>
+<p> The resolution to this change depends on the
+  abilities of your compiler: if your compiler supports template
+  partial specialization and can parse function types (most do), modify 
+  your code to use the newer
+  syntax (preferable) or directly use one of the
+  <code class="computeroutput">functionN</code> classes whose syntax has not
+  changed. If your compiler does not support template partial
+  specialization or function types, you must take the latter option and 
+  use the numbered Boost.Function classes. This option merely requires 
+  changing types such as <code class="computeroutput">boost::function&lt;void, int, int&gt;</code>
+  to <code class="computeroutput">boost::function2&lt;void, int, int&gt;</code> (adding the number of
+  function arguments to the end of the class name).</p>
+<p> Support for the old syntax with the
+  <code class="computeroutput">boost::function</code> class template will persist for a short
+  while, but will eventually be removed so that we can provide better
+  error messages and link compatibility. </p>
+</li>
+<li class="listitem"><p>The invocation
+  policy template parameter (<code class="computeroutput">Policy</code>) has been deprecated
+  and will be removed. There is no direct equivalent to this rarely
+  used feature.</p></li>
+<li class="listitem"><p>The mixin template parameter
+  (<code class="computeroutput">Mixin</code>) has been deprecated and will be removed. There
+  is not direct equivalent to this rarely used feature.</p></li>
+<li class="listitem"><p>The
+  <code class="computeroutput">set</code> methods have been deprecated and will be
+  removed. Use the assignment operator instead.</p></li>
+</ul></div>
+<p>
+</p>
+</li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: June 15, 2013 at 08:06:26 +0100</small></p></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../function.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutorial.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

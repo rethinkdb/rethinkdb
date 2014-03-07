@@ -1,0 +1,128 @@
+# Copyright David Abrahams 2005. Distributed under the Boost
+# Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+----------------- Test #1 ----------------
+Testers: 
+  Matthias Troyer, Michael Gauckler, David Abrahams
+
+Date:
+  2005-09-09
+
+Compiler: 
+  Cygwin g++-4.0.0
+
+Command lines:
+  g++ -c -o efficiency.o -ftemplate-depth-100 -funroll-loops \
+      -O3 -finline-functions -Wno-inline -DNDEBUG  efficiency.cpp
+
+  g++ -o efficiency.exe efficiency.o -Wl,--strip-all  
+
+  efficiency && efficiency && efficiency
+
+Machine:
+  Dell Inspiron 9300
+  Intel(R) Pentium(R) M processor 2.00GHz
+  Running on 230 volts AC power
+
+Timings:
+  Run #1 results discarded per standard practice
+
+  Run #2
+  plain time: 0.75
+  named parameter time: 0.734
+
+  Run #3
+  plain time: 0.781
+  named parameter time: 0.766
+
+----------------- Test #2 ----------------
+
+Testers: 
+  Chris Frey
+
+Date:
+  2005-09-17
+
+Compiler: 
+  Linux kernel 2.4.27
+  gcc version 3.3.6 (Gentoo 3.3.6, ssp-3.3.6-1.0, pie-8.7.8)
+
+Command lines:
+  g++ -c -o efficiency.o -ftemplate-depth-100 -funroll-loops \
+      -O3 -finline-functions -Wno-inline -DNDEBUG  efficiency.cpp
+
+  g++ -o efficiency.exe efficiency.o -Wl,--strip-all  
+
+Machine:
+  IBM Thinkpad 770Z, running on AC power
+  Intel Pentium II 366Mhz
+
+Timings:
+  Run #1 results discarded per standard practice
+
+  Run #2
+  plain time:           6.42
+  named parameter time: 7.34
+
+  Run #3
+  plain time:           6.42
+  named parameter time: 7.34
+
+----------------- Test #2 ----------------
+
+Testers: 
+  Stuar Dootson
+
+Date:
+  2005-09-18
+
+Machine:
+  Athlon 64 3500+ laptop, running on AC power
+  Windows XP SP2
+
+
+Compiler: Visual C++ 7.1
+
+ command line: 
+   cl -O2 efficiency.cpp -EHsc -I\lib\boost\include\boost-1_33
+
+ Results:
+   plain time:           <ignored>
+   named parameter time: <ignored>
+   plain time:           1.453
+   named parameter time: 1.437
+   plain time:           1.453
+   named parameter time: 1.453
+
+Compiler: Visual C++ 8.0
+
+ command-line:
+   cl -O2 efficiency.cpp -EHsc -I\lib\boost\include\boost-1_33
+
+ Results:
+   plain time:           <ignored>
+   named parameter time: <ignored>
+   plain time:           1.438
+   named parameter time: 1.453
+   plain time:           1.438
+   named parameter time: 1.437
+
+Compiler: Mingw gcc 3.4.2
+
+ command-line:
+   g++ -c -o efficiency.o -ftemplate-depth-100 -funroll-loops -O3
+       -finline-functions -Wno-inline -DNDEBUG  efficiency.cpp
+       -I\lib\boost\include\boost-1_33
+   g++ -o efficiency.exe efficiency.o -Wl,--strip-all 
+
+ Results:
+   plain time:           <ignored>
+   named parameter time: <ignored>
+   plain time:           1.14
+   named parameter time: 1.422
+   plain time:           1.125
+   named parameter time: 1.406
+
+-----------------------------------------
+

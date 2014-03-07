@@ -1,0 +1,755 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content=
+"HTML Tidy for Linux/x86 (vers 1st March 2004), see www.w3.org" />
+<meta http-equiv="Content-Type" content=
+"text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Vector</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Vector</h1>
+<div class="toc" id="toc"></div>
+<h2><a name="vector"></a>Vector</h2>
+<h4>Description</h4>
+<p>The templated class <code>vector&lt;T, A&gt;</code> is the base
+container adaptor for dense vectors. For a <em>n</em>-dimensional
+vector and <em>0 &lt;= i &lt; n</em> every element
+<em>v</em><sub><em>i</em></sub> is mapped to the <em>i-</em>th
+element of the container.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/vector.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    vector&lt;double&gt; v (3);
+    for (unsigned i = 0; i &lt; v.size (); ++ i)
+        v (i) = i;
+    std::cout &lt;&lt; v &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header vector.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The type of object stored in the vector.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>A</code></td>
+<td>The type of the <a href="storage_concept.htm">Storage</a> array. <a href="#vector_1">[1]</a></td>
+<td><code>unbounded_array&lt;T&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="container_concept.htm#vector">Vector</a>,
+<a href="http://www.sgi.com/tech/stl/RandomAccessContainer.html">RandomAccessContainer</a>
+</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"container_concept.htm#vector">Vector</a>
+and <a href="http://www.sgi.com/tech/stl/RandomAccessContainer.html">RandomAccessContainer</a>.</p>
+<h4>Public base classes</h4>
+<p><code>vector_container&lt;vector&lt;T, A&gt; &gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Where defined</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>value_type</code>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td></td>
+</tr>
+<tr>
+<td><code>reference</code>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td></td>
+</tr>
+<tr>
+<td><code>const_reference</code>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td></td>
+</tr>
+<tr>
+<td><code>size_type</code>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td></td>
+</tr>
+<tr>
+<td><code>difference_type</code>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td></td>
+</tr>
+<tr>
+<td><code>const_iterator</code>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td></td>
+</tr>
+<tr>
+<td><code>iterator</code>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td></td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator</code>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td></td>
+</tr>
+<tr>
+<td><code>reverse_iterator</code>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td></td>
+</tr>
+<tr>
+<td><code>array_type</code>
+<td><a href="container_concept.htm#vector">Vector</a></td>
+<td></td>
+</tr>
+<tr>
+<td><code>vector ()</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Allocates an uninitialized <code>vector</code> that holds zero
+elements.</td>
+</tr>
+<tr>
+<td><code>vector (size_type size)</code></td>
+<td><a href="container_concept.htm#vector">Vector</a></td>
+<td>Allocates an uninitialized <code>vector</code> that holds
+<code>size</code> elements.</td>
+</tr>
+<tr>
+<td><code>vector (const vector &amp;v)</code></td>
+<td></td>
+<td>The copy constructor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector (const vector_expression&lt;AE&gt; &amp;ae)</code></td>
+<td></td>
+<td>The extended copy constructor.</td>
+</tr>
+<tr>
+<td><code>void resize (size_type size, bool preserve =
+true)</code></td>
+<td><a href="container_concept.htm#vector">Vector</a></td>
+<td>Reallocates a <code>vector</code> to hold <code>size</code>
+elements. The existing elements of the <code>vector</code> are
+preseved when specified.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Returns the size of the <code>vector</code>.</td>
+</tr>
+<tr>
+<td><code>size_type max_size () const</code></td>
+<td><a href="http://www.sgi.com/tech/stl/RandomAccessContainer.html">RandomAccessContainer</a></td>
+<td>Returns the upper bound on the size of the <code>vector</code>.</td>
+</tr>
+<tr>
+<td><code>bool empty () const</code></td>
+<td><a href="http://www.sgi.com/tech/stl/RandomAccessContainer.html">RandomAccessContainer</a></td>
+<td>Equivilent to <code>size () == 0</code>.</td>
+</tr>
+<tr>
+<td><code>const array_type&amp; data () const</code></td>
+<td><a href="container_concept.htm#vector">Vector</a></td>
+<td></td>
+</tr>
+<tr>
+<td><code>array_type&amp; data ()</code></td>
+<td><a href="container_concept.htm#vector">Vector</a></td>
+<td></td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i)
+const</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Returns a <code>const</code> reference of the <code>i</code>
+-th element.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i)</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Returns a reference of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>const_reference operator [] (size_type i) const</code></td>
+<td><a href="container_concept.htm#vector">Vector</a></td>
+<td>Returns a <code>const</code> reference of the <code>i</code>
+-th element.</td>
+</tr>
+<tr>
+<td><code>reference operator [] (size_type i)</code></td>
+<td><a href="container_concept.htm#vector">Vector</a></td>
+<td>Returns a reference of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>vector &amp;operator = (const vector &amp;v)</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>vector &amp;assign_temporary (vector &amp;v)</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Assigns a temporary. May change the vector <code>v</code>.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector &amp;operator = (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector &amp;assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Assigns a vector expression to the vector. Left and right hand
+side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector &amp;operator += (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>A computed assignment operator. Adds the vector expression to
+the vector.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector &amp;plus_assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Adds a vector expression to the vector. Left and right hand
+side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector &amp;operator -= (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>A computed assignment operator. Subtracts the vector expression
+from the vector.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+vector &amp;minus_assign (const vector_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Subtracts a vector expression from the vector. Left and right
+hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+vector &amp;operator *= (const AT &amp;at)</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>A computed assignment operator. Multiplies the vector with a
+scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+vector &amp;operator /= (const AT &amp;at)</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>A computed assignment operator. Divides the vector through a
+scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (vector &amp;v)</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Swaps the contents of the vectors.</td>
+</tr>
+<tr>
+<td><code>void insert_element (size_type i, const_reference t)</code></td>
+<td><a href="container_concept.htm#vector">Vector</a></td>
+<td>Inserts the value <code>t</code> at the <code>i</code>-th
+element.</td>
+</tr>
+<tr>
+<td><code>void erase_element (size_type i)</code></td>
+<td><a href="container_concept.htm#vector">Vector</a></td>
+<td>Erases the value at the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>void clear ()</code></td>
+<td><a href="container_concept.htm#vector">Vector</a></td>
+<td>Clears the vector.</td>
+</tr>
+<tr>
+<td><code>const_iterator begin () const</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Returns a <code>const_iterator</code> pointing to the beginning
+of the <code>vector</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator end () const</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Returns a <code>const_iterator</code> pointing to the end of
+the <code>vector</code>.</td>
+</tr>
+<tr>
+<td><code>iterator begin ()</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Returns a <code>iterator</code> pointing to the beginning of
+the <code>vector</code>.</td>
+</tr>
+<tr>
+<td><code>iterator end ()</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Returns a <code>iterator</code> pointing to the end of the
+<code>vector</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rbegin () const</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+beginning of the reversed <code>vector</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rend () const</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+end of the reversed <code>vector</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rbegin ()</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the
+beginning of the reversed <code>vector</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rend ()</code></td>
+<td><a href="expression_concept.htm#vector_expression">VectorExpression</a></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the end of
+the reversed <code>vector</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notes</h4>
+<p><a name="vector_1">[1]</a> Common parameters
+for the Storage array are <code>unbounded_array&lt;T&gt;</code> ,
+<code>bounded_array&lt;T&gt;</code> and
+<code>std::vector&lt;T&gt;</code> .</p>
+<h2><a name="unit_vector"></a>Unit Vector</h2>
+<h4>Description</h4>
+<p>The templated class <code>unit_vector&lt;T, ALLOC&gt;</code> represents
+canonical unit vectors. For the <em>k</em>-th
+<em>n</em>-dimensional canonical unit vector and <em>0 &lt;= i &lt;
+n</em> holds <em>u</em><sup><em>k</em></sup><sub><em>i</em></sub>
+<em>= 0</em>, if <em>i &lt;&gt; k</em>, and
+<em>u</em><sup><em>k</em></sup><sub><em>i</em></sub> <em>=
+1</em>.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/vector.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    for (int i = 0; i &lt; 3; ++ i) {
+        unit_vector&lt;double&gt; v (3, i);
+        std::cout &lt;&lt; v &lt;&lt; std::endl;
+    }
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header vector.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The type of object stored in the vector.</td>
+<td><code>int</code></td>
+</tr>
+<tr>
+<td><code>ALLOC</code></td>
+<td>An STL Allocator for size_type and difference_type.</td>
+<td>std::allocator</td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="container_concept.htm#vector">Vector</a> .</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of
+<a href="container_concept.htm#vector">Vector</a> .</p>
+<h4>Public base classes</h4>
+<p><code>vector_container&lt;unit_vector&lt;T&gt; &gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>unit_vector ()</code></td>
+<td>Constructs an <code>unit_vector</code> that holds zero
+elements.</td>
+</tr>
+<tr>
+<td><code>unit_vector (size_type size, size_type index)</code></td>
+<td>Constructs the <code>index</code>-th <code>unit_vector</code>
+that holds <code>size</code> elements.</td>
+</tr>
+<tr>
+<td><code>unit_vector (const unit_vector &amp;v)</code></td>
+<td>The copy constructor.</td>
+</tr>
+<tr>
+<td><code>void resize (size_type size, bool preserve =
+true)</code></td>
+<td>Resizes a <code>unit_vector</code> to hold <code>size</code>
+elements. Therefore the existing elements of the
+<code>unit_vector</code> are always preseved.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td>Returns the size of the <code>unit_vector</code>.</td>
+</tr>
+<tr>
+<td><code>size_type index () const</code></td>
+<td>Returns the index of the <code>unit_vector</code>.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i)
+const</code></td>
+<td>Returns the value of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>const_reference operator [] (size_type i)
+const</code></td>
+<td>Returns the value of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>unit_vector &amp;operator = (const unit_vector
+&amp;v)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>unit_vector &amp;assign_temporary (unit_vector
+&amp;v)</code></td>
+<td>Assigns a temporary. May change the unit vector <code>v</code>
+.</td>
+</tr>
+<tr>
+<td><code>void swap (unit_vector &amp;v)</code></td>
+<td>Swaps the contents of the unit vectors.</td>
+</tr>
+<tr>
+<td><code>const_iterator begin () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the beginning
+of the <code>unit_vector</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator end () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the end of
+the <code>unit_vector</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rbegin () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+beginning of the reversed <code>unit_vector</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rend () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+end of the reversed <code>unit_vector</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2><a name="zero_vector"></a>Zero Vector</h2>
+<h4>Description</h4>
+<p>The templated class <code>zero_vector&lt;T, ALLOC&gt;</code> represents
+zero vectors. For a <em>n</em>-dimensional zero vector and <em>0
+&lt;= i &lt; n</em> holds <em>z</em><sub><em>i</em></sub> <em>=
+0</em>.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/vector.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    zero_vector&lt;double&gt; v (3);
+    std::cout &lt;&lt; v &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header vector.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The type of object stored in the vector.</td>
+<td><code>int</code></td>
+</tr>
+<tr>
+<td><code>ALLOC</code></td>
+<td>An STL Allocator for size_type and difference_type.</td>
+<td>std::allocator</td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="container_concept.htm#vector">Vector</a> .</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of
+<a href="container_concept.htm#vector">Vector</a> .</p>
+<h4>Public base classes</h4>
+<p><code>vector_container&lt;zero_vector&lt;T&gt; &gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>zero_vector ()</code></td>
+<td>Constructs a <code>zero_vector</code> that holds zero
+elements.</td>
+</tr>
+<tr>
+<td><code>zero_vector (size_type size)</code></td>
+<td>Constructs a <code>zero_vector</code> that holds
+<code>size</code> elements.</td>
+</tr>
+<tr>
+<td><code>zero_vector (const zero_vector &amp;v)</code></td>
+<td>The copy constructor.</td>
+</tr>
+<tr>
+<td><code>void resize (size_type size, bool preserve =
+true)</code></td>
+<td>Resizes a <code>zero_vector</code> to hold <code>size</code>
+elements. Therefore the existing elements of the
+<code>zero_vector</code> are always preseved.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td>Returns the size of the <code>zero_vector</code>.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i)
+const</code></td>
+<td>Returns the value of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>const_reference operator [] (size_type i)
+const</code></td>
+<td>Returns the value of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>zero_vector &amp;operator = (const zero_vector
+&amp;v)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>zero_vector &amp;assign_temporary (zero_vector
+&amp;v)</code></td>
+<td>Assigns a temporary. May change the zero vector <code>v</code>
+.</td>
+</tr>
+<tr>
+<td><code>void swap (zero_vector &amp;v)</code></td>
+<td>Swaps the contents of the zero vectors.</td>
+</tr>
+<tr>
+<td><code>const_iterator begin () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the beginning
+of the <code>zero_vector</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator end () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the end of
+the <code>zero_vector</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rbegin () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+beginning of the reversed <code>zero_vector</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rend () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+end of the reversed <code>zero_vector</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2><a name="scalar_vector"></a>Scalar Vector</h2>
+<h4>Description</h4>
+<p>The templated class <code>scalar_vector&lt;T, ALLOC&gt;</code>
+represents scalar vectors. For a <em>n</em>-dimensional scalar
+vector and <em>0 &lt;= i &lt; n</em> holds
+<em>z</em><sub><em>i</em></sub> <em>= s</em>.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/vector.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    scalar_vector&lt;double&gt; v (3);
+    std::cout &lt;&lt; v &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header vector.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The type of object stored in the vector.</td>
+<td><code>int</code></td>
+</tr>
+<tr>
+<td><code>ALLOC</code></td>
+<td>An STL Allocator for size_type and difference_type.</td>
+<td>std::allocator</td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="container_concept.htm#vector">Vector</a> .</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of
+<a href="container_concept.htm#vector">Vector</a> .</p>
+<h4>Public base classes</h4>
+<p><code>vector_container&lt;scalar_vector&lt;T&gt;
+&gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>scalar_vector ()</code></td>
+<td>Constructs a <code>scalar_vector</code> that holds zero
+elements.</td>
+</tr>
+<tr>
+<td><code>scalar_vector (size_type size, const value_type
+&amp;value)</code></td>
+<td>Constructs a <code>scalar_vector</code> that holds
+<code>size</code> elements each of the specified value.</td>
+</tr>
+<tr>
+<td><code>scalar_vector (const scalar_vector &amp;v)</code></td>
+<td>The copy constructor.</td>
+</tr>
+<tr>
+<td><code>void resize (size_type size, bool preserve =
+true)</code></td>
+<td>Resizes a <code>scalar_vector</code> to hold <code>size</code>
+elements. Therefore the existing elements of the
+<code>scalar_vector</code> are always preseved.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td>Returns the size of the <code>scalar_vector</code>.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i)
+const</code></td>
+<td>Returns the value of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>const_reference operator [] (size_type i)
+const</code></td>
+<td>Returns the value of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>scalar_vector &amp;operator = (const scalar_vector
+&amp;v)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>scalar_vector &amp;assign_temporary (scalar_vector
+&amp;v)</code></td>
+<td>Assigns a temporary. May change the scalar vector
+<code>v</code> .</td>
+</tr>
+<tr>
+<td><code>void swap (scalar_vector &amp;v)</code></td>
+<td>Swaps the contents of the scalar vectors.</td>
+</tr>
+<tr>
+<td><code>const_iterator begin () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the beginning
+of the <code>scalar_vector</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator end () const</code></td>
+<td>Returns a <code>const_iterator</code> pointing to the end of
+the <code>scalar_vector</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rbegin () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+beginning of the reversed <code>scalar_vector</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rend () const</code></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the
+end of the reversed <code>scalar_vector</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p>Copyright (&copy;) 2000-2002 Joerg Walter, Mathias Koch<br />
+   Use, modification and distribution are subject to the
+   Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt
+   or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+</p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

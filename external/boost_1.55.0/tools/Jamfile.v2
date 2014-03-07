@@ -1,0 +1,60 @@
+# Copyright 2005 Rene Rivera 
+# Copyright 2005 Hartmut Kaiser 
+# Copyright 2005 John Maddock 
+# Copyright 2003 Vladimir Prus 
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) 
+
+
+# Jamfile which builds all the tools.
+
+project 
+    :
+    requirements
+    <link>static
+    <implicit-dependency>/boost//headers 
+    : 
+    usage-requirements <implicit-dependency>/boost//headers 
+    ;
+
+use-project /boost/regression : regression/build ;
+
+TOOLS =
+    bcp//bcp
+    inspect/build//inspect
+    quickbook//quickbook
+    /boost/regression//compiler_status
+    /boost/regression//library_status
+    /boost/regression//process_jam_log
+    wave/build//wave
+    ;
+
+install dist-bin
+    :
+    $(TOOLS)
+    :
+    <install-type>EXE
+    <location>../dist/bin
+    :
+    release
+    ;
+
+install dist-lib
+    :
+    $(TOOLS)
+    :
+    <install-type>LIB
+    <location>../dist/lib
+    :
+    release
+    ;
+
+local patterns = *.dtd *.xml *.xsl LICENSE ;
+local dirs = boostbook/dtd boostbook/xsl ;
+install dist-share-boostbook
+    :
+    [ glob $(dirs)/$(patterns) $(dirs)/*/$(patterns) $(dirs)/*/*/$(patterns) ]
+    :
+    <location>../dist/share
+    <install-source-root>.
+    ;

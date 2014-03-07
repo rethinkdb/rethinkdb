@@ -1,0 +1,197 @@
+#==============================================================================
+#    Copyright (c) 2003-2006 Joel de Guzman
+#
+#   Use, modification and distribution is subject to the Boost Software
+#   License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+
+# bring in rules for testing
+import testing ;
+
+project
+    : requirements
+        <toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+        <toolset>msvc:<define>_SCL_SECURE_NO_WARNINGS
+        <toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+        <toolset>msvc:<define>_CRT_SECURE_NO_WARNINGS
+    ;
+
+local multi-threading = <library>/boost/thread
+                        <threading>multi <define>BOOST_ALL_NO_LIB=1 ;
+
+test-suite phoenix_core :
+    [ run core/primitives_tests.cpp ] 
+    ;
+
+test-suite phoenix_operator :
+    [ run operator/arithmetic_tests.cpp ] 
+    [ run operator/bitwise_tests.cpp ]
+    [ run operator/comparison_tests.cpp ] 
+    [ run operator/if_else_tests.cpp ]
+    [ run operator/io_tests.cpp ]
+    [ run operator/logical_tests.cpp ]
+    [ run operator/misc_binary_tests.cpp ]
+    [ run operator/self_tests.cpp ]
+    [ run operator/unary_tests.cpp ] 
+    [ run operator/member.cpp ]
+    ;
+
+test-suite phoenix_object :
+    [ run object/cast_tests.cpp ] 
+    [ run object/new_delete_tests.cpp ] 
+    ;
+
+test-suite phoenix_function :
+    [ run function/adapt_function.cpp ] 
+    [ run function/function_tests.cpp ] 
+#    [ run function/function_tests_phx2.cpp ] 
+    ;
+
+test-suite phoenix_bind :
+    [ run bind/bind_function_tests.cpp ] 
+    [ run bind/bind_function_object_tests.cpp ]
+#    [ run bind/bind_function_object_tests_phx2.cpp ]
+    [ run bind/bind_member_function_tests.cpp ]
+    [ run bind/bind_member_variable_tests.cpp ]
+    [ run bind/bug5782.cpp ]
+    ;
+    
+test-suite phoenix_statement :
+    [ run statement/if_tests.cpp ] 
+    [ run statement/loops_tests.cpp ] 
+    [ run statement/switch_tests.cpp ] 
+    [ run statement/exceptions.cpp ]
+    ;
+        
+test-suite phoenix_container :
+    [ run container/container_tests1a.cpp ] 
+    [ run container/container_tests1b.cpp ] 
+    [ run container/container_tests2a.cpp ] 
+    [ run container/container_tests2b.cpp ] 
+    [ run container/container_tests3a.cpp ] 
+    [ run container/container_tests3b.cpp ] 
+    [ run container/container_tests4a.cpp ] 
+    [ run container/container_tests4b.cpp ] 
+    [ run container/container_tests5a.cpp ] 
+    [ run container/container_tests5b.cpp ] 
+    [ run container/container_tests6a.cpp ] 
+    [ run container/container_tests6b.cpp ] 
+    ;
+
+test-suite phoenix_scope :
+    [ run scope/lambda_tests.cpp ] 
+#    [ run scope/lambda_tests_phx2.cpp ] 
+    [ run scope/let_tests.cpp ] 
+    [ run scope/dynamic_tests.cpp ] 
+    [ run scope/bug3289.cpp ]
+    [ run scope/bug_000008.cpp : : : $(multi-threading) ] 
+    ;
+
+test-suite phoenix_algorithm :
+    [ run algorithm/iteration.cpp ]
+    [ run algorithm/transformation1.cpp ]
+    [ run algorithm/transformation2.cpp ]
+    [ run algorithm/transformation3.cpp ]
+    [ run algorithm/transformation4.cpp ]
+    [ run algorithm/querying.cpp ]
+    [ run algorithm/querying2.cpp ]
+    ;
+
+test-suite phoenix_boost_bind_compatibility :
+    [ run boost_bind_compatibility/bind_and_or_test.cpp ]
+    [ run boost_bind_compatibility/bind_const_test.cpp ]
+    [ run boost_bind_compatibility/bind_cv_test.cpp ]
+    [ run boost_bind_compatibility/bind_dm_test.cpp ]
+    [ run boost_bind_compatibility/bind_dm2_test.cpp ]
+    [ run boost_bind_compatibility/bind_dm3_test.cpp ]
+    [ run boost_bind_compatibility/bind_eq_test.cpp ]
+    [ run boost_bind_compatibility/bind_eq2_test.cpp ]
+    [ run boost_bind_compatibility/bind_eq3_test.cpp ]
+    [ run boost_bind_compatibility/bind_fn2_test.cpp ]
+    [ run boost_bind_compatibility/bind_function_test.cpp ]
+    [ run boost_bind_compatibility/bind_mf2_test.cpp ]
+    [ run boost_bind_compatibility/bind_not_test.cpp ]
+    [ run boost_bind_compatibility/bind_placeholder_test.cpp ]
+    [ run boost_bind_compatibility/bind_ref_test.cpp ]
+    [ run boost_bind_compatibility/bind_rel_test.cpp ]
+    [ run boost_bind_compatibility/bind_rvalue_test.cpp ]
+    [ run boost_bind_compatibility/bind_rv_sp_test.cpp ]
+    [ run boost_bind_compatibility/bind_stateful_test.cpp ]
+    [ run boost_bind_compatibility/bind_test.cpp ]
+    ;
+
+test-suite phoenix_regression :
+    [ run regression/bug4853.cpp ]
+    [ run regression/bug5626.cpp ]
+    [ run regression/bug5968.cpp ]
+    [ run regression/bug6040.cpp ]
+    ;
+
+test-suite phoenix_include :
+    [ run include/bind.cpp ]
+    [ run include/core.cpp ]
+    [ run include/function.cpp ]
+    [ run include/fusion.cpp ]
+    [ run include/object.cpp ]
+    [ run include/operator.cpp ]
+    [ run include/scope.cpp ]
+    [ run include/statement.cpp ]
+    [ run include/stl.cpp ]
+    [ run include/version.cpp ]
+    [ run include/core/actor.cpp ]
+    [ run include/core/argument.cpp ]
+    [ run include/core/arity.cpp ]
+    [ run include/core/domain.cpp ]
+    [ run include/core/environment.cpp ]
+    [ run include/core/expression.cpp ]
+    [ run include/core/function_equal.cpp ]
+    [ run include/core/is_actor.cpp ]
+    [ run include/core/is_nullary.cpp ]
+    [ run include/core/nothing.cpp ]
+    [ run include/core/meta_grammar.cpp ]
+    [ run include/core/limits.cpp ]
+    [ run include/core/terminal.cpp ]
+    [ run include/core/value.cpp ]
+    [ run include/core/visit_each.cpp ]
+    [ run include/core/reference.cpp ]
+    [ run include/function/function.cpp : : : : function_function ]
+    [ run include/fusion/at.cpp ]
+    [ run include/object/const_cast.cpp ]
+    [ run include/object/construct.cpp ]
+    [ run include/object/delete.cpp ]
+    [ run include/object/dynamic_cast.cpp ]
+    [ run include/object/new.cpp ]
+    [ run include/object/reinterpret_cast.cpp ]
+    [ run include/object/static_cast.cpp ]
+    [ run include/operator/arithmetic.cpp ]
+    [ run include/operator/bitwise.cpp ]
+    [ run include/operator/comparison.cpp ]
+    [ run include/operator/if_else.cpp ]
+    [ run include/operator/io.cpp ]
+    [ run include/operator/logical.cpp ]
+    [ run include/operator/member.cpp : : : : operator_member ]
+    [ run include/operator/self.cpp ]
+    [ run include/scope/dynamic.cpp ]
+    [ run include/scope/lambda.cpp ]
+    [ run include/scope/let.cpp ]
+    [ run include/scope/local_variable.cpp ]
+    [ run include/scope/scoped_environment.cpp ]
+    [ run include/scope/this.cpp ]
+    [ run include/statement/do_while.cpp ]
+    [ run include/statement/for.cpp ]
+    [ run include/statement/if.cpp ]
+    [ run include/statement/sequence.cpp ]
+    [ run include/statement/switch.cpp ]
+    [ run include/statement/throw.cpp ]
+    [ run include/statement/try_catch.cpp ]
+    [ run include/statement/while.cpp ]
+    [ run include/stl/algorithm.cpp ]
+    [ run include/stl/container.cpp ]
+    [ run include/stl/container/container.cpp : : : : container_container ]
+    [ run include/stl/algorithm/iteration.cpp : : : : include_iteration ]
+    [ run include/stl/algorithm/querying.cpp : : : : include_querying ]
+    [ run include/stl/algorithm/transformation.cpp ]
+    [ run include/support/iterate.cpp ]
+    [ run include/support/preprocessor/round.cpp ]
+    ;

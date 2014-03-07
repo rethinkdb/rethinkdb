@@ -1,0 +1,300 @@
+#==============================================================================
+#   Copyright (c) 2002 Joel de Guzman
+#   http://spirit.sourceforge.net/
+#
+#   Use, modification and distribution is subject to the Boost Software
+#   License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+#
+#  Spirit examples boost-jam file
+#  Joel de Guzman [Sep 27, 2002]    : created
+#  Joel de Guzman [Oct 30, 2003]    : separated the applications
+#  Martin Wille   [Jan 15, 2004]    : changes for new directory structure
+#  Martin Wille   [Jan 20, 2004]    : more changes for new directory structure
+#  Joel de Guzman [Jul 29, 2004]    : added calc_debug.cpp
+#
+
+exe ast_calc
+    : fundamental/ast_calc.cpp
+    :
+    ;
+
+exe "bind"
+    : fundamental/bind.cpp
+    :
+    ;
+
+exe boiler_plate
+    : fundamental/boiler_plate.cpp
+    :
+    ;
+
+exe calc_plain
+    : fundamental/calc_plain.cpp
+    :
+    ;
+
+exe calc_debug
+    : fundamental/calc_debug.cpp
+    :
+    ;
+
+exe comments
+    : fundamental/comments.cpp
+    :
+    ;
+
+exe complex_number
+    : fundamental/complex_number.cpp
+    :
+    ;
+
+exe error_handling
+    : fundamental/error_handling.cpp
+    :
+    ;
+
+exe error_reporting
+    : fundamental/error_reporting.cpp
+    :
+    ;
+
+exe file_parser
+    : fundamental/file_parser.cpp
+    :
+    ;
+
+exe full_calc
+    : fundamental/full_calc.cpp
+    :
+    ;
+
+exe functor_parser
+    : fundamental/functor_parser.cpp
+    :
+    ;
+
+exe list_parser
+    : fundamental/list_parser.cpp
+    :
+    ;
+
+exe matching_tags
+    : fundamental/matching_tags.cpp
+    :
+    ;
+
+exe no_actions
+    : fundamental/no_actions.cpp
+    :
+    ;
+
+exe number_list
+    : fundamental/number_list.cpp
+    :
+    ;
+
+exe parse_tree_calc1
+    : fundamental/parse_tree_calc1.cpp
+    :
+    ;
+
+exe parser_context
+    : fundamental/parser_context.cpp
+    :
+    ;
+
+exe phoenix_calc
+    : fundamental/phoenix_calc.cpp
+    :
+    ;
+
+exe position_iterator
+    : fundamental/position_iterator/position_iterator.cpp
+    :
+    ;
+
+exe refactoring
+    : fundamental/refactoring.cpp
+    :
+    ;
+
+exe regular_expression
+    : fundamental/regular_expression.cpp
+      /boost//regex
+    :
+    ;
+
+exe roman_numerals
+    : fundamental/roman_numerals.cpp
+    :
+    ;
+
+exe stuff_vector
+    : fundamental/stuff_vector.cpp
+    :
+    ;
+
+exe stuff_vector2
+    : fundamental/stuff_vector2.cpp
+    :
+    ;
+
+exe subrule_calc
+    : fundamental/subrule_calc.cpp
+    :
+    ;
+
+exe sum
+    : fundamental/sum.cpp
+    :
+    ;
+
+exe thousand_separated
+    : fundamental/thousand_separated.cpp
+    :
+    ;
+
+exe ast_calc2
+    : fundamental/more_calculators/ast_calc2.cpp
+    :
+    ;
+
+exe calc_with_variables
+    : fundamental/more_calculators/calc_with_variables.cpp
+    :
+    ;
+
+exe phoenix_subrule_calc
+    : fundamental/more_calculators/phoenix_subrule_calc.cpp
+    :
+    ;
+
+exe primitive_calc
+    : fundamental/more_calculators/primitive_calc.cpp
+    :
+    ;
+
+exe rpn_calc
+    : fundamental/more_calculators/rpn_calc.cpp
+    :
+    ;
+
+exe vmachine_calc
+    : fundamental/more_calculators/vmachine_calc.cpp
+    :
+    ;
+
+exe distinct_parser
+    : fundamental/distinct/distinct_parser.cpp
+    :
+    ;
+
+exe distinct_parser_dynamic
+    : fundamental/distinct/distinct_parser_dynamic.cpp
+    :
+    ;
+
+################################################################################
+
+exe ipv4
+    : intermediate/ipv4.cpp
+    :
+    ;
+
+exe ipv4_opt
+    : intermediate/ipv4_opt.cpp
+    :
+    ;
+
+exe lazy_parser
+    : intermediate/lazy_parser.cpp
+    :
+    ;
+
+exe parameters
+    : intermediate/parameters.cpp
+    :
+    ;
+
+exe regex_convert
+    : intermediate/regex_convert.cpp
+      /boost//regex
+    :
+    ;
+
+exe simple_xml
+    : intermediate/simple_xml/driver.cpp
+      intermediate/simple_xml/tag.cpp
+      intermediate/simple_xml/tag.cpp
+    :
+    ;
+
+################################################################################
+
+exe dynamic_rule
+    : techniques/dynamic_rule.cpp
+    :
+    ;
+
+exe epsilon
+    : techniques/epsilon.cpp
+    :
+    ;
+
+exe multiple_scanners
+    : techniques/multiple_scanners.cpp
+    :
+    ;
+
+exe nabialek
+    : techniques/nabialek.cpp
+    :
+    ;
+
+exe no_rule1
+    : techniques/no_rules/no_rule1.cpp
+    :
+    ;
+
+exe no_rule2
+    : techniques/no_rules/no_rule2.cpp
+    :
+    ;
+
+exe no_rule3
+    : techniques/no_rules/no_rule3.cpp
+    :
+    ;
+
+exe typeof
+    : techniques/typeof.cpp
+    :
+    ;
+
+exe rule_parser_1_1
+    : techniques/no_rules_with_typeof/rule_parser_1_1.cpp
+    :
+    ;
+
+exe rule_parser_1_2
+    : techniques/no_rules_with_typeof/rule_parser_1_2.cpp
+    :
+    ;
+
+exe rule_parser_2_1
+    : techniques/no_rules_with_typeof/rule_parser_2_1.cpp
+    :
+    ;
+
+exe rule_parser_2_2
+    : techniques/no_rules_with_typeof/rule_parser_2_2.cpp
+    :
+    ;
+
+exe opaque_rule_parser
+    : techniques/no_rules_with_typeof/opaque_rule_parser.cpp
+    :
+    ;
+

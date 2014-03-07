@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="xinclude_with_xmlbase" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xml:base="test/include" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>XInclude with xmlbase</title>
+  <xi:include href="../stub.xml" />
+  <xi:include href="../xinclude/stub.xml" />
+  <xi:include href="../xinclude/sub/stub.xml" />
+</article>

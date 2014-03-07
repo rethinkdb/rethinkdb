@@ -1,0 +1,20 @@
+#
+#          Copyright Andrey Semashev 2007 - 2013.
+# Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+#
+
+import project ;
+using mc ;
+
+project /boost/message-compiler
+    : source-location ../../src
+    : requirements
+        <pch>off
+    ;
+
+obj simple_event_log : simple_event_log.mc ;
+
+# This test target verifies that Message Compiler (mc) is available and supported by the current toolset
+alias test-availability : simple_event_log ;

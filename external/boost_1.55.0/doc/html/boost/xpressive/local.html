@@ -1,0 +1,134 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template local</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp" title="Header &lt;boost/xpressive/regex_actions.hpp&gt;">
+<link rel="prev" href="reference.html" title="Struct template reference">
+<link rel="next" href="placeholder.html" title="Struct template placeholder">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reference.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="placeholder.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.xpressive.local"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template local</span></h2>
+<p>boost::xpressive::local &#8212; <code class="computeroutput">local&lt;&gt;</code> is a lazy wrapper for a reference to a value that is stored within the local itself. It is for use within xpressive semantic actions. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp" title="Header &lt;boost/xpressive/regex_actions.hpp&gt;">boost/xpressive/regex_actions.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="local.html" title="Struct template local">local</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">terminal</span><span class="special">::</span><span class="identifier">type</span><span class="special">&lt;</span> <span class="identifier">reference_wrapper</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">{</span>
+  <span class="comment">// <a class="link" href="local.html#boost.xpressive.localconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="local.html#idp163410792-bb"><span class="identifier">local</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="local.html#idp163411256-bb"><span class="identifier">local</span></a><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="local.html#idp163409160-bb">public member functions</a></span>
+  <span class="identifier">T</span> <span class="special">&amp;</span> <a class="link" href="local.html#idp163409368-bb"><span class="identifier">get</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a class="link" href="local.html#idp163409992-bb"><span class="identifier">get</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp255599368"></a><h2>Description</h2>
+<p>
+Below is an example of how to use <code class="computeroutput">local&lt;&gt;</code> in semantic actions.</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">xpressive</span><span class="special">;</span>
+<a class="link" href="local.html" title="Struct template local">local&lt;int&gt;</a> <span class="identifier">i</span><span class="special">(</span><span class="number">0</span><span class="special">)</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span><span class="special">(</span><span class="string">"1!2!3?"</span><span class="special">)</span><span class="special">;</span>
+<span class="comment">// count the exciting digits, but not the</span>
+<span class="comment">// questionable ones.</span>
+<a class="link" href="basic_regex.html" title="Struct template basic_regex">sregex</a> <span class="identifier">rex</span> <span class="special">=</span> <span class="special">+</span><span class="special">(</span> <span class="identifier">_d</span> <span class="special">[</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">]</span> <span class="special">&gt;&gt;</span> <span class="char">'!'</span> <span class="special">)</span><span class="special">;</span>
+<span class="identifier">regex_search</span><span class="special">(</span><span class="identifier">str</span><span class="special">,</span> <span class="identifier">rex</span><span class="special">)</span><span class="special">;</span>
+<span class="identifier">assert</span><span class="special">(</span> <span class="identifier">i</span><span class="special">.</span><span class="identifier">get</span><span class="special">(</span><span class="special">)</span> <span class="special">==</span> <span class="number">2</span> <span class="special">)</span><span class="special">;</span>
+</pre>
+<p> </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>As the name "local" suggests, <code class="computeroutput">local&lt;&gt;</code> objects and the regexes that refer to them should never leave the local scope. The value stored within the local object will be destroyed at the end of the <code class="computeroutput">local&lt;&gt;'s</code> lifetime, and any regex objects still holding the <code class="computeroutput">local&lt;&gt;</code> will be left with a dangling reference. </p></td></tr>
+</table></div>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp255617944"></a><h3>Template Parameters</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> T</pre>
+<p>The type of the local variable.</p>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp255619496"></a><h3>
+<a name="boost.xpressive.localconstruct-copy-destruct"></a><code class="computeroutput">local</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp163410792-bb"></a><span class="identifier">local</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Store a default-constructed value of type <code class="computeroutput">T</code>. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp163411256-bb"></a><span class="identifier">local</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span> t<span class="special">)</span><span class="special">;</span></pre>Store a default-constructed value of type <code class="computeroutput">T</code>. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">t</code></span></p></td>
+<td><p>The initial value. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp255628072"></a><h3>
+<a name="idp163409160-bb"></a><code class="computeroutput">local</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">T</span> <span class="special">&amp;</span> <a name="idp163409368-bb"></a><span class="identifier">get</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Fetch the wrapped value. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a name="idp163409992-bb"></a><span class="identifier">get</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>This is an overloaded member function, provided for convenience. It differs from the above function only in what argument(s) it accepts. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reference.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="placeholder.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

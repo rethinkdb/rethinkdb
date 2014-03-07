@@ -1,0 +1,169 @@
+#  Copyright (C) 2003 Vladimir Prus
+#  Use, modification, and distribution is subject to the Boost Software
+#  License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy
+#  at http://www.boost.org/LICENSE_1_0.txt)
+
+#  This module defines a class which allows to order arbitrary object with
+# regard to arbitrary binary relation.
+#
+#  The primary use case is the gcc toolset, which is sensitive to library order:
+#  if library 'a' uses symbols from library 'b', then 'a' must be present before
+#  'b' on the linker's command line.
+#
+#  This requirement can be lifted for gcc with GNU ld, but for gcc with Solaris
+#  LD (and for Solaris toolset as well), the order always matters.
+#
+#  So, we need to store order requirements and then order libraries according to
+#  them. It is not possible to use the dependency graph as order requirements.
+#  What we need is a "use symbols" relationship while dependency graph provides
+#  the "needs to be updated" relationship.
+#
+#  For example::
+#    lib a : a.cpp b;
+#    lib b ;
+#
+#  For static linking, library 'a' need not depend on 'b'. However, it should
+#  still come before 'b' on the command line.
+
+class order
+{
+    rule __init__ ( )
+    {
+    }
+
+    # Adds the constraint that 'first' should preceede 'second'.
+    rule add-pair ( first second )
+    {
+        .constraits += $(first)--$(second) ;
+    }
+    NATIVE_RULE class@order : add-pair ;
+
+    # Given a list of objects, reorder them so that the constraints specified by
+    # 'add-pair' are satisfied.
+    #
+    # The algorithm was adopted from an awk script by Nikita Youshchenko
+    # (yoush at cs dot msu dot su)
+    rule order ( objects * )
+    {
+        # The algorithm used is the same is standard transitive closure, except
+        # that we're not keeping in-degree for all vertices, but rather removing
+        # edges.
+        local result ;
+        if $(objects)
+        {
+            local constraints = [ eliminate-unused-constraits $(objects) ] ;
+
+            # Find some library that nobody depends upon and add it to the
+            # 'result' array.
+            local obj ;
+            while $(objects)
+            {
+                local new_objects ;
+                while $(objects)
+                {
+                    obj = $(objects[1]) ;
+                    if [ has-no-dependents $(obj) : $(constraints) ]
+                    {
+                        # Emulate break ;
+                        new_objects += $(objects[2-]) ;
+                        objects = ;
+                    }
+                    else
+                    {
+                        new_objects += $(obj) ;
+                        obj = ;
+                        objects = $(objects[2-]) ;
+                    }
+                }
+
+                if ! $(obj)
+                {
+                    errors.error "Circular order dependencies" ;
+                }
+                # No problem with placing first.
+                result += $(obj) ;
+                # Remove all contraints where 'obj' comes first, since they are
+                # already satisfied.
+                constraints = [ remove-satisfied $(constraints) : $(obj) ] ;
+
+                # Add the remaining objects for further processing on the next
+                # iteration
+                objects = $(new_objects) ;
+            }
+
+        }
+        return $(result) ;
+    }
+    NATIVE_RULE class@order : order ;
+
+    # Eliminate constraints which mention objects not in 'objects'. In
+    # graph-theory terms, this is finding a subgraph induced by ordered
+    # vertices.
+    rule eliminate-unused-constraits ( objects * )
+    {
+        local result ;
+        for local c in $(.constraints)
+        {
+            local m = [ MATCH (.*)--(.*) : $(c) ] ;
+            if $(m[1]) in $(objects) && $(m[2]) in $(objects)
+            {
+                result += $(c) ;
+            }
+        }
+        return $(result) ;
+    }
+
+    # Returns true if there's no constraint in 'constaraints' where 'obj' comes
+    # second.
+    rule has-no-dependents ( obj : constraints * )
+    {
+        local failed ;
+        while $(constraints) && ! $(failed)
+        {
+            local c = $(constraints[1]) ;
+            local m = [ MATCH (.*)--(.*) : $(c) ] ;
+            if $(m[2]) = $(obj)
+            {
+                failed = true ;
+            }
+            constraints = $(constraints[2-]) ;
+        }
+        if ! $(failed)
+        {
+            return true ;
+        }
+    }
+
+    rule remove-satisfied ( constraints * : obj )
+    {
+        local result ;
+        for local c in $(constraints)
+        {
+            local m = [ MATCH (.*)--(.*) : $(c) ] ;
+            if $(m[1]) != $(obj)
+            {
+                result += $(c) ;
+            }
+        }
+        return $(result) ;
+    }
+}
+
+
+rule __test__ ( )
+{
+    import "class" : new ;
+    import assert ;
+
+    c1 = [ new order ] ;
+    $(c1).add-pair l1 l2 ;
+
+    assert.result l1 l2 : $(c1).order l1 l2 ;
+    assert.result l1 l2 : $(c1).order l2 l1 ;
+
+    $(c1).add-pair l2 l3 ;
+    assert.result l1 l2 : $(c1).order l2 l1 ;
+    $(c1).add-pair x l2 ;
+    assert.result l1 l2 : $(c1).order l2 l1 ;
+    assert.result l1 l2 l3 : $(c1).order l2 l3 l1 ;
+}

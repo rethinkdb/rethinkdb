@@ -1,0 +1,6 @@
+> example
+
+*** 1 failure detected in test suite "example"
+> cat example.log
+Running 1 test case...
+test.cpp(20): error in "test_case": check false failed

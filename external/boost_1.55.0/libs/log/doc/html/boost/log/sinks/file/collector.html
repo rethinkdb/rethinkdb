@@ -1,0 +1,170 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct collector</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../../sinks.html#header.boost.log.sinks.text_file_backend_hpp" title="Header &lt;boost/log/sinks/text_file_backend.hpp&gt;">
+<link rel="prev" href="../syslog/make_facility.html" title="Function make_facility">
+<link rel="next" href="rotation_at_time_point.html" title="Class rotation_at_time_point">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../syslog/make_facility.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../../sinks.html#header.boost.log.sinks.text_file_backend_hpp"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rotation_at_time_point.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.sinks.file.collector"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct collector</span></h2>
+<p>boost::log::sinks::file::collector &#8212; Base class for file collectors. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../../sinks.html#header.boost.log.sinks.text_file_backend_hpp" title="Header &lt;boost/log/sinks/text_file_backend.hpp&gt;">boost/log/sinks/text_file_backend.hpp</a>&gt;
+
+</span>
+<span class="keyword">struct</span> <a class="link" href="collector.html" title="Struct collector">collector</a> <span class="special">{</span>
+  <span class="comment">// <a class="link" href="collector.html#boost.log.sinks.file.collectorconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="collector.html#idp27426232-bb"><span class="identifier">collector</span></a><span class="special">(</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">default</span><span class="special">;</span>
+  <a class="link" href="collector.html#idp27426936-bb"><span class="identifier">collector</span></a><span class="special">(</span><a class="link" href="collector.html" title="Struct collector">collector</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span>
+  collector&amp; <a class="link" href="collector.html#idp27427608-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="collector.html" title="Struct collector">collector</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span>
+  <a class="link" href="collector.html#idp27426648-bb"><span class="special">~</span><span class="identifier">collector</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="collector.html#idp27416440-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="collector.html#idp27416648-bb"><span class="identifier">store_file</span></a><span class="special">(</span><span class="identifier">filesystem</span><span class="special">::</span><span class="identifier">path</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">uintmax_t</span> <a class="link" href="collector.html#idp27418168-bb"><span class="identifier">scan_for_files</span></a><span class="special">(</span><span class="identifier">scan_method</span><span class="special">,</span> 
+                           <span class="identifier">filesystem</span><span class="special">::</span><span class="identifier">path</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">filesystem</span><span class="special">::</span><span class="identifier">path</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                           <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">*</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp65438440"></a><h2>Description</h2>
+<p>All file collectors, supported by file sink backends, should inherit this class. </p>
+<div class="refsect2">
+<a name="idp65438872"></a><h3>
+<a name="boost.log.sinks.file.collectorconstruct-copy-destruct"></a><code class="computeroutput">collector</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp27426232-bb"></a><span class="identifier">collector</span><span class="special">(</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">default</span><span class="special">;</span></pre>
+<p>Default constructor </p>
+</li>
+<li class="listitem"><pre class="literallayout"><a name="idp27426936-bb"></a><span class="identifier">collector</span><span class="special">(</span><a class="link" href="collector.html" title="Struct collector">collector</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">collector&amp; <a name="idp27427608-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="collector.html" title="Struct collector">collector</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp27426648-bb"></a><span class="special">~</span><span class="identifier">collector</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Virtual destructor </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp65452024"></a><h3>
+<a name="idp27416440-bb"></a><code class="computeroutput">collector</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27416648-bb"></a><span class="identifier">store_file</span><span class="special">(</span><span class="identifier">filesystem</span><span class="special">::</span><span class="identifier">path</span> <span class="keyword">const</span> <span class="special">&amp;</span> src_path<span class="special">)</span><span class="special">;</span></pre>
+<p>The function stores the specified file in the storage. May lead to an older file deletion and a long file moving.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">src_path</code></span></p></td>
+<td><p>The name of the file to be stored </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">uintmax_t</span> <a name="idp27418168-bb"></a><span class="identifier">scan_for_files</span><span class="special">(</span><span class="identifier">scan_method</span> method<span class="special">,</span> 
+                         <span class="identifier">filesystem</span><span class="special">::</span><span class="identifier">path</span> <span class="keyword">const</span> <span class="special">&amp;</span> pattern <span class="special">=</span> <span class="identifier">filesystem</span><span class="special">::</span><span class="identifier">path</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                         <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="special">*</span> counter <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Scans the target directory for the files that have already been stored. The found files are added to the collector in order to be tracked and erased, if needed.</p>
+<p>The function may scan the directory in two ways: it will either consider every file in the directory a log file, or will only consider files with names that match the specified pattern. The pattern may contain the following placeholders:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>y, Y, m, d - date components, in Boost.DateTime meaning. </p></li>
+<li class="listitem"><p>H, M, S, f - time components, in Boost.DateTime meaning. </p></li>
+<li class="listitem"><p>N - numeric file counter. May also contain width specification in printf-compatible form (e.g. %5N). The resulting number will always be zero-filled. </p></li>
+<li class="listitem"><p>%% - a percent sign</p></li>
+</ul></div>
+<p>
+All other placeholders are not supported.</p>
+<p>
+
+</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>In case if <span class="emphasis"><em>method</em></span> is <code class="computeroutput">scan_matching</code> the effect of this function is highly dependent on the <span class="emphasis"><em>pattern</em></span> definition. It is recommended to choose patterns with easily distinguished placeholders (i.e. having delimiters between them). Otherwise either some files can be mistakenly found or not found, which in turn may lead to an incorrect file deletion. </p></td></tr>
+</table></div>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">counter</code></span></p></td>
+<td><p>If not <code class="computeroutput">NULL</code> and <span class="emphasis"><em>method</em></span> is <code class="computeroutput">scan_matching</code>, the method suggests initial value of a file counter that may be used in the file name pattern. The parameter is not used otherwise. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">method</code></span></p></td>
+<td><p>The method of scanning. If <code class="computeroutput">no_scan</code> is specified, the call has no effect. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">pattern</code></span></p></td>
+<td><p>The file name pattern if <span class="emphasis"><em>method</em></span> is <code class="computeroutput">scan_matching</code>. Otherwise the parameter is not used. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The number of found files.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../syslog/make_facility.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../../sinks.html#header.boost.log.sinks.text_file_backend_hpp"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rotation_at_time_point.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

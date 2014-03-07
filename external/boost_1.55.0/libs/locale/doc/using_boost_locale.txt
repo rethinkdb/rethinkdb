@@ -1,0 +1,37 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page using_boost_locale Using Boost.Locale
+
+In this section we'll talk mostly about the ICU backend, as it is both the default and the most powerful
+localization backend provided by this library. In later sections we will note the features that are
+supported by other localization backends.
+
+
+- \subpage locale_gen
+- \subpage collation
+- \subpage conversions
+- \subpage formatting_and_parsing
+- \subpage messages_formatting
+- \subpage charset_handling
+- \subpage boundary_analysys
+- \subpage localized_text_formatting
+- \subpage dates_times_timezones
+- \subpage locale_information
+- \subpage working_with_multiple_locales 
+
+*/
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+
+*/
+
+

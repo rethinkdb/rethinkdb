@@ -1,0 +1,332 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Signals2 API Changes</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../signals2.html" title="Chapter&#160;28.&#160;Boost.Signals2">
+<link rel="prev" href="rationale.html" title="Design Rationale">
+<link rel="next" href="tests.html" title="Testsuite">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="rationale.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tests.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="signals2.api_changes"></a>Signals2 API Changes</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="api_changes.html#signals2.porting">Porting from Boost.Signals to Boost.Signals2</a></span></dt>
+<dt><span class="section"><a href="api_changes.html#signals2.api_history">Signals2 API Development</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="signals2.porting"></a>Porting from Boost.Signals to Boost.Signals2</h3></div></div></div>
+<p>The changes made to the Boost.Signals2 API compared to the original Boost.Signals
+      library are summarized below.  We also provide some notes on
+      dealing with each change while porting existing Boost.Signals code to Boost.Signals2.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<p>The namespace <code class="computeroutput">boost::signals</code> has been replaced by <code class="computeroutput">boost::signals2</code>
+          to avoid conflict with the original Boost.Signals implementation, as well as the Qt "signals" macro.
+          All the Boost.Signals2 classes are inside the <code class="computeroutput">boost::signals2</code> namespace,
+          unlike the original Boost.Signals which has some classes in the <code class="computeroutput">boost</code>
+          namespace in addition to its own <code class="computeroutput">boost::signals</code> namespace.
+        </p>
+<p>
+          The Boost.Signals2 header files are contained in the
+          <code class="computeroutput">boost/signals2/</code> subdirectory instead of the <code class="computeroutput">boost/signals</code>
+          subdirectory used by the original Boost.Signals.  Furthermore, all the headers except
+          for the convenience header <code class="computeroutput">boost/signals2.hpp</code> are inside the
+          <code class="computeroutput">boost/signals2/</code> subdirectory, unlike the original Boost.Signals which
+          keeps a few headers in the parent <code class="computeroutput">boost/</code> directory
+          in addition to its own <code class="computeroutput">boost/signals/</code> subdirectory.
+        </p>
+<p>
+          For example, the <code class="computeroutput">signal</code> class is now
+          in the <code class="computeroutput">boost::signals2</code> namespace instead of the
+          <code class="computeroutput">boost</code> namespace,
+          and it's header file is now at <code class="computeroutput">boost/signals2/signal.hpp</code> instead of
+          <code class="computeroutput">boost/signal.hpp</code>.
+        </p>
+<p>
+          While porting, only trivial changes to <code class="computeroutput">#include</code> directives
+          and namespace qualifications should be required to deal with these changes.
+          Furthermore, the new namespace and header locations for Boost.Signals2
+          allow it to coexist in the same program with the original Boost.Signals library,
+          and porting can be performed piecemeal.
+        </p>
+</li>
+<li class="listitem">
+<p>
+          Automatic connection management is now achieved through the use of
+          <code class="computeroutput">shared_ptr</code>/<code class="computeroutput">weak_ptr</code>
+          and <code class="computeroutput"><a class="link" href="../boost/signals2/slot.html#idp58467624-bb">signals2::slot::track</a></code>(), as described in the
+          <a class="link" href="tutorial.html#signals2.tutorial.connection-management" title="Automatic Connection Management (Intermediate)">tutorial</a>.
+          However, the old (thread-unsafe) Boost.Signals scheme of automatic connection management
+          is still supported via the <code class="computeroutput"><a class="link" href="../boost/signals2/trackable.html" title="Class trackable">boost::signals2::trackable</a></code> class.
+        </p>
+<p>
+          If you do not intend to make your program multi-threaded, the easiest porting path is to simply replace
+          your uses of <code class="computeroutput"><a class="link" href="../boost/signals/trackable.html" title="Class trackable">boost::signals::trackable</a></code> as a base class with
+          <code class="computeroutput"><a class="link" href="../boost/signals2/trackable.html" title="Class trackable">boost::signals2::trackable</a></code>.  Boost.Signals2 uses the same
+          <code class="computeroutput"><a class="link" href="../boost/visit_each.html" title="Function template visit_each">boost::visit_each</a></code> mechanism to discover
+          <code class="computeroutput">trackable</code> objects
+          as used by the original Boost.Signals library.
+        </p>
+</li>
+<li class="listitem">
+<p>Support for postconstructors (and predestructors) on objects managed by <code class="computeroutput">shared_ptr</code>
+          has been added with
+          the <code class="computeroutput"><a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct">deconstruct</a></code> factory function.
+          This was motivated by the importance of
+          <code class="computeroutput">shared_ptr</code> for the new connection tracking scheme, and the
+          inability to obtain a <code class="computeroutput">shared_ptr</code> to an object in its constructor.
+          The use of <code class="computeroutput"><a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct">deconstruct</a></code> is described in the
+          <a class="link" href="tutorial.html#signals2.tutorial.deconstruct" title="Postconstructors and Predestructors (Advanced)">tutorial</a>.
+        </p>
+<p>
+          The use of <code class="computeroutput"><a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct">deconstruct</a></code> is in no way required,
+          it is only provided in the hope
+          it may be useful.  You may wish to use it if you are porting code where
+          a class creates connections to its own member functions in its constructor,
+          and you also
+          wish to use the new automatic connection management scheme.  You could then
+          move the connection creation from the constructor to to the an
+          <code class="computeroutput">adl_postconstruct</code> function, where
+          a reference to the owning <code class="computeroutput">shared_ptr</code> is available for
+          passing to <code class="computeroutput"><a class="link" href="../boost/signals2/slot.html#idp58467624-bb">signals2::slot::track</a></code>.
+          The <code class="computeroutput"><a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct">deconstruct</a></code> function would be used create objects
+          of the class and run their associated <code class="computeroutput">adl_postconstruct</code> function.
+          You can enforce use of <code class="computeroutput"><a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct">deconstruct</a></code> by
+          making the class' constructors private and declaring
+          <code class="computeroutput"><a class="link" href="../boost/signals2/deconstruct_access.html" title="Class deconstruct_access">deconstruct_access</a></code> a friend.
+        </p>
+</li>
+<li class="listitem">
+<p>
+          The <code class="computeroutput"><a class="link" href="../boost/signals2/slot.html" title="Class template slot">signals2::slot</a></code> class takes a new <code class="computeroutput">Signature</code> template parameter,
+          is useable as a function object, and has some additional features to support the
+          new Boost.Signals2 automatic connection management scheme.
+        </p>
+<p>
+          The changes to the slot class should generally not cause any porting difficulties,
+          especially if you are using the <code class="computeroutput"><a class="link" href="../boost/signals2/trackable.html" title="Class trackable">boost::signals2::trackable</a></code>
+          compatibility class mentioned above.  If you are converting your code over to
+          use the new automatic connection management scheme, you will need to
+          employ some of the new slot features, as described in the
+          <a class="link" href="tutorial.html#signals2.tutorial.connection-management" title="Automatic Connection Management (Intermediate)">tutorial</a>.
+        </p>
+</li>
+<li class="listitem">
+<p>
+          The <code class="computeroutput"><a class="link" href="../boost/signals2/optional_last_value.html" title="Class template optional_last_value">optional_last_value</a></code> class has replaced <code class="computeroutput">last_value</code>
+          as the default combiner for signals.
+        </p>
+<p>
+          The <code class="computeroutput"><a class="link" href="../boost/signals2/last_value.html" title="Class template last_value">signals2::last_value</a></code> combiner is still provided, although its
+          behavior is slightly changed in that it
+          throws an exception when no slots are connected on signal invocation, instead of
+          always requiring at least one slot to be connected (except for its void specialization
+          which never required any slots to be connected).
+        </p>
+<p>
+          If you are porting signals which have a <code class="computeroutput">void</code> return type in their signature
+          and they use the default combiner, there are no changes required.  If you are
+          using the default combiner with a non-void return type and care about the
+          value returned from signal invocation, you will have to take into account that
+          <code class="computeroutput"><a class="link" href="../boost/signals2/optional_last_value.html" title="Class template optional_last_value">optional_last_value</a></code> returns a
+          <code class="computeroutput">boost::optional</code> instead of a plain value.  One simple
+          way to deal with this is to use <code class="computeroutput">boost::optional::operator*()</code> to access the
+          value wrapped inside the returned <code class="computeroutput">boost::optional</code>.
+        </p>
+<p>
+          Alternatively, you could do a port by specifying the <code class="computeroutput">Combiner</code> template parameter
+          for your <code class="computeroutput">signals2::signal</code> to be <code class="computeroutput"><a class="link" href="../boost/signals2/last_value.html" title="Class template last_value">signals2::last_value</a></code>.
+        </p>
+</li>
+<li class="listitem">
+<p>
+          The <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html" title="Class template signal">signals2::signal</a></code> class has an additional typedef
+          <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#boost.signals2.signal.extended_slot_type">signals2::signal::extended_slot_type</a></code>
+          and new <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp93055064-bb">signals2::signal::connect_extended</a></code>()
+          methods.  These allow connection of slots
+          which take an additional <code class="computeroutput"><a class="link" href="../boost/signals2/connection.html" title="Class connection">signals2::connection</a></code> argument, giving them thread-safe
+          access to their signal/slot connection when they are invoked.  There is also a
+          new <code class="computeroutput">ExtendedSlotFunction</code> template parameter for specifying the underlying slot function
+          type for the new extended slots.
+        </p>
+<p>
+          These additions should have no effect on porting unless you are also converting
+          your program from a single threaded program into a multi-threaded one.  In that case,
+          if you have slots which need access to their <code class="computeroutput"><a class="link" href="../boost/signals2/connection.html" title="Class connection">signals2::connection</a></code>
+          to the signal invoking them (for example to block or disconnect their connection)
+          you may wish to connect the slots with
+          <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp93055064-bb">signals2::signal::connect_extended</a></code>().
+          This also requires adding an additional connection argument to the slot.
+          More information on how and why to use extended slots is available
+          in the <a class="link" href="tutorial.html#signals2.tutorial.extended-slot-type" title="Giving a Slot Access to its Connection (Advanced)">tutorial</a>.
+        </p>
+</li>
+<li class="listitem">
+<p>
+          The <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html" title="Class template signal">signals2::signal</a></code> class has a new <code class="computeroutput">Mutex</code> template parameter for specifying
+          the mutex type used internally by the signal and its connections.
+        </p>
+<p>
+          The <code class="computeroutput">Mutex</code> template parameter can be left to its default value of
+          <code class="computeroutput"><a class="link" href="../boost/signals2/mutex.html" title="Class mutex">boost::signals2::mutex</a></code> and should have little effect on porting.
+          However, if you have a single-threaded program and are
+          concerned about incuring a performance overhead from unneeded mutex locking, you may
+          wish to use a different mutex for your signals such as <code class="computeroutput"><a class="link" href="../boost/signals2/dummy_mutex.html" title="Class dummy_mutex">dummy_mutex</a></code>.
+          See the <a class="link" href="tutorial.html#signals2.tutorial.signal-mutex-template-parameter" title="Changing the Mutex Type of a Signal (Advanced).">tutorial</a>
+          for more information on the <code class="computeroutput">Mutex</code> parameter.
+        </p>
+</li>
+<li class="listitem">
+<p>The <code class="computeroutput">signal::combiner()</code> method, which formerly returned a reference to the
+          signal's combiner has been replaced by <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp57657192-bb">signals2::signal::combiner</a></code>
+          (which now returns the combiner by value) and <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp57658312-bb">signals2::signal::set_combiner</a></code>.
+        </p>
+<p>
+          During porting it should be straightforward to replace uses of the old reference-returning
+          <code class="computeroutput">signal::combiner()</code>
+          function with the new "by-value" <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp57657192-bb">signals2::signal::combiner</a></code>
+          and <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp57658312-bb">signals2::signal::set_combiner</a></code> functions.
+          However, you will need to inspect each call of the <code class="computeroutput">combiner</code> method in your code
+          to determine if your program logic has been broken by the changed
+          return type.
+        </p>
+</li>
+<li class="listitem">
+<p>Connections no longer have <code class="computeroutput">block()</code> and <code class="computeroutput">unblock()</code> methods.  Blocking
+          of connections is now accomplished by creating <code class="computeroutput"><a class="link" href="../boost/signals2/shared_connection_block.html" title="Class shared_connection_block">shared_connection_block</a></code> objects,
+          which provide RAII-style blocking.
+        </p>
+<p>
+          If you have existing Boost.Signals code that blocks, for example:
+        </p>
+<pre class="programlisting">
+  namespace bs = boost::signals;
+
+  bs::connection my_connection;
+  //...
+
+  my_connection.block();
+  do_something();
+  my_connection.unblock();
+  </pre>
+<p>
+              then the version ported to Boost.Signals2 would look like:
+            </p>
+<pre class="programlisting">
+  namespace bs2 = boost::signals2;
+
+  bs2::connection my_connection;
+  //...
+
+  {
+    bs2::shared_connection_block blocker(my_connection);
+    do_something();
+  } // blocker goes out of scope here and releases its block on my_connection
+  </pre>
+</li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="signals2.api_history"></a>Signals2 API Development</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="api_changes.html#signals2.api_history.1-45">Version 1.4x</a></span></dt>
+<dt><span class="section"><a href="api_changes.html#signals2.api_history.1-40">Version 1.40</a></span></dt>
+<dt><span class="section"><a href="api_changes.html#signals2.api_history.1-39">Version 1.39</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="signals2.api_history.1-45"></a>Version 1.4x</h4></div></div></div>
+<p>
+        Version 1.45 added <code class="computeroutput"><a class="link" href="../boost/signals2/slot.html#idp93288856-bb">slot::track_foreign</a></code>().  This method allows tracking
+        of objects owned by <code class="computeroutput">shared_ptr</code> classes other than <code class="computeroutput">boost::shared_ptr</code>,
+        for example <code class="computeroutput">std::shared_ptr</code>.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="signals2.api_history.1-40"></a>Version 1.40</h4></div></div></div>
+<p>
+        Version 1.40 adds a few new features to the <code class="computeroutput"><a class="link" href="../boost/signals2/shared_connection_block.html" title="Class shared_connection_block">shared_connection_block</a></code>
+        class to make it more flexible:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>
+              <code class="computeroutput"><a class="link" href="../boost/signals2/shared_connection_block.html" title="Class shared_connection_block">shared_connection_block</a></code> is now default constructible.
+            </p></li>
+<li class="listitem"><p>
+              A <code class="computeroutput"><a class="link" href="../boost/signals2/shared_connection_block.html" title="Class shared_connection_block">shared_connection_block</a></code> may now be constructed without
+              immediately blocking its connection.
+            </p></li>
+<li class="listitem"><p>
+              The <code class="computeroutput"><a class="link" href="../boost/signals2/shared_connection_block.html#idp60260392-bb">shared_connection_block::connection</a></code>() query has been
+              added, to provide access to the <code class="computeroutput">shared_connection_block</code>s associated
+              connection.
+            </p></li>
+</ul></div>
+<p>
+      </p>
+<p>Version 1.40 also introduces a variadic templates implementation of
+        Signals2, which is used when Boost detects compiler support for variadic templates
+        (variadic templates are a new feature of C++0x).
+        This change is mostly transparent to the user, however it does introduce a few
+        visible tweaks to the interface as described in the following.
+      </p>
+<p>
+        The following library features are
+        deprecated, and are only available if your compiler is NOT using
+        variadic templates (i.e. BOOST_NO_CXX11_VARIADIC_TEMPLATES is defined
+        by Boost.Config).
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>
+              The "portable syntax" signal and slot classes, i.e. signals2::signal0, signal1, etc.
+            </p></li>
+<li class="listitem"><p>
+              The arg1_type, arg2_type, etc. member typedefs in the <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html" title="Class template signal">signals2::signal</a></code> and
+              <code class="computeroutput"><a class="link" href="../boost/signals2/slot.html" title="Class template slot">signals2::slot</a></code> classes.  They are replaced by the
+              template member classes <code class="computeroutput"><a class="link" href="../boost/signals2/signal/arg.html" title="Class template arg">signals2::signal::arg</a></code> and
+              <code class="computeroutput"><a class="link" href="../boost/signals2/slot/arg.html" title="Class template arg">signals2::slot::arg</a></code>.
+            </p></li>
+</ul></div>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="signals2.api_history.1-39"></a>Version 1.39</h4></div></div></div>
+<p>Version 1.39 is the first release of Boost to include the Signals2 library.</p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: June 12, 2007 at 14:01:23 -0400</small></p></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<br>Copyright &#169; 2007-2009 Frank Mori Hess<p>Distributed under the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="rationale.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tests.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Unary function based test case</title>
+<link rel="stylesheet" href="../../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../../index.html" title="Boost Test Library">
+<link rel="up" href="../test-organization.html" title="Test organization or the house that Jack built">
+<link rel="prev" href="auto-nullary-test-case.html" title="Nullary function based test case with automated registration">
+<link rel="next" href="test-case-template.html" title="Test case template">
+<script language="JavaScript1.2" src="../../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../../utf.html">The Unit Test Framework</a> &gt; <a href="../../user-guide.html">User's guide</a><a href="../../testing-tools.html">
+      &gt;
+      </a><a href="../test-organization.html">Test organization</a><a href="../fixture.html">
+      &gt;
+      </a><b>Unary function based test case</b>
+</td>
+<td><div class="spirit-nav">
+<a href="auto-nullary-test-case.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="test-case-template.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.user-guide.test-organization.unary-test-case"></a>Unary function based test case</h5></div></div></div>
+<p class="first-line-indented">
+   Some tests are required to be repeated for a series of different input parameters. One way to achieve this is
+   manually register a test case for each parameter as in example above. You can also invoke a test function with
+   all parameters manually from within your test case, like this:
+  </p>
+<pre class="programlisting">void single_test( int i )
+{
+    BOOST_CHECK( /* test assertion */ );
+}
+
+void combined_test()
+{
+    int params[] = { 1, 2, 3, 4, 5 };
+
+    std::for_each( params, params+5, &amp;single_test );
+}
+</pre>
+<p class="first-line-indented">
+   The <acronym class="acronym">UTF</acronym> presents a better solution for this problem: the unary function based test case, also referred as
+   parameterized test case. The unary test function can be a free function, unary functor (for example created
+   with boost::bind) or unary method of a class with bound test class instance). The test function is converted
+   into test case using the macro BOOST_PARAM_TEST_CASE. The macro expects a collection of parameters (passed as
+   two input iterators) and an unary test function:
+  </p>
+<pre class="inline-synopsis">
+<a name="BOOST_PARAM_TEST_CASE"></a>BOOST_PARAM_TEST_CASE(<span class="emphasis"><em>test_function</em></span>, <span class="emphasis"><em>params_begin</em></span>, <span class="emphasis"><em>params_end</em></span>)</pre>
+<p class="first-line-indented">
+   BOOST_PARAM_TEST_CASE creates an instance of the test case generator. When passed to the method test_suite::add,
+   the generator produces a separate sub test case for each parameter in the parameters collection and registers
+   it immediately in a test suite. Each test case is based on a test function with the parameter bound by value,
+   even if the test function expects a parameter by reference. The fact that parameter value is stored along with
+   bound test function releases you from necessity to manage parameters lifetime. For example, they can be defined
+   in the test module initialization function scope.
+  </p>
+<p class="first-line-indented">
+   All sub test case names are deduced from the macro argument test_function. If you prefer to assign different
+   names, you have to use the underlying make_test_case interface instead. Both test cases creation and
+   registration are performed in the test module initialization function.
+  </p>
+<p class="first-line-indented">
+   The parameterized test case facility is preferable to the approach in the example above, since execution of
+   each sub test case is guarded and counted independently. It produces a better test log/results report (in
+   example above in case of failure you can't say which parameter is at fault) and allows you to test against
+   all parameters even if one of them causes termination a particular sub test case.
+  </p>
+<p class="first-line-indented">
+   In comparison with a manual test case registration for each parameter approach the parameterized test case
+   facility is more concise and easily extendible.
+  </p>
+<p class="first-line-indented">
+   In following simple example the same test, implemented in <code class="computeroutput">free_test_function</code>, is
+   performed for 5 different parameters. The parameters are defined in the test module initialization function
+   scope. The master test suite contains 5 independent test cases.
+  </p>
+<div class="example">
+<a name="utf.user-guide.test-organization.unary-test-case.example07"></a><p class="title"><b>Example 11. Unary free function based test case</b></p>
+<div class="example-contents">
+<pre class="programlisting">#include &lt;boost/test/included/unit_test.hpp&gt;
+#include &lt;boost/test/parameterized_test.hpp&gt;
+using namespace boost::unit_test;
+
+//____________________________________________________________________________//
+
+void free_test_function( int i )
+{
+    BOOST_CHECK( i &lt; 4 /* test assertion */ );
+}
+
+//____________________________________________________________________________//
+
+test_suite*
+init_unit_test_suite( int argc, char* argv[] )
+{
+    int params[] = { 1, 2, 3, 4, 5 };
+
+    framework::master_test_suite().
+        add( BOOST_PARAM_TEST_CASE( &amp;free_test_function, params, params+5 ) );
+
+    return 0;
+}
+
+//____________________________________________________________________________//
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example07.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id650067" onclick="toggle_element( 'example07-output', 'id650067', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example07-output">&gt; example
+Running 5 test cases...
+test.cpp(9): error in "free_test_function": check i &lt; 4 failed
+test.cpp(9): error in "free_test_function": check i &lt; 4 failed
+
+*** 2 failures detected in test suite "Master Test Suite"
+</pre>
+</div>
+</div>
+<br class="example-break"><p class="first-line-indented">
+   Next example is similar, but instead of a free function it uses a method of a class. Even though parameters are
+   passed into test method by reference you can still define them in the test module initialization  function scope.
+   This example employs the alternative test module initialization function specification.
+  </p>
+<div class="example">
+<a name="utf.user-guide.test-organization.unary-test-case.example08"></a><p class="title"><b>Example 12. Unary class method based test case</b></p>
+<div class="example-contents">
+<pre class="programlisting">#define BOOST_TEST_ALTERNATIVE_INIT_API
+#include &lt;boost/test/included/unit_test.hpp&gt;
+#include &lt;boost/test/floating_point_comparison.hpp&gt;
+#include &lt;boost/test/parameterized_test.hpp&gt;
+#include &lt;boost/bind.hpp&gt;
+using namespace boost::unit_test;
+using namespace boost;
+
+//____________________________________________________________________________//
+
+class test_class {
+public:
+    void test_method( double const&amp; d )
+    {
+        BOOST_CHECK_CLOSE( d * 100, (double)(int)(d*100), 0.01 );
+    }
+} tester;
+
+//____________________________________________________________________________//
+
+bool init_unit_test()
+{
+    double params[] = { 1., 1.1, 1.01, 1.001, 1.0001 };
+
+    callback1&lt;double&gt; tm = bind( &amp;test_class::test_method, &amp;tester, _1);
+
+    framework::master_test_suite().
+        add( BOOST_PARAM_TEST_CASE( tm, params, params+5 ) );
+
+    return true;
+}
+
+//____________________________________________________________________________//
+
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../../src/examples/example08.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id650162" onclick="toggle_element( 'example08-output', 'id650162', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example08-output">&gt; example
+Running 5 test cases...
+test.cpp(14): error in "tm": difference between d * 100{100.1} and (double)(int)(d*100){100} exceeds 0.01%
+test.cpp(14): error in "tm": difference between d * 100{100.01} and (double)(int)(d*100){100} exceeds 0.01%
+
+*** 2 failures detected in test suite "Master Test Suite"
+</pre>
+</div>
+</div>
+<br class="example-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="auto-nullary-test-case.html"><img src="../../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../test-organization.html"><img src="../../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="test-case-template.html"><img src="../../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

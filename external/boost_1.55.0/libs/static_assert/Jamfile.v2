@@ -1,0 +1,31 @@
+# copyright John Maddock 2003
+# Use, modification and distribution are subject to the 
+# Boost Software License, Version 1.0. (See accompanying file 
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# bring in the rules for testing
+import testing ;
+
+test-suite static_assert :
+	[ run static_assert_test.cpp ]
+#	[ run static_assert_example_1.cpp ]
+	[ run static_assert_example_2.cpp ]
+	[ run static_assert_example_3.cpp ]
+	[ compile-fail static_assert_test_fail_1.cpp ]
+	[ compile-fail static_assert_test_fail_2.cpp ]
+	[ compile-fail static_assert_test_fail_3.cpp ]
+	[ compile-fail static_assert_test_fail_4.cpp ]
+	[ compile-fail static_assert_test_fail_5.cpp ]
+	[ compile-fail static_assert_test_fail_6.cpp ]
+	[ compile-fail static_assert_test_fail_7.cpp ]
+	[ compile-fail static_assert_test_fail_8.cpp ]
+	[ compile-fail static_assert_test_fail_9.cpp ]
+	[ compile-fail static_assert_test_fail_10.cpp ]
+;
+
+
+
+
+
+
+

@@ -1,0 +1,48 @@
+#==============================================================================
+#   Copyright (c) 2001-2007 Joel de Guzman
+#
+#   Distributed under the Boost Software License, Version 1.0. (See accompanying
+#   file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+project spirit-qi-example
+    : requirements
+        <toolset>gcc:<c++-template-depth>300
+        <toolset>darwin:<cxxflags>-ftemplate-depth-300
+    :
+    :
+    ;
+
+exe actions_ : actions.cpp ;
+exe sum : sum.cpp ;
+exe complex_number : complex_number.cpp ;
+exe employee : employee.cpp  ;
+exe roman : roman.cpp ;
+exe reference : reference.cpp ;
+exe mini_xml1 : mini_xml1.cpp ;
+exe mini_xml2 : mini_xml2.cpp ;
+exe mini_xml3 : mini_xml3.cpp ;
+exe num_list1 : num_list1.cpp ;
+exe num_list2 : num_list2.cpp ;
+exe num_list3 : num_list3.cpp ;
+exe num_list4 : num_list4.cpp ;
+exe reorder_struct : reorder_struct.cpp ;
+exe parse_date : parse_date.cpp ;
+
+exe key_value_sequence : key_value_sequence.cpp ;
+exe key_value_sequence_ordered : key_value_sequence_ordered.cpp ;
+exe key_value_sequence_empty_value : key_value_sequence_empty_value.cpp ;
+
+exe iter_pos_parser : iter_pos_parser.cpp ;
+exe boost_array : boost_array.cpp ;
+exe display_attribute_type : display_attribute_type.cpp ;
+exe adapt_template_struct : adapt_template_struct.cpp ;
+
+exe unescaped_string : unescaped_string.cpp ;
+
+exe calc_utree_naive : calc_utree_naive.cpp ;
+exe calc_utree_ast : calc_utree_ast.cpp ;
+exe calc_utree : calc_utree.cpp ;
+
+exe nabialek : nabialek.cpp ;
+exe typeof : typeof.cpp ;
+

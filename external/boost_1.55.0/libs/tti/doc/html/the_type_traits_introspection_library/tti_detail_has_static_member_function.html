@@ -1,0 +1,190 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Introspecting static member function</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="prev" href="tti_detail_has_static_member_data.html" title="Introspecting static member data">
+<link rel="next" href="tti_detail_has_data.html" title="Introspecting inner data">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_detail_has_static_member_data.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_detail_has_data.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="the_type_traits_introspection_library.tti_detail_has_static_member_function"></a><a class="link" href="tti_detail_has_static_member_function.html" title="Introspecting static member function">Introspecting
+    static member function</a>
+</h2></div></div></div>
+<p>
+      The TTI macro <code class="computeroutput"><a class="link" href="../BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION.html" title="Macro BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION">BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION</a></code>
+      introspects a static member function of a class.
+    </p>
+<p>
+      BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION takes a single parameter which is the
+      name of an inner static member function whose existence the programmer wants
+      to check. The macro generates a metafunction called 'has_static_member_function_'name_of_inner_static_member_function'.
+    </p>
+<p>
+      The metafunction can be invoked in two different ways.
+    </p>
+<p>
+      The first way is by passing it the enclosing type to introspect and a signature
+      for the static member function as separate template arguments. The signature
+      for the static member function consists of a return type, optional parameter
+      types in the form of a boost::mpl forward sequence of types, and an optional
+      Boost FunctionTypes tag type. A typical boost::mpl forward sequence of types
+      is a boost::mpl::vector&lt;&gt;.
+    </p>
+<p>
+      The second way is by passing it the enclosing type to introspect and a signature
+      for the static member function as a function. The function has the form of:
+    </p>
+<pre class="programlisting"><span class="identifier">Return_Type</span> <span class="special">(</span> <span class="identifier">Parameter_Types</span> <span class="special">)</span>
+</pre>
+<p>
+      where the Parameter_Types may be empty, or a comma-separated list of parameter
+      types if there are more than one parameter type.
+    </p>
+<p>
+      The metafunction returns a single type called 'type', which is a boost::mpl::bool_.
+      As a convenience the metafunction returns the value of this type directly as
+      a compile time bool constant called 'value'. This is true or false depending
+      on whether the inner static member function, of the specified signature, exists
+      or not.
+    </p>
+<h4>
+<a name="the_type_traits_introspection_library.tti_detail_has_static_member_function.h0"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_static_member_function.generating_the_metafunction"></a></span><a class="link" href="tti_detail_has_static_member_function.html#the_type_traits_introspection_library.tti_detail_has_static_member_function.generating_the_metafunction">Generating
+      the metafunction</a>
+    </h4>
+<p>
+      You generate the metafunction by invoking the macro with the name of an inner
+      static member function:
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION</span><span class="special">(</span><span class="identifier">AStaticMemberFunction</span><span class="special">)</span>
+</pre>
+<p>
+      generates a metafunction called 'has_static_member_function_AStaticMemberFunction'
+      in the current scope.
+    </p>
+<h4>
+<a name="the_type_traits_introspection_library.tti_detail_has_static_member_function.h1"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_static_member_function.invoking_the_metafunction"></a></span><a class="link" href="tti_detail_has_static_member_function.html#the_type_traits_introspection_library.tti_detail_has_static_member_function.invoking_the_metafunction">Invoking
+      the metafunction</a>
+    </h4>
+<p>
+      You invoke the metafunction by instantiating the template with an enclosing
+      type to introspect and the signature of the static member function as a series
+      of template parameters. Alternatively you can invoke the metafunction by passing
+      it an enclosing type and the signature of the static member function as a single
+      function type.
+    </p>
+<p>
+      A return value called 'value' is a compile time bool constant.
+    </p>
+<pre class="programlisting"><span class="identifier">has_static_member_function_AStaticMemberFunction</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">Enclosing_Type</span><span class="special">,</span>
+  <span class="identifier">StaticMemberFunction_ReturnType</span><span class="special">,</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">StaticMemberFunction_ParameterTypes</span><span class="special">&gt;,</span> <span class="comment">// optional, can be any mpl forward sequence</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">function_types</span><span class="special">::</span><span class="identifier">SomeTagType</span>                       <span class="comment">// optional, can be any FunctionTypes tag type</span>
+  <span class="special">&gt;::</span><span class="identifier">value</span>
+
+<span class="identifier">OR</span>
+
+<span class="identifier">has_static_member_function_AStaticMemberFunction</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">Enclosing_Type</span><span class="special">,</span>
+  <span class="identifier">Return_Type</span> <span class="special">(</span> <span class="identifier">Parameter_Types</span> <span class="special">)</span>
+  <span class="special">&gt;::</span><span class="identifier">value</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_detail_has_static_member_function.h2"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_static_member_function.examples"></a></span><a class="link" href="tti_detail_has_static_member_function.html#the_type_traits_introspection_library.tti_detail_has_static_member_function.examples">Examples</a>
+    </h4>
+<p>
+      First we generate metafunctions for various inner static member function names:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tti</span><span class="special">/</span><span class="identifier">has_static_member_function</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION</span><span class="special">(</span><span class="identifier">function1</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION</span><span class="special">(</span><span class="identifier">function2</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION</span><span class="special">(</span><span class="identifier">function3</span><span class="special">)</span>
+</pre>
+<p>
+      Next let us create some user-defined types we want to introspect.
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">AClass</span> <span class="special">{</span> <span class="special">};</span>
+<span class="keyword">struct</span> <span class="identifier">Top</span>
+  <span class="special">{</span>
+  <span class="keyword">static</span> <span class="keyword">int</span> <span class="identifier">function1</span><span class="special">();</span>
+  <span class="keyword">static</span> <span class="identifier">AClass</span> <span class="identifier">function2</span><span class="special">(</span><span class="keyword">double</span><span class="special">,</span><span class="keyword">short</span> <span class="special">*);</span>
+  <span class="special">};</span>
+<span class="keyword">struct</span> <span class="identifier">Top2</span>
+  <span class="special">{</span>
+  <span class="keyword">static</span> <span class="keyword">long</span> <span class="identifier">function2</span><span class="special">(</span><span class="identifier">Top</span> <span class="special">&amp;,</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">bool</span><span class="special">,</span><span class="keyword">short</span><span class="special">,</span><span class="keyword">float</span><span class="special">);</span>
+  <span class="keyword">static</span> <span class="identifier">Top</span> <span class="special">*</span> <span class="identifier">function3</span><span class="special">(</span><span class="keyword">long</span><span class="special">,</span><span class="keyword">int</span><span class="special">,</span><span class="identifier">AClass</span> <span class="special">&amp;);</span>
+  <span class="special">};</span>
+</pre>
+<p>
+      Finally we invoke our metafunction and return our value. This all happens at
+      compile time, and can be used by programmers doing compile time template metaprogramming.
+    </p>
+<p>
+      We will show both forms in the following examples. Both forms are completely
+      interchangeable as to the result desired.
+    </p>
+<pre class="programlisting"><span class="identifier">has_static_member_function_function1</span><span class="special">&lt;</span><span class="identifier">Top</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true</span>
+<span class="identifier">has_static_member_function_function1</span><span class="special">&lt;</span><span class="identifier">Top</span><span class="special">,</span><span class="keyword">int</span> <span class="special">()&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true</span>
+<span class="identifier">has_static_member_function_function1</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// false</span>
+
+<span class="identifier">has_static_member_function_function2</span><span class="special">&lt;</span><span class="identifier">Top</span><span class="special">,</span><span class="identifier">AClass</span><span class="special">,</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span><span class="keyword">short</span> <span class="special">*&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true</span>
+<span class="identifier">has_static_member_function_function2</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">,</span><span class="identifier">AClass</span><span class="special">,</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span><span class="keyword">short</span> <span class="special">*&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// false</span>
+<span class="identifier">has_static_member_function_function2</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">,</span><span class="keyword">long</span> <span class="special">(</span><span class="identifier">Top</span> <span class="special">&amp;,</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">bool</span><span class="special">,</span><span class="keyword">short</span><span class="special">,</span><span class="keyword">float</span><span class="special">)&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true</span>
+
+<span class="identifier">has_static_member_function_function3</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">,</span><span class="keyword">int</span> <span class="special">()&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// false</span>
+<span class="identifier">has_static_member_function_function3</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">,</span><span class="identifier">Top</span> <span class="special">*</span> <span class="special">(</span><span class="keyword">long</span><span class="special">,</span><span class="keyword">int</span><span class="special">,</span><span class="identifier">AClass</span> <span class="special">&amp;)&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_detail_has_static_member_function.h3"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_static_member_function.metafunction_re_use"></a></span><a class="link" href="tti_detail_has_static_member_function.html#the_type_traits_introspection_library.tti_detail_has_static_member_function.metafunction_re_use">Metafunction
+      re-use</a>
+    </h4>
+<p>
+      The macro encodes only the name of the static member function for which we
+      are searching and the fact that we are introspecting for a static member function
+      within an enclosing type.
+    </p>
+<p>
+      Because of this, once we create our metafunction for introspecting a static
+      member function by name, we can reuse the metafunction for introspecting any
+      enclosing type, having any static member function, for that name.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Tropic Software
+      East Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_detail_has_static_member_data.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_detail_has_data.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

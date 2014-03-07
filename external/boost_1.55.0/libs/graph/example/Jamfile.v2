@@ -1,0 +1,57 @@
+# Copyright (C) 2007-2009 Andrew Sutton
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+
+# exe labeled_graph : labeled_graph.cpp ;
+# exe quick_tour_new : quick_tour_new.cpp ;
+exe degree_centrality : degree_centrality.cpp ;
+exe influence_prestige : influence_prestige.cpp ;
+exe closeness_centrality : closeness_centrality.cpp ;
+exe scaled_closeness_centrality : scaled_closeness_centrality.cpp ;
+exe mean_geodesic : mean_geodesic.cpp ;
+exe inclusive_mean_geodesic : inclusive_mean_geodesic.cpp ;
+exe eccentricity : eccentricity.cpp ;
+exe clustering_coefficient : clustering_coefficient.cpp ;
+exe tiernan_print_cycles : tiernan_print_cycles.cpp ;
+exe tiernan_girth_circumference : tiernan_girth_circumference.cpp ;
+exe bron_kerbosch_print_cliques : bron_kerbosch_print_cliques.cpp ;
+exe bron_kerbosch_clique_number : bron_kerbosch_clique_number.cpp ;
+exe mcgregor_subgraphs_example : mcgregor_subgraphs_example.cpp ;
+exe grid_graph_example : grid_graph_example.cpp ;
+exe grid_graph_properties : grid_graph_properties.cpp ;
+exe bipartite_example : bipartite_example.cpp ;
+exe fr_layout : fr_layout.cpp ;
+exe canonical_ordering : canonical_ordering.cpp ;
+exe components_on_edgelist : components_on_edgelist.cpp ;
+exe boykov_kolmogorov-eg : boykov_kolmogorov-eg.cpp ;
+exe ospf-example : ospf-example.cpp ../build//boost_graph ;
+# exe cc-internet : cc-internet.cpp ../build//boost_graph ;
+exe implicit_graph : implicit_graph.cpp ;
+exe astar_maze : astar_maze.cpp ;
+exe astar-cities : astar-cities.cpp ;
+exe stoer_wagner : stoer_wagner.cpp ;
+exe bfs-example : bfs-example.cpp ;
+exe bfs-example2 : bfs-example2.cpp ;
+exe dfs-example : dfs-example.cpp ;
+exe dijkstra-example : dijkstra-example.cpp ;
+exe dijkstra-example-listS : dijkstra-example-listS.cpp ;
+exe dijkstra-no-color-map-example : dijkstra-no-color-map-example.cpp ;
+exe adjacency_list_io : adjacency_list_io.cpp ;
+exe undirected_adjacency_list : undirected_adjacency_list.cpp ;
+exe directed_graph : directed_graph.cpp ;
+exe undirected_graph : undirected_graph.cpp ;
+exe two_graphs_common_spanning_trees : two_graphs_common_spanning_trees.cpp ;
+exe strong_components : strong_components.cpp ../build//boost_graph ;
+exe strong-components : strong-components.cpp ;
+exe subgraph : subgraph.cpp ;
+exe subgraph_properties : subgraph_properties.cpp ;
+exe vf2_sub_graph_iso_example : vf2_sub_graph_iso_example.cpp ;
+exe vf2_sub_graph_iso_multi_example : vf2_sub_graph_iso_multi_example.cpp ;
+exe sloan_ordering : sloan_ordering.cpp ;
+exe hawick_circuits : hawick_circuits.cpp ;
+exe edge_coloring : edge_coloring.cpp ;
+exe successive_shortest_path_nonnegative_weights_example : successive_shortest_path_nonnegative_weights_example.cpp ;
+exe cycle_canceling_example : cycle_canceling_example.cpp ;
+

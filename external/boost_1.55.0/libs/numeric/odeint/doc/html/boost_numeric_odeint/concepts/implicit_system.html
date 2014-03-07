@@ -1,0 +1,185 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Implicit System</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../concepts.html" title="Concepts">
+<link rel="prev" href="simple_symplectic_system.html" title="Simple Symplectic System">
+<link rel="next" href="stepper.html" title="Stepper">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="simple_symplectic_system.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="stepper.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.concepts.implicit_system"></a><a class="link" href="implicit_system.html" title="Implicit System">Implicit
+      System</a>
+</h3></div></div></div>
+<h5>
+<a name="boost_numeric_odeint.concepts.implicit_system.h0"></a>
+        <span class="phrase"><a name="boost_numeric_odeint.concepts.implicit_system.description"></a></span><a class="link" href="implicit_system.html#boost_numeric_odeint.concepts.implicit_system.description">Description</a>
+      </h5>
+<p>
+        This concept describes how to define a ODE that can be solved by an implicit
+        routine. Implicit routines need not only the function <span class="emphasis"><em>f(x,t)</em></span>
+        but also the Jacobian <span class="emphasis"><em>df/dx = A(x,t)</em></span>. <span class="emphasis"><em>A</em></span>
+        is a matrix and implicit routines need to solve the linear problem <span class="emphasis"><em>Ax
+        = b</em></span>. In odeint this is implemented with use of <a href="http://www.boost.org/doc/libs/release/libs/numeric/ublas/index.html" target="_top">Boost.uBLAS</a>,
+        therefore, the <span class="emphasis"><em>state_type</em></span> implicit routines is <span class="emphasis"><em>ublas::vector</em></span>
+        and the matrix is defined as <span class="emphasis"><em>ublas::matrix</em></span>.
+      </p>
+<h5>
+<a name="boost_numeric_odeint.concepts.implicit_system.h1"></a>
+        <span class="phrase"><a name="boost_numeric_odeint.concepts.implicit_system.notation"></a></span><a class="link" href="implicit_system.html#boost_numeric_odeint.concepts.implicit_system.notation">Notation</a>
+      </h5>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">System</span></code></span></dt>
+<dd><p>
+              A type that is a model of <code class="computeroutput"><span class="identifier">Implicit</span>
+              <span class="identifier">System</span></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Time</span></code></span></dt>
+<dd><p>
+              A type representing the time of the ODE
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">sys</span></code></span></dt>
+<dd><p>
+              An object of type <code class="computeroutput"><span class="identifier">System</span></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">x</span></code></span></dt>
+<dd><p>
+              Object of type ublas::vector
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">dxdt</span></code></span></dt>
+<dd><p>
+              Object of type ublas::vector
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">jacobi</span></code></span></dt>
+<dd><p>
+              Object of type ublas::matrix
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">t</span></code></span></dt>
+<dd><p>
+              Object of type <code class="computeroutput"><span class="identifier">Time</span></code>
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="boost_numeric_odeint.concepts.implicit_system.h2"></a>
+        <span class="phrase"><a name="boost_numeric_odeint.concepts.implicit_system.valid_expressions"></a></span><a class="link" href="implicit_system.html#boost_numeric_odeint.concepts.implicit_system.valid_expressions">Valid
+        Expressions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Type
+                </p>
+              </th>
+<th>
+                <p>
+                  Semantics
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  Calculate <span class="emphasis"><em>dx/dt := f(x,t)</em></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sys</span><span class="special">.</span><span class="identifier">first</span><span class="special">(</span>
+                  <span class="identifier">x</span> <span class="special">,</span>
+                  <span class="identifier">dxdt</span> <span class="special">,</span>
+                  <span class="identifier">t</span> <span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">void</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Calculates <code class="computeroutput"><span class="identifier">f</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span><span class="identifier">t</span><span class="special">)</span></code>,
+                  the result is stored into dxdt
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Calculate <span class="emphasis"><em>A := df/dx (x,t)</em></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sys</span><span class="special">.</span><span class="identifier">second</span><span class="special">(</span>
+                  <span class="identifier">x</span> <span class="special">,</span>
+                  <span class="identifier">jacobi</span> <span class="special">,</span>
+                  <span class="identifier">t</span> <span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">void</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Calculates the Jacobian of <span class="emphasis"><em>f</em></span> at <span class="emphasis"><em>x</em></span>,<span class="emphasis"><em>t</em></span>,
+                  the result is stored into <code class="computeroutput"><span class="identifier">jacobi</span></code>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="simple_symplectic_system.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="stepper.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Other APIs</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Context">
+<link rel="up" href="../rationale.html" title="Rationale">
+<link rel="prev" href="../rationale.html" title="Rationale">
+<link rel="next" href="x86_and_floating_point_env.html" title="x86 and floating-point env">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../rationale.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="x86_and_floating_point_env.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="context.rationale.other_apis_"></a><a class="link" href="other_apis_.html" title="Other APIs">Other APIs </a>
+</h3></div></div></div>
+<h5>
+<a name="context.rationale.other_apis_.h0"></a>
+        <span class="phrase"><a name="context.rationale.other_apis_.setjmp___longjmp__"></a></span><a class="link" href="other_apis_.html#context.rationale.other_apis_.setjmp___longjmp__">setjmp()/longjmp()</a>
+      </h5>
+<p>
+        C99 defines <code class="computeroutput"><span class="identifier">setjmp</span><span class="special">()</span></code>/<code class="computeroutput"><span class="identifier">longjmp</span><span class="special">()</span></code>
+        to provide non-local jumps but it does not require that <span class="emphasis"><em>longjmp()</em></span>
+        preserves the current stack frame. Therefore, jumping into a function which
+        was exited via a call to <span class="emphasis"><em>longjmp()</em></span> is undefined <a href="#ftn.context.rationale.other_apis_.f0" class="footnote" name="context.rationale.other_apis_.f0"><sup class="footnote">[2]</sup></a>.
+      </p>
+<h5>
+<a name="context.rationale.other_apis_.h1"></a>
+        <span class="phrase"><a name="context.rationale.other_apis_.ucontext_t"></a></span><a class="link" href="other_apis_.html#context.rationale.other_apis_.ucontext_t">ucontext_t</a>
+      </h5>
+<p>
+        Since POSIX.1-2003 <code class="computeroutput"><span class="identifier">ucontext_t</span></code>
+        is deprecated and was removed in POSIX.1-2008! The function signature of
+        <code class="computeroutput"><span class="identifier">makecontext</span><span class="special">()</span></code>
+        is:
+      </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">makecontext</span><span class="special">(</span><span class="identifier">ucontext_t</span> <span class="special">*</span><span class="identifier">ucp</span><span class="special">,</span> <span class="keyword">void</span> <span class="special">(*</span><span class="identifier">func</span><span class="special">)(),</span> <span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="special">...);</span>
+</pre>
+<p>
+        The third argument of <code class="computeroutput"><span class="identifier">makecontext</span><span class="special">()</span></code> specifies the number of integer arguments
+        that follow which will require function pointer cast if <code class="computeroutput"><span class="identifier">func</span></code>
+        will accept those arguments which is undefined in C99 <a href="#ftn.context.rationale.other_apis_.f1" class="footnote" name="context.rationale.other_apis_.f1"><sup class="footnote">[3]</sup></a>.
+      </p>
+<p>
+        The arguments in the var-arg list are required to be integers, passing pointers
+        in var-arg list is not guaranteed to work, especially it will fail for architectures
+        where pointers are larger than integers.
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">ucontext_t</span></code> preserves signal
+        mask between context switches which involves system calls consuming a lot
+        of CPU cycles (ucontext_t is slower by perfomance_link[factor 13x] relative
+        to <code class="computeroutput"><span class="identifier">fcontext_t</span></code>).
+      </p>
+<h5>
+<a name="context.rationale.other_apis_.h2"></a>
+        <span class="phrase"><a name="context.rationale.other_apis_.windows_fibers"></a></span><a class="link" href="other_apis_.html#context.rationale.other_apis_.windows_fibers">Windows
+        fibers</a>
+      </h5>
+<p>
+        A drawback of Windows Fiber API is that <code class="computeroutput"><span class="identifier">CreateFiber</span><span class="special">()</span></code> does not accept a pointer to user allocated
+        stack space preventing the reuse of stacks for other context instances. Because
+        the Windows Fiber API requires to call <code class="computeroutput"><span class="identifier">ConvertThreadToFiber</span><span class="special">()</span></code> if <code class="computeroutput"><span class="identifier">SwitchFiber</span><span class="special">()</span></code> is called for a thread which has not been
+        converted to a fiber. For the same reason <code class="computeroutput"><span class="identifier">ConvertFiberToThread</span><span class="special">()</span></code> must be called after return from <code class="computeroutput"><span class="identifier">SwitchFiber</span><span class="special">()</span></code>
+        if the thread was forced to be converted to a fiber before (which is inefficient).
+      </p>
+<pre class="programlisting"><span class="keyword">if</span> <span class="special">(</span> <span class="special">!</span> <span class="identifier">is_a_fiber</span><span class="special">()</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">ConvertThreadToFiber</span><span class="special">(</span> <span class="number">0</span><span class="special">);</span>
+    <span class="identifier">SwitchToFiber</span><span class="special">(</span> <span class="identifier">ctx</span><span class="special">);</span>
+    <span class="identifier">ConvertFiberToThread</span><span class="special">();</span>
+<span class="special">}</span>
+</pre>
+<p>
+        If the condition <code class="computeroutput"><span class="identifier">_WIN32_WINNT</span> <span class="special">&gt;=</span> <span class="identifier">_WIN32_WINNT_VISTA</span></code>
+        is met function <code class="computeroutput"><span class="identifier">IsThreadAFiber</span><span class="special">()</span></code> is provided in order to detect if the current
+        thread was already converted. Unfortunately Windows XP + SP 2/3 defines
+        <code class="computeroutput"><span class="identifier">_WIN32_WINNT</span> <span class="special">&gt;=</span>
+        <span class="identifier">_WIN32_WINNT_VISTA</span></code> without providing
+        <code class="computeroutput"><span class="identifier">IsThreadAFiber</span><span class="special">()</span></code>.
+      </p>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.context.rationale.other_apis_.f0" class="footnote"><p><a href="#context.rationale.other_apis_.f0" class="para"><sup class="para">[2] </sup></a>
+          ISO/IEC 9899:1999, 2005, 7.13.2.1:2
+        </p></div>
+<div id="ftn.context.rationale.other_apis_.f1" class="footnote"><p><a href="#context.rationale.other_apis_.f1" class="para"><sup class="para">[3] </sup></a>
+          ISO/IEC 9899:1999, 2005, J.2
+        </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009 Oliver Kowalke<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../rationale.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../rationale.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="x86_and_floating_point_env.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

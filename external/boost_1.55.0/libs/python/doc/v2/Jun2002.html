@@ -1,0 +1,229 @@
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" href="../boost.css">
+<title>Boost.Python - June 2002 Progress Report</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+  <tr> 
+    <td valign="top" width="300"> 
+          <h3><a href="../../../../index.htm"><img height="86" width="277" alt=
+          "C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+      <h2 align="center">June 2002 Progress Report</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<h2>Contents</h2>
+<dl class="index">
+  <dt><a href="#intro">Introduction</a></dt>
+  <dt><a href="#handle"><code>handle&lt;T&gt;</code></a></dt>
+  <dt><a href="#object"><code>object</code></a></dt>
+  <dl class="index">
+    <dt><a href="#operators"><code>object</code> operators</a></dt>
+    <dt><a href="#conversions"><code>object</code> conversions</a></dt>
+  </dl>
+  <dt><a href="#list"><code>list</code></a></dt>
+  <dt><a href="#numerics"><code>Numerics</code></a></dt>
+  <dt><a href="#community">Community</a></dt>
+  <dt><a href="#next">What's Next</a></dt>
+</dl>
+
+<h2><a name="intro">Introduction</a></h2>
+
+July was mostly focused on allowing expressive manipulation of
+individual Python objects, or what Ralf Grosse-Kunstleve calls
+&quot;Writing Python in C++&quot;. The work began with this <a
+href="http://mail.python.org/pipermail/c++-sig/2002-June/001311.html">posting</a>,
+which outlines the issues and intention.
+
+<h2><a name="handle"><code>handle&lt;T&gt;</code></a></h2>
+
+The most basic element needed was a replacement for the
+<code>reference&lt;&gt;</code> class template and the
+<code>ref</code> typedef from Boost.Python v1, a simple smart
+pointer to a Python object. The old v1 typedef
+&quot;<code>ref</code>&quot; (for
+<code>reference&lt;PyObject&gt;</code>) had to be retired because I
+thought it would be too confusing given the importance of <code><a
+href="../../../bind/ref.html">boost::ref</a>()</code> to this
+library. I began a <a
+href="http://mail.python.org/pipermail/c++-sig/2002-June/001311.html">discussion</a>of
+possible names, and it was eventually <a
+href="http://mail.python.org/pipermail/c++-sig/2002-June/001337.html">decided</a>
+to rename <code>reference</code> to <code>handle</code> and supply a
+default argument so that <code>ref</code> could be spelled
+<code>handle&lt;&gt;</code> without an additional typedef. There
+were also some interface changes to make it safer and more-efficient
+to interface with the raw
+<code>PyObject*</code>s forced on us by Python's 'C' API. A
+discussion of those protocols can be found <a
+href="http://mail.python.org/pipermail/c++-sig/2002-June/001401.html">here</a>.
+
+<h2><a name="handle"><code>object</code></a></h2>
+
+It is intended that users will seldom need or want to work with
+<code>handle&lt;&gt;</code>; its major distinguishing features are
+that it gives direct access to the underlying object representation
+through <code>operator*</code> and <code>operator-&gt;</code>, and
+that can be <code>NULL</code>, both sources of danger. Instead the
+library provides a class called <code>object</code>, which
+encapsulates a valid Python object and provides a similar interface to
+Python's.
+
+<h3><a name="operators"><code>object</code> operators</a></h3>
+
+The first challenge was to provide support for object manipulations
+using a Python-like syntax, mostly in the form of operator overloads:
+
+<table border="1">
+<tr><th>Python <th>C++
+
+<tr>
+  <td><code>y = x.foo</code>  <td><code>y = x.attr(&quot;foo&quot;); 
+<tr>
+  <td><code>x.foo = 1</code>  <td><code>x.attr(&quot;foo&quot;) = 1; 
+
+<tr>
+  <td><code>y = x[z]</code>  <td><code>y = x[z];
+<tr>
+  <td><code>x[z] = 1</code>  <td><code>x[z] = 1; 
+
+<tr>
+  <td><code>y = x[3:-1]</code>  <td><code>y = x.slice(3,-1); 
+
+<tr>
+  <td><code>y = x[3:]</code>  <td><code>y = x.slice(3,_); 
+
+<tr>
+  <td><code>y = x[:-2]</code>  <td><code>y = x.slice(_,-2); 
+
+<tr>
+  <td><code>z = x(1, y)</code>  <td><code>z = x(1, y);
+<tr>
+  <td><code>z = x.f(1, y)</code>  <td><code>z = x.attr(&quot;f&quot;)(1, y);
+
+<tr>
+  <td><code>not x</code>  <td><code>!x
+
+<tr>
+  <td><code>x and y</code>  <td><code>x and y
+</table>
+
+I'm still a unsatisfied with the interface for attribute access. There
+original proposal  used a syntax like this one:
+<pre>
+y = x._(&quot;foo&quot;); 
+x._(&quot;foo&quot;) = 1; 
+</pre>
+
+which was only marginally better than what we've got. Niki Spahiev
+then <a
+href="http://mail.python.org/pipermail/c++-sig/2002-June/001447.html">pointed
+out</a> a potential conflict with the macro which GNU Gettext <a
+href="http://www.gnu.org/manual/gettext/html_mono/gettext.html#SEC6">suggests</a>
+people define. This unfortunate state of affairs forced us into using
+<code>attr</code> instead. I'd still like to find a better interface,
+but the lack of overloadable C++ operators which aren't already used
+in Python is an obstacle. The comma operator is still a possibility,
+but it has the wrong precedence:
+<pre>
+y = x,&quot;foo&quot;    // error
+x,&quot;foo&quot; = 1;   // error
+
+y = (x,&quot;foo&quot;); // ok
+(x,&quot;foo&quot;) = 1; // ok
+</pre>
+
+Well, I guess we could consider adding that to the interface without
+removing <code>attr()</code>, to see how it plays out...
+
+<h3><a name="operators"><code>object</code> conversions</a></h3>
+
+The <code>object</code> class also provided an opportunity to replace
+Boost.Python v1's <code>to_python()</code> as a user-level
+interface. Instead, <code>object</code> has a templated constructor
+which can be used to convert any C++ object to Python using the same
+underlying mechanisms used for the arguments to <code><a
+href="call.html">call</a>&lt;&gt;</code>.
+
+<p>Incidentally, the implementation of operator and conversion support
+for object uncovered an inordinate number of compiler bugs in our
+targeted platforms. It was a lot more &quot;interesting&quot; than it
+should have been.
+
+<h2><a name="list"><code>list</code></a></h2>
+
+With <code>object</code> implemented, it was time to begin replacing
+the ad-hoc implementations of <code>list</code>, <code>string</code>,
+and <code>dictionary</code> supplied by Boost.Python v1 with something
+more robust. I started with <code>list</code> as an example. Because
+<code>object</code> already provides all of the requisite operators,
+publicly deriving <code>list</code> from object seemed like a good
+choice. The remaining issues were what do do about the one-argument
+list constructor (which in Python attempts to convert its argument to
+a list), and how to deal converting with <code>list</code> arguments
+to wrapped functions. Some of the issues are laid out in <a
+href="http://mail.python.org/pipermail/c++-sig/2002-June/001551.html">this
+thread</a>. Ultimately, it was decided that <code>list(x)</code>
+should do the same thing in C++ as in Python (conversion), while
+<code>list</code> arguments should only match Python
+<code>list</code>s (and <code>list</code> subclasses). The
+implementation worked well, and provided a <a
+href="http://mail.python.org/pipermail/c++-sig/2002-June/001586.html">roadmap</a>
+for the protocol to be used for implementation of the other built-in
+types.
+
+<h2><a name="numerics">Numerics</a></h2>
+
+Support for C++ <code>long long</code> and <code>unsigned long
+long</code>
+(and <code>__int64</code> on MSVC) to/from python conversions was
+added this month. We also improved handling of numeric overflows when
+converting, e.g., a Python int to a type with a more limited range of
+representation.
+
+<h2><a name="community">Community</a></h2>
+
+<ul>
+<li>Ralf W. Grosse-Kunstleve and Nick Sauter have implemented
+<a href="http://cci.lbl.gov/boost/">multiplatform nightly
+build-and-test</a> runs for Boost.Python V2 at LBL.
+
+<li>Dave Hawkes has made significant progress on generating the
+Python <a
+href="http://mail.python.org/pipermail/c++-sig/2002-June/001503.html">built-in
+function and API wrappers</a>
+
+<li>Achim Domma has agreed to take up the job of implementing the
+<code>str</code>, <code>dict</code>, and <code>tuple</code> classes.
+</ul>
+
+Deep thanks to all the Boost.Python contributors! This project
+wouldn't be possible without your participation.
+
+  <h2><a name="next">What's Next</a></h2>
+
+As I write this we are already well into the month of July, so I
+suggest you consult the <a
+href="http://mail.python.org/pipermail/c++-sig/2002-July/">Mailing
+List Archive</a> if you want to know what's been happening. Otherwise
+you'll just have to wait till next month (hopefully the beginning).
+
+<p>Revised 
+  <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+</p>
+<p><i>&copy; Copyright <a href="http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 
+  2002. </i></p>
+</body>
+</html>

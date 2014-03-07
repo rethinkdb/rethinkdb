@@ -1,0 +1,114 @@
+<HTML>
+<!--
+     Copyright 2006 The Trustees of Indiana University
+    
+     Use, modification and distribution is subject to the Boost Software
+     License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+  -->
+<Head>
+<Title>Reference Property Map</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+	ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H2><A NAME="sec:identity-property-map"></A>
+</h2>
+<PRE>
+template &lt;typename KeyType, typename ValueType&gt;
+class ref_property_map
+</PRE>
+
+This property map wraps a reference to some particular object, and
+returns that reference whenever a key object is input.
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/property_map/property_map.hpp"><TT>boost/property_map/property_map.hpp</TT></a>
+
+<h3>Model of</h3>
+
+<a href="./LvaluePropertyMap.html">Lvalue Property Map</a>
+
+<h3>Associated Types</h3>
+
+<table border>
+<tr>
+<th>Type</th><th>Description</th>
+</tr>
+
+<tr>
+<td><tt>
+boost::property_traits&lt;ref_property_map&gt;::value_type
+</tt></td>
+<td>
+This type is the <tt>ValueType</tt> with which the template instantiated.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+boost::property_traits&lt;ref_property_map&gt;::key_type
+</tt></td>
+<td>
+This type is the <tt>KeyType</tt> with which the template instantiated.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+boost::property_traits&lt;ref_property_map&gt;::category
+</tt></td>
+<td>
+This type is <tt>boost::lvalue_property_map_tag</tt>.
+</td>
+</tr>
+
+</table>
+
+<h3>Member Functions</h3>
+
+<table border>
+<tr>
+<th>Member</th><th>Description</th>
+</tr>
+
+
+<tr>
+<td><tt>
+ref_property_map(ValueType&amp; v)
+</tt></td>
+<td>
+The constructor for ref_property_map is provided the reference that
+the property map will return when queried.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+ref_property_map(const ref_property_map&amp; x)
+</tt></td>
+<td>
+Copy constructor.
+</td>
+</tr>
+
+<tr>
+<td><tt>
+ValueType&amp; operator[](KeyType const&amp;) const
+</tt></td>
+<td>
+Returns the contained reference.
+</td>
+</tr>
+
+</table>
+
+
+</BODY>
+</HTML> 

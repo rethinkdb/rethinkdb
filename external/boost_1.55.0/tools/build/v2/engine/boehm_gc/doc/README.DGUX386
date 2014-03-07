@@ -1,0 +1,215 @@
+    Garbage Collector (parallel iversion) for ix86 DG/UX Release R4.20MU07
+
+
+     *READ* the file README.QUICK.
+
+     You need the GCC-3.0.3 rev (DG/UX) compiler to build this tree.
+     This compiler has the new "dgux386" threads package implemented.
+     It also supports the switch "-pthread" needed to link correctly
+     the DG/UX's -lrte -lthread with -lgcc and the system's -lc. 
+     Finally we support parralleli-mark for the SMP DG/UX machines.
+     To build the garbage collector do:
+      
+      ./configure --enable-parallel-mark
+      make
+      make gctest
+
+     Before you run "gctest" you need to set your LD_LIBRARY_PATH
+     correctly so that "gctest" can find the shared library libgc.
+     Alternatively you can do a configuration
+
+      ./configure --enable-parallel-mark --disable-shared
+  
+     to build only the static version of libgc.
+  
+     To enable debugging messages please do:
+     1) Add the "--enable-full-debug" flag during configuration. 
+     2) Edit the file linux-threads.c and uncommnect the line:
+
+     /* #define DEBUG_THREADS 1 */ to ---> 
+
+     #define DEBUG_THREADS 1
+
+     Then give "make" as usual.
+    
+     In a machine with 4 CPUs (my own machine) the option parallel
+     mark (aka --enable-parallel-mark) makes a BIG difference.
+
+     Takis Psarogiannakopoulos
+     University of Cambridge
+     Centre for Mathematical Sciences
+     Department of Pure Mathematics
+     Wilberforce Road
+     Cambridge CB3 0WB ,UK , <takis@XFree86.Org>
+     January 2002
+
+
+Note (HB):
+     The integration of this patch is currently not complete.
+     The following patches against 6.1alpha3 where hard to move
+     to alpha4, and are not integrated.  There may also be minor
+     problems with stylistic corrections made by me.
+
+
+--- ltconfig.ORIG	Mon Jan 28 20:22:18 2002
++++ ltconfig	Mon Jan 28 20:44:00 2002
+@@ -689,6 +689,11 @@
+        pic_flag=-Kconform_pic
+     fi
+     ;;
++  dgux*)
++    pic_flag='-fPIC'
++    link_static='-Bstatic'
++    wl='-Wl,'
++    ;;
+   *)
+     pic_flag='-fPIC'
+     ;;
+@@ -718,6 +723,12 @@
+     # We can build DLLs from non-PIC.
+     ;;
+ 
++  dgux*)
++    pic_flag='-KPIC'
++    link_static='-Bstatic'
++    wl='-Wl,'
++    ;;
++
+   osf3* | osf4* | osf5*)
+     # All OSF/1 code is PIC.
+     wl='-Wl,'
+@@ -1154,6 +1165,22 @@
+     fi
+     ;;
+ 
++  dgux*)
++    ld_shlibs=yes
++    # For both C/C++ ommit the deplibs. This is because we relying on the fact
++    # that compilation of execitables will put them in correct order
++    # in any case and sometimes are wrong when listed as deplibs (or missing some deplibs)
++    # However when GNU ld and --whole-archive needs to be used we have the problem
++    # that if the -fPIC *_s.a archive is linked through deplibs list we ommiting crucial
++    # .lo/.o files from the created shared lib. This I think is not the case here.
++    archive_cmds='$CC -shared -h $soname -o $lib $libobjs $linkopts'
++    thread_safe_flag_spec='-pthread'
++    wlarc=
++    hardcode_libdir_flag_spec='-L$libdir'
++    hardcode_shlibpath_var=no
++    ac_cv_archive_cmds_needs_lc=no
++    ;;
++
+   cygwin* | mingw*)
+     # hardcode_libdir_flag_spec is actually meaningless, as there is
+     # no search path for DLLs.
+@@ -1497,7 +1524,7 @@
+     ;;
+ 
+   dgux*)
+-    archive_cmds='$LD -G -h $soname -o $lib $libobjs $deplibs $linkopts'
++    archive_cmds='$CC -shared -h $soname -o $lib $libobjs $linkopts'
+     hardcode_libdir_flag_spec='-L$libdir'
+     hardcode_shlibpath_var=no
+     ;;
+@@ -2092,12 +2119,17 @@
+   ;;
+ 
+ dgux*)
+-  version_type=linux
++  version_type=dgux
+   need_lib_prefix=no
+   need_version=no
+-  library_names_spec='${libname}${release}.so$versuffix ${libname}${release}.so$major $libname.so'
+-  soname_spec='${libname}${release}.so$major'
++  library_names_spec='$libname.so$versuffix'
++  soname_spec='$libname.so$versuffix'
+   shlibpath_var=LD_LIBRARY_PATH
++  thread_safe_flag_spec='-pthread'
++  wlarc=
++  hardcode_libdir_flag_spec='-L$libdir'
++  hardcode_shlibpath_var=no
++  ac_cv_archive_cmds_needs_lc=no
+   ;;
+ 
+ sysv4*MP*)
+
+
+--- ltmain.sh.ORIG	Mon Jan 28 20:31:18 2002
++++ ltmain.sh	Tue Jan 29 00:11:29 2002
+@@ -1072,11 +1072,38 @@
+ 	esac
+ 	;;
+ 
++      -thread*)
++	# DG/UX GCC 2.95.x, 3.x.x rev (DG/UX) links -lthread
++	# with the switch -threads
++	if test "$arg" = "-threads"; then
++	  case "$host" in
++	  i[3456]86-*-dgux*)
++	    deplibs="$deplibs $arg"
++	    continue
++	    ;;
++	  esac
++	fi
++	;;
++
++      -pthread*)
++	# DG/UX GCC 2.95.x, 3.x.x rev (DG/UX) links -lthread
++	# with the switch -pthread
++	if test "$arg" = "-pthread"; then
++	  case "$host" in
++	  i[3456]86-*-dgux*)
++	    deplibs="$deplibs $arg"
++	    continue
++	    ;;
++	  esac
++	fi
++	;;
++
+       -l*)
+ 	if test "$arg" = "-lc"; then
+ 	  case "$host" in
+-	  *-*-cygwin* | *-*-mingw* | *-*-os2* | *-*-beos*)
++	  *-*-cygwin* | *-*-mingw* | *-*-os2* | *-*-beos* | i[3456]86-*-dgux*)
+ 	    # These systems don't actually have c library (as such)
++	    # It is wrong in DG/UX to add -lc when creating shared/dynamic objs/libs
+ 	    continue
+ 	    ;;
+ 	  esac
+@@ -1248,6 +1275,12 @@
+ 	  temp_deplibs=
+ 	  for deplib in $dependency_libs; do
+ 	    case "$deplib" in
++	    -thread*)
++		 temp_deplibs="$temp_deplibs $deplib"
++		 ;;
++	    -pthread)
++		 temp_deplibs="$temp_deplibs $deplib"
++		 ;;
+ 	    -R*) temp_xrpath=`$echo "X$deplib" | $Xsed -e 's/^-R//'`
+ 		 case " $rpath $xrpath " in
+ 		 *" $temp_xrpath "*) ;;
+@@ -1709,6 +1742,13 @@
+ 	  done
+ 	  ;;
+ 
++	dgux)
++	  # Leave mostly blank for DG/UX
++	  major=
++	  versuffix=".$current.$revision";
++	  verstring=
++	  ;;
++
+ 	linux)
+ 	  major=.`expr $current - $age`
+ 	  versuffix="$major.$age.$revision"
+@@ -1792,8 +1832,9 @@
+ 
+ 	dependency_libs="$deplibs"
+ 	case "$host" in
+-	*-*-cygwin* | *-*-mingw* | *-*-os2* | *-*-beos*)
++	*-*-cygwin* | *-*-mingw* | *-*-os2* | *-*-beos* | i[3456]86-*-dgux*)
+ 	  # these systems don't actually have a c library (as such)!
++	  # It is wrong in DG/UX to add -lc when creating shared/dynamic objs/libs
+ 	  ;;
+ 	*)
+ 	  # Add libc to deplibs on all other systems.

@@ -1,0 +1,339 @@
+[/
+Copyright (c) 2006 Xiaogang Zhang
+Copyright (c) 2006 John Maddock
+Use, modification and distribution are subject to the
+Boost Software License, Version 1.0. (See accompanying file
+LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section:ellint_1 Elliptic Integrals of the First Kind - Legendre Form]
+
+[heading Synopsis]
+
+``
+  #include <boost/math/special_functions/ellint_1.hpp>
+``
+
+  namespace boost { namespace math {
+
+  template <class T1, class T2>
+  ``__sf_result`` ellint_1(T1 k, T2 phi);
+
+  template <class T1, class T2, class ``__Policy``>
+  ``__sf_result`` ellint_1(T1 k, T2 phi, const ``__Policy``&);
+
+  template <class T>
+  ``__sf_result`` ellint_1(T k);
+
+  template <class T, class ``__Policy``>
+  ``__sf_result`` ellint_1(T k, const ``__Policy``&);
+
+  }} // namespaces
+  
+[heading Description]
+
+These two functions evaluate the incomplete elliptic integral of the first kind
+['F([phi], k)] and its complete counterpart ['K(k) = F([pi]/2, k)].
+
+[graph ellint_1]
+
+The return type of these functions is computed using the __arg_pomotion_rules
+when T1 and T2 are different types: when they are the same type then the result
+is the same type as the arguments.
+
+  template <class T1, class T2>
+  ``__sf_result`` ellint_1(T1 k, T2 phi);
+  
+  template <class T1, class T2, class ``__Policy``>
+  ``__sf_result`` ellint_1(T1 k, T2 phi, const ``__Policy``&);
+  
+Returns the incomplete elliptic integral of the first kind ['F([phi], k)]:
+
+[equation ellint2]
+
+Requires -1 <= k <= 1, otherwise returns the result of __domain_error.
+
+[optional_policy]
+
+  template <class T>
+  ``__sf_result`` ellint_1(T k);
+  
+  template <class T>
+  ``__sf_result`` ellint_1(T k, const ``__Policy``&);
+  
+Returns the complete elliptic integral of the first kind ['K(k)]:
+
+[equation ellint6]
+
+Requires -1 <= k <= 1, otherwise returns the result of __domain_error.
+
+[optional_policy]
+
+[heading Accuracy]
+
+These functions are computed using only basic arithmetic operations, so
+there isn't much variation in accuracy over differing platforms.
+Note that only results for the widest floating point type on the 
+system are given as narrower types have __zero_error.  All values
+are relative errors in units of epsilon.
+
+[table Errors Rates in the Elliptic Integrals of the First Kind
+[[Significand Size] [Platform and Compiler] [F([phi], k)] [K(k)] ]
+[[53] [Win32 / Visual C++ 8.0] [Peak=3 Mean=0.8] [Peak=1.8 Mean=0.7] ]
+[[64] [Red Hat Linux / G++ 3.4] [Peak=2.6 Mean=1.7] [Peak=2.2 Mean=1.8]  ]
+[[113] [HP-UX / HP aCC 6] [Peak=4.6 Mean=1.5] [Peak=3.7 Mean=1.5] ]
+]
+
+
+[heading Testing]
+
+The tests use a mixture of spot test values calculated using the online
+calculator at [@http://functions.wolfram.com/ functions.wolfram.com],
+and random test data generated using
+NTL::RR at 1000-bit precision and this implementation.
+
+[heading Implementation]
+
+These functions are implemented in terms of Carlson's integrals
+using the relations:
+
+[equation ellint19]
+
+and
+
+[equation ellint20]
+
+
+[endsect]
+
+[section:ellint_2 Elliptic Integrals of the Second Kind - Legendre Form]
+
+[heading Synopsis]
+
+``
+  #include <boost/math/special_functions/ellint_2.hpp>
+``
+
+  namespace boost { namespace math {
+
+  template <class T1, class T2>
+  ``__sf_result`` ellint_2(T1 k, T2 phi);
+
+  template <class T1, class T2, class ``__Policy``>
+  ``__sf_result`` ellint_2(T1 k, T2 phi, const ``__Policy``&);
+
+  template <class T>
+  ``__sf_result`` ellint_2(T k);
+
+  template <class T, class ``__Policy``>
+  ``__sf_result`` ellint_2(T k, const ``__Policy``&);
+
+  }} // namespaces
+  
+[heading Description]
+
+These two functions evaluate the incomplete elliptic integral of the second kind
+['E([phi], k)] and its complete counterpart ['E(k) = E([pi]/2, k)].
+
+[graph ellint_2]
+
+The return type of these functions is computed using the __arg_pomotion_rules
+when T1 and T2 are different types: when they are the same type then the result
+is the same type as the arguments.
+
+  template <class T1, class T2>
+  ``__sf_result`` ellint_2(T1 k, T2 phi);
+  
+  template <class T1, class T2, class ``__Policy``>
+  ``__sf_result`` ellint_2(T1 k, T2 phi, const ``__Policy``&);
+  
+Returns the incomplete elliptic integral of the second kind ['E([phi], k)]:
+
+[equation ellint3]
+
+Requires -1 <= k <= 1, otherwise returns the result of __domain_error.
+
+[optional_policy]
+
+  template <class T>
+  ``__sf_result`` ellint_2(T k);
+  
+  template <class T>
+  ``__sf_result`` ellint_2(T k, const ``__Policy``&);
+  
+Returns the complete elliptic integral of the second kind ['E(k)]:
+
+[equation ellint7]
+
+Requires -1 <= k <= 1, otherwise returns the result of __domain_error.
+
+[optional_policy]
+
+[heading Accuracy]
+
+These functions are computed using only basic arithmetic operations, so
+there isn't much variation in accuracy over differing platforms.
+Note that only results for the widest floating point type on the 
+system are given as narrower types have __zero_error.  All values
+are relative errors in units of epsilon.
+
+[table Errors Rates in the Elliptic Integrals of the Second Kind
+[[Significand Size] [Platform and Compiler] [F([phi], k)] [K(k)] ]
+[[53] [Win32 / Visual C++ 8.0] [Peak=4.6 Mean=1.2] [Peak=3.5 Mean=1.0] ]
+[[64] [Red Hat Linux / G++ 3.4] [Peak=4.3 Mean=1.1] [Peak=4.6 Mean=1.2]  ]
+[[113] [HP-UX / HP aCC 6] [Peak=5.8 Mean=2.2] [Peak=10.8 Mean=2.3] ]
+]
+
+
+[heading Testing]
+
+The tests use a mixture of spot test values calculated using the online
+calculator at [@http://functions.wolfram.com
+functions.wolfram.com], and random test data generated using
+NTL::RR at 1000-bit precision and this implementation.
+
+[heading Implementation]
+
+These functions are implemented in terms of Carlson's integrals
+using the relations:
+
+[equation ellint21]
+
+and
+
+[equation ellint22]
+
+
+[endsect]
+
+[section:ellint_3 Elliptic Integrals of the Third Kind - Legendre Form]
+
+[heading Synopsis]
+
+``
+  #include <boost/math/special_functions/ellint_3.hpp>
+``
+
+  namespace boost { namespace math {
+
+  template <class T1, class T2, class T3>
+  ``__sf_result`` ellint_3(T1 k, T2 n, T3 phi);
+
+  template <class T1, class T2, class T3, class ``__Policy``>
+  ``__sf_result`` ellint_3(T1 k, T2 n, T3 phi, const ``__Policy``&);
+
+  template <class T1, class T2>
+  ``__sf_result`` ellint_3(T1 k, T2 n);
+
+  template <class T1, class T2, class ``__Policy``>
+  ``__sf_result`` ellint_3(T1 k, T2 n, const ``__Policy``&);
+
+  }} // namespaces
+  
+[heading Description]
+
+These two functions evaluate the incomplete elliptic integral of the third kind
+['[Pi](n, [phi], k)] and its complete counterpart ['[Pi](n, k) = E(n, [pi]/2, k)].
+
+[graph ellint_3]
+
+The return type of these functions is computed using the __arg_pomotion_rules
+when the arguments are of different types: when they are the same type then the result
+is the same type as the arguments.
+
+  template <class T1, class T2, class T3>
+  ``__sf_result`` ellint_3(T1 k, T2 n, T3 phi);
+  
+  template <class T1, class T2, class T3, class ``__Policy``>
+  ``__sf_result`` ellint_3(T1 k, T2 n, T3 phi, const ``__Policy``&);
+  
+Returns the incomplete elliptic integral of the third kind ['[Pi](n, [phi], k)]:
+
+[equation ellint4]
+
+Requires ['-1 <= k <= 1] and ['n < 1/sin[super 2]([phi])], otherwise 
+returns the result of __domain_error (outside this range the result 
+would be complex).
+
+[optional_policy]
+
+  template <class T1, class T2>
+  ``__sf_result`` ellint_3(T1 k, T2 n);
+  
+  template <class T1, class T2, class ``__Policy``>
+  ``__sf_result`` ellint_3(T1 k, T2 n, const ``__Policy``&);
+  
+Returns the complete elliptic integral of the first kind ['[Pi](n, k)]:
+
+[equation ellint8]
+
+Requires ['-1 <= k <= 1] and ['n < 1], otherwise returns the 
+result of __domain_error (outside this range the result would be complex).
+
+[optional_policy]
+
+[heading Accuracy]
+
+These functions are computed using only basic arithmetic operations, so
+there isn't much variation in accuracy over differing platforms.
+Note that only results for the widest floating point type on the 
+system are given as narrower types have __zero_error.  All values
+are relative errors in units of epsilon.
+
+[table Errors Rates in the Elliptic Integrals of the Third Kind
+[[Significand Size] [Platform and Compiler] [[Pi](n, [phi], k)] [[Pi](n, k)] ]
+[[53] [Win32 / Visual C++ 8.0] [Peak=29 Mean=2.2] [Peak=3 Mean=0.8] ]
+[[64] [Red Hat Linux / G++ 3.4] [Peak=14 Mean=1.3] [Peak=2.3 Mean=0.8]  ]
+[[113] [HP-UX / HP aCC 6] [Peak=10 Mean=1.4] [Peak=4.2 Mean=1.1] ]
+]
+
+
+[heading Testing]
+
+The tests use a mixture of spot test values calculated using the online
+calculator at [@http://functions.wolfram.com
+functions.wolfram.com], and random test data generated using
+NTL::RR at 1000-bit precision and this implementation.
+
+[heading Implementation]
+
+The implementation for [Pi](n, [phi], k) first siphons off the special cases:
+
+['[Pi](0, [phi], k) = F([phi], k)]
+
+['[Pi](n, [pi]/2, k) = [Pi](n, k)]
+
+and
+
+[equation ellint23]
+
+Then if n < 0 the relations (A&S 17.7.15/16):
+
+[equation ellint24]
+
+are used to shift /n/ to the range \[0, 1\].
+
+Then the relations:
+
+['[Pi](n, -[phi], k) = -[Pi](n, [phi], k)]
+
+['[Pi](n, [phi]+m[pi], k) = [Pi](n, [phi], k) + 2m[Pi](n, k) ; n <= 1]
+
+['[Pi](n, [phi]+m[pi], k) = [Pi](n, [phi], k) ; n > 1] 
+[footnote I haven't been able to find a literature reference for this
+relation, but it appears to be the convention used by Mathematica.
+Intuitively the first ['2 * m * [Pi](n, k)] terms cancel out as the
+derivative alternates between +[infin] and -[infin].]
+
+are used to move [phi][space] to the range \[0, [pi]\/2\].
+
+The functions are then implemented in terms of Carlson's integrals
+using the relations:
+
+[equation ellint25]
+
+and
+
+[equation ellint26]
+
+[endsect]

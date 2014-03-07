@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/args.hpp">
+  <para>
+    Contains definitions of the <computeroutput>
+    <classname alt="boost::proto::term">proto::term&lt;&gt;</classname></computeroutput>,
+    <computeroutput><classname alt="boost::proto::listN">proto::list1&lt;&gt;</classname></computeroutput>,
+    <computeroutput><classname alt="boost::proto::listN">proto::list2&lt;&gt;</classname></computeroutput>, etc.
+    class templates.
+  </para>
+
+  <namespace name="boost">
+    <namespace name="proto">
+
+      <!-- proto::term<> -->
+      <struct name="term">
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+        <purpose>A type sequence, for use as the 2<superscript>nd</superscript> parameter to the
+        <computeroutput><classname alt="proto::expr">proto::expr&lt;&gt;</classname></computeroutput> and 
+        <computeroutput><classname alt="proto::basic_expr">proto::basic_expr&lt;&gt;</classname></computeroutput>
+        class templates.</purpose>
+        <description>
+          <para>
+            A type sequence with one element, for use as the 2<superscript>nd</superscript> parameter to the 
+            <computeroutput><classname alt="proto::expr">proto::expr&lt;&gt;</classname></computeroutput> and 
+            <computeroutput><classname alt="proto::basic_expr">proto::basic_expr&lt;&gt;</classname></computeroutput>
+            class templates. The sequence element represents the value of a terminal.
+          </para>
+        </description>
+        <data-member name="arity" specifiers="static">
+          <purpose><computeroutput>= 0;</computeroutput></purpose>
+          <type>const long</type>
+        </data-member>
+        <typedef name="child0">
+          <type>T</type>
+        </typedef>
+      </struct>
+
+      <!-- proto::list1<>, proto::list2<> ... -->
+      <struct name="listN">
+        <template>
+          <template-type-parameter name="Arg" pack="1"/>
+        </template>
+        <purpose><computeroutput>proto::list1&lt;&gt;</computeroutput>, <computeroutput>proto::list2&lt;&gt;</computeroutput>, etc.,
+          are type sequences for use as the 2<superscript>nd</superscript> parameter to the 
+          <computeroutput><classname>proto::expr&lt;&gt;</classname></computeroutput> or
+          <computeroutput><classname>proto::basic_expr&lt;&gt;</classname></computeroutput> class templates.</purpose>
+        <description>
+          <para>
+            Type sequences, for use as the 2<superscript>nd</superscript> parameter to the
+            <computeroutput><classname>proto::expr&lt;&gt;</classname></computeroutput> or
+            <computeroutput><classname>proto::basic_expr&lt;&gt;</classname></computeroutput> class template. The
+            types in the sequence correspond to the children of a node in an expression tree.
+            There is no type literally named "<computeroutput>listN</computeroutput>"; rather, there is
+            a set of types named
+            <computeroutput>proto::list1&lt;&gt;</computeroutput>,
+            <computeroutput>proto::list2&lt;&gt;</computeroutput>, etc.
+          </para>
+        </description>
+        <data-member name="arity" specifiers="static">
+          <purpose><computeroutput>= N;</computeroutput></purpose>
+          <type>const long</type>
+        </data-member>
+        <typedef name="childM">
+          <purpose>For each <replaceable>M</replaceable> in <replaceable>[0,N)</replaceable></purpose>
+          <type>Arg<replaceable>M</replaceable></type>
+        </typedef>
+      </struct>
+
+    </namespace>
+  </namespace>
+</header>

@@ -1,0 +1,167 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class random_device</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_random/reference.html#header.boost.random.random_device_hpp" title="Header &lt;boost/random/random_device.hpp&gt;">
+<link rel="prev" href="poisson_distribution/param_type.html" title="Class param_type">
+<link rel="next" href="random_number_generator.html" title="Class template random_number_generator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="poisson_distribution/param_type.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_random/reference.html#header.boost.random.random_device_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="random_number_generator.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.random.random_device"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class random_device</span></h2>
+<p>boost::random::random_device</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_random/reference.html#header.boost.random.random_device_hpp" title="Header &lt;boost/random/random_device.hpp&gt;">boost/random/random_device.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="random_device.html" title="Class random_device">random_device</a> <span class="special">:</span> <span class="keyword">private</span> <span class="identifier">noncopyable</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <a name="boost.random.random_device.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="random_device.html#boost.random.random_deviceconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="random_device.html#idp60271448-bb"><span class="identifier">random_device</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="random_device.html#idp60272152-bb"><span class="identifier">random_device</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="random_device.html#idp54947000-bb"><span class="special">~</span><span class="identifier">random_device</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="random_device.html#idp60275752-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">result_type</span> <a class="link" href="random_device.html#idp60275960-bb"><span class="identifier">min</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">result_type</span> <a class="link" href="random_device.html#idp60277048-bb"><span class="identifier">max</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="random_device.html#idp60278136-bb">public member functions</a></span>
+  <span class="keyword">double</span> <a class="link" href="random_device.html#idp60278344-bb"><span class="identifier">entropy</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">unsigned</span> <span class="keyword">int</span> <a class="link" href="random_device.html#idp60279368-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Iter<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="random_device.html#idp60280088-bb"><span class="identifier">generate</span></a><span class="special">(</span><span class="identifier">Iter</span><span class="special">,</span> <span class="identifier">Iter</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">has_fixed_range</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp197246600"></a><h2>Description</h2>
+<p>Class <a class="link" href="random_device.html" title="Class random_device">random_device</a> models a <a class="link" href="../../boost_random/reference.html#boost_random.reference.concepts.non_deterministic_uniform_random_number_generator" title="Non-deterministic Uniform Random Number Generator">non-deterministic random number generator</a> . It uses one or more implementation-defined stochastic processes to generate a sequence of uniformly distributed non-deterministic random numbers. For those environments where a non-deterministic random number generator is not available, class <a class="link" href="random_device.html" title="Class random_device">random_device</a> must not be implemented. See</p>
+<p> </p>
+<div class="blockquote"><blockquote class="blockquote"><p>  "Randomness Recommendations for Security", D. Eastlake, S. Crocker, J. Schiller, Network Working Group, RFC 1750, December 1994  </p></blockquote></div>
+<p> </p>
+<p>for further discussions.</p>
+<p> </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>  Some operating systems abstract the computer hardware enough to make it difficult to non-intrusively monitor stochastic processes. However, several do provide a special device for exactly this purpose. It seems to be impossible to emulate the functionality using Standard C++ only, so users should be aware that this class may not be available on all platforms.  </p></td></tr>
+</table></div>
+<p> </p>
+<p><span class="bold"><strong>Implementation Note for Linux</strong></span></p>
+<p>On the Linux operating system, token is interpreted as a filesystem path. It is assumed that this path denotes an operating system pseudo-device which generates a stream of non-deterministic random numbers. The pseudo-device should never signal an error or end-of-file. Otherwise, <code class="computeroutput">std::ios_base::failure</code> is thrown. By default,  <a class="link" href="random_device.html" title="Class random_device">random_device</a> uses the /dev/urandom pseudo-device to retrieve the random numbers. Another option would be to specify the /dev/random pseudo-device, which blocks on reads if the entropy pool has no more random bits available.</p>
+<p><span class="bold"><strong>Implementation Note for Windows</strong></span></p>
+<p>On the Windows operating system, token is interpreted as the name of a cryptographic service provider. By default <a class="link" href="random_device.html" title="Class random_device">random_device</a> uses MS_DEF_PROV.</p>
+<p><span class="bold"><strong>Performance</strong></span></p>
+<p>The test program <a href="../../../../libs/random/performance/nondet_random_speed.cpp" target="_top">nondet_random_speed.cpp</a> measures the execution times of the random_device.hpp implementation of the above algorithms in a tight loop. The performance has been evaluated on an Intel(R) Core(TM) i7 CPU Q 840 @ 1.87GHz, 1867 Mhz with Visual C++ 2010, Microsoft Windows 7 Professional and with gcc 4.4.5, Ubuntu Linux 2.6.35-25-generic.</p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><span class="bold"><strong>Platform</strong></span></td>
+<td><span class="bold"><strong>time per invocation [microseconds] </strong></span></td>
+</tr>
+<tr>
+<td>Windows </td>
+<td>2.9 </td>
+</tr>
+<tr>
+<td>Linux </td>
+<td>1.7 </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+</p>
+<p>The measurement error is estimated at +/- 1 usec. </p>
+<div class="refsect2">
+<a name="idp197256728"></a><h3>
+<a name="boost.random.random_deviceconstruct-copy-destruct"></a><code class="computeroutput">random_device</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp60271448-bb"></a><span class="identifier">random_device</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><code class="computeroutput"><a class="link" href="random_device.html" title="Class random_device">random_device</a></code></code>, optionally using the default device. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp60272152-bb"></a><span class="identifier">random_device</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> token<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a <code class="computeroutput"><code class="computeroutput"><a class="link" href="random_device.html" title="Class random_device">random_device</a></code></code>, optionally using the given token as an access specification (for example, a URL) to some implementation-defined service for monitoring a stochastic process. </p>
+</li>
+<li class="listitem"><pre class="literallayout"><a name="idp54947000-bb"></a><span class="special">~</span><span class="identifier">random_device</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp197267432"></a><h3>
+<a name="idp60275752-bb"></a><code class="computeroutput">random_device</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">result_type</span> <a name="idp60275960-bb"></a><span class="identifier">min</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns the smallest value that the <code class="computeroutput"><a class="link" href="random_device.html" title="Class random_device">random_device</a></code> can produce. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">result_type</span> <a name="idp60277048-bb"></a><span class="identifier">max</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns the largest value that the <code class="computeroutput"><a class="link" href="random_device.html" title="Class random_device">random_device</a></code> can produce. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp197274952"></a><h3>
+<a name="idp60278136-bb"></a><code class="computeroutput">random_device</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">double</span> <a name="idp60278344-bb"></a><span class="identifier">entropy</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns: An entropy estimate for the random numbers returned by operator(), in the range min() to log2( max()+1). A deterministic random number generator (e.g. a pseudo-random number engine) has entropy 0.</p>
+<p>Throws: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">unsigned</span> <span class="keyword">int</span> <a name="idp60279368-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns a random value in the range [min, max]. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Iter<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp60280088-bb"></a><span class="identifier">generate</span><span class="special">(</span><span class="identifier">Iter</span> begin<span class="special">,</span> <span class="identifier">Iter</span> end<span class="special">)</span><span class="special">;</span></pre>
+<p>Fills a range with random 32-bit values. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2005 Jens Maurer<br>Copyright &#169; 2009, 2010 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="poisson_distribution/param_type.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_random/reference.html#header.boost.random.random_device_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="random_number_generator.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

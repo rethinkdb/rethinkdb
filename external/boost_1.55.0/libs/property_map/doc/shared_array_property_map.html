@@ -1,0 +1,131 @@
+<HTML>
+<!--
+     Copyright (c) Trustees of Indiana University 2009
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Shared Array Property Map</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+	ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H2><A NAME="sec:shared-array-property-map"></A>
+</h2>
+<PRE>
+shared_array_property_map&lt;ValueType, OffsetMap&gt;
+</PRE>
+
+<P>
+This property map is an adaptor that contains a <a
+href="../../smart_ptr/shared_array.htm">boost::shared_array</a> and uses that
+array to store the property map's data.  The resulting property map is a model
+of <a href="./LvaluePropertyMap.html">Lvalue Property Map</a>.
+The <tt>OffsetMap</tt> type is responsible for converting
+key objects to integers that can be used as offsets into the array.
+
+<P>
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/property_map/shared_array_property_map.hpp"><TT>boost/property_map/shared_array_property_map.hpp</TT></a>
+
+<p>
+<H3>Model Of</H3>
+
+<a href="./LvaluePropertyMap.html">Lvalue Property Map</a>
+
+<P>
+
+<H3>Template Parameters</H3>
+
+<P>
+
+<TABLE border>
+<TR>
+<th>Parameter</th><th>Description</th><th>Default</th>
+</tr>
+
+
+<TR>
+<TD><TT>ValueType</TT></TD>
+<TD>The value type of the property map.</TD>
+<TD>&nbsp;</TD>
+</TR>
+
+
+<TR>
+<TD><TT>OffsetMap</TT></TD> <TD>Must be a model of <a
+href="./ReadablePropertyMap.html">Readable Property Map</a>
+and the value type must be convertible to <tt>std::size_t</tt>.
+</TD> <TD>&nbsp;</TD>
+</TR>
+
+</TABLE>
+<P>
+
+<H3>Members</H3>
+
+<P>
+In addition to the methods and functions required by <a
+href="./LvaluePropertyMap.html">Lvalue Property Map</a>, this
+class has the following members.
+
+<hr>
+
+<pre>
+property_traits&lt;shared_array_property_map&gt;::value_type
+</pre>
+This is the same type as
+<TT>ValueType</TT>.
+
+<hr>
+
+<pre>
+shared_array_property_map(size_t n)
+</pre>
+Constructor. Builds the property map with a size of <tt>n</tt> elements.  The
+<tt>OffsetMap</tt> is default constructed.
+
+<hr>
+
+<pre>
+shared_array_property_map(size_t n, OffsetMap m)
+</pre>
+Constructor.  Builds the property map with a size of <tt>n</tt> elements.
+
+<hr>
+
+<hr>
+
+<h3>Non-Member functions</h3>
+
+<hr>
+
+<pre>
+  template &lt;class ValueType, class OffsetMap&gt;
+  shared_array_property_map&lt;ValueType, OffsetMap&gt;
+  make_shared_array_property_map(size_t n, const ValueType&amp;, OffsetMap omap)
+</pre>
+A function for conveniently creating a shared array map.
+
+
+<hr>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2009</TD><TD>
+Trustees of Indiana University.
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

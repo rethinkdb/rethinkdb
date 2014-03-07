@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: iter_fold</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./fold.html" class="navigation-link">Prev</a>&nbsp;<a href="./reverse-fold.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./fold.html" class="navigation-link">Back</a>&nbsp;<a href="./reverse-fold.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iteration-algorithms.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./algorithms.html" class="navigation-link">Algorithms</a> / <a href="./iteration-algorithms.html" class="navigation-link">Iteration Algorithms</a> / <a href="./iter-fold.html" class="navigation-link">iter_fold</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="iter-fold">
+<h1><a class="toc-backref" href="./iteration-algorithms.html#id1470">iter_fold</a></h1>
+<div class="section" id="id501">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename Sequence
+    , typename State
+    , typename ForwardOp
+    &gt;
+struct <a href="./iter-fold.html" class="identifier">iter_fold</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id502">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Returns the result of the successive application of binary <tt class="literal"><span class="pre">ForwardOp</span></tt> to the result
+of the previous <tt class="literal"><span class="pre">ForwardOp</span></tt> invocation (<tt class="literal"><span class="pre">State</span></tt> if it's the first call) and each
+iterator in the range [<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;Sequence&gt;::type</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;Sequence&gt;::type</span></tt>) in order.</p>
+</div>
+<div class="section" id="id503">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/iter_fold.hpp" class="header">boost/mpl/iter_fold.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id504">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="15%" />
+<col width="32%" />
+<col width="53%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">Sequence</span></tt></td>
+<td><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></td>
+<td>A sequence to iterate.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">State</span></tt></td>
+<td>Any type</td>
+<td>The initial state for the first <tt class="literal"><span class="pre">ForwardOp</span></tt>
+application.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">ForwardOp</span></tt></td>
+<td>Binary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a></td>
+<td>The operation to be executed on forward
+traversal.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id505">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> <tt class="literal"><span class="pre">s</span></tt>, binary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a> <tt class="literal"><span class="pre">op</span></tt>, and an
+arbitrary type <tt class="literal"><span class="pre">state</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./iter-fold.html" class="identifier">iter_fold</a>&lt;s,state,op&gt;::type t;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">A type.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to</p>
+<pre class="literal-block">
+typedef <a href="./begin.html" class="identifier">begin</a>&lt;s&gt;::type i<sub>1</sub>;
+typedef <a href="./apply.html" class="identifier">apply</a>&lt;op,state,i<sub>1</sub>&gt;::type state<sub>1</sub>;
+typedef <a href="./next.html" class="identifier">next</a>&lt;i<sub>1</sub>&gt;::type i<sub>2</sub>;
+typedef <a href="./apply.html" class="identifier">apply</a>&lt;op,state<sub>1</sub>,i<sub>2</sub>&gt;::type state<sub>2</sub>;
+<em>...</em>
+typedef <a href="./apply.html" class="identifier">apply</a>&lt;op,state<sub>n-1</sub>,i<sub>n</sub>&gt;::type state<sub>n</sub>;
+typedef <a href="./next.html" class="identifier">next</a>&lt;i<sub>n</sub>&gt;::type last;
+typedef state<sub>n</sub> t;
+</pre>
+<p class="last">where <tt class="literal"><span class="pre">n</span> <span class="pre">==</span> <span class="pre"><a href="./size.html" class="identifier">size</a>&lt;s&gt;::value</span></tt> and <tt class="literal"><span class="pre">last</span></tt> is identical to <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;s&gt;::type</span></tt>; equivalent
+to <tt class="literal"><span class="pre">typedef</span> <span class="pre">state</span> <span class="pre">t;</span></tt> if <tt class="literal"><span class="pre"><a href="./empty.html" class="identifier">empty</a>&lt;s&gt;::value</span> <span class="pre">==</span> <span class="pre">true</span></tt>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id506">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Linear. Exactly <tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;s&gt;::value</span></tt> applications of <tt class="literal"><span class="pre">op</span></tt>.</p>
+</div>
+<div class="section" id="id507">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./vector-c.html" class="identifier">vector_c</a>&lt;int,5,-1,0,7,2,0,-5,4&gt; numbers;
+typedef <a href="./iter-fold.html" class="identifier">iter_fold</a>&lt;
+      numbers
+    , <a href="./begin.html" class="identifier">begin</a>&lt;numbers&gt;::type
+    , <a href="./if.html" class="identifier">if_</a>&lt; <a href="./less.html" class="identifier">less</a>&lt; <a href="./deref.html" class="identifier">deref</a>&lt;<a href="./placeholders.html" class="identifier">_1</a>&gt;, <a href="./deref.html" class="identifier">deref</a>&lt;<a href="./placeholders.html" class="identifier">_2</a>&gt; &gt;,<a href="./placeholders.html" class="identifier">_2</a>,<a href="./placeholders.html" class="identifier">_1</a> &gt;
+    &gt;::type max_element_iter;
+
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./deref.html" class="identifier">deref</a>&lt;max_element_iter&gt;::type::value, ==, 7 );
+</pre>
+</div>
+<div class="section" id="id508">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./algorithms.html">Algorithms</a>, <a class="reference internal" href="./reverse-iter-fold.html">reverse_iter_fold</a>, <a class="reference internal" href="./fold.html">fold</a>, <a class="reference internal" href="./reverse-fold.html">reverse_fold</a>, <a class="reference internal" href="./copy.html">copy</a></p>
+<!-- Algorithms/Iteration Algorithms//reverse_fold -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./fold.html" class="navigation-link">Prev</a>&nbsp;<a href="./reverse-fold.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./fold.html" class="navigation-link">Back</a>&nbsp;<a href="./reverse-fold.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./iteration-algorithms.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

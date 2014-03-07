@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;call_method.hpp&gt;</title>
+  </head>
+
+  <body link="#0000ff" vlink="#800080">
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;call_method.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#functions">Functions</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#call_method-spec">call_method</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example(s)</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><code>&lt;boost/python/call_method.hpp&gt;</code> defines the <a href=
+    "#call_method-spec"><code>call_method</code></a> family of overloaded
+    function templates, used to invoke callable attributes of Python objects
+    from C++.</p>
+
+    <h2><a name="functions"></a>Functions</h2>
+<pre>
+<a name=
+"call_method-spec">template &lt;class R, class A1, class A2, ... class A<i>n</i>&gt;</a>
+R call_method(PyObject* self, char const* method, A1 const&amp;, A2 const&amp;, ... A<i>n</i> const&amp;)
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>R</code> is a pointer type, reference type,
+      or a complete type with an accessible copy constructor</dt>
+
+      <dt><b>Effects:</b> Invokes
+      <code>self.<i>method</i>(a1,&nbsp;a2,&nbsp;...a<i>n</i>)</code> in
+      Python, where <code>a1</code>...<code>a<i>n</i></code> are the
+      arguments to <code>call_method()</code>, converted to Python objects.
+      For a complete semantic description, see <a href="callbacks.html">this
+      page</a>.</dt>
+
+      <dt><b>Returns:</b> The result of the Python call, converted to the C++
+      type <code>R</code>.</dt>
+
+      <dt><b>Rationale:</b> <code>call_method</code> is critical to
+      implementing C++ virtual functions which are overridable in Python, as
+      shown by the example below.</dt>
+    </dl>
+
+    <h2><a name="examples"></a>Example(s)</h2>
+    The following C++ illustrates the use of <code>call_method</code> in
+    wrapping a class with a virtual function that can be overridden in
+    Python: 
+
+    <h3>C++ Module Definition</h3>
+<pre>
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/class.hpp&gt;
+#include &lt;boost/utility.hpp&gt;
+#include &lt;cstring&gt;
+
+// class to be wrapped
+class Base
+{
+ public:
+   virtual char const* class_name() const { return "Base"; }
+   virtual ~Base();
+};
+
+bool is_base(Base* b)
+{
+   return !std::strcmp(b-&gt;class_name(), "Base");
+}
+
+// Wrapper code begins here
+using namespace boost::python;
+
+// Callback class
+class Base_callback : public Base
+{
+ public:
+   Base_callback(PyObject* self) : m_self(self) {}
+
+   char const* class_name() const { return <b>call_method</b>&lt;char const*&gt;(m_self, "class_name"); }
+   char const* Base_name() const { return Base::class_name(); }
+ private:
+   PyObject* const m_self;
+};
+
+using namespace boost::python;
+BOOST_PYTHON_MODULE(my_module)
+{
+    def("is_base", is_base);
+
+    class_&lt;Base,Base_callback, noncopyable&gt;("Base")
+        .def("class_name", &amp;Base_callback::Base_name)
+        ;
+
+}
+</pre>
+
+    <h3>Python Code</h3>
+<pre>
+&gt;&gt;&gt; from my_module import *
+&gt;&gt;&gt; class Derived(Base):
+...    def __init__(self):
+...       Base.__init__(self)
+...    def class_name(self):
+...       return self.__class__.__name__
+...
+&gt;&gt;&gt; is_base(Base()) # calls the class_name() method from C++
+1
+&gt;&gt;&gt; is_base(Derived())
+0
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

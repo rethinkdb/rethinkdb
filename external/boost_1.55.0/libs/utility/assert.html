@@ -1,0 +1,115 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+	<head>
+		<title>Boost: assert.hpp documentation</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	</head>
+	<body bgcolor="white" style="MARGIN-LEFT: 5%; MARGIN-RIGHT: 5%">
+		<table border="0" width="100%">
+			<tr>
+				<td width="277"><A href="../../index.htm"> <img src="../../boost.png" alt="boost.png (6897 bytes)" width="277" height="86" border="0"></A>
+				</td>
+				<td align="center">
+					<h1>assert.hpp</h1>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2" height="64">&nbsp;</td>
+			</tr>
+		</table>
+		<p>
+			<a href="#BOOST_ASSERT">BOOST_ASSERT</a><br>
+            <a href="#BOOST_ASSERT_MSG">BOOST_ASSERT_MSG</a><br>
+            <a href="#BOOST_VERIFY">BOOST_VERIFY</a></p>
+            
+<h2><a name="BOOST_ASSERT">BOOST_ASSERT</a></h2>
+		<p>
+			The header <STRONG>&lt;boost/assert.hpp&gt;</STRONG> defines the macro <b>BOOST_ASSERT</b>, 
+			which is similar to the standard <STRONG>assert</STRONG> macro defined in <STRONG>&lt;cassert&gt;</STRONG>. 
+			The macro is intended to be used in both Boost libraries and user 
+            code.
+		</p>
+		<P>By default, <tt>BOOST_ASSERT(expr)</tt> is equivalent to <tt>assert(expr)</tt>.</P>
+		<P>If the macro <STRONG>BOOST_DISABLE_ASSERTS</STRONG> is defined when <STRONG>&lt;boost/assert.hpp&gt;</STRONG>
+			is included, <tt>BOOST_ASSERT(expr)</tt> is defined as <tt>((void)0)</tt>. This 
+			allows users to selectively disable <STRONG>BOOST_ASSERT</STRONG> without 
+			affecting the definition of the standard <STRONG>assert</STRONG>.</P>
+		<P>If the macro <STRONG>BOOST_ENABLE_ASSERT_HANDLER</STRONG> is defined when <STRONG>&lt;boost/assert.hpp&gt;</STRONG>
+			is included, <tt>BOOST_ASSERT(expr)</tt> evaluates <b>expr</b> and, if the 
+			result is false, evaluates the expression</P>
+		<blockquote>
+		<P><tt>::boost::assertion_failed(#expr, <a href="current_function.html">BOOST_CURRENT_FUNCTION</a>, 
+				__FILE__, __LINE__)</tt></P>
+		</blockquote>
+		<P><STRONG>assertion_failed</STRONG> is declared in <STRONG>&lt;boost/assert.hpp&gt;</STRONG>
+			as</P>
+		<blockquote>
+		<pre>namespace boost
+{
+  void assertion_failed(char const * expr, char const * function, char const * file, long line);
+}
+</pre>
+		</blockquote>
+		<p>but it is never defined. The user is expected to supply an appropriate 
+			definition.</p>
+		<P>As is the case with <STRONG>&lt;cassert&gt;</STRONG>, <STRONG>&lt;boost/assert.hpp&gt;</STRONG>
+			can be included multiple times in a single translation unit. <STRONG>BOOST_ASSERT</STRONG>
+			will be redefined each time as specified above.</P>
+			
+<h2><a name="BOOST_ASSERT_MSG">BOOST_ASSERT_MSG</a></h2>
+		<p>
+			The header <STRONG>&lt;boost/assert.hpp&gt;</STRONG> defines the macro <b>BOOST_ASSERT_MSG</b>, 
+			which is similar to the standard <STRONG>assert</STRONG> macro defined in <STRONG>&lt;cassert&gt;</STRONG>, 
+            but with an additional macro parameter supplying an error message. The macro is intended to be used in both Boost libraries 
+            and user code.
+		</p>
+		<P> <tt>BOOST_ASSERT_MSG(expr, msg)</tt> is equivalent to <code>
+        ((void)0)</code> if <b>BOOST_DISABLE_ASSERTS</b> or <b>NDEBUG</b> are 
+        defined or <code>expr</code> evaluates to <code>true</code>. If those 
+        macros and <STRONG>BOOST_ENABLE_ASSERT_HANDLER</STRONG> are not 
+        defined, and <code>expr</code> evaluates to <code>false</code>, an error 
+        message that includes <tt>#expr</tt>, <tt>msg</tt>, <tt> <a href="current_function.html">BOOST_CURRENT_FUNCTION</a></tt>, <tt>
+        __FILE__</tt>, and <tt>__LINE__</tt> is sent to output stream <b>
+        BOOST_ASSERT_MSG_OSTREAM</b> 
+        and <code>std::abort()</code> is called.</P>
+		<P> <b>BOOST_ASSERT_MSG_OSTREAM</b> defines the output stream. It defaults to <code>std::cerr</code>. 
+        Integrated development environments (IDE's) like Microsoft Visual Studio 
+        may produce easier to understand output if messages go to a different 
+        stream, such as <code>std::cout</code>. Users may define <b>BOOST_ASSERT_MSG_OSTREAM</b> before including <STRONG>&lt;boost/assert.hpp&gt;</STRONG> 
+        to specify a different output stream.&nbsp; </P>
+		<P>If the macro <STRONG>BOOST_ENABLE_ASSERT_HANDLER</STRONG> is defined when <STRONG>&lt;boost/assert.hpp&gt;</STRONG>
+			is included, instead of sending a error message to an output 
+        stream, this expression is evaluated</P>
+		<blockquote>
+		<P><tt>::boost::assertion_failed_msg(#expr, msg, <a href="current_function.html">BOOST_CURRENT_FUNCTION</a>, 
+				__FILE__, __LINE__)</tt></P>
+		</blockquote>
+		<P><STRONG>assertion_failed_msg</STRONG> is declared in <STRONG>&lt;boost/assert.hpp&gt;</STRONG>
+			as</P>
+		<blockquote>
+		<pre>namespace boost
+{
+  void assertion_failed_msg(char const * expr, char const * msg, char const * function, char const * file, long line);
+}
+</pre>
+		</blockquote>
+		<p>but it is never defined. The user is expected to supply an appropriate 
+			definition.</p>
+		<P>As is the case with <STRONG>&lt;cassert&gt;</STRONG>, <STRONG>&lt;boost/assert.hpp&gt;</STRONG>
+			can be included multiple times in a single translation unit. <STRONG>BOOST_ASSERT_MSG</STRONG>
+			will be redefined each time as specified above.</P>
+			
+<h2><a name="BOOST_VERIFY">BOOST_VERIFY</a></h2>
+		<p><STRONG>&lt;boost/assert.hpp&gt;</STRONG> also defines the macro <STRONG>BOOST_VERIFY</STRONG>. 
+			It has exactly the same behavior as <STRONG>BOOST_ASSERT</STRONG>, except that 
+			the expression that is passed to <STRONG>BOOST_VERIFY</STRONG> is always 
+			evaluated. This is useful when the asserted expression has desirable side 
+			effects; it can also help suppress warnings about unused variables when the 
+			only use of the variable is inside an assertion.</p>
+		<p><br>
+			<small>Copyright © 2002, 2007 by Peter Dimov.&nbsp; Copyright © 2011 
+        by Beman Dawes. Distributed under the Boost Software 
+				License, Version 1.0. See accompanying file <A href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</A>
+				or copy at <A href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>.</small></p>
+	</body>
+</html>

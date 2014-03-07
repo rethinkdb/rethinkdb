@@ -1,0 +1,44 @@
+#
+#   Copyright (c) 2011 Daniel James
+#
+#   Distributed under the Boost Software License, Version 1.0. (See
+#   accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#
+
+project quickbook/test/includes
+    : requirements
+        <toolset>msvc:<debug-symbols>off
+    ;
+
+import quickbook-testing : quickbook-test quickbook-error-test ;
+
+test-suite quickbook.test :
+    [ quickbook-test import-basic-1.6 ]
+    [ quickbook-test filename ]
+    [ quickbook-test filename-path : : : <quickbook-test-include>sub ]
+    [ quickbook-test doc-title1-1.5 ]
+    [ quickbook-test doc-title1a-1.5 ]
+    [ quickbook-test section ]
+    [ quickbook-test section-unclosed ]
+    [ quickbook-test templates-1.5 ]
+    [ quickbook-test templates-1.6 ]
+    [ quickbook-test macros-1.5 ]
+    [ quickbook-test macros-1.6 ]
+    [ quickbook-test code-import ]
+    [ quickbook-test code-include ]
+    [ quickbook-test include-id-1.5 ]
+    [ quickbook-test include-id-1.6 ]
+    [ quickbook-test include_id_unbalanced-1_6 ]
+    [ quickbook-error-test section-fail1 ]
+    [ quickbook-error-test section-fail2 ]
+    [ quickbook-test in_section-1_5 ]
+    [ quickbook-test in_section-1_6 ]
+    [ quickbook-test compatibility-1_1 ]
+    [ quickbook-test compatibility-1_5 ]
+    [ quickbook-test compatibility-1_6 ]
+    [ quickbook-test source_mode-1_5 ]
+    [ quickbook-test source_mode-1_6 ]
+    [ quickbook-test nested_compatibility-1_5 ]
+    [ quickbook-test nested_compatibility-1_6 ]
+    ;

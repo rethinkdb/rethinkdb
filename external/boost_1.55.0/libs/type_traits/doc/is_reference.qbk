@@ -1,0 +1,40 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_reference is_reference]
+   template <class T>
+   struct is_reference : public __tof {};
+  
+__inherit If T is a reference type (either an lvalue reference or an rvalue reference)
+then inherits from __true_type, 
+otherwise inherits from __false_type.
+
+__std_ref 3.9.2 and 8.3.2.
+
+__compat If the compiler does not 
+support partial-specialization of class templates, 
+then this template may report the wrong result for function types, 
+and for types that are both const and volatile qualified.
+
+__header ` #include <boost/type_traits/is_reference.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__examples
+
+[:`is_reference<int&>` inherits from `__true_type`.]
+
+[:`is_reference<int const&>::type` is the type `__true_type`.]
+
+[:`is_reference<int const&&>::type` is the type `__true_type`.]
+
+[:`is_reference<int (&)(long)>::value` is an integral constant 
+expression that evaluates to /true/ (the argument in this case is
+a reference to a function).]
+
+[:`is_reference<T>::value_type` is the type `bool`.]
+
+[endsect]
+

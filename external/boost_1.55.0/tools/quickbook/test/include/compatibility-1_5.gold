@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="compatibility" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Test Compatibility Mode</title>
+  <section id="compatibility.collision">
+    <title><link linkend="compatibility.collision">Outer</link></title>
+    <section id="test_compatibility_mode.collision.inner">
+      <title><link linkend="test_compatibility_mode.collision.inner">Inner</link></title>
+      <bridgehead renderas="sect4" id="test_compatibility_mode.collision.inner.h0">
+        <phrase id="test_compatibility_mode.collision.inner.header"/><link linkend="test_compatibility_mode.collision.inner.header">Header</link>
+      </bridgehead>
+      <bridgehead renderas="sect1" id="test_compatibility_mode.collision.inner.h1">
+        <phrase id="test_compatibility_mode.collision.inner.heading1"/><link linkend="test_compatibility_mode.collision.inner.heading1">Heading1</link>
+      </bridgehead>
+      <bridgehead renderas="sect4" id="test_compatibility_mode.collision.inner.h2">
+        <phrase id="test_compatibility_mode.collision.inner.x1"/><link linkend="test_compatibility_mode.collision.inner.x1">Header
+        with id</link>
+      </bridgehead>
+      <bridgehead renderas="sect1" id="test_compatibility_mode.collision.inner.h3">
+        <phrase id="test_compatibility_mode.collision.inner.x2"/><link linkend="test_compatibility_mode.collision.inner.x2">Heading1
+        with id</link>
+      </bridgehead>
+      <informaltable frame="all">
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+      <informaltable frame="all" id="test_compatibility_mode.collision.inner.withid">
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+      <table frame="all" id="test_compatibility_mode.collision.inner.with_title">
+        <title>With Title</title>
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+      <table frame="all" id="test_compatibility_mode.collision.inner.x">
+        <title>Id and Title</title>
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+    </section>
+    <section id="test_compatibility_mode.collision.x">
+      <title><link linkend="test_compatibility_mode.collision.x">Inner with id</link></title>
+    </section>
+  </section>
+  <section id="compatibility.collision0">
+    <title><link linkend="compatibility.collision0">Include compatibility 1.1</link></title>
+    <section id="test_compatibility_mode.inner">
+      <title>Inner</title>
+      <bridgehead renderas="sect4" id="test_compatibility_mode.collision.inner.h4">
+        <phrase id="test_compatibility_mode.collision.inner.header0"/><link linkend="test_compatibility_mode.collision.inner.header0">Header</link>
+      </bridgehead>
+      <bridgehead renderas="sect1" id="inner.heading1">
+        Heading1
+      </bridgehead>
+      <bridgehead renderas="sect4" id="test_compatibility_mode.collision.inner.h5">
+        <phrase id="test_compatibility_mode.collision.inner.x1_0"/><link linkend="test_compatibility_mode.collision.inner.x1_0">Header
+        with id</link>
+      </bridgehead>
+      <bridgehead renderas="sect1" id="test_compatibility_mode.collision.inner.h6">
+        <phrase id="test_compatibility_mode.collision.inner.x2_0"/><link linkend="test_compatibility_mode.collision.inner.x2_0">Heading1
+        with id</link>
+      </bridgehead>
+      <informaltable frame="all">
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+      <informaltable frame="all" id="test_compatibility_mode.collision.inner.withid0">
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+      <table frame="all" id="test_compatibility_mode.collision.inner.t0">
+        <title>With Title</title>
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+      <table frame="all" id="test_compatibility_mode.collision.inner.x0">
+        <title>Id and Title</title>
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+    </section>
+    <section id="test_compatibility_mode.x">
+      <title>Inner with id</title>
+    </section>
+  </section>
+  <section id="compatibility.collision1">
+    <title><link linkend="compatibility.collision1">Include compatibility 1.5</link></title>
+    <section id="test_compatibility_mode.collision.inner0">
+      <title><link linkend="test_compatibility_mode.collision.inner0">Inner</link></title>
+      <bridgehead renderas="sect4" id="test_compatibility_mode.collision.inner.h7">
+        <phrase id="test_compatibility_mode.collision.inner.header1"/><link linkend="test_compatibility_mode.collision.inner.header1">Header</link>
+      </bridgehead>
+      <bridgehead renderas="sect1" id="test_compatibility_mode.collision.inner.h8">
+        <phrase id="test_compatibility_mode.collision.inner.heading1_0"/><link linkend="test_compatibility_mode.collision.inner.heading1_0">Heading1</link>
+      </bridgehead>
+      <bridgehead renderas="sect4" id="test_compatibility_mode.collision.inner.h9">
+        <phrase id="test_compatibility_mode.collision.inner.x1_1"/><link linkend="test_compatibility_mode.collision.inner.x1_1">Header
+        with id</link>
+      </bridgehead>
+      <bridgehead renderas="sect1" id="test_compatibility_mode.collision.inner.h10">
+        <phrase id="test_compatibility_mode.collision.inner.x2_1"/><link linkend="test_compatibility_mode.collision.inner.x2_1">Heading1
+        with id</link>
+      </bridgehead>
+      <informaltable frame="all">
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+      <informaltable frame="all" id="test_compatibility_mode.collision.inner.withid1">
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+      <table frame="all" id="test_compatibility_mode.collision.inner.with_title0">
+        <title>With Title</title>
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+      <table frame="all" id="test_compatibility_mode.collision.inner.x3">
+        <title>Id and Title</title>
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+    </section>
+    <section id="test_compatibility_mode.collision.x0">
+      <title><link linkend="test_compatibility_mode.collision.x0">Inner with id</link></title>
+    </section>
+  </section>
+  <section id="compatibility.collision2">
+    <title><link linkend="compatibility.collision2">Include compatibility 1.6</link></title>
+    <section id="compatibility.collision.inner">
+      <title><link linkend="compatibility.collision.inner">Inner</link></title>
+      <bridgehead renderas="sect4" id="compatibility.collision.inner.h0">
+        <phrase id="compatibility.collision.inner.header"/><link linkend="compatibility.collision.inner.header">Header</link>
+      </bridgehead>
+      <bridgehead renderas="sect1" id="compatibility.collision.inner.h1">
+        <phrase id="compatibility.collision.inner.heading1"/><link linkend="compatibility.collision.inner.heading1">Heading1</link>
+      </bridgehead>
+      <bridgehead renderas="sect4" id="compatibility.collision.inner.h2">
+        <phrase id="compatibility.collision.inner.x1"/><link linkend="compatibility.collision.inner.x1">Header
+        with id</link>
+      </bridgehead>
+      <bridgehead renderas="sect1" id="compatibility.collision.inner.h3">
+        <phrase id="compatibility.collision.inner.x2"/><link linkend="compatibility.collision.inner.x2">Heading1
+        with id</link>
+      </bridgehead>
+      <informaltable frame="all">
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+      <informaltable frame="all" id="compatibility.collision.inner.withid">
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+      <table frame="all" id="compatibility.collision.inner.with_title">
+        <title>With Title</title>
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+      <table frame="all" id="compatibility.collision.inner.x">
+        <title>Id and Title</title>
+        <tgroup cols="1">
+          <thead>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry>
+              </entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+    </section>
+    <section id="compatibility.collision.x">
+      <title><link linkend="compatibility.collision.x">Inner with id</link></title>
+    </section>
+  </section>
+</article>

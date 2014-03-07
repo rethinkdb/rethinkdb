@@ -1,0 +1,23 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n!=1;\n"
+
+msgid "hello"
+msgstr "היי"
+
+msgid "#hello"
+msgstr "#היי"
+
+msgctxt "context"
+msgid "hello"
+msgstr "היי בהקשר אחר"
+
+
+#: test_message.cpp:47
+msgid "test"
+msgid_plural "tests"
+msgstr[0] ""
+msgstr[1] ""

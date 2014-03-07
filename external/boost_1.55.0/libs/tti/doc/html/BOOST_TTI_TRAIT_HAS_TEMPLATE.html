@@ -1,0 +1,105 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Macro BOOST_TTI_TRAIT_HAS_TEMPLATE</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="up" href="header/boost/tti/has_template_hpp.html" title="Header &lt;boost/tti/has_template.hpp&gt;">
+<link rel="prev" href="header/boost/tti/has_template_hpp.html" title="Header &lt;boost/tti/has_template.hpp&gt;">
+<link rel="next" href="BOOST_TTI_HAS_TEMPLATE.html" title="Macro BOOST_TTI_HAS_TEMPLATE">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="header/boost/tti/has_template_hpp.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="header/boost/tti/has_template_hpp.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_TTI_HAS_TEMPLATE.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="BOOST_TTI_TRAIT_HAS_TEMPLATE"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Macro BOOST_TTI_TRAIT_HAS_TEMPLATE</span></h2>
+<p>BOOST_TTI_TRAIT_HAS_TEMPLATE &#8212; Expands to a metafunction which tests whether an inner class template with a particular name exists. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="header/boost/tti/has_template_hpp.html" title="Header &lt;boost/tti/has_template.hpp&gt;">boost/tti/has_template.hpp</a>&gt;
+
+</span>BOOST_TTI_TRAIT_HAS_TEMPLATE(trait, ...)</pre></div>
+<div class="refsect1">
+<a name="idp48411816"></a><h2>Description</h2>
+<p>trait = the name of the metafunction. ... = variadic parameters.     The first variadic parameter is the inner class template name.
+
+    Following variadic parameters are optional.
+
+    If no following variadic parameters exist, then the inner class template 
+    being introspected must be all template type parameters ( template parameters 
+    starting with `class` or `typename` ) and any number of template type parameters
+    can occur.
+
+    If the second variadic parameter is BOOST_PP_NIL and no other variadic 
+    parameter is given, then just as in the previous case the inner class template 
+    being introspected must be all template type parameters ( template parameters 
+    starting with `class` or `typename` ) and any number of template type parameters
+    can occur. This form is allowed in order to be consistent with using the 
+    non-variadic form of this macro.
+
+    If the second variadic parameter is a Boost preprocessor library array and no other 
+    variadic parameter is given, then the inner class template must have its template 
+    parameters matching the sequence in the tuple portion of the Boost PP array. This 
+    form is allowed in order to be consistent with using the non-variadic form of this 
+    macro.
+
+    Otherwise the inner class template must have its template parameters matching the 
+    sequence of the optional variadic parameters.
+</p>
+<p>generates a metafunction called "trait" where 'trait' is the first macro parameter.       template&lt;class BOOST_TTI_TP_T&gt;
+      struct trait
+        {
+        static const value = unspecified;
+        typedef mpl::bool_&lt;true-or-false&gt; type;
+        };
+
+      The metafunction types and return:
+
+        BOOST_TTI_TP_T = the enclosing type in which to look for our 'name'.
+
+        returns = 'value' is true if the 'name' template exists within the enclosing type,
+                  otherwise 'value' is false.
+</p>
+<p>Examples:</p>
+<p>1) Search for an inner class template called 'MyTemplate', with all template type parameters, nested within the class 'MyClass' using a metafunction name of 'MyMeta'.</p>
+<p>BOOST_TTI_TRAIT_HAS_TEMPLATE(MyMeta,MyTemplate)</p>
+<p>or</p>
+<p>BOOST_TTI_TRAIT_HAS_TEMPLATE(MyMeta,MyTemplate,BOOST_PP_NIL) // Non-variadic macro form</p>
+<p>MyMeta&lt;MyClass&gt;::value</p>
+<p>is a compile time boolean constant which is either 'true' or 'false' if the nested template exists.</p>
+<p>2) Search for an inner class template called 'MyTemplate', with template parameters of 'class T,int x,template&lt;class&gt; class U', nested within the class 'MyClass' using a metafunction name of 'MyMeta'.</p>
+<p>BOOST_TTI_TRAIT_HAS_TEMPLATE(MyMeta,MyTemplate,class,int,template&lt;class&gt; class)</p>
+<p>or</p>
+<p>BOOST_TTI_TRAIT_HAS_TEMPLATE(MyMeta,MyTemplate,(3,(class,int,template&lt;class&gt; class))) // Non-variadic macro form</p>
+<p>MyMeta&lt;MyClass&gt;::value</p>
+<p>is a compile time boolean constant which is either 'true' or 'false' if the nested template exists. </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Tropic Software
+      East Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="header/boost/tti/has_template_hpp.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="header/boost/tti/has_template_hpp.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_TTI_HAS_TEMPLATE.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

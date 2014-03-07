@@ -1,0 +1,25 @@
+[/ Copyright Oliver Kowalke 2009.
+ Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+          http://www.boost.org/LICENSE_1_0.txt
+]
+
+[section:stack Stack allocation]
+
+A __fcontext__ requires a stack which will be allocated/deallocated
+by a __stack_allocator__ (examples contain an implementation
+of [@boost:/libs/context/example/simple_stack_allocator.hpp
+simple_stack_allocator]).
+
+[note The implementation of a __stack_allocator__ might include logic to protect
+against exceeding the context's available stack size rather than leaving it as
+undefined behaviour.]
+
+[note The stack is not required to be aligned; alignment takes place inside
+__make_fcontext__.]
+
+[note Depending on the architecture __stack_allocator__ returns an address from
+the top of the stack (grows downwards) or the bottom of the stack (grows
+upwards).]
+
+[endsect]

@@ -1,0 +1,165 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>advance</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../metafunctions.html" title="Metafunctions">
+<link rel="prev" href="distance.html" title="distance">
+<link rel="next" href="advance_c.html" title="advance_c">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="distance.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../metafunctions.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="advance_c.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="fusion.iterator.metafunctions.advance"></a><a class="link" href="advance.html" title="advance">advance</a>
+</h4></div></div></div>
+<h6>
+<a name="fusion.iterator.metafunctions.advance.h0"></a>
+          <span class="phrase"><a name="fusion.iterator.metafunctions.advance.description"></a></span><a class="link" href="advance.html#fusion.iterator.metafunctions.advance.description">Description</a>
+        </h6>
+<p>
+          Moves an iterator a specified distance.
+        </p>
+<h6>
+<a name="fusion.iterator.metafunctions.advance.h1"></a>
+          <span class="phrase"><a name="fusion.iterator.metafunctions.advance.synopsis"></a></span><a class="link" href="advance.html#fusion.iterator.metafunctions.advance.synopsis">Synopsis</a>
+        </h6>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">I</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">M</span>
+    <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">advance</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em>unspecified</em></span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<div class="table">
+<a name="fusion.iterator.metafunctions.advance.t0"></a><p class="title"><b>Table&#160;1.18.&#160;Parameters</b></p>
+<div class="table-contents"><table class="table" summary="Parameters">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Requirement
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">I</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Model of <a class="link" href="../concepts/forward_iterator.html" title="Forward Iterator">Forward
+                    Iterator</a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Iterator to move relative to
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">M</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Model of <a href="http://www.boost.org/libs/mpl/doc/refmanual/integral-constant.html" target="_top">MPL
+                    Integral Constant</a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Number of positions to move
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><h6>
+<a name="fusion.iterator.metafunctions.advance.h2"></a>
+          <span class="phrase"><a name="fusion.iterator.metafunctions.advance.expression_semantics"></a></span><a class="link" href="advance.html#fusion.iterator.metafunctions.advance.expression_semantics">Expression
+          Semantics</a>
+        </h6>
+<pre class="programlisting"><a class="link" href="advance.html" title="advance"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">advance</span></code></a><span class="special">&lt;</span><span class="identifier">I</span><span class="special">,</span><span class="identifier">M</span><span class="special">&gt;::</span><span class="identifier">type</span>
+</pre>
+<p>
+          <span class="bold"><strong>Return type</strong></span>: A model of the same iterator
+          concept as <code class="computeroutput"><span class="identifier">I</span></code>.
+        </p>
+<p>
+          <span class="bold"><strong>Semantics</strong></span>: Returns an iterator a distance
+          <code class="computeroutput"><span class="identifier">M</span></code> from <code class="computeroutput"><span class="identifier">I</span></code>.
+          If <code class="computeroutput"><span class="identifier">I</span></code> is a <a class="link" href="../concepts/bidirectional_iterator.html" title="Bidirectional Iterator">Bidirectional
+          Iterator</a> then <code class="computeroutput"><span class="identifier">M</span></code>
+          may be negative.
+        </p>
+<h6>
+<a name="fusion.iterator.metafunctions.advance.h3"></a>
+          <span class="phrase"><a name="fusion.iterator.metafunctions.advance.header"></a></span><a class="link" href="advance.html#fusion.iterator.metafunctions.advance.header">Header</a>
+        </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">iterator</span><span class="special">/</span><span class="identifier">advance</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">advance</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="fusion.iterator.metafunctions.advance.h4"></a>
+          <span class="phrase"><a name="fusion.iterator.metafunctions.advance.example"></a></span><a class="link" href="advance.html#fusion.iterator.metafunctions.advance.example">Example</a>
+        </h6>
+<pre class="programlisting"><span class="keyword">typedef</span> <a class="link" href="../../container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">double</span><span class="special">,</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="identifier">vec</span><span class="special">;</span>
+<span class="keyword">typedef</span> <a class="link" href="../../sequence/intrinsic/metafunctions/begin.html" title="begin"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">begin</span></code></a><span class="special">&lt;</span><span class="identifier">vec</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">first</span><span class="special">;</span>
+<span class="keyword">typedef</span> <a class="link" href="next.html" title="next"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">next</span></code></a><span class="special">&lt;</span><span class="identifier">first</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">second</span><span class="special">;</span>
+<span class="keyword">typedef</span> <a class="link" href="next.html" title="next"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">next</span></code></a><span class="special">&lt;</span><span class="identifier">second</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">third</span><span class="special">;</span>
+
+<span class="identifier">BOOST_MPL_ASSERT</span><span class="special">((</span><a class="link" href="equal_to.html" title="equal_to"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">equal_to</span></code></a><span class="special">&lt;</span><a class="link" href="advance.html" title="advance"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">advance</span></code></a><span class="special">&lt;</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">int_</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span> <span class="identifier">third</span><span class="special">&gt;));</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="distance.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../metafunctions.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="advance_c.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

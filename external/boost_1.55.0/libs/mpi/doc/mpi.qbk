@@ -1,0 +1,2156 @@
+[library Boost.MPI
+    [authors [Gregor, Douglas], [Troyer, Matthias] ]
+    [copyright 2005 2006 2007 Douglas Gregor, Matthias Troyer, Trustees of Indiana University]
+    [purpose
+        A generic, user-friendly interface to MPI, the Message
+        Passing Interface.
+    ]
+    [id mpi]
+    [dirname mpi]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        <ulink url="http://www.boost.org/LICENSE_1_0.txt">
+            http://www.boost.org/LICENSE_1_0.txt
+        </ulink>)
+    ]
+]
+
+[/ Links ]
+[def _MPI_         [@http://www-unix.mcs.anl.gov/mpi/ MPI]]
+[def _MPI_implementations_ 
+   [@http://www-unix.mcs.anl.gov/mpi/implementations.html
+    MPI implementations]]
+[def _Serialization_ [@http://www.boost.org/libs/serialization/doc
+                      Boost.Serialization]]
+[def _BoostPython_ [@http://www.boost.org/libs/python/doc
+                      Boost.Python]]
+[def _Python_      [@http://www.python.org Python]]
+[def _LAM_          [@http://www.lam-mpi.org/ LAM/MPI]]
+[def _MPICH_        [@http://www-unix.mcs.anl.gov/mpi/mpich/ MPICH2]]
+[def _OpenMPI_      [@http://www.open-mpi.org OpenMPI]]
+[def _accumulate_   [@http://www.sgi.com/tech/stl/accumulate.html
+                     `accumulate`]]
+
+[/ QuickBook Document version 1.0 ]
+
+[section:intro Introduction]
+
+Boost.MPI is a library for message passing in high-performance
+parallel applications. A Boost.MPI program is one or more processes
+that can communicate either via sending and receiving individual
+messages (point-to-point communication) or by coordinating as a group
+(collective communication). Unlike communication in threaded
+environments or using a shared-memory library, Boost.MPI processes can
+be spread across many different machines, possibly with different
+operating systems and underlying architectures. 
+
+Boost.MPI is not a completely new parallel programming
+library. Rather, it is a C++-friendly interface to the standard
+Message Passing Interface (_MPI_), the most popular library interface
+for high-performance, distributed computing. MPI defines
+a library interface, available from C, Fortran, and C++, for which
+there are many _MPI_implementations_. Although there exist C++
+bindings for MPI, they offer little functionality over the C
+bindings. The Boost.MPI library provides an alternative C++ interface
+to MPI that better supports modern C++ development styles, including
+complete support for user-defined data types and C++ Standard Library
+types, arbitrary function objects for collective algorithms, and the
+use of modern C++ library techniques to maintain maximal
+efficiency.
+
+At present, Boost.MPI supports the majority of functionality in MPI
+1.1. The thin abstractions in Boost.MPI allow one to easily combine it
+with calls to the underlying C MPI library. Boost.MPI currently
+supports:
+
+* Communicators: Boost.MPI supports the creation,
+  destruction, cloning, and splitting of MPI communicators, along with
+  manipulation of process groups. 
+* Point-to-point communication: Boost.MPI supports
+  point-to-point communication of primitive and user-defined data
+  types with send and receive operations, with blocking and
+  non-blocking interfaces.
+* Collective communication: Boost.MPI supports collective
+  operations such as [funcref boost::mpi::reduce `reduce`]
+  and [funcref boost::mpi::gather `gather`] with both
+  built-in and user-defined data types and function objects.
+* MPI Datatypes: Boost.MPI can build MPI data types for
+  user-defined types using the _Serialization_ library.
+* Separating structure from content: Boost.MPI can transfer the shape
+  (or "skeleton") of complexc data structures (lists, maps,
+  etc.) and then separately transfer their content. This facility
+  optimizes for cases where the data within a large, static data
+  structure needs to be transmitted many times.
+
+Boost.MPI can be accessed either through its native C++ bindings, or
+through its alternative, [link mpi.python Python interface].
+
+[endsect]
+
+[section:getting_started Getting started]
+
+Getting started with Boost.MPI requires a working MPI implementation,
+a recent version of Boost, and some configuration information.
+
+[section:mpi_impl MPI Implementation]
+To get started with Boost.MPI, you will first need a working
+MPI implementation. There are many conforming _MPI_implementations_
+available. Boost.MPI should work with any of the
+implementations, although it has only been tested extensively with:
+
+* [@http://www.open-mpi.org Open MPI]
+* [@http://www.lam-mpi.org LAM/MPI ]
+* [@http://www-unix.mcs.anl.gov/mpi/mpich/ MPICH2]
+
+You can test your implementation using the following simple program,
+which passes a message from one processor to another. Each processor
+prints a message to standard output. 
+
+  #include <mpi.h>
+  #include <iostream>
+
+  int main()
+  {
+    MPI_Init(&argc, &argv);
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if (rank == 0) {
+      int value = 17;
+      int result = MPI_Send(&value, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
+      if (result == MPI_SUCCESS)
+        std::cout << "Rank 0 OK!" << std::endl;
+    } else if (rank == 1) {
+      int value;
+      int result = MPI_Recv(&value, 1, MPI_INT, 0, 0, MPI_COMM_WORLD,
+  			  MPI_STATUS_IGNORE);
+      if (result == MPI_SUCCESS && value == 17)
+        std::cout << "Rank 1 OK!" << std::endl;
+    }
+    MPI_Finalize();
+    return 0;
+  } 
+
+You should compile and run this program on two processors. To do this,
+consult the documentation for your MPI implementation. With _LAM_, for
+instance, you compile with the `mpiCC` or `mpic++` compiler, boot the
+LAM/MPI daemon, and run your program via `mpirun`. For instance, if
+your program is called `mpi-test.cpp`, use the following commands:
+
+[pre
+mpiCC -o mpi-test mpi-test.cpp
+lamboot
+mpirun -np 2 ./mpi-test
+lamhalt
+]
+
+When you run this program, you will see both `Rank 0 OK!` and `Rank 1
+OK!` printed to the screen. However, they may be printed in any order
+and may even overlap each other. The following output is perfectly
+legitimate for this MPI program:
+
+[pre
+Rank Rank 1 OK!
+0 OK!
+]
+
+If your output looks something like the above, your MPI implementation
+appears to be working with a C++ compiler and we're ready to move on.
+[endsect]
+
+[section:config Configure and Build]
+
+Boost.MPI uses version 2 of the
+[@http://www.boost.org/doc/html/bbv2.html Boost.Build] system for
+configuring and building the library binary. You will need a very new
+version of [@http://www.boost.org/tools/build/jam_src/index.html
+Boost.Jam] (3.1.12 or later). If you already have Boost.Jam, run `bjam
+-v` to determine what version you are using.
+
+Information about building Boost.Jam is
+[@http://www.boost.org/tools/build/jam_src/index.html#building_bjam
+available here]. However, most users need only run `build.sh` in the
+`tools/build/jam_src` subdirectory of Boost. Then,
+copy the resulting `bjam` executable some place convenient.
+
+For many users using _LAM_, _MPICH_, or _OpenMPI_, configuration is
+almost automatic. If you don't already have a file `user-config.jam`
+in your home directory, copy `tools/build/v2/user-config.jam`
+there. For many users, MPI support can be enabled simply by adding the
+following line to your user-config.jam file, which is used to configure
+Boost.Build version 2. 
+
+  using mpi ;
+
+This should auto-detect MPI settings based on the MPI wrapper compiler in 
+your path, e.g., `mpic++`. If the wrapper compiler is not in your
+path, see below.
+
+To actually build the MPI library, go into the top-level Boost
+directory and execute the command:
+
+[pre
+bjam --with-mpi
+]
+
+If your MPI wrapper compiler has a different name from the default,
+you can pass the name of the wrapper compiler as the first argument to
+the mpi module:
+
+  using mpi : /opt/mpich2-1.0.4/bin/mpiCC ;
+
+If your MPI implementation does not have a wrapper compiler, or the MPI 
+auto-detection code does not work with your MPI's wrapper compiler,
+you can pass MPI-related options explicitly via the second parameter to the 
+`mpi` module:
+
+   using mpi : : <find-shared-library>lammpio <find-shared-library>lammpi++
+                 <find-shared-library>mpi <find-shared-library>lam 
+                 <find-shared-library>dl ;
+
+To see the results of MPI auto-detection, pass `--debug-configuration` on
+the bjam command line.
+
+The (optional) fourth argument configures Boost.MPI for running
+regression tests. These parameters specify the executable used to
+launch jobs (default: "mpirun") followed by any necessary arguments
+to this to run tests and tell the program to expect the number of
+processors to follow (default: "-np").  With the default parameters,
+for instance, the test harness will execute, e.g.,
+
+[pre  
+mpirun -np 4 all_gather_test
+]
+
+[endsect]
+
+[section:installation Installing and Using Boost.MPI]
+
+Installation of Boost.MPI can be performed in the build step by
+specifying `install` on the command line and (optionally) providing an
+installation location, e.g.,
+
+[pre
+bjam --with-mpi install
+]
+
+This command will install libraries into a default system location. To
+change the path where libraries will be installed, add the option
+`--prefix=PATH`.
+
+To build applications based on Boost.MPI, compile and link them as you
+normally would for MPI programs, but remember to link against the
+`boost_mpi` and `boost_serialization` libraries, e.g.,
+
+[pre
+mpic++ -I/path/to/boost/mpi my_application.cpp -Llibdir \
+  -lboost_mpi-gcc-mt-1_35 -lboost_serialization-gcc-d-1_35.a
+]
+[endsect]
+
+If you plan to use the [link mpi.python Python bindings] for
+Boost.MPI in conjunction with the C++ Boost.MPI, you will also need to
+link against the boost_mpi_python library, e.g., by adding
+`-lboost_mpi_python-gcc-mt-1_35` to your link command. This step will
+only be necessary if you intend to [link mpi.python_user_data
+register C++ types] or use the [link
+mpi.python_skeleton_content skeleton/content mechanism] from
+within Python.
+
+[section:testing Testing Boost.MPI] 
+
+If you would like to verify that Boost.MPI is working properly with
+your compiler, platform, and MPI implementation, a self-contained test
+suite is available. To use this test suite, you will need to first
+configure Boost.Build for your MPI environment and then run `bjam` in
+`libs/mpi/test` (possibly with some extra options). For 
+_LAM_, you will need to run `lamboot` before running `bjam`. For
+_MPICH_, you may need to create a machine file and pass
+`-sMPIRUN_FLAGS="-machinefile <filename>"` to Boost.Jam; see the
+section on [link mpi.config configuration] for more
+information. If testing succeeds, `bjam` will exit without errors.
+
+[endsect]
+
+[endsect]
+
+[section:tutorial Tutorial]
+
+A Boost.MPI program consists of many cooperating processes (possibly
+running on different computers) that communicate among themselves by
+passing messages. Boost.MPI is a library (as is the lower-level MPI),
+not a language, so the first step in a Boost.MPI is to create an
+[classref boost::mpi::environment mpi::environment] object
+that initializes the MPI environment and enables communication among
+the processes. The [classref boost::mpi::environment
+mpi::environment] object is initialized with the program arguments
+(which it may modify) in your main program. The creation of this
+object initializes MPI, and its destruction will finalize MPI. In the
+vast majority of Boost.MPI programs, an instance of [classref
+boost::mpi::environment mpi::environment] will be declared
+in `main` at the very beginning of the program.
+
+Communication with MPI always occurs over a *communicator*,
+which can be created be simply default-constructing an object of type
+[classref boost::mpi::communicator mpi::communicator]. This
+communicator can then be queried to determine how many processes are
+running (the "size" of the communicator) and to give a unique number
+to each process, from zero to the size of the communicator (i.e., the
+"rank" of the process):
+
+  #include <boost/mpi/environment.hpp>
+  #include <boost/mpi/communicator.hpp>
+  #include <iostream>
+  namespace mpi = boost::mpi;
+
+  int main() 
+  {
+    mpi::environment env;
+    mpi::communicator world;
+    std::cout << "I am process " << world.rank() << " of " << world.size()
+              << "." << std::endl;
+    return 0;
+  }
+
+If you run this program with 7 processes, for instance, you will
+receive output such as:
+
+[pre
+I am process 5 of 7.
+I am process 0 of 7.
+I am process 1 of 7.
+I am process 6 of 7.
+I am process 2 of 7.
+I am process 4 of 7.
+I am process 3 of 7.
+]
+
+Of course, the processes can execute in a different order each time,
+so the ranks might not be strictly increasing. More interestingly, the
+text could come out completely garbled, because one process can start
+writing "I am a process" before another process has finished writing
+"of 7.".
+
+If you should still have an MPI library supporting only MPI 1.1 you 
+will need to pass the command line arguments to the environment
+constructor as shown in this example:
+
+  #include <boost/mpi/environment.hpp>
+  #include <boost/mpi/communicator.hpp>
+  #include <iostream>
+  namespace mpi = boost::mpi;
+
+  int main(int argc, char* argv[]) 
+  {
+    mpi::environment env(argc, argv);
+    mpi::communicator world;
+    std::cout << "I am process " << world.rank() << " of " << world.size()
+              << "." << std::endl;
+    return 0;
+  }
+
+[section:point_to_point Point-to-Point communication]
+
+As a message passing library, MPI's primary purpose is to routine
+messages from one process to another, i.e., point-to-point. MPI
+contains routines that can send messages, receive messages, and query
+whether messages are available. Each message has a source process, a
+target process, a tag, and a payload containing arbitrary data. The
+source and target processes are the ranks of the sender and receiver
+of the message, respectively. Tags are integers that allow the
+receiver to distinguish between different messages coming from the
+same sender. 
+
+The following program uses two MPI processes to write "Hello, world!"
+to the screen (`hello_world.cpp`):
+
+  #include <boost/mpi.hpp>
+  #include <iostream>
+  #include <string>
+  #include <boost/serialization/string.hpp>
+  namespace mpi = boost::mpi;
+
+  int main() 
+  {
+    mpi::environment env;
+    mpi::communicator world;
+
+    if (world.rank() == 0) {
+      world.send(1, 0, std::string("Hello"));
+      std::string msg;
+      world.recv(1, 1, msg);
+      std::cout << msg << "!" << std::endl;
+    } else {
+      std::string msg;
+      world.recv(0, 0, msg);
+      std::cout << msg << ", ";
+      std::cout.flush();
+      world.send(0, 1, std::string("world"));
+    }
+
+    return 0;
+  }
+
+The first processor (rank 0) passes the message "Hello" to the second
+processor (rank 1) using tag 0. The second processor prints the string
+it receives, along with a comma, then passes the message "world" back
+to processor 0 with a different tag. The first processor then writes
+this message with the "!" and exits. All sends are accomplished with
+the [memberref boost::mpi::communicator::send
+communicator::send] method and all receives use a corresponding
+[memberref boost::mpi::communicator::recv
+communicator::recv] call.
+
+[section:nonblocking Non-blocking communication]
+
+The default MPI communication operations--`send` and `recv`--may have
+to wait until the entire transmission is completed before they can
+return. Sometimes this *blocking* behavior has a negative impact on
+performance, because the sender could be performing useful computation
+while it is waiting for the transmission to occur. More important,
+however, are the cases where several communication operations must
+occur simultaneously, e.g., a process will both send and receive at
+the same time.
+
+Let's revisit our "Hello, world!" program from the previous
+section. The core of this program transmits two messages:
+
+    if (world.rank() == 0) {
+      world.send(1, 0, std::string("Hello"));
+      std::string msg;
+      world.recv(1, 1, msg);
+      std::cout << msg << "!" << std::endl;
+    } else {
+      std::string msg;
+      world.recv(0, 0, msg);
+      std::cout << msg << ", ";
+      std::cout.flush();
+      world.send(0, 1, std::string("world"));
+    }
+
+The first process passes a message to the second process, then
+prepares to receive a message. The second process does the send and
+receive in the opposite order. However, this sequence of events is
+just that--a *sequence*--meaning that there is essentially no
+parallelism. We can use non-blocking communication to ensure that the
+two messages are transmitted simultaneously
+(`hello_world_nonblocking.cpp`): 
+
+  #include <boost/mpi.hpp>
+  #include <iostream>
+  #include <string>
+  #include <boost/serialization/string.hpp>
+  namespace mpi = boost::mpi;
+
+  int main() 
+  {
+    mpi::environment env;
+    mpi::communicator world;
+
+    if (world.rank() == 0) {
+      mpi::request reqs[2];
+      std::string msg, out_msg = "Hello";
+      reqs[0] = world.isend(1, 0, out_msg);
+      reqs[1] = world.irecv(1, 1, msg);
+      mpi::wait_all(reqs, reqs + 2);
+      std::cout << msg << "!" << std::endl;
+    } else {
+      mpi::request reqs[2];
+      std::string msg, out_msg = "world";
+      reqs[0] = world.isend(0, 1, out_msg);
+      reqs[1] = world.irecv(0, 0, msg);
+      mpi::wait_all(reqs, reqs + 2);
+      std::cout << msg << ", ";
+    }
+
+    return 0;
+  }
+
+We have replaced calls to the [memberref
+boost::mpi::communicator::send communicator::send] and
+[memberref boost::mpi::communicator::recv
+communicator::recv] members with similar calls to their non-blocking
+counterparts, [memberref boost::mpi::communicator::isend
+communicator::isend] and [memberref
+boost::mpi::communicator::irecv communicator::irecv]. The
+prefix *i* indicates that the operations return immediately with a
+[classref boost::mpi::request mpi::request] object, which
+allows one to query the status of a communication request (see the
+[memberref boost::mpi::request::test test] method) or wait
+until it has completed (see the [memberref
+boost::mpi::request::wait wait] method). Multiple requests
+can be completed at the same time with the [funcref
+boost::mpi::wait_all wait_all] operation. 
+
+If you run this program multiple times, you may see some strange
+results: namely, some runs will produce:
+
+  Hello, world!
+
+while others will produce:
+
+  world!
+  Hello,
+
+or even some garbled version of the letters in "Hello" and
+"world". This indicates that there is some parallelism in the program,
+because after both messages are (simultaneously) transmitted, both
+processes will concurrent execute their print statements. For both
+performance and correctness, non-blocking communication operations are
+critical to many parallel applications using MPI.
+
+[endsect]
+
+[section:user_data_types User-defined data types]
+
+The inclusion of `boost/serialization/string.hpp` in the previous
+examples is very important: it makes values of type `std::string`
+serializable, so that they can be be transmitted using Boost.MPI. In
+general, built-in C++ types (`int`s, `float`s, characters, etc.) can
+be transmitted over MPI directly, while user-defined and
+library-defined types will need to first be serialized (packed) into a
+format that is amenable to transmission. Boost.MPI relies on the
+_Serialization_ library to serialize and deserialize data types. 
+
+For types defined by the standard library (such as `std::string` or
+`std::vector`) and some types in Boost (such as `boost::variant`), the
+_Serialization_ library already contains all of the required
+serialization code. In these cases, you need only include the
+appropriate header from the `boost/serialization` directory. 
+
+For types that do not already have a serialization header, you will
+first need to implement serialization code before the types can be
+transmitted using Boost.MPI. Consider a simple class `gps_position`
+that contains members `degrees`, `minutes`, and `seconds`. This class
+is made serializable by making it a friend of
+`boost::serialization::access` and introducing the templated
+`serialize()` function, as follows:
+
+  class gps_position
+  {
+  private:
+      friend class boost::serialization::access;
+
+      template<class Archive>
+      void serialize(Archive & ar, const unsigned int version)
+      {
+          ar & degrees;
+          ar & minutes;
+          ar & seconds;
+      }
+
+      int degrees;
+      int minutes;
+      float seconds;
+  public:
+      gps_position(){};
+      gps_position(int d, int m, float s) :
+          degrees(d), minutes(m), seconds(s)
+      {}
+  };
+
+Complete information about making types serializable is beyond the
+scope of this tutorial. For more information, please see the
+_Serialization_ library tutorial from which the above example was
+extracted. One important side benefit of making types serializable for
+Boost.MPI is that they become serializable for any other usage, such
+as storing the objects to disk to manipulated them in XML.
+
+Some serializable types, like `gps_position` above, have a fixed
+amount of data stored at fixed field positions. When this is the case,
+Boost.MPI can optimize their serialization and transmission to avoid
+extraneous copy operations. To enable this optimization, users should
+specialize the type trait [classref
+boost::mpi::is_mpi_datatype `is_mpi_datatype`], e.g.:
+
+  namespace boost { namespace mpi {
+    template <>
+    struct is_mpi_datatype<gps_position> : mpl::true_ { };
+  } }
+
+For non-template types we have defined a macro to simplify declaring a type 
+as an MPI datatype
+
+  BOOST_IS_MPI_DATATYPE(gps_position)
+
+For composite traits, the specialization of [classref
+boost::mpi::is_mpi_datatype `is_mpi_datatype`] may depend on
+`is_mpi_datatype` itself. For instance, a `boost::array` object is
+fixed only when the type of the parameter it stores is fixed:
+
+  namespace boost { namespace mpi {
+    template <typename T, std::size_t N>
+    struct is_mpi_datatype<array<T, N> > 
+      : public is_mpi_datatype<T> { };
+  } }
+  
+The redundant copy elimination optimization can only be applied when
+the shape of the data type is completely fixed. Variable-length types
+(e.g., strings, linked lists) and types that store pointers cannot use
+the optimiation, but Boost.MPI will be unable to detect this error at
+compile time. Attempting to perform this optimization when it is not
+correct will likely result in segmentation faults and other strange
+program behavior.
+
+Boost.MPI can transmit any user-defined data type from one process to
+another. Built-in types can be transmitted without any extra effort;
+library-defined types require the inclusion of a serialization header;
+and user-defined types will require the addition of serialization
+code. Fixed data types can be optimized for transmission using the
+[classref boost::mpi::is_mpi_datatype `is_mpi_datatype`]
+type trait.
+
+[endsect]
+[endsect]
+
+[section:collectives Collective operations]
+
+[link mpi.point_to_point Point-to-point operations] are the
+core message passing primitives in Boost.MPI. However, many
+message-passing applications also require higher-level communication
+algorithms that combine or summarize the data stored on many different
+processes. These algorithms support many common tasks such as
+"broadcast this value to all processes", "compute the sum of the
+values on all processors" or "find the global minimum." 
+
+[section:broadcast Broadcast]
+The [funcref boost::mpi::broadcast `broadcast`] algorithm is
+by far the simplest collective operation. It broadcasts a value from a
+single process to all other processes within a [classref
+boost::mpi::communicator communicator]. For instance, the
+following program broadcasts "Hello, World!" from process 0 to every
+other process. (`hello_world_broadcast.cpp`)
+
+  #include <boost/mpi.hpp>
+  #include <iostream>
+  #include <string>
+  #include <boost/serialization/string.hpp>
+  namespace mpi = boost::mpi;
+
+  int main()
+  {
+    mpi::environment env;
+    mpi::communicator world;
+
+    std::string value;
+    if (world.rank() == 0) {
+      value = "Hello, World!";
+    }
+
+    broadcast(world, value, 0);
+
+    std::cout << "Process #" << world.rank() << " says " << value 
+              << std::endl;
+    return 0;
+  } 
+
+Running this program with seven processes will produce a result such
+as:
+
+[pre
+Process #0 says Hello, World!
+Process #2 says Hello, World!
+Process #1 says Hello, World!
+Process #4 says Hello, World!
+Process #3 says Hello, World!
+Process #5 says Hello, World!
+Process #6 says Hello, World!
+]
+[endsect]
+
+[section:gather Gather]
+The [funcref boost::mpi::gather `gather`] collective gathers
+the values produced by every process in a communicator into a vector
+of values on the "root" process (specified by an argument to
+`gather`). The /i/th element in the vector will correspond to the
+value gathered fro mthe /i/th process. For instance, in the following
+program each process computes its own random number. All of these
+random numbers are gathered at process 0 (the "root" in this case),
+which prints out the values that correspond to each processor. 
+(`random_gather.cpp`)
+
+  #include <boost/mpi.hpp>
+  #include <iostream>
+  #include <vector>
+  #include <cstdlib>
+  namespace mpi = boost::mpi;
+
+  int main()
+  {
+    mpi::environment env;
+    mpi::communicator world;
+
+    std::srand(time(0) + world.rank());
+    int my_number = std::rand();
+    if (world.rank() == 0) {
+      std::vector<int> all_numbers;
+      gather(world, my_number, all_numbers, 0);
+      for (int proc = 0; proc < world.size(); ++proc)
+        std::cout << "Process #" << proc << " thought of " 
+                  << all_numbers[proc] << std::endl;
+    } else {
+      gather(world, my_number, 0);
+    }
+
+    return 0;
+  } 
+
+Executing this program with seven processes will result in output such
+as the following. Although the random values will change from one run
+to the next, the order of the processes in the output will remain the
+same because only process 0 writes to `std::cout`.
+
+[pre
+Process #0 thought of 332199874
+Process #1 thought of 20145617
+Process #2 thought of 1862420122
+Process #3 thought of 480422940
+Process #4 thought of 1253380219
+Process #5 thought of 949458815
+Process #6 thought of 650073868
+]
+
+The `gather` operation collects values from every process into a
+vector at one process. If instead the values from every process need
+to be collected into identical vectors on every process, use the
+[funcref boost::mpi::all_gather `all_gather`] algorithm,
+which is semantically equivalent to calling `gather` followed by a
+`broadcast` of the resulting vector.
+
+[endsect]
+
+[section:reduce Reduce] 
+
+The [funcref boost::mpi::reduce `reduce`] collective
+summarizes the values from each process into a single value at the
+user-specified "root" process. The Boost.MPI `reduce` operation is
+similar in spirit to the STL _accumulate_ operation, because it takes
+a sequence of values (one per process) and combines them via a
+function object. For instance, we can randomly generate values in each
+process and the compute the minimum value over all processes via a
+call to [funcref boost::mpi::reduce `reduce`]
+(`random_min.cpp`):
+
+  #include <boost/mpi.hpp>
+  #include <iostream>
+  #include <cstdlib>
+  namespace mpi = boost::mpi;
+
+  int main()
+  {
+    mpi::environment env;
+    mpi::communicator world;
+
+    std::srand(time(0) + world.rank());
+    int my_number = std::rand();
+
+    if (world.rank() == 0) {
+      int minimum;
+      reduce(world, my_number, minimum, mpi::minimum<int>(), 0);
+      std::cout << "The minimum value is " << minimum << std::endl;
+    } else {
+      reduce(world, my_number, mpi::minimum<int>(), 0);
+    }
+
+    return 0;
+  }
+
+The use of `mpi::minimum<int>` indicates that the minimum value
+should be computed. `mpi::minimum<int>` is a binary function object
+that compares its two parameters via `<` and returns the smaller
+value. Any associative binary function or function object will
+work. For instance, to concatenate strings with `reduce` one could use
+the function object `std::plus<std::string>` (`string_cat.cpp`):
+
+  #include <boost/mpi.hpp>
+  #include <iostream>
+  #include <string>
+  #include <functional>
+  #include <boost/serialization/string.hpp>
+  namespace mpi = boost::mpi;
+
+  int main()
+  {
+    mpi::environment env;
+    mpi::communicator world;
+
+    std::string names[10] = { "zero ", "one ", "two ", "three ", 
+                              "four ", "five ", "six ", "seven ", 
+                              "eight ", "nine " };
+
+    std::string result;
+    reduce(world, 
+           world.rank() < 10? names[world.rank()] 
+                            : std::string("many "),
+           result, std::plus<std::string>(), 0);
+
+    if (world.rank() == 0)
+      std::cout << "The result is " << result << std::endl;
+
+    return 0;
+  } 
+
+In this example, we compute a string for each process and then perform
+a reduction that concatenates all of the strings together into one,
+long string. Executing this program with seven processors yields the
+following output:
+
+[pre
+The result is zero one two three four five six
+]
+
+Any kind of binary function objects can be used with `reduce`. For
+instance, and there are many such function objects in the C++ standard
+`<functional>` header and the Boost.MPI header
+`<boost/mpi/operations.hpp>`. Or, you can create your own
+function object. Function objects used with `reduce` must be
+associative, i.e. `f(x, f(y, z))` must be equivalent to `f(f(x, y),
+z)`. If they are also commutative (i..e, `f(x, y) == f(y, x)`),
+Boost.MPI can use a more efficient implementation of `reduce`. To
+state that a function object is commutative, you will need to
+specialize the class [classref boost::mpi::is_commutative
+`is_commutative`]. For instance, we could modify the previous example
+by telling Boost.MPI that string concatenation is commutative:
+
+  namespace boost { namespace mpi {
+
+    template<>
+    struct is_commutative<std::plus<std::string>, std::string> 
+      : mpl::true_ { };
+
+  } } // end namespace boost::mpi
+
+By adding this code prior to `main()`, Boost.MPI will assume that
+string concatenation is commutative and employ a different parallel
+algorithm for the `reduce` operation. Using this algorithm, the
+program outputs the following when run with seven processes:
+
+[pre
+The result is zero one four five six two three
+]
+
+Note how the numbers in the resulting string are in a different order:
+this is a direct result of Boost.MPI reordering operations. The result
+in this case differed from the non-commutative result because string
+concatenation is not commutative: `f("x", "y")` is not the same as
+`f("y", "x")`, because argument order matters. For truly commutative
+operations (e.g., integer addition), the more efficient commutative
+algorithm will produce the same result as the non-commutative
+algorithm. Boost.MPI also performs direct mappings from function
+objects in `<functional>` to `MPI_Op` values predefined by MPI (e.g.,
+`MPI_SUM`, `MPI_MAX`); if you have your own function objects that can
+take advantage of this mapping, see the class template [classref
+boost::mpi::is_mpi_op `is_mpi_op`].
+
+Like [link mpi.gather `gather`], `reduce` has an "all"
+variant called [funcref boost::mpi::all_reduce `all_reduce`]
+that performs the reduction operation and broadcasts the result to all
+processes. This variant is useful, for instance, in establishing
+global minimum or maximum values.
+
+The following code (`global_min.cpp`) shows a broadcasting version of 
+the `random_min.cpp` example:
+
+  #include <boost/mpi.hpp>
+  #include <iostream>
+  #include <cstdlib>
+  namespace mpi = boost::mpi;
+  
+  int main(int argc, char* argv[])
+  {
+    mpi::environment env(argc, argv);
+    mpi::communicator world;
+  
+    std::srand(world.rank());
+    int my_number = std::rand();
+    int minimum;
+  
+    all_reduce(world, my_number, minimum, mpi::minimum<int>());
+    
+    if (world.rank() == 0) {
+        std::cout << "The minimum value is " << minimum << std::endl;
+    }
+  
+    return 0;
+  }
+
+In that example we provide both input and output values, requiring
+twice as much space, which can be a problem depending on the size 
+of the transmitted data. 
+If there  is no need to preserve the input value, the ouput value 
+can be omitted. In that case the input value will be overriden with 
+the output value and Boost.MPI is able, in some situation, to implement
+the operation with a more space efficient solution (using the `MPI_IN_PLACE`
+flag of the MPI C mapping), as in the following example (`in_place_global_min.cpp`):
+
+  #include <boost/mpi.hpp>
+  #include <iostream>
+  #include <cstdlib>
+  namespace mpi = boost::mpi;
+  
+  int main(int argc, char* argv[])
+  {
+    mpi::environment env(argc, argv);
+    mpi::communicator world;
+  
+    std::srand(world.rank());
+    int my_number = std::rand();
+  
+    all_reduce(world, my_number, mpi::minimum<int>());
+    
+    if (world.rank() == 0) {
+        std::cout << "The minimum value is " << my_number << std::endl;
+    }
+  
+    return 0;
+  }
+
+
+[endsect]
+
+[endsect]
+
+[section:communicators Managing communicators]
+
+Communication with Boost.MPI always occurs over a communicator. A
+communicator contains a set of processes that can send messages among
+themselves and perform collective operations. There can be many
+communicators within a single program, each of which contains its own
+isolated communication space that acts independently of the other
+communicators. 
+
+When the MPI environment is initialized, only the "world" communicator
+(called `MPI_COMM_WORLD` in the MPI C and Fortran bindings) is
+available. The "world" communicator, accessed by default-constructing
+a [classref boost::mpi::communicator mpi::communicator]
+object, contains all of the MPI processes present when the program
+begins execution. Other communicators can then be constructed by
+duplicating or building subsets of the "world" communicator. For
+instance, in the following program we split the processes into two
+groups: one for processes generating data and the other for processes
+that will collect the data. (`generate_collect.cpp`)
+
+  #include <boost/mpi.hpp>
+  #include <iostream>
+  #include <cstdlib>
+  #include <boost/serialization/vector.hpp>
+  namespace mpi = boost::mpi;
+
+  enum message_tags {msg_data_packet, msg_broadcast_data, msg_finished};
+
+  void generate_data(mpi::communicator local, mpi::communicator world);
+  void collect_data(mpi::communicator local, mpi::communicator world);
+
+  int main()
+  {
+    mpi::environment env;
+    mpi::communicator world;
+
+    bool is_generator = world.rank() < 2 * world.size() / 3;
+    mpi::communicator local = world.split(is_generator? 0 : 1);
+    if (is_generator) generate_data(local, world);
+    else collect_data(local, world);
+
+    return 0;
+  }
+
+When communicators are split in this way, their processes retain
+membership in both the original communicator (which is not altered by
+the split) and the new communicator. However, the ranks of the
+processes may be different from one communicator to the next, because
+the rank values within a communicator are always contiguous values
+starting at zero. In the example above, the first two thirds of the
+processes become "generators" and the remaining processes become
+"collectors". The ranks of the "collectors" in the `world`
+communicator will be 2/3 `world.size()` and greater, whereas the ranks
+of the same collector processes in the `local` communicator will start
+at zero. The following excerpt from `collect_data()` (in
+`generate_collect.cpp`) illustrates how to manage multiple
+communicators:
+
+  mpi::status msg = world.probe();
+  if (msg.tag() == msg_data_packet) {
+    // Receive the packet of data
+    std::vector<int> data;
+    world.recv(msg.source(), msg.tag(), data);
+
+    // Tell each of the collectors that we'll be broadcasting some data
+    for (int dest = 1; dest < local.size(); ++dest)
+      local.send(dest, msg_broadcast_data, msg.source());
+
+    // Broadcast the actual data.
+    broadcast(local, data, 0);
+  }
+
+The code in this except is executed by the "master" collector, e.g.,
+the node with rank 2/3 `world.size()` in the `world` communicator and
+rank 0 in the `local` (collector) communicator. It receives a message
+from a generator via the `world` communicator, then broadcasts the
+message to each of the collectors via the `local` communicator.
+
+For more control in the creation of communicators for subgroups of
+processes, the Boost.MPI [classref boost::mpi::group `group`] provides
+facilities to compute the union (`|`), intersection (`&`), and
+difference (`-`) of two groups, generate arbitrary subgroups, etc.
+
+[endsect]
+
+[section:skeleton_and_content Separating structure from content]
+
+When communicating data types over MPI that are not fundamental to MPI
+(such as strings, lists, and user-defined data types), Boost.MPI must
+first serialize these data types into a buffer and then communicate
+them; the receiver then copies the results into a buffer before
+deserializing into an object on the other end. For some data types,
+this overhead can be eliminated by using [classref
+boost::mpi::is_mpi_datatype `is_mpi_datatype`]. However,
+variable-length data types such as strings and lists cannot be MPI
+data types. 
+
+Boost.MPI supports a second technique for improving performance by
+separating the structure of these variable-length data structures from
+the content stored in the data structures. This feature is only
+beneficial when the shape of the data structure remains the same but
+the content of the data structure will need to be communicated several
+times. For instance, in a finite element analysis the structure of the
+mesh may be fixed at the beginning of computation but the various
+variables on the cells of the mesh (temperature, stress, etc.) will be
+communicated many times within the iterative analysis process. In this
+case, Boost.MPI allows one to first send the "skeleton" of the mesh
+once, then transmit the "content" multiple times. Since the content
+need not contain any information about the structure of the data type,
+it can be transmitted without creating separate communication buffers.
+
+To illustrate the use of skeletons and content, we will take a
+somewhat more limited example wherein a master process generates
+random number sequences into a list and transmits them to several
+slave processes. The length of the list will be fixed at program
+startup, so the content of the list (i.e., the current sequence of
+numbers) can be transmitted efficiently. The complete example is
+available in `example/random_content.cpp`. We being with the master
+process (rank 0), which builds a list, communicates its structure via
+a [funcref boost::mpi::skeleton `skeleton`], then repeatedly
+generates random number sequences to be broadcast to the slave
+processes via [classref boost::mpi::content `content`]:
+
+  
+    // Generate the list and broadcast its structure
+    std::list<int> l(list_len);
+    broadcast(world, mpi::skeleton(l), 0);
+
+    // Generate content several times and broadcast out that content
+    mpi::content c = mpi::get_content(l);
+    for (int i = 0; i < iterations; ++i) {
+      // Generate new random values
+      std::generate(l.begin(), l.end(), &random);
+
+      // Broadcast the new content of l
+      broadcast(world, c, 0);
+    }
+
+    // Notify the slaves that we're done by sending all zeroes
+    std::fill(l.begin(), l.end(), 0);
+    broadcast(world, c, 0);
+
+
+The slave processes have a very similar structure to the master. They
+receive (via the [funcref boost::mpi::broadcast
+`broadcast()`] call) the skeleton of the data structure, then use it
+to build their own lists of integers. In each iteration, they receive
+via another `broadcast()` the new content in the data structure and
+compute some property of the data:
+
+
+    // Receive the content and build up our own list
+    std::list<int> l;
+    broadcast(world, mpi::skeleton(l), 0);
+
+    mpi::content c = mpi::get_content(l);
+    int i = 0;
+    do {
+      broadcast(world, c, 0);
+
+      if (std::find_if
+           (l.begin(), l.end(),
+            std::bind1st(std::not_equal_to<int>(), 0)) == l.end())
+        break;
+
+      // Compute some property of the data.
+
+      ++i;
+    } while (true);
+
+
+The skeletons and content of any Serializable data type can be
+transmitted either via the [memberref
+boost::mpi::communicator::send `send`] and [memberref
+boost::mpi::communicator::recv `recv`] members of the
+[classref boost::mpi::communicator `communicator`] class
+(for point-to-point communicators) or broadcast via the [funcref
+boost::mpi::broadcast `broadcast()`] collective. When
+separating a data structure into a skeleton and content, be careful
+not to modify the data structure (either on the sender side or the
+receiver side) without transmitting the skeleton again. Boost.MPI can
+not detect these accidental modifications to the data structure, which
+will likely result in incorrect data being transmitted or unstable
+programs. 
+
+[endsect]
+
+
+
+
+[section:performance_optimizations Performance optimizations]
+[section:serialization_optimizations Serialization optimizations]
+
+To obtain optimal performance for small fixed-length data types not containing
+any pointers it is very important to mark them using the type traits of
+Boost.MPI and Boost.Serialization. 
+
+It was alredy discussed that fixed length types containing no pointers can be 
+using as [classref
+boost::mpi::is_mpi_datatype `is_mpi_datatype`], e.g.:
+
+  namespace boost { namespace mpi {
+    template <>
+    struct is_mpi_datatype<gps_position> : mpl::true_ { };
+  } }
+
+or the equivalent macro 
+
+  BOOST_IS_MPI_DATATYPE(gps_position)
+  
+In addition it can give a substantial performance gain to turn off tracking
+and versioning for these types, if no pointers to these types are used, by
+using the traits classes or helper macros of Boost.Serialization:
+
+  BOOST_CLASS_TRACKING(gps_position,track_never)
+  BOOST_CLASS_IMPLEMENTATION(gps_position,object_serializable)
+
+[endsect]
+  
+[section:homogeneous_machines Homogeneous machines]
+
+More optimizations are possible on homogeneous machines, by avoiding
+MPI_Pack/MPI_Unpack calls but using direct bitwise copy. This feature can be
+enabled by defining the macro BOOST_MPI_HOMOGENEOUS when building Boost.MPI and
+when building the application.
+
+In addition all classes need to be marked both as is_mpi_datatype and
+as is_bitwise_serializable, by using the helper macro of Boost.Serialization:
+
+  BOOST_IS_BITWISE_SERIALIZABLE(gps_position)
+
+Usually it is safe to serialize a class for which is_mpi_datatype is true 
+by using binary copy of the bits. The exception are classes for which
+some members should be skipped for serialization.
+
+[endsect]
+[endsect]
+
+
+[section:c_mapping Mapping from C MPI to Boost.MPI]
+
+This section provides tables that map from the functions and constants
+of the standard C MPI to their Boost.MPI equivalents. It will be most
+useful for users that are already familiar with the C or Fortran
+interfaces to MPI, or for porting existing parallel programs to Boost.MPI.
+
+[table Point-to-point communication
+  [[C Function/Constant] [Boost.MPI Equivalent]]
+
+  [[`MPI_ANY_SOURCE`] [`any_source`]]
+
+  [[`MPI_ANY_TAG`] [`any_tag`]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node40.html#Node40
+`MPI_Bsend`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node51.html#Node51
+`MPI_Bsend_init`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node42.html#Node42
+`MPI_Buffer_attach`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node42.html#Node42
+`MPI_Buffer_detach`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node50.html#Node50
+`MPI_Cancel`]] 
+   [[memberref boost::mpi::request::cancel
+`request::cancel`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node35.html#Node35
+`MPI_Get_count`]] 
+   [[memberref boost::mpi::status::count `status::count`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node46.html#Node46
+`MPI_Ibsend`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node50.html#Node50
+`MPI_Iprobe`]]
+   [[memberref boost::mpi::communicator::iprobe `communicator::iprobe`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node46.html#Node46
+`MPI_Irsend`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node46.html#Node46
+`MPI_Isend`]] 
+   [[memberref boost::mpi::communicator::isend
+`communicator::isend`]]] 
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node46.html#Node46
+`MPI_Issend`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node46.html#Node46
+`MPI_Irecv`]] 
+   [[memberref boost::mpi::communicator::isend
+`communicator::irecv`]]] 
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node50.html#Node50
+`MPI_Probe`]]
+   [[memberref boost::mpi::communicator::probe `communicator::probe`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node53.html#Node53
+`MPI_PROC_NULL`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node34.html#Node34 `MPI_Recv`]]
+   [[memberref boost::mpi::communicator::recv
+`communicator::recv`]]] 
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node51.html#Node51
+`MPI_Recv_init`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node47.html#Node47
+`MPI_Request_free`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node40.html#Node40
+`MPI_Rsend`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node51.html#Node51
+`MPI_Rsend_init`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node31.html#Node31
+`MPI_Send`]]
+   [[memberref boost::mpi::communicator::send
+`communicator::send`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node52.html#Node52
+`MPI_Sendrecv`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node52.html#Node52
+`MPI_Sendrecv_replace`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node51.html#Node51
+`MPI_Send_init`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node40.html#Node40
+`MPI_Ssend`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node51.html#Node51
+`MPI_Ssend_init`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node51.html#Node51
+`MPI_Start`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node51.html#Node51
+`MPI_Startall`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node47.html#Node47
+`MPI_Test`]] [[memberref boost::mpi::request::wait `request::test`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node47.html#Node47
+`MPI_Testall`]] [[funcref boost::mpi::test_all `test_all`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node47.html#Node47
+`MPI_Testany`]] [[funcref boost::mpi::test_any `test_any`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node47.html#Node47
+`MPI_Testsome`]] [[funcref boost::mpi::test_some `test_some`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node50.html#Node50
+`MPI_Test_cancelled`]] 
+   [[memberref boost::mpi::status::cancelled
+`status::cancelled`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node47.html#Node47
+`MPI_Wait`]] [[memberref boost::mpi::request::wait
+`request::wait`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node47.html#Node47
+`MPI_Waitall`]] [[funcref boost::mpi::wait_all `wait_all`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node47.html#Node47
+`MPI_Waitany`]] [[funcref boost::mpi::wait_any `wait_any`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node47.html#Node47
+`MPI_Waitsome`]] [[funcref boost::mpi::wait_some `wait_some`]]]
+]
+
+Boost.MPI automatically maps C and C++ data types to their MPI
+equivalents. The following table illustrates the mappings between C++
+types and MPI datatype constants.
+
+[table Datatypes
+  [[C Constant] [Boost.MPI Equivalent]]
+
+  [[`MPI_CHAR`] [`signed char`]]
+  [[`MPI_SHORT`] [`signed short int`]]
+  [[`MPI_INT`] [`signed int`]]
+  [[`MPI_LONG`] [`signed long int`]]
+  [[`MPI_UNSIGNED_CHAR`] [`unsigned char`]]
+  [[`MPI_UNSIGNED_SHORT`] [`unsigned short int`]]
+  [[`MPI_UNSIGNED_INT`] [`unsigned int`]]
+  [[`MPI_UNSIGNED_LONG`] [`unsigned long int`]]
+  [[`MPI_FLOAT`] [`float`]]
+  [[`MPI_DOUBLE`] [`double`]]
+  [[`MPI_LONG_DOUBLE`] [`long double`]]
+  [[`MPI_BYTE`] [unused]]
+  [[`MPI_PACKED`] [used internally for [link
+mpi.user_data_types serialized data types]]]
+  [[`MPI_LONG_LONG_INT`] [`long long int`, if supported by compiler]]
+  [[`MPI_UNSIGNED_LONG_LONG_INT`] [`unsigned long long int`, if
+supported by compiler]]
+  [[`MPI_FLOAT_INT`] [`std::pair<float, int>`]]
+  [[`MPI_DOUBLE_INT`] [`std::pair<double, int>`]]
+  [[`MPI_LONG_INT`] [`std::pair<long, int>`]]
+  [[`MPI_2INT`] [`std::pair<int, int>`]]
+  [[`MPI_SHORT_INT`] [`std::pair<short, int>`]]
+  [[`MPI_LONG_DOUBLE_INT`] [`std::pair<long double, int>`]]
+]
+
+Boost.MPI does not provide direct wrappers to the MPI derived
+datatypes functionality. Instead, Boost.MPI relies on the
+_Serialization_ library to construct MPI datatypes for user-defined
+classe. The section on [link mpi.user_data_types user-defined
+data types] describes this mechanism, which is used for types that
+marked as "MPI datatypes" using [classref
+boost::mpi::is_mpi_datatype `is_mpi_datatype`].
+
+The derived datatypes table that follows describes which C++ types
+correspond to the functionality of the C MPI's datatype
+constructor. Boost.MPI may not actually use the C MPI function listed
+when building datatypes of a certain form. Since the actual datatypes
+built by Boost.MPI are typically hidden from the user, many of these
+operations are called internally by Boost.MPI.
+
+[table Derived datatypes
+  [[C Function/Constant] [Boost.MPI Equivalent]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node56.html#Node56
+`MPI_Address`]] [used automatically in Boost.MPI for MPI version 1.x]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-20-html/node76.htm#Node76
+`MPI_Get_address`]] [used automatically in Boost.MPI for MPI version 2.0 and higher]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node58.html#Node58
+`MPI_Type_commit`]] [used automatically in Boost.MPI]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node55.html#Node55
+`MPI_Type_contiguous`]] [arrays]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node56.html#Node56
+`MPI_Type_extent`]] [used automatically in Boost.MPI]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node58.html#Node58
+`MPI_Type_free`]] [used automatically in Boost.MPI]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node55.html#Node55
+`MPI_Type_hindexed`]] [any type used as a subobject]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node55.html#Node55
+`MPI_Type_hvector`]] [unused]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node55.html#Node55
+`MPI_Type_indexed`]] [any type used as a subobject]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node57.html#Node57
+`MPI_Type_lb`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node56.html#Node56
+`MPI_Type_size`]] [used automatically in Boost.MPI]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node55.html#Node55
+`MPI_Type_struct`]] [user-defined classes and structs with MPI 1.x]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-20-html/node76.htm#Node76
+`MPI_Type_create_struct`]] [user-defined classes and structs with MPI 2.0 and higher]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node57.html#Node57
+`MPI_Type_ub`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node55.html#Node55
+`MPI_Type_vector`]] [used automatically in Boost.MPI]]
+]
+
+MPI's packing facilities store values into a contiguous buffer, which
+can later be transmitted via MPI and unpacked into separate values via
+MPI's unpacking facilities. As with datatypes, Boost.MPI provides an
+abstract interface to MPI's packing and unpacking facilities. In
+particular, the two archive classes [classref
+boost::mpi::packed_oarchive `packed_oarchive`] and [classref
+boost::mpi::packed_iarchive `packed_iarchive`] can be used
+to pack or unpack a contiguous buffer using MPI's facilities.
+
+[table Packing and unpacking
+  [[C Function] [Boost.MPI Equivalent]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node62.html#Node62
+`MPI_Pack`]] [[classref
+boost::mpi::packed_oarchive `packed_oarchive`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node62.html#Node62
+`MPI_Pack_size`]] [used internally by Boost.MPI]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node62.html#Node62
+`MPI_Unpack`]] [[classref
+boost::mpi::packed_iarchive `packed_iarchive`]]]
+]
+
+Boost.MPI supports a one-to-one mapping for most of the MPI
+collectives. For each collective provided by Boost.MPI, the underlying
+C MPI collective will be invoked when it is possible (and efficient)
+to do so.
+
+[table Collectives
+  [[C Function] [Boost.MPI Equivalent]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node73.html#Node73
+`MPI_Allgather`]] [[funcref boost::mpi::all_gather `all_gather`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node73.html#Node73
+`MPI_Allgatherv`]] [most uses supported by [funcref boost::mpi::all_gather `all_gather`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node82.html#Node82
+`MPI_Allreduce`]] [[funcref boost::mpi::all_reduce `all_reduce`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node75.html#Node75
+`MPI_Alltoall`]] [[funcref boost::mpi::all_to_all `all_to_all`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node75.html#Node75
+`MPI_Alltoallv`]] [most uses supported by [funcref boost::mpi::all_to_all `all_to_all`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node66.html#Node66
+`MPI_Barrier`]] [[memberref
+boost::mpi::communicator::barrier `communicator::barrier`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node67.html#Node67
+`MPI_Bcast`]] [[funcref boost::mpi::broadcast `broadcast`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node69.html#Node69
+`MPI_Gather`]] [[funcref boost::mpi::gather `gather`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node69.html#Node69
+`MPI_Gatherv`]] [most uses supported by [funcref boost::mpi::gather `gather`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node77.html#Node77
+`MPI_Reduce`]] [[funcref boost::mpi::reduce `reduce`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node83.html#Node83
+`MPI_Reduce_scatter`]] [unsupported]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node84.html#Node84
+`MPI_Scan`]] [[funcref boost::mpi::scan `scan`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node71.html#Node71
+`MPI_Scatter`]] [[funcref boost::mpi::scatter `scatter`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node71.html#Node71
+`MPI_Scatterv`]] [most uses supported by [funcref boost::mpi::scatter `scatter`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-20-html/node145.htm#Node145
+`MPI_IN_PLACE`]] [supported implicitly by [funcref boost::mpi::all_reduce 
+`all_reduce` by omiting the ouput value]]]
+]
+
+Boost.MPI uses function objects to specify how reductions should occur
+in its equivalents to `MPI_Allreduce`, `MPI_Reduce`, and
+`MPI_Scan`. The following table illustrates how
+[@http://www.mpi-forum.org/docs/mpi-11-html/node78.html#Node78
+predefined] and
+[@http://www.mpi-forum.org/docs/mpi-11-html/node80.html#Node80
+user-defined] reduction operations can be mapped between the C MPI and
+Boost.MPI.
+
+[table Reduction operations
+  [[C Constant] [Boost.MPI Equivalent]]
+
+  [[`MPI_BAND`] [[classref boost::mpi::bitwise_and `bitwise_and`]]]
+  [[`MPI_BOR`] [[classref boost::mpi::bitwise_or `bitwise_or`]]]
+  [[`MPI_BXOR`] [[classref boost::mpi::bitwise_xor `bitwise_xor`]]]
+  [[`MPI_LAND`] [`std::logical_and`]]
+  [[`MPI_LOR`] [`std::logical_or`]]
+  [[`MPI_LXOR`] [[classref boost::mpi::logical_xor `logical_xor`]]]
+  [[`MPI_MAX`] [[classref boost::mpi::maximum `maximum`]]]
+  [[`MPI_MAXLOC`] [unsupported]]
+  [[`MPI_MIN`] [[classref boost::mpi::minimum `minimum`]]]
+  [[`MPI_MINLOC`] [unsupported]]
+  [[`MPI_Op_create`] [used internally by Boost.MPI]]
+  [[`MPI_Op_free`] [used internally by Boost.MPI]]
+  [[`MPI_PROD`] [`std::multiplies`]]
+  [[`MPI_SUM`] [`std::plus`]]
+]
+
+MPI defines several special communicators, including `MPI_COMM_WORLD`
+(including all processes that the local process can communicate with),
+`MPI_COMM_SELF` (including only the local process), and
+`MPI_COMM_EMPTY` (including no processes). These special communicators
+are all instances of the [classref boost::mpi::communicator
+`communicator`] class in Boost.MPI.
+
+[table Predefined communicators
+  [[C Constant] [Boost.MPI Equivalent]]
+
+  [[`MPI_COMM_WORLD`] [a default-constructed [classref boost::mpi::communicator `communicator`]]]
+  [[`MPI_COMM_SELF`] [a [classref boost::mpi::communicator `communicator`] that contains only the current process]]
+  [[`MPI_COMM_EMPTY`] [a [classref boost::mpi::communicator `communicator`] that evaluates false]]
+]
+
+Boost.MPI supports groups of processes through its [classref
+boost::mpi::group `group`] class.
+
+[table Group operations and constants
+  [[C Function/Constant] [Boost.MPI Equivalent]]
+
+  [[`MPI_GROUP_EMPTY`] [a default-constructed [classref
+  boost::mpi::group `group`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node97.html#Node97
+  `MPI_Group_size`]] [[memberref boost::mpi::group::size `group::size`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node97.html#Node97
+  `MPI_Group_rank`]] [memberref boost::mpi::group::rank `group::rank`]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node97.html#Node97
+  `MPI_Group_translate_ranks`]] [memberref boost::mpi::group::translate_ranks `group::translate_ranks`]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node97.html#Node97
+  `MPI_Group_compare`]] [operators `==` and `!=`]]
+  [[`MPI_IDENT`] [operators `==` and `!=`]]
+  [[`MPI_SIMILAR`] [operators `==` and `!=`]]
+  [[`MPI_UNEQUAL`] [operators `==` and `!=`]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node98.html#Node98
+  `MPI_Comm_group`]] [[memberref
+  boost::mpi::communicator::group `communicator::group`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node98.html#Node98
+  `MPI_Group_union`]] [operator `|` for groups]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node98.html#Node98
+  `MPI_Group_intersection`]] [operator `&` for groups]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node98.html#Node98
+  `MPI_Group_difference`]] [operator `-` for groups]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node98.html#Node98
+  `MPI_Group_incl`]] [[memberref boost::mpi::group::include `group::include`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node98.html#Node98
+  `MPI_Group_excl`]] [[memberref boost::mpi::group::include `group::exclude`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node98.html#Node98
+  `MPI_Group_range_incl`]] [unsupported]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node98.html#Node98
+  `MPI_Group_range_excl`]] [unsupported]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node99.html#Node99
+  `MPI_Group_free`]] [used automatically in Boost.MPI]]
+]
+
+Boost.MPI provides manipulation of communicators through the [classref
+boost::mpi::communicator `communicator`] class.
+
+[table Communicator operations
+  [[C Function] [Boost.MPI Equivalent]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node101.html#Node101
+  `MPI_Comm_size`]] [[memberref boost::mpi::communicator::size `communicator::size`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node101.html#Node101
+  `MPI_Comm_rank`]] [[memberref boost::mpi::communicator::rank
+  `communicator::rank`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node101.html#Node101
+  `MPI_Comm_compare`]] [operators `==` and `!=`]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node102.html#Node102
+  `MPI_Comm_dup`]] [[classref boost::mpi::communicator `communicator`]
+  class constructor using `comm_duplicate`]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node102.html#Node102
+  `MPI_Comm_create`]] [[classref boost::mpi::communicator
+  `communicator`] constructor]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node102.html#Node102
+  `MPI_Comm_split`]] [[memberref boost::mpi::communicator::split
+  `communicator::split`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node103.html#Node103
+  `MPI_Comm_free`]] [used automatically in Boost.MPI]]
+]
+
+Boost.MPI currently provides support for inter-communicators via the
+[classref boost::mpi::intercommunicator `intercommunicator`] class.
+
+[table Inter-communicator operations
+  [[C Function] [Boost.MPI Equivalent]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node112.html#Node112
+  `MPI_Comm_test_inter`]] [use [memberref boost::mpi::communicator::as_intercommunicator `communicator::as_intercommunicator`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node112.html#Node112
+  `MPI_Comm_remote_size`]] [[memberref boost::mpi::intercommunicator::remote_size] `intercommunicator::remote_size`]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node112.html#Node112
+  `MPI_Comm_remote_group`]] [[memberref boost::mpi::intercommunicator::remote_group `intercommunicator::remote_group`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node113.html#Node113
+  `MPI_Intercomm_create`]] [[classref boost::mpi::intercommunicator `intercommunicator`] constructor]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node113.html#Node113
+  `MPI_Intercomm_merge`]] [[memberref boost::mpi::intercommunicator::merge `intercommunicator::merge`]]]
+]
+
+Boost.MPI currently provides no support for attribute caching.
+
+[table Attributes and caching
+ [[C Function/Constant] [Boost.MPI Equivalent]]
+
+ [[`MPI_NULL_COPY_FN`] [unsupported]]
+ [[`MPI_NULL_DELETE_FN`] [unsupported]]
+ [[`MPI_KEYVAL_INVALID`] [unsupported]]
+ [[[@http://www.mpi-forum.org/docs/mpi-11-html/node119.html#Node119
+ `MPI_Keyval_create`]] [unsupported]]
+ [[[@http://www.mpi-forum.org/docs/mpi-11-html/node119.html#Node119
+ `MPI_Copy_function`]] [unsupported]]
+ [[[@http://www.mpi-forum.org/docs/mpi-11-html/node119.html#Node119
+ `MPI_Delete_function`]] [unsupported]]
+ [[[@http://www.mpi-forum.org/docs/mpi-11-html/node119.html#Node119
+ `MPI_Keyval_free`]] [unsupported]]
+ [[[@http://www.mpi-forum.org/docs/mpi-11-html/node119.html#Node119
+ `MPI_Attr_put`]] [unsupported]]
+ [[[@http://www.mpi-forum.org/docs/mpi-11-html/node119.html#Node119
+ `MPI_Attr_get`]] [unsupported]]
+ [[[@http://www.mpi-forum.org/docs/mpi-11-html/node119.html#Node119
+ `MPI_Attr_delete`]] [unsupported]]
+]
+
+Boost.MPI will provide complete support for creating communicators
+with different topologies and later querying those topologies. Support
+for graph topologies is provided via an interface to the
+[@http://www.boost.org/libs/graph/doc/index.html Boost Graph Library
+(BGL)], where a communicator can be created which matches the
+structure of any BGL graph, and the graph topology of a communicator
+can be viewed as a BGL graph for use in existing, generic graph
+algorithms.
+
+[table Process topologies
+  [[C Function/Constant] [Boost.MPI Equivalent]]
+  
+  [[`MPI_GRAPH`] [unnecessary; use [memberref boost::mpi::communicator::has_graph_topology `communicator::has_graph_topology`]]]
+  [[`MPI_CART`] [unnecessary; use [memberref boost::mpi::communicator::has_cartesian_topology `communicator::has_cartesian_topology`]]]
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node133.html#Node133
+  `MPI_Cart_create`]] [unsupported]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node134.html#Node134
+  `MPI_Dims_create`]] [unsupported]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node135.html#Node135
+  `MPI_Graph_create`]] [[memberref
+  boost::mpi::communicator::with_graph_topology
+  `communicator::with_graph_topology`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node136.html#Node136
+  `MPI_Topo_test`]] [[memberref
+  boost::mpi::communicator::has_graph_topology
+  `communicator::has_graph_topology`], [memberref
+  boost::mpi::communicator::has_cartesian_topology
+  `communicator::has_cartesian_topology`]]] 
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node136.html#Node136
+  `MPI_Graphdims_get`]] [[funcref boost::mpi::num_vertices
+  `num_vertices`], [funcref boost::mpi::num_edges `num_edges`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node136.html#Node136
+  `MPI_Graph_get`]] [[funcref boost::mpi::vertices
+  `vertices`], [funcref boost::mpi::edges `edges`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node136.html#Node136
+  `MPI_Cartdim_get`]] [unsupported]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node136.html#Node136
+  `MPI_Cart_get`]] [unsupported]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node136.html#Node136
+  `MPI_Cart_rank`]] [unsupported]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node136.html#Node136
+  `MPI_Cart_coords`]] [unsupported]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node136.html#Node136
+  `MPI_Graph_neighbors_count`]] [[funcref boost::mpi::out_degree
+  `out_degree`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node136.html#Node136
+  `MPI_Graph_neighbors`]] [[funcref boost::mpi::out_edges
+  `out_edges`], [funcref boost::mpi::adjacent_vertices `adjacent_vertices`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node137.html#Node137
+  `MPI_Cart_shift`]] [unsupported]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node138.html#Node138
+  `MPI_Cart_sub`]] [unsupported]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node139.html#Node139
+  `MPI_Cart_map`]] [unsupported]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node139.html#Node139
+  `MPI_Graph_map`]] [unsupported]]
+]
+
+Boost.MPI supports environmental inquires through the [classref
+boost::mpi::environment `environment`] class.
+
+[table Environmental inquiries
+  [[C Function/Constant] [Boost.MPI Equivalent]]
+
+  [[`MPI_TAG_UB`] [unnecessary; use [memberref
+  boost::mpi::environment::max_tag `environment::max_tag`]]]
+  [[`MPI_HOST`] [unnecessary; use [memberref
+  boost::mpi::environment::host_rank `environment::host_rank`]]]
+  [[`MPI_IO`] [unnecessary; use [memberref
+  boost::mpi::environment::io_rank `environment::io_rank`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node143.html#Node147
+  `MPI_Get_processor_name`]] 
+  [[memberref boost::mpi::environment::processor_name
+  `environment::processor_name`]]]
+]
+
+Boost.MPI translates MPI errors into exceptions, reported via the
+[classref boost::mpi::exception `exception`] class.
+
+[table Error handling
+  [[C Function/Constant] [Boost.MPI Equivalent]]
+
+  [[`MPI_ERRORS_ARE_FATAL`] [unused; errors are translated into
+  Boost.MPI exceptions]]
+  [[`MPI_ERRORS_RETURN`] [unused; errors are translated into
+  Boost.MPI exceptions]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node148.html#Node148
+  `MPI_errhandler_create`]] [unused; errors are translated into
+  Boost.MPI exceptions]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node148.html#Node148
+  `MPI_errhandler_set`]] [unused; errors are translated into
+  Boost.MPI exceptions]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node148.html#Node148
+  `MPI_errhandler_get`]] [unused; errors are translated into
+  Boost.MPI exceptions]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node148.html#Node148
+  `MPI_errhandler_free`]] [unused; errors are translated into
+  Boost.MPI exceptions]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node148.html#Node148
+  `MPI_Error_string`]] [used internally by Boost.MPI]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node149.html#Node149
+  `MPI_Error_class`]] [[memberref boost::mpi::exception::error_class `exception::error_class`]]]
+]
+
+The MPI timing facilities are exposed via the Boost.MPI [classref
+boost::mpi::timer `timer`] class, which provides an interface
+compatible with the [@http://www.boost.org/libs/timer/index.html Boost
+Timer library].
+
+[table Timing facilities
+  [[C Function/Constant] [Boost.MPI Equivalent]]
+
+  [[`MPI_WTIME_IS_GLOBAL`] [unnecessary; use [memberref
+  boost::mpi::timer::time_is_global `timer::time_is_global`]]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node150.html#Node150
+  `MPI_Wtime`]] [use [memberref boost::mpi::timer::elapsed
+  `timer::elapsed`] to determine the time elapsed from some specific
+  starting point]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node150.html#Node150
+  `MPI_Wtick`]] [[memberref boost::mpi::timer::elapsed_min `timer::elapsed_min`]]]
+]
+
+MPI startup and shutdown are managed by the construction and
+descruction of the Boost.MPI [classref boost::mpi::environment
+`environment`] class.
+
+[table Startup/shutdown facilities
+  [[C Function] [Boost.MPI Equivalent]]       
+
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node151.html#Node151
+  `MPI_Init`]] [[classref boost::mpi::environment `environment`]
+  constructor]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node151.html#Node151
+  `MPI_Finalize`]] [[classref boost::mpi::environment `environment`]
+  destructor]]
+ [[[@http://www.mpi-forum.org/docs/mpi-11-html/node151.html#Node151
+  `MPI_Initialized`]] [[memberref boost::mpi::environment::initialized
+  `environment::initialized`]]] 
+ [[[@http://www.mpi-forum.org/docs/mpi-11-html/node151.html#Node151
+  `MPI_Abort`]] [[memberref boost::mpi::environment::abort
+  `environment::abort`]]] 
+]
+
+Boost.MPI does not provide any support for the profiling facilities in
+MPI 1.1. 
+
+[table Profiling interface
+  [[C Function] [Boost.MPI Equivalent]]
+  
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node153.html#Node153
+  `PMPI_*` routines]] [unsupported]]
+  [[[@http://www.mpi-forum.org/docs/mpi-11-html/node156.html#Node156
+  `MPI_Pcontrol`]] [unsupported]]
+]
+
+[endsect]
+
+[endsect]
+
+[xinclude mpi_autodoc.xml]
+
+[section:python Python Bindings]
+[python]
+
+Boost.MPI provides an alternative MPI interface from the _Python_
+programming language via the `boost.mpi` module. The
+Boost.MPI Python bindings, built on top of the C++ Boost.MPI using the
+_BoostPython_ library, provide nearly all of the functionality of
+Boost.MPI within a dynamic, object-oriented language.
+
+The Boost.MPI Python module can be built and installed from the
+`libs/mpi/build` directory. Just follow the [link
+mpi.config configuration] and [link mpi.installation
+installation] instructions for the C++ Boost.MPI. Once you have
+installed the Python module, be sure that the installation location is
+in your `PYTHONPATH`.
+
+[section:python_quickstart Quickstart]
+
+[python]
+
+Getting started with the Boost.MPI Python module is as easy as
+importing `boost.mpi`. Our first "Hello, World!" program is
+just two lines long:
+
+  import boost.mpi as mpi
+  print "I am process %d of %d." % (mpi.rank, mpi.size)
+
+Go ahead and run this program with several processes. Be sure to
+invoke the `python` interpreter from `mpirun`, e.g., 
+  
+[pre
+mpirun -np 5 python hello_world.py
+]
+
+This will return output such as:
+
+[pre
+I am process 1 of 5.
+I am process 3 of 5.
+I am process 2 of 5.
+I am process 4 of 5.
+I am process 0 of 5.
+]
+
+Point-to-point operations in Boost.MPI have nearly the same syntax in
+Python as in C++. We can write a simple two-process Python program
+that prints "Hello, world!" by transmitting Python strings:
+
+  import boost.mpi as mpi
+
+  if mpi.world.rank == 0:
+    mpi.world.send(1, 0, 'Hello')
+    msg = mpi.world.recv(1, 1)
+    print msg,'!'
+  else:
+    msg = mpi.world.recv(0, 0)
+    print (msg + ', '),
+    mpi.world.send(0, 1, 'world')
+
+There are only a few notable differences between this Python code and
+the example [link mpi.point_to_point in the C++
+tutorial]. First of all, we don't need to write any initialization
+code in Python: just loading the `boost.mpi` module makes the
+appropriate `MPI_Init` and `MPI_Finalize` calls. Second, we're passing
+Python objects from one process to another through MPI. Any Python
+object that can be pickled can be transmitted; the next section will
+describe in more detail how the Boost.MPI Python layer transmits
+objects. Finally, when we receive objects with `recv`, we don't need
+to specify the type because transmission of Python objects is
+polymorphic. 
+
+When experimenting with Boost.MPI in Python, don't forget that help is
+always available via `pydoc`: just pass the name of the module or
+module entity on the command line (e.g., `pydoc
+boost.mpi.communicator`) to receive complete reference
+documentation. When in doubt, try it!
+[endsect]
+
+[section:python_user_data Transmitting User-Defined Data]
+Boost.MPI can transmit user-defined data in several different ways.
+Most importantly, it can transmit arbitrary _Python_ objects by pickling
+them at the sender and unpickling them at the receiver, allowing
+arbitrarily complex Python data structures to interoperate with MPI.
+
+Boost.MPI also supports efficient serialization and transmission of
+C++ objects (that have been exposed to Python) through its C++
+interface. Any C++ type that provides (de-)serialization routines that
+meet the requirements of the Boost.Serialization library is eligible
+for this optimization, but the type must be registered in advance. To
+register a C++ type, invoke the C++ function [funcref
+boost::mpi::python::register_serialized
+register_serialized]. If your C++ types come from other Python modules
+(they probably will!), those modules will need to link against the
+`boost_mpi` and `boost_mpi_python` libraries as described in the [link
+mpi.installation installation section]. Note that you do
+*not* need to link against the Boost.MPI Python extension module.
+
+Finally, Boost.MPI supports separation of the structure of an object
+from the data it stores, allowing the two pieces to be transmitted
+separately. This "skeleton/content" mechanism, described in more
+detail in a later section, is a communication optimization suitable
+for problems with fixed data structures whose internal data changes
+frequently.
+[endsect]
+
+[section:python_collectives Collectives]
+
+Boost.MPI supports all of the MPI collectives (`scatter`, `reduce`,
+`scan`, `broadcast`, etc.) for any type of data that can be
+transmitted with the point-to-point communication operations. For the
+MPI collectives that require a user-specified operation (e.g., `reduce`
+and `scan`), the operation can be an arbitrary Python function. For
+instance, one could concatenate strings with `all_reduce`:
+
+  mpi.all_reduce(my_string, lambda x,y: x + y)
+
+The following module-level functions implement MPI collectives:
+  all_gather    Gather the values from all processes.
+  all_reduce    Combine the results from all processes.
+  all_to_all    Every process sends data to every other process.
+  broadcast     Broadcast data from one process to all other processes.
+  gather        Gather the values from all processes to the root.
+  reduce        Combine the results from all processes to the root.
+  scan          Prefix reduction of the values from all processes.
+  scatter       Scatter the values stored at the root to all processes.
+[endsect]
+
+[section:python_skeleton_content Skeleton/Content Mechanism]
+Boost.MPI provides a skeleton/content mechanism that allows the
+transfer of large data structures to be split into two separate stages,
+with the skeleton (or, "shape") of the data structure sent first and
+the content (or, "data") of the data structure sent later, potentially
+several times, so long as the structure has not changed since the
+skeleton was transferred. The skeleton/content mechanism can improve
+performance when the data structure is large and its shape is fixed,
+because while the skeleton requires serialization (it has an unknown
+size), the content transfer is fixed-size and can be done without
+extra copies.
+
+To use the skeleton/content mechanism from Python, you must first
+register the type of your data structure with the skeleton/content
+mechanism *from C++*. The registration function is [funcref
+boost::mpi::python::register_skeleton_and_content
+register_skeleton_and_content] and resides in the [headerref
+boost/mpi/python.hpp <boost/mpi/python.hpp>] header.
+
+Once you have registered your C++ data structures, you can extract
+the skeleton for an instance of that data structure with `skeleton()`.
+The resulting `skeleton_proxy` can be transmitted via the normal send
+routine, e.g.,
+
+  mpi.world.send(1, 0, skeleton(my_data_structure))
+
+`skeleton_proxy` objects can be received on the other end via `recv()`,
+which stores a newly-created instance of your data structure with the
+same "shape" as the sender in its `"object"` attribute:
+
+  shape = mpi.world.recv(0, 0)
+  my_data_structure = shape.object
+
+Once the skeleton has been transmitted, the content (accessed via 
+`get_content`) can be transmitted in much the same way. Note, however,
+that the receiver also specifies `get_content(my_data_structure)` in its
+call to receive:
+
+  if mpi.rank == 0:
+    mpi.world.send(1, 0, get_content(my_data_structure))
+  else:
+    mpi.world.recv(0, 0, get_content(my_data_structure))
+
+Of course, this transmission of content can occur repeatedly, if the
+values in the data structure--but not its shape--changes.
+
+The skeleton/content mechanism is a structured way to exploit the
+interaction between custom-built MPI datatypes and `MPI_BOTTOM`, to
+eliminate extra buffer copies.
+
+[section:python_compatbility C++/Python MPI Compatibility]
+Boost.MPI is a C++ library whose facilities have been exposed to Python
+via the Boost.Python library. Since the Boost.MPI Python bindings are
+build directly on top of the C++ library, and nearly every feature of
+C++ library is available in Python, hybrid C++/Python programs using
+Boost.MPI can interact, e.g., sending a value from Python but receiving
+that value in C++ (or vice versa). However, doing so requires some
+care. Because Python objects are dynamically typed, Boost.MPI transfers
+type information along with the serialized form of the object, so that
+the object can be received even when its type is not known. This
+mechanism differs from its C++ counterpart, where the static types of
+transmitted values are always known.
+
+The only way to communicate between the C++ and Python views on
+Boost.MPI is to traffic entirely in Python objects. For Python, this
+is the normal state of affairs, so nothing will change. For C++, this
+means sending and receiving values of type `boost::python::object`,
+from the _BoostPython_ library. For instance, say we want to transmit
+an integer value from Python:
+
+  comm.send(1, 0, 17)
+
+In C++, we would receive that value into a Python object and then
+`extract` an integer value:
+
+[c++]
+
+  boost::python::object value;
+  comm.recv(0, 0, value);
+  int int_value = boost::python::extract<int>(value);
+
+In the future, Boost.MPI will be extended to allow improved
+interoperability with the C++ Boost.MPI and the C MPI bindings.
+[endsect]
+
+[section:pythonref Reference]
+The Boost.MPI Python module, `boost.mpi`, has its own
+[@boost.mpi.html reference documentation], which is also
+available using `pydoc` (from the command line) or
+`help(boost.mpi)` (from the Python interpreter).
+
+[endsect]
+
+[endsect]
+
+[section:design Design Philosophy]
+
+The design philosophy of the Parallel MPI library is very simple: be
+both convenient and efficient. MPI is a library built for
+high-performance applications, but it's FORTRAN-centric,
+performance-minded design makes it rather inflexible from the C++
+point of view: passing a string from one process to another is
+inconvenient, requiring several messages and explicit buffering;
+passing a container of strings from one process to another requires
+an extra level of manual bookkeeping; and passing a map from strings
+to containers of strings is positively infuriating. The Parallel MPI
+library allows all of these data types to be passed using the same
+simple `send()` and `recv()` primitives. Likewise, collective
+operations such as [funcref boost::mpi::reduce `reduce()`]
+allow arbitrary data types and function objects, much like the C++
+Standard Library would. 
+
+The higher-level abstractions provided for convenience must not have
+an impact on the performance of the application. For instance, sending
+an integer via `send` must be as efficient as a call to `MPI_Send`,
+which means that it must be implemented by a simple call to
+`MPI_Send`; likewise, an integer [funcref boost::mpi::reduce
+`reduce()`] using `std::plus<int>` must be implemented with a call to
+`MPI_Reduce` on integers using the `MPI_SUM` operation: anything less
+will impact performance. In essence, this is the "don't pay for what
+you don't use" principle: if the user is not transmitting strings,
+s/he should not pay the overhead associated with strings. 
+
+Sometimes, achieving maximal performance means foregoing convenient
+abstractions and implementing certain functionality using lower-level
+primitives. For this reason, it is always possible to extract enough
+information from the abstractions in Boost.MPI to minimize
+the amount of effort required to interface between Boost.MPI
+and the C MPI library.
+[endsect]
+
+[section:threading Threads]
+
+There are an increasing number of hybrid parrallel applications that mix
+distributed and shared memory parallelism. To know how to support that model,
+one need to know what level of threading support is guaranteed by the MPI 
+implementation. There are 4 ordered level of possible threading support described
+by [classref boost::mpi::threading::level mpi::threading::level].
+At the lowest level, you should not use threads at all, at the highest level, any 
+thread can perform MPI call.
+
+If you want to use multi-threading in your MPI application, you should indicate 
+in the environment constructor your preffered threading support. Then probe the
+one the librarie did provide, and decide what you can do with it (it could be 
+nothing, then aborting is a valid option):
+
+  #include <boost/mpi/environment.hpp>
+  #include <boost/mpi/communicator.hpp>
+  #include <iostream>
+  namespace mpi = boost::mpi;
+  namespace mt  = mpi::threading;
+
+  int main() 
+  {
+    mpi::environment env(mt::funneled);
+    if (env.thread_level() < mt::funneled) {
+       env.abort(-1);
+    }
+    mpi::communicator world;
+    std::cout << "I am process " << world.rank() << " of " << world.size()
+              << "." << std::endl;
+    return 0;
+  }
+
+
+[endsect]
+
+[section:performance Performance Evaluation]
+
+Message-passing performance is crucial in high-performance distributed
+computing. To evaluate the performance of Boost.MPI, we modified the
+standard [@http://www.scl.ameslab.gov/netpipe/ NetPIPE] benchmark
+(version 3.6.2) to use Boost.MPI and compared its performance against
+raw MPI. We ran five different variants of the NetPIPE benchmark:
+
+# MPI: The unmodified NetPIPE benchmark.
+
+# Boost.MPI: NetPIPE modified to use Boost.MPI calls for
+  communication.
+
+# MPI (Datatypes): NetPIPE modified to use a derived datatype (which
+  itself contains a single `MPI_BYTE`) rathan than a fundamental
+  datatype.
+
+# Boost.MPI (Datatypes): NetPIPE modified to use a user-defined type
+  `Char` in place of the fundamental `char` type. The `Char` type
+  contains a single `char`, a `serialize()` method to make it
+  serializable, and specializes [classref
+  boost::mpi::is_mpi_datatype is_mpi_datatype] to force
+  Boost.MPI to build a derived MPI data type for it.
+
+# Boost.MPI (Serialized): NetPIPE modified to use a user-defined type
+  `Char` in place of the fundamental `char` type. This `Char` type
+  contains a single `char` and is serializable. Unlike the Datatypes
+  case, [classref boost::mpi::is_mpi_datatype
+  is_mpi_datatype] is *not* specialized, forcing Boost.MPI to perform
+  many, many serialization calls.
+
+The actual tests were performed on the Odin cluster in the
+[@http://www.cs.indiana.edu/ Department of Computer Science] at
+[@http://www.iub.edu Indiana University], which contains 128 nodes
+connected via Infiniband. Each node contains 4GB memory and two AMD
+Opteron processors. The NetPIPE benchmarks were compiled with Intel's
+C++ Compiler, version 9.0, Boost 1.35.0 (prerelease), and
+[@http://www.open-mpi.org/ Open MPI] version 1.1. The NetPIPE results
+follow:
+
+[$../../libs/mpi/doc/netpipe.png]
+
+There are a some observations we can make about these NetPIPE
+results. First of all, the top two plots show that Boost.MPI performs
+on par with MPI for fundamental types. The next two plots show that
+Boost.MPI performs on par with MPI for derived data types, even though
+Boost.MPI provides a much more abstract, completely transparent
+approach to building derived data types than raw MPI. Overall
+performance for derived data types is significantly worse than for
+fundamental data types, but the bottleneck is in the underlying MPI
+implementation itself. Finally, when forcing Boost.MPI to serialize
+characters individually, performance suffers greatly. This particular
+instance is the worst possible case for Boost.MPI, because we are
+serializing millions of individual characters.  Overall, the
+additional abstraction provided by Boost.MPI does not impair its
+performance.
+
+[endsect]
+
+[section:history Revision History]
+
+* *Boost 1.36.0*: 
+  * Support for non-blocking operations in Python, from Andreas Klöckner
+
+* *Boost 1.35.0*: Initial release, containing the following post-review changes 
+  * Support for arrays in all collective operations
+  * Support default-construction of [classref boost::mpi::environment environment]
+    
+* *2006-09-21*: Boost.MPI accepted into Boost.
+
+[endsect]
+
+[section:acknowledge Acknowledgments]
+Boost.MPI was developed with support from Zurcher Kantonalbank. Daniel
+Egloff and Michael Gauckler contributed many ideas to Boost.MPI's
+design, particularly in the design of its abstractions for
+MPI data types and the novel skeleton/context mechanism for large data
+structures. Prabhanjan (Anju) Kambadur developed the predecessor to
+Boost.MPI that proved the usefulness of the Serialization library in
+an MPI setting and the performance benefits of specialization in a C++
+abstraction layer for MPI. Jeremy Siek managed the formal review of Boost.MPI.
+
+[endsect]

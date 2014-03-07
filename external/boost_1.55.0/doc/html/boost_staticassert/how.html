@@ -1,0 +1,68 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>How it works</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_staticassert.html" title="Chapter&#160;29.&#160;Boost.StaticAssert">
+<link rel="prev" href="../boost_staticassert.html" title="Chapter&#160;29.&#160;Boost.StaticAssert">
+<link rel="next" href="test.html" title="Test Programs">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost_staticassert.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_staticassert.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="test.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_staticassert.how"></a>How it works</h2></div></div></div>
+<p>
+      <code class="computeroutput"><span class="identifier">BOOST_STATIC_ASSERT</span></code> works as
+      follows. There is class <code class="computeroutput"><span class="identifier">STATIC_ASSERTION_FAILURE</span></code>
+      which is defined as:
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span> <span class="keyword">struct</span> <span class="identifier">STATIC_ASSERTION_FAILURE</span><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span> <span class="keyword">struct</span> <span class="identifier">STATIC_ASSERTION_FAILURE</span><span class="special">&lt;</span><span class="keyword">true</span><span class="special">&gt;{};</span>
+
+<span class="special">}</span>
+</pre>
+<p>
+      The key feature is that the error message triggered by the undefined expression
+      <code class="computeroutput"><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">STATIC_ASSERTION_FAILURE</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;)</span></code>, tends
+      to be consistent across a wide variety of compilers. The rest of the machinery
+      of <code class="computeroutput"><span class="identifier">BOOST_STATIC_ASSERT</span></code> is just
+      a way to feed the <code class="computeroutput"><span class="keyword">sizeof</span></code> expression
+      into a <code class="computeroutput"><span class="keyword">typedef</span></code>. The use of a macro
+      here is somewhat ugly; however boost members have spent considerable effort
+      trying to invent a static assert that avoided macros, all to no avail. The
+      general conclusion was that the good of a static assert working at namespace,
+      function, and class scope outweighed the ugliness of a macro.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000, 2005 Steve Cleary and John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../boost_staticassert.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_staticassert.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="test.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Frequently Asked Questions</title>
+<link rel="stylesheet" href="../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="index.html" title="Boost Test Library">
+<link rel="up" href="intro.html" title="Introduction">
+<link rel="prev" href="intro.html" title="Introduction">
+<link rel="next" href="open-issues.html" title="Open issues">
+<script language="JavaScript1.2" src="../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="intro.html">Introduction</a><a href="execution-monitor.html">
+      &gt;
+      </a><b>FAQ</b><a href="intro.html#btl.portability">
+      &gt;
+      </a>
+</td>
+<td><div class="spirit-nav">
+<a href="intro.html"><img src="../../../../doc/html/images/prev.png" alt="Prev"></a><a href="open-issues.html"><img src="../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="btl.faq"></a>Frequently Asked Questions</h3></div></div></div>
+<div class="qandaset">
+<dl>
+<dt> <a href="faq.html#id641632">
+     Where the latest version of the Boost Test Library is located?
+    </a>
+</dt>
+<dt> <a href="faq.html#id641658">
+     I found a bug. Where can I report it?
+    </a>
+</dt>
+<dt> <a href="faq.html#id641686">
+     I have a request for a new feature. Where can I ask for it?
+    </a>
+</dt>
+<dt> <a href="faq.html#id641714">
+     How to create test case using the Unit Test Framework?
+    </a>
+</dt>
+<dt> <a href="faq.html#id641746">
+     How to create test suite using the Unit Test Framework?
+    </a>
+</dt>
+<dt> <a href="faq.html#id641781">
+     Why did I get a linker error when compiling my test program?
+    </a>
+</dt>
+<dt> <a href="faq.html#id641857">
+     How can I redirect testing output?
+    </a>
+</dt>
+<dt> <a href="faq.html#id641893">
+     I want different default log trace level
+    </a>
+</dt>
+<dt> <a href="faq.html#id641929">
+     Is there DLL version of Boost.Test components available on Win32 platform?
+    </a>
+</dt>
+</dl>
+<table border="0" summary="Q and A Set">
+<col align="left" width="1%">
+<tbody>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id641632"></a><a name="id641634"></a>
+</td>
+<td align="left" valign="top"><b><p>
+     Where the latest version of the Boost Test Library is located?
+    </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p class="first-line-indented">
+     The latest version of Boost Test Library is available online at <a href="http://www.boost.org/libs/test" target="_top">http://www.boost.org/libs/test</a>
+    </p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id641658"></a><a name="id641660"></a>
+</td>
+<td align="left" valign="top"><b><p>
+     I found a bug. Where can I report it?
+    </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p class="first-line-indented">
+     You can send a bug report to the boost users' mailing list and/or directly to
+     <a href="mailto:boost-test%20-at-%20emailacocunt%20-dot-%20com" target="_top">Gennadiy Rozental</a>.
+    </p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id641686"></a><a name="id641688"></a>
+</td>
+<td align="left" valign="top"><b><p>
+     I have a request for a new feature. Where can I ask for it?
+    </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p class="first-line-indented">
+     You can send a request to the boost developers' mailing list and/or directly to
+     <a href="mailto:boost-test%20-at-%20emailacocunt%20-dot-%20com" target="_top">Gennadiy Rozental</a>.
+    </p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id641714"></a><a name="id641716"></a>
+</td>
+<td align="left" valign="top"><b><p>
+     How to create test case using the Unit Test Framework?
+    </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p class="first-line-indented">
+     To create a test case use the macro BOOST_AUTO_TEST_CASE( test_function ). For more details see the Unit Test Framework
+     <a class="link" href="utf/user-guide/test-organization/auto-nullary-test-case.html" title="Nullary function based test case with automated registration">documentation</a>.
+    </p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id641746"></a><a name="id641748"></a>
+</td>
+<td align="left" valign="top"><b><p>
+     How to create test suite using the Unit Test Framework?
+    </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p class="first-line-indented">
+     To create a test suite use the macro BOOST_AUTO_TEST_SUITE( suite_name ). For more details see the Unit Test Framework
+     <a class="link" href="utf/user-guide/test-organization/auto-test-suite.html" title="Test suites with automated registration">documentation</a>.
+    </p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id641781"></a><a name="id641783"></a>
+</td>
+<td align="left" valign="top"><b><p>
+     Why did I get a linker error when compiling my test program?
+    </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top">
+<p class="first-line-indented">
+     Boost Test Library components provide several usage variants: to create a test program you can
+     link with the one of the precompiled library variants or use single-header variant. For example, to use Unit Test
+     Framework you may either include the &lt;<a href="../../../../boost/test/unit_test.hpp" target="_top"><code class="filename">boost/test/unit_test.hpp</code></a>&gt;
+     and link with libunit_test_framework.lib or you can include &lt;<a href="../../../../boost/test/included/unit_test.hpp" target="_top"><code class="filename">boost/test/included/unit_test.hpp</code></a>&gt;
+     , in which case you should not need to link with any precompiled component. Note also that
+     you should strictly follow specification on initialization function in other case some compilers may produce linker
+     error like this.
+    </p>
+<code class="computeroutput">Unresolved external init_unit_test_suite(int, char**).</code><p class="first-line-indented">
+     The reason for this error is that in your implementation you should specify second argument of
+     init_unit_test_suite exactly as in the specification, i.e.: char* [].
+    </p>
+</td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id641857"></a><a name="id641859"></a>
+</td>
+<td align="left" valign="top"><b><p>
+     How can I redirect testing output?
+    </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p class="first-line-indented">
+     Use unit_test_log::instance().set_log_output( std::ostream&amp; ). For more details see the Unit Test Framework 
+     <a class="link" href="utf/user-guide/test-output/log-ct-config.html#utf.user-guide.test-output.log.ct-config.output-stream" title="Log output stream redirection">documentation</a>.
+    </p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id641893"></a><a name="id641895"></a>
+</td>
+<td align="left" valign="top"><b><p>
+     I want different default log trace level
+    </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p class="first-line-indented">
+     Use environment variable BOOST_TEST_LOG_LEVEL to define desired log trace level. You still will be able to reset 
+     this value from the command line. For the list of acceptable values see the Unit Test Framework 
+     <a class="link" href="utf/user-guide/runtime-config/reference.html#utf.user-guide.runtime-config.parameters">documentation</a>.
+    </p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id641929"></a><a name="id641931"></a>
+</td>
+<td align="left" valign="top"><b><p>
+     Is there DLL version of Boost.Test components available on Win32 platform?
+    </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p class="first-line-indented">
+     Yes. Starting with Boost 1.34.0.
+    </p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="intro.html"><img src="../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="intro.html"><img src="../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="open-issues.html"><img src="../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

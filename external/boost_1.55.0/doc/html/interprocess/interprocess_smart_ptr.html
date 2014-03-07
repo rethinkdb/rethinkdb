@@ -1,0 +1,802 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Ownership smart pointers</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../interprocess.html" title="Chapter&#160;14.&#160;Boost.Interprocess">
+<link rel="prev" href="streams.html" title="Direct iostream formatting: vectorstream and bufferstream">
+<link rel="next" href="architecture.html" title="Architecture and internals">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="streams.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="architecture.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="interprocess.interprocess_smart_ptr"></a><a class="link" href="interprocess_smart_ptr.html" title="Ownership smart pointers">Ownership smart pointers</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="interprocess_smart_ptr.html#interprocess.interprocess_smart_ptr.intrusive_ptr">Intrusive
+      pointer</a></span></dt>
+<dt><span class="section"><a href="interprocess_smart_ptr.html#interprocess.interprocess_smart_ptr.scoped_ptr">Scoped
+      pointer</a></span></dt>
+<dt><span class="section"><a href="interprocess_smart_ptr.html#interprocess.interprocess_smart_ptr.shared_ptr">Shared
+      pointer and weak pointer</a></span></dt>
+<dt><span class="section"><a href="interprocess_smart_ptr.html#interprocess.interprocess_smart_ptr.unique_ptr">Unique
+      pointer</a></span></dt>
+</dl></div>
+<p>
+      C++ users know the importance of ownership smart pointers when dealing with
+      resources. Boost offers a wide range of such type of pointers: <code class="computeroutput"><span class="identifier">intrusive_ptr</span><span class="special">&lt;&gt;</span></code>,
+      <code class="computeroutput"><span class="identifier">scoped_ptr</span><span class="special">&lt;&gt;</span></code>,
+      <code class="computeroutput"><span class="identifier">shared_ptr</span><span class="special">&lt;&gt;</span></code>...
+    </p>
+<p>
+      When building complex shared memory/memory mapped files structures, programmers
+      would like to use also the advantages of these smart pointers. The problem
+      is that Boost and C++ TR1 smart pointers are not ready to be used for shared
+      memory. The cause is that those smart pointers contain raw pointers and they
+      use virtual functions, something that is not possible if you want to place
+      your data in shared memory. The virtual function limitation makes even impossible
+      to achieve the same level of functionality of Boost and TR1 with <span class="bold"><strong>Boost.Interprocess</strong></span> smart pointers.
+    </p>
+<p>
+      Interprocess ownership smart pointers are mainly "smart pointers containing
+      smart pointers", so we can specify the pointer type they contain.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.interprocess_smart_ptr.intrusive_ptr"></a><a class="link" href="interprocess_smart_ptr.html#interprocess.interprocess_smart_ptr.intrusive_ptr" title="Intrusive pointer">Intrusive
+      pointer</a>
+</h3></div></div></div>
+<p>
+        <code class="computeroutput"><a class="link" href="../boost/interprocess/intrusive_ptr.html" title="Class template intrusive_ptr">boost::interprocess::intrusive_ptr</a></code>
+        is the generalization of <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive_ptr</span><span class="special">&lt;&gt;</span></code> to allow non-raw pointers as intrusive
+        pointer members. As the well-known <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive_ptr</span></code>
+        we must specify the pointee type but we also must also specify the pointer
+        type to be stored in the intrusive_ptr:
+      </p>
+<pre class="programlisting"><span class="comment">//!The intrusive_ptr class template stores a pointer to an object</span>
+<span class="comment">//!with an embedded reference count. intrusive_ptr is parameterized on</span>
+<span class="comment">//!T (the type of the object pointed to) and VoidPointer(a void pointer type</span>
+<span class="comment">//!that defines the type of pointer that intrusive_ptr will store).</span>
+<span class="comment">//!intrusive_ptr&lt;T, void *&gt; defines a class with a T* member whereas</span>
+<span class="comment">//!intrusive_ptr&lt;T, offset_ptr&lt;void&gt; &gt; defines a class with a offset_ptr&lt;T&gt; member.</span>
+<span class="comment">//!Relies on unqualified calls to:</span>
+<span class="comment">//!</span>
+<span class="comment">//!void intrusive_ptr_add_ref(T * p);</span>
+<span class="comment">//!void intrusive_ptr_release(T * p);</span>
+<span class="comment">//!</span>
+<span class="comment">//!with (p != 0)</span>
+<span class="comment">//!</span>
+<span class="comment">//!The object is responsible for destroying itself.</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">VoidPointer</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">intrusive_ptr</span><span class="special">;</span>
+</pre>
+<p>
+        So <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">intrusive_ptr</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">,</span> <span class="keyword">void</span><span class="special">*&gt;</span></code>
+        is equivalent to <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive_ptr</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;</span></code>.
+        But if we want to place the intrusive_ptr in shared memory we must specify
+        a relative pointer type like <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">intrusive_ptr</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span>
+        <span class="special">&gt;</span></code>
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">managed_shared_memory</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">smart_ptr</span><span class="special">/</span><span class="identifier">intrusive_ptr</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">N</span> <span class="special">{</span>
+
+<span class="comment">//A class that has an internal reference count</span>
+<span class="keyword">class</span> <span class="identifier">reference_counted_class</span>
+<span class="special">{</span>
+   <span class="keyword">private</span><span class="special">:</span>
+   <span class="comment">//Non-copyable</span>
+   <span class="identifier">reference_counted_class</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">reference_counted_class</span>  <span class="special">&amp;);</span>
+   <span class="comment">//Non-assignable</span>
+   <span class="identifier">reference_counted_class</span> <span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">reference_counted_class</span> <span class="special">&amp;);</span>
+   <span class="comment">//A typedef to save typing</span>
+   <span class="keyword">typedef</span> <span class="identifier">managed_shared_memory</span><span class="special">::</span><span class="identifier">segment_manager</span> <span class="identifier">segment_manager</span><span class="special">;</span>
+   <span class="comment">//This is the reference count</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">m_use_count</span><span class="special">;</span>
+   <span class="comment">//The segment manager allows deletion from shared memory segment</span>
+   <span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="identifier">segment_manager</span><span class="special">&gt;</span> <span class="identifier">mp_segment_manager</span><span class="special">;</span>
+
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="comment">//Constructor</span>
+   <span class="identifier">reference_counted_class</span><span class="special">(</span><span class="identifier">segment_manager</span> <span class="special">*</span><span class="identifier">s_mngr</span><span class="special">)</span>
+   <span class="special">:</span> <span class="identifier">m_use_count</span><span class="special">(</span><span class="number">0</span><span class="special">),</span> <span class="identifier">mp_segment_manager</span><span class="special">(</span><span class="identifier">s_mngr</span><span class="special">){}</span>
+   <span class="comment">//Destructor</span>
+   <span class="special">~</span><span class="identifier">reference_counted_class</span><span class="special">(){}</span>
+
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="comment">//Returns the reference count</span>
+   <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">use_count</span><span class="special">()</span> <span class="keyword">const</span>
+   <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">m_use_count</span><span class="special">;</span>   <span class="special">}</span>
+
+   <span class="comment">//Adds a reference</span>
+   <span class="keyword">inline</span> <span class="keyword">friend</span> <span class="keyword">void</span> <span class="identifier">intrusive_ptr_add_ref</span><span class="special">(</span><span class="identifier">reference_counted_class</span> <span class="special">*</span> <span class="identifier">p</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="special">++</span><span class="identifier">p</span><span class="special">-&gt;</span><span class="identifier">m_use_count</span><span class="special">;</span> <span class="special">}</span>
+
+   <span class="comment">//Releases a reference</span>
+   <span class="keyword">inline</span> <span class="keyword">friend</span> <span class="keyword">void</span> <span class="identifier">intrusive_ptr_release</span><span class="special">(</span><span class="identifier">reference_counted_class</span> <span class="special">*</span> <span class="identifier">p</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="keyword">if</span><span class="special">(--</span><span class="identifier">p</span><span class="special">-&gt;</span><span class="identifier">m_use_count</span> <span class="special">==</span> <span class="number">0</span><span class="special">)</span>  <span class="identifier">p</span><span class="special">-&gt;</span><span class="identifier">mp_segment_manager</span><span class="special">-&gt;</span><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="identifier">p</span><span class="special">);</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="special">}</span>  <span class="comment">//namespace N {</span>
+
+<span class="comment">//A class that has an intrusive pointer to reference_counted_class</span>
+<span class="keyword">class</span> <span class="identifier">intrusive_ptr_owner</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="identifier">intrusive_ptr</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">::</span><span class="identifier">reference_counted_class</span><span class="special">,</span>
+                           <span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">intrusive_ptr_t</span><span class="special">;</span>
+   <span class="identifier">intrusive_ptr_t</span> <span class="identifier">m_intrusive_ptr</span><span class="special">;</span>
+
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="comment">//Takes a pointer to the reference counted class</span>
+   <span class="identifier">intrusive_ptr_owner</span><span class="special">(</span><span class="identifier">N</span><span class="special">::</span><span class="identifier">reference_counted_class</span> <span class="special">*</span><span class="identifier">ptr</span><span class="special">)</span>
+      <span class="special">:</span> <span class="identifier">m_intrusive_ptr</span><span class="special">(</span><span class="identifier">ptr</span><span class="special">){}</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="comment">//Remove shared memory on construction and destruction</span>
+   <span class="keyword">struct</span> <span class="identifier">shm_remove</span>
+   <span class="special">{</span>
+      <span class="identifier">shm_remove</span><span class="special">()</span> <span class="special">{</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+      <span class="special">~</span><span class="identifier">shm_remove</span><span class="special">(){</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+   <span class="special">}</span> <span class="identifier">remover</span><span class="special">;</span>
+
+   <span class="comment">//Create shared memory</span>
+   <span class="identifier">managed_shared_memory</span> <span class="identifier">shmem</span><span class="special">(</span><span class="identifier">create_only</span><span class="special">,</span> <span class="string">"MySharedMemory"</span><span class="special">,</span> <span class="number">10000</span><span class="special">);</span>
+
+   <span class="comment">//Create the unique reference counted object in shared memory</span>
+   <span class="identifier">N</span><span class="special">::</span><span class="identifier">reference_counted_class</span> <span class="special">*</span><span class="identifier">ref_counted</span> <span class="special">=</span>
+      <span class="identifier">shmem</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">::</span><span class="identifier">reference_counted_class</span><span class="special">&gt;</span>
+         <span class="special">(</span><span class="string">"ref_counted"</span><span class="special">)(</span><span class="identifier">shmem</span><span class="special">.</span><span class="identifier">get_segment_manager</span><span class="special">());</span>
+
+   <span class="comment">//Create an array of ten intrusive pointer owners in shared memory</span>
+   <span class="identifier">intrusive_ptr_owner</span> <span class="special">*</span><span class="identifier">intrusive_owner_array</span> <span class="special">=</span>
+      <span class="identifier">shmem</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">intrusive_ptr_owner</span><span class="special">&gt;</span>
+         <span class="special">(</span><span class="identifier">anonymous_instance</span><span class="special">)[</span><span class="number">10</span><span class="special">](</span><span class="identifier">ref_counted</span><span class="special">);</span>
+
+   <span class="comment">//Now test that reference count is ten</span>
+   <span class="keyword">if</span><span class="special">(</span><span class="identifier">ref_counted</span><span class="special">-&gt;</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">!=</span> <span class="number">10</span><span class="special">)</span>
+      <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+
+   <span class="comment">//Now destroy the array of intrusive pointer owners</span>
+   <span class="comment">//This should destroy every intrusive_ptr and because of</span>
+   <span class="comment">//that reference_counted_class will be destroyed</span>
+   <span class="identifier">shmem</span><span class="special">.</span><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="identifier">intrusive_owner_array</span><span class="special">);</span>
+
+   <span class="comment">//Now the reference counted object should have been destroyed</span>
+   <span class="keyword">if</span><span class="special">(</span><span class="identifier">shmem</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">intrusive_ptr_owner</span><span class="special">&gt;(</span><span class="string">"ref_counted"</span><span class="special">).</span><span class="identifier">first</span><span class="special">)</span>
+      <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+   <span class="comment">//Success!</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.interprocess_smart_ptr.scoped_ptr"></a><a class="link" href="interprocess_smart_ptr.html#interprocess.interprocess_smart_ptr.scoped_ptr" title="Scoped pointer">Scoped
+      pointer</a>
+</h3></div></div></div>
+<p>
+        <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">scoped_ptr</span><span class="special">&lt;&gt;</span></code>
+        is the big brother of <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">scoped_ptr</span><span class="special">&lt;&gt;</span></code>, which adds a custom deleter to specify
+        how the pointer passed to the scoped_ptr must be destroyed. Also, the <code class="computeroutput"><span class="identifier">pointer</span></code> typedef of the deleter will specify
+        the pointer type stored by scoped_ptr.
+      </p>
+<pre class="programlisting"><span class="comment">//!scoped_ptr stores a pointer to a dynamically allocated object.</span>
+<span class="comment">//!The object pointed to is guaranteed to be deleted, either on destruction</span>
+<span class="comment">//!of the scoped_ptr, or via an explicit reset. The user can avoid this</span>
+<span class="comment">//!deletion using release().</span>
+<span class="comment">//!scoped_ptr is parameterized on T (the type of the object pointed to) and</span>
+<span class="comment">//!Deleter (the functor to be executed to delete the internal pointer).</span>
+<span class="comment">//!The internal pointer will be of the same pointer type as typename</span>
+<span class="comment">//!Deleter::pointer type (that is, if typename Deleter::pointer is</span>
+<span class="comment">//!offset_ptr&lt;void&gt;, the internal pointer will be offset_ptr&lt;T&gt;).</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Deleter</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">scoped_ptr</span><span class="special">;</span>
+</pre>
+<p>
+        <code class="computeroutput"><span class="identifier">scoped_ptr</span><span class="special">&lt;&gt;</span></code>
+        comes handy to implement <span class="bold"><strong>rollbacks</strong></span> with
+        exceptions: if an exception is thrown or we call <code class="computeroutput"><span class="keyword">return</span></code>
+        in the scope of <code class="computeroutput"><span class="identifier">scoped_ptr</span><span class="special">&lt;&gt;</span></code> the deleter is automatically called
+        so that <span class="bold"><strong>the deleter can be considered as a rollback</strong></span>
+        function. If all goes well, we call <code class="computeroutput"><span class="identifier">release</span><span class="special">()</span></code> member function to avoid rollback when
+        the <code class="computeroutput"><span class="identifier">scoped_ptr</span></code> goes out of
+        scope.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">managed_shared_memory</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">smart_ptr</span><span class="special">/</span><span class="identifier">scoped_ptr</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+<span class="keyword">class</span> <span class="identifier">my_class</span>
+<span class="special">{};</span>
+
+<span class="keyword">class</span> <span class="identifier">my_exception</span>
+<span class="special">{};</span>
+
+<span class="comment">//A functor that destroys the shared memory object</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">my_deleter</span>
+<span class="special">{</span>
+   <span class="keyword">private</span><span class="special">:</span>
+   <span class="comment">//A typedef to save typing</span>
+   <span class="keyword">typedef</span> <span class="identifier">managed_shared_memory</span><span class="special">::</span><span class="identifier">segment_manager</span> <span class="identifier">segment_manager</span><span class="special">;</span>
+   <span class="comment">//This my_deleter is created in the stack, not in shared memory,</span>
+   <span class="comment">//so we can use raw pointers</span>
+   <span class="identifier">segment_manager</span> <span class="special">*</span><span class="identifier">mp_segment_manager</span><span class="special">;</span>
+
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="comment">//This typedef will specify the pointer type that</span>
+   <span class="comment">//scoped_ptr will store</span>
+   <span class="keyword">typedef</span> <span class="identifier">T</span> <span class="special">*</span><span class="identifier">pointer</span><span class="special">;</span>
+   <span class="comment">//Constructor</span>
+   <span class="identifier">my_deleter</span><span class="special">(</span><span class="identifier">segment_manager</span> <span class="special">*</span><span class="identifier">s_mngr</span><span class="special">)</span>
+   <span class="special">:</span> <span class="identifier">mp_segment_manager</span><span class="special">(</span><span class="identifier">s_mngr</span><span class="special">){}</span>
+
+   <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">pointer</span> <span class="identifier">object_to_delete</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="identifier">mp_segment_manager</span><span class="special">-&gt;</span><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="identifier">object_to_delete</span><span class="special">);</span>  <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span> <span class="special">()</span>
+<span class="special">{</span>
+   <span class="comment">//Create shared memory</span>
+   <span class="comment">//Remove shared memory on construction and destruction</span>
+   <span class="keyword">struct</span> <span class="identifier">shm_remove</span>
+   <span class="special">{</span>
+      <span class="identifier">shm_remove</span><span class="special">()</span> <span class="special">{</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+      <span class="special">~</span><span class="identifier">shm_remove</span><span class="special">(){</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+   <span class="special">}</span> <span class="identifier">remover</span><span class="special">;</span>
+
+   <span class="identifier">managed_shared_memory</span> <span class="identifier">shmem</span><span class="special">(</span><span class="identifier">create_only</span><span class="special">,</span> <span class="string">"MySharedMemory"</span><span class="special">,</span> <span class="number">10000</span><span class="special">);</span>
+
+   <span class="comment">//In the first try, there will be no exceptions</span>
+   <span class="comment">//in the second try we will throw an exception</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">2</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">){</span>
+      <span class="comment">//Create an object in shared memory</span>
+      <span class="identifier">my_class</span> <span class="special">*</span> <span class="identifier">my_object</span> <span class="special">=</span> <span class="identifier">shmem</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">my_class</span><span class="special">&gt;(</span><span class="string">"my_object"</span><span class="special">)();</span>
+      <span class="identifier">my_class</span> <span class="special">*</span> <span class="identifier">my_object2</span> <span class="special">=</span> <span class="identifier">shmem</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">my_class</span><span class="special">&gt;(</span><span class="identifier">anonymous_instance</span><span class="special">)();</span>
+      <span class="identifier">shmem</span><span class="special">.</span><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="identifier">my_object2</span><span class="special">);</span>
+
+      <span class="comment">//Since the next shared memory allocation can throw</span>
+      <span class="comment">//assign it to a scoped_ptr so that if an exception occurs</span>
+      <span class="comment">//we destroy the object automatically</span>
+      <span class="identifier">my_deleter</span><span class="special">&lt;</span><span class="identifier">my_class</span><span class="special">&gt;</span> <span class="identifier">d</span><span class="special">(</span><span class="identifier">shmem</span><span class="special">.</span><span class="identifier">get_segment_manager</span><span class="special">());</span>
+
+      <span class="keyword">try</span><span class="special">{</span>
+         <span class="identifier">scoped_ptr</span><span class="special">&lt;</span><span class="identifier">my_class</span><span class="special">,</span> <span class="identifier">my_deleter</span><span class="special">&lt;</span><span class="identifier">my_class</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">s_ptr</span><span class="special">(</span><span class="identifier">my_object</span><span class="special">,</span> <span class="identifier">d</span><span class="special">);</span>
+         <span class="comment">//Let's emulate a exception capable operation</span>
+         <span class="comment">//In the second try, throw an exception</span>
+         <span class="keyword">if</span><span class="special">(</span><span class="identifier">i</span> <span class="special">==</span> <span class="number">1</span><span class="special">){</span>
+            <span class="keyword">throw</span><span class="special">(</span><span class="identifier">my_exception</span><span class="special">());</span>
+         <span class="special">}</span>
+         <span class="comment">//If we have passed the dangerous zone</span>
+         <span class="comment">//we can release the scoped pointer</span>
+         <span class="comment">//to avoid destruction</span>
+         <span class="identifier">s_ptr</span><span class="special">.</span><span class="identifier">release</span><span class="special">();</span>
+      <span class="special">}</span>
+      <span class="keyword">catch</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">my_exception</span> <span class="special">&amp;){}</span>
+      <span class="comment">//Here, scoped_ptr is destroyed</span>
+      <span class="comment">//so it we haven't thrown an exception</span>
+      <span class="comment">//the object should be there, otherwise, destroyed</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">i</span> <span class="special">==</span> <span class="number">0</span><span class="special">){</span>
+         <span class="comment">//Make sure the object is alive</span>
+         <span class="keyword">if</span><span class="special">(!</span><span class="identifier">shmem</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">my_class</span><span class="special">&gt;(</span><span class="string">"my_object"</span><span class="special">).</span><span class="identifier">first</span><span class="special">){</span>
+            <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+         <span class="special">}</span>
+         <span class="comment">//Now we can use it and delete it manually</span>
+         <span class="identifier">shmem</span><span class="special">.</span><span class="identifier">destroy</span><span class="special">&lt;</span><span class="identifier">my_class</span><span class="special">&gt;(</span><span class="string">"my_object"</span><span class="special">);</span>
+      <span class="special">}</span>
+      <span class="keyword">else</span><span class="special">{</span>
+         <span class="comment">//Make sure the object has been deleted</span>
+         <span class="keyword">if</span><span class="special">(</span><span class="identifier">shmem</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">my_class</span><span class="special">&gt;(</span><span class="string">"my_object"</span><span class="special">).</span><span class="identifier">first</span><span class="special">){</span>
+            <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+         <span class="special">}</span>
+      <span class="special">}</span>
+   <span class="special">}</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.interprocess_smart_ptr.shared_ptr"></a><a class="link" href="interprocess_smart_ptr.html#interprocess.interprocess_smart_ptr.shared_ptr" title="Shared pointer and weak pointer">Shared
+      pointer and weak pointer</a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Boost.Interprocess</strong></span> also offers the possibility
+        of creating non-intrusive reference-counted objects in managed shared memory
+        or mapped files.
+      </p>
+<p>
+        Unlike <a href="http://www.boost.org/libs/smart_ptr/shared_ptr.htm" target="_top">boost::shared_ptr</a>,
+        due to limitations of mapped segments <code class="computeroutput"><a class="link" href="../boost/interprocess/shared_ptr.html" title="Class template shared_ptr">boost::interprocess::shared_ptr</a></code>
+        cannot take advantage of virtual functions to maintain the same shared pointer
+        type while providing user-defined allocators and deleters. The allocator
+        and the deleter are template parameters of the shared pointer.
+      </p>
+<p>
+        Since the reference count and other auxiliary data needed by <code class="computeroutput"><a class="link" href="../boost/interprocess/shared_ptr.html" title="Class template shared_ptr">shared_ptr</a></code>
+        must be created also in the managed segment, and the deleter has to delete
+        the object from the segment, the user must specify an allocator object and
+        a deleter object when constructing a non-empty instance of <code class="computeroutput"><a class="link" href="../boost/interprocess/shared_ptr.html" title="Class template shared_ptr">shared_ptr</a></code>,
+        just like <span class="bold"><strong>Boost.Interprocess</strong></span> containers
+        need to pass allocators in their constructors.
+      </p>
+<p>
+        Here is the declaration of <code class="computeroutput"><a class="link" href="../boost/interprocess/shared_ptr.html" title="Class template shared_ptr">shared_ptr</a></code>:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">VoidAllocator</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Deleter</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">shared_ptr</span><span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            T is the type of the pointed type.
+          </li>
+<li class="listitem">
+            VoidAllocator is the allocator to be used to allocate auxiliary elements
+            such as the reference count, the deleter... The internal <code class="computeroutput"><span class="identifier">pointer</span></code> typedef of the allocator will
+            determine the type of pointer that shared_ptr will internally use, so
+            allocators defining <code class="computeroutput"><span class="identifier">pointer</span></code>
+            as <code class="computeroutput"><span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span></code>
+            will make all internal pointers used by <code class="computeroutput"><span class="identifier">shared_ptr</span></code>
+            to be also relative pointers. See <code class="computeroutput"><a class="link" href="../boost/interprocess/allocator.html" title="Class template allocator">boost::interprocess::allocator</a></code>
+            for a working allocator.
+          </li>
+<li class="listitem">
+            Deleter is the function object that will be used to destroy the pointed
+            object when the last reference to the object is destroyed. The deleter
+            functor will take a pointer to T of the same category as the void pointer
+            defined by <code class="computeroutput"><span class="identifier">VoidAllocator</span><span class="special">::</span><span class="identifier">pointer</span></code>.
+            See <code class="computeroutput"><a class="link" href="../boost/interprocess/deleter.html" title="Class template deleter">boost::interprocess::deleter</a></code>
+            for a generic deleter that erases a object from a managed segment.
+          </li>
+</ul></div>
+<p>
+        With correctly specified parameters, <span class="bold"><strong>Boost.Interprocess</strong></span>
+        users can create objects in shared memory that hold shared pointers pointing
+        to other objects also in shared memory, obtaining the benefits of reference
+        counting. Let's see how to create a shared pointer in a managed shared memory:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">managed_shared_memory</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">smart_ptr</span><span class="special">/</span><span class="identifier">shared_ptr</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">allocators</span><span class="special">/</span><span class="identifier">allocator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">smart_ptr</span><span class="special">/</span><span class="identifier">deleter</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cassert</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+<span class="comment">//This is type of the object we want to share</span>
+<span class="keyword">class</span> <span class="identifier">MyType</span>
+<span class="special">{};</span>
+
+<span class="keyword">typedef</span> <span class="identifier">managed_shared_memory</span><span class="special">::</span><span class="identifier">segment_manager</span> <span class="identifier">segment_manager_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">allocator</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">,</span> <span class="identifier">segment_manager_type</span><span class="special">&gt;</span>  <span class="identifier">void_allocator_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">deleter</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">,</span> <span class="identifier">segment_manager_type</span><span class="special">&gt;</span>  <span class="identifier">deleter_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">,</span> <span class="identifier">void_allocator_type</span><span class="special">,</span> <span class="identifier">deleter_type</span><span class="special">&gt;</span> <span class="identifier">my_shared_ptr</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span> <span class="special">()</span>
+<span class="special">{</span>
+   <span class="comment">//Remove shared memory on construction and destruction</span>
+   <span class="keyword">struct</span> <span class="identifier">shm_remove</span>
+   <span class="special">{</span>
+      <span class="identifier">shm_remove</span><span class="special">()</span> <span class="special">{</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+      <span class="special">~</span><span class="identifier">shm_remove</span><span class="special">(){</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+   <span class="special">}</span> <span class="identifier">remover</span><span class="special">;</span>
+
+   <span class="identifier">managed_shared_memory</span> <span class="identifier">segment</span><span class="special">(</span><span class="identifier">create_only</span><span class="special">,</span> <span class="string">"MySharedMemory"</span><span class="special">,</span> <span class="number">4096</span><span class="special">);</span>
+
+   <span class="comment">//Create a shared pointer in shared memory</span>
+   <span class="comment">//pointing to a newly created object in the segment</span>
+   <span class="identifier">my_shared_ptr</span> <span class="special">&amp;</span><span class="identifier">shared_ptr_instance</span> <span class="special">=</span>
+      <span class="special">*</span><span class="identifier">segment</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">my_shared_ptr</span><span class="special">&gt;(</span><span class="string">"shared ptr"</span><span class="special">)</span>
+         <span class="comment">//Arguments to construct the shared pointer</span>
+         <span class="special">(</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;(</span><span class="string">"object to share"</span><span class="special">)()</span>      <span class="comment">//object to own</span>
+         <span class="special">,</span> <span class="identifier">void_allocator_type</span><span class="special">(</span><span class="identifier">segment</span><span class="special">.</span><span class="identifier">get_segment_manager</span><span class="special">())</span>  <span class="comment">//allocator</span>
+         <span class="special">,</span> <span class="identifier">deleter_type</span><span class="special">(</span><span class="identifier">segment</span><span class="special">.</span><span class="identifier">get_segment_manager</span><span class="special">())</span>         <span class="comment">//deleter</span>
+         <span class="special">);</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">shared_ptr_instance</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">1</span><span class="special">);</span>
+
+   <span class="comment">//Destroy "shared ptr". "object to share" will be automatically destroyed</span>
+   <span class="identifier">segment</span><span class="special">.</span><span class="identifier">destroy_ptr</span><span class="special">(&amp;</span><span class="identifier">shared_ptr_instance</span><span class="special">);</span>
+
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        <code class="computeroutput"><a class="link" href="../boost/interprocess/shared_ptr.html" title="Class template shared_ptr">boost::interprocess::shared_ptr</a></code>
+        is very flexible and configurable (we can specify the allocator and the deleter,
+        for example), but as shown the creation of a shared pointer in managed segments
+        need too much typing.
+      </p>
+<p>
+        To simplify this usage, <code class="computeroutput"><a class="link" href="../boost/interprocess/shared_ptr.html" title="Class template shared_ptr">boost::interprocess::shared_ptr</a></code>
+        header offers a shared pointer definition helper class (<code class="computeroutput"><a class="link" href="../boost/interprocess/managed_shared_ptr.html" title="Struct template managed_shared_ptr">managed_shared_ptr</a></code>)
+        and a function (<code class="computeroutput"><a class="link" href="../boost/interprocess/make_managed_s_idp28380936.html" title="Function template make_managed_shared_ptr">make_managed_shared_ptr</a></code>)
+        to easily construct a shared pointer from a type allocated in a managed segment
+        with an allocator that will allocate the reference count also in the managed
+        segment and a deleter that will erase the object from the segment.
+      </p>
+<p>
+        These utilities will use a <span class="bold"><strong>Boost.Interprocess</strong></span>
+        allocator (<code class="computeroutput"><a class="link" href="../boost/interprocess/allocator.html" title="Class template allocator">boost::interprocess::allocator</a></code>)
+        and deleter (<code class="computeroutput"><a class="link" href="../boost/interprocess/deleter.html" title="Class template deleter">boost::interprocess::deleter</a></code>)
+        to do their job. The definition of the previous shared pointer could be simplified
+        to the following:
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">managed_shared_ptr</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">,</span> <span class="identifier">managed_shared_memory</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">my_shared_ptr</span><span class="special">;</span>
+</pre>
+<p>
+        And the creation of a shared pointer can be simplified to this:
+      </p>
+<pre class="programlisting"><span class="identifier">my_shared_ptr</span> <span class="identifier">sh_ptr</span> <span class="special">=</span> <span class="identifier">make_managed_shared_ptr</span>
+   <span class="special">(</span><span class="identifier">segment</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;(</span><span class="string">"object to share"</span><span class="special">)(),</span> <span class="identifier">segment</span><span class="special">);</span>
+</pre>
+<p>
+        <span class="bold"><strong>Boost.Interprocess</strong></span> also offers a weak pointer
+        named <code class="computeroutput"><a class="link" href="../boost/interprocess/weak_ptr.html" title="Class template weak_ptr">weak_ptr</a></code>
+        (with its corresponding <code class="computeroutput"><a class="link" href="../boost/interprocess/managed_weak_ptr.html" title="Struct template managed_weak_ptr">managed_weak_ptr</a></code>
+        and <code class="computeroutput"><a class="link" href="../boost/interprocess/make_managed_weak_ptr.html" title="Function template make_managed_weak_ptr">make_managed_weak_ptr</a></code>
+        utilities) to implement non-owning observers of an object owned by <code class="computeroutput"><a class="link" href="../boost/interprocess/shared_ptr.html" title="Class template shared_ptr">shared_ptr</a></code>.
+      </p>
+<p>
+        Now let's see a detailed example of the use of <code class="computeroutput"><a class="link" href="../boost/interprocess/shared_ptr.html" title="Class template shared_ptr">shared_ptr</a></code>:
+        and <code class="computeroutput"><a class="link" href="../boost/interprocess/weak_ptr.html" title="Class template weak_ptr">weak_ptr</a></code>
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">managed_mapped_file</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">smart_ptr</span><span class="special">/</span><span class="identifier">shared_ptr</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">smart_ptr</span><span class="special">/</span><span class="identifier">weak_ptr</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cassert</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+<span class="comment">//This is type of the object we want to share</span>
+<span class="keyword">struct</span> <span class="identifier">type_to_share</span>
+<span class="special">{};</span>
+
+<span class="comment">//This is the type of a shared pointer to the previous type</span>
+<span class="comment">//that will be built in the mapped file</span>
+<span class="keyword">typedef</span> <span class="identifier">managed_shared_ptr</span><span class="special">&lt;</span><span class="identifier">type_to_share</span><span class="special">,</span> <span class="identifier">managed_mapped_file</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">shared_ptr_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">managed_weak_ptr</span><span class="special">&lt;</span><span class="identifier">type_to_share</span><span class="special">,</span> <span class="identifier">managed_mapped_file</span><span class="special">&gt;::</span><span class="identifier">type</span>   <span class="identifier">weak_ptr_type</span><span class="special">;</span>
+
+<span class="comment">//This is a type holding a shared pointer</span>
+<span class="keyword">struct</span> <span class="identifier">shared_ptr_owner</span>
+<span class="special">{</span>
+   <span class="identifier">shared_ptr_owner</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">shared_ptr_type</span> <span class="special">&amp;</span><span class="identifier">other_shared_ptr</span><span class="special">)</span>
+      <span class="special">:</span> <span class="identifier">shared_ptr_</span><span class="special">(</span><span class="identifier">other_shared_ptr</span><span class="special">)</span>
+   <span class="special">{}</span>
+
+   <span class="identifier">shared_ptr_owner</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">shared_ptr_owner</span> <span class="special">&amp;</span><span class="identifier">other_owner</span><span class="special">)</span>
+      <span class="special">:</span> <span class="identifier">shared_ptr_</span><span class="special">(</span><span class="identifier">other_owner</span><span class="special">.</span><span class="identifier">shared_ptr_</span><span class="special">)</span>
+   <span class="special">{}</span>
+
+   <span class="identifier">shared_ptr_type</span> <span class="identifier">shared_ptr_</span><span class="special">;</span>
+   <span class="comment">//...</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span> <span class="special">()</span>
+<span class="special">{</span>
+   <span class="comment">//Define file names</span>
+   <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">MappedFile</span>  <span class="special">=</span> <span class="string">"MyMappedFile"</span><span class="special">;</span>
+
+   <span class="comment">//Destroy any previous file with the name to be used.</span>
+   <span class="keyword">struct</span> <span class="identifier">file_remove</span>
+   <span class="special">{</span>
+      <span class="identifier">file_remove</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">MappedFile</span><span class="special">)</span>
+         <span class="special">:</span> <span class="identifier">MappedFile_</span><span class="special">(</span><span class="identifier">MappedFile</span><span class="special">)</span> <span class="special">{</span> <span class="identifier">file_mapping</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="identifier">MappedFile_</span><span class="special">);</span> <span class="special">}</span>
+      <span class="special">~</span><span class="identifier">file_remove</span><span class="special">(){</span> <span class="identifier">file_mapping</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="identifier">MappedFile_</span><span class="special">);</span> <span class="special">}</span>
+      <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">MappedFile_</span><span class="special">;</span>
+   <span class="special">}</span> <span class="identifier">remover</span><span class="special">(</span><span class="identifier">MappedFile</span><span class="special">);</span>
+   <span class="special">{</span>
+      <span class="identifier">managed_mapped_file</span> <span class="identifier">file</span><span class="special">(</span><span class="identifier">create_only</span><span class="special">,</span> <span class="identifier">MappedFile</span><span class="special">,</span> <span class="number">65536</span><span class="special">);</span>
+
+      <span class="comment">//Construct the shared type in the file and</span>
+      <span class="comment">//pass ownership to this local shared pointer</span>
+      <span class="identifier">shared_ptr_type</span> <span class="identifier">local_shared_ptr</span> <span class="special">=</span> <span class="identifier">make_managed_shared_ptr</span>
+         <span class="special">(</span><span class="identifier">file</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">type_to_share</span><span class="special">&gt;(</span><span class="string">"object to share"</span><span class="special">)(),</span> <span class="identifier">file</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">local_shared_ptr</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">1</span><span class="special">);</span>
+
+      <span class="comment">//Share ownership of the object between local_shared_ptr and a new "owner1"</span>
+      <span class="identifier">shared_ptr_owner</span> <span class="special">*</span><span class="identifier">owner1</span> <span class="special">=</span>
+         <span class="identifier">file</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">shared_ptr_owner</span><span class="special">&gt;(</span><span class="string">"owner1"</span><span class="special">)(</span><span class="identifier">local_shared_ptr</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">local_shared_ptr</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">2</span><span class="special">);</span>
+
+      <span class="comment">//local_shared_ptr releases object ownership</span>
+      <span class="identifier">local_shared_ptr</span><span class="special">.</span><span class="identifier">reset</span><span class="special">();</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">local_shared_ptr</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">0</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">owner1</span><span class="special">-&gt;</span><span class="identifier">shared_ptr_</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">1</span><span class="special">);</span>
+
+      <span class="comment">//Share ownership of the object between "owner1" and a new "owner2"</span>
+      <span class="identifier">shared_ptr_owner</span> <span class="special">*</span><span class="identifier">owner2</span> <span class="special">=</span>
+         <span class="identifier">file</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">shared_ptr_owner</span><span class="special">&gt;(</span><span class="string">"owner2"</span><span class="special">)(*</span><span class="identifier">owner1</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">owner1</span><span class="special">-&gt;</span><span class="identifier">shared_ptr_</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">2</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">owner2</span><span class="special">-&gt;</span><span class="identifier">shared_ptr_</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">2</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">owner1</span><span class="special">-&gt;</span><span class="identifier">shared_ptr_</span><span class="special">.</span><span class="identifier">get</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">owner2</span><span class="special">-&gt;</span><span class="identifier">shared_ptr_</span><span class="special">.</span><span class="identifier">get</span><span class="special">());</span>
+
+      <span class="comment">//The mapped file is unmapped here. Objects have been flushed to disk</span>
+   <span class="special">}</span>
+   <span class="special">{</span>
+      <span class="comment">//Reopen the mapped file and find again all owners</span>
+      <span class="identifier">managed_mapped_file</span> <span class="identifier">file</span><span class="special">(</span><span class="identifier">open_only</span><span class="special">,</span> <span class="identifier">MappedFile</span><span class="special">);</span>
+
+      <span class="identifier">shared_ptr_owner</span> <span class="special">*</span><span class="identifier">owner1</span> <span class="special">=</span> <span class="identifier">file</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">shared_ptr_owner</span><span class="special">&gt;(</span><span class="string">"owner1"</span><span class="special">).</span><span class="identifier">first</span><span class="special">;</span>
+      <span class="identifier">shared_ptr_owner</span> <span class="special">*</span><span class="identifier">owner2</span> <span class="special">=</span> <span class="identifier">file</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">shared_ptr_owner</span><span class="special">&gt;(</span><span class="string">"owner2"</span><span class="special">).</span><span class="identifier">first</span><span class="special">;</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">owner1</span> <span class="special">&amp;&amp;</span> <span class="identifier">owner2</span><span class="special">);</span>
+
+      <span class="comment">//Check everything is as expected</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">file</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">type_to_share</span><span class="special">&gt;(</span><span class="string">"object to share"</span><span class="special">).</span><span class="identifier">first</span> <span class="special">!=</span> <span class="number">0</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">owner1</span><span class="special">-&gt;</span><span class="identifier">shared_ptr_</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">2</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">owner2</span><span class="special">-&gt;</span><span class="identifier">shared_ptr_</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">2</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">owner1</span><span class="special">-&gt;</span><span class="identifier">shared_ptr_</span><span class="special">.</span><span class="identifier">get</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">owner2</span><span class="special">-&gt;</span><span class="identifier">shared_ptr_</span><span class="special">.</span><span class="identifier">get</span><span class="special">());</span>
+
+      <span class="comment">//Now destroy one of the owners, the reference count drops.</span>
+      <span class="identifier">file</span><span class="special">.</span><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="identifier">owner1</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">owner2</span><span class="special">-&gt;</span><span class="identifier">shared_ptr_</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">1</span><span class="special">);</span>
+
+      <span class="comment">//Create a weak pointer</span>
+      <span class="identifier">weak_ptr_type</span> <span class="identifier">local_observer1</span><span class="special">(</span><span class="identifier">owner2</span><span class="special">-&gt;</span><span class="identifier">shared_ptr_</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">local_observer1</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">owner2</span><span class="special">-&gt;</span><span class="identifier">shared_ptr_</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">());</span>
+
+      <span class="special">{</span>  <span class="comment">//Create a local shared pointer from the weak pointer</span>
+      <span class="identifier">shared_ptr_type</span> <span class="identifier">local_shared_ptr</span> <span class="special">=</span> <span class="identifier">local_observer1</span><span class="special">.</span><span class="identifier">lock</span><span class="special">();</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">local_observer1</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">owner2</span><span class="special">-&gt;</span><span class="identifier">shared_ptr_</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">());</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">local_observer1</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">2</span><span class="special">);</span>
+      <span class="special">}</span>
+
+      <span class="comment">//Now destroy the remaining owner. "object to share" will be destroyed</span>
+      <span class="identifier">file</span><span class="special">.</span><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="identifier">owner2</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">file</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">type_to_share</span><span class="special">&gt;(</span><span class="string">"object to share"</span><span class="special">).</span><span class="identifier">first</span> <span class="special">==</span> <span class="number">0</span><span class="special">);</span>
+
+      <span class="comment">//Test observer</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">local_observer1</span><span class="special">.</span><span class="identifier">expired</span><span class="special">());</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">local_observer1</span><span class="special">.</span><span class="identifier">use_count</span><span class="special">()</span> <span class="special">==</span> <span class="number">0</span><span class="special">);</span>
+
+      <span class="comment">//The reference count will be deallocated when all weak pointers</span>
+      <span class="comment">//disappear. After that, the file is unmapped.</span>
+   <span class="special">}</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        In general, using <span class="bold"><strong>Boost.Interprocess</strong></span>' <code class="computeroutput"><a class="link" href="../boost/interprocess/shared_ptr.html" title="Class template shared_ptr">shared_ptr</a></code> and <code class="computeroutput"><a class="link" href="../boost/interprocess/weak_ptr.html" title="Class template weak_ptr">weak_ptr</a></code> is very similar
+        to their counterparts <a href="http://www.boost.org/libs/smart_ptr/shared_ptr.htm" target="_top">boost::shared_ptr</a>
+        and <a href="http://www.boost.org/libs/smart_ptr/weak_ptr.htm" target="_top">boost::weak_ptr</a>,
+        but they need more template parameters and more run-time parameters in their
+        constructors.
+      </p>
+<p>
+        Just like <a href="http://www.boost.org/libs/smart_ptr/shared_ptr.htm" target="_top">boost::shared_ptr</a>
+        can be stored in a STL container, <code class="computeroutput"><a class="link" href="../boost/interprocess/shared_ptr.html" title="Class template shared_ptr">shared_ptr</a></code>
+        can also be stored in <span class="bold"><strong>Boost.Interprocess</strong></span>
+        containers.
+      </p>
+<p>
+        If a programmer just uses <code class="computeroutput"><a class="link" href="../boost/interprocess/shared_ptr.html" title="Class template shared_ptr">shared_ptr</a></code>
+        to be able to insert objects dynamically constructed in the managed segment
+        in a container, but does not need to share the ownership of that object with
+        other objects <code class="computeroutput"><a class="link" href="../boost/interprocess/unique_ptr.html" title="Class template unique_ptr">unique_ptr</a></code>
+        is a much faster and easier to use alternative.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.interprocess_smart_ptr.unique_ptr"></a><a class="link" href="interprocess_smart_ptr.html#interprocess.interprocess_smart_ptr.unique_ptr" title="Unique pointer">Unique
+      pointer</a>
+</h3></div></div></div>
+<p>
+        Unique ownership smart pointers are really useful to free programmers from
+        manual resource liberation of non-shared objects. <span class="bold"><strong>Boost.Interprocess</strong></span>'
+        <code class="computeroutput"><a class="link" href="../boost/interprocess/unique_ptr.html" title="Class template unique_ptr">unique_ptr</a></code> is
+        much like <code class="computeroutput"><a class="link" href="../boost/interprocess/scoped_ptr.html" title="Class template scoped_ptr">scoped_ptr</a></code>
+        but it's <span class="bold"><strong>moveable</strong></span> and can be easily inserted
+        in <span class="bold"><strong>Boost.Interprocess</strong></span> containers. Here is
+        the declaration of the unique pointer class:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">D</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">unique_ptr</span><span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            T is the type of the object pointed by <code class="computeroutput"><a class="link" href="../boost/interprocess/unique_ptr.html" title="Class template unique_ptr">unique_ptr</a></code>.
+          </li>
+<li class="listitem">
+            D is the deleter that will erase the object type of the object pointed
+            by <code class="computeroutput"><a class="link" href="../boost/interprocess/unique_ptr.html" title="Class template unique_ptr">unique_ptr</a></code>
+            when the unique pointer is destroyed (and if still owns ownership of
+            the object). If the deleter defines an internal <code class="computeroutput"><span class="identifier">pointer</span></code>
+            typedef, <code class="computeroutput"><a class="link" href="../boost/interprocess/unique_ptr.html" title="Class template unique_ptr">unique_ptr</a></code>
+            will use an internal pointer of the same type. So if <code class="computeroutput"><span class="identifier">D</span><span class="special">::</span><span class="identifier">pointer</span></code>
+            is <code class="computeroutput"><span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+            the unique pointer will store a relative pointer instead of a raw one.
+            This allows placing <code class="computeroutput"><a class="link" href="../boost/interprocess/unique_ptr.html" title="Class template unique_ptr">unique_ptr</a></code>
+            in shared memory and memory-mapped files.
+          </li>
+</ul></div>
+<p>
+        <code class="computeroutput"><a class="link" href="../boost/interprocess/unique_ptr.html" title="Class template unique_ptr">unique_ptr</a></code> can
+        release the ownership of the stored pointer so it's useful also to be used
+        as a rollback function. One of the main properties of the class is that
+        <span class="bold"><strong>is not copyable, but only moveable</strong></span>. When
+        a unique pointer is moved to another one, the ownership of the pointer is
+        transferred from the source unique pointer to the target unique pointer.
+        If the target unique pointer owned an object, that object is first deleted
+        before taking ownership of the new object.
+      </p>
+<p>
+        <code class="computeroutput"><a class="link" href="../boost/interprocess/unique_ptr.html" title="Class template unique_ptr">unique_ptr</a></code> also
+        offers auxiliary types to easily define and construct unique pointers that
+        can be placed in managed segments and will correctly delete the owned object
+        from the segment: <code class="computeroutput"><a class="link" href="../boost/interprocess/managed_unique_ptr.html" title="Struct template managed_unique_ptr">managed_unique_ptr</a></code>
+        and <code class="computeroutput"><a class="link" href="../boost/interprocess/make_managed_unique_ptr.html" title="Function template make_managed_unique_ptr">make_managed_unique_ptr</a></code>
+        utilities.
+      </p>
+<p>
+        Here we see an example of the use <code class="computeroutput"><a class="link" href="../boost/interprocess/unique_ptr.html" title="Class template unique_ptr">unique_ptr</a></code>
+        including creating containers of such objects:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">managed_mapped_file</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">smart_ptr</span><span class="special">/</span><span class="identifier">unique_ptr</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">containers</span><span class="special">/</span><span class="identifier">vector</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">containers</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">allocators</span><span class="special">/</span><span class="identifier">allocator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cassert</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+<span class="comment">//This is type of the object we'll allocate dynamically</span>
+<span class="keyword">struct</span> <span class="identifier">MyType</span>
+<span class="special">{</span>
+   <span class="identifier">MyType</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">number</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span>
+      <span class="special">:</span>  <span class="identifier">number_</span><span class="special">(</span><span class="identifier">number</span><span class="special">)</span>
+   <span class="special">{}</span>
+   <span class="keyword">int</span> <span class="identifier">number_</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="comment">//This is the type of a unique pointer to the previous type</span>
+<span class="comment">//that will be built in the mapped file</span>
+<span class="keyword">typedef</span> <span class="identifier">managed_unique_ptr</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">,</span> <span class="identifier">managed_mapped_file</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">unique_ptr_type</span><span class="special">;</span>
+
+<span class="comment">//Define containers of unique pointer. Unique pointer simplifies object management</span>
+<span class="keyword">typedef</span> <span class="identifier">vector</span>
+   <span class="special">&lt;</span> <span class="identifier">unique_ptr_type</span>
+   <span class="special">,</span> <span class="identifier">allocator</span><span class="special">&lt;</span><span class="identifier">unique_ptr_type</span><span class="special">,</span> <span class="identifier">managed_mapped_file</span><span class="special">::</span><span class="identifier">segment_manager</span><span class="special">&gt;</span>
+   <span class="special">&gt;</span> <span class="identifier">unique_ptr_vector_t</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">list</span>
+   <span class="special">&lt;</span> <span class="identifier">unique_ptr_type</span>
+   <span class="special">,</span> <span class="identifier">allocator</span><span class="special">&lt;</span><span class="identifier">unique_ptr_type</span><span class="special">,</span> <span class="identifier">managed_mapped_file</span><span class="special">::</span><span class="identifier">segment_manager</span><span class="special">&gt;</span>
+   <span class="special">&gt;</span> <span class="identifier">unique_ptr_list_t</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span> <span class="special">()</span>
+<span class="special">{</span>
+   <span class="comment">//Define file names</span>
+   <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">MappedFile</span>  <span class="special">=</span> <span class="string">"MyMappedFile"</span><span class="special">;</span>
+
+   <span class="comment">//Destroy any previous file with the name to be used.</span>
+   <span class="keyword">struct</span> <span class="identifier">file_remove</span>
+   <span class="special">{</span>
+      <span class="identifier">file_remove</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">MappedFile</span><span class="special">)</span>
+         <span class="special">:</span> <span class="identifier">MappedFile_</span><span class="special">(</span><span class="identifier">MappedFile</span><span class="special">)</span> <span class="special">{</span> <span class="identifier">file_mapping</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="identifier">MappedFile_</span><span class="special">);</span> <span class="special">}</span>
+      <span class="special">~</span><span class="identifier">file_remove</span><span class="special">(){</span> <span class="identifier">file_mapping</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="identifier">MappedFile_</span><span class="special">);</span> <span class="special">}</span>
+      <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">MappedFile_</span><span class="special">;</span>
+   <span class="special">}</span> <span class="identifier">remover</span><span class="special">(</span><span class="identifier">MappedFile</span><span class="special">);</span>
+   <span class="special">{</span>
+      <span class="identifier">managed_mapped_file</span> <span class="identifier">file</span><span class="special">(</span><span class="identifier">create_only</span><span class="special">,</span> <span class="identifier">MappedFile</span><span class="special">,</span> <span class="number">65536</span><span class="special">);</span>
+
+      <span class="comment">//Construct an object in the file and</span>
+      <span class="comment">//pass ownership to this local unique pointer</span>
+      <span class="identifier">unique_ptr_type</span> <span class="identifier">local_unique_ptr</span> <span class="special">(</span><span class="identifier">make_managed_unique_ptr</span>
+         <span class="special">(</span><span class="identifier">file</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;(</span><span class="string">"unique object"</span><span class="special">)(),</span> <span class="identifier">file</span><span class="special">));</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">local_unique_ptr</span><span class="special">.</span><span class="identifier">get</span><span class="special">()</span> <span class="special">!=</span> <span class="number">0</span><span class="special">);</span>
+
+      <span class="comment">//Reset the unique pointer. The object is automatically destroyed</span>
+      <span class="identifier">local_unique_ptr</span><span class="special">.</span><span class="identifier">reset</span><span class="special">();</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">file</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;(</span><span class="string">"unique object"</span><span class="special">).</span><span class="identifier">first</span> <span class="special">==</span> <span class="number">0</span><span class="special">);</span>
+
+      <span class="comment">//Now create a vector of unique pointers</span>
+      <span class="identifier">unique_ptr_vector_t</span> <span class="special">*</span><span class="identifier">unique_vector</span> <span class="special">=</span>
+         <span class="identifier">file</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">unique_ptr_vector_t</span><span class="special">&gt;(</span><span class="string">"unique vector"</span><span class="special">)(</span><span class="identifier">file</span><span class="special">.</span><span class="identifier">get_segment_manager</span><span class="special">());</span>
+
+      <span class="comment">//Speed optimization</span>
+      <span class="identifier">unique_vector</span><span class="special">-&gt;</span><span class="identifier">reserve</span><span class="special">(</span><span class="number">100</span><span class="special">);</span>
+
+      <span class="comment">//Now insert all values</span>
+      <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">100</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">){</span>
+         <span class="identifier">unique_ptr_type</span> <span class="identifier">p</span><span class="special">(</span><span class="identifier">make_managed_unique_ptr</span><span class="special">(</span><span class="identifier">file</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;(</span><span class="identifier">anonymous_instance</span><span class="special">)(</span><span class="identifier">i</span><span class="special">),</span> <span class="identifier">file</span><span class="special">));</span>
+         <span class="identifier">unique_vector</span><span class="special">-&gt;</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span><span class="special">(</span><span class="identifier">p</span><span class="special">));</span>
+         <span class="identifier">assert</span><span class="special">(</span><span class="identifier">unique_vector</span><span class="special">-&gt;</span><span class="identifier">back</span><span class="special">()-&gt;</span><span class="identifier">number_</span> <span class="special">==</span> <span class="identifier">i</span><span class="special">);</span>
+      <span class="special">}</span>
+
+      <span class="comment">//Now create a list of unique pointers</span>
+      <span class="identifier">unique_ptr_list_t</span> <span class="special">*</span><span class="identifier">unique_list</span> <span class="special">=</span>
+         <span class="identifier">file</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">unique_ptr_list_t</span><span class="special">&gt;(</span><span class="string">"unique list"</span><span class="special">)(</span><span class="identifier">file</span><span class="special">.</span><span class="identifier">get_segment_manager</span><span class="special">());</span>
+
+      <span class="comment">//Pass ownership of all values to the list</span>
+      <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">99</span><span class="special">;</span> <span class="special">!</span><span class="identifier">unique_vector</span><span class="special">-&gt;</span><span class="identifier">empty</span><span class="special">();</span> <span class="special">--</span><span class="identifier">i</span><span class="special">){</span>
+         <span class="identifier">unique_list</span><span class="special">-&gt;</span><span class="identifier">push_front</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">move</span><span class="special">(</span><span class="identifier">unique_vector</span><span class="special">-&gt;</span><span class="identifier">back</span><span class="special">()));</span>
+         <span class="comment">//The unique ptr of the vector is now empty...</span>
+         <span class="identifier">assert</span><span class="special">(</span><span class="identifier">unique_vector</span><span class="special">-&gt;</span><span class="identifier">back</span><span class="special">()</span> <span class="special">==</span> <span class="number">0</span><span class="special">);</span>
+         <span class="identifier">unique_vector</span><span class="special">-&gt;</span><span class="identifier">pop_back</span><span class="special">();</span>
+         <span class="comment">//...and the list has taken ownership of the value</span>
+         <span class="identifier">assert</span><span class="special">(</span><span class="identifier">unique_list</span><span class="special">-&gt;</span><span class="identifier">front</span><span class="special">()</span> <span class="special">!=</span> <span class="number">0</span><span class="special">);</span>
+         <span class="identifier">assert</span><span class="special">(</span><span class="identifier">unique_list</span><span class="special">-&gt;</span><span class="identifier">front</span><span class="special">()-&gt;</span><span class="identifier">number_</span> <span class="special">==</span> <span class="identifier">i</span><span class="special">);</span>
+      <span class="special">}</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">unique_list</span><span class="special">-&gt;</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="number">100</span><span class="special">);</span>
+
+      <span class="comment">//Now destroy the empty vector.</span>
+      <span class="identifier">file</span><span class="special">.</span><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="identifier">unique_vector</span><span class="special">);</span>
+      <span class="comment">//The mapped file is unmapped here. Objects have been flushed to disk</span>
+   <span class="special">}</span>
+   <span class="special">{</span>
+      <span class="comment">//Reopen the mapped file and find again the list</span>
+      <span class="identifier">managed_mapped_file</span> <span class="identifier">file</span><span class="special">(</span><span class="identifier">open_only</span><span class="special">,</span> <span class="identifier">MappedFile</span><span class="special">);</span>
+
+      <span class="identifier">unique_ptr_list_t</span>   <span class="special">*</span><span class="identifier">unique_list</span> <span class="special">=</span>
+         <span class="identifier">file</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">unique_ptr_list_t</span><span class="special">&gt;(</span><span class="string">"unique list"</span><span class="special">).</span><span class="identifier">first</span><span class="special">;</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">unique_list</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">unique_list</span><span class="special">-&gt;</span><span class="identifier">size</span><span class="special">()</span> <span class="special">==</span> <span class="number">100</span><span class="special">);</span>
+
+      <span class="identifier">unique_ptr_list_t</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">list_it</span> <span class="special">=</span> <span class="identifier">unique_list</span><span class="special">-&gt;</span><span class="identifier">begin</span><span class="special">();</span>
+      <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">100</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">,</span> <span class="special">++</span><span class="identifier">list_it</span><span class="special">){</span>
+         <span class="identifier">assert</span><span class="special">((*</span><span class="identifier">list_it</span><span class="special">)-&gt;</span><span class="identifier">number_</span> <span class="special">==</span> <span class="identifier">i</span><span class="special">);</span>
+      <span class="special">}</span>
+
+      <span class="comment">//Now destroy the list. All elements will be automatically deallocated.</span>
+      <span class="identifier">file</span><span class="special">.</span><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="identifier">unique_list</span><span class="special">);</span>
+   <span class="special">}</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="streams.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="architecture.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

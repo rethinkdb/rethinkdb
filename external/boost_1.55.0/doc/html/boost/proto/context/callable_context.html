@@ -1,0 +1,129 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template callable_context</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../../proto/reference.html#header.boost.proto.context.callable_hpp" title="Header &lt;boost/proto/context/callable.hpp&gt;">
+<link rel="prev" href="callable_eval.html" title="Struct template callable_eval">
+<link rel="next" href="callable_context/eval.html" title="Struct template eval">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="callable_eval.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../proto/reference.html#header.boost.proto.context.callable_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="callable_context/eval.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.context.callable_context"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template callable_context</span></h2>
+<p>boost::proto::context::callable_context &#8212; An evaluation context adaptor that makes authoring a context a simple matter of
+            writing function overloads, rather then writing template specializations.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../proto/reference.html#header.boost.proto.context.callable_hpp" title="Header &lt;boost/proto/context/callable.hpp&gt;">boost/proto/context/callable.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Context<span class="special">,</span> 
+         <span class="keyword">typename</span> DefaultCtx <span class="special">=</span> <a class="link" href="default_context.html" title="Struct default_context">proto::context::default_context</a><span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="callable_context.html" title="Struct template callable_context">callable_context</a> <span class="special">{</span>
+  <span class="comment">// member classes/structs/unions</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../../Expr.html" title="Concept Expr">Expr</a><span class="special">,</span> <span class="keyword">typename</span> ThisContext <span class="special">=</span> <span class="identifier">Context</span><span class="special">&gt;</span> 
+  <span class="keyword">struct</span> <a class="link" href="callable_context/eval.html" title="Struct template eval">eval</a> <span class="special">:</span> <span class="keyword"></span> <em class="replaceable"><code>see-below</code></em> <span class="special">{</span>
+  <span class="special">}</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp188494664"></a><h2>Description</h2>
+<p>
+              <code class="computeroutput">proto::callable_context&lt;&gt;</code> is a base class that
+              implements the context protocol by passing fanned-out expression nodes to the derived
+              context, making it easy to customize the handling of expression types by writing function
+              overloads. Only those expression types needing special handling require explicit handling.
+              All others are dispatched to a user-specified default context,
+              <code class="computeroutput">DefaultCtx</code>.
+            </p>
+<p>
+              <code class="computeroutput">proto::callable_context&lt;&gt;</code> is defined simply as:
+            </p>
+<p>
+              </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Context</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">DefaultCtx</span> <span class="special">=</span> <span class="identifier">default_context</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">callable_context</span> <span class="special">{</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">ThisContext</span> <span class="special">=</span> <span class="identifier">Context</span><span class="special">&gt;</span>
+  <span class="keyword">struct</span> <span class="identifier">eval</span> <span class="special">:</span>
+    <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">if_</span><span class="special">&lt;</span>
+      <span class="identifier">is_expr_handled_</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">,</span> <span class="identifier">Context</span><span class="special">&gt;</span><span class="special">,</span> <span class="comment">// For exposition</span>
+      <a class="link" href="callable_eval.html" title="Struct template callable_eval">proto::context::callable_eval</a><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">,</span> <span class="identifier">ThisContext</span><span class="special">&gt;</span><span class="special">,</span>
+      <span class="keyword">typename</span> <span class="identifier">DefaultCtx</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">eval</span><span class="special">&lt;</span><span class="identifier">Expr</span><span class="special">,</span> <span class="identifier">Context</span><span class="special">&gt;</span>
+    <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>
+  <span class="special">{</span><span class="special">}</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre>
+<p>
+            </p>
+<p>
+              The Boolean metafunction <code class="computeroutput">is_expr_handled_&lt;&gt;</code> uses
+              metaprogramming tricks to determine whether <code class="computeroutput">Context</code> has
+              an overloaded function call operator that accepts the fanned-out constituents of an
+              expression of type <code class="computeroutput">Expr</code>. If so, the handling of the
+              expression is dispatched to
+              <code class="computeroutput"><a class="link" href="callable_eval.html" title="Struct template callable_eval">proto::context::callable_eval&lt;&gt;</a></code>.
+              If not, it is dispatched to the user-specified <code class="computeroutput">DefaultCtx</code>.
+            </p>
+<p>
+              <span class="bold"><strong>Example:</strong></span>
+            </p>
+<p>
+              </p>
+<pre class="programlisting"><span class="comment">// An evaluation context that increments all</span>
+<span class="comment">// integer terminals in-place.</span>
+<span class="keyword">struct</span> <span class="identifier">increment_ints</span> <span class="special">:</span>
+  <a class="link" href="callable_context.html" title="Struct template callable_context">proto::context::callable_context</a><span class="special">&lt;</span>
+    <span class="identifier">increment_ints</span> <span class="keyword">const</span>                <span class="comment">// derived context</span>
+    <a class="link" href="null_context.html" title="Struct null_context">proto::context::null_context</a> <span class="keyword">const</span>  <span class="comment">// fall-back context</span>
+  <span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">void</span> <span class="identifier">result_type</span><span class="special">;</span>
+
+    <span class="comment">// Handle int terminals here:</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">tag</span><span class="special">::</span><span class="identifier">terminal</span><span class="special">,</span> <span class="keyword">int</span> <span class="special">&amp;</span><span class="identifier">i</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+       <span class="special">++</span><span class="identifier">i</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span><span class="special">;</span></pre>
+<p>
+            </p>
+<p>
+              With <code class="computeroutput">increment_ints</code>, we can do the following:
+            </p>
+<p>
+              </p>
+<pre class="programlisting"><a class="link" href="../literal.html" title="Struct template literal">proto::literal</a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">j</span> <span class="special">=</span> <span class="number">10</span><span class="special">;</span>
+<span class="identifier">proto</span><span class="special">::</span><span class="identifier">eval</span><span class="special">(</span> <span class="identifier">i</span> <span class="special">-</span> <span class="identifier">j</span> <span class="special">*</span> <span class="number">3</span><span class="special">.</span><span class="number">14</span><span class="special">,</span> <span class="identifier">increment_ints</span><span class="special">(</span><span class="special">)</span> <span class="special">)</span><span class="special">;</span>
+
+<span class="identifier">assert</span><span class="special">(</span> <span class="identifier">i</span><span class="special">.</span><span class="identifier">get</span><span class="special">(</span><span class="special">)</span> <span class="special">==</span> <span class="number">1</span> <span class="special">&amp;&amp;</span> <span class="identifier">j</span><span class="special">.</span><span class="identifier">get</span><span class="special">(</span><span class="special">)</span> <span class="special">==</span> <span class="number">11</span> <span class="special">)</span><span class="special">;</span></pre>
+<p>
+            </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="callable_eval.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../proto/reference.html#header.boost.proto.context.callable_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="callable_context/eval.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,73 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Quick Start]
+
+You don't need to know much to start being productive with xpressive. Let's begin with
+the nickel tour of the types and algorithms xpressive provides.
+
+[table xpressive's Tool-Box
+    [[Tool]                             [Description]]
+    [[_basic_regex_]                    [Contains a compiled regular expression. _basic_regex_ is the most important type in xpressive. Everything you do with xpressive will begin with creating an object of type _basic_regex_.]]
+    [[_match_results_, _sub_match_]     [_match_results_ contains the results of a _regex_match_ or _regex_search_ operation. It acts like a vector of _sub_match_ objects. A _sub_match_ object contains a marked sub-expression (also known as a back-reference in Perl). It is basically just a pair of iterators representing the begin and end of the marked sub-expression.]]
+    [[_regex_match_]                    [Checks to see if a string matches a regex. For _regex_match_ to succeed, the ['whole string] must match the regex, from beginning to end. If you give _regex_match_ a _match_results_, it will write into it any marked sub-expressions it finds.]]
+    [[_regex_search_]                   [Searches a string to find a sub-string that matches the regex. _regex_search_ will try to find a match at every position in the string, starting at the beginning, and stopping when it finds a match or when the string is exhausted. As with _regex_match_, if you give _regex_search_ a _match_results_, it will write into it any marked sub-expressions it finds.]]
+    [[_regex_replace_]                  [Given an input string, a regex, and a substitution string, _regex_replace_ builds a new string by replacing those parts of the input string that match the regex with the substitution string. The substitution string can contain references to marked sub-expressions.]]
+    [[_regex_iterator_]                 [An STL-compatible iterator that makes it easy to find all the places in a string that match a regex. Dereferencing a _regex_iterator_ returns a _match_results_. Incrementing a _regex_iterator_ finds the next match.]]
+    [[_regex_token_iterator_]           [Like _regex_iterator_, except dereferencing a _regex_token_iterator_ returns a string. By default, it will return the whole sub-string that the regex matched, but it can be configured to return any or all of the marked sub-expressions one at a time, or even the parts of the string that ['didn't] match the regex.]]
+    [[_regex_compiler_]                 [A factory for _basic_regex_ objects. It "compiles" a string into a regular expression. You will not usually have to deal directly with _regex_compiler_ because the _basic_regex_ class has a factory method that uses _regex_compiler_ internally. But if you need to do anything fancy like create a _basic_regex_ object with a different `std::locale`, you will need to use a _regex_compiler_ explicitly.]]
+]
+
+Now that you know a bit about the tools xpressive provides, you can pick the right tool for you
+by answering the following two questions:
+
+# What ['iterator] type will you use to traverse your data?
+# What do you want to ['do] to your data?
+
+[h2 Know Your Iterator Type]
+
+Most of the classes in xpressive are templates that are parameterized on the iterator type.
+xpressive defines some common typedefs to make the job of choosing the right types easier.
+You can use the table below to find the right types based on the type of your iterator.
+
+[table xpressive Typedefs vs. Iterator Types
+    [[]                         [std::string::const_iterator]       [char const *]              [std::wstring::const_iterator]      [wchar_t const *]]
+    [[_basic_regex_]            [`sregex`]                          [`cregex`]                  [`wsregex`]                         [`wcregex`]]
+    [[_match_results_]          [`smatch`]                          [`cmatch`]                  [`wsmatch`]                         [`wcmatch`]]
+    [[_regex_compiler_]         [`sregex_compiler`]                 [`cregex_compiler`]         [`wsregex_compiler`]                [`wcregex_compiler`]]
+    [[_regex_iterator_]         [`sregex_iterator`]                 [`cregex_iterator`]         [`wsregex_iterator`]                [`wcregex_iterator`]]
+    [[_regex_token_iterator_]   [`sregex_token_iterator`]           [`cregex_token_iterator`]   [`wsregex_token_iterator`]          [`wcregex_token_iterator`]]
+]
+
+You should notice the systematic naming convention. Many of these types are used together, so the
+naming convention helps you to use them consistently. For instance, if you have a `sregex`, you
+should also be using a `smatch`.
+
+If you are not using one of those four iterator types, then you can use the templates directly and
+specify your iterator type.
+
+[h2 Know Your Task]
+
+Do you want to find a pattern once? Many times? Search and replace? xpressive has tools for all
+that and more. Below is a quick reference:
+
+[table Tasks and Tools
+    [[To do this ...]                                                                                                                                                                       [Use this ...]]
+    [[__tip__ [link boost_xpressive.user_s_guide.examples.see_if_a_whole_string_matches_a_regex See if a whole string matches a regex]]                                                                                          [The _regex_match_ algorithm]]
+    [[__tip__ [link boost_xpressive.user_s_guide.examples.see_if_a_string_contains_a_sub_string_that_matches_a_regex See if a string contains a sub-string that matches a regex]]                                                [The _regex_search_ algorithm]]
+    [[__tip__ [link boost_xpressive.user_s_guide.examples.replace_all_sub_strings_that_match_a_regex Replace all sub-strings that match a regex]]                                                                                [The _regex_replace_ algorithm]]
+    [[__tip__ [link boost_xpressive.user_s_guide.examples.find_all_the_sub_strings_that_match_a_regex_and_step_through_them_one_at_a_time Find all the sub-strings that match a regex and step through them one at a time]]      [The _regex_iterator_ class]]
+    [[__tip__ [link boost_xpressive.user_s_guide.examples.split_a_string_into_tokens_that_each_match_a_regex Split a string into tokens that each match a regex]]                                                                [The _regex_token_iterator_ class]]
+    [[__tip__ [link boost_xpressive.user_s_guide.examples.split_a_string_using_a_regex_as_a_delimiter Split a string using a regex as a delimiter]]                                                                              [The _regex_token_iterator_ class]]
+]
+
+These algorithms and classes are described in excruciating detail in the Reference section.
+
+[tip Try clicking on a task in the table above to see a complete example
+program that uses xpressive to solve that particular task.]
+
+[endsect]

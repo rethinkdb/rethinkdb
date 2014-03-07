@@ -1,0 +1,37 @@
+# Copyright 2003, 2005 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+# This project-root.jam also serves the role of Jamfile
+project lib3 ;
+
+use-project /lib2/helper : ../lib2/helper ;
+
+import property ;
+
+rule properties-as-path ( properties * )
+{
+    local r ;
+    for local p in $(properties)
+    {
+        if $(p:G) != <action>
+        {
+            r += $(p) ;
+        }
+    }
+    return [ property.as-path
+        [ property.remove incidental : $(r) ] ] ;
+}
+
+rule mfc-compile ( target : sources * : property-set * )
+{
+    PROPERTIES on $(target) = [ properties-as-path $(property-set) ] ;
+}
+
+actions mfc-compile
+{
+    echo $(PROPERTIES) > $(<)
+    echo $(>) >> $(<)
+}
+
+make f.obj : f.cpp /lib2/helper//e.obj : mfc-compile ;

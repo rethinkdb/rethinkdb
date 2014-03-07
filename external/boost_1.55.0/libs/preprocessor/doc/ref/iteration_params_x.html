@@ -1,0 +1,77 @@
+<html>
+<head>
+	<title>BOOST_PP_ITERATION_PARAMS_x</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+	
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_ITERATION_PARAMS_<i>x</i></b> macro is a user-defined <i>named external argument</i> used by <b>BOOST_PP_ITERATE</b>.&nbsp;
+		It denotes the lower bound, upper bound, and the filename of a <i>file-iteration</i>.&nbsp;It can optionally denote flags associated with a <i>file-iteration</i> as well.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			#define <b>BOOST_PP_ITERATION_PARAMS_<i>x</i></b> (<i>c</i>, (<i>start</i>, <i>finish</i>, <i>filename</i> [, <i>flags</i>]))
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>x</dt>
+			<dd>
+				The iteration depth of the next <i>file-iteration</i>.&nbsp;
+				This value <i>must</i> be the current iteration depth + <i>1</i>.
+			</dd>
+			<dt>c</dt>
+			<dd>
+				The number of parameters.&nbsp;
+				If <i>flags</i> is specified, this value must be <i>4</i>.&nbsp;
+				Otherwise, it must be <i>3</i>.
+			</dd>
+			<dt>start</dt>
+			<dd>
+				The lower bound (inclusive) of a <i>file-iteration</i>.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_ITERATION</b>.
+			</dd>
+			<dt>finish</dt>
+			<dd>
+				The upper bound (inclusive) of a <i>file-iteration</i>.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_ITERATION</b>.
+			</dd>
+			<dt>filename</dt>
+			<dd>
+				A quoted or angle-bracketed filename to used as the target of a <i>file-iteration</i>.
+			</dd>
+			<dt>[flags]</dt>
+			<dd>
+				The flags associated with this <i>file-iteration</i> used to discriminate between different <i>file-iterations</i> in the same file.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			Note that there is a whitespace character after the macro identifier.
+		</div>
+		<div>
+			This macro is must be defined as an <i>array</i> of arguments in one of the two formats above (with or without <i>flags</i>).
+			It is the primary method of passing arguments to <b>BOOST_PP_ITERATE</b>.&nbsp;
+			Both <i>start</i> and <i>finish</i> are <i>evaluated parameters</i>, which implies that simple arithmetic can be used.
+		</div>
+		<div>
+			This macro is automatically undefined for reuse by a call to <b>BOOST_PP_ITERATE</b>.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="iterate.html">BOOST_PP_ITERATE</a></li>
+			<li><a href="limit_iteration.html">BOOST_PP_LIMIT_ITERATION</a></li>
+		</ul>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

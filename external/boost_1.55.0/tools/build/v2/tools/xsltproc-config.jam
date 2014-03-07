@@ -1,0 +1,36 @@
+#~ Copyright 2005 Rene Rivera.
+#~ Distributed under the Boost Software License, Version 1.0.
+#~ (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+# Automatic configuration for the xsltproc toolset. To use, just import this
+# module.
+
+import os ;
+import toolset : using ;
+
+
+local rule locate-executable ( name )
+{
+    local path = [ modules.peek : PATH ] ;
+    local exe ;
+    if [ os.name ] = NT
+    {
+        exe = [ GLOB $(path) "C:\\Boost\\bin" : $(name)\.exe ] ;
+    }
+    else
+    {
+        exe = [ GLOB $(path) : $(name) ] ;
+    }
+    return $(exe[1]) ;
+}
+
+
+local xsltproc-exe = [ locate-executable xsltproc ] ;
+if $(xsltproc-exe)
+{
+    if --debug-configuration in [ modules.peek : ARGV ]
+    {
+        ECHO notice: using xsltproc ":" $(xsltproc-exe) ;
+    }
+    using xsltproc : $(xsltproc-exe) ;
+}

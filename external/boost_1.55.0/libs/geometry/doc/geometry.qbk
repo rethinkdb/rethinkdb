@@ -1,0 +1,145 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[library Geometry
+    [quickbook 1.5]
+    [authors [Gehrels, Barend], [Lalande, Bruno], [Loskot, Mateusz], [Wulkiewicz, Adam]]
+    [copyright 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz]
+    [purpose Documentation of Boost.Geometry library]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+    [id geometry]
+    [category geometry]
+]
+
+[/Behavior]
+[def __0dim__  pointlike (e.g. point)]
+[def __1dim__  linear (e.g. linestring)]
+[def __2dim__  areal (e.g. polygon)]
+[def __single__  single (e.g. point, polygon)]
+[def __multi__  multiple (e.g. multi_point, multi_polygon)]
+[def __cart__  Cartesian]
+[def __sph__  Spherical]
+[def __geo__  Geographic]
+[def __rev__  Reversed polygon (coordinates not according their orientiation)]
+[def __empty__ Empty (e.g. polygon without points)]
+[def __box__  Box]
+[def __rectangle__  Rectangle]
+[def __segment__  Segment]
+[def __point__  Point]
+[def __linestring__  Linestring]
+[def __polygon__  Polygon]
+[def __ring__  Ring]
+[def __multi_point__  Multi Point]
+[def __multi_linestring__  Multi Linestring]
+[def __multi_polygon__  Multi Polygon]
+[def __range__  Rangelike (linestring, ring)]
+[def __other__  Other geometries]
+[def __nyiversion__  Not yet supported in this version]
+
+[def __not_in_boost_geometry_hpp__ The standard header `boost/geometry.hpp` does not include this header.]
+
+
+[/Parts]
+[def __ret_zero__ Returns zero]
+[def __ret_one__ Returns 1]
+[def __does_nothing__ Nothing happens, geometry is unchanged]
+[def __cs_units__ in the same units as the input coordinates]
+[def __sph1__ on a unit sphere (or another sphere, if specified as such in the constructor of the strategy)]
+[template qbk_ret[what] Returns [what]]
+[template qbk_out[what] GeometryOut is a [what]]
+
+[def __boost__ Boost]
+[def __boost_geometry__ Boost.Geometry]
+[def __boost_array__ Boost.Array]
+[def __boost_fusion__ Boost.Fusion]
+[def __boost_mpl__ Boost.MPL]
+[def __boost_range__ Boost.Range]
+[def __boost_tuple__ Boost.Tuple]
+[def __boost_gil__ [@http://www.boost.org/libs/gil/ Boost.GIL]]
+[def __boost_bb__ Boost.Build]
+
+[def __ttmath__ [@http://www.ttmath.org/ ttmath]]
+[def __ogc__ [@http://www.opengeospatial.org OGC]]
+
+[def __ogc_sf__ [@http://www.opengeospatial.org/standards/sfa OGC Simple Feature Specification]]
+
+[/Templates]
+[template concept[name type]
+The [name] Concept describes the requirements for a [type] type. 
+All algorithms in Boost.Geometry will check any geometry arguments against the concept requirements.
+]
+
+[template heading_conformance_no_ogc[function]
+[heading Conformance]
+The function [function] is not defined by OGC.
+]
+
+[template heading_conformance_ogc[function ogc_function]
+[heading Conformance]
+The function [function] implements function [ogc_function] from the __ogc_sf__.
+]
+
+[template conformance_std[function std_function]
+The function [function] conforms to the [std_function] of the C++ std-library.
+]
+
+[template see_boost_range_sample[concept]
+[note See also the sample in the [@../../../range/doc/html/range/reference/extending/method_2.html Boost.Range documentation]
+  showing how a type can be adapted to a Boost.Range to fulfill the concept of a [concept]
+]
+]
+
+
+[heading Contributions]
+
+Boost.Geometry contains contributions by:
+
+* Akira Takahashi (adaption of Boost.Fusion)
+* Alfredo Correa (adaption of Boost.Array)
+* Andrew Hundt (varray container, aka. static_vector)
+* Federico Fern\u00E1ndez (preliminary version of R-tree spatial index)
+* Karsten Ahnert (patch for cross-track distance)
+* Mats Taraldsvik (documentation: adapting a legacy model)
+
+[include imports.qbk]
+
+[include introduction.qbk]
+[include compiling.qbk]
+
+[include design_rationale.qbk]
+[include quickstart.qbk]
+
+[section Spatial Indexes] 
+[include index/index.qbk]
+[endsect]
+
+[include reference.qbk]
+
+[section Indexes] 
+[include matrix.qbk]
+[section Alphabetical Index]
+'''<index><title/></index>'''
+[endsect]
+[endsect] 
+
+[section Examples] 
+[include example_adapting_a_legacy_geometry_object_model.qbk]
+[endsect]
+
+[include release_notes.qbk]
+
+[include about_documentation.qbk]
+[include acknowledgments.qbk]

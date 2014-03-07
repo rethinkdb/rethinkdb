@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL MPI BSP Process Group</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-mpi-bsp-process-group">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> MPI BSP Process Group</h1>
+
+<!-- Copyright (C) 2004-2009 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#introduction" id="id1">Introduction</a></li>
+<li><a class="reference internal" href="#where-defined" id="id2">Where Defined</a></li>
+<li><a class="reference internal" href="#reference" id="id3">Reference</a></li>
+</ul>
+</div>
+<div class="section" id="introduction">
+<h1><a class="toc-backref" href="#id1">Introduction</a></h1>
+<p>The MPI <tt class="docutils literal"><span class="pre">mpi_process_group</span></tt> is an implementation of the <a class="reference external" href="process_group.html">process
+group</a> interface using the Message Passing Interface (MPI). It is the
+primary process group used in the Parallel BGL at this time.</p>
+</div>
+<div class="section" id="where-defined">
+<h1><a class="toc-backref" href="#id2">Where Defined</a></h1>
+<p>Header <tt class="docutils literal"><span class="pre">&lt;boost/graph/distributed/mpi_process_group.hpp&gt;</span></tt></p>
+</div>
+<div class="section" id="reference">
+<h1><a class="toc-backref" href="#id3">Reference</a></h1>
+<pre class="literal-block">
+namespace boost { namespace graph { namespace distributed {
+
+class mpi_process_group
+{
+public:
+  typedef boost::mpi::communicator communicator_type;
+
+  // Process group constructors
+  mpi_process_group(communicator_type comm = communicator_type());
+  mpi_process_group(std::size_t num_headers, std::size_t buffer_size,
+                    communicator_type comm = communicator_type());
+
+  mpi_process_group();
+  mpi_process_group(const mpi_process_group&amp;, boost::parallel::attach_distributed_object);
+
+  // Triggers
+  template&lt;typename Type, typename Handler&gt;
+    void trigger(int tag, const Handler&amp; handler);
+
+  template&lt;typename Type, typename Handler&gt;
+    void trigger_with_reply(int tag, const Handler&amp; handler);
+
+  trigger_receive_context trigger_context() const;
+
+  // Helper operations
+  void poll();
+  mpi_process_group base() const;
+};
+
+// Process query
+int process_id(const mpi_process_group&amp;);
+int num_processes(const mpi_process_group&amp;);
+
+// Message transmission
+template&lt;typename T&gt;
+  void send(const mpi_process_group&amp; pg, int dest, int tag, const T&amp; value);
+
+template&lt;typename T&gt;
+  void receive(const mpi_process_group&amp; pg, int source, int tag, T&amp; value);
+
+optional&lt;std::pair&lt;int, int&gt; &gt; probe(const mpi_process_group&amp; pg);
+
+// Synchronization
+void synchronize(const mpi_process_group&amp; pg);
+
+// Out-of-band communication
+template&lt;typename T&gt;
+  void send_oob(const mpi_process_group&amp; pg, int dest, int tag, const T&amp; value);
+
+template&lt;typename T, typename U&gt;
+  void
+  send_oob_with_reply(const mpi_process_group&amp; pg, int dest, int
+                      tag, const T&amp; send_value, U&amp; receive_value);
+
+template&lt;typename T&gt;
+  void receive_oob(const mpi_process_group&amp; pg, int source, int tag, T&amp; value);
+
+} } }
+</pre>
+<p>Since the <tt class="docutils literal"><span class="pre">mpi_process_group</span></tt> is an implementation of the <a class="reference external" href="process_group.html">process
+group</a> interface, we omit the description of most of the functions in
+the prototype. Two constructors need special mentioning:</p>
+<pre class="literal-block">
+mpi_process_group(communicator_type comm = communicator_type());
+</pre>
+<p>The constructor can take an optional MPI communicator. As default a communicator
+constructed from MPI_COMM_WORLD is used.</p>
+<pre class="literal-block">
+mpi_process_group(std::size_t num_headers, std::size_t buffer_size,
+                  communicator_type comm = communicator_type());
+</pre>
+<p>For performance fine tuning the maximum number of headers in a message batch
+(num_headers) and the maximum combined size of batched messages (buffer_size)
+can be specified. The maximum message size of a batch is
+16*num_headers+buffer_size. Sensible default values have been found by optimizing
+a typical application on a cluster with Ethernet network, and are num_header=64k
+and buffer_size=1MB, for a total maximum batches message size of 2MB.</p>
+<hr class="docutils" />
+<p>Copyright (C) 2007 Douglas Gregor</p>
+<p>Copyright (C) 2007 Matthias Troyer</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:22 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

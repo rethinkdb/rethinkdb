@@ -1,0 +1,57 @@
+# Copyright 2007 Andy Tompkins.
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import testing ;
+
+test-suite uuid :
+    # make sure each header file is self-contained
+    [ compile compile_uuid.cpp ]
+    [ compile compile_uuid.cpp : <define>BOOST_UUID_NO_TYPE_TRAITS : compile_uuid_no_type_traits ]
+    [ compile compile_uuid_io.cpp ]
+    [ compile compile_uuid_serialize.cpp ]
+    [ compile compile_uuid_generators.cpp ]
+    [ compile compile_nil_generator.cpp ]
+    [ compile compile_name_generator.cpp ]
+    [ compile compile_string_generator.cpp ]
+    [ compile compile_random_generator.cpp ]
+    [ compile compile_seed_rng.cpp ]
+
+    # test inclucing all .hpp files in 2 translations units
+    # to look for issues when using multiple translation units
+    # eg. missing inline on a global functionstate is not missing
+    [ run test_include1.cpp test_include2.cpp ]
+
+    # main test
+    [ run test_uuid.cpp ]
+
+    # test uuid_io.hpp
+    [ run test_io.cpp ]
+
+    # test generators
+    [ run test_nil_generator.cpp ]
+    [ run test_name_generator.cpp ]
+    [ run test_string_generator.cpp ]
+    [ run test_random_generator.cpp ]
+
+    # test tagging an object
+    [ run test_tagging.cpp ]
+
+    # test use cases
+    [ run test_uuid_class.cpp ]
+    [ run test_uuid_in_map.cpp ]
+
+    # test serializing uuids
+    [ run test_serialization.cpp ../../serialization/build//boost_serialization ]
+    # TODO - This test fails to like with boost_wserialization
+    #[ run test_wserialization.cpp
+    #    ../../serialization/build//boost_serialization
+    #    ../../serialization/build//boost_wserialization
+    #    : : : <dependency>../../config/test/all//BOOST_NO_STD_WSTREAMBUF
+    #]
+
+    # test sha1 hash function
+    [ run test_sha1.cpp ]
+    ;
+

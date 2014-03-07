@@ -1,0 +1,80 @@
+[/ File equal.qbk]
+
+[section:equal equal ]
+
+[/license
+Copyright (c) 2013 Marshall Clow
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+]
+
+The header file 'equal.hpp' contains two variants of a the stl algorithm `equal`. The algorithm tests to see if two sequences contain equal values;  
+
+Before (the proposed) C++14 the algorithm `std::equal` took three iterators and an optional comparison predicate. The first two iterators `[first1, last1)` defined a sequence, and the second one `first2` defined the start of the second sequence. The second sequence was assumed to be the same length as the first. 
+
+In C++14, two new variants were introduced, taking four iterators and an optional comparison predicate. The four iterators define two sequences `[first1, last1)` and `[first2, last2)` explicitly, rather than defining the second one implicitly. This leads to correct answers in more cases (and avoid undefined behavior in others).
+
+Consider the two sequences:
+```
+	auto seq1 = { 0, 1, 2 };
+	auto seq2 = { 0, 1, 2, 3, 4 };
+	
+	std::equal ( seq1.begin (), seq1.end (), seq2.begin ()); // true
+	std::equal ( seq2.begin (), seq2.end (), seq1.begin ()); // Undefined behavior
+	std::equal ( seq1.begin (), seq1.end (), seq2.begin (), seq2.end ()); // false
+```
+
+You can argue that `true` is the correct answer in the first case, even though the sequences are not the same. The first N entries in `seq2` are the same as the entries in `seq1` - but that's not all that's in `seq2`. But in the second case, the algorithm will read past the end of `seq1`, resulting in undefined behavior (large earthquake, incorrect results, pregnant cat, etc).
+
+However, if the two sequences are specified completely, it's clear that they are not equal.
+
+[heading interface]
+
+The function `equal` returns true if the two sequences compare equal; i.e, if each element in the sequence compares equal to the corresponding element in the other sequence. One version uses `std::equal_to` to do the comparison; the other lets the caller pass predicate to do the comparisons. 
+
+``
+template <class InputIterator1, class InputIterator2>
+bool equal ( InputIterator1 first1, InputIterator1 last1, 
+             InputIterator2 first2, InputIterator2 last2 );
+             
+template <class InputIterator1, class InputIterator2, class BinaryPredicate>
+bool equal ( InputIterator1 first1, InputIterator1 last1, 
+             InputIterator2 first2, InputIterator2 last2, BinaryPredicate pred );
+``
+
+[heading Examples]
+
+Given the container `c1` containing `{ 0, 1, 2, 3, 14, 15 }`, and `c2` containing `{ 1, 2, 3 }`,  then
+``
+equal ( c1.begin (),     c1.end (),       c2.begin (), c2.end ()) --> false
+equal ( c1.begin () + 1, c1.begin () + 3, c2.begin (), c2.end ()) --> true
+equal ( c1.end (),       c1.end (),       c2.end (),   c2.end ()) --> true  // empty sequences are alway equal to each other
+``
+
+[heading Iterator Requirements]
+
+`equal` works on all iterators except output iterators.
+
+[heading Complexity]
+
+Both of the variants of `equal` run in ['O(N)] (linear) time; that is, they compare against each element in the list once. If the sequence is found to be not equal at any point, the routine will terminate immediately, without examining the rest of the elements.
+
+[heading Exception Safety]
+
+Both of the variants of `equal` take their parameters by value and do not depend upon any global state. Therefore, all the routines in this file provide the strong exception guarantee.
+
+[heading Notes]
+
+* The four iterator version of the routine `equal` is part of the C++14 standard. When C++14 standard library implementations become available, the implementation from the standard library should be used.
+
+* `equal` returns true for two empty ranges, no matter what predicate is passed to test against. 
+
+[endsect]
+
+[/ File equal.qbk
+Copyright 2011 Marshall Clow
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt).
+]
+

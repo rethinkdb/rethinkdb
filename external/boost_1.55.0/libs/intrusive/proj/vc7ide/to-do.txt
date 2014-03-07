@@ -1,0 +1,39 @@
+/////////////////////////////////////////////////////////////////////////////
+//
+// (C) Copyright Ion Gaztanaga  2006-2013
+//
+// Distributed under the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE_1_0.txt or copy at
+//          http://www.boost.org/LICENSE_1_0.txt)
+//
+// See http://www.boost.org/libs/intrusive for documentation.
+//
+/////////////////////////////////////////////////////////////////////////////
+-> Implement C++0x features (rvalue references)
+-> Offer bidirectional iterator for hashtables
+-> Non-array buckets
+-> Document incremental<> option better
+-> Assure stable order for optimize_multikey and inverse order otherwise
+-> add an option to unordered containers to get O(1) traversal and begin()/end() even with very low load factors
+-> Take all pointers by const reference to optimize shared memory pointers
+-> Return pointers by const reference if node traits return them by const reference to optimize shared memory pointers
+-> Detect call signatures by has_member_function_callable_with instead of exact match to allow taking by const reference
+-> Optimize operations taking const_node_pointer using template parameters and SFINAE to allow node_ptr
+-> Add explicit constructors when needed
+-> Add all containers to external_value_traits
+-> Add test to check sizes (EBO)
+
+
+
+The article explains it quite well: Linear Hashing The cost of hash table expansion is spread out across each hash table insertion operation, as opposed to being incurred all at once. Linear hashing is therefore well suited for interactive applications.
+
+Linear hashing typically requires power of two length for bucket arrays, but those buckets are not fully used from the beginning, as it is when using non-linear hashing (which typically requires prime bucket length). Although the bucket array hash, say, has 16 buckets, the implementation uses first just one or two, then when after incremental rehashing uses three, etc.. incrementally, until it fills those 16 buckets. Then for a new incremental rehash, it allocates a new bucket array with length 32, but starts using only 17, and continues with incremental hashing. I think Dinkum STL used this incremental rehashing. The key is that in each incremental hashing, not all elements are rehashed, but just elements of a single bucket, distributing hashing impact in all allocations.
+
+For more information on hashing alternatives see the original standard hashing container proposal (chapter Control of Hash Resizing):
+
+http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1456.html
+
+Now, intrusive containers don't allocate memory at all, so incremental rehashing must be trigered by the user using
+"incremental_rehash(bool)" (use an additional bucket, that is, incremental rehash) and "incremental_rehash(bucket_traits)" (to update the new bucket array with an array that should be twice/half the size of the previous one). I admit that this is not explained at all with an example, so I will note this issue in my to do list.
+
+Review throwing conditions in trees. Searches say nothrow, but if comparison throws the function will throw.

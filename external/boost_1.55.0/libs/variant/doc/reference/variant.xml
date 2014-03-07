@@ -1,0 +1,768 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<header name="boost/variant/variant.hpp">
+  <namespace name="boost">
+    <class name="variant">
+      <purpose>Safe, generic, stack-based discriminated union container.</purpose>
+      <description>
+        <simpara>The <code>variant</code> class template (inspired by Andrei
+        Alexandrescu's class of the same name
+        [<link linkend="variant.refs.ale01a">Ale01A</link>]) is an efficient,
+        <link linkend="variant.tutorial.recursive">recursive-capable</link>,
+        bounded discriminated union value type capable of containing any value
+        type (either POD or non-POD). It supports construction from any type
+        convertible to one of its bounded types or from a source
+        <code>variant</code> whose bounded types are each convertible to one
+        of the destination <code>variant</code>'s bounded types. As well,
+        through <code><functionname>apply_visitor</functionname></code>,
+        <code>variant</code> supports compile-time checked, type-safe
+        visitation; and through <code><functionname>get</functionname></code>,
+        <code>variant</code> supports run-time checked, type-safe value
+        retrieval.</simpara>
+
+        <simpara><emphasis role="bold">Notes</emphasis>:</simpara>
+        <itemizedlist>
+          <listitem>The bounded types of the <code>variant</code> are exposed
+            via the nested typedef <code>types</code>, which is an
+            <libraryname>MPL</libraryname>-compatible Sequence containing the
+            set of types that must be handled by any
+            <link linkend="variant.concepts.static-visitor">visitor</link> to
+            the <code>variant</code>.</listitem>
+          <listitem>All members of <code>variant</code> satisfy at least the
+            basic guarantee of exception-safety. That is, all operations on
+            a <code>variant</code> remain defined even after previous
+            operations have failed.</listitem>
+          <listitem>Each type specified as a template argument to
+            <code>variant</code> must meet the requirements of the
+            <emphasis><link linkend="variant.concepts.bounded-type">BoundedType</link></emphasis>
+            concept.</listitem>
+          <listitem>Each type specified as a template argument to
+            <code>variant</code> must be distinct after removal of qualifiers.
+            Thus, for instance, both <code>variant&lt;int, int&gt;</code> and
+            <code>variant&lt;int, const int&gt;</code> have undefined
+            behavior.</listitem>
+          <listitem>Conforming implementations of <code>variant</code> must
+            allow at least ten types as template arguments. The exact number
+            of allowed arguments is exposed by the preprocessor macro
+            <code><macroname>BOOST_VARIANT_LIMIT_TYPES</macroname></code>.
+            (See <code><classname>make_variant_over</classname></code> for a
+            means to specify the bounded types of a <code>variant</code> by
+            the elements of an <libraryname>MPL</libraryname> or compatible
+            Sequence, thus overcoming this limitation.)</listitem>
+        </itemizedlist>
+      </description>
+
+      <template>
+        <template-type-parameter name="T1"/>
+        <template-type-parameter name="T2">
+          <default><emphasis>unspecified</emphasis></default>
+        </template-type-parameter>
+        <template-varargs/>
+        <template-type-parameter name="TN">
+          <default><emphasis>unspecified</emphasis></default>
+        </template-type-parameter>
+      </template>
+
+      <typedef name="types">
+        <type><emphasis>unspecified</emphasis></type>
+      </typedef>
+
+      <destructor>
+        <effects>
+          <simpara>Destroys the content of <code>*this</code>.</simpara>
+        </effects>
+
+        <throws>Will not throw.</throws>
+      </destructor>
+
+      <constructor>
+        <requires>
+          <simpara>The first bounded type of the <code>variant</code> (i.e.,
+            <code>T1</code>) must fulfill the requirements of the
+            <emphasis>DefaultConstructible</emphasis> [20.1.4]
+            concept.</simpara>
+        </requires>
+
+        <postconditions>
+          <simpara>Content of <code>*this</code> is the default value of the
+            first bounded type (i.e, <code>T1</code>).</simpara>
+        </postconditions>
+
+        <throws>
+          <simpara>May fail with any exceptions arising from the default
+            constructor of <code>T1</code>.</simpara>
+        </throws>
+      </constructor>
+
+      <constructor>
+        <parameter name="other">
+          <paramtype>const variant &amp;</paramtype>
+        </parameter>
+
+        <postconditions>
+          <simpara>Content of <code>*this</code> is a copy of the content of
+            <code>other</code>.</simpara>
+        </postconditions>
+        
+        <throws>
+          <simpara>May fail with any exceptions arising from the
+            copy constructor of <code>other</code>'s contained type.</simpara>
+        </throws>
+      </constructor>
+      
+      <constructor>
+        <parameter name="other">
+          <paramtype>variant &amp;&amp;</paramtype>
+        </parameter>
+
+        <requires>
+          <simpara>C++11 compatible compiler.</simpara>
+        </requires>
+        
+        <postconditions>
+          <simpara>Content of <code>*this</code> is move constructed from the content of
+            <code>other</code>.</simpara>
+        </postconditions>
+        
+        <throws>
+          <simpara>May fail with any exceptions arising from the
+            move constructor of <code>other</code>'s contained type.</simpara>
+        </throws>
+      </constructor>
+
+      <constructor>
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+
+        <parameter name="operand">
+          <paramtype>T &amp;</paramtype>
+        </parameter>
+
+        <requires>
+          <simpara><code>T</code> must be unambiguously convertible to one of
+            the bounded types (i.e., <code>T1</code>, <code>T2</code>,
+            etc.).</simpara>
+        </requires>
+
+        <postconditions>
+          <simpara>Content of <code>*this</code> is the best conversion of
+            <code>operand</code> to one of the bounded types, as determined
+            by standard overload resolution rules.</simpara>
+        </postconditions>
+
+        <throws>
+          <simpara>May fail with any exceptions arising from the conversion of
+            <code>operand</code> to one of the bounded types.</simpara>
+        </throws>
+      </constructor>
+
+      <constructor>
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+
+        <parameter name="operand">
+          <paramtype>const T &amp;</paramtype>
+        </parameter>
+
+        <notes>
+          <simpara>Same semantics as previous constructor, but allows
+            construction from temporaries.</simpara>
+        </notes>
+      </constructor>
+      
+      <constructor>
+        <template>
+          <template-type-parameter name="T"/>
+        </template>
+
+        <parameter name="operand">
+          <paramtype>T &amp;&amp;</paramtype>
+        </parameter>
+        
+        <requires>
+          <simpara>C++11 compatible compiler.</simpara>
+        </requires>
+        
+        <notes>
+          <simpara>Same semantics as previous constructor, but allows
+            move construction if <code>operand</code> is an rvalue.</simpara>
+        </notes>
+      </constructor>
+
+      <constructor>
+        <template>
+          <template-type-parameter name="U1"/>
+          <template-type-parameter name="U2"/>
+          <template-varargs/>
+          <template-type-parameter name="UN"/>
+        </template>
+
+        <parameter name="operand">
+          <paramtype>variant&lt;U1, U2, ..., UN&gt; &amp;</paramtype>
+        </parameter>
+
+        <requires>
+          <simpara><emphasis>Every</emphasis> one of <code>U1</code>,
+            <code>U2</code>, ..., <code>UN</code> must have an unambiguous
+            conversion to one of the bounded types (i.e., <code>T1</code>,
+            <code>T2</code>, ..., <code>TN</code>).</simpara>
+        </requires>
+
+        <postconditions>
+          <simpara>If <code>variant&lt;U1, U2, ..., UN&gt;</code> is itself
+            one of the bounded types, then content of <code>*this</code> is a
+            copy of <code>operand</code>. Otherwise, content of
+            <code>*this</code> is the best conversion of the content of
+            <code>operand</code> to one of the bounded types, as determined
+            by standard overload resolution rules.</simpara>
+        </postconditions>
+
+        <throws>
+          <simpara>If <code>variant&lt;U1, U2, ..., UN&gt;</code> is itself
+          one of the bounded types, then may fail with any exceptions arising
+          from the copy constructor of
+          <code>variant&lt;U1, U2, ..., UN&gt;</code>. Otherwise, may fail
+          with any exceptions arising from the conversion of the content of
+          <code>operand</code> to one of the bounded types.</simpara>
+        </throws>
+      </constructor>
+      
+      <constructor>
+        <template>
+          <template-type-parameter name="U1"/>
+          <template-type-parameter name="U2"/>
+          <template-varargs/>
+          <template-type-parameter name="UN"/>
+        </template>
+
+        <parameter name="operand">
+          <paramtype>const variant&lt;U1, U2, ..., UN&gt; &amp;</paramtype>
+        </parameter>
+
+        <notes>
+          <simpara>Same semantics as previous constructor, but allows
+            construction from temporaries.</simpara>
+        </notes>
+      </constructor>
+      
+      <constructor>
+        <template>
+          <template-type-parameter name="U1"/>
+          <template-type-parameter name="U2"/>
+          <template-varargs/>
+          <template-type-parameter name="UN"/>
+        </template>
+        
+        <requires>
+          <simpara>C++11 compatible compiler.</simpara>
+        </requires>
+        
+        <parameter name="operand">
+          <paramtype>variant&lt;U1, U2, ..., UN&gt; &amp;&amp;</paramtype>
+        </parameter>
+
+        <notes>
+          <simpara>Same semantics as previous constructor, but allows
+            move construction.</simpara>
+        </notes>
+      </constructor>
+
+      <method-group name="modifiers">
+
+        <method name="swap">
+          <type>void</type>
+
+          <parameter name="other">
+            <paramtype>variant &amp;</paramtype>
+          </parameter>
+
+          <requires>
+            <simpara>Every bounded type must fulfill the requirements of the
+              <conceptname>MoveAssignable</conceptname>
+              concept.</simpara>
+          </requires>
+
+          <effects>
+            <simpara>Interchanges the content of <code>*this</code> and
+              <code>other</code>.</simpara>
+          </effects>
+
+          <throws>
+            <simpara>If the contained type of <code>other</code> is the same as
+              the contained type of <code>*this</code>, then may fail with any
+              exceptions arising from the <code>swap</code> of the contents of
+              <code>*this</code> and <code>other</code>. Otherwise, may fail
+              with any exceptions arising from either of the move or copy constructors
+              of the contained types. Also, in the event of insufficient
+              memory, may fail with <code>std::bad_alloc</code>
+              (<link linkend="variant.design.never-empty.problem">why?</link>).</simpara>
+          </throws>
+        </method>
+
+        <method name="operator=">
+          <type>variant &amp;</type>
+
+          <parameter name="rhs">
+            <paramtype>const variant &amp;</paramtype>
+          </parameter>
+
+          <requires>
+            <simpara>Every bounded type must fulfill the requirements of the
+              <conceptname>Assignable</conceptname>
+              concept.</simpara>
+          </requires>
+
+          <effects>
+            <simpara>If the contained type of <code>rhs</code> is the same as
+              the contained type of <code>*this</code>, then assigns the
+              content of <code>rhs</code> into the content of
+              <code>*this</code>. Otherwise, makes the content of
+              <code>*this</code> a copy of the content of <code>rhs</code>,
+              destroying the previous content of <code>*this</code>.</simpara>
+          </effects>
+
+          <throws>
+            <simpara>If the contained type of <code>rhs</code> is the same as
+              the contained type of <code>*this</code>, then may fail with any
+              exceptions arising from the assignment of the content of
+              <code>rhs</code> into the content <code>*this</code>. Otherwise,
+              may fail with any exceptions arising from the copy constructor
+              of the contained type of <code>rhs</code>. Also, in the event of
+              insufficient memory, may fail with <code>std::bad_alloc</code>
+              (<link linkend="variant.design.never-empty.problem">why?</link>).</simpara>
+          </throws>
+        </method>
+        
+        <method name="operator=">
+          <type>variant &amp;</type>
+
+          <parameter name="rhs">
+            <paramtype>variant &amp;&amp;</paramtype>
+          </parameter>
+
+          <requires>
+            <itemizedlist>
+              <listitem>C++11 compatible compiler.</listitem>
+              <listitem>Every bounded type must fulfill the requirements of the
+              <conceptname>MoveAssignable</conceptname>
+              concept.</listitem>
+            </itemizedlist>
+          </requires>
+
+          <effects>
+            <simpara>If the contained type of <code>rhs</code> is the same as
+              the contained type of <code>*this</code>, then move assigns the
+              content of <code>rhs</code> into the content of
+              <code>*this</code>. Otherwise, move constructs
+              <code>*this</code> using the content of <code>rhs</code>,
+              destroying the previous content of <code>*this</code>.</simpara>
+          </effects>
+
+          <throws>
+            <simpara>If the contained type of <code>rhs</code> is the same as
+              the contained type of <code>*this</code>, then may fail with any
+              exceptions arising from the move assignment of the content of
+              <code>rhs</code> into the content <code>*this</code>. Otherwise,
+              may fail with any exceptions arising from the move constructor
+              of the contained type of <code>rhs</code>. Also, in the event of
+              insufficient memory, may fail with <code>std::bad_alloc</code>
+              (<link linkend="variant.design.never-empty.problem">why?</link>).</simpara>
+          </throws>
+        </method>
+
+        <method name="operator=">
+          <type>variant &amp;</type>
+
+          <template>
+            <template-type-parameter name="T"/>
+          </template>
+
+          <parameter name="rhs">
+            <paramtype>const T &amp;</paramtype>
+          </parameter>
+
+          <requires>
+            <itemizedlist>
+              <listitem><code>T</code> must be unambiguously convertible to
+                one of the bounded types (i.e., <code>T1</code>,
+                <code>T2</code>, etc.).</listitem>
+              <listitem>Every bounded type must fulfill the requirements of the
+                <conceptname>Assignable</conceptname>
+                concept.</listitem>
+            </itemizedlist>
+          </requires>
+
+          <effects>
+            <simpara>If the contained type of <code>*this</code> is
+              <code>T</code>, then assigns <code>rhs</code> into the content
+              of <code>*this</code>. Otherwise, makes the content of
+              <code>*this</code> the best conversion of <code>rhs</code> to
+              one of the bounded types, as determined by standard overload
+              resolution rules, destroying the previous content of
+              <code>*this</code>.</simpara>
+          </effects>
+
+          <throws>
+            <simpara>If the contained type of <code>*this</code> is
+              <code>T</code>, then may fail with any exceptions arising from
+              the assignment of <code>rhs</code> into the content
+              <code>*this</code>. Otherwise, may fail with any exceptions
+              arising from the conversion of <code>rhs</code> to one of the
+              bounded types. Also, in the event of insufficient memory, may
+              fail with <code>std::bad_alloc</code>
+              (<link linkend="variant.design.never-empty.problem">why?</link>).</simpara>
+          </throws>
+        </method>
+
+        <method name="operator=">
+          <type>variant &amp;</type>
+
+          <template>
+            <template-type-parameter name="T"/>
+          </template>
+
+          <parameter name="rhs">
+            <paramtype>T &amp;&amp;</paramtype>
+          </parameter>
+
+          <requires>
+            <itemizedlist>
+              <listitem>C++11 compatible compiler.</listitem>
+              <listitem><code>rhs</code> is an rvalue. Otherwise previous operator will be used.</listitem>
+              <listitem><code>T</code> must be unambiguously convertible to
+                one of the bounded types (i.e., <code>T1</code>,
+                <code>T2</code>, etc.).</listitem>
+              <listitem>Every bounded type must fulfill the requirements of the
+                <conceptname>MoveAssignable</conceptname>
+                concept.</listitem>
+            </itemizedlist>
+          </requires>
+
+          <effects>
+            <simpara>If the contained type of <code>*this</code> is
+              <code>T</code>, then move assigns <code>rhs</code> into the content
+              of <code>*this</code>. Otherwise, makes the content of
+              <code>*this</code> the best conversion of <code>rhs</code> to
+              one of the bounded types, as determined by standard overload
+              resolution rules, destroying the previous content of
+              <code>*this</code>(conversion is usually done via move construction).</simpara>
+          </effects>
+
+          <throws>
+            <simpara>If the contained type of <code>*this</code> is
+              <code>T</code>, then may fail with any exceptions arising from
+              the move assignment of <code>rhs</code> into the content
+              <code>*this</code>. Otherwise, may fail with any exceptions
+              arising from the conversion of <code>rhs</code> to one of the
+              bounded types. Also, in the event of insufficient memory, may
+              fail with <code>std::bad_alloc</code>
+              (<link linkend="variant.design.never-empty.problem">why?</link>).</simpara>
+          </throws>
+        </method>        
+        
+      </method-group>
+
+      <method-group name="queries">
+
+        <method name="which" cv="const">
+          <type>int</type>
+
+          <returns>
+            <simpara>The zero-based index into the set of bounded types
+              of the contained type of <code>*this</code>. (For instance, if
+              called on a <code>variant&lt;int, std::string&gt;</code> object
+              containing a <code>std::string</code>, <code>which()</code>
+              would return <code>1</code>.)</simpara>
+          </returns>
+
+          <throws>Will not throw.</throws>
+        </method>
+
+        <method name="empty" cv="const">
+          <type>bool</type>
+
+          <returns>
+            <simpara><code>false</code>: <code>variant</code> always contains
+              exactly one of its bounded types. (See
+              <xref linkend="variant.design.never-empty"/>
+              for more information.)</simpara>
+          </returns>
+
+          <rationale>
+            <simpara>Facilitates generic compatibility with
+              <classname>boost::any</classname>.</simpara>
+          </rationale>
+
+          <throws>Will not throw.</throws>
+        </method>
+
+        <method name="type" cv="const">
+          <type>const std::type_info &amp;</type>
+
+          <returns>
+            <simpara><code>typeid(x)</code>, where <code>x</code> is the the
+              content of <code>*this</code>.</simpara>
+          </returns>
+
+          <throws>Will not throw.</throws>
+          
+          <notes>
+            <simpara>Not available when <code>BOOST_NO_TYPEID</code> is
+              defined.</simpara>
+          </notes>
+        </method>
+
+      </method-group>
+      
+      <method-group name="relational">
+
+        <overloaded-method name="operator==" cv="const">
+          <purpose>Equality comparison.</purpose>
+
+          <signature cv="const">
+            <type>bool</type>
+            <parameter name="rhs">
+              <paramtype>const variant &amp;</paramtype>
+            </parameter>
+          </signature>
+          
+          <signature cv="const">
+            <type>void</type>
+            <template>
+              <template-type-parameter name="U"/>
+            </template>
+            <parameter>
+              <paramtype>const U &amp;</paramtype>
+            </parameter>
+          </signature>
+
+          <notes>
+            <simpara>The overload returning <code>void</code> exists only to
+              prohibit implicit conversion of the operator's right-hand side
+              to <code>variant</code>; thus, its use will (purposefully)
+              result in a compile-time error.</simpara>
+          </notes>
+
+          <requires>
+            <simpara>Every bounded type of the <code>variant</code> must
+              fulfill the requirements of the
+              <conceptname>EqualityComparable</conceptname>
+              concept.</simpara>
+          </requires>
+
+          <returns>
+            <simpara><code>true</code> iff <code>which() == rhs.which()</code>
+              <emphasis>and</emphasis>
+              <code>content_this == content_rhs</code>, where
+              <code>content_this</code> is the content of <code>*this</code>
+              and <code>content_rhs</code> is the content of
+              <code>rhs</code>.</simpara>
+          </returns>
+          
+          <throws>
+            <simpara>If <code>which() == rhs.which()</code> then may fail with
+              any exceptions arising from <code>operator==(T,T)</code>, where
+              <code>T</code> is the contained type of
+              <code>*this</code>.</simpara>
+          </throws>
+        </overloaded-method>
+
+        <overloaded-method name="operator&lt;">
+          <purpose>LessThan comparison.</purpose>
+
+          <signature cv="const">
+            <type>bool</type>
+            <parameter name="rhs">
+              <paramtype>const variant &amp;</paramtype>
+            </parameter>
+          </signature>
+          
+          <signature cv="const">
+            <type>void</type>
+            <template>
+              <template-type-parameter name="U"/>
+            </template>
+            <parameter>
+              <paramtype>const U &amp;</paramtype>
+            </parameter>
+          </signature>
+
+          <notes>
+            <simpara>The overload returning <code>void</code> exists only to
+              prohibit implicit conversion of the operator's right-hand side
+              to <code>variant</code>; thus, its use will (purposefully)
+              result in a compile-time error.</simpara>
+          </notes>
+
+          <requires>
+            <simpara>Every bounded type of the <code>variant</code> must
+              fulfill the requirements of the
+              <conceptname>LessThanComparable</conceptname>
+              concept.</simpara>
+          </requires>
+
+          <returns>
+            <simpara>If <code>which() == rhs.which()</code> then:
+              <code>content_this &lt; content_rhs</code>, where
+              <code>content_this</code> is the content of <code>*this</code>
+              and <code>content_rhs</code> is the content of <code>rhs</code>.
+              Otherwise: <code>which() &lt; rhs.which()</code>.</simpara>
+          </returns>
+
+          <throws>
+            <simpara>If <code>which() == rhs.which()</code> then may fail with
+              any exceptions arising from <code>operator&lt;(T,T)</code>,
+              where <code>T</code> is the contained type of
+              <code>*this</code>.</simpara>
+          </throws>
+        </overloaded-method>
+
+      </method-group>
+    </class>
+
+    <function name="swap">
+      <template>
+        <template-type-parameter name="T1"/>
+        <template-type-parameter name="T2"/>
+        <template-varargs/>
+        <template-type-parameter name="TN"/>
+      </template>
+
+      <type>void</type>
+
+      <parameter name="lhs">
+        <paramtype><classname>variant</classname>&lt;T1, T2, ..., TN&gt; &amp;</paramtype>
+      </parameter>
+
+      <parameter name="rhs">
+        <paramtype><classname>variant</classname>&lt;T1, T2, ..., TN&gt; &amp;</paramtype>
+      </parameter>
+
+      <effects>
+        <simpara>Swaps <code>lhs</code> with <code>rhs</code> by application
+          of <code><methodname>variant::swap</methodname></code>.</simpara>
+      </effects>
+
+      <throws>
+        <simpara>May fail with any exception arising from
+          <code><methodname>variant::swap</methodname></code>.</simpara>
+      </throws>
+    </function>
+
+    <function name="operator&lt;&lt;">
+      <purpose>Provides streaming output for <code>variant</code> types.</purpose>
+
+      <template>
+        <template-type-parameter name="ElemType"/>
+        <template-type-parameter name="Traits"/>
+        <template-type-parameter name="T1"/>
+        <template-type-parameter name="T2"/>
+        <template-varargs/>
+        <template-type-parameter name="TN"/>
+      </template>
+
+      <type>std::basic_ostream&lt;ElemType,Traits&gt; &amp;</type>
+
+      <parameter name="out">
+        <paramtype>std::basic_ostream&lt;ElemType,Traits&gt; &amp;</paramtype>
+      </parameter>
+
+      <parameter name="rhs">
+        <paramtype>const <classname>variant</classname>&lt;T1, T2, ..., TN&gt; &amp;</paramtype>
+      </parameter>
+
+      <requires>
+        <simpara>Every bounded type of the <code>variant</code> must
+          fulfill the requirements of the
+          <link linkend="variant.concepts.output-streamable"><emphasis>OutputStreamable</emphasis></link>
+          concept.</simpara>
+      </requires>
+
+      <effects>
+        <simpara>Calls <code>out &lt;&lt; x</code>, where <code>x</code> is
+          the content of <code>rhs</code>.</simpara>
+      </effects>
+      
+      <notes>
+        <simpara>Not available when <code>BOOST_NO_IOSTREAM</code> is
+          defined.</simpara>
+      </notes>
+
+    </function>
+    
+    <function name="hash_value">
+      <purpose>Provides hashing for <code>variant</code> types so 
+      that <code>boost::hash</code> may compute hash.</purpose>
+
+      <template>
+        <template-type-parameter name="T1"/>
+        <template-type-parameter name="T2"/>
+        <template-varargs/>
+        <template-type-parameter name="TN"/>
+      </template>
+
+      <type>std::size_t</type>
+
+      <parameter name="rhs">
+        <paramtype>const <classname>variant</classname>&lt;T1, T2, ..., TN&gt; &amp;</paramtype>
+      </parameter>
+
+      <requires>
+        <simpara>Every bounded type of the <code>variant</code> must
+          fulfill the requirements of the
+          <link linkend="variant.concepts.hashable"><emphasis>Hashable</emphasis></link>
+          concept.</simpara>
+      </requires>
+
+      <effects>
+        <simpara>Calls <code>boost::hash&lt;T&gt;()(x)</code>, where <code>x</code> is
+          the content of <code>rhs</code> and <code>T</code> is its type.</simpara>
+      </effects>
+      
+      <notes>
+        <simpara>Actually, this function is defined in 
+          <code>&lt;boost/variant/detail/hash_variant.hpp&gt;</code> 
+          header.</simpara>
+      </notes>
+
+    </function>
+    
+    <class name="make_variant_over">
+      <purpose>
+        <simpara>Exposes a <code>variant</code> whose bounded types are the
+          elements of the given type sequence.</simpara>
+      </purpose>
+
+      <template>
+        <template-type-parameter name="Sequence"/>
+      </template>
+
+      <typedef name="type">
+        <type>variant&lt; <emphasis>unspecified</emphasis> &gt;</type>
+      </typedef>
+
+      <description>
+        <simpara><code>type</code> has behavior equivalent in every respect to
+          <code><classname>variant</classname>&lt; Sequence[0], Sequence[1], ... &gt;</code>
+          (where <code>Sequence[<emphasis>i</emphasis>]</code> denotes the
+          <emphasis>i</emphasis>-th element of <code>Sequence</code>), except
+          that no upper limit is imposed on the number of types.</simpara>
+
+        <simpara><emphasis role="bold">Notes</emphasis>:</simpara>
+        <itemizedlist>
+          <listitem><code>Sequence</code> must meet the requirements of
+            <libraryname>MPL</libraryname>'s <emphasis>Sequence</emphasis>
+            concept.</listitem>
+          <listitem>Due to standard conformance problems in several compilers,
+            <code>make_variant_over</code> may not be supported on your
+            compiler. See
+            <code><macroname>BOOST_VARIANT_NO_TYPE_SEQUENCE_SUPPORT</macroname></code>
+            for more information.</listitem>
+        </itemizedlist>
+      </description>
+    </class>
+  </namespace>
+</header>

@@ -1,0 +1,10 @@
+[article Macro import.
+[quickbook 1.6]
+]
+
+[/ TOOD: Should I have a special docinfo type for this kind of thing? ]
+
+This shouldn't show: __FILENAME__
+
+[def macro2 Macro 2: __FILENAME__]
+[template template2 Template 2: __FILENAME__]

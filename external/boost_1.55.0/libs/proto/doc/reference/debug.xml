@@ -1,0 +1,280 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/debug.hpp">
+  <para>Utilities for debugging Proto expression trees </para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="functional">
+
+        <!-- proto::functional::display_expr -->
+        <struct name="display_expr">
+          <purpose>Pretty-print a Proto expression tree. </purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> which accepts a Proto expression tree and pretty-prints it to an <computeroutput>ostream</computeroutput> for debugging purposes.
+            </para>
+          </description>
+
+          <typedef name="result_type">
+            <type>void</type>
+          </typedef>
+
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>void</type>
+              <template>
+                <template-type-parameter name="Expr"/>
+              </template>
+              <parameter name="expr">
+                <paramtype>Expr const &amp;</paramtype>
+              </parameter>
+            </method>
+          </method-group>
+
+          <constructor>
+            <parameter name="sout"><paramtype>std::ostream &amp;</paramtype><default>std::cout</default>
+              <description>
+                <para>
+                  The <computeroutput>ostream</computeroutput> to which the expression tree will be written.
+                </para>
+              </description>
+            </parameter>
+            <parameter name="depth">
+              <paramtype>int</paramtype>
+              <default>0</default>
+              <description>
+                <para>
+                  The starting indentation depth for this node. Children nodes will be displayed at a starting depth of <computeroutput>depth+4</computeroutput>.
+                </para>
+              </description>
+            </parameter>
+          </constructor>
+        </struct>
+
+      </namespace>
+
+      <!-- proto::display_expr -->
+      <overloaded-function name="display_expr">
+
+        <signature>
+          <type>void</type>
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr const &amp;</paramtype>
+            <description>
+              <para>The Proto expression tree to pretty-print </para>
+            </description>
+          </parameter>
+          <parameter name="sout">
+            <paramtype>std::ostream &amp;</paramtype>
+            <description>
+              <para>
+                The <computeroutput>ostream</computeroutput> to which the output should be written. If not specified, defaults to <computeroutput>std::cout</computeroutput>.
+              </para>
+            </description>
+          </parameter>
+        </signature>
+
+        <signature>
+          <type>void</type>
+          <template>
+            <template-type-parameter name="Expr"/>
+          </template>
+          <parameter name="expr">
+            <paramtype>Expr const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <purpose>Pretty-print a Proto expression tree. </purpose>
+        <notes>
+          <para>
+            Equivalent to <computeroutput><classname alt="boost::proto::functional::display_expr">proto::functional::display_expr</classname>(0, sout)(expr)</computeroutput>.
+          </para>
+        </notes>
+      </overloaded-function>
+
+      <!-- proto::assert_matches -->
+      <function name="assert_matches">
+        <type>void</type>
+        <template>
+          <template-type-parameter name="Grammar"/>
+          <template-type-parameter name="Expr"/>
+        </template>
+        <parameter name="expr">
+          <paramtype>Expr const &amp;</paramtype>
+          <purpose>
+            The Proto expression to check againts <code>Grammar</code>.
+          </purpose>
+        </parameter>
+        <purpose>
+          Assert at compile time that a particular expression
+          matches the specified grammar.
+        </purpose>
+        <notes>
+          <para>
+            Equivalent to <code>BOOST_MPL_ASSERT((<classname alt="proto::matches">proto::matches</classname>&lt;Expr, Grammar&gt;))</code>.
+          </para>
+        </notes>
+        <description>
+          <para>
+            Use <code>proto::assert_matches()</code> to assert at compile-time that
+            an expression matches a grammar. 
+          </para>
+          <para>
+            <emphasis role="bold">Example:</emphasis><programlisting>typedef proto::plus&lt; proto::terminal&lt; int &gt;, proto::terminal&lt; int &gt; &gt; PlusInts;
+
+proto::assert_matches&lt;PlusInts&gt;( <functionname>proto::lit</functionname>(1) + 42 );</programlisting>
+          </para>
+          <para>
+            See also:
+            <itemizedlist>
+              <listitem>
+                <code><functionname>proto::assert_matches_not</functionname>()</code>
+              </listitem>
+              <listitem>
+                <code><macroname>BOOST_PROTO_ASSERT_MATCHES</macroname>()</code>
+              </listitem>
+              <listitem>
+                <code><macroname>BOOST_PROTO_ASSERT_MATCHES_NOT</macroname>()</code>
+              </listitem>
+            </itemizedlist>
+          </para>
+        </description>
+      </function>
+
+      <!-- proto::assert_matches_not -->
+      <function name="assert_matches_not">
+        <type>void</type>
+        <template>
+          <template-type-parameter name="Grammar"/>
+          <template-type-parameter name="Expr"/>
+        </template>
+        <parameter name="expr">
+          <paramtype>Expr const &amp;</paramtype>
+          <purpose>
+            The Proto expression to check againts <code>Grammar</code>.
+          </purpose>
+        </parameter>
+        <purpose>
+          Assert at compile time that a particular expression
+          does not match the specified grammar.
+        </purpose>
+        <notes>
+          <para>
+            Equivalent to <code>BOOST_MPL_ASSERT_NOT((<classname alt="proto::matches">proto::matches</classname>&lt;Expr, Grammar&gt;))</code>.
+          </para>
+        </notes>
+        <description>
+          <para>
+            Use <code>proto::assert_matches_not()</code> to assert at compile-time that
+            an expression does not match a grammar. 
+          </para>
+          <para>
+            <emphasis role="bold">Example:</emphasis><programlisting>typedef proto::plus&lt; proto::terminal&lt; int &gt;, proto::terminal&lt; int &gt; &gt; PlusInts;
+
+proto::assert_matches_not&lt;PlusInts&gt;( <functionname>proto::lit</functionname>("a string") + 42 );</programlisting>
+          </para>
+          <para>
+            See also:
+            <itemizedlist>
+              <listitem>
+                <code><functionname>proto::assert_matches</functionname>()</code>
+              </listitem>
+              <listitem>
+                <code><macroname>BOOST_PROTO_ASSERT_MATCHES</macroname>()</code>
+              </listitem>
+              <listitem>
+                <code><macroname>BOOST_PROTO_ASSERT_MATCHES_NOT</macroname>()</code>
+              </listitem>
+            </itemizedlist>
+          </para>
+        </description>
+      </function>
+    </namespace>
+  </namespace>
+
+  <macro name="BOOST_PROTO_ASSERT_MATCHES" kind="functionlike">
+    <macro-parameter name="expr"/>
+    <macro-parameter name="Grammar"/>
+    <purpose>
+      Assert at compile time that a particular expression
+      matches the specified grammar.
+    </purpose>
+    <notes>
+      <para>
+        Equivalent to <code><functionname alt="boost::proto::assert_matches">proto::assert_matches</functionname>&lt;Grammar&gt;(expr)</code>.
+      </para>
+    </notes>
+    <description>
+      <para>
+        Use <code>BOOST_PROTO_ASSERT_MATCHES()</code> to assert at compile-time that
+        an expression matches a grammar.
+      </para>
+      <para>
+        <emphasis role="bold">Example:</emphasis><programlisting>typedef <classname alt="boost::proto::plus">proto::plus</classname>&lt; <classname alt="boost::proto::terminal">proto::terminal</classname>&lt; int &gt;, <classname alt="boost::proto::terminal">proto::terminal</classname>&lt; int &gt; &gt; PlusInts;
+
+BOOST_PROTO_ASSERT_MATCHES( <functionname alt="boost::proto::lit">proto::lit</functionname>(1) + 42, PlusInts );</programlisting>
+      </para>
+      <para>
+        See also:
+        <itemizedlist>
+          <listitem>
+            <code><functionname alt="boost::proto::assert_matches">proto::assert_matches</functionname>()</code>
+          </listitem>
+          <listitem>
+            <code><functionname alt="boost::proto::assert_matches_not">proto::assert_matches_not</functionname>()</code>
+          </listitem>
+          <listitem>
+            <code><macroname>BOOST_PROTO_ASSERT_MATCHES_NOT</macroname>()</code>
+          </listitem>
+        </itemizedlist>
+      </para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_PROTO_ASSERT_MATCHES_NOT" kind="functionlike">
+    <macro-parameter name="expr"/>
+    <macro-parameter name="Grammar"/>
+    <purpose>
+      Assert at compile time that a particular expression
+      does not match the specified grammar.
+    </purpose>
+    <notes>
+      <para>
+        Equivalent to <code><functionname alt="boost::proto::assert_matches_not">proto::assert_matches_not</functionname>&lt;Grammar&gt;(expr)</code>.
+      </para>
+    </notes>
+    <description>
+      <para>
+        Use <code>BOOST_PROTO_ASSERT_MATCHES_NOT()</code> to assert at compile-time that
+        an expression does not match a grammar. 
+      </para>
+      <para>
+        <emphasis role="bold">Example:</emphasis><programlisting>typedef <classname alt="boost::proto::plus">proto::plus</classname>&lt; <classname alt="boost::proto::terminal">proto::terminal</classname>&lt; int &gt;, <classname alt="boost::proto::terminal">proto::terminal</classname>&lt; int &gt; &gt; PlusInts;
+
+BOOST_PROTO_ASSERT_MATCHES_NOT( <functionname alt="boost::proto::lit">proto::lit</functionname>("a string") + 42, PlusInts );</programlisting>
+      </para>
+      <para>
+        See also:
+        <itemizedlist>
+          <listitem>
+            <code><functionname alt="boost::proto::assert_matches">proto::assert_matches</functionname>()</code>
+          </listitem>
+          <listitem>
+            <code><functionname alt="boost::proto::assert_matches_not">proto::assert_matches_not</functionname>()</code>
+          </listitem>
+          <listitem>
+            <code><macroname>BOOST_PROTO_ASSERT_MATCHES</macroname>()</code>
+          </listitem>
+        </itemizedlist>
+      </para>
+    </description>
+  </macro>
+</header>

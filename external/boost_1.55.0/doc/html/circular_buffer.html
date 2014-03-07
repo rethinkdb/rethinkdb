@@ -1,0 +1,160 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;6.&#160;Boost.Circular Buffer</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="chrono/appendices.html" title="Appendices">
+<link rel="next" href="circular_buffer/example.html" title="Circular_buffer example">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="chrono/appendices.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="circular_buffer/example.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="circular_buffer"></a>Chapter&#160;6.&#160;Boost.Circular Buffer</h2></div>
+<div><div class="authorgroup"><div class="author"><h3 class="author">
+<span class="firstname">Jan</span> <span class="surname">Gaspar</span>
+</h3></div></div></div>
+<div><p class="copyright">Copyright &#169; 2003-2013 Jan Gaspar</p></div>
+<div><div class="legalnotice">
+<a name="circular_buffer.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="circular_buffer.html#circular_buffer.intro">Introduction</a></span></dt>
+<dt><span class="section"><a href="circular_buffer/example.html">Circular_buffer example</a></span></dt>
+<dt><span class="section"><a href="circular_buffer/rationale.html">Rationale</a></span></dt>
+<dt><span class="section"><a href="circular_buffer/implementation.html">Implementation </a></span></dt>
+<dt><span class="section"><a href="circular_buffer/examples.html">More Examples</a></span></dt>
+<dt><span class="section"><a href="circular_buffer/headers.html">Header Files</a></span></dt>
+<dt><span class="section"><a href="circular_buffer/concepts.html">Modelled Concepts</a></span></dt>
+<dt><span class="section"><a href="circular_buffer/template_params.html">Template Parameters</a></span></dt>
+<dt><span class="section"><a href="circular_buffer/tickets.html">Trac Tickets</a></span></dt>
+<dt><span class="section"><a href="circular_buffer/release.html">Release Notes</a></span></dt>
+<dt><span class="section"><a href="circular_buffer/acknowledgements.html">Acknowledgements</a></span></dt>
+<dt><span class="section"><a href="circular_buffer/version_id.html">Documentation Version Info</a></span></dt>
+<dt><span class="section"><a href="boost_circular_buffer_c___reference.html">Boost.Circular_buffer C++ Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_circular_buffer_c___reference.html#header.boost.circular_buffer_hpp">Header &lt;boost/circular_buffer.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="boost_circular_buffer_c___reference.html#header.boost.circular_buffer.base_hpp">Header &lt;boost/circular_buffer/base.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="boost_circular_buffer_c___reference.html#header.boost.circular_buffer.debug_hpp">Header &lt;boost/circular_buffer/debug.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="boost_circular_buffer_c___reference.html#header.boost.circular_buffer.details_hpp">Header &lt;boost/circular_buffer/details.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="boost_circular_buffer_c___reference.html#header.boost.circular_buffer.space_optimized_hpp">Header &lt;boost/circular_buffer/space_optimized.hpp&gt;</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="circular_buffer/s14.html">Index</a></span></dt>
+</dl>
+</div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+      A printer-friendly PDF version of this manual is also available.
+    </p></td></tr>
+</table></div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="circular_buffer.intro"></a><a class="link" href="circular_buffer.html#circular_buffer.intro" title="Introduction">Introduction</a>
+</h2></div></div></div>
+<p>
+      A Circular Buffer.
+    </p>
+<h3>
+<a name="circular_buffer.intro.h0"></a>
+      <span class="phrase"><a name="circular_buffer.intro.description"></a></span><a class="link" href="circular_buffer.html#circular_buffer.intro.description">Description</a>
+    </h3>
+<p>
+      The term <a href="http://en.wikipedia.org/wiki/Circular_buffer" target="_top">circular
+      buffer</a> (also called a <span class="emphasis"><em>ring</em></span> or <span class="emphasis"><em>cyclic
+      buffer</em></span>) refers to an area in memory which is used to store incoming
+      data. When the buffer is filled, new data is written starting at the beginning
+      of the buffer and overwriting the old.
+    </p>
+<p>
+      <code class="computeroutput"><a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">boost::circular_buffer</a></code>
+      is a STL compliant container.
+    </p>
+<p>
+      It is a kind of sequence similar to <a href="http://www.sgi.com/tech/stl/List.html" target="_top">std::list</a>
+      or <a href="http://www.sgi.com/tech/stl/Deque.html" target="_top">std::deque</a>.
+      It supports random access iterators, constant time insert and erase operations
+      at the beginning or the end of the buffer and interoperability with std algorithms.
+    </p>
+<p>
+      The <code class="computeroutput"><a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code> is
+      especially designed to provide <span class="bold"><strong>fixed capacity</strong></span>
+      storage. When its capacity is exhausted, newly inserted elements will cause
+      elements to be overwritten, either at the beginning or end of the buffer (depending
+      on what insert operation is used).
+    </p>
+<p>
+      The <code class="computeroutput"><a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code> only
+      allocates memory when created, when the capacity is adjusted explicitly, or
+      as necessary to accommodate resizing or assign operations.
+    </p>
+<p>
+      <span class="inlinemediaobject"><img src="../../libs/circular_buffer/doc/images/circular_buffer.png"></span>
+    </p>
+<p>
+      There is also a <code class="computeroutput"><a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a></code>
+      version available.
+    </p>
+<p>
+      <span class="inlinemediaobject"><img src="../../libs/circular_buffer/doc/images/space_optimized.png"></span>
+    </p>
+<p>
+      <code class="computeroutput"><a class="link" href="boost/circular_buffe_idp21015912.html" title="Class template circular_buffer_space_optimized">circular_buffer_space_optimized</a></code>
+      is an adaptation of the <code class="computeroutput"><a class="link" href="boost/circular_buffer.html" title="Class template circular_buffer">circular_buffer</a></code>
+      which <span class="bold"><strong>does not allocate memory all at once when created</strong></span>,
+      instead it allocates memory as needed.
+    </p>
+<p>
+      The predictive memory allocation is similar to typical <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span></code>
+      implementation. Memory is automatically freed as the size of the container
+      decreases.
+    </p>
+<p>
+      The memory allocation process of the space-optimized circular buffer. The
+      <code class="computeroutput">min_capacity</code>
+      of the capacity controller represents the minimal guaranteed amount of allocated
+      memory. The allocated memory will never drop under this value. The default
+      value of the <code class="computeroutput"><span class="identifier">min_capacity</span></code> is
+      set to 0. The <code class="computeroutput"><span class="identifier">min_capacity</span></code>
+      can be set using the constructor parameter <code class="computeroutput">()
+      capacity_control </code> or the function <code class="computeroutput"><span class="identifier">set_capacity</span></code>.
+    </p>
+<p>
+      The space-optimized version is, of course, a little slower.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:49:25 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="chrono/appendices.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="circular_buffer/example.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

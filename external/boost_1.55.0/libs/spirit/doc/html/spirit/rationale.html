@@ -1,0 +1,218 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Rationale</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../index.html" title="Spirit 2.5.2">
+<link rel="prev" href="notes/style_guide.html" title="Style Guide">
+<link rel="next" href="repository.html" title="Spirit Repository">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="notes/style_guide.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="repository.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="spirit.rationale"></a><a class="link" href="rationale.html" title="Rationale">Rationale</a>
+</h2></div></div></div>
+<h4>
+<a name="spirit.rationale.h0"></a>
+      <span class="phrase"><a name="spirit.rationale.naming"></a></span><a class="link" href="rationale.html#spirit.rationale.naming">Naming</a>
+    </h4>
+<p>
+      Why use the name "Spirit", "Qi" and "Karma"?
+      Because xpressive names have a better spirit, brings qi to your software and
+      will enhance your karma so they can heal your (con)fusion and make you wave
+      like a phoenix from the ashes. (Joachim Faulhaber)
+    </p>
+<h4>
+<a name="spirit.rationale.h1"></a>
+      <span class="phrase"><a name="spirit.rationale.type_erasure__from_static_to_dynamic_c__"></a></span><a class="link" href="rationale.html#spirit.rationale.type_erasure__from_static_to_dynamic_c__">Type Erasure:
+      From static to dynamic C++</a>
+    </h4>
+<p>
+      Rules straddle the border between static and dynamic C++. In effect, a rule
+      transforms compile-time polymorphism (using templates) into run-time polymorphism
+      (using virtual functions). This is necessary due to C++'s inability to automatically
+      declare a variable of a type deduced from an arbitrarily complex expression
+      in the right-hand side (rhs) of an assignment. Basically, we want to do something
+      like:
+    </p>
+<pre class="programlisting"><span class="identifier">T</span> <span class="identifier">rule</span> <span class="special">=</span> <span class="identifier">an_arbitrarily_complex_expression</span><span class="special">;</span>
+</pre>
+<p>
+      without having to know or care about the resulting type of the right-hand side
+      (rhs) of the assignment expression. This can be done with modern C++ 0x compilers
+      using <code class="computeroutput"><span class="keyword">auto</span></code>:
+    </p>
+<pre class="programlisting"><span class="keyword">auto</span> <span class="identifier">rule</span> <span class="special">=</span> <span class="identifier">an_arbitrarily_complex_expression</span><span class="special">;</span>
+</pre>
+<p>
+      Apart from this, we also need a facility to forward declare an unknown type:
+    </p>
+<pre class="programlisting"><span class="identifier">T</span> <span class="identifier">rule</span><span class="special">;</span>
+<span class="special">...</span>
+<span class="identifier">rule</span> <span class="special">=</span> <span class="identifier">a</span> <span class="special">|</span> <span class="identifier">b</span><span class="special">;</span>
+</pre>
+<p>
+      These limitations lead us to this implementation of rules. This comes at the
+      expense of the overhead of a type-erased call which is an indirect function
+      call that connot be inlined, once through each invocation of a rule.
+    </p>
+<h4>
+<a name="spirit.rationale.h2"></a>
+      <span class="phrase"><a name="spirit.rationale.multiple_declaration"></a></span><a class="link" href="rationale.html#spirit.rationale.multiple_declaration">Multiple
+      declaration</a>
+    </h4>
+<p>
+      Some BNF variants allow multiple declarations of a rule. The declarations are
+      taken as alternatives. Example:
+    </p>
+<pre class="programlisting"><span class="identifier">r</span> <span class="special">=</span> <span class="identifier">a</span><span class="special">;</span>
+<span class="identifier">r</span> <span class="special">=</span> <span class="identifier">b</span><span class="special">;</span>
+</pre>
+<p>
+      is equivalent to:
+    </p>
+<pre class="programlisting"><span class="identifier">r</span> <span class="special">=</span> <span class="identifier">a</span> <span class="special">|</span> <span class="identifier">b</span><span class="special">;</span>
+</pre>
+<p>
+      Spirit v1.3 allowed this behavior. However, the current version of Spirit no
+      longer allows this because experience shows that this behavior leads to unwanted
+      gotchas (for instance, it does not allow rules to be held in containers). In
+      the current release of Spirit, a second assignment to a rule will simply redefine
+      it. The old definition is destructed. This follows more closely C++ semantics
+      and is more in line with what the user expects the rule to behave.
+    </p>
+<h4>
+<a name="spirit.rationale.h3"></a>
+      <span class="phrase"><a name="spirit.rationale.sequencing_syntax"></a></span><a class="link" href="rationale.html#spirit.rationale.sequencing_syntax">Sequencing
+      Syntax</a>
+    </h4>
+<p>
+      The comma operator as in <code class="computeroutput"><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span></code> seems
+      to be a better candidate, syntax-wise. But then the problem is with its precedence.
+      It has the lowest precedence in C/C++, which makes it virtually useless.
+    </p>
+<p>
+      Bjarne Stroustrup, in his article "Generalizing Overloading for C++2000"
+      talks about overloading whitespace. Such a feature would allow juxtapositioning
+      of parser objects exactly as we do in (E)BNF (e.g. a b | c instead of a &gt;&gt;
+      b | c). Unfortunately, the article was dated April 1, 1998. Oh well.
+    </p>
+<h4>
+<a name="spirit.rationale.h4"></a>
+      <span class="phrase"><a name="spirit.rationale.forward_iterators"></a></span><a class="link" href="rationale.html#spirit.rationale.forward_iterators">Forward
+      iterators</a>
+    </h4>
+<p>
+      In general, the expected iterator is at least a standard conforming forward
+      iterator. Forward iterators are needed for backtracking where the iterator
+      needs to be saved and restored later. Generally speaking, Spirit is a backtracking
+      parser. The implication of this is that at some point, the iterator position
+      will have to be saved to allow the parser to backtrack to a previous point.
+      Thus, for backtracking to work, the framework requires at least a forward iterator.
+    </p>
+<p>
+      There are remedies of course. In cases where we need to use input iterators,
+      you can use the <a class="link" href="support/multi_pass.html" title="The multi pass iterator"><code class="computeroutput"><span class="identifier">multi_pass</span></code></a>
+      iterator to make the forward iterators.
+    </p>
+<p>
+      Some parsers might require more specialized iterators (bi-directional or even
+      random access). Perhaps in the future, deterministic parsers when added to
+      the framework, will perform no backtracking and will need just a single token
+      lookahead, hence will require input iterators only.
+    </p>
+<h4>
+<a name="spirit.rationale.h5"></a>
+      <span class="phrase"><a name="spirit.rationale.exhaustive_backtracking_and_greedy_rd"></a></span><a class="link" href="rationale.html#spirit.rationale.exhaustive_backtracking_and_greedy_rd">Exhaustive
+      backtracking and greedy RD</a>
+    </h4>
+<p>
+      Spirit doesn't do exhaustive backtracking like regular expressions are expected
+      to. For example:
+    </p>
+<pre class="programlisting"><span class="special">*</span><span class="identifier">char_</span><span class="special">(</span><span class="char">'a'</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="identifier">char_</span><span class="special">(</span><span class="char">'a'</span><span class="special">);</span>
+</pre>
+<p>
+      will always fail to match because Spirit's Kleene star does not back off when
+      the rest of the rule fails to match.
+    </p>
+<p>
+      Actually, there's a solution to this greedy RD problem. Such a scheme is discussed
+      in section 6.6.2 of Parsing Techniques: A Practical Guide. The trick involves
+      passing a tail parser (in addition to the scanner) to each parser. The start
+      parser will then simply be:
+    </p>
+<pre class="programlisting"><span class="identifier">start</span> <span class="special">&gt;&gt;</span> <span class="identifier">end</span><span class="special">;</span>
+</pre>
+<p>
+      (end is the start's tail).
+    </p>
+<p>
+      Spirit is greedy --using straight forward, naive RD. It is certainly possible
+      to implement the fully backtracking scheme presented above, but there will
+      be also certainly be a performance hit. The scheme will always try to match
+      all possible parser paths (full parser hierarchy traversal) until it reaches
+      a point of certainty, that the whole thing matches or fails to match.
+    </p>
+<div class="blockquote"><blockquote class="blockquote">
+<p>
+        Backtracking and Greedy RD
+      </p>
+<p>
+        Spirit is quite consistent and intuitive about when it backtracks and to
+        where, although it may not be obvious to those coming from different backgrounds.
+        In general, any (sub)parser will, given the same input, always match the
+        same portion of the input (or fail to match the input at all). This means
+        that Spirit is inherently greedy. Spirit will only backtrack when a (sub)parser
+        fails to match the input, and it will always backtrack to the next choice
+        point upward (not backward) in the parser structure. In other words abb|ab
+        will match <code class="computeroutput"><span class="string">"ab"</span></code>, as
+        will <code class="computeroutput"><span class="identifier">a</span><span class="special">(</span><span class="identifier">bb</span><span class="special">|</span><span class="identifier">b</span><span class="special">)</span></code>, but <code class="computeroutput"><span class="special">(</span><span class="identifier">ab</span><span class="special">|</span><span class="identifier">a</span><span class="special">)</span><span class="identifier">b</span></code> won't
+        because the <code class="computeroutput"><span class="special">(</span><span class="identifier">ab</span><span class="special">|</span><span class="identifier">a</span><span class="special">)</span></code>
+        subparser will always match the <code class="computeroutput"><span class="char">'b'</span></code>
+        after the <code class="computeroutput"><span class="char">'a'</span></code> if it is available.
+      </p>
+<p>
+        --Rainer Deyke
+      </p>
+</blockquote></div>
+<p>
+      This is the very nature of <a class="link" href="abstracts/parsing_expression_grammar.html" title="Parsing Expression Grammar">Parsing
+      Expression Grammar</a>.
+    </p>
+<p>
+      There's a strong preference on "simplicity with all the knobs when you
+      need them" approach, right now. On the other hand, the flexibility of
+      Spirit makes it possible to have different optional schemes available. It might
+      be possible to implement an exhaustive backtracking RD scheme as an optional
+      feature in the future.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="notes/style_guide.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="repository.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

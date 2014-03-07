@@ -1,0 +1,41 @@
+[/============================================================================
+  Boost.Geometry Index
+
+  Copyright (c) 2011-2013 Adam Wulkiewicz.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section:rtree_examples Examples]
+
+[section Quick start]
+[rtree_quickstart]
+[endsect]
+
+[section Index of polygons stored in vector]
+[rtree_polygons_vector]
+[endsect]
+
+[section Index of shared pointers to polygons]
+[rtree_polygons_shared_ptr]
+[endsect]
+
+[section Index of iterators of a map storing variant geometries]
+[rtree_variants_map]
+[endsect]
+
+[section Specializing index::indexable function object - storing shared pointers in the rtree]
+[rtree_value_shared_ptr]
+[endsect]
+
+[section Using IndexableGetter function object - storing indexes of external container's elements]
+[rtree_value_index]
+[endsect]
+
+[section Index stored in shared memory using Boost.Interprocess]
+[rtree_interprocess]
+[endsect]
+
+[endsect]

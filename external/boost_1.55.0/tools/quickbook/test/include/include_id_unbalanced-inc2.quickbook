@@ -1,0 +1,5 @@
+[heading:inc2_1 Heading 1]
+[endsect]
+[heading:inc2_2 Heading 2]
+[include:include2a include_id_unbalanced-inc2a.quickbook]
+[heading:inc2_3 Heading 3]

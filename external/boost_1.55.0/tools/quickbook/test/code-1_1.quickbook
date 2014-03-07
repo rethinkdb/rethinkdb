@@ -1,0 +1,51 @@
+[article Code Block]
+
+[section Test 1]
+
+A code block with proper indentation ;-)
+
+    #include <iostream>
+
+    int main()
+    {
+        std::cout << "Hello, World!" << std::endl;
+        return 0;
+    }
+
+[endsect]
+
+[section Test 2]
+
+A code block with proper indentation ;-)
+
+``
+    #include <iostream>
+
+    int main()
+    {
+        std::cout << "Hello, World!" << std::endl;
+        return 0;
+    }
+``
+
+[endsect]
+
+[section Test 3]
+
+[python]
+``
+    print "\xfabln\xeck"
+``
+
+[endsect]
+
+[section Test 4]
+
+This isn't valid C++ but I think we should accept it;
+
+[c++]
+``
+    std::cout<<"\xfabln\xeck"<<"\n";
+``
+
+[endsect]

@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- Copyright Ralf W. Grosse-Kunstleve 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+
+<html>
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for Linux/x86 (vers 1 September 2005), see www.w3.org">
+  <meta http-equiv="Content-Type" content=
+  "text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../boost.css">
+
+  <title>Boost.Python - &lt;boost/python/ssize_t.hpp&gt;</title>
+</head>
+
+<body>
+  <table border="0" cellpadding="7" cellspacing="0" width="100%"
+  summary="header">
+    <tr>
+      <td valign="top" width="300">
+        <h3><a href="../../../../index.htm"><img height="86" width=
+        "277" alt="C++ Boost" src="../../../../boost.png" border=
+        "0"></a></h3>
+      </td>
+
+      <td valign="top">
+        <h1 align="center"><a href=
+        "../index.html">Boost.Python</a></h1>
+
+        <h2 align="center">Header
+        &lt;boost/python/ssize_t.hpp&gt;</h2>
+      </td>
+    </tr>
+  </table>
+  <hr>
+
+  <h2>Contents</h2>
+
+  <dl class="page-index">
+    <dt><a href="#introduction">Introduction</a></dt>
+
+    <dt><a href="#typdefs">Typedef</a></dt>
+
+    <dt><a href="#macros">Constants</a></dt>
+  </dl>
+  <hr>
+
+  <h2><a name="introduction" id=
+  "introduction"></a>Introduction</h2>
+
+  <p>Python 2.5 introduces a new <tt>Py_ssize_t</tt> typedef and
+  two related macros (<a href=
+  "http://www.python.org/dev/peps/pep-0353/">PEP 353</a>). The
+  <tt>&lt;boost/python/ssize_t.hpp&gt;</tt> header imports these
+  definitions into the <tt>boost::python</tt> namespace as
+  <tt>ssize_t</tt>, <tt>ssize_t_max</tt>, and <tt>ssize_t_min</tt>.
+  Appropriate definitions are provided for backward compatibility
+  with previous Python versions.</p>
+
+  <h2><a name="typedefs" id="typedefs"></a>Typedefs</h2>Imports
+  <tt>Py_ssize_t</tt> into the <tt>boost::python</tt> namespace if
+  available, or provides an appropriate typedef for backward
+  compatibility:
+  <pre>
+#if PY_VERSION_HEX &gt;= 0x02050000
+typedef Py_ssize_t ssize_t;
+#else
+typedef int ssize_t;
+#endif
+</pre>
+
+  <h2><a name="constants" id="constants"></a>Constants</h2>Imports
+  <tt>PY_SSIZE_T_MAX</tt> and <tt>PY_SSIZE_T_MIN</tt> as constants
+  into the <tt>boost::python</tt> namespace if available, or
+  provides appropriate constants for backward compatibility:
+  <pre>
+#if PY_VERSION_HEX &gt;= 0x02050000
+ssize_t const ssize_t_max = PY_SSIZE_T_MAX;
+ssize_t const ssize_t_min = PY_SSIZE_T_MIN;
+#else
+ssize_t const ssize_t_max = INT_MAX;
+ssize_t const ssize_t_min = INT_MIN;
+#endif
+</pre>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+   25 September, 2006 
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" --></p>
+
+  <p><i>&copy; Copyright <a href=
+  "http://www.boost.org/people/ralf_w_grosse_kunstleve.htm">Ralf W.
+  Grosse-Kunstleve</a> 2006.</i></p>
+</body>
+</html>

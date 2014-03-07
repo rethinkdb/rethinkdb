@@ -1,0 +1,647 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Flyweight Documentation - Tutorial - Configuring Boost.Flyweight</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="key_value.html">
+<link rel="up" href="index.html">
+<link rel="next" href="extension.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="Boost logo" align=
+"middle" width="277" height="86">Boost.Flyweight Tutorial: Configuring Boost.Flyweight</h1>
+
+<div class="prev_link"><a href="key_value.html"><img src="../prev.gif" alt="key-value flyweights" border="0"><br>
+Key-value flyweights
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight tutorial" border="0"><br>
+Boost.Flyweight tutorial
+</a></div>
+<div class="next_link"><a href="extension.html"><img src="../next.gif" alt="extending Boost.Flyweight" border="0"><br>
+Extending Boost.Flyweight
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#intro">Configurable aspects of Boost.Flyweight</a>
+    <ul>
+      <li><a href="#free_order_template">Free-order template parameter interface</a></li>
+      <li><a href="#header_inclusion">Header inclusion</a></li>
+    </ul>
+  </li>
+  <li><a href="#tagging">Tagging</a></li>
+  <li><a href="#factories">Factory specification</a>
+    <ul>
+      <li><a href="#factory_types">Types involved in the configuration of factories</a></li>
+      <li><a href="#hashed_factory"><code>hashed_factory</code></a></li>
+      <li><a href="#set_factory"><code>set_factory</code></a></li>
+      <li><a href="#assoc_container_factory"><code>assoc_container_factory</code></a></li>
+    </ul>
+  </li>
+  <li><a href="#holders">Holder specification</a>
+    <ul>
+      <li><a href="#static_holder"><code>static_holder</code></a></li>
+      <li><a href="#intermodule_holder"><code>intermodule_holder</code></a></li>
+    </ul>
+  </li>
+  <li><a href="#locking">Locking policies</a>
+    <ul>
+      <li><a href="#simple_locking"><code>simple_locking</code></a></li>
+      <li><a href="#no_locking"><code>no_locking</code></a></li>
+    </ul>
+  </li>
+  <li><a href="#tracking">Tracking policies</a>
+    <ul>
+      <li><a href="#refcounted"><code>refcounted</code></a></li>
+      <li><a href="#no_tracking"><code>no_tracking</code></a></li>
+    </ul>
+  </li>
+</ul>
+
+<h2><a name="intro">Configurable aspects of Boost.Flyweight</a></h2>
+
+<p>
+Most of the time, <code>flyweight</code> default configuration is just good
+enough and the user need not care about further tuning of her <code>flyweight</code>
+instantiations; however, when the necessity for more control over Boost.Flyweight
+behavior arises, comprehensive mechanisms are provided to select, configure and
+even extend the following implementation aspects:
+<ul>
+  <li><a href="#tagging">Type tagging</a>.</li>
+  <li><a href="#factories">Factory</a> used to store the shared values
+    <code>flyweight</code> objects refer to.
+  </li>
+  <li><a href="#holders">Mechanism of instantiation</a> of the flyweight factory.</li>
+  <li>Internal <a href="#locking">synchronization mechanism</a> for access to
+    the internal factory in multithreaded environments.</li>
+  <li><a href="#tracking">Tracking policy</a> controlling how a value stored in the
+    factory is handled when all the flyweight objects associated to it are
+    destroyed.
+  </li>
+</ul>
+</p>
+
+<h3><a name="free_order_template">Free-order template parameter interface</a></h3>
+
+<p>
+The <code>flyweight</code> class template features a "smart" specification
+interface by which the configuration aspects can be provided as optional template arguments
+in whatever order the user pleases. For instance, a tagged <code>flyweight</code>
+of <code>std::string</code>s with a <a href="#set_factory">set-based factory</a> and
+<a href="#no_tracking">no tracking</a> can be specified like this:
+</p>
+
+<blockquote><pre>
+<span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span> <span class=identifier>tag</span><span class=special>&lt;</span><span class=identifier>label_t</span><span class=special>&gt;,</span>  <span class=identifier>set_factory</span><span class=special>&lt;&gt;,</span> <span class=identifier>no_tracking</span>   <span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+or like this:
+</p>
+
+<blockquote><pre>
+<span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span> <span class=identifier>no_tracking</span><span class=special>,</span>   <span class=identifier>tag</span><span class=special>&lt;</span><span class=identifier>label_t</span><span class=special>&gt;,</span>  <span class=identifier>set_factory</span><span class=special>&lt;&gt;</span> <span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+or in any other order; only <code>std::string</code> is required to occupy
+the first place in the specification.
+</p>
+
+<h3><a name="header_inclusion">Header inclusion</a></h3>
+
+<p>
+The example code shown at the <a href="basics.html#intro">introductory section</a>
+uses the
+<a href="../reference/index.html#flyweight_synopsis"><code>"boost/flyweight.hpp"</code></a>
+convenience header, which simply includes the headers for the class template
+<code>flyweight</code> and its default configuration components:
+</p>
+
+<blockquote><pre>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>      <span class=comment>// class template flyweight</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>hashed_factory</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span> <span class=comment>// hashed flyweight factory</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>static_holder</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>  <span class=comment>// regular factory instantiation</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>simple_locking</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span> <span class=comment>// simple locking policy</span>
+<span class=preprocessor>#include</span> <span class=special>&lt;</span><span class=identifier>boost</span><span class=special>/</span><span class=identifier>flyweight</span><span class=special>/</span><span class=identifier>refcounted</span><span class=special>.</span><span class=identifier>hpp</span><span class=special>&gt;</span>     <span class=comment>// refcounting tracking policy</span>
+</pre></blockquote>
+
+<p>
+When using components other than these, their specific headers must be
+explicitly included.
+</p>
+
+<h2><a name="tagging">Tagging</a></h2>
+
+<p>
+Consider the following two types:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span> <span class=identifier>name_t</span><span class=special>;</span>
+<span class=keyword>typedef</span> <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span> <span class=identifier>ip_address_t</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+Although technically both types are identical, this is so by virtue of
+coincidence, as there is no sensible relation between names and IP addresses.
+Internally, the fact that <code>name_t</code> and <code>ip_address_t</code>
+are the same flyweight type causes values of both classes to be stored together
+in the same flyweight factory, although their respective ranges
+are not expected to overlap. <i>Tagging</i> can be used to turn these
+into really different types:
+</p>
+
+<blockquote><pre>
+<span class=keyword>struct</span> <span class=identifier>name_tag</span><span class=special>{};</span>
+<span class=keyword>typedef</span> <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span><span class=identifier>tag</span><span class=special>&lt;</span><span class=identifier>name_tag</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>name_t</span><span class=special>;</span>
+
+<span class=keyword>struct</span> <span class=identifier>ip_address_tag</span><span class=special>{};</span>
+<span class=keyword>typedef</span> <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span><span class=identifier>tag</span><span class=special>&lt;</span><span class=identifier>ip_address_tag</span><span class=special>&gt;</span> <span class=special>&gt;</span> <span class=identifier>ip_address_t</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+Now, <code>name_t</code> and <code>ip_address_t</code> are different
+flyweight classes having separate factories each. Tags are a purely syntactic
+device: any type can be used for tagging inside the <code>tag</code>
+construct, though good style recommends using tag classes with
+descriptive names which are local to the context where the flyweight type
+is being defined.
+</p>
+
+<h2><a name="factories">Factory specification</a></h2>
+
+<p>
+<code>flyweight</code> uses a type of internal component called
+<i>factory</i> whose purpose is to store and retrieve the different values
+flyweight objects refer to at a given time. By default, a factory based on
+a hashed container is used, so that <code>flyweight&lt;T&gt;</code> is
+actually equivalent to
+</p>
+
+<blockquote><pre>
+<span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>,</span><span class=identifier>hashed_factory</span><span class=special>&lt;&gt;</span> <span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+where <code>hashed_factory</code> is a so-called <i>factory specifier</i>.
+Boost.Flyweight provides several predefined factory specifiers, which not
+only let the user select the specific type of factory used, but also
+accept their own template arguments to customize each factory.
+</p>
+
+<h3><a name="factory_types">Types involved in the configuration of factories</a></h3>
+
+<p>
+A given <code>flyweight</code> instantiation has associated
+<code>flyweight::key_type</code>
+and <code>flyweight::value_type</code> types (which are equal in the case
+of regular flyweights or different if <a href="key_value.html">key-value
+flyweights</a>
+are used). Also, there is an internal <code>Entry</code> type which
+corresponds to the type of the objects actually stored in the factory:
+<code>Entry</code> contains the shared <code>value_type</code> objects
+of <code>flyweight</code> as well a some internal bookkeeping information;
+also, <code>Entry</code> is implicitly convertible to
+<code>const key_type&amp;</code>, so that factories can rely on
+<code>key_type</code> to look up <code>Entrie</code>s. Since
+<code>Entry</code> is internal to the implementation of <code>flyweight</code>,
+it cannot be directly referred to by the user in the configuration of
+factories. Instead, the proxy
+<a href="../../../mpl/doc/refmanual/placeholders.html"><i>placeholder</i></a>
+type <code>boost::mpl::_1</code> can be used.
+</p>
+
+<h3><a name="hashed_factory"><code>hashed_factory</code></a></h3>
+
+<blockquote>
+<b>Header:</b> <a href="../reference/factories.html#hashed_factory_synopsis"><code>"boost/flyweight/hashed_factory.hpp"</code></a><br>
+<b>Syntax:</b> <code>hashed_factory&lt;[Hash[,Pred[,Allocator]]]&gt;</code>
+</blockquote>
+
+<p>
+This specifier, which Boost.Flyweight takes by default, controls the usage of a
+factory internally based in a hash container. Values are determined to be
+equivalent by means of the
+<a href="http://www.sgi.com/tech/stl/BinaryPredicate.html"><code>Binary
+Predicate</code></a> <code>Pred</code>, and indexed into the factory container
+using <code>Hash</code>, which is assumed to be a <i>hash function</i>, 
+i.e. a
+<a href="http://www.sgi.com/tech/stl/UnaryFunction.html"><code>Unary
+Function</code></a> assigning to each value a hash identifier of
+type <code>std::size_t</code>. The <code>Allocator</code> parameter is
+used by the factory container for its memory allocation needs. The default
+types for these parameters are such that the expression
+</p>
+
+<blockquote><pre>
+<span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>,</span><span class=identifier>hashed_factory</span><span class=special>&lt;&gt;</span> <span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+is equivalent to
+</p>
+
+<blockquote><pre>
+<span class=identifier>flyweight</span><span class=special>&lt;</span>
+  <span class=identifier>T</span><span class=special>,</span>
+  <span class=identifier>hashed_factory</span><span class=special>&lt;</span>
+    <span class=identifier>boost</span><span class=special>::</span><span class=identifier>hash</span><span class=special>&lt;</span><span class=identifier>key_value</span><span class=special>&gt;,</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>equal_to</span><span class=special>&lt;</span><span class=identifier>key_value</span><span class=special>&gt;,</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>allocator</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+where <code>key_type</code> is the key type of the flyweight and
+<code>boost::mpl::_1</code>, as explained above, stands for the
+internal <code>Entry</code> type of the elements stored in the factory.
+Suppose we would like to configure <code>hashed_factory</code> for
+a <code>std::string</code> flyweight with
+a special hash predicate <code>special_hash</code> and a custom allocator
+<code>custom_allocator</code>; this would be specified as follows:
+</p>
+
+<blockquote><pre>
+<span class=identifier>flyweight</span><span class=special>&lt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span>
+  <span class=identifier>hashed_factory</span><span class=special>&lt;</span>
+    <span class=identifier>special_hash</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;,</span>
+    <span class=identifier>std</span><span class=special>::</span><span class=identifier>equal_to</span><span class=special>&lt;</span><span class=identifier>key_value</span><span class=special>&gt;,</span>
+    <span class=identifier>custom_allocator</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>&gt;</span>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+
+<h3><a name="set_factory"><code>set_factory</code></a></h3>
+
+<blockquote>
+<b>Header:</b> <a href="../reference/factories.html#set_factory_synopsis"><code>"boost/flyweight/set_factory.hpp"</code></a><br>
+<b>Syntax:</b> <code>set_factory&lt;[Compare[,Allocator]]&gt;</code>
+</blockquote>
+
+<p>
+<code>set_factory</code> resorts to an <code>std::set</code>-like ordered
+container for the implementation of the flyweight factory.
+<code>Compare</code> must be a
+<a href="http://www.sgi.com/tech/stl/StrictWeakOrdering.html"><code>Strict
+Weak Ordering</code></a> on the value type <code>flyweight</code> is
+acting upon; as is customary with STL ordered containers, two values
+are considered equivalent if none is less than the other according to <code>Pred</code>.
+<code>Allocator</code> is an allocator type passed along to the factory
+internal container for its memory-related tasks. When default parameters are
+used, the expression
+</p>
+
+<blockquote><pre>
+<span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>,</span><span class=identifier>set_factory</span><span class=special>&lt;&gt;</span> <span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+is equivalent to
+</p>
+
+<blockquote><pre>
+<span class=identifier>flyweight</span><span class=special>&lt;</span>
+  <span class=identifier>T</span><span class=special>,</span>
+  <span class=identifier>set_factory</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>less</span><span class=special>&lt;</span><span class=identifier>key_type</span><span class=special>&gt;,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>allocator</span><span class=special>&lt;</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>&gt;</span> <span class=special>&gt;</span>
+<span class=special>&gt;</span>
+</pre></blockquote>
+
+<p>
+Usual tradeoffs arising in the comparison of ordered and hashed containers
+also apply when choosing between <code>set_factory</code> and
+<code>hashed_factory</code>:
+so, set-based lookup and insertion of values are generally slower than those based on hashing,
+but the latter can be affected by pathological worst-case scenarios with very
+poor performance.
+</p>
+
+<h3><a name="assoc_container_factory"><code>assoc_container_factory</code></a></h3>
+
+<blockquote>
+<b>Header:</b> <a href="../reference/factories.html#assoc_container_factory_synopsis"><code>"boost/flyweight/assoc_container_factory.hpp"</code></a><br>
+<b>Syntax:</b> <code>assoc_container_factory&lt;ContainerSpecifier&gt;</code>
+</blockquote>
+
+<p>
+This specifier can be seen as a generalization of
+<code>hashed_factory</code> and <code>set_factory</code> where the user
+supplies the exact type of container on which the factory is based. 
+The way in which the container is specified might seem at first a little
+daunting to those unfamiliar with the
+<a href="../../../mpl/doc/index.html">Boost MPL Library</a>:
+<code>ContainerSpecifier</code> must be an 
+<a href="lambda_expressions.html"><code>MPL Lambda
+Expression</code></a> such that, when invoked with the
+types <code>Entry</code> and <code>key_type</code>
+explained <a href="#factory_types">above</a>, it produces the type of 
+a container of <code>Entry</code> elements satisfying the following
+requirements:
+<ol>
+  <li>The container type must be a model of 
+    <a href="http://www.sgi.com/tech/stl/UniqueAssociativeContainer.html"><code>Unique
+    Associative Container</code></a> where equivalence of <code>Entry</code>s
+    is determined by the <code>key_type</code> values the entries are convertible
+    to	.
+  </li>
+  <li>The container must be <i>stable</i>, i.e. its iterators must remain valid
+    after insert and erase operations. Note that this condition is not met by
+    many existing implementations of hashed containers that invalidate iterators
+    upon a rehashing operation.
+  </li>
+</ol>
+</p>
+
+<p>
+Let us see what a container specifier looks like with an example.
+Suppose we have our own ordered container like the following:
+</p>
+
+<blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>Elem</span><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Compare</span><span class=special>=</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>less</span><span class=special>&lt;</span><span class=identifier>Elem</span><span class=special>&gt;,</span>
+  <span class=keyword>typename</span> <span class=identifier>Allocator</span><span class=special>=</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>allocator</span><span class=special>&lt;</span><span class=identifier>Elem</span><span class=special>&gt;</span>
+<span class=special>&gt;</span>
+<span class=keyword>class</span> <span class=identifier>ultrafast_set</span>
+<span class=special>{</span>
+  <span class=special>...</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<p>
+Then <code>ultrafast_set</code> can be plugged into
+<code>assoc_container_factory</code> like this:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>flyweight</span><span class=special>&lt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span>
+  <span class=identifier>assoc_container_factory</span><span class=special>&lt;</span>
+    <span class=comment>// MPL lambda expression follows</span>
+    <b><span class=identifier>ultrafast_set</span><span class=special>&lt;</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>,</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>less</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span> <span class=special>&gt;</span></b>
+  <span class=special>&gt;</span>
+<span class=special>&gt;</span> <span class=identifier>flyweight_string</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+As has been explained, <code>mpl::_1</code> is a so-called MPL
+placeholder standing as a "slot" to be replaced with
+<code>Entry</code> by the internal machinery of Boost.Flyweight.
+Note that we have not
+relied on the default argument of <code>ultrafast_set</code> for
+<code>Compare</code> and instead we have provided a fixed
+instantiation for <code>std::string</code>: this is so because
+requirements state that the type with which <code>ContainerSpecifier</code>
+will be filled in internally is convertible to <code>const key_type&amp;</code>
+(here <code>const std::string&amp;</code>), and it is based on
+<code>key_type</code> that lookup and equivalence of entries
+should be determined. On the other hand, 
+the default argument for the <code>Allocator</code> parameter works
+just fine, as is more apparent if we write it down explicitly:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>flyweight</span><span class=special>&lt;</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span>
+  <span class=identifier>assoc_container_factory</span><span class=special>&lt;</span>
+    <b><span class=identifier>ultrafast_set</span><span class=special>&lt;</span>
+      <span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>,</span>
+      <span class=identifier>std</span><span class=special>::</span><span class=identifier>less</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;,</span>
+      <span class=identifier>std</span><span class=special>::</span><span class=identifier>allocator</span><span class=special>&lt;</span><span class=identifier>mpl</span><span class=special>::</span><span class=identifier>_1</span><span class=special>&gt;</span>
+    <span class=special>&gt;</span>
+  <span class=special>&gt;</span></b>
+<span class=special>&gt;</span> <span class=identifier>flyweight_string</span><span class=special>;</span>
+</pre></blockquote>
+
+<h2><a name="holders">Holder specification</a></h2>
+
+<p>
+Each flyweight type, that is, each distinct instantiation of the class
+template <code>flyweight</code>, is associated with exactly one factory
+object. In most cases, how this factory object is created is of little
+importance to the user of Boost.Flyweight, but there are special
+circumstances where control of this aspect is necessary. An internal
+component called <i>holder</i> is in charge of instantiating the
+factory class and some other internal information; this component is
+stipulated by means of a <i>holder specifier</i>, <code>static_holder</code>
+being the default one.
+</p>
+
+<h3><a name="static_holder"><code>static_holder</code></a></h3>
+
+<blockquote>
+<b>Header:</b> <a href="../reference/holders.html#static_holder_synopsis"><code>"boost/flyweight/static_holder.hpp"</code></a><br>
+<b>Syntax:</b> <code>static_holder</code>
+</blockquote>
+
+<p>
+This the default holder specifier of Boost.Flyweight, and produces 
+holders where the unique factory lives as a local static variable of the
+program.
+</p>
+
+<h3><a name="intermodule_holder"><code>intermodule_holder</code></a></h3>
+
+<blockquote>
+<b>Header:</b> <a href="../reference/holders.html#intermodule_holder_synopsis"><code>"boost/flyweight/intermodule_holder.hpp"</code></a><br>
+<b>Syntax:</b> <code>intermodule_holder</code>
+</blockquote>
+
+<p>
+In most C++ environments, static variables do not mix well with
+dynamically loaded modules in the sense that instances of the same 
+static variable can be duplicated across different modules, even
+though by definition the variable should be unique. In many
+cases, this duplication goes unnoticed if the modules do not communicate
+between each other using the affected types, but consider this
+case where such communication does happen:
+</p>
+
+<blockquote><pre>
+<span class=comment>// module 1</span>
+
+<span class=keyword>typedef</span> <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span> <span class=identifier>flyweight_string</span><span class=special>;</span>
+
+<span class=comment>// produce_string is exported so that it can be dynamically
+// linked</span>
+
+<span class=identifier>flyweight_string</span> <span class=identifier>produce_string</span><span class=special>()</span>
+<span class=special>{</span>
+  <span class=keyword>return</span> <span class=identifier>flyweight_string</span><span class=special>(</span><span class=string>&quot;boost&quot;</span><span class=special>);</span>
+<span class=special>}</span>
+</pre></blockquote>
+
+<blockquote><pre>
+<span class=comment>// main program</span>
+
+<span class=keyword>typedef</span> <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;</span> <span class=identifier>flyweight_string</span><span class=special>;</span>
+
+<span class=keyword>int</span> <span class=identifier>main</span><span class=special>()</span>
+<span class=special>{</span>
+  <span class=special>...</span> <span class=comment>// import module 1</span>
+
+  <span class=identifier>flyweight_string</span> <span class=identifier>str1</span><span class=special>=</span><span class=identifier>produce_string</span><span class=special>();</span>
+  <span class=identifier>flyweight_string</span> <span class=identifier>str2</span><span class=special>(</span><span class=string>&quot;boost&quot;</span><span class=special>);</span>
+  <span class=identifier>assert</span><span class=special>(</span><span class=identifier>str1</span><span class=special>==</span><span class=identifier>str2</span><span class=special>);</span>
+<span class=special>}</span>
+</pre></blockquote>
+
+<p>
+In many environments, this program results in an assertion
+failure because the flyweight factory object used
+by <code>flyweight_string</code> as seen within module 1 is
+not the same factory object as seen within the main program: hence
+the value representations internally pointed to by <code>str1</code>
+and <code>str2</code> will differ and will be mistakenly
+considered as not equal. Many other problems might arise
+due to factory duplication, including undefined behavior.
+</p>
+
+<p>
+<code>intermodule_holder</code> specifies a factory holder which
+is capable of avoiding the duplication problem and ensuring that
+all modules of a program are using the same factory instance.
+To fix the example above, it suffices to redefine
+<code>flyweight_string</code> in both modules as:
+</p>
+
+<blockquote><pre>
+<span class=keyword>typedef</span> <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>,</span><span class=identifier><b>intermodule_holder</b></span><span class=special>&gt;</span> <span class=identifier>flyweight_string</span><span class=special>;</span>
+</pre></blockquote>
+
+<p>
+<code>intermodule_holder</code> is considerably more onerous than
+<code>static_holder</code> in terms of compilation times and
+introduces a non-negligible overhead at program start-up, so its use
+should be reserved to the situations where it is really necessary.
+</p>
+
+
+<h2><a name="locking">Locking policies</a></h2>
+
+<p>
+The internal factory associated to each <code>flyweight</code>
+type is a shared resource and as such access to it must be properly
+synchronized in multithreaded environments. A <i>locking policy</i>
+specifies the synchronization mechanisms to be used for this purpose.
+</p>
+
+<h3><a name="simple_locking"><code>simple_locking</code></a></h3>
+
+<blockquote>
+<b>Header:</b> <a href="../reference/locking.html#simple_locking_synopsis"><code>"boost/flyweight/simple_locking.hpp"</code></a><br>
+<b>Syntax:</b> <code>simple_locking</code>
+</blockquote>
+
+<p>
+This is the default locking policy. It specifies the simplest native
+synchronization primitives provided by the operating system, whenever
+available.
+</p>
+
+<h3><a name="no_locking"><code>no_locking</code></a></h3>
+
+<blockquote>
+<b>Header:</b> <a href="../reference/locking.html#no_locking_synopsis"><code>"boost/flyweight/no_locking.hpp"</code></a><br>
+<b>Syntax:</b> <code>no_locking</code>
+</blockquote>
+
+<p>
+No synchronization is enforced so that irrestricted internal access
+to the implementation shared resources is allowed.
+Selecting <code>no_locking</code> results in somewhat faster execution than
+the default <code>simple_locking</code>, but it renders the type
+thread-unsafe, which can have catastrophic consequences.
+This policy should not be used except in single-threaded environments or
+when there is an absolute guarantee that the particular <code>flyweight</code>
+type will not be used in a concurrent scenario.
+</p>
+
+<h2><a name="tracking">Tracking policies</a></h2>
+
+<p>
+A <i>tracking policy</i> controls the lifetimes of the <code>flyweight</code>
+objects and can act based on this information. For instance, a suitable
+tracking mechanism can determine when a given value stored in the factory
+can be safely erased because it is no longer referenced by any
+<code>flyweight</code>; this is precisely what the default tracking policy,
+<code>refcounted</code>, does.
+</p>
+
+<h3><a name="refcounted"><code>refcounted</code></a></h3>
+
+<blockquote>
+<b>Header:</b> <a href="../reference/tracking.html#refcounted_synopsis"><code>"boost/flyweight/refcounted.hpp"</code></a><br>
+<b>Syntax:</b> <code>refcounted</code>
+</blockquote>
+
+<p>
+This tracking policy determines that values stored in the factory be
+equipped with reference counting mechanisms so that a factory entry is
+erased when the last <code>flyweight</code> object associated to it
+is destroyed.
+</p>
+
+<h3><a name="no_tracking"><code>no_tracking</code></a></h3>
+
+<blockquote>
+<b>Header:</b> <a href="../reference/tracking.html#no_tracking_synopsis"><code>"boost/flyweight/no_tracking.hpp"</code></a><br>
+<b>Syntax:</b> <code>no_tracking</code>
+</blockquote>
+
+<p>
+No flyweight tracking is done when this policy is selected, which implies
+that the values stored in the factory remain in it until program termination.
+As compared with <code>refcounted</code>, <code>no_tracking</code> presents
+advantages and drawbacks. The benefits are:
+<ul>
+  <li>Non-tracked flyweight objects are faster to pass around than refcounted ones.</li>
+  <li>There is some reduction in memory usage due to the
+    absence of reference counters.</li>
+</ul>
+whereas potential drawbacks of using <code>no_tracking</code> include:
+<ul>
+  <li>The number of unused entries stored in the factory can keep growing
+    during the program lifetime, which can become a problem for certain
+    patterns of flyweight creation where the set of active values "drifts"
+    over time.</li>
+  <li>There can be a potential delay during program termination, since
+    it is then when all the factory entries get destroyed at once.</li>
+</ul>
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="key_value.html"><img src="../prev.gif" alt="key-value flyweights" border="0"><br>
+Key-value flyweights
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight tutorial" border="0"><br>
+Boost.Flyweight tutorial
+</a></div>
+<div class="next_link"><a href="extension.html"><img src="../next.gif" alt="extending Boost.Flyweight" border="0"><br>
+Extending Boost.Flyweight
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised November 8th 2008</p>
+
+<p>&copy; Copyright 2006-2008 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

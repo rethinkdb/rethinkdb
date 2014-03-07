@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN'
+'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>
+<head>
+	<meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+	<title>get_error_info</title>
+	<link href='reno.css' type='text/css' rel='stylesheet'/>
+</head>
+<body>
+<div class="body-0">
+<div class="body-1">
+<div class="body-2">
+<div>
+<div id="boost_logo">
+<a href="http://www.boost.org"><img style="border:0" src="../../../boost.png" alt="Boost" width="277" height="86"/></a>
+</div>
+<h1>Boost Exception</h1>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="RenoIncludeDIV"><div class="RenoAutoDIV"><h3>get_error_info</h3>
+</div>
+<div class="RenoIncludeDIV"><pre>namespace
+boost
+    {
+<span class="RenoIncludeSPAN">    template &lt;class ErrorInfo,class E&gt;
+    typename ErrorInfo::<span class="RenoLink"><a href="error_info::value_type">error_info::value_type</a></span> const * <span class="RenoLink"><a href="get_error_info">get_error_info</a></span>( E const &amp; x );
+    
+    template &lt;class ErrorInfo,class E&gt;
+    typename ErrorInfo::<span class="RenoLink"><a href="error_info::value_type">error_info::value_type</a></span> * <span class="RenoLink"><a href="get_error_info">get_error_info</a></span>( E &amp; x );</span>
+    }</pre>
+</div><h4>Requirements:</h4>
+<div><ul><li> ErrorInfo must be an instance of the <span class="RenoLink"><a href="error_info.html">error_info</a></span> template.</li>
+<li> E must be polymorphic.</li>
+</ul></div>
+<h4>Returns:</h4>
+<div><ul><li> If dynamic_cast&lt;boost::<span class="RenoLink"><a href="exception.html">exception</a></span> const *&gt;(&amp;x) is 0, or if x does not store an object of type ErrorInfo, the returned value is null.</li>
+<li> Otherwise, the returned pointer points to the stored value (use <span class="RenoLink"><a href="exception_operator_shl.html">operator&lt;&lt;</a></span> to store values in exception objects.) When x is destroyed, any pointers returned by <span class="RenoLink">get_error_info</span> become invalid.</li>
+</ul></div>
+<h4>Throws:</h4>
+<p>Nothing.</p>
+<h4>Note:</h4>
+<p>The interface of <span class="RenoLink">get_error_info</span> may be affected by the build <span class="RenoLink"><a href="configuration_macros.html">configuration macros</a></span>.</p>
+</div><div class="RenoAutoDIV"><div class="RenoHR"><hr/></div>
+See also: <span class="RenoPageList"><a href="BOOST_THROW_EXCEPTION.html">BOOST_THROW_EXCEPTION</a>&nbsp;| <a href="boost-exception.html">Boost Exception</a>&nbsp;| <a href="boost_exception_get_error_info_hpp.html">boost/exception/get_error_info.hpp</a>&nbsp;| <a href="configuration_macros.html">Configuration Macros</a>&nbsp;| <a href="current_exception.html">current_exception</a>&nbsp;| <a href="error_info.html">error_info</a>&nbsp;| <a href="exception.html">exception</a>&nbsp;| <a href="motivation.html">Motivation</a></span>
+</div>
+<!-- Copyright (c) 2006-2009 Emil Dotchevski and Reverge Studios, Inc. -->
+<!-- Distributed under the Boost Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<div id="footer">
+<p>
+<a class="logo" href="http://jigsaw.w3.org/css-validator/check/referer"><img class="logo_pic" src="valid-css.png" alt="Valid CSS" height="31" width="88"/></a>
+<a class="logo" href="http://validator.w3.org/check?uri=referer"><img class="logo_pic" src="valid-xhtml.png" alt="Valid XHTML 1.0" height="31" width="88"/></a>
+<small>Copyright (c) 2006-2009 by Emil Dotchevski and Reverge Studios, Inc.<br/>
+Distributed under the <a href="http://www.boost.org/LICENSE_1_0.txt">Boost Software License, Version 1.0</a>.</small>
+</p>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

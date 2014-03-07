@@ -1,0 +1,1853 @@
+[/
+ / Copyright (c) 2007 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[/================================================================================]
+[section:back_end Back Ends:
+    Making Expression Templates Do Useful Work]
+[/================================================================================]
+
+Now that you've written the front end for your EDSL compiler, and you've learned a bit about the intermediate form it produces, it's time to think about what to /do/ with the intermediate form. This is where you put your domain-specific algorithms and optimizations. Proto gives you two ways to evaluate and manipulate expression templates: contexts and transforms.
+
+* A /context/ is like a function object that you pass along with an expression to 
+  the _eval_ function. It associates behaviors with node types. _eval_ walks the 
+  expression and invokes your context at each node.
+* A /transform/ is a way to associate behaviors, not with node types in an 
+  expression, but with rules in a Proto grammar. In this way, they are like 
+  semantic actions in other compiler-construction toolkits.
+
+Two ways to evaluate expressions! How to choose? Since contexts are largely procedural, they are a bit simpler to understand and debug so they are a good place to start. But although transforms are more advanced, they are also more powerful; since they are associated with rules in your grammar, you can select the proper transform based on the entire /structure/ of a sub-expression rather than simply on the type of its top-most node.
+
+Also, transforms have a concise and declarative syntax that can be confusing at first, but highly expressive and fungible once you become accustomed to it. And -- this is admittedly very subjective -- the author finds programming with Proto transforms to be an inordinate amount of /fun!/ Your mileage may vary.
+
+[/================================================================================]
+[section:expression_evaluation Expression Evaluation:
+    Imparting Behaviors with a Context]
+[/================================================================================]
+
+Once you have constructed a Proto expression tree, either by using Proto's
+operator overloads or with _make_expr_ and friends, you probably want to
+actually /do/ something with it. The simplest option is to use `proto::eval()`,
+a generic expression evaluator. To use _eval_, you'll need to define a
+/context/ that tells _eval_ how each node should be evaluated. This section
+goes through the nuts and bolts of using _eval_, defining evaluation contexts,
+and using the contexts that Proto provides.
+
+[note `proto::eval()` is a less powerful but easier-to-use evaluation technique
+than Proto transforms, which are covered later. Although very powerful,
+transforms have a steep learning curve and can be more difficult to debug.
+`proto::eval()` is a rather weak tree traversal algorithm. Dan Marsden has
+been working on a more general and powerful tree traversal library. When it is
+ready, I anticipate that it will eliminate the need for `proto::eval()`.]
+
+[/================================================================]
+[section:proto_eval Evaluating an Expression with [^proto::eval()]]
+[/================================================================]
+
+[:[*Synopsis:]]
+
+    namespace proto
+    {
+        namespace result_of
+        {
+            // A metafunction for calculating the return
+            // type of proto::eval() given certain Expr
+            // and Context types.
+            template<typename Expr, typename Context>
+            struct eval
+            {
+                typedef
+                    typename Context::template eval<Expr>::result_type
+                type;
+            };
+        }
+
+        namespace functional
+        {
+            // A callable function object type for evaluating
+            // a Proto expression with a certain context.
+            struct eval : callable
+            {
+                template<typename Sig>
+                struct result;
+
+                template<typename Expr, typename Context>
+                typename proto::result_of::eval<Expr, Context>::type
+                operator ()(Expr &expr, Context &context) const;
+
+                template<typename Expr, typename Context>
+                typename proto::result_of::eval<Expr, Context>::type
+                operator ()(Expr &expr, Context const &context) const;
+            };
+        }
+
+        template<typename Expr, typename Context>
+        typename proto::result_of::eval<Expr, Context>::type
+        eval(Expr &expr, Context &context);
+
+        template<typename Expr, typename Context>
+        typename proto::result_of::eval<Expr, Context>::type
+        eval(Expr &expr, Context const &context);
+    }
+
+Given an expression and an evaluation context, using _eval_ is quite simple.
+Simply pass the expression and the context to _eval_ and it does the rest and
+returns the result. You can use the `eval<>` metafunction in the
+`proto::result_of` namespace to compute the return type of _eval_. The
+following demonstrates a use of _eval_:
+
+    template<typename Expr>
+    typename proto::result_of::eval<Expr const, MyContext>::type
+    MyEvaluate(Expr const &expr)
+    {
+        // Some user-defined context type
+        MyContext ctx;
+
+        // Evaluate an expression with the context
+        return proto::eval(expr, ctx);
+    }
+
+What _eval_ does is also very simple. It defers most of the work to the
+context itself. Here essentially is the implementation of _eval_:
+
+    // eval() dispatches to a nested "eval<>" function
+    // object within the Context:
+    template<typename Expr, typename Context>
+    typename Context::template eval<Expr>::result_type
+    eval(Expr &expr, Context &ctx)
+    {
+        typename Context::template eval<Expr> eval_fun;
+        return eval_fun(expr, ctx);
+    }
+
+Really, _eval_ is nothing more than a thin wrapper that dispatches to the
+appropriate handler within the context class. In the next section, we'll see
+how to implement a context class from scratch.
+
+[endsect]
+
+[/==============================================]
+[section:contexts Defining an Evaluation Context]
+[/==============================================]
+
+As we saw in the previous section, there is really not much to the _eval_
+function. Rather, all the interesting expression evaluation goes on within
+a context class. This section shows how to implement one from scratch.
+
+All context classes have roughly the following form:
+
+    // A prototypical user-defined context.
+    struct MyContext
+    {
+        // A nested eval<> class template
+        template<
+            typename Expr
+          , typename Tag = typename proto::tag_of<Expr>::type
+        >
+        struct eval;
+
+        // Handle terminal nodes here...
+        template<typename Expr>
+        struct eval<Expr, proto::tag::terminal>
+        {
+            // Must have a nested result_type typedef.
+            typedef ... result_type;
+
+            // Must have a function call operator that takes
+            // an expression and the context.
+            result_type operator()(Expr &expr, MyContext &ctx) const
+            {
+                return ...;
+            }
+        };
+
+        // ... other specializations of struct eval<> ...
+    };
+
+Context classes are nothing more than a collection of specializations of a
+nested `eval<>` class template. Each specialization handles a different
+expression type.
+
+In the [link boost_proto.users_guide.getting_started.hello_calculator Hello Calculator]
+section, we saw an example of a user-defined context class for evaluating
+calculator expressions. That context class was implemented with the help
+of Proto's _callable_context_. If we were to implement it from scratch, it
+would look something like this:
+
+    // The calculator_context from the "Hello Calculator" section,
+    // implemented from scratch.
+    struct calculator_context
+    {
+        // The values with which we'll replace the placeholders
+        std::vector<double> args;
+
+        template<
+            typename Expr
+            // defaulted template parameters, so we can
+            // specialize on the expressions that need
+            // special handling.
+          , typename Tag = typename proto::tag_of<Expr>::type
+          , typename Arg0 = typename proto::child_c<Expr, 0>::type
+        >
+        struct eval;
+
+        // Handle placeholder terminals here...
+        template<typename Expr, int I>
+        struct eval<Expr, proto::tag::terminal, placeholder<I> >
+        {
+            typedef double result_type;
+
+            result_type operator()(Expr &, MyContext &ctx) const
+            {
+                return ctx.args[I];
+            }
+        };
+
+        // Handle other terminals here...
+        template<typename Expr, typename Arg0>
+        struct eval<Expr, proto::tag::terminal, Arg0>
+        {
+            typedef double result_type;
+
+            result_type operator()(Expr &expr, MyContext &) const
+            {
+                return proto::child(expr);
+            }
+        };
+
+        // Handle addition here...
+        template<typename Expr, typename Arg0>
+        struct eval<Expr, proto::tag::plus, Arg0>
+        {
+            typedef double result_type;
+
+            result_type operator()(Expr &expr, MyContext &ctx) const
+            {
+                return proto::eval(proto::left(expr), ctx)
+                     + proto::eval(proto::right(expr), ctx);
+            }
+        };
+
+        // ... other eval<> specializations for other node types ...
+    };
+
+Now we can use _eval_ with the context class above to evaluate calculator
+expressions as follows:
+
+    // Evaluate an expression with a calculator_context
+    calculator_context ctx;
+    ctx.args.push_back(5);
+    ctx.args.push_back(6);
+    double d = proto::eval(_1 + _2, ctx);
+    assert(11 == d);
+
+Defining a context from scratch this way is tedious and verbose, but it gives
+you complete control over how the expression is evaluated. The context class in
+the [link boost_proto.users_guide.getting_started.hello_calculator Hello Calculator] example
+was much simpler. In the next section we'll see the helper class Proto provides
+to ease the job of implementing context classes.
+
+[endsect]
+
+[/================================================]
+[section:canned_contexts Proto's Built-In Contexts]
+[/================================================]
+
+Proto provides some ready-made context classes that you can use as-is, or that
+you can use to help while implementing your own contexts. They are:
+
+[variablelist
+  [ [[link boost_proto.users_guide.back_end.expression_evaluation.canned_contexts.default_context [^default_context]]]
+    [An evaluation context that assigns the usual C++ meanings to all the
+     operators. For example, addition nodes are handled by evaluating the
+     left and right children and then adding the results. The _default_context_
+     uses Boost.Typeof to deduce the types of the expressions it evaluates.] ]
+  [ [[link boost_proto.users_guide.back_end.expression_evaluation.canned_contexts.null_context [^null_context]]]
+    [A simple context that recursively evaluates children but does not combine
+     the results in any way and returns void.] ]
+  [ [[link boost_proto.users_guide.back_end.expression_evaluation.canned_contexts.callable_context [^callable_context<>]]]
+    [A helper that simplifies the job of writing context classes. Rather than
+     writing template specializations, with _callable_context_ you write a
+     function object with an overloaded function call operator. Any expressions
+     not handled by an overload are automatically dispatched to a default
+     evaluation context that you can specify.] ]
+]
+
+[/=========================================]
+[section:default_context [^default_context]]
+[/=========================================]
+
+The _default_context_ is an evaluation context that assigns the usual C++
+meanings to all the operators. For example, addition nodes are handled by
+evaluating the left and right children and then adding the results. The
+_default_context_ uses Boost.Typeof to deduce the types of the expressions it
+evaluates.
+
+For example, consider the following "Hello World" example:
+
+    #include <iostream>
+    #include <boost/proto/proto.hpp>
+    #include <boost/proto/context.hpp>
+    #include <boost/typeof/std/ostream.hpp>
+    using namespace boost;
+
+    proto::terminal< std::ostream & >::type cout_ = { std::cout };
+
+    template< typename Expr >
+    void evaluate( Expr const & expr )
+    {
+        // Evaluate the expression with default_context,
+        // to give the operators their C++ meanings:
+        proto::default_context ctx;
+        proto::eval(expr, ctx);
+    }
+
+    int main()
+    {
+        evaluate( cout_ << "hello" << ',' << " world" );
+        return 0;
+    }
+
+This program outputs the following:
+
+[pre
+hello, world
+]
+
+_default_context_ is trivially defined in terms of a `default_eval<>`
+template, as follows:
+
+    // Definition of default_context
+    struct default_context
+    {
+        template<typename Expr>
+        struct eval
+          : default_eval<
+                Expr
+              , default_context const
+              , typename tag_of<Expr>::type
+            >
+        {};
+    };
+
+There are a bunch of `default_eval<>` specializations, each of which handles
+a different C++ operator. Here, for instance, is the specialization for binary
+addition:
+
+    // A default expression evaluator for binary addition
+    template<typename Expr, typename Context>
+    struct default_eval<Expr, Context, proto::tag::plus>
+    {
+    private:
+        static Expr    & s_expr;
+        static Context & s_ctx;
+
+    public:
+        typedef
+            decltype(
+                proto::eval(proto::child_c<0>(s_expr), s_ctx)
+              + proto::eval(proto::child_c<1>(s_expr), s_ctx)
+            )
+        result_type;
+
+        result_type operator ()(Expr &expr, Context &ctx) const
+        {
+            return proto::eval(proto::child_c<0>(expr), ctx)
+                 + proto::eval(proto::child_c<1>(expr), ctx);
+        }
+    };
+
+The above code uses `decltype` to calculate the return type of the function
+call operator. `decltype` is a new keyword in the next version of C++ that gets
+the type of any expression. Most compilers do not yet support `decltype`
+directly, so `default_eval<>` uses the Boost.Typeof library to emulate it. On
+some compilers, that may mean that `default_context` either doesn't work or
+that it requires you to register your types with the Boost.Typeof library.
+Check the documentation for Boost.Typeof to see.
+
+[endsect]
+
+[/===================================]
+[section:null_context [^null_context]]
+[/===================================]
+
+The _null_context_ is a simple context that recursively evaluates children
+but does not combine the results in any way and returns void. It is useful
+in conjunction with `callable_context<>`, or when defining your own contexts
+which mutate an expression tree in-place rather than accumulate a result, as
+we'll see below.
+
+_null_context_ is trivially implemented in terms of `null_eval<>` as follows:
+
+    // Definition of null_context
+    struct null_context
+    {
+        template<typename Expr>
+        struct eval
+          : null_eval<Expr, null_context const, Expr::proto_arity::value>
+        {};
+    };
+
+And `null_eval<>` is also trivially implemented. Here, for instance is
+a binary `null_eval<>`:
+
+    // Binary null_eval<>
+    template<typename Expr, typename Context>
+    struct null_eval<Expr, Context, 2>
+    {
+        typedef void result_type;
+
+        void operator()(Expr &expr, Context &ctx) const
+        {
+            proto::eval(proto::child_c<0>(expr), ctx);
+            proto::eval(proto::child_c<1>(expr), ctx);
+        }
+    };
+
+When would such classes be useful? Imagine you have an expression tree with
+integer terminals, and you would like to increment each integer in-place. You
+might define an evaluation context as follows:
+
+    struct increment_ints
+    {
+        // By default, just evaluate all children by delegating
+        // to the null_eval<>
+        template<typename Expr, typename Arg = proto::result_of::child<Expr>::type>
+        struct eval
+          : null_eval<Expr, increment_ints const>
+        {};
+
+        // Increment integer terminals
+        template<typename Expr>
+        struct eval<Expr, int>
+        {
+            typedef void result_type;
+
+            void operator()(Expr &expr, increment_ints const &) const
+            {
+                ++proto::child(expr);
+            }
+        };
+    };
+
+In the next section on _callable_context_, we'll see an even simpler way to
+achieve the same thing.
+
+[endsect]
+
+[/=============================================]
+[section:callable_context [^callable_context<>]]
+[/=============================================]
+
+The _callable_context_ is a helper that simplifies the job of writing context
+classes. Rather than writing template specializations, with _callable_context_
+you write a function object with an overloaded function call operator. Any
+expressions not handled by an overload are automatically dispatched to a
+default evaluation context that you can specify.
+
+Rather than an evaluation context in its own right, _callable_context_ is more
+properly thought of as a context adaptor. To use it, you must define your own
+context that inherits from _callable_context_.
+
+In the [link boost_proto.users_guide.back_end.expression_evaluation.canned_contexts.null_context [^null_context]]
+section, we saw how to implement an evaluation context that increments all the
+integers within an expression tree. Here is how to do the same thing with the
+_callable_context_:
+
+    // An evaluation context that increments all
+    // integer terminals in-place.
+    struct increment_ints
+      : callable_context<
+            increment_ints const // derived context
+          , null_context const  // fall-back context
+        >
+    {
+        typedef void result_type;
+
+        // Handle int terminals here:
+        void operator()(proto::tag::terminal, int &i) const
+        {
+            ++i;
+        }
+    };
+
+With such a context, we can do the following:
+
+    literal<int> i = 0, j = 10;
+    proto::eval( i - j * 3.14, increment_ints() );
+
+    std::cout << "i = " << i.get() << std::endl;
+    std::cout << "j = " << j.get() << std::endl;
+
+This program outputs the following, which shows that the integers `i` and `j`
+have been incremented by `1`:
+
+[pre
+i = 1
+j = 11
+]
+
+In the `increment_ints` context, we didn't have to define any nested `eval<>`
+templates. That's because _callable_context_ implements them for us.
+_callable_context_ takes two template parameters: the derived context and a
+fall-back context. For each node in the expression tree being evaluated,
+_callable_context_ checks to see if there is an overloaded `operator()` in the
+derived context that accepts it. Given some expression `expr` of type `Expr`,
+and a context `ctx`, it attempts to call:
+
+    ctx(
+        typename Expr::proto_tag()
+      , proto::child_c<0>(expr)
+      , proto::child_c<1>(expr)
+        ...
+    );
+
+Using function overloading and metaprogramming tricks, _callable_context_ can
+detect at compile-time whether such a function exists or not. If so, that
+function is called. If not, the current expression is passed to the fall-back
+evaluation context to be processed.
+
+We saw another example of the _callable_context_ when we looked at the simple
+calculator expression evaluator. There, we wanted to customize the evaluation
+of placeholder terminals, and delegate the handling of all other nodes to the
+_default_context_. We did that as follows:
+
+    // An evaluation context for calculator expressions that
+    // explicitly handles placeholder terminals, but defers the
+    // processing of all other nodes to the default_context.
+    struct calculator_context
+      : proto::callable_context< calculator_context const >
+    {
+        std::vector<double> args;
+
+        // Define the result type of the calculator.
+        typedef double result_type;
+
+        // Handle the placeholders:
+        template<int I>
+        double operator()(proto::tag::terminal, placeholder<I>) const
+        {
+            return this->args[I];
+        }
+    };
+
+In this case, we didn't specify a fall-back context. In that case,
+_callable_context_ uses the _default_context_. With the above
+`calculator_context` and a couple of appropriately defined placeholder
+terminals, we can evaluate calculator expressions, as demonstrated
+below:
+
+    template<int I>
+    struct placeholder
+    {};
+
+    terminal<placeholder<0> >::type const _1 = {{}};
+    terminal<placeholder<1> >::type const _2 = {{}};
+    // ...
+
+    calculator_context ctx;
+    ctx.args.push_back(4);
+    ctx.args.push_back(5);
+
+    double j = proto::eval( (_2 - _1) / _2 * 100, ctx );
+    std::cout << "j = " << j << std::endl;
+
+The above code displays the following:
+
+[pre
+j = 20
+]
+
+[endsect]
+
+[endsect]
+
+[endsect]
+
+[import ../test/examples.cpp]
+
+[/============================================================================]
+[section:expression_transformation Expression Transformation: Semantic Actions]
+[/============================================================================]
+
+If you have ever built a parser with the help of a tool like Antlr, yacc or Boost.Spirit, you might be familiar with /semantic actions/. In addition to allowing you to define the grammar of the language recognized by the parser, these tools let you embed code within your grammar that executes when parts of the grammar participate in a parse. Proto has the equivalent of semantic actions. They are called /transforms/. This section describes how to embed transforms within your Proto grammars, turning your grammars into function objects that can manipulate or evaluate expressions in powerful ways.
+
+Proto transforms are an advanced topic. We'll take it slow, using examples to illustrate the key concepts, starting simple.
+
+[/==================================]
+[section ["Activating] Your Grammars]
+[/==================================]
+
+The Proto grammars we've seen so far are static. You can check at compile-time to see if an expression type matches a grammar, but that's it. Things get more interesting when you give them runtime behaviors. A grammar with embedded transforms is more than just a static grammar. It is a function object that accepts expressions that match the grammar and does /something/ with them.
+
+Below is a very simple grammar. It matches terminal expressions.
+
+    // A simple Proto grammar that matches all terminals
+    proto::terminal< _ >
+
+Here is the same grammar with a transform that extracts the value from the terminal:
+
+    // A simple Proto grammar that matches all terminals
+    // *and* a function object that extracts the value from
+    // the terminal
+    proto::when<
+        proto::terminal< _ >
+      , proto::_value          // <-- Look, a transform!
+    >
+
+You can read this as follows: when you match a terminal expression, extract the value. The type `proto::_value` is a so-called transform. Later we'll see what makes it a transform, but for now just think of it as a kind of function object. Note the use of _when_: the first template parameter is the grammar to match and the second is the transform to execute. The result is both a grammar that matches terminal expressions and a function object that accepts terminal expressions and extracts their values. 
+
+As with ordinary grammars, we can define an empty struct that inherits from a grammar+transform to give us an easy way to refer back to the thing we're defining, as follows:
+
+    // A grammar and a function object, as before
+    struct Value
+      : proto::when<
+            proto::terminal< _ >
+          , proto::_value
+        >
+    {};
+
+    // "Value" is a grammar that matches terminal expressions
+    BOOST_MPL_ASSERT(( proto::matches< proto::terminal<int>::type, Value > ));
+
+    // "Value" also defines a function object that accepts terminals
+    // and extracts their value.
+    proto::terminal<int>::type answer = {42};
+    Value get_value;
+    int i = get_value( answer );
+
+As already mentioned, `Value` is a grammar that matches terminal expressions and a function object that operates on terminal expressions. It would be an error to pass a non-terminal expression to the `Value` function object. This is a general property of grammars with transforms; when using them as function objects, expressions passed to them must match the grammar.
+
+Proto grammars are valid TR1-style function objects. That means you can use `boost::result_of<>` to ask a grammar what its return type will be, given a particular expression type. For instance, we can access the `Value` grammar's return type as follows:
+
+    // We can use boost::result_of<> to get the return type
+    // of a Proto grammar.
+    typedef
+        typename boost::result_of<Value(proto::terminal<int>::type)>::type
+    result_type;
+
+    // Check that we got the type we expected
+    BOOST_MPL_ASSERT(( boost::is_same<result_type, int> ));
+
+[note A grammar with embedded transforms is both a grammar and a function object. Calling these things "grammars with transforms" would get tedious. We could call them something like "active grammars", but as we'll see /every/ grammar that you can define with Proto is "active"; that is, every grammar has some behavior when used as a function object. So we'll continue calling these things plain "grammars". The term "transform" is reserved for the thing that is used as the second parameter to the _when_ template.]
+
+[endsect]
+
+[/=========================================]
+[section Handling Alternation and Recursion]
+[/=========================================]
+
+Most grammars are a little more complicated than the one in the preceding section. For the sake of illustration, let's define a rather nonsensical grammar that matches any expression and recurses to the leftmost terminal and returns its value. It will demonstrate how two key concepts of Proto grammars -- alternation and recursion -- interact with transforms. The grammar is described below.
+
+    // A grammar that matches any expression, and a function object
+    // that returns the value of the leftmost terminal.
+    struct LeftmostLeaf
+      : proto::or_<
+            // If the expression is a terminal, return its value
+            proto::when<
+                proto::terminal< _ >
+              , proto::_value
+            >
+            // Otherwise, it is a non-terminal. Return the result
+            // of invoking LeftmostLeaf on the 0th (leftmost) child.
+          , proto::when<
+                _
+              , LeftmostLeaf( proto::_child0 )
+            >
+        >
+    {};
+
+    // A Proto terminal wrapping std::cout
+    proto::terminal< std::ostream & >::type cout_ = { std::cout };
+    
+    // Create an expression and use LeftmostLeaf to extract the
+    // value of the leftmost terminal, which will be std::cout.
+    std::ostream & sout = LeftmostLeaf()( cout_ << "the answer: " << 42 << '\n' );
+
+We've seen `proto::or_<>` before. Here it is serving two roles. First, it is a grammar that matches any of its alternate sub-grammars; in this case, either a terminal or a non-terminal. Second, it is also a function object that accepts an expression, finds the alternate sub-grammar that matches the expression, and applies its transform. And since `LeftmostLeaf` inherits from `proto::or_<>`, `LeftmostLeaf` is also both a grammar and a function object.
+
+[def _some_transform_ [~some-transform]]
+
+[note The second alternate uses `proto::_` as its grammar. Recall that `proto::_` is the wildcard grammar that matches any expression. Since alternates in `proto::or_<>` are tried in order, and since the first alternate handles all terminals, the second alternate handles all (and only) non-terminals. Often enough, `proto::when< _, _some_transform_ >` is the last alternate in a grammar, so for improved readability, you could use the equivalent `proto::otherwise< _some_transform_ >`.]
+
+The next section describes this grammar further.
+
+[endsect]
+
+[/==========================]
+[section Callable Transforms]
+[/==========================]
+
+[def __bold_transform__ [*LeftmostLeaf( proto::_child0 )]]
+
+In the grammar defined in the preceding section, the transform associated with non-terminals is a little strange-looking:
+
+    proto::when<
+        _
+      , __bold_transform__   // <-- a "callable" transform
+    >
+
+It has the effect of accepting non-terminal expressions, taking the 0th (leftmost) child and recursively invoking the `LeftmostLeaf` function on it. But `LeftmostLeaf( proto::_child0 )` is actually a /function type/. Literally, it is the type of a function that accepts an object of type `proto::_child0` and returns an object of type `LeftmostLeaf`. So how do we make sense of this transform? Clearly, there is no function that actually has this signature, nor would such a function be useful. The key is in understanding how `proto::when<>` /interprets/ its second template parameter.
+
+When the second template parameter to _when_ is a function type, _when_ interprets the function type as a transform. In this case, `LeftmostLeaf` is treated as the type of a function object to invoke, and `proto::_child0` is treated as a transform. First, `proto::_child0` is applied to the current expression (the non-terminal that matched this alternate sub-grammar), and the result (the 0th child) is passed as an argument to `LeftmostLeaf`.
+
+[note *Transforms are a Domain-Specific Language*
+
+`LeftmostLeaf( proto::_child0 )` /looks/ like an invocation of the `LeftmostLeaf` function object, but it's not, but then it actually is! Why this confusing subterfuge? Function types give us a natural and concise syntax for composing more complicated transforms from simpler ones. The fact that the syntax is suggestive of a function invocation is on purpose. It is an embedded domain-specific language for defining expression transformations. If the subterfuge worked, it may have fooled you into thinking the transform is doing exactly what it actually does! And that's the point.]
+
+The type `LeftmostLeaf( proto::_child0 )` is an example of a /callable transform/. It is a function type that represents a function object to call and its arguments. The types `proto::_child0` and `proto::_value` are /primitive transforms/. They are plain structs, not unlike function objects, from which callable transforms can be composed. There is one other type of transform, /object transforms/, that we'll encounter next.
+
+[endsect]
+
+[/========================]
+[section Object Transforms]
+[/========================]
+
+The very first transform we looked at simply extracted the value of terminals. Let's do the same thing, but this time we'll promote all ints to longs first. (Please forgive the contrived-ness of the examples so far; they get more interesting later.) Here's the grammar:
+
+    // A simple Proto grammar that matches all terminals,
+    // and a function object that extracts the value from
+    // the terminal, promoting ints to longs:
+    struct ValueWithPomote
+      : proto::or_<
+            proto::when<
+                proto::terminal< int >
+              , long(proto::_value)     // <-- an "object" transform
+            >
+          , proto::when<
+                proto::terminal< _ >
+              , proto::_value
+            >
+        >
+    {};
+
+You can read the above grammar as follows: when you match an int terminal, extract the value from the terminal and use it to initialize a long; otherwise, when you match another kind of terminal, just extract the value. The type `long(proto::_value)` is a so-called /object/ transform. It looks like the creation of a temporary long, but it's really a function type. Just as a callable transform is a function type that represents a function to call and its arguments, an object transforms is a function type that represents an object to construct and the arguments to its constructor.
+
+[/================================================]
+[note *Object Transforms vs. Callable Transforms*
+
+When using function types as Proto transforms, they can either represent an object to construct or a function to call. It is similar to "normal" C++ where the syntax `foo("arg")` can either be interpreted as an object to construct or a function to call, depending on whether `foo` is a type or a function. But consider two of the transforms we've seen so far:
+
+``
+    LeftmostLeaf(proto::_child0)  // <-- a callable transform
+    long(proto::_value)           // <-- an object transform
+``
+
+Proto can't know in general which is which, so it uses a trait, `proto::is_callable<>`, to differentiate. `is_callable< long >::value` is false so `long(proto::_value)` is an object to construct, but `is_callable< LeftmostLeaf >::value` is true so `LeftmostLeaf(proto::_child0)` is a function to call. Later on, we'll see how Proto recognizes a type as "callable".]
+[/================================================]
+
+[endsect]
+
+[/================================]
+[section Example: Calculator Arity]
+[/================================]
+
+Now that we have the basics of Proto transforms down, let's consider a slightly more realistic example. We can use transforms to improve the type-safety of the [link boost_proto.users_guide.getting_started.hello_calculator calculator EDSL]. If you recall, it lets you write infix arithmetic expressions involving argument placeholders like `_1` and `_2` and pass them to STL algorithms as function objects, as follows:
+
+    double a1[4] = { 56, 84, 37, 69 };
+    double a2[4] = { 65, 120, 60, 70 };
+    double a3[4] = { 0 };
+
+    // Use std::transform() and a calculator expression
+    // to calculate percentages given two input sequences:
+    std::transform(a1, a1+4, a2, a3, (_2 - _1) / _2 * 100);
+
+This works because we gave calculator expressions an `operator()` that evaluates the expression, replacing the placeholders with the arguments to `operator()`. The overloaded `calculator<>::operator()` looked like this:
+
+    // Overload operator() to invoke proto::eval() with
+    // our calculator_context.
+    template<typename Expr>
+    double
+    calculator<Expr>::operator()(double a1 = 0, double a2 = 0) const
+    {
+        calculator_context ctx;
+        ctx.args.push_back(a1);
+        ctx.args.push_back(a2);
+        
+        return proto::eval(*this, ctx);
+    }
+
+Although this works, it's not ideal because it doesn't warn users if they supply too many or too few arguments to a calculator expression. Consider the following mistakes:
+
+    (_1 * _1)(4, 2);  // Oops, too many arguments!
+    (_2 * _2)(42);    // Oops, too few arguments!
+
+The expression `_1 * _1` defines a unary calculator expression; it takes one argument and squares it. If we pass more than one argument, the extra arguments will be silently ignored, which might be surprising to users. The next expression, `_2 * _2` defines a binary calculator expression; it takes two arguments, ignores the first and squares the second. If we only pass one argument, the code silently fills in `0.0` for the second argument, which is also probably not what users expect. What can be done?
+
+We can say that the /arity/ of a calculator expression is the number of arguments it expects, and it is equal to the largest placeholder in the expression. So, the arity of `_1 * _1` is one, and the arity of `_2 * _2` is two. We can increase the type-safety of our calculator EDSL by making sure the arity of an expression equals the actual number of arguments supplied. Computing the arity of an expression is simple with the help of Proto transforms.
+
+It's straightforward to describe in words how the arity of an expression should
+be calculated. Consider that calculator expressions can be made of `_1`, `_2`, literals, unary expressions and binary expressions. The following table shows the arities for each of these 5 constituents.
+
+[table Calculator Sub-Expression Arities
+    [[Sub-Expression]       [Arity]]
+    [[Placeholder 1]        [`1`]]
+    [[Placeholder 2]        [`2`]]
+    [[Literal]              [`0`]]
+    [[Unary Expression]     [ /arity of the operand/ ]]
+    [[Binary Expression]    [ /max arity of the two operands/ ]]
+]
+
+Using this information, we can write the grammar for calculator expressions and attach transforms for computing the arity of each constituent. The code below computes the expression arity as a compile-time integer, using integral wrappers and metafunctions from the Boost MPL Library. The grammar is described below.
+
+[CalcArity]
+
+When we find a placeholder terminal or a literal, we use an /object transform/ such as `mpl::int_<1>()` to create a (default-constructed) compile-time integer representing the arity of that terminal.
+
+For unary expressions, we use `CalcArity(proto::_child)` which is a /callable transform/ that computes the arity of the expression's child.
+
+The transform for binary expressions has a few new tricks. Let's look more closely:
+
+    // Compute the left and right arities and
+    // take the larger of the two.
+    mpl::max<CalcArity(proto::_left),
+             CalcArity(proto::_right)>()
+
+This is an object transform; it default-constructs ... what exactly? The `mpl::max<>` template is an MPL metafunction that accepts two compile-time integers. It has a nested `::type` typedef (not shown) that is the maximum of the two. But here, we appear to be passing it two things that are /not/ compile-time integers; they're Proto callable transforms. Proto is smart enough to recognize that fact. It first evaluates the two nested callable transforms, computing the arities of the left and right child expressions. Then it puts the resulting integers into `mpl::max<>` and evaluates the metafunction by asking for the nested `::type`. That is the type of the object that gets default-constructed and returned.
+
+More generally, when evaluating object transforms, Proto looks at the object type and checks whether it is a template specialization, like `mpl::max<>`. If it is, Proto looks for nested transforms that it can evaluate. After any nested transforms have been evaluated and substituted back into the template, the new template specialization is the result type, unless that type has a nested `::type`, in which case that becomes the result.
+
+Now that we can calculate the arity of a calculator expression, let's redefine the `calculator<>` expression wrapper we wrote in the Getting Started guide to use the `CalcArity` grammar and some macros from Boost.MPL to issue compile-time errors when users specify too many or too few arguments.
+
+    // The calculator expression wrapper, as defined in the Hello
+    // Calculator example in the Getting Started guide. It behaves
+    // just like the expression it wraps, but with extra operator()
+    // member functions that evaluate the expression.
+    //   NEW: Use the CalcArity grammar to ensure that the correct
+    //   number of arguments are supplied.
+    template<typename Expr>
+    struct calculator
+      : proto::extends<Expr, calculator<Expr>, calculator_domain>
+    {
+        typedef
+            proto::extends<Expr, calculator<Expr>, calculator_domain>
+        base_type;
+
+        calculator(Expr const &expr = Expr())
+          : base_type(expr)
+        {}
+
+        typedef double result_type;
+
+        // Use CalcArity to compute the arity of Expr: 
+        static int const arity = boost::result_of<CalcArity(Expr)>::type::value;
+
+        double operator()() const
+        {
+            BOOST_MPL_ASSERT_RELATION(0, ==, arity);
+            calculator_context ctx;
+            return proto::eval(*this, ctx);
+        }
+
+        double operator()(double a1) const
+        {
+            BOOST_MPL_ASSERT_RELATION(1, ==, arity);
+            calculator_context ctx;
+            ctx.args.push_back(a1);
+            return proto::eval(*this, ctx);
+        }
+
+        double operator()(double a1, double a2) const
+        {
+            BOOST_MPL_ASSERT_RELATION(2, ==, arity);
+            calculator_context ctx;
+            ctx.args.push_back(a1);
+            ctx.args.push_back(a2);
+            return proto::eval(*this, ctx);
+        }
+    };
+
+Note the use of `boost::result_of<>` to access the return type of the `CalcArity` function object. Since we used compile-time integers in our transforms, the arity of the expression is encoded in the return type of the `CalcArity` function object. Proto grammars are valid TR1-style function objects, so you can use `boost::result_of<>` to figure out their return types.
+
+With our compile-time assertions in place, when users provide too many or too few arguments to a calculator expression, as in:
+
+    (_2 * _2)(42); // Oops, too few arguments!
+
+... they will get a compile-time error message on the line with the assertion that reads something like this[footnote This error message was generated with Microsoft Visual C++ 9.0. Different compilers will emit different messages with varying degrees of readability.]:
+
+[pre
+c:\boost\org\trunk\libs\proto\scratch\main.cpp(97) : error C2664: 'boost::mpl::asse
+rtion\_failed' : cannot convert parameter 1 from 'boost::mpl::failed \*\*\*\*\*\*\*\*\*\*\*\*boo
+st::mpl::assert\_relation<x,y,\_\_formal>::\*\*\*\*\*\*\*\*\*\*\*\*' to 'boost::mpl::assert<false>
+::type'
+   with
+   \[
+       x\=1,
+       y\=2,
+       \_\_formal\=bool boost::mpl::operator\=\=(boost::mpl::failed,boost::mpl::failed)
+   \]
+]
+
+The point of this exercise was to show that we can write a fairly simple Proto grammar with embedded transforms that is declarative and readable and can compute interesting properties of arbitrarily complicated expressions. But transforms can do more than that. Boost.Xpressive uses transforms to turn expressions into finite state automata for matching regular expressions, and Boost.Spirit uses transforms to build recursive descent parser generators. Proto comes with a collection of built-in transforms that you can use to perform very sophisticated expression manipulations like these. In the next few sections we'll see some of them in action.
+
+[endsect]
+
+[/===============================================]
+[section:state Transforms With State Accumulation]
+[/===============================================]
+
+So far, we've only seen examples of grammars with transforms that accept one argument: the expression to transform. But consider for a moment how, in ordinary procedural code, you would turn a binary tree into a linked list. You would start with an empty list. Then, you would recursively convert the right branch to a list, and use the result as the initial state while converting the left branch to a list. That is, you would need a function that takes two parameters: the current node and the list so far. These sorts of /accumulation/ problems are quite common when processing trees. The linked list is an example of an accumulation variable or /state/. Each iteration of the algorithm takes the current element and state, applies some binary function to the two and creates a new state. In the STL, this algorithm is called `std::accumulate()`. In many other languages, it is called /fold/. Let's see how to implement a fold algorithm with Proto transforms.
+
+All Proto grammars can optionally accept a state parameter in addition to the expression to transform. If you want to fold a tree to a list, you'll need to make use of the state parameter to pass around the list you've built so far. As for the list, the Boost.Fusion library provides a `fusion::cons<>` type from which you can build heterogeneous lists. The type `fusion::nil` represents an empty list. 
+
+Below is a grammar that recognizes output expressions like `cout_ << 42 << '\n'` and puts the arguments into a Fusion list. It is explained below.
+
+    // Fold the terminals in output statements like
+    // "cout_ << 42 << '\n'" into a Fusion cons-list.
+    struct FoldToList
+      : proto::or_<
+            // Don't add the ostream terminal to the list
+            proto::when<
+                proto::terminal< std::ostream & >
+              , proto::_state
+            >
+            // Put all other terminals at the head of the
+            // list that we're building in the "state" parameter
+          , proto::when<
+                proto::terminal<_>
+              , fusion::cons<proto::_value, proto::_state>(
+                    proto::_value, proto::_state
+                )
+            >
+            // For left-shift operations, first fold the right
+            // child to a list using the current state. Use
+            // the result as the state parameter when folding
+            // the left child to a list.
+          , proto::when<
+                proto::shift_left<FoldToList, FoldToList>
+              , FoldToList(
+                    proto::_left
+                  , FoldToList(proto::_right, proto::_state)
+                )
+            >
+        >
+    {};
+
+Before reading on, see if you can apply what you know already about object, callable and primitive transforms to figure out how this grammar works.
+
+When you use the `FoldToList` function, you'll need to pass two arguments: the expression to fold, and the initial state: an empty list. Those two arguments get passed around to each transform. We learned previously that `proto::_value` is a primitive transform that accepts a terminal expression and extracts its value. What we didn't know until now was that it also accepts the current state /and ignores it/. `proto::_state` is also a primitive transform. It accepts the current expression, which it ignores, and the current state, which it returns.
+
+When we find a terminal, we stick it at the head of the cons list, using the current state as the tail of the list. (The first alternate causes the `ostream` to be skipped. We don't want `cout` in the list.) When we find a shift-left node, we apply the following transform:
+
+    // Fold the right child and use the result as
+    // state while folding the right.
+    FoldToList(
+        proto::_left
+      , FoldToList(proto::_right, proto::_state)
+    )
+
+You can read this transform as follows: using the current state, fold the right child to a list. Use the new list as the state while folding the left child to a list.
+
+[tip If your compiler is Microsoft Visual C++, you'll find that the above transform does not compile. The compiler has bugs with its handling of nested function types. You can work around the bug by wrapping the inner transform in `proto::call<>` as follows:
+
+``
+    FoldToList(
+        proto::_left
+      , proto::call<FoldToList(proto::_right, proto::_state)>
+    )
+``
+
+`proto::call<>` turns a callable transform into a primitive transform, but more on that later.
+]
+
+Now that we have defined the `FoldToList` function object, we can use it to turn output expressions into lists as follows:
+
+    proto::terminal<std::ostream &>::type const cout_ = {std::cout};
+
+    // This is the type of the list we build below
+    typedef
+        fusion::cons<
+            int
+          , fusion::cons<
+                double
+              , fusion::cons<
+                    char
+                  , fusion::nil
+                >
+            >
+        >
+    result_type;
+
+    // Fold an output expression into a Fusion list, using
+    // fusion::nil as the initial state of the transformation.
+    FoldToList to_list;
+    result_type args = to_list(cout_ << 1 << 3.14 << '\n', fusion::nil());
+
+    // Now "args" is the list: {1, 3.14, '\n'}
+
+When writing transforms, "fold" is such a basic operation that Proto provides a number of built-in fold transforms. We'll get to them later. For now, rest assured that you won't always have to stretch your brain so far to do such basic things.
+
+[endsect]
+
+[/================================================]
+[section:data Passing Auxiliary Data to Transforms]
+[/================================================]
+
+In the last section, we saw that we can pass a second parameter to grammars with transforms: an accumulation variable or /state/ that gets updated as your transform executes. There are times when your transforms will need to access auxiliary data that does /not/ accumulate, so bundling it with the state parameter is impractical. Instead, you can pass auxiliary data as a third parameter, known as the /data/ parameter.
+
+Let's modify our previous example so that it writes each terminal to `std::cout` before it puts it into a list. This could be handy for debugging your transforms, for instance. We can make it general by passing a `std::ostream` into the transform in the data parameter. Within the transform itself, we can retrieve the `ostream` with the _data_pt_ transform. The strategy is as follows: use the _and_ transform to chain two actions. The second action will create the `fusion::cons<>` node as before. The first action, however, will display the current expression. For that, we first construct an instance of [classref  boost::proto::functional::display_expr `proto::functional::display_expr`] and then call it.
+
+    // Fold the terminals in output statements like
+    // "cout_ << 42 << '\n'" into a Fusion cons-list.
+    struct FoldToList
+      : proto::or_<
+            // Don't add the ostream terminal to the list
+            proto::when<
+                proto::terminal< std::ostream & >
+              , proto::_state
+            >
+            // Put all other terminals at the head of the
+            // list that we're building in the "state" parameter
+          , proto::when<
+                proto::terminal<_>
+              , proto::and_<
+                    // First, write the terminal to an ostream passed
+                    // in the data parameter
+                    proto::lazy<
+                        proto::make<proto::functional::display_expr(proto::_data)>(_)
+                    >
+                    // Then, constuct the new cons list.
+                  , fusion::cons<proto::_value, proto::_state>(
+                        proto::_value, proto::_state
+                    )
+                >
+            >
+            // For left-shift operations, first fold the right
+            // child to a list using the current state. Use
+            // the result as the state parameter when folding
+            // the left child to a list.
+          , proto::when<
+                proto::shift_left<FoldToList, FoldToList>
+              , FoldToList(
+                    proto::_left
+                  , FoldToList(proto::_right, proto::_state, proto::_data)
+                  , proto::_data
+                )
+            >
+        >
+    {};
+
+This is a lot to take in, no doubt. But focus on the second `when` clause above. It says: when you find a terminal, first display the terminal using the `ostream` you find in the data parameter, then take the value of the terminal and the current state to build a new `cons` list. The function object `display_expr` does the job of printing the terminal, and `proto::and_<>` chains the actions together and executes them in sequence, returning the result of the last one. 
+
+[def __the_expr__ ['the-expr]]
+
+[note Also new is _lazy_pt_. Sometimes you don't have a ready-made callable object to execute. Instead, you want to first make one and /then/ execute it. Above, we need to create a `display_expr`, initializing it with our `ostream`. After that, we want to invoke it by passing it the current expression. It's as if we were doing `display_expr(std::cout)(__the_expr__)`. We achieve this two-phase evaluation using `proto::lazy<>`. If this doesn't make sense yet, don't worry about it.]
+
+We can use the above transform as before, but now we can pass an `ostream` as the third parameter and get to watch the transform in action. Here's a sample usage:
+
+    proto::terminal<std::ostream &>::type const cout_ = {std::cout};
+
+    // This is the type of the list we build below
+    typedef
+        fusion::cons<
+            int
+          , fusion::cons<
+                double
+              , fusion::cons<
+                    char
+                  , fusion::nil
+                >
+            >
+        >
+    result_type;
+
+    // Fold an output expression into a Fusion list, using
+    // fusion::nil as the initial state of the transformation.
+    // Pass std::cout as the data parameter so that we can track
+    // the progress of the transform on the console.
+    FoldToList to_list;
+    result_type args = to_list(cout_ << 1 << 3.14 << '\n', fusion::nil(), std::cout);
+
+    // Now "args" is the list: {1, 3.14, '\n'}
+
+This code displays the following:
+
+[pre terminal(
+)
+terminal(3.14)
+terminal(1)]
+
+This is a rather round-about way of demonstrating that you can pass extra data to a transform as a third parameter. There are no restrictions on what this parameter can be, and, unlike the state parameter, Proto will never mess with it.
+
+[heading Transform Environment Variables]
+
+[note ['This is an advanced topic. Feel free to skip if you are new to Proto.]]
+
+The example above uses the data parameter as a transport mechanism for an unstructured blob of data; in this case, a reference to an `ostream`. As your Proto algorithms become more sophisticated, you may find that an unstructured blob of data isn't terribly convenient to work with. Different parts of your algorithm may be interested in different bits of data. What you want, instead, is a way to pass in a collection of /environment variables/ to a transform, like a collection of key\/value pairs. Then, you can easily get at the piece of data you want by asking the data parameter for the value associated with a particular key. Proto's /transform environments/ give you just that.
+
+Let's start by defining a key.
+
+    BOOST_PROTO_DEFINE_ENV_VAR(mykey_type, mykey);
+
+This defines a global constant `mykey` with the type `mykey_type`. We can use `mykey` to store a piece of assiciated data in a transform environment, as so:
+
+    // Call the MyEval algorithm with a transform environment containing
+    // two key/value pairs: one for proto::data and one for mykey
+    MyEval()( expr, state, (proto::data = 42, mykey = "hello world") );
+
+The above means to invoke the `MyEval` algorithm with three parameters: an expression, an initial state, and a transform environment containing two key\/value pairs.
+
+From within a Proto algorithm, you can access the values associated with different keys using the [classref boost::proto::_env_var `proto::_env_var<>`] transform. For instance, `proto::_env_var<mykey_type>` would fetch the value `"hello world"` from the transform environment created above.
+
+The `proto::_data` transform has some additional smarts. Rather than always returning the third parameter regarless of whether it is a blob or a transform environment, it checks first to see if it's a blob or not. If so, that's what gets returned. If not, it returns the value associated with the `proto::data` key. In the above example, that would be the value `42`.
+
+There's a small host of functions, metafunction, and classes that you can use to create and manipulate transform environments, some for testing whether an object is a transform environment, some for coercing an object to be a transform environment, and some for querying a transform environment whether or not is has a value for a particular key. For an exhaustive treatment of the topic, check out the reference for the [headerref boost/proto/transform/env.hpp] header.
+
+[endsect]
+
+[section:implicit_params Implicit Parameters to Primitive Transforms]
+
+Let's use `FoldToList` example from the previous two sections to illustrate some other niceties of Proto transforms. We've seen that grammars, when used as function objects, can accept up to 3 parameters, and that when using these grammars in callable transforms, you can also specify up to 3 parameters. Let's take another look at the transform associated with non-terminals from the last section:
+
+    FoldToList(
+        proto::_left
+      , FoldToList(proto::_right, proto::_state, proto::_data)
+      , proto::_data
+    )
+
+Here we specify all three parameters to both invocations of the `FoldToList` grammar. But we don't have to specify all three. If we don't specify a third parameter, `proto::_data` is assumed. Likewise for the second parameter and `proto::_state`. So the above transform could have been written more simply as:
+
+    FoldToList(
+        proto::_left
+      , StringCopy(proto::_right)
+    )
+
+The same is true for any primitive transform. The following are all equivalent:
+
+[table Implicit Parameters to Primitive Transforms
+  [[Equivalent Transforms]]
+  [[`proto::when<_, FoldToList>`]]
+  [[`proto::when<_, FoldToList()>`]]
+  [[`proto::when<_, FoldToList(_)>`]]
+  [[`proto::when<_, FoldToList(_, proto::_state)>`]]
+  [[`proto::when<_, FoldToList(_, proto::_state, proto::_data)>`]]
+]
+
+[note *Grammars Are Primitive Transforms Are Function Objects*
+
+So far, we've said that all Proto grammars are function objects. But it's more accurate to say that Proto grammars are primitive transforms -- a special kind of function object that takes between 1 and 3 arguments, and that Proto knows to treat specially when used in a callable transform, as in the table above.]
+
+[note *Not All Function Objects Are Primitive Transforms*
+
+You might be tempted now to drop the `_state` and `_data` parameters for all your callable transforms. That would be an error. You can only do that for primitive transforms, and not all callables are primitive transforms. Later on, we'll see what distinguishes ordinary callables from their more powerful primitive transfor cousins, but the short version is this: primitive transforms inherit from [classref  boost::proto::transform `proto::transform<>`].]
+
+Once you know that primitive transforms will always receive all three parameters -- expression, state, and data -- it makes things possible that wouldn't be otherwise. For instance, consider that for binary expressions, these two transforms are equivalent. Can you see why?
+
+[table Two Equivalent Transforms
+  [[Without [^proto::reverse_fold<>]][With [^proto::reverse_fold<>]]]
+  [[``FoldToList(
+    proto::_left
+  , FoldToList(proto::_right, proto::_state, proto::_data)
+  , proto::_data
+)``
+][``proto::reverse_fold<_, proto::_state, FoldToList>``]]
+]
+
+[endsect]
+
+[/==================================================]
+[section:unpacking_expressions Unpacking Expressions]
+[/==================================================]
+
+Processing expressions with an arbitrary number of children can be a pain. What if you want to do something to each child, then pass the results as arguments to some other function? Can you do it just once without worrying about how many children an expression has? Yes. This is where Proto's /unpacking expressions/ come in handy. Unpacking expressions give you a way to write callable and object transforms that handle ['n]-ary expressions.
+
+[note *Inspired by C++11 Variadic Templates*
+
+Proto's unpacking expressions take inspiration from the C++11 feature of the same name. If you are familiar with variadic functions, and in particular how to expand a function parameter pack, this discussion should seem very familiar. However, this feature doesn't actually use any C++11 features, so the code describe here will work with any compliant C++98 compiler.]
+
+[heading Example: A C++ Expression Evaluator]
+
+Proto has the built-in _default_pt_ transform for evaluating Proto expressions in a C++-ish way. But if it didn't, it wouldn't be too hard to implement one from scratch using Proto's unpacking patterns. The transform `eval` below does just that.
+
+    // A callable polymorphic function object that takes an unpacked expression
+    // and a tag, and evaluates the expression. A plus tag and two operands adds
+    // them with operator +, for instance.
+    struct do_eval : proto::callable
+    {
+        typedef double result_type;
+
+    #define UNARY_OP(TAG, OP)                                                       \
+        template<typename Arg>                                                      \
+        double operator()(proto::tag::TAG, Arg arg) const                           \
+        {                                                                           \
+            return OP arg;                                                          \
+        }                                                                           \
+        /**/
+
+    #define BINARY_OP(TAG, OP)                                                      \
+        template<typename Left, typename Right>                                     \
+        double operator()(proto::tag::TAG, Left left, Right right) const            \
+        {                                                                           \
+            return left OP right;                                                   \
+        }                                                                           \
+        /**/
+
+        UNARY_OP(negate, -)
+        BINARY_OP(plus, +)
+        BINARY_OP(minus, -)
+        BINARY_OP(multiplies, *)
+        BINARY_OP(divides, /)
+        /*... others ...*/
+    };
+
+    struct eval
+      : proto::or_<
+            // Evaluate terminals by simply returning their value
+            proto::when<proto::terminal<_>, proto::_value>
+
+            // Non-terminals are handled by unpacking the expression,
+            // recursively calling eval on each child, and passing
+            // the results along with the expression's tag to do_eval
+            // defined above.
+          , proto::otherwise<do_eval(proto::tag_of<_>(), eval(proto::pack(_))...)>
+            // UNPACKING PATTERN HERE -------------------^^^^^^^^^^^^^^^^^^^^^^^^
+        >
+    {};
+
+The bulk of the above code is devoted to the `do_eval` function object that maps tag types to behaviors, but the interesting bit is the definition of the `eval` algorithm at the bottom. Terminals are handled quite simply, but non-terminals could be unary, binary, ternary, even ['n]-ary if we consider function call expressions. The `eval` algorithm handles this uniformly with the help of an unpacking pattern.
+
+Non-terminals are evaluated with this callable transform:
+
+    do_eval(proto::tag_of<_>(), eval(proto::pack(_))...)
+
+You can read this as: call the `do_eval` function object with the tag of the current expression and all its children after they have each been evaluated with `eval`. The unpacking pattern is the bit just before the ellipsis: `eval(proto::pack(_))`.
+
+What's going on here is this. The unpacking expression gets repeated once for each child in the expression currently being evaluated. In each repetition, the type `proto::pack(_)` gets replaced with [^proto::_child_c<['N]>]. So, if a unary expression is passed to `eval`, it actually gets evaluated like this:
+
+    // After the unpacking pattern is expanded for a unary expression
+    do_eval(proto::tag_of<_>(), eval(proto::_child_c<0>))
+
+And when passed a binary expression, the unpacking pattern expands like this:
+
+    // After the unpacking pattern is expanded for a binary expression
+    do_eval(proto::tag_of<_>(), eval(proto::_child_c<0>), eval(proto::_child_c<1>))
+
+Although it can't happen in our example, when passed a terminal, the unpacking pattern expands such that it extracts the value from the terminal instead of the children. So it gets handled like this:
+
+    // If a terminal were passed to this transform, Proto would try
+    // to evaluate it like this, which would fail:
+    do_eval(proto::tag_of<_>(), eval(proto::_value))
+
+That doesn't make sense. `proto::_value` would return something that isn't a Proto expression, and `eval` wouldn't be able to evaluate it. Proto algorithms don't work unless you pass them Proto expressions.
+
+[note *Kickin' It Old School*
+
+You may be thinking, my compiler doesn't support C++11 variadic templates! How can this possibly work? The answer is simple: The `...` above isn't a C++11 pack expansion. It's actually an old-school C-style vararg. Remember that callable and object transforms are /function types/. A transform with one of these pseudo-pack expansions is really just the type of a boring, old vararg function. Proto just interprets it differently.]
+
+Unpacking patterns are very expressive. Any callable or object transform can be used as an unpacking pattern, so long as `proto::pack(_)` appears exactly once somewhere within it. This gives you a lot of flexibility in how you want to process the children of an expression before passing them on to some function object or object constructor.
+
+[endsect]
+
+[/=============================================================]
+[section:external_transforms Separating Grammars And Transforms]
+[/=============================================================]
+
+[note This is an advanced topic that is only necessary for people defining large EDSLs. Feel free to skip this if you're just getting started with Proto.]
+
+So far, we've seen examples of grammars with embedded transforms. In practice, grammars can get pretty large, and you may want to use them to drive several different computations. For instance, you may have a grammar for a linear algebra domain, and you may want to use it to compute the shape of the result (vector or matrix?) and also to compute the result optimally. You don't want to have to copy and paste the whole shebang just to tweak one of the embedded transforms. What you want instead is to define the grammar once, and specify the transforms later when you're ready to evaluate an expression. For that, you use /external transforms/. The pattern you'll use is this: replace one or more of the transforms in your grammar with the special placeholder _external_transform_. Then, you'll create a bundle of transforms that you will pass to the grammar in the data parameter (the 3rd parameter after the expression and state) when evaluating it.
+
+To illustrate external transforms, we'll build a calculator evaluator that can be configured to throw an exception on division by zero. Here is a bare-bones front end that defines a domain, a grammar, an expression wrapper, and some placeholder terminals.
+
+    #include <boost/assert.hpp>
+    #include <boost/mpl/int.hpp>
+    #include <boost/fusion/container/vector.hpp>
+    #include <boost/fusion/container/generation/make_vector.hpp>
+    #include <boost/proto/proto.hpp>
+    namespace mpl = boost::mpl;
+    namespace proto = boost::proto;
+    namespace fusion = boost::fusion;
+
+    // The argument placeholder type
+    template<typename I> struct placeholder : I {};
+
+    // The grammar for valid calculator expressions
+    struct calc_grammar
+      : proto::or_<
+            proto::terminal<placeholder<proto::_> >
+          , proto::terminal<int>
+          , proto::plus<calc_grammar, calc_grammar>
+          , proto::minus<calc_grammar, calc_grammar>
+          , proto::multiplies<calc_grammar, calc_grammar>
+          , proto::divides<calc_grammar, calc_grammar>
+        >
+    {};
+
+    template<typename E> struct calc_expr;
+    struct calc_domain : proto::domain<proto::generator<calc_expr> > {};
+
+    template<typename E>
+    struct calc_expr
+      : proto::extends<E, calc_expr<E>, calc_domain>
+    {
+        calc_expr(E const &e = E()) : calc_expr::proto_extends(e) {}
+    };
+
+    calc_expr<proto::terminal<placeholder<mpl::int_<0> > >::type> _1;
+    calc_expr<proto::terminal<placeholder<mpl::int_<1> > >::type> _2;
+
+    int main()
+    {
+        // Build a calculator expression, and do nothing with it.
+        (_1 + _2);
+    }
+
+Now, let's embed transforms into `calc_grammar` so that we can use it to evaluate calculator expressions:
+
+    // The calculator grammar with embedded transforms for evaluating expression.
+    struct calc_grammar
+      : proto::or_<
+            proto::when<
+                proto::terminal<placeholder<proto::_> >
+              , proto::functional::at(proto::_state, proto::_value)
+            >
+          , proto::when<
+                proto::terminal<int>
+              , proto::_value
+            >
+          , proto::when<
+                proto::plus<calc_grammar, calc_grammar>
+              , proto::_default<calc_grammar>
+            >
+          , proto::when<
+                proto::minus<calc_grammar, calc_grammar>
+              , proto::_default<calc_grammar>
+            >
+          , proto::when<
+                proto::multiplies<calc_grammar, calc_grammar>
+              , proto::_default<calc_grammar>
+            >
+          , proto::when<
+                proto::divides<calc_grammar, calc_grammar>
+              , proto::_default<calc_grammar>
+            >
+        >
+    {};
+
+With this definition of `calc_grammar` we can evaluate expressions by passing along a Fusion vector containing the values to use for the `_1` and `_2` placeholders:
+
+    int result = calc_grammar()(_1 + _2, fusion::make_vector(3, 4));
+    BOOST_ASSERT(result == 7);
+
+We also want an alternative evaluation strategy that checks for division by zero and throws an exception. Just how ridiculous would it be to copy the entire `calc_grammar` just to change the one line that transforms division expressions?! External transforms are ideally suited to this problem.
+
+First, we give the division rule in our grammar a "name"; that is, we make it a struct. We'll use this unique type later to dispatch to the right transforms.
+
+    struct calc_grammar;
+    struct divides_rule : proto::divides<calc_grammar, calc_grammar> {};
+
+Next, we change `calc_grammar` to make the handling of division expressions external.
+
+    // The calculator grammar with an external transform for evaluating
+    // division expressions.
+    struct calc_grammar
+      : proto::or_<
+            /* ... as before ... */
+          , proto::when<
+                divides_rule
+              , proto::external_transform
+            >
+        >
+    {};
+
+The use of _external_transform_ above makes the handling of division expressions externally parameterizeable.
+
+Next, we use _external_transforms_ (note the trailing 's') to capture our evaluation strategy in a bundle that we can pass along to the transform in the data parameter. Read on for the explanation.
+
+    // Evaluate division nodes as before
+    struct non_checked_division
+      : proto::external_transforms<
+            proto::when< divides_rule, proto::_default<calc_grammar> >
+        >
+    {};
+
+    /* ... */
+
+    non_checked_division non_checked;
+    int result2 = calc_grammar()(_1 / _2, fusion::make_vector(6, 2), non_checked);
+
+The struct `non_cecked_division` associates the transform `proto::_default<calc_grammar>` with the `divides_rule` grammar rule. An instance of that struct is passed along as the third parameter when invoking `calc_grammar`.
+
+Now, let's implement checked division. The rest should be unsurprising.
+
+    struct division_by_zero : std::exception {};
+
+    struct do_checked_divide : proto::callable
+    {
+        typedef int result_type;
+        int operator()(int left, int right) const
+        {
+            if (right == 0) throw division_by_zero();
+            return left / right;
+        }
+    };
+
+    struct checked_division
+      : proto::external_transforms<
+            proto::when<
+                divides_rule
+              , do_checked_divide(calc_grammar(proto::_left), calc_grammar(proto::_right))
+            >
+        >
+    {};
+
+    /* ... */
+
+    try
+    {
+        checked_division checked;
+        int result3 = calc_grammar_extern()(_1 / _2, fusion::make_vector(6, 0), checked);
+    }
+    catch(division_by_zero)
+    {
+        std::cout << "caught division by zero!\n";
+    }
+
+The above code demonstrates how a single grammar can be used with different transforms specified externally. This makes it possible to reuse a grammar to drive several different computations.
+
+[heading Separating Data From External Transforms]
+
+As described above, the external transforms feature usurps the data parameter, which is intended to be a place where you can pass arbitrary data, and gives it a specific meaning. But what if you are already using the data parameter for something else? The answer is to use a transform environment. By associating your external transforms with the `proto::transforms` key, you are free to pass arbitrary data in other slots.
+
+To continue the above example, what if we also needed to pass a piece of data into our transform along with the external transforms? It would look like this:
+
+    int result3 = calc_grammar_extern()(
+        _1 / _2
+      , fusion::make_vector(6, 0)
+      , (proto::data = 42, proto::transforms = checked)
+    );
+
+In the above invocation of the `calc_grammar_extern` algorithm, the map of external transforms is associated with the `proto::transforms` key and passed to the algorithm in a transform environment. Also in the transform environment is a key\/value pair that associated the value `42` with the `proto::data` key.
+
+[endsect]
+
+[/====================================================]
+[section:canned_transforms Proto's Built-In Transforms]
+[/====================================================]
+
+[def _N_ [~N]]
+[def _G_ [~G]]
+[def _G0_ [~G0]]
+[def _G1_ [~G1]]
+[def _CT_ [~CT]]
+[def _OT_ [~OT]]
+[def _ET_ [~ET]]
+[def _ST_ [~ST]]
+[def _FT_ [~FT]]
+
+Primitive transforms are the building blocks for more interesting composite transforms. Proto defines a bunch of generally useful primitive transforms. They are summarized below.
+
+[variablelist
+ [[_value_pt_]
+      [Given a terminal expression, return the value of the terminal.]]
+ [[_child_c_pt_]
+      [Given a non-terminal expression, `proto::_child_c<_N_>` returns the _N_-th 
+       child.]]
+ [[_child_pt_]
+      [A synonym for `proto::_child_c<0>`.]]
+ [[_left_pt_]
+      [A synonym for `proto::_child_c<0>`.]]
+ [[_right_pt_]
+      [A synonym for `proto::_child_c<1>`.]]
+ [[_expr_pt_]
+      [Returns the current expression unmodified.]]
+ [[_state_pt_]
+      [Returns the current state unmodified.]]
+ [[_data_pt_]
+      [Returns the current data unmodified.]]
+ [[_call_pt_]
+      [For a given callable transform `_CT_`, `proto::call<_CT_>` turns the 
+       callable transform into a primitive transform. This is useful for 
+       disambiguating callable transforms from object transforms, and also for 
+       working around compiler bugs with nested function types.]]
+ [[_make_pt_]
+      [For a given object transform `_OT_`, `proto::make<_OT_>` turns the 
+       object transform into a primitive transform. This is useful for 
+       disambiguating object transforms from callable transforms, and also for 
+       working around compiler bugs with nested function types.]]
+ [[_default_pt_]
+      [Given a grammar _G_, `proto::_default<_G_>` evaluates the current node 
+       according to the standard C++ meaning of the operation the node represents.
+       For instance, if the current node is a binary plus node, the two children 
+       will both be evaluated according to `_G_` and the results will be added and
+       returned. The return type is deduced with the help of the Boost.Typeof 
+       library.]]
+ [[_fold_pt_]
+      [Given three transforms `_ET_`, `_ST_`, and `_FT_`, 
+       `proto::fold<_ET_, _ST_, _FT_>` first evaluates `_ET_` to obtain a Fusion 
+       sequence and `_ST_` to obtain an initial state for the fold, and then 
+       evaluates `_FT_` for each element in the sequence to generate the next 
+       state from the previous.]]
+ [[_reverse_fold_pt_]
+      [Like _fold_pt_, except the elements in the Fusion sequence are iterated in 
+       reverse order.]]
+ [[_fold_tree_pt_]
+      [Like `proto::fold<_ET_, _ST_, _FT_>`, except that the result of the `_ET_` 
+       transform is treated as an expression tree that is /flattened/ to generate 
+       the sequence to be folded. Flattening an expression tree causes child nodes 
+       with the same tag type as the parent to be put into sequence. For instance, 
+       `a >> b >> c` would be flattened to the sequence \[`a`, `b`, `c`\], and this 
+       is the sequence that would be folded.]]
+ [[_reverse_fold_tree_pt_]
+      [Like _fold_tree_pt_, except that the flattened sequence is iterated in 
+       reverse order.]]
+ [[_lazy_pt_]
+      [A combination of _make_pt_ and _call_pt_ that is useful when the nature of 
+       the transform depends on the expression, state and/or data parameters. 
+       `proto::lazy<R(A0,A1...An)>` first evaluates `proto::make<R()>` to compute a 
+       callable type `R2`. Then, it evaluates `proto::call<R2(A0,A1...An)>`.]]
+]
+
+[/============================================]
+[heading All Grammars Are Primitive Transforms]
+[/============================================]
+
+In addition to the above primitive transforms, all of Proto's grammar elements are also primitive transforms. Their behaviors are described below.
+
+[variablelist
+ [[_wild_]
+      [Return the current expression unmodified.]]
+ [[_or_]
+      [For the specified set of alternate sub-grammars, find the one that matches 
+       the given expression and apply its associated transform.]]
+ [[_and_]
+      [For the given set of sub-grammars, apply all the associated transforms and
+       return the result of the last.]]
+ [[_not_]
+      [Return the current expression unmodified.]]
+ [[_if_]
+      [Given three transforms, evaluate the first and treat the result as a 
+       compile-time Boolean value. If it is true, evaluate the second transform. 
+       Otherwise, evaluate the third.]]
+ [[_switch_]
+      [As with _or_, find the sub-grammar that matches the given expression and 
+       apply its associated transform.]]
+ [[_terminal_]
+      [Return the current terminal expression unmodified.]]
+ [[_plus_, _nary_expr_, et. al.]
+      [A Proto grammar that matches a non-terminal such as
+       `proto::plus<_G0_, _G1_>`, when used as a primitive transform, creates a new 
+       plus node where the left child is transformed according to `_G0_` and the 
+       right child with `_G1_`.]]
+]
+
+[/=================================]
+[heading The Pass-Through Transform]
+[/=================================]
+
+Note the primitive transform associated with grammar elements such as _plus_ described above. They possess a so-called /pass-through/ transform. The pass-through transform accepts an expression of a certain tag type (say, `proto::tag::plus`) and creates a new expression of the same tag type, where each child expression is transformed according to the corresponding child grammar of the pass-through transform. So for instance this grammar ...
+
+    proto::function< X, proto::vararg<Y> >
+
+... matches function expressions where the first child matches the `X` grammar and the rest match the `Y` grammar. When used as a transform, the above grammar will create a new function expression where the first child is transformed according to `X` and the rest are transformed according to `Y`.
+
+The following class templates in Proto can be used as grammars with pass-through transforms:
+
+[table Class Templates With Pass-Through Transforms
+    [[Templates with Pass-Through Transforms]]
+    [[`proto::unary_plus<>`]]
+    [[`proto::negate<>`]]
+    [[`proto::dereference<>`]]
+    [[`proto::complement<>`]]
+    [[`proto::address_of<>`]]
+    [[`proto::logical_not<>`]]
+    [[`proto::pre_inc<>`]]
+    [[`proto::pre_dec<>`]]
+    [[`proto::post_inc<>`]]
+    [[`proto::post_dec<>`]]
+    [[`proto::shift_left<>`]]
+    [[`proto::shift_right<>`]]
+    [[`proto::multiplies<>`]]
+    [[`proto::divides<>`]]
+    [[`proto::modulus<>`]]
+    [[`proto::plus<>`]]
+    [[`proto::minus<>`]]
+    [[`proto::less<>`]]
+    [[`proto::greater<>`]]
+    [[`proto::less_equal<>`]]
+    [[`proto::greater_equal<>`]]
+    [[`proto::equal_to<>`]]
+    [[`proto::not_equal_to<>`]]
+    [[`proto::logical_or<>`]]
+    [[`proto::logical_and<>`]]
+    [[`proto::bitwise_and<>`]]
+    [[`proto::bitwise_or<>`]]
+    [[`proto::bitwise_xor<>`]]
+    [[`proto::comma<>`]]
+    [[`proto::mem_ptr<>`]]
+    [[`proto::assign<>`]]
+    [[`proto::shift_left_assign<>`]]
+    [[`proto::shift_right_assign<>`]]
+    [[`proto::multiplies_assign<>`]]
+    [[`proto::divides_assign<>`]]
+    [[`proto::modulus_assign<>`]]
+    [[`proto::plus_assign<>`]]
+    [[`proto::minus_assign<>`]]
+    [[`proto::bitwise_and_assign<>`]]
+    [[`proto::bitwise_or_assign<>`]]
+    [[`proto::bitwise_xor_assign<>`]]
+    [[`proto::subscript<>`]]
+    [[`proto::if_else_<>`]]
+    [[`proto::function<>`]]
+    [[`proto::unary_expr<>`]]
+    [[`proto::binary_expr<>`]]
+    [[`proto::nary_expr<>`]]
+]
+
+[/=====================================================]
+[heading The Many Roles of Proto Operator Metafunctions]
+[/=====================================================]
+
+We've seen templates such as _terminal_, _plus_ and _nary_expr_ fill many roles. They are metafunction that generate expression types. They are grammars that match expression types. And they are primitive transforms. The following code samples show examples of each.
+
+[*As Metafunctions ...]
+
+    // proto::terminal<> and proto::plus<> are metafunctions
+    // that generate expression types:
+    typedef proto::terminal<int>::type int_;
+    typedef proto::plus<int_, int_>::type plus_;
+
+    int_ i = {42}, j = {24};
+    plus_ p = {i, j};
+
+[*As Grammars ...]
+
+    // proto::terminal<> and proto::plus<> are grammars that
+    // match expression types
+    struct Int : proto::terminal<int> {};
+    struct Plus : proto::plus<Int, Int> {};
+
+    BOOST_MPL_ASSERT(( proto::matches< int_, Int > ));
+    BOOST_MPL_ASSERT(( proto::matches< plus_, Plus > ));
+
+[*As Primitive Transforms ...]
+
+    // A transform that removes all unary_plus nodes in an expression
+    struct RemoveUnaryPlus
+      : proto::or_<
+            proto::when<
+                proto::unary_plus<RemoveUnaryPlus>
+              , RemoveUnaryPlus(proto::_child)
+            >
+            // Use proto::terminal<> and proto::nary_expr<>
+            // both as grammars and as primitive transforms.
+          , proto::terminal<_>
+          , proto::nary_expr<_, proto::vararg<RemoveUnaryPlus> >
+        >
+    {};
+
+    int main()
+    {
+        proto::literal<int> i(0);
+
+        proto::display_expr( 
+            +i - +(i - +i)
+        );
+
+        proto::display_expr( 
+            RemoveUnaryPlus()( +i - +(i - +i) )
+        );
+    }
+
+The above code displays the following, which shows that unary plus nodes have been stripped from the expression:
+
+[pre
+minus(
+    unary_plus(
+        terminal(0)
+    )
+  , unary_plus(
+        minus(
+            terminal(0)
+          , unary_plus(
+                terminal(0)
+            )
+        )
+    )
+)
+minus(
+    terminal(0)
+  , minus(
+        terminal(0)
+      , terminal(0)
+    )
+)
+]
+
+[endsect]
+
+[/======================================================]
+[section:primitives Building Custom Primitive Transforms]
+[/======================================================]
+
+In previous sections, we've seen how to compose larger transforms out of smaller transforms using function types. The smaller transforms from which larger transforms are composed are /primitive transforms/, and Proto provides a bunch of common ones such as `_child0` and `_value`. In this section we'll see how to author your own primitive transforms.
+
+[note There are a few reasons why you might want to write your own primitive transforms. For instance, your transform may be complicated, and composing it out of primitives becomes unwieldy. You might also need to work around compiler bugs on legacy compilers that make composing transforms using function types problematic. Finally, you might also decide to define your own primitive transforms to improve compile times. Since Proto can simply invoke a primitive transform directly without having to process arguments or differentiate callable transforms from object transforms, primitive transforms are more efficient.]
+
+Primitive transforms inherit from `proto::transform<>` and have a nested `impl<>` template that inherits from `proto::transform_impl<>`. For example, this is how Proto defines the `_child_c<_N_>` transform, which returns the _N_-th child of the current expression:
+
+    namespace boost { namespace proto
+    {
+        // A primitive transform that returns N-th child
+        // of the current expression.
+        template<int N>
+        struct _child_c : transform<_child_c<N> >
+        {
+            template<typename Expr, typename State, typename Data>
+            struct impl : transform_impl<Expr, State, Data>
+            {
+                typedef
+                    typename result_of::child_c<Expr, N>::type
+                result_type;
+
+                result_type operator ()(
+                    typename impl::expr_param expr
+                  , typename impl::state_param state
+                  , typename impl::data_param data
+                ) const
+                {
+                    return proto::child_c<N>(expr);
+                }
+            };
+        };
+
+        // Note that _child_c<N> is callable, so that
+        // it can be used in callable transforms, as:
+        //   _child_c<0>(_child_c<1>)
+        template<int N>
+        struct is_callable<_child_c<N> >
+          : mpl::true_
+        {};
+    }}
+
+The `proto::transform<>` base class provides the `operator()` overloads and the nested `result<>` template that make your transform a valid function object. These are implemented in terms of the nested `impl<>` template you define.
+
+The `proto::transform_impl<>` base class is a convenience. It provides some nested typedefs that are generally useful. They are specified in the table below:
+
+[table proto::transform_impl<Expr, State, Data> typedefs
+[[typedef][Equivalent To]]
+[[`expr`][`typename remove_reference<Expr>::type`]]
+[[`state`][`typename remove_reference<State>::type`]]
+[[`data`][`typename remove_reference<Data>::type`]]
+[[`expr_param`][`typename add_reference<typename add_const<Expr>::type>::type`]]
+[[`state_param`][`typename add_reference<typename add_const<State>::type>::type`]]
+[[`data_param`][`typename add_reference<typename add_const<Data>::type>::type`]]
+]
+
+You'll notice that `_child_c::impl::operator()` takes arguments of types `expr_param`, `state_param`, and `data_param`. The typedefs make it easy to accept arguments by reference or const reference accordingly.
+
+The only other interesting bit is the `is_callable<>` specialization, which will be described in the [link boost_proto.users_guide.back_end.expression_transformation.is_callable next section].
+
+[endsect]
+
+[/=================================================]
+[section:is_callable Making Your Transform Callable]
+[/=================================================]
+
+Transforms are typically of the form `proto::when< Something, R(A0,A1,...) >`. The question is whether `R` represents a function to call or an object to construct, and the answer determines how _when_ evaluates the transform. _when_ uses the `proto::is_callable<>` trait to disambiguate between the two. Proto does its best to guess whether a type is callable or not, but it doesn't always get it right. It's best to know the rules Proto uses, so that you know when you need to be more explicit.
+
+For most types `R`, `proto::is_callable<R>` checks for inheritance from `proto::callable`. However, if the type `R` is a template specialization, Proto assumes that it is /not/ callable ['even if the template inherits from `proto::callable`]. We'll see why in a minute. Consider the following erroneous callable object:
+
+    // Proto can't tell this defines something callable!
+    template<typename T>
+    struct times2 : proto::callable
+    {
+        typedef T result_type;
+
+        T operator()(T i) const
+        {
+            return i * 2;
+        }
+    };
+
+    // ERROR! This is not going to multiply the int by 2:
+    struct IntTimes2
+      : proto::when<
+            proto::terminal<int>
+          , times2<int>(proto::_value)
+        >
+    {};
+
+The problem is that Proto doesn't know that `times2<int>` is callable, so rather that invoking the `times2<int>` function object, Proto will try to construct a `times2<int>` object and initialize it will an `int`. That will not compile.
+
+[note Why can't Proto tell that `times2<int>` is callable? After all, it inherits from `proto::callable`, and that is detectable, right? The problem is that merely asking whether some type `X<Y>` inherits from `callable` will cause the template `X<Y>` to be instantiated. That's a problem for a type like `std::vector<_value(_child1)>`. `std::vector<>` will not suffer to be instantiated with `_value(_child1)` as a template parameter. Since merely asking the question will sometimes result in a hard error, Proto can't ask; it has to assume that `X<Y>` represents an object to construct and not a function to call.]
+
+There are a couple of solutions to the `times2<int>` problem. One solution is to wrap the transform in `proto::call<>`. This forces Proto to treat `times2<int>` as callable:
+
+    // OK, calls times2<int>
+    struct IntTimes2
+      : proto::when<
+            proto::terminal<int>
+          , proto::call<times2<int>(proto::_value)>
+        >
+    {};
+
+This can be a bit of a pain, because we need to wrap every use of `times2<int>`, which can be tedious and error prone, and makes our grammar cluttered and harder to read.
+
+Another solution is to specialize `proto::is_callable<>` on our `times2<>` template:
+
+    namespace boost { namespace proto
+    {
+        // Tell Proto that times2<> is callable
+        template<typename T>
+        struct is_callable<times2<T> >
+          : mpl::true_
+        {};
+    }}
+
+    // OK, times2<> is callable
+    struct IntTimes2
+      : proto::when<
+            proto::terminal<int>
+          , times2<int>(proto::_value)
+        >
+    {};
+
+This is better, but still a pain because of the need to open Proto's namespace.
+
+You could simply make sure that the callable type is not a template specialization. Consider the following:
+
+    // No longer a template specialization!
+    struct times2int : times2<int> {};
+
+    // OK, times2int is callable
+    struct IntTimes2
+      : proto::when<
+            proto::terminal<int>
+          , times2int(proto::_value)
+        >
+    {};
+
+This works because now Proto can tell that `times2int` inherits (indirectly) from `proto::callable`. Any non-template types can be safely checked for inheritance because, as they are not templates, there is no worry about instantiation errors.
+
+There is one last way to tell Proto that `times2<>` is callable. You could add an extra dummy template parameter that defaults to `proto::callable`:
+
+    // Proto will recognize this as callable
+    template<typename T, typename Callable = proto::callable>
+    struct times2 : proto::callable
+    {
+        typedef T result_type;
+
+        T operator()(T i) const
+        {
+            return i * 2;
+        }
+    };
+
+    // OK, this works!
+    struct IntTimes2
+      : proto::when<
+            proto::terminal<int>
+          , times2<int>(proto::_value)
+        >
+    {};
+
+Note that in addition to the extra template parameter, `times2<>` still inherits from `proto::callable`. That's not necessary in this example but it is good style because any types derived from `times2<>` (as `times2int` defined above) will still be considered callable.
+
+[endsect]
+
+[endsect]
+
+[endsect]

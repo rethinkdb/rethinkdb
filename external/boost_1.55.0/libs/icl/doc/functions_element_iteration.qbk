@@ -1,0 +1,112 @@
+[/
+    Copyright (c) 2008-2009 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[/ //= Element iteration ===================================================================]
+[section Element iteration]
+
+This section refers to ['*element iteration*] over ['*interval containers*].
+Element iterators are available as associated types on interval sets and interval maps.
+
+[table
+[[Variant]      [Associated element iterator type for interval container `T`]]
+[[forward]      [`T::element_iterator`]                                    ]
+[[const forward][`T::element_const_iterator`]                              ]
+[[reverse]      [`T::element_reverse_iterator`]                            ]
+[[const reverse][`T::element_const_reverse_iterator`]                      ]
+]
+
+There are also associated iterators types 
+`T::iterator`, `T::const_iterator`, 
+`T::reverse_iterator` and `T::reverse_const_iterator`
+on interval containers.
+These are ['*segment iterators*]. Segment iterators are 
+"first citizen iterators". [/ NOTE Identical to interface.qbk from here]
+Iteration over segments is fast, compared to an iteration over elements,
+particularly if intervals are large. 
+But if we want to view our interval containers as containers
+of elements that are usable with std::algoritms, we need to
+iterate over elements. 
+
+Iteration over elements . . .
+
+* is possible only for integral or discrete `domain_types`
+* can be very ['*slow*] if the intervals are very large.
+* and is therefore ['*depreciated*]
+
+On the other hand, sometimes iteration over interval containers
+on the element level might be desired, if you have some 
+interface that works for `std::SortedAssociativeContainers` of 
+elements and you need to quickly use it with an interval container.
+Accepting the poorer performance might be less bothersome at times
+than adjusting your whole interface for segment iteration.
+
+[caution So we advice you to choose element iteration over
+interval containers ['*judiciously*]. Do not use element iteration
+['*by default or habitual*]. Always try to achieve results using
+member functions, global functions or operators 
+(preferably inplace versions)
+or iteration over segments first.]
+
+
+[table
+[[['*Synopsis Complexities*]]   [__ch_itv_sets__][__ch_itv_maps__]]
+[[`J elements_begin(T&)`]               [__O1__]    [__O1__]     ]
+[[`J elements_end(T&)`]                 [__O1__]    [__O1__]     ]
+[[`J elements_rbegin(T&)`]              [__O1__]    [__O1__]     ]
+[[`J elements_rend(T&)`]                [__O1__]    [__O1__]     ]
+]
+
+[table
+[[['*Element iteration*]]                                      [Description]     ]
+[[``      element_iterator elements_begin(T&)
+element_const_iterator elements_begin(const T&)``]          [Returns an element iterator to the first element of the container.]                        ]
+[[``      element_iterator elements_end(T&)
+element_const_iterator elements_end(const T&)``]            [Returns an element iterator to a position `elements_end(c)` after the last element of the container.]]
+[[``      element_reverse_iterator elements_rbegin(T&)
+element_const_reverse_iterator elements_rbegin(const T&)``] [Returns a reverse element iterator to the last element of the container.]                  ]
+[[``      element_reverse_iterator elements_rend(T&)
+element_const_reverse_iterator elements_rend(const T&)``]   [Returns a reverse element iterator to a position `elements_rend(c)` before the first element of the container.]]
+]
+
+['*Example*]
+
+``
+interval_set<int> inter_set;
+inter_set.add(interval<int>::right_open(0,3))
+         .add(interval<int>::right_open(7,9));
+
+for(interval_set<int>::element_const_iterator creeper = elements_begin(inter_set); 
+    creeper != elements_end(inter_set); ++creeper)
+    cout << *creeper << " ";
+cout << endl;
+//Program output: 0 1 2 7 8
+
+for(interval_set<int>::element_reverse_iterator repeerc = elements_rbegin(inter_set); 
+    repeerc != elements_rend(inter_set); ++repeerc)
+    cout << *repeerc << " ";
+cout << endl;
+//Program output: 8 7 2 1 0
+``
+
+['*See also . . .*]
+[table
+[]
+[[[link boost_icl.function_reference.iterator_related ['*Segment iteration*]]   ]]
+]
+
+['*Back to section . . .*]
+[table
+[]
+[[[link function_synopsis_table ['*Function Synopsis*]]]]
+[[[link boost_icl.interface ['*Interface*]]                          ]]
+]
+
+[endsect][/ Element iteration]
+
+

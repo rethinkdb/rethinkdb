@@ -1,0 +1,181 @@
+# Copyright 2001 David Abrahams.
+# Copyright 2004, 2005 Markus Schoepflin.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+#
+# HP CXX compiler
+# See http://h30097.www3.hp.com/cplus/?jumpid=reg_R1002_USEN
+#
+#
+# Notes on this toolset:
+#
+# - Because of very subtle issues with the default ansi mode, strict_ansi mode
+#   is used for compilation. One example of things that don't work correctly in
+#   the default ansi mode is overload resolution of function templates when
+#   mixed with non-template functions.
+#
+# - For template instantiation "-timplicit_local" is used. Previously,
+#   "-tlocal" has been tried to avoid the need for a template repository
+#   but this doesn't work with manually instantiated templates. "-tweak"
+#   has not been used to avoid the stream of warning messages issued by
+#   ar or ld when creating a library or linking an application.
+#
+# - Debug symbols are generated with "-g3", as this works both in debug and
+#   release mode. When compiling C++ code without optimization, we additionally
+#   use "-gall", which generates full symbol table information for all classes,
+#   structs, and unions. As this turns off optimization, it can't be used when
+#   optimization is needed.
+#
+
+import feature generators common ;
+import toolset : flags ;
+
+feature.extend toolset : hp_cxx ;
+feature.extend c++abi : cxxarm ;
+
+# Inherit from Unix toolset to get library ordering magic.
+toolset.inherit  hp_cxx : unix ;
+
+generators.override hp_cxx.prebuilt : builtin.lib-generator ;
+generators.override hp_cxx.prebuilt : builtin.prebuilt ;
+generators.override hp_cxx.searched-lib-generator : searched-lib-generator ;
+
+
+rule init ( version ? : command * : options * )
+{
+    local condition = [ common.check-init-parameters hp_cxx : version $(version) ] ;
+    
+    local command = [ common.get-invocation-command hp_cxx : cxx : $(command) ] ;
+    
+    if $(command)
+    {
+        local root = [ common.get-absolute-tool-path $(command[-1]) ] ;
+
+        if $(root)
+        {
+            flags hp_cxx .root $(condition) : "\"$(root)\"/" ;
+        }        
+    }      
+    # If we can't find 'cxx' anyway, at least show 'cxx' in the commands
+    command ?= cxx ;
+        
+    common.handle-options hp_cxx : $(condition) : $(command) : $(options) ;               
+}
+
+generators.register-c-compiler hp_cxx.compile.c++ : CPP : OBJ : <toolset>hp_cxx ;
+generators.register-c-compiler hp_cxx.compile.c : C : OBJ : <toolset>hp_cxx ;
+
+
+
+# No static linking as far as I can tell.
+# flags cxx LINKFLAGS <runtime-link>static : -bstatic ;
+flags hp_cxx.compile OPTIONS <debug-symbols>on : -g3 ;
+flags hp_cxx.compile OPTIONS <optimization>off/<debug-symbols>on : -gall ;
+flags hp_cxx.link OPTIONS <debug-symbols>on : -g ;
+flags hp_cxx.link OPTIONS <debug-symbols>off : -s ;
+
+flags hp_cxx.compile OPTIONS <optimization>off : -O0 ;
+flags hp_cxx.compile OPTIONS <optimization>speed/<inlining>on : -O2 ;
+flags hp_cxx.compile OPTIONS <optimization>speed : -O2 ;
+
+# This (undocumented) macro needs to be defined to get all C function
+# overloads required by the C++ standard.
+flags hp_cxx.compile.c++ OPTIONS : -D__CNAME_OVERLOADS ;
+
+# Added for threading support
+flags hp_cxx.compile OPTIONS <threading>multi : -pthread ;
+flags hp_cxx.link OPTIONS <threading>multi : -pthread ;
+
+flags hp_cxx.compile OPTIONS <optimization>space/<inlining>on : <inlining>size ;
+flags hp_cxx.compile OPTIONS <optimization>space : -O1 ;
+flags hp_cxx.compile OPTIONS <inlining>off : -inline none ;
+
+# The compiler versions tried (up to V6.5-040) hang when compiling Boost code
+# with full inlining enabled. So leave it at the default level for now.
+#
+# flags hp_cxx.compile OPTIONS <inlining>full : -inline all ;
+
+flags hp_cxx.compile OPTIONS <profiling>on : -pg ;
+flags hp_cxx.link OPTIONS <profiling>on : -pg ;
+
+# Selection of the object model. This flag is needed on both the C++ compiler
+# and linker command line.
+
+# Unspecified ABI translates to '-model ansi' as most
+# standard-conforming.
+flags hp_cxx.compile.c++ OPTIONS <c++abi> : -model ansi : : hack-hack ;
+flags hp_cxx.compile.c++ OPTIONS <c++abi>cxxarm : -model arm ;
+flags hp_cxx.link OPTIONS <c++abi> : -model ansi : : hack-hack ;
+flags hp_cxx.link OPTIONS <c++abi>cxxarm : -model arm ;
+
+# Display a descriptive tag together with each compiler message. This tag can
+# be used by the user to explicitely suppress the compiler message.
+flags hp_cxx.compile OPTIONS : -msg_display_tag ;
+
+flags hp_cxx.compile OPTIONS <cflags> ;
+flags hp_cxx.compile.c++ OPTIONS <cxxflags> ;
+flags hp_cxx.compile DEFINES <define> ;
+flags hp_cxx.compile INCLUDES <include> ;
+flags hp_cxx.link OPTIONS <linkflags> ;
+
+flags hp_cxx.link LIBPATH <library-path> ;
+flags hp_cxx.link LIBRARIES <library-file> ;
+flags hp_cxx.link FINDLIBS-ST <find-static-library> ;
+flags hp_cxx.link FINDLIBS-SA <find-shared-library> ;
+
+flags hp_cxx.compile.c++ TEMPLATE_DEPTH <c++-template-depth> ;
+
+actions link bind LIBRARIES
+{
+    $(CONFIG_COMMAND) -noimplicit_include $(OPTIONS) -o "$(<)" -L$(LIBPATH) "$(>)" "$(LIBRARIES)" -l$(FINDLIBS-ST) -l$(FINDLIBS-SA) -lrt -lm
+}
+
+# When creating dynamic libraries, we don't want to be warned about unresolved
+# symbols, therefore all unresolved symbols are marked as expected by
+# '-expect_unresolved *'. This also mirrors the behaviour of the GNU tool
+# chain.
+
+actions link.dll bind LIBRARIES
+{
+    $(CONFIG_COMMAND) -shared -expect_unresolved \* -noimplicit_include $(OPTIONS) -o "$(<[1])" -L$(LIBPATH)  "$(>)" "$(LIBRARIES)" -l$(FINDLIBS-ST) -l$(FINDLIBS-SA) -lm
+}
+
+
+# Note: Relaxed ANSI mode (-std) is used for compilation because in strict ANSI
+# C89 mode (-std1) the compiler doesn't accept C++ comments in C files. As -std
+# is the default, no special flag is needed.
+actions compile.c
+{
+    $(.root:E=)cc -c $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -o "$(<)" "$(>)"
+}
+
+# Note: The compiler is forced to compile the files as C++ (-x cxx) because
+# otherwise it will silently ignore files with no file extension.
+#
+# Note: We deliberately don't suppress any warnings on the compiler command
+# line, the user can always do this in a customized toolset later on.
+
+rule compile.c++
+{
+    # We preprocess the TEMPLATE_DEPTH command line option here because we found
+    # no way to do it correctly in the actual action code. There we either get
+    # the -pending_instantiations parameter when no c++-template-depth property
+    # has been specified or we get additional quotes around
+    # "-pending_instantiations ".
+    local template-depth = [ on $(1) return $(TEMPLATE_DEPTH) ] ;
+    TEMPLATE_DEPTH on $(1) = "-pending_instantiations "$(template-depth) ;
+}
+
+actions compile.c++
+{
+    $(CONFIG_COMMAND) -x cxx -c -std strict_ansi -nopure_cname -noimplicit_include -timplicit_local -ptr "$(<[1]:D)/cxx_repository" $(OPTIONS) $(TEMPLATE_DEPTH) -D$(DEFINES) -I"$(INCLUDES)" -o "$(<)" "$(>)"
+}
+
+# Always create archive from scratch. See the gcc toolet for rationale.
+RM = [ common.rm-command ] ;
+actions together piecemeal archive
+{
+  $(RM) "$(<)"
+  ar rc $(<) $(>)
+}

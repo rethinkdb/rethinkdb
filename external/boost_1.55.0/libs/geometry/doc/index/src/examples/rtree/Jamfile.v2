@@ -1,0 +1,25 @@
+# Boost.Geometry Index
+#
+# Copyright (c) 2011-2013 Adam Wulkiewicz, Lodz, Poland.
+#
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+exe quick_start : quick_start.cpp ;
+exe polygons_vector : polygons_vector.cpp ;
+exe polygons_shared_ptr : polygons_shared_ptr.cpp ;
+exe variants_map : variants_map.cpp ;
+exe value_shared_ptr : value_shared_ptr.cpp ;
+exe value_index : value_index.cpp ;
+
+exe interprocess : interprocess.cpp /boost/thread//boost_thread
+        :
+        <toolset>acc:<linkflags>-lrt
+        <toolset>acc-pa_risc:<linkflags>-lrt
+        <toolset>gcc-mingw:<linkflags>"-lole32 -loleaut32 -lpsapi -ladvapi32"
+        <host-os>hpux,<toolset>gcc:<linkflags>"-Wl,+as,mpas"
+        :
+        <threading>multi
+        :  # requirements
+    ;

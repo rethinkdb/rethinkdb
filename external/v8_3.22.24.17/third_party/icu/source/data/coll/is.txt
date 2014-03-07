@@ -1,0 +1,48 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/collation/is.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/collation/is.xml
+ */
+is{
+    Version{"2.0.50.97"}
+    collations{
+        search{
+            Sequence{
+                " [normalization on ][suppressContractions [เ-ไ ເ-ໄ] ]"
+                "&ا<<آ<<أ<<إ"
+                "&و<<ؤ"
+                "&ي<<ئ<<ى"
+                "&ه<<ة"
+                "&[last primary ignorable ]<<׳<<״<<ـ<<ٌ<<ٍ<<َ<<ُ<<ِ<<ّ<<ْ<<ฺ"
+                "&[before 1]b<á<<<Á"
+                "&d<<đ<<<Đ<ð<<<Ð"
+                "&[before 1]f<é<<<É"
+                "&[before 1]j<í<<<Í"
+                "&[before 1]p<ó<<<Ó"
+                "&[before 1]v<ú<<<Ú"
+                "&[before 1]z<ý<<<Ý"
+                "&[before 1]ǀ<æ<<<Æ<<ä<<<Ä<ö<<<Ö<<ø<<<Ø<å<<<Å"
+            }
+            Version{"1.9"}
+        }
+        standard{
+            Sequence{
+                "&[before 1]b<á<<<Á"
+                "&d<<đ<<<Đ<ð<<<Ð"
+                "&[before 1]f<é<<<É"
+                "&[before 1]j<í<<<Í"
+                "&[before 1]p<ó<<<Ó"
+                "&[before 1]v<ú<<<Ú"
+                "&[before 1]z<ý<<<Ý"
+                "&[before 1]ǀ<æ<<<Æ<<ä<<<Ä<ö<<<Ö<<ø<<<Ø<å<<<Å"
+            }
+            Version{"1.9"}
+        }
+    }
+}

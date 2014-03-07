@@ -1,0 +1,165 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Using smart pointers with Boost.Intrusive containers</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../intrusive.html" title="Chapter&#160;15.&#160;Boost.Intrusive">
+<link rel="prev" href="recursive.html" title="Recursive Boost.Intrusive containers">
+<link rel="next" href="obtaining_iterators_from_values.html" title="Obtaining iterators from values">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="recursive.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="obtaining_iterators_from_values.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="intrusive.using_smart_pointers"></a><a class="link" href="using_smart_pointers.html" title="Using smart pointers with Boost.Intrusive containers">Using smart pointers with
+    Boost.Intrusive containers</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="using_smart_pointers.html#intrusive.using_smart_pointers.smart_pointers_requirements">Requirements
+      for smart pointers compatible with Boost.Intrusive</a></span></dt></dl></div>
+<p>
+      <span class="bold"><strong>Boost.Intrusive</strong></span> hooks can be configured to
+      use other pointers than raw pointers. When a <span class="bold"><strong>Boost.Intrusive</strong></span>
+      hook is configured with a smart pointer as an argument, this pointer configuration
+      is passed to the containers. For example, if the following hook is configured
+      with a smart pointer (for example, an offset pointer from <span class="bold"><strong>Boost.Interprocess</strong></span>):
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">offset_ptr</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+<span class="keyword">namespace</span> <span class="identifier">ip</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+<span class="keyword">class</span> <span class="identifier">shared_memory_data</span>
+   <span class="comment">//Declare the hook with an offset_ptr from Boost.Interprocess</span>
+   <span class="comment">//to make this class compatible with shared memory</span>
+   <span class="special">:</span>  <span class="keyword">public</span> <span class="identifier">list_base_hook</span><span class="special">&lt;</span> <span class="identifier">void_pointer</span><span class="special">&lt;</span> <span class="identifier">ip</span><span class="special">::</span><span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+   <span class="keyword">int</span> <span class="identifier">data_id_</span><span class="special">;</span>
+   <span class="keyword">public</span><span class="special">:</span>
+
+   <span class="keyword">int</span> <span class="identifier">get</span><span class="special">()</span> <span class="keyword">const</span>   <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">data_id_</span><span class="special">;</span>  <span class="special">}</span>
+   <span class="keyword">void</span> <span class="identifier">set</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">id</span><span class="special">)</span>  <span class="special">{</span>  <span class="identifier">data_id_</span> <span class="special">=</span> <span class="identifier">id</span><span class="special">;</span>    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+    </p>
+<p>
+      Any intrusive list constructed using this hook will be ready for shared memory,
+      because the intrusive list will also use offset pointers internally. For example,
+      we can create an intrusive list in shared memory combining <span class="bold"><strong>Boost.Interprocess</strong></span>
+      and <span class="bold"><strong>Boost.Intrusive</strong></span>:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">managed_shared_memory</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">containers</span><span class="special">/</span><span class="identifier">vector</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">containers</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">allocators</span><span class="special">/</span><span class="identifier">allocator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">//Definition of the shared memory friendly intrusive list</span>
+<span class="keyword">typedef</span> <span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">shared_memory_data</span><span class="special">&gt;</span> <span class="identifier">intrusive_list_t</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="comment">//Now create an intrusive list in shared memory:</span>
+   <span class="comment">//nodes and the container itself must be created in shared memory</span>
+   <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">MaxElem</span>    <span class="special">=</span> <span class="number">100</span><span class="special">;</span>
+   <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">ShmSize</span>    <span class="special">=</span> <span class="number">50000</span><span class="special">;</span>
+   <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">ShmName</span>  <span class="special">=</span> <span class="identifier">get_shared_memory_name</span><span class="special">();</span>
+   <span class="special">{</span>
+      <span class="comment">//Erase all old shared memory</span>
+      <span class="identifier">ip</span><span class="special">::</span><span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="identifier">ShmName</span><span class="special">);</span>
+      <span class="identifier">ip</span><span class="special">::</span><span class="identifier">managed_shared_memory</span> <span class="identifier">shm</span><span class="special">(</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">create_only</span><span class="special">,</span> <span class="identifier">ShmName</span><span class="special">,</span> <span class="identifier">ShmSize</span><span class="special">);</span>
+
+      <span class="comment">//Create all nodes in shared memory using a shared memory vector</span>
+      <span class="comment">//See Boost.Interprocess documentation for more information on this</span>
+      <span class="keyword">typedef</span> <span class="identifier">ip</span><span class="special">::</span><span class="identifier">allocator</span>
+         <span class="special">&lt;</span> <span class="identifier">shared_memory_data</span><span class="special">,</span> <span class="identifier">ip</span><span class="special">::</span><span class="identifier">managed_shared_memory</span><span class="special">::</span><span class="identifier">segment_manager</span><span class="special">&gt;</span>
+            <span class="identifier">shm_allocator_t</span><span class="special">;</span>
+      <span class="keyword">typedef</span> <span class="identifier">ip</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">shared_memory_data</span><span class="special">,</span> <span class="identifier">shm_allocator_t</span><span class="special">&gt;</span> <span class="identifier">shm_vector_t</span><span class="special">;</span>
+      <span class="identifier">shm_allocator_t</span> <span class="identifier">shm_alloc</span><span class="special">(</span><span class="identifier">shm</span><span class="special">.</span><span class="identifier">get_segment_manager</span><span class="special">());</span>
+      <span class="identifier">shm_vector_t</span> <span class="special">*</span><span class="identifier">pshm_vect</span> <span class="special">=</span>
+         <span class="identifier">shm</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">shm_vector_t</span><span class="special">&gt;(</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">anonymous_instance</span><span class="special">)(</span><span class="identifier">shm_alloc</span><span class="special">);</span>
+      <span class="identifier">pshm_vect</span><span class="special">-&gt;</span><span class="identifier">resize</span><span class="special">(</span><span class="identifier">MaxElem</span><span class="special">);</span>
+
+      <span class="comment">//Initialize all the nodes</span>
+      <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">MaxElem</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>    <span class="special">(*</span><span class="identifier">pshm_vect</span><span class="special">)[</span><span class="identifier">i</span><span class="special">].</span><span class="identifier">set</span><span class="special">(</span><span class="identifier">i</span><span class="special">);</span>
+
+      <span class="comment">//Now create the shared memory intrusive list</span>
+      <span class="identifier">intrusive_list_t</span> <span class="special">*</span><span class="identifier">plist</span> <span class="special">=</span> <span class="identifier">shm</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">intrusive_list_t</span><span class="special">&gt;(</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">anonymous_instance</span><span class="special">)();</span>
+
+      <span class="comment">//Insert objects stored in shared memory vector in the intrusive list</span>
+      <span class="identifier">plist</span><span class="special">-&gt;</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">plist</span><span class="special">-&gt;</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">pshm_vect</span><span class="special">-&gt;</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">pshm_vect</span><span class="special">-&gt;</span><span class="identifier">end</span><span class="special">());</span>
+
+      <span class="comment">//Check all the inserted nodes</span>
+      <span class="keyword">int</span> <span class="identifier">checker</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+      <span class="keyword">for</span><span class="special">(</span> <span class="identifier">intrusive_list_t</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">plist</span><span class="special">-&gt;</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">itend</span><span class="special">(</span><span class="identifier">plist</span><span class="special">-&gt;</span><span class="identifier">end</span><span class="special">())</span>
+         <span class="special">;</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">itend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">,</span> <span class="special">++</span><span class="identifier">checker</span><span class="special">){</span>
+         <span class="keyword">if</span><span class="special">(</span><span class="identifier">it</span><span class="special">-&gt;</span><span class="identifier">get</span><span class="special">()</span> <span class="special">!=</span> <span class="identifier">checker</span><span class="special">)</span>   <span class="keyword">return</span> <span class="keyword">false</span><span class="special">;</span>
+      <span class="special">}</span>
+
+      <span class="comment">//Now delete the list and after that, the nodes</span>
+      <span class="identifier">shm</span><span class="special">.</span><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="identifier">plist</span><span class="special">);</span>
+      <span class="identifier">shm</span><span class="special">.</span><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="identifier">pshm_vect</span><span class="special">);</span>
+   <span class="special">}</span>
+   <span class="identifier">ip</span><span class="special">::</span><span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="identifier">ShmName</span><span class="special">);</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.using_smart_pointers.smart_pointers_requirements"></a><a class="link" href="using_smart_pointers.html#intrusive.using_smart_pointers.smart_pointers_requirements" title="Requirements for smart pointers compatible with Boost.Intrusive">Requirements
+      for smart pointers compatible with Boost.Intrusive</a>
+</h3></div></div></div>
+<p>
+        Not every smart pointer is compatible with <span class="bold"><strong>Boost.Intrusive</strong></span>:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            It must be compatible with C++11 <a href="http://en.cppreference.com/w/cpp/memory/pointer_traits" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pointer_traits</span></code></a> requirements.
+            <span class="bold"><strong>Boost.Intrusive</strong></span> uses its own <code class="computeroutput"><a class="link" href="../boost/intrusive/pointer_traits.html" title="Struct template pointer_traits">pointer_traits</a></code> class
+            to implement those features in both C++11 and C++03 compilers.
+          </li>
+<li class="listitem">
+            It must have the same ownership semantics as a raw pointer. This means
+            that resource management smart pointers (like <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span></code>)
+            can't be used.
+          </li>
+</ul></div>
+<p>
+        The conversion from the smart pointer to a raw pointer will be implemented
+        as a recursive call to <code class="computeroutput"><span class="keyword">operator</span><span class="special">-&gt;()</span></code> until the function returns a raw pointer.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="recursive.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="obtaining_iterators_from_values.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

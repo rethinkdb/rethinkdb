@@ -1,0 +1,93 @@
+# Copyright 2001, 2002 Dave Abrahams
+# Copyright 2003 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+class set
+{
+    rule __init__ ( )
+    {
+    }  
+    
+    rule add ( elements * )
+    {
+        for local e in $(elements)
+        {
+            if ! $($(e))
+            {
+                $(e) = 1 ;
+                self.result += $(e) ;
+            }            
+        }        
+    }    
+    
+    rule contains ( element )
+    {
+        return $($(element)) ;
+    }
+    
+    rule list ( )
+    {
+        return $(self.result) ;
+    }            
+}
+
+
+
+# Returns the elements of set1 that are not in set2.
+#
+rule difference ( set1 * : set2 * )
+{
+    local result = ;
+    for local element in $(set1)
+    {
+        if ! ( $(element) in $(set2) )
+        {
+            result += $(element) ;
+        }
+    }
+    return $(result) ;
+}
+
+NATIVE_RULE set : difference ;
+
+
+# Removes all the items appearing in both set1 & set2.
+#
+rule intersection ( set1 * : set2 * )
+{
+    local result ;
+    for local v in $(set1)
+    {
+        if $(v) in $(set2)
+        {
+            result += $(v) ;
+        }
+    }
+    return $(result) ;
+}
+
+
+# Returns whether set1 & set2 contain the same elements. Note that this ignores
+# any element ordering differences as well as any element duplication.
+#
+rule equal ( set1 * : set2 * )
+{
+    if $(set1) in $(set2) && ( $(set2) in $(set1) )
+    {
+        return true ;
+    }
+}
+
+
+rule __test__ ( )
+{
+    import assert ;
+
+    assert.result 0 1 4 6 8 9 : difference   0 1 2 3 4 5 6 7 8 9 : 2 3 5 7 ;
+    assert.result 2 5 7       : intersection 0 1 2   4 5 6 7 8 9 : 2 3 5 7 ;
+
+    assert.true  equal         :         ;
+    assert.true  equal 1 1 2 3 : 3 2 2 1 ;
+    assert.false equal 2 3     : 3 2 2 1 ;
+}

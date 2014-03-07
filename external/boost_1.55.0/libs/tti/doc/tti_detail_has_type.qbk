@@ -1,0 +1,179 @@
+[/ 
+  (C) Copyright Edward Diener 2011,2012
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:tti_detail_has_type Introspecting an inner type]
+
+The TTI macro [macroref BOOST_TTI_HAS_TYPE] introspects
+a nested type of a class.
+
+The BOOST_TTI_HAS_TYPE macro takes a single parameter which is the name of 
+an inner type whose existence the programmer wants to check. The 
+macro generates a metafunction called 'has_type_'name_of_inner_type'. 
+
+The main purpose of the generated metafunction is to check for the existence by 
+name of the inner type. The metafunction can also be used to invoke an MPL lambda 
+expression which is passed the inner type. One of the most common usages of the added 
+functionality is to check whether or not the inner type is a typedef for another type.
+
+The metafunction is invoked by passing it the enclosing type 
+to introspect. A second type may be passed to the 
+metafunction, an MPL lambda expression taking the inner type 
+and returning a boolean constant.
+
+The metafunction returns a single type called 'type', which is a 
+boost::mpl::bool_. As a convenience the metafunction 
+returns the value of this type directly as a compile time bool constant 
+called 'value'. This value is true or false depending on whether the inner 
+type exists or not. 
+
+If a second optional type is passed, this type must be an MPL lambda expression 
+and the expression will be invoked only if the inner type exists. In that case the 
+metafunction returns true or false depending on whether the lambda expression returns 
+true or false. If the inner type does not exist, the lambda expression, even if 
+specified, is never invoked and the metafunction returns false.
+
+[heading Generating the metafunction]
+
+You generate the metafunction by invoking the macro with the name 
+of an inner type:
+
+  BOOST_TTI_HAS_TYPE(AType) 
+  
+generates a metafunction called 'has_type_AType' in the current scope.
+
+[heading Invoking the metafunction]
+
+You invoke the metafunction by instantiating the template with an enclosing 
+type to introspect and, optionally, an MPL lambda expression.
+A return value called 'value' is a compile time bool constant.
+
+  has_type_AType<Enclosing_Type>::value
+  has_type_AType<Enclosing_Type,ALambdaExpression>::value
+  
+[heading Examples]
+
+First we generate metafunctions for various inner type names: 
+
+ #include <boost/tti/has_type.hpp>
+ 
+ BOOST_TTI_HAS_TYPE(MyTypeDef)
+ BOOST_TTI_HAS_TYPE(AType)
+ BOOST_TTI_HAS_TYPE(ATypeDef)
+ BOOST_TTI_HAS_TYPE(MyType)
+ 
+Next let us create some user-defined types we want to introspect. 
+ 
+ struct Top
+   {
+   typedef int MyTypeDef;
+   struct AType { };
+   };
+ struct Top2
+   {
+   typedef long ATypeDef;
+   struct MyType { };
+   };
+   
+Finally we invoke our metafunction and return our value.
+
+ has_type_MyTypeDef<Top>::value;  // true
+ has_type_MyTypeDef<Top2>::value; // false
+
+ has_type_AType<Top>::value;  // true
+ has_type_AType<Top2>::value; // false
+ 
+ has_type_ATypeDef<Top>::value;  // false
+ has_type_ATypeDef<Top2>::value; // true
+
+ has_type_MyType<Top>::value;  // false
+ has_type_MyType<Top2>::value; // true
+ 
+[heading Examples - using lambda expressions]
+
+We can further invoke our metafunction with a second type, 
+which is an MPL lambda expression. 
+
+An MPL lambda expression, an extremely useful technique in 
+template metaprogramming, allows us to pass a metafunction to 
+other metafunctions. The metafunction we pass can be in the form
+of a placeholder expression or a metafunction class. In our case
+the metafunction passed to our has_type_'name_of_inner_type'
+metafunction as a lambda expression must return a boolean constant 
+expression.
+
+[heading Example - using a lambda expression with a placeholder expression]
+
+We will first illustrate the use of a lambda expression in the 
+form of a placeholder expression being passed as the second template
+parameter to our has_type_'name_of_inner_type' metafunction.
+A popular and simple placeholder expression we can use is 
+'boost::is_same<_1,SomeType>' to check if the inner type found is a 
+particular type. This is particularly useful when the inner type 
+is a typedef for some other type.
+
+First we include some more header files and a using declaration
+for convenience.
+
+ #include <boost/mpl/placeholders.hpp
+ #include <boost/type_traits/is_same.hpp
+ using namespace boost::mpl::placeholders;
+
+Next we invoke our metafunction:
+
+ has_type_MyTypeDef<Top,boost::is_same<_1,int> >::value; // true
+ has_type_MyTypeDef<Top,boost::is_same<_1,long> >::value; // false
+
+ has_type_ATypeDef<Top2,boost::is_same<_1,int> >::value; // false
+ has_type_ATypeDef<Top2,boost::is_same<_1,long> >::value; // true
+
+[heading Example - using a lambda expression with a metafunction class]
+
+We will next illustrate the use of a lambda expression in the 
+form of a metafunction class being passed as the second template
+parameter to our has_type_'name_of_inner_type' metafunction.
+
+A metafunction class is a type which has a nested class template
+called 'apply'. For our metafunction class example we will check if the
+inner type is a built-in integer type. First let us write out 
+metafunction class:
+
+ #include <boost/type_traits/is_integral.hpp>
+
+ class OurMetafunctionClass
+   {
+   template<class T> struct apply :
+       boost::is_integral<T>
+       {
+       };
+   };
+   
+Now we can invoke our metafunction:
+
+ has_type_MyTypeDef<Top,OurMetafunctionClass>::value; // true
+ has_type_AType<Top,OurMetafunctionClass>::value; // false
+
+ has_type_ATypeDef<Top2,OurMetafunctionClass>::value; // true
+ has_type_MyType<Top2,OurMetafunctionClass>::value; // true
+
+[heading Metafunction re-use]
+
+The macro encodes only the name of the inner type for which
+we are searching and the fact that we are introspecting for 
+an inner type within an enclosing type.
+
+Because of this, once we create our metafunction for 
+introspecting an inner type by name, we can reuse the 
+metafunction for introspecting any enclosing type, having 
+any inner type, for that name.
+
+Furthermore since we have only encoded the name of the inner 
+type for which we are introspecting, we can not only introspect
+for that inner type by name but add different lambda expressions 
+to inspect that inner type for whatever we want to find out about 
+it using the same metafunction.
+
+[endsect]

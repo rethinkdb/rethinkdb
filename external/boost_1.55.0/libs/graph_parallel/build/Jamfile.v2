@@ -1,0 +1,43 @@
+# Copyright (c) 2002 Trustees of Indiana University
+#
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import mpi ;
+
+project boost/graph_parallel
+    : requirements <include>../src
+    : source-location ../src
+    ;
+
+local optional_sources ;
+local optional_reqs ;
+
+if [ mpi.configured ]
+{    
+  lib boost_graph_parallel
+    : mpi_process_group.cpp tag_allocator.cpp
+    : <library>../../mpi/build//boost_mpi
+      <library>/mpi//mpi [ mpi.extra-requirements ]
+      <define>BOOST_GRAPH_NO_LIB=1
+      <link>shared:<define>BOOST_GRAPH_DYN_LINK=1
+      # # Intel compiler ICEs if we turn optimization on
+      <toolset>intel-vc71-win-9.1:<optimization>off
+      # Without these flags, MSVC 7.1 crash
+      # User reports that VC++ 8 no longer has this problem
+      <toolset>msvc-7.1:<cxxflags>-GR-
+    ;
+
+}
+else
+{
+  message boost_graph_parallel
+      : "warning: Graph library does not contain MPI-based parallel components."
+      : "note: to enable them, add \"using mpi ;\" to your user-config.jam"
+      ;
+}
+
+
+
+boost-install boost_graph_parallel ;

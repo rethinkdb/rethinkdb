@@ -1,0 +1,1105 @@
+[library Boost.FunctionTypes
+  [quickbook 1.3]
+  [version 2.5]
+  [authors [Schwinger, Tobias]]
+  [copyright 2004-2007 Tobias Schwinger]
+  [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at 
+        [@http://www.boost.org/LICENSE_1_0.txt])
+  ]
+  [purpose Meta-programming support library]
+  [category template]
+  [category generic]
+  [last-revision $Date: 2009-11-20 02:13:51 -0800 (Fri, 20 Nov 2009) $]
+]
+
+[def __unspecified__ /unspecified/]
+
+[def __mpl__ [@../../../mpl/index.html MPL]]
+[def __mpl_integral_constant__ __mpl__ - [@../../../mpl/doc/refmanual/integral-constant.html Integral Constant]]
+[def __mpl_fwd_seq__ __mpl__ - [@../../../mpl/doc/refmanual/forward-sequence.html Forward Sequence]]
+[def __mpl_fb_ext_ra_seq__ __mpl__ - [@../../../mpl/doc/refmanual/front-extensible-sequence.html Front] / [@../../../mpl/doc/refmanual/back-extensible-sequence.html Back ][@../../../mpl/doc/refmanual/extensible-sequence.html Extensible ][@../../../mpl/doc/refmanual/random-access-sequence.html Random Access Sequence]]
+[def __mpl_lambda_expression__  __mpl__ - [@../../../mpl/doc/refmanual/lambda-expression.html Lambda Expression]]
+
+[def __is_function [link boost_functiontypes.reference.classification.is_function is_function]]
+[def __is_function_pointer [link boost_functiontypes.reference.classification.is_function_pointer is_function_pointer]]
+[def __is_function_reference [link boost_functiontypes.reference.classification.is_function_reference is_function_reference]]
+[def __is_member_function_pointer [link boost_functiontypes.reference.classification.is_member_function_pointer is_member_function_pointer]]
+[def __is_callable_builtin [link boost_functiontypes.reference.classification.is_callable_builtin is_callable_builtin]]
+[def __is_nonmember_callable_builtin [link boost_functiontypes.reference.classification.is_nonmember_callable_builtin is_nonmember_callable_builtin]]
+
+[def __components [link boost_functiontypes.reference.decomposition.components components]]
+[def __parameter_types [link boost_functiontypes.reference.decomposition.parameter_types parameter_types]]
+[def __function_arity [link boost_functiontypes.reference.decomposition.function_arity function_arity]]
+[def __result_type [link boost_functiontypes.reference.decomposition.result_type result_type]]
+
+[def __function_type [link boost_functiontypes.reference.synthesis.function_type function_type]]
+[def __function_pointer [link boost_functiontypes.reference.synthesis.function_pointer function_pointer]]
+[def __function_reference [link boost_functiontypes.reference.synthesis.function_reference function_reference]
+[def __member_function_pointer [link boost_functiontypes.reference.synthesis.member_function_pointer member_function_pointer]]
+
+[def __null_tag [link boost_functiontypes.reference.tag_types.null_tag null_tag]]
+
+[/ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ]
+
+[section:introduction Introduction]
+
+Boost.FunctionTypes provides functionality to classify, decompose and synthesize
+function, function pointer, function reference and pointer to member types.
+
+We collectively refer to these types as /callable builtin/ types.
+
+In particular, the library can be used to:
+
+* test whether a type is a specific callable, builtin type,
+* extract all component properties from callable, builtin types, and
+* create callable, builtin types from specified properties.
+
+The library is designed to work well with other Boost libraries and uses 
+well-accepted concepts introduced by Boost and TR1.
+
+Templates that encapsulate boolean or numeric properties define a static member
+constant called [^value].
+
+  __is_function_pointer< bool(*)(int) >::value // == true 
+
+  __function_arity< bool(*)(int) >::value // == 1
+
+Templates that encapsulate properties that are single types contain a type 
+member called [^type]. 
+
+  __function_type< mpl::vector<bool,int> >::type // is bool(int)
+
+  __result_type< bool(&)(int) >::type // is bool
+
+Templates that encapsulate properties that are type lists model an 
+MPL-compatible type sequence.
+
+  __parameter_types< bool(int) > // models an MPL sequence
+
+[endsect]
+
+[section:use_cases Use Cases]
+
+Generic libraries that accept callable arguments are common in C++.
+Accepting a callable argument of builin type often involves a lot of repetitive
+code because the accepting function is overloaded for different function 
+arities. Further, member functions may have [^const]/[^volatile]-qualifiers, 
+a function may take a variable number of (additional, POD-typed) arguments (such
+as [^printf]) and several C++ implementations encode a calling convention with
+each function's type to allow calls across language or (sub-)system boundaries.
+
+  template<typename R>
+  void accept_function(R(* func)());
+
+  template<typename R>
+  void accept_function(R(& func)());
+
+  template<typename R, typename C>
+  void accept_function(R(C::* func)());
+
+  template<typename R, typename C>
+  void accept_function(R(C::* func)() const);
+
+  template<typename R, typename C>
+  void accept_function(R(C::* func)() volatile);
+
+  template<typename R, typename C>
+  void accept_function(R(C::* func)() const volatile);
+
+  template<typename R>
+  void accept_function(R(* func)(...));
+
+  template<typename R>
+  void accept_function(R(& func)(...));
+
+  template<typename R, typename C>
+  void accept_function(R(C::* func)(...));
+
+  template<typename R, typename C>
+  void accept_function(R(C::* func)(...) const);
+
+  template<typename R, typename C>
+  void accept_function(R(C::* func)(...) volatile);
+
+  template<typename R, typename C>
+  void accept_function(R(C::* func)(...) const volatile);
+
+  // ...
+
+  // needs to be repeated for every additional function parameter
+  // times the number of possible calling conventions
+
+The "overloading approach" obviously does not scale well: There might be several
+functions that accept callable arguments in one library and client code might
+end up using several libraries that use this pattern. 
+On the developer side, library developers spend their time solving the same 
+problem, working around the same portability issues, and apply similar 
+optimizations to keep the compilation time down.
+
+Using Boost.FunctionTypes it is possible to write a single function template
+instead:
+
+  template<typename F>
+  void accept_function(F f)
+  {
+    // ... use Boost.FunctionTypes to analyse F
+  }
+
+The combination with a tuples library that provides an invoker component, such
+as [@../../../fusion/index.html Boost.Fusion], allows to build flexible callback 
+facilities that are entirely free of repetitive code as shown by the 
+[@../../../function_types/example/interpreter.hpp interpreter example].
+
+When taking the address of an overloaded function or function template, the 
+type of the function must be known from the context the expression is used
+in. The code below shows three examples for choosing the [^float(float)] 
+overload of [^std::abs].
+
+  float (*ptr_absf)(float) = & std::abs;
+
+
+  void foo(float(*func)(float));
+
+  void bar() 
+  { 
+    foo(& std::abs); 
+  }
+
+
+  std::transform(b, e, o, static_cast<float(*)(float)>(& std::abs));
+
+The library's type synthesis capabilities can be used to automate overload
+selection and instantiation of function templates. Given an overloaded function
+template
+
+  template<typename R, typename T0>
+  R overloaded(T0);
+
+  template<typename R, typename T0, typename T1>
+  R overloaded(T0,T1);
+
+  template<typename R. typename T0, typename T1, typename T2>
+  R overloaded(T0,T1,T2);
+
+we can pick any of the three overloads and instantiate the template with 
+template arguments from a type sequence in a single expression:
+
+  static_cast<__function_pointer<Seq>::type>(& overloaded)
+
+This technique can be occasionally more flexible than template argument 
+deduction from a function call because the exact types from the sequence
+are used to specialize the template (including possibly cv-qualified 
+reference types and the result type). It is applied twice in the 
+[@../../../function_types/example/interface.hpp interface example].
+
+Another interersting property of callable, builtin types is that they can be
+valid types for non-type template parameters. This way, a function can be 
+pinpointed at compile time, allowing the compiler to eliminate the call by 
+inlining. 
+The [@../../../function_types/example/fast_mem_fn.hpp fast_mem_fn example]
+exploits this characteristic and implements a potentially inlining version of 
+[@../../../bind/mem_fn.html boost::mem_fn]
+limited to member functions that are known at compile time. 
+
+[endsect]
+
+
+[/ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ]
+[section:about_tag_types About Tag Types]
+
+Boost.FunctionTypes uses tag types to encode properties that are not types 
+per se, such as calling convention or whether a function is variadic or cv-
+qualified.
+
+These tags can be used to determine whether one property of a type has a 
+particular value.
+
+  is_function<int(...), variadic>::value // == true
+  is_function<int()   , variadic>::value // == false
+
+A compound property tag describes a combination of possible values of different
+properties. 
+The type [^components<F>], where [^F] is a callable builtin type, is a compound
+property tag that describes [^F].
+The [^tag] class template can be used to combine property tags.
+
+  tag<non_const,default_cc> // combination of two properties
+
+When several values for the same property are specified in [^tag]'s argument 
+list, only the rightmost one is used; others are ignored.
+
+  tag<components<F>, default_cc> // overrides F's calling convention property
+
+When compound property tag is specified to analyse a type, all of its component
+properties must match.
+
+  is_member_function_pointer< F, tag<const_qualified,default_cc> >::value
+  // true for 
+  //   F = void(a_class::*)() const
+  // false for
+  //   F = void(a_class::*)()
+  //   F = void(__fastcall a_class::*)() const
+
+Default values are selected for properties not specified by the tag in the 
+context of type synthesis.
+
+  // given S = mpl::vector<int,a_class const &>
+
+  member_function_pointer<S>::type // is int (a_class::*)() const
+  // note: the cv-qualification is picked based on the class type,
+  // a nonvariadic signature and the default calling convention 
+  // are used
+
+  member_function_pointer<S,non_const>::type // is int (a_class::*)()
+  // no const qualification, as explicitly specified by the tag type
+
+[endsect]
+
+
+[/ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ]
+
+[section:reference Reference]
+
+
+[section:classification Class templates for type classification]
+
+[section:is_function is_function]
+
+  template<typename T, typename Tag = __null_tag>
+  struct is_function;
+
+[*Header]
+
+  #include <boost/function_types/is_function.hpp>
+
+[variablelist
+  [[[^T]][Type to analyze]]
+  [[[^Tag]][Further properties required for a positive result]]
+  [[[^is_function<T,Tag>]][Predicate value as __mpl_integral_constant__]]
+  [[[^is_function<T,Tag>::value]][Constant boolean value]]
+]
+
+Determines whether a given type is a function, possibly with
+additional properties as specified by a property tag.
+
+[endsect]
+
+
+[section:is_function_pointer is_function_pointer]
+
+  template<typename T, typename Tag = __null_tag>
+  struct is_function_pointer;
+
+[*Header]
+
+  #include <boost/function_types/is_function_pointer.hpp>
+
+[variablelist
+  [[[^T]][Type to analyze]]
+  [[[^Tag]][Further properties required for a positive result]]
+  [[[^is_function_pointer<T,Tag>]][Predicate value __mpl_integral_constant__]]
+  [[[^is_function_pointer<T,Tag>::value]][Constant boolean value]]
+]
+
+Determines whether a given type is a function pointer, possibly with
+additional properties as specified by a property tag.
+
+[endsect]
+
+
+[section:is_function_reference is_function_reference]
+
+  template<typename T, typename Tag = __null_tag>
+  struct is_function_reference;
+
+[*Header]
+
+  #include <boost/function_types/is_function_reference.hpp>
+
+[variablelist
+  [[[^T]][Type to analyze]]
+  [[[^Tag]][Further properties required for a positive result]]
+  [[[^is_function_reference<T,Tag>]][Predicate value __mpl_integral_constant__]]
+  [[[^is_function_reference<T,Tag>::value]][Constant boolean value]]
+]
+
+Determines whether a given type is a function reference, possibly with
+additional properties as specified by a property tag.
+
+[endsect]
+
+
+[section:is_member_pointer is_member_pointer]
+
+  template<typename T, typename Tag = __null_tag>
+  struct is_member_pointer;
+
+[*Header]
+
+  #include <boost/function_types/is_member_pointer.hpp>
+
+[variablelist
+  [[[^T]][Type to analyze]]
+  [[[^Tag]][Further properties required for a positive result]]
+  [[[^is_member_pointer<T,Tag>]][Predicate value __mpl_integral_constant__]]
+  [[[^is_member_pointer<T,Tag>::value]][Constant boolean value]]
+]
+
+Determines whether a given type is a pointer to member (object or function)
+type, possibly with additional properties as specified by a property tag.
+
+[endsect]
+
+
+[section:is_member_object_pointer is_member_object_pointer]
+
+  template<typename T>
+  struct is_member_object_pointer;
+
+[*Header]
+
+  #include <boost/function_types/is_member_object_pointer.hpp>
+
+[variablelist
+  [[[^T]][Type to analyze]]
+  [[[^is_member_object_pointer<T>]][Predicate value __mpl_integral_constant__]]
+  [[[^is_member_object_pointer<T>::value]][Constant boolean value]]
+]
+
+Determines whether a given type is a pointer to member object type. 
+
+[endsect]
+
+
+[section:is_member_function_pointer is_member_function_pointer]
+
+  template<typename T, typename Tag = __null_tag>
+  struct is_member_function_pointer;
+
+[*Header]
+
+  #include <boost/function_types/is_member_function_pointer.hpp>
+
+[variablelist
+  [[[^T]][Type to analyze]]
+  [[[^Tag]][Further properties required for a positive result]]
+  [[[^is_member_function_pointer<T,Tag>]][Predicate value __mpl_integral_constant__]]
+  [[[^is_member_function_pointer<T,Tag>::value]][Constant boolean value]]
+]
+
+Determines whether a given type is a member function pointer, possibly with
+additional properties as specified by a property tag.
+
+[endsect]
+
+
+[section:is_callable_builtin is_callable_builtin]
+
+  template<typename T, typename Tag = __null_tag>
+  struct is_callable_builtin;
+
+[*Header]
+
+  #include <boost/function_types/is_callable_builtin.hpp>
+
+[variablelist
+  [[[^T]][Type to analyze]]
+  [[[^Tag]][Further properties required for a positive result]]
+  [[[^is_callable_builtin<T,Tag>]][Predicate value as __mpl_integral_constant__]]
+  [[[^is_callable_builtin<T,Tag>::value]][Constant boolean value]]
+]
+
+Determines whether a given type is a callable builtin, possibly with
+additional properties as specified by a property tag.
+
+[endsect]
+
+
+
+[section:is_nonmember_callable_builtin is_nonmember_callable_builtin]
+
+  template<typename T, typename Tag = __null_tag>
+  struct is_nonmember_callable_builtin;
+
+[*Header]
+
+  #include <boost/function_types/is_nonmember_callable_builtin.hpp>
+
+[variablelist
+  [[[^T]][Type to analyze]]
+  [[[^Tag]][Further properties required for a positive result]]
+  [[[^is_nonmember_callable_builtin<T,Tag>]][Predicate value as __mpl_integral_constant__]]
+  [[[^is_nonmember_callable_builtin<T,Tag>::value]][Constant boolean value]]
+]
+
+Determines whether a given type is a callable builtin that is not a
+member function pointer, possibly with
+additional properties as specified by a property tag.
+
+[endsect]
+
+
+[endsect] [/ Class templates for type classification ]
+
+[/ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ]
+
+[section:decomposition Class templates for type decomposition]
+
+
+[section:result_type result_type]
+
+  template<typename F>
+  struct result_type;
+
+[*Header]
+
+  #include <boost/function_types/result_type.hpp>
+
+[variablelist
+  [[[^F]][Type to analyze]]
+  [[[^result_type<F>::type]][Result type of [^F]]]
+]
+
+Extracts the result type of a callable, builtin type.
+
+If [^F] is no callable, builtin type, any attempt to access the
+[^type] member results in a compile error.
+
+[endsect]
+
+
+[section:parameter_types parameter_types]
+
+  template<typename F, class ClassTransform = add_reference<_> >
+  struct parameter_types;
+
+[*Header]
+
+  #include <boost/function_types/parameter_types.hpp>
+
+[variablelist
+  [[[^F]][Type to analyze]]
+  [[[^ClassTransform]]
+   [__mpl_lambda_expression__ to transform the 
+    class type if [^F] is a member function pointer]]
+
+  [[[^parameter_types<F,ClassTransform>]]
+   [__mpl_fb_ext_ra_seq__ of parameter types]]
+]
+
+Extracts the parameter types of a callable, builtin type.
+
+If [^F] is no callable, builtin type, any attempt to access the
+sequence results in a compile error.
+
+[endsect]
+
+
+[section:function_arity function_arity]
+
+  template<typename F>
+  struct function_arity;
+
+[*Header]
+
+  #include <boost/function_types/function_arity.hpp>
+
+[variablelist
+  [[[^F]][Callable builtin type]]
+  [[[^function_arity<F>]][Function arity as __mpl_integral_constant__]]
+  [[[^function_arity<F>::value]][Constant value of the function arity]]
+]
+
+Extracts the function arity, that is the number of parameters. 
+The hidden [^this] of member function pointers counts, in other words
+the arity value is always greater than or equal to one if [^F] is a 
+member function pointer.
+
+If [^F] is no callable, builtin type, any attempt to access the
+value results in a compile error.
+
+[endsect]
+
+
+[section:components components]
+
+  template<typename T, class ClassTransform = add_reference<_> >
+  struct components;
+
+[*Header]
+
+  #include <boost/function_types/components.hpp>
+
+[variablelist
+  [[[^T]][Type to analyze]]
+  [[[^ClassTransform]]
+   [__mpl_lambda_expression__ to transform the 
+    class type if [^T] is a member function pointer]]
+
+  [[[^components<T,ClassTransform>]]
+   [__mpl_fb_ext_ra_seq__ of all 
+     component types and property tag]]
+  [[[^components<T,ClassTransform>::types]]
+   [Decorated MPL Sequence, exposed for optimization]]
+]
+
+Extracts all properties of a callable builtin type, that is the result type,
+followed by the parameter types (including the type of [^this] for member 
+function pointers).
+
+If [^T] is no callable builtin type, the component types are an empty
+sequence and the Tag's meaning is equivalent to the [^__null_tag].
+
+[endsect]
+
+[endsect] [/ Class templates for type decomposition]
+
+[/ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ]
+
+[section:synthesis Class templates for type synthesis]
+
+
+[section:function_type function_type]
+
+  template<typename Types, typename Tag = __null_tag> 
+  struct function_type;
+
+[*Header]
+
+  #include <boost/function_types/function_type.hpp>
+
+[variablelist
+  [[[^Types]][Component types in form of an __mpl_fwd_seq__ or another callable, builtin type]]
+  [[[^Tag]][Further properties]]
+  [[[^function_type<Types,Tag>::type]][Synthesized type]]
+]
+
+Synthesizes a function type from given properties.
+
+If the template parameters do not describe a valid type, any attempt
+to access the [^type] member will result in a compile error.
+
+[endsect]
+
+
+[section:function_pointer function_pointer]
+
+  template<typename Types, typename Tag = __null_tag> 
+  struct function_pointer;
+
+[*Header]
+
+  #include <boost/function_types/function_pointer.hpp>
+
+[variablelist
+  [[[^Types]][Component types in form of an __mpl_fwd_seq__ or another callable, builtin type]]
+  [[[^Tag]][Further properties]]
+  [[[^function_pointer<Types,Tag>::type]][Synthesized type]]
+]
+
+Synthesizes a function pointer type from given properties.
+
+If the template parameters do not describe a valid type, any attempt
+to access the [^type] member will result in a compile error.
+
+[endsect]
+
+
+[section:function_reference function_reference]
+
+  template<typename Types, typename Tag = __null_tag> 
+  struct function_reference;
+
+[*Header]
+
+  #include <boost/function_types/function_reference.hpp>
+
+[variablelist
+  [[[^Types]][Component types in form of an __mpl_fwd_seq__ or another callable, builtin type]]
+  [[[^Tag]][Further properties]]
+  [[[^function_reference<Types,Tag>::type]][Synthesized type]]
+]
+
+Synthesizes a function reference type from given properties.
+
+If the template parameters do not describe a valid type, any attempt
+to access the [^type] member will result in a compile error.
+
+[endsect]
+
+
+[section:member_function_pointer member_function_pointer]
+
+  template<typename Types, typename Tag = __null_tag> 
+  struct member_function_pointer;
+
+[*Header]
+
+  #include <boost/function_types/member_function_pointer.hpp>
+
+[variablelist
+  [[[^Types]][Component types in form of an __mpl_fwd_seq__ or another callable, builtin type]]
+  [[[^Tag]][Further properties]]
+  [[[^member_function_pointer<Types,Tag>::type]][Synthesized type]]
+]
+
+Synthesizes a member function pointer type from given properties.
+
+An optional reference or possibly cv-qualified pointer is removed from
+the second type in the sequence to determine the the class type. 
+The cv-qualification of the resulting type applies to the member
+function, unless otherwise explicitly specified by the property tag.
+
+If the template parameters do not describe a valid type, any attempt
+to access the [^type] member will result in a compile error.
+
+[endsect]
+
+
+[endsect] [/ Class templates for type synthesis ]
+
+[/ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ]
+
+[section:tag_types Tag Types]
+
+[section:variadic variadic]
+
+  typedef __unspecified__ variadic;
+
+[*Header]
+
+  #include <boost/function_types/property_tags.hpp>
+
+States that a function type takes a variable number of arguments through 
+an ellipsis parameter (such as [^printf]).
+
+[endsect]
+
+[section:non_variadic non_variadic]
+
+  typedef __unspecified__ non_variadic;
+
+[*Header]
+
+  #include <boost/function_types/property_tags.hpp>
+
+States that a function type does not have an ellipsis parameter.
+
+[endsect]
+
+[section:default_cc default_cc]
+
+  typedef __unspecified__ default_cc;
+
+[*Header]
+
+  #include <boost/function_types/property_tags.hpp>
+
+States that a function type encodes the default calling convention.
+
+[endsect]
+
+[section:const_qualified const_qualified]
+
+  typedef __unspecified__ const_qualified;
+
+[*Header]
+
+  #include <boost/function_types/property_tags.hpp>
+
+States that a function type is const qualified.
+
+[endsect]
+
+[section:non_const non_const]
+
+  typedef __unspecified__ non_const;
+
+[*Header]
+
+  #include <boost/function_types/property_tags.hpp>
+
+States that a function type is not const qualified.
+
+[endsect]
+
+[section:volatile_qualified volatile_qualified]
+
+  typedef __unspecified__ volatile_qualified;
+
+[*Header]
+
+  #include <boost/function_types/property_tags.hpp>
+
+States that a function type is volatile qualified.
+
+[endsect]
+
+[section:non_volatile non_volatile]
+
+  typedef __unspecified__ non_volatile;
+
+[*Header]
+
+  #include <boost/function_types/property_tags.hpp>
+
+States that a function type is not volatile qualified.
+
+[endsect]
+
+[section:non_cv non_cv]
+
+  typedef __unspecified__ non_cv;
+
+[*Header]
+
+  #include <boost/function_types/property_tags.hpp>
+
+States that a function type is neither const nor volatile qualified.
+Equivalent to `__tag<__non_const,__non_volatile>`, but involves
+fewer template instantiations when evaluated.
+
+[endsect]
+
+[section:const_non_volatile const_non_volatile]
+
+  typedef __unspecified__ const_non_volatile;
+
+[*Header]
+
+  #include <boost/function_types/property_tags.hpp>
+
+States that a function type is const but not volatile qualified.
+Equivalent to `__tag<__const_qualified,__non_volatile>`, but involves
+fewer template instantiations when evaluated.
+
+[endsect]
+
+[section:volatile_non_const volatile_non_const]
+
+  typedef __unspecified__ volatile_non_const;
+
+[*Header]
+
+  #include <boost/function_types/property_tags.hpp>
+
+States that a function type is volatile but not const qualified.
+Equivalent to `__tag<__volatile_qualified,__non_const>`, but involves
+fewer template instantiations when evaluated.
+
+[endsect]
+
+[section:cv_qualfied cv_qualfied]
+
+  typedef __unspecified__ cv_qualified;
+
+[*Header]
+
+  #include <boost/function_types/property_tags.hpp>
+
+States that a function type is both const and volatile qualified.
+Equivalent to `__tag<__const_qualified,__volatile_qualified>`, but involves
+fewer template instantiations when evaluated.
+
+[endsect]
+
+[section:null_tag null_tag]
+
+  typedef __unspecified__ null_tag;
+
+[*Header]
+
+  #include <boost/function_types/property_tags.hpp>
+
+States nothing.
+
+[endsect]
+
+[section:tag tag]
+
+  template<class Tag1, class Tag2, 
+      class Tag3 = null_tag, class Tag4 = null_tag>
+  struct tag;
+
+[*Header]
+
+  #include <boost/function_types/property_tags.hpp>
+
+[variablelist
+  [[[^Tag['N]]][Property tag]]
+  [[[^tag<Tag1,Tag2...>]][Compound property tag]]
+]
+
+Combination of up to four property tags.  If the arguments describe different 
+values for the same property the value of the rightmost argument is used.
+
+[endsect]
+
+[endsect] [/ Tag Types]
+
+[/ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ]
+
+[section:macros Macros]
+
+[section:BOOST_FT_MAX_ARITY BOOST_FT_MAX_ARITY]
+
+Expands to a numeric value that describes the maximum function arity 
+supported by the library.
+
+Defaults to 20 if not explicitly defined by the user before inclusion
+of the first library header.
+
+[endsect]
+
+
+
+[*The following macros do not need to be defined, unless to configure
+the library to work with a compiler and/or calling convention not covered by 
+the auto-detection mechanism in [^boost/function_types/config/compiler.hpp].]
+
+
+[section:BOOST_FT_CC_NAMES BOOST_FT_CC_NAMES]
+
+Expands to a [@../../../preprocessor/doc/data/sequences.html sequence] of 
+ternary [@../../../preprocessor/doc/data/tuples.html tuples] (these data 
+types are defined in the [@../../../preprocessor/doc/index.html
+documentation of the Boost Preprocessor library]). 
+Each sequence element describes one calling convention specifier.
+The first element in each tuple is the macro suffix for 
+[link boost_functiontypes.reference.macros.BOOST_FT_CC [^BOOST_FT\_CC\_*]], 
+the second element is the name of the tag that describes the calling 
+convention and the third is the name of the specifier. 
+The specifier is allowed to be an empty string, so the third tuple element
+is either [@../../../preprocessor/doc/ref/empty.html [^BOOST_PP_EMPTY]] or 
+[@../../../preprocessor/doc/ref/identity.html [^BOOST_PP_IDENTITY]][^(['name])].
+
+Define this macro to extend the set of possible names for custom calling
+conventions. The macro expands to nothing by default.
+
+The following names are predefined by the library and must not occur in the
+definition of [^BOOST_FT_CC_NAMES]:
+
+  #define BOOST_FT_BUILTIN_CC_NAMES \
+    (( IMPLICIT           , implicit_cc , BOOST_PP_EMPTY                ))\
+    (( CDECL              , cdecl_cc    , BOOST_PP_IDENTITY(__cdecl   ) ))\
+    (( STDCALL            , stdcall_cc  , BOOST_PP_IDENTITY(__stdcall ) ))\
+    (( PASCAL             , pascal_cc   , BOOST_PP_IDENTITY(pascal    ) ))\
+    (( FASTCALL           , fastcall_cc , BOOST_PP_IDENTITY(__fastcall) ))\
+    (( CLRCALL            , clrcall_cc  , BOOST_PP_IDENTITY(__clrcall ) ))\
+    (( THISCALL           , thiscall_cc , BOOST_PP_IDENTITY(__thiscall) ))\
+    (( IMPLICIT_THISCALL  , thiscall_cc , BOOST_PP_EMPTY                )) 
+  // Don't get confused by the last line, here (thiscall can't be specified
+  // explicitly prior to MSVC 8).
+
+[endsect]
+
+[section:BOOST_FT_CC BOOST_FT\_CC\_*]
+
+Enables a specific calling convention. * denotes the macro suffix, as 
+defined by
+[link boost_functiontypes.reference.macros.BOOST_FT_CC_NAMES [^BOOST_FT_CC_NAMES]] 
+or 
+[link boost_functiontypes.reference.macros.BOOST_FT_CC_NAMES [^BOOST_FT_BUILTIN_CC_NAMES]].
+
+The macro expands to a list of restrictions, separated by the [^|] character.
+Possible items are:
+
+* callable_builtin
+* member
+* non_member
+* variadic
+* non_variadic
+
+If no such macro is defined for a particular calling convention, it is disabled.
+Example:
+
+  #define BOOST_FT_CC_STDCALL non_variadic|callable_builtin
+  // enables stdcall calling convention for all non-variadic, 
+  // callable, builtin types
+
+[endsect]
+
+[section:BOOST_FT_COMMON_X86_CCs BOOST_FT_COMMON_X86_CCs]
+
+Defining this macro causes the following macros to be defined, if not defined 
+already:
+
+  #define BOOST_FT_CC_CDECL BOOST_FT_COMMON_X86_CCs
+  #define BOOST_FT_CC_STDCALL non_variadic|BOOST_FT_COMMON_X86_CCs
+  #define BOOST_FT_CC_FASTCALL non_variadic|BOOST_FT_COMMON_X86_CCs
+
+[endsect]
+
+[section:BOOST_FT_SYNTAX BOOST_FT_SYNTAX]
+
+This macro allows to change the syntax of callable builtin types.
+It is useful to handle the compiler specific placement of the calling 
+convention specifier.
+
+The default definition is as follows:
+
+  #define BOOST_FT_SYNTAX(result,lparen,cc_spec,type_mod,name,rparen) \
+            result() lparen() cc_spec() type_mod() name() rparen()
+
+[endsect]
+
+[section:BOOST_FT_NULLARY_PARAM BOOST_FT_NULLARY_PARAM]
+
+Set to [^void] for compilers that insist on a [^void] parameter for
+nullary function types, empty by default.
+
+[endsect]
+
+[section:BOOST_FT_NO_CV_FUNC_SUPPORT BOOST_FT_NO_CV_FUNC_SUPPORT]
+
+Disables support for cv-qualified function types.
+Cv-qualified function types are illegal by the current standard
+version, but there is a pending defect report on that issue.
+It defaults to [^1] until the standard changes, setting this macro
+to [^0] may not work.
+
+[endsect]
+
+
+
+[*The following macros are useful for testing when changing the source code of
+the library.]
+
+
+
+[section:BOOST_FT_PREPROCESSING_MODE BOOST_FT_PREPROCESSING_MODE]
+
+Makes the compiler preprocess as much as possible of the library code 
+(rather than loading already-preprocessed header files) if defined.
+
+[endsect]
+
+[section:BOOST_FT_CC_PREPROCESSING BOOST_FT_CC_PREPROCESSING]
+
+Makes the compiler preprocess the loop over possible names for custom
+calling conventions (rather than loading an already-preprocessed header
+file) if defined.
+
+This macro is defined automatically if 
+[link boost_functiontypes.reference.macros.BOOST_FT_CC_NAMES [^BOOST_FT_CC_NAMES]] 
+has been defined.
+
+[endsect]
+
+[endsect]
+
+[endsect]
+
+[/ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ]
+
+[section:rationale Rationale]
+
+[heading Error handling rationale]
+
+The library does not define the required members of class templates in
+case of an error. This technique causes the compiler to stop displaying
+diagnostics in client code, at the point where the error actually is, 
+instead of tracing template instantiations into the implementation of
+the library. 
+
+The library's components have limited error conditions, so problematic
+input can be spotted easily.
+
+
+[heading Why MPL Sequences?]
+
+MPL provides algorithms on Sequences, so transformations (such as turning
+by-value parameter types into const references for optimized forwarding
+or computing a signature to specialize 
+[@../../../function/index.html [^boost::function]] after applying 
+[@../../../bind/index.html [^boost::bind]]) can be expressed more 
+easily. The MPL Sequence concept is compatible with several other Boost 
+libraries (most importantly [@../../../fusion/index.html Fusion]), 
+so another reason is interoperability.
+
+
+[heading Pointer to member object types]
+
+Despite their syntax, pointer to member object types can be seen as
+dereferencing functionals. 
+
+
+[heading The ClassTransform template parameter]
+
+[^This]-pointer, [^this]-reference or just the object (or maybe even a
+smart pointer to the object) plus adjustments of cv-qualification - all
+these cases have their place, somewhere and there is no single best answer.
+
+Special treatment of the class type within the sequence can significantly
+complicate client code. A custom [^ClassTransform] argument allows the
+client to adjust the class type before the sequence is formed and then
+treat all parameters uniformly.
+
+
+[heading Why tag types?]
+
+Let's consider the alternatives.
+
+The first one is just using more templates so every property has to be 
+asked for explicitly. This approach results in more complicated client 
+code if more than one propery has to be checked and in a exponentially 
+larger library interface.
+
+The second alternative is having the client pass in bit patterns via 
+non-type template parameters. The logic has to be performed by the 
+client and there are much more error conditions. Further, class templates
+with non-type template parameters do not work within MPL lambda 
+expressions and can cause problems with older compilers.
+
+[heading Is it safe to have the synthesis templates take a callable 
+builtin type or an MPL sequence as the first template argument?]
+
+Yes, but it isn't immediately obvious as the set of possible MPL sequences
+isn't inherently disjoint from the set of callable builtin types.
+
+However, any attempt to make a builtin type work as an MPL sequence is
+a bad idea, because builtin types are accessible before the headers that
+make the type a sequence have been included, which can easily violate the
+ODR. 
+
+[heading Why does the hidden [^this] parameter count for the 
+function arity of member functions?]
+
+It was found preferable that the following condition holds:
+
+  mpl::size< __parameter_types<T> >::value == __function_arity<T>::value
+
+[heading Why ignore top-level cv-qualifiers on pointers?]
+
+A cv-qualified pointer is still a pointer. It usually doesn't matter and
+even if it does, it's a job for 
+[@../../../type_traits/index.html Boost.TypeTraits]. 
+
+
+[endsect]
+
+[section:acknowledgements Acknowledgements]
+
+Thanks go to the following people for supporting the development of this 
+library in one or the other way:
+
+* David Abrahams
+* Tom Brinkman
+* Aleksey Gurtovoy
+* Jody Hagins
+* Hartmut Kaiser 
+* Andy Little
+* John Maddock 
+* Paul Mensonides
+* Alexander Nasonov
+* Richard Smith
+* Rob Stewart
+* Jonathan Turkanis
+* Pavel Vozenilek
+* Steven Watanabe
+* K. Noel Belcourt
+
+[endsect]
+

@@ -1,0 +1,16 @@
+// ***************************************************************************
+// *
+// *   Copyright (C) 2004-2006, International Business Machines
+// *   Corporation and others.  All Rights Reserved.
+// *
+// ***************************************************************************
+// 
+
+el{
+
+    TransliterateLATIN {
+        "UNGEGN",
+        "::Greek-Latin/UNGEGN;"
+    }
+}
+    

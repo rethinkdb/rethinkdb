@@ -1,0 +1,114 @@
+<html>
+<head>
+	<title>BOOST_PP_ASSERT</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_ASSERT</b> macro conditionally causes a preprocessing error.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_ASSERT</b>(<i>cond</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>cond</dt>
+			<dd>
+				A condition that determines whether an assertion occurs.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			If <i>cond</i> expands to <i>0</i>, this macro causes a preprocessing error.&nbsp;
+			Otherwise, it expands to nothing.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="assert_msg.html">BOOST_PP_ASSERT_MSG</a></li>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/debug/assert.html">&lt;boost/preprocessor/debug/assert.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/cat.html">boost/preprocessor/cat.hpp</a>&gt;
+#include &lt;<a href="../headers/debug/assert.html">boost/preprocessor/debug/assert.hpp</a>&gt;
+#include &lt;<a href="../headers/logical/bitnor.html">boost/preprocessor/logical/bitnor.hpp</a>&gt;
+#include &lt;<a href="../headers/logical/compl.html">boost/preprocessor/logical/compl.hpp</a>&gt;
+
+// The is BOOST_PP_IS_NULLARY macro is not part of
+// the public interface of the library because it
+// doesn't work on Borland preprocessors.  It is
+// only used here to illustrate assertions.  In
+// effect, it detects whether an argument is empty
+// parenthesis or some text.
+
+#include &lt;boost/preprocessor/detail/is_nullary.hpp&gt;
+
+#define IS_EDISON_DESIGN_GROUP() \
+   <a href="compl.html">BOOST_PP_COMPL</a>( \
+      BOOST_PP_IS_NULLARY( \
+         <a href="cat.html">BOOST_PP_CAT</a>(IS_EDG_CHECK, __EDG_VERSION) \
+      ) \
+   ) \
+   /**/
+#define IS_EDG_CHECK__EDG_VERSION ()
+
+#define IS_METROWERKS() \
+   <a href="compl.html">BOOST_PP_COMPL</a>( \
+      BOOST_PP_IS_NULLARY( \
+         <a href="cat.html">BOOST_PP_CAT</a>(IS_MWERKS_CHECK, __MWERKS__) \
+      ) \
+   ) \
+   /**/
+#define IS_MWERKS_CHECK__MWERKS__ ()
+
+#define IS_MICROSOFT() \
+   <a href="bitnor.html">BOOST_PP_BITNOR</a>( \
+      IS_MICROSOFT_ROOT(), \
+      IS_EDISON_DESIGN_GROUP() \
+   ) \
+   /**/
+#define IS_MICROSOFT_ROOT() \
+   BOOST_PP_IS_NULLARY( \
+      <a href="cat.html">BOOST_PP_CAT</a>(IS_MSVC_CHECK, _MSC_VER) \
+   ) \
+   /**/
+#define IS_MSVC_CHECK_MS_VER ()
+
+// this macro doesn't work on EDG...
+// (this is just an example)
+
+#define MACRO(n) \
+   <a href="cat.html">BOOST_PP_CAT</a>( \
+      MACRO_, \
+      IS_EDISON_DESIGN_GROUP() \
+   )(n) \
+   /**/
+
+#define MACRO_1(n) \
+   <a href="assert.html">BOOST_PP_ASSERT</a>(0) \
+   "Edison Design Group is not supported" \
+   /**/
+
+#define MACRO_0(n) normal mode: n
+
+MACRO(10)
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

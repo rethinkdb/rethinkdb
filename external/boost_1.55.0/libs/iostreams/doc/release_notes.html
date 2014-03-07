@@ -1,0 +1,294 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Release Notes</TITLE>
+    <LINK REL="stylesheet" HREF="../../../boost.css">
+    <LINK REL="stylesheet" HREF="theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Release Notes</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<h4>1.46</h4>
+
+<ul>
+  <li>
+  Use <code>BOOST_ASSERT</code> instead of <code>assert</code>.
+  </li>
+  <li>
+  Fixed flush regression, see <a href="https://svn.boost.org/trac/boost/ticket/4590">#4590</a>
+  </li>
+</ul>
+
+<h4>1.44</h4>
+
+<p>Lots of fixes in this version, almost all are by Steven Watanabe.</p>
+
+<p>File descriptor fixes:</p>
+
+<ul>
+  <li>
+    <strong>Breaking change:</strong>
+    new constructors and <code>open</code> methods from file descriptors/handles for
+    <code>file_descriptor</code>, <code>file_descriptor_source</code>
+    and <code>file_descriptor_sink</code>. See
+    <a title="File descriptor devices referece" href="classes/file_descriptor.html">the documentation</a>
+    for details. The old methods are still available if you define
+    <code>BOOST_IOSTREAMS_USE_DEPRECATED</code>
+    (<a href="https://svn.boost.org/trac/boost/ticket/3517">#3517</a>).
+  </li>
+  <li>
+    Add <code>BOOST_IOSTREAMS_DECL</code> to
+    <code>file_descriptor_source</code> and
+    <code>file_descriptor_sink</code> fixing their use in dynamic libraries
+    (<a href="https://svn.boost.org/trac/boost/ticket/4335">#4335</a>).
+  </li>
+  <li>
+    Rejigger <code>file_descriptors</code> handling of
+    <code>std::ios_base::openmode</code> to match <code>std::fstream</code>.
+    In particular, truncate existing files, if
+    <code>std::ios_base::trunc</code> is passed
+    (<a href="https://svn.boost.org/trac/boost/ticket/3323">#3323</a>).
+  </li>
+  <li>
+    Open files in append mode on Windows instead of seeking to the end at every
+    write when <code>std::ios_base::app</code> is passed
+    (<a href="https://svn.boost.org/trac/boost/ticket/3323">#3323</a>).
+  </li>
+</ul>
+
+<p>Compression/decompression fixes:</p>
+
+<ul>
+  <li>
+    Don't end the stream produced by a reading through a symmetric_filter
+    prematurely
+    (<a href="https://svn.boost.org/trac/boost/ticket/2318">#2318</a>).
+  </li>
+  <li>
+    Allow building zlib 1.2.4+, using a glob to include only source files that
+    actually exist
+    (<a href="https://svn.boost.org/trac/boost/ticket/4091">#4091</a>).
+  </li>
+  <li>
+    Fix compressing an empty string.
+  </li>
+  <li>
+    Allow bzip2 filters to be closed even if no input has been read
+    (<a href="https://svn.boost.org/trac/boost/ticket/3348">#3348</a>).
+  </li>
+  <li>
+    Throw an exception on an unexpected end of file in
+    <code>bzip2_decompressor</code> instead of going into an infinite loop
+    (<a href="https://svn.boost.org/trac/boost/ticket/2783">#2783</a>).
+  </li>
+  <li>
+    Reset the crc for zlib when we reuse a filter.
+  </li>
+  <li>
+    Make <code>gzip_decompressor</code> a <code>DualUseFilter</code>
+    (<a href="https://svn.boost.org/trac/boost/ticket/1579">#1579</a>).
+  </li>
+  <li>
+    Allow <code>bzip2_decompressor</code> to process multiple concatenated
+    streams
+    (<a href="https://svn.boost.org/trac/boost/ticket/3853">#3853</a>).
+  </li>
+</ul>
+
+<p>Other fixes:</p>
+
+<ul>
+  <li>
+    Make <code>aggregate_filter</code> work with wide characters
+    (<a href="https://svn.boost.org/trac/boost/ticket/3851">#3851</a>).
+  </li>
+  <li>
+    Make <code>symmetric_filter</code> compile with <code>wchar_t</code>
+    (<a href="https://svn.boost.org/trac/boost/ticket/3279">#3279</a>).
+  </li>
+  <li>
+    Fix <code>boost/iostreams/detail/resolve.hpp</code> compilation on xlc.
+  </li>
+  <li>
+    Fix definition of <code>multichar_dual_use_filter_tag</code>
+    (<a href="https://svn.boost.org/trac/boost/ticket/3689">#3689</a>).
+  </li>
+  <li>
+    Make <code>concept_adapter</code> work with custom <code>char_traits</code>
+    (<a href="https://svn.boost.org/trac/boost/ticket/2356">#2356</a>).
+  </li>
+  <li>
+    On windows, open mapped files with just read/write permissions, rather than
+    full control - which might not be available
+    (<a href="https://svn.boost.org/trac/boost/ticket/2996">#2996</a>).
+  </li>
+  <li>
+    Make sure that <code>direct_streambuf</code> and
+    <code>indirect_streambuf</code> are reset correctly on open
+    (<a href="https://svn.boost.org/trac/boost/ticket/4102">#4102</a>).
+  </li>
+  <li>
+    Make <code>basic_file</code> and <code>basic_file_sync</code>
+    <code>Flushable</code>
+    (<a href="https://svn.boost.org/trac/boost/ticket/2998">#2998</a>).
+  </li>
+  <li>
+    Several documentation improvements, including
+    documenting private mapping with <code>mapped_file</code>
+    (<a href="https://svn.boost.org/trac/boost/ticket/1612">#1612</a>).
+  </li>
+  <li>
+    Make the tests more reliable by using Boost.Filesystem's
+    <code>unique_path</code> instead of <code>tmpnam</code>
+    (<a href="https://svn.boost.org/trac/boost/ticket/2325">#2325</a>).
+  </li>
+</ul>
+
+<h4>1.43</h4>
+
+<p>
+More fixes.
+</p>
+
+<ul>
+  <li>
+    Fix <code>write_device_impl&lt;ostream_tag&gt;</code>
+    (<a href="https://svn.boost.org/trac/boost/ticket/3839">#3839</a>).
+  </li>
+  <li>
+    Fix error checks after calling SetFilePointer
+    (<a href="https://svn.boost.org/trac/boost/ticket/3953">#3953</a>).
+  </li>
+  <li>
+    Gzip filter shouldn't require its source to be peekable
+    (<a href="https://svn.boost.org/trac/boost/ticket/3723">#3723</a>).
+  </li>
+  <li>
+    In <code>position_to_offset</code>, only cast to
+    <code>stream_offset</code> after calculating <code>_Myoff</code>
+    (<a href="https://svn.boost.org/trac/boost/ticket/3969">#3969</a>).
+  </li>
+  <li>
+    <code>ptrdiff_t</code> is in <code>std</code>
+    (<a href="https://svn.boost.org/trac/boost/ticket/2505">#2505</a>).
+  </li>
+</ul>
+
+<h4>1.42</h4>
+
+<p>
+Fixed many outstanding issues. Thanks to Richard Smith for working on a lot
+of these changes.
+</p>
+
+<ul> 
+  <li> 
+    Allocate exceptions on the stack, not the heap (<a href="https://svn.boost.org/trac/boost/ticket/3612">#3612</a>).
+  </li> 
+  <li> 
+    Fix unthrown exceptions. (<a href="https://svn.boost.org/trac/boost/ticket/3311">#3311</a>).
+  </li> 
+  <li> 
+    Use <code>boost::throw_exception</code> to throw exceptions
+    (<a href="https://svn.boost.org/trac/boost/ticket/2094">#2094</a>).
+  </li> 
+  <li> 
+    Add missing include guard (<a href="https://svn.boost.org/trac/boost/ticket/3010">#3010</a>).
+  </li> 
+  <li> 
+    Use the correct type for buffer_size and pback_size parameters (<a href="https://svn.boost.org/trac/boost/ticket/2894">#2894</a>).
+  </li> 
+  <li> 
+    Support <code>boost::ref(std::istream)</code> in code_converter (<a href="https://svn.boost.org/trac/boost/ticket/3011">#3011</a>).
+  </li> 
+  <li> 
+    Fix CRC on x64 during gzip decompression (<a href="https://svn.boost.org/trac/boost/ticket/3352">#3352</a>).
+  </li> 
+  <li> 
+    Fix mapped file errors in windows (<a href="https://svn.boost.org/trac/boost/ticket/3505">#3505</a>).
+  </li> 
+  <li> 
+    Improved support for Visual C++ 2010.
+  </li> 
+  <li> 
+    Fix usage requirements in boost build.
+  </li> 
+  <li> 
+    Fix some boundary checks in <code>restrict</code> and <code>slice</code>.
+  </li> 
+  <li> 
+    Some minor documentation fixes.
+  </li> 
+  <li> 
+    Avoid Apple macro substitutions for <code>check</code>.
+  </li> 
+</ul>
+
+<h4>1.41</h4>
+
+<p>
+Some old unreleased developments. There are still several open issues that
+should be fixed in the next version.
+</p>
+<ul> 
+  <li> 
+    Add a grep filter (<a href="https://svn.boost.org/trac/boost/ticket/1627">#1627</a>).
+  </li> 
+  <li> 
+    Support archives with multiple members (<a href="https://svn.boost.org/trac/boost/ticket/1896">#1896</a>).
+  </li> 
+  <li> 
+    Make <code><span class="identifier">tee</span></code> work with input
+    streams (<a href="https://svn.boost.org/trac/boost/ticket/791">#791</a>).
+  </li> 
+  <li> 
+    Improved filesystem interoperability.
+  </li> 
+  <li> 
+    Several warnings fixed or suppressed (including
+    <a href="https://svn.boost.org/trac/boost/ticket/1618">#1618</a>,
+    <a href="https://svn.boost.org/trac/boost/ticket/1875">#1875</a>,
+    <a href="https://svn.boost.org/trac/boost/ticket/2779">#2779</a>).
+  </li> 
+  <li> 
+    Various other fixes (including
+    <a href="https://svn.boost.org/trac/boost/ticket/1580">#1580</a>,
+    <a href="https://svn.boost.org/trac/boost/ticket/1671">#1671</a>).
+  </li> 
+</ul>
+
+<h3>1.35</h3>
+
+<P>1. The semantics of <A HREF="functions/close.html"><CODE>close</CODE></A> has been modified:</P>
+
+<UL>
+<LI>Calling <CODE>close</CODE> with a <CODE>std::ios_base::openmode</CODE> other than <CODE>in</CODE> or <CODE>out</CODE> is deprecated.</LI>
+<LI>A new overload of <CODE>close</CODE> taking a single Device argument has been provided as a convenience.</LI>
+<LI><A HREF="concepts/dual_use_filter.html">DualUseFilters</A> receive only one closure notification.</LI>
+<LI><A HREF="guide/generic_streams.html">Generic streams and stream buffers</A> and <A HREF="guide/filtering_streams.html">filtering streams and stream buffers</A> are now <A HREF="concepts/closable.html">Closable</A>. For filtering streams and stream buffers, <CODE>close</CODE> calls <A HREF="classes/filtering_stream.html#pop"><CODE>pop</CODE></A>.
+</UL>
+
+<P><EM>These changes will break some existing code</EM>. They were necessary to resolve inconsistencies in the prior specification that resulted in a number of reported bugs.</P>
+
+<P>2. The function template <a href="functions/slice.html"><code>slice</code></a> has been introduced as an alias of <a href="functions/restrict.html"><code>restrict</code></a>, for platforms that treat <code>restrict</code> as a keyword.</P>
+
+<P>3. Numerous bugs have been fixed, many relating to <a href="functions/close.html"><code>close</code></a>, <a href="functions/copy.html"><code>copy</code></a>, and <a href="classes/file_descriptor.html">file descriptors</a>.</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

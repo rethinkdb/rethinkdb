@@ -1,0 +1,158 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Adding an expression</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../examples.html" title="Advanced Examples">
+<link rel="prev" href="extending_actors.html" title="Extending Actors">
+<link rel="next" href="transforming_the_expression_tree.html" title="Transforming the Expression Tree">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="extending_actors.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="transforming_the_expression_tree.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.examples.adding_an_expression"></a><a class="link" href="adding_an_expression.html" title="Adding an expression">Adding an expression</a>
+</h3></div></div></div>
+<p>
+        This is not a toy example. This is actually part of the library. Remember
+        the <a class="link" href="../modules/statement/while__statement.html" title="while_ Statement"><code class="computeroutput"><span class="keyword">while</span></code></a> lazy statement? Putting together
+        everything we've learned so far, we eill present it here in its entirety
+        (verbatim):
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_PHOENIX_DEFINE_EXPRESSION</span><span class="special">(</span>
+    <span class="special">(</span><span class="identifier">boost</span><span class="special">)(</span><span class="identifier">phoenix</span><span class="special">)(</span><span class="identifier">while_</span><span class="special">)</span>
+  <span class="special">,</span> <span class="special">(</span><span class="identifier">meta_grammar</span><span class="special">)</span>           <span class="comment">// Cond</span>
+    <span class="special">(</span><span class="identifier">meta_grammar</span><span class="special">)</span>           <span class="comment">// Do</span>
+<span class="special">)</span>
+
+<span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">phoenix</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">while_eval</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">void</span> <span class="identifier">result_type</span><span class="special">;</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Cond</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Do</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Context</span><span class="special">&gt;</span>
+        <span class="identifier">result_type</span>
+        <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Cond</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">cond</span><span class="special">,</span> <span class="identifier">Do</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">do_</span><span class="special">,</span> <span class="identifier">Context</span> <span class="special">&amp;</span> <span class="identifier">ctx</span><span class="special">)</span> <span class="keyword">const</span>
+        <span class="special">{</span>
+            <span class="keyword">while</span><span class="special">(</span><span class="identifier">eval</span><span class="special">(</span><span class="identifier">cond</span><span class="special">,</span> <span class="identifier">ctx</span><span class="special">))</span>
+            <span class="special">{</span>
+                <span class="identifier">eval</span><span class="special">(</span><span class="identifier">do_</span><span class="special">,</span> <span class="identifier">ctx</span><span class="special">);</span>
+            <span class="special">}</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Dummy</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">default_actions</span><span class="special">::</span><span class="identifier">when</span><span class="special">&lt;</span><span class="identifier">rule</span><span class="special">::</span><span class="identifier">while_</span><span class="special">,</span> <span class="identifier">Dummy</span><span class="special">&gt;</span>
+        <span class="special">:</span> <span class="identifier">call</span><span class="special">&lt;</span><span class="identifier">while_eval</span><span class="special">,</span> <span class="identifier">Dummy</span><span class="special">&gt;</span>
+    <span class="special">{};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Cond</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">while_gen</span>
+    <span class="special">{</span>
+        <span class="identifier">while_gen</span><span class="special">(</span><span class="identifier">Cond</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">cond</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">cond</span><span class="special">(</span><span class="identifier">cond</span><span class="special">)</span> <span class="special">{}</span>
+
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Do</span><span class="special">&gt;</span>
+        <span class="keyword">typename</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">while_</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">,</span> <span class="identifier">Do</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span>
+        <span class="keyword">operator</span><span class="special">[](</span><span class="identifier">Do</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">do_</span><span class="special">)</span> <span class="keyword">const</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">while_</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">,</span> <span class="identifier">Do</span><span class="special">&gt;::</span><span class="identifier">make</span><span class="special">(</span><span class="identifier">cond</span><span class="special">,</span> <span class="identifier">do_</span><span class="special">);</span>
+        <span class="special">}</span>
+
+        <span class="identifier">Cond</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">cond</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Cond</span><span class="special">&gt;</span>
+    <span class="identifier">while_gen</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">&gt;</span> <span class="keyword">const</span>
+    <span class="identifier">while_</span><span class="special">(</span><span class="identifier">Cond</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">cond</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">while_gen</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">&gt;(</span><span class="identifier">cond</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">}}</span>
+</pre>
+<p>
+        <code class="computeroutput"><span class="identifier">while_eval</span></code> is an example
+        of how to evaluate an expression. It gets called in the <code class="computeroutput"><span class="identifier">rule</span><span class="special">::</span><span class="keyword">while</span></code> action.
+        <code class="computeroutput"><span class="identifier">while_gen</span></code> and <code class="computeroutput"><span class="identifier">while_</span></code> are the expression template front
+        ends. Let's break this apart to undestand what's happening. Let's start at
+        the bottom. It's easier that way.
+      </p>
+<p>
+        When you write:
+      </p>
+<pre class="programlisting"><span class="identifier">while_</span><span class="special">(</span><span class="identifier">cond</span><span class="special">)</span>
+</pre>
+<p>
+        we generate an instance of <code class="computeroutput"><span class="identifier">while_gen</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">&gt;</span></code>, where <code class="computeroutput"><span class="identifier">Cond</span></code>
+        is the type of <code class="computeroutput"><span class="identifier">cond</span></code>. <code class="computeroutput"><span class="identifier">cond</span></code> can be an arbitrarily complex actor
+        expression. The <code class="computeroutput"><span class="identifier">while_gen</span></code>
+        template class has an <code class="computeroutput"><span class="keyword">operator</span><span class="special">[]</span></code> accepting another expression. If we write:
+      </p>
+<pre class="programlisting"><span class="identifier">while_</span><span class="special">(</span><span class="identifier">cond</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="identifier">do_</span>
+<span class="special">]</span>
+</pre>
+<p>
+        it will generate a proper composite with the type:
+      </p>
+<pre class="programlisting"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">while_</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">,</span> <span class="identifier">Do</span><span class="special">&gt;::</span><span class="identifier">type</span>
+</pre>
+<p>
+        where <code class="computeroutput"><span class="identifier">Cond</span></code> is the type of
+        <code class="computeroutput"><span class="identifier">cond</span></code> and <code class="computeroutput"><span class="identifier">Do</span></code>
+        is the type of <code class="computeroutput"><span class="identifier">do_</span></code>. Notice
+        how we are using Phoenix's <a class="link" href="../inside/expression.html" title="Phoenix Expressions">Expression</a>
+        mechanism here
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Do</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">while_</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">,</span> <span class="identifier">Do</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="keyword">const</span>
+<span class="keyword">operator</span><span class="special">[](</span><span class="identifier">Do</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">do_</span><span class="special">)</span> <span class="keyword">const</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">while_</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">,</span> <span class="identifier">Do</span><span class="special">&gt;::</span><span class="identifier">make</span><span class="special">(</span><span class="identifier">cond</span><span class="special">,</span> <span class="identifier">do_</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        Finally, the <code class="computeroutput"><span class="identifier">while_eval</span></code> does
+        its thing:
+      </p>
+<pre class="programlisting"><span class="keyword">while</span><span class="special">(</span><span class="identifier">eval</span><span class="special">(</span><span class="identifier">cond</span><span class="special">,</span> <span class="identifier">ctx</span><span class="special">))</span>
+<span class="special">{</span>
+    <span class="identifier">eval</span><span class="special">(</span><span class="identifier">do_</span><span class="special">,</span> <span class="identifier">ctx</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        <code class="computeroutput"><span class="identifier">cond</span></code> and <code class="computeroutput"><span class="identifier">do_</span></code>,
+        at this point, are instances of <a class="link" href="../inside/actor.html" title="Actors in Detail">Actor</a>.
+        <code class="computeroutput"><span class="identifier">cond</span></code> and <code class="computeroutput"><span class="identifier">do_</span></code>
+        are the <a class="link" href="../inside/actor.html" title="Actors in Detail">Actors</a> passed as parameters
+        by <code class="computeroutput"><span class="identifier">call</span></code>, ctx is the <a class="link" href="../inside/actor.html" title="Actors in Detail">Context</a>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="extending_actors.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="transforming_the_expression_tree.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,135 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[library Boost.Xpressive
+    [quickbook 1.3]
+    [authors [Niebler, Eric]]
+    [copyright 2007 Eric Niebler]
+    [category string-text]
+    [id xpressive]
+    [dirname xpressive]
+    [purpose
+        Regular expressions that can be written as strings or as expression templates,
+        and that can refer to each other and themselves recursively with the power of
+        context-free grammars.
+    ]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[/ QuickBook Document version 1.3 ]
+
+[/  Images   ]
+
+[def __note__                [$images/note.png]]
+[def __alert__               [$images/caution.png]]
+[def __detail__              [$images/note.png]]
+[def __tip__                 [$images/tip.png]]
+
+[/  Links   ]
+
+[def _spirit_fx_             [@http://spirit.sourceforge.net Spirit Parser Framework]]
+[def _spirit_                [@http://spirit.sourceforge.net Spirit]]
+[def _regexpp_               [@../../libs/regex Boost.Regex]]
+[def _proposal_              [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1429.htm proposal]]
+[def _boost_                 [@http://www.boost.org Boost]]
+[def _greta_                 [@http://research.microsoft.com/projects/greta GRETA]]
+[def _perl6_                 [@http://www.perl.com/pub/a/2002/06/04/apo5.html Perl 6]]
+[def _iterator_              [@../../libs/iterator/doc/index.html Boost.Iterator]]
+[def _basic_regex_           [^[classref boost::xpressive::basic_regex basic_regex<>]]]
+[def _match_results_         [^[classref boost::xpressive::match_results match_results<>]]]
+[def _sub_match_             [^[classref boost::xpressive::sub_match sub_match<>]]]
+[def _regex_compiler_        [^[classref boost::xpressive::regex_compiler regex_compiler<>]]]
+[def _regex_iterator_        [^[classref boost::xpressive::regex_iterator regex_iterator<>]]]
+[def _regex_token_iterator_  [^[classref boost::xpressive::regex_token_iterator regex_token_iterator<>]]]
+[def _mark_tag_              [^[classref boost::xpressive::mark_tag mark_tag]]]
+[def _regex_match_           [^[funcref boost::xpressive::regex_match regex_match()]]]
+[def _regex_search_          [^[funcref boost::xpressive::regex_search regex_search()]]]
+[def _regex_replace_         [^[funcref boost::xpressive::regex_replace regex_replace()]]]
+[def _syntax_option_type_    [^[enumref boost::xpressive::regex_constants::syntax_option_type syntax_option_type]]]
+[def _match_flag_type_       [^[enumref boost::xpressive::regex_constants::match_flag_type match_flag_type]]]
+[def _error_type_            [^[enumref boost::xpressive::regex_constants::error_type error_type]]]
+[def _regex_compile_         [^[memberref boost::xpressive::basic_regex::compile basic_regex<>::compile()]]]
+[def _check_                 [^[funcref boost::xpressive::check check()]]]
+
+[include preface.qbk]
+
+[section User's Guide]
+
+This section describes how to use xpressive to accomplish text manipulation and
+parsing tasks. If you are looking for detailed information regarding specific
+components in xpressive, check the [link xpressive.reference Reference] section.
+
+[include introduction.qbk]
+
+[include installation.qbk]
+
+[include quick_start.qbk]
+
+[section Creating a Regex Object]
+
+When using xpressive, the first thing you'll do is create a _basic_regex_ object. This section goes
+over the nuts and bolts of building a regular expression in the two dialects xpressive supports: static
+and dynamic.
+
+[include static_regexes.qbk]
+
+[include dynamic_regexes.qbk]
+
+[endsect]
+
+[include matching.qbk]
+
+[include results.qbk]
+
+[include substitutions.qbk]
+
+[include tokenization.qbk]
+
+[include named_captures.qbk]
+
+[include grammars.qbk]
+
+[include actions.qbk]
+
+[include symbols.qbk]
+
+[include traits.qbk]
+
+[include tips_n_tricks.qbk]
+
+[include concepts.qbk]
+
+[include examples.qbk]
+
+[endsect]
+
+[xinclude autodoc.xml]
+
+[include acknowledgements.qbk]
+
+[section Appendices]
+
+[include history.qbk]
+
+[include nyi.qbk]
+
+[include regexpp_diffs.qbk]
+
+[include perf.qbk]
+
+[section Appendix 5: Implementation Notes]
+
+[include tracking_ptr.qbk]
+
+[endsect]
+
+[endsect]
+

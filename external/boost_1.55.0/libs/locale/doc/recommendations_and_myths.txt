@@ -1,0 +1,56 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page recommendations_and_myths Recommendations and Myths
+
+\section recommendations Recommendations
+
+-   The first and most important recommendation: prefer UTF-8 encoding for narrow strings --- it represents all
+    supported Unicode characters and is more convenient for general use than encodings like Latin1.
+-   Remember, there are many different cultures. You can assume very little about the user's language. His calendar
+    may not have "January". It may be not possible to convert strings to integers using \c atoi because
+    they may not use the "ordinary" digits 0..9 at all. You can't assume that "space" characters are frequent 
+    because in Chinese the space character does not separate words. The text may be written from Right-to-Left or
+    from Up-to-Down, and so on.
+-   Using message formatting, try to provide as much context information as you can. Prefer translating entire 
+    sentences over single words. When translating words, \b always add some context information.
+
+
+\section myths Myths
+
+\subsection myths_wide To use Unicode in my application I should use wide strings everywhere.
+
+Unicode is not limited to wide strings. Both \c std::string and \c std::wstring
+can hold and process Unicode text. More than that, the semantics of \c std::string
+are much cleaner in multi-platform applications, because all "Unicode" strings are
+UTF-8. "Wide" strings may be encoded in "UTF-16" or "UTF-32", depending
+on the platform, so they may be even less convenient when dealing with Unicode than
+\c char based strings.
+
+\subsection myths_utf16 UTF-16 is the best encoding to work with.
+
+There is common assumption that UTF-16 is the best encoding for storing information because it gives "shortest" representation
+of strings.
+
+In fact, it is probably the most error-prone encoding to work with. The biggest issue is code points that lay outside of the BMP,
+which must be represented with surrogate pairs. These characters are very rare and many applications are not tested with them.
+
+For example:
+
+-   Qt3 could not deal with characters outside of the BMP.
+-   Editing a character with a codepoint above 0xFFFF often shows an unpleasant bug: for example, to erase
+    such a character in Windows Notepad you have to press backspace twice.
+
+So UTF-16 can be used for Unicode, in fact ICU and many other applications use UTF-16 as their internal Unicode representation, but
+you should be very careful and never assume one-code-point == one-utf16-character.
+
+*/
+
+

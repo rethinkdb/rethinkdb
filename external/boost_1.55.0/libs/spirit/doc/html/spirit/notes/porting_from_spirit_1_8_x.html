@@ -1,0 +1,632 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Porting from Spirit 1.8.x</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../notes.html" title="Notes">
+<link rel="prev" href="../notes.html" title="Notes">
+<link rel="next" href="style_guide.html" title="Style Guide">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../notes.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../notes.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="style_guide.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="spirit.notes.porting_from_spirit_1_8_x"></a><a class="link" href="porting_from_spirit_1_8_x.html" title="Porting from Spirit 1.8.x">Porting from
+      Spirit 1.8.x</a>
+</h3></div></div></div>
+<p>
+        The current version of <a href="http://boost-spirit.com" target="_top">Spirit</a>
+        is a complete rewrite of earlier versions (we refer to earlier versions as
+        <a href="../../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>).
+        The parser generators are now only one part of the whole library. The parser
+        submodule of <a href="http://boost-spirit.com" target="_top">Spirit</a> is now called
+        <span class="emphasis"><em>Spirit.Qi</em></span>. It is conceptually different and exposes
+        a completely different interface. Generally, there is no easy (or automated)
+        way of converting parsers written for <a href="../../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>
+        to <span class="emphasis"><em>Spirit.Qi</em></span>. Therefore this section can give only guidelines
+        on how to approach porting your older parsers to the current version of
+        <a href="http://boost-spirit.com" target="_top">Spirit</a>.
+      </p>
+<h5>
+<a name="spirit.notes.porting_from_spirit_1_8_x.h0"></a>
+        <span class="phrase"><a name="spirit.notes.porting_from_spirit_1_8_x.include_files"></a></span><a class="link" href="porting_from_spirit_1_8_x.html#spirit.notes.porting_from_spirit_1_8_x.include_files">Include Files</a>
+      </h5>
+<p>
+        The overall directory structure of the <a href="http://boost-spirit.com" target="_top">Spirit</a>
+        directories is described in the section <a class="link" href="../structure/include.html" title="Include">Include
+        Structure</a> and the FAQ entry <a class="link" href="../faq.html#spirit.faq.i_m_very_confused_about_the_header_hell_in_my_boost_spirit_directory__what_s_all_this_about_">Header
+        Hell</a>. This should give you a good overview on how to find the needed
+        header files for your new parsers. Moreover, each section in the <a class="link" href="../qi/reference.html" title="Reference">Qi
+        Reference</a> lists the required include files needed for any particular
+        component.
+      </p>
+<p>
+        It is possible to tell from the name of a header file, what version it belongs
+        to. While all main include files for <a href="../../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>
+        have the string 'classic_' in their name, for instance:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">classic_core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        we named all main include files for <span class="emphasis"><em>Spirit.Qi</em></span> to have
+        the string 'qi_' as part of their name, for instance:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        The following table gives a rough list of corresponding header file between
+        <a href="../../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>
+        and <span class="emphasis"><em>Spirit.Qi</em></span>, but this can be used as a starting point
+        only, as several components have either been moved to different submodules
+        or might not exist in the never version anymore. We list only include files
+        for the topmost submodules. For header files required for more lower level
+        components please refer to the corresponding reference documentation of this
+        component.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Include file in <span class="emphasis"><em>Spirit.Classic</em></span>
+                </p>
+              </th>
+<th>
+                <p>
+                  Include file in <span class="emphasis"><em>Spirit.Qi</em></span>
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">classic</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">qi</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">classic_actor</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  none, use <a href="../../../../../../libs/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>
+                  for writing semantic actions
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">classic_attribute</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  none, use local variables for rules instead of closures, the primitives
+                  parsers now directly support lazy parameterization
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">classic_core</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">qi_core</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">classic_debug</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">qi_debug</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">classic_dynamic</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  none, use <span class="emphasis"><em>Spirit.Qi</em></span> predicates instead of
+                  if_p, while_p, for_p (included by <code class="computeroutput"><span class="identifier">qi_core</span><span class="special">.</span><span class="identifier">hpp</span></code>),
+                  the equivalent for lazy_p is now included by <code class="computeroutput"><span class="identifier">qi_auxiliary</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">classic_error_handling</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  none, included in <code class="computeroutput"><span class="identifier">qi_core</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">classic_meta</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  none
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">classic_symbols</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  none, included in <code class="computeroutput"><span class="identifier">qi_core</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">classic_utility</span><span class="special">.</span><span class="identifier">hpp</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  none, not part of <span class="emphasis"><em>Spirit.Qi</em></span> anymore, these
+                  components will be added over time to the <a href="../../../../repository/doc/html/index.html" target="_top">Repository</a>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="spirit.notes.porting_from_spirit_1_8_x.h1"></a>
+        <span class="phrase"><a name="spirit.notes.porting_from_spirit_1_8_x.the_free_parse_functions"></a></span><a class="link" href="porting_from_spirit_1_8_x.html#spirit.notes.porting_from_spirit_1_8_x.the_free_parse_functions">The
+        Free Parse Functions</a>
+      </h5>
+<p>
+        The free parse functions (i.e. the main parser API) has been changed. This
+        includes the names of the free functions as well as their interface. In
+        <a href="../../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>
+        all free functions were named <code class="computeroutput"><span class="identifier">parse</span></code>.
+        In <span class="emphasis"><em>Spirit.Qi</em></span> they are are named either <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span></code>
+        or <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_parse</span></code> depending on whether the parsing
+        should be done using a skipper (<code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_parse</span></code>)
+        or not (<code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span></code>). All free functions now return a
+        simple <code class="computeroutput"><span class="keyword">bool</span></code>. A returned <code class="computeroutput"><span class="keyword">true</span></code> means success (i.e. the parser has matched)
+        or <code class="computeroutput"><span class="keyword">false</span></code> (i.e. the parser didn't
+        match). This is equivalent to the former old <code class="computeroutput"><span class="identifier">parse_info</span></code>
+        member <code class="computeroutput"><span class="identifier">hit</span></code>. <span class="emphasis"><em>Spirit.Qi</em></span>
+        doesn't support tracking of the matched input length anymore. The old <code class="computeroutput"><span class="identifier">parse_info</span></code> member <code class="computeroutput"><span class="identifier">full</span></code>
+        can be emulated by comparing the iterators after <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span></code>
+        returned.
+      </p>
+<p>
+        All code examples in this section assume the following include statements
+        and using directives to be inserted. For <a href="../../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">classic</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix1</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+</pre>
+<p>
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">classic</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        and for <span class="emphasis"><em>Spirit.Qi</em></span>:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">algorithm</span><span class="special">&gt;</span>
+</pre>
+<p>
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        The following similar examples should clarify the differences. First the
+        base example in <a href="../../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">input</span><span class="special">(</span><span class="string">"1,1"</span><span class="special">);</span>
+<span class="identifier">parse_info</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">&gt;</span> <span class="identifier">pi</span> <span class="special">=</span> <span class="identifier">parse</span><span class="special">(</span><span class="identifier">input</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">int_p</span><span class="special">);</span>
+
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">pi</span><span class="special">.</span><span class="identifier">hit</span><span class="special">)</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"successful match!\n"</span><span class="special">;</span>
+
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">pi</span><span class="special">.</span><span class="identifier">full</span><span class="special">)</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"full match!\n"</span><span class="special">;</span>
+<span class="keyword">else</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"stopped at: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="identifier">pi</span><span class="special">.</span><span class="identifier">stop</span><span class="special">,</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"matched length: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">pi</span><span class="special">.</span><span class="identifier">length</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        And here is the equivalent piece of code using <span class="emphasis"><em>Spirit.Qi</em></span>:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">input</span><span class="special">(</span><span class="string">"1,1"</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+<span class="keyword">bool</span> <span class="identifier">result</span> <span class="special">=</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span><span class="special">(</span><span class="identifier">it</span><span class="special">,</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">int_</span><span class="special">);</span>
+
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">result</span><span class="special">)</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"successful match!\n"</span><span class="special">;</span>
+
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">it</span> <span class="special">==</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"full match!\n"</span><span class="special">;</span>
+<span class="keyword">else</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"stopped at: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="identifier">it</span><span class="special">,</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+
+<span class="comment">// seldomly needed: use std::distance to calculate the length of the match</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"matched length: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">distance</span><span class="special">(</span><span class="identifier">input</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">it</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        The changes required for phrase parsing (i.e. parsing using a skipper) are
+        similar. Here is how phrase parsing works in <a href="../../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">input</span><span class="special">(</span><span class="string">" 1, 1"</span><span class="special">);</span>
+<span class="identifier">parse_info</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">&gt;</span> <span class="identifier">pi</span> <span class="special">=</span> <span class="identifier">parse</span><span class="special">(</span><span class="identifier">input</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">int_p</span><span class="special">,</span> <span class="identifier">space_p</span><span class="special">);</span>
+
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">pi</span><span class="special">.</span><span class="identifier">hit</span><span class="special">)</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"successful match!\n"</span><span class="special">;</span>
+
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">pi</span><span class="special">.</span><span class="identifier">full</span><span class="special">)</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"full match!\n"</span><span class="special">;</span>
+<span class="keyword">else</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"stopped at: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="identifier">pi</span><span class="special">.</span><span class="identifier">stop</span><span class="special">,</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"matched length: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">pi</span><span class="special">.</span><span class="identifier">length</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        And here the equivalent example in <span class="emphasis"><em>Spirit.Qi</em></span>:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">input</span><span class="special">(</span><span class="string">" 1, 1"</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+<span class="keyword">bool</span> <span class="identifier">result</span> <span class="special">=</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_parse</span><span class="special">(</span><span class="identifier">it</span><span class="special">,</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">int_</span><span class="special">,</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space</span><span class="special">);</span>
+
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">result</span><span class="special">)</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"successful match!\n"</span><span class="special">;</span>
+
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">it</span> <span class="special">==</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"full match!\n"</span><span class="special">;</span>
+<span class="keyword">else</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"stopped at: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="identifier">it</span><span class="special">,</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+
+<span class="comment">// seldomly needed: use std::distance to calculate the length of the match</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"matched length: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">distance</span><span class="special">(</span><span class="identifier">input</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">it</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        Note, how character parsers are in a separate namespace (here <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space</span></code>) as <span class="emphasis"><em>Spirit.Qi</em></span>
+        now supports working with different character sets. See the section <a class="link" href="../qi/reference/basics.html#spirit.qi.reference.basics.character_encoding_namespace">Character
+        Encoding Namespace</a> for more information.
+      </p>
+<h5>
+<a name="spirit.notes.porting_from_spirit_1_8_x.h2"></a>
+        <span class="phrase"><a name="spirit.notes.porting_from_spirit_1_8_x.naming_conventions"></a></span><a class="link" href="porting_from_spirit_1_8_x.html#spirit.notes.porting_from_spirit_1_8_x.naming_conventions">Naming
+        Conventions</a>
+      </h5>
+<p>
+        In <a href="../../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>
+        all parser primitives have suffixes appended to their names, encoding their
+        type: <code class="computeroutput"><span class="string">"_p"</span></code> for parsers,
+        <code class="computeroutput"><span class="string">"_a"</span></code> for lazy actions,
+        <code class="computeroutput"><span class="string">"_d"</span></code> for directives,
+        etc. In <span class="emphasis"><em>Spirit.Qi</em></span> we don't have anything similar. The
+        only suffixes are single underscore letters <code class="computeroutput"><span class="string">"_"</span></code>
+        applied where the name would otherwise conflict with a keyword or predefined
+        name (such as <code class="computeroutput"><span class="identifier">int_</span></code> for the
+        integer parser). Overall, most, if not all primitive parsers and directives
+        have been renamed. Please see the <a class="link" href="../qi/quick_reference.html" title="Quick Reference">Qi
+        Quick Reference</a> for an overview on the names for the different available
+        parser primitives, directives and operators.
+      </p>
+<h5>
+<a name="spirit.notes.porting_from_spirit_1_8_x.h3"></a>
+        <span class="phrase"><a name="spirit.notes.porting_from_spirit_1_8_x.parser_attributes"></a></span><a class="link" href="porting_from_spirit_1_8_x.html#spirit.notes.porting_from_spirit_1_8_x.parser_attributes">Parser
+        Attributes</a>
+      </h5>
+<p>
+        In <a href="../../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>
+        most of the parser primitives don't expose a specific attribute type. Most
+        parsers expose the pair of iterators pointing to the matched input sequence.
+        As in <span class="emphasis"><em>Spirit.Qi</em></span> all parsers expose a parser specific
+        attribute type it introduces a special directive <a class="link" href="../qi/reference/directive/raw.html" title="Directive for Transduction Parsing (raw[])"><code class="computeroutput"><span class="identifier">raw</span></code></a><code class="computeroutput"><span class="special">[]</span></code>
+        allowing to achieve a similar effect as in <a href="../../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>.
+        The <a class="link" href="../qi/reference/directive/raw.html" title="Directive for Transduction Parsing (raw[])"><code class="computeroutput"><span class="identifier">raw</span></code></a><code class="computeroutput"><span class="special">[]</span></code> directive exposes the pair of iterators
+        pointing to the matching sequence of its embedded parser. Even if we very
+        much encourage you to rewrite your parsers to take advantage of the generated
+        parser specific attributes, sometimes it is helpful to get access to the
+        underlying matched input sequence.
+      </p>
+<h5>
+<a name="spirit.notes.porting_from_spirit_1_8_x.h4"></a>
+        <span class="phrase"><a name="spirit.notes.porting_from_spirit_1_8_x.grammars_and_rules"></a></span><a class="link" href="porting_from_spirit_1_8_x.html#spirit.notes.porting_from_spirit_1_8_x.grammars_and_rules">Grammars
+        and Rules</a>
+      </h5>
+<p>
+        The <code class="computeroutput"><span class="identifier">grammar</span><span class="special">&lt;&gt;</span></code>
+        and <code class="computeroutput"><span class="identifier">rule</span><span class="special">&lt;&gt;</span></code>
+        types are of equal importance to <span class="emphasis"><em>Spirit.Qi</em></span> as they are
+        for <a href="../../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>.
+        Their main purpose is still the same: they allow to define non-terminals
+        and they are the main building blocks for more complex parsers. Nevertheless,
+        both types have been redesigned and their interfaces have changed. Let's
+        have a look at two examples first, we'll explain the differences afterwards.
+        Here is a simple grammar and its usage in <a href="../../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">roman</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">roman</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">ScannerT</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">definition</span>
+    <span class="special">{</span>
+        <span class="identifier">definition</span><span class="special">(</span><span class="identifier">roman</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">self</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">hundreds</span><span class="special">.</span><span class="identifier">add</span>
+                <span class="special">(</span><span class="string">"C"</span>  <span class="special">,</span> <span class="number">100</span><span class="special">)(</span><span class="string">"CC"</span>  <span class="special">,</span> <span class="number">200</span><span class="special">)(</span><span class="string">"CCC"</span>  <span class="special">,</span> <span class="number">300</span><span class="special">)(</span><span class="string">"CD"</span> <span class="special">,</span> <span class="number">400</span><span class="special">)(</span><span class="string">"D"</span> <span class="special">,</span> <span class="number">500</span><span class="special">)</span>
+                <span class="special">(</span><span class="string">"DC"</span> <span class="special">,</span> <span class="number">600</span><span class="special">)(</span><span class="string">"DCC"</span> <span class="special">,</span> <span class="number">700</span><span class="special">)(</span><span class="string">"DCCC"</span> <span class="special">,</span> <span class="number">800</span><span class="special">)(</span><span class="string">"CM"</span> <span class="special">,</span> <span class="number">900</span><span class="special">)</span> <span class="special">;</span>
+
+            <span class="identifier">tens</span><span class="special">.</span><span class="identifier">add</span>
+                <span class="special">(</span><span class="string">"X"</span>  <span class="special">,</span> <span class="number">10</span><span class="special">)(</span><span class="string">"XX"</span>  <span class="special">,</span> <span class="number">20</span><span class="special">)(</span><span class="string">"XXX"</span>  <span class="special">,</span> <span class="number">30</span><span class="special">)(</span><span class="string">"XL"</span> <span class="special">,</span> <span class="number">40</span><span class="special">)(</span><span class="string">"L"</span> <span class="special">,</span> <span class="number">50</span><span class="special">)</span>
+                <span class="special">(</span><span class="string">"LX"</span> <span class="special">,</span> <span class="number">60</span><span class="special">)(</span><span class="string">"LXX"</span> <span class="special">,</span> <span class="number">70</span><span class="special">)(</span><span class="string">"LXXX"</span> <span class="special">,</span> <span class="number">80</span><span class="special">)(</span><span class="string">"XC"</span> <span class="special">,</span> <span class="number">90</span><span class="special">)</span> <span class="special">;</span>
+
+            <span class="identifier">ones</span><span class="special">.</span><span class="identifier">add</span>
+                <span class="special">(</span><span class="string">"I"</span>  <span class="special">,</span> <span class="number">1</span><span class="special">)(</span><span class="string">"II"</span>  <span class="special">,</span> <span class="number">2</span><span class="special">)(</span><span class="string">"III"</span>  <span class="special">,</span> <span class="number">3</span><span class="special">)(</span><span class="string">"IV"</span> <span class="special">,</span> <span class="number">4</span><span class="special">)(</span><span class="string">"V"</span> <span class="special">,</span> <span class="number">5</span><span class="special">)</span>
+                <span class="special">(</span><span class="string">"VI"</span> <span class="special">,</span> <span class="number">6</span><span class="special">)(</span><span class="string">"VII"</span> <span class="special">,</span> <span class="number">7</span><span class="special">)(</span><span class="string">"VIII"</span> <span class="special">,</span> <span class="number">8</span><span class="special">)(</span><span class="string">"IX"</span> <span class="special">,</span> <span class="number">9</span><span class="special">)</span> <span class="special">;</span>
+
+            <span class="identifier">first</span> <span class="special">=</span> <span class="identifier">eps_p</span>         <span class="special">[</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">var</span><span class="special">(</span><span class="identifier">self</span><span class="special">.</span><span class="identifier">r</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">val</span><span class="special">(</span><span class="number">0</span><span class="special">)]</span>
+                <span class="special">&gt;&gt;</span>  <span class="special">(</span>  <span class="special">+</span><span class="identifier">ch_p</span><span class="special">(</span><span class="char">'M'</span><span class="special">)</span> <span class="special">[</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">var</span><span class="special">(</span><span class="identifier">self</span><span class="special">.</span><span class="identifier">r</span><span class="special">)</span> <span class="special">+=</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">val</span><span class="special">(</span><span class="number">1000</span><span class="special">)]</span>
+                    <span class="special">||</span>  <span class="identifier">hundreds</span>  <span class="special">[</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">var</span><span class="special">(</span><span class="identifier">self</span><span class="special">.</span><span class="identifier">r</span><span class="special">)</span> <span class="special">+=</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">_1</span><span class="special">]</span>
+                    <span class="special">||</span>  <span class="identifier">tens</span>      <span class="special">[</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">var</span><span class="special">(</span><span class="identifier">self</span><span class="special">.</span><span class="identifier">r</span><span class="special">)</span> <span class="special">+=</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">_1</span><span class="special">]</span>
+                    <span class="special">||</span>  <span class="identifier">ones</span>      <span class="special">[</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">var</span><span class="special">(</span><span class="identifier">self</span><span class="special">.</span><span class="identifier">r</span><span class="special">)</span> <span class="special">+=</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">_1</span><span class="special">]</span>
+                    <span class="special">)</span> <span class="special">;</span>
+        <span class="special">}</span>
+
+        <span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">ScannerT</span><span class="special">&gt;</span> <span class="identifier">first</span><span class="special">;</span>
+        <span class="identifier">symbols</span><span class="special">&lt;</span><span class="keyword">unsigned</span><span class="special">&gt;</span> <span class="identifier">hundreds</span><span class="special">;</span>
+        <span class="identifier">symbols</span><span class="special">&lt;</span><span class="keyword">unsigned</span><span class="special">&gt;</span> <span class="identifier">tens</span><span class="special">;</span>
+        <span class="identifier">symbols</span><span class="special">&lt;</span><span class="keyword">unsigned</span><span class="special">&gt;</span> <span class="identifier">ones</span><span class="special">;</span>
+
+        <span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">ScannerT</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">start</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">first</span><span class="special">;</span> <span class="special">}</span>
+    <span class="special">};</span>
+
+    <span class="identifier">roman</span><span class="special">(</span><span class="keyword">unsigned</span><span class="special">&amp;</span> <span class="identifier">r_</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">r</span><span class="special">(</span><span class="identifier">r_</span><span class="special">)</span> <span class="special">{}</span>
+    <span class="keyword">unsigned</span><span class="special">&amp;</span> <span class="identifier">r</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">input</span><span class="special">(</span><span class="string">"MMIX"</span><span class="special">);</span>        <span class="comment">// MMIX == 2009</span>
+<span class="keyword">unsigned</span> <span class="identifier">value</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+<span class="identifier">roman</span> <span class="identifier">r</span><span class="special">(</span><span class="identifier">value</span><span class="special">);</span>
+<span class="identifier">parse_info</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">&gt;</span> <span class="identifier">pi</span> <span class="special">=</span> <span class="identifier">parse</span><span class="special">(</span><span class="identifier">input</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">r</span><span class="special">);</span>
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">pi</span><span class="special">.</span><span class="identifier">hit</span><span class="special">)</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"successfully matched: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">value</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        And here is a similar grammar and its usage in <span class="emphasis"><em>Spirit.Qi</em></span>:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">roman</span> <span class="special">:</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">unsigned</span><span class="special">()&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">roman</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">roman</span><span class="special">::</span><span class="identifier">base_type</span><span class="special">(</span><span class="identifier">first</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">hundreds</span><span class="special">.</span><span class="identifier">add</span>
+            <span class="special">(</span><span class="string">"C"</span>  <span class="special">,</span> <span class="number">100</span><span class="special">)(</span><span class="string">"CC"</span>  <span class="special">,</span> <span class="number">200</span><span class="special">)(</span><span class="string">"CCC"</span>  <span class="special">,</span> <span class="number">300</span><span class="special">)(</span><span class="string">"CD"</span> <span class="special">,</span> <span class="number">400</span><span class="special">)(</span><span class="string">"D"</span> <span class="special">,</span> <span class="number">500</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"DC"</span> <span class="special">,</span> <span class="number">600</span><span class="special">)(</span><span class="string">"DCC"</span> <span class="special">,</span> <span class="number">700</span><span class="special">)(</span><span class="string">"DCCC"</span> <span class="special">,</span> <span class="number">800</span><span class="special">)(</span><span class="string">"CM"</span> <span class="special">,</span> <span class="number">900</span><span class="special">)</span> <span class="special">;</span>
+
+        <span class="identifier">tens</span><span class="special">.</span><span class="identifier">add</span>
+            <span class="special">(</span><span class="string">"X"</span>  <span class="special">,</span> <span class="number">10</span><span class="special">)(</span><span class="string">"XX"</span>  <span class="special">,</span> <span class="number">20</span><span class="special">)(</span><span class="string">"XXX"</span>  <span class="special">,</span> <span class="number">30</span><span class="special">)(</span><span class="string">"XL"</span> <span class="special">,</span> <span class="number">40</span><span class="special">)(</span><span class="string">"L"</span> <span class="special">,</span> <span class="number">50</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"LX"</span> <span class="special">,</span> <span class="number">60</span><span class="special">)(</span><span class="string">"LXX"</span> <span class="special">,</span> <span class="number">70</span><span class="special">)(</span><span class="string">"LXXX"</span> <span class="special">,</span> <span class="number">80</span><span class="special">)(</span><span class="string">"XC"</span> <span class="special">,</span> <span class="number">90</span><span class="special">)</span> <span class="special">;</span>
+
+        <span class="identifier">ones</span><span class="special">.</span><span class="identifier">add</span>
+            <span class="special">(</span><span class="string">"I"</span>  <span class="special">,</span> <span class="number">1</span><span class="special">)(</span><span class="string">"II"</span>  <span class="special">,</span> <span class="number">2</span><span class="special">)(</span><span class="string">"III"</span>  <span class="special">,</span> <span class="number">3</span><span class="special">)(</span><span class="string">"IV"</span> <span class="special">,</span> <span class="number">4</span><span class="special">)(</span><span class="string">"V"</span> <span class="special">,</span> <span class="number">5</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"VI"</span> <span class="special">,</span> <span class="number">6</span><span class="special">)(</span><span class="string">"VII"</span> <span class="special">,</span> <span class="number">7</span><span class="special">)(</span><span class="string">"VIII"</span> <span class="special">,</span> <span class="number">8</span><span class="special">)(</span><span class="string">"IX"</span> <span class="special">,</span> <span class="number">9</span><span class="special">)</span> <span class="special">;</span>
+
+        <span class="comment">// qi::_val refers to the attribute of the rule on the left hand side </span>
+        <span class="identifier">first</span> <span class="special">=</span> <span class="identifier">eps</span>          <span class="special">[</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">_val</span> <span class="special">=</span> <span class="number">0</span><span class="special">]</span>
+            <span class="special">&gt;&gt;</span>  <span class="special">(</span>  <span class="special">+</span><span class="identifier">lit</span><span class="special">(</span><span class="char">'M'</span><span class="special">)</span> <span class="special">[</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">_val</span> <span class="special">+=</span> <span class="number">1000</span><span class="special">]</span>
+                <span class="special">||</span>  <span class="identifier">hundreds</span> <span class="special">[</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">_val</span> <span class="special">+=</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">_1</span><span class="special">]</span>
+                <span class="special">||</span>  <span class="identifier">tens</span>     <span class="special">[</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">_val</span> <span class="special">+=</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">_1</span><span class="special">]</span>
+                <span class="special">||</span>  <span class="identifier">ones</span>     <span class="special">[</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">_val</span> <span class="special">+=</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">_1</span><span class="special">]</span>
+                <span class="special">)</span> <span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">unsigned</span><span class="special">()&gt;</span> <span class="identifier">first</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">symbols</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="keyword">unsigned</span><span class="special">&gt;</span> <span class="identifier">hundreds</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">symbols</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="keyword">unsigned</span><span class="special">&gt;</span> <span class="identifier">tens</span><span class="special">;</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">symbols</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="keyword">unsigned</span><span class="special">&gt;</span> <span class="identifier">ones</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">input</span><span class="special">(</span><span class="string">"MMIX"</span><span class="special">);</span>        <span class="comment">// MMIX == 2009</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+<span class="keyword">unsigned</span> <span class="identifier">value</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+<span class="identifier">roman</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">&gt;</span> <span class="identifier">r</span><span class="special">;</span>
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span><span class="special">(</span><span class="identifier">it</span><span class="special">,</span> <span class="identifier">input</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">r</span><span class="special">,</span> <span class="identifier">value</span><span class="special">))</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"successfully matched: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">value</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        Both versions look similar enough, but we see several differences (we will
+        cover each of those differences in more detail below):
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Neither the grammars nor the rules depend on a scanner type anymore,
+            both depend only on the underlying iterator type. That means the dreaded
+            scanner business is no issue anymore!
+          </li>
+<li class="listitem">
+            Grammars have no embedded class <code class="computeroutput"><span class="identifier">definition</span></code>
+            anymore
+          </li>
+<li class="listitem">
+            Grammars and rules may have an explicit attribute type specified in their
+            definition
+          </li>
+<li class="listitem">
+            Grammars do not have any explicit start rules anymore. Instead one of
+            the contained rules is used as a start rule by default.
+          </li>
+</ul></div>
+<p>
+        The first two points are tightly interrelated. The scanner business (see
+        the FAQ number one of <a href="../../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>
+        here: <a href="../../../../../../libs/spirit/classic/doc/faq.html#scanner_business" target="_top">The
+        Scanner Business</a>) has been a problem for a long time. The grammar
+        and rule types have been specifically redesigned to avoid this problem in
+        the future. This also means that we don't need any delayed instantiation
+        of the inner definition class in a grammar anymore. So the redesign not only
+        helped fixing a long standing design problem, it helped to simplify things
+        considerably.
+      </p>
+<p>
+        All <span class="emphasis"><em>Spirit.Qi</em></span> parser components have well defined attribute
+        types. Grammars and rules are no exception. But since both need to be generic
+        enough to be usable for any parser their attribute type has to be explicitly
+        specified. In the example above the <code class="computeroutput"><span class="identifier">roman</span></code>
+        grammar and the rule <code class="computeroutput"><span class="identifier">first</span></code>
+        both have an <code class="computeroutput"><span class="keyword">unsigned</span></code> attribute:
+      </p>
+<pre class="programlisting"><span class="comment">// grammar definition</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">roman</span> <span class="special">:</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">unsigned</span><span class="special">()&gt;</span> <span class="special">{...};</span>
+
+<span class="comment">// rule definition</span>
+<span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">unsigned</span><span class="special">()&gt;</span> <span class="identifier">first</span><span class="special">;</span>
+</pre>
+<p>
+        The used notation resembles the definition of a function type. This is very
+        natural as you can think of the synthesized attribute of the grammar and
+        the rule as of its 'return value'. In fact the rule and the grammar both
+        'return' an unsigned value - the value they matched.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          The function type notation allows to specify parameters as well. These
+          are interpreted as the types of inherited attributes the rule or grammar
+          expect to be passed during parsing. For more information please see the
+          section about inherited and synthesized attributes for rules and grammars
+          (<a class="link" href="../abstracts/attributes.html" title="Attributes">Attributes</a>).
+        </p></td></tr>
+</table></div>
+<p>
+        If no attribute is desired none needs to be specified. The default attribute
+        type for both, grammars and rules, is <code class="computeroutput"><span class="identifier">unused_type</span></code>,
+        which is a special placeholder type. Generally, using <code class="computeroutput"><span class="identifier">unused_type</span></code>
+        as the attribute of a parser is interpreted as 'this parser has no attribute'.
+        This is mostly used for parsers applied to parts of the input not carrying
+        any significant information, rather being delimiters or structural elements
+        needed for correct interpretation of the input.
+      </p>
+<p>
+        The last difference might seem to be rather cosmetic and insignificant. But
+        it turns out that not having to specify which rule in a grammar is the start
+        rule (by returning it from the function <code class="computeroutput"><span class="identifier">start</span><span class="special">()</span></code>) also means that any rule in a grammar
+        can be directly used as the start rule. Nevertheless, the grammar base class
+        gets initialized with the rule it has to use as the start rule in case the
+        grammar instance is directly used as a parser.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../notes.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../notes.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="style_guide.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

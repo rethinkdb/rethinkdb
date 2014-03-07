@@ -1,0 +1,36 @@
+[/
+ / Copyright (c) 2008 Marcin Kalicinski (kalita <at> poczta dot onet dot pl)
+ / Copyright (c) 2009 Sebastian Redl (sebastian dot redl <at> getdesigned dot at)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+[template ptree2codeImage[] [$images/ptree2code.png]]
+[section:intro What is Property Tree?]
+The Property Tree library provides a data structure that stores an arbitrarily
+deeply nested tree of values, indexed at each level by some key. Each node of
+the tree stores its own value, plus an ordered list of its subnodes and their
+keys. The tree allows easy access to any of its nodes by means of a path, which
+is a concatenation of multiple keys.
+
+In addition, the library provides parsers and generators for a number of data
+formats that can be represented by such a tree, including XML, INI, and JSON.
+
+Property trees are versatile data structures, but are particularly suited for
+holding configuration data. The tree provides its own, tree-specific interface,
+and each node is also an STL-compatible Sequence for its child nodes.
+
+Conceptually, then, a node can be thought of as the following structure:
+
+   struct ptree
+   {
+      data_type data;                         // data associated with the node
+      list< pair<key_type, ptree> > children; // ordered list of named children
+   };
+
+Both key_type and data_type are configurable, but will usually be std::string.
+
+Many software projects develop a similar tool at some point of their lifetime,
+and property tree originated the same way.  We hope the library can save many
+from reinventing the wheel.
+[endsect] [/intro]

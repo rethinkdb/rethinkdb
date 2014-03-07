@@ -1,0 +1,158 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template intrusive_ptr</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp" title="Header &lt;boost/interprocess/interprocess_fwd.hpp&gt;">
+<link rel="prev" href="scoped_ptr.html" title="Class template scoped_ptr">
+<link rel="next" href="shared_ptr.html" title="Class template shared_ptr">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="scoped_ptr.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="shared_ptr.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.interprocess.intrusive_ptr"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template intrusive_ptr</span></h2>
+<p>boost::interprocess::intrusive_ptr</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp" title="Header &lt;boost/interprocess/interprocess_fwd.hpp&gt;">boost/interprocess/interprocess_fwd.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> VoidPointer<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="intrusive_ptr.html" title="Class template intrusive_ptr">intrusive_ptr</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="intrusive_ptr.html#boost.interprocess.intrusive_ptrconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="intrusive_ptr.html#idp28103096-bb"><span class="identifier">intrusive_ptr</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="intrusive_ptr.html#idp28103416-bb"><span class="identifier">intrusive_ptr</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="intrusive_ptr.html#idp28104632-bb"><span class="identifier">intrusive_ptr</span></a><span class="special">(</span><a class="link" href="intrusive_ptr.html" title="Class template intrusive_ptr">intrusive_ptr</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> <a class="link" href="intrusive_ptr.html#idp28105512-bb"><span class="identifier">intrusive_ptr</span></a><span class="special">(</span><a class="link" href="intrusive_ptr.html" title="Class template intrusive_ptr">intrusive_ptr</a><span class="special">&lt;</span> <span class="identifier">U</span><span class="special">,</span> <span class="identifier">VP</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  intrusive_ptr&amp; <a class="link" href="intrusive_ptr.html#idp28107192-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="intrusive_ptr.html" title="Class template intrusive_ptr">intrusive_ptr</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> 
+    intrusive_ptr&amp; <a class="link" href="intrusive_ptr.html#idp28108152-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="intrusive_ptr.html" title="Class template intrusive_ptr">intrusive_ptr</a><span class="special">&lt;</span> <span class="identifier">U</span><span class="special">,</span> <span class="identifier">VP</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  intrusive_ptr&amp; <a class="link" href="intrusive_ptr.html#idp28109544-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="identifier">pointer</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="intrusive_ptr.html#idp28106824-bb"><span class="special">~</span><span class="identifier">intrusive_ptr</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="intrusive_ptr.html#idp28096744-bb">public member functions</a></span>
+  <span class="identifier">pointer</span> <span class="special">&amp;</span> <a class="link" href="intrusive_ptr.html#idp28096952-bb"><span class="identifier">get</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span> <a class="link" href="intrusive_ptr.html#idp28097672-bb"><span class="identifier">get</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">T</span> <span class="special">&amp;</span> <a class="link" href="intrusive_ptr.html#idp28098392-bb"><span class="keyword">operator</span><span class="special">*</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span> <a class="link" href="intrusive_ptr.html#idp28099080-bb"><span class="keyword">operator</span><span class="special">-&gt;</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">pointer</span> <span class="special">&amp;</span> <a class="link" href="intrusive_ptr.html#idp28099768-bb"><span class="keyword">operator</span><span class="special">-&gt;</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="intrusive_ptr.html#idp28100456-bb"><span class="keyword">operator</span> <span class="identifier">unspecified_bool_type</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="intrusive_ptr.html#idp28101192-bb"><span class="keyword">operator</span><span class="special">!</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="intrusive_ptr.html#idp28101880-bb"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="intrusive_ptr.html" title="Class template intrusive_ptr">intrusive_ptr</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp116001240"></a><h2>Description</h2>
+<p>The <a class="link" href="intrusive_ptr.html" title="Class template intrusive_ptr">intrusive_ptr</a> class template stores a pointer to an object with an embedded reference count. <a class="link" href="intrusive_ptr.html" title="Class template intrusive_ptr">intrusive_ptr</a> is parameterized on T (the type of the object pointed to) and VoidPointer(a void pointer type that defines the type of pointer that <a class="link" href="intrusive_ptr.html" title="Class template intrusive_ptr">intrusive_ptr</a> will store). intrusive_ptr&lt;T, void *&gt; defines a class with a T* member whereas <a class="link" href="intrusive_ptr.html" title="Class template intrusive_ptr">intrusive_ptr</a>&lt;T, offset_ptr&lt;void&gt; &gt; defines a class with a offset_ptr&lt;T&gt; member. Relies on unqualified calls to:</p>
+<p>void intrusive_ptr_add_ref(T * p); void intrusive_ptr_release(T * p);</p>
+<p>with (p != 0)</p>
+<p>The object is responsible for destroying itself. </p>
+<div class="refsect2">
+<a name="idp116004648"></a><h3>
+<a name="boost.interprocess.intrusive_ptrconstruct-copy-destruct"></a><code class="computeroutput">intrusive_ptr</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp28103096-bb"></a><span class="identifier">intrusive_ptr</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor. Initializes internal pointer to 0. Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28103416-bb"></a><span class="identifier">intrusive_ptr</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span> p<span class="special">,</span> <span class="keyword">bool</span> add_ref <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor. Copies pointer and if "p" is not zero and "add_ref" is true calls intrusive_ptr_add_ref(to_raw_pointer(p)). Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28104632-bb"></a><span class="identifier">intrusive_ptr</span><span class="special">(</span><a class="link" href="intrusive_ptr.html" title="Class template intrusive_ptr">intrusive_ptr</a> <span class="keyword">const</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p>Copy constructor. Copies the internal pointer and if "p" is not zero calls intrusive_ptr_add_ref(to_raw_pointer(p)). Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> <a name="idp28105512-bb"></a><span class="identifier">intrusive_ptr</span><span class="special">(</span><a class="link" href="intrusive_ptr.html" title="Class template intrusive_ptr">intrusive_ptr</a><span class="special">&lt;</span> <span class="identifier">U</span><span class="special">,</span> <span class="identifier">VP</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor from related. Copies the internal pointer and if "p" is not zero calls intrusive_ptr_add_ref(to_raw_pointer(p)). Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">intrusive_ptr&amp; <a name="idp28107192-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="intrusive_ptr.html" title="Class template intrusive_ptr">intrusive_ptr</a> <span class="keyword">const</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p>Assignment operator. Equivalent to intrusive_ptr(r).swap(*this). Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> 
+  intrusive_ptr&amp; <a name="idp28108152-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="intrusive_ptr.html" title="Class template intrusive_ptr">intrusive_ptr</a><span class="special">&lt;</span> <span class="identifier">U</span><span class="special">,</span> <span class="identifier">VP</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p>Assignment from related. Equivalent to intrusive_ptr(r).swap(*this). Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">intrusive_ptr&amp; <a name="idp28109544-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="identifier">pointer</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p>Assignment from pointer. Equivalent to intrusive_ptr(r).swap(*this). Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28106824-bb"></a><span class="special">~</span><span class="identifier">intrusive_ptr</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destructor. If internal pointer is not 0, calls intrusive_ptr_release(to_raw_pointer(m_ptr)). Does not throw </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp116035512"></a><h3>
+<a name="idp28096744-bb"></a><code class="computeroutput">intrusive_ptr</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">pointer</span> <span class="special">&amp;</span> <a name="idp28096952-bb"></a><span class="identifier">get</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns a reference to the internal pointer. Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span> <a name="idp28097672-bb"></a><span class="identifier">get</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns a reference to the internal pointer. Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">T</span> <span class="special">&amp;</span> <a name="idp28098392-bb"></a><span class="keyword">operator</span><span class="special">*</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns *get(). Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <span class="identifier">pointer</span> <span class="special">&amp;</span> <a name="idp28099080-bb"></a><span class="keyword">operator</span><span class="special">-&gt;</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns *get(). Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">pointer</span> <span class="special">&amp;</span> <a name="idp28099768-bb"></a><span class="keyword">operator</span><span class="special">-&gt;</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Returns get(). Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28100456-bb"></a><span class="keyword">operator</span> <span class="identifier">unspecified_bool_type</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Conversion to boolean. Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28101192-bb"></a><span class="keyword">operator</span><span class="special">!</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Not operator. Does not throw </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28101880-bb"></a><span class="identifier">swap</span><span class="special">(</span><a class="link" href="intrusive_ptr.html" title="Class template intrusive_ptr">intrusive_ptr</a> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p>Exchanges the contents of the two smart pointers. Does not throw </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="scoped_ptr.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="shared_ptr.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

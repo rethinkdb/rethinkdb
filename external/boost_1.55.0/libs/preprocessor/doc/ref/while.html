@@ -1,0 +1,116 @@
+<html>
+<head>
+	<title>BOOST_PP_WHILE</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_WHILE</b> macro represents a looping construct.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_WHILE</b>(<i>pred</i>, <i>op</i>, <i>state</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>pred</dt>
+			<dd>
+				A binary predicate of the form <i>pred</i>(<i>d</i>, <i>state</i>).&nbsp;
+				This predicate is expanded by <b>BOOST_PP_WHILE</b> with the next available
+				iteration <i>d</i> and the current <i>state</i>.&nbsp;
+				This predicate must expand to value in the range of <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+				The construct continues to loop until this predicate returns <i>0</i>.&nbsp;
+				When this predicate returns <i>0</i>, <b>BOOST_PP_WHILE</b> returns the current <i>state</i>.
+			</dd>
+			<dt>op</dt>
+			<dd>
+				A binary operation of the form <i>op</i>(<i>d</i>, <i>state</i>).&nbsp;
+				This operation is expanded by <b>BOOST_PP_WHILE</b> with the next available
+				iteration <i>d</i> and the current <i>state</i>.&nbsp;
+				This macro is repeatedly applied to the <i>state</i>, each time producing a new <i>state</i>, until <i>pred</i> returns <i>0</i>.
+			</dd>
+			<dt>state</dt>
+			<dd>
+				The initial state.&nbsp;
+				Often this argument is a <i>tuple</i>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro iterates <i>op</i>(<i>d</i>, <i>state</i>) while <i>pred</i>(<i>d</i>, <i>state</i>) is non-zero.&nbsp;
+			In other words expands to:
+			<div>
+				<i>op</i>(<i>d</i>, ... <i>op</i>(<i>d</i>, <i>op</i>(<i>d</i>, <i>state</i>)) ... ).
+			</div>
+		</div>
+		<div>
+			The <i>d</i> value that is passed to both <i>pred</i> and <i>op</i> represents the next available iteration.&nbsp;
+			Other macros that have <b>_D</b> suffix variants internally use <b>BOOST_PP_WHILE</b>--for example, <b>BOOST_PP_ADD</b> and <b>BOOST_PP_ADD_D</b>.&nbsp;
+			Using these <b>_D</b> versions is not strictly necessary, but passing the <i>d</i> value (that passed to <i>pred</i> or <i>op</i>) to these macros allows them to reenter <b>BOOST_PP_WHILE</b> with maximum efficiency.
+		</div>
+		<div>
+			To directly use this <i>d</i> value, rather than simply passing it to another macro, see <b>BOOST_PP_WHILE_<i>d</i></b>.
+		</div>
+		<div>
+			Previously, this macro could not be used recursively inside <b>BOOST_PP_WHILE</b>.&nbsp;
+			This limitation no longer exists, as the library can automatically detect the next available iteration.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+			<li><a href="while_d.html">BOOST_PP_WHILE_<i>d</i></a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/control/while.html">&lt;boost/preprocessor/control/while.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/arithmetic/add.html">boost/preprocessor/arithmetic/add.hpp</a>&gt;
+#include &lt;<a href="../headers/control/while.html">boost/preprocessor/control/while.hpp</a>&gt;
+#include &lt;<a href="../headers/tuple/elem.html">boost/preprocessor/tuple/elem.hpp</a>&gt;
+
+#define PRED(n, state) <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(2, 1, state)
+
+#define OP(d, state) \
+   OP_D( \
+      d, \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(2, 0, state), \
+      <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>(2, 1, state) \
+   ) \
+   /**/
+
+#define OP_D(d, res, c) \
+   ( \
+      <a href="add_d.html">BOOST_PP_ADD_D</a>( \
+         d, \
+         res, \
+         <a href="dec.html">BOOST_PP_DEC</a>(c) \
+      ), \
+      <a href="dec.html">BOOST_PP_DEC</a>(c) \
+   ) \
+   /**/
+
+#define SUMMATION(n) \
+   <a href="tuple_elem.html">BOOST_PP_TUPLE_ELEM</a>( \
+      2, 0, \
+      <a href="while.html">BOOST_PP_WHILE</a>(PRED, OP, (n, n)) \
+   ) \
+   /**/
+
+SUMMATION(3) // expands to 6
+SUMMATION(4) // expands to 10
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

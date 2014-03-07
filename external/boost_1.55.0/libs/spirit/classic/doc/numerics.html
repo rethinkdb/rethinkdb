@@ -1,0 +1,460 @@
+<html>
+<head>
+<title>Numerics</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr>
+    <td width="10">
+    </td>
+    <td width="85%">
+      <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Numerics</b></font>
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="operators.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="rule.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>Similar to <tt>chlit</tt>, <tt>strlit</tt> etc. numeric parsers are also primitives.
+  Numeric parsers are placed on
+
+
+ a section of their own
+
+ to give this important building
+  block better focus. The framework includes a couple of predefined objects for
+  parsing signed and unsigned integers and real numbers. These parsers are fully
+  parametric. Most of the important aspects of numeric parsing can be finely adjusted
+  to suit. This includes the radix base, the minimum and maximum number of allowable
+  digits, the exponent, the fraction etc. Policies control the real number parsers'
+  behavior. There are some predefined policies covering the most common real number
+  formats but the user can supply her own when needed. </p>
+<h2>uint_parser</h2>
+<p>This class is the simplest among the members of the numerics package. The <tt>uint_parser</tt>
+  can parse unsigned integers of arbitrary length and size. The <tt>uint_parser</tt>
+  parser can be used to parse ordinary primitive C/C++ integers or even user defined
+  scalars such as bigints (unlimited precision integers). Like most of the classes
+  in Spirit, the <tt>uint_parser</tt> is a template class. Template parameters
+  fine tune its behavior. The uint_parser is so flexible that the other numeric
+  parsers are implemented using it as the backbone.</p>
+<pre><code><font color="#000000"><span class=identifier>    </span><span class=keyword>template </span><span class=special>&lt;
+        </span><span class=keyword>typename </span><span class=identifier>T </span><span class=special>= </span><span class="keyword">unsigned</span><span class=special>,
+        </span><span class=keyword>int </span><span class=identifier>Radix </span><span class=special>= </span><span class=number>10</span><span class=special>,
+        </span><span class=keyword>unsigned </span><span class=identifier>MinDigits </span><span class=special>= </span><span class=number>1</span><span class=special>,
+        </span><span class=keyword>int </span><span class=identifier>MaxDigits </span><span class=special>= -</span><span class=number>1</span><span class=special>&gt;
+    </span><span class=keyword>struct </span><span class=identifier>uint_parser </span><span class=special>{ </span><span class=comment>/*...*/ </span><span class=special>};</span></font></code></pre>
+<table width="90%" border="0" align="center">
+  <tr>
+    <td colspan="2" class="table_title">uint_parser template parameters</td>
+  </tr>
+  <tr>
+    <td class="table_cells" width="21%"><b>T</b></td>
+    <td class="table_cells" width="79%">The numeric base type of the numeric parser.
+      Defaults to <tt>unsigned</tt></td>
+  </tr>
+  <tr>
+    <td class="table_cells" width="21%"><b>Radix</b></td>
+    <td class="table_cells" width="79%">The radix base. This can be either 2:
+      binary, 8: octal, 10: decimal and 16: hexadecimal. Defaults to 10; decimal</td>
+  </tr>
+  <tr>
+    <td class="table_cells" width="21%"><b>MinDigits</b></td>
+    <td class="table_cells" width="79%">The minimum number of digits allowable</td>
+  </tr>
+  <tr>
+    <td class="table_cells" width="21%"><b>MaxDigits</b></td>
+    <td class="table_cells" width="79%">The maximum number of digits allowable.
+      If this is -1, then the maximum limit becomes unbounded</td>
+  </tr>
+</table>
+<br>
+<table width="90%" border="0" align="center">
+  <tr>
+    <td colspan="2" class="table_title">Predefined uint_parsers</td>
+  </tr>
+  <tr>
+    <td class="table_cells" width="21%"><b>bin_p</b></td>
+    <td class="table_cells" width="79%"><code><span class=identifier>uint_parser</span><span class=special>&lt;</span><span class=keyword>unsigned</span><span class=special>,
+      </span><span class=number>2</span><span class=special>, </span><span class=number>1</span><span class=special>,
+      -</span><span class=number>1</span><span class=special>&gt; </span><span class=keyword>const</span></code></td>
+  </tr>
+  <tr>
+    <td class="table_cells" width="21%"><b>oct_p</b></td>
+    <td class="table_cells" width="79%"><code><span class=identifier>uint_parser</span><span class=special>&lt;</span><span class=keyword>unsigned</span><span class=special>,
+      </span><span class=number>8</span><span class=special>, </span><span class=number>1</span><span class=special>,
+      -</span><span class=number>1</span><span class=special>&gt; </span><span class=keyword>const</span></code></td>
+  </tr>
+  <tr>
+    <td class="table_cells" width="21%"><b>uint_p</b></td>
+    <td class="table_cells" width="79%"><code><span class=identifier>uint_parser</span><span class=special>&lt;</span><span class=keyword>unsigned</span><span class=special>,
+      </span><span class=number>10</span><span class=special>, </span><span class=number>1</span><span class=special>,
+      -</span><span class=number>1</span><span class=special>&gt; </span><span class=keyword>const</span></code></td>
+  </tr>
+  <tr>
+    <td class="table_cells" width="21%"><b>hex_p</b></td>
+    <td class="table_cells" width="79%"><code><span class=identifier>uint_parser</span><span class=special>&lt;</span><span class=keyword>unsigned</span><span class=special>,
+      </span><span class=number>16</span><span class=special>, </span><span class=number>1</span><span class=special>,
+      -</span><span class=number>1</span><span class=special>&gt; </span><span class=keyword>const</span></code></td>
+  </tr>
+</table>
+<p>The following example shows how the uint_parser can be used to parse thousand
+  separated numbers. The example can correctly parse numbers such as 1,234,567,890.</p>
+<pre><span class=keyword>    </span><span class=identifier>uint_parser</span><span class=special>&lt;</span><span class=keyword>unsigned</span><span class=special>, </span><span class=number>10</span><span class=special>, </span><span class=number>1</span><span class=special>, </span><span class=number>3</span><span class=special>&gt; </span><span class=identifier>uint3_p</span><span class=special>;        </span><span class=comment>//  1..3 digits
+    </span><span class=identifier>uint_parser</span><span class=special>&lt;</span><span class=keyword>unsigned</span><span class=special>, </span><span class=number>10</span><span class=special>, </span><span class=number>3</span><span class=special>, </span><span class=number>3</span><span class=special>&gt; </span><span class=identifier>uint3_3_p</span><span class=special>;      </span><span class=comment>//  exactly 3 digits
+    </span><span class=identifier>ts_num_p </span><span class=special>= </span><span class=special>(</span><span class=identifier>uint3_p </span><span class=special>&gt;&gt; </span><span class=special>*(</span><span class=literal>',' </span><span class=special>&gt;&gt; </span><span class=identifier>uint3_3_p</span><span class=special>));    </span><span class=comment>//  our thousand separated number parser</span></pre>
+<p><tt>bin_p</tt>, <tt>oct_p</tt>, <tt>uint_p</tt> and <tt>hex_p</tt> are parser
+  generator objects designed to be used within expressions. Here's an example
+  of a rule that parses comma delimited list of numbers (We've seen this <a href="quick_start.html#list_of_numbers">before</a>):</p>
+<pre><code><span class=identifier>    </span><span class=identifier>list_of_numbers </span><span class=special>=</span> <span class=identifier>real_p </span><span class=special>&gt;&gt; *(</span><span class=literal>','</span> <span class=special>&gt;&gt; </span><span class=identifier>real_p</span><span class=special>)</span></code>;
+</pre>
+<p></p>
+<p>Later, we shall see how we can extract the actual numbers parsed by the numeric
+  parsers. We shall deal with this when we get to the section on <a href="semantic_actions.html#specialized_actions">specialized
+  actions</a>.</p>
+<h2>int_parser</h2>
+<p>The <tt>int_parser</tt> can parse signed integers of arbitrary length and size.
+  This is almost the same as the <tt>uint_parser</tt>. The only difference is
+  the additional task of parsing the <tt><span class="quotes">'+'</span></tt>
+  or <tt class="quotes">'-'</tt> sign preceding the number. The class interface
+  is the same as that of the uint_parser.<br>
+</p>
+<table width="90%" border="0" align="center">
+  <tr>
+    <td colspan="2" class="table_title">A predefined int_parser</td>
+  </tr>
+  <tr>
+    <td class="table_cells" width="21%"><b>int_p</b></td>
+    <td class="table_cells" width="79%"><span class=identifier><code>int_parser</code></span><code><span class=special>&lt;</span><span class=keyword>int</span><span class=special>,
+      </span><span class=number>10</span><span class=special>, </span><span class=number>1</span><span class=special>,
+      -</span><span class=number>1</span><span class=special>&gt; </span><span class=keyword>const</span></code></td>
+  </tr>
+</table>
+<h2>real_parser</h2>
+<p>The <tt>real_parser</tt> can parse real numbers of arbitrary length and size
+  limited by its parametric type <tt>T</tt>. The <tt>real_parser</tt> is a template
+  class with 2 template parameters. Here's the <tt>real_parser</tt> template interface:</p>
+<pre><span class=keyword>    template</span><span class=special>&lt;
+        </span><span class=keyword>typename </span><span class=identifier>T </span><span class=special>= </span><span class=keyword>double</span><span class=special>,
+        </span><span class=keyword>typename </span><span class=identifier>RealPoliciesT </span><span class=special>= </span><span class=identifier>ureal_parser_policies</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>&gt; </span><span class=special>&gt;
+</span><span class=keyword>    struct </span><span class=identifier>real_parser</span><span class=special>;</span></pre>
+<p>The first template parameter is its numeric base type <tt>T</tt>. This defaults
+  to <tt>double</tt>. </p>
+<table width="80%" border="0" align="center">
+  <tr>
+    <td class="note_box"><img src="theme/bulb.gif" width="13" height="18"><b>
+      Parsing special numeric types</b><br>
+      <br>
+      Notice that the numeric base type <tt>T</tt> can be specified by the user.
+      This means that we can use the numeric parsers to parse user defined numeric
+      types such as <tt>fixed_point</tt> (fixed point reals) and <tt>bigint</tt>
+      (unlimited precision integers).</td>
+  </tr>
+</table>
+<p>The second template parameter is a class that groups all the policies and defaults
+  to <tt>ureal_parser_policies&lt;T&gt;</tt>. Policies control the real number
+  parsers' behavior. The default policies provided are designed to parse C/C++
+  style real numbers of the form <b>nnn.fff.Eeee</b> where <b>nnn</b> is the whole
+  number part, <b>fff</b> is the fractional part, <b>E</b> is <tt class="quotes">'e'</tt>
+  or <tt class="quotes">'E'</tt> and <b>eee</b> is the exponent optionally preceded
+  by <tt class="quotes">'-'</tt> or <tt><span class="quotes">'+'</span></tt>.
+  This corresponds to the following grammar, with the exception that plain integers
+  without the decimal point are also accepted by default.</p>
+<pre><code><font color="#000000"><span class=keyword>    </span><span class=identifier>floatingliteral
+        </span><span class=special>=   </span><span class=identifier>fractionalconstant </span><span class=special>&gt;&gt; </span><span class=special>!</span><span class=identifier>exponentpart
+        </span><span class=special>|  </span><span class=special>+</span><span class=identifier>digit_p </span><span class=special>&gt;&gt; </span><span class=identifier>exponentpart
+        </span><span class=special>;
+
+    </span><span class=identifier>fractionalconstant
+        </span><span class=special>=  </span><span class=special>*</span><span class=identifier>digit_p </span><span class=special>&gt;&gt; </span><span class=literal>'.' </span><span class=special>&gt;&gt; </span><span class=special>+</span><span class=identifier>digit_p
+        </span><span class=special>|  </span><span class=special>+</span><span class=identifier>digit_p </span><span class=special>&gt;&gt; </span><span class=literal>'.'
+        </span><span class=special>;
+
+    </span><span class=identifier>exponentpart
+        </span><span class=special>=   </span><span class=special>(</span><span class=literal>'e' </span><span class=special>| </span><span class=literal>'E'</span><span class=special>) </span><span class=special>&gt;&gt; </span><span class=special>!(</span><span class=literal>'+' </span><span class=special>| </span><span class=literal>'-'</span><span class=special>) </span><span class=special>&gt;&gt; </span><span class=special>+</span><span class=identifier>digit_p
+        </span><span class=special>;</span></font></code></pre>
+<p>The default policies are provided to take care of the most common case (there
+  are many ways to represent, and hence parse, real numbers). In most cases, the
+  default setting of the <tt>real_parser</tt> is sufficient and can be used straight
+  out of the box. Actually, there are four <tt>real_parser</tt>s pre-defined for
+  immediate use:</p>
+<table width="90%" border="0" align="center">
+  <tr>
+    <td colspan="2" class="table_title">Predefined real_parsers</td>
+  </tr>
+  <tr>
+    <td class="table_cells" width="21%"><b>ureal_p</b></td>
+    <td class="table_cells" width="79%"><span class=identifier><code>real_parser</code></span><code><span class=special>&lt;</span><span class=keyword>double</span><span class=special>,
+      </span><span class=identifier>ureal_parser_policies</span><span class=special>&lt;</span><span class=keyword>double</span><span class=special>&gt;
+      &gt; </span><span class=keyword>const</span></code></td>
+  </tr>
+  <tr>
+    <td class="table_cells" width="21%"><b>real_p</b></td>
+    <td class="table_cells" width="79%"><span class=identifier><code>real_parser</code></span><code><span class=special>&lt;</span><span class=keyword>double</span><span class=special>,
+      </span><span class=identifier>real_parser_policies</span><span class=special>&lt;</span><span class=keyword>double</span><span class=special>&gt;
+      &gt; </span><span class=keyword>const</span></code></td>
+  </tr>
+  <tr>
+    <td class="table_cells" width="21%"><b>strict_ureal_p</b></td>
+    <td class="table_cells" width="79%"><span class=identifier><code>real_parser</code></span><code><span class=special>&lt;</span><span class=keyword>double</span><span class=special>,
+      </span><span class=identifier>strict_ureal_parser_policies</span><span class=special>&lt;</span><span class=keyword>double</span><span class=special>&gt;
+      &gt; </span><span class=keyword>const</span></code></td>
+  </tr>
+  <tr>
+    <td class="table_cells" width="21%"><b>strict_real_p</b></td>
+    <td class="table_cells" width="79%"><span class=identifier><code>real_parser</code></span><code><span class=special>&lt;</span><span class=keyword>double</span><span class=special>,
+      </span><span class=identifier>strict_real_parser_policies</span><span class=special>&lt;</span><span class=keyword>double</span><span class=special>&gt;
+      &gt; </span><span class=keyword>const</span></code></td>
+  </tr>
+</table>
+<p>We've seen <tt>real_p</tt> before. <tt>ureal_p</tt> is its unsigned variant.</p>
+<h3><a name="strict_reals"></a>Strict Reals </h3>
+<p>Integer numbers are considered a subset of real numbers, so <tt>real_p</tt>
+  and <tt>ureal_p</tt> recognize integer numbers (without a dot) as real numbers.
+  <tt>strict_real_p</tt> and <tt>strict_ureal_p</tt> are the equivalent parsers
+  that <strong>require</strong> a dot to be present for a number to be considered
+  a successful match.</p>
+<h2>Advanced: real_parser policies</h2>
+<p>The parser policies break down real number parsing into 6 steps:</p>
+<table width="90%" border="0" align="center">
+  <tr>
+    <td class="table_cells">1</td>
+    <td class="table_cells"><b>parse_sign</b></td>
+    <td class="table_cells">Parse the prefix sign</td>
+  </tr>
+  <tr>
+    <td class="table_cells">2</td>
+    <td class="table_cells"><b>parse_n</b></td>
+    <td class="table_cells">Parse the integer at the left of the decimal point</td>
+  </tr>
+  <tr>
+    <td class="table_cells">3</td>
+    <td class="table_cells"><b>parse_dot</b></td>
+    <td class="table_cells">Parse the decimal point</td>
+  </tr>
+  <tr>
+    <td class="table_cells">4</td>
+    <td class="table_cells"><b>parse_frac_n</b></td>
+    <td class="table_cells">Parse the fraction after the decimal point</td>
+  </tr>
+  <tr>
+    <td class="table_cells">5</td>
+    <td class="table_cells"><b>parse_exp</b></td>
+    <td class="table_cells">Parse the exponent prefix (e.g. 'e')</td>
+  </tr>
+  <tr>
+    <td class="table_cells">6</td>
+    <td class="table_cells"><b>parse_exp_n</b></td>
+    <td class="table_cells">Parse the actual exponent</td>
+  </tr>
+</table>
+<p>And the interaction of these sub-parsing tasks is further controlled by these
+  3 policies:</p>
+<table width="90%" border="0" align="center">
+  <tr>
+    <td class="table_cells">1</td>
+    <td class="table_cells"><b>allow_leading_dot</b></td>
+    <td class="table_cells">Allow a leading dot to be present (&quot;.1&quot; becomes
+      equivalent to &quot;0.1&quot;)</td>
+  </tr>
+  <tr>
+    <td class="table_cells">2</td>
+    <td class="table_cells"><b>allow_trailing_dot</b></td>
+    <td class="table_cells">Allow a trailing dot to be present (&quot;1.&quot; becomes
+    equivalent to &quot;1.0&quot;)</td>
+  </tr>
+  <tr>
+    <td class="table_cells">3</td>
+    <td class="table_cells"><b>expect_dot</b></td>
+    <td class="table_cells">Require a dot to be present (disallows &quot;1&quot; to
+    be equivalent to &quot;1.0&quot;)</td>
+  </tr>
+</table>
+<p>[ <img src="theme/lens.gif" width="15" height="16"> From here on, required
+  reading: <a href="scanner.html">The Scanner</a>, <a href="indepth_the_parser.html">In-depth
+  The Parser</a> and <a href="indepth_the_scanner.html">In-depth The Scanner</a>
+  ]</p>
+<h2>sign_parser and sign_p</h2>
+<p>Before we move on, a small utility parser is included here to ease the parsing
+  of the <span class="quotes">'-'</span> or <span class="quotes">'+'</span> sign.
+  While it is easy to write one:</p>
+<pre>    <span class=identifier>sign_p </span><span class=special>= </span><span class=special>(</span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'+'</span>) <span class=special>| </span><span class=literal>'-'</span><span class="special">)</span><span class=literal>;</span></pre>
+<p>it is not possible to extract the actual sign (positive or negative) without
+  resorting to semantic actions. The sign_p parser has a bool attribute returned
+  to the caller through the match object which, after parsing, is set to <strong>true</strong>
+  if the parsed sign is negative. This attribute detects if the negative sign
+  has been parsed. Examples:</p>
+<pre><span class=special>    </span><span class=keyword>bool </span><span class=identifier>is_negative</span><span class=special>;
+    </span><span class=identifier>r </span><span class=special>= </span><span class=identifier>sign_p</span><span class=special>[</span><span class=identifier>assign_a</span><span class=special>(</span><span class=identifier>is_negative</span><span class=special>)]</span><span class=special>;</span></pre>
+<p><span class=special></span>or simply...</p>
+<pre>    <span class=comment>// directly extract the result from the match result's value</span>
+    <span class=keyword>bool </span><span class=identifier>is_negative </span><span class=special>= </span><span class=identifier>sign_p</span><span class=special>.</span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>scan</span><span class=special>).</span><span class=identifier>value</span><span class=special>();</span><span class=comment> </span></pre>
+<p>The sign_p parser expects attached semantic actions to have a signature (see
+  <a href="semantic_actions.html#specialized_actions">Specialized Actions</a>
+  for further detail) compatible with: </p>
+<p><b>Signature for functions:</b></p>
+<pre><code><font color="#000000"><span class=identifier>    </span><span class=keyword>void </span><span class=identifier>func</span><span class=special>(</span><span class="keyword">bool</span><span class=identifier> is_negative</span><span class=special>);</span></font></code></pre>
+<p><b>Signature for functors:</b> </p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>struct </span><span class=identifier>ftor
+    </span><span class=special>{
+        </span><span class=keyword>void </span><span class=keyword>operator</span><span class=special>()(</span><span class="keyword">bool</span><span class=identifier> is_negative</span><span class=special>) </span><span class=keyword>const</span><span class=special>;
+    </span><span class=special>};</span></font></code></pre>
+<h2><span class=identifier>ureal_parser_policies</span></h2>
+<pre><span class=comment>    </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>T</span><span class=special>&gt;
+    </span><span class=keyword>struct </span><span class=identifier>ureal_parser_policies
+    </span><span class=special>{
+        </span><span class=keyword>typedef </span><span class=identifier>uint_parser</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>, </span><span class=number>10</span><span class=special>, </span><span class=number>1</span><span class=special>, -</span><span class=number>1</span><span class=special>&gt;   </span><span class=identifier>uint_parser_t</span><span class=special>;
+        </span><span class=keyword>typedef </span><span class=identifier>int_parser</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>, </span><span class=number>10</span><span class=special>, </span><span class=number>1</span><span class=special>, -</span><span class=number>1</span><span class=special>&gt;    </span><span class=identifier>int_parser_t</span><span class=special>;
+
+        </span><span class=keyword>static const bool</span> <span class=identifier>allow_leading_dot</span> <span class=special> =</span> <span class=literal>true</span><span class=special>;</span><span class=special>
+        </span><span class=keyword>static const bool</span> <span class=identifier>allow_trailing_dot </span><span class=special>=</span> <span class=literal>true</span><span class=special>;</span><span class=special></span>
+<span class=special>        </span><span class=keyword>static const bool</span> <span class=identifier>expect_dot</span> <span class=special>        =</span> <span class=literal>false</span><span class=special>;</span><span class=special></span><span class=special><br>
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>static typename </span><span class=identifier>match_result</span><span class=special>&lt;</span><span class=identifier>ScannerT</span><span class=special>, </span><span class="identifier">nil_t</span><span class=special>&gt;::</span><span class=identifier>type
+        parse_sign</span><span class=special>(</span><span class=identifier>ScannerT</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>)
+        { </span><span class=keyword>return </span><span class=identifier>scan</span><span class=special>.</span><span class=identifier>no_match</span><span class=special>(); }
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>static typename </span><span class=identifier>parser_result</span><span class=special>&lt;</span><span class=identifier>uint_parser_t</span><span class=special>, </span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type
+        parse_n</span><span class=special>(</span><span class=identifier>ScannerT</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>)
+        { </span><span class=keyword>return </span><span class=identifier>uint_parser_t</span><span class=special>().</span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>scan</span><span class=special>); }
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>static typename </span><span class=identifier>parser_result</span><span class=special>&lt;</span><span class=identifier>chlit</span><span class=special>&lt;&gt;, </span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type
+        parse_dot</span><span class=special>(</span><span class=identifier>ScannerT</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>)
+        { </span><span class=keyword>return </span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'.'</span><span class=special>).</span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>scan</span><span class=special>); }
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>static typename </span><span class=identifier>parser_result</span><span class=special>&lt;</span><span class=identifier>uint_parser_t</span><span class=special>, </span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type
+        parse_frac_n</span><span class=special>(</span><span class=identifier>ScannerT</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>)
+        { </span><span class=keyword>return </span><span class=identifier>uint_parser_t</span><span class=special>().</span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>scan</span><span class=special>); }
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>static typename </span><span class=identifier>parser_result</span><span class=special>&lt;</span><span class=identifier>chlit</span><span class=special>&lt;&gt;, </span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type
+        parse_exp</span><span class=special>(</span><span class=identifier>ScannerT</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>)
+        { </span><span class=keyword>return </span><span class=identifier>as_lower_d</span><span class=special>[</span><span class=literal>'e'</span><span class=special>].</span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>scan</span><span class=special>); }
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>static typename </span><span class=identifier>parser_result</span><span class=special>&lt;</span><span class=keyword>int</span><span class=identifier>_parser_t</span><span class=special>, </span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type
+        parse_exp_n</span><span class=special>(</span><span class=identifier>ScannerT</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>)
+        { </span><span class=keyword>return int</span><span class=identifier>_parser_t</span><span class=special>().</span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>scan</span><span class=special>); }
+    };
+</span></pre>
+<p><span class=special></span><span class=identifier>The default ureal_parser_policies
+  uses the lower level integer numeric parsers to do its job. </span></p>
+<h2><span class=identifier>real_parser_policies</span></h2>
+<pre>    <span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>T</span><span class=special>&gt;
+    </span><span class=keyword>struct </span><span class=identifier>real_parser_policies </span><span class=special>: </span><span class=keyword>public </span><span class=identifier>ureal_parser_policies</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>&gt;
+    </span><span class=special>{
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>static </span><span class=keyword>typename </span><span class=identifier>parser_result</span><span class=special>&lt;</span><span class=identifier>sign_parser</span><span class=special>, </span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type
+        </span><span class=identifier>parse_sign</span><span class=special>(</span><span class=identifier>ScannerT</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>)
+        </span><span class=special>{ </span><span class=keyword>return </span><span class=identifier>sign_p</span><span class=special>.</span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>scan</span><span class=special>); </span><span class=special>}
+    </span><span class=special>};</span></pre>
+<p>Notice how the real_parser_policies replaced <b><tt>parse_sign</tt></b> of
+  the <b>u</b>real_parser_policies from which it is subclassed. The default real_parser_policies
+  simply uses a <tt>sign_p</tt> instead of <tt>scan.no_match()</tt> in the <tt>parse_sign
+  </tt> step. </p>
+<h2><span class=identifier>strict_ureal_parser_policies and strict_real_parser_policies</span></h2>
+<pre>    <span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>T</span><span class=special>&gt;
+    </span><span class=keyword>struct </span><span class=identifier>strict_ureal_parser_policies </span><span class=special>: </span><span class=keyword>public </span><span class=identifier>ureal_parser_policies</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>&gt;
+    </span><span class=special>{</span>
+<span class=special>        </span><span class=keyword>static const bool</span> <span class=identifier>expect_dot</span><span class=special> =</span> <span class=literal>true</span><span class=special>;</span><span class=special></span><span class=special></span>
+    <span class=special>};</span>
+
+    <span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>T</span><span class=special>&gt;
+    </span><span class=keyword>struct </span><span class=identifier>strict_real_parser_policies </span><span class=special>: </span><span class=keyword>public </span><span class=identifier>real_parser_policies</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>&gt;
+    </span><span class=special>{</span>
+<span class=special>        </span><span class=keyword>static const bool</span> <span class=identifier>expect_dot</span><span class=special> =</span> <span class=literal>true</span><span class=special>;</span><span class=special></span><span class=special></span>
+    <span class=special>};</span></pre>
+<p>Again, these policies replaced just the policies they wanted different from
+  their superclasses.</p>
+<p><i>Specialized</i> real parser policies can reuse some of the defaults while
+  replacing a few. For example, the following is a real number parser policy that
+  parses thousands separated numbers with at most two decimal places and no exponent.
+</p>
+<p><img src="theme/lens.gif" width="15" height="16">The full source code can be
+  viewed <a href="../example/fundamental/thousand_separated.cpp">here</a>. </p>
+<pre>
+<span class=identifier>    </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>T</span><span class=special>&gt;
+    </span><span class=keyword>struct </span><span class=identifier>ts_real_parser_policies </span><span class=special>: </span><span class=keyword>public </span><span class=identifier>ureal_parser_policies</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>&gt;
+    {
+        </span><span class=comment>//  These policies can be used to parse thousand separated
+        //  numbers with at most 2 decimal digits after the decimal
+        //  point. e.g. 123,456,789.01
+
+        </span><span class=keyword>typedef </span><span class=identifier>uint_parser</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>, </span><span class=number>10</span><span class=special>, </span><span class=number>1</span><span class=special>, </span><span class=number>2</span><span class=special>&gt;  </span><span class=identifier>uint2_t</span><span class=special>;
+        </span><span class=keyword>typedef </span><span class=identifier>uint_parser</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>, </span><span class=number>10</span><span class=special>, </span><span class=number>1</span><span class=special>, -</span><span class=number>1</span><span class=special>&gt;   </span><span class=identifier>uint_parser_t</span><span class=special>;
+        </span><span class=keyword>typedef </span><span class=identifier>int_parser</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>, </span><span class=number>10</span><span class=special>, </span><span class=number>1</span><span class=special>, -</span><span class=number>1</span><span class=special>&gt;  </span><span class=identifier>int_parser_t</span><span class=special>;
+
+        </span><span class=comment>//////////////////////////////////  2 decimal places Max
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>static typename </span><span class=identifier>parser_result</span><span class=special>&lt;</span><span class=identifier>uint2_t</span><span class=special>, </span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type
+        parse_frac_n</span><span class=special>(</span><span class=identifier>ScannerT</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>)
+        { </span><span class=keyword>return </span><span class=identifier>uint2_t</span><span class=special>().</span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>scan</span><span class=special>); }
+
+</span><span class=special>        </span><span class=comment>//////////////////////////////////  No exponent<br></span>        <span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>static typename </span><span class=identifier>parser_result</span><span class=special>&lt;</span><span class=identifier>chlit</span><span class=special>&lt;&gt;, </span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type
+        parse_exp</span><span class=special>(</span><span class=identifier>ScannerT</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>)
+        { </span><span class=keyword>return </span><span class=identifier>scan</span><span class=special>.</span><span class=identifier>no_match</span><span class=special>(); }
+
+</span><span class=special>        </span><span class=comment>//////////////////////////////////  No exponent<br></span>        <span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>static typename </span><span class=identifier>parser_result</span><span class=special>&lt;</span><span class=identifier>int_parser_t</span><span class=special>, </span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type
+        parse_exp_n</span><span class=special>(</span><span class=identifier>ScannerT</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>)
+        { </span><span class=keyword>return </span><span class=identifier>scan</span><span class=special>.</span><span class=identifier>no_match</span><span class=special>(); }
+
+        </span><span class=comment>//////////////////////////////////  Thousands separated numbers
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=keyword>static typename </span><span class=identifier>parser_result</span><span class=special>&lt;</span><span class=identifier>uint_parser_t</span><span class=special>, </span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type
+        <a name="scanner_save"></a>parse_n</span><span class=special>(</span><span class=identifier>ScannerT</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>)
+        {
+            </span><span class=keyword>typedef typename </span><span class=identifier>parser_result</span><span class=special>&lt;</span><span class=identifier>uint_parser_t</span><span class=special>, </span><span class=identifier>ScannerT</span><span class=special>&gt;::</span><span class=identifier>type RT</span><span class=special>;
+            </span><span class="keyword">static </span><span class=identifier>uint_parser</span><span class=special>&lt;</span><span class=keyword>unsigned</span><span class=special>, </span><span class=number>10</span><span class=special>, </span><span class=number>1</span><span class=special>, </span><span class=number>3</span><span class=special>&gt; </span><span class=identifier>uint3_p</span><span class=special>;
+            </span><span class="keyword">static </span><span class=identifier>uint_parser</span><span class=special>&lt;</span><span class=keyword>unsigned</span><span class=special>, </span><span class=number>10</span><span class=special>, </span><span class=number>3</span><span class=special>, </span><span class=number>3</span><span class=special>&gt; </span><span class=identifier>uint3_3_p</span><span class=special>;
+
+            </span><span class=keyword>if </span><span class=special>(</span><span class=identifier>RT hit </span><span class=special>= </span><span class=identifier>uint3_p</span><span class=special>.</span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>scan</span><span class=special>))
+            {
+                </span><span class=identifier>T n</span><span class=special>;
+                </span><span class="keyword">typedef typename </span>ScannerT<span class="special">::</span>iterator_t iterator_t;<span class=special>
+                </span>iterator_t save<span class="special"> = </span>scan.first<span class="special">;
+                </span><span class=keyword>while </span><span class=special>(</span><span class=identifier>match</span><span class=special>&lt;&gt; </span><span class=identifier>next </span><span class=special>= (</span><span class=literal>',' </span><span class=special>&gt;&gt; </span><span class=identifier>uint3_3_p</span><span class=special>[</span><span class=identifier>assign_a</span><span class=special>(</span><span class=identifier>n</span><span class=special>)]).</span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>scan</span><span class=special>))
+                {
+                    </span><span class=identifier>hit</span><span class=special>.</span><span class=identifier>value</span><span class=special>() *= </span><span class=number>1000</span><span class=special>;
+                    </span><span class=identifier>hit</span><span class=special>.</span><span class=identifier>value</span><span class=special>() += </span><span class=identifier>n</span><span class=special>;
+                    </span><span class=identifier>scan</span><span class=special>.</span><span class=identifier>concat_match</span><span class=special>(</span><span class=identifier>hit</span><span class=special>, </span><span class=identifier>next</span><span class=special>);
+                    </span><span class="identifier">save </span><span class=special><span class="special">= </span></span><span class="identifier">scan</span><span class="special">.</span><span class="identifier">first</span><span class=special><span class="special">;</span>
+                }
+                </span>scan<span class="special">.</span>first<span class="special"> = </span>save<span class="special">;
+                </span><span class=keyword>return </span><span class=identifier>hit</span><span class=special>;
+
+</span><span class=special>                // Note: On erroneous input such as &quot;123,45&quot;, the result should<br>                // be a partial match &quot;123&quot;. 'save' is used to makes sure that<br>                // the scanner position is placed at the last *valid* parse<br>                // position.<br>            }
+            </span><span class=keyword>return </span><span class=identifier>scan</span><span class=special>.</span><span class=identifier>no_match</span><span class=special>();
+        }
+    };</span></pre>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="operators.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="rule.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2002 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<p>&nbsp;</p>
+</body>
+</html>

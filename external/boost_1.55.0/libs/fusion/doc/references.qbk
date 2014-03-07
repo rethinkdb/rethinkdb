@@ -1,0 +1,27 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2006 Dan Marsden
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section References]
+
+# [@http://boost.org/libs/iterator/doc/new-iter-concepts.html New Iterator Concepts],
+  David Abrahams, Jeremy Siek, Thomas Witt, 2004-11-01.
+# [@http://boost.org/libs/tuple/doc/tuple_users_guide.html The Boost Tuple Library],
+  Jaakko Jarvi, 2001.
+# [@http://www.boost.org/libs/spirit/ Spirit Parser Library],
+  Joel de Guzman, 2001-2006.
+# [@http://www.boost.org/libs/mpl/ The Boost MPL Library],
+  Aleksey Gurtovoy and David Abrahams, 2002-2004.
+# [@http://www.boost.org/doc/html/array.html Boost Array],
+  Nicolai Josuttis, 2002-2004.
+# [@http://www.sgi.com/tech/stl/ Standard Template Library Programmer's Guide],
+  Hewlett-Packard Company, 1994.
+# [@http://www.boost.org/doc/html/ref.html Boost.Ref],
+  Jaakko Jarvi, Peter Dimov, Douglas Gregor, Dave Abrahams, 1999-2002.
+
+[endsect]
+

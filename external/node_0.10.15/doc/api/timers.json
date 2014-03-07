@@ -1,0 +1,158 @@
+{
+  "source": "doc/api/timers.markdown",
+  "modules": [
+    {
+      "textRaw": "Timers",
+      "name": "timers",
+      "stability": 5,
+      "stabilityText": "Locked",
+      "desc": "<p>All of the timer functions are globals.  You do not need to <code>require()</code>\nthis module in order to use them.\n\n</p>\n",
+      "methods": [
+        {
+          "textRaw": "setTimeout(callback, delay, [arg], [...])",
+          "type": "method",
+          "name": "setTimeout",
+          "desc": "<p>To schedule execution of a one-time <code>callback</code> after <code>delay</code> milliseconds. Returns a\n<code>timeoutId</code> for possible use with <code>clearTimeout()</code>. Optionally you can\nalso pass arguments to the callback.\n\n</p>\n<p>It is important to note that your callback will probably not be called in exactly\n<code>delay</code> milliseconds - Node.js makes no guarantees about the exact timing of when\nthe callback will fire, nor of the ordering things will fire in. The callback will\nbe called as close as possible to the time specified.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "callback"
+                },
+                {
+                  "name": "delay"
+                },
+                {
+                  "name": "arg",
+                  "optional": true
+                },
+                {
+                  "name": "...",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "clearTimeout(timeoutId)",
+          "type": "method",
+          "name": "clearTimeout",
+          "desc": "<p>Prevents a timeout from triggering.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "timeoutId"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "setInterval(callback, delay, [arg], [...])",
+          "type": "method",
+          "name": "setInterval",
+          "desc": "<p>To schedule the repeated execution of <code>callback</code> every <code>delay</code> milliseconds.\nReturns a <code>intervalId</code> for possible use with <code>clearInterval()</code>. Optionally\nyou can also pass arguments to the callback.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "callback"
+                },
+                {
+                  "name": "delay"
+                },
+                {
+                  "name": "arg",
+                  "optional": true
+                },
+                {
+                  "name": "...",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "clearInterval(intervalId)",
+          "type": "method",
+          "name": "clearInterval",
+          "desc": "<p>Stops a interval from triggering.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "intervalId"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "unref()",
+          "type": "method",
+          "name": "unref",
+          "desc": "<p>The opaque value returned by <code>setTimeout</code> and <code>setInterval</code> also has the method\n<code>timer.unref()</code> which will allow you to create a timer that is active but if\nit is the only item left in the event loop won&#39;t keep the program running.\nIf the timer is already <code>unref</code>d calling <code>unref</code> again will have no effect.\n\n</p>\n<p>In the case of <code>setTimeout</code> when you <code>unref</code> you create a separate timer that\nwill wakeup the event loop, creating too many of these may adversely effect\nevent loop performance -- use wisely.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "ref()",
+          "type": "method",
+          "name": "ref",
+          "desc": "<p>If you had previously <code>unref()</code>d a timer you can call <code>ref()</code> to explicitly\nrequest the timer hold the program open. If the timer is already <code>ref</code>d calling\n<code>ref</code> again will have no effect.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "setImmediate(callback, [arg], [...])",
+          "type": "method",
+          "name": "setImmediate",
+          "desc": "<p>To schedule the &quot;immediate&quot; execution of <code>callback</code> after I/O events\ncallbacks and before <code>setTimeout</code> and <code>setInterval</code> . Returns an\n<code>immediateId</code> for possible use with <code>clearImmediate()</code>. Optionally you\ncan also pass arguments to the callback.\n\n</p>\n<p>Immediates are queued in the order created, and are popped off the queue once\nper loop iteration. This is different from <code>process.nextTick</code> which will\nexecute <code>process.maxTickDepth</code> queued callbacks per iteration. <code>setImmediate</code>\nwill yield to the event loop after firing a queued callback to make sure I/O is\nnot being starved. While order is preserved for execution, other I/O events may\nfire between any two scheduled immediate callbacks.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "callback"
+                },
+                {
+                  "name": "arg",
+                  "optional": true
+                },
+                {
+                  "name": "...",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "clearImmediate(immediateId)",
+          "type": "method",
+          "name": "clearImmediate",
+          "desc": "<p>Stops an immediate from triggering.\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "immediateId"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "type": "module",
+      "displayName": "Timers"
+    }
+  ]
+}

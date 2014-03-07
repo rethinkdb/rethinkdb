@@ -1,0 +1,95 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section:quickstart Quick Start]
+
+This Quick Start section shows some of the features of __boost_geometry__
+in the form of annotated, relatively simple, code snippets.
+
+The code below assumes that `boost/geometry.hpp` is included, and that `namespace 
+boost::geometry` is used. __boost_geometry__ is header only, so including 
+headerfiles is enough. There is no linking with any library necessary.
+
+[quickstart_include]
+
+[h3 Cartesian]
+
+It is possible to use only a small part of the library. For example: the 
+distance between two points is a common use case. __boost_geometry__ can calculate
+it from various types. Using one of its own types:
+
+[quickstart_distance]
+
+If the right headers are included and the types are bound to a coordinate
+system, various other types can be used as points: plain C array's, __boost_array__'s, 
+__boost_tuple__'s, __boost_fusion__ imported structs, your own classes...
+
+Registering and using a C array:
+[quickstart_register_c_array]
+[quickstart_distance_c_array]
+
+Another often used algorithm is point-in-polygon. It is implemented in __boost_geometry__
+under the name `within`. We show its usage here checking a __boost_tuple__ (as a point)
+located within a polygon, filled with C Array point pairs.
+
+But it is first necessary to register a __boost_tuple__, like the C array: 
+[quickstart_register_boost_tuple]
+[quickstart_point_in_polygon]
+
+We can calculate the area of a polygon:
+[quickstart_area]
+
+By the nature of a template library, it is possible to mix point types.
+We calculate distance again, now using a C array point and a __boost_tuple__ point:
+[quickstart_distance_mixed]
+
+The snippets listed above generate the following output:
+
+[pre
+Distance p1-p2 is: 1.41421
+Distance a-b is: 2.23607
+Point p is in polygon? true
+Area: 3.015
+Distance a-p is: 2.87924
+]
+
+
+[h3 Non-Cartesian]
+
+It is also possible to use non-Cartesian points. For example: points on a sphere.
+When then an algorithm such as distance is used the library "inspects" that it
+is handling spherical points and calculates the distance over the sphere,
+instead of applying the Pythagorean theorem.
+
+[note __boost_geometry__ supports a geographical coordinate system, but that is
+in an extension and not released in the current Boost release.]
+
+We approximate the Earth as a sphere and calculate the distance between Amsterdam
+and Paris:
+[quick_start_spherical]
+
+It writes: [pre Distance in miles: 267.02]
+
+[h3 Adapted structs]
+
+Finally an example from a totally different domain: developing window-based 
+applications, for example using QtWidgets. As soon as Qt classes are registered 
+in __boost_geometry__ we can use them. We can, for example, check if two 
+rectangles overlap and if so, move the second one to another place:
+
+[quickstart_qt]
+
+
+[h3 More]
+In the reference many more examples can be found.
+
+[endsect]

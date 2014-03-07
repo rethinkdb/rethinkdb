@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Global Objects Node.js v0.10.15 Manual &amp; Documentation</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/sh.css">
+  <link rel="canonical" href="http://nodejs.org/api/globals.html">
+</head>
+<body class="alt apidoc" id="api-section-globals">
+    <div id="intro" class="interior">
+        <a href="/" title="Go back to the home page">
+            <img id="logo" src="http://nodejs.org/images/logo-light.png" alt="node.js">
+        </a>
+    </div>
+    <div id="content" class="clearfix">
+        <div id="column2" class="interior">
+            <ul>
+                <li><a href="/" class="home">Home</a></li>
+                <li><a href="/download/" class="download">Download</a></li>
+                <li><a href="/about/" class="about">About</a></li>
+                <li><a href="http://npmjs.org/" class="npm">npm Registry</a></li>
+                <li><a href="http://nodejs.org/api/" class="docs current">Docs</a></li>
+                <li><a href="http://blog.nodejs.org" class="blog">Blog</a></li>
+                <li><a href="/community/" class="community">Community</a></li>
+                <li><a href="/logos/" class="logos">Logos</a></li>
+                <li><a href="http://jobs.nodejs.org/" class="jobs">Jobs</a></li>
+            </ul>
+            <p class="twitter"><a href="http://twitter.com/nodejs">@nodejs</a></p>
+        </div>
+
+        <div id="column1" class="interior">
+          <header>
+            <h1>Node.js v0.10.15 Manual &amp; Documentation</h1>
+            <div id="gtoc">
+              <p>
+                <a href="index.html" name="toc">Index</a> |
+                <a href="all.html">View on single page</a> |
+                <a href="globals.json">View as JSON</a>
+              </p>
+            </div>
+            <hr>
+          </header>
+
+          <div id="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+<li><a href="#globals_global_objects">Global Objects</a><ul>
+<li><a href="#globals_global">global</a></li>
+<li><a href="#globals_process">process</a></li>
+<li><a href="#globals_console">console</a></li>
+<li><a href="#globals_class_buffer">Class: Buffer</a></li>
+<li><a href="#globals_require">require()</a><ul>
+<li><a href="#globals_require_resolve">require.resolve()</a></li>
+<li><a href="#globals_require_cache">require.cache</a></li>
+<li><a href="#globals_require_extensions">require.extensions</a></li>
+</ul>
+</li>
+<li><a href="#globals_filename">__filename</a></li>
+<li><a href="#globals_dirname">__dirname</a></li>
+<li><a href="#globals_module">module</a></li>
+<li><a href="#globals_exports">exports</a></li>
+<li><a href="#globals_settimeout_cb_ms">setTimeout(cb, ms)</a></li>
+<li><a href="#globals_cleartimeout_t">clearTimeout(t)</a></li>
+<li><a href="#globals_setinterval_cb_ms">setInterval(cb, ms)</a></li>
+<li><a href="#globals_clearinterval_t">clearInterval(t)</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+
+          <div id="apicontent">
+            <h1>Global Objects<span><a class="mark" href="#globals_global_objects" id="globals_global_objects">#</a></span></h1>
+<!-- type=misc -->
+
+<p>These objects are available in all modules. Some of these objects aren&#39;t
+actually in the global scope but in the module scope - this will be noted.
+
+</p>
+<h2>global<span><a class="mark" href="#globals_global" id="globals_global">#</a></span></h2>
+<!-- type=global -->
+
+<ul>
+<li>{Object} The global namespace object.</li>
+</ul>
+<p>In browsers, the top-level scope is the global scope. That means that in
+browsers if you&#39;re in the global scope <code>var something</code> will define a global
+variable. In Node this is different. The top-level scope is not the global
+scope; <code>var something</code> inside a Node module will be local to that module.
+
+</p>
+<h2>process<span><a class="mark" href="#globals_process" id="globals_process">#</a></span></h2>
+<!-- type=global -->
+
+<ul>
+<li>{Object}</li>
+</ul>
+<p>The process object. See the <a href="process.html#process_process">process object</a> section.
+
+</p>
+<h2>console<span><a class="mark" href="#globals_console" id="globals_console">#</a></span></h2>
+<!-- type=global -->
+
+<ul>
+<li>{Object}</li>
+</ul>
+<p>Used to print to stdout and stderr. See the <a href="console.html">console</a> section.
+
+</p>
+<h2>Class: Buffer<span><a class="mark" href="#globals_class_buffer" id="globals_class_buffer">#</a></span></h2>
+<!-- type=global -->
+
+<ul>
+<li>{Function}</li>
+</ul>
+<p>Used to handle binary data. See the <a href="buffer.html">buffer section</a>
+
+</p>
+<h2>require()<span><a class="mark" href="#globals_require" id="globals_require">#</a></span></h2>
+<!-- type=var -->
+
+<ul>
+<li>{Function}</li>
+</ul>
+<p>To require modules. See the <a href="modules.html#modules_modules">Modules</a> section.  <code>require</code> isn&#39;t actually a
+global but rather local to each module.
+
+</p>
+<h3>require.resolve()<span><a class="mark" href="#globals_require_resolve" id="globals_require_resolve">#</a></span></h3>
+<p>Use the internal <code>require()</code> machinery to look up the location of a module,
+but rather than loading the module, just return the resolved filename.
+
+</p>
+<h3>require.cache<span><a class="mark" href="#globals_require_cache" id="globals_require_cache">#</a></span></h3>
+<div class="signature"><ul>
+<li><span class="type">Object</span></li>
+</div></ul>
+<p>Modules are cached in this object when they are required. By deleting a key
+value from this object, the next <code>require</code> will reload the module.
+
+</p>
+<h3>require.extensions<span><a class="mark" href="#globals_require_extensions" id="globals_require_extensions">#</a></span></h3>
+<pre class="api_stability_0">Stability: 0 - Deprecated</pre><div class="signature"><ul>
+<li><span class="type">Object</span></li>
+</div></ul>
+<p>Instruct <code>require</code> on how to handle certain file extensions.
+
+</p>
+<p>Process files with the extension <code>.sjs</code> as <code>.js</code>:
+
+</p>
+<pre><code>require.extensions[&#39;.sjs&#39;] = require.extensions[&#39;.js&#39;];</code></pre>
+<p><strong>Deprecated</strong>  In the past, this list has been used to load
+non-JavaScript modules into Node by compiling them on-demand.
+However, in practice, there are much better ways to do this, such as
+loading modules via some other Node program, or compiling them to
+JavaScript ahead of time.
+
+</p>
+<p>Since the Module system is locked, this feature will probably never go
+away.  However, it may have subtle bugs and complexities that are best
+left untouched.
+
+</p>
+<h2>__filename<span><a class="mark" href="#globals_filename" id="globals_filename">#</a></span></h2>
+<!-- type=var -->
+
+<ul>
+<li>{String}</li>
+</ul>
+<p>The filename of the code being executed.  This is the resolved absolute path
+of this code file.  For a main program this is not necessarily the same
+filename used in the command line.  The value inside a module is the path
+to that module file.
+
+</p>
+<p>Example: running <code>node example.js</code> from <code>/Users/mjr</code>
+
+</p>
+<pre><code>console.log(__filename);
+// /Users/mjr/example.js</code></pre>
+<p><code>__filename</code> isn&#39;t actually a global but rather local to each module.
+
+</p>
+<h2>__dirname<span><a class="mark" href="#globals_dirname" id="globals_dirname">#</a></span></h2>
+<!-- type=var -->
+
+<ul>
+<li>{String}</li>
+</ul>
+<p>The name of the directory that the currently executing script resides in.
+
+</p>
+<p>Example: running <code>node example.js</code> from <code>/Users/mjr</code>
+
+</p>
+<pre><code>console.log(__dirname);
+// /Users/mjr</code></pre>
+<p><code>__dirname</code> isn&#39;t actually a global but rather local to each module.
+
+
+</p>
+<h2>module<span><a class="mark" href="#globals_module" id="globals_module">#</a></span></h2>
+<!-- type=var -->
+
+<ul>
+<li>{Object}</li>
+</ul>
+<p>A reference to the current module. In particular
+<code>module.exports</code> is the same as the <code>exports</code> object.
+<code>module</code> isn&#39;t actually a global but rather local to each module.
+
+</p>
+<p>See the <a href="modules.html">module system documentation</a> for more information.
+
+</p>
+<h2>exports<span><a class="mark" href="#globals_exports" id="globals_exports">#</a></span></h2>
+<!-- type=var -->
+
+<p>A reference to the <code>module.exports</code> object which is shared between all
+instances of the current module and made accessible through <code>require()</code>.
+See <a href="modules.html">module system documentation</a> for details on when to use <code>exports</code> and
+when to use <code>module.exports</code>.
+<code>exports</code> isn&#39;t actually a global but rather local to each module.
+
+</p>
+<p>See the <a href="modules.html">module system documentation</a> for more information.
+
+</p>
+<p>See the <a href="modules.html">module section</a> for more information.
+
+</p>
+<h2>setTimeout(cb, ms)<span><a class="mark" href="#globals_settimeout_cb_ms" id="globals_settimeout_cb_ms">#</a></span></h2>
+<p>Run callback <code>cb</code> after <em>at least</em> <code>ms</code> milliseconds. The actual delay depends
+on external factors like OS timer granularity and system load.
+
+</p>
+<p>The timeout must be in the range of 1-2,147,483,647 inclusive. If the value is
+outside that range, it&#39;s changed to 1 millisecond. Broadly speaking, a timer
+cannot span more than 24.8 days.
+
+</p>
+<p>Returns an opaque value that represents the timer.
+
+</p>
+<h2>clearTimeout(t)<span><a class="mark" href="#globals_cleartimeout_t" id="globals_cleartimeout_t">#</a></span></h2>
+<p>Stop a timer that was previously created with <code>setTimeout()</code>. The callback will
+not execute.
+
+</p>
+<h2>setInterval(cb, ms)<span><a class="mark" href="#globals_setinterval_cb_ms" id="globals_setinterval_cb_ms">#</a></span></h2>
+<p>Run callback <code>cb</code> repeatedly every <code>ms</code> milliseconds. Note that the actual
+interval may vary, depending on external factors like OS timer granularity and
+system load. It&#39;s never less than <code>ms</code> but it may be longer.
+
+</p>
+<p>The interval must be in the range of 1-2,147,483,647 inclusive. If the value is
+outside that range, it&#39;s changed to 1 millisecond. Broadly speaking, a timer
+cannot span more than 24.8 days.
+
+</p>
+<p>Returns an opaque value that represents the timer.
+
+</p>
+<h2>clearInterval(t)<span><a class="mark" href="#globals_clearinterval_t" id="globals_clearinterval_t">#</a></span></h2>
+<p>Stop a timer that was previously created with <code>setInterval()</code>. The callback
+will not execute.
+
+</p>
+<!--type=global-->
+
+<p>The timer functions are global variables. See the <a href="timers.html">timers</a> section.
+
+</p>
+
+          </div>
+        </div>
+    </div>
+    <div id="footer">
+        <a href="http://joyent.com" class="joyent-logo">Joyent</a>
+        <ul class="clearfix">
+            <li><a href="/">Node.js</a></li>
+            <li><a href="/download/">Download</a></li>
+            <li><a href="/about/">About</a></li>
+            <li><a href="http://npmjs.org/">npm Registry</a></li>
+            <li><a href="http://nodejs.org/api/">Docs</a></li>
+            <li><a href="http://blog.nodejs.org">Blog</a></li>
+            <li><a href="/community/">Community</a></li>
+            <li><a href="/logos/">Logos</a></li>
+            <li><a href="http://jobs.nodejs.org/">Jobs</a></li>
+            <li><a href="http://twitter.com/nodejs" class="twitter">@nodejs</a></li>
+        </ul>
+
+        <p>Copyright <a href="http://joyent.com/">Joyent, Inc</a>, Node.js is a <a href="/trademark-policy.pdf">trademark</a> of Joyent, Inc. View <a href="https://raw.github.com/joyent/node/v0.10.15/LICENSE">license</a>.</p>
+    </div>
+
+  <script src="../sh_main.js"></script>
+  <script src="../sh_javascript.min.js"></script>
+  <script>highlight(undefined, undefined, 'pre');</script>
+  <script>
+    window._gaq = [['_setAccount', 'UA-10874194-2'], ['_trackPageview']];
+    (function(d, t) {
+      var g = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      g.src = '//www.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+  </script>
+</body>
+</html>
+

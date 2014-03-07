@@ -1,0 +1,104 @@
+/*
+  Copyright 2005-2008 Redshift Software, Inc.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+*/
+/* Heading, title and logo. */
+
+/* Position the common heading. This appears on pages which have their own
+ * markup. Since the body might have a margin this has to be absolutely
+ * positioned. The spacer then pushes the page content down so that it
+ * doesn't fall underneath the heading. */
+#boost-common-heading-doc {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+#boost-common-heading-doc-spacer {
+  height: 100px;
+}
+
+#boost-common-heading-doc,
+#heading {
+  margin: 0em;
+  border-bottom: #000000 solid 1px;
+  width: 100%;
+  font-family: sans-serif;
+  font-size: 9.5pt;
+}
+#boost-common-heading-doc .heading-inner,
+#heading .heading-inner {
+  height: 100px;
+  overflow: hidden;
+}
+
+#boost-common-heading-doc *,
+#heading * {
+  font-size: 100%;
+  font-weight: normal;
+  margin: 0;
+  padding: 0;
+  text-decoration: none;
+}
+#boost-common-heading-doc .heading-placard,
+#heading .heading-placard {
+  display: none;
+}
+#boost-common-heading-doc .heading-title .heading-boost,
+#boost-common-heading-doc .heading-title .heading-cpplibraries,
+#heading .heading-title .heading-boost,
+#heading .heading-title .heading-cpplibraries {
+  display: none;
+}
+#boost-common-heading-doc .heading-title,
+#heading .heading-title {
+  float: left;
+}
+#boost-common-heading-doc .heading-title a,
+#heading .heading-title a {
+}
+#boost-common-heading-doc .heading-logo,
+#heading .heading-logo {
+  width: 270px;
+  height: 90px;
+  border: none;
+  vertical-align: bottom;
+  margin: 0px 0px 0px 1.5em;
+}
+#boost-common-heading-doc .heading-quote,
+#heading .heading-quote {
+  text-align: right;
+  padding: 25px 1.5em 10px 0em;
+}
+#boost-common-heading-doc .heading-quote q,
+#heading .heading-quote q {
+  font-size: 90%;
+  display: block;
+}
+#boost-common-heading-doc .heading-quote .heading-attribution,
+#heading .heading-quote .heading-attribution {
+  font-size: 85%;
+  display: block;
+}
+#boost-common-heading-doc .heading-sections,
+#heading .heading-sections {
+  display: none;
+}
+#boost-common-heading-doc .heading-search,
+#heading .heading-search {
+  display: none;
+  text-align: right;
+  padding: 0em 1.5em 0em 0em;
+}
+#boost-common-heading-doc .heading-search #search-text .q,
+#heading .heading-search #search-text .q {
+  background: transparent;
+  border: none;
+  border-bottom: 1px #BBBBBB solid;
+  margin-right: 0.25em;
+  font-size: 90%;
+}
+#boost-common-heading-doc .heading-search #search-text #q:hover,
+#heading .heading-search #search-text #q:hover {
+  border-bottom: 1px #FFFFFF solid;
+}

@@ -1,0 +1,18 @@
+
+# (C) Copyright Tobias Schwinger
+#
+# Use modification and distribution are subject to the boost Software License,
+# Version 1.0. (See http:/\/www.boost.org/LICENSE_1_0.txt).
+
+import testing ;
+
+project factory-tests
+    ;
+
+test-suite functional/factory
+    :
+      [ run value_factory.cpp ]
+      [ run factory.cpp ]
+      [ run factory_with_allocator.cpp ]
+    ;
+

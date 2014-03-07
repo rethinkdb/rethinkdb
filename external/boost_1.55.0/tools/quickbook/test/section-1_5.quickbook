@@ -1,0 +1,12 @@
+[article Section Id 1.5
+    [quickbook 1.5]
+]
+
+[section:id_test1 Quickbook section id test]
+[endsect]
+[section :id_test2 Quickbook section id test]
+[endsect]
+[section:  id_test3 Quickbook section id test]
+[endsect]
+[section:++ Quickbook section no id test]
+[endsect]

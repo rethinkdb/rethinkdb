@@ -1,0 +1,14 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Telugu_Oriya.txt
+# Generated from CLDR 
+#
+::[ఁ-ఃఅ-ఌఎ-ఐఒ-నప-ళవ-హ\u0C3E-ౄ\u0C46-\u0C48\u0C4A-\u0C4D\u0C55-\u0C56ౠ-ౡ౦-౯];
+::NFD;
+::Telugu-InterIndic;
+::InterIndic-Oriya;
+::NFC;

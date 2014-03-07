@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<library id="thing2" name="Duplicates 1.1" dirname="thing2" last-revision="Tomorrow"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <libraryinfo>
+    <authorgroup>
+    <author>
+      <firstname>Joe</firstname> <surname>Blow</surname>
+    </author>
+    <author>
+      <firstname>Jane</firstname> <surname>Doe</surname>
+    </author>
+    </authorgroup>
+    <copyright>
+      <year>2018</year> <holder>Joe Blow</holder>
+    </copyright>
+    <copyright>
+      <year>1963</year> <holder>Jane Doe</holder>
+    </copyright>
+    <legalnotice id="thing2.legal">
+      <para>
+        Public Domain
+      </para>
+    </legalnotice>
+    <librarypurpose>
+      Another Duplicate
+    </librarypurpose>
+    <librarycategory name="category:Category 1"></librarycategory> <librarycategory
+    name="category:Category 2"></librarycategory>
+  </libraryinfo>
+  <title>Duplicates 1.1 2</title>
+  <para>
+    Content
+  </para>
+</library>

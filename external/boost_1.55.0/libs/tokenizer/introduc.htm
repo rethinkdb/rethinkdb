@@ -1,0 +1,122 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <meta name="GENERATOR" content="Microsoft FrontPage 6.0">
+  <meta name="ProgId" content="FrontPage.Editor.Document">
+
+  <title>Introduction</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+  <p><img src="../../boost.png" alt="C++ Boost" width="277" height=
+  "86"><br></p>
+
+  <h1 align="center">Introduction</h1>
+
+  <p align="left">The boost Tokenizer package provides a flexible and easy to
+  use way to break of a string or other character sequence into a series of
+  tokens. Below is a simple example that will break up a phrase into
+  words.</p>
+
+  <div align="left">
+    <pre>
+// simple_example_1.cpp
+#include&lt;iostream&gt;
+#include&lt;boost/tokenizer.hpp&gt;
+#include&lt;string&gt;
+
+int main(){
+   using namespace std;
+   using namespace boost;
+   string s = "This is,  a test";
+   tokenizer&lt;&gt; tok(s);
+   for(tokenizer&lt;&gt;::iterator beg=tok.begin(); beg!=tok.end();++beg){
+       cout &lt;&lt; *beg &lt;&lt; "\n";
+   }
+}
+</pre>
+  </div>
+
+  <p align="left">You can choose how the string gets broken up. You do this
+  by specifying the TokenizerFunction. If you do not specify anything, the
+  default TokenizerFunction is char_delimiters_separator&lt;char&gt; which
+  defaults to breaking up a string based on space and punctuation. Here is an
+  example of using another TokenizerFunction called escaped_list_separator.
+  This TokenizerFunction parses a superset of comma separated value (csv)
+  lines. The format looks like this</p>
+
+  <p align="left">Field 1,"putting quotes around fields, allows commas",Field
+  3</p>
+
+  <p align="left">Below is an example that will break the previous line into
+  its 3 fields</p>
+
+  <div align="left">
+    <pre>
+// simple_example_2.cpp
+#include&lt;iostream&gt;
+#include&lt;boost/tokenizer.hpp&gt;
+#include&lt;string&gt;
+
+int main(){
+   using namespace std;
+   using namespace boost;
+   string s = "Field 1,\"putting quotes around fields, allows commas\",Field 3";
+   tokenizer&lt;escaped_list_separator&lt;char&gt; &gt; tok(s);
+   for(tokenizer&lt;escaped_list_separator&lt;char&gt; &gt;::iterator beg=tok.begin(); beg!=tok.end();++beg){
+       cout &lt;&lt; *beg &lt;&lt; "\n";
+   }
+}
+</pre>
+  </div>
+
+  <p align="left">Finally, for some TokenizerFunctions you have to pass in
+  something into the constructor in order to do anything interesting. An
+  example is offset_separator. This class breaks a string into tokens based
+  on offsets for example</p>
+
+  <p align="left">12252001 when parsed using offsets of 2,2,4 becomes 12 25
+  2001. Below is an example to parse this.</p>
+
+  <div align="left">
+    <pre>
+// simple_example_3.cpp
+#include&lt;iostream&gt;
+#include&lt;boost/tokenizer.hpp&gt;
+#include&lt;string&gt;
+
+int main(){
+   using namespace std;
+   using namespace boost;
+   string s = "12252001";
+   int offsets[] = {2,2,4};
+   offset_separator f(offsets, offsets+3);
+   tokenizer&lt;offset_separator&gt; tok(s,f);
+   for(tokenizer&lt;offset_separator&gt;::iterator beg=tok.begin(); beg!=tok.end();++beg){
+       cout &lt;&lt; *beg &lt;&lt; "\n";
+   }
+}
+</pre>
+  </div>
+
+  <p align="left">&nbsp;</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->25 December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38518" --></p>
+
+  <p><i>Copyright &copy; 2001 John R. Bandela</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

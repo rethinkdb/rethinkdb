@@ -1,0 +1,31 @@
+{
+  "name": "rfile",
+  "version": "1.0.0",
+  "description": "Require a plain text or binary file in node.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha -R spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ForbesLindesay/rfile.git"
+  },
+  "keywords": [
+    "require",
+    "file",
+    "text",
+    "relative",
+    "module"
+  ],
+  "author": "ForbesLindesay",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "gitHead": "d82e3088d06d2a8ce94f51fa7536555c3947e74f",
+  "dependencies": {
+    "callsite": "~1.0.0",
+    "resolve": "~0.3.0"
+  },
+  "devDependencies": {
+    "mocha": "~1.8"
+  }
+}

@@ -1,0 +1,4 @@
+{ "name": "packed-browserify",
+  "version": "3.24.13",
+  "dependencies": { "browserify": "3.24.13" },
+  "bundleDependencies": [ "browserify" ] }

@@ -1,0 +1,41 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:copy copy]
+
+[heading Prototype]
+
+``
+template<class SinglePassRange, class OutputIterator>
+OutputIterator copy(const SinglePassRange& source_rng, OutputIterator out_it);
+``
+
+[heading Description]
+
+`copy` copies all elements from `source_rng` to the range `[out_it, out_it + distance(source_rng))`.
+The return value is `out_it + distance(source_rng)`
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/copy.hpp`
+
+[heading Requirements]
+
+* `SinglePassRange` is a model of the __single_pass_range__ Concept.
+* `OutputIterator` is a model of the `OutputIteratorConcept`.
+* The `value_type` of __single_pass_range__ Concept is convertible to a type in `OutputIterator`'s set of value types.
+
+[heading Precondition:]
+
+* `out_it` is not an iterator within the `source_rng`.
+* `[out_it, out_it + distance(source_rng))` is a valid range.
+
+[heading Complexity]
+
+Linear. Exactly `distance(source_rng)` assignments are performed.
+
+[endsect]
+
+

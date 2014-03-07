@@ -1,0 +1,64 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: ja_Latn_ru.txt
+# Generated from CLDR 
+#
+::NFD(NFC);
+::[:Latin:] Lower();
+$lengthMarker = [\u0302\u0304];
+\' → ;
+e $lengthMarker → эй ;
+i $lengthMarker → | i i ;
+$lengthMarker → ;
+a  → а ;
+i\~e → | ye ;
+i  → и ;
+u\~ → в ;  # ウィ etc.
+u  → у ;
+e  → э ;
+o  → о ;
+k → к ;
+sh → | sy ;
+s → с ;
+ch     → | ty ;
+c } ch → t ;
+te\~   → | t ;   # テュ
+to\~   → | t ;   # トゥ
+tsu\~  → | ts ;  # ツァ, ツィ, etc.
+ts → ц ;
+t  → т ;
+\~tsu → | tsu ;
+n } [bpm] → м ;  # 群馬 → Гумма
+n\' → нъ ;
+n → н ;
+h → х ;
+fu\~ → | f ;  # フュ
+f → ф ;
+m → м ;
+ya → я ;
+yi → и ;  # Added for convenience, after sh, ch, j.
+yu → ю ;
+ye → е ;  # ?? unobserved
+yo → ё ;
+r → р ;
+wa → ва ;
+w → ;
+g → г ;
+j → | zy ;
+z → дз ;
+de\~  → | d ;  # デュ
+dji\~ → | z ;  # ヂャ, ヂュ, etc.
+dj    → | j ;  # ヂ
+do\~  → | d ;  # ドゥ
+dzu\~ → | z ;  # ヅァ, ヅィ, etc.
+dz    → | z ;  # ヅ
+d → д ;
+b → б ;
+vu\~ → | v ;  # ヴァ, etc.
+v → в ;  # ?? unobserved
+p → п ;
+::NFC(NFD);

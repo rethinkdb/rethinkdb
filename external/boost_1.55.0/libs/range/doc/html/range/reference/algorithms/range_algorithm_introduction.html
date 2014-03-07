@@ -1,0 +1,257 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Introduction and motivation</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../algorithms.html" title="Range Algorithm">
+<link rel="prev" href="../algorithms.html" title="Range Algorithm">
+<link rel="next" href="mutating.html" title="Mutating algorithms">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../algorithms.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../algorithms.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mutating.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="range.reference.algorithms.range_algorithm_introduction"></a><a class="link" href="range_algorithm_introduction.html" title="Introduction and motivation">
+        Introduction and motivation</a>
+</h4></div></div></div>
+<p>
+          In its most simple form a <span class="bold"><strong>Range Algorithm</strong></span>
+          (or range-based algorithm) is simply an iterator-based algorithm where
+          the <span class="emphasis"><em>two</em></span> iterator arguments have been replaced by
+          <span class="emphasis"><em>one</em></span> range argument. For example, we may write
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">vec</span> <span class="special">=</span> <span class="special">...;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">sort</span><span class="special">(</span><span class="identifier">vec</span><span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          instead of
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">sort</span><span class="special">(</span><span class="identifier">vec</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">vec</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span>
+</pre>
+<p>
+        </p>
+<p>
+          However, the return type of range algorithms is almost always different
+          from that of existing iterator-based algorithms.
+        </p>
+<p>
+          One group of algorithms, like <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">sort</span><span class="special">()</span></code>, will simply return the same range so
+          that we can continue to pass the range around and/or further modify it.
+          Because of this we may write 
+</p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">:</span><span class="identifier">unique</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">sort</span><span class="special">(</span><span class="identifier">vec</span><span class="special">));</span>
+</pre>
+<p>
+          to first sort the range and then run <code class="computeroutput"><span class="identifier">unique</span><span class="special">()</span></code> on the sorted range.
+        </p>
+<p>
+          Algorithms like <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique</span><span class="special">()</span></code>
+          fall into another group of algorithms that return (potentially) narrowed
+          views of the original range. By default <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique</span><span class="special">(</span><span class="identifier">rng</span><span class="special">)</span></code> returns the range <code class="computeroutput"><span class="special">[</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">rng</span><span class="special">),</span> <span class="identifier">found</span><span class="special">)</span></code>
+          where <code class="computeroutput"><span class="identifier">found</span></code> denotes the
+          iterator returned by <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">unique</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">rng</span><span class="special">),</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">rng</span><span class="special">))</span></code>
+        </p>
+<p>
+          Therefore exactly the unique values can be copied by writing 
+</p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">sort</span><span class="special">(</span><span class="identifier">vec</span><span class="special">)),</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream_iterator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">));</span>
+</pre>
+<p>
+        </p>
+<p>
+          Algorithms like <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique</span></code> usually return the same range:
+          <code class="computeroutput"><span class="special">[</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">rng</span><span class="special">),</span> <span class="identifier">found</span><span class="special">)</span></code>. However, this behaviour may be changed
+          by supplying the algorithms with a template argument:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Return
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">return_found</span><span class="special">&gt;(</span><span class="identifier">rng</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    returns a single iterator like <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">unique</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">return_begin_found</span><span class="special">&gt;(</span><span class="identifier">rng</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    returns the range <code class="computeroutput"><span class="special">[</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">rng</span><span class="special">),</span>
+                    <span class="identifier">found</span><span class="special">)</span></code>
+                    (this is the default)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">return_begin_next</span><span class="special">&gt;(</span><span class="identifier">rng</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    returns the range <code class="computeroutput"><span class="special">[</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">rng</span><span class="special">),</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">next</span><span class="special">(</span><span class="identifier">found</span><span class="special">))</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">return_found_end</span><span class="special">&gt;(</span><span class="identifier">rng</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    returns the range <code class="computeroutput"><span class="special">[</span><span class="identifier">found</span><span class="special">,</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">rng</span><span class="special">))</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">return_next_end</span><span class="special">&gt;(</span><span class="identifier">rng</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    returns the range <code class="computeroutput"><span class="special">[</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">next</span><span class="special">(</span><span class="identifier">found</span><span class="special">),</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">rng</span><span class="special">))</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">return_begin_end</span><span class="special">&gt;(</span><span class="identifier">rng</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    returns the entire original range.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+          This functionality has the following advantages:
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              it allows for <span class="emphasis"><em><span class="bold"><strong>seamless functional-style
+              programming</strong></span></em></span> where you do not need to use named
+              local variables to store intermediate results
+            </li>
+<li class="listitem">
+              it is very <span class="emphasis"><em><span class="bold"><strong>safe</strong></span></em></span>
+              because the algorithm can verify out-of-bounds conditions and handle
+              tricky conditions that lead to empty ranges
+            </li>
+</ol></div>
+<p>
+          For example, consider how easy we may erase the duplicates in a sorted
+          container:
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">vec</span> <span class="special">=</span> <span class="special">...;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">erase</span><span class="special">(</span><span class="identifier">vec</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">return_found_end</span><span class="special">&gt;(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">sort</span><span class="special">(</span><span class="identifier">vec</span><span class="special">)));</span>
+</pre>
+<p>
+        </p>
+<p>
+          Notice the use of <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">return_found_end</span></code>.
+          What if we wanted to erase all the duplicates except one of them? In old-fashined
+          STL-programming we might write
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="comment">// assume 'vec' is already sorted
+</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">iterator</span> <span class="identifier">i</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">unique</span><span class="special">(</span><span class="identifier">vec</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">vec</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span>
+
+<span class="comment">// remember this check or you get into problems
+</span><span class="keyword">if</span> <span class="special">(</span><span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">vec</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+    <span class="special">++</span><span class="identifier">i</span><span class="special">;</span>
+
+<span class="identifier">vec</span><span class="special">.</span><span class="identifier">erase</span><span class="special">(</span><span class="identifier">i</span><span class="special">,</span> <span class="identifier">vec</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span>
+</pre>
+<p>
+        </p>
+<p>
+          The same task may be accomplished simply with 
+</p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">erase</span><span class="special">(</span><span class="identifier">vec</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">unique</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">return_next_end</span><span class="special">&gt;(</span><span class="identifier">vec</span><span class="special">));</span>
+</pre>
+<p>
+          and there is no need to worry about generating an invalid range. Furthermore,
+          if the container is complex, calling <code class="computeroutput"><span class="identifier">vec</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span></code> several times will be more expensive
+          than using a range algorithm.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003 -2010 Thorsten Ottosen, Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../algorithms.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../algorithms.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mutating.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

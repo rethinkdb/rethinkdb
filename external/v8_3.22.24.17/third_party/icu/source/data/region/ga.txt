@@ -1,0 +1,265 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ga.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ga.xml
+ */
+ga{
+    Countries{
+        419{"Meiriceá Laidineach agus an Mhuir Chairib"}
+        AD{"Andóra"}
+        AE{"Aontas na nÉimíríochtaí Arabacha"}
+        AF{"An Afganastáin"}
+        AG{"Aintíge agus Barbúda"}
+        AI{"Anguilla"}
+        AL{"An Albáin"}
+        AM{"An Airméin"}
+        AN{"Antillí na hÍsiltíre"}
+        AO{"Angóla"}
+        AQ{"An Antartaice"}
+        AR{"An Airgintín"}
+        AS{"Samó Meiriceánach"}
+        AT{"An Ostair"}
+        AU{"An Astráil"}
+        AW{"Arúba"}
+        AX{"Oileáin Alaind"}
+        AZ{"An Asarbaiseáin"}
+        BA{"An Bhoisnia agus Heirseagóvéin"}
+        BB{"Barbadós"}
+        BD{"An Bhanglaidéis"}
+        BE{"An Bheilg"}
+        BF{"Buircíne Fasó"}
+        BG{"An Bhulgáir"}
+        BH{"Bairéin"}
+        BI{"An Bhurúin"}
+        BJ{"Beinin"}
+        BM{"Beirmiúda"}
+        BN{"Brúiné"}
+        BO{"An Bholaiv"}
+        BR{"An Bhrasaíl"}
+        BS{"Na Bahámaí"}
+        BT{"An Bhútáin"}
+        BV{"Oileán Bouvet"}
+        BW{"An Bhotsuáin"}
+        BY{"An Bhealarúis"}
+        BZ{"An Bheilís"}
+        CA{"Ceanada"}
+        CC{"Oileáin na gCócónna"}
+        CD{"Poblacht Dhaonlathach an Chongó"}
+        CF{"Poblacht na hAfraice Láir"}
+        CG{"An Congó"}
+        CH{"An Eilvéis"}
+        CI{"An Cósta Eabhair"}
+        CK{"Oileáin Cook"}
+        CL{"An tSile"}
+        CM{"Camarún"}
+        CN{"An tSín"}
+        CO{"An Cholóim"}
+        CR{"Cósta Ríce"}
+        CS{"An tSeirbia agus Montainéagró"}
+        CU{"Cúba"}
+        CV{"An Rinn Ghlas"}
+        CX{"Oileán na Nollag"}
+        CY{"An Chipir"}
+        CZ{"Poblacht na Seice"}
+        DE{"An Ghearmáin"}
+        DJ{"Djibouti"}
+        DK{"An Danmhairg"}
+        DM{"Doiminice"}
+        DO{"An Phoblacht Dhoiminiceach"}
+        DZ{"An Ailgéir"}
+        EC{"Eacuadór"}
+        EE{"An Eastóin"}
+        EG{"An Éigipt"}
+        EH{"An Sahára Thiar"}
+        ER{"An Eiritré"}
+        ES{"An Spáinn"}
+        ET{"An Aetóip"}
+        EU{"An tAontas Eorpach"}
+        FI{"An Fhionlainn"}
+        FJ{"Fidsí"}
+        FK{"Oileáin Fháclainne"}
+        FM{"An Mhicrinéis"}
+        FO{"Oileáin Fharó"}
+        FR{"An Fhrainc"}
+        GA{"An Ghabúin"}
+        GB{"An Ríocht Aontaithe"}
+        GD{"Grenada"}
+        GE{"An tSeoirsia"}
+        GF{"An Ghuáin Fhrancach"}
+        GG{"Geansaí"}
+        GH{"Gána"}
+        GI{"Giobráltar"}
+        GL{"An Ghraonlainn"}
+        GM{"An Ghaimbia"}
+        GN{"An Ghuine"}
+        GP{"Guadalúip"}
+        GQ{"An Ghuine Mheánchriosach"}
+        GR{"An Ghréig"}
+        GS{"An tSeoirsia Theas agus Oileáin Sandwich Theas"}
+        GT{"Guatamala"}
+        GU{"Guam"}
+        GW{"An Ghuine-Bhissau"}
+        GY{"An Ghuáin"}
+        HK{"R.R.S. na Síne Hong Cong"}
+        HM{"Oileán Heard agus Oileáin McDonald"}
+        HN{"Hondúras"}
+        HR{"An Chróit"}
+        HT{"Háití"}
+        HU{"An Ungáir"}
+        ID{"An Indinéis"}
+        IE{"Éire"}
+        IL{"Iosrael"}
+        IM{"Oileán Mhanann"}
+        IN{"An India"}
+        IO{"Críocha Briotanacha an Aigéin Indiagh"}
+        IQ{"An Iaráic"}
+        IR{"An Iaráin"}
+        IS{"An Íoslainn"}
+        IT{"An Iodáil"}
+        JE{"Geirsí"}
+        JM{"Iamáice"}
+        JO{"An Iordáin"}
+        JP{"An tSeapáin"}
+        KE{"An Chéinia"}
+        KG{"An Chirgeastáin"}
+        KH{"An Chambóid"}
+        KI{"Ciribeas"}
+        KM{"Oileáin Chomóra"}
+        KN{"Saint Kitts agus Nevis"}
+        KP{"An Chóiré Thuaidh"}
+        KR{"An Chóiré Theas"}
+        KW{"Cuáit"}
+        KY{"Oileáin na gCadhman"}
+        KZ{"An Chasacstáin"}
+        LA{"Laos"}
+        LB{"An Liobáin"}
+        LC{"San Lúisia"}
+        LI{"Lichtinstéin"}
+        LK{"Srí Lanca"}
+        LR{"An Libéir"}
+        LS{"Leosóta"}
+        LT{"An Liotuáin"}
+        LU{"Lucsamburg"}
+        LV{"An Laitvia"}
+        LY{"An Libia"}
+        MA{"Maracó"}
+        MC{"Monacó"}
+        MD{"An Mholdóiv"}
+        ME{"Montainéagró"}
+        MG{"Madagascar"}
+        MH{"Oileáin Marshall"}
+        MK{"An Mhacadóin"}
+        ML{"Mailí"}
+        MM{"Maenmar"}
+        MN{"An Mhongóil"}
+        MO{"R.R.S. na Síne Macáó"}
+        MP{"Oileáin Mariana Thuaidh"}
+        MQ{"Martainíc"}
+        MR{"An Mharatáin"}
+        MS{"Montsarat"}
+        MT{"Málta"}
+        MU{"Oileán Mhuirís"}
+        MV{"Na Maildiví"}
+        MW{"An Mhaláiv"}
+        MX{"Meicsiceo"}
+        MY{"An Mhalaeisia"}
+        MZ{"Mósaimbíc"}
+        NA{"An Namaib"}
+        NC{"An Nua-Chaladóin"}
+        NE{"An Nígir"}
+        NF{"Oileán Norfolk"}
+        NG{"An Nigéir"}
+        NI{"Nicearagua"}
+        NL{"An Ísiltír"}
+        NO{"An Iorua"}
+        NP{"Neipeal"}
+        NR{"Nárú"}
+        NU{"Nívé"}
+        NZ{"An Nua-Shéalainn"}
+        OM{"Óman"}
+        PA{"Panama"}
+        PE{"Peiriú"}
+        PF{"An Pholainéis Fhrancach"}
+        PG{"Nua-Ghuine Phapua"}
+        PH{"Na hOileáin Fhilipíneacha"}
+        PK{"An Phacastáin"}
+        PL{"An Pholainn"}
+        PM{"Saint Pierre agus Miquelon"}
+        PN{"Pitcairn"}
+        PR{"Portó Ríce"}
+        PS{"Na Críocha Pailistíneacha"}
+        PT{"An Phortaingéil"}
+        PW{"Palau"}
+        PY{"Paragua"}
+        QA{"Catar"}
+        QO{"An Aigéine Imeallach"}
+        RE{"Réunion"}
+        RO{"An Rómáin"}
+        RS{"An tSeirbia"}
+        RU{"Cónaidhm na Rúise"}
+        RW{"Ruanda"}
+        SA{"An Araib Shádach"}
+        SB{"Oileáin Sholaimh"}
+        SC{"Na Séiséil"}
+        SD{"An tSúdáin"}
+        SE{"An tSualainn"}
+        SG{"Singeapór"}
+        SH{"San Héilin"}
+        SI{"An tSlóvéin"}
+        SJ{"Svalbard agus Jan Mayen"}
+        SK{"An tSlóvaic"}
+        SL{"Siarra Leon"}
+        SM{"San Mairíne"}
+        SN{"An tSeineagáil"}
+        SO{"An tSomáil"}
+        SR{"Suranam"}
+        ST{"Sao Tome agus Principe"}
+        SV{"An tSalvadóir"}
+        SY{"An tSiria"}
+        SZ{"An tSuasalainn"}
+        TC{"Oileáin Turks agus Caicos"}
+        TD{"Sead"}
+        TF{"Críocha Deisceartacha na Fraince"}
+        TG{"Tóga"}
+        TH{"An Téalainn"}
+        TJ{"An Táidsíceastáin"}
+        TK{"Tócalá"}
+        TL{"Tíomór Thoir"}
+        TM{"An Tuircméanastáin"}
+        TN{"An Túinéis"}
+        TO{"Tonga"}
+        TR{"An Tuirc"}
+        TT{"Oileáin na Tríonóide agus Tobága"}
+        TV{"Túválú"}
+        TW{"An Téaváin"}
+        TZ{"An Tansáin"}
+        UA{"An Úcráin"}
+        UG{"Úganda"}
+        UM{"Mion-Oileáin Imeallacha S.A.M."}
+        US{"Stáit Aontaithe Mheiriceá"}
+        UY{"Urugua"}
+        UZ{"Úisbéiceastáin"}
+        VA{"An Vatacáin"}
+        VC{"Saint Vincent agus na Grenadines"}
+        VE{"Veiniséala"}
+        VG{"Oileáin Bhriotanacha na Maighdean"}
+        VI{"Oileáin na Maighdean S.A.M."}
+        VN{"Vít Neam"}
+        VU{"Vanuatú"}
+        WF{"Oileáin Vailís agus Futúna"}
+        WS{"Samó"}
+        YE{"Éimin"}
+        YT{"Mayotte"}
+        ZA{"An Afraic Theas"}
+        ZM{"An tSaimbia"}
+        ZW{"An tSiombáib"}
+        ZZ{"Réigiún Anaithnid nó Neamhbhailí"}
+    }
+    Version{"2.0.47.67"}
+}

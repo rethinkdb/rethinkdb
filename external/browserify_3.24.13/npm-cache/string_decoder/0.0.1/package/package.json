@@ -1,0 +1,30 @@
+{
+  "name": "string_decoder",
+  "version": "0.0.1",
+  "description": "the string_decoder module from node core for browsers",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "tap": "~0.4.8"
+  },
+  "scripts": {
+    "test": "tap test/simple/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/substack/string_decoder.git"
+  },
+  "homepage": "https://github.com/substack/string_decoder",
+  "keywords": [
+    "string",
+    "decoder",
+    "browser",
+    "browserify"
+  ],
+  "author": {
+    "name": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net"
+  },
+  "license": "MIT"
+}

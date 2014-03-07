@@ -1,0 +1,122 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2011 Aaron Graham
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:advance Qi advance Parser]
+
+[heading Description]
+
+The __qi__ `advance` is a primitive parser component allowing the parser to
+skip (advance) through a specified number of iterations without performing
+unnecessary work:
+
+    advance(distance)
+
+The most obvious existing alternative to this, the `repeat` directive, will
+cause the parser to advance one iterator at a time while usually performing
+operations at each step. In some cases that work is unnecessary, as in the case
+where large binary objects are being parsed. Take, for example, the following
+binary data:
+
+[pre
+    00 00 00 01 77 fc b4 51 0a b3 b7 ... 1e 60 70 b6 00 00 01 00
+]
+
+If the first 4 bytes are a little-endian 32-bit integer describing the length
+of the subsequent data, but the data itself is not relevant to parsing, then the
+repeat directive would cause all of the subsequent 16 MB of data to be consumed
+one byte at a time while generating page faults or other superfluous I/O. If the
+value is large, as it is in this case, the parser becomes very slow.
+
+    little_dword[_a = _1] >> repeat(_a)[byte_] >> little_dword...
+
+The `advance` parser component solves this problem by performing as little work
+as possible to advance the parser's iterator, and will optimize for the case of
+random-access iterators by advancing directly to the desired relative iterator
+position.
+
+    little_dword[_a = _1] >> advance(_a) >> little_dword...
+
+[heading Header]
+
+    // forwards to <boost/spirit/repository/home/qi/primitive/advance.hpp>
+    #include <boost/spirit/repository/include/qi_advance.hpp>
+
+[heading Synopsis]
+
+    advance(distance)
+
+[heading Parameters]
+
+[table
+    [[Parameter]            [Description]]
+    [['distance']           [The distance that the iterator shall be advanced]]
+]
+
+[heading Attribute]
+
+The `advance` component exposes no attribute (the exposed attribute type is
+`unused_type`):
+
+    advance --> unused
+
+[heading Example]
+
+The following example shows simple use cases of the `advance` component. We will
+illustrate its usage by generating parsers for some binary data (for the full
+example code see
+[@../../example/qi/advance.cpp advance.cpp])
+
+[import ../example/qi/advance.cpp]
+
+[heading Prerequisites]
+
+In addition to the main header file needed to include the core components 
+implemented in __qi__ we add the header file needed for the new `advance`
+component.
+
+[qi_advance_includes]
+
+In order to make the examples below more readable we introduce or use the
+following namespaces.
+
+[qi_advance_namespaces]
+
+[heading Setting up the Grammar]
+
+This is a very simple grammar that recognizes several fields of a binary stream
+of data. There are two fields explicitly delimited by a field indicating the
+number of bytes that are spanned. They are separated by a literal string.
+
+[qi_advance_grammar]
+
+Note that the second binary field may either contain the number of specified
+bytes, or the word "qi". If the `advance` parser component fails to advance the
+specified number of bytes before reaching the end of input, it will fail and
+the parser will attempt to descend into alternatives.
+
+[heading Parsing a Correctly-delimited String of Data]
+
+The data below is correctly delimited and will thus result in a valid parse.
+Note that both random-access and bidirectional iterators are used here.
+
+[qi_advance_example1]
+
+[heading Parsing the Alternative Representation]
+
+The data below is not correctly delimited, but will correctly parse because the
+alternative word "qi" is available.
+
+[qi_advance_example2]
+
+[heading Notes]
+
+The `advance` parser component will fail unconditionally on negative values.
+It will never attempt to advance the iterator in the reverse direction.
+
+[endsect]

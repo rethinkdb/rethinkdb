@@ -1,0 +1,555 @@
+# Boost.Build support specific for the Boost C++ Libraries.
+# Copyright Vladimir Prus 2002-2010.
+# Copyright Dave Abrahams 2005-2006.
+# Copyright Rene Rivera 2005-2007.
+# Copyright Douglas Gregor 2005.
+#
+# Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+
+import "class" : new ;
+import common ;
+import configure ;
+import build-system ;
+import generate ;
+import modules ;
+import option ;
+import os ;
+import package ;
+import path ;
+import project ;
+import regex ;
+import set ;
+import targets ;
+
+
+##############################################################################
+#
+# 0. General setup. Parse options, check them.
+#
+##############################################################################
+
+BOOST_ROOT = [ modules.binding $(__name__) ] ;
+BOOST_ROOT = $(BOOST_ROOT:D) ;
+
+rule set-version ( version )
+{
+    BOOST_VERSION = $(version) ;
+
+    local version-tag = [ MATCH ^([^.]+)[.]([^.]+)[.]([^.]+) : $(BOOST_VERSION)
+        ] ;
+    if $(version-tag[3]) = 0
+    {
+        version-tag = $(version-tag[1-2]) ;
+    }
+    BOOST_VERSION_TAG = $(version-tag:J=_) ;
+}
+
+# Option to choose how many variants to build. The default is "minimal".
+build-type = [ option.get build-type ] ;
+build-type ?= minimal ;
+if ! ( $(build-type) in complete minimal )
+{
+    EXIT The value of the --build-type option should be either 'complete' or
+        'minimal' ;
+}
+
+# What kind of layout are we doing?
+layout = [ option.get layout : "" ] ;
+# On Windows, we used versioned layout by default in order to be compatible with
+# autolink. On other systems, we use system layout which is what every other
+# program uses. Note that the Windows check is static, and will not be affected
+# by specific build properties used.
+if ! $(layout)
+{
+    if [ os.name ] = NT
+    {
+        layout = versioned ;
+    }
+    else
+    {
+        layout = system ;
+    }
+}
+layout-$(layout) = true ;
+
+if $(layout) = system && $(build-type) = complete
+{
+    ECHO error: Cannot use --layout=system with --build-type complete. ;
+    ECHO error: Please use either --layout=versioned or --layout=tagged ;
+    ECHO error: if you wish to build multiple variants. ;
+    if [ os.name ] != NT
+    {
+        ECHO error: Note that --layout=system is used by default on Unix
+            starting with Boost 1.40. ;
+    }
+    EXIT ;
+}
+
+# Possible stage only location.
+stage-locate = [ option.get stagedir ] ;
+stage-locate ?= stage ;
+BOOST_STAGE_LOCATE = $(stage-locate) ;
+
+# Custom build ID.
+build-id = [ option.get buildid ] ;
+if $(build-id)
+{
+    BUILD_ID = [ regex.replace $(build-id) "[*\\/:.\"\' ]" _ ] ;
+}
+
+# Python build id (for Python libraries only).
+python-id = [ option.get "python-buildid" ] ;
+if $(python-id)
+{
+    PYTHON_ID = [ regex.replace $(python-id) [*\\/:.\"\'] _ ] ;
+}
+
+
+################################################################################
+#
+# 1. 'tag' function adding decorations suitable to the properties if versioned
+# or tagged layout is requested. Called from Jamroot.
+#
+################################################################################
+
+rule tag ( name : type ? : property-set )
+{
+    if $(type) in STATIC_LIB SHARED_LIB IMPORT_LIB
+    {
+        local result ;
+        if $(layout) = versioned
+        {
+            result = [ common.format-name
+                <base> <toolset> <threading> <runtime> -$(BOOST_VERSION_TAG)
+                -$(BUILD_ID)
+                : $(name) : $(type) : $(property-set) ] ;
+        }
+        else if $(layout) = tagged
+        {
+            result = [ common.format-name
+                <base> <threading> <runtime>
+                -$(BUILD_ID)
+                : $(name) : $(type) : $(property-set) ] ;
+        }
+        else if $(layout) = system
+        {
+            result = [ common.format-name
+                <base>
+                -$(BUILD_ID)
+                : $(name) : $(type) : $(property-set) ] ;
+        }
+        else
+        {
+            EXIT error: invalid layout '$(layout:E=)' ;
+        }
+
+        # Optionally add version suffix. On NT, library with version suffix will
+        # not be recognized by linkers. On CYGWIN, we get strage duplicate
+        # symbol errors when library is generated with version suffix. On OSX,
+        # version suffix is not needed -- the linker expects the
+        # libFoo.1.2.3.dylib format. AIX linkers do not accept version suffixes
+        # either. Pgi compilers can not accept a library with version suffix.
+        if $(type) = SHARED_LIB &&
+          ! [ $(property-set).get <target-os> ] in windows cygwin darwin aix &&
+          ! [ $(property-set).get <toolset> ] in pgi
+        {
+            result = $(result).$(BOOST_VERSION)  ;
+        }
+
+        return $(result) ;
+    }
+}
+
+
+################################################################################
+#
+# 2. Declare targets that build and install all libraries. Specifically:
+#
+#    - 'stage-proper' that puts all libraries in stage/lib
+#    - 'install-proper' that install libraries and headers to system location
+#    - 'stage-unversioned' that creates links to libraries without boost version
+#       in name
+#    - 'install-unversioned' which creates unversioned linked to installed
+#       libraries.
+#
+################################################################################
+
+# Worker function suitable to the 'generate' metatarget. Creates a link to
+# 'source', striping any version number information from the name.
+rule make-unversioned-links ( project name ? : property-set : sources * )
+{
+    local filter ;
+    if [ modules.peek : NT ]
+    {
+        filter = (.*[.]lib) ;
+    }
+    else
+    {
+        filter =
+            (.*[.]so)[.0-9]*
+            (.*[.]dylib)
+            (.*[.]a) ;
+    }
+
+    local result ;
+    for local s in $(sources)
+    {
+        local m = [ MATCH ^(.*)-[0-9_]+$(filter)$ : [ $(s).name ] ] ;
+        if $(m)
+        {
+            local ea = [ $(s).action ] ;
+            local ep = [ $(ea).properties ] ;
+            local a = [ new non-scanning-action $(s) : symlink.ln : $(ep) ] ;
+            result += [ new file-target $(m:J=) exact : [ $(s).type ] :
+                $(project) : $(a) ] ;
+        }
+    }
+    return $(result) ;
+}
+
+rule declare_install_and_stage_proper_targets ( libraries * : headers * )
+{
+    install-requirements = <install-source-root>$(BOOST_ROOT)/boost ;
+
+    if $(layout-versioned)
+    {
+        install-requirements +=
+            <install-header-subdir>boost-$(BOOST_VERSION_TAG)/boost ;
+    }
+    else
+    {
+        install-requirements += <install-header-subdir>boost ;
+    }
+
+    if [ os.name ] = NT
+    {
+        install-requirements += <install-default-prefix>C:/Boost ;
+    }
+    else
+    {
+        install-requirements += <install-default-prefix>/usr/local ;
+    }
+
+    p = [ project.current ] ;
+
+    # Complete install.
+    package.install install-proper
+        : $(install-requirements) <install-no-version-symlinks>on
+        :
+        : libs/$(libraries)/build
+        : $(headers)
+        ;
+    $(p).mark-target-as-explicit install-proper ;
+
+    # Install just library.
+    install stage-proper
+        : libs/$(libraries)/build
+        : <location>$(stage-locate)/lib
+          <install-dependencies>on <install-type>LIB
+          <install-no-version-symlinks>on
+        ;
+    $(p).mark-target-as-explicit stage-proper ;
+
+    # Commented out as it does not seem to work. Whoever wrote this originally,
+    # left some typos in the code, but when that got corrected and the code got
+    # enabled - it started reporting ambiguous/duplicate target Boost Build
+    # errors. Anyone requiring unversioned staged libraries needs to correct
+    # those errors before reenabling this code. For more detailed information
+    # see the related Boost library development mailing list thread at
+    # 'http://lists.boost.org/Archives/boost/2012/06/194312.php'.
+    #                                                (06.07.2012.) (Jurko)
+    #~ if $(layout-versioned) && ( [ modules.peek : NT ] || [ modules.peek : UNIX ] )
+    #~ {
+    #~     generate stage-unversioned : stage-proper :
+    #~         <generating-rule>@boostcpp.make-unversioned-links ;
+    #~     $(p).mark-target-as-explicit stage-unversioned ;
+    #~
+    #~     generate install-unversioned : install-proper :
+    #~         <generating-rule>@boostcpp.make-unversioned-links ;
+    #~     $(p).mark-target-as-explicit install-unversioned ;
+    #~ }
+    #~ else
+    {
+        # Create do-nothing aliases.
+        alias stage-unversioned ;
+        $(p).mark-target-as-explicit stage-unversioned ;
+        alias install-unversioned ;
+        $(p).mark-target-as-explicit install-unversioned ;
+    }
+}
+
+
+################################################################################
+#
+#  3. Declare top-level targets 'stage' and 'install'. These examine the
+#  --build-type option and, in case it is 'complete', build the 'install-proper'
+#  and 'stage-proper' targets with a number of property sets.
+#
+################################################################################
+
+class top-level-target : alias-target-class
+{
+    import modules ;
+
+    rule __init__ ( name : project : sources * : requirements *
+        : default-build * : usage-requirements * )
+    {
+        alias-target-class.__init__ $(name) : $(project) : $(sources) :
+            $(requirements) : $(default-build) : $(usage-requirements) ;
+
+        self.build-type = [ modules.peek boostcpp : build-type ] ;
+        # On Linux, we build the release variant by default, since few users
+        # will ever want to debug C++ Boost libraries, and there is no ABI
+        # incompatibility between debug and release variants. We build shared
+        # and static libraries since that is what most packages seem to provide
+        # (.so in libfoo and .a in libfoo-dev).
+        self.minimal-properties = [ property-set.create <variant>release
+            <threading>multi <link>shared <link>static <runtime-link>shared ] ;
+        # On Windows, new IDE projects use:
+        #
+        #   runtime-link=dynamic, threading=multi, variant=(debug|release)
+        #
+        # and in addition, C++ Boost's autolink defaults to static linking.
+        self.minimal-properties-win = [ property-set.create <variant>debug
+            <variant>release <threading>multi <link>static <runtime-link>shared
+            ] ;
+
+        self.complete-properties = [ property-set.create
+            <variant>debug <variant>release
+            <threading>single <threading>multi
+            <link>shared <link>static
+            <runtime-link>shared <runtime-link>static ] ;
+    }
+
+    rule generate ( property-set )
+    {
+        modules.poke : top-level-targets : [ modules.peek : top-level-targets ]
+            $(self.name) ;
+        if $(self.build-type) = minimal
+        {
+            local expanded ;
+
+            local os = [ $(property-set).get <target-os> ] ;
+            # Because we completely override the parent's 'generate' we need to
+            # check for default feature values ourselves.
+            if ! $(os)
+            {
+                os = [ feature.defaults <target-os> ] ;
+                os = $(os:G=) ;
+            }
+
+            if $(os) = windows
+            {
+                expanded = [ targets.apply-default-build $(property-set)
+                    : $(self.minimal-properties-win) ] ;
+            }
+            else
+            {
+                expanded = [ targets.apply-default-build $(property-set)
+                    : $(self.minimal-properties) ] ;
+            }
+            return [ build-multiple $(expanded) ] ;
+        }
+        else if $(self.build-type) = complete
+        {
+            local expanded = [ targets.apply-default-build $(property-set)
+                : $(self.complete-properties) ] ;
+
+            # Filter inappopriate combinations.
+            local filtered ;
+            for local p in $(expanded)
+            {
+                # See comment in handle-static-runtime regarding this logic.
+                if [ $(p).get <link> ] = shared
+                    && [ $(p).get <runtime-link> ] = static
+                    && [ $(p).get <toolset> ] != cw
+                {
+                    # Skip this.
+                }
+                else
+                {
+                    filtered += $(p) ;
+                }
+            }
+            return [ build-multiple $(filtered) ] ;
+        }
+        else
+        {
+            import errors ;
+            errors.error "Unknown build type" ;
+        }
+    }
+
+    rule build-multiple ( property-sets * )
+    {
+        local usage-requirements = [ property-set.empty ] ;
+        local result ;
+        for local p in $(property-sets)
+        {
+            local r = [ alias-target-class.generate $(p) ] ;
+            if $(r)
+            {
+                usage-requirements = [ $(usage-requirements).add $(r[1]) ] ;
+                result += $(r[2-]) ;
+            }
+        }
+        return $(usage-requirements) [ sequence.unique $(result) ] ;
+    }
+}
+
+rule declare_top_level_targets ( libraries * : headers * )
+{
+    declare_install_and_stage_proper_targets $(libraries) : $(headers) ;
+
+    targets.create-metatarget top-level-target : [ project.current ]
+        : install
+        : install-proper install-unversioned
+        ;
+    targets.create-metatarget top-level-target : [ project.current ]
+        : stage
+        : stage-proper stage-unversioned
+        ;
+
+    p = [ project.current ] ;
+    $(p).mark-target-as-explicit install stage ;
+
+    # This target is built by default, and will forward to 'stage' after
+    # producing some explanations.
+    targets.create-metatarget top-level-target : [ project.current ]
+        : forward
+        : explain stage
+        ;
+}
+
+
+stage-abs = [ path.native [ path.root $(stage-locate)/lib [ path.pwd ] ] ] ;
+
+
+################################################################################
+#
+# 4. Add hook to report configuration before the build, and confirmation with
+# setup instructions after the build.
+#
+################################################################################
+
+message explain : "\nBuilding the Boost C++ Libraries.\n\n" ;
+local p = [ project.current ] ;
+$(p).mark-target-as-explicit explain ;
+
+rule pre-build ( )
+{
+    local tl = [ modules.peek : top-level-targets ] ;
+    if stage in $(tl) || install in $(tl)
+    {
+        # FIXME: Remove 'if' when Boost regression tests start using trunk bjam.
+        if PAD in [ RULENAMES ]
+        {
+            configure.print-component-configuration ;
+        }
+    }
+}
+IMPORT $(__name__) : pre-build : : $(__name__).pre-build ;
+build-system.set-pre-build-hook $(__name__).pre-build ;
+
+# FIXME: Revise stage_abs.
+rule post-build ( ok ? )
+{
+    if forward in [ modules.peek : top-level-targets ]
+    {
+        if $(ok)
+        {
+            ECHO "
+
+The Boost C++ Libraries were successfully built!
+
+The following directory should be added to compiler include paths:
+
+    $(BOOST_ROOT)
+
+The following directory should be added to linker library paths:
+
+    $(stage-abs)
+" ;
+        }
+    }
+}
+IMPORT $(__name__) : post-build : : $(__name__).post-build ;
+build-system.set-post-build-hook $(__name__).post-build ;
+
+
+################################################################################
+#
+# 5. Top-level setup.
+#
+################################################################################
+
+# Decides which libraries are to be installed by looking at --with-<library>
+# --without-<library> arguments. Returns the list of directories under "libs"
+# which must be built and installed.
+#
+rule libraries-to-install ( existing-libs * )
+{
+    local argv = [ modules.peek : ARGV ] ;
+    local with-parameter = [ MATCH ^--with-(.*) : $(argv) ] ;
+    local without-parameter = [ MATCH ^--without-(.*) : $(argv) ] ;
+
+    if ! $(with-parameter) && ! $(without-parameter)
+    {
+        # Nothing is specified on command line. See if maybe project-config.jam
+        # has some choices.
+        local libs = [ modules.peek project-config : libraries ] ;
+        with-parameter = [ MATCH ^--with-(.*) : $(libs) ] ;
+        without-parameter = [ MATCH ^--without-(.*) : $(libs) ] ;
+    }
+
+    # Do some checks.
+    if $(with-parameter) && $(without-parameter)
+    {
+        EXIT error: both --with-<library> and --without-<library> specified ;
+    }
+
+    local wrong = [ set.difference $(with-parameter) : $(existing-libs) ] ;
+    if $(wrong)
+    {
+        EXIT error: wrong library name '$(wrong[1])' in the --with-<library>
+            option. ;
+    }
+    local wrong = [ set.difference $(without-parameter) : $(existing-libs) ] ;
+    if $(wrong)
+    {
+        EXIT error: wrong library name '$(wrong[1])' in the --without-<library>
+            option. ;
+    }
+
+    if $(with-parameter)
+    {
+        return [ set.intersection $(existing-libs) : $(with-parameter) ] ;
+    }
+    else
+    {
+        return [ set.difference $(existing-libs) : $(without-parameter) ] ;
+    }
+}
+
+rule declare-targets ( all-libraries * : headers * )
+{
+    configure.register-components $(all-libraries) ;
+
+    # Select the libraries to install.
+    libraries = [ libraries-to-install $(all-libraries) ] ;
+    configure.components-building $(libraries) ;
+
+    if [ option.get "show-libraries" : : true ]
+    {
+        ECHO The following libraries require building: ;
+        for local l in $(libraries)
+        {
+            ECHO "    - $(l)" ;
+        }
+        EXIT ;
+    }
+
+    declare_top_level_targets $(libraries) : $(headers) ;
+}

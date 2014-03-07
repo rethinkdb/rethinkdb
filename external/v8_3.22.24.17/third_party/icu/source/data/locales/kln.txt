@@ -1,0 +1,226 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/kln.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/kln.xml
+ */
+kln{
+    AuxExemplarCharacters{"[f q v x z]"}
+    ExemplarCharacters{"[a b c d e g h i j k l m n o p r s t u w y]"}
+    ExemplarCharactersIndex{"[A B C D E G H I J K L M N O P R S T U W Y]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤#,##0.00;(¤#,##0.00)"}
+            }
+        }
+    }
+    Version{"2.0.47.63"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "Beet",
+                "Kemo",
+            }
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, d MMMM y",
+                "d MMMM y",
+                "d MMM y",
+                "dd/MM/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                M{"L"}
+                MEd{"E, M/d"}
+                MMM{"LLL"}
+                MMMEd{"E, MMM d"}
+                MMMMEd{"E, MMMM d"}
+                MMMMd{"MMMM d"}
+                MMMd{"MMM d"}
+                Md{"M/d"}
+                d{"d"}
+                hm{"h:mm a"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"M/y"}
+                yMEd{"EEE, M/d/y"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE, MMM d, y"}
+                yMMMM{"MMMM y"}
+                yQ{"Q y"}
+                yQQQ{"QQQ y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "Tis",
+                        "Tai",
+                        "Aen",
+                        "Som",
+                        "Ang",
+                        "Mut",
+                        "Loh",
+                    }
+                    wide{
+                        "Betutab tisap",
+                        "Betut netai",
+                        "Betutab aeng'",
+                        "Betutab somok",
+                        "Betutab ang'wan",
+                        "Betutab mut",
+                        "Betutab lo",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "T",
+                        "T",
+                        "A",
+                        "S",
+                        "A",
+                        "M",
+                        "L",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "AM",
+                    "KO",
+                }
+                wide{
+                    "Amait kesich Jesu",
+                    "Kokakesich Jesu",
+                }
+            }
+            fields{
+                day{
+                    dn{"Betut"}
+                    relative{
+                        "-1"{"Amut"}
+                        "0"{"Raini"}
+                        "1"{"Mutai"}
+                    }
+                }
+                dayperiod{
+                    dn{"BE/KE"}
+                }
+                era{
+                    dn{"Ibinta"}
+                }
+                hour{
+                    dn{"Sait"}
+                }
+                minute{
+                    dn{"Minitit"}
+                }
+                month{
+                    dn{"Arawet"}
+                }
+                second{
+                    dn{"Sekondit"}
+                }
+                week{
+                    dn{"Wikit"}
+                }
+                weekday{
+                    dn{"Betutab wikit"}
+                }
+                year{
+                    dn{"Kenyit"}
+                }
+                zone{
+                    dn{"Saitab sonit"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "Mul",
+                        "Nga",
+                        "Kip",
+                        "Iwa",
+                        "Nge",
+                        "Wak",
+                        "Rop",
+                        "Kog",
+                        "Bur",
+                        "Epe",
+                        "Tai",
+                        "Aen",
+                    }
+                    wide{
+                        "Mulgul",
+                        "Ng'atyato",
+                        "Kiptamo",
+                        "Iwat kut",
+                        "Ng'eiyet",
+                        "Waki",
+                        "Roptui",
+                        "Kipkogaga",
+                        "Buret",
+                        "Epeso",
+                        "Kipsunde netai",
+                        "Kipsunde nebo aeng",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "M",
+                        "N",
+                        "K",
+                        "I",
+                        "N",
+                        "W",
+                        "R",
+                        "K",
+                        "B",
+                        "E",
+                        "K",
+                        "K",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "R1",
+                        "R2",
+                        "R3",
+                        "R4",
+                    }
+                    wide{
+                        "Robo netai",
+                        "Robo nebo aeng'",
+                        "Robo nebo somok",
+                        "Robo nebo ang'wan",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"”"}
+        alternateQuotationStart{"“"}
+        quotationEnd{"'"}
+        quotationStart{"'"}
+    }
+}

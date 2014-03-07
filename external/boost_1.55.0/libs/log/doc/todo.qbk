@@ -1,0 +1,29 @@
+[/
+              Copyright Andrey Semashev 2007 - 2013.
+     Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+              http://www.boost.org/LICENSE_1_0.txt)
+
+    This document is a part of Boost.Log library documentation.
+/]
+
+[section:todo TODO in future releases]
+
+Points in this section are not necessarily going to be implemented. These are mainly some thoughts on further improvements of the library.
+
+* Optimize single-threaded configuration. In many places dynamic memory allocation can be avoided if multithreading support is disabled.
+* SNMP support. The idea is to implement a sink backend that would emit SNMP traps as a result of processing log records. This needs quite an amount of research and thinking over.
+* Provide a compile-time option to remove all logging from the application (the compiled binary should contain no traces of logging internally). There are two reasons for this request: attempting to achieve maximum performance and concealing internal information, such as function names and internal messages, to prevent reverse engineering in no-logging builds. Effectively, this would require not only all library macros to be redefined to emptiness, but also to provide dummy implementations of many library components. Needs more consideration. Perhaps, suppressing only macros would be sufficient.
+* Provide a macro, like `BOOST_LOG_FUNCTION`, but with ability to automatically log all function arguments.
+* Think over a header-only configuration. Perhaps, with a reduced functionality.
+* Update syslog support to [@http://tools.ietf.org/html/rfc5424 RFC 5424].
+* Provide some kind of shared formatters. The idea is that several sinks may use the same formatter. If a log record passes filtering to multiple such sinks, the formatting is done just once for all sinks that share the formatter. Maybe, it will require refactoring the sinks architecture, transforming them into pipelines with formatter and backends being just steps in log record processing.
+* Allow to change the locale for the file stream in the text file backend. The locale can alter the character code conversion in wide-character logging.
+* Improve file collection in the file sink. Make it possible to (i) rename collected files and (ii) collect files in a dedicated thread.
+* Provide headers with forward declarations of the library components.
+* Make it possible to update library configuration after loading settings from a file. Probably, this will require a new configuration entity that will be able to detect and apply changes between settings.
+* Develop a statistics gathering framework. The basic idea is to provide a specific log source and a pin. The user can pin his data or explicitly indicate events by invoking the log source. The source would automatically collect the data from the pinned variables. This source should have a better integration with filters to be able which pins should be collected and which should not.
+* Allow to specify a process ID in the file name pattern for file-based sinks.
+* Improve support for `format` formatter, implement placeholder format flags.
+
+[endsect]

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="include_id_test" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Include Id Test</title>
+  <bridgehead renderas="sect2" id="a.h0">
+    <phrase id="a.simple_include"/><link linkend="a.simple_include">Simple include</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="b.h0">
+    <phrase id="b.simple_include"/><link linkend="b.simple_include">Simple include</link>
+  </bridgehead>
+  <article id="c" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+    <title>Include without id</title>
+    <bridgehead renderas="sect2" id="c.h0">
+      <phrase id="c.title__no_id"/><link linkend="c.title__no_id">Title, no id</link>
+    </bridgehead>
+  </article>
+  <article id="d" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+    <title>Include without id</title>
+    <bridgehead renderas="sect2" id="d.h0">
+      <phrase id="d.title__no_id"/><link linkend="d.title__no_id">Title, no id</link>
+    </bridgehead>
+  </article>
+  <article id="e" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+    <title>Include with id</title>
+    <bridgehead renderas="sect2" id="e.h0">
+      <phrase id="e.title_with_id"/><link linkend="e.title_with_id">Title with id</link>
+    </bridgehead>
+  </article>
+  <article id="f" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+    <title>Include with id</title>
+    <bridgehead renderas="sect2" id="f.h0">
+      <phrase id="f.title_with_id"/><link linkend="f.title_with_id">Title with id</link>
+    </bridgehead>
+  </article>
+</article>

@@ -1,0 +1,155 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Protocol requirements</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="ObjectHandleService.html" title="Object handle service requirements">
+<link rel="next" href="RandomAccessHandleService.html" title="Random access handle service requirements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ObjectHandleService.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="RandomAccessHandleService.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.Protocol"></a><a class="link" href="Protocol.html" title="Protocol requirements">Protocol requirements</a>
+</h3></div></div></div>
+<p>
+        A protocol must meet the requirements of <code class="computeroutput"><span class="identifier">CopyConstructible</span></code>
+        types (C++ Std, 20.1.3), and the requirements of <code class="computeroutput"><span class="identifier">Assignable</span></code>
+        types (C++ Std, 23.1).
+      </p>
+<p>
+        In the table below, <code class="computeroutput"><span class="identifier">X</span></code> denotes
+        a protocol class, and <code class="computeroutput"><span class="identifier">a</span></code> denotes
+        a value of <code class="computeroutput"><span class="identifier">X</span></code>.
+      </p>
+<div class="table">
+<a name="boost_asio.reference.Protocol.t0"></a><p class="title"><b>Table&#160;20.&#160;Protocol requirements</b></p>
+<div class="table-contents"><table class="table" summary="Protocol requirements">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  expression
+                </p>
+              </th>
+<th>
+                <p>
+                  return type
+                </p>
+              </th>
+<th>
+                <p>
+                  assertion/note<br> pre/post-conditions
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">X</span><span class="special">::</span><span class="identifier">endpoint</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  type meeting <a class="link" href="Endpoint.html" title="Endpoint requirements">endpoint</a>
+                  requirements
+                </p>
+              </td>
+<td>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">family</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">int</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns a value suitable for passing as the <span class="emphasis"><em>domain</em></span>
+                  argument to <span class="emphasis"><em>POSIX</em></span> <a href="http://www.opengroup.org/onlinepubs/000095399/functions/socket.html" target="_top"><code class="computeroutput"><span class="identifier">socket</span><span class="special">()</span></code></a>
+                  (or equivalent).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">type</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">int</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns a value suitable for passing as the <span class="emphasis"><em>type</em></span>
+                  argument to <span class="emphasis"><em>POSIX</em></span> <a href="http://www.opengroup.org/onlinepubs/000095399/functions/socket.html" target="_top"><code class="computeroutput"><span class="identifier">socket</span><span class="special">()</span></code></a>
+                  (or equivalent).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">protocol</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">int</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns a value suitable for passing as the <span class="emphasis"><em>protocol</em></span>
+                  argument to <span class="emphasis"><em>POSIX</em></span> <a href="http://www.opengroup.org/onlinepubs/000095399/functions/socket.html" target="_top"><code class="computeroutput"><span class="identifier">socket</span><span class="special">()</span></code></a>
+                  (or equivalent).
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ObjectHandleService.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="RandomAccessHandleService.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

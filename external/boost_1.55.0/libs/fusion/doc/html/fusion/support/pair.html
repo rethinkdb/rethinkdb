@@ -1,0 +1,352 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>pair</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../support.html" title="Support">
+<link rel="prev" href="deduce_sequence.html" title="deduce_sequence">
+<link rel="next" href="../iterator.html" title="Iterator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="deduce_sequence.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../support.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../iterator.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="fusion.support.pair"></a><a class="link" href="pair.html" title="pair">pair</a>
+</h3></div></div></div>
+<h5>
+<a name="fusion.support.pair.h0"></a>
+        <span class="phrase"><a name="fusion.support.pair.description"></a></span><a class="link" href="pair.html#fusion.support.pair.description">Description</a>
+      </h5>
+<p>
+        Fusion <code class="computeroutput"><span class="identifier">pair</span></code> type is a half
+        runtime pair. A half runtime pair is similar to a <a class="link" href="../adapted/std__pair.html" title="std::pair"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code></a>,
+        but, unlike <a class="link" href="../adapted/std__pair.html" title="std::pair"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code></a>,
+        the first type does not have data. It is used as elements in <a class="link" href="../container/map.html" title="map"><code class="computeroutput"><span class="identifier">map</span></code></a>s, for example.
+      </p>
+<h5>
+<a name="fusion.support.pair.h1"></a>
+        <span class="phrase"><a name="fusion.support.pair.synopsis"></a></span><a class="link" href="pair.html#fusion.support.pair.synopsis">Synopsis</a>
+      </h5>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">First</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Second</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">pair</span><span class="special">;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">result_of</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Pair</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">first</span><span class="special">;</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Pair</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">second</span><span class="special">;</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">First</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Second</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">make_pair</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">First</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Second</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">result_of</span><span class="special">::</span><span class="identifier">make_pair</span><span class="special">&lt;</span><span class="identifier">First</span><span class="special">,</span><span class="identifier">Second</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">Second</span> <span class="keyword">const</span> <span class="special">&amp;);</span>
+</pre>
+<h5>
+<a name="fusion.support.pair.h2"></a>
+        <span class="phrase"><a name="fusion.support.pair.template_parameters"></a></span><a class="link" href="pair.html#fusion.support.pair.template_parameters">Template
+        parameters</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Parameter
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  First
+                </p>
+              </td>
+<td>
+                <p>
+                  The first type. This is purely a type. No data is held.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Second
+                </p>
+              </td>
+<td>
+                <p>
+                  The second type. This contains data.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">P</span></code></span></dt>
+<dd><p>
+              Fusion pair type
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">p</span></code>, <code class="computeroutput"><span class="identifier">p2</span></code></span></dt>
+<dd><p>
+              Fusion pairs
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">F</span></code>, <code class="computeroutput"><span class="identifier">S</span></code></span></dt>
+<dd><p>
+              Arbitrary types
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">s</span></code></span></dt>
+<dd><p>
+              Value of type <code class="computeroutput"><span class="identifier">S</span></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">o</span></code></span></dt>
+<dd><p>
+              Output stream
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">i</span></code></span></dt>
+<dd><p>
+              Input stream
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="fusion.support.pair.h3"></a>
+        <span class="phrase"><a name="fusion.support.pair.expression_semantics"></a></span><a class="link" href="pair.html#fusion.support.pair.expression_semantics">Expression
+        Semantics</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Semantics
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">P</span><span class="special">::</span><span class="identifier">first_type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of the first template parameter, <code class="computeroutput"><span class="identifier">F</span></code>,
+                  equivalent to <code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">first</span><span class="special">&lt;</span><span class="identifier">P</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">P</span><span class="special">::</span><span class="identifier">second_type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of the second template parameter, <code class="computeroutput"><span class="identifier">S</span></code>,
+                  equivalent to <code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">second</span><span class="special">&lt;</span><span class="identifier">P</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">P</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Default construction.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">P</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Construct a pair given value for the second type, <code class="computeroutput"><span class="identifier">s</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">P</span><span class="special">(</span><span class="identifier">p2</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Copy constructs a pair from another pair, <code class="computeroutput"><span class="identifier">p2</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">p</span><span class="special">.</span><span class="identifier">second</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the data from <code class="computeroutput"><span class="identifier">p1</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">p</span> <span class="special">=</span>
+                  <span class="identifier">p2</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Assigns a pair, <code class="computeroutput"><span class="identifier">p1</span></code>,
+                  from another pair, <code class="computeroutput"><span class="identifier">p2</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  make_pair&lt;F&gt;(s)
+                </p>
+              </td>
+<td>
+                <p>
+                  Make a pair given the first type, <code class="computeroutput"><span class="identifier">F</span></code>,
+                  and a value for the second type, <code class="computeroutput"><span class="identifier">s</span></code>.
+                  The second type assumes the type of <code class="computeroutput"><span class="identifier">s</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">o</span> <span class="special">&lt;&lt;</span>
+                  <span class="identifier">p</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Output <code class="computeroutput"><span class="identifier">p</span></code> to output
+                  stream, <code class="computeroutput"><span class="identifier">o</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">i</span> <span class="special">&gt;&gt;</span>
+                  <span class="identifier">p</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Input <code class="computeroutput"><span class="identifier">p</span></code> from input
+                  stream, <code class="computeroutput"><span class="identifier">i</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">p</span> <span class="special">==</span>
+                  <span class="identifier">p2</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Tests two pairs for equality.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">p</span> <span class="special">!=</span>
+                  <span class="identifier">p2</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Tests two pairs for inequality.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="fusion.support.pair.h4"></a>
+        <span class="phrase"><a name="fusion.support.pair.header"></a></span><a class="link" href="pair.html#fusion.support.pair.header">Header</a>
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">support</span><span class="special">/</span><span class="identifier">pair</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">pair</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h5>
+<a name="fusion.support.pair.h5"></a>
+        <span class="phrase"><a name="fusion.support.pair.example"></a></span><a class="link" href="pair.html#fusion.support.pair.example">Example</a>
+      </h5>
+<pre class="programlisting"><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">char</span><span class="special">&gt;</span> <span class="identifier">p</span><span class="special">(</span><span class="char">'X'</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">p</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">make_pair</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="char">'X'</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">assert</span><span class="special">((</span><span class="identifier">p</span> <span class="special">==</span> <span class="identifier">make_pair</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="char">'X'</span><span class="special">)));</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="deduce_sequence.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../support.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../iterator.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

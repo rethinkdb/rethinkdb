@@ -1,0 +1,113 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[library Boost.Asio
+    [quickbook 1.4]
+    [copyright 2003 - 2013 Christopher M. Kohlhoff]
+    [purpose Networking library]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+    [authors [Kohlhoff, Christopher]]
+    [category template]
+    [category generic]
+]
+
+[template mdash[] '''&mdash; ''']
+[template indexterm1[term1] '''<indexterm><primary>'''[term1]'''</primary></indexterm>''']
+[template indexterm2[term1 term2] '''<indexterm><primary>'''[term1]'''</primary><secondary>'''[term2]'''</secondary></indexterm>''']
+[template ticket[number]'''<ulink url="https://svn.boost.org/trac/boost/ticket/'''[number]'''">'''#[number]'''</ulink>''']
+[def __POSIX__ /POSIX/]
+[def __Windows__ /Windows/]
+[def __accept__ [@http://www.opengroup.org/onlinepubs/000095399/functions/accept.html `accept()`]]
+[def __connect__ [@http://www.opengroup.org/onlinepubs/000095399/functions/connect.html `connect()`]]
+[def __getpeername__ [@http://www.opengroup.org/onlinepubs/000095399/functions/getpeername.html `getpeername()`]]
+[def __getsockname__ [@http://www.opengroup.org/onlinepubs/000095399/functions/getsockname.html `getsockname()`]]
+[def __getsockopt__ [@http://www.opengroup.org/onlinepubs/000095399/functions/getsockopt.html `getsockopt()`]]
+[def __ioctl__ [@http://www.opengroup.org/onlinepubs/000095399/functions/ioctl.html `ioctl()`]]
+[def __recvfrom__ [@http://www.opengroup.org/onlinepubs/000095399/functions/recvfrom.html `recvfrom()`]]
+[def __sendto__ [@http://www.opengroup.org/onlinepubs/000095399/functions/sendto.html `sendto()`]]
+[def __setsockopt__ [@http://www.opengroup.org/onlinepubs/000095399/functions/setsockopt.html `setsockopt()`]]
+[def __socket__ [@http://www.opengroup.org/onlinepubs/000095399/functions/socket.html `socket()`]]
+
+[/=============================================================================]
+
+Boost.Asio is a cross-platform C++ library for network and low-level I/O programming
+that provides developers with a consistent asynchronous model using a modern
+C++ approach.
+
+[variablelist
+  [
+    [
+      [link boost_asio.overview Overview]
+    ]
+    [
+      An overview of the features included in Boost.Asio, plus rationale and design information.
+    ]
+  ]
+  [
+    [
+      [link boost_asio.using Using Boost.Asio]
+    ]
+    [
+      How to use Boost.Asio in your applications. Includes information on
+      library dependencies and supported platforms.
+    ]
+  ]
+  [
+    [
+      [link boost_asio.tutorial Tutorial]
+    ]
+    [
+      A tutorial that introduces the fundamental concepts required to use
+      Boost.Asio, and shows how to use Boost.Asio to develop simple client and
+      server programs.
+    ]
+  ]
+  [
+    [
+      [link boost_asio.examples Examples]
+    ]
+    [
+      Examples that illustrate the use of Boost.Asio in more complex applications.
+    ]
+  ]
+  [
+    [
+      [link boost_asio.reference Reference]
+    ]
+    [
+      Detailed class and function reference.
+    ]
+  ]
+  [
+    [
+      [link boost_asio.history Revision History]
+    ]
+    [
+      Log of Boost.Asio changes made in each Boost release.
+    ]
+  ]
+  [
+    [
+      [link boost_asio.index Index]
+    ]
+    [
+      Book-style text index of Boost.Asio documentation.
+    ]
+  ]
+]
+
+[include overview.qbk]
+[include using.qbk]
+[include tutorial.qbk]
+[include examples.qbk]
+[include reference.qbk]
+[include history.qbk]
+[xinclude index.xml]

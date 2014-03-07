@@ -1,0 +1,19 @@
+# Boost.Geometry (aka GGL, Generic Geometry Library)
+# Robustness Test - overlay - buffer
+#
+# Copyright (c) 2012 Barend Gehrels, Amsterdam, the Netherlands.
+
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+
+project recursive_polygons_buffer
+    : requirements
+        <include>.
+        <include>../..
+        <library>../../../../../program_options/build//boost_program_options
+        <link>static
+    ;
+
+exe recursive_polygons_buffer : recursive_polygons_buffer.cpp ;

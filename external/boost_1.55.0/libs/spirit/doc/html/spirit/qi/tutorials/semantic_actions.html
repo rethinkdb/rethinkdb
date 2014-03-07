@@ -1,0 +1,274 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Parser Semantic Actions</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Tutorials">
+<link rel="prev" href="warming_up.html" title="Warming up">
+<link rel="next" href="complex___our_first_complex_parser.html" title="Complex - Our first complex parser">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="warming_up.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="complex___our_first_complex_parser.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.qi.tutorials.semantic_actions"></a><a class="link" href="semantic_actions.html" title="Parser Semantic Actions">Parser Semantic
+        Actions</a>
+</h4></div></div></div>
+<p>
+          The example in the previous section was very simplistic. It only recognized
+          data, but did nothing with it. It answered the question: "Did the
+          input match?". Now, we want to extract information from what was parsed.
+          For example, we would want to store the parsed number after a successful
+          match. To do this, you will need <span class="emphasis"><em>semantic actions</em></span>.
+        </p>
+<p>
+          Semantic actions may be attached to any point in the grammar specification.
+          These actions are C++ functions or function objects that are called whenever
+          a part of the parser successfully recognizes a portion of the input. Say
+          you have a parser <code class="computeroutput"><span class="identifier">P</span></code>, and
+          a C++ function <code class="computeroutput"><span class="identifier">F</span></code>. You can
+          make the parser call <code class="computeroutput"><span class="identifier">F</span></code>
+          whenever it matches an input by attaching <code class="computeroutput"><span class="identifier">F</span></code>:
+        </p>
+<pre class="programlisting"><span class="identifier">P</span><span class="special">[</span><span class="identifier">F</span><span class="special">]</span>
+</pre>
+<p>
+          The expression above links <code class="computeroutput"><span class="identifier">F</span></code>
+          to the parser, <code class="computeroutput"><span class="identifier">P</span></code>.
+        </p>
+<p>
+          The function/function object signature depends on the type of the parser
+          to which it is attached. The parser <code class="computeroutput"><span class="identifier">double_</span></code>
+          passes the parsed number. Thus, if we were to attach a function <code class="computeroutput"><span class="identifier">F</span></code> to <code class="computeroutput"><span class="identifier">double_</span></code>,
+          we need <code class="computeroutput"><span class="identifier">F</span></code> to be declared
+          as:
+        </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">F</span><span class="special">(</span><span class="keyword">double</span> <span class="identifier">n</span><span class="special">);</span>
+</pre>
+<p>
+          There are actually 2 more arguments being passed (the parser context and
+          a reference to a boolean 'hit' parameter). We don't need these, for now,
+          but we'll see more on these other arguments later. Spirit.Qi allows us
+          to bind a single argument function, like above. The other arguments are
+          simply ignored.
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.semantic_actions.h0"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.semantic_actions.examples_of_semantic_actions"></a></span><a class="link" href="semantic_actions.html#spirit.qi.tutorials.semantic_actions.examples_of_semantic_actions">Examples
+          of Semantic Actions</a>
+        </h6>
+<p>
+          Presented are various ways to attach semantic actions:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Using plain function pointer
+            </li>
+<li class="listitem">
+              Using simple function object
+            </li>
+<li class="listitem">
+              Using <a href="../../../../../../../libs/bind/index.html" target="_top">Boost.Bind</a> with
+              a plain function
+            </li>
+<li class="listitem">
+              Using <a href="../../../../../../../libs/bind/index.html" target="_top">Boost.Bind</a> with
+              a member function
+            </li>
+<li class="listitem">
+              Using <a href="../../../../../../../libs/lambda/index.html" target="_top">Boost.Lambda</a>
+            </li>
+</ul></div>
+<p>
+          Given:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">client</span>
+<span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">qi</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">;</span>
+
+    <span class="comment">// A plain function</span>
+    <span class="keyword">void</span> <span class="identifier">print</span><span class="special">(</span><span class="keyword">int</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">i</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="comment">// A member function</span>
+    <span class="keyword">struct</span> <span class="identifier">writer</span>
+    <span class="special">{</span>
+        <span class="keyword">void</span> <span class="identifier">print</span><span class="special">(</span><span class="keyword">int</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">i</span><span class="special">)</span> <span class="keyword">const</span>
+        <span class="special">{</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+    <span class="comment">// A function object</span>
+    <span class="keyword">struct</span> <span class="identifier">print_action</span>
+    <span class="special">{</span>
+        <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="keyword">int</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">i</span><span class="special">,</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">unused_type</span><span class="special">,</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">unused_type</span><span class="special">)</span> <span class="keyword">const</span>
+        <span class="special">{</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Take note that with function objects, we need to have an <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>
+          with 3 arguments. Since we don't care about the other two, we can use
+          <code class="computeroutput"><span class="identifier">unused_type</span></code> for these.
+          We'll see more of <code class="computeroutput"><span class="identifier">unused_type</span></code>
+          elsewhere. <code class="computeroutput"><span class="identifier">unused_type</span></code>
+          is a Spirit supplied support class.
+        </p>
+<p>
+          All examples parse inputs of the form:
+        </p>
+<pre class="programlisting"><span class="string">"{integer}"</span>
+</pre>
+<p>
+          An integer inside the curly braces.
+        </p>
+<p>
+          The first example shows how to attach a plain function:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">parse</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="char">'{'</span> <span class="special">&gt;&gt;</span> <span class="identifier">int_</span><span class="special">[&amp;</span><span class="identifier">print</span><span class="special">]</span> <span class="special">&gt;&gt;</span> <span class="char">'}'</span><span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          What's new? Well <code class="computeroutput"><span class="identifier">int_</span></code> is
+          the sibling of <code class="computeroutput"><span class="identifier">double_</span></code>.
+          I'm sure you can guess what this parser does.
+        </p>
+<p>
+          The next example shows how to attach a simple function object:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">parse</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="char">'{'</span> <span class="special">&gt;&gt;</span> <span class="identifier">int_</span><span class="special">[</span><span class="identifier">print_action</span><span class="special">()]</span> <span class="special">&gt;&gt;</span> <span class="char">'}'</span><span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          We can use <a href="../../../../../../../libs/bind/index.html" target="_top">Boost.Bind</a>
+          to 'bind' member functions:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">writer</span> <span class="identifier">w</span><span class="special">;</span>
+<span class="identifier">parse</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="char">'{'</span> <span class="special">&gt;&gt;</span> <span class="identifier">int_</span><span class="special">[</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">writer</span><span class="special">::</span><span class="identifier">print</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">w</span><span class="special">,</span> <span class="identifier">_1</span><span class="special">)]</span> <span class="special">&gt;&gt;</span> <span class="char">'}'</span><span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          Likewise, we can also use <a href="../../../../../../../libs/bind/index.html" target="_top">Boost.Bind</a>
+          to 'bind' plain functions:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">parse</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="char">'{'</span> <span class="special">&gt;&gt;</span> <span class="identifier">int_</span><span class="special">[</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">print</span><span class="special">,</span> <span class="identifier">_1</span><span class="special">)]</span> <span class="special">&gt;&gt;</span> <span class="char">'}'</span><span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          Yep, we can also use <a href="../../../../../../../libs/lambda/index.html" target="_top">Boost.Lambda</a>:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">parse</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="char">'{'</span> <span class="special">&gt;&gt;</span> <span class="identifier">int_</span><span class="special">[</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">_1</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">]</span> <span class="special">&gt;&gt;</span> <span class="char">'}'</span><span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          There are more ways to bind semantic action functions, but the examples
+          above are the most common. Attaching semantic actions is the first hurdle
+          one has to tackle when getting started with parsing with Spirit. Familiarize
+          yourself with this task and get intimate with the tools behind it such
+          as <a href="../../../../../../../libs/bind/index.html" target="_top">Boost.Bind</a> and <a href="../../../../../../../libs/lambda/index.html" target="_top">Boost.Lambda</a>.
+        </p>
+<p>
+          The examples above can be found here: <a href="../../../../../example/qi/actions.cpp" target="_top">../../example/qi/actions.cpp</a>
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.semantic_actions.h1"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.semantic_actions.phoenix"></a></span><a class="link" href="semantic_actions.html#spirit.qi.tutorials.semantic_actions.phoenix">Phoenix</a>
+        </h6>
+<p>
+          <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a>, a companion
+          library bundled with Spirit, is specifically suited for binding semantic
+          actions. It is like <a href="../../../../../../../libs/lambda/index.html" target="_top">Boost.Lambda</a>
+          on steroids, with special custom features that make it easy to integrate
+          semantic actions with Spirit. If your requirements go beyond simple to
+          moderate parsing, it is suggested that you use this library. All the following
+          examples in this tutorial will use <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a>
+          for semantic actions.
+        </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+            There are different ways to write semantic actions for <span class="emphasis"><em>Spirit.Qi</em></span>:
+            using plain functions, <a href="../../../../../../../libs/bind/index.html" target="_top">Boost.Bind</a>,
+            <a href="../../../../../../../libs/lambda/index.html" target="_top">Boost.Lambda</a>, or
+            <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a>. The latter
+            three allow you to use special placeholders to control parameter placement
+            (<code class="computeroutput"><span class="identifier">_1</span></code>, <code class="computeroutput"><span class="identifier">_2</span></code>,
+            etc.). Each of those libraries has it's own implementation of the placeholders,
+            all in different namespaces. You have to make sure not to mix placeholders
+            with a library they don't belong to and not to use different libraries
+            while writing a semantic action.
+          </p>
+<p>
+            Generally, for <a href="../../../../../../../libs/bind/index.html" target="_top">Boost.Bind</a>,
+            use <code class="computeroutput"><span class="special">::</span><span class="identifier">_1</span></code>,
+            <code class="computeroutput"><span class="special">::</span><span class="identifier">_2</span></code>,
+            etc. (yes, these placeholders are defined in the global namespace).
+          </p>
+<p>
+            For <a href="../../../../../../../libs/lambda/index.html" target="_top">Boost.Lambda</a> use
+            the placeholders defined in the namespace <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">lambda</span></code>.
+          </p>
+<p>
+            For semantic actions written using <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a>
+            use the placeholders defined in the namespace <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span></code>.
+            Please note that all existing placeholders for your convenience are also
+            available from the namespace <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span></code>.
+          </p>
+</td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="warming_up.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="complex___our_first_complex_parser.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

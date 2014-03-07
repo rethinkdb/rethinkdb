@@ -1,0 +1,139 @@
+<HTML>
+<!--
+     Copyright (c) The Trustees of Indiana University
+    
+     Use, modification and distribution is subject to the Boost Software
+     License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+      Authors: Douglas Gregor
+               Andrew Lumsdaine
+  -->
+<Head>
+  <Title>Boost Graph Library: Power Law Out Degree (PLOD) Generator</Title>
+<script language="JavaScript" type="text/JavaScript">
+<!--
+function address(host, user) {
+        var atchar = '@';
+        var thingy = user+atchar+host;
+        thingy = '<a hre' + 'f=' + "mai" + "lto:" + thingy + '>' + user+atchar+host + '</a>';
+        document.write(thingy);
+}
+//-->
+</script>
+</head>
+
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<tt>plod_iterator</tt>
+
+<br>
+
+<PRE>
+template&lt;typename RandomGenerator, typename Graph&gt;
+class plod_iterator
+{
+public:
+  typedef std::input_iterator_tag iterator_category;
+  typedef std::pair&lt;vertices_size_type, vertices_size_type&gt; value_type;
+  typedef const value_type&amp; reference;
+  typedef const value_type* pointer;
+  typedef void difference_type;
+
+  plod_iterator();
+  plod_iterator(RandomGenerator&amp; gen, vertices_size_type n,
+                double alpha, double beta, bool allow_self_loops = false);
+  // Iterator operations
+  reference operator*() const;
+  pointer operator-&gt;() const;
+  plod_iterator&amp; operator++();
+  plod_iterator operator++(int);
+  bool operator==(const plod_iterator&amp; other) const;
+  bool operator!=(const plod_iterator&amp; other) const;
+}; 
+</PRE>
+
+<p> This class template implements a generator for scale-free graphs
+using the Power Law Out Degree (PLOD) algorithm
+  [<a href="bibliography.html#palmer2000">63</a>], suitable for 
+initializing an <a
+href="adjacency_list.html"><tt>adjacency_list</tt></a> or other graph
+structure with iterator-based initialization. A scale-free graph
+typically has a very skewed degree distribution, where few vertices
+have a very high degree and a large number of vertices have a very
+small degree. Many naturally evolving networks, such as the World
+Wide Web, are scale-free graphs, making these graphs a good model for
+certain networking problems.</p>
+
+<p>The Power Law Out Degree (PLOD) algorithm generates a scale-free
+graph from three parameters, <em>n</em>, <em>alpha</em>, and
+<em>beta</em>, by allocating a certain number of degree "credits" to
+each vertex, drawn from a power-law distribution. It then creates
+edges between vertices, deducting a credit from each involved vertex
+(in the undirected case) or the source vertex (in the directed
+case). The number of credits assigned to a vertex is:
+<em>beta*x<sup>-alpha</sup></em>, where <em>x</em> is a random value
+between 0 and <em>n-1</em>. The value of <em>beta</em> controls the
+y-intercept of the curve, so that increasing <em>beta</em> increases
+the average degree of vertices. The value of <em>alpha</em> controls
+how steeply the curve drops off, with larger values indicating a
+steeper curve. The web graph, for instance, has <em>alpha ~
+2.72</em>.</p>
+
+<h3>Where Defined</h3>
+
+<a href="../../../boost/graph/plod_generator.hpp"><tt>boost/graph/plod_generator.hpp</tt></a>
+
+<h3>Constructors</h3>
+
+<a name="default-constructor"/>
+<pre>plod_iterator();</pre>
+<blockquote>
+Constructs a past-the-end iterator.
+</blockquote>
+
+<pre>
+plod_iterator(RandomGenerator&amp; gen, vertices_size_type n,
+              double alpha, double beta, bool allow_self_loops = false);
+</pre>
+<blockquote>
+Constructs a PLOD generator iterator that creates a
+graph with <tt>n</tt> vertices. Probabilities are drawn from the
+random number generator <tt>gen</tt>. Self-loops are permitted only
+when <tt>allow_self_loops</tt> is <tt>true</tt>.
+</blockquote>
+
+<H3>Example</H3>
+
+<pre>
+#include &lt;boost/graph/adjacency_list.hpp&gt;
+#include &lt;boost/graph/plod_generator.hpp&gt;
+#include &lt;boost/random/linear_congruential.hpp&gt;
+
+typedef boost::adjacency_list&lt;&gt; Graph;
+typedef boost::plod_iterator&lt;boost::minstd_rand, Graph&gt; SFGen;
+
+int main()
+{
+  boost::minstd_rand gen;
+  // Create graph with 100 nodes 
+  Graph g(SFGen(gen, 100, 2.5, 1000), SFGen(), 100);
+  return 0;
+}
+</pre>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2005</TD><TD>
+<A HREF="http://www.boost.org/people/doug_gregor.html">Doug Gregor</A>, Indiana University (<script language="Javascript">address("cs.indiana.edu", "dgregor")</script>)<br>
+  <A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<script language="Javascript">address("osl.iu.edu", "lums")</script>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

@@ -1,0 +1,28 @@
+##############################################################################
+##
+## (C) Copyright Ion Gaztanaga 2008-2009 Distributed under the Boost
+## Software License, Version 1.0. (See accompanying file
+## LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+##
+##
+##############################################################################
+rule test_all
+{
+   local all_rules = ;
+
+   for local fileb in [ glob *.cpp ]
+   {
+      all_rules += [ run $(fileb)
+      :  # additional args
+      :  # test-files
+      :  # requirements
+      ] ;
+   }
+
+   return $(all_rules) ;
+}
+
+test-suite move_test : [ test_all r ] 
+: <link>static
+;
+ 

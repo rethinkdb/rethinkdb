@@ -1,0 +1,28 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section odeint in detail]
+
+[include details_steppers.qbk]
+
+[include details_generation_functions.qbk]
+
+[include details_integrate_functions.qbk]
+
+[include details_state_types_algebras_operations.qbk]
+
+[include details_boost_ref.qbk]
+
+[include details_boost_range.qbk]
+
+[include details_bind_member_functions.qbk]
+
+[endsect]

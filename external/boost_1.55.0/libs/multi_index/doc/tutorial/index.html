@@ -1,0 +1,139 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Tutorial</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="../index.html">
+<link rel="up" href="../index.html">
+<link rel="next" href="basics.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Tutorial</h1>
+
+<div class="prev_link"><a href="../index.html"><img src="../prev.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="up_link"><a href="../index.html"><img src="../up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="basics.html"><img src="../next.gif" alt="basics" border="0"><br>
+Basics
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#rationale">Rationale</a></li>
+  <li><a href="#namespace">Namespace</a></li>
+  <li><a href="basics.html">Basics</a></li>
+  <li><a href="indices.html">Index types</a></li>
+  <li><a href="key_extraction.html">Key extraction</a></li>
+  <li><a href="creation.html">Container creation</a></li>
+  <li><a href="debug.html">Debugging support</a></li>
+  <li><a href="techniques.html">Techniques</a></li>
+</ul>
+
+<h2><a name="rationale">Rationale</a></h2>
+
+<p>
+STL containers are designed around the concept that each container controls its
+own collection of elements, giving access to them in a manner specified by the
+container's type: so, an <code>std::set</code> maintains the elements ordered
+by a specified sorting criterion, <code>std::list</code> allows for free
+positioning of elements along a linear sequence, and so on.
+</p>
+
+<p>
+Sometimes, the necessity arises of having different access interfaces
+to the same underlying collection: for instance, some data might need to be
+sorted according to more than one comparison predicate, or a bidirectional list
+might benefit from a supplemental logarithmic lookup interface. In these
+situations, programmers typically resort to manual compositions of different
+containers, a solution that generally involves a fair amount of code
+devoted to preserve the synchronization of the different parts of
+the composition. Boost.MultiIndex allows for the specification of
+<code>multi_index_container</code>s comprised of one or more <i>indices</i> with
+different interfaces to the same collection of elements. The resulting constructs
+are conceptually cleaner than manual compositions, and often perform much better.
+An important design decision has been taken that the indices of a given
+<code>multi_index_container</code> instantiation be specified at compile time: this
+gives ample room for static type checking and code optimization. 
+</p>
+
+<p>
+Boost.MultiIndex takes inspiration from basic concepts of indexing arising in the
+theory of relational databases, though it is not intended to provide a full-fledged
+relational database framework. <code>multi_index_container</code> integrates seamlessly
+into the STL container/algorithm design, and features some extra capabilities regarding
+lookup operations and element updating which are useful extensions even for
+single-indexed containers.
+</p>
+
+<p align="center">
+<img src="multi_index_cont_example.png"
+alt="diagram of a multi_index_container with three indices"
+width="600" height="304"><br>
+<b>Fig. 1: Diagram of a <code>multi_index_container</code> with three indices.</b>
+</p>
+
+<p>
+The figure above depicts a <code>multi_index_container</code> composed of three indices:
+the first two present a set-like interface to the elements sorted by
+shape and id, respectively, while the latter index provides the functionality
+of a bidirectional list in the spirit of <code>std::list</code>. These
+indices act as "views" to the internal collection of elements, but they do not only
+provide read access to the set: insertion/deletion methods are also implemented much
+as those of <code>std::set</code>s or <code>std::list</code>s. Insertion of an
+element through one given index will only succeed if the uniqueness constraints of all
+indices are met.
+</p>
+
+<h2>
+<a name="namespace">Namespace</a>
+</h2>
+
+<p>
+All the public types of Boost.MultiIndex reside in namespace <code>::boost::multi_index</code>.
+Additionaly, the main class template <code>multi_index_container</code> and global functions
+<code>get</code> and <code>project</code> are lifted to namespace <code>::boost</code>
+by means of <code>using</code> declarations. For brevity of exposition, the fragments
+of code in the documentation are written as if the following declarations were in effect:
+</p>
+ 
+<blockquote><pre>
+<span class=keyword>using</span> <span class=keyword>namespace</span> <span class=special>::</span><span class=identifier>boost</span><span class=special>;</span>
+<span class=keyword>using</span> <span class=keyword>namespace</span> <span class=special>::</span><span class=identifier>boost</span><span class=special>::</span><span class=identifier>multi_index</span><span class=special>;</span>
+</pre></blockquote>
+
+<hr>
+
+<div class="prev_link"><a href="../index.html"><img src="../prev.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="up_link"><a href="../index.html"><img src="../up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="basics.html"><img src="../next.gif" alt="basics" border="0"><br>
+Basics
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised February 21st 2006</p>
+
+<p>&copy; Copyright 2003-2006 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

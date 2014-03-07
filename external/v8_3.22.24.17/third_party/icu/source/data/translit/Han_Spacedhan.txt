@@ -1,0 +1,18 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Han_Spacedhan.txt
+# Generated from CLDR 
+#
+:: [[㆒-㆟㈠-㉇㊀-㊰㋀-㋋㍘-㍰㍻-㍿㏠-㏾ 🈐-🈒🈔-🈺🉀-🉈🉐🉑][:ideographic:][:sc=han:]] nfkc; 
+:: fullwidth-halfwidth;
+｡ → '.';
+$terminalPunct = [\.\,\:\;\?\!．，：？！｡、；[:Pe:][:Pf:]];
+$initialPunct = [:Ps:][:Pi:];
+[[:Ideographic:] $terminalPunct] {} [:Letter:] → ' ' ;
+[:Letter:] [:Mark:]* {} [[:Ideographic:] $initialPunct] → ' ' ;
+← [:Ideographic:] { ' ' } [:Letter:] ;
+← [:Letter:] [:Mark:]* { ' ' } [:Ideographic:] ;

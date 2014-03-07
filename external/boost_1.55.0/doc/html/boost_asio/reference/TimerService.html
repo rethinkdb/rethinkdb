@@ -1,0 +1,255 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Timer service requirements</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="TimeTraits.html" title="Time traits requirements">
+<link rel="next" href="WaitableTimerService.html" title="Waitable timer service requirements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="TimeTraits.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="WaitableTimerService.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.TimerService"></a><a class="link" href="TimerService.html" title="Timer service requirements">Timer service requirements</a>
+</h3></div></div></div>
+<p>
+        A timer service must meet the requirements for an <a class="link" href="IoObjectService.html" title="I/O object service requirements">I/O
+        object service</a>, as well as the additional requirements listed below.
+      </p>
+<p>
+        In the table below, <code class="computeroutput"><span class="identifier">X</span></code> denotes
+        a timer service class for time type <code class="computeroutput"><span class="identifier">Time</span></code>
+        and traits type <code class="computeroutput"><span class="identifier">TimeTraits</span></code>,
+        <code class="computeroutput"><span class="identifier">a</span></code> denotes a value of type
+        <code class="computeroutput"><span class="identifier">X</span></code>, <code class="computeroutput"><span class="identifier">b</span></code>
+        denotes a value of type <code class="computeroutput"><span class="identifier">X</span><span class="special">::</span><span class="identifier">implementation_type</span></code>,
+        <code class="computeroutput"><span class="identifier">t</span></code> denotes a value of type
+        <code class="computeroutput"><span class="identifier">Time</span></code>, <code class="computeroutput"><span class="identifier">d</span></code>
+        denotes a value of type <code class="computeroutput"><span class="identifier">TimeTraits</span><span class="special">::</span><span class="identifier">duration_type</span></code>,
+        <code class="computeroutput"><span class="identifier">e</span></code> denotes a value of type
+        <code class="computeroutput"><span class="identifier">error_code</span></code>, and <code class="computeroutput"><span class="identifier">h</span></code> denotes a value meeting <a class="link" href="WaitHandler.html" title="Wait handler requirements"><code class="computeroutput"><span class="identifier">WaitHandler</span></code></a> requirements.
+      </p>
+<div class="table">
+<a name="boost_asio.reference.TimerService.t0"></a><p class="title"><b>Table&#160;39.&#160;TimerService requirements</b></p>
+<div class="table-contents"><table class="table" summary="TimerService requirements">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  expression
+                </p>
+              </th>
+<th>
+                <p>
+                  return type
+                </p>
+              </th>
+<th>
+                <p>
+                  assertion/note<br> pre/post-condition
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">destroy</span><span class="special">(</span><span class="identifier">b</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+<td>
+                <p>
+                  From <a class="link" href="IoObjectService.html" title="I/O object service requirements">IoObjectService</a>
+                  requirements. Implicitly cancels asynchronous wait operations,
+                  as if by calling <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">cancel</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">e</span><span class="special">)</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">.</span><span class="identifier">cancel</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">e</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">size_t</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Causes any outstanding asynchronous wait operations to complete
+                  as soon as possible. Handlers for cancelled operations shall be
+                  passed the error code <code class="computeroutput"><span class="identifier">error</span><span class="special">::</span><span class="identifier">operation_aborted</span></code>.
+                  Sets <code class="computeroutput"><span class="identifier">e</span></code> to indicate
+                  success or failure. Returns the number of operations that were
+                  cancelled.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">expires_at</span><span class="special">(</span><span class="identifier">b</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">Time</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">.</span><span class="identifier">expires_at</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">t</span><span class="special">,</span> <span class="identifier">e</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">size_t</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Implicitly cancels asynchronous wait operations, as if by calling
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">cancel</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span>
+                  <span class="identifier">e</span><span class="special">)</span></code>.
+                  Returns the number of operations that were cancelled.<br> post:
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">expires_at</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span>
+                  <span class="special">==</span> <span class="identifier">t</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">expires_from_now</span><span class="special">(</span><span class="identifier">b</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">TimeTraits</span><span class="special">::</span><span class="identifier">duration_type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns a value equivalent to <code class="computeroutput"><span class="identifier">TimeTraits</span><span class="special">::</span><span class="identifier">subtract</span><span class="special">(</span><span class="identifier">a</span><span class="special">.</span><span class="identifier">expires_at</span><span class="special">(</span><span class="identifier">b</span><span class="special">),</span> <span class="identifier">TimeTraits</span><span class="special">::</span><span class="identifier">now</span><span class="special">())</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">.</span><span class="identifier">expires_from_now</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">d</span><span class="special">,</span> <span class="identifier">e</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">size_t</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Equivalent to <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">expires_at</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">TimeTraits</span><span class="special">::</span><span class="identifier">add</span><span class="special">(</span><span class="identifier">TimeTraits</span><span class="special">::</span><span class="identifier">now</span><span class="special">(),</span> <span class="identifier">d</span><span class="special">),</span> <span class="identifier">e</span><span class="special">)</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">.</span><span class="identifier">wait</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">e</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">error_code</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Sets <code class="computeroutput"><span class="identifier">e</span></code> to indicate
+                  success or failure. Returns <code class="computeroutput"><span class="identifier">e</span></code>.<br>
+                  post: <code class="computeroutput"><span class="special">!!</span><span class="identifier">e</span>
+                  <span class="special">||</span> <span class="special">!</span><span class="identifier">TimeTraits</span><span class="special">::</span><span class="identifier">lt</span><span class="special">(</span><span class="identifier">TimeTraits</span><span class="special">::</span><span class="identifier">now</span><span class="special">(),</span>
+                  <span class="identifier">a</span><span class="special">.</span><span class="identifier">expires_at</span><span class="special">(</span><span class="identifier">b</span><span class="special">))</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+</p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">.</span><span class="identifier">async_wait</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">h</span><span class="special">);</span>
+</pre>
+<p>
+                </p>
+              </td>
+<td>
+              </td>
+<td>
+                <p>
+                  Initiates an asynchronous wait operation that is performed via
+                  the <code class="computeroutput"><span class="identifier">io_service</span></code>
+                  object <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">get_io_service</span><span class="special">()</span></code>
+                  and behaves according to <a class="link" href="asynchronous_operations.html" title="Requirements on asynchronous operations">asynchronous
+                  operation</a> requirements.<br> <br> The handler shall be
+                  posted for execution only if the condition <code class="computeroutput"><span class="special">!!</span><span class="identifier">ec</span> <span class="special">||</span>
+                  <span class="special">!</span><span class="identifier">TimeTraits</span><span class="special">::</span><span class="identifier">lt</span><span class="special">(</span><span class="identifier">TimeTraits</span><span class="special">::</span><span class="identifier">now</span><span class="special">(),</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">expires_at</span><span class="special">(</span><span class="identifier">b</span><span class="special">))</span></code> holds, where <code class="computeroutput"><span class="identifier">ec</span></code>
+                  is the error code to be passed to the handler.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="TimeTraits.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="WaitableTimerService.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<html>
+<head>
+<title>Phoenix</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Phoenix</b></font> 
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="functional.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="closures.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>The preceding chapter introduced Phoenix as a means to implementing your semantic actions. We shall look a little bit more into this important library with focus on how you can use it handily with Spirit. This chapter is by no means a thorough discourse of the library. For more  information on Phoenix, please take some time to read the <a href="../phoenix/index.html">Phoenix User's Guide</a>. If you just want to use it quickly, this chapter will probably suffice. Rather than taking you to the theories and details of the library, we shall try to provide you with annotated exemplars instead. Hopefully, this will get you into high gear quickly. </p>
+<p>Semantic actions in Spirit can be just about any function or function object (functor) as long as it can satisfy the required signature. For example, <tt>uint_p</tt> requires a signature of <tt>void F(T)</tt>, where <tt>T</tt> is the type of the integer (typically <tt>unsigned int</tt>). Plain vanilla actions are of the <tt>void F(IterT, IterT)</tt> variety. You can code your actions in plain C++. Calls to C++ functions or functors will thus be of the form <tt>P[&amp;F]</tt> or <tt>P[F()]</tt> etc. (see <a href="semantic_actions.html">Semantic Actions</a>). Phoenix on the other hand, attempts to mimic C++ such that you can define the function body inlined in the code. </p>
+<table width="80%" border="0" align="center">
+  <tr>
+    <td class="note_box"> <img src="theme/lens.gif" width="15" height="16"> <strong>C++ in C++? </strong><br>
+        <br>
+      In as much as Spirit attempts to mimic EBNF in C++, Phoenix attempts to mimic C++ in C++!!!</td>
+  </tr>
+</table>
+<h2>var</h2>
+<p>Remember the <tt>boost::ref</tt>? We discussed that in the <a href="parametric_parsers.html">Parametric Parsers chapter</a>. Phoenix has a similar, but more flexible, counterpart. It's called <tt>var</tt>. The usage is similar to <tt>boost::ref</tt> and you can use it as a direct replacement. However, unlike <tt>boost::ref</tt>, you can use it to form more complex expressions. Here are some examples:</p>
+<pre>    <span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>) += </span><span class=number>3
+    </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>) = </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>y</span><span class=special>) + </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>z</span><span class=special>)
+</span><span class=number>    </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>) = </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>y</span><span class=special>) + </span><span class=identifier><span class=special>(</span>3 * var</span><span class=special>(</span><span class=identifier>z</span><span class=special>))
+</span><span class=number>    </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>) = </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>y</span><span class=special>)[</span>var<span class="special">(</span>i<span class="special">)] </span><span class="comment">// assuming y is indexable and i is an index</span></pre>
+<p>Let's start with a simple example. We'll want to parse a comma separated list of numbers and report the sum of all the numbers. Using phoenix's var, we do not have to write external semantic actions. We simply inline the code inside the semantic action slots. Here's the complete grammar with our phoenix actions (see <a href="../example/fundamental/sum.cpp">sum.cpp</a> in the examples):</p>
+<pre><span class=number>    </span><span class=identifier>real_p</span><span class=special>[</span><span class=identifier>var</span><span class=special>(</span><span class=identifier>n</span><span class=special>) </span><span class=special>= </span><span class=identifier>arg1</span><span class=special>] </span><span class=special>&gt;&gt; </span><span class=special>*(</span><span class=literal>',' </span><span class=special>&gt;&gt; </span><span class=identifier>real_p</span><span class=special>[</span><span class=identifier>var</span><span class=special>(</span><span class=identifier>n</span><span class=special>) </span><span class=special>+= </span><span class=identifier>arg1</span><span class=special>])</span> </pre>
+<p> <img height="16" width="15" src="theme/lens.gif"> The full source code can be <a href="../example/fundamental/sum.cpp">viewed here</a>.
+This is part of the Spirit distribution.</p>
+<h3>argN</h3>
+<p>Notice the expression: <span class=identifier><tt>var(n) = arg1 </tt></span>. What is <tt>arg1</tt> and what is it doing there? <tt>arg1</tt> is an argument placeholder. Remember that <tt>real_p</tt> (see <a href="numerics.html">Numerics</a>) reports the parsed number to its attached semantic action. <tt>arg1</tt> is a placeholder for the first argument passed to the semantic action by the parser. If there are more than one arguments passed in, these arguments can be referred to using <tt>arg1</tt>..<tt>argN</tt>. For instance, generic semantic actions (transduction interface; see <a href="semantic_actions.html">Semantic Actions</a>) are passed 2 arguments: the iterators (<tt>first</tt>/<tt>last</tt>) to the matching portion of the input stream. You can refer to <tt>first</tt> and <tt>last</tt> through <tt>arg1</tt> and <tt>arg2</tt>, respectively. </p>
+<p>Like var, argN is also composable. Here are some examples:</p>
+<pre>    <span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>) += </span><span class=number>arg1
+    </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>) = </span><span class=identifier>arg1</span><span class=special> + </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>z</span><span class=special>)
+</span><span class=number>    </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>) = </span><span class=identifier>arg1</span><span class=special> + </span><span class=identifier><span class=special>(</span>3 * arg2</span><span class=special>)
+</span><span class=number>    </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>) = </span><span class=identifier>arg1</span><span class=special>[</span>arg2<span class="special">] </span><span class="comment">// assuming arg1 is indexable and arg2 is an index</span></pre>
+<h3>val</h3>
+<p>Note the expression: <tt>3 * arg2.</tt> This expression is actually a short-hand equivalent to: <tt>val(3) * arg2</tt>. We shall see later why, in some cases, we need to explicitly wrap constants and literals inside the val. Again, like var and argN, val is also composable.</p>
+<h3>Functions </h3>
+<p>Remember our very first example? In the <a href="quick_start.html">Quick Start</a> chapter, we presented a parser that parses a comma separated list and stuffs the parsed numbers in a vector (see <a href="../example/fundamental/number_list.cpp"> number_list.cpp</a>) . For simplicity, we used Spirit's pre-defined actors (see <a href="predefined_actors.html">Predefined Actors</a>). In the example, we used <tt>push_back_a</tt>:</p>
+<pre><code><font color="#000000">    </font><font color="#000000"><span class="identifier">real_p</span><span class=
+"special">[</span><span class="identifier">push_back_a</span><span class=
+"special">(</span><span class="identifier">v</span><span class=
+"special">)]</span> <span class="special">&gt;&gt;</span> <span class=
+"special">*(</span><span class="literal">','</span> <span class=
+"special">&gt;&gt;</span> <span class=
+      "identifier">real_p</span><span class="special">[</span><span class=
+      "identifier">push_back_a</span><span class="special">(</span><span class=
+      "identifier">v</span><span class="special">)])</span></font></code></pre>
+<p>Phoenix allows you to write more powerful polymorphic functions, similar to <tt>push_back_a</tt>, easily. See <a href="../example/fundamental/stuff_vector.cpp">stuff_vector.cpp</a>. The example is similar to <a href="../example/fundamental/number_list.cpp">number_list.cpp</a> in functionality, but this time, using phoenix a function to actually implement the <tt>push_back</tt> function:</p>
+<pre><span class=identifier>    </span><span class=keyword>struct </span><span class=identifier>push_back_impl
+    </span><span class=special>{
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>Container</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>Item</span><span class=special>&gt;
+        </span><span class=keyword>struct </span><span class=identifier>result
+        </span><span class=special>{
+            </span><span class=keyword>typedef </span><span class=keyword>void </span><span class=identifier>type</span><span class=special>;
+        </span><span class=special>};
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>Container</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>Item</span><span class=special>&gt;
+        </span><span class=keyword>void </span><span class=keyword>operator</span><span class=special>()(</span><span class=identifier>Container</span><span class=special>&amp; </span><span class=identifier>c</span><span class=special>, </span><span class=identifier>Item </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>item</span><span class=special>) </span><span class=keyword>const
+        </span><span class=special>{
+            </span><span class=identifier>c</span><span class=special>.</span><span class=identifier>push_back</span><span class=special>(</span><span class=identifier>item</span><span class=special>);
+        </span><span class=special>}
+    </span><span class=special>};</span>
+
+    <span class=identifier>function</span><span class=special>&lt;</span><span class=identifier>push_back_impl</span><span class=special>&gt; </span><span class=keyword>const </span><span class=identifier>push_back </span><span class=special>= </span><span class=identifier>push_back_impl</span><span class=special>();</span></pre>
+<p><img height="16" width="15" src="theme/lens.gif"> The full source code can be <a href="../example/fundamental/stuff_vector.cpp">viewed here</a>. This is part of the Spirit distribution.</p>
+<table width="80%" border="0" align="center">
+  <tr>
+    <td class="note_box"> <img src="theme/lens.gif" width="15" height="16"> <strong>Predefined Phoenix Functions</strong><br>
+      <br>
+    A future version of Phoenix will include an extensive set of predefined functions covering the whole of STL containers, iterators and algorithms. push_back, will be part of this suite. </td>
+  </tr>
+</table>
+<p><span class=identifier><tt>push_back_impl</tt></span> is a simple wrapper over the <tt>push_back</tt> member function of STL containers. The extra scaffolding is there to provide phoenix with additional information that otherwise cannot  be directly deduced. <tt>result</tt> relays to phoenix the return type of the functor (<tt>operator()</tt>) given its argument types (<tt>Container</tt>  and  <tt>Item</tt>) . In this case, the return type is always, simply <tt>void</tt>. </p>
+<p><span class=identifier><tt>push_back</tt></span> is a phoenix function object. This is the actual function object that we shall use. The beauty behind phoenix function objects is that the actual use is strikingly similar to a normal C++ function call. Here's the number list parser rewritten using our phoenix function object:</p>
+<pre><span class=special>    </span><span class=identifier>real_p</span><span class=special>[</span><span class=identifier>push_back</span><span class=special>(</span><span class=identifier>var</span><span class=special>(</span><span class=identifier>v</span><span class=special>), </span><span class=identifier>arg1</span><span class=special>)] </span><span class=special>&gt;&gt; </span><span class=special>*(</span><span class=literal>',' </span><span class=special>&gt;&gt; </span><span class=identifier>real_p</span><span class=special>[</span><span class=identifier>push_back</span><span class=special>(</span><span class=identifier>var</span><span class=special>(</span><span class=identifier>v</span><span class=special>), </span><span class=identifier>arg1</span><span class=special>)])</span></pre>
+<p>And, unlike predefined actors, they can be composed. See the pattern? Here are some examples:</p>
+<pre>    <span class=identifier>push_back</span><span class=special>(</span><span class=identifier>var</span><span class=special>(</span><span class=identifier>v</span><span class=special>), </span><span class=identifier>arg1 + 2</span><span class=special>)</span>
+    <span class=identifier>push_back</span><span class=special>(</span><span class=identifier>var</span><span class=special>(</span><span class=identifier>v</span><span class=special>), </span><span class=identifier>var<span class=special>(</span>x<span class=special>)</span></span><span class=special> + </span><span class="identifier">arg1</span><span class=special>)</span>
+<span class=identifier>    push_back</span><span class=special>(</span><span class=identifier>var</span><span class=special>(</span><span class=identifier>v</span><span class=special>)[</span>arg1<span class=special>], </span><span class=identifier>arg2</span><span class=special>)<span class="comment"> // assuming v is a vector of vectors and arg1 is an index</span></span></pre>
+<p>push_back does not have a return type. Say, for example, we wrote another phoenix function <tt>sin</tt>, we can use it in expressions as well: </p>
+<pre>    <span class=identifier>push_back</span><span class=special>(</span><span class=identifier>var</span><span class=special>(</span><span class=identifier>v</span><span class=special>), </span><span class="identifier">sin</span><span class=special>(</span><span class=identifier>arg1<span class=special>)</span> </span><span class="special">*</span><span class=identifier> 2</span><span class=special>)</span>
+</pre>
+<h3>Construct</h3>
+<p>Sometimes, we wish to construct an object. For instance, we might want to create a <tt>std::string</tt> given the first/last iterators. For instance, say we want to parse a list of identifiers instead. Our grammar, without the actions, is: </p>
+<pre><span class=number>    </span><span class=special>(+</span><span class=identifier>alpha_p</span><span class=special>) </span><span class=special>&gt;&gt; </span><span class=special>*(</span><span class=literal>',' </span><span class=special>&gt;&gt; </span><span class=special>(+</span><span class=identifier>alpha_p</span><span class=special>)</span><span class=special>)</span></pre>
+<p><strong><tt>construct_</tt></strong>  is a predefined phoenix function that, you guessed it, constructs an object, from the arguments passed in. The usage is:</p>
+<pre><span class=number>    </span><span class=identifier>construct_</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>&gt;(</span><span class=identifier>arg1</span><span class=special>, </span><span class=identifier>arg2</span><span class=special>,... </span><span class=identifier>argN</span><span class=special>)</span></pre>
+<p>where T is the desired type and arg1..argN are the constructor arguments. For example, we can construct a <tt>std::string</tt> from the first/last iterator pair this way:</p>
+<pre><span class=identifier>    construct_</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;(</span><span class=identifier>arg1</span><span class=special>, </span><span class=identifier>arg2</span><span class=special>)</span></pre>
+<p>Now, we attach the actions to our grammar:</p>
+<pre><span class=number>    </span><span class=special>(+</span><span class=identifier>alpha_p</span><span class=special>)
+    </span><span class=special>[
+        </span><span class=identifier>push_back</span><span class=special>(</span><span class=identifier>var</span><span class=special>(</span><span class=identifier>v</span><span class=special>), </span><span class=identifier>construct_</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;(</span><span class=identifier>arg1</span><span class=special>, </span><span class=identifier>arg2</span><span class=special>))
+    </span><span class=special>]
+    </span><span class=special>&gt;&gt;
+    </span><span class=special>*(</span><span class=literal>',' </span><span class=special>&gt;&gt;
+        </span><span class=special>(+</span><span class=identifier>alpha_p</span><span class=special>)
+        </span><span class=special>[
+            </span><span class=identifier>push_back</span><span class=special>(</span><span class=identifier>var</span><span class=special>(</span><span class=identifier>v</span><span class=special>), </span><span class=identifier>construct_</span><span class=special>&lt;</span><span class=identifier>std</span><span class=special>::</span><span class=identifier>string</span><span class=special>&gt;(</span><span class=identifier>arg1</span><span class=special>, </span><span class=identifier>arg2</span><span class=special>))
+        </span><span class=special>]
+    </span><span class=special>)</span></pre>
+<p><img height="16" width="15" src="theme/lens.gif"> The full source code can be <a href="../example/fundamental/stuff_vector2.cpp">viewed here</a>. This is part of the Spirit distribution.<span class=special></span></p>
+<h3><a name="lambda"></a>Lambda expressions</h3>
+<p>All these phoenix expressions we see above are lambda expressions. The important thing to note is that these expressions are not evaluated immediately. At grammar construction time, when the actions are attached to the productions, a lambda expression actually generates an unnamed function object that is evaluated later, at parse time. In other words, lambda expressions are <strong>lazily evaluated</strong>.</p>
+<table width="80%" border="0" align="center">
+  <tr>
+    <td class="note_box"> <b><img src="theme/lens.gif" width="15" height="16"> Lambda Expressions?</b><br>
+        <br>
+    Lambda expressions are actually unnamed partially applied functions where placeholders (e.g. arg1, arg2) are provided in place of some of the arguments. The reason this is called a lambda expression is that traditionally, such placeholders are written using the Greek letter lambda <img src="theme/lambda.png" width="15" height="22">.</td>
+  </tr>
+</table>
+<p>Phoenix uses tricks not unlike those used by Spirit to mimic C++ such that you can define the function body inlined in the code. It's weird, but as mentioned, Phoenix actually mimicks C++ in C++ using expression templates. Surely, there are limitations...</p>
+<p>All components in a Phoenix expression must be an <strong>actor</strong> (in phoenix parlance) in the same way that components in Spirit should be a <tt>parser</tt>. In Spirit, you can write:</p>
+<pre><span class=number>    </span><span class=identifier>r </span><span class=special>= </span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'x'</span><span class=special>) </span><span class=special>&gt;&gt; </span><span class=literal>'y'</span><span class=special>;</span></pre>
+<p>But not:</p>
+<pre><span class=special>    </span><span class=identifier>r </span><span class=special>= </span><span class=literal>'x' </span><span class=special>&gt;&gt; </span><span class=literal>'y'</span><span class=special>;</span></pre>
+<p>In essence, <tt>parser &gt;&gt; char</tt> is a parser, but <tt>char &gt;&gt; char</tt> is a char (the char shift-right by another char).</p>
+<p>The same restrictions apply to Phoenix. For instance:</p>
+<pre><span class=special>    </span><span class=keyword>int </span><span class=identifier>x </span><span class=special>= </span><span class=number>1</span><span class=special>;
+    </span><span class=identifier>cout </span><span class=special>&lt;&lt; </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>) </span><span class=special>&lt;&lt; </span><span class=string>&quot;pizza&quot;</span></pre>
+<p>is a well formed Phoenix expression that's lazily evaluated. But:</p>
+<pre><span class=string>    </span><span class=identifier>cout </span><span class=special>&lt;&lt; </span><span class=identifier>x </span><span class=special>&lt;&lt; </span><span class=string>&quot;pizza&quot;</span></pre>
+<p>is not. Such expressions are immediately executed. C++ syntax dictates that at least <strong>one</strong> of the operands must be a Phoenix actor type. This also applies to compound expressions. For example:</p>
+<pre><span class=string>    </span><span class=identifier>cout </span><span class=special>&lt;&lt; </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>) </span><span class=special>&lt;&lt; </span><span class=string>&quot;pizza&quot; </span><span class=special>&lt;&lt; </span><span class=string>&quot;man&quot;</span></pre>
+<p>This is evaluated as:</p>
+<pre><span class=string>    </span><span class=special>(((</span><span class=identifier>cout </span><span class=special>&lt;&lt; </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>)) </span><span class=special>&lt;&lt; </span><span class=string>&quot;pizza&quot;</span><span class=special>) </span><span class=special>&lt;&lt; </span><span class=string>&quot;man&quot;</span><span class=special>)</span></pre>
+<p>Since <tt>(cout &lt;&lt; var(x))</tt> is an actor, at least <strong>one</strong> of the operands is a phoenix actor, <tt>((cout &lt;&lt; var(x)) &lt;&lt; &quot;pizza&quot;)</tt> is also a Phoenix actor, and the whole expression is thus also an actor.</p>
+<p>Sometimes, it is safe to write:</p>
+<pre><span class=special>    </span><span class=identifier>cout </span><span class=special>&lt;&lt; </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>) </span><span class=special>&lt;&lt; </span><span class=identifier>val</span><span class=special>(</span><span class=string>&quot;pizza&quot;</span><span class=special>) </span><span class=special>&lt;&lt; </span><span class=identifier>val</span><span class=special>(</span><span class=string>&quot;man&quot;</span><span class=special>)</span></pre>
+<p>just to make it explicitly clear what we are dealing with, especially with complex expressions, in the same way as we explicitly wrap literal strings in <tt>str_p(&quot;lit&quot;)</tt> in Spirit. </p>
+<p>Phoenix (and Spirit) also deals with unary operators. In such cases, we have no choice. The operand must be a Phoenix actor (or Spirit parser). Examples:</p>
+<p>Spirit:</p>
+<pre><span class=special>    </span><span class=special>*</span><span class=identifier>ch_p</span><span class=special>(</span><span class=literal>'z'</span><span class=special>)  </span><span class=comment>// good
+    </span><span class=special>*(</span><span class=literal>'z'</span><span class=special>) </span><span class=comment>// bad</span></pre>
+<p> Phoenix:</p>
+<pre><span class=comment>    </span><span class=special>*</span><span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>) </span><span class=comment>// good (lazy)
+    </span><span class=special>*</span><span class=identifier>x </span><span class=comment>// bad (immediate)</span></pre>
+<p>Also, in Phoenix, for assignments and indexing to be lazily evaluated, the object acted upon should be a Phoenix actor. Examples:</p>
+<pre><span class=comment>    </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>) </span><span class=special>= </span><span class=number>123 </span><span class=comment>// good (lazy)
+    </span><span class=identifier>x </span><span class=special>= </span><span class=number>123 </span><span class=comment>// bad (immediate)
+    </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>)[</span><span class=number>0</span><span class=special>] </span><span class=comment>// good (lazy)
+    </span><span class=identifier>x</span><span class=special>[</span><span class=number>0</span><span class=special>] </span><span class=comment>// bad, immediate
+    </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>)[</span><span class=identifier>var</span><span class=special>(</span><span class=identifier>i</span><span class=special>)] </span><span class=comment>// good (lazy)
+    </span><span class=identifier>x</span><span class=special>[</span><span class=identifier>var</span><span class=special>(</span><span class=identifier>i</span><span class=special>)] </span><span class=comment>// bad and illegal (x is not an actor)
+    </span><span class=identifier>var</span><span class=special>(</span><span class=identifier>x</span><span class=special>[</span><span class=identifier>var</span><span class=special>(</span><span class=identifier>i</span><span class=special>)]) </span><span class=comment>// bad and illegal (x is not an actor)</span></pre>
+<h3>Wrapping up </h3>
+<p>Well, there you have it. I hope with this jump-start chapter, you may be able to harness the power of lambda expressions. By all means, please read the <a href="../phoenix/index.html">phoenix manual</a> to learn more about the nitty gritty details. Surely, you'll get to know a lot more than just by reading this chapter. There are a lot of things still to be touched. There won't be enough space here to cover all the features of Phoenix even in brief. </p>
+<p>The next chapter, <a href="closures.html">Closures</a>, we'll see more of phoenix. Stay tuned. </p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="functional.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="closures.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+<font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

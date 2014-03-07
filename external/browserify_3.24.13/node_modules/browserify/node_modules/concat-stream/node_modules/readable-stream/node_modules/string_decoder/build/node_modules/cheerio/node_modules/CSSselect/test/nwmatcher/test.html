@@ -1,0 +1,92 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>NWMatcher Tests</title>
+  <link rel="stylesheet" type="text/css" href="assets/style.css" media="screen" />
+  <script type="text/javascript" src="../../src/nwmatcher.js"></script>
+  <script type="text/javascript" src="scotch.js"></script>
+  <script type="text/javascript" src="test.js"></script>
+</head>
+<body>
+  <div id="container">
+    <div id="testlog" class="log"></div>
+    <!-- Test elements -->
+    <div id="fixtures" style="display: none;">
+      <h1 class="title">Some title <span>here</span></h1>
+      <p id="p" class="first summary">
+        <strong id="strong">This</strong> is a short blurb
+        <a id="link_1" class="first internal" rel="external nofollow" href="#">with a <em id="em2">link</em></a> or
+        <a id="link_2" class="internal highlight" href="#"><em id="em">two</em></a>.
+        Or <cite id="with_title" title="hello world!">a citation</cite>.
+      </p>
+      <ul id="list">
+        <li id="item_1" class="first"><a id="link_3" href="#" class="external"><span id="span">Another link</span></a></li>
+        <li id="item_2">Some text</li>
+        <li id="item_3" xml:lang="es-us" class="">Otra cosa</li>
+      </ul>
+
+      <!-- This form has a field with the name "id"; its "ID" property won't be "troubleForm" -->
+      <form id="troubleForm" action="">
+        <p>
+          <input type="hidden" name="id" id="hidden" />
+          <input type="text" name="disabled_text_field" id="disabled_text_field" disabled="disabled" />
+          <input type="text" name="enabled_text_field" id="enabled_text_field" />
+          <input type="checkbox" name="checkboxes" id="checked_box" checked="checked" value="Checked" />
+          <input type="checkbox" name="checkboxes" id="unchecked_box" value="Unchecked"/>
+          <input type="radio" name="radiobuttons" id="checked_radio" checked="checked" value="Checked" />
+          <input type="radio" name="radiobuttons" id="unchecked_radio" value="Unchecked" />
+        </p>
+      </form>
+
+      <form id="troubleForm2" action="">
+        <p>
+          <input type="checkbox" name="brackets[5][]" id="chk_1" checked="checked" value="1" />
+          <input type="checkbox" name="brackets[5][]" id="chk_2" value="2" />
+        </p>
+      </form>
+
+      <div id="level1">
+        <span id="level2_1">
+          <span id="level3_1"></span>
+          <!-- This comment should be ignored by the adjacent selector -->
+          <span id="level3_2"></span>
+        </span>
+        <span id="level2_2">
+          <em id="level_only_child">
+          </em>
+        </span>
+        <div id="level2_3"></div>
+      </div> <!-- #level1 -->
+
+      <div id="dupContainer">
+        <span id="dupL1" class="span_foo span_bar">
+          <span id="dupL2">
+            <span id="dupL3">
+              <span id="dupL4">
+                <span id="dupL5"></span>
+              </span>
+            </span>
+          </span>
+        </span>
+      </div> <!-- #dupContainer -->
+
+      <div id="grandfather"> grandfather
+        <div id="father" class="brothers men"> father
+          <div id="son"> son </div>
+        </div>
+        <div id="uncle" class="brothers men"> uncle </div>
+      </div>
+
+      <form id="commaParent" title="commas,are,good" action="">
+        <p>
+          <input type="hidden" id="commaChild" name="foo" value="#commaOne,#commaTwo" />
+          <input type="hidden" id="commaTwo" name="foo2" value="oops" />
+        </p>
+      </form>
+      <div id="counted_container"><div class="is_counted"></div></div>
+    </div>
+  </div>
+</body>
+</html>

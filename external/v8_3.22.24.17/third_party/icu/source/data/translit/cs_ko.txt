@@ -1,0 +1,11 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: cs_ko.txt
+# Generated from CLDR 
+#
+::cs-cs_FONIPA;
+::cs_FONIPA-ko;

@@ -1,0 +1,478 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[article Spirit
+    [quickbook 1.5]
+    [version 2.5.2]
+    [authors [de Guzman, Joel], [Kaiser, Hartmut]]
+    [copyright 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010 2011 Joel de Guzman, Hartmut Kaiser]
+    [/ purpose Parser and Generator Library]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[/ November 14, 2007 ]
+
+[/ Some links ]
+
+[def __version__                V2.5.2]
+
+[def __spirit__                 [@http://boost-spirit.com Spirit]]
+[def __spirit_list__            [@http://www.nabble.com/The-Spirit-Parser-Library-f3430.html Spirit General List]]
+[def __phoenix__                [@../../phoenix/doc/html/index.html Phoenix]]
+[def __boost_phoenix__          [@boost:/libs/phoenix/doc/html/index.html Boost.Phoenix]]
+[def __fusion__                 [@boost:/libs/fusion/doc/html/index.html Boost.Fusion]]
+[def __mpl__                    [@http://www.boost.org/libs/mpl/index.html Boost.Mpl]]
+[def __stl__                    [@http://www.sgi.com/tech/stl/ STL]]
+[def __boost__                  [@http://www.boost.org/ Boost]]
+[def __boost_tools__            [@http://www.boost.org/tools/index.html Boost Tools]]
+[def __spirit_list__            [@https://lists.sourceforge.net/lists/listinfo/spirit-general Spirit Mailing List]]
+[def __spirit_general__         [@news://news.gmane.org/gmane.comp.spirit.general Spirit General NNTP news portal]]
+[def __gmane__                  [@http://www.gmane.org Gmane]]
+[def __mlist_archive__          [@http://news.gmane.org/gmane.comp.parsers.spirit.general]]
+[def __repo__                   [@../../repository/doc/html/index.html Repository]]
+
+[def __early_spirit__           [@http://spirit.sourceforge.net/dl_docs/pre-spirit.htm pre-Spirit]]
+[def __exprtemplates__          [@http://en.wikipedia.org/wiki/Expression_templates Expression Templates]]
+[/ Ideally, this would link to the references section but there doesn't seem to be
+   a way to do it!]
+[def __ebnf_intro__             [@http://www.csci.csusb.edu/dick/maths/intro_ebnf.html EBNF intro]]
+[def __attr_grammar__           [@http://en.wikipedia.org/wiki/Attribute_grammar Attribute Grammar]]
+[def __string_template__        [@http://www.stringtemplate.org/ StringTemplate]]
+[def __lexertl__                [@http://www.benhanson.net/lexertl.html Lexertl]]
+[def __wave__                   [@http://www.boost.org/libs/wave/index.html Wave]]
+[def __slex__                   [@http://spirit.sourceforge.net/repository/applications/slex.zip SLex]]
+[def __flex__                   [@http://flex.sourceforge.net/ Flex]]
+[def __re2c__                   [@http://re2c.sourceforge.net/ re2c]]
+[def __ragel__                  [@http://www.cs.queensu.ca/~thurston/ragel/ Ragel]]
+
+[def __boost_variant__          [@http://www.boost.org/doc/html/variant.html Boost.Variant]]
+[def __boost_iterator_range__   [@boost:/libs/range/doc/html/range/reference/utilities/iterator_range.html `boost::iterator_range`]]
+[def __boost_bind__             [@boost:/libs/bind/index.html Boost.Bind]]
+[def __boost_lambda__           [@boost:/libs/lambda/index.html Boost.Lambda]]
+[def __boost_tuples__           [@boost:/libs/tuple/index.html Boost.Tuples]]
+[def __boost_proto__            [@boost:/doc/html/proto.html Boost.Proto]]
+[def __boost_format__           [@boost:/libs/format/index.html Boost.Format]]
+[def __boost_any__              [@boost:/libs/any/index.html Boost.Any]]
+
+[def __classic__                [@boost:/libs/spirit/classic/index.html /Spirit.Classic/]]
+[def __qi__                     /Spirit.Qi/]
+[def __karma__                  /Spirit.Karma/]
+[def __lex__                    /Spirit.Lex/]
+
+[def __mpl_boolean_constant__   [@boost:/libs/mpl/doc/refmanual/integral-constant.html MPL Boolean Constant]]
+[def __mpl_int_constant__       [@boost:/libs/mpl/doc/refmanual/integral-constant.html MPL Integral Constant]]
+[def __mpl_fwd_sequence__       [@boost:/libs/mpl/doc/refmanual/forward-sequence.html MPL Forward Sequence]]
+
+[def __fixme__                  *FIXME*]
+
+[def __scanner_business__       [@boost:/libs/spirit/classic/doc/faq.html#scanner_business The Scanner Business]]
+
+[/ Sections ]
+
+[def __sec_qi__                 [link spirit.qi Qi]]
+[def __sec_karma__              [link spirit.karma Karma]]
+[def __sec_attributes__         [link spirit.abstracts.attributes Attributes]]
+[def __sec_customization_points__ [link spirit.advanced.customize Customization of Attribute Handling]]
+
+[def __sec_karma_numeric_performance__  [link spirit.karma.performance_measurements.numeric_performance Performance of Numeric Generators]]
+[def __sec_karma_primitive__    [link spirit.karma.quick_reference.primitive_generators Karma Generators]]
+[def __sec_karma_compound__     [link spirit.karma.quick_reference.compound_attribute_rules Generator Compound Attribute Rules]]
+[def __karma_char_encoding_namespace__ [link spirit.karma.reference.basics.character_encoding_namespace Character Encoding Namespace]]
+[def __sec_karma_reference__    [link spirit.karma.reference Karma Reference]]
+[def __sec_karma_quickref__     [link spirit.karma.quick_reference Karma Quick Reference]]
+
+[def __sec_qi_reference__       [link spirit.qi.reference Qi Reference]]
+[def __sec_qi_primitive__       [link spirit.qi.quick_reference.qi_parsers Qi Parsers]]
+[def __sec_qi_compound__        [link spirit.qi.quick_reference.compound_attribute_rules Parser Compound Attribute Rules]]
+
+[def __sec_lex__                [link spirit.lex Lex]]
+[def __sec_lex_quickstart_1__   [link spirit.lex.tutorials.lexer_quickstart1 Lex Quickstart 1 - A word counter using __lex__]]
+[def __sec_lex_quickstart_2__   [link spirit.lex.tutorials.lexer_quickstart2 Lex Quickstart 2 - A better word counter using __lex__]]
+[def __sec_lex_quickstart_3__   [link spirit.lex.tutorials.lexer_quickstart3 Lex Quickstart 3 - Counting Words Using a Parser]]
+
+[def __sec_lex_static_model__   [link spirit.lex.abstracts.lexer_static_model The /Static/ Model]]
+[def __sec_lex_primitives__     [link spirit.lex.abstracts.lexer_primitives Lexer Primitives]]
+[def __sec_lex_tokenvalues__    [link spirit.lex.abstracts.lexer_primitives.lexer_token_values About Tokens and Token Values]]
+[def __sec_lex_attributes__     [/ link spirit.lex.abstracts.lexer_attributes Lexer Attributes] Lexer Attributes]
+[def __sec_lex_semactions__     [link spirit.lex.abstracts.lexer_semantic_actions Lexer Semantic Actions]]
+
+[def __sec_ref_lex_token__      [/ link spirit.lex.reference.token Token Class] Token Class]
+[def __sec_ref_lex_token_def__  [/ link spirit.lex.reference.tokendef TokenDef Class] TokenDef Class]
+
+[/ References to API descriptions ]
+
+[def __api_tokenize_and_parse__ `tokenize_and_parse()` [/link spirit.qi_and_karma.abstracts.parsing_and_generating.the_tokenize_and_phrase_parse___function `tokenize_and_parse()`]]
+[def __api_tokenize__           [link spirit.lex.lexer_tokenizing.the_tokenize_function `tokenize()`]]
+[def __api_generate_static__    `generate_static_dfa()` [/link spirit.lex.lexer_tokenizing.the_generate_static_function `generate_static()`]]
+
+[template karma_format[str]     [link spirit.karma.reference.generate_api.stream_api [str]]]
+
+[def __generator_api__          [link spirit.karma.reference.generate_api The Generator API]]
+
+[/ References to classes ]
+
+[def __utree__                  [link spirit.support.utree `utree`]]
+[def __line_pos_iterator__      [link spirit.support.line_pos_iterator `line_pos_iterator`]]
+[def __multi_pass__             [link spirit.support.multi_pass `multi_pass`]]
+
+[def __class_token_def__        [/ link spirit.lex.reference.tokendef `token_def<>`] `lex::token_def<>`]
+
+[def __class_lexertl_token__    [/ link spirit.lex.reference.token `lexertl_token<>`] `lex::lexertl::token<>`]
+[def __class_lexertl_lexer__    [/ link spirit.lex.reference.lexer.the_lexertl__lexer_class_implementing_the_dynamic_model `lexertl_lexer<>`] `lex::lexertl::lexer<>`]
+[def __class_lexertl_static_lexer__ [/ link spirit.lex.reference.lexer.the_lexertl__static_lexer_class_implementing_the_static_model `lexertl_static_lexer<>`] `lex::lexertl::static_lexer<>`]
+
+[/ References to support ]
+
+[def __unused_type__            `unused_type`] [/$$$ TODO: link me $$$]
+[def __unused__                 `unused`] [/$$$ TODO: link me $$$]
+[def __info__                   `info`] [/$$$ TODO: link me $$$]
+[def __char_class_types__       Character Class Types] [/$$$ TODO: link me $$$]
+
+[/ References to abstracts ]
+
+[def __rd__                     Recursive Descent] [/$$$ TODO: link me $$$]
+[def __syntax_diagrams__        [link spirit.abstracts.syntax_diagrams Syntax Diagram]]
+[def __peg__                    [link spirit.abstracts.parsing_expression_grammar Parsing Expression Grammar]]
+[def __ast__                    Abstract Syntax Tree] [/$$$ TODO: link me $$$]
+
+[def __include_structure__      [link spirit.structure.include Include Structure]]
+[def __include_structure_faq__  [link spirit.faq.i_m_very_confused_about_the_header_hell_in_my_boost_spirit_directory__what_s_all_this_about_ Header Hell]]
+
+[/ References to reference ]
+
+[def __qi_attr__                    [link spirit.qi.reference.auxiliary.attr `attr(attrib)`]]
+[def __qi_symbols__                 [link spirit.qi.reference.string.symbols `symbols<>`]]
+[template qi_lit_string[str]        [link spirit.qi.reference.string.string [str]]]
+[template qi_lit_char[char]         [link spirit.qi.reference.char.char [char]]]
+[template karma_lit_string[str]        [link spirit.karma.reference.string.string [str]]]
+[template karma_lit_char[char]         [link spirit.karma.reference.char.char_generator [char]]]
+
+[def __generator_concept__          [link spirit.karma.reference.generator_concepts.generator `Generator`]]
+[def __primitive_generator_concept__ [link spirit.karma.reference.generator_concepts.primitivegenerator `PrimitiveGenerator`]]
+[def __unary_generator_concept__    [link spirit.karma.reference.generator_concepts.unarygenerator `UnaryGenerator`]]
+[def __binary_generator_concept__   [link spirit.karma.reference.generator_concepts.binarygenerator `BinaryGenerator`]]
+[def __nary_generator_concept__     [link spirit.karma.reference.generator_concepts.narygenerator `NaryGenerator`]]
+[def __karma_nonterminal_concept__  [link spirit.karma.reference.generator_concepts.nonterminal `Nonterminal`]]
+[def __karma_nonterminal_attribute__ [link spirit.karma.reference.generator_concepts.nonterminal.attributes `Attribute`]]
+
+[def __karma_lazy_argument__        [link spirit.karma.reference.basics.lazy_argument Lazy Argument]]
+[def __karma_lazy_arguments__       [link spirit.karma.reference.basics.lazy_argument Lazy Arguments]]
+[def __karma_basics_examples__      [link spirit.karma.reference.basics.examples Basics Examples]]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[def __karma_auxiliary__            [link spirit.karma.reference.auxiliary Auxiliary Generators]]
+[def __karma_eol__                  [link spirit.karma.reference.auxiliary.eol `eol`]]
+[def __karma_eps__                  [link spirit.karma.reference.auxiliary.eps `eps`]]
+[def __karma_feps__                 [link spirit.karma.reference.auxiliary.eps `eps(b)`]]
+[template karma_lazy[str]           [link spirit.karma.reference.auxiliary.lazy [str]]]
+[template karma_attr_cast[str]      [link spirit.karma.reference.auxiliary.attr_cast [str]]]
+
+[def __karma_operator__             [link spirit.karma.reference.operator Generator Operators]]
+[def __karma_sequence__             [link spirit.karma.reference.operator.sequence Sequence (`<<`)]]
+[def __karma_alternative__          [link spirit.karma.reference.operator.alternative Alternative (`|`)]]
+[template karma_kleene[str]         [link spirit.karma.reference.operator.kleene [str]]]
+[def __karma_kleene__               [link spirit.karma.reference.operator.kleene Kleene (`*`)]]
+[template karma_plus[str]           [link spirit.karma.reference.operator.plus [str]]]
+[def __karma_plus__                 [karma_plus Plus (unary `+`)]]
+[def __karma_list__                 [link spirit.karma.reference.operator.list List (`%`)]]
+[def __karma_optional__             [link spirit.karma.reference.operator.optional Optional (unary `-`)]]
+[def __karma_and_predicate__        [link spirit.karma.reference.operator.and_predicate And predicate (unary `&`)]]
+[def __karma_not_predicate__        [link spirit.karma.reference.operator.not_predicate Not predicate (unary `!`)]]
+
+[def __karma_directive__            [link spirit.karma.reference.directive Generator Directives]]
+[template karma_align[str]          [link spirit.karma.reference.directive.alignment [str]]]
+[def __karma_omit__                 [link spirit.karma.reference.directive.omit `omit`]]
+[def __karma_skip__                 [link spirit.karma.reference.directive.omit `skip`]]
+[def __karma_duplicate__            [link spirit.karma.reference.directive.duplicate `duplicate`]]
+[def __karma_buffer__               [link spirit.karma.reference.directive.buffer `buffer`]]
+[template karma_repeat[str]         [link spirit.karma.reference.directive.repeat [str]]]
+[def __karma_verbatim__             [link spirit.karma.reference.directive.delimit `verbatim`]]
+[template karma_no_delimit[str]     [link spirit.karma.reference.directive.delimit [str]]]
+[template karma_delimit[str]        [link spirit.karma.reference.directive.delimit [str]]]
+[template karma_upperlower[str]     [link spirit.karma.reference.directive.upperlower [str]]]
+[template karma_maxwidth[str]       [link spirit.karma.reference.directive.maxwidth [str]]]
+[template karma_columns[str]        [link spirit.karma.reference.directive.columns [str]]]
+[def __karma_as__                   [link spirit.karma.reference.directive.as `as<T>[]`]]
+[def __karma_as_string__            [link spirit.karma.reference.directive.as `as_string[]`]]
+[def __karma_as_wstring__           [link spirit.karma.reference.directive.as `as_wstring[]`]]
+
+[def __karma_numeric__              [link spirit.karma.reference.numeric Numeric Generators]]
+[template signed_int[str]           [link spirit.karma.reference.numeric.signed_int [str]]]
+[template unsigned_int[str]         [link spirit.karma.reference.numeric.unsigned_int [str]]]
+[template real_number[str]          [link spirit.karma.reference.numeric.real_number [str]]]
+[template boolean[str]              [link spirit.karma.reference.numeric.boolean [str]]]
+
+[def __karma_char__                 [link spirit.karma.reference.char Character Generators]]
+[template karma_char[str]           [link spirit.karma.reference.char.char_generator [str]]]
+[template karma_char_class[str]     [link spirit.karma.reference.char.char_class [str]]]
+
+[template karma_string[str]         [link spirit.karma.reference.string [str]]]
+[template karma_symbols[str]        [link spirit.karma.reference.string.symbols [str]]]
+
+[template karma_stream[str]         [link spirit.karma.reference.stream.stream [str]]]
+
+[template karma_auto[str]           [link spirit.karma.reference.auto [str]]]
+[def __create_generator__           [link spirit.karma.reference.generate_api.create_generator `create_generator`]]
+
+[def __karma_binary__               [link spirit.karma.reference.binary Binary Generators]]
+[template karma_native_binary[str]  [link spirit.karma.reference.binary.binary_native [str]]]
+[template karma_little_binary[str]  [link spirit.karma.reference.binary.binary_little [str]]]
+[template karma_big_binary[str]     [link spirit.karma.reference.binary.binary_big [str]]]
+
+[template karma_nonterminal[str]    [str] [/link spirit.karma.reference.nonterminal [str]]]
+
+[def __actions__                    Semantic Actions] [/$$$ TODO: link me $$$]
+[def __context__                    Context] [/$$$ TODO: link me $$$]
+[def __compatible__                 Compatible] [/$$$ TODO: link me $$$]
+[def __attribute__                  Attribute] [/$$$ TODO: link me $$$]
+[def __compatible_attribute__       Compatible Attribute] [/$$$ TODO: link me $$$]
+[def __rule__                       Rule] [/$$$ TODO: link me $$$]
+[def __grammar__                    Grammar] [/$$$ TODO: link me $$$]
+[def __parser_conversion__          Parser Conversion] [/$$$ TODO: link me $$$]
+[def __delegate_pattern__           Delegate Design Pattern] [/$$$ TODO: link me $$$]
+[def __composite_pattern__          Composite Design Pattern] [/$$$ TODO: link me $$$]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[def __karma_actions__              [link spirit.karma.tutorials.semantic_actions Semantic Actions]]
+[def __karma_context__              Context] [/$$$ TODO: link me $$$]
+[def __karma_attribute__            Generator Attributes] [/$$$ TODO: link me $$$]
+[def __karma_compatible_attribute__ Compatible Attributes] [/$$$ TODO: link me $$$]
+
+[def __karma_nonterminal__          [link spirit.karma.reference.nonterminal `Nonterminals`]]
+[def __karma_rule__                 [link spirit.karma.reference.nonterminal.rule rule]]
+[def __karma_rules__                [link spirit.karma.reference.nonterminal.rule rules]]
+[def __karma_grammar__              [link spirit.karma.reference.nonterminal.grammar grammar]]
+[def __karma_grammars__             [link spirit.karma.reference.nonterminal.grammar grammars]]
+[def __karma_comp_attr_notation__   [link spirit.karma.quick_reference.compound_attribute_rules.notation Compound Attribute Notation]]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[def __lexer_concept__              [link spirit.lex.reference.lexer_concepts.lexer `Lexer`]]
+[def __primitive_lexer_concept__    [link spirit.lex.reference.lexer_concepts.primitivelexer `PrimitiveLexer`]]
+[def __unary_lexer_concept__        [link spirit.lex.reference.lexer_concepts.unarylexer `UnaryLexer`]]
+[def __nary_lexer_concept__         [link spirit.lex.reference.lexer_concepts.narylexer `NaryLexer`]]
+
+[def __lex_actions__                [link spirit.lex.abstracts.lexer_semantic_actions Lexer Semantic Actions]]
+
+[def __customize_is_container__     [link spirit.advanced.customize.is_container `traits::is_container`]]
+[def __customize_is_string__     [link spirit.advanced.customize.is_string `traits::is_string`]]
+[def __customize_transform_attribute__ [link spirit.advanced.customize.transform `traits::transform_attribute`]]
+[def __customize_optional_attribute__ [link spirit.advanced.customize.optional `traits::optional_attribute`]]
+[def __customize_assign_to__        [link spirit.advanced.customize.assign_to `traits::assign_to`]]
+[def __customize_assign_to_attribute_from_value__ [link spirit.advanced.customize.assign_to.assign_to_attribute_from_value `traits::assign_to_attribute_from_value`]]
+[def __customize_assign_to_container_from_value__ [link spirit.advanced.customize.assign_to.assign_to_container_from_value `traits::assign_to_container_from_value`]]
+[def __customize_push_back_container__ [link spirit.advanced.customize.store_value.push_back `traits::push_back_container`]]
+[def __customize_container_value__  [link spirit.advanced.customize.store_value.container_value `traits::container_value`]]
+[def __customize_clear_value__      [link spirit.advanced.customize.clear_value `traits::clear_value`]]
+[def __customize_extract_from__     [link spirit.advanced.customize.extract_from `traits::extract_from`]]
+[def __customize_extract_from_container__  [link spirit.advanced.customize.extract_from_container `traits::extract_from_container`]]
+[def __customize_container_iterator__ [link spirit.advanced.customize.iterate.container_iterator `traits::container_iterator`]]
+[def __customize_begin_container__  [link spirit.advanced.customize.iterate.begin_container `traits::begin_container`]]
+[def __customize_end_container__    [link spirit.advanced.customize.iterate.end_container `traits::end_container`]]
+[def __customize_next_iterator__    [link spirit.advanced.customize.iterate.next_iterator `traits::next_iterator`]]
+[def __customize_deref_iterator__   [link spirit.advanced.customize.iterate.deref_iterator `traits::deref_iterator`]]
+[def __customize_compare_iterators__ [link spirit.advanced.customize.iterate.compare_iterators `traits::compare_iterators`]]
+[def __customize_is_char__     [link spirit.advanced.customize.string_traits.is_char `traits::is_char`]]
+[def __customize_char_type_of__     [link spirit.advanced.customize.string_traits.char_type_of `traits::char_type_of`]]
+[def __customize_extract_c_string__     [link spirit.advanced.customize.string_traits.extract_c_string `traits::extract_c_string`]]
+[def __customize_attribute_as__     [link spirit.advanced.customize.attribute_as `traits::attribute_as`]]
+[def __customize_as__               [link spirit.advanced.customize.attribute_as `traits::as<T>()`]]
+[def __customize_valid_as__         [link spirit.advanced.customize.attribute_as `traits::valid_as<T>()`]]
+[def __customize_create_parser__    [link spirit.advanced.customize.auto.create_parser `traits::create_parser`]]
+[def __customize_create_generator__ [link spirit.advanced.customize.auto.create_generator `traits::create_generator`]]
+
+[/ Some images ]
+
+[def __note__                   [$./images/note.png]]
+[def __tip__                    [$./images/tip.png]]
+[def __important__              [$./images/important.png]]
+[def __caution__                [$./images/caution.png]]
+[def __danger__                 [$./images/alert.png]]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[/ some templates]
+
+[/  fig[ref title label]
+    Image element with a title.
+
+    ref   := Reference to the image file.
+    title := The title to associate with this figure.
+    label := the id to use to be able to reference this picture
+]
+[template fig[ref title label]'''
+    <figure id="'''[label]'''">
+        <title>'''[title]'''</title>
+        <inlinemediaobject>
+            <imageobject>
+                <imagedata fileref="./images/'''[ref]'''"></imagedata>
+            </imageobject>
+            <textobject>
+                <phrase role="alt">'''[title]'''</phrase>
+            </textobject>
+        </inlinemediaobject>
+    </figure>
+''']
+
+[/   index[title type]
+     insert index
+
+     title:  section title for the index
+     type:   type of the index
+]
+[template index[title type]'''
+    <index type="'''[type]'''">
+       <title>'''[title]'''</title>
+    </index>
+''']
+
+[def __sd_start_stop__              [$./images/start_stop.png]]
+[def __sd_terminals__               [$./images/terminal.png]]
+[def __sd_non_terminals__           [$./images/non-terminal.png]]
+[def __sd_sequence__                [$./images/sequence.png]]
+[def __sd_choice__                  [$./images/alternative.png]]
+[def __sd_optional__                [$./images/optional.png]]
+[def __sd_plus__                    [$./images/plus.png]]
+[def __sd_kleene__                  [$./images/kleene.png]]
+[def __sd_predicate__               [$./images/predicate.png]]
+[def __sd_and_predicate__           [$./images/and_predicate.png]]
+[def __sd_not_predicate__           [$./images/not_predicate.png]]
+[def __pascal_string__              [$./images/pascal_string.png]]
+
+
+[/ ----------------------------------------------------------------------------]
+[/ $$$ Now I'm confused with all this ad-hoc links. Let's fix this somehow.
+For now, I'll put my stuff here ad-hoc (JDG). $$$]
+
+[/ external]
+
+[def __fwditer__                    [@http://www.sgi.com/tech/stl/ForwardIterator.html `ForwardIterator`]]
+[def __outputiter__                 [@http://www.sgi.com/tech/stl/OutputIterator.html `OutputIterator`]]
+[def __concepts__                   [@http://www.boost.org/community/generic_programming.html#concept concepts]]
+[def __endianness__                 [@http://en.wikipedia.org/wiki/Endianness endianness]]
+[def __iomanip__                    [@http://www.cppreference.com/wiki/io/io_flags#manipulators Manipulators]]
+
+[/ support]
+[def __info__                       `info`] [/ TODO Link Me]
+[def __qi_error_handler__           Error Handler] [/ TODO Link Me]
+
+[/ quick-ref]
+[def __qi_quickref__                [link spirit.qi.quick_reference Qi Quick Reference]]
+[def __qi_comp_attr_notation__      [link spirit.qi.quick_reference.compound_attribute_rules.notation Compound Attribute Notation]]
+
+[/ concepts]
+[def __parser_concept__             [link spirit.qi.reference.parser_concepts.parser `Parser`]]
+[def __primitive_parser_concept__   [link spirit.qi.reference.parser_concepts.primitiveparser `PrimitiveParser`]]
+[def __unary_parser_concept__       [link spirit.qi.reference.parser_concepts.unaryparser `UnaryParser`]]
+[def __binary_parser_concept__      [link spirit.qi.reference.parser_concepts.binaryparser `BinaryParser`]]
+[def __nary_parser_concept__        [link spirit.qi.reference.parser_concepts.naryparser `NaryParser`]]
+[def __qi_nonterminal__             [link spirit.qi.reference.parser_concepts.nonterminal `Nonterminal`]]
+[def __qi_nonterminal_attribute__   [link spirit.qi.reference.parser_concepts.nonterminal.attributes `Attribute`]]
+
+[/ basics]
+[def __qi_lazy_argument__           [link spirit.qi.reference.basics.lazy_argument Lazy Argument]]
+[def __qi_lazy_arguments__          [link spirit.qi.reference.basics.lazy_argument Lazy Arguments]]
+[def __char_encoding_namespace__    [link spirit.qi.reference.basics.character_encoding_namespace Character Encoding Namespace]]
+[def __string__                     [link spirit.qi.reference.basics.string String]]
+[def __qi_basics_examples__         [link spirit.qi.reference.basics.examples Basics Examples]]
+
+[/ action]
+[def __qi_semantic_actions__        Semantic Actions] [/ TODO Link Me]
+
+[/ char]
+[template qi_char[str]              [link spirit.qi.reference.char.char [str]]]
+[template qi_char_class[str]        [link spirit.qi.reference.char.char_class [str]]]
+
+[/ numerics]
+[template qi_signed_int[str]        [link spirit.qi.reference.numeric.int [str]]]
+[template qi_unsigned_int[str]      [link spirit.qi.reference.numeric.uint [str]]]
+[template qi_real_number[str]       [link spirit.qi.reference.numeric.real [str]]]
+[template qi_boolean[str]           [link spirit.qi.reference.numeric.boolean [str]]]
+
+[/ binary]
+[template qi_native_binary[str]     [link spirit.qi.reference.binary.binary_native [str]]]
+[template qi_little_binary[str]     [link spirit.qi.reference.binary.binary_little [str]]]
+[template qi_big_binary[str]        [link spirit.qi.reference.binary.binary_big [str]]]
+
+[/ auxiliary]
+[def __qi_attr__                    [link spirit.qi.reference.auxiliary.attr `attr`]]
+[def __qi_eol__                     [link spirit.qi.reference.auxiliary.eol `eol`]]
+[def __qi_eoi__                     [link spirit.qi.reference.auxiliary.eoi `eoi`]]
+[def __qi_eps__                     [link spirit.qi.reference.auxiliary.eps `eps`]]
+[def __qi_lazy__                    [link spirit.qi.reference.auxiliary.lazy `lazy`]]
+
+[/ directives]
+[def __qi_lexeme__                  [link spirit.qi.reference.directive.lexeme `lexeme`]]
+[def __qi_no_case__                 [link spirit.qi.reference.directive.no_case `no_case`]]
+[def __qi_omit__                    [link spirit.qi.reference.directive.omit `omit`]]
+[def __qi_matches__                 [link spirit.qi.reference.directive.matches `matches`]]
+[def __qi_raw__                     [link spirit.qi.reference.directive.raw `raw`]]
+[def __qi_repeat__                  [link spirit.qi.reference.directive.repeat `repeat`]]
+[template qi_repeat[str]            [link spirit.qi.reference.directive.repeat [str]]]
+[def __qi_skip__                    [link spirit.qi.reference.directive.skip `skip`]]
+[template qi_no_skip[str]           [link spirit.qi.reference.directive.no_skip [str]]]
+[def __qi_hold__                    [link spirit.qi.reference.directive.hold `hold`]]
+[def __qi_as__                      [link spirit.qi.reference.directive.as `as<T>[]`]]
+[def __qi_as_string__               [link spirit.qi.reference.directive.as `as_string[]`]]
+[def __qi_as_wstring__              [link spirit.qi.reference.directive.as `as_wstring[]`]]
+
+[/ operator]
+[def __qi_alternative__             [link spirit.qi.reference.operator.alternative Alternative]]
+[def __qi_and_predicate__           [link spirit.qi.reference.operator.and_predicate And Predicate]]
+[def __qi_difference__              [link spirit.qi.reference.operator.difference Difference]]
+[def __qi_expect__                  [link spirit.qi.reference.operator.expect Expect]]
+[def __qi_expectation_failure__     [link spirit.qi.reference.operator.expect.expectation_failure `expectation_failure`]]
+[def __qi_kleene__                  [link spirit.qi.reference.operator.kleene Kleene]]
+[def __qi_list__                    [link spirit.qi.reference.operator.list List]]
+[def __qi_not_predicate__           [link spirit.qi.reference.operator.not_predicate Not Predicate]]
+[def __qi_optional__                [link spirit.qi.reference.operator.optional Optional]]
+[def __qi_permutation__             [link spirit.qi.reference.operator.permutation Permutation]]
+[def __qi_plus__                    [link spirit.qi.reference.operator.plus Plus]]
+[def __qi_sequence__                [link spirit.qi.reference.operator.sequence Sequence]]
+[def __qi_sequential_or__           [link spirit.qi.reference.operator.sequential_or Sequential Or]]
+
+[def __qi_stream__                  [link spirit.qi.reference.stream.stream `stream`]]
+
+[/ nonterminal]
+[def __qi_rule__                    [link spirit.qi.reference.nonterminal.rule rule]]
+[def __qi_rules__                   [link spirit.qi.reference.nonterminal.rule rules]]
+[def __qi_grammar__                 [link spirit.qi.reference.nonterminal.grammar grammar]]
+[def __qi_grammars__                [link spirit.qi.reference.nonterminal.grammar grammars]]
+
+[/ stream]
+[template qi_match[str]             [link spirit.qi.reference.parse_api.stream_api [str]]]
+[template qi_auto[str]              [link spirit.qi.reference.auto [str]]]
+[def __create_parser__              [link spirit.qi.reference.parse_api.create_parser `create_parser`]]
+
+[def __parse_api__                  [link spirit.qi.reference.parse_api The Parse API]]
+
+[/ Here we go ]
+
+This is the documentation of the newest version of __spirit__ (currently,
+__version__). If you're looking for the documentation of Spirit's previous version
+(formerly Spirit V1.8), see __classic__.
+
+[include preface.qbk]
+[include what_s_new.qbk]
+[include introduction.qbk]
+[include structure.qbk]
+[include abstracts.qbk]
+[include qi.qbk]
+[include karma.qbk]
+[include lex.qbk]
+[include advanced.qbk]
+[include support.qbk]
+[include faq.qbk]
+[include notes.qbk]
+[include rationale.qbk]
+[include repository.qbk]
+[include acknowledgments.qbk]
+[include references.qbk]
+

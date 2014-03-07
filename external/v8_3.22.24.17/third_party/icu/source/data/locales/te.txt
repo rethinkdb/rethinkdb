@@ -1,0 +1,160 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/te.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/te.xml
+ */
+te{
+    AuxExemplarCharacters{"[\u200C\u200D ౦-౯]"}
+    ExemplarCharacters{
+        "[అ ఆ ఇ ఈ ఉ ఊ ఋ ౠ ఌ ౡ ఎ ఏ ఐ ఒ ఓ ఔ క ఖ గ ఘ ఙ చ ఛ జ ఝ ఞ ట ఠ డ ఢ ణ త థ ద ధ న ప ఫ"
+        " బ భ మ య ర ఱ ల వ శ ష స హ ఁ ం ః \u0C4D ళ \u0C3E \u0C3F \u0C40 ు ూ ృ ౄ \u0C46 "
+	"\u200C \u200D"
+        "\u0C47 \u0C48 \u0C4A \u0C4B \u0C4C \u0C55 \u0C56]"
+    }
+    ExemplarCharactersIndex{
+        "[అ ఆ ఇ ఈ ఉ ఊ ఋ ౠ ఎ ఏ ఐ ఒ ఓ ఔ క ఖ గ ఘ ఙ చ ఛ జ ఝ ఞ ట ఠ డ ఢ ణ త థ ద ధ న ప ఫ బ భ"
+        " మ య ర ఱ ల వ శ ష స హ ళ]"
+    }
+    LocaleScript{
+        "Telu",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤ #,##,##0.00"}
+                decimalFormat{"#,##,##0.###"}
+                percentFormat{"#,##,##0%"}
+            }
+        }
+    }
+    Version{"2.0.50.94"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "ఉ",
+                "సా",
+            }
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE d MMMM y",
+                "d MMMM y",
+                "d MMM y",
+                "dd-MM-yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                EEEd{"EEE d"}
+                Md{"d/M"}
+                MEd{"E, d/M"}
+                MMMEd{"E, d MMM"}
+                MMMMd{"d MMMM"}
+                MMdd{"dd-MM"}
+                yM{"M/y"}
+                yMd{"d/M/y"}
+                yyQ{"Q yy"}
+                yyyyMM{"MM-yyyy"}
+                yyyyMMMM{"MMMM y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "ఆది",
+                        "సోమ",
+                        "మంగళ",
+                        "బుధ",
+                        "గురు",
+                        "శుక్ర",
+                        "శని",
+                    }
+                    wide{
+                        "ఆదివారం",
+                        "సోమవారం",
+                        "మంగళవారం",
+                        "బుధవారం",
+                        "గురువారం",
+                        "శుక్రవారం",
+                        "శనివారం",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ఆ",
+                        "సో",
+                        "మ",
+                        "భు",
+                        "గు",
+                        "శు",
+                        "శ",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "ఈసాపూర్వ.",
+                    "సన్.",
+                }
+                wide{
+                    "ఈసాపూర్వ.",
+                    "సన్.",
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "జనవరి",
+                        "ఫిబ్రవరి",
+                        "మార్చి",
+                        "ఏప్రిల్",
+                        "మే",
+                        "జూన్",
+                        "జూలై",
+                        "ఆగస్టు",
+                        "సెప్టెంబర్",
+                        "అక్టోబర్",
+                        "నవంబర్",
+                        "డిసెంబర్",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "జ",
+                        "ఫి",
+                        "మ",
+                        "ఎ",
+                        "మె",
+                        "జు",
+                        "జు",
+                        "ఆ",
+                        "సె",
+                        "అ",
+                        "న",
+                        "డి",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    wide{
+                        "ఒకటి 1",
+                        "రెండు 2",
+                        "మూడు 3",
+                        "నాలుగు 4",
+                    }
+                }
+            }
+        }
+    }
+}

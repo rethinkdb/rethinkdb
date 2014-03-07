@@ -1,0 +1,304 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>type_erased</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="strided.html" title="strided">
+<link rel="next" href="tokenized.html" title="tokenized">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="strided.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tokenized.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_reference_adaptors_reference_type_erased">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="range.reference.adaptors.reference.type_erased"></a><a class="link" href="type_erased.html" title="type_erased">type_erased</a>
+</h5></div></div></div>
+<div class="toc"><dl><dt><span class="section"><a href="type_erased.html#range.reference.adaptors.reference.type_erased.type_erased_example">type-erased
+            example</a></span></dt></dl></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Syntax
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Code
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Pipe
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">rng</span> <span class="special">|</span>
+                      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">type_erased</span><span class="special">&lt;</span><span class="identifier">Value</span><span class="special">,</span>
+                      <span class="identifier">Traversal</span><span class="special">,</span>
+                      <span class="identifier">Reference</span><span class="special">,</span>
+                      <span class="identifier">Difference</span><span class="special">,</span>
+                      <span class="identifier">Buffer</span><span class="special">&gt;()</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Function
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">type_erase</span><span class="special">(</span><span class="identifier">rng</span><span class="special">,</span>
+                      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">type_erased</span><span class="special">&lt;</span><span class="identifier">Value</span><span class="special">,</span>
+                      <span class="identifier">Traversal</span><span class="special">,</span>
+                      <span class="identifier">Reference</span><span class="special">,</span>
+                      <span class="identifier">Difference</span><span class="special">,</span>
+                      <span class="identifier">Buffer</span><span class="special">&gt;)</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+            Please note that it is frequently unnecessary to use the <code class="computeroutput"><span class="identifier">type_erased</span></code> adaptor. It is often better
+            to use the implicit conversion to <code class="computeroutput"><span class="identifier">any_range</span></code>.
+          </p>
+<p>
+            Let <code class="computeroutput"><span class="identifier">Rng</span></code> be the type of
+            <code class="computeroutput"><span class="identifier">rng</span></code>.
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                <span class="bold"><strong>Template parameters:</strong></span>
+                <div class="itemizedlist"><ul class="itemizedlist" type="circle">
+<li class="listitem">
+                      <code class="computeroutput"><span class="identifier">Value</span></code> is the
+                      <code class="computeroutput"><span class="identifier">value_type</span></code>
+                      for the <code class="computeroutput"><span class="identifier">any_range</span></code>.
+                      If this is set to boost::use_default, <code class="computeroutput"><span class="identifier">Value</span></code>
+                      will be calculated from the range type when the adaptor is
+                      applied.
+                    </li>
+<li class="listitem">
+                      <code class="computeroutput"><span class="identifier">Traversal</span></code> is
+                      the tag used to identify the traversal of the resultant range.
+                      Frequently it is desirable to set a traversal category lower
+                      than the source container or range to maximize the number of
+                      ranges that can convert to the <code class="computeroutput"><span class="identifier">any_range</span></code>.
+                      If this is left as boost::use_default then <code class="computeroutput"><span class="identifier">Traversal</span></code>
+                      will be <code class="computeroutput"><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_traversal</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">Rng</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </li>
+<li class="listitem">
+                      <code class="computeroutput"><span class="identifier">Reference</span></code> is
+                      the <code class="computeroutput"><span class="identifier">reference</span></code>
+                      for the <code class="computeroutput"><span class="identifier">any_range</span></code>.
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">use_default</span></code> will equate to
+                      <code class="computeroutput"><span class="keyword">typename</span> <span class="identifier">range_reference</span><span class="special">&lt;</span><span class="identifier">Rng</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+                    </li>
+<li class="listitem">
+                      <code class="computeroutput"><span class="identifier">Difference</span></code>
+                      is the <code class="computeroutput"><span class="identifier">difference_type</span></code>
+                      for the any_range. <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">use_default</span></code>
+                      will equate to <code class="computeroutput"><span class="keyword">typename</span>
+                      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_difference</span><span class="special">&lt;</span><span class="identifier">Rng</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                    </li>
+<li class="listitem">
+                      <code class="computeroutput"><span class="identifier">Buffer</span></code> is the
+                      storage used to allocate the underlying iterator wrappers.
+                      This can typically be ignored, but is available as a template
+                      parameter for customization. Buffer must be a model of the
+                      <code class="computeroutput"><span class="identifier">AnyIteratorBufferConcept</span></code>.
+                    </li>
+</ul></div>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Precondition:</strong></span> <code class="computeroutput"><span class="identifier">Traversal</span></code>
+                is one of <code class="computeroutput"><span class="special">{</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">use_default</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">single_pass_traversal_tag</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">forward_traversal_tag</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bidirectional_traversal_tag</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">random_access_traversal_tag</span>
+                <span class="special">}</span></code>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returns:</strong></span> The returned value is the
+                same as <code class="computeroutput"><span class="keyword">typename</span> <span class="identifier">any_range_type_generator</span><span class="special">&lt;</span> <span class="identifier">Rng</span><span class="special">,</span> <span class="identifier">Value</span><span class="special">,</span> <span class="identifier">Traversal</span><span class="special">,</span> <span class="identifier">Reference</span><span class="special">,</span> <span class="identifier">Difference</span><span class="special">,</span> <span class="identifier">Buffer</span>
+                <span class="special">&gt;</span></code> that represents <code class="computeroutput"><span class="identifier">rng</span></code> in a type-erased manner.
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Range Category:</strong></span> <a class="link" href="../../../concepts/single_pass_range.html" title="Single Pass Range">Single
+                Pass Range</a>
+              </li>
+<li class="listitem">
+                <span class="bold"><strong>Returned Range Category:</strong></span> if <code class="computeroutput"><span class="identifier">Traversal</span></code> was specified as <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">use_default</span></code> then <code class="computeroutput"><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_traversal</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">Rng</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span><span class="identifier">type</span></code>,
+                otherwise <code class="computeroutput"><span class="identifier">Traversal</span></code>.
+              </li>
+</ul></div>
+<h6>
+<a name="range.reference.adaptors.reference.type_erased.h0"></a>
+            <span><a name="range.reference.adaptors.reference.type_erased.anyiteratorbufferconcept"></a></span><a class="link" href="type_erased.html#range.reference.adaptors.reference.type_erased.anyiteratorbufferconcept">AnyIteratorBufferConcept</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">AnyIteratorBufferConcept</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">AnyIteratorBufferConcept</span><span class="special">();</span>
+    <span class="special">~</span><span class="identifier">AnyIteratorBufferConcept</span><span class="special">();</span>
+
+    <span class="comment">// bytes is the requested size to allocate. This function</span>
+    <span class="comment">// must return a pointer to an adequate area of memory.</span>
+    <span class="comment">// throws: bad_alloc</span>
+    <span class="comment">//</span>
+    <span class="comment">// The buffer will only ever have zero or one</span>
+    <span class="comment">// outstanding memory allocations.</span>
+    <span class="keyword">void</span><span class="special">*</span> <span class="identifier">allocate</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">bytes</span><span class="special">);</span>
+
+    <span class="comment">// deallocate this buffer</span>
+    <span class="keyword">void</span> <span class="identifier">deallocate</span><span class="special">();</span>
+<span class="special">};</span>
+</pre>
+<p>
+          </p>
+<div class="section range_reference_adaptors_reference_type_erased_type_erased_example">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="range.reference.adaptors.reference.type_erased.type_erased_example"></a><a class="link" href="type_erased.html#range.reference.adaptors.reference.type_erased.type_erased_example" title="type-erased example">type-erased
+            example</a>
+</h6></div></div></div>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">adaptor</span><span class="special">/</span><span class="identifier">type_erased</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">/</span><span class="identifier">copy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">assign</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">foreach</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">list</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+<span class="comment">// The client interface from an OO perspective merely requires a sequence</span>
+<span class="comment">// of integers that can be forward traversed</span>
+<span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">any_range</span><span class="special">&lt;</span>
+    <span class="keyword">int</span>
+  <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">forward_traversal_tag</span>
+  <span class="special">,</span> <span class="keyword">int</span>
+  <span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span>
+<span class="special">&gt;</span> <span class="identifier">integer_range</span><span class="special">;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">server</span>
+<span class="special">{</span>
+    <span class="keyword">void</span> <span class="identifier">display_integers</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">integer_range</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">boost</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span><span class="identifier">rng</span><span class="special">,</span>
+                    <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream_iterator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span><span class="special">,</span> <span class="string">","</span><span class="special">));</span>
+
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">client</span>
+<span class="special">{</span>
+    <span class="keyword">void</span> <span class="identifier">run</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">assign</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">;</span>
+
+        <span class="comment">// Under most conditions one would simply use an appropriate</span>
+        <span class="comment">// any_range as a function parameter. The type_erased adaptor</span>
+        <span class="comment">// is often superfluous. However because the type_erased</span>
+        <span class="comment">// adaptor is applied to a range, we can use default template</span>
+        <span class="comment">// arguments that are generated in conjunction with the</span>
+        <span class="comment">// range type to which we are applying the adaptor.</span>
+
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">input</span><span class="special">;</span>
+        <span class="identifier">input</span> <span class="special">+=</span> <span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">,</span><span class="number">3</span><span class="special">,</span><span class="number">4</span><span class="special">,</span><span class="number">5</span><span class="special">;</span>
+
+        <span class="comment">// Note that this call is to a non-template function</span>
+        <span class="identifier">server</span><span class="special">::</span><span class="identifier">display_integers</span><span class="special">(</span><span class="identifier">input</span><span class="special">);</span>
+
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">list</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">input2</span><span class="special">;</span>
+        <span class="identifier">input2</span> <span class="special">+=</span> <span class="number">6</span><span class="special">,</span><span class="number">7</span><span class="special">,</span><span class="number">8</span><span class="special">,</span><span class="number">9</span><span class="special">,</span><span class="number">10</span><span class="special">;</span>
+
+        <span class="comment">// Note that this call is to the same non-tempate function</span>
+        <span class="identifier">server</span><span class="special">::</span><span class="identifier">display_integers</span><span class="special">(</span><span class="identifier">input2</span><span class="special">);</span>
+
+        <span class="identifier">input2</span><span class="special">.</span><span class="identifier">clear</span><span class="special">();</span>
+        <span class="identifier">input2</span> <span class="special">+=</span> <span class="number">11</span><span class="special">,</span><span class="number">12</span><span class="special">,</span><span class="number">13</span><span class="special">,</span><span class="number">14</span><span class="special">,</span><span class="number">15</span><span class="special">;</span>
+
+        <span class="comment">// Calling using the adaptor looks like this:</span>
+        <span class="comment">// Notice that here I have a type_erased that would be a</span>
+        <span class="comment">// bidirectional_traversal_tag, but this is convertible</span>
+        <span class="comment">// to the forward_traversal_tag equivalent hence this</span>
+        <span class="comment">// works.</span>
+        <span class="identifier">server</span><span class="special">::</span><span class="identifier">display_integers</span><span class="special">(</span><span class="identifier">input2</span> <span class="special">|</span> <span class="identifier">type_erased</span><span class="special">&lt;&gt;());</span>
+
+        <span class="comment">// However we may simply wish to define an adaptor that</span>
+        <span class="comment">// takes a range and makes it into an appropriate</span>
+        <span class="comment">// forward_traversal any_range...</span>
+        <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">adaptors</span><span class="special">::</span><span class="identifier">type_erased</span><span class="special">&lt;</span>
+            <span class="identifier">boost</span><span class="special">::</span><span class="identifier">use_default</span>
+          <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">forward_traversal_tag</span>
+        <span class="special">&gt;</span> <span class="identifier">type_erased_forward</span><span class="special">;</span>
+
+        <span class="comment">// This adaptor can turn other containers with different</span>
+        <span class="comment">// value_types and reference_types into the appropriate</span>
+        <span class="comment">// any_range.</span>
+
+        <span class="identifier">server</span><span class="special">::</span><span class="identifier">display_integers</span><span class="special">(</span><span class="identifier">input2</span> <span class="special">|</span> <span class="identifier">type_erased_forward</span><span class="special">());</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+    <span class="identifier">client</span><span class="special">::</span><span class="identifier">run</span><span class="special">();</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+            </p>
+</div>
+<p>
+            This would produce the output:
+</p>
+<pre class="programlisting"><span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">,</span><span class="number">3</span><span class="special">,</span><span class="number">4</span><span class="special">,</span><span class="number">5</span><span class="special">,</span>
+<span class="number">6</span><span class="special">,</span><span class="number">7</span><span class="special">,</span><span class="number">8</span><span class="special">,</span><span class="number">9</span><span class="special">,</span><span class="number">10</span><span class="special">,</span>
+<span class="number">11</span><span class="special">,</span><span class="number">12</span><span class="special">,</span><span class="number">13</span><span class="special">,</span><span class="number">14</span><span class="special">,</span><span class="number">15</span><span class="special">,</span>
+<span class="number">11</span><span class="special">,</span><span class="number">12</span><span class="special">,</span><span class="number">13</span><span class="special">,</span><span class="number">14</span><span class="special">,</span><span class="number">15</span><span class="special">,</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="strided.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tokenized.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

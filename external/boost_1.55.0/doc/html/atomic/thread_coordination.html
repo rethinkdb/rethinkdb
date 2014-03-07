@@ -1,0 +1,372 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Thread coordination using Boost.Atomic</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../atomic.html" title="Chapter&#160;4.&#160;Boost.Atomic">
+<link rel="prev" href="../atomic.html" title="Chapter&#160;4.&#160;Boost.Atomic">
+<link rel="next" href="interface.html" title="Programming interfaces">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../atomic.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../atomic.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="interface.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="atomic.thread_coordination"></a><a class="link" href="thread_coordination.html" title="Thread coordination using Boost.Atomic">Thread coordination using Boost.Atomic</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="thread_coordination.html#atomic.thread_coordination.mutex">Enforcing <span class="emphasis"><em>happens-before</em></span>
+      through mutual exclusion</a></span></dt>
+<dt><span class="section"><a href="thread_coordination.html#atomic.thread_coordination.release_acquire"><span class="emphasis"><em>happens-before</em></span>
+      through <code class="literal">release</code> and <code class="literal">acquire</code></a></span></dt>
+<dt><span class="section"><a href="thread_coordination.html#atomic.thread_coordination.fences">Fences</a></span></dt>
+<dt><span class="section"><a href="thread_coordination.html#atomic.thread_coordination.release_consume"><span class="emphasis"><em>happens-before</em></span>
+      through <code class="literal">release</code> and <code class="literal">consume</code></a></span></dt>
+<dt><span class="section"><a href="thread_coordination.html#atomic.thread_coordination.seq_cst">Sequential consistency</a></span></dt>
+</dl></div>
+<p>
+      The most common use of <span class="bold"><strong>Boost.Atomic</strong></span> is to
+      realize custom thread synchronization protocols: The goal is to coordinate
+      accesses of threads to shared variables in order to avoid "conflicts".
+      The programmer must be aware of the fact that compilers, CPUs and the cache
+      hierarchies may generally reorder memory references at will. As a consequence
+      a program such as:
+    </p>
+<p>
+      int x = 0, int y = 0;
+    </p>
+<pre class="programlisting"><span class="identifier">thread1</span><span class="special">:</span>
+  <span class="identifier">x</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span>
+  <span class="identifier">y</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span>
+
+<span class="identifier">thread2</span>
+  <span class="keyword">if</span> <span class="special">(</span><span class="identifier">y</span> <span class="special">==</span> <span class="number">1</span><span class="special">)</span> <span class="special">{</span>
+    <span class="identifier">assert</span><span class="special">(</span><span class="identifier">x</span> <span class="special">==</span> <span class="number">1</span><span class="special">);</span>
+  <span class="special">}</span>
+</pre>
+<p>
+      might indeed fail as there is no guarantee that the read of <code class="computeroutput"><span class="identifier">x</span></code>
+      by thread2 "sees" the write by thread1.
+    </p>
+<p>
+      <span class="bold"><strong>Boost.Atomic</strong></span> uses a synchronisation concept
+      based on the <span class="emphasis"><em>happens-before</em></span> relation to describe the guarantees
+      under which situations such as the above one cannot occur.
+    </p>
+<p>
+      The remainder of this section will discuss <span class="emphasis"><em>happens-before</em></span>
+      in a "hands-on" way instead of giving a fully formalized definition.
+      The reader is encouraged to additionally have a look at the discussion of the
+      correctness of a few of the <a class="link" href="usage_examples.html" title="Usage examples">examples</a>
+      afterwards.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="atomic.thread_coordination.mutex"></a><a class="link" href="thread_coordination.html#atomic.thread_coordination.mutex" title="Enforcing happens-before through mutual exclusion">Enforcing <span class="emphasis"><em>happens-before</em></span>
+      through mutual exclusion</a>
+</h3></div></div></div>
+<p>
+        As an introductory example to understand how arguing using <span class="emphasis"><em>happens-before</em></span>
+        works, consider two threads synchronizing using a common mutex:
+      </p>
+<pre class="programlisting"><span class="identifier">mutex</span> <span class="identifier">m</span><span class="special">;</span>
+
+<span class="identifier">thread1</span><span class="special">:</span>
+  <span class="identifier">m</span><span class="special">.</span><span class="identifier">lock</span><span class="special">();</span>
+  <span class="special">...</span> <span class="comment">/* A */</span>
+  <span class="identifier">m</span><span class="special">.</span><span class="identifier">unlock</span><span class="special">();</span>
+
+<span class="identifier">thread2</span><span class="special">:</span>
+  <span class="identifier">m</span><span class="special">.</span><span class="identifier">lock</span><span class="special">();</span>
+  <span class="special">...</span> <span class="comment">/* B */</span>
+  <span class="identifier">m</span><span class="special">.</span><span class="identifier">unlock</span><span class="special">();</span>
+</pre>
+<p>
+        The "lockset-based intuition" would be to argue that A and B cannot
+        be executed concurrently as the code paths require a common lock to be held.
+      </p>
+<p>
+        One can however also arrive at the same conclusion using <span class="emphasis"><em>happens-before</em></span>:
+        Either thread1 or thread2 will succeed first at <code class="literal">m.lock()</code>.
+        If this is be thread1, then as a consequence, thread2 cannot succeed at
+        <code class="literal">m.lock()</code> before thread1 has executed <code class="literal">m.unlock()</code>,
+        consequently A <span class="emphasis"><em>happens-before</em></span> B in this case. By symmetry,
+        if thread2 succeeds at <code class="literal">m.unlock()</code> first, we can conclude
+        B <span class="emphasis"><em>happens-before</em></span> A.
+      </p>
+<p>
+        Since this already exhausts all options, we can conclude that either A <span class="emphasis"><em>happens-before</em></span>
+        B or B <span class="emphasis"><em>happens-before</em></span> A must always hold. Obviously
+        cannot state <span class="emphasis"><em>which</em></span> of the two relationships holds, but
+        either one is sufficient to conclude that A and B cannot conflict.
+      </p>
+<p>
+        Compare the <a class="link" href="usage_examples.html#boost_atomic.usage_examples.example_spinlock" title="Spinlock">spinlock</a>
+        implementation to see how the mutual exclusion concept can be mapped to
+        <span class="bold"><strong>Boost.Atomic</strong></span>.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="atomic.thread_coordination.release_acquire"></a><a class="link" href="thread_coordination.html#atomic.thread_coordination.release_acquire" title="happens-before through release and acquire"><span class="emphasis"><em>happens-before</em></span>
+      through <code class="literal">release</code> and <code class="literal">acquire</code></a>
+</h3></div></div></div>
+<p>
+        The most basic pattern for coordinating threads via <span class="bold"><strong>Boost.Atomic</strong></span>
+        uses <code class="literal">release</code> and <code class="literal">acquire</code> on an atomic
+        variable for coordination: If ...
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            ... thread1 performs an operation A,
+          </li>
+<li class="listitem">
+            ... thread1 subsequently writes (or atomically modifies) an atomic variable
+            with <code class="literal">release</code> semantic,
+          </li>
+<li class="listitem">
+            ... thread2 reads (or atomically reads-and-modifies) the value this value
+            from the same atomic variable with <code class="literal">acquire</code> semantic
+            and
+          </li>
+<li class="listitem">
+            ... thread2 subsequently performs an operation B,
+          </li>
+</ul></div>
+<p>
+        ... then A <span class="emphasis"><em>happens-before</em></span> B.
+      </p>
+<p>
+        Consider the following example
+      </p>
+<pre class="programlisting"><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">a</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+
+<span class="identifier">thread1</span><span class="special">:</span>
+  <span class="special">...</span> <span class="comment">/* A */</span>
+  <span class="identifier">a</span><span class="special">.</span><span class="identifier">fetch_add</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="identifier">memory_order_release</span><span class="special">);</span>
+
+<span class="identifier">thread2</span><span class="special">:</span>
+  <span class="keyword">int</span> <span class="identifier">tmp</span> <span class="special">=</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">load</span><span class="special">(</span><span class="identifier">memory_order_acquire</span><span class="special">);</span>
+  <span class="keyword">if</span> <span class="special">(</span><span class="identifier">tmp</span> <span class="special">==</span> <span class="number">1</span><span class="special">)</span> <span class="special">{</span>
+    <span class="special">...</span> <span class="comment">/* B */</span>
+  <span class="special">}</span> <span class="keyword">else</span> <span class="special">{</span>
+    <span class="special">...</span> <span class="comment">/* C */</span>
+  <span class="special">}</span>
+</pre>
+<p>
+        In this example, two avenues for execution are possible:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The <code class="literal">store</code> operation by thread1 precedes the <code class="literal">load</code>
+            by thread2: In this case thread2 will execute B and "A <span class="emphasis"><em>happens-before</em></span>
+            B" holds as all of the criteria above are satisfied.
+          </li>
+<li class="listitem">
+            The <code class="literal">load</code> operation by thread2 precedes the <code class="literal">store</code>
+            by thread1: In this case, thread2 will execute C, but "A <span class="emphasis"><em>happens-before</em></span>
+            C" does <span class="emphasis"><em>not</em></span> hold: thread2 does not read the
+            value written by thread1 through <code class="literal">a</code>.
+          </li>
+</ul></div>
+<p>
+        Therefore, A and B cannot conflict, but A and C <span class="emphasis"><em>can</em></span>
+        conflict.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="atomic.thread_coordination.fences"></a><a class="link" href="thread_coordination.html#atomic.thread_coordination.fences" title="Fences">Fences</a>
+</h3></div></div></div>
+<p>
+        Ordering constraints are generally specified together with an access to an
+        atomic variable. It is however also possible to issue "fence" operations
+        in isolation, in this case the fence operates in conjunction with preceding
+        (for <code class="computeroutput"><span class="identifier">acquire</span></code>, <code class="computeroutput"><span class="identifier">consume</span></code> or <code class="computeroutput"><span class="identifier">seq_cst</span></code>
+        operations) or succeeding (for <code class="computeroutput"><span class="identifier">release</span></code>
+        or <code class="computeroutput"><span class="identifier">seq_cst</span></code>) atomic operations.
+      </p>
+<p>
+        The example from the previous section could also be written in the following
+        way:
+      </p>
+<pre class="programlisting"><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">a</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+
+<span class="identifier">thread1</span><span class="special">:</span>
+  <span class="special">...</span> <span class="comment">/* A */</span>
+  <span class="identifier">atomic_thread_fence</span><span class="special">(</span><span class="identifier">memory_order_release</span><span class="special">);</span>
+  <span class="identifier">a</span><span class="special">.</span><span class="identifier">fetch_add</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="identifier">memory_order_relaxed</span><span class="special">);</span>
+
+<span class="identifier">thread2</span><span class="special">:</span>
+  <span class="keyword">int</span> <span class="identifier">tmp</span> <span class="special">=</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">load</span><span class="special">(</span><span class="identifier">memory_order_relaxed</span><span class="special">);</span>
+  <span class="keyword">if</span> <span class="special">(</span><span class="identifier">tmp</span> <span class="special">==</span> <span class="number">1</span><span class="special">)</span> <span class="special">{</span>
+    <span class="identifier">atomic_thread_fence</span><span class="special">(</span><span class="identifier">memory_order_acquire</span><span class="special">);</span>
+    <span class="special">...</span> <span class="comment">/* B */</span>
+  <span class="special">}</span> <span class="keyword">else</span> <span class="special">{</span>
+    <span class="special">...</span> <span class="comment">/* C */</span>
+  <span class="special">}</span>
+</pre>
+<p>
+        This provides the same ordering guarantees as previously, but elides a (possibly
+        expensive) memory ordering operation in the case C is executed.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="atomic.thread_coordination.release_consume"></a><a class="link" href="thread_coordination.html#atomic.thread_coordination.release_consume" title="happens-before through release and consume"><span class="emphasis"><em>happens-before</em></span>
+      through <code class="literal">release</code> and <code class="literal">consume</code></a>
+</h3></div></div></div>
+<p>
+        The second pattern for coordinating threads via <span class="bold"><strong>Boost.Atomic</strong></span>
+        uses <code class="literal">release</code> and <code class="literal">consume</code> on an atomic
+        variable for coordination: If ...
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            ... thread1 performs an operation A,
+          </li>
+<li class="listitem">
+            ... thread1 subsequently writes (or atomically modifies) an atomic variable
+            with <code class="literal">release</code> semantic,
+          </li>
+<li class="listitem">
+            ... thread2 reads (or atomically reads-and-modifies) the value this value
+            from the same atomic variable with <code class="literal">consume</code> semantic
+            and
+          </li>
+<li class="listitem">
+            ... thread2 subsequently performs an operation B that is <span class="emphasis"><em>computationally
+            dependent on the value of the atomic variable</em></span>,
+          </li>
+</ul></div>
+<p>
+        ... then A <span class="emphasis"><em>happens-before</em></span> B.
+      </p>
+<p>
+        Consider the following example
+      </p>
+<pre class="programlisting"><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">a</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+<span class="identifier">complex_data_structure</span> <span class="identifier">data</span><span class="special">[</span><span class="number">2</span><span class="special">];</span>
+
+<span class="identifier">thread1</span><span class="special">:</span>
+  <span class="identifier">data</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">=</span> <span class="special">...;</span> <span class="comment">/* A */</span>
+  <span class="identifier">a</span><span class="special">.</span><span class="identifier">store</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="identifier">memory_order_release</span><span class="special">);</span>
+
+<span class="identifier">thread2</span><span class="special">:</span>
+  <span class="keyword">int</span> <span class="identifier">index</span> <span class="special">=</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">load</span><span class="special">(</span><span class="identifier">memory_order_consume</span><span class="special">);</span>
+  <span class="identifier">complex_data_structure</span> <span class="identifier">tmp</span> <span class="special">=</span> <span class="identifier">data</span><span class="special">[</span><span class="identifier">index</span><span class="special">];</span> <span class="comment">/* B */</span>
+</pre>
+<p>
+        In this example, two avenues for execution are possible:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The <code class="literal">store</code> operation by thread1 precedes the <code class="literal">load</code>
+            by thread2: In this case thread2 will read <code class="literal">data[1]</code>
+            and "A <span class="emphasis"><em>happens-before</em></span> B" holds as all
+            of the criteria above are satisfied.
+          </li>
+<li class="listitem">
+            The <code class="literal">load</code> operation by thread2 precedes the <code class="literal">store</code>
+            by thread1: In this case thread2 will read <code class="literal">data[0]</code>
+            and "A <span class="emphasis"><em>happens-before</em></span> B" does <span class="emphasis"><em>not</em></span>
+            hold: thread2 does not read the value written by thread1 through <code class="literal">a</code>.
+          </li>
+</ul></div>
+<p>
+        Here, the <span class="emphasis"><em>happens-before</em></span> relationship helps ensure that
+        any accesses (presumable writes) to <code class="literal">data[1]</code> by thread1
+        happen before before the accesses (presumably reads) to <code class="literal">data[1]</code>
+        by thread2: Lacking this relationship, thread2 might see stale/inconsistent
+        data.
+      </p>
+<p>
+        Note that in this example, the fact that operation B is computationally dependent
+        on the atomic variable, therefore the following program would be erroneous:
+      </p>
+<pre class="programlisting"><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">a</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+<span class="identifier">complex_data_structure</span> <span class="identifier">data</span><span class="special">[</span><span class="number">2</span><span class="special">];</span>
+
+<span class="identifier">thread1</span><span class="special">:</span>
+  <span class="identifier">data</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">=</span> <span class="special">...;</span> <span class="comment">/* A */</span>
+  <span class="identifier">a</span><span class="special">.</span><span class="identifier">store</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="identifier">memory_order_release</span><span class="special">);</span>
+
+<span class="identifier">thread2</span><span class="special">:</span>
+  <span class="keyword">int</span> <span class="identifier">index</span> <span class="special">=</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">load</span><span class="special">(</span><span class="identifier">memory_order_consume</span><span class="special">);</span>
+  <span class="identifier">complex_data_structure</span> <span class="identifier">tmp</span><span class="special">;</span>
+  <span class="keyword">if</span> <span class="special">(</span><span class="identifier">index</span> <span class="special">==</span> <span class="number">0</span><span class="special">)</span>
+    <span class="identifier">tmp</span> <span class="special">=</span> <span class="identifier">data</span><span class="special">[</span><span class="number">0</span><span class="special">];</span>
+  <span class="keyword">else</span>
+    <span class="identifier">tmp</span> <span class="special">=</span> <span class="identifier">data</span><span class="special">[</span><span class="number">1</span><span class="special">];</span>
+</pre>
+<p>
+        <code class="literal">consume</code> is most commonly (and most safely! see <a class="link" href="limitations.html" title="Limitations">limitations</a>)
+        used with pointers, compare for example the <a class="link" href="usage_examples.html#boost_atomic.usage_examples.singleton" title="Singleton with double-checked locking pattern">singleton
+        with double-checked locking</a>.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="atomic.thread_coordination.seq_cst"></a><a class="link" href="thread_coordination.html#atomic.thread_coordination.seq_cst" title="Sequential consistency">Sequential consistency</a>
+</h3></div></div></div>
+<p>
+        The third pattern for coordinating threads via <span class="bold"><strong>Boost.Atomic</strong></span>
+        uses <code class="literal">seq_cst</code> for coordination: If ...
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            ... thread1 performs an operation A,
+          </li>
+<li class="listitem">
+            ... thread1 subsequently performs any operation with <code class="literal">seq_cst</code>,
+          </li>
+<li class="listitem">
+            ... thread1 subsequently performs an operation B,
+          </li>
+<li class="listitem">
+            ... thread2 performs an operation C,
+          </li>
+<li class="listitem">
+            ... thread2 subsequently performs any operation with <code class="literal">seq_cst</code>,
+          </li>
+<li class="listitem">
+            ... thread2 subsequently performs an operation D,
+          </li>
+</ul></div>
+<p>
+        then either "A <span class="emphasis"><em>happens-before</em></span> D" or "C
+        <span class="emphasis"><em>happens-before</em></span> B" holds.
+      </p>
+<p>
+        In this case it does not matter whether thread1 and thread2 operate on the
+        same or different atomic variables, or use a "stand-alone" <code class="literal">atomic_thread_fence</code>
+        operation.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011 Helge Bahmann<br>Copyright &#169; 2012 Tim Blechmann<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../atomic.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../atomic.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="interface.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

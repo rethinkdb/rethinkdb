@@ -1,0 +1,69 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[/================================]
+[section:naming Naming Conventions]
+[/================================]
+
+Proto is a large library and probably quite unlike any library you've used
+before. Proto uses some consistent naming conventions to make it easier to
+navigate, and they're described below.
+
+[/================]
+[heading Functions]
+[/================]
+
+All of Proto's functions are defined in the `boost::proto` namespace. For
+example, there is a function called `value()` defined in `boost::proto` that
+accepts a terminal expression and returns the terminal's value.
+
+[/====================]
+[heading Metafunctions]
+[/====================]
+
+Proto defines /metafunctions/ that correspond to each of Proto's free functions.
+The metafunctions are used to compute the functions' return types. All of
+Proto's metafunctions live in the `boost::proto::result_of` namespace and
+have the same name as the functions to which they correspond. For instance,
+there is a class template `boost::proto::result_of::value<>` that you can
+use to compute the return type of the `boost::proto::value()` function.
+
+[/=======================]
+[heading Function Objects]
+[/=======================]
+
+Proto defines /function object/ equivalents of all of its free functions. (A
+function object is an instance of a class type that defines an `operator()`
+member function.) All of Proto's function object types are defined in the
+`boost::proto::functional` namespace and have the same name as their
+corresponding free functions. For example, `boost::proto::functional::value`
+is a class that defines a function object that does the same thing as the
+`boost::proto::value()` free function.
+
+[/===========================]
+[heading Primitive Transforms]
+[/===========================]
+
+Proto also defines /primitive transforms/ -- class types that can be used
+to compose larger transforms for manipulating expression trees. Many of
+Proto's free functions have corresponding primitive transforms. These live
+in the `boost::proto` namespace and their names have a leading underscore.
+For instance, the transform corresponding to the `value()` function is
+called `boost::proto::_value`.
+
+The following table summarizes the discussion above:
+
+[table Proto Naming Conventions
+  [[Entity]           [Example]                            ]
+  [[Free Function]    [`boost::proto::value()`]            ]
+  [[Metafunction]     [`boost::proto::result_of::value<>`] ]
+  [[Function Object]  [`boost::proto::functional::value`]  ]
+  [[Transform]        [`boost::proto::_value`]             ]
+]
+
+[endsect]
+

@@ -1,0 +1,95 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>History and Acknowledgements</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../foreach.html" title="Chapter&#160;10.&#160;Boost.Foreach">
+<link rel="prev" href="pitfalls.html" title="Pitfalls">
+<link rel="next" href="../function.html" title="Chapter&#160;11.&#160;Boost.Function">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="pitfalls.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../foreach.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../function.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="foreach.history_and_acknowledgements"></a><a class="link" href="history_and_acknowledgements.html" title="History and Acknowledgements">History and Acknowledgements</a>
+</h2></div></div></div>
+<h3>
+<a name="foreach.history_and_acknowledgements.h0"></a>
+      <span class="phrase"><a name="foreach.history_and_acknowledgements.history"></a></span><a class="link" href="history_and_acknowledgements.html#foreach.history_and_acknowledgements.history">History</a>
+    </h3>
+<p>
+      The ideas for <code class="literal">BOOST_FOREACH</code> began life in the Visual C++
+      group at Microsoft during the early phases of the design for C++/CLI. Whether
+      to add a dedicated "foreach" looping construct to the language was
+      an open question at the time. As a mental exercise, Anson Tsao sent around
+      some proof-of-concept code which demonstrated that a pure library solution
+      might be possible. The code was written in the proposed C++/CLI dialect of
+      the time, for which there was no compiler as of yet. I was intrigued by the
+      possibility, and I ported his code to Managed C++ and got it working. We worked
+      together to refine the idea and eventually published an article about it in
+      the November 2003 issue of the <a href="http://www.cuj.com" target="_top">CUJ</a>.
+    </p>
+<p>
+      After leaving Microsoft, I revisited the idea of a looping construct. I reimplemented
+      the macro from scratch in standard C++, corrected some shortcomings of the
+      CUJ version and rechristened it <code class="literal">BOOST_FOREACH</code>. In October
+      of 2003 I began a discussion about it on the Boost developers list, where it
+      met with a luke-warm reception. I dropped the issue until December 2004, when
+      I reimplemented <code class="literal">BOOST_FOREACH</code> yet again. The new version
+      only evaluated its sequence expression once and correctly handled both lvalue
+      and rvalue sequence expressions. It was built on top of the recently accepted
+      <a href="../../../libs/range/index.html" target="_top">Boost.Range</a> library, which
+      increased its portability. This was the version that, on Dec. 12 2004, I finally
+      submitted to Boost for review. It was accepted into Boost on May 5, 2005.
+    </p>
+<h3>
+<a name="foreach.history_and_acknowledgements.h1"></a>
+      <span class="phrase"><a name="foreach.history_and_acknowledgements.acknowledgements"></a></span><a class="link" href="history_and_acknowledgements.html#foreach.history_and_acknowledgements.acknowledgements">Acknowledgements</a>
+    </h3>
+<p>
+      Thanks go out to Anson Tsao of Microsoft for coming up with the idea and demonstrating
+      its feasibility. I would also like to thank <a href="http://boost.org/people/thorsten_ottosen.html" target="_top">Thorsten
+      Ottosen</a> for the <a href="../../../libs/range/index.html" target="_top">Boost.Range</a>
+      library, on which the current version of <code class="literal">BOOST_FOREACH</code> is
+      built. Finally, I'd like to thank Russell Hind, Alisdair Meredith and Stefan
+      Slapeta for their help porting to various compilers.
+    </p>
+<h3>
+<a name="foreach.history_and_acknowledgements.h2"></a>
+      <span class="phrase"><a name="foreach.history_and_acknowledgements.further_reading"></a></span><a class="link" href="history_and_acknowledgements.html#foreach.history_and_acknowledgements.further_reading">Further
+      Reading</a>
+    </h3>
+<p>
+      For more information about how <code class="literal">BOOST_FOREACH</code> works, you
+      may refer to the article <a href="http://www.artima.com/cppsource/foreach.html" target="_top"><span class="quote">&#8220;<span class="quote">Conditional
+      Love</span>&#8221;</span></a> at <a href="http://www.artima.com/cppsource/" target="_top">The C++
+      Source</a>.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2004 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="pitfalls.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../foreach.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../function.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

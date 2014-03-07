@@ -1,0 +1,21 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_complex is_complex]
+   
+   template <class T>
+   struct is_complex : public __tof {};
+  
+__inherit If `T` is a complex number type then true (of type `std::complex<U>` for
+some type `U`), otherwise false.
+
+__std_ref 26.2.
+
+__header ` #include <boost/type_traits/is_complex.hpp>` or ` #include <boost/type_traits.hpp>`
+
+[endsect]
+

@@ -1,0 +1,26 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[note If you host both the std:: library namespace and boost::geometry:: namespace set might become ambiguous, std::set is a collection. So don't do that or refer to geometry::set then explicitly.]
+
+[heading Behavior]
+[table
+[[Case] [Behavior] ]
+[[__point__][Sets the coordinate of a point]]
+[[Circle or Sphere][Sets the coordinate of the center of a circle or sphere (currently in an extension)]]
+[[__sph__][Sets the coordinate of a point, in either Radian's or Degree's, depending on specified units]]
+]
+
+[heading Complexity]
+Constant
+
+[heading Example]
+[set_point]
+[set_point_output]

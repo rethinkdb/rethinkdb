@@ -1,0 +1,784 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+ xmlns:v="urn:schemas-microsoft-com:vml"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:(null)1="http://www.w3.org/TR/REC-html40" lang="en">
+<head>
+<!--
+    Copyright 2009-2010 Intel Corporation
+    license banner
+-->
+  <title>Boost Polygon Library: Segment Concept</title>
+  <meta http-equiv="content-type" content="text/html;charset=ISO-8859-1" />
+<!-- <link type="text/css" rel="stylesheet" href="adobe_source.css"> -->
+</head>
+<body>
+<table style="margin: 0pt; padding: 0pt; width: 100%;" border="0"
+ cellpadding="0" cellspacing="0">
+  <tbody>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top">
+      <div style="padding: 5px;" align="center"> <img
+ src="images/boost.png" border="0" height="86" width="277" /><a
+ title="www.boost.org home page" href="http://www.boost.org/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      <div style="margin: 5px;">
+      <h3 class="navbar">Contents</h3>
+      <ul>
+        <li><a href="index.htm">Boost.Polygon Main Page</a></li>
+        <li><a href="gtl_design_overview.htm">Design Overview</a></li>
+        <li><a href="gtl_isotropy.htm">Isotropy</a></li>
+        <li><a href="gtl_coordinate_concept.htm">Coordinate Concept</a></li>
+        <li><a href="gtl_interval_concept.htm">Interval Concept</a></li>
+        <li><a href="gtl_point_concept.htm">Point Concept</a><br />
+        </li>
+        <li>Segment Concept</li>
+        <li><a href="gtl_rectangle_concept.htm">Rectangle Concept</a></li>
+        <li><a href="gtl_polygon_90_concept.htm">Polygon 90 Concept</a></li>
+        <li><a href="gtl_polygon_90_with_holes_concept.htm">Polygon 90
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_45_concept.htm">Polygon 45 Concept</a></li>
+        <li><a href="gtl_polygon_45_with_holes_concept.htm">Polygon 45
+With Holes Concept</a></li>
+        <li><a href="gtl_polygon_concept.htm">Polygon Concept</a></li>
+        <li><a href="gtl_polygon_with_holes_concept.htm">Polygon With
+Holes Concept</a></li>
+        <li><a href="gtl_polygon_90_set_concept.htm">Polygon 90 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_45_set_concept.htm">Polygon 45 Set
+Concept</a></li>
+        <li><a href="gtl_polygon_set_concept.htm">Polygon Set Concept</a></li>
+        <li><a href="gtl_connectivity_extraction_90.htm">Connectivity
+Extraction 90</a></li>
+        <li><a href="gtl_connectivity_extraction_45.htm">Connectivity
+Extraction 45</a></li>
+        <li><a href="gtl_connectivity_extraction.htm">Connectivity
+Extraction</a></li>
+        <li><a href="gtl_property_merge_90.htm">Property Merge 90</a></li>
+        <li><a href="gtl_property_merge_45.htm">Property Merge 45</a></li>
+        <li><a href="gtl_property_merge.htm">Property Merge</a></li>
+        <li><a href="voronoi_main.htm">Voronoi Main Page<br />
+          </a></li>
+        <li><a href="voronoi_benchmark.htm">Voronoi Benchmark</a><br />
+        </li>
+        <li><a href="voronoi_builder.htm">Voronoi Builder</a></li>
+        <li><a href="voronoi_diagram.htm">Voronoi Diagram</a></li>
+      </ul>
+      <h3 class="navbar">Other Resources</h3>
+      <ul>
+        <li><a href="GTL_boostcon2009.pdf">GTL Boostcon 2009 Paper</a></li>
+        <li><a href="GTL_boostcon_draft03.pdf">GTL Boostcon 2009
+Presentation</a></li>
+        <li><a href="analysis.htm">Performance Analysis</a></li>
+        <li><a href="gtl_tutorial.htm">Layout Versus Schematic Tutorial</a></li>
+        <li><a href="gtl_minkowski_tutorial.htm">Minkowski Sum Tutorial</a></li>
+        <li><a href="voronoi_basic_tutorial.htm">Voronoi Basic Tutorial</a></li>
+        <li><a href="voronoi_advanced_tutorial.htm">Voronoi Advanced
+Tutorial</a></li>
+      </ul>
+      </div>
+      <h3 class="navbar">Polygon Sponsor</h3>
+      <div style="padding: 5px;" align="center"> <img
+ src="images/intlogo.gif" border="0" height="51" width="127" /><a
+ title="www.adobe.com home page" href="http://www.adobe.com/"
+ tabindex="2" style="border: medium none ;"> </a> </div>
+      </td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%"><!-- End Header --><br />
+      <p> </p>
+      <h1>Segment Concept</h1>
+      <p> </p>
+      <p> The segment concept tag is <font face="Courier New">segment_concept</font></p>
+      <p> To register a user defined type as a model of the segment
+concept, specialize the geometry concept meta-function for that
+type.&nbsp; In the example below CSegment is registered as a model of
+the segment concept.</p>
+      <p style="font-family: Courier New,Courier,monospace;"> template
+&lt;&gt;<br />
+struct geometry_concept&lt;CSegment&gt;
+{ typedef segment_concept type; };</p>
+      <p> The semantic of a segment is
+that it has a low and high point.&nbsp; A
+std::pair&lt;Point, Point&gt;,
+boost::tuple&lt;Point, Point&gt; or boost::array&lt;Point, 2&gt; could
+all be made models of
+segment by simply providing indirect access to their elements through
+traits, however, these objects cannot be made a model of both segment
+and rectangle in the same compilation unit, for obvious reason that
+duplicate specialization of the geometry_concept struct is illegal, but
+also because it would make overloading generic function by concept
+ambiguous if a type modeled more than one concept.</p>
+      <p> Below is shown the default
+segment traits. Specialization of these traits is required for
+types that don't conform to the default behavior.</p>
+      <p><span style="font-family: Courier New,Courier,monospace;"><span
+ style="font-family: Courier New,Courier,monospace;">template
+&lt;typename Segment&gt;</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+      <span style="font-family: Courier New,Courier,monospace;">struct
+segment_traits {</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+      <span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef typename Segment::coordinate_type coordinate_type;</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+      <span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef typename Segment::point_type point_type;</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+      <br style="font-family: Courier New,Courier,monospace;" />
+      <span style="font-family: Courier New,Courier,monospace;">&nbsp;
+static inline point_type get(const Segment&amp; segment, direction_1d
+dir) {</span><br style="font-family: Courier New,Courier,monospace;" />
+      <span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;
+return segment.get(dir);</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+      <span style="font-family: Courier New,Courier,monospace;">&nbsp; }</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+      <span style="font-family: Courier New,Courier,monospace;">};</span><br />
+      <br />
+      <span style="font-family: Courier New,Courier,monospace;">template
+&lt;typename Segment&gt;<br />
+struct segment_mutable_traits {<br />
+&nbsp; </span></span><span
+ style="font-family: Courier New,Courier,monospace;"><span
+ style="font-family: Courier New,Courier,monospace;">typedef typename
+segment_traits&lt;Segment&gt;::coordinate_type </span></span><span
+ style="font-family: Courier New,Courier,monospace;"><span
+ style="font-family: Courier New,Courier,monospace;">coordinate_type;</span></span><br />
+      <span style="font-family: Courier New,Courier,monospace;"><span
+ style="font-family: Courier New,Courier,monospace;">&nbsp; typedef
+typename segment_traits&lt;Segment&gt;::point_type point_type;<br />
+      <br />
+&nbsp; static inline void set(Segment&amp; segment, direction_1d dir,
+const point_type&amp; point) {<br />
+&nbsp;&nbsp;&nbsp; segment.set(dir, p);<br />
+&nbsp; }<br />
+      <br />
+&nbsp; static inline Segment construct(const point_type&amp; low, const
+point_type&amp; high) {<br />
+&nbsp;&nbsp;&nbsp; return Segment(low, high);<br />
+&nbsp; }<br />
+};</span></span></p>
+      <h2>Functions</h2>
+      <table style="width: 100%;" id="table1" border="1">
+        <tbody>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename Segment&gt;<br />
+point_type <b>get</b>(const Segment&amp; segment, direction_1d dir)</font></td>
+            <td>Returns the low or high endpoint of an object that
+models segment, depending on
+the direction_1d value.<font face="Courier New">&nbsp;</font></td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename </font><font face="Courier New">Segment</font><font
+ face="Courier New">, typename Point&gt;<br />
+void <b>set</b>(</font><font face="Courier New">Segment</font><font
+ face="Courier New">&amp; segment, direction_1d dir,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; const Point&amp; </font><span
+ style="font-family: Courier New;">point</span><font face="Courier New">)</font></td>
+            <td>Sets
+the low or high endpoint of an object that models segment to an object
+that models point, depending on the direction_1d value.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename Segment, typename Point1, typename Point2&gt;<br />
+Segment<b> construct</b>(const Point1&amp; low, const Point2&amp; high)</font></td>
+            <td>Constructs an object that is a model of segment given
+the two objects that are models of point.</td>
+          </tr>
+          <tr>
+            <td><font face="Courier New">template &lt;typename
+Segment1, typename </font><font face="Courier New">Segment2</font><font
+ face="Courier New">&gt;<br />
+            </font><font face="Courier New">Segment1</font><font
+ face="Courier New"> <span style="font-weight: bold;">copy_construct</span>(const
+            </font><font face="Courier New">Segment2</font><font
+ face="Courier New">&amp; segment)</font></td>
+            <td style="text-align: left;">Copy constructs an object
+that models segment given another segment.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename </font><font face="Courier New">Segment1</font><font
+ face="Courier New">, typename </font><font face="Courier New">Segment2&gt;</font><br />
+            <font face="Courier New">Segment1</font><font
+ face="Courier New">&amp; <b>assign</b>(</font><font face="Courier New">Segment1</font><font
+ face="Courier New">&amp; segment1,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+const </font><font face="Courier New">Segment2</font><font
+ face="Courier New">&amp; segment2)</font></td>
+            <td>Copies data from the second object that models segment
+into
+the first object that models segment.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename </font><font face="Courier New">Segment1</font><font
+ face="Courier New">, typename </font><font face="Courier New">Segment1</font><font
+ face="Courier New">&gt;<br />
+bool <b>equivalence</b>(const </font><font face="Courier New">Segment1</font><font
+ face="Courier New">&amp; segment1,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+const </font><font face="Courier New">Segment1</font><font
+ face="Courier New">&amp; segment2)</font></td>
+            <td>Given two objects that model segment, compares and
+returns true if their low and high values are respectively equal.</td>
+          </tr>
+          <tr>
+            <td><span
+ style="font-family: Courier New,Courier,monospace;">template
+&lt;typename Segment, typename Point&gt;</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+            <span style="font-family: Courier New,Courier,monospace;">int
+            <b>orientation</b></span><span
+ style="font-family: Courier New,Courier,monospace;">(const </span><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><span
+ style="font-family: Courier New,Courier,monospace;">&amp; segment,</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+            <span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+const Point&amp; point)</span><br />
+            </td>
+            <td>Implements
+a robust orientation test of two objects that model segment and point.
+Returns 0, if the point is collinear to the segment.<br />
+Returns 1, if the point lies to the left of the segment.<br />
+Returns -1, if the point lies to the right of the segment.<br />
+            </td>
+          </tr>
+          <tr>
+            <td><span
+ style="font-family: Courier New,Courier,monospace;">template
+&lt;typename Segment1, typename Segment2&gt;</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+            <span style="font-family: Courier New,Courier,monospace;">int
+            <b>orientation</b></span><span
+ style="font-family: Courier New,Courier,monospace;">(const </span><span
+ style="font-family: Courier New,Courier,monospace;">Segment1</span><span
+ style="font-family: Courier New,Courier,monospace;">&amp; segment1,</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+            <span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+const Segment2&amp; segment2)</span></td>
+            <td>Implements a robust orientation test of two objects
+that model segment. Note: segments are treated as math.
+vectors.<br />
+Returns 0, if segments are collinear.<br />
+Returns 1, if the second segment is CCW oriented to the first segment.<br />
+Returns -1, if the second segment is CW oriented to the first segment.<br />
+            </td>
+          </tr>
+          <tr>
+            <td><span
+ style="font-family: Courier New,Courier,monospace;">template
+&lt;typename </span><font face="Courier New">Segment, typename Point</font><span
+ style="font-family: Courier New,Courier,monospace;">&gt;</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+            <span style="font-family: Courier New,Courier,monospace;">bool
+            </span><span
+ style="font-weight: bold; font-family: Courier New,Courier,monospace;">contains</span><span
+ style="font-family: Courier New,Courier,monospace;">(const </span><font
+ face="Courier New">Segment</font><span
+ style="font-family: Courier New,Courier,monospace;">&amp; segment,</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+            <span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;
+const Point&amp; value,</span><span
+ style="font-family: Courier New,Courier,monospace;"> bool
+consider_touch)</span><br />
+            </td>
+            <td>Returns true if an object that models segment contains
+an object that models point, else false.<br />
+            </td>
+          </tr>
+          <tr>
+            <td><span
+ style="font-family: Courier New,Courier,monospace;">template
+&lt;typename Segment1, typename Segment2&gt;</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+            <span style="font-family: Courier New,Courier,monospace;">bool
+            </span><span
+ style="font-weight: bold; font-family: Courier New,Courier,monospace;">contains</span><span
+ style="font-family: Courier New,Courier,monospace;">(const </span><span
+ style="font-family: Courier New,Courier,monospace;">Segment1</span><span
+ style="font-family: Courier New,Courier,monospace;">&amp; segment1,</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+            <span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;
+const </span><span style="font-family: Courier New,Courier,monospace;">Segment</span><span
+ style="font-family: Courier New,Courier,monospace;">2&amp; segment2,</span>
+            <span style="font-family: Courier New,Courier,monospace;">bool
+consider_touch)</span></td>
+            <td>Returns true if the first object contains the second
+one, else false. Both objects model segment.<br />
+            </td>
+          </tr>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;">template
+&lt;typename <span style="font-family: Courier New,Courier,monospace;">Segment</span>&gt;<br />
+point_type <span style="font-weight: bold;">low</span>(const <span
+ style="font-family: Courier New,Courier,monospace;">Segment</span>&amp;
+segment)<br />
+            </td>
+            <td>Returns the low endpoint of an object that models
+segment.<br />
+            </td>
+          </tr>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;">template
+&lt;typename <span style="font-family: Courier New,Courier,monospace;">Segment</span>&gt;<br />
+point_type <span style="font-weight: bold;">high</span>(const <span
+ style="font-family: Courier New,Courier,monospace;">Segment</span>&amp;
+segment)</td>
+            <td>Returns the high endpoint of an object that models
+segment.<br />
+            </td>
+          </tr>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;">template
+&lt;typename <span style="font-family: Courier New,Courier,monospace;">Segment</span>&gt;<br />
+point_type <span style="font-weight: bold;">center</span>(const <span
+ style="font-family: Courier New,Courier,monospace;">Segment</span>&amp;
+segment)</td>
+            <td>Returns the central point of an object that models
+segment.<br />
+            </td>
+          </tr>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;">template
+&lt;typename <span style="font-family: Courier New,Courier,monospace;">Segment</span>,
+typename Point&gt;<br />
+void <span style="font-weight: bold;">low</span>(<span
+ style="font-family: Courier New,Courier,monospace;">Segment</span>&amp;
+segment, const Point&amp; point)</td>
+            <td>Sets the low endpoint of an object that models segment.<br />
+            </td>
+          </tr>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;">template
+&lt;typename <span style="font-family: Courier New,Courier,monospace;">Segment,
+typename Point</span>&gt;<br />
+void <span style="font-weight: bold;">high</span>(<span
+ style="font-family: Courier New,Courier,monospace;">Segment</span>&amp;
+segment, const Point&amp; point)</td>
+            <td>Sets the high endpoint of an object that models of
+segment.<br />
+            </td>
+          </tr>
+          <tr>
+            <td><span
+ style="font-family: Courier New,Courier,monospace;">template
+&lt;typename </span><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><span
+ style="font-family: Courier New,Courier,monospace;">&gt;</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+            <span style="font-family: Courier New,Courier,monospace;">distance_type
+            <span style="font-weight: bold;">length</span>(const </span><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><span
+ style="font-family: Courier New,Courier,monospace;">&amp; segment)</span><br />
+            </td>
+            <td>Returns length of an object that models segment.<br />
+            </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename </font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&gt;<br />
+            </font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&amp; <b>scale_up</b>(</font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&amp; </font><font face="Courier New">segment</font><font
+ face="Courier New">, <br />
+&nbsp;&nbsp;&nbsp; unsigned_area_type factor)</font></td>
+            <td>Multiplies x and y coordinates of both endpoints of an
+object that models segment by unsigned factor.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename </font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&gt;<br />
+            </font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&amp; <b>scale_down</b>(</font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&amp; </font><font face="Courier New">segment</font><font
+ face="Courier New">, <br />
+&nbsp;&nbsp;&nbsp; unsigned_area_type factor)</font></td>
+            <td>Divides x and y coordinates of both endpoints of an
+object that models segment by unsigned factor.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename </font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">, typename Scale&gt;<br />
+            </font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&amp; <b>scale</b>(</font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&amp; </font><font face="Courier New">segment</font><font
+ face="Courier New">, const Scale&amp; sc) </font></td>
+            <td>Calls
+the scale member function of the scaling type on the low and high
+endpoint of
+an object that models segment and updates the segment with the
+scaled endpoints.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename </font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">, typename Transform&gt;<br />
+            </font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&amp; <b>transform</b>(</font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&amp; segment, const </font><font
+ face="Courier New">Transform</font><font face="Courier New">&amp; tr) </font></td>
+            <td>Calls the transform member function of transform type
+on the low and high endpoints of an object that models segment and
+updates the segment with the transformed endpoints.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename </font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&gt;<br />
+            </font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&amp; <b>move</b>(</font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&amp; segment, orientation_2d<br />
+&nbsp;&nbsp;&nbsp; coordinate_difference displacement)</font></td>
+            <td>Adds displacement value to the x or y coordinates of
+both endpoints of an object
+that models segment indicated by the orientation_2d.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;</font><span style="font-family: Courier New,Courier,monospace;">Segment,
+Point</span><font face="Courier New">&gt;<br />
+            </font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&amp; <b>convolve</b>(</font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&amp; segment, const Point&amp; point)</font></td>
+            <td>Convolves both endpoints of an object that models
+segment with an object that models a point.<br />
+            </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;</font><span style="font-family: Courier New,Courier,monospace;">Segment,
+Point</span><font face="Courier New">&gt;<br />
+            </font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&amp; <b>deconvolve</b>(</font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&amp; segment, const Point&amp; point)</font></td>
+            <td>Deconvolves both endpoints of an object that models
+segment with an object that models a point. </td>
+          </tr>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;">template
+&lt;typename Segment1, typename Segment2&gt;<br />
+bool <span style="font-weight: bold;">abuts</span>(const Segment1&amp;
+segment1,<br />
+&nbsp;&nbsp;&nbsp; const Segment2&amp; segment2, direction_1d dir)</td>
+            <td>Returns true if two objects that model segment abut,
+depending on the direction_1d value.</td>
+          </tr>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;">template
+&lt;typename Segment1, typename Segment2&gt;<br />
+bool <span style="font-weight: bold;">abuts</span>(const Segment1&amp;
+segment1,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; const
+Segment2&amp; segment2)</td>
+            <td>Returns true if two objects that model segment abut:
+either the first one to the second one or vice versa.</td>
+          </tr>
+          <tr>
+            <td><span
+ style="font-family: Courier New,Courier,monospace;">template
+&lt;typename Segment1, typename Segment2&gt;</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+            <span style="font-family: Courier New,Courier,monospace;">bool
+            <span style="font-weight: bold;">intersects</span>(const
+Segment1&amp; segment1,</span><br
+ style="font-family: Courier New,Courier,monospace;" />
+            <span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+const Segment2&amp; segment2,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+bool consider_touch)</span><br />
+            </td>
+            <td>Returns true if two objects that model segment
+intersect, else false.<br />
+            </td>
+          </tr>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;"><font
+ face="Courier New">template
+&lt;typename </font><span
+ style="font-family: Courier New,Courier,monospace;">Segment, typename
+Point</span><font face="Courier New">&gt;<br />
+distance_type <b>euclidean_distance</b>(<br />
+&nbsp;&nbsp;&nbsp; const </font><span
+ style="font-family: Courier New,Courier,monospace;">Segment</span><font
+ face="Courier New">&amp; segment, const Point&amp; point)</font> </td>
+            <td>Returns distance from an object that models segment
+to an object that models point. </td>
+          </tr>
+          <tr>
+            <td style="font-family: Courier New,Courier,monospace;"><font
+ face="Courier New">template
+&lt;typename Segment1, typename </font><font face="Courier New">Segment2</font><font
+ face="Courier New">&gt;<br />
+distance_type <b>euclidean_distance</b>(<br />
+&nbsp;&nbsp;&nbsp; const </font><font face="Courier New">Segment1</font><font
+ face="Courier New">&amp; segment1, const </font><font
+ face="Courier New">Segment2</font><font face="Courier New">&amp;
+segment2)</font> </td>
+            <td>Returns distance between two objects that model
+segment. </td>
+          </tr>
+        </tbody>
+      </table>
+      <h1>Segment Data</h1>
+      <p> </p>
+      <p>The library provides a model of the segment concept declared <font
+ face="Courier New">template&lt;typename T&gt; segment_data</font>,
+where
+T is the coordinate type.</p>
+      <p>This data type is used internally when a segment is needed and
+is available to the library user, who finds it convenient to use a
+library segment data type instead of providing their own.&nbsp; The
+data
+type is implemented to be convenient to use with the library traits.</p>
+      <h2>Members</h2>
+      <table style="width: 100%;" id="table2" border="1">
+        <tbody>
+          <tr>
+            <td width="586"><b><font face="Courier New">geometry_type</font></b></td>
+            <td>segment_concept</td>
+          </tr>
+          <tr>
+            <td width="586"><b><font face="Courier New">coordinate_type</font></b></td>
+            <td>T</td>
+          </tr>
+          <tr>
+            <td><b><font face="Courier New">point_type</font></b></td>
+            <td>point_data&lt;T&gt;<br />
+            </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New"><b>segment_data</b>()</font></td>
+            <td>Default constructor.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New"><b>segment_data</b>(const
+point_type&amp; low,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+const point_type&amp; high)</font></td>
+            <td>Constructs a segment from the given endpoints.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New"><b>segment_data</b>(const
+segment_data&amp; that)</font></td>
+            <td>Copy constructor.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">segment_data&amp; <b>operator=</b>(const
+segment_data&amp; that)</font></td>
+            <td>Assignment operator.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;typename SegmentType&gt;<b><br />
+            </b>segment_data&amp; <b>operator=</b>(const </font><font
+ face="Courier New">SegmentType</font><font face="Courier New">&amp;
+that)
+const</font></td>
+            <td>Assign from an object that is a model of segment.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">bool<b> operator==</b>(const
+segment_data&amp; that) const</font></td>
+            <td>Equality operator overload.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New"><b> </b>bool<b>
+operator!=</b>(const segment_data&amp; that) const</font></td>
+            <td>Inequality operator overload.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New"><b> </b>bool<b>
+operator&lt;</b>(const segment_data&amp; that) const</font></td>
+            <td>Less operator overload. Compares low endpoints then
+high endpoints to break ties.<br />
+            </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New"><b> </b>bool<b>
+operator&lt;=</b>(const segment_data&amp; that) const</font></td>
+            <td>Less or equal operator overload. Compares low endpoints
+then high endpoints to break ties.<br />
+            </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New"><b> </b>bool<b>
+operator&gt;</b>(const segment_data&amp; that) const</font></td>
+            <td>Greater operator overload. Compares low endpoints then
+high endpoints to break ties.<br />
+            </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New"><b> </b>bool<b>
+operator&gt;=</b>(const segment_data&amp; that) const</font></td>
+            <td>Greater or equal operator overload. Compares low
+endpoints then high endpoints to break ties.<br />
+            </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">point_type <b>get</b>(direction_1d
+dir) const</font></td>
+            <td>Retrieves the low/high endpoint considering direction
+value.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">point_type <span
+ style="font-weight: bold;">low</span>() const</font></td>
+            <td>Retrieves the low endpoint.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">point_type <span
+ style="font-weight: bold;">high</span>() const</font></td>
+            <td>Retrieves the high endpoint.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">void <b>set</b></font><font
+ face="Courier New">(direction_1d dir</font><font face="Courier New">,
+const point_type&amp; point)</font></td>
+            <td>Sets the endpoint in the given direction.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">segment_data&amp; <span
+ style="font-weight: bold;">low</span>(const point_type&amp; point)</font></td>
+            <td>Sets the low endpoint.</td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">segment_data&amp; <span
+ style="font-weight: bold;">high(</span>const point_type&amp; point)</font></td>
+            <td>Sets the high endpoint.</td>
+          </tr>
+        </tbody>
+      </table>
+      <h1>Segment Utils</h1>
+      <p> </p>
+      <p>The library provides several algorithms for the manipulation
+of sets of segment data. In particular, the generalize line segment
+intersection algorithm used for polygon set operations is exposed
+through several interfaces to allow it to be used with any collection
+or sequence of objects that model the <font face="Courier New">segment_concept</font>.
+      </p>
+      <h2>Functions</h2>
+      <table style="width: 100%;" id="table3" border="1">
+        <tbody>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;</font><font face="Courier New">typename SegmentContainer</font><font
+ face="Courier New">,</font><font face="Courier New"><br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; typename
+SegmentIterator</font><font face="Courier New">&gt;<b><br />
+            </b>void <b>intersect_segments</b>(<br />
+&nbsp;&nbsp;&nbsp; </font><font face="Courier New">SegmentContainer*
+result,</font><br />
+            <font face="Courier New">&nbsp;&nbsp;&nbsp; SegmentIterator
+first,<br />
+&nbsp;&nbsp;&nbsp; SegmentIterator last) </font></td>
+            <td>Accumulates
+the result of splitting the segments in the iterator range at their
+intersection points into the result container. Preconditions: segment
+type used by all the input structures should model segment
+concept.Postconditions: no segments intersect except at their end
+points. Useful to satisfy the precondition of voronoi diagram
+construction. Expected n log n runtime, worst case quadratic runtime
+wrt. vertices + intersections. </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;</font><font face="Courier New">typename Segment,</font><font
+ face="Courier New"><br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font><font
+ face="Courier New">typename SegmentIterator</font><font
+ face="Courier New">&gt;<b><br />
+            </b>void <b>intersect_segments</b>(<br />
+&nbsp;&nbsp;&nbsp; </font><font face="Courier New">vector&lt;pair&lt;size_t,
+Segment&gt;* result,</font><br />
+            <font face="Courier New">&nbsp;&nbsp;&nbsp; SegmentIterator
+first,<br />
+&nbsp;&nbsp;&nbsp; SegmentIterator last)</font></td>
+            <td>Accumulates
+the result of splitting the segments in the iterator range at their
+intersection points into the result container. Preconditions: segment
+type used by all the input structures should model segment concept.
+Postconditions: no segments intersect except at their end points. The
+index of the input segment is paired with each resultant segment that
+was split to produce it to associate the result segments with the
+inputs segments. Expected n log n runtime, worst case quadratic runtime
+wrt. vertices + intersections. </td>
+          </tr>
+          <tr>
+            <td width="586"><font face="Courier New">template
+&lt;</font><font face="Courier New">typename Rectangle,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font><font
+ face="Courier New">typename </font><font face="Courier New">SegmentIterator</font><font
+ face="Courier New">&gt;<b><br />
+            </b>void <span style="font-weight: bold;">envelope_segments</span>(<br />
+&nbsp;&nbsp;&nbsp; </font><font face="Courier New">Rectangle* rect,</font><br />
+            <font face="Courier New">&nbsp;&nbsp;&nbsp; </font><font
+ face="Courier New">SegmentIterator first,<br />
+&nbsp; &nbsp; SegmentIterator last</font><font face="Courier New">) </font></td>
+            <td>Computes
+the bounding rectangle of the iterator range of line segments.
+Preconditions: segment type and rectangle type used by the input
+structures should model segment concept and rectangle concept
+respectively. Linear runtime. </td>
+          </tr>
+        </tbody>
+      </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="background-color: rgb(238, 238, 238);" nowrap="1"
+ valign="top"> &nbsp;</td>
+      <td
+ style="padding-left: 10px; padding-right: 10px; padding-bottom: 10px;"
+ valign="top" width="100%">
+      <table class="docinfo" id="table4" frame="void" rules="none">
+        <colgroup> <col class="docinfo-name" /><col
+ class="docinfo-content" /> </colgroup> <tbody valign="top">
+          <tr>
+            <th class="docinfo-name">Copyright:</th>
+            <td>Copyright © Intel Corporation 2008-2010.</td>
+          </tr>
+          <tr class="field">
+            <th class="docinfo-name">License:</th>
+            <td class="field-body">Distributed under the Boost Software
+License, Version 1.0. (See accompanying file <tt class="literal"> <span
+ class="pre">LICENSE_1_0.txt</span></tt> or copy at <a
+ class="reference" target="_top"
+ href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+          </tr>
+        </tbody>
+      </table>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>

@@ -1,0 +1,486 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Usage examples</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../atomic.html" title="Chapter&#160;4.&#160;Boost.Atomic">
+<link rel="prev" href="interface.html" title="Programming interfaces">
+<link rel="next" href="limitations.html" title="Limitations">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="interface.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../atomic.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="limitations.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="atomic.usage_examples"></a><a class="link" href="usage_examples.html" title="Usage examples">Usage examples</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.example_reference_counters">Reference
+      counting</a></span></dt>
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.example_spinlock">Spinlock</a></span></dt>
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.singleton">Singleton with
+      double-checked locking pattern</a></span></dt>
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.example_ringbuffer">Wait-free
+      ring buffer</a></span></dt>
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.mp_queue">Wait-free multi-producer
+      queue</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_atomic.usage_examples.example_reference_counters"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.example_reference_counters" title="Reference counting">Reference
+      counting</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.example_reference_counters.implementation">Implementation</a></span></dt>
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.example_reference_counters.usage">Usage</a></span></dt>
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.example_reference_counters.discussion">Discussion</a></span></dt>
+</dl></div>
+<p>
+        The purpose of a <span class="emphasis"><em>reference counter</em></span> is to count the number
+        of pointers to an object. The object can be destroyed as soon as the reference
+        counter reaches zero.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_atomic.usage_examples.example_reference_counters.implementation"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.example_reference_counters.implementation" title="Implementation">Implementation</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive_ptr</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">atomic</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">class</span> <span class="identifier">X</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive_ptr</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;</span> <span class="identifier">pointer</span><span class="special">;</span>
+  <span class="identifier">X</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">refcount_</span><span class="special">(</span><span class="number">0</span><span class="special">)</span> <span class="special">{}</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+  <span class="keyword">mutable</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">refcount_</span><span class="special">;</span>
+  <span class="keyword">friend</span> <span class="keyword">void</span> <span class="identifier">intrusive_ptr_add_ref</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">X</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="identifier">x</span><span class="special">-&gt;</span><span class="identifier">refcount_</span><span class="special">.</span><span class="identifier">fetch_add</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_relaxed</span><span class="special">);</span>
+  <span class="special">}</span>
+  <span class="keyword">friend</span> <span class="keyword">void</span> <span class="identifier">intrusive_ptr_release</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">X</span> <span class="special">*</span> <span class="identifier">x</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">x</span><span class="special">-&gt;</span><span class="identifier">refcount_</span><span class="special">.</span><span class="identifier">fetch_sub</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_release</span><span class="special">)</span> <span class="special">==</span> <span class="number">1</span><span class="special">)</span> <span class="special">{</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">atomic_thread_fence</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_acquire</span><span class="special">);</span>
+      <span class="keyword">delete</span> <span class="identifier">x</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_atomic.usage_examples.example_reference_counters.usage"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.example_reference_counters.usage" title="Usage">Usage</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="identifier">X</span><span class="special">::</span><span class="identifier">pointer</span> <span class="identifier">x</span> <span class="special">=</span> <span class="keyword">new</span> <span class="identifier">X</span><span class="special">;</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_atomic.usage_examples.example_reference_counters.discussion"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.example_reference_counters.discussion" title="Discussion">Discussion</a>
+</h4></div></div></div>
+<p>
+          Increasing the reference counter can always be done with <code class="literal">memory_order_relaxed</code>:
+          New references to an object can only be formed from an existing reference,
+          and passing an existing reference from one thread to another must already
+          provide any required synchronization.
+        </p>
+<p>
+          It is important to enforce any possible access to the object in one thread
+          (through an existing reference) to <span class="emphasis"><em>happen before</em></span> deleting
+          the object in a different thread. This is achieved by a "release"
+          operation after dropping a reference (any access to the object through
+          this reference must obviously happened before), and an "acquire"
+          operation before deleting the object.
+        </p>
+<p>
+          It would be possible to use <code class="literal">memory_order_acq_rel</code> for
+          the <code class="literal">fetch_sub</code> operation, but this results in unneeded
+          "acquire" operations when the reference counter does not yet
+          reach zero and may impose a performance penalty.
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_atomic.usage_examples.example_spinlock"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.example_spinlock" title="Spinlock">Spinlock</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.example_spinlock.implementation">Implementation</a></span></dt>
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.example_spinlock.usage">Usage</a></span></dt>
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.example_spinlock.discussion">Discussion</a></span></dt>
+</dl></div>
+<p>
+        The purpose of a <span class="emphasis"><em>spin lock</em></span> is to prevent multiple threads
+        from concurrently accessing a shared data structure. In contrast to a mutex,
+        threads will busy-wait and waste CPU cycles instead of yielding the CPU to
+        another thread. <span class="emphasis"><em>Do not use spinlocks unless you are certain that
+        you understand the consequences.</em></span>
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_atomic.usage_examples.example_spinlock.implementation"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.example_spinlock.implementation" title="Implementation">Implementation</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">atomic</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">class</span> <span class="identifier">spinlock</span> <span class="special">{</span>
+<span class="keyword">private</span><span class="special">:</span>
+  <span class="keyword">typedef</span> <span class="keyword">enum</span> <span class="special">{</span><span class="identifier">Locked</span><span class="special">,</span> <span class="identifier">Unlocked</span><span class="special">}</span> <span class="identifier">LockState</span><span class="special">;</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">atomic</span><span class="special">&lt;</span><span class="identifier">LockState</span><span class="special">&gt;</span> <span class="identifier">state_</span><span class="special">;</span>
+
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="identifier">spinlock</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">state_</span><span class="special">(</span><span class="identifier">Unlocked</span><span class="special">)</span> <span class="special">{}</span>
+
+  <span class="keyword">void</span> <span class="identifier">lock</span><span class="special">()</span>
+  <span class="special">{</span>
+    <span class="keyword">while</span> <span class="special">(</span><span class="identifier">state_</span><span class="special">.</span><span class="identifier">exchange</span><span class="special">(</span><span class="identifier">Locked</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_acquire</span><span class="special">)</span> <span class="special">==</span> <span class="identifier">Locked</span><span class="special">)</span> <span class="special">{</span>
+      <span class="comment">/* busy-wait */</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+  <span class="keyword">void</span> <span class="identifier">unlock</span><span class="special">()</span>
+  <span class="special">{</span>
+    <span class="identifier">state_</span><span class="special">.</span><span class="identifier">store</span><span class="special">(</span><span class="identifier">Unlocked</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_release</span><span class="special">);</span>
+  <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_atomic.usage_examples.example_spinlock.usage"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.example_spinlock.usage" title="Usage">Usage</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="identifier">spinlock</span> <span class="identifier">s</span><span class="special">;</span>
+
+<span class="identifier">s</span><span class="special">.</span><span class="identifier">lock</span><span class="special">();</span>
+<span class="comment">// access data structure here</span>
+<span class="identifier">s</span><span class="special">.</span><span class="identifier">unlock</span><span class="special">();</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_atomic.usage_examples.example_spinlock.discussion"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.example_spinlock.discussion" title="Discussion">Discussion</a>
+</h4></div></div></div>
+<p>
+          The purpose of the spinlock is to make sure that one access to the shared
+          data structure always strictly "happens before" another. The
+          usage of acquire/release in lock/unlock is required and sufficient to guarantee
+          this ordering.
+        </p>
+<p>
+          It would be correct to write the "lock" operation in the following
+          way:
+        </p>
+<pre class="programlisting"><span class="identifier">lock</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">while</span> <span class="special">(</span><span class="identifier">state_</span><span class="special">.</span><span class="identifier">exchange</span><span class="special">(</span><span class="identifier">Locked</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_relaxed</span><span class="special">)</span> <span class="special">==</span> <span class="identifier">Locked</span><span class="special">)</span> <span class="special">{</span>
+    <span class="comment">/* busy-wait */</span>
+  <span class="special">}</span>
+  <span class="identifier">atomic_thread_fence</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_acquire</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+          This "optimization" is however a) useless and b) may in fact
+          hurt: a) Since the thread will be busily spinning on a blocked spinlock,
+          it does not matter if it will waste the CPU cycles with just "exchange"
+          operations or with both useless "exchange" and "acquire"
+          operations. b) A tight "exchange" loop without any memory-synchronizing
+          instruction introduced through an "acquire" operation will on
+          some systems monopolize the memory subsystem and degrade the performance
+          of other system components.
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_atomic.usage_examples.singleton"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.singleton" title="Singleton with double-checked locking pattern">Singleton with
+      double-checked locking pattern</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.singleton.implementation">Implementation</a></span></dt>
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.singleton.usage">Usage</a></span></dt>
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.singleton.discussion">Discussion</a></span></dt>
+</dl></div>
+<p>
+        The purpose of the <span class="emphasis"><em>Singleton with double-checked locking pattern</em></span>
+        is to ensure that at most one instance of a particular object is created.
+        If one instance has been created already, access to the existing object should
+        be as light-weight as possible.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_atomic.usage_examples.singleton.implementation"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.singleton.implementation" title="Implementation">Implementation</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">atomic</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">thread</span><span class="special">/</span><span class="identifier">mutex</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">class</span> <span class="identifier">X</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="keyword">static</span> <span class="identifier">X</span> <span class="special">*</span> <span class="identifier">instance</span><span class="special">()</span>
+  <span class="special">{</span>
+    <span class="identifier">X</span> <span class="special">*</span> <span class="identifier">tmp</span> <span class="special">=</span> <span class="identifier">instance_</span><span class="special">.</span><span class="identifier">load</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_consume</span><span class="special">);</span>
+    <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">tmp</span><span class="special">)</span> <span class="special">{</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span><span class="special">::</span><span class="identifier">scoped_lock</span> <span class="identifier">guard</span><span class="special">(</span><span class="identifier">instantiation_mutex</span><span class="special">);</span>
+      <span class="identifier">tmp</span> <span class="special">=</span> <span class="identifier">instance_</span><span class="special">.</span><span class="identifier">load</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_consume</span><span class="special">);</span>
+      <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">tmp</span><span class="special">)</span> <span class="special">{</span>
+        <span class="identifier">tmp</span> <span class="special">=</span> <span class="keyword">new</span> <span class="identifier">X</span><span class="special">;</span>
+        <span class="identifier">instance_</span><span class="special">.</span><span class="identifier">store</span><span class="special">(</span><span class="identifier">tmp</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_release</span><span class="special">);</span>
+      <span class="special">}</span>
+    <span class="special">}</span>
+    <span class="keyword">return</span> <span class="identifier">tmp</span><span class="special">;</span>
+  <span class="special">}</span>
+<span class="keyword">private</span><span class="special">:</span>
+  <span class="keyword">static</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">atomic</span><span class="special">&lt;</span><span class="identifier">X</span> <span class="special">*&gt;</span> <span class="identifier">instance_</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span> <span class="identifier">instantiation_mutex</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">atomic</span><span class="special">&lt;</span><span class="identifier">X</span> <span class="special">*&gt;</span> <span class="identifier">X</span><span class="special">::</span><span class="identifier">instance_</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_atomic.usage_examples.singleton.usage"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.singleton.usage" title="Usage">Usage</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="identifier">X</span> <span class="special">*</span> <span class="identifier">x</span> <span class="special">=</span> <span class="identifier">X</span><span class="special">::</span><span class="identifier">instance</span><span class="special">();</span>
+<span class="comment">// dereference x</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_atomic.usage_examples.singleton.discussion"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.singleton.discussion" title="Discussion">Discussion</a>
+</h4></div></div></div>
+<p>
+          The mutex makes sure that only one instance of the object is ever created.
+          The <code class="literal">instance</code> method must make sure that any dereference
+          of the object strictly "happens after" creating the instance
+          in another thread. The use of <code class="literal">memory_order_release</code> after
+          creating and initializing the object and <code class="literal">memory_order_consume</code>
+          before dereferencing the object provides this guarantee.
+        </p>
+<p>
+          It would be permissible to use <code class="literal">memory_order_acquire</code>
+          instead of <code class="literal">memory_order_consume</code>, but this provides a
+          stronger guarantee than is required since only operations depending on
+          the value of the pointer need to be ordered.
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_atomic.usage_examples.example_ringbuffer"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.example_ringbuffer" title="Wait-free ring buffer">Wait-free
+      ring buffer</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.example_ringbuffer.implementation">Implementation</a></span></dt>
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.example_ringbuffer.usage">Usage</a></span></dt>
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.example_ringbuffer.discussion">Discussion</a></span></dt>
+</dl></div>
+<p>
+        A <span class="emphasis"><em>wait-free ring buffer</em></span> provides a mechanism for relaying
+        objects from one single "producer" thread to one single "consumer"
+        thread without any locks. The operations on this data structure are "wait-free"
+        which means that each operation finishes within a constant number of steps.
+        This makes this data structure suitable for use in hard real-time systems
+        or for communication with interrupt/signal handlers.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_atomic.usage_examples.example_ringbuffer.implementation"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.example_ringbuffer.implementation" title="Implementation">Implementation</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">atomic</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">size_t</span> <span class="identifier">Size</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">ringbuffer</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="identifier">ringbuffer</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">head_</span><span class="special">(</span><span class="number">0</span><span class="special">),</span> <span class="identifier">tail_</span><span class="special">(</span><span class="number">0</span><span class="special">)</span> <span class="special">{}</span>
+
+  <span class="keyword">bool</span> <span class="identifier">push</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span> <span class="identifier">value</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="identifier">size_t</span> <span class="identifier">head</span> <span class="special">=</span> <span class="identifier">head_</span><span class="special">.</span><span class="identifier">load</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_relaxed</span><span class="special">);</span>
+    <span class="identifier">size_t</span> <span class="identifier">next_head</span> <span class="special">=</span> <span class="identifier">next</span><span class="special">(</span><span class="identifier">head</span><span class="special">);</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">next_head</span> <span class="special">==</span> <span class="identifier">tail_</span><span class="special">.</span><span class="identifier">load</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_acquire</span><span class="special">))</span>
+      <span class="keyword">return</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="identifier">ring_</span><span class="special">[</span><span class="identifier">head</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">value</span><span class="special">;</span>
+    <span class="identifier">head_</span><span class="special">.</span><span class="identifier">store</span><span class="special">(</span><span class="identifier">next_head</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_release</span><span class="special">);</span>
+    <span class="keyword">return</span> <span class="keyword">true</span><span class="special">;</span>
+  <span class="special">}</span>
+  <span class="keyword">bool</span> <span class="identifier">pop</span><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span> <span class="identifier">value</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="identifier">size_t</span> <span class="identifier">tail</span> <span class="special">=</span> <span class="identifier">tail_</span><span class="special">.</span><span class="identifier">load</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_relaxed</span><span class="special">);</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">tail</span> <span class="special">==</span> <span class="identifier">head_</span><span class="special">.</span><span class="identifier">load</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_acquire</span><span class="special">))</span>
+      <span class="keyword">return</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="identifier">value</span> <span class="special">=</span> <span class="identifier">ring_</span><span class="special">[</span><span class="identifier">tail</span><span class="special">];</span>
+    <span class="identifier">tail_</span><span class="special">.</span><span class="identifier">store</span><span class="special">(</span><span class="identifier">next</span><span class="special">(</span><span class="identifier">tail</span><span class="special">),</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_release</span><span class="special">);</span>
+    <span class="keyword">return</span> <span class="keyword">true</span><span class="special">;</span>
+  <span class="special">}</span>
+<span class="keyword">private</span><span class="special">:</span>
+  <span class="identifier">size_t</span> <span class="identifier">next</span><span class="special">(</span><span class="identifier">size_t</span> <span class="identifier">current</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="keyword">return</span> <span class="special">(</span><span class="identifier">current</span> <span class="special">+</span> <span class="number">1</span><span class="special">)</span> <span class="special">%</span> <span class="identifier">Size</span><span class="special">;</span>
+  <span class="special">}</span>
+  <span class="identifier">T</span> <span class="identifier">ring_</span><span class="special">[</span><span class="identifier">Size</span><span class="special">];</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">atomic</span><span class="special">&lt;</span><span class="identifier">size_t</span><span class="special">&gt;</span> <span class="identifier">head_</span><span class="special">,</span> <span class="identifier">tail_</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_atomic.usage_examples.example_ringbuffer.usage"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.example_ringbuffer.usage" title="Usage">Usage</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="identifier">ringbuffer</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="number">32</span><span class="special">&gt;</span> <span class="identifier">r</span><span class="special">;</span>
+
+<span class="comment">// try to insert an element</span>
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">r</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">42</span><span class="special">))</span> <span class="special">{</span> <span class="comment">/* succeeded */</span> <span class="special">}</span>
+<span class="keyword">else</span> <span class="special">{</span> <span class="comment">/* buffer full */</span> <span class="special">}</span>
+
+<span class="comment">// try to retrieve an element</span>
+<span class="keyword">int</span> <span class="identifier">value</span><span class="special">;</span>
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">r</span><span class="special">.</span><span class="identifier">pop</span><span class="special">(</span><span class="identifier">value</span><span class="special">))</span> <span class="special">{</span> <span class="comment">/* succeeded */</span> <span class="special">}</span>
+<span class="keyword">else</span> <span class="special">{</span> <span class="comment">/* buffer empty */</span> <span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_atomic.usage_examples.example_ringbuffer.discussion"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.example_ringbuffer.discussion" title="Discussion">Discussion</a>
+</h4></div></div></div>
+<p>
+          The implementation makes sure that the ring indices do not "lap-around"
+          each other to ensure that no elements are either lost or read twice.
+        </p>
+<p>
+          Furthermore it must guarantee that read-access to a particular object in
+          <code class="literal">pop</code> "happens after" it has been written in
+          <code class="literal">push</code>. This is achieved by writing <code class="literal">head_ </code>
+          with "release" and reading it with "acquire". Conversely
+          the implementation also ensures that read access to a particular ring element
+          "happens before" before rewriting this element with a new value
+          by accessing <code class="literal">tail_</code> with appropriate ordering constraints.
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_atomic.usage_examples.mp_queue"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.mp_queue" title="Wait-free multi-producer queue">Wait-free multi-producer
+      queue</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.mp_queue.implementation">Implementation</a></span></dt>
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.mp_queue.usage">Usage</a></span></dt>
+<dt><span class="section"><a href="usage_examples.html#boost_atomic.usage_examples.mp_queue.discussion">Discussion</a></span></dt>
+</dl></div>
+<p>
+        The purpose of the <span class="emphasis"><em>wait-free multi-producer queue</em></span> is
+        to allow an arbitrary number of producers to enqueue objects which are retrieved
+        and processed in FIFO order by a single consumer.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_atomic.usage_examples.mp_queue.implementation"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.mp_queue.implementation" title="Implementation">Implementation</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">waitfree_queue</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="keyword">struct</span> <span class="identifier">node</span> <span class="special">{</span>
+    <span class="identifier">T</span> <span class="identifier">data</span><span class="special">;</span>
+    <span class="identifier">node</span> <span class="special">*</span> <span class="identifier">next</span><span class="special">;</span>
+  <span class="special">};</span>
+  <span class="keyword">void</span> <span class="identifier">push</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span><span class="identifier">data</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="identifier">node</span> <span class="special">*</span> <span class="identifier">n</span> <span class="special">=</span> <span class="keyword">new</span> <span class="identifier">node</span><span class="special">;</span>
+    <span class="identifier">n</span><span class="special">-&gt;</span><span class="identifier">data</span> <span class="special">=</span> <span class="identifier">data</span><span class="special">;</span>
+    <span class="identifier">node</span> <span class="special">*</span> <span class="identifier">stale_head</span> <span class="special">=</span> <span class="identifier">head_</span><span class="special">.</span><span class="identifier">load</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_relaxed</span><span class="special">);</span>
+    <span class="keyword">do</span> <span class="special">{</span>
+      <span class="identifier">n</span><span class="special">-&gt;</span><span class="identifier">next</span> <span class="special">=</span> <span class="identifier">stale_head</span><span class="special">;</span>
+    <span class="special">}</span> <span class="keyword">while</span> <span class="special">(!</span><span class="identifier">head_</span><span class="special">.</span><span class="identifier">compare_exchange_weak</span><span class="special">(</span><span class="identifier">stale_head</span><span class="special">,</span> <span class="identifier">n</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_release</span><span class="special">));</span>
+  <span class="special">}</span>
+
+  <span class="identifier">node</span> <span class="special">*</span> <span class="identifier">pop_all</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="identifier">T</span> <span class="special">*</span> <span class="identifier">last</span> <span class="special">=</span> <span class="identifier">pop_all_reverse</span><span class="special">(),</span> <span class="special">*</span> <span class="identifier">first</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+    <span class="keyword">while</span><span class="special">(</span><span class="identifier">last</span><span class="special">)</span> <span class="special">{</span>
+      <span class="identifier">T</span> <span class="special">*</span> <span class="identifier">tmp</span> <span class="special">=</span> <span class="identifier">last</span><span class="special">;</span>
+      <span class="identifier">last</span> <span class="special">=</span> <span class="identifier">last</span><span class="special">-&gt;</span><span class="identifier">next</span><span class="special">;</span>
+      <span class="identifier">tmp</span><span class="special">-&gt;</span><span class="identifier">next</span> <span class="special">=</span> <span class="identifier">first</span><span class="special">;</span>
+      <span class="identifier">first</span> <span class="special">=</span> <span class="identifier">tmp</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">return</span> <span class="identifier">first</span><span class="special">;</span>
+  <span class="special">}</span>
+
+  <span class="identifier">waitfree_queue</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">head_</span><span class="special">(</span><span class="number">0</span><span class="special">)</span> <span class="special">{}</span>
+
+  <span class="comment">// alternative interface if ordering is of no importance</span>
+  <span class="identifier">node</span> <span class="special">*</span> <span class="identifier">pop_all_reverse</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">head_</span><span class="special">.</span><span class="identifier">exchange</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">memory_order_consume</span><span class="special">);</span>
+  <span class="special">}</span>
+<span class="keyword">private</span><span class="special">:</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">atomic</span><span class="special">&lt;</span><span class="identifier">node</span> <span class="special">*&gt;</span> <span class="identifier">head_</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_atomic.usage_examples.mp_queue.usage"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.mp_queue.usage" title="Usage">Usage</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="identifier">waitfree_queue</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">q</span><span class="special">;</span>
+
+<span class="comment">// insert elements</span>
+<span class="identifier">q</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">42</span><span class="special">);</span>
+<span class="identifier">q</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+
+<span class="comment">// pop elements</span>
+<span class="identifier">waitfree_queue</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">node</span> <span class="special">*</span> <span class="identifier">x</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">.</span><span class="identifier">pop_all</span><span class="special">()</span>
+<span class="keyword">while</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span> <span class="special">{</span>
+  <span class="identifier">X</span> <span class="special">*</span> <span class="identifier">tmp</span> <span class="special">=</span> <span class="identifier">x</span><span class="special">;</span>
+  <span class="identifier">x</span> <span class="special">=</span> <span class="identifier">x</span><span class="special">-&gt;</span><span class="identifier">next</span><span class="special">;</span>
+  <span class="comment">// process tmp-&gt;data, probably delete it afterwards</span>
+  <span class="keyword">delete</span> <span class="identifier">tmp</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_atomic.usage_examples.mp_queue.discussion"></a><a class="link" href="usage_examples.html#boost_atomic.usage_examples.mp_queue.discussion" title="Discussion">Discussion</a>
+</h4></div></div></div>
+<p>
+          The implementation guarantees that all objects enqueued are processed in
+          the order they were enqueued by building a singly-linked list of object
+          in reverse processing order. The queue is atomically emptied by the consumer
+          and brought into correct order.
+        </p>
+<p>
+          It must be guaranteed that any access to an object to be enqueued by the
+          producer "happens before" any access by the consumer. This is
+          assured by inserting objects into the list with <span class="emphasis"><em>release</em></span>
+          and dequeuing them with <span class="emphasis"><em>consume</em></span> memory order. It is
+          not necessary to use <span class="emphasis"><em>acquire</em></span> memory order in <code class="literal">waitfree_queue::pop_all</code>
+          because all operations involved depend on the value of the atomic pointer
+          through dereference
+        </p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011 Helge Bahmann<br>Copyright &#169; 2012 Tim Blechmann<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="interface.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../atomic.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="limitations.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

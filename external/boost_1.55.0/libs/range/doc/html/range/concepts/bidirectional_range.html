@@ -1,0 +1,301 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Bidirectional Range</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../concepts.html" title="Range Concepts">
+<link rel="prev" href="forward_range.html" title="Forward Range">
+<link rel="next" href="random_access_range.html" title="Random Access Range">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="forward_range.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="random_access_range.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_concepts_bidirectional_range">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="range.concepts.bidirectional_range"></a><a class="link" href="bidirectional_range.html" title="Bidirectional Range">Bidirectional Range</a>
+</h3></div></div></div>
+<h5>
+<a name="range.concepts.bidirectional_range.h0"></a>
+        <span><a name="range.concepts.bidirectional_range.notation"></a></span><a class="link" href="bidirectional_range.html#range.concepts.bidirectional_range.notation">Notation</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr></tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">X</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  A type that is a model of <a class="link" href="bidirectional_range.html" title="Bidirectional Range">Bidirectional
+                  Range</a>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Object of type X.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="range.concepts.bidirectional_range.h1"></a>
+        <span><a name="range.concepts.bidirectional_range.description"></a></span><a class="link" href="bidirectional_range.html#range.concepts.bidirectional_range.description">Description</a>
+      </h5>
+<p>
+        This concept provides access to iterators that traverse in both directions
+        (forward and reverse). The <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code> iterator must meet all of the requirements
+        of <a href="../../../../../../libs/iterator/doc/new-iter-concepts.html#bidirectional-traversal-iterators-lib-bidirectional-traversal-iterators" target="_top">Bidirectional
+        Traversal Iterator</a>.
+      </p>
+<h5>
+<a name="range.concepts.bidirectional_range.h2"></a>
+        <span><a name="range.concepts.bidirectional_range.refinement_of"></a></span><a class="link" href="bidirectional_range.html#range.concepts.bidirectional_range.refinement_of">Refinement
+        of</a>
+      </h5>
+<p>
+        <a class="link" href="forward_range.html" title="Forward Range">Forward Range</a>
+      </p>
+<h5>
+<a name="range.concepts.bidirectional_range.h3"></a>
+        <span><a name="range.concepts.bidirectional_range.associated_types"></a></span><a class="link" href="bidirectional_range.html#range.concepts.bidirectional_range.associated_types">Associated
+        types</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr></tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  Reverse Iterator type
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The type of iterator used to iterate through a Range's elements
+                  in reverse order. The iterator's value type is expected to be the
+                  Range's value type. A conversion from the reverse iterator type
+                  to the const reverse iterator type must exist.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Const reverse iterator type
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  A type of reverse iterator that may be used to examine, but not
+                  to modify, a Range's elements.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="range.concepts.bidirectional_range.h4"></a>
+        <span><a name="range.concepts.bidirectional_range.valid_expressions"></a></span><a class="link" href="bidirectional_range.html#range.concepts.bidirectional_range.valid_expressions">Valid expressions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Return type
+                </p>
+              </th>
+<th>
+                <p>
+                  Semantics
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  Beginning of range
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rbegin</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code> if <code class="computeroutput"><span class="identifier">a</span></code>
+                  is mutable <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="keyword">const</span>
+                  <span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code> otherwise.
+                </p>
+              </td>
+<td>
+                <p>
+                  Equivalent to <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">a</span><span class="special">))</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  End of range
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rend</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code> if <code class="computeroutput"><span class="identifier">a</span></code>
+                  is mutable, <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="keyword">const</span>
+                  <span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span></code> otherwise.
+                </p>
+              </td>
+<td>
+                <p>
+                  Equivalent to <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_reverse_iterator</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">a</span><span class="special">))</span></code>.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="range.concepts.bidirectional_range.h5"></a>
+        <span><a name="range.concepts.bidirectional_range.complexity_guarantees"></a></span><a class="link" href="bidirectional_range.html#range.concepts.bidirectional_range.complexity_guarantees">Complexity
+        guarantees</a>
+      </h5>
+<p>
+        <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rbegin</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code> has
+        the same complexity as <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">end</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code> and
+        <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rend</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code> has the same complexity as <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code> from
+        <a class="link" href="forward_range.html" title="Forward Range">Forward Range</a>.
+      </p>
+<h5>
+<a name="range.concepts.bidirectional_range.h6"></a>
+        <span><a name="range.concepts.bidirectional_range.invariants"></a></span><a class="link" href="bidirectional_range.html#range.concepts.bidirectional_range.invariants">Invariants</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr></tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  Valid reverse range
+                </p>
+              </td>
+<td>
+                <p>
+                  For any Bidirectional Range a, <code class="computeroutput"><span class="special">[</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rbegin</span><span class="special">(</span><span class="identifier">a</span><span class="special">),</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rend</span><span class="special">(</span><span class="identifier">a</span><span class="special">))</span></code>
+                  is a valid range, that is, <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rend</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code> is reachable from <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rbegin</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span></code>
+                  in a finite number of increments.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Completeness
+                </p>
+              </td>
+<td>
+                <p>
+                  An algorithm that iterates through the range <code class="computeroutput"><span class="special">[</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rbegin</span><span class="special">(</span><span class="identifier">a</span><span class="special">),</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rend</span><span class="special">(</span><span class="identifier">a</span><span class="special">))</span></code>
+                  will pass through every element of <code class="computeroutput"><span class="identifier">a</span></code>.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="range.concepts.bidirectional_range.h7"></a>
+        <span><a name="range.concepts.bidirectional_range.see_also"></a></span><a class="link" href="bidirectional_range.html#range.concepts.bidirectional_range.see_also">See
+        also</a>
+      </h5>
+<p>
+        <a class="link" href="../reference/concept_implementation/semantics/metafunctions.html" title="Metafunctions">Implementation
+        of metafunctions</a>
+      </p>
+<p>
+        <a class="link" href="../reference/concept_implementation/semantics/functions.html" title="Functions">Implementation
+        of functions</a>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="forward_range.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="random_access_range.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

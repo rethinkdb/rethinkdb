@@ -1,0 +1,51 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Code Conversion</TITLE>
+    <LINK REL="stylesheet" href="../../../../boost.css">
+    <LINK REL="stylesheet" href="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">User's Guide</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+     <A HREF='filtering_streams.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='guide.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='asynchronous.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<A NAME="overview"></A>
+<H2>3.5 Code Conversion</H2>
+
+<HR STYLE="margin-top:1em">
+
+<P>
+    The process of converting between a sequence of wide characters and a sequence of narrow characters is known as <SPAN CLASS='term'>code conversion</SPAN>. The C++ standard library defines a locale facet <CODE>std::codecvt</CODE> that encapulates code conversion. The class template <CODE>codecvt</CODE> has three template parameters, representing an <SPAN CLASS='term'>internal character type</SPAN>, an <SPAN CLASS='term'>external character type</SPAN> and a type to store a <SPAN CLASS='term'>code conversion state</SPAN>. The internal character type is so named because it is typically the type used to store wide characters in memory for processing by an application; the external character type is so named because it is typically the character type used to store charatcres in external media such as files. Most of the time, the internal character type is <CODE>wchar_t</CODE>, the external character type is <CODE>char</CODE> and the code conversion state is <CODE>std::mbstate_t</CODE>, an implementation-defined type specified by the C++ standard.
+</P>
+
+<P>
+    Streams and stream buffers do not perform code conversion by default. Of the streams and stream buffers defined in the C++ standard library, only the file-based streams perform code conversion. To write a stream or stream buffer that performs code conversion, use the class template <A HREF="../classes/code_converter.html"><CODE>code_converter</CODE></A>, which performs code conversion using a <CODE>std::codecvt</CODE> facet.
+</P>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

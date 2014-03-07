@@ -1,0 +1,132 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function join</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../utilities.html" title="Utilities">
+<link rel="prev" href="sub_range.html" title="Class sub_range">
+<link rel="next" href="../extending.html" title="Extending the library">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sub_range.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../utilities.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../extending.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_reference_utilities_join">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="range.reference.utilities.join"></a><a class="link" href="join.html" title="Function join">Function join</a>
+</h4></div></div></div>
+<p>
+          The intention of the <code class="computeroutput"><span class="identifier">join</span></code>
+          function is to join two ranges into one longer range.
+        </p>
+<p>
+          The resultant range will have the lowest common traversal of the two ranges
+          supplied as parameters.
+        </p>
+<p>
+          Note that the joined range incurs a performance cost due to the need to
+          check if the end of a range has been reached internally during traversal.
+        </p>
+<h5>
+<a name="range.reference.utilities.join.h0"></a>
+          <span><a name="range.reference.utilities.join.synposis"></a></span><a class="link" href="join.html#range.reference.utilities.join.synposis">Synposis</a>
+        </h5>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">SinglePassRange1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">SinglePassRange2</span><span class="special">&gt;</span>
+<span class="identifier">joined_range</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">SinglePassRange1</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">SinglePassRange2</span><span class="special">&gt;</span>
+<span class="identifier">join</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">SinglePassRange1</span><span class="special">&amp;</span> <span class="identifier">rng1</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">SinglePassRange2</span><span class="special">&amp;</span> <span class="identifier">rng2</span><span class="special">)</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">SinglePassRange1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">SinglePassRange2</span><span class="special">&gt;</span>
+<span class="identifier">joined_range</span><span class="special">&lt;</span><span class="identifier">SinglePassRange1</span><span class="special">,</span> <span class="identifier">SinglePassRange2</span><span class="special">&gt;</span>
+<span class="identifier">join</span><span class="special">(</span><span class="identifier">SinglePassRange1</span><span class="special">&amp;</span> <span class="identifier">rng1</span><span class="special">,</span> <span class="identifier">SinglePassRange2</span><span class="special">&amp;</span> <span class="identifier">rng2</span><span class="special">);</span>
+</pre>
+<p>
+        </p>
+<p>
+          For the const version:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+              <span class="bold"><strong>Precondition:</strong></span> The <code class="computeroutput"><span class="identifier">range_value</span><span class="special">&lt;</span><span class="identifier">SinglePassRange2</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+              must be convertible to <code class="computeroutput"><span class="identifier">range_value</span><span class="special">&lt;</span><span class="identifier">SinglePassRange1</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+              The <code class="computeroutput"><span class="identifier">range_reference</span><span class="special">&lt;</span><span class="keyword">const</span>
+              <span class="identifier">SinglePassRange2</span><span class="special">&gt;::</span><span class="identifier">type</span></code> must be convertible to <code class="computeroutput"><span class="identifier">range_reference</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">SinglePassRange1</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>Range Category:</strong></span> Both <code class="computeroutput"><span class="identifier">rng1</span></code> and <code class="computeroutput"><span class="identifier">rng2</span></code>
+              must be a model of <a class="link" href="../../concepts/single_pass_range.html" title="Single Pass Range">Single
+              Pass Range</a> or better.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>Range Return Type:</strong></span> <code class="computeroutput"><span class="identifier">joined_range</span><span class="special">&lt;</span><span class="keyword">const</span>
+              <span class="identifier">SinglePassRange1</span><span class="special">,</span>
+              <span class="keyword">const</span> <span class="identifier">SinglePassRange2</span><span class="special">&gt;</span></code> which is a model of the lesser
+              of the two range concepts passed.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>Returned Range Category:</strong></span> The minimum
+              of the range category of <code class="computeroutput"><span class="identifier">rng1</span></code>
+              and <code class="computeroutput"><span class="identifier">rng2</span></code>.
+            </li>
+</ul></div>
+<p>
+          For the mutable version:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+              <span class="bold"><strong>Precondition:</strong></span> The <code class="computeroutput"><span class="identifier">range_value</span><span class="special">&lt;</span><span class="identifier">SinglePassRange2</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+              must be convertible to <code class="computeroutput"><span class="identifier">range_value</span><span class="special">&lt;</span><span class="identifier">SinglePassRange1</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+              The <code class="computeroutput"><span class="identifier">range_reference</span><span class="special">&lt;</span><span class="identifier">SinglePassRange2</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+              must be convertible to <code class="computeroutput"><span class="identifier">range_reference</span><span class="special">&lt;</span><span class="identifier">SinglePassRange1</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>Range Category:</strong></span> Both <code class="computeroutput"><span class="identifier">rng1</span></code> and <code class="computeroutput"><span class="identifier">rng2</span></code>
+              must be a model of <a class="link" href="../../concepts/single_pass_range.html" title="Single Pass Range">Single
+              Pass Range</a> or better.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>Range Return Type:</strong></span> <code class="computeroutput"><span class="identifier">joined_range</span><span class="special">&lt;</span><span class="identifier">SinglePassRange1</span><span class="special">,</span> <span class="identifier">SinglePassRange2</span><span class="special">&gt;</span></code> which is a model of the lesser
+              of the two range concepts passed.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>Returned Range Category:</strong></span> The minimum
+              of the range category of <code class="computeroutput"><span class="identifier">rng1</span></code>
+              and <code class="computeroutput"><span class="identifier">rng2</span></code>.
+            </li>
+</ul></div>
+<h5>
+<a name="range.reference.utilities.join.h1"></a>
+          <span><a name="range.reference.utilities.join.example"></a></span><a class="link" href="join.html#range.reference.utilities.join.example">Example</a>
+        </h5>
+<p>
+          The expression <code class="computeroutput"><span class="identifier">join</span><span class="special">(</span><span class="identifier">irange</span><span class="special">(</span><span class="number">0</span><span class="special">,</span><span class="number">5</span><span class="special">),</span> <span class="identifier">irange</span><span class="special">(</span><span class="number">5</span><span class="special">,</span><span class="number">10</span><span class="special">))</span></code> would
+          evaluate to a range representing an integer range <code class="computeroutput"><span class="special">[</span><span class="number">0</span><span class="special">,</span><span class="number">10</span><span class="special">)</span></code>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sub_range.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../utilities.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../extending.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

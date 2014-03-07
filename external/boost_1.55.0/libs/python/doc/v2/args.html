@@ -1,0 +1,199 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Cygwin (vers 1st April 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/args.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/args.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#keyword-expression"><i>keyword-expressions</i></a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#arg-spec">class <code>arg</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#arg-synopsis">class <code>arg</code>
+              synopsis</a></dt>
+
+              <dt><a href="#arg-ctor">class <code>arg</code>
+              constructor</a></dt>
+
+              <dt><a href="#arg-operator">class <code>arg</code> template
+              <code>operator =</code></a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#keyword-expression-operators"><i>Keyword-expression</i>
+      operator <code>,</code></a></dt>
+
+      <dt><a href="#functions">Functions (deprecated)</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><code><a href=
+          "#args-spec">args</a>(</code>...<code>)</code></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example(s)</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p>Supplies a family of overloaded functions for specifying argument
+    keywords for wrapped C++ functions.</p>
+
+    <h2><a name="keyword-expression"></a><i>keyword-expressions</i></h2>
+
+    <p>A <b>keyword-expression</b> results in an object which holds a
+    sequence of <a href="definitions.html#ntbs">ntbs</a>es, and whose type
+    encodes the number of keywords specified. The <b>keyword-expression</b>
+    may contain default values for some or all of the keywords it holds</p>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="arg-spec"></a><code>class arg;</code></h3>
+
+    <p>The objects of class arg are keyword-expressions holding one keyword (
+    size one )</p>
+
+    <h4><a name="arg-synopsis"></a>Class <code>arg</code> synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+        struct arg 
+        {
+          template &lt;class T&gt;
+                  arg &amp;operator = (T const &amp;value);
+          explicit arg (char const *name){elements[0].name = name;}
+        };
+
+}}
+</pre>
+
+    <h4><a name="arg-ctor"></a>Class <code>arg</code> constructor</h4>
+<pre>
+arg(char const* name);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> The argument must be a <a href=
+      "definitions.html#ntbs">ntbs</a>.</dt>
+
+      <dt><b>Effects:</b> Constructs an <code>arg</code> object holding a
+      keyword with name <code>name</code>.</dt>
+    </dl>
+
+    <h4><a name="arg-operator"></a>Class <code>arg</code> operator =</h4>
+<pre>
+template &lt;class T&gt; arg &amp;operator = (T const &amp;value);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> The argument must convertible to python.</dt>
+
+      <dt><b>Effects:</b> Assigns default value for the keyword.</dt>
+
+      <dt><b>Returns:</b> Reference to <code>this</code>.</dt>
+    </dl>
+
+    <h2><a name="keyword-expression-operators"><i>Keyword-expression</i>
+    operator <code>,</code></a></h2>
+<pre>
+      <i>keyword-expression</i> operator , (<i>keyword-expression</i>, const arg &amp;kw) const
+      <i>keyword-expression</i> operator , (<i>keyword-expression</i>, const char *name) const;
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> The argument <code>name</code> must be a <a href=
+      "definitions.html#ntbs">ntbs</a>.</dt>
+
+      <dt><b>Effects:</b> Extends the <i>keyword-expression</i> argument with
+      one more keyword.</dt>
+
+      <dt><b>Returns:</b> The extended <i>keyword-expression</i>.</dt>
+    </dl>
+
+    <h2><font color="#7F7F7F"><a name="functions"></a>Functions
+    (deprecated)</font></h2>
+
+    <h3><a name="args-spec"></a><code><font color=
+    "#7F7F7F">args</font>(</code>...<code>)</code></h3>
+<pre>
+<font color="#7F7F7F">  <i>unspecified1</i> args(char const*);
+    <i>unspecified2</i> args(char const*, char const*);
+       .
+       .
+       .
+    <i>unspecifiedN</i> args(char const*, char const*, ... char const*);
+</font>
+</pre>
+
+    <dl class="function-semantics">
+      <dt><font color="#7F7F7F"><b>Requires:</b> Every argument must be a <a
+      href="definitions.html#ntbs">ntbs</a>.</font></dt>
+
+      <dt><font color="#7F7F7F"><b>Returns:</b> an object representing a <a
+      href="#keyword-expression"><i>keyword-expression</i></a> encapsulating
+      the arguments passed.</font></dt>
+    </dl>
+
+    <h2><a name="examples"></a>Example</h2>
+<pre>
+#include &lt;boost/python/def.hpp&gt;
+using namespace boost::python;
+
+int f(double x, double y, double z=0.0, double w=1.0);
+
+BOOST_PYTHON_MODULE(xxx)
+{
+   def("f", f
+            , ( arg("x"), "y", arg("z")=0.0, arg("w")=1.0 ) 
+            );
+}
+</pre>
+
+    <p>Revised 01 August, 2003</p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002-2003.</i></p>
+  </body>
+</html>
+

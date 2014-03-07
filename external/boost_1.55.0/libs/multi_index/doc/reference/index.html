@@ -1,0 +1,140 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Reference</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="../tutorial/techniques.html">
+<link rel="up" href="../index.html">
+<link rel="next" href="multi_index_container.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Reference</h1>
+
+<div class="prev_link"><a href="../tutorial/techniques.html"><img src="../prev.gif" alt="techniques" border="0"><br>
+Tecnhiques
+</a></div>
+<div class="up_link"><a href="../index.html"><img src="../up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="multi_index_container.html"><img src="../next.gif" alt="multi_index_container reference" border="0"><br>
+<code>multi_index_container</code> reference
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#header_dependencies">Header dependencies</a></li>
+  <li><a href="multi_index_container.html">Class template <code>multi_index_container</code></a></li>
+  <li><a href="indices.html">Index reference</a></li>
+  <li><a href="ord_indices.html">Ordered indices</a></li>
+  <li><a href="hash_indices.html">Hashed indices</a></li>
+  <li><a href="seq_indices.html">Sequenced indices</a></li>
+  <li><a href="rnd_indices.html">Random access indices</a></li>
+  <li><a href="key_extraction.html">Key Extraction</a></li>
+</ul>
+
+<h2><a name="header_dependencies">Header dependencies</a></h2>
+
+<p>
+The following dependencies among headers of Boost.MultiIndex hold:
+<ul>
+  <li><a href="multi_index_container.html#synopsis"><code>"boost/multi_index_container.hpp"</code></a>
+    includes
+    <ul>
+      <li><a href="indices.html#indexed_by_synopsis">
+	    <code>"boost/multi_index/indexed_by.hpp"</code></a>.</li>
+    </ul>
+  </li>
+  <li><a href="ord_indices.html#synopsis">
+    <code>"boost/multi_index/ordered_index.hpp"</code></a> includes
+    <ul>
+      <li><a href="indices.html#tag_synopsis">
+        <code>"boost/multi_index/tag.hpp"</code></a>.</li>
+    </ul>
+  </li>
+  <li><a href="hash_indices.html#synopsis">
+    <code>"boost/multi_index/hashed_index.hpp"</code></a> includes
+    <ul>
+      <li><a href="indices.html#tag_synopsis">
+        <code>"boost/multi_index/tag.hpp"</code></a>.</li>
+    </ul>
+  </li>
+  <li><a href="seq_indices.html#synopsis">
+    <code>"boost/multi_index/sequenced_index.hpp"</code></a> includes
+    <ul>
+      <li><a href="indices.html#tag_synopsis">
+        <code>"boost/multi_index/tag.hpp"</code></a>.</li>
+    </ul>
+  </li>
+  <li><a href="rnd_indices.html#synopsis">
+    <code>"boost/multi_index/random_access_index.hpp"</code></a> includes
+    <ul>
+      <li><a href="indices.html#tag_synopsis">
+        <code>"boost/multi_index/tag.hpp"</code></a>.</li>
+    </ul>
+  </li>
+  <li><a href="key_extraction.html#synopsis"><code>"boost/multi_index/key_extractors.hpp"</code></a>
+    includes
+    <ul>
+      <li><a href="key_extraction.html#identity_synopsis">
+	    <code>"boost/multi_index/identity.hpp"</code></a>,</li>
+      <li><a href="key_extraction.html#member_synopsis">
+        <code>"boost/multi_index/member.hpp"</code></a>,</li>
+	  <li><a href="key_extraction.html#mem_fun_synopsis">
+        <code>"boost/multi_index/mem_fun.hpp"</code></a>,</li>
+	  <li><a href="key_extraction.html#global_fun_synopsis">
+        <code>"boost/multi_index/global_fun.hpp"</code></a> and</li>
+	  <li><a href="key_extraction.html#composite_key_synopsis">
+        <code>"boost/multi_index/composite_key.hpp"</code></a>.</li>
+    </ul>
+  </li>
+</ul>
+So, a program using Boost.MultiIndex must include
+<a href="multi_index_container.html#synopsis">
+<code>"boost/multi_index_container.hpp"</code></a>,
+the headers defining the index types to be used and possibly one or more key
+extraction headers for key-based indices. Note that all the key extractors
+provided by Boost.MultiIndex are automatically included with
+<a href="key_extraction.html#synopsis">
+<code>"boost/multi_index/key_extractors.hpp"</code></a>.
+</p>
+
+<p>
+In order to use the serialization capabilities of Boost.MultiIndex,
+the appropriate Boost.Serialization library module must be linked. Other
+than that, Boost.MultiIndex is a header-only library, requiring no additional
+object modules.
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="../tutorial/techniques.html"><img src="../prev.gif" alt="techniques" border="0"><br>
+Tecnhiques
+</a></div>
+<div class="up_link"><a href="../index.html"><img src="../up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="multi_index_container.html"><img src="../next.gif" alt="multi_index_container reference" border="0"><br>
+<code>multi_index_container</code> reference
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised June 19th 2007</p>
+
+<p>&copy; Copyright 2003-2007 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

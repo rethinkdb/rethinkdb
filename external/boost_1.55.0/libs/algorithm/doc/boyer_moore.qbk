@@ -1,0 +1,95 @@
+[/ QuickBook Document version 1.5 ]
+
+[section:BoyerMoore Boyer-Moore Search]
+
+[/license
+
+Copyright (c) 2010-2012 Marshall Clow
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[heading Overview]
+
+The header file 'boyer_moore.hpp' contains an implementation of the Boyer-Moore algorithm for searching sequences of values. 
+
+The Boyer–Moore string search algorithm is a particularly efficient string searching algorithm, and it has been the standard benchmark for the practical string search literature. The Boyer-Moore algorithm was invented by Bob Boyer and J. Strother Moore, and published in the October 1977 issue of the Communications of the ACM , and a copy of that article is available at [@http://www.cs.utexas.edu/~moore/publications/fstrpos.pdf].
+
+The Boyer-Moore algorithm uses two precomputed tables to give better performance than a naive search. These tables depend on the pattern being searched for, and give the Boyer-Moore algorithm larger a memory footprint and startup costs than a simpler algorithm, but these costs are recovered quickly during the searching process, especially if the pattern is longer than a few elements.
+
+However, the Boyer-Moore algorithm cannot be used with comparison predicates like `std::search`.
+
+Nomenclature: I refer to the sequence being searched for as the "pattern", and the sequence being searched in as the "corpus".
+
+[heading Interface]
+
+For flexibility, the Boyer-Moore algorithm has two interfaces; an object-based interface and a procedural one. The object-based interface builds the tables in the constructor, and uses operator () to perform the search. The procedural interface builds the table and does the search all in one step. If you are going to be searching for the same pattern in multiple corpora, then you should use the object interface, and only build the tables once.
+
+Here is the object interface:
+``
+template <typename patIter>
+class boyer_moore {
+public:
+    boyer_moore ( patIter first, patIter last );
+    ~boyer_moore ();
+    
+    template <typename corpusIter>
+    corpusIter operator () ( corpusIter corpus_first, corpusIter corpus_last );
+    };
+``
+
+and here is the corresponding procedural interface:
+
+``
+template <typename patIter, typename corpusIter>
+corpusIter boyer_moore_search ( 
+        corpusIter corpus_first, corpusIter corpus_last, 
+        patIter pat_first, patIter pat_last );
+``
+
+Each of the functions is passed two pairs of iterators. The first two define the corpus and the second two define the pattern. Note that the two pairs need not be of the same type, but they do need to "point" at the same type. In other words, `patIter::value_type` and `curpusIter::value_type` need to be the same type.
+
+The return value of the function is an iterator pointing to the start of the pattern in the corpus. If the pattern is not found, it returns the end of the corpus (`corpus_last`).
+
+[heading Performance]
+
+The execution time of the Boyer-Moore algorithm, while still linear in the size of the string being searched, can have a significantly lower constant factor than many other search algorithms: it doesn't need to check every character of the string to be searched, but rather skips over some of them. Generally the algorithm gets faster as the pattern being searched for becomes longer. Its efficiency derives from the fact that with each unsuccessful attempt to find a match between the search string and the text it is searching, it uses the information gained from that attempt to rule out as many positions of the text as possible where the string cannot match.
+
+[heading Memory Use]
+
+The algorithm allocates two internal tables. The first one is proportional to the length of the pattern; the second one has one entry for each member of the "alphabet" in the pattern. For (8-bit) character types, this table contains 256 entries.
+
+[heading Complexity]
+
+The worst-case performance to find a pattern in the corpus is ['O(N)] (linear) time; that is, proportional to the length of the corpus being searched. In general, the search is sub-linear; not every entry in the corpus need be checked.
+
+[heading Exception Safety]
+
+Both the object-oriented and procedural versions of the Boyer-Moore algorithm take their parameters by value and do not use any information other than what is passed in. Therefore, both interfaces provide the strong exception guarantee.
+
+[heading Notes]
+
+* When using the object-based interface, the pattern must remain unchanged for during the searches; i.e, from the time the object is constructed until the final call to operator () returns.
+
+* The Boyer-Moore algorithm requires random-access iterators for both the pattern and the corpus.
+
+[heading Customization points] 
+
+The Boyer-Moore object takes a traits template parameter which enables the caller to customize how one of the precomputed tables is stored. This table, called the skip table, contains (logically) one entry for every possible value that the pattern can contain. When searching 8-bit character data, this table contains 256 elements. The traits class defines the table to be used. 
+
+The default traits class uses a `boost::array` for small 'alphabets' and a `tr1::unordered_map` for larger ones.  The array-based skip table gives excellent performance, but could be prohibitively large when the 'alphabet' of elements to be searched grows. The unordered_map based version only grows as the number of unique elements in the pattern, but makes many more heap allocations, and gives slower lookup performance. 
+
+To use a different skip table, you should define your own skip table object and your own traits class, and use them to instantiate the Boyer-Moore object. The interface to these objects is described TBD.
+
+
+[endsect]
+
+[/ File boyer_moore.qbk
+Copyright 2011 Marshall Clow
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt).
+]
+

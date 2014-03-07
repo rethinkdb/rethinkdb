@@ -1,0 +1,172 @@
+
+[/ Copyright 2005-2008 Daniel James.
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) ]
+
+[template ticket[number]'''<ulink url="https://svn.boost.org/trac/boost/ticket/'''[number]'''">'''#[number]'''</ulink>''']
+
+[section:changes Change Log]
+
+[h2 Boost 1.33.0]
+
+* Initial Release
+
+[h2 Boost 1.33.1]
+
+* Fixed the points example, as pointed out by 沈慧峰.
+
+[h2 Boost 1.34.0]
+
+* Use declarations for standard classes, so that the library
+  doesn't need to include all of their headers
+* Deprecated the `<boost/functional/hash/*.hpp>` headers. Now a single header,
+  <[headerref boost/functional/hash.hpp]> is used.
+* Add support for the `BOOST_HASH_NO_EXTENSIONS` macro, which
+  disables the extensions to TR1.
+
+* Minor improvements to the hash functions for floating point numbers.
+* Update the portable example to hopefully be more generally portable.
+
+[h2 Boost 1.34.1]
+
+* [@http://svn.boost.org/trac/boost/ticket/952 Ticket 952]:
+  Suppress incorrect 64-bit warning on Visual C++.
+
+[h2 Boost 1.35.0]
+
+* Support for `long long`, `std::complex`.
+* Improved algorithm for hashing floating point numbers:
+  * Improved portablity, as described by Daniel Krügler in
+    [@http://lists.boost.org/boost-users/2005/08/13418.php
+    a post to the boost users list].
+  * Fits more information into each combine loop, which can reduce the
+    the number of times combine is called and hopefully give a better
+    quality hash function.
+  * Improved the algorithm for hashing floating point numbers.
+  * On Cygwin use a binary hash function for floating point numbers, as 
+    Cygwin doesn't have decent floating point functions for `long double`.
+  * Never uses `fpclass` which doesn't support `long double`.
+  * [@http://svn.boost.org/trac/boost/ticket/1064 Ticket 1064]:
+    Removed unnecessary use of `errno`.
+* Explicitly overload for more built in types.
+* Minor improvements to the documentation.
+* A few bug and warning fixes:
+  * [@http://svn.boost.org/trac/boost/ticket/1509 Ticket 1509]:
+    Suppress another Visual C++ warning.
+  * Some workarounds for the Sun compilers.
+
+[h2 Boost 1.36.0]
+
+* Stop using OpenBSD's dodgy `std::numeric_limits`.
+* Using the boost typedefs for `long long` and `unsigned long long`.
+* Move the extensions into their own header.
+
+[h2 Boost 1.37.0]
+
+* [@http://svn.boost.org/trac/boost/ticket/2264 Ticket 2264]:
+  In Visual C++, always use C99 float functions for `long double` and `float` as
+  the C++ overloads aren't always availables.
+
+[h2 Boost 1.38.0]
+
+* Changed the warnings in the deprecated headers from 1.34.0 to errors. These
+  will be removed in a future version of Boost.
+* Moved detail headers out of `boost/functional/detail`, since they are part of
+  functional/hash, not functional. `boost/functional/detail/container_fwd.hpp`
+  has been moved to `boost/detail/container_fwd.hpp` as it's used outside of
+  this library, the others have been moved to `boost/functional/hash/detail`.
+  
+[h2 Boost 1.39.0]
+
+* Move the hash_fwd.hpp implementation into the hash subdirectory, leaving a
+  forwarding header in the old location. You should still use the old location,
+  the new location is mainly for implementation and possible modularization.
+* [@https://svn.boost.org/trac/boost/ticket/2412 Ticket 2412]: Removed deprecated
+  headers.
+* [@https://svn.boost.org/trac/boost/ticket/2957 Ticket 2957]: Fix configuration
+  for vxworks.
+
+[h2 Boost 1.40.0]
+
+* Automatically configure the float functions using template metaprogramming
+  instead of trying to configure every possibility manually.
+* Workaround for when STLport doesn't support long double.
+
+[h2 Boost 1.42.0]
+
+* Reduce the number of warnings for Visual C++ warning level 4.
+* Some code formatting changes to fit lines into 80 characters.
+* Rename an internal namespace.
+
+[h2 Boost 1.43.0]
+
+* [@https://svn.boost.org/trac/boost/ticket/3866 Ticket 3866]:
+  Don't foward declare containers when using gcc's parallel library,
+  allow user to stop forward declaration by defining the
+  `BOOST_DETAIL_NO_CONTAINER_FWD` macro.
+* [@https://svn.boost.org/trac/boost/ticket/4038 Ticket 4038]:
+  Avoid hashing 0.5 and 0 to the same number.
+* Stop using deprecated `BOOST_HAS_*` macros.
+
+[h2 Boost 1.44.0]
+
+* Add option to prevent implicit conversions when calling `hash_value` by
+  defining `BOOST_HASH_NO_IMPLICIT_CASTS`. When using `boost::hash`
+  for a type that does not have `hash_value` declared but does have
+  an implicit conversion to a type that does, it would use that
+  implicit conversion to hash it. Which can sometimes go very wrong,
+  e.g. using a conversion to bool and only hashing to 2 possible
+  values. Since fixing this is a breaking change and was only
+  approached quite late in the release cycle with little discussion
+  it's opt-in for now. This, or something like it, will become the
+  default in a future version.
+
+[h2 Boost 1.46.0]
+
+* Avoid warning due with gcc's `-Wconversion` flag.
+
+[h2 Boost 1.50.0]
+
+* [@http://svn.boost.org/trac/boost/ticket/6771 Ticket 6771]:
+  Avoid gcc's `-Wfloat-equal` warning.
+* [@http://svn.boost.org/trac/boost/ticket/6806 Ticket 6806]:
+  Support `std::array` and `std::tuple` when available.
+* Add deprecation warning to the long deprecated
+  `boost/functional/detail/container_fwd.hpp`.
+
+[h2 Boost 1.51.0]
+
+* Support the standard smart pointers.
+* `hash_value` now implemented using SFINAE to avoid implicit casts to built
+  in types when calling it.
+* Updated to use the new config macros.
+
+[h2 Boost 1.52.0]
+
+* Restore `enum` support, which was accidentally removed in the last version.
+* New floating point hasher - will hash the binary representation on more
+  platforms, which should be faster.
+
+[h2 Boost 1.53.0]
+
+* Add support for `boost::int128_type` and `boost::uint128_type` where
+  available - currently only `__int128` and `unsigned __int128` on some
+  versions of gcc.
+* On platforms that are known to have the standard floating point functions,
+  don't use automatic detection - which can break if there are ambiguous
+  overloads.
+* Fix undefined behaviour when using the binary float hash (Thomas Heller).
+
+[h2 Boost 1.54.0]
+
+* [@https://svn.boost.org/trac/boost/ticket/7957 Ticket 7957]:
+  Fixed a typo.
+
+[h2 Boost 1.55.0]
+
+* Simplify a SFINAE check so that it will hopefully work on Sun 5.9
+  ([ticket 8822]).
+* Suppress Visual C++ infinite loop warning ([ticket 8568]).
+
+
+[endsect]

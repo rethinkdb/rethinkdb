@@ -1,0 +1,233 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Template serialization - shared_ptr</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Template serialization - <code style="white-space: normal">shared_ptr&lt;class T&gt;</code></h2>
+    </td>
+  </tr>
+</table>
+<hr>
+All the code snippets included below are defined within the
+<code style="white-space: normal">boost::serialization</code> namespace.
+<p>
+<code style="white-space: normal">shared_ptr&lt;T&gt;</code> is defined in
+<a href="../../../boost/shared_ptr.hpp" target=shared_ptr.hpp>shared_ptr.hpp</a>.
+<p>
+The general class outline for a <code style="white-space: normal">shared_ptr&lt;T&gt;</code> is:
+<dl>
+    <dt><code style="white-space: normal">shared_ptr&lt;T&gt;</code> contains:
+    <dl>
+        <dt><code style="white-space: normal">T *px;</code>
+        <dt><code style="white-space: normal">shared_count pn;</code> which contains a pointer to:
+        <dl>
+            <dt><code style="white-space: normal">sp_counted_base_impl&lt;T, ...&gt;</code> which is
+derived from the polymorphic abstract class
+            <dl>
+                <dt><code style="white-space: normal">sp_counted_base</code>
+            </dl>
+        </dl>
+    </dl>
+</dl>
+The serialization process proceeds down the tree above.
+<p>
+The first cut at implementing serialization for <code style="white-space: normal">shared_ptr</code>
+just serializes the relevant members of <code style="white-space: normal">shared_ptr</code>.
+It's almost trivial:
+<pre><code>
+template&lt;class Archive, class T&gt;
+inline void serialize(
+    Archive &amp; ar,
+    shared_ptr&lt;T&gt; &amp; t,
+    const unsigned int file_version,
+    int
+){
+    ar &amp; t.px; // save the raw pointer
+    ar &amp; t.pn; // save the shared reference count
+}
+</code></pre>
+So far so good.  Now for the serialization of <code style="white-space: normal">shared_count</code>:
+<pre><code>
+template&lt;class Archive&gt;
+inline void save(
+    Archive &amp; ar,
+    const boost::detail::shared_count &amp; t,
+    const unsigned int file_version
+){
+    ar &lt;&lt; t.pi_;
+}
+
+template&lt;class Archive&gt;
+inline void load(
+    Archive &amp; ar,
+    boost::detail::shared_count &amp; t,
+    const unsigned int file_version
+){
+    ar &gt;&gt; t.pi_;
+}
+</code></pre>
+A key feature of this library is the ability to specify serialization
+of a class or template without changing the class or template declaration
+or definition.  This is referred to as <i>non-intrusive</i> serialization.
+<p>
+The <code style="white-space: normal">pi_</code>member of shared count is a pointer to an 
+instance of <code style="white-space: normal">sp_counted_base_impl<T, ...></code>.  Since this class
+doesn't have a default constructor, serialization requires
+specification of the following overload:
+<pre><code>
+template&lt;class Archive, class P, class D>
+inline void save_construct_data(
+    Archive &amp; ar,
+    const boost::detail::sp_counted_base_impl<P, D> * t, 
+    const unsigned int file_version
+){
+    // variables used for construction
+    ar &lt;&lt; t->ptr;
+    ar &lt;&lt; *t;
+}
+
+template<class Archive, class P, class D>
+inline void load_construct_data(
+    Archive &amp; ar,
+    boost::detail::sp_counted_base_impl<P, D> * t, 
+    const unsigned int file_version
+){
+    P ptr_;
+    ar &gt;&gt; ptr_;
+    // placement new
+    ::new(t)boost::detail::sp_counted_base_impl<P, D>(ptr_,  D());
+    ar &gt;&gt;; *t;
+}
+</code></pre>
+The statement <code style="white-space: normal">ar &gt;&gt; ptr_</code> is key. This deserializes
+the same pointer deserialzed above.  Default object tracking will ensure
+that no more than one instance of the object is created and that the
+pointer returned by multiple deserializations are all the same. Hence,
+regardless of how many instances of <code style="white-space: normal">shared_ptr/shared_count</code>
+corresponding to a particular object are created, the will all point
+to the same object.
+<p>
+Since <code style="white-space: normal">sp_counted_base_impl&lt;P, D&gt;</code> is derived from 
+<code style="white-space: normal">sp_counted_base</code>, the following is needed:
+
+<pre><code>
+template&lt;class Archive, class P, class D&gt;
+inline void serialize(
+    Archive &amp; ar,
+    boost::detail::sp_counted_base_impl&lt;P, D&gt; &amp; t,
+    const unsigned int file_version,
+    int
+){
+    ar & boost::serialization::base_object&lt;
+	boost::detail::sp_counted_base
+    &gt;(*this);
+}
+</code></pre>
+which will in turn require serialization of its base class:
+<pre><code>
+inline void serialize(
+    Archive &amp; ar,
+    boost::detail::sp_counted &amp; t,
+    const unsigned int file_version,
+    int
+){
+}
+</code></pre>
+It would seem we're done, running the test program,
+<a href="../example/demo_shared_ptr.cpp" target="demo_shared_ptr_cpp">
+demo_shared_ptr.cpp
+</a>,
+with this code produces the following output.
+<pre><code>
+a = 0x003017A0 use count = 2
+a1 = 0x003017A0 use count = 2
+unique element count = 1
+a = 0x00000000 use count = 0
+a1 = 0x00000000 use count = 0
+unique element count = 0
+a = 0x00303060 use count = 1
+a1 = 0x00303060 use count = 1
+unique element count = 1
+</code></pre>
+This indicates that we're not quite done.  Due to default object
+tracking, <code style="white-space: normal">sp_counted_base_impl&lt;P, D&gt;</code> is only
+created once regardless of how many shared pointers point to the
+same object.  Of course, it has to be this way. The reference
+count starts at 1 and is never incrememented.  Code must be added
+to the serialization functions to maintain the proper reference
+count.
+<p>
+The process of serialization of an empty base class - 
+<code style="white-space: normal">sp_counted_base</code> - seems like additional overhead.
+Examination of code in 
+<a href="../../../boost/serialization/base_object.hpp" target="base_object_hpp">
+base_object.hpp
+</a>
+reveals that <code style="white-space: normal">base_object.hpp</code> provides two functions:
+<ul>
+    <li>invokes serialization of the base class data
+    <li>as a side effect, "registers" the fact base/derived relationship
+so that conversions of pointers between base and derived classes can be
+made at runtime.
+</ul>
+In this case we need only the latter function so we can replace the
+base object serialization with:
+<pre><code>
+// register the relationship between each derived class
+// its polymorphic base
+void_cast_register&lt;
+    boost::detail::sp_counted_base_impl&lt;P, D&gt;
+    boost::detail::sp_counted_base, 
+&gt;();
+</code></pre>
+and we don't have to include a trival serializer for <code style="white-space: normal">sp_counted_base</code>
+<p>
+Finally we need to specify name-value pair wrappers if we want to be able
+to use this serialization with XML archives.
+<p>
+Actually, even this is really just a start. Among the issues not addressed in
+this implementation are:
+<ul>
+    <li><code style="white-space: normal">weak_ptr</code> is not addressed.  I haven't even looked into this.
+    <li>Other smart pointers that might interact with <code style="white-space: normal">shared_ptr</code>
+    haven't been addressed at all.  To be confident that the implementation is
+    complete and correct, all these should be addressed as well.
+    <li>Exception handling hasn't been exhaustively considered.
+    <li>Other issues yet to be discovered.
+</ul>
+One thing that has been considered is export of shared_ptr. The header which
+declares shared pointer serialization includes some special macros for exporting
+shared pointers:
+<code><pre>
+BOOST_SHARED_POINTER_EXPORT(T)
+BOOST_SHARED_POINTER_EXPORT_GUID(T, K)
+</pre></code>
+These are specialize versions of the macros used for exporting classes serialized through raw pointers.
+<p>
+Clearly, complete, correct and exception safe serialization of smart pointers is going to
+be a challenge.  I hope that this implementation provides a useful
+starting point for such an effort.
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

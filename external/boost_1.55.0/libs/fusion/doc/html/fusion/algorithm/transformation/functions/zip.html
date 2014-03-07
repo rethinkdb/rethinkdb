@@ -1,0 +1,153 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>zip</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../functions.html" title="Functions">
+<link rel="prev" href="join.html" title="join">
+<link rel="next" href="pop_back.html" title="pop_back">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="join.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../functions.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="pop_back.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="fusion.algorithm.transformation.functions.zip"></a><a class="link" href="zip.html" title="zip">zip</a>
+</h5></div></div></div>
+<h6>
+<a name="fusion.algorithm.transformation.functions.zip.h0"></a>
+            <span class="phrase"><a name="fusion.algorithm.transformation.functions.zip.description"></a></span><a class="link" href="zip.html#fusion.algorithm.transformation.functions.zip.description">Description</a>
+          </h6>
+<p>
+            Zips sequences together to form a single sequence, whos members are tuples
+            of the members of the component sequences.
+          </p>
+<h6>
+<a name="fusion.algorithm.transformation.functions.zip.h1"></a>
+            <span class="phrase"><a name="fusion.algorithm.transformation.functions.zip.synopsis"></a></span><a class="link" href="zip.html#fusion.algorithm.transformation.functions.zip.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="keyword">typename</span> <span class="identifier">Sequence1</span><span class="special">,</span>
+    <span class="keyword">typename</span> <span class="identifier">Sequence2</span><span class="special">,</span>
+    <span class="special">...</span>
+    <span class="keyword">typename</span> <span class="identifier">SequenceN</span>
+    <span class="special">&gt;</span>
+<span class="keyword">typename</span> <a class="link" href="../metafunctions/zip.html" title="zip"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">zip</span></code></a><span class="special">&lt;</span><span class="identifier">Sequence1</span><span class="special">,</span> <span class="identifier">Sequence2</span><span class="special">,</span> <span class="special">...</span> <span class="identifier">SequenceN</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">zip</span><span class="special">(</span><span class="identifier">Sequence1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">seq1</span><span class="special">,</span> <span class="identifier">Sequence2</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">seq2</span><span class="special">,</span> <span class="special">...</span> <span class="identifier">SequenceN</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">seqN</span><span class="special">);</span>
+</pre>
+<div class="table">
+<a name="fusion.algorithm.transformation.functions.zip.t0"></a><p class="title"><b>Table&#160;1.79.&#160;Parameters</b></p>
+<div class="table-contents"><table class="table" summary="Parameters">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Requirement
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">seq1</span></code> to <code class="computeroutput"><span class="identifier">seqN</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Each sequence is a model of <a class="link" href="../../../sequence/concepts/forward_sequence.html" title="Forward Sequence">Forward
+                      Sequence</a>.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Operation's argument
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+</div>
+<br class="table-break"><h6>
+<a name="fusion.algorithm.transformation.functions.zip.h2"></a>
+            <span class="phrase"><a name="fusion.algorithm.transformation.functions.zip.expression_semantics"></a></span><a class="link" href="zip.html#fusion.algorithm.transformation.functions.zip.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<pre class="programlisting"><a class="link" href="zip.html" title="zip"><code class="computeroutput"><span class="identifier">zip</span></code></a><span class="special">(</span><span class="identifier">seq1</span><span class="special">,</span> <span class="identifier">seq2</span><span class="special">,</span> <span class="special">...</span> <span class="identifier">seqN</span><span class="special">);</span>
+</pre>
+<p>
+            <span class="bold"><strong>Return type</strong></span>: A model of <a class="link" href="../../../sequence/concepts/forward_sequence.html" title="Forward Sequence">Forward
+            Sequence</a>.
+          </p>
+<p>
+            <span class="bold"><strong>Semantics</strong></span>: Returns a sequence containing
+            tuples of elements from sequences <code class="computeroutput"><span class="identifier">seq1</span></code>
+            to <code class="computeroutput"><span class="identifier">seqN</span></code>. For example,
+            applying zip to tuples <code class="computeroutput"><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">)</span></code>
+            and <code class="computeroutput"><span class="special">(</span><span class="char">'a'</span><span class="special">,</span> <span class="char">'b'</span><span class="special">,</span>
+            <span class="char">'c'</span><span class="special">)</span></code>
+            would return <code class="computeroutput"><span class="special">((</span><span class="number">1</span><span class="special">,</span> <span class="char">'a'</span><span class="special">),(</span><span class="number">2</span><span class="special">,</span> <span class="char">'b'</span><span class="special">),(</span><span class="number">3</span><span class="special">,</span>
+            <span class="char">'c'</span><span class="special">))</span></code>
+          </p>
+<h6>
+<a name="fusion.algorithm.transformation.functions.zip.h3"></a>
+            <span class="phrase"><a name="fusion.algorithm.transformation.functions.zip.complexity"></a></span><a class="link" href="zip.html#fusion.algorithm.transformation.functions.zip.complexity">Complexity</a>
+          </h6>
+<p>
+            Constant. Returns a view which is lazily evaluated.
+          </p>
+<h6>
+<a name="fusion.algorithm.transformation.functions.zip.h4"></a>
+            <span class="phrase"><a name="fusion.algorithm.transformation.functions.zip.header"></a></span><a class="link" href="zip.html#fusion.algorithm.transformation.functions.zip.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">/</span><span class="identifier">transformation</span><span class="special">/</span><span class="identifier">zip</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">zip</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="fusion.algorithm.transformation.functions.zip.h5"></a>
+            <span class="phrase"><a name="fusion.algorithm.transformation.functions.zip.example"></a></span><a class="link" href="zip.html#fusion.algorithm.transformation.functions.zip.example">Example</a>
+          </h6>
+<pre class="programlisting"><a class="link" href="../../../container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="identifier">v1</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="char">'a'</span><span class="special">);</span>
+<a class="link" href="../../../container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="identifier">v2</span><span class="special">(</span><span class="number">2</span><span class="special">,</span> <span class="char">'b'</span><span class="special">);</span>
+<span class="identifier">assert</span><span class="special">(</span><a class="link" href="zip.html" title="zip"><code class="computeroutput"><span class="identifier">zip</span></code></a><span class="special">(</span><span class="identifier">v1</span><span class="special">,</span> <span class="identifier">v2</span><span class="special">)</span> <span class="special">==</span> <a class="link" href="../../../container/generation/functions/make_vector.html" title="make_vector"><code class="computeroutput"><span class="identifier">make_vector</span></code></a><span class="special">(</span><a class="link" href="../../../container/generation/functions/make_vector.html" title="make_vector"><code class="computeroutput"><span class="identifier">make_vector</span></code></a><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">),</span><a class="link" href="../../../container/generation/functions/make_vector.html" title="make_vector"><code class="computeroutput"><span class="identifier">make_vector</span></code></a><span class="special">(</span><span class="char">'a'</span><span class="special">,</span> <span class="char">'b'</span><span class="special">));</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="join.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../functions.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="pop_back.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

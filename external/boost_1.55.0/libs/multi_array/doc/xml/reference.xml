@@ -1,0 +1,800 @@
+<?xml version='1.0' encoding="ISO-Latin-1" ?>
+<!DOCTYPE article 
+  PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" 
+  "http://www.oasis-open.org/docbook/xml/4.0/docbookx.dtd" [
+ <!ENTITY concepts SYSTEM "MultiArray.xml">
+ <!ENTITY multi_array SYSTEM "multi_array.xml">
+ <!ENTITY multi_array_ref SYSTEM "multi_array_ref.xml">
+ <!ENTITY const_multi_array_ref SYSTEM "const_multi_array_ref.xml">
+]>
+
+<article>
+  <articleinfo>
+    <title>Boost.MultiArray Reference Manual</title>
+    <author>
+      <surname>Garcia</surname><firstname>Ronald</firstname>
+      <affiliation>
+	<orgname>Indiana University</orgname>
+	<orgdiv>Open Systems Lab</orgdiv>
+      </affiliation>
+    </author>
+    <orgname>BOOST</orgname>
+    <copyright>
+      <year>2002</year>
+      <holder>The Trustees of Indiana University</holder>
+    </copyright>
+  </articleinfo>
+
+
+<para>Boost.MultiArray is composed of several components.
+The MultiArray concept defines a generic interface to multidimensional
+containers.
+<literal>multi_array</literal> is a general purpose container class
+that models MultiArray. <literal>multi_array_ref</literal>
+and <literal>const_multi_array_ref</literal> are adapter
+classes. Using them, 
+you can manipulate any block of contiguous data as though it were a
+<literal>multi_array</literal>.
+<literal>const_multi_array_ref</literal> differs from
+<literal>multi_array_ref</literal> in that its elements cannot
+be modified through its interface. Finally, several auxiliary classes are used
+to create and specialize arrays and some global objects are defined as
+part of the library interface.</para>
+
+<sect1 id="synopsis">
+<title>Library Synopsis</title>
+    <para>To use Boost.MultiArray, you must include the header 
+<filename>boost/multi_array.hpp</filename> in your source. This file
+brings the following declarations into scope:</para>
+<programlisting>
+<![CDATA[namespace boost {
+  
+  namespace multi_array_types {
+    typedef *unspecified* index;
+    typedef *unspecified* size_type;
+    typedef *unspecified* difference_type;
+    typedef *unspecified* index_range;
+    typedef *unspecified* extent_range;
+    typedef *unspecified* index_gen;
+    typedef *unspecified* extent_gen;
+  }
+
+  template <typename ValueType, 
+            std::size_t NumDims, 
+            typename Allocator = std::allocator<ValueType> >
+  class multi_array;
+
+  template <typename ValueType, 
+            std::size_t NumDims>
+  class multi_array_ref;
+
+  template <typename ValueType, 
+            std::size_t NumDims> 
+  class const_multi_array_ref;
+
+  multi_array_types::extent_gen extents;
+  multi_array_types::index_gen  indices;
+
+  template <typename Array, int N> class subarray_gen;
+  template <typename Array, int N> class const_subarray_gen;
+  template <typename Array, int N> class array_view_gen;
+  template <typename Array, int N> class const_array_view_gen;
+
+  class c_storage_order; 
+  class fortran_storage_order;
+  template <std::size_t NumDims> class general_storage_order;
+
+}]]>
+</programlisting>
+</sect1>
+
+&concepts;
+
+<sect1 id="array_types">
+<title>Array Components</title>
+<para>
+Boost.MultiArray defines an array class,
+<literal>multi_array</literal>, and two adapter classes,
+<literal>multi_array_ref</literal> and 
+<literal>const_multi_array_ref</literal>. The three classes model 
+MultiArray and so they share a lot of functionality.
+<literal>multi_array_ref</literal> differs from
+<literal>multi_array</literal> in that the
+<literal>multi_array</literal> manages its own memory, while
+<literal>multi_array_ref</literal> is passed a block of memory that it
+expects to be externally managed.
+<literal>const_multi_array_ref</literal> differs from
+<literal>multi_array_ref</literal> in that the underlying elements it
+adapts cannot be modified through its interface, though some array
+properties, including the array shape and index bases, can be altered.
+Functionality the classes have in common is described
+below.
+</para>
+
+<formalpara>
+<title>Note: Preconditions, Effects, and Implementation</title>
+<para>
+Throughout the following sections, small pieces of C++ code are
+used to specify constraints such as preconditions, effects, and
+postconditions.  These do not necessarily describe the underlying
+implementation of array components; rather, they describe the 
+expected input to and
+behavior of the specified operations.  Failure to meet
+preconditions results in undefined behavior. Not all effects
+(i.e. copy constructors, etc.) must be mimicked exactly.  The code
+snippets for effects intend to capture the essence of the described
+operation. 
+</para>
+</formalpara>
+
+<formalpara>
+<title>Queries</title>
+
+<variablelist>
+<varlistentry>
+<term><programlisting>element* data();
+const element* data() const;</programlisting></term>
+<listitem>
+<para>This returns a pointer to the beginning of the
+contiguous block that contains the array's data. If all dimensions of
+the array are 0-indexed and stored in ascending order, this is 
+equivalent to <literal>origin()</literal>. Note that
+<literal>const_multi_array_ref</literal> only provides the const
+version of this function.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><programlisting>element* origin();
+const element* origin() const;</programlisting></term>
+<listitem>
+<para>This returns the origin element of the
+<literal>multi_array</literal>. Note that
+<literal>const_multi_array_ref</literal> only provides the const
+version of this function. (Required by MultiArray)
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><function>const index* index_bases();</function></term>
+<listitem>
+<para>This returns the index bases for the
+<literal>multi_array</literal>. (Required by MultiArray)
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><function>const index* strides();</function></term>
+<listitem>
+<para>This returns the strides for the
+<literal>multi_array</literal>. (Required by MultiArray)
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><function>const size_type* shape();</function></term>
+<listitem>
+<para>This returns the shape of the
+<literal>multi_array</literal>. (Required by MultiArray)
+</para>
+</listitem>
+</varlistentry>
+</variablelist>
+
+</formalpara>
+
+<formalpara>
+<title>Comparators</title>
+<variablelist>
+<varlistentry>
+<term><programlisting><![CDATA[
+bool operator==(const *array-type*& rhs);
+bool operator!=(const *array-type*& rhs);
+bool operator<(const *array-type*& rhs);
+bool operator>(const *array-type*& rhs);
+bool operator>=(const *array-type*& rhs);
+bool operator<=(const *array-type*& rhs);]]></programlisting></term>
+
+<listitem>
+<para>Each comparator executes a lexicographical compare over
+the value types of the two arrays.
+(Required by MultiArray)
+</para>
+<formalpara>
+<title>Preconditions</title>
+<para><literal>element</literal> must support the
+comparator corresponding to that called on
+<literal>multi_array</literal>.</para>
+</formalpara>
+
+<formalpara>
+<title>Complexity</title>
+<para>O(<literal>num_elements()</literal>).</para>
+</formalpara>
+
+</listitem>
+</varlistentry>
+
+</variablelist>
+</formalpara>
+
+<formalpara>
+<title>Modifiers</title>
+
+<variablelist>
+
+<varlistentry>
+<term>
+<programlisting>
+<![CDATA[
+template <typename SizeList>
+void reshape(const SizeList& sizes)
+]]>
+</programlisting>
+</term>
+
+<listitem>
+<para>This changes the shape of the <literal>multi_array</literal>.  The
+number of elements and the index bases remain the same, but the number
+of values at each level of the nested container hierarchy may
+change.</para>
+
+<formalpara><title><literal>SizeList</literal> Requirements</title>
+<para><literal>SizeList</literal> must model
+<ulink url="../../utility/Collection.html">Collection</ulink>.</para>
+</formalpara>
+
+<formalpara><title>Preconditions</title>
+<para>
+<programlisting>
+<![CDATA[std::accumulate(sizes.begin(),sizes.end(),size_type(1),std::times<size_type>()) == this->num_elements();
+sizes.size() == NumDims;]]>
+</programlisting></para>
+</formalpara>
+
+
+<formalpara><title>Postconditions</title>
+<para>
+<literal>std::equal(sizes.begin(),sizes.end(),this->shape) == true;</literal>
+</para>
+</formalpara>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>
+<programlisting>
+<![CDATA[
+template <typename BaseList>
+void reindex(const BaseList& values);
+]]>
+</programlisting>
+</term>
+<listitem>
+<para>This changes the index bases of the <literal>multi_array</literal> to
+correspond to the the values in <literal>values</literal>.</para>
+
+<formalpara>
+<title><literal>BaseList</literal> Requirements</title>
+<para><literal>BaseList</literal> must model
+<ulink url="../../utility/Collection.html">Collection</ulink>.</para>
+</formalpara>
+
+<formalpara>
+<title>Preconditions</title>
+<para><literal>values.size() == NumDims;</literal></para>
+</formalpara>
+
+
+<formalpara>
+<title>Postconditions</title>
+<para><literal>std::equal(values.begin(),values.end(),this->index_bases());
+</literal></para>
+</formalpara>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term>
+<programlisting>
+<![CDATA[
+void reindex(index value);
+]]>
+</programlisting>
+</term>
+<listitem>
+<para>This changes the index bases of all dimensions of the
+<literal>multi_array</literal> to <literal>value</literal>.</para>
+
+<formalpara>
+<title>Postconditions</title>
+<para>
+<programlisting>
+<![CDATA[
+std::count_if(this->index_bases(),this->index_bases()+this->num_dimensions(),
+              std::bind_2nd(std::equal_to<index>(),value)) == 
+              this->num_dimensions();
+]]>
+</programlisting>
+</para>
+</formalpara>
+</listitem>
+</varlistentry>
+
+</variablelist>
+</formalpara>
+
+&multi_array;
+&multi_array_ref;
+&const_multi_array_ref;
+
+</sect1>
+
+
+<sect1 id="auxiliary">
+    <title>Auxiliary Components</title>
+
+<sect2 id="multi_array_types">
+<title><literal>multi_array_types</literal></title>
+
+<programlisting>
+<![CDATA[namespace multi_array_types {
+  typedef *unspecified* index;
+  typedef *unspecified* size_type;
+  typedef *unspecified* difference_type;
+  typedef *unspecified* index_range;
+  typedef *unspecified* extent_range;
+  typedef *unspecified* index_gen;
+  typedef *unspecified* extent_gen;
+}]]>
+</programlisting>
+
+<para>Namespace <literal>multi_array_types</literal> defines types
+associated with <literal>multi_array</literal>,
+<literal>multi_array_ref</literal>, and
+<literal>const_multi_array_ref</literal> that are not
+dependent upon template parameters.  These types find common use with
+all Boost.Multiarray components.  They are defined
+in a namespace from which they can be accessed conveniently.
+With the exception of <literal>extent_gen</literal> and 
+<literal>extent_range</literal>, these types fulfill the roles of the
+same name required by MultiArray and are described in its
+concept definition.  <literal>extent_gen</literal> and
+<literal>extent_range</literal> are described below.
+</para>
+</sect2>
+
+
+<sect2 id="extent_range">
+    <title><classname>extent_range</classname></title>
+
+<para><classname>extent_range</classname> objects define half open
+intervals.  They provide shape and index base information to
+<literal>multi_array</literal>, <literal>multi_array_ref</literal>,
+ and <literal>const_multi_array_ref</literal> constructors.
+<classname>extent_range</classname>s are passed in
+aggregate to an array constructor (see
+<classname>extent_gen</classname> for more details).
+</para>
+
+<formalpara>
+	<title>Synopsis</title>
+<programlisting><![CDATA[
+class extent_range {
+public:
+  typedef multi_array_types::index      index;
+  typedef multi_array_types::size_type  size_type;
+
+  // Structors
+  extent_range(index start, index finish);
+  extent_range(index finish);
+  ~extent_range();
+
+  // Queries
+  index start();
+  index finish();
+  size_type size();
+};]]></programlisting>
+</formalpara>
+
+      <formalpara>
+	<title>Model Of</title>
+	<para>DefaultConstructible,CopyConstructible</para>
+      </formalpara>
+
+<formalpara><title>Methods and Types</title>
+<variablelist>
+<varlistentry>
+<term><function>extent_range(index start, index finish)</function></term>
+<listitem>
+<para>  This constructor defines the half open interval
+<literal>[start,finish)</literal>. The expression
+<literal>finish</literal> must be greater than <literal>start</literal>.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><function>extent_range(index finish)</function></term>
+<listitem>
+<para>This constructor defines the half open interval
+<literal>[0,finish)</literal>. The value of <literal>finish</literal>
+must be positive.</para> 
+</listitem>
+</varlistentry>
+
+<varlistentry><term><function>index start()</function></term>
+<listitem>
+<para>This function returns the first index represented by the range</para>
+</listitem>
+</varlistentry>
+
+<varlistentry><term><function>index finish()</function></term>
+<listitem>
+<para>This function returns the upper boundary value of the half-open
+interval.  Note that the range does not include this value.</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><function>size_type size()</function></term>
+<listitem>
+<para>This function returns the size of the specified range. It is
+equivalent to <literal>finish()-start()</literal>.</para>
+</listitem>
+</varlistentry>
+
+</variablelist>
+</formalpara>
+</sect2>
+
+<sect2 id="extent_gen">
+    <title><classname>extent_gen</classname></title>
+    <para>The <classname>extent_gen</classname> class defines an
+interface for aggregating array shape and indexing information to be
+passed to a <literal>multi_array</literal>, 
+<literal>multi_array_ref</literal>, or <literal>const_multi_array_ref</literal>
+constructor. Its interface mimics 
+ the syntax used to declare built-in array types
+in C++. For example, while a 3-dimensional array of 
+<classname>int</classname> values in C++ would be
+declared as:
+<programlisting>int A[3][4][5],</programlisting>
+a similar <classname>multi_array</classname> would be declared:
+<programlisting>multi_array&lt;int,3&gt; A(extents[3][4][5]).</programlisting>
+</para>
+
+<formalpara><title>Synopsis</title>
+<programlisting><![CDATA[
+template <std::size_t NumRanges>
+class *implementation_defined* {
+public:
+  typedef multi_array_types::index index;
+  typedef multi_array_types::size_type size_type;
+
+  template <std::size_t NumRanges> class gen_type;
+
+  gen_type<NumRanges+1>::type  operator[](const range& a_range) const;
+  gen_type<NumRanges+1>::type  operator[](index idx) const;
+};
+
+typedef *implementation_defined*<0> extent_gen;
+]]></programlisting>
+</formalpara>
+
+<formalpara><title>Methods and Types</title>
+<variablelist>
+<varlistentry>
+<term><function>template gen_type&lt;Ranges&gt;::type</function></term>
+<listitem>
+<para>This type generator is used to specify the result of 
+<literal>Ranges</literal> chained calls to
+<literal>extent_gen::operator[].</literal> The types
+<classname>extent_gen</classname> and
+<classname>gen_type&lt;0&gt;::type</classname> are the same.</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><function>gen_type&lt;NumRanges+1&gt;::type  
+operator[](const extent_range&amp; a_range) const;</function></term>
+<listitem>
+<para>This function returns a new object containing all previous
+<classname>extent_range</classname> objects in addition to
+<literal>a_range.</literal> <classname>extent_range</classname>
+objects are aggregated by chained calls to
+<function>operator[]</function>.</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+<term><function>gen_type&lt;NumRanges+1&gt;::type
+operator[](index idx) const;</function></term>
+<listitem>
+<para>This function returns a new object containing all previous
+<classname>extent_range</classname> objects in addition to
+<literal>extent_range(0,idx).</literal> This function gives the array
+constructors a similar syntax to traditional C multidimensional array
+declaration.</para>
+</listitem>
+</varlistentry>
+
+</variablelist>
+</formalpara>      
+</sect2>
+  
+<sect2>
+    <title>Global Objects</title>
+    <para>For syntactic convenience, Boost.MultiArray defines two 
+global objects as part of its
+interface.  These objects play the role of object generators;
+expressions involving them create other objects of interest.
+</para>
+
+    <para> Under some circumstances, the two global objects may be
+considered excessive overhead.  Their construction can be prevented by
+defining the preprocessor symbol
+<literal>BOOST_MULTI_ARRAY_NO_GENERATORS</literal> before including
+<filename>boost/multi_array.hpp.</filename></para>
+
+<sect3 id="extents">
+<title><literal>extents</literal></title>
+
+<programlisting>
+<![CDATA[namespace boost {
+  multi_array_base::extent_gen extents;
+}]]>
+</programlisting>
+
+    <para>Boost.MultiArray's array classes use the
+<literal>extents</literal> global object to specify 
+array shape during their construction. 
+For example,
+a 3 by 3 by 3 <classname>multi_array</classname> is constructed as follows:
+<programlisting>multi_array&lt;int,3&gt; A(extents[3][3][3]);</programlisting>
+The same array could also be created by explicitly declaring an <literal>extent_gen</literal> 
+object locally,, but the global object makes this declaration unnecessary.  
+</para>
+</sect3>
+
+<sect3 id="indices">
+<title><literal>indices</literal></title>
+
+<programlisting>
+<![CDATA[namespace boost {
+  multi_array_base::index_gen  indices;
+}]]>
+</programlisting>
+
+      <para>The MultiArray concept specifies an
+<literal>index_gen</literal> associated type that is used to
+create views.
+<literal>indices</literal> is a global object that serves the role of
+<literal>index_gen</literal> for all array components provided by this
+library and their associated subarrays and views. 
+</para>
+<para>For example, using the <literal>indices</literal> object,
+a view of an array <literal>A</literal> is constructed as follows:
+<programlisting>
+A[indices[index_range(0,5)][2][index_range(2,4)]];
+</programlisting>
+</para>
+</sect3>
+</sect2>
+
+<sect2 id="generators">
+<title>View and SubArray Generators</title>
+<para>
+Boost.MultiArray provides traits classes, <literal>subarray_gen</literal>,
+<literal>const_subarray_gen</literal>,
+<literal>array_view_gen</literal>,
+and <literal>const_array_view_gen</literal>, for naming of
+array associated types within function templates.  
+In general this is no more convenient to use than the nested 
+type generators, but the library author found that some C++ compilers do not 
+properly handle templates nested within function template parameter types. 
+These generators constitute a workaround for this deficit.  
+The following code snippet illustrates
+the correspondence between the <literal>array_view_gen</literal>
+traits class and the <literal>array_view</literal> type associated to
+an array:
+
+<programlisting>
+template &lt;typename Array&gt;
+void my_function() {
+  typedef typename Array::template array_view&lt;3&gt;::type view1_t;
+  typedef typename boost::array_view_gen&lt;Array,3&gt;::type view2_t;
+  // ...
+}
+</programlisting>
+
+In the above example, <literal>view1_t</literal> and
+<literal>view2_t</literal> have the same type.
+</para>
+</sect2>
+
+
+<sect2 id="memory_layout">
+<title>Memory Layout Specifiers</title>
+<para>
+While a multidimensional array represents a hierarchy of containers of
+elements, at some point the elements must be laid out in
+memory.  As a result, a single multidimensional array 
+can be represented in memory more than one way.
+</para>
+
+<para>For example, consider the two dimensional array shown below in
+matrix notation:
+
+<graphic fileref="matrix.gif"/>
+
+Here is how the above array is expressed in C++:
+<programlisting>
+int a[3][4] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+</programlisting>
+This is an example of row-major storage, where elements of each row
+are stored contiguously.  
+
+While C++ transparently handles accessing elements of an array, you
+can also manage the array and its indexing manually.  One way that 
+this may be expressed in memory is as follows:
+<programlisting>
+int a[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+int s[] = { 4, 1 };
+</programlisting>
+
+With the latter declaration of <literal>a</literal> and 
+strides <literal>s</literal>, element <literal>a(i,j)</literal>
+of the array can be
+accessed using the expression 
+<programlisting>*a+i*s[0]+j*s[1]</programlisting>.
+</para>
+
+<para>The same two dimensional array could be laid out by column as follows:
+
+<programlisting>
+int a[] = { 0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11 };
+int s[] = { 3, 1 };
+</programlisting>
+Notice that the strides here are different. As a result,
+The expression given above to access values will work with this pair
+of data and strides as well.
+</para>
+
+<para>In addition to dimension order, it is also possible to
+store any dimension in descending order. For example, returning to the 
+first example, the first dimension of the example array, the 
+rows,  could be stored in 
+reverse, resulting in the following:
+
+<programlisting>
+int data[] = { 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3 };
+int *a = data + 8;
+int s[] = { -4, 1 };
+</programlisting>
+
+Note that in this example <literal>a</literal> must be explicitly set
+to the origin. In the previous examples, the
+first element stored in memory was the origin; here this is no longer
+the case. 
+</para>
+
+<para>
+Alternatively, the second dimension, or the columns, could be reversed
+and the rows stored in ascending order:
+
+<programlisting>
+int data[] = { 3, 2, 1, 0,  7, 6, 5, 4, 11, 10, 9, 8 };
+int *a = data + 3;
+int s[] = { 4, -1 };
+</programlisting>
+</para>
+
+<para>
+Finally, both dimensions could be stored in descending order:
+
+<programlisting>
+int data[] = {11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
+int *a = data + 11;
+int s[] = { -4, -1 };
+</programlisting>
+<literal>
+</literal>
+</para>
+
+<para>
+All of the above arrays are equivalent. The expression
+given above for <literal>a(i,j)</literal> will yield the same value
+regardless of the memory layout.
+
+Boost.MultiArray arrays can be created with customized storage
+parameters as described above. Thus, existing data can be adapted
+(with <literal>multi_array_ref</literal> or
+<literal>const_multi_array_ref</literal>) as suited to the array
+abstraction.  A common usage of this feature would be to wrap arrays
+that must interoperate with Fortran routines so they can be
+manipulated naturally at both the C++ and Fortran levels. The
+following sections describe the Boost.MultiArray components used to
+specify memory layout.
+</para>
+
+<sect3 id="c_storage_order">
+<title><literal>c_storage_order</literal></title>
+<programlisting>
+<![CDATA[class c_storage_order {
+  c_storage_order();
+};]]>
+</programlisting>
+
+<para><literal>c_storage_order</literal> is used to specify that an
+array should store its elements using the same layout as that used by
+primitive C++ multidimensional arrays, that is, from last dimension
+to first. This is the default storage order for the arrays provided by
+this library.</para>
+</sect3>
+
+<sect3 id="fortran_storage_order">
+<title><literal>fortran_storage_order</literal></title>
+<programlisting>
+<![CDATA[class fortran_storage_order {
+  fortran_storage_order();
+};]]>
+</programlisting>
+
+<para><literal>fortran_storage_order</literal> is used to specify that
+an array should store its elements using the same memory layout as a
+Fortran multidimensional array would, that is, from first dimension to
+last.</para>
+</sect3>
+
+<sect3 id="general_storage_order">
+<title><literal>general_storage_order</literal></title>
+<programlisting>
+<![CDATA[template <std::size_t NumDims> 
+class general_storage_order {
+
+  template <typename OrderingIter, typename AscendingIter>
+  general_storage_order(OrderingIter ordering, AscendingIter ascending);
+};]]>
+</programlisting>
+
+<para><literal>general_storage_order</literal> allows the user to
+specify an arbitrary memory layout for the contents of an array.  The
+constructed object is passed to the array constructor in order to
+specify storage order.</para>
+
+<para>
+<literal>OrderingIter</literal> and <literal>AscendingIter</literal>
+must model the <literal>InputIterator</literal> concept.  Both
+iterators must refer to a range of <literal>NumDims</literal>
+elements.  <literal>AscendingIter</literal> points to objects
+convertible to <literal>bool</literal>.  A value of
+<literal>true</literal> means that a dimension is stored in ascending
+order while <literal>false</literal> means that a dimension is stored
+in descending order.  <literal>OrderingIter</literal> specifies the
+order in which dimensions are stored.
+</para>  
+
+</sect3>
+</sect2>
+
+<sect2 id="range_checking">
+<title>Range Checking</title>
+<para>
+By default, the array access methods <literal>operator()</literal> and
+<literal>operator[]</literal> perform range
+checking.  If a supplied index is out of the range defined for an
+array, an assertion will abort the program.  To disable range
+checking (for performance reasons in production releases), define
+the <literal>BOOST_DISABLE_ASSERTS</literal> preprocessor macro prior to
+including multi_array.hpp in an application.
+</para>
+
+</sect2>
+</sect1>
+
+
+</article>

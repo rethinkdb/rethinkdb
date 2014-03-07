@@ -1,0 +1,32 @@
+Results of special functions test.
+ 
+(C) Copyright Hubert Holin 2003-2005.
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+ 
+Running 21 test cases...
+Testing atanh in the real domain for float.
+Testing atanh in the real domain for double.
+Testing atanh in the real domain for long double.
+Testing asinh in the real domain for float.
+Testing asinh in the real domain for double.
+Testing asinh in the real domain for long double.
+Testing acosh in the real domain for float.
+Testing acosh in the real domain for double.
+Testing acosh in the real domain for long double.
+Testing sinc_pi in the real domain for float.
+Testing sinc_pi in the real domain for double.
+Testing sinc_pi in the real domain for long double.
+Testing sinhc_pi in the real domain for float.
+Testing sinhc_pi in the real domain for double.
+Testing sinhc_pi in the real domain for long double.
+Testing sinc_pi in the complex domain for float.
+Testing sinc_pi in the complex domain for double.
+Testing sinc_pi in the complex domain for long double.
+Testing sinhc_pi in the complex domain for float.
+Testing sinhc_pi in the complex domain for double.
+Testing sinhc_pi in the complex domain for long double.
+
+*** No errors detected
+

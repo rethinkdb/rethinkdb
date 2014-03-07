@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="750" height ="400" version="1.1"
+xmlns:svg ="http://www.w3.org/2000/svg"
+xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+xmlns:cc="http://web.resource.org/cc/"
+xmlns:dc="http://purl.org/dc/elements/1.1/"
+xmlns ="http://www.w3.org/2000/svg"
+>
+<!-- SVG plot written using Boost.Plot program (Creator Jacob Voytko) --> 
+<!-- Use, modification and distribution of Boost.Plot subject to the --> 
+<!-- Boost Software License, Version 1.0.--> 
+<!-- (See accompanying file LICENSE_1_0.txt --> 
+<!-- or copy at http://www.boost.org/LICENSE_1_0.txt) --> 
+
+<clipPath id="plot_window"><rect x="85.2" y="59" width="512.8" height="281"/></clipPath>
+<g id="imageBackground" stroke="rgb(119,136,153)" fill="rgb(255,255,255)" stroke-width="2"><rect x="0" y="0" width="750" height="400"/></g>
+<g id="plotBackground" stroke="rgb(119,136,153)" fill="rgb(255,255,255)" stroke-width="2"><rect x="84.2" y="58" width="514.8" height="283"/></g>
+<g id="yMinorGrid" stroke="rgb(200,220,255)" stroke-width="0.5"></g>
+<g id="yMajorGrid" stroke="rgb(200,220,255)" stroke-width="1"></g>
+<g id="xMinorGrid" stroke="rgb(200,220,255)" stroke-width="0.5"></g>
+<g id="xMajorGrid" stroke="rgb(200,220,255)" stroke-width="1"></g>
+<g id="yAxis" stroke="rgb(0,0,0)" stroke-width="1"><line x1="212.9" y1="58" x2="212.9" y2="346"/><line x1="84.2" y1="58" x2="84.2" y2="341"/></g>
+<g id="xAxis" stroke="rgb(0,0,0)" stroke-width="1"><line x1="79.2" y1="341" x2="599" y2="341"/><line x1="79.2" y1="341" x2="599" y2="341"/></g>
+<g id="yMinorTicks" stroke="rgb(0,0,0)" stroke-width="1"><path d="M82.2,335.9 L84.2,335.9 M82.2,330.7 L84.2,330.7 M82.2,325.6 L84.2,325.6 M82.2,320.4 L84.2,320.4 M82.2,310.1 L84.2,310.1 M82.2,305 L84.2,305 M82.2,299.8 L84.2,299.8 M82.2,294.7 L84.2,294.7 M82.2,284.4 L84.2,284.4 M82.2,279.3 L84.2,279.3 M82.2,274.1 L84.2,274.1 M82.2,269 L84.2,269 M82.2,258.7 L84.2,258.7 M82.2,253.5 L84.2,253.5 M82.2,248.4 L84.2,248.4 M82.2,243.2 L84.2,243.2 M82.2,232.9 L84.2,232.9 M82.2,227.8 L84.2,227.8 M82.2,222.7 L84.2,222.7 M82.2,217.5 L84.2,217.5 M82.2,207.2 L84.2,207.2 M82.2,202.1 L84.2,202.1 M82.2,196.9 L84.2,196.9 M82.2,191.8 L84.2,191.8 M82.2,181.5 L84.2,181.5 M82.2,176.3 L84.2,176.3 M82.2,171.2 L84.2,171.2 M82.2,166.1 L84.2,166.1 M82.2,155.8 L84.2,155.8 M82.2,150.6 L84.2,150.6 M82.2,145.5 L84.2,145.5 M82.2,140.3 L84.2,140.3 M82.2,130 L84.2,130 M82.2,124.9 L84.2,124.9 M82.2,119.7 L84.2,119.7 M82.2,114.6 L84.2,114.6 M82.2,104.3 L84.2,104.3 M82.2,99.16 L84.2,99.16 M82.2,94.02 L84.2,94.02 M82.2,88.87 L84.2,88.87 M82.2,78.58 L84.2,78.58 M82.2,73.44 L84.2,73.44 M82.2,68.29 L84.2,68.29 M82.2,63.15 L84.2,63.15 M82.2,341 L84.2,341 " fill="none"/></g>
+<g id="xMinorTicks" stroke="rgb(0,0,0)" stroke-width="1"></g>
+<g id="yMajorTicks" stroke="rgb(0,0,0)" stroke-width="2"><path d="M79.2,341 L84.2,341 M79.2,315.3 L84.2,315.3 M79.2,289.5 L84.2,289.5 M79.2,263.8 L84.2,263.8 M79.2,238.1 L84.2,238.1 M79.2,212.4 L84.2,212.4 M79.2,186.6 L84.2,186.6 M79.2,160.9 L84.2,160.9 M79.2,135.2 L84.2,135.2 M79.2,109.5 L84.2,109.5 M79.2,83.73 L84.2,83.73 M79.2,58 L84.2,58 M79.2,341 L84.2,341 " fill="none"/></g>
+<g id="xMajorTicks" stroke="rgb(0,0,0)" stroke-width="2"><path d="M212.9,341 L212.9,346 M470.3,341 L470.3,346 M212.9,341 L212.9,346 " fill="none"/></g>
+<g id="xTicksValues">
+<text x="212.9" y="361.6" text-anchor="middle" font-size="12" font-family="Verdana">0</text>
+<text x="470.3" y="361.6" text-anchor="middle" font-size="12" font-family="Verdana">1</text>
+<text x="212.9" y="361.6" text-anchor="middle" font-size="12" font-family="Verdana">0</text></g>
+<g id="yTicksValues">
+<text x="73.2" y="343.4" text-anchor="end" font-size="12" font-family="Verdana">0</text>
+<text x="73.2" y="317.7" text-anchor="end" font-size="12" font-family="Verdana">0.1</text>
+<text x="73.2" y="291.9" text-anchor="end" font-size="12" font-family="Verdana">0.2</text>
+<text x="73.2" y="266.2" text-anchor="end" font-size="12" font-family="Verdana">0.3</text>
+<text x="73.2" y="240.5" text-anchor="end" font-size="12" font-family="Verdana">0.4</text>
+<text x="73.2" y="214.8" text-anchor="end" font-size="12" font-family="Verdana">0.5</text>
+<text x="73.2" y="189" text-anchor="end" font-size="12" font-family="Verdana">0.6</text>
+<text x="73.2" y="163.3" text-anchor="end" font-size="12" font-family="Verdana">0.7</text>
+<text x="73.2" y="137.6" text-anchor="end" font-size="12" font-family="Verdana">0.8</text>
+<text x="73.2" y="111.9" text-anchor="end" font-size="12" font-family="Verdana">0.9</text>
+<text x="73.2" y="86.13" text-anchor="end" font-size="12" font-family="Verdana">1</text>
+<text x="73.2" y="60.4" text-anchor="end" font-size="12" font-family="Verdana">1.1</text>
+<text x="73.2" y="343.4" text-anchor="end" font-size="12" font-family="Verdana">0</text></g>
+<g id="yLabel">
+<text x="42.9" y="199.5" text-anchor="middle" transform = "rotate(-90 42.9 199.5 )" font-size="14" font-family="Verdana">Probability</text></g>
+<g id="xLabel">
+<text x="341.6" y="376.7" text-anchor="middle" font-size="14" font-family="Verdana">Random Variable</text></g>
+<g id="plotLines" stroke-width="2"><g clip-path="url(#plot_window)" stroke="rgb(0,0,139)" fill="rgb(0,0,139)" stroke-width="1"><path d="M116.4,341 L116.4,341 L116.4,148 L180.7,148 L180.7,341 L373.8,341 L373.8,83.73 L438.1,83.73 L438.1,341 L438.1,341 Z" fill="rgb(0,0,139)"/></g>
+<g clip-path="url(#plot_window)" stroke="rgb(139,0,0)" fill="rgb(139,0,0)" stroke-width="1"><path d="M180.7,341 L180.7,341 L180.7,212.4 L245.1,212.4 L245.1,341 L438.1,341 L438.1,83.73 L502.4,83.73 L502.4,341 L502.4,341 Z" fill="rgb(139,0,0)"/></g>
+<g clip-path="url(#plot_window)" stroke="rgb(0,100,0)" fill="rgb(0,100,0)" stroke-width="1"><path d="M245.1,341 L245.1,341 L245.1,276.7 L309.4,276.7 L309.4,341 L502.4,341 L502.4,83.73 L566.8,83.73 L566.8,341 L566.8,341 Z" fill="rgb(0,100,0)"/></g>
+</g>
+<g id="plotPoints" clip-path="url(#plot_window)"></g>
+<g id="legendBackground" stroke="rgb(119,136,153)" fill="rgb(255,255,255)" stroke-width="1"><rect x="613" y="58" width="111" height="105"/><rect x="613" y="58" width="111" height="105"/></g>
+<g id="legendPoints"><g stroke="rgb(0,0,139)" fill="rgb(255,255,255)" stroke-width="1"><line x1="628" y1="88" x2="643" y2="88"/></g>
+<g stroke="rgb(139,0,0)" fill="rgb(255,255,255)" stroke-width="1"><line x1="628" y1="118" x2="643" y2="118"/></g>
+<g stroke="rgb(0,100,0)" fill="rgb(255,255,255)" stroke-width="1"><line x1="628" y1="148" x2="643" y2="148"/></g>
+</g>
+<g id="legendText">
+<text x="650.5" y="88" font-size="15" font-family="Verdana">p=0.25</text>
+<text x="650.5" y="118" font-size="15" font-family="Verdana">p=0.5</text>
+<text x="650.5" y="148" font-size="15" font-family="Verdana">p=0.75</text></g>
+<g id="title">
+<text x="375" y="40" text-anchor="middle" font-size="20" font-family="Verdana">Bernoulli Distribution CDF</text></g>
+<g id="plotXValues"></g>
+<g id="plotYValues"></g>
+</svg>

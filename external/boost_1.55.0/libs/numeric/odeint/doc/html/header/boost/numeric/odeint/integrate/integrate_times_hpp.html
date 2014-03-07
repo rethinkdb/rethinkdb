@@ -1,0 +1,77 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Header &lt;boost/numeric/odeint/integrate/integrate_times.hpp&gt;</title>
+<link rel="stylesheet" href="../../../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../../../../../odeint_reference.html" title="odeint Reference">
+<link rel="prev" href="../../../../../boost/numeric/odeint/integrate_n_st_idp26031768.html" title="Function template integrate_n_steps">
+<link rel="next" href="../../../../../boost/numeric/odeint/integrate_time_idp26051400.html" title="Function template integrate_times">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../../../boost/numeric/odeint/integrate_n_st_idp26031768.html"><img src="../../../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../../../odeint_reference.html"><img src="../../../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../../index.html"><img src="../../../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../../../boost/numeric/odeint/integrate_time_idp26051400.html"><img src="../../../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="header.boost.numeric.odeint.integrate.integrate_times_hpp"></a>Header &lt;<a href="../../../../../../../../../../boost/numeric/odeint/integrate/integrate_times.hpp" target="_top">boost/numeric/odeint/integrate/integrate_times.hpp</a>&gt;</h3></div></div></div>
+<pre class="synopsis"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">odeint</span> <span class="special">{</span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Stepper<span class="special">,</span> <span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> State<span class="special">,</span> 
+               <span class="keyword">typename</span> TimeIterator<span class="special">,</span> <span class="keyword">typename</span> Time<span class="special">,</span> <span class="keyword">typename</span> Observer<span class="special">&gt;</span> 
+        <span class="identifier">size_t</span> <a class="link" href="../../../../../boost/numeric/odeint/integrate_time_idp26051400.html" title="Function template integrate_times"><span class="identifier">integrate_times</span></a><span class="special">(</span><span class="identifier">Stepper</span><span class="special">,</span> <span class="identifier">System</span><span class="special">,</span> <span class="identifier">State</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">TimeIterator</span><span class="special">,</span> 
+                               <span class="identifier">TimeIterator</span><span class="special">,</span> <span class="identifier">Time</span><span class="special">,</span> <span class="identifier">Observer</span><span class="special">)</span><span class="special">;</span>
+
+      <span class="comment">// Solves the forwarding problem, can be called with Boost.Range as start_state. </span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Stepper<span class="special">,</span> <span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> State<span class="special">,</span> 
+               <span class="keyword">typename</span> TimeIterator<span class="special">,</span> <span class="keyword">typename</span> Time<span class="special">,</span> <span class="keyword">typename</span> Observer<span class="special">&gt;</span> 
+        <span class="identifier">size_t</span> <a name="boost.numeric.odeint.integrate_time_idp26058536"></a><span class="identifier">integrate_times</span><span class="special">(</span><span class="identifier">Stepper</span> stepper<span class="special">,</span> <span class="identifier">System</span> system<span class="special">,</span> 
+                               <span class="keyword">const</span> <span class="identifier">State</span> <span class="special">&amp;</span> start_state<span class="special">,</span> 
+                               <span class="identifier">TimeIterator</span> times_start<span class="special">,</span> 
+                               <span class="identifier">TimeIterator</span> times_end<span class="special">,</span> <span class="identifier">Time</span> dt<span class="special">,</span> 
+                               <span class="identifier">Observer</span> observer<span class="special">)</span><span class="special">;</span>
+
+      <span class="comment">// The same function as above, but without observer calls. </span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Stepper<span class="special">,</span> <span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> State<span class="special">,</span> 
+               <span class="keyword">typename</span> TimeRange<span class="special">,</span> <span class="keyword">typename</span> Time<span class="special">,</span> <span class="keyword">typename</span> Observer<span class="special">&gt;</span> 
+        <span class="identifier">size_t</span> <a name="boost.numeric.odeint.integrate_time_idp26063208"></a><span class="identifier">integrate_times</span><span class="special">(</span><span class="identifier">Stepper</span> stepper<span class="special">,</span> <span class="identifier">System</span> system<span class="special">,</span> 
+                               <span class="identifier">State</span> <span class="special">&amp;</span> start_state<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">TimeRange</span> <span class="special">&amp;</span> times<span class="special">,</span> 
+                               <span class="identifier">Time</span> dt<span class="special">,</span> <span class="identifier">Observer</span> observer<span class="special">)</span><span class="special">;</span>
+
+      <span class="comment">// Solves the forwarding problem, can be called with Boost.Range as start_state. </span>
+      <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Stepper<span class="special">,</span> <span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> State<span class="special">,</span> 
+               <span class="keyword">typename</span> TimeRange<span class="special">,</span> <span class="keyword">typename</span> Time<span class="special">,</span> <span class="keyword">typename</span> Observer<span class="special">&gt;</span> 
+        <span class="identifier">size_t</span> <a name="boost.numeric.odeint.integrate_time_idp26067544"></a><span class="identifier">integrate_times</span><span class="special">(</span><span class="identifier">Stepper</span> stepper<span class="special">,</span> <span class="identifier">System</span> system<span class="special">,</span> 
+                               <span class="keyword">const</span> <span class="identifier">State</span> <span class="special">&amp;</span> start_state<span class="special">,</span> 
+                               <span class="keyword">const</span> <span class="identifier">TimeRange</span> <span class="special">&amp;</span> times<span class="special">,</span> <span class="identifier">Time</span> dt<span class="special">,</span> 
+                               <span class="identifier">Observer</span> observer<span class="special">)</span><span class="special">;</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">}</span></pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../../../../boost/numeric/odeint/integrate_n_st_idp26031768.html"><img src="../../../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../../../odeint_reference.html"><img src="../../../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../../index.html"><img src="../../../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../../../boost/numeric/odeint/integrate_time_idp26051400.html"><img src="../../../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

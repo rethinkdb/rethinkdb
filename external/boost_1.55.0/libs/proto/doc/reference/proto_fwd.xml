@@ -1,0 +1,397 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/proto_fwd.hpp">
+  <para>Forward declarations of all of proto's public types and functions. </para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <struct name="callable">
+        <purpose>Base class for callable <conceptname>PolymorphicFunctionObject</conceptname>s</purpose>
+        <description>
+          <para>
+            When defining a callable <conceptname>PolymorphicFunctionObject</conceptname>, inherit
+            from <computeroutput>proto::callable</computeroutput> so that it can be used to create
+            a <conceptname>CallableTransform</conceptname>.
+          </para>
+          <para>
+            <computeroutput><classname>proto::is_callable</classname>&lt;T&gt;::value</computeroutput> is
+            <computeroutput>true</computeroutput> for types that inherit from
+            <computeroutput>proto::callable</computeroutput>.
+          </para>
+        </description>
+      </struct>
+      <data-member name="N">
+        <description>
+          <para>Array size wildcard for Proto grammars that match array terminals.</para></description>
+        <type>int const</type>
+      </data-member>
+      <namespace name="functional">
+        <typedef name="make_terminal">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::terminal</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_unary_plus">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::unary_plus</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_negate">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::negate</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_dereference">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::dereference</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_complement">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::complement</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_address_of">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::address_of</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_logical_not">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::logical_not</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_pre_inc">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::pre_inc</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_pre_dec">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::pre_dec</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_post_inc">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::post_inc</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_post_dec">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::post_dec</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_shift_left">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::shift_left</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_shift_right">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::shift_right</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_multiplies">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::multiplies</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_divides">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::divides</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_modulus">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::modulus</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_plus">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::plus</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_minus">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::minus</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_less">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::less</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_greater">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::greater</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_less_equal">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::less_equal</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_greater_equal">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::greater_equal</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_equal_to">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::equal_to</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_not_equal_to">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::not_equal_to</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_logical_or">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::logical_or</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_logical_and">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::logical_and</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_bitwise_and">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::bitwise_and</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_bitwise_or">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::bitwise_or</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_bitwise_xor">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::bitwise_xor</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_comma">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::comma</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_mem_ptr">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::mem_ptr</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_assign">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::assign</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_shift_left_assign">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::shift_left_assign</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_shift_right_assign">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::shift_right_assign</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_multiplies_assign">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::multiplies_assign</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_divides_assign">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::divides_assign</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_modulus_assign">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::modulus_assign</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_plus_assign">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::plus_assign</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_minus_assign">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::minus_assign</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_bitwise_and_assign">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::bitwise_and_assign</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_bitwise_or_assign">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::bitwise_or_assign</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_bitwise_xor_assign">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::bitwise_xor_assign</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_subscript">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::subscript</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_if_else">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::if_else_</classname> &gt;</type>
+        </typedef>
+        <typedef name="make_function">
+          <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::function</classname> &gt;</type>
+        </typedef>
+      </namespace>
+      <typedef name="_flatten">
+        <type><classname>proto::functional::flatten</classname></type>
+      </typedef>
+      <typedef name="_make_pair">
+        <type><classname>proto::functional::make_pair</classname></type>
+      </typedef>
+      <typedef name="_first">
+        <type><classname>proto::functional::first</classname></type>
+      </typedef>
+      <typedef name="_second">
+        <type><classname>proto::functional::second</classname></type>
+      </typedef>
+      <typedef name="_pop_back">
+        <type><classname>proto::functional::pop_back</classname></type>
+      </typedef>
+      <typedef name="_pop_front">
+        <type><classname>proto::functional::pop_front</classname></type>
+      </typedef>
+      <typedef name="_push_back">
+        <type><classname>proto::functional::push_back</classname></type>
+      </typedef>
+      <typedef name="_push_front">
+        <type><classname>proto::functional::push_front</classname></type>
+      </typedef>
+      <typedef name="_reverse">
+        <type><classname>proto::functional::reverse</classname></type>
+      </typedef>
+      <typedef name="_eval">
+        <type><classname>proto::functional::eval</classname></type>
+      </typedef>
+      <typedef name="_deep_copy">
+        <type><classname>proto::functional::deep_copy</classname></type>
+      </typedef>
+      <typedef name="_make_terminal">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::terminal</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_unary_plus">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::unary_plus</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_negate">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::negate</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_dereference">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::dereference</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_complement">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::complement</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_address_of">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::address_of</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_logical_not">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::logical_not</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_pre_inc">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::pre_inc</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_pre_dec">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::pre_dec</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_post_inc">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::post_inc</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_post_dec">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::post_dec</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_shift_left">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::shift_left</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_shift_right">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::shift_right</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_multiplies">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::multiplies</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_divides">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::divides</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_modulus">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::modulus</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_plus">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::plus</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_minus">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::minus</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_less">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::less</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_greater">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::greater</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_less_equal">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::less_equal</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_greater_equal">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::greater_equal</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_equal_to">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::equal_to</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_not_equal_to">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::not_equal_to</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_logical_or">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::logical_or</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_logical_and">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::logical_and</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_bitwise_and">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::bitwise_and</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_bitwise_or">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::bitwise_or</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_bitwise_xor">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::bitwise_xor</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_comma">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::comma</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_mem_ptr">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::mem_ptr</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_assign">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::assign</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_shift_left_assign">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::shift_left_assign</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_shift_right_assign">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::shift_right_assign</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_multiplies_assign">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::multiplies_assign</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_divides_assign">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::divides_assign</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_modulus_assign">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::modulus_assign</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_plus_assign">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::plus_assign</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_minus_assign">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::minus_assign</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_bitwise_and_assign">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::bitwise_and_assign</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_bitwise_or_assign">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::bitwise_or_assign</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_bitwise_xor_assign">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::bitwise_xor_assign</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_subscript">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::subscript</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_if_else">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::if_else_</classname> &gt;</type>
+      </typedef>
+      <typedef name="_make_function">
+        <type><classname>proto::functional::make_expr</classname>&lt; <classname>proto::tag::function</classname> &gt;</type>
+      </typedef>
+      <typedef name="_childN">
+        <purpose>For each <replaceable>N</replaceable> in <computeroutput>[0,BOOST_PROTO_MAX_ARITY)</computeroutput></purpose>
+        <type><classname>proto::_child_c</classname>&lt; <replaceable>N</replaceable> &gt;</type>
+      </typedef>
+      <typedef name="_child">
+        <type><classname alt="proto::_childN">proto::_child0</classname></type>
+      </typedef>
+      <typedef name="_left">
+        <type><classname alt="proto::_childN">proto::_child0</classname></type>
+      </typedef>
+      <typedef name="_right">
+        <type><classname alt="proto::_childN">proto::_child1</classname></type>
+      </typedef>
+    </namespace>
+  </namespace>
+  <macro name="BOOST_PROTO_MAX_ARITY">
+    <purpose>Controls the maximum number of child nodes an expression may have.</purpose>
+    <description>
+      <para>
+        <computeroutput>BOOST_PROTO_MAX_ARITY</computeroutput> defaults to 10. It may be set higher or lower, but not
+        lower than 3. Setting it higher will have a negative effect on compile times. 
+      </para>
+      <para>
+        See also <computeroutput><macroname>BOOST_PROTO_MAX_FUNCTION_CALL_ARITY</macroname></computeroutput>.
+      </para>
+    </description>
+  </macro>
+  <macro name="BOOST_PROTO_MAX_LOGICAL_ARITY">
+    <purpose>Controls the maximum number of sub-grammars that
+    <computeroutput>
+      <classname alt="boost::proto::or_">proto::or_&lt;&gt;</classname>
+    </computeroutput> and
+      <computeroutput>
+        <classname alt="boost::proto::and_">proto::and_&lt;&gt;</classname>
+      </computeroutput> accept.</purpose>
+    <description>
+      <para>
+        <computeroutput>BOOST_PROTO_MAX_LOGICAL_ARITY</computeroutput> defaults to 10. It may be set higher or lower. Setting
+        it higher will have a negative effect on compile times.
+      </para>
+    </description>
+  </macro>
+  <macro name="BOOST_PROTO_MAX_FUNCTION_CALL_ARITY">
+    <purpose>Controls the maximum number of arguments that <computeroutput>operator()</computeroutput> overloads
+      accept.</purpose>
+    <description>
+      <para>
+        When setting
+        <computeroutput>
+          <macroname>BOOST_PROTO_MAX_ARITY</macroname>
+        </computeroutput> higher than the default, compile times
+        slow down considerably. That is due in large part to the explosion in the number of
+        <computeroutput>operator()</computeroutput> overloads that must be generated for each
+        Proto expression type. By setting <computeroutput>BOOST_PROTO_MAX_FUNCTION_CALL_ARITY</computeroutput>
+        lower than <computeroutput><macroname>BOOST_PROTO_MAX_ARITY</macroname></computeroutput>,
+        compile times can be sped up considerably.
+      </para>
+    </description>
+  </macro>
+</header>

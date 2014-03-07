@@ -1,0 +1,11 @@
+#~ Copyright 2005, 2006 Rene Rivera.
+#~ Distributed under the Boost Software License, Version 1.0.
+#~ (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+# Automatic configuration for Doxygen tools. To use, just import this module.
+
+import toolset : using ;
+
+ECHO "warning: doxygen-config.jam is deprecated. Use 'using doxygen ;' instead." ;
+
+using doxygen ;

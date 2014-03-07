@@ -1,0 +1,8 @@
+A = Template('inherit::A', 'inherit.h')
+A_int = A('int', 'A_int')
+
+Class('inherit::B', 'inherit.h')
+Class('inherit::D', 'inherit.h')
+E = Class('inherit::E', 'inherit.h')
+exclude(E.s)
+exclude(E.ab)

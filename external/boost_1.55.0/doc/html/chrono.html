@@ -1,0 +1,328 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;5.&#160;Boost.Chrono 2.0.2</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="atomic/porting.html" title="Porting">
+<link rel="next" href="chrono/users_guide.html" title="User's Guide">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="atomic/porting.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="chrono/users_guide.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="chrono"></a>Chapter&#160;5.&#160;Boost.Chrono 2.0.2</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Howard</span> <span class="surname">Hinnant</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Beman</span> <span class="surname">Dawes</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Vicente J.</span> <span class="surname">Botet Escriba</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2008 Howard Hinnant</p></div>
+<div><p class="copyright">Copyright &#169; 2006, 2008 Beman Dawes</p></div>
+<div><p class="copyright">Copyright &#169; 2009-2013 Vicente J. Botet Escriba</p></div>
+<div><div class="legalnotice">
+<a name="chrono.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="chrono.html#chrono.overview">Overview</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="chrono.html#chrono.overview.motivation">Motivation</a></span></dt>
+<dt><span class="section"><a href="chrono.html#chrono.overview.description">Description</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="chrono/users_guide.html">User's Guide</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="chrono/users_guide.html#chrono.users_guide.getting_started">Getting Started</a></span></dt>
+<dt><span class="section"><a href="chrono/users_guide.html#chrono.users_guide.tutorial">Tutorial</a></span></dt>
+<dt><span class="section"><a href="chrono/users_guide.html#chrono.users_guide.examples">Examples</a></span></dt>
+<dt><span class="section"><a href="chrono/users_guide.html#chrono.users_guide.ext_references">External Resources</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="chrono/reference.html">Reference </a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="chrono/reference.html#chrono.reference.chrono_include_hpp">Header <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">chrono</span><span class="special">/</span><span class="identifier">include</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code></a></span></dt>
+<dt><span class="section"><a href="chrono/reference.html#chrono.reference.cpp0x">Included on the C++11 Recommendation</a></span></dt>
+<dt><span class="section"><a href="chrono/reference.html#chrono.reference.io_v1">Chrono I/O V1</a></span></dt>
+<dt><span class="section"><a href="chrono/reference.html#chrono.reference.io">Chrono I/O V2</a></span></dt>
+<dt><span class="section"><a href="chrono/reference.html#chrono.reference.round">Chrono Rounding Utilities</a></span></dt>
+<dt><span class="section"><a href="chrono/reference.html#chrono.reference.other_clocks">Other Clocks</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="chrono/appendices.html">Appendices</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="chrono/appendices.html#chrono.appendices.history">Appendix: History</a></span></dt>
+<dt><span class="section"><a href="chrono/appendices.html#chrono.appendices.rationale">Appendix: Rationale</a></span></dt>
+<dt><span class="section"><a href="chrono/appendices.html#chrono.appendices.implementation">Appendix: Implementation
+      Notes</a></span></dt>
+<dt><span class="section"><a href="chrono/appendices.html#chrono.appendices.faq">Appendix: FAQ</a></span></dt>
+<dt><span class="section"><a href="chrono/appendices.html#chrono.appendices.acknowledgements">Appendix: Acknowledgements</a></span></dt>
+<dt><span class="section"><a href="chrono/appendices.html#chrono.appendices.todo">Appendix: Future plans</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<p>
+    ]
+  </p>
+<p>
+    ]
+  </p>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="chrono.overview"></a><a class="link" href="chrono.html#chrono.overview" title="Overview">Overview</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="chrono.html#chrono.overview.motivation">Motivation</a></span></dt>
+<dt><span class="section"><a href="chrono.html#chrono.overview.description">Description</a></span></dt>
+</dl></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        <span class="quote">&#8220;<span class="quote">What is time, then? If nobody asks me, I know; if I have to explain
+        it to someone who has asked me, I do not know."</span>&#8221;</span>
+      </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+        <span class="bold"><strong><span class="emphasis"><em>-- Augustine </em></span></strong></span>
+      </p></blockquote></div>
+<h4>
+<a name="chrono.overview.h0"></a>
+      <span class="phrase"><a name="chrono.overview.how_to_use_this_documentation"></a></span><a class="link" href="chrono.html#chrono.overview.how_to_use_this_documentation">How
+      to Use This Documentation</a>
+    </h4>
+<p>
+      This documentation makes use of the following naming and formatting conventions.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Code is in <code class="computeroutput"><span class="identifier">fixed</span> <span class="identifier">width</span>
+          <span class="identifier">font</span></code> and is syntax-highlighted.
+        </li>
+<li class="listitem">
+          Replaceable text that you will need to supply is in <em class="replaceable"><code>italics</code></em>.
+        </li>
+<li class="listitem">
+          Free functions are rendered in the code font followed by <code class="computeroutput"><span class="special">()</span></code>, as in <code class="computeroutput"><span class="identifier">free_function</span><span class="special">()</span></code>.
+        </li>
+<li class="listitem">
+          If a name refers to a class template, it is specified like this: <code class="computeroutput"><span class="identifier">class_template</span><span class="special">&lt;&gt;</span></code>;
+          that is, it is in code font and its name is followed by <code class="computeroutput"><span class="special">&lt;&gt;</span></code>
+          to indicate that it is a class template.
+        </li>
+<li class="listitem">
+          If a name refers to a function-like macro, it is specified like this:
+          <code class="computeroutput"><span class="identifier">MACRO</span><span class="special">()</span></code>;
+          that is, it is uppercase in code font and its name is followed by <code class="computeroutput"><span class="special">()</span></code> to indicate that it is a function-like
+          macro. Object-like macros appear without the trailing <code class="computeroutput"><span class="special">()</span></code>.
+        </li>
+<li class="listitem">
+          Names that refer to <span class="emphasis"><em>concepts</em></span> in the generic programming
+          sense are specified in CamelCase.
+        </li>
+</ul></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        In addition, notes such as this one specify non-essential information that
+        provides additional background or rationale.
+      </p></td></tr>
+</table></div>
+<p>
+      Finally, you can mentally add the following to any code fragments in this document:
+    </p>
+<pre class="programlisting"><span class="comment">// Include all of Chrono files</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">chrono</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="chrono.overview.motivation"></a><a class="link" href="chrono.html#chrono.overview.motivation" title="Motivation">Motivation</a>
+</h3></div></div></div>
+<h5>
+<a name="chrono.overview.motivation.h0"></a>
+        <span class="phrase"><a name="chrono.overview.motivation.time"></a></span><a class="link" href="chrono.html#chrono.overview.motivation.time">Time</a>
+      </h5>
+<p>
+        We all deal with time every day of our lives. We've intuitively known it
+        since birth. Thus we are all very familiar with it and believe it to be a
+        simple matter. The modeling of time in computer programs should be similarly
+        simple. The unfortunate truth is that this perceived simplicity is only skin
+        deep. Fortunately, we do not need a terribly complicated solution to meet
+        the bulk of our needs. However, overly simplistic solutions can be dangerous
+        and inefficient, and won't adapt as the computer industry evolves.
+      </p>
+<p>
+        <span class="bold"><strong>Boost.Chrono</strong></span> implements the new time facilities
+        in C++11, as proposed in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2661.htm" target="_top"><span class="bold"><strong>N2661 - A Foundation to Sleep On</strong></span></a>. That document
+        provides background and motivation for key design decisions and is the source
+        of a good deal of information in this documentation.
+      </p>
+<p>
+        In addition to the clocks provided by the standard proposal, <span class="bold"><strong>Boost.Chrono</strong></span>
+        provides specific process and thread clocks.
+      </p>
+<h5>
+<a name="chrono.overview.motivation.h1"></a>
+        <span class="phrase"><a name="chrono.overview.motivation.wall_clock_versus_system_and_user_time"></a></span><a class="link" href="chrono.html#chrono.overview.motivation.wall_clock_versus_system_and_user_time">Wall
+        clock versus system and user time</a>
+      </h5>
+<p>
+        To make the timing facilities of Boost.Chrono more generally useful, the
+        library provides a number of clocks that are thin wrappers around the operating
+        system's process time API, thereby allowing the extraction of wall clock
+        time, user CPU time, and system CPU time of the process. Wall clock time
+        is the sum of CPU time and system CPU time. (On POSIX-like systems, this
+        relies on <code class="computeroutput"><span class="identifier">times</span><span class="special">()</span></code>.
+        On Windows, it relies on <code class="computeroutput"><span class="identifier">GetProcessTimes</span><span class="special">()</span></code>.)
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="chrono.overview.description"></a><a class="link" href="chrono.html#chrono.overview.description" title="Description">Description</a>
+</h3></div></div></div>
+<p>
+        The <span class="bold"><strong>Boost.Chrono</strong></span> library provides:
+      </p>
+<h5>
+<a name="chrono.overview.description.h0"></a>
+        <span class="phrase"><a name="chrono.overview.description.standard"></a></span><a class="link" href="chrono.html#chrono.overview.description.standard">Standard</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            A means to represent time durations: managed by the generic <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.duration_hpp.duration" title="Class Template duration&lt;&gt;"><code class="computeroutput"><span class="identifier">duration</span></code></a> class . Examples of
+            time durations include days, <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.duration_hpp.duration_typedefs" title="duration typedefs"><code class="computeroutput"><span class="identifier">minutes</span></code></a>, <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.duration_hpp.duration_typedefs" title="duration typedefs"><code class="computeroutput"><span class="identifier">seconds</span></code></a> and <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.duration_hpp.duration_typedefs" title="duration typedefs"><code class="computeroutput"><span class="identifier">nanoseconds</span></code></a>, which can be represented
+            with a fixed number of clock ticks per unit. All of these units of time
+            duration are united with a generic interface by the <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.duration_hpp.duration" title="Class Template duration&lt;&gt;"><code class="computeroutput"><span class="identifier">duration</span></code></a> facility.
+          </li>
+<li class="listitem">
+            A type for representing points in time: <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.time_point_hpp.time_point" title="Class template time_point&lt;&gt;"><code class="computeroutput"><span class="identifier">time_point</span></code></a>. A <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.time_point_hpp.time_point" title="Class template time_point&lt;&gt;"><code class="computeroutput"><span class="identifier">time_point</span></code></a> represents an epoch
+            plus or minus a <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.duration_hpp.duration" title="Class Template duration&lt;&gt;"><code class="computeroutput"><span class="identifier">duration</span></code></a>. The library leaves
+            epochs unspecified. A <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.time_point_hpp.time_point" title="Class template time_point&lt;&gt;"><code class="computeroutput"><span class="identifier">time_point</span></code></a> is associated with
+            a <span class="emphasis"><em>clock</em></span>.
+          </li>
+<li class="listitem">
+            Several clocks, some of which may not be available on a particular platform:
+            <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.system_clocks_hpp.system_clock" title="Class system_clock"><code class="computeroutput"><span class="identifier">system_clock</span></code></a>, <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.system_clocks_hpp.steady_clock" title="Class steady_clock"><code class="computeroutput"><span class="identifier">steady_clock</span></code></a> and <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.system_clocks_hpp.high_resolution_clock" title="Class high_resolution_clock"><code class="computeroutput"><span class="identifier">high_resolution_clock</span></code></a>. A clock
+            is a pairing of a <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.time_point_hpp.time_point" title="Class template time_point&lt;&gt;"><code class="computeroutput"><span class="identifier">time_point</span></code></a> and <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.duration_hpp.duration" title="Class Template duration&lt;&gt;"><code class="computeroutput"><span class="identifier">duration</span></code></a>, and a function which
+            returns a <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.time_point_hpp.time_point" title="Class template time_point&lt;&gt;"><code class="computeroutput"><span class="identifier">time_point</span></code></a> representing <span class="emphasis"><em>now</em></span>.
+          </li>
+</ul></div>
+<h5>
+<a name="chrono.overview.description.h1"></a>
+        <span class="phrase"><a name="chrono.overview.description.other_clocks"></a></span><a class="link" href="chrono.html#chrono.overview.description.other_clocks">Other
+        clocks</a>
+      </h5>
+<p>
+        To make the timing facilities more generally useful, <span class="bold"><strong>Boost.Chrono</strong></span>
+        provides a number of clocks that are thin wrappers around the operating system's
+        time APIs, thereby allowing the extraction of wall clock time, user CPU time,
+        system CPU time spent by the process,
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <a class="link" href="chrono/reference.html#chrono.reference.other_clocks.process_cpu_clocks_hpp.process_real_cpu_clock" title="Class process_real_cpu_clock"><code class="computeroutput"><span class="identifier">process_real_cpu_clock</span></code></a>, captures
+            wall clock CPU time spent by the current process.
+          </li>
+<li class="listitem">
+            <a class="link" href="chrono/reference.html#chrono.reference.other_clocks.process_cpu_clocks_hpp.process_user_cpu_clock" title="Class process_user_cpu_clock"><code class="computeroutput"><span class="identifier">process_user_cpu_clock</span></code></a>, captures
+            user-CPU time spent by the current process.
+          </li>
+<li class="listitem">
+            <a class="link" href="chrono/reference.html#chrono.reference.other_clocks.process_cpu_clocks_hpp.process_system_cpu_clock" title="Class process_system_cpu_clock"><code class="computeroutput"><span class="identifier">process_system_cpu_clock</span></code></a>, captures
+            system-CPU time spent by the current process.
+          </li>
+<li class="listitem">
+            A tuple-like class <a class="link" href="chrono/reference.html#chrono.reference.other_clocks.process_cpu_clocks_hpp.process_cpu_clock" title="Class process_cpu_clock"><code class="computeroutput"><span class="identifier">process_cpu_clock</span></code></a>, that captures
+            real, user-CPU, and system-CPU process times together.
+          </li>
+<li class="listitem">
+            A <a class="link" href="chrono/reference.html#chrono.reference.other_clocks.thread_clock_hpp.thread_clock" title="Class thread_clock"><code class="computeroutput"><span class="identifier">thread_clock</span></code></a> thread steady clock
+            giving the time spent by the current thread (when supported by a platform).
+          </li>
+</ul></div>
+<p>
+        Lastly, <span class="bold"><strong>Boost.Chrono</strong></span> includes <a href="http://www.boost.org/libs/typeof" target="_top">typeof</a>
+        registration for <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.duration_hpp.duration" title="Class Template duration&lt;&gt;"><code class="computeroutput"><span class="identifier">duration</span></code></a> and <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.time_point_hpp.time_point" title="Class template time_point&lt;&gt;"><code class="computeroutput"><span class="identifier">time_point</span></code></a> to permit using emulated
+        auto with C++03 compilers.
+      </p>
+<h5>
+<a name="chrono.overview.description.h2"></a>
+        <span class="phrase"><a name="chrono.overview.description.i_o"></a></span><a class="link" href="chrono.html#chrono.overview.description.i_o">I/O</a>
+      </h5>
+<p>
+        It provides I/O for <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.duration_hpp.duration" title="Class Template duration&lt;&gt;"><code class="computeroutput"><span class="identifier">duration</span></code></a> and <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.time_point_hpp.time_point" title="Class template time_point&lt;&gt;"><code class="computeroutput"><span class="identifier">time_point</span></code></a>. This I/O makes use of
+        these types much more convenient. In following the "you only pay for
+        what you use" philosophy, this extra functionality is located in a header
+        separate from &lt;boost/chrono/chrono.hpp&gt;, namely &lt;boost/chrono/chrono_io.hpp&gt;.
+      </p>
+<p>
+        It builds on <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">ratio</span><span class="special">/</span><span class="identifier">ratio_io</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        to provide readable and flexible formatting and parsing for types in <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">chrono</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>.
+        This textural representation uses <a href="http://en.wikipedia.org/wiki/SI_prefix#List_of_SI_prefixes" target="_top">SI
+        prefixes</a> whenever possible. This makes it easy for <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">milliseconds</span></code> to be represented by the text
+        "milliseconds", or a hypothetical meter class to print out "millimeter".
+        The <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.duration_hpp.duration" title="Class Template duration&lt;&gt;"><code class="computeroutput"><span class="identifier">duration</span></code></a> and the <a class="link" href="chrono/reference.html#chrono.reference.cpp0x.time_point_hpp.time_point" title="Class template time_point&lt;&gt;"><code class="computeroutput"><span class="identifier">time_point</span></code></a> i/o can be customized
+        through the new facets: <a class="link" href="chrono/reference.html#chrono.reference.io.duration_units_hpp.duration_units" title="Template Class duration_units"><code class="computeroutput"><span class="identifier">duration_units</span></code></a> and __time_point_units.
+        The user can specialize these facets so that the the chrono i/o could be
+        localizable. However Boost.Chrono doesn't provides a complete locale solution.
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">system_clock</span><span class="special">::</span><span class="identifier">time_point</span></code> I/O is proposed in terms of
+        UTC timepoints, strongly guided by ISO 9899:1999, Programming languages -
+        C, ISO 9945:2003, Information Technology - Portable Operating System Interface
+        (POSIX) and ISO 8601:2004, Data elements and interchange formats - Information
+        interchange - Representation of dates and times.
+      </p>
+<h5>
+<a name="chrono.overview.description.h3"></a>
+        <span class="phrase"><a name="chrono.overview.description.rounding_utilities"></a></span><a class="link" href="chrono.html#chrono.overview.description.rounding_utilities">Rounding
+        utilities</a>
+      </h5>
+<p>
+        A few simple rounding utility functions for working with durations.
+      </p>
+<h5>
+<a name="chrono.overview.description.h4"></a>
+        <span class="phrase"><a name="chrono.overview.description.caveat_emptor"></a></span><a class="link" href="chrono.html#chrono.overview.description.caveat_emptor">Caveat
+        Emptor</a>
+      </h5>
+<p>
+        The underlying clocks provided by operating systems are subject to many seemingly
+        arbitrary policies and implementation irregularities. That's a polite way
+        of saying they tend to be flakey, and each operating system or even each
+        clock has its own cruel and unusual forms of flakiness. Don't bet the farm
+        on their accuracy, unless you have become deeply familiar with exactly what
+        the specific operating system is guaranteeing, which is often very little.
+      </p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:49:21 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="atomic/porting.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="chrono/users_guide.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

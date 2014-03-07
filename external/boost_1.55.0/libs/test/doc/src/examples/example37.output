@@ -1,0 +1,5 @@
+> example
+Running 1 test case...
+test.cpp(16): error in "test": incorrect exception my_exception is caught
+
+*** 1 failure detected in test suite "example"

@@ -1,0 +1,160 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Operator]
+	#include <boost/phoenix/operator.hpp>
+
+This facility provides a mechanism for lazily evaluating operators.
+Syntactically, a lazy operator looks and feels like an ordinary C/C++ infix,
+prefix or postfix operator. The operator application looks the same. However,
+unlike ordinary operators, the actual operator execution is deferred. Samples:
+
+    arg1 + arg2
+    1 + arg1 * arg2
+    1 / -arg1
+    arg1 < 150
+
+We have seen the lazy operators in action (see [link phoenix.starter_kit.lazy_operators
+Quick Start - Lazy Operators]). Let's go back and examine them a little bit further:
+
+    std::find_if(c.begin(), c.end(), arg1 % 2 == 1)
+
+Through operator overloading, the expression `arg1 % 2 == 1` actually generates
+an actor. This actor object is passed on to STL's `find_if` function. From
+the viewpoint of STL, the expression is simply a function object expecting a
+single argument of the containers value_type. For each element in `c`,
+the element is passed on as an argument `arg1` to the actor (function
+object). The actor checks if this is an odd value based on the expression
+`arg1 % 2 == 1` where arg1 is replaced by the container's element.
+
+Like lazy functions (see
+[link phoenix.modules.function Function]), lazy operators are not immediately executed
+when invoked. Instead, an actor (see [link phoenix.actor Actor])
+object is created and returned to the caller. Example:
+
+    (arg1 + arg2) * arg3
+
+does nothing more than return an actor. A second function call will evaluate
+the actual operators. Example:
+
+    std::cout << ((arg1 + arg2) * arg3)(4, 5, 6);
+
+will print out "54".
+
+Operator expressions are lazily evaluated following four simple rules:
+
+# A binary operator, except `->*` will be lazily evaluated when
+  /at least/ one of its operands is an actor object
+  (see [link phoenix.actor Actor]).
+# Unary operators are lazily evaluated if their argument is an actor object.
+# Operator `->*` is lazily evaluated if the left hand argument is an actor object.
+# The result of a lazy operator is an actor object that can in turn allow the
+  applications of rules 1, 2 and 3.
+
+For example, to check the following expression is lazily evaluated:
+
+    -(arg1 + 3 + 6)
+
+# Following rule 1, `arg1 + 3` is lazily evaluated since `arg1` is an actor
+  (see [link phoenix.modules.core.arguments Arguments]).
+# The result of this `arg1 + 3` expression is an actor object, following rule 4.
+# Continuing, `arg1 + 3 + 6` is again lazily evaluated.
+  Rule 2.
+# By rule 4 again, the result of  `arg1 + 3 + 6` is an actor object.
+# As `arg1 + 3 + 6` is an actor, `-(arg1 + 3 + 6)` is lazily evaluated. Rule 2.
+
+Lazy-operator application is highly contagious. In most cases, a single `argN`
+actor infects all its immediate neighbors within a group (first level or
+parenthesized expression).
+
+Note that at least one operand of any operator must be a valid actor
+for lazy evaluation to take effect.  To force lazy evaluation of an
+ordinary expression, we can use `ref(x)`, `val(x)` or `cref(x)` to
+transform an operand into a valid actor object (see [link phoenix.modules.core Core]).
+For example:
+
+     1 << 3;      // Immediately evaluated
+     val(1) << 3; // Lazily evaluated
+
+[heading Supported operators]
+
+[heading Unary operators]
+
+    prefix:   ~, !, -, +, ++, --, & (reference), * (dereference)
+    postfix:  ++, --
+
+[heading Binary operators]
+
+    =, [], +=, -=, *=, /=, %=, &=, |=, ^=, <<=, >>=
+    +, -, *, /, %, &, |, ^, <<, >>
+    ==, !=, <, >, <=, >=
+    &&, ||, ->*
+
+[heading Ternary operator]
+
+    if_else(c, a, b)
+
+The ternary operator deserves special mention. Since C++ does not allow us to
+overload the conditional expression: `c ? a : b`, the if_else pseudo function is
+provided for this purpose. The behavior is identical, albeit in a lazy manner.
+
+[heading Member pointer operator]
+
+    a->*member_object_pointer
+    a->*member_function_pointer
+
+The left hand side of the member pointer operator must be an actor returning a pointer
+type. The right hand side of the member pointer operator may be either a pointer to member
+object or pointer to member function.
+
+If the right hand side is a member object pointer, the result is an actor which, when evaluated,
+returns a reference to that member. For example:
+
+    struct A
+    {
+        int member;
+    };
+
+    A* a = new A;
+    ...
+
+    (arg1->*&A::member)(a); // returns member a->member
+
+If the right hand side is a member function pointer, the result is an actor which, when invoked, calls the specified member function. For example:
+
+    struct A
+    {
+        int func(int);
+    };
+
+    A* a = new A;
+    int i = 0;
+
+    (arg1->*&A::func)(arg2)(a, i); // returns a->func(i)
+
+[heading Include Files]
+
+[table
+    [[Operators]                    [File]]
+    [[`-`, `+`, `++`, `--`, `+=`,
+      `-=`, `*=`, `/=`, `%=`,
+      `*`, `/`, `%`]                [`#include <boost/phoenix/operator/arithmetic.hpp>`]]
+    [[`&=`, `|=`, `^=`, `<<=`,
+      `>>=`, `&`, `|`, `^`, `<<`,
+      `>>`]                         [`#include <boost/phoenix/operator/bitwise.hpp>`]]
+    [[`==`, `!=`, `<`,
+      `<=`, `>`, `>=`]              [`#include <boost/phoenix/operator/comparison.hpp>`]]
+    [[`<<`, `>>`]                   [`#include <boost/phoenix/operator/io.hpp>`]]
+    [[`!`, &&, `||`]                [`#include <boost/phoenix/operator/logical.hpp>`]]
+    [[`&x`, `*p`, `=`, `[]`]        [`#include <boost/phoenix/operator/self.hpp>`]]
+    [[`if_else(c, a, b)`]           [`#include <boost/phoenix/operator/if_else.hpp>`]]
+    [[`->*`]                        [`#include <boost/phoenix/operator/member.hpp>`]]
+]
+
+[endsect]

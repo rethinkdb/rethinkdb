@@ -1,0 +1,527 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>The Full Extension Mechanism</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../extension.html" title="Extension">
+<link rel="prev" href="../extension.html" title="Extension">
+<link rel="next" href="sequence_facade.html" title="Sequence Facade">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../extension.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../extension.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="sequence_facade.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="fusion.extension.ext_full"></a><a class="link" href="ext_full.html" title="The Full Extension Mechanism">The Full Extension Mechanism</a>
+</h3></div></div></div>
+<p>
+        The Fusion library is designed to be extensible, new sequences types can
+        easily be added. In fact, the library support for <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code>,
+        <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span></code> and <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>
+        sequences is entirely provided using the extension mechanism.
+      </p>
+<p>
+        The process for adding a new sequence type to Fusion is:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            Enable the <a class="link" href="../notes.html#fusion.notes.tag_dispatching"><span class="emphasis"><em>tag
+            dispatching</em></span></a> mechanism used by Fusion for your sequence
+            type
+          </li>
+<li class="listitem">
+            Design an iterator type for the sequence
+          </li>
+<li class="listitem">
+            Provide specialized behaviour for the intrinsic operations of the new
+            Fusion sequence
+          </li>
+</ol></div>
+<h5>
+<a name="fusion.extension.ext_full.h0"></a>
+        <span class="phrase"><a name="fusion.extension.ext_full.our_example"></a></span><a class="link" href="ext_full.html#fusion.extension.ext_full.our_example">Our
+        example</a>
+      </h5>
+<p>
+        In order to illustrate enabling a new sequence type for use with Fusion,
+        we are going to use the type:
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">example</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">example_struct</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">name</span><span class="special">;</span>
+        <span class="keyword">int</span> <span class="identifier">age</span><span class="special">;</span>
+        <span class="identifier">example_struct</span><span class="special">(</span>
+            <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;</span> <span class="identifier">n</span><span class="special">,</span>
+            <span class="keyword">int</span> <span class="identifier">a</span><span class="special">)</span>
+            <span class="special">:</span> <span class="identifier">name</span><span class="special">(</span><span class="identifier">n</span><span class="special">),</span> <span class="identifier">age</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span>
+        <span class="special">{}</span>
+    <span class="special">};</span>
+<span class="special">}</span>
+</pre>
+<p>
+        We are going to pretend that this type has been provided by a 3rd party library,
+        and therefore cannot be modified. We shall work through all the necessary
+        steps to enable <code class="computeroutput"><span class="identifier">example_struct</span></code>
+        to serve as an <a class="link" href="../sequence/concepts/associative_sequence.html" title="Associative Sequence">Associative
+        Sequence</a> as described in the <a class="link" href="../quick_start.html" title="Quick Start">Quick
+        Start</a> guide.
+      </p>
+<h5>
+<a name="fusion.extension.ext_full.h1"></a>
+        <span class="phrase"><a name="fusion.extension.ext_full.enabling_tag_dispatching"></a></span><a class="link" href="ext_full.html#fusion.extension.ext_full.enabling_tag_dispatching">Enabling
+        Tag Dispatching</a>
+      </h5>
+<p>
+        The Fusion extensibility mechanism uses <a class="link" href="../notes.html#fusion.notes.tag_dispatching"><span class="emphasis"><em>tag
+        dispatching</em></span></a> to call the correct code for a given sequence
+        type. In order to exploit the tag dispatching mechanism we must first declare
+        a new tag type for the mechanism to use. For example:
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">example</span> <span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">example_sequence_tag</span><span class="special">;</span> <span class="comment">// Only definition needed</span>
+<span class="special">}</span>
+</pre>
+<p>
+        Next we need to enable the <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">tag_of</span></code>
+        metafunction to return our newly chosen tag type for operations involving
+        our sequence. This is done by specializing <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">tag_of</span></code>
+        for our sequence type.
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">support</span><span class="special">/</span><span class="identifier">tag_of_fwd</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">tag_of_fwd</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">fusion</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">traits</span> <span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">tag_of</span><span class="special">&lt;</span><span class="identifier">example_struct</span><span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">example</span><span class="special">::</span><span class="identifier">example_sequence_tag</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+<span class="special">}}}</span>
+</pre>
+<p>
+        <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">tag_of</span></code> also has a second template argument,
+        that can be used in conjuction with <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">enable_if</span></code>
+        to provide tag support for groups of related types. This feature is not necessary
+        for our sequence, but for an example see the code in:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">adapted</span><span class="special">/</span><span class="identifier">array</span><span class="special">/</span><span class="identifier">tag_of</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">tag_of</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h5>
+<a name="fusion.extension.ext_full.h2"></a>
+        <span class="phrase"><a name="fusion.extension.ext_full.designing_a_suitable_iterator"></a></span><a class="link" href="ext_full.html#fusion.extension.ext_full.designing_a_suitable_iterator">Designing
+        a suitable iterator</a>
+      </h5>
+<p>
+        We need an iterator to describe positions, and provide access to the data
+        within our sequence. As it is straightforward to do, we are going to provide
+        a random access iterator in our example.
+      </p>
+<p>
+        We will use a simple design, in which the 2 members of <code class="computeroutput"><span class="identifier">example_struct</span></code>
+        are given numbered indices, 0 for <code class="computeroutput"><span class="identifier">name</span></code>
+        and 1 for <code class="computeroutput"><span class="identifier">age</span></code> respectively.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Struct</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">Pos</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">example_struct_iterator</span>
+    <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">iterator_base</span><span class="special">&lt;</span><span class="identifier">example_struct_iterator</span><span class="special">&lt;</span><span class="identifier">Struct</span><span class="special">,</span> <span class="identifier">Pos</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">(</span><span class="identifier">Pos</span> <span class="special">&gt;=</span><span class="number">0</span> <span class="special">&amp;&amp;</span> <span class="identifier">Pos</span> <span class="special">&lt;</span> <span class="number">3</span><span class="special">);</span>
+    <span class="keyword">typedef</span> <span class="identifier">Struct</span> <span class="identifier">struct_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">int_</span><span class="special">&lt;</span><span class="identifier">Pos</span><span class="special">&gt;</span> <span class="identifier">index</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">random_access_traversal_tag</span> <span class="identifier">category</span><span class="special">;</span>
+
+    <span class="identifier">example_struct_iterator</span><span class="special">(</span><span class="identifier">Struct</span><span class="special">&amp;</span> <span class="identifier">str</span><span class="special">)</span>
+        <span class="special">:</span> <span class="identifier">struct_</span><span class="special">(</span><span class="identifier">str</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="identifier">Struct</span><span class="special">&amp;</span> <span class="identifier">struct_</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        A quick summary of the details of our iterator:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            The iterator is parameterized by the type it is iterating over, and the
+            index of the current element.
+          </li>
+<li class="listitem">
+            The typedefs <code class="computeroutput"><span class="identifier">struct_type</span></code>
+            and <code class="computeroutput"><span class="identifier">index</span></code> provide convenient
+            access to information we will need later in the implementation.
+          </li>
+<li class="listitem">
+            The typedef <code class="computeroutput"><span class="identifier">category</span></code>
+            allows the <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><a class="link" href="../support/category_of.html" title="category_of"><code class="computeroutput"><span class="identifier">category_of</span></code></a></code>
+            metafunction to establish the traversal category of the iterator.
+          </li>
+<li class="listitem">
+            The constructor stores a reference to the <code class="computeroutput"><span class="identifier">example_struct</span></code>
+            being iterated over.
+          </li>
+</ol></div>
+<p>
+        We also need to enable <a class="link" href="../notes.html#fusion.notes.tag_dispatching"><span class="emphasis"><em>tag
+        dispatching</em></span></a> for our iterator type, with another specialization
+        of <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">tag_of</span></code>.
+      </p>
+<p>
+        In isolation, the iterator implementation is pretty dry. Things should become
+        clearer as we add features to our implementation.
+      </p>
+<h5>
+<a name="fusion.extension.ext_full.h3"></a>
+        <span class="phrase"><a name="fusion.extension.ext_full.a_first_couple_of_instructive_features"></a></span><a class="link" href="ext_full.html#fusion.extension.ext_full.a_first_couple_of_instructive_features">A
+        first couple of instructive features</a>
+      </h5>
+<p>
+        To start with, we will get the <a class="link" href="../iterator/metafunctions/value_of.html" title="value_of"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">value_of</span></code></a> metafunction working. To
+        do this, we provide a specialization of the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">extension</span><span class="special">::</span><span class="identifier">value_of_impl</span></code>
+        template for our iterator's tag type.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">value_of_impl</span><span class="special">&lt;</span><span class="identifier">example</span><span class="special">::</span><span class="identifier">example_struct_iterator_tag</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">apply</span><span class="special">;</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Struct</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">apply</span><span class="special">&lt;</span><span class="identifier">example</span><span class="special">::</span><span class="identifier">example_struct_iterator</span><span class="special">&lt;</span><span class="identifier">Struct</span><span class="special">,</span> <span class="number">0</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Struct</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">apply</span><span class="special">&lt;</span><span class="identifier">example</span><span class="special">::</span><span class="identifier">example_struct_iterator</span><span class="special">&lt;</span><span class="identifier">Struct</span><span class="special">,</span> <span class="number">1</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">int</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+<span class="special">};</span>
+</pre>
+<p>
+        The implementation itself is pretty simple, it just uses 2 partial specializations
+        to provide the type of the 2 different members of <code class="computeroutput"><span class="identifier">example_struct</span></code>,
+        based on the index of the iterator.
+      </p>
+<p>
+        To understand how <code class="computeroutput"><span class="identifier">value_of_impl</span></code>
+        is used by the library we will look at the implementation of <a class="link" href="../iterator/metafunctions/value_of.html" title="value_of"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">value_of</span></code></a>:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">value_of</span>
+    <span class="special">:</span> <span class="identifier">extension</span><span class="special">::</span><span class="identifier">value_of_impl</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">detail</span><span class="special">::</span><span class="identifier">tag_of</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span>
+        <span class="keyword">template</span> <span class="identifier">apply</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="special">{};</span>
+</pre>
+<p>
+        So <a class="link" href="../iterator/metafunctions/value_of.html" title="value_of"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">value_of</span></code></a>
+        uses <a class="link" href="../notes.html#fusion.notes.tag_dispatching"><span class="emphasis"><em>tag dispatching</em></span></a>
+        to select an <a href="http://www.boost.org/libs/mpl/doc/refmanual/metafunction-class.html" target="_top">MPL
+        Metafunction Class</a> to provide its functionality. You will notice
+        this pattern throughout the implementation of Fusion.
+      </p>
+<p>
+        Ok, lets enable dereferencing of our iterator. In this case we must provide
+        a suitable specialization of <code class="computeroutput"><span class="identifier">deref_impl</span></code>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">deref_impl</span><span class="special">&lt;</span><span class="identifier">example</span><span class="special">::</span><span class="identifier">example_struct_iterator_tag</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">apply</span><span class="special">;</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Struct</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">apply</span><span class="special">&lt;</span><span class="identifier">example</span><span class="special">::</span><span class="identifier">example_struct_iterator</span><span class="special">&lt;</span><span class="identifier">Struct</span><span class="special">,</span> <span class="number">0</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">if_</span><span class="special">&lt;</span>
+            <span class="identifier">is_const</span><span class="special">&lt;</span><span class="identifier">Struct</span><span class="special">&gt;,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;&gt;::</span><span class="identifier">type</span> <span class="identifier">type</span><span class="special">;</span>
+
+        <span class="keyword">static</span> <span class="identifier">type</span>
+        <span class="identifier">call</span><span class="special">(</span><span class="identifier">example</span><span class="special">::</span><span class="identifier">example_struct_iterator</span><span class="special">&lt;</span><span class="identifier">Struct</span><span class="special">,</span> <span class="number">0</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">it</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="identifier">it</span><span class="special">.</span><span class="identifier">struct_</span><span class="special">.</span><span class="identifier">name</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Struct</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">apply</span><span class="special">&lt;</span><span class="identifier">example</span><span class="special">::</span><span class="identifier">example_struct_iterator</span><span class="special">&lt;</span><span class="identifier">Struct</span><span class="special">,</span> <span class="number">1</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">if_</span><span class="special">&lt;</span>
+            <span class="identifier">is_const</span><span class="special">&lt;</span><span class="identifier">Struct</span><span class="special">&gt;,</span> <span class="keyword">int</span> <span class="keyword">const</span><span class="special">&amp;,</span> <span class="keyword">int</span><span class="special">&amp;&gt;::</span><span class="identifier">type</span> <span class="identifier">type</span><span class="special">;</span>
+
+        <span class="keyword">static</span> <span class="identifier">type</span>
+        <span class="identifier">call</span><span class="special">(</span><span class="identifier">example</span><span class="special">::</span><span class="identifier">example_struct_iterator</span><span class="special">&lt;</span><span class="identifier">Struct</span><span class="special">,</span> <span class="number">1</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">it</span><span class="special">)</span>
+        <span class="special">{</span>
+                <span class="keyword">return</span> <span class="identifier">it</span><span class="special">.</span><span class="identifier">struct_</span><span class="special">.</span><span class="identifier">age</span><span class="special">;</span>
+            <span class="special">}</span>
+        <span class="special">};</span>
+    <span class="special">};</span>
+<span class="special">}</span>
+</pre>
+<p>
+        The use of <code class="computeroutput"><span class="identifier">deref_impl</span></code> is
+        very similar to that of <code class="computeroutput"><span class="identifier">value_of_impl</span></code>,
+        but it also provides some runtime functionality this time via the <code class="computeroutput"><span class="identifier">call</span></code> static member function. To see how
+        <code class="computeroutput"><span class="identifier">deref_impl</span></code> is used, lets
+        have a look at the implementation of <a class="link" href="../iterator/functions/deref.html" title="deref"><code class="computeroutput"><span class="identifier">deref</span></code></a>:
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">result_of</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <a class="link" href="../iterator/functions/deref.html" title="deref"><code class="computeroutput"><span class="identifier">deref</span></code></a>
+        <span class="special">:</span> <span class="identifier">extension</span><span class="special">::</span><span class="identifier">deref_impl</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">detail</span><span class="special">::</span><span class="identifier">tag_of</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;::</span>
+            <span class="keyword">template</span> <span class="identifier">apply</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;</span>
+    <span class="special">{};</span>
+<span class="special">}</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">result_of</span><span class="special">::</span><span class="identifier">deref</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<a class="link" href="../iterator/functions/deref.html" title="deref"><code class="computeroutput"><span class="identifier">deref</span></code></a><span class="special">(</span><span class="identifier">Iterator</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">i</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">result_of</span><span class="special">::</span><span class="identifier">deref</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;</span> <span class="identifier">deref_meta</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="identifier">deref_meta</span><span class="special">::</span><span class="identifier">call</span><span class="special">(</span><span class="identifier">i</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        So again <a class="link" href="../iterator/metafunctions/deref.html" title="deref"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">deref</span></code></a> uses <a class="link" href="../notes.html#fusion.notes.tag_dispatching"><span class="emphasis"><em>tag
+        dispatching</em></span></a> in exactly the same way as the <a class="link" href="../iterator/metafunctions/value_of.html" title="value_of"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">value_of</span></code></a> implementation. The runtime
+        functionality used by <a class="link" href="../iterator/functions/deref.html" title="deref"><code class="computeroutput"><span class="identifier">deref</span></code></a> is provided by the <code class="computeroutput"><span class="identifier">call</span></code> static function of the selected <a href="http://www.boost.org/libs/mpl/doc/refmanual/metafunction-class.html" target="_top">MPL
+        Metafunction Class</a>.
+      </p>
+<p>
+        The actual implementation of <code class="computeroutput"><span class="identifier">deref_impl</span></code>
+        is slightly more complex than that of <code class="computeroutput"><span class="identifier">value_of_impl</span></code>.
+        We also need to implement the <code class="computeroutput"><span class="identifier">call</span></code>
+        function, which returns a reference to the appropriate member of the underlying
+        sequence. We also require a little bit of metaprogramming to return <code class="computeroutput"><span class="keyword">const</span></code> references if the underlying sequence
+        is const.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Although there is a fair amount of left to do to produce a fully fledged
+          Fusion sequence, <a class="link" href="../iterator/metafunctions/value_of.html" title="value_of"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">value_of</span></code></a> and <a class="link" href="../iterator/functions/deref.html" title="deref"><code class="computeroutput"><span class="identifier">deref</span></code></a> illustrate all the signficant
+          concepts required. The remainder of the process is very repetitive, simply
+          requiring implementation of a suitable <code class="computeroutput"><span class="identifier">xxxx_impl</span></code>
+          for each feature <code class="computeroutput"><span class="identifier">xxxx</span></code>.
+        </p></td></tr>
+</table></div>
+<h5>
+<a name="fusion.extension.ext_full.h4"></a>
+        <span class="phrase"><a name="fusion.extension.ext_full.implementing_the_remaining_iterator_functionality"></a></span><a class="link" href="ext_full.html#fusion.extension.ext_full.implementing_the_remaining_iterator_functionality">Implementing
+        the remaining iterator functionality</a>
+      </h5>
+<p>
+        Ok, now we have seen the way <a class="link" href="../iterator/metafunctions/value_of.html" title="value_of"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">value_of</span></code></a> and <a class="link" href="../iterator/functions/deref.html" title="deref"><code class="computeroutput"><span class="identifier">deref</span></code></a> work, everything else will
+        work in pretty much the same way. Lets start with forward iteration, by providing
+        a <code class="computeroutput"><span class="identifier">next_impl</span></code>:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">next_impl</span><span class="special">&lt;</span><span class="identifier">example</span><span class="special">::</span><span class="identifier">example_struct_iterator_tag</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">apply</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">::</span><span class="identifier">struct_type</span> <span class="identifier">struct_type</span><span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">::</span><span class="identifier">index</span> <span class="identifier">index</span><span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="identifier">example</span><span class="special">::</span><span class="identifier">example_struct_iterator</span><span class="special">&lt;</span><span class="identifier">struct_type</span><span class="special">,</span> <span class="identifier">index</span><span class="special">::</span><span class="identifier">value</span> <span class="special">+</span> <span class="number">1</span><span class="special">&gt;</span> <span class="identifier">type</span><span class="special">;</span>
+
+        <span class="keyword">static</span> <span class="identifier">type</span>
+        <span class="identifier">call</span><span class="special">(</span><span class="identifier">Iterator</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">i</span><span class="special">)</span>
+        <span class="special">{</span>
+             <span class="keyword">return</span> <span class="identifier">type</span><span class="special">(</span><span class="identifier">i</span><span class="special">.</span><span class="identifier">struct_</span><span class="special">);</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+<span class="special">};</span>
+</pre>
+<p>
+        This should be very familiar from our <code class="computeroutput"><span class="identifier">deref_impl</span></code>
+        implementation, we will be using this approach again and again now. Our design
+        is simply to increment the <code class="computeroutput"><span class="identifier">index</span></code>
+        counter to move on to the next element. The various other iterator manipulations
+        we need to perform will all just involve simple calculations with the <code class="computeroutput"><span class="identifier">index</span></code> variables.
+      </p>
+<p>
+        We also need to provide a suitable <code class="computeroutput"><span class="identifier">equal_to_impl</span></code>
+        so that iterators can be correctly compared. A <a class="link" href="../iterator/concepts/bidirectional_iterator.html" title="Bidirectional Iterator">Bidirectional
+        Iterator</a> will also need an implementation of <code class="computeroutput"><span class="identifier">prior_impl</span></code>.
+        For a <a class="link" href="../iterator/concepts/random_access_iterator.html" title="Random Access Iterator">Random
+        Access Iterator</a> <code class="computeroutput"><span class="identifier">distance_impl</span></code>
+        and <code class="computeroutput"><span class="identifier">advance_impl</span></code> also need
+        to be provided in order to satisfy the necessary complexity guarantees. As
+        our iterator is a <a class="link" href="../iterator/concepts/random_access_iterator.html" title="Random Access Iterator">Random
+        Access Iterator</a> we will have to implement all of these functions.
+      </p>
+<p>
+        Full implementations of <code class="computeroutput"><span class="identifier">prior_impl</span></code>,
+        <code class="computeroutput"><span class="identifier">advance_impl</span></code>, <code class="computeroutput"><span class="identifier">distance_impl</span></code> and <code class="computeroutput"><span class="identifier">equal_to_impl</span></code>
+        are provided in the example code.
+      </p>
+<h5>
+<a name="fusion.extension.ext_full.h5"></a>
+        <span class="phrase"><a name="fusion.extension.ext_full.implementing_the_intrinsic_functions_of_the_sequence"></a></span><a class="link" href="ext_full.html#fusion.extension.ext_full.implementing_the_intrinsic_functions_of_the_sequence">Implementing
+        the intrinsic functions of the sequence</a>
+      </h5>
+<p>
+        In order that Fusion can correctly identify our sequence as a Fusion sequence,
+        we need to enable <code class="computeroutput"><span class="identifier">is_sequence</span></code>
+        for our sequence type. As usual we just create an <code class="computeroutput"><span class="identifier">impl</span></code>
+        type specialized for our sequence tag:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">is_sequence_impl</span><span class="special">&lt;</span><span class="identifier">example</span><span class="special">::</span><span class="identifier">example_sequence_tag</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">apply</span> <span class="special">:</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span> <span class="special">{};</span>
+<span class="special">};</span>
+</pre>
+<p>
+        We've some similar formalities to complete, providing <code class="computeroutput"><span class="identifier">category_of_impl</span></code>
+        so Fusion can correctly identify our sequence type, and <code class="computeroutput"><span class="identifier">is_view_impl</span></code>
+        so Fusion can correctly identify our sequence as not being a <a class="link" href="../view.html" title="View">View</a>
+        type. Implementations are provide in the example code.
+      </p>
+<p>
+        Now we've completed some formalities, on to more interesting features. Lets
+        get <a class="link" href="../sequence/intrinsic/functions/begin.html" title="begin"><code class="computeroutput"><span class="identifier">begin</span></code></a> working so that we can get
+        an iterator to start accessing the data in our sequence.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">begin_impl</span><span class="special">&lt;</span><span class="identifier">example</span><span class="special">::</span><span class="identifier">example_sequence_tag</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Sequence</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">apply</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">example</span><span class="special">::</span><span class="identifier">example_struct_iterator</span><span class="special">&lt;</span><span class="identifier">Sequence</span><span class="special">,</span> <span class="number">0</span><span class="special">&gt;</span> <span class="identifier">type</span><span class="special">;</span>
+
+        <span class="keyword">static</span> <span class="identifier">type</span>
+        <span class="identifier">call</span><span class="special">(</span><span class="identifier">Sequence</span><span class="special">&amp;</span> <span class="identifier">seq</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="identifier">type</span><span class="special">(</span><span class="identifier">seq</span><span class="special">);</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+<span class="special">};</span>
+</pre>
+<p>
+        The implementation uses the same ideas we have applied throughout, in this
+        case we are just creating one of the iterators we developed earlier, pointing
+        to the first element in the sequence. The implementation of <a class="link" href="../sequence/intrinsic/functions/end.html" title="end"><code class="computeroutput"><span class="identifier">end</span></code></a> is very similar, and is provided
+        in the example code.
+      </p>
+<p>
+        For our <a class="link" href="../sequence/concepts/random_access_sequence.html" title="Random Access Sequence">Random
+        Access Sequence</a> we will also need to implement <code class="computeroutput"><span class="identifier">size_impl</span></code>,
+        <code class="computeroutput"><span class="identifier">value_at_impl</span></code> and <code class="computeroutput"><span class="identifier">at_impl</span></code>.
+      </p>
+<h5>
+<a name="fusion.extension.ext_full.h6"></a>
+        <span class="phrase"><a name="fusion.extension.ext_full.enabling_our_type_as_an_associative_sequence"></a></span><a class="link" href="ext_full.html#fusion.extension.ext_full.enabling_our_type_as_an_associative_sequence">Enabling
+        our type as an associative sequence</a>
+      </h5>
+<p>
+        In order for <code class="computeroutput"><span class="identifier">example_struct</span></code>
+        to serve as an associative forward sequence, we need to adapt the traversal
+        category of our sequence and our iterator accordingly and enable 3 intrinsic
+        sequence lookup features, <a class="link" href="../sequence/intrinsic/functions/at_key.html" title="at_key"><code class="computeroutput"><span class="identifier">at_key</span></code></a>, __value_at_key__ and <a class="link" href="../sequence/intrinsic/functions/has_key.html" title="has_key"><code class="computeroutput"><span class="identifier">has_key</span></code></a>.
+        We also need to enable 3 iterator lookup features, <a class="link" href="../iterator/metafunctions/key_of.html" title="key_of"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">key_of</span></code></a>, <a class="link" href="../iterator/metafunctions/value_of_data.html" title="value_of_data"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">value_of_data</span></code></a> and <a class="link" href="../iterator/functions/deref_data.html" title="deref_data"><code class="computeroutput"><span class="identifier">deref_data</span></code></a>.
+      </p>
+<p>
+        To implement <code class="computeroutput"><span class="identifier">at_key_impl</span></code>
+        we need to associate the <code class="computeroutput"><span class="identifier">fields</span><span class="special">::</span><span class="identifier">name</span></code>
+        and <code class="computeroutput"><span class="identifier">fields</span><span class="special">::</span><span class="identifier">age</span></code> types described in the <a class="link" href="../quick_start.html" title="Quick Start">Quick
+        Start</a> guide with the appropriate members of <code class="computeroutput"><span class="identifier">example_struct</span></code>.
+        Our implementation is as follows:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">at_key_impl</span><span class="special">&lt;</span><span class="identifier">example</span><span class="special">::</span><span class="identifier">example_sequence_tag</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Sequence</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Key</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">apply</span><span class="special">;</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Sequence</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">apply</span><span class="special">&lt;</span><span class="identifier">Sequence</span><span class="special">,</span> <span class="identifier">fields</span><span class="special">::</span><span class="identifier">name</span><span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">if_</span><span class="special">&lt;</span>
+            <span class="identifier">is_const</span><span class="special">&lt;</span><span class="identifier">Sequence</span><span class="special">&gt;,</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;,</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&amp;&gt;::</span><span class="identifier">type</span> <span class="identifier">type</span><span class="special">;</span>
+
+        <span class="keyword">static</span> <span class="identifier">type</span>
+        <span class="identifier">call</span><span class="special">(</span><span class="identifier">Sequence</span><span class="special">&amp;</span> <span class="identifier">seq</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="identifier">seq</span><span class="special">.</span><span class="identifier">name</span><span class="special">;</span>
+        <span class="special">};</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Sequence</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">apply</span><span class="special">&lt;</span><span class="identifier">Sequence</span><span class="special">,</span> <span class="identifier">fields</span><span class="special">::</span><span class="identifier">age</span><span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">if_</span><span class="special">&lt;</span>
+            <span class="identifier">is_const</span><span class="special">&lt;</span><span class="identifier">Sequence</span><span class="special">&gt;,</span>
+            <span class="keyword">int</span> <span class="keyword">const</span><span class="special">&amp;,</span>
+            <span class="keyword">int</span><span class="special">&amp;&gt;::</span><span class="identifier">type</span> <span class="identifier">type</span><span class="special">;</span>
+
+        <span class="keyword">static</span> <span class="identifier">type</span>
+        <span class="identifier">call</span><span class="special">(</span><span class="identifier">Sequence</span><span class="special">&amp;</span> <span class="identifier">seq</span><span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="identifier">seq</span><span class="special">.</span><span class="identifier">age</span><span class="special">;</span>
+        <span class="special">};</span>
+    <span class="special">};</span>
+<span class="special">};</span>
+</pre>
+<p>
+        Its all very similar to the implementations we've seen previously, such as
+        <code class="computeroutput"><span class="identifier">deref_impl</span></code> and <code class="computeroutput"><span class="identifier">value_of_impl</span></code>. Instead of identifying the
+        members by index or position, we are now selecting them using the types
+        <code class="computeroutput"><span class="identifier">fields</span><span class="special">::</span><span class="identifier">name</span></code> and <code class="computeroutput"><span class="identifier">fields</span><span class="special">::</span><span class="identifier">age</span></code>.
+        The implementations of the other functions are equally straightforward, and
+        are provided in the example code.
+      </p>
+<h5>
+<a name="fusion.extension.ext_full.h7"></a>
+        <span class="phrase"><a name="fusion.extension.ext_full.summary"></a></span><a class="link" href="ext_full.html#fusion.extension.ext_full.summary">Summary</a>
+      </h5>
+<p>
+        We've now worked through the entire process for adding a new random access
+        sequence and we've also enabled our type to serve as an associative sequence.
+        The implementation was slightly longwinded, but followed a simple repeating
+        pattern.
+      </p>
+<p>
+        The support for <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code>, <a href="http://www.boost.org/libs/mpl/index.html" target="_top">MPL</a>
+        sequences, and <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span></code> all use the same approach, and provide
+        additional examples of the approach for a variety of types.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../extension.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../extension.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="sequence_facade.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

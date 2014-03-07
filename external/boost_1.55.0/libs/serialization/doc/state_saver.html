@@ -1,0 +1,82 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - <code style="white-space: normal">state_saver</code></title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center"><code style="white-space: normal">state_saver</code</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<p>
+Sometimes a certain value has to change only for a limited scope. 
+This class wrapper saves a copy of the current state of some object, 
+and resets the object's state at destruction time, undoing any change the object 
+may have gone through.  Here is the interface:
+
+<pre><code>
+template<class T>
+// T requirements:
+//  - POD or object semantic (cannot be reference, function, ...)
+//  - copy constructor
+//  - operator = (no-throw one preferred)
+class state_saver : private boost::noncopyable
+{
+private:
+    ... // implementation
+
+public:
+    state_saver(T & object);
+    ~state_saver();
+};
+</code></pre>
+
+The complete implementation can be found
+<a target="state_saver" href="../../../boost/serialization/state_saver.hpp">here</a>
+
+The following illustrates how this is expected to be used.
+
+<pre><code>
+#include &lt;boost/state_saver.hpp&gt;
+
+void func(A & a)
+    boost::state_saver&lt;A&gt; s(a);
+    ... // alter state of a by calling non-const functions
+    ... // call other functions
+    // original state of a automatically restored on exit
+}
+</pre></code>
+
+<h3>History</h3>
+This is a generalization of Daryle Walker's 
+<a href="../../../libs/io/doc/ios_state.html">io_state_saver</a> library.
+<p>
+Robert Ramey made an initial version for the serialization library.
+<p>
+Pavel Vozenilek made several non-obvious refinements to make it more
+secure and boost friendly
+
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

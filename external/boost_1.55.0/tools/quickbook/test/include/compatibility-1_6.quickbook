@@ -1,0 +1,17 @@
+[article Test Compatibility Mode
+[id compatibility]
+[quickbook 1.6]
+]
+
+[section:collision Outer]
+[include compatibility-inc.quickbook]
+[endsect]
+[section:collision Include compatibility 1.1]
+[include compatibility-inc_1_1.quickbook]
+[endsect]
+[section:collision Include compatibility 1.5]
+[include compatibility-inc_1_5.quickbook]
+[endsect]
+[section:collision Include compatibility 1.6]
+[include compatibility-inc_1_6.quickbook]
+[endsect]

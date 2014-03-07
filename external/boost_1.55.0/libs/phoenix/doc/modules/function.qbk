@@ -1,0 +1,402 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Function]
+
+The `function` class template provides a mechanism for implementing lazily
+evaluated functions. Syntactically, a lazy function looks like an ordinary C/C++
+function. The function call looks familiar and feels the same as ordinary C++
+functions. However, unlike ordinary functions, the actual function execution is
+deferred.
+
+    #include <boost/phoenix/function.hpp>
+
+Unlike ordinary function pointers or functor objects that need to be explicitly
+bound through the bind function (see [link phoenix.modules.bind Bind]),
+the argument types of these functions are automatically lazily bound.
+
+In order to create a lazy function, we need to implement a model of the
+__PFO__ concept. For a function that takes `N` arguments, a model of __PFO__ must
+provide:
+
+* An `operator()` that takes `N` arguments, and implements
+the function logic. This is also true for ordinary function pointers.
+* A nested metafunction `result<Signature>` or nested typedef `result_type`, following the __boost_result_of__ Protocol
+
+[/
+* A nested metafunction `result<A1, ... AN>` that takes the types of the `N` arguments to
+the function and returns the result type of the function. (There is a special case for function
+objects that accept no arguments. Such nullary functors are only required to define a typedef
+`result_type` that reflects the return type of its `operator()`).
+]
+
+For example, the following type implements the FunctionEval concept, in order to provide a
+lazy factorial function:
+
+    struct factorial_impl
+    {
+        template <typename Sig>
+        struct result;
+        
+        template <typename This, typename Arg>
+        struct result<This(Arg const &)>
+        {
+            typedef Arg type;
+        };
+
+        template <typename Arg>
+        Arg operator()(Arg const & n) const
+        {
+            return (n <= 0) ? 1 : n * (*this)(n-1);
+        }
+    };
+
+(See [@../../example/factorial.cpp factorial.cpp])
+
+[/note The type of Arg is either a const-reference or non-const-reference
+(depending on whether your argument to the actor evaluation is a const-ref or
+non-const-ref).]
+
+Having implemented the `factorial_impl` type, we can declare and instantiate a lazy
+`factorial` function this way:
+
+    function<factorial_impl> factorial;
+
+Invoking a lazy function such as `factorial` does not immediately execute the function
+object `factorial_impl`. Instead, an [link phoenix.actor actor] object is
+created and returned to the caller. Example:
+
+    factorial(arg1)
+
+does nothing more than return an actor. A second function call will invoke
+the actual factorial function. Example:
+
+    std::cout << factorial(arg1)(4);
+
+will print out "24".
+
+Take note that in certain cases (e.g. for function objects with state), an
+instance of the model of __PFO__ may be passed on to the constructor. Example:
+
+    function<factorial_impl> factorial(ftor);
+
+where ftor is an instance of factorial_impl (this is not necessary in this case
+as `factorial_impl` does not require any state).
+
+[important Take care though when using function objects with state because they are
+often copied repeatedly, and state may change in one of the copies, rather than the
+original.]
+
+[section Adapting Functions]
+
+If you want to adapt already existing functions or function objects it will become
+a repetetive task. Therefor the following boilerplate macros are provided to help
+you adapt already exsiting functions, thus reducing the need to
+[link phoenix.modules.bind] functions.
+
+[section BOOST_PHOENIX_ADAPT_FUNCTION_NULLARY]
+
+[heading Description]
+`BOOST_PHOENIX_ADAPT_FUNCTION_NULLARY` is a macro that can be used to generate
+all the necessary boilerplate to make an arbitrary nullary function a lazy
+function.
+
+[note These macros generate no global objects. The resulting lazy functions are real functions
+      that create the lazy function expression object]
+
+[heading Synopsis]
+
+    BOOST_PHOENIX_ADAPT_FUNCTION_NULLARY(
+        RETURN_TYPE
+      , LAZY_FUNCTION
+      , FUNCTION
+    )
+
+[heading Semantics]
+
+The above macro generates all necessary code to have a nullary lazy function
+`LAZY_FUNCTION` which calls the nullary `FUNCTION` that has the return type
+`RETURN_TYPE`
+
+[heading Header]
+
+    #include <boost/phoenix/function/adapt_function.hpp>
+
+[heading Example]
+
+    namespace demo
+    {
+        int foo()
+        {
+            return 42;
+        }
+    }
+
+    BOOST_PHOENIX_ADAPT_FUNCTION_NULLARY(int, foo, demo::foo)
+
+    int main()
+    {
+        using boost::phoenix::placeholders::_1;
+
+        assert((_1 + foo())(1) == 43);
+    }
+
+[endsect]
+
+[section BOOST_PHOENIX_ADAPT_FUNCTION]
+
+[heading Description]
+`BOOST_PHOENIX_ADAPT_FUNCTION` is a macro that can be used to generate
+all the necessary boilerplate to make an arbitrary function a lazy function.
+
+[heading Synopsis]
+
+    BOOST_PHOENIX_ADAPT_FUNCTION(
+        RETURN_TYPE
+      , LAZY_FUNCTION
+      , FUNCTION
+      , FUNCTION_ARITY
+    )
+
+[heading Semantics]
+
+The above macro generates all necessary code to have a lazy function
+`LAZY_FUNCTION` which calls `FUNCTION` that has the return type
+`RETURN_TYPE` with `FUNCTION_ARITY` number of arguments.
+
+[heading Header]
+
+    #include <boost/phoenix/function/adapt_function.hpp>
+
+[heading Example]
+
+    namespace demo
+    {
+        int plus(int a, int b)
+        {
+            return a + b;
+        }
+
+        template <typename T>
+        T
+        plus(T a, T b, T c)
+        {
+            return a + b + c;
+        }
+    }
+
+    BOOST_PHOENIX_ADAPT_FUNCTION(int, plus, demo::plus, 2)
+
+    BOOST_PHOENIX_ADAPT_FUNCTION(
+        typename remove_reference<A0>::type
+      , plus
+      , demo::plus
+      , 3
+    )
+
+    int main()
+    {
+        using boost::phoenix::arg_names::arg1;
+        using boost::phoenix::arg_names::arg2;
+
+        int a = 123;
+        int b = 256;
+
+        assert(plus(arg1, arg2)(a, b) == a+b);
+        assert(plus(arg1, arg2, 3)(a, b) == a+b+3);
+    }
+
+[endsect]
+
+[/
+
+[section BOOST_PHOENIX_ADAPT_FUNCTION_VARARG]
+
+[heading Description]
+`BOOST_PHOENIX_ADAPT_FUNCTION_VARARG` is a macro that can be used to generate
+all the necessary boilerplate to make an arbitrary function a lazy
+function.
+
+[heading Synopsis]
+
+    BOOST_PHOENIX_ADAPT_FUNCTION_VARARG(
+        RETURN_TYPE
+      , LAZY_FUNCTION
+      , FUNCTION
+    )
+
+[heading Semantics]
+
+[heading Header]
+    
+    #include <boost/phoenix/function/adapt_function.hpp>
+
+[heading Example]
+
+[endsect]
+]
+
+[section BOOST_PHOENIX_ADAPT_CALLABLE_NULLARY]
+
+[heading Description]
+`BOOST_PHOENIX_ADAPT_CALLABLE_NULLARY` is a macro that can be used to generate
+all the necessary boilerplate to make an arbitrary nullary function object a
+lazy function.
+
+[heading Synopsis]
+
+    BOOST_PHOENIX_ADAPT_CALLABLE_NULLARY(
+        LAZY_FUNCTION
+      , CALLABLE
+    )
+
+[heading Semantics]
+
+The above macro generates all necessary code to create `LAZY_FUNCTION` which
+creates a lazy function object that represents a nullary call to `CALLABLE`.
+The return type is specified by `CALLABLE` conforming to the __boost_result_of__
+protocol.
+
+[heading Header]
+    
+    #include <boost/phoenix/function/adapt_callable.hpp>
+
+[heading Example]
+
+    namespace demo
+    {
+        struct foo
+        {
+            typedef int result_type;
+
+            result_type operator()() const
+            {
+                return 42;
+            }
+        }
+    }
+    
+    BOOST_PHOENIX_ADAPT_CALLABLE_NULLARY(foo, demo::foo)
+
+    int main()
+    {
+        using boost::phoenix::placeholders::_1;
+
+        assert((_1 + foo())(1) == 43);
+    }
+
+[endsect]
+
+[section BOOST_PHOENIX_ADAPT_CALLABLE]
+
+[heading Description]
+`BOOST_PHOENIX_ADAPT_CALLABLE` is a macro that can be used to generate
+all the necessary boilerplate to make an arbitrary function object a lazy
+function.
+
+[heading Synopsis]
+
+    BOOST_PHOENIX_ADAPT_CALLABLE(
+        LAZY_FUNCTION
+      , FUNCTION_NAME
+      , FUNCTION_ARITY
+    )
+
+[heading Semantics]
+
+The above macro generates all necessary code to create `LAZY_FUNCTION` which
+creates a lazy function object that represents a call to `CALLABLE` with `FUNCTION_ARITY`
+arguments.
+The return type is specified by `CALLABLE` conforming to the __boost_result_of__
+protocol.
+
+[heading Header]
+    
+    #include <boost/phoenix/function/adapt_callable.hpp>
+
+[heading Example]
+
+    namespace demo
+    {
+        struct plus
+        {
+            template <typename Sig>
+            struct result;
+
+            template <typename This, typename A0, typename A1>
+            struct result<This(A0, A1)>
+                : remove_reference<A0>
+            {};
+
+            template <typename This, typename A0, typename A1, typename A2>
+            struct result<This(A0, A1, A2)>
+                : remove_reference<A0>
+            {};
+
+            template <typename A0, typename A1>
+            A0 operator()(A0 const & a0, A1 const & a1) const
+            {
+                return a0 + a1;
+            }
+
+            template <typename A0, typename A1, typename A2>
+            A0 operator()(A0 const & a0, A1 const & a1, A2 const & a2) const
+            {
+                return a0 + a1 + a2;
+            }
+        };
+    }
+
+    BOOST_PHOENIX_ADAPT_CALLABLE(plus, demo::plus, 2)
+
+    BOOST_PHOENIX_ADAPT_CALLABLE(plus, demo::plus, 3)
+
+    int main()
+    {
+        using boost::phoenix::arg_names::arg1;
+        using boost::phoenix::arg_names::arg2;
+
+        int a = 123;
+        int b = 256;
+
+        assert(plus(arg1, arg2)(a, b) == a+b);
+        assert(plus(arg1, arg2, 3)(a, b) == a+b+3);
+    }
+
+[endsect]
+
+[/
+[section BOOST_PHOENIX_ADAPT_CALLABLE_VARARG]
+
+[heading Description]
+`BOOST_PHOENIX_ADAPT_CALLABLE_VARARG` is a macro that can be used to generate
+all the necessary boilerplate to make an arbitrary function object a lazy
+function.
+
+[heading Synopsis]
+
+    BOOST_PHOENIX_ADAPT_CALLABLE_VARARG(
+        LAZY_FUNCTION_NAME
+      , FUNCTION_NAME
+    )
+
+[heading Semantics]
+
+[heading Header]
+    
+    #include <boost/phoenix/function/adapt_callable.hpp>
+
+[heading Example]
+
+[endsect]
+/]
+
+[endsect]
+
+[endsect]

@@ -1,0 +1,90 @@
+#==============================================================================
+#    Copyright (c) 2003-2006 Joel de Guzman
+#
+#   Use, modification and distribution is subject to the Boost Software
+#   License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+
+# bring in rules for testing
+import testing ;
+
+local multi-threading = <library>/boost/thread//boost_thread 
+                        <threading>multi <define>BOOST_ALL_NO_LIB=1 ;
+
+test-suite phoenix_detail :
+    [ run detail/type_deduction_tests.cpp ] 
+    ;
+
+test-suite phoenix_core :
+    [ run core/primitives_tests.cpp ] 
+    [ run core/compose_tests.cpp ] 
+    ;
+
+test-suite phoenix_operator :
+    [ run operator/arithmetic_tests.cpp ] 
+    [ run operator/bitwise_tests.cpp ] 
+    [ run operator/comparison_tests.cpp ] 
+    [ run operator/if_else_tests.cpp ] 
+    [ run operator/io_tests.cpp ] 
+    [ run operator/logical_tests.cpp ] 
+    [ run operator/misc_binary_tests.cpp ] 
+    [ run operator/self_tests.cpp ] 
+    [ run operator/unary_tests.cpp ] 
+    [ run operator/member.cpp ]
+    ;
+
+test-suite phoenix_object :
+    [ run object/cast_tests.cpp ] 
+    [ run object/new_delete_tests.cpp ] 
+    ;
+
+test-suite phoenix_function :
+    [ run function/function_tests.cpp ] 
+    ;
+
+test-suite phoenix_bind :
+    [ run bind/bind_function_tests.cpp ] 
+    [ run bind/bind_function_object_tests.cpp ] 
+    [ run bind/bind_member_function_tests.cpp ]
+    [ run bind/bind_member_variable_tests.cpp ]
+    ;
+    
+test-suite phoenix_statement :
+    [ run statement/if_tests.cpp ] 
+    [ run statement/loops_tests.cpp ] 
+    [ run statement/switch_tests.cpp ] 
+    [ run statement/exceptions.cpp ]
+    ;
+        
+test-suite phoenix_container :
+    [ run container/container_tests1a.cpp ] 
+    [ run container/container_tests1b.cpp ] 
+    [ run container/container_tests2a.cpp ] 
+    [ run container/container_tests2b.cpp ] 
+    [ run container/container_tests3a.cpp ] 
+    [ run container/container_tests3b.cpp ] 
+    [ run container/container_tests4a.cpp ] 
+    [ run container/container_tests4b.cpp ] 
+    [ run container/container_tests5a.cpp ] 
+    [ run container/container_tests5b.cpp ] 
+    [ run container/container_tests6a.cpp ] 
+    [ run container/container_tests6b.cpp ] 
+    ;
+
+test-suite phoenix_scope :
+    [ run scope/lambda_tests.cpp ] 
+    [ run scope/let_tests.cpp ] 
+    [ run scope/dynamic_tests.cpp ] 
+    [ run scope/bug_000008.cpp : : : $(multi-threading) ] 
+    ;
+
+test-suite phoenix_algorithm :
+    [ run algorithm/iteration.cpp ]
+    [ run algorithm/transformation1.cpp ]
+    [ run algorithm/transformation2.cpp ]
+    [ run algorithm/transformation3.cpp ]
+    [ run algorithm/transformation4.cpp ]
+    [ run algorithm/querying.cpp ]
+    [ run algorithm/querying2.cpp ]
+    ;

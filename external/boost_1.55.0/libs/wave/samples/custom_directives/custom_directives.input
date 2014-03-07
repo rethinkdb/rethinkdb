@@ -1,0 +1,8 @@
+// This example recognizes two additional preprocessor directives (as defined
+// in GLSL - OpenGL Shader Language).
+
+#version 150 core
+#extension all : require   // trailing comment
+
+// the following directive is not supported, so it will trigger an exception
+#not_supported_directive

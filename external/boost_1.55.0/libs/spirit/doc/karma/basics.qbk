@@ -1,0 +1,108 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:basics Generator Basics]
+
+[heading Lazy Argument]
+
+Some generators (e.g. primitives and non-terminals) may take in additional
+attributes. Such generators take the form:
+
+    g(a1, a2,..., aN)
+
+where `g` is a generator. Each of the arguments (a1 ... aN) can either be an
+immediate value, or a function, `f`, with signature:
+
+    T f(Unused, Context)
+
+where `T`, the function's return value, is compatible with the argument
+type expected and `Context` is the generator's __karma_context__ type (The 
+first argument is __unused__ to make the `Context` the second argument. This
+is done for uniformity with __karma_actions__).
+
+[heading Character Encoding Namespace]
+
+Some generators need to know which character set a `char` or `wchar_t` is
+operating on. For example, the `alnum` generator works differently with
+ISO8859.1 and ASCII encodings. Where necessary, Spirit encodes (tags)
+the generator with the character set. 
+
+We have a namespace for each character set Spirit will be supporting.
+That includes `ascii`, `iso8859_1`, `standard` and `standard_wide` (and
+in the future, `unicode`). In each of the character encoding namespaces,
+we place tagged versions of generators such as `alnum`, `space` etc. 
+
+Example:
+
+    using boost::spirit::ascii::space; // use the ASCII space generator
+
+Namespaces:
+
+* boost::spirit::ascii
+* boost::spirit::iso8859_1
+* boost::spirit::standard
+* boost::spirit::standard_wide
+
+For ease of use, the components in this namespaces are also brought into
+the karma sub-namespaces with the same names:
+
+* boost::spirit::karma::ascii
+* boost::spirit::karma::iso8859_1
+* boost::spirit::karma::standard
+* boost::spirit::karma::standard_wide
+
+[heading Examples]
+
+All sections in the reference present some real world examples. The
+examples use a common test harness to keep the example code as minimal
+and direct to the point as possible. The test harness is presented
+below.
+
+Some includes:
+
+[reference_karma_includes]
+
+The used output  iterator:
+
+[reference_karma_output_iterator]
+
+Our test functions:
+
+This one tests the generators without attributes.
+
+[reference_karma_test]
+
+These test the generators with one or more user supplied attributes.
+
+[reference_karma_test_attr]
+[reference_karma_test_attr2]
+
+This tests the generators with one attribute and while using delimited output.
+
+[reference_karma_test_attr_delim]
+
+The examples of the binary generators use one or more of the following tests.
+
+[reference_karma_binary_test]
+[reference_karma_binary_test_attr]
+
+[heading Models]
+
+Predefined models include:
+
+* any literal string, e.g. "Hello, World", 
+* a pointer/reference to a null-terminated array of characters
+* a `std::basic_string<Char>`
+
+The namespace `boost::spirit::traits` is open for users to provide their
+own specializations. The customization points implemented by __karma__ usable
+to customize the behavior of generators are described in the section 
+__sec_customization_points__.
+
+[endsect]
+

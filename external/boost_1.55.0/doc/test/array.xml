@@ -1,0 +1,64 @@
+<section id="array.intro">
+    <title>Introduction</title> 
+
+    <using-namespace name="boost"/>
+    <using-class name="array"/>
+
+    <para>The C++ Standard Template Library STL as part of the C++
+    Standard Library provides a framework for processing algorithms on
+    different kind of containers. However, ordinary arrays don't
+    provide the interface of STL containers (although, they provide
+    the iterator interface of STL containers).</para>
+
+    <para>As replacement for ordinary arrays, the STL provides class
+    <code><classname>std::vector</classname></code>.  However,
+    <code><classname>std::vector&lt;&gt;</classname></code> provides
+    the semantics of dynamic arrays. Thus, it manages data to be able
+    to change the number of elements. This results in some overhead in
+    case only arrays with static size are needed.</para>
+
+    <para>In his book, <emphasis>Generic Programming and the
+    STL</emphasis>, Matthew H. Austern introduces a useful wrapper
+    class for ordinary arrays with static size, called
+    <code>block</code>.  It is safer and has no worse performance than
+    ordinary arrays. In <emphasis>The C++ Programming
+    Language</emphasis>, 3rd edition, Bjarne Stroustrup introduces a
+    similar class, called <code>c_array</code>, which I (<ulink
+    url="http://www.josuttis.com">Nicolai Josuttis</ulink>) present
+    slightly modified in my book <emphasis>The C++ Standard Library -
+    A Tutorial and Reference</emphasis>, called
+    <code>carray</code>. This is the essence of these approaches
+    spiced with many feedback from <ulink
+    url="http://www.boost.org">boost</ulink>.</para>
+
+    <para>After considering different names, we decided to name this
+    class simply <code><classname>array</classname></code>.</para>
+
+    <para>Note that this class is suggested to be part of the next
+    Technical Report, which will extend the C++ Standard (see
+    <ulink url="http://std.dkuug.dk/jtc1/sc22/wg21/docs/papers/2003/n1548.htm">http://std.dkuug.dk/jtc1/sc22/wg21/docs/papers/2003/n1548.htm</ulink>).</para>
+
+    <para>Class <code><classname>array</classname></code> fulfills most
+    but not all of the requirements of "reversible containers" (see
+    Section 23.1, [lib.container.requirements] of the C++
+    Standard). The reasons array is not an reversible STL container is
+    because:
+      <itemizedlist spacing="compact">
+        <listitem><simpara>No constructors are provided.</simpara></listitem>
+        <listitem><simpara>Elements may have an undetermined initial value (see <xref linkend="array.rationale"/>).</simpara></listitem>
+        <listitem><simpara><functionname>swap</functionname>() has no constant complexity.</simpara></listitem>
+        <listitem><simpara><methodname>size</methodname>() is always constant, based on the second template argument of the type.</simpara></listitem>
+        <listitem><simpara>The container provides no allocator support.</simpara></listitem>
+      </itemizedlist>
+    </para>
+
+    <para>It doesn't fulfill the requirements of a "sequence" (see Section 23.1.1, [lib.sequence.reqmts] of the C++ Standard), except that:
+      <itemizedlist spacing="compact">
+        <listitem><simpara><methodname>front</methodname>() and <methodname>back</methodname>() are provided.</simpara></listitem>
+        <listitem><simpara><methodname>operator[]</methodname> and <methodname>at</methodname>() are provided.</simpara></listitem>
+      </itemizedlist>
+    </para>
+  </section>
+  
+
+

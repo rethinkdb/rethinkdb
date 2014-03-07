@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE header PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<header name="boost/signal.hpp" last-revision="$Date: 2007-11-25 10:38:02 -0800 (Sun, 25 Nov 2007) $">
+  <namespace name="boost">
+    <namespace name="signals">
+      <enum name="connect_position">
+        <enumvalue name="at_front"/>
+        <enumvalue name="at_back"/>
+      </enum>
+    </namespace>
+    <class name="signalN">
+      <template>
+        <template-type-parameter name="R"/>
+        <template-type-parameter name="T1"/>
+        <template-type-parameter name="T2"/>
+        <template-varargs/>
+        <template-type-parameter name="TN"/>
+        <template-type-parameter name="Combiner">
+          <default><classname>last_value</classname>&lt;R&gt;</default>
+        </template-type-parameter>
+        <template-type-parameter name="Group">
+          <default>int</default>
+        </template-type-parameter>
+        <template-type-parameter name="GroupCompare">
+          <default><classname>std::less</classname>&lt;Group&gt;</default>
+        </template-type-parameter>
+        <template-type-parameter name="SlotFunction">
+          <default><classname>functionN</classname>&lt;R, T1, T2, ..., TN&gt;</default>
+        </template-type-parameter>
+      </template>
+      <inherit access="public"><classname>signals::trackable</classname></inherit>
+      <inherit access="private">
+        <type><classname>noncopyable</classname></type>
+	<purpose>Exposition only</purpose>
+      </inherit>
+
+      <purpose>Set of safe multicast callback types.</purpose>
+
+      <description> 
+        <para>The class template <classname>signalN</classname> covers
+         several related classes signal0, signal1, signal2, etc.,
+         where the number suffix describes the number of function
+         parameters the signal and its connected slots will
+         take. Instead of enumerating all classes, a single pattern
+         <classname>signalN</classname> will be described, where N
+         represents the number of function parameters.</para>
+      </description>
+
+      <typedef name="result_type">
+        <type>typename Combiner::result_type</type>
+      </typedef>
+      <typedef name="combiner_type"><type>Combiner</type></typedef>
+      <typedef name="group_type"><type>Group</type></typedef>
+      <typedef name="group_compare_type"><type>GroupCompare</type></typedef>
+      <typedef name="slot_function_type"><type>SlotFunction</type></typedef>
+      <typedef name="slot_type">
+        <type><classname>slot</classname>&lt;SlotFunction&gt;</type>
+      </typedef>
+      <typedef name="slot_result_type">
+        <type><emphasis>unspecified</emphasis></type>
+      </typedef>
+      <typedef name="slot_call_iterator">
+        <type><emphasis>unspecified</emphasis></type>
+      </typedef>
+      <typedef name="argument_type">
+        <type>T1</type>
+        <purpose>If N == 1</purpose>
+      </typedef>
+      <typedef name="first_argument_type">
+        <type>T1</type>
+        <purpose>If N == 2</purpose>
+      </typedef>
+      <typedef name="second_argument_type">
+        <type>T2</type>
+        <purpose>If N == 2</purpose>
+      </typedef>
+      <typedef name="arg1_type"><type>T1</type></typedef>
+      <typedef name="arg2_type"><type>T2</type></typedef>
+      <typedef name="..."><type/></typedef>
+      <typedef name="argN_type"><type>TN</type></typedef>
+
+      <static-constant name="arity">
+        <type>int</type>
+        <default>N</default>
+      </static-constant>
+
+      <constructor>
+        <parameter name="combiner">
+          <paramtype>const combiner_type&amp;</paramtype>
+          <default>combiner_type()</default>
+        </parameter>
+        <parameter name="compare">
+          <paramtype>const group_compare_type&amp;</paramtype>
+          <default>group_compare_type()</default>
+        </parameter>
+
+        <effects><simpara>Initializes the signal to contain no slots, copies the given combiner into internal storage, and stores the given group comparison function object to compare groups.</simpara></effects>
+
+        <postconditions><simpara><computeroutput>this-&gt;<methodname>empty</methodname>()</computeroutput></simpara></postconditions>
+      </constructor>
+
+      <destructor>
+        <effects><simpara>Disconnects all slots connected to <computeroutput>*this</computeroutput>.</simpara></effects>
+      </destructor>
+
+      <method-group name="connection management">
+        <overloaded-method name="connect">
+          <signature>
+            <type><classname>signals::connection</classname></type>
+            <parameter name="slot">
+              <paramtype>const slot_type&amp;</paramtype>
+            </parameter>
+            <parameter name="at">
+              <paramtype>signals::connect_position</paramtype>
+              <default>signals::at_back</default>
+            </parameter>
+          </signature>
+
+          <signature>
+            <type><classname>signals::connection</classname></type>
+            <parameter name="group">
+              <paramtype>const group_type&amp;</paramtype>
+            </parameter>
+            <parameter name="slot">
+              <paramtype>const slot_type&amp;</paramtype>
+            </parameter>
+            <parameter name="at">
+              <paramtype>signals::connect_position</paramtype>
+              <default>signals::at_back</default>
+            </parameter>
+          </signature>
+
+          <effects><simpara>Connects the signal this to the incoming
+          slot. If the slot is inactive, i.e., any of the trackable
+          objects bound by the slot call have been destroyed, then the
+          call to connect is a no-op. If the second version of
+          <computeroutput>connect</computeroutput> is invoked, the
+          slot is associated with the given group. The <code>at</code>
+          parameter specifies where the slot should be connected:
+          <code>at_front</code> indicates that the slot will be
+          connected at the front of the list or group of slots and
+          <code>at_back</code> indicates that the slot will be
+          connected at the back of the list or group of
+          slots.</simpara></effects>
+
+          <returns><simpara>A
+          <computeroutput><classname>signals::connection</classname></computeroutput>
+          object that references the newly-created connection between
+          the signal and the slot; if the slot is inactive, returns a
+          disconnected connection.</simpara></returns>
+
+          <throws><simpara>This routine meets the strong exception guarantee,
+          where any exception thrown will cause the slot to not be
+          connected to the signal.</simpara></throws> 
+
+          <complexity><simpara>Constant time when connecting a slot
+          without a group name or logarithmic in the number of groups
+          when connecting to a particular
+          group.</simpara></complexity>
+
+          <notes><simpara>It is unspecified whether connecting a slot while the
+          signal is calling will result in the slot being called
+          immediately.</simpara></notes>
+        </overloaded-method>
+
+        <overloaded-method name="disconnect">
+          <signature>
+            <type>void</type>
+            <parameter name="group">
+              <paramtype>const group_type&amp;</paramtype>
+            </parameter>
+          </signature>
+          <signature>
+            <template>
+              <template-type-parameter name="Slot"/>
+            </template>
+            <type>void</type>
+            <parameter name="slot">
+              <paramtype>const Slot&amp;</paramtype>
+            </parameter>
+          </signature>
+
+          <effects><simpara>If the parameter is (convertible to) a
+          group name, any slots in the given group are
+          disconnected. Otherwise, any slots equal to the given slot
+          are disconnected.</simpara></effects>
+
+          <throws><simpara>Will not throw unless a user destructor or
+          equality operator <code>==</code> throws. If either throws,
+          not all slots may be disconnected.</simpara></throws>
+
+          <complexity><simpara>If a group is given, O(lg g) + k where
+          g is the number of groups in the signal and k is the
+          number of slots in the group. Otherwise, linear in the
+          number of slots connected to the
+          signal.</simpara></complexity>
+        </overloaded-method>
+ 
+        <method name="disconnect_all_slots">
+          <type>void</type>
+          <effects><simpara>Disconnects all slots connected to the signal.</simpara></effects>
+
+          <postconditions><simpara><computeroutput>this-&gt;<methodname>empty</methodname>()</computeroutput>.</simpara></postconditions>
+
+          <throws><simpara>If disconnecting a slot causes an exception to be
+          thrown, not all slots may be disconnected.</simpara></throws>
+
+          <complexity><simpara>Linear in the number of slots known to the
+          signal.</simpara></complexity>
+
+          <notes><simpara>May be called at any time within the lifetime of the
+          signal, including during calls to the signal's slots.</simpara></notes>
+        </method>
+
+        <method name="empty" cv="const">
+          <type>bool</type>
+          <returns><simpara><computeroutput>true</computeroutput> if no slots
+          are connected to the signal, and
+          <computeroutput>false</computeroutput> otherwise.</simpara></returns>
+
+          <throws><simpara>Will not throw.</simpara></throws>
+
+          <complexity><simpara>Linear in the number of slots known to the
+          signal.</simpara></complexity>
+
+          <rationale><simpara>Slots can disconnect at any point in time,
+          including while those same slots are being invoked. It is
+          therefore possible that the implementation must search
+          through a list of disconnected slots to determine if any
+          slots are still connected.</simpara></rationale>
+        </method>
+
+        <method name="num_slots" cv="const">
+          <type>std::size_t</type>
+          <returns><simpara>The number of slots connected to the signal</simpara></returns>
+
+          <throws><simpara>Will not throw.</simpara></throws>
+
+          <complexity><simpara>Linear in the number of slots known to the
+          signal.</simpara></complexity>
+
+          <rationale><simpara>Slots can disconnect at any point in time,
+          including while those same slots are being invoked. It is
+          therefore possible that the implementation must search
+          through a list of disconnected slots to determine how many
+          slots are still connected.</simpara></rationale>
+        </method>
+      </method-group>
+
+      <method-group name="invocation">
+        <overloaded-method name="operator()">
+          <signature>
+            <type>result_type</type>
+            <parameter name="a1"><paramtype>arg1_type</paramtype></parameter>
+            <parameter name="a2"><paramtype>arg2_type</paramtype></parameter>
+            <parameter><paramtype>...</paramtype></parameter>
+            <parameter name="aN"><paramtype>argN_type</paramtype></parameter>
+          </signature>
+ 
+          <signature cv="const">
+            <type>result_type</type>
+            <parameter name="a1"><paramtype>arg1_type</paramtype></parameter>
+            <parameter name="a2"><paramtype>arg2_type</paramtype></parameter>
+            <parameter><paramtype>...</paramtype></parameter>
+            <parameter name="aN"><paramtype>argN_type</paramtype></parameter>
+          </signature>
+
+          <effects><simpara>Invokes the combiner with a
+          <computeroutput>slot_call_iterator</computeroutput> range
+          [first, last) corresponding to the sequence of calls to the
+          slots connected to signal
+          <computeroutput>*this</computeroutput>. Dereferencing an
+          iterator in this range causes a slot call with the given set
+          of parameters <computeroutput>(a1, a2, ...,
+          aN)</computeroutput>, the result of which is returned from
+          the iterator dereference operation.</simpara></effects>
+
+          <returns><simpara>The result returned by the combiner.</simpara></returns>
+
+          <throws><simpara>If an exception is thrown by a slot call, or if the
+          combiner does not dereference any slot past some given slot,
+          all slots after that slot in the internal list of connected
+          slots will not be invoked.</simpara></throws>
+
+          <notes><simpara>Only the slots associated with iterators that are
+          actually dereferenced will be invoked. Multiple dereferences
+          of the same iterator will not result in multiple slot
+          invocations, because the return value of the slot will be
+          cached.</simpara>
+
+          <simpara>The <computeroutput>const</computeroutput> version of
+          the function call operator will invoke the combiner as
+          <computeroutput>const</computeroutput>, whereas the
+          non-<computeroutput>const</computeroutput> version will
+          invoke the combiner as
+          non-<computeroutput>const</computeroutput>.</simpara>
+
+          <simpara>Calling the function call operator may invoke undefined
+          behavior if no slots are connected to the signal, depending
+          on the combiner used. The default combiner is well-defined
+          for zero slots when the return type is void but is undefined
+          when the return type is any other type (because there is no
+          way to synthesize a return value).</simpara></notes>
+        </overloaded-method>
+      </method-group>
+
+      <method-group name="combiner access">
+        <overloaded-method name="combiner">
+          <signature>
+            <type>combiner_type&amp;</type>
+          </signature>
+          <signature cv="const">
+            <type>const combiner_type&amp;</type>
+          </signature>
+
+          <returns><simpara>A reference to the stored combiner.</simpara></returns>
+          <throws><simpara>Will not throw.</simpara></throws>
+        </overloaded-method>
+      </method-group>
+    </class>
+
+    <class name="signal">
+      <template>
+        <template-type-parameter name="Signature">
+          <purpose>Function type R (T1, T2, ..., TN)</purpose>
+        </template-type-parameter>
+        <template-type-parameter name="Combiner">
+          <default><classname>last_value</classname>&lt;R&gt;</default>
+        </template-type-parameter>
+        <template-type-parameter name="Group">
+          <default>int</default>
+        </template-type-parameter>
+        <template-type-parameter name="GroupCompare">
+          <default><classname>std::less</classname>&lt;Group&gt;</default>
+        </template-type-parameter>
+        <template-type-parameter name="SlotFunction">
+          <default><classname>functionN</classname>&lt;Signature&gt;</default>
+        </template-type-parameter>
+      </template>
+
+      <inherit access="public"><classname>signalN</classname>&lt;R, T1, T2, ..., TN, Combiner, Group, GroupCompare, SlotFunction&gt;</inherit>
+      <purpose>Safe multicast callback.</purpose>
+
+      <description>
+        <para>Class template <classname>signal</classname> is a thin
+        wrapper around the numbered class templates <classname
+        alt="signalN">signal0</classname>, <classname
+        alt="signalN">signal1</classname>, etc. It accepts a function
+        type with N arguments instead of N separate arguments, and
+        derives from the appropriate <classname>signalN</classname>
+        instantiation.</para>
+      
+        <para>All functionality of this class template is in its base
+        class <classname>signalN</classname>.</para>
+      </description>
+
+      <constructor>
+        <parameter name="combiner">
+          <paramtype>const combiner_type&amp;</paramtype>
+          <default>combiner_type()</default>
+        </parameter>
+        <parameter name="compare">
+          <paramtype>const group_compare_type&amp;</paramtype>
+          <default>group_compare_type()</default>
+        </parameter>
+
+        <effects><simpara>Initializes the base class with the given combiner
+        and comparison objects.</simpara></effects>
+      </constructor>
+    </class>
+  </namespace>
+</header>

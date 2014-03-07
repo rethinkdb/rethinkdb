@@ -1,0 +1,168 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:history History]
+
+New issues should be submitted at [@http://svn.boost.org svn.boost.org] - don't forget to include your
+email address in the ticket!
+
+Currently open issues can be viewed [@https://svn.boost.org/trac/boost/query?status=assigned&status=new&status=reopened&component=regex&order=priority&col=id&col=summary&col=status&col=type&col=milestone&col=component here].
+
+All issues including closed ones can be viewed [@https://svn.boost.org/trac/boost/query?status=assigned&status=closed&status=new&status=reopened&component=regex&order=priority&col=id&col=summary&col=status&col=type&col=milestone&col=component here].
+
+[h4 Boost-1.54]
+
+Fixed issue [@https://svn.boost.org/trac/boost/ticket/8569 #8569].
+
+[h4 Boost-1.53]
+
+Fixed Issues:
+[@https://svn.boost.org/trac/boost/ticket/7744 #7744], [@https://svn.boost.org/trac/boost/ticket/7644 #7644].
+
+[h4 Boost-1.51]
+
+Fixed issues:
+[@https://svn.boost.org/trac/boost/ticket/589 #589], [@https://svn.boost.org/trac/boost/ticket/7084 #7084],
+[@https://svn.boost.org/trac/boost/ticket/7032 #7032], [@https://svn.boost.org/trac/boost/ticket/6346 #6346].
+
+[h4 Boost-1.50]
+
+Fixed issue with `(?!)` not being a valid expression, and updated docs on what constitutes a valid conditional expression.
+
+[h4 Boost-1.48]
+
+Fixed issues:
+[@https://svn.boost.org/trac/boost/ticket/688 #698], [@https://svn.boost.org/trac/boost/ticket/5835 #5835],
+[@https://svn.boost.org/trac/boost/ticket/5958 #5958], [@https://svn.boost.org/trac/boost/ticket/5736 #5736].
+
+
+[h4 Boost 1.47]
+
+Fixed issues:
+[@https://svn.boost.org/trac/boost/ticket/5223 #5223], [@https://svn.boost.org/trac/boost/ticket/5353 #5353],
+[@https://svn.boost.org/trac/boost/ticket/5363 #5363], [@https://svn.boost.org/trac/boost/ticket/5462 #5462],
+[@https://svn.boost.org/trac/boost/ticket/5472 #5472], [@https://svn.boost.org/trac/boost/ticket/5504 #5504].
+
+[h4 Boost 1.44]
+
+Fixed issues: 
+[@https://svn.boost.org/trac/boost/ticket/4309 #4309],
+[@https://svn.boost.org/trac/boost/ticket/4215 #4215],
+[@https://svn.boost.org/trac/boost/ticket/4212 #4212],
+[@https://svn.boost.org/trac/boost/ticket/4191 #4191],
+[@https://svn.boost.org/trac/boost/ticket/4132 #4132],
+[@https://svn.boost.org/trac/boost/ticket/4123 #4123],
+[@https://svn.boost.org/trac/boost/ticket/4114 #4114],
+[@https://svn.boost.org/trac/boost/ticket/4036 #4036],
+[@https://svn.boost.org/trac/boost/ticket/4020 #4020],
+[@https://svn.boost.org/trac/boost/ticket/3941 #3941],
+[@https://svn.boost.org/trac/boost/ticket/3902 #3902],
+[@https://svn.boost.org/trac/boost/ticket/3890 #3890]
+
+[h4 Boost 1.42]
+
+* Added support for Functors rather than strings as format expressions.
+* Improved error reporting when throwing exceptions to include better more relevant information.
+* Improved performance and reduced stack usage of recursive expressions.
+* Fixed tickets
+[@https://svn.boost.org/trac/boost/ticket/2802 #2802],
+[@https://svn.boost.org/trac/boost/ticket/3425 #3425],
+[@https://svn.boost.org/trac/boost/ticket/3507 #3507],
+[@https://svn.boost.org/trac/boost/ticket/3546 #3546],
+[@https://svn.boost.org/trac/boost/ticket/3631 #3631],
+[@https://svn.boost.org/trac/boost/ticket/3632 #3632],
+[@https://svn.boost.org/trac/boost/ticket/3715 #3715],
+[@https://svn.boost.org/trac/boost/ticket/3718 #3718],
+[@https://svn.boost.org/trac/boost/ticket/3763 #3763],
+[@https://svn.boost.org/trac/boost/ticket/3764 #3764]
+
+[h4 Boost 1.40]
+
+* Added support for many Perl 5.10 syntax elements including named
+sub-expressions, branch resets and recursive regular expressions.
+
+[h4 Boost 1.38]
+
+* [*Breaking change]: empty expressions, and empty alternatives are now
+allowed when using the Perl regular expression syntax.  This change has
+been added for Perl compatibility, when the new [syntax_option_type]
+['no_empty_expressions] is set then the old behaviour is preserved and
+empty expressions are prohibited.  This is issue
+[@https://svn.boost.org/trac/boost/ticket/1081 #1081].
+* Added support for Perl style ${n} expressions in format strings
+(issue [@https://svn.boost.org/trac/boost/ticket/2556 #2556]).
+* Added support for accessing the location of sub-expressions within the
+regular expression string 
+(issue [@https://svn.boost.org/trac/boost/ticket/2269 #2269]).
+* Fixed compiler compatibility issues 
+[@https://svn.boost.org/trac/boost/ticket/2244 #2244],
+[@https://svn.boost.org/trac/boost/ticket/2514 #2514],
+and
+[@https://svn.boost.org/trac/boost/ticket/2244 #2458].
+
+
+[h4 Boost 1.34]
+
+* Fix for non-greedy repeats and partial matches not working correctly in some cases.
+* Fix for non-greedy repeats on VC++ not working in some cases (bug report 1515830).
+* Changed match_results::position() to return a valid result when *this represents a partial match.
+* Fixed the grep and egrep options so that the newline character gets treated the same as |.
+
+[h4 Boost 1.33.1]
+
+* Fixed broken makefiles.
+* Fixed configuration setup to allow building with VC7.1 - STLport-4.6.2 when using /Zc:wchar_t.
+* Moved declarations class-inline in static_mutex.hpp so that SGI Irix compiler can cope.
+* Added needed standard library #includes to fileiter.hpp, regex_workaround.hpp and cpp_regex_traits.hpp.
+* Fixed a bug where non-greedy repeats could in certain strange curcumstances repeat more times than their maximum value.
+* Fixed the value returned by basic_regex<>::empty() from a default constructed object.
+* Changed the deffinition of regex_error to make it backwards compatible with Boost-1.32.0.
+* Disabled external templates for Intel C++ 8.0 and earlier - otherwise unresolved references can occur.
+* Rewritten extern template code for gcc so that only specific member functions are exported: otherwise strange unresolved references can occur when linking and mixing debug and non-debug code.
+* Initialise all the data members of the unicode_iterators: this keeps gcc from issuing needless warnings.
+* Ported the ICU integration code to VC6 and VC7.
+* Ensured code is STLport debug mode clean.
+* Fixed lookbehind assertions so that fixed length repeats are permitted, and so that regex iteration allows lookbehind to look back before the current search range (into the last match).
+* Fixed strange bug with non-greedy repeats inside forward lookahead assertions.
+* Enabled negated character classes inside character sets.
+* Fixed regression so that [a-z-] is a valid expression again.
+* Fixed bug that allowed some invalid expressions to be accepted.
+
+[h4 Boost 1.33.0]
+
+* Completely rewritten expression parsing code, and traits class support; now conforms to the standardization proposal.
+* Breaking Change: The syntax options that can be passed to basic_regex constructors have been rationalized.  The default option (perl) now has a value of zero, and it is now clearly documented which options apply to which regular expression syntax styles (perl, POSIX-extended, POSIX-basic etc).  Some of the more esoteric options have now been removed, so there is the possibility that existing code may fail to compile: however equivalent functionality should still be available.
+* Breaking Change: POSIX-extended and POSIX-basic regular expressions now enforce the letter of the POSIX standard much more closely than before.
+* Added support for (?imsx-imsx) constructs.
+* Added support for lookbehind expressions (?<=positive-lookbehind) and (?<!negative-lookbehind).
+* Added support for conditional expressions (?(assertion)true-expresion|false-expression).
+* Added MFC/ATL string wrappers.
+* Added Unicode support; based on ICU.
+* Changed newline support to recognise \\f as a line separator (all character types), and \\x85 as a line separator for wide characters / Unicode only.
+* Added a new format flag format_literal that treats the replace string as a literal, rather than a Perl or Sed style format string.
+* Errors are now reported by throwing exceptions of type regex_error. The types used previously - bad_expression and bad_pattern - are now just typedefs for regex_error. Type regex_error has a couple of new members: code() to report an error code rather than a string, and position() to report where in the expression the error occurred.
+
+[h4 Boost 1.32.1]
+
+* Fixed bug in partial matches of bounded repeats of '.'.
+
+[h4 Boost 1.31.0]
+
+* Completely rewritten pattern matching code - it is now up to 10 times faster than before.
+* Reorganized documentation.
+* Deprecated all interfaces that are not part of the regular expression standardization proposal.
+* Added regex_iterator and regex_token_iterator .
+* Added support for Perl style independent sub-expressions.
+* Added non-member operators to the sub_match class, so that you can compare sub_match's with strings, or add them to a string to produce a new string.
+* Added experimental support for extended capture information.
+* Changed the match flags so that they are a distinct type (not an integer), if you try to pass the match flags as an integer rather than match_flag_type to the regex algorithms then you will now get a compiler error.
+    
+[endsect]
+
+
+

@@ -1,0 +1,15 @@
+# Copyright 2006 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+import modules ;
+local here = [ modules.binding $(__name__) ] ;
+here = $(here:D) ;
+modules.poke : EXTRA_PYTHONPATH : $(here) ;
+
+# Import the Python rules to Boost.Build
+PYTHON_IMPORT_RULE python_helpers : test1 : python_helpers : test1 ;
+PYTHON_IMPORT_RULE python_helpers : test2 : python_helpers : test2 ;
+
+# Make the new rules accessible to everybody who imports us.
+EXPORT python_helpers : test1 test2 ;

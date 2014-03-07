@@ -1,0 +1,1350 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Pool in More Depth</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../index.html" title="Boost.Pool">
+<link rel="up" href="../pool.html" title="Introduction and Overview">
+<link rel="prev" href="interfaces.html" title="Boost Pool Interfaces - What interfaces are provided and when to use each one.">
+<link rel="next" href="../../boost_pool_c___reference.html" title="Boost.Pool C++ Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="interfaces.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../pool.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../boost_pool_c___reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_pool.pool.pooling"></a><a class="link" href="pooling.html" title="Pool in More Depth">Pool in More Depth</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="pooling.html#boost_pool.pool.pooling.concepts">Basic ideas behind
+        pooling</a></span></dt>
+<dt><span class="section"><a href="pooling.html#boost_pool.pool.pooling.simple">Simple Segregated Storage</a></span></dt>
+<dt><span class="section"><a href="pooling.html#boost_pool.pool.pooling.alignment">Guaranteeing Alignment
+        - How we guarantee alignment portably.</a></span></dt>
+<dd><dl><dt><span class="section"><a href="pooling.html#boost_pool.pool.pooling.alignment.chunks">How Contiguous
+          Chunks are Handled</a></span></dt></dl></dd>
+<dt><span class="section"><a href="pooling.html#boost_pool.pool.pooling.simple_segregated">Simple Segregated
+        Storage (Not for the faint of heart - Embedded programmers only!)</a></span></dt>
+<dt><span class="section"><a href="pooling.html#boost_pool.pool.pooling.user_allocator">The UserAllocator
+        Concept</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_pool.pool.pooling.concepts"></a><a class="link" href="pooling.html#boost_pool.pool.pooling.concepts" title="Basic ideas behind pooling">Basic ideas behind
+        pooling</a>
+</h4></div></div></div>
+<p>
+          <span class="emphasis"><em>Dynamic memory allocation has been a fundamental part of most
+          computer systems since roughly 1960...</em></span> <a class="link" href="../appendices/references.html#ref1">1</a>
+        </p>
+<p>
+          Everyone uses dynamic memory allocation. If you have ever called malloc
+          or new, then you have used dynamic memory allocation. Most programmers
+          have a tendency to treat the heap as a <span class="quote">&#8220;<span class="quote">magic bag"</span>&#8221;</span>:
+          we ask it for memory, and it magically creates some for us. Sometimes we
+          run into problems because the heap is not magic.
+        </p>
+<p>
+          The heap is limited. Even on large systems (i.e., not embedded) with huge
+          amounts of virtual memory available, there is a limit. Everyone is aware
+          of the physical limit, but there is a more subtle, 'virtual' limit, that
+          limit at which your program (or the entire system) slows down due to the
+          use of virtual memory. This virtual limit is much closer to your program
+          than the physical limit, especially if you are running on a multitasking
+          system. Therefore, when running on a large system, it is considered <span class="emphasis"><em>nice</em></span>
+          to make your program use as few resources as necessary, and release them
+          as soon as possible. When using an embedded system, programmers usually
+          have no memory to waste.
+        </p>
+<p>
+          The heap is complicated. It has to satisfy any type of memory request,
+          for any size, and do it fast. The common approaches to memory management
+          have to do with splitting the memory up into portions, and keeping them
+          ordered by size in some sort of a tree or list structure. Add in other
+          factors, such as locality and estimating lifetime, and heaps quickly become
+          very complicated. So complicated, in fact, that there is no known <span class="emphasis"><em>perfect</em></span>
+          answer to the problem of how to do dynamic memory allocation. The diagrams
+          below illustrate how most common memory managers work: for each chunk of
+          memory, it uses part of that memory to maintain its internal tree or list
+          structure. Even when a chunk is malloc'ed out to a program, the memory
+          manager must <span class="emphasis"><em>save</em></span> some information in it - usually
+          just its size. Then, when the block is free'd, the memory manager can easily
+          tell how large it is.
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../images/../../../images/pc1.png" align="middle"></span>
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../images/../../../images/pc2.png" align="middle"></span>
+        </p>
+<a name="boost_pool.pool.pooling.concepts.dynamic_memory_allocation_is_often_inefficient"></a><h6>
+<a name="boost_pool.pool.pooling.concepts.dynamic_memory_allocation_is_often_inefficient-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.concepts.dynamic_memory_allocation_is_often_inefficient">Dynamic
+          memory allocation is often inefficient</a>
+        </h6>
+<p>
+          Because of the complication of dynamic memory allocation, it is often inefficient
+          in terms of time and/or space. Most memory allocation algorithms store
+          some form of information with each memory block, either the block size
+          or some relational information, such as its position in the internal tree
+          or list structure. It is common for such <span class="emphasis"><em>header fields</em></span>
+          to take up one machine word in a block that is being used by the program.
+          The obvious disadvantage, then, is when small objects are dynamically allocated.
+          For example, if ints were dynamically allocated, then automatically the
+          algorithm will reserve space for the header fields as well, and we end
+          up with a 50% waste of memory. Of course, this is a worst-case scenario.
+          However, more modern programs are making use of small objects on the heap;
+          and that is making this problem more and more apparent. Wilson et. al.
+          state that an average-case memory overhead is about ten to twenty percent<a href="../../#ref2" target="_top">2</a>. This memory overhead will grow higher as more programs
+          use more smaller objects. It is this memory overhead that brings programs
+          closer to the virtual limit.
+        </p>
+<p>
+          In larger systems, the memory overhead is not as big of a problem (compared
+          to the amount of time it would take to work around it), and thus is often
+          ignored. However, there are situations where many allocations and/or deallocations
+          of smaller objects are taking place as part of a time-critical algorithm,
+          and in these situations, the system-supplied memory allocator is often
+          too slow.
+        </p>
+<p>
+          Simple segregated storage addresses both of these issues. Almost all memory
+          overhead is done away with, and all allocations can take place in a small
+          amount of (amortized) constant time. However, this is done at the loss
+          of generality; simple segregated storage only can allocate memory chunks
+          of a single size.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_pool.pool.pooling.simple"></a><a class="link" href="pooling.html#boost_pool.pool.pooling.simple" title="Simple Segregated Storage">Simple Segregated Storage</a>
+</h4></div></div></div>
+<p>
+          Simple Segregated Storage is the basic idea behind the Boost Pool library.
+          Simple Segregated Storage is the simplest, and probably the fastest, memory
+          allocation/deallocation algorithm. It begins by partitioning a memory block
+          into fixed-size chunks. Where the block comes from is not important until
+          implementation time. A Pool is some object that uses Simple Segregated
+          Storage in this fashion. To illustrate:
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../images/../../../images/pc3.png" align="middle"></span>
+        </p>
+<p>
+          Each of the chunks in any given block are always the same size. This is
+          the fundamental restriction of Simple Segregated Storage: you cannot ask
+          for chunks of different sizes. For example, you cannot ask a Pool of integers
+          for a character, or a Pool of characters for an integer (assuming that
+          characters and integers are different sizes).
+        </p>
+<p>
+          Simple Segregated Storage works by interleaving a free list within the
+          unused chunks. For example:
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../images/../../../images/pc4.png" align="middle"></span>
+        </p>
+<p>
+          By interleaving the free list inside the chunks, each Simple Segregated
+          Storage only has the overhead of a single pointer (the pointer to the first
+          element in the list). It has no memory overhead for chunks that are in
+          use by the process.
+        </p>
+<p>
+          Simple Segregated Storage is also extremely fast. In the simplest case,
+          memory allocation is merely removing the first chunk from the free list,
+          a O(1) operation. In the case where the free list is empty, another block
+          may have to be acquired and partitioned, which would result in an amortized
+          O(1) time. Memory deallocation may be as simple as adding that chunk to
+          the front of the free list, a O(1) operation. However, more complicated
+          uses of Simple Segregated Storage may require a sorted free list, which
+          makes deallocation O(N).
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../images/../../../images/pc5.png" align="middle"></span>
+        </p>
+<p>
+          Simple Segregated Storage gives faster execution and less memory overhead
+          than a system-supplied allocator, but at the loss of generality. A good
+          place to use a Pool is in situations where many (noncontiguous) small objects
+          may be allocated on the heap, or if allocation and deallocation of the
+          same-sized objects happens repeatedly.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_pool.pool.pooling.alignment"></a><a class="link" href="pooling.html#boost_pool.pool.pooling.alignment" title="Guaranteeing Alignment - How we guarantee alignment portably.">Guaranteeing Alignment
+        - How we guarantee alignment portably.</a>
+</h4></div></div></div>
+<div class="toc"><dl><dt><span class="section"><a href="pooling.html#boost_pool.pool.pooling.alignment.chunks">How Contiguous
+          Chunks are Handled</a></span></dt></dl></div>
+<a name="boost_pool.pool.pooling.alignment.terminology"></a><h5>
+<a name="boost_pool.pool.pooling.alignment.terminology-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.alignment.terminology">Terminology</a>
+        </h5>
+<p>
+          Review the <a class="link" href="pooling.html#boost_pool.pool.pooling.concepts" title="Basic ideas behind pooling">concepts</a>
+          section if you are not already familiar with it. Remember that block is
+          a contiguous section of memory, which is partitioned or segregated into
+          fixed-size chunks. These chunks are what are allocated and deallocated
+          by the user.
+        </p>
+<a name="boost_pool.pool.pooling.alignment.overview"></a><h5>
+<a name="boost_pool.pool.pooling.alignment.overview-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.alignment.overview">Overview</a>
+        </h5>
+<p>
+          Each Pool has a single free list that can extend over a number of memory
+          blocks. Thus, Pool also has a linked list of allocated memory blocks. Each
+          memory block, by default, is allocated using <code class="computeroutput"><span class="keyword">new</span><span class="special">[]</span></code>, and all memory blocks are freed on destruction.
+          It is the use of <code class="computeroutput"><span class="keyword">new</span><span class="special">[]</span></code>
+          that allows us to guarantee alignment.
+        </p>
+<a name="boost_pool.pool.pooling.alignment.proof_of_concept__guaranteeing_alignment"></a><h5>
+<a name="boost_pool.pool.pooling.alignment.proof_of_concept__guaranteeing_alignment-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.alignment.proof_of_concept__guaranteeing_alignment">Proof
+          of Concept: Guaranteeing Alignment</a>
+        </h5>
+<p>
+          Each block of memory is allocated as a POD type (specifically, an array
+          of characters) through <code class="computeroutput"><span class="keyword">operator</span>
+          <span class="keyword">new</span><span class="special">[]</span></code>.
+          Let <code class="computeroutput"><span class="identifier">POD_size</span></code> be the number
+          of characters allocated.
+        </p>
+<a name="boost_pool.pool.pooling.alignment.predicate_1__arrays_may_not_have_padding"></a><h6>
+<a name="boost_pool.pool.pooling.alignment.predicate_1__arrays_may_not_have_padding-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.alignment.predicate_1__arrays_may_not_have_padding">Predicate
+          1: Arrays may not have padding</a>
+        </h6>
+<p>
+          This follows from the following quote:
+        </p>
+<p>
+          [5.3.3/2] (Expressions::Unary expressions::Sizeof) <span class="emphasis"><em>... When applied
+          to an array, the result is the total number of bytes in the array. This
+          implies that the size of an array of n elements is n times the size of
+          an element.</em></span>
+        </p>
+<p>
+          Therefore, arrays cannot contain padding, though the elements within the
+          arrays may contain padding.
+        </p>
+<a name="boost_pool.pool.pooling.alignment.predicate_2__any_block_of_memory_allocated_as_an_array_of_characters_through__code__phrase_role__keyword__operator__phrase___phrase_role__keyword__new__phrase__phrase_role__special______phrase___code___hereafter_referred_to_as_the_block__is_properly_aligned_for_any_object_of_that_size_or_smaller"></a><h6>
+<a name="boost_pool.pool.pooling.alignment.predicate_2__any_block_of_memory_allocated_as_an_array_of_characters_through__code__phrase_role__keyword__operator__phrase___phrase_role__keyword__new__phrase__phrase_role__special______phrase___code___hereafter_referred_to_as_the_block__is_properly_aligned_for_any_object_of_that_size_or_smaller-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.alignment.predicate_2__any_block_of_memory_allocated_as_an_array_of_characters_through__code__phrase_role__keyword__operator__phrase___phrase_role__keyword__new__phrase__phrase_role__special______phrase___code___hereafter_referred_to_as_the_block__is_properly_aligned_for_any_object_of_that_size_or_smaller">Predicate
+          2: Any block of memory allocated as an array of characters through <code class="computeroutput"><span class="keyword">operator</span> <span class="keyword">new</span><span class="special">[]</span></code> (hereafter referred to as the block)
+          is properly aligned for any object of that size or smaller</a>
+        </h6>
+<p>
+          This follows from:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+              [3.7.3.1/2] (Basic concepts::Storage duration::Dynamic storage duration::Allocation
+              functions) <span class="emphasis"><em>"... The pointer returned shall be suitably
+              aligned so that it can be converted to a pointer of any complete object
+              type and then used to access the object or array in the storage allocated
+              ..."</em></span>
+            </li>
+<li class="listitem">
+              [5.3.4/10] (Expressions::Unary expressions::New) <span class="emphasis"><em>"...
+              For arrays of char and unsigned char, the difference between the result
+              of the new-expression and the address returned by the allocation function
+              shall be an integral multiple of the most stringent alignment requirement
+              (3.9) of any object type whose size is no greater than the size of
+              the array being created. [Note: Because allocation functions are assumed
+              to return pointers to storage that is appropriately aligned for objects
+              of any type, this constraint on array allocation overhead permits the
+              common idiom of allocating character arrays into which objects of other
+              types will later be placed."</em></span>
+            </li>
+</ul></div>
+<a name="boost_pool.pool.pooling.alignment.consider__imaginary_object_type_element_of_a_size_which_is_a_multiple_of_some_actual_object_size__assume__code__phrase_role__keyword__sizeof__phrase__phrase_role__special_____phrase__phrase_role__identifier__element__phrase__phrase_role__special_____phrase___phrase_role__special___gt___phrase___phrase_role__identifier__pod_size__phrase___code_"></a><h6>
+<a name="boost_pool.pool.pooling.alignment.consider__imaginary_object_type_element_of_a_size_which_is_a_multiple_of_some_actual_object_size__assume__code__phrase_role__keyword__sizeof__phrase__phrase_role__special_____phrase__phrase_role__identifier__element__phrase__phrase_role__special_____phrase___phrase_role__special___gt___phrase___phrase_role__identifier__pod_size__phrase___code_-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.alignment.consider__imaginary_object_type_element_of_a_size_which_is_a_multiple_of_some_actual_object_size__assume__code__phrase_role__keyword__sizeof__phrase__phrase_role__special_____phrase__phrase_role__identifier__element__phrase__phrase_role__special_____phrase___phrase_role__special___gt___phrase___phrase_role__identifier__pod_size__phrase___code_">Consider:
+          imaginary object type Element of a size which is a multiple of some actual
+          object size; assume <code class="computeroutput"><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">Element</span><span class="special">)</span> <span class="special">&gt;</span> <span class="identifier">POD_size</span></code></a>
+        </h6>
+<p>
+          Note that an object of that size can exist. One object of that size is
+          an array of the "actual" objects.
+        </p>
+<p>
+          Note that the block is properly aligned for an Element. This directly follows
+          from Predicate 2.
+        </p>
+<a name="boost_pool.pool.pooling.alignment.corollary_1__the_block_is_properly_aligned_for_an_array_of_elements"></a><h6>
+<a name="boost_pool.pool.pooling.alignment.corollary_1__the_block_is_properly_aligned_for_an_array_of_elements-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.alignment.corollary_1__the_block_is_properly_aligned_for_an_array_of_elements">Corollary
+          1: The block is properly aligned for an array of Elements</a>
+        </h6>
+<p>
+          This follows from Predicates 1 and 2, and the following quote:
+        </p>
+<p>
+          [3.9/9] (Basic concepts::Types) <span class="emphasis"><em>"An object type is a (possibly
+          cv-qualified) type that is not a function type, not a reference type, and
+          not a void type."</em></span>
+        </p>
+<p>
+          (Specifically, array types are object types.)
+        </p>
+<a name="boost_pool.pool.pooling.alignment.corollary_2__for_any_pointer__code__phrase_role__identifier__p__phrase___code__and_integer__code__phrase_role__identifier__i__phrase___code___if__code__phrase_role__identifier__p__phrase___code__is_properly_aligned_for_the_type_it_points_to__then__code__phrase_role__identifier__p__phrase___phrase_role__special_____phrase___phrase_role__identifier__i__phrase___code___when_well_defined__is_properly_aligned_for_that_type__in_other_words__if_an_array_is_properly_aligned__then_each_element_in_that_array_is_properly_aligned"></a><h6>
+<a name="boost_pool.pool.pooling.alignment.corollary_2__for_any_pointer__code__phrase_role__identifier__p__phrase___code__and_integer__code__phrase_role__identifier__i__phrase___code___if__code__phrase_role__identifier__p__phrase___code__is_properly_aligned_for_the_type_it_points_to__then__code__phrase_role__identifier__p__phrase___phrase_role__special_____phrase___phrase_role__identifier__i__phrase___code___when_well_defined__is_properly_aligned_for_that_type__in_other_words__if_an_array_is_properly_aligned__then_each_element_in_that_array_is_properly_aligned-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.alignment.corollary_2__for_any_pointer__code__phrase_role__identifier__p__phrase___code__and_integer__code__phrase_role__identifier__i__phrase___code___if__code__phrase_role__identifier__p__phrase___code__is_properly_aligned_for_the_type_it_points_to__then__code__phrase_role__identifier__p__phrase___phrase_role__special_____phrase___phrase_role__identifier__i__phrase___code___when_well_defined__is_properly_aligned_for_that_type__in_other_words__if_an_array_is_properly_aligned__then_each_element_in_that_array_is_properly_aligned">Corollary
+          2: For any pointer <code class="computeroutput"><span class="identifier">p</span></code> and
+          integer <code class="computeroutput"><span class="identifier">i</span></code>, if <code class="computeroutput"><span class="identifier">p</span></code> is properly aligned for the type it
+          points to, then <code class="computeroutput"><span class="identifier">p</span> <span class="special">+</span>
+          <span class="identifier">i</span></code> (when well-defined) is properly
+          aligned for that type; in other words, if an array is properly aligned,
+          then each element in that array is properly aligned</a>
+        </h6>
+<p>
+          There are no quotes from the Standard to directly support this argument,
+          but it fits the common conception of the meaning of "alignment".
+        </p>
+<p>
+          Note that the conditions for <code class="computeroutput"><span class="identifier">p</span>
+          <span class="special">+</span> <span class="identifier">i</span></code>
+          being well-defined are outlined in [5.7/5]. We do not quote that here,
+          but only make note that it is well-defined if <code class="computeroutput"><span class="identifier">p</span></code>
+          and <code class="computeroutput"><span class="identifier">p</span> <span class="special">+</span>
+          <span class="identifier">i</span></code> both point into or one past
+          the same array.
+        </p>
+<a name="boost_pool.pool.pooling.alignment.let___code__phrase_role__keyword__sizeof__phrase__phrase_role__special_____phrase__phrase_role__identifier__element__phrase__phrase_role__special_____phrase___code__be_the_least_common_multiple_of_sizes_of_several_actual_objects__t1__t2__t3______"></a><h6>
+<a name="boost_pool.pool.pooling.alignment.let___code__phrase_role__keyword__sizeof__phrase__phrase_role__special_____phrase__phrase_role__identifier__element__phrase__phrase_role__special_____phrase___code__be_the_least_common_multiple_of_sizes_of_several_actual_objects__t1__t2__t3______-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.alignment.let___code__phrase_role__keyword__sizeof__phrase__phrase_role__special_____phrase__phrase_role__identifier__element__phrase__phrase_role__special_____phrase___code__be_the_least_common_multiple_of_sizes_of_several_actual_objects__t1__t2__t3______">Let:
+          <code class="computeroutput"><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">Element</span><span class="special">)</span></code>
+          be the least common multiple of sizes of several actual objects (T1, T2,
+          T3, ...)</a>
+        </h6>
+<a name="boost_pool.pool.pooling.alignment.let__block_be_a_pointer_to_the_memory_block__pe_be__element____block__and_pn_be__tn____block"></a><h6>
+<a name="boost_pool.pool.pooling.alignment.let__block_be_a_pointer_to_the_memory_block__pe_be__element____block__and_pn_be__tn____block-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.alignment.let__block_be_a_pointer_to_the_memory_block__pe_be__element____block__and_pn_be__tn____block">Let:
+          block be a pointer to the memory block, pe be (Element *) block, and pn
+          be (Tn *) block</a>
+        </h6>
+<a name="boost_pool.pool.pooling.alignment.corollary_3__for_each_integer__code__phrase_role__identifier__i__phrase___code___such_that__code__phrase_role__identifier__pe__phrase___phrase_role__special_____phrase___phrase_role__identifier__i__phrase___code__is_well_defined__then_for_each_n__there_exists_some_integer__code__phrase_role__identifier__jn__phrase___code__such_that__code__phrase_role__identifier__pn__phrase___phrase_role__special_____phrase___phrase_role__identifier__jn__phrase___code__is_well_defined_and_refers_to_the_same_memory_address_as__code__phrase_role__identifier__pe__phrase___phrase_role__special_____phrase___phrase_role__identifier__i__phrase___code_"></a><h6>
+<a name="boost_pool.pool.pooling.alignment.corollary_3__for_each_integer__code__phrase_role__identifier__i__phrase___code___such_that__code__phrase_role__identifier__pe__phrase___phrase_role__special_____phrase___phrase_role__identifier__i__phrase___code__is_well_defined__then_for_each_n__there_exists_some_integer__code__phrase_role__identifier__jn__phrase___code__such_that__code__phrase_role__identifier__pn__phrase___phrase_role__special_____phrase___phrase_role__identifier__jn__phrase___code__is_well_defined_and_refers_to_the_same_memory_address_as__code__phrase_role__identifier__pe__phrase___phrase_role__special_____phrase___phrase_role__identifier__i__phrase___code_-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.alignment.corollary_3__for_each_integer__code__phrase_role__identifier__i__phrase___code___such_that__code__phrase_role__identifier__pe__phrase___phrase_role__special_____phrase___phrase_role__identifier__i__phrase___code__is_well_defined__then_for_each_n__there_exists_some_integer__code__phrase_role__identifier__jn__phrase___code__such_that__code__phrase_role__identifier__pn__phrase___phrase_role__special_____phrase___phrase_role__identifier__jn__phrase___code__is_well_defined_and_refers_to_the_same_memory_address_as__code__phrase_role__identifier__pe__phrase___phrase_role__special_____phrase___phrase_role__identifier__i__phrase___code_">Corollary
+          3: For each integer <code class="computeroutput"><span class="identifier">i</span></code>,
+          such that <code class="computeroutput"><span class="identifier">pe</span> <span class="special">+</span>
+          <span class="identifier">i</span></code> is well-defined, then for each
+          n, there exists some integer <code class="computeroutput"><span class="identifier">jn</span></code>
+          such that <code class="computeroutput"><span class="identifier">pn</span> <span class="special">+</span>
+          <span class="identifier">jn</span></code> is well-defined and refers
+          to the same memory address as <code class="computeroutput"><span class="identifier">pe</span>
+          <span class="special">+</span> <span class="identifier">i</span></code></a>
+        </h6>
+<p>
+          This follows naturally, since the memory block is an array of Elements,
+          and for each n, <code class="computeroutput"><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">Element</span><span class="special">)</span> <span class="special">%</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">Tn</span><span class="special">)</span>
+          <span class="special">==</span> <span class="number">0</span><span class="special">;</span></code> thus, the boundary of each element in
+          the array of Elements is also a boundary of each element in each array
+          of Tn.
+        </p>
+<a name="boost_pool.pool.pooling.alignment.theorem__for_each_integer__code__phrase_role__identifier__i__phrase___code___such_that__code__phrase_role__identifier__pe__phrase___phrase_role__special_____phrase___phrase_role__identifier__i__phrase___code__is_well_defined__that_address__pe___i__is_properly_aligned_for_each_type_tn"></a><h6>
+<a name="boost_pool.pool.pooling.alignment.theorem__for_each_integer__code__phrase_role__identifier__i__phrase___code___such_that__code__phrase_role__identifier__pe__phrase___phrase_role__special_____phrase___phrase_role__identifier__i__phrase___code__is_well_defined__that_address__pe___i__is_properly_aligned_for_each_type_tn-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.alignment.theorem__for_each_integer__code__phrase_role__identifier__i__phrase___code___such_that__code__phrase_role__identifier__pe__phrase___phrase_role__special_____phrase___phrase_role__identifier__i__phrase___code__is_well_defined__that_address__pe___i__is_properly_aligned_for_each_type_tn">Theorem:
+          For each integer <code class="computeroutput"><span class="identifier">i</span></code>, such
+          that <code class="computeroutput"><span class="identifier">pe</span> <span class="special">+</span>
+          <span class="identifier">i</span></code> is well-defined, that address
+          (pe + i) is properly aligned for each type Tn</a>
+        </h6>
+<p>
+          Since <code class="computeroutput"><span class="identifier">pe</span> <span class="special">+</span>
+          <span class="identifier">i</span></code> is well-defined, then by Corollary
+          3, <code class="computeroutput"><span class="identifier">pn</span> <span class="special">+</span>
+          <span class="identifier">jn</span></code> is well-defined. It is properly
+          aligned from Predicate 2 and Corollaries 1 and 2.
+        </p>
+<a name="boost_pool.pool.pooling.alignment.use_of_the_theorem"></a><h5>
+<a name="boost_pool.pool.pooling.alignment.use_of_the_theorem-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.alignment.use_of_the_theorem">Use
+          of the Theorem</a>
+        </h5>
+<p>
+          The proof above covers alignment requirements for cutting chunks out of
+          a block. The implementation uses actual object sizes of:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+              The requested object size (<code class="computeroutput"><span class="identifier">requested_size</span></code>);
+              this is the size of chunks requested by the user
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="keyword">void</span><span class="special">*</span></code>
+              (pointer to void); this is because we interleave our free list through
+              the chunks
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">size_type</span></code>; this is
+              because we store the size of the next block within each memory block
+            </li>
+</ul></div>
+<p>
+          Each block also contains a pointer to the next block; but that is stored
+          as a pointer to void and cast when necessary, to simplify alignment requirements
+          to the three types above.
+        </p>
+<p>
+          Therefore, <code class="computeroutput"><span class="identifier">alloc_size</span></code> is
+          defined to be the largest of the sizes above, rounded up to be a multiple
+          of all three sizes. This guarantees alignment provided all alignments are
+          powers of two: something that appears to be true on all known platforms.
+        </p>
+<a name="boost_pool.pool.pooling.alignment.a_look_at_the_memory_block"></a><h5>
+<a name="boost_pool.pool.pooling.alignment.a_look_at_the_memory_block-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.alignment.a_look_at_the_memory_block">A
+          Look at the Memory Block</a>
+        </h5>
+<p>
+          Each memory block consists of three main sections. The first section is
+          the part that chunks are cut out of, and contains the interleaved free
+          list. The second section is the pointer to the next block, and the third
+          section is the size of the next block.
+        </p>
+<p>
+          Each of these sections may contain padding as necessary to guarantee alignment
+          for each of the next sections. The size of the first section is <code class="computeroutput"><span class="identifier">number_of_chunks</span> <span class="special">*</span>
+          <span class="identifier">lcm</span><span class="special">(</span><span class="identifier">requested_size</span><span class="special">,</span>
+          <span class="keyword">sizeof</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*),</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">size_type</span><span class="special">));</span></code>
+          the size of the second section is <code class="computeroutput"><span class="identifier">lcm</span><span class="special">(</span><span class="keyword">sizeof</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*),</span>
+          <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">size_type</span><span class="special">);</span></code>
+          and the size of the third section is <code class="computeroutput"><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span></code>.
+        </p>
+<p>
+          Here's an example memory block, where <code class="computeroutput"><span class="identifier">requested_size</span>
+          <span class="special">==</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*)</span>
+          <span class="special">==</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="special">==</span> <span class="number">4</span></code>:
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../images/../../../images/mb1.png" align="middle"></span>
+        </p>
+<p>
+          To show a visual example of possible padding, here's an example memory
+          block where <code class="computeroutput"><span class="identifier">requested_size</span> <span class="special">==</span> <span class="number">8</span> <span class="keyword">and</span>
+          <span class="keyword">sizeof</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*)</span> <span class="special">==</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="special">==</span> <span class="number">4</span></code>
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../images/../../../images/mb2.png" align="middle"></span>
+        </p>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_pool.pool.pooling.alignment.chunks"></a><a class="link" href="pooling.html#boost_pool.pool.pooling.alignment.chunks" title="How Contiguous Chunks are Handled">How Contiguous
+          Chunks are Handled</a>
+</h5></div></div></div>
+<p>
+            The theorem above guarantees all alignment requirements for allocating
+            chunks and also implementation details such as the interleaved free list.
+            However, it does so by adding padding when necessary; therefore, we have
+            to treat allocations of contiguous chunks in a different way.
+          </p>
+<p>
+            Using array arguments similar to the above, we can translate any request
+            for contiguous memory for <code class="computeroutput"><span class="identifier">n</span></code>
+            objects of <code class="computeroutput"><span class="identifier">requested_size</span></code>
+            into a request for m contiguous chunks. <code class="computeroutput"><span class="identifier">m</span></code>
+            is simply <code class="computeroutput"><span class="identifier">ceil</span><span class="special">(</span><span class="identifier">n</span> <span class="special">*</span> <span class="identifier">requested_size</span> <span class="special">/</span>
+            <span class="identifier">alloc_size</span><span class="special">)</span></code>,
+            where <code class="computeroutput"><span class="identifier">alloc_size</span></code> is the
+            actual size of the chunks.
+          </p>
+<p>
+            To illustrate:
+          </p>
+<p>
+            Here's an example memory block, where <code class="computeroutput"><span class="identifier">requested_size</span>
+            <span class="special">==</span> <span class="number">1</span></code>
+            and <code class="computeroutput"><span class="keyword">sizeof</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*)</span> <span class="special">==</span> <span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="special">==</span> <span class="number">4</span></code>:
+          </p>
+<p>
+            <span class="inlinemediaobject"><img src="../images/../../../images/mb4.png" align="middle"></span>
+          </p>
+<p>
+            Then, when the user deallocates the contiguous memory, we can split it
+            up into chunks again.
+          </p>
+<p>
+            Note that the implementation provided for allocating contiguous chunks
+            uses a linear instead of quadratic algorithm. This means that it may
+            not find contiguous free chunks if the free list is not ordered. Thus,
+            it is recommended to always use an ordered free list when dealing with
+            contiguous allocation of chunks. (In the example above, if Chunk 1 pointed
+            to Chunk 3 pointed to Chunk 2 pointed to Chunk 4, instead of being in
+            order, the contiguous allocation algorithm would have failed to find
+            any of the contiguous chunks).
+          </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_pool.pool.pooling.simple_segregated"></a><a class="link" href="pooling.html#boost_pool.pool.pooling.simple_segregated" title="Simple Segregated Storage (Not for the faint of heart - Embedded programmers only!)">Simple Segregated
+        Storage (Not for the faint of heart - Embedded programmers only!)</a>
+</h4></div></div></div>
+<a name="boost_pool.pool.pooling.simple_segregated.introduction"></a><h5>
+<a name="boost_pool.pool.pooling.simple_segregated.introduction-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.simple_segregated.introduction">Introduction</a>
+        </h5>
+<p>
+          <code class="computeroutput"><a class="link" href="../../header/boost/pool/simple_segregated_storage_hpp.html" title="Header &lt;boost/pool/simple_segregated_storage.hpp&gt;">simple_segregated_storage.hpp</a></code>
+          provides a template class simple_segregated_storage that controls access
+          to a free list of memory chunks.
+        </p>
+<p>
+          Note that this is a very simple class, with unchecked preconditions on
+          almost all its functions. It is intended to be the fastest and smallest
+          possible quick memory allocator for example, something to use in embedded
+          systems. This class delegates many difficult preconditions to the user
+          (especially alignment issues). For more general usage, see the other <a class="link" href="interfaces.html" title="Boost Pool Interfaces - What interfaces are provided and when to use each one.">Pool Interfaces</a>.
+        </p>
+<a name="boost_pool.pool.pooling.simple_segregated.synopsis"></a><h5>
+<a name="boost_pool.pool.pooling.simple_segregated.synopsis-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.simple_segregated.synopsis">Synopsis</a>
+        </h5>
+<pre class="programlisting">template &lt;typename SizeType = std::size_t&gt;
+class simple_segregated_storage
+{
+  private:
+    simple_segregated_storage(const simple_segregated_storage &amp;);
+    void operator=(const simple_segregated_storage &amp;);
+
+  public:
+    typedef SizeType size_type;
+
+    simple_segregated_storage();
+    ~simple_segregated_storage();
+
+    static void * segregate(void * block,
+        size_type nsz, size_type npartition_sz,
+        void * end = 0);
+    void add_block(void * block,
+        size_type nsz, size_type npartition_sz);
+    void add_ordered_block(void * block,
+        size_type nsz, size_type npartition_sz);
+
+    bool empty() const;
+
+    void * malloc();
+    void free(void * chunk);
+    void ordered_free(void * chunk);
+    void * malloc_n(size_type n, size_type partition_sz);
+    void free_n(void * chunks, size_type n,
+        size_type partition_sz);
+    void ordered_free_n(void * chunks, size_type n,
+        size_type partition_sz);
+};
+</pre>
+<a name="boost_pool.pool.pooling.simple_segregated.semantics"></a><h5>
+<a name="boost_pool.pool.pooling.simple_segregated.semantics-heading"></a>
+          <a class="link" href="pooling.html#boost_pool.pool.pooling.simple_segregated.semantics">Semantics</a>
+        </h5>
+<p>
+          An object of type <code class="computeroutput"><span class="identifier">simple_segregated_storage</span><span class="special">&lt;</span><span class="identifier">SizeType</span><span class="special">&gt;</span></code> is empty if its free list is empty.
+          If it is not empty, then it is ordered if its free list is ordered. A free
+          list is ordered if repeated calls to<code class="computeroutput"> <span class="identifier">malloc</span><span class="special">()</span></code> will result in a constantly-increasing
+          sequence of values, as determined by <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="keyword">void</span> <span class="special">*&gt;</span></code>. A member function is order-preserving
+          if the free-list maintains its order orientation (that is, an ordered free
+          list is still ordered after the member function call).
+        </p>
+<div class="table">
+<a name="boost_pool.pool.pooling.simple_segregated.ss_symbols"></a><p class="title"><b>Table&#160;1.&#160;Symbol Table</b></p>
+<div class="table-contents"><table class="table" summary="Symbol Table" cellspacing="3" cellpadding="5">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Symbol
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Meaning
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Store
+                  </p>
+                </td>
+<td>
+                  <p>
+                    simple_segregated_storage&lt;SizeType&gt;
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    t
+                  </p>
+                </td>
+<td>
+                  <p>
+                    value of type Store
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    u
+                  </p>
+                </td>
+<td>
+                  <p>
+                    value of type const Store
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    block, chunk, end
+                  </p>
+                </td>
+<td>
+                  <p>
+                    values of type void *
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    partition_sz, sz, n
+                  </p>
+                </td>
+<td>
+                  <p>
+                    values of type Store::size_type
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_pool.pool.pooling.simple_segregated.templates"></a><p class="title"><b>Table&#160;2.&#160;Template Parameters</b></p>
+<div class="table-contents"><table class="table" summary="Template Parameters" cellspacing="3" cellpadding="5">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Default
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Requirements
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    SizeType
+                  </p>
+                </td>
+<td>
+                  <p>
+                    std::size_t
+                  </p>
+                </td>
+<td>
+                  <p>
+                    An unsigned integral type
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_pool.pool.pooling.simple_segregated.Typedefs"></a><p class="title"><b>Table&#160;3.&#160;Typedefs</b></p>
+<div class="table-contents"><table class="table" summary="Typedefs" cellspacing="3" cellpadding="5">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Symbol
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Type
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    size_type
+                  </p>
+                </td>
+<td>
+                  <p>
+                    SizeType
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_pool.pool.pooling.simple_segregated.Constructors"></a><p class="title"><b>Table&#160;4.&#160;Constructors, Destructors, and State</b></p>
+<div class="table-contents"><table class="table" summary="Constructors, Destructors, and State" cellspacing="3" cellpadding="5">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Return Type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Post-Condition
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Notes
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Store()
+                  </p>
+                </td>
+<td>
+                  <p>
+                    not used
+                  </p>
+                </td>
+<td>
+                  <p>
+                    empty()
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Constructs a new Store
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    (&amp;t)-&gt;~Store()
+                  </p>
+                </td>
+<td>
+                  <p>
+                    not used
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    Destructs the Store
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    u.empty()
+                  </p>
+                </td>
+<td>
+                  <p>
+                    bool
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    Returns true if u is empty. Order-preserving.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_pool.pool.pooling.simple_segregated.Segregation"></a><p class="title"><b>Table&#160;5.&#160;Segregation</b></p>
+<div class="table-contents"><table class="table" summary="Segregation" cellspacing="3" cellpadding="5">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Return Type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Pre-Condition
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Post-Condition
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantic Equivalence
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Notes
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Store::segregate(block, sz, partition_sz, end)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void *
+                  </p>
+                </td>
+<td>
+                  <p>
+                    partition_sz &gt;= sizeof(void *) partition_sz = sizeof(void
+                    *) * i, for some integer i sz &gt;= partition_sz block is properly
+                    aligned for an array of objects of size partition_sz block is
+                    properly aligned for an array of void *
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    Interleaves a free list through the memory block specified by
+                    block of size sz bytes, partitioning it into as many partition_sz-sized
+                    chunks as possible. The last chunk is set to point to end, and
+                    a pointer to the first chunck is returned (this is always equal
+                    to block). This interleaved free list is ordered. O(sz).
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Store::segregate(block, sz, partition_sz)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void *
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Same as above
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    Store::segregate(block, sz, partition_sz, 0)
+                  </p>
+                </td>
+<td>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    t.add_block(block, sz, partition_sz)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Same as above
+                  </p>
+                </td>
+<td>
+                  <p>
+                    !t.empty()
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    Segregates the memory block specified by block of size sz bytes
+                    into partition_sz-sized chunks, and adds that free list to its
+                    own. If t was empty before this call, then it is ordered after
+                    this call. O(sz).
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    t.add_ordered_block(block, sz, partition_sz)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Same as above
+                  </p>
+                </td>
+<td>
+                  <p>
+                    !t.empty()
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    Segregates the memory block specified by block of size sz bytes
+                    into partition_sz-sized chunks, and merges that free list into
+                    its own. Order-preserving. O(sz).
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="boost_pool.pool.pooling.simple_segregated.alloc"></a><p class="title"><b>Table&#160;6.&#160;Allocation and Deallocation</b></p>
+<div class="table-contents"><table class="table" summary="Allocation and Deallocation" cellspacing="3" cellpadding="5">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Return Type
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Pre-Condition
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Post-Condition
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantic Equivalence
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Notes
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    t.malloc()
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void *
+                  </p>
+                </td>
+<td>
+                  <p>
+                    !t.empty()
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    Takes the first available chunk from the free list and returns
+                    it. Order-preserving. O(1).
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    t.free(chunk)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    chunk was previously returned from a call to t.malloc()
+                  </p>
+                </td>
+<td>
+                  <p>
+                    !t.empty()
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    Places chunk back on the free list. Note that chunk may not be
+                    0. O(1).
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    t.ordered_free(chunk)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Same as above
+                  </p>
+                </td>
+<td>
+                  <p>
+                    !t.empty()
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    Places chunk back on the free list. Note that chunk may not be
+                    0. Order-preserving. O(N) with respect to the size of the free
+                    list.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    t.malloc_n(n, partition_sz)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void *
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    Attempts to find a contiguous sequence of n partition_sz-sized
+                    chunks. If found, removes them all from the free list and returns
+                    a pointer to the first. If not found, returns 0. It is strongly
+                    recommended (but not required) that the free list be ordered,
+                    as this algorithm will fail to find a contiguous sequence unless
+                    it is contiguous in the free list as well. Order-preserving.
+                    O(N) with respect to the size of the free list.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    t.free_n(chunk, n, partition_sz)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    chunk was previously returned from a call to t.malloc_n(n, partition_sz)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    !t.empty()
+                  </p>
+                </td>
+<td>
+                  <p>
+                    t.add_block(chunk, n * partition_sz, partition_sz)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Assumes that chunk actually refers to a block of chunks spanning
+                    n * partition_sz bytes; segregates and adds in that block. Note
+                    that chunk may not be 0. O(n).
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    t.ordered_free_n(chunk, n, partition_sz)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    same as above
+                  </p>
+                </td>
+<td>
+                  <p>
+                    same as above
+                  </p>
+                </td>
+<td>
+                  <p>
+                    t.add_ordered_block(chunk, n * partition_sz, partition_sz)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Same as above, except it merges in the free list. Order-preserving.
+                    O(N + n) where N is the size of the free list.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_pool.pool.pooling.user_allocator"></a><a class="link" href="pooling.html#boost_pool.pool.pooling.user_allocator" title="The UserAllocator Concept">The UserAllocator
+        Concept</a>
+</h4></div></div></div>
+<p>
+          Pool objects need to request memory blocks from the system, which the Pool
+          then splits into chunks to allocate to the user. By specifying a UserAllocator
+          template parameter to various Pool interfaces, users can control how those
+          system memory blocks are allocated.
+        </p>
+<p>
+          In the following table, <span class="emphasis"><em>UserAllocator</em></span> is a User Allocator
+          type, <span class="emphasis"><em>block</em></span> is a value of type char *, and <span class="emphasis"><em>n</em></span>
+          is a value of type UserAllocator::size_type
+        </p>
+<div class="table">
+<a name="boost_pool.pool.pooling.user_allocator.userallocator_requirements"></a><p class="title"><b>Table&#160;7.&#160;UserAllocator Requirements</b></p>
+<div class="table-contents"><table class="table" summary="UserAllocator Requirements" cellspacing="3" cellpadding="5">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Result
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    UserAllocator::size_type
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    An unsigned integral type that can represent the size of the
+                    largest object to be allocated.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    UserAllocator::difference_type
+                  </p>
+                </td>
+<td>
+                </td>
+<td>
+                  <p>
+                    A signed integral type that can represent the difference of any
+                    two pointers.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    UserAllocator::malloc(n)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    char *
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Attempts to allocate n bytes from the system. Returns 0 if out-of-memory.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    UserAllocator::free(block)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    void
+                  </p>
+                </td>
+<td>
+                  <p>
+                    block must have been previously returned from a call to UserAllocator::malloc.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+          There are two UserAllocator classes provided in this library: <code class="computeroutput"><a class="link" href="../../boost/default_user_allocator_new_delete.html" title="Struct default_user_allocator_new_delete">default_user_allocator_new_delete</a></code>
+          and <code class="computeroutput"><a class="link" href="../../boost/default_user_allocator_malloc_free.html" title="Struct default_user_allocator_malloc_free">default_user_allocator_malloc_free</a></code>,
+          both in pool.hpp. The default value for the template parameter UserAllocator
+          is always <code class="computeroutput"><a class="link" href="../../boost/default_user_allocator_new_delete.html" title="Struct default_user_allocator_new_delete">default_user_allocator_new_delete</a></code>.
+        </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2006 Stephen Cleary<br>Copyright &#169; 2011 Paul A. Bristow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="interfaces.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../pool.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../boost_pool_c___reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

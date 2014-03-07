@@ -1,0 +1,10 @@
+[article Expect template to fail because there are too many arguments.
+]
+
+[template unary[x] [x]]
+
+[section Failure]
+
+[unary a..b ]
+
+[endsect]

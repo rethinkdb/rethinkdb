@@ -1,0 +1,60 @@
+<html>
+<head>
+	<title>BOOST_PP_COMMA_IF</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_COMMA_IF</b> macro conditionally expands to a comma.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_COMMA_IF</b>(<i>cond</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>cond</dt>
+			<dd>
+				The condition that determines if a the macro expands to a comma or nothing.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_LIMIT_MAG</b>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			If <i>cond</i> expands to <i>0</i>, this macro expands to nothing.&nbsp;
+			Otherwise, it expands to a comma.
+		</div>
+		<div>
+			The preprocessor interprets commas as argument separators in macro invocations.&nbsp;
+			Because of this, commas require special handling.
+		</div>
+	<h4>See Also</h4>
+		<ul>
+			<li><a href="limit_mag.html">BOOST_PP_LIMIT_MAG</a></li>
+		</ul>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/punctuation/comma_if.html">&lt;boost/preprocessor/punctuation/comma_if.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+#include &lt;<a href="../headers/punctuation/comma_if.html">boost/preprocessor/punctuation/comma_if.hpp</a>&gt;
+#include &lt;<a href="../headers/repetition/repeat.html">boost/preprocessor/repetition/repeat.hpp</a>&gt;
+
+#define MACRO(z, n, text) <a href="comma_if.html">BOOST_PP_COMMA_IF</a>(n) text
+
+<a href="repeat.html">BOOST_PP_REPEAT</a>(3, MACRO, class) // expands to class, class, class
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

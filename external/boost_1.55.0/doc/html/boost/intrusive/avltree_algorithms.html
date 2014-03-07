@@ -1,0 +1,488 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template avltree_algorithms</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../intrusive/reference.html#header.boost.intrusive.avltree_algorithms_hpp" title="Header &lt;boost/intrusive/avltree_algorithms.hpp&gt;">
+<link rel="prev" href="make_avltree.html" title="Struct template make_avltree">
+<link rel="next" href="make_bs_set.html" title="Struct template make_bs_set">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_avltree.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../intrusive/reference.html#header.boost.intrusive.avltree_algorithms_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_bs_set.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.intrusive.avltree_algorithms"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template avltree_algorithms</span></h2>
+<p>boost::intrusive::avltree_algorithms</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../intrusive/reference.html#header.boost.intrusive.avltree_algorithms_hpp" title="Header &lt;boost/intrusive/avltree_algorithms.hpp&gt;">boost/intrusive/avltree_algorithms.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> NodeTraits<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="avltree_algorithms.html" title="Class template avltree_algorithms">avltree_algorithms</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="avltree_algorithms.html#boost.intrusive.avltree_algorithmstypes">types</a></span>
+  <span class="keyword">typedef</span> <span class="identifier">NodeTraits</span><span class="special">::</span><span class="identifier">node</span>                <a name="boost.intrusive.avltree_algorithms.node"></a><span class="identifier">node</span><span class="special">;</span>              
+  <span class="keyword">typedef</span> <span class="identifier">NodeTraits</span>                      <a name="boost.intrusive.avltree_algorithms.node_traits"></a><span class="identifier">node_traits</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">NodeTraits</span><span class="special">::</span><span class="identifier">node_ptr</span>            <a name="boost.intrusive.avltree_algorithms.node_ptr"></a><span class="identifier">node_ptr</span><span class="special">;</span>          
+  <span class="keyword">typedef</span> <span class="identifier">NodeTraits</span><span class="special">::</span><span class="identifier">const_node_ptr</span>      <a name="boost.intrusive.avltree_algorithms.const_node_ptr"></a><span class="identifier">const_node_ptr</span><span class="special">;</span>    
+  <span class="keyword">typedef</span> <span class="identifier">NodeTraits</span><span class="special">::</span><span class="identifier">balance</span>             <a name="boost.intrusive.avltree_algorithms.balance"></a><span class="identifier">balance</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <span class="identifier">bstree_algo</span><span class="special">::</span><span class="identifier">insert_commit_data</span> <a class="link" href="avltree_algorithms.html#boost.intrusive.avltree_algorithms.insert_commit_data"><span class="identifier">insert_commit_data</span></a><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="avltree_algorithms.html#idp32434008-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> <a class="link" href="avltree_algorithms.html#idp32434216-bb"><span class="identifier">get_header</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> <a class="link" href="avltree_algorithms.html#idp32436840-bb"><span class="identifier">begin_node</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> <a class="link" href="avltree_algorithms.html#idp32439496-bb"><span class="identifier">end_node</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="avltree_algorithms.html#idp32442120-bb"><span class="identifier">swap_tree</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="avltree_algorithms.html#idp32445192-bb"><span class="identifier">swap_nodes</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="avltree_algorithms.html#idp32448984-bb"><span class="identifier">swap_nodes</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="avltree_algorithms.html#idp32453512-bb"><span class="identifier">replace_node</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="avltree_algorithms.html#idp32457304-bb"><span class="identifier">replace_node</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> 
+                           <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="avltree_algorithms.html#idp32461480-bb"><span class="identifier">unlink</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> <a class="link" href="avltree_algorithms.html#idp32464120-bb"><span class="identifier">unlink_leftmost_without_rebalance</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="avltree_algorithms.html#idp32467464-bb"><span class="identifier">unique</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a class="link" href="avltree_algorithms.html#idp32470168-bb"><span class="identifier">size</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> <a class="link" href="avltree_algorithms.html#idp32472808-bb"><span class="identifier">next_node</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> <a class="link" href="avltree_algorithms.html#idp32475448-bb"><span class="identifier">prev_node</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="avltree_algorithms.html#idp32478088-bb"><span class="identifier">init</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="avltree_algorithms.html#idp32481176-bb"><span class="identifier">init_header</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> <a class="link" href="avltree_algorithms.html#idp32484296-bb"><span class="identifier">erase</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Cloner<span class="special">,</span> <span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+    <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="avltree_algorithms.html#idp32487320-bb"><span class="identifier">clone</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Cloner</span><span class="special">,</span> 
+                      <span class="identifier">Disposer</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+    <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="avltree_algorithms.html#idp32493048-bb"><span class="identifier">clear_and_dispose</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Disposer</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+    <span class="keyword">static</span> <span class="identifier">node_ptr</span> 
+    <a class="link" href="avltree_algorithms.html#idp32496952-bb"><span class="identifier">lower_bound</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyNodePtrCompare</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+    <span class="keyword">static</span> <span class="identifier">node_ptr</span> 
+    <a class="link" href="avltree_algorithms.html#idp32501272-bb"><span class="identifier">upper_bound</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyNodePtrCompare</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+    <span class="keyword">static</span> <span class="identifier">node_ptr</span> 
+    <a class="link" href="avltree_algorithms.html#idp32505592-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyNodePtrCompare</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+    <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">node_ptr</span><span class="special">,</span> <span class="identifier">node_ptr</span> <span class="special">&gt;</span> 
+    <a class="link" href="avltree_algorithms.html#idp32509912-bb"><span class="identifier">equal_range</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyNodePtrCompare</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+    <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">node_ptr</span><span class="special">,</span> <span class="identifier">node_ptr</span> <span class="special">&gt;</span> 
+    <a class="link" href="avltree_algorithms.html#idp32514360-bb"><span class="identifier">bounded_range</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> 
+                  <span class="identifier">KeyNodePtrCompare</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">,</span> <span class="keyword">bool</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+    <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> 
+    <a class="link" href="avltree_algorithms.html#idp32521208-bb"><span class="identifier">count</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyNodePtrCompare</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> NodePtrCompare<span class="special">&gt;</span> 
+    <span class="keyword">static</span> <span class="identifier">node_ptr</span> 
+    <a class="link" href="avltree_algorithms.html#idp32525544-bb"><span class="identifier">insert_equal_upper_bound</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> 
+                             <span class="identifier">NodePtrCompare</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> NodePtrCompare<span class="special">&gt;</span> 
+    <span class="keyword">static</span> <span class="identifier">node_ptr</span> 
+    <a class="link" href="avltree_algorithms.html#idp32529544-bb"><span class="identifier">insert_equal_lower_bound</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> 
+                             <span class="identifier">NodePtrCompare</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> NodePtrCompare<span class="special">&gt;</span> 
+    <span class="keyword">static</span> <span class="identifier">node_ptr</span> 
+    <a class="link" href="avltree_algorithms.html#idp32533544-bb"><span class="identifier">insert_equal</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> 
+                 <span class="identifier">NodePtrCompare</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> 
+  <a class="link" href="avltree_algorithms.html#idp32538088-bb"><span class="identifier">insert_before</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="avltree_algorithms.html#idp32542200-bb"><span class="identifier">push_back</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="avltree_algorithms.html#idp32545832-bb"><span class="identifier">push_front</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+    <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">node_ptr</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> 
+    <a class="link" href="avltree_algorithms.html#idp32549464-bb"><span class="identifier">insert_unique_check</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> 
+                        <span class="identifier">KeyNodePtrCompare</span><span class="special">,</span> <span class="identifier">insert_commit_data</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+    <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">node_ptr</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> 
+    <a class="link" href="avltree_algorithms.html#idp32556456-bb"><span class="identifier">insert_unique_check</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> 
+                        <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyNodePtrCompare</span><span class="special">,</span> 
+                        <span class="identifier">insert_commit_data</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <a class="link" href="avltree_algorithms.html#idp32564104-bb"><span class="identifier">insert_unique_commit</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span><span class="special">,</span> 
+                                   <span class="keyword">const</span> <span class="identifier">insert_commit_data</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="avltree_algorithms.html#idp32568376-bb"><span class="identifier">is_header</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp130232680"></a><h2>Description</h2>
+<p><a class="link" href="avltree_algorithms.html" title="Class template avltree_algorithms">avltree_algorithms</a> is configured with a NodeTraits class, which encapsulates the information about the node to be manipulated. NodeTraits must support the following interface:</p>
+<p><span class="bold"><strong>Typedefs</strong></span>:</p>
+<p><code class="computeroutput">node</code>: The type of the node that forms the binary search tree</p>
+<p><code class="computeroutput">node_ptr</code>: A pointer to a node</p>
+<p><code class="computeroutput">const_node_ptr</code>: A pointer to a const node</p>
+<p><code class="computeroutput">balance</code>: The type of the balance factor</p>
+<p><span class="bold"><strong>Static functions</strong></span>:</p>
+<p><code class="computeroutput">static node_ptr get_parent(const_node_ptr n);</code></p>
+<p><code class="computeroutput">static void set_parent(node_ptr n, node_ptr parent);</code></p>
+<p><code class="computeroutput">static node_ptr get_left(const_node_ptr n);</code></p>
+<p><code class="computeroutput">static void set_left(node_ptr n, node_ptr left);</code></p>
+<p><code class="computeroutput">static node_ptr get_right(const_node_ptr n);</code></p>
+<p><code class="computeroutput">static void set_right(node_ptr n, node_ptr right);</code></p>
+<p><code class="computeroutput">static balance get_balance(const_node_ptr n);</code></p>
+<p><code class="computeroutput">static void set_balance(node_ptr n, balance b);</code></p>
+<p><code class="computeroutput">static balance negative();</code></p>
+<p><code class="computeroutput">static balance zero();</code></p>
+<p><code class="computeroutput">static balance positive();</code> </p>
+<div class="refsect2">
+<a name="idp130240296"></a><h3>
+<a name="boost.intrusive.avltree_algorithmstypes"></a><code class="computeroutput">avltree_algorithms</code> 
+        public
+       types</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">bstree_algo</span><span class="special">::</span><span class="identifier">insert_commit_data</span> <a name="boost.intrusive.avltree_algorithms.insert_commit_data"></a><span class="identifier">insert_commit_data</span><span class="special">;</span></p>
+<p>This type is the information that will be filled by insert_unique_check </p>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp130243928"></a><h3>
+<a name="idp32434008-bb"></a><code class="computeroutput">avltree_algorithms</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">node_ptr</span> <a name="idp32434216-bb"></a><span class="identifier">get_header</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: 'node' is a node of the tree or a header node.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the header of the tree.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Logarithmic.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">node_ptr</span> <a name="idp32436840-bb"></a><span class="identifier">begin_node</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> header<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: 'header' is the header node of a tree.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the first node of the tree, the header if the tree is empty.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">node_ptr</span> <a name="idp32439496-bb"></a><span class="identifier">end_node</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> header<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: 'header' is the header node of a tree.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the header of the tree.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp32442120-bb"></a><span class="identifier">swap_tree</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> header1<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> header2<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: header1 and header2 must be the header nodes of two trees.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Swaps two trees. After the function header1 will contain links to the second tree and header2 will have links to the first tree.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp32445192-bb"></a><span class="identifier">swap_nodes</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> node1<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> node2<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: node1 and node2 can't be header nodes of two trees.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Swaps two nodes. After the function node1 will be inserted in the position node2 before the function. node2 will be inserted in the position node1 had before the function.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Logarithmic.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: This function will break container ordering invariants if node1 and node2 are not equivalent according to the ordering rules.</p>
+<p>Experimental function </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp32448984-bb"></a><span class="identifier">swap_nodes</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> node1<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> header1<span class="special">,</span> 
+                       <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> node2<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> header2<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: node1 and node2 can't be header nodes of two trees with header header1 and header2.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Swaps two nodes. After the function node1 will be inserted in the position node2 before the function. node2 will be inserted in the position node1 had before the function.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: This function will break container ordering invariants if node1 and node2 are not equivalent according to the ordering rules.</p>
+<p>Experimental function </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp32453512-bb"></a><span class="identifier">replace_node</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> node_to_be_replaced<span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> new_node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: node_to_be_replaced must be inserted in a tree and new_node must not be inserted in a tree.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Replaces node_to_be_replaced in its position in the tree with new_node. The tree does not need to be rebalanced</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Logarithmic.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: This function will break container ordering invariants if new_node is not equivalent to node_to_be_replaced according to the ordering rules. This function is faster than erasing and inserting the node, since no rebalancing and comparison is needed. Experimental function </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp32457304-bb"></a><span class="identifier">replace_node</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> node_to_be_replaced<span class="special">,</span> 
+                         <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> new_node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: node_to_be_replaced must be inserted in a tree with header "header" and new_node must not be inserted in a tree.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Replaces node_to_be_replaced in its position in the tree with new_node. The tree does not need to be rebalanced</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: This function will break container ordering invariants if new_node is not equivalent to node_to_be_replaced according to the ordering rules. This function is faster than erasing and inserting the node, since no rebalancing or comparison is needed. Experimental function </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp32461480-bb"></a><span class="identifier">unlink</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: node is a tree node but not the header.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Unlinks the node and rebalances the tree.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average complexity is constant time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">node_ptr</span> <a name="idp32464120-bb"></a><span class="identifier">unlink_leftmost_without_rebalance</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> header<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: header is the header of a tree.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Unlinks the leftmost node from the tree, and updates the header link to the new leftmost node.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average complexity is constant time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Notes</strong></span>: This function breaks the tree and the tree can only be used for more unlink_leftmost_without_rebalance calls. This function is normally used to achieve a step by step controlled destruction of the tree. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="idp32467464-bb"></a><span class="identifier">unique</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: 'node' is a node of the tree or an node initialized by init(...) or init_node.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns true if the node is initialized by init() or init_node().</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <a name="idp32470168-bb"></a><span class="identifier">size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> header<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: node is a node of the tree but it's not the header.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the number of nodes of the subtree.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">node_ptr</span> <a name="idp32472808-bb"></a><span class="identifier">next_node</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: 'node' is a node from the tree except the header.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the next node of the tree.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average constant time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">node_ptr</span> <a name="idp32475448-bb"></a><span class="identifier">prev_node</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: 'node' is a node from the tree except the leftmost node.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the previous node of the tree.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average constant time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp32478088-bb"></a><span class="identifier">init</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: 'node' must not be part of any tree.</p>
+<p><span class="bold"><strong>Effects</strong></span>: After the function unique(node) == true.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Nodes</strong></span>: If node is inserted in a tree, this function corrupts the tree. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp32481176-bb"></a><span class="identifier">init_header</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> header<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: node must not be part of any tree.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Initializes the header to represent an empty tree. unique(header) == true.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Nodes</strong></span>: If node is inserted in a tree, this function corrupts the tree. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">node_ptr</span> <a name="idp32484296-bb"></a><span class="identifier">erase</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> z<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: header must be the header of a tree, z a node of that tree and z != header.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Erases node "z" from the tree with header "header".</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Amortized constant time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Cloner<span class="special">,</span> <span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="keyword">void</span> <a name="idp32487320-bb"></a><span class="identifier">clone</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> source_header<span class="special">,</span> 
+                    <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> target_header<span class="special">,</span> <span class="identifier">Cloner</span> cloner<span class="special">,</span> 
+                    <span class="identifier">Disposer</span> disposer<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "cloner" must be a function object taking a node_ptr and returning a new cloned node of it. "disposer" must take a node_ptr and shouldn't throw.</p>
+<p><span class="bold"><strong>Effects</strong></span>: First empties target tree calling <code class="computeroutput">void disposer::operator()(const node_ptr &amp;)</code> for every node of the tree except the header.</p>
+<p>Then, duplicates the entire tree pointed by "source_header" cloning each source node with <code class="computeroutput">node_ptr Cloner::operator()(const node_ptr &amp;)</code> to obtain the nodes of the target tree. If "cloner" throws, the cloned target nodes are disposed using <code class="computeroutput">void disposer(const node_ptr &amp;)</code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to the number of element of the source tree plus the. number of elements of tree target tree when calling this function.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If cloner functor throws. If this happens target nodes are disposed. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="keyword">void</span> <a name="idp32493048-bb"></a><span class="identifier">clear_and_dispose</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> <span class="identifier">Disposer</span> disposer<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "disposer" must be an object function taking a node_ptr parameter and shouldn't throw.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Empties the target tree calling <code class="computeroutput">void disposer::operator()(const node_ptr &amp;)</code> for every node of the tree except the header.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to the number of element of the source tree plus the. number of elements of tree target tree when calling this function.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If cloner functor throws. If this happens target nodes are disposed. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> 
+  <a name="idp32496952-bb"></a><span class="identifier">lower_bound</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> 
+              <span class="identifier">KeyNodePtrCompare</span> comp<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "header" must be the header node of a tree. KeyNodePtrCompare is a function object that induces a strict weak ordering compatible with the strict weak ordering used to create the the tree. KeyNodePtrCompare can compare KeyType with tree's node_ptrs.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns an node_ptr to the first element that is not less than "key" according to "comp" or "header" if that element does not exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Logarithmic.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If "comp" throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> 
+  <a name="idp32501272-bb"></a><span class="identifier">upper_bound</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> 
+              <span class="identifier">KeyNodePtrCompare</span> comp<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "header" must be the header node of a tree. KeyNodePtrCompare is a function object that induces a strict weak ordering compatible with the strict weak ordering used to create the the tree. KeyNodePtrCompare can compare KeyType with tree's node_ptrs.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns an node_ptr to the first element that is greater than "key" according to "comp" or "header" if that element does not exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Logarithmic.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If "comp" throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> 
+  <a name="idp32505592-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> 
+       <span class="identifier">KeyNodePtrCompare</span> comp<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "header" must be the header node of a tree. KeyNodePtrCompare is a function object that induces a strict weak ordering compatible with the strict weak ordering used to create the the tree. KeyNodePtrCompare can compare KeyType with tree's node_ptrs.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns an node_ptr to the element that is equivalent to "key" according to "comp" or "header" if that element does not exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Logarithmic.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If "comp" throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">node_ptr</span><span class="special">,</span> <span class="identifier">node_ptr</span> <span class="special">&gt;</span> 
+  <a name="idp32509912-bb"></a><span class="identifier">equal_range</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> 
+              <span class="identifier">KeyNodePtrCompare</span> comp<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "header" must be the header node of a tree. KeyNodePtrCompare is a function object that induces a strict weak ordering compatible with the strict weak ordering used to create the the tree. KeyNodePtrCompare can compare KeyType with tree's node_ptrs.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns an a pair of node_ptr delimiting a range containing all elements that are equivalent to "key" according to "comp" or an empty range that indicates the position where those elements would be if there are no equivalent elements.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Logarithmic.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If "comp" throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">node_ptr</span><span class="special">,</span> <span class="identifier">node_ptr</span> <span class="special">&gt;</span> 
+  <a name="idp32514360-bb"></a><span class="identifier">bounded_range</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> lower_key<span class="special">,</span> 
+                <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> upper_key<span class="special">,</span> <span class="identifier">KeyNodePtrCompare</span> comp<span class="special">,</span> 
+                <span class="keyword">bool</span> left_closed<span class="special">,</span> <span class="keyword">bool</span> right_closed<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "header" must be the header node of a tree. KeyNodePtrCompare is a function object that induces a strict weak ordering compatible with the strict weak ordering used to create the the tree. KeyNodePtrCompare can compare KeyType with tree's node_ptrs. 'lower_key' must not be greater than 'upper_key' according to 'comp'. If 'lower_key' == 'upper_key', ('left_closed' || 'right_closed') must be false.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns an a pair with the following criteria:</p>
+<p>first = lower_bound(lower_key) if left_closed, upper_bound(lower_key) otherwise</p>
+<p>second = upper_bound(upper_key) if right_closed, lower_bound(upper_key) otherwise</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Logarithmic.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If "comp" throws.</p>
+<p><span class="bold"><strong>Note</strong></span>: This function can be more efficient than calling upper_bound and lower_bound for lower_key and upper_key.</p>
+<p><span class="bold"><strong>Note</strong></span>: Experimental function, the interface might change. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> 
+  <a name="idp32521208-bb"></a><span class="identifier">count</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> 
+        <span class="identifier">KeyNodePtrCompare</span> comp<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "header" must be the header node of a tree. KeyNodePtrCompare is a function object that induces a strict weak ordering compatible with the strict weak ordering used to create the the tree. KeyNodePtrCompare can compare KeyType with tree's node_ptrs.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the number of elements with a key equivalent to "key"pair of node_ptr delimiting a range containing according to "comp".</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Logarithmic.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If "comp" throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> NodePtrCompare<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> 
+  <a name="idp32525544-bb"></a><span class="identifier">insert_equal_upper_bound</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> h<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> new_node<span class="special">,</span> 
+                           <span class="identifier">NodePtrCompare</span> comp<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "h" must be the header node of a tree. NodePtrCompare is a function object that induces a strict weak ordering compatible with the strict weak ordering used to create the the tree. NodePtrCompare compares two node_ptrs.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Inserts new_node into the tree before the upper bound according to "comp".</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average complexity for insert element is at most logarithmic.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If "comp" throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> NodePtrCompare<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> 
+  <a name="idp32529544-bb"></a><span class="identifier">insert_equal_lower_bound</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> h<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> new_node<span class="special">,</span> 
+                           <span class="identifier">NodePtrCompare</span> comp<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "h" must be the header node of a tree. NodePtrCompare is a function object that induces a strict weak ordering compatible with the strict weak ordering used to create the the tree. NodePtrCompare compares two node_ptrs.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Inserts new_node into the tree before the lower bound according to "comp".</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average complexity for insert element is at most logarithmic.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If "comp" throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> NodePtrCompare<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="identifier">node_ptr</span> 
+  <a name="idp32533544-bb"></a><span class="identifier">insert_equal</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> hint<span class="special">,</span> 
+               <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> new_node<span class="special">,</span> <span class="identifier">NodePtrCompare</span> comp<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "header" must be the header node of a tree. NodePtrCompare is a function object that induces a strict weak ordering compatible with the strict weak ordering used to create the the tree. NodePtrCompare compares two node_ptrs. "hint" is node from the "header"'s tree.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Inserts new_node into the tree, using "hint" as a hint to where it will be inserted. If "hint" is the upper_bound the insertion takes constant time (two comparisons in the worst case).</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Logarithmic in general, but it is amortized constant time if new_node is inserted immediately before "hint".</p>
+<p><span class="bold"><strong>Throws</strong></span>: If "comp" throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">node_ptr</span> 
+<a name="idp32538088-bb"></a><span class="identifier">insert_before</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> pos<span class="special">,</span> 
+              <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> new_node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "header" must be the header node of a tree. "pos" must be a valid iterator or header (end) node. "pos" must be an iterator pointing to the successor to "new_node" once inserted according to the order of already inserted nodes. This function does not check "pos" and this precondition must be guaranteed by the caller.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Inserts new_node into the tree before "pos".</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant-time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: If "pos" is not the successor of the newly inserted "new_node" tree invariants might be broken. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp32542200-bb"></a><span class="identifier">push_back</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> new_node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "header" must be the header node of a tree. "new_node" must be, according to the used ordering no less than the greatest inserted key.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Inserts new_node into the tree before "pos".</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant-time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: If "new_node" is less than the greatest inserted key tree invariants are broken. This function is slightly faster than using "insert_before". </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp32545832-bb"></a><span class="identifier">push_front</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> new_node<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "header" must be the header node of a tree. "new_node" must be, according to the used ordering, no greater than the lowest inserted key.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Inserts new_node into the tree before "pos".</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant-time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: If "new_node" is greater than the lowest inserted key tree invariants are broken. This function is slightly faster than using "insert_before". </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">node_ptr</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> 
+  <a name="idp32549464-bb"></a><span class="identifier">insert_unique_check</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> 
+                      <span class="identifier">KeyNodePtrCompare</span> comp<span class="special">,</span> 
+                      <span class="identifier">insert_commit_data</span> <span class="special">&amp;</span> commit_data<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "header" must be the header node of a tree. KeyNodePtrCompare is a function object that induces a strict weak ordering compatible with the strict weak ordering used to create the the tree. NodePtrCompare compares KeyType with a node_ptr.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Checks if there is an equivalent node to "key" in the tree according to "comp" and obtains the needed information to realize a constant-time node insertion if there is no equivalent node.</p>
+<p><span class="bold"><strong>Returns</strong></span>: If there is an equivalent value returns a pair containing a node_ptr to the already present node and false. If there is not equivalent key can be inserted returns true in the returned pair's boolean and fills "commit_data" that is meant to be used with the "insert_commit" function to achieve a constant-time insertion function.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average complexity is at most logarithmic.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If "comp" throws.</p>
+<p><span class="bold"><strong>Notes</strong></span>: This function is used to improve performance when constructing a node is expensive and the user does not want to have two equivalent nodes in the tree: if there is an equivalent value the constructed object must be discarded. Many times, the part of the node that is used to impose the order is much cheaper to construct than the node and this function offers the possibility to use that part to check if the insertion will be successful.</p>
+<p>If the check is successful, the user can construct the node and use "insert_commit" to insert the node in constant-time. This gives a total logarithmic complexity to the insertion: check(O(log(N)) + commit(O(1)).</p>
+<p>"commit_data" remains valid for a subsequent "insert_unique_commit" only if no more objects are inserted or erased from the set. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyNodePtrCompare<span class="special">&gt;</span> 
+  <span class="keyword">static</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">node_ptr</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> 
+  <a name="idp32556456-bb"></a><span class="identifier">insert_unique_check</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> hint<span class="special">,</span> 
+                      <span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="identifier">KeyNodePtrCompare</span> comp<span class="special">,</span> 
+                      <span class="identifier">insert_commit_data</span> <span class="special">&amp;</span> commit_data<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "header" must be the header node of a tree. KeyNodePtrCompare is a function object that induces a strict weak ordering compatible with the strict weak ordering used to create the the tree. NodePtrCompare compares KeyType with a node_ptr. "hint" is node from the "header"'s tree.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Checks if there is an equivalent node to "key" in the tree according to "comp" using "hint" as a hint to where it should be inserted and obtains the needed information to realize a constant-time node insertion if there is no equivalent node. If "hint" is the upper_bound the function has constant time complexity (two comparisons in the worst case).</p>
+<p><span class="bold"><strong>Returns</strong></span>: If there is an equivalent value returns a pair containing a node_ptr to the already present node and false. If there is not equivalent key can be inserted returns true in the returned pair's boolean and fills "commit_data" that is meant to be used with the "insert_commit" function to achieve a constant-time insertion function.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average complexity is at most logarithmic, but it is amortized constant time if new_node should be inserted immediately before "hint".</p>
+<p><span class="bold"><strong>Throws</strong></span>: If "comp" throws.</p>
+<p><span class="bold"><strong>Notes</strong></span>: This function is used to improve performance when constructing a node is expensive and the user does not want to have two equivalent nodes in the tree: if there is an equivalent value the constructed object must be discarded. Many times, the part of the node that is used to impose the order is much cheaper to construct than the node and this function offers the possibility to use that part to check if the insertion will be successful.</p>
+<p>If the check is successful, the user can construct the node and use "insert_commit" to insert the node in constant-time. This gives a total logarithmic complexity to the insertion: check(O(log(N)) + commit(O(1)).</p>
+<p>"commit_data" remains valid for a subsequent "insert_unique_commit" only if no more objects are inserted or erased from the set. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <a name="idp32564104-bb"></a><span class="identifier">insert_unique_commit</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> header<span class="special">,</span> 
+                                 <span class="keyword">const</span> <span class="identifier">node_ptr</span> <span class="special">&amp;</span> new_value<span class="special">,</span> 
+                                 <span class="keyword">const</span> <span class="identifier">insert_commit_data</span> <span class="special">&amp;</span> commit_data<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "header" must be the header node of a tree. "commit_data" must have been obtained from a previous call to "insert_unique_check". No objects should have been inserted or erased from the set between the "insert_unique_check" that filled "commit_data" and the call to "insert_commit".</p>
+<p><span class="bold"><strong>Effects</strong></span>: Inserts new_node in the set using the information obtained from the "commit_data" that a previous "insert_check" filled.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Notes</strong></span>: This function has only sense if a "insert_unique_check" has been previously executed to fill "commit_data". No value should be inserted or erased between the "insert_check" and "insert_commit" calls. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="idp32568376-bb"></a><span class="identifier">is_header</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">const_node_ptr</span> <span class="special">&amp;</span> p<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: p is a node of a tree.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns true if p is the header of the tree.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_avltree.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../intrusive/reference.html#header.boost.intrusive.avltree_algorithms_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_bs_set.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

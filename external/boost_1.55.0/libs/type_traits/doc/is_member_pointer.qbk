@@ -1,0 +1,33 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_member_pointer is_member_pointer]
+   template <class T>
+   struct is_member_pointer : public __tof {};
+  
+__inherit If T is a (possibly cv-qualified) pointer to a member (either a function
+or a data member) 
+then inherits from __true_type, 
+otherwise inherits from __false_type.
+
+__std_ref 3.9.2 and 8.3.3.
+
+__header ` #include <boost/type_traits/is_member_pointer.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__examples
+
+[:`is_member_pointer<int (MyClass::*)>` inherits from `__true_type`.]
+
+[:`is_member_pointer<int (MyClass::*)(char)>::type` is the type `__true_type`.]
+
+[:`is_member_pointer<int (MyClass::*)(void)const>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_member_pointer<T>::value_type` is the type `bool`.]
+
+[endsect]
+

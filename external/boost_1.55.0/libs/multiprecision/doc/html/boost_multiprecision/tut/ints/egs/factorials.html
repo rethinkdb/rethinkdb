@@ -1,0 +1,154 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Factorials</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../egs.html" title="Examples">
+<link rel="prev" href="../egs.html" title="Examples">
+<link rel="next" href="bitops.html" title="Bit Operations">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../egs.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../egs.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bitops.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_multiprecision.tut.ints.egs.factorials"></a><a class="link" href="factorials.html" title="Factorials">Factorials</a>
+</h5></div></div></div>
+<p>
+            In this simple example, we'll write a routine to print out all of the
+            factorials which will fit into a 128-bit integer. At the end of the routine
+            we do some fancy iostream formatting of the results:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">cpp_int</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iomanip</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+
+<span class="keyword">void</span> <span class="identifier">print_factorials</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">::</span><span class="identifier">cpp_int</span><span class="special">;</span>
+   <span class="comment">//</span>
+   <span class="comment">// Print all the factorials that will fit inside a 128-bit integer.</span>
+   <span class="comment">//</span>
+   <span class="comment">// Begin by building a big table of factorials, once we know just how </span>
+   <span class="comment">// large the largest is, we'll be able to "pretty format" the results.</span>
+   <span class="comment">//</span>
+   <span class="comment">// Calculate the largest number that will fit inside 128 bits, we could</span>
+   <span class="comment">// also have used numeric_limits&lt;int128_t&gt;::max() for this value:</span>
+   <span class="identifier">cpp_int</span> <span class="identifier">limit</span> <span class="special">=</span> <span class="special">(</span><span class="identifier">cpp_int</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="number">128</span><span class="special">)</span> <span class="special">-</span> <span class="number">1</span><span class="special">;</span>
+   <span class="comment">// </span>
+   <span class="comment">// Our table of values:</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">cpp_int</span><span class="special">&gt;</span> <span class="identifier">results</span><span class="special">;</span>
+   <span class="comment">//</span>
+   <span class="comment">// Initial values:</span>
+   <span class="keyword">unsigned</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span>
+   <span class="identifier">cpp_int</span> <span class="identifier">factorial</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span>
+   <span class="comment">//</span>
+   <span class="comment">// Cycle through the factorials till we reach the limit:</span>
+   <span class="keyword">while</span><span class="special">(</span><span class="identifier">factorial</span> <span class="special">&lt;</span> <span class="identifier">limit</span><span class="special">)</span>
+   <span class="special">{</span>
+      <span class="identifier">results</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">factorial</span><span class="special">);</span>
+      <span class="special">++</span><span class="identifier">i</span><span class="special">;</span>
+      <span class="identifier">factorial</span> <span class="special">*=</span> <span class="identifier">i</span><span class="special">;</span>
+   <span class="special">}</span>
+   <span class="comment">//</span>
+   <span class="comment">// Lets see how many digits the largest factorial was:</span>
+   <span class="keyword">unsigned</span> <span class="identifier">digits</span> <span class="special">=</span> <span class="identifier">results</span><span class="special">.</span><span class="identifier">back</span><span class="special">().</span><span class="identifier">str</span><span class="special">().</span><span class="identifier">size</span><span class="special">();</span>
+   <span class="comment">//</span>
+   <span class="comment">// Now print them out, using right justification, while we're at it</span>
+   <span class="comment">// we'll indicate the limit of each integer type, so begin by defining</span>
+   <span class="comment">// the limits for 16, 32, 64 etc bit integers:</span>
+   <span class="identifier">cpp_int</span> <span class="identifier">limits</span><span class="special">[]</span> <span class="special">=</span> <span class="special">{</span>
+      <span class="special">(</span><span class="identifier">cpp_int</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="number">16</span><span class="special">)</span> <span class="special">-</span> <span class="number">1</span><span class="special">,</span>
+      <span class="special">(</span><span class="identifier">cpp_int</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="number">32</span><span class="special">)</span> <span class="special">-</span> <span class="number">1</span><span class="special">,</span>
+      <span class="special">(</span><span class="identifier">cpp_int</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="number">64</span><span class="special">)</span> <span class="special">-</span> <span class="number">1</span><span class="special">,</span>
+      <span class="special">(</span><span class="identifier">cpp_int</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="number">128</span><span class="special">)</span> <span class="special">-</span> <span class="number">1</span><span class="special">,</span>
+   <span class="special">};</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">bit_counts</span><span class="special">[]</span> <span class="special">=</span> <span class="special">{</span> <span class="string">"16"</span><span class="special">,</span> <span class="string">"32"</span><span class="special">,</span> <span class="string">"64"</span><span class="special">,</span> <span class="string">"128"</span> <span class="special">};</span>
+   <span class="keyword">unsigned</span> <span class="identifier">current_limit</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">unsigned</span> <span class="identifier">j</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">j</span> <span class="special">&lt;</span> <span class="identifier">results</span><span class="special">.</span><span class="identifier">size</span><span class="special">();</span> <span class="special">++</span><span class="identifier">j</span><span class="special">)</span>
+   <span class="special">{</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">limits</span><span class="special">[</span><span class="identifier">current_limit</span><span class="special">]</span> <span class="special">&lt;</span> <span class="identifier">results</span><span class="special">[</span><span class="identifier">j</span><span class="special">])</span>
+      <span class="special">{</span>
+         <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">message</span> <span class="special">=</span> <span class="string">"Limit of "</span> <span class="special">+</span> <span class="identifier">bit_counts</span><span class="special">[</span><span class="identifier">current_limit</span><span class="special">]</span> <span class="special">+</span> <span class="string">" bit integers"</span><span class="special">;</span>
+         <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setfill</span><span class="special">(</span><span class="char">'.'</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setw</span><span class="special">(</span><span class="identifier">digits</span><span class="special">+</span><span class="number">1</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">right</span> <span class="special">&lt;&lt;</span> <span class="identifier">message</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setfill</span><span class="special">(</span><span class="char">' '</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+         <span class="special">++</span><span class="identifier">current_limit</span><span class="special">;</span>
+      <span class="special">}</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setw</span><span class="special">(</span><span class="identifier">digits</span> <span class="special">+</span> <span class="number">1</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">right</span> <span class="special">&lt;&lt;</span> <span class="identifier">results</span><span class="special">[</span><span class="identifier">j</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+   <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            The output from this routine is:
+          </p>
+<a name="fix%20for%20quickbook%20bug"></a><pre class="programlisting">
+                                       1
+                                       2
+                                       6
+                                      24
+                                     120
+                                     720
+                                    5040
+                                   40320
+................Limit of 16 bit integers
+                                  362880
+                                 3628800
+                                39916800
+                               479001600
+................Limit of 32 bit integers
+                              6227020800
+                             87178291200
+                           1307674368000
+                          20922789888000
+                         355687428096000
+                        6402373705728000
+                      121645100408832000
+                     2432902008176640000
+................Limit of 64 bit integers
+                    51090942171709440000
+                  1124000727777607680000
+                 25852016738884976640000
+                620448401733239439360000
+              15511210043330985984000000
+             403291461126605635584000000
+           10888869450418352160768000000
+          304888344611713860501504000000
+         8841761993739701954543616000000
+       265252859812191058636308480000000
+      8222838654177922817725562880000000
+    263130836933693530167218012160000000
+   8683317618811886495518194401280000000
+ 295232799039604140847618609643520000000
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../egs.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../egs.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bitops.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

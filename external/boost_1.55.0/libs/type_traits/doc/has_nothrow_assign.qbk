@@ -1,0 +1,29 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:has_nothrow_assign has_nothrow_assign]
+
+   template <class T>
+   struct has_nothrow_assign : public __tof {};
+  
+__inherit If T is a (possibly cv-qualified) type with a non-throwing assignment-operator
+then inherits from __true_type, otherwise inherits from __false_type.  Type `T`
+must be a complete type.
+
+__compat If the compiler does not support partial-specialization of class 
+templates, then this template can not be used with function types.
+
+Without some (as yet unspecified) help from the compiler, 
+`has_nothrow_assign` will never report that a class or struct has a 
+non-throwing assignment-operator; this is always safe, if possibly sub-optimal.
+Currently (May 2005) only Visual C++ 8 has the necessary compiler support to ensure that this
+trait "just works".
+
+__header ` #include <boost/type_traits/has_nothrow_assign.hpp>` or ` #include <boost/type_traits.hpp>`
+
+[endsect]
+

@@ -1,0 +1,401 @@
+# Copyright 2002, 2003 Dave Abrahams
+# Copyright 2002, 2003, 2004, 2005, 2006 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+#  Deals with target type declaration and defines target class which supports
+#  typed targets.
+
+import "class" : new ;
+import feature ;
+import generators : * ;
+import os ;
+import project ;
+import property ;
+import scanner ;
+
+# The following import would create a circular dependency:
+# project -> project-root -> builtin -> type -> targets -> project
+# import targets ;
+
+# The feature is optional so it would never get added implicitly. It is used
+# only for internal purposes and in all cases we want to use it explicitly.
+feature.feature target-type : : composite optional ;
+
+feature.feature main-target-type : : optional incidental ;
+feature.feature base-target-type : : composite optional free ;
+
+
+# Registers a target type, possible derived from a 'base-type'. Providing a list
+# of 'suffixes' here is a shortcut for separately calling the register-suffixes
+# rule with the given suffixes and the set-generated-target-suffix rule with the
+# first given suffix.
+#
+rule register ( type : suffixes * : base-type ? )
+{
+    # Type names cannot contain hyphens, because when used as feature-values
+    # they would be interpreted as composite features which need to be
+    # decomposed.
+    switch $(type)
+    {
+        case *-* :
+            import errors ;
+            errors.error "type name \"$(type)\" contains a hyphen" ;
+    }
+
+    if $(type) in $(.types)
+    {
+        import errors ;
+        errors.error "Type $(type) is already registered." ;
+    }
+
+    {
+        .types += $(type) ;
+        .base.$(type) = $(base-type) ;
+        .derived.$(base-type) += $(type) ;
+        .bases.$(type) = $(type) $(.bases.$(base-type)) ;
+
+        # Store suffixes for generated targets.
+        .suffixes.$(type) = [ new property-map ] ;
+
+        # Store prefixes for generated targets (e.g. "lib" for library).
+        .prefixes.$(type) = [ new property-map ] ;
+
+        if $(suffixes)-is-defined
+        {
+            # Specify mapping from suffixes to type.
+            register-suffixes $(suffixes) : $(type) ;
+            # By default generated targets of 'type' will use the first of
+            #'suffixes'. This may be overriden.
+            set-generated-target-suffix $(type) : : $(suffixes[1]) ;
+        }
+
+        feature.extend target-type      : $(type) ;
+        feature.extend main-target-type : $(type) ;
+        feature.extend base-target-type : $(type) ;
+
+        feature.compose <target-type>$(type) : $(base-type:G=<base-target-type>) ;
+        feature.compose <base-target-type>$(type) : <base-target-type>$(base-type) ;
+
+        # We used to declare the main target rule only when a 'main' parameter
+        # has been specified. However, it is hard to decide that a type will
+        # *never* need a main target rule and so from time to time we needed to
+        # make yet another type 'main'. So now a main target rule is defined for
+        # each type.
+        main-rule-name = [ type-to-rule-name $(type) ] ;
+        .main-target-type.$(main-rule-name) = $(type) ;
+        IMPORT $(__name__) : main-target-rule : : $(main-rule-name) ;
+
+        # Adding a new derived type affects generator selection so we need to
+        # make the generator selection module update any of its cached
+        # information related to a new derived type being defined.
+        generators.update-cached-information-with-a-new-type $(type) ;
+    }
+}
+
+
+# Given a type, returns the name of the main target rule which creates targets
+# of that type.
+#
+rule type-to-rule-name ( type )
+{
+    # Lowercase everything. Convert underscores to dashes.
+    import regex ;
+    local n = [ regex.split $(type:L) "_" ] ;
+    return $(n:J=-) ;
+}
+
+
+# Given a main target rule name, returns the type for which it creates targets.
+#
+rule type-from-rule-name ( rule-name )
+{
+    return $(.main-target-type.$(rule-name)) ;
+}
+
+
+# Specifies that files with suffix from 'suffixes' be recognized as targets of
+# type 'type'. Issues an error if a different type is already specified for any
+# of the suffixes.
+#
+rule register-suffixes ( suffixes + : type )
+{
+    for local s in $(suffixes)
+    {
+        if ! $(.type.$(s))
+        {
+            .type.$(s) = $(type) ;
+        }
+        else if $(.type.$(s)) != $(type)
+        {
+            import errors ;
+            errors.error Attempting to specify multiple types for suffix
+                \"$(s)\" : "Old type $(.type.$(s)), New type $(type)" ;
+        }
+    }
+}
+
+
+# Returns true iff type has been registered.
+#
+rule registered ( type )
+{
+    if $(type) in $(.types)
+    {
+        return true ;
+    }
+}
+
+
+# Issues an error if 'type' is unknown.
+#
+rule validate ( type )
+{
+    if ! [ registered $(type) ]
+    {
+        import errors ;
+        errors.error "Unknown target type $(type)" ;
+    }
+}
+
+
+# Sets a scanner class that will be used for this 'type'.
+#
+rule set-scanner ( type : scanner )
+{
+    validate $(type) ;
+    .scanner.$(type) = $(scanner) ;
+}
+
+
+# Returns a scanner instance appropriate to 'type' and 'properties'.
+#
+rule get-scanner ( type : property-set )
+{
+    if $(.scanner.$(type))
+    {
+        return [ scanner.get $(.scanner.$(type)) : $(property-set) ] ;
+    }
+}
+
+
+# Returns a base type for the given type or nothing in case the given type is
+# not derived.
+#
+rule base ( type )
+{
+    return $(.base.$(type)) ;
+}
+
+
+# Returns the given type and all of its base types in order of their distance
+# from type.
+#
+rule all-bases ( type )
+{
+    return $(.bases.$(type)) ;
+}
+
+
+# Returns the given type and all of its derived types in order of their distance
+# from type.
+#
+rule all-derived ( type )
+{
+    local result = $(type) ;
+    for local d in $(.derived.$(type))
+    {
+        result += [ all-derived $(d) ] ;
+    }
+    return $(result) ;
+}
+
+
+# Returns true if 'type' is equal to 'base' or has 'base' as its direct or
+# indirect base.
+#
+rule is-derived ( type base )
+{
+    if $(base) in $(.bases.$(type))
+    {
+        return true ;
+    }
+}
+
+# Returns true if 'type' is either derived from or is equal to 'base'.
+#
+# TODO: It might be that is-derived and is-subtype were meant to be different
+# rules - one returning true for type = base and one not, but as currently
+# implemented they are actually the same. Clean this up.
+#
+rule is-subtype ( type base )
+{
+    return [ is-derived $(type) $(base) ] ;
+}
+
+
+
+
+# Sets a file suffix to be used when generating a target of 'type' with the
+# specified properties. Can be called with no properties if no suffix has
+# already been specified for the 'type'. The 'suffix' parameter can be an empty
+# string ("") to indicate that no suffix should be used.
+#
+# Note that this does not cause files with 'suffix' to be automatically
+# recognized as being of 'type'. Two different types can use the same suffix for
+# their generated files but only one type can be auto-detected for a file with
+# that suffix. User should explicitly specify which one using the
+# register-suffixes rule.
+#
+rule set-generated-target-suffix ( type : properties * : suffix )
+{
+    set-generated-target-ps suffix : $(type) : $(properties) : $(suffix) ;
+}
+
+
+# Change the suffix previously registered for this type/properties combination.
+# If suffix is not yet specified, sets it.
+#
+rule change-generated-target-suffix ( type : properties * : suffix )
+{
+    change-generated-target-ps suffix : $(type) : $(properties) : $(suffix) ;
+}
+
+
+# Returns the suffix used when generating a file of 'type' with the given
+# properties.
+#
+rule generated-target-suffix ( type : property-set )
+{
+    return [ generated-target-ps suffix : $(type) : $(property-set) ] ;
+}
+
+
+# Sets a target prefix that should be used when generating targets of 'type'
+# with the specified properties. Can be called with empty properties if no
+# prefix for 'type' has been specified yet.
+#
+# The 'prefix' parameter can be empty string ("") to indicate that no prefix
+# should be used.
+#
+# Usage example: library names use the "lib" prefix on unix.
+#
+rule set-generated-target-prefix ( type : properties * : prefix )
+{
+    set-generated-target-ps prefix : $(type) : $(properties) : $(prefix) ;
+}
+
+
+# Change the prefix previously registered for this type/properties combination.
+# If prefix is not yet specified, sets it.
+#
+rule change-generated-target-prefix ( type : properties * : prefix )
+{
+    change-generated-target-ps prefix : $(type) : $(properties) : $(prefix) ;
+}
+
+
+rule generated-target-prefix ( type : property-set )
+{
+    return [ generated-target-ps prefix : $(type) : $(property-set) ] ;
+}
+
+
+# Common rules for prefix/suffix provisioning follow.
+
+local rule set-generated-target-ps ( ps : type : properties * : psval )
+{
+    $(.$(ps)es.$(type)).insert $(properties) : $(psval) ;
+}
+
+
+local rule change-generated-target-ps ( ps : type : properties * : psval )
+{
+    local prev = [ $(.$(ps)es.$(type)).find-replace $(properties) : $(psval) ] ;
+    if ! $(prev)
+    {
+        set-generated-target-ps $(ps) : $(type) : $(properties) : $(psval) ;
+    }
+}
+
+
+# Returns either prefix or suffix (as indicated by 'ps') that should be used
+# when generating a target of 'type' with the specified properties. Parameter
+# 'ps' can be either "prefix" or "suffix".  If no prefix/suffix is specified for
+# 'type', returns prefix/suffix for base type, if any.
+#
+local rule generated-target-ps ( ps : type : property-set )
+{
+    local result ;
+    local found ;
+    while $(type) && ! $(found)
+    {
+        result = [ $(.$(ps)es.$(type)).find $(property-set) ] ;
+        # If the prefix/suffix is explicitly set to an empty string, we consider
+        # prefix/suffix to be found. If we were not to compare with "", there
+        # would be no way to specify an empty prefix/suffix.
+        if $(result)-is-defined
+        {
+            found = true ;
+        }
+        type = $(.base.$(type)) ;
+    }
+    if $(result) = ""
+    {
+        result = ;
+    }
+    return $(result) ;
+}
+
+
+# Returns file type given its name. If there are several dots in filename, tries
+# each suffix. E.g. for name of "file.so.1.2" suffixes "2", "1", and "so" will
+# be tried.
+#
+rule type ( filename )
+{
+    if [ os.name ] in NT CYGWIN
+    {
+        filename = $(filename:L) ;
+    }
+    local type ;
+    while ! $(type) && $(filename:S)
+    {
+        local suffix = $(filename:S) ;
+        type = $(.type$(suffix)) ;
+        filename = $(filename:S=) ;
+    }
+    return $(type) ;
+}
+
+
+# Rule used to construct all main targets. Note that this rule gets imported
+# into the global namespace under different alias names and the exact target
+# type to construct is selected based on the alias used to actually invoke this
+# rule.
+#
+rule main-target-rule ( name : sources * : requirements * : default-build * :
+    usage-requirements * )
+{
+    # First discover the required target type based on the exact alias used to
+    # invoke this rule.
+    local bt = [ BACKTRACE 1 ] ;
+    local rulename = $(bt[4]) ;
+    local target-type = [ type-from-rule-name $(rulename) ] ;
+
+    # This is a circular module dependency and so must be imported here.
+    import targets ;
+
+    return [ targets.create-typed-target $(target-type) : [ project.current ] :
+        $(name) : $(sources) : $(requirements) : $(default-build) :
+        $(usage-requirements) ] ;
+}
+
+
+rule __test__ ( )
+{
+    import assert ;
+
+    # TODO: Add tests for all the is-derived, is-base & related type relation
+    # checking rules.
+}

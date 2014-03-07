@@ -1,0 +1,45 @@
+Index: source/common/unicode/ptypes.h
+===================================================================
+--- source/common/unicode/ptypes.h	(revision 68397)
++++ source/common/unicode/ptypes.h	(working copy)
+@@ -22,7 +22,15 @@
+ 
+ #include <sys/types.h>
+ 
+-#include "unicode/platform.h"
++#if defined(__APPLE__)
++#   include "unicode/pmac.h"
++#elif defined(ANDROID)
++#   include "unicode/pandroid.h"
++#elif defined(__linux__)
++#   include "unicode/plinux.h"
++#else
++#   include "unicode/platform.h"
++#endif
+ 
+ /*===========================================================================*/
+ /* Generic data types                                                        */
+Index: source/common/unicode/platform.h.in
+===================================================================
+--- source/common/unicode/platform.h.in	(revision 29054)
++++ source/common/unicode/platform.h.in	(working copy)
+@@ -1,7 +1,7 @@
+ /*
+ ******************************************************************************
+ *
+-*   Copyright (C) 1997-2010, International Business Machines
++*   Copyright (C) 1997-2011, International Business Machines
+ *   Corporation and others.  All Rights Reserved.
+ *
+ ******************************************************************************
+@@ -298,7 +298,9 @@
+ /** @{ Symbol import-export control                                              */
+ /*===========================================================================*/
+ 
+-#if @U_USE_GCC_VISIBILITY_ATTRIBUTE@
++#ifdef U_STATIC_IMPLEMENTATION
++#define U_EXPORT
++#elif @U_USE_GCC_VISIBILITY_ATTRIBUTE@
+ #define U_EXPORT __attribute__((visibility("default")))
+ #elif (defined(__SUNPRO_CC) && __SUNPRO_CC >= 0x550) \
+    || (defined(__SUNPRO_C) && __SUNPRO_C >= 0x550) 

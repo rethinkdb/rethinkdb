@@ -1,0 +1,96 @@
+digraph G {
+  ratio="fill"
+  size="4,6"
+  edge[style="bold"]
+
+  RT1
+  RT2
+  RT3
+  RT4
+  RT5
+  RT6
+  RT7
+  RT8
+  RT9
+  RT10
+  RT11
+  RT12
+
+  N1
+  N2
+  N3
+  N4
+  N6
+  N7
+  N8
+  N9
+  N10
+  N11
+  N12
+  N13
+  N14
+  N15
+  H1
+
+  RT1 -> N1[label="3"]  
+  RT1 -> N3[label="1"]  
+
+  RT2 -> N2[label="3"]  
+  RT2 -> N3[label="1"]  
+
+  RT3 -> RT6[label="8"]
+  RT3 -> N3[label="1"]  
+  RT3 -> N4[label="2"]  
+
+  RT4 -> N3[label="1"]  
+  RT4 -> RT5[label="8"]
+
+  RT5 -> RT4[label="8"]
+  RT5 -> RT6[label="7"]
+  RT5 -> RT7[label="6"]
+  RT5 -> N12[label="8"]
+  RT5 -> N13[label="8"]
+  RT5 -> N14[label="8"]
+
+  RT6 -> RT3[label="6"]
+  RT6 -> RT5[label="6"]
+  RT6 -> RT10[label="7"]
+
+  RT7 -> RT5[label="6"]
+  RT7 -> N6[label="1"]  
+  RT7 -> N12[label="2"]
+  RT7 -> N15[label="9"]
+
+  RT8 -> N6[label="1"]  
+  RT8 -> N7[label="4"]  
+
+  RT9 -> N9[label="1"]  
+  RT9 -> N11[label="3"]
+
+  RT10 -> RT6[label="5"]
+  RT10 -> N6[label="1"]
+  RT10 -> N8[label="3"]
+
+  RT11 -> N8[label="2"]
+  RT11 -> N9[label="1"]
+
+  RT12 -> N9[label="1"]
+  RT12 -> N10[label="2"]
+  RT12 -> H1[label="10"]
+
+  N3 -> RT1[label="0"]
+  N3 -> RT2[label="0"]
+  N3 -> RT3[label="0"]
+  N3 -> RT4[label="0"]
+
+  N6 -> RT7[label="0"]
+  N6 -> RT8[label="0"]  
+  N6 -> RT10[label="0"]  
+
+  N8 -> RT10[label="0"]  
+  N8 -> RT11[label="0"]  
+
+  N9 -> RT9[label="0"]
+  N9 -> RT11[label="0"]  
+  N9 -> RT12[label="0"]  
+}

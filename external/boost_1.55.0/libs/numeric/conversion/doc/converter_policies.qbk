@@ -1,0 +1,311 @@
+[/
+    Boost.Optional
+
+    Copyright (c) 2003-2007 Fernando Luis Cacciola Carballal
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section Numeric Converter Policy Classes]
+
+
+[section enum range_check_result]
+
+    namespace boost { namespace numeric {
+
+        enum range_check_result
+        {
+            cInRange     ,
+            cNegOverflow ,
+            cPosOverflow
+        } ;
+
+    } }
+
+Defines the values returned by `boost::numeric::converter<>::out_of_range()`
+
+[endsect]
+
+[section Policy OverflowHandler]
+
+This ['stateless] non-template policy class must be a ['function object] and is
+called to administrate the result of the range checking. It can throw an exception
+if overflow has been detected by the range checking as indicated by its argument.
+If it throws, is is recommended that it be `std::bad_cast` or derived.
+
+It must have the following interface (it does not has to be a template class):
+
+    struct YourOverflowHandlerPolicy
+    {
+        void operator() ( boost::range_check_result ) ; // throw bad_cast or derived
+    } ;
+
+It is called with the result of the converter's `out_of_range()` inside `validate_range()`.
+
+These are the two overflow handler classes provided by the library:
+
+    namespace boost { namespace numeric {
+
+        struct def_overflow_handler
+        {
+            void operator() ( range_check_result r ) // throw bad_numeric_conversion derived
+            {
+                if ( r == cNegOverflow )
+                    throw negative_overflow() ;
+                else if ( r == cPosOverflow )
+                    throw positive_overflow() ;
+            }
+        } ;
+
+        struct silent_overflow_handler
+        {
+            void operator() ( range_check_result ) // no-throw
+            {}
+        } ;
+
+    } }
+
+And these are the Exception Classes thrown by the default overflow handler
+[link numeric_conversion_policy_overflow_handler_important_note (see IMPORTANT note)]
+
+    namespace boost { namespace numeric {
+
+        ``[#numeric_conversion_bad_numeric_cast]``
+        class bad_numeric_cast : public std::bad_cast
+        {
+            public:
+            virtual const char *what() const // throw()
+            {
+                return "bad numeric conversion: overflow";
+            }
+
+        };
+
+        ``[#numeric_conversion_negative_overflow]``
+        class negative_overflow : public bad_numeric_cast
+        {
+            public:
+            virtual const char *what() const // throw()
+            {
+                return "bad numeric conversion: negative overflow";
+            }
+        };
+
+        ``[#numeric_conversion_possitive_overflow]``
+        class positive_overflow : public bad_numeric_cast
+        {
+            public:
+            virtual const char *what() const // throw()
+            {
+                return "bad numeric conversion: positive overflow";
+            }
+        };
+
+
+    } }
+
+[#numeric_conversion_policy_overflow_handler_important_note]
+
+[important [*RELEASE NOTE for 1.33]
+Previous to boost version 1.33, the exception class `bad_numeric_cast` was
+named `bad_numeric_conversion`. However, in 1.33, the old function
+`numeric_cast<>` from `boost/cast.hpp` was completly replaced by the
+new `numeric_cast<>` in `boost/numeric/conversion/cast.hpp`
+(and `boost/cast.hpp` is including `boost/numeric/conversion/cast.hpp` now).
+That old function which existed in boost for quite some time used the
+`bad_numeric_cast` as its exception type so I decided to avoid backward
+compatibility problems by adopting it (guessing that the user base for
+the old code is wider than for the new code).
+]
+
+[endsect]
+
+[section Policy Float2IntRounder]
+
+This ['stateless] template policy class specifies the rounding mode used
+for [_float to integral] conversions. It supplies the `nearbyint()`
+static member function exposed by the converter, which means that it
+[_publicly inherits from this policy].
+
+The policy must have the following interface:
+
+    template<class S>
+    struct YourFloat2IntRounderPolicy
+    {
+        typedef S               source_type ;
+        typedef {S or S const&} argument_type ;
+
+        static source_type nearbyint ( argument_type s ) { ... }
+
+        typedef mpl::integral_c<std::float_round_style,std::round_...> round_style ;
+
+    } ;
+
+These are the rounder classes provided by the library (only the specific parts are shown,
+see the general policy form above)
+
+[note
+These classes are not intended to be general purpose rounding functions
+but specific policies for `converter<>`. This is why they are not function objects.
+]
+
+    namespace boost { namespace numeric {
+
+
+        template<class S>
+        struct Trunc
+        {
+            static source_type nearbyint ( argument_type s )
+            {
+                using std::floor ;
+                using std::ceil  ;
+
+                return s >= static_cast<S>(0) ? floor(s) : ceil(s) ;
+            }
+
+            typedef mpl::integral_c<std::float_round_style,std::round_toward_zero> round_style ;
+        } ;
+
+
+        template<class S>
+        struct RoundEven
+        {
+            static source_type nearbyint ( argument_type s )
+            {
+                return impl-defined-value ;
+            }
+
+            typedef mpl::integral_c<std::float_round_style,std::round_to_nearest> round_style ;
+        } ;
+
+
+        template<class S>
+        struct Ceil
+        {
+            static source_type nearbyint ( argument_type s )
+            {
+                using std::ceil ;
+                return ceil(s) ;
+            }
+
+            typedef mpl::integral_c<std::float_round_style,std::round_toward_infinity> round_style ;
+        } ;
+
+
+        template<class S>
+        struct Floor
+        {
+            static source_type nearbyint ( argument_type s )
+            {
+                using std::floor ;
+                return floor(s) ;
+            }
+            typedef mpl::integral_c<std::float_round_style,std::round_toward_neg_infinity> round_style ;
+        } ;
+
+    } } // namespace numeric, namespace boost
+
+[heading Math Functions used by the rounder policies]
+
+The rounder policies supplied by this header use math functions `floor()` and `ceil()`.
+The standard versions of these functions are introduced in context by a using directive,
+so in normal conditions, the standard functions will be used.
+
+However, if there are other visible corresponding overloads an ambiguity could arise.
+In this case, the user can supply her own rounder policy which could, for instance,
+use a fully qualified call.
+
+This technique allows the default rounder policies to be used directly with
+user defined types. The user only requires that suitable overloads of `floor()` and `ceil()`
+be visible. See also [link boost_numericconversion.type_requirements_and_user_defined_types_support User Defined Numeric Types]
+support.
+
+[endsect]
+
+[section Policy RawConverter]
+
+This ['stateless] template policy class is used to perform the 
+actual conversion from Source to Target. It supplies the 
+`low_level_convert()` static member function exposed by the 
+converter, which means that it publicly inherits from this policy.
+
+The policy must have the following interface:
+
+    template<class Traits>
+    struct YourRawConverterPolicy
+    {
+        typedef typename Traits::result_type   result_type   ;
+        typedef typename Traits::argument_type argument_type ;
+
+        static result_type low_level_convert ( argument_type s ) { return <impl defined> ; }
+    } ;
+
+
+This policy is mostly provided as a hook for user defined types which don't support `static_cast<>` conversions to some types
+
+This is the only raw converter policy class provided by the library:
+
+    namespace boost { namespace numeric {
+
+        template<class Traits>
+        struct raw_numeric_converter
+        {
+            typedef typename Traits::result_type   result_type   ;
+            typedef typename Traits::argument_type argument_type ;
+
+            static result_type low_level_convert ( argument_type s )
+            {
+                return static_cast<result_type>(s) ; 
+            }
+        } ;
+
+    } }
+
+[endsect]
+
+[section Policy UserRangeChecker]
+
+This ['stateless] template policy class is used [_only if supplied] 
+to [*override] the internal range checking logic.
+
+It supplies the `validate_range()` static member function 
+exposed by the converter, which means that it publicly inherits 
+from this policy.
+
+The policy must have the following interface:
+
+    template<class Traits>
+    struct YourRangeCheckerPolicy
+    {
+        typedef typename Traits::argument_type argument_type ;
+
+        // Determines if the value 's' fits in the range of the Target type.
+        static range_check_result out_of_range ( argument_type s ) ;
+
+        // Checks whether the value 's' is out_of_range()
+        // and passes the result of the check to the OverflowHandler policy.
+        static void validate_range ( argument_type s )
+        {
+            OverflowHandler()( out_of_range(s) ) ;
+        }
+    } ;
+
+
+This policy is [*only] provided as a hook for user defined types which require
+range checking (which is disabled by default when a UDT is involved).
+The library provides a class: `UseInternalRangeChecker{}`; which is a ['fake]
+`RangeChecker` policy used to signal the converter to use its internal
+range checking implementation.
+
+[endsect]
+
+[endsect]
+
+
+
+
+
+
+

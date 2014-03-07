@@ -1,0 +1,54 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:rationale Rationale]
+
+Most programs interact with the outside world in some way, whether it be via a
+file, a network, a serial cable, or the console. Sometimes, as is the case with
+networking, individual I/O operations can take a long time to complete. This
+poses particular challenges to application development.
+
+Boost.Asio provides the tools to manage these long running operations, without
+requiring programs to use concurrency models based on threads and explicit
+locking.
+
+The Boost.Asio library is intended for programmers using C++ for systems programming,
+where access to operating system functionality such as networking is often
+required. In particular, Boost.Asio addresses the following goals:
+
+* [*Portability.] The library should support a range of commonly used operating
+systems, and provide consistent behaviour across these operating systems.
+
+* [*Scalability.] The library should facilitate the development of network
+applications that scale to thousands of concurrent connections. The library
+implementation for each operating system should use the mechanism that best
+enables this scalability.
+
+* [*Efficiency.] The library should support techniques such as scatter-gather
+I/O, and allow programs to minimise data copying.
+
+* [*Model concepts from established APIs, such as BSD sockets.] The
+BSD socket API is widely implemented and understood, and is covered in much
+literature. Other programming languages often use a similar interface for
+networking APIs. As far as is reasonable, Boost.Asio should leverage existing
+practice.
+
+* [*Ease of use.] The library should provide a lower entry barrier for new
+users by taking a toolkit, rather than framework, approach. That is, it should
+try to minimise the up-front investment in time to just learning a few basic
+rules and guidelines. After that, a library user should only need to understand
+the specific functions that are being used.
+
+* [*Basis for further abstraction.] The library should permit the development
+of other libraries that provide higher levels of abstraction. For example,
+implementations of commonly used protocols such as HTTP.
+
+Although Boost.Asio started life focused primarily on networking, its concepts of
+asynchronous I/O have been extended to include other operating system resources
+such as serial ports, file descriptors, and so on.
+
+[endsect]

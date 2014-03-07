@@ -1,0 +1,168 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;17.&#160;Boost.Lexical_Cast 1.0</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="lambda/s10.html" title="Rationale for some of the design decisions">
+<link rel="next" href="boost_lexical_cast/examples.html" title="Examples">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lambda/s10.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost_lexical_cast/examples.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="boost_lexical_cast"></a>Chapter&#160;17.&#160;Boost.Lexical_Cast 1.0</h2></div>
+<div><p class="copyright">Copyright &#169; 2000-2005 Kevlin Henney</p></div>
+<div><p class="copyright">Copyright &#169; 2006-2010 Alexander Nasonov</p></div>
+<div><p class="copyright">Copyright &#169; 2011-2013 Antony Polukhin</p></div>
+<div><div class="legalnotice">
+<a name="boost_lexical_cast.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="boost_lexical_cast.html#boost_lexical_cast.motivation">Motivation</a></span></dt>
+<dt><span class="section"><a href="boost_lexical_cast/examples.html">Examples</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_lexical_cast/examples.html#boost_lexical_cast.examples.strings_to_numbers_conversion">Strings
+      to numbers conversion</a></span></dt>
+<dt><span class="section"><a href="boost_lexical_cast/examples.html#boost_lexical_cast.examples.numbers_to_strings_conversion">Numbers
+      to strings conversion</a></span></dt>
+<dt><span class="section"><a href="boost_lexical_cast/examples.html#boost_lexical_cast.examples.converting_to_string_without_dynamic_memory_allocation">Converting
+      to string without dynamic memory allocation</a></span></dt>
+<dt><span class="section"><a href="boost_lexical_cast/examples.html#boost_lexical_cast.examples.converting_part_of_the_string">Converting
+      part of the string</a></span></dt>
+<dt><span class="section"><a href="boost_lexical_cast/examples.html#boost_lexical_cast.examples.generic_programming__boost_fusion_">Generic
+      programming (Boost.Fusion)</a></span></dt>
+<dt><span class="section"><a href="boost_lexical_cast/examples.html#boost_lexical_cast.examples.generic_programming__boost_variant_">Generic
+      programming (Boost.Variant)</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_lexical_cast/synopsis.html">Synopsis</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_lexical_cast/synopsis.html#boost_lexical_cast.synopsis.lexical_cast">lexical_cast</a></span></dt>
+<dt><span class="section"><a href="boost_lexical_cast/synopsis.html#boost_lexical_cast.synopsis.bad_lexical_cast">bad_lexical_cast</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_lexical_cast/frequently_asked_questions.html">Frequently
+    Asked Questions</a></span></dt>
+<dt><span class="section"><a href="boost_lexical_cast/changes.html">Changes</a></span></dt>
+<dt><span class="section"><a href="boost_lexical_cast/performance.html">Performance</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_lexical_cast/performance.html#boost_lexical_cast.performance.tests_description">Tests
+      description</a></span></dt>
+<dt><span class="section"><a href="boost_lexical_cast/performance.html#boost_lexical_cast.performance.clang_version_3_0__tags_release_30_final_">Clang
+      version 3.0 (tags/RELEASE_30/final)</a></span></dt>
+<dt><span class="section"><a href="boost_lexical_cast/performance.html#boost_lexical_cast.performance.gnu_c___version_4_6_3">GNU
+      C++ version 4.6.3</a></span></dt>
+<dt><span class="section"><a href="boost_lexical_cast/performance.html#boost_lexical_cast.performance.gnu_c___version_4_5_3">GNU
+      C++ version 4.5.3</a></span></dt>
+<dt><span class="section"><a href="boost_lexical_cast/performance.html#boost_lexical_cast.performance.gnu_c___version_4_4_7">GNU
+      C++ version 4.4.7</a></span></dt>
+<dt><span class="section"><a href="boost_lexical_cast/performance.html#boost_lexical_cast.performance.microsoft_visual_c___version_11_0">Microsoft
+      Visual C++ version 11.0</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_lexical_cast.motivation"></a><a class="link" href="boost_lexical_cast.html#boost_lexical_cast.motivation" title="Motivation">Motivation</a>
+</h2></div></div></div>
+<p>
+      Sometimes a value must be converted to a literal text form, such as an <code class="computeroutput"><span class="keyword">int</span></code> represented as a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>,
+      or vice-versa, when a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code> is interpreted as an <code class="computeroutput"><span class="keyword">int</span></code>. Such examples are common when converting
+      between data types internal to a program and representation external to a program,
+      such as windows and configuration files.
+    </p>
+<p>
+      The standard C and C++ libraries offer a number of facilities for performing
+      such conversions. However, they vary with their ease of use, extensibility,
+      and safety.
+    </p>
+<p>
+      For instance, there are a number of limitations with the family of standard
+      C functions typified by <code class="computeroutput"><span class="identifier">atoi</span></code>:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Conversion is supported in one direction only: from text to internal data
+          type. Converting the other way using the C library requires either the
+          inconvenience and compromised safety of the <code class="computeroutput"><span class="identifier">sprintf</span></code>
+          function, or the loss of portability associated with non-standard functions
+          such as <code class="computeroutput"><span class="identifier">itoa</span></code>.
+        </li>
+<li class="listitem">
+          The range of types supported is only a subset of the built-in numeric types,
+          namely <code class="computeroutput"><span class="keyword">int</span></code>, <code class="computeroutput"><span class="keyword">long</span></code>, and <code class="computeroutput"><span class="keyword">double</span></code>.
+        </li>
+<li class="listitem">
+          The range of types cannot be extended in a uniform manner. For instance,
+          conversion from string representation to complex or rational.
+        </li>
+</ul></div>
+<p>
+      The standard C functions typified by <code class="computeroutput"><span class="identifier">strtol</span></code>
+      have the same basic limitations, but offer finer control over the conversion
+      process. However, for the common case such control is often either not required
+      or not used. The <code class="computeroutput"><span class="identifier">scanf</span></code> family
+      of functions offer even greater control, but also lack safety and ease of use.
+    </p>
+<p>
+      The standard C++ library offers <code class="computeroutput"><span class="identifier">stringstream</span></code>
+      for the kind of in-core formatting being discussed. It offers a great deal
+      of control over the formatting and conversion of I/O to and from arbitrary
+      types through text. However, for simple conversions direct use of <code class="computeroutput"><span class="identifier">stringstream</span></code> can be either clumsy (with the
+      introduction of extra local variables and the loss of infix-expression convenience)
+      or obscure (where <code class="computeroutput"><span class="identifier">stringstream</span></code>
+      objects are created as temporary objects in an expression). Facets provide
+      a comprehensive concept and facility for controlling textual representation,
+      but their perceived complexity and high entry level requires an extreme degree
+      of involvement for simple conversions, and excludes all but a few programmers.
+    </p>
+<p>
+      The <code class="computeroutput"><span class="identifier">lexical_cast</span></code> function template
+      offers a convenient and consistent form for supporting common conversions to
+      and from arbitrary types when they are represented as text. The simplification
+      it offers is in expression-level convenience for such conversions. For more
+      involved conversions, such as where precision or formatting need tighter control
+      than is offered by the default behavior of <code class="computeroutput"><span class="identifier">lexical_cast</span></code>,
+      the conventional <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">stringstream</span></code> approach is recommended. Where
+      the conversions are numeric to numeric, <a href="../../libs/numeric/conversion/doc/html/boost_numericconversion/improved_numeric_cast__.html" target="_top"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric_cast</span></code></a>
+      may offer more reasonable behavior than <code class="computeroutput"><span class="identifier">lexical_cast</span></code>.
+    </p>
+<p>
+      For a good discussion of the options and issues involved in string-based formatting,
+      including comparison of <code class="computeroutput"><span class="identifier">stringstream</span></code>,
+      <code class="computeroutput"><span class="identifier">lexical_cast</span></code>, and others, see
+      Herb Sutter's article, <a href="http://www.gotw.ca/publications/mill19.htm" target="_top">The
+      String Formatters of Manor Farm</a>. Also, take a look at the <a class="link" href="boost_lexical_cast/performance.html" title="Performance">Performance</a>
+      section.
+    </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:49:53 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lambda/s10.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost_lexical_cast/examples.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

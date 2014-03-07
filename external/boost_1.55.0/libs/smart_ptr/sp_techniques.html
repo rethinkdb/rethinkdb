@@ -1,0 +1,765 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+	<head>
+		<title>Smart Pointer Programming Techniques</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	</head>
+	<body text="#000000" bgColor="#ffffff">
+		<h1><A href="../../index.htm"><IMG height="86" alt="boost.png (6897 bytes)" src="../../boost.png" width="277" align="middle"
+					border="0"></A>Smart Pointer Programming Techniques</h1>
+		<p><A href="#incomplete">Using incomplete classes for implementation hiding</A><br>
+			<A href="#pimpl">The "Pimpl" idiom</A><br>
+			<A href="#abstract">Using abstract classes for implementation hiding</A><br>
+			<A href="#preventing_delete">Preventing <code>delete px.get()</code></A><br>
+			<A href="#array">Using a <code>shared_ptr</code> to hold a pointer to an array</A><br>
+			<A href="#encapsulation">Encapsulating allocation details, wrapping factory 
+				functions</A><br>
+			<A href="#static">Using a <code>shared_ptr</code> to hold a pointer to a statically 
+				allocated object</A><br>
+			<A href="#com">Using a <code>shared_ptr</code> to hold a pointer to a COM object</A><br>
+			<A href="#intrusive">Using a <code>shared_ptr</code> to hold a pointer to an object 
+				with an embedded reference count</A><br>
+			<A href="#another_sp">Using a <code>shared_ptr</code> to hold another shared 
+				ownership smart pointer</A><br>
+			<A href="#from_raw">Obtaining a <code>shared_ptr</code> from a raw pointer</A><br>
+			<A href="#in_constructor">Obtaining a <code>shared_ptr</code> (<code>weak_ptr</code>) 
+				to <code>this</code> in a constructor</A><br>
+			<A href="#from_this">Obtaining a <code>shared_ptr</code> to <code>this</code></A><br>
+			<A href="#handle">Using <code>shared_ptr</code> as a smart counted handle</A><br>
+			<A href="#on_block_exit">Using <code>shared_ptr</code> to execute code on block 
+				exit</A><br>
+			<A href="#pvoid">Using <code>shared_ptr&lt;void&gt;</code> to hold an arbitrary 
+				object</A><br>
+			<A href="#extra_data">Associating arbitrary data with heterogeneous <code>shared_ptr</code>
+				instances</A><br>
+			<A href="#as_lock">Using <code>shared_ptr</code> as a CopyConstructible mutex lock</A><br>
+			<A href="#wrapper">Using <code>shared_ptr</code> to wrap member function calls</A><br>
+			<A href="#delayed">Delayed deallocation</A><br>
+			<A href="#weak_without_shared">Weak pointers to objects not managed by a <code>shared_ptr</code></A><br>
+		</p>
+		<h2><A name="incomplete">Using incomplete classes for implementation hiding</A></h2>
+		<p>A proven technique (that works in C, too) for separating interface from 
+			implementation is to use a pointer to an incomplete class as an opaque handle:</p>
+		<pre>class FILE;
+
+FILE * fopen(char const * name, char const * mode);
+void fread(FILE * f, void * data, size_t size);
+void fclose(FILE * f);
+</pre>
+		<p>It is possible to express the above interface using <code>shared_ptr</code>, 
+			eliminating the need to manually call <code>fclose</code>:</p>
+		<pre>class FILE;
+
+shared_ptr&lt;FILE&gt; fopen(char const * name, char const * mode);
+void fread(shared_ptr&lt;FILE&gt; f, void * data, size_t size);
+</pre>
+		<p>This technique relies on <code>shared_ptr</code>'s ability to execute a custom 
+			deleter, eliminating the explicit call to <code>fclose</code>, and on the fact 
+			that <code>shared_ptr&lt;X&gt;</code> can be copied and destroyed when <code>X</code>
+			is incomplete.</p>
+		<h2><A name="pimpl">The "Pimpl" idiom</A></h2>
+		<p>A C++ specific variation of the incomplete class pattern is the "Pimpl" idiom. 
+			The incomplete class is not exposed to the user; it is hidden behind a 
+			forwarding facade. <code>shared_ptr</code> can be used to implement a "Pimpl":</p>
+		<pre>// file.hpp:
+
+class file
+{
+private:
+
+    class impl;
+    shared_ptr&lt;impl&gt; pimpl_;
+
+public:
+
+    file(char const * name, char const * mode);
+
+    // compiler generated members are fine and useful
+
+    void read(void * data, size_t size);
+};
+</pre>
+		<pre>// file.cpp:
+
+#include "file.hpp"
+
+class file::impl
+{
+private:
+
+    impl(impl const &amp;);
+    impl &amp; operator=(impl const &amp;);
+
+    // private data
+
+public:
+
+    impl(char const * name, char const * mode) { ... }
+    ~impl() { ... }
+    void read(void * data, size_t size) { ... }
+};
+
+file::file(char const * name, char const * mode): pimpl_(new impl(name, mode))
+{
+}
+
+void file::read(void * data, size_t size)
+{
+    pimpl_-&gt;read(data, size);
+}
+</pre>
+		<p>The key thing to note here is that the compiler-generated copy constructor, 
+			assignment operator, and destructor all have a sensible meaning. As a result, <code>
+				file</code> is <code>CopyConstructible</code> and <code>Assignable</code>, 
+			allowing its use in standard containers.</p>
+		<h2><A name="abstract">Using abstract classes for implementation hiding</A></h2>
+		<p>Another widely used C++ idiom for separating inteface and implementation is to 
+			use abstract base classes and factory functions. The abstract classes are 
+			sometimes called "interfaces" and the pattern is known as "interface-based 
+			programming". Again, <code>shared_ptr</code> can be used as the return type of 
+			the factory functions:</p>
+		<pre>// X.hpp:
+
+class X
+{
+public:
+
+    virtual void f() = 0;
+    virtual void g() = 0;
+
+protected:
+
+    ~X() {}
+};
+
+shared_ptr&lt;X&gt; createX();
+</pre>
+		<pre>-- X.cpp:
+
+class X_impl: public X
+{
+private:
+
+    X_impl(X_impl const &amp;);
+    X_impl &amp; operator=(X_impl const &amp;);
+
+public:
+
+    virtual void f()
+    {
+      // ...
+    }
+
+    virtual void g()
+    {
+      // ...
+    }
+};
+
+shared_ptr&lt;X&gt; createX()
+{
+    shared_ptr&lt;X&gt; px(new X_impl);
+    return px;
+}
+</pre>
+		<p>A key property of shared_ptr is that the allocation, construction, deallocation, 
+			and destruction details are captured at the point of construction, inside the 
+			factory function. Note the protected and nonvirtual destructor in the example 
+			above. The client code cannot, and does not need to, delete a pointer to <code>X</code>; 
+			the <code>shared_ptr&lt;X&gt;</code> instance returned from <code>createX</code>
+			will correctly call <code>~X_impl</code>.</p>
+		<h2><A name="preventing_delete">Preventing <code>delete px.get()</code></A></h2>
+		<p>It is often desirable to prevent client code from deleting a pointer that is 
+			being managed by <code>shared_ptr</code>. The previous technique showed one 
+			possible approach, using a protected destructor. Another alternative is to use 
+			a private deleter:</p>
+		<pre>class X
+{
+private:
+
+    ~X();
+
+    class deleter;
+    friend class deleter;
+
+    class deleter
+    {
+    public:
+
+        void operator()(X * p) { delete p; }
+    };
+
+public:
+
+    static shared_ptr&lt;X&gt; create()
+    {
+        shared_ptr&lt;X&gt; px(new X, X::deleter());
+        return px;
+    }
+};
+</pre>
+		<h2><A name="array">Using a <code>shared_ptr</code> to hold a pointer to an array</A></h2>
+		<p>A <code>shared_ptr</code> can be used to hold a pointer to an array allocated 
+			with <code>new[]</code>:</p>
+		<pre>shared_ptr&lt;X&gt; px(new X[1], <A href="../utility/checked_delete.html" >checked_array_deleter</A>&lt;X&gt;());
+</pre>
+		<p>Note, however, that <code><A href="shared_array.htm">shared_array</A></code> is 
+			often preferable, if this is an option. It has an array-specific interface, 
+			without <code>operator*</code> and <code>operator-&gt;</code>, and does not 
+			allow pointer conversions.</p>
+		<h2><A name="encapsulation">Encapsulating allocation details, wrapping factory 
+				functions</A></h2>
+		<p><code>shared_ptr</code> can be used in creating C++ wrappers over existing C 
+			style library interfaces that return raw pointers from their factory functions 
+			to encapsulate allocation details. As an example, consider this interface, 
+			where <code>CreateX</code> might allocate <code>X</code> from its own private 
+			heap, <code>~X</code> may be inaccessible, or <code>X</code> may be incomplete:</p>
+		<pre>X * CreateX();
+void DestroyX(X *);
+</pre>
+		<p>The only way to reliably destroy a pointer returned by <code>CreateX</code> is 
+			to call <code>DestroyX</code>.</p>
+		<P>Here is how a <code>shared_ptr</code>-based wrapper may look like:</P>
+		<pre>shared_ptr&lt;X&gt; createX()
+{
+    shared_ptr&lt;X&gt; px(CreateX(), DestroyX);
+    return px;
+}
+</pre>
+		<p>Client code that calls <code>createX</code> still does not need to know how the 
+			object has been allocated, but now the destruction is automatic.</p>
+		<h2><A name="static">Using a <code>shared_ptr</code> to hold a pointer to a statically 
+				allocated object</A></h2>
+		<p>Sometimes it is desirable to create a <code>shared_ptr</code> to an already 
+			existing object, so that the <code>shared_ptr</code> does not attempt to 
+			destroy the object when there are no more references left. As an example, the 
+			factory function:</p>
+		<pre>shared_ptr&lt;X&gt; createX();
+</pre>
+		<p>in certain situations may need to return a pointer to a statically allocated <code>X</code>
+			instance.</p>
+		<P>The solution is to use a custom deleter that does nothing:</P>
+		<pre>struct null_deleter
+{
+    void operator()(void const *) const
+    {
+    }
+};
+
+static X x;
+
+shared_ptr&lt;X&gt; createX()
+{
+    shared_ptr&lt;X&gt; px(&amp;x, null_deleter());
+    return px;
+}
+</pre>
+		<p>The same technique works for any object known to outlive the pointer.</p>
+		<h2><A name="com">Using a <code>shared_ptr</code> to hold a pointer to a COM Object</A></h2>
+		<p>Background: COM objects have an embedded reference count and two member 
+			functions that manipulate it. <code>AddRef()</code> increments the count. <code>Release()</code>
+			decrements the count and destroys itself when the count drops to zero.</p>
+		<P>It is possible to hold a pointer to a COM object in a <code>shared_ptr</code>:</P>
+		<pre>shared_ptr&lt;IWhatever&gt; make_shared_from_COM(IWhatever * p)
+{
+    p-&gt;AddRef();
+    shared_ptr&lt;IWhatever&gt; pw(p, <A href="../bind/mem_fn.html" >mem_fn</A>(&amp;IWhatever::Release));
+    return pw;
+}
+</pre>
+		<p>Note, however, that <code>shared_ptr</code> copies created from <code>pw</code> will 
+			not "register" in the embedded count of the COM object; they will share the 
+			single reference created in <code>make_shared_from_COM</code>. Weak pointers 
+			created from <code>pw</code> will be invalidated when the last <code>shared_ptr</code>
+			is destroyed, regardless of whether the COM object itself is still alive.</p>
+		<P>As <A href="../bind/mem_fn.html#Q3">explained</A> in the <code>mem_fn</code> documentation, 
+			you need to <A href="../bind/mem_fn.html#stdcall">#define 
+				BOOST_MEM_FN_ENABLE_STDCALL</A> first.</P>
+		<h2><A name="intrusive">Using a <code>shared_ptr</code> to hold a pointer to an object 
+				with an embedded reference count</A></h2>
+		<p>This is a generalization of the above technique. The example assumes that the 
+			object implements the two functions required by <code><A href="intrusive_ptr.html">intrusive_ptr</A></code>,
+			<code>intrusive_ptr_add_ref</code> and <code>intrusive_ptr_release</code>:</p>
+		<pre>template&lt;class T&gt; struct intrusive_deleter
+{
+    void operator()(T * p)
+    {
+        if(p) intrusive_ptr_release(p);
+    }
+};
+
+shared_ptr&lt;X&gt; make_shared_from_intrusive(X * p)
+{
+    if(p) intrusive_ptr_add_ref(p);
+    shared_ptr&lt;X&gt; px(p, intrusive_deleter&lt;X&gt;());
+    return px;
+}
+</pre>
+		<h2><A name="another_sp">Using a <code>shared_ptr</code> to hold another shared 
+				ownership smart pointer</A></h2>
+		<p>One of the design goals of <code>shared_ptr</code> is to be used in library 
+			interfaces. It is possible to encounter a situation where a library takes a <code>shared_ptr</code>
+			argument, but the object at hand is being managed by a different reference 
+			counted or linked smart pointer.</p>
+		<P>It is possible to exploit <code>shared_ptr</code>'s custom deleter feature to 
+			wrap this existing smart pointer behind a <code>shared_ptr</code> facade:</P>
+		<pre>template&lt;class P&gt; struct smart_pointer_deleter
+{
+private:
+
+    P p_;
+
+public:
+
+    smart_pointer_deleter(P const &amp; p): p_(p)
+    {
+    }
+
+    void operator()(void const *)
+    {
+        p_.reset();
+    }
+    
+    P const &amp; get() const
+    {
+        return p_;
+    }
+};
+
+shared_ptr&lt;X&gt; make_shared_from_another(another_ptr&lt;X&gt; qx)
+{
+    shared_ptr&lt;X&gt; px(qx.get(), smart_pointer_deleter&lt; another_ptr&lt;X&gt; &gt;(qx));
+    return px;
+}
+</pre>
+		<p>One subtle point is that deleters are not allowed to throw exceptions, and the 
+			above example as written assumes that <code>p_.reset()</code> doesn't throw. If 
+			this is not the case, <code>p_.reset()</code> should be wrapped in a <code>try {} 
+				catch(...) {}</code> block that ignores exceptions. In the (usually 
+			unlikely) event when an exception is thrown and ignored, <code>p_</code> will 
+			be released when the lifetime of the deleter ends. This happens when all 
+			references, including weak pointers, are destroyed or reset.</p>
+		<P>Another twist is that it is possible, given the above <code>shared_ptr</code> instance, 
+			to recover the original smart pointer, using <code><A href="shared_ptr.htm#get_deleter">
+					get_deleter</A></code>:</P>
+		<pre>void extract_another_from_shared(shared_ptr&lt;X&gt; px)
+{
+    typedef smart_pointer_deleter&lt; another_ptr&lt;X&gt; &gt; deleter;
+
+    if(deleter const * pd = get_deleter&lt;deleter&gt;(px))
+    {
+        another_ptr&lt;X&gt; qx = pd-&gt;get();
+    }
+    else
+    {
+        // not one of ours
+    }
+}
+</pre>
+		<h2><A name="from_raw">Obtaining a <code>shared_ptr</code> from a raw pointer</A></h2>
+		<p>Sometimes it is necessary to obtain a <code>shared_ptr</code> given a raw 
+			pointer to an object that is already managed by another <code>shared_ptr</code> 
+			instance. Example:</p>
+		<pre>void f(X * p)
+{
+    shared_ptr&lt;X&gt; px(<i>???</i>);
+}
+</pre>
+		<p>Inside <code>f</code>, we'd like to create a <code>shared_ptr</code> to <code>*p</code>.</p>
+		<P>In the general case, this problem has no solution. One approach is to modify <code>f</code>
+			to take a <code>shared_ptr</code>, if possible:</P>
+		<pre>void f(shared_ptr&lt;X&gt; px);
+</pre>
+		<p>The same transformation can be used for nonvirtual member functions, to convert 
+			the implicit <code>this</code>:</p>
+		<pre>void X::f(int m);
+</pre>
+		<p>would become a free function with a <code>shared_ptr</code> first argument:</p>
+		<pre>void f(shared_ptr&lt;X&gt; this_, int m);
+</pre>
+		<p>If <code>f</code> cannot be changed, but <code>X</code> uses intrusive counting, 
+			use <code><A href="#intrusive">make_shared_from_intrusive</A></code> described 
+			above. Or, if it's known that the <code>shared_ptr</code> created in <code>f</code>
+			will never outlive the object, use <A href="#static">a null deleter</A>.</p>
+		<h2><A name="in_constructor">Obtaining a <code>shared_ptr</code> (<code>weak_ptr</code>) 
+				to <code>this</code> in a constructor</A></h2>
+		<p>Some designs require objects to register themselves on construction with a 
+			central authority. When the registration routines take a shared_ptr, this leads 
+			to the question how could a constructor obtain a shared_ptr to this:</p>
+		<pre>class X
+{
+public:
+
+    X()
+    {
+        shared_ptr&lt;X&gt; this_(<i>???</i>);
+    }
+};
+</pre>
+		<p>In the general case, the problem cannot be solved. The <code>X</code> instance 
+			being constructed can be an automatic variable or a static variable; it can be 
+			created on the heap:</p>
+		<pre>shared_ptr&lt;X&gt; px(new X);</pre>
+		<P>but at construction time, <code>px</code> does not exist yet, and it is 
+			impossible to create another <code>shared_ptr</code> instance that shares 
+			ownership with it.</P>
+		<P>Depending on context, if the inner <code>shared_ptr</code> <code>this_</code> doesn't 
+			need to keep the object alive, use a <code>null_deleter</code> as explained <A href="#static">
+				here</A> and <A href="#weak_without_shared">here</A>. If <code>X</code> is 
+			supposed to always live on the heap, and be managed by a <code>shared_ptr</code>, 
+			use a static factory function:</P>
+		<pre>class X
+{
+private:
+
+    X() { ... }
+
+public:
+
+    static shared_ptr&lt;X&gt; create()
+    {
+        shared_ptr&lt;X&gt; px(new X);
+        // use px as 'this_'
+        return px;
+    }
+};
+</pre>
+		<h2><A name="from_this">Obtaining a <code>shared_ptr</code> to <code>this</code></A></h2>
+		<p>Sometimes it is needed to obtain a <code>shared_ptr</code> from <code>this</code>
+			in a virtual member function under the assumption that <code>this</code> is 
+			already managed by a <code>shared_ptr</code>. The transformations <A href="#from_raw">
+				described in the previous technique</A> cannot be applied.</p>
+		<P>A typical example:</P>
+		<pre>class X
+{
+public:
+
+    virtual void f() = 0;
+
+protected:
+
+    ~X() {}
+};
+
+class Y
+{
+public:
+
+    virtual shared_ptr&lt;X&gt; getX() = 0;
+
+protected:
+
+    ~Y() {}
+};
+
+// --
+
+class impl: public X, public Y
+{
+public:
+
+    impl() { ... }
+
+    virtual void f() { ... }
+
+    virtual shared_ptr&lt;X&gt; getX()
+    {
+        shared_ptr&lt;X&gt; px(<i>???</i>);
+        return px;
+    }
+};
+</pre>
+		<p>The solution is to keep a weak pointer to <code>this</code> as a member in <code>impl</code>:</p>
+		<pre>class impl: public X, public Y
+{
+private:
+
+    weak_ptr&lt;impl&gt; weak_this;
+
+    impl(impl const &amp;);
+    impl &amp; operator=(impl const &amp;);
+
+    impl() { ... }
+
+public:
+
+    static shared_ptr&lt;impl&gt; create()
+    {
+        shared_ptr&lt;impl&gt; pi(new impl);
+        pi-&gt;weak_this = pi;
+        return pi;
+    }
+
+    virtual void f() { ... }
+
+    virtual shared_ptr&lt;X&gt; getX()
+    {
+        shared_ptr&lt;X&gt; px(weak_this);
+        return px;
+    }
+};
+</pre>
+		<p>The library now includes a helper class template <code><A href="enable_shared_from_this.html">
+					enable_shared_from_this</A></code> that can be used to encapsulate the 
+			solution:</p>
+		<pre>class impl: public X, public Y, public enable_shared_from_this&lt;impl&gt;
+{
+public:
+
+    impl(impl const &amp;);
+    impl &amp; operator=(impl const &amp;);
+
+public:
+
+    virtual void f() { ... }
+
+    virtual shared_ptr&lt;X&gt; getX()
+    {
+        return shared_from_this();
+    }
+}
+</pre>
+		<p>Note that you no longer need to manually initialize the <code>weak_ptr</code> member 
+			in <code><A href="enable_shared_from_this.html">enable_shared_from_this</A></code>. 
+			Constructing a <code>shared_ptr</code> to <code>impl</code> takes care of that.</p>
+		<h2><A name="handle">Using <code>shared_ptr</code> as a smart counted handle</A></h2>
+		<p>Some library interfaces use opaque handles, a variation of the <A href="#incomplete">
+				incomplete class technique</A> described above. An example:</p>
+		<pre>typedef void * HANDLE;
+HANDLE CreateProcess();
+void CloseHandle(HANDLE);
+</pre>
+		<p>Instead of a raw pointer, it is possible to use <code>shared_ptr</code> as the 
+			handle and get reference counting and automatic resource management for free:</p>
+		<pre>typedef shared_ptr&lt;void&gt; handle;
+
+handle createProcess()
+{
+    shared_ptr&lt;void&gt; pv(CreateProcess(), CloseHandle);
+    return pv;
+}
+</pre>
+		<h2><A name="on_block_exit">Using <code>shared_ptr</code> to execute code on block exit</A></h2>
+		<p><code>shared_ptr&lt;void&gt;</code> can automatically execute cleanup code when 
+			control leaves a scope.</p>
+		<UL>
+			<LI>
+				Executing <code>f(p)</code>, where <code>p</code> is a pointer:</LI></UL>
+		<pre>    shared_ptr&lt;void&gt; guard(p, f);
+</pre>
+		<UL>
+			<LI>
+				Executing arbitrary code: <code>f(x, y)</code>:</LI></UL>
+		<pre>    shared_ptr&lt;void&gt; guard(static_cast&lt;void*&gt;(0), <A href="../bind/bind.html" >bind</A>(f, x, y));
+</pre>
+		<P>For a more thorough treatment, see the article "Simplify Your Exception-Safe 
+			Code" by Andrei Alexandrescu and Petru Marginean, available online at <A href="http://www.cuj.com/experts/1812/alexandr.htm?topic=experts">
+				http://www.cuj.com/experts/1812/alexandr.htm?topic=experts</A>.</P>
+		<h2><A name="pvoid">Using <code>shared_ptr&lt;void&gt;</code> to hold an arbitrary 
+				object</A></h2>
+		<p><code>shared_ptr&lt;void&gt;</code> can act as a generic object pointer similar 
+			to <code>void*</code>. When a <code>shared_ptr&lt;void&gt;</code> instance 
+			constructed as:</p>
+		<pre>    shared_ptr&lt;void&gt; pv(new X);
+</pre>
+		<p>is destroyed, it will correctly dispose of the <code>X</code> object by 
+			executing <code>~X</code>.</p>
+		<p>This propery can be used in much the same manner as a raw <code>void*</code> is 
+			used to temporarily strip type information from an object pointer. A <code>shared_ptr&lt;void&gt;</code>
+			can later be cast back to the correct type by using <code><A href="shared_ptr.htm#static_pointer_cast">
+					static_pointer_cast</A></code>.</p>
+		<h2><A name="extra_data">Associating arbitrary data with heterogeneous <code>shared_ptr</code>
+				instances</A></h2>
+		<p><code>shared_ptr</code> and <code>weak_ptr</code> support <code>operator&lt;</code>
+			comparisons required by standard associative containers such as <code>std::map</code>. 
+			This can be used to non-intrusively associate arbitrary data with objects 
+			managed by <code>shared_ptr</code>:</p>
+		<pre>typedef int Data;
+
+std::map&lt; shared_ptr&lt;void&gt;, Data &gt; userData;
+// or std::map&lt; weak_ptr&lt;void&gt;, Data &gt; userData; to not affect the lifetime
+
+shared_ptr&lt;X&gt; px(new X);
+shared_ptr&lt;int&gt; pi(new int(3));
+
+userData[px] = 42;
+userData[pi] = 91;
+</pre>
+		<h2><A name="as_lock">Using <code>shared_ptr</code> as a CopyConstructible mutex lock</A></h2>
+		<p>Sometimes it's necessary to return a mutex lock from a function, and a 
+			noncopyable lock cannot be returned by value. It is possible to use <code>shared_ptr</code>
+			as a mutex lock:</p>
+		<pre>class mutex
+{
+public:
+
+    void lock();
+    void unlock();
+};
+
+shared_ptr&lt;mutex&gt; lock(mutex &amp; m)
+{
+    m.lock();
+    return shared_ptr&lt;mutex&gt;(&amp;m, mem_fn(&amp;mutex::unlock));
+}
+</pre>
+		<p>Better yet, the <code>shared_ptr</code> instance acting as a lock can be 
+			encapsulated in a dedicated <code>shared_lock</code> class:</p>
+		<pre>class shared_lock
+{
+private:
+
+    shared_ptr&lt;void&gt; pv;
+
+public:
+
+    template&lt;class Mutex&gt; explicit shared_lock(Mutex &amp; m): pv((m.lock(), &amp;m), mem_fn(&amp;Mutex::unlock)) {}
+};
+</pre>
+		<p><code>shared_lock</code> can now be used as:</p>
+		<pre>    shared_lock lock(m);
+</pre>
+		<p>Note that <code>shared_lock</code> is not templated on the mutex type, thanks to <code>
+				shared_ptr&lt;void&gt;</code>'s ability to hide type information.</p>
+		<h2><A name="wrapper">Using <code>shared_ptr</code> to wrap member function calls</A></h2>
+		<p><code>shared_ptr</code> implements the ownership semantics required from the <code>Wrap</code>/<code>CallProxy</code>
+			scheme described in Bjarne Stroustrup's article "Wrapping C++ Member Function 
+			Calls" (available online at <A href="http://www.stroustrup.com/wrapper.pdf">http://www.stroustrup.com/wrapper.pdf</A>). 
+			An implementation is given below:</p>
+		<pre>template&lt;class T&gt; class pointer
+{
+private:
+
+    T * p_;
+
+public:
+
+    explicit pointer(T * p): p_(p)
+    {
+    }
+
+    shared_ptr&lt;T&gt; operator-&gt;() const
+    {
+        p_-&gt;prefix();
+        return shared_ptr&lt;T&gt;(p_, <A href="../bind/mem_fn.html" >mem_fn</A>(&amp;T::suffix));
+    }
+};
+
+class X
+{
+private:
+
+    void prefix();
+    void suffix();
+    friend class pointer&lt;X&gt;;
+    
+public:
+
+    void f();
+    void g();
+};
+
+int main()
+{
+    X x;
+
+    pointer&lt;X&gt; px(&amp;x);
+
+    px-&gt;f();
+    px-&gt;g();
+}
+</pre>
+		<h2><A name="delayed">Delayed deallocation</A></h2>
+		<p>In some situations, a single <code>px.reset()</code> can trigger an expensive 
+			deallocation in a performance-critical region:</p>
+		<pre>class X; // ~X is expensive
+
+class Y
+{
+    shared_ptr&lt;X&gt; px;
+
+public:
+
+    void f()
+    {
+        px.reset();
+    }
+};
+</pre>
+		<p>The solution is to postpone the potential deallocation by moving <code>px</code> 
+			to a dedicated free list that can be periodically emptied when performance and 
+			response times are not an issue:</p>
+		<pre>vector&lt; shared_ptr&lt;void&gt; &gt; free_list;
+
+class Y
+{
+    shared_ptr&lt;X&gt; px;
+
+public:
+
+    void f()
+    {
+        free_list.push_back(px);
+        px.reset();
+    }
+};
+
+// periodically invoke free_list.clear() when convenient
+</pre>
+		<p>Another variation is to move the free list logic to the construction point by 
+			using a delayed deleter:</p>
+		<pre>struct delayed_deleter
+{
+    template&lt;class T&gt; void operator()(T * p)
+    {
+        try
+        {
+            shared_ptr&lt;void&gt; pv(p);
+            free_list.push_back(pv);
+        }
+        catch(...)
+        {
+        }
+    }
+};
+</pre>
+		<h2><A name="weak_without_shared">Weak pointers to objects not managed by a <code>shared_ptr</code></A></h2>
+		<p>Make the object hold a <code>shared_ptr</code> to itself, using a <code>null_deleter</code>:</p>
+		<pre>class X
+{
+private:
+
+    shared_ptr&lt;X&gt; this_;
+    int i_;
+
+public:
+
+    explicit X(int i): this_(this, null_deleter()), i_(i)
+    {
+    }
+
+    // repeat in all constructors (including the copy constructor!)
+
+    X(X const &amp; rhs): this_(this, null_deleter()), i_(rhs.i_)
+    {
+    }
+
+    // do not forget to not assign this_ in the copy assignment
+
+    X &amp; operator=(X const &amp; rhs)
+    {
+	    i_ = rhs.i_;
+    }
+
+    weak_ptr&lt;X&gt; get_weak_ptr() const { return this_; }
+};
+</pre>
+		<p>When the object's lifetime ends, <code>X::this_</code> will be destroyed, and 
+			all weak pointers will automatically expire.</p>
+		<hr>
+		<p>$Date: 2012-12-11 10:42:48 -0800 (Tue, 11 Dec 2012) $</p>
+		<p><small>Copyright © 2003 Peter Dimov. Distributed under the Boost Software License, Version 
+				1.0. See accompanying file <A href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or 
+				copy at <A href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>.</small></p>
+	</body>
+</html>

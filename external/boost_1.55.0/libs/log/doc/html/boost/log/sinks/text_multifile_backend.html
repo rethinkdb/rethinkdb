@@ -1,0 +1,113 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class text_multifile_backend</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../sinks.html#header.boost.log.sinks.text_multifile_backend_hpp" title="Header &lt;boost/log/sinks/text_multifile_backend.hpp&gt;">
+<link rel="prev" href="file/as_file_name_composer.html" title="Function template as_file_name_composer">
+<link rel="next" href="basic_text_ostream_backend.html" title="Class template basic_text_ostream_backend">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="file/as_file_name_composer.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../sinks.html#header.boost.log.sinks.text_multifile_backend_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_text_ostream_backend.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.sinks.text_multifile_backend"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class text_multifile_backend</span></h2>
+<p>boost::log::sinks::text_multifile_backend &#8212; An implementation of a text multiple files logging sink backend. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../sinks.html#header.boost.log.sinks.text_multifile_backend_hpp" title="Header &lt;boost/log/sinks/text_multifile_backend.hpp&gt;">boost/log/sinks/text_multifile_backend.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="text_multifile_backend.html" title="Class text_multifile_backend">text_multifile_backend</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">basic_formatted_sink_backend</span><span class="special">&lt;</span> <span class="keyword">char</span> <span class="special">&gt;</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">char_type</span>   <a name="boost.log.sinks.text_multifile_backend.char_type"></a><span class="identifier">char_type</span><span class="special">;</span>                <span class="comment">// Character type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">string_type</span> <a name="boost.log.sinks.text_multifile_backend.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>              <span class="comment">// String type to be used as a message text holder. </span>
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>            <a name="boost.log.sinks.text_multifile_backend.file_name_composer_type"></a><span class="identifier">file_name_composer_type</span><span class="special">;</span>  <span class="comment">// File name composer functor type. </span>
+
+  <span class="comment">// <a class="link" href="text_multifile_backend.html#boost.log.sinks.text_multifile_backendconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="text_multifile_backend.html#idp27458104-bb"><span class="identifier">text_multifile_backend</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="text_multifile_backend.html#idp27458472-bb"><span class="special">~</span><span class="identifier">text_multifile_backend</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="text_multifile_backend.html#idp27454568-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ComposerT<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="text_multifile_backend.html#idp27454776-bb"><span class="identifier">set_file_name_composer</span></a><span class="special">(</span><span class="identifier">ComposerT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="text_multifile_backend.html#idp27456680-bb"><span class="identifier">consume</span></a><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp65852232"></a><h2>Description</h2>
+<p>The sink backend puts formatted log records to one of the text files. The particular file is chosen upon each record's attribute values, which allows to distribute records into individual files or to group records related to some entity or process in a separate file. </p>
+<div class="refsect2">
+<a name="idp65852840"></a><h3>
+<a name="boost.log.sinks.text_multifile_backendconstruct-copy-destruct"></a><code class="computeroutput">text_multifile_backend</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp27458104-bb"></a><span class="identifier">text_multifile_backend</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Default constructor. The constructed sink backend has no file name composer and thus will not write any files. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp27458472-bb"></a><span class="special">~</span><span class="identifier">text_multifile_backend</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destructor </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp65858216"></a><h3>
+<a name="idp27454568-bb"></a><code class="computeroutput">text_multifile_backend</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ComposerT<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27454776-bb"></a><span class="identifier">set_file_name_composer</span><span class="special">(</span><span class="identifier">ComposerT</span> <span class="keyword">const</span> <span class="special">&amp;</span> composer<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets file name composer functional object. Log record formatters are accepted, too.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">composer</code></span></p></td>
+<td><p>File name composer functor </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27456680-bb"></a><span class="identifier">consume</span><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span> rec<span class="special">,</span> <span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> formatted_message<span class="special">)</span><span class="special">;</span></pre>
+<p>The method writes the message to the sink </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="file/as_file_name_composer.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../sinks.html#header.boost.log.sinks.text_multifile_backend_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_text_ostream_backend.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

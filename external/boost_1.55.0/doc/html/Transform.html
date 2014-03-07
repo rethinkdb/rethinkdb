@@ -1,0 +1,110 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Concept Transform</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="proto/reference.html" title="Reference">
+<link rel="prev" href="PrimitiveTransform.html" title="Concept PrimitiveTransform">
+<link rel="next" href="proto/appendices.html" title="Appendices">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="PrimitiveTransform.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="proto/reference.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="proto/appendices.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="Transform"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Concept Transform</span></h2>
+<p>Transform</p>
+</div>
+<div class="refsect1">
+<a name="idp188865704"></a><h2>Description</h2>
+<p>
+      A Transform is a PrimitiveTransform, a CallableTransform
+      or an ObjectTransform.
+    </p>
+</div>
+<div class="refsect1">
+<a name="idp188866280"></a><h2>Associated types</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+<p><span class="bold"><strong>result_type</strong></span></p>
+<pre class="literallayout">boost::result_of&lt;when&lt; _, Tn &gt;(Expr, State, Data)&gt;::type</pre>
+<p>
+      </p>
+<p>The result of applying the Transform.</p>
+<p>
+    </p>
+</li></ul></div>
+</div>
+<div class="refsect1">
+<a name="idp188867800"></a><h2>Notation</h2>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term">Tn</span></dt>
+<dd>A type playing the role of transform-type in the <a class="link" href="Transform.html" title="Concept Transform">Transform</a> concept.</dd>
+<dt><span class="term">Expr</span></dt>
+<dd>A type playing the role of expression-type in the <a class="link" href="Transform.html" title="Concept Transform">Transform</a> concept.</dd>
+<dt><span class="term">State</span></dt>
+<dd>A type playing the role of state-type in the <a class="link" href="Transform.html" title="Concept Transform">Transform</a> concept.</dd>
+<dt><span class="term">Data</span></dt>
+<dd>A type playing the role of data-type in the <a class="link" href="Transform.html" title="Concept Transform">Transform</a> concept.</dd>
+<dt><span class="term"><code class="varname">expr</code></span></dt>
+<dd>Object of type Expr</dd>
+<dt><span class="term"><code class="varname">state</code></span></dt>
+<dd>Object of type State</dd>
+<dt><span class="term"><code class="varname">data</code></span></dt>
+<dd>Object of type Data</dd>
+</dl></div>
+</div>
+<div class="refsect1">
+<a name="idp188873000"></a><h2>Valid expressions</h2>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Type</th>
+<th>Semantics</th>
+</tr></thead>
+<tbody><tr>
+<td><p>Apply Transform</p></td>
+<td><p>when&lt; _, Tn &gt;()(expr, state, data)</p></td>
+<td><p><span class="type">result_type</span></p></td>
+<td><p>Applies the transform.</p></td>
+</tr></tbody>
+</table></div>
+</div>
+<div class="refsect1">
+<a name="idp188875240"></a><h2>Models</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><span class="simplelist"><span class="type">boost::proto::_child(boost::proto::_left)</span></span></li></ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="PrimitiveTransform.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="proto/reference.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="proto/appendices.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

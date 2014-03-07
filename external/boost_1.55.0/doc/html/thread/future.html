@@ -1,0 +1,118 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Future</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../thread.html" title="Chapter&#160;31.&#160;Thread 4.2.0">
+<link rel="prev" href="changes.html" title="History">
+<link rel="next" href="thread_management.html" title="Thread Management">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="changes.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../thread.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="thread_management.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="thread.future"></a><a class="link" href="future.html" title="Future">Future</a>
+</h2></div></div></div>
+<p>
+      The following features will be included in next releases.
+    </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          Complete the C++11 missing features, in particular
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <a href="http://svn.boost.org/trac/boost/ticket/6227" target="_top">#6227</a>
+                C++11 compliance: Use of variadic templates on Generic Locking Algorithms
+                on compilers providing them.
+              </li></ul></div>
+        </li>
+<li class="listitem">
+          Add some minor features, in particular
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <a href="http://svn.boost.org/trac/boost/ticket/7589" target="_top">#7589</a>
+                Synchro: Add polymorphic lockables.
+              </li></ul></div>
+        </li>
+<li class="listitem">
+          Add some features based on C++ proposals, in particular
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <a href="http://svn.boost.org/trac/boost/ticket/8274" target="_top">#8274</a>
+                Synchro: Add concurrent queue
+              </li>
+<li class="listitem">
+                <a href="http://svn.boost.org/trac/boost/ticket/8518" target="_top">#8518</a>
+                Synchro: Add a latch class.
+              </li>
+<li class="listitem">
+                <a href="http://svn.boost.org/trac/boost/ticket/8273" target="_top">#8273</a>
+                Synchro: Add externally locked streams.
+              </li>
+<li class="listitem">
+                <a href="http://svn.boost.org/trac/boost/ticket/8513" target="_top">#8513</a>
+                Async: Add a basic thread_pool executor.
+              </li>
+<li class="listitem">
+                <a href="http://svn.boost.org/trac/boost/ticket/8514" target="_top">#8514</a>
+                Async: Add a thread_pool executor with work stealing.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          Add some of the extension proposed in <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3428.pdf" target="_top">A
+          Standardized Representation of Asynchronous Operations</a> or extension
+          to them, in particular
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                <a href="http://svn.boost.org/trac/boost/ticket/7446" target="_top">#7446</a>
+                Async: Add when_any.
+              </li>
+<li class="listitem">
+                <a href="http://svn.boost.org/trac/boost/ticket/7447" target="_top">#7447</a>
+                Async: Add when_all.
+              </li>
+<li class="listitem">
+                <a href="http://svn.boost.org/trac/boost/ticket/7448" target="_top">#7448</a>
+                Async: Add async taking a scheduler parameter.
+              </li>
+<li class="listitem">
+                <a href="http://svn.boost.org/trac/boost/ticket/8516" target="_top">#8516</a>
+                Async: Add future/shared_future::then taking a scheduler as parameter.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          And some additional extensions related to futures as:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <a href="http://svn.boost.org/trac/boost/ticket/8517" target="_top">#8517</a>
+                Async: Add a variadic shared_future::then.
+              </li></ul></div>
+        </li>
+</ol></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -11 Anthony Williams<br>Copyright &#169; 2011 -13 Vicente J. Botet Escriba<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="changes.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../thread.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="thread_management.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

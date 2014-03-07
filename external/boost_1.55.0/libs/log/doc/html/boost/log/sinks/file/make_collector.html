@@ -1,0 +1,68 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function template make_collector</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../../sinks.html#header.boost.log.sinks.text_file_backend_hpp" title="Header &lt;boost/log/sinks/text_file_backend.hpp&gt;">
+<link rel="prev" href="rotation_at_time_interval.html" title="Class rotation_at_time_interval">
+<link rel="next" href="../text_file_backend.html" title="Class text_file_backend">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="rotation_at_time_interval.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../../sinks.html#header.boost.log.sinks.text_file_backend_hpp"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../text_file_backend.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.sinks.file.make_collector"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function template make_collector</span></h2>
+<p>boost::log::sinks::file::make_collector</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../../sinks.html#header.boost.log.sinks.text_file_backend_hpp" title="Header &lt;boost/log/sinks/text_file_backend.hpp&gt;">boost/log/sinks/text_file_backend.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">...</span> ArgsT<span class="special">&gt;</span> 
+  <span class="identifier">shared_ptr</span><span class="special">&lt;</span> <a class="link" href="collector.html" title="Struct collector">collector</a> <span class="special">&gt;</span> <span class="identifier">make_collector</span><span class="special">(</span><span class="identifier">ArgsT</span><span class="special">...</span><span class="keyword">const</span> <span class="special">&amp;</span> args<span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp65575768"></a><h2>Description</h2>
+<p>The function creates a file collector for the specified target directory. Each target directory is managed by a single file collector, so if this function is called several times for the same directory, it will return a reference to the same file collector. It is safe to use the same collector in different sinks, even in a multithreaded application.</p>
+<p>One can specify certain restrictions for the stored files, such as maximum total size or minimum free space left in the target directory. If any of the specified restrictions is not met, the oldest stored file is deleted. If the same collector is requested more than once with different restrictions, the collector will act according to the most strict combination of all specified restrictions.</p>
+<p>The following named parameters are supported:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p><code class="computeroutput">target</code> - Specifies the target directory for the files being stored in. This parameter is mandatory. </p></li>
+<li class="listitem"><p><code class="computeroutput">max_size</code> - Specifies the maximum total size, in bytes, of stored files that the collector will try not to exceed. If the size exceeds this threshold the oldest file(s) is deleted to free space. Note that the threshold may be exceeded if the size of individual files exceed the <code class="computeroutput">max_size</code> value. The threshold is not maintained, if not specified. </p></li>
+<li class="listitem"><p><code class="computeroutput">min_free_space</code> - Specifies the minimum free space, in bytes, in the target directory that the collector tries to maintain. If the threshold is exceeded, the oldest file(s) is deleted to free space. The threshold is not maintained, if not specified.</p></li>
+</ul></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The file collector. </p></td>
+</tr></tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="rotation_at_time_interval.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../../sinks.html#header.boost.log.sinks.text_file_backend_hpp"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../text_file_backend.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

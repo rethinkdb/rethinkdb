@@ -1,0 +1,118 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:install Building and Installing the Library]
+
+When you extract the library from its zip file, you must preserve its internal 
+directory structure (for example by using the -d option when extracting). If you 
+didn't do that when extracting, then you'd better stop reading this, delete the 
+files you just extracted, and try again!
+
+This library should not need configuring before use; most popular compilers\/standard 
+libraries\/platforms are already supported "as is". If you do experience configuration 
+problems, or just want to test the configuration with your compiler, then the 
+process is the same as for all of boost; see the 
+[@../../../config/index.html configuration library documentation].
+
+The library will encase all code inside namespace boost.
+
+Unlike some other template libraries, this library consists of a mixture of 
+template code (in the headers) and static code and data (in cpp files). 
+Consequently it is necessary to build the library's support code into a 
+library or archive file before you can use it, instructions for specific 
+platforms are as follows:
+
+[h4 Building with bjam]
+
+This is now the preferred method for building and installing this library, 
+please refer to the 
+[@../../../../more/getting_started.html getting started guide] for more information.
+
+[h4 Building With Unicode and ICU Support]
+
+Boost.Regex is now capable of performing a configuration check
+to test whether ICU is already installed in your compiler's
+search paths.  When you build you should see a message like
+this:
+
+   Performing configuration checks
+
+       - has_icu builds           : yes
+
+Whick means that ICU has been found, and support for it will be enabled
+in the library build.  
+
+[tip If you don't want the regex library to use ICU then build with the 
+"--disable-icu" command line option.]
+
+If instead you see:
+
+   Performing configuration checks
+
+       - has_icu builds           : no
+
+Then ICU was not found and support for it will not be compiled into the library.
+If you think that it should have been found, then you will need to take a look
+at the contents of the file ['boost-root/bin.v2/config.log] for the actual error
+messages obtained when the build carried out the configuration check.  You will
+then need to fix these errors by ensuring your compiler gets invoked with the correct
+options, for example:
+
+[pre bjam include=some-include-path --toolset=toolset-name install]
+
+will add "some-include-path" to your compilers header include path, or if ICU
+has been built with non-standard names for it's binaries, then:
+
+[pre bjam -sICU_LINK="linker-options-for-icu" --toolset=toolset-name install]
+
+Will use ['"linker-options-for-icu"] when linking the library rather than the default
+ICU binary names.
+
+You might also need to use the options "cxxflags=-option" and "linkflags=-option" to set compiler and linker
+specific options.
+
+[important Configuration results are cached - if you try rebuilding with different compiler
+options then add an "-a" to the bjam command line to force all targets to be rebuilt.]
+
+If ICU is not already in your compiler's path, but instead headers, libraries and binaries
+are located at ['path-to-icu/include], ['path-to-icu/lib] and ['path-to-icu/bin] respectively
+then you need to set the environment variable `ICU_PATH` to point to the root directory of your 
+ICU installation: this typically happens if you're building with MSVC. 
+For example if ICU was installed to `c:\download\icu` you 
+might use:
+
+[pre bjam -sICU_PATH=c:\download\icu --toolset=toolset-name install]
+
+[important ICU is a C++ library just like Boost is, as such your copy of 
+ICU must have been built with the same C++ compiler (and compiler version) 
+that you are using to build Boost.  Boost.Regex will not work correctly unless 
+you ensure that this is the case: it is up to you to ensure that the version 
+of ICU you are using is binary compatible with the toolset you use to build Boost.]
+
+And finally, if you want to build/test with multiple compiler versions, all with different ICU
+builds, then the only way to achieve that currently is to modify your user-config.jam so that
+each toolset has the necessary compiler/linker options set so that ICU is found automatically
+by the configuration step (providing the ICU binaries use the standard names, all you have to
+add is the appropriate header-include and linker-search paths).
+
+[h4 Building from Source]
+
+The Regex library is "just a bunch of source files": nothing special is required to build them.
+
+You can either build the files under boost-path/libs/regex/src/*.cpp as a library, or add them
+directly to your project.  This is particularly useful if you need to use specific compiler
+options not supported by the default Boost build.
+
+There are two #defines you should be aware of:
+
+* BOOST_HAS_ICU should be defined if you want ICU support compiled in.
+* BOOST_REGEX_DYN_LINK should be defined if you are building a DLL on Windows.
+
+[important The makefiles that were supplied with Boost.Regex are now deprecated and will be removed in the next release.]
+
+[endsect]
+

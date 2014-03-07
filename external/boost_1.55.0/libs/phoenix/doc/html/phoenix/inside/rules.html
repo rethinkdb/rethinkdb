@@ -1,0 +1,1314 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Predefined Expressions and Rules</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../inside.html" title="Inside Phoenix">
+<link rel="prev" href="actions.html" title="More on Actions">
+<link rel="next" href="custom_terminals.html" title="Custom Terminals">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="actions.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../inside.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="custom_terminals.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.inside.rules"></a><a class="link" href="rules.html" title="Predefined Expressions and Rules">Predefined Expressions and Rules</a>
+</h3></div></div></div>
+<p>
+        This section is the "behind the scenes" counter part of the <a class="link" href="../modules.html" title="Modules">Modules</a> section. A listing of all the predefined
+        expressions and rules:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Rule
+                </p>
+              </th>
+<th>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">value</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">value</span><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">reference</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">custom_terminal</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">argument</span></pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">null</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">custom_terminal</span></pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">F</span><span class="special">,</span>
+                  <span class="identifier">A0</span><span class="special">,</span>
+                  <span class="special">...,</span> <span class="identifier">AN</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">function</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">vararg</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">negate</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">negate</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">negate</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">unary_plus</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">negate</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">unary_plus</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">pre_inc</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">negate</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">pre_inc</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">pre_dec</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">negate</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">pre_dec</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">post_inc</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">negate</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">post_inc</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">post_dec</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">negate</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">post_dec</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">plus_assign</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">plus_assign</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">plus_assign</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">minus_assign</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">minus_assign</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">minus_assign</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">multiplies_assign</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">multiplies_assign</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">multiplies_assign</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">divides_assign</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">divides_assign</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">divides_assign</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">modules_assign</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">modules_assign</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">modules_assign</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">plus</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">plus</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">plus</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">minus</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">minus</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">minus</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">multiplies</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">multiplies</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">multiplies</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">divides</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">divides</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">divides</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">modulus</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">modulus</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">modulus</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">complement</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">complement</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">complement</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">bitwise_and_assign</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">bitwise_and_assign</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">bitwise_and_assign</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">bitwise_or_assign</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">bitwise_or_assign</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">bitwise_or_assign</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">bitwise_xor_assign</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">bitwise_xor_assign</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">bitwise_xor_assign</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">shift_left_assign</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">shift_left_assign</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">shift_left_assign</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">shift_right_assign</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">shift_right_assign</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">shift_right_assign</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">bitwise_and</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">bitwise_and</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">bitwise_and</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">bitwise_or</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">bitwise_or</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">bitwise_or</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">bitwise_xor</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">bitwise_xor</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">bitwise_xor</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">shift_left</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">shift_left</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">shift_left</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">shift_right</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">shift_right</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">shift_right</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">equal_to</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">equal_to</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">equal_to</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">not_equal_to</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">not_equal_to</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">not_equal_to</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">less_equal_to</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">less_equal_to</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">less_equal_to</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">greater_equal</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">greater_equal</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">greater_equal</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">less</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">greater</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">greater</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">greater</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">if_else_operator</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">,</span>
+                  <span class="identifier">Then</span><span class="special">,</span>
+                  <span class="identifier">Else</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">if_else</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">if_else</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">logical_not</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">logical_not</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">logical_not</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">logical_and</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">logical_and</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">logical_and</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">logical_or</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">logical_or</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">logical_or</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">mem_fun_ptr</span><span class="special">&lt;</span><span class="identifier">Object</span><span class="special">,</span>
+                  <span class="identifier">MemPtr</span><span class="special">,</span>
+                  <span class="identifier">A0</span><span class="special">,</span>
+                  <span class="special">...,</span> <span class="identifier">AN</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">mem_fun_ptr</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">mem_fun_ptr</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">vararg</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">address_of</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">address_of</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">address_of</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">dereference</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">dereference</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">dereference</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">assign</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">assign</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">assign</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">subscript</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span>
+                  <span class="identifier">Rhs</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">subscript</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">subscript</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">sequence</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">,</span>
+                  <span class="identifier">A1</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">sequence</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">sequence</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">if_</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">,</span>
+                  <span class="identifier">Then</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">if_</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">if_</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">if_else_statement</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">,</span>
+                  <span class="identifier">Then</span><span class="special">,</span>
+                  <span class="identifier">Else</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">if_else_statement</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">if_else_statement</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">switch_case</span><span class="special">&lt;</span><span class="identifier">Label</span><span class="special">,</span>
+                  <span class="identifier">Statement</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">switch_case</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">switch_case</span><span class="special">&lt;</span> <span class="identifier">terminal</span><span class="special">&lt;</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">int_</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span> <span class="special">&gt;,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">switch_default_case</span><span class="special">&lt;</span><span class="identifier">Statement</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">switch_default_case</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">switch_default_case</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">switch_</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">,</span>
+                  <span class="identifier">Cases</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">switch_</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">switch_</span><span class="special">&lt;</span>
+        <span class="identifier">meta_grammar</span>
+      <span class="special">,</span> <span class="identifier">switch_grammar</span>
+    <span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">while_</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">,</span>
+                  <span class="identifier">Do</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">while_</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">while_</span><span class="special">&lt;</span>
+        <span class="identifier">meta_grammar</span>
+      <span class="special">,</span> <span class="identifier">meta_grammar</span>
+    <span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">do_while</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">,</span>
+                  <span class="identifier">Do</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">do_while</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">do_while</span><span class="special">&lt;</span>
+        <span class="identifier">meta_grammar</span>
+      <span class="special">,</span> <span class="identifier">meta_grammar</span>
+    <span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">for_</span><span class="special">&lt;</span><span class="identifier">Init</span><span class="special">,</span>
+                  <span class="identifier">Cond</span><span class="special">,</span>
+                  <span class="identifier">Step</span><span class="special">,</span>
+                  <span class="identifier">Do</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">for_</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">for_</span><span class="special">&lt;</span>
+        <span class="identifier">meta_grammar</span>
+      <span class="special">,</span> <span class="identifier">meta_grammar</span>
+      <span class="special">,</span> <span class="identifier">meta_grammar</span>
+      <span class="special">,</span> <span class="identifier">meta_grammar</span>
+    <span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">catch_</span><span class="special">&lt;</span><span class="identifier">Exception</span><span class="special">,</span>
+                  <span class="identifier">Statement</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">catch_</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">catch_</span><span class="special">&lt;</span>
+        <span class="identifier">catch_exception</span><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_</span><span class="special">&gt;</span>
+      <span class="special">,</span> <span class="identifier">meta_grammar</span>
+    <span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">catch_all</span><span class="special">&lt;</span><span class="identifier">Statement</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">catch_all</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">catch_</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">try_catch</span><span class="special">&lt;</span><span class="identifier">Try</span><span class="special">,</span>
+                  <span class="identifier">Catch0</span><span class="special">,</span>
+                  <span class="special">...,</span> <span class="identifier">CatchN</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">try_catch</span>
+    <span class="special">:</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">or_</span><span class="special">&lt;</span>
+        <span class="identifier">expression</span><span class="special">::</span><span class="identifier">try_catch</span><span class="special">&lt;</span>
+            <span class="identifier">meta_grammar</span>
+          <span class="special">,</span> <span class="identifier">vararg</span><span class="special">&lt;</span><span class="identifier">rule</span><span class="special">::</span><span class="identifier">catch_</span><span class="special">&gt;</span>
+        <span class="special">&gt;</span>
+      <span class="special">,</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">try_catch</span><span class="special">&lt;</span>
+            <span class="identifier">meta_grammar</span>
+          <span class="special">,</span> <span class="identifier">vararg</span><span class="special">&lt;</span><span class="identifier">rule</span><span class="special">::</span><span class="identifier">catch_</span><span class="special">&gt;</span>
+          <span class="special">,</span> <span class="identifier">rule</span><span class="special">::</span><span class="identifier">catch_all</span>
+        <span class="special">&gt;</span>
+      <span class="special">,</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">try_catch</span><span class="special">&lt;</span>
+            <span class="identifier">meta_grammar</span>
+          <span class="special">,</span> <span class="identifier">catch_all</span>
+        <span class="special">&gt;</span>
+    <span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">throw_</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">throw_</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">throw_</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">Target</span><span class="special">,</span>
+                  <span class="identifier">A0</span><span class="special">,</span>
+                  <span class="special">...,</span> <span class="identifier">AN</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">construct</span>
+   <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">construct</span><span class="special">&lt;</span>
+       <span class="identifier">terminal</span><span class="special">&lt;</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">target</span><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+     <span class="special">,</span> <span class="identifier">A0</span>
+       <span class="special">...</span>
+     <span class="special">,</span> <span class="identifier">AN</span>
+   <span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">new_</span><span class="special">&lt;</span><span class="identifier">Target</span><span class="special">,</span>
+                  <span class="identifier">A0</span><span class="special">,</span>
+                  <span class="special">...,</span> <span class="identifier">AN</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">new_</span>
+   <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">new_</span><span class="special">&lt;</span>
+       <span class="identifier">terminal</span><span class="special">&lt;</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">target</span><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+     <span class="special">,</span> <span class="identifier">A0</span>
+       <span class="special">...</span>
+     <span class="special">,</span> <span class="identifier">AN</span>
+   <span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">delete_</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">delete_</span>
+      <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">delete_</span><span class="special">&lt;</span><span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">static_cast_</span><span class="special">&lt;</span><span class="identifier">Target</span><span class="special">,</span>
+                  <span class="identifier">A</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">static_cast_</span>
+   <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">static_cast_</span><span class="special">&lt;</span>
+       <span class="identifier">terminal</span><span class="special">&lt;</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">target</span><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+     <span class="special">,</span> <span class="identifier">A</span>
+   <span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">dynamic_cast_</span><span class="special">&lt;</span><span class="identifier">Target</span><span class="special">,</span>
+                  <span class="identifier">A</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">dynamic_cast_</span>
+   <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">dynamic_cast_</span><span class="special">&lt;</span>
+       <span class="identifier">terminal</span><span class="special">&lt;</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">target</span><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+     <span class="special">,</span> <span class="identifier">A</span>
+   <span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">reinterpret_cast_</span><span class="special">&lt;</span><span class="identifier">Target</span><span class="special">,</span>
+                  <span class="identifier">A</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">reinterpret_cast_</span>
+   <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">reinterpret_cast_</span><span class="special">&lt;</span>
+       <span class="identifier">terminal</span><span class="special">&lt;</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">target</span><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+     <span class="special">,</span> <span class="identifier">A</span>
+   <span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">const_cast_</span><span class="special">&lt;</span><span class="identifier">Target</span><span class="special">,</span>
+                  <span class="identifier">A</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">const_cast_</span>
+   <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">const_cast_</span><span class="special">&lt;</span>
+       <span class="identifier">terminal</span><span class="special">&lt;</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">target</span><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+     <span class="special">,</span> <span class="identifier">A</span>
+   <span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">local_variable</span><span class="special">&lt;</span><span class="identifier">Key</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">custom_terminal</span></pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">let</span><span class="special">&lt;</span><span class="identifier">Locals</span><span class="special">,</span>
+                  <span class="identifier">Statement</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">let</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">let</span><span class="special">&lt;</span><span class="identifier">terminal</span><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_</span><span class="special">&gt;,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">lambda</span><span class="special">&lt;</span><span class="identifier">OuterEnv</span><span class="special">,</span>
+                  <span class="identifier">Locals</span><span class="special">,</span>
+                  <span class="identifier">Statement</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">lambda</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">lambda</span><span class="special">&lt;</span><span class="identifier">terminal</span><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_</span><span class="special">&gt;,</span> <span class="identifier">terminal</span><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_</span><span class="special">&gt;,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">expression</span><span class="special">::</span><span class="identifier">lambda_actor</span><span class="special">&lt;</span><span class="identifier">Locals</span><span class="special">,</span>
+                  <span class="identifier">Statement</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">lambda_actor</span>
+    <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">lambda_actor</span><span class="special">&lt;</span><span class="identifier">terminal</span><span class="special">&lt;</span><span class="identifier">proto</span><span class="special">::</span><span class="identifier">_</span><span class="special">&gt;,</span> <span class="identifier">meta_grammar</span><span class="special">&gt;</span>
+</pre>
+<p>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="actions.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../inside.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="custom_terminals.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,51 @@
+{
+  "name": "native-buffer-browserify",
+  "version": "2.0.17",
+  "description": "buffer module compatibility for browserify (backed by ArrayBuffer so its fast!)",
+  "main": "index.js",
+  "dependencies": {
+    "base64-js": "~0.0.4",
+    "ieee754": "~1.1.1"
+  },
+  "devDependencies": {
+    "benchmark": "*",
+    "browserify": "3.x",
+    "tape": "*"
+  },
+  "scripts": {
+    "test": "tape test/*.js",
+    "prepublish": "./bundle.sh",
+    "perf": "cd perf/solo && browserify --debug readUInt32BE.js > bundle.js && open index.html"
+  },
+  "testling": {
+    "files": "test/*.js",
+    "browsers": [
+      "ie/6..latest",
+      "chrome/4..latest",
+      "firefox/3..latest",
+      "safari/5.1..latest",
+      "opera/11.0..latest",
+      "iphone/6",
+      "ipad/6"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/feross/native-buffer-browserify.git"
+  },
+  "keywords": [
+    "buffer",
+    "browserify",
+    "compatible",
+    "browser",
+    "arraybuffer",
+    "uint8array",
+    "dataview"
+  ],
+  "author": "Feross Aboukhadijeh <feross@feross.org> (http://feross.org/)",
+  "contributors": [
+    "Romain Beauxis <toots@rastageeks.org>",
+    "James Halliday <mail@substack.net>"
+  ],
+  "license": "MIT"
+}

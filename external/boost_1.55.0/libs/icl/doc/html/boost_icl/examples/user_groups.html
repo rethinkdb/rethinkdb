@@ -1,0 +1,242 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>User groups</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../examples.html" title="Examples">
+<link rel="prev" href="man_power.html" title="Man power">
+<link rel="next" href="std_copy.html" title="Std copy">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="man_power.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="std_copy.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_examples_user_groups" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.examples.user_groups"></a><a class="link" href="user_groups.html" title="User groups">User groups</a>
+</h3></div></div></div>
+<p>
+        Example <span class="bold"><strong>user groups</strong></span> shows the availability
+        of set operations on <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_maps</a></code>.
+      </p>
+<p>
+        In the example there is a user group <code class="computeroutput"><span class="identifier">med_users</span></code>
+        of a hospital staff that has the authorisation to handle medical data of
+        patients. User group <code class="computeroutput"><span class="identifier">admin_users</span></code>
+        has access to administrative data like health insurance and financial data.
+      </p>
+<p>
+        The membership for each user in one of the user groups has a time interval
+        of validity. The group membership begins and ends.
+      </p>
+<div class="itemizedlist"><ul type="disc">
+<li>
+          Using a union operation <code class="computeroutput"><span class="special">+</span></code>
+          we can have an overview over the unified user groups and the membership
+          dates of employees.
+        </li>
+<li>
+          Computing an intersection <code class="computeroutput"><span class="special">&amp;</span></code>
+          shows who is member of both med_users and admin_users at what times.
+        </li>
+</ul></div>
+<p>
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="comment">// The next line includes &lt;boost/gregorian/date.hpp&gt;
+</span><span class="comment">// and a few lines of adapter code.
+</span><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">gregorian</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span> 
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">interval_map</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">gregorian</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">icl</span><span class="special">;</span>
+
+<span class="comment">// Type icl::set&lt;string&gt; collects the names a user group's members. Therefore
+</span><span class="comment">// it needs to implement operator += that performs a set union on overlap of 
+</span><span class="comment">// intervals.
+</span><span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span><span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">MemberSetT</span><span class="special">;</span>
+
+<span class="comment">// boost::gregorian::date is the domain type the interval map. 
+</span><span class="comment">// It's key values are therefore time intervals: discrete_interval&lt;date&gt;. The content
+</span><span class="comment">// is the set of names: MemberSetT.
+</span><span class="keyword">typedef</span> <span class="identifier">interval_map</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">,</span> <span class="identifier">MemberSetT</span><span class="special">&gt;</span> <span class="identifier">MembershipT</span><span class="special">;</span>
+
+<span class="comment">// Collect user groups for medical and administrative staff and perform
+</span><span class="comment">// union and intersection operations on the collected membership schedules.
+</span><span class="keyword">void</span> <span class="identifier">user_groups</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">MemberSetT</span> <span class="identifier">mary_harry</span><span class="special">;</span> 
+    <span class="identifier">mary_harry</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="string">"Mary"</span><span class="special">);</span>
+    <span class="identifier">mary_harry</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="string">"Harry"</span><span class="special">);</span>
+
+    <span class="identifier">MemberSetT</span> <span class="identifier">diana_susan</span><span class="special">;</span> 
+    <span class="identifier">diana_susan</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="string">"Diana"</span><span class="special">);</span>
+    <span class="identifier">diana_susan</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="string">"Susan"</span><span class="special">);</span>
+
+    <span class="identifier">MemberSetT</span> <span class="identifier">chief_physician</span><span class="special">;</span> 
+    <span class="identifier">chief_physician</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="string">"Dr.Jekyll"</span><span class="special">);</span>
+
+    <span class="identifier">MemberSetT</span> <span class="identifier">director_of_admin</span><span class="special">;</span> 
+    <span class="identifier">director_of_admin</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="string">"Mr.Hyde"</span><span class="special">);</span>
+
+    <span class="comment">//----- Collecting members of user group: med_users -------------------
+</span>    <span class="identifier">MembershipT</span> <span class="identifier">med_users</span><span class="special">;</span>
+
+    <span class="identifier">med_users</span><span class="special">.</span><span class="identifier">add</span><span class="special">(</span> <span class="comment">// add and element
+</span>      <span class="identifier">make_pair</span><span class="special">(</span> 
+        <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;::</span><span class="identifier">closed</span><span class="special">(</span>
+          <span class="identifier">from_string</span><span class="special">(</span><span class="string">"2008-01-01"</span><span class="special">),</span> <span class="identifier">from_string</span><span class="special">(</span><span class="string">"2008-12-31"</span><span class="special">)),</span> <span class="identifier">mary_harry</span><span class="special">));</span>
+
+    <span class="identifier">med_users</span> <span class="special">+=</span>  <span class="comment">// element addition can also be done via operator +=
+</span>      <span class="identifier">make_pair</span><span class="special">(</span> 
+        <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;::</span><span class="identifier">closed</span><span class="special">(</span>
+          <span class="identifier">from_string</span><span class="special">(</span><span class="string">"2008-01-15"</span><span class="special">),</span> <span class="identifier">from_string</span><span class="special">(</span><span class="string">"2008-12-31"</span><span class="special">)),</span> 
+          <span class="identifier">chief_physician</span><span class="special">);</span>
+
+    <span class="identifier">med_users</span> <span class="special">+=</span>
+      <span class="identifier">make_pair</span><span class="special">(</span> 
+        <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;::</span><span class="identifier">closed</span><span class="special">(</span>
+          <span class="identifier">from_string</span><span class="special">(</span><span class="string">"2008-02-01"</span><span class="special">),</span> <span class="identifier">from_string</span><span class="special">(</span><span class="string">"2008-10-15"</span><span class="special">)),</span> 
+          <span class="identifier">director_of_admin</span><span class="special">);</span>
+
+    <span class="comment">//----- Collecting members of user group: admin_users ------------------
+</span>    <span class="identifier">MembershipT</span> <span class="identifier">admin_users</span><span class="special">;</span>
+
+    <span class="identifier">admin_users</span> <span class="special">+=</span> <span class="comment">// element addition can also be done via operator +=
+</span>      <span class="identifier">make_pair</span><span class="special">(</span> 
+        <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;::</span><span class="identifier">closed</span><span class="special">(</span>
+          <span class="identifier">from_string</span><span class="special">(</span><span class="string">"2008-03-20"</span><span class="special">),</span> <span class="identifier">from_string</span><span class="special">(</span><span class="string">"2008-09-30"</span><span class="special">)),</span> <span class="identifier">diana_susan</span><span class="special">);</span>
+
+    <span class="identifier">admin_users</span> <span class="special">+=</span>
+      <span class="identifier">make_pair</span><span class="special">(</span> 
+        <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;::</span><span class="identifier">closed</span><span class="special">(</span>
+          <span class="identifier">from_string</span><span class="special">(</span><span class="string">"2008-01-15"</span><span class="special">),</span> <span class="identifier">from_string</span><span class="special">(</span><span class="string">"2008-12-31"</span><span class="special">)),</span> 
+          <span class="identifier">chief_physician</span><span class="special">);</span>
+
+    <span class="identifier">admin_users</span> <span class="special">+=</span>
+      <span class="identifier">make_pair</span><span class="special">(</span> 
+        <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;::</span><span class="identifier">closed</span><span class="special">(</span>
+          <span class="identifier">from_string</span><span class="special">(</span><span class="string">"2008-02-01"</span><span class="special">),</span> <span class="identifier">from_string</span><span class="special">(</span><span class="string">"2008-10-15"</span><span class="special">)),</span> 
+          <span class="identifier">director_of_admin</span><span class="special">);</span>
+
+    <span class="identifier">MembershipT</span> <span class="identifier">all_users</span>   <span class="special">=</span> <span class="identifier">med_users</span> <span class="special">+</span> <span class="identifier">admin_users</span><span class="special">;</span>
+
+    <span class="identifier">MembershipT</span> <span class="identifier">super_users</span> <span class="special">=</span> <span class="identifier">med_users</span> <span class="special">&amp;</span> <span class="identifier">admin_users</span><span class="special">;</span>
+
+    <span class="identifier">MembershipT</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">med_</span> <span class="special">=</span> <span class="identifier">med_users</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"----- Membership of medical staff -----------------------------------\n"</span><span class="special">;</span>
+    <span class="keyword">while</span><span class="special">(</span><span class="identifier">med_</span> <span class="special">!=</span> <span class="identifier">med_users</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+    <span class="special">{</span>
+        <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;</span> <span class="identifier">when</span> <span class="special">=</span> <span class="special">(*</span><span class="identifier">med_</span><span class="special">).</span><span class="identifier">first</span><span class="special">;</span>
+        <span class="comment">// Who is member of group med_users within the time interval 'when' ?
+</span>        <span class="identifier">MemberSetT</span> <span class="identifier">who</span> <span class="special">=</span> <span class="special">(*</span><span class="identifier">med_</span><span class="special">++).</span><span class="identifier">second</span><span class="special">;</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"["</span> <span class="special">&lt;&lt;</span> <span class="identifier">first</span><span class="special">(</span><span class="identifier">when</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">" - "</span> <span class="special">&lt;&lt;</span> <span class="identifier">last</span><span class="special">(</span><span class="identifier">when</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"]"</span>
+             <span class="special">&lt;&lt;</span> <span class="string">": "</span> <span class="special">&lt;&lt;</span> <span class="identifier">who</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">MembershipT</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">admin_</span> <span class="special">=</span> <span class="identifier">admin_users</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"----- Membership of admin staff -------------------------------------\n"</span><span class="special">;</span>
+    <span class="keyword">while</span><span class="special">(</span><span class="identifier">admin_</span> <span class="special">!=</span> <span class="identifier">admin_users</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+    <span class="special">{</span>
+        <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;</span> <span class="identifier">when</span> <span class="special">=</span> <span class="special">(*</span><span class="identifier">admin_</span><span class="special">).</span><span class="identifier">first</span><span class="special">;</span>
+        <span class="comment">// Who is member of group admin_users within the time interval 'when' ?
+</span>        <span class="identifier">MemberSetT</span> <span class="identifier">who</span> <span class="special">=</span> <span class="special">(*</span><span class="identifier">admin_</span><span class="special">++).</span><span class="identifier">second</span><span class="special">;</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"["</span> <span class="special">&lt;&lt;</span> <span class="identifier">first</span><span class="special">(</span><span class="identifier">when</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">" - "</span> <span class="special">&lt;&lt;</span> <span class="identifier">last</span><span class="special">(</span><span class="identifier">when</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"]"</span>
+             <span class="special">&lt;&lt;</span> <span class="string">": "</span> <span class="special">&lt;&lt;</span> <span class="identifier">who</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">MembershipT</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">all_</span> <span class="special">=</span> <span class="identifier">all_users</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"----- Membership of all users (med + admin) -------------------------\n"</span><span class="special">;</span>
+    <span class="keyword">while</span><span class="special">(</span><span class="identifier">all_</span> <span class="special">!=</span> <span class="identifier">all_users</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+    <span class="special">{</span>
+        <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;</span> <span class="identifier">when</span> <span class="special">=</span> <span class="special">(*</span><span class="identifier">all_</span><span class="special">).</span><span class="identifier">first</span><span class="special">;</span>
+        <span class="comment">// Who is member of group med_users OR admin_users ?
+</span>        <span class="identifier">MemberSetT</span> <span class="identifier">who</span> <span class="special">=</span> <span class="special">(*</span><span class="identifier">all_</span><span class="special">++).</span><span class="identifier">second</span><span class="special">;</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"["</span> <span class="special">&lt;&lt;</span> <span class="identifier">first</span><span class="special">(</span><span class="identifier">when</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">" - "</span> <span class="special">&lt;&lt;</span> <span class="identifier">last</span><span class="special">(</span><span class="identifier">when</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"]"</span>
+             <span class="special">&lt;&lt;</span> <span class="string">": "</span> <span class="special">&lt;&lt;</span> <span class="identifier">who</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">MembershipT</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">super_</span> <span class="special">=</span> <span class="identifier">super_users</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"----- Membership of super users: intersection(med,admin) ------------\n"</span><span class="special">;</span>
+    <span class="keyword">while</span><span class="special">(</span><span class="identifier">super_</span> <span class="special">!=</span> <span class="identifier">super_users</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+    <span class="special">{</span>
+        <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;</span> <span class="identifier">when</span> <span class="special">=</span> <span class="special">(*</span><span class="identifier">super_</span><span class="special">).</span><span class="identifier">first</span><span class="special">;</span>
+        <span class="comment">// Who is member of group med_users AND admin_users ?
+</span>        <span class="identifier">MemberSetT</span> <span class="identifier">who</span> <span class="special">=</span> <span class="special">(*</span><span class="identifier">super_</span><span class="special">++).</span><span class="identifier">second</span><span class="special">;</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"["</span> <span class="special">&lt;&lt;</span> <span class="identifier">first</span><span class="special">(</span><span class="identifier">when</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">" - "</span> <span class="special">&lt;&lt;</span> <span class="identifier">last</span><span class="special">(</span><span class="identifier">when</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"]"</span>
+             <span class="special">&lt;&lt;</span> <span class="string">": "</span> <span class="special">&lt;&lt;</span> <span class="identifier">who</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+
+<span class="special">}</span>
+
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"&gt;&gt;Interval Container Library: Sample user_groups.cpp &lt;&lt;\n"</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-------------------------------------------------------\n"</span><span class="special">;</span>
+    <span class="identifier">user_groups</span><span class="special">();</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// Program output:
+</span><span class="comment">/*-----------------------------------------------------------------------------
+&gt;&gt;Interval Container Library: Sample user_groups.cpp &lt;&lt;
+-------------------------------------------------------
+----- Membership of medical staff -----------------------------------
+[2008-Jan-01 - 2008-Jan-14]: Harry Mary
+[2008-Jan-15 - 2008-Jan-31]: Dr.Jekyll Harry Mary
+[2008-Feb-01 - 2008-Oct-15]: Dr.Jekyll Harry Mary Mr.Hyde
+[2008-Oct-16 - 2008-Dec-31]: Dr.Jekyll Harry Mary
+----- Membership of admin staff -------------------------------------
+[2008-Jan-15 - 2008-Jan-31]: Dr.Jekyll
+[2008-Feb-01 - 2008-Mar-19]: Dr.Jekyll Mr.Hyde
+[2008-Mar-20 - 2008-Sep-30]: Diana Dr.Jekyll Mr.Hyde Susan
+[2008-Oct-01 - 2008-Oct-15]: Dr.Jekyll Mr.Hyde
+[2008-Oct-16 - 2008-Dec-31]: Dr.Jekyll
+----- Membership of all users (med + admin) -------------------------
+[2008-Jan-01 - 2008-Jan-14]: Harry Mary
+[2008-Jan-15 - 2008-Jan-31]: Dr.Jekyll Harry Mary
+[2008-Feb-01 - 2008-Mar-19]: Dr.Jekyll Harry Mary Mr.Hyde
+[2008-Mar-20 - 2008-Sep-30]: Diana Dr.Jekyll Harry Mary Mr.Hyde Susan
+[2008-Oct-01 - 2008-Oct-15]: Dr.Jekyll Harry Mary Mr.Hyde
+[2008-Oct-16 - 2008-Dec-31]: Dr.Jekyll Harry Mary
+----- Membership of super users: intersection(med,admin) ------------
+[2008-Jan-15 - 2008-Jan-31]: Dr.Jekyll
+[2008-Feb-01 - 2008-Oct-15]: Dr.Jekyll Mr.Hyde
+[2008-Oct-16 - 2008-Dec-31]: Dr.Jekyll
+-----------------------------------------------------------------------------*/</span>
+</pre>
+<p>
+        </p>
+<p>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="man_power.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="std_copy.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,1838 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <meta name="GENERATOR" content="Microsoft FrontPage 6.0">
+  <meta name="ProgId" content="FrontPage.Editor.Document">
+  <link rel="stylesheet" type="text/css" href="../../../boost.css">
+
+  <title>The Boost Statechart Library - Tutorial</title>
+</head>
+
+<body link="#0000FF" vlink="#800080">
+  <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+  "header">
+    <tr>
+      <td valign="top" width="300">
+        <h3><a href="../../../index.htm"><img alt="C++ Boost" src=
+        "../../../boost.png" border="0" width="277" height="86"></a></h3>
+      </td>
+
+      <td valign="top">
+        <h1 align="center">The Boost Statechart Library</h1>
+
+        <h2 align="center">Tutorial</h2>
+      </td>
+    </tr>
+  </table>
+  <hr>
+
+  <p>A Japanese translation of an earlier version of this tutorial can be
+  found at <a href=
+  "http://prdownloads.sourceforge.jp/jyugem/7127/fsm-tutorial-jp.pdf">http://prdownloads.sourceforge.jp/jyugem/7127/fsm-tutorial-jp.pdf</a>.
+  Kindly contributed by Mitsuo Fukasawa.</p>
+
+  <h2>Contents</h2>
+
+  <dl class="page-index">
+    <dt><a href="#Introduction">Introduction</a></dt>
+
+    <dd><a href="#HowToReadThisTutorial">How to read this tutorial</a></dd>
+
+    <dt><a href="#HelloWorld">Hello World!</a></dt>
+
+    <dt><a href="#BasicTopicsAStopWatch">Basic topics: A stop watch</a></dt>
+
+    <dd><a href="#DefiningStatesAndEvents">Defining states and
+    events</a></dd>
+
+    <dd><a href="#AddingReactions">Adding reactions</a></dd>
+
+    <dd><a href="#StateLocalStorage">State-local storage</a></dd>
+
+    <dd><a href="#GettingStateInformationOutOfTheMachine">Getting state
+    information out of the machine</a></dd>
+
+    <dt><a href="#IntermediateTopicsADigitalCamera">Intermediate topics: A
+    digital camera</a></dt>
+
+    <dd><a href=
+    "#SpreadingAStateMachineOverMultipleTranslationUnits">Spreading a state
+    machine over multiple translation units</a></dd>
+
+    <dd><a href="#DeferringEvents">Deferring events</a></dd>
+
+    <dd><a href="#Guards">Guards</a></dd>
+
+    <dd><a href="#InStateReactions">In-state reactions</a></dd>
+
+    <dd><a href="#TransitionActions">Transition actions</a></dd>
+
+    <dt><a href="#AdvancedTopics">Advanced topics</a></dt>
+
+    <dd><a href="#SpecifyingMultipleReactionsForAState">Specifying multiple
+    reactions for a state</a></dd>
+
+    <dd><a href="#PostingEvents">Posting events</a></dd>
+
+    <dd><a href="#History">History</a></dd>
+
+    <dd><a href="#OrthogonalStates">Orthogonal states</a></dd>
+
+    <dd><a href="#StateQueries">State queries</a></dd>
+
+    <dd><a href="#StateTypeInformation">State type information</a></dd>
+
+    <dd><a href="#ExceptionHandling">Exception handling</a></dd>
+
+    <dd><a href="#SubmachinesAndParameterizedStates">Submachines &amp;
+    Parametrized States</a></dd>
+
+    <dd><a href="#AsynchronousStateMachines">Asynchronous state
+    machines</a></dd>
+  </dl>
+  <hr>
+
+  <h2><a name="Introduction" id="Introduction">Introduction</a></h2>
+
+  <p>The Boost Statechart library is a framework that allows you to quickly
+  transform a UML statechart into executable C++ code, <b>without</b> needing
+  to use a code generator. Thanks to support for almost all UML features the
+  transformation is straight-forward and the resulting C++ code is a nearly
+  redundancy-free textual description of the statechart.</p>
+
+  <h3><a name="HowToReadThisTutorial" id="HowToReadThisTutorial">How to read
+  this tutorial</a></h3>
+
+  <p>This tutorial was designed to be read linearly. First time users should
+  start reading right at the beginning and stop as soon as they know enough
+  for the task at hand. Specifically:</p>
+
+  <ul>
+    <li>Small and simple machines with just a handful of states can be
+    implemented reasonably well by using the features described under
+    <a href="#BasicTopicsAStopWatch">Basic topics: A stop watch</a></li>
+
+    <li>For larger machines with up to roughly a dozen states the features
+    described under <a href="#IntermediateTopicsADigitalCamera">Intermediate
+    topics: A digital camera</a> are often helpful</li>
+
+    <li>Finally, users wanting to create even more complex machines and
+    project architects evaluating Boost.Statechart should also read the
+    <a href="#AdvancedTopics">Advanced topics</a> section at the end.
+    Moreover, reading the <a href=
+    "rationale.html#Limitations">Limitations</a> section in the Rationale is
+    strongly suggested</li>
+  </ul>
+
+  <h2><a name="HelloWorld" id="HelloWorld">Hello World!</a></h2>
+
+  <p>We will use the simplest possible program to make our first steps. The
+  statechart ...</p>
+
+  <p><img alt="HelloWorld" src="HelloWorld.gif" border="0" width="379"
+  height="94"></p>
+
+  <p>... is implemented with the following code:</p>
+  <pre>
+#include &lt;boost/statechart/state_machine.hpp&gt;
+#include &lt;boost/statechart/simple_state.hpp&gt;
+#include &lt;iostream&gt;
+
+namespace sc = boost::statechart;
+
+// We are declaring all types as <code>struct</code>s only to avoid having to
+// type <code>public</code>. If you don't mind doing so, you can just as well
+// use <code>class.</code>
+
+// We need to forward-declare the initial state because it can
+// only be defined at a point where the state machine is
+// defined.
+struct Greeting;
+
+// Boost.Statechart makes heavy use of the curiously recurring
+// template pattern. The deriving class must always be passed as
+// the first parameter to all base class templates.
+//
+// The state machine must be informed which state it has to
+// enter when the machine is initiated. That's why Greeting is
+// passed as the second template parameter.
+struct Machine : sc::state_machine&lt; Machine, Greeting &gt; {};
+
+// For each state we need to define which state machine it
+// belongs to and where it is located in the statechart. Both is
+// specified with Context argument that is passed to
+// simple_state&lt;&gt;. For a flat state machine as we have it here,
+// the context is always the state machine. Consequently,
+// Machine must be passed as the second template parameter to
+// Greeting's base (the Context parameter is explained in more
+// detail in the next example).
+struct Greeting : sc::simple_state&lt; Greeting, Machine &gt;
+{
+  // Whenever the state machine enters a state, it creates an
+  // object of the corresponding state class. The object is then
+  // kept alive as long as the machine remains in the state.
+  // Finally, the object is destroyed when the state machine
+  // exits the state. Therefore, a state entry action can be
+  // defined by adding a constructor and a state exit action can
+  // be defined by adding a destructor.
+  Greeting() { std::cout &lt;&lt; "Hello World!\n"; } // entry
+  ~Greeting() { std::cout &lt;&lt; "Bye Bye World!\n"; } // exit
+};
+
+int main()
+{
+  Machine myMachine;
+  // The machine is not yet running after construction. We start
+  // it by calling initiate(). This triggers the construction of
+  // the initial state Greeting
+  myMachine.initiate();
+  // When we leave main(), myMachine is destructed what leads to
+  // the destruction of all currently active states.
+  return 0;
+}
+</pre>
+
+  <p>This prints <code>Hello World!</code> and <code>Bye Bye World!</code>
+  before exiting.</p>
+
+  <h2><a name="BasicTopicsAStopWatch" id="BasicTopicsAStopWatch">Basic
+  topics: A stop watch</a></h2>
+
+  <p>Next we will model a simple mechanical stop watch with a state machine.
+  Such watches typically have two buttons:</p>
+
+  <ul>
+    <li>Start/Stop</li>
+
+    <li>Reset</li>
+  </ul>
+
+  <p>And two states:</p>
+
+  <ul>
+    <li>Stopped: The hands reside in the position where they were last
+    stopped:
+
+      <ul>
+        <li>Pressing the reset button moves the hands back to the 0 position.
+        The watch remains in the Stopped state</li>
+
+        <li>Pressing the start/stop button leads to a transition to the
+        Running state</li>
+      </ul>
+    </li>
+
+    <li>Running: The hands of the watch are in motion and continually show
+    the elapsed time
+
+      <ul>
+        <li>Pressing the reset button moves the hands back to the 0 position
+        and leads to a transition to the Stopped state</li>
+
+        <li>Pressing the start/stop button leads to a transition to the
+        Stopped state</li>
+      </ul>
+    </li>
+  </ul>
+
+  <p>Here is one way to specify this in UML:</p>
+
+  <p><img alt="StopWatch" src="StopWatch.gif" border="0" width="560" height=
+  "184"></p>
+
+  <h3><a name="DefiningStatesAndEvents" id="DefiningStatesAndEvents">Defining
+  states and events</a></h3>
+
+  <p>The two buttons are modeled by two events. Moreover, we also define the
+  necessary states and the initial state. <b>The following code is our
+  starting point, subsequent code snippets must be inserted</b>:</p>
+  <pre>
+#include &lt;boost/statechart/event.hpp&gt;
+#include &lt;boost/statechart/state_machine.hpp&gt;
+#include &lt;boost/statechart/simple_state.hpp&gt;
+
+namespace sc = boost::statechart;
+
+struct EvStartStop : sc::event&lt; EvStartStop &gt; {};
+struct EvReset : sc::event&lt; EvReset &gt; {};
+
+struct Active;
+struct StopWatch : sc::state_machine&lt; StopWatch, Active &gt; {};
+
+struct Stopped;
+
+// The simple_state class template accepts up to four parameters:
+// - The third parameter specifies the inner initial state, if
+//   there is one. Here, only Active has inner states, which is
+//   why it needs to pass its inner initial state Stopped to its
+//   base
+// - The fourth parameter specifies whether and what kind of
+//   history is kept
+
+// Active is the outermost state and therefore needs to pass the
+// state machine class it belongs to
+struct Active : sc::simple_state&lt;
+  Active, StopWatch, Stopped &gt; {};
+
+// Stopped and Running both specify Active as their Context,
+// which makes them nested inside Active
+struct Running : sc::simple_state&lt; Running, Active &gt; {};
+struct Stopped : sc::simple_state&lt; Stopped, Active &gt; {};
+
+// Because the context of a state must be a complete type (i.e.
+// not forward declared), a machine must be defined from
+// "outside to inside". That is, we always start with the state
+// machine, followed by outermost states, followed by the direct
+// inner states of outermost states and so on. We can do so in a
+// breadth-first or depth-first way or employ a mixture of the
+// two.
+
+int main()
+{
+  StopWatch myWatch;
+  myWatch.initiate();
+  return 0;
+}
+</pre>
+
+  <p>This compiles but doesn't do anything observable yet.</p>
+
+  <h3><a name="AddingReactions" id="AddingReactions">Adding
+  reactions</a></h3>
+
+  <p>For the moment we will use only one type of reaction: transitions. We
+  <b>insert</b> the bold parts of the following code:</p>
+  <pre>
+<b>#include &lt;boost/statechart/transition.hpp&gt;
+</b>
+// ...
+
+struct Stopped;
+struct Active : sc::simple_state&lt; Active, StopWatch, Stopped &gt;
+{
+  <b>typedef sc::transition&lt; EvReset, Active &gt; reactions;</b>
+};
+
+struct Running : sc::simple_state&lt; Running, Active &gt;
+{
+  <b>typedef sc::transition&lt; EvStartStop, Stopped &gt; reactions;</b>
+};
+
+struct Stopped : sc::simple_state&lt; Stopped, Active &gt;
+{
+  <b>typedef sc::transition&lt; EvStartStop, Running &gt; reactions;</b>
+};
+
+// A state can define an arbitrary number of reactions. That's
+// why we have to put them into an mpl::list&lt;&gt; as soon as there
+// is more than one of them
+// (see <a href=
+"#SpecifyingMultipleReactionsForAState">Specifying multiple reactions for a state</a>).
+
+int main()
+{
+  StopWatch myWatch;
+  myWatch.initiate();
+  <b>myWatch.process_event( EvStartStop() );
+</b>  <b>myWatch.process_event( EvStartStop() );
+</b>  <b>myWatch.process_event( EvStartStop() );
+</b>  <b>myWatch.process_event( EvReset() );
+</b>  return 0;
+}
+</pre>
+
+  <p>Now we have all the states and all the transitions in place and a number
+  of events are also sent to the stop watch. The machine dutifully makes the
+  transitions we would expect, but no actions are executed yet.</p>
+
+  <h3><a name="StateLocalStorage" id="StateLocalStorage">State-local
+  storage</a></h3>
+
+  <p>Next we'll make the stop watch actually measure time. Depending on the
+  state the stop watch is in, we need different variables:</p>
+
+  <ul>
+    <li>Stopped: One variable holding the elapsed time</li>
+
+    <li>Running: One variable holding the elapsed time <b>and</b> one
+    variable storing the point in time at which the watch was last
+    started.</li>
+  </ul>
+
+  <p>We observe that the elapsed time variable is needed no matter what state
+  the machine is in. Moreover, this variable should be reset to 0 when we
+  send an <code>EvReset</code> event to the machine. The other variable is
+  only needed while the machine is in the Running state. It should be set to
+  the current time of the system clock whenever we enter the Running state.
+  Upon exit we simply subtract the start time from the current system clock
+  time and add the result to the elapsed time.</p>
+  <pre>
+<b>#include &lt;ctime&gt;
+</b>
+// ...
+
+struct Stopped;
+struct Active : sc::simple_state&lt; Active, StopWatch, Stopped &gt;
+{
+  <b>public:</b>
+    typedef sc::transition&lt; EvReset, Active &gt; reactions;
+
+    <b>Active() : elapsedTime_( 0.0 ) {}
+</b>    <b>double ElapsedTime() const { return elapsedTime_; }
+</b>    <b>double &amp; ElapsedTime() { return elapsedTime_; }
+</b>  <b>private:
+</b>    <b>double elapsedTime_;
+</b>};
+
+struct Running : sc::simple_state&lt; Running, Active &gt;
+{
+  <b>public:</b>
+    typedef sc::transition&lt; EvStartStop, Stopped &gt; reactions;
+
+    <b>Running() : startTime_( std::time( 0 ) ) {}
+</b>    <b>~Running()
+</b>    <b>{</b>
+      // Similar to when a derived class object accesses its
+      // base class portion, context&lt;&gt;() is used to gain
+      // access to the direct or indirect context of a state.
+      // This can either be a direct or indirect outer state
+      // or the state machine itself
+      // (e.g. here: context&lt; StopWatch &gt;()).
+      <b>context&lt; Active &gt;().ElapsedTime() +=
+</b>        <b>std::difftime( std::time( 0 ), startTime_ );
+</b>    <b>}
+</b>  <b>private:
+</b>    <b>std::time_t startTime_;
+</b>};
+
+// ...
+</pre>
+
+  <p>The machine now measures the time, but we cannot yet retrieve it from
+  the main program.</p>
+
+  <p>At this point, the advantages of state-local storage (which is still a
+  relatively little-known feature) may not yet have become apparent. The FAQ
+  item "<a href="faq.html#StateLocalStorage">What's so cool about state-local
+  storage?</a>" tries to explain them in more detail by comparing this
+  StopWatch with one that does not make use of state-local storage.</p>
+
+  <h3><a name="GettingStateInformationOutOfTheMachine" id=
+  "GettingStateInformationOutOfTheMachine">Getting state information out of
+  the machine</a></h3>
+
+  <p>To retrieve the measured time, we need a mechanism to get state
+  information out of the machine. With our current machine design there are
+  two ways to do that. For the sake of simplicity we use the less efficient
+  one: <code>state_cast&lt;&gt;()</code> (StopWatch2.cpp shows the slightly
+  more complex alternative). As the name suggests, the semantics are very
+  similar to the ones of <code>dynamic_cast</code>. For example, when we call
+  <code>myWatch.state_cast&lt; const Stopped &amp; &gt;()</code> <b>and</b>
+  the machine is currently in the Stopped state, we get a reference to the
+  <code>Stopped</code> state. Otherwise <code>std::bad_cast</code> is thrown.
+  We can use this functionality to implement a <code>StopWatch</code> member
+  function that returns the elapsed time. However, rather than ask the
+  machine in which state it is and then switch to different calculations for
+  the elapsed time, we put the calculation into the Stopped and Running
+  states and use an interface to retrieve the elapsed time:</p>
+  <pre>
+<b>#include &lt;iostream&gt;
+
+</b>// ...
+
+<b>struct IElapsedTime
+{
+</b>  <b>virtual double ElapsedTime() const = 0;
+};
+
+</b>struct Active;
+struct StopWatch : sc::state_machine&lt; StopWatch, Active &gt;
+{
+  <b>double ElapsedTime() const
+</b>  <b>{
+</b>    <b>return state_cast&lt; const IElapsedTime &amp; &gt;().ElapsedTime();
+</b>  <b>}
+</b>};
+<b>
+</b>// ...
+
+struct Running : <b>IElapsedTime,</b>
+  sc::simple_state&lt; Running, Active &gt;
+{
+  public:
+    typedef sc::transition&lt; EvStartStop, Stopped &gt; reactions;
+
+    Running() : startTime_( std::time( 0 ) ) {}
+    ~Running()
+    {
+      <b>context&lt; Active &gt;().ElapsedTime() = ElapsedTime();
+</b>    }
+<b>
+</b>    <b>virtual double ElapsedTime() const
+</b>    <b>{
+</b>      <b>return context&lt; Active &gt;().ElapsedTime() +
+</b>        <b>std::difftime( std::time( 0 ), startTime_ );
+</b>    <b>}
+</b>  private:
+    std::time_t startTime_;
+};
+
+struct Stopped : <b>IElapsedTime,</b>
+  sc::simple_state&lt; Stopped, Active &gt;
+{
+  typedef sc::transition&lt; EvStartStop, Running &gt; reactions;
+
+  <b>virtual double ElapsedTime() const
+</b>  <b>{
+</b>    <b>return context&lt; Active &gt;().ElapsedTime();
+</b>  <b>}
+</b>};
+
+int main()
+{
+  StopWatch myWatch;
+  myWatch.initiate();
+  <b>std::cout &lt;&lt; myWatch.ElapsedTime() &lt;&lt; "\n";
+</b>  myWatch.process_event( EvStartStop() );
+  <b>std::cout &lt;&lt; myWatch.ElapsedTime() &lt;&lt; "\n";
+</b>  myWatch.process_event( EvStartStop() );
+  <b>std::cout &lt;&lt; myWatch.ElapsedTime() &lt;&lt; "\n";
+</b>  myWatch.process_event( EvStartStop() );
+  <b>std::cout &lt;&lt; myWatch.ElapsedTime() &lt;&lt; "\n";
+</b>  myWatch.process_event( EvReset() );
+  <b>std::cout &lt;&lt; myWatch.ElapsedTime() &lt;&lt; "\n";
+</b>  return 0;
+}
+</pre>
+
+  <p>To actually see time being measured, you might want to single-step
+  through the statements in <code>main()</code>. The StopWatch example
+  extends this program to an interactive console application.</p>
+
+  <h2><a name="IntermediateTopicsADigitalCamera" id=
+  "IntermediateTopicsADigitalCamera">Intermediate topics: A digital
+  camera</a></h2>
+
+  <p>So far so good. However, the approach presented above has a few
+  limitations:</p>
+
+  <ul>
+    <li>Bad scalability: As soon as the compiler reaches the point where
+    <code>state_machine::initiate()</code> is called, a number of template
+    instantiations take place, which can only succeed if the full declaration
+    of each and every state of the machine is known. That is, the whole
+    layout of a state machine must be implemented in one single translation
+    unit (actions can be compiled separately, but this is of no importance
+    here). For bigger (and more real-world) state machines, this leads to the
+    following limitations:
+
+      <ul>
+        <li>At some point compilers reach their internal template
+        instantiation limits and give up. This can happen even for
+        moderately-sized machines. For example, in debug mode one popular
+        compiler refused to compile earlier versions of the BitMachine
+        example for anything above 3 bits. This means that the compiler
+        reached its limits somewhere between 8 states, 24 transitions and 16
+        states, 64 transitions</li>
+
+        <li>Multiple programmers can hardly work on the same state machine
+        simultaneously because every layout change will inevitably lead to a
+        recompilation of the whole state machine</li>
+      </ul>
+    </li>
+
+    <li>Maximum one reaction per event: According to UML a state can have
+    multiple reactions triggered by the same event. This makes sense when all
+    reactions have mutually exclusive guards. The interface we used above
+    only allows for at most one unguarded reaction for each event. Moreover,
+    the UML concepts junction and choice point are not directly
+    supported</li>
+  </ul>
+
+  <p>All these limitations can be overcome with custom reactions. <b>Warning:
+  It is easy to abuse custom reactions up to the point of invoking undefined
+  behavior. Please study the documentation before employing them!</b></p>
+
+  <h3><a name="SpreadingAStateMachineOverMultipleTranslationUnits" id=
+  "SpreadingAStateMachineOverMultipleTranslationUnits">Spreading a state
+  machine over multiple translation units</a></h3>
+
+  <p>Let's say your company would like to develop a digital camera. The
+  camera has the following controls:</p>
+
+  <ul>
+    <li>Shutter button, which can be half-pressed and fully-pressed. The
+    associated events are <code>EvShutterHalf</code>,
+    <code>EvShutterFull</code> and <code>EvShutterReleased</code></li>
+
+    <li>Config button, represented by the <code>EvConfig</code> event</li>
+
+    <li>A number of other buttons that are not of interest here</li>
+  </ul>
+
+  <p>One use case for the camera says that the photographer can half-press
+  the shutter <b>anywhere</b> in the configuration mode and the camera will
+  immediately go into shooting mode. The following statechart is one way to
+  achieve this behavior:</p>
+
+  <p><img alt="Camera" src="Camera.gif" border="0" width="544" height=
+  "317"></p>
+
+  <p>The Configuring and Shooting states will contain numerous nested states
+  while the Idle state is relatively simple. It was therefore decided to
+  build two teams. One will implement the shooting mode while the other will
+  implement the configuration mode. The two teams have already agreed on the
+  interface that the shooting team will use to retrieve the configuration
+  settings. We would like to ensure that the two teams can work with the
+  least possible interference. So, we put the two states in their own
+  translation units so that machine layout changes within the Configuring
+  state will never lead to a recompilation of the inner workings of the
+  Shooting state and vice versa.</p>
+
+  <p><b>Unlike in the previous example, the excerpts presented here often
+  outline different options to achieve the same effect. That's why the code
+  is often not equal to the Camera example code.</b> Comments mark the parts
+  where this is the case.</p>
+
+  <p>Camera.hpp:</p>
+  <pre>
+#ifndef CAMERA_HPP_INCLUDED
+#define CAMERA_HPP_INCLUDED
+
+#include &lt;boost/statechart/event.hpp&gt;
+#include &lt;boost/statechart/state_machine.hpp&gt;
+#include &lt;boost/statechart/simple_state.hpp&gt;
+#include &lt;boost/statechart/custom_reaction.hpp&gt;
+
+namespace sc = boost::statechart;
+
+struct EvShutterHalf : sc::event&lt; EvShutterHalf &gt; {};
+struct EvShutterFull : sc::event&lt; EvShutterFull &gt; {};
+struct EvShutterRelease : sc::event&lt; EvShutterRelease &gt; {};
+struct EvConfig : sc::event&lt; EvConfig &gt; {};
+
+struct NotShooting;
+struct Camera : sc::state_machine&lt; Camera, NotShooting &gt;
+{
+  bool IsMemoryAvailable() const { return true; }
+  bool IsBatteryLow() const { return false; }
+};
+
+struct Idle;
+struct NotShooting : sc::simple_state&lt;
+  NotShooting, Camera, Idle &gt;
+{
+  // With a custom reaction we only specify that we <b>might</b> do
+  // something with a particular event, but the actual reaction
+  // is defined in the react member function, which can be
+  // implemented in the .cpp file.
+  <b>typedef sc::custom_reaction&lt; EvShutterHalf &gt; reactions;</b>
+
+  // ...
+  <b>sc::result react( const EvShutterHalf &amp; );</b>
+};
+
+struct Idle : sc::simple_state&lt; Idle, NotShooting &gt;
+{
+  <b>typedef sc::custom_reaction&lt; EvConfig &gt; reactions;</b>
+
+  // ...
+  <b>sc::result react( const EvConfig &amp; );</b>
+};
+
+#endif
+</pre>
+
+  <p>Camera.cpp:</p>
+  <pre>
+#include "Camera.hpp"
+
+// The following includes are only made here but not in
+// Camera.hpp
+// The Shooting and Configuring states can themselves apply the
+// same pattern to hide their inner implementation, which
+// ensures that the two teams working on the Camera state
+// machine will never need to disturb each other.
+#include "Configuring.hpp"
+#include "Shooting.hpp"
+
+// ...
+
+// not part of the Camera example
+sc::result NotShooting::react( const EvShutterHalf &amp; )
+{
+  return transit&lt; Shooting &gt;();
+}
+
+sc::result Idle::react( const EvConfig &amp; )
+{
+  return transit&lt; Configuring &gt;();
+}
+</pre>
+
+  <p><b><font color="#FF0000">Caution: Any call to
+  <code>simple_state&lt;&gt;::transit&lt;&gt;()</code> or
+  <code>simple_state&lt;&gt;::terminate()</code> (see <a href=
+  "reference.html#transit1">reference</a>) will inevitably destruct the state
+  object (similar to <code>delete this;</code>)! That is, code executed after
+  any of these calls may invoke undefined behavior!</font></b> That's why
+  these functions should only be called as part of a return statement.</p>
+
+  <h3><a name="DeferringEvents" id="DeferringEvents">Deferring
+  events</a></h3>
+
+  <p>The inner workings of the Shooting state could look as follows:</p>
+
+  <p><img alt="Camera2" src="Camera2.gif" border="0" width="427" height=
+  "427"></p>
+
+  <p>When the user half-presses the shutter, Shooting and its inner initial
+  state Focusing are entered. In the Focusing entry action the camera
+  instructs the focusing circuit to bring the subject into focus. The
+  focusing circuit then moves the lenses accordingly and sends the EvInFocus
+  event as soon as it is done. Of course, the user can fully-press the
+  shutter while the lenses are still in motion. Without any precautions, the
+  resulting EvShutterFull event would simply be lost because the Focusing
+  state does not define a reaction for this event. As a result, the user
+  would have to fully-press the shutter again after the camera has finished
+  focusing. To prevent this, the EvShutterFull event is deferred inside the
+  Focusing state. This means that all events of this type are stored in a
+  separate queue, which is emptied into the main queue when the Focusing
+  state is exited.</p>
+  <pre>
+struct Focusing : sc::state&lt; Focusing, Shooting &gt;
+{
+  typedef mpl::list&lt;
+    sc::custom_reaction&lt; EvInFocus &gt;,
+    <b>sc::deferral&lt; EvShutterFull &gt;</b>
+  &gt; reactions;
+
+  Focusing( my_context ctx );
+  sc::result react( const EvInFocus &amp; );
+};
+</pre>
+
+  <h3><a name="Guards" id="Guards">Guards</a></h3>
+
+  <p>Both transitions originating at the Focused state are triggered by the
+  same event but they have mutually exclusive guards. Here is an appropriate
+  custom reaction:</p>
+  <pre>
+// not part of the Camera example
+sc::result Focused::react( const EvShutterFull &amp; )
+{
+  if ( context&lt; Camera &gt;().IsMemoryAvailable() )
+  {
+    return transit&lt; Storing &gt;();
+  }
+  else
+  {
+    // The following is actually a mixture between an in-state
+    // reaction and a transition. See later on how to implement
+    // proper transition actions.
+    std::cout &lt;&lt; "Cache memory full. Please wait...\n";
+    return transit&lt; Focused &gt;();
+  }
+}
+</pre>
+
+  <p>Custom reactions can of course also be implemented directly in the state
+  declaration, which is often preferable for easier browsing.</p>
+
+  <p>Next we will use a guard to prevent a transition and let outer states
+  react to the event if the battery is low:</p>
+
+  <p>Camera.cpp:</p>
+  <pre>
+// ...
+sc::result NotShooting::react( const EvShutterHalf &amp; )
+{
+  if ( context&lt; Camera &gt;().IsBatteryLow() )
+  {
+    // We cannot react to the event ourselves, so we forward it
+    // to our outer state (this is also the default if a state
+    // defines no reaction for a given event).
+    <b>return forward_event();</b>
+  }
+  else
+  {
+    return transit&lt; Shooting &gt;();
+  }
+}
+// ...
+</pre>
+
+  <h3><a name="InStateReactions" id="InStateReactions">In-state
+  reactions</a></h3>
+
+  <p>The self-transition of the Focused state could also be implemented as an
+  <a href="definitions.html#InStateReaction">in-state reaction</a>, which has
+  the same effect as long as Focused does not have any entry or exit
+  actions:</p>
+
+  <p>Shooting.cpp:</p>
+  <pre>
+// ...
+sc::result Focused::react( const EvShutterFull &amp; )
+{
+  if ( context&lt; Camera &gt;().IsMemoryAvailable() )
+  {
+    return transit&lt; Storing &gt;();
+  }
+  else
+  {
+    std::cout &lt;&lt; "Cache memory full. Please wait...\n";
+    // Indicate that the event can be discarded. So, the 
+    // dispatch algorithm will stop looking for a reaction
+    // and the machine remains in the Focused state.
+    <b>return discard_event();</b>
+  }
+}
+// ...
+</pre>
+
+  <p>Because the in-state reaction is guarded, we need to employ a
+  <code>custom_reaction&lt;&gt;</code> here. For unguarded in-state reactions
+  <code><a href=
+  "reference.html#ClassTemplatein_state_reaction">in_state_reaction</a>&lt;&gt;</code>
+  should be used for better code-readability.</p>
+
+  <h3><a name="TransitionActions" id="TransitionActions">Transition
+  actions</a></h3>
+
+  <p>As an effect of every transition, actions are executed in the following
+  order:</p>
+
+  <ol>
+    <li>Starting from the innermost active state, all exit actions up to but
+    excluding the <a href="definitions.html#InnermostCommonContext">innermost
+    common context</a></li>
+
+    <li>The transition action (if present)</li>
+
+    <li>Starting from the innermost common context, all entry actions down to
+    the target state followed by the entry actions of the initial states</li>
+  </ol>
+
+  <p>Example:</p>
+
+  <p><img alt="LCA" src="LCA.gif" border="0" width="604" height="304"></p>
+
+  <p>Here the order is as follows: ~D(), ~C(), ~B(), ~A(), t(), X(), Y(),
+  Z(). The transition action t() is therefore executed in the context of the
+  InnermostCommonOuter state because the source state has already been left
+  (destructed) and the target state has not yet been entered
+  (constructed).</p>
+
+  <p>With Boost.Statechart, a transition action can be a member of <b>any</b>
+  common outer context. That is, the transition between Focusing and Focused
+  could be implemented as follows:</p>
+
+  <p>Shooting.hpp:</p>
+  <pre>
+// ...
+struct Focusing;
+struct Shooting : sc::simple_state&lt; Shooting, Camera, Focusing &gt;
+{
+  typedef sc::transition&lt;
+    EvShutterRelease, NotShooting &gt; reactions; 
+
+  // ...
+  <b>void DisplayFocused( const EvInFocus &amp; );</b>
+};
+
+// ...
+
+// not part of the Camera example
+struct Focusing : sc::simple_state&lt; Focusing, Shooting &gt;
+{
+  typedef sc::transition&lt; EvInFocus, Focused<b>,</b>
+    <b>Shooting, &amp;Shooting::DisplayFocused</b> &gt; reactions;
+};
+</pre>
+
+  <p><b>Or</b>, the following is also possible (here the state machine itself
+  serves as the outermost context):</p>
+  <pre>
+// not part of the Camera example
+struct Camera : sc::state_machine&lt; Camera, NotShooting &gt;
+{
+  <b>void DisplayFocused( const EvInFocus &amp; );</b>
+};
+</pre>
+  <pre>
+// not part of the Camera example
+struct Focusing : sc::simple_state&lt; Focusing, Shooting &gt;
+{
+  typedef sc::transition&lt; EvInFocus, Focused<b>,</b>
+    <b>Camera, &amp;Camera::DisplayFocused</b> &gt; reactions;
+};
+</pre>
+
+  <p>Naturally, transition actions can also be invoked from custom
+  reactions:</p>
+
+  <p>Shooting.cpp:</p>
+  <pre>
+// ...
+sc::result Focusing::react( const EvInFocus &amp; evt )
+{
+  // We have to manually forward evt
+  return transit&lt; Focused &gt;( <b>&amp;Shooting::DisplayFocused</b>, evt );
+}
+</pre>
+
+  <h2><a name="AdvancedTopics" id="AdvancedTopics">Advanced topics</a></h2>
+
+  <h3><a name="SpecifyingMultipleReactionsForAState" id=
+  "SpecifyingMultipleReactionsForAState">Specifying multiple reactions for a
+  state</a></h3>
+
+  <p>Often a state must define reactions for more than one event. In this
+  case, an <code>mpl::list&lt;&gt;</code> must be used as outlined below:</p>
+  <pre>
+// ...
+
+<b>#include &lt;boost/mpl/list.hpp&gt;
+</b>
+<b>namespace mpl = boost::mpl;
+</b>
+// ...
+
+struct Playing : sc::simple_state&lt; Playing, Mp3Player &gt;
+{
+  typdef <b>mpl::list&lt;</b>
+    sc::custom_reaction&lt; EvFastForward &gt;,
+    sc::transition&lt; EvStop, Stopped &gt; <b>&gt;</b> reactions;
+
+  /* ... */
+};
+</pre>
+
+  <h3><a name="PostingEvents" id="PostingEvents">Posting events</a></h3>
+
+  <p>Non-trivial state machines often need to post internal events. Here's an
+  example of how to do this:</p>
+  <pre>
+Pumping::~Pumping()
+{
+  post_event( EvPumpingFinished() );
+}
+</pre>
+
+  <p>The event is pushed into the main queue. The events in the queue are
+  processed as soon as the current reaction is completed. Events can be
+  posted from inside <code>react</code> functions, entry-, exit- and
+  transition actions. However, posting from inside entry actions is a bit
+  more complicated (see e.g. <code>Focusing::Focusing()</code> in
+  <code>Shooting.cpp</code> in the Camera example):</p>
+  <pre>
+struct Pumping : <b>sc::state</b>&lt; Pumping, Purifier &gt;
+{
+  <b>Pumping( my_context ctx ) : my_base( ctx )</b>
+  {
+    post_event( EvPumpingStarted() );
+  }
+  // ...
+};
+</pre>
+
+  <p>As soon as an entry action of a state needs to contact the "outside
+  world" (here: the event queue in the state machine), the state must derive
+  from <code>state&lt;&gt;</code> rather than from
+  <code>simple_state&lt;&gt;</code> and must implement a forwarding
+  constructor as outlined above (apart from the constructor,
+  <code>state&lt;&gt;</code> offers the same interface as
+  <code>simple_state&lt;&gt;</code>). Hence, this must be done whenever an
+  entry action makes one or more calls to the following functions:</p>
+
+  <ul>
+    <li><code>simple_state&lt;&gt;::post_event()</code></li>
+
+    <li>
+    <code>simple_state&lt;&gt;::clear_shallow_history&lt;&gt;()</code></li>
+
+    <li><code>simple_state&lt;&gt;::clear_deep_history&lt;&gt;()</code></li>
+
+    <li><code>simple_state&lt;&gt;::outermost_context()</code></li>
+
+    <li><code>simple_state&lt;&gt;::context&lt;&gt;()</code></li>
+
+    <li><code>simple_state&lt;&gt;::state_cast&lt;&gt;()</code></li>
+
+    <li><code>simple_state&lt;&gt;::state_downcast&lt;&gt;()</code></li>
+
+    <li><code>simple_state&lt;&gt;::state_begin()</code></li>
+
+    <li><code>simple_state&lt;&gt;::state_end()</code></li>
+  </ul>
+
+  <p>In my experience, these functions are needed only rarely in entry
+  actions so this workaround should not uglify user code too much.</p>
+
+  <h3><a name="History" id="History">History</a></h3>
+
+  <p>Photographers testing beta versions of our <a href=
+  "#SpreadingAStateMachineOverMultipleTranslationUnits">digital camera</a>
+  said that they really liked that half-pressing the shutter anytime (even
+  while the camera is being configured) immediately readies the camera for
+  picture-taking. However, most of them found it unintuitive that the camera
+  always goes into the idle mode after releasing the shutter. They would
+  rather see the camera go back into the state it had before half-pressing
+  the shutter. This way they can easily test the influence of a configuration
+  setting by modifying it, half- and then fully-pressing the shutter to take
+  a picture. Finally, releasing the shutter will bring them back to the
+  screen where they have modified the setting. To implement this behavior
+  we'd change the state chart as follows:</p>
+
+  <p><img alt="CameraWithHistory1" src="CameraWithHistory1.gif" border="0"
+  width="542" height="378"></p>
+
+  <p>As mentioned earlier, the Configuring state contains a fairly complex
+  and deeply nested inner machine. Naturally, we'd like to restore the
+  previous state down to the <a href=
+  "definitions.html#InnermostState">innermost state</a>(s) in Configuring,
+  that's why we use a deep history pseudo state. The associated code looks as
+  follows:</p>
+  <pre>
+// not part of the Camera example
+struct NotShooting : sc::simple_state&lt;
+  NotShooting, Camera, Idle, <b>sc::has_deep_history</b> &gt;
+{
+  // ...
+};
+
+// ...
+
+struct Shooting : sc::simple_state&lt; Shooting, Camera, Focusing &gt;
+{
+  typedef sc::transition&lt;
+    EvShutterRelease, <b>sc::deep_history&lt; Idle &gt;</b> &gt; reactions;
+
+  // ...
+};
+</pre>
+
+  <p>History has two phases: Firstly, when the state containing the history
+  pseudo state is exited, information about the previously active inner state
+  hierarchy must be saved. Secondly, when a transition to the history pseudo
+  state is made later, the saved state hierarchy information must be
+  retrieved and the appropriate states entered. The former is expressed by
+  passing either <code>has_shallow_history</code>,
+  <code>has_deep_history</code> or <code>has_full_history</code> (which
+  combines shallow and deep history) as the last parameter to the
+  <code>simple_state</code> and <code>state</code> class templates. The
+  latter is expressed by specifying either
+  <code>shallow_history&lt;&gt;</code> or <code>deep_history&lt;&gt;</code>
+  as a transition destination or, as we'll see in an instant, as an inner
+  initial state. Because it is possible that a state containing a history
+  pseudo state has never been entered before a transition to history is made,
+  both class templates demand a parameter specifying the default state to
+  enter in such situations.</p>
+
+  <p>The redundancy necessary for using history is checked for consistency at
+  compile time. That is, the state machine wouldn't have compiled had we
+  forgotten to pass <code>has_deep_history</code> to the base of
+  <code>NotShooting</code>.</p>
+
+  <p>Another change request filed by a few beta testers says that they would
+  like to see the camera go back into the state it had before turning it off
+  when they turn it back on. Here's the implementation:</p>
+
+  <p><img alt="CameraWithHistory2" src="CameraWithHistory2.gif" border="0"
+  width="468" height="483"></p>
+  <pre>
+// ...
+
+// not part of the Camera example
+struct NotShooting : sc::simple_state&lt; NotShooting, Camera,
+  <b>mpl::list&lt; sc::deep_history&lt; Idle &gt; &gt;</b>,
+  <b>sc::has_deep_history</b> &gt;
+{
+  // ...
+};
+
+// ...
+</pre>
+
+  <p>Unfortunately, there is a small inconvenience due to some
+  template-related implementation details. When the inner initial state is a
+  class template instantiation we always have to put it into an
+  <code>mpl::list&lt;&gt;</code>, although there is only one inner initial
+  state. Moreover, the current deep history implementation has some <a href=
+  "rationale.html#Limitations">limitations</a>.</p>
+
+  <h3><a name="OrthogonalStates" id="OrthogonalStates">Orthogonal
+  states</a></h3>
+
+  <p><img alt="OrthogonalStates" src="OrthogonalStates.gif" border="0" width=
+  "633" height="393"></p>
+
+  <p>To implement this statechart you simply specify more than one inner
+  initial state (see the Keyboard example):</p>
+  <pre>
+struct Active;
+struct Keyboard : sc::state_machine&lt; Keyboard, Active &gt; {};
+
+struct NumLockOff;
+struct CapsLockOff;
+struct ScrollLockOff;
+struct Active: sc::simple_state&lt; Active, Keyboard,
+  <b>mpl::list&lt; NumLockOff, CapsLockOff, ScrollLockOff &gt;</b> &gt; {};
+</pre>
+
+  <p>Active's inner states must declare which orthogonal region they belong
+  to:</p>
+  <pre>
+struct EvNumLockPressed : sc::event&lt; EvNumLockPressed &gt; {};
+struct EvCapsLockPressed : sc::event&lt; EvCapsLockPressed &gt; {};
+struct EvScrollLockPressed :
+  sc::event&lt; EvScrollLockPressed &gt; {};
+
+struct NumLockOn : sc::simple_state&lt;
+  NumLockOn, Active<b>::orthogonal&lt; 0 &gt;</b> &gt;
+{
+  typedef sc::transition&lt;
+    EvNumLockPressed, NumLockOff &gt; reactions;
+};
+
+struct NumLockOff : sc::simple_state&lt;
+  NumLockOff, Active<b>::orthogonal&lt; 0 &gt;</b> &gt;
+{
+  typedef sc::transition&lt;
+    EvNumLockPressed, NumLockOn &gt; reactions;
+};
+
+struct CapsLockOn : sc::simple_state&lt;
+  CapsLockOn, Active<b>::orthogonal&lt; 1 &gt;</b> &gt;
+{
+  typedef sc::transition&lt;
+    EvCapsLockPressed, CapsLockOff &gt; reactions;
+};
+
+struct CapsLockOff : sc::simple_state&lt;
+  CapsLockOff, Active<b>::orthogonal&lt; 1 &gt;</b> &gt;
+{
+  typedef sc::transition&lt;
+    EvCapsLockPressed, CapsLockOn &gt; reactions;
+};
+
+struct ScrollLockOn : sc::simple_state&lt;
+  ScrollLockOn, Active<b>::orthogonal&lt; 2 &gt;</b> &gt;
+{
+  typedef sc::transition&lt;
+    EvScrollLockPressed, ScrollLockOff &gt; reactions;
+};
+
+struct ScrollLockOff : sc::simple_state&lt;
+  ScrollLockOff, Active<b>::orthogonal&lt; 2 &gt;</b> &gt;
+{
+  typedef sc::transition&lt;
+    EvScrollLockPressed, ScrollLockOn &gt; reactions; 
+};
+</pre>
+
+  <p><code>orthogonal&lt; 0 &gt;</code> is the default, so
+  <code>NumLockOn</code> and <code>NumLockOff</code> could just as well pass
+  <code>Active</code> instead of <code>Active::orthogonal&lt; 0 &gt;</code>
+  to specify their context. The numbers passed to the <code>orthogonal</code>
+  member template must correspond to the list position in the outer state.
+  Moreover, the orthogonal position of the source state of a transition must
+  correspond to the orthogonal position of the target state. Any violations
+  of these rules lead to compile time errors. Examples:</p>
+  <pre>
+// Example 1: does not compile because Active specifies
+// only 3 orthogonal regions
+struct WhateverLockOn: sc::simple_state&lt;
+  WhateverLockOn, Active<b>::</b>orthogonal&lt; <b>3</b> &gt; &gt; {};
+
+// Example 2: does not compile because Active specifies
+// that NumLockOff is part of the "0th" orthogonal region
+struct NumLockOff : sc::simple_state&lt;
+  NumLockOff, Active<b>::</b>orthogonal&lt; <b>1</b> &gt; &gt; {};
+
+// Example 3: does not compile because a transition between
+// different orthogonal regions is not permitted
+struct CapsLockOn : sc::simple_state&lt;
+  CapsLockOn, Active<b>::</b>orthogonal&lt; <b>1</b> &gt; &gt;
+{
+  typedef sc::transition&lt;
+    EvCapsLockPressed, CapsLockOff &gt; reactions;
+};
+
+struct CapsLockOff : sc::simple_state&lt;
+  CapsLockOff, Active<b>::</b>orthogonal&lt; <b>2</b> &gt; &gt;
+{
+  typedef sc::transition&lt;
+    EvCapsLockPressed, CapsLockOn &gt; reactions;
+};
+</pre>
+
+  <h3><a name="StateQueries" id="StateQueries">State queries</a></h3>
+
+  <p>Often reactions in a state machine depend on the active state in one or
+  more orthogonal regions. This is because orthogonal regions are not
+  completely orthogonal or a certain reaction in an outer state can only take
+  place if the inner orthogonal regions are in particular states. For this
+  purpose, the <code>state_cast&lt;&gt;</code> function introduced under
+  <a href="#GettingStateInformationOutOfTheMachine">Getting state information
+  out of the machine</a> is also available within states.</p>
+
+  <p>As a somewhat far-fetched example, let's assume that our <a href=
+  "#OrthogonalStates">keyboard</a> also accepts
+  <code>EvRequestShutdown</code> events, the reception of which makes the
+  keyboard terminate only if all lock keys are in the off state. We would
+  then modify the Keyboard state machine as follows:</p>
+  <pre>
+struct EvRequestShutdown : sc::event&lt; EvRequestShutdown &gt; {};
+
+struct NumLockOff;
+struct CapsLockOff;
+struct ScrollLockOff;
+struct Active: sc::simple_state&lt; Active, Keyboard, 
+  mpl::list&lt; NumLockOff, CapsLockOff, ScrollLockOff &gt; &gt;
+{
+  typedef sc::custom_reaction&lt; EvRequestShutdown &gt; reactions;
+
+  sc::result react( const EvRequestShutdown &amp; )
+  {
+    if ( ( state_downcast&lt; const NumLockOff * &gt;() != 0 ) &amp;&amp;
+         ( state_downcast&lt; const CapsLockOff * &gt;() != 0 ) &amp;&amp;
+         ( state_downcast&lt; const ScrollLockOff * &gt;() != 0 ) )
+    {
+      return terminate();
+    }
+    else
+    {
+      return discard_event();
+    }
+  }
+};
+</pre>
+
+  <p>Passing a pointer type instead of reference type results in 0 pointers
+  being returned instead of <code>std::bad_cast</code> being thrown when the
+  cast fails. Note also the use of <code>state_downcast&lt;&gt;()</code>
+  instead of <code>state_cast&lt;&gt;()</code>. Similar to the differences
+  between <code>boost::polymorphic_downcast&lt;&gt;()</code> and
+  <code>dynamic_cast</code>, <code>state_downcast&lt;&gt;()</code> is a much
+  faster variant of <code>state_cast&lt;&gt;()</code> and can only be used
+  when the passed type is a most-derived type.
+  <code>state_cast&lt;&gt;()</code> should only be used if you want to query
+  an additional base.</p>
+
+  <h4>Custom state queries</h4>
+
+  <p>It is often desirable to find out exactly which state(s) a machine
+  currently resides in. To some extent this is already possible with
+  <code>state_cast&lt;&gt;()</code> and <code>state_downcast&lt;&gt;()</code>
+  but their utility is rather limited because both only return a yes/no
+  answer to the question "Are you in state X?". It is possible to ask more
+  sophisticated questions when you pass an additional base class rather than
+  a state class to <code>state_cast&lt;&gt;()</code> but this involves more
+  work (all states need to derive from and implement the additional base), is
+  slow (under the hood <code>state_cast&lt;&gt;()</code> uses
+  <code>dynamic_cast</code>), forces projects to compile with C++ RTTI turned
+  on and has a negative impact on state entry/exit speed.</p>
+
+  <p>Especially for debugging it would be so much more useful being able to
+  ask "In which state(s) are you?". For this purpose it is possible to
+  iterate over all active <b>innermost</b> states with
+  <code>state_machine&lt;&gt;::state_begin()</code> and
+  <code>state_machine&lt;&gt;::state_end()</code>. Dereferencing the returned
+  iterator returns a reference to <code>const
+  state_machine&lt;&gt;::state_base_type</code>, the common base of all
+  states. We can thus print the currently active state configuration as
+  follows (see the Keyboard example for the complete code):</p>
+  <pre>
+void DisplayStateConfiguration( const Keyboard &amp; kbd )
+{
+  char region = 'a';
+
+  for (
+    Keyboard::state_iterator pLeafState = kbd.state_begin();
+    pLeafState != kbd.state_end(); ++pLeafState )
+  {
+    std::cout &lt;&lt; "Orthogonal region " &lt;&lt; region &lt;&lt; ": ";
+    // The following use of typeid assumes that
+    // BOOST_STATECHART_USE_NATIVE_RTTI is defined
+    std::cout &lt;&lt; typeid( *pLeafState ).name() &lt;&lt; "\n";
+    ++region;
+  }
+}
+</pre>
+
+  <p>If necessary, the outer states can be accessed with
+  <code>state_machine&lt;&gt;::state_base_type::outer_state_ptr()</code>,
+  which returns a pointer to <code>const
+  state_machine&lt;&gt;::state_base_type</code>. When called on an outermost
+  state this function simply returns 0.</p>
+
+  <h3><a name="StateTypeInformation" id="StateTypeInformation">State type
+  information</a></h3>
+
+  <p>To cut down on executable size some applications must be compiled with
+  C++ RTTI turned off. This would render the ability to iterate over all
+  active states pretty much useless if it weren't for the following two
+  functions:</p>
+
+  <ul>
+    <li><code>static <i>unspecified_type</i>
+    simple_state&lt;&gt;::static_type()</code></li>
+
+    <li><code><i>unspecified_type<br></i> &nbsp;
+    state_machine&lt;&gt;::state_base_type::dynamic_type() const</code></li>
+  </ul>
+
+  <p>Both return a value that is comparable via <code>operator==()</code> and
+  <code>std::less&lt;&gt;</code>. This alone would be enough to implement the
+  <code>DisplayStateConfiguration</code> function above without the help of
+  <code>typeid</code> but it is still somewhat cumbersome as a map must be
+  used to associate the type information values with the state names.</p>
+
+  <h4><a name="CustomStateTypeInformation" id=
+  "CustomStateTypeInformation">Custom state type information</a></h4>
+
+  <p>That's why the following functions are also provided (only available
+  when <a href=
+  "configuration.html#ApplicationDefinedMacros">BOOST_STATECHART_USE_NATIVE_RTTI</a>
+  is <b>not</b> defined):</p>
+
+  <ul>
+    <li><code>template&lt; class T &gt;<br>
+    static void simple_state&lt;&gt;::custom_static_type_ptr( const T *
+    );</code></li>
+
+    <li><code>template&lt; class T &gt;<br>
+    static const T *
+    simple_state&lt;&gt;::custom_static_type_ptr();</code></li>
+
+    <li><code>template&lt; class T &gt;<br>
+    const T * state_machine&lt;&gt;::<br>
+    &nbsp; state_base_type::custom_dynamic_type_ptr() const;</code></li>
+  </ul>
+
+  <p>These allow us to directly associate arbitrary state type information
+  with each state ...</p>
+  <pre>
+// ...
+
+int main()
+{
+  NumLockOn::custom_static_type_ptr( "NumLockOn" );
+  NumLockOff::custom_static_type_ptr( "NumLockOff" );
+  CapsLockOn::custom_static_type_ptr( "CapsLockOn" );
+  CapsLockOff::custom_static_type_ptr( "CapsLockOff" );
+  ScrollLockOn::custom_static_type_ptr( "ScrollLockOn" );
+  ScrollLockOff::custom_static_type_ptr( "ScrollLockOff" );
+
+  // ...
+}
+</pre>
+
+  <p>... and rewrite the display function as follows:</p>
+  <pre>
+void DisplayStateConfiguration( const Keyboard &amp; kbd )
+{
+  char region = 'a';
+
+  for (
+    Keyboard::state_iterator pLeafState = kbd.state_begin();
+    pLeafState != kbd.state_end(); ++pLeafState )
+  {
+    std::cout &lt;&lt; "Orthogonal region " &lt;&lt; region &lt;&lt; ": ";
+    std::cout &lt;&lt;
+      pLeafState-&gt;custom_dynamic_type_ptr&lt; char &gt;() &lt;&lt; "\n";
+    ++region;
+  }
+}
+</pre>
+
+  <h3><a name="ExceptionHandling" id="ExceptionHandling">Exception
+  handling</a></h3>
+
+  <p>Exceptions can be propagated from all user code except from state
+  destructors. Out of the box, the state machine framework is configured for
+  simple exception handling and does not catch any of these exceptions, so
+  they are immediately propagated to the state machine client. A scope guard
+  inside the <code>state_machine&lt;&gt;</code> ensures that all state
+  objects are destructed before the exception is caught by the client. The
+  scope guard does not attempt to call any <code>exit</code> functions (see
+  <a href="#TwoStageExit">Two stage exit</a> below) that states might define
+  as these could themselves throw other exceptions which would mask the
+  original exception. Consequently, if a state machine should do something
+  more sensible when exceptions are thrown, it has to catch them before they
+  are propagated into the Boost.Statechart framework. This exception handling
+  scheme is often appropriate but it can lead to considerable code
+  duplication in state machines where many actions can trigger exceptions
+  that need to be handled inside the state machine (see <a href=
+  "rationale.html#ErrorHandling">Error handling</a> in the Rationale).<br>
+  That's why exception handling can be customized through the
+  <code>ExceptionTranslator</code> parameter of the
+  <code>state_machine</code> class template. Since the out-of-the box
+  behavior is to <b>not</b> translate any exceptions, the default argument
+  for this parameter is <code>null_exception_translator</code>. A
+  <code>state_machine&lt;&gt;</code> subtype can be configured for advanced
+  exception handling by specifying the library-supplied
+  <code>exception_translator&lt;&gt;</code> instead. This way, the following
+  happens when an exception is propagated from user code:</p>
+
+  <ol>
+    <li>The exception is caught inside the framework</li>
+
+    <li>In the catch block, an <code>exception_thrown</code> event is
+    allocated on the stack</li>
+
+    <li>Also in the catch block, an <b>immediate</b> dispatch of the
+    <code>exception_thrown</code> event is attempted. That is, possibly
+    remaining events in the queue are dispatched only after the exception has
+    been handled successfully</li>
+
+    <li>If the exception was handled successfully, the state machine returns
+    to the client normally. If the exception could not be handled
+    successfully, the original exception is rethrown so that the client of
+    the state machine can handle the exception</li>
+  </ol>
+
+  <p>On platforms with buggy exception handling implementations users would
+  probably want to implement their own model of the <a href=
+  "reference.html#ExceptionTranslator">ExceptionTranslator concept</a> (see
+  also <a href="#DiscriminatingExceptions">Discriminating
+  exceptions</a>).</p>
+
+  <h4>Successful exception handling</h4>
+
+  <p>An exception is considered handled successfully, if:</p>
+
+  <ul>
+    <li>an appropriate reaction for the <code>exception_thrown</code> event
+    has been found, <b>and</b></li>
+
+    <li>the state machine is in a stable state after the reaction has
+    completed.</li>
+  </ul>
+
+  <p>The second condition is important for scenarios 2 and 3 in the next
+  section. In these scenarios, the state machine is in the middle of a
+  transition when the exception is handled. The machine would be left in an
+  invalid state, should the reaction simply discard the event without doing
+  anything else. <code>exception_translator&lt;&gt;</code> simply rethrows
+  the original exception if the exception handling was unsuccessful. Just as
+  with simple exception handling, in this case a scope guard inside the
+  <code>state_machine&lt;&gt;</code> ensures that all state objects are
+  destructed before the exception is caught by the client.</p>
+
+  <h4>Which states can react to an <code>exception_thrown</code> event?</h4>
+
+  <p>Short answer: If the state machine is stable when the exception is
+  thrown, the state that caused the exception is first tried for a reaction.
+  Otherwise the outermost <a href="definitions.html#UnstableState">unstable
+  state</a> is first tried for a reaction.</p>
+
+  <p>Longer answer: There are three scenarios:</p>
+
+  <ol>
+    <li>A <code>react</code> member function propagates an exception
+    <b>before</b> calling any of the reaction functions or the action
+    executed during an in-state reaction propagates an exception. The state
+    that caused the exception is first tried for a reaction, so the following
+    machine will transit to Defective after receiving an EvStart event:<br>
+    <br>
+    <img alt="ThrowingInStateReaction" src="ThrowingInStateReaction.gif"
+    border="0" width="362" height="182"><br>
+    <br></li>
+
+    <li>A state entry action (constructor) propagates an exception:<br>
+
+      <ul>
+        <li>If there are no orthogonal regions, the direct outer state of the
+        state that caused the exception is first tried for a reaction, so the
+        following machine will transit to Defective after trying to enter
+        Stopped:<br>
+        <br>
+        <img alt="ThrowingEntryAction" src="ThrowingEntryAction.gif" border=
+        "0" width="438" height="241"><br></li>
+
+        <li>If there are orthogonal regions, the outermost <a href=
+        "definitions.html#UnstableState">unstable state</a> is first tried
+        for a reaction. The outermost unstable state is found by first
+        selecting the direct outer state of the state that caused the
+        exception and then moving outward until a state is found that is
+        unstable but has no direct or indirect outer states that are
+        unstable. This more complex rule is necessary because only reactions
+        associated with the outermost unstable state (or any of its direct or
+        indirect outer states) are able to bring the machine back into a
+        stable state. Consider the following statechart:<br>
+        <br>
+        <img alt="OutermostUnstableState" src="OutermostUnstableState.gif"
+        border="0" width="467" height="572"><br>
+        <br>
+        Whether this state machine will ultimately transition to E or F after
+        initiation depends on which of the two orthogonal regions is
+        initiated first. If the upper orthogonal region is initiated first,
+        the entry sequence is as follows: A, D, B, (exception is thrown).
+        Both D and B were successfully entered, so B is the outermost
+        unstable state when the exception is thrown and the machine will
+        therefore transition to F. However, if the lower orthogonal region is
+        initiated first, the sequence is as follows: A, B, (exception is
+        thrown). D was never entered so A is the outermost unstable state
+        when the exception is thrown and the machine will therefore
+        transition to E.<br>
+        In practice these differences rarely matter as top-level error
+        recovery is adequate for most state machines. However, since the
+        sequence of initiation is clearly defined (orthogonal region 0 is
+        always initiated first, then region 1 and so forth), users <b>can</b>
+        accurately control when and where they want to handle
+        exceptions<br></li>
+      </ul>
+    </li>
+
+    <li>A transition action propagates an exception: The innermost common
+    outer state of the source and the target state is first tried for a
+    reaction, so the following machine will transit to Defective after
+    receiving an EvStartStop event:<br>
+    <br>
+    <img alt="ThrowingTransitionAction" src="ThrowingTransitionAction.gif"
+    border="0" width="422" height="362"></li>
+  </ol>
+
+  <p>As with a normal event, the dispatch algorithm will move outward to find
+  a reaction if the first tried state does not provide one (or if the
+  reaction explicitly returned <code>forward_event();</code>). However, <b>in
+  contrast to normal events, it will give up once it has unsuccessfully tried
+  an outermost state</b>, so the following machine will <b>not</b> transit to
+  Defective after receiving an EvNumLockPressed event:</p>
+
+  <p><img alt="ExceptionsAndOrthStates" src="ExceptionsAndOrthStates.gif"
+  border="0" width="571" height="331"></p>
+
+  <p>Instead, the machine is terminated and the original exception
+  rethrown.</p>
+
+  <h4><a name="DiscriminatingExceptions" id=
+  "DiscriminatingExceptions">Discriminating exceptions</a></h4>
+
+  <p>Because the <code>exception_thrown</code> event is dispatched from
+  within the catch block, we can rethrow and catch the exception in a custom
+  reaction:</p>
+  <pre>
+struct Defective : sc::simple_state&lt;
+  Defective, Purifier &gt; {};
+
+// Pretend this is a state deeply nested in the Purifier
+// state machine
+struct Idle : sc::simple_state&lt; Idle, Purifier &gt;
+{
+  typedef mpl::list&lt;
+    sc::custom_reaction&lt; EvStart &gt;,
+    sc::custom_reaction&lt; sc::exception_thrown &gt;
+  &gt; reactions; 
+
+  sc::result react( const EvStart &amp; )
+  {
+    throw std::runtime_error( "" );
+  }
+
+  sc::result react( const sc::exception_thrown &amp; )
+  {
+    try
+    {
+      <b>throw;</b>
+    }
+    catch ( const std::runtime_error &amp; )
+    {
+      // only std::runtime_errors will lead to a transition
+      // to Defective ...
+      return transit&lt; Defective &gt;();
+    }
+    catch ( ... )
+    {
+      // ... all other exceptions are forwarded to our outer
+      // state(s). The state machine is terminated and the
+      // exception rethrown if the outer state(s) can't
+      // handle it either...
+      return forward_event();
+    }
+
+    // Alternatively, if we want to terminate the machine
+    // immediately, we can also either rethrow or throw
+    // a different exception.
+  }
+};
+</pre>
+
+  <p><b>Unfortunately, this idiom (using <code>throw;</code> inside a
+  <code>try</code> block nested inside a <code>catch</code> block) does not
+  work on at least one very popular compiler.</b> If you have to use one of
+  these platforms, you can pass a customized exception translator class to
+  the <code>state_machine</code> class template. This will allow you to
+  generate different events depending on the type of the exception.</p>
+
+  <h4><a name="TwoStageExit" id="TwoStageExit">Two stage exit</a></h4>
+
+  <p>If a <code>simple_state&lt;&gt;</code> or <code>state&lt;&gt;</code>
+  subtype declares a public member function with the signature <code>void
+  exit()</code> then this function is called just before the state object is
+  destructed. As explained under <a href="rationale.html#ErrorHandling">Error
+  handling</a> in the Rationale, this is useful for two things that would
+  otherwise be difficult or cumbersome to achieve with destructors only:</p>
+
+  <ol>
+    <li>To signal a failure in an exit action</li>
+
+    <li>To execute certain exit actions <b>only</b> during a transition or a
+    termination but not when the state machine object is destructed</li>
+  </ol>
+
+  <p>A few points to consider before employing <code>exit()</code>:</p>
+
+  <ul>
+    <li>There is no guarantee that <code>exit()</code> will be called:
+
+      <ul>
+        <li>If the client destructs the state machine object without calling
+        <code>terminate()</code> beforehand then the currently active states
+        are destructed without calling <code>exit()</code>. This is necessary
+        because an exception that is possibly thrown from <code>exit()</code>
+        could not be propagated on to the state machine client</li>
+
+        <li><code>exit()</code> is not called when a previously executed
+        action propagated an exception and that exception has not (yet) been
+        handled successfully. This is because a new exception that could
+        possibly be thrown from <code>exit()</code> would mask the original
+        exception</li>
+      </ul>
+    </li>
+
+    <li>A state is considered exited, even if its <code>exit</code> function
+    propagated an exception. That is, the state object is inevitably
+    destructed right after calling <code>exit()</code>, regardless of whether
+    <code>exit()</code> propagated an exception or not. A state machine
+    configured for advanced exception handling is therefore always unstable
+    while handling an exception propagated from an <code>exit</code>
+    function</li>
+
+    <li>In a state machine configured for advanced exception handling the
+    processing rules for an exception event resulting from an exception
+    propagated from <code>exit()</code> are analogous to the ones defined for
+    exceptions propagated from state constructors. That is, the outermost
+    unstable state is first tried for a reaction and the dispatcher then
+    moves outward until an appropriate reaction is found</li>
+  </ul>
+
+  <h3><a name="SubmachinesAndParameterizedStates" id=
+  "SubmachinesAndParameterizedStates">Submachines &amp; parameterized
+  states</a></h3>
+
+  <p>Submachines are to event-driven programming what functions are to
+  procedural programming, reusable building blocks implementing often needed
+  functionality. The associated UML notation is not entirely clear to me. It
+  seems to be severely limited (e.g. the same submachine cannot appear in
+  different orthogonal regions) and does not seem to account for obvious
+  stuff like e.g. parameters.</p>
+
+  <p>Boost.Statechart is completely unaware of submachines but they can be
+  implemented quite nicely with templates. Here, a submachine is used to
+  improve the copy-paste implementation of the keyboard machine discussed
+  under <a href="#OrthogonalStates">Orthogonal states</a>:</p>
+  <pre>
+enum LockType
+{
+  NUM_LOCK,
+  CAPS_LOCK,
+  SCROLL_LOCK
+};
+
+template&lt; LockType lockType &gt;
+struct Off;
+struct Active : sc::simple_state&lt;
+  Active, Keyboard, mpl::list&lt;
+  Off&lt; NUM_LOCK &gt;, Off&lt; CAPS_LOCK &gt;, Off&lt; SCROLL_LOCK &gt; &gt; &gt; {};
+
+template&lt; LockType lockType &gt;
+struct EvPressed : sc::event&lt; EvPressed&lt; lockType &gt; &gt; {};
+
+template&lt; LockType lockType &gt;
+struct On : sc::simple_state&lt;
+  On&lt; lockType &gt;, Active::orthogonal&lt; lockType &gt; &gt;
+{
+  typedef sc::transition&lt;
+    EvPressed&lt; lockType &gt;, Off&lt; lockType &gt; &gt; reactions;
+};
+
+template&lt; LockType lockType &gt;
+struct Off : sc::simple_state&lt;
+  Off&lt; lockType &gt;, Active::orthogonal&lt; lockType &gt; &gt;
+{
+  typedef sc::transition&lt;
+    EvPressed&lt; lockType &gt;, On&lt; lockType &gt; &gt; reactions;
+};
+</pre>
+
+  <h3><a name="AsynchronousStateMachines" id=
+  "AsynchronousStateMachines">Asynchronous state machines</a></h3>
+
+  <h4>Why asynchronous state machines are necessary</h4>
+
+  <p>As the name suggests, a synchronous state machine processes each event
+  synchronously. This behavior is implemented by the
+  <code>state_machine</code> class template, whose <code>process_event</code>
+  function only returns after having executed all reactions (including the
+  ones provoked by internal events that actions might have posted). This
+  function is strictly non-reentrant (just like all other member functions,
+  so <code>state_machine&lt;&gt;</code> is not thread-safe). This makes it
+  difficult for two <code>state_machine&lt;&gt;</code> subtype objects to
+  communicate via events in a bi-directional fashion correctly, <b>even in a
+  single-threaded program</b>. For example, state machine <code>A</code> is
+  in the middle of processing an external event. Inside an action, it decides
+  to send a new event to state machine <code>B</code> (by calling
+  <code>B::process_event()</code>). It then "waits" for B to send back an
+  answer via a <code>boost::function&lt;&gt;</code>-like call-back, which
+  references <code>A::process_event()</code> and was passed as a data member
+  of the event. However, while <code>A</code> is "waiting" for <code>B</code>
+  to send back an event, <code>A::process_event()</code> has not yet returned
+  from processing the external event and as soon as <code>B</code> answers
+  via the call-back, <code>A::process_event()</code> is <b>unavoidably</b>
+  reentered. This all really happens in a single thread, that's why "wait" is
+  in quotes.</p>
+
+  <h4>How it works</h4>
+
+  <p>The <code>asynchronous_state_machine</code> class template has none of
+  the member functions the <code>state_machine</code> class template has.
+  Moreover, <code>asynchronous_state_machine&lt;&gt;</code> subtype objects
+  cannot even be created or destroyed directly. Instead, all these operations
+  must be performed through the <code>Scheduler</code> object each
+  asynchronous state machine is associated with. All these
+  <code>Scheduler</code> member functions only push an appropriate item into
+  the schedulers' queue and then return immediately. A dedicated thread will
+  later pop the items out of the queue to have them processed.</p>
+
+  <p>Applications will usually first create a
+  <code>fifo_scheduler&lt;&gt;</code> object and then call
+  <code>fifo_scheduler&lt;&gt;::create_processor&lt;&gt;()</code> and
+  <code>fifo_scheduler&lt;&gt;::initiate_processor()</code> to schedule the
+  creation and initiation of one or more
+  <code>asynchronous_state_machine&lt;&gt;</code> subtype objects. Finally,
+  <code>fifo_scheduler&lt;&gt;::operator()()</code> is either called directly
+  to let the machine(s) run in the current thread, or, a
+  <code>boost::function&lt;&gt;</code> object referencing
+  <code>operator()()</code> is passed to a new <code>boost::thread</code>.
+  Alternatively, the latter could also be done right after constructing the
+  <code>fifo_scheduler&lt;&gt;</code> object. In the following code, we are
+  running one state machine in a new <code>boost::thread</code> and the other
+  in the main thread (see the PingPong example for the full source code):</p>
+  <pre>
+struct Waiting;
+struct Player :
+  sc::asynchronous_state_machine&lt; Player, Waiting &gt;
+{
+  // ...
+};
+
+// ...
+
+int main()
+{
+  // Create two schedulers that will wait for new events
+  // when their event queue runs empty
+  sc::fifo_scheduler&lt;&gt; scheduler1( true );
+  sc::fifo_scheduler&lt;&gt; scheduler2( true );
+
+  // Each player is serviced by its own scheduler
+  sc::fifo_scheduler&lt;&gt;::processor_handle player1 = 
+    scheduler1.create_processor&lt; Player &gt;( /* ... */ );
+  scheduler1.initiate_processor( player1 );
+  sc::fifo_scheduler&lt;&gt;::processor_handle player2 = 
+    scheduler2.create_processor&lt; Player &gt;( /* ... */ );
+  scheduler2.initiate_processor( player2 );
+
+  // the initial event that will start the game
+  boost::intrusive_ptr&lt; BallReturned &gt; pInitialBall =
+    new BallReturned();
+
+  // ...
+
+  scheduler2.queue_event( player2, pInitialBall );
+
+  // ...
+
+  // Up until here no state machines exist yet. They
+  // will be created when operator()() is called
+
+  // Run first scheduler in a new thread
+  boost::thread otherThread( boost::bind(
+    &amp;sc::fifo_scheduler&lt;&gt;::operator(), &amp;scheduler1, 0 ) );
+  scheduler2(); // Run second scheduler in this thread
+  otherThread.join();
+
+  return 0;
+}
+</pre>
+
+  <p>We could just as well use two boost::threads:</p>
+  <pre>
+int main()
+{
+  // ...
+
+  boost::thread thread1( boost::bind(
+    &amp;sc::fifo_scheduler&lt;&gt;::operator(), &amp;scheduler1, 0 ) );
+  boost::thread thread2( boost::bind(
+    &amp;sc::fifo_scheduler&lt;&gt;::operator(), &amp;scheduler2, 0 ) );
+
+  // do something else ...
+
+  thread1.join();
+  thread2.join();
+
+  return 0;
+}
+</pre>
+
+  <p>Or, run both machines in the same thread:</p>
+  <pre>
+int main()
+{
+  sc::fifo_scheduler&lt;&gt; scheduler1( true );
+
+  sc::fifo_scheduler&lt;&gt;::processor_handle player1 = 
+    scheduler1.create_processor&lt; Player &gt;( /* ... */ );
+  sc::fifo_scheduler&lt;&gt;::processor_handle player2 = 
+    scheduler1.create_processor&lt; Player &gt;( /* ... */ );
+
+  // ...
+
+  scheduler1();
+
+  return 0;
+}
+</pre>
+
+  <p>In all the examples above,
+  <code>fifo_scheduler&lt;&gt;::operator()()</code> waits on an empty event
+  queue and will only return after a call to
+  <code>fifo_scheduler&lt;&gt;::terminate()</code>. The <code>Player</code>
+  state machine calls this function on its scheduler object right before
+  terminating.</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->03 December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38512" --></p>
+
+  <p><i>Copyright &copy; 2003-<!--webbot bot="Timestamp" s-type="EDITED" s-format="%Y" startspan -->2006<!--webbot bot="Timestamp" endspan i-checksum="770" -->
+  <a href="contact.html">Andreas Huber D&ouml;nni</a></i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

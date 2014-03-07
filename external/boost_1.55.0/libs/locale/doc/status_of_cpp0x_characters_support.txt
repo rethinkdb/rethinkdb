@@ -1,0 +1,39 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page status_of_cpp0x_characters_support Status of C++0x char16_t/char32_t support
+
+The support of C++0x \c char16_t and \c char32_t is experimental, mostly does not work and not
+intended to be used in production with current latest compilers: GCC-4.5, MSVC10 till major
+compiler's flaws would be fixed.
+
+\section status_of_cpp0x_characters_support_gnu GNU GCC 4.5/C++0x Status
+
+GNU C++ compiler provides decent support of C++0x characters however:
+
+-# 	Standard library does not install any std::locale::facets for this support so any attempt
+    to format numbers using \c char16_t or \c char32_t streams would just fail.
+-#	Standard library misses specialization for required \c char16_t/char32_t locale facets,
+	so "std" backends is not build-able as essential symbols missing, also \c codecvt facet
+	can't be created as well.
+
+\section status_of_cpp0x_characters_support_msvc Visual Studio 2010 (MSVC10)/C++0x Status
+
+MSVC provides all required facets however:
+
+-# 	Standard library does not provide installations of std::locale::id for these facets
+	in DLL so it is not usable with \c /MD, \c /MDd compiler flags and requires static link of the runtime
+	library.
+-#	\c char16_t and \c char32_t are not distinct types but rather aliases of unsigned short and unsigned
+	types which contradicts to C++0x requirements making it impossible to write \c char16_t/char32_t to stream
+	and causing multiple faults.
+
+*/
+

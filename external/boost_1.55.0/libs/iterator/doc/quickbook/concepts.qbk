@@ -1,0 +1,362 @@
+
+[section:concepts Iterator Concepts]
+
+[section:concepts_access Access]
+
+[h2 Readable Iterator Concept]
+
+A class or built-in type `X` models the *Readable Iterator* concept
+for value type `T` if, in addition to `X` being Assignable and
+Copy Constructible, the following expressions are valid and respect
+the stated semantics. `U` is the type of any specified member of
+type `T`.
+
+[table Readable Iterator Requirements (in addition to Assignable and Copy Constructible)
+  [
+    [Expression]
+    [Return Type]
+    [Note/Precondition]
+  ]
+  [
+    [`iterator_traits<X>::value_type`]
+    [`T`]
+    [Any non-reference, non cv-qualified type]
+  ]
+  [
+    [`*a`]
+    [ Convertible to `T`]
+    [pre: `a` is dereferenceable. If `a == b` then `*a` is equivalent to `*b`.]
+  ]
+  [
+    [`a->m`]
+    [`U&`]
+    [pre: `(*a).m` is well-defined. Equivalent to `(*a).m`.]
+  ]
+]                              
+                               
+[h2 Writable Iterator Concept  ]
+                               
+                               
+A class or built-in type `X`   models the *Writable Iterator* concept
+if, in addition to `X` being   Copy Constructible, the following
+expressions are valid and respect the stated semantics.  Writable
+Iterators have an associated *set of value types*.
+
+[table Writable Iterator Requirements (in addition to Copy Constructible) 
+  [
+    [Expression]
+    [Return Type]
+    [Precondition]
+  ]
+  [
+    [`*a = o`  ]
+    []
+    [pre: The type of `o` is in the set of value types of `X`]
+  ]
+]
+
+[h2 Swappable Iterator Concept]
+
+A class or built-in type `X` models the *Swappable Iterator* concept
+if, in addition to `X` being Copy Constructible, the following
+expressions are valid and respect the stated semantics.
+
+[table Swappable Iterator Requirements (in addition to Copy Constructible) 
+  [
+    [Expression]
+    [Return Type]
+    [Postcondition]
+  ]
+  [
+    [`iter_swap(a, b)`]
+    [`void`]
+    [the pointed to values are exchanged]
+  ]
+]
+
+[blurb *Note:* An iterator that is a model of the *Readable* and *Writable Iterator* concepts
+  is also a model of *Swappable Iterator*.  *--end note*]
+
+[h2 Lvalue Iterator Concept]
+
+The *Lvalue Iterator* concept adds the requirement that the return
+type of `operator*` type be a reference to the value type of the
+iterator.
+
+[table Lvalue Iterator Requirements
+  [
+    [Expression]
+    [Return Type]
+    [Note/Assertion]
+  ]
+  [
+    [`*a`      ]
+    [`T&`       ]
+    [
+      `T` is *cv* `iterator_traits<X>::value_type` where *cv* is an optional cv-qualification.
+      pre: `a` is dereferenceable. If `a == b` then `*a` is equivalent to `*b`.
+    ]
+  ]
+]
+
+[endsect]
+
+[section:concepts_traversal Traversal]
+
+[h2 Incrementable Iterator Concept]
+
+
+A class or built-in type `X` models the *Incrementable Iterator*
+concept if, in addition to `X` being Assignable and Copy
+Constructible, the following expressions are valid and respect the
+stated semantics.
+
+
+[table Incrementable Iterator Requirements (in addition to Assignable, Copy Constructible)
+  [
+    [Expression ]
+    [Return Type]
+    [Assertion/Semantics ]
+  ]
+  [
+    [`++r`      ]
+    [`X&`       ]
+    [`&r == &++r`]
+  ]
+  [
+    [`r++`      ]
+    [`X`        ]
+    [``
+       {
+         X tmp = r;
+         ++r;    
+         return tmp;
+       }
+    ``]
+  ]
+  [
+    [`iterator_traversal<X>::type`]
+    [Convertible to `incrementable_traversal_tag`]
+    []
+  ]
+]
+
+[h2 Single Pass Iterator Concept]
+
+A class or built-in type `X` models the *Single Pass Iterator*
+concept if the following expressions are valid and respect the stated
+semantics.
+
+[table Single Pass Iterator Requirements (in addition to Incrementable Iterator and Equality Comparable)
+  [
+    [Expression]
+    [Return Type]
+    [Assertion/Semantics / Pre-/Post-condition]
+  ]
+  [
+    [`++r`]
+    [`X&`]
+    [pre:\n`r` is dereferenceable;\npost:\n`r` is dereferenceable or\n`r` is past-the-end]
+  ]
+  [
+    [`a == b`]
+    [convertible to `bool`]
+    [`==` is an equivalence relation over its domain]
+  ]
+  [
+    [`a != b`]
+    [convertible to `bool`]
+    [`!(a == b)`]
+  ]
+  [
+    [`iterator_traversal<X>::type`]
+    [Convertible to`single_pass_traversal_tag`]
+    []
+  ]
+]
+
+
+[h2 Forward Traversal Concept]
+
+A class or built-in type `X` models the *Forward Traversal*
+concept if, in addition to `X` meeting the requirements of Default
+Constructible and Single Pass Iterator, the following expressions are
+valid and respect the stated semantics.
+
+[table Forward Traversal Iterator Requirements (in addition to Default Constructible and Single Pass Iterator)
+  [
+    [Expression]
+    [Return Type]
+    [Assertion/Note]
+  ]
+  [
+    [`X u;`]
+    [`X&`]
+    [note: `u` may have a singular value.]
+  ]
+  [
+    [`++r`]
+    [`X&`]
+    [`r == s` and `r` is dereferenceable implies `++r == ++s.`]
+  ]
+  [
+    [`iterator_traits<X>::difference_type`]
+    [A signed integral type representing the distance between iterators]
+    []
+  ]
+  [
+    [`iterator_traversal<X>::type`]
+    [Convertible to `forward_traversal_tag`]
+    []
+  ]
+]
+
+[h2 Bidirectional Traversal Concept]
+
+A class or built-in type `X` models the *Bidirectional Traversal*
+concept if, in addition to `X` meeting the requirements of Forward
+Traversal Iterator, the following expressions are valid and respect
+the stated semantics.
+
+[table Bidirectional Traversal Iterator Requirements (in addition to Forward Traversal Iterator)
+  [
+    [Expression]
+    [Return Type]
+    [Assertion/Semantics/Pre-/Post-condition]
+  ] 
+  [
+    [`--r`]
+    [`X&`]
+    [pre: there exists `s` such that `r == ++s`.\n post: `s` is dereferenceable. `--(++r) == r`. `--r == --s` implies `r == s`. `&r == &--r`.]
+  ]
+  [
+    [`r--`]
+    [convertible to `const X&`]
+    [``
+        {
+          X tmp = r;
+          --r;
+          return tmp;
+        }
+    ``]
+  ]
+  [
+    [`iterator_traversal<X>::type`]
+    [Convertible to `bidirectional_traversal_tag`]
+    []
+  ]
+]
+
+[h2 Random Access Traversal Concept]
+
+A class or built-in type `X` models the *Random Access Traversal*
+concept if the following expressions are valid and respect the stated
+semantics.  In the table below, `Distance` is
+`iterator_traits<X>::difference_type` and `n` represents a
+constant object of type `Distance`.
+
+[table Random Access Traversal Iterator Requirements (in addition to Bidirectional Traversal) 
+  [ 
+    [Expression]
+    [Return Type]
+    [Operational Semantics]
+    [Assertion/Precondition]
+  ]
+  [
+    [`r += n`]
+    [ `X&`]
+    [``
+        { 
+          Distance m = n;
+          if (m >= 0)
+            while (m--) 
+              ++r;
+          else
+            while (m++)
+              --r;
+          return r;
+        }
+    ``]
+    [ ]
+  ]
+  [ 
+    [`a + n`, `n + a`]
+    [`X`]
+    [``
+        { 
+          X tmp = a;
+          return tmp+= n;
+        }
+    ``]
+    []
+  ]
+  [ 
+    [`r -= n`]
+    [`X&`]
+    [`return r += -n`]
+    []
+  ]
+  [
+    [`a - n`]
+    [`X`]
+    [``
+        { 
+          X tmp = a;
+          return tmp-= n; 
+        }
+    ``]
+    []
+  ]
+  [
+    [`b - a`]
+    [`Distance`]
+    [`a < b ?  distance(a,b) : -distance(b,a)`]
+    [pre: there exists a value `n` of `Distance` such that `a + n == b`. `b == a + (b - a)`.]
+  ]
+  [
+    [`a\[n\]`]
+    [convertible to T]
+    [`*(a + n)`]
+    [pre: a is a *Readable Iterator*]
+  ]
+  [
+    [`a\[n\] = v`] 
+    [convertible to T]
+    [`*(a + n) = v`]
+    [pre: a is a *Writable iterator*]
+  ]
+  [
+    [`a < b`]
+    [convertible to `bool`]
+    [`b - a > 0`]
+    [`<` is a total ordering relation]
+  ]
+  [
+    [`a > b`]
+    [convertible to `bool`]
+    [`b < a`]
+    [`>` is a total ordering relation]
+  ]
+  [
+    [`a >= b`]
+    [convertible to `bool`]
+    [`!(a < b)`]
+    []
+  ]
+  [
+    [`a <= b`]
+    [convertible to `bool`]
+    [`!(a > b)`]
+    []
+  ]
+  [
+    [`iterator_traversal<X>::type`]
+    [convertible to `random_access_traversal_tag`]
+    []
+    []
+  ]
+]
+
+[endsect]
+
+[endsect]

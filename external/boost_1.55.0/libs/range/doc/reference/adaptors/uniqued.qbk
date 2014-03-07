@@ -1,0 +1,31 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:uniqued uniqued]
+
+[table
+    [[Syntax] [Code]]
+    [[Pipe] [`rng | boost::adaptors::uniqued`]]
+    [[Function] [`boost::adaptors::unique(rng)`]]
+]
+
+* [*Precondition:] The `value_type` of the range is comparable with `operator==()`.
+* [*Postcondition:] For all adjacent elements `[x,y]` in the returned range, `x==y` is false.
+* [*Range Category:] __forward_range__
+* [*Range Return Type:] `boost::uniqued_range<typeof(rng)>`
+* [*Returned Range Category:] The minimum of the range concept of `rng` and __forward_range__.
+
+[section:uniqued_example uniqued example]
+[import ../../../test/adaptor_test/uniqued_example.cpp]
+[uniqued_example]
+[endsect]
+
+This would produce the output:
+``
+1,2,3,4,5,6,
+``
+[endsect]
+
+

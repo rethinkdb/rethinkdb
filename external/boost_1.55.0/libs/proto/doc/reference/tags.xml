@@ -1,0 +1,152 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/tags.hpp">
+  <para>Contains the tags for all the overloadable operators in C++ </para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="tag">
+        <struct name="terminal">
+          <purpose>Tag type for terminals; aka, leaves in the expression tree. </purpose>
+        </struct>
+        <struct name="unary_plus">
+          <purpose>Tag type for the unary + operator. </purpose>
+        </struct>
+        <struct name="negate">
+          <purpose>Tag type for the unary - operator. </purpose>
+        </struct>
+        <struct name="dereference">
+          <purpose>Tag type for the unary * operator. </purpose>
+        </struct>
+        <struct name="complement">
+          <purpose>Tag type for the unary ~ operator. </purpose>
+        </struct>
+        <struct name="address_of">
+          <purpose>Tag type for the unary &amp; operator. </purpose>
+        </struct>
+        <struct name="logical_not">
+          <purpose>Tag type for the unary ! operator. </purpose>
+        </struct>
+        <struct name="pre_inc">
+          <purpose>Tag type for the unary prefix ++ operator. </purpose>
+        </struct>
+        <struct name="pre_dec">
+          <purpose>Tag type for the unary prefix -- operator. </purpose>
+        </struct>
+        <struct name="post_inc">
+          <purpose>Tag type for the unary postfix ++ operator. </purpose>
+        </struct>
+        <struct name="post_dec">
+          <purpose>Tag type for the unary postfix -- operator. </purpose>
+        </struct>
+        <struct name="shift_left">
+          <purpose>Tag type for the binary &lt;&lt; operator. </purpose>
+        </struct>
+        <struct name="shift_right">
+          <purpose>Tag type for the binary &gt;&gt; operator. </purpose>
+        </struct>
+        <struct name="multiplies">
+          <purpose>Tag type for the binary * operator. </purpose>
+        </struct>
+        <struct name="divides">
+          <purpose>Tag type for the binary / operator. </purpose>
+        </struct>
+        <struct name="modulus">
+          <purpose>Tag type for the binary % operator. </purpose>
+        </struct>
+        <struct name="plus">
+          <purpose>Tag type for the binary + operator. </purpose>
+        </struct>
+        <struct name="minus">
+          <purpose>Tag type for the binary - operator. </purpose>
+        </struct>
+        <struct name="less">
+          <purpose>Tag type for the binary &lt; operator. </purpose>
+        </struct>
+        <struct name="greater">
+          <purpose>Tag type for the binary &gt; operator. </purpose>
+        </struct>
+        <struct name="less_equal">
+          <purpose>Tag type for the binary &lt;= operator. </purpose>
+        </struct>
+        <struct name="greater_equal">
+          <purpose>Tag type for the binary &gt;= operator. </purpose>
+        </struct>
+        <struct name="equal_to">
+          <purpose>Tag type for the binary == operator. </purpose>
+        </struct>
+        <struct name="not_equal_to">
+          <purpose>Tag type for the binary != operator. </purpose>
+        </struct>
+        <struct name="logical_or">
+          <purpose>Tag type for the binary || operator. </purpose>
+        </struct>
+        <struct name="logical_and">
+          <purpose>Tag type for the binary &amp;&amp; operator. </purpose>
+        </struct>
+        <struct name="bitwise_and">
+          <purpose>Tag type for the binary &amp; operator. </purpose>
+        </struct>
+        <struct name="bitwise_or">
+          <purpose>Tag type for the binary | operator. </purpose>
+        </struct>
+        <struct name="bitwise_xor">
+          <purpose>Tag type for the binary ^ operator. </purpose>
+        </struct>
+        <struct name="comma">
+          <purpose>Tag type for the binary , operator. </purpose>
+        </struct>
+        <struct name="mem_ptr">
+          <purpose>Tag type for the binary -&gt;* operator. </purpose>
+        </struct>
+        <struct name="assign">
+          <purpose>Tag type for the binary = operator. </purpose>
+        </struct>
+        <struct name="shift_left_assign">
+          <purpose>Tag type for the binary &lt;&lt;= operator. </purpose>
+        </struct>
+        <struct name="shift_right_assign">
+          <purpose>Tag type for the binary &gt;&gt;= operator. </purpose>
+        </struct>
+        <struct name="multiplies_assign">
+          <purpose>Tag type for the binary *= operator. </purpose>
+        </struct>
+        <struct name="divides_assign">
+          <purpose>Tag type for the binary /= operator. </purpose>
+        </struct>
+        <struct name="modulus_assign">
+          <purpose>Tag type for the binary = operator. </purpose>
+        </struct>
+        <struct name="plus_assign">
+          <purpose>Tag type for the binary += operator. </purpose>
+        </struct>
+        <struct name="minus_assign">
+          <purpose>Tag type for the binary -= operator. </purpose>
+        </struct>
+        <struct name="bitwise_and_assign">
+          <purpose>Tag type for the binary &amp;= operator. </purpose>
+        </struct>
+        <struct name="bitwise_or_assign">
+          <purpose>Tag type for the binary |= operator. </purpose>
+        </struct>
+        <struct name="bitwise_xor_assign">
+          <purpose>Tag type for the binary ^= operator. </purpose>
+        </struct>
+        <struct name="subscript">
+          <purpose>Tag type for the binary subscript operator. </purpose>
+        </struct>
+        <struct name="if_else_">
+          <purpose>Tag type for the ternary ?: conditional operator. </purpose>
+        </struct>
+        <struct name="function">
+          <purpose>Tag type for the n-ary function call operator. </purpose>
+        </struct>
+      </namespace>
+    </namespace>
+  </namespace>
+</header>

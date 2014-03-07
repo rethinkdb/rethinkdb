@@ -1,0 +1,26 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:WaitTraits Wait traits requirements]
+
+In the table below, `X` denotes a wait traits class for clock type `Clock`,
+where `Clock` meets the C++11 type requirements for a clock, and `d` denotes
+a value of type `Clock::duration`.
+
+[table WaitTraits requirements
+  [[expression] [return type] [assertion/note\npre/post-condition]]
+  [
+    [`X::to_wait_duration(d);`]
+    [`Clock::duration`]
+    [
+      Returns the maximum duration to be used for an individual,
+      implementation-defined wait operation.
+    ]
+  ]
+]
+
+[endsect]

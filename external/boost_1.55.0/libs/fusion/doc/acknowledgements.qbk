@@ -1,0 +1,24 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2006 Dan Marsden
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section Acknowledgements]
+
+Special thanks to David Abrahams, Douglas Gregor, Hartmut Kaiser, Aleksey
+Gurtovoy, Peder Holt, Daniel Wallin, Jaakko Jarvi, Jeremiah Willcock, Dan
+Marsden, Eric Niebler, Joao Abecasis and Andy Little. These people are
+instrumental in the design and development of Fusion.
+
+Special thanks to Ronald Garcia, the review manager and to all the people in the
+boost community who participated in the review: Andreas Pokorny, Andreas Huber,
+Jeff Flinn, David Abrahams, Pedro Lamarao, Larry Evans, Ryan Gallagher, Andy
+Little, Gennadiy Rozental, Tobias Schwinger, Joao Abecasis, Eric Niebler, Oleg
+Abrosimov, Gary Powell, Eric Friedman, Darren Cook, Martin Bonner and Douglas
+Gregor.
+
+[endsect]
+

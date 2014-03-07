@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="import" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Import</title>
+  <para>
+    This is the <emphasis role="bold"><emphasis>foo</emphasis></emphasis> function.
+  </para>
+  <para>
+    This description can have paragraphs...
+  </para>
+  <itemizedlist>
+    <listitem>
+      <simpara>
+        lists
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        etc.
+      </simpara>
+    </listitem>
+  </itemizedlist>
+  <para>
+    And any quickbook block markup.
+  </para>
+  <para>
+<programlisting><phrase role="identifier">std</phrase><phrase role="special">::</phrase><phrase role="identifier">string</phrase> <phrase role="identifier">foo</phrase><phrase role="special">()</phrase>
+<phrase role="special">{</phrase>
+    <phrase role="comment">// return 'em, foo man!</phrase>
+    <phrase role="keyword">return</phrase> <phrase role="string">&quot;foo&quot;</phrase><phrase role="special">;</phrase>
+<phrase role="special">}</phrase>
+</programlisting>
+  </para>
+  <para>
+    This is the Python <emphasis role="bold"><emphasis>foo</emphasis></emphasis>
+    function.
+  </para>
+  <para>
+    This description can have paragraphs...
+  </para>
+  <itemizedlist>
+    <listitem>
+      <simpara>
+        lists
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        etc.
+      </simpara>
+    </listitem>
+  </itemizedlist>
+  <para>
+    And any quickbook block markup.
+  </para>
+  <para>
+<programlisting><phrase role="keyword">def</phrase> <phrase role="identifier">foo</phrase><phrase role="special">():</phrase>
+    <phrase role="comment"># return 'em, foo man!</phrase>
+    <phrase role="keyword">return</phrase> <phrase role="string">&quot;foo&quot;</phrase>
+</programlisting>
+  </para>
+  <para>
+    This is the C <emphasis role="bold"><emphasis>foo</emphasis></emphasis> function.
+  </para>
+  <para>
+    This description can have paragraphs...
+  </para>
+  <itemizedlist>
+    <listitem>
+      <simpara>
+        lists
+      </simpara>
+    </listitem>
+    <listitem>
+      <simpara>
+        etc.
+      </simpara>
+    </listitem>
+  </itemizedlist>
+  <para>
+    And any quickbook block markup.
+  </para>
+  <para>
+<programlisting><phrase role="keyword">char</phrase><phrase role="special">*</phrase> <phrase role="identifier">foo</phrase><phrase role="special">()</phrase>
+<phrase role="special">{</phrase>
+    <phrase role="comment">// return 'em, foo man!</phrase>
+    <phrase role="keyword">return</phrase> <phrase role="string">&quot;foo&quot;</phrase><phrase role="special">;</phrase>
+<phrase role="special">}</phrase>
+</programlisting>
+  </para>
+  <para>
+<programlisting><phrase role="keyword">class</phrase> <phrase role="identifier">x</phrase>
+<phrase role="special">{</phrase>
+<phrase role="keyword">public</phrase><phrase role="special">:</phrase>
+
+    <co id="import.c0" linkends="import.c1" /><phrase role="identifier">x</phrase><phrase role="special">()</phrase> <phrase role="special">:</phrase> <phrase role="identifier">n</phrase><phrase role="special">(</phrase><phrase role="number">0</phrase><phrase role="special">)</phrase>
+    <phrase role="special">{</phrase>
+    <phrase role="special">}</phrase>
+
+    <co id="import.c2" linkends="import.c3" /><phrase role="special">~</phrase><phrase role="identifier">x</phrase><phrase role="special">()</phrase>
+    <phrase role="special">{</phrase>
+    <phrase role="special">}</phrase>
+
+    <co id="import.c4" linkends="import.c5" /><phrase role="keyword">int</phrase> <phrase role="identifier">get</phrase><phrase role="special">()</phrase> <phrase role="keyword">const</phrase>
+    <phrase role="special">{</phrase>
+        <phrase role="keyword">return</phrase> <phrase role="identifier">n</phrase><phrase role="special">;</phrase>
+    <phrase role="special">}</phrase>
+
+    <co id="import.c6" linkends="import.c7" /><phrase role="keyword">void</phrase> <phrase role="identifier">set</phrase><phrase role="special">(</phrase><phrase role="keyword">int</phrase> <phrase role="identifier">n_</phrase><phrase role="special">)</phrase>
+    <phrase role="special">{</phrase>
+        <phrase role="identifier">n</phrase> <phrase role="special">=</phrase> <phrase role="identifier">n_</phrase><phrase role="special">;</phrase>
+    <phrase role="special">}</phrase>
+<phrase role="special">};</phrase>
+</programlisting>
+  </para>
+  <calloutlist>
+    <callout arearefs="import.c0" id="import.c1">
+      <para>
+        Constructor
+      </para>
+    </callout>
+    <callout arearefs="import.c2" id="import.c3">
+      <para>
+        Destructor
+      </para>
+    </callout>
+    <callout arearefs="import.c4" id="import.c5">
+      <para>
+        Get the <code><phrase role="identifier">n</phrase></code> member variable
+      </para>
+    </callout>
+    <callout arearefs="import.c6" id="import.c7">
+      <para>
+        Set the <code><phrase role="identifier">n</phrase></code> member variable
+      </para>
+    </callout>
+  </calloutlist>
+</article>

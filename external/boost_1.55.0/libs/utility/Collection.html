@@ -1,0 +1,534 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+
+  <title>Collection</title>
+</head>
+
+<body bgcolor="#FFFFFF" link="#0000EE" text="#000000" vlink="#551A8B" alink=
+"#FF0000">
+  <h1><img src="../../boost.png" alt="boost logo" width="277" align="middle"
+  height="86"><br>
+  Collection</h1>
+
+  <h3>Description</h3>
+
+  <p>A Collection is a <i>concept</i> similar to the STL <a href=
+  "http://www.sgi.com/tech/stl/Container.html">Container</a> concept. A
+  Collection provides iterators for accessing a range of elements and
+  provides information about the number of elements in the Collection.
+  However, a Collection has fewer requirements than a Container. The
+  motivation for the Collection concept is that there are many useful
+  Container-like types that do not meet the full requirements of Container,
+  and many algorithms that can be written with this reduced set of
+  requirements. To summarize the reduction in requirements:</p>
+
+  <ul>
+    <li>It is not required to "own" its elements: the lifetime of an element
+    in a Collection does not have to match the lifetime of the Collection
+    object, though the lifetime of the element should cover the lifetime of
+    the Collection object.</li>
+
+    <li>The semantics of copying a Collection object is not defined (it could
+    be a deep or shallow copy or not even support copying).</li>
+
+    <li>The associated reference type of a Collection does not have to be a
+    real C++ reference.</li>
+  </ul>Because of the reduced requirements, some care must be taken when
+  writing code that is meant to be generic for all Collection types. In
+  particular, a Collection object should be passed by-reference since
+  assumptions can not be made about the behaviour of the copy constructor.
+
+  <h3>Associated types</h3>
+
+  <table border summary="">
+    <tr>
+      <td valign="top">Value type</td>
+
+      <td valign="top"><tt>X::value_type</tt></td>
+
+      <td valign="top">The type of the object stored in a Collection. If the
+      Collection is <i>mutable</i> then the value type must be <a href=
+      "http://www.sgi.com/tech/stl/Assignable.html">Assignable</a>. Otherwise
+      the value type must be <a href=
+      "./CopyConstructible.html">CopyConstructible</a>.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">Iterator type</td>
+
+      <td valign="top"><tt>X::iterator</tt></td>
+
+      <td valign="top">The type of iterator used to iterate through a
+      Collection's elements. The iterator's value type is expected to be the
+      Collection's value type. A conversion from the iterator type to the
+      const iterator type must exist. The iterator type must be an <a href=
+      "http://www.sgi.com/tech/stl/InputIterator.html">InputIterator</a>.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">Const iterator type</td>
+
+      <td valign="top"><tt>X::const_iterator</tt></td>
+
+      <td valign="top">A type of iterator that may be used to examine, but
+      not to modify, a Collection's elements.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">Reference type</td>
+
+      <td valign="top"><tt>X::reference</tt></td>
+
+      <td valign="top">A type that behaves like a reference to the
+      Collection's value type. <a href="#n1">[1]</a></td>
+    </tr>
+
+    <tr>
+      <td valign="top">Const reference type</td>
+
+      <td valign="top"><tt>X::const_reference</tt></td>
+
+      <td valign="top">A type that behaves like a const reference to the
+      Collection's value type.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">Pointer type</td>
+
+      <td valign="top"><tt>X::pointer</tt></td>
+
+      <td valign="top">A type that behaves as a pointer to the Collection's
+      value type.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">Distance type</td>
+
+      <td valign="top"><tt>X::difference_type</tt></td>
+
+      <td valign="top">A signed integral type used to represent the distance
+      between two of the Collection's iterators. This type must be the same
+      as the iterator's distance type.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">Size type</td>
+
+      <td valign="top"><tt>X::size_type</tt></td>
+
+      <td valign="top">An unsigned integral type that can represent any
+      nonnegative value of the Collection's distance type.</td>
+    </tr>
+  </table>
+
+  <h3>Notation</h3>
+
+  <table summary="">
+    <tr>
+      <td valign="top"><tt>X</tt></td>
+
+      <td valign="top">A type that is a model of Collection.</td>
+    </tr>
+
+    <tr>
+      <td valign="top"><tt>a</tt>, <tt>b</tt></td>
+
+      <td valign="top">Object of type <tt>X</tt>.</td>
+    </tr>
+
+    <tr>
+      <td valign="top"><tt>T</tt></td>
+
+      <td valign="top">The value type of <tt>X</tt>.</td>
+    </tr>
+  </table>
+
+  <h3>Valid expressions</h3>
+
+  <p>The following expressions must be valid.</p>
+
+  <table border summary="">
+    <tr>
+      <th>Name</th>
+
+      <th>Expression</th>
+
+      <th>Return type</th>
+    </tr>
+
+    <tr>
+      <td valign="top">Beginning of range</td>
+
+      <td valign="top"><tt>a.begin()</tt></td>
+
+      <td valign="top"><tt>iterator</tt> if <tt>a</tt> is mutable,
+      <tt>const_iterator</tt> otherwise</td>
+    </tr>
+
+    <tr>
+      <td valign="top">End of range</td>
+
+      <td valign="top"><tt>a.end()</tt></td>
+
+      <td valign="top"><tt>iterator</tt> if <tt>a</tt> is mutable,
+      <tt>const_iterator</tt> otherwise</td>
+    </tr>
+
+    <tr>
+      <td valign="top">Size</td>
+
+      <td valign="top"><tt>a.size()</tt></td>
+
+      <td valign="top"><tt>size_type</tt></td>
+    </tr><!--
+<TR>
+<TD VAlign=top>
+Maximum size
+</TD>
+<TD VAlign=top>
+<tt>a.max_size()</tt>
+</TD>
+<TD VAlign=top>
+<tt>size_type</tt>
+</TD>
+</TR>
+-->
+
+    <tr>
+      <td valign="top">Empty Collection</td>
+
+      <td valign="top"><tt>a.empty()</tt></td>
+
+      <td valign="top">Convertible to <tt>bool</tt></td>
+    </tr>
+
+    <tr>
+      <td valign="top">Swap</td>
+
+      <td valign="top"><tt>a.swap(b)</tt></td>
+
+      <td valign="top"><tt>void</tt></td>
+    </tr>
+  </table>
+
+  <h3>Expression semantics</h3>
+
+  <table border summary="">
+    <tr>
+      <th>Name</th>
+
+      <th>Expression</th>
+
+      <th>Semantics</th>
+
+      <th>Postcondition</th>
+    </tr>
+
+    <tr>
+      <td valign="top">Beginning of range</td>
+
+      <td valign="top"><tt>a.begin()</tt></td>
+
+      <td valign="top">Returns an iterator pointing to the first element in
+      the Collection.</td>
+
+      <td valign="top"><tt>a.begin()</tt> is either dereferenceable or
+      past-the-end. It is past-the-end if and only if <tt>a.size() ==
+      0</tt>.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">End of range</td>
+
+      <td valign="top"><tt>a.end()</tt></td>
+
+      <td valign="top">Returns an iterator pointing one past the last element
+      in the Collection.</td>
+
+      <td valign="top"><tt>a.end()</tt> is past-the-end.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">Size</td>
+
+      <td valign="top"><tt>a.size()</tt></td>
+
+      <td valign="top">Returns the size of the Collection, that is, its
+      number of elements.</td>
+
+      <td valign="top"><tt>a.size() &gt;= 0</tt></td>
+    </tr><!--
+<TR>
+<TD VAlign=top>
+Maximum size
+</TD>
+<TD VAlign=top>
+<tt>a.max_size()</tt>
+</TD>
+<TD VAlign=top>
+&nbsp;
+</TD>
+<TD VAlign=top>
+Returns the largest size that this Collection can ever have. <A href="#8">[8]</A>
+</TD>
+<TD VAlign=top>
+<tt>a.max_size() &gt;= 0 &amp;&amp; a.max_size() &gt;= a.size()</tt>
+</TD>
+</TR>
+ -->
+
+    <tr>
+      <td valign="top">Empty Collection</td>
+
+      <td valign="top"><tt>a.empty()</tt></td>
+
+      <td valign="top">Equivalent to <tt>a.size() == 0</tt>. (But possibly
+      faster.)</td>
+
+      <td valign="top">&nbsp;</td>
+    </tr>
+
+    <tr>
+      <td valign="top">Swap</td>
+
+      <td valign="top"><tt>a.swap(b)</tt></td>
+
+      <td valign="top">Equivalent to <tt>swap(a,b)</tt></td>
+
+      <td valign="top">&nbsp;</td>
+    </tr>
+  </table>
+
+  <h3>Complexity guarantees</h3>
+
+  <p><tt>begin()</tt> and <tt>end()</tt> are amortized constant time.</p>
+
+  <p><tt>size()</tt> is at most linear in the Collection's size.
+  <tt>empty()</tt> is amortized constant time.</p>
+
+  <p><tt>swap()</tt> is at most linear in the size of the two
+  collections.</p>
+
+  <h3>Invariants</h3>
+
+  <table border summary="">
+    <tr>
+      <td valign="top">Valid range</td>
+
+      <td valign="top">For any Collection <tt>a</tt>, <tt>[a.begin(),
+      a.end())</tt> is a valid range.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">Range size</td>
+
+      <td valign="top"><tt>a.size()</tt> is equal to the distance from
+      <tt>a.begin()</tt> to <tt>a.end()</tt>.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">Completeness</td>
+
+      <td valign="top">An algorithm that iterates through the range
+      <tt>[a.begin(), a.end())</tt> will pass through every element of
+      <tt>a</tt>.</td>
+    </tr>
+  </table>
+
+  <h3>Models</h3>
+
+  <ul>
+    <li><tt>array</tt></li>
+
+    <li><tt>array_ptr</tt></li>
+
+    <li><tt>vector&lt;bool&gt;</tt></li>
+  </ul>
+
+  <h3>Collection Refinements</h3>
+
+  <p>There are quite a few concepts that refine the Collection concept,
+  similar to the concepts that refine the Container concept. Here is a brief
+  overview of the refining concepts.</p>
+
+  <h4>ForwardCollection</h4>
+
+  <p>The elements are arranged in some order that does not change
+  spontaneously from one iteration to the next. As a result, a
+  ForwardCollection is <a href=
+  "http://www.sgi.com/tech/stl/EqualityComparable.html">EqualityComparable</a>
+  and <a href=
+  "http://www.sgi.com/tech/stl/LessThanComparable.html">LessThanComparable</a>.
+  In addition, the iterator type of a ForwardCollection is a
+  MultiPassInputIterator which is just an InputIterator with the added
+  requirements that the iterator can be used to make multiple passes through
+  a range, and that if <tt>it1 == it2</tt> and <tt>it1</tt> is
+  dereferenceable then <tt>++it1 == ++it2</tt>. The ForwardCollection also
+  has a <tt>front()</tt> method.</p>
+
+  <table border summary="">
+    <tr>
+      <th>Name</th>
+
+      <th>Expression</th>
+
+      <th>Return type</th>
+
+      <th>Semantics</th>
+    </tr>
+
+    <tr>
+      <td valign="top">Front</td>
+
+      <td valign="top"><tt>a.front()</tt></td>
+
+      <td valign="top"><tt>reference</tt> if <tt>a</tt> is mutable,<br>
+      <tt>const_reference</tt> otherwise.</td>
+
+      <td valign="top">Equivalent to <tt>*(a.begin())</tt>.</td>
+    </tr>
+  </table>
+
+  <h4>ReversibleCollection</h4>
+
+  <p>The container provides access to iterators that traverse in both
+  directions (forward and reverse). The iterator type must meet all of the
+  requirements of <a href=
+  "http://www.sgi.com/tech/stl/BidirectionalIterator.html">BidirectionalIterator</a>
+  except that the reference type does not have to be a real C++ reference.
+  The ReversibleCollection adds the following requirements to those of
+  ForwardCollection.</p>
+
+  <table border summary="">
+    <tr>
+      <th>Name</th>
+
+      <th>Expression</th>
+
+      <th>Return type</th>
+
+      <th>Semantics</th>
+    </tr>
+
+    <tr>
+      <td valign="top">Beginning of range</td>
+
+      <td valign="top"><tt>a.rbegin()</tt></td>
+
+      <td valign="top"><tt>reverse_iterator</tt> if <tt>a</tt> is mutable,
+      <tt>const_reverse_iterator</tt> otherwise.</td>
+
+      <td valign="top">Equivalent to
+      <tt>X::reverse_iterator(a.end())</tt>.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">End of range</td>
+
+      <td valign="top"><tt>a.rend()</tt></td>
+
+      <td valign="top"><tt>reverse_iterator</tt> if <tt>a</tt> is mutable,
+      <tt>const_reverse_iterator</tt> otherwise.</td>
+
+      <td valign="top">Equivalent to
+      <tt>X::reverse_iterator(a.begin())</tt>.</td>
+    </tr>
+
+    <tr>
+      <td valign="top">Back</td>
+
+      <td valign="top"><tt>a.back()</tt></td>
+
+      <td valign="top"><tt>reference</tt> if <tt>a</tt> is mutable,<br>
+      <tt>const_reference</tt> otherwise.</td>
+
+      <td valign="top">Equivalent to <tt>*(--a.end())</tt>.</td>
+    </tr>
+  </table>
+
+  <h4>SequentialCollection</h4>
+
+  <p>The elements are arranged in a strict linear order. No extra methods are
+  required.</p>
+
+  <h4>RandomAccessCollection</h4>
+
+  <p>The iterators of a RandomAccessCollection satisfy all of the
+  requirements of <a href=
+  "http://www.sgi.com/tech/stl/RandomAccessIterator.html">RandomAccessIterator</a>
+  except that the reference type does not have to be a real C++ reference. In
+  addition, a RandomAccessCollection provides an element access operator.</p>
+
+  <table border summary="">
+    <tr>
+      <th>Name</th>
+
+      <th>Expression</th>
+
+      <th>Return type</th>
+
+      <th>Semantics</th>
+    </tr>
+
+    <tr>
+      <td valign="top">Element Access</td>
+
+      <td valign="top"><tt>a[n]</tt></td>
+
+      <td valign="top"><tt>reference</tt> if <tt>a</tt> is mutable,
+      <tt>const_reference</tt> otherwise.</td>
+
+      <td valign="top">Returns the nth element of the Collection. <tt>n</tt>
+      must be convertible to <tt>size_type</tt>. Precondition: <tt>0 &lt;= n
+      &lt; a.size()</tt>.</td>
+    </tr>
+  </table>
+
+  <h3>Notes</h3>
+
+  <p><a name="n1" id="n1">[1]</a> The reference type does not have to be a
+  real C++ reference. The requirements of the reference type depend on the
+  context within which the Collection is being used. Specifically it depends
+  on the requirements the context places on the value type of the Collection.
+  The reference type of the Collection must meet the same requirements as the
+  value type. In addition, the reference objects must be equivalent to the
+  value type objects in the collection (which is trivially true if they are
+  the same object). Also, in a mutable Collection, an assignment to the
+  reference object must result in an assignment to the object in the
+  Collection (again, which is trivially true if they are the same object, but
+  non-trivial if the reference type is a proxy class).</p>
+
+  <h3>See also</h3>
+
+  <p><a href=
+  "http://www.sgi.com/tech/stl/Container.html">Container</a><br></p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->05
+  December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38516" --></p>
+
+  <table summary="">
+    <tr valign="top">
+      <td nowrap><i>Copyright &copy; 2000</i></td>
+
+      <td><i><a href="http://www.boost.org/people/jeremy_siek.htm">Jeremy
+      Siek</a>, Univ.of Notre Dame and C++ Library &amp; Compiler Group/SGI
+      (<a href="mailto:jsiek@engr.sgi.com">jsiek@engr.sgi.com</a>)</i></td>
+    </tr>
+  </table>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

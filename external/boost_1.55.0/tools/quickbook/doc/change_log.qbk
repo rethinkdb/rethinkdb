@@ -1,0 +1,319 @@
+[/
+    Copyright 2002,2004,2006 Joel de Guzman, Eric Niebler
+    Copyright 2010-2011 Daniel James
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[chapter Change Log
+    [quickbook 1.6]
+    [compatibility-mode 1.5]
+    [id quickbook.change_log]
+    [source-mode teletype]
+]
+
+[heading:version_1_1 Version 1.1 - Boost 1.33.0]
+
+* First version to be included in boost.
+
+[heading:version_1_3 Version 1.3 - Boost 1.34.0 to 1.34.1]
+
+* Quickbook file inclusion \[include\].
+* Better xml output (pretty layout). Check out the generated XML.
+* Regression testing facility: to make sure your document will always be
+  compatible (full backward compatibility) regardless of changes to
+  QuickBook.
+* Code cleanup and refactoring.
+* Allow phrase markup in the doc-info.
+* Preformatted code blocks via \`\`code\`\` (double ticks) allows code in tables
+  and lists, for example.
+* Quickbook versioning; allows full backward compatibility. You have to add
+  \[quickbook 1.3\] to the doc-info header to enable the new features. Without
+  this, QuickBook will assume that the document is a pre-1.3 document.
+* Better (intuitive) paragraph termination. Some markups may terminate a paragraph.
+  Example:``
+  [section x]
+  blah...
+  [endsect]``
+* Fully qualified section and headers. Subsection names are concatenated to the
+  ID to avoid clashing. Example: `doc_name.sect_name.sub_sect_name.sub_sub_sect_name`
+* Better &nbsp; and whitespace handling in code snippets.
+* \[xinclude\] fixes up the relative path to the target XML file when
+  input_directory is not the same as the output_directory.
+* Allow untitled tables.
+* Allow phrase markups in section titles.
+* Allow escaping back to QuickBook from code, code blocks and inline code.
+* Footnotes, with the \[footnote This is the footnote\] syntax.
+* Post-processor bug fix for escaped XML code that it does not recognize.
+* Replaceable, with the \[~replacement\] syntax.
+
+[heading:version_1_4 Version 1.4 - Boost 1.35.0 to 1.40.0]
+
+* Generic Headers
+* Code changes to allow full recursion (i.e. Collectors and push/pop functions)
+* Various code cleanup/maintenance
+* Templates!
+* \[conceptref\] for referencing BoostBook <concept> entities.
+* Allow escape of spaces. The escaped space is removed from the output. Syntax:
+  `\ `.
+* Nested comments are now allowed.
+* Quickbook blocks can nest inside comments.
+* __import__ facility.
+* Callouts on imported code
+* Simple markups can now span a whole block.
+* __blurbs__, __admonitions__ and table cells (see __tables__) may now
+  contain paragraphs.
+* `\n` and `[br]` are now deprecated.
+* __cond__. Ala C++ #ifdef.
+* Searching of included and imported files in an extensible search path with
+  `--include-path` (`-I`) option.
+  
+[heading:version_1_5 Version 1.5 - Boost 1.41.0 to 1.42.0]
+
+* Support multiple copyright entrys in document info.
+* Improved SVG support.
+* \[globalref\] for referencing BoostBook <global> entities.
+* Fail on error.
+* Fix crash for templates with too many arguments or trailing space.
+* Improved handling of unexpected characters in code blocks.
+* Improved handling of unmatched escape in code blocks.
+* Support for python snippets.
+* `teletype` source mode.
+* Use static scoping in templates, should be a lot more intuitive.
+* Accept a space between `section:` and the section id.
+* Support table ids.
+
+[heading Version 1.5.1 - Boost 1.43.0]
+
+* Improve the post processor's list of block elements. `table`, `entry` and
+  `varlistentry` are treated as blocks. `replaceable` is treated as an inline
+  element.
+* Check that `[section]` and `[endsect]` tags are balanced in templates.
+* Add unicode escape characters, eg. `\u03B1` for \u03B1.
+* Support UTF-8 files with a unicode byte order mark.
+* Disallow `[` in simple markup. Fixes some errors with mismatched punctuation.
+* Add command line flag to define macros at the command line,
+  e.g. `quickbook "-D__italic_foo__=/foo/"`.
+
+[heading Version 1.5.2 - Boost 1.44.0]
+
+* Use the cygwin 1.7 API for better path handling.
+* Improved boostbook generation:
+  * XML encode the documentation info correctly.
+  * Avoid generating empty paragraphs.
+  * No longer wraps block templates in paragraphs.
+  * Warns if you use invalid doc_info members for docbook document types.
+  * Fixes some other causes of invalid boostbook, although it still
+    generates invalid boostbook in places.
+* Improved grammar:
+  * Supports multiple categories in library doc_info.
+  * No longer requires commas between authors in docinfo.
+  * Allows empty document bodies.
+  * A line containing only a comment is no longer interpreted as a
+    paragraph break.
+  * If a line starts with a comment, interpret it as a paragraph even if it's
+    followed by whitespace or a list character.
+  * Doesn't treat several consecutive blank lines as multiple paragraph breaks.
+* Fixes duplicate image attribute detection.
+* Fixes using code snippets more than once.
+* Early work on quickbook 1.6, available using the `[quickbook 1.6]` version switch,
+  but liable to change in future versions.
+  * When automatically generating ids for headers, use the quickbook
+    source, rather than the generated docbook.
+  * Fix id generation in included files. It wasn't correctly using the
+    main document's documentation id.
+  * Correctly restore the quickbook version switch after including a file
+    with a different version.
+
+[heading Version 1.5.3 - Boost 1.45.0]
+
+* Fix command line flag for defining macros.
+* Fix a couple of issues with the code block parser:
+  * A comment with no indentation will now end a code block.
+  * Code blocks no longer have to be followed by a blank line.
+* Improved tracking of file position in templates and imported code blocks.
+* Better generated markup for callout lists.
+* In docbook, variable list entries can only have one `listitem`, so if an
+  entry has multiple values, merge them into one `listitem`.
+* Support nested code snippets.
+* Support nested blocks in document info comments.
+* Revert xml escaping document info, it broke some documentation files
+  (now a 1.6 feature).
+* Further work on quickbook 1.6, still not stable.
+  * Allow heading to have ids, using the syntax: `[heading:id title]`.
+  * XML escape documentation fields, with escapes to allow encoding unicode
+    in ASCII.
+
+[heading Version 1.5.4 - Boost 1.46.1]
+
+Boost 1.46.0:
+
+* Add support for `lang` attribute in documentation info.
+* Improved anchor implementation. Especially for using an anchor
+  before a section or heading.
+* Fixed some more issues where lines containing comments were treated
+  as blank lines.
+* Allow import, include and xinclude in conditional phrases. Will
+  allow more block elements in a future version.
+* Rearrange the structure of the grammar.
+* Use filesystem 3. Remove cygwin 1.5 support.
+
+Boost 1.46.1:
+
+* Work around optimization bug in g++ 4.4 on 64 bit linux.
+
+[heading Version 1.5.5 - Boost 1.47]
+
+* Tweak anchor placement for titles.
+* Hard code the quickbook path into the quickbook testing tools. This
+  means that they can be used from multiple locations.
+* Generate an id for boostbook `bridgehead` elements. This results in
+  more consistent html, since docbook generates a random id if they
+  don't have one.
+* Improved unicode support on windows. Unicode can now be used from the
+  command line, and unicode filenames are supported. Unicode output is
+  a bit weak.
+* Check for windows paths, and warn about them.
+* Fix relative path detection on windows.
+* Reverse deprecation of `[br]`, printing a single warning about
+  generating invalid boostbook.
+* Fix handling empty category attributes.
+* Store data from the parser in a dynamic data structure.
+  This simplifies the implementation and makes it easier to parse
+  more complicated data structures.
+* Improved error messages for unknown doc info attributes.
+* Richer copyright syntax. Now understands:
+  `[copyright 2001-2006, 2010 One person, 2008 Another person]`.
+* Fix delimeter checking for simple markup.
+* Allow more block elements to be nested.
+* Go back to using invalid markup for lists. It generates better html.
+* Better anchor placement for lists.
+* Pass-thru comments in code snippets.
+* Use relative paths for '''<code>__FILENAME__</code>''' macro.
+* Rewrite xinclude path generator so that it doesn't use deprecated
+  filesystem functions.
+* Allow quickbook escapes inside comments in syntax highlighted code.
+* Quickbook 1.6:
+  * Scope source mode changes to the file they're made in.
+  * Explicit markup for lists. e.g.
+    `[ordered_list [item1][item2]]` or
+    `[itemized_list [item1][item2]]`.
+
+[heading Version 1.5.6 - Boost 1.48]
+
+* Xml encode escaped punctuation (eg. `\<` is correctly encodes to \<).
+* Rename duplicate generated ids.
+* Close open sections at end of document (still warns about them).
+* New anchor markup for headers, will hopefully generate better pdfs.
+* Remove some whitespace around code from post processed output.
+
+[heading Version 1.5.7 - Boost 1.49]
+
+* Several internal changes.
+* Some improved error messages.
+* Better handling of block templates expanded in a phrase context.
+* Avoids empty simple markup (i.e. \/\/ is not treated as an italic empty
+  space.
+* Better anchor markup for headers, which should be better for printing
+  - suggested by John Maddock.
+* Further improvements to the id generator.
+* If sections are left unopened at the end of a document, then close them
+  in the generated markup.
+* Try to handle whitespace better at the beginning and end of code blocks.
+* Handle lists that come immediately after an anchor.
+* Make horizontal rules followed by multi-line comments a little more
+  sensible.
+* Better support for empty ids and titles in docinfo.
+* Fix some minor regressions in SVG handling.
+* Better handling of invalid command line macros.
+* When auto-building quickbook, build the release version.
+* Lots of changes for 1.6:
+  * Scope templates in included files.
+  * Support import of templates and macros.
+  * Including top level quickbook blocks from source files.
+  * Use doc info blocks in included quickbook files.
+  * Better handling of macros with the same name.
+  * `block` element.
+  * Better handling of significant punctuation (e.g. escapes, square brackets).
+  * Support escapes in links, anchors, images, includes etc.
+  * Improved table title syntax.
+  * Paragraphs nested in lists.
+  * New docinfo attributes:
+    * `compatibility-mode` to make it possible to upgrade documents without
+      breaking ids.
+    * `xmlbase` for escaped `xi:include`s.
+  * Allow some docinfo attributes to be used before, or without, a doc info
+    block (`quickbook`, `compatibility-mode`, `source-mode`).
+  * Only add explicit alt text to images.
+  * Don't put 'inline' code blocks inside paragraphs.
+
+[heading Version 1.5.8 - Boost 1.50]
+
+* Write dependencies to a file, using `--output-deps`
+  ([@https://svn.boost.org/trac/boost/ticket/6691 #6691]).
+* Fix handling of section tags in lists.
+* Fix indented code blocks in lists.
+* Fix handling UTF-8 code points in the syntax highlighter.
+  Was treating each individual byte as a character.
+  Still doesn't deal with combining code points.
+* Internal changes:
+  * A lot of restructuring.
+  * Stop using 'v3' filesystem paths and namespaces, it's now
+    the default version.
+  * Remove awkward intrusive reference counting implementation,
+    avoids a gcc internal compiler error
+    ([@http://svn.boost.org/trac/boost/ticket/6794 #6794]),
+    but is also a cleaner implementation.
+* 1.6 changes:
+  * Better handling of brackets in link values.
+  * Improved handling of escaped characters in include paths.
+* Starting to develop 1.7:
+  * Source mode for single entities.
+  * Callouts in code blocks.
+  * Escaped docbook in docinfo blocks.
+  * Starting to implement calling templates from link values.
+
+[heading Version 1.5.9 - Boost 1.54]
+
+* When code blocks are indented using a mixture of tabs and spaces,
+  convert indentation to spaces.
+* In the C++ systax highlighter, fix syntax highlighting for `#`, so that it's
+  used for preprocessor statements at the start of a line, and as a 'special'
+  character elsewhere
+  ([@https://svn.boost.org/trac/boost/ticket/8510 #8510],
+  [@https://svn.boost.org/trac/boost/ticket/8511 #8511]).
+* Add C++11 keywords to syntax highlighter
+  ([@https://svn.boost.org/trac/boost/ticket/8541 #8541]).
+* Hidden options for formatting of `--output-deps`. Not really for public use
+* yet.
+* 1.6 changes:
+  * Better template argument parsing, so that it understands things
+    like escaped markup.
+  * Support for using macros in the doc info block.
+* Internal changes:
+  * Convert to use `boost::string_ref`.
+  * Clean up the source map implementation (used to get the correct
+    location for error messages in things like templates and snippets).
+
+[heading Version 1.6.0 beta 1 - Boost 1.55 beta]
+
+* Remove nested blocks in lists from 1.6, move to 1.7.
+  (Can still nest block elements in lists though).
+* Don't break out of lists after a nested block element.
+* Check for errors when writing dependency files.
+* Improved markup for lists.
+* Make escaping templates with a punctuation identifier illegal.
+  Escaping templates with an alphanumeric identifier is still fine.
+* Fix detection of code blocks at the start of a file.
+* XML encode the contents of the `__FILENAME__` macro.
+* 1.7 changes:
+  * Make it an error to use an element in the wrong context.
+  * Error if the body of a phrase element doesn't parse.
+  * List markup in nested blocks.
+  * Allow block elements in phrase templates.
+  * Make it an error to put a paragraph break (i.e. a blank line)
+    in a phrase template.
+* Internal changes:
+  * Clean up the id manager implementation.

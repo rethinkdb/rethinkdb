@@ -1,0 +1,86 @@
+[/
+          Copyright Oliver Kowalke 2009.
+ Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+          http://www.boost.org/LICENSE_1_0.txt
+]
+
+[section:attributes Attributes]
+
+Class `attributes` is used to transfers parameters required to setup a
+coroutines's context.
+
+        struct attributes
+        {
+            std::size_t     size;
+            flag_unwind_t   do_unwind;
+            flag_fpu_t      preserve_fpu;
+
+            attributes() BOOST_NOEXCEPT;
+
+            explicit attributes( std::size_t size_) BOOST_NOEXCEPT;
+
+            explicit attributes( flag_unwind_t do_unwind_) BOOST_NOEXCEPT;
+
+            explicit attributes( flag_fpu_t preserve_fpu_) BOOST_NOEXCEPT;
+
+            explicit attributes( std::size_t size_, flag_unwind_t do_unwind_) BOOST_NOEXCEPT;
+
+            explicit attributes( std::size_t size_, flag_fpu_t preserve_fpu_) BOOST_NOEXCEPT;
+
+            explicit attributes( flag_unwind_t do_unwind_, flag_fpu_t preserve_fpu_) BOOST_NOEXCEPT;
+        };
+
+[heading `attributes()`]
+[variablelist
+[[Effects:] [Default constructor using `ctx::default_stacksize()`, does unwind
+the stack after coroutine/generator is complete and preserves FPU registers.]]
+[[Throws:] [Nothing.]]
+]
+
+[heading `attributes( std::size_t size)`]
+[variablelist
+[[Effects:] [Argument `size` defines stack size of the inner `context`.
+Stack unwinding after termination and preserving FPU registers is set by
+default.]]
+[[Throws:] [Nothing.]]
+]
+
+[heading `attributes( flag_unwind_t do_unwind)`]
+[variablelist
+[[Effects:] [Argument `do_unwind` determines if stack will be unwound after
+termination or not. The default stacksize is used for the inner `context`
+and FPU registers are preserved.]]
+[[Throws:] [Nothing.]]
+]
+
+[heading `attributes( flag_fpu_t preserve_fpu)`]
+[variablelist
+[[Effects:] [Argument `preserve_fpu` determines if FPU register have to be
+preserved if a `context` switches. THe default stacksize is used for the
+inner `context` and the stack will be unwound after termination.]]
+[[Throws:] [Nothing.]]
+]
+
+[heading `attributes( std::size_t size, flag_unwind_t do_unwind)`]
+[variablelist
+[[Effects:] [Arguments `size` and `do_unwind` are given by the user.
+FPU registers preserved during each `context` switch.]]
+[[Throws:] [Nothing.]]
+]
+
+[heading `attributes( std::size_t size, flag_fpu_t preserve_fpu)`]
+[variablelist
+[[Effects:] [Arguments `size` and `preserve_fpu` are given by the user.
+The stack is automatically unwound after coroutine/generator terminates.]]
+[[Throws:] [Nothing.]]
+]
+
+[heading `attributes( flag_unwind_t do_unwind, flag_fpu_t preserve_fpu)`]
+[variablelist
+[[Effects:] [Arguments `do_unwind` and `preserve_fpu` are given by the user.
+The stack gets a default value of `ctx::default_stacksize()`.]]
+[[Throws:] [Nothing.]]
+]
+
+[endsect]

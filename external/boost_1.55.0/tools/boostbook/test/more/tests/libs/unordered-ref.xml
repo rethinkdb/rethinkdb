@@ -1,0 +1,3629 @@
+<!--
+Copyright Daniel James 2006-2009
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+--><library-reference>
+    <header name="boost/unordered_set.hpp">
+      <namespace name="boost">
+        <class name="unordered_set">
+          <template>
+            <template-type-parameter name="Value">
+            </template-type-parameter>
+            <template-type-parameter name="Hash">
+              <default><type>boost::hash&lt;Value&gt;</type></default>
+            </template-type-parameter>
+            <template-type-parameter name="Pred">
+              <default><type>std::equal_to&lt;Value&gt;</type></default>
+            </template-type-parameter>
+            <template-type-parameter name="Alloc">
+              <default><type>std::allocator&lt;Value&gt;</type></default>
+            </template-type-parameter>
+          </template>
+          <purpose><simpara>
+            An unordered associative container that stores unique values.
+          </simpara></purpose>
+          <description>
+            <para>Based on chapter 23 of
+              <ulink url="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2009/n2960.pdf">the working draft of the C++ standard [n2960]</ulink>.
+              But without the updated rules for allocators.
+            </para>
+            <para><emphasis role="bold">Template Parameters</emphasis>
+              <informaltable>
+                <tgroup cols="2">
+                  <tbody>
+                    <row>
+                      <entry><emphasis>Value</emphasis></entry>
+                      <entry>Value must be Assignable and CopyConstructible</entry></row>
+                    <row>
+                      <entry><emphasis>Hash</emphasis></entry>
+                      <entry>A unary function object type that acts a hash function for a <code>Value</code>. It takes a single argument of type <code>Value</code> and returns a value of type std::size_t.</entry></row>
+                    <row>
+                      <entry><emphasis>Pred</emphasis></entry>
+                      <entry>A binary function object that implements an equivalence relation on values of type <code>Value</code>.
+                        A binary function object that induces an equivalence relation on values of type Key.
+                        It takes two arguments of type Key and returns a value of type bool.</entry></row>
+                    <row>
+                      <entry><emphasis>Alloc</emphasis></entry>
+                      <entry>An allocator whose value type is the same as the container's value type.</entry></row></tbody></tgroup></informaltable></para>
+            <para>The elements are organized into buckets. Keys with the same hash code are stored in the same bucket.</para>
+            <para>The number of buckets can be automatically increased by a call to insert, or as the result of calling rehash.</para>
+          </description>
+          <typedef name="key_type">
+            <type>Value</type>
+          </typedef>
+          <typedef name="value_type">
+            <type>Value</type>
+          </typedef>
+          <typedef name="hasher">
+            <type>Hash</type>
+          </typedef>
+          <typedef name="key_equal">
+            <type>Pred</type>
+          </typedef>
+          <typedef name="allocator_type">
+            <type>Alloc</type>
+          </typedef>
+          <typedef name="pointer">
+            <type>typename allocator_type::pointer</type>
+          </typedef>
+          <typedef name="const_pointer">
+            <type>typename allocator_type::const_pointer</type>
+          </typedef>
+          <typedef name="reference">
+            <type>typename allocator_type::reference</type>
+            <purpose><simpara>lvalue of <type>value_type</type>.</simpara></purpose>
+          </typedef>
+          <typedef name="const_reference">
+            <type>typename allocator_type::const_reference</type>
+            <purpose><simpara>const lvalue of <type>value_type</type>.</simpara></purpose>
+          </typedef>
+          <typedef name="size_type">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>An unsigned integral type.</para>
+              <para><type>size_type</type> can represent any non-negative value of <type>difference_type</type>.</para>
+            </description>
+          </typedef>
+          <typedef name="difference_type">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A signed integral type.</para>
+              <para>Is identical to the difference type of <type>iterator</type> and <type>const_iterator</type>.</para>
+            </description>
+          </typedef>
+          <typedef name="iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A constant iterator whose value type is <type>value_type</type>. </para>
+              <para>The iterator category is at least a forward iterator.</para>
+              <para>Convertible to <type>const_iterator</type>.</para>
+            </description>
+          </typedef>
+          <typedef name="const_iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A constant iterator whose value type is <type>value_type</type>. </para>
+              <para>The iterator category is at least a forward iterator.</para>
+            </description>
+          </typedef>
+          <typedef name="local_iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>An iterator with the same value type, difference type and pointer and reference type as <type>iterator</type>.</para>
+              <para>A local_iterator object can be used to iterate through a single bucket.</para>
+            </description>
+          </typedef>
+          <typedef name="const_local_iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A constant iterator with the same value type, difference type and pointer and reference type as <type>const_iterator</type>.</para>
+              <para>A const_local_iterator object can be used to iterate through a single bucket.</para>
+            </description>
+          </typedef>
+          <constructor specifiers="explicit">
+            <parameter name="n">
+              <paramtype>size_type</paramtype>
+              <default><emphasis>implementation-defined</emphasis></default>
+            </parameter>
+            <parameter name="hf">
+              <paramtype>hasher const&amp;</paramtype>
+              <default>hasher()</default>
+            </parameter>
+            <parameter name="eq">
+              <paramtype>key_equal const&amp;</paramtype>
+              <default>key_equal()</default>
+            </parameter>
+            <parameter name="a">
+              <paramtype>allocator_type const&amp;</paramtype>
+              <default>allocator_type()</default>
+            </parameter>
+            <postconditions>
+              <code><methodname>size</methodname>() == 0</code>
+            </postconditions>
+            <description>
+              <para>Constructs an empty container with at least n buckets, using hf as the hash function, eq as the key equality predicate, a as the allocator and a maximum load factor of 1.0.</para>
+            </description>
+          </constructor>
+          <constructor>
+            <template>
+              <template-type-parameter name="InputIterator">
+              </template-type-parameter>
+            </template>
+            <parameter name="f">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+            <parameter name="l">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+            <parameter name="n">
+              <paramtype>size_type</paramtype>
+              <default><emphasis>implementation-defined</emphasis></default>
+            </parameter>
+            <parameter name="hf">
+              <paramtype>hasher const&amp;</paramtype>
+              <default>hasher()</default>
+            </parameter>
+            <parameter name="eq">
+              <paramtype>key_equal const&amp;</paramtype>
+              <default>key_equal()</default>
+            </parameter>
+            <parameter name="a">
+              <paramtype>allocator_type const&amp;</paramtype>
+              <default>allocator_type()</default>
+            </parameter>
+            <description>
+              <para>Constructs an empty container with at least n buckets, using hf as the hash function, eq as the key equality predicate, a as the allocator and a maximum load factor of 1.0 and inserts the elements from [f, l) into it.</para>
+            </description>
+          </constructor>
+          <constructor>
+            <parameter>
+              <paramtype>unordered_set const&amp;</paramtype>
+            </parameter>
+            <description>
+              <para>The copy constructor. Copies the contained elements, hash function, predicate, maximum load factor and allocator.</para>
+            </description>
+            <requires>
+              <para><code>value_type</code> is copy constructible</para>
+            </requires>
+          </constructor>
+          <constructor>
+            <parameter>
+              <paramtype>unordered_set &amp;&amp;</paramtype>
+            </parameter>
+            <description>
+              <para>The move constructor.</para>
+            </description>
+            <notes>
+              <para>This is emulated on compilers without rvalue references.</para>
+            </notes>
+            <requires>
+              <para>
+                <code>value_type</code> is move constructible.
+                (TODO: This is not actually required in this implementation).
+              </para>
+            </requires>
+          </constructor>
+          <constructor specifiers="explicit">
+            <parameter name="a">
+              <paramtype>Allocator const&amp;</paramtype>
+            </parameter>
+            <description>
+                <para>Constructs an empty container, using allocator <code>a</code>.</para>
+            </description>
+          </constructor>
+          <constructor>
+            <parameter name="x">
+              <paramtype>unordered_set const&amp;</paramtype>
+            </parameter>
+            <parameter name="a">
+              <paramtype>Allocator const&amp;</paramtype>
+            </parameter>
+            <description>
+                <para>Constructs an container, copying <code>x</code>'s contained elements, hash function, predicate, maximum load factor, but using allocator <code>a</code>.</para>
+            </description>
+          </constructor>
+          <destructor>
+            <notes>
+              <para>The destructor is applied to every element, and all memory is deallocated</para>
+            </notes>
+          </destructor>
+          <method name="operator=">
+            <parameter>
+              <paramtype>unordered_set const&amp;</paramtype>
+            </parameter>
+            <type>unordered_set&amp;</type>
+            <description>
+              <para>The assignment operator. Copies the contained elements, hash function, predicate and maximum load factor but not the allocator.</para>
+            </description>
+            <notes>
+              <para>
+                On compilers without rvalue references, there is a single assignment
+                operator with the signature <code>operator=(unordered_set)</code>
+                in order to emulate move semantics.
+              </para>
+            </notes>
+            <requires>
+              <para><code>value_type</code> is copy constructible</para>
+            </requires>
+          </method>
+          <method name="operator=">
+            <parameter>
+              <paramtype>unordered_set &amp;&amp;</paramtype>
+            </parameter>
+            <type>unordered_set&amp;</type>
+            <description>
+              <para>The move assignment operator.</para>
+            </description>
+            <notes>
+              <para>
+                On compilers without rvalue references, there is a single assignment
+                operator with the signature <code>operator=(unordered_set)</code>
+                in order to emulate move semantics.
+              </para>
+            </notes>
+            <requires>
+              <para>
+                <code>value_type</code> is move constructible.
+                (TODO: This is not actually required in this implementation).
+              </para>
+            </requires>
+          </method>
+          <method name="get_allocator" cv="const">
+            <type>allocator_type</type>
+          </method>
+          <method-group name="size and capacity">
+            <method name="empty" cv="const">
+              <type>bool</type>
+              <returns>
+                <code><methodname>size</methodname>() == 0</code>
+              </returns>
+            </method>
+            <method name="size" cv="const">
+              <type>size_type</type>
+              <returns>
+                <code>std::distance(<methodname>begin</methodname>(), <methodname>end</methodname>())</code>
+              </returns>
+            </method>
+            <method name="max_size" cv="const">
+              <type>size_type</type>
+              <returns><code><methodname>size</methodname>()</code> of the largest possible container.
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="iterators">
+            <overloaded-method name="begin">
+              <signature><type>iterator</type></signature>
+              <signature cv="const"><type>const_iterator</type></signature>
+              <returns>An iterator referring to the first element of the container, or if the container is empty the past-the-end value for the container.
+              </returns>
+            </overloaded-method>
+            <overloaded-method name="end">
+              <signature>
+                <type>iterator</type>
+              </signature>
+              <signature cv="const">
+                <type>const_iterator</type>
+              </signature>
+              <returns>An iterator which refers to the past-the-end value for the container.
+              </returns>
+            </overloaded-method>
+            <method name="cbegin" cv="const">
+              <type>const_iterator</type>
+              <returns>A constant iterator referring to the first element of the container, or if the container is empty the past-the-end value for the container.
+              </returns>
+            </method>
+            <method name="cend" cv="const">
+              <type>const_iterator</type>
+              <returns>A constant iterator which refers to the past-the-end value for the container.
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="modifiers">
+            <method name="emplace">
+              <template>
+                <template-type-parameter name="Args" pack="1">
+                </template-type-parameter>
+              </template>
+              <parameter name="args" pack="1">
+                <paramtype>Args&amp;&amp;</paramtype>
+              </parameter>
+              <type>std::pair&lt;iterator, bool&gt;</type>
+              <description>
+                <para>Inserts an object, constructed with the arguments <code>args</code>, in the container if and only if there is no element in the container with an equivalent value.</para>
+              </description>
+              <returns>
+                <para>The bool component of the return type is true if an insert took place.</para>
+                <para>If an insert took place, then the iterator points to the newly inserted element. Otherwise, it points to the element with equivalent value.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+                <para>If the compiler doesn't support variadic template arguments or rvalue
+                      references, this is emulated for up to 10 arguments, with no support
+                      for rvalue references or move semantics.</para>
+              </notes>
+            </method>
+            <method name="emplace_hint">
+              <template>
+                <template-type-parameter name="Args" pack="1">
+                </template-type-parameter>
+              </template>
+              <parameter name="hint">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <parameter name="args" pack="1">
+                <paramtype>Args&amp;&amp;</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Inserts an object, constructed with the arguments <code>args</code>, in the container if and only if there is no element in the container with an equivalent value.</para>
+                <para>hint is a suggestion to where the element should be inserted.</para>
+              </description>
+              <returns>
+                <para>If an insert took place, then the iterator points to the newly inserted element. Otherwise, it points to the element with equivalent value.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>The standard is fairly vague on the meaning of the hint. But the only practical way to use it, and the only way that Boost.Unordered supports is to point to an existing element with the same value. </para>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+                <para>If the compiler doesn't support variadic template arguments or rvalue
+                      references, this is emulated for up to 10 arguments, with no support
+                      for rvalue references or move semantics.</para>
+              </notes>
+            </method>
+            <method name="insert">
+              <parameter name="obj">
+                <paramtype>value_type const&amp;</paramtype>
+              </parameter>
+              <type>std::pair&lt;iterator, bool&gt;</type>
+              <description>
+                <para>Inserts obj in the container if and only if there is no element in the container with an equivalent value.</para>
+              </description>
+              <returns>
+                <para>The bool component of the return type is true if an insert took place.</para>
+                <para>If an insert took place, then the iterator points to the newly inserted element. Otherwise, it points to the element with equivalent value.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+              </notes>
+            </method>
+            <method name="insert">
+              <parameter name="hint">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <parameter name="obj">
+                <paramtype>value_type const&amp;</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Inserts obj in the container if and only if there is no element in the container with an equivalent value.</para>
+                <para>hint is a suggestion to where the element should be inserted.</para>
+              </description>
+              <returns>
+                <para>If an insert took place, then the iterator points to the newly inserted element. Otherwise, it points to the element with equivalent value.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>The standard is fairly vague on the meaning of the hint. But the only practical way to use it, and the only way that Boost.Unordered supports is to point to an existing element with the same value. </para>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+              </notes>
+            </method>
+            <method name="insert">
+              <template>
+                <template-type-parameter name="InputIterator">
+                </template-type-parameter>
+              </template>
+              <parameter name="first">
+                <paramtype>InputIterator</paramtype>
+              </parameter>
+              <parameter name="last">
+                <paramtype>InputIterator</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Inserts a range of elements into the container. Elements are inserted if and only if there is no element in the container with an equivalent value.</para>
+              </description>
+              <throws>
+                <para>When inserting a single element, if an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+              </notes>
+            </method>
+            <method name="erase">
+              <parameter name="position">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Erase the element pointed to by <code>position</code>.</para>
+              </description>
+              <returns>
+                <para>The iterator following <code>position</code> before the erasure.</para>
+              </returns>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+              <notes>
+                <para>
+                  When the number of elements is a lot smaller than the number of buckets
+                  this function can be very inefficient as it has to search through empty
+                  buckets for the next element, in order to return the iterator.
+                  The method <methodname>quick_erase</methodname> is faster, but has yet
+                  to be standardized.
+                </para>
+              </notes>
+            </method>
+            <method name="erase">
+              <parameter name="k">
+                <paramtype>key_type const&amp;</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <description>
+                <para>Erase all elements with key equivalent to <code>k</code>.</para>
+              </description>
+              <returns>
+                <para>The number of elements erased.</para>
+              </returns>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+              </throws>
+            </method>
+            <method name="erase">
+              <parameter name="first">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <parameter name="last">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Erases the elements in the range from <code>first</code> to <code>last</code>.</para>
+              </description>
+              <returns>
+                <para>The iterator following the erased elements - i.e. <code>last</code>.</para>
+              </returns>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+            </method>
+            <method name="quick_erase">
+              <parameter name="position">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Erase the element pointed to by <code>position</code>.</para>
+              </description>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+              <notes>
+                <para>
+                  This method is faster than <methodname>erase</methodname> as
+                  it doesn't have to find the next element in the container -
+                  a potentially costly operation.
+                </para>
+                <para>
+                  As it hasn't been standardized, it's likely that this may
+                  change in the future.
+                </para>
+              </notes>
+            </method>
+            <method name="erase_return_void">
+              <parameter name="position">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Erase the element pointed to by <code>position</code>.</para>
+              </description>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+              <notes>
+                <para>
+                  This method is now deprecated, use
+                  <methodname>quick_return</methodname> instead. Although be
+                  warned that as that isn't standardized yet, it could also
+                  change.
+                </para>
+              </notes>
+            </method>
+            <method name="clear">
+              <type>void</type>
+              <description>
+                <para>Erases all elements in the container.</para>
+              </description>
+              <postconditions>
+                <para><code><methodname>size</methodname>() == 0</code></para>
+              </postconditions>
+              <throws>
+                <para>Never throws an exception.</para>
+              </throws>
+            </method>
+            <method name="swap">
+              <parameter>
+                <paramtype>unordered_set&amp;</paramtype>
+              </parameter>
+              <type>void</type>
+              <throws>
+                <para>If the allocators are equal, doesn't throw an exception unless it is thrown by the copy constructor or copy assignment operator of <code>key_equal</code> or <code>hasher</code>.</para>
+              </throws>
+              <notes>
+                <para>For a discussion of the behavior when allocators aren't equal see
+                  <link linkend="unordered.rationale.swapping_containers_with_unequal_allocators">the implementation details</link>.</para>
+              </notes>
+            </method>
+          </method-group>
+          <method-group name="observers">
+            <method name="hash_function" cv="const">
+              <type>hasher</type>
+              <returns>The container's hash function.
+              </returns>
+            </method>
+            <method name="key_eq" cv="const">
+              <type>key_equal</type>
+              <returns>The container's key equality predicate.
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="lookup">
+            <overloaded-method name="find">
+              <signature>
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>iterator</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>const_iterator</type>
+              </signature>
+              <signature>
+                <template>
+                  <template-type-parameter name="CompatibleKey"/>
+                  <template-type-parameter name="CompatibleHash"/>
+                  <template-type-parameter name="CompatiblePredicate"/>
+                </template>
+                <parameter name="k">
+                  <paramtype>CompatibleKey const&amp;</paramtype>
+                </parameter>
+                <parameter name="hash">
+                  <paramtype>CompatibleHash const&amp;</paramtype>
+                </parameter>
+                <parameter name="eq">
+                  <paramtype>CompatiblePredicate const&amp;</paramtype>
+                </parameter>
+                <type>iterator</type>
+              </signature>
+              <signature cv="const">
+                <template>
+                  <template-type-parameter name="CompatibleKey"/>
+                  <template-type-parameter name="CompatibleHash"/>
+                  <template-type-parameter name="CompatiblePredicate"/>
+                </template>
+                <parameter name="k">
+                  <paramtype>CompatibleKey const&amp;</paramtype>
+                </parameter>
+                <parameter name="hash">
+                  <paramtype>CompatibleHash const&amp;</paramtype>
+                </parameter>
+                <parameter name="eq">
+                  <paramtype>CompatiblePredicate const&amp;</paramtype>
+                </parameter>
+                <type>const_iterator</type>
+              </signature>
+              <returns>
+                <para>An iterator pointing to an element with key equivalent to <code>k</code>, or <code>b.end()</code> if no such element exists.</para>
+              </returns>
+              <notes><para>
+                The templated overloads are a non-standard extensions which
+                allows you to use a compatible hash function and equality
+                predicate for a key of a different type in order to avoid
+                an expensive type cast. In general, its use is not encouraged.
+              </para></notes>
+            </overloaded-method>
+            <method name="count" cv="const">
+              <parameter name="k">
+                <paramtype>key_type const&amp;</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <returns>
+                <para>The number of elements with key equivalent to <code>k</code>.</para>
+              </returns>
+            </method>
+            <overloaded-method name="equal_range">
+              <signature>
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>std::pair&lt;iterator, iterator&gt;</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>std::pair&lt;const_iterator, const_iterator&gt;</type>
+              </signature>
+              <returns>
+                <para>A range containing all elements with key equivalent to <code>k</code>.
+                  If the container doesn't container any such elements, returns
+                  <code><functionname>std::make_pair</functionname>(<methodname>b.end</methodname>(),<methodname>b.end</methodname>())</code>.
+                  </para>
+              </returns>
+            </overloaded-method>
+          </method-group>
+          <method-group name="bucket interface">
+            <method name="bucket_count" cv="const">
+              <type>size_type</type>
+              <returns>
+                <para>The number of buckets.</para>
+              </returns>
+            </method>
+            <method name="max_bucket_count" cv="const">
+              <type>size_type</type>
+              <returns>
+                <para>An upper bound on the number of buckets.</para>
+              </returns>
+            </method>
+            <method name="bucket_size" cv="const">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <requires>
+                <para><code>n &lt; <methodname>bucket_count</methodname>()</code></para>
+              </requires>
+              <returns>
+                <para>The number of elements in bucket <code>n</code>.</para>
+              </returns>
+            </method>
+            <method name="bucket" cv="const">
+              <parameter name="k">
+                <paramtype>key_type const&amp;</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <returns>
+                <para>The index of the bucket which would contain an element with key <code>k</code>.</para>
+              </returns>
+              <postconditions>
+                <para>The return value is less than <code>bucket_count()</code></para>
+              </postconditions>
+            </method>
+            <overloaded-method name="begin">
+              <signature>
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>local_iterator</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>const_local_iterator</type>
+              </signature>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A local iterator pointing the first element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </overloaded-method>
+            <overloaded-method name="end">
+              <signature>
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>local_iterator</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>const_local_iterator</type>
+              </signature>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A local iterator pointing the 'one past the end' element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </overloaded-method>
+            <method name="cbegin" cv="const">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>const_local_iterator</type>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A constant local iterator pointing the first element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </method>
+            <method name="cend">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>const_local_iterator</type>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A constant local iterator pointing the 'one past the end' element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="hash policy">
+            <method name="load_factor" cv="const">
+              <type>float</type>
+              <returns>
+                <para>The average number of elements per bucket.</para>
+              </returns>
+            </method>
+            <method name="max_load_factor" cv="const">
+              <type>float</type>
+              <returns>
+                <para>Returns the current maximum load factor.</para>
+              </returns>
+            </method>
+            <method name="max_load_factor">
+              <parameter name="z">
+                <paramtype>float</paramtype>
+              </parameter>
+              <type>void</type>
+              <effects>
+                <para>Changes the container's maximum load factor, using <code>z</code> as a hint.</para>
+              </effects>
+            </method>
+            <method name="rehash">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Changes the number of buckets so that there at least <code>n</code> buckets, and so that the load factor is less than the maximum load factor.</para>
+                <para>Invalidates iterators, and changes the order of elements. Pointers and references to elements are not invalidated.</para>
+              </description>
+              <throws>
+                <para>The function has no effect if an exception is thrown, unless it is thrown by the container's hash function or comparison function.</para>
+              </throws>
+            </method>
+          </method-group>
+          <free-function-group name="Equality Comparisons">
+            <function name="operator==">
+              <template>
+                <template-type-parameter name="Value">
+                </template-type-parameter>
+                <template-type-parameter name="Hash">
+                </template-type-parameter>
+                <template-type-parameter name="Pred">
+                </template-type-parameter>
+                <template-type-parameter name="Alloc">
+                </template-type-parameter>
+              </template>
+              <parameter name="x">
+                <paramtype>unordered_set&lt;Value, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>unordered_set&lt;Value, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <type>bool</type>
+              <notes>
+                <para>This is a boost extension.</para>
+                <para>Behavior is undefined if the two containers don't have
+                    equivalent equality predicates.</para>
+              </notes>
+            </function>
+            <function name="operator!=">
+              <template>
+                <template-type-parameter name="Value">
+                </template-type-parameter>
+                <template-type-parameter name="Hash">
+                </template-type-parameter>
+                <template-type-parameter name="Pred">
+                </template-type-parameter>
+                <template-type-parameter name="Alloc">
+                </template-type-parameter>
+              </template>
+              <parameter name="x">
+                <paramtype>unordered_set&lt;Value, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>unordered_set&lt;Value, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <type>bool</type>
+              <notes>
+                <para>This is a boost extension.</para>
+                <para>Behavior is undefined if the two containers don't have
+                    equivalent equality predicates.</para>
+              </notes>
+            </function>
+          </free-function-group>
+          <free-function-group name="swap">
+            <function name="swap">
+              <template>
+                <template-type-parameter name="Value">
+                </template-type-parameter>
+                <template-type-parameter name="Hash">
+                </template-type-parameter>
+                <template-type-parameter name="Pred">
+                </template-type-parameter>
+                <template-type-parameter name="Alloc">
+                </template-type-parameter>
+              </template>
+              <parameter name="x">
+                <paramtype>unordered_set&lt;Value, Hash, Pred, Alloc&gt;&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>unordered_set&lt;Value, Hash, Pred, Alloc&gt;&amp;</paramtype>
+              </parameter>
+              <type>void</type>
+              <effects>
+                <para><code>x.swap(y)</code></para>
+              </effects>
+              <throws>
+                <para>If the allocators are equal, doesn't throw an exception unless it is thrown by the copy constructor or copy assignment operator of <code>Hash</code> or <code>Pred</code>.</para>
+              </throws>
+              <notes>
+                <para>For a discussion of the behavior when allocators aren't equal see
+                  <link linkend="unordered.rationale.swapping_containers_with_unequal_allocators">the implementation details</link>.</para>
+              </notes>
+            </function>
+          </free-function-group>
+        </class>
+        <class name="unordered_multiset">
+          <template>
+            <template-type-parameter name="Value">
+            </template-type-parameter>
+            <template-type-parameter name="Hash">
+              <default><type>boost::hash&lt;Value&gt;</type></default>
+            </template-type-parameter>
+            <template-type-parameter name="Pred">
+              <default><type>std::equal_to&lt;Value&gt;</type></default>
+            </template-type-parameter>
+            <template-type-parameter name="Alloc">
+              <default><type>std::allocator&lt;Value&gt;</type></default>
+            </template-type-parameter>
+          </template>
+          <purpose><simpara>
+            An unordered associative container that stores  values. The same key can be stored multiple times.
+          </simpara></purpose>
+          <description>
+            <para>Based on chapter 23 of
+              <ulink url="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2009/n2960.pdf">the working draft of the C++ standard [n2960]</ulink>.
+              But without the updated rules for allocators.
+            </para>
+            <para><emphasis role="bold">Template Parameters</emphasis>
+              <informaltable>
+                <tgroup cols="2">
+                  <tbody>
+                    <row>
+                      <entry><emphasis>Value</emphasis></entry>
+                      <entry>Value must be Assignable and CopyConstructible</entry></row>
+                    <row>
+                      <entry><emphasis>Hash</emphasis></entry>
+                      <entry>A unary function object type that acts a hash function for a <code>Value</code>. It takes a single argument of type <code>Value</code> and returns a value of type std::size_t.</entry></row>
+                    <row>
+                      <entry><emphasis>Pred</emphasis></entry>
+                      <entry>A binary function object that implements an equivalence relation on values of type <code>Value</code>.
+                        A binary function object that induces an equivalence relation on values of type Key.
+                        It takes two arguments of type Key and returns a value of type bool.</entry></row>
+                    <row>
+                      <entry><emphasis>Alloc</emphasis></entry>
+                      <entry>An allocator whose value type is the same as the container's value type.</entry></row></tbody></tgroup></informaltable></para>
+            <para>The elements are organized into buckets. Keys with the same hash code are stored in the same bucket and elements with equivalent keys are stored next to each other.</para>
+            <para>The number of buckets can be automatically increased by a call to insert, or as the result of calling rehash.</para>
+          </description>
+          <typedef name="key_type">
+            <type>Value</type>
+          </typedef>
+          <typedef name="value_type">
+            <type>Value</type>
+          </typedef>
+          <typedef name="hasher">
+            <type>Hash</type>
+          </typedef>
+          <typedef name="key_equal">
+            <type>Pred</type>
+          </typedef>
+          <typedef name="allocator_type">
+            <type>Alloc</type>
+          </typedef>
+          <typedef name="pointer">
+            <type>typename allocator_type::pointer</type>
+          </typedef>
+          <typedef name="const_pointer">
+            <type>typename allocator_type::const_pointer</type>
+          </typedef>
+          <typedef name="reference">
+            <type>typename allocator_type::reference</type>
+            <purpose><simpara>lvalue of <type>value_type</type>.</simpara></purpose>
+          </typedef>
+          <typedef name="const_reference">
+            <type>typename allocator_type::const_reference</type>
+            <purpose><simpara>const lvalue of <type>value_type</type>.</simpara></purpose>
+          </typedef>
+          <typedef name="size_type">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>An unsigned integral type.</para>
+              <para><type>size_type</type> can represent any non-negative value of <type>difference_type</type>.</para>
+            </description>
+          </typedef>
+          <typedef name="difference_type">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A signed integral type.</para>
+              <para>Is identical to the difference type of <type>iterator</type> and <type>const_iterator</type>.</para>
+            </description>
+          </typedef>
+          <typedef name="iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A constant iterator whose value type is <type>value_type</type>. </para>
+              <para>The iterator category is at least a forward iterator.</para>
+              <para>Convertible to <type>const_iterator</type>.</para>
+            </description>
+          </typedef>
+          <typedef name="const_iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A constant iterator whose value type is <type>value_type</type>. </para>
+              <para>The iterator category is at least a forward iterator.</para>
+            </description>
+          </typedef>
+          <typedef name="local_iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>An iterator with the same value type, difference type and pointer and reference type as <type>iterator</type>.</para>
+              <para>A local_iterator object can be used to iterate through a single bucket.</para>
+            </description>
+          </typedef>
+          <typedef name="const_local_iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A constant iterator with the same value type, difference type and pointer and reference type as <type>const_iterator</type>.</para>
+              <para>A const_local_iterator object can be used to iterate through a single bucket.</para>
+            </description>
+          </typedef>
+          <constructor specifiers="explicit">
+            <parameter name="n">
+              <paramtype>size_type</paramtype>
+              <default><emphasis>implementation-defined</emphasis></default>
+            </parameter>
+            <parameter name="hf">
+              <paramtype>hasher const&amp;</paramtype>
+              <default>hasher()</default>
+            </parameter>
+            <parameter name="eq">
+              <paramtype>key_equal const&amp;</paramtype>
+              <default>key_equal()</default>
+            </parameter>
+            <parameter name="a">
+              <paramtype>allocator_type const&amp;</paramtype>
+              <default>allocator_type()</default>
+            </parameter>
+            <postconditions>
+              <code><methodname>size</methodname>() == 0</code>
+            </postconditions>
+            <description>
+              <para>Constructs an empty container with at least n buckets, using hf as the hash function, eq as the key equality predicate, a as the allocator and a maximum load factor of 1.0.</para>
+            </description>
+          </constructor>
+          <constructor>
+            <template>
+              <template-type-parameter name="InputIterator">
+              </template-type-parameter>
+            </template>
+            <parameter name="f">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+            <parameter name="l">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+            <parameter name="n">
+              <paramtype>size_type</paramtype>
+              <default><emphasis>implementation-defined</emphasis></default>
+            </parameter>
+            <parameter name="hf">
+              <paramtype>hasher const&amp;</paramtype>
+              <default>hasher()</default>
+            </parameter>
+            <parameter name="eq">
+              <paramtype>key_equal const&amp;</paramtype>
+              <default>key_equal()</default>
+            </parameter>
+            <parameter name="a">
+              <paramtype>allocator_type const&amp;</paramtype>
+              <default>allocator_type()</default>
+            </parameter>
+            <description>
+              <para>Constructs an empty container with at least n buckets, using hf as the hash function, eq as the key equality predicate, a as the allocator and a maximum load factor of 1.0 and inserts the elements from [f, l) into it.</para>
+            </description>
+          </constructor>
+          <constructor>
+            <parameter>
+              <paramtype>unordered_multiset const&amp;</paramtype>
+            </parameter>
+            <description>
+              <para>The copy constructor. Copies the contained elements, hash function, predicate, maximum load factor and allocator.</para>
+            </description>
+            <requires>
+              <para><code>value_type</code> is copy constructible</para>
+            </requires>
+          </constructor>
+          <constructor>
+            <parameter>
+              <paramtype>unordered_multiset &amp;&amp;</paramtype>
+            </parameter>
+            <description>
+              <para>The move constructor.</para>
+            </description>
+            <notes>
+              <para>This is emulated on compilers without rvalue references.</para>
+            </notes>
+            <requires>
+              <para>
+                <code>value_type</code> is move constructible.
+                (TODO: This is not actually required in this implementation).
+              </para>
+            </requires>
+          </constructor>
+          <constructor specifiers="explicit">
+            <parameter name="a">
+              <paramtype>Allocator const&amp;</paramtype>
+            </parameter>
+            <description>
+                <para>Constructs an empty container, using allocator <code>a</code>.</para>
+            </description>
+          </constructor>
+          <constructor>
+            <parameter name="x">
+              <paramtype>unordered_multiset const&amp;</paramtype>
+            </parameter>
+            <parameter name="a">
+              <paramtype>Allocator const&amp;</paramtype>
+            </parameter>
+            <description>
+                <para>Constructs an container, copying <code>x</code>'s contained elements, hash function, predicate, maximum load factor, but using allocator <code>a</code>.</para>
+            </description>
+          </constructor>
+          <destructor>
+            <notes>
+              <para>The destructor is applied to every element, and all memory is deallocated</para>
+            </notes>
+          </destructor>
+          <method name="operator=">
+            <parameter>
+              <paramtype>unordered_multiset const&amp;</paramtype>
+            </parameter>
+            <type>unordered_multiset&amp;</type>
+            <description>
+              <para>The assignment operator. Copies the contained elements, hash function, predicate and maximum load factor but not the allocator.</para>
+            </description>
+            <notes>
+              <para>
+                On compilers without rvalue references, there is a single assignment
+                operator with the signature <code>operator=(unordered_multiset)</code>
+                in order to emulate move semantics.
+              </para>
+            </notes>
+            <requires>
+              <para><code>value_type</code> is copy constructible</para>
+            </requires>
+          </method>
+          <method name="operator=">
+            <parameter>
+              <paramtype>unordered_multiset &amp;&amp;</paramtype>
+            </parameter>
+            <type>unordered_multiset&amp;</type>
+            <description>
+              <para>The move assignment operator.</para>
+            </description>
+            <notes>
+              <para>
+                On compilers without rvalue references, there is a single assignment
+                operator with the signature <code>operator=(unordered_multiset)</code>
+                in order to emulate move semantics.
+              </para>
+            </notes>
+            <requires>
+              <para>
+                <code>value_type</code> is move constructible.
+                (TODO: This is not actually required in this implementation).
+              </para>
+            </requires>
+          </method>
+          <method name="get_allocator" cv="const">
+            <type>allocator_type</type>
+          </method>
+          <method-group name="size and capacity">
+            <method name="empty" cv="const">
+              <type>bool</type>
+              <returns>
+                <code><methodname>size</methodname>() == 0</code>
+              </returns>
+            </method>
+            <method name="size" cv="const">
+              <type>size_type</type>
+              <returns>
+                <code>std::distance(<methodname>begin</methodname>(), <methodname>end</methodname>())</code>
+              </returns>
+            </method>
+            <method name="max_size" cv="const">
+              <type>size_type</type>
+              <returns><code><methodname>size</methodname>()</code> of the largest possible container.
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="iterators">
+            <overloaded-method name="begin">
+              <signature><type>iterator</type></signature>
+              <signature cv="const"><type>const_iterator</type></signature>
+              <returns>An iterator referring to the first element of the container, or if the container is empty the past-the-end value for the container.
+              </returns>
+            </overloaded-method>
+            <overloaded-method name="end">
+              <signature>
+                <type>iterator</type>
+              </signature>
+              <signature cv="const">
+                <type>const_iterator</type>
+              </signature>
+              <returns>An iterator which refers to the past-the-end value for the container.
+              </returns>
+            </overloaded-method>
+            <method name="cbegin" cv="const">
+              <type>const_iterator</type>
+              <returns>A constant iterator referring to the first element of the container, or if the container is empty the past-the-end value for the container.
+              </returns>
+            </method>
+            <method name="cend" cv="const">
+              <type>const_iterator</type>
+              <returns>A constant iterator which refers to the past-the-end value for the container.
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="modifiers">
+            <method name="emplace">
+              <template>
+                <template-type-parameter name="Args" pack="1">
+                </template-type-parameter>
+              </template>
+              <parameter name="args" pack="1">
+                <paramtype>Args&amp;&amp;</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Inserts an object, constructed with the arguments <code>args</code>, in the container.</para>
+              </description>
+              <returns>
+                <para>An iterator pointing to the inserted element.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+                <para>If the compiler doesn't support variadic template arguments or rvalue
+                      references, this is emulated for up to 10 arguments, with no support
+                      for rvalue references or move semantics.</para>
+              </notes>
+            </method>
+            <method name="emplace_hint">
+              <template>
+                <template-type-parameter name="Args" pack="1">
+                </template-type-parameter>
+              </template>
+              <parameter name="hint">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <parameter name="args" pack="1">
+                <paramtype>Args&amp;&amp;</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Inserts an object, constructed with the arguments <code>args</code>, in the container.</para>
+                <para>hint is a suggestion to where the element should be inserted.</para>
+              </description>
+              <returns>
+                <para>An iterator pointing to the inserted element.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>The standard is fairly vague on the meaning of the hint. But the only practical way to use it, and the only way that Boost.Unordered supports is to point to an existing element with the same value. </para>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+                <para>If the compiler doesn't support variadic template arguments or rvalue
+                      references, this is emulated for up to 10 arguments, with no support
+                      for rvalue references or move semantics.</para>
+              </notes>
+            </method>
+            <method name="insert">
+              <parameter name="obj">
+                <paramtype>value_type const&amp;</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Inserts obj in the container.</para>
+              </description>
+              <returns>
+                <para>An iterator pointing to the inserted element.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+              </notes>
+            </method>
+            <method name="insert">
+              <parameter name="hint">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <parameter name="obj">
+                <paramtype>value_type const&amp;</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Inserts obj in the container.</para>
+                <para>hint is a suggestion to where the element should be inserted.</para>
+              </description>
+              <returns>
+                <para>An iterator pointing to the inserted element.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>The standard is fairly vague on the meaning of the hint. But the only practical way to use it, and the only way that Boost.Unordered supports is to point to an existing element with the same value. </para>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+              </notes>
+            </method>
+            <method name="insert">
+              <template>
+                <template-type-parameter name="InputIterator">
+                </template-type-parameter>
+              </template>
+              <parameter name="first">
+                <paramtype>InputIterator</paramtype>
+              </parameter>
+              <parameter name="last">
+                <paramtype>InputIterator</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Inserts a range of elements into the container.</para>
+              </description>
+              <throws>
+                <para>When inserting a single element, if an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+              </notes>
+            </method>
+            <method name="erase">
+              <parameter name="position">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Erase the element pointed to by <code>position</code>.</para>
+              </description>
+              <returns>
+                <para>The iterator following <code>position</code> before the erasure.</para>
+              </returns>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+              <notes>
+                <para>
+                  When the number of elements is a lot smaller than the number of buckets
+                  this function can be very inefficient as it has to search through empty
+                  buckets for the next element, in order to return the iterator.
+                  The method <methodname>quick_erase</methodname> is faster, but has yet
+                  to be standardized.
+                </para>
+              </notes>
+            </method>
+            <method name="erase">
+              <parameter name="k">
+                <paramtype>key_type const&amp;</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <description>
+                <para>Erase all elements with key equivalent to <code>k</code>.</para>
+              </description>
+              <returns>
+                <para>The number of elements erased.</para>
+              </returns>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+              </throws>
+            </method>
+            <method name="erase">
+              <parameter name="first">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <parameter name="last">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Erases the elements in the range from <code>first</code> to <code>last</code>.</para>
+              </description>
+              <returns>
+                <para>The iterator following the erased elements - i.e. <code>last</code>.</para>
+              </returns>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+            </method>
+            <method name="quick_erase">
+              <parameter name="position">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Erase the element pointed to by <code>position</code>.</para>
+              </description>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+              <notes>
+                <para>
+                  This method is faster than <methodname>erase</methodname> as
+                  it doesn't have to find the next element in the container -
+                  a potentially costly operation.
+                </para>
+                <para>
+                  As it hasn't been standardized, it's likely that this may
+                  change in the future.
+                </para>
+              </notes>
+            </method>
+            <method name="erase_return_void">
+              <parameter name="position">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Erase the element pointed to by <code>position</code>.</para>
+              </description>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+              <notes>
+                <para>
+                  This method is now deprecated, use
+                  <methodname>quick_return</methodname> instead. Although be
+                  warned that as that isn't standardized yet, it could also
+                  change.
+                </para>
+              </notes>
+            </method>
+            <method name="clear">
+              <type>void</type>
+              <description>
+                <para>Erases all elements in the container.</para>
+              </description>
+              <postconditions>
+                <para><code><methodname>size</methodname>() == 0</code></para>
+              </postconditions>
+              <throws>
+                <para>Never throws an exception.</para>
+              </throws>
+            </method>
+            <method name="swap">
+              <parameter>
+                <paramtype>unordered_multiset&amp;</paramtype>
+              </parameter>
+              <type>void</type>
+              <throws>
+                <para>If the allocators are equal, doesn't throw an exception unless it is thrown by the copy constructor or copy assignment operator of <code>key_equal</code> or <code>hasher</code>.</para>
+              </throws>
+              <notes>
+                <para>For a discussion of the behavior when allocators aren't equal see
+                  <link linkend="unordered.rationale.swapping_containers_with_unequal_allocators">the implementation details</link>.</para>
+              </notes>
+            </method>
+          </method-group>
+          <method-group name="observers">
+            <method name="hash_function" cv="const">
+              <type>hasher</type>
+              <returns>The container's hash function.
+              </returns>
+            </method>
+            <method name="key_eq" cv="const">
+              <type>key_equal</type>
+              <returns>The container's key equality predicate.
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="lookup">
+            <overloaded-method name="find">
+              <signature>
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>iterator</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>const_iterator</type>
+              </signature>
+              <signature>
+                <template>
+                  <template-type-parameter name="CompatibleKey"/>
+                  <template-type-parameter name="CompatibleHash"/>
+                  <template-type-parameter name="CompatiblePredicate"/>
+                </template>
+                <parameter name="k">
+                  <paramtype>CompatibleKey const&amp;</paramtype>
+                </parameter>
+                <parameter name="hash">
+                  <paramtype>CompatibleHash const&amp;</paramtype>
+                </parameter>
+                <parameter name="eq">
+                  <paramtype>CompatiblePredicate const&amp;</paramtype>
+                </parameter>
+                <type>iterator</type>
+              </signature>
+              <signature cv="const">
+                <template>
+                  <template-type-parameter name="CompatibleKey"/>
+                  <template-type-parameter name="CompatibleHash"/>
+                  <template-type-parameter name="CompatiblePredicate"/>
+                </template>
+                <parameter name="k">
+                  <paramtype>CompatibleKey const&amp;</paramtype>
+                </parameter>
+                <parameter name="hash">
+                  <paramtype>CompatibleHash const&amp;</paramtype>
+                </parameter>
+                <parameter name="eq">
+                  <paramtype>CompatiblePredicate const&amp;</paramtype>
+                </parameter>
+                <type>const_iterator</type>
+              </signature>
+              <returns>
+                <para>An iterator pointing to an element with key equivalent to <code>k</code>, or <code>b.end()</code> if no such element exists.</para>
+              </returns>
+              <notes><para>
+                The templated overloads are a non-standard extensions which
+                allows you to use a compatible hash function and equality
+                predicate for a key of a different type in order to avoid
+                an expensive type cast. In general, its use is not encouraged.
+              </para></notes>
+            </overloaded-method>
+            <method name="count" cv="const">
+              <parameter name="k">
+                <paramtype>key_type const&amp;</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <returns>
+                <para>The number of elements with key equivalent to <code>k</code>.</para>
+              </returns>
+            </method>
+            <overloaded-method name="equal_range">
+              <signature>
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>std::pair&lt;iterator, iterator&gt;</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>std::pair&lt;const_iterator, const_iterator&gt;</type>
+              </signature>
+              <returns>
+                <para>A range containing all elements with key equivalent to <code>k</code>.
+                  If the container doesn't container any such elements, returns
+                  <code><functionname>std::make_pair</functionname>(<methodname>b.end</methodname>(),<methodname>b.end</methodname>())</code>.
+                  </para>
+              </returns>
+            </overloaded-method>
+          </method-group>
+          <method-group name="bucket interface">
+            <method name="bucket_count" cv="const">
+              <type>size_type</type>
+              <returns>
+                <para>The number of buckets.</para>
+              </returns>
+            </method>
+            <method name="max_bucket_count" cv="const">
+              <type>size_type</type>
+              <returns>
+                <para>An upper bound on the number of buckets.</para>
+              </returns>
+            </method>
+            <method name="bucket_size" cv="const">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <requires>
+                <para><code>n &lt; <methodname>bucket_count</methodname>()</code></para>
+              </requires>
+              <returns>
+                <para>The number of elements in bucket <code>n</code>.</para>
+              </returns>
+            </method>
+            <method name="bucket" cv="const">
+              <parameter name="k">
+                <paramtype>key_type const&amp;</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <returns>
+                <para>The index of the bucket which would contain an element with key <code>k</code>.</para>
+              </returns>
+              <postconditions>
+                <para>The return value is less than <code>bucket_count()</code></para>
+              </postconditions>
+            </method>
+            <overloaded-method name="begin">
+              <signature>
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>local_iterator</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>const_local_iterator</type>
+              </signature>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A local iterator pointing the first element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </overloaded-method>
+            <overloaded-method name="end">
+              <signature>
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>local_iterator</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>const_local_iterator</type>
+              </signature>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A local iterator pointing the 'one past the end' element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </overloaded-method>
+            <method name="cbegin" cv="const">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>const_local_iterator</type>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A constant local iterator pointing the first element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </method>
+            <method name="cend">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>const_local_iterator</type>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A constant local iterator pointing the 'one past the end' element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="hash policy">
+            <method name="load_factor" cv="const">
+              <type>float</type>
+              <returns>
+                <para>The average number of elements per bucket.</para>
+              </returns>
+            </method>
+            <method name="max_load_factor" cv="const">
+              <type>float</type>
+              <returns>
+                <para>Returns the current maximum load factor.</para>
+              </returns>
+            </method>
+            <method name="max_load_factor">
+              <parameter name="z">
+                <paramtype>float</paramtype>
+              </parameter>
+              <type>void</type>
+              <effects>
+                <para>Changes the container's maximum load factor, using <code>z</code> as a hint.</para>
+              </effects>
+            </method>
+            <method name="rehash">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Changes the number of buckets so that there at least <code>n</code> buckets, and so that the load factor is less than the maximum load factor.</para>
+                <para>Invalidates iterators, and changes the order of elements. Pointers and references to elements are not invalidated.</para>
+              </description>
+              <throws>
+                <para>The function has no effect if an exception is thrown, unless it is thrown by the container's hash function or comparison function.</para>
+              </throws>
+            </method>
+          </method-group>
+          <free-function-group name="Equality Comparisons">
+            <function name="operator==">
+              <template>
+                <template-type-parameter name="Value">
+                </template-type-parameter>
+                <template-type-parameter name="Hash">
+                </template-type-parameter>
+                <template-type-parameter name="Pred">
+                </template-type-parameter>
+                <template-type-parameter name="Alloc">
+                </template-type-parameter>
+              </template>
+              <parameter name="x">
+                <paramtype>unordered_multiset&lt;Value, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>unordered_multiset&lt;Value, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <type>bool</type>
+              <notes>
+                <para>This is a boost extension.</para>
+                <para>Behavior is undefined if the two containers don't have
+                    equivalent equality predicates.</para>
+              </notes>
+            </function>
+            <function name="operator!=">
+              <template>
+                <template-type-parameter name="Value">
+                </template-type-parameter>
+                <template-type-parameter name="Hash">
+                </template-type-parameter>
+                <template-type-parameter name="Pred">
+                </template-type-parameter>
+                <template-type-parameter name="Alloc">
+                </template-type-parameter>
+              </template>
+              <parameter name="x">
+                <paramtype>unordered_multiset&lt;Value, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>unordered_multiset&lt;Value, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <type>bool</type>
+              <notes>
+                <para>This is a boost extension.</para>
+                <para>Behavior is undefined if the two containers don't have
+                    equivalent equality predicates.</para>
+              </notes>
+            </function>
+          </free-function-group>
+          <free-function-group name="swap">
+            <function name="swap">
+              <template>
+                <template-type-parameter name="Value">
+                </template-type-parameter>
+                <template-type-parameter name="Hash">
+                </template-type-parameter>
+                <template-type-parameter name="Pred">
+                </template-type-parameter>
+                <template-type-parameter name="Alloc">
+                </template-type-parameter>
+              </template>
+              <parameter name="x">
+                <paramtype>unordered_multiset&lt;Value, Hash, Pred, Alloc&gt;&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>unordered_multiset&lt;Value, Hash, Pred, Alloc&gt;&amp;</paramtype>
+              </parameter>
+              <type>void</type>
+              <effects>
+                <para><code>x.swap(y)</code></para>
+              </effects>
+              <throws>
+                <para>If the allocators are equal, doesn't throw an exception unless it is thrown by the copy constructor or copy assignment operator of <code>Hash</code> or <code>Pred</code>.</para>
+              </throws>
+              <notes>
+                <para>For a discussion of the behavior when allocators aren't equal see
+                  <link linkend="unordered.rationale.swapping_containers_with_unequal_allocators">the implementation details</link>.</para>
+              </notes>
+            </function>
+          </free-function-group>
+        </class>
+      </namespace>
+    </header>
+    <header name="boost/unordered_map.hpp">
+      <namespace name="boost">
+        <class name="unordered_map">
+          <template>
+            <template-type-parameter name="Key">
+            </template-type-parameter>
+            <template-type-parameter name="Mapped">
+            </template-type-parameter>
+            <template-type-parameter name="Hash">
+              <default><type>boost::hash&lt;Key&gt;</type></default>
+            </template-type-parameter>
+            <template-type-parameter name="Pred">
+              <default><type>std::equal_to&lt;Key&gt;</type></default>
+            </template-type-parameter>
+            <template-type-parameter name="Alloc">
+              <default><type>std::allocator&lt;std::pair&lt;Key const, Mapped&gt; &gt;</type></default>
+            </template-type-parameter>
+          </template>
+          <purpose><simpara>
+            An unordered associative container that associates unique keys with another value.
+          </simpara></purpose>
+          <description>
+            <para>Based on chapter 23 of
+              <ulink url="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2009/n2960.pdf">the working draft of the C++ standard [n2960]</ulink>.
+              But without the updated rules for allocators.
+            </para>
+            <para><emphasis role="bold">Template Parameters</emphasis>
+              <informaltable>
+                <tgroup cols="2">
+                  <tbody>
+                    <row>
+                      <entry><emphasis>Key</emphasis></entry>
+                      <entry>Key must be Assignable and CopyConstructible.</entry></row>
+                    <row>
+                      <entry><emphasis>Mapped</emphasis></entry>
+                      <entry>Mapped must be CopyConstructible</entry></row>
+                    <row>
+                      <entry><emphasis>Hash</emphasis></entry>
+                      <entry>A unary function object type that acts a hash function for a <code>Key</code>. It takes a single argument of type <code>Key</code> and returns a value of type std::size_t.</entry></row>
+                    <row>
+                      <entry><emphasis>Pred</emphasis></entry>
+                      <entry>A binary function object that implements an equivalence relation on values of type <code>Key</code>.
+                        A binary function object that induces an equivalence relation on values of type Key.
+                        It takes two arguments of type Key and returns a value of type bool.</entry></row>
+                    <row>
+                      <entry><emphasis>Alloc</emphasis></entry>
+                      <entry>An allocator whose value type is the same as the container's value type.</entry></row></tbody></tgroup></informaltable></para>
+            <para>The elements are organized into buckets. Keys with the same hash code are stored in the same bucket.</para>
+            <para>The number of buckets can be automatically increased by a call to insert, or as the result of calling rehash.</para>
+          </description>
+          <typedef name="key_type">
+            <type>Key</type>
+          </typedef>
+          <typedef name="value_type">
+            <type>std::pair&lt;Key const, Mapped&gt;</type>
+          </typedef>
+          <typedef name="mapped_type">
+            <type>Mapped</type>
+          </typedef>
+          <typedef name="hasher">
+            <type>Hash</type>
+          </typedef>
+          <typedef name="key_equal">
+            <type>Pred</type>
+          </typedef>
+          <typedef name="allocator_type">
+            <type>Alloc</type>
+          </typedef>
+          <typedef name="pointer">
+            <type>typename allocator_type::pointer</type>
+          </typedef>
+          <typedef name="const_pointer">
+            <type>typename allocator_type::const_pointer</type>
+          </typedef>
+          <typedef name="reference">
+            <type>typename allocator_type::reference</type>
+            <purpose><simpara>lvalue of <type>value_type</type>.</simpara></purpose>
+          </typedef>
+          <typedef name="const_reference">
+            <type>typename allocator_type::const_reference</type>
+            <purpose><simpara>const lvalue of <type>value_type</type>.</simpara></purpose>
+          </typedef>
+          <typedef name="size_type">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>An unsigned integral type.</para>
+              <para><type>size_type</type> can represent any non-negative value of <type>difference_type</type>.</para>
+            </description>
+          </typedef>
+          <typedef name="difference_type">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A signed integral type.</para>
+              <para>Is identical to the difference type of <type>iterator</type> and <type>const_iterator</type>.</para>
+            </description>
+          </typedef>
+          <typedef name="iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A iterator whose value type is <type>value_type</type>. </para>
+              <para>The iterator category is at least a forward iterator.</para>
+              <para>Convertible to <type>const_iterator</type>.</para>
+            </description>
+          </typedef>
+          <typedef name="const_iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A constant iterator whose value type is <type>value_type</type>. </para>
+              <para>The iterator category is at least a forward iterator.</para>
+            </description>
+          </typedef>
+          <typedef name="local_iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>An iterator with the same value type, difference type and pointer and reference type as <type>iterator</type>.</para>
+              <para>A local_iterator object can be used to iterate through a single bucket.</para>
+            </description>
+          </typedef>
+          <typedef name="const_local_iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A constant iterator with the same value type, difference type and pointer and reference type as <type>const_iterator</type>.</para>
+              <para>A const_local_iterator object can be used to iterate through a single bucket.</para>
+            </description>
+          </typedef>
+          <constructor specifiers="explicit">
+            <parameter name="n">
+              <paramtype>size_type</paramtype>
+              <default><emphasis>implementation-defined</emphasis></default>
+            </parameter>
+            <parameter name="hf">
+              <paramtype>hasher const&amp;</paramtype>
+              <default>hasher()</default>
+            </parameter>
+            <parameter name="eq">
+              <paramtype>key_equal const&amp;</paramtype>
+              <default>key_equal()</default>
+            </parameter>
+            <parameter name="a">
+              <paramtype>allocator_type const&amp;</paramtype>
+              <default>allocator_type()</default>
+            </parameter>
+            <postconditions>
+              <code><methodname>size</methodname>() == 0</code>
+            </postconditions>
+            <description>
+              <para>Constructs an empty container with at least n buckets, using hf as the hash function, eq as the key equality predicate, a as the allocator and a maximum load factor of 1.0.</para>
+            </description>
+          </constructor>
+          <constructor>
+            <template>
+              <template-type-parameter name="InputIterator">
+              </template-type-parameter>
+            </template>
+            <parameter name="f">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+            <parameter name="l">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+            <parameter name="n">
+              <paramtype>size_type</paramtype>
+              <default><emphasis>implementation-defined</emphasis></default>
+            </parameter>
+            <parameter name="hf">
+              <paramtype>hasher const&amp;</paramtype>
+              <default>hasher()</default>
+            </parameter>
+            <parameter name="eq">
+              <paramtype>key_equal const&amp;</paramtype>
+              <default>key_equal()</default>
+            </parameter>
+            <parameter name="a">
+              <paramtype>allocator_type const&amp;</paramtype>
+              <default>allocator_type()</default>
+            </parameter>
+            <description>
+              <para>Constructs an empty container with at least n buckets, using hf as the hash function, eq as the key equality predicate, a as the allocator and a maximum load factor of 1.0 and inserts the elements from [f, l) into it.</para>
+            </description>
+          </constructor>
+          <constructor>
+            <parameter>
+              <paramtype>unordered_map const&amp;</paramtype>
+            </parameter>
+            <description>
+              <para>The copy constructor. Copies the contained elements, hash function, predicate, maximum load factor and allocator.</para>
+            </description>
+            <requires>
+              <para><code>value_type</code> is copy constructible</para>
+            </requires>
+          </constructor>
+          <constructor>
+            <parameter>
+              <paramtype>unordered_map &amp;&amp;</paramtype>
+            </parameter>
+            <description>
+              <para>The move constructor.</para>
+            </description>
+            <notes>
+              <para>This is emulated on compilers without rvalue references.</para>
+            </notes>
+            <requires>
+              <para>
+                <code>value_type</code> is move constructible.
+                (TODO: This is not actually required in this implementation).
+              </para>
+            </requires>
+          </constructor>
+          <constructor specifiers="explicit">
+            <parameter name="a">
+              <paramtype>Allocator const&amp;</paramtype>
+            </parameter>
+            <description>
+                <para>Constructs an empty container, using allocator <code>a</code>.</para>
+            </description>
+          </constructor>
+          <constructor>
+            <parameter name="x">
+              <paramtype>unordered_map const&amp;</paramtype>
+            </parameter>
+            <parameter name="a">
+              <paramtype>Allocator const&amp;</paramtype>
+            </parameter>
+            <description>
+                <para>Constructs an container, copying <code>x</code>'s contained elements, hash function, predicate, maximum load factor, but using allocator <code>a</code>.</para>
+            </description>
+          </constructor>
+          <destructor>
+            <notes>
+              <para>The destructor is applied to every element, and all memory is deallocated</para>
+            </notes>
+          </destructor>
+          <method name="operator=">
+            <parameter>
+              <paramtype>unordered_map const&amp;</paramtype>
+            </parameter>
+            <type>unordered_map&amp;</type>
+            <description>
+              <para>The assignment operator. Copies the contained elements, hash function, predicate and maximum load factor but not the allocator.</para>
+            </description>
+            <notes>
+              <para>
+                On compilers without rvalue references, there is a single assignment
+                operator with the signature <code>operator=(unordered_map)</code>
+                in order to emulate move semantics.
+              </para>
+            </notes>
+            <requires>
+              <para><code>value_type</code> is copy constructible</para>
+            </requires>
+          </method>
+          <method name="operator=">
+            <parameter>
+              <paramtype>unordered_map &amp;&amp;</paramtype>
+            </parameter>
+            <type>unordered_map&amp;</type>
+            <description>
+              <para>The move assignment operator.</para>
+            </description>
+            <notes>
+              <para>
+                On compilers without rvalue references, there is a single assignment
+                operator with the signature <code>operator=(unordered_map)</code>
+                in order to emulate move semantics.
+              </para>
+            </notes>
+            <requires>
+              <para>
+                <code>value_type</code> is move constructible.
+                (TODO: This is not actually required in this implementation).
+              </para>
+            </requires>
+          </method>
+          <method name="get_allocator" cv="const">
+            <type>allocator_type</type>
+          </method>
+          <method-group name="size and capacity">
+            <method name="empty" cv="const">
+              <type>bool</type>
+              <returns>
+                <code><methodname>size</methodname>() == 0</code>
+              </returns>
+            </method>
+            <method name="size" cv="const">
+              <type>size_type</type>
+              <returns>
+                <code>std::distance(<methodname>begin</methodname>(), <methodname>end</methodname>())</code>
+              </returns>
+            </method>
+            <method name="max_size" cv="const">
+              <type>size_type</type>
+              <returns><code><methodname>size</methodname>()</code> of the largest possible container.
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="iterators">
+            <overloaded-method name="begin">
+              <signature><type>iterator</type></signature>
+              <signature cv="const"><type>const_iterator</type></signature>
+              <returns>An iterator referring to the first element of the container, or if the container is empty the past-the-end value for the container.
+              </returns>
+            </overloaded-method>
+            <overloaded-method name="end">
+              <signature>
+                <type>iterator</type>
+              </signature>
+              <signature cv="const">
+                <type>const_iterator</type>
+              </signature>
+              <returns>An iterator which refers to the past-the-end value for the container.
+              </returns>
+            </overloaded-method>
+            <method name="cbegin" cv="const">
+              <type>const_iterator</type>
+              <returns>A constant iterator referring to the first element of the container, or if the container is empty the past-the-end value for the container.
+              </returns>
+            </method>
+            <method name="cend" cv="const">
+              <type>const_iterator</type>
+              <returns>A constant iterator which refers to the past-the-end value for the container.
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="modifiers">
+            <method name="emplace">
+              <template>
+                <template-type-parameter name="Args" pack="1">
+                </template-type-parameter>
+              </template>
+              <parameter name="args" pack="1">
+                <paramtype>Args&amp;&amp;</paramtype>
+              </parameter>
+              <type>std::pair&lt;iterator, bool&gt;</type>
+              <description>
+                <para>Inserts an object, constructed with the arguments <code>args</code>, in the container if and only if there is no element in the container with an equivalent key.</para>
+              </description>
+              <returns>
+                <para>The bool component of the return type is true if an insert took place.</para>
+                <para>If an insert took place, then the iterator points to the newly inserted element. Otherwise, it points to the element with equivalent key.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+                <para>If the compiler doesn't support variadic template arguments or rvalue
+                      references, this is emulated for up to 10 arguments, with no support
+                      for rvalue references or move semantics.</para>
+              </notes>
+            </method>
+            <method name="emplace_hint">
+              <template>
+                <template-type-parameter name="Args" pack="1">
+                </template-type-parameter>
+              </template>
+              <parameter name="hint">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <parameter name="args" pack="1">
+                <paramtype>Args&amp;&amp;</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Inserts an object, constructed with the arguments <code>args</code>, in the container if and only if there is no element in the container with an equivalent key.</para>
+                <para>hint is a suggestion to where the element should be inserted.</para>
+              </description>
+              <returns>
+                <para>If an insert took place, then the iterator points to the newly inserted element. Otherwise, it points to the element with equivalent key.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>The standard is fairly vague on the meaning of the hint. But the only practical way to use it, and the only way that Boost.Unordered supports is to point to an existing element with the same key. </para>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+                <para>If the compiler doesn't support variadic template arguments or rvalue
+                      references, this is emulated for up to 10 arguments, with no support
+                      for rvalue references or move semantics.</para>
+              </notes>
+            </method>
+            <method name="insert">
+              <parameter name="obj">
+                <paramtype>value_type const&amp;</paramtype>
+              </parameter>
+              <type>std::pair&lt;iterator, bool&gt;</type>
+              <description>
+                <para>Inserts obj in the container if and only if there is no element in the container with an equivalent key.</para>
+              </description>
+              <returns>
+                <para>The bool component of the return type is true if an insert took place.</para>
+                <para>If an insert took place, then the iterator points to the newly inserted element. Otherwise, it points to the element with equivalent key.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+              </notes>
+            </method>
+            <method name="insert">
+              <parameter name="hint">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <parameter name="obj">
+                <paramtype>value_type const&amp;</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Inserts obj in the container if and only if there is no element in the container with an equivalent key.</para>
+                <para>hint is a suggestion to where the element should be inserted.</para>
+              </description>
+              <returns>
+                <para>If an insert took place, then the iterator points to the newly inserted element. Otherwise, it points to the element with equivalent key.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>The standard is fairly vague on the meaning of the hint. But the only practical way to use it, and the only way that Boost.Unordered supports is to point to an existing element with the same key. </para>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+              </notes>
+            </method>
+            <method name="insert">
+              <template>
+                <template-type-parameter name="InputIterator">
+                </template-type-parameter>
+              </template>
+              <parameter name="first">
+                <paramtype>InputIterator</paramtype>
+              </parameter>
+              <parameter name="last">
+                <paramtype>InputIterator</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Inserts a range of elements into the container. Elements are inserted if and only if there is no element in the container with an equivalent key.</para>
+              </description>
+              <throws>
+                <para>When inserting a single element, if an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+              </notes>
+            </method>
+            <method name="erase">
+              <parameter name="position">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Erase the element pointed to by <code>position</code>.</para>
+              </description>
+              <returns>
+                <para>The iterator following <code>position</code> before the erasure.</para>
+              </returns>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+              <notes>
+                <para>
+                  When the number of elements is a lot smaller than the number of buckets
+                  this function can be very inefficient as it has to search through empty
+                  buckets for the next element, in order to return the iterator.
+                  The method <methodname>quick_erase</methodname> is faster, but has yet
+                  to be standardized.
+                </para>
+              </notes>
+            </method>
+            <method name="erase">
+              <parameter name="k">
+                <paramtype>key_type const&amp;</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <description>
+                <para>Erase all elements with key equivalent to <code>k</code>.</para>
+              </description>
+              <returns>
+                <para>The number of elements erased.</para>
+              </returns>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+              </throws>
+            </method>
+            <method name="erase">
+              <parameter name="first">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <parameter name="last">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Erases the elements in the range from <code>first</code> to <code>last</code>.</para>
+              </description>
+              <returns>
+                <para>The iterator following the erased elements - i.e. <code>last</code>.</para>
+              </returns>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+            </method>
+            <method name="quick_erase">
+              <parameter name="position">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Erase the element pointed to by <code>position</code>.</para>
+              </description>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+              <notes>
+                <para>
+                  This method is faster than <methodname>erase</methodname> as
+                  it doesn't have to find the next element in the container -
+                  a potentially costly operation.
+                </para>
+                <para>
+                  As it hasn't been standardized, it's likely that this may
+                  change in the future.
+                </para>
+              </notes>
+            </method>
+            <method name="erase_return_void">
+              <parameter name="position">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Erase the element pointed to by <code>position</code>.</para>
+              </description>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+              <notes>
+                <para>
+                  This method is now deprecated, use
+                  <methodname>quick_return</methodname> instead. Although be
+                  warned that as that isn't standardized yet, it could also
+                  change.
+                </para>
+              </notes>
+            </method>
+            <method name="clear">
+              <type>void</type>
+              <description>
+                <para>Erases all elements in the container.</para>
+              </description>
+              <postconditions>
+                <para><code><methodname>size</methodname>() == 0</code></para>
+              </postconditions>
+              <throws>
+                <para>Never throws an exception.</para>
+              </throws>
+            </method>
+            <method name="swap">
+              <parameter>
+                <paramtype>unordered_map&amp;</paramtype>
+              </parameter>
+              <type>void</type>
+              <throws>
+                <para>If the allocators are equal, doesn't throw an exception unless it is thrown by the copy constructor or copy assignment operator of <code>key_equal</code> or <code>hasher</code>.</para>
+              </throws>
+              <notes>
+                <para>For a discussion of the behavior when allocators aren't equal see
+                  <link linkend="unordered.rationale.swapping_containers_with_unequal_allocators">the implementation details</link>.</para>
+              </notes>
+            </method>
+          </method-group>
+          <method-group name="observers">
+            <method name="hash_function" cv="const">
+              <type>hasher</type>
+              <returns>The container's hash function.
+              </returns>
+            </method>
+            <method name="key_eq" cv="const">
+              <type>key_equal</type>
+              <returns>The container's key equality predicate.
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="lookup">
+            <overloaded-method name="find">
+              <signature>
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>iterator</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>const_iterator</type>
+              </signature>
+              <signature>
+                <template>
+                  <template-type-parameter name="CompatibleKey"/>
+                  <template-type-parameter name="CompatibleHash"/>
+                  <template-type-parameter name="CompatiblePredicate"/>
+                </template>
+                <parameter name="k">
+                  <paramtype>CompatibleKey const&amp;</paramtype>
+                </parameter>
+                <parameter name="hash">
+                  <paramtype>CompatibleHash const&amp;</paramtype>
+                </parameter>
+                <parameter name="eq">
+                  <paramtype>CompatiblePredicate const&amp;</paramtype>
+                </parameter>
+                <type>iterator</type>
+              </signature>
+              <signature cv="const">
+                <template>
+                  <template-type-parameter name="CompatibleKey"/>
+                  <template-type-parameter name="CompatibleHash"/>
+                  <template-type-parameter name="CompatiblePredicate"/>
+                </template>
+                <parameter name="k">
+                  <paramtype>CompatibleKey const&amp;</paramtype>
+                </parameter>
+                <parameter name="hash">
+                  <paramtype>CompatibleHash const&amp;</paramtype>
+                </parameter>
+                <parameter name="eq">
+                  <paramtype>CompatiblePredicate const&amp;</paramtype>
+                </parameter>
+                <type>const_iterator</type>
+              </signature>
+              <returns>
+                <para>An iterator pointing to an element with key equivalent to <code>k</code>, or <code>b.end()</code> if no such element exists.</para>
+              </returns>
+              <notes><para>
+                The templated overloads are a non-standard extensions which
+                allows you to use a compatible hash function and equality
+                predicate for a key of a different type in order to avoid
+                an expensive type cast. In general, its use is not encouraged.
+              </para></notes>
+            </overloaded-method>
+            <method name="count" cv="const">
+              <parameter name="k">
+                <paramtype>key_type const&amp;</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <returns>
+                <para>The number of elements with key equivalent to <code>k</code>.</para>
+              </returns>
+            </method>
+            <overloaded-method name="equal_range">
+              <signature>
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>std::pair&lt;iterator, iterator&gt;</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>std::pair&lt;const_iterator, const_iterator&gt;</type>
+              </signature>
+              <returns>
+                <para>A range containing all elements with key equivalent to <code>k</code>.
+                  If the container doesn't container any such elements, returns
+                  <code><functionname>std::make_pair</functionname>(<methodname>b.end</methodname>(),<methodname>b.end</methodname>())</code>.
+                  </para>
+              </returns>
+            </overloaded-method>
+            <method name="operator[]">
+              <parameter name="k">
+                <paramtype>key_type const&amp;</paramtype>
+              </parameter>
+              <type>mapped_type&amp;</type>
+              <effects>
+                <para>If the container does not already contain an elements with a key equivalent to <code>k</code>, inserts the value <code>std::pair&lt;key_type const, mapped_type&gt;(k, mapped_type())</code></para>
+              </effects>
+              <returns>
+                <para>A reference to <code>x.second</code> where x is the element already in the container, or the newly inserted element with a key equivalent to <code>k</code></para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+              </notes>
+            </method>
+            <overloaded-method name="at">
+              <signature><type>Mapped&amp;</type>
+                <parameter name="k"><paramtype>key_type const&amp;</paramtype></parameter></signature>
+              <signature cv="const"><type>Mapped const&amp;</type>
+                <parameter name="k"><paramtype>key_type const&amp;</paramtype></parameter></signature>
+              <returns>
+                <para>A reference to <code>x.second</code> where <code>x</code> is the (unique) element whose key is equivalent to <code>k</code>.</para>
+              </returns>
+              <throws>
+                <para>An exception object of type <code>std::out_of_range</code> if no such element is present.</para>
+              </throws>
+              <notes>
+                <para>This is not specified in the draft standard, but that is probably an oversight. The issue has been raised in
+                  <ulink url="http://groups.google.com/group/comp.std.c++/browse_thread/thread/ab7c22a868fd370b">comp.std.c++</ulink>.</para>
+              </notes>
+            </overloaded-method>
+          </method-group>
+          <method-group name="bucket interface">
+            <method name="bucket_count" cv="const">
+              <type>size_type</type>
+              <returns>
+                <para>The number of buckets.</para>
+              </returns>
+            </method>
+            <method name="max_bucket_count" cv="const">
+              <type>size_type</type>
+              <returns>
+                <para>An upper bound on the number of buckets.</para>
+              </returns>
+            </method>
+            <method name="bucket_size" cv="const">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <requires>
+                <para><code>n &lt; <methodname>bucket_count</methodname>()</code></para>
+              </requires>
+              <returns>
+                <para>The number of elements in bucket <code>n</code>.</para>
+              </returns>
+            </method>
+            <method name="bucket" cv="const">
+              <parameter name="k">
+                <paramtype>key_type const&amp;</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <returns>
+                <para>The index of the bucket which would contain an element with key <code>k</code>.</para>
+              </returns>
+              <postconditions>
+                <para>The return value is less than <code>bucket_count()</code></para>
+              </postconditions>
+            </method>
+            <overloaded-method name="begin">
+              <signature>
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>local_iterator</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>const_local_iterator</type>
+              </signature>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A local iterator pointing the first element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </overloaded-method>
+            <overloaded-method name="end">
+              <signature>
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>local_iterator</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>const_local_iterator</type>
+              </signature>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A local iterator pointing the 'one past the end' element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </overloaded-method>
+            <method name="cbegin" cv="const">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>const_local_iterator</type>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A constant local iterator pointing the first element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </method>
+            <method name="cend">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>const_local_iterator</type>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A constant local iterator pointing the 'one past the end' element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="hash policy">
+            <method name="load_factor" cv="const">
+              <type>float</type>
+              <returns>
+                <para>The average number of elements per bucket.</para>
+              </returns>
+            </method>
+            <method name="max_load_factor" cv="const">
+              <type>float</type>
+              <returns>
+                <para>Returns the current maximum load factor.</para>
+              </returns>
+            </method>
+            <method name="max_load_factor">
+              <parameter name="z">
+                <paramtype>float</paramtype>
+              </parameter>
+              <type>void</type>
+              <effects>
+                <para>Changes the container's maximum load factor, using <code>z</code> as a hint.</para>
+              </effects>
+            </method>
+            <method name="rehash">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Changes the number of buckets so that there at least <code>n</code> buckets, and so that the load factor is less than the maximum load factor.</para>
+                <para>Invalidates iterators, and changes the order of elements. Pointers and references to elements are not invalidated.</para>
+              </description>
+              <throws>
+                <para>The function has no effect if an exception is thrown, unless it is thrown by the container's hash function or comparison function.</para>
+              </throws>
+            </method>
+          </method-group>
+          <free-function-group name="Equality Comparisons">
+            <function name="operator==">
+              <template>
+                <template-type-parameter name="Key">
+                </template-type-parameter>
+                <template-type-parameter name="Mapped">
+                </template-type-parameter>
+                <template-type-parameter name="Hash">
+                </template-type-parameter>
+                <template-type-parameter name="Pred">
+                </template-type-parameter>
+                <template-type-parameter name="Alloc">
+                </template-type-parameter>
+              </template>
+              <parameter name="x">
+                <paramtype>unordered_map&lt;Key, Mapped, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>unordered_map&lt;Key, Mapped, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <type>bool</type>
+              <notes>
+                <para>This is a boost extension.</para>
+                <para>Behavior is undefined if the two containers don't have
+                    equivalent equality predicates.</para>
+              </notes>
+            </function>
+            <function name="operator!=">
+              <template>
+                <template-type-parameter name="Key">
+                </template-type-parameter>
+                <template-type-parameter name="Mapped">
+                </template-type-parameter>
+                <template-type-parameter name="Hash">
+                </template-type-parameter>
+                <template-type-parameter name="Pred">
+                </template-type-parameter>
+                <template-type-parameter name="Alloc">
+                </template-type-parameter>
+              </template>
+              <parameter name="x">
+                <paramtype>unordered_map&lt;Key, Mapped, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>unordered_map&lt;Key, Mapped, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <type>bool</type>
+              <notes>
+                <para>This is a boost extension.</para>
+                <para>Behavior is undefined if the two containers don't have
+                    equivalent equality predicates.</para>
+              </notes>
+            </function>
+          </free-function-group>
+          <free-function-group name="swap">
+            <function name="swap">
+              <template>
+                <template-type-parameter name="Key">
+                </template-type-parameter>
+                <template-type-parameter name="Mapped">
+                </template-type-parameter>
+                <template-type-parameter name="Hash">
+                </template-type-parameter>
+                <template-type-parameter name="Pred">
+                </template-type-parameter>
+                <template-type-parameter name="Alloc">
+                </template-type-parameter>
+              </template>
+              <parameter name="x">
+                <paramtype>unordered_map&lt;Key, Mapped, Hash, Pred, Alloc&gt;&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>unordered_map&lt;Key, Mapped, Hash, Pred, Alloc&gt;&amp;</paramtype>
+              </parameter>
+              <type>void</type>
+              <effects>
+                <para><code>x.swap(y)</code></para>
+              </effects>
+              <throws>
+                <para>If the allocators are equal, doesn't throw an exception unless it is thrown by the copy constructor or copy assignment operator of <code>Hash</code> or <code>Pred</code>.</para>
+              </throws>
+              <notes>
+                <para>For a discussion of the behavior when allocators aren't equal see
+                  <link linkend="unordered.rationale.swapping_containers_with_unequal_allocators">the implementation details</link>.</para>
+              </notes>
+            </function>
+          </free-function-group>
+        </class>
+        <class name="unordered_multimap">
+          <template>
+            <template-type-parameter name="Key">
+            </template-type-parameter>
+            <template-type-parameter name="Mapped">
+            </template-type-parameter>
+            <template-type-parameter name="Hash">
+              <default><type>boost::hash&lt;Key&gt;</type></default>
+            </template-type-parameter>
+            <template-type-parameter name="Pred">
+              <default><type>std::equal_to&lt;Key&gt;</type></default>
+            </template-type-parameter>
+            <template-type-parameter name="Alloc">
+              <default><type>std::allocator&lt;std::pair&lt;Key const, Mapped&gt; &gt;</type></default>
+            </template-type-parameter>
+          </template>
+          <purpose><simpara>
+            An unordered associative container that associates  keys with another value. The same key can be stored multiple times.
+          </simpara></purpose>
+          <description>
+            <para>Based on chapter 23 of
+              <ulink url="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2009/n2960.pdf">the working draft of the C++ standard [n2960]</ulink>.
+              But without the updated rules for allocators.
+            </para>
+            <para><emphasis role="bold">Template Parameters</emphasis>
+              <informaltable>
+                <tgroup cols="2">
+                  <tbody>
+                    <row>
+                      <entry><emphasis>Key</emphasis></entry>
+                      <entry>Key must be Assignable and CopyConstructible.</entry></row>
+                    <row>
+                      <entry><emphasis>Mapped</emphasis></entry>
+                      <entry>Mapped must be CopyConstructible</entry></row>
+                    <row>
+                      <entry><emphasis>Hash</emphasis></entry>
+                      <entry>A unary function object type that acts a hash function for a <code>Key</code>. It takes a single argument of type <code>Key</code> and returns a value of type std::size_t.</entry></row>
+                    <row>
+                      <entry><emphasis>Pred</emphasis></entry>
+                      <entry>A binary function object that implements an equivalence relation on values of type <code>Key</code>.
+                        A binary function object that induces an equivalence relation on values of type Key.
+                        It takes two arguments of type Key and returns a value of type bool.</entry></row>
+                    <row>
+                      <entry><emphasis>Alloc</emphasis></entry>
+                      <entry>An allocator whose value type is the same as the container's value type.</entry></row></tbody></tgroup></informaltable></para>
+            <para>The elements are organized into buckets. Keys with the same hash code are stored in the same bucket and elements with equivalent keys are stored next to each other.</para>
+            <para>The number of buckets can be automatically increased by a call to insert, or as the result of calling rehash.</para>
+          </description>
+          <typedef name="key_type">
+            <type>Key</type>
+          </typedef>
+          <typedef name="value_type">
+            <type>std::pair&lt;Key const, Mapped&gt;</type>
+          </typedef>
+          <typedef name="mapped_type">
+            <type>Mapped</type>
+          </typedef>
+          <typedef name="hasher">
+            <type>Hash</type>
+          </typedef>
+          <typedef name="key_equal">
+            <type>Pred</type>
+          </typedef>
+          <typedef name="allocator_type">
+            <type>Alloc</type>
+          </typedef>
+          <typedef name="pointer">
+            <type>typename allocator_type::pointer</type>
+          </typedef>
+          <typedef name="const_pointer">
+            <type>typename allocator_type::const_pointer</type>
+          </typedef>
+          <typedef name="reference">
+            <type>typename allocator_type::reference</type>
+            <purpose><simpara>lvalue of <type>value_type</type>.</simpara></purpose>
+          </typedef>
+          <typedef name="const_reference">
+            <type>typename allocator_type::const_reference</type>
+            <purpose><simpara>const lvalue of <type>value_type</type>.</simpara></purpose>
+          </typedef>
+          <typedef name="size_type">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>An unsigned integral type.</para>
+              <para><type>size_type</type> can represent any non-negative value of <type>difference_type</type>.</para>
+            </description>
+          </typedef>
+          <typedef name="difference_type">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A signed integral type.</para>
+              <para>Is identical to the difference type of <type>iterator</type> and <type>const_iterator</type>.</para>
+            </description>
+          </typedef>
+          <typedef name="iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A iterator whose value type is <type>value_type</type>. </para>
+              <para>The iterator category is at least a forward iterator.</para>
+              <para>Convertible to <type>const_iterator</type>.</para>
+            </description>
+          </typedef>
+          <typedef name="const_iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A constant iterator whose value type is <type>value_type</type>. </para>
+              <para>The iterator category is at least a forward iterator.</para>
+            </description>
+          </typedef>
+          <typedef name="local_iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>An iterator with the same value type, difference type and pointer and reference type as <type>iterator</type>.</para>
+              <para>A local_iterator object can be used to iterate through a single bucket.</para>
+            </description>
+          </typedef>
+          <typedef name="const_local_iterator">
+            <type><emphasis>implementation-defined</emphasis></type>
+            <description>
+              <para>A constant iterator with the same value type, difference type and pointer and reference type as <type>const_iterator</type>.</para>
+              <para>A const_local_iterator object can be used to iterate through a single bucket.</para>
+            </description>
+          </typedef>
+          <constructor specifiers="explicit">
+            <parameter name="n">
+              <paramtype>size_type</paramtype>
+              <default><emphasis>implementation-defined</emphasis></default>
+            </parameter>
+            <parameter name="hf">
+              <paramtype>hasher const&amp;</paramtype>
+              <default>hasher()</default>
+            </parameter>
+            <parameter name="eq">
+              <paramtype>key_equal const&amp;</paramtype>
+              <default>key_equal()</default>
+            </parameter>
+            <parameter name="a">
+              <paramtype>allocator_type const&amp;</paramtype>
+              <default>allocator_type()</default>
+            </parameter>
+            <postconditions>
+              <code><methodname>size</methodname>() == 0</code>
+            </postconditions>
+            <description>
+              <para>Constructs an empty container with at least n buckets, using hf as the hash function, eq as the key equality predicate, a as the allocator and a maximum load factor of 1.0.</para>
+            </description>
+          </constructor>
+          <constructor>
+            <template>
+              <template-type-parameter name="InputIterator">
+              </template-type-parameter>
+            </template>
+            <parameter name="f">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+            <parameter name="l">
+              <paramtype>InputIterator</paramtype>
+            </parameter>
+            <parameter name="n">
+              <paramtype>size_type</paramtype>
+              <default><emphasis>implementation-defined</emphasis></default>
+            </parameter>
+            <parameter name="hf">
+              <paramtype>hasher const&amp;</paramtype>
+              <default>hasher()</default>
+            </parameter>
+            <parameter name="eq">
+              <paramtype>key_equal const&amp;</paramtype>
+              <default>key_equal()</default>
+            </parameter>
+            <parameter name="a">
+              <paramtype>allocator_type const&amp;</paramtype>
+              <default>allocator_type()</default>
+            </parameter>
+            <description>
+              <para>Constructs an empty container with at least n buckets, using hf as the hash function, eq as the key equality predicate, a as the allocator and a maximum load factor of 1.0 and inserts the elements from [f, l) into it.</para>
+            </description>
+          </constructor>
+          <constructor>
+            <parameter>
+              <paramtype>unordered_multimap const&amp;</paramtype>
+            </parameter>
+            <description>
+              <para>The copy constructor. Copies the contained elements, hash function, predicate, maximum load factor and allocator.</para>
+            </description>
+            <requires>
+              <para><code>value_type</code> is copy constructible</para>
+            </requires>
+          </constructor>
+          <constructor>
+            <parameter>
+              <paramtype>unordered_multimap &amp;&amp;</paramtype>
+            </parameter>
+            <description>
+              <para>The move constructor.</para>
+            </description>
+            <notes>
+              <para>This is emulated on compilers without rvalue references.</para>
+            </notes>
+            <requires>
+              <para>
+                <code>value_type</code> is move constructible.
+                (TODO: This is not actually required in this implementation).
+              </para>
+            </requires>
+          </constructor>
+          <constructor specifiers="explicit">
+            <parameter name="a">
+              <paramtype>Allocator const&amp;</paramtype>
+            </parameter>
+            <description>
+                <para>Constructs an empty container, using allocator <code>a</code>.</para>
+            </description>
+          </constructor>
+          <constructor>
+            <parameter name="x">
+              <paramtype>unordered_multimap const&amp;</paramtype>
+            </parameter>
+            <parameter name="a">
+              <paramtype>Allocator const&amp;</paramtype>
+            </parameter>
+            <description>
+                <para>Constructs an container, copying <code>x</code>'s contained elements, hash function, predicate, maximum load factor, but using allocator <code>a</code>.</para>
+            </description>
+          </constructor>
+          <destructor>
+            <notes>
+              <para>The destructor is applied to every element, and all memory is deallocated</para>
+            </notes>
+          </destructor>
+          <method name="operator=">
+            <parameter>
+              <paramtype>unordered_multimap const&amp;</paramtype>
+            </parameter>
+            <type>unordered_multimap&amp;</type>
+            <description>
+              <para>The assignment operator. Copies the contained elements, hash function, predicate and maximum load factor but not the allocator.</para>
+            </description>
+            <notes>
+              <para>
+                On compilers without rvalue references, there is a single assignment
+                operator with the signature <code>operator=(unordered_multimap)</code>
+                in order to emulate move semantics.
+              </para>
+            </notes>
+            <requires>
+              <para><code>value_type</code> is copy constructible</para>
+            </requires>
+          </method>
+          <method name="operator=">
+            <parameter>
+              <paramtype>unordered_multimap &amp;&amp;</paramtype>
+            </parameter>
+            <type>unordered_multimap&amp;</type>
+            <description>
+              <para>The move assignment operator.</para>
+            </description>
+            <notes>
+              <para>
+                On compilers without rvalue references, there is a single assignment
+                operator with the signature <code>operator=(unordered_multimap)</code>
+                in order to emulate move semantics.
+              </para>
+            </notes>
+            <requires>
+              <para>
+                <code>value_type</code> is move constructible.
+                (TODO: This is not actually required in this implementation).
+              </para>
+            </requires>
+          </method>
+          <method name="get_allocator" cv="const">
+            <type>allocator_type</type>
+          </method>
+          <method-group name="size and capacity">
+            <method name="empty" cv="const">
+              <type>bool</type>
+              <returns>
+                <code><methodname>size</methodname>() == 0</code>
+              </returns>
+            </method>
+            <method name="size" cv="const">
+              <type>size_type</type>
+              <returns>
+                <code>std::distance(<methodname>begin</methodname>(), <methodname>end</methodname>())</code>
+              </returns>
+            </method>
+            <method name="max_size" cv="const">
+              <type>size_type</type>
+              <returns><code><methodname>size</methodname>()</code> of the largest possible container.
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="iterators">
+            <overloaded-method name="begin">
+              <signature><type>iterator</type></signature>
+              <signature cv="const"><type>const_iterator</type></signature>
+              <returns>An iterator referring to the first element of the container, or if the container is empty the past-the-end value for the container.
+              </returns>
+            </overloaded-method>
+            <overloaded-method name="end">
+              <signature>
+                <type>iterator</type>
+              </signature>
+              <signature cv="const">
+                <type>const_iterator</type>
+              </signature>
+              <returns>An iterator which refers to the past-the-end value for the container.
+              </returns>
+            </overloaded-method>
+            <method name="cbegin" cv="const">
+              <type>const_iterator</type>
+              <returns>A constant iterator referring to the first element of the container, or if the container is empty the past-the-end value for the container.
+              </returns>
+            </method>
+            <method name="cend" cv="const">
+              <type>const_iterator</type>
+              <returns>A constant iterator which refers to the past-the-end value for the container.
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="modifiers">
+            <method name="emplace">
+              <template>
+                <template-type-parameter name="Args" pack="1">
+                </template-type-parameter>
+              </template>
+              <parameter name="args" pack="1">
+                <paramtype>Args&amp;&amp;</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Inserts an object, constructed with the arguments <code>args</code>, in the container.</para>
+              </description>
+              <returns>
+                <para>An iterator pointing to the inserted element.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+                <para>If the compiler doesn't support variadic template arguments or rvalue
+                      references, this is emulated for up to 10 arguments, with no support
+                      for rvalue references or move semantics.</para>
+              </notes>
+            </method>
+            <method name="emplace_hint">
+              <template>
+                <template-type-parameter name="Args" pack="1">
+                </template-type-parameter>
+              </template>
+              <parameter name="hint">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <parameter name="args" pack="1">
+                <paramtype>Args&amp;&amp;</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Inserts an object, constructed with the arguments <code>args</code>, in the container.</para>
+                <para>hint is a suggestion to where the element should be inserted.</para>
+              </description>
+              <returns>
+                <para>An iterator pointing to the inserted element.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>The standard is fairly vague on the meaning of the hint. But the only practical way to use it, and the only way that Boost.Unordered supports is to point to an existing element with the same key. </para>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+                <para>If the compiler doesn't support variadic template arguments or rvalue
+                      references, this is emulated for up to 10 arguments, with no support
+                      for rvalue references or move semantics.</para>
+              </notes>
+            </method>
+            <method name="insert">
+              <parameter name="obj">
+                <paramtype>value_type const&amp;</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Inserts obj in the container.</para>
+              </description>
+              <returns>
+                <para>An iterator pointing to the inserted element.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+              </notes>
+            </method>
+            <method name="insert">
+              <parameter name="hint">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <parameter name="obj">
+                <paramtype>value_type const&amp;</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Inserts obj in the container.</para>
+                <para>hint is a suggestion to where the element should be inserted.</para>
+              </description>
+              <returns>
+                <para>An iterator pointing to the inserted element.</para>
+              </returns>
+              <throws>
+                <para>If an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>The standard is fairly vague on the meaning of the hint. But the only practical way to use it, and the only way that Boost.Unordered supports is to point to an existing element with the same key. </para>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+              </notes>
+            </method>
+            <method name="insert">
+              <template>
+                <template-type-parameter name="InputIterator">
+                </template-type-parameter>
+              </template>
+              <parameter name="first">
+                <paramtype>InputIterator</paramtype>
+              </parameter>
+              <parameter name="last">
+                <paramtype>InputIterator</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Inserts a range of elements into the container.</para>
+              </description>
+              <throws>
+                <para>When inserting a single element, if an exception is thrown by an operation other than a call to <code>hasher</code> the function has no effect.</para>
+              </throws>
+              <notes>
+                <para>Can invalidate iterators, but only if the insert causes the load factor to be greater to or equal to the maximum load factor.</para>
+                <para>Pointers and references to elements are never invalidated.</para>
+              </notes>
+            </method>
+            <method name="erase">
+              <parameter name="position">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Erase the element pointed to by <code>position</code>.</para>
+              </description>
+              <returns>
+                <para>The iterator following <code>position</code> before the erasure.</para>
+              </returns>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+              <notes>
+                <para>
+                  When the number of elements is a lot smaller than the number of buckets
+                  this function can be very inefficient as it has to search through empty
+                  buckets for the next element, in order to return the iterator.
+                  The method <methodname>quick_erase</methodname> is faster, but has yet
+                  to be standardized.
+                </para>
+              </notes>
+            </method>
+            <method name="erase">
+              <parameter name="k">
+                <paramtype>key_type const&amp;</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <description>
+                <para>Erase all elements with key equivalent to <code>k</code>.</para>
+              </description>
+              <returns>
+                <para>The number of elements erased.</para>
+              </returns>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+              </throws>
+            </method>
+            <method name="erase">
+              <parameter name="first">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <parameter name="last">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>iterator</type>
+              <description>
+                <para>Erases the elements in the range from <code>first</code> to <code>last</code>.</para>
+              </description>
+              <returns>
+                <para>The iterator following the erased elements - i.e. <code>last</code>.</para>
+              </returns>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+            </method>
+            <method name="quick_erase">
+              <parameter name="position">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Erase the element pointed to by <code>position</code>.</para>
+              </description>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+              <notes>
+                <para>
+                  This method is faster than <methodname>erase</methodname> as
+                  it doesn't have to find the next element in the container -
+                  a potentially costly operation.
+                </para>
+                <para>
+                  As it hasn't been standardized, it's likely that this may
+                  change in the future.
+                </para>
+              </notes>
+            </method>
+            <method name="erase_return_void">
+              <parameter name="position">
+                <paramtype>const_iterator</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Erase the element pointed to by <code>position</code>.</para>
+              </description>
+              <throws>
+                <para>Only throws an exception if it is thrown by <code>hasher</code> or <code>key_equal</code>.</para>
+                <para>In this implementation, this overload doesn't call either function object's methods so it is no throw, but this might not be true in other implementations.</para>
+              </throws>
+              <notes>
+                <para>
+                  This method is now deprecated, use
+                  <methodname>quick_return</methodname> instead. Although be
+                  warned that as that isn't standardized yet, it could also
+                  change.
+                </para>
+              </notes>
+            </method>
+            <method name="clear">
+              <type>void</type>
+              <description>
+                <para>Erases all elements in the container.</para>
+              </description>
+              <postconditions>
+                <para><code><methodname>size</methodname>() == 0</code></para>
+              </postconditions>
+              <throws>
+                <para>Never throws an exception.</para>
+              </throws>
+            </method>
+            <method name="swap">
+              <parameter>
+                <paramtype>unordered_multimap&amp;</paramtype>
+              </parameter>
+              <type>void</type>
+              <throws>
+                <para>If the allocators are equal, doesn't throw an exception unless it is thrown by the copy constructor or copy assignment operator of <code>key_equal</code> or <code>hasher</code>.</para>
+              </throws>
+              <notes>
+                <para>For a discussion of the behavior when allocators aren't equal see
+                  <link linkend="unordered.rationale.swapping_containers_with_unequal_allocators">the implementation details</link>.</para>
+              </notes>
+            </method>
+          </method-group>
+          <method-group name="observers">
+            <method name="hash_function" cv="const">
+              <type>hasher</type>
+              <returns>The container's hash function.
+              </returns>
+            </method>
+            <method name="key_eq" cv="const">
+              <type>key_equal</type>
+              <returns>The container's key equality predicate.
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="lookup">
+            <overloaded-method name="find">
+              <signature>
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>iterator</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>const_iterator</type>
+              </signature>
+              <signature>
+                <template>
+                  <template-type-parameter name="CompatibleKey"/>
+                  <template-type-parameter name="CompatibleHash"/>
+                  <template-type-parameter name="CompatiblePredicate"/>
+                </template>
+                <parameter name="k">
+                  <paramtype>CompatibleKey const&amp;</paramtype>
+                </parameter>
+                <parameter name="hash">
+                  <paramtype>CompatibleHash const&amp;</paramtype>
+                </parameter>
+                <parameter name="eq">
+                  <paramtype>CompatiblePredicate const&amp;</paramtype>
+                </parameter>
+                <type>iterator</type>
+              </signature>
+              <signature cv="const">
+                <template>
+                  <template-type-parameter name="CompatibleKey"/>
+                  <template-type-parameter name="CompatibleHash"/>
+                  <template-type-parameter name="CompatiblePredicate"/>
+                </template>
+                <parameter name="k">
+                  <paramtype>CompatibleKey const&amp;</paramtype>
+                </parameter>
+                <parameter name="hash">
+                  <paramtype>CompatibleHash const&amp;</paramtype>
+                </parameter>
+                <parameter name="eq">
+                  <paramtype>CompatiblePredicate const&amp;</paramtype>
+                </parameter>
+                <type>const_iterator</type>
+              </signature>
+              <returns>
+                <para>An iterator pointing to an element with key equivalent to <code>k</code>, or <code>b.end()</code> if no such element exists.</para>
+              </returns>
+              <notes><para>
+                The templated overloads are a non-standard extensions which
+                allows you to use a compatible hash function and equality
+                predicate for a key of a different type in order to avoid
+                an expensive type cast. In general, its use is not encouraged.
+              </para></notes>
+            </overloaded-method>
+            <method name="count" cv="const">
+              <parameter name="k">
+                <paramtype>key_type const&amp;</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <returns>
+                <para>The number of elements with key equivalent to <code>k</code>.</para>
+              </returns>
+            </method>
+            <overloaded-method name="equal_range">
+              <signature>
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>std::pair&lt;iterator, iterator&gt;</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="k">
+                  <paramtype>key_type const&amp;</paramtype>
+                </parameter>
+                <type>std::pair&lt;const_iterator, const_iterator&gt;</type>
+              </signature>
+              <returns>
+                <para>A range containing all elements with key equivalent to <code>k</code>.
+                  If the container doesn't container any such elements, returns
+                  <code><functionname>std::make_pair</functionname>(<methodname>b.end</methodname>(),<methodname>b.end</methodname>())</code>.
+                  </para>
+              </returns>
+            </overloaded-method>
+          </method-group>
+          <method-group name="bucket interface">
+            <method name="bucket_count" cv="const">
+              <type>size_type</type>
+              <returns>
+                <para>The number of buckets.</para>
+              </returns>
+            </method>
+            <method name="max_bucket_count" cv="const">
+              <type>size_type</type>
+              <returns>
+                <para>An upper bound on the number of buckets.</para>
+              </returns>
+            </method>
+            <method name="bucket_size" cv="const">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <requires>
+                <para><code>n &lt; <methodname>bucket_count</methodname>()</code></para>
+              </requires>
+              <returns>
+                <para>The number of elements in bucket <code>n</code>.</para>
+              </returns>
+            </method>
+            <method name="bucket" cv="const">
+              <parameter name="k">
+                <paramtype>key_type const&amp;</paramtype>
+              </parameter>
+              <type>size_type</type>
+              <returns>
+                <para>The index of the bucket which would contain an element with key <code>k</code>.</para>
+              </returns>
+              <postconditions>
+                <para>The return value is less than <code>bucket_count()</code></para>
+              </postconditions>
+            </method>
+            <overloaded-method name="begin">
+              <signature>
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>local_iterator</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>const_local_iterator</type>
+              </signature>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A local iterator pointing the first element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </overloaded-method>
+            <overloaded-method name="end">
+              <signature>
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>local_iterator</type>
+              </signature>
+              <signature cv="const">
+                <parameter name="n">
+                  <paramtype>size_type</paramtype>
+                </parameter>
+                <type>const_local_iterator</type>
+              </signature>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A local iterator pointing the 'one past the end' element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </overloaded-method>
+            <method name="cbegin" cv="const">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>const_local_iterator</type>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A constant local iterator pointing the first element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </method>
+            <method name="cend">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>const_local_iterator</type>
+              <requires>
+                <para><code>n</code> shall be in the range <code>[0, bucket_count())</code>.</para>
+              </requires>
+              <returns>
+                <para>A constant local iterator pointing the 'one past the end' element in the bucket with index <code>n</code>.</para>
+              </returns>
+            </method>
+          </method-group>
+          <method-group name="hash policy">
+            <method name="load_factor" cv="const">
+              <type>float</type>
+              <returns>
+                <para>The average number of elements per bucket.</para>
+              </returns>
+            </method>
+            <method name="max_load_factor" cv="const">
+              <type>float</type>
+              <returns>
+                <para>Returns the current maximum load factor.</para>
+              </returns>
+            </method>
+            <method name="max_load_factor">
+              <parameter name="z">
+                <paramtype>float</paramtype>
+              </parameter>
+              <type>void</type>
+              <effects>
+                <para>Changes the container's maximum load factor, using <code>z</code> as a hint.</para>
+              </effects>
+            </method>
+            <method name="rehash">
+              <parameter name="n">
+                <paramtype>size_type</paramtype>
+              </parameter>
+              <type>void</type>
+              <description>
+                <para>Changes the number of buckets so that there at least <code>n</code> buckets, and so that the load factor is less than the maximum load factor.</para>
+                <para>Invalidates iterators, and changes the order of elements. Pointers and references to elements are not invalidated.</para>
+              </description>
+              <throws>
+                <para>The function has no effect if an exception is thrown, unless it is thrown by the container's hash function or comparison function.</para>
+              </throws>
+            </method>
+          </method-group>
+          <free-function-group name="Equality Comparisons">
+            <function name="operator==">
+              <template>
+                <template-type-parameter name="Key">
+                </template-type-parameter>
+                <template-type-parameter name="Mapped">
+                </template-type-parameter>
+                <template-type-parameter name="Hash">
+                </template-type-parameter>
+                <template-type-parameter name="Pred">
+                </template-type-parameter>
+                <template-type-parameter name="Alloc">
+                </template-type-parameter>
+              </template>
+              <parameter name="x">
+                <paramtype>unordered_multimap&lt;Key, Mapped, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>unordered_multimap&lt;Key, Mapped, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <type>bool</type>
+              <notes>
+                <para>This is a boost extension.</para>
+                <para>Behavior is undefined if the two containers don't have
+                    equivalent equality predicates.</para>
+              </notes>
+            </function>
+            <function name="operator!=">
+              <template>
+                <template-type-parameter name="Key">
+                </template-type-parameter>
+                <template-type-parameter name="Mapped">
+                </template-type-parameter>
+                <template-type-parameter name="Hash">
+                </template-type-parameter>
+                <template-type-parameter name="Pred">
+                </template-type-parameter>
+                <template-type-parameter name="Alloc">
+                </template-type-parameter>
+              </template>
+              <parameter name="x">
+                <paramtype>unordered_multimap&lt;Key, Mapped, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>unordered_multimap&lt;Key, Mapped, Hash, Pred, Alloc&gt; const&amp;</paramtype>
+              </parameter>
+              <type>bool</type>
+              <notes>
+                <para>This is a boost extension.</para>
+                <para>Behavior is undefined if the two containers don't have
+                    equivalent equality predicates.</para>
+              </notes>
+            </function>
+          </free-function-group>
+          <free-function-group name="swap">
+            <function name="swap">
+              <template>
+                <template-type-parameter name="Key">
+                </template-type-parameter>
+                <template-type-parameter name="Mapped">
+                </template-type-parameter>
+                <template-type-parameter name="Hash">
+                </template-type-parameter>
+                <template-type-parameter name="Pred">
+                </template-type-parameter>
+                <template-type-parameter name="Alloc">
+                </template-type-parameter>
+              </template>
+              <parameter name="x">
+                <paramtype>unordered_multimap&lt;Key, Mapped, Hash, Pred, Alloc&gt;&amp;</paramtype>
+              </parameter>
+              <parameter name="y">
+                <paramtype>unordered_multimap&lt;Key, Mapped, Hash, Pred, Alloc&gt;&amp;</paramtype>
+              </parameter>
+              <type>void</type>
+              <effects>
+                <para><code>x.swap(y)</code></para>
+              </effects>
+              <throws>
+                <para>If the allocators are equal, doesn't throw an exception unless it is thrown by the copy constructor or copy assignment operator of <code>Hash</code> or <code>Pred</code>.</para>
+              </throws>
+              <notes>
+                <para>For a discussion of the behavior when allocators aren't equal see
+                  <link linkend="unordered.rationale.swapping_containers_with_unequal_allocators">the implementation details</link>.</para>
+              </notes>
+            </function>
+          </free-function-group>
+        </class>
+      </namespace>
+    </header>
+  </library-reference>

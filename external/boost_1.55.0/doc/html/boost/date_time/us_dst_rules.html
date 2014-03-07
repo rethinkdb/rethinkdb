@@ -1,0 +1,87 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template us_dst_rules</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.dst_rules_hpp" title="Header &lt;boost/date_time/dst_rules.hpp&gt;">
+<link rel="prev" href="dst_calc_engine.html" title="Class template dst_calc_engine">
+<link rel="next" href="null_dst_rules.html" title="Class template null_dst_rules">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="dst_calc_engine.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.dst_rules_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="null_dst_rules.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.us_dst_rules"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template us_dst_rules</span></h2>
+<p>boost::date_time::us_dst_rules &#8212; Depricated: Class to calculate dst boundaries for US time zones. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.dst_rules_hpp" title="Header &lt;boost/date_time/dst_rules.hpp&gt;">boost/date_time/dst_rules.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> date_type_<span class="special">,</span> <span class="keyword">typename</span> time_duration_type_<span class="special">,</span> 
+         <span class="keyword">unsigned</span> <span class="keyword">int</span> dst_start_offset_minutes <span class="special">=</span> <span class="number">120</span><span class="special">,</span> 
+         <span class="keyword">short</span> dst_length_minutes <span class="special">=</span> <span class="number">60</span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="us_dst_rules.html" title="Class template us_dst_rules">us_dst_rules</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">time_duration_type_</span>                             <a name="boost.date_time.us_dst_rules.time_duration_type"></a><span class="identifier">time_duration_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">date_type_</span>                                      <a name="boost.date_time.us_dst_rules.date_type"></a><span class="identifier">date_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">date_type</span><span class="special">::</span><span class="identifier">year_type</span>                            <a name="boost.date_time.us_dst_rules.year_type"></a><span class="identifier">year_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">date_type</span><span class="special">::</span><span class="identifier">calendar_type</span>                        <a name="boost.date_time.us_dst_rules.calendar_type"></a><span class="identifier">calendar_type</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <a class="link" href="last_kday_of_month.html" title="Class template last_kday_of_month">date_time::last_kday_of_month</a><span class="special">&lt;</span> <span class="identifier">date_type</span> <span class="special">&gt;</span>      <a name="boost.date_time.us_dst_rules.lkday"></a><span class="identifier">lkday</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <a class="link" href="first_kday_of_month.html" title="Class template first_kday_of_month">date_time::first_kday_of_month</a><span class="special">&lt;</span> <span class="identifier">date_type</span> <span class="special">&gt;</span>     <a name="boost.date_time.us_dst_rules.fkday"></a><span class="identifier">fkday</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <a class="link" href="nth_kday_of_month.html" title="Class template nth_kday_of_month">date_time::nth_kday_of_month</a><span class="special">&lt;</span> <span class="identifier">date_type</span> <span class="special">&gt;</span>       <a name="boost.date_time.us_dst_rules.nkday"></a><span class="identifier">nkday</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <a class="link" href="dst_calculator.html" title="Class template dst_calculator">dst_calculator</a><span class="special">&lt;</span> <span class="identifier">date_type</span><span class="special">,</span> <span class="identifier">time_duration_type</span> <span class="special">&gt;</span> <a name="boost.date_time.us_dst_rules.dstcalc"></a><span class="identifier">dstcalc</span><span class="special">;</span>           
+
+  <span class="comment">// <a class="link" href="us_dst_rules.html#idp52251304-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">time_is_dst_result</span> 
+  <a class="link" href="us_dst_rules.html#idp20177432-bb"><span class="identifier">local_is_dst</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="us_dst_rules.html#idp19093272-bb"><span class="identifier">is_dst_boundary_day</span></a><span class="special">(</span><span class="identifier">date_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">date_type</span> <a class="link" href="us_dst_rules.html#idp35027592-bb"><span class="identifier">local_dst_start_day</span></a><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">date_type</span> <a class="link" href="us_dst_rules.html#idp35028392-bb"><span class="identifier">local_dst_end_day</span></a><span class="special">(</span><span class="identifier">year_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">time_duration_type</span> <a class="link" href="us_dst_rules.html#idp20849208-bb"><span class="identifier">dst_offset</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp86548040"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp86548248"></a><h3>
+<a name="idp52251304-bb"></a><code class="computeroutput">us_dst_rules</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">time_is_dst_result</span> 
+<a name="idp20177432-bb"></a><span class="identifier">local_is_dst</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">date_type</span> <span class="special">&amp;</span> d<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">time_duration_type</span> <span class="special">&amp;</span> td<span class="special">)</span><span class="special">;</span></pre>Calculates if the given local time is dst or not. <p>Determines if the time is really in DST or not. Also checks for invalid and ambiguous. 
+</p>
+</li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="idp19093272-bb"></a><span class="identifier">is_dst_boundary_day</span><span class="special">(</span><span class="identifier">date_type</span> d<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">date_type</span> <a name="idp35027592-bb"></a><span class="identifier">local_dst_start_day</span><span class="special">(</span><span class="identifier">year_type</span> year<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">date_type</span> <a name="idp35028392-bb"></a><span class="identifier">local_dst_end_day</span><span class="special">(</span><span class="identifier">year_type</span> year<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">time_duration_type</span> <a name="idp20849208-bb"></a><span class="identifier">dst_offset</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="dst_calc_engine.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.dst_rules_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="null_dst_rules.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

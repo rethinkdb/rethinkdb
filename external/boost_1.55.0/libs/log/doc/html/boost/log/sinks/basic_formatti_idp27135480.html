@@ -1,0 +1,151 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template basic_formatting_sink_frontend</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../sinks.html#header.boost.log.sinks.basic_sink_frontend_hpp" title="Header &lt;boost/log/sinks/basic_sink_frontend.hpp&gt;">
+<link rel="prev" href="basic_sink_frontend.html" title="Class basic_sink_frontend">
+<link rel="next" href="basic_formatti_idp27135480/formatting_context.html" title="Struct formatting_context">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_sink_frontend.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../sinks.html#header.boost.log.sinks.basic_sink_frontend_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_formatti_idp27135480/formatting_context.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.sinks.basic_formatti_idp27135480"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template basic_formatting_sink_frontend</span></h2>
+<p>boost::log::sinks::basic_formatting_sink_frontend &#8212; A base class for a logging sink frontend with formatting support. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../sinks.html#header.boost.log.sinks.basic_sink_frontend_hpp" title="Header &lt;boost/log/sinks/basic_sink_frontend.hpp&gt;">boost/log/sinks/basic_sink_frontend.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="basic_formatti_idp27135480.html" title="Class template basic_formatting_sink_frontend">basic_formatting_sink_frontend</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">basic_sink_frontend</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">CharT</span>                          <a name="boost.log.sinks.basic_formatti_idp27135480.char_type"></a><span class="identifier">char_type</span><span class="special">;</span>       <span class="comment">// Character type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">char_type</span> <span class="special">&gt;</span> <a name="boost.log.sinks.basic_formatti_idp27135480.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>     <span class="comment">// Formatted string type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">basic_formatter</span><span class="special">&lt;</span> <span class="identifier">char_type</span> <span class="special">&gt;</span>   <a name="boost.log.sinks.basic_formatti_idp27135480.formatter_type"></a><span class="identifier">formatter_type</span><span class="special">;</span>  <span class="comment">// Formatter function object type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">formatter_type</span><span class="special">::</span><span class="identifier">stream_type</span>    <a name="boost.log.sinks.basic_formatti_idp27135480.stream_type"></a><span class="identifier">stream_type</span><span class="special">;</span>     <span class="comment">// Output stream type. </span>
+
+  <span class="comment">// member classes/structs/unions</span>
+
+  <span class="keyword">struct</span> <a class="link" href="basic_formatti_idp27135480/formatting_context.html" title="Struct formatting_context">formatting_context</a> <span class="special">{</span>
+    <span class="comment">// <a class="link" href="basic_formatti_idp27135480/formatting_context.html#boost.log.sinks.basic_formatti_idp27135480.formatting_contextconstruct-copy-destruct">construct/copy/destruct</a></span>
+    <a class="link" href="basic_formatti_idp27135480/formatting_context.html#idp27139048-bb"><span class="identifier">formatting_context</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+    <a class="link" href="basic_formatti_idp27135480/formatting_context.html#idp27139112-bb"><span class="identifier">formatting_context</span></a><span class="special">(</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                       <span class="identifier">formatter_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+    <span class="comment">// public data members</span>
+    <span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">m_Version</span><span class="special">;</span>    <span class="comment">// Object version. </span>
+    <span class="identifier">string_type</span> <span class="identifier">m_FormattedRecord</span><span class="special">;</span>    <span class="comment">// Formatted log record storage. </span>
+    <span class="identifier">stream_type</span> <span class="identifier">m_FormattingStream</span><span class="special">;</span>    <span class="comment">// Formatting stream. </span>
+    <span class="identifier">formatter_type</span> <span class="identifier">m_Formatter</span><span class="special">;</span>    <span class="comment">// Formatter functor. </span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="basic_formatti_idp27135480.html#boost.log.sinks.basic_formatti_idp27135480construct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="basic_formatti_idp27135480.html#idp27146424-bb"><span class="identifier">basic_formatting_sink_frontend</span></a><span class="special">(</span><span class="keyword">bool</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="basic_formatti_idp27135480.html#idp27142264-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="basic_formatti_idp27135480.html#idp27142472-bb"><span class="identifier">set_formatter</span></a><span class="special">(</span><span class="identifier">FunT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="basic_formatti_idp27135480.html#idp27143944-bb"><span class="identifier">reset_formatter</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span> <a class="link" href="basic_formatti_idp27135480.html#idp27144648-bb"><span class="identifier">getloc</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="basic_formatti_idp27135480.html#idp27145368-bb"><span class="identifier">imbue</span></a><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="basic_formatti_idp27135480.html#idp27147608-bb">protected member functions</a></span>
+  <span class="identifier">formatter_type</span> <span class="special">&amp;</span> <a class="link" href="basic_formatti_idp27135480.html#idp27147816-bb"><span class="identifier">formatter</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BackendMutexT<span class="special">,</span> <span class="keyword">typename</span> BackendT<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="basic_formatti_idp27135480.html#idp27148472-bb"><span class="identifier">feed_record</span></a><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">BackendMutexT</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">BackendT</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BackendMutexT<span class="special">,</span> <span class="keyword">typename</span> BackendT<span class="special">&gt;</span> 
+    <span class="keyword">bool</span> <a class="link" href="basic_formatti_idp27135480.html#idp27150824-bb"><span class="identifier">try_feed_record</span></a><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">BackendMutexT</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">BackendT</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp64101352"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp64101560"></a><h3>
+<a name="boost.log.sinks.basic_formatti_idp27135480construct-copy-destruct"></a><code class="computeroutput">basic_formatting_sink_frontend</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp27146424-bb"></a><span class="identifier">basic_formatting_sink_frontend</span><span class="special">(</span><span class="keyword">bool</span> cross_thread<span class="special">)</span><span class="special">;</span></pre>Initializing constructor. <p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">cross_thread</code></span></p></td>
+<td><p>The flag indicates whether the sink passes log records between different threads </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp64107144"></a><h3>
+<a name="idp27142264-bb"></a><code class="computeroutput">basic_formatting_sink_frontend</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp27142472-bb"></a><span class="identifier">set_formatter</span><span class="special">(</span><span class="identifier">FunT</span> <span class="keyword">const</span> <span class="special">&amp;</span> formatter<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets sink-specific formatter function object </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27143944-bb"></a><span class="identifier">reset_formatter</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method resets the formatter </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span> <a name="idp27144648-bb"></a><span class="identifier">getloc</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method returns the current locale used for formatting </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27145368-bb"></a><span class="identifier">imbue</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">locale</span> <span class="keyword">const</span> <span class="special">&amp;</span> loc<span class="special">)</span><span class="special">;</span></pre>
+<p>The method sets the locale used for formatting </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp64121832"></a><h3>
+<a name="idp27147608-bb"></a><code class="computeroutput">basic_formatting_sink_frontend</code> protected member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">formatter_type</span> <span class="special">&amp;</span> <a name="idp27147816-bb"></a><span class="identifier">formatter</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Returns reference to the formatter. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BackendMutexT<span class="special">,</span> <span class="keyword">typename</span> BackendT<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27148472-bb"></a><span class="identifier">feed_record</span><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span> rec<span class="special">,</span> <span class="identifier">BackendMutexT</span> <span class="special">&amp;</span> backend_mutex<span class="special">,</span> 
+                   <span class="identifier">BackendT</span> <span class="special">&amp;</span> backend<span class="special">)</span><span class="special">;</span></pre>Feeds log record to the backend. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> BackendMutexT<span class="special">,</span> <span class="keyword">typename</span> BackendT<span class="special">&gt;</span> 
+  <span class="keyword">bool</span> <a name="idp27150824-bb"></a><span class="identifier">try_feed_record</span><span class="special">(</span><span class="identifier">record_view</span> <span class="keyword">const</span> <span class="special">&amp;</span> rec<span class="special">,</span> <span class="identifier">BackendMutexT</span> <span class="special">&amp;</span> backend_mutex<span class="special">,</span> 
+                       <span class="identifier">BackendT</span> <span class="special">&amp;</span> backend<span class="special">)</span><span class="special">;</span></pre>Attempts to feeds log record to the backend, does not block if <span class="emphasis"><em>backend_mutex</em></span> is locked. </li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="basic_sink_frontend.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../sinks.html#header.boost.log.sinks.basic_sink_frontend_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_formatti_idp27135480/formatting_context.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

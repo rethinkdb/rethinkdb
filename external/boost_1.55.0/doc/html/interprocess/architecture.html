@@ -1,0 +1,717 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Architecture and internals</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../interprocess.html" title="Chapter&#160;14.&#160;Boost.Interprocess">
+<link rel="prev" href="interprocess_smart_ptr.html" title="Ownership smart pointers">
+<link rel="next" href="customizing_interprocess.html" title="Customizing Boost.Interprocess">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="interprocess_smart_ptr.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="customizing_interprocess.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="interprocess.architecture"></a><a class="link" href="architecture.html" title="Architecture and internals">Architecture and internals</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="architecture.html#interprocess.architecture.basic_guidelines">Basic guidelines</a></span></dt>
+<dt><span class="section"><a href="architecture.html#interprocess.architecture.architecture_algorithm_to_managed">From
+      the memory algorithm to the managed segment</a></span></dt>
+<dt><span class="section"><a href="architecture.html#interprocess.architecture.allocators_containers">Allocators
+      and containers</a></span></dt>
+<dt><span class="section"><a href="architecture.html#interprocess.architecture.performance">Performance of
+      Boost.Interprocess</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.architecture.basic_guidelines"></a><a class="link" href="architecture.html#interprocess.architecture.basic_guidelines" title="Basic guidelines">Basic guidelines</a>
+</h3></div></div></div>
+<p>
+        When building <span class="bold"><strong>Boost.Interprocess</strong></span> architecture,
+        I took some basic guidelines that can be summarized by these points:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong>Boost.Interprocess</strong></span> should be portable
+            at least in UNIX and Windows systems. That means unifying not only interfaces
+            but also behaviour. This is why <span class="bold"><strong>Boost.Interprocess</strong></span>
+            has chosen kernel or filesystem persistence for shared memory and named
+            synchronization mechanisms. Process persistence for shared memory is
+            also desirable but it's difficult to achieve in UNIX systems.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Boost.Interprocess</strong></span> inter-process synchronization
+            primitives should be equal to thread synchronization primitives. <span class="bold"><strong>Boost.Interprocess</strong></span> aims to have an interface compatible
+            with the C++ standard thread API.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Boost.Interprocess</strong></span> architecture should
+            be modular, customizable but efficient. That's why <span class="bold"><strong>Boost.Interprocess</strong></span>
+            is based on templates and memory algorithms, index types, mutex types
+            and other classes are templatizable.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Boost.Interprocess</strong></span> architecture should
+            allow the same concurrency as thread based programming. Different mutual
+            exclusion levels are defined so that a process can concurrently allocate
+            raw memory when expanding a shared memory vector while another process
+            can be safely searching a named object.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Boost.Interprocess</strong></span> containers know nothing
+            about <span class="bold"><strong>Boost.Interprocess</strong></span>. All specific
+            behaviour is contained in the STL-like allocators. That allows STL vendors
+            to slightly modify (or better said, generalize) their standard container
+            implementations and obtain a fully std::allocator and boost::interprocess::allocator
+            compatible container. This also make <span class="bold"><strong>Boost.Interprocess</strong></span>
+            containers compatible with standard algorithms.
+          </li>
+</ul></div>
+<p>
+        <span class="bold"><strong>Boost.Interprocess</strong></span> is built above 3 basic
+        classes: a <span class="bold"><strong>memory algorithm</strong></span>, a <span class="bold"><strong>segment manager</strong></span> and a <span class="bold"><strong>managed
+        memory segment</strong></span>:
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.architecture.architecture_algorithm_to_managed"></a><a class="link" href="architecture.html#interprocess.architecture.architecture_algorithm_to_managed" title="From the memory algorithm to the managed segment">From
+      the memory algorithm to the managed segment</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="architecture.html#interprocess.architecture.architecture_algorithm_to_managed.architecture_memory_algorithm">The
+        memory algorithm</a></span></dt>
+<dt><span class="section"><a href="architecture.html#interprocess.architecture.architecture_algorithm_to_managed.architecture_segment_manager">The
+        segment manager</a></span></dt>
+<dt><span class="section"><a href="architecture.html#interprocess.architecture.architecture_algorithm_to_managed.architecture_managed_memory">Boost.Interprocess
+        managed memory segments</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.architecture.architecture_algorithm_to_managed.architecture_memory_algorithm"></a><a class="link" href="architecture.html#interprocess.architecture.architecture_algorithm_to_managed.architecture_memory_algorithm" title="The memory algorithm">The
+        memory algorithm</a>
+</h4></div></div></div>
+<p>
+          The <span class="bold"><strong>memory algorithm</strong></span> is an object that
+          is placed in the first bytes of a shared memory/memory mapped file segment.
+          The <span class="bold"><strong>memory algorithm</strong></span> can return portions
+          of that segment to users marking them as used and the user can return those
+          portions to the <span class="bold"><strong>memory algorithm</strong></span> so that
+          the <span class="bold"><strong>memory algorithm</strong></span> mark them as free
+          again. There is an exception though: some bytes beyond the end of the memory
+          algorithm object, are reserved and can't be used for this dynamic allocation.
+          This "reserved" zone will be used to place other additional objects
+          in a well-known place.
+        </p>
+<p>
+          To sum up, a <span class="bold"><strong>memory algorithm</strong></span> has the
+          same mission as malloc/free of standard C library, but it just can return
+          portions of the segment where it is placed. The layout of a memory segment
+          would be:
+        </p>
+<pre class="programlisting"><span class="identifier">Layout</span> <span class="identifier">of</span> <span class="identifier">the</span> <span class="identifier">memory</span> <span class="identifier">segment</span><span class="special">:</span>
+ <span class="identifier">____________</span> <span class="identifier">__________</span> <span class="identifier">____________________________________________</span>
+<span class="special">|</span>            <span class="special">|</span>          <span class="special">|</span>                                            <span class="special">|</span>
+<span class="special">|</span>   <span class="identifier">memory</span>   <span class="special">|</span> <span class="identifier">reserved</span> <span class="special">|</span>  <span class="identifier">The</span> <span class="identifier">memory</span> <span class="identifier">algorithm</span> <span class="identifier">will</span> <span class="keyword">return</span> <span class="identifier">portions</span> <span class="special">|</span>
+<span class="special">|</span> <span class="identifier">algorithm</span>  <span class="special">|</span>          <span class="special">|</span>  <span class="identifier">of</span> <span class="identifier">the</span> <span class="identifier">rest</span> <span class="identifier">of</span> <span class="identifier">the</span> <span class="identifier">segment</span><span class="special">.</span>               <span class="special">|</span>
+<span class="special">|</span><span class="identifier">____________</span><span class="special">|</span><span class="identifier">__________</span><span class="special">|</span><span class="identifier">____________________________________________</span><span class="special">|</span>
+</pre>
+<p>
+          The <span class="bold"><strong>memory algorithm</strong></span> takes care of memory
+          synchronizations, just like malloc/free guarantees that two threads can
+          call malloc/free at the same time. This is usually achieved placing a process-shared
+          mutex as a member of the memory algorithm. Take in care that the memory
+          algorithm knows <span class="bold"><strong>nothing</strong></span> about the segment
+          (if it is shared memory, a shared memory file, etc.). For the memory algorithm
+          the segment is just a fixed size memory buffer.
+        </p>
+<p>
+          The <span class="bold"><strong>memory algorithm</strong></span> is also a configuration
+          point for the rest of the <span class="bold"><strong>Boost.Interprocess</strong></span>
+          framework since it defines two basic types as member typedefs:
+        </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="comment">/*implementation dependent*/</span> <span class="identifier">void_pointer</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="comment">/*implementation dependent*/</span> <span class="identifier">mutex_family</span><span class="special">;</span>
+</pre>
+<p>
+          The <code class="computeroutput"><span class="identifier">void_pointer</span></code> typedef
+          defines the pointer type that will be used in the <span class="bold"><strong>Boost.Interprocess</strong></span>
+          framework (segment manager, allocators, containers). If the memory algorithm
+          is ready to be placed in a shared memory/mapped file mapped in different
+          base addresses, this pointer type will be defined as <code class="computeroutput"><span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span></code> or a similar relative pointer. If the
+          <span class="bold"><strong>memory algorithm</strong></span> will be used just with
+          fixed address mapping, <code class="computeroutput"><span class="identifier">void_pointer</span></code>
+          can be defined as <code class="computeroutput"><span class="keyword">void</span><span class="special">*</span></code>.
+        </p>
+<p>
+          The rest of the interface of a <span class="bold"><strong>Boost.Interprocess</strong></span>
+          <span class="bold"><strong>memory algorithm</strong></span> is described in <a class="link" href="customizing_interprocess.html#interprocess.customizing_interprocess.custom_interprocess_alloc" title="Writing a new shared memory allocation algorithm">Writing
+          a new shared memory allocation algorithm</a> section. As memory algorithm
+          examples, you can see the implementations <code class="computeroutput"><a class="link" href="../boost/interprocess/simple_seq_fit.html" title="Class template simple_seq_fit">simple_seq_fit</a></code>
+          or <code class="computeroutput"><a class="link" href="../boost/interprocess/rbtree_best_fit.html" title="Class template rbtree_best_fit">rbtree_best_fit</a></code>
+          classes.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.architecture.architecture_algorithm_to_managed.architecture_segment_manager"></a><a class="link" href="architecture.html#interprocess.architecture.architecture_algorithm_to_managed.architecture_segment_manager" title="The segment manager">The
+        segment manager</a>
+</h4></div></div></div>
+<p>
+          The <span class="bold"><strong>segment manager</strong></span>, is an object also
+          placed in the first bytes of the managed memory segment (shared memory,
+          memory mapped file), that offers more sophisticated services built above
+          the <span class="bold"><strong>memory algorithm</strong></span>. How can <span class="bold"><strong>both</strong></span> the segment manager and memory algorithm be
+          placed in the beginning of the segment? That's because the segment manager
+          <span class="bold"><strong>owns</strong></span> the memory algorithm: The truth is
+          that the memory algorithm is <span class="bold"><strong>embedded</strong></span>
+          in the segment manager:
+        </p>
+<pre class="programlisting"><span class="identifier">The</span> <span class="identifier">layout</span> <span class="identifier">of</span> <span class="identifier">managed</span> <span class="identifier">memory</span> <span class="identifier">segment</span><span class="special">:</span>
+ <span class="identifier">_______</span> <span class="identifier">_________________</span>
+<span class="special">|</span>       <span class="special">|</span>         <span class="special">|</span>       <span class="special">|</span>
+<span class="special">|</span> <span class="identifier">some</span>  <span class="special">|</span> <span class="identifier">memory</span>  <span class="special">|</span> <span class="identifier">other</span> <span class="special">|&lt;-</span> <span class="identifier">The</span> <span class="identifier">memory</span> <span class="identifier">algorithm</span> <span class="identifier">considers</span>
+<span class="special">|</span><span class="identifier">members</span><span class="special">|</span><span class="identifier">algorithm</span><span class="special">|</span><span class="identifier">members</span><span class="special">|</span>   <span class="string">"other members"</span> <span class="identifier">as</span> <span class="identifier">reserved</span> <span class="identifier">memory</span><span class="special">,</span> <span class="identifier">so</span>
+<span class="special">|</span><span class="identifier">_______</span><span class="special">|</span><span class="identifier">_________</span><span class="special">|</span><span class="identifier">_______</span><span class="special">|</span>   <span class="identifier">it</span> <span class="identifier">does</span> <span class="keyword">not</span> <span class="identifier">use</span> <span class="identifier">it</span> <span class="keyword">for</span> <span class="identifier">dynamic</span> <span class="identifier">allocation</span><span class="special">.</span>
+<span class="special">|</span><span class="identifier">_________________________</span><span class="special">|</span><span class="identifier">____________________________________________</span>
+<span class="special">|</span>                         <span class="special">|</span>                                            <span class="special">|</span>
+<span class="special">|</span>    <span class="identifier">segment</span> <span class="identifier">manager</span>      <span class="special">|</span>  <span class="identifier">The</span> <span class="identifier">memory</span> <span class="identifier">algorithm</span> <span class="identifier">will</span> <span class="keyword">return</span> <span class="identifier">portions</span> <span class="special">|</span>
+<span class="special">|</span>                         <span class="special">|</span>  <span class="identifier">of</span> <span class="identifier">the</span> <span class="identifier">rest</span> <span class="identifier">of</span> <span class="identifier">the</span> <span class="identifier">segment</span><span class="special">.</span>               <span class="special">|</span>
+<span class="special">|</span><span class="identifier">_________________________</span><span class="special">|</span><span class="identifier">____________________________________________</span><span class="special">|</span>
+</pre>
+<p>
+          The <span class="bold"><strong>segment manager</strong></span> initializes the memory
+          algorithm and tells the memory manager that it should not use the memory
+          where the rest of the <span class="bold"><strong>segment manager</strong></span>'s
+          member are placed for dynamic allocations. The other members of the <span class="bold"><strong>segment manager</strong></span> are <span class="bold"><strong>a recursive
+          mutex</strong></span> (defined by the memory algorithm's <span class="bold"><strong>mutex_family::recursive_mutex</strong></span>
+          typedef member), and <span class="bold"><strong>two indexes (maps)</strong></span>:
+          one to implement named allocations, and another one to implement "unique
+          instance" allocations.
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              The first index is a map with a pointer to a c-string (the name of
+              the named object) as a key and a structure with information of the
+              dynamically allocated object (the most important being the address
+              and the size of the object).
+            </li>
+<li class="listitem">
+              The second index is used to implement "unique instances"
+              and is basically the same as the first index, but the name of the object
+              comes from a <code class="computeroutput"><span class="keyword">typeid</span><span class="special">(</span><span class="identifier">T</span><span class="special">).</span><span class="identifier">name</span><span class="special">()</span></code>
+              operation.
+            </li>
+</ul></div>
+<p>
+          The memory needed to store [name pointer, object information] pairs in
+          the index is allocated also via the <span class="bold"><strong>memory algorithm</strong></span>,
+          so we can tell that internal indexes are just like ordinary user objects
+          built in the segment. The rest of the memory to store the name of the object,
+          the object itself, and meta-data for destruction/deallocation is allocated
+          using the <span class="bold"><strong>memory algorithm</strong></span> in a single
+          <code class="computeroutput"><span class="identifier">allocate</span><span class="special">()</span></code>
+          call.
+        </p>
+<p>
+          As seen, the <span class="bold"><strong>segment manager</strong></span> knows <span class="bold"><strong>nothing</strong></span> about shared memory/memory mapped files.
+          The <span class="bold"><strong>segment manager</strong></span> itself does not allocate
+          portions of the segment, it just asks the <span class="bold"><strong>memory
+          algorithm</strong></span> to allocate the needed memory from the rest of the
+          segment. The <span class="bold"><strong>segment manager</strong></span> is a class
+          built above the memory algorithm that offers named object construction,
+          unique instance constructions, and many other services.
+        </p>
+<p>
+          The <span class="bold"><strong>segment manager</strong></span> is implemented in
+          <span class="bold"><strong>Boost.Interprocess</strong></span> by the <code class="computeroutput"><a class="link" href="../boost/interprocess/segment_manager.html" title="Class template segment_manager">segment_manager</a></code>
+          class.
+        </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">CharType</span>
+        <span class="special">,</span><span class="keyword">class</span> <span class="identifier">MemoryAlgorithm</span>
+        <span class="special">,</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">IndexConfig</span><span class="special">&gt;</span> <span class="keyword">class</span> <span class="identifier">IndexType</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">segment_manager</span><span class="special">;</span>
+</pre>
+<p>
+          As seen, the segment manager is quite generic: we can specify the character
+          type to be used to identify named objects, we can specify the memory algorithm
+          that will control dynamically the portions of the memory segment, and we
+          can specify also the index type that will store the [name pointer, object
+          information] mapping. We can construct our own index types as explained
+          in <a class="link" href="customizing_interprocess.html#interprocess.customizing_interprocess.custom_indexes" title="Building custom indexes">Building
+          custom indexes</a> section.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.architecture.architecture_algorithm_to_managed.architecture_managed_memory"></a><a class="link" href="architecture.html#interprocess.architecture.architecture_algorithm_to_managed.architecture_managed_memory" title="Boost.Interprocess managed memory segments">Boost.Interprocess
+        managed memory segments</a>
+</h4></div></div></div>
+<p>
+          The <span class="bold"><strong>Boost.Interprocess</strong></span> managed memory
+          segments that construct the shared memory/memory mapped file, place there
+          the segment manager and forward the user requests to the segment manager.
+          For example, <code class="computeroutput"><a class="link" href="../boost/interprocess/basic_managed__idp27927368.html" title="Class template basic_managed_shared_memory">basic_managed_shared_memory</a></code>
+          is a <span class="bold"><strong>Boost.Interprocess</strong></span> managed memory
+          segment that works with shared memory. <code class="computeroutput"><a class="link" href="../boost/interprocess/basic_managed_mapped_file.html" title="Class template basic_managed_mapped_file">basic_managed_mapped_file</a></code>
+          works with memory mapped files, etc...
+        </p>
+<p>
+          Basically, the interface of a <span class="bold"><strong>Boost.Interprocess</strong></span>
+          managed memory segment is the same as the <span class="bold"><strong>segment
+          manager</strong></span> but it also offers functions to "open", "create",
+          or "open or create" shared memory/memory-mapped files segments
+          and initialize all needed resources. Managed memory segment classes are
+          not built in shared memory or memory mapped files, they are normal C++
+          classes that store a pointer to the segment manager (which is built in
+          shared memory or memory mapped files).
+        </p>
+<p>
+          Apart from this, managed memory segments offer specific functions: <code class="computeroutput"><span class="identifier">managed_mapped_file</span></code> offers functions
+          to flush memory contents to the file, <code class="computeroutput"><span class="identifier">managed_heap_memory</span></code>
+          offers functions to expand the memory, etc...
+        </p>
+<p>
+          Most of the functions of <span class="bold"><strong>Boost.Interprocess</strong></span>
+          managed memory segments can be shared between all managed memory segments,
+          since many times they just forward the functions to the segment manager.
+          Because of this, in <span class="bold"><strong>Boost.Interprocess</strong></span>
+          all managed memory segments derive from a common class that implements
+          memory-independent (shared memory, memory mapped files) functions: <a href="../../../boost/interprocess/detail/managed_memory_impl.hpp" target="_top">boost::interprocess::ipcdetail::basic_managed_memory_impl</a>
+        </p>
+<p>
+          Deriving from this class, <span class="bold"><strong>Boost.Interprocess</strong></span>
+          implements several managed memory classes, for different memory backends:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <code class="computeroutput"><a class="link" href="../boost/interprocess/basic_managed__idp27927368.html" title="Class template basic_managed_shared_memory">basic_managed_shared_memory</a></code>
+              (for shared memory).
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><a class="link" href="../boost/interprocess/basic_managed_mapped_file.html" title="Class template basic_managed_mapped_file">basic_managed_mapped_file</a></code>
+              (for memory mapped files).
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><a class="link" href="../boost/interprocess/basic_managed_heap_memory.html" title="Class template basic_managed_heap_memory">basic_managed_heap_memory</a></code>
+              (for heap allocated memory).
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><a class="link" href="../boost/interprocess/basic_managed__idp27919256.html" title="Class template basic_managed_external_buffer">basic_managed_external_buffer</a></code>
+              (for user provided external buffer).
+            </li>
+</ul></div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.architecture.allocators_containers"></a><a class="link" href="architecture.html#interprocess.architecture.allocators_containers" title="Allocators and containers">Allocators
+      and containers</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="architecture.html#interprocess.architecture.allocators_containers.allocators">Boost.Interprocess
+        allocators</a></span></dt>
+<dt><span class="section"><a href="architecture.html#interprocess.architecture.allocators_containers.implementation_segregated_storage_pools">Implementation
+        of <span class="bold"><strong>Boost.Interprocess</strong></span> segregated storage
+        pools</a></span></dt>
+<dt><span class="section"><a href="architecture.html#interprocess.architecture.allocators_containers.implementation_adaptive_pools">Implementation
+        of <span class="bold"><strong>Boost.Interprocess</strong></span> adaptive pools</a></span></dt>
+<dt><span class="section"><a href="architecture.html#interprocess.architecture.allocators_containers.architecture_containers">Boost.Interprocess
+        containers</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.architecture.allocators_containers.allocators"></a><a class="link" href="architecture.html#interprocess.architecture.allocators_containers.allocators" title="Boost.Interprocess allocators">Boost.Interprocess
+        allocators</a>
+</h4></div></div></div>
+<p>
+          The <span class="bold"><strong>Boost.Interprocess</strong></span> STL-like allocators
+          are fairly simple and follow the usual C++ allocator approach. Normally,
+          allocators for STL containers are based above new/delete operators and
+          above those, they implement pools, arenas and other allocation tricks.
+        </p>
+<p>
+          In <span class="bold"><strong>Boost.Interprocess</strong></span> allocators, the
+          approach is similar, but all allocators are based on the <span class="bold"><strong>segment
+          manager</strong></span>. The segment manager is the only one that provides from
+          simple memory allocation to named object creations. <span class="bold"><strong>Boost.Interprocess</strong></span>
+          allocators always store a pointer to the segment manager, so that they
+          can obtain memory from the segment or share a common pool between allocators.
+        </p>
+<p>
+          As you can imagine, the member pointers of the allocator are not a raw
+          pointers, but pointer types defined by the <code class="computeroutput"><span class="identifier">segment_manager</span><span class="special">::</span><span class="identifier">void_pointer</span></code>
+          type. Apart from this, the <code class="computeroutput"><span class="identifier">pointer</span></code>
+          typedef of <span class="bold"><strong>Boost.Interprocess</strong></span> allocators
+          is also of the same type of <code class="computeroutput"><span class="identifier">segment_manager</span><span class="special">::</span><span class="identifier">void_pointer</span></code>.
+        </p>
+<p>
+          This means that if our allocation algorithm defines <code class="computeroutput"><span class="identifier">void_pointer</span></code>
+          as <code class="computeroutput"><span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span></code>,
+          <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+          will store an <code class="computeroutput"><span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="identifier">segment_manager</span><span class="special">&gt;</span></code> to point to the segment manager and
+          the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">pointer</span></code> type will be <code class="computeroutput"><span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>. This way, <span class="bold"><strong>Boost.Interprocess</strong></span>
+          allocators can be placed in the memory segment managed by the segment manager,
+          that is, shared memory, memory mapped files, etc...
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.architecture.allocators_containers.implementation_segregated_storage_pools"></a><a class="link" href="architecture.html#interprocess.architecture.allocators_containers.implementation_segregated_storage_pools" title="Implementation of Boost.Interprocess segregated storage pools">Implementation
+        of <span class="bold"><strong>Boost.Interprocess</strong></span> segregated storage
+        pools</a>
+</h4></div></div></div>
+<p>
+          Segregated storage pools are simple and follow the classic segregated storage
+          algorithm.
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              The pool allocates chunks of memory using the segment manager's raw
+              memory allocation functions.
+            </li>
+<li class="listitem">
+              The chunk contains a pointer to form a singly linked list of chunks.
+              The pool will contain a pointer to the first chunk.
+            </li>
+<li class="listitem">
+              The rest of the memory of the chunk is divided in nodes of the requested
+              size and no memory is used as payload for each node. Since the memory
+              of a free node is not used that memory is used to place a pointer to
+              form a singly linked list of free nodes. The pool has a pointer to
+              the first free node.
+            </li>
+<li class="listitem">
+              Allocating a node is just taking the first free node from the list.
+              If the list is empty, a new chunk is allocated, linked in the list
+              of chunks and the new free nodes are linked in the free node list.
+            </li>
+<li class="listitem">
+              Deallocation returns the node to the free node list.
+            </li>
+<li class="listitem">
+              When the pool is destroyed, the list of chunks is traversed and memory
+              is returned to the segment manager.
+            </li>
+</ul></div>
+<p>
+          The pool is implemented by the <a href="../../../boost/interprocess/allocators/detail/node_pool.hpp" target="_top">private_node_pool
+          and shared_node_pool</a> classes.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.architecture.allocators_containers.implementation_adaptive_pools"></a><a class="link" href="architecture.html#interprocess.architecture.allocators_containers.implementation_adaptive_pools" title="Implementation of Boost.Interprocess adaptive pools">Implementation
+        of <span class="bold"><strong>Boost.Interprocess</strong></span> adaptive pools</a>
+</h4></div></div></div>
+<p>
+          Adaptive pools are a variation of segregated lists but they have a more
+          complicated approach:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Instead of using raw allocation, the pool allocates <span class="bold"><strong>aligned</strong></span>
+              chunks of memory using the segment manager. This is an <span class="bold"><strong>essential</strong></span>
+              feature since a node can reach its chunk information applying a simple
+              mask to its address.
+            </li>
+<li class="listitem">
+              The chunks contains pointers to form a doubly linked list of chunks
+              and an additional pointer to create a singly linked list of free nodes
+              placed on that chunk. So unlike the segregated storage algorithm, the
+              free list of nodes is implemented <span class="bold"><strong>per chunk</strong></span>.
+            </li>
+<li class="listitem">
+              The pool maintains the chunks in increasing order of free nodes. This
+              improves locality and minimizes the dispersion of node allocations
+              across the chunks facilitating the creation of totally free chunks.
+            </li>
+<li class="listitem">
+              The pool has a pointer to the chunk with the minimum (but not zero)
+              free nodes. This chunk is called the "active" chunk.
+            </li>
+<li class="listitem">
+              Allocating a node is just returning the first free node of the "active"
+              chunk. The list of chunks is reordered according to the free nodes
+              count. The pointer to the "active" pool is updated if necessary.
+            </li>
+<li class="listitem">
+              If the pool runs out of nodes, a new chunk is allocated, and pushed
+              back in the list of chunks. The pointer to the "active" pool
+              is updated if necessary.
+            </li>
+<li class="listitem">
+              Deallocation returns the node to the free node list of its chunk and
+              updates the "active" pool accordingly.
+            </li>
+<li class="listitem">
+              If the number of totally free chunks exceeds the limit, chunks are
+              returned to the segment manager.
+            </li>
+<li class="listitem">
+              When the pool is destroyed, the list of chunks is traversed and memory
+              is returned to the segment manager.
+            </li>
+</ul></div>
+<p>
+          The adaptive pool is implemented by the <a href="../../../boost/interprocess/allocators/detail/adaptive_node_pool.hpp" target="_top">private_adaptive_node_pool
+          and adaptive_node_pool</a> classes.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.architecture.allocators_containers.architecture_containers"></a><a class="link" href="architecture.html#interprocess.architecture.allocators_containers.architecture_containers" title="Boost.Interprocess containers">Boost.Interprocess
+        containers</a>
+</h4></div></div></div>
+<p>
+          <span class="bold"><strong>Boost.Interprocess</strong></span> containers are standard
+          conforming counterparts of STL containers in <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span></code>
+          namespace, but with these little details:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <span class="bold"><strong>Boost.Interprocess</strong></span> STL containers
+              don't assume that memory allocated with an allocator can be deallocated
+              with other allocator of the same type. They always compare allocators
+              with <code class="computeroutput"><span class="keyword">operator</span><span class="special">==()</span></code>
+              to know if this is possible.
+            </li>
+<li class="listitem">
+              The pointers of the internal structures of the <span class="bold"><strong>Boost.Interprocess</strong></span>
+              containers are of the same type the <code class="computeroutput"><span class="identifier">pointer</span></code>
+              type defined by the allocator of the container. This allows placing
+              containers in managed memory segments mapped in different base addresses.
+            </li>
+</ul></div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.architecture.performance"></a><a class="link" href="architecture.html#interprocess.architecture.performance" title="Performance of Boost.Interprocess">Performance of
+      Boost.Interprocess</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="architecture.html#interprocess.architecture.performance.performance_allocations">Performance
+        of raw memory allocations</a></span></dt>
+<dt><span class="section"><a href="architecture.html#interprocess.architecture.performance.performance_named_allocation">Performance
+        of named allocations</a></span></dt>
+</dl></div>
+<p>
+        This section tries to explain the performance characteristics of <span class="bold"><strong>Boost.Interprocess</strong></span>, so that you can optimize <span class="bold"><strong>Boost.Interprocess</strong></span> usage if you need more performance.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.architecture.performance.performance_allocations"></a><a class="link" href="architecture.html#interprocess.architecture.performance.performance_allocations" title="Performance of raw memory allocations">Performance
+        of raw memory allocations</a>
+</h4></div></div></div>
+<p>
+          You can have two types of raw memory allocations with <span class="bold"><strong>Boost.Interprocess</strong></span>
+          classes:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <span class="bold"><strong>Explicit</strong></span>: The user calls <code class="computeroutput"><span class="identifier">allocate</span><span class="special">()</span></code>
+              and <code class="computeroutput"><span class="identifier">deallocate</span><span class="special">()</span></code>
+              functions of managed_shared_memory/managed_mapped_file... managed memory
+              segments. This call is translated to a <code class="computeroutput"><span class="identifier">MemoryAlgorithm</span><span class="special">::</span><span class="identifier">allocate</span><span class="special">()</span></code> function, which means that you will
+              need just the time that the memory algorithm associated with the managed
+              memory segment needs to allocate data.
+            </li>
+<li class="listitem">
+              <span class="bold"><strong>Implicit</strong></span>: For example, you are using
+              <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&lt;...&gt;</span></code>
+              with <span class="bold"><strong>Boost.Interprocess</strong></span> containers.
+              This allocator calls the same <code class="computeroutput"><span class="identifier">MemoryAlgorithm</span><span class="special">::</span><span class="identifier">allocate</span><span class="special">()</span></code> function than the explicit method,
+              <span class="bold"><strong>every</strong></span> time a vector/string has to
+              reallocate its buffer or <span class="bold"><strong>every</strong></span> time
+              you insert an object in a node container.
+            </li>
+</ul></div>
+<p>
+          If you see that memory allocation is a bottleneck in your application,
+          you have these alternatives:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              If you use map/set associative containers, try using <code class="computeroutput"><span class="identifier">flat_map</span></code> family instead of the map
+              family if you mainly do searches and the insertion/removal is mainly
+              done in an initialization phase. The overhead is now when the ordered
+              vector has to reallocate its storage and move data. You can also call
+              the <code class="computeroutput"><span class="identifier">reserve</span><span class="special">()</span></code>
+              method of these containers when you know beforehand how much data you
+              will insert. However in these containers iterators are invalidated
+              in insertions so this substitution is only effective in some applications.
+            </li>
+<li class="listitem">
+              Use a <span class="bold"><strong>Boost.Interprocess</strong></span> pooled allocator
+              for node containers, because pooled allocators call <code class="computeroutput"><span class="identifier">allocate</span><span class="special">()</span></code> only when the pool runs out of nodes.
+              This is pretty efficient (much more than the current default general-purpose
+              algorithm) and this can save a lot of memory. See <a class="link" href="allocators_containers.html#interprocess.allocators_containers.stl_allocators_segregated_storage" title="Segregated storage node allocators">Segregated
+              storage node allocators</a> and <a class="link" href="allocators_containers.html#interprocess.allocators_containers.stl_allocators_adaptive" title="Adaptive pool node allocators">Adaptive
+              node allocators</a> for more information.
+            </li>
+<li class="listitem">
+              Write your own memory algorithm. If you have experience with memory
+              allocation algorithms and you think another algorithm is better suited
+              than the default one for your application, you can specify it in all
+              <span class="bold"><strong>Boost.Interprocess</strong></span> managed memory
+              segments. See the section <a class="link" href="customizing_interprocess.html#interprocess.customizing_interprocess.custom_interprocess_alloc" title="Writing a new shared memory allocation algorithm">Writing
+              a new shared memory allocation algorithm</a> to know how to do this.
+              If you think its better than the default one for general-purpose applications,
+              be polite and donate it to <span class="bold"><strong>Boost.Interprocess</strong></span>
+              to make it default!
+            </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="interprocess.architecture.performance.performance_named_allocation"></a><a class="link" href="architecture.html#interprocess.architecture.performance.performance_named_allocation" title="Performance of named allocations">Performance
+        of named allocations</a>
+</h4></div></div></div>
+<p>
+          <span class="bold"><strong>Boost.Interprocess</strong></span> allows the same parallelism
+          as two threads writing to a common structure, except when the user creates/searches
+          named/unique objects. The steps when creating a named object are these:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Lock a recursive mutex (so that you can make named allocations inside
+              the constructor of the object to be created).
+            </li>
+<li class="listitem">
+              Try to insert the [name pointer, object information] in the name/object
+              index. This lookup has to assure that the name has not been used before.
+              This is achieved calling <code class="computeroutput"><span class="identifier">insert</span><span class="special">()</span></code> function in the index. So the time
+              this requires is dependent on the index type (ordered vector, tree,
+              hash...). This can require a call to the memory algorithm allocation
+              function if the index has to be reallocated, it's a node allocator,
+              uses pooled allocations...
+            </li>
+<li class="listitem">
+              Allocate a single buffer to hold the name of the object, the object
+              itself, and meta-data for destruction (number of objects, etc...).
+            </li>
+<li class="listitem">
+              Call the constructors of the object being created. If it's an array,
+              one construtor per array element.
+            </li>
+<li class="listitem">
+              Unlock the recursive mutex.
+            </li>
+</ul></div>
+<p>
+          The steps when destroying a named object using the name of the object (<code class="computeroutput"><span class="identifier">destroy</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;(</span><span class="identifier">name</span><span class="special">)</span></code>)
+          are these:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Lock a recursive mutex .
+            </li>
+<li class="listitem">
+              Search in the index the entry associated to that name. Copy that information
+              and erase the index entry. This is done using <code class="computeroutput"><span class="identifier">find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span> <span class="special">&amp;)</span></code>
+              and <code class="computeroutput"><span class="identifier">erase</span><span class="special">(</span><span class="identifier">iterator</span><span class="special">)</span></code>
+              members of the index. This can require element reordering if the index
+              is a balanced tree, an ordered vector...
+            </li>
+<li class="listitem">
+              Call the destructor of the object (many if it's an array).
+            </li>
+<li class="listitem">
+              Deallocate the memory buffer containing the name, metadata and the
+              object itself using the allocation algorithm.
+            </li>
+<li class="listitem">
+              Unlock the recursive mutex.
+            </li>
+</ul></div>
+<p>
+          The steps when destroying a named object using the pointer of the object
+          (<code class="computeroutput"><span class="identifier">destroy_ptr</span><span class="special">(</span><span class="identifier">T</span> <span class="special">*</span><span class="identifier">ptr</span><span class="special">)</span></code>) are these:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Lock a recursive mutex .
+            </li>
+<li class="listitem">
+              Depending on the index type, this can be different:
+              <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                    If the index is a node index, (marked with <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">::</span><span class="identifier">is_node_index</span></code>
+                    specialization): Take the iterator stored near the object and
+                    call <code class="computeroutput"><span class="identifier">erase</span><span class="special">(</span><span class="identifier">iterator</span><span class="special">)</span></code>.
+                    This can require element reordering if the index is a balanced
+                    tree, an ordered vector...
+                  </li>
+<li class="listitem">
+                    If it's not an node index: Take the name stored near the object
+                    and erase the index entry calling `erase(const key &amp;). This
+                    can require element reordering if the index is a balanced tree,
+                    an ordered vector...
+                  </li>
+</ul></div>
+            </li>
+<li class="listitem">
+              Call the destructor of the object (many if it's an array).
+            </li>
+<li class="listitem">
+              Deallocate the memory buffer containing the name, metadata and the
+              object itself using the allocation algorithm.
+            </li>
+<li class="listitem">
+              Unlock the recursive mutex.
+            </li>
+</ul></div>
+<p>
+          If you see that the performance is not good enough you have these alternatives:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Maybe the problem is that the lock time is too big and it hurts parallelism.
+              Try to reduce the number of named objects in the global index and if
+              your application serves several clients try to build a new managed
+              memory segment for each one instead of using a common one.
+            </li>
+<li class="listitem">
+              Use another <span class="bold"><strong>Boost.Interprocess</strong></span> index
+              type if you feel the default one is not fast enough. If you are not
+              still satisfied, write your own index type. See <a class="link" href="customizing_interprocess.html#interprocess.customizing_interprocess.custom_indexes" title="Building custom indexes">Building
+              custom indexes</a> for this.
+            </li>
+<li class="listitem">
+              Destruction via pointer is at least as fast as using the name of the
+              object and can be faster (in node containers, for example). So if your
+              problem is that you make at lot of named destructions, try to use the
+              pointer. If the index is a node index you can save some time.
+            </li>
+</ul></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="interprocess_smart_ptr.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="customizing_interprocess.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

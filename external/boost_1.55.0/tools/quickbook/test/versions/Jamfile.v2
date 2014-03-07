@@ -1,0 +1,19 @@
+#
+#   Copyright (c) 2011 Daniel James
+#
+#   Distributed under the Boost Software License, Version 1.0. (See
+#   accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#
+
+project quickbook/test/versions
+    : requirements
+        <toolset>msvc:<debug-symbols>off
+    ;
+
+import quickbook-testing : quickbook-test quickbook-error-test ;
+
+test-suite quickbook.test :
+    [ quickbook-test versions-1_6 ]
+    [ quickbook-test invalid_macro-1_6 ]
+    ;

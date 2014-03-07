@@ -1,0 +1,20 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+
+[table Generation functions make_controlled( abs_error , rel_error , stepper )
+  [[Stepper] [Result of make_controlled] [Remarks]]
+  [[`runge_kutta_cash_karp54`] [`controlled_runge_kutta< runge_kutta_cash_karp54 , default_error_checker<...> >`] [['a[sub x]=1], ['a[sub dxdt]=1]]]
+  [[`runge_kutta_fehlberg78`] [`controlled_runge_kutta< runge_kutta_fehlberg78 , default_error_checker<...> >`] [['a[sub x]=1], ['a[sub dxdt]=1]]]
+  [[`runge_kutta_dopri5`] [`controlled_runge_kutta< runge_kutta_dopri5 , default_error_checker<...> >`] [['a [sub x]=1], ['a[sub dxdt]=1]]]
+  [[`rosenbrock4`] [`rosenbrock4_controlled< rosenbrock4 >`] [-]]
+]

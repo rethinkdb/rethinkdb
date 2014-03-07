@@ -1,0 +1,276 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>fused_procedure</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../adapters.html" title="Adapters">
+<link rel="prev" href="fused.html" title="fused">
+<link rel="next" href="fused_function_object.html" title="fused_function_object">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="fused.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../adapters.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="fused_function_object.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="fusion.functional.adapters.fused_procedure"></a><a class="link" href="fused_procedure.html" title="fused_procedure">fused_procedure</a>
+</h4></div></div></div>
+<h6>
+<a name="fusion.functional.adapters.fused_procedure.h0"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.fused_procedure.description"></a></span><a class="link" href="fused_procedure.html#fusion.functional.adapters.fused_procedure.description">Description</a>
+        </h6>
+<p>
+          An unary <a class="link" href="../concepts/poly.html" title="Polymorphic Function Object">Polymorphic Function
+          Object</a> adapter template for <a class="link" href="../concepts/callable.html" title="Callable Object">Callable
+          Object</a> target functions. It takes a <a class="link" href="../../sequence/concepts/forward_sequence.html" title="Forward Sequence">Forward
+          Sequence</a> that contains the arguments for the target function.
+        </p>
+<p>
+          The result is discared and the adapter's return type is <code class="computeroutput"><span class="keyword">void</span></code>.
+        </p>
+<p>
+          The type of the target function is allowed to be const qualified or a reference.
+          Const qualification is preserved and propagated appropriately (in other
+          words, only const versions of <code class="literal">operator()</code> can be used
+          for a target function object that is const or, if the target function object
+          is held by value, the adapter is const - these semantics have nothing to
+          do with the const qualification of a member function, which is referring
+          to the type of object pointed to by <code class="literal">this</code> which is specified
+          with the first element in the sequence passed to the adapter).
+        </p>
+<p>
+          If the target function is a pointer to a members function, the corresponding
+          object can be specified as a reference, pointer, or smart pointer. In case
+          of the latter, a freestanding <code class="literal">get_pointer</code> function must
+          be defined (Boost provides this function for <code class="literal">std::auto_ptr</code>
+          and <a href="http://www.boost.org/libs/smart_ptr/shared_ptr.htm" target="_top"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span></code></a>).
+        </p>
+<p>
+          The target function must not be a pointer to a member object (dereferencing
+          such a pointer without returning anything does not make sense, so this
+          case is not implemented).
+        </p>
+<h6>
+<a name="fusion.functional.adapters.fused_procedure.h1"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.fused_procedure.header"></a></span><a class="link" href="fused_procedure.html#fusion.functional.adapters.fused_procedure.header">Header</a>
+        </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">functional</span><span class="special">/</span><span class="identifier">adapter</span><span class="special">/</span><span class="identifier">fused_procedure</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="fusion.functional.adapters.fused_procedure.h2"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.fused_procedure.synopsis"></a></span><a class="link" href="fused_procedure.html#fusion.functional.adapters.fused_procedure.synopsis">Synopsis</a>
+        </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Function</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">fused_procedure</span><span class="special">;</span>
+</pre>
+<h6>
+<a name="fusion.functional.adapters.fused_procedure.h3"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.fused_procedure.template_parameters"></a></span><a class="link" href="fused_procedure.html#fusion.functional.adapters.fused_procedure.template_parameters">Template
+          parameters</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Default
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Function</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <a class="link" href="../concepts/callable.html" title="Callable Object">Callable
+                    Object</a> type
+                  </p>
+                </td>
+<td>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="fusion.functional.adapters.fused_procedure.h4"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.fused_procedure.model_of"></a></span><a class="link" href="fused_procedure.html#fusion.functional.adapters.fused_procedure.model_of">Model of</a>
+        </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <a class="link" href="../concepts/poly.html" title="Polymorphic Function Object">Polymorphic Function
+              Object</a>
+            </li>
+<li class="listitem">
+              <a class="link" href="../concepts/def_callable.html" title="Deferred Callable Object">Deferred Callable
+              Object</a>
+            </li>
+</ul></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">R</span></code></span></dt>
+<dd><p>
+                A possibly const qualified <a class="link" href="../concepts/callable.html" title="Callable Object">Callable
+                Object</a> type or reference type thereof
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">r</span></code></span></dt>
+<dd><p>
+                An object convertible to <code class="computeroutput"><span class="identifier">R</span></code>
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">s</span></code></span></dt>
+<dd><p>
+                A <a class="link" href="../../sequence.html" title="Sequence">Sequence</a> of arguments that
+                are accepted by <code class="computeroutput"><span class="identifier">r</span></code>
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">f</span></code></span></dt>
+<dd><p>
+                An instance of <code class="computeroutput"><span class="identifier">fused</span><span class="special">&lt;</span><span class="identifier">R</span><span class="special">&gt;</span></code>
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="fusion.functional.adapters.fused_procedure.h5"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.fused_procedure.expression_semantics"></a></span><a class="link" href="fused_procedure.html#fusion.functional.adapters.fused_procedure.expression_semantics">Expression
+          Semantics</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">fused_procedure</span><span class="special">&lt;</span><span class="identifier">R</span><span class="special">&gt;(</span><span class="identifier">r</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Creates a fused function as described above, initializes the
+                    target function with <code class="computeroutput"><span class="identifier">r</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">fused_procedure</span><span class="special">&lt;</span><span class="identifier">R</span><span class="special">&gt;()</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Creates a fused function as described above, attempts to use
+                    <code class="computeroutput"><span class="identifier">R</span></code>'s default constructor.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">f</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Calls <code class="computeroutput"><span class="identifier">r</span></code> with
+                    the elements in <code class="computeroutput"><span class="identifier">s</span></code>
+                    as its arguments.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="fusion.functional.adapters.fused_procedure.h6"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.fused_procedure.example"></a></span><a class="link" href="fused_procedure.html#fusion.functional.adapters.fused_procedure.example">Example</a>
+        </h6>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">SequenceOfSequences</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Func</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">n_ary_for_each</span><span class="special">(</span><span class="identifier">SequenceOfSequences</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span> <span class="identifier">Func</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">f</span><span class="special">)</span>
+<span class="special">{</span>
+    <a class="link" href="../../algorithm/iteration/functions/for_each.html" title="for_each"><code class="computeroutput"><span class="identifier">for_each</span></code></a><span class="special">(</span><a class="link" href="../../view/zip_view.html" title="zip_view"><code class="computeroutput"><span class="identifier">zip_view</span></code></a><span class="special">&lt;</span><span class="identifier">SequenceOfSequences</span><span class="special">&gt;(</span><span class="identifier">s</span><span class="special">),</span>
+        <span class="identifier">fused_procedure</span><span class="special">&lt;</span><span class="identifier">Func</span> <span class="keyword">const</span> <span class="special">&amp;&gt;(</span><span class="identifier">f</span><span class="special">));</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">try_it</span><span class="special">()</span>
+<span class="special">{</span>
+    <a class="link" href="../../container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">float</span><span class="special">&gt;</span> <span class="identifier">a</span><span class="special">(</span><span class="number">2</span><span class="special">,</span><span class="number">2.0f</span><span class="special">);</span>
+    <a class="link" href="../../container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">float</span><span class="special">&gt;</span> <span class="identifier">b</span><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="number">1.5f</span><span class="special">);</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lambda</span><span class="special">;</span>
+    <span class="identifier">n_ary_for_each</span><span class="special">(</span><a class="link" href="../../container/generation/functions/vector_tie.html" title="vector_tie"><code class="computeroutput"><span class="identifier">vector_tie</span></code></a><span class="special">(</span><span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">),</span> <span class="identifier">_1</span> <span class="special">-=</span> <span class="identifier">_2</span><span class="special">);</span>
+    <span class="identifier">assert</span><span class="special">(</span><span class="identifier">a</span> <span class="special">==</span> <a class="link" href="../../container/generation/functions/make_vector.html" title="make_vector"><code class="computeroutput"><span class="identifier">make_vector</span></code></a><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="number">0.5f</span><span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<h6>
+<a name="fusion.functional.adapters.fused_procedure.h7"></a>
+          <span class="phrase"><a name="fusion.functional.adapters.fused_procedure.see_also"></a></span><a class="link" href="fused_procedure.html#fusion.functional.adapters.fused_procedure.see_also">See also</a>
+        </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <a class="link" href="fused.html" title="fused"><code class="computeroutput"><span class="identifier">fused</span></code></a>
+            </li>
+<li class="listitem">
+              <a class="link" href="fused_function_object.html" title="fused_function_object"><code class="computeroutput"><span class="identifier">fused_function_object</span></code></a>
+            </li>
+<li class="listitem">
+              <a class="link" href="../invocation/functions/invoke_proc.html" title="invoke_procedure"><code class="computeroutput"><span class="identifier">invoke_procedure</span></code></a>
+            </li>
+<li class="listitem">
+              <a class="link" href="../generation/functions/mk_fused_proc.html" title="make_fused_procedure"><code class="computeroutput"><span class="identifier">make_fused_procedure</span></code></a>
+            </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="fused.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../adapters.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="fused_function_object.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

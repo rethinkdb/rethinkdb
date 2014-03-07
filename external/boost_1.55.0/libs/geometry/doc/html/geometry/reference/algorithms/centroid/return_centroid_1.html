@@ -1,0 +1,474 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>return_centroid</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../centroid.html" title="centroid">
+<link rel="prev" href="centroid_2.html" title="centroid">
+<link rel="next" href="return_centroid_2_with_strategy.html" title="return_centroid (with strategy)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="centroid_2.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../centroid.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="return_centroid_2_with_strategy.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.algorithms.centroid.return_centroid_1"></a><a class="link" href="return_centroid_1.html" title="return_centroid">return_centroid</a>
+</h5></div></div></div>
+<p>
+            <a class="indexterm" name="idp53023896"></a>
+Calculates the centroid of a geometry.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.centroid.return_centroid_1.h0"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.centroid.return_centroid_1.description"></a></span><a class="link" href="return_centroid_1.html#geometry.reference.algorithms.centroid.return_centroid_1.description">Description</a>
+          </h6>
+<p>
+            The free function centroid calculates the geometric center (or: center
+            of mass) of a geometry. This version with the return_ prefix returns
+            the centroid, and a template parameter must therefore be specified in
+            the call..
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.centroid.return_centroid_1.h1"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.centroid.return_centroid_1.synopsis"></a></span><a class="link" href="return_centroid_1.html#geometry.reference.algorithms.centroid.return_centroid_1.synopsis">Synopsis</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Point</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Geometry</span><span class="special">&gt;</span>
+<span class="identifier">Point</span> <span class="identifier">return_centroid</span><span class="special">(</span><span class="identifier">Geometry</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry</span><span class="special">)</span></pre>
+<p>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.centroid.return_centroid_1.h2"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.centroid.return_centroid_1.parameters"></a></span><a class="link" href="return_centroid_1.html#geometry.reference.algorithms.centroid.return_centroid_1.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Concept
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Name
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Point
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Point Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      -
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Must be specified
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Geometry const &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Geometry Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      geometry
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A model of the specified concept
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.centroid.return_centroid_1.h3"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.centroid.return_centroid_1.returns"></a></span><a class="link" href="return_centroid_1.html#geometry.reference.algorithms.centroid.return_centroid_1.returns">Returns</a>
+          </h6>
+<p>
+            The calculated centroid
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.centroid.return_centroid_1.h4"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.centroid.return_centroid_1.header"></a></span><a class="link" href="return_centroid_1.html#geometry.reference.algorithms.centroid.return_centroid_1.header">Header</a>
+          </h6>
+<p>
+            Either
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<p>
+            Or
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">centroid</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.centroid.return_centroid_1.h5"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.centroid.return_centroid_1.conformance"></a></span><a class="link" href="return_centroid_1.html#geometry.reference.algorithms.centroid.return_centroid_1.conformance">Conformance</a>
+          </h6>
+<p>
+            The function centroid implements function Centroid from the <a href="http://www.opengeospatial.org/standards/sfa" target="_top">OGC
+            Simple Feature Specification</a>.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.centroid.return_centroid_1.h6"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.centroid.return_centroid_1.behavior"></a></span><a class="link" href="return_centroid_1.html#geometry.reference.algorithms.centroid.return_centroid_1.behavior">Behavior</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Case
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Behavior
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Point
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Returns the point itself as the centroid
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Multi Point
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Calculates centroid (based on average)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      linear (e.g. linestring)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Calculates centroid (based on weighted length)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      areal (e.g. polygon)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Calculates centroid
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Empty (e.g. polygon without points)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Throws a <a class="link" href="../../exceptions/centroid_exception.html" title="centroid_exception">centroid_exception</a>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Cartesian
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Implemented
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Spherical
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Calculates the centroid as if based on Cartesian coordinates
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.centroid.return_centroid_1.h7"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.centroid.return_centroid_1.supported_geometries"></a></span><a class="link" href="return_centroid_1.html#geometry.reference.algorithms.centroid.return_centroid_1.supported_geometries">Supported
+            geometries</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  </th>
+<th>
+                    <p>
+                      2D
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      3D
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Point
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Segment
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Box
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Linestring
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Ring
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Polygon
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      MultiPoint
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      MultiLinestring
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      MultiPolygon
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.centroid.return_centroid_1.h8"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.centroid.return_centroid_1.complexity"></a></span><a class="link" href="return_centroid_1.html#geometry.reference.algorithms.centroid.return_centroid_1.complexity">Complexity</a>
+          </h6>
+<p>
+            Linear
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="centroid_2.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../centroid.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="return_centroid_2_with_strategy.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

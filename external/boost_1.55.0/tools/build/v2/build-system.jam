@@ -1,0 +1,981 @@
+# Copyright 2003, 2005, 2007 Dave Abrahams
+# Copyright 2006, 2007 Rene Rivera
+# Copyright 2003, 2004, 2005, 2006 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# This file is part of Boost Build version 2. You can think of it as forming the
+# main() routine. It is invoked by the bootstrapping code in bootstrap.jam.
+
+import build-request ;
+import builtin ;
+import "class" : new ;
+import configure ;
+import config-cache ;
+import feature ;
+import generators ;
+import make ;
+import modules ;
+import os ;
+import path ;
+import project ;
+import property ;
+import property-set ;
+import regex ;
+import sequence ;
+import targets ;
+import toolset ;
+import utility ;
+import version ;
+import virtual-target ;
+
+
+################################################################################
+#
+# Module global data.
+#
+################################################################################
+
+# Shortcut used in this module for accessing used command-line parameters.
+.argv = [ modules.peek : ARGV ] ;
+
+# Flag indicating we should display additional debugging information related to
+# locating and loading Boost Build configuration files.
+.debug-config = [ MATCH ^(--debug-configuration)$ : $(.argv) ] ;
+
+# Virtual targets obtained when building main targets references on the command
+# line. When running 'bjam --clean main_target' we want to clean only files
+# belonging to that main target so we need to record which targets are produced
+# for it.
+.results-of-main-targets = ;
+
+# Was an XML dump requested?
+.out-xml = [ MATCH ^--out-xml=(.*)$ : $(.argv) ] ;
+
+# Default toolset & version to be used in case no other toolset has been used
+# explicitly by either the loaded configuration files, the loaded project build
+# scripts or an explicit toolset request on the command line. If not specified,
+# an arbitrary default will be used based on the current host OS. This value,
+# while not strictly necessary, has been added to allow testing Boost-Build's
+# default toolset usage functionality.
+.default-toolset = ;
+.default-toolset-version = ;
+
+
+################################################################################
+#
+# Public rules.
+#
+################################################################################
+
+# Returns the property set with the free features from the currently processed
+# build request.
+#
+rule command-line-free-features ( )
+{
+    return $(.command-line-free-features) ;
+}
+
+
+# Returns the location of the build system. The primary use case is building
+# Boost where it is sometimes needed to get the location of other components
+# (e.g. BoostBook files) and it is convenient to use locations relative to the
+# Boost Build path.
+#
+rule location ( )
+{
+    local r = [ modules.binding build-system ] ;
+    return $(r:P) ;
+}
+
+
+# Sets the default toolset & version to be used in case no other toolset has
+# been used explicitly by either the loaded configuration files, the loaded
+# project build scripts or an explicit toolset request on the command line. For
+# more detailed information see the comment related to used global variables.
+#
+rule set-default-toolset ( toolset : version ? )
+{
+    .default-toolset = $(toolset) ;
+    .default-toolset-version = $(version) ;
+}
+
+rule set-pre-build-hook ( function )
+{
+    .pre-build-hook = $(function) ;
+}
+
+rule set-post-build-hook ( function )
+{
+    .post-build-hook = $(function) ;
+}
+
+################################################################################
+#
+# Local rules.
+#
+################################################################################
+
+# Returns actual Jam targets to be used for executing a clean request.
+#
+local rule actual-clean-targets ( )
+{
+    # The cleaning is tricky. Say, if user says 'bjam --clean foo' where 'foo'
+    # is a directory, then we want to clean targets which are in 'foo' as well
+    # as those in any children Jamfiles under foo but not in any unrelated
+    # Jamfiles. To achieve this we first mark all projects explicitly detected
+    # as targets for this build system run as needing to be cleaned.
+    for local t in $(targets)
+    {
+        if [ class.is-a $(t) : project-target ]
+        {
+            local project = [ $(t).project-module ] ;
+            .should-clean-project.$(project) = true ;
+        }
+    }
+
+    # Construct a list of targets explicitly detected on this build system run
+    # as a result of building main targets.
+    local targets-to-clean ;
+    for local t in $(.results-of-main-targets)
+    {
+        # Do not include roots or sources.
+        targets-to-clean += [ virtual-target.traverse $(t) ] ;
+    }
+    targets-to-clean = [ sequence.unique $(targets-to-clean) ] ;
+
+    local to-clean ;
+    for local t in [ virtual-target.all-targets ]
+    {
+        # Remove only derived targets and only those asked to be cleaned,
+        # whether directly or by belonging to one of the removed projects.
+        local p = [ $(t).project ] ;
+        if [ $(t).action ] && ( $(t) in $(targets-to-clean) ||
+            [ should-clean-project [ $(p).project-module ] ] )
+        {
+            to-clean += $(t) ;
+        }
+    }
+
+    local to-clean-actual ;
+    for local t in $(to-clean)
+    {
+        to-clean-actual += [ $(t).actualize ] ;
+    }
+    return $(to-clean-actual) ;
+}
+
+
+# Given a target id, try to find and return the corresponding target. This is
+# only invoked when there is no Jamfile in ".". This code somewhat duplicates
+# code in project-target.find but we can not reuse that code without a
+# project-targets instance.
+#
+local rule find-target ( target-id )
+{
+    local split = [ MATCH (.*)//(.*) : $(target-id) ] ;
+
+    local pm ;
+    if $(split)
+    {
+        pm = [ project.find $(split[1]) : "." ] ;
+    }
+    else
+    {
+        pm = [ project.find $(target-id) : "." ] ;
+    }
+
+    local result ;
+    if $(pm)
+    {
+        result = [ project.target $(pm) ] ;
+    }
+
+    if $(split)
+    {
+        result = [ $(result).find $(split[2]) ] ;
+    }
+
+    return $(result) ;
+}
+
+
+# Initializes a new configuration module.
+#
+local rule initialize-config-module ( module-name : location ? )
+{
+    project.initialize $(module-name) : $(location) ;
+    if USER_MODULE in [ RULENAMES ]
+    {
+        USER_MODULE $(module-name) ;
+    }
+}
+
+
+# Helper rule used to load configuration files. Loads the first configuration
+# file with the given 'filename' at 'path' into module with name 'module-name'.
+# Not finding the requested file may or may not be treated as an error depending
+# on the must-find parameter. Returns a normalized path to the loaded
+# configuration file or nothing if no file was loaded.
+#
+local rule load-config ( module-name : filename : path + : must-find ? )
+{
+    if $(.debug-config)
+    {
+        local path-string = $(path) ;
+        if $(path-string) = "" { path-string = . ; }
+        ECHO notice: Searching '$(path-string)' for $(module-name)
+            configuration file '$(filename)'. ;
+    }
+    local where = [ GLOB $(path) : $(filename) ] ;
+    if $(where)
+    {
+        where = [ NORMALIZE_PATH $(where[1]) ] ;
+        if $(.debug-config)
+        {
+            local where-string = $(where:D) ;
+            if $(where-string) = "" { where-string = . ; }
+            where-string = '$(where-string)' ;
+            ECHO notice: Loading $(module-name) configuration file '$(filename)'
+                from $(where-string:J=" "). ;
+        }
+
+        # Set source location so that path-constant in config files with
+        # relative paths work. This is of most importance for
+        # project-config.jam, but may be used in other config files as well.
+        local attributes = [ project.attributes $(module-name) ] ;
+        $(attributes).set source-location : $(where:D) : exact ;
+        modules.load $(module-name) : $(filename) : $(path) ;
+        project.load-used-projects $(module-name) ;
+    }
+    else if $(must-find) || $(.debug-config)
+    {
+        local path-string = $(path) ;
+        if $(path-string) = "" { path-string = . ; }
+        path-string = '$(path-string)' ;
+        path-string = $(path-string:J=" ") ;
+        if $(must-find)
+        {
+            import errors ;
+            errors.user-error Configuration file '$(filename)' not found "in"
+                $(path-string). ;
+        }
+        ECHO notice: Configuration file '$(filename)' not found "in"
+            $(path-string). ;
+    }
+    return $(where) ;
+}
+
+
+# Loads all the configuration files used by Boost Build in the following order:
+#
+#   -- test-config --
+#   Loaded only if specified on the command-line using the --test-config
+# command-line parameter. It is ok for this file not to exist even if specified.
+# If this configuration file is loaded, regular site and user configuration
+# files will not be. If a relative path is specified, file is searched for in
+# the current folder.
+#
+#   -- site-config --
+#   Always named site-config.jam. Will only be found if located on the system
+# root path (Windows), /etc (non-Windows), user's home folder or the Boost Build
+# path, in that order. Not loaded in case the test-config configuration file is
+# loaded or the --ignore-site-config command-line option is specified.
+#
+#   -- user-config --
+#   Named user-config.jam by default or may be named explicitly using the
+# --user-config command-line option or the BOOST_BUILD_USER_CONFIG environment
+# variable. If named explicitly the file is looked for from the current working
+# directory and if the default one is used then it is searched for in the
+# user's home directory and the Boost Build path, in that order. Not loaded in
+# case either the test-config configuration file is loaded or an empty file name
+# is explicitly specified. If the file name has been given explicitly then the
+# file must exist.
+#
+#   -- project-config --
+#   Always named project-config.jam. Looked up in the current working folder and
+# then upwards through its parents up to the root folder.
+#
+# Test configurations have been added primarily for use by Boost Build's
+# internal unit testing system but may be used freely in other places as well.
+#
+local rule load-configuration-files
+{
+    # Flag indicating that site configuration should not be loaded.
+    local ignore-site-config =
+        [ MATCH ^(--ignore-site-config)$ : $(.argv) ] ;
+
+    initialize-config-module test-config ;
+    local test-config = [ MATCH ^--test-config=(.*)$ : $(.argv) ] ;
+    local uq = [ MATCH \"(.*)\" : $(test-config) ] ;
+    if $(uq)
+    {
+        test-config = $(uq) ;
+    }
+    if $(test-config)
+    {
+        local where = [ load-config test-config : $(test-config:BS) :
+            $(test-config:D) ] ;
+        if $(where)
+        {
+            if $(.debug-config)
+            {
+                ECHO "notice: Regular site and user configuration files will" ;
+                ECHO "notice: be ignored due to the test configuration being"
+                    "loaded." ;
+            }
+        }
+        else
+        {
+            test-config = ;
+        }
+    }
+
+    local user-path = [ os.home-directories ] [ os.environ BOOST_BUILD_PATH ] ;
+    local site-path = /etc $(user-path) ;
+    if [ os.name ] in NT CYGWIN
+    {
+        site-path = [ modules.peek : SystemRoot ] $(user-path) ;
+    }
+
+    if $(.debug-config) && ! $(test-config) && $(ignore-site-config)
+    {
+        ECHO "notice: Site configuration files will be ignored due to the" ;
+        ECHO "notice: --ignore-site-config command-line option." ;
+    }
+
+    initialize-config-module site-config ;
+    if ! $(test-config) && ! $(ignore-site-config)
+    {
+        load-config site-config : site-config.jam : $(site-path) ;
+    }
+
+    initialize-config-module user-config ;
+    if ! $(test-config)
+    {
+        local user-config = [ MATCH ^--user-config=(.*)$ : $(.argv) ] ;
+        user-config = $(user-config[-1]) ;
+        user-config ?= [ os.environ BOOST_BUILD_USER_CONFIG ] ;
+        # Special handling for the case when the OS does not strip the quotes
+        # around the file name, as is the case when using Cygwin bash.
+        user-config = [ utility.unquote $(user-config) ] ;
+        local explicitly-requested = $(user-config) ;
+        user-config ?= user-config.jam ;
+
+        if $(user-config)
+        {
+            if $(explicitly-requested)
+            {
+                # Treat explicitly entered user paths as native OS path
+                # references and, if non-absolute, root them at the current
+                # working directory.
+                user-config = [ path.make $(user-config) ] ;
+                user-config = [ path.root $(user-config) [ path.pwd ] ] ;
+                user-config = [ path.native $(user-config) ] ;
+
+                if $(.debug-config)
+                {
+                    ECHO notice: Loading explicitly specified user configuration
+                        file: ;
+                    ECHO "    $(user-config)" ;
+                }
+
+                load-config user-config : $(user-config:BS) : $(user-config:D)
+                    : must-exist ;
+            }
+            else
+            {
+                load-config user-config : $(user-config) : $(user-path) ;
+            }
+        }
+        else if $(.debug-config)
+        {
+            ECHO notice: User configuration file loading explicitly disabled. ;
+        }
+    }
+
+    # We look for project-config.jam from "." upward. I am not sure this is 100%
+    # right decision, we might as well check for it only alongside the Jamroot
+    # file. However:
+    # - We need to load project-config.jam before Jamroot
+    # - We probably need to load project-config.jam even if there is no Jamroot
+    #   - e.g. to implement automake-style out-of-tree builds.
+    local file = [ path.glob "." : project-config.jam ] ;
+    if ! $(file)
+    {
+        file = [ path.glob-in-parents "." : project-config.jam ] ;
+    }
+    if $(file)
+    {
+        initialize-config-module project-config : $(file:D) ;
+        load-config project-config : project-config.jam : $(file:D) ;
+    }
+
+    project.end-load ;
+}
+
+
+# Autoconfigure toolsets based on any instances of --toolset=xx,yy,...zz or
+# toolset=xx,yy,...zz in the command line. May return additional properties to
+# be processed as if they had been specified by the user.
+#
+local rule process-explicit-toolset-requests
+{
+    local extra-properties ;
+
+    local option-toolsets  = [ regex.split-list [ MATCH ^--toolset=(.*)$ : $(.argv) ] : "," ] ;
+    local feature-toolsets = [ regex.split-list [ MATCH   ^toolset=(.*)$ : $(.argv) ] : "," ] ;
+
+    for local t in $(option-toolsets) $(feature-toolsets)
+    {
+        # Parse toolset-version/properties.
+        local toolset = [ MATCH ([^/]+)/?.* : $(t) ] ;
+        local properties = [ feature.expand-subfeatures <toolset>$(toolset) : true ] ;
+        local toolset-property = [ property.select <toolset> : $(properties) ] ;
+        local known ;
+        if $(toolset-property:G=) in [ feature.values <toolset> ]
+        {
+            known = true ;
+        }
+
+        # If the toolset is not known, configure it now.
+
+        # TODO: we should do 'using $(toolset)' in case no version has been
+        # specified and there are no versions defined for the given toolset to
+        # allow the toolset to configure its default version. For this we need
+        # to know how to detect whether a given toolset has any versions
+        # defined. An alternative would be to do this whenever version is not
+        # specified but that would require that toolsets correctly handle the
+        # case when their default version is configured multiple times which
+        # should be checked for all existing toolsets first.
+
+        if ! $(known)
+        {
+            if $(.debug-config)
+            {
+                ECHO "notice: [cmdline-cfg] toolset $(toolset) not"
+                    "previously configured; attempting to auto-configure now" ;
+            }
+            local t,v = [ MATCH ([^-]+)-?(.+)? : $(toolset) ] ;
+            toolset.using $(t,v[1]) : $(t,v[2]) ;
+        }
+
+        # Make sure we get an appropriate property into the build request in
+        # case toolset has been specified using the "--toolset=..." command-line
+        # option form.
+        if ! $(t) in $(.argv) $(feature-toolsets)
+        {
+            if $(.debug-config)
+            {
+                ECHO notice: [cmdline-cfg] adding toolset=$(t) to the build
+                    request. ;
+            }
+            extra-properties += toolset=$(t) ;
+        }
+    }
+
+    return $(extra-properties) ;
+}
+
+
+# Returns whether the given project (identifed by its project module) should be
+# cleaned because it or any of its parent projects have already been marked as
+# needing to be cleaned in this build. As an optimization, will explicitly mark
+# all encountered project needing to be cleaned in case thay have not already
+# been marked so.
+#
+local rule should-clean-project ( project )
+{
+    if ! $(.should-clean-project.$(project))-is-defined
+    {
+        local r = "" ;
+        if ! [ project.is-jamroot-module $(project) ]
+        {
+            local parent = [ project.attribute $(project) parent-module ] ;
+            if $(parent)
+            {
+                r = [ should-clean-project $(parent) ] ;
+            }
+        }
+        .should-clean-project.$(project) = $(r) ;
+    }
+
+    return $(.should-clean-project.$(project)) ;
+}
+
+
+################################################################################
+#
+# main()
+# ------
+#
+################################################################################
+
+{
+    if --version in $(.argv)
+    {
+        version.print ;
+        EXIT ;
+    }
+
+    version.verify-engine-version ;
+
+    load-configuration-files ;
+
+    # Load explicitly specified toolset modules.
+    local extra-properties = [ process-explicit-toolset-requests ] ;
+
+    # Load the actual project build script modules. We always load the project
+    # in the current folder so 'use-project' directives have any chance of being
+    # seen. Otherwise, we would not be able to refer to subprojects using target
+    # ids.
+    local current-project ;
+    {
+        local current-module = [ project.find "." : "." ] ;
+        if $(current-module)
+        {
+            current-project = [ project.target $(current-module) ] ;
+        }
+    }
+
+    # Load the default toolset module if no other has already been specified.
+    if ! [ feature.values <toolset> ]
+    {
+        local default-toolset = $(.default-toolset) ;
+        local default-toolset-version = ;
+        if $(default-toolset)
+        {
+            default-toolset-version = $(.default-toolset-version) ;
+        }
+        else
+        {
+            default-toolset = gcc ;
+            if [ os.name ] = NT
+            {
+                default-toolset = msvc ;
+            }
+            else if [ os.name ] = MACOSX
+            {
+                default-toolset = darwin ;
+            }
+        }
+
+        ECHO "warning: No toolsets are configured." ;
+        ECHO "warning: Configuring default toolset" \"$(default-toolset)\". ;
+        ECHO "warning: If the default is wrong, your build may not work correctly." ;
+        ECHO "warning: Use the \"toolset=xxxxx\" option to override our guess." ;
+        ECHO "warning: For more configuration options, please consult" ;
+        ECHO "warning: http://boost.org/boost-build2/doc/html/bbv2/advanced/configuration.html" ;
+
+        toolset.using $(default-toolset) : $(default-toolset-version) ;
+    }
+
+
+    # Parse command line for targets and properties. Note that this requires
+    # that all project files already be loaded.
+    # FIXME: This is not entirely true. Additional project files may be loaded
+    # only later via the project.find() rule when dereferencing encountered
+    # target ids containing explicit project references. See what to do about
+    # those as such 'lazy loading' may cause problems that are then extremely
+    # difficult to debug.
+    local build-request = [ build-request.from-command-line $(.argv)
+        $(extra-properties) ] ;
+    local target-ids = [ $(build-request).get-at 1 ] ;
+    local properties = [ $(build-request).get-at 2 ] ;
+
+
+    # Expand properties specified on the command line into multiple property
+    # sets consisting of all legal property combinations. Each expanded property
+    # set will be used for a single build run. E.g. if multiple toolsets are
+    # specified then requested targets will be built with each of them.
+    if $(properties)
+    {
+        expanded = [ build-request.expand-no-defaults $(properties) ] ;
+        local xexpanded ;
+        for local e in $(expanded)
+        {
+            xexpanded += [ property-set.create [ feature.split $(e) ] ] ;
+        }
+        expanded = $(xexpanded) ;
+    }
+    else
+    {
+        expanded = [ property-set.empty ] ;
+    }
+
+
+    # Check that we actually found something to build.
+    if ! $(current-project) && ! $(target-ids)
+    {
+        import errors ;
+        errors.user-error no Jamfile "in" current directory found, and no target
+            references specified. ;
+    }
+
+
+    # Flags indicating that this build system run has been started in order to
+    # clean existing instead of create new targets. Note that these are not the
+    # final flag values as they may get changed later on due to some special
+    # targets being specified on the command line.
+    local clean    ; if "--clean"     in $(.argv) { clean    = true ; }
+    local cleanall ; if "--clean-all" in $(.argv) { cleanall = true ; }
+
+
+    # List of explicitly requested files to build. Any target references read
+    # from the command line parameter not recognized as one of the targets
+    # defined in the loaded Jamfiles will be interpreted as an explicitly
+    # requested file to build. If any such files are explicitly requested then
+    # only those files and the targets they depend on will be built and they
+    # will be searched for among targets that would have been built had there
+    # been no explicitly requested files.
+    local explicitly-requested-files
+
+
+    # List of Boost Build meta-targets, virtual-targets and actual Jam targets
+    # constructed in this build system run.
+    local targets ;
+    local virtual-targets ;
+    local actual-targets ;
+
+
+    # Process each target specified on the command-line and convert it into
+    # internal Boost Build target objects. Detect special clean target. If no
+    # main Boost Build targets were explictly requested use the current project
+    # as the target.
+    for local id in $(target-ids)
+    {
+        if $(id) = clean
+        {
+            clean = true ;
+        }
+        else
+        {
+            local t ;
+            if $(current-project)
+            {
+                t = [ $(current-project).find $(id) : no-error ] ;
+            }
+            else
+            {
+                t = [ find-target $(id) ] ;
+            }
+
+            if ! $(t)
+            {
+                ECHO "notice: could not find main target" $(id) ;
+                ECHO "notice: assuming it is a name of file to create." ;
+                explicitly-requested-files += $(id) ;
+            }
+            else
+            {
+                targets += $(t) ;
+            }
+        }
+    }
+    if ! $(targets)
+    {
+        targets += [ project.target [ project.module-name "." ] ] ;
+    }
+
+    if [ option.get dump-generators : : true ]
+    {
+        generators.dump ;
+    }
+
+    # We wish to put config.log in the build directory corresponding to Jamroot,
+    # so that the location does not differ depending on the directory we run the
+    # build from. The amount of indirection necessary here is scary.
+    local first-project = [ $(targets[0]).project ] ;
+    local first-project-root-location = [ $(first-project).get project-root ] ;
+    local first-project-root-module = [ project.load
+        $(first-project-root-location) ] ;
+    local first-project-root = [ project.target $(first-project-root-module) ] ;
+    local first-build-build-dir = [ $(first-project-root).build-dir ] ;
+    configure.set-log-file $(first-build-build-dir)/config.log ;
+    config-cache.load $(first-build-build-dir)/project-cache.jam ;
+
+    # Now that we have a set of targets to build and a set of property sets to
+    # build the targets with, we can start the main build process by using each
+    # property set to generate virtual targets from all of our listed targets
+    # and any of their dependants.
+    for local p in $(expanded)
+    {
+        .command-line-free-features = [ property-set.create [ $(p).free ] ] ;
+        for local t in $(targets)
+        {
+            local g = [ $(t).generate $(p) ] ;
+            if ! [ class.is-a $(t) : project-target ]
+            {
+                .results-of-main-targets += $(g[2-]) ;
+            }
+            virtual-targets += $(g[2-]) ;
+        }
+    }
+
+
+    # Convert collected virtual targets into actual raw Jam targets.
+    for t in $(virtual-targets)
+    {
+        actual-targets += [ $(t).actualize ] ;
+    }
+
+    config-cache.save ;
+
+
+    # If XML data output has been requested prepare additional rules and targets
+    # so we can hook into Jam to collect build data while its building and have
+    # it trigger the final XML report generation after all the planned targets
+    # have been built.
+    if $(.out-xml)
+    {
+        # Get a qualified virtual target name.
+        rule full-target-name ( target )
+        {
+            local name = [ $(target).name ] ;
+            local project = [ $(target).project ] ;
+            local project-path = [ $(project).get location ] ;
+            return $(project-path)//$(name) ;
+        }
+
+        # Generate an XML file containing build statistics for each constituent.
+        #
+        rule out-xml ( xml-file : constituents * )
+        {
+            # Prepare valid XML header and footer with some basic info.
+            local nl = "
+" ;
+            local os        = [ modules.peek : OS OSPLAT JAMUNAME ] "" ;
+            local timestamp = [ modules.peek : JAMDATE ] ;
+            local cwd       = [ PWD ] ;
+            local command   = $(.argv) ;
+            local bb-version = [ version.boost-build ] ;
+            .header on $(xml-file) =
+                "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+                "$(nl)<build format=\"1.0\" version=\"$(bb-version)\">"
+                "$(nl)  <os name=\"$(os[1])\" platform=\"$(os[2])\"><![CDATA[$(os[3-]:J= )]]></os>"
+                "$(nl)  <timestamp><![CDATA[$(timestamp)]]></timestamp>"
+                "$(nl)  <directory><![CDATA[$(cwd)]]></directory>"
+                "$(nl)  <command><![CDATA[\"$(command:J=\" \")\"]]></command>"
+                ;
+            .footer on $(xml-file) =
+                "$(nl)</build>" ;
+
+            # Generate the target dependency graph.
+            .contents on $(xml-file) +=
+                "$(nl)  <targets>" ;
+            for local t in [ virtual-target.all-targets ]
+            {
+                local action = [ $(t).action ] ;
+                if $(action)
+                    # If a target has no action, it has no dependencies.
+                {
+                    local name = [ full-target-name $(t) ] ;
+                    local sources = [ $(action).sources ] ;
+                    local dependencies ;
+                    for local s in $(sources)
+                    {
+                        dependencies += [ full-target-name $(s) ] ;
+                    }
+
+                    local path = [ $(t).path ] ;
+                    local jam-target = [ $(t).actual-name ] ;
+
+                    .contents on $(xml-file) +=
+                        "$(nl)    <target>"
+                        "$(nl)      <name><![CDATA[$(name)]]></name>"
+                        "$(nl)      <dependencies>"
+                        "$(nl)        <dependency><![CDATA[$(dependencies)]]></dependency>"
+                        "$(nl)      </dependencies>"
+                        "$(nl)      <path><![CDATA[$(path)]]></path>"
+                        "$(nl)      <jam-target><![CDATA[$(jam-target)]]></jam-target>"
+                        "$(nl)    </target>"
+                        ;
+                }
+            }
+            .contents on $(xml-file) +=
+                "$(nl)  </targets>" ;
+
+            # Build $(xml-file) after $(constituents). Do so even if a
+            # constituent action fails and regenerate the xml on every bjam run.
+            INCLUDES $(xml-file) : $(constituents) ;
+            ALWAYS $(xml-file) ;
+            __ACTION_RULE__ on $(xml-file) =
+                build-system.out-xml.generate-action ;
+            out-xml.generate $(xml-file) ;
+        }
+
+        # The actual build actions are here; if we did this work in the actions
+        # clause we would have to form a valid command line containing the
+        # result of @(...) below (the name of the XML file).
+        #
+        rule out-xml.generate-action ( args * : xml-file
+            : command status start end user system : output ? )
+        {
+            local contents =
+                [ on $(xml-file) return $(.header) $(.contents) $(.footer) ] ;
+            local f = @($(xml-file):E=$(contents)) ;
+        }
+
+        # Nothing to do here; the *real* actions happen in
+        # out-xml.generate-action.
+        actions quietly out-xml.generate { }
+
+        # Define the out-xml file target, which depends on all the targets so
+        # that it runs the collection after the targets have run.
+        out-xml $(.out-xml) : $(actual-targets) ;
+
+        # Set up a global __ACTION_RULE__ that records all the available
+        # statistics about each actual target in a variable "on" the --out-xml
+        # target.
+        #
+        rule out-xml.collect ( xml-file : target : command status start end user
+            system : output ? )
+        {
+            local nl = "
+" ;
+            # Open the action with some basic info.
+            .contents on $(xml-file) +=
+                "$(nl)  <action status=\"$(status)\" start=\"$(start)\" end=\"$(end)\" user=\"$(user)\" system=\"$(system)\">" ;
+
+            # If we have an action object we can print out more detailed info.
+            local action = [ on $(target) return $(.action) ] ;
+            if $(action)
+            {
+                local action-name    = [ $(action).action-name ] ;
+                local action-sources = [ $(action).sources     ] ;
+                local action-props   = [ $(action).properties  ] ;
+
+                # The qualified name of the action which we created the target.
+                .contents on $(xml-file) +=
+                    "$(nl)    <name><![CDATA[$(action-name)]]></name>" ;
+
+                # The sources that made up the target.
+                .contents on $(xml-file) +=
+                    "$(nl)    <sources>" ;
+                for local source in $(action-sources)
+                {
+                    local source-actual = [ $(source).actual-name ] ;
+                    .contents on $(xml-file) +=
+                        "$(nl)      <source><![CDATA[$(source-actual)]]></source>" ;
+                }
+                .contents on $(xml-file) +=
+                    "$(nl)    </sources>" ;
+
+                # The properties that define the conditions under which the
+                # target was built.
+                .contents on $(xml-file) +=
+                    "$(nl)    <properties>" ;
+                for local prop in [ $(action-props).raw ]
+                {
+                    local prop-name = [ MATCH ^<(.*)>$ : $(prop:G) ] ;
+                    .contents on $(xml-file) +=
+                        "$(nl)      <property name=\"$(prop-name)\"><![CDATA[$(prop:G=)]]></property>" ;
+                }
+                .contents on $(xml-file) +=
+                    "$(nl)    </properties>" ;
+            }
+
+            local locate = [ on $(target) return $(LOCATE) ] ;
+            locate ?= "" ;
+            .contents on $(xml-file) +=
+                "$(nl)    <jam-target><![CDATA[$(target)]]></jam-target>"
+                "$(nl)    <path><![CDATA[$(target:G=:R=$(locate))]]></path>"
+                "$(nl)    <command><![CDATA[$(command)]]></command>"
+                "$(nl)    <output><![CDATA[$(output)]]></output>" ;
+            .contents on $(xml-file) +=
+                "$(nl)  </action>" ;
+        }
+
+        # When no __ACTION_RULE__ is set "on" a target, the search falls back to
+        # the global module.
+        module
+        {
+            __ACTION_RULE__ = build-system.out-xml.collect
+                [ modules.peek build-system : .out-xml ] ;
+        }
+
+        IMPORT
+            build-system :
+            out-xml.collect
+            out-xml.generate-action
+            : :
+            build-system.out-xml.collect
+            build-system.out-xml.generate-action
+            ;
+    }
+
+    local j = [ option.get jobs ] ;
+    if $(j)
+    {
+        modules.poke : PARALLELISM : $(j) ;
+    }
+
+    local k = [ option.get keep-going : true : true ] ;
+    if $(k) in "on" "yes" "true"
+    {
+        modules.poke : KEEP_GOING : 1 ;
+    }
+    else if $(k) in "off" "no" "false"
+    {
+        modules.poke : KEEP_GOING : 0 ;
+    }
+    else
+    {
+        EXIT "error: Invalid value for the --keep-going option" ;
+    }
+
+    # The 'all' pseudo target is not strictly needed expect in the case when we
+    # use it below but people often assume they always have this target
+    # available and do not declare it themselves before use which may cause
+    # build failures with an error message about not being able to build the
+    # 'all' target.
+    NOTFILE all ;
+
+    # And now that all the actual raw Jam targets and all the dependencies
+    # between them have been prepared all that is left is to tell Jam to update
+    # those targets.
+    if $(explicitly-requested-files)
+    {
+        # Note that this case can not be joined with the regular one when only
+        # exact Boost Build targets are requested as here we do not build those
+        # requested targets but only use them to construct the dependency tree
+        # needed to build the explicitly requested files.
+        UPDATE $(explicitly-requested-files:G=e) $(.out-xml) ;
+    }
+    else if $(cleanall)
+    {
+        UPDATE clean-all ;
+    }
+    else if $(clean)
+    {
+        common.Clean clean : [ actual-clean-targets ] ;
+        UPDATE clean ;
+    }
+    else
+    {
+        configure.print-configure-checks-summary ;
+
+        if $(.pre-build-hook)
+        {
+            $(.pre-build-hook) ;
+        }
+
+        DEPENDS all : $(actual-targets) ;
+        if UPDATE_NOW in [ RULENAMES ]
+        {
+            local ok = [ UPDATE_NOW all $(.out-xml) ] ;
+            if $(.post-build-hook)
+            {
+                $(.post-build-hook) $(ok) ;
+            }
+            # Prevent automatic update of the 'all' target, now that we have
+            # explicitly updated what we wanted.
+            UPDATE ;
+        }
+        else
+        {
+            UPDATE all $(.out-xml) ;
+        }
+    }
+}

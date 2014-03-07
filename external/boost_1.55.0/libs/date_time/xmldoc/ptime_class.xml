@@ -1,0 +1,565 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.posix_time.ptime_class">
+  <title>Ptime</title>
+
+  <link linkend="ptime_intro">Introduction</link> --
+  <link linkend="ptime_header">Header</link> --
+  <link linkend="ptime_constr">Construction</link> --
+  <link linkend="ptime_from_string">Construct from String</link> --
+  <link linkend="ptime_from_clock">Construct from Clock</link> --
+  <link linkend="ptime_from_funcs">Construct using Conversion functions</link> --
+  <link linkend="ptime_accessors">Accessors</link> --
+  <link linkend="ptime_to_string">Conversion To String</link> --
+  <link linkend="ptime_operators">Operators</link> --
+  <link linkend="ptime_struct_tm">Struct tm, time_t, and FILETIME Functions</link>
+
+  <anchor id="ptime_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>
+    The class boost::posix_time::ptime is the primary interface for time point manipulation. In general, the ptime class is immutable once constructed although it does allow assignment. 
+  </para>
+  <para>
+    Class ptime is dependent on <link linkend="date_time.gregorian.date_class">gregorian::date</link> for the interface to the date portion of a time point. 
+  </para>
+  <para>
+    Other techniques for creating times include <link linkend="date_time.posix_time.time_iterators">time iterators</link>. 
+  </para>
+
+  <anchor id="ptime_header" />
+  <bridgehead renderas="sect3">Header</bridgehead>
+  <para>
+    <programlisting>#include "boost/date_time/posix_time/posix_time.hpp" //include all types plus i/o
+or
+#include "boost/date_time/posix_time/posix_time_types.hpp" //no i/o just types</programlisting>
+  </para>
+
+  <anchor id="ptime_constr" />
+  <bridgehead renderas="sect3">Construction</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+	    <entry valign="top" morerows="1"><screen>ptime(date,time_duration)</screen></entry>
+	    <entry>Construct from a date and offset</entry>
+	  </row>
+	  <row>
+	    <entry><screen>ptime t1(date(2002,Jan,10), 
+         time_duration(1,2,3));
+ptime t2(date(2002,Jan,10), 
+         hours(1)+nanosec(5));</screen>
+	    </entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>ptime(ptime)</screen></entry>
+	    <entry>Copy constructor</entry>
+	  </row>
+	  <row>
+	    <entry><screen>ptime t3(t1)</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>ptime(special_values sv)</screen></entry>
+	    <entry>Constructor for infinities, not-a-date-time, max_date_time, and min_date_time</entry>
+	  </row>
+	  <row>
+	    <entry><screen>ptime d1(neg_infin);
+ptime d2(pos_infin);
+ptime d3(not_a_date_time);
+ptime d4(max_date_time);
+ptime d5(min_date_time);</screen></entry>
+          </row>
+          
+          <row>
+	    <entry valign="top" morerows="1"><screen>ptime;</screen></entry>
+	    <entry>Default constructor. Creates a ptime object initialized to not_a_date_time. NOTE: this constructor can be disabled by defining DATE_TIME_NO_DEFAULT_CONSTRUCTOR (see compiler_config.hpp)</entry>
+	  </row>
+	  <row>
+	    <entry><screen>ptime p; // p =&gt; not_a_date_time</screen></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="ptime_from_string" />
+  <bridgehead renderas="sect3">Construct from String</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+	    <entry valign="top" morerows="1"><screen>ptime time_from_string(std::string)</screen></entry>
+            <entry>From delimited string. NOTE: Excess digits in fractional seconds will be dropped. Ex: "1:02:03.123456999" =&gt; 1:02:03.123456. This behavior is affected by the precision the library is compiled with (see <link linkend="date_time.buildinfo">Build-Compiler Information</link>.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>std::string ts("2002-01-20 23:59:59.000");
+ptime t(time_from_string(ts))</screen></entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>ptime from_iso_string(std::string)</screen></entry>
+	    <entry>From non delimited iso form string.</entry>
+	  </row>
+          <row>
+	    <entry><screen>std::string ts("20020131T235959");
+ptime t(from_iso_string(ts))</screen></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="ptime_from_clock" />
+  <bridgehead renderas="sect3">Construct from Clock</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+	    <entry valign="top" morerows="1"><screen>ptime second_clock::local_time()</screen></entry>
+	    <entry>Get the local time, second level resolution, based on the time zone settings of the computer.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>ptime t(second_clock::local_time());</screen></entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>ptime second_clock::universal_time()</screen></entry>
+	    <entry>Get the UTC time.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>ptime t(second_clock::universal_time())</screen></entry>
+          </row>
+          
+          <row>
+	    <entry valign="top" morerows="1"><screen>ptime microsec_clock::local_time()</screen></entry>
+	    <entry>Get the local time using a sub second resolution clock.  On Unix systems this is implemented using GetTimeOfDay.  On most Win32 platforms it is implemented using ftime.  Win32 systems often do not achieve microsecond resolution via this API.  If higher resolution is critical to your application test your platform to see the achieved resolution.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>ptime t(microsec_clock::local_time());</screen></entry>
+	  </row>
+          
+          <row>
+	    <entry valign="top" morerows="1"><screen>ptime microsec_clock::universal_time()</screen></entry>
+	    <entry>Get the UTC time using a sub second resolution clock.  On Unix systems this is implemented using GetTimeOfDay.  On most Win32 platforms it is implemented using ftime.  Win32 systems often do not achieve microsecond resolution via this API.  If higher resolution is critical to your application test your platform to see the achieved resolution.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>ptime t(microsec_clock::universal_time());</screen></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="ptime_from_funcs" />
+  <bridgehead renderas="sect3">Construct using Conversion Functions</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+	    <entry valign="top" morerows="1"><screen>ptime from_time_t(time_t t);</screen></entry>
+	    <entry>Converts a time_t into a ptime.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>ptime t = from_time_t(tt);</screen></entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>ptime from_ftime&lt;ptime&gt;(FILETIME ft);</screen></entry>
+            <entry>Creates a ptime object from a FILETIME structure.</entry>
+	  </row>
+	  <row>
+            <entry><screen>ptime t = from_ftime&lt;ptime&gt;(ft);</screen></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="ptime_accessors" />
+  <bridgehead renderas="sect3">Accessors</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+	    <entry valign="top" morerows="1"><screen>date date()</screen></entry>
+	    <entry>Get the date part of a time.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>date d(2002,Jan,10);
+ptime t(d, hour(1));
+t.date() --> 2002-Jan-10;</screen>
+	    </entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>time_duration time_of_day()</screen></entry>
+	    <entry>Get the time offset in the day.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>date d(2002,Jan,10);
+ptime t(d, hour(1));
+t.time_of_day() --> 01:00:00;</screen>
+	    </entry>
+          </row>
+
+          <row>
+            <entry valign="top" morerows="1"><screen>bool is_infinity() const</screen></entry>
+            <entry>Returns true if ptime is either positive or negative infinity</entry>
+          </row>
+          <row>
+            <entry><screen>ptime pt(pos_infin); 
+pt.is_infinity(); // --> true</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>bool is_neg_infinity() const</screen></entry>
+            <entry>Returns true if ptime is negative infinity</entry>
+          </row>
+          <row>
+            <entry><screen>ptime pt(neg_infin);
+pt.is_neg_infinity(); // --> true</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>bool is_pos_infinity() const</screen></entry>
+            <entry>Returns true if ptime is positive infinity</entry>
+          </row>
+          <row>
+            <entry><screen>ptime pt(neg_infin); 
+pt.is_pos_infinity(); // --> true</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>bool is_not_a_date_time() const</screen></entry>
+            <entry>Returns true if value is not a ptime</entry>
+          </row>
+          <row>
+            <entry><screen>ptime pt(not_a_date_time);
+pt.is_not_a_date_time(); // --> true</screen></entry>
+          </row>
+          
+          <row>
+            <entry valign="top" morerows="1"><screen>bool is_special() const</screen></entry>
+            <entry>Returns true if ptime is any <code>special_value</code></entry>
+          </row>
+          <row>
+            <entry><screen>ptime pt(pos_infin); 
+ptime pt2(not_a_date_time); 
+ptime pt3(date(2005,Mar,1), hours(10));
+pt.is_special(); // --> true
+pt2.is_special(); // --> true
+pt3.is_special(); // --> false</screen></entry>
+          </row>
+        
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="ptime_to_string" />
+  <bridgehead renderas="sect3">Conversion to String</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+	    <entry valign="top" morerows="1"><screen>std::string to_simple_string(ptime)</screen></entry>
+            <entry>To <code>YYYY-mmm-DD HH:MM:SS.fffffffff</code> string where <code>mmm</code> 3 char month name. Fractional seconds only included if non-zero.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>2002-Jan-01 10:00:01.123456789</screen></entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>std::string to_iso_string(ptime)</screen></entry>
+            <entry>Convert to form <code>YYYYMMDDTHHMMSS,fffffffff</code> where <code>T</code> is the date-time separator</entry>
+	  </row>
+	  <row>
+	    <entry><screen>20020131T100001,123456789</screen></entry>
+          </row>
+          
+          <row>
+	    <entry valign="top" morerows="1"><screen>std::string to_iso_extended_string(ptime)</screen></entry>
+            <entry>Convert to form <code>YYYY-MM-DDTHH:MM:SS,fffffffff</code> where <code>T</code> is the date-time separator</entry>
+	  </row>
+	  <row>
+	    <entry><screen>2002-01-31T10:00:01,123456789</screen></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="ptime_operators" />
+  <bridgehead renderas="sect3">Operators</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>operator&lt;&lt;, operator&gt;&gt;</screen></entry>
+            <entry>Streaming operators. <emphasis role="strong">Note:</emphasis> As of version 1.33, streaming operations have been greatly improved. See <link linkend="date_time.date_time_io">Date Time IO System</link> for more details (including exceptions and error conditions).</entry>
+          </row>
+          <row>
+            <entry><screen>ptime pt(not_a_date_time);
+stringstream ss("2002-Jan-01 14:23:11");
+ss &gt;&gt; pt; 
+std::cout &lt;&lt; pt; // "2002-Jan-01 14:23:11"
+  </screen>
+            </entry>
+          </row>
+
+          <row>
+	    <entry valign="top" morerows="1"><screen>operator==, operator!=,
+operator>, operator&lt;,
+operator>=, operator&lt;=</screen>
+	    </entry>
+	    <entry>A full complement of comparison operators</entry>
+	  </row>
+	  <row>
+	    <entry><screen>t1 == t2, etc</screen></entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>ptime operator+(days)</screen></entry>
+	    <entry>Return a ptime adding a day offset</entry>
+	  </row>
+	  <row>
+	    <entry><screen>date d(2002,Jan,1);
+ptime t(d,minutes(5));
+days dd(1);
+ptime t2 = t + dd;</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>ptime operator-(days)</screen></entry>
+	    <entry>Return a ptime subtracting a day offset</entry>
+	  </row>
+	  <row>
+	    <entry><screen>date d(2002,Jan,1);
+ptime t(d,minutes(5));
+days dd(1);
+ptime t2 = t - dd;</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>ptime operator+(time_duration)</screen></entry>
+	    <entry>Return a ptime adding a time duration</entry>
+	  </row>
+	  <row>
+	    <entry><screen>date d(2002,Jan,1);
+ptime t(d,minutes(5));
+ptime t2 = t + hours(1) + minutes(2);</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>ptime operator-(time_duration)</screen></entry>
+	    <entry>Return a ptime subtracting a time duration</entry>
+	  </row>
+	  <row>
+	    <entry><screen>date d(2002,Jan,1);
+ptime t(d,minutes(5));
+ptime t2 = t - minutes(2);</screen>
+	    </entry>
+          </row>
+          
+          <row>
+	    <entry valign="top" morerows="1"><screen>time_duration operator-(ptime)</screen></entry>
+	    <entry>Take the difference between two times.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>date d(2002,Jan,1);
+ptime t1(d,minutes(5));
+ptime t2(d,seconds(5));
+time_duration t3 = t2 - t1;//negative result</screen>
+	    </entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <anchor id="ptime_struct_tm" />
+  <bridgehead renderas="sect3">Struct tm, time_t, and FILETIME Functions</bridgehead>
+  <para>Functions for converting posix_time objects to, and from, <code>tm</code> structs are provided as well as conversion from <code>time_t</code> and <code>FILETIME</code>.</para>
+  <informaltable frame="all">
+    <tgroup cols="2">
+      <thead>
+	<row>
+	  <entry valign="top" morerows="1">Syntax</entry>
+	  <entry>Description</entry>
+	</row>
+	<row>
+	  <entry>Example</entry>
+	</row>
+      </thead>
+      <tbody>
+        <row>
+	  <entry valign="top" morerows="1"><screen>tm to_tm(ptime)</screen></entry>
+          <entry>A function for converting a <code>ptime</code> object to a <code>tm</code> struct. The <code>tm_isdst</code> field is set to -1.</entry>
+	</row>
+	<row>
+          <entry><screen>ptime pt(date(2005,Jan,1), time_duration(1,2,3));
+tm pt_tm = to_tm(pt);
+/* tm_year => 105
+   tm_mon  => 0
+   tm_mday => 1
+   tm_wday => 6 (Saturday)
+   tm_yday => 0
+   tm_hour => 1
+   tm_min  => 2
+   tm_sec  => 3
+   tm_isddst => -1 */</screen>
+	  </entry>
+        </row>
+
+        <row>
+	  <entry valign="top" morerows="1"><screen>date date_from_tm(tm datetm)</screen></entry>
+          <entry>A function for converting a <code>tm</code> struct to a <code>date</code> object. The fields: <code>tm_wday </code>, <code>tm_yday </code>, and <code>tm_isdst</code> are ignored.</entry>
+	</row>
+	<row>
+          <entry><screen>tm pt_tm;
+pt_tm.tm_year = 105;
+pt_tm.tm_mon  = 0;
+pt_tm.tm_mday = 1;
+pt_tm.tm_hour = 1;
+pt_tm.tm_min  = 2;
+pt_tm.tm_sec  = 3;
+ptime pt = ptime_from_tm(pt_tm);
+// pt => 2005-Jan-01 01:02:03</screen>
+          </entry>
+        </row>
+        
+        <row>
+	  <entry valign="top" morerows="1"><screen>tm to_tm(time_duration)</screen></entry>
+          <entry>A function for converting a <code>time_duration</code> object to a <code>tm</code> struct. The fields: <code>tm_year</code>, <code>tm_mon</code>, <code>tm_mday</code>, <code>tm_wday</code>, <code>tm_yday</code> are set to zero. The <code>tm_isdst</code> field is set to -1.</entry>
+	</row>
+	<row>
+          <entry><screen>time_duration td(1,2,3);
+tm td_tm = to_tm(td);
+/* tm_year => 0
+   tm_mon  => 0
+   tm_mday => 0
+   tm_wday => 0
+   tm_yday => 0
+   tm_hour => 1
+   tm_min  => 2
+   tm_sec  => 3
+   tm_isddst => -1 */</screen>
+	  </entry>
+        </row>
+
+        <row>
+	  <entry valign="top" morerows="1"><screen>ptime from_time_t(std::time_t)</screen></entry>
+          <entry>Creates a <code>ptime</code> from the time_t parameter. The seconds held in the time_t are added to a time point of 1970-Jan-01.</entry>
+	</row>
+	<row>
+          <entry><screen>ptime pt(not_a_date_time);
+std::time_t t;
+t = 1118158776;
+pt = from_time_t(t);
+// pt => 2005-Jun-07 15:39:36</screen></entry>
+        </row>
+
+        <row>
+          <entry valign="top" morerows="1"><screen>ptime from_ftime&lt;ptime>(FILETIME)</screen></entry>
+          <entry>A template function that constructs a <code>ptime</code> from a FILETIME struct.</entry>
+	</row>
+	<row>
+          <entry><screen>FILETIME ft;
+ft.dwHighDateTime = 29715317;
+ft.dwLowDateTime = 3865122988UL;
+ptime pt = from_ftime&lt;ptime>(ft);
+// pt => 2005-Jun-07 15:30:57.039582000</screen></entry>
+        </row>
+
+      </tbody>
+    </tgroup>
+  </informaltable>
+  
+</section>

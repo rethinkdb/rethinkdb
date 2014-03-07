@@ -1,0 +1,32 @@
+#________________________________________________________________________
+#
+# (C) COPYRIGHT International Business Machines Corp. 2009
+#     All Rights Reserved
+#
+#________________________________________________________________________
+#
+#       Name:    "Fake" Unicode to ISO-IR-165 table
+#       Date:    December 2, 2009
+#
+# This is not a real GB2312 GL table, but a "fake" table to return U+FFFD
+# for every byte sequence valid in GB2312 GL. Chrome and Android
+# do not want to include the real table for ISO-1022-CN(-Ext) that are extremely
+# rare, if used at all. However, the lack of support gets
+# them vulernable to a security issue. By including this 'fake' table
+# and two others, they can be protected while increasing the ICU data size
+# by ~ 10kB.
+<code_set_name>               "noop-gb2312_gl"
+<char_name_mask>              "AXXXX"
+<mb_cur_max>                  2
+<mb_cur_min>                  2
+<uconv_class>                 "DBCS"
+<subchar>                     \x21\x21
+<icu:charsetFamily>           "ASCII"
+<icu:alias>                   "ibm-5478_STD"
+
+<icu:state>                   0-20:2, 21-7e:1, 7f-ff:2
+<icu:state>                   21-7e.u
+<icu:state>
+
+CHARMAP
+END CHARMAP

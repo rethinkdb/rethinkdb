@@ -1,0 +1,208 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Short Example</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../getting_started.html" title="Getting started">
+<link rel="prev" href="usage__compilation__headers.html" title="Usage, Compilation, Headers">
+<link rel="next" href="../tutorial.html" title="Tutorial">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="usage__compilation__headers.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../getting_started.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../tutorial.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.getting_started.short_example"></a><a class="link" href="short_example.html" title="Short Example">Short
+      Example</a>
+</h3></div></div></div>
+<p>
+        Imaging, you want to numerically integrate a harmonic oscillator with friction.
+        The equations of motion are given by <span class="emphasis"><em>x'' = -x + &#947; x'</em></span>.
+        Odeint only deals with first order ODEs that have no higher derivatives than
+        x' involved. However, any higher order ODE can be transformed to a system
+        of first order ODEs by introducing the new variables <span class="emphasis"><em>q=x</em></span>
+        and <span class="emphasis"><em>p=x'</em></span> such that <span class="emphasis"><em>w=(q,p)</em></span>. To
+        apply numerical integration one first has to design the right hand side of
+        the equation <span class="emphasis"><em>w' = f(w) = (p,-q+&#947; p)</em></span>:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">/* The type of container used to hold the state vector */</span>
+<span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span> <span class="identifier">state_type</span><span class="special">;</span>
+
+<span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">gam</span> <span class="special">=</span> <span class="number">0.15</span><span class="special">;</span>
+
+<span class="comment">/* The rhs of x' = f(x) */</span>
+<span class="keyword">void</span> <span class="identifier">harmonic_oscillator</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">dxdt</span> <span class="special">,</span> <span class="keyword">const</span> <span class="keyword">double</span> <span class="comment">/* t */</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">dxdt</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">];</span>
+    <span class="identifier">dxdt</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">=</span> <span class="special">-</span><span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">gam</span><span class="special">*</span><span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">];</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        Here we chose <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span></code>
+        as the state type, but others are also possible, for example <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span><span class="number">2</span><span class="special">&gt;</span></code>. odeint is designed in such a way that
+        you can easily use your own state types. Next, the ODE is defined which is
+        in this case a simple function calculating <span class="emphasis"><em>f(x)</em></span>. The
+        parameter signature of this function is crucial: the integration methods
+        will always call them in the form <code class="computeroutput"><span class="identifier">f</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span>
+        <span class="identifier">dxdt</span><span class="special">,</span>
+        <span class="identifier">t</span><span class="special">)</span></code>
+        (there are exceptions for some special routines). So, even if there is no
+        explicit time dependence, one has to define <code class="computeroutput"><span class="identifier">t</span></code>
+        as a function parameter.
+      </p>
+<p>
+        Now, we have to define the initial state from which the integration should
+        start:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">state_type</span> <span class="identifier">x</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+<span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">=</span> <span class="number">1.0</span><span class="special">;</span> <span class="comment">// start at x=1.0, p=0.0</span>
+<span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        For the integration itself we'll use the <code class="computeroutput"><span class="identifier">integrate</span></code>
+        function, which is a convenient way to get quick results. It is based on
+        the error-controlled <code class="computeroutput"><span class="identifier">runge_kutta54_cash_karp</span></code>
+        stepper (5th order) and uses adaptive step-size.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">size_t</span> <span class="identifier">steps</span> <span class="special">=</span> <span class="identifier">integrate</span><span class="special">(</span> <span class="identifier">harmonic_oscillator</span> <span class="special">,</span>
+        <span class="identifier">x</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="number">0.1</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        The integrate function expects as parameters the rhs of the ode as defined
+        above, the initial state <code class="computeroutput"><span class="identifier">x</span></code>,
+        the start-and end-time of the integration as well as the initial time step=size.
+        Note, that <code class="computeroutput"><span class="identifier">integrate</span></code> uses
+        an adaptive step-size during the integration steps so the time points will
+        not be equally spaced. The integration returns the number of steps that were
+        applied and updates x which is set to the approximate solution of the ODE
+        at the end of integration.
+      </p>
+<p>
+        It is also possible to represent the ode system as a class. The rhs must
+        then be implemented as a functor - a class with an overloaded function call
+        operator:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">/* The rhs of x' = f(x) defined as a class */</span>
+<span class="keyword">class</span> <span class="identifier">harm_osc</span> <span class="special">{</span>
+
+    <span class="keyword">double</span> <span class="identifier">m_gam</span><span class="special">;</span>
+
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">harm_osc</span><span class="special">(</span> <span class="keyword">double</span> <span class="identifier">gam</span> <span class="special">)</span> <span class="special">:</span> <span class="identifier">m_gam</span><span class="special">(</span><span class="identifier">gam</span><span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">dxdt</span> <span class="special">,</span> <span class="keyword">const</span> <span class="keyword">double</span> <span class="comment">/* t */</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">dxdt</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">=</span> <span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">];</span>
+        <span class="identifier">dxdt</span><span class="special">[</span><span class="number">1</span><span class="special">]</span> <span class="special">=</span> <span class="special">-</span><span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">m_gam</span><span class="special">*</span><span class="identifier">x</span><span class="special">[</span><span class="number">1</span><span class="special">];</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        which can be used via
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">harm_osc</span> <span class="identifier">ho</span><span class="special">(</span><span class="number">0.15</span><span class="special">);</span>
+<span class="identifier">steps</span> <span class="special">=</span> <span class="identifier">integrate</span><span class="special">(</span> <span class="identifier">ho</span> <span class="special">,</span>
+        <span class="identifier">x</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="number">0.1</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        In order to observe the solution during the integration steps all you have
+        to do is to provide a reasonable observer. An example is
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">push_back_state_and_time</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">state_type</span> <span class="special">&gt;&amp;</span> <span class="identifier">m_states</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;&amp;</span> <span class="identifier">m_times</span><span class="special">;</span>
+
+    <span class="identifier">push_back_state_and_time</span><span class="special">(</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">state_type</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="identifier">states</span> <span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="identifier">times</span> <span class="special">)</span>
+    <span class="special">:</span> <span class="identifier">m_states</span><span class="special">(</span> <span class="identifier">states</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">m_times</span><span class="special">(</span> <span class="identifier">times</span> <span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="keyword">const</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="keyword">double</span> <span class="identifier">t</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">m_states</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span> <span class="identifier">x</span> <span class="special">);</span>
+        <span class="identifier">m_times</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span> <span class="identifier">t</span> <span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        which stores the intermediate steps in a container. Note, the argument structure
+        of the ()-operator: odeint calls the observer exactly in this way, providing
+        the current state and time. Now, you only have to pass this container to
+        the integration function:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">state_type</span><span class="special">&gt;</span> <span class="identifier">x_vec</span><span class="special">;</span>
+<span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">times</span><span class="special">;</span>
+
+<span class="identifier">steps</span> <span class="special">=</span> <span class="identifier">integrate</span><span class="special">(</span> <span class="identifier">harmonic_oscillator</span> <span class="special">,</span>
+        <span class="identifier">x</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">,</span> <span class="number">10.0</span> <span class="special">,</span> <span class="number">0.1</span> <span class="special">,</span>
+        <span class="identifier">push_back_state_and_time</span><span class="special">(</span> <span class="identifier">x_vec</span> <span class="special">,</span> <span class="identifier">times</span> <span class="special">)</span> <span class="special">);</span>
+
+<span class="comment">/* output */</span>
+<span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span><span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;=</span><span class="identifier">steps</span><span class="special">;</span> <span class="identifier">i</span><span class="special">++</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">times</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="char">'\t'</span> <span class="special">&lt;&lt;</span> <span class="identifier">x_vec</span><span class="special">[</span><span class="identifier">i</span><span class="special">][</span><span class="number">0</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="char">'\t'</span> <span class="special">&lt;&lt;</span> <span class="identifier">x_vec</span><span class="special">[</span><span class="identifier">i</span><span class="special">][</span><span class="number">1</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        That is all. You can use functional libraries like <a href="http://www.boost.org/doc/libs/release/doc/html/lambda.html" target="_top">Boost.Lambda</a>
+        or <a href="http://www.boost.org/doc/libs/1_46_1/libs/spirit/phoenix/doc/html/index.html" target="_top">Boost.Phoenix</a>
+        to ease the creation of observer functions.
+      </p>
+<p>
+        The full cpp file for this example can be found here: <a href="../../../../../../../libs/numeric/odeint/examples/harmonic_oscillator.cpp" target="_top">harmonic_oscillator.cpp</a>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="usage__compilation__headers.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../getting_started.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../tutorial.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

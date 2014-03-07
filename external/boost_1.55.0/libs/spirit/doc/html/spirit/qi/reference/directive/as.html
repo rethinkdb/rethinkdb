@@ -1,0 +1,398 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Parser Directives Forcing Atomic Assignment (as&lt;T&gt;, as_string[], as_wstring[])</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../directive.html" title="Parser Directives">
+<link rel="prev" href="hold.html" title="Parser Directive for Attribute Commit/Rollback (hold[])">
+<link rel="next" href="../nonterminal.html" title="Nonterminal Parsers">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="hold.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../nonterminal.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.reference.directive.as"></a><a class="link" href="as.html" title="Parser Directives Forcing Atomic Assignment (as&lt;T&gt;, as_string[], as_wstring[])">Parser Directives
+          Forcing Atomic Assignment (<code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;,</span> <span class="identifier">as_string</span><span class="special">[],</span> <span class="identifier">as_wstring</span><span class="special">[]</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.qi.reference.directive.as.h0"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.as.description"></a></span><a class="link" href="as.html#spirit.qi.reference.directive.as.description">Description</a>
+          </h6>
+<p>
+            The <code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+            class forces the atomic assignment of it's subject's synthesized attribute.
+            Usually, repetitive parsers (such as <a class="link" href="../operator/kleene.html" title="Kleene Parser (*a)">Kleene</a>,
+            etc) or sequences exposing a <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code> will assign elements to the container
+            supplied as their synthesized attribute by calling <a class="link" href="../../../advanced/customize/store_value/push_back.html" title="Store a Parsed Attribute Value into a Container (Qi)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">push_back_container</span></code></a> repeatedly.
+            In some cases, this may be undesirable. The <code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code> class creates a directive that will
+            pass a temporary object of type <code class="computeroutput"><span class="identifier">T</span></code>
+            to it's subject. If the subject parser passes, the temporary object will
+            be assigned to the directive's supplied attribute with a single call
+            to <a class="link" href="../../../advanced/customize/assign_to.html" title="Store a Parsed Attribute Value (Qi)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">assign_to</span></code></a>. If the subject parser
+            fails, the directive's attribute is not mutated.
+          </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              <code class="computeroutput"><span class="identifier">T</span></code> is required to be
+              a container type. If <a class="link" href="../../../advanced/customize/is_container.html" title="Determine if a Type Should be Treated as a Container (Qi and Karma)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">is_container</span></code></a> does not return
+              true for <code class="computeroutput"><span class="identifier">T</span></code>, a compile-time
+              error will occur.
+            </p></td></tr>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The <code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+              implicitly causes commit/rollback semantics similar in nature to the
+              <a class="link" href="hold.html" title="Parser Directive for Attribute Commit/Rollback (hold[])"><code class="computeroutput"><span class="identifier">hold</span></code></a>
+              directive.
+            </p></td></tr>
+</table></div>
+<div class="caution"><table border="0" summary="Caution">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Caution]" src="../../../../images/caution.png"></td>
+<th align="left">Caution</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The <a class="link" href="../../../advanced/customize/assign_to.html" title="Store a Parsed Attribute Value (Qi)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">assign_to</span></code></a> customization point
+              may end up using <a class="link" href="../../../advanced/customize/store_value/push_back.html" title="Store a Parsed Attribute Value into a Container (Qi)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">push_back_container</span></code></a> to assign
+              the temporary object to the supplied attribute by default, depending
+              on the types involved. Use the interface described in <a class="link" href="../../../advanced/customize.html" title="Customization of Spirit's Attribute Handling">Customization
+              of Attribute Handling</a> to manipulate the semantics of this assignment
+              operation.
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.directive.as.h1"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.as.header"></a></span><a class="link" href="as.html#spirit.qi.reference.directive.as.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/directive/as.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_as</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.directive.as.h2"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.as.namespace"></a></span><a class="link" href="as.html#spirit.qi.reference.directive.as.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">as</span> <span class="comment">// alias:
+                      boost::spirit::qi::as</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">as_string</span> <span class="comment">//
+                      alias: boost::spirit::qi::as_string</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">as_wstring</span> <span class="comment">//
+                      alias: boost::spirit::qi::as_wstring</span></code>
+                    </p>
+                  </td></tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.directive.as.h3"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.as.synopsis"></a></span><a class="link" href="as.html#spirit.qi.reference.directive.as.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">as</span><span class="special">;</span>
+</pre>
+<h6>
+<a name="spirit.qi.reference.directive.as.h4"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.as.template_parameters"></a></span><a class="link" href="as.html#spirit.qi.reference.directive.as.template_parameters">Template
+            parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Default
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">T</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A container type. [none
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.directive.as.h5"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.as.model_of"></a></span><a class="link" href="as.html#spirit.qi.reference.directive.as.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../parser_concepts/unaryparser.html" title="UnaryParser"><code class="computeroutput"><span class="identifier">UnaryParser</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a</span></code></span></dt>
+<dd><p>
+                  A <a class="link" href="../parser_concepts/parser.html" title="Parser"><code class="computeroutput"><span class="identifier">Parser</span></code></a>.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">t</span></code></span></dt>
+<dd><p>
+                  A container of type <code class="computeroutput"><span class="identifier">T</span></code>.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">attr</span></code></span></dt>
+<dd><p>
+                  The attribute supplied to the directive.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.qi.reference.directive.as.h6"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.as.expression_semantics"></a></span><a class="link" href="as.html#spirit.qi.reference.directive.as.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../parser_concepts/unaryparser.html" title="UnaryParser"><code class="computeroutput"><span class="identifier">UnaryParser</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;()[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Create a temporary object of <code class="computeroutput"><span class="identifier">t</span></code>
+                      of type <code class="computeroutput"><span class="identifier">T</span></code>,
+                      and invoke the subject parser <code class="computeroutput"><span class="identifier">a</span></code>,
+                      supplying <code class="computeroutput"><span class="identifier">t</span></code>
+                      as an attribute. If the subject parser passes, assign <code class="computeroutput"><span class="identifier">t</span></code> to <code class="computeroutput"><span class="identifier">attr</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">as_string</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Equivalent to <code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;()[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">as_wstring</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Equivalent to <code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">wstring</span><span class="special">&gt;()[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.directive.as.h7"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.as.attributes"></a></span><a class="link" href="as.html#spirit.qi.reference.directive.as.attributes">Attributes</a>
+          </h6>
+<p>
+            See <a class="link" href="../../quick_reference/compound_attribute_rules.html#spirit.qi.quick_reference.compound_attribute_rules.notation">Compound
+            Attribute Notation</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;()[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">a</span><span class="special">:</span>
+                      <span class="identifier">A</span> <span class="special">--&gt;</span>
+                      <span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;()[</span><span class="identifier">a</span><span class="special">]:</span>
+                      <span class="identifier">T</span></code>
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.directive.as.h8"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.as.complexity"></a></span><a class="link" href="as.html#spirit.qi.reference.directive.as.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              The complexity is defined by the complexity of the subject parser,
+              <code class="computeroutput"><span class="identifier">a</span></code>, and the complexity
+              of the assignment of the container <code class="computeroutput"><span class="identifier">t</span></code>
+              to the supplied attribute <code class="computeroutput"><span class="identifier">attr</span></code>.
+            </p></blockquote></div>
+<h6>
+<a name="spirit.qi.reference.directive.as.h9"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.as.example"></a></span><a class="link" href="as.html#spirit.qi.reference.directive.as.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.qi.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">utree</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">utree_type</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">utf8_symbol_type</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">as</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">as_string</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">char_</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Simple usage of <code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>,
+            <code class="computeroutput"><span class="identifier">as_string</span></code> and <code class="computeroutput"><span class="identifier">as_wstring</span></code>:
+          </p>
+<p>
+            To properly handle string concatenation with <a class="link" href="../../../support/utree.html" title="The utree data structure"><code class="computeroutput"><span class="identifier">utree</span></code></a>, we make use of <code class="computeroutput"><span class="identifier">as_string</span><span class="special">[]</span></code>.
+            We also use <code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+            to explicitly create a <a class="link" href="../../../support/utree.html" title="The utree data structure"><code class="computeroutput"><span class="identifier">utree</span></code></a> symbol node.
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">utree</span> <span class="identifier">ut</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">utf8_symbol_type</span><span class="special">&gt;</span> <span class="identifier">as_symbol_type</span><span class="special">;</span>
+<span class="identifier">as_symbol_type</span> <span class="keyword">const</span> <span class="identifier">as_symbol</span> <span class="special">=</span> <span class="identifier">as_symbol_type</span><span class="special">();</span>
+
+<span class="identifier">test_parser_attr</span><span class="special">(</span><span class="string">"foo"</span><span class="special">,</span> <span class="identifier">as_string</span><span class="special">[*</span><span class="identifier">char_</span><span class="special">],</span> <span class="identifier">ut</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">ut</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="comment">// will output &gt;"foo"&lt;</span>
+<span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">ut</span><span class="special">.</span><span class="identifier">which</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">utree_type</span><span class="special">::</span><span class="identifier">string_type</span><span class="special">);</span>
+<span class="identifier">ut</span><span class="special">.</span><span class="identifier">clear</span><span class="special">();</span>
+
+<span class="identifier">test_parser_attr</span><span class="special">(</span><span class="string">"foo"</span><span class="special">,</span> <span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;()[*</span><span class="identifier">char_</span><span class="special">],</span> <span class="identifier">ut</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">ut</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="comment">// will output &gt;"foo"&lt;</span>
+<span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">ut</span><span class="special">.</span><span class="identifier">which</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">utree_type</span><span class="special">::</span><span class="identifier">string_type</span><span class="special">);</span>
+<span class="identifier">ut</span><span class="special">.</span><span class="identifier">clear</span><span class="special">();</span>
+
+<span class="identifier">test_parser_attr</span><span class="special">(</span><span class="string">"foo"</span><span class="special">,</span> <span class="identifier">as_symbol</span><span class="special">[*</span><span class="identifier">char_</span><span class="special">],</span> <span class="identifier">ut</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">ut</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="comment">// will output &gt;foo&lt;</span>
+<span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">ut</span><span class="special">.</span><span class="identifier">which</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">utree_type</span><span class="special">::</span><span class="identifier">symbol_type</span><span class="special">);</span>
+<span class="identifier">ut</span><span class="special">.</span><span class="identifier">clear</span><span class="special">();</span>
+
+<span class="identifier">test_parser_attr</span><span class="special">(</span><span class="string">"foo"</span><span class="special">,</span> <span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">utf8_symbol_type</span><span class="special">&gt;()[*</span><span class="identifier">char_</span><span class="special">],</span> <span class="identifier">ut</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">ut</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="comment">// will output &gt;foo&lt;</span>
+<span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">ut</span><span class="special">.</span><span class="identifier">which</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">utree_type</span><span class="special">::</span><span class="identifier">symbol_type</span><span class="special">);</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="hold.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../nonterminal.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

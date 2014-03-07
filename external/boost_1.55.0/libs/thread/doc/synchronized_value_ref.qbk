@@ -1,0 +1,415 @@
+[/
+ / Copyright (c) 2013 Vicente J. Botet Escriba
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:synchronized_value_ref Reference ]
+
+
+  #include <boost/thread/synchronized_value.hpp>
+  namespace boost 
+  {
+
+    template<typename T, typename Lockable = mutex>
+    class synchronized_value;
+
+    // Specialized swap algorithm
+    template <typename T, typename L>
+    void swap(synchronized_value<T,L> & lhs, synchronized_value<T,L> & rhs);
+    template <typename T, typename L>
+    void swap(synchronized_value<T,L> & lhs, T & rhs);
+    template <typename T, typename L>
+    void swap(T & lhs, synchronized_value<T,L> & rhs);
+
+    // Hash support
+    template<typename T, typename L>
+    struct hash<synchronized_value<T,L> >;
+
+    // Comparison
+    template <typename T, typename L>
+    bool operator==(synchronized_value<T,L> const&lhs, synchronized_value<T,L> const& rhs)
+    template <typename T, typename L>
+    bool operator!=(synchronized_value<T,L> const&lhs, synchronized_value<T,L> const& rhs)
+    template <typename T, typename L>
+    bool operator<(synchronized_value<T,L> const&lhs, synchronized_value<T,L> const& rhs)
+    template <typename T, typename L>
+    bool operator<=(synchronized_value<T,L> const&lhs, synchronized_value<T,L> const& rhs)
+    template <typename T, typename L>
+    bool operator>(synchronized_value<T,L> const&lhs, synchronized_value<T,L> const& rhs)
+    template <typename T, typename L>
+    bool operator>=(synchronized_value<T,L> const&lhs, synchronized_value<T,L> const& rhs)
+
+    // Comparison with T
+    template <typename T, typename L>
+    bool operator==(T const& lhs, synchronized_value<T,L> const&rhs);
+    template <typename T, typename L>
+    bool operator!=(T const& lhs, synchronized_value<T,L> const&rhs);
+    template <typename T, typename L>
+    bool operator<(T const& lhs, synchronized_value<T,L> const&rhs);
+    template <typename T, typename L>
+    bool operator<=(T const& lhs, synchronized_value<T,L> const&rhs);
+    template <typename T, typename L>
+    bool operator>(T const& lhs, synchronized_value<T,L> const&rhs);
+    template <typename T, typename L>
+    bool operator>=(T const& lhs, synchronized_value<T,L> const&rhs);
+
+    template <typename T, typename L>
+    bool operator==(synchronized_value<T,L> const& lhs, T const& rhs);
+    template <typename T, typename L>
+    bool operator!=(synchronized_value<T,L> const& lhs, T const& rhs);
+    template <typename T, typename L>
+    bool operator<(synchronized_value<T,L> const& lhs, T const& rhs);
+    template <typename T, typename L>
+    bool operator<=(synchronized_value<T,L> const& lhs, T const& rhs);
+    template <typename T, typename L>
+    bool operator>(synchronized_value<T,L> const& lhs, T const& rhs);
+    template <typename T, typename L>
+    bool operator>=(synchronized_value<T,L> const& lhs, T const& rhs);
+
+  #if ! defined(BOOST_THREAD_NO_SYNCHRONIZE)
+    template <typename ...SV>
+    std::tuple<typename synchronized_value_strict_lock_ptr<SV>::type ...> synchronize(SV& ...sv);
+  #endif
+  }
+
+[section:synchronized_value Class `synchronized_value`]
+
+  #include <boost/thread/synchronized_value.hpp>
+
+  namespace boost 
+  {
+
+    template<typename T, typename Lockable = mutex>
+    class synchronized_value
+    {
+    public:
+      typedef T value_type;
+      typedef Lockable mutex_type;
+
+      synchronized_value() noexept(is_nothrow_default_constructible<T>::value);
+      synchronized_value(T const& other) noexept(is_nothrow_copy_constructible<T>::value);
+      synchronized_value(T&& other) noexept(is_nothrow_move_constructible<T>::value);
+      synchronized_value(synchronized_value const& rhs);
+      synchronized_value(synchronized_value&& other);
+
+      // mutation
+      synchronized_value& operator=(synchronized_value const& rhs);
+      synchronized_value& operator=(value_type const& val);
+      void swap(synchronized_value & rhs);
+      void swap(value_type & rhs);
+
+      //observers
+      T get() const;
+    #if ! defined(BOOST_NO_CXX11_EXPLICIT_CONVERSION_OPERATORS)
+      explicit operator T() const;
+    #endif
+
+      strict_lock_ptr<T,Lockable> operator->();
+      const_strict_lock_ptr<T,Lockable> operator->() const;
+      strict_lock_ptr<T,Lockable> synchronize();
+      const_strict_lock_ptr<T,Lockable> synchronize() const;
+
+      deref_value operator*();;
+      const_deref_value operator*() const;
+
+    private:
+      T value_; // for exposition only
+      mutable mutex_type mtx_;  // for exposition only
+    };
+  }
+
+[variablelist
+
+[[Requires:] [`Lockable` is `Lockable`.]]
+
+]
+
+
+[section:constructor `synchronized_value()`]
+
+      synchronized_value() noexept(is_nothrow_default_constructible<T>::value);
+
+[variablelist
+
+[[Requires:] [`T` is `DefaultConstructible`.]]
+[[Effects:] [Default constructs the cloaked value_type]]
+
+[[Throws:] [Any exception thrown by `value_type()`.]]
+
+]
+
+[endsect]
+
+
+[section:constructor_vt `synchronized_value(T const&)`]
+
+      synchronized_value(T const& other) noexept(is_nothrow_copy_constructible<T>::value);
+
+[variablelist
+
+[[Requires:] [`T` is `CopyConstructible`.]]
+[[Effects:] [Copy constructs the cloaked value_type using the parameter `other`]]
+
+[[Throws:] [Any exception thrown by `value_type(other)`.]]
+
+]
+
+[endsect]
+
+[section:copy_cons `synchronized_value(synchronized_value const&)`]
+
+      synchronized_value(synchronized_value const& rhs);
+
+[variablelist
+
+[[Requires:] [`T` is `DefaultConstructible` and `Assignable`.]]
+[[Effects:] [Assigns the value on a scope protected by the mutex of the rhs. The mutex is not copied.]]
+
+[[Throws:] [Any exception thrown by `value_type()` or `value_type& operator=(value_type&)` or `mtx_.lock()`.]]
+
+]
+
+[endsect]
+
+[section:move_vt `synchronized_value(T&&)`]
+
+      synchronized_value(T&& other) noexept(is_nothrow_move_constructible<T>::value);
+
+[variablelist
+
+[[Requires:] [`T` is `CopyMovable `.]]
+[[Effects:] [Move constructs the cloaked value_type]]
+
+[[Throws:] [Any exception thrown by `value_type(value_type&&)`.]]
+
+]
+
+[endsect]
+
+[section:move `synchronized_value(synchronized_value&&)`]
+
+      synchronized_value(synchronized_value&& other);
+
+[variablelist
+
+[[Requires:] [`T` is `CopyMovable `.]]
+[[Effects:] [Move constructs the cloaked value_type]]
+
+[[Throws:] [Any exception thrown by `value_type(value_type&&)` or `mtx_.lock()`.]]
+
+]
+
+[endsect]
+
+[section:assign `operator=(synchronized_value const&)`]
+
+      synchronized_value& operator=(synchronized_value const& rhs);
+
+[variablelist
+
+[[Requires:] [`T` is `Assignale`.]]
+[[Effects:] [Copies the underlying value on a scope protected by the two mutexes. The mutex is not copied. The locks are acquired avoiding deadlock. For example, there is no problem if one thread assigns `a = b` and the other assigns `b = a`.]]
+[[Return:] [`*this`]]
+
+[[Throws:] [Any exception thrown by `value_type& operator(value_type const&)` or `mtx_.lock()`.]]
+
+]
+
+[endsect]
+[section:assign_vt `operator=(T const&)`]
+
+      synchronized_value& operator=(value_type const& val);
+
+[variablelist
+
+[[Requires:] [`T` is `Assignale`.]]
+[[Effects:] [Copies the value on a scope protected by the mutex.]]
+[[Return:] [`*this`]]
+
+[[Throws:] [Any exception thrown by `value_type& operator(value_type const&)` or `mtx_.lock()`.]]
+
+]
+
+[endsect]
+
+[section:get `get() const`]
+
+      T get() const;
+
+[variablelist
+
+[[Requires:] [`T` is `CopyConstructible`.]]
+[[Return:] [`A copy of the protected value obtained on a scope protected by the mutex.`]]
+
+[[Throws:] [Any exception thrown by `value_type(value_type const&)` or `mtx_.lock()`.]]
+
+]
+
+[endsect]
+
+
+[section:T `operator T() const`]
+
+    #if ! defined(BOOST_NO_CXX11_EXPLICIT_CONVERSION_OPERATORS)
+      explicit operator T() const;
+    #endif
+
+[variablelist
+
+[[Requires:] [`T` is `CopyConstructible`.]]
+[[Return:] [`A copy of the protected value obtained on a scope protected by the mutex.`]]
+
+[[Throws:] [Any exception thrown by `value_type(value_type const&)` or `mtx_.lock()`.]]
+
+]
+
+[endsect]
+
+[section:swap `swap(synchronized_value&)`]
+
+      void swap(synchronized_value & rhs);
+
+[variablelist
+
+[[Requires:] [`T` is `Assignale`.]]
+[[Effects:] [Swaps the data on a scope protected by both mutex. Both mutex are acquired to avoid dead-lock. The mutexes are not swapped.]]
+
+[[Throws:] [Any exception thrown by `swap(value_, rhs.value)` or `mtx_.lock()` or `rhs_.mtx_.lock()`.]]
+
+]
+
+[endsect]
+
+[section:swap_vt `swap(synchronized_value&)`]
+
+      void swap(value_type & rhs);
+
+[variablelist
+
+[[Requires:] [`T` is `Swapable`.]]
+[[Effects:] [Swaps the data on a scope protected by both mutex. Both mutex are acquired to avoid dead-lock. The mutexes are not swapped.]]
+
+[[Throws:] [Any exception thrown by `swap(value_, rhs)` or `mtx_.lock()`.]]
+
+]
+
+[endsect]
+[section:indir `operator->()`]
+
+      strict_lock_ptr<T,Lockable> operator->();
+
+
+Essentially calling a method `obj->foo(x, y, z)` calls the method `foo(x, y, z)` inside a critical section as long-lived as the call itself.
+
+[variablelist
+
+[[Return:] [`A strict_lock_ptr<>.`]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[section:indir_const `operator->() const`]
+
+      const_strict_lock_ptr<T,Lockable> operator->() const;
+
+
+If the `synchronized_value` object involved is const-qualified, then you'll only be able to call const methods
+through `operator->`. So, for example, `vec->push_back("xyz")` won't work if `vec` were const-qualified.
+The locking mechanism capitalizes on the assumption that const methods don't modify their underlying data.
+
+[variablelist
+
+[[Return:] [`A const_strict_lock_ptr <>.`]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[section:synchronize `synchronize()`]
+
+    strict_lock_ptr<T,Lockable> synchronize();
+
+The synchronize() factory make easier to lock on a scope. As discussed, `operator->` can only lock over the duration of a call, so it is insufficient for complex operations. With `synchronize()` you get to lock the object in a scoped and to directly access the object inside that scope.
+
+[*Example:]
+
+  void fun(synchronized_value<vector<int>> & vec) {
+    auto vec2=vec.synchronize();
+    vec2.push_back(42);
+    assert(vec2.back() == 42);
+  }
+
+[variablelist
+
+[[Return:] [`A strict_lock_ptr <>.`]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[section:synchronize_const `synchronize() const`]
+
+    const_strict_lock_ptr<T,Lockable> synchronize() const;
+
+[variablelist
+
+[[Return:] [`A const_strict_lock_ptr <>.`]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+[section:deref `operator*()`]
+
+      deref_value operator*();;
+
+[variablelist
+
+[[Return:] [`A an instance of a class that locks the mutex on construction and unlocks it on destruction and provides implicit conversion to a reference to the protected value.`]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+[section:deref_const `operator*() const`]
+
+      const_deref_value operator*() const;
+
+
+[variablelist
+
+[[Return:] [`A an instance of a class that locks the mutex on construction and unlocks it on destruction and provides implicit conversion to a constant reference to the protected value.`]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+
+
+
+[endsect]
+[section:synchronize Non-Member Function `synchronize`]
+
+  #include <boost/thread/synchronized_value.hpp>
+  namespace boost 
+  {
+  #if ! defined(BOOST_THREAD_NO_SYNCHRONIZE)
+    template <typename ...SV>
+    std::tuple<typename synchronized_value_strict_lock_ptr<SV>::type ...> synchronize(SV& ...sv);
+  #endif
+  }
+
+[endsect]
+[endsect]
+

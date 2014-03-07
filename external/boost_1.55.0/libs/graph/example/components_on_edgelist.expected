@@ -1,0 +1,14 @@
+An undirected graph (edge list):
+(0,1) (1,4) (4,0) (2,5) 
+
+Total number of components: 3
+Vertex 0 is in the component who's representative is 1
+Vertex 1 is in the component who's representative is 1
+Vertex 2 is in the component who's representative is 5
+Vertex 3 is in the component who's representative is 3
+Vertex 4 is in the component who's representative is 1
+Vertex 5 is in the component who's representative is 5
+
+component 0 contains: 4 1 0 
+component 1 contains: 3 
+component 2 contains: 5 2 

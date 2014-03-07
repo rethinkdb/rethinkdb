@@ -1,0 +1,64 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Dynamic Regexes]
+
+[h2 Overview]
+
+Static regexes are dandy, but sometimes you need something a bit more ... dynamic. Imagine you are developing
+a text editor with a regex search/replace feature. You need to accept a regular expression from the end user
+as input at run-time. There should be a way to parse a string into a regular expression. That's what xpressive's
+dynamic regexes are for. They are built from the same core components as their static counterparts, but they
+are late-bound so you can specify them at run-time.
+
+[h2 Construction and Assignment]
+
+There are two ways to create a dynamic regex: with the _regex_compile_
+function or with the _regex_compiler_ class template. Use _regex_compile_
+if you want the default locale. Use _regex_compiler_ if you need to
+specify a different locale. In the section on
+[link boost_xpressive.user_s_guide.grammars_and_nested_matches regex grammars],
+we'll see another use for _regex_compiler_.
+
+Here is an example of using `basic_regex<>::compile()`:
+
+    sregex re = sregex::compile( "this|that", regex_constants::icase );
+
+Here is the same example using _regex_compiler_:
+
+    sregex_compiler compiler;
+    sregex re = compiler.compile( "this|that", regex_constants::icase );
+
+_regex_compile_ is implemented in terms of _regex_compiler_.
+
+[h2 Dynamic xpressive Syntax]
+
+Since the dynamic syntax is not constrained by the rules for valid C++ expressions, we are free to use familiar
+syntax for dynamic regexes. For this reason, the syntax used by xpressive for dynamic regexes follows the
+lead set by John Maddock's [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2003/n1429.htm proposal]
+to add regular expressions to the Standard Library. It is essentially the syntax standardized by
+[@http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-262.pdf ECMAScript], with minor changes
+in support of internationalization.
+
+Since the syntax is documented exhaustively elsewhere, I will simply refer you to the existing standards, rather
+than duplicate the specification here.
+
+[h2 Internationalization]
+
+As with static regexes, dynamic regexes support internationalization by allowing you to specify a different
+`std::locale`. To do this, you must use _regex_compiler_. The _regex_compiler_ class has an `imbue()` function.
+After you have imbued a _regex_compiler_ object with a custom `std::locale`, all regex objects compiled by
+that _regex_compiler_ will use that locale. For example:
+
+    std::locale my_locale = /* initialize your locale object here */;
+    sregex_compiler compiler;
+    compiler.imbue( my_locale );
+    sregex re = compiler.compile( "\\w+|\\d+" );
+
+This regex will use `my_locale` when evaluating the intrinsic character sets `"\\w"` and `"\\d"`.
+
+[endsect]

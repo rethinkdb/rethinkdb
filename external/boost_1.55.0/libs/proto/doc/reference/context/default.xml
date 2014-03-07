@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/context/default.hpp">
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="context">
+        <struct name="default_eval">
+          <template>
+            <template-type-parameter name="Expr"/>
+            <template-type-parameter name="Context"/>
+          </template>
+          <purpose>
+            A BinaryFunction that accepts a Proto expression and a context, evaluates
+            each child expression with the context, and combines the result using the
+            standard C++ meaning for the operator represented by the current expression
+            node.
+          </purpose>
+          <description>
+            <para>
+              Let <computeroutput><computeroutput>OP</computeroutput></computeroutput> be the C++ operator
+              corresponding to <computeroutput>Expr::proto_tag</computeroutput>. (For example, if
+              <computeroutput>Tag</computeroutput> is <computeroutput>
+              <classname>proto::tag::plus</classname></computeroutput>, let <computeroutput>
+              <computeroutput>OP</computeroutput></computeroutput> be <computeroutput>+</computeroutput>.)
+            </para>
+            <para>
+              The behavior of this class is specified in terms of the C++0x <computeroutput>decltype</computeroutput>
+              keyword. In systems where this keyword is not available, Proto uses the Boost.Typeof library to
+              approximate the behavior.
+            </para>
+          </description>
+          <typedef name="Tag">
+            <purpose>For exposition only</purpose>
+            <type>typename Expr::tag_type</type>
+          </typedef>
+          <data-member name="s_expr" specifiers="static">
+            <purpose>For exposition only</purpose>
+            <type>Expr &amp;</type>
+          </data-member>
+          <data-member name="s_context" specifiers="static">
+            <purpose>For exposition only</purpose>
+            <type>Context &amp;</type>
+          </data-member>
+          <typedef name="result_type">
+            <type><emphasis>see-below</emphasis></type>
+            <description>
+              <itemizedlist>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> corresponds to a unary prefix operator,
+                    then the result type is
+                    <programlisting>decltype(
+  OP <functionname>proto::eval</functionname>(<functionname>proto::child</functionname>(s_expr), s_context)
+)</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> corresponds to a unary postfix operator,
+                    then the result type is
+                    <programlisting>decltype(
+  <functionname>proto::eval</functionname>(<functionname>proto::child</functionname>(s_expr), s_context) OP
+)</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> corresponds to a binary infix operator,
+                    then the result type is
+                    <programlisting>decltype(
+  <functionname>proto::eval</functionname>(<functionname>proto::left</functionname>(s_expr), s_context) OP
+  <functionname>proto::eval</functionname>(<functionname>proto::right</functionname>(s_expr), s_context)
+)</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                <para>
+                  If <computeroutput>Tag</computeroutput> is <computeroutput>
+                    <classname>proto::tag::subscript</classname>
+                  </computeroutput>,
+                  then the result type is
+                  <programlisting>decltype(
+  <functionname>proto::eval</functionname>(<functionname>proto::left</functionname>(s_expr), s_context) [
+  <functionname>proto::eval</functionname>(<functionname>proto::right</functionname>(s_expr), s_context) ]
+)</programlisting>
+                </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> is <computeroutput>
+                      <classname>proto::tag::if_else_</classname>
+                    </computeroutput>,
+                    then the result type is
+                    <programlisting>decltype(
+  <functionname>proto::eval</functionname>(<functionname>proto::child_c</functionname>&lt;0&gt;(s_expr), s_context) ?
+  <functionname>proto::eval</functionname>(<functionname>proto::child_c</functionname>&lt;1&gt;(s_expr), s_context) :
+  <functionname>proto::eval</functionname>(<functionname>proto::child_c</functionname>&lt;2&gt;(s_expr), s_context)
+)</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> is <computeroutput>
+                      <classname>proto::tag::function</classname>
+                    </computeroutput>,
+                    then the result type is
+                    <programlisting>decltype(
+  <functionname>proto::eval</functionname>(<functionname>proto::child_c</functionname>&lt;0&gt;(s_expr), s_context) (
+  <functionname>proto::eval</functionname>(<functionname>proto::child_c</functionname>&lt;1&gt;(s_expr), s_context),
+  ...
+  <functionname>proto::eval</functionname>(<functionname>proto::child_c</functionname>&lt;N&gt;(s_expr), s_context) )
+)</programlisting>
+                  </para>
+                </listitem>
+              </itemizedlist>
+            </description>
+          </typedef>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>result_type</type>
+              <parameter name="expr">
+                <paramtype>Expr &amp;</paramtype>
+                <description>
+                  <para>The current expression </para>
+                </description>
+              </parameter>
+              <parameter name="context">
+                <paramtype>Context &amp;</paramtype>
+                <description>
+                  <para>The evaluation context </para>
+                </description>
+              </parameter>
+            <description>
+              <itemizedlist>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> corresponds to a unary prefix operator,
+                    then return
+                    <programlisting>OP <functionname>proto::eval</functionname>(<functionname>proto::child</functionname>(expr), context)</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> corresponds to a unary postfix operator,
+                    then return
+                    <programlisting><functionname>proto::eval</functionname>(<functionname>proto::child</functionname>(expr), context) OP</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> corresponds to a binary infix operator,
+                    then return
+                    <programlisting><functionname>proto::eval</functionname>(<functionname>proto::left</functionname>(expr), context) OP
+<functionname>proto::eval</functionname>(<functionname>proto::right</functionname>(expr), context)</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                <para>
+                  If <computeroutput>Tag</computeroutput> is <computeroutput>
+                    <classname>proto::tag::subscript</classname>
+                  </computeroutput>,
+                  then return
+                  <programlisting><functionname>proto::eval</functionname>(<functionname>proto::left</functionname>(expr), context) [
+<functionname>proto::eval</functionname>(<functionname>proto::right</functionname>(expr), context) ]</programlisting>
+                </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> is <computeroutput>
+                      <classname>proto::tag::if_else_</classname>
+                    </computeroutput>,
+                    then return
+                    <programlisting><functionname>proto::eval</functionname>(<functionname>proto::child_c</functionname>&lt;0&gt;(expr), context) ?
+<functionname>proto::eval</functionname>(<functionname>proto::child_c</functionname>&lt;1&gt;(expr), context) :
+<functionname>proto::eval</functionname>(<functionname>proto::child_c</functionname>&lt;2&gt;(expr), context)</programlisting>
+                  </para>
+                </listitem>
+                <listitem>
+                  <para>
+                    If <computeroutput>Tag</computeroutput> is <computeroutput>
+                      <classname>proto::tag::function</classname>
+                    </computeroutput>,
+                    then return
+                    <programlisting><functionname>proto::eval</functionname>(<functionname>proto::child_c</functionname>&lt;0&gt;(expr), context) (
+<functionname>proto::eval</functionname>(<functionname>proto::child_c</functionname>&lt;1&gt;(expr), context),
+...
+<functionname>proto::eval</functionname>(<functionname>proto::child_c</functionname>&lt;N&gt;(expr), context) )</programlisting>
+                  </para>
+                </listitem>
+              </itemizedlist>
+            </description>
+            </method>
+          </method-group>
+        </struct>
+
+        <struct name="default_context">
+          <purpose>An evaluation context that gives the operators their normal C++ semantics.</purpose>
+          <description>
+            <para>An evaluation context that gives the operators their normal C++ semantics.</para>
+          </description>
+          <struct name="eval">
+            <template>
+              <template-type-parameter name="Expr"/>
+              <template-type-parameter name="ThisContext">
+                <default>default_context const</default>
+              </template-type-parameter>
+            </template>
+            <inherit><classname>proto::context::default_eval</classname>&lt; Expr, ThisContext &gt;</inherit>
+          </struct>
+        </struct>
+      </namespace>
+    </namespace>
+  </namespace>
+</header>

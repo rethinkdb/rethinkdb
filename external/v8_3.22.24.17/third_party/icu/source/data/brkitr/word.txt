@@ -1,0 +1,254 @@
+#
+# Copyright (C) 2002-2010, International Business Machines Corporation 
+# and others. All Rights Reserved.
+#
+# file:  word.txt
+#
+# ICU Word Break Rules
+#      See Unicode Standard Annex #29.
+#      These rules are based on UAX-29 Revision 16 for Unicode 6.0
+#
+# Note:  Updates to word.txt will usually need to be merged into
+#        word_POSIX.txt and word_ja.txt also.
+
+##############################################################################
+#
+#  Character class definitions from TR 29
+#
+##############################################################################
+
+!!chain;
+
+
+#
+#  Character Class Definitions.
+#
+
+$CR           = [\p{Word_Break = CR}];
+$LF           = [\p{Word_Break = LF}];
+$Newline      = [\p{Word_Break = Newline}];
+$Extend       = [\p{Word_Break = Extend}];
+$Format       = [\p{Word_Break = Format}];
+$Hiragana     = [:Hiragana:];
+$Katakana     = [\p{Word_Break = Katakana}];
+$Han          = [:Han:];
+$ALetter      = [\p{Word_Break = ALetter}];
+# Remove two full stop characters from $MidNumLet and add them to $MidNum
+# to break a hostname into its components at the cost of breaking
+# 'e.g.' and 'i.e.' as well.
+# $MidNumLet is used in rules 6/7 (rules of our interest) and rules 11/12.
+# Because it's OR'd with $MidNum in rules 11/12, rules 11/12 are not affected
+# while rules 6/7 are reverted to the old behavior we want.
+$MidNumLet    = [[\p{Word_Break = MidNumLet}] - [\u002E \uFF0E]];
+$MidLetter    = [\p{Word_Break = MidLetter}];
+$MidNum       = [\p{Word_Break = MidNum}[\u002E \uFF0E]];
+$Numeric      = [\p{Word_Break = Numeric}[\uff10-\uff19]]; #includes fullwidth digits
+$ExtendNumLet = [\p{Word_Break = ExtendNumLet}];
+
+# Extra sets not to break 'HebrewLetter U+0022 HebrewLetter'.
+$HebrewLet    = [\p{Word_Break = ALetter} & \p{Script = Hebrew} - [\u05F3]];
+# U+05F3 is ALetter and U+05F4 is MidLetter so that they're covered by
+# the current rule 6/7.
+$HebrewMidLet = [\u0022];
+
+#   Dictionary character set, for triggering language-based break engines. Currently
+#   limited to LineBreak=Complex_Context and CJK. Note that this set only works
+#   in Unicode 5.0 or later as the definition of Complex_Context was corrected to include all
+#   characters requiring dictionary break.
+
+$Control        = [\p{Grapheme_Cluster_Break = Control}]; 
+$HangulSyllable = [\uac00-\ud7a3];
+$ComplexContext = [:LineBreak = Complex_Context:];
+$KanaKanji      = [$Han $Hiragana $Katakana];
+$dictionaryCJK  = [$KanaKanji $HangulSyllable];
+$dictionary     = [$ComplexContext $dictionaryCJK];
+
+# leave CJK scripts out of ALetterPlus
+$ALetterPlus  = [$ALetter-$dictionaryCJK [$ComplexContext-$Extend-$Control]];
+
+
+#
+#  Rules 4    Ignore Format and Extend characters, 
+#             except when they appear at the beginning of a region of text.
+#
+# TODO: check if handling of katakana in dictionary makes rules incorrect/void.
+$KatakanaEx     = $Katakana     ($Extend |  $Format)*;
+$ALetterEx      = $ALetterPlus  ($Extend |  $Format)*;
+$MidNumLetEx    = $MidNumLet    ($Extend |  $Format)*;
+$MidLetterEx    = $MidLetter    ($Extend |  $Format)*;
+$MidNumEx       = $MidNum       ($Extend |  $Format)*;
+$NumericEx      = $Numeric      ($Extend |  $Format)*;
+$ExtendNumLetEx = $ExtendNumLet ($Extend |  $Format)*;
+$HebrewLetEx    = $HebrewLet    ($Extend |  $Format)*;
+
+$Ideographic    = [\p{Ideographic}];
+$HiraganaEx     = $Hiragana     ($Extend |  $Format)*;
+$IdeographicEx  = $Ideographic  ($Extend |  $Format)*;
+
+## -------------------------------------------------
+
+!!forward;
+
+
+# Rule 3 - CR x LF
+#
+$CR $LF;
+
+# Rule 4 - ignore Format and Extend characters, except when they appear at the beginning
+#          of a region of Text.   The rule here comes into play when the start of text
+#          begins with a group of Format chars, or with a "word" consisting of a single
+#          char that is not in any of the listed word break categories followed by
+#          format char(s).
+ #          format char(s), or is not a CJK dictionary character.
+[^$CR $LF $Newline $dictionaryCJK]? ($Extend |  $Format)+;
+
+$NumericEx {100};
+$ALetterEx {200};
+$HangulSyllable {200};
+$KatakanaEx {400}; #originally 300
+$HiraganaEx {400}; #originally 300
+$IdeographicEx {400};    #
+
+#
+# rule 5
+#    Do not break between most letters.
+#
+$ALetterEx $ALetterEx {200};
+
+# rule 6 and 7
+$ALetterEx ($MidLetterEx | $MidNumLetEx) $ALetterEx {200};
+
+# Chrome addition
+$HebrewLetEx $HebrewMidLet $HebrewLetEx {200};
+
+# rule 8
+
+$NumericEx $NumericEx {100};
+
+# rule 9
+
+$ALetterEx $NumericEx {200};
+
+# rule 10
+
+$NumericEx $ALetterEx {200};
+
+# rule 11 and 12 
+
+$NumericEx ($MidNumEx | $MidNumLetEx) $NumericEx {100};
+
+# rule 13
+
+# To be consistent with '$KanaKanji $KanaKanji', changed 
+# from 300 to 400.
+# See also TestRuleStatus in intltest/rbbiapts.cpp
+$KatakanaEx  $KatakanaEx {400};
+
+# rule 13a/b
+
+$ALetterEx      $ExtendNumLetEx {200};    #  (13a)
+$NumericEx      $ExtendNumLetEx {100};    #  (13a)
+$KatakanaEx     $ExtendNumLetEx {400};    #  (13a)
+$ExtendNumLetEx $ExtendNumLetEx {200};    #  (13a)
+
+$ExtendNumLetEx $ALetterEx  {200};    #  (13b)
+$ExtendNumLetEx $NumericEx  {100};    #  (13b)
+$ExtendNumLetEx $KatakanaEx {400};    #  (13b)
+
+# special handling for CJK characters: chain for later dictionary segmentation
+$HangulSyllable $HangulSyllable {200};
+$KanaKanji $KanaKanji {400}; #different rule status if both kanji and kana found
+
+
+## -------------------------------------------------
+
+!!reverse;
+
+$BackALetterEx     = ($Format | $Extend)* $ALetterPlus;
+$BackMidNumLetEx   = ($Format | $Extend)* $MidNumLet;
+$BackNumericEx     = ($Format | $Extend)* $Numeric;
+$BackMidNumEx      = ($Format | $Extend)* $MidNum;
+$BackMidLetterEx   = ($Format | $Extend)* $MidLetter;
+$BackKatakanaEx    = ($Format | $Extend)* $Katakana;
+$BackHiraganaEx    = ($Extend | $Format)* $Hiragana;
+$BackExtendNumLetEx= ($Format | $Extend)* $ExtendNumLet;
+$BackHebrewLetEx   = ($Format | $Extend)* $HebrewLet;
+
+
+# rule 3
+$LF $CR;
+
+# rule 4
+($Format | $Extend)*  [^$CR $LF $Newline $dictionaryCJK]?;
+
+# rule 5
+
+$BackALetterEx $BackALetterEx;
+
+# rule 6 and 7
+
+$BackALetterEx ($BackMidLetterEx | $BackMidNumLetEx) $BackALetterEx;
+
+# Chrome addition
+$BackHebrewLetEx $HebrewMidLet $BackHebrewLetEx;
+
+# rule 8
+
+$BackNumericEx $BackNumericEx;
+
+# rule 9
+
+$BackNumericEx $BackALetterEx;
+
+# rule 10
+
+$BackALetterEx $BackNumericEx;
+
+# rule 11 and 12
+
+$BackNumericEx ($BackMidNumEx | $BackMidNumLetEx) $BackNumericEx;
+
+# rule 13
+
+$BackKatakanaEx $BackKatakanaEx;
+
+# rules 13 a/b
+#
+$BackExtendNumLetEx ($BackALetterEx | $BackNumericEx | $BackKatakanaEx | $BackExtendNumLetEx);
+($BackALetterEx | $BackNumericEx | $BackKatakanaEx) $BackExtendNumLetEx; 
+
+# special handling for CJK characters: chain for later dictionary segmentation
+$HangulSyllable $HangulSyllable;
+$KanaKanji $KanaKanji; #different rule status if both kanji and kana found
+
+## -------------------------------------------------
+
+!!safe_reverse;
+
+# rule 3
+($Extend | $Format)+ .?;
+
+# rule 6
+($MidLetter | $MidNumLet) $BackALetterEx;
+
+# rule 11
+($MidNum | $MidNumLet) $BackNumericEx;
+
+# For dictionary-based break
+$dictionary $dictionary;
+
+## -------------------------------------------------
+
+!!safe_forward;
+
+# rule 4
+($Extend | $Format)+ .?;
+
+# rule 6
+($MidLetterEx | $MidNumLetEx) $ALetterEx;
+
+# rule 11
+($MidNumEx | $MidNumLetEx) $NumericEx;
+
+# For dictionary-based break
+$dictionary $dictionary;

@@ -1,0 +1,156 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Polynomial Evaluation</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../fp_eg.html" title="Examples">
+<link rel="prev" href="gi.html" title="Calculating an Integral">
+<link rel="next" href="../../interval.html" title="Interval Number Types">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="gi.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../fp_eg.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../interval.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_multiprecision.tut.floats.fp_eg.poly_eg"></a><a class="link" href="poly_eg.html" title="Polynomial Evaluation">Polynomial
+          Evaluation</a>
+</h5></div></div></div>
+<p>
+            In this example we'll look at polynomial evaluation, this is not only
+            an important use case, but it's one that <code class="computeroutput"><span class="identifier">number</span></code>
+            performs particularly well at because the expression templates <span class="emphasis"><em>completely
+            eliminate all temporaries</em></span> from a <a href="http://en.wikipedia.org/wiki/Horner%27s_method" target="_top">Horner
+            polynomial evaluation scheme</a>.
+          </p>
+<p>
+            The following code evaluates <code class="computeroutput"><span class="identifier">sin</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code> as a polynomial, accurate to at least
+            64 decimal places:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">::</span><span class="identifier">cpp_dec_float</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">::</span><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_dec_float</span><span class="special">&lt;</span><span class="number">64</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">mp_type</span><span class="special">;</span>
+
+<span class="identifier">mp_type</span> <span class="identifier">mysin</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">mp_type</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="comment">// Approximation of sin(x * pi/2) for -1 &lt;= x &lt;= 1, using an order 63 polynomial.</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span><span class="identifier">mp_type</span><span class="special">,</span> <span class="number">32U</span><span class="special">&gt;</span> <span class="identifier">coefs</span> <span class="special">=</span>
+  <span class="special">{{</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+1.5707963267948966192313216916397514420985846996875529104874722961539082031431044993140174126711"</span><span class="special">),</span> <span class="comment">//"),</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-0.64596409750624625365575656389794573337969351178927307696134454382929989411386887578263960484"</span><span class="special">),</span> <span class="comment">// ^3</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+0.07969262624616704512050554949047802252091164235106119545663865720995702920146198554317279"</span><span class="special">),</span> <span class="comment">// ^5</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-0.0046817541353186881006854639339534378594950280185010575749538605102665157913157426229824"</span><span class="special">),</span> <span class="comment">// ^7</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+0.00016044118478735982187266087016347332970280754062061156858775174056686380286868007443"</span><span class="special">),</span> <span class="comment">// ^9</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-3.598843235212085340458540018208389404888495232432127661083907575106196374913134E-6"</span><span class="special">),</span> <span class="comment">// ^11</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+5.692172921967926811775255303592184372902829756054598109818158853197797542565E-8"</span><span class="special">),</span> <span class="comment">// ^13</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-6.688035109811467232478226335783138689956270985704278659373558497256423498E-10"</span><span class="special">),</span> <span class="comment">// ^15</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+6.066935731106195667101445665327140070166203261129845646380005577490472E-12"</span><span class="special">),</span> <span class="comment">// ^17</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-4.377065467313742277184271313776319094862897030084226361576452003432E-14"</span><span class="special">),</span> <span class="comment">// ^19</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+2.571422892860473866153865950420487369167895373255729246889168337E-16"</span><span class="special">),</span> <span class="comment">// ^21</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-1.253899540535457665340073300390626396596970180355253776711660E-18"</span><span class="special">),</span> <span class="comment">// ^23</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+5.15645517658028233395375998562329055050964428219501277474E-21"</span><span class="special">),</span> <span class="comment">// ^25</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-1.812399312848887477410034071087545686586497030654642705E-23"</span><span class="special">),</span> <span class="comment">// ^27</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+5.50728578652238583570585513920522536675023562254864E-26"</span><span class="special">),</span> <span class="comment">// ^29</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-1.461148710664467988723468673933026649943084902958E-28"</span><span class="special">),</span> <span class="comment">// ^31</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+3.41405297003316172502972039913417222912445427E-31"</span><span class="special">),</span> <span class="comment">// ^33</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-7.07885550810745570069916712806856538290251E-34"</span><span class="special">),</span> <span class="comment">// ^35</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+1.31128947968267628970845439024155655665E-36"</span><span class="special">),</span> <span class="comment">// ^37</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-2.18318293181145698535113946654065918E-39"</span><span class="special">),</span> <span class="comment">// ^39</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+3.28462680978498856345937578502923E-42"</span><span class="special">),</span> <span class="comment">// ^41</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-4.48753699028101089490067137298E-45"</span><span class="special">),</span> <span class="comment">// ^43</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+5.59219884208696457859353716E-48"</span><span class="special">),</span> <span class="comment">// ^45</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-6.38214503973500471720565E-51"</span><span class="special">),</span> <span class="comment">// ^47</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+6.69528558381794452556E-54"</span><span class="special">),</span> <span class="comment">// ^49</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-6.47841373182350206E-57"</span><span class="special">),</span> <span class="comment">// ^51</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+5.800016389666445E-60"</span><span class="special">),</span> <span class="comment">// ^53</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-4.818507347289E-63"</span><span class="special">),</span> <span class="comment">// ^55</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+3.724683686E-66"</span><span class="special">),</span> <span class="comment">// ^57</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-2.6856479E-69"</span><span class="special">),</span> <span class="comment">// ^59</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"+1.81046E-72"</span><span class="special">),</span> <span class="comment">// ^61</span>
+    <span class="identifier">mp_type</span><span class="special">(</span><span class="string">"-1.133E-75"</span><span class="special">),</span> <span class="comment">// ^63</span>
+  <span class="special">}};</span>
+
+  <span class="keyword">const</span> <span class="identifier">mp_type</span> <span class="identifier">v</span> <span class="special">=</span> <span class="identifier">x</span> <span class="special">*</span> <span class="number">2</span> <span class="special">/</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">constants</span><span class="special">::</span><span class="identifier">pi</span><span class="special">&lt;</span><span class="identifier">mp_type</span><span class="special">&gt;();</span>
+  <span class="keyword">const</span> <span class="identifier">mp_type</span> <span class="identifier">x2</span> <span class="special">=</span> <span class="special">(</span><span class="identifier">v</span> <span class="special">*</span> <span class="identifier">v</span><span class="special">);</span>
+  <span class="comment">//</span>
+  <span class="comment">// Polynomial evaluation follows, if mp_type allocates memory then</span>
+  <span class="comment">// just one such allocation occurs - to initialize the variable "sum" -</span>
+  <span class="comment">// and no temporaries are created at all.</span>
+  <span class="comment">//</span>
+  <span class="keyword">const</span> <span class="identifier">mp_type</span> <span class="identifier">sum</span> <span class="special">=</span> <span class="special">(((((((((((((((((((((((((((((((</span>     <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">31U</span><span class="special">]</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">30U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">29U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">28U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">27U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">26U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">25U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">24U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">23U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">22U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">21U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">20U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">19U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">18U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">17U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">16U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">15U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">14U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">13U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">12U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">11U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">10U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">9U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">8U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">7U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">6U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">5U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">4U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">3U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">2U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">1U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">x2</span> <span class="special">+</span> <span class="identifier">coefs</span><span class="special">[</span><span class="number">0U</span><span class="special">])</span>
+                                                     <span class="special">*</span> <span class="identifier">v</span><span class="special">;</span>
+
+  <span class="keyword">return</span> <span class="identifier">sum</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            Calling the function like so:
+          </p>
+<pre class="programlisting"><span class="identifier">mp_type</span> <span class="identifier">pid4</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">constants</span><span class="special">::</span><span class="identifier">pi</span><span class="special">&lt;</span><span class="identifier">mp_type</span><span class="special">&gt;()</span> <span class="special">/</span> <span class="number">4</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setprecision</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span> <span class="special">::</span><span class="identifier">mp_type</span><span class="special">&gt;::</span><span class="identifier">digits10</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">scientific</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">mysin</span><span class="special">(</span><span class="identifier">pid4</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+            Yields the expected output:
+          </p>
+<pre class="programlisting">7.0710678118654752440084436210484903928483593768847403658833986900e-01</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="gi.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../fp_eg.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../interval.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

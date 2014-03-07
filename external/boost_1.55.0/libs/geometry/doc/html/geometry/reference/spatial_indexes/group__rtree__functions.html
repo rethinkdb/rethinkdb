@@ -1,0 +1,291 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>R-tree free functions (boost::geometry::index::)</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../spatial_indexes.html" title="Spatial Indexes">
+<link rel="prev" href="boost__geometry__index__rtree/get_allocator__.html" title="get_allocator()">
+<link rel="next" href="group__rtree__functions/insert_rtree_________value_const___.html" title="insert(rtree&lt;...&gt; &amp;, Value const &amp;)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost__geometry__index__rtree/get_allocator__.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../spatial_indexes.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="group__rtree__functions/insert_rtree_________value_const___.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.spatial_indexes.group__rtree__functions"></a><a class="link" href="group__rtree__functions.html" title="R-tree free functions (boost::geometry::index::)">R-tree
+        free functions (boost::geometry::index::)</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="group__rtree__functions/insert_rtree_________value_const___.html">insert(rtree&lt;...&gt;
+          &amp;, Value const &amp;)</a></span></dt>
+<dt><span class="section"><a href="group__rtree__functions/insert_rtree_________iterator__iterator_.html">insert(rtree&lt;...&gt;
+          &amp;, Iterator, Iterator)</a></span></dt>
+<dt><span class="section"><a href="group__rtree__functions/insert_rtree_________range_const___.html">insert(rtree&lt;...&gt;
+          &amp;, Range const &amp;)</a></span></dt>
+<dt><span class="section"><a href="group__rtree__functions/remove_rtree_________value_const___.html">remove(rtree&lt;...&gt;
+          &amp;, Value const &amp;)</a></span></dt>
+<dt><span class="section"><a href="group__rtree__functions/remove_rtree_________iterator__iterator_.html">remove(rtree&lt;...&gt;
+          &amp;, Iterator, Iterator)</a></span></dt>
+<dt><span class="section"><a href="group__rtree__functions/remove_rtree_________range_const___.html">remove(rtree&lt;...&gt;
+          &amp;, Range const &amp;)</a></span></dt>
+<dt><span class="section"><a href="group__rtree__functions/query_rtree______const____predicates_const____outiter_.html">query(rtree&lt;...&gt;
+          const &amp;, Predicates const &amp;, OutIter)</a></span></dt>
+<dt><span class="section"><a href="group__rtree__functions/qbegin_rtree______const____predicates_const___.html">qbegin(rtree&lt;...&gt;
+          const &amp;, Predicates const &amp;)</a></span></dt>
+<dt><span class="section"><a href="group__rtree__functions/qend_rtree______const___.html">qend(rtree&lt;...&gt;
+          const &amp;)</a></span></dt>
+<dt><span class="section"><a href="group__rtree__functions/clear_rtree________.html">clear(rtree&lt;...&gt;
+          &amp;)</a></span></dt>
+<dt><span class="section"><a href="group__rtree__functions/size_rtree______const___.html">size(rtree&lt;...&gt;
+          const &amp;)</a></span></dt>
+<dt><span class="section"><a href="group__rtree__functions/empty_rtree______const___.html">empty(rtree&lt;...&gt;
+          const &amp;)</a></span></dt>
+<dt><span class="section"><a href="group__rtree__functions/bounds_rtree______const___.html">bounds(rtree&lt;...&gt;
+          const &amp;)</a></span></dt>
+<dt><span class="section"><a href="group__rtree__functions/swap_rtree_________rtree________.html">swap(rtree&lt;...&gt;
+          &amp;, rtree&lt;...&gt; &amp;)</a></span></dt>
+</dl></div>
+<h6>
+<a name="geometry.reference.spatial_indexes.group__rtree__functions.h0"></a>
+          <span class="phrase"><a name="geometry.reference.spatial_indexes.group__rtree__functions.functions"></a></span><a class="link" href="group__rtree__functions.html#geometry.reference.spatial_indexes.group__rtree__functions.functions">Functions</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="group__rtree__functions/insert_rtree_________value_const___.html#group__rtree__functions_1gada4f62111ed22eb2860ea30995c1ce60"><code class="computeroutput"><span class="identifier">insert</span><span class="special">(</span><span class="identifier">rtree</span><span class="special">&lt;...&gt;</span>
+                    <span class="special">&amp;,</span> <span class="identifier">Value</span>
+                    <span class="keyword">const</span> <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Insert a value to the index.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="group__rtree__functions/insert_rtree_________iterator__iterator_.html#group__rtree__functions_1ga056469ea699e609e67762fe1b789997f"><code class="computeroutput"><span class="identifier">insert</span><span class="special">(</span><span class="identifier">rtree</span><span class="special">&lt;...&gt;</span>
+                    <span class="special">&amp;,</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">Iterator</span><span class="special">)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Insert a range of values to the index.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="group__rtree__functions/insert_rtree_________range_const___.html#group__rtree__functions_1ga524e332717347c3ffb54d2497047215b"><code class="computeroutput"><span class="identifier">insert</span><span class="special">(</span><span class="identifier">rtree</span><span class="special">&lt;...&gt;</span>
+                    <span class="special">&amp;,</span> <span class="identifier">Range</span>
+                    <span class="keyword">const</span> <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Insert a range of values to the index.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="group__rtree__functions/remove_rtree_________value_const___.html#group__rtree__functions_1gaf353d90fd933e6110b031f63166fb45a"><code class="computeroutput"><span class="identifier">remove</span><span class="special">(</span><span class="identifier">rtree</span><span class="special">&lt;...&gt;</span>
+                    <span class="special">&amp;,</span> <span class="identifier">Value</span>
+                    <span class="keyword">const</span> <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Remove a value from the container.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="group__rtree__functions/remove_rtree_________iterator__iterator_.html#group__rtree__functions_1gaa460a8985496cf133f63f245527ac6e7"><code class="computeroutput"><span class="identifier">remove</span><span class="special">(</span><span class="identifier">rtree</span><span class="special">&lt;...&gt;</span>
+                    <span class="special">&amp;,</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">Iterator</span><span class="special">)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Remove a range of values from the container.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="group__rtree__functions/remove_rtree_________range_const___.html#group__rtree__functions_1ga421f4fe0554d1b436b9e7e64794e6349"><code class="computeroutput"><span class="identifier">remove</span><span class="special">(</span><span class="identifier">rtree</span><span class="special">&lt;...&gt;</span>
+                    <span class="special">&amp;,</span> <span class="identifier">Range</span>
+                    <span class="keyword">const</span> <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Remove a range of values from the container.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="group__rtree__functions/query_rtree______const____predicates_const____outiter_.html#group__rtree__functions_1gadb43b211d5d743ebe2ef256328286e95"><code class="computeroutput"><span class="identifier">query</span><span class="special">(</span><span class="identifier">rtree</span><span class="special">&lt;...&gt;</span>
+                    <span class="keyword">const</span> <span class="special">&amp;,</span>
+                    <span class="identifier">Predicates</span> <span class="keyword">const</span>
+                    <span class="special">&amp;,</span> <span class="identifier">OutIter</span><span class="special">)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Finds values meeting passed predicates e.g. nearest to some Point
+                    and/or intersecting some Box.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="group__rtree__functions/qbegin_rtree______const____predicates_const___.html#group__rtree__functions_1ga45c2b7b112bf730d10367e10df62aa3c"><code class="computeroutput"><span class="identifier">qbegin</span><span class="special">(</span><span class="identifier">rtree</span><span class="special">&lt;...&gt;</span>
+                    <span class="keyword">const</span> <span class="special">&amp;,</span>
+                    <span class="identifier">Predicates</span> <span class="keyword">const</span>
+                    <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns the query iterator pointing at the begin of the query
+                    range.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="group__rtree__functions/qend_rtree______const___.html#group__rtree__functions_1ga5c9a1eb0421bf2c702392247d48143e5"><code class="computeroutput"><span class="identifier">qend</span><span class="special">(</span><span class="identifier">rtree</span><span class="special">&lt;...&gt;</span>
+                    <span class="keyword">const</span> <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Returns the query iterator pointing at the end of the query range.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="group__rtree__functions/clear_rtree________.html#group__rtree__functions_1gabaca6c24c3838a8164aa3700c459e7a4"><code class="computeroutput"><span class="identifier">clear</span><span class="special">(</span><span class="identifier">rtree</span><span class="special">&lt;...&gt;</span>
+                    <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Remove all values from the index.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="group__rtree__functions/size_rtree______const___.html#group__rtree__functions_1gaa19a09e7b5f0a86a4b74ef2342de1d68"><code class="computeroutput"><span class="identifier">size</span><span class="special">(</span><span class="identifier">rtree</span><span class="special">&lt;...&gt;</span>
+                    <span class="keyword">const</span> <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get the number of values stored in the index.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="group__rtree__functions/empty_rtree______const___.html#group__rtree__functions_1gaba44e2fb12fdc7b528bfee56a88e0844"><code class="computeroutput"><span class="identifier">empty</span><span class="special">(</span><span class="identifier">rtree</span><span class="special">&lt;...&gt;</span>
+                    <span class="keyword">const</span> <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Query if there are no values stored in the index.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="group__rtree__functions/bounds_rtree______const___.html#group__rtree__functions_1ga4e43e7720c66e88959ff511a7462a3ff"><code class="computeroutput"><span class="identifier">bounds</span><span class="special">(</span><span class="identifier">rtree</span><span class="special">&lt;...&gt;</span>
+                    <span class="keyword">const</span> <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get the box containing all stored values or an invalid box if
+                    the index has no values.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <a class="link" href="group__rtree__functions/swap_rtree_________rtree________.html#group__rtree__functions_1gaa1250318a78d7e27ba8f3537eb0ddb3f"><code class="computeroutput"><span class="identifier">swap</span><span class="special">(</span><span class="identifier">rtree</span><span class="special">&lt;...&gt;</span>
+                    <span class="special">&amp;,</span> <span class="identifier">rtree</span><span class="special">&lt;...&gt;</span> <span class="special">&amp;)</span></code></a>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Exchanges the contents of the container with those of other.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost__geometry__index__rtree/get_allocator__.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../spatial_indexes.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="group__rtree__functions/insert_rtree_________value_const___.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

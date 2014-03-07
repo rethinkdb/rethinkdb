@@ -1,0 +1,552 @@
+[library Boost.TypeErasure
+    [quickbook 1.5]
+    [authors [Watanabe, Steven]]
+    [copyright 2011-2013 Steven Watanabe]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+    [purpose Runtime polymorphism based on concepts]
+]
+
+[def __any [classref boost::type_erasure::any any]]
+[def __any_cast [funcref boost::type_erasure::any_cast any_cast]]
+[def __tuple [classref boost::type_erasure::tuple tuple]]
+[def __rebind_any [classref boost::type_erasure::rebind_any rebind_any]]
+[def __derived [classref boost::type_erasure::derived derived]]
+[def __concept_interface [classref boost::type_erasure::concept_interface concept_interface]]
+[def __constructible [classref boost::type_erasure::constructible constructible]]
+[def __destructible [classref boost::type_erasure::destructible destructible]]
+[def __copy_constructible [classref boost::type_erasure::copy_constructible copy_constructible]]
+[def __assignable [classref boost::type_erasure::assignable assignable]]
+[def __typeid_ [classref boost::type_erasure::typeid_ typeid_]]
+[def __relaxed [classref boost::type_erasure::relaxed relaxed]]
+[def __binding [classref boost::type_erasure::binding binding]]
+[def __static_binding [classref boost::type_erasure::static_binding static_binding]]
+[def __placeholder [classref boost::type_erasure::placeholder placeholder]]
+[def __call [funcref boost::type_erasure::call call]]
+[def __deduced [classref boost::type_erasure::deduced deduced]]
+[def __as_param [classref boost::type_erasure::as_param as_param]]
+
+[def __addable [classref boost::type_erasure::addable addable]]
+[def __subtractable [classref boost::type_erasure::subtractable subtractable]]
+[def __multipliable [classref boost::type_erasure::multipliable multipliable]]
+[def __dividable [classref boost::type_erasure::dividable dividable]]
+[def __modable [classref boost::type_erasure::modable modable]]
+[def __bitandable [classref boost::type_erasure::bitandable bitandable]]
+[def __bitorable [classref boost::type_erasure::bitorable bitorable]]
+[def __bitxorable [classref boost::type_erasure::bitxorable bitxorable]]
+[def __left_shiftable [classref boost::type_erasure::left_shiftable left_shiftable]]
+[def __right_shiftable [classref boost::type_erasure::right_shiftable right_shiftable]]
+[def __add_assignable [classref boost::type_erasure::add_assignable add_assignable]]
+[def __subtract_assignable [classref boost::type_erasure::subtract_assignable subtract_assignable]]
+[def __multiply_assignable [classref boost::type_erasure::multiply_assignable multiply_assignable]]
+[def __divide_assignable [classref boost::type_erasure::divide_assignable divide_assignable]]
+[def __mod_assignable [classref boost::type_erasure::mod_assignable mod_assignable]]
+[def __bitand_assignable [classref boost::type_erasure::bitand_assignable bitand_assignable]]
+[def __bitor_assignable [classref boost::type_erasure::bitor_assignable bitor_assignable]]
+[def __bitxor_assignable [classref boost::type_erasure::bitxor_assignable bitxor_assignable]]
+[def __left_shift_assignable [classref boost::type_erasure::left_shift_assignable left_shift_assignable]]
+[def __right_shift_assignable [classref boost::type_erasure::right_shift_assignable right_shift_assignable]]
+[def __incrementable [classref boost::type_erasure::incrementable incrementable]]
+[def __decrementable [classref boost::type_erasure::decrementable decrementable]]
+[def __negatable [classref boost::type_erasure::negatable negatable]]
+[def __complementable [classref boost::type_erasure::complementable complementable]]
+[def __dereferenceable [classref boost::type_erasure::dereferenceable dereferenceable]]
+[def __callable [classref boost::type_erasure::callable callable]]
+[def __subscriptable [classref boost::type_erasure::subscriptable subscriptable]]
+[def __equality_comparable [classref boost::type_erasure::equality_comparable equality_comparable]]
+[def __less_than_comparable [classref boost::type_erasure::less_than_comparable less_than_comparable]]
+[def __ostreamable [classref boost::type_erasure::ostreamable ostreamable]]
+[def __istreamable [classref boost::type_erasure::istreamable istreamable]]
+[def __iterator [classref boost::type_erasure::iterator iterator]]
+[def __forward_iterator [classref boost::type_erasure::forward_iterator forward_iterator]]
+[def __bidirectional_iterator [classref boost::type_erasure::bidirectional_iterator bidirectional_iterator]]
+[def __random_access_iterator [classref boost::type_erasure::random_access_iterator random_access_iterator]]
+[def __same_type [classref boost::type_erasure::same_type same_type]]
+
+[def __BOOST_TYPE_ERASURE_MEMBER [macroref BOOST_TYPE_ERASURE_MEMBER]]
+[def __BOOST_TYPE_ERASURE_FREE [macroref BOOST_TYPE_ERASURE_FREE]]
+
+[section:introduction Introduction]
+
+The Boost.TypeErasure library provides runtime polymorphism
+in C++ that is more flexible than that provided by the
+core language.
+
+C++ has two distinct kinds of polymorphism,
+virtual functions and templates, each of which has
+its own advantages and disadvantages.
+
+* Virtual functions are not resolved until runtime,
+  while templates are always resolved at compile
+  time.  If your types can vary at runtime (for
+  example, if they depend on user input), then
+  static polymorphism with templates doesn't help much.
+* Virtual functions can be used with separate compilation.
+  The body of a template has to be available
+  in every translation unit in which it is used,
+  slowing down compiles and increasing rebuilds.
+* Virtual functions automatically make the requirements
+  on the arguments explicit.  Templates are only
+  checked when they're instantiated, requiring
+  extra work in testing, assertions, and documentation.
+* The compiler creates a new copy of each function
+  template every time it is instantiated.  This
+  allows better optimization, because the compiler
+  knows everything statically, but it also causes
+  a significant increase of binary sizes.
+* Templates support Value semantics.  Objects that
+  "behave like an int" and are not shared are easier
+  to reason about.  To use virtual functions, on
+  the other hand, you have to use (smart) pointers
+  or references.
+* Template libraries can allow third-party types to
+  be adapted non-intrusively for seamless interoperability.
+  With virtual functions, you have to create a wrapper
+  that inherits from the base class.
+* Templates can handle constraints involving
+  multiple types.  For example, std::for_each
+  takes an iterator range and a function that
+  can be called on the elements of the range.
+  Virtual functions aren't really able to
+  express such constraints.
+
+The Boost.TypeErasure library combines the superior
+abstraction capabilities of templates, with the
+runtime flexibility of virtual functions.
+
+Boost includes several special cases of this kind
+of polymorphism:
+
+* `boost::any` for CopyConstructible types.
+* `boost::function` for objects that can be called like functions.
+* Boost.Range provides `any_iterator`.
+
+Boost.TypeErasure generalizes this to support arbitrary
+requirements and provides a
+[link boost_typeerasure.predef predefined set of common concepts]
+
+[endsect]
+
+[section:reading How to read this documentation]
+
+To avoid excessive verbosity, all the examples
+assume that a few using directives are in place.
+
+    namespace mpl = boost::mpl;
+    using namespace boost::type_erasure;
+
+[endsect]
+
+[section:basic Basic Usage]
+[import ../example/basic.cpp]
+[basic]
+[endsect]
+
+[section Composing Concepts]
+[import ../example/compose.cpp]
+[compose]
+[endsect]
+
+[section:multi Functions with Multiple Arguments]
+[import ../example/multi.cpp]
+[multi]
+[endsect]
+
+[section:concept Concepts in Depth]
+
+[section:custom Defining Custom Concepts]
+[import ../example/custom.cpp]
+[custom]
+[endsect]
+
+[section:overload Overloading]
+[import ../example/overload.cpp]
+[overload]
+[endsect]
+
+[section:concept_map Concept Maps]
+[import ../example/concept_map.cpp]
+[concept_map]
+[endsect]
+
+[section:overload Associated Types]
+[import ../example/associated.cpp]
+[associated]
+[endsect]
+
+[endsect]
+
+[section:any Using Any]
+
+[section:construction Construction]
+[import ../example/construction.cpp]
+[construction]
+[endsect]
+
+[section Conversions]
+[import ../example/convert.cpp]
+[convert]
+[endsect]
+
+[section:references References]
+[import ../example/references.cpp]
+[references]
+[endsect]
+
+[section:limit Syntax Limitations]
+
+In most cases using an any has the same
+syntax as using the underlying object.
+However, there are a few cases where
+this is not possible to implement.
+An __any reference is proxy and cannot
+be used in contexts where a real
+reference is required.  In particular,
+__forward_iterator does not create
+a conforming ForwardIterator (unless
+the value_type is fixed.)  Another
+difference is that all operations
+which do not take at least one __any
+argument have to be passed the type
+information explicitly.  Static member
+functions and constructors can fall in
+this category.  All this means that generic
+algorithms might not work when applied to
+__any arguments.
+
+[endsect]
+
+[endsect]
+
+[section:examples Examples]
+
+[section:print_sequence A polymorphic range formatter]
+[import ../example/print_sequence.cpp]
+[print_sequence]
+[endsect]
+
+[section:printf A type-safe printf]
+[import ../example/printf.cpp]
+[printf]
+[endsect]
+
+[section:multifunction Boost.Function with multiple signatures]
+[import ../example/multifunction.cpp]
+[multifunction]
+[endsect]
+
+[endsect]
+
+[section:conceptdef Concept Definitions]
+
+A Concept defines a set of constraints on the types that
+are stored in an __any.
+
+There are three kinds of concepts.
+
+# The library defines a number of [link boost_typeerasure.predef predefined concepts].
+  Most of these are equivalent to user-defined concepts, but a few
+  require special handling.
+# Users can define their own primitive concepts as described below.
+  The macros __BOOST_TYPE_ERASURE_MEMBER and __BOOST_TYPE_ERASURE_FREE
+  define concepts of this form.
+# Any MPL Forward Sequence whose elements are
+  concepts is also a concept.  This allows concepts
+  to be composed easily.
+
+Each primitive concept defines a single function.
+A primitive concept must be a specialization of a
+class template, with a static member function
+called `apply`, which will be executed when the
+function is dispatched by __call.  The template
+can only take template type parameters.  non-type
+template parameters and template template parameters
+are not allowed.
+
+The template parameters of the concept
+may involve placeholders.  The following are
+considered.
+
+* Each template argument may be a cv and/or reference
+  qualified placeholder type.
+* If a template argument is a function type, its
+  arguments and return type may be cv/reference
+  qualified placeholders.
+
+Any other placeholders are ignored.
+
+A concept is instantiated by constructing an
+__any from a raw value or by constructing a __binding.
+When a concept is instantiated with a specific
+set of type bindings, each placeholder is bound
+to a cv-unqualified non-reference type.  After
+replacing each placeholder in the template argument
+list with the type that it binds to, the following
+must hold.
+
+* The number of arguments of apply in the
+  bound concept must be the same as the number
+  of arguments in the unbound concept.
+* The arguments and return type of apply in the
+  bound concept can be derived from the corresponding
+  arguments and the return type in the unbound concept
+  as follows: If the argument in the unbound concept is a
+  placeholder with optional cv and reference
+  qualifiers, then the argument in the bound
+  concept can be found by replacing the placeholder.
+  Otherwise, the argument in the unbound concept
+  must be the same as the argument in the bound concept.
+
+  // Correct.
+  template<class T = _self>
+  struct foo1 {
+    static void apply(const T& t) { t.foo(); }
+  };
+
+  // Wrong.  The signature of apply is different from the
+  // primary template
+  template<>
+  struct foo1<int> {
+    static void apply(int i);
+  };
+
+  // Wrong.  A concept must be a template
+  struct foo2 {
+    static void apply(const _self&);
+  };
+
+  // Wrong. apply must be static
+  template<class T = _self>
+  struct foo3 {
+    void apply(const T&);
+  };
+
+  // Wrong.  apply cannot be overloaded
+  template<class T = _self>
+  struct foo3 {
+    static void apply(T&);
+    static void apply(const T&);
+  };
+
+  // Wrong.  Only top level placeholders are detected
+  template<class T>
+  struct foo4;
+  template<class T>
+  struct foo4<boost::mpl::vector<T> > {
+    static void apply(const T&);
+  };
+
+  // Wrong.  Template template parameters are not allowed.
+  template<template<class> class T>
+  struct foo5
+  {
+      static void apply(T<int>&);
+  };
+
+[endsect]
+
+[section:predef Predefined Concepts]
+
+In the following tables, `T` and `U` are the types that the operation
+applies to, `R` is the result type.  `T` always defaults
+to `_self` to match the default behavior of any.  These
+concepts assume normal semantics.  Thus, comparison
+operators always return bool, and references will be
+added to the arguments and results as appropriate.
+
+Except as otherwise noted, primitive concepts defined by
+the library can be specialized to provide concept maps.
+__copy_constructible, and the iterator concepts cannot
+be specialized because they are composites.  __constructible,
+__destructible, __typeid_, and __same_type cannot be
+specialized because they require special handling in
+the library.
+
+[table:special Special Members
+    [[concept][notes]]
+    [[__constructible`<Sig>`][-]]
+    [[__copy_constructible`<T>`][-]]
+    [[__destructible`<T>`][-]]
+    [[__assignable`<T, U = T>`][-]]
+    [[__typeid_`<T>`][-]]
+]
+[table:unary Unary Operators
+    [[operator][concept][notes]]
+    [[`operator++`][__incrementable`<T>`][There is no separate post-increment]]
+    [[`operator--`][__decrementable`<T>`][There is no separate post-decrement]]
+    [[`operator*`][__dereferenceable`<R, T>`][`R` should usually be a reference]]
+    [[`operator~`][__complementable`<T, R = T>`][-]]
+    [[`operator-`][__negatable`<T, R = T>`][-]]
+]
+
+[table:binary Binary Operators
+    [[operator][concept][notes]]
+    [[`operator+`][__addable`<T, U = T, R = T>`][-]]
+    [[`operator-`][__subtractable`<T, U = T, R = T>`][-]]
+    [[`operator*`][__multipliable`<T, U = T, R = T>`][-]]
+    [[`operator/`][__dividable`<T, U = T, R = T>`][-]]
+    [[`operator%`][__modable`<T, U = T, R = T>`][-]]
+    [[`operator&`][__bitandable`<T, U = T, R = T>`][-]]
+    [[`operator|`][__bitorable`<T, U = T, R = T>`][-]]
+    [[`operator^`][__bitxorable`<T, U = T, R = T>`][-]]
+    [[`operator<<`][__left_shiftable`<T, U = T, R = T>`][-]]
+    [[`operator>>`][__right_shiftable`<T, U = T, R = T>`][-]]
+    [[`operator==` and `!=`][__equality_comparable`<T, U = T>`][`!=` is implemented in terms of `==`]]
+    [[`operator<`, `>`, `<=`, and `>=`][__less_than_comparable`<T, U = T>`][All are implemented in terms of `<`]]
+    [[`operator+=`][__add_assignable`<T, U = T>`][-]]
+    [[`operator-=`][__subtract_assignable`<T, U = T>`][-]]
+    [[`operator*=`][__multiply_assignable`<T, U = T>`][-]]
+    [[`operator/=`][__divide_assignable`<T, U = T>`][-]]
+    [[`operator%=`][__mod_assignable`<T, U = T>`][-]]
+    [[`operator&=`][__bitand_assignable`<T, U = T>`][-]]
+    [[`operator|=`][__bitor_assignable`<T, U = T>`][-]]
+    [[`operator^=`][__bitxor_assignable`<T, U = T>`][-]]
+    [[`operator<<=`][__left_shift_assignable`<T, U = T>`][-]]
+    [[`operator>>=`][__right_shift_assignable`<T, U = T>`][-]]
+    [[`operator<<`][__ostreamable`<Os = std::ostream, T = _self>`][-]]
+    [[`operator>>`][__istreamable`<Is = std::istream, T = _self>`][-]]
+]
+
+[table:misc Miscellaneous Operators
+    [[operator][concept][notes]]
+    [[`operator()`][__callable`<Sig, T>`][`Sig` should be a function type. T may be const qualified.]]
+    [[`operator[]`][__subscriptable`<R, T, N = std::ptrdiff_t>`][`R` should usually be a reference. `T` can be optionally const qualified.]]
+]
+
+[table:iterator Iterator Concepts
+    [[concept][notes]]
+    [[__iterator`<Traversal, T, Reference, Difference>`][Use __same_type to control the iterator's value type.]]
+    [[__forward_iterator`<T, Reference, Difference>`][-]]
+    [[__bidirectional_iterator`<T, Reference, Difference>`][-]]
+    [[__random_access_iterator`<T, Reference, Difference>`][-]]
+]
+
+[table:special Special Concepts
+    [[concept][notes]]
+    [[__same_type`<T>`][Indicates that two types are the same.]]
+]
+
+[endsect]
+
+[xinclude reference.xml]
+
+[section:rationale Rationale]
+
+[section Why do I have to specify the presence of a destructor explicitly?]
+When using references the destructor isn't needed.
+By not assuming it implicitly, we allow capturing
+types with private or protected destructors by reference.
+For the sake of consistency, it must be specified
+when capturing by value as well.
+[endsect]
+
+[section Why non-member functions?]
+The members of __any can be customized.  By using
+free functions, we guarantee that we don't interfere
+with anything that a user might want.
+[endsect]
+
+[section:placeholder Why are the placeholders called `_a`, `_b` and not `_1` `_2`]
+
+An earlier version of the library used the names `_1`, `_2`, etc.
+instead of `_a`, `_b`, etc.  This caused a certain amount
+of confusion because the numbered placeholders are
+already used with a somewhat different meaning by several
+other libraries including Boost/Std Bind, Boost.Phoenix,
+and Boost.MPL.  I eventually decided that since the
+placeholders represented named parameters instead of positional parameters,
+letters were more appropriate than numbers.
+
+[endsect]
+
+[section:ref Why not use `boost::ref` for references?]
+
+Boost.Function allows you to use `boost::ref` to store
+a reference to a function object.  However, in the
+general case treating references and values in the
+same way causes inconsistent behavior that is difficult
+to reason about.  If Boost.TypeErasure handled references
+like this, then, when you copy an __any, you would have
+no idea whether the new object is a real copy or
+just a new reference to the same underlying object.
+Boost.Function can get away with it, because it doesn't
+expose any mutating operations on the stored function object.
+
+Another method that has been proposed is only to
+keep a reference the first time.
+
+  int i = 2;
+  any x = ref(i);
+  any y = x; // makes a copy
+
+Unfortunately, this doesn't handle all use cases,
+as there is no reliable way to return such a reference
+from a function.  In addition it adds overhead whether
+it's needed or not, as we would have to add a flag
+to any to keep track of whether or not it is storing
+a reference.  (The alternate method of storing this
+in the "`clone`" method in the vtable is impossibly complex
+to implement given the decoupled vtables that
+Boost.TypeErasure uses and it still adds overhead.).
+
+[endsect]
+
+[endsect]
+
+[section:future Future Work]
+
+These are just some ideas.  There is absolutely no
+guarantee that any of them will ever be implemented.
+
+* Use SBO.
+* Allow more control over vtable layout.
+* Attempt to reuse sub-tables in conversions.
+* Allow "dynamic_cast".  This requires creating
+  a global registry of concept mappings.
+* Optimize the compile-time cost.
+
+[endsect]
+
+
+[section:acknowledgements Acknowledgements]
+
+The name `any` and an early ancestor of my placeholder
+system were taken from Alexander Nasonov's DynamicAny library.
+
+Thanks to review manager, Lorenzo Caminiti
+and all who participated in the formal review:
+
+* Christophe Henry
+* Paul Bristow
+* Karsten Ahnert
+* Pete Bartlett
+* Sebastian Redl
+* Hossein Haeri
+* Trigve Siver
+* Julien Nitard
+* Eric Niebler
+* Fabio Fracassi
+* Joel de Guzman
+* Alec Chapman
+* Larry Evans
+* Vincente J. Botet Escriba
+* Marcus Werle
+* Andrey Semashev
+* Dave Abrahams
+* Thomas Jordan
+
+[endsect]
+
+[section:related Related Work]
+
+There are a number of similar libraries in existence.  I'm aware
+of at least three.
+
+* [@http://www.coderage.com/interfaces/ Boost.Interfaces] by Jonathan Turkanis
+* [@http://stlab.adobe.com/group__poly__related.html Adobe Poly]
+* [@http://cpp-experiment.sourceforge.net/boost/libs/dynamic_any/doc/ Boost.dynamic_any] by Alexander Nasonov
+
+[endsect]

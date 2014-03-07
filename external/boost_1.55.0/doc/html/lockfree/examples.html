@@ -1,0 +1,282 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Examples</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../lockfree.html" title="Chapter&#160;18.&#160;Boost.Lockfree">
+<link rel="prev" href="../lockfree.html" title="Chapter&#160;18.&#160;Boost.Lockfree">
+<link rel="next" href="rationale.html" title="Rationale">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../lockfree.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lockfree.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rationale.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="lockfree.examples"></a><a class="link" href="examples.html" title="Examples">Examples</a>
+</h2></div></div></div>
+<h3>
+<a name="lockfree.examples.h0"></a>
+      <span class="phrase"><a name="lockfree.examples.queue"></a></span><a class="link" href="examples.html#lockfree.examples.queue">Queue</a>
+    </h3>
+<p>
+      The <code class="computeroutput">boost::lockfree::queue</code>
+      class implements a multi-writer/multi-reader queue. The following example shows
+      how integer values are produced and consumed by 4 threads each:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">thread</span><span class="special">/</span><span class="identifier">thread</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">lockfree</span><span class="special">/</span><span class="identifier">queue</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">atomic</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">atomic_int</span> <span class="identifier">producer_count</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">atomic_int</span> <span class="identifier">consumer_count</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">lockfree</span><span class="special">::</span><span class="identifier">queue</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">queue</span><span class="special">(</span><span class="number">128</span><span class="special">);</span>
+
+<span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">iterations</span> <span class="special">=</span> <span class="number">10000000</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">producer_thread_count</span> <span class="special">=</span> <span class="number">4</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">consumer_thread_count</span> <span class="special">=</span> <span class="number">4</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">producer</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">iterations</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">int</span> <span class="identifier">value</span> <span class="special">=</span> <span class="special">++</span><span class="identifier">producer_count</span><span class="special">;</span>
+        <span class="keyword">while</span> <span class="special">(!</span><span class="identifier">queue</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="identifier">value</span><span class="special">))</span>
+            <span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span> <span class="identifier">done</span> <span class="special">(</span><span class="keyword">false</span><span class="special">);</span>
+<span class="keyword">void</span> <span class="identifier">consumer</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">value</span><span class="special">;</span>
+    <span class="keyword">while</span> <span class="special">(!</span><span class="identifier">done</span><span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">while</span> <span class="special">(</span><span class="identifier">queue</span><span class="special">.</span><span class="identifier">pop</span><span class="special">(</span><span class="identifier">value</span><span class="special">))</span>
+            <span class="special">++</span><span class="identifier">consumer_count</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">while</span> <span class="special">(</span><span class="identifier">queue</span><span class="special">.</span><span class="identifier">pop</span><span class="special">(</span><span class="identifier">value</span><span class="special">))</span>
+        <span class="special">++</span><span class="identifier">consumer_count</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"boost::lockfree::queue is "</span><span class="special">;</span>
+    <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">queue</span><span class="special">.</span><span class="identifier">is_lock_free</span><span class="special">())</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"not "</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"lockfree"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread_group</span> <span class="identifier">producer_threads</span><span class="special">,</span> <span class="identifier">consumer_threads</span><span class="special">;</span>
+
+    <span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">producer_thread_count</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+        <span class="identifier">producer_threads</span><span class="special">.</span><span class="identifier">create_thread</span><span class="special">(</span><span class="identifier">producer</span><span class="special">);</span>
+
+    <span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">consumer_thread_count</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+        <span class="identifier">consumer_threads</span><span class="special">.</span><span class="identifier">create_thread</span><span class="special">(</span><span class="identifier">consumer</span><span class="special">);</span>
+
+    <span class="identifier">producer_threads</span><span class="special">.</span><span class="identifier">join_all</span><span class="special">();</span>
+    <span class="identifier">done</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+
+    <span class="identifier">consumer_threads</span><span class="special">.</span><span class="identifier">join_all</span><span class="special">();</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"produced "</span> <span class="special">&lt;&lt;</span> <span class="identifier">producer_count</span> <span class="special">&lt;&lt;</span> <span class="string">" objects."</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"consumed "</span> <span class="special">&lt;&lt;</span> <span class="identifier">consumer_count</span> <span class="special">&lt;&lt;</span> <span class="string">" objects."</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<p>
+      The program output is:
+    </p>
+<pre class="programlisting">produced 40000000 objects.
+consumed 40000000 objects.
+</pre>
+<h3>
+<a name="lockfree.examples.h1"></a>
+      <span class="phrase"><a name="lockfree.examples.stack"></a></span><a class="link" href="examples.html#lockfree.examples.stack">Stack</a>
+    </h3>
+<p>
+      The <code class="computeroutput"><a class="link" href="../boost/lockfree/stack.html" title="Class template stack">boost::lockfree::stack</a></code>
+      class implements a multi-writer/multi-reader stack. The following example shows
+      how integer values are produced and consumed by 4 threads each:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">thread</span><span class="special">/</span><span class="identifier">thread</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">lockfree</span><span class="special">/</span><span class="identifier">stack</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">atomic</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">atomic_int</span> <span class="identifier">producer_count</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">atomic_int</span> <span class="identifier">consumer_count</span><span class="special">(</span><span class="number">0</span><span class="special">);</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">lockfree</span><span class="special">::</span><span class="identifier">stack</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">stack</span><span class="special">(</span><span class="number">128</span><span class="special">);</span>
+
+<span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">iterations</span> <span class="special">=</span> <span class="number">1000000</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">producer_thread_count</span> <span class="special">=</span> <span class="number">4</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">consumer_thread_count</span> <span class="special">=</span> <span class="number">4</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">producer</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">iterations</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">int</span> <span class="identifier">value</span> <span class="special">=</span> <span class="special">++</span><span class="identifier">producer_count</span><span class="special">;</span>
+        <span class="keyword">while</span> <span class="special">(!</span><span class="identifier">stack</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="identifier">value</span><span class="special">))</span>
+            <span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span> <span class="identifier">done</span> <span class="special">(</span><span class="keyword">false</span><span class="special">);</span>
+
+<span class="keyword">void</span> <span class="identifier">consumer</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">value</span><span class="special">;</span>
+    <span class="keyword">while</span> <span class="special">(!</span><span class="identifier">done</span><span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">while</span> <span class="special">(</span><span class="identifier">stack</span><span class="special">.</span><span class="identifier">pop</span><span class="special">(</span><span class="identifier">value</span><span class="special">))</span>
+            <span class="special">++</span><span class="identifier">consumer_count</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">while</span> <span class="special">(</span><span class="identifier">stack</span><span class="special">.</span><span class="identifier">pop</span><span class="special">(</span><span class="identifier">value</span><span class="special">))</span>
+        <span class="special">++</span><span class="identifier">consumer_count</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"boost::lockfree::stack is "</span><span class="special">;</span>
+    <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">stack</span><span class="special">.</span><span class="identifier">is_lock_free</span><span class="special">())</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"not "</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"lockfree"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread_group</span> <span class="identifier">producer_threads</span><span class="special">,</span> <span class="identifier">consumer_threads</span><span class="special">;</span>
+
+    <span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">producer_thread_count</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+        <span class="identifier">producer_threads</span><span class="special">.</span><span class="identifier">create_thread</span><span class="special">(</span><span class="identifier">producer</span><span class="special">);</span>
+
+    <span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">consumer_thread_count</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+        <span class="identifier">consumer_threads</span><span class="special">.</span><span class="identifier">create_thread</span><span class="special">(</span><span class="identifier">consumer</span><span class="special">);</span>
+
+    <span class="identifier">producer_threads</span><span class="special">.</span><span class="identifier">join_all</span><span class="special">();</span>
+    <span class="identifier">done</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+
+    <span class="identifier">consumer_threads</span><span class="special">.</span><span class="identifier">join_all</span><span class="special">();</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"produced "</span> <span class="special">&lt;&lt;</span> <span class="identifier">producer_count</span> <span class="special">&lt;&lt;</span> <span class="string">" objects."</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"consumed "</span> <span class="special">&lt;&lt;</span> <span class="identifier">consumer_count</span> <span class="special">&lt;&lt;</span> <span class="string">" objects."</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<p>
+      The program output is:
+    </p>
+<pre class="programlisting">produced 4000000 objects.
+consumed 4000000 objects.
+</pre>
+<h3>
+<a name="lockfree.examples.h2"></a>
+      <span class="phrase"><a name="lockfree.examples.waitfree_single_producer_single_consumer_queue"></a></span><a class="link" href="examples.html#lockfree.examples.waitfree_single_producer_single_consumer_queue">Waitfree
+      Single-Producer/Single-Consumer Queue</a>
+    </h3>
+<p>
+      The <code class="computeroutput"><a class="link" href="../boost/lockfree/spsc_queue.html" title="Class template spsc_queue">boost::lockfree::spsc_queue</a></code>
+      class implements a wait-free single-producer/single-consumer queue. The following
+      example shows how integer values are produced and consumed by 2 separate threads:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">thread</span><span class="special">/</span><span class="identifier">thread</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">lockfree</span><span class="special">/</span><span class="identifier">spsc_queue</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">atomic</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">producer_count</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">atomic_int</span> <span class="identifier">consumer_count</span> <span class="special">(</span><span class="number">0</span><span class="special">);</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">lockfree</span><span class="special">::</span><span class="identifier">spsc_queue</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lockfree</span><span class="special">::</span><span class="identifier">capacity</span><span class="special">&lt;</span><span class="number">1024</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">spsc_queue</span><span class="special">;</span>
+
+<span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">iterations</span> <span class="special">=</span> <span class="number">10000000</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">producer</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">iterations</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">int</span> <span class="identifier">value</span> <span class="special">=</span> <span class="special">++</span><span class="identifier">producer_count</span><span class="special">;</span>
+        <span class="keyword">while</span> <span class="special">(!</span><span class="identifier">spsc_queue</span><span class="special">.</span><span class="identifier">push</span><span class="special">(</span><span class="identifier">value</span><span class="special">))</span>
+            <span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">atomic</span><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;</span> <span class="identifier">done</span> <span class="special">(</span><span class="keyword">false</span><span class="special">);</span>
+
+<span class="keyword">void</span> <span class="identifier">consumer</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">value</span><span class="special">;</span>
+    <span class="keyword">while</span> <span class="special">(!</span><span class="identifier">done</span><span class="special">)</span> <span class="special">{</span>
+        <span class="keyword">while</span> <span class="special">(</span><span class="identifier">spsc_queue</span><span class="special">.</span><span class="identifier">pop</span><span class="special">(</span><span class="identifier">value</span><span class="special">))</span>
+            <span class="special">++</span><span class="identifier">consumer_count</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">while</span> <span class="special">(</span><span class="identifier">spsc_queue</span><span class="special">.</span><span class="identifier">pop</span><span class="special">(</span><span class="identifier">value</span><span class="special">))</span>
+        <span class="special">++</span><span class="identifier">consumer_count</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"boost::lockfree::queue is "</span><span class="special">;</span>
+    <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">spsc_queue</span><span class="special">.</span><span class="identifier">is_lock_free</span><span class="special">())</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"not "</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"lockfree"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span> <span class="identifier">producer_thread</span><span class="special">(</span><span class="identifier">producer</span><span class="special">);</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span> <span class="identifier">consumer_thread</span><span class="special">(</span><span class="identifier">consumer</span><span class="special">);</span>
+
+    <span class="identifier">producer_thread</span><span class="special">.</span><span class="identifier">join</span><span class="special">();</span>
+    <span class="identifier">done</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">;</span>
+    <span class="identifier">consumer_thread</span><span class="special">.</span><span class="identifier">join</span><span class="special">();</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"produced "</span> <span class="special">&lt;&lt;</span> <span class="identifier">producer_count</span> <span class="special">&lt;&lt;</span> <span class="string">" objects."</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"consumed "</span> <span class="special">&lt;&lt;</span> <span class="identifier">consumer_count</span> <span class="special">&lt;&lt;</span> <span class="string">" objects."</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<p>
+      The program output is:
+    </p>
+<pre class="programlisting">produced 10000000 objects.
+consumed 10000000 objects.
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008-2011 Tim
+      Blechmann<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../lockfree.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lockfree.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rationale.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

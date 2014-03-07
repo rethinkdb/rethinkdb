@@ -1,0 +1,95 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Attributes of Rules and Grammars</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../attributes.html" title="Attributes">
+<link rel="prev" href="more_compound_attributes.html" title="More About Attributes of Compound Components">
+<link rel="next" href="../../qi.html" title="Qi - Writing Parsers">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="more_compound_attributes.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../attributes.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../qi.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.abstracts.attributes.nonterminal_attributes"></a><a class="link" href="nonterminal_attributes.html" title="Attributes of Rules and Grammars">Attributes
+        of Rules and Grammars</a>
+</h4></div></div></div>
+<p>
+          Nonterminals are well known from parsers where they are used as the main
+          means of constructing more complex parsers out of simpler ones. The nonterminals
+          in the parser world are very similar to functions in an imperative programming
+          language. They can be used to encapsulate parser expressions for a particular
+          input sequence. After being defined, the nonterminals can be used as 'normal'
+          parsers in more complex expressions whenever the encapsulated input needs
+          to be recognized. Parser nonterminals in <span class="emphasis"><em>Spirit.Qi</em></span>
+          may accept <span class="emphasis"><em>parameters</em></span> (inherited attributes) and usually
+          return a value (the synthesized attribute).
+        </p>
+<p>
+          Both, the types of the inherited and the synthesized attributes have to
+          be explicitly specified while defining the particular <code class="computeroutput"><span class="identifier">grammar</span></code>
+          or the <code class="computeroutput"><span class="identifier">rule</span></code> (the Spirit
+          <a href="../../../../../repository/doc/html/index.html" target="_top">Repository</a> additionally
+          has <code class="computeroutput"><span class="identifier">subrules</span></code> which conform
+          to a similar interface). As an example, the following code declares a
+          <span class="emphasis"><em>Spirit.Qi</em></span> <code class="computeroutput"><span class="identifier">rule</span></code>
+          exposing an <code class="computeroutput"><span class="keyword">int</span></code> as its synthesized
+          attribute, while expecting a single <code class="computeroutput"><span class="keyword">double</span></code>
+          as its inherited attribute (see the section about the <span class="emphasis"><em>Spirit.Qi</em></span>
+          Rule for more information):
+        </p>
+<pre class="programlisting"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">int</span><span class="special">(</span><span class="keyword">double</span><span class="special">)&gt;</span> <span class="identifier">r</span><span class="special">;</span>
+</pre>
+<p>
+          In the world of generators, nonterminals are just as useful as in the parser
+          world. Generator nonterminals encapsulate a format description for a particular
+          data type, and, whenever we need to emit output for this data type, the
+          corresponding nonterminal is invoked in a similar way as the predefined
+          <span class="emphasis"><em>Spirit.Karma</em></span> generator primitives. The <span class="emphasis"><em>Spirit.Karma</em></span>
+          nonterminals are very similar to the <span class="emphasis"><em>Spirit.Qi</em></span> nonterminals.
+          Generator nonterminals may accept <span class="emphasis"><em>parameters</em></span> as well,
+          and we call those inherited attributes too. The main difference is that
+          they do not expose a synthesized attribute (as parsers do), but they require
+          a special <span class="emphasis"><em>consumed attribute</em></span>. Usually the consumed
+          attribute is the value the generator creates its output from. Even if the
+          consumed attribute is not 'returned' from the generator we chose to use
+          the same function style declaration syntax as used in <span class="emphasis"><em>Spirit.Qi</em></span>.
+          The example below declares a <span class="emphasis"><em>Spirit.Karma</em></span> <code class="computeroutput"><span class="identifier">rule</span></code> consuming a <code class="computeroutput"><span class="keyword">double</span></code>
+          while not expecting any additional inherited attributes.
+        </p>
+<pre class="programlisting"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">OutputIterator</span><span class="special">,</span> <span class="keyword">double</span><span class="special">()&gt;</span> <span class="identifier">r</span><span class="special">;</span>
+</pre>
+<p>
+          The inherited attributes of nonterminal parsers and generators are normally
+          passed to the component during its invocation. These are the <span class="emphasis"><em>parameters</em></span>
+          the parser or generator may accept and they can be used to parameterize
+          the component depending on the context they are invoked from.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="more_compound_attributes.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../attributes.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../qi.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

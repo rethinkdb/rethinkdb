@@ -1,0 +1,357 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Comparing the performance of a sequence of several generators</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../numeric_performance.html" title="Performance of Numeric Generators">
+<link rel="prev" href="double_performance.html" title="Comparing the performance of a single double_ generator">
+<link rel="next" href="../../s05.html" title="Karma Index">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="double_performance.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../numeric_performance.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../s05.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.karma.performance_measurements.numeric_performance.format_performance"></a><a class="link" href="format_performance.html" title="Comparing the performance of a sequence of several generators">Comparing
+          the performance of a sequence of several generators</a>
+</h5></div></div></div>
+<p>
+            These performance measurements are centered around formatting of a sequence
+            of different items, including 2 <code class="computeroutput"><span class="keyword">double</span></code>
+            floating point numbers using different libraries and methods. The overall
+            execution times for those examples are compared below. We compare using
+            <code class="computeroutput"><span class="identifier">sprintf</span></code>, C++ iostreams,
+            <a href="../../../../../../../../libs/format/index.html" target="_top">Boost.Format</a>, and
+            <span class="emphasis"><em>Spirit.Karma</em></span>.
+          </p>
+<p>
+            For the full source code of the performance test please see here: <a href="../../../../../../optimization/karma/format_performance.cpp" target="_top">format_performance.cpp</a>.
+            All the measurements have been done by doing <code class="computeroutput"><span class="number">1e6</span></code>
+            iterations for each formatting type (NUMITERATIONS is set to <code class="computeroutput"><span class="number">1e6</span></code>).
+          </p>
+<p>
+            Code used to measure the performance for sprintf:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">char</span> <span class="identifier">buffer</span><span class="special">[</span><span class="number">256</span><span class="special">];</span>
+<span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">NUMITERATIONS</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span> <span class="special">{</span>
+    <span class="identifier">sprintf</span><span class="special">(</span><span class="identifier">buffer</span><span class="special">,</span> <span class="string">"[%-14.3f%-14.3f]"</span><span class="special">,</span> <span class="number">12345.12345</span><span class="special">,</span> <span class="number">12345.12345</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            Code used to measure the performance for standard iostreams:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">stringstream</span> <span class="identifier">strm</span><span class="special">;</span>
+<span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">NUMITERATIONS</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span> <span class="special">{</span>
+    <span class="identifier">strm</span><span class="special">.</span><span class="identifier">str</span><span class="special">(</span><span class="string">""</span><span class="special">);</span>
+    <span class="identifier">strm</span> <span class="special">&lt;&lt;</span> <span class="char">'['</span>
+      <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setiosflags</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ios</span><span class="special">::</span><span class="identifier">fixed</span><span class="special">)</span>
+      <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">left</span>
+      <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setprecision</span><span class="special">(</span><span class="number">3</span><span class="special">)</span>
+      <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setw</span><span class="special">(</span><span class="number">14</span><span class="special">)</span>
+      <span class="special">&lt;&lt;</span> <span class="number">12345.12345</span>
+      <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setw</span><span class="special">(</span><span class="number">14</span><span class="special">)</span>
+      <span class="special">&lt;&lt;</span> <span class="number">12345.12345</span>
+      <span class="special">&lt;&lt;</span> <span class="char">']'</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            Code used to measure the performance for <a href="../../../../../../../../libs/format/index.html" target="_top">Boost.Format</a>:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">generated</span><span class="special">;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">format</span> <span class="identifier">outformat</span><span class="special">(</span><span class="string">"[%-14.3f%-14.3f]"</span><span class="special">);</span>
+<span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">NUMITERATIONS</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>
+    <span class="identifier">generated</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">str</span><span class="special">(</span><span class="identifier">outformat</span> <span class="special">%</span> <span class="number">12345.12345</span> <span class="special">%</span> <span class="number">12345.12345</span><span class="special">);</span>
+</pre>
+<p>
+          </p>
+<p>
+            The following code shows the common definitions used by all <span class="emphasis"><em>Spirit.Karma</em></span>
+            performance measurements as listed below:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">double3_policy</span> <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">real_policies</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="comment">//  we want to generate up to 3 fractional digits</span>
+    <span class="keyword">static</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">precision</span><span class="special">(</span><span class="identifier">T</span><span class="special">)</span> <span class="special">{</span> <span class="keyword">return</span> <span class="number">3</span><span class="special">;</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">real_generator</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="identifier">double3_policy</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+    <span class="identifier">double3_type</span><span class="special">;</span>
+<span class="identifier">double3_type</span> <span class="keyword">const</span> <span class="identifier">double3</span> <span class="special">=</span> <span class="identifier">double3_type</span><span class="special">();</span>
+</pre>
+<p>
+          </p>
+<p>
+            Code used to measure the performance for <span class="emphasis"><em>Spirit.Karma</em></span>
+            using a plain character buffer:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">char</span> <span class="identifier">buffer</span><span class="special">[</span><span class="number">256</span><span class="special">];</span>
+<span class="keyword">for</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">NUMITERATIONS</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">char</span> <span class="special">*</span><span class="identifier">p</span> <span class="special">=</span> <span class="identifier">buffer</span><span class="special">;</span>
+    <span class="identifier">generate</span><span class="special">(</span><span class="identifier">p</span>
+      <span class="special">,</span> <span class="char">'['</span> <span class="special">&lt;&lt;</span> <span class="identifier">left_align</span><span class="special">(</span><span class="number">14</span><span class="special">)[</span><span class="identifier">double3</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="identifier">left_align</span><span class="special">(</span><span class="number">14</span><span class="special">)[</span><span class="identifier">double3</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="char">']'</span>
+      <span class="special">,</span> <span class="number">12345.12345</span><span class="special">,</span> <span class="number">12345.12345</span><span class="special">);</span>
+    <span class="special">*</span><span class="identifier">p</span> <span class="special">=</span> <span class="char">'\0'</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            The following table shows the overall performance results collected while
+            using different compilers. All times are in seconds measured for <code class="computeroutput"><span class="number">1e6</span></code> iterations (platform: Windows7, Intel
+            Core Duo(tm) Processor, 2.8GHz, 4GByte RAM). For a more readable comparison
+            of the results see this <a class="link" href="format_performance.html#spirit.karma.format_performance" title="Figure&#160;5.&#160;Performance comparison for a sequence of several items">figure</a>.
+          </p>
+<div class="table">
+<a name="spirit.karma.performance_measurements.numeric_performance.format_performance.performance_comparison_for_a_sequence_of_several_items__all_times_in__s____1e6__iterations_"></a><p class="title"><b>Table&#160;7.&#160;Performance comparison for a sequence of several items (all times
+            in [s], `1e6` iterations)</b></p>
+<div class="table-contents"><table class="table" summary="Performance comparison for a sequence of several items (all times
+            in [s], `1e6` iterations)">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Library
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      gcc 4.4.0 (32 bit)
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      VC++ 10 (32 bit)
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Intel 11.1 (32 bit)
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      gcc 4.4.0 (64 bit)
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      VC++ 10 (64 bit)
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Intel 11.1 (64 bit)
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      sprintf
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      1.725
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      1.892
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      1.903
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      1.469
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      1.608
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      1.493
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      iostreams
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      4.827
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      5.287
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      4.444
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      3.112
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      3.319
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      2.877
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a href="../../../../../../../../libs/format/index.html" target="_top">Boost.Format</a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      5.881
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      7.089
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      5.801
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      5.455
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      5.254
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      4.164
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <span class="emphasis"><em>Spirit.Karma</em></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      1.942
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      1.242
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      0.999
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      1.334
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      0.758
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      0.686
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+            </p>
+<div class="figure">
+<a name="spirit.karma.format_performance"></a><p class="title"><b>Figure&#160;5.&#160;Performance comparison for a sequence
+            of several items</b></p>
+<div class="figure-contents"><span class="inlinemediaobject"><img src="../../../.././images/format_performance.png" alt="Performance comparison for a sequence of several items"></span></div>
+</div>
+<p><br class="figure-break">
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="double_performance.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../numeric_performance.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../s05.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

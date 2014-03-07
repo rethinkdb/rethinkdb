@@ -1,0 +1,338 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Primitives</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.0">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Phoenix 2.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Phoenix 2.0">
+<link rel="prev" href="actors.html" title="Actors">
+<link rel="next" href="composite.html" title="Composite">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="actors.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="composite.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="phoenix.primitives"></a><a class="link" href="primitives.html" title="Primitives">Primitives</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="primitives.html#phoenix.primitives.arguments">Arguments</a></span></dt>
+<dt><span class="section"><a href="primitives.html#phoenix.primitives.values">Values</a></span></dt>
+<dt><span class="section"><a href="primitives.html#phoenix.primitives.references">References</a></span></dt>
+<dt><span class="section"><a href="primitives.html#phoenix.primitives.constant_references">Constant References</a></span></dt>
+<dt><span class="section"><a href="primitives.html#phoenix.primitives.nothing">Nothing</a></span></dt>
+</dl></div>
+<p>
+      Actors are composed to create more complex actors in a tree-like hierarchy.
+      The primitives are atomic entities that are like the leaves in the tree. Phoenix
+      is extensible. New primitives can be added anytime. Right out of the box, there
+      are only a few primitives. This section shall deal with these preset primitives.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.primitives.arguments"></a><a class="link" href="primitives.html#phoenix.primitives.arguments" title="Arguments">Arguments</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">argument</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        We use an instance of:
+      </p>
+<pre class="programlisting"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+</pre>
+<p>
+        to represent the Nth function argument. The argument placeholder acts as
+        an imaginary data-bin where a function argument will be placed.
+      </p>
+<a name="phoenix.primitives.arguments.predefined_arguments"></a><h3>
+<a name="id837325"></a>
+        <a class="link" href="primitives.html#phoenix.primitives.arguments.predefined_arguments">Predefined
+        Arguments</a>
+      </h3>
+<p>
+        There are a few predefined instances of <code class="computeroutput"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span>
+        <span class="special">&gt;</span></code> named <code class="computeroutput"><span class="identifier">arg1</span></code>..<code class="computeroutput"><span class="identifier">argN</span></code>, and its <a href="http://www.boost.org/libs/lambda/doc/index.html" target="_top">BLL</a>
+        counterpart <code class="computeroutput"><span class="identifier">_1</span></code>..<code class="computeroutput"><span class="identifier">_N</span></code>. (where N is a predefined maximum).
+      </p>
+<p>
+        Here are some sample preset definitions of <code class="computeroutput"><span class="identifier">arg1</span></code>..<code class="computeroutput"><span class="identifier">argN</span></code>
+      </p>
+<pre class="programlisting"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">arg1</span> <span class="special">=</span> <span class="identifier">argument</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;();</span>
+<span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">arg2</span> <span class="special">=</span> <span class="identifier">argument</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;();</span>
+<span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">arg3</span> <span class="special">=</span> <span class="identifier">argument</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;();</span>
+</pre>
+<p>
+        and its <a href="http://www.boost.org/libs/lambda/doc/index.html" target="_top">BLL</a>
+        <code class="computeroutput"><span class="identifier">_1</span></code>..<code class="computeroutput"><span class="identifier">_N</span></code>
+        style counterparts:
+      </p>
+<pre class="programlisting"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">_1</span> <span class="special">=</span> <span class="identifier">argument</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;();</span>
+<span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">_2</span> <span class="special">=</span> <span class="identifier">argument</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;();</span>
+<span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">_3</span> <span class="special">=</span> <span class="identifier">argument</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;();</span>
+</pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          You can set <code class="computeroutput"><span class="identifier">PHOENIX_ARG_LIMIT</span></code>,
+          the predefined maximum placeholder index. By default, <code class="computeroutput"><span class="identifier">PHOENIX_ARG_LIMIT</span></code>
+          is set to <code class="computeroutput"><span class="identifier">PHOENIX_LIMIT</span></code>
+          (See <a class="link" href="actors.html" title="Actors">Actors</a>).
+        </p></td></tr>
+</table></div>
+<a name="phoenix.primitives.arguments.user_defined_arguments"></a><h3>
+<a name="id837833"></a>
+        <a class="link" href="primitives.html#phoenix.primitives.arguments.user_defined_arguments">User
+        Defined Arguments</a>
+      </h3>
+<p>
+        When appropriate, you can define your own <code class="computeroutput"><span class="identifier">argument</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span></code>
+        names. For example:
+      </p>
+<pre class="programlisting"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">argument</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">x</span><span class="special">;</span> <span class="comment">// note zero based index
+</span></pre>
+<p>
+        <code class="computeroutput"><span class="identifier">x</span></code> may now be used as a parameter
+        to a lazy function:
+      </p>
+<pre class="programlisting"><span class="identifier">add</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span> <span class="number">6</span><span class="special">)</span>
+</pre>
+<p>
+        which is equivalent to:
+      </p>
+<pre class="programlisting"><span class="identifier">add</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="number">6</span><span class="special">)</span>
+</pre>
+<a name="phoenix.primitives.arguments.evaluating_an_argument"></a><h3>
+<a name="id837980"></a>
+        <a class="link" href="primitives.html#phoenix.primitives.arguments.evaluating_an_argument">Evaluating
+        an Argument</a>
+      </h3>
+<p>
+        An argument, when evaluated, selects the Nth argument from the those passed
+        in by the client.
+      </p>
+<p>
+        For example:
+      </p>
+<pre class="programlisting"><span class="keyword">char</span>        <span class="identifier">c</span> <span class="special">=</span> <span class="char">'A'</span><span class="special">;</span>
+<span class="keyword">int</span>         <span class="identifier">i</span> <span class="special">=</span> <span class="number">123</span><span class="special">;</span>
+<span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">s</span> <span class="special">=</span> <span class="string">"Hello World"</span><span class="special">;</span>
+
+<span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>        <span class="comment">//  Get the 1st argument: c
+</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span><span class="special">(</span><span class="identifier">i</span><span class="special">,</span> <span class="identifier">s</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>     <span class="comment">//  Get the 1st argument: i
+</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg2</span><span class="special">(</span><span class="identifier">i</span><span class="special">,</span> <span class="identifier">s</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>     <span class="comment">//  Get the 2nd argument: s
+</span></pre>
+<p>
+        will print out:
+      </p>
+<pre class="programlisting"><span class="identifier">A</span>
+<span class="number">123</span>
+<span class="identifier">Hello</span> <span class="identifier">World</span>
+</pre>
+<a name="phoenix.primitives.arguments.extra_arguments"></a><h3>
+<a name="id838250"></a>
+        <a class="link" href="primitives.html#phoenix.primitives.arguments.extra_arguments">Extra Arguments</a>
+      </h3>
+<p>
+        In C and C++, a function can have extra arguments that are not at all used
+        by the function body itself. These extra arguments are simply ignored.
+      </p>
+<p>
+        Phoenix also allows extra arguments to be passed. For example, recall our
+        original <code class="computeroutput"><span class="identifier">add</span></code> function:
+      </p>
+<pre class="programlisting"><span class="identifier">add</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">arg2</span><span class="special">)</span>
+</pre>
+<p>
+        We know now that partially applying this function results to a function that
+        expects 2 arguments. However, the library is a bit more lenient and allows
+        the caller to supply more arguments than is actually required. Thus, <code class="computeroutput"><span class="identifier">add</span></code> actually allows 2 <span class="emphasis"><em>or more</em></span>
+        arguments. For instance, with:
+      </p>
+<pre class="programlisting"><span class="identifier">add</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">arg2</span><span class="special">)(</span><span class="identifier">x</span><span class="special">,</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">z</span><span class="special">)</span>
+</pre>
+<p>
+        the third argument <code class="computeroutput"><span class="identifier">z</span></code> is ignored.
+        Taking this further, in-between arguments are also ignored. Example:
+      </p>
+<pre class="programlisting"><span class="identifier">add</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">arg5</span><span class="special">)(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">c</span><span class="special">,</span> <span class="identifier">d</span><span class="special">,</span> <span class="identifier">e</span><span class="special">)</span>
+</pre>
+<p>
+        Here, arguments b, c, and d are ignored. The function <code class="computeroutput"><span class="identifier">add</span></code>
+        takes in the first argument (<code class="computeroutput"><span class="identifier">arg1</span></code>)
+        and the fifth argument (<code class="computeroutput"><span class="identifier">arg5</span></code>).
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          There are a few reasons why enforcing strict arity is not desirable. A
+          case in point is the callback function. Typical callback functions provide
+          more information than is actually needed. Lambda functions are often used
+          as callbacks.
+        </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.primitives.values"></a><a class="link" href="primitives.html#phoenix.primitives.values" title="Values">Values</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">value</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Whenever we see a constant in a partially applied function, an
+      </p>
+<pre class="programlisting"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+</pre>
+<p>
+        (where T is the type of the constant) is automatically created for us. For
+        instance:
+      </p>
+<pre class="programlisting"><span class="identifier">add</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="number">6</span><span class="special">)</span>
+</pre>
+<p>
+        Passing a second argument, <code class="computeroutput"><span class="number">6</span></code>,
+        an <code class="computeroutput"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">value</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>
+        is implicitly created behind the scenes. This is also equivalent to:
+      </p>
+<pre class="programlisting"><span class="identifier">add</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">val</span><span class="special">(</span><span class="number">6</span><span class="special">))</span>
+</pre>
+<p>
+        <code class="computeroutput"><span class="identifier">val</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code> generates
+        an <code class="computeroutput"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&gt;</span></code> where <code class="computeroutput"><span class="identifier">T</span></code>
+        is the type of <code class="computeroutput"><span class="identifier">x</span></code>. In most
+        cases, there's no need to explicitly use <code class="computeroutput"><span class="identifier">val</span></code>,
+        but, as we'll see later on, there are situations where this is unavoidable.
+      </p>
+<a name="phoenix.primitives.values.evaluating_a_value"></a><h3>
+<a name="id838775"></a>
+        <a class="link" href="primitives.html#phoenix.primitives.values.evaluating_a_value">Evaluating a
+        Value</a>
+      </h3>
+<p>
+        Like arguments, values are also actors. As such, values can be evaluated.
+        Invoking a value gives the value's identity. Example:
+      </p>
+<pre class="programlisting"><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)()</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"Hello World"</span><span class="special">)();</span>
+</pre>
+<p>
+        prints out "3 Hello World".
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.primitives.references"></a><a class="link" href="primitives.html#phoenix.primitives.references" title="References">References</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">reference</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Values are immutable constants. Attempting to modify a value will result
+        in a compile time error. When we want the function to modify the parameter,
+        we use a reference instead. For instance, imagine a lazy function <code class="computeroutput"><span class="identifier">add_assign</span></code>:
+      </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">add_assign</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T</span> <span class="identifier">y</span><span class="special">)</span> <span class="special">{</span> <span class="identifier">x</span> <span class="special">+=</span> <span class="identifier">y</span><span class="special">;</span> <span class="special">}</span> <span class="comment">// pseudo code
+</span></pre>
+<p>
+        Here, we want the first function argument, x, to be mutable. Obviously, we
+        cannot write:
+      </p>
+<pre class="programlisting"><span class="identifier">add_assign</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">)</span> <span class="comment">// error first argument is immutable
+</span></pre>
+<p>
+        In C++, we can pass in a reference to a variable as the first argument in
+        our example above. Yet, by default, the library forces arguments passed to
+        partially applied functions functions to be immutable values (see <a class="link" href="primitives.html#phoenix.primitives.values" title="Values">Values</a>).
+        To achieve our intent, we use:
+      </p>
+<pre class="programlisting"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">reference</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+</pre>
+<p>
+        This is similar to <code class="computeroutput"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="special">&gt;</span></code> above but instead holds a reference
+        to a variable.
+      </p>
+<p>
+        We normally don't instantiate <code class="computeroutput"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">reference</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="special">&gt;</span></code> objects directly. Instead we
+        use <code class="computeroutput"><span class="identifier">ref</span></code>. For example (where
+        <code class="computeroutput"><span class="identifier">i</span></code> is an <code class="computeroutput"><span class="keyword">int</span></code>
+        variable):
+      </p>
+<pre class="programlisting"><span class="identifier">add_assign</span><span class="special">(</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">i</span><span class="special">),</span> <span class="number">2</span><span class="special">)</span>
+</pre>
+<a name="phoenix.primitives.references.evaluating_a_reference"></a><h3>
+<a name="id839204"></a>
+        <a class="link" href="primitives.html#phoenix.primitives.references.evaluating_a_reference">Evaluating
+        a Reference</a>
+      </h3>
+<p>
+        References are actors. Hence, references can be evaluated. Such invocation
+        gives the reference's identity. Example:
+      </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">3</span><span class="special">;</span>
+<span class="keyword">char</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">s</span> <span class="special">=</span> <span class="string">"Hello World"</span><span class="special">;</span>
+<span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">ref</span><span class="special">(</span><span class="identifier">i</span><span class="special">)()</span> <span class="special">&lt;&lt;</span> <span class="identifier">ref</span><span class="special">(</span><span class="identifier">s</span><span class="special">)();</span>
+</pre>
+<p>
+        prints out "3 Hello World"
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.primitives.constant_references"></a><a class="link" href="primitives.html#phoenix.primitives.constant_references" title="Constant References">Constant References</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">reference</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Another free function <code class="computeroutput"><span class="identifier">cref</span><span class="special">(</span><span class="identifier">cv</span><span class="special">)</span></code>
+        may also be used. <code class="computeroutput"><span class="identifier">cref</span><span class="special">(</span><span class="identifier">cv</span><span class="special">)</span></code> creates
+        an <code class="computeroutput"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">reference</span><span class="special">&lt;</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;&gt;</span> <span class="special">&gt;</span></code>
+        object. This is similar to <code class="computeroutput"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span>
+        <span class="special">&gt;</span></code> but when the data to be passed
+        as argument to a function is heavy and expensive to copy by value, the <code class="computeroutput"><span class="identifier">cref</span><span class="special">(</span><span class="identifier">cv</span><span class="special">)</span></code> offers a lighter alternative.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.primitives.nothing"></a><a class="link" href="primitives.html#phoenix.primitives.nothing" title="Nothing">Nothing</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">nothing</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Finally, the <code class="computeroutput"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">null_actor</span><span class="special">&gt;</span></code>
+        does nothing; (a "bum", if you will :-). There's a sole <code class="computeroutput"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">null_actor</span><span class="special">&gt;</span></code>
+        instance named "nothing". This actor is actually useful in situations
+        where we don't want to do anything. (See <a class="link" href="composite.html#phoenix.composite.statement.for__statement" title="for_ Statement">for_
+        Statement</a> for example).
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005 Joel
+      de Guzman, Dan Marsden<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="actors.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="composite.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

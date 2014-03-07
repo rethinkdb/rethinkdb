@@ -1,0 +1,263 @@
+<html>
+<head>
+<title>Spirit User's Guide</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="doc/theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="doc/theme/bkd2.gif" cellspacing="2">
+  <tr>
+    <td width="10">
+      <h1></h1>
+    </td>
+    <td width="85%"> <font face="Verdana, Arial, Helvetica, sans-serif"><b><font size="6">Spirit
+      User's Guide</font></b></font></td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="doc/theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table width="75%" border="0" align="center">
+  <tr>
+    <td class="table_title">Table of Contents</td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/preface.html">Preface</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/introduction.html">Introduction</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/quick_start.html">Quick Start</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/basic_concepts.html">Basic Concepts</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/organization.html">Organization</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="change_log.html">What's New </a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><b><font face="Geneva, Arial, Helvetica, san-serif">Core</font></b></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/primitives.html">Primitives</a> </td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/operators.html">Operators</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/numerics.html">Numerics</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/rule.html">The Rule</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/epsilon.html">Epsilon</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/directives.html">Directives</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/scanner.html">The Scanner and Parsing</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/grammar.html">The Grammar</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/subrules.html">Subrules</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/semantic_actions.html">Semantic Actions</a>
+    </td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/indepth_the_parser.html">In-depth: The
+      Parser</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/indepth_the_scanner.html">In-depth:
+      The Scanner</a> </td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/indepth_the_parser_context.html">In-depth:
+      The Parser Context</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><strong>Actors</strong></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/predefined_actors.html">Predefined Actions</a>
+    </td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><b>Attribute</b></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/parametric_parsers.html">Parametric
+      Parsers</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/functional.html">Functional</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/phoenix.html">Phoenix</a><a href="doc/parametric_parsers.html"></a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/closures.html">Closures</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><strong>Dynamic</strong></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/dynamic_parsers.html">Dynamic Parsers</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/stored_rule.html">Storable Rules</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/the_lazy_parser.html">The Lazy Parser</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/select_parser.html">The Select Parser</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/switch_parser.html">The Switch Parser</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><b>Utility</b></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/escape_char_parser.html">Escape Character
+      Parsers</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/loops.html">Loop Parsers</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/character_sets.html">Character Set Parser</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/confix.html">Confix and Comment Parsers</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/list_parsers.html">List Parsers</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/functor_parser.html">Functor Parser</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/refactoring.html">Refactoring Parsers</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/regular_expression_parser.html">Regular
+      Expression Parser</a> </td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/scoped_lock.html">Scoped Lock</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/distinct.html">Distinct Parser </a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><b>Symbols</b></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/symbols.html">The Symbol Table</a></td>
+  </tr>
+  <tr>
+    <td class="table_cells"><b>Trees</b></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/trees.html">Parse Trees and ASTs</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><b>Iterator</b></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/multi_pass.html">Multi Pass </a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/file_iterator.html">File Iterator</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L1"><a href="doc/position_iterator.html">Position Iterator
+      </a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/debugging.html">Debugging</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/error_handling.html">Error Handling</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/quickref.html">Quick Reference</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/includes.html">Includes</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/portability.html">Portability</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/style_guide.html">Style Guide</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/techniques.html">Techniques</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/faq.html">FAQ</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/rationale.html">Rationale</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/acknowledgments.html">Acknowledgments</a></td>
+  </tr>
+  <tr>
+    <td class="toc_cells_L0"><a href="doc/references.html">References</a></td>
+  </tr>
+</table>
+<br>
+<table width="50%" border="0" align="center">
+  <tr>
+    <td>
+      <div align="center"><font size="2" color="#666666">Copyright &copy; 1998-2003
+        Joel de Guzman</font><font size="2"><br>
+        <br>
+        Portions of this document: <br>
+        <font color="#666666">Copyright &copy; 2001-2003 Hartmut Kaiser<br>
+        Copyright &copy; 2001-2002 Daniel C. Nuffer<br>
+        Copyright &copy; 2002 Chris Uzdavinis<br>
+        Copyright &copy; 2002 Jeff Westfahl<br>
+        Copyright &copy; 2002 Juan Carlos Arevalo-Baeza<br>
+        </font><font size="2"><font color="#666666">Copyright &copy; 2003 Martin
+        Wille <br>
+        Copyright &copy; 2003 Ross Smith<br>
+        <font size="2"><font size="2">Copyright &copy; 2003</font></font></font>
+        <font color="#666666">Jonathan de Halleux </font></font></font></div>
+      <p><font size="2"> <font color="#666666"> Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+ </font> </font></p>
+    </td>
+  </tr>
+</table>
+<br>
+<table width="35%" border="0" align="center">
+  <tr>
+    <td>
+      <div align="center"><font size="2">Spirit is hosted by <a href="http://sourceforge.net">SourceForge</a></font><br>
+        <font size="2"><a href="http://spirit.sourceforge.net/">http://spirit.sourceforge.net/
+        </a></font> <br>
+        <br>
+        <a href="http://sourceforge.net"><img src="http://sourceforge.net/sflogo.php?group_id=28447" width="88" height="31" border="0" alt="SourceForge Logo"></a></div>
+    </td>
+  </tr>
+</table>
+<br>
+<p>&nbsp;</p>
+</body>
+</html>

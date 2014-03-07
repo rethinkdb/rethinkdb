@@ -1,0 +1,502 @@
+[/
+  (C) Copyright 2011 Frederic Bron.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+[c++]
+[def __binary_temp `< class Lhs, class Rhs=Lhs, class Ret=dont_care >`]
+[def __prefix_temp `< class Rhs, class Ret=dont_care >`]
+[def __postfix_temp `< class Lhs, class Ret=dont_care >`]
+
+[section:operators Operator Type Traits]
+
+[heading Introduction]
+
+These traits are all /value traits/ inheriting from __integral_constant
+and providing a simple `true` or `false` boolean `value` which reflects the fact
+that given types can or cannot be used with given operators.
+
+For example, `has_plus<int, double>::value` is a `bool`
+which value is `true` because it is possible to add a `double` to an `int` like
+in the following code:
+``
+int i;
+double d;
+i+d;
+``
+It is also possible to know if the result of the operator can be used as function argument
+of a given type.
+For example, `has_plus<int, double, float>::value` is `true`
+because it is possible to add a `double` to an `int` and
+the result (`double`) can be converted to a `float` argument like in the following code:
+``
+void f(float) { };
+int i;
+double d;
+f(i+d);
+``
+
+[heading Example of application]
+
+These traits can be useful to optimize the code for types supporting given operations.
+For example a function `std::advance` that increases an iterator of a given number of steps
+could be implemented as follows:
+
+``
+#include <boost/type_traits/has_plus_assign.hpp>
+
+namespace detail {
+template < class Iterator, class Distance, bool has_plus_assign >
+struct advance_impl;
+
+// this is used if += exists (efficient)
+template < class Iterator, class Distance >
+struct advance_impl<Iterator, Distance, true> {
+   void operator()(Iterator &i, Distance n) {
+      i+=n;
+   }
+};
+
+// this is use if += does not exists (less efficient but cannot do better)
+template < class Iterator, class Distance >
+struct advance_impl<Iterator, Distance, false> {
+   void operator()(Iterator &i, Distance n) {
+      if (n>0) {
+         while (n--) ++i;
+      } else {
+         while (n++) --i;
+      }
+   }
+};
+} // namespace detail
+
+template < class Iterator, class Distance >
+inline void advance(Iterator &i, Distance n) {
+   detail::advance_impl< Iterator, Distance, ::boost::has_plus_assign<Iterator>::value >()(i, n);
+}
+``
+
+Then the compiler chooses the most efficient implementation according to the type's ability to perform `+=` operation:
+
+``
+#include <iostream>
+
+class with {
+      int m_i;
+   public:
+      with(int i=0) : m_i(i) { }
+      with &operator+=(int rhs) { m_i+=rhs; return *this; }
+      operator int const () { return m_i; }
+};
+
+class without {
+      int m_i;
+   public:
+      without(int i=0) : m_i(i) { }
+      without &operator++() { ++m_i; return *this; }
+      without &operator--() { --m_i; return *this; }
+      operator int const () { return m_i; }
+};
+
+int main() {
+   with i=0;
+   advance(i, 10); // uses +=
+   std::cout<<"with: "<<i<<'\n';
+   without j=0;
+   advance(j, 10); // uses ++
+   std::cout<<"without: "<<j<<'\n';
+   return 0;
+}
+``
+
+[heading Description]
+The syntax is the following:
+``
+template __prefix_temp has_op; // prefix operator
+template __postfix_temp has_op; // postfix operator
+template __binary_temp has_op; // binary operator
+``
+where:
+
+* op represents the operator name
+* `Lhs` is the type used at the left hand side of `operator op`,
+* `Rhs` is the type used at the right hand side of `operator op`,
+* `Ret` is the type for which we want to know if the result of `operator op` can
+  be converted to.
+
+The default behaviour (`Ret=dont_care`) is to not check for the return value of the
+operator.
+If `Ret` is different from the default `dont_care`, the return value is checked to be
+convertible to `Ret`. Convertible to `Ret` means that the return value can be
+used as argument to a function expecting `Ret`:
+``
+void f(Ret);
+Lhs lhs;
+Rhs rhs;
+f(lhs+rhs); // is valid if has_plus<Lhs, Rhs, Ret>::value==true
+``
+If `Ret=void`, the return type is checked to be exactly `void`.
+
+The following tables give the list of supported binary, prefix and postfix
+operators.
+
+[table Supported prefix operators
+   [[prefix operator] [trait name]]
+   [[`!`]      [[link boost_typetraits.reference.has_logical_not `has_logical_not`] __prefix_temp]]
+   [[`+`]      [[link boost_typetraits.reference.has_unary_plus `has_unary_plus`]]]
+   [[`-`]      [[link boost_typetraits.reference.has_unary_minus `has_unary_minus`] and [link boost_typetraits.reference.has_negate `has_negate`]]]
+   [[`~`]      [[link boost_typetraits.reference.has_complement `has_complement`]]]
+   [[`*`]      [[link boost_typetraits.reference.has_dereference `has_dereference`]]]
+   [[`++`]     [[link boost_typetraits.reference.has_pre_increment `has_pre_increment`]]]
+   [[`--`]     [[link boost_typetraits.reference.has_pre_decrement `has_pre_decrement`]]]
+]
+
+[table Supported postfix operators
+   [[postfix operator] [trait name]]
+   [[`++`]     [[link boost_typetraits.reference.has_post_increment `has_post_increment`] __postfix_temp]]
+   [[`--`]     [[link boost_typetraits.reference.has_post_decrement `has_post_decrement`]]]
+]
+
+[table Supported binary operators
+   [[binary operator] [trait name]]
+   [[`+`]      [[link boost_typetraits.reference.has_plus `has_plus`] __binary_temp]]
+   [[`-`]      [[link boost_typetraits.reference.has_minus `has_minus`]]]
+   [[`*`]      [[link boost_typetraits.reference.has_multiplies `has_multiplies`]]]
+   [[`/`]      [[link boost_typetraits.reference.has_divides `has_divides`]]]
+   [[`%`]      [[link boost_typetraits.reference.has_modulus `has_modulus`]]]
+   [[`+=`]     [[link boost_typetraits.reference.has_plus_assign `has_plus_assign`]]]
+   [[`-=`]     [[link boost_typetraits.reference.has_minus_assign `has_minus_assign`]]]
+   [[`*=`]     [[link boost_typetraits.reference.has_multiplies_assign `has_multiplies_assign`]]]
+   [[`/=`]     [[link boost_typetraits.reference.has_divides_assign `has_divides_assign`]]]
+   [[`%=`]     [[link boost_typetraits.reference.has_modulus_assign `has_modulus_assign`]]]
+   [[`&`]      [[link boost_typetraits.reference.has_bit_and `has_bit_and`]]]
+   [[`|`]      [[link boost_typetraits.reference.has_bit_or `has_bit_or`]]]
+   [[`^`]      [[link boost_typetraits.reference.has_bit_xor `has_bit_xor`]]]
+   [[`&=`]     [[link boost_typetraits.reference.has_bit_and_assign `has_bit_and_assign`]]]
+   [[`|=`]     [[link boost_typetraits.reference.has_bit_or_assign `has_bit_or_assign`]]]
+   [[`^=`]     [[link boost_typetraits.reference.has_bit_xor_assign `has_bit_xor_assign`]]]
+   [[`<<`]     [[link boost_typetraits.reference.has_left_shift `has_left_shift`]]]
+   [[`>>`]     [[link boost_typetraits.reference.has_right_shift `has_right_shift`]]]
+   [[`<<=`]    [[link boost_typetraits.reference.has_left_shift_assign `has_left_shift_assign`]]]
+   [[`>>=`]    [[link boost_typetraits.reference.has_right_shift_assign `has_right_shift_assign`]]]
+   [[`==`]     [[link boost_typetraits.reference.has_equal_to `has_equal_to`]]]
+   [[`!=`]     [[link boost_typetraits.reference.has_not_equal_to `has_not_equal_to`]]]
+   [[`<`]      [[link boost_typetraits.reference.has_less `has_less`]]]
+   [[`<=`]     [[link boost_typetraits.reference.has_less_equal `has_less_equal`]]]
+   [[`>`]      [[link boost_typetraits.reference.has_greater `has_greater`]]]
+   [[`>=`]     [[link boost_typetraits.reference.has_greater_equal `has_greater_equal`]]]
+   [[`&&`]     [[link boost_typetraits.reference.has_logical_and `has_logical_and`]]]
+   [[`||`]     [[link boost_typetraits.reference.has_logical_or `has_logical_or`]]]
+]
+
+The following operators are not supported because they could not be implemented using the same technique:
+`operator=`, `operator->`, `operator&`, `operator[]`, `operator,`, `operator()`, `operator new`.
+
+
+[heading cv qualifiers and references]
+
+A reference sign `&` in the operator argument is ignored so that `has_plus< int&, double& >::value==has_plus< int, double >::value`.
+This has been chosen because if the following code works (does not work):
+``
+int i;
+double d;
+i+d;
+``
+the following code also works (does not work):
+``
+int &ir=i;
+double &dr=d;
+ir+dr;
+``
+
+It was not possible to handle properly the `volatile` qualifier so that any construct using this qualifier has undefined behavior.
+
+As a help, the following tables give the necessary conditions over each trait template argument for the trait `value` to be `true`.
+They are non sufficient conditions because the conditions must be `true` for all arguments and return type for `value` to be `true`.
+
+[table necessary and non sufficient condition on operator argument for value to be true
+   [[operator declaration]	[`has_op< void >`]	[`has_op< Arg >` and `has_op< Arg& >`]	[`has_op< Arg const >` and `has_op< Arg const& >`]]
+   [[`operator`@`(Arg)`]	[false]	[true]	[true]]
+   [[`operator`@`(Arg const)`]	[false]	[true]	[true]]
+   [[`operator`@`(Arg &)`]	[false]	[true]	[false]]
+   [[`operator`@`(Arg const &)`]	[false]	[true]	[true]]
+]
+
+[table necessary and non sufficient condition on operator return type for value to be true
+   [[operator declaration]	[`has_op< ..., void >`]	[`has_op< ..., Ret >`]	[`has_op< ..., Ret const >`]	[`has_op< ..., Ret & >`]	[`has_op< ..., Ret const & >`]]
+   [[`void        operator`@`(...)`]	[true]	[false]	[false]	[false]	[false]]
+   [[`Ret         operator`@`(...)`]	[false]	[true]	[true]	[false]	[true]]
+   [[`Ret const   operator`@`(...)`]	[false]	[true]	[true]	[false]	[true]]
+   [[`Ret &       operator`@`(...)`]	[false]	[true]	[true]	[true]	[true]]
+   [[`Ret const & operator`@`(...)`]	[false]	[true]	[true]	[false]	[true]]
+]
+
+
+[heading Implementation]
+
+The implementation consists in only header files.
+The following headers should included first:
+``#include <boost/type_traits/has_operator.hpp>``
+or
+``#include <boost/type_traits/has_op.hpp>``
+where [^op] is the textual name chosen for the wanted operator.
+The first method includes all operator traits.
+
+All traits are implemented the same way using preprocessor macros to avoid code
+duplication.
+The main files are in [^boost/type_traits/detail]: [^has_binary_operator.hpp],
+[^has_prefix_operator.hpp] and [^has_postfix_operator.hpp].
+The example of prefix `operator-` is presented below:
+
+``
+namespace boost {
+namespace detail {
+
+// This namespace ensures that argument-dependent name lookup does not mess things up.
+namespace has_unary_minus_impl {
+
+// 1. a function to have an instance of type T without requiring T to be default
+// constructible
+template <typename T> T &make();
+
+
+// 2. we provide our operator definition for types that do not have one already
+
+// a type returned from operator- when no such operator is
+// found in the type's own namespace (our own operator is used) so that we have
+// a means to know that our operator was used
+struct no_operator { };
+
+// this class allows implicit conversions and makes the following operator
+// definition less-preferred than any other such operators that might be found
+// via argument-dependent name lookup
+struct any { template <class T> any(T const&); };
+
+// when operator- is not available, this one is used
+no_operator operator-(const any&);
+
+
+// 3. checks if the operator returns void or not
+// conditions: Rhs!=void
+
+// we first redefine "operator," so that we have no compilation error if
+// operator- returns void and we can use the return type of
+// (-rhs, returns_void_t()) to deduce if operator- returns void or not:
+// - operator- returns void   -> (-rhs, returns_void_t()) returns returns_void_t
+// - operator- returns !=void -> (-rhs, returns_void_t()) returns int
+struct returns_void_t { };
+template <typename T> int operator,(const T&, returns_void_t);
+template <typename T> int operator,(const volatile T&, returns_void_t);
+
+// this intermediate trait has member value of type bool:
+// - value==true  -> operator- returns void
+// - value==false -> operator- does not return void
+template < typename Rhs >
+struct operator_returns_void {
+   // overloads of function returns_void make the difference
+   // yes_type and no_type have different size by construction
+   static ::boost::type_traits::yes_type returns_void(returns_void_t);
+   static ::boost::type_traits::no_type returns_void(int);
+   static const bool value = sizeof(::boost::type_traits::yes_type)==sizeof(returns_void((-make<Rhs>(),returns_void_t())));
+};
+
+
+// 4. checks if the return type is Ret or Ret==dont_care
+// conditions: Rhs!=void
+
+struct dont_care { };
+
+template < typename Rhs, typename Ret, bool Returns_void >
+struct operator_returns_Ret;
+
+template < typename Rhs >
+struct operator_returns_Ret < Rhs, dont_care, true > {
+   static const bool value = true;
+};
+
+template < typename Rhs >
+struct operator_returns_Ret < Rhs, dont_care, false > {
+   static const bool value = true;
+};
+
+template < typename Rhs >
+struct operator_returns_Ret < Rhs, void, true > {
+   static const bool value = true;
+};
+
+template < typename Rhs >
+struct operator_returns_Ret < Rhs, void, false > {
+   static const bool value = false;
+};
+
+template < typename Rhs, typename Ret >
+struct operator_returns_Ret < Rhs, Ret, true > {
+   static const bool value = false;
+};
+
+// otherwise checks if it is convertible to Ret using the sizeof trick
+// based on overload resolution
+// condition: Ret!=void and Ret!=dont_care and the operator does not return void
+template < typename Rhs, typename Ret >
+struct operator_returns_Ret < Rhs, Ret, false > {
+   static ::boost::type_traits::yes_type is_convertible_to_Ret(Ret); // this version is preferred for types convertible to Ret
+   static ::boost::type_traits::no_type is_convertible_to_Ret(...); // this version is used otherwise
+
+   static const bool value = sizeof(is_convertible_to_Ret(-make<Rhs>()))==sizeof(::boost::type_traits::yes_type);
+};
+
+
+// 5. checks for operator existence
+// condition: Rhs!=void
+
+// checks if our definition of operator- is used or an other
+// existing one;
+// this is done with redefinition of "operator," that returns no_operator or has_operator
+struct has_operator { };
+no_operator operator,(no_operator, has_operator);
+
+template < typename Rhs >
+struct operator_exists {
+   static ::boost::type_traits::yes_type check(has_operator); // this version is preferred when operator exists
+   static ::boost::type_traits::no_type check(no_operator); // this version is used otherwise
+
+   static const bool value = sizeof(check(((-make<Rhs>()),make<has_operator>())))==sizeof(::boost::type_traits::yes_type);
+};
+
+
+// 6. main trait: to avoid any compilation error, this class behaves
+// differently when operator-(Rhs) is forbidden by the standard.
+// Forbidden_if is a bool that is:
+// - true when the operator-(Rhs) is forbidden by the standard
+//   (would yield compilation error if used)
+// - false otherwise
+template < typename Rhs, typename Ret, bool Forbidden_if >
+struct trait_impl1;
+
+template < typename Rhs, typename Ret >
+struct trait_impl1 < Rhs, Ret, true > {
+   static const bool value = false;
+};
+
+template < typename Rhs, typename Ret >
+struct trait_impl1 < Rhs, Ret, false > {
+   static const bool value =
+      ::boost::type_traits::ice_and<
+         operator_exists < Rhs >::value,
+         operator_returns_Ret < Rhs, Ret, operator_returns_void < Rhs >::value >::value
+      >::value
+   ;
+};
+
+// specialization needs to be declared for the special void case
+template < typename Ret >
+struct trait_impl1 < void, Ret, false > {
+   static const bool value = false;
+};
+
+// defines some typedef for convenience
+template < typename Rhs, typename Ret >
+struct trait_impl {
+   typedef typename ::boost::remove_reference<Rhs>::type Rhs_noref;
+   typedef typename ::boost::remove_cv<Rhs_noref>::type Rhs_nocv;
+   typedef typename ::boost::remove_cv< typename ::boost::remove_reference< typename ::boost::remove_pointer<Rhs_noref>::type >::type >::type Rhs_noptr;
+   static const bool value = trait_impl1 < Rhs_noref, Ret, ::boost::is_pointer< Rhs_noref >::value >::value;
+};
+
+} // namespace impl
+} // namespace detail
+
+// this is the accessible definition of the trait to end user
+template < typename Rhs, typename Ret=::boost::detail::has_unary_minus_impl::dont_care >
+struct has_unary_minus : ::boost::integral_constant<bool,(::boost::detail::has_unary_minus_impl::trait_impl < Rhs, Ret >::value)> { };
+
+} // namespace boost
+``
+
+[heading Limitation]
+
+* Requires a compiler with working SFINAE.
+
+[heading Known issues]
+
+* These traits cannot detect whether the operators are public or not:
+if an operator is defined as a private member of type `T` then
+the instantiation of the corresponding trait will produce a compiler error.
+For this reason these traits cannot be used to determine whether a type has a
+public operator or not.
+``
+struct A { private: A operator-(); };
+boost::has_unary_minus<A>::value; // error: A::operator-() is private
+``
+
+* There is an issue if the operator exists only for type `A` and `B` is
+convertible to `A`. In this case, the compiler will report an ambiguous overload
+because both the existing operator and the one we provide (with argument of type
+`any`) need type conversion, so that none is preferred.
+``
+struct A { };
+void operator-(const A&);
+struct B { operator A(); };
+boost::has_unary_minus<A>::value; // this is fine
+boost::has_unary_minus<B>::value; // error: ambiguous overload between
+                                  // operator-(const any&) and
+                                  // operator-(const A&)
+                                  // both need type conversion
+``
+``
+struct B { };
+struct A { A(const B&) { } };
+void operator-(const A&);
+boost::has_unary_minus<A>::value; // this is fine
+boost::has_unary_minus<B>::value; // error: ambiguous overload between
+                                  // operator-(const any&) and
+                                  // operator-(const A&)
+                                  // both need type conversion
+``
+
+* There is an issue when applying these traits to template classes.
+If the operator is defined but does not bind for a given template type,
+it is still detected by the trait which returns `true` instead of `false`.
+This applies in particular to the containers of the standard library and `operator==`.
+Example:
+``
+#include <boost/type_traits/has_equal_to.hpp>
+#include <iostream>
+
+template <class T>
+struct contains { T data; };
+
+template <class T>
+bool operator==(const contains<T> &lhs, const contains<T> &rhs) {
+	return f(lhs.data, rhs.data);
+}
+
+class bad { };
+class good { };
+bool f(const good&, const good&) { }
+
+int main() {
+	std::cout<<std::boolalpha;
+	// works fine for contains<good>
+	std::cout<<boost::has_equal_to< contains< good > >::value<<'\n'; // true
+	contains<good> g;
+	g==g; // ok
+	// does not work for contains<bad>
+	std::cout<<boost::has_equal_to< contains< bad > >::value<<'\n'; // true, should be false
+	contains<bad> b;
+	b==b; // compile time error
+	return 0;
+}
+``
+
+* `volatile` qualifier is not properly handled and would lead to undefined behavior
+
+
+[heading Acknowledgments]
+
+Frederic Bron is very thankful to numerous people from the boost mailing list for their kind help and patience.
+In particular, the following persons have been very helpful for the implementation: Edward Diener, Eric Niebler, Jeffrey Lee Hellrung (Jr.), Robert Stewart, Roman Perepelitsa, Steven Watanabe, Vicente Botet.
+
+[endsect]
+

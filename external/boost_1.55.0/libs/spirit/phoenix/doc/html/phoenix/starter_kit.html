@@ -1,0 +1,527 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Starter Kit</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.0">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Phoenix 2.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Phoenix 2.0">
+<link rel="prev" href="introduction.html" title="Introduction">
+<link rel="next" href="basics.html" title="Basics">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basics.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="phoenix.starter_kit"></a><a class="link" href="starter_kit.html" title="Starter Kit">Starter Kit</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="starter_kit.html#phoenix.starter_kit.values">Values</a></span></dt>
+<dt><span class="section"><a href="starter_kit.html#phoenix.starter_kit.references">References</a></span></dt>
+<dt><span class="section"><a href="starter_kit.html#phoenix.starter_kit.arguments">Arguments</a></span></dt>
+<dt><span class="section"><a href="starter_kit.html#phoenix.starter_kit.composites">Composites</a></span></dt>
+<dt><span class="section"><a href="starter_kit.html#phoenix.starter_kit.lazy_operators">Lazy Operators</a></span></dt>
+<dt><span class="section"><a href="starter_kit.html#phoenix.starter_kit.lazy_statements">Lazy Statements</a></span></dt>
+<dt><span class="section"><a href="starter_kit.html#phoenix.starter_kit.construct__new__delete__casts">Construct,
+      New, Delete, Casts</a></span></dt>
+<dt><span class="section"><a href="starter_kit.html#phoenix.starter_kit.lazy_functions">Lazy Functions</a></span></dt>
+<dt><span class="section"><a href="starter_kit.html#phoenix.starter_kit.more">More</a></span></dt>
+</dl></div>
+<p>
+      Most "quick starts" only get you a few blocks from where you are.
+      From there, you are on your own. Yet, typically, you'd want to get to the next
+      city. This starter kit shall be as minimal as possible, yet packed as much
+      power as possible.
+    </p>
+<p>
+      So you are busy and always on the go. You do not wish to spend a lot of time
+      studying the library. You wish to be spared the details for later when you
+      need it. For now, all you need to do is to get up to speed as quickly as possible
+      and start using the library. If this is the case, this is the right place to
+      start.
+    </p>
+<p>
+      This chapter is by no means a thorough discourse of the library. For more information
+      on Phoenix, please take some time to read the rest of the User's Guide. Yet,
+      if you just want to use the library quickly, now, this chapter will probably
+      suffice. Rather than taking you to the details of the library, we shall try
+      to provide you with annotated exemplars instead. Hopefully, this will get you
+      into high gear quickly.
+    </p>
+<a name="phoenix.starter_kit.functors_everywhere"></a><h3>
+<a name="id826615"></a>
+      <a class="link" href="starter_kit.html#phoenix.starter_kit.functors_everywhere">Functors everywhere</a>
+    </h3>
+<p>
+      Phoenix is built on function objects (functors). The functor is the main building
+      block. We compose functors to build more complex functors... to build more
+      complex functors... and so on. Almost everything is a functor.
+    </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        Functors are so ubiquitous in Phoenix that, in the manual, the words <span class="emphasis"><em>"functor"</em></span>
+        and <span class="emphasis"><em>"function"</em></span> are used interchangeably.
+      </p></td></tr>
+</table></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.starter_kit.values"></a><a class="link" href="starter_kit.html#phoenix.starter_kit.values" title="Values">Values</a>
+</h3></div></div></div>
+<p>
+        Values are functions! Examples:
+      </p>
+<pre class="programlisting"><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)</span>
+<span class="identifier">val</span><span class="special">(</span><span class="string">"Hello, World"</span><span class="special">)</span>
+</pre>
+<p>
+        The first evaluates to a nullary function (a function taking no arguments)
+        that returns an <code class="computeroutput"><span class="keyword">int</span></code>, <code class="computeroutput"><span class="number">3</span></code>. The second evaluates to a nullary function
+        that returns a <code class="computeroutput"><span class="keyword">char</span> <span class="keyword">const</span><span class="special">(&amp;)[</span><span class="number">13</span><span class="special">]</span></code>, <code class="computeroutput"><span class="string">"Hello,
+        World"</span></code>.
+      </p>
+<a name="phoenix.starter_kit.values.lazy_evaluation"></a><h3>
+<a name="id826742"></a>
+        <a class="link" href="starter_kit.html#phoenix.starter_kit.values.lazy_evaluation">Lazy Evaluation</a>
+      </h3>
+<p>
+        Confused? <code class="computeroutput"><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)</span></code> is a unary
+        function, you say? Yes it is. However, read carefully: <span class="emphasis"><em>"evaluates
+        to a nullary function"</em></span>. <code class="computeroutput"><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)</span></code>
+        evaluates to (returns) a nullary function. Aha! <code class="computeroutput"><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)</span></code>
+        returns a function! So, since <code class="computeroutput"><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)</span></code>
+        returns a function, you can invoke it. Example:
+      </p>
+<pre class="programlisting"><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)()</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+        (See <a href="../../../example/users_manual/values.cpp" target="_top">values.cpp</a>)
+      </p>
+<div class="sidebar">
+<p class="title"><b></b></p>
+<p>
+        <span class="inlinemediaobject"><img src="../images/tip.png" alt="tip"></span> Learn more about values <a class="link" href="primitives.html#phoenix.primitives.values" title="Values">here.</a>
+      </p>
+</div>
+<p>
+        The second function call (the one with no arguments) calls the nullary function
+        which then returns <code class="computeroutput"><span class="number">3</span></code>. The need
+        for a second function call is the reason why the function is said to be
+        <span class="bold"><strong><span class="emphasis"><em>Lazily Evaluated</em></span></strong></span>. The
+        first call doesn't do anything. You need a second call to finally evaluate
+        the thing. The first call lazily evaluates the function; i.e. doesn't do
+        anything and defers the evaluation for later.
+      </p>
+<a name="phoenix.starter_kit.values.callbacks"></a><h3>
+<a name="id826932"></a>
+        <a class="link" href="starter_kit.html#phoenix.starter_kit.values.callbacks">Callbacks</a>
+      </h3>
+<p>
+        It may not be immediately apparent how lazy evaluation can be useful by just
+        looking at the example above. Putting the first and second function call
+        in a single line is really not very useful. However, thinking of <code class="computeroutput"><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)</span></code> as a callback function (and in most cases
+        they are actually used that way), will make it clear. Example:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">print</span><span class="special">(</span><span class="identifier">F</span> <span class="identifier">f</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">f</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span>
+<span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">print</span><span class="special">(</span><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">));</span>
+    <span class="identifier">print</span><span class="special">(</span><span class="identifier">val</span><span class="special">(</span><span class="string">"Hello World"</span><span class="special">));</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        (See <a href="../../../example/users_manual/callback.cpp" target="_top">callback.cpp</a>)
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.starter_kit.references"></a><a class="link" href="starter_kit.html#phoenix.starter_kit.references" title="References">References</a>
+</h3></div></div></div>
+<p>
+        References are functions. They hold a reference to a value stored somewhere.
+        For example, given:
+      </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">3</span><span class="special">;</span>
+<span class="keyword">char</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">s</span> <span class="special">=</span> <span class="string">"Hello World"</span><span class="special">;</span>
+</pre>
+<p>
+        we create <code class="computeroutput"><span class="identifier">references</span></code> to
+        <code class="computeroutput"><span class="identifier">i</span></code> and <code class="computeroutput"><span class="identifier">s</span></code>
+        this way:
+      </p>
+<pre class="programlisting"><span class="identifier">ref</span><span class="special">(</span><span class="identifier">i</span><span class="special">)</span>
+<span class="identifier">ref</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span>
+</pre>
+<p>
+        Like <code class="computeroutput"><span class="identifier">val</span></code>, the expressions
+        above evaluates to a nullary function; the first one returning an <code class="computeroutput"><span class="keyword">int</span><span class="special">&amp;</span></code>,
+        and the second one returning a <code class="computeroutput"><span class="keyword">char</span>
+        <span class="keyword">const</span><span class="special">*&amp;</span></code>.
+      </p>
+<p>
+        (See <a href="../../../example/users_manual/references.cpp" target="_top">references.cpp</a>)
+      </p>
+<div class="sidebar">
+<p class="title"><b></b></p>
+<p>
+        <span class="inlinemediaobject"><img src="../images/tip.png" alt="tip"></span> Learn more about references <a class="link" href="primitives.html#phoenix.primitives.references" title="References">here.</a>
+      </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.starter_kit.arguments"></a><a class="link" href="starter_kit.html#phoenix.starter_kit.arguments" title="Arguments">Arguments</a>
+</h3></div></div></div>
+<p>
+        Arguments are also functions? You bet!
+      </p>
+<p>
+        Until now, we have been dealing with expressions returning a nullary function.
+        Arguments, on the other hand, evaluate to an N-ary function. An argument
+        represents the Nth argument. There are a few predefined arguments arg1, arg2,
+        arg3, arg4 and so on (and it's <a href="http://www.boost.org/libs/lambda/doc/index.html" target="_top">BLL</a>
+        counterparts: _1, _2, _3, _4 and so on). Examples:
+      </p>
+<pre class="programlisting"><span class="identifier">arg1</span> <span class="comment">// one-or-more argument function that returns its first argument
+</span><span class="identifier">arg2</span> <span class="comment">// two-or-more argument function that returns its second argument
+</span><span class="identifier">arg3</span> <span class="comment">// three-or-more argument function that returns its third argument
+</span></pre>
+<p>
+        <code class="computeroutput"><span class="identifier">argN</span></code> returns the Nth argument.
+        Examples:
+      </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">3</span><span class="special">;</span>
+<span class="keyword">char</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">s</span> <span class="special">=</span> <span class="string">"Hello World"</span><span class="special">;</span>
+<span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span><span class="special">(</span><span class="identifier">i</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>        <span class="comment">// prints 3
+</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg2</span><span class="special">(</span><span class="identifier">i</span><span class="special">,</span> <span class="identifier">s</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>     <span class="comment">// prints "Hello World"
+</span></pre>
+<p>
+        (See <a href="../../../example/users_manual/arguments.cpp" target="_top">arguments.cpp</a>)
+      </p>
+<div class="sidebar">
+<p class="title"><b></b></p>
+<p>
+        <span class="inlinemediaobject"><img src="../images/tip.png" alt="tip"></span> Learn more about arguments <a class="link" href="primitives.html#phoenix.primitives.arguments" title="Arguments">here.</a>
+      </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.starter_kit.composites"></a><a class="link" href="starter_kit.html#phoenix.starter_kit.composites" title="Composites">Composites</a>
+</h3></div></div></div>
+<p>
+        What we have seen so far, are what are called <span class="bold"><strong>primitives</strong></span>.
+        You can think of primitives (such as values, references and arguments) as
+        atoms.
+      </p>
+<p>
+        Things start to get interesting when we start <span class="emphasis"><em>composing</em></span>
+        primitives to form <span class="bold"><strong>composites</strong></span>. The composites
+        can, in turn, be composed to form even more complex composites.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.starter_kit.lazy_operators"></a><a class="link" href="starter_kit.html#phoenix.starter_kit.lazy_operators" title="Lazy Operators">Lazy Operators</a>
+</h3></div></div></div>
+<p>
+        You can use the usual set of operators to form composites. Examples:
+      </p>
+<pre class="programlisting"><span class="identifier">arg1</span> <span class="special">*</span> <span class="identifier">arg1</span>
+<span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">arg1</span> <span class="special">+</span> <span class="identifier">ref</span><span class="special">(</span><span class="identifier">z</span><span class="special">)</span>
+<span class="identifier">arg1</span> <span class="special">=</span> <span class="identifier">arg2</span> <span class="special">+</span> <span class="special">(</span><span class="number">3</span> <span class="special">*</span> <span class="identifier">arg3</span><span class="special">)</span>
+<span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">arg1</span><span class="special">[</span><span class="identifier">arg2</span><span class="special">]</span> <span class="comment">// assuming arg1 is indexable and arg2 is a valid index
+</span></pre>
+<p>
+        Note the expression: <code class="computeroutput"><span class="number">3</span> <span class="special">*</span>
+        <span class="identifier">arg3</span></code>. This expression is actually
+        a short-hand equivalent to: <code class="computeroutput"><span class="identifier">val</span><span class="special">(</span><span class="number">3</span><span class="special">)</span>
+        <span class="special">*</span> <span class="identifier">arg3</span></code>.
+        In most cases, like above, you can get away with it. But in some cases, you
+        will have to explicitly wrap your values in <code class="computeroutput"><span class="identifier">val</span></code>.
+        Rules of thumb:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            In a binary expression (e.g. <code class="computeroutput"><span class="number">3</span>
+            <span class="special">*</span> <span class="identifier">arg3</span></code>),
+            at least one of the operands must be a phoenix primitive or composite.
+          </li>
+<li class="listitem">
+            In a unary expression (e.g. <code class="computeroutput"><span class="identifier">arg1</span><span class="special">++</span></code>), the single operand must be a phoenix
+            primitive or composite.
+          </li>
+</ul></div>
+<p>
+        If these basic rules are not followed, the result is either in error, or
+        is immediately evaluated. Some examples:
+      </p>
+<pre class="programlisting"><span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span> <span class="special">=</span> <span class="number">123</span>    <span class="comment">// lazy
+</span><span class="identifier">x</span> <span class="special">=</span> <span class="number">123</span>         <span class="comment">// immediate
+</span>
+<span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)[</span><span class="number">0</span><span class="special">]</span>       <span class="comment">// lazy
+</span><span class="identifier">x</span><span class="special">[</span><span class="number">0</span><span class="special">]</span>            <span class="comment">// immediate
+</span>
+<span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)[</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">i</span><span class="special">)]</span>  <span class="comment">// lazy
+</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)[</span><span class="identifier">i</span><span class="special">]</span>       <span class="comment">// lazy (equivalent to ref(x)[val(i)])
+</span><span class="identifier">x</span><span class="special">[</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">i</span><span class="special">)]</span>       <span class="comment">// illegal (x is not a phoenix primitive or composite)
+</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">[</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">i</span><span class="special">)])</span>  <span class="comment">// illegal (x is not a phoenix primitive or composite)
+</span></pre>
+<div class="sidebar">
+<p class="title"><b></b></p>
+<p>
+        <span class="inlinemediaobject"><img src="../images/tip.png" alt="tip"></span> Learn more about operators <a class="link" href="composite.html#phoenix.composite.operator" title="Operator">here.</a>
+      </p>
+</div>
+<a name="phoenix.starter_kit.lazy_operators.first_practical_example"></a><h3>
+<a name="id830876"></a>
+        <a class="link" href="starter_kit.html#phoenix.starter_kit.lazy_operators.first_practical_example">First
+        Practical Example</a>
+      </h3>
+<p>
+        We've covered enough ground to present a real world example. We want to find
+        the first odd number in an STL container. Normally we use a functor (function
+        object) or a function pointer and pass that in to STL's <code class="computeroutput"><span class="identifier">find_if</span></code>
+        generic function:
+      </p>
+<p>
+        Write a function:
+      </p>
+<pre class="programlisting"><span class="keyword">bool</span>
+<span class="identifier">is_odd</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">arg1</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">arg1</span> <span class="special">%</span> <span class="number">2</span> <span class="special">==</span> <span class="number">1</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        Pass a pointer to the function to STL's <code class="computeroutput"><span class="identifier">find_if</span></code>
+        algorithm:
+      </p>
+<pre class="programlisting"><span class="identifier">find_if</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="special">&amp;</span><span class="identifier">is_odd</span><span class="special">)</span>
+</pre>
+<p>
+        Using Phoenix, the same can be achieved directly with a one-liner:
+      </p>
+<pre class="programlisting"><span class="identifier">find_if</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">arg1</span> <span class="special">%</span> <span class="number">2</span> <span class="special">==</span> <span class="number">1</span><span class="special">)</span>
+</pre>
+<p>
+        The expression <code class="computeroutput"><span class="identifier">arg1</span> <span class="special">%</span>
+        <span class="number">2</span> <span class="special">==</span> <span class="number">1</span></code> auto-magically creates a functor with the
+        expected behavior. In FP, this unnamed function is called a lambda function.
+        Unlike the function pointer version, which is monomorphic (expects and works
+        only with a fixed type int argument), the Phoenix version is fully polymorphic
+        and works with any container (of ints, of longs, of bignum, etc.) as long
+        as its elements can handle the <code class="computeroutput"><span class="identifier">arg1</span>
+        <span class="special">%</span> <span class="number">2</span> <span class="special">==</span> <span class="number">1</span></code> expression.
+      </p>
+<p>
+        (See <a href="../../../example/users_manual/find_if.cpp" target="_top">find_if.cpp</a>)
+      </p>
+<div class="sidebar">
+<p class="title"><b></b></p>
+<p>
+        <span class="inlinemediaobject"><img src="../images/tip.png" alt="tip"></span> ...<span class="bold"><strong>That's it, we're done</strong></span>.
+        Well if you wish to know a little bit more, read on...
+      </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.starter_kit.lazy_statements"></a><a class="link" href="starter_kit.html#phoenix.starter_kit.lazy_statements" title="Lazy Statements">Lazy Statements</a>
+</h3></div></div></div>
+<p>
+        Lazy statements? Sure. There are lazy versions of the C++ statements we all
+        know and love. For example:
+      </p>
+<pre class="programlisting"><span class="identifier">if_</span><span class="special">(</span><span class="identifier">arg1</span> <span class="special">&gt;</span> <span class="number">5</span><span class="special">)</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span>
+</pre>
+<p>
+        Say, for example, we wish to print all the elements that are greater than
+        5 (separated by a comma) in a vector. Here's how we write it:
+      </p>
+<pre class="programlisting"><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">v</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+    <span class="identifier">if_</span><span class="special">(</span><span class="identifier">arg1</span> <span class="special">&gt;</span> <span class="number">5</span><span class="special">)</span>
+    <span class="special">[</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span> <span class="special">&lt;&lt;</span> <span class="string">", "</span>
+    <span class="special">]</span>
+<span class="special">);</span>
+</pre>
+<p>
+        (See <a href="../../../example/users_manual/if.cpp" target="_top">if.cpp</a>)
+      </p>
+<div class="sidebar">
+<p class="title"><b></b></p>
+<p>
+        <span class="inlinemediaobject"><img src="../images/tip.png" alt="tip"></span> Learn more about statements <a class="link" href="composite.html#phoenix.composite.statement" title="Statement">here.</a>
+      </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.starter_kit.construct__new__delete__casts"></a><a class="link" href="starter_kit.html#phoenix.starter_kit.construct__new__delete__casts" title="Construct, New, Delete, Casts">Construct,
+      New, Delete, Casts</a>
+</h3></div></div></div>
+<p>
+        You'll probably want to work with objects. There are lazy versions of constructor
+        calls, <code class="computeroutput"><span class="keyword">new</span></code>, <code class="computeroutput"><span class="keyword">delete</span></code>
+        and the suite of C++ casts. Examples:
+      </p>
+<pre class="programlisting"><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">arg2</span><span class="special">)</span>  <span class="comment">// constructs a std::string from arg1, arg2
+</span><span class="identifier">new_</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">arg2</span><span class="special">)</span>       <span class="comment">// makes a new std::string from arg1, arg2
+</span><span class="identifier">delete_</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">)</span>                       <span class="comment">// deletes arg1 (assumed to be a pointer)
+</span><span class="identifier">static_cast_</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">*&gt;(</span><span class="identifier">arg1</span><span class="special">)</span>            <span class="comment">// static_cast's arg1 to an int*
+</span></pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Take note that, by convention, names that conflict with C++ reserved words
+          are appended with a single trailing underscore <code class="computeroutput"><span class="char">'_'</span></code>
+        </p></td></tr>
+</table></div>
+<div class="sidebar">
+<p class="title"><b></b></p>
+<p>
+        <span class="inlinemediaobject"><img src="../images/tip.png" alt="tip"></span> Learn more about this <a class="link" href="composite.html#phoenix.composite.object" title="Object">here.</a>
+      </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.starter_kit.lazy_functions"></a><a class="link" href="starter_kit.html#phoenix.starter_kit.lazy_functions" title="Lazy Functions">Lazy Functions</a>
+</h3></div></div></div>
+<p>
+        As you write more lambda functions, you'll notice certain patterns that you
+        wish to refactor as reusable functions. When you reach that point, you'll
+        wish that ordinary functions can co-exist with phoenix functions. Unfortunately,
+        the <span class="emphasis"><em>immediate</em></span> nature of plain C++ functions make them
+        incompatible.
+      </p>
+<p>
+        Lazy functions are your friends. The library provides a facility to make
+        lazy functions. The code below is a rewrite of the <code class="computeroutput"><span class="identifier">is_odd</span></code>
+        function using the facility:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">is_odd_impl</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Arg</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">result</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">bool</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Arg</span><span class="special">&gt;</span>
+    <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Arg</span> <span class="identifier">arg1</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">arg1</span> <span class="special">%</span> <span class="number">2</span> <span class="special">==</span> <span class="number">1</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">is_odd_impl</span><span class="special">&gt;</span> <span class="identifier">is_odd</span><span class="special">;</span>
+</pre>
+<a name="phoenix.starter_kit.lazy_functions.things_to_note_"></a><h3>
+<a name="id831842"></a>
+        <a class="link" href="starter_kit.html#phoenix.starter_kit.lazy_functions.things_to_note_">Things
+        to note:</a>
+      </h3>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">result</span></code> is a nested metafunction
+            that reflects the return type of the function (in this case, bool). This
+            makes the function fully polymorphic: It can work with arbitrary <code class="computeroutput"><span class="identifier">Arg</span></code> types.
+          </li>
+<li class="listitem">
+            There are as many Args in the <code class="computeroutput"><span class="identifier">result</span></code>
+            metafunction as in the actual <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">is_odd_impl</span></code> implements
+            the function.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">is_odd</span></code>, an instance of
+            <code class="computeroutput"><span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">is_odd_impl</span><span class="special">&gt;</span></code>,
+            is the lazy function.
+          </li>
+</ul></div>
+<p>
+        Now, <code class="computeroutput"><span class="identifier">is_odd</span></code> is a truly lazy
+        function that we can use in conjunction with the rest of phoenix. Example:
+      </p>
+<pre class="programlisting"><span class="identifier">find_if</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">is_odd</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">));</span>
+</pre>
+<p>
+        (See <a href="../../../example/users_manual/function.cpp" target="_top">function.cpp</a>)
+      </p>
+<a name="phoenix.starter_kit.lazy_functions.predefined_lazy_functions"></a><h3>
+<a name="id832032"></a>
+        <a class="link" href="starter_kit.html#phoenix.starter_kit.lazy_functions.predefined_lazy_functions">Predefined
+        Lazy Functions</a>
+      </h3>
+<p>
+        The library is chock full of STL savvy, predefined lazy functions covering
+        the whole of the STL containers, iterators and algorithms. For example, there
+        are lazy versions of container related operations such as assign, at, back,
+        begin, pop_back, pop_front, push_back, push_front, etc. (See <a class="link" href="container.html" title="Container">Container</a>).
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.starter_kit.more"></a><a class="link" href="starter_kit.html#phoenix.starter_kit.more" title="More">More</a>
+</h3></div></div></div>
+<p>
+        As mentioned earlier, this chapter is not a thorough discourse of the library.
+        It is meant only to cover enough ground to get you into high gear as quickly
+        as possible. Some advanced stuff is not discussed here (e.g. <a class="link" href="composite.html#phoenix.composite.scope" title="Scope">Scopes</a>);
+        nor are features that provide alternative (short-hand) ways to do the same
+        things (e.g. <a class="link" href="composite.html#phoenix.composite.bind" title="Bind">Bind</a> vs. Lazy
+        Functions).
+      </p>
+<div class="sidebar">
+<p class="title"><b></b></p>
+<p>
+        <span class="inlinemediaobject"><img src="../images/tip.png" alt="tip"></span> ...<span class="bold"><strong>If you still wish to learn
+        more, the read on...</strong></span>
+      </p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005 Joel
+      de Guzman, Dan Marsden<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basics.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

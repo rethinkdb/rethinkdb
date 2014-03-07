@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>require.js: I18N Test</title>
+    <script type="text/javascript" src="../../require.js"></script>
+    <script type="text/javascript" src="../doh/runner.js"></script>
+    <script type="text/javascript" src="../doh/_browserRunner.js"></script>
+    <script type="text/javascript">
+        //Allow locale to be set via query args.
+        var locale = null;
+        var query = location.href.split("#")[0].split("?")[1];
+        var match = query && query.match(/locale=([\w-]+)/);
+        if (match) {
+            locale = match[1];
+        }
+
+        //Allow bundle name to be loaded via query args.
+        var bundle = "i18n!nls/colors";
+        match = query && query.match(/bundle=([^\&]+)/);
+        if (match) {
+            bundle = match[1];
+        }
+
+        var red = "red";
+        var blue = "blue";
+        var green = "green";
+        if (locale && locale.indexOf("en-us-surfer") != -1 || bundle.indexOf("nls/en-us-surfer/colors") != -1) {
+            red = "red, dude";
+        } else if ((locale && locale.indexOf("fr-") != -1) || bundle.indexOf("fr-") != -1) {
+            red = "rouge";
+            blue = "bleu";
+        }
+        require({
+            locale: locale,
+            baseUrl: "./",
+            paths: {
+                i18n: "../../i18n"
+            }
+        },
+        [bundle],
+        function(colors) {
+            doh.register(
+                "i18n",
+                [
+                    function i18n(t) {
+                        t.is(red, colors.red);
+                        t.is(blue, colors.blue);
+                        t.is(green, colors.green);
+                    }
+                ]
+            );
+            doh.run();
+        });
+    </script>
+</head>
+<body>
+    <h1>i18n bundle test</h1>
+    <p>This page tests the i18n bundling in require.js. You can change the locale to use by passing locale= or bundle=</p>
+</body>
+</html>

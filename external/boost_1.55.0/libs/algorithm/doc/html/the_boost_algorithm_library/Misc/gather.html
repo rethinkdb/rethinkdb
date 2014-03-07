@@ -1,0 +1,149 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>gather</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost Algorithm Library">
+<link rel="up" href="../../algorithm/Misc.html" title="Other Algorithms">
+<link rel="prev" href="../../algorithm/Misc.html" title="Other Algorithms">
+<link rel="next" href="hex.html" title="hex">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../algorithm/Misc.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../algorithm/Misc.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="hex.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="the_boost_algorithm_library.Misc.gather"></a><a class="link" href="gather.html" title="gather">gather</a>
+</h3></div></div></div>
+<p>
+        The header file 'boost/algorithm/gather.hpp' contains two variants of a single
+        algorithm, <code class="computeroutput"><span class="identifier">gather</span></code>.
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">gather</span><span class="special">()</span></code>
+        takes a collection of elements defined by a pair of iterators and moves the
+        ones satisfying a predicate to them to a position (called the pivot) within
+        the sequence. The algorithm is stable. The result is a pair of iterators
+        that contains the items that satisfy the predicate.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Misc.gather.h0"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Misc.gather.interface"></a></span><a class="link" href="gather.html#the_boost_algorithm_library.Misc.gather.interface">Interface</a>
+      </h5>
+<p>
+        The function <code class="computeroutput"><span class="identifier">gather</span></code> returns
+        a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code> of iterators that denote the elements
+        that satisfy the predicate.
+      </p>
+<p>
+        There are two versions; one takes two iterators, and the other takes a range.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">algorithm</span> <span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">BidirectionalIterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Pred</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">BidirectionalIterator</span><span class="special">,</span><span class="identifier">BidirectionalIterator</span><span class="special">&gt;</span>
+<span class="identifier">gather</span> <span class="special">(</span> <span class="identifier">BidirectionalIterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">BidirectionalIterator</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">BidirectionalIterator</span> <span class="identifier">pivot</span><span class="special">,</span> <span class="identifier">Pred</span> <span class="identifier">pred</span> <span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">BidirectionalRange</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Pred</span><span class="special">&gt;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">BidirectionalRange</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">BidirectionalRange</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;</span>
+<span class="identifier">gather</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">BidirectionalRange</span> <span class="special">&amp;</span><span class="identifier">range</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">BidirectionalRange</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">pivot</span><span class="special">,</span> <span class="identifier">Pred</span> <span class="identifier">pred</span> <span class="special">);</span>
+
+<span class="special">}}</span>
+</pre>
+<p>
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Misc.gather.h1"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Misc.gather.examples"></a></span><a class="link" href="gather.html#the_boost_algorithm_library.Misc.gather.examples">Examples</a>
+      </h5>
+<p>
+        Given an sequence containing:
+</p>
+<pre class="programlisting"><span class="number">0</span> <span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span> <span class="number">5</span> <span class="number">6</span> <span class="number">7</span> <span class="number">8</span> <span class="number">9</span>
+</pre>
+<p>
+      </p>
+<p>
+        a call to gather ( arr, arr + 10, arr + 4, IsEven ) will result in:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="number">1</span> <span class="number">3</span> <span class="number">0</span> <span class="number">2</span> <span class="number">4</span> <span class="number">6</span> <span class="number">8</span> <span class="number">5</span> <span class="number">7</span> <span class="number">9</span>
+    <span class="special">|---|-----|</span>
+  <span class="identifier">first</span> <span class="special">|</span>  <span class="identifier">second</span>
+      <span class="identifier">pivot</span>
+</pre>
+<p>
+        where <code class="computeroutput"><span class="identifier">first</span></code> and <code class="computeroutput"><span class="identifier">second</span></code> are the fields of the pair that
+        is returned by the call.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Misc.gather.h2"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Misc.gather.iterator_requirements"></a></span><a class="link" href="gather.html#the_boost_algorithm_library.Misc.gather.iterator_requirements">Iterator
+        Requirements</a>
+      </h5>
+<p>
+        <code class="computeroutput"><span class="identifier">gather</span></code> work on bidirectional
+        iterators or better. This requirement comes from the usage of <code class="computeroutput"><span class="identifier">stable_partition</span></code>, which requires bidirectional
+        iterators. Some standard libraries (libstdc++ and libc++, for example) have
+        implementations of <code class="computeroutput"><span class="identifier">stable_partition</span></code>
+        that work with forward iterators. If that is the case, then <code class="computeroutput"><span class="identifier">gather</span></code> will work with forward iterators
+        as well.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Misc.gather.h3"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Misc.gather.storage_requirements"></a></span><a class="link" href="gather.html#the_boost_algorithm_library.Misc.gather.storage_requirements">Storage
+        Requirements</a>
+      </h5>
+<p>
+        <code class="computeroutput"><span class="identifier">gather</span></code> uses <code class="computeroutput"><span class="identifier">stable_partition</span></code>, which will attempt to
+        allocate temporary memory, but will work in-situ if there is none available.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Misc.gather.h4"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Misc.gather.complexity"></a></span><a class="link" href="gather.html#the_boost_algorithm_library.Misc.gather.complexity">Complexity</a>
+      </h5>
+<p>
+        If there is sufficient memory available, the run time is linear: <code class="computeroutput"><span class="identifier">O</span><span class="special">(</span><span class="identifier">N</span><span class="special">)</span></code>
+      </p>
+<p>
+        If there is not any memory available, then the run time is <code class="computeroutput"><span class="identifier">O</span><span class="special">(</span><span class="identifier">N</span>
+        <span class="identifier">log</span> <span class="identifier">N</span><span class="special">)</span></code>.
+      </p>
+<h5>
+<a name="the_boost_algorithm_library.Misc.gather.h5"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Misc.gather.exception_safety"></a></span><a class="link" href="gather.html#the_boost_algorithm_library.Misc.gather.exception_safety">Exception
+        Safety</a>
+      </h5>
+<h5>
+<a name="the_boost_algorithm_library.Misc.gather.h6"></a>
+        <span class="phrase"><a name="the_boost_algorithm_library.Misc.gather.notes"></a></span><a class="link" href="gather.html#the_boost_algorithm_library.Misc.gather.notes">Notes</a>
+      </h5>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2010-2012 Marshall Clow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../algorithm/Misc.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../algorithm/Misc.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="hex.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

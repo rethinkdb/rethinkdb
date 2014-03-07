@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: Exercises</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./details.html" class="navigation-link">Prev</a>&nbsp;<a href="./reference-manual.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./details.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./tutorial-metafunctions.html" class="navigation-link">Tutorial: Metafunctions and Higher-Order Metaprogramming</a> / <a href="./exercises.html" class="navigation-link">Exercises</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="exercises">
+<h1><a class="toc-backref" href="./tutorial-metafunctions.html#id60" name="exercises">Exercises</a></h1>
+<dl>
+<dt>1-0.</dt>
+<dd>Use <tt class="literal"><span class="pre">BOOST_STATIC_ASSERT</span></tt> to add error checking to the <tt class="literal"><span class="pre">binary</span></tt>
+template presented in section <a class="reference" href="./resources.html">1</a>.4.1 so
+that <tt class="literal"><span class="pre">binary&lt;N&gt;::value</span></tt> causes a compilation error if <tt class="literal"><span class="pre">N</span></tt>
+contains digits other than <tt class="literal"><span class="pre">0</span></tt> or <tt class="literal"><span class="pre">1</span></tt>.</dd>
+<dt>1-1.</dt>
+<dd>Turn <tt class="literal"><span class="pre">vector_c&lt;int,1,2,3&gt;</span></tt> into a type sequence with elements
+(2,3,4) using <tt class="literal"><span class="pre">transform</span></tt>.</dd>
+<dt>1-2.</dt>
+<dd>Turn <tt class="literal"><span class="pre">vector_c&lt;int,1,2,3&gt;</span></tt> into a type sequence with elements
+(1,4,9) using <tt class="literal"><span class="pre">transform</span></tt>.</dd>
+<dt>1-3.</dt>
+<dd>Turn <tt class="literal"><span class="pre">T</span></tt> into <tt class="literal"><span class="pre">T****</span></tt> by using <tt class="literal"><span class="pre">twice</span></tt> twice.</dd>
+<dt>1-4.</dt>
+<dd>Turn <tt class="literal"><span class="pre">T</span></tt> into <tt class="literal"><span class="pre">T****</span></tt> using <tt class="literal"><span class="pre">twice</span></tt> on itself.</dd>
+<dt>1-5.</dt>
+<dd><p class="first">There's still a problem with the dimensional analysis code in
+section 1.1.
+Hint:  What happens when you do:</p>
+<pre class="literal-block">
+f = f + m * a;
+</pre>
+<p>Repair this example using techniques shown in this
+chapter.</p>
+<!-- @ example.wrap('''void will_fail%s
+{ quantity<float,force> f(m*a);
+''' % ma_function_args, '}')
+stack[:0] = dimensional_analysis # stick support code in
+compile('all', expect_error = True) -->
+</dd>
+<dt>1-6.</dt>
+<dd>Build a lambda expression that has functionality equivalent to
+<tt class="literal"><span class="pre">twice</span></tt>.  Hint: <tt class="literal"><span class="pre">mpl::apply</span></tt> is a metafunction!</dd>
+<dt>1-7*.</dt>
+<dd><p class="first">What do you think would be the semantics of the following 
+constructs:</p>
+<pre class="literal-block">
+typedef mpl::lambda&lt;mpl::lambda&lt;_1&gt; &gt;::type t1;
+typedef mpl::apply&lt;_1,mpl::plus&lt;_1,_2&gt; &gt;::type t2;
+typedef mpl::apply&lt;_1,std::vector&lt;int&gt; &gt;::type t3;
+typedef mpl::apply&lt;_1,std::vector&lt;_1&gt; &gt;::type t4;
+typedef mpl::apply&lt;mpl::lambda&lt;_1&gt;,std::vector&lt;int&gt; &gt;::type t5;
+typedef mpl::apply&lt;mpl::lambda&lt;_1&gt;,std::vector&lt;_1&gt; &gt;::type t6;
+typedef mpl::apply&lt;mpl::lambda&lt;_1&gt;,mpl::plus&lt;_1,_2&gt; &gt;::type t7;
+typedef mpl::apply&lt;_1,mpl::lambda&lt; mpl::plus&lt;_1,_2&gt; &gt; &gt;::type t8;
+</pre>
+<!-- @example.prepend('#include <vector>')
+compile() -->
+<p class="last">Show the steps used to
+arrive at your answers and write tests verifying your assumptions. 
+Did the library behavior match your reasoning? If not, analyze the 
+failed tests to discover the actual expression semantics.
+Explain why your assumptions were different, what
+behavior you find more coherent, and why.</p>
+</dd>
+<dt>1-8*.</dt>
+<dd>Our dimensional analysis framework dealt with dimensions, but it
+entirely ignored the issue of <em>units</em>.  A length can be
+represented in inches, feet, or meters.  A force can be
+represented in newtons or in kg m/sec<sup>2</sup>.  Add the
+ability to specify units and test your code.  Try to make your
+interface as syntactically friendly as possible for the user.</dd>
+</dl>
+<!-- Along with Alan Turing, Church was one of the founders of computer
+science. -->
+<!-- yes, this is easier to read, but the real beauty of ``apply`` is that
+it not only works on metafunction classes, but on metafunctions passed
+with placeholder arguments.   -->
+<!-- Naturally, MPL defines a series of these numbered placeholder
+types, so that we can handle metafunctions with more arguments. -->
+<!-- : in order to pass a template in  the ``BinaryOperation`` position,
+``transform`` would have to be declared::
+
+ template <
+     class Sequence1, class Sequence2
+   , template <class,class> class BinaryOperation
+ >
+ struct transform;  // returning a sequence -->
+<!-- "Programming with types" -->
+<!-- Once again, a nested ``value`` member is optional for
+metafunctions, and required for integral type wrappers. -->
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./details.html" class="navigation-link">Prev</a>&nbsp;<a href="./reference-manual.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./details.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

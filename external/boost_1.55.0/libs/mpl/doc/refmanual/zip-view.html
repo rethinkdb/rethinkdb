@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: zip_view</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./transform-view.html" class="navigation-link">Prev</a>&nbsp;<a href="./intrinsic-metafunctions.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./transform-view.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./views.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./sequences.html" class="navigation-link">Sequences</a> / <a href="./views.html" class="navigation-link">Views</a> / <a href="./zip-view.html" class="navigation-link">zip_view</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="zip-view">
+<h1><a class="toc-backref" href="./views.html#id1423">zip_view</a></h1>
+<div class="section" id="id167">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename <a href="./sequences.html" class="identifier">Sequences</a>
+    &gt;
+struct <a href="./zip-view.html" class="identifier">zip_view</a>
+{
+    // <em>unspecified</em>
+    // <em>...</em>
+};
+</pre>
+</div>
+<div class="section" id="id168">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Provides a &quot;zipped&quot; view onto several sequences; that is, represents several
+sequences as a single sequence of elements each of which, in turn,
+is a sequence of the corresponding <tt class="literal"><span class="pre"><a href="./sequences.html" class="identifier">Sequences</a></span></tt>' elements.</p>
+</div>
+<div class="section" id="id169">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/zip_view.hpp" class="header">boost/mpl/zip_view.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id170">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<ul class="simple">
+<li><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></li>
+</ul>
+</div>
+<div class="section" id="id171">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="19%" />
+<col width="43%" />
+<col width="38%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre"><a href="./sequences.html" class="identifier">Sequences</a></span></tt></td>
+<td>A <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> of
+<a class="reference internal" href="./forward-sequence.html">Forward Sequence</a>s</td>
+<td>Sequences to be &quot;zipped&quot;.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id172">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>The semantics of an expression are defined only
+where they differ from, or are not defined in <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a>.</p>
+<p>In the following table, <tt class="literal"><span class="pre">v</span></tt> is an instance of <tt class="literal"><span class="pre"><a href="./zip-view.html" class="identifier">zip_view</a></span></tt>, <tt class="literal"><span class="pre">seq</span></tt> a <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> of <tt class="literal"><span class="pre">n</span></tt>
+<a class="reference internal" href="./forward-sequence.html">Forward Sequence</a>s.</p>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="34%" />
+<col width="66%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Expression</th>
+<th class="head">Semantics</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><pre class="first last literal-block">
+<a href="./zip-view.html" class="identifier">zip_view</a>&lt;seq&gt;
+<a href="./zip-view.html" class="identifier">zip_view</a>&lt;seq&gt;::type
+</pre>
+</td>
+<td>A lazy <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> <tt class="literal"><span class="pre">v</span></tt> such that for each <tt class="literal"><span class="pre">i</span></tt>
+in [<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;v&gt;::type</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;v&gt;::type</span></tt>) and for each <tt class="literal"><span class="pre">j</span></tt> in
+[<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;seq&gt;::type</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;seq&gt;::type</span></tt>)
+<tt class="literal"><span class="pre"><a href="./deref.html" class="identifier">deref</a>&lt;i&gt;::type</span></tt> is identical to
+<tt class="literal"><span class="pre"><a href="./transform.html" class="identifier">transform</a>&lt;</span> <span class="pre"><a href="./deref.html" class="identifier">deref</a>&lt;j&gt;::type,</span> <span class="pre"><a href="./deref.html" class="identifier">deref</a>&lt;<a href="./placeholders.html" class="identifier">_1</a>&gt;</span> <span class="pre">&gt;::type</span></tt>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;v&gt;::type</span></tt></td>
+<td><p class="first">The size of <tt class="literal"><span class="pre">v</span></tt>; <tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;v&gt;::value</span></tt> is equal to</p>
+<pre class="literal-block">
+<a href="./deref.html" class="identifier">deref</a>&lt; <a href="./min-element.html" class="identifier">min_element</a>&lt;
+      <a href="./transform-view.html" class="identifier">transform_view</a>&lt; seq, <a href="./size.html" class="identifier">size</a>&lt;<a href="./placeholders.html" class="identifier">_1</a>&gt; &gt;
+    &gt;::type &gt;::type::value;
+</pre>
+<p class="last">linear complexity; see <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id173">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<p>Element-wise sum of three vectors.</p>
+<pre class="literal-block">
+typedef <a href="./vector-c.html" class="identifier">vector_c</a>&lt;int,1,2,3,4,5&gt; v1;
+typedef <a href="./vector-c.html" class="identifier">vector_c</a>&lt;int,5,4,3,2,1&gt; v2;
+typedef <a href="./vector-c.html" class="identifier">vector_c</a>&lt;int,1,1,1,1,1&gt; v3;
+
+typedef <a href="./transform-view.html" class="identifier">transform_view</a>&lt;
+      <a href="./zip-view.html" class="identifier">zip_view</a>&lt; <a href="./vector.html" class="identifier">vector</a>&lt;v1,v2,v3&gt; &gt;
+    , <a href="./unpack-args.html" class="identifier">unpack_args</a>&lt; <a href="./plus.html" class="identifier">plus</a>&lt;<a href="./placeholders.html" class="identifier">_1</a>,<a href="./placeholders.html" class="identifier">_2</a>,<a href="./placeholders.html" class="identifier">_3</a>&gt; &gt;
+    &gt; sum;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( <a href="./equal.html" class="identifier">equal</a>&lt; sum, <a href="./vector-c.html" class="identifier">vector_c</a>&lt;int,7,7,7,7,7&gt; > ));
+</pre>
+</div>
+<div class="section" id="id174">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./sequences.html">Sequences</a>, <a class="reference internal" href="./views.html">Views</a>, <a class="reference internal" href="./filter-view.html">filter_view</a>, <a class="reference internal" href="./transform-view.html">transform_view</a>, <a class="reference internal" href="./joint-view.html">joint_view</a>, <a class="reference internal" href="./single-view.html">single_view</a>, <a class="reference internal" href="./iterator-range.html">iterator_range</a></p>
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./transform-view.html" class="navigation-link">Prev</a>&nbsp;<a href="./intrinsic-metafunctions.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./transform-view.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./views.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

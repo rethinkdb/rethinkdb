@@ -1,0 +1,151 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>I/O</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../operator.html" title="Operator">
+<link rel="prev" href="../operator.html" title="Operator">
+<link rel="next" href="i_o/in.html" title="in">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../operator.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../operator.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="i_o/in.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="fusion.sequence.operator.i_o"></a><a class="link" href="i_o.html" title="I/O">I/O</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="i_o/in.html">in</a></span></dt>
+<dt><span class="section"><a href="i_o/out.html">out</a></span></dt>
+</dl></div>
+<p>
+          The I/O operators: <code class="computeroutput"><span class="special">&lt;&lt;</span></code>
+          and <code class="computeroutput"><span class="special">&gt;&gt;</span></code> work generically
+          on all Fusion sequences. The I/O operators are overloaded in namespace
+          <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">fusion</span></code> <a href="#ftn.fusion.sequence.operator.i_o.f0" class="footnote" name="fusion.sequence.operator.i_o.f0"><sup class="footnote">[9]</sup></a>
+        </p>
+<p>
+          The <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;&lt;</span></code>
+          has been overloaded for generic output streams such that <a class="link" href="../../sequence.html" title="Sequence">Sequence</a>(s)
+          are output by recursively calling <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;&lt;</span></code> for each element. Analogously,
+          the global <code class="computeroutput"><span class="keyword">operator</span><span class="special">&gt;&gt;</span></code>
+          has been overloaded to extract <a class="link" href="../../sequence.html" title="Sequence">Sequence</a>(s)
+          from generic input streams by recursively calling <code class="computeroutput"><span class="keyword">operator</span><span class="special">&gt;&gt;</span></code> for each element.
+        </p>
+<p>
+          The default delimiter between the elements is space, and the <a class="link" href="../../sequence.html" title="Sequence">Sequence</a>
+          is enclosed in parenthesis. For Example:
+        </p>
+<pre class="programlisting"><a class="link" href="../../container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a><span class="special">&lt;</span><span class="keyword">float</span><span class="special">,</span> <span class="keyword">int</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">a</span><span class="special">(</span><span class="number">1.0f</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="string">"Howdy folks!"</span><span class="special">);</span>
+<span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">a</span><span class="special">;</span>
+</pre>
+<p>
+          outputs the <a class="link" href="../../container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a>
+          as: (1.0 2 Howdy folks!)
+        </p>
+<p>
+          The library defines three manipulators for changing the default behavior:
+        </p>
+<div class="variablelist">
+<p class="title"><b>Manipulators</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">tuple_open</span><span class="special">(</span><span class="identifier">arg</span><span class="special">)</span></code></span></dt>
+<dd><p>
+                Defines the character that is output before the first element.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">tuple_close</span><span class="special">(</span><span class="identifier">arg</span><span class="special">)</span></code></span></dt>
+<dd><p>
+                Defines the character that is output after the last element.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">tuple_delimiter</span><span class="special">(</span><span class="identifier">arg</span><span class="special">)</span></code></span></dt>
+<dd><p>
+                Defines the delimiter character between elements.
+              </p></dd>
+</dl>
+</div>
+<p>
+          The argument to <code class="computeroutput"><span class="identifier">tuple_open</span></code>,
+          <code class="computeroutput"><span class="identifier">tuple_close</span></code> and <code class="computeroutput"><span class="identifier">tuple_delimiter</span></code> may be a <code class="computeroutput"><span class="keyword">char</span></code>, <code class="computeroutput"><span class="keyword">wchar_t</span></code>,
+          a C-string, or a wide C-string.
+        </p>
+<p>
+          Example:
+        </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">tuple_open</span><span class="special">(</span><span class="char">'['</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">tuple_close</span><span class="special">(</span><span class="char">']'</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">tuple_delimiter</span><span class="special">(</span><span class="string">", "</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">a</span><span class="special">;</span>
+</pre>
+<p>
+          outputs the same <a class="link" href="../../container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a>, <code class="computeroutput"><span class="identifier">a</span></code>
+          as: [1.0, 2, Howdy folks!]
+        </p>
+<p>
+          The same manipulators work with <code class="computeroutput"><span class="keyword">operator</span><span class="special">&gt;&gt;</span></code> and <code class="computeroutput"><span class="identifier">istream</span></code>
+          as well. Suppose the <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">cin</span></code>
+          stream contains the following data:
+        </p>
+<pre class="programlisting"><span class="special">(</span><span class="number">1</span> <span class="number">2</span> <span class="number">3</span><span class="special">)</span> <span class="special">[</span><span class="number">4</span><span class="special">:</span><span class="number">5</span><span class="special">]</span>
+</pre>
+<p>
+          The code:
+        </p>
+<pre class="programlisting"><a class="link" href="../../container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">i</span><span class="special">;</span>
+<a class="link" href="../../container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">j</span><span class="special">;</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cin</span> <span class="special">&gt;&gt;</span> <span class="identifier">i</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cin</span> <span class="special">&gt;&gt;</span> <span class="identifier">set_open</span><span class="special">(</span><span class="char">'['</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="identifier">set_close</span><span class="special">(</span><span class="char">']'</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="identifier">set_delimiter</span><span class="special">(</span><span class="char">':'</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cin</span> <span class="special">&gt;&gt;</span> <span class="identifier">j</span><span class="special">;</span>
+</pre>
+<p>
+          reads the data into the <a class="link" href="../../container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a>(s) <code class="computeroutput"><span class="identifier">i</span></code>
+          and <code class="computeroutput"><span class="identifier">j</span></code>.
+        </p>
+<p>
+          Note that extracting <a class="link" href="../../sequence.html" title="Sequence">Sequence</a>(s)
+          with <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code> or C-style string elements does
+          not generally work, since the streamed <a class="link" href="../../sequence.html" title="Sequence">Sequence</a>
+          representation may not be unambiguously parseable.
+        </p>
+<h6>
+<a name="fusion.sequence.operator.i_o.h0"></a>
+          <span class="phrase"><a name="fusion.sequence.operator.i_o.header"></a></span><a class="link" href="i_o.html#fusion.sequence.operator.i_o.header">Header</a>
+        </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">sequence</span><span class="special">/</span><span class="identifier">io</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">io</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.fusion.sequence.operator.i_o.f0" class="footnote"><p><a href="#fusion.sequence.operator.i_o.f0" class="para"><sup class="para">[9] </sup></a>
+            __sequences__ and <a class="link" href="../../view.html" title="View">Views</a> residing in
+            different namespaces will have to either provide their own I/O operators
+            (possibly forwarding to fusion's I/O operators) or hoist fusion's I/O
+            operators (using declaration), in their own namespaces for proper argument
+            dependent lookup.
+          </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../operator.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../operator.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="i_o/in.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

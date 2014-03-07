@@ -1,0 +1,110 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Test organization or the house that Jack built</title>
+<link rel="stylesheet" href="../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Boost Test Library">
+<link rel="up" href="../user-guide.html" title="Unit Test Framework: User's guide">
+<link rel="prev" href="initialization.html" title="Test module initialization or ready, set">
+<link rel="next" href="test-organization/nullary-test-case.html" title="Nullary function based test case">
+<script language="JavaScript1.2" src="../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../utf.html">The Unit Test Framework</a> &gt; <a href="../user-guide.html">User's guide</a><a href="../testing-tools.html">
+      &gt;
+      </a><b>Test organization</b><a href="fixture.html">
+      &gt;
+      </a>
+</td>
+<td><div class="spirit-nav">
+<a href="initialization.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="test-organization/nullary-test-case.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.user-guide.test-organization"></a>Test organization  or the house that Jack built</h4></div></div></div>
+<p class="first-line-indented">
+  If you look at many legacy test modules, big chance is that it's implemented as one big test function that
+  consists of a mixture of check and output statements. Is there anything wrong with it? Yes. There are various
+  disadvantages in single test function approach:
+ </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="square">
+<li style="list-style-type: square">
+    One big function tends to become really difficult to manage if the number of checks exceeds a reasonable limit
+    (true for any large function). What is tested and where - who knows?
+   </li>
+<li style="list-style-type: square">
+    Many checks require similar preparations. This results in code repetitions within the test function.
+   </li>
+<li style="list-style-type: square">
+    If a fatal error or an exception is caused by any checks within the test function the rest of tests are
+    skipped and there is no way to prevent this.
+   </li>
+<li style="list-style-type: square">
+    No way to perform only checks for a particular subsystem of the tested unit.
+   </li>
+<li style="list-style-type: square">
+    No summary of how different subsystems of the tested unit performed under in the test.
+   </li>
+</ul></div>
+<p class="first-line-indented">
+  The above points should make it clear that it's preferable to split <a class="link" href="../user-guide.html#test-module.def">test module
+  </a> into smaller units. These units are test cases. A test case has to be constructed based on some kind of
+  function and registered in a test tree, so that the test runner knows how to invoke it. There are different
+  possible designs for the test case construction problem: inheritance from the predefined base class, specifically
+  named member function and so on. The <acronym class="acronym">UTF</acronym> opted to avoid classed altogether and to use the least intrusive "
+  generic callback" approach. The facility, the <acronym class="acronym">UTF</acronym> provides, requires specific function signature and allows
+  adopting any function or function object that matches the signature as a test case. The signatures the <acronym class="acronym">UTF</acronym>
+  supports are:
+ </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>
+    <a class="link" href="test-organization/nullary-test-case.html" title="Nullary function based test case">Nullary function</a>
+   </li>
+<li>
+    <a class="link" href="test-organization/nullary-test-case.html" title="Nullary function based test case">Unary function</a>
+   </li>
+<li>
+    <a class="link" href="test-organization/test-case-template.html" title="Test case template">Nullary function template</a>
+   </li>
+</ul></div>
+<p class="first-line-indented">
+  To solve test tree creation problem the <acronym class="acronym">UTF</acronym> provides facilities for 
+  <a class="link" href="test-organization/test-suite.html" title="Test suite">test suite creation</a>.
+ </p>
+<p class="first-line-indented">
+  Generic test case construction design used by the <acronym class="acronym">UTF</acronym> causes the test case implementation (test function body)
+  and test case creation/registration points to be remote. As a result you may forget to register the test case
+  and it's never going to be executed, even though it's present in test file. To alleviate this issue
+  the <acronym class="acronym">UTF</acronym> presents facilities for automated (in place) test case creation and registration in the test tree. These
+  facilities sacrifice some generality and work for selected test function signatures only. But the result is that
+  library users are relieved from the necessity to manually register test cases. These facilities are the most
+  user-friendly and are recommended to be used whenever possible. In addition they support automated registration
+  of test suites, thus allowing whole test tree to be created without any use of manual registration.
+ </p>
+<p class="first-line-indented">
+  The single test module may mix both automated and manual test case
+  registration. In other words, within the same test module you can have both test cases implemented remotely and
+  registered manually in the test module initialization function and test cases that are registered automatically at
+  implementation point.
+ </p>
+<p class="first-line-indented">
+  In some cases it's desirable to allow some "expected" failures in test case without failing a
+  test module. To support this request The <acronym class="acronym">UTF</acronym> allows specifying the number of
+  <a class="link" href="test-organization/expected-failures.html" title="Expected failures specification">expected failures</a> in a test case.
+ </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="initialization.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../user-guide.html"><img src="../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="test-organization/nullary-test-case.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

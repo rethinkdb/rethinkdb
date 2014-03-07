@@ -1,0 +1,32 @@
+<html>
+<head>
+  <title>BOOST_PP_TUPLE_SIZE</title>
+  <link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+<div style="margin-left: 0px;"> The <b>BOOST_PP_TUPLE_SIZE</b> macro
+expands to the size of the <i>tuple</i> passed to it. </div>
+<h4>Usage</h4>
+<div class="code"> <b>BOOST_PP_TUPLE_SIZE</b>(<i>tuple</i>) <sup>(v)</sup><br>
+  </div>
+<h4>Arguments</h4>
+<dl>
+  <dt>tuple</dt>
+  <dd> A <i>tuple</i> whose size is to be extracted. </dd>
+</dl>
+<h4>Requirements</h4>
+<div> <b>Header:</b> &nbsp;<a href="../headers/tuple/size.html">&lt;boost/preprocessor/tuple/size.hpp&gt;</a>
+</div>
+<h4>Sample Code</h4>
+<div>
+<pre>#include &lt;<a href="../headers/tuple/size.html">boost/preprocessor/tuple/size.hpp</a>&gt;<br><br>#define TUPLE (x, y, z)<br><br><a href="tuple_size.html">BOOST_PP_TUPLE_SIZE</a>(TUPLE) // expands to 3<br></pre>
+</div>
+<hr size="1">
+<div style="margin-left: 0px;"> <i></i><i>© Copyright Edward Diener 2011</i> </div>
+<div style="margin-left: 0px;">
+<p><small>Distributed under the Boost Software License, Version 1.0.
+(See accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+</div>
+</body>
+</html>

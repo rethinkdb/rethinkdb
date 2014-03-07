@@ -1,0 +1,162 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Output testing tool</title>
+<link rel="stylesheet" href="../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Boost Test Library">
+<link rel="up" href="../testing-tools.html" title="The UTF testing tools or tester's toolbox for all occasions">
+<link rel="prev" href="../testing-tools.html" title="The UTF testing tools or tester's toolbox for all occasions">
+<link rel="next" href="custom-predicate.html" title="Custom predicate support">
+<script language="JavaScript1.2" src="../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../utf.html">The Unit Test Framework</a> &gt; <a href="../testing-tools.html">Testing tools</a><a href="../usage-recommendations.html">
+      &gt;
+      </a><b>Output testing tool</b>
+</td>
+<td><div class="spirit-nav">
+<a href="../testing-tools.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="custom-predicate.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.testing-tools.output-test"></a>Output testing tool</h4></div></div></div>
+<p class="first-line-indented">
+   How do you perform correctness test for <code class="computeroutput">operator&lt;&lt;( std::ostream&amp;, ... )</code>
+   operations? You can print into the standard output stream and manually check that it is matching your expectations.
+   Unfortunately, this is not really acceptable for the regression testing and doesn't serve a ling term purpose of a
+   unit test. You can use <code class="computeroutput">std::stringstream</code> and compare resulting output buffer with the
+   expected pattern string, but you are required to perform several additional operations with every check you do. So it
+   becomes tedious very fast. The class <em class="firstterm"><code class="computeroutput">output_test_stream</code></em> is designed to
+   automate these tasks for you. This is a simple, but powerful tool for testing standard
+   <code class="computeroutput">std::ostream</code> based output operation. The class <code class="computeroutput">output_test_stream</code>
+   complies to <code class="computeroutput">std::ostream</code> interface so it can be used in place of any
+   <code class="computeroutput">std::ostream</code> parameter. It provides several test methods to validate output content,
+   including test for match to expected output content or test for expected output length. Flushing, synchronizing,
+   string comparison and error message generation is automated by the tool implementation.
+  </p>
+<p class="first-line-indented">
+   In some cases it still may not be good enough. It becomes even more obvious when it's difficult to generate the
+   expected pattern. What we need in cases like this is to be able to check once manually that the output is as expected
+   and to be able in a future check that it stays the same. To help manage this logic the class
+   <code class="computeroutput">output_test_stream</code> allows matching output content versus specified pattern file and produce
+   pattern file based on successful test run.
+  </p>
+<p class="first-line-indented">
+   Detailed specification of class <code class="computeroutput">output_test_stream</code> is covered in reference section.
+  </p>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.testing-tools.output-test.usage"></a>Usage</h5></div></div></div>
+<p class="first-line-indented">
+    There are two ways to employ the class <code class="computeroutput">output_test_stream</code>: explicit output checks and
+    pattern file matching.
+   </p>
+</div>
+<div class="example">
+<a name="utf.testing-tools.output-test.example28"></a><p class="title"><b>Example 34. output_test_stream usage with explicit output checks</b></p>
+<div class="example-contents">
+<p class="first-line-indented">
+    Use the instance of class output_test_stream as an output stream and check output content using tool's methods.
+    Note use of <code class="literal">false</code> to prevent output flushing in first two invocation of check functions. Unless
+    you want to perform several different checks for the same output you wouldn't need to use it though. Your
+    test will look like a serious of output operators followed by one check. And so on again. Try to perform checks as
+    frequently as possible. It not only simplifies patterns you compare with, but also allows you to more closely
+    identify possible source of failure.
+   </p>
+<pre class="programlisting">#define BOOST_TEST_MODULE example
+#include &lt;boost/test/included/unit_test.hpp&gt;
+#include &lt;boost/test/output_test_stream.hpp&gt; 
+using boost::test_tools::output_test_stream;
+
+//____________________________________________________________________________//
+
+BOOST_AUTO_TEST_CASE( test )
+{
+    output_test_stream output;
+    int i=2;
+    output &lt;&lt; "i=" &lt;&lt; i;
+    BOOST_CHECK( !output.is_empty( false ) );
+    BOOST_CHECK( output.check_length( 3, false ) );
+    BOOST_CHECK( output.is_equal( "i=3" ) );
+}
+
+//____________________________________________________________________________//
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../src/examples/example28.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id658162" onclick="toggle_element( 'example28-output', 'id658162', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example28-output">&gt; example
+Running 1 test case...
+test.cpp(15): error in "test": check output.is_equal( "i=3" ) failed. Output content: "i=2"
+
+*** 1 failure detected in test suite "example"
+</pre>
+</div>
+</div>
+<br class="example-break"><div class="example">
+<a name="utf.testing-tools.output-test.example29"></a><p class="title"><b>Example 35. output_test_stream usage for pattern file matching</b></p>
+<div class="example-contents">
+<p class="first-line-indented">
+    Even simpler: no need to generate expected patterns. Though you need to keep the pattern file all the time somewhere
+    around. Your testing will look like a serious of output operators followed by match pattern checks repeated several
+    times. Try to perform checks as frequently as possible, because it allows you to more closely identify possible source
+    of failure. Content of the pattern file is:
+   </p>
+<p>
+   <div class="literallayout"><p>i=2<br>
+File: test.cpp Line: 14</p></div>
+   </p>
+<pre class="programlisting">#define BOOST_TEST_MODULE example
+#include &lt;boost/test/included/unit_test.hpp&gt;
+#include &lt;boost/test/output_test_stream.hpp&gt; 
+using boost::test_tools::output_test_stream;
+
+//____________________________________________________________________________//
+
+BOOST_AUTO_TEST_CASE( test )
+{
+    output_test_stream output( "pattern_file", true );
+    int i=2;
+    output &lt;&lt; "i=" &lt;&lt; i;
+    BOOST_CHECK( output.match_pattern() );
+
+    output &lt;&lt; "\nFile: " &lt;&lt; __FILE__ &lt;&lt; " Line: " &lt;&lt; __LINE__;
+    BOOST_CHECK( output.match_pattern() );
+}
+
+//____________________________________________________________________________//
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../../../src/examples/example29.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id658269" onclick="toggle_element( 'example29-output', 'id658269', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example29-output">&gt; example
+Running 1 test case...
+test.cpp(16): error in "test": check output.match_pattern() failed. Mismatch at position 23
+...5...
+...4...
+
+*** 1 failure detected in test suite "example"
+</pre>
+</div>
+</div>
+<br class="example-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../testing-tools.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../testing-tools.html"><img src="../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="custom-predicate.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

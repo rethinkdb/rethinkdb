@@ -1,0 +1,236 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/sw.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/sw.xml
+ */
+sw{
+    Currencies{
+        AED{
+            "AED",
+            "dirham ya Falme za Kiarabu",
+        }
+        AOA{
+            "Kz",
+            "kwanza ya Angola",
+        }
+        AUD{
+            "AU$",
+            "dola ya Australia",
+        }
+        BHD{
+            "BD",
+            "dinari ya Bahareni",
+        }
+        BIF{
+            "FBu",
+            "faranga ya Burundi",
+        }
+        BWP{
+            "BWP",
+            "pula ya Botswana",
+        }
+        CAD{
+            "CA$",
+            "dola ya Kanada",
+        }
+        CDF{
+            "CDF",
+            "faranga ya Kongo",
+        }
+        CHF{
+            "CHF",
+            "faranga ya Uswisi",
+        }
+        CNY{
+            "CN¥",
+            "yuan Renminbi ya China",
+        }
+        CVE{
+            "CV$",
+            "eskudo ya Kepuvede",
+        }
+        DJF{
+            "Fdj",
+            "faranga ya Jibuti",
+        }
+        DZD{
+            "DA",
+            "dinari ya Aljeria",
+        }
+        EGP{
+            "EGP",
+            "pauni ya Misri",
+        }
+        ERN{
+            "Nfk",
+            "nakfa ya Eritrea",
+        }
+        ETB{
+            "Br",
+            "bir ya Uhabeshi",
+        }
+        EUR{
+            "€",
+            "yuro",
+        }
+        GBP{
+            "£",
+            "pauni ya Uingereza",
+        }
+        GHC{
+            "₵",
+            "sedi ya Ghana",
+        }
+        GMD{
+            "GMD",
+            "dalasi ya Gambia",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "faranga ya Gine",
+        }
+        INR{
+            "Rs",
+            "rupia ya India",
+        }
+        JPY{
+            "JP¥",
+            "sarafu ya Kijapani",
+        }
+        KES{
+            "Ksh",
+            "shilingi ya Kenya",
+        }
+        KMF{
+            "CF",
+            "faranga ya Komoro",
+        }
+        LRD{
+            "L$",
+            "dola ya Liberia",
+        }
+        LSL{
+            "LSL",
+            "loti ya Lesoto",
+        }
+        LYD{
+            "LD",
+            "dinari ya Libya",
+        }
+        MAD{
+            "MAD",
+            "dirham ya Moroko",
+        }
+        MGA{
+            "MGA",
+            "faranga ya Bukini",
+        }
+        MRO{
+            "UM",
+            "ugwiya ya Moritania",
+        }
+        MUR{
+            "MURs",
+            "rupia ya Morisi",
+        }
+        MWK{
+            "MWK",
+            "kwacha ya Malawi",
+        }
+        MZM{
+            "Mt",
+            "metikali ya Msumbiji",
+        }
+        NAD{
+            "N$",
+            "dola ya Namibia",
+        }
+        NGN{
+            "₦",
+            "naira ya Nijeria",
+        }
+        RWF{
+            "RWF",
+            "faranga ya Rwanda",
+        }
+        SAR{
+            "SR",
+            "riyal ya Saudia",
+        }
+        SCR{
+            "SRe",
+            "rupia ya Shelisheli",
+        }
+        SDG{
+            "SDG",
+            "dinari ya Sudani",
+        }
+        SDP{
+            "SDP" /** ===  */,
+            "pauni ya Sudani",
+        }
+        SHP{
+            "SH£",
+            "pauni ya Santahelena",
+        }
+        SLL{
+            "Le",
+            "leoni",
+        }
+        SOS{
+            "Ssh",
+            "shilingi ya Somalia",
+        }
+        STD{
+            "Db",
+            "dobra ya Sao Tome na Principe",
+        }
+        SZL{
+            "SZL",
+            "lilangeni",
+        }
+        TND{
+            "DT",
+            "dinari ya Tunisia",
+        }
+        TZS{
+            "TSh",
+            "shilingi ya Tanzania",
+        }
+        UGX{
+            "USh",
+            "shilingi ya Uganda",
+        }
+        USD{
+            "US$",
+            "dola ya Marekani",
+        }
+        XAF{
+            "FCFA",
+            "faranga CFA BEAC",
+        }
+        XOF{
+            "CFA",
+            "faranga CFA BCEAO",
+        }
+        ZAR{
+            "R",
+            "randi ya Afrika Kusini",
+        }
+        ZMK{
+            "ZK",
+            "kwacha ya Zambia",
+        }
+        ZWD{
+            "Z$",
+            "dola ya Zimbabwe",
+        }
+    }
+    Version{"2.0.49.7"}
+}

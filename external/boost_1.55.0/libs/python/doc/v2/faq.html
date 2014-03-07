@@ -1,0 +1,861 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Cygwin (vers 1st April 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - FAQ</title>
+  </head>
+
+  <body link="#0000ff" vlink="#800080">
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Frequently Asked Questions (FAQs)</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <dl class="page-index">
+
+      <dt><a href="#funcptr">How can I wrap a function which takes a
+      function pointer as an argument?</a><dd>
+
+      <dt><a href="#dangling">I'm getting the "attempt to return dangling
+      reference" error. What am I doing wrong?</a></dt>
+
+      <dt><a href="#question1">Is return_internal_reference
+      efficient?</a></dt>
+
+      <dt><a href="#question2">How can I wrap functions which take C++
+      containers as arguments?</a></dt>
+
+      <dt><a href="#c1204">fatal error C1204:Compiler limit:internal
+      structure overflow</a></dt>
+
+      <dt><a href="#debugging">How do I debug my Python extensions?</a></dt>
+
+      <dt><a href="#imul">Why doesn't my <code>*=</code> operator
+      work?</a></dt>
+
+      <dt><a href="#macosx">Does Boost.Python work with Mac OS X?</a></dt>
+
+      <dt><a href="#xref">How can I find the existing PyObject that holds a
+      C++ object?</a></dt>
+
+      <dt><a href="#ownership">How can I wrap a function which needs to take
+      ownership of a raw pointer?</a></dt>
+
+      <dt><a href="#slow_compilation">Compilation takes too much time and eats too much memory!
+      What can I do to make it faster?</a></dt>
+
+      <dt><a href="#packages">How do I create sub-packages using Boost.Python?</a></dt>
+
+      <dt><a href="#msvcthrowbug"
+      >error C2064: term does not evaluate to a function taking 2 arguments</a>
+      </dt>
+
+      <dt><a href="#custom_string"
+      >How can I automatically convert my custom string type to
+       and from a Python string?</a></dt>
+
+      <dt><a href="#topythonconversionfailed">Why is my automatic to-python conversion not being
+      found?</a></dt>
+
+      <dt><a href="#threadsupport">Is Boost.Python thread-aware/compatible with multiple interpreters?</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="funcptr">How can I wrap a function which takes a
+      function pointer as an argument?</a></h2>
+
+    If what you're trying to do is something like this:
+<pre>
+typedef boost::function&lt;void (string s) &gt; funcptr;
+
+void foo(funcptr fp)
+{
+    fp(&quot;hello,world!&quot;);
+}
+
+BOOST_PYTHON_MODULE(test)
+{
+    def(&quot;foo&quot;,foo) ;
+}
+</pre>
+
+And then:
+
+<pre>
+&gt;&gt;&gt; def hello(s):
+...    print s
+...
+&gt;&gt;&gt; foo(hello)
+hello, world!
+</pre>
+
+    The short answer is: &quot;you can't&quot;.  This is not a
+    Boost.Python limitation so much as a limitation of C++.  The
+    problem is that a Python function is actually data, and the only
+    way of associating data with a C++ function pointer is to store it
+    in a static variable of the function.  The problem with that is
+    that you can only associate one piece of data with every C++
+    function, and we have no way of compiling a new C++ function
+    on-the-fly for every Python function you decide to pass
+    to <code>foo</code>.  In other words, this could work if the C++
+    function is always going to invoke the <em>same</em> Python
+    function, but you probably don't want that.
+
+    <p>If you have the luxury of changing the C++ code you're
+    wrapping, pass it an <code>object</code> instead and call that;
+    the overloaded function call operator will invoke the Python
+    function you pass it behind the <code>object</code>.
+
+    <p>For more perspective on the issue, see <a
+    href="http://aspn.activestate.com/ASPN/Mail/Message/1554837">this
+    posting</a>.
+
+    <hr>
+
+    <h2><a name="dangling">I'm getting the "attempt to return dangling
+    reference" error. What am I doing wrong?</a></h2>
+    That exception is protecting you from causing a nasty crash. It usually
+    happens in response to some code like this:
+<pre>
+period const&amp; get_floating_frequency() const
+{
+  return boost::python::call_method&lt;period const&amp;&gt;(
+      m_self,"get_floating_frequency");
+}
+</pre>
+    And you get:
+<pre>
+ReferenceError: Attempt to return dangling reference to object of type:
+class period
+</pre>
+
+    <p>In this case, the Python method invoked by <code>call_method</code>
+    constructs a new Python object. You're trying to return a reference to a
+    C++ object (an instance of <code>class period</code>) contained within
+    and owned by that Python object. Because the called method handed back a
+    brand new object, the only reference to it is held for the duration of
+    <code>get_floating_frequency()</code> above. When the function returns,
+    the Python object will be destroyed, destroying the instance of
+    <code>class period</code>, and leaving the returned reference dangling.
+    That's already undefined behavior, and if you try to do anything with
+    that reference you're likely to cause a crash. Boost.Python detects this
+    situation at runtime and helpfully throws an exception instead of letting
+    you do that.<br>
+     &nbsp;</p>
+    <hr>
+
+    <h2><a name="question1"></a>Is return_internal_reference efficient?</h2>
+
+    <blockquote>
+      <b>Q:</b> <i>I have an object composed of 12 doubles. A const&amp; to
+      this object is returned by a member function of another class. From the
+      viewpoint of using the returned object in Python I do not care if I get
+      a copy or a reference to the returned object. In Boost.Python Version 2
+      I have the choice of using copy_const_reference or
+      return_internal_reference. Are there considerations that would lead me
+      to prefer one over the other, such as size of generated code or memory
+      overhead?</i>
+
+      <p><b>A:</b> copy_const_reference will make an instance with storage
+      for one of your objects, size = base_size + 12 * sizeof(double).
+      return_internal_reference will make an instance with storage for a
+      pointer to one of your objects, size = base_size + sizeof(void*).
+      However, it will also create a weak reference object which goes in the
+      source object's weakreflist and a special callback object to manage the
+      lifetime of the internally-referenced object. My guess?
+      copy_const_reference is your friend here, resulting in less overall
+      memory use and less fragmentation, also probably fewer total
+      cycles.</p>
+    </blockquote>
+    <hr>
+
+    <h2><a name="question2"></a>How can I wrap functions which take C++
+    containers as arguments?</h2>
+
+    <p>Ralf W. Grosse-Kunstleve provides these notes:</p>
+
+    <ol>
+      <li>
+        Using the regular <code>class_&lt;&gt;</code> wrapper:
+<pre>
+class_&lt;std::vector&lt;double&gt; &gt;("std_vector_double")
+  .def(...)
+  ...
+  ;
+</pre>
+        This can be moved to a template so that several types (double, int,
+        long, etc.) can be wrapped with the same code. This technique is used
+        in the file
+
+        <blockquote>
+          scitbx/include/scitbx/array_family/boost_python/flex_wrapper.h
+        </blockquote>
+        in the "scitbx" package. The file could easily be modified for
+        wrapping std::vector&lt;&gt; instantiations.
+
+        <p>This type of C++/Python binding is most suitable for containers
+        that may contain a large number of elements (&gt;10000).</p>
+      </li>
+
+      <li>
+        Using custom rvalue converters. Boost.Python "rvalue converters"
+        match function signatures such as:
+<pre>
+void foo(std::vector&lt;double&gt; const&amp; array); // pass by const-reference
+void foo(std::vector&lt;double&gt; array); // pass by value
+</pre>
+        Some custom rvalue converters are implemented in the file
+
+        <blockquote>
+          scitbx/include/scitbx/boost_python/container_conversions.h
+        </blockquote>
+        This code can be used to convert from C++ container types such as
+        std::vector&lt;&gt; or std::list&lt;&gt; to Python tuples and vice
+        versa. A few simple examples can be found in the file
+
+        <blockquote>
+          scitbx/array_family/boost_python/regression_test_module.cpp
+        </blockquote>
+        Automatic C++ container &lt;-&gt; Python tuple conversions are most
+        suitable for containers of moderate size. These converters generate
+        significantly less object code compared to alternative 1 above.
+      </li>
+    </ol>
+    A disadvantage of using alternative 2 is that operators such as
+    arithmetic +,-,*,/,% are not available. It would be useful to have custom
+    rvalue converters that convert to a "math_array" type instead of tuples.
+    This is currently not implemented but is possible within the framework of
+    Boost.Python V2 as it will be released in the next couple of weeks. [ed.:
+    this was posted on 2002/03/10]
+
+    <p>It would also be useful to also have "custom lvalue converters" such
+    as std::vector&lt;&gt; &lt;-&gt; Python list. These converters would
+    support the modification of the Python list from C++. For example:</p>
+
+    <p>C++:</p>
+<pre>
+void foo(std::vector&lt;double&gt;&amp; array)
+{
+  for(std::size_t i=0;i&lt;array.size();i++) {
+    array[i] *= 2;
+  }
+}
+</pre>
+    Python:
+<pre>
+&gt;&gt;&gt; l = [1, 2, 3]
+&gt;&gt;&gt; foo(l)
+&gt;&gt;&gt; print l
+[2, 4, 6]
+</pre>
+    Custom lvalue converters require changes to the Boost.Python core library
+    and are currently not available.
+
+    <p>P.S.:</p>
+
+    <p>The "scitbx" files referenced above are available via anonymous
+    CVS:</p>
+<pre>
+cvs -d:pserver:anonymous@cvs.cctbx.sourceforge.net:/cvsroot/cctbx login
+cvs -d:pserver:anonymous@cvs.cctbx.sourceforge.net:/cvsroot/cctbx co scitbx
+</pre>
+    <hr>
+
+    <h2><a name="c1204"></a>fatal error C1204:Compiler limit:internal
+    structure overflow</h2>
+
+    <blockquote>
+      <b>Q:</b> <i>I get this error message when compiling a large source
+      file. What can I do?</i>
+
+      <p><b>A:</b> You have two choices:</p>
+
+      <ol>
+        <li>Upgrade your compiler (preferred)</li>
+
+        <li>
+          Break your source file up into multiple translation units.
+
+          <p><code><b>my_module.cpp</b></code>:</p>
+<pre>
+...
+void more_of_my_module();
+BOOST_PYTHON_MODULE(my_module)
+{
+   def("foo", foo);
+   def("bar", bar);
+   ...
+   more_of_my_module();
+}
+</pre>
+          <code><b>more_of_my_module.cpp</b></code>:
+<pre>
+void more_of_my_module()
+{
+   def("baz", baz);
+   ...
+}
+</pre>
+          If you find that a <code><a href=
+          "class.html#class_-spec">class_</a>&lt;...&gt;</code> declaration
+          can't fit in a single source file without triggering the error, you
+          can always pass a reference to the <code>class_</code> object to a
+          function in another source file, and call some of its member
+          functions (e.g. <code>.def(...)</code>) in the auxilliary source
+          file:
+
+          <p><code><b>more_of_my_class.cpp</b></code>:</p>
+<pre>
+void more_of_my_class(class&lt;my_class&gt;&amp; x)
+{
+   x
+     .def("baz", baz)
+     .add_property("xx", &amp;my_class::get_xx, &amp;my_class::set_xx)
+     ;
+
+   ...
+}
+</pre>
+        </li>
+      </ol>
+    </blockquote>
+    <hr>
+
+    <h2><a name="debugging"></a>How do I debug my Python extensions?</h2>
+
+    <p>Greg Burley gives the following answer for Unix GCC users:</p>
+
+    <blockquote>
+      Once you have created a boost python extension for your c++ library or
+      class, you may need to debug the code. Afterall this is one of the
+      reasons for wrapping the library in python. An expected side-effect or
+      benefit of using BPL is that debugging should be isolated to the c++
+      library that is under test, given that python code is minimal and
+      boost::python either works or it doesn't. (ie. While errors can occur
+      when the wrapping method is invalid, most errors are caught by the
+      compiler ;-).
+
+      <p>The basic steps required to initiate a gdb session to debug a c++
+      library via python are shown here. Note, however that you should start
+      the gdb session in the directory that contains your BPL my_ext.so
+      module.</p>
+<pre>
+(gdb) target exec python
+(gdb) run
+ &gt;&gt;&gt; from my_ext import *
+ &gt;&gt;&gt; [C-c]
+(gdb) break MyClass::MyBuggyFunction
+(gdb) cont
+ &gt;&gt;&gt; pyobj = MyClass()
+ &gt;&gt;&gt; pyobj.MyBuggyFunction()
+Breakpoint 1, MyClass::MyBuggyFunction ...
+Current language:  auto; currently c++
+(gdb) do debugging stuff
+</pre>
+    </blockquote>
+
+    <p>Greg's approach works even better using Emacs' "<code>gdb</code>"
+    command, since it will show you each line of source as you step through
+    it.</p>
+
+    <p>On <b>Windows</b>, my favorite debugging solution is the debugger that
+    comes with Microsoft Visual C++ 7. This debugger seems to work with code
+    generated by all versions of Microsoft and Metrowerks toolsets; it's rock
+    solid and "just works" without requiring any special tricks from the
+    user.</p>
+
+    <p>Raoul Gough has provided the following for gdb on Windows:</p>
+
+    <blockquote>
+
+      <p>gdb support for Windows DLLs has improved lately, so it is
+      now possible to debug Python extensions using a few
+      tricks. Firstly, you will need an up-to-date gdb with support
+      for minimal symbol extraction from a DLL. Any gdb from version 6
+      onwards, or Cygwin gdb-20030214-1 and onwards should do. A
+      suitable release will have a section in the gdb.info file under
+      Configuration &ndash; Native &ndash; Cygwin Native &ndash;
+      Non-debug DLL symbols. Refer to that info section for more
+      details of the procedures outlined here.</p>
+
+      <p>Secondly, it seems necessary to set a breakpoint in the
+      Python interpreter, rather than using ^C to break execution. A
+      good place to set this breakpoint is PyOS_Readline, which will
+      stop execution immediately before reading each interactive
+      Python command. You have to let Python start once under the
+      debugger, so that it loads its own DLL, before you can set the
+      breakpoint:</p>
+
+<p>
+<pre>
+$ gdb python
+GNU gdb 2003-09-02-cvs (cygwin-special)
+[...]
+
+(gdb) run
+Starting program: /cygdrive/c/Python22/python.exe
+Python 2.2.2 (#37, Oct 14 2002, 17:02:34) [MSC 32 bit (Intel)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+&gt;&gt;&gt; ^Z
+
+
+Program exited normally.
+(gdb) break *&amp;PyOS_Readline
+Breakpoint 1 at 0x1e04eff0
+(gdb) run
+Starting program: /cygdrive/c/Python22/python.exe
+Python 2.2.2 (#37, Oct 14 2002, 17:02:34) [MSC 32 bit (Intel)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+
+Breakpoint 1, 0x1e04eff0 in python22!PyOS_Readline ()
+   from /cygdrive/c/WINNT/system32/python22.dll
+(gdb) cont
+Continuing.
+&gt;&gt;&gt; from my_ext import *
+
+Breakpoint 1, 0x1e04eff0 in python22!PyOS_Readline ()
+   from /cygdrive/c/WINNT/system32/python22.dll
+(gdb) # my_ext now loaded (with any debugging symbols it contains)
+</pre>
+    </blockquote>
+
+    <h3>Debugging extensions through Boost.Build</h3>
+    If you are launching your extension module tests with <a href=
+    "../../../../tools/build/v1/build_system.htm">Boost.Build</a> using the
+    <code>boost-python-runtest</code> rule, you can ask it to launch your
+    debugger for you by adding "--debugger=<i>debugger</i>" to your bjam
+    command-line:
+<pre>
+bjam -sTOOLS=vc7.1 "--debugger=devenv /debugexe" test
+bjam -sTOOLS=gcc -sPYTHON_LAUNCH=gdb test
+</pre>
+    It can also be extremely useful to add the <code>-d+2</code> option when
+    you run your test, because Boost.Build will then show you the exact
+    commands it uses to invoke it. This will invariably involve setting up
+    PYTHONPATH and other important environment variables such as
+    LD_LIBRARY_PATH which may be needed by your debugger in order to get
+    things to work right.
+    <hr>
+
+    <h2><a name="imul"></a>Why doesn't my <code>*=</code> operator work?</h2>
+
+    <blockquote>
+      <b>Q:</b> <i>I have exported my class to python, with many overloaded
+      operators. it works fine for me except the</i> <code>*=</code>
+      <i>operator. It always tells me "can't multiply sequence with non int
+      type". If I use</i> <code>p1.__imul__(p2)</code> <i>instead of</i>
+      <code>p1 *= p2</code><i>, it successfully executes my code. What's
+      wrong with me?</i>
+
+      <p><b>A:</b> There's nothing wrong with you. This is a bug in Python
+      2.2. You can see the same effect in Pure Python (you can learn a lot
+      about what's happening in Boost.Python by playing with new-style
+      classes in Pure Python).</p>
+<pre>
+&gt;&gt;&gt; class X(object):
+...     def __imul__(self, x):
+...         print 'imul'
+...
+&gt;&gt;&gt; x = X()
+&gt;&gt;&gt; x *= 1
+</pre>
+      To cure this problem, all you need to do is upgrade your Python to
+      version 2.2.1 or later.
+    </blockquote>
+    <hr>
+
+    <h2><a name="macosx"></a>Does Boost.Python work with Mac OS X?</h2>
+
+    It is known to work under 10.2.8 and 10.3 using
+    Apple's gcc 3.3 compiler:
+    <pre>gcc (GCC) 3.3 20030304 (Apple Computer, Inc. build 1493)</pre>
+    Under 10.2.8 get the August 2003 gcc update (free at
+    <a href="http://connect.apple.com/">http://connect.apple.com/</a>).
+    Under 10.3 get the Xcode Tools v1.0 (also free).
+    <p>
+    Python 2.3 is required. The Python that ships with 10.3 is
+    fine. Under 10.2.8 use these commands to install Python
+    as a framework:
+    <pre>./configure --enable-framework
+make
+make frameworkinstall</pre>
+    The last command requires root privileges because the target
+    directory is
+    <tt>/Library/Frameworks/Python.framework/Versions/2.3</tt>.
+    However, the installation does not interfere with the Python
+    version that ships with 10.2.8.
+    <p>
+    It is also crucial to increase the <tt>stacksize</tt> before
+    starting compilations, e.g.:
+    <pre>limit stacksize 8192k</pre>
+    If the <tt>stacksize</tt> is too small the build might crash with
+    internal compiler errors.
+    <p>
+    Sometimes Apple's compiler exhibits a bug by printing an error
+    like the following while compiling a
+    <tt>boost::python::class_&lt;your_type&gt;</tt>
+    template instantiation:
+    <pre>.../inheritance.hpp:44: error: cannot
+ dynamic_cast `p' (of type `struct cctbx::boost_python::&lt;unnamed&gt;::add_pair*
+   ') to type `void*' (source type is not polymorphic)</pre>
+
+    We do not know a general workaround, but if the definition of
+    <tt>your_type</tt> can be modified the following was found
+    to work in all cases encountered so far:<pre>struct your_type
+{
+  // before defining any member data
+#if defined(__MACH__) &amp;&amp; defined(__APPLE_CC__) &amp;&amp; __APPLE_CC__ == 1493
+  bool dummy_;
+#endif
+  // now your member data, e.g.
+  double x;
+  int j;
+  // etc.
+};</pre>
+
+    <hr>
+    <h2><a name="xref">How can I find the existing PyObject that holds a C++
+    object?</a></h2>
+
+    <blockquote>
+      "I am wrapping a function that always returns a pointer to an
+      already-held C++ object."
+    </blockquote>
+    One way to do that is to hijack the mechanisms used for wrapping a class
+    with virtual functions. If you make a wrapper class with an initial
+    PyObject* constructor argument and store that PyObject* as "self", you
+    can get back to it by casting down to that wrapper type in a thin wrapper
+    function. For example:
+<pre>
+class X { X(int); virtual ~X(); ... };
+X* f();  // known to return Xs that are managed by Python objects
+
+
+// wrapping code
+
+struct X_wrap : X
+{
+    X_wrap(PyObject* self, int v) : self(self), X(v) {}
+    PyObject* self;
+};
+
+handle&lt;&gt; f_wrap()
+{
+    X_wrap* xw = dynamic_cast&lt;X_wrap*&gt;(f());
+    assert(xw != 0);
+    return handle&lt;&gt;(borrowed(xw-&gt;self));
+}
+
+...
+
+def("f", f_wrap());
+class_&lt;X,X_wrap,boost::noncopyable&gt;("X", init&lt;int&gt;())
+   ...
+   ;
+</pre>
+    Of course, if X has no virtual functions you'll have to use
+    <code>static_cast</code> instead of <code>dynamic_cast</code> with no
+    runtime check that it's valid. This approach also only works if the
+    <code>X</code> object was constructed from Python, because
+    <code>X</code>s constructed from C++ are of course never
+    <code>X_wrap</code> objects.
+
+    <p>Another approach to this requires you to change your C++ code a bit;
+    if that's an option for you it might be a better way to go. work we've
+    been meaning to get to anyway. When a <code>shared_ptr&lt;X&gt;</code> is
+    converted from Python, the shared_ptr actually manages a reference to the
+    containing Python object. When a shared_ptr&lt;X&gt; is converted back to
+    Python, the library checks to see if it's one of those "Python object
+    managers" and if so just returns the original Python object. So you could
+    just write <code>object(p)</code> to get the Python object back. To
+    exploit this you'd have to be able to change the C++ code you're wrapping
+    so that it deals with shared_ptr instead of raw pointers.</p>
+
+    <p>There are other approaches too. The functions that receive the Python
+    object that you eventually want to return could be wrapped with a thin
+    wrapper that records the correspondence between the object address and
+    its containing Python object, and you could have your f_wrap function
+    look in that mapping to get the Python object out.</p>
+
+    <hr>
+
+    <h2><a name="ownership">How can I wrap a function which needs to take
+    ownership of a raw pointer?</a></h2>
+
+    <blockquote>
+      <i>Part of an API that I'm wrapping goes something like this:</i>
+<pre>
+struct A {}; struct B { void add( A* ); }
+where B::add() takes ownership of the pointer passed to it.
+</pre>
+
+      <p><i>However:</i></p>
+<pre>
+a = mod.A()
+b = mod.B()
+b.add( a )
+del a
+del b
+# python interpreter crashes
+# later due to memory corruption.
+</pre>
+
+      <p><i>Even binding the lifetime of a</i> to b via
+      with_custodian_and_ward doesn't prevent the python object a from
+      ultimately trying to delete the object it's pointing to. Is there a way
+      to accomplish a 'transfer-of-ownership' of a wrapped C++ object?</p>
+
+      <p><i>--Bruce Lowery</i></p>
+    </blockquote>
+    Yes: Make sure the C++ object is held by auto_ptr:
+<pre>
+class_&lt;A, std::auto_ptr&lt;A&gt; &gt;("A")
+    ...
+    ;
+</pre>
+    Then make a thin wrapper function which takes an auto_ptr parameter:
+<pre>
+void b_insert(B&amp; b, std::auto_ptr&lt;A&gt; a)
+{
+    b.insert(a.get());
+    a.release();
+}
+</pre>
+    Wrap that as B.add. Note that pointers returned via <code><a href=
+    "manage_new_object.html#manage_new_object-spec">manage_new_object</a></code>
+    will also be held by <code>auto_ptr</code>, so this transfer-of-ownership
+    will also work correctly.
+
+    <hr>
+    <h2><a name="slow_compilation">Compilation takes too much time and eats too
+            much memory!  What can I do to make it faster?</a></h2>
+    <p>
+    Please refer to the <a href="../tutorial/doc/html/python/techniques.html#python.reducing_compiling_time"
+    >Reducing Compiling Time</a> section in the tutorial.
+    </p>
+
+    <hr>
+    <h2><a name="packages">How do I create sub-packages using Boost.Python?</a></h2>
+    <p>
+    Please refer to the <a href="../tutorial/doc/html/python/techniques.html#python.creating_packages"
+    >Creating Packages</a> section in the tutorial.
+    </p>
+
+    <hr>
+    <h2><a name="msvcthrowbug"></a>error C2064: term does
+        not evaluate to a function taking 2 arguments</h2>
+    <font size="-1"><i>Niall Douglas provides these notes:</i></font><p>
+    If you see Microsoft Visual C++ 7.1 (MS Visual Studio .NET 2003) issue
+    an error message like the following it is most likely due to a bug
+    in the compiler:
+    <pre>boost\boost\python\detail\invoke.hpp(76):
+error C2064: term does not evaluate to a function taking 2 arguments"</pre>
+    This message is triggered by code like the following:
+<pre>#include &lt;boost/python.hpp&gt;
+
+using namespace boost::python;
+
+class FXThread
+{
+public:
+    bool setAutoDelete(bool doso) throw();
+};
+
+void Export_FXThread()
+{
+    class_< FXThread >("FXThread")
+        .def("setAutoDelete", &amp;FXThread::setAutoDelete)
+    ;
+}
+    </pre>
+    The bug is related to the <code>throw()</code> modifier.
+    As a workaround cast off the modifier. E.g.:
+<pre>
+        .def("setAutoDelete", (bool (FXThread::*)(bool)) &amp;FXThread::setAutoDelete)</pre>
+    <p>(The bug has been reported to Microsoft.)</p>
+
+    <hr>
+    <h2><a name="custom_string"></a>How can I automatically
+    convert my custom string type to and from a Python string?</h2>
+    <font size="-1"><i>Ralf W. Grosse-Kunstleve provides these
+    notes:</i></font><p>
+    Below is a small, self-contained demo extension module that shows
+    how to do this. Here is the corresponding trivial test:
+    <pre>import custom_string
+assert custom_string.hello() == "Hello world."
+assert custom_string.size("california") == 10</pre>
+
+    If you look at the code you will find:
+
+    <ul>
+    <li>A custom <tt>to_python</tt> converter (easy):
+        <tt>custom_string_to_python_str</tt>
+
+    <li>A custom lvalue converter (needs more code):
+        <tt>custom_string_from_python_str</tt>
+    </ul>
+
+    The custom converters are registered in the global Boost.Python
+    registry near the top of the module initialization function. Once
+    flow control has passed through the registration code the automatic
+    conversions from and to Python strings will work in any module
+    imported in the same process.
+
+<pre>#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/def.hpp&gt;
+#include &lt;boost/python/to_python_converter.hpp&gt;
+
+namespace sandbox { namespace {
+
+  class custom_string
+  {
+    public:
+      custom_string() {}
+      custom_string(std::string const&amp; value) : value_(value) {}
+      std::string const&amp; value() const { return value_; }
+    private:
+      std::string value_;
+  };
+
+  struct custom_string_to_python_str
+  {
+    static PyObject* convert(custom_string const&amp; s)
+    {
+      return boost::python::incref(boost::python::object(s.value()).ptr());
+    }
+  };
+
+  struct custom_string_from_python_str
+  {
+    custom_string_from_python_str()
+    {
+      boost::python::converter::registry::push_back(
+        &amp;convertible,
+        &amp;construct,
+        boost::python::type_id&lt;custom_string&gt;());
+    }
+
+    static void* convertible(PyObject* obj_ptr)
+    {
+      if (!PyString_Check(obj_ptr)) return 0;
+      return obj_ptr;
+    }
+
+    static void construct(
+      PyObject* obj_ptr,
+      boost::python::converter::rvalue_from_python_stage1_data* data)
+    {
+      const char* value = PyString_AsString(obj_ptr);
+      if (value == 0) boost::python::throw_error_already_set();
+      void* storage = (
+        (boost::python::converter::rvalue_from_python_storage&lt;custom_string&gt;*)
+          data)-&gt;storage.bytes;
+      new (storage) custom_string(value);
+      data-&gt;convertible = storage;
+    }
+  };
+
+  custom_string hello() { return custom_string(&quot;Hello world.&quot;); }
+
+  std::size_t size(custom_string const&amp; s) { return s.value().size(); }
+
+  void init_module()
+  {
+    using namespace boost::python;
+
+    boost::python::to_python_converter&lt;
+      custom_string,
+      custom_string_to_python_str&gt;();
+
+    custom_string_from_python_str();
+
+    def(&quot;hello&quot;, hello);
+    def(&quot;size&quot;, size);
+  }
+
+}} // namespace sandbox::&lt;anonymous&gt;
+
+BOOST_PYTHON_MODULE(custom_string)
+{
+  sandbox::init_module();
+}</pre>
+
+    <hr>
+    <h2><a name="topythonconversionfailed"></a
+    >Why is my automatic to-python conversion not being found?</h2>
+    <font size="-1"><i>Niall Douglas provides these notes:</i></font><p>
+    If you define custom converters similar to the ones
+    shown above the <tt>def_readonly()</tt> and <tt>def_readwrite()</tt>
+    member functions provided by <tt>boost::python::class_</tt> for
+    direct access to your member data will not work as expected.
+    This is because <tt>def_readonly("bar",&nbsp;&amp;foo::bar)</tt> is
+    equivalent to:
+
+<pre>.add_property("bar", make_getter(&amp;foo::bar, return_internal_reference()))</pre>
+
+    Similarly, <tt>def_readwrite("bar",&nbsp;&amp;foo::bar)</tt> is
+    equivalent to:
+
+<pre>.add_property("bar", make_getter(&amp;foo::bar, return_internal_reference()),
+                     make_setter(&amp;foo::bar, return_internal_reference())</pre>
+
+    In order to define return value policies compatible with the
+    custom conversions replace <tt>def_readonly()</tt> and
+    <tt>def_readwrite()</tt> by <tt>add_property()</tt>. E.g.:
+
+<pre>.add_property("bar", make_getter(&amp;foo::bar, return_value_policy&lt;return_by_value&gt;()),
+                     make_setter(&amp;foo::bar, return_value_policy&lt;return_by_value&gt;()))</pre>
+
+    <hr>
+    <h2><a name="threadsupport"></a
+    >Is Boost.Python thread-aware/compatible with multiple interpreters?</h2>
+    <font size="-1"><i>Niall Douglas provides these notes:</i></font><p>
+    The quick answer to this is: no.</p>
+    <p>
+    The longer answer is that it can be patched to be so, but it's
+    complex. You will need to add custom lock/unlock wrapping of every
+    time your code enters Boost.Python (particularly every virtual
+    function override) plus heavily modify
+    <tt>boost/python/detail/invoke.hpp</tt> with custom unlock/lock
+    wrapping of every time Boost.Python enters your code. You must
+    furthermore take care to <i>not</i> unlock/lock when Boost.Python
+    is invoking iterator changes via <tt>invoke.hpp</tt>.</p>
+    <p>
+    There is a patched <tt>invoke.hpp</tt> posted on the C++-SIG
+    mailing list archives and you can find a real implementation of all
+    the machinery necessary to fully implement this in the TnFOX
+    project at <a href="http://sourceforge.net/projects/tnfox/"> this
+    SourceForge project location</a>.</p>
+
+    <hr>
+
+    <p>Revised
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+     12 March, 2006
+    <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002-2006.</i></p>
+  </body>
+</html>

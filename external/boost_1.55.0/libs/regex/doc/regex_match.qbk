@@ -1,0 +1,184 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:regex_match regex_match]
+
+   #include <boost/regex.hpp> 
+
+The algorithm [regex_match] determines whether a given regular expression 
+matches [*all] of a given character sequence denoted by a pair of 
+bidirectional-iterators, the algorithm is defined as follows, 
+the main use of this function is data input validation.
+
+[important Note that the result is true only if the expression matches the 
+*whole* of the input sequence.  If you want to search for an 
+expression somewhere within the sequence then use [regex_search].  If you 
+want to match a prefix of the character string then use [regex_search] 
+with the flag match_continuous set.]
+
+   template <class BidirectionalIterator, class Allocator, class charT, class traits>
+   bool regex_match(BidirectionalIterator first, BidirectionalIterator last,
+                    match_results<BidirectionalIterator, Allocator>& m,
+                    const basic_regex <charT, traits>& e,
+                    match_flag_type flags = match_default); 
+
+   template <class BidirectionalIterator, class charT, class traits>
+   bool regex_match(BidirectionalIterator first, BidirectionalIterator last,
+                    const basic_regex <charT, traits>& e,
+                    match_flag_type flags = match_default); 
+
+   template <class charT, class Allocator, class traits>
+   bool regex_match(const charT* str, match_results<const charT*, Allocator>& m,
+                    const basic_regex <charT, traits>& e,
+                    match_flag_type flags = match_default); 
+
+   template <class ST, class SA, class Allocator, class charT, class traits>
+   bool regex_match(const basic_string<charT, ST, SA>& s,
+                    match_results<typename basic_string<charT, ST, SA>::const_iterator, Allocator>& m, 
+                    const basic_regex <charT, traits>& e, 
+                    match_flag_type flags = match_default); 
+
+   template <class charT, class traits>
+   bool regex_match(const charT* str,
+                    const basic_regex <charT, traits>& e,
+                    match_flag_type flags = match_default); 
+  
+   template <class ST, class SA, class charT, class traits>
+   bool regex_match(const basic_string<charT, ST, SA>& s,
+                    const basic_regex <charT, traits>& e,
+                    match_flag_type flags = match_default);
+
+[h4 Description]
+
+   template <class BidirectionalIterator, class Allocator, class charT, class traits>
+   bool regex_match(BidirectionalIterator first, BidirectionalIterator last,
+                    match_results<BidirectionalIterator, Allocator>& m,
+                    const basic_regex <charT, traits>& e,
+                    match_flag_type flags = match_default);
+
+[*Requires]: Type BidirectionalIterator meets the requirements of a 
+Bidirectional Iterator (24.1.4).
+
+[*Effects]: Determines whether there is an exact match between the regular expression /e/, 
+and all of the character sequence \[first, last), parameter /flags/ 
+(see [match_flag_type]) is used to 
+control how the expression is matched against the character sequence. 
+Returns true if such a match exists, false otherwise.
+
+[*Throws]: `std::runtime_error` if the complexity of matching the expression 
+against an N character string begins to exceed O(N[super 2]), or if the 
+program runs out of stack space while matching the expression (if Boost.Regex is 
+configured in recursive mode), or if the matcher exhausts its permitted 
+memory allocation (if Boost.Regex is configured in non-recursive mode).
+
+[*Postconditions]: If the function returns false, then the effect on 
+parameter /m/ is undefined, otherwise the effects on parameter /m/ are 
+given in the table:
+
+[table
+[[Element][Value]]
+[[`m.size()`][`e.mark_count()`]]
+[[`m.empty()`][`false`]]
+[[`m.prefix().first`][`first`]]
+[[`m.prefix().last`][`first`]]
+[[`m.prefix().matched`][`false`]]
+[[`m.suffix().first`][`last`]]
+[[`m.suffix().last`][`last`]]
+[[`m.suffix().matched`][`false`]]
+[[`m[0].first`][`first`]]
+[[`m[0].second`][`last`]]
+[[`m[0].matched`][true if a full match was found, and false if it was a 
+partial match (found as a result of the match_partial flag being set).]]
+[[`m[n].first`][For all integers `n < m.size()`, the start of the sequence that 
+   matched sub-expression /n/. Alternatively, if sub-expression /n/ did not 
+   participate in the match, then `last`.]]
+[[`m[n].second`][For all integers `n < m.size()`, the end of the sequence that 
+      matched sub-expression /n/. Alternatively, if sub-expression /n/ did not 
+      participate in the match, then `last`.]]
+[[`m[n].matched`][For all integers `n < m.size()`, true if sub-expression /n/ 
+      participated in the match, false otherwise.]]
+]
+ 
+
+   template <class BidirectionalIterator, class charT, class traits>
+   bool regex_match(BidirectionalIterator first, BidirectionalIterator last,
+                  const basic_regex <charT, traits>& e,
+                  match_flag_type flags = match_default);
+
+[*Effects]: Behaves "as if" by constructing an instance of 
+`match_results<BidirectionalIterator> what`, and then returning the result of 
+`regex_match(first, last, what, e, flags)`.
+
+   template <class charT, class Allocator, class traits>
+   bool regex_match(const charT* str, match_results<const charT*, Allocator>& m,
+                  const basic_regex <charT, traits>& e,
+                  match_flag_type flags = match_default);
+
+[*Effects]: Returns the result of `regex_match(str, str + char_traits<charT>::length(str), m, e, flags)`.
+
+   template <class ST, class SA, class Allocator,
+            class charT, class traits>
+   bool regex_match(const basic_string<charT, ST, SA>& s,
+                  match_results<typename basic_string<charT, ST, SA>::const_iterator, Allocator>& m, 
+                  const basic_regex <charT, traits>& e, 
+                  match_flag_type flags = match_default);
+
+[*Effects]: Returns the result of `regex_match(s.begin(), s.end(), m, e, flags)`.
+
+   template <class charT, class traits>
+   bool regex_match(const charT* str,
+                  const basic_regex <charT, traits>& e,
+                  match_flag_type flags = match_default);
+
+[*Effects]: Returns the result of `regex_match(str, str + char_traits<charT>::length(str), e, flags)`.
+
+   template <class ST, class SA, class charT, class traits>
+   bool regex_match(const basic_string<charT, ST, SA>& s,
+                  const basic_regex <charT, traits>& e,
+                  match_flag_type flags = match_default);
+
+[*Effects]: Returns the result of `regex_match(s.begin(), s.end(), e, flags)`.
+
+[h4 Examples]
+
+The following example processes an ftp response:
+
+   #include <stdlib.h> 
+   #include <boost/regex.hpp> 
+   #include <string> 
+   #include <iostream> 
+
+   using namespace boost; 
+
+   regex expression("([0-9]+)(\\-| |$)(.*)"); 
+
+   // process_ftp: 
+   // on success returns the ftp response code, and fills 
+   // msg with the ftp response message. 
+   int process_ftp(const char* response, std::string* msg) 
+   { 
+      cmatch what; 
+      if(regex_match(response, what, expression)) 
+      { 
+         // what[0] contains the whole string 
+         // what[1] contains the response code 
+         // what[2] contains the separator character 
+         // what[3] contains the text message. 
+         if(msg) 
+            msg->assign(what[3].first, what[3].second); 
+         return std::atoi(what[1].first); 
+      } 
+      // failure did not match 
+      if(msg) 
+         msg->erase(); 
+      return -1; 
+   }
+      
+
+[endsect]
+

@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>Permutation Iterator</title>
+<meta name="author" content="Toon Knapen, David Abrahams, Roland Richter, Jeremy Siek" />
+<meta name="organization" content="Boost Consulting, Indiana University Open Systems Lab" />
+<meta name="date" content="2006-09-11" />
+<meta name="copyright" content="Copyright Toon Knapen, David Abrahams, Roland Richter, and Jeremy Siek 2003." />
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="permutation-iterator">
+<h1 class="title">Permutation Iterator</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Toon Knapen, David Abrahams, Roland Richter, Jeremy Siek</td></tr>
+<tr><th class="docinfo-name">Contact:</th>
+<td><a class="first reference external" href="mailto:dave&#64;boost-consulting.com">dave&#64;boost-consulting.com</a>, <a class="last reference external" href="mailto:jsiek&#64;osl.iu.edu">jsiek&#64;osl.iu.edu</a></td></tr>
+<tr><th class="docinfo-name">Organization:</th>
+<td><a class="first reference external" href="http://www.boost-consulting.com">Boost Consulting</a>, Indiana University <a class="last reference external" href="http://www.osl.iu.edu">Open Systems
+Lab</a></td></tr>
+<tr><th class="docinfo-name">Date:</th>
+<td>2006-09-11</td></tr>
+<tr><th class="docinfo-name">Copyright:</th>
+<td>Copyright Toon Knapen, David Abrahams, Roland Richter, and Jeremy Siek 2003.</td></tr>
+</tbody>
+</table>
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">abstract:</th><td class="field-body"><!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+The permutation iterator adaptor provides a permuted view of a given
+range. That is, the view includes every element of the given range but
+in a potentially different order.</td>
+</tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#introduction" id="id2">Introduction</a></li>
+<li><a class="reference internal" href="#reference" id="id3">Reference</a><ul>
+<li><a class="reference internal" href="#permutation-iterator-requirements" id="id4"><tt class="docutils literal"><span class="pre">permutation_iterator</span></tt> requirements</a></li>
+<li><a class="reference internal" href="#permutation-iterator-models" id="id5"><tt class="docutils literal"><span class="pre">permutation_iterator</span></tt> models</a></li>
+<li><a class="reference internal" href="#permutation-iterator-operations" id="id6"><tt class="docutils literal"><span class="pre">permutation_iterator</span></tt> operations</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#example" id="id7">Example</a></li>
+</ul>
+</div>
+<div class="section" id="introduction">
+<h1><a class="toc-backref" href="#id2">Introduction</a></h1>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<p>The adaptor takes two arguments:</p>
+<blockquote>
+<ul class="simple">
+<li>an iterator to the range V on which the permutation
+will be applied</li>
+<li>the reindexing scheme that defines how the
+elements of V will be permuted.</li>
+</ul>
+</blockquote>
+<p>Note that the permutation iterator is not limited to strict
+permutations of the given range V.  The distance between begin and end
+of the reindexing iterators is allowed to be smaller compared to the
+size of the range V, in which case the permutation iterator only
+provides a permutation of a subrange of V.  The indexes neither need
+to be unique. In this same context, it must be noted that the past the
+end permutation iterator is completely defined by means of the
+past-the-end iterator to the indices.</p>
+</div>
+<div class="section" id="reference">
+<h1><a class="toc-backref" href="#id3">Reference</a></h1>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+template&lt; class ElementIterator
+        , class IndexIterator
+        , class ValueT        = use_default
+        , class CategoryT     = use_default
+        , class ReferenceT    = use_default
+        , class DifferenceT   = use_default &gt;
+class permutation_iterator
+{
+public:
+  permutation_iterator();
+  explicit permutation_iterator(ElementIterator x, IndexIterator y);
+
+  template&lt; class OEIter, class OIIter, class V, class C, class R, class D &gt;
+  permutation_iterator(
+      permutation_iterator&lt;OEIter, OIIter, V, C, R, D&gt; const&amp; r
+      , typename enable_if_convertible&lt;OEIter, ElementIterator&gt;::type* = 0
+      , typename enable_if_convertible&lt;OIIter, IndexIterator&gt;::type* = 0
+      );
+  reference operator*() const;
+  permutation_iterator&amp; operator++();
+  ElementIterator const&amp; base() const;
+private:
+  ElementIterator m_elt;      // exposition only
+  IndexIterator m_order;      // exposition only
+};
+
+template &lt;class ElementIterator, class IndexIterator&gt;
+permutation_iterator&lt;ElementIterator, IndexIterator&gt;
+make_permutation_iterator( ElementIterator e, IndexIterator i);
+</pre>
+<div class="section" id="permutation-iterator-requirements">
+<h2><a class="toc-backref" href="#id4"><tt class="docutils literal"><span class="pre">permutation_iterator</span></tt> requirements</a></h2>
+<p><tt class="docutils literal"><span class="pre">ElementIterator</span></tt> shall model Random Access Traversal Iterator.
+<tt class="docutils literal"><span class="pre">IndexIterator</span></tt> shall model Readable Iterator.  The value type of
+the <tt class="docutils literal"><span class="pre">IndexIterator</span></tt> must be convertible to the difference type of
+<tt class="docutils literal"><span class="pre">ElementIterator</span></tt>.</p>
+</div>
+<div class="section" id="permutation-iterator-models">
+<h2><a class="toc-backref" href="#id5"><tt class="docutils literal"><span class="pre">permutation_iterator</span></tt> models</a></h2>
+<p><tt class="docutils literal"><span class="pre">permutation_iterator</span></tt> models the same iterator traversal concepts
+as <tt class="docutils literal"><span class="pre">IndexIterator</span></tt> and the same iterator access concepts as
+<tt class="docutils literal"><span class="pre">ElementIterator</span></tt>.</p>
+<p>If <tt class="docutils literal"><span class="pre">IndexIterator</span></tt> models Single Pass Iterator and
+<tt class="docutils literal"><span class="pre">ElementIterator</span></tt> models Readable Iterator then
+<tt class="docutils literal"><span class="pre">permutation_iterator</span></tt> models Input Iterator.</p>
+<p>If <tt class="docutils literal"><span class="pre">IndexIterator</span></tt> models Forward Traversal Iterator and
+<tt class="docutils literal"><span class="pre">ElementIterator</span></tt> models Readable Lvalue Iterator then
+<tt class="docutils literal"><span class="pre">permutation_iterator</span></tt> models Forward Iterator.</p>
+<p>If <tt class="docutils literal"><span class="pre">IndexIterator</span></tt> models Bidirectional Traversal Iterator and
+<tt class="docutils literal"><span class="pre">ElementIterator</span></tt> models Readable Lvalue Iterator then
+<tt class="docutils literal"><span class="pre">permutation_iterator</span></tt> models Bidirectional Iterator.</p>
+<p>If <tt class="docutils literal"><span class="pre">IndexIterator</span></tt> models Random Access Traversal Iterator and
+<tt class="docutils literal"><span class="pre">ElementIterator</span></tt> models Readable Lvalue Iterator then
+<tt class="docutils literal"><span class="pre">permutation_iterator</span></tt> models Random Access Iterator.</p>
+<p><tt class="docutils literal"><span class="pre">permutation_iterator&lt;E1,</span> <span class="pre">X,</span> <span class="pre">V1,</span> <span class="pre">C2,</span> <span class="pre">R1,</span> <span class="pre">D1&gt;</span></tt> is interoperable
+with <tt class="docutils literal"><span class="pre">permutation_iterator&lt;E2,</span> <span class="pre">Y,</span> <span class="pre">V2,</span> <span class="pre">C2,</span> <span class="pre">R2,</span> <span class="pre">D2&gt;</span></tt> if and only if
+<tt class="docutils literal"><span class="pre">X</span></tt> is interoperable with <tt class="docutils literal"><span class="pre">Y</span></tt> and <tt class="docutils literal"><span class="pre">E1</span></tt> is convertible
+to <tt class="docutils literal"><span class="pre">E2</span></tt>.</p>
+</div>
+<div class="section" id="permutation-iterator-operations">
+<h2><a class="toc-backref" href="#id6"><tt class="docutils literal"><span class="pre">permutation_iterator</span></tt> operations</a></h2>
+<p>In addition to those operations required by the concepts that
+<tt class="docutils literal"><span class="pre">permutation_iterator</span></tt> models, <tt class="docutils literal"><span class="pre">permutation_iterator</span></tt> provides the
+following operations.</p>
+<p><tt class="docutils literal"><span class="pre">permutation_iterator();</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body">Default constructs <tt class="docutils literal"><span class="pre">m_elt</span></tt> and <tt class="docutils literal"><span class="pre">m_order</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">explicit</span> <span class="pre">permutation_iterator(ElementIterator</span> <span class="pre">x,</span> <span class="pre">IndexIterator</span> <span class="pre">y);</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body">Constructs <tt class="docutils literal"><span class="pre">m_elt</span></tt> from <tt class="docutils literal"><span class="pre">x</span></tt> and <tt class="docutils literal"><span class="pre">m_order</span></tt> from <tt class="docutils literal"><span class="pre">y</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<pre class="literal-block">
+template&lt; class OEIter, class OIIter, class V, class C, class R, class D &gt;
+permutation_iterator(
+    permutation_iterator&lt;OEIter, OIIter, V, C, R, D&gt; const&amp; r
+    , typename enable_if_convertible&lt;OEIter, ElementIterator&gt;::type* = 0
+    , typename enable_if_convertible&lt;OIIter, IndexIterator&gt;::type* = 0
+    );
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body">Constructs <tt class="docutils literal"><span class="pre">m_elt</span></tt> from <tt class="docutils literal"><span class="pre">r.m_elt</span></tt> and
+<tt class="docutils literal"><span class="pre">m_order</span></tt> from <tt class="docutils literal"><span class="pre">y.m_order</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">reference</span> <span class="pre">operator*()</span> <span class="pre">const;</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">*(m_elt</span> <span class="pre">+</span> <span class="pre">*m_order)</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">permutation_iterator&amp;</span> <span class="pre">operator++();</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Effects:</th><td class="field-body"><tt class="docutils literal"><span class="pre">++m_order</span></tt></td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">*this</span></tt></td>
+</tr>
+</tbody>
+</table>
+<p><tt class="docutils literal"><span class="pre">ElementIterator</span> <span class="pre">const&amp;</span> <span class="pre">base()</span> <span class="pre">const;</span></tt></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">m_order</span></tt></td>
+</tr>
+</tbody>
+</table>
+<pre class="literal-block">
+template &lt;class ElementIterator, class IndexIterator&gt;
+permutation_iterator&lt;ElementIterator, IndexIterator&gt;
+make_permutation_iterator(ElementIterator e, IndexIterator i);
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">permutation_iterator&lt;ElementIterator,</span> <span class="pre">IndexIterator&gt;(e,</span> <span class="pre">i)</span></tt></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="example">
+<h1><a class="toc-backref" href="#id7">Example</a></h1>
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+using namespace boost;
+int i = 0;
+
+typedef std::vector&lt; int &gt; element_range_type;
+typedef std::list&lt; int &gt; index_type;
+
+static const int element_range_size = 10;
+static const int index_size = 4;
+
+element_range_type elements( element_range_size );
+for(element_range_type::iterator el_it = elements.begin() ; el_it != elements.end() ; ++el_it)
+  *el_it = std::distance(elements.begin(), el_it);
+
+index_type indices( index_size );
+for(index_type::iterator i_it = indices.begin() ; i_it != indices.end() ; ++i_it )
+  *i_it = element_range_size - index_size + std::distance(indices.begin(), i_it);
+std::reverse( indices.begin(), indices.end() );
+
+typedef permutation_iterator&lt; element_range_type::iterator, index_type::iterator &gt; permutation_type;
+permutation_type begin = make_permutation_iterator( elements.begin(), indices.begin() );
+permutation_type it = begin;
+permutation_type end = make_permutation_iterator( elements.begin(), indices.end() );
+
+std::cout &lt;&lt; &quot;The original range is : &quot;;
+std::copy( elements.begin(), elements.end(), std::ostream_iterator&lt; int &gt;( std::cout, &quot; &quot; ) );
+std::cout &lt;&lt; &quot;\n&quot;;
+
+std::cout &lt;&lt; &quot;The reindexing scheme is : &quot;;
+std::copy( indices.begin(), indices.end(), std::ostream_iterator&lt; int &gt;( std::cout, &quot; &quot; ) );
+std::cout &lt;&lt; &quot;\n&quot;;
+
+std::cout &lt;&lt; &quot;The permutated range is : &quot;;
+std::copy( begin, end, std::ostream_iterator&lt; int &gt;( std::cout, &quot; &quot; ) );
+std::cout &lt;&lt; &quot;\n&quot;;
+
+std::cout &lt;&lt; &quot;Elements at even indices in the permutation : &quot;;
+it = begin;
+for(i = 0; i &lt; index_size / 2 ; ++i, it+=2 ) std::cout &lt;&lt; *it &lt;&lt; &quot; &quot;;
+std::cout &lt;&lt; &quot;\n&quot;;
+
+std::cout &lt;&lt; &quot;Permutation backwards : &quot;;
+it = begin + (index_size);
+assert( it != begin );
+for( ; it-- != begin ; ) std::cout &lt;&lt; *it &lt;&lt; &quot; &quot;;
+std::cout &lt;&lt; &quot;\n&quot;;
+
+std::cout &lt;&lt; &quot;Iterate backward with stride 2 : &quot;;
+it = begin + (index_size - 1);
+for(i = 0 ; i &lt; index_size / 2 ; ++i, it-=2 ) std::cout &lt;&lt; *it &lt;&lt; &quot; &quot;;
+std::cout &lt;&lt; &quot;\n&quot;;
+</pre>
+<p>The output is:</p>
+<pre class="literal-block">
+The original range is : 0 1 2 3 4 5 6 7 8 9
+The reindexing scheme is : 9 8 7 6
+The permutated range is : 9 8 7 6
+Elements at even indices in the permutation : 9 7
+Permutation backwards : 6 7 8 9
+Iterate backward with stride 2 : 6 8
+</pre>
+<p>The source code for this example can be found <a class="reference external" href="../example/permutation_iter_example.cpp">here</a>.</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+<a class="reference external" href="permutation_iterator.rst">View document source</a>.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

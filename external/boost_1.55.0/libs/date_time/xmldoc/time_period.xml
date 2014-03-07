@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2006 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.posix_time.time_period">
+  <title>Time Period</title>
+
+  <link linkend="time_period_intro">Introduction</link> --
+  <link linkend="time_period_header">Header</link> --
+  <link linkend="time_period_constr">Construction</link> --
+  <link linkend="time_period_mutators">Mutators</link> --
+  <link linkend="time_period_accessors">Accessors</link> --
+  <link linkend="time_period_to_string">Conversion To String</link> --
+  <link linkend="time_period_operators">Operators</link>
+
+  <anchor id="time_period_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>
+    The class boost::posix_time::time_period provides direct representation for ranges between two times. Periods provide the ability to simplify some types of calculations by simplifying the conditional logic of the program. 
+  </para>
+  <para>
+    A period that is created with beginning and end points being equal, or with a duration of zero, is known as a zero length period. Zero length periods are considered invalid (it is perfectly legal to construct an invalid period). For these periods, the <code>last</code> point will always be one unit less that the <code>begin</code> point.
+  </para>
+  <para>
+    The <link linkend="date_time.examples.time_periods">time periods example</link> provides an example of using time periods. 
+  </para>
+
+  <anchor id="time_period_header" />
+  <bridgehead renderas="sect3">Header</bridgehead>
+  <para>
+    <programlisting>#include "boost/date_time/posix_time/posix_time.hpp" //include all types plus i/o
+or
+#include "boost/date_time/posix_time/posix_time_types.hpp" //no i/o just types</programlisting>
+  </para>
+
+  <anchor id="time_period_constr" />
+  <bridgehead renderas="sect3">Construction</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>time_period(ptime,
+            ptime)</screen></entry>
+	    <entry> Create a period as [begin, end). If end is &lt;= begin then the period will be defined as invalid.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>date d(2002,Jan,01);
+ptime t1(d, seconds(10)); //10 sec after midnight
+ptime t2(d, hours(10)); //10 hours after midnight
+time_period tp(t1, t2);</screen>
+	    </entry>
+          </row>
+
+	  <row>
+            <entry valign="top" morerows="1"><screen>time_period(ptime, 
+            time_duration)</screen></entry>
+	    <entry> Create a period as [begin, begin+len) where end would be begin+len. If len is &lt;= zero then the period will be defined as invalid.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>date d(2002,Jan,01);
+ptime t(d, seconds(10)); //10 sec after midnight
+time_period tp(t, hours(3));</screen>
+	    </entry>
+          </row>
+          
+          <row>
+	    <entry valign="top" morerows="1"><screen>time_period(time_period rhs)</screen></entry>
+	    <entry> Copy constructor</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_period tp1(tp);</screen></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="time_period_mutators" />
+  <bridgehead renderas="sect3">Mutators</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+
+          <row>
+	    <entry valign="top" morerows="1"><screen>time_period shift(time_duration)</screen></entry>
+	    <entry>Add duration to both begin and end.</entry>
+	  </row>
+	  <row>
+	    <entry>
+              <screen>
+time_period tp(ptime(date(2005,Jan,1),hours(1)), hours(2));
+tp.shift(minutes(5)); 
+// tp == 2005-Jan-01 01:05:00 to 2005-Jan-01 03:05:00
+             </screen>
+	    </entry>
+	  </row>
+
+          <row>
+	    <entry valign="top" morerows="1"><screen>time_period expand(days)</screen></entry>
+	    <entry>Subtract duration from begin and add duration to end.</entry>
+	  </row>
+	  <row>
+	    <entry>
+              <screen>
+time_period tp(ptime(date(2005,Jan,1),hours(1)), hours(2));
+tp.expand(minutes(5)); 
+// tp == 2005-Jan-01 00:55:00 to 2005-Jan-01 03:05:00
+             </screen>
+	    </entry>
+	  </row>
+
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="time_period_accessors" />
+  <bridgehead renderas="sect3">Accessors</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+	    <entry valign="top" morerows="1"><screen>ptime begin()</screen></entry>
+	    <entry>Return first time of period.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>date d(2002,Jan,01);
+ptime t1(d, seconds(10)); //10 sec after midnight
+ptime t2(d, hours(10)); //10 hours after midnight
+time_period tp(t1, t2);
+tp.begin(); // --> 2002-Jan-01 00:00:10</screen>
+	    </entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>ptime last()</screen></entry>
+	    <entry>Return last time in the period</entry>
+	  </row>
+	  <row>
+	    <entry><screen>date d(2002,Jan,01);
+ptime t1(d, seconds(10)); //10 sec after midnight
+ptime t2(d, hours(10)); //10 hours after midnight
+time_period tp(t1, t2);
+tp.last();// --> 2002-Jan-01 09:59:59.999999999</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>ptime end()</screen></entry>
+	    <entry> Return one past the last in period</entry>
+	  </row>
+	  <row>
+	    <entry><screen>date d(2002,Jan,01);
+ptime t1(d, seconds(10)); //10 sec after midnight
+ptime t2(d, hours(10)); //10 hours after midnight
+time_period tp(t1, t2);
+tp.last(); // --> 2002-Jan-01 10:00:00</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>time_duration length()</screen></entry>
+	    <entry>Return the length of the time period.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>date d(2002,Jan,01);
+ptime t1(d); //midnight
+time_period tp(t1, hours(1));
+tp.length() --> 1 hour</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>bool is_null()</screen></entry>
+	    <entry>True if period is not well formed. eg: end is less than or equal to begin.</entry>
+	  </row>
+	  <row>
+            <entry><screen>date d(2002,Jan,01);
+ptime t1(d, hours(12)); // noon on Jan 1st
+ptime t2(d, hours(9)); // 9am on Jan 1st
+time_period tp(t1, t2);
+tp.is_null(); // true</screen>
+            </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>bool contains(ptime)</screen></entry>
+	    <entry>True if ptime is within the period. Zero length periods cannot contain any points.</entry>
+	  </row>
+	  <row>
+	    <entry><screen>date d(2002,Jan,01);
+ptime t1(d, seconds(10)); //10 sec after midnight
+ptime t2(d, hours(10)); //10 hours after midnight
+ptime t3(d, hours(2)); //2 hours after midnight
+time_period tp(t1, t2); 
+tp.contains(t3); // true
+time_period tp2(t1, t1);
+tp2.contains(t1); // false</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>bool contains(time_period)</screen></entry>
+	    <entry>True if period is within the period</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_period tp1(ptime(d,hours(1)), 
+                ptime(d,hours(12)));
+time_period tp2(ptime(d,hours(2)), 
+                ptime(d,hours(4)));
+tp1.contains(tp2); // --> true
+tp2.contains(tp1); // --> false</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>bool intersects(time_period)</screen></entry>
+	    <entry> True if periods overlap</entry>
+	  </row>
+	  <row>
+	    <entry><screen>time_period tp1(ptime(d,hours(1)),
+                ptime(d,hours(12)));
+time_period tp2(ptime(d,hours(2)), 
+                ptime(d,hours(4)));
+tp2.intersects(tp1); // --> true</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>time_period intersection(time_period)</screen></entry>
+	    <entry>Calculate the intersection of 2 periods. Null if no intersection.</entry>
+	  </row>
+	  <row>
+	    <entry></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>time_period merge(time_period)</screen></entry>
+	    <entry>Returns union of two periods. Null if no intersection.</entry>
+	  </row>
+	  <row>
+	    <entry></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>time_period span(time_period)</screen></entry>
+	    <entry>Combines two periods and any gap between them such that begin = min(p1.begin, p2.begin) and end = max(p1.end , p2.end).</entry>
+	  </row>
+	  <row>
+	    <entry></entry>
+          </row>
+          
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="time_period_to_string" />
+  <bridgehead renderas="sect3">Conversion To String</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+            <entry>Description</entry>
+          </row>
+          <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>std::string 
+  to_simple_string(time_period dp)</screen></entry>
+            <entry>To <code>[YYYY-mmm-DD hh:mm:ss.fffffffff/YYYY-mmm-DD hh:mm:ss.fffffffff]</code> string where <code>mmm</code> is 3 char month name.</entry>
+          </row>
+          <row>
+            <entry><screen>[2002-Jan-01 01:25:10.000000001/
+                2002-Jan-31 01:25:10.123456789]
+// string occupies one line</screen></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="time_period_operators" />
+  <bridgehead renderas="sect3">Operators</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+	    <entry valign="top" morerows="1"><screen>operator&lt;&lt;</screen></entry>
+            <entry>Output streaming operator for time duration. Uses facet to output [date time_of_day/date time_of_day]. The default is format is <code>[YYYY-mmm-DD hh:mm:ss.fffffffff/YYYY-mmm-DD hh:mm:ss.fffffffff]</code> string where <code>mmm</code> is 3 char month name and the fractional seconds are left out when zero.</entry>
+	  </row>
+	  <row>
+            <entry><screen>[2002-Jan-01 01:25:10.000000001/ \
+    2002-Jan-31 01:25:10.123456789]</screen></entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>operator&gt;&gt;</screen></entry>
+            <entry>Input streaming operator for time duration. Uses facet to read [date time_of_day/date time_of_day]. The default is format is <code>[YYYY-mmm-DD hh:mm:ss.fffffffff/YYYY-mmm-DD hh:mm:ss.fffffffff]</code> string where <code>mmm</code> is 3 char month name and the fractional seconds are left out when zero.</entry>
+	  </row>
+	  <row>
+            <entry><screen>[2002-Jan-01 01:25:10.000000001/ \
+    2002-Jan-31 01:25:10.123456789]</screen></entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>operator==, operator!=</screen></entry>
+	    <entry>Equality operators. Periods are equal if p1.begin == p2.begin &amp;&amp; p1.last == p2.last</entry>
+	  </row>
+	  <row>
+	    <entry><screen>if (tp1 == tp2) {...</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>operator&lt;</screen></entry>
+	    <entry>Ordering with no overlap. True if tp1.end() less than tp2.begin()</entry>
+	  </row>
+	  <row>
+	    <entry><screen>if (tp1 &lt; tp2) {...</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>operator&gt;</screen></entry>
+	    <entry>Ordering with no overlap. True if tp1.begin() greater than tp2.end()</entry>
+	  </row>
+	  <row>
+	    <entry><screen>if (tp1 > tp2) {... etc</screen></entry>
+          </row>
+          
+          <row>
+	    <entry valign="top" morerows="1"><screen>operator&lt;=, operator&gt;=</screen></entry>
+	    <entry>Defined in terms of the other operators.</entry>
+	  </row>
+	  <row>
+	    <entry></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+</section>

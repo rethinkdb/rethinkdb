@@ -1,0 +1,253 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Getting started</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../mpi.html" title="Chapter&#160;20.&#160;Boost.MPI">
+<link rel="prev" href="../mpi.html" title="Chapter&#160;20.&#160;Boost.MPI">
+<link rel="next" href="tutorial.html" title="Tutorial">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../mpi.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../mpi.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutorial.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="mpi.getting_started"></a>Getting started</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="getting_started.html#mpi.mpi_impl">MPI Implementation</a></span></dt>
+<dt><span class="section"><a href="getting_started.html#mpi.config">Configure and Build</a></span></dt>
+<dt><span class="section"><a href="getting_started.html#mpi.installation">Installing and Using Boost.MPI</a></span></dt>
+<dt><span class="section"><a href="getting_started.html#mpi.testing">Testing Boost.MPI</a></span></dt>
+</dl></div>
+<p>
+      Getting started with Boost.MPI requires a working MPI implementation, a recent
+      version of Boost, and some configuration information.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="mpi.mpi_impl"></a>MPI Implementation</h3></div></div></div>
+<p>
+        To get started with Boost.MPI, you will first need a working MPI implementation.
+        There are many conforming <a href="http://www-unix.mcs.anl.gov/mpi/implementations.html" target="_top">MPI
+        implementations</a> available. Boost.MPI should work with any of the
+        implementations, although it has only been tested extensively with:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <a href="http://www.open-mpi.org" target="_top">Open MPI</a>
+          </li>
+<li class="listitem">
+            <a href="http://www.lam-mpi.org" target="_top">LAM/MPI </a>
+          </li>
+<li class="listitem">
+            <a href="http://www-unix.mcs.anl.gov/mpi/mpich/" target="_top">MPICH2</a>
+          </li>
+</ul></div>
+<p>
+        You can test your implementation using the following simple program, which
+        passes a message from one processor to another. Each processor prints a message
+        to standard output.
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">mpi</span><span class="special">.</span><span class="identifier">h</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="identifier">MPI_Init</span><span class="special">(&amp;</span><span class="identifier">argc</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">argv</span><span class="special">);</span>
+
+  <span class="keyword">int</span> <span class="identifier">rank</span><span class="special">;</span>
+  <span class="identifier">MPI_Comm_rank</span><span class="special">(</span><span class="identifier">MPI_COMM_WORLD</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">rank</span><span class="special">);</span>
+  <span class="keyword">if</span> <span class="special">(</span><span class="identifier">rank</span> <span class="special">==</span> <span class="number">0</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">value</span> <span class="special">=</span> <span class="number">17</span><span class="special">;</span>
+    <span class="keyword">int</span> <span class="identifier">result</span> <span class="special">=</span> <span class="identifier">MPI_Send</span><span class="special">(&amp;</span><span class="identifier">value</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="identifier">MPI_INT</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">MPI_COMM_WORLD</span><span class="special">);</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">result</span> <span class="special">==</span> <span class="identifier">MPI_SUCCESS</span><span class="special">)</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Rank 0 OK!"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+  <span class="special">}</span> <span class="keyword">else</span> <span class="keyword">if</span> <span class="special">(</span><span class="identifier">rank</span> <span class="special">==</span> <span class="number">1</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">value</span><span class="special">;</span>
+    <span class="keyword">int</span> <span class="identifier">result</span> <span class="special">=</span> <span class="identifier">MPI_Recv</span><span class="special">(&amp;</span><span class="identifier">value</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="identifier">MPI_INT</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">MPI_COMM_WORLD</span><span class="special">,</span>
+			  <span class="identifier">MPI_STATUS_IGNORE</span><span class="special">);</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">result</span> <span class="special">==</span> <span class="identifier">MPI_SUCCESS</span> <span class="special">&amp;&amp;</span> <span class="identifier">value</span> <span class="special">==</span> <span class="number">17</span><span class="special">)</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Rank 1 OK!"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+  <span class="special">}</span>
+  <span class="identifier">MPI_Finalize</span><span class="special">();</span>
+  <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        You should compile and run this program on two processors. To do this, consult
+        the documentation for your MPI implementation. With <a href="http://www.lam-mpi.org/" target="_top">LAM/MPI</a>,
+        for instance, you compile with the <code class="computeroutput"><span class="identifier">mpiCC</span></code>
+        or <code class="computeroutput"><span class="identifier">mpic</span><span class="special">++</span></code>
+        compiler, boot the LAM/MPI daemon, and run your program via <code class="computeroutput"><span class="identifier">mpirun</span></code>. For instance, if your program is
+        called <code class="computeroutput"><span class="identifier">mpi</span><span class="special">-</span><span class="identifier">test</span><span class="special">.</span><span class="identifier">cpp</span></code>,
+        use the following commands:
+      </p>
+<pre class="programlisting">mpiCC -o mpi-test mpi-test.cpp
+lamboot
+mpirun -np 2 ./mpi-test
+lamhalt
+</pre>
+<p>
+        When you run this program, you will see both <code class="computeroutput"><span class="identifier">Rank</span>
+        <span class="number">0</span> <span class="identifier">OK</span><span class="special">!</span></code> and <code class="computeroutput"><span class="identifier">Rank</span>
+        <span class="number">1</span> <span class="identifier">OK</span><span class="special">!</span></code> printed to the screen. However, they may
+        be printed in any order and may even overlap each other. The following output
+        is perfectly legitimate for this MPI program:
+      </p>
+<pre class="programlisting">Rank Rank 1 OK!
+0 OK!
+</pre>
+<p>
+        If your output looks something like the above, your MPI implementation appears
+        to be working with a C++ compiler and we're ready to move on.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="mpi.config"></a>Configure and Build</h3></div></div></div>
+<p>
+        Boost.MPI uses version 2 of the <a href="http://www.boost.org/doc/html/bbv2.html" target="_top">Boost.Build</a>
+        system for configuring and building the library binary. You will need a very
+        new version of <a href="http://www.boost.org/tools/build/jam_src/index.html" target="_top">Boost.Jam</a>
+        (3.1.12 or later). If you already have Boost.Jam, run <code class="computeroutput"><span class="identifier">bjam</span>
+        <span class="special">-</span><span class="identifier">v</span></code>
+        to determine what version you are using.
+      </p>
+<p>
+        Information about building Boost.Jam is <a href="http://www.boost.org/tools/build/jam_src/index.html#building_bjam" target="_top">available
+        here</a>. However, most users need only run <code class="computeroutput"><span class="identifier">build</span><span class="special">.</span><span class="identifier">sh</span></code> in
+        the <code class="computeroutput"><span class="identifier">tools</span><span class="special">/</span><span class="identifier">build</span><span class="special">/</span><span class="identifier">jam_src</span></code> subdirectory of Boost. Then, copy
+        the resulting <code class="computeroutput"><span class="identifier">bjam</span></code> executable
+        some place convenient.
+      </p>
+<p>
+        For many users using <a href="http://www.lam-mpi.org/" target="_top">LAM/MPI</a>,
+        <a href="http://www-unix.mcs.anl.gov/mpi/mpich/" target="_top">MPICH2</a>, or <a href="http://www.open-mpi.org" target="_top">OpenMPI</a>, configuration is almost automatic.
+        If you don't already have a file <code class="computeroutput"><span class="identifier">user</span><span class="special">-</span><span class="identifier">config</span><span class="special">.</span><span class="identifier">jam</span></code> in
+        your home directory, copy <code class="computeroutput"><span class="identifier">tools</span><span class="special">/</span><span class="identifier">build</span><span class="special">/</span><span class="identifier">v2</span><span class="special">/</span><span class="identifier">user</span><span class="special">-</span><span class="identifier">config</span><span class="special">.</span><span class="identifier">jam</span></code> there.
+        For many users, MPI support can be enabled simply by adding the following
+        line to your user-config.jam file, which is used to configure Boost.Build
+        version 2.
+      </p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">mpi</span> <span class="special">;</span>
+</pre>
+<p>
+        This should auto-detect MPI settings based on the MPI wrapper compiler in
+        your path, e.g., <code class="computeroutput"><span class="identifier">mpic</span><span class="special">++</span></code>.
+        If the wrapper compiler is not in your path, see below.
+      </p>
+<p>
+        To actually build the MPI library, go into the top-level Boost directory
+        and execute the command:
+      </p>
+<pre class="programlisting">bjam --with-mpi
+</pre>
+<p>
+        If your MPI wrapper compiler has a different name from the default, you can
+        pass the name of the wrapper compiler as the first argument to the mpi module:
+      </p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">mpi</span> <span class="special">:</span> <span class="special">/</span><span class="identifier">opt</span><span class="special">/</span><span class="identifier">mpich2</span><span class="special">-</span><span class="number">1.0</span><span class="special">.</span><span class="number">4</span><span class="special">/</span><span class="identifier">bin</span><span class="special">/</span><span class="identifier">mpiCC</span> <span class="special">;</span>
+</pre>
+<p>
+        If your MPI implementation does not have a wrapper compiler, or the MPI auto-detection
+        code does not work with your MPI's wrapper compiler, you can pass MPI-related
+        options explicitly via the second parameter to the <code class="computeroutput"><span class="identifier">mpi</span></code>
+        module:
+      </p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">mpi</span> <span class="special">:</span> <span class="special">:</span> <span class="special">&lt;</span><span class="identifier">find</span><span class="special">-</span><span class="identifier">shared</span><span class="special">-</span><span class="identifier">library</span><span class="special">&gt;</span><span class="identifier">lammpio</span> <span class="special">&lt;</span><span class="identifier">find</span><span class="special">-</span><span class="identifier">shared</span><span class="special">-</span><span class="identifier">library</span><span class="special">&gt;</span><span class="identifier">lammpi</span><span class="special">++</span>
+              <span class="special">&lt;</span><span class="identifier">find</span><span class="special">-</span><span class="identifier">shared</span><span class="special">-</span><span class="identifier">library</span><span class="special">&gt;</span><span class="identifier">mpi</span> <span class="special">&lt;</span><span class="identifier">find</span><span class="special">-</span><span class="identifier">shared</span><span class="special">-</span><span class="identifier">library</span><span class="special">&gt;</span><span class="identifier">lam</span>
+              <span class="special">&lt;</span><span class="identifier">find</span><span class="special">-</span><span class="identifier">shared</span><span class="special">-</span><span class="identifier">library</span><span class="special">&gt;</span><span class="identifier">dl</span> <span class="special">;</span>
+</pre>
+<p>
+        To see the results of MPI auto-detection, pass <code class="computeroutput"><span class="special">--</span><span class="identifier">debug</span><span class="special">-</span><span class="identifier">configuration</span></code> on the bjam command line.
+      </p>
+<p>
+        The (optional) fourth argument configures Boost.MPI for running regression
+        tests. These parameters specify the executable used to launch jobs (default:
+        "mpirun") followed by any necessary arguments to this to run tests
+        and tell the program to expect the number of processors to follow (default:
+        "-np"). With the default parameters, for instance, the test harness
+        will execute, e.g.,
+      </p>
+<pre class="programlisting">mpirun -np 4 all_gather_test
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="mpi.installation"></a>Installing and Using Boost.MPI</h3></div></div></div>
+<p>
+        Installation of Boost.MPI can be performed in the build step by specifying
+        <code class="computeroutput"><span class="identifier">install</span></code> on the command line
+        and (optionally) providing an installation location, e.g.,
+      </p>
+<pre class="programlisting">bjam --with-mpi install
+</pre>
+<p>
+        This command will install libraries into a default system location. To change
+        the path where libraries will be installed, add the option <code class="computeroutput"><span class="special">--</span><span class="identifier">prefix</span><span class="special">=</span><span class="identifier">PATH</span></code>.
+      </p>
+<p>
+        To build applications based on Boost.MPI, compile and link them as you normally
+        would for MPI programs, but remember to link against the <code class="computeroutput"><span class="identifier">boost_mpi</span></code>
+        and <code class="computeroutput"><span class="identifier">boost_serialization</span></code> libraries,
+        e.g.,
+      </p>
+<pre class="programlisting">mpic++ -I/path/to/boost/mpi my_application.cpp -Llibdir \
+  -lboost_mpi-gcc-mt-1_35 -lboost_serialization-gcc-d-1_35.a
+</pre>
+</div>
+<p>
+      If you plan to use the <a class="link" href="python.html" title="Python Bindings">Python bindings</a> for
+      Boost.MPI in conjunction with the C++ Boost.MPI, you will also need to link
+      against the boost_mpi_python library, e.g., by adding <code class="computeroutput"><span class="special">-</span><span class="identifier">lboost_mpi_python</span><span class="special">-</span><span class="identifier">gcc</span><span class="special">-</span><span class="identifier">mt</span><span class="special">-</span><span class="number">1</span><span class="identifier">_35</span></code>
+      to your link command. This step will only be necessary if you intend to <a class="link" href="python.html#mpi.python_user_data" title="Transmitting User-Defined Data">register C++ types</a> or use the <a class="link" href="python.html#mpi.python_skeleton_content" title="Skeleton/Content Mechanism">skeleton/content
+      mechanism</a> from within Python.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="mpi.testing"></a>Testing Boost.MPI</h3></div></div></div>
+<p>
+        If you would like to verify that Boost.MPI is working properly with your
+        compiler, platform, and MPI implementation, a self-contained test suite is
+        available. To use this test suite, you will need to first configure Boost.Build
+        for your MPI environment and then run <code class="computeroutput"><span class="identifier">bjam</span></code>
+        in <code class="computeroutput"><span class="identifier">libs</span><span class="special">/</span><span class="identifier">mpi</span><span class="special">/</span><span class="identifier">test</span></code>
+        (possibly with some extra options). For <a href="http://www.lam-mpi.org/" target="_top">LAM/MPI</a>,
+        you will need to run <code class="computeroutput"><span class="identifier">lamboot</span></code>
+        before running <code class="computeroutput"><span class="identifier">bjam</span></code>. For
+        <a href="http://www-unix.mcs.anl.gov/mpi/mpich/" target="_top">MPICH2</a>, you may
+        need to create a machine file and pass <code class="computeroutput"><span class="special">-</span><span class="identifier">sMPIRUN_FLAGS</span><span class="special">=</span><span class="string">"-machinefile &lt;filename&gt;"</span></code> to
+        Boost.Jam; see the section on <a class="link" href="getting_started.html#mpi.config" title="Configure and Build">configuration</a>
+        for more information. If testing succeeds, <code class="computeroutput"><span class="identifier">bjam</span></code>
+        will exit without errors.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2007 Douglas Gregor,
+      Matthias Troyer, Trustees of Indiana University<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../mpi.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../mpi.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutorial.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

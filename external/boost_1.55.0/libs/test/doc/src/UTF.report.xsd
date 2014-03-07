@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2007 (http://www.altova.com) by rogeeff (boost) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<xs:simpleType name="StatusType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="passed"/>
+			<xs:enumeration value="skipped"/>
+			<xs:enumeration value="aborted"/>
+			<xs:enumeration value="failed"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:attributeGroup name="TestUnitResult">
+		<xs:attribute name="name" type="xs:string">
+			<xs:annotation>
+				<xs:documentation>name of the test unit</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="result" type="StatusType">
+			<xs:annotation>
+				<xs:documentation>result status for the test unit: passed, failed, skipped or aborted</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="assertions_passed" type="xs:string">
+			<xs:annotation>
+				<xs:documentation>number of assertions that passed during execution of the test unit</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="assertions_failed" type="xs:string">
+			<xs:annotation>
+				<xs:documentation>number of assertion that failed during execution of the test unit</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+		<xs:attribute name="expected_failures" type="xs:string">
+			<xs:annotation>
+				<xs:documentation>number of assertions that expected to fail in the test unit</xs:documentation>
+			</xs:annotation>
+		</xs:attribute>
+	</xs:attributeGroup>
+	<xs:element name="TestCase">
+		<xs:complexType>
+			<xs:attributeGroup ref="TestUnitResult"/>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="TestSuite">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:choice minOccurs="0" maxOccurs="unbounded">
+					<xs:element ref="TestSuite"/>
+					<xs:element ref="TestCase"/>
+				</xs:choice>
+			</xs:sequence>
+			<xs:attributeGroup ref="TestUnitResult"/>
+			<xs:attribute name="test_cases_passed" type="xs:integer">
+				<xs:annotation>
+					<xs:documentation>number of test cases that passed in the test suite</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+			<xs:attribute name="test_cases_failed" type="xs:integer">
+				<xs:annotation>
+					<xs:documentation>number of test cases that failed in the test suite</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+			<xs:attribute name="test_cases_skipped" type="xs:integer">
+				<xs:annotation>
+					<xs:documentation>number of test cases that were skipped in the test suite</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+			<xs:attribute name="test_cases_aborted" type="xs:integer">
+				<xs:annotation>
+					<xs:documentation>number of test cases in the test suite that were aborted during execution by an exception or a fatal error</xs:documentation>
+				</xs:annotation>
+			</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="TestResult">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="TestSuite"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

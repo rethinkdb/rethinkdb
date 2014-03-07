@@ -1,0 +1,53 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+[section Literature]
+
+[*General information about numerical integration of ordinary differential equations:]
+
+[#numerical_recipies]
+[1] Press William H et al., Numerical Recipes 3rd Edition: The Art of Scientific Computing, 3rd ed. (Cambridge University Press, 2007).
+
+[#hairer_solving_odes_1]
+[2] Ernst Hairer, Syvert P. Nørsett, and Gerhard Wanner, Solving Ordinary Differential Equations I: Nonstiff Problems, 2nd ed. (Springer, Berlin, 2009).
+
+[#hairer_solving_odes_2]
+[3] Ernst Hairer and Gerhard Wanner, Solving Ordinary Differential Equations II: Stiff and Differential-Algebraic Problems, 2nd ed. (Springer, Berlin, 2010).
+
+
+[*Symplectic integration of numerical integration:]
+
+[#hairer_geometrical_numeric_integration]
+[4] Ernst Hairer, Gerhard Wanner, and Christian Lubich, Geometric Numerical Integration: Structure-Preserving Algorithms for Ordinary Differential Equations, 2nd ed. (Springer-Verlag Gmbh, 2006).
+
+[#leimkuhler_reich_simulating_hamiltonian_dynamics]
+[5] Leimkuhler Benedict and Reich Sebastian, Simulating Hamiltonian Dynamics (Cambridge University Press, 2005).
+
+
+[*Special symplectic methods:]
+
+[#symplectic_yoshida_symplectic_integrators]
+[6] Haruo Yoshida, “Construction of higher order symplectic integrators,” Physics Letters A 150, no. 5 (November 12, 1990): 262-268.
+
+[#symplectic_mylachlan_symmetric_composition_mehtods]
+[7] Robert I. McLachlan, “On the numerical integration of ordinary differential equations by symmetric composition methods,” SIAM J. Sci. Comput. 16, no. 1 (1995): 151-168.
+
+
+[*Special systems:]
+
+[#fpu_scholarpedia]
+[8]  [@http://www.scholarpedia.org/article/Fermi-Pasta-Ulam_nonlinear_lattice_oscillations Fermi-Pasta-Ulam nonlinear lattice oscillations]
+
+[#synchronization_pikovsky_rosenblum]
+[9] Arkady Pikovsky, Michael Rosemblum, and Jürgen Kurths, Synchronization: A Universal Concept in Nonlinear Sciences. (Cambridge University Press, 2001).
+
+[endsect]

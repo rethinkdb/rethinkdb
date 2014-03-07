@@ -1,0 +1,48 @@
+# Boost.Context Library Examples Jamfile
+
+#          Copyright Oliver Kowalke 2009.
+# Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+
+# For more information, see http://www.boost.org/
+
+import common ;
+import feature ;
+import indirect ;
+import modules ;
+import os ;
+import toolset ;
+
+if [ os.name ] = SOLARIS
+{
+  lib socket ;
+  lib nsl ;
+}
+else if [ os.name ] = NT
+{
+  lib ws2_32 ;
+  lib mswsock ;
+}
+else if [ os.name ] = HPUX
+{
+  lib ipv6 ;
+}
+
+project boost/context/example
+    : requirements
+      <library>/boost/context//boost_context
+      <link>static
+    ;
+
+exe jump
+    : jump.cpp
+    ;
+
+exe exit
+    : exit.cpp
+    ;
+
+exe transfer
+    : transfer.cpp
+    ;

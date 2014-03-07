@@ -1,0 +1,259 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Device</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+    <STYLE> P.concept { margin:.5em } </STYLE>
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Device</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<H2>Description</H2>
+
+<P>
+    A Device provides access to one or two character sequences. It may provide access to an <SPAN CLASS="term">input sequence</SPAN>, for reading, an <SPAN CLASS="term">output sequence</SPAN>, for writing, or both. The relationship between the two sequences, as well as the operations that may be performed on them, depends on the Device type.
+</P> 
+<P>
+    Typically, Devices are class types which define one or more member functions <CODE>read</CODE>, <CODE>write</CODE> and <CODE>seek</CODE>. The concept Device is defined a bit more broadly, however, so that pre-existing types, such as standard streams and stream buffers, can be treated as models of Device, and so that Devices managing in-memory sequences can be optimized.
+</P> 
+<P>
+    Each Device type has an associated character type and category. The <A HREF="../guide/traits.html#char_type">character type</A> is the type of the characters in the sequence or sequences controlled by instances of the Device. The <A HREF="../guide/traits.html#category">category</A> is a tag structure which the Iostreams library relies on to determine which operations the Device supports. Its function is similar to the <CODE>iterator_category</CODE> member of <CODE>std::iterator_traits</CODE>.<A CLASS="footnote_ref" NAME="note_1_ref" HREF="#note_1"><SUP>[1]</SUP></A>
+</P>
+<P>
+    There is one refinement of Device for each of the eight <A HREF="../guide/modes.html">modes</A>, and for each such refinement there is a corresponding refinement of <A HREF="filter.html">Filter</A>. In order to express this corresponce cleanly, it is helpful to include the requirements of the various refinements of Device in the definition of Device itself, qualified by category. The various refinements of Device can then be characterized exactly by the following definitions. For convenience, the requirements of the four most common Device refinements are also documented individually.
+</P>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Concept</TH><TH>Definition</TH></TR>
+    <TR>
+        <TD><A href="source.html">Source</A></TD>
+        <TD>Refinement of Device with mode convertible to <A HREF="../guide/modes.html#input"><CODE>input</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD><A href="sink.html">Sink</A></TD>
+        <TD>Refinement of Device with mode convertible to <A HREF="../guide/modes.html#output"><CODE>output</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD><A href="bidirectional_device.html">BidirectionalDevice</A></TD>
+        <TD>Refinement of Device with mode convertible to <A HREF="../guide/modes.html#bidirectional"><CODE>bidirectional</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD><A href="seekable_device.html">SeekableDevice</A></TD>
+        <TD>Refinement of Device with mode convertible to <A HREF="../guide/modes.html#seekable"><CODE>seekable</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD>SeekableSource</TD>
+        <TD>Refinement of Device with mode convertible to <A HREF="../guide/modes.html#input_seekable"><CODE>input_seekable</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD>SeekableSink</TD>
+        <TD>Refinement of Device with mode convertible to <A HREF="../guide/modes.html#output_seekable"><CODE>output_seekable</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD>BidirectionalSeekableDevice</TD>
+        <TD>Refinement of Device with mode convertible to <A HREF="../guide/modes.html#bidirectional_seekable"><CODE>bidirectional_seekable</CODE></A></TD>
+    </TR>
+    <TR>
+        <TD>DualSeekableDevice</TD>
+        <TD>Refinement of Device with mode convertible to <A HREF="../guide/modes.html#dual_seekable"><CODE>dual_seekable</CODE></A></TD>
+    </TR>
+</TABLE>
+
+<H2>Note</H2>
+
+<P>To be usable with the streams and stream buffers provided by the Boost Iostreams library, Devices must model <A HREF="blocking.html">Blocking</A>.
+
+<H2>Standard Streams and Stream Buffers</H2>
+
+<P>
+    Standard streams and stream buffers are models of Device. It is not possible to tell the exact <A HREF="../guide/modes.html">mode</A> of an arbitrary stream or stream buffer, so the Iostreams library must make an educated guess. (<I>See</I> <A HREF="../classes/mode.html#type">Class Template <CODE>mode_of</CODE>.</A>) Since this guess may not accurately reflect the behavior of a particular stream or stream buffer, the user is allowed some flexibility when adding a stream or stream buffer to a <A HREF="../classes/chain.html">filter chain</A>. In such cases, it is up to the user to ensure that the behavior of the stream or stream buffer is consistent with the <A HREF="../guide/modes.html">mode</A> of the chain.
+</P>
+
+<H2>Refinement of</H2>
+
+<A NAME="types"></A>
+<H2>Associated Types</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TD>Character type</TD><TD>The type of the characters in the controlled sequences</TD></TR>
+    <TR>
+        <TD>Category</TD>
+        <TD>
+            A type convertible to <A HREF="../guide/traits.html#category_tags"><CODE>device_tag</CODE></A> and to a unique <I>most-derived</I> <A HREF="../guide/modes.html#mode_tags">mode tag</A>
+        </TD>
+    </TR>
+    <TR>
+        <TD>Mode</TD>
+        <TD>
+            The unique <I>most-derived</I> <A HREF="../guide/modes.html#mode_tags">mode tag</A> to which Category is convertible
+        </TD>
+    </TR>
+</TABLE>
+
+<H2>Notation</H2>
+
+<TABLE CELLPADDING="2">
+    <TR><TD><CODE>D</CODE></TD><TD>- A type which is a model of Device</TD></TR>
+    <TR><TD><CODE>Ch</CODE></TD><TD>- The character type of <CODE>D</CODE></TD></TR>
+    <TR><TD><CODE>dev</CODE></TD><TD>- Object of type <CODE>D</CODE></TD></TR>
+    <TR><TD><CODE>s1</CODE></TD><TD>- Object of type <CODE>Ch*</CODE></TD></TR>
+    <TR><TD><CODE>s2</CODE></TD><TD>- Object of type <CODE>const Ch*</CODE></TD></TR>
+    <TR><TD><CODE>n</CODE></TD><TD>- Object of type <CODE>std::streamsize</CODE></TD></TR>
+    <TR><TD><CODE>off</CODE></TD><TD>- Object of type <A HREF="../functions/positioning.html#synopsis"><CODE>stream_offset</CODE></A></TD></TR>
+    <TR><TD><CODE>way</CODE></TD><TD>- Object of type <CODE>std::ios_base::seekdir</CODE></TD></TR>
+    <TR><TD><CODE>which</CODE></TD><TD>- Object of type <CODE>std::ios_base::openmode</CODE></TD></TR>
+    <TR><TD><CODE>io</CODE></TD><TD>- Alias for namespace <CODE>boost::iostreams</CODE></TD></TR>
+</TABLE>
+
+
+<A NAME="expressions"></A>
+<H2>Valid Expressions &#8212; Typenames</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH></TR>
+    <TR>
+        <TD><CODE>typename <A HREF="../guide/traits.html#char_type_of_ref">char_type_of</A>&lt;D&gt;::type</CODE></TD>
+        <TD><CODE>typename</CODE> of the character type</TD>
+    </TR>
+    <TR>
+        <TD><CODE>typename <A HREF="../guide/traits.html#category_ref">category_of</A>&lt;D&gt;::type</CODE></TD>
+        <TD><CODE>typename</CODE> of the category</TD>
+    </TR>
+</TABLE>
+
+<H2>Valid Expressions / Semantics &#8212; Input</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH><TH>Category Precondition</TH><TH>Semantics</TH></TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE><A HREF="../functions/read.html">io::read</A>(dev, s1, n)</CODE></PRE></TD>
+        <TD><CODE>std::streamsize</CODE></TD>
+        <TD>
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>input</CODE></A> but not to <A HREF="../guide/traits.html#category_tags"><CODE>direct_tag</CODE></A>
+        </TD>
+        <TD>
+            Reads up to <CODE>n</CODE> characters from the sequence controlled by <CODE>dev</CODE> into <CODE>s1</CODE>, returning the number of characters read, or <CODE>-1</CODE> to indicate end-of-sequence
+        </TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>dev.input_sequence()</CODE></PRE></TD>
+        <TD><PRE CLASS="plain_code"><CODE>std::pair&lt;Ch*,Ch*&gt;</CODE></PRE></TD>
+        <TD>
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>input</CODE></A> and to <A HREF="../guide/traits.html#category_tags"><CODE>direct_tag</CODE></A>
+        </TD>
+        <TD>Returns a pair of pointers delimiting the sequence controlled by <CODE>dev</CODE></TD>
+    </TR>
+</TABLE>
+
+<H2>Valid Expressions / Semantics &#8212; Output</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH><TH>Category Precondition</TH><TH>Semantics</TH></TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE><A HREF="../functions/write.html">io::write</A>(dev, s2, n)</CODE></PRE></TD>
+        <TD><CODE>std::streamsize</CODE></TD>
+        <TD>
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>output</CODE></A> but not to <A HREF="../guide/traits.html#category_tags"><CODE>direct_tag</CODE></A>
+        </TD>
+        <TD>
+            Writes up to <CODE>n</CODE> characters from the sequence beginning at <CODE>s2</CODE> to the sequence controlled by <CODE>dev</CODE>, returning the number of characters written
+        </TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE>dev.output_sequence()</CODE></PRE></TD>
+        <TD><PRE CLASS="plain_code"><CODE>std::pair&lt;Ch*,Ch*&gt;</CODE></PRE></TD>
+        <TD>
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>output</CODE></A> and to <A HREF="../guide/traits.html#category_tags"><CODE>direct_tag</CODE></A>
+        </TD>
+        <TD>Returns a pair of pointers delimiting the sequence controlled by <CODE>dev</CODE></TD>
+    </TR>
+</TABLE>
+
+<H2>Valid Expressions / Semantics &#8212; Random-Access</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TH>Expression</TH><TH>Expression Type</TH><TH>Category Precondition</TH><TH>Semantics</TH></TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE><A HREF="../functions/seek.html">io::seek</A>(dev, off, way)</CODE></PRE></TD>
+        <TD><CODE>std::streampos</CODE></TD>
+        <TD>
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>seekable</CODE></A> but not to <A HREF="../guide/traits.html#category_tags"><CODE>direct_tag</CODE></A>
+        </TD>
+        <TD>
+            <P CLASS="concept">
+                Advances the read/write head by <CODE>off</CODE> characters, returning the new position, where the offset is calculated from:
+            </P>
+            <UL STYLE="margin:0,0,0,auto">
+                <LI STYLE="list-style-type:disc;list-style-image:none">the start of the sequence if <CODE>way</CODE> is <CODE>ios_base::beg</CODE>
+                <LI STYLE="list-style-type:disc;list-style-image:none">the current position if <CODE>way</CODE> is <CODE>ios_base::cur</CODE>
+                <LI STYLE="list-style-type:disc;list-style-image:none">the end of the sequence if <CODE>way</CODE> is <CODE>ios_base::end</CODE>
+            </UL>
+        </TD>
+    </TR>
+    <TR>
+        <TD><PRE CLASS="plain_code"><CODE><A HREF="../functions/seek.html">io::seek</A>(dev, off, way, which)</CODE></PRE></TD>
+        <TD><CODE>std::streampos</CODE></TD>
+        <TD>
+            Convertible to <A HREF="../guide/modes.html#mode_tags"><CODE>dual_seekable</CODE></A> or <A HREF="../guide/modes.html#mode_tags"><CODE>bidirectional_seekable</CODE></A> but not to <A HREF="../guide/traits.html#category_tags"><CODE>direct_tag</CODE></A>
+        </TD>
+        <TD>
+             <P CLASS="concept">
+                Advances the read head (if <CODE>which</CODE> is <CODE>std::ios_base::in</CODE>), the write head (if <CODE>which</CODE> is <CODE>std::ios_base::out</CODE>) or both heads (if <CODE>which</CODE> is <CODE>std::ios_base::in | std::ios_base::out</CODE>) by <CODE>off</CODE> characters, returning the new position, where the offset is calculated from
+            </P>
+            <UL STYLE="margin:0,0,0,auto">
+                <LI STYLE="list-style-type:disc;list-style-image:none">the start of the sequence if <CODE>way</CODE> is <CODE>ios_base::beg</CODE>
+                <LI STYLE="list-style-type:disc;list-style-image:none">the current position if <CODE>way</CODE> is <CODE>ios_base::cur</CODE>
+                <LI STYLE="list-style-type:disc;list-style-image:none">the end of the sequence if <CODE>way</CODE> is <CODE>ios_base::end</CODE>
+            </UL>
+            <P CLASS="concept">
+                The result is undefined if <CODE>way</CODE> is <CODE>ios_base::cur</CODE> and <CODE>which</CODE> is <CODE>(std::ios_base::in | std::ios_base::out)</CODE>.
+            </P>
+        </TD>
+    </TR>
+</TABLE>
+
+<H2>Exceptions</H2>
+
+<P>
+    Errors which occur during the execution of <CODE>read</CODE>, <CODE>write</CODE>, <CODE>seek</CODE>, <CODE>input_sequence</CODE> or <CODE>output_sequence</CODE> are indicated by throwing exceptions. Reaching the end of the input sequence is not an error, but attempting to write past the end of the output sequence is.
+</P>
+
+<P>
+    After an exception is thrown, a Device must be in a consistent state; further i/o operations may throw exceptions but must have well-defined behaviour.
+</P>
+
+<H2>Models</H2>
+
+<P>
+    See <A HREF="source.html">Source</A>, <A HREF="sink.html">Sink</A>, <A HREF="bidirectional_device.html">BidirectionalDevice</A> and <A HREF="seekable_device.html">SeekableDevice</A>.
+</P>
+
+<!-- Begin Footnotes -->
+
+<HR>
+
+<P>
+    <A CLASS="footnote_ref" NAME="note_1" HREF="#note_1_ref"><SUP>[1]</SUP></A><A CLASS="bib_ref" HREF="../bibliography.html#iso">[I<SPAN STYLE="font-size:80%">SO</SPAN>]</A>, 24.3.1. <I>See</I> <A HREF="http://www.boost.org/more/generic_programming.html#tag_dispatching" TARGET="_top">Tag Dispatching</A> for a discussion.
+</P>
+
+<!-- End Footnotes -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

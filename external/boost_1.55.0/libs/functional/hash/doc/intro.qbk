@@ -1,0 +1,52 @@
+
+[/ Copyright 2005-2008 Daniel James.
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) ]
+
+[section:intro Introduction]
+
+[def __tr1-full__
+    [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2005/n1836.pdf
+    Draft Technical Report on C++ Library Extensions]]
+[def __tr1__
+    [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2005/n1836.pdf
+    TR1]]
+[def __unordered__ [link unordered Boost.Unordered]]
+[def __intrusive__ [link intrusive.unordered_set_unordered_multiset Boost.Intrusive]]
+[def __multi-index__ [@boost:/libs/multi_index/doc/index.html
+    Boost Multi-Index Containers Library]]
+[def __multi-index-short__ [@boost:/libs/multi_index/doc/index.html
+    Boost.MultiIndex]]
+[def __bimap__ [@boost:/libs/bimap/index.html Boost.Bimap]]
+[def __hash-function__ [@http://en.wikipedia.org/wiki/Hash_function hash function]]
+[def __hash-table__ [@http://en.wikipedia.org/wiki/Hash_table hash table]]
+
+[classref boost::hash] is an implementation of the __hash-function__ object
+specified by the __tr1-full__ (TR1). It is the default hash function for
+__unordered__, __intrusive__'s unordered associative containers, and
+__multi-index-short__'s hash indicies and __bimap__'s `unordered_set_of`.
+
+As it is compliant with __tr1__, it will work with:
+
+* integers
+* floats
+* pointers
+* strings
+
+It also implements the extension proposed by Peter Dimov in issue 6.18 of the
+__issues__ (page 63), this adds support for:
+
+* arrays
+* `std::pair`
+* the standard containers.
+* extending [classref boost::hash] for custom types.
+
+[note
+This hash function is designed to be used in containers based on
+the STL and is not suitable as a general purpose hash function.
+For more details see the [link hash.rationale rationale].
+]
+
+
+[endsect]
+

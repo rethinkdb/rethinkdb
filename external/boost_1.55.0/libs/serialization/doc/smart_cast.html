@@ -1,0 +1,155 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - BOOST_STATIC_WARNING</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center"><code>smart_cast</code></h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<h3>Motivation</h3>
+To cast from one type to another related type, C++ provides the following
+operators:
+
+<dl>
+  <dt><code>static_cast&lt;T *<&gt;(U *)<br>static_cast&lt;T &<&gt;(U &)</code></dt>
+  <dd>
+    <ul>
+      <li>required if neither T nor U are not polymorphic
+      <li>permitted in other cases.
+      <li>fails to detect erroneas casts of polymophic pointers/references at runtime.
+      <li>does not permit "cross casting"
+      <li>inline function calls can be optimized away during compile time.
+    </ul>
+  </dd>
+  <p>
+  <dt><code>dynamic_cast&lt;T *<&gt;(U *)<br>dynamic_cast&lt;T &<&gt;(U &)</code></dt>
+  <dd>
+    <ul>
+      <li>permitted if either T or U are polymorphic
+      <li>prohibited in other cases.
+      <li>throws exception on detecting erroneas casts of polymorphic pointers/references
+          at runtime.
+      <li>permits "cross casting"
+      <li>cannot optimise inline virtual functions at compile time.
+    </ul>
+  </dd>
+</dl>
+
+These rules can make it difficult to use casting with a function template argument.
+Consider the following example:
+
+<pre><code>
+#include &lt;boost/serialization/smart_cast.hpp&gt;
+
+struct top {
+};
+
+struct base1 : public top {
+    bool is_storable() const {
+        return true;
+    }
+    virtual ~base1();
+};
+
+struct base2 {
+    virtual ~base2();
+};
+
+struct derived1 :
+    public base1
+{
+    derived1();
+};
+
+struct derived2 :
+    public base1, 
+    public base2
+{
+    derived2();
+};
+
+template&lt;class T&gt;
+bool is_storable(T &amp;t){
+    // what type of cast to use here?
+
+    // this fails at compiler time when T == base2
+    // return static_cast&lt;base1 &amp;&gt;(t).is_storable();
+
+    // this fails at compiler time when T == top
+    // otherwise it works but cannot optimize inline function call
+    // return dynamic_cast&lt;base1 &amp;&gt;(t).is_storable();
+
+    // this always works - and is guarenteed to generate the fastest code !
+    return (boost::smart_cast_reference&lt;base1 &amp;&gt;(t)).is_storable();
+}
+
+int main(){
+    derived1 d1;
+    top &amp; t1 = d1;
+    derived2 d2;
+    base2 &amp; b2 = d2;
+
+    bool result;
+    result = is_storable(d1);   
+    result = is_storable(d2);   
+    result = is_storable(b2);
+    result = is_storable(b2);
+    result = is_storable(t1);
+    return 0;
+}
+</code></pre>
+The serialization library includes a mix of classes which use
+both static polymorphism (<strong>CRTP</strong>) and dynamic
+polymorphism via virtual functions.  <code style="white-space: normal">smart_cast</code> 
+was written to address the more problematic manifestations of the
+situation exmplified above.
+
+<h3>Usage</h3>
+The following syntax is supported:
+<pre><code>
+smart_cast&lt;Target *, Source *&gt;(Source * s);
+smart_cast&lt;Target *>(Source * s);
+smart_cast&lt;Target &, Source &amp;&gt(Source &amp; s);
+</code></pre>
+Note that the above syntax doesn't include 
+<pre><code>
+smart_cast&lt;Target &amp; &gt(Source &amp; s)
+</code></pre>
+but the same functionality is supported the the following special syntax
+<pre><code>
+smart_cast_reference&lt;Target &amp;&gt(Source &amp; s)
+</code></pre>
+
+<h3>Requirements</h3>
+<code style="white-space: normal">smart_cast</code> can be used only on compilers that support partial
+template specialization or on types for which have be specified with the
+macro <code style="white-space: normal">
+BOOST_BROKEN_COMPILER_TYPE_TRAITS_SPECIALIZATION(&lt;type&gt;)</code>
+has been applied.
+
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

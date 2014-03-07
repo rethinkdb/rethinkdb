@@ -1,0 +1,47 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:add_reference add_reference]
+
+[note This trait has been made obsolete by __add_lvalue_reference and __add_rvalue_reference, 
+and new code should use these new traits rather than __is_reference which is retained
+for backwards compatibility only.
+]
+
+
+   template <class T>
+   struct add_reference
+   {
+      typedef __below type;
+   };
+  
+__type If `T` is not a reference type then `T&`, otherwise `T`.
+
+__std_ref 8.3.2.
+
+__compat If the compiler does not support partial specialization of class-templates
+then this template will compile, but the member `type` will always be the same as 
+type `T` except where __transform_workaround have been applied.
+
+__header ` #include <boost/type_traits/add_reference.hpp>` or ` #include <boost/type_traits.hpp>`
+
+[table Examples
+
+[ [Expression] [Result Type]]
+
+[[`add_reference<int>::type`][`int&`]]
+
+[[`add_reference<int const&>::type`] [`int const&`]]
+
+[[`add_reference<int*>::type`] [`int*&`]]
+
+[[`add_reference<int*&>::type`] [`int*&`]]
+
+]
+
+[endsect]
+

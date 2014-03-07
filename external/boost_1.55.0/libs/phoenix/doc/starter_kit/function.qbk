@@ -1,0 +1,63 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Lazy Functions]
+
+As you write more lambda functions, you'll notice certain patterns that you wish
+to refactor as reusable functions. When you reach that point, you'll wish that
+ordinary functions can co-exist with phoenix functions. Unfortunately, the
+/immediate/ nature of plain C++ functions make them incompatible.
+
+Lazy functions are your friends. The library provides a facility to make lazy
+functions. The code below is a rewrite of the `is_odd` function using the
+facility:
+
+    struct is_odd_impl
+    {
+        typedef bool result_type;
+
+        template <typename Arg>
+        bool operator()(Arg arg1) const
+        {
+            return arg1 % 2 == 1;
+        }
+    };
+
+    function<is_odd_impl> is_odd;
+
+[heading Things to note:]
+
+[/
+* `result` is a nested metafunction that reflects the return type of the
+  function (in this case, bool). This makes the function fully polymorphic:
+  It can work with arbitrary `Arg` types.
+* There are as many Args in the `result` metafunction as in the actual
+  `operator()`.
+]
+* Result type deduction is implemented with the help of the result_of protocol.
+  For more information see __boost_result_of__
+* `is_odd_impl` implements the function.
+* `is_odd`, an instance of `function<is_odd_impl>`, is the lazy function.
+
+Now, `is_odd` is a truly lazy function that we can use in conjunction with the
+rest of phoenix. Example:
+
+    std::find_if(c.begin(), c.end(), is_odd(arg1));
+
+(See [@../../example/function.cpp function.cpp])
+
+[heading Predefined Lazy Functions]
+
+The library is chock full of STL savvy, predefined lazy functions covering the
+whole of the STL containers, iterators and algorithms. For example, there are lazy
+versions of container related operations such as assign, at, back, begin,
+pop_back, pop_front, push_back, push_front, etc. (See [link phoenix.modules.stl
+STL]).
+
+[endsect]

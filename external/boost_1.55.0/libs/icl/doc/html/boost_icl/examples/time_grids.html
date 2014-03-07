@@ -1,0 +1,185 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Time grids for months and weeks</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../examples.html" title="Examples">
+<link rel="prev" href="partys_tallest_guests.html" title="Party's tallest guests">
+<link rel="next" href="man_power.html" title="Man power">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="partys_tallest_guests.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="man_power.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_examples_time_grids" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.examples.time_grids"></a><a class="link" href="time_grids.html" title="Time grids for months and weeks"> Time grids for months
+      and weeks</a>
+</h3></div></div></div>
+<p>
+        A <code class="computeroutput"><a class="link" href="../../boost/icl/split_interval_set.html" title="Class template split_interval_set">split_interval_set</a></code>
+        preserves all interval borders on insertion and intersection operations.
+        So given a <code class="computeroutput"><a class="link" href="../../boost/icl/split_interval_set.html" title="Class template split_interval_set">split_interval_set</a></code>
+        and an addition of an interval 
+</p>
+<pre class="programlisting"><span class="identifier">x</span> <span class="special">=</span>  <span class="special">{[</span><span class="number">1</span><span class="special">,</span>     <span class="number">3</span><span class="special">)}</span>
+<span class="identifier">x</span><span class="special">.</span><span class="identifier">add</span><span class="special">(</span>     <span class="special">[</span><span class="number">2</span><span class="special">,</span>     <span class="number">4</span><span class="special">))</span> 
+</pre>
+<p>
+        then the intervals are split at their borders 
+</p>
+<pre class="programlisting"><span class="identifier">x</span> <span class="special">==</span> <span class="special">{[</span><span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">)[</span><span class="number">2</span><span class="special">,</span><span class="number">3</span><span class="special">)[</span><span class="number">3</span><span class="special">,</span><span class="number">4</span><span class="special">)}</span>
+</pre>
+<p>
+        Using this property we can intersect <code class="computeroutput"><a class="link" href="../../boost/icl/split_interval_map.html" title="Class template split_interval_map">split_interval_maps</a></code>
+        in order to iterate over intervals accounting for all occurring changes of
+        interval borders.
+      </p>
+<p>
+        In this example we provide an intersection of two <code class="computeroutput"><a class="link" href="../../boost/icl/split_interval_set.html" title="Class template split_interval_set">split_interval_sets</a></code>
+        representing a month and week time grid.
+      </p>
+<p>
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="comment">// The next line includes &lt;boost/gregorian/date.hpp&gt;
+</span><span class="comment">// and a few lines of adapter code.
+</span><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">gregorian</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span> 
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">split_interval_set</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">gregorian</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">icl</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">split_interval_set</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">gregorian</span><span class="special">::</span><span class="identifier">date</span><span class="special">&gt;</span> <span class="identifier">date_grid</span><span class="special">;</span>
+
+<span class="comment">// This function splits a gregorian::date interval 'scope' into a month grid:
+</span><span class="comment">// For every month contained in 'scope' that month is contained as interval
+</span><span class="comment">// in the resulting split_interval_set.
+</span><span class="identifier">date_grid</span> <span class="identifier">month_grid</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;&amp;</span> <span class="identifier">scope</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">split_interval_set</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;</span> <span class="identifier">month_grid</span><span class="special">;</span>
+
+    <span class="identifier">date</span> <span class="identifier">frame_months_1st</span> <span class="special">=</span> <span class="identifier">first</span><span class="special">(</span><span class="identifier">scope</span><span class="special">).</span><span class="identifier">end_of_month</span><span class="special">()</span> <span class="special">+</span> <span class="identifier">days</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">-</span> <span class="identifier">months</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+    <span class="identifier">month_iterator</span> <span class="identifier">month_iter</span><span class="special">(</span><span class="identifier">frame_months_1st</span><span class="special">);</span>
+
+    <span class="keyword">for</span><span class="special">(;</span> <span class="identifier">month_iter</span> <span class="special">&lt;=</span> <span class="identifier">last</span><span class="special">(</span><span class="identifier">scope</span><span class="special">);</span> <span class="special">++</span><span class="identifier">month_iter</span><span class="special">)</span>
+        <span class="identifier">month_grid</span> <span class="special">+=</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(*</span><span class="identifier">month_iter</span><span class="special">,</span> <span class="special">*</span><span class="identifier">month_iter</span> <span class="special">+</span> <span class="identifier">months</span><span class="special">(</span><span class="number">1</span><span class="special">));</span>
+
+    <span class="identifier">month_grid</span> <span class="special">&amp;=</span> <span class="identifier">scope</span><span class="special">;</span> <span class="comment">// cut off the surplus
+</span>
+    <span class="keyword">return</span> <span class="identifier">month_grid</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// This function splits a gregorian::date interval 'scope' into a week grid:
+</span><span class="comment">// For every week contained in 'scope' that month is contained as interval
+</span><span class="comment">// in the resulting split_interval_set.
+</span><span class="identifier">date_grid</span> <span class="identifier">week_grid</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;&amp;</span> <span class="identifier">scope</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">split_interval_set</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;</span> <span class="identifier">week_grid</span><span class="special">;</span>
+
+    <span class="identifier">date</span> <span class="identifier">frame_weeks_1st</span> <span class="special">=</span> <span class="identifier">first</span><span class="special">(</span><span class="identifier">scope</span><span class="special">)</span> <span class="special">+</span> <span class="identifier">days</span><span class="special">(</span><span class="identifier">days_until_weekday</span><span class="special">(</span><span class="identifier">first</span><span class="special">(</span><span class="identifier">scope</span><span class="special">),</span> <span class="identifier">greg_weekday</span><span class="special">(</span><span class="identifier">Monday</span><span class="special">)))</span> <span class="special">-</span> <span class="identifier">weeks</span><span class="special">(</span><span class="number">1</span><span class="special">);</span>
+    <span class="identifier">week_iterator</span> <span class="identifier">week_iter</span><span class="special">(</span><span class="identifier">frame_weeks_1st</span><span class="special">);</span>
+
+    <span class="keyword">for</span><span class="special">(;</span> <span class="identifier">week_iter</span> <span class="special">&lt;=</span> <span class="identifier">last</span><span class="special">(</span><span class="identifier">scope</span><span class="special">);</span> <span class="special">++</span><span class="identifier">week_iter</span><span class="special">)</span>
+        <span class="identifier">week_grid</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(*</span><span class="identifier">week_iter</span><span class="special">,</span> <span class="special">*</span><span class="identifier">week_iter</span> <span class="special">+</span> <span class="identifier">weeks</span><span class="special">(</span><span class="number">1</span><span class="special">)));</span>
+
+    <span class="identifier">week_grid</span> <span class="special">&amp;=</span> <span class="identifier">scope</span><span class="special">;</span> <span class="comment">// cut off the surplus
+</span>
+    <span class="keyword">return</span> <span class="identifier">week_grid</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// For a period of two months, starting from today, the function
+</span><span class="comment">// computes a partitioning for months and weeks using intersection
+</span><span class="comment">// operator &amp;= on split_interval_sets.
+</span><span class="keyword">void</span> <span class="identifier">month_and_time_grid</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">date</span> <span class="identifier">someday</span> <span class="special">=</span> <span class="identifier">day_clock</span><span class="special">::</span><span class="identifier">local_day</span><span class="special">();</span>
+    <span class="identifier">date</span> <span class="identifier">thenday</span> <span class="special">=</span> <span class="identifier">someday</span> <span class="special">+</span> <span class="identifier">months</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+
+    <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;</span> <span class="identifier">itv</span> <span class="special">=</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">date</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(</span><span class="identifier">someday</span><span class="special">,</span> <span class="identifier">thenday</span><span class="special">);</span>
+
+    <span class="comment">// Compute a month grid
+</span>    <span class="identifier">date_grid</span> <span class="identifier">month_and_week_grid</span> <span class="special">=</span> <span class="identifier">month_grid</span><span class="special">(</span><span class="identifier">itv</span><span class="special">);</span>
+    <span class="comment">// Intersection of the month and week grids:
+</span>    <span class="identifier">month_and_week_grid</span> <span class="special">&amp;=</span> <span class="identifier">week_grid</span><span class="special">(</span><span class="identifier">itv</span><span class="special">);</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"interval : "</span> <span class="special">&lt;&lt;</span> <span class="identifier">first</span><span class="special">(</span><span class="identifier">itv</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">" - "</span> <span class="special">&lt;&lt;</span> <span class="identifier">last</span><span class="special">(</span><span class="identifier">itv</span><span class="special">)</span> 
+         <span class="special">&lt;&lt;</span> <span class="string">" month and week partitions:"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"---------------------------------------------------------------\n"</span><span class="special">;</span>
+
+    <span class="keyword">for</span><span class="special">(</span><span class="identifier">date_grid</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">month_and_week_grid</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span> 
+        <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">month_and_week_grid</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span> <span class="identifier">it</span><span class="special">++)</span>
+    <span class="special">{</span>
+        <span class="keyword">if</span><span class="special">(</span><span class="identifier">first</span><span class="special">(*</span><span class="identifier">it</span><span class="special">).</span><span class="identifier">day</span><span class="special">()</span> <span class="special">==</span> <span class="number">1</span><span class="special">)</span>
+            <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"new month: "</span><span class="special">;</span>
+        <span class="keyword">else</span> <span class="keyword">if</span><span class="special">(</span><span class="identifier">first</span><span class="special">(*</span><span class="identifier">it</span><span class="special">).</span><span class="identifier">day_of_week</span><span class="special">()==</span><span class="identifier">greg_weekday</span><span class="special">(</span><span class="identifier">Monday</span><span class="special">))</span>
+            <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"new week : "</span> <span class="special">;</span>
+        <span class="keyword">else</span> <span class="keyword">if</span><span class="special">(</span><span class="identifier">it</span> <span class="special">==</span> <span class="identifier">month_and_week_grid</span><span class="special">.</span><span class="identifier">begin</span><span class="special">())</span>
+            <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"first day: "</span> <span class="special">;</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">first</span><span class="special">(*</span><span class="identifier">it</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">" - "</span> <span class="special">&lt;&lt;</span> <span class="identifier">last</span><span class="special">(*</span><span class="identifier">it</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"&gt;&gt;Interval Container Library: Sample month_and_time_grid.cpp &lt;&lt;\n"</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"---------------------------------------------------------------\n"</span><span class="special">;</span>
+    <span class="identifier">month_and_time_grid</span><span class="special">();</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// Program output:
+</span><span class="comment">/*
+&gt;&gt;Interval Container Library: Sample month_and_time_grid.cpp &lt;&lt;
+---------------------------------------------------------------
+interval : 2008-Jun-22 - 2008-Aug-21 month and week partitions:
+---------------------------------------------------------------
+first day: 2008-Jun-22 - 2008-Jun-22
+new week : 2008-Jun-23 - 2008-Jun-29
+new week : 2008-Jun-30 - 2008-Jun-30
+new month: 2008-Jul-01 - 2008-Jul-06
+new week : 2008-Jul-07 - 2008-Jul-13
+new week : 2008-Jul-14 - 2008-Jul-20
+new week : 2008-Jul-21 - 2008-Jul-27
+new week : 2008-Jul-28 - 2008-Jul-31
+new month: 2008-Aug-01 - 2008-Aug-03
+new week : 2008-Aug-04 - 2008-Aug-10
+new week : 2008-Aug-11 - 2008-Aug-17
+new week : 2008-Aug-18 - 2008-Aug-21
+*/</span>
+</pre>
+<p>
+        </p>
+<p>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="partys_tallest_guests.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="man_power.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

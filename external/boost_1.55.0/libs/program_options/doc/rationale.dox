@@ -1,0 +1,95 @@
+/** @page rationale Rationale
+
+    @section code_size Focus on code size
+
+    The program options library has two important properties:
+    - runtime performance is not important. After all, command line processing
+      is done only once, and the amount of data is small.
+    - code size matters. Since parsing command line is utility task, users
+    won't be glad to have lots of code linked to every binary which has
+    options.
+    
+    For the above reasons, the the library is designed so that it can be easily
+    used as shared library, with minimum code on the side of main application.
+    In particular, templates are used only where necessary, for example for 
+    validation of user-defined types. In other places, boost::function is
+    used to allow customization, but keep templates out of the public
+    interface.
+
+    @section string_vs_enums Strings vs. enums
+
+    In some places, the library uses strings to convey information that
+    could be represented by enumerations or values. For example, 
+    the program_options::option_description class allows to add "?" to the
+    parameter name to specify that the parameter is optional. For another
+    example, while program_options::cmdline class allows to obtain the
+    index of option, it does not require to specify an index for each option,
+    and it's possible to tell options by their names.
+
+    Such interface appears to be much more usable. If we were using
+    enumeration for different properties of parameter, there would be 
+    another argument to many functions, the need to type long, possible
+    qualified names, and little advantage. 
+
+    That little advantage is that if you type a wrong enumeration name,
+    you'd get a compile error. If you type '!' instead of '?' after parameter
+    name, you'd get incorrect behaviour.  However, such errors are deemed
+    rare.
+
+    @section char_vs_string const char* vs. std::string
+
+    Most of the interface uses const char* where std::string seems a natural 
+    choice. The reason is that those functions are called many times: for
+    example to declare all options. They are typically called with string
+    literals, and implicit conversion to string appears to take a lot of
+    code space. Providing both std::string and const char* version would
+    considerably bloat the interface. Since passing std::string is considered
+    rare, only const char* versions are provided.
+
+    @section init_syntax Initialization syntax
+
+    The syntax used for creating options_description instance was designed to 
+    be as easy as possible in the most common case. Consider:
+    @code
+    desc.add_options()
+            ("verbose", "", "verbosity level")
+            ("magic", "int", "magic value").notify(some_func)
+            ;
+    @endcode
+    Here, most common properties of options: name, presense of parameter and
+    description, are specified very concisely, and additional properties can
+    be given quite naturally, too.
+
+    Another possibility would be:
+    @code
+        option_description d1(...), d2(...);
+        desc.add(d1 & d2);
+    @endcode
+    or         
+    @code
+        option_description d1(...), d2(...);
+        desc = d1, d2;
+    @endcode
+
+    The drawback is the need to explicitly create new objects and give names
+    to them. The latter problem can be helped if objects are created inside
+    expressions:
+    @code
+        desc = option_description(...), option_description(...)
+    @endcode
+    but there's still extra typing.    
+
+    @section help_handling Handling of --help
+
+    It was suggested by Gennadiy Rozental that occurence of <tt>--help</tt>
+    on command line results in throwing an exception. Actually, the 
+    &quot;special&quot; option must have been configurable. This was not 
+    implemented, because applications might reasonable want to process
+    the rest of command line even of <tt>--help</tt> was seen. For example,
+    <tt>--verbose</tt> option can control how much help should be output, 
+    or there may be several subcommand with different help screens.    
+  
+
+      
+
+*/

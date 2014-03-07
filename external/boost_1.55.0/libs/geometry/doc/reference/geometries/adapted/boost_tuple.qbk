@@ -1,0 +1,47 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2008-2012 Bruno Lalande, Paris, France.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section:boost_tuple Boost.Tuple]
+
+Boost.Tuple tuples with arithmetic elements can be used as 
+points within Boost.Geometry
+
+[heading Description]
+
+Boost.Tuple fixed sized collections, such as boost::tuple<double, double>, are 
+(optionally) adapted to the Boost.Geometry point concept.
+
+Boost.Tuple pairs or triples might have mutually different types, such as a 
+boost::tuple<float, double>. Boost.Geometry reports the first type as its 
+[link geometry.reference.core.coordinate_type coordinate_type].
+
+Boost.Geometry supports Boost.Tuple pairs, triples, quadruples, etc up to
+tuples with 10 elements (though most algorithms do not support so many 
+dimensions).
+
+A tuple can be the point type used by the models linestring, polygon, segment, 
+box, and ring
+
+[heading Model of]
+[link geometry.reference.concepts.concept_point Point Concept]
+
+[heading Header]
+`#include <boost/geometry/geometries/adapted/boost_tuple.hpp>`
+
+__not_in_boost_geometry_hpp__
+
+[heading Example]
+[boost_tuple]
+[boost_tuple_output]
+
+[endsect]
+

@@ -1,0 +1,716 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/da.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/da.xml
+ */
+da{
+    Keys{
+        calendar{"Kalender"}
+        collation{"Sortering"}
+        currency{"Valuta"}
+    }
+    Languages{
+        aa{"afar"}
+        ab{"abkhasisk"}
+        ace{"achinesisk"}
+        ach{"acoli"}
+        ada{"adangme"}
+        ady{"adyghe"}
+        ae{"avestan"}
+        af{"afrikaans"}
+        afa{"afro-asiatisk sprog"}
+        afh{"afrihili"}
+        ain{"ainu"}
+        ak{"akan"}
+        akk{"akkadisk"}
+        ale{"aleutisk"}
+        alg{"algonkisk sprog"}
+        alt{"sydaltaisk"}
+        am{"amharisk"}
+        an{"aragonesisk"}
+        ang{"oldengelsk"}
+        anp{"angika"}
+        apa{"apachesprog"}
+        ar{"arabisk"}
+        arc{"aramæisk"}
+        arn{"araukansk"}
+        arp{"arapaho"}
+        art{"kunstsprog"}
+        arw{"arawak"}
+        as{"assamesisk"}
+        asa{"asu"}
+        ast{"asturisk"}
+        ath{"athapaskisk sprog"}
+        aus{"australsk sprog"}
+        av{"avarisk"}
+        awa{"awadhi"}
+        ay{"aymara"}
+        az{"aserbajdsjansk"}
+        ba{"bashkir"}
+        bad{"banda"}
+        bai{"bamilekisk sprog"}
+        bal{"baluchi"}
+        ban{"balinesisk"}
+        bas{"basa"}
+        bat{"baltisk sprog"}
+        be{"hviderussisk"}
+        bej{"beja"}
+        bem{"bemba"}
+        ber{"berberisk"}
+        bez{"bena"}
+        bg{"bulgarsk"}
+        bh{"bihari"}
+        bho{"bhojpuri"}
+        bi{"bislama"}
+        bik{"bikol"}
+        bin{"bini"}
+        bla{"siksika"}
+        bm{"bambara"}
+        bn{"bengalsk"}
+        bnt{"bantu"}
+        bo{"tibetansk"}
+        br{"bretonsk"}
+        bra{"braj"}
+        bs{"bosnisk"}
+        btk{"batak"}
+        bua{"buriatisk"}
+        bug{"buginesisk"}
+        byn{"blin"}
+        ca{"catalansk"}
+        cad{"caddo"}
+        cai{"mellemamerikansk indiansk sprog"}
+        car{"caribisk"}
+        cau{"kaukasisk sprog"}
+        cch{"atsam"}
+        ce{"tjetjensk"}
+        ceb{"cebuano"}
+        cel{"keltisk sprog"}
+        ch{"chamorro"}
+        chb{"chibcha"}
+        chg{"chagatai"}
+        chk{"chuukese"}
+        chm{"mari"}
+        chn{"chinook"}
+        cho{"choctaw"}
+        chp{"chipewyan"}
+        chr{"cherokee"}
+        chy{"cheyenne"}
+        cmc{"chamiske sprog"}
+        co{"korsikansk"}
+        cop{"koptisk"}
+        cpe{"engelsk baseret kreolsk eller pidgin"}
+        cpf{"fransk baseret kreolsk eller pidginsprog"}
+        cpp{"portugisisk baseret kreolsk eller pidginsprog"}
+        cr{"cree"}
+        crh{"krim tyrkisk"}
+        crp{"kreolsk eller pidginsprog"}
+        cs{"tjekkisk"}
+        csb{"kasjubisk"}
+        cu{"kirkeslavisk"}
+        cus{"kusjitisk sprog"}
+        cv{"chuvash"}
+        cy{"walisisk"}
+        da{"dansk"}
+        dak{"dakota"}
+        dar{"dargwa"}
+        day{"dayak"}
+        de{"tysk"}
+        de_AT{"østrigsk tysk"}
+        de_CH{"schweizerhøjtysk"}
+        del{"delaware"}
+        den{"athapaskisk"}
+        dgr{"dogrib"}
+        din{"dinka"}
+        doi{"dogri"}
+        dra{"dravidisk sprog"}
+        dsb{"nedersorbisk"}
+        dua{"duala"}
+        dum{"middelhollandsk"}
+        dv{"divehi"}
+        dyu{"dyula"}
+        dz{"dzongkha"}
+        ebu{"kiembu"}
+        ee{"ewe"}
+        efi{"efik"}
+        egy{"oldegyptisk"}
+        eka{"ekajuk"}
+        el{"græsk"}
+        elx{"elamitisk"}
+        en{"engelsk"}
+        en_AU{"australsk engelsk"}
+        en_CA{"canadisk engelsk"}
+        en_GB{"britisk engelsk"}
+        en_US{"amerikansk engelsk"}
+        enm{"middelengelsk"}
+        eo{"esperanto"}
+        es{"spansk"}
+        es_419{"latinamerikansk spansk"}
+        es_ES{"castiliansk spansk"}
+        et{"estisk"}
+        eu{"baskisk"}
+        ewo{"ewondo"}
+        fa{"persisk"}
+        fan{"fang"}
+        fat{"fanti"}
+        ff{"fulah"}
+        fi{"finsk"}
+        fil{"filippinsk"}
+        fiu{"finsk-ugrisk sprog"}
+        fj{"fijiansk"}
+        fo{"færøsk"}
+        fon{"fon"}
+        fr{"fransk"}
+        fr_CA{"canadisk fransk"}
+        fr_CH{"schweizisk fransk"}
+        frm{"middelfransk"}
+        fro{"oldfransk"}
+        frr{"nordfrisisk"}
+        frs{"østfrisisk"}
+        fur{"friulian"}
+        fy{"frisisk"}
+        ga{"irsk"}
+        gaa{"ga"}
+        gay{"gayo"}
+        gba{"gbaya"}
+        gd{"skotsk gælisk"}
+        gem{"germansk sprog"}
+        gez{"geez"}
+        gil{"gilbertesisk"}
+        gl{"galicisk"}
+        gmh{"middelhøjtysk"}
+        gn{"guarani"}
+        goh{"oldhøjtysk"}
+        gon{"gondi"}
+        gor{"gorontalo"}
+        got{"gotisk"}
+        grb{"grebo"}
+        grc{"oldgræsk"}
+        gsw{"schweizertysk"}
+        gu{"gujarati"}
+        gv{"manx"}
+        gwi{"gwichin"}
+        ha{"hausa"}
+        hai{"haida"}
+        haw{"hawaiiansk"}
+        he{"hebraisk"}
+        hi{"hindi"}
+        hil{"hiligaynon"}
+        him{"himachali"}
+        hit{"hittitisk"}
+        hmn{"hmong"}
+        ho{"Hiri Motu"}
+        hr{"kroatisk"}
+        hsb{"øvresorbisk"}
+        ht{"haitisk"}
+        hu{"ungarsk"}
+        hup{"hupa"}
+        hy{"armensk"}
+        hz{"herero"}
+        ia{"interlingua"}
+        iba{"iban"}
+        id{"indonesisk"}
+        ie{"interlingue"}
+        ig{"igbo"}
+        ii{"sichuan yi"}
+        ijo{"ijo"}
+        ik{"inupiaq"}
+        ilo{"iloko"}
+        inc{"indisk sprog"}
+        ine{"indo-europæisk sprog"}
+        inh{"ingush"}
+        io{"ido"}
+        ira{"iransk sprog"}
+        iro{"irokesisk sprog"}
+        is{"islandsk"}
+        it{"italiensk"}
+        iu{"inuktitut"}
+        ja{"japansk"}
+        jbo{"lojban"}
+        jpr{"jødisk-persisk"}
+        jrb{"jødisk-arabisk"}
+        jv{"javanesisk"}
+        ka{"georgisk"}
+        kaa{"karakalpakisk"}
+        kab{"kabyle"}
+        kac{"kachin"}
+        kaj{"jju"}
+        kam{"kamba"}
+        kar{"karen"}
+        kaw{"kawi"}
+        kbd{"kabardian"}
+        kcg{"tyap"}
+        kea{"kapverdisk"}
+        kfo{"koro"}
+        kg{"kongo"}
+        kha{"khasi"}
+        khi{"khoisansprog"}
+        kho{"khotanesisk"}
+        ki{"kikuyu"}
+        kj{"kuanyama"}
+        kk{"kasakhisk"}
+        kl{"grønlandsk"}
+        km{"khmer"}
+        kmb{"kimbundu"}
+        kn{"kannaresisk"}
+        ko{"koreansk"}
+        kok{"konkani"}
+        kos{"kosraean"}
+        kpe{"kpelle"}
+        kr{"kanuri"}
+        krc{"karatjai-balkar"}
+        krl{"karelsk"}
+        kro{"kru"}
+        kru{"kurukh"}
+        ks{"kashmiri"}
+        ku{"kurdisk"}
+        kum{"kymyk"}
+        kut{"kutenaj"}
+        kv{"komi"}
+        kw{"cornisk"}
+        ky{"kirgisisk"}
+        la{"latin"}
+        lad{"ladino"}
+        lah{"lahnda"}
+        lam{"lamba"}
+        lb{"luxembourgsk"}
+        lez{"lezghian"}
+        lg{"ganda"}
+        li{"limburgsk"}
+        ln{"lingala"}
+        lo{"laotisk"}
+        lol{"mongo"}
+        loz{"lozi"}
+        lt{"litauisk"}
+        lu{"luba-Katanga"}
+        lua{"luba-Lulua"}
+        lui{"luiseno"}
+        lun{"lunda"}
+        luo{"luo"}
+        lus{"lushai"}
+        luy{"olulujia"}
+        lv{"lettisk"}
+        mad{"madurese"}
+        mag{"magahi"}
+        mai{"maithili"}
+        mak{"makasar"}
+        man{"mandingo"}
+        map{"austronesisk sprog"}
+        mas{"masai"}
+        mdf{"moksha"}
+        mdr{"mandar"}
+        men{"mende"}
+        mg{"malagasy"}
+        mga{"middelirsk"}
+        mh{"marshallese"}
+        mi{"maori"}
+        mic{"micmac"}
+        min{"minangkabau"}
+        mis{"diverse sprog"}
+        mk{"makedonsk"}
+        mkh{"mon-khmer sprog"}
+        ml{"malayalam"}
+        mn{"mongolsk"}
+        mnc{"manchu"}
+        mni{"manipuri"}
+        mno{"manobo sprog"}
+        mo{"moldovisk"}
+        moh{"mohawk"}
+        mos{"mossi"}
+        mr{"marathisk"}
+        ms{"malay"}
+        mt{"maltesisk"}
+        mul{"flere sprog"}
+        mun{"mundasprog"}
+        mus{"creek"}
+        mwl{"mirandesisk"}
+        mwr{"marwari"}
+        my{"burmesisk"}
+        myn{"mayasprog"}
+        myv{"erzya"}
+        na{"nauru"}
+        nah{"nahuatl"}
+        nai{"nordamerikansk indiansk sprog"}
+        nap{"neapolitansk"}
+        nb{"norsk bokmål"}
+        nd{"nordndebele"}
+        nds{"nedertysk"}
+        ne{"nepalesisk"}
+        new{"newari"}
+        ng{"ndonga"}
+        nia{"nias"}
+        nic{"Niger-Congo sprog"}
+        niu{"niuean"}
+        nl{"hollandsk"}
+        nl_BE{"flamsk"}
+        nn{"nynorsk"}
+        no{"norsk"}
+        nog{"nogai"}
+        non{"oldislandsk"}
+        nqo{"n-ko"}
+        nr{"sydndebele"}
+        nso{"nordsotho"}
+        nub{"nubisk sprog"}
+        nv{"navajo"}
+        nwc{"klassisk newarisk"}
+        ny{"nyanja"}
+        nym{"nyamwezi"}
+        nyn{"nyankole"}
+        nyo{"nyoro sprog"}
+        nzi{"nzima"}
+        oc{"occitansk"}
+        oj{"ojibwa"}
+        om{"oromo"}
+        or{"oriya"}
+        os{"ossetisk"}
+        osa{"osage"}
+        ota{"osmannisk-tyrkisk"}
+        oto{"otomi sprog"}
+        pa{"punjabi"}
+        paa{"papua-australsk sprog"}
+        pag{"pangasinan"}
+        pal{"pahlavi"}
+        pam{"pampanga"}
+        pap{"papiamento"}
+        pau{"palauansk"}
+        peo{"oldpersisk"}
+        phi{"filippinsk sprog"}
+        phn{"fønikisk"}
+        pi{"pali"}
+        pl{"polsk"}
+        pon{"ponape"}
+        pra{"prakritsprog"}
+        pro{"oldprovencalsk"}
+        ps{"pashto"}
+        pt{"portugisisk"}
+        pt_BR{"brasiliansk portugisisk"}
+        pt_PT{"iberisk portugisisk"}
+        qu{"quechua"}
+        raj{"rajasthani"}
+        rap{"rapanui"}
+        rar{"rarotongan"}
+        rm{"rætoromansk"}
+        rn{"rundi"}
+        ro{"rumænsk"}
+        roa{"romansk sprog"}
+        rom{"romani"}
+        root{"rot"}
+        ru{"russisk"}
+        rup{"arumænsk"}
+        rw{"kinyarwanda"}
+        sa{"sanskrit"}
+        sad{"sandawe"}
+        sah{"yakut"}
+        sai{"sydamerikansk indiansk sprog"}
+        sal{"salikisk sprog"}
+        sam{"samaritansk"}
+        sas{"sasak"}
+        sat{"santali"}
+        sc{"sardinsk"}
+        scn{"siciliansk"}
+        sco{"skotsk"}
+        sd{"sindhi"}
+        se{"nordsamisk"}
+        sel{"selkupisk"}
+        sem{"semitisk sprog"}
+        sg{"sango"}
+        sga{"oldirsk"}
+        sgn{"tegnsprog"}
+        sh{"serbokroatisk"}
+        shn{"shan"}
+        si{"singalesisk"}
+        sid{"sidamo"}
+        sio{"sioux sprog"}
+        sit{"sino-tibetansk sprog"}
+        sk{"slovakisk"}
+        sl{"slovensk"}
+        sla{"slavisk sprog"}
+        sm{"samoansk"}
+        sma{"sydsamisk"}
+        smi{"samisk sprog"}
+        smj{"lule sami"}
+        smn{"inari sami"}
+        sms{"skolt sami"}
+        sn{"shona"}
+        snk{"soninke"}
+        so{"somalisk"}
+        sog{"sogdiansk"}
+        son{"songhai"}
+        sq{"albansk"}
+        sr{"serbisk"}
+        srn{"sranan tongo"}
+        srr{"serer"}
+        ss{"swati"}
+        ssa{"nilo-saharansk sprog"}
+        st{"sydsotho"}
+        su{"sundanesisk"}
+        suk{"sukuma"}
+        sus{"susu"}
+        sux{"sumerisk"}
+        sv{"svensk"}
+        sw{"swahili"}
+        swb{"shimaore"}
+        syc{"klassisk syrisk"}
+        syr{"syrisk"}
+        ta{"tamilsk"}
+        tai{"thaisprog"}
+        te{"telugu"}
+        tem{"temne"}
+        ter{"tereno"}
+        tet{"tetum"}
+        tg{"tajik"}
+        th{"thailandsk"}
+        ti{"tigrinya"}
+        tig{"tigre"}
+        tiv{"tivi"}
+        tk{"turkmensk"}
+        tkl{"tokelau"}
+        tl{"tagalog"}
+        tlh{"klingon"}
+        tli{"tlingit"}
+        tmh{"tamashek"}
+        tn{"tswana"}
+        to{"tongansk"}
+        tog{"nyasa tongansk"}
+        tpi{"Tok Pisin"}
+        tr{"tyrkisk"}
+        ts{"tsonga"}
+        tsi{"tsimshisk"}
+        tt{"tatarisk"}
+        tum{"tumbuka"}
+        tup{"tupisprog"}
+        tut{"altaisk sprog"}
+        tvl{"tuvalu"}
+        tw{"twi"}
+        ty{"tahitiansk"}
+        tyv{"tuvinian"}
+        udm{"udmurt"}
+        ug{"uigurisk"}
+        uga{"ugaristisk"}
+        uk{"ukrainsk"}
+        umb{"umbundu"}
+        und{"ukendt eller ugyldigt sprog"}
+        ur{"urdu"}
+        uz{"usbekisk"}
+        vai{"vai"}
+        ve{"venda"}
+        vi{"vietnamesisk"}
+        vo{"volapyk"}
+        vot{"votisk"}
+        wa{"vallonsk"}
+        wak{"wakashansk sprog"}
+        wal{"walamo"}
+        war{"waray"}
+        was{"washo"}
+        wen{"vendisk sprog"}
+        wo{"wolof"}
+        xal{"kalmyk"}
+        xh{"xhosa"}
+        yao{"yao"}
+        yap{"yap"}
+        yi{"jiddisch"}
+        yo{"yoruba"}
+        ypk{"yupisk sprog"}
+        yue{"kantonesisk"}
+        za{"zhuang"}
+        zap{"zapotec"}
+        zbl{"blissymboler"}
+        zen{"zenaga"}
+        zh{"kinesisk"}
+        zh_Hans{"forenklet kinesisk"}
+        zh_Hant{"traditionelt kinesisk"}
+        znd{"zande"}
+        zu{"zulu"}
+        zun{"zuni"}
+        zxx{"intet sprogligt indhold"}
+        zza{"zaza"}
+    }
+    Scripts{
+        Arab{"arabisk"}
+        Armi{"armi"}
+        Armn{"armensk"}
+        Avst{"avestansk"}
+        Bali{"balinesisk"}
+        Batk{"batak"}
+        Beng{"bengalesisk"}
+        Blis{"blissymboler"}
+        Bopo{"bopomofo"}
+        Brah{"bramisk"}
+        Brai{"blindskrift"}
+        Bugi{"buginesisk"}
+        Buhd{"buhid"}
+        Cakm{"cakm"}
+        Cans{"oprindelige canadiske symboler"}
+        Cari{"kariansk"}
+        Cham{"cham"}
+        Cher{"cherokee"}
+        Cirt{"cirt"}
+        Copt{"koptisk"}
+        Cprt{"cypriotisk"}
+        Cyrl{"kyrillisk"}
+        Cyrs{"kyrillisk - oldkirkeslavisk variant"}
+        Deva{"devanagari"}
+        Dsrt{"deseret"}
+        Egyd{"egyptisk demotisk"}
+        Egyh{"egyptisk hieratisk"}
+        Egyp{"egyptiske hieroglyffer"}
+        Ethi{"etiopisk"}
+        Geok{"georgisk kutsuri"}
+        Geor{"georgisk"}
+        Glag{"glagolitisk"}
+        Goth{"gotisk"}
+        Grek{"græsk"}
+        Gujr{"gujarati"}
+        Guru{"gurmukhi"}
+        Hang{"hangul"}
+        Hani{"han"}
+        Hano{"hanunoo"}
+        Hans{"forenklet han"}
+        Hant{"traditionelt han"}
+        Hebr{"hebraisk"}
+        Hira{"hiragana"}
+        Hmng{"pahawh hmong"}
+        Hrkt{"katakana eller hiragana"}
+        Hung{"oldungarsk"}
+        Inds{"indus"}
+        Ital{"Olditalisk"}
+        Java{"javanesisk"}
+        Jpan{"japansk"}
+        Kali{"kaya li"}
+        Kana{"katakana"}
+        Khar{"kharoshti"}
+        Khmr{"khmerisk"}
+        Knda{"kannada"}
+        Kore{"koreansk"}
+        Kthi{"kthi"}
+        Lana{"lanna"}
+        Laoo{"laotisk"}
+        Latf{"latinsk - frakturvariant"}
+        Latg{"latinsk - gælisk variant"}
+        Latn{"latinsk"}
+        Lepc{"lepcha"}
+        Limb{"limbu"}
+        Lina{"lineær A"}
+        Linb{"lineær B"}
+        Lyci{"lykisk"}
+        Lydi{"lydisk"}
+        Mand{"mandaisk"}
+        Mani{"manikæisk"}
+        Maya{"mayahieroglyffer"}
+        Mero{"meroitisk"}
+        Mlym{"malayalam"}
+        Mong{"mongolsk"}
+        Moon{"moon"}
+        Mtei{"meitei-mayek"}
+        Mymr{"myanmarsk"}
+        Nkoo{"n'ko"}
+        Ogam{"ogham"}
+        Olck{"ol-chiki"}
+        Orkh{"orkhon"}
+        Orya{"oriya"}
+        Osma{"osmannisk"}
+        Perm{"oldpermisk"}
+        Phag{"phags-pa"}
+        Phli{"phli"}
+        Phlp{"phlp"}
+        Phlv{"pahlavi"}
+        Phnx{"fønikisk"}
+        Plrd{"pollardtegn"}
+        Prti{"prti"}
+        Rjng{"rejang"}
+        Roro{"rongo-rongo"}
+        Runr{"runer"}
+        Samr{"samaritansk"}
+        Sara{"sarati"}
+        Saur{"saurashtra"}
+        Sgnw{"tegnskrift"}
+        Shaw{"shavisk"}
+        Sinh{"singalesisk"}
+        Sund{"sundanesisk"}
+        Sylo{"syloti nagri"}
+        Syrc{"syrisk"}
+        Syre{"syrisk - estrangelovariant"}
+        Syrj{"vestsyrisk"}
+        Syrn{"østsyriakisk"}
+        Tagb{"tagbanwa"}
+        Tale{"tai le"}
+        Talu{"tai lue"}
+        Taml{"tamilsk"}
+        Tavt{"tavt"}
+        Telu{"telugu"}
+        Teng{"tengwar"}
+        Tfng{"tifinagh"}
+        Tglg{"tagalog"}
+        Thaa{"thaana"}
+        Thai{"thailandsk"}
+        Tibt{"tibetanske"}
+        Ugar{"ugaritisk"}
+        Vaii{"vai"}
+        Visp{"synlig tale"}
+        Xpeo{"oldpersisk"}
+        Xsux{"sumero-akkadisk cuneiform"}
+        Yiii{"yi"}
+        Zinh{"arvet"}
+        Zmth{"zmth"}
+        Zsym{"zsym"}
+        Zxxx{"ikke-skriftsprog"}
+        Zyyy{"fælles"}
+        Zzzz{"ukendt eller ugyldig skriftsprog"}
+    }
+    Types{
+        calendar{
+            buddhist{"buddhistisk kalender"}
+            chinese{"kinesisk kalender"}
+            ethiopic{"etiopisk kalender"}
+            ethiopic-amete-alem{"etiopisk amete-alem-kalender"}
+            gregorian{"gregoriansk kalender"}
+            hebrew{"jødisk kalender"}
+            indian{"indisk nationalkalender"}
+            islamic{"islamisk kalender"}
+            islamic-civil{"verdslig islamisk kalender"}
+            japanese{"japansk kalender"}
+            persian{"persisk kalender"}
+            roc{"kalender for Republikken Kina"}
+        }
+        collation{
+            big5han{"sorteringsrækkefølge uforkortet kinesisk - Big5"}
+            direct{"direkte sorteringsrækkefølge"}
+            gb2312han{"sorteringsrækkefølge forkortet kinesisk - GB2312"}
+            phonebook{"sorteringsrækkefølge i telefonbøger"}
+            pinyin{"pinyin-baseret sorteringsrækkefølge"}
+            stroke{"stregbaseret sorteringsrækkefølge"}
+            traditional{"traditionel sorteringsrækkefølge"}
+        }
+    }
+    Variants{
+        1901{"traditionel tysk retskrivning"}
+        1996{"tysk retskrivning fra 1996"}
+        AREVELA{"østarmensk"}
+        AREVMDA{"vestarmensk"}
+        BOONT{"boontling"}
+        FONIPA{"det internationale fonetiske alfabet"}
+        FONUPA{"det uraliske fonetiske alfabet"}
+        LIPAW{"lipovaz"}
+        MONOTON{"monotonisk"}
+        PINYIN{"pinyin"}
+        POLYTON{"polytonisk"}
+        POSIX{"computer"}
+        REVISED{"revideret retskrivning"}
+        WADEGILE{"Wade-Giles"}
+    }
+    Version{"2.0.50.96"}
+    codePatterns{
+        language{"Sprog: {0}"}
+        script{"Instruks: {0}"}
+        territory{"Område: {0}"}
+    }
+    localeDisplayPattern{
+        pattern{"{0} ({1})"}
+        separator{", "}
+    }
+}

@@ -1,0 +1,63 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:error_type error_type]
+
+[h4 Synopsis]
+
+Type error type represents the different types of errors that can be raised 
+by the library when parsing a regular expression.
+
+   namespace boost{ namespace regex_constants{
+
+   typedef implementation-specific-type error_type;
+
+   static const error_type error_collate;
+   static const error_type error_ctype;
+   static const error_type error_escape;
+   static const error_type error_backref;
+   static const error_type error_brack;
+   static const error_type error_paren;
+   static const error_type error_brace;
+   static const error_type error_badbrace;
+   static const error_type error_range;
+   static const error_type error_space;
+   static const error_type error_badrepeat;
+   static const error_type error_complexity;
+   static const error_type error_stack;
+   static const error_type error_bad_pattern;
+
+   } // namespace regex_constants
+   } // namespace boost
+
+ 
+[h4 Description]
+
+The type `error_type` is an implementation-specific enumeration type that may 
+take one of the following values:
+
+[table
+[[Constant][Meaning]]
+[[error_collate][An invalid collating element was specified in a \[\[.name.\]\] block.]]
+[[error_ctype][An invalid character class name was specified in a \[\[:name:\]\] block.]]
+[[error_escape][An invalid or trailing escape was encountered.]]
+[[error_backref][A back-reference to a non-existant marked sub-expression was encountered.]]
+[[error_brack][An invalid character set \[...\] was encountered.]]
+[[error_paren][Mismatched '(' and ')'.]]
+[[error_brace][Mismatched '{' and '}'.]]
+[[error_badbrace][Invalid contents of a {...} block.]]
+[[error_range][A character range was invalid, for example \[d-a\].]]
+[[error_space][Out of memory.]]
+[[error_badrepeat][An attempt to repeat something that can not be repeated - for example a*+]]
+[[error_complexity][The expression became too complex to handle.]]
+[[error_stack][Out of program stack space.]]
+[[error_bad_pattern][Other unspecified errors.]]
+]
+
+[endsect]
+

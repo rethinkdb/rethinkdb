@@ -1,0 +1,159 @@
+# (C) Copyright 2008: Joachim Faulhaber
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Examples that do not use boost_date_time
+exe interval
+    :
+        interval_/interval.cpp
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+exe interval_container
+    :
+        interval_container_/interval_container.cpp
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+exe overlap_counter
+    :
+        overlap_counter_/overlap_counter.cpp
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+exe party
+    :
+        party_/party.cpp
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+exe std_copy
+    :
+        std_copy_/std_copy.cpp
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+exe std_transform
+    :
+        std_transform_/std_transform.cpp
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+exe custom_interval
+    :
+        custom_interval_/custom_interval.cpp
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+exe dynamic_interval
+    :
+        dynamic_interval_/dynamic_interval.cpp
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+exe static_interval
+    :
+        static_interval_/static_interval.cpp
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+# Examples using boost_date_time
+exe boost_party
+    :
+        boost_party_/boost_party.cpp
+		/boost/date_time//boost_date_time
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+exe partys_height_average
+    :
+        partys_height_average_/partys_height_average.cpp
+		/boost/date_time//boost_date_time
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+exe partys_tallest_guests
+    :
+        partys_tallest_guests_/partys_tallest_guests.cpp
+		/boost/date_time//boost_date_time
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+exe man_power
+    :
+        man_power_/man_power.cpp
+		/boost/date_time//boost_date_time
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+exe month_and_week_grid
+    :
+        month_and_week_grid_/month_and_week_grid.cpp
+		/boost/date_time//boost_date_time
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+exe user_groups
+    :
+        user_groups_/user_groups.cpp
+		/boost/date_time//boost_date_time
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+# Projects
+exe large_bitset
+    :
+        large_bitset_/large_bitset.cpp
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+
+
+exe itvset_shell
+    :
+        itvset_shell_/itvset_shell.cpp
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+
+exe splititvmap_shell
+    :
+        splititvmap_shell_/splititvmap_shell.cpp
+    :
+        <include>../../..
+        <include>$(BOOST_ROOT)
+    ;
+

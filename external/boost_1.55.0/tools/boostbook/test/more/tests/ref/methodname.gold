@@ -1,0 +1,26 @@
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
+<chapter id="method">
+  <title>Methodname Test</title>
+  <section id="links">
+    <para>
+      <computeroutput xmlns:xi="http://www.w3.org/2001/XInclude"><link linkend="id1-bb">thing::foo::bar</link></computeroutput>,
+      <computeroutput xmlns:xi="http://www.w3.org/2001/XInclude"><link linkend="id1-bb">thing::foo::bar(int x)</link></computeroutput>,
+      <computeroutput xmlns:xi="http://www.w3.org/2001/XInclude"><link linkend="id2-bb">thing::foo::operator()</link></computeroutput>,
+      <computeroutput xmlns:xi="http://www.w3.org/2001/XInclude"><link linkend="id2-bb">thing::foo::operator()(int x)</link></computeroutput>.
+    </para>
+  </section>
+  <section id="method.reference"><title>Reference</title>
+    <section id="header.boost.unordered_set_hpp"><title>Header &lt;<ulink url="../../boost/unordered_set.hpp">boost/unordered_set.hpp</ulink>&gt;</title><synopsis xmlns:xi="http://www.w3.org/2001/XInclude"><phrase role="keyword">namespace</phrase> <phrase role="identifier">thing</phrase> <phrase role="special">{</phrase>
+  <phrase role="keyword">class</phrase> <link linkend="thing.foo">foo</link><phrase role="special">;</phrase>
+<phrase role="special">}</phrase></synopsis>
+      <refentry xmlns:xi="http://www.w3.org/2001/XInclude" id="thing.foo"><refmeta><refentrytitle>Class foo</refentrytitle><manvolnum>3</manvolnum></refmeta><refnamediv><refname>thing::foo</refname><refpurpose/></refnamediv><refsynopsisdiv><synopsis><phrase role="comment">// In header: &lt;<link linkend="header.boost.unordered_set_hpp">boost/unordered_set.hpp</link>&gt;
+
+</phrase>
+<phrase role="keyword">class</phrase> <link linkend="thing.foo">foo</link> <phrase role="special">{</phrase>
+<phrase role="keyword">public</phrase><phrase role="special">:</phrase>
+  <phrase role="keyword">void</phrase> <link linkend="id1-bb"><phrase role="identifier">bar</phrase></link><phrase role="special">(</phrase><phrase role="keyword">int</phrase><phrase role="special">)</phrase><phrase role="special">;</phrase>
+  <phrase role="keyword">void</phrase> <link linkend="id2-bb"><phrase role="keyword">operator</phrase><phrase role="special">(</phrase><phrase role="special">)</phrase></link><phrase role="special">(</phrase><phrase role="keyword">int</phrase><phrase role="special">)</phrase><phrase role="special">;</phrase>
+<phrase role="special">}</phrase><phrase role="special">;</phrase></synopsis></refsynopsisdiv><refsect1><title>Description</title><para><literallayout class="monospaced"><phrase role="keyword">void</phrase> <anchor id="id1-bb"/><phrase role="identifier">bar</phrase><phrase role="special">(</phrase><phrase role="keyword">int</phrase><phrase role="special">)</phrase><phrase role="special">;</phrase></literallayout></para><para><literallayout class="monospaced"><phrase role="keyword">void</phrase> <anchor id="id2-bb"/><phrase role="keyword">operator</phrase><phrase role="special">(</phrase><phrase role="special">)</phrase><phrase role="special">(</phrase><phrase role="keyword">int</phrase><phrase role="special">)</phrase><phrase role="special">;</phrase></literallayout></para></refsect1></refentry>
+    </section>
+  </section>
+</chapter>

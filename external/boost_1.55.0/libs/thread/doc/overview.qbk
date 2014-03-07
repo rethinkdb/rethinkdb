@@ -1,0 +1,74 @@
+[/
+  (C) Copyright 2007-12 Anthony Williams.
+  (C) Copyright 20012 Vicente J. Botet Escriba.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:overview Overview]
+
+__boost_thread__ enables the use of multiple threads of execution with shared data in portable C++ code. It provides classes and
+functions for managing the threads themselves, along with others for synchronizing data between the threads or providing separate
+copies of data specific to individual threads.
+
+The __boost_thread__ library was originally written and designed by William E. Kempf (version 1). 
+
+Anthony Williams version (version 2) was a major rewrite designed to
+closely follow the proposals presented to the C++ Standards Committee, in particular
+[@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2497.html N2497],
+[@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2320.html N2320],
+[@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2184.html N2184], 
+[@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2139.html N2139], and 
+[@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n2094.html N2094]
+
+Vicente J. Botet Escriba started (version 3) the adaptation to comply with the accepted Thread C++11 library (Make use of Boost.Chrono and Boost.Move) and the [@http://home.roadrunner.com/~hinnant/bloomington/shared_mutex.html Shared Locking] Howard Hinnant proposal except for the upward conversions.  
+Some minor non-standard features have been added also as thread attributes, reverse_lock, shared_lock_guard.
+
+In order to use the classes and functions described here, you can
+either include the specific headers specified by the descriptions of
+each class or function, or include the master thread library header:
+
+    #include <boost/thread.hpp>
+
+which includes all the other headers in turn.
+
+[endsect]
+
+
+[section:build Using and building the library]
+
+Boost.Thread is configured following the conventions used to build [@http://www.boost.org/doc/libs/1_48_0/libs/config/doc/html/boost_config/boost_macro_reference.html#boost_config.boost_macro_reference.macros_for_libraries_with_separate_source_code libraries with separate source code]. Boost.Thread will import/export the code only if the user has specifically asked for it, by defining either BOOST_ALL_DYN_LINK if they want all boost libraries to be dynamically linked, or BOOST_THREAD_DYN_LINK if they want just this one to be dynamically liked.
+
+The definition of these macros determines whether BOOST_THREAD_USE_DLL is defined. If  BOOST_THREAD_USE_DLL is not defined, the library will define BOOST_THREAD_USE_DLL or BOOST_THREAD_USE_LIB depending on whether the platform. On non windows platforms BOOST_THREAD_USE_LIB is defined if is not defined. In windows platforms, BOOST_THREAD_USE_LIB is defined if BOOST_THREAD_USE_DLL and the compiler supports auto-tss cleanup with Boost.Threads (for the time been Msvc and Intel)
+
+The source code compiled when building the library defines a macros BOOST_THREAD_SOURCE that is used to import or export it. The user must not define this macro in any case. 
+
+Boost.Thread depends on some non header-only libraries. 
+
+* Boost.System: This dependency is mandatory and you will need to link with the library.
+
+* Boost.Chrono: This dependency is optional (see below how to configure) and you will need to link with the library if you use some of the time related interfaces.
+
+* Boost.DateTime: This dependency is mandatory, but even if Boost.DateTime is a non header-only library Boost.Thread uses only parts that are header-only, so in principle you should not need to link with the library. 
+
+It seems that there are some IDE (as e.g. Visual Studio) that deduce the libraries that a program needs to link to inspecting the sources. Such IDE could force to link to Boost.DateTime and/or Boost.Chrono.
+
+As the single mandatory dependency is to Boost.System, the following
+
+  bjam toolset=msvc-11.0 --build-type=complete --with-thread 
+
+will install only boost_thread and boost_system. 
+
+Users of such IDE should force the Boost.Chrono and Boost.DateTime build using 
+
+  bjam toolset=msvc-11.0 --build-type=complete --with-thread --with-chrono --with-date_time 
+
+
+The following section describes all the macros used to configure Boost.Thread.
+
+[include configuration.qbk]
+
+
+[endsect]
+

@@ -1,0 +1,347 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>API for Automatic Generator Creation</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../generate_api.html" title="Generator API">
+<link rel="prev" href="stream_api.html" title="Stream Based Generator API">
+<link rel="next" href="../action.html" title="Semantic Actions with Generators">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="stream_api.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../generate_api.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../action.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.karma.reference.generate_api.create_generator"></a><a class="link" href="create_generator.html" title="API for Automatic Generator Creation">API
+          for Automatic Generator Creation</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.karma.reference.generate_api.create_generator.h0"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generate_api.create_generator.description"></a></span><a class="link" href="create_generator.html#spirit.karma.reference.generate_api.create_generator.description">Description</a>
+          </h6>
+<p>
+            The library implements a special API returning a generator instance for
+            a supplied attribute type. This function finds the best matching generator
+            type for the attribute based on a set of simple matching rules (as outlined
+            in the table below) applied recursively to the attribute type. The returned
+            generator can be utilized to emit output for the provided attribute.
+          </p>
+<h6>
+<a name="spirit.karma.reference.generate_api.create_generator.h1"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generate_api.create_generator.header"></a></span><a class="link" href="create_generator.html#spirit.karma.reference.generate_api.create_generator.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/karma/auto.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma_auto</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.karma.reference.generate_api.create_generator.h2"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generate_api.create_generator.namespace"></a></span><a class="link" href="create_generator.html#spirit.karma.reference.generate_api.create_generator.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">create_generator</span></code>
+                    </p>
+                  </td></tr>
+<tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">traits</span><span class="special">::</span><span class="identifier">create_generator_exists</span></code>
+                    </p>
+                  </td></tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.generate_api.create_generator.h3"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generate_api.create_generator.synopsis"></a></span><a class="link" href="create_generator.html#spirit.karma.reference.generate_api.create_generator.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">spirit</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">karma</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Attr</span><span class="special">&gt;</span>
+    <span class="keyword">inline</span> <span class="special">&lt;</span><span class="identifier">unspecified</span><span class="special">&gt;</span>
+    <span class="identifier">create_generator</span><span class="special">();</span>
+<span class="special">}}}</span>
+</pre>
+<p>
+            The returned instance can be directly passed as the generator (or the
+            delimiting generator) to any of the <span class="emphasis"><em>Spirit.Karma</em></span>
+            API functions. Additionally it can be assigned to a rule as the rules
+            right hand side expression. This function will return a valid generator
+            type only if the meta function <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">create_generator_exists</span></code>
+            returns <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>. Otherwise it will fail compiling.
+          </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">spirit</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">traits</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Attr</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">create_generator_exists</span><span class="special">;</span>
+<span class="special">}}}</span>
+</pre>
+<p>
+            The meta function evaluates to <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>
+            if <code class="computeroutput"><span class="identifier">create_generator</span></code> would
+            return a valid generator for the given type <code class="computeroutput"><span class="identifier">Attr</span></code>.
+          </p>
+<p>
+            The following table outlines the mapping rules from the attribute type
+            to the generator type. These rules are applied recursively to create
+            the generator type which can be used to generate output from the given
+            attribute type.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Attribute type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Generator type
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">char</span></code>, <code class="computeroutput"><span class="keyword">wchar_t</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">standard</span><span class="special">::</span><span class="identifier">char_</span></code>, <code class="computeroutput"><span class="identifier">standard_wide</span><span class="special">::</span><span class="identifier">char_</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">short</span></code>, <code class="computeroutput"><span class="keyword">int</span></code>, <code class="computeroutput"><span class="keyword">long</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">short_</span></code>, <code class="computeroutput"><span class="identifier">int_</span></code>, <code class="computeroutput"><span class="identifier">long_</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">short</span></code>,
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">int</span></code>,
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">long</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ushort_</span></code>, <code class="computeroutput"><span class="identifier">uint_</span></code>, <code class="computeroutput"><span class="identifier">ulong_</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">float</span></code>, <code class="computeroutput"><span class="keyword">double</span></code>, <code class="computeroutput"><span class="keyword">long</span>
+                      <span class="keyword">double</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">float_</span></code>, <code class="computeroutput"><span class="identifier">double_</span></code>, <code class="computeroutput"><span class="identifier">long_double</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">short</span></code>, <code class="computeroutput"><span class="keyword">int</span></code>, <code class="computeroutput"><span class="keyword">long</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">short_</span></code>, <code class="computeroutput"><span class="identifier">int_</span></code>, <code class="computeroutput"><span class="identifier">long_</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">long</span></code>,
+                      <code class="computeroutput"><span class="keyword">unsigned</span> <span class="keyword">long</span>
+                      <span class="keyword">long</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">long_long</span></code>,
+                      <code class="computeroutput"><span class="identifier">ulong_long</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">bool</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">bool_</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Any string (<code class="computeroutput"><span class="keyword">char</span> <span class="keyword">const</span><span class="special">*</span></code>,
+                      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>, etc.)
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">string</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Any (STL) container
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Kleene Star (unary <code class="computeroutput"><span class="char">'*'</span></code>)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Any Fusion sequence
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Sequence operator (<code class="computeroutput"><span class="char">'&lt;&lt;'</span></code>)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">optional</span><span class="special">&lt;&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Optional operator (unary <code class="computeroutput"><span class="char">'-'</span></code>)
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variant</span><span class="special">&lt;&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Alternative operator (<code class="computeroutput"><span class="char">'|'</span></code>)
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The mapping for the generators <code class="computeroutput"><span class="identifier">long_long</span></code>
+              and <code class="computeroutput"><span class="identifier">ulong_long</span></code> are
+              only available on platforms where the preprocessor constant <code class="computeroutput"><span class="identifier">BOOST_HAS_LONG_LONG</span></code> is defined (i.e.
+              on platforms having native support for <code class="computeroutput"><span class="keyword">long</span>
+              <span class="keyword">long</span></code> and <code class="computeroutput"><span class="keyword">unsigned</span>
+              <span class="keyword">long</span> <span class="keyword">long</span></code>
+              (64 bit) signed and unsigned integer types).
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.generate_api.create_generator.h4"></a>
+            <span class="phrase"><a name="spirit.karma.reference.generate_api.create_generator.template_parameters"></a></span><a class="link" href="create_generator.html#spirit.karma.reference.generate_api.create_generator.template_parameters">Template
+            parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Attr</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      An attribute type utilized to create the corresponding generator
+                      type from.
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="stream_api.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../generate_api.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../action.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

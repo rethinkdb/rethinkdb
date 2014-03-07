@@ -1,0 +1,14 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Kannada_Latin.txt
+# Generated from CLDR 
+#
+::[ಂ-ಃಅ-ಌಎ-ಐಒ-ನಪ-ಳವ-ಹ\u0CBC-ೄ\u0CC6-ೈೊ-\u0CCDೕ-ೖೞೠ-ೡ೦-೯];
+::NFD;
+::Kannada-InterIndic;
+::InterIndic-Latin;
+::NFC;

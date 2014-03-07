@@ -1,0 +1,23 @@
+graph {
+  edge [ len=1.2 ];
+  0 [ pos="42,73", style="filled", fillcolor="#333399", fontcolor=white ];
+  1 [ pos="96,139", style="filled", fillcolor="#9999ff" ];
+  2 [ pos="113,209", style="filled", fillcolor="#9999ff" ];
+  3 [ pos="179,279", style="filled", fillcolor="#9999ff" ];
+  4 [ pos="143,30", style="filled", fillcolor="#9999ff" ];
+  5 [ pos="211,100", style="filled", fillcolor="#9999ff" ];
+  6 [ pos="228,175", style="filled", fillcolor="#333399", fontcolor=white ];
+  7 [ pos="282,241", style="filled", fillcolor="#9999ff" ];
+  0 -- 1 [ label="2", color=red, fontcolor=red, style=dotted ];
+  1 -- 2 [ label="3", len=1 ];
+  2 -- 3 [ label="4" ];
+  0 -- 4 [ label="3", color=red, fontcolor=red, style=dotted ];
+  1 -- 4 [ label="2", len=1.3 ];
+  1 -- 5 [ label="2" ];
+  2 -- 6 [ label="2", color=red, fontcolor=red, style=dotted ];
+  3 -- 6 [ label="2", len=1.3, color=red, fontcolor=red, style=dotted ];
+  3 -- 7 [ label="2" ];
+  4 -- 5 [ label="3" ];
+  5 -- 6 [ label="1", len=1.1, color=red, fontcolor=red, style=dotted ];
+  6 -- 7 [ label="3", color=red, fontcolor=red, style=dotted ];
+}

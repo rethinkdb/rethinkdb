@@ -1,0 +1,175 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Syntax Diagram</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../abstracts.html" title="Abstracts">
+<link rel="prev" href="../abstracts.html" title="Abstracts">
+<link rel="next" href="parsing_expression_grammar.html" title="Parsing Expression Grammar">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../abstracts.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../abstracts.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="parsing_expression_grammar.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="spirit.abstracts.syntax_diagram"></a><a class="link" href="syntax_diagram.html" title="Syntax Diagram">Syntax Diagram</a>
+</h3></div></div></div>
+<p>
+        In the next section, we will deal with Parsing Expression Grammars (PEG)
+        <a href="#ftn.spirit.abstracts.syntax_diagram.f0" class="footnote" name="spirit.abstracts.syntax_diagram.f0"><sup class="footnote">[3]</sup></a>, a variant of Extended Backus-Naur Form (EBNF) <a href="#ftn.spirit.abstracts.syntax_diagram.f1" class="footnote" name="spirit.abstracts.syntax_diagram.f1"><sup class="footnote">[4]</sup></a> with a different interpretation. It is easier to understand PEG
+        using Syntax Diagrams. Syntax diagrams represent a grammar graphically. It
+        was used extensively by Niklaus Wirth <a href="#ftn.spirit.abstracts.syntax_diagram.f2" class="footnote" name="spirit.abstracts.syntax_diagram.f2"><sup class="footnote">[5]</sup></a> in the "Pascal User Manual". Syntax Diagrams are easily
+        understandable by programmers due to their similarity to flow charts. The
+        isomorphism of the diagrams and functions make them ideal for representing
+        Recursive Descent parsers which are essentially mutually recursive functions.
+      </p>
+<p>
+        Historically, Parsing Expression Grammars have been used for describing grammars
+        for parsers only (hence the name). In <a href="http://boost-spirit.com" target="_top">Spirit</a>
+        we use a very similar notation for output generation as well. Almost all
+        the concepts described here are equally applicable both to <span class="emphasis"><em>Spirit.Qi</em></span>
+        parsers and to <span class="emphasis"><em>Spirit.Karma</em></span> generators.
+      </p>
+<h5>
+<a name="spirit.abstracts.syntax_diagram.h0"></a>
+        <span class="phrase"><a name="spirit.abstracts.syntax_diagram.elements"></a></span><a class="link" href="syntax_diagram.html#spirit.abstracts.syntax_diagram.elements">Elements</a>
+      </h5>
+<p>
+        All diagrams have one entry and one exit point. Arrows connect all possible
+        paths through the grammar from the entry point to the exit point.
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="inlinemediaobject"><img src="../.././images/start_stop.png" alt="start_stop"></span>
+        </p></blockquote></div>
+<p>
+        Terminals are represented by round boxes. Terminals are atomic and usually
+        represent plain characters, strings or tokens.
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="inlinemediaobject"><img src="../.././images/terminal.png" alt="terminal"></span>
+        </p></blockquote></div>
+<p>
+        Non-terminals are represented by boxes. Diagrams are modularized using named
+        non-terminals. A complex diagram can be broken down into a set of non-terminals.
+        Non-terminals also allow recursion (i.e. a non-terminal can call itself).
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="inlinemediaobject"><img src="../.././images/non-terminal.png" alt="non-terminal"></span>
+        </p></blockquote></div>
+<h5>
+<a name="spirit.abstracts.syntax_diagram.h1"></a>
+        <span class="phrase"><a name="spirit.abstracts.syntax_diagram.constructs"></a></span><a class="link" href="syntax_diagram.html#spirit.abstracts.syntax_diagram.constructs">Constructs</a>
+      </h5>
+<p>
+        The most basic composition is the Sequence. B follows A:
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="inlinemediaobject"><img src="../.././images/sequence.png" alt="sequence"></span>
+        </p></blockquote></div>
+<p>
+        The ordered choice henceforth we will call <span class="emphasis"><em>alternatives</em></span>.
+        In PEG, ordered choice and alternatives are not quite the same. PEG allows
+        ambiguity of choice where one or more branches can succeed. In PEG, in case
+        of ambiguity, the first one always wins.
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="inlinemediaobject"><img src="../.././images/alternative.png" alt="alternative"></span>
+        </p></blockquote></div>
+<p>
+        The optional (zero-or-one):
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="inlinemediaobject"><img src="../.././images/optional.png" alt="optional"></span>
+        </p></blockquote></div>
+<p>
+        Now, the loops. We have the zero-or-more and one-or-more:
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="inlinemediaobject"><img src="../.././images/kleene.png" alt="kleene"></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="inlinemediaobject"><img src="../.././images/plus.png" alt="plus"></span>
+        </p></blockquote></div>
+<p>
+        Take note that, as in PEG, these loops behave greedily. If there is another
+        'A' just before the end-point, it will always fail because the preceding
+        loop has already exhausted all 'A's and there is nothing more left. This
+        is a crucial difference between PEG and general Context Free Grammars (CFGs).
+        This behavior is quite obvious with syntax diagrams as they resemble flow-charts.
+      </p>
+<h5>
+<a name="spirit.abstracts.syntax_diagram.h2"></a>
+        <span class="phrase"><a name="spirit.abstracts.syntax_diagram.predicates"></a></span><a class="link" href="syntax_diagram.html#spirit.abstracts.syntax_diagram.predicates">Predicates</a>
+      </h5>
+<p>
+        Now, the following are Syntax Diagram versions of PEG predicates. These are
+        not traditionally found in Syntax Diagrams. These are special extensions
+        we invented to closely follow PEGs.
+      </p>
+<p>
+        First, we introduce a new element, the Predicate:
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="inlinemediaobject"><img src="../.././images/predicate.png" alt="predicate"></span>
+        </p></blockquote></div>
+<p>
+        This is similar to the conditionals in flow charts where the 'No' branch
+        is absent and always signals a failed parse.
+      </p>
+<p>
+        We have two versions of the predicate, the <span class="emphasis"><em>And-Predicate</em></span>
+        and the <span class="emphasis"><em>Not-Predicate</em></span>:
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="inlinemediaobject"><img src="../.././images/and_predicate.png" alt="and_predicate"></span>
+        </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          <span class="inlinemediaobject"><img src="../.././images/not_predicate.png" alt="not_predicate"></span>
+        </p></blockquote></div>
+<p>
+        The <span class="emphasis"><em>And-Predicate</em></span> tries the predicate, P, and succeeds
+        if P succeeds, or otherwise fail. The opposite is true with the <span class="emphasis"><em>Not-Predicate</em></span>.
+        It tries the predicate, P, and fails if P succeeds, or otherwise succeeds.
+        Both versions do a look-ahead but do not consume any input regardless if
+        P succeeds or not.
+      </p>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.spirit.abstracts.syntax_diagram.f0" class="footnote"><p><a href="#spirit.abstracts.syntax_diagram.f0" class="para"><sup class="para">[3] </sup></a>
+          Bryan Ford: Parsing Expression Grammars: A Recognition-Based Syntactic
+          Foundation, <a href="http://pdos.csail.mit.edu/~baford/packrat/popl04/" target="_top">http://pdos.csail.mit.edu/~baford/packrat/popl04/</a>
+        </p></div>
+<div id="ftn.spirit.abstracts.syntax_diagram.f1" class="footnote"><p><a href="#spirit.abstracts.syntax_diagram.f1" class="para"><sup class="para">[4] </sup></a>
+          Richard E. Pattis: EBNF: A Notation to Describe Syntax, <a href="http://www.cs.cmu.edu/~pattis/misc/ebnf.pdf" target="_top">http://www.cs.cmu.edu/~pattis/misc/ebnf.pdf</a>
+        </p></div>
+<div id="ftn.spirit.abstracts.syntax_diagram.f2" class="footnote"><p><a href="#spirit.abstracts.syntax_diagram.f2" class="para"><sup class="para">[5] </sup></a>
+          Niklaus Wirth: The Programming Language Pascal. (July 1973)
+        </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../abstracts.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../abstracts.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="parsing_expression_grammar.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Changing the Policy Defaults</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Math Toolkit">
+<link rel="up" href="../pol_tutorial.html" title="Policy Tutorial">
+<link rel="prev" href="policy_usage.html" title="So How are Policies Used Anyway?">
+<link rel="next" href="ad_hoc_dist_policies.html" title="Setting Policies for Distributions on an Ad Hoc Basis">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="policy_usage.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../pol_tutorial.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ad_hoc_dist_policies.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="math_toolkit.pol_tutorial.changing_policy_defaults"></a><a class="link" href="changing_policy_defaults.html" title="Changing the Policy Defaults">Changing
+      the Policy Defaults</a>
+</h3></div></div></div>
+<p>
+        The default policies used by the library are changed by the usual configuration
+        macro method.
+      </p>
+<p>
+        For example, passing <code class="computeroutput"><span class="special">-</span><span class="identifier">DBOOST_MATH_DOMAIN_ERROR_POLICY</span><span class="special">=</span><span class="identifier">errno_on_error</span></code>
+        to your compiler will cause domain errors to set <code class="computeroutput"><span class="special">::</span><span class="identifier">errno</span></code> and return a <a href="http://en.wikipedia.org/wiki/NaN" target="_top">NaN</a>
+        rather than the usual default behaviour of throwing a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">domain_error</span></code>
+        exception.
+      </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+          For Microsoft Visual Studio,you can add to the Project Property Page, C/C++,
+          Preprocessor, Preprocessor definitions like:
+        </p>
+<pre class="programlisting"><span class="identifier">BOOST_MATH_ASSERT_UNDEFINED_POLICY</span><span class="special">=</span><span class="number">0</span>
+<span class="identifier">BOOST_MATH_OVERFLOW_ERROR_POLICY</span><span class="special">=</span><span class="identifier">errno_on_error</span></pre>
+<p>
+          This may be helpful to avoid complications with pre-compiled headers that
+          may mean that the equivalent definitions in source code:
+        </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_MATH_ASSERT_UNDEFINED_POLICY</span> <span class="keyword">false</span>
+<span class="preprocessor">#define</span> <span class="identifier">BOOST_MATH_OVERFLOW_ERROR_POLICY</span> <span class="identifier">errno_on_error</span></pre>
+<p>
+          <span class="bold"><strong>may be ignored</strong></span>.
+        </p>
+<p>
+          The compiler command line shows:
+        </p>
+<pre class="programlisting"><span class="special">/</span><span class="identifier">D</span> <span class="string">"BOOST_MATH_ASSERT_UNDEFINED_POLICY=0"</span>
+<span class="special">/</span><span class="identifier">D</span> <span class="string">"BOOST_MATH_OVERFLOW_ERROR_POLICY=errno_on_error"</span></pre>
+</td></tr>
+</table></div>
+<p>
+        There is however a very important caveat to this:
+      </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../../doc/src/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+          <span class="bold"><strong><span class="emphasis"><em>Default policies changed by setting configuration
+          macros must be changed uniformly in every translation unit in the program.</em></span></strong></span>
+        </p>
+<p>
+          Failure to follow this rule may result in violations of the "One Definition
+          Rule (ODR)" and result in unpredictable program behaviour.
+        </p>
+</td></tr>
+</table></div>
+<p>
+        That means there are only two safe ways to use these macros:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Edit them in <a href="../../../../../../boost/math/tools/user.hpp" target="_top">boost/math/tools/user.hpp</a>,
+            so that the defaults are set on an installation-wide basis. Unfortunately
+            this may not be convenient if you are using a pre-installed Boost distribution
+            (on Linux for example).
+          </li>
+<li class="listitem">
+            Set the defines in your project's Makefile or build environment, so that
+            they are set uniformly across all translation units.
+          </li>
+</ul></div>
+<p>
+        What you should <span class="bold"><strong>not</strong></span> do is:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Set the defines in the source file using <code class="computeroutput"><span class="preprocessor">#define</span></code>
+            as doing so almost certainly will break your program, unless you're absolutely
+            certain that the program is restricted to a single translation unit.
+          </li></ul></div>
+<p>
+        And, yes, you will find examples in our test programs where we break this
+        rule: but only because we know there will always be a single translation
+        unit only: <span class="emphasis"><em>don't say that you weren't warned!</em></span>
+      </p>
+<p>
+        [error_handling_example]
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="policy_usage.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../pol_tutorial.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ad_hoc_dist_policies.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

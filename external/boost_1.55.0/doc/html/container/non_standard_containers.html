@@ -1,0 +1,483 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Non-standard containers</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../container.html" title="Chapter&#160;8.&#160;Boost.Container">
+<link rel="prev" href="exception_handling.html" title="Boost.Container and C++ exceptions">
+<link rel="next" href="extended_functionality.html" title="Extended functionality">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="exception_handling.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../container.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="extended_functionality.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="container.non_standard_containers"></a><a class="link" href="non_standard_containers.html" title="Non-standard containers">Non-standard containers</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="non_standard_containers.html#container.non_standard_containers.stable_vector"><span class="emphasis"><em>stable_vector</em></span></a></span></dt>
+<dt><span class="section"><a href="non_standard_containers.html#container.non_standard_containers.flat_xxx"><span class="emphasis"><em>flat_(multi)map/set</em></span>
+      associative containers</a></span></dt>
+<dt><span class="section"><a href="non_standard_containers.html#container.non_standard_containers.slist"><span class="emphasis"><em>slist</em></span></a></span></dt>
+<dt><span class="section"><a href="non_standard_containers.html#container.non_standard_containers.static_vector"><span class="emphasis"><em>static_vector</em></span></a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.non_standard_containers.stable_vector"></a><a class="link" href="non_standard_containers.html#container.non_standard_containers.stable_vector" title="stable_vector"><span class="emphasis"><em>stable_vector</em></span></a>
+</h3></div></div></div>
+<p>
+        This useful, fully STL-compliant stable container <a href="http://bannalia.blogspot.com/2008/09/introducing-stablevector.html" target="_top">designed
+        by Joaqu&#237;n M. L&#243;pez Mu&#241;oz</a> is an hybrid between <code class="computeroutput"><span class="identifier">vector</span></code> and <code class="computeroutput"><span class="identifier">list</span></code>,
+        providing most of the features of <code class="computeroutput"><span class="identifier">vector</span></code>
+        except <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-defects.html#69" target="_top">element
+        contiguity</a>.
+      </p>
+<p>
+        Extremely convenient as they are, <code class="computeroutput"><span class="identifier">vector</span></code>s
+        have a limitation that many novice C++ programmers frequently stumble upon:
+        iterators and references to an element of an <code class="computeroutput"><span class="identifier">vector</span></code>
+        are invalidated when a preceding element is erased or when the vector expands
+        and needs to migrate its internal storage to a wider memory region (i.e.
+        when the required size exceeds the vector's capacity). We say then that
+        <code class="computeroutput"><span class="identifier">vector</span></code>s are unstable: by
+        contrast, stable containers are those for which references and iterators
+        to a given element remain valid as long as the element is not erased: examples
+        of stable containers within the C++ standard library are <code class="computeroutput"><span class="identifier">list</span></code>
+        and the standard associative containers (<code class="computeroutput"><span class="identifier">set</span></code>,
+        <code class="computeroutput"><span class="identifier">map</span></code>, etc.).
+      </p>
+<p>
+        Sometimes stability is too precious a feature to live without, but one particular
+        property of <code class="computeroutput"><span class="identifier">vector</span></code>s, element
+        contiguity, makes it impossible to add stability to this container. So, provided
+        we sacrifice element contiguity, how much can a stable design approach the
+        behavior of <code class="computeroutput"><span class="identifier">vector</span></code> (random
+        access iterators, amortized constant time end insertion/deletion, minimal
+        memory overhead, etc.)? The following image describes the layout of a possible
+        data structure upon which to base the design of a stable vector:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../libs/container/doc/html/images/stable_vector.png" align="middle" width="50%" alt="stable_vector"></span>
+      </p>
+<p>
+        Each element is stored in its own separate node. All the nodes are referenced
+        from a contiguous array of pointers, but also every node contains an "up"
+        pointer referring back to the associated array cell. This up pointer is the
+        key element to implementing stability and random accessibility:
+      </p>
+<p>
+        Iterators point to the nodes rather than to the pointer array. This ensures
+        stability, as it is only the pointer array that needs to be shifted or relocated
+        upon insertion or deletion. Random access operations can be implemented by
+        using the pointer array as a convenient intermediate zone. For instance,
+        if the iterator it holds a node pointer <code class="computeroutput"><span class="identifier">it</span><span class="special">.</span><span class="identifier">p</span></code> and
+        we want to advance it by n positions, we simply do:
+      </p>
+<pre class="programlisting"><span class="identifier">it</span><span class="special">.</span><span class="identifier">p</span> <span class="special">=</span> <span class="special">*(</span><span class="identifier">it</span><span class="special">.</span><span class="identifier">p</span><span class="special">-&gt;</span><span class="identifier">up</span><span class="special">+</span><span class="identifier">n</span><span class="special">);</span>
+</pre>
+<p>
+        That is, we go "up" to the pointer array, add n there and then
+        go "down" to the resulting node.
+      </p>
+<p>
+        <span class="bold"><strong>General properties</strong></span>. <code class="computeroutput"><span class="identifier">stable_vector</span></code>
+        satisfies all the requirements of a container, a reversible container and
+        a sequence and provides all the optional operations present in vector. Like
+        vector, iterators are random access. <code class="computeroutput"><span class="identifier">stable_vector</span></code>
+        does not provide element contiguity; in exchange for this absence, the container
+        is stable, i.e. references and iterators to an element of a <code class="computeroutput"><span class="identifier">stable_vector</span></code> remain valid as long as the
+        element is not erased, and an iterator that has been assigned the return
+        value of end() always remain valid until the destruction of the associated
+        <code class="computeroutput"><span class="identifier">stable_vector</span></code>.
+      </p>
+<p>
+        <span class="bold"><strong>Operation complexity</strong></span>. The big-O complexities
+        of <code class="computeroutput"><span class="identifier">stable_vector</span></code> operations
+        match exactly those of vector. In general, insertion/deletion is constant
+        time at the end of the sequence and linear elsewhere. Unlike vector, <code class="computeroutput"><span class="identifier">stable_vector</span></code> does not internally perform
+        any value_type destruction, copy/move construction/assignment operations
+        other than those exactly corresponding to the insertion of new elements or
+        deletion of stored elements, which can sometimes compensate in terms of performance
+        for the extra burden of doing more pointer manipulation and an additional
+        allocation per element.
+      </p>
+<p>
+        <span class="bold"><strong>Exception safety</strong></span>. (according to <a href="http://www.boost.org/community/exception_safety.html" target="_top">Abrahams'
+        terminology</a>) As <code class="computeroutput"><span class="identifier">stable_vector</span></code>
+        does not internally copy/move elements around, some operations provide stronger
+        exception safety guarantees than in vector:
+      </p>
+<div class="table">
+<a name="container.non_standard_containers.stable_vector.stable_vector_req"></a><p class="title"><b>Table&#160;8.1.&#160;Exception safety</b></p>
+<div class="table-contents"><table class="table" summary="Exception safety">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  operation
+                </p>
+              </th>
+<th>
+                <p>
+                  exception safety for <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+                </p>
+              </th>
+<th>
+                <p>
+                  exception safety for <code class="computeroutput"><span class="identifier">stable_vector</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  insert
+                </p>
+              </td>
+<td>
+                <p>
+                  strong unless copy/move construction/assignment of <code class="computeroutput"><span class="identifier">T</span></code> throw (basic)
+                </p>
+              </td>
+<td>
+                <p>
+                  strong
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  erase
+                </p>
+              </td>
+<td>
+                <p>
+                  no-throw unless copy/move construction/assignment of <code class="computeroutput"><span class="identifier">T</span></code> throw (basic)
+                </p>
+              </td>
+<td>
+                <p>
+                  no-throw
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        <span class="bold"><strong>Memory overhead</strong></span>. The C++ standard does not
+        specifiy requirements on memory consumption, but virtually any implementation
+        of <code class="computeroutput"><span class="identifier">vector</span></code> has the same behavior
+        wih respect to memory usage: the memory allocated by a <code class="computeroutput"><span class="identifier">vector</span></code>
+        v with n elements of type T is
+      </p>
+<p>
+        m<sub>v</sub> = c&#8729;e,
+      </p>
+<p>
+        where c is <code class="computeroutput"><span class="identifier">v</span><span class="special">.</span><span class="identifier">capacity</span><span class="special">()</span></code>
+        and e is <code class="computeroutput"><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">T</span><span class="special">)</span></code>. c can
+        be as low as n if the user has explicitly reserved the exact capacity required;
+        otherwise, the average value c for a growing <code class="computeroutput"><span class="identifier">vector</span></code>
+        oscillates between 1.25&#8729;n and 1.5&#8729;n for typical resizing policies.
+        For <code class="computeroutput"><span class="identifier">stable_vector</span></code>, the memory
+        usage is
+      </p>
+<p>
+        m<sub>sv</sub> = (c + 1)p + (n + 1)(e + p),
+      </p>
+<p>
+        where p is the size of a pointer. We have c + 1 and n + 1 rather than c and
+        n because a dummy node is needed at the end of the sequence. If we call f
+        the capacity to size ratio c/n and assume that n is large enough, we have
+        that
+      </p>
+<p>
+        m<sub>sv</sub>/m<sub>v</sub> &#8771; (fp + e + p)/fe.
+      </p>
+<p>
+        So, <code class="computeroutput"><span class="identifier">stable_vector</span></code> uses less
+        memory than <code class="computeroutput"><span class="identifier">vector</span></code> only when
+        e &gt; p and the capacity to size ratio exceeds a given threshold:
+      </p>
+<p>
+        m<sub>sv</sub> &lt; m<sub>v</sub> &lt;-&gt; f &gt; (e + p)/(e - p). (provided e &gt; p)
+      </p>
+<p>
+        This threshold approaches typical values of f below 1.5 when e &gt; 5p; in
+        a 32-bit architecture, when e &gt; 20 bytes.
+      </p>
+<p>
+        <span class="bold"><strong>Summary</strong></span>. <code class="computeroutput"><span class="identifier">stable_vector</span></code>
+        is a drop-in replacement for <code class="computeroutput"><span class="identifier">vector</span></code>
+        providing stability of references and iterators, in exchange for missing
+        element contiguity and also some performance and memory overhead. When the
+        element objects are expensive to move around, the performance overhead can
+        turn into a net performance gain for <code class="computeroutput"><span class="identifier">stable_vector</span></code>
+        if many middle insertions or deletions are performed or if resizing is very
+        frequent. Similarly, if the elements are large there are situations when
+        the memory used by <code class="computeroutput"><span class="identifier">stable_vector</span></code>
+        can actually be less than required by vector.
+      </p>
+<p>
+        <span class="emphasis"><em>Note: Text and explanations taken from <a href="http://bannalia.blogspot.com/2008/09/introducing-stablevector.html" target="_top">Joaqu&#237;n's
+        blog</a></em></span>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.non_standard_containers.flat_xxx"></a><a class="link" href="non_standard_containers.html#container.non_standard_containers.flat_xxx" title="flat_(multi)map/set associative containers"><span class="emphasis"><em>flat_(multi)map/set</em></span>
+      associative containers</a>
+</h3></div></div></div>
+<p>
+        Using sorted vectors instead of tree-based associative containers is a well-known
+        technique in C++ world. Matt Austern's classic article <a href="http://lafstern.org/matt/col1.pdf" target="_top">Why
+        You Shouldn't Use set, and What You Should Use Instead</a> (C++ Report
+        12:4, April 2000) was enlightening:
+      </p>
+<p>
+        <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em>Red-black trees aren't the only way to organize data that
+        permits lookup in logarithmic time. One of the basic algorithms of computer
+        science is binary search, which works by successively dividing a range in
+        half. Binary search is log N and it doesn't require any fancy data structures,
+        just a sorted collection of elements. (...) You can use whatever data structure
+        is convenient, so long as it provides STL iterator; usually it's easiest
+        to use a C array, or a vector.</em></span></span>&#8221;</span>
+      </p>
+<p>
+        <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em>Both std::lower_bound and set::find take time proportional
+        to log N, but the constants of proportionality are very different. Using
+        g++ (...) it takes X seconds to perform a million lookups in a sorted vector&lt;double&gt;
+        of a million elements, and almost twice as long (...) using a set. Moreover,
+        the set uses almost three times as much memory (48 million bytes) as the
+        vector (16.8 million).</em></span></span>&#8221;</span>
+      </p>
+<p>
+        <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em>Using a sorted vector instead of a set gives you faster
+        lookup and much faster iteration, but at the cost of slower insertion. Insertion
+        into a set, using set::insert, is proportional to log N, but insertion into
+        a sorted vector, (...) , is proportional to N. Whenever you insert something
+        into a vector, vector::insert has to make room by shifting all of the elements
+        that follow it. On average, if you're equally likely to insert a new element
+        anywhere, you'll be shifting N/2 elements.</em></span></span>&#8221;</span>
+      </p>
+<p>
+        <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em>It may sometimes be convenient to bundle all of this together
+        into a small container adaptor. This class does not satisfy the requirements
+        of a Standard Associative Container, since the complexity of insert is O(N)
+        rather than O(log N), but otherwise it is almost a drop-in replacement for
+        set.</em></span></span>&#8221;</span>
+      </p>
+<p>
+        Following Matt Austern's indications, Andrei Alexandrescu's <a href="http://www.bestwebbuys.com/Modern-C-Design-Generic-Programming-and-Design-Patterns-Applied-ISBN-9780201704310?isrc=-rd" target="_top">Modern
+        C++ Design</a> showed <code class="computeroutput"><span class="identifier">AssocVector</span></code>,
+        a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span></code> drop-in replacement designed in his
+        <a href="http://loki-lib.sourceforge.net/" target="_top">Loki</a> library:
+      </p>
+<p>
+        <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em>It seems as if we're better off with a sorted vector. The
+        disadvantages of a sorted vector are linear-time insertions and linear-time
+        deletions (...). In exchange, a vector offers about twice the lookup speed
+        and a much smaller working set (...). Loki saves the trouble of maintaining
+        a sorted vector by hand by defining an AssocVector class template. AssocVector
+        is a drop-in replacement for std::map (it supports the same set of member
+        functions), implemented on top of std::vector. AssocVector differs from a
+        map in the behavior of its erase functions (AssocVector::erase invalidates
+        all iterators into the object) and in the complexity guarantees of insert
+        and erase (linear as opposed to constant). </em></span></span>&#8221;</span>
+      </p>
+<p>
+        <span class="bold"><strong>Boost.Container</strong></span> <code class="computeroutput"><span class="identifier">flat_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">map</span><span class="special">/</span><span class="identifier">set</span></code> containers are ordered-vector based
+        associative containers based on Austern's and Alexandrescu's guidelines.
+        These ordered vector containers have also benefited recently with the addition
+        of <code class="computeroutput"><span class="identifier">move</span> <span class="identifier">semantics</span></code>
+        to C++, speeding up insertion and erasure times considerably. Flat associative
+        containers have the following attributes:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Faster lookup than standard associative containers
+          </li>
+<li class="listitem">
+            Much faster iteration than standard associative containers. Random-access
+            iterators instead of bidirectional iterators.
+          </li>
+<li class="listitem">
+            Less memory consumption for small objects (and for big objects if <code class="computeroutput"><span class="identifier">shrink_to_fit</span></code> is used)
+          </li>
+<li class="listitem">
+            Improved cache performance (data is stored in contiguous memory)
+          </li>
+<li class="listitem">
+            Non-stable iterators (iterators are invalidated when inserting and erasing
+            elements)
+          </li>
+<li class="listitem">
+            Non-copyable and non-movable values types can't be stored
+          </li>
+<li class="listitem">
+            Weaker exception safety than standard associative containers (copy/move
+            constructors can throw when shifting values in erasures and insertions)
+          </li>
+<li class="listitem">
+            Slower insertion and erasure than standard associative containers (specially
+            for non-movable types)
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.non_standard_containers.slist"></a><a class="link" href="non_standard_containers.html#container.non_standard_containers.slist" title="slist"><span class="emphasis"><em>slist</em></span></a>
+</h3></div></div></div>
+<p>
+        When the standard template library was designed, it contained a singly linked
+        list called <code class="computeroutput"><span class="identifier">slist</span></code>. Unfortunately,
+        this container was not standardized and remained as an extension for many
+        standard library implementations until C++11 introduced <code class="computeroutput"><span class="identifier">forward_list</span></code>,
+        which is a bit different from the the original SGI <code class="computeroutput"><span class="identifier">slist</span></code>.
+        According to <a href="http://www.sgi.com/tech/stl/Slist.html" target="_top">SGI STL
+        documentation</a>:
+      </p>
+<p>
+        <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em>An <code class="computeroutput"><span class="identifier">slist</span></code>
+        is a singly linked list: a list where each element is linked to the next
+        element, but not to the previous element. That is, it is a Sequence that
+        supports forward but not backward traversal, and (amortized) constant time
+        insertion and removal of elements. Slists, like lists, have the important
+        property that insertion and splicing do not invalidate iterators to list
+        elements, and that even removal invalidates only the iterators that point
+        to the elements that are removed. The ordering of iterators may be changed
+        (that is, slist&lt;T&gt;::iterator might have a different predecessor or
+        successor after a list operation than it did before), but the iterators themselves
+        will not be invalidated or made to point to different elements unless that
+        invalidation or mutation is explicit.</em></span></span>&#8221;</span>
+      </p>
+<p>
+        <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em>The main difference between <code class="computeroutput"><span class="identifier">slist</span></code>
+        and list is that list's iterators are bidirectional iterators, while slist's
+        iterators are forward iterators. This means that <code class="computeroutput"><span class="identifier">slist</span></code>
+        is less versatile than list; frequently, however, bidirectional iterators
+        are unnecessary. You should usually use <code class="computeroutput"><span class="identifier">slist</span></code>
+        unless you actually need the extra functionality of list, because singly
+        linked lists are smaller and faster than double linked lists.</em></span></span>&#8221;</span>
+      </p>
+<p>
+        <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em>Important performance note: like every other Sequence,
+        <code class="computeroutput"><span class="identifier">slist</span></code> defines the member
+        functions insert and erase. Using these member functions carelessly, however,
+        can result in disastrously slow programs. The problem is that insert's first
+        argument is an iterator pos, and that it inserts the new element(s) before
+        pos. This means that insert must find the iterator just before pos; this
+        is a constant-time operation for list, since list has bidirectional iterators,
+        but for <code class="computeroutput"><span class="identifier">slist</span></code> it must find
+        that iterator by traversing the list from the beginning up to pos. In other
+        words: insert and erase are slow operations anywhere but near the beginning
+        of the slist.</em></span></span>&#8221;</span>
+      </p>
+<p>
+        <span class="quote">&#8220;<span class="quote"><span class="emphasis"><em>Slist provides the member functions insert_after and erase_after,
+        which are constant time operations: you should always use insert_after and
+        erase_after whenever possible. If you find that insert_after and erase_after
+        aren't adequate for your needs, and that you often need to use insert and
+        erase in the middle of the list, then you should probably use list instead
+        of slist.</em></span></span>&#8221;</span>
+      </p>
+<p>
+        <span class="bold"><strong>Boost.Container</strong></span> updates the classic <code class="computeroutput"><span class="identifier">slist</span></code> container with C++11 features like
+        move semantics and placement insertion and implements it a bit differently
+        than the standard C++ <code class="computeroutput"><span class="identifier">forward_list</span></code>.
+        <code class="computeroutput"><span class="identifier">forward_list</span></code> has no <code class="computeroutput"><span class="identifier">size</span><span class="special">()</span></code>
+        method, so it's been designed to allow (or in practice, encourage) implementations
+        without tracking list size with every insertion/erasure, allowing constant-time
+        <code class="computeroutput"><span class="identifier">splice_after</span><span class="special">(</span><span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">forward_list</span> <span class="special">&amp;,</span>
+        <span class="identifier">iterator</span><span class="special">,</span>
+        <span class="identifier">iterator</span><span class="special">)</span></code>-based
+        list merging. On the other hand <code class="computeroutput"><span class="identifier">slist</span></code>
+        offers constant-time <code class="computeroutput"><span class="identifier">size</span><span class="special">()</span></code> for those that don't care about linear-time
+        <code class="computeroutput"><span class="identifier">splice_after</span><span class="special">(</span><span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">slist</span> <span class="special">&amp;,</span>
+        <span class="identifier">iterator</span><span class="special">,</span>
+        <span class="identifier">iterator</span><span class="special">)</span></code>
+        <code class="computeroutput"><span class="identifier">size</span><span class="special">()</span></code>
+        and offers an additional <code class="computeroutput"><span class="identifier">splice_after</span><span class="special">(</span><span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">slist</span> <span class="special">&amp;,</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span></code> method that can speed up <code class="computeroutput"><span class="identifier">slist</span></code>
+        merging when the programmer already knows the size. <code class="computeroutput"><span class="identifier">slist</span></code>
+        and <code class="computeroutput"><span class="identifier">forward_list</span></code> are therefore
+        complementary.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="container.non_standard_containers.static_vector"></a><a class="link" href="non_standard_containers.html#container.non_standard_containers.static_vector" title="static_vector"><span class="emphasis"><em>static_vector</em></span></a>
+</h3></div></div></div>
+<p>
+        <code class="computeroutput"><span class="identifier">static_vector</span></code> is an hybrid
+        between <code class="computeroutput"><span class="identifier">vector</span></code> and <code class="computeroutput"><span class="identifier">array</span></code>: like <code class="computeroutput"><span class="identifier">vector</span></code>,
+        it's a sequence container with contiguous storage that can change in size,
+        along with the static allocation, low overhead, and fixed capacity of <code class="computeroutput"><span class="identifier">array</span></code>. <code class="computeroutput"><span class="identifier">static_vector</span></code>
+        is based on Adam Wulkiewicz and Andrew Hundt's high-performance <a href="https://svn.boost.org/svn/boost/sandbox/varray/doc/html/index.html" target="_top">varray</a>
+        class.
+      </p>
+<p>
+        The number of elements in a <code class="computeroutput"><span class="identifier">static_vector</span></code>
+        may vary dynamically up to a fixed capacity because elements are stored within
+        the object itself similarly to an array. However, objects are initialized
+        as they are inserted into <code class="computeroutput"><span class="identifier">static_vector</span></code>
+        unlike C arrays or <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span></code> which must construct all elements
+        on instantiation. The behavior of <code class="computeroutput"><span class="identifier">static_vector</span></code>
+        enables the use of statically allocated elements in cases with complex object
+        lifetime requirements that would otherwise not be trivially possible. Some
+        other properties:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Random access to elements
+          </li>
+<li class="listitem">
+            Constant time insertion and removal of elements at the end
+          </li>
+<li class="listitem">
+            Linear time insertion and removal of elements at the beginning or in
+            the middle.
+          </li>
+</ul></div>
+<p>
+        <code class="computeroutput"><span class="identifier">static_vector</span></code> is well suited
+        for use in a buffer, the internal implementation of other classes, or use
+        cases where there is a fixed limit to the number of elements that must be
+        stored. Embedded and realtime applications where allocation either may not
+        be available or acceptable are a particular case where <code class="computeroutput"><span class="identifier">static_vector</span></code>
+        can be beneficial.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="exception_handling.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../container.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="extended_functionality.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

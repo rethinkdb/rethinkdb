@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: BOOST_MPL_ASSERT</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./asserts.html" class="navigation-link">Prev</a>&nbsp;<a href="./assert-msg.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./assert-msg.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./asserts.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./macros.html" class="navigation-link">Macros</a> / <a href="./asserts.html" class="navigation-link">Asserts</a> / <a href="./assert.html" class="navigation-link">BOOST_MPL_ASSERT</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="boost-mpl-assert">
+<h1><a class="toc-backref" href="./asserts.html#id1588">BOOST_MPL_ASSERT</a></h1>
+<div class="section" id="id1287">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+#define <a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>( pred ) \
+    <em>unspecified token sequence</em> \
+/**/
+</pre>
+</div>
+<div class="section" id="id1288">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Generates a compilation error when the predicate <tt class="literal"><span class="pre">pred</span></tt> holds false.</p>
+</div>
+<div class="section" id="id1289">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/assert.hpp" class="header">boost/mpl/assert.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id1290">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="19%" />
+<col width="43%" />
+<col width="38%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">pred</span></tt></td>
+<td>Boolean nullary <a class="reference internal" href="./metafunction.html">Metafunction</a></td>
+<td>A predicate to be asserted.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1291">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any boolean nullary <a class="reference internal" href="./metafunction.html">Metafunction</a> <tt class="literal"><span class="pre">pred</span></tt>:</p>
+<pre class="literal-block">
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( pred ));
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">None.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Generates a compilation error if <tt class="literal"><span class="pre">pred::type::value</span> <span class="pre">!=</span> <span class="pre">true</span></tt>, otherwise
+has no effect. Note that double parentheses are required even if no commas
+appear in the condition.</p>
+<p>When possible within the compiler's diagnostic capabilities,
+the error message will include the predicate's full type name, and have a
+general form of:</p>
+<pre class="last literal-block">
+<em>...</em> ************ pred::************ <em>...</em>
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1292">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+template&lt; typename T, typename U &gt; struct my
+{
+    // ...
+    <a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; T,U &gt; ));
+};
+
+my&lt;void*,char*&gt; test;
+
+// In instantiation of `my&lt;void, char*&gt;':
+//   instantiated from here
+// conversion from `
+//   mpl_::failed************boost::is_same&lt;void, char*&gt;::************' to
+//   non-scalar type `mpl_::assert&lt;false&gt;' requested
+</pre>
+</div>
+<div class="section" id="id1293">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./asserts.html">Asserts</a>, <a class="reference internal" href="./assert-not.html">BOOST_MPL_ASSERT_NOT</a>, <a class="reference internal" href="./assert-msg.html">BOOST_MPL_ASSERT_MSG</a>, <a class="reference internal" href="./assert-relation.html">BOOST_MPL_ASSERT_RELATION</a></p>
+<!-- Macros/Asserts//BOOST_MPL_ASSERT_MSG -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./asserts.html" class="navigation-link">Prev</a>&nbsp;<a href="./assert-msg.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./assert-msg.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./asserts.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

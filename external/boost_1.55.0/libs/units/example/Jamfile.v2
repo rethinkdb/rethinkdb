@@ -1,0 +1,25 @@
+# Jamfile.v2
+#
+# Copyright (c) 2007-2008
+# Steven Watanabe
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt
+
+import testing ;
+import path ;
+
+project boost/units/example :
+  : requirements <include>$(BOOST_ROOT) <include>../../.. <warnings>all
+;
+
+files = [ path.glob . : *.cpp : performance.* runtime_unit.* ] ;
+
+for local file in $(files)
+{
+    run $(file) ;
+}
+
+compile performance.cpp ;
+run runtime_unit.cpp : <runtime_unit_input.txt ;

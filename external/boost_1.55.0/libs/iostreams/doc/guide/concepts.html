@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Concepts</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">User's Guide</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev_disabled.png'>
+    <A HREF='guide.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='modes.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<A NAME="overview"></A>
+<H2>3.1 Concepts</H2>
+
+<DL class="page-index">
+  <DT><A href="#overview">Overview</A></DT>
+  <DT><A href="#device_concepts">Device Concepts</A></DT>
+  <DT><A href="#filter_concepts">Filter Concepts</A></DT>
+  <DT><A href="#optional_behavior">Optional Behavior</A></DT>
+  <DT><A href="#convenience">Convenience Templates and <CODE>typedef</CODE>s</A></DT>
+</DL>
+
+<HR STYLE="margin-top:1em">
+
+<P>
+    The fundamental building blocks of the Iostreams library are the concepts of a <A HREF="../concepts/source.html">Source</A>, which provides read access to a sequence of characters, a <A HREF="../concepts/sink.html">Sink</A>, which provides write access to a sequence of characters, an <A HREF="../concepts/input_filter.html">InputFilter</A>, which Filters input read from a Source, and an <A HREF="../concepts/output_filter.html">OutputFilter</A>, which Filters output written to a Sink. Sources, Sinks and their refinements are called <SPAN CLASS="term">Devices</SPAN>. InputFilters, OutputFilter and their refinements are called <SPAN CLASS="term">Filters</SPAN>.
+</P>
+<P>
+    Standard streams and stream buffers are Devices; for example, input streams are <A HREF="../concepts/source.html">Sources</A> and output streams are <A HREF="../concepts/sink.html">Sinks</A>.<A CLASS="footnote_ref" NAME="note_1_ref" HREF="#note_1"><SUP>[1]</SUP></A>
+</P>
+<P>
+    In general, a Filter or Device may provide access to an <SPAN>input sequence</SPAN>, for reading, an <SPAN>output sequence</SPAN>, for writing, or both. The relationship between the two sequences, as well as the operations that may be performed on them, depends on the Filter or Device type. The various possible relationships between input and output are referred to as <A HREF="modes.html">modes</A>.<SUP><A CLASS="footnote_ref" NAME="note_2_ref" HREF="#note_2">[2]</A></SUP> The Iostreams library provides one Device concept and one Filter concept for each of eight modes. Source, Sink, InputFilter and OutputFilter correspond to the the modes <A HREF="modes.html#input">input</A> and <A HREF="modes.html#output">output</A> and are by far the most important of the Filter and Device concepts.
+</P>
+<P>
+    The most common Device and Filter concepts are documented individually. Readers new to the Iostreams library should familiarize themselves with the four central concepts <A HREF="../concepts/source.html">Source</A>, <A HREF="../concepts/sink.html">Sink</A>, <A HREF="../concepts/input_filter.html">InputFilter</A> and <A HREF="../concepts/output_filter.html">OutputFilter</A>. The full sets of requirements for the Filter and Device concepts are summarized in the definitions of the concepts <A HREF="../concepts/device.html">Device</A> and <A HREF="../concepts/filter.html">Filter</A> which form the roots of the concept hierarchies.
+</P>
+<P>
+    To ease the task of defining new Filter and Device types, the Iostreams library provides a number of <A HREF="#convenience">convenience templates and <CODE>typedef</CODE>s</A>.
+</P>
+
+<A NAME="device_concepts"></A>
+<H2>Device Concepts</H2>
+
+<P>The most important Device concepts are these:</P>
+
+<UL>
+    <LI><A STYLE="font-weight:normal" HREF="../concepts/device.html">Device:</A> Base for all Device concepts, provides associated character type and category.
+    <LI><A STYLE="font-weight:normal" HREF="../concepts/source.html">Source:</A> Provides read-only access to a sequence of characters.
+    <LI><A STYLE="font-weight:normal" HREF="../concepts/sink.html">Sink:</A> Provides write-only access to a sequence of characters.
+    <LI><A STYLE="font-weight:normal" HREF="../concepts/bidirectional_device.html">BidirectionalDevice:</A> Provides access to two separate sequences of characters, one for reading and the other for writing.
+    <LI><A STYLE="font-weight:normal" HREF="../concepts/seekable_device.html">SeekableDevice:</A> Provides read-write access to a single sequence of characters, with a single repositionable read/write head. 
+</UL>
+
+<A NAME="filter_concepts"></A>
+<H2>Filter Concepts</H2>
+
+<P>The most important Filter concepts are these:</P>
+
+<UL>
+    <LI><A STYLE="font-weight:normal" HREF="../concepts/filter.html">Filter:</A> Base for all Filter concepts, provides associated character type and category.
+    <LI><A HREF="../concepts/input_filter.html">InputFilter:</A> Filters characters read from a Source.
+    <LI><A HREF="../concepts/output_filter.html">OutputFilter:</A> Filters characters written to a Sink
+    <LI><A HREF="../concepts/bidirectional_filter.html">BidirectionalFilter:</A> Filters two separate character sequences, one read from a Sink and the other written to a Sink.
+    <LI><A HREF="../concepts/seekable_filter.html">SeekableFilter:</A> Filters a single characters sequence, controlled by a SeekableDevice, 
+    providing filtered input, output and random access with a single repositionable read/write head
+</UL>
+
+<A NAME="optional_behavior"></A>
+<H2>Optional Behavior</H2>
+
+<P>Boost.Iostreams prvides several concepts corresponding to optional behavior that a Filter or Device might implement:</P>
+
+<UL>
+    <LI><A HREF="../concepts/blocking.html">Blocking:</A> A Device which blocks when it receives a read or write request until all requested characters are available, or until the end of a stream is reached.
+    <LI><A HREF="../concepts/direct.html">Direct:</A> A Device which provides access to its controlled sequences as regions of memory rather than <I>via</I> a socket-like interface.
+    <LI><A HREF="../concepts/closable.html">Closable:</A> A Filter or Device which receives notifications immediately before a stream is closed.
+    <LI><A HREF="../concepts/flushable.html">Flushable</A> A Filter or Device which receives notifications when a stream is flushed.
+    <LI><A HREF="../concepts/localizable.html">Localizable:</A>  A Filter or Device which receives notifications when the <CODE>locale</CODE> of a stream or stream buffer is set using <CODE>basic_ios::imbue</CODE> or <CODE>basic_streambuf::pubimbue</CODE>.
+    <LI><A HREF="../concepts/multi_character.html">Multi-Character:</A> A Filter which provides access to its controlled sequences several characters at a time, <I>via</I> a socket-like interface.
+    <LI><A HREF="../concepts/optimally_buffered.html">OptimallyBuffered</A> A Filter or Device which will be fitted with a buffer of custom size if no buffer size is explicitly requested by the user.
+    <LI><A HREF="../concepts/peekable.html">Peekable:</A> A source which allows characters to be put back to the input sequence.
+    <LI><A HREF="../concepts/pipable.html">Pipable:</A> A Filter which can appear in <A HREF="pipelines.html">pipelines</A>.
+</UL>
+
+<A NAME="convenience"></A>
+<H2>Convenience Templates and <CODE>typedef</CODE>s</H2>
+
+<P>
+    The Iostreams library provides several templates intended for derivation by user-defined Filter and Device types. They ease the task of defining Filters and Devices by providing member types and default implementations of several member functions.
+</P>
+
+<P>
+    The template <A href="../classes/device.html"><CODE>device</CODE></A> and its specializations <A HREF="../classes/device.html#synopsis"><CODE>source</CODE></A> and <A HREF="../classes/device.html#synopsis"><CODE>sink</CODE></A> help users define new Device types; the template <A href="../classes/filter.html"><CODE>filter</CODE></A> and its specializations <A HREF="../classes/filter.html#synopsis"><CODE>input_filter</CODE></A> and <A HREF="../classes/filter.html#synopsis"><CODE>output_filter</CODE></A> help users define new Filter types; the template <A href="../classes/filter.html#multichar_filter"><CODE>multichar_filter</CODE></A> and its specializations <A HREF="../classes/filter.html#synopsis"><CODE>multichar_input_filter</CODE></A> and <A HREF="../classes/filter.html#synopsis"><CODE>multichar_output_filter</CODE></A> help users define new multichar Filter types. There are also wide-character versions of these templates, <A href="../classes/device.html#synopsis"><CODE>wdevice</CODE></A>, <A href="../classes/filter.html#synopsis"><CODE>wfilter</CODE></A> and <A href="../classes/filter.html#synopsis"><CODE>multichar_wfilter</CODE></A>, as well as corresponding wide-character <CODE>typedef</CODE>s.
+</P>
+
+<!-- Begin Footnotes -->
+
+<HR>
+
+<P>
+    <A CLASS="footnote_ref" NAME="note_1" HREF="#note_1_ref"><SUP>[1]</SUP></A>For complete details, see <A HREF="../classes/mode.html"><CODE>mode_of</CODE></A>.
+</P>
+
+<P>
+    <A CLASS="footnote_ref" NAME="note_2" HREF="#note_2_ref"><SUP>[2]</SUP></A>A more precise definition is given in <A HREF="modes.html">Modes</A>.
+</P>
+
+<!-- End Footnotes -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

@@ -1,0 +1,184 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Lattice systems</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../tutorial.html" title="Tutorial">
+<link rel="prev" href="complex_state_types.html" title="Complex state types">
+<link rel="next" href="ensembles_of_oscillators.html" title="Ensembles of oscillators">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="complex_state_types.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ensembles_of_oscillators.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.tutorial.lattice_systems"></a><a class="link" href="lattice_systems.html" title="Lattice systems">Lattice
+      systems</a>
+</h3></div></div></div>
+<p>
+        odeint can also be used to solve ordinary differential equations defined
+        on lattices. A prominent example is the Fermi-Pasta-Ulam system <a class="link" href="../literature.html#fpu_scholarpedia">[8]
+        </a>. It is a Hamiltonian system of nonlinear coupled harmonic oscillators.
+        The Hamiltonian is
+      </p>
+<p>
+        <span class="emphasis"><em>H = &#931;<sub>&#8203;i</sub> p<sub>&#8203;i</sub><sup>2</sup>/2 + 1/2 ( q<sub>&#8203;i+1</sub> - q<sub>&#8203;i</sub> )^2 + &#946; / 4 ( q<sub>&#8203;i+1</sub> - q<sub>&#8203;i</sub> )^4 </em></span>
+      </p>
+<p>
+        Remarkably, the Fermi-Pasta-Ulam system was the first numerical experiment
+        to be implemented on a computer. It was studied at Los Alamos in 1953 on
+        one of the first computers (a MANIAC I) and it triggered a whole new tree
+        of mathematical and physical science.
+      </p>
+<p>
+        Like the <a class="link" href="solar_system.html" title="Solar system">Solar
+        System</a>, the FPU is solved again by a symplectic solver, but in this
+        case we can speed up the computation because the <span class="emphasis"><em>q</em></span> components
+        trivially reduce to <span class="emphasis"><em>dq<sub>&#8203;i</sub> / dt = p<sub>&#8203;i</sub></em></span>. odeint is capable
+        of doing this performance improvement. All you have to do is to call the
+        symplectic solver with an state function for the <span class="emphasis"><em>p</em></span> components.
+        Here is how this function looks like
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">vector</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">&gt;</span> <span class="identifier">container_type</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">fpu</span>
+<span class="special">{</span>
+    <span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">m_beta</span><span class="special">;</span>
+
+    <span class="identifier">fpu</span><span class="special">(</span> <span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">beta</span> <span class="special">=</span> <span class="number">1.0</span> <span class="special">)</span> <span class="special">:</span> <span class="identifier">m_beta</span><span class="special">(</span> <span class="identifier">beta</span> <span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+
+    <span class="comment">// system function defining the ODE</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="keyword">const</span> <span class="identifier">container_type</span> <span class="special">&amp;</span><span class="identifier">q</span> <span class="special">,</span> <span class="identifier">container_type</span> <span class="special">&amp;</span><span class="identifier">dpdt</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">size_t</span> <span class="identifier">n</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">.</span><span class="identifier">size</span><span class="special">();</span>
+        <span class="keyword">double</span> <span class="identifier">tmp</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">-</span> <span class="number">0.0</span><span class="special">;</span>
+        <span class="keyword">double</span> <span class="identifier">tmp2</span> <span class="special">=</span> <span class="identifier">tmp</span> <span class="special">+</span> <span class="identifier">m_beta</span> <span class="special">*</span> <span class="identifier">tmp</span> <span class="special">*</span> <span class="identifier">tmp</span> <span class="special">*</span> <span class="identifier">tmp</span><span class="special">;</span>
+        <span class="identifier">dpdt</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">=</span> <span class="special">-</span><span class="identifier">tmp2</span><span class="special">;</span>
+        <span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">n</span><span class="special">-</span><span class="number">1</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">tmp</span> <span class="special">=</span> <span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">+</span><span class="number">1</span><span class="special">]</span> <span class="special">-</span> <span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">];</span>
+            <span class="identifier">tmp2</span> <span class="special">=</span> <span class="identifier">tmp</span> <span class="special">+</span> <span class="identifier">m_beta</span> <span class="special">*</span> <span class="identifier">tmp</span> <span class="special">*</span> <span class="identifier">tmp</span> <span class="special">*</span> <span class="identifier">tmp</span><span class="special">;</span>
+            <span class="identifier">dpdt</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">+=</span> <span class="identifier">tmp2</span><span class="special">;</span>
+            <span class="identifier">dpdt</span><span class="special">[</span><span class="identifier">i</span><span class="special">+</span><span class="number">1</span><span class="special">]</span> <span class="special">=</span> <span class="special">-</span><span class="identifier">tmp2</span><span class="special">;</span>
+        <span class="special">}</span>
+        <span class="identifier">tmp</span> <span class="special">=</span> <span class="special">-</span> <span class="identifier">q</span><span class="special">[</span><span class="identifier">n</span><span class="special">-</span><span class="number">1</span><span class="special">];</span>
+        <span class="identifier">tmp2</span> <span class="special">=</span> <span class="identifier">tmp</span> <span class="special">+</span> <span class="identifier">m_beta</span> <span class="special">*</span> <span class="identifier">tmp</span> <span class="special">*</span> <span class="identifier">tmp</span> <span class="special">*</span> <span class="identifier">tmp</span><span class="special">;</span>
+        <span class="identifier">dpdt</span><span class="special">[</span><span class="identifier">n</span><span class="special">-</span><span class="number">1</span><span class="special">]</span> <span class="special">+=</span> <span class="identifier">tmp2</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="comment">// calculates the energy of the system</span>
+    <span class="keyword">double</span> <span class="identifier">energy</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">container_type</span> <span class="special">&amp;</span><span class="identifier">q</span> <span class="special">,</span> <span class="keyword">const</span> <span class="identifier">container_type</span> <span class="special">&amp;</span><span class="identifier">p</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="comment">// ...</span>
+    <span class="special">}</span>
+
+    <span class="comment">// calculates the local energy of the system</span>
+    <span class="keyword">void</span> <span class="identifier">local_energy</span><span class="special">(</span> <span class="keyword">const</span> <span class="identifier">container_type</span> <span class="special">&amp;</span><span class="identifier">q</span> <span class="special">,</span> <span class="keyword">const</span> <span class="identifier">container_type</span> <span class="special">&amp;</span><span class="identifier">p</span> <span class="special">,</span> <span class="identifier">container_type</span> <span class="special">&amp;</span><span class="identifier">e</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="comment">// ...</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        You can also use <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="keyword">double</span> <span class="special">,</span> <span class="identifier">N</span> <span class="special">&gt;</span></code>
+        for the state type.
+      </p>
+<p>
+        Now, you have to define your initial values and perform the integration:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">const</span> <span class="identifier">size_t</span> <span class="identifier">n</span> <span class="special">=</span> <span class="number">64</span><span class="special">;</span>
+<span class="identifier">container_type</span> <span class="identifier">q</span><span class="special">(</span> <span class="identifier">n</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">p</span><span class="special">(</span> <span class="identifier">n</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">);</span>
+
+<span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">n</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">p</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">=</span> <span class="number">0.0</span><span class="special">;</span>
+    <span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">=</span> <span class="number">32.0</span> <span class="special">*</span> <span class="identifier">sin</span><span class="special">(</span> <span class="keyword">double</span><span class="special">(</span> <span class="identifier">i</span> <span class="special">+</span> <span class="number">1</span> <span class="special">)</span> <span class="special">/</span> <span class="keyword">double</span><span class="special">(</span> <span class="identifier">n</span> <span class="special">+</span> <span class="number">1</span> <span class="special">)</span> <span class="special">*</span> <span class="identifier">M_PI</span> <span class="special">);</span>
+<span class="special">}</span>
+
+
+<span class="keyword">const</span> <span class="keyword">double</span> <span class="identifier">dt</span> <span class="special">=</span> <span class="number">0.1</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">symplectic_rkn_sb3a_mclachlan</span><span class="special">&lt;</span> <span class="identifier">container_type</span> <span class="special">&gt;</span> <span class="identifier">stepper_type</span><span class="special">;</span>
+<span class="identifier">fpu</span> <span class="identifier">fpu_instance</span><span class="special">(</span> <span class="number">8.0</span> <span class="special">);</span>
+
+<span class="identifier">integrate_const</span><span class="special">(</span> <span class="identifier">stepper_type</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">fpu_instance</span> <span class="special">,</span>
+        <span class="identifier">make_pair</span><span class="special">(</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span> <span class="identifier">q</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ref</span><span class="special">(</span> <span class="identifier">p</span> <span class="special">)</span> <span class="special">)</span> <span class="special">,</span>
+        <span class="number">0.0</span> <span class="special">,</span> <span class="number">1000.0</span> <span class="special">,</span> <span class="identifier">dt</span> <span class="special">,</span> <span class="identifier">streaming_observer</span><span class="special">(</span> <span class="identifier">cout</span> <span class="special">,</span> <span class="identifier">fpu_instance</span> <span class="special">,</span> <span class="number">10</span> <span class="special">)</span> <span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        The observer uses a reference to the system object to calculate the local
+        energies:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">streaming_observer</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span><span class="special">&amp;</span> <span class="identifier">m_out</span><span class="special">;</span>
+    <span class="keyword">const</span> <span class="identifier">fpu</span> <span class="special">&amp;</span><span class="identifier">m_fpu</span><span class="special">;</span>
+    <span class="identifier">size_t</span> <span class="identifier">m_write_every</span><span class="special">;</span>
+    <span class="identifier">size_t</span> <span class="identifier">m_count</span><span class="special">;</span>
+
+    <span class="identifier">streaming_observer</span><span class="special">(</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&amp;</span><span class="identifier">out</span> <span class="special">,</span> <span class="keyword">const</span> <span class="identifier">fpu</span> <span class="special">&amp;</span><span class="identifier">f</span> <span class="special">,</span> <span class="identifier">size_t</span> <span class="identifier">write_every</span> <span class="special">=</span> <span class="number">100</span> <span class="special">)</span>
+    <span class="special">:</span> <span class="identifier">m_out</span><span class="special">(</span> <span class="identifier">out</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">m_fpu</span><span class="special">(</span> <span class="identifier">f</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">m_write_every</span><span class="special">(</span> <span class="identifier">write_every</span> <span class="special">)</span> <span class="special">,</span> <span class="identifier">m_count</span><span class="special">(</span> <span class="number">0</span> <span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">State</span> <span class="special">&gt;</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span> <span class="keyword">const</span> <span class="identifier">State</span> <span class="special">&amp;</span><span class="identifier">x</span> <span class="special">,</span> <span class="keyword">double</span> <span class="identifier">t</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">if</span><span class="special">(</span> <span class="special">(</span> <span class="identifier">m_count</span> <span class="special">%</span> <span class="identifier">m_write_every</span> <span class="special">)</span> <span class="special">==</span> <span class="number">0</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">container_type</span> <span class="special">&amp;</span><span class="identifier">q</span> <span class="special">=</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">first</span><span class="special">;</span>
+            <span class="identifier">container_type</span> <span class="special">&amp;</span><span class="identifier">p</span> <span class="special">=</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">second</span><span class="special">;</span>
+            <span class="identifier">container_type</span> <span class="identifier">energy</span><span class="special">(</span> <span class="identifier">q</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">);</span>
+            <span class="identifier">m_fpu</span><span class="special">.</span><span class="identifier">local_energy</span><span class="special">(</span> <span class="identifier">q</span> <span class="special">,</span> <span class="identifier">p</span> <span class="special">,</span> <span class="identifier">energy</span> <span class="special">);</span>
+            <span class="keyword">for</span><span class="special">(</span> <span class="identifier">size_t</span> <span class="identifier">i</span><span class="special">=</span><span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">q</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+            <span class="special">{</span>
+                <span class="identifier">m_out</span> <span class="special">&lt;&lt;</span> <span class="identifier">t</span> <span class="special">&lt;&lt;</span> <span class="string">"\t"</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span> <span class="string">"\t"</span> <span class="special">&lt;&lt;</span> <span class="identifier">q</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="string">"\t"</span> <span class="special">&lt;&lt;</span> <span class="identifier">p</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="string">"\t"</span> <span class="special">&lt;&lt;</span> <span class="identifier">energy</span><span class="special">[</span><span class="identifier">i</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+            <span class="special">}</span>
+            <span class="identifier">m_out</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+            <span class="identifier">clog</span> <span class="special">&lt;&lt;</span> <span class="identifier">t</span> <span class="special">&lt;&lt;</span> <span class="string">"\t"</span> <span class="special">&lt;&lt;</span> <span class="identifier">accumulate</span><span class="special">(</span> <span class="identifier">energy</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()</span> <span class="special">,</span> <span class="identifier">energy</span><span class="special">.</span><span class="identifier">end</span><span class="special">()</span> <span class="special">,</span> <span class="number">0.0</span> <span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+        <span class="special">}</span>
+        <span class="special">++</span><span class="identifier">m_count</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        The full cpp file for this FPU example can be found here <a href="../../../../../../../libs/numeric/odeint/examples/fpu.cpp" target="_top">fpu.cpp</a>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="complex_state_types.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorial.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ensembles_of_oscillators.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

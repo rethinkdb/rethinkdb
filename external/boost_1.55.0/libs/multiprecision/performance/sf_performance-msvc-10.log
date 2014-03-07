@@ -1,0 +1,69 @@
+0
+11
+24
+3
+13
+27
+Testing Bessel Functions.....
+Time for mpfr_float_50 = 6.47208 seconds
+Total allocations for mpfr_float_50 = 2684348
+Time for mpf_float_50 = 11.6627 seconds
+Total allocations for mpf_float_50 = 2601366
+Time for cpp_float_50 = 20.2855 seconds
+Total allocations for cpp_float_50 = 0
+Time for mpfr_class (50 digits) = 6.48063 seconds
+Total allocations for mpfr_class (50 digits) = 3946031
+Time for mpreal (50 digits) = 9.98151 seconds
+Total allocations for mpreal (50 digits) = 13223017
+Time for mpfr_float_100 = 10.154 seconds
+Total allocations for mpfr_float_50 = 3671485
+Time for mpf_float_100 = 8.51179 seconds
+Total allocations for mpf_float_100 = 3593669
+Time for cpp_float_100 = 21.0198 seconds
+Total allocations for cpp_float_100 = 0
+Time for mpfr_class (100 digits) = 9.80571 seconds
+Total allocations for mpfr_class (100 digits) = 5447348
+Time for mpreal (100 digits) = 13.7021 seconds
+Total allocations for mpreal (100 digits) = 16671065
+Testing Polynomial Evaluation.....
+Time for mpfr_float_50 = 0.00823841 seconds
+Total allocations for mpfr_float_50 = 2996
+Time for mpf_float_50 = 0.00401608 seconds
+Total allocations for mpf_float_50 = 2996
+Time for cpp_float_50 = 0.00492116 seconds
+Total allocations for cpp_float_50 = 0
+Time for mpfr_class (50 digits) = 0.00935629 seconds
+Total allocations for mpfr_class (50 digits) = 12976
+Time for mpreal (50 digits) = 0.0148374 seconds
+Total allocations for mpreal (50 digits = 27947
+Time for mpfr_float_100 = 0.00948452 seconds
+Total allocations for mpfr_float_100 = 2996
+Time for mpf_float_100 = 0.00390071 seconds
+Total allocations for mpf_float_100 = 2996
+Time for cpp_float_100 = 0.00893563 seconds
+Total allocations for cpp_float_100 = 0
+Time for mpfr_class (100 digits) = 0.0106166 seconds
+Total allocations for mpfr_class (100 digits) = 12976
+Time for mpreal (100 digits) = 0.0162364 seconds
+Total allocations for mpreal (100 digits) = 27947
+Testing Non-Central T.....
+Time for mpfr_float_50 = 258.087 seconds
+Total allocations for mpfr_float_50 = 139149049
+Time for mpf_float_50 = 197.303 seconds
+Total allocations for mpf_float_50 = 134600354
+Time for cpp_float_50 = 334.503 seconds
+Total allocations for cpp_float_50 = 0
+Time for mpfr_class (50 digits) = 266.389 seconds
+Total allocations for mpfr_class (50 digits) = 252401115
+Time for mpreal (50 digits) = 346.641 seconds
+Total allocations for mpreal (50 digits) = 447009420
+Time for mpfr_float_100 = 516.741 seconds
+Total allocations for mpfr_float_100 = 220400854
+Time for mpf_float_100 = 397.302 seconds
+Total allocations for mpf_float_100 = 212307349
+Time for cpp_float_100 = 1064.53 seconds
+Total allocations for cpp_float_100 = 0
+Time for mpfr_class (100 digits) = 525.74 seconds
+Total allocations for mpfr_class (100 digits) = 407154781
+Time for mpreal (100 digits) = 649.941 seconds
+Total allocations for mpreal (100 digits) = 724581024

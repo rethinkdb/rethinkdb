@@ -1,0 +1,15 @@
+[article 1.1 Templates
+[quickbook 1.1]
+]
+
+[template section_1_1[]
+[section In a 1.1 template]
+Some text
+[endsect]
+]
+
+[section 1.1 Document]
+[section_1_1]
+[section_1_4]
+[section_1_5]
+[endsect]

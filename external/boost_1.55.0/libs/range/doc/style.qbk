@@ -1,0 +1,50 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:style_guide Terminology and style guidelines]
+
+The use of a consistent terminology is as important for __ranges__ and range-based algorithms as it is for iterators and iterator-based algorithms. If a conventional set of names are adopted, we can avoid misunderstandings and write generic function prototypes that are [*/self-documenting/].
+
+Since ranges are characterized by a specific underlying iterator type, we get a type of range for each type of iterator. Hence we can speak of the following types of ranges:
+
+* [*/Value access/] category:
+  * Readable Range
+  * Writeable Range
+  * Swappable Range
+  * Lvalue Range
+* [*/Traversal/] category:
+  * __single_pass_range__
+  * __forward_range__
+  * __bidirectional_range__
+  * __random_access_range__
+
+Notice how we have used the categories from the __new_style_iterators__.
+
+Notice that an iterator (and therefore an range) has one [*/traversal/] property and one or more properties from the [*/value access/] category. So in reality we will mostly talk about mixtures such as
+
+* Random Access Readable Writeable Range
+* Forward Lvalue Range
+
+By convention, we should always specify the [*/traversal/] property first as done above. This seems reasonable since there will only be one [*/traversal/] property, but perhaps many [*/value access/] properties.
+
+It might, however, be reasonable to specify only one category if the other category does not matter. For example, the __iterator_range__ can be constructed from a Forward Range. This means that we do not care about what [*/value access/] properties the Range has. Similarly, a Readable Range will be one that has the lowest possible [*/traversal/] property (Single Pass).
+
+As another example, consider how we specify the interface of `std::sort()`. Algorithms are usually more cumbersome to specify the interface of since both [*/traversal/] and [*/value access/] properties must be exactly defined. The iterator-based version looks like this:
+
+``
+   template< class RandomAccessTraversalReadableWritableIterator >
+   void sort( RandomAccessTraversalReadableWritableIterator first,
+              RandomAccessTraversalReadableWritableIterator last );
+``
+
+For ranges the interface becomes
+
+``
+   template< class RandomAccessReadableWritableRange >
+   void sort( RandomAccessReadableWritableRange& r );
+``
+
+[endsect]
+

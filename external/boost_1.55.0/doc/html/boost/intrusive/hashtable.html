@@ -1,0 +1,725 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template hashtable</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../intrusive/reference.html#header.boost.intrusive.hashtable_hpp" title="Header &lt;boost/intrusive/hashtable.hpp&gt;">
+<link rel="prev" href="derivation_value_traits.html" title="Struct template derivation_value_traits">
+<link rel="next" href="make_hashtable.html" title="Struct template make_hashtable">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="derivation_value_traits.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../intrusive/reference.html#header.boost.intrusive.hashtable_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_hashtable.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.intrusive.hashtable"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template hashtable</span></h2>
+<p>boost::intrusive::hashtable</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../intrusive/reference.html#header.boost.intrusive.hashtable_hpp" title="Header &lt;boost/intrusive/hashtable.hpp&gt;">boost/intrusive/hashtable.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">class</span><span class="special">...</span> Options<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="hashtable.html" title="Class template hashtable">hashtable</a> <span class="special">:</span> <span class="keyword">public</span> hashtable_data_t&lt; SizeType, BoolFlags &amp;hashtable_data_bool_flags_mask, VoidOrKeyHash, VoidOrKeyEqual, ValueTraits, BucketTraits &gt;
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">ValueTraits</span>                                                                                                                       <a name="boost.intrusive.hashtable.value_traits"></a><span class="identifier">value_traits</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">hashtable_data_t</span><span class="special">&lt;</span> <span class="identifier">SizeType</span><span class="special">,</span> <span class="identifier">BoolFlags</span> <span class="special">&amp;</span><span class="identifier">hashtable_data_bool_flags_mask</span><span class="special">,</span> <span class="identifier">VoidOrKeyHash</span><span class="special">,</span> <span class="identifier">VoidOrKeyEqual</span><span class="special">,</span> <span class="identifier">ValueTraits</span><span class="special">,</span> <span class="identifier">BucketTraits</span> <span class="special">&gt;</span> <a name="boost.intrusive.hashtable.data_type"></a><span class="identifier">data_type</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <span class="identifier">real_value_traits</span><span class="special">::</span><span class="identifier">pointer</span>                                                                                                        <a name="boost.intrusive.hashtable.pointer"></a><span class="identifier">pointer</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <span class="identifier">real_value_traits</span><span class="special">::</span><span class="identifier">const_pointer</span>                                                                                                  <a name="boost.intrusive.hashtable.const_pointer"></a><span class="identifier">const_pointer</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">real_value_traits</span><span class="special">::</span><span class="identifier">value_type</span>                                                                                                     <a name="boost.intrusive.hashtable.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>          
+  <span class="keyword">typedef</span> <a class="link" href="pointer_traits.html" title="Struct template pointer_traits">pointer_traits</a><span class="special">&lt;</span> <span class="identifier">pointer</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">reference</span>                                                                                              <a name="boost.intrusive.hashtable.reference"></a><span class="identifier">reference</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <a class="link" href="pointer_traits.html" title="Struct template pointer_traits">pointer_traits</a><span class="special">&lt;</span> <span class="identifier">const_pointer</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">reference</span>                                                                                        <a name="boost.intrusive.hashtable.const_reference"></a><span class="identifier">const_reference</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <a class="link" href="pointer_traits.html" title="Struct template pointer_traits">pointer_traits</a><span class="special">&lt;</span> <span class="identifier">pointer</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">difference_type</span>                                                                                        <a name="boost.intrusive.hashtable.difference_type"></a><span class="identifier">difference_type</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="identifier">SizeType</span>                                                                                                                          <a name="boost.intrusive.hashtable.size_type"></a><span class="identifier">size_type</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <span class="identifier">value_type</span>                                                                                                                        <a name="boost.intrusive.hashtable.key_type"></a><span class="identifier">key_type</span><span class="special">;</span>            
+  <span class="keyword">typedef</span> <span class="identifier">data_type</span><span class="special">::</span><span class="identifier">value_equal</span>                                                                                                            <a name="boost.intrusive.hashtable.key_equal"></a><span class="identifier">key_equal</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <span class="identifier">data_type</span><span class="special">::</span><span class="identifier">hasher</span>                                                                                                                 <a name="boost.intrusive.hashtable.hasher"></a><span class="identifier">hasher</span><span class="special">;</span>              
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                                                                                                                       <a name="boost.intrusive.hashtable.bucket_type"></a><span class="identifier">bucket_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <a class="link" href="pointer_traits.html" title="Struct template pointer_traits">pointer_traits</a><span class="special">&lt;</span> <span class="identifier">pointer</span> <span class="special">&gt;</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">rebind_pointer</span><span class="special">&lt;</span> <span class="identifier">bucket_type</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>                                                           <a name="boost.intrusive.hashtable.bucket_ptr"></a><span class="identifier">bucket_ptr</span><span class="special">;</span>          
+  <span class="keyword">typedef</span> <span class="identifier">slist</span><span class="special">::</span><span class="identifier">iterator</span>                                                                                                                   <a name="boost.intrusive.hashtable.siterator"></a><span class="identifier">siterator</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <span class="identifier">slist</span><span class="special">::</span><span class="identifier">const_iterator</span>                                                                                                             <a name="boost.intrusive.hashtable.const_siterator"></a><span class="identifier">const_siterator</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="identifier">hashtable_iterator</span><span class="special">&lt;</span> <span class="identifier">bucket_plus_vtraits_t</span><span class="special">,</span> <span class="keyword">false</span> <span class="special">&gt;</span>                                                                                <a name="boost.intrusive.hashtable.iterator"></a><span class="identifier">iterator</span><span class="special">;</span>            
+  <span class="keyword">typedef</span> <span class="identifier">hashtable_iterator</span><span class="special">&lt;</span> <span class="identifier">bucket_plus_vtraits_t</span><span class="special">,</span> <span class="keyword">true</span> <span class="special">&gt;</span>                                                                                 <a name="boost.intrusive.hashtable.const_iterator"></a><span class="identifier">const_iterator</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">real_value_traits</span><span class="special">::</span><span class="identifier">node_traits</span>                                                                                                    <a name="boost.intrusive.hashtable.node_traits"></a><span class="identifier">node_traits</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">node_traits</span><span class="special">::</span><span class="identifier">node</span>                                                                                                                 <a name="boost.intrusive.hashtable.node"></a><span class="identifier">node</span><span class="special">;</span>                
+  <span class="keyword">typedef</span> <a class="link" href="pointer_traits.html" title="Struct template pointer_traits">pointer_traits</a><span class="special">&lt;</span> <span class="identifier">pointer</span> <span class="special">&gt;</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">rebind_pointer</span><span class="special">&lt;</span> <span class="identifier">node</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>                                                                  <a name="boost.intrusive.hashtable.node_ptr"></a><span class="identifier">node_ptr</span><span class="special">;</span>            
+  <span class="keyword">typedef</span> <a class="link" href="pointer_traits.html" title="Struct template pointer_traits">pointer_traits</a><span class="special">&lt;</span> <span class="identifier">pointer</span> <span class="special">&gt;</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">rebind_pointer</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="identifier">node</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>                                                            <a name="boost.intrusive.hashtable.const_node_ptr"></a><span class="identifier">const_node_ptr</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">slist</span><span class="special">::</span><span class="identifier">node_algorithms</span>                                                                                                            <a name="boost.intrusive.hashtable.node_algorithms"></a><span class="identifier">node_algorithms</span><span class="special">;</span>     
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                                                                                                                       <a name="boost.intrusive.hashtable.insert_commit_data"></a><span class="identifier">insert_commit_data</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                                                                                                                       <a name="boost.intrusive.hashtable.local_iterator"></a><span class="identifier">local_iterator</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                                                                                                                       <a name="boost.intrusive.hashtable.const_local_iterator"></a><span class="identifier">const_local_iterator</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="hashtable.html#boost.intrusive.hashtableconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="hashtable.html#idp33510952-bb"><span class="identifier">hashtable</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="bucket_traits.html" title="Struct template bucket_traits">bucket_traits</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">hasher</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">hasher</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                     <span class="keyword">const</span> <span class="identifier">key_equal</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">key_equal</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                     <span class="keyword">const</span> <span class="identifier">value_traits</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">value_traits</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="hashtable.html#idp33516056-bb"><span class="identifier">hashtable</span></a><span class="special">(</span><a class="link" href="hashtable.html" title="Class template hashtable">hashtable</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  hashtable&amp; <a class="link" href="hashtable.html#idp33517080-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="hashtable.html" title="Class template hashtable">hashtable</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="hashtable.html#idp33518232-bb"><span class="special">~</span><span class="identifier">hashtable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="hashtable.html#idp33311784-bb">public member functions</a></span>
+  <span class="identifier">iterator</span> <a class="link" href="hashtable.html#idp33311992-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="hashtable.html#idp33314600-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="hashtable.html#idp33317208-bb"><span class="identifier">cbegin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="hashtable.html#idp33319816-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="hashtable.html#idp33322008-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="hashtable.html#idp33324200-bb"><span class="identifier">cend</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">hasher</span> <a class="link" href="hashtable.html#idp33326392-bb"><span class="identifier">hash_function</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">key_equal</span> <a class="link" href="hashtable.html#idp33328600-bb"><span class="identifier">key_eq</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="hashtable.html#idp33330808-bb"><span class="identifier">empty</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="hashtable.html#idp33333112-bb"><span class="identifier">size</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="hashtable.html#idp33335752-bb"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="hashtable.html" title="Class template hashtable">hashtable</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Cloner<span class="special">,</span> <span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="hashtable.html#idp33338696-bb"><span class="identifier">clone_from</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="hashtable.html" title="Class template hashtable">hashtable</a> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Cloner</span><span class="special">,</span> <span class="identifier">Disposer</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="hashtable.html#idp33344104-bb"><span class="identifier">insert_equal</span></a><span class="special">(</span><span class="identifier">reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Iterator<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="hashtable.html#idp33348088-bb"><span class="identifier">insert_equal</span></a><span class="special">(</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">Iterator</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> <a class="link" href="hashtable.html#idp33352136-bb"><span class="identifier">insert_unique</span></a><span class="special">(</span><span class="identifier">reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Iterator<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="hashtable.html#idp33356344-bb"><span class="identifier">insert_unique</span></a><span class="special">(</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">Iterator</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> 
+    <a class="link" href="hashtable.html#idp33360392-bb"><span class="identifier">insert_unique_check</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyHasher</span><span class="special">,</span> <span class="identifier">KeyValueEqual</span><span class="special">,</span> 
+                        <span class="identifier">insert_commit_data</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="hashtable.html#idp33368536-bb"><span class="identifier">insert_unique_commit</span></a><span class="special">(</span><span class="identifier">reference</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">insert_commit_data</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="hashtable.html#idp33373784-bb"><span class="identifier">erase</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="hashtable.html#idp33376488-bb"><span class="identifier">erase</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="hashtable.html#idp33379544-bb"><span class="identifier">erase</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+    <span class="identifier">size_type</span> <a class="link" href="hashtable.html#idp33382776-bb"><span class="identifier">erase</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyHasher</span><span class="special">,</span> <span class="identifier">KeyValueEqual</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="hashtable.html#idp33388568-bb"><span class="identifier">erase_and_dispose</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">Disposer</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="hashtable.html#idp33392520-bb"><span class="identifier">erase_and_dispose</span></a><span class="special">(</span><span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">Disposer</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+    <span class="identifier">size_type</span> <a class="link" href="hashtable.html#idp33396824-bb"><span class="identifier">erase_and_dispose</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">,</span> <span class="identifier">Disposer</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">,</span> 
+           <span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+    <span class="identifier">size_type</span> <a class="link" href="hashtable.html#idp33401368-bb"><span class="identifier">erase_and_dispose</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyHasher</span><span class="special">,</span> <span class="identifier">KeyValueEqual</span><span class="special">,</span> 
+                                <span class="identifier">Disposer</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="hashtable.html#idp33407384-bb"><span class="identifier">clear</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="hashtable.html#idp33409800-bb"><span class="identifier">clear_and_dispose</span></a><span class="special">(</span><span class="identifier">Disposer</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="hashtable.html#idp33413448-bb"><span class="identifier">count</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+    <span class="identifier">size_type</span> <a class="link" href="hashtable.html#idp33415704-bb"><span class="identifier">count</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyHasher</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyValueEqual</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="hashtable.html#idp33420488-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+    <span class="identifier">iterator</span> <a class="link" href="hashtable.html#idp33422792-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyHasher</span><span class="special">,</span> <span class="identifier">KeyValueEqual</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="hashtable.html#idp33428232-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+    <span class="identifier">const_iterator</span> <a class="link" href="hashtable.html#idp33430536-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyHasher</span><span class="special">,</span> <span class="identifier">KeyValueEqual</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="special">&gt;</span> <a class="link" href="hashtable.html#idp33435976-bb"><span class="identifier">equal_range</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="special">&gt;</span> 
+    <a class="link" href="hashtable.html#idp33438360-bb"><span class="identifier">equal_range</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyHasher</span><span class="special">,</span> <span class="identifier">KeyValueEqual</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span> <span class="special">&gt;</span> 
+  <a class="link" href="hashtable.html#idp33443832-bb"><span class="identifier">equal_range</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span> <span class="special">&gt;</span> 
+    <a class="link" href="hashtable.html#idp33446232-bb"><span class="identifier">equal_range</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">KeyHasher</span><span class="special">,</span> <span class="identifier">KeyValueEqual</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="hashtable.html#idp33451720-bb"><span class="identifier">iterator_to</span></a><span class="special">(</span><span class="identifier">reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="hashtable.html#idp33455144-bb"><span class="identifier">iterator_to</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">local_iterator</span> <a class="link" href="hashtable.html#idp33458584-bb"><span class="identifier">local_iterator_to</span></a><span class="special">(</span><span class="identifier">reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_local_iterator</span> <a class="link" href="hashtable.html#idp33462008-bb"><span class="identifier">local_iterator_to</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="hashtable.html#idp33465448-bb"><span class="identifier">bucket_count</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="hashtable.html#idp33467304-bb"><span class="identifier">bucket_size</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="hashtable.html#idp33469912-bb"><span class="identifier">bucket</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">&gt;</span> 
+    <span class="identifier">size_type</span> <a class="link" href="hashtable.html#idp33472632-bb"><span class="identifier">bucket</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyHasher</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">bucket_ptr</span> <a class="link" href="hashtable.html#idp33476968-bb"><span class="identifier">bucket_pointer</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">local_iterator</span> <a class="link" href="hashtable.html#idp33478824-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_local_iterator</span> <a class="link" href="hashtable.html#idp33481976-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_local_iterator</span> <a class="link" href="hashtable.html#idp33485160-bb"><span class="identifier">cbegin</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">local_iterator</span> <a class="link" href="hashtable.html#idp33488344-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_local_iterator</span> <a class="link" href="hashtable.html#idp33491496-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_local_iterator</span> <a class="link" href="hashtable.html#idp33494664-bb"><span class="identifier">cend</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="hashtable.html#idp33497832-bb"><span class="identifier">rehash</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="bucket_traits.html" title="Struct template bucket_traits">bucket_traits</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="hashtable.html#idp33501928-bb"><span class="identifier">incremental_rehash</span></a><span class="special">(</span><span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="hashtable.html#idp33505096-bb"><span class="identifier">incremental_rehash</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="bucket_traits.html" title="Struct template bucket_traits">bucket_traits</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="hashtable.html#idp33508760-bb"><span class="identifier">split_count</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="hashtable.html#idp33520520-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">local_iterator</span> <a class="link" href="hashtable.html#idp33520728-bb"><span class="identifier">s_local_iterator_to</span></a><span class="special">(</span><span class="identifier">reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">const_local_iterator</span> <a class="link" href="hashtable.html#idp33524856-bb"><span class="identifier">s_local_iterator_to</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">size_type</span> <a class="link" href="hashtable.html#idp33528984-bb"><span class="identifier">suggested_upper_bucket_count</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">size_type</span> <a class="link" href="hashtable.html#idp33531416-bb"><span class="identifier">suggested_lower_bucket_count</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">stateful_value_traits</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">store_hash</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">unique_keys</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">constant_time_size</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">cache_begin</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">compare_hash</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">incremental</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">power_2_buckets</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">optimize_multikey</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp133447496"></a><h2>Description</h2>
+<p>The class template hashtable is an intrusive hash table container, that is used to construct intrusive <a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a> and <a class="link" href="unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a> containers. The no-throw guarantee holds only, if the VoidOrKeyEqual object and Hasher don't throw.</p>
+<p>hashtable is a semi-intrusive container: each object to be stored in the container must contain a proper hook, but the container also needs additional auxiliary memory to work: hashtable needs a pointer to an array of type <code class="computeroutput">bucket_type</code> to be passed in the constructor. This bucket array must have at least the same lifetime as the container. This makes the use of hashtable more complicated than purely intrusive containers. <code class="computeroutput">bucket_type</code> is default-constructible, copyable and assignable</p>
+<p>The template parameter <code class="computeroutput">T</code> is the type to be managed by the container. The user can specify additional options and if no options are provided default options are used.</p>
+<p>The container supports the following options: <code class="computeroutput">base_hook&lt;&gt;/member_hook&lt;&gt;/value_traits&lt;&gt;</code>, <code class="computeroutput">constant_time_size&lt;&gt;</code>, <code class="computeroutput">size_type&lt;&gt;</code>, <code class="computeroutput">hash&lt;&gt;</code> and <code class="computeroutput">equal&lt;&gt;</code> <code class="computeroutput">bucket_traits&lt;&gt;</code>, power_2_buckets&lt;&gt;, cache_begin&lt;&gt; and incremental&lt;&gt;.</p>
+<p>hashtable only provides forward iterators but it provides 4 iterator types: iterator and const_iterator to navigate through the whole container and local_iterator and const_local_iterator to navigate through the values stored in a single bucket. Local iterators are faster and smaller.</p>
+<p>It's not recommended to use non constant-time size hashtables because several key functions, like "empty()", become non-constant time functions. Non constant_time size hashtables are mainly provided to support auto-unlink hooks.</p>
+<p>hashtables, does not make automatic rehashings nor offers functions related to a load factor. Rehashing can be explicitly requested and the user must provide a new bucket array that will be used from that moment.</p>
+<p>Since no automatic rehashing is done, iterators are never invalidated when inserting or erasing elements. Iterators are only invalidated when rehashing. </p>
+<div class="refsect2">
+<a name="idp133454856"></a><h3>
+<a name="boost.intrusive.hashtableconstruct-copy-destruct"></a><code class="computeroutput">hashtable</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp33510952-bb"></a><span class="identifier">hashtable</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="bucket_traits.html" title="Struct template bucket_traits">bucket_traits</a> <span class="special">&amp;</span> b_traits<span class="special">,</span> 
+                   <span class="keyword">const</span> <span class="identifier">hasher</span> <span class="special">&amp;</span> hash_func <span class="special">=</span> <span class="identifier">hasher</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                   <span class="keyword">const</span> <span class="identifier">key_equal</span> <span class="special">&amp;</span> equal_func <span class="special">=</span> <span class="identifier">key_equal</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+                   <span class="keyword">const</span> <span class="identifier">value_traits</span> <span class="special">&amp;</span> v_traits <span class="special">=</span> <span class="identifier">value_traits</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: buckets must not be being used by any other resource.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Constructs an empty <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>, storing a reference to the bucket array and copies of the key_hasher and equal_func functors.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If value_traits::node_traits::node constructor throws (this does not happen with predefined Boost.Intrusive hooks) or the copy constructor or invocation of hash_func or equal_func throws.</p>
+<p><span class="bold"><strong>Notes</strong></span>: buckets array must be disposed only after *this is disposed. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp33516056-bb"></a><span class="identifier">hashtable</span><span class="special">(</span><a class="link" href="hashtable.html" title="Class template hashtable">hashtable</a> <span class="special">&amp;&amp;</span> x<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: to-do </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">hashtable&amp; <a name="idp33517080-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="hashtable.html" title="Class template hashtable">hashtable</a> <span class="special">&amp;&amp;</span> x<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: to-do </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp33518232-bb"></a><span class="special">~</span><span class="identifier">hashtable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Detaches all elements from this. The objects in the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> are not deleted (i.e. no destructors are called).</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to the number of elements in the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>, if it's a safe-mode or auto-unlink value. Otherwise constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp133480536"></a><h3>
+<a name="idp33311784-bb"></a><code class="computeroutput">hashtable</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp33311992-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns an iterator pointing to the beginning of the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Amortized constant time. Worst case (empty <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>): O(this-&gt;bucket_count())</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp33314600-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_iterator pointing to the beginning of the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Amortized constant time. Worst case (empty <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>): O(this-&gt;bucket_count())</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp33317208-bb"></a><span class="identifier">cbegin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_iterator pointing to the beginning of the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Amortized constant time. Worst case (empty <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>): O(this-&gt;bucket_count())</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp33319816-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns an iterator pointing to the end of the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp33322008-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_iterator pointing to the end of the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp33324200-bb"></a><span class="identifier">cend</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_iterator pointing to the end of the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">hasher</span> <a name="idp33326392-bb"></a><span class="identifier">hash_function</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the hasher object used by the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If hasher copy-constructor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">key_equal</span> <a name="idp33328600-bb"></a><span class="identifier">key_eq</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the key_equal object used by the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If key_equal copy-constructor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp33330808-bb"></a><span class="identifier">empty</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns true if the container is empty.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: if constant-time size and <code class="computeroutput"><a class="link" href="cache_begin.html" title="Struct template cache_begin">cache_begin</a></code> options are disabled, average constant time (worst case, with empty() == true: O(this-&gt;bucket_count()). Otherwise constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp33333112-bb"></a><span class="identifier">size</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the number of elements stored in the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to elements contained in *this if <code class="computeroutput"><a class="link" href="constant_time_size.html" title="Struct template constant_time_size">constant_time_size</a></code> is false. Constant-time otherwise.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp33335752-bb"></a><span class="identifier">swap</span><span class="special">(</span><a class="link" href="hashtable.html" title="Class template hashtable">hashtable</a> <span class="special">&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: the hasher and the equality function unqualified swap call should not throw.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Swaps the contents of two unordered_sets. Swaps also the contained bucket array and equality and hasher functors.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the swap() call for the comparison or hash functors found using ADL throw. Basic guarantee. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Cloner<span class="special">,</span> <span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp33338696-bb"></a><span class="identifier">clone_from</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="hashtable.html" title="Class template hashtable">hashtable</a> <span class="special">&amp;</span> src<span class="special">,</span> <span class="identifier">Cloner</span> cloner<span class="special">,</span> <span class="identifier">Disposer</span> disposer<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Disposer::operator()(pointer) shouldn't throw Cloner should yield to nodes that compare equal and produce the same hash than the original node.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Erases all the elements from *this calling Disposer::operator()(pointer), clones all the elements from src calling Cloner::operator()(const_reference ) and inserts them on *this. The hash function and the equality predicate are copied from the source.</p>
+<p>If <code class="computeroutput"><a class="link" href="store_hash.html" title="Struct template store_hash">store_hash</a></code> option is true, this method does not use the hash function.</p>
+<p>If any operation throws, all cloned elements are unlinked and disposed calling Disposer::operator()(pointer).</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to erased plus inserted elements.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If cloner or hasher throw or hash or equality predicate copying throws. Basic guarantee. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp33344104-bb"></a><span class="identifier">insert_equal</span><span class="special">(</span><span class="identifier">reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue</p>
+<p><span class="bold"><strong>Effects</strong></span>: Inserts the value into the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>.</p>
+<p><span class="bold"><strong>Returns</strong></span>: An iterator to the inserted value.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. Strong guarantee.</p>
+<p><span class="bold"><strong>Note</strong></span>: Does not affect the validity of iterators and references. No copy-constructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Iterator<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp33348088-bb"></a><span class="identifier">insert_equal</span><span class="special">(</span><span class="identifier">Iterator</span> b<span class="special">,</span> <span class="identifier">Iterator</span> e<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Dereferencing iterator must yield an lvalue of type value_type.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Equivalent to this-&gt;insert_equal(t) for each element in [b, e).</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(N), where N is std::distance(b, e). Worst case O(N*this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. Basic guarantee.</p>
+<p><span class="bold"><strong>Note</strong></span>: Does not affect the validity of iterators and references. No copy-constructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> <a name="idp33352136-bb"></a><span class="identifier">insert_unique</span><span class="special">(</span><span class="identifier">reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue</p>
+<p><span class="bold"><strong>Effects</strong></span>: Tries to inserts value into the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>.</p>
+<p><span class="bold"><strong>Returns</strong></span>: If the value is not already present inserts it and returns a pair containing the iterator to the new value and true. If there is an equivalent value returns a pair containing an iterator to the already present value and false.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. Strong guarantee.</p>
+<p><span class="bold"><strong>Note</strong></span>: Does not affect the validity of iterators and references. No copy-constructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Iterator<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp33356344-bb"></a><span class="identifier">insert_unique</span><span class="special">(</span><span class="identifier">Iterator</span> b<span class="special">,</span> <span class="identifier">Iterator</span> e<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Dereferencing iterator must yield an lvalue of type value_type.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Equivalent to this-&gt;insert_unique(t) for each element in [b, e).</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(N), where N is std::distance(b, e). Worst case O(N*this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. Basic guarantee.</p>
+<p><span class="bold"><strong>Note</strong></span>: Does not affect the validity of iterators and references. No copy-constructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> 
+  <a name="idp33360392-bb"></a><span class="identifier">insert_unique_check</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="identifier">KeyHasher</span> hash_func<span class="special">,</span> 
+                      <span class="identifier">KeyValueEqual</span> equal_func<span class="special">,</span> 
+                      <span class="identifier">insert_commit_data</span> <span class="special">&amp;</span> commit_data<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "hash_func" must be a hash function that induces the same hash values as the stored hasher. The difference is that "hash_func" hashes the given key instead of the value_type.</p>
+<p>"equal_func" must be a equality function that induces the same equality as key_equal. The difference is that "equal_func" compares an arbitrary key with the contained values.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Checks if a value can be inserted in the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>, using a user provided key instead of the value itself.</p>
+<p><span class="bold"><strong>Returns</strong></span>: If there is an equivalent value returns a pair containing an iterator to the already present value and false. If the value can be inserted returns true in the returned pair boolean and fills "commit_data" that is meant to be used with the "insert_commit" function.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If hash_func or equal_func throw. Strong guarantee.</p>
+<p><span class="bold"><strong>Notes</strong></span>: This function is used to improve performance when constructing a value_type is expensive: if there is an equivalent value the constructed object must be discarded. Many times, the part of the node that is used to impose the hash or the equality is much cheaper to construct than the value_type and this function offers the possibility to use that the part to check if the insertion will be successful.</p>
+<p>If the check is successful, the user can construct the value_type and use "insert_commit" to insert the object in constant-time.</p>
+<p>"commit_data" remains valid for a subsequent "insert_commit" only if no more objects are inserted or erased from the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code>.</p>
+<p>After a successful rehashing insert_commit_data remains valid. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp33368536-bb"></a><span class="identifier">insert_unique_commit</span><span class="special">(</span><span class="identifier">reference</span> value<span class="special">,</span> 
+                              <span class="keyword">const</span> <span class="identifier">insert_commit_data</span> <span class="special">&amp;</span> commit_data<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue of type value_type. commit_data must have been obtained from a previous call to "insert_check". No objects should have been inserted or erased from the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> between the "insert_check" that filled "commit_data" and the call to "insert_commit".</p>
+<p><span class="bold"><strong>Effects</strong></span>: Inserts the value in the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> using the information obtained from the "commit_data" that a previous "insert_check" filled.</p>
+<p><span class="bold"><strong>Returns</strong></span>: An iterator to the newly inserted object.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Notes</strong></span>: This function has only sense if a "insert_check" has been previously executed to fill "commit_data". No value should be inserted or erased between the "insert_check" and "insert_commit" calls.</p>
+<p>After a successful rehashing insert_commit_data remains valid. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp33373784-bb"></a><span class="identifier">erase</span><span class="special">(</span><span class="identifier">const_iterator</span> i<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Erases the element pointed to by i.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators (but not the references) to the erased element. No destructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp33376488-bb"></a><span class="identifier">erase</span><span class="special">(</span><span class="identifier">const_iterator</span> b<span class="special">,</span> <span class="identifier">const_iterator</span> e<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Erases the range pointed to by b end e.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(std::distance(b, e)), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators (but not the references) to the erased elements. No destructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp33379544-bb"></a><span class="identifier">erase</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Erases all the elements with the given value.</p>
+<p><span class="bold"><strong>Returns</strong></span>: The number of erased elements.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(value)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. Basic guarantee.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators (but not the references) to the erased elements. No destructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+  <span class="identifier">size_type</span> <a name="idp33382776-bb"></a><span class="identifier">erase</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="identifier">KeyHasher</span> hash_func<span class="special">,</span> 
+                  <span class="identifier">KeyValueEqual</span> equal_func<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "hash_func" must be a hash function that induces the same hash values as the stored hasher. The difference is that "hash_func" hashes the given key instead of the value_type.</p>
+<p>"equal_func" must be a equality function that induces the same equality as key_equal. The difference is that "equal_func" compares an arbitrary key with the contained values.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Erases all the elements that have the same hash and compare equal with the given key.</p>
+<p><span class="bold"><strong>Returns</strong></span>: The number of erased elements.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(value)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If hash_func or equal_func throw. Basic guarantee.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators (but not the references) to the erased elements. No destructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp33388568-bb"></a><span class="identifier">erase_and_dispose</span><span class="special">(</span><span class="identifier">const_iterator</span> i<span class="special">,</span> <span class="identifier">Disposer</span> disposer<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Disposer::operator()(pointer) shouldn't throw.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Erases the element pointed to by i. Disposer::operator()(pointer) is called for the removed element.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators to the erased elements. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp33392520-bb"></a><span class="identifier">erase_and_dispose</span><span class="special">(</span><span class="identifier">const_iterator</span> b<span class="special">,</span> <span class="identifier">const_iterator</span> e<span class="special">,</span> 
+                         <span class="identifier">Disposer</span> disposer<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Disposer::operator()(pointer) shouldn't throw.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Erases the range pointed to by b end e. Disposer::operator()(pointer) is called for the removed elements.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(std::distance(b, e)), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators to the erased elements. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+  <span class="identifier">size_type</span> <a name="idp33396824-bb"></a><span class="identifier">erase_and_dispose</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">,</span> <span class="identifier">Disposer</span> disposer<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Disposer::operator()(pointer) shouldn't throw.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Erases all the elements with the given value. Disposer::operator()(pointer) is called for the removed elements.</p>
+<p><span class="bold"><strong>Returns</strong></span>: The number of erased elements.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(value)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. Basic guarantee.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators (but not the references) to the erased elements. No destructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">,</span> 
+         <span class="keyword">typename</span> Disposer<span class="special">&gt;</span> 
+  <span class="identifier">size_type</span> <a name="idp33401368-bb"></a><span class="identifier">erase_and_dispose</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="identifier">KeyHasher</span> hash_func<span class="special">,</span> 
+                              <span class="identifier">KeyValueEqual</span> equal_func<span class="special">,</span> <span class="identifier">Disposer</span> disposer<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Disposer::operator()(pointer) shouldn't throw.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Erases all the elements with the given key. according to the comparison functor "equal_func". Disposer::operator()(pointer) is called for the removed elements.</p>
+<p><span class="bold"><strong>Returns</strong></span>: The number of erased elements.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(value)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If hash_func or equal_func throw. Basic guarantee.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators to the erased elements. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp33407384-bb"></a><span class="identifier">clear</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Erases all of the elements.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to the number of elements on the container. if it's a safe-mode or auto-unlink value_type. Constant time otherwise.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators (but not the references) to the erased elements. No destructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Disposer<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp33409800-bb"></a><span class="identifier">clear_and_dispose</span><span class="special">(</span><span class="identifier">Disposer</span> disposer<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: Disposer::operator()(pointer) shouldn't throw.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Erases all of the elements.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to the number of elements on the container. Disposer::operator()(pointer) is called for the removed elements.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: Invalidates the iterators (but not the references) to the erased elements. No destructors are called. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp33413448-bb"></a><span class="identifier">count</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the number of contained elements with the given value</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+  <span class="identifier">size_type</span> <a name="idp33415704-bb"></a><span class="identifier">count</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyHasher</span> <span class="special">&amp;</span> hash_func<span class="special">,</span> 
+                  <span class="keyword">const</span> <span class="identifier">KeyValueEqual</span> <span class="special">&amp;</span> equal_func<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "hash_func" must be a hash function that induces the same hash values as the stored hasher. The difference is that "hash_func" hashes the given key instead of the value_type.</p>
+<p>"equal_func" must be a equality function that induces the same equality as key_equal. The difference is that "equal_func" compares an arbitrary key with the contained values.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the number of contained elements with the given key</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If hash_func or equal throw. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp33420488-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Finds an iterator to the first element is equal to "value" or end() if that element does not exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+  <span class="identifier">iterator</span> <a name="idp33422792-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="identifier">KeyHasher</span> hash_func<span class="special">,</span> 
+                <span class="identifier">KeyValueEqual</span> equal_func<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "hash_func" must be a hash function that induces the same hash values as the stored hasher. The difference is that "hash_func" hashes the given key instead of the value_type.</p>
+<p>"equal_func" must be a equality function that induces the same equality as key_equal. The difference is that "equal_func" compares an arbitrary key with the contained values.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Finds an iterator to the first element whose key is "key" according to the given hash and equality functor or end() if that element does not exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If hash_func or equal_func throw.</p>
+<p><span class="bold"><strong>Note</strong></span>: This function is used when constructing a value_type is expensive and the value_type can be compared with a cheaper key type. Usually this key is part of the value_type. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp33428232-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Finds a const_iterator to the first element whose key is "key" or end() if that element does not exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+  <span class="identifier">const_iterator</span> 
+  <a name="idp33430536-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="identifier">KeyHasher</span> hash_func<span class="special">,</span> <span class="identifier">KeyValueEqual</span> equal_func<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "hash_func" must be a hash function that induces the same hash values as the stored hasher. The difference is that "hash_func" hashes the given key instead of the value_type.</p>
+<p>"equal_func" must be a equality function that induces the same equality as key_equal. The difference is that "equal_func" compares an arbitrary key with the contained values.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Finds an iterator to the first element whose key is "key" according to the given hasher and equality functor or end() if that element does not exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(1), worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If hash_func or equal_func throw.</p>
+<p><span class="bold"><strong>Note</strong></span>: This function is used when constructing a value_type is expensive and the value_type can be compared with a cheaper key type. Usually this key is part of the value_type. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="special">&gt;</span> <a name="idp33435976-bb"></a><span class="identifier">equal_range</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a range containing all elements with values equivalent to value. Returns std::make_pair(this-&gt;end(), this-&gt;end()) if no such elements exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(value)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">iterator</span> <span class="special">&gt;</span> 
+  <a name="idp33438360-bb"></a><span class="identifier">equal_range</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="identifier">KeyHasher</span> hash_func<span class="special">,</span> 
+              <span class="identifier">KeyValueEqual</span> equal_func<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "hash_func" must be a hash function that induces the same hash values as the stored hasher. The difference is that "hash_func" hashes the given key instead of the value_type.</p>
+<p>"equal_func" must be a equality function that induces the same equality as key_equal. The difference is that "equal_func" compares an arbitrary key with the contained values.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a range containing all elements with equivalent keys. Returns std::make_pair(this-&gt;end(), this-&gt;end()) if no such elements exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(key, hash_func, equal_func)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If hash_func or the equal_func throw.</p>
+<p><span class="bold"><strong>Note</strong></span>: This function is used when constructing a value_type is expensive and the value_type can be compared with a cheaper key type. Usually this key is part of the value_type. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span> <span class="special">&gt;</span> 
+<a name="idp33443832-bb"></a><span class="identifier">equal_range</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a range containing all elements with values equivalent to value. Returns std::make_pair(this-&gt;end(), this-&gt;end()) if no such elements exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(value)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hasher or the equality functor throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">,</span> <span class="keyword">typename</span> KeyValueEqual<span class="special">&gt;</span> 
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="identifier">const_iterator</span> <span class="special">&gt;</span> 
+  <a name="idp33446232-bb"></a><span class="identifier">equal_range</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> key<span class="special">,</span> <span class="identifier">KeyHasher</span> hash_func<span class="special">,</span> 
+              <span class="identifier">KeyValueEqual</span> equal_func<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "hash_func" must be a hash function that induces the same hash values as the stored hasher. The difference is that "hash_func" hashes the given key instead of the value_type.</p>
+<p>"equal_func" must be a equality function that induces the same equality as key_equal. The difference is that "equal_func" compares an arbitrary key with the contained values.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a range containing all elements with equivalent keys. Returns std::make_pair(this-&gt;end(), this-&gt;end()) if no such elements exist.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case O(this-&gt;count(key, hash_func, equal_func)). Worst case O(this-&gt;size()).</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the hasher or equal_func throw.</p>
+<p><span class="bold"><strong>Note</strong></span>: This function is used when constructing a value_type is expensive and the value_type can be compared with a cheaper key type. Usually this key is part of the value_type. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp33451720-bb"></a><span class="identifier">iterator_to</span><span class="special">(</span><span class="identifier">reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue and shall be in a <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> of appropriate type. Otherwise the behavior is undefined.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns: a valid iterator belonging to the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> that points to the value</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hash function throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp33455144-bb"></a><span class="identifier">iterator_to</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue and shall be in a <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> of appropriate type. Otherwise the behavior is undefined.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns: a valid const_iterator belonging to the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> that points to the value</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the internal hash function throws. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">local_iterator</span> <a name="idp33458584-bb"></a><span class="identifier">local_iterator_to</span><span class="special">(</span><span class="identifier">reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue and shall be in a <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> of appropriate type. Otherwise the behavior is undefined.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns: a valid local_iterator belonging to the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> that points to the value</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_local_iterator</span> <a name="idp33462008-bb"></a><span class="identifier">local_iterator_to</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue and shall be in a <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> of appropriate type. Otherwise the behavior is undefined.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns: a valid const_local_iterator belonging to the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> that points to the value</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp33465448-bb"></a><span class="identifier">bucket_count</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the number of buckets passed in the constructor or the last rehash function.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp33467304-bb"></a><span class="identifier">bucket_size</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: n is in the range [0, this-&gt;bucket_count()).</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the number of elements in the nth bucket.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp33469912-bb"></a><span class="identifier">bucket</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span> <span class="special">&amp;</span> k<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the index of the bucket in which elements with keys equivalent to k would be found, if any such element existed.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the hash functor throws.</p>
+<p><span class="bold"><strong>Note</strong></span>: the return value is in the range [0, this-&gt;bucket_count()). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> KeyType<span class="special">,</span> <span class="keyword">typename</span> KeyHasher<span class="special">&gt;</span> 
+  <span class="identifier">size_type</span> <a name="idp33472632-bb"></a><span class="identifier">bucket</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">KeyType</span> <span class="special">&amp;</span> k<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">KeyHasher</span> <span class="special">&amp;</span> hash_func<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: "hash_func" must be a hash function that induces the same hash values as the stored hasher. The difference is that "hash_func" hashes the given key instead of the value_type.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the index of the bucket in which elements with keys equivalent to k would be found, if any such element existed.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If hash_func throws.</p>
+<p><span class="bold"><strong>Note</strong></span>: the return value is in the range [0, this-&gt;bucket_count()). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">bucket_ptr</span> <a name="idp33476968-bb"></a><span class="identifier">bucket_pointer</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the bucket array pointer passed in the constructor or the last rehash function.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">local_iterator</span> <a name="idp33478824-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: n is in the range [0, this-&gt;bucket_count()).</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a local_iterator pointing to the beginning of the sequence stored in the bucket n.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: [this-&gt;begin(n), this-&gt;end(n)) is a valid range containing all of the elements in the nth bucket. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_local_iterator</span> <a name="idp33481976-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: n is in the range [0, this-&gt;bucket_count()).</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_local_iterator pointing to the beginning of the sequence stored in the bucket n.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: [this-&gt;begin(n), this-&gt;end(n)) is a valid range containing all of the elements in the nth bucket. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_local_iterator</span> <a name="idp33485160-bb"></a><span class="identifier">cbegin</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: n is in the range [0, this-&gt;bucket_count()).</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_local_iterator pointing to the beginning of the sequence stored in the bucket n.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: [this-&gt;begin(n), this-&gt;end(n)) is a valid range containing all of the elements in the nth bucket. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">local_iterator</span> <a name="idp33488344-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: n is in the range [0, this-&gt;bucket_count()).</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a local_iterator pointing to the end of the sequence stored in the bucket n.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: [this-&gt;begin(n), this-&gt;end(n)) is a valid range containing all of the elements in the nth bucket. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_local_iterator</span> <a name="idp33491496-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: n is in the range [0, this-&gt;bucket_count()).</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_local_iterator pointing to the end of the sequence stored in the bucket n.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: [this-&gt;begin(n), this-&gt;end(n)) is a valid range containing all of the elements in the nth bucket. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_local_iterator</span> <a name="idp33494664-bb"></a><span class="identifier">cend</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: n is in the range [0, this-&gt;bucket_count()).</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns a const_local_iterator pointing to the end of the sequence stored in the bucket n.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: [this-&gt;begin(n), this-&gt;end(n)) is a valid range containing all of the elements in the nth bucket. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp33497832-bb"></a><span class="identifier">rehash</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="bucket_traits.html" title="Struct template bucket_traits">bucket_traits</a> <span class="special">&amp;</span> new_bucket_traits<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: new_bucket_traits can hold a pointer to a new bucket array or the same as the old bucket array with a different length. new_size is the length of the the array pointed by new_buckets. If new_bucket_traits.bucket_begin() == this-&gt;bucket_pointer() new_bucket_traits.bucket_count() can be bigger or smaller than this-&gt;bucket_count(). 'new_bucket_traits' copy constructor should not throw.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Updates the internal reference with the new bucket, erases the values from the old bucket and inserts then in the new one. Bucket traits hold by *this is assigned from new_bucket_traits. If the container is configured as incremental&lt;&gt;, the split bucket is set to the new bucket_count().</p>
+<p>If <code class="computeroutput"><a class="link" href="store_hash.html" title="Struct template store_hash">store_hash</a></code> option is true, this method does not use the hash function.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Average case linear in this-&gt;size(), worst case quadratic.</p>
+<p><span class="bold"><strong>Throws</strong></span>: If the hasher functor throws. Basic guarantee. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp33501928-bb"></a><span class="identifier">incremental_rehash</span><span class="special">(</span><span class="keyword">bool</span> grow <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>:</p>
+<p><span class="bold"><strong>Effects</strong></span>:</p>
+<p><span class="bold"><strong>Complexity</strong></span>:</p>
+<p><span class="bold"><strong>Throws</strong></span>:</p>
+<p><span class="bold"><strong>Note</strong></span>: this method is only available if incremental&lt;true&gt; option is activated. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp33505096-bb"></a><span class="identifier">incremental_rehash</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="bucket_traits.html" title="Struct template bucket_traits">bucket_traits</a> <span class="special">&amp;</span> new_bucket_traits<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: If new_bucket_traits.bucket_count() is not this-&gt;bucket_count()/2 or this-&gt;bucket_count()*2, or this-&gt;split_bucket() != new_bucket_traits.bucket_count() returns false and does nothing.</p>
+<p>Otherwise, copy assigns new_bucket_traits to the internal <code class="computeroutput"><a class="link" href="bucket_traits.html" title="Struct template bucket_traits">bucket_traits</a></code> and transfers all the objects from old buckets to the new ones.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Linear to size().</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing</p>
+<p><span class="bold"><strong>Note</strong></span>: this method is only available if incremental&lt;true&gt; option is activated. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp33508760-bb"></a><span class="identifier">split_count</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>:</p>
+<p><span class="bold"><strong>Effects</strong></span>:</p>
+<p><span class="bold"><strong>Complexity</strong></span>:</p>
+<p><span class="bold"><strong>Throws</strong></span>: </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp133860424"></a><h3>
+<a name="idp33520520-bb"></a><code class="computeroutput">hashtable</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">local_iterator</span> <a name="idp33520728-bb"></a><span class="identifier">s_local_iterator_to</span><span class="special">(</span><span class="identifier">reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue and shall be in a <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> of appropriate type. Otherwise the behavior is undefined.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns: a valid local_iterator belonging to the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> that points to the value</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: This static function is available only if the <span class="emphasis"><em>value traits</em></span> is stateless. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">const_local_iterator</span> <a name="idp33524856-bb"></a><span class="identifier">s_local_iterator_to</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Requires</strong></span>: value must be an lvalue and shall be in a <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> of appropriate type. Otherwise the behavior is undefined.</p>
+<p><span class="bold"><strong>Effects</strong></span>: Returns: a valid const_local_iterator belonging to the <code class="computeroutput"><a class="link" href="unordered_set.html" title="Class template unordered_set">unordered_set</a></code> that points to the value</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Constant.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing.</p>
+<p><span class="bold"><strong>Note</strong></span>: This static function is available only if the <span class="emphasis"><em>value traits</em></span> is stateless. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">size_type</span> <a name="idp33528984-bb"></a><span class="identifier">suggested_upper_bucket_count</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the nearest new bucket count optimized for the container that is bigger or equal than n. This suggestion can be used to create bucket arrays with a size that will usually improve container's performance. If such value does not exist, the higher possible value is returned.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Amortized constant time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">size_type</span> <a name="idp33531416-bb"></a><span class="identifier">suggested_lower_bucket_count</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects</strong></span>: Returns the nearest new bucket count optimized for the container that is smaller or equal than n. This suggestion can be used to create bucket arrays with a size that will usually improve container's performance. If such value does not exist, the lowest possible value is returned.</p>
+<p><span class="bold"><strong>Complexity</strong></span>: Amortized constant time.</p>
+<p><span class="bold"><strong>Throws</strong></span>: Nothing. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="derivation_value_traits.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../intrusive/reference.html#header.boost.intrusive.hashtable_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="make_hashtable.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

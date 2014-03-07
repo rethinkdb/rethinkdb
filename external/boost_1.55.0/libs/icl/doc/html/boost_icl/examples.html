@@ -1,0 +1,444 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Examples</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="prev" href="../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="next" href="examples/party.html" title="Party">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="examples/party.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_examples" lang="en">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_icl.examples"></a><a class="link" href="examples.html" title="Examples">Examples</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="examples.html#boost_icl.examples.overview">Overview</a></span></dt>
+<dt><span class="section"><a href="examples/party.html">Party</a></span></dt>
+<dt><span class="section"><a href="examples/interval.html">Interval</a></span></dt>
+<dt><span class="section"><a href="examples/dynamic_interval.html">Dynamic interval</a></span></dt>
+<dt><span class="section"><a href="examples/static_interval.html">Static interval</a></span></dt>
+<dt><span class="section"><a href="examples/interval_container.html">Interval container</a></span></dt>
+<dt><span class="section"><a href="examples/overlap_counter.html">Overlap counter</a></span></dt>
+<dt><span class="section"><a href="examples/partys_height_average.html"> Party's height
+      average</a></span></dt>
+<dt><span class="section"><a href="examples/partys_tallest_guests.html"> Party's tallest
+      guests</a></span></dt>
+<dt><span class="section"><a href="examples/time_grids.html"> Time grids for months
+      and weeks</a></span></dt>
+<dt><span class="section"><a href="examples/man_power.html">Man power</a></span></dt>
+<dt><span class="section"><a href="examples/user_groups.html">User groups</a></span></dt>
+<dt><span class="section"><a href="examples/std_copy.html">Std copy</a></span></dt>
+<dt><span class="section"><a href="examples/std_transform.html">Std transform</a></span></dt>
+<dt><span class="section"><a href="examples/custom_interval.html">Custom interval</a></span></dt>
+</dl></div>
+<div class="section boost_icl_examples_overview" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.examples.overview"></a><a class="link" href="examples.html#boost_icl.examples.overview" title="Overview">Overview</a>
+</h3></div></div></div>
+<div class="table">
+<a name="id1055641"></a><p class="title"><b>Table&#160;1.5.&#160;Overview over Icl Examples</b></p>
+<div class="table-contents"><table class="table" summary="Overview over Icl Examples">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+            <p>
+              level
+            </p>
+            </th>
+<th>
+            <p>
+              example
+            </p>
+            </th>
+<th>
+            <p>
+              classes
+            </p>
+            </th>
+<th>
+            <p>
+              features
+            </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+            <p>
+              intro
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="examples/party.html" title="Party">Party</a>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              Generates an attendance history of a party by inserting into an <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>. Demonstrating
+              <span class="emphasis"><em><span class="bold"><strong>aggregate on overlap</strong></span></em></span>.
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              basic
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="examples/interval.html" title="Interval">Interval</a>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="../boost/icl/discrete_interval.html" title="Class template discrete_interval">discrete_interval</a></code>,
+              <code class="computeroutput"><a class="link" href="../boost/icl/continuous_interval.html" title="Class template continuous_interval">continuous_interval</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              Intervals for discrete and continuous instance types. Closed and open
+              interval borders.
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              basic
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="examples/dynamic_interval.html" title="Dynamic interval">Dynamic intervals</a>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="../boost/icl/discrete_interval.html" title="Class template discrete_interval">discrete_interval</a></code>,
+              <code class="computeroutput"><a class="link" href="../boost/icl/continuous_interval.html" title="Class template continuous_interval">continuous_interval</a></code>,
+              <code class="computeroutput"><a class="link" href="../boost/icl/interval.html" title="Struct template interval">interval</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              Intervals with dynamic interval bounds as library default.
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              basic
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="examples/static_interval.html" title="Static interval">Static intervals</a>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="../boost/icl/right_open_interval.html" title="Class template right_open_interval">right_open_interval</a></code>,
+              <code class="computeroutput"><a class="link" href="../boost/icl/interval.html" title="Struct template interval">interval</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              Intervals with static interval bounds and changing the library default.
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              basic
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="examples/interval_container.html" title="Interval container">Interval container</a>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="../boost/icl/interval_set.html" title="Class template interval_set">interval_set</a></code>,<br>
+              <code class="computeroutput"><a class="link" href="../boost/icl/separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a></code>,<br>
+              <code class="computeroutput"><a class="link" href="../boost/icl/split_interval_set.html" title="Class template split_interval_set">split_interval_set</a></code>,<br>
+              <code class="computeroutput"><a class="link" href="../boost/icl/split_interval_map.html" title="Class template split_interval_map">split_interval_map</a></code>,<br>
+              <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              Basic characteristics of interval containers.
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              basic
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="examples/overlap_counter.html" title="Overlap counter">Overlap counter</a>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              The most simple application of an interval map: Counting the overlaps
+              of added intervals.
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              advanced
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="examples/partys_height_average.html" title="Party's height average">Party's height
+              average</a>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              Using <span class="emphasis"><em>aggregate on overlap</em></span> a history of height
+              averages of party guests is computed. Associated values are user defined
+              class objects, that implement an appropriate <code class="computeroutput"><span class="keyword">operator</span>
+              <span class="special">+=</span></code> for the aggregation.
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              advanced
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="examples/partys_tallest_guests.html" title="Party's tallest guests">Party's tallest
+              guests</a>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>,<br>
+              <code class="computeroutput"><a class="link" href="../boost/icl/split_interval_map.html" title="Class template split_interval_map">split_interval_map</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              Using <span class="emphasis"><em>aggregate on overlap</em></span> the heights of the
+              party's tallest guests are computed. Associated values are aggregated
+              via a maximum functor, that can be chosen as template parameter of
+              an interval_map class template.
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              advanced
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="examples/time_grids.html" title="Time grids for months and weeks">Time grids for months
+              and weeks</a>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="../boost/icl/split_interval_set.html" title="Class template split_interval_set">split_interval_set</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              Shows how the <span class="emphasis"><em><span class="bold"><strong>border preserving</strong></span></em></span>
+              <code class="computeroutput"><a class="link" href="../boost/icl/split_interval_set.html" title="Class template split_interval_set">split_interval_set</a></code>
+              can be used to create time partitions where different periodic time
+              intervals overlay each other.
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              advanced
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="examples/man_power.html" title="Man power">Man power</a>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="../boost/icl/interval_set.html" title="Class template interval_set">interval_set</a></code>,<br>
+              <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              Set style operations on <code class="computeroutput"><a class="link" href="../boost/icl/interval_set.html" title="Class template interval_set">interval_sets</a></code>
+              and <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_maps</a></code>
+              like union, difference and intersection can be used to obtain calculations
+              in a flexible way. Example <span class="bold"><strong>man_power</strong></span>
+              demonstrates such operations in the process of calculating the available
+              man-power of a company in a given time interval.
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              advanced
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="examples/user_groups.html" title="User groups">User groups</a>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              Example <span class="bold"><strong>user_groups</strong></span> shows how interval_maps
+              can be unified or intersected to calculate desired information.
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              and std
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="examples/std_copy.html" title="Std copy">Std copy</a>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              Fill interval containers using <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">copy</span></code>.
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              and std
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="examples/std_transform.html" title="Std transform">Std transform</a>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>,<br>
+              <code class="computeroutput"><a class="link" href="../boost/icl/separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              Fill interval containers from user defined objects using <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">transform</span></code>.
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              customize
+            </p>
+            </td>
+<td>
+            <p>
+              <a class="link" href="examples/custom_interval.html" title="Custom interval">Custom interval</a>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><a class="link" href="../boost/icl/interval_traits.html" title="Struct template interval_traits">interval_traits</a></code>
+            </p>
+            </td>
+<td>
+            <p>
+              Use interval containers with your own interval class types.
+            </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../index.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="examples/party.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

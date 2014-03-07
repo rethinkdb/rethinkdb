@@ -1,0 +1,308 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Requirements on asynchronous operations</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="../reference.html" title="Reference">
+<link rel="next" href="AcceptHandler.html" title="Accept handler requirements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../reference.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="AcceptHandler.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.asynchronous_operations"></a><a class="link" href="asynchronous_operations.html" title="Requirements on asynchronous operations">Requirements
+      on asynchronous operations</a>
+</h3></div></div></div>
+<p>
+        In Boost.Asio, an asynchronous operation is initiated by a function that
+        is named with the prefix <code class="computeroutput"><span class="identifier">async_</span></code>.
+        These functions will be referred to as <span class="emphasis"><em>initiating functions</em></span>.
+      </p>
+<p>
+        All initiating functions in Boost.Asio take a function object meeting <a class="link" href="Handler.html" title="Handlers">handler</a> requirements as the
+        final parameter. These handlers accept as their first parameter an lvalue
+        of type <code class="computeroutput"><span class="keyword">const</span> <span class="identifier">error_code</span></code>.
+      </p>
+<p>
+        Implementations of asynchronous operations in Boost.Asio may call the application
+        programming interface (API) provided by the operating system. If such an
+        operating system API call results in an error, the handler will be invoked
+        with a <code class="computeroutput"><span class="keyword">const</span> <span class="identifier">error_code</span></code>
+        lvalue that evaluates to true. Otherwise the handler will be invoked with
+        a <code class="computeroutput"><span class="keyword">const</span> <span class="identifier">error_code</span></code>
+        lvalue that evaluates to false.
+      </p>
+<p>
+        Unless otherwise noted, when the behaviour of an asynchronous operation is
+        defined "as if" implemented by a <span class="emphasis"><em>POSIX</em></span> function,
+        the handler will be invoked with a value of type <code class="computeroutput"><span class="identifier">error_code</span></code>
+        that corresponds to the failure condition described by <span class="emphasis"><em>POSIX</em></span>
+        for that function, if any. Otherwise the handler will be invoked with an
+        implementation-defined <code class="computeroutput"><span class="identifier">error_code</span></code>
+        value that reflects the operating system error.
+      </p>
+<p>
+        Asynchronous operations will not fail with an error condition that indicates
+        interruption by a signal (<span class="emphasis"><em>POSIX</em></span> <code class="computeroutput"><span class="identifier">EINTR</span></code>).
+        Asynchronous operations will not fail with any error condition associated
+        with non-blocking operations (<span class="emphasis"><em>POSIX</em></span> <code class="computeroutput"><span class="identifier">EWOULDBLOCK</span></code>,
+        <code class="computeroutput"><span class="identifier">EAGAIN</span></code> or <code class="computeroutput"><span class="identifier">EINPROGRESS</span></code>;
+        <span class="emphasis"><em>Windows</em></span> <code class="computeroutput"><span class="identifier">WSAEWOULDBLOCK</span></code>
+        or <code class="computeroutput"><span class="identifier">WSAEINPROGRESS</span></code>).
+      </p>
+<p>
+        All asynchronous operations have an associated <code class="computeroutput"><span class="identifier">io_service</span></code>
+        object. Where the initiating function is a member function, the associated
+        <code class="computeroutput"><span class="identifier">io_service</span></code> is that returned
+        by the <code class="computeroutput"><span class="identifier">get_io_service</span><span class="special">()</span></code>
+        member function on the same object. Where the initiating function is not
+        a member function, the associated <code class="computeroutput"><span class="identifier">io_service</span></code>
+        is that returned by the <code class="computeroutput"><span class="identifier">get_io_service</span><span class="special">()</span></code> member function of the first argument to
+        the initiating function.
+      </p>
+<p>
+        Arguments to initiating functions will be treated as follows:
+      </p>
+<p>
+        &#8212; If the parameter is declared as a const reference or by-value, the program
+        is not required to guarantee the validity of the argument after the initiating
+        function completes. The implementation may make copies of the argument, and
+        all copies will be destroyed no later than immediately after invocation of
+        the handler.
+      </p>
+<p>
+        &#8212; If the parameter is declared as a non-const reference, const pointer or non-const
+        pointer, the program must guarantee the validity of the argument until the
+        handler is invoked.
+      </p>
+<p>
+        The library implementation is only permitted to make calls to an initiating
+        function's arguments' copy constructors or destructors from a thread that
+        satisfies one of the following conditions:
+      </p>
+<p>
+        &#8212; The thread is executing any member function of the associated <code class="computeroutput"><span class="identifier">io_service</span></code> object.
+      </p>
+<p>
+        &#8212; The thread is executing the destructor of the associated <code class="computeroutput"><span class="identifier">io_service</span></code>
+        object.
+      </p>
+<p>
+        &#8212; The thread is executing one of the <code class="computeroutput"><span class="identifier">io_service</span></code>
+        service access functions <code class="computeroutput"><span class="identifier">use_service</span></code>,
+        <code class="computeroutput"><span class="identifier">add_service</span></code> or <code class="computeroutput"><span class="identifier">has_service</span></code>, where the first argument is
+        the associated <code class="computeroutput"><span class="identifier">io_service</span></code>
+        object.
+      </p>
+<p>
+        &#8212; The thread is executing any member function, constructor or destructor of
+        an object of a class defined in this clause, where the object's <code class="computeroutput"><span class="identifier">get_io_service</span><span class="special">()</span></code>
+        member function returns the associated <code class="computeroutput"><span class="identifier">io_service</span></code>
+        object.
+      </p>
+<p>
+        &#8212; The thread is executing any function defined in this clause, where any argument
+        to the function has an <code class="computeroutput"><span class="identifier">get_io_service</span><span class="special">()</span></code> member function that returns the associated
+        <code class="computeroutput"><span class="identifier">io_service</span></code> object.
+      </p>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+        Boost.Asio may use one or more hidden threads to emulate asynchronous functionality.
+        The above requirements are intended to prevent these hidden threads from
+        making calls to program code. This means that a program can, for example,
+        use thread-unsafe reference counting in handler objects, provided the program
+        ensures that all calls to an <code class="computeroutput"><span class="identifier">io_service</span></code>
+        and related objects occur from the one thread.
+      </p>
+</div>
+<p>
+        The <code class="computeroutput"><span class="identifier">io_service</span></code> object associated
+        with an asynchronous operation will have unfinished work, as if by maintaining
+        the existence of one or more objects of class <code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">work</span></code>
+        constructed using the <code class="computeroutput"><span class="identifier">io_service</span></code>,
+        until immediately after the handler for the asynchronous operation has been
+        invoked.
+      </p>
+<p>
+        When an asynchronous operation is complete, the handler for the operation
+        will be invoked as if by:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            Constructing a bound completion handler <code class="computeroutput"><span class="identifier">bch</span></code>
+            for the handler, as described below.
+          </li>
+<li class="listitem">
+            Calling <code class="computeroutput"><span class="identifier">ios</span><span class="special">.</span><span class="identifier">post</span><span class="special">(</span><span class="identifier">bch</span><span class="special">)</span></code>
+            to schedule the handler for deferred invocation, where <code class="computeroutput"><span class="identifier">ios</span></code> is the associated <code class="computeroutput"><span class="identifier">io_service</span></code>.
+          </li>
+</ol></div>
+<p>
+        This implies that the handler must not be called directly from within the
+        initiating function, even if the asynchronous operation completes immediately.
+      </p>
+<p>
+        A bound completion handler is a handler object that contains a copy of a
+        user-supplied handler, where the user-supplied handler accepts one or more
+        arguments. The bound completion handler does not accept any arguments, and
+        contains values to be passed as arguments to the user-supplied handler. The
+        bound completion handler forwards the <code class="computeroutput"><span class="identifier">asio_handler_allocate</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">asio_handler_deallocate</span><span class="special">()</span></code>, and <code class="computeroutput"><span class="identifier">asio_handler_invoke</span><span class="special">()</span></code> calls to the corresponding functions for
+        the user-supplied handler. A bound completion handler meets the requirements
+        for a <a class="link" href="CompletionHandler.html" title="Completion handler requirements">completion handler</a>.
+      </p>
+<p>
+        For example, a bound completion handler for a <code class="computeroutput"><span class="identifier">ReadHandler</span></code>
+        may be implemented as follows:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ReadHandler</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">bound_read_handler</span>
+<span class="special">{</span>
+  <span class="identifier">bound_read_handler</span><span class="special">(</span><span class="identifier">ReadHandler</span> <span class="identifier">handler</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">error_code</span><span class="special">&amp;</span> <span class="identifier">ec</span><span class="special">,</span> <span class="identifier">size_t</span> <span class="identifier">s</span><span class="special">)</span>
+    <span class="special">:</span> <span class="identifier">handler_</span><span class="special">(</span><span class="identifier">handler</span><span class="special">),</span> <span class="identifier">ec_</span><span class="special">(</span><span class="identifier">ec</span><span class="special">),</span> <span class="identifier">s_</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span>
+  <span class="special">{</span>
+  <span class="special">}</span>
+
+  <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()()</span>
+  <span class="special">{</span>
+    <span class="identifier">handler_</span><span class="special">(</span><span class="identifier">ec_</span><span class="special">,</span> <span class="identifier">s_</span><span class="special">);</span>
+  <span class="special">}</span>
+
+  <span class="identifier">ReadHandler</span> <span class="identifier">handler_</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">error_code</span> <span class="identifier">ec_</span><span class="special">;</span>
+  <span class="keyword">const</span> <span class="identifier">size_t</span> <span class="identifier">s_</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ReadHandler</span><span class="special">&gt;</span>
+<span class="keyword">void</span><span class="special">*</span> <span class="identifier">asio_handler_allocate</span><span class="special">(</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">,</span>
+                            <span class="identifier">bound_read_handler</span><span class="special">&lt;</span><span class="identifier">ReadHandler</span><span class="special">&gt;*</span> <span class="identifier">this_handler</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">asio_handler_allocate</span><span class="special">;</span>
+  <span class="keyword">return</span> <span class="identifier">asio_handler_allocate</span><span class="special">(</span><span class="identifier">size</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">this_handler</span><span class="special">-&gt;</span><span class="identifier">handler_</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ReadHandler</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">asio_handler_deallocate</span><span class="special">(</span><span class="keyword">void</span><span class="special">*</span> <span class="identifier">pointer</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">,</span>
+                             <span class="identifier">bound_read_handler</span><span class="special">&lt;</span><span class="identifier">ReadHandler</span><span class="special">&gt;*</span> <span class="identifier">this_handler</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">asio_handler_deallocate</span><span class="special">;</span>
+  <span class="identifier">asio_handler_deallocate</span><span class="special">(</span><span class="identifier">pointer</span><span class="special">,</span> <span class="identifier">size</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">this_handler</span><span class="special">-&gt;</span><span class="identifier">handler_</span><span class="special">);</span>
+<span class="special">}</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">F</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ReadHandler</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">asio_handler_invoke</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">F</span><span class="special">&amp;</span> <span class="identifier">f</span><span class="special">,</span>
+                         <span class="identifier">bound_read_handler</span><span class="special">&lt;</span><span class="identifier">ReadHandler</span><span class="special">&gt;*</span> <span class="identifier">this_handler</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">asio_handler_invoke</span><span class="special">;</span>
+  <span class="identifier">asio_handler_invoke</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">this_handler</span><span class="special">-&gt;</span><span class="identifier">handler_</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        If the thread that initiates an asynchronous operation terminates before
+        the associated handler is invoked, the behaviour is implementation-defined.
+        Specifically, on <span class="emphasis"><em>Windows</em></span> versions prior to Vista, unfinished
+        operations are cancelled when the initiating thread exits.
+      </p>
+<p>
+        The handler argument to an initiating function defines a handler identity.
+        That is, the original handler argument and any copies of the handler argument
+        will be considered equivalent. If the implementation needs to allocate storage
+        for an asynchronous operation, the implementation will perform <code class="computeroutput"><span class="identifier">asio_handler_allocate</span><span class="special">(</span><span class="identifier">size</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">h</span><span class="special">)</span></code>, where <code class="computeroutput"><span class="identifier">size</span></code>
+        is the required size in bytes, and <code class="computeroutput"><span class="identifier">h</span></code>
+        is the handler. The implementation will perform <code class="computeroutput"><span class="identifier">asio_handler_deallocate</span><span class="special">(</span><span class="identifier">p</span><span class="special">,</span>
+        <span class="identifier">size</span><span class="special">,</span>
+        <span class="special">&amp;</span><span class="identifier">h</span><span class="special">)</span></code>, where <code class="computeroutput"><span class="identifier">p</span></code>
+        is a pointer to the storage, to deallocate the storage prior to the invocation
+        of the handler via <code class="computeroutput"><span class="identifier">asio_handler_invoke</span></code>.
+        Multiple storage blocks may be allocated for a single asynchronous operation.
+      </p>
+<h5>
+<a name="boost_asio.reference.asynchronous_operations.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.asynchronous_operations.return_type_of_an_initiating_function"></a></span><a class="link" href="asynchronous_operations.html#boost_asio.reference.asynchronous_operations.return_type_of_an_initiating_function">Return
+        type of an initiating function</a>
+      </h5>
+<p>
+        By default, initiating functions return <code class="computeroutput"><span class="keyword">void</span></code>.
+        This is always the case when the handler is a function pointer, C++11 lambda,
+        or a function object produced by <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">bind</span></code>
+        or <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">bind</span></code>.
+      </p>
+<p>
+        For other types, the return type may be customised via a two-step process:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            A specialisation of the <a class="link" href="handler_type.html" title="handler_type"><code class="computeroutput"><span class="identifier">handler_type</span></code></a> template, which
+            is used to determine the true handler type based on the asynchronous
+            operation's handler's signature.
+          </li>
+<li class="listitem">
+            A specialisation of the <a class="link" href="async_result.html" title="async_result"><code class="computeroutput"><span class="identifier">async_result</span></code></a> template, which
+            is used both to determine the return type and to extract the return value
+            from the handler.
+          </li>
+</ol></div>
+<p>
+        These two templates have been specialised to provide support for <a class="link" href="../overview/core/spawn.html" title="Stackful Coroutines">stackful
+        coroutines</a> and the C++11 <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">future</span></code>
+        class.
+      </p>
+<p>
+        As an example, consider what happens when enabling <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">future</span></code>
+        support by using the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">use_future</span></code>
+        special value, as in:
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">future</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">&gt;</span> <span class="identifier">length</span> <span class="special">=</span>
+  <span class="identifier">my_socket</span><span class="special">.</span><span class="identifier">async_read_some</span><span class="special">(</span><span class="identifier">my_buffer</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">use_future</span><span class="special">);</span>
+</pre>
+<p>
+        When a handler signature has the form:
+      </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">handler</span><span class="special">(</span><span class="identifier">error_code</span> <span class="identifier">ec</span><span class="special">,</span> <span class="identifier">result_type</span> <span class="identifier">result</span><span class="special">);</span>
+</pre>
+<p>
+        the initiating function returns a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">future</span></code>
+        templated on <code class="computeroutput"><span class="identifier">result_type</span></code>.
+        In the above <code class="computeroutput"><span class="identifier">async_read_some</span></code>
+        example, this is <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span></code>. If the asynchronous operation fails,
+        the <code class="computeroutput"><span class="identifier">error_code</span></code> is converted
+        into a <code class="computeroutput"><span class="identifier">system_error</span></code> exception
+        and passed back to the caller through the future.
+      </p>
+<p>
+        Where a handler signature has the form:
+      </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">handler</span><span class="special">(</span><span class="identifier">error_code</span> <span class="identifier">ec</span><span class="special">);</span>
+</pre>
+<p>
+        the initiating function instead returns <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">future</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span></code>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../reference.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="AcceptHandler.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

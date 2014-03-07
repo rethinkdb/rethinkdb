@@ -1,0 +1,309 @@
+# Copyright Gennadiy Rozental
+# Copyright 2006 Rene Rivera
+# Copyright 2003, 2004, 2006 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+# The STLPort is usable by means of 'stdlib' feature. When
+# stdlib=stlport is specified, default version of STLPort will be used,
+# while stdlib=stlport-4.5 will use specific version.
+# The subfeature value 'hostios' means to use host compiler's iostreams.
+#
+# The specific version of stlport is selected by features:
+# The <runtime-link> feature selects between static and shared library
+# The <runtime-debugging>on selects STLPort with debug symbols
+# and stl debugging.
+# There's no way to use STLPort with debug symbols but without
+# stl debugging.
+
+# TODO: must implement selection of different STLPort installations based
+# on used toolset.
+# Also, finish various flags:
+#
+# This is copied from V1 toolset, "+" means "implemented"
+#+flags $(CURR_TOOLSET) DEFINES <stlport-iostream>off : _STLP_NO_OWN_IOSTREAMS=1 _STLP_HAS_NO_NEW_IOSTREAMS=1 ;
+#+flags $(CURR_TOOLSET) DEFINES <stlport-extensions>off : _STLP_NO_EXTENSIONS=1 ;
+# flags $(CURR_TOOLSET) DEFINES <stlport-anachronisms>off : _STLP_NO_ANACHRONISMS=1 ;
+# flags $(CURR_TOOLSET) DEFINES <stlport-cstd-namespace>global : _STLP_VENDOR_GLOBAL_CSTD=1 ;
+# flags $(CURR_TOOLSET) DEFINES <exception-handling>off : _STLP_NO_EXCEPTIONS=1 ;
+# flags $(CURR_TOOLSET) DEFINES <stlport-debug-alloc>on : _STLP_DEBUG_ALLOC=1 ;
+#+flags $(CURR_TOOLSET) DEFINES <runtime-build>debug : _STLP_DEBUG=1 _STLP_DEBUG_UNINITIALIZED=1 ;
+#+flags $(CURR_TOOLSET) DEFINES <runtime-link>dynamic : _STLP_USE_DYNAMIC_LIB=1 ;
+
+
+import feature : feature subfeature ;
+import project ;
+import "class" : new ;
+import targets ;
+import property-set ;
+import common ;
+import type ;
+
+# Make this module into a project.
+project.initialize $(__name__) ;
+project stlport ;
+
+# The problem: how to request to use host compiler's iostreams?
+#
+# Solution 1: Global 'stlport-iostream' feature.
+#    That's ugly. Subfeature make more sense for stlport-specific thing.
+# Solution 2: Use subfeature with two values, one of which ("use STLPort iostream")
+#     is default.
+#    The problem is that such subfeature will appear in target paths, and that's ugly
+# Solution 3: Use optional subfeature with only one value.
+
+feature.extend stdlib : stlport ;
+feature.compose <stdlib>stlport : <library>/stlport//stlport ;
+
+# STLport iostreams or native iostreams
+subfeature stdlib stlport : iostream : hostios : optional propagated  ;
+
+# STLport extensions
+subfeature stdlib stlport : extensions : noext : optional propagated ;
+
+# STLport anachronisms -- NOT YET SUPPORTED
+# subfeature stdlib stlport : anachronisms : on off ;
+
+# STLport debug allocation -- NOT YET SUPPORTED
+#subfeature stdlib stlport : debug-alloc : off on ;
+
+# Declare a special target class to handle the creation of search-lib-target
+# instances for STLport. We need a special class, because otherwise we'll have
+# - declare prebuilt targets for all possible toolsets. And by the time 'init'
+#   is called we don't even know the list of toolsets that are registered
+# - when host iostreams are used, we really should produce nothing. It would
+#   be hard/impossible to achieve this using prebuilt targets.
+
+class stlport-target-class : basic-target
+{
+    import feature project type errors generators ;
+    import set : difference ;
+
+    rule __init__ ( project : headers ? : libraries * :  version ? )
+    {
+        basic-target.__init__ stlport : $(project) ;
+        self.headers = $(headers) ;
+        self.libraries = $(libraries) ;
+        self.version = $(version) ;
+        self.version.5 = [ MATCH "^(5[.][0123456789]+).*" : $(version) ] ;
+
+        local requirements ;
+        requirements += <stdlib-stlport:version>$(self.version) ;
+        self.requirements = [ property-set.create $(requirements) ] ;
+    }
+
+    rule generate ( property-set )
+    {
+        # Since this target is built with <stdlib>stlport, it will also
+        # have <library>/stlport//stlport in requirements, which will
+        # cause a loop in main target references. Remove that property
+        # manually.
+
+        property-set = [ property-set.create
+            [ difference
+                [ $(property-set).raw ] :
+                <library>/stlport//stlport
+                <stdlib>stlport
+                ]
+            ] ;
+        return [ basic-target.generate $(property-set) ] ;
+    }
+
+    rule construct ( name : source-targets * : property-set )
+    {
+        # Deduce the name of stlport library, based on toolset and
+        # debug setting.
+        local raw = [ $(property-set).raw ] ;
+        local hostios = [ feature.get-values <stdlib-stlport:iostream> : $(raw) ] ;
+        local toolset = [ feature.get-values <toolset> : $(raw) ] ;
+
+        if $(self.version.5)
+        {
+            # Version 5.x
+
+            # STLport host IO streams no longer supported. So we always
+            # need libraries.
+
+            # name: stlport(stl)?[dg]?(_static)?.M.R
+            local name = stlport ;
+            if [ feature.get-values <runtime-debugging> : $(raw) ] = "on"
+            {
+                name += stl ;
+                switch $(toolset)
+                {
+                    case gcc* : name += g ;
+                    case darwin* : name += g ;
+                    case * : name += d ;
+                }
+            }
+
+            if [ feature.get-values <runtime-link> : $(raw) ] = "static"
+            {
+                name += _static ;
+            }
+
+            # Starting with version 5.2.0, the STLport static libraries no
+            # longer include a version number in their name
+            local version.pre.5.2 = [ MATCH "^(5[.][01]+).*" : $(version) ] ;
+            if $(version.pre.5.2) || [ feature.get-values <runtime-link> :
+                $(raw) ] != "static"
+            {
+                name += .$(self.version.5) ;
+            }
+
+            name = $(name:J=) ;
+
+            if [ feature.get-values <install-dependencies> : $(raw) ] = "on"
+            {
+                #~ Allow explicitly asking to install the STLport lib by
+                #~ referring to it directly:
+                #~   /stlport//stlport/<install-dependencies>on
+                #~ This allows for install packaging of all libs one might need
+                #~ for a standalone distribution.
+                import path : make : path-make ;
+                local runtime-link
+                    = [ feature.get-values <runtime-link> : $(raw) ] ;
+                local lib-file.props
+                    = [ property-set.create $(raw) <link>$(runtime-link) ] ;
+                local lib-file.prefix
+                    = [ type.generated-target-prefix $(runtime-link:U)_LIB :
+                        $(lib-file.props) ] ;
+                local lib-file.suffix
+                    = [ type.generated-target-suffix $(runtime-link:U)_LIB :
+                        $(lib-file.props) ] ;
+                lib-file.prefix
+                    ?= "" "lib" ;
+                lib-file.suffix
+                    ?= "" ;
+                local lib-file
+                    = [ GLOB $(self.libraries) [ modules.peek : PATH ] :
+                        $(lib-file.prefix)$(name).$(lib-file.suffix) ] ;
+                lib-file
+                    = [ new file-reference [ path-make $(lib-file[1]) ] :
+                        $(self.project) ] ;
+                lib-file
+                    = [ $(lib-file).generate "" ] ;
+                local lib-file.requirements
+                    = [ targets.main-target-requirements
+                        [ $(lib-file.props).raw ] <file>$(lib-file[-1])
+                        : $(self.project) ] ;
+                return [ generators.construct $(self.project) $(name) : LIB :
+                    $(lib-file.requirements) ] ;
+            }
+            else
+            {
+                #~ Otherwise, it is just regular library usage.
+                return [ generators.construct
+                    $(self.project) $(name) : SEARCHED_LIB : $(property-set) ] ;
+            }
+        }
+        else if ! $(hostios) && $(toolset) != msvc
+        {
+            # We don't need libraries if host istreams are used. For
+            # msvc, automatic library selection will be used.
+
+            # name: stlport_<toolset>(_stldebug)?
+            local name = stlport ;
+            name = $(name)_$(toolset) ;
+            if [ feature.get-values <runtime-debugging> : $(raw) ] = "on"
+            {
+                name = $(name)_stldebug ;
+            }
+
+            return [ generators.construct
+                $(self.project) $(name) : SEARCHED_LIB : $(property-set) ] ;
+        }
+        else
+        {
+            return [ property-set.empty ] ;
+        }
+    }
+
+    rule compute-usage-requirements ( subvariant )
+    {
+        local usage-requirements =
+            <include>$(self.headers)
+            <dll-path>$(self.libraries)
+            <library-path>$(self.libraries)
+            ;
+
+        local rproperties = [ $(subvariant).build-properties ] ;
+        # CONSIDER: should this "if" sequence be replaced with
+        # some use of 'property-map' class?
+        if [ $(rproperties).get <runtime-debugging> ] = "on"
+        {
+            usage-requirements +=
+                <define>_STLP_DEBUG=1
+                <define>_STLP_DEBUG_UNINITIALIZED=1 ;
+        }
+        if [ $(rproperties).get <runtime-link> ] = "shared"
+        {
+            usage-requirements +=
+                <define>_STLP_USE_DYNAMIC_LIB=1 ;
+        }
+        if [ $(rproperties).get <stdlib-stlport:extensions> ] = noext
+        {
+            usage-requirements +=
+                <define>_STLP_NO_EXTENSIONS=1 ;
+        }
+        if [ $(rproperties).get <stdlib-stlport:iostream> ] = hostios
+        {
+            usage-requirements +=
+                <define>_STLP_NO_OWN_IOSTREAMS=1
+                <define>_STLP_HAS_NO_NEW_IOSTREAMS=1 ;
+        }
+        if $(self.version.5)
+        {
+            # Version 5.x
+            if [ $(rproperties).get <threading> ] = "single"
+            {
+                # Since STLport5 doesn't normally support single-thread
+                # we force STLport5 into the multi-thread mode. Hence
+                # getting what other libs provide of single-thread code
+                # linking against a multi-thread lib.
+                usage-requirements +=
+                    <define>_STLP_THREADS=1 ;
+            }
+        }
+
+        return [ property-set.create $(usage-requirements) ] ;
+    }
+}
+
+rule stlport-target ( headers ? : libraries * : version ? )
+{
+    local project = [ project.current ] ;
+
+    targets.main-target-alternative
+      [ new stlport-target-class  $(project) : $(headers) : $(libraries)
+        : $(version)
+      ] ;
+}
+
+local .version-subfeature-defined ;
+
+# Initialize stlport support.
+rule init (
+    version ? :
+    headers   :     # Location of header files
+    libraries *     # Location of libraries, lib and bin subdirs of STLport.
+    )
+{
+    # FIXME: need to use common.check-init-parameters here.
+    # At the moment, that rule always tries to define subfeature
+    # of the 'toolset' feature, while we need to define subfeature
+    # of <stdlib>stlport, so tweaks to check-init-parameters are needed.
+    if $(version)
+    {
+        if ! $(.version-subfeature-defined)
+        {
+            feature.subfeature stdlib stlport : version : : propagated ;
+            .version-subfeature-defined = true ;
+        }
+        feature.extend-subfeature stdlib stlport : version : $(version) ;
+    }
+
+    # Declare the main target for this STLPort version.
+    stlport-target $(headers) : $(libraries) : $(version) ;
+}
+

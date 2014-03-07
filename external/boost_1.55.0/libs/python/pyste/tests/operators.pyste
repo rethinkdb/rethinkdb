@@ -1,0 +1,2 @@
+C = Class('operators::C', 'operators.h')
+#exclude(C.operator['+'])

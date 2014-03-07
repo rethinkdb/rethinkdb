@@ -1,0 +1,283 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:old_regex High Level Class RegEx (Deprecated)]
+
+The high level wrapper class RegEx is now deprecated and does not form 
+part of the regular expression standardization proposal.  This type still 
+exists, and existing code will continue to compile, however the following 
+documentation is unlikely to be further updated.
+
+   #include <boost/cregex.hpp>
+
+The class RegEx provides a high level simplified interface to the regular 
+expression library, this class only handles narrow character strings, and 
+regular expressions always follow the "normal" syntax - that is the 
+same as the perl / ECMAScript synatx.
+
+   typedef bool (*GrepCallback)(const RegEx& expression);
+   typedef bool (*GrepFileCallback)(const char* file, const RegEx& expression);
+   typedef bool (*FindFilesCallback)(const char* file);
+
+   class  RegEx
+   {
+   public:
+      RegEx();
+      RegEx(const RegEx& o);
+      ~RegEx();
+      RegEx(const char* c, bool icase = false);
+      explicit RegEx(const std::string& s, bool icase = false);
+      RegEx& operator=(const RegEx& o);
+      RegEx& operator=(const char* p);
+      RegEx& operator=(const std::string& s);
+      unsigned int SetExpression(const char* p, bool icase = false);
+      unsigned int SetExpression(const std::string& s, bool icase = false);
+      std::string Expression()const;
+      //
+      // now matching operators: 
+      // 
+      bool Match(const char* p, boost::match_flag_type flags = match_default);
+      bool Match(const std::string& s, boost::match_flag_type flags = match_default); 
+      bool Search(const char* p, boost::match_flag_type flags = match_default); 
+      bool Search(const std::string& s, boost::match_flag_type flags = match_default); 
+      unsigned int Grep(GrepCallback cb, const char* p, 
+                        boost::match_flag_type flags = match_default); 
+      unsigned int Grep(GrepCallback cb, const std::string& s, 
+                        boost::match_flag_type flags = match_default); 
+      unsigned int Grep(std::vector<std::string>& v, const char* p, 
+                        boost::match_flag_type flags = match_default); 
+      unsigned int Grep(std::vector<std::string>& v, const std::string& s, 
+                        boost::match_flag_type flags = match_default); 
+      unsigned int Grep(std::vector<unsigned int>& v, const char* p, 
+                        boost::match_flag_type flags = match_default); 
+      unsigned int Grep(std::vector<unsigned int>& v, const std::string& s, 
+                        boost::match_flag_type flags = match_default); 
+      unsigned int GrepFiles(GrepFileCallback cb, const char* files, bool recurse = false, 
+                             boost::match_flag_type flags = match_default); 
+      unsigned int GrepFiles(GrepFileCallback cb, const std::string& files, 
+                             bool recurse = false, 
+                             boost::match_flag_type flags = match_default); 
+      unsigned int FindFiles(FindFilesCallback cb, const char* files, 
+                             bool recurse = false, 
+                             boost::match_flag_type flags = match_default); 
+      unsigned int FindFiles(FindFilesCallback cb, const std::string& files, 
+                             bool recurse = false, 
+                             boost::match_flag_type flags = match_default); 
+      std::string Merge(const std::string& in, const std::string& fmt, 
+                        bool copy = true, boost::match_flag_type flags = match_default); 
+      std::string Merge(const char* in, const char* fmt, bool copy = true, 
+                        boost::match_flag_type flags = match_default); 
+      unsigned Split(std::vector<std::string>& v, std::string& s, 
+                     boost::match_flag_type flags = match_default, 
+                     unsigned max_count = ~0); 
+      // 
+      // now operators for returning what matched in more detail: 
+      // 
+      unsigned int Position(int i = 0)const; 
+      unsigned int Length(int i = 0)const; 
+      bool Matched(int i = 0)const;
+      unsigned int Line()const; 
+      unsigned int Marks() const; 
+      std::string What(int i)const; 
+      std::string operator[](int i)const ; 
+
+      static const unsigned int npos;
+   };    
+
+Member functions for class RegEx are defined as follows:
+ 
+[table
+[[Member][Description]]
+[[`RegEx();`][Default constructor, constructs an instance of RegEx without any valid expression. 	 ]]
+[[`RegEx(const RegEx& o);`][Copy constructor, all the properties of parameter /o/ 
+         are copied. 	 ]]
+[[`RegEx(const char* c, bool icase = false);`][Constructs an instance of RegEx, 
+         setting the expression to /c/, if /icase/ is true then matching is 
+         insensitive to case, otherwise it is sensitive to case. Throws 
+         [bad_expression] on failure. 	 ]]
+[[`RegEx(const std::string& s, bool icase = false);`][Constructs an instance of 
+         RegEx, setting the expression to /s/, if /icase/ is true then matching 
+         is insensitive to case, otherwise it is sensitive to case. Throws 
+         [bad_expression] on failure. 	 ]]
+[[`RegEx& operator=(const RegEx& o);`][Default assignment operator. 	 ]]
+[[`RegEx& operator=(const char* p);`][Assignment operator, equivalent to calling 
+         `SetExpression(p, false)`. Throws [bad_expression] on failure. 	 ]]
+[[`RegEx& operator=(const std::string& s);`][Assignment operator, equivalent to 
+         calling `SetExpression(s, false)`. Throws [bad_expression] on failure. 	 ]]
+[[`unsigned int SetExpression(constchar* p, bool icase = false);`][Sets the 
+         current expression to /p/, if /icase/ is true then matching is 
+         insensitive to case, otherwise it is sensitive to case. 
+         Throws [bad_expression] on failure. 	 ]]
+[[`unsigned int SetExpression(const std::string& s, bool icase = false);`]
+         [Sets the current expression to /s/, if /icase/ is true then matching is 
+         insensitive to case, otherwise it is sensitive to case. Throws 
+         [bad_expression] on failure. 	 ]]
+[[`std::string Expression()const;`][Returns a copy of the current regular expression. 	 ]]
+[[`bool Match(const char* p, boost::match_flag_type flags = match_default);`]
+         [Attempts to match the current expression against the text /p/ using 
+         the match flags /flags/ - see [match_flag_type]. Returns /true/ if the 
+         expression matches the whole of the input string. 	 ]]
+[[`bool Match(const std::string& s, boost::match_flag_type flags = match_default);`]
+         [Attempts to match the current expression against the text /s/ using 
+         the [match_flag_type] /flags/. Returns /true/ if the expression matches 
+         the whole of the input string. 	 ]]
+[[`bool Search(const char* p, boost::match_flag_type flags = match_default);`]
+         [Attempts to find a match for the current expression somewhere in 
+         the text /p/ using the [match_flag_type] /flags/. Returns /true/ 
+         if the match succeeds. 	 ]]
+[[`bool Search(const std::string& s, boost::match_flag_type flags = match_default);`]
+         [Attempts to find a match for the current expression somewhere in the 
+         text /s/ using the [match_flag_type] flags. Returns /true/ if the 
+         match succeeds. 	 ]]
+[[`unsigned int Grep(GrepCallback cb, const char* p, boost::match_flag_type flags = match_default);`]
+         [Finds all matches of the current expression in the text /p/ using the 
+         [match_flag_type] /flags/. For each match found calls the call-back 
+         function cb as: `cb(*this);`
+         If at any stage the call-back function returns /false/ then the grep 
+         operation terminates, otherwise continues until no further matches 
+         are found. Returns the number of matches found.]]
+[[`unsigned int Grep(GrepCallback cb, const std::string& s, boost::match_flag_type flags = match_default);`]
+         [Finds all matches of the current expression in the text /s/ using the 
+         [match_flag_type] flags. For each match found calls the call-back 
+         function cb as: `cb(*this);`
+         If at any stage the call-back function returns false then the grep operation 
+         terminates, otherwise continues until no further matches are found. 
+         Returns the number of matches found.]]
+[[`unsigned int Grep(std::vector<std::string>& v, const char* p, boost::match_flag_type flags = match_default);`]
+         [Finds all matches of the current expression in the text /p/ using the 
+         [match_flag_type] flags. For each match pushes a copy of what matched 
+         onto /v/. Returns the number of matches found. 	 ]]
+[[`unsigned int Grep(std::vector<std::string>& v, const std::string& s, boost::match_flag_type flags = match_default);`]
+         [Finds all matches of the current expression in the text /s/ using the 
+         [match_flag_type] /flags/. For each match pushes a copy of what 
+         matched onto /v/. Returns the number of matches found. 	 ]]
+[[`unsigned int Grep(std::vector<unsigned int>& v, const char* p, boost::match_flag_type flags = match_default);`]
+         [Finds all matches of the current expression in the text /p/ using the 
+         [match_flag_type] /flags/. For each match pushes the starting index of 
+         what matched onto /v/. Returns the number of matches found. 	 ]]
+[[`unsigned int Grep(std::vector<unsigned int>& v, const std::string& s, boost::match_flag_type flags = match_default);`]
+         [Finds all matches of the current expression in the text /s/ using the 
+         [match_flag_type] /flags/. For each match pushes the starting index of what 
+         matched onto /v/. Returns the number of matches found. 	 ]]
+[[`unsigned int GrepFiles(GrepFileCallback cb, const char* files, bool recurse = false, boost::match_flag_type flags = match_default);`]
+         [Finds all matches of the current expression in the files files using 
+         the [match_flag_type] /flags/. For each match calls the call-back function cb. 
+         If the call-back returns false then the algorithm returns without 
+         considering further matches in the current file, or any further files. 
+         
+         The parameter /files/ can include wild card characters '\*' and '\?', if 
+         the parameter recurse is true then searches sub-directories for matching 
+         file names. 
+
+         Returns the total number of matches found.
+
+         May throw an exception derived from `std::runtime_error` if file io fails.]]
+[[`unsigned int GrepFiles(GrepFileCallback cb, const std::string& files, bool recurse = false, boost::match_flag_type flags = match_default);`]
+         [Finds all matches of the current expression in the files files using the 
+         [match_flag_type] /flags/. For each match calls the call-back function cb. 
+
+         If the call-back returns false then the algorithm returns without 
+         considering further matches in the current file, or any further files. 
+
+         The parameter /files/ can include wild card characters '\*' and '\?', if 
+         the parameter recurse is true then searches sub-directories for 
+         matching file names. 
+
+         Returns the total number of matches found.
+
+         May throw an exception derived from `std::runtime_error` if file io fails.]]
+	 
+[[`unsigned int FindFiles(FindFilesCallback cb, const char* files, bool recurse = false, boost::match_flag_type flags = match_default);`]
+         [Searches files to find all those which contain at least one match of 
+         the current expression using the [match_flag_type] /flags/. For each 
+         matching file calls the call-back function cb. 
+         If the call-back returns false then the algorithm returns without 
+         considering any further files. 
+
+         The parameter /files/ can include wild card characters '\*' and '\?', if 
+         the parameter /recurse/ is true then searches sub-directories for 
+         matching file names. 
+
+         Returns the total number of files found.
+
+         May throw an exception derived from `std::runtime_error` if file io fails.]]
+[[`unsigned int FindFiles(FindFilesCallback cb, const std::string& files, bool recurse = false, boost::match_flag_type flags = match_default);`]
+         [Searches files to find all those which contain at least one 
+         match of the current expression using the [match_flag_type] /flags/. 
+         For each matching file calls the call-back function cb. 
+
+         If the call-back returns false then the algorithm returns without 
+         considering any further files. 
+
+         The parameter /files/ can include wild card characters '\*' and '\?', if 
+         the parameter /recurse/ is true then searches sub-directories for 
+         matching file names. 
+
+         Returns the total number of files found.
+
+         May throw an exception derived from `std::runtime_error` if file io fails.]]
+         
+[[`std::string Merge(const std::string& in, const std::string& fmt, bool copy = true, boost::match_flag_type flags = match_default);`]
+         [Performs a search and replace operation: searches through the 
+         string /in/ for all occurrences of the current expression, for each 
+         occurrence replaces the match with the format string /fmt/. Uses /flags/ 
+         to determine what gets matched, and how the format string should be 
+         treated. If /copy/ is true then all unmatched sections of input are 
+         copied unchanged to output, if the flag /format_first_only/ is set then 
+         only the first occurance of the pattern found is replaced. 
+         Returns the new string. See also 
+         [link boost_regex.format format string syntax], and [match_flag_type].]]
+[[`std::string Merge(const char* in, const char* fmt, bool copy = true, boost::match_flag_type flags = match_default);`]
+         [Performs a search and replace operation: searches through the string /in/ 
+         for all occurrences of the current expression, for each occurrence 
+         replaces the match with the format string /fmt/. Uses /flags/ to determine 
+         what gets matched, and how the format string should be treated. 
+         If /copy/ is true then all unmatched sections of input are copied 
+         unchanged to output, if the flag /format_first_only/ is set then only 
+         the first occurance of the pattern found is replaced. Returns 
+         the new string. See also [link boost_regex.format format string syntax], and [match_flag_type].]]
+[[`unsigned Split(std::vector<std::string>& v, std::string& s, boost::match_flag_type flags = match_default, unsigned max_count = ~0);`]
+         [Splits the input string and pushes each one onto the vector. 
+         If the expression contains no marked sub-expressions, then one 
+         string is outputted for each section of the input that does not 
+         match the expression. If the expression does contain marked 
+         sub-expressions, then outputs one string for each marked 
+         sub-expression each time a match occurs. Outputs no more than 
+         /max_count/ strings. Before returning, deletes from the input string 
+         /s/ all of the input that has been processed (all of the string if 
+         /max_count/ was not reached). Returns the number of strings pushed 
+         onto the vector. 	 ]]
+[[`unsigned int Position(int i = 0)const;`]
+         [Returns the position of what matched sub-expression /i/. If `i = 0` 
+         then returns the position of the whole match. Returns `RegEx::npos` if 
+         the supplied index is invalid, or if the specified sub-expression 
+         did not participate in the match. 	 ]]
+[[`unsigned int Length(int i = 0)const;`]
+         [Returns the length of what matched sub-expression i. If `i = 0` then 
+         returns the length of the whole match. Returns `RegEx::npos` if the 
+         supplied index is invalid, or if the specified sub-expression did not 
+         participate in the match. 	 ]]
+[[`bool Matched(int i = 0)const;`]
+         [Returns true if sub-expression /i/ was matched, false otherwise. 	 ]]
+[[`unsigned int Line()const;`][Returns the line on which the match occurred, 
+         indexes start from 1 not zero, if no match occurred then returns `RegEx::npos`. 	 ]]
+[[`unsigned int Marks() const;`][Returns the number of marked sub-expressions 
+         contained in the expression. Note that this includes the whole 
+         match (sub-expression zero), so the value returned is always >= 1. 	 ]]
+[[`std::string What(int i)const;`]
+         [Returns a copy of what matched sub-expression /i/. If `i = 0` then 
+         returns a copy of the whole match. Returns a null string if the 
+         index is invalid or if the specified sub-expression did not 
+         participate in a match. 	 ]]
+[[`std::string operator[](int i)const ;`][Returns `what(i);`
+         Can be used to simplify access to sub-expression matches, and make 
+         usage more perl-like.]]
+]
+
+[endsect]
+

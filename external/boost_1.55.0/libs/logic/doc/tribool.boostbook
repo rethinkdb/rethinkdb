@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<library name="Tribool" dirname="logic" id="tribool"
+         last-revision="$Date: 2007/05/03 03:28:53 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <libraryinfo>
+    <author>
+      <firstname>Douglas</firstname>
+      <surname>Gregor</surname>
+      <email>dgregor -at- cs.indiana.edu</email>
+    </author>
+
+    <copyright>
+      <year>2002</year>
+      <year>2003</year>
+      <year>2004</year>
+      <holder>Douglas Gregor</holder>
+    </copyright>    
+
+    <legalnotice>
+      <para>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <filename>LICENSE_1_0.txt</filename> or copy at <ulink
+    url="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</ulink>)</para>
+    </legalnotice>
+
+    <librarypurpose>Three-state boolean type</librarypurpose>
+    <librarycategory name="category:misc"/>
+  </libraryinfo>
+
+  <title>Boost.Tribool</title>
+
+  <section id="tribool.introduction">
+    <title>Introduction</title>
+
+    <para>The 3-state boolean library contains a single class,
+    <code><classname>boost::logic::tribool</classname></code>, along with
+    support functions and operator overloads that implement 3-state
+    boolean logic. </para>
+  </section>
+
+  <section id="tribool.tutorial">
+    <title>Tutorial</title>
+
+    <using-namespace name="boost::logic"/>
+
+    <section>
+      <title>Basic usage</title>
+    <para> The <code><classname>tribool</classname></code> class acts
+    like the built-in <code>bool</code> type, but for 3-state boolean
+    logic. The three states are <code>true</code>, <code>false</code>,
+    and <code><functionname>indeterminate</functionname></code>, where
+    the first two states are equivalent to those of the C++
+    <code>bool</code> type and the last state represents an unknown
+    boolean value (that may be <code>true</code> or
+    <code>false</code>, we don't know).</para>
+
+    <para> The <code><classname>tribool</classname></code> class
+    supports conversion from <code>bool</code> values and literals
+    along with its own
+    <code><functionname>indeterminate</functionname></code>
+    keyword:</para>
+
+    <programlisting><classname>tribool</classname> b(true);
+b = false;
+b = <functionname>indeterminate</functionname>;
+<classname>tribool</classname> b2(b);</programlisting>
+
+    <para> <code><classname>tribool</classname></code> supports
+    conversions to <code>bool</code> for use in conditional
+    statements. The conversion to <code>bool</code> will be
+    <code>true</code> when the value of the
+    <code><classname>tribool</classname></code> is always true, and
+    <code>false</code> otherwise. Consequently, the following idiom
+    may be used to determine which of the three states a
+    <code><classname>tribool</classname></code> currently
+    holds:</para>
+
+<programlisting><classname>tribool</classname> b = some_operation();
+if (b) {
+  // b is true
+}
+else if (!b) {
+  // b is false
+}
+else {
+  // b is indeterminate
+}</programlisting>
+
+  <para> <code><classname>tribool</classname></code> supports the
+  3-state logic operators <code>!</code> (negation),
+  <code>&amp;&amp;</code> (AND), and <code>||</code> (OR), with
+  <code>bool</code> and <code><classname>tribool</classname></code>
+  values. For instance:</para>
+
+  <programlisting><classname>tribool</classname> x = some_op();
+<classname>tribool</classname> y = some_other_op();
+if (x &amp;&amp; y) {
+  // both x and y are true
+}
+else if (!(x &amp;&amp; y)) {
+  // either x or y is false
+}
+else {
+  // neither x nor y is false, but we don't know that both are true
+
+  if (x || y) {
+    // either x or y is true
+  }
+}</programlisting>
+
+  <para> Similarly, <code><classname>tribool</classname></code>
+  supports 3-state equality comparisons via the operators
+  <code>==</code> and <code>!=</code>. These operators differ from
+  "normal" equality operators in C++ because they return a
+  <code><classname>tribool</classname></code>, because potentially we
+  might not know the result of a comparison (try to compare
+  <code>true</code> and
+  <code><functionname>indeterminate</functionname></code>). For
+  instance:</para>
+
+<programlisting><classname>tribool</classname> x(true);
+<classname>tribool</classname> y(<functionname>indeterminate</functionname>);
+
+assert(x == x); // okay, x == x returns true
+assert(x == true); // okay, can compare <classname>tribool</classname>s and bools</programlisting>
+
+  <para> The <code><functionname>indeterminate</functionname></code> keyword (representing the
+  <functionname>indeterminate</functionname>&nbsp;<code><classname>tribool</classname></code> value)
+  doubles as a function to check if the value of a
+  <code><classname>tribool</classname></code> is indeterminate,
+  e.g.,</para>
+ 
+  <programlisting><classname>tribool</classname> x = try_to_do_something_tricky();
+if (<functionname>indeterminate</functionname>(x)) {
+  // value of x is indeterminate
+}
+else {
+  // report success or failure of x
+}</programlisting>
+</section>
+  
+  <section>
+    <title>Renaming the indeterminate state</title>
+  <para> Users may introduce additional keywords for the indeterminate
+  value in addition to the implementation-supplied
+  <code><functionname>indeterminate</functionname></code> using the
+  <code><macroname>BOOST_TRIBOOL_THIRD_STATE</macroname></code>
+  macro. For instance, the following macro instantiation (at the
+  global scope) will introduce the keyword <code>maybe</code> as a
+  synonym for <code><functionname>indeterminate</functionname></code>
+  (also residing in the <code>boost</code> namespace):</para>
+  <programlisting><macroname>BOOST_TRIBOOL_THIRD_STATE</macroname>(maybe)
+<classname>tribool</classname> x = maybe;
+if (maybe(x)) { /* ... */ }</programlisting>
+  </section>
+
+  <section>
+    <title><code>tribool</code> input/output</title>
+  <para><code><classname>tribool</classname></code> objects may be
+  read from and written to streams by including the
+  <headername>boost/logic/tribool_io.hpp</headername> header in a
+  manner very similar to <code>bool</code> values. When the
+  <code>boolalpha</code> flag is not set on the input/output stream,
+  the integral values 0, 1, and 2 correspond to <code>tribool</code>
+  values <code>false</code>, <code>true</code>, and
+  <code>indeterminate</code>, respectively. When
+  <code>boolalpha</code> is set on the stream, arbitrary strings can
+  be used to represent the three values, the default being "false",
+  "true", and "indeterminate". For instance:</para>
+<programlisting><classname>tribool</classname> x;
+cin &gt;&gt; x; // Type "0", "1", or "2" to get false, true, or indeterminate
+cout &lt;&lt; boolalpha &lt;&lt; x; // Produces "false", "true", or "indeterminate"</programlisting>
+
+  <para><code><classname>tribool</classname></code> input and output
+  is sensitive to the stream's current locale. The strings associated
+  with false and true values are contained in the standard
+  <code><classname>std::numpunct</classname></code> facet, and the
+  string naming the indeterminate type is contained in the
+  <code><classname>indeterminate_name</classname></code> facet. To
+  replace the name of the indeterminate state, you need to imbue your
+  stream with a local containing a
+  <code><classname>indeterminate_name</classname></code> facet, e.g.:</para>
+
+  <programlisting><macroname>BOOST_TRIBOOL_THIRD_STATE</macroname>(maybe)
+locale global;
+locale test_locale(global, new <classname>indeterminate_name</classname>&lt;char&gt;("maybe"));
+cout.imbue(test_locale);
+<classname>tribool</classname> x(maybe);
+cout &lt;&lt; boolalpha &lt;&lt; x &lt;&lt; endl; // Prints "maybe"</programlisting>
+
+  <para>If you C++ standard library implementation does not support
+  locales, <code>tribool</code> input/output will still work, but you
+  will be unable to customize the strings printed/parsed when
+  <code>boolalpha</code> is set.</para>
+  </section>
+
+  </section>
+
+  <xi:include href="reference.xml"/>
+
+  <testsuite id="tribool.tests">
+    <run-test filename="tribool_test.cpp">
+      <purpose><para>Test all features of the
+      <code><classname>boost::logic::tribool</classname></code>
+      class.</para></purpose>
+    </run-test>
+
+    <run-test filename="tribool_rename_test.cpp">
+      <purpose><para>Test the use of the
+      <code><macroname>BOOST_TRIBOOL_THIRD_STATE</macroname></code>
+      macro.</para></purpose>
+    </run-test>
+
+    <run-test filename="tribool_io_test.cpp">
+      <purpose><para>Test tribool input/output.</para></purpose>
+    </run-test>
+  </testsuite>
+</library>

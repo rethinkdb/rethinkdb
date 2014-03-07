@@ -1,0 +1,160 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>The tutorial</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="prev" href="one_minute_tutorial.html" title="One minute tutorial">
+<link rel="next" href="the_tutorial/discovering_the_bimap_framework.html" title="Discovering the bimap framework">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="one_minute_tutorial.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="the_tutorial/discovering_the_bimap_framework.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_the_tutorial">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_bimap.the_tutorial"></a><a class="link" href="the_tutorial.html" title="The tutorial">The tutorial</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="the_tutorial.html#boost_bimap.the_tutorial.roadmap">Roadmap</a></span></dt>
+<dt><span class="section"><a href="the_tutorial/discovering_the_bimap_framework.html">Discovering
+      the bimap framework</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="the_tutorial/discovering_the_bimap_framework.html#boost_bimap.the_tutorial.discovering_the_bimap_framework.interpreting_bidirectional_maps">Interpreting
+        bidirectional maps</a></span></dt>
+<dt><span class="section"><a href="the_tutorial/discovering_the_bimap_framework.html#boost_bimap.the_tutorial.discovering_the_bimap_framework.standard_mapping_framework">Standard
+        mapping framework</a></span></dt>
+<dt><span class="section"><a href="the_tutorial/discovering_the_bimap_framework.html#boost_bimap.the_tutorial.discovering_the_bimap_framework.bimap_mapping_framework">Bimap
+        mapping framework</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="the_tutorial/controlling_collection_types.html">Controlling
+      collection types</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="the_tutorial/controlling_collection_types.html#boost_bimap.the_tutorial.controlling_collection_types.freedom_of_choice">Freedom
+        of choice</a></span></dt>
+<dt><span class="section"><a href="the_tutorial/controlling_collection_types.html#boost_bimap.the_tutorial.controlling_collection_types.configuration_parameters">Configuration
+        parameters</a></span></dt>
+<dt><span class="section"><a href="the_tutorial/controlling_collection_types.html#boost_bimap.the_tutorial.controlling_collection_types.examples">Examples</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="the_tutorial/the_collection_of_relations_type.html">The
+      collection of relations type</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="the_tutorial/the_collection_of_relations_type.html#boost_bimap.the_tutorial.the_collection_of_relations_type.a_new_point_of_view">A
+        new point of view</a></span></dt>
+<dt><span class="section"><a href="the_tutorial/the_collection_of_relations_type.html#boost_bimap.the_tutorial.the_collection_of_relations_type.configuration_parameters">Configuration
+        parameters</a></span></dt>
+<dt><span class="section"><a href="the_tutorial/the_collection_of_relations_type.html#boost_bimap.the_tutorial.the_collection_of_relations_type.examples">Examples</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="the_tutorial/differences_with_standard_maps.html">Differences
+      with standard maps</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="the_tutorial/differences_with_standard_maps.html#boost_bimap.the_tutorial.differences_with_standard_maps.insertion">Insertion</a></span></dt>
+<dt><span class="section"><a href="the_tutorial/differences_with_standard_maps.html#boost_bimap.the_tutorial.differences_with_standard_maps.iterator__value_type">iterator::value_type</a></span></dt>
+<dt><span class="section"><a href="the_tutorial/differences_with_standard_maps.html#boost_bimap.the_tutorial.differences_with_standard_maps.operator_____and_at__">operator[]
+        and at()</a></span></dt>
+<dt><span class="section"><a href="the_tutorial/differences_with_standard_maps.html#boost_bimap.the_tutorial.differences_with_standard_maps.complexity_of_operations">Complexity
+        of operations</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="the_tutorial/useful_functions.html">Useful functions</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="the_tutorial/useful_functions.html#boost_bimap.the_tutorial.useful_functions.projection_of_iterators">Projection
+        of iterators</a></span></dt>
+<dt><span class="section"><a href="the_tutorial/useful_functions.html#boost_bimap.the_tutorial.useful_functions.replace_and_modify">replace
+        and modify</a></span></dt>
+<dt><span class="section"><a href="the_tutorial/useful_functions.html#boost_bimap.the_tutorial.useful_functions.retrieval_of_ranges">Retrieval
+        of ranges</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="the_tutorial/bimaps_with_user_defined_names.html">Bimaps
+      with user defined names</a></span></dt>
+<dt><span class="section"><a href="the_tutorial/unconstrained_sets.html">Unconstrained
+      Sets</a></span></dt>
+<dt><span class="section"><a href="the_tutorial/additional_information.html">Additional
+      information</a></span></dt>
+<dt><span class="section"><a href="the_tutorial/complete_instantiation_scheme.html">Complete
+      instantiation scheme</a></span></dt>
+</dl></div>
+<div class="section boost_bimap_the_tutorial_roadmap">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.the_tutorial.roadmap"></a><a class="link" href="the_tutorial.html#boost_bimap.the_tutorial.roadmap" title="Roadmap">Roadmap</a>
+</h3></div></div></div>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            Boost.Bimap is intuitive because it is based on the standard template
+            library. New concepts are however presented to extend the standard maps
+            to bidirectional maps. The first step is to gain a firm grasp of the
+            bimap framework. The first section (<a class="link" href="the_tutorial/discovering_the_bimap_framework.html" title="Discovering the bimap framework">Discovering
+            the bimap framework</a>) aims to explain this.
+          </li>
+<li class="listitem">
+            Boost.Bimap offers much more than just a one-to-one ordered unique bidirectional
+            map. It is possible to control the collection type of each side of the
+            relationship that the bimap represents, giving one-to-many containers,
+            hashed bidirectional containers and others that may be more suitable
+            to the the task at hand. The second section (<a class="link" href="the_tutorial/controlling_collection_types.html" title="Controlling collection types">Controlling
+            collection types</a>) explains how to instantiate a bimap with different
+            collection constraints.
+          </li>
+<li class="listitem">
+            The section (<a class="link" href="the_tutorial/the_collection_of_relations_type.html" title="The collection of relations type">The
+            "collection of relations" type</a>) explains how to create
+            new types of bidirectional maps using custom collection types.
+          </li>
+<li class="listitem">
+            In the section <a class="link" href="the_tutorial/differences_with_standard_maps.html" title="Differences with standard maps">Differences
+            with standard maps</a> we will learn about the subtle differences
+            between a bimap map view and a standard map.
+          </li>
+<li class="listitem">
+            The section <a class="link" href="the_tutorial/useful_functions.html" title="Useful functions">Useful
+            functions</a> provides information about functions of a bimap that
+            are not found in the STL.
+          </li>
+<li class="listitem">
+            The types of a bimap can be tagged so that each side is accessible by
+            something closer to the problem than left and right. This leads to more
+            readable, self-documenting code. The fourth section (<a class="link" href="the_tutorial/bimaps_with_user_defined_names.html" title="Bimaps with user defined names">Bimaps
+            with user defined names</a>) shows how to use this feature.
+          </li>
+<li class="listitem">
+            The bimap mapping framework allows to disable a view of a bimap, including
+            the standard mapping containers as a particular case. The section <a class="link" href="the_tutorial/unconstrained_sets.html" title="Unconstrained Sets">Unconstrained Sets</a>
+            explains how they work.
+          </li>
+<li class="listitem">
+            The section <a class="link" href="the_tutorial/additional_information.html" title="Additional information">Additional
+            information</a> explains how to attach information to each relation
+            of a bimap.
+          </li>
+<li class="listitem">
+            The final section (<a class="link" href="the_tutorial/complete_instantiation_scheme.html" title="Complete instantiation scheme">Complete
+            Instantiation Scheme</a>) summarizes bimap instantiation and explains
+            how change the allocator type to be used.
+          </li>
+</ol></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="one_minute_tutorial.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="the_tutorial/discovering_the_bimap_framework.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

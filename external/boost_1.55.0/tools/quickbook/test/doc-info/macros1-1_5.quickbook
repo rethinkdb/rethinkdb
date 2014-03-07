@@ -1,0 +1,6 @@
+[article Macro shouldn't expand: __DATE__
+    [quickbook 1.5]
+    [last-revision __DATE__]
+    [purpose Unfortunately this does expand: __DATE__, but I'm not fixing it,
+    as I don't think it'll cause any real problems.]
+]

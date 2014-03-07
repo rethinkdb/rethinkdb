@@ -1,0 +1,758 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+"http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2002-2006 Pavol Droba.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="string_algo.quickref" last-revision="$Date: 2012-01-15 08:49:25 -0800 (Sun, 15 Jan 2012) $">
+    <title>Quick Reference</title>
+
+    <using-namespace name="boost"/>
+    <using-namespace name="boost::algorithm"/>
+
+    <section>   
+        <title>Algorithms</title>
+        
+        <table>
+            <title>Case Conversion</title>
+            <tgroup cols="3" align="left">
+                <thead>
+                    <row>
+                        <entry>Algorithm name</entry>
+                        <entry>Description</entry>
+                        <entry>Functions</entry>
+                    </row>
+                </thead>
+                <tbody>
+                    <row>
+                        <entry><code>to_upper</code></entry>
+                        <entry>Convert a string to upper case</entry>
+                        <entry>
+                            <functionname>to_upper_copy()</functionname>
+                            <sbr/>
+                            <functionname>to_upper()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry><code>to_lower</code></entry>
+                        <entry>Convert a string to lower case</entry>
+                        <entry>
+                            <functionname>to_lower_copy()</functionname>
+                            <sbr/>
+                            <functionname>to_lower()</functionname>
+                        </entry>
+                    </row>
+                </tbody>
+            </tgroup>
+        </table>
+        <table>
+            <title>Trimming</title>
+            <tgroup cols="3" align="left">
+                <thead>
+                    <row>
+                        <entry>Algorithm name</entry>
+                        <entry>Description</entry>
+                        <entry>Functions</entry>
+                    </row>
+                </thead>
+                <tbody>
+                    <row>
+                        <entry><code>trim_left</code></entry>
+                        <entry>Remove leading spaces from a string</entry>
+                        <entry>
+                            <functionname>trim_left_copy_if()</functionname>
+                            <sbr/>
+                            <functionname>trim_left_if()</functionname>
+                            <sbr/>
+                            <functionname>trim_left_copy()</functionname>
+                            <sbr/>
+                            <functionname>trim_left()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry><code>trim_right</code></entry>
+                        <entry>Remove trailing spaces from a string</entry>
+                        <entry>
+                            <functionname>trim_right_copy_if()</functionname>
+                            <sbr/>
+                            <functionname>trim_right_if()</functionname>
+                            <sbr/>
+                            <functionname>trim_right_copy()</functionname>
+                            <sbr/>
+                            <functionname>trim_right()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry><code>trim</code></entry>
+                        <entry>Remove leading and trailing spaces from a string</entry>
+                        <entry>
+                            <functionname>trim_copy_if()</functionname>
+                            <sbr/>
+                            <functionname>trim_if()</functionname>
+                            <sbr/>
+                            <functionname>trim_copy()</functionname>
+                            <sbr/>
+                            <functionname>trim()</functionname>
+                        </entry>
+                    </row>
+ 
+                </tbody>
+            </tgroup>
+        </table>
+        <table>
+            <title>Predicates</title>
+            <tgroup cols="3" align="left">
+                <thead>
+                    <row>
+                        <entry>Algorithm name</entry>
+                        <entry>Description</entry>
+                        <entry>Functions</entry>
+                    </row>
+                </thead>
+                <tbody>
+                    <row>
+                        <entry><code>starts_with</code></entry>
+                        <entry>Check if a string is a prefix of the other one</entry>
+                        <entry>
+                            <functionname>starts_with()</functionname>
+                            <sbr/>
+                            <functionname>istarts_with()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry><code>ends_with</code></entry>
+                        <entry>Check if a string is a suffix of the other one</entry>
+                        <entry>
+                            <functionname>ends_with()</functionname>
+                            <sbr/>
+                            <functionname>iends_with()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry><code>contains</code></entry>
+                        <entry>Check if a string is contained of the other one</entry>
+                        <entry>
+                            <functionname>contains()</functionname>
+                            <sbr/>
+                            <functionname>icontains()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry><code>equals</code></entry>
+                        <entry>Check if two strings are equal</entry>
+                        <entry>
+                            <functionname>equals()</functionname>
+                            <sbr/>
+                            <functionname>iequals()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry><code>lexicographical_compare</code></entry>
+                        <entry>Check if a string is lexicographically less then another one</entry>
+                        <entry>
+                            <functionname>lexicographical_compare()</functionname>
+                            <sbr/>
+                            <functionname>ilexicographical_compare()</functionname>
+                        </entry>
+                    </row>
+
+                    <row>
+                        <entry><code>all</code></entry>
+                        <entry>Check if all elements of a string satisfy the given predicate</entry>
+                        <entry>
+                            <functionname>all()</functionname>
+                        </entry>
+                    </row>
+                </tbody>
+            </tgroup>
+        </table>
+        <table>
+            <title>Find algorithms</title>
+            <tgroup cols="3" align="left">
+                <thead>
+                    <row>
+                        <entry>Algorithm name</entry>
+                        <entry>Description</entry>
+                        <entry>Functions</entry>
+                    </row>
+                </thead>
+                <tbody>
+                    <row>
+                        <entry>find_first</entry>
+                        <entry>Find the first occurrence of a string in the input</entry>
+                        <entry>
+                            <functionname>find_first()</functionname>
+                            <sbr/>
+                            <functionname>ifind_first()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>find_last</entry>
+                        <entry>Find the last occurrence of a string in the input</entry>
+                        <entry>
+                            <functionname>find_last()</functionname>
+                            <sbr/>
+                            <functionname>ifind_last()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>find_nth</entry>
+                        <entry>Find the nth (zero-indexed) occurrence of a string in the input</entry>
+                        <entry>
+                            <functionname>find_nth()</functionname>
+                            <sbr/>
+                            <functionname>ifind_nth()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>find_head</entry>
+                        <entry>Retrieve the head of a string</entry>
+                        <entry>
+                            <functionname>find_head()</functionname>
+                        </entry>
+                    </row>                  
+                    <row>
+                        <entry>find_tail</entry>
+                        <entry>Retrieve the tail of a string</entry>
+                        <entry>
+                            <functionname>find_tail()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>find_token</entry>
+                        <entry>Find first matching token in the string</entry>
+                        <entry>
+                            <functionname>find_token()</functionname>
+                        </entry>
+                    </row>                      
+                    <row>
+                        <entry>find_regex</entry>
+                        <entry>Use the regular expression to search the string</entry>
+                        <entry>
+                            <functionname>find_regex()</functionname>
+                        </entry>
+                    </row>                      
+                    <row>
+                        <entry>find</entry>
+                        <entry>Generic find algorithm</entry>
+                        <entry>
+                            <functionname>find()</functionname>
+                        </entry>
+                    </row>                      
+                </tbody>
+            </tgroup>
+        </table>
+        <table>
+            <title>Erase/Replace</title>
+            <tgroup cols="3" align="left">
+                <thead>
+                    <row>
+                        <entry>Algorithm name</entry>
+                        <entry>Description</entry>
+                        <entry>Functions</entry>
+                    </row>
+                </thead>
+                <tbody>
+                    <row>
+                        <entry>replace/erase_first</entry>
+                        <entry>Replace/Erase the first occurrence of a string in the input</entry>
+                        <entry>
+                            <functionname>replace_first()</functionname>
+                            <sbr/>
+                            <functionname>replace_first_copy()</functionname>
+                            <sbr/>
+                            <functionname>ireplace_first()</functionname>
+                            <sbr/>
+                            <functionname>ireplace_first_copy()</functionname>
+                            <sbr/>                      
+                            <functionname>erase_first()</functionname>
+                            <sbr/>
+                            <functionname>erase_first_copy()</functionname>
+                            <sbr/>
+                            <functionname>ierase_first()</functionname>
+                            <sbr/>
+                            <functionname>ierase_first_copy()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>replace/erase_last</entry>
+                        <entry>Replace/Erase the last occurrence of a string in the input</entry>
+                        <entry>
+                            <functionname>replace_last()</functionname>
+                            <sbr/>
+                            <functionname>replace_last_copy()</functionname>
+                            <sbr/>
+                            <functionname>ireplace_last()</functionname>
+                            <sbr/>
+                            <functionname>ireplace_last_copy()</functionname>
+                            <sbr/>                      
+                            <functionname>erase_last()</functionname>
+                            <sbr/>
+                            <functionname>erase_last_copy()</functionname>
+                            <sbr/>
+                            <functionname>ierase_last()</functionname>
+                            <sbr/>
+                            <functionname>ierase_last_copy()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>replace/erase_nth</entry>
+                        <entry>Replace/Erase the nth (zero-indexed) occurrence of a string in the input</entry>
+                        <entry>
+                            <functionname>replace_nth()</functionname>
+                            <sbr/>
+                            <functionname>replace_nth_copy()</functionname>
+                            <sbr/>
+                            <functionname>ireplace_nth()</functionname>
+                            <sbr/>
+                            <functionname>ireplace_nth_copy()</functionname>
+                            <sbr/>                      
+                            <functionname>erase_nth()</functionname>
+                            <sbr/>
+                            <functionname>erase_nth_copy()</functionname>
+                            <sbr/>
+                            <functionname>ierase_nth()</functionname>
+                            <sbr/>
+                            <functionname>ierase_nth_copy()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>replace/erase_all</entry>
+                        <entry>Replace/Erase the all occurrences of a string in the input</entry>
+                        <entry>
+                            <functionname>replace_all()</functionname>
+                            <sbr/>
+                            <functionname>replace_all_copy()</functionname>
+                            <sbr/>
+                            <functionname>ireplace_all()</functionname>
+                            <sbr/>
+                            <functionname>ireplace_all_copy()</functionname>
+                            <sbr/>                      
+                            <functionname>erase_all()</functionname>
+                            <sbr/>
+                            <functionname>erase_all_copy()</functionname>
+                            <sbr/>
+                            <functionname>ierase_all()</functionname>
+                            <sbr/>
+                            <functionname>ierase_all_copy()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>replace/erase_head</entry>
+                        <entry>Replace/Erase the head of the input</entry>
+                        <entry>
+                            <functionname>replace_head()</functionname>
+                            <sbr/>
+                            <functionname>replace_head_copy()</functionname>
+                            <sbr/>
+                            <functionname>erase_head()</functionname>
+                            <sbr/>
+                            <functionname>erase_head_copy()</functionname>
+                            <sbr/>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>replace/erase_tail</entry>
+                        <entry>Replace/Erase the tail of the input</entry>
+                        <entry>
+                            <functionname>replace_tail()</functionname>
+                            <sbr/>
+                            <functionname>replace_tail_copy()</functionname>
+                            <sbr/>
+                            <functionname>erase_tail()</functionname>
+                            <sbr/>
+                            <functionname>erase_tail_copy()</functionname>
+                            <sbr/>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>replace/erase_regex</entry>
+                        <entry>Replace/Erase a substring matching the given regular expression</entry>
+                        <entry>
+                            <functionname>replace_regex()</functionname>
+                            <sbr/>
+                            <functionname>replace_regex_copy()</functionname>
+                            <sbr/>
+                            <functionname>erase_regex()</functionname>
+                            <sbr/>
+                            <functionname>erase_regex_copy()</functionname>
+                            <sbr/>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>replace/erase_regex_all</entry>
+                        <entry>Replace/Erase all substrings matching the given regular expression</entry>
+                        <entry>
+                            <functionname>replace_all_regex()</functionname>
+                            <sbr/>
+                            <functionname>replace_all_regex_copy()</functionname>
+                            <sbr/>
+                            <functionname>erase_all_regex()</functionname>
+                            <sbr/>
+                            <functionname>erase_all_regex_copy()</functionname>
+                            <sbr/>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>find_format</entry>
+                        <entry>Generic replace algorithm</entry>
+                        <entry>
+                            <functionname>find_format()</functionname>
+                            <sbr/>
+                            <functionname>find_format_copy()</functionname>
+                            <sbr/>
+                            <functionname>find_format_all()</functionname>
+                            <sbr/>
+                            <functionname>find_format_all_copy()()</functionname>
+                        </entry>
+                    </row>
+                </tbody>
+            </tgroup>
+        </table>
+        <table>
+            <title>Split</title>
+            <tgroup cols="3" align="left">
+                <thead>
+                    <row>
+                        <entry>Algorithm name</entry>
+                        <entry>Description</entry>
+                        <entry>Functions</entry>
+                    </row>
+                </thead>
+                <tbody>
+                    <row>
+                        <entry>find_all</entry>
+                        <entry>Find/Extract all matching substrings in the input</entry>
+                        <entry>
+                            <functionname>find_all()</functionname>
+                            <sbr/>
+                            <functionname>ifind_all()</functionname>
+                            <sbr/>
+                            <functionname>find_all_regex()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>split</entry>
+                        <entry>Split input into parts</entry>
+                        <entry>
+                            <functionname>split()</functionname>
+                            <sbr/>
+                            <functionname>split_regex()</functionname>
+                        </entry>
+					</row>
+					<row>
+						<entry>iter_find</entry>
+						<entry>Iteratively apply the finder to the input to find all matching substrings</entry>
+						<entry>
+							<functionname>iter_find()</functionname>
+						</entry>
+					</row>
+					<row>
+						<entry>iter_split</entry>
+						<entry>Use the finder to find matching substrings in the input and use them as separators to split the input into parts</entry>
+						<entry>
+							<functionname>iter_split()</functionname>
+						</entry>
+					</row>
+                </tbody>
+            </tgroup>
+        </table>
+        <table>
+            <title>Join</title>
+            <tgroup cols="3" align="left">
+                <thead>
+                    <row>
+                        <entry>Algorithm name</entry>
+                        <entry>Description</entry>
+                        <entry>Functions</entry>
+                    </row>
+                </thead>
+                <tbody>
+                    <row>
+                        <entry>join</entry>
+                        <entry>Join all elements in a container into a single string</entry>
+                        <entry>
+                            <functionname>join</functionname>
+                        </entry>
+                    </row>
+                        <row>
+                        <entry>join_if</entry>
+                        <entry>Join all elements in a container that satisfies the condition into a single string</entry>
+                        <entry>
+                            <functionname>join_if()</functionname>
+                        </entry>
+                   </row>
+                </tbody>
+            </tgroup>
+        </table>
+    </section>
+    <section>
+        <title>Finders and Formatters</title>
+        
+        <table>
+            <title>Finders</title>
+            <tgroup cols="3" align="left">
+                <thead>
+                    <row>
+                        <entry>Finder</entry>
+                        <entry>Description</entry>
+                        <entry>Generators</entry>
+                    </row>
+                </thead>
+                <tbody>
+                    <row>
+                        <entry>first_finder</entry>
+                        <entry>Search for the first match of the string in an input</entry>
+                        <entry>
+                            <functionname>first_finder()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>last_finder</entry>
+                        <entry>Search for the last match of the string in an input</entry>
+                        <entry>
+                            <functionname>last_finder()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>nth_finder</entry>
+                        <entry>Search for the nth (zero-indexed) match of the string in an input</entry>
+                        <entry>
+                            <functionname>nth_finder()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>head_finder</entry>
+                        <entry>Retrieve the head of an input</entry>
+                        <entry>
+                            <functionname>head_finder()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>tail_finder</entry>
+                        <entry>Retrieve the tail of an input</entry>
+                        <entry>
+                            <functionname>tail_finder()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>token_finder</entry>
+                        <entry>Search for a matching token in an input</entry>
+                        <entry>
+                            <functionname>token_finder()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>range_finder</entry>
+                        <entry>Do no search, always returns the given range</entry>
+                        <entry>
+                            <functionname>range_finder()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>regex_finder</entry>
+                        <entry>Search for a substring matching the given regex</entry>
+                        <entry>
+                            <functionname>regex_finder()</functionname>
+                        </entry>
+                    </row>
+                </tbody>
+            </tgroup>
+        </table>
+
+        <table>
+            <title>Formatters</title>
+            <tgroup cols="3" align="left">
+                <thead>
+                    <row>
+                        <entry>Formatter</entry>
+                        <entry>Description</entry>
+                        <entry>Generators</entry>
+                    </row>
+                </thead>
+                <tbody>
+                    <row>
+                        <entry>const_formatter</entry>
+                        <entry>Constant formatter. Always return the specified string</entry>
+                        <entry>
+                            <functionname>const_formatter()</functionname>
+                        </entry>                                                
+                    </row>
+                    <row>
+                        <entry>identity_formatter</entry>
+                        <entry>Identity formatter. Return unmodified input input</entry>
+                        <entry>
+                            <functionname>identity_formatter()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>empty_formatter</entry>
+                        <entry>Null formatter. Always return an empty string</entry>
+                        <entry>
+                            <functionname>empty_formatter()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>regex_formatter</entry>
+                        <entry>Regex formatter. Format regex match using the specification in the format string</entry>
+                        <entry>
+                            <functionname>regex_formatter()</functionname>
+                        </entry>
+                    </row>
+                </tbody>
+            </tgroup>
+        </table>
+    </section>
+    <section>
+        <title>Iterators</title>
+        
+        <table>
+            <title>Find Iterators</title>
+            <tgroup cols="3" align="left">
+                <thead>
+                    <row>
+                        <entry>Iterator name</entry>
+                        <entry>Description</entry>
+                        <entry>Iterator class</entry>
+                    </row>
+                </thead>
+                <tbody>
+                    <row>
+                        <entry>find_iterator</entry>
+                        <entry>Iterates through matching substrings in the input</entry>
+                        <entry>
+                            <classname>find_iterator</classname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>split_iterator</entry>
+                        <entry>Iterates through gaps between matching substrings in the input</entry>
+                        <entry>
+                            <classname>split_iterator</classname>
+                        </entry>
+                    </row>              
+                </tbody>
+            </tgroup>
+        </table>
+    </section>
+    
+    <section>
+        <title>Classification</title>
+        
+        <table>
+            <title>Predicates</title>
+            <tgroup cols="3" align="left">
+                <thead>
+                    <row>
+                        <entry>Predicate name</entry>
+                        <entry>Description</entry>
+                        <entry>Generator</entry>
+                    </row>
+                </thead>
+                <tbody>
+                    <row>
+                        <entry>is_classified</entry>
+                        <entry>Generic <code>ctype</code> mask based classification</entry>
+                        <entry>
+                            <functionname>is_classified()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>is_space</entry>
+                        <entry>Recognize spaces</entry>
+                        <entry>
+                            <functionname>is_space()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>is_alnum</entry>
+                        <entry>Recognize alphanumeric characters</entry>
+                        <entry>
+                            <functionname>is_alnum()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>is_alpha</entry>
+                        <entry>Recognize letters</entry>
+                        <entry>
+                            <functionname>is_alpha()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>is_cntrl</entry>
+                        <entry>Recognize control characters</entry>
+                        <entry>
+                            <functionname>is_cntrl()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>is_digit</entry>
+                        <entry>Recognize decimal digits</entry>
+                        <entry>
+                            <functionname>is_digit()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>is_graph</entry>
+                        <entry>Recognize graphical characters</entry>
+                        <entry>
+                            <functionname>is_graph()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>is_lower</entry>
+                        <entry>Recognize lower case characters</entry>
+                        <entry>
+                            <functionname>is_lower()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>is_print</entry>
+                        <entry>Recognize printable characters</entry>
+                        <entry>
+                            <functionname>is_print()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>is_punct</entry>
+                        <entry>Recognize punctuation characters</entry>
+                        <entry>
+                            <functionname>is_punct()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>is_upper</entry>
+                        <entry>Recognize uppercase characters</entry>
+                        <entry>
+                            <functionname>is_upper()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>is_xdigit</entry>
+                        <entry>Recognize hexadecimal digits</entry>
+                        <entry>
+                            <functionname>is_xdigit()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>is_any_of</entry>
+                        <entry>Recognize any of a sequence of characters</entry>
+                        <entry>
+                            <functionname>is_any_of()</functionname>
+                        </entry>
+                    </row>
+                    <row>
+                        <entry>is_from_range</entry>
+                        <entry>Recognize characters inside a min..max range</entry>
+                        <entry>
+                            <functionname>is_from_range()</functionname>
+                        </entry>
+                    </row>
+                </tbody>
+            </tgroup>
+        </table>
+    </section>
+</section>

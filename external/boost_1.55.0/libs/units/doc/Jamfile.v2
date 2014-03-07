@@ -1,0 +1,208 @@
+# Units documentation Jamfile
+#
+# Copyright (c) 2007-2008
+# Steven Watanabe
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt
+
+import path ;
+import quickbook ;
+using boostbook ;
+using doxygen ;
+import print ;
+import regex ;
+import sequence ;
+
+path-constant here : . ;
+
+rule run_doxygen ( target : files * : name )
+{
+    doxygen $(target)
+      :
+        $(files)
+      :
+        <doxygen:param>EXTRACT_ALL=YES
+        <doxygen:param>EXPAND_ONLY_PREDEF=YES
+
+        # Horribly ugly, but then macros usually are :(
+        <doxygen:param>"PREDEFINED= \\
+            \"BOOST_MPL_ASSERT(expr)=\" \\
+            \"BOOST_UNITS_STATIC_CONSTANT(a,b)=static const b a\" \\
+            \"BOOST_UNITS_AUTO_STATIC_CONSTANT(a,b)=static const auto a = b\" \\
+            \"BOOST_UNITS_TYPEOF(a)=typeof(a)\" \\
+            \"BOOST_PREVENT_MACRO_SUBSTITUTION=\" \\
+            \"BOOST_UNITS_HAS_TYPEOF=1\" \\
+            \"BOOST_UNITS_DEFINE_BASE_UNIT_WITH_CONVERSIONS(namespace_, name_, name_string, symbol_, factor, other_unit, id)= \\
+                namespace boost { namespace units { namespace namespace_ { \\
+                    struct name_ ## _base_unit : boost::units::base_unit<name_ ## _base_unit, other_unit::dimension_type, id> { \\
+                        static const char* name(); \\
+                        static const char* symbol(); \\
+                    }; \\
+                } } }\" \\
+            \"BOOST_UNITS_DOXYGEN=1\""
+        <doxygen:param>HIDE_UNDOC_MEMBERS=NO
+        <doxygen:param>EXTRACT_PRIVATE=NO
+        <doxygen:param>ENABLE_PREPROCESSING=YES
+        <doxygen:param>MACRO_EXPANSION=YES
+        $(expand)
+        <doxygen:param>SEARCH_INCLUDES=NO
+        <reftitle>$(name)
+    ;
+
+}
+
+run_doxygen units_reference
+  :
+    [ glob $(here)/../../../boost/units/*.hpp :
+           $(here)/../../../boost/units/physical_dimensions.hpp ]
+  :
+    "Units Reference"
+  ;
+
+run_doxygen si_reference
+  :
+    $(here)/../../../boost/units/systems/si.hpp
+    [ path.glob-tree $(here)/../../../boost/units/systems/si : *.hpp : detail ]
+  :
+    "SI System Reference"
+  ;
+
+run_doxygen cgs_reference
+  :
+    $(here)/../../../boost/units/systems/cgs.hpp
+    [ path.glob-tree $(here)/../../../boost/units/systems/cgs : *.hpp : detail ]
+  :
+    "CGS System Reference"
+  ;
+
+rule make_base_units_doc ( directory : name )
+{
+    run_doxygen $(directory)_base_units_reference
+      :
+        [ path.glob-tree $(here)/../../../boost/units/base_units/$(directory) : *.hpp : detail conversions.hpp ]
+      :
+        "$(name) Base Units Reference"
+      ;
+}
+
+make_base_units_doc angle : Angle ;
+make_base_units_doc astronomical : Astronomical ;
+make_base_units_doc cgs : CGS ;
+make_base_units_doc imperial : Imperial ;
+make_base_units_doc metric : Metric ;
+make_base_units_doc si : SI ;
+make_base_units_doc temperature : Temperature ;
+make_base_units_doc us : US ;
+
+all_base_units_doc = angle astronomical cgs imperial metric si temperature us ;
+all_base_units_doc = $(all_base_units_doc)_base_units_reference ;
+
+run_doxygen dimensions_reference
+  :
+    $(here)/../../../boost/units/physical_dimensions.hpp
+    [ path.glob-tree $(here)/../../../boost/units/physical_dimensions : *.hpp : detail ]
+  :
+    "Dimensions Reference"
+  ;
+
+run_doxygen trig_reference
+  :
+    #../../../boost/units/systems/trig.hpp
+    [ path.glob-tree $(here)/../../../boost/units/systems/angle : *.hpp : detail ]
+  :
+    "Trigonometry and Angle System Reference"
+  ;
+
+run_doxygen temperature_reference
+  :
+    [ path.glob-tree $(here)/../../../boost/units/systems/temperature : *.hpp : detail ]
+  :
+    "Temperature System Reference"
+  ;
+
+run_doxygen abstract_reference
+  :
+    $(here)/../../../boost/units/systems/abstract.hpp
+  :
+    "Abstract System Reference"
+  ;
+
+rule less ( a b )
+{
+    if [ path.basename $(a) ]  < [ path.basename $(b) ] 
+    {
+        return true ;
+    }
+}
+
+rule generate-qbk ( target : sources * : properties * )
+{
+    print.output $(target) ;
+    local as-path = [ sequence.transform path.make : $(sources:G=) ] ;
+    local known = ;
+    local duplicated = ;
+    for local file in $(as-path)
+    {
+        local base = [ path.basename $(file) ] ;
+        if $(base) in $(known)
+        {
+            if ! $(base) in $(duplicated)
+            {
+                duplicated += $(base) ;
+            }
+        } else
+        {
+            known += $(base) ;
+        }
+    }
+    for local file in [ sequence.insertion-sort $(as-path) : less ]
+    {
+        local output_filename = [ path.relative-to [ path.make $(here)/../../.. ] $(file) ] ;
+        local base_filename = [ path.basename $(file) ] ;
+        local base_unit = [ regex.replace $(base_filename) "\\.hpp" "" ] ;
+        if $(base_filename) in $(duplicated)
+        {
+            # tack the directory name onto the end
+            local dir-name = [ path.basename [ path.parent $(file) ] ] ;
+            base_unit = "$(base_unit) ($(dir-name))" ;
+        }
+        print.text "[headerref $(output_filename) $(base_unit)]\\n" : overwrite ;
+    }
+}
+
+make base_units.qbk : [ path.glob-tree $(here)/../../../boost/units/base_units : *.hpp : detail conversions.hpp ] : @generate-qbk ;
+explicit base_units ;
+
+install base_units_install : base_units.qbk : <location>. ;
+
+xml units
+  :
+    units.qbk
+  :
+    <dependency>base_units_install
+    <dependency>units_reference
+    <dependency>si_reference
+    <dependency>cgs_reference
+    <dependency>$(all_base_units_doc)
+    <dependency>dimensions_reference
+    <dependency>trig_reference
+    <dependency>temperature_reference
+    <dependency>abstract_reference
+;
+
+boostbook standalone
+  :
+    units
+  :
+    <xsl:param>toc.max.depth=1
+    <xsl:param>toc.section.depth=8
+    <xsl:param>chunk.section.depth=8
+    <xsl:param>boost.root="../../../.."
+    <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/doc/html
+;
+
+
+
+

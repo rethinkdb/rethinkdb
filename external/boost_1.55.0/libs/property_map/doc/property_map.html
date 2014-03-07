@@ -1,0 +1,340 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Property Map Library</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+	ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:property-maps"></A>
+Boost Property Map Library
+</H1>
+
+<p>The Boost Property Map Library consists mainly of interface
+specifications in the form of concepts (similar to the iterator
+concepts in the STL <a
+href="http://www.sgi.com/tech/stl/stl_introduction.html">[2]</a>).
+These interface specifications are intended for use by implementors of
+generic libraries in communicating requirements on template parameters
+to their users.  In particular, the Boost Property Map concepts define
+a general purpose interface for mapping key objects to corresponding
+value objects, thereby hiding the details of how the mapping is
+implemented from algorithms. The implementation of types fulfilling
+the property map interface is up to the client of the algorithm to
+provide. The property map requirements are purposefully vague on the
+type of the key and value objects to allow for the utmost genericity
+in the function templates of the generic library.
+</p>
+
+<p>
+The need for the property map interface came from the <a
+href="../../graph/doc/index.html">Boost Graph Library</a> (BGL), which
+contains many examples of algorithms that use the property map
+concepts to specify their interface. For an example, note the
+<tt>ColorMap</tt> template parameter of the <a
+href="../../graph/doc/breadth_first_search.html">
+<tt>breadth_first_search</tt></a>. In addition, the BGL contains many
+examples of concrete types that implement the property map interface.
+The <a href="../../graph/doc/adjacency_list.html">
+<tt>adjacency_list</tt></a> class implements property maps for
+accessing objects (properties) that are attached to vertices and edges
+of the graph.
+</p>
+
+<p>
+The Boost Property Map Library also contains a <a
+href="#sec:property-map-types"> few adaptors</a> that convert commonly
+used data-structures that implement a mapping operation, such as
+builtin arrays (pointers), iterators, and <a
+href="http://www.sgi.com/tech/stl/Map.html"> <tt>std::map</tt></a>, to
+have the property map interface. These adaptors are not meant to
+fulfill all mapping needs, but are to serve as an example of how to
+implement the interface as well as covering a few common cases. See
+the header files for details.
+</p>
+
+<p>Property maps are statically-typed entities. If you need to access
+property maps in a more dynamic setting (e.g., because you're reading
+an unknown set of attributes from a file), you can use the <a
+href="dynamic_property_map.html"><code>dynamic_properties</code></a>
+class to access a set of property maps through a dynamically-typed
+interface. </p>
+
+<h2><A NAME="sec:property-map-concepts"></A>
+Property Map Concepts
+</h2>
+
+The property map interface consists of a set of concepts (see
+definition of &quot;concept&quot; in <a
+href="../../concept_check/concept_check.htm#introduction">[1]</a> and <a
+href="http://www.sgi.com/tech/stl/stl_introduction.html">[2]</a>) that
+define a syntax for mapping key objects to corresponding value
+objects. Since the property map operations are global functions
+(actually they don't have to be global, but they are always called
+unqualified and may be found via argument dependent lookup), it is
+possible to overload the map functions such that nearly arbitrary
+property map types and key types can be used. The interface for
+property maps consists of three functions: <tt>get()</tt>,
+<tt>put()</tt>, and <tt>operator[]</tt>. The following concrete
+example from <a href="../example/example1.cpp">example1.cpp</a> shows how the
+three functions could be used to access the addresses associated with
+various people.  We use a separate function template here to highlight
+the parts of the program that use the property map concept
+interface. In the <tt>main()</tt> function we use <tt>std::map</tt>
+and <tt>boost::associative_property_map</tt>, but it would have been
+OK to use any type (including a custom type that you create) that
+fulfills the property map requirements.
+
+<pre>#include &lt;iostream&gt;
+#include &lt;map&gt;
+#include &lt;string&gt;
+#include &lt;boost/property_map/property_map.hpp&gt;
+
+
+template &lt;typename AddressMap&gt;
+void foo(AddressMap address)
+{
+  typedef typename boost::property_traits&lt;AddressMap&gt;::value_type value_type;
+  typedef typename boost::property_traits&lt;AddressMap&gt;::key_type key_type;
+
+  value_type old_address, new_address;
+  key_type fred = &quot;Fred&quot;;
+  old_address = get(address, fred);
+  new_address = &quot;384 Fitzpatrick Street&quot;;
+  put(address, fred, new_address);
+
+  key_type joe = &quot;Joe&quot;;
+  value_type&amp; joes_address = address[joe];
+  joes_address = &quot;325 Cushing Avenue&quot;;
+}
+
+int
+main()
+{
+  std::map&lt;std::string, std::string&gt; name2address;
+  boost::associative_property_map&lt; std::map&lt;std::string, std::string&gt; &gt;
+    address_map(name2address);
+
+  name2address.insert(make_pair(std::string(&quot;Fred&quot;), 
+				std::string(&quot;710 West 13th Street&quot;)));
+  name2address.insert(make_pair(std::string(&quot;Joe&quot;), 
+				std::string(&quot;710 West 13th Street&quot;)));
+
+  foo(address_map);
+  
+  for (std::map&lt;std::string, std::string&gt;::iterator i = name2address.begin();
+       i != name2address.end(); ++i)
+    std::cout &lt;&lt; i-&gt;first &lt;&lt; &quot;: &quot; &lt;&lt; i-&gt;second &lt;&lt; &quot;\n&quot;;
+
+  return EXIT_SUCCESS;
+}</pre>
+
+<p>
+For each property map object there is a set of <i>valid keys</i>
+for which the mapping to value objects is defined.  Invoking a
+property map function on an <i>invalid</i> key results in
+undefined behavior. The property map concepts do not specify how
+this set of valid keys is created or modified. A function that uses a
+property map must specify the expected set of valid keys in its
+preconditions.
+
+<p>
+The need for property maps came out of the design of the Boost
+Graph Library, whose algorithms needed an interface for accessing
+properties attached to vertices and edges in a graph. In this context
+the vertex and edge descriptors are the key type of the property
+maps.
+
+<!-- historical note about Decorators and Data Maps -->
+
+<P>
+Several categories of property maps provide
+different access capabilities:
+<DL>
+<DT><STRONG>readable</STRONG></DT>
+<DD>The associated property data can only be read. 
+  The data is returned by-value. Many property maps defining the
+  problem input (such as edge weight) can be defined as readable
+  property maps.
+
+<P>
+</DD>
+<DT><STRONG>writeable</STRONG></DT>
+<DD>The associated property can only be written to.
+  The parent array used to record the paths in a bread-first search tree
+  is an example of a property map that would be defined writeable.
+
+<P>
+</DD>
+<DT><STRONG>read/write</STRONG></DT>
+<DD>The associated property can both be written and read.
+  The distance property use in Dijkstra's shortest paths algorithm
+  would need to provide both read and write capabilities.
+
+<P>
+</DD>
+<DT><STRONG>lvalue</STRONG></DT>
+<DD>The associated property is actually represented in 
+  memory and it is possible to get a reference to it. 
+  The property maps in the lvalue
+  category also support the requirements for read/write property
+  maps.
+
+<P>
+</DD>
+</DL>
+
+<P>
+There is a separate concept defined for each of the four property
+map categories.  These property map concepts are listed
+below, with links to the documentation for each of them.
+
+<ul>
+<li><a href="./ReadablePropertyMap.html">ReadablePropertyMap</a></li>
+<li><a href="./WritablePropertyMap.html">WritablePropertyMap</a></li>
+<li><a href="./ReadWritePropertyMap.html">ReadWritePropertyMap</a></li>
+<li><a href="./LvaluePropertyMap.html">LvaluePropertyMap</a></li>
+</ul>
+
+<h2><a name="sec:property-map-tags">Property Map Category Tags</a></h2>
+
+<P>
+There is a tag struct for each of the categories of property
+maps, which is defined in the header
+<tt>&lt;boost/property_map/property_map.hpp&gt;</tt>.
+
+<PRE>namespace boost {
+
+  struct readable_property_map_tag { };
+
+  struct writable_property_map_tag { };
+
+  struct read_write_property_map_tag :
+    public readable_property_map_tag,
+    public writable_property_map_tag { };
+
+  struct lvalue_property_map_tag : 
+    public read_write_property_map_tag { };
+
+}</PRE>
+
+<h2><a name="sec:property-map-traits">Property Map Traits</a></h2>
+
+<P>
+Similar to the <TT>std::iterator_traits</TT> class of the STL, there
+is a <TT>boost::property_traits</TT> class that can be used to deduce
+the types associated with a property map type: the key and value
+types, and the property map category. There is a specialization
+of <TT>boost::property_traits</TT> so that pointers can be used as
+property map objects. In addition, the property map
+functions are overloaded for pointers. These traits classes and
+functions are defined in <tt>&lt;boost/property_map/property_map.hpp&gt;</tt>.
+
+<PRE>namespace boost {
+
+  template &lt;typename PropertyMap&gt;
+  struct property_traits {
+     typedef typename PropertyMap::key_type key_type;
+     typedef typename PropertyMap::value_type value_type;
+     typedef typename PropertyMap::reference reference;
+     typedef typename PropertyMap::category category;
+  };
+
+}</PRE>
+
+<h2><a name="sec:property-map-types">Property Map Types</a></h2>
+
+<ul>
+  <li>Builtin C++ pointer types.<br>
+
+    The following specialization of the <tt>property_traits</tt> class
+    and the overloads of <tt>put()</tt> and <tt>get()</tt> make it
+    possible to use builtin C++ pointer types as property maps. These
+    are defined in <tt>boost/property_map/property_map.hpp</tt>. More specifically,
+    it means that <tt>T*</tt> is a model of <a
+    href="./LvaluePropertyMap.html">LvaluePropertyMap</a>, given a key
+    type that is at least convertible <tt>std::ptrdiff_t</tt>.
+
+<PRE>namespace boost {
+  // specialization for using pointers as property maps
+  template &lt;typename T&gt;
+  struct property_traits&lt;T*&gt; {
+    typedef T value_type;
+    typedef T&amp; reference;
+    typedef std::ptrdiff_t key_type;
+    typedef random_access_iterator_pa_tag category;
+  };
+
+  // overloads of the property map functions for pointers
+  template&lt;&gt;
+  void put(T* pmap, std::ptrdiff_t k, const T&amp; val) { pmap[k] = val;  }
+
+  template&lt;&gt;
+  const T&amp; get(const T* pmap, std::ptrdiff_t k) { return pmap[k]; }
+
+}</PRE>
+  </li>
+  <li><a href="./identity_property_map.html">identity_property_map and typed_identity_property_map</a> </li>
+  <li><a href="./function_property_map.html">function_property_map</a> </li>
+  <li><a href="./iterator_property_map.html">iterator_property_map</a></li>
+  <li><a href="./shared_array_property_map.html">shared_array_property_map</a></li>
+  <li><a href="./associative_property_map.html">associative_property_map</a></li>
+  <li><a href="./const_assoc_property_map.html">const_associative_property_map</a></li>
+  <li><a href="./vector_property_map.html">vector_property_map</a></li>
+  <li><a href="./ref_property_map.html">ref_property_map</a> </li>
+  <li><a href="./transform_value_property_map.html">transform_value_property_map</a> </li>
+  <li><a href="./compose_property_map.html">compose_property_map</a> </li>
+</ul>
+
+<h3>History</h3>
+
+The property map interface originated as <i>data accessors</i> in
+Dietmar K&uuml;hl's Masters Thesis on generic graph algorithms.  The
+property map idea also appeared under the guise of <i>decorators</i>
+in early versions of the Generic Graph Component Library (GGCL), which
+is now the Boost Graph Library (BGL).  The main motivation for the
+property map interface was to support the access of data associated
+with vertices and edges in a graph, though the applicability of
+property maps goes beyond this.
+
+<h3>Acknowledgments</h3>
+
+Thanks go to Dietmar K&uuml;hl for coming up with this mechanism, and
+thanks go to the Boost members who helped refine and improve the
+property map interface. Thanks to Dave Abrahams for managing the
+formal review of the BGL which included the property map library.
+
+<h3>Notes to Implementors</h3>
+
+Copying a property map should be inexpensive since they are often
+passed by value.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2002</TD><TD>
+<a HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 
+<!--  LocalWords:  ALT STL html genericity BGL ColorMap htm cpp iostream hpp hl
+ -->
+<!--  LocalWords:  typename AddressMap foo fred joe joes int writeable lvalue
+ -->
+<!--  LocalWords:  ReadablePropertyMap WritablePropertyMap ReadWritePropertyMap
+ -->
+<!--  LocalWords:  LvaluePropertyMap struct namespace PropertyMap pmap const
+ -->
+<!--  LocalWords:  val Dietmar hl's GGCL Abrahams
+ -->

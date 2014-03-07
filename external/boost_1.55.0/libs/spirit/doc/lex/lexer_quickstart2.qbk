@@ -1,0 +1,103 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:lexer_quickstart2 Quickstart 2 - A better word counter using __lex__]
+
+People familiar with  __flex__ will probably complain about the example from the 
+section __sec_lex_quickstart_1__ as being overly complex and not being 
+written to leverage the possibilities provided by this tool. In particular the
+previous example did not directly use the lexer actions to count the lines, 
+words, and characters. So the example provided in this step of the tutorial will 
+show how to use semantic actions in __lex__. Even though this examples still 
+counts textual elements, the purpose is to introduce new concepts and 
+configuration options along the lines (for the full example code 
+see here: [@../../example/lex/word_count_lexer.cpp word_count_lexer.cpp]).
+
+[import ../example/lex/word_count_lexer.cpp]
+
+
+[heading Prerequisites]
+
+In addition to the only required `#include` specific to /Spirit.Lex/ this 
+example needs to include a couple of header files from the __boost_phoenix__ 
+library. This example shows how to attach functors to token definitions, which 
+could be done using any type of C++ technique resulting in a callable object.
+Using __boost_phoenix__ for this task simplifies things and avoids adding 
+dependencies to other libraries (__boost_phoenix__ is already in use for 
+__spirit__ anyway).
+
+[wcl_includes]
+
+To make all the code below more readable we introduce the following namespaces.
+
+[wcl_namespaces]
+
+To give a preview at what to expect from this example, here is the flex program
+which has been used as the starting point. The useful code is directly included 
+inside the actions associated with each of the token definitions. 
+
+[wcl_flex_version]
+
+
+[heading Semantic Actions in __lex__]
+
+__lex__ uses a very similar way of associating actions with the token 
+definitions (which should look familiar to anybody knowledgeable with 
+__spirit__ as well): specifying the operations to execute inside of a pair of
+`[]` brackets. In order to be able to attach semantic actions to token 
+definitions for each of them there is defined an instance of a `token_def<>`.
+
+[wcl_token_definition]
+
+The semantics of the shown code is as follows. The code inside the `[]` 
+brackets will be executed whenever the corresponding token has been matched by 
+the lexical analyzer. This is very similar to __flex__, where the action code 
+associated with a token definition gets executed after the recognition of a
+matching input sequence. The code above uses function objects constructed using 
+__boost_phoenix__, but it is possible to insert any C++ function or function object 
+as long as it exposes the proper interface. For more details on please refer 
+to the section __sec_lex_semactions__. 
+
+[heading Associating Token Definitions with the Lexer]
+
+If you compare this code to the code from __sec_lex_quickstart_1__ with regard 
+to the way how token definitions are associated with the lexer, you will notice 
+a different syntax being used here. In the previous example we have been 
+using the `self.add()` style of the API, while we here directly assign the token 
+definitions to `self`, combining the different token definitions using the `|` 
+operator. Here is the code snippet again:
+
+    this->self 
+        =   word  [++ref(w), ref(c) += distance(_1)]
+        |   eol   [++ref(c), ++ref(l)] 
+        |   any   [++ref(c)]
+        ;
+
+This way we have a very powerful and natural way of building the lexical 
+analyzer. If translated into English this may be read as: The lexical analyzer 
+will recognize ('`=`') tokens as defined by any of ('`|`') the token 
+definitions `word`, `eol`, and `any`. 
+
+A second difference to the previous example is that we do not explicitly 
+specify any token ids to use for the separate tokens. Using semantic actions to 
+trigger some useful work has freed us from the need to define those. To ensure 
+every token gets assigned a id the __lex__ library internally assigns unique 
+numbers to the token definitions, starting with the constant defined by 
+`boost::spirit::lex::min_token_id`.
+
+[heading Pulling everything together]
+
+In order to execute the code defined above we still need to instantiate an 
+instance of the lexer type, feed it from some input sequence and create a pair 
+of iterators allowing to iterate over the token sequence as created by the 
+lexer. This code shows how to achieve these steps:
+
+[wcl_main]
+
+
+[endsect]

@@ -1,0 +1,1184 @@
+# Copyright 2001 David Abrahams
+# Copyright 2002-2006 Rene Rivera
+# Copyright 2002-2003 Vladimir Prus
+# Copyright 2005 Reece H. Dunn
+# Copyright 2006 Ilya Sokolov
+# Copyright 2007 Roland Schwarz
+# Copyright 2007 Boris Gubenko
+#
+# Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+
+import "class" : new ;
+import common ;
+import feature ;
+import fortran ;
+import generators ;
+import os ;
+import pch ;
+import property ;
+import property-set ;
+import rc ;
+import regex ;
+import set ;
+import toolset ;
+import type ;
+import unix ;
+
+
+if [ MATCH (--debug-configuration) : [ modules.peek : ARGV ] ]
+{
+    .debug-configuration = true ;
+}
+
+
+feature.extend toolset : gcc ;
+# feature.subfeature toolset gcc : flavor : : optional ;
+
+toolset.inherit-generators gcc : unix : unix.link unix.link.dll ;
+toolset.inherit-flags gcc : unix ;
+toolset.inherit-rules gcc : unix ;
+
+generators.override gcc.prebuilt : builtin.prebuilt ;
+generators.override gcc.searched-lib-generator : searched-lib-generator ;
+
+# Make gcc toolset object files use the "o" suffix on all platforms.
+type.set-generated-target-suffix OBJ : <toolset>gcc : o ;
+type.set-generated-target-suffix OBJ : <toolset>gcc <target-os>windows : o ;
+type.set-generated-target-suffix OBJ : <toolset>gcc <target-os>cygwin : o ;
+
+
+# Initializes the gcc toolset for the given version. If necessary, command may
+# be used to specify where the compiler is located. The parameter 'options' is a
+# space-delimited list of options, each one specified as
+# <option-name>option-value. Valid option names are: cxxflags, linkflags and
+# linker-type. Accepted linker-type values are aix, darwin, gnu, hpux, osf or
+# sun and the default value will be selected based on the current OS.
+# Example:
+#   using gcc : 3.4 : : <cxxflags>foo <linkflags>bar <linker-type>sun ;
+#
+# The compiler command to use is detected in three steps:
+# 1) If an explicit command is specified by the user, it will be used and must
+#    be available.
+# 2) If only a certain version is specified, it is enforced:
+#    - either the 'g++-VERSION' command must be available
+#    - or the default command 'g++' must be available and match the exact
+#      version.
+# 3) Without user-provided restrictions use default 'g++'.
+#
+rule init ( version ? : command * : options * )
+{
+    #1): use user-provided command
+    local tool-command = ;
+    if $(command)
+    {
+        tool-command = [ common.get-invocation-command-nodefault gcc : g++ :
+            $(command) ] ;
+        if ! $(tool-command)
+        {
+            import errors ;
+            errors.error toolset gcc initialization:
+                : provided command '$(command)' not found
+                : initialized from [ errors.nearest-user-location ] ;
+        }
+    }
+    #2): enforce user-provided version
+    else if $(version)
+    {
+        tool-command = [ common.get-invocation-command-nodefault gcc :
+            "g++-$(version[1])" ] ;
+
+        #2.1) fallback: check whether "g++" reports the requested version
+        if ! $(tool-command)
+        {
+            tool-command = [ common.get-invocation-command-nodefault gcc : g++ ]
+                ;
+            if $(tool-command)
+            {
+                local tool-command-string = $(tool-command:J=" ") ;
+                local tool-version = [ MATCH "^([0-9.]+)" :
+                    [ SHELL "$(tool-command-string) -dumpversion" ] ] ;
+                if $(tool-version) != $(version)
+                {
+                    # Permit a match betwen a two-digit version specified by the
+                    # user (e.g. 4.4) and a 3-digit version reported by gcc.
+                    # Since only two digits are present in the binary name
+                    # anyway, insisting that user specify the 3-digit version
+                    # when configuring Boost.Build, while it is not required on
+                    # the command line, would be strange.
+                    local stripped = [ MATCH "^([0-9]+\.[0-9]+).*" :
+                        $(tool-version) ] ;
+                    if $(stripped) != $(version)
+                    {
+                        import errors ;
+                        errors.error toolset gcc initialization:
+                            : version '$(version)' requested but
+                                'g++-$(version)' not found and version
+                                '$(tool-version)' of default '$(tool-command)'
+                                does not match
+                            : initialized from [ errors.nearest-user-location ]
+                            ;
+                        tool-command = ;
+                    }
+                    # Use full 3-digit version to be compatible with the
+                    # 'using gcc ;' case
+                    version = $(tool-version) ;
+                }
+            }
+            else
+            {
+                import errors ;
+                errors.error toolset gcc initialization:
+                    : version '$(version)' requested but neither
+                        'g++-$(version)' nor default 'g++' found
+                    : initialized from [ errors.nearest-user-location ] ;
+            }
+        }
+    }
+    #3) default: no command and no version specified, try using "g++"
+    else
+    {
+        tool-command = [ common.get-invocation-command-nodefault gcc : g++ ] ;
+        if ! $(tool-command)
+        {
+            import errors ;
+            errors.error toolset gcc initialization:
+                : no command provided, default command 'g++' not found
+                : initialized from [ errors.nearest-user-location ] ;
+        }
+    }
+
+
+    # Information about the gcc command...
+    #   The command.
+    local command = $(tool-command) ;
+    #   The 'command' variable can have multiple elements but when calling the
+    # SHELL builtin we need a single string.
+    local command-string = $(command:J=" ") ;
+    #   The root directory of the tool install.
+    local root = [ feature.get-values <root> : $(options) ] ;
+    #   The bin directory where to find the command to execute.
+    local bin ;
+    #   The compiler flavor.
+    local flavor = [ feature.get-values <flavor> : $(options) ] ;
+    #   Autodetect the root and bin dir if not given.
+    if $(command)
+    {
+        bin ?= [ common.get-absolute-tool-path $(command[-1]) ] ;
+        root ?= $(bin:D) ;
+    }
+    #   Autodetect the version and flavor if not given.
+    if $(command)
+    {
+        local machine = [ MATCH "^([^ ]+)" :
+            [ SHELL "$(command-string) -dumpmachine" ] ] ;
+        version ?= [ MATCH "^([0-9.]+)" :
+            [ SHELL "$(command-string) -dumpversion" ] ] ;
+        switch $(machine:L)
+        {
+            case *mingw* : flavor ?= mingw ;
+        }
+    }
+
+    local condition ;
+    if $(flavor)
+    {
+        condition = flavor $(flavor) ;
+    }
+    condition = [ common.check-init-parameters gcc : version $(version)
+        : $(condition) ] ;
+
+    common.handle-options gcc : $(condition) : $(command) : $(options) ;
+
+    local linker = [ feature.get-values <linker-type> : $(options) ] ;
+    # TODO: The logic below should actually be keyed on <target-os>.
+    if ! $(linker)
+    {
+        switch [ os.name ]
+        {
+            case OSF     : linker = osf ;
+            case HPUX    : linker = hpux ;
+            case AIX     : linker = aix ;
+            case SOLARIS : linker = sun ;
+            case *       : linker = gnu ;
+        }
+    }
+    init-link-flags gcc $(linker) $(condition) ;
+
+    # If gcc is installed in a non-standard location, we would need to add
+    # LD_LIBRARY_PATH when running programs created with it (for unit-test/run
+    # rules).
+    if $(command)
+    {
+        # On multilib 64-bit boxes, there are both 32-bit and 64-bit libraries
+        # and all must be added to LD_LIBRARY_PATH. The linker will pick the
+        # right onces. Note that we do not provide a clean way to build a 32-bit
+        # binary using a 64-bit compiler, but user can always pass -m32
+        # manually.
+        local lib_path = $(root)/bin $(root)/lib $(root)/lib32 $(root)/lib64 ;
+        if $(.debug-configuration)
+        {
+            ECHO notice: using gcc libraries :: $(condition) :: $(lib_path) ;
+        }
+        toolset.flags gcc.link RUN_PATH $(condition) : $(lib_path) ;
+    }
+
+    # If we are not using a system gcc installation we should adjust the various
+    # programs as needed to prefer using their installation specific versions.
+    # This is essential for correct use of MinGW and for cross-compiling.
+
+    local nl = "
+" ;
+
+    # - Archive builder.
+    local archiver = [ common.get-invocation-command gcc
+        : [ NORMALIZE_PATH [ MATCH "(.*)[$(nl)]+" :
+            [ SHELL "$(command-string) -print-prog-name=ar" ] ] ]
+        : [ feature.get-values <archiver> : $(options) ]
+        : $(bin)
+        : search-path ] ;
+    toolset.flags gcc.archive .AR $(condition) : $(archiver[1]) ;
+    if $(.debug-configuration)
+    {
+        ECHO notice: using gcc archiver :: $(condition) :: $(archiver[1]) ;
+    }
+
+    # - Ranlib.
+    local ranlib = [ common.get-invocation-command gcc
+        : [ NORMALIZE_PATH [ MATCH "(.*)[$(nl)]+" :
+            [ SHELL "$(command-string) -print-prog-name=ranlib" ] ] ]
+        : [ feature.get-values <ranlib> : $(options) ]
+        : $(bin)
+        : search-path ] ;
+    toolset.flags gcc.archive .RANLIB $(condition) : $(ranlib[1]) ;
+    if $(.debug-configuration)
+    {
+        ECHO notice: using gcc ranlib :: $(condition) :: $(ranlib[1]) ;
+    }
+
+    # - Resource compiler.
+    local rc = [ common.get-invocation-command-nodefault gcc : windres :
+        [ feature.get-values <rc> : $(options) ] : $(bin) : search-path ] ;
+    local rc-type = [ feature.get-values <rc-type> : $(options) ] ;
+    rc-type ?= windres ;
+    if ! $(rc)
+    {
+        # If we can not find an RC compiler we fallback to a null one that
+        # creates empty object files. This allows the same Jamfiles to work
+        # across the board. The null RC uses assembler to create the empty
+        # objects, so configure that.
+        rc = [ common.get-invocation-command gcc : as : : $(bin) : search-path ]
+            ;
+        rc-type = null ;
+    }
+    rc.configure $(rc) : $(condition) : <rc-type>$(rc-type) ;
+}
+
+if [ os.name ] = NT
+{
+    # This causes single-line command invocation to not go through .bat files,
+    # thus avoiding command-line length limitations.
+    # TODO: Set JAMSHELL on specific targets instead of globally.
+    JAMSHELL = % ;
+}
+
+generators.register-c-compiler gcc.compile.c++.preprocess : CPP : PREPROCESSED_CPP : <toolset>gcc ;
+generators.register-c-compiler gcc.compile.c.preprocess   : C   : PREPROCESSED_C   : <toolset>gcc ;
+generators.register-c-compiler gcc.compile.c++ : CPP : OBJ : <toolset>gcc ;
+generators.register-c-compiler gcc.compile.c   : C   : OBJ : <toolset>gcc ;
+generators.register-c-compiler gcc.compile.asm : ASM : OBJ : <toolset>gcc ;
+generators.register-fortran-compiler gcc.compile.fortran : FORTRAN FORTRAN90 : OBJ : <toolset>gcc ;
+
+# pch support
+
+# The compiler looks for a precompiled header in each directory just before it
+# looks for the include file in that directory. The name searched for is the
+# name specified in the #include directive with ".gch" suffix appended. The
+# logic in gcc-pch-generator will make sure that the BASE_PCH suffix is appended
+# to the full header name.
+
+type.set-generated-target-suffix PCH : <toolset>gcc : gch ;
+
+# GCC-specific pch generator.
+class gcc-pch-generator : pch-generator
+{
+    import project ;
+    import property-set ;
+    import type ;
+
+    rule run-pch ( project name ? : property-set : sources + )
+    {
+        # Find the header in sources. Ignore any CPP sources.
+        local header ;
+        for local s in $(sources)
+        {
+            if [ type.is-derived [ $(s).type ] H ]
+            {
+                header = $(s) ;
+            }
+        }
+
+        # Error handling: base header file name should be the same as the base
+        # precompiled header name.
+        local header-name = [ $(header).name ] ;
+        local header-basename = $(header-name:B) ;
+        if $(header-basename) != $(name)
+        {
+            local location = [ $(project).project-module ] ;
+            import errors : user-error : errors.user-error ;
+            errors.user-error "in" $(location): pch target name '$(name)' should
+                be the same as the base name of header file '$(header-name)' ;
+        }
+
+        local pch-file = [ generator.run $(project) $(name) : $(property-set)
+            : $(header) ] ;
+
+        # Return result of base class and pch-file property as
+        # usage-requirements.
+        return
+            [ property-set.create <pch-file>$(pch-file) <cflags>-Winvalid-pch ]
+            $(pch-file)
+          ;
+    }
+
+    # Calls the base version specifying source's name as the name of the created
+    # target. As a result, the PCH will be named whatever.hpp.gch, and not
+    # whatever.gch.
+    rule generated-targets ( sources + : property-set : project name ? )
+    {
+        name = [ $(sources[1]).name ] ;
+        return [ generator.generated-targets $(sources)
+          : $(property-set) : $(project) $(name) ] ;
+    }
+}
+
+# Note: the 'H' source type will catch both '.h' header and '.hpp' header. The
+# latter have HPP type, but HPP type is derived from H. The type of compilation
+# is determined entirely by the destination type.
+generators.register [ new gcc-pch-generator gcc.compile.c.pch   : H :   C_PCH : <pch>on <toolset>gcc ] ;
+generators.register [ new gcc-pch-generator gcc.compile.c++.pch : H : CPP_PCH : <pch>on <toolset>gcc ] ;
+
+# Override default do-nothing generators.
+generators.override gcc.compile.c.pch   : pch.default-c-pch-generator   ;
+generators.override gcc.compile.c++.pch : pch.default-cpp-pch-generator ;
+
+toolset.flags gcc.compile PCH_FILE <pch>on : <pch-file> ;
+
+# Declare flags and action for compilation.
+toolset.flags gcc.compile OPTIONS <optimization>off   : -O0 ;
+toolset.flags gcc.compile OPTIONS <optimization>speed : -O3 ;
+toolset.flags gcc.compile OPTIONS <optimization>space : -Os ;
+
+toolset.flags gcc.compile OPTIONS <inlining>off  : -fno-inline ;
+toolset.flags gcc.compile OPTIONS <inlining>on   : -Wno-inline ;
+toolset.flags gcc.compile OPTIONS <inlining>full : -finline-functions -Wno-inline ;
+
+toolset.flags gcc.compile OPTIONS <warnings>off : -w ;
+toolset.flags gcc.compile OPTIONS <warnings>on  : -Wall ;
+toolset.flags gcc.compile OPTIONS <warnings>all : -Wall -pedantic ;
+toolset.flags gcc.compile OPTIONS <warnings-as-errors>on : -Werror ;
+
+toolset.flags gcc.compile OPTIONS <debug-symbols>on : -g ;
+toolset.flags gcc.compile OPTIONS <profiling>on : -pg ;
+
+toolset.flags gcc.compile.c++ OPTIONS <rtti>off : -fno-rtti ;
+toolset.flags gcc.compile.c++ OPTIONS <exception-handling>off : -fno-exceptions ;
+
+rule setup-fpic ( targets * : sources * : properties * )
+{
+    local link = [ feature.get-values link : $(properties) ] ;
+    if $(link) = shared
+    {
+        local target = [ feature.get-values target-os : $(properties) ] ;
+
+        # This logic will add -fPIC for all compilations:
+        #
+        # lib a : a.cpp b ;
+        # obj b : b.cpp ;
+        # exe c : c.cpp a d ;
+        # obj d : d.cpp ;
+        #
+        # This all is fine, except that 'd' will be compiled with -fPIC even
+        # though it is not needed, as 'd' is used only in exe. However, it is
+        # hard to detect where a target is going to be used. Alternatively, we
+        # can set -fPIC only when main target type is LIB but than 'b' would be
+        # compiled without -fPIC which would lead to link errors on x86-64. So,
+        # compile everything with -fPIC.
+        #
+        # Yet another alternative would be to create a propagated <sharedable>
+        # feature and set it when building shared libraries, but that would be
+        # hard to implement and would increase the target path length even more.
+
+        # On Windows, fPIC is the default, and specifying -fPIC explicitly leads
+        # to a warning.
+        if ! $(target) in cygwin windows
+        {
+            OPTIONS on $(targets) += -fPIC ;
+        }
+    }
+}
+
+rule setup-address-model ( targets * : sources * : properties * )
+{
+    local model = [ feature.get-values address-model : $(properties) ] ;
+    if $(model)
+    {
+        local option ;
+        local os = [ feature.get-values target-os : $(properties) ] ;
+        if $(os) = aix
+        {
+            if $(model) = 32
+            {
+                option = -maix32 ;
+            }
+            else
+            {
+                option = -maix64 ;
+            }
+        }
+        else if $(os) = hpux
+        {
+            if $(model) = 32
+            {
+                option = -milp32 ;
+            }
+            else
+            {
+                option = -mlp64 ;
+            }
+        }
+        else
+        {
+            local arch = [ feature.get-values architecture : $(properties) ] ;
+            if $(arch) != arm
+            {
+                if $(model) = 32
+                {
+                    option = -m32 ;
+                }
+                else if $(model) = 64
+                {
+                    option = -m64 ;
+                }
+            }
+            # For darwin, the model can be 32_64. darwin.jam will handle that
+            # on its own.
+        }
+        OPTIONS on $(targets) += $(option) ;
+    }
+}
+
+
+# FIXME: this should not use os.name.
+if ! [ os.name ] in NT OSF HPUX AIX
+{
+    # OSF does have an option called -soname but it does not seem to work as
+    # expected, therefore it has been disabled.
+    HAVE_SONAME   = "" ;
+    SONAME_OPTION = -h ;
+}
+
+# HPUX, for some reason, seems to use '+h' instead of '-h'.
+if [ os.name ] = HPUX
+{
+    HAVE_SONAME   = "" ;
+    SONAME_OPTION = +h ;
+}
+
+toolset.flags gcc.compile USER_OPTIONS <cflags> ;
+toolset.flags gcc.compile.c++ USER_OPTIONS <cxxflags> ;
+toolset.flags gcc.compile DEFINES <define> ;
+toolset.flags gcc.compile INCLUDES <include> ;
+toolset.flags gcc.compile.c++ TEMPLATE_DEPTH <c++-template-depth> ;
+toolset.flags gcc.compile.fortran USER_OPTIONS <fflags> ;
+
+rule compile.c++.pch ( targets * : sources * : properties * )
+{
+    setup-threading $(targets) : $(sources) : $(properties) ;
+    setup-fpic $(targets) : $(sources) : $(properties) ;
+    setup-address-model $(targets) : $(sources) : $(properties) ;
+}
+
+actions compile.c++.pch
+{
+    "$(CONFIG_COMMAND)" -x c++-header $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+rule compile.c.pch ( targets * : sources * : properties * )
+{
+    setup-threading $(targets) : $(sources) : $(properties) ;
+    setup-fpic $(targets) : $(sources) : $(properties) ;
+    setup-address-model $(targets) : $(sources) : $(properties) ;
+}
+
+actions compile.c.pch
+{
+    "$(CONFIG_COMMAND)" -x c-header $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+rule compile.c++.preprocess ( targets * : sources * : properties * )
+{
+    setup-threading $(targets) : $(sources) : $(properties) ;
+    setup-fpic $(targets) : $(sources) : $(properties) ;
+    setup-address-model $(targets) : $(sources) : $(properties) ;
+
+    # Some extensions are compiled as C++ by default. For others, we need to
+    # pass -x c++. We could always pass -x c++ but distcc does not work with it.
+    if ! $(>:S) in .cc .cp .cxx .cpp .c++ .C
+    {
+        LANG on $(<) = "-x c++" ;
+    }
+    DEPENDS $(<) : [ on $(<) return $(PCH_FILE) ] ;
+}
+
+rule compile.c.preprocess ( targets * : sources * : properties * )
+{
+    setup-threading $(targets) : $(sources) : $(properties) ;
+    setup-fpic $(targets) : $(sources) : $(properties) ;
+    setup-address-model $(targets) : $(sources) : $(properties) ;
+
+    # If we use the name g++ then default file suffix -> language mapping does
+    # not work. So have to pass -x option. Maybe, we can work around this by
+    # allowing the user to specify both C and C++ compiler names.
+    #if $(>:S) != .c
+    #{
+        LANG on $(<) = "-x c" ;
+    #}
+    DEPENDS $(<) : [ on $(<) return $(PCH_FILE) ] ;
+}
+
+rule compile.c++ ( targets * : sources * : properties * )
+{
+    setup-threading $(targets) : $(sources) : $(properties) ;
+    setup-fpic $(targets) : $(sources) : $(properties) ;
+    setup-address-model $(targets) : $(sources) : $(properties) ;
+
+    # Some extensions are compiled as C++ by default. For others, we need to
+    # pass -x c++. We could always pass -x c++ but distcc does not work with it.
+    if ! $(>:S) in .cc .cp .cxx .cpp .c++ .C
+    {
+        LANG on $(<) = "-x c++" ;
+    }
+    DEPENDS $(<) : [ on $(<) return $(PCH_FILE) ] ;
+
+    # Here we want to raise the template-depth parameter value to something
+    # higher than the default value of 17. Note that we could do this using the
+    # feature.set-default rule but we do not want to set the default value for
+    # all toolsets as well.
+    #
+    # TODO: This 'modified default' has been inherited from some 'older Boost
+    # Build implementation' and has most likely been added to make some Boost
+    # library parts compile correctly. We should see what exactly prompted this
+    # and whether we can get around the problem more locally.
+    local template-depth = [ on $(<) return $(TEMPLATE_DEPTH) ] ;
+    if ! $(template-depth)
+    {
+        TEMPLATE_DEPTH on $(<) = 128 ;
+    }
+}
+
+rule compile.c ( targets * : sources * : properties * )
+{
+    setup-threading $(targets) : $(sources) : $(properties) ;
+    setup-fpic $(targets) : $(sources) : $(properties) ;
+    setup-address-model $(targets) : $(sources) : $(properties) ;
+
+    # If we use the name g++ then default file suffix -> language mapping does
+    # not work. So have to pass -x option. Maybe, we can work around this by
+    # allowing the user to specify both C and C++ compiler names.
+    #if $(>:S) != .c
+    #{
+        LANG on $(<) = "-x c" ;
+    #}
+    DEPENDS $(<) : [ on $(<) return $(PCH_FILE) ] ;
+}
+
+rule compile.fortran ( targets * : sources * : properties * )
+{
+    setup-threading $(targets) : $(sources) : $(properties) ;
+    setup-fpic $(targets) : $(sources) : $(properties) ;
+    setup-address-model $(targets) : $(sources) : $(properties) ;
+}
+
+actions compile.c++ bind PCH_FILE
+{
+    "$(CONFIG_COMMAND)" $(LANG) -ftemplate-depth-$(TEMPLATE_DEPTH) $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(PCH_FILE:D)" -I"$(INCLUDES)" -c -o "$(<:W)" "$(>:W)"
+}
+
+actions compile.c bind PCH_FILE
+{
+    "$(CONFIG_COMMAND)" $(LANG) $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(PCH_FILE:D)" -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+actions compile.c++.preprocess bind PCH_FILE
+{
+    "$(CONFIG_COMMAND)" $(LANG) -ftemplate-depth-$(TEMPLATE_DEPTH) $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(PCH_FILE:D)" -I"$(INCLUDES)" "$(>:W)" -E >"$(<:W)"
+}
+
+actions compile.c.preprocess bind PCH_FILE
+{
+    "$(CONFIG_COMMAND)" $(LANG) $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(PCH_FILE:D)" -I"$(INCLUDES)" "$(>)" -E >$(<)
+}
+
+actions compile.fortran
+{
+    "$(CONFIG_COMMAND)" $(LANG) $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(PCH_FILE:D)" -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+rule compile.asm ( targets * : sources * : properties * )
+{
+    setup-fpic $(targets) : $(sources) : $(properties) ;
+    setup-address-model $(targets) : $(sources) : $(properties) ;
+    LANG on $(<) = "-x assembler-with-cpp" ;
+}
+
+actions compile.asm
+{
+    "$(CONFIG_COMMAND)" $(LANG) $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+# Class checking that we do not try to use the <runtime-link>static property
+# while creating or using a shared library, since it is not supported by
+# gcc/libc.
+class gcc-linking-generator : unix-linking-generator
+{
+    rule run ( project name ? : property-set : sources + )
+    {
+        # TODO: Replace this with the use of a target-os property.
+        local no-static-link = ;
+        if [ modules.peek : UNIX ]
+        {
+            switch [ modules.peek : JAMUNAME ]
+            {
+                case * : no-static-link = true ;
+            }
+        }
+
+        local properties = [ $(property-set).raw ] ;
+        local reason ;
+        if $(no-static-link) && <runtime-link>static in $(properties)
+        {
+            if <link>shared in $(properties)
+            {
+                reason = On gcc, DLLs can not be built with
+                    '<runtime-link>static'. ;
+            }
+            else if [ type.is-derived $(self.target-types[1]) EXE ]
+            {
+                for local s in $(sources)
+                {
+                    local type = [ $(s).type ] ;
+                    if $(type) && [ type.is-derived $(type) SHARED_LIB ]
+                    {
+                        reason = On gcc, using DLLs together with the
+                            '<runtime-link>static' option is not possible. ;
+                    }
+                }
+            }
+        }
+        if $(reason)
+        {
+            ECHO warning: $(reason) ;
+            ECHO warning: It is suggested to use '<runtime-link>static' together
+                with '<link>static'. ;
+        }
+        else
+        {
+            return [ unix-linking-generator.run $(project) $(name) :
+                $(property-set) : $(sources) ] ;
+        }
+    }
+}
+
+# The set of permissible input types is different on mingw. So, define two sets
+# of generators, with mingw generators selected when target-os=windows.
+
+local g ;
+g = [ new gcc-linking-generator gcc.mingw.link
+      : OBJ SEARCHED_LIB STATIC_LIB IMPORT_LIB
+      : EXE
+      : <toolset>gcc <target-os>windows ] ;
+$(g).set-rule-name gcc.link ;
+generators.register $(g) ;
+
+g = [ new gcc-linking-generator gcc.mingw.link.dll
+      : OBJ SEARCHED_LIB STATIC_LIB IMPORT_LIB
+      : IMPORT_LIB SHARED_LIB
+      : <toolset>gcc <target-os>windows ] ;
+$(g).set-rule-name gcc.link.dll ;
+generators.register $(g) ;
+
+generators.register
+  [ new gcc-linking-generator gcc.link
+      : LIB OBJ
+      : EXE
+      : <toolset>gcc ] ;
+generators.register
+  [ new gcc-linking-generator gcc.link.dll
+      : LIB OBJ
+      : SHARED_LIB
+      : <toolset>gcc ] ;
+
+generators.override gcc.mingw.link : gcc.link ;
+generators.override gcc.mingw.link.dll : gcc.link.dll ;
+
+# Cygwin is similar to msvc and mingw in that it uses import libraries. While in
+# simple cases, it can directly link to a shared library, it is believed to be
+# slower, and not always possible. Define cygwin-specific generators here.
+
+g = [ new gcc-linking-generator gcc.cygwin.link
+      : OBJ SEARCHED_LIB STATIC_LIB IMPORT_LIB
+      : EXE
+      : <toolset>gcc <target-os>cygwin ] ;
+$(g).set-rule-name gcc.link ;
+generators.register $(g) ;
+
+g = [ new gcc-linking-generator gcc.cygwin.link.dll
+      : OBJ SEARCHED_LIB STATIC_LIB IMPORT_LIB
+      : IMPORT_LIB SHARED_LIB
+      : <toolset>gcc <target-os>cygwin ] ;
+$(g).set-rule-name gcc.link.dll ;
+generators.register $(g) ;
+
+generators.override gcc.cygwin.link : gcc.link ;
+generators.override gcc.cygwin.link.dll : gcc.link.dll ;
+
+# Declare flags for linking.
+# First, the common flags.
+toolset.flags gcc.link OPTIONS <debug-symbols>on : -g ;
+toolset.flags gcc.link OPTIONS <profiling>on : -pg ;
+toolset.flags gcc.link USER_OPTIONS <linkflags> ;
+toolset.flags gcc.link LINKPATH <library-path> ;
+toolset.flags gcc.link FINDLIBS-ST <find-static-library> ;
+toolset.flags gcc.link FINDLIBS-SA <find-shared-library> ;
+toolset.flags gcc.link LIBRARIES <library-file> ;
+
+toolset.flags gcc.link.dll .IMPLIB-COMMAND <target-os>windows : "-Wl,--out-implib," ;
+toolset.flags gcc.link.dll .IMPLIB-COMMAND <target-os>cygwin : "-Wl,--out-implib," ;
+
+# For <runtime-link>static we made sure there are no dynamic libraries in the
+# link. On HP-UX not all system libraries exist as archived libraries (for
+# example, there is no libunwind.a), so, on this platform, the -static option
+# cannot be specified.
+if [ os.name ] != HPUX
+{
+    toolset.flags gcc.link OPTIONS <runtime-link>static : -static ;
+}
+
+# Now, the vendor specific flags.
+# The parameter linker can be either aix, darwin, gnu, hpux, osf or sun.
+rule init-link-flags ( toolset linker condition )
+{
+    switch $(linker)
+    {
+    case aix :
+        # On AIX we *have* to use the native linker.
+        #
+        # Using -brtl, the AIX linker will look for libraries with both the .a
+        # and .so extensions, such as libfoo.a and libfoo.so. Without -brtl, the
+        # AIX linker looks only for libfoo.a. Note that libfoo.a is an archived
+        # file that may contain shared objects and is different from static libs
+        # as on Linux.
+        #
+        # The -bnoipath strips the prepending (relative) path of libraries from
+        # the loader section in the target library or executable. Hence, during
+        # load-time LIBPATH (identical to LD_LIBRARY_PATH) or a hard-coded
+        # -blibpath (*similar* to -lrpath/-lrpath-link) is searched. Without
+        # this option, the prepending (relative) path + library name is
+        # hard-coded in the loader section, causing *only* this path to be
+        # searched during load-time. Note that the AIX linker does not have an
+        # -soname equivalent, this is as close as it gets.
+        #
+        # The above options are definately for AIX 5.x, and most likely also for
+        # AIX 4.x and AIX 6.x. For details about the AIX linker see:
+        # http://download.boulder.ibm.com/ibmdl/pub/software/dw/aix/es-aix_ll.pdf
+        #
+
+        toolset.flags $(toolset).link OPTIONS : -Wl,-brtl -Wl,-bnoipath
+            : unchecked ;
+
+    case darwin :
+        # On Darwin, the -s option to ld does not work unless we pass -static,
+        # and passing -static unconditionally is a bad idea. So, do not pass -s
+        # at all and darwin.jam will use a separate 'strip' invocation.
+        toolset.flags $(toolset).link RPATH $(condition) : <dll-path> :
+            unchecked ;
+        toolset.flags $(toolset).link RPATH_LINK $(condition) : <xdll-path> :
+            unchecked ;
+
+    case gnu :
+        # Strip the binary when no debugging is needed. We use --strip-all flag
+        # as opposed to -s since icc (intel's compiler) is generally
+        # option-compatible with and inherits from the gcc toolset, but does not
+        # support -s.
+        toolset.flags $(toolset).link OPTIONS     $(condition)/<strip>on : -Wl,--strip-all   : unchecked ;
+        toolset.flags $(toolset).link RPATH       $(condition)           : <dll-path>        : unchecked ;
+        toolset.flags $(toolset).link RPATH_LINK  $(condition)           : <xdll-path>       : unchecked ;
+        toolset.flags $(toolset).link START-GROUP $(condition)           : -Wl,--start-group : unchecked ;
+        toolset.flags $(toolset).link END-GROUP   $(condition)           : -Wl,--end-group   : unchecked ;
+
+        # gnu ld has the ability to change the search behaviour for libraries
+        # referenced by the -l switch. These modifiers are -Bstatic and
+        # -Bdynamic and change search for -l switches that follow them. The
+        # following list shows the tried variants. Search stops at the first
+        # variant that has a match.
+        #
+        # *nix: -Bstatic -lxxx
+        #    libxxx.a
+        #
+        # *nix: -Bdynamic -lxxx
+        #    libxxx.so
+        #    libxxx.a
+        #
+        # windows (mingw, cygwin) -Bstatic -lxxx
+        #    libxxx.a
+        #    xxx.lib
+        #
+        # windows (mingw, cygwin) -Bdynamic -lxxx
+        #    libxxx.dll.a
+        #    xxx.dll.a
+        #    libxxx.a
+        #    xxx.lib
+        #    cygxxx.dll (*)
+        #    libxxx.dll
+        #    xxx.dll
+        #    libxxx.a
+        #
+        # (*) This is for cygwin
+        # Please note that -Bstatic and -Bdynamic are not a guarantee that a
+        # static or dynamic lib indeed gets linked in. The switches only change
+        # search patterns!
+
+        # On *nix mixing shared libs with static runtime is not a good idea.
+        toolset.flags $(toolset).link FINDLIBS-ST-PFX
+            $(condition)/<runtime-link>shared : -Wl,-Bstatic : unchecked ;
+        toolset.flags $(toolset).link FINDLIBS-SA-PFX
+            $(condition)/<runtime-link>shared : -Wl,-Bdynamic : unchecked ;
+
+        # On windows allow mixing of static and dynamic libs with static
+        # runtime is not a good idea.
+        toolset.flags $(toolset).link FINDLIBS-ST-PFX
+            $(condition)/<runtime-link>static/<target-os>windows : -Wl,-Bstatic
+            : unchecked ;
+        toolset.flags $(toolset).link FINDLIBS-SA-PFX
+            $(condition)/<runtime-link>static/<target-os>windows : -Wl,-Bdynamic
+            : unchecked ;
+        toolset.flags $(toolset).link OPTIONS
+            $(condition)/<runtime-link>static/<target-os>windows : -Wl,-Bstatic
+            : unchecked ;
+
+    case hpux :
+        toolset.flags $(toolset).link OPTIONS $(condition)/<strip>on : -Wl,-s :
+            unchecked ;
+        toolset.flags $(toolset).link OPTIONS $(condition)/<link>shared : -fPIC
+            : unchecked ;
+
+    case osf :
+        # No --strip-all, just -s.
+        toolset.flags $(toolset).link OPTIONS $(condition)/<strip>on : -Wl,-s :
+            unchecked ;
+        toolset.flags $(toolset).link RPATH $(condition) : <dll-path> :
+            unchecked ;
+        # This does not support -R.
+        toolset.flags $(toolset).link RPATH_OPTION $(condition) : -rpath :
+            unchecked ;
+        # -rpath-link is not supported at all.
+
+    case sun :
+        toolset.flags $(toolset).link OPTIONS $(condition)/<strip>on : -Wl,-s :
+            unchecked ;
+        toolset.flags $(toolset).link RPATH $(condition) : <dll-path> :
+            unchecked ;
+        # Solaris linker does not have a separate -rpath-link, but allows using
+        # -L for the same purpose.
+        toolset.flags $(toolset).link LINKPATH $(condition) : <xdll-path> :
+            unchecked ;
+
+        # This permits shared libraries with non-PIC code on Solaris.
+        # VP, 2004/09/07: Now that we have -fPIC hardcode in link.dll, the
+        # following is not needed. Whether -fPIC should be hardcoded, is a
+        # separate question.
+        # AH, 2004/10/16: it is still necessary because some tests link against
+        # static libraries that were compiled without PIC.
+        toolset.flags $(toolset).link OPTIONS $(condition)/<link>shared :
+            -mimpure-text : unchecked ;
+
+    case * :
+        import errors ;
+        errors.user-error $(toolset) initialization: invalid linker '$(linker)'
+            : The value '$(linker)' specified for <linker> is not recognized.
+            : Possible values are 'aix', 'darwin', 'gnu', 'hpux', 'osf' or 'sun'
+            ;
+    }
+}
+
+
+# Enclose the RPATH variable on 'targets' in double quotes, unless it is already
+# enclosed in single quotes. This special casing is done because it is common to
+# pass '$ORIGIN' to linker -- and it has to have single quotes to prevent shell
+# expansion -- and if we add double quotes then the preventing properties of
+# single quotes disappear.
+#
+rule quote-rpath ( targets * )
+{
+    local r = [ on $(targets[1]) return $(RPATH) ] ;
+    if ! [ MATCH ('.*') : $(r) ]
+    {
+        r = \"$(r)\" ;
+    }
+    RPATH on $(targets) = $(r) ;
+}
+
+# Declare actions for linking.
+rule link ( targets * : sources * : properties * )
+{
+    setup-threading $(targets) : $(sources) : $(properties) ;
+    setup-address-model $(targets) : $(sources) : $(properties) ;
+    SPACE on $(targets) = " " ;
+    # Serialize execution of the 'link' action, since running N links in
+    # parallel is just slower. For now, serialize only gcc links, it might be a
+    # good idea to serialize all links.
+    JAM_SEMAPHORE on $(targets) = <s>gcc-link-semaphore ;
+    quote-rpath $(targets) ;
+}
+
+actions link bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" -L"$(LINKPATH)" -Wl,$(RPATH_OPTION:E=-R)$(SPACE)-Wl,$(RPATH) -Wl,-rpath-link$(SPACE)-Wl,"$(RPATH_LINK)" -o "$(<)" $(START-GROUP) "$(>)" "$(LIBRARIES)" $(FINDLIBS-ST-PFX) -l$(FINDLIBS-ST) $(FINDLIBS-SA-PFX) -l$(FINDLIBS-SA) $(END-GROUP) $(OPTIONS) $(USER_OPTIONS)
+}
+
+
+# Default value. Mostly for the sake of intel-linux that inherits from gcc, but
+# does not have the same logic to set the .AR variable. We can put the same
+# logic in intel-linux, but that is hardly worth the trouble as on Linux, 'ar'
+# is always available.
+.AR = ar ;
+.RANLIB = ranlib ;
+
+toolset.flags gcc.archive AROPTIONS <archiveflags> ;
+
+rule archive ( targets * : sources * : properties * )
+{
+    # Always remove archive and start again. Here is the rationale from
+    #
+    # Andre Hentz:
+    #
+    # I had a file, say a1.c, that was included into liba.a. I moved a1.c to
+    # a2.c, updated my Jamfiles and rebuilt. My program was crashing with absurd
+    # errors. After some debugging I traced it back to the fact that a1.o was
+    # *still* in liba.a
+    #
+    # Rene Rivera:
+    #
+    # Originally removing the archive was done by splicing an RM onto the
+    # archive action. That makes archives fail to build on NT when they have
+    # many files because it will no longer execute the action directly and blow
+    # the line length limit. Instead we remove the file in a different action,
+    # just before building the archive.
+    #
+    local clean.a = $(targets[1])(clean) ;
+    TEMPORARY $(clean.a) ;
+    NOCARE $(clean.a) ;
+    LOCATE on $(clean.a) = [ on $(targets[1]) return $(LOCATE) ] ;
+    DEPENDS $(clean.a) : $(sources) ;
+    DEPENDS $(targets) : $(clean.a) ;
+    common.RmTemps $(clean.a) : $(targets) ;
+}
+
+# Declare action for creating static libraries.
+# The letter 'r' means to add files to the archive with replacement. Since we
+# remove archive, we do not care about replacement, but there is no option "add
+# without replacement".
+# The letter 'c' suppresses the warning in case the archive does not exists yet.
+# That warning is produced only on some platforms, for whatever reasons.
+#
+actions piecemeal archive
+{
+    "$(.AR)" $(AROPTIONS) rc "$(<)" "$(>)"
+    "$(.RANLIB)" "$(<)"
+}
+
+rule link.dll ( targets * : sources * : properties * )
+{
+    setup-threading $(targets) : $(sources) : $(properties) ;
+    setup-address-model $(targets) : $(sources) : $(properties) ;
+    SPACE on $(targets) = " " ;
+    JAM_SEMAPHORE on $(targets) = <s>gcc-link-semaphore ;
+    quote-rpath $(targets) ;
+}
+
+# Differs from 'link' above only by -shared.
+actions link.dll bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" -L"$(LINKPATH)" -Wl,$(RPATH_OPTION:E=-R)$(SPACE)-Wl,$(RPATH) "$(.IMPLIB-COMMAND)$(<[1])" -o "$(<[-1])" $(HAVE_SONAME)-Wl,$(SONAME_OPTION)$(SPACE)-Wl,$(<[-1]:D=) -shared $(START-GROUP) "$(>)" "$(LIBRARIES)" $(FINDLIBS-ST-PFX) -l$(FINDLIBS-ST) $(FINDLIBS-SA-PFX) -l$(FINDLIBS-SA) $(END-GROUP) $(OPTIONS) $(USER_OPTIONS)
+}
+
+rule setup-threading ( targets * : sources * : properties * )
+{
+    local threading = [ feature.get-values threading : $(properties) ] ;
+    if $(threading) = multi
+    {
+        local target = [ feature.get-values target-os : $(properties) ] ;
+        local option ;
+        local libs ;
+
+        switch $(target)
+        {
+            case windows : option = -mthreads ;
+            case cygwin  : option = -mthreads ;
+            case solaris : option = -pthreads ; libs = rt ;
+            case beos    : # No threading options.
+            case *bsd    : option = -pthread ;  # There is no -lrt on BSD.
+            case sgi     : # gcc on IRIX does not support multi-threading.
+            case darwin  : # No threading options.
+            case *       : option = -pthread ; libs = rt ;
+        }
+
+        if $(option)
+        {
+            OPTIONS on $(targets) += $(option) ;
+        }
+        if $(libs)
+        {
+            FINDLIBS-SA on $(targets) += $(libs) ;
+        }
+    }
+}
+
+
+local rule cpu-flags ( toolset variable : architecture : instruction-set + :
+    values + : default ? )
+{
+    if $(default)
+    {
+        toolset.flags $(toolset) $(variable)
+            <architecture>$(architecture)/<instruction-set> : $(values) ;
+    }
+    toolset.flags $(toolset) $(variable)
+        <architecture>/<instruction-set>$(instruction-set)
+        <architecture>$(architecture)/<instruction-set>$(instruction-set)
+        : $(values) ;
+}
+
+
+# Set architecture/instruction-set options.
+#
+# x86 and compatible
+# The 'native' option appeared in gcc 4.2 so we cannot safely use it as default.
+# Use i686 instead for 32-bit.
+toolset.flags gcc OPTIONS <architecture>x86/<address-model>32/<instruction-set> : -march=i686 ;
+cpu-flags gcc OPTIONS : x86 : native : -march=native ;
+cpu-flags gcc OPTIONS : x86 : i486 : -march=i486 ;
+cpu-flags gcc OPTIONS : x86 : i586 : -march=i586 ;
+cpu-flags gcc OPTIONS : x86 : i686 : -march=i686 ;
+cpu-flags gcc OPTIONS : x86 : pentium : -march=pentium ;
+cpu-flags gcc OPTIONS : x86 : pentium-mmx : -march=pentium-mmx ;
+cpu-flags gcc OPTIONS : x86 : pentiumpro : -march=pentiumpro ;
+cpu-flags gcc OPTIONS : x86 : pentium2 : -march=pentium2 ;
+cpu-flags gcc OPTIONS : x86 : pentium3 : -march=pentium3 ;
+cpu-flags gcc OPTIONS : x86 : pentium3m : -march=pentium3m ;
+cpu-flags gcc OPTIONS : x86 : pentium-m : -march=pentium-m ;
+cpu-flags gcc OPTIONS : x86 : pentium4 : -march=pentium4 ;
+cpu-flags gcc OPTIONS : x86 : pentium4m : -march=pentium4m ;
+cpu-flags gcc OPTIONS : x86 : prescott : -march=prescott ;
+cpu-flags gcc OPTIONS : x86 : nocona : -march=nocona ;
+cpu-flags gcc OPTIONS : x86 : core2 : -march=core2 ;
+cpu-flags gcc OPTIONS : x86 : conroe : -march=core2 ;
+cpu-flags gcc OPTIONS : x86 : conroe-xe : -march=core2 ;
+cpu-flags gcc OPTIONS : x86 : conroe-l : -march=core2 ;
+cpu-flags gcc OPTIONS : x86 : allendale : -march=core2 ;
+cpu-flags gcc OPTIONS : x86 : wolfdale : -march=core2 -msse4.1 ;
+cpu-flags gcc OPTIONS : x86 : merom : -march=core2 ;
+cpu-flags gcc OPTIONS : x86 : merom-xe : -march=core2 ;
+cpu-flags gcc OPTIONS : x86 : kentsfield : -march=core2 ;
+cpu-flags gcc OPTIONS : x86 : kentsfield-xe : -march=core2 ;
+cpu-flags gcc OPTIONS : x86 : yorksfield : -march=core2 ;
+cpu-flags gcc OPTIONS : x86 : penryn : -march=core2 ;
+cpu-flags gcc OPTIONS : x86 : corei7 : -march=corei7 ;
+cpu-flags gcc OPTIONS : x86 : nehalem : -march=corei7 ;
+cpu-flags gcc OPTIONS : x86 : corei7-avx : -march=corei7-avx ;
+cpu-flags gcc OPTIONS : x86 : sandy-bridge : -march=corei7-avx ;
+cpu-flags gcc OPTIONS : x86 : core-avx-i : -march=core-avx-i ;
+cpu-flags gcc OPTIONS : x86 : ivy-bridge : -march=core-avx-i ;
+cpu-flags gcc OPTIONS : x86 : haswell : -march=core-avx-i -mavx2 -mfma -mbmi -mbmi2 -mlzcnt ;
+cpu-flags gcc OPTIONS : x86 : k6 : -march=k6 ;
+cpu-flags gcc OPTIONS : x86 : k6-2 : -march=k6-2 ;
+cpu-flags gcc OPTIONS : x86 : k6-3 : -march=k6-3 ;
+cpu-flags gcc OPTIONS : x86 : athlon : -march=athlon ;
+cpu-flags gcc OPTIONS : x86 : athlon-tbird : -march=athlon-tbird ;
+cpu-flags gcc OPTIONS : x86 : athlon-4 : -march=athlon-4 ;
+cpu-flags gcc OPTIONS : x86 : athlon-xp : -march=athlon-xp ;
+cpu-flags gcc OPTIONS : x86 : athlon-mp : -march=athlon-mp ;
+##
+cpu-flags gcc OPTIONS : x86 : k8 : -march=k8 ;
+cpu-flags gcc OPTIONS : x86 : opteron : -march=opteron ;
+cpu-flags gcc OPTIONS : x86 : athlon64 : -march=athlon64 ;
+cpu-flags gcc OPTIONS : x86 : athlon-fx : -march=athlon-fx ;
+cpu-flags gcc OPTIONS : x86 : k8-sse3 : -march=k8-sse3 ;
+cpu-flags gcc OPTIONS : x86 : opteron-sse3 : -march=opteron-sse3 ;
+cpu-flags gcc OPTIONS : x86 : athlon64-sse3 : -march=athlon64-sse3 ;
+cpu-flags gcc OPTIONS : x86 : amdfam10 : -march=amdfam10 ;
+cpu-flags gcc OPTIONS : x86 : barcelona : -march=barcelona ;
+cpu-flags gcc OPTIONS : x86 : bdver1 : -march=bdver1 ;
+cpu-flags gcc OPTIONS : x86 : bdver2 : -march=bdver2 ;
+cpu-flags gcc OPTIONS : x86 : bdver3 : -march=bdver3 ;
+cpu-flags gcc OPTIONS : x86 : btver1 : -march=btver1 ;
+cpu-flags gcc OPTIONS : x86 : btver2 : -march=btver2 ;
+cpu-flags gcc OPTIONS : x86 : winchip-c6 : -march=winchip-c6 ;
+cpu-flags gcc OPTIONS : x86 : winchip2 : -march=winchip2 ;
+cpu-flags gcc OPTIONS : x86 : c3 : -march=c3 ;
+cpu-flags gcc OPTIONS : x86 : c3-2 : -march=c3-2 ;
+##
+cpu-flags gcc OPTIONS : x86 : atom : -march=atom ;
+# Sparc
+cpu-flags gcc OPTIONS : sparc : c3 : -mcpu=c3 : default ;
+cpu-flags gcc OPTIONS : sparc : v7 : -mcpu=v7 ;
+cpu-flags gcc OPTIONS : sparc : cypress : -mcpu=cypress ;
+cpu-flags gcc OPTIONS : sparc : v8 : -mcpu=v8 ;
+cpu-flags gcc OPTIONS : sparc : supersparc : -mcpu=supersparc ;
+cpu-flags gcc OPTIONS : sparc : sparclite : -mcpu=sparclite ;
+cpu-flags gcc OPTIONS : sparc : hypersparc : -mcpu=hypersparc ;
+cpu-flags gcc OPTIONS : sparc : sparclite86x : -mcpu=sparclite86x ;
+cpu-flags gcc OPTIONS : sparc : f930 : -mcpu=f930 ;
+cpu-flags gcc OPTIONS : sparc : f934 : -mcpu=f934 ;
+cpu-flags gcc OPTIONS : sparc : sparclet : -mcpu=sparclet ;
+cpu-flags gcc OPTIONS : sparc : tsc701 : -mcpu=tsc701 ;
+cpu-flags gcc OPTIONS : sparc : v9 : -mcpu=v9 ;
+cpu-flags gcc OPTIONS : sparc : ultrasparc : -mcpu=ultrasparc ;
+cpu-flags gcc OPTIONS : sparc : ultrasparc3 : -mcpu=ultrasparc3 ;
+# RS/6000 & PowerPC
+cpu-flags gcc OPTIONS : power : 403 : -mcpu=403 ;
+cpu-flags gcc OPTIONS : power : 505 : -mcpu=505 ;
+cpu-flags gcc OPTIONS : power : 601 : -mcpu=601 ;
+cpu-flags gcc OPTIONS : power : 602 : -mcpu=602 ;
+cpu-flags gcc OPTIONS : power : 603 : -mcpu=603 ;
+cpu-flags gcc OPTIONS : power : 603e : -mcpu=603e ;
+cpu-flags gcc OPTIONS : power : 604 : -mcpu=604 ;
+cpu-flags gcc OPTIONS : power : 604e : -mcpu=604e ;
+cpu-flags gcc OPTIONS : power : 620 : -mcpu=620 ;
+cpu-flags gcc OPTIONS : power : 630 : -mcpu=630 ;
+cpu-flags gcc OPTIONS : power : 740 : -mcpu=740 ;
+cpu-flags gcc OPTIONS : power : 7400 : -mcpu=7400 ;
+cpu-flags gcc OPTIONS : power : 7450 : -mcpu=7450 ;
+cpu-flags gcc OPTIONS : power : 750 : -mcpu=750 ;
+cpu-flags gcc OPTIONS : power : 801 : -mcpu=801 ;
+cpu-flags gcc OPTIONS : power : 821 : -mcpu=821 ;
+cpu-flags gcc OPTIONS : power : 823 : -mcpu=823 ;
+cpu-flags gcc OPTIONS : power : 860 : -mcpu=860 ;
+cpu-flags gcc OPTIONS : power : 970 : -mcpu=970 ;
+cpu-flags gcc OPTIONS : power : 8540 : -mcpu=8540 ;
+cpu-flags gcc OPTIONS : power : power : -mcpu=power ;
+cpu-flags gcc OPTIONS : power : power2 : -mcpu=power2 ;
+cpu-flags gcc OPTIONS : power : power3 : -mcpu=power3 ;
+cpu-flags gcc OPTIONS : power : power4 : -mcpu=power4 ;
+cpu-flags gcc OPTIONS : power : power5 : -mcpu=power5 ;
+cpu-flags gcc OPTIONS : power : powerpc : -mcpu=powerpc ;
+cpu-flags gcc OPTIONS : power : powerpc64 : -mcpu=powerpc64 ;
+cpu-flags gcc OPTIONS : power : rios : -mcpu=rios ;
+cpu-flags gcc OPTIONS : power : rios1 : -mcpu=rios1 ;
+cpu-flags gcc OPTIONS : power : rios2 : -mcpu=rios2 ;
+cpu-flags gcc OPTIONS : power : rsc : -mcpu=rsc ;
+cpu-flags gcc OPTIONS : power : rs64a : -mcpu=rs64 ;
+# AIX variant of RS/6000 & PowerPC
+toolset.flags gcc AROPTIONS <address-model>64/<target-os>aix : "-X 64" ;

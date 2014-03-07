@@ -1,0 +1,14 @@
+[library Karel Vom&#xE1;&#x10D;ka and Tom&#xE1;&#x161; Martin&#xED;k
+[quickbook 1.5]
+[authors [Meik&#xE4;l&#xE4;inen, Matti],[Peri&#x107;, Pero]]
+[copyright 2010 Me&#xF0;al-J&#xF3;n and J&#xF3;na J&#xF3;nsd&#xF3;ttir]
+[source-mode teletype]
+[purpose Inline code test: `1 + 2`]
+[category tests]
+[category irrelevance]
+[/ [category commented out] ]
+[biblioid uri http://www.boost.org/tools/quickbook/test/doc-info-2.quickbook]
+[biblioid isbn 0-937383-18-X]
+]
+
+[/ Some comment]

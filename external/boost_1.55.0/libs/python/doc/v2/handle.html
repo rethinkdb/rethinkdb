@@ -1,0 +1,336 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/handle.hpp&gt;</title>
+
+    <style type="text/css">
+ p.c4 {font-style: italic}
+ span.c3 {color: #ff0000}
+ h2.c2 {text-align: center}
+ h1.c1 {text-align: center}
+        </style>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 class="c1"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 class="c2">Header &lt;boost/python/handle.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#handle-spec">Class template
+          <code>handle</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#handle-spec-synopsis">Class <code>handle</code>
+              synopsis</a></dt>
+
+              <dt><a href="#handle-spec-ctors">Class <code>handle</code>
+              constructors and destructor</a></dt>
+
+              <dt><a href="#handle-spec-modifiers">Class <code>handle</code>
+              modifier functions</a></dt>
+
+              <dt><a href="#handle-spec-observers">Class <code>handle</code>
+              observer functions</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+      <dt><a href="#functions">Functions</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#borrowed-spec"><code>borrowed</code></a></dt>
+
+          <dt><a href="#allow_null-spec"><code>allow_null</code></a></dt>
+        </dl>
+      </dd>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><code>&lt;boost/python/handle.hpp&gt;</code> provides
+    <code>class&nbsp;template&nbsp;handle</code>, a smart pointer for
+    managing reference-counted Python objects.</p>
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="handle-spec"></a>Class template <code>handle</code></h3>
+
+    <p><code>handle</code> is a smart pointer to a Python object type; it
+    holds a pointer of type <code>T*</code>, where T is its template
+    parameter. <code>T</code> must be either a type derived from
+    <code>PyObject</code> or a <a href="definitions.html#POD">POD</a> type
+    whose initial <code>sizeof(PyObject)</code> bytes are layout-compatible
+    with <code>PyObject</code>. Use <code>handle&lt;&gt;</code> at the
+    boundary between the Python/'C' API and high-level code; prefer <code><a
+    href="object.html#object-spec">object</a></code> for a generalized
+    interface to Python objects.</p>
+
+    <p><a name="upcast"></a>In this document, the term "upcast" refers to an
+    operation which converts a pointer <code>Y*</code> to a base class
+    pointer <code>T*</code> via <code>static_cast&lt;T*&gt;</code> if
+    <code>Y</code> is derived from <code>T</code>, or via C-style cast
+    <code>(T*)</code> if it is not. However, in the latter case the "upcast"
+    is ill-formed if the initial <code>sizeof(PyObject)</code> bytes of
+    <code>Y</code> are not layout-compatible with <code>PyObject</code>.</p>
+
+    <h4><a name="handle-spec-synopsis"></a>Class template handle
+    synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+  template &lt;class T&gt;
+  class handle
+  {
+      typedef <i>unspecified-member-function-pointer</i> bool_type;
+
+   public: // types
+      typedef T element_type;
+
+   public: // member functions
+      ~handle();
+
+      template &lt;class Y&gt;
+      explicit handle(detail::borrowed&lt;null_ok&lt;Y&gt; &gt;* p);
+
+      template &lt;class Y&gt;
+      explicit handle(null_ok&lt;detail::borrowed&lt;Y&gt; &gt;* p);
+
+      template &lt;class Y&gt;
+      explicit handle(detail::borrowed&lt;Y&gt;* p);
+
+      template &lt;class Y&gt;
+      explicit handle(null_ok&lt;Y&gt;* p);
+
+      template &lt;class Y&gt;
+      explicit handle(Y* p);
+
+      handle();
+
+      handle&amp; operator=(handle const&amp; r);
+
+      template&lt;typename Y&gt;
+      handle&amp; operator=(handle&lt;Y&gt; const &amp; r); // never throws
+
+
+      template &lt;typename Y&gt;
+      handle(handle&lt;Y&gt; const&amp; r);
+
+      handle(handle const&amp; r);
+
+      T* operator-&gt; () const;
+      T&amp; operator* () const;
+      T* get() const;
+      void reset();
+      T* release();
+
+      operator bool_type() const; // never throws
+   private:
+      T* m_p;
+  };
+  
+  template &lt;class T&gt; struct null_ok;
+  namespace detail { template &lt;class T&gt; struct borrowed; }
+}}
+</pre>
+
+    <h4><a name="handle-spec-ctors">Class <code>handle</code> constructors
+    and destructor</a></h4>
+<pre>
+virtual ~handle();
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+      <code>Py_XDECREF(</code><i>upcast</i><code>&lt;PyObject*&gt;(m_p))</code></dt>
+    </dl>
+<pre>
+template &lt;class Y&gt;
+explicit handle(detail::borrowed&lt;null_ok&lt;Y&gt; &gt;* p);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+      <code>Py_XINCREF(</code><i>upcast</i><code>&lt;PyObject*&gt;(p));
+      m_p&nbsp;=&nbsp;</code><i>upcast</i><code>&lt;T*&gt;(p);</code></dt>
+    </dl>
+<pre>
+template &lt;class Y&gt;
+explicit handle(null_ok&lt;detail::borrowed&lt;Y&gt; &gt;* p);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+      <code>Py_XINCREF(</code><i>upcast</i><code>&lt;PyObject*&gt;(p));
+      m_p&nbsp;=&nbsp;</code><i>upcast</i><code>&lt;T*&gt;(p);</code></dt>
+    </dl>
+<pre>
+template &lt;class Y&gt;
+explicit handle(detail::borrowed&lt;Y&gt;* p);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+      <code>Py_XINCREF(</code><i>upcast</i><code>&lt;PyObject*&gt;(p));
+      m_p&nbsp;=&nbsp;</code><i>upcast</i><code>&lt;T*&gt;(<a href=
+      "errors.html#expect_non_null-spec">expect_non_null</a>(p));</code></dt>
+    </dl>
+<pre>
+template &lt;class Y&gt;
+explicit handle(null_ok&lt;Y&gt;* p);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+      <code>m_p&nbsp;=&nbsp;</code><i>upcast</i><code>&lt;T*&gt;(p);</code></dt>
+    </dl>
+<pre>
+template &lt;class Y&gt;
+explicit handle(Y* p);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+      <code>m_p&nbsp;=&nbsp;</code><i>upcast</i><code>&lt;T*&gt;(<a href=
+      "errors.html#expect_non_null-spec">expect_non_null</a>(p));</code></dt>
+    </dl>
+<pre>
+handle();
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> <code>m_p&nbsp;=&nbsp;0;</code></dt>
+    </dl>
+<pre>
+template &lt;typename Y&gt;
+handle(handle&lt;Y&gt; const&amp; r);
+handle(handle const&amp; r);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+      <code>m_p&nbsp;=&nbsp;r.m_p;&nbsp;Py_XINCREF(</code><i>upcast</i><code>&lt;PyObject*&gt;(m_p));</code></dt>
+    </dl>
+
+    <h4><a name="handle-spec-modifiers">Class <code>handle</code>
+    modifiers</a></h4>
+<pre>
+handle&amp; operator=(handle const&amp; r);
+template&lt;typename Y&gt;
+handle&amp; operator=(handle&lt;Y&gt; const &amp; r); // never throws
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+      <code>Py_XINCREF(</code><i>upcast</i><code>&lt;PyObject*&gt;(r.m_p));&nbsp;Py_XDECREF(</code><i>
+      upcast</i><code>&lt;PyObject*&gt;(m_p));&nbsp;m_p&nbsp;=&nbsp;r.m_p;</code></dt>
+    </dl>
+<pre>
+T* release();
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> <code>T* x = m_p;&nbsp;m_p&nbsp;=&nbsp;0;return
+      x;</code></dt>
+    </dl>
+<pre>
+void reset();
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b>
+      <code>*this&nbsp;=&nbsp;handle&lt;T&gt;();</code></dt>
+    </dl>
+
+    <h4><a name="handle-spec-observers">Class <code>handle</code>
+    observers</a></h4>
+<pre>
+T* operator-&gt; () const;
+T* get() const;
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Returns:</b> <code>m_p;</code></dt>
+    </dl>
+<pre>
+T&amp; operator* () const;
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Returns:</b> <code>*m_p;</code></dt>
+    </dl>
+<pre>
+operator bool_type() const; // never throws
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Returns:</b> 0 if <code>m_p&nbsp;==&nbsp;0</code>, a pointer
+      convertible to <code>true</code> otherwise.</dt>
+    </dl>
+
+    <h2><a name="functions"></a>Functions</h2>
+
+    <h3><a name="borrowed-spec"></a><code>borrowed</code></h3>
+<pre>
+template &lt;class T&gt;
+detail::borrowed&lt;T&gt;* borrowed(T* p)
+{
+    return (detail::borrowed&lt;T&gt;*)p;
+}
+</pre>
+
+    <h3><a name="allow_null-spec"></a><code>allow_null</code></h3>
+<pre>
+template &lt;class T&gt;
+null_ok&lt;T&gt;* allow_null(T* p)
+{
+    return (null_ok&lt;T&gt;*)p;
+}
+</pre>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+     13 November, 2002 
+    <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p class="c4">&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002
+.</p>
+  </body>
+</html>
+

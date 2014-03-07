@@ -1,0 +1,204 @@
+
+import feature ;
+import generators ;
+import "class" ;
+import toolset ;
+import targets ;
+import "class" : new ;
+import project ;
+
+feature.feature auto-index : off "on" ;
+feature.feature auto-index-internal : off "on" ;
+feature.feature auto-index-verbose : off "on" ;
+feature.feature auto-index-no-duplicates : off "on" ;
+feature.feature auto-index-script : : free path ;
+feature.feature auto-index-prefix : : free path ;
+feature.feature auto-index-type : : free ;
+feature.feature auto-index-section-names : "on" off ;
+
+toolset.flags auto-index.auto-index FLAGS <auto-index-internal>on : --internal-index ;
+toolset.flags auto-index.auto-index SCRIPT <auto-index-script> ;
+toolset.flags auto-index.auto-index PREFIX <auto-index-prefix> ;
+toolset.flags auto-index.auto-index INDEX_TYPE <auto-index-type> ;
+toolset.flags auto-index.auto-index FLAGS <auto-index-verbose>on : --verbose ;
+toolset.flags auto-index.auto-index FLAGS <auto-index-no-duplicates>on : --no-duplicates ;
+toolset.flags auto-index.auto-index FLAGS <auto-index-section-names>off : --no-section-names ;
+
+# <auto-index-binary> shell command to run AutoIndex
+# <auto-index-binary-dependencies> targets to build AutoIndex from sources.
+feature.feature <auto-index-binary> : : free ;
+feature.feature <auto-index-binary-dependencies> : : free dependency ;
+
+class auto-index-generator : generator
+{
+    import common modules path targets build-system ;
+    rule run ( project name ? : property-set : sources * )
+    {
+        # AutoIndex invocation command and dependencies.
+        local auto-index-binary = [ modules.peek auto-index : .command ] ;
+        local auto-index-binary-dependencies ;
+
+        if $(auto-index-binary)
+        {
+            # Use user-supplied command.
+            auto-index-binary = [ common.get-invocation-command auto-index : auto-index : $(auto-index-binary) ] ;
+        }
+        else
+        {
+            # Search for AutoIndex sources in sensible places, like
+            #   $(BOOST_ROOT)/tools/auto_index
+            #   $(BOOST_BUILD_PATH)/../../auto_index
+
+            # And build auto-index executable from sources.
+
+            local boost-root = [ modules.peek : BOOST_ROOT ] ;
+            local boost-build-path = [ build-system.location ] ;
+            local boost-build-path2 = [ modules.peek : BOOST_BUILD_PATH ] ;
+
+            local auto-index-dir ;
+
+            if $(boost-root)
+            {
+                auto-index-dir += [ path.join $(boost-root) tools ] ;
+            }
+
+            if $(boost-build-path)
+            {
+                auto-index-dir += $(boost-build-path)/../.. ;
+            }
+            if $(boost-build-path2)
+            {
+                auto-index-dir += $(boost-build-path2)/.. ;
+            }
+
+            #ECHO $(auto-index-dir) ;
+            auto-index-dir = [ path.glob $(auto-index-dir) : auto_index ] ;
+            #ECHO $(auto-index-dir) ;
+
+            # If the AutoIndex source directory was found, mark its main target
+            # as a dependency for the current project. Otherwise, try to find
+            # 'auto-index' in user's PATH
+            if $(auto-index-dir)
+            {
+                auto-index-dir = [ path.make $(auto-index-dir[1]) ] ;
+                auto-index-dir = $(auto-index-dir)/build ;
+                
+                #ECHO $(auto-index-dir) ;
+
+                # Get the main-target in AutoIndex directory.
+                local auto-index-main-target = [ targets.resolve-reference $(auto-index-dir) : $(project) ] ;
+                
+                #ECHO $(auto-index-main-target) ;
+
+                # The first element are actual targets, the second are
+                # properties found in target-id. We do not care about these
+                # since we have passed the id ourselves.
+                auto-index-main-target =
+                    [ $(auto-index-main-target[1]).main-target auto_index ] ;
+
+                #ECHO $(auto-index-main-target) ;
+
+                auto-index-binary-dependencies =
+                    [ $(auto-index-main-target).generate [ $(property-set).propagated ] ] ;
+
+                # Ignore usage-requirements returned as first element.
+                auto-index-binary-dependencies = $(auto-index-binary-dependencies[2-]) ;
+
+                # Some toolsets generate extra targets (e.g. RSP). We must mark
+                # all targets as dependencies for the project, but we will only
+                # use the EXE target for auto-index-to-boostbook translation.
+                for local target in $(auto-index-binary-dependencies)
+                {
+                    if [ $(target).type ] = EXE
+                    {
+                        auto-index-binary = 
+                            [ path.native 
+                                [ path.join
+                                    [ $(target).path ]
+                                    [ $(target).name ]
+                                ]
+                            ] ;
+                    }
+                }
+            }
+            else
+            {
+                ECHO "AutoIndex warning: The path to the auto-index executable was" ;
+                ECHO "  not provided. Additionally, couldn't find AutoIndex" ;
+                ECHO "  sources searching in" ;
+                ECHO "    * BOOST_ROOT/tools/auto-index" ;
+                ECHO "    * BOOST_BUILD_PATH/../../auto-index" ;
+                ECHO "  Will now try to find a precompiled executable by searching" ;
+                ECHO "  the PATH for 'auto-index'." ;
+                ECHO "  To disable this warning in the future, or to completely" ;
+                ECHO "  avoid compilation of auto-index, you can explicitly set the" ;
+                ECHO "  path to a auto-index executable command in user-config.jam" ;
+                ECHO "  or site-config.jam with the call" ;
+                ECHO "    using auto-index : /path/to/auto-index ;" ;
+
+                # As a last resort, search for 'auto-index' command in path. Note
+                # that even if the 'auto-index' command is not found,
+                # get-invocation-command will still return 'auto-index' and might
+                # generate an error while generating the virtual-target.
+
+                auto-index-binary = [ common.get-invocation-command auto-index : auto-index ] ;
+            }
+        }
+
+        # Add $(auto-index-binary-dependencies) as a dependency of the current
+        # project and set it as the <auto-index-binary> feature for the
+        # auto-index-to-boostbook rule, below.
+        property-set = [ $(property-set).add-raw
+            <dependency>$(auto-index-binary-dependencies)
+            <auto-index-binary>$(auto-index-binary)
+            <auto-index-binary-dependencies>$(auto-index-binary-dependencies)
+        ] ;
+        
+        #ECHO "binary = " $(auto-index-binary) ;
+        #ECHO "dependencies = " $(auto-index-binary-dependencies) ;
+
+        return [ generator.run $(project) $(name) : $(property-set) : $(sources) ] ;
+    }
+}
+
+# Initialization of toolset.
+#
+# Parameters:
+#   command ?    -> path to AutoIndex executable.
+#
+# When command is not supplied toolset will search for AutoIndex directory and
+# compile the executable from source. If that fails we still search the path for
+# 'auto_index'.
+#
+rule init (
+        command ?   # path to the AutoIndex executable.
+    )
+{
+    if ! $(.initialized)
+    {
+        .initialized = true ;
+        .command = $(command) ;
+    }
+}
+
+toolset.flags auto-index.auto-index AI-COMMAND      <auto-index-binary> ;
+toolset.flags auto-index.auto-index AI-DEPENDENCIES <auto-index-binary-dependencies> ;
+
+generators.register [ class.new auto-index-generator auto-index.auto-index : DOCBOOK : DOCBOOK(%.auto_index) : <auto-index>on ] ;
+generators.override auto-index.auto-index : boostbook.boostbook-to-docbook ;
+
+rule auto-index ( target : source : properties * )
+{
+    # Signal dependency of auto-index sources on <auto-index-binary-dependencies>
+    # upon invocation of auto-index-to-boostbook.
+    #ECHO "AI-COMMAND= " $(AI-COMMAND) ;
+    DEPENDS $(target) : [ on $(target) return $(AI-DEPENDENCIES) ] ;
+    #DEPENDS $(target) : [ on $(target) return $(SCRIPT) ] ;
+}
+
+actions auto-index
+{
+    $(AI-COMMAND) $(FLAGS) "--prefix="$(PREFIX) "--script="$(SCRIPT) "--index-type="$(INDEX_TYPE) "--in="$(>) "--out="$(<)
+}
+
+

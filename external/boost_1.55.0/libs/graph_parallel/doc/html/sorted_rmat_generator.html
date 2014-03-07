@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL Sorted R-MAT generator</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-sorted-r-mat-generator">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> Sorted R-MAT generator</h1>
+
+<!-- Copyright (C) 2004-2009 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+ template&lt;typename RandomGenerator, typename Graph,
+          typename EdgePredicate = keep_all_edges&gt;
+ class sorted_rmat_iterator
+ {
+ public:
+   typedef std::input_iterator_tag iterator_category;
+   typedef std::pair&lt;vertices_size_type, vertices_size_type&gt; value_type;
+   typedef const value_type&amp; reference;
+   typedef const value_type* pointer;
+   typedef void difference_type;
+
+   sorted_rmat_iterator();
+   sorted_rmat_iterator(RandomGenerator&amp; gen, vertices_size_type n,
+                        edges_size_type m, double a, double b, double c,
+                        double d, bool permute_vertices = true);
+   // Iterator operations
+   reference operator*() const;
+   pointer operator-&gt;() const;
+   sorted_rmat_iterator&amp; operator++();
+   sorted_rmat_iterator operator++(int);
+   bool operator==(const sorted_rmat_iterator&amp; other) const;
+   bool operator!=(const sorted_rmat_iterator&amp; other) const;
+};
+</pre>
+<p>This class template implements a generator for R-MAT graphs <a class="citation-reference" href="#czf04" id="id1">[CZF04]</a>,
+suitable for initializing an adjacency_list or other graph structure
+with iterator-based initialization. An R-MAT graph has a scale-free
+distribution w.r.t. vertex degree and is implemented using
+Recursive-MATrix partitioning.  The output of this generator is sorted
+for use with <a class="reference external" href="http://www.boost.org/libs/graph/doc/compressed_sparse_row.html">compressed sparse row graph</a>.</p>
+<div class="section" id="where-defined">
+<h1>Where Defined</h1>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/rmat_graph_generator.hpp</span></tt>&gt;</p>
+</div>
+<div class="section" id="constructors">
+<h1>Constructors</h1>
+<pre class="literal-block">
+sorted_rmat_iterator();
+</pre>
+<p>Constructs a past-the-end iterator.</p>
+<pre class="literal-block">
+sorted_rmat_iterator(RandomGenerator&amp; gen, vertices_size_type n,
+                     edges_size_type m, double a, double b, double c,
+                     double d, bool permute_vertices = true,
+                     EdgePredicate ep = keep_all_edges());
+</pre>
+<p>Constructs an R-MAT generator iterator that creates a graph with <tt class="docutils literal"><span class="pre">n</span></tt>
+vertices and <tt class="docutils literal"><span class="pre">m</span></tt> edges.  <tt class="docutils literal"><span class="pre">a</span></tt>, <tt class="docutils literal"><span class="pre">b</span></tt>, <tt class="docutils literal"><span class="pre">c</span></tt>, and <tt class="docutils literal"><span class="pre">d</span></tt> represent
+the probability that a generated edge is placed of each of the 4
+quadrants of the partitioned adjacency matrix.  Probabilities are
+drawn from the random number generator <tt class="docutils literal"><span class="pre">gen</span></tt>.  Vertex indices are
+permuted to eliminate locality when <tt class="docutils literal"><span class="pre">permute_vertices</span></tt> is true.
+<tt class="docutils literal"><span class="pre">ep</span></tt> allows the user to specify which edges are retained, this is
+useful in the case where the user wishes to refrain from storing
+remote edges locally during generation to reduce memory consumption.</p>
+</div>
+<div class="section" id="example">
+<h1>Example</h1>
+<pre class="literal-block">
+#include &lt;boost/graph/compressed_sparse_row_graph.hpp&gt;
+#include &lt;boost/graph/rmat_graph_generator.hpp&gt;
+#include &lt;boost/random/linear_congruential.hpp&gt;
+
+typedef boost::compressed_sparse_row_graph&lt;&gt; Graph;
+typedef boost::sorted_rmat_iterator&lt;boost::minstd_rand, Graph&gt;
+  RMATGen;
+
+int main()
+{
+  boost::minstd_rand gen;
+  // Create graph with 100 nodes and 400 edges
+  Graph g(RMATGen(gen, 100, 400, 0.57, 0.19, 0.19, 0.05),
+          RMATGen(), 100);
+  return 0;
+}
+</pre>
+</div>
+<div class="section" id="bibliography">
+<h1>Bibliography</h1>
+<table class="docutils citation" frame="void" id="czf04" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[CZF04]</a></td><td>D Chakrabarti, Y Zhan, and C Faloutsos.  R-MAT: A Recursive
+Model for Graph Mining. In Proceedings of 4th International Conference
+on Data Mining, pages 442--446, 2004.</td></tr>
+</tbody>
+</table>
+<hr class="docutils" />
+<p>Copyright (C) 2009 The Trustees of Indiana University.</p>
+<p>Authors: Nick Edmonds and Andrew Lumsdaine</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:21 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

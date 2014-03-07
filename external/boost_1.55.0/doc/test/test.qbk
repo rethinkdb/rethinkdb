@@ -1,0 +1,626 @@
+[article Document To Test Formatting
+    [quickbook 1.4]
+    [copyright 2007 John Maddock, Joel de Guzman, Eric Niebler and Matias Capeletto]
+    [purpose Test Formatting Document]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+    [authors [Maddock, John], [de Guzman, Joel], [Niebler, Eric], [Capeletto, Matias] ]
+    [category math]
+    [/last-revision $Date: 2007-05-07 10:21:52 +0100 (Mon, 07 May 2007) $]
+]
+
+[include HTML4_symbols.qbk]
+
+[/ Some composite templates]
+[template super[x]'''<superscript>'''[x]'''</superscript>''']
+[template sub[x]'''<subscript>'''[x]'''</subscript>''']
+[template floor[x]'''&#x230A;'''[x]'''&#x230B;''']
+[template floorlr[x][lfloor][x][rfloor]]
+[template ceil[x] '''&#x2308;'''[x]'''&#x2309;''']
+
+[section Introduction]
+
+This document is purely a test case to test out HTML and PDF generation and style.
+
+This is some body text.
+
+    int main()
+    {
+        double d = 2.345;
+        return d;
+    }
+
+We can count in Greek too: [alpha], [beta], [gamma].
+
+Try some superscrips and subscripts: x[super 2], x[sub i][super 3], [alpha][super 2], 
+[beta][super [alpha]], [floor x], [floor [alpha]], [ceil a].
+
+[endsect]
+
+[section Code Blocks]
+
+[section Embedded code]
+
+These should be syntax highlighted:
+
+   #include <iostream>
+
+   int main()
+   {
+       // Sample code
+       std::cout << "Hello, World\n";
+       return 0;
+   }
+
+[endsect]
+
+[section Code With a Very Long Line]
+
+	template <class RealType> RealType inline foo(const RealType& a, const RealType& b, const RealType& c, const RealType& d, const RealType& e, const RealType& f, const RealType& g, const RealType& h){ return 0; }
+
+[endsect]
+
+[section Imported code and callouts]
+
+[import stub.cpp]
+
+Here's some code with left-placed callouts:
+
+[class_]
+
+And again with callouts placed exactly where we put them:
+
+[foo_bar]
+
+[endsect]
+
+[section Larger example]
+
+Now let's include a larger example, this may span several pages
+and should not be chopped off half way through... some FO processors
+get this wrong!
+
+   namespace boost{
+
+   template <class BidirectionalIterator>
+   class sub_match;
+
+   typedef sub_match<const char*>                    csub_match;
+   typedef sub_match<const wchar_t*>                 wcsub_match;
+   typedef sub_match<std::string::const_iterator>    ssub_match;
+   typedef sub_match<std::wstring::const_iterator>   wssub_match;
+
+   template <class BidirectionalIterator>
+   class sub_match : public std::pair<BidirectionalIterator, BidirectionalIterator>
+   {
+   public:
+      typedef typename iterator_traits<BidirectionalIterator>::value_type value_type;
+      typedef typename iterator_traits<BidirectionalIterator>::difference_type   difference_type;
+      typedef          BidirectionalIterator                                    iterator;
+
+      bool  matched;
+
+      difference_type length()const;
+      operator basic_string<value_type>()const;
+      basic_string<value_type> str()const;
+
+      int compare(const sub_match& s)const;
+      int compare(const basic_string<value_type>& s)const;
+      int compare(const value_type* s)const;
+   #ifdef BOOST_REGEX_MATCH_EXTRA
+      typedef implementation-private capture_sequence_type;
+      const capture_sequence_type& captures()const;
+   #endif
+   };
+   //
+   // comparisons to another sub_match:
+   //
+   template <class BidirectionalIterator>
+   bool operator == (const sub_match<BidirectionalIterator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator>
+   bool operator != (const sub_match<BidirectionalIterator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator>
+   bool operator < (const sub_match<BidirectionalIterator>& lhs,
+                  const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator>
+   bool operator <= (const sub_match<BidirectionalIterator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator>
+   bool operator >= (const sub_match<BidirectionalIterator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator>
+   bool operator > (const sub_match<BidirectionalIterator>& lhs,
+                  const sub_match<BidirectionalIterator>& rhs);
+
+
+   //
+   // comparisons to a basic_string:
+   //
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator == (const std::basic_string<iterator_traits<BidirectionalIterator>::value_type,
+                                             traits, 
+                                             Allocator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator != (const std::basic_string<iterator_traits<BidirectionalIterator>::value_type,
+                                             traits, 
+                                             Allocator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator < (const std::basic_string<iterator_traits<BidirectionalIterator>::value_type,
+                                             traits, 
+                                             Allocator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator > (const std::basic_string<iterator_traits<BidirectionalIterator>::value_type,
+                                             traits, 
+                                             Allocator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator >= (const std::basic_string<iterator_traits<BidirectionalIterator>::value_type,
+                                             traits, 
+                                             Allocator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator <= (const std::basic_string<iterator_traits<BidirectionalIterator>::value_type,
+                                             traits, 
+                                             Allocator>& lhs,
+                     const sub_match<BidirectionalIterator>& rhs);
+
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator == (const sub_match<BidirectionalIterator>& lhs,
+                     const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator != (const sub_match<BidirectionalIterator>& lhs,
+                     const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator < (const sub_match<BidirectionalIterator>& lhs,
+                  const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                          traits, 
+                                          Allocator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator > (const sub_match<BidirectionalIterator>& lhs,
+                  const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                          traits, 
+                                          Allocator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator >= (const sub_match<BidirectionalIterator>& lhs,
+                     const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                          traits, 
+                                          Allocator>& rhs);
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   bool operator <= (const sub_match<BidirectionalIterator>& lhs,
+                     const std::basic_string<iterator_traits<BidirectionalIterator>::value_type, 
+                                             traits, 
+                                             Allocator>& rhs);
+
+   //
+   // comparisons to a pointer to a character array:
+   //
+   template <class BidirectionalIterator> 
+   bool operator == (typename iterator_traits<BidirectionalIterator>::value_type const* lhs,
+                     const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool operator != (typename iterator_traits<BidirectionalIterator>::value_type const* lhs,
+                     const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool operator < (typename iterator_traits<BidirectionalIterator>::value_type const* lhs,
+                  const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool operator > (typename iterator_traits<BidirectionalIterator>::value_type const* lhs,
+                  const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool operator >= (typename iterator_traits<BidirectionalIterator>::value_type const* lhs,
+                     const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool operator <= (typename iterator_traits<BidirectionalIterator>::value_type const* lhs,
+                     const sub_match<BidirectionalIterator>& rhs); 
+
+   template <class BidirectionalIterator> 
+   bool operator == (const sub_match<BidirectionalIterator>& lhs,
+                     typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+   template <class BidirectionalIterator> 
+   bool operator != (const sub_match<BidirectionalIterator>& lhs,
+                     typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+   template <class BidirectionalIterator> 
+   bool operator < (const sub_match<BidirectionalIterator>& lhs,
+                  typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+   template <class BidirectionalIterator> 
+   bool operator > (const sub_match<BidirectionalIterator>& lhs,
+                  typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+   template <class BidirectionalIterator> 
+   bool operator >= (const sub_match<BidirectionalIterator>& lhs,
+                     typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+   template <class BidirectionalIterator> 
+   bool operator <= (const sub_match<BidirectionalIterator>& lhs,
+                     typename iterator_traits<BidirectionalIterator>::value_type const* rhs); 
+
+   //
+   // comparisons to a single character:
+   //
+   template <class BidirectionalIterator> 
+   bool operator == (typename iterator_traits<BidirectionalIterator>::value_type const& lhs,
+                     const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool operator != (typename iterator_traits<BidirectionalIterator>::value_type const& lhs,
+                     const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool operator < (typename iterator_traits<BidirectionalIterator>::value_type const& lhs,
+                  const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool operator > (typename iterator_traits<BidirectionalIterator>::value_type const& lhs,
+                  const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool operator >= (typename iterator_traits<BidirectionalIterator>::value_type const& lhs,
+                     const sub_match<BidirectionalIterator>& rhs); 
+   template <class BidirectionalIterator> 
+   bool operator <= (typename iterator_traits<BidirectionalIterator>::value_type const& lhs,
+                     const sub_match<BidirectionalIterator>& rhs); 
+
+   template <class BidirectionalIterator> 
+   bool operator == (const sub_match<BidirectionalIterator>& lhs,
+                     typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+   template <class BidirectionalIterator> 
+   bool operator != (const sub_match<BidirectionalIterator>& lhs,
+                     typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+   template <class BidirectionalIterator> 
+   bool operator < (const sub_match<BidirectionalIterator>& lhs,
+                  typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+   template <class BidirectionalIterator> 
+   bool operator > (const sub_match<BidirectionalIterator>& lhs,
+                  typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+   template <class BidirectionalIterator> 
+   bool operator >= (const sub_match<BidirectionalIterator>& lhs,
+                     typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+   template <class BidirectionalIterator> 
+   bool operator <= (const sub_match<BidirectionalIterator>& lhs,
+                     typename iterator_traits<BidirectionalIterator>::value_type const& rhs); 
+   // 
+   // addition operators: 
+   //
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type, traits, Allocator> 
+      operator + (const std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type,
+                                          traits, 
+                                          Allocator>& s, 
+                  const sub_match<BidirectionalIterator>& m); 
+   template <class BidirectionalIterator, class traits, class Allocator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type, traits, Allocator>
+      operator + (const sub_match<BidirectionalIterator>& m,
+                  const std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type, 
+                                          traits, 
+                                          Allocator>& s); 
+   template <class BidirectionalIterator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type> 
+      operator + (typename iterator_traits<BidirectionalIterator>::value_type const* s,
+                  const sub_match<BidirectionalIterator>& m); 
+   template <class BidirectionalIterator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type> 
+      operator + (const sub_match<BidirectionalIterator>& m,
+                  typename iterator_traits<BidirectionalIterator>::value_type const * s);
+   template <class BidirectionalIterator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type> 
+      operator + (typename iterator_traits<BidirectionalIterator>::value_type const& s,
+                  const sub_match<BidirectionalIterator>& m); 
+   template <class BidirectionalIterator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type> 
+      operator + (const sub_match<BidirectionalIterator>& m,
+                  typename iterator_traits<BidirectionalIterator>::value_type const& s); 
+   template <class BidirectionalIterator> 
+   std::basic_string<typename iterator_traits<BidirectionalIterator>::value_type> 
+      operator + (const sub_match<BidirectionalIterator>& m1,
+                  const sub_match<BidirectionalIterator>& m2);
+
+   //
+   // stream inserter:
+   //
+   template <class charT, class traits, class BidirectionalIterator>
+   basic_ostream<charT, traits>&
+      operator << (basic_ostream<charT, traits>& os,
+                  const sub_match<BidirectionalIterator>& m);
+
+   } // namespace boost
+
+[endsect]
+
+[endsect]
+
+[section Basic Formatting]
+
+[section Font Styles]
+
+Here we go with some inline formatting: 
+['italic], [*bold], [_underline], [^teletype], [-strikethrough],
+we can combine styles as well: ['[*bold italic]], [_[^teletype with underline]].
+
+[endsect]
+
+[section Replaceable Text]
+
+Text that is intended to be user-replaceable is [~rendered like this].
+
+[endsect]
+
+[section Quotations]
+
+Here we go: ["A question that sometimes drives me hazy: am I or are the others crazy?]--Einstein
+
+Note the proper left and right quote marks. Also, while you can simply use ordinary quote marks like "quoted", our quotation, above, will generate correct DocBook quotations (e.g. <quote>quoted</quote>).
+
+Like all phrase elements, quotations may be nested. Example:
+
+["Here's the rule for bargains: ["Do other men, for they would do you.] That's
+the true business precept.]
+
+[endsect]
+
+[section Inline Code]
+
+This text has inlined code `int main() { return 0; }`  in it. 
+The code should be syntax highlighted.
+
+[endsect]
+
+[section Links]
+
+Try this: [@http://www.boost.org this is [*boost's] website....] it should
+be visible as a link.
+
+This is [@../../../boost/math/distributions.hpp a link to a header file (boost/math/distributions.hpp)],
+it should be rewritable and point to the website when built as a PDF.
+
+This is [@boost:libs/regex/index.html a link to another library's documentation (Boost.Regex)], using the boost: protocol,
+it should be rewritten to point to the website when building a PDF.
+
+This is [@boost:/libs/regex/index.html a link to another library's documentation (Boost.Regex)], using the boost:/ protocol,
+it should be rewritten to point to the website when building a PDF.
+
+This is [@../weighted_tail_quantile.hpp a relative link to a header file within the test source],
+it should be rewritten to point to the website when building a PDF.
+Although it might be on the website yet.
+
+[endsect]
+
+[section Footnotes]
+
+Here's one [footnote A sample footnote].
+
+And here's another [footnote Another sample footnote].
+
+[endsect]
+
+[section Blockquote]
+
+Lets indent the next paragraph:
+
+[:Here we go!!!]
+
+[endsect]
+
+[section Headings]
+
+Now try rendering some heading styles:
+
+[h1 Heading 1]
+
+[h2 Heading 2]
+
+[h3 Heading 3]
+
+[h4 Heading 4]
+
+[h5 Heading 5]
+
+[h6 Heading 6]
+
+[endsect]
+
+[endsect]
+
+[section Blurbs]
+
+[section Preformatted text]
+
+Here's some sample program output:
+
+[pre
+'''F test for equal standard deviations
+____________________________________
+
+Sample 1:
+Number of Observations                                 =  240
+Sample Standard Deviation                              =  65.549
+
+Sample 2:
+Number of Observations                                 =  240
+Sample Standard Deviation                              =  61.854
+
+Test Statistic                                         =  1.123
+
+CDF of test statistic:                                 =  8.148e-001
+Upper Critical Value at alpha:                         =  1.238e+000
+Upper Critical Value at alpha/2:                       =  1.289e+000
+Lower Critical Value at alpha:                         =  8.080e-001
+Lower Critical Value at alpha/2:                       =  7.756e-001
+
+Results for Alternative Hypothesis and alpha           =  0.0500
+
+Alternative Hypothesis                                    Conclusion
+Standard deviations are unequal (two sided test)          REJECTED
+Standard deviation 1 is less than standard deviation 2    REJECTED
+Standard deviation 1 is greater than standard deviation 2 REJECTED'''
+]
+
+[endsect]
+
+[section Admonishments]
+
+There are four admonishments supported by Docbook XML:
+
+[note This is a note]
+
+[tip This is a tip]
+
+[important This is important]
+
+[caution This is a caution]
+
+[warning This is a warning
+
+They can contain more than one paragraph.
+]
+
+[endsect]
+
+[section Blurbs]
+
+[blurb [*An eye catching advertisement or note...]
+
+These should be rendered in a manner similar to admonishments.
+
+They can contain more than one paragraph.
+]
+
+[endsect]
+
+[endsect]
+
+[section Lists and Tables]
+
+[section Lists]
+
+A numbered list:
+
+# One
+# Two
+# Three
+    # Three.a
+    # Three.b
+    # Three.c
+# Four
+    # Four.a
+        # Four.a.i
+        # Four.a.ii
+# Five
+
+An unordered list:
+
+* First
+* Second
+* Third
+
+A mixture of the two:
+
+# 1
+    * 1.a
+        # 1.a.1
+        # 1.a.2
+    * 1.b
+# 2
+    * 2.a
+    * 2.b
+        # 2.b.1
+        # 2.b.2
+            * 2.b.2.a
+            * 2.b.2.b
+
+
+[endsect]
+
+[section Variable Lists]
+
+[variablelist A Variable List
+    [[term 1] [The definition of term 1]]
+    [[term 2] [The definition of term 2]]
+    [[term 3] [The definition of term 3]]
+]
+
+[endsect]
+
+[section Tables]
+
+Here's a big table with code and other tricky things:
+
+[table Notes on the Implementation of the Beta Distribution
+[[Function][Implementation Notes]]
+[[pdf]
+   [f(x;[alpha],[beta]) = x[super[alpha] - 1] (1 - x)[super[beta] -1] / B([alpha], [beta])
+
+    Implemented using ibeta_derivative(a, b, x).]]
+
+[[cdf][Using the incomplete beta function ibeta(a, b, x)]]
+[[cdf complement][ibetac(a, b, x)]]
+[[quantile][Using the inverse incomplete beta function ibeta_inv(a, b, p)]]
+[[quantile from the complement][ibetac_inv(a, b, q)]]
+[[mean][`a/(a+b)`]]
+[[variance][`a * b / (a+b)^2 * (a + b + 1)`]]
+[[mode][`(a-1) / (a + b + 2)`]]
+[[skewness][`2 (b-a) sqrt(a+b+1)/(a+b+2) * sqrt(a * b)`]]
+[[kurtosis excess][ [$images/beta_dist_kurtosis.png]  ]]
+[[kurtosis][`kurtosis + 3`]]
+[[parameter estimation][ ]]
+[[alpha
+
+   from mean and variance][`mean * (( (mean * (1 - mean)) / variance)- 1)`]]
+[[beta
+
+  from mean and variance][`(1 - mean) * (((mean * (1 - mean)) /variance)-1)`]]
+[[The member functions `estimate_alpha` and `estimate_beta`
+
+  from cdf and probability x
+  
+  and *either* `alpha` or `beta`]
+      [Implemented in terms of the inverse incomplete beta functions
+      
+ibeta_inva, and ibeta_invb respectively.]]
+[[`estimate_alpha`][`ibeta_inva(beta, x, probability)`]]
+[[`estimate_beta`][`ibeta_invb(alpha, x, probability)`]]
+]
+
+[endsect]
+
+[endsect]
+
+[section Images]
+
+These are tricky enough that they warrent their own section.
+
+Let's start with a PNG file that's set to 120dpi, it should render at 
+a sensible size in both html and PDF forms.  It should print OK too!
+
+[$images/digamma3.png]
+
+Now try again with a sample SVG image:
+
+[$images/open_clipart_library_logo.svg]
+
+
+[endsect]
+
+[include test_HTML4_symbols.qbk]
+
+[include remez.qbk]
+
+[section:array Array Example Boostbook XML Documentation]
+[xinclude array.xml]
+[xinclude array1.xml]
+[xinclude array2.xml]
+[xinclude array3.xml]
+[xinclude array4.xml]
+[endsect]
+
+[section:accumulators Accumulators Example Doxygen Documentation]
+[xinclude statsdoc.xml]
+[endsect]
+
+
+

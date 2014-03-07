@@ -1,0 +1,81 @@
+# copyright John Maddock 2003
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or copy at 
+# http://www.boost.org/LICENSE_1_0.txt.
+
+#
+# This Jamfile tests the ability of some Windows compilers
+# to automatically link to the right lib file,
+# it is not generally applicable.
+#
+
+R_SOURCE = 
+basic_tests.cpp
+main.cpp
+test_alt.cpp
+test_anchors.cpp
+test_asserts.cpp
+test_backrefs.cpp
+test_deprecated.cpp
+test_emacs.cpp
+test_escapes.cpp
+test_grep.cpp
+test_locale.cpp
+test_mfc.cpp
+test_non_greedy_repeats.cpp
+test_perl_ex.cpp
+test_replace.cpp
+test_sets.cpp
+test_simple_repeats.cpp
+test_tricky_cases.cpp
+test_icu.cpp
+test_unicode.cpp
+test_overloads.cpp
+test_operators.cpp
+;
+
+
+subproject libs/regex/test/auto-link-test ;
+
+# bring in the rules for testing
+import testing ;
+
+run 
+   # sources
+   <template>../../build/regex-options
+   <template>../../build/regex-test-options
+   ../regress/$(R_SOURCE)
+:
+:  # input files
+   ../regress/tests.txt
+:  # requirements
+   <library-path>../../../../stage/lib
+   <define>BOOST_LIB_DIAGNOSTIC=1
+:  # program name
+   regex_regress
+;
+
+# and now the dll versions:
+
+run 
+   # sources
+   <template>../../build/regex-options
+   <template>../../build/regex-test-options
+   ../regress/$(R_SOURCE)
+:
+:  # input files
+   ../regress/tests.txt
+:  # requirements
+   <library-path>../../../../stage/lib
+   <define>BOOST_ALL_DYN_LINK=1
+   <runtime-link>dynamic
+   <define>BOOST_LIB_DIAGNOSTIC=1
+:  # program name
+   regex_regress_dll
+;
+
+
+
+
+
+

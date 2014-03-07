@@ -1,0 +1,35 @@
+.. Copyright Bruno da Silva de Oliveira 2006. Distributed under the Boost
+.. Software License, Version 1.0. (See accompanying
+.. file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+Pyste - Python Semi-Automatic Exporter
+======================================
+
+Pyste is a Boost.Python code generator. The user specifies the classes and
+functions to be exported using a simple interface file, which following the
+Boost.Python's philosophy, is simple Python code. Pyste then uses GCCXML to
+parse all the headers and extract the necessary information to automatically
+generate C++ code.
+
+The documentation can be found in the file index.html accompaning this README.
+
+Enjoy!
+Bruno da Silva de Oliveira (nicodemus@esss.com.br)
+
+Thanks
+======
+
+- David Abrahams, creator of Boost.Python, for tips on the syntax of the interface
+  file and support.
+- Marcelo Camelo, for design tips, support and inspiration for this project.
+  Also, the name was his idea. 8)
+- Brad King, creator of the excellent GCCXML (http://www.gccxml.org)
+- Fredrik Lundh, creator of the elementtree library (http://effbot.org)
+
+Bugs
+====
+
+Pyste is a young tool, so please help it to get better! Send bug reports to
+nicodemus@esss.com.br, accompaining the stack trace in case of exceptions.
+If possible, run pyste with --debug, and send the resulting xmls too (pyste
+will output a xml file with the same of each header it parsed).

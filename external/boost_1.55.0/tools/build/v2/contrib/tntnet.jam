@@ -1,0 +1,208 @@
+# Copyright 2008 Eduardo Gurgel
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+#
+
+# Support for creating components for the Tntnet web application
+# server (http://tntnet.org)
+#
+# Example:
+#
+#   using tntnet : /usr ;
+#   lib index : index.png index.js index.css index.ecpp otherclass.cpp
+#   /tntnnet//tntnet /tntnet//cxxtools ;
+#
+#
+
+import modules ;
+import feature ;
+import errors ;
+import "class" : new ;
+import generators ;
+import project ;
+import toolset : flags ;
+import os ;
+import virtual-target ;
+import scanner ;
+import type ;
+
+type.register ECPP : ecpp ;
+type.register JPEG : jpeg ;
+type.register JPG : jpg ;
+type.register PNG : png ;
+type.register JS : js ;
+type.register CSS : css ;
+type.register GIF : gif ;
+
+project.initialize $(__name__) ;
+project tntnet ;
+
+# Save the project so that we tolerate 'import + using' combo.
+.project = [ project.current ] ;
+# Initialized the Tntnet support module. The 'prefix' parameter 
+# tells where Tntnet is installed.
+rule init ( prefix : full_bin ? : full_inc ? : full_lib ? )
+{
+    project.push-current $(.project) ;
+
+    # pre-build paths to detect reinitializations changes
+    local inc_prefix lib_prefix bin_prefix ;
+    if $(full_inc)
+    {
+        inc_prefix = $(full_inc) ; 
+    }
+    else
+    {
+        inc_prefix = $(prefix)/include ;
+    }
+    if $(full_lib)
+    {
+        lib_prefix = $(full_lib) ;
+    }
+    else
+    {
+        lib_prefix = $(prefix)/lib ;
+    }
+    if $(full_bin)
+    {
+        bin_prefix = $(full_bin) ;
+    }
+    else
+    {
+        bin_prefix = $(prefix)/bin ;
+    }
+
+    if $(.initialized)
+    {
+        if $(prefix) != $(.prefix)
+        {
+            errors.error
+                "Attempt the reinitialize Tntnet with different installation prefix" ;
+        }
+        if $(inc_prefix) != $(.incprefix)
+        {
+            errors.error
+                "Attempt the reinitialize Tntnet with different include path" ;
+        }
+        if $(lib_prefix) != $(.libprefix)
+        {
+            errors.error
+                "Attempt the reinitialize Tntnet with different library path" ;
+        }
+        if $(bin_prefix) != $(.binprefix)
+        {
+            errors.error
+                "Attempt the reinitialize Tntnet with different bin path" ;
+        }
+    }
+    else
+    {
+        .initialized = true ;
+        .prefix = $(prefix) ;
+
+        # Setup prefixes for include, binaries and libs.
+        .incprefix = $(.prefix)/include ;
+        .libprefix = $(.prefix)/lib ;
+        .binprefix = $(.prefix)/bin ;
+
+        # Generates cpp files from ecpp files using "ecppc" tool
+        generators.register-standard tntnet.ecpp : ECPP : CPP ;
+        # Generates cpp files from jpeg files using "ecppc" tool
+        generators.register-standard tntnet.jpeg : JPEG : CPP ;
+        # Generates cpp files from jpg files using "ecppc" tool
+        generators.register-standard tntnet.jpg : JPG : CPP ;
+        # Generates cpp files from png files using "ecppc" tool
+        generators.register-standard tntnet.png : PNG : CPP ;
+        # Generates cpp files from js files using "ecppc" tool
+        generators.register-standard tntnet.js : JS : CPP ;
+        # Generates cpp files from gif files using "ecppc" tool
+        generators.register-standard tntnet.gif : GIF : CPP ;
+        # Generates cpp files from css files using "ecppc" tool
+        generators.register-standard tntnet.css : CSS : CPP ;
+      	# Scanner for ecpp includes
+        type.set-scanner ECPP : ecpp-scanner ;
+
+	
+	local usage-requirements =
+		<include>$(.incprefix)
+		<library-path>$(.libprefix)
+		<dll-path>$(.libprefix)
+		<threading>multi
+		<allow>tntnet ;
+	lib cxxtools : $(main)
+		:
+		:
+		: 
+		<include>$(.incprefix)/cxxtools
+		$(usage-requiriments) 
+		;
+	lib tntnet : $(main)
+		:
+		:
+		: 
+		<include>$(.incprefix)/tntnet
+		$(usage-requiriments)
+		;
+		
+    }
+    project.pop-current ;
+
+}
+
+rule directory
+{
+    return $(.prefix) ;
+}
+
+rule initialized ( )
+{
+    return $(.initialized) ;
+}
+
+# Get <include> from current toolset.
+flags tntnet.ecpp INCLUDES <include> ;
+
+actions ecpp
+{
+	$(.binprefix)/ecppc -I " $(INCLUDES) " -o $(<) $(>)
+}
+
+actions jpeg
+{
+	$(.binprefix)/ecppc -b -m image/jpeg -o $(<) $(>)
+}
+
+actions jpg
+{
+	$(.binprefix)/ecppc -b -m image/jpeg -o $(<) $(>)
+}
+
+actions js
+{
+	$(.binprefix)/ecppc -b -m application/x-javascript -o $(<) $(>)
+}
+
+actions png
+{
+	$(.binprefix)/ecppc -b -m image/png -o $(<) $(>)
+}
+actions gif
+{
+	$(.binprefix)/ecppc -b -m image/gif -o $(<) $(>)
+}
+actions css
+{
+	$(.binprefix)/ecppc -b -m text/css -o $(<) $(>)
+}
+
+class ecpp-scanner : common-scanner
+{
+	rule pattern ( )
+	{
+		return  "<%include.*>(.*)</%include>" ;
+	}
+}
+
+scanner.register ecpp-scanner : include ;

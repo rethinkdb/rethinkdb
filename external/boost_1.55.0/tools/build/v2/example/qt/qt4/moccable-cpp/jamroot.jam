@@ -1,0 +1,18 @@
+
+import qt4 ;
+if ! [ qt4.initialized ]
+{
+    ECHO "Warning: Qt4 not initialized in user-config.jam" ;
+    ECHO "Assuming /space/p2/ghost/build/Qt4 as location." ;
+    ECHO "This is very likely won't work for you. " ;
+    using qt4 : /space/p2/ghost/build/Qt4 ;
+}
+
+import cast ;
+exe main : main.cpp 
+           [ cast _ moccable-cpp : main.cpp ]
+           /qt//QtGui 
+	 : <threading>multi   
+         ;
+
+

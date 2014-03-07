@@ -1,0 +1,89 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Macro BOOST_PROTO_EXTENDS</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="proto/reference.html#header.boost.proto.extends_hpp" title="Header &lt;boost/proto/extends.hpp&gt;">
+<link rel="prev" href="boost/proto/extends/result.html" title="Struct template result">
+<link rel="next" href="BOOST_PROTO_BASIC_EXTENDS.html" title="Macro BOOST_PROTO_BASIC_EXTENDS">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost/proto/extends/result.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="proto/reference.html#header.boost.proto.extends_hpp"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_PROTO_BASIC_EXTENDS.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="BOOST_PROTO_EXTENDS"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Macro BOOST_PROTO_EXTENDS</span></h2>
+<p>BOOST_PROTO_EXTENDS &#8212; For creating expression wrappers that add behaviors to a Proto expression template, like
+      <code class="computeroutput"><a class="link" href="boost/proto/extends.html" title="Struct template extends">proto::extends&lt;&gt;</a></code>,
+      but while retaining POD-ness of the expression wrapper.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="proto/reference.html#header.boost.proto.extends_hpp" title="Header &lt;boost/proto/extends.hpp&gt;">boost/proto/extends.hpp</a>&gt;
+
+</span>BOOST_PROTO_EXTENDS(Expr, Derived, Domain)</pre></div>
+<div class="refsect1">
+<a name="idp177241016"></a><h2>Description</h2>
+<p>
+        Equivalent to:
+        </p>
+<pre class="programlisting"><a class="link" href="BOOST_PROTO_BASIC_EXTENDS.html" title="Macro BOOST_PROTO_BASIC_EXTENDS">BOOST_PROTO_BASIC_EXTENDS</a><span class="special">(</span><span class="identifier">Expr</span><span class="special">,</span> <span class="identifier">Derived</span><span class="special">,</span> <span class="identifier">Domain</span><span class="special">)</span>
+<a class="link" href="BOOST_PROTO_EXTENDS_ASSIGN.html" title="Macro BOOST_PROTO_EXTENDS_ASSIGN">BOOST_PROTO_EXTENDS_ASSIGN</a><span class="special">(</span><span class="special">)</span>
+<a class="link" href="BOOST_PROTO_EXTENDS_SUBSCRIPT.html" title="Macro BOOST_PROTO_EXTENDS_SUBSCRIPT">BOOST_PROTO_EXTENDS_SUBSCRIPT</a><span class="special">(</span><span class="special">)</span>
+<a class="link" href="BOOST_PROTO_EXTENDS_FUNCTION.html" title="Macro BOOST_PROTO_EXTENDS_FUNCTION">BOOST_PROTO_EXTENDS_FUNCTION</a><span class="special">(</span><span class="special">)</span></pre>
+<p>
+      </p>
+<p>If the <code class="computeroutput">Domain</code> parameter is dependent, you can specify it as
+        <code class="computeroutput">typename Domain</code>, as in
+        <code class="computeroutput">BOOST_PROTO_EXTENDS(Expr, Derived, typename Domain)</code>
+      </p>
+<p>
+        <span class="bold"><strong>Example:</strong></span></p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Expr</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">my_expr</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">my_domain</span>
+  <span class="special">:</span> <a class="link" href="boost/proto/domain.html" title="Struct template domain">proto::domain</a><span class="special">&lt;</span> <a class="link" href="boost/proto/pod_generator.html" title="Struct template pod_generator">proto::pod_generator</a><span class="special">&lt;</span> <span class="identifier">my_expr</span> <span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">{</span><span class="special">}</span><span class="special">;</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">Expr</span> <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">my_expr</span>
+<span class="special">{</span>
+    <span class="comment">// OK, this makes my_expr&lt;&gt; a valid Proto expression extension.</span>
+    <span class="comment">// my_expr&lt;&gt; has overloaded assignment, subscript,</span>
+    <span class="comment">// and function call operators that build expression templates.</span>
+    <a class="link" href="BOOST_PROTO_EXTENDS.html" title="Macro BOOST_PROTO_EXTENDS">BOOST_PROTO_EXTENDS</a><span class="special">(</span><span class="identifier">Expr</span><span class="special">,</span> <span class="identifier">my_expr</span><span class="special">,</span> <span class="identifier">my_domain</span><span class="special">)</span>
+<span class="special">}</span><span class="special">;</span>
+
+<span class="comment">// OK, my_expr&lt;&gt; is POD, so this is statically initialized:</span>
+<span class="identifier">my_expr</span><span class="special">&lt;</span> <a class="link" href="boost/proto/terminal.html" title="Struct template terminal">proto::terminal</a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">_1</span> <span class="special">=</span> <span class="special">{</span><span class="special">{</span><span class="number">1</span><span class="special">}</span><span class="special">}</span><span class="special">;</span></pre>
+<p>
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost/proto/extends/result.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="proto/reference.html#header.boost.proto.extends_hpp"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_PROTO_BASIC_EXTENDS.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

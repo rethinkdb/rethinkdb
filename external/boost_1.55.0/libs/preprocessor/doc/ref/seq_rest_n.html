@@ -1,0 +1,67 @@
+<html>
+<head>
+        <title>BOOST_PP_SEQ_REST_N</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+		<div style="margin-left: 0px;">
+			The <b>BOOST_PP_SEQ_REST_N</b> macro expands to a <i>seq</i> of all but the 
+			first <i>n</i> elements of a <i>seq</i>.
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_REST_N</b>(<i>n</i>, <i>seq</i>)
+		</div>
+		<h4>
+			Arguments
+		</h4>
+		<dl>
+			<dt>n</dt>
+			<dd>
+				The number of elements to remove.
+			</dd>
+			<dt>seq</dt>
+			<dd>
+				The <i>seq</i> from which the elements are to be removed.
+			</dd>
+		</dl>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			This macro extracts <i>n</i> elements from the beginning of <i>seq</i> and 
+			returns the remainder of <i>seq</i> as a new <i>seq</i>
+		</div>
+		<h4>
+			See Also
+		</h4>
+		<ul>
+			<li>
+				<a href="seq_first_n.html">BOOST_PP_SEQ_FIRST_N</a></li>
+		</ul>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/rest_n.html">&lt;boost/preprocessor/seq/rest_n.hpp&gt;</a>
+		</div>
+		<h4>
+			Sample Code
+		</h4>
+		<div>
+			<pre>#include &lt;<a href="../headers/arithmetic/inc.html">boost/preprocessor/arithmetic/inc.hpp</a>&gt;<br>#include &lt;<a href="../headers/seq/elem.html">boost/preprocessor/seq/elem.hpp</a>&gt;<br>#include &lt;<a href="../headers/seq/first_n.html">boost/preprocessor/seq/first_n.hpp</a>&gt;<br>#include &lt;<a href="../headers/seq/rest_n.html">boost/preprocessor/seq/rest_n.hpp</a>&gt;<br>#include &lt;<a href="../headers/seq/size.html">boost/preprocessor/seq/size.hpp</a>&gt;<br><br>#define NUMBERS \<br>   (0)(1)(2)(3)(4)(5)(6)(7)(8)(9) \<br>   (10)(11)(12)(13)(14)(15)(16)(17)(18)(19) \<br>   (20)(21)(22)(23)(24)(25)(26)(27)(28)(29) \<br>   (30)(31)(32)(33)(34)(35)(36)(37)(38)(39) \<br>   (40)(41)(42)(43)(44)(45)(46)(47)(48)(49) \<br>   (50)(51)(52)(53)(54)(55)(56)(57)(58)(59) \<br>   (60)(61)(62)(63)(64)(65)(66)(67)(68)(69) \<br>   (70)(71)(72)(73)(74)(75)(76)(77)(78)(79) \<br>   (80)(81)(82)(83)(84)(85)(86)(87)(88)(89) \<br>   (90)(91)(92)(93)(94)(95)(96)(97)(98)(99) \<br>   (100)(101)(102)(103)(104)(105)(106)(107)(108)(109) \<br>   (110)(111)(112)(113)(114)(115)(116)(117)(118)(119) \<br>   (120)(121)(122)(123)(124)(125)(126)(127)(128)(129) \<br>   (130)(131)(132)(133)(134)(135)(136)(137)(138)(139) \<br>   (140)(141)(142)(143)(144)(145)(146)(147)(148)(149) \<br>   (150)(151)(152)(153)(154)(155)(156)(157)(158)(159) \<br>   (160)(161)(162)(163)(164)(165)(166)(167)(168)(169) \<br>   (170)(171)(172)(173)(174)(175)(176)(177)(178)(179) \<br>   (180)(181)(182)(183)(184)(185)(186)(187)(188)(189) \<br>   (190)(191)(192)(193)(194)(195)(196)(197)(198)(199) \<br>   (200)(201)(202)(203)(204)(205)(206)(207)(208)(209) \<br>   (210)(211)(212)(213)(214)(215)(216)(217)(218)(219) \<br>   (220)(221)(222)(223)(224)(225)(226)(227)(228)(229) \<br>   (230)(231)(232)(233)(234)(235)(236)(237)(238)(239) \<br>   (240)(241)(242)(243)(244)(245)(246)(247)(248)(249) \<br>   (250)(251)(252)(253)(254)(255)(256) \<br>   /**/<br><br>#define SUPER_ADD(x, y) <a href="seq_elem.html">BOOST_PP_SEQ_ELEM</a>(y, <a href="seq_rest_n.html">BOOST_PP_SEQ_REST_N</a>(x, NUMBERS))<br><br>SUPER_ADD(100, 100) // expands to 200<br><br>#define SUPER_SUB(x, y) \<br>   <a href="seq_size.html">BOOST_PP_SEQ_SIZE</a>( \<br>      <a href="seq_rest_n.html">BOOST_PP_SEQ_REST_N</a>( \<br>         <a href="inc.html">BOOST_PP_INC</a>(y), \<br>         <a href="seq_first_n.html">BOOST_PP_SEQ_FIRST_N</a>( \<br>            <a href="inc.html">BOOST_PP_INC</a>(x), NUMBERS \<br>         ) \<br>      ) \<br>   ) \<br>   /**/<br><br>SUPER_SUB(67, 25) // expands to 42<br></pre>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		<br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

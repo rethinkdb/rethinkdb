@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright (C) 2006  Tiago de Paula Peixoto <tiago@forked.de>
+  
+  Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+
+  Authors: Tiago de Paula Peixoto
+-->
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d1" for="node" attr.name="foo" attr.type="int">
+    <default>42</default>
+  </key>
+  <key id="d2" for="edge" attr.name="weight" attr.type="double">
+    <default>0.0</default>
+  </key>
+  <key id="d3" for="node" attr.name="name" attr.type="string">
+    <default>hello</default>
+  </key>
+
+  <graph id="G" edgedefault="directed">
+    <node id="n0"/>
+    <node id="n1"/>
+    <node id="not a canonical node">
+      <data key="d1">100</data>
+    </node>
+    <node id="n3"/>
+    <node id="n4">
+      <data key="d3">foo&lt;</data>
+    </node>
+    <node id="n5"/>
+    <node id="n6">
+        <data key="d1">0</data>
+    </node>
+    <edge id="e0" source="n0" target="n1" />
+    <edge id="e1" source="n1" target="not a canonical node">
+      <data key="d2">0.8</data>
+    </edge>
+    <edge id="e2" source="not a canonical node" target="n6">
+      <data key="d2">0.5</data>
+    </edge>
+    <edge id="e3" source="n3" target="n4">
+      <data key="d2">0.2</data>
+    </edge>
+    <edge id="e4" source="n4" target="n5">
+      <data key="d2">10.1</data>
+    </edge>
+    <edge id="e5" source="n4" target="not a canonical node">
+      <data key="d2">5.5</data>
+    </edge>
+    <edge id="e6" source="n5" target="n6">
+      <data key="d2">2.0</data>
+    </edge>
+    <edge id="e7" source="n6" target="n1">
+      <data key="d2">0.1</data>
+    </edge>
+    <graph id="Nested" edgedefault="directed">
+        <node id="n7"/>
+        <node id="n8"/>
+        <edge id="e8" source="n7" target="n8">
+          <data key="d2">10.0</data>
+        </edge>
+    </graph>
+  </graph>
+</graphml>

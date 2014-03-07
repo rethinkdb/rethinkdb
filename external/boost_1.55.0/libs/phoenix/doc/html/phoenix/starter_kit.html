@@ -1,0 +1,104 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Starter Kit</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="prev" href="introduction.html" title="Introduction">
+<link rel="next" href="starter_kit/values.html" title="Values">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="starter_kit/values.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="phoenix.starter_kit"></a><a class="link" href="starter_kit.html" title="Starter Kit">Starter Kit</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="starter_kit/values.html">Values</a></span></dt>
+<dt><span class="section"><a href="starter_kit/references.html">References</a></span></dt>
+<dt><span class="section"><a href="starter_kit/arguments.html">Arguments</a></span></dt>
+<dt><span class="section"><a href="starter_kit/lazy_operators.html">Lazy Operators</a></span></dt>
+<dt><span class="section"><a href="starter_kit/lazy_statements.html">Lazy Statements</a></span></dt>
+<dt><span class="section"><a href="starter_kit/construct__new__delete__casts.html">Construct,
+      New, Delete, Casts</a></span></dt>
+<dt><span class="section"><a href="starter_kit/lazy_functions.html">Lazy Functions</a></span></dt>
+<dt><span class="section"><a href="starter_kit/more.html">More</a></span></dt>
+</dl></div>
+<p>
+      Most "quick starts" only get you a few blocks from where you are.
+      From there, you are on your own. Yet, typically, you'd want to get to the next
+      city. This starter kit shall be as minimal as possible, yet packed as much
+      power as possible.
+    </p>
+<p>
+      So you are busy and always on the go. You do not wish to spend a lot of time
+      studying the library. You wish to be spared the details for later when you
+      need it. For now, all you need to do is to get up to speed as quickly as possible
+      and start using the library. If this is the case, this is the right place to
+      start.
+    </p>
+<p>
+      This section is by no means a thorough discourse of the library. For more information
+      on Phoenix, please take some time to read the rest of the Documentation. Yet,
+      if you just want to use the library quickly, now, this chapter will probably
+      suffice. Rather than taking you to the details of the library, we shall try
+      to provide you with annotated examples instead. Hopefully, this will get you
+      into high gear quickly.
+    </p>
+<h4>
+<a name="phoenix.starter_kit.h0"></a>
+      <span class="phrase"><a name="phoenix.starter_kit.functors_everywhere"></a></span><a class="link" href="starter_kit.html#phoenix.starter_kit.functors_everywhere">Functors
+      everywhere</a>
+    </h4>
+<p>
+      Phoenix is built on function objects (functors). The functor is the main building
+      block. We compose functors to build more complex functors... to build more
+      complex functors... and so on. Almost everything is a functor.
+    </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        Functors are so ubiquitous in Phoenix that, in the manual, the words <span class="emphasis"><em>"functor"</em></span>
+        and <span class="emphasis"><em>"function"</em></span> are used interchangeably.
+      </p></td></tr>
+</table></div>
+<p>
+      We start with some core functions that are called <span class="bold"><strong>primitives</strong></span>.
+      You can think of primitives (such as values, references and arguments) as atoms.
+    </p>
+<p>
+      Things start to get interesting when we start <span class="emphasis"><em>composing</em></span>
+      primitives to form <span class="bold"><strong>expressions</strong></span>. The expressions
+      can, in turn, be composed to form even more complex expressions.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="starter_kit/values.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

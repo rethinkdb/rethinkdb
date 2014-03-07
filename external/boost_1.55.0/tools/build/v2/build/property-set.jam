@@ -1,0 +1,517 @@
+# Copyright 2003 Dave Abrahams
+# Copyright 2003, 2004, 2005, 2006 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import "class" : new ;
+import feature ;
+import path ;
+import project ;
+import property ;
+import sequence ;
+import set ;
+import option ;
+
+# Class for storing a set of properties.
+#
+#   There is 1<->1 correspondence between identity and value. No two instances
+# of the class are equal. To maintain this property, the 'property-set.create'
+# rule should be used to create new instances. Instances are immutable.
+#
+#   Each property is classified with regard to its effect on build results.
+# Incidental properties have no effect on build results, from Boost.Build's
+# point of view. Others are either free, or non-free and we refer to non-free
+# ones as 'base'. Each property belongs to exactly one of those categories.
+#
+#   It is possible to get a list of properties belonging to each category as
+# well as a list of properties with a specific attribute.
+#
+#   Several operations, like and refine and as-path are provided. They all use
+# caching whenever possible.
+#
+class property-set
+{
+    import errors ;
+    import feature ;
+    import path ;
+    import property ;
+    import property-set ;
+    import set ;
+
+    rule __init__ ( raw-properties * )
+    {
+        self.raw = $(raw-properties) ;
+
+        for local p in $(raw-properties)
+        {
+            if ! $(p:G)
+            {
+                errors.error "Invalid property: '$(p)'" ;
+            }
+        }
+    }
+
+    # Returns Jam list of stored properties.
+    #
+    rule raw ( )
+    {
+        return $(self.raw) ;
+    }
+
+    rule str ( )
+    {
+        return "[" $(self.raw) "]" ;
+    }
+
+    # Returns properties that are neither incidental nor free.
+    #
+    rule base ( )
+    {
+        if ! $(self.base-initialized)
+        {
+            init-base ;
+        }
+        return $(self.base) ;
+    }
+
+    # Returns free properties which are not incidental.
+    #
+    rule free ( )
+    {
+        if ! $(self.base-initialized)
+        {
+            init-base ;
+        }
+        return $(self.free) ;
+    }
+
+    # Returns dependency properties.
+    #
+    rule dependency ( )
+    {
+        if ! $(self.dependency-initialized)
+        {
+            init-dependency ;
+        }
+        return $(self.dependency) ;
+    }
+
+    rule non-dependency ( )
+    {
+        if ! $(self.dependency-initialized)
+        {
+            init-dependency ;
+        }
+        return $(self.non-dependency) ;
+    }
+
+    rule conditional ( )
+    {
+        if ! $(self.conditional-initialized)
+        {
+            init-conditional ;
+        }
+        return $(self.conditional) ;
+    }
+
+    rule non-conditional ( )
+    {
+        if ! $(self.conditional-initialized)
+        {
+            init-conditional ;
+        }
+        return $(self.non-conditional) ;
+    }
+
+    # Returns incidental properties.
+    #
+    rule incidental ( )
+    {
+        if ! $(self.base-initialized)
+        {
+            init-base ;
+        }
+        return $(self.incidental) ;
+    }
+
+    rule refine ( ps )
+    {
+        if ! $(self.refined.$(ps))
+        {
+            local r = [ property.refine $(self.raw) : [ $(ps).raw ] ] ;
+            if $(r[1]) != "@error"
+            {
+                self.refined.$(ps) = [ property-set.create $(r) ] ;
+            }
+            else
+            {
+                self.refined.$(ps) = $(r) ;
+            }
+        }
+        return $(self.refined.$(ps)) ;
+    }
+
+    rule expand ( )
+    {
+        if ! $(self.expanded)
+        {
+            self.expanded = [ property-set.create [ feature.expand $(self.raw) ]
+                ] ;
+        }
+        return $(self.expanded) ;
+    }
+
+    rule expand-composites ( )
+    {
+        if ! $(self.composites)
+        {
+            self.composites = [ property-set.create
+                [ feature.expand-composites $(self.raw) ] ] ;
+        }
+        return $(self.composites) ;
+    }
+
+    rule evaluate-conditionals ( context ? )
+    {
+        context ?= $(__name__) ;
+        if ! $(self.evaluated.$(context))
+        {
+            self.evaluated.$(context) = [ property-set.create
+                [ property.evaluate-conditionals-in-context $(self.raw) : [
+                $(context).raw ] ] ] ;
+        }
+        return $(self.evaluated.$(context)) ;
+    }
+
+    rule propagated ( )
+    {
+        if ! $(self.propagated-ps)
+        {
+            local result ;
+            for local p in $(self.raw)
+            {
+                if propagated in [ feature.attributes $(p:G) ]
+                {
+                    result += $(p) ;
+                }
+            }
+            self.propagated-ps = [ property-set.create $(result) ] ;
+        }
+        return $(self.propagated-ps) ;
+    }
+
+    rule add-defaults ( )
+    {
+        if ! $(self.defaults)
+        {
+            self.defaults = [ property-set.create
+                [ feature.add-defaults $(self.raw) ] ] ;
+        }
+        return $(self.defaults) ;
+    }
+
+    rule as-path ( )
+    {
+        if ! $(self.as-path)
+        {
+            self.as-path = [ property.as-path [ base ] ] ;
+        }
+        return $(self.as-path) ;
+    }
+
+    # Computes the path to be used for a target with the given properties.
+    # Returns a list of
+    #   - the computed path
+    #   - if the path is relative to the build directory, a value of 'true'.
+    #
+    rule target-path ( )
+    {
+        if ! $(self.target-path)
+        {
+            # The <location> feature can be used to explicitly change the
+            # location of generated targets.
+            local l = [ get <location> ] ;
+            if $(l)
+            {
+                self.target-path = $(l) ;
+            }
+            else
+            {
+                local p = [ property-set.hash-maybe [ as-path ] ] ;
+
+                # A real ugly hack. Boost regression test system requires
+                # specific target paths, and it seems that changing it to handle
+                # other directory layout is really hard. For that reason, we
+                # teach V2 to do the things regression system requires. The
+                # value of '<location-prefix>' is prepended to the path.
+                local prefix = [ get <location-prefix> ] ;
+                if $(prefix)
+                {
+                    self.target-path = [ path.join $(prefix) $(p) ] ;
+                }
+                else
+                {
+                    self.target-path = $(p) ;
+                }
+                if ! $(self.target-path)
+                {
+                    self.target-path = . ;
+                }
+                # The path is relative to build dir.
+                self.target-path += true ;
+            }
+        }
+        return $(self.target-path) ;
+    }
+
+    rule add ( ps )
+    {
+        if ! $(self.added.$(ps))
+        {
+            self.added.$(ps) = [ property-set.create $(self.raw) [ $(ps).raw ] ]
+                ;
+        }
+        return $(self.added.$(ps)) ;
+    }
+
+    rule add-raw ( properties * )
+    {
+        return [ add [ property-set.create $(properties) ] ] ;
+    }
+
+    # Returns all values of 'feature'.
+    #
+    rule get ( feature )
+    {
+        if ! $(self.map-built)
+        {
+            # For each feature, create a member var and assign all values to it.
+            # Since all regular member vars start with 'self', there will be no
+            # conflicts between names.
+            self.map-built = true ;
+            for local v in $(self.raw)
+            {
+                $(v:G) += $(v:G=) ;
+            }
+        }
+        return $($(feature)) ;
+    }
+
+    # Returns true if the property-set contains all the
+    # specified properties.
+    #
+    rule contains-raw ( properties * )
+    {
+        if $(properties) in $(self.raw)
+        {
+            return true ;
+        }
+    }
+
+    # Returns true if the property-set has values for
+    # all the specified features
+    #
+    rule contains-features ( features * )
+    {
+        if $(features) in $(self.raw:G)
+        {
+            return true ;
+        }
+    }
+
+    # private
+
+    rule init-base ( )
+    {
+        for local p in $(self.raw)
+        {
+            local att = [ feature.attributes $(p:G) ] ;
+            # A feature can be both incidental and free, in which case we add it
+            # to incidental.
+            if incidental in $(att)
+            {
+                self.incidental += $(p) ;
+            }
+            else if free in $(att)
+            {
+                self.free += $(p) ;
+            }
+            else
+            {
+                self.base += $(p) ;
+            }
+        }
+        self.base-initialized = true ;
+    }
+
+    rule init-dependency ( )
+    {
+        for local p in $(self.raw)
+        {
+            if dependency in [ feature.attributes $(p:G) ]
+            {
+                self.dependency += $(p) ;
+            }
+            else
+            {
+                self.non-dependency += $(p) ;
+            }
+        }
+        self.dependency-initialized = true ;
+    }
+
+    rule init-conditional ( )
+    {
+        for local p in $(self.raw)
+        {
+            # TODO: Note that non-conditional properties may contain colon (':')
+            # characters as well, e.g. free or indirect properties. Indirect
+            # properties for example contain a full Jamfile path in their value
+            # which on Windows file systems contains ':' as the drive separator.
+            if [ MATCH (:) : $(p:G=) ]
+            {
+                self.conditional += $(p) ;
+            }
+            else
+            {
+                self.non-conditional += $(p) ;
+            }
+        }
+        self.conditional-initialized = true ;
+    }
+}
+
+
+# Creates a new 'property-set' instance for the given raw properties or returns
+# an already existing ones.
+#
+rule create ( raw-properties * )
+{
+    raw-properties = [ sequence.unique
+        [ sequence.insertion-sort $(raw-properties) ] ] ;
+
+    local key = $(raw-properties:J=-:E=) ;
+
+    if ! $(.ps.$(key))
+    {
+        .ps.$(key) = [ new property-set $(raw-properties) ] ;
+    }
+    return $(.ps.$(key)) ;
+}
+NATIVE_RULE property-set : create ;
+
+if [ HAS_NATIVE_RULE class@property-set : get : 1 ]
+{
+    NATIVE_RULE class@property-set : get ;
+}
+
+if [ HAS_NATIVE_RULE class@property-set : contains-features : 1 ]
+{
+    NATIVE_RULE class@property-set : contains-features ;
+}
+
+# Creates a new 'property-set' instance after checking that all properties are
+# valid and converting implicit properties into gristed form.
+#
+rule create-with-validation ( raw-properties * )
+{
+    property.validate $(raw-properties) ;
+    return [ create [ property.make $(raw-properties) ] ] ;
+}
+
+
+# Creates a property-set from the input given by the user, in the context of
+# 'jamfile-module' at 'location'.
+#
+rule create-from-user-input ( raw-properties * : jamfile-module location )
+{
+    local project-id = [ project.attribute $(jamfile-module) id ] ;
+    project-id ?= [ path.root $(location) [ path.pwd ] ] ;
+    return [ property-set.create [ property.translate $(raw-properties)
+        : $(project-id) : $(location) : $(jamfile-module) ] ] ;
+}
+
+
+# Refines requirements with requirements provided by the user. Specially handles
+# "-<property>value" syntax in specification to remove given requirements.
+# - parent-requirements -- property-set object with requirements to refine.
+# - specification       -- string list of requirements provided by the user.
+# - project-module      -- module to which context indirect features will be
+#                          bound.
+# - location            -- path to which path features are relative.
+#
+rule refine-from-user-input ( parent-requirements : specification * :
+    project-module : location )
+{
+    if ! $(specification)
+    {
+        return $(parent-requirements) ;
+    }
+    else
+    {
+        local add-requirements ;
+        local remove-requirements ;
+
+        for local r in $(specification)
+        {
+            local m = [ MATCH "^-(.*)" : $(r) ] ;
+            if $(m)
+            {
+                remove-requirements += $(m) ;
+            }
+            else
+            {
+                add-requirements += $(r) ;
+            }
+        }
+
+        if $(remove-requirements)
+        {
+            # Need to create a property set, so that path features and indirect
+            # features are translated just like they are in project
+            # requirements.
+            local ps = [ property-set.create-from-user-input
+                $(remove-requirements) : $(project-module) $(location) ] ;
+
+            parent-requirements = [ property-set.create
+                [ set.difference [ $(parent-requirements).raw ]
+                : [ $(ps).raw ] ] ] ;
+            specification = $(add-requirements) ;
+        }
+
+        local requirements = [ property-set.create-from-user-input
+            $(specification) : $(project-module) $(location) ] ;
+
+        return [ $(parent-requirements).refine $(requirements) ] ;
+    }
+}
+
+
+# Returns a property-set with an empty set of properties.
+#
+rule empty ( )
+{
+    if ! $(.empty)
+    {
+        .empty = [ create ] ;
+    }
+    return $(.empty) ;
+}
+
+
+if [ option.get hash : : yes ] = yes
+{
+    rule hash-maybe ( path ? )
+    {
+        path ?= "" ;
+        return [ MD5 $(path) ] ;
+    }
+}
+else
+{
+    rule hash-maybe ( path ? )
+    {
+        return $(path) ;
+    }
+}

@@ -1,0 +1,44 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:signals Signal Handling]
+
+Boost.Asio supports signal handling using a class called [link
+boost_asio.reference.signal_set signal_set]. Programs may add one or more signals to
+the set, and then perform an `async_wait()` operation. The specified handler
+will be called when one of the signals occurs. The same signal number may be
+registered with multiple [link boost_asio.reference.signal_set signal_set] objects,
+however the signal number must be used only with Boost.Asio.
+
+  void handler(
+      const boost::system::error_code& error,
+      int signal_number)
+  {
+    if (!error)
+    {
+      // A signal occurred.
+    }
+  }
+
+  ...
+
+  // Construct a signal set registered for process termination.
+  boost::asio::signal_set signals(io_service, SIGINT, SIGTERM);
+
+  // Start an asynchronous wait for one of the signals to occur.
+  signals.async_wait(handler);
+
+Signal handling also works on Windows, as the Microsoft Visual C++ runtime
+library maps console events like Ctrl+C to the equivalent signal.
+
+[heading See Also]
+
+[link boost_asio.reference.signal_set signal_set],
+[link boost_asio.examples.cpp03_examples.http_server HTTP server example (C++03)],
+[link boost_asio.examples.cpp11_examples.http_server HTTP server example (C++11)].
+
+[endsect]

@@ -1,0 +1,11 @@
+rule failure
+   {
+   }
+
+actions failure
+   {
+   dir _
+   echo a
+   }
+
+failure f ;

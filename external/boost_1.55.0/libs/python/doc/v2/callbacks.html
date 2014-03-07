@@ -1,0 +1,254 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - Calling Python Functions and Methods</title>
+  </head>
+
+  <body link="#0000ff" vlink="#800080">
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Calling Python Functions and Methods</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#argument_handling">Argument Handling</a></dt>
+
+      <dt><a href="#result_handling">Result Handling</a></dt>
+
+      <dt><a href="#result_handling">Rationale</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction">Introduction</a></h2>
+    The simplest way to call a Python function from C++, given an <code><a
+    href="object.html#object-spec">object</a></code> instance <code>f</code>
+    holding the function, is simply to invoke its function call operator. 
+<pre>
+f("tea", 4, 2) // In Python: f('tea', 4, 2)
+</pre>
+    And of course, a method of an <code><a href=
+    "object.html#object-spec">object</a></code> instance <code>x</code> can
+    be invoked by using the function-call operator of the corresponding
+    attribute: 
+<pre>
+x.attr("tea")(4, 2); // In Python: x.tea(4, 2)
+</pre>
+
+    <p>If you don't have an <code>object</code> instance, Boost.Python
+    provides two families of function templates, <code><a href=
+    "call.html#call-spec">call</a></code> and <code><a href=
+    "call_method.html#call_method-spec">call_method</a></code>, for invoking
+    Python functions and methods respectively on <code>PyObject*</code>s. The
+    interface for calling a Python function object (or any Python callable
+    object) looks like:</p>
+<pre>
+call&lt;ResultType&gt;(callable_object, a1, a2... a<i>N</i>);
+</pre>
+    Calling a method of a Python object is similarly easy: 
+<pre>
+call_method&lt;ResultType&gt;(self_object, "<i>method-name</i>", a1, a2... a<i>N</i>);
+</pre>
+    This comparitively low-level interface is the one you'll use when
+    implementing C++ virtual functions that can be overridden in Python. 
+
+    <h2><a name="argument_handling">Argument Handling</a></h2>
+
+    <p>Arguments are converted to Python according to their type. By default,
+    the arguments <code>a1</code>...<code>a<i>N</i></code> are copied into
+    new Python objects, but this behavior can be overridden by the use of
+    <code><a href="ptr.html#ptr-spec">ptr()</a></code> and <a href=
+    "../../../bind/ref.html">ref()</a>:</p>
+<pre>
+class X : boost::noncopyable
+{
+   ...
+};
+
+void apply(PyObject* callable, X&amp; x)
+{
+   // Invoke callable, passing a Python object which holds a reference to x
+   boost::python::call&lt;void&gt;(callable, boost::ref(x));
+}
+</pre>
+    In the table below, <code><b>x</b></code> denotes the actual argument
+    object and <code><b>cv</b></code> denotes an optional
+    <i>cv-qualification</i>: "<code>const</code>", "<code>volatile</code>",
+    or "<code>const volatile</code>". 
+
+    <table border="1" summary="class_ template parameters">
+      <tr>
+        <th>Argument Type</th>
+
+        <th>Behavior</th>
+      </tr>
+
+      <tr>
+        <td><code>T cv&amp;</code><br>
+         <code>T cv</code></td>
+
+        <td>The Python argument is created by the same means used for the
+        return value of a wrapped C++ function returning <code>T</code>. When
+        <code>T</code> is a class type, that normally means <code>*x</code>
+        is copy-constructed into the new Python object.</td>
+      </tr>
+
+      <tr>
+        <td><code>T*</code></td>
+
+        <td>If <code>x&nbsp;==&nbsp;0</code>, the Python argument will be
+        <code><a href=
+        "http://www.python.org/doc/current/lib/bltin-null-object.html">None</a></code>.
+        Otherwise, the Python argument is created by the same means used for
+        the return value of a wrapped C++ function returning <code>T</code>.
+        When <code>T</code> is a class type, that normally means
+        <code>*x</code> is copy-constructed into the new Python object.</td>
+      </tr>
+
+      <tr>
+        <td><code><a href=
+        "../../../bind/ref.html">boost::reference_wrapper</a>&lt;T&gt;</code></td>
+
+        <td>The Python argument contains a pointer to, rather than a copy of,
+        <code>x.get()</code>. Note: failure to ensure that no Python code
+        holds a reference to the resulting object beyond the lifetime of
+        <code>*x.get()</code> <b>may result in a crash!</b></td>
+      </tr>
+
+      <tr>
+        <td><code><a href=
+        "ptr.html#pointer_wrapper-spec">pointer_wrapper</a>&lt;T&gt;</code></td>
+
+        <td>If <code>x.get()&nbsp;==&nbsp;0</code>, the Python argument will
+        be <code><a href=
+        "http://www.python.org/doc/current/lib/bltin-null-object.html">None</a></code>.
+        Otherwise, the Python argument contains a pointer to, rather than a
+        copy of, <code>*x.get()</code>. Note: failure to ensure that no
+        Python code holds a reference to the resulting object beyond the
+        lifetime of <code>*x.get()</code> <b>may result in a crash!</b></td>
+      </tr>
+    </table>
+
+    <h2><a name="result_handling">Result Handling</a></h2>
+    In general, <code>call&lt;ResultType&gt;()</code> and
+    <code>call_method&lt;ResultType&gt;()</code> return
+    <code>ResultType</code> by exploiting all lvalue and rvalue
+    <code>from_python</code> converters registered for ResultType and
+    returning a copy of the result. However, when <code>ResultType</code> is
+    a pointer or reference type, Boost.Python searches only for lvalue
+    converters. To prevent dangling pointers and references, an exception
+    will be thrown if the Python result object has only a single reference
+    count. 
+
+    <h2><a name="rationale">Rationale</a></h2>
+    In general, to get Python arguments corresponding to
+    <code>a1</code>...<code>a<i>N</i></code>, a new Python object must be
+    created for each one; should the C++ object be copied into that Python
+    object, or should the Python object simply hold a reference/pointer to
+    the C++ object? In general, the latter approach is unsafe, since the
+    called function may store a reference to the Python object somewhere. If
+    the Python object is used after the C++ object is destroyed, we'll crash
+    Python. 
+
+    <p>In keeping with the philosophy that users on the Python side shouldn't
+    have to worry about crashing the interpreter, the default behavior is to
+    copy the C++ object, and to allow a non-copying behavior only if the user
+    writes <code><a href="../../../bind/ref.html">boost::ref</a>(a1)</code>
+    instead of a1 directly. At least this way, the user doesn't get dangerous
+    behavior "by accident". It's also worth noting that the non-copying
+    ("by-reference") behavior is in general only available for class types,
+    and will fail at runtime with a Python exception if used otherwise[<a
+    href="#1">1</a>].</p>
+
+    <p>However, pointer types present a problem: one approach is to refuse to
+    compile if any aN has pointer type: after all, a user can always pass
+    <code>*aN</code> to pass "by-value" or <code>ref(*aN)</code> to indicate
+    a pass-by-reference behavior. However, this creates a problem for the
+    expected null pointer to <code>None</code> conversion: it's illegal to
+    dereference a null pointer value.</p>
+
+    <p>The compromise I've settled on is this:</p>
+
+    <ol>
+      <li>The default behavior is pass-by-value. If you pass a non-null
+      pointer, the pointee is copied into a new Python object; otherwise the
+      corresponding Python argument will be None.</li>
+
+      <li>if you want by-reference behavior, use <code>ptr(aN)</code> if
+      <code>aN</code> is a pointer and <code>ref(aN)</code> otherwise. If a
+      null pointer is passed to <code>ptr(aN)</code>, the corresponding
+      Python argument will be <code>None</code>.</li>
+    </ol>
+
+    <p>As for results, we have a similar problem: if <code>ResultType</code>
+    is allowed to be a pointer or reference type, the lifetime of the object
+    it refers to is probably being managed by a Python object. When that
+    Python object is destroyed, our pointer dangles. The problem is
+    particularly bad when the <code>ResultType</code> is char const* - the
+    corresponding Python String object is typically uniquely-referenced,
+    meaning that the pointer dangles as soon as <code>call&lt;char
+    const*&gt;(...)</code> returns.</p>
+
+    <p>The old Boost.Python v1 deals with this issue by refusing to compile
+    any uses of <code>call&lt;char const*&gt;()</code>, but this goes both
+    too far and not far enough. It goes too far because there are cases where
+    the owning Python string object survives beyond the call (just for
+    instance, when it's the name of a Python class), and it goes not far
+    enough because we might just as well have the same problem with a
+    returned pointer or reference of any other type.</p>
+
+    <p>In Boost.Python v2 this is dealt with by:</p>
+
+    <ol>
+      <li>lifting the compile-time restriction on const char* callback
+      returns</li>
+
+      <li>detecting the case when the reference count on the result Python
+      object is 1 and throwing an exception inside of
+      <code>call&lt;U&gt;(...)</code> when <code>U</code> is a pointer or
+      reference type.</li>
+    </ol>
+    This should be acceptably safe because users have to explicitly specify a
+    pointer/reference for <code>U</code> in <code>call&lt;U&gt;</code>, and
+    they will be protected against dangles at runtime, at least long enough
+    to get out of the <code>call&lt;U&gt;(...)</code> invocation. 
+    <hr>
+    <a name="1">[1]</a> It would be possible to make it fail at compile-time
+    for non-class types such as int and char, but I'm not sure it's a good
+    idea to impose this restriction yet. 
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

@@ -1,0 +1,150 @@
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+     "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd"
+[
+    <!ENTITY % entities SYSTEM "program_options.ent" >
+    %entities;
+]>
+<section id="program_options.changes">
+  <title>Changes since formal review</title>
+
+  <para>During formal review, a large number of changes was suggested. To make
+  using the new version easier, the implemented changes are described
+  below.</para>
+
+  <para>Let's start with an example. The following is a typical code for the
+  reviewed version:<programlisting>
+      options_description desc;
+      desc.add_options()           
+          ("magic", parameter&lt;int&gt;("value"), "magic value for the program")
+          .default_value("43")
+
+      variables_map vm;
+      options_and_arguments oa1 = parse_command_line(ac, av, desc);
+      store(oa1, vm, desc)
+
+      variables_map vm2;
+      ifstream ifs("main.cfg");
+      options_and_arguments oa2 = parse_config_file(ifs, desc);
+      store(oa1, vm2, desc);
+
+      vm.next(&amp;vm2);
+    </programlisting>The code for the current version would look like:
+    <programlisting>
+      options_description desc;
+      desc.add_options()           
+          ("magic", value&lt;int&gt;()->default_value(43), 
+                   "magic value for the program")
+
+      variables_map vm;
+
+      store(parse_command_line(ac, av, desc), vm);
+
+      ifstream ifs("main.cfg");
+      store(parse_command_line(ifs, desc), vm);
+
+      notify(vm);
+    </programlisting>
+  </para>
+    
+  <para>Let's examine all the changes in detail</para>
+
+  <section>
+    <title>Option description</title>      
+
+    <itemizedlist>
+      <listitem>
+        <para>The <code>parameter</code> function was renamed to          
+        <code>value</code>. Rationale: "paramater" is yet another term with no
+        clear definition, while "value" is already used everywhere in
+        docs.</para>
+      </listitem>
+      <listitem>
+        <para>The default value is specified in different place, and should
+        use the value of desired type, not string. Previous code was:
+          <programlisting>
+            ("magic", parameter&lt;int&gt;("value")).default_value("43")
+          </programlisting>
+          and the new code is
+          <programlisting>
+            ("magic", parameter&lt;int&gt;("value")->default_value(43));
+          </programlisting>          
+          Rationale: the new way is less restrictive. At the same time, the
+          new design allows to implement other behaviour, like validation of
+          the value, which require knowledge of the value type.         
+        </para>
+      </listitem>
+        
+      <listitem>
+        <para>The number of token value can take on command line, which was
+        specified using character suffix appended to value name, is now
+        specified using more explicit member calls. Moreover, it's not longer
+        possible to specify the "value name".
+          For example:
+<programlisting>("numbers", parameter&lt;int&gt;("n+"))</programlisting>
+          has became
+<programlisting>("numbers", value&lt;int&gt;()->multitoken())</programlisting>
+          Rationale: such modifiers tend to make command line usage less
+        clear. There's no need to make evil things too easy to do.
+          The "value name" had only two roles: specifying modifiers, and
+        telling what to output in automated help. The first role has became
+        obsolete, and the second was questionable too. It was very unclear how
+        to decide on the best "value name", and eventually the selection was randon.
+        </para>
+      </listitem>
+    </itemizedlist>
+
+  </section>
+
+  <section>
+    <title>Parsers</title>      
+
+    
+    <itemizedlist>
+      <listitem>
+        <para>The <code>options_and_argument</code> class was removed.</para>
+      </listitem>
+      <listitem>
+        <para>The <code>cmdline</code> and <code>config_file</code> classes
+        were removed from the public interface. Various command line styles
+        are now declared in the <code>command_line_style</code> subnamespace.          
+        </para>
+      </listitem>
+
+      <listitem>
+        <para>New function <code>parse_environment</code> was added.</para>
+      </listitem>
+
+      <listitem>
+        <para>Support for positional options was added</para>
+      </listitem>
+
+    </itemizedlist>
+  </section>
+    
+
+  <section>
+    <title>Storage</title>
+     
+    <itemizedlist>
+      <listitem>
+        <para>The <code>notify</code> function should be called after all
+        sources are stored in a <code>variales_map</code> instance. This is
+        done to property support priority of configuration sources.
+        </para>
+      </listitem>
+    </itemizedlist>    
+  </section>
+
+
+
+</section>
+
+<!--
+     Local Variables:
+     mode: xml
+     sgml-indent-data: t     
+     sgml-parent-document: ("program_options.xml" "section")
+     sgml-set-face: t
+     End:
+-->

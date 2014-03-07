@@ -1,0 +1,111 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template modified_midpoint_dense_out</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../../../header/boost/numeric/odeint/stepper/modified_midpoint_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/modified_midpoint.hpp&gt;">
+<link rel="prev" href="modified_midpoint.html" title="Class template modified_midpoint">
+<link rel="next" href="../../../header/boost/numeric/odeint/stepper/rosenbrock4_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/rosenbrock4.hpp&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="modified_midpoint.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../header/boost/numeric/odeint/stepper/modified_midpoint_hpp.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../header/boost/numeric/odeint/stepper/rosenbrock4_hpp.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.numeric.odeint.modified_midpo_idp27128712"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template modified_midpoint_dense_out</span></h2>
+<p>boost::numeric::odeint::modified_midpoint_dense_out</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../header/boost/numeric/odeint/stepper/modified_midpoint_hpp.html" title="Header &lt;boost/numeric/odeint/stepper/modified_midpoint.hpp&gt;">boost/numeric/odeint/stepper/modified_midpoint.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> State<span class="special">,</span> <span class="keyword">typename</span> Value <span class="special">=</span> <span class="keyword">double</span><span class="special">,</span> <span class="keyword">typename</span> Deriv <span class="special">=</span> <span class="identifier">State</span><span class="special">,</span> 
+         <span class="keyword">typename</span> Time <span class="special">=</span> <span class="identifier">Value</span><span class="special">,</span> <span class="keyword">typename</span> Algebra <span class="special">=</span> <span class="identifier">range_algebra</span><span class="special">,</span> 
+         <span class="keyword">typename</span> Operations <span class="special">=</span> <span class="identifier">default_operations</span><span class="special">,</span> 
+         <span class="keyword">typename</span> Resizer <span class="special">=</span> <span class="identifier">initially_resizer</span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="modified_midpo_idp27128712.html" title="Class template modified_midpoint_dense_out">modified_midpoint_dense_out</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">State</span>                                                                                  <a name="boost.numeric.odeint.modified_midpo_idp27128712.state_type"></a><span class="identifier">state_type</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">Value</span>                                                                                  <a name="boost.numeric.odeint.modified_midpo_idp27128712.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">Deriv</span>                                                                                  <a name="boost.numeric.odeint.modified_midpo_idp27128712.deriv_type"></a><span class="identifier">deriv_type</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">Time</span>                                                                                   <a name="boost.numeric.odeint.modified_midpo_idp27128712.time_type"></a><span class="identifier">time_type</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">Algebra</span>                                                                                <a name="boost.numeric.odeint.modified_midpo_idp27128712.algebra_type"></a><span class="identifier">algebra_type</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">Operations</span>                                                                             <a name="boost.numeric.odeint.modified_midpo_idp27128712.operations_type"></a><span class="identifier">operations_type</span><span class="special">;</span>   
+  <span class="keyword">typedef</span> <span class="identifier">Resizer</span>                                                                                <a name="boost.numeric.odeint.modified_midpo_idp27128712.resizer_type"></a><span class="identifier">resizer_type</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">state_wrapper</span><span class="special">&lt;</span> <span class="identifier">state_type</span> <span class="special">&gt;</span>                                                            <a name="boost.numeric.odeint.modified_midpo_idp27128712.wrapped_state_type"></a><span class="identifier">wrapped_state_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">state_wrapper</span><span class="special">&lt;</span> <span class="identifier">deriv_type</span> <span class="special">&gt;</span>                                                            <a name="boost.numeric.odeint.modified_midpo_idp27128712.wrapped_deriv_type"></a><span class="identifier">wrapped_deriv_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <a class="link" href="modified_midpo_idp27128712.html" title="Class template modified_midpoint_dense_out">modified_midpoint_dense_out</a><span class="special">&lt;</span> <span class="identifier">State</span><span class="special">,</span> <span class="identifier">Value</span><span class="special">,</span> <span class="identifier">Deriv</span><span class="special">,</span> <span class="identifier">Time</span><span class="special">,</span> <span class="identifier">Algebra</span><span class="special">,</span> <span class="identifier">Operations</span><span class="special">,</span> <span class="identifier">Resizer</span> <span class="special">&gt;</span> <a name="boost.numeric.odeint.modified_midpo_idp27128712.stepper_type"></a><span class="identifier">stepper_type</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">wrapped_deriv_type</span> <span class="special">&gt;</span>                                                      <a name="boost.numeric.odeint.modified_midpo_idp27128712.deriv_table_type"></a><span class="identifier">deriv_table_type</span><span class="special">;</span>  
+
+  <span class="comment">// <a class="link" href="modified_midpo_idp27128712.html#idp27136888-bb">public member functions</a></span>
+   <a class="link" href="modified_midpo_idp27128712.html#idp27137096-bb"><span class="identifier">m_steps</span></a><span class="special">(</span><span class="identifier">steps</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> DerivIn<span class="special">,</span> 
+           <span class="keyword">typename</span> StateOut<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="modified_midpo_idp27128712.html#idp27137816-bb"><span class="identifier">do_step</span></a><span class="special">(</span><span class="identifier">System</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> 
+                 <span class="identifier">StateOut</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">time_type</span><span class="special">,</span> <span class="identifier">state_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">deriv_table_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="modified_midpo_idp27128712.html#idp27142216-bb"><span class="identifier">set_steps</span></a><span class="special">(</span><span class="keyword">unsigned</span> <span class="keyword">short</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">unsigned</span> <span class="keyword">short</span> <a class="link" href="modified_midpo_idp27128712.html#idp27143016-bb"><span class="identifier">steps</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="modified_midpo_idp27128712.html#idp27143816-bb"><span class="identifier">resize</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="modified_midpo_idp27128712.html#idp27145032-bb"><span class="identifier">adjust_size</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+   <span class="identifier">__pad0__</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp58647896"></a><h2>Description</h2>
+<p>Implementation of the modified midpoint method with a configurable number of intermediate steps. This class is used by the dense output Bulirsch-Stoer algorithm and is not meant for direct usage. </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>This stepper is for internal use only and does not meet any stepper concept. </p></td></tr>
+</table></div>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp58648776"></a><h3>
+<a name="idp27136888-bb"></a><code class="computeroutput">modified_midpoint_dense_out</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"> <a name="idp27137096-bb"></a><span class="identifier">m_steps</span><span class="special">(</span><span class="identifier">steps</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">typename</span> StateIn<span class="special">,</span> <span class="keyword">typename</span> DerivIn<span class="special">,</span> 
+         <span class="keyword">typename</span> StateOut<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp27137816-bb"></a><span class="identifier">do_step</span><span class="special">(</span><span class="identifier">System</span> system<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> in<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">DerivIn</span> <span class="special">&amp;</span> dxdt<span class="special">,</span> 
+               <span class="identifier">time_type</span> t<span class="special">,</span> <span class="identifier">StateOut</span> <span class="special">&amp;</span> out<span class="special">,</span> <span class="identifier">time_type</span> dt<span class="special">,</span> <span class="identifier">state_type</span> <span class="special">&amp;</span> x_mp<span class="special">,</span> 
+               <span class="identifier">deriv_table_type</span> <span class="special">&amp;</span> derivs<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">void</span> <a name="idp27142216-bb"></a><span class="identifier">set_steps</span><span class="special">(</span><span class="keyword">unsigned</span> <span class="keyword">short</span> steps<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">unsigned</span> <span class="keyword">short</span> <a name="idp27143016-bb"></a><span class="identifier">steps</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp27143816-bb"></a><span class="identifier">resize</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> StateIn<span class="special">&gt;</span> <span class="keyword">void</span> <a name="idp27145032-bb"></a><span class="identifier">adjust_size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">StateIn</span> <span class="special">&amp;</span> x<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="modified_midpoint.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../header/boost/numeric/odeint/stepper/modified_midpoint_hpp.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../../header/boost/numeric/odeint/stepper/rosenbrock4_hpp.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

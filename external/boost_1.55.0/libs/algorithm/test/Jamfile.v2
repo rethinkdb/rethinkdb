@@ -1,0 +1,67 @@
+#  Boost algorithm library test suite Jamfile  ----------------------------
+#
+#  Copyright Marshall Clow 2010-2012. Use, modification and
+#  distribution is subject to the Boost Software License, Version
+#  1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#  http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org for updates, documentation, and revision history.
+
+import testing ;
+
+alias unit_test_framework
+    : # sources
+        /boost//unit_test_framework
+    ;        
+
+
+{
+  test-suite algorithm:
+# Search tests
+   : [ run empty_search_test.cpp unit_test_framework      : : : : empty_search_test ]
+     [ run search_test1.cpp unit_test_framework           : : : : search_test1 ]
+     [ run search_test2.cpp unit_test_framework           : : : : search_test2 ]
+     [ run search_test3.cpp unit_test_framework           : : : : search_test3 ]
+     [ run search_test4.cpp unit_test_framework           : : : : search_test4 ]
+     [ compile-fail search_fail1.cpp  : : : : ]
+     [ compile-fail search_fail2.cpp  : : : : ]
+     [ compile-fail search_fail3.cpp  : : : : ]
+
+# Clamp tests
+     [ run clamp_test.cpp unit_test_framework         : : : : clamp_test ]
+   
+# Cxx11 tests
+     [ run all_of_test.cpp unit_test_framework         : : : : all_of_test ]
+     [ run any_of_test.cpp unit_test_framework         : : : : any_of_test ]
+     [ run none_of_test.cpp unit_test_framework        : : : : none_of_test ]
+     [ run one_of_test.cpp unit_test_framework         : : : : one_of_test ]
+     
+     [ run ordered_test.cpp unit_test_framework        : : : : ordered_test ]
+     [ run find_if_not_test1.cpp unit_test_framework   : : : : find_if_not_test1 ]
+     [ run copy_if_test1.cpp unit_test_framework        : : : : copy_if_test1 ]
+     [ run copy_n_test1.cpp unit_test_framework       : : : : copy_n_test1 ]
+     [ run iota_test1.cpp unit_test_framework          : : : : iota_test1 ]
+
+     [ run is_permutation_test1.cpp unit_test_framework         : : : : is_permutation_test1 ]
+     [ run partition_point_test1.cpp unit_test_framework        : : : : partition_point_test1 ]
+     [ run is_partitioned_test1.cpp unit_test_framework         : : : : is_partitioned_test1 ]
+     [ run partition_copy_test1.cpp unit_test_framework         : : : : partition_copy_test1 ]
+
+# Cxx14 tests
+     [ run equal_test.cpp unit_test_framework         : : : : equal_test ]
+     [ run mismatch_test.cpp unit_test_framework      : : : : mismatch_test ]
+
+# Hex tests
+     [ run hex_test1.cpp unit_test_framework         : : : : hex_test1 ]
+     [ run hex_test2.cpp unit_test_framework         : : : : hex_test2 ]
+     [ run hex_test3.cpp unit_test_framework         : : : : hex_test3 ]
+     [ run hex_test4.cpp unit_test_framework         : : : : hex_test4 ]
+     [ compile-fail hex_fail1.cpp ]
+
+# Gather tests
+     [ run gather_test1.cpp unit_test_framework        : : : : gather_test1 ]
+     [ compile-fail gather_fail1.cpp ]
+
+   ;
+}
+

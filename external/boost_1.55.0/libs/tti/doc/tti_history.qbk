@@ -1,0 +1,94 @@
+[/ 
+  (C) Copyright Edward Diener 2011
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:tti_history History]
+
+[heading Version 1.5]
+
+* The TTI has been accepted into Boost. This is the first iteration of changes as the 
+  library is being prepared for Boost based on the library review and end-user comments
+  and suggestions. For each iteration of changes made based on end-user comments and 
+  suggestions, I will produce a new version number so that end-users who want to follow 
+  the progress of the library for Boost can know what is being changed. I will be targeting
+  Boost 1.49 for completing all changes and passing all tests in order to have TTI ready to 
+  be copied from Boost trunk to Boost release for inclusion into Boost.
+* Breaking changes
+  * Macro metafunctions are no longer generated in any namespace, but directly
+    in the scope of the end-user.
+  * The metafunction class generating macros, for each metafunction macro, have been removed.
+    The end-user can use boost::mpl::quote instead if he wishes.
+  * The metafunction name generating macros have been simplified so that no namespace name is generated,
+    and for each macro of the macro metafunctions there is a single metafunction name generating macro.
+  * The BOOST_TTI_TRAITS_GEN macro has been removed.
+  * Individual header file names have changed to more closely reflect the metafunction macro names.
+  * The names of the composite member function and composite static member function macros
+    have changed from BOOST_TTI_HAS_COMP_MEMBER_FUNCTION to BOOST_TTI_HAS_MEMBER_FUNCTION_WITH_SIG
+    and from BOOST_TTI_HAS_COMP_STATIC_MEMBER_FUNCTION to BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION_WITH_SIG.
+* All template parameter names are now unique to TTI to avoid name clashes.
+* Nullary type metafunctions can be passed non-class types as is.
+
+[heading Version 1.4]
+
+* Breaking changes
+  * `BOOST_TTI_HAS_MEMBER` (`BOOST_TTI_TRAIT_HAS_MEMBER`) has been changed to `BOOST_TTI_HAS_COMP_MEMBER_FUNCTION` (`BOOST_TTI_TRAIT_HAS_COMP_MEMBER_FUNCTION`)
+    and 
+    `BOOST_TTI_MTFC_HAS_MEMBER` (`BOOST_TTI_MTFC_TRAIT_HAS_MEMBER`) has been changed to `BOOST_TTI_MTFC_HAS_COMP_MEMBER_FUNCTION` (`BOOST_TTI_MTFC_TRAIT_HAS_COMP_MEMBER_FUNCTION`).
+    This family of functionality now supports only member functions with composite syntax.
+  * `BOOST_TTI_HAS_STATIC_MEMBER` (`BOOST_TTI_TRAIT_HAS_STATIC_MEMBER`) has been changed to `BOOST_TTI_HAS_COMP_STATIC_MEMBER_FUNCTION` (`BOOST_TTI_TRAIT_HAS_COMP_STATIC_MEMBER_FUNCTION`)
+    and 
+    `BOOST_TTI_MTFC_HAS_STATIC_MEMBER` (`BOOST_TTI_MTFC_TRAIT_HAS_STATIC_MEMBER`) has been changed to `BOOST_TTI_MTFC_HAS_COMP_STATIC_MEMBER_FUNCTION` (`BOOST_TTI_MTFC_TRAIT_HAS_COMP_STATIC_MEMBER_FUNCTION`).
+    This family of functionality now supports only static member functions with composite syntax.
+  * `boost::tti::mf_has_static_data` has been changed to `boost::tti::mf_has_static_member_data`.
+* Added `BOOST_TTI_HAS_STATIC_MEMBER_DATA` and family for introspecting static member data.
+* Inclusion of specific header files for faster compilation is now supported.
+* Inclusion of macro metafunction name generating macros.
+* Shorten the names of the test files and test header files.
+* Added documentation topic about introspecting function templates.
+
+[heading Version 1.3]
+
+* Breaking changes
+  * The names of the main header files are shortened to 'boost/tti/tti.hpp' and 'boost/tti/tti_vm.hpp'.
+  * The library follows the Boost conventions.
+    * Changed the filenames to lower case and underscores.
+    * The top-level tti namespace has become the boost::tti namespace.
+    * The macros now start with `BOOST_TTI_` rather than just `TTI_` as previously.
+  * The variadic macro support works only with the latest version of the variadic_macro_library,
+    which is version 1.3+.
+
+[heading Version 1.2]
+
+* Added the set of metafunction class macros for passing the macro metafunctions as metadata.
+  This complements passing the macro metafunctions as metadata using placeholder expressions.
+
+[heading Version 1.1]
+
+* Library now also compiles with gcc 3.4.2 and gcc 3.4.5.
+* Examples of use have been added to the documentation.
+* In the documentation the previously mentioned 'nested type metafunctions' are now called "nullary type metafunctions'.
+* `BOOST_TTI_HAS_TYPE` and `boost::tti::mf_has_type` now have optional typedef checking.
+* New macro metafunction functionality which allows composite typed to be treated as individual types has been implemented. These include:
+  * `BOOST_TTI_HAS_MEMBER_DATA`
+  * `BOOST_TTI_HAS_MEMBER_FUNCTION`
+  * `BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION`
+* New nullary type metafunction `boost::tti::mf_has_static_member_function` uses the new underlying `BOOST_TTI_HAS_STATIC_MEMBER_FUNCTION` macro metafunction.
+  Its signature uses an optional MPL forward sequence for the parameter types and an optional Boost `function_types` tag type.
+* New nullary type metafunctions `boost::tti::valid_member_type` and `boost::tti::mf_valid_member_type` for checking if the 'type' returned from invoking the `BOOST_TTI_MEMBER_TYPE` or `boost::tti::mf_member_type` metafunctions is valid.
+* Breaking changes
+  * `BOOST_TTI_HAS_TYPE_CHECK_TYPEDEF` and `boost::tti::mf_has_type_check_typedef` have been removed, and the functionality in them folded into `BOOST_TTI_HAS_TYPE` and `boost::tti::mf_has_type`.
+  * BOOST_TTI_MEMBER_TYPE and boost::tti::mf_member_type no longer also return a 'valid' boolean constant. Use boost::tti::valid_member_type or  boost::tti::mf_valid_member_type metafunctions instead ( see above ).
+  * `boost::tti::mf_has_static_function` has been removed and its functionality moved to `boost::tti::mf_has_static_member_function` ( see above ).
+  * `boost::tti::mf_member_data` uses the new underlying `BOOST_TTI_HAS_MEMBER_DATA` macro metafunction.
+  * The signature for `boost::tti::mf_has_member_function` has changed to use an optional MPL forward sequence for the parameter types and an optional Boost `function_types` tag type.
+  * All nullary type metafunctions take their corresponding macro metafunction parameter as a class in the form of a Boost MPL lambda expression instead of as a template template parameter as previously.
+    Using a placeholder expression is the easiest way to pass the corresponding macro metafunction to its nullary type metafunction. 
+
+[heading Version 1.0]
+
+Initial version of the library.
+
+[endsect]

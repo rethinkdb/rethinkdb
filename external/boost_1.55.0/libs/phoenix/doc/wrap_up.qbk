@@ -1,0 +1,41 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Wrap Up]
+
+Sooner or later more FP techniques become standard practice as people find the
+true value of this programming discipline outside the academe and into the
+mainstream. In as much as structured programming of the 70s and object oriented
+programming in the 80s and generic programming in the 90s shaped our thoughts
+towards a more robust sense of software engineering, FP will certainly be a
+paradigm that will catapult us towards more powerful software design and
+engineering onward into the new millennium.
+
+Let me quote Doug Gregor of Boost.org. About functional style programming
+libraries:
+
+[:['They're gaining acceptance, but are somewhat stunted by the ubiquitousness
+of broken compilers. The C++ community is moving deeper into the so-called "STL-
+style" programming paradigm, which brings many aspects of functional programming
+into the fold. Look at, for instance, the Spirit parser to see how such function
+objects can be used to build Yacc-like grammars with semantic actions that can
+build abstract syntax trees on the fly. This type of functional composition is
+gaining momentum.]]
+
+Indeed. Phoenix is another attempt to introduce more FP techniques into the
+mainstream. Not only is it a tool that will make life easier for the programmer.
+In its own right, the actual design of the library itself is a model of true C++
+FP in action. The library is designed and structured in a strict but clear and
+well mannered FP sense. By all means, use the library as a tool. But for those
+who want to learn more about FP in C++, don't stop there, I invite you to take a
+closer look at the design of the library itself.
+
+So there you have it. Have fun! See you in the FP world.
+
+[endsect]

@@ -1,0 +1,202 @@
+<HTML>
+<!-- Copyright 2007 Aaron Windsor
+     
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+  -->
+<Head>
+<Title>Boost Graph Library: Planar Face Traversal</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>Planar Face Traversal</H1>
+
+<pre>
+template&lt;typename Graph, typename PlanarEmbedding, typename PlanarFaceVisitor, typename EdgeIndexMap&gt;
+void planar_face_traversal(const Graph& g, PlanarEmbedding embedding, PlanarFaceVisitor& visitor, EdgeIndexMap em);
+</pre>
+
+<p>
+A graph is <i>planar</i> if it can be drawn in two-dimensional space with no 
+two of its edges crossing. Any embedding of a planar graph separates the plane 
+into distinct regions that are bounded by sequences of edges in the graph. 
+These regions are called <i>faces</i>. 
+
+<br>
+<br>
+<table align="center" class="image">
+<caption align="bottom">
+<h5>A plane drawing of a graph (left), and the 8 faces defined by the planar 
+embedding (right.) Each connected blue region in the image on the right is a 
+face. The large blue region surrounding the graph is the <i>outer face</i>.
+</h5>
+</caption>
+<tr>
+<td>
+<img src="./figs/face_illustration.png">
+</td>
+</tr>
+<tr></tr>
+</table>
+<br>
+
+
+A traversal of the faces of a planar graph involves iterating through all faces
+of the graph, and on each face, iterating through all vertices and edges of the
+face. The iteration through all vertices and edges of each face follows a 
+path around the border of the face.
+<p>
+In a biconnected graph, like the one shown above, each face is bounded by a 
+cycle and each edge belongs to exactly two faces. For this reason, when 
+<tt>planar_face_traversal</tt> is called on a biconnected graph, each edge will
+be visited exactly twice: once on each of two distinct faces, and no vertex 
+will be visited more than once on a particular face. The output of 
+<tt>planar_face_traversal</tt> on non-biconnected graphs is less intuitive - 
+for example, if the graph 
+consists solely of a path of vertices (and therefore a single face), 
+<tt>planar_face_traversal</tt> will iterate <i>around</i> the path, visiting 
+each edge twice and visiting some vertices more than once. 
+<tt>planar_face_traversal</tt> does not visit isolated vertices.
+<p>
+Like other graph traversal algorithms in the Boost Graph Library, the planar 
+face traversal is a generic traversal that can be customized by the 
+redefinition of certain visitor event points. By defining an appropriate
+visitor, this traversal can be 
+used to enumerate the faces of a planar graph, triangulate a planar graph, or 
+even construct a dual of a planar graph. 
+
+<br>
+<center>
+<img src="./figs/face_traversal_example.png">
+</center>
+<br>
+
+For example, on the above graph, an instance <tt>my_visitor</tt> of the 
+following visitor:
+<pre>
+    struct output_visitor: public planar_face_traversal_visitor
+    {
+        void begin_face() { std::cout << "New face: "; }
+        template &lt;typename Vertex&gt; void next_vertex(Vertex v) { std::cout << v << " "; } 
+        void finish_face() { std::cout << std::endl; }
+    };
+</pre>
+can be passed to the <tt>planar_face_traversal</tt> function:
+<pre>
+    output_visitor my_visitor;
+    planar_face_traversal(g, embed, my_visitor); //embed is a planar embedding of g
+</pre>
+and might produce the output
+<pre>
+    New face: 1 2 5 4
+    New face: 2 3 4 5
+    New face: 3 0 1 4
+    New face: 1 0 3 2
+</pre>
+
+<h3>Visitor Event Points</h3> 
+         
+<ul>
+<li><tt>visitor.begin_traversal()</tt>: called once before any faces are 
+visited.
+<li><tt>visitor.begin_face()</tt>: called once, for each face, before any 
+vertex or edge on that face has been visited.
+<li><tt>visitor.end_face()</tt>: called once, for each face, after all vertices
+and all edges on that face have been visited.
+<li><tt>visitor.next_vertex(Vertex v)</tt>: called once on each vertex in the 
+current face (the start and end of which are designated by calls to 
+<tt>begin_face()</tt> and <tt>end_face()</tt>, respectively) in order 
+according to the order established by the planar embedding.
+<li><tt>visitor.next_edge(Edge e)</tt>: called once on each edge in the current
+face (the start and end of which are designated by calls to 
+<tt>begin_face()</tt> and <tt>end_face()</tt>, respectively) in order 
+according to the order established by the planar embedding.
+<li><tt>visitor.end_traversal()</tt>: called once after all faces have been 
+visited.
+</ul>
+
+Although <tt>next_vertex</tt> is guaranteed to be called in sequence for each
+vertex as the traversal moves around a face and <tt>next_edge</tt> is
+guaranteed to be called in sequence for each edge as the traversal moves
+around a face, there's no guarantee about the order in which 
+<tt>next_vertex</tt> and <tt>next_edge</tt> are called with respect to each 
+other in between calls to <tt>begin_face</tt> and <tt>end_face</tt>. These 
+calls may be interleaved, all vertex visits may precede all edge visits, or 
+vise-versa.
+<p>
+<tt>planar_face_traversal</tt> iterates over a copy of the edges of the input 
+graph, so it is safe to add edges to the graph during visitor event points.
+
+
+<h3>Complexity</h3>
+
+If all of the visitor event points run in constant time, the traversal takes 
+time <i>O(n + m)</i> for a planar graph with <i>n</i> vertices and <i>m</i>
+edges. Note that 
+in a simple planar graph with <i>f</i> faces, <i>m</i> edges, and <i>n</i> 
+vertices, both <i>f</i> and <i>m</i> are <i>O(n)</i>. 
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/planar_face_traversal.hpp">
+<TT>boost/graph/planar_face_traversal.hpp</TT>
+</a>
+
+<h3>Parameters</h3>
+
+IN: <tt>Graph&amp; g</tt>
+
+<blockquote>
+An undirected graph. The graph type must 
+be a model of <a href="VertexAndEdgeListGraph.html">VertexAndEdgeListGraph</a>
+</blockquote>
+
+IN: <tt>PlanarEmbedding</tt> 
+
+<blockquote>
+A model of <a href="PlanarEmbedding.html">PlanarEmbedding</a>.
+</blockquote>
+
+IN: <tt>PlanarFaceVisitor</tt>
+
+<blockquote>
+A model of <a href="PlanarFaceVisitor.html">PlanarFaceVisitor</a>.
+</blockquote>
+
+IN: <tt>EdgeIndexMap vm</tt>
+
+<blockquote>
+A <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map
+</a> that maps edges from <tt>g</tt> to distinct integers in the range 
+<tt>[0, num_edges(g) )</tt><br>
+<b>Default</b>: <tt>get(edge_index,g)</tt><br>
+</blockquote>
+
+
+<H3>Example</H3>
+
+<P>
+<a href="../example/planar_face_traversal.cpp">
+<TT>examples/planar_face_traversal.cpp</TT></a>
+
+<h3>See Also</h3>
+
+<p>
+<ul>
+<li><a href="./planar_graphs.html">Planar Graphs in the Boost Graph Library</a>
+<li><a href="./PlanarFaceVisitor.html">PlanarFaceVisitor</a> concept.
+</ul>
+
+<br>
+<HR>
+Copyright &copy; 2007 Aaron Windsor (<a href="mailto:aaron.windsor@gmail.com">
+aaron.windsor@gmail.com</a>)
+</BODY>
+</HTML> 

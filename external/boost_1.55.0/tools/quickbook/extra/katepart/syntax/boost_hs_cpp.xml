@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd">
+
+<language
+
+name="c++"
+version="0.1.0"
+kateversion="2.4"
+section="boost::hs"
+extensions="*.cpp;*.hpp;*.h"
+mimetype="allFiles"
+author="Based on the original cpp.xml from katepart, Copyright 2006 -2007 Matias Capeletto, matias.capeletto@gmail.com"
+priority="9"
+license="Distributed under the Boost Software License, Version 1.0.
+http://www.boost.org/LICENSE_1_0.txt"
+
+>
+
+<highlighting>
+
+<!-- Keywords lists -->
+
+<list name="keywords">
+
+    <item> asm </item>
+    <item> break </item>
+    <item> case </item>
+    <item> catch </item>
+    <item> class </item>
+    <item> const_cast </item>
+    <item> continue </item>
+    <item> default </item>
+    <item> delete </item>
+    <item> do </item>
+    <item> dynamic_cast</item>
+    <item> else </item>
+    <item> enum </item>
+    <item> explicit </item>
+    <item> export </item>
+    <item> extern </item>
+    <item> false </item>
+    <item> friend </item>
+    <item> for </item>
+    <item> goto </item>
+    <item> if </item>
+    <item> inline </item>
+    <item> namespace </item>
+    <item> new </item>
+    <item> operator </item>
+    <item> private </item>
+    <item> protected </item>
+    <item> public </item>
+    <item> reinterpret_cast </item>
+    <item> return </item>
+    <item> sizeof </item>
+    <item> static_cast </item>
+    <item> struct </item>
+    <item> switch </item>
+    <item> template </item>
+    <item> this </item>
+    <item> throw </item>
+    <item> true </item>
+    <item> try </item>
+    <item> typedef </item>
+    <item> typeid </item>
+    <item> type_info </item>
+    <item> typename </item>
+    <item> union </item>
+    <item> using </item>
+    <item> virtual </item>
+    <item> while </item>
+    <item> and </item>
+    <item> and_eq </item>
+    <item> bad_cast </item>
+    <item> bad_typeid </item>
+    <item> bitand </item>
+    <item> bitor </item>
+    <item> compl </item>
+    <item> not </item>
+    <item> not_eq </item>
+    <item> or </item>
+    <item> or_eq </item>
+    <item> xor </item>
+    <item> xor_eq </item>
+    <item> except </item>
+    <item> finally </item>
+    <item> xalloc </item>
+
+</list>
+
+<list name="qt_extensions">
+
+    <item> K_DCOP </item>
+    <item> SLOT </item>
+    <item> SIGNAL </item>
+    <item> Q_CLASSINFO </item>
+    <item> Q_ENUMS </item>
+    <item> Q_EXPORT </item>
+    <item> Q_OBJECT </item>
+    <item> Q_OVERRIDE </item>
+    <item> Q_PROPERTY </item>
+    <item> Q_SETS </item>
+    <item> TRUE </item>
+    <item> FALSE </item>
+    <item> connect </item>
+    <item> disconnect </item>
+    <item> emit </item>
+    <item> signals </item>
+    <item> slots </item>
+    <item> foreach </item>
+
+</list>
+
+<list name="types">
+
+    <item> auto </item>
+    <item> bool </item>
+    <item> char </item>
+    <item> const </item>
+    <item> double </item>
+    <item> float </item>
+    <item> int </item>
+    <item> long </item>
+    <item> mutable </item>
+    <item> register </item>
+    <item> short </item>
+    <item> signed </item>
+    <item> static </item>
+    <item> unsigned </item>
+    <item> void </item>
+    <item> volatile </item>
+    <item> uchar </item>
+    <item> uint </item>
+    <item> int8_t </item>
+    <item> int16_t </item>
+    <item> int32_t </item>
+    <item> int64_t </item>
+    <item> uint8_t </item>
+    <item> uint16_t </item>
+    <item> uint32_t </item>
+    <item> uint64_t </item>
+    <item> wchar_t </item>
+
+</list>
+
+<!-- Contexts -->
+
+<contexts>
+
+<context attribute="Normal Text" lineEndContext="#stay" name="Normal">
+
+    <DetectSpaces />
+
+    <IncludeRules context="boost::hs call finder" />
+    <IncludeRules context="preprocessor finder" />
+    <IncludeRules context="keyword finder" />
+    <IncludeRules context="extensions finder" />
+    <IncludeRules context="built in types finder" />
+    <IncludeRules context="##std-c++" />
+    <IncludeRules context="##boost" />
+    <IncludeRules context="character finder" />
+    <IncludeRules context="string finder" />
+
+    <DetectIndentifier />
+
+    <IncludeRules context="number finder" />
+    <IncludeRules context="##Doxygen" />
+    <IncludeRules context="quickbook_import_markup" />
+    <IncludeRules context="comment finder" />
+    <IncludeRules context="region finder" />
+    <IncludeRules context="symbol finder" />
+
+</context>
+
+<!-- String listerals -->
+
+<context attribute="String" name="string finder">
+    <DetectChar attribute="String" context="String" char="&quot;"/>
+</context>
+
+<context attribute="String" lineEndContext="#pop" name="String">
+
+    <LineContinue attribute="String" context="#stay"/>
+    <HlCStringChar attribute="String Char" context="#stay"/>
+    <DetectChar attribute="String" context="#pop" char="&quot;"/>
+
+</context>
+
+<!-- Character literals -->
+
+<context attribute="Character" name="character finder">
+    <HlCChar attribute="Char" context="#stay"/>
+</context>
+
+
+<!-- built in types -->
+
+<context attribute="built in types" name="built in types finder">
+    <keyword attribute="Data Type" context="#stay" String="types" />
+</context>
+
+<!-- extensions -->
+
+<context attribute="Extensions" name="extensions finder">
+    <keyword attribute="Extensions" context="#stay" String="qt_extensions" />
+</context>
+
+<!-- Keywords -->
+
+<context attribute="Keyword" name="keyword finder">
+    <keyword attribute="Keyword" context="#stay" String="keywords" />
+</context>
+
+<!-- Detect number literals -->
+
+<context attribute="Float" name="number finder">
+
+
+    <Float attribute="Float" context="#stay">
+        <AnyChar String="fF" attribute="Float" context="#stay"/>
+    </Float>
+
+    <HlCOct attribute="Octal" context="#stay"/>
+
+    <HlCHex attribute="Hex" context="#stay"/>
+
+    <Int attribute="Decimal" context="#stay">
+
+        <StringDetect attribute="Decimal" context="#stay" String="ULL" insensitive="TRUE"/>
+        <StringDetect attribute="Decimal" context="#stay" String="LUL" insensitive="TRUE"/>
+        <StringDetect attribute="Decimal" context="#stay" String="LLU" insensitive="TRUE"/>
+        <StringDetect attribute="Decimal" context="#stay" String="UL" insensitive="TRUE"/>
+        <StringDetect attribute="Decimal" context="#stay" String="LU" insensitive="TRUE"/>
+        <StringDetect attribute="Decimal" context="#stay" String="LL" insensitive="TRUE"/>
+        <StringDetect attribute="Decimal" context="#stay" String="U" insensitive="TRUE"/>
+        <StringDetect attribute="Decimal" context="#stay" String="L" insensitive="TRUE"/>
+
+    </Int>
+
+</context>
+
+
+<!-- Comments -->
+
+<context attribute="Commnet" name="comment finder">
+    <Detect2Chars attribute="Comment" context="Commentar 1" char="/" char1="/"/>
+    <Detect2Chars attribute="Comment" context="Commentar 2" char="/" char1="*" beginRegion="Comment"/>
+</context>
+
+<context attribute="Comment" lineEndContext="#pop" name="Commentar 1">
+    <DetectSpaces />
+    <IncludeRules context="##Alerts" />
+    <DetectIdentifier />
+</context>
+
+<context attribute="Comment" lineEndContext="#stay" name="Commentar 2">
+    <DetectSpaces />
+    <Detect2Chars attribute="Comment" context="#pop" char="*" char1="/" endRegion="Comment"/>
+    <IncludeRules context="##Alerts" />
+    <DetectIdentifier />
+</context>
+
+<!-- QuickBook import markups -->
+
+<context attribute="Comment" lineEndContext="#stay" name="Quickbook Commentar 1">
+    <DetectSpaces />
+    <StringDetect attribute="Extensions" context="#pop" String="*/" endRegion="Comment"/>
+    <IncludeRules context="##Alerts" />
+    <DetectIdentifier />
+</context>
+
+<context attribute="Comment" lineEndContext="#stay" name="Quickbook Commentar 2">
+    <DetectSpaces />
+    <StringDetect attribute="Extensions" context="#pop" String="&gt;&gt;*/" endRegion="Comment"/>
+    <IncludeRules context="##Alerts" />
+    <DetectIdentifier />
+</context>
+
+<context attribute="Comment" lineEndContext="#stay" name="Quickbook Commentar 3">
+    <DetectSpaces />
+    <StringDetect attribute="Extensions" context="#pop" String="&gt;*/" endRegion="Comment"/>
+    <IncludeRules context="##Alerts" />
+    <DetectIdentifier />
+</context>
+
+<context name="quickbook_import_markup" attribute="Commnet">
+    <RegExpr attribute="Extensions" context="Commentar 1" String="//\[\s*\w+"/>
+    <StringDetect attribute="Extensions" context="Commentar 1" String="//]"/>
+    <StringDetect attribute="Extensions" context="Commentar 1" String="//`"/>
+    <StringDetect attribute="Extensions" context="Commentar 1" String="//&lt;--"/>
+    <StringDetect attribute="Extensions" context="Commentar 1" String="//--&gt;"/>
+    <StringDetect attribute="Extensions" context="Quickbook Commentar 1" String="/*`" beginRegion="Comment"/>
+    <StringDetect attribute="Extensions" context="Quickbook Commentar 2" String="/*&lt;&lt;" beginRegion="Comment"/>
+    <StringDetect attribute="Extensions" context="Quickbook Commentar 3" String="/*&lt;" beginRegion="Comment"/>
+</context>
+
+
+<!-- Regions -->
+
+<context attribute="Symbol" name="region finder">
+
+    <DetectChar attribute="Symbol" context="#stay" char="{" beginRegion="Brace1" />
+    <DetectChar attribute="Symbol" context="#stay" char="}" endRegion="Brace1" />
+
+</context>
+
+<!-- Other reserved symbols -->
+
+<context attribute="Symbol" name="symbol finder">
+
+    <AnyChar attribute="Symbol" context="#stay" String=":!%&amp;()+,-/.*&lt;=&gt;?[]{|}~^&#59;"/>
+
+</context>
+
+<!-- Preprocessor -->
+
+<context attribute="Preprocessor" name="preprocessor finder">
+
+    <!-- ifdef/ifndef region markers -->
+
+    <RegExpr attribute="Preprocessor" context="Outscoped" String="#\s*if\s+0" beginRegion="Outscoped" firstNonSpace="true" />
+
+    <!-- Enter the preprocessor -->
+
+    <DetectChar attribute="Preprocessor" context="Preprocessor" char="#" firstNonSpace="true" />
+
+</context>
+
+<context attribute="Preprocessor" lineEndContext="#pop" name="Preprocessor">
+
+    <LineContinue attribute="Preprocessor" context="#stay"/>
+    <RegExpr attribute="Preprocessor" context="Define" String="define.*((?=\\))"/>
+    <RegExpr attribute="Preprocessor" context="#stay" String="define.*"/>
+    <RangeDetect attribute="Prep. Lib" context="#stay" char="&quot;" char1="&quot;"/>
+    <RangeDetect attribute="Prep. Lib" context="#stay" char="&lt;" char1="&gt;"/>
+    <IncludeRules context="##Doxygen" />
+    <IncludeRules context="quickbook_import_markup" />
+    <Detect2Chars attribute="Comment" context="Commentar 1" char="/" char1="/"/>
+    <Detect2Chars attribute="Comment" context="Commentar/Preprocessor" char="/" char1="*"/>
+
+</context>
+
+<context attribute="Preprocessor" lineEndContext="#pop" name="Define">
+    <LineContinue attribute="Preprocessor" context="#stay"/>
+</context>
+
+<context attribute="Comment" lineEndContext="#stay" name="Commentar/Preprocessor">
+    <DetectSpaces />
+    <Detect2Chars attribute="Comment" context="#pop" char="*" char1="/" />
+    <DetectIdentifier />
+</context>
+
+<context attribute="Comment" lineEndContext="#stay" name="Outscoped" >
+    <DetectSpaces />
+    <IncludeRules context="##Alerts" />
+    <DetectIdentifier />
+    <DetectChar attribute="String" context="String" char="&quot;"/>
+    <IncludeRules context="##Doxygen" />
+    <IncludeRules context="quickbook_import_markup" />
+    <Detect2Chars attribute="Comment" context="Commentar 1" char="/" char1="/"/>
+    <Detect2Chars attribute="Comment" context="Commentar 2" char="/" char1="*" beginRegion="Comment"/>
+    <RegExpr attribute="Comment" context="Outscoped intern" String="#\s*if" beginRegion="Outscoped" firstNonSpace="true" />
+    <RegExpr attribute="Preprocessor" context="#pop" String="#\s*(endif|else|elif)" endRegion="Outscoped" firstNonSpace="true" />
+</context>
+
+<context attribute="Comment" lineEndContext="#stay" name="Outscoped intern">
+
+    <DetectSpaces />
+    <IncludeRules context="##Alerts" />
+    <DetectIdentifier />
+    <DetectChar attribute="String" context="String" char="&quot;"/>
+    <IncludeRules context="##Doxygen" />
+    <IncludeRules context="quickbook_import_markup" />
+    <Detect2Chars attribute="Comment" context="Commentar 1" char="/" char1="/"/>
+    <Detect2Chars attribute="Comment" context="Commentar 2" char="/" char1="*" beginRegion="Comment"/>
+    <RegExpr attribute="Comment" context="Outscoped intern" String="#\s*if" beginRegion="Outscoped" firstNonSpace="true"/>
+    <RegExpr attribute="Comment" context="#pop" String="#\s*endif" endRegion="Outscoped" firstNonSpace="true"/>
+
+</context>
+
+
+<!-- boost::hs -->
+
+<context attribute="Comment" lineEndContext="#pop" name="boost::hs skip line" >
+
+</context>
+
+
+<context attribute="Comment" lineEndContext="#pop#pop" name="boost::hs skip line and pop pop" >
+
+</context>
+
+
+<context attribute="Comment" lineEndContext="boost::hs is off" name="boost::hs has gone off" >
+
+</context>
+
+
+<context attribute="Comment" name="boost::hs call finder">
+
+    <StringDetect attribute="boost::hs" context="boost::hs skip line" String="//boost::hs::begin_region()" beginRegion="boost::hs::Region" firstNonSpace="true" />
+    <StringDetect attribute="boost::hs" context="boost::hs skip line" String="//boost::hs::end_region()" endRegion="boost::hs::Region" firstNonSpace="true" />
+
+    <StringDetect attribute="boost::hs" context="boost::hs has gone off" String="//boost::hs::turn_off()" beginRegion="boost::hs::ScapedRegion" firstNonSpace="true" />
+    <StringDetect attribute="boost::hs" context="boost::hs skip line" String="//boost::hs::turn_on()" firstNonSpace="true" />
+
+</context>
+
+<context attribute="Normal Text" name="boost::hs is off">
+
+    <StringDetect attribute="boost::hs" context="boost::hs skip line and pop pop" String="//boost::hs::turn_off()" endRegion="boost::hs::ScapedRegion" firstNonSpace="true" />
+    <StringDetect attribute="boost::hs" context="#stay" String="//boost::hs::turn_on()" firstNonSpace="true" />
+
+</context>
+
+
+</contexts>
+
+<itemDatas>
+
+    <itemData name="Normal Text"  defStyleNum="dsNormal"/>
+    <itemData name="Keyword"      defStyleNum="dsKeyword"/>
+    <itemData name="Extensions"   defStyleNum="dsKeyword" color="#0095ff" selColor="#ffffff" bold="1" italic="0"/>
+    <itemData name="Data Type"    defStyleNum="dsDataType"/>
+    <itemData name="Decimal"      defStyleNum="dsDecVal"/>
+    <itemData name="Octal"        defStyleNum="dsBaseN"/>
+    <itemData name="Hex"          defStyleNum="dsBaseN"/>
+    <itemData name="Float"        defStyleNum="dsFloat"/>
+    <itemData name="Char"         defStyleNum="dsChar"/>
+    <itemData name="String"       defStyleNum="dsString"/>
+    <itemData name="String Char"  defStyleNum="dsChar"/>
+    <itemData name="Comment"      defStyleNum="dsComment"/>
+    <itemData name="Symbol"       defStyleNum="dsNormal"/>
+    <itemData name="Preprocessor" defStyleNum="dsOthers"/>
+    <itemData name="Prep. Lib"    defStyleNum="dsOthers"/>
+    <itemData name="boost::hs"    defStyleNum="dsOthers"/>
+
+</itemDatas>
+
+</highlighting>
+
+<general>
+
+    <comments>
+
+        <comment name="singleLine" start="//" />
+        <comment name="multiLine" start="/*" end="*/" region="Comment"/>
+
+    </comments>
+
+    <keywords casesensitive="1" />
+
+</general>
+
+</language>
+
+
+<!--
+
+Aknowelegments
+=================================================
+
+Version history
+=================================================
+
+[ 0.1.0 ] Initial beta.
+
+Known bugs
+=================================================
+
+-->

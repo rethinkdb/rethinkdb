@@ -1,0 +1,201 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;1.&#160;Boost.NumericConversion</title>
+<link rel="stylesheet" href="boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"></div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="numeric_conversion"></a>Chapter&#160;1.&#160;Boost.NumericConversion</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Fernando Luis</span> <span class="surname">Cacciola Carballal</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2004-2007 Fernando
+      Luis Cacciola Carballal</p></div>
+<div><div class="legalnotice">
+<a name="numeric_conversion.legal"></a>
+      <p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a class="ulink" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+    </div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><span class="section"><a href="index.html#numeric_conversion.overview">Overview</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/definitions.html">Definitions</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_numericconversion/definitions.html#boost_numericconversion.definitions.introduction">Introduction</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/definitions.html#boost_numericconversion.definitions.types_and_values">Types
+      and Values</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/definitions.html#boost_numericconversion.definitions.c___arithmetic_types">C++
+      Arithmetic Types</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/definitions.html#boost_numericconversion.definitions.numeric_types">Numeric
+      Types</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/definitions.html#boost_numericconversion.definitions.range_and_precision">Range
+      and Precision</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/definitions.html#boost_numericconversion.definitions.exact__correctly_rounded_and_out_of_range_representations">Exact,
+      Correctly Rounded and Out-Of-Range Representations</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/definitions.html#boost_numericconversion.definitions.standard__numeric__conversions">Standard
+      (numeric) Conversions</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/definitions.html#boost_numericconversion.definitions.subranged_conversion_direction__subtype_and_supertype">Subranged
+      Conversion Direction, Subtype and Supertype</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_numericconversion/converter___function_object.html">converter&lt;&gt;
+    function object</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_numericconversion/converter___function_object.html#boost_numericconversion.converter___function_object.synopsis">Synopsis</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/converter___function_object.html#boost_numericconversion.converter___function_object.template_parameters">Template
+      parameters</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/converter___function_object.html#boost_numericconversion.converter___function_object.member_functions">Member
+      functions</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/converter___function_object.html#boost_numericconversion.converter___function_object.range_checking_logic">Range
+      Checking Logic</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/converter___function_object.html#boost_numericconversion.converter___function_object.examples">Examples</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_numericconversion/type_requirements_and_user_defined_types_support.html">Type
+    Requirements and User-defined-types support</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_numericconversion/type_requirements_and_user_defined_types_support.html#boost_numericconversion.type_requirements_and_user_defined_types_support.type_requirements">Type
+      Requirements</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/type_requirements_and_user_defined_types_support.html#boost_numericconversion.type_requirements_and_user_defined_types_support.udt_s_special_semantics">UDT's
+      special semantics</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/type_requirements_and_user_defined_types_support.html#boost_numericconversion.type_requirements_and_user_defined_types_support.special_policies">Special
+      Policies</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/type_requirements_and_user_defined_types_support.html#boost_numericconversion.type_requirements_and_user_defined_types_support.udts_with_numeric_cast">UDTs
+      with numeric_cast</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_numericconversion/bounds___traits_class.html">bounds&lt;&gt;
+    traits class</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_numericconversion/bounds___traits_class.html#boost_numericconversion.bounds___traits_class.introduction">Introduction</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/bounds___traits_class.html#boost_numericconversion.bounds___traits_class.traits_class_bounds_n_">traits
+      class bounds&lt;N&gt;</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/bounds___traits_class.html#boost_numericconversion.bounds___traits_class.examples">Examples</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_numericconversion/conversion_traits___traits_class.html">conversion_traits&lt;&gt;
+    traits class</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_numericconversion/conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.types">Types</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/conversion_traits___traits_class.html#boost_numericconversion.conversion_traits___traits_class.examples">Examples</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_numericconversion/numeric_converter_policy_classes.html">Numeric
+    Converter Policy Classes</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_numericconversion/numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.enum_range_check_result">enum
+      range_check_result</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_overflowhandler">Policy
+      OverflowHandler</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_float2introunder">Policy
+      Float2IntRounder</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_rawconverter">Policy
+      RawConverter</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_userrangechecker">Policy
+      UserRangeChecker</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_numericconversion/improved_numeric_cast__.html">Improved
+    numeric_cast&lt;&gt;</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_numericconversion/improved_numeric_cast__.html#boost_numericconversion.improved_numeric_cast__.introduction">Introduction</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/improved_numeric_cast__.html#boost_numericconversion.improved_numeric_cast__.numeric_cast">numeric_cast</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/improved_numeric_cast__.html#boost_numericconversion.improved_numeric_cast__.numeric_cast_traits">numeric_cast_traits</a></span></dt>
+<dt><span class="section"><a href="boost_numericconversion/improved_numeric_cast__.html#boost_numericconversion.improved_numeric_cast__.examples">Examples</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="numeric_conversion/history_and_acknowledgments.html">History
+    and Acknowledgments</a></span></dt>
+<dt><span class="section"><a href="numeric_conversion/bibliography.html">Bibliography</a></span></dt>
+</dl>
+</div>
+  
+  
+  <div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="numeric_conversion.overview"></a><a class="link" href="index.html#numeric_conversion.overview" title="Overview">Overview</a>
+</h2></div></div></div>
+    
+    <p>
+      The Boost Numeric Conversion library is a collection of tools to describe and
+      perform conversions between values of different <a class="link" href="boost_numericconversion/definitions.html#boost_numericconversion.definitions.numeric_types" title="Numeric Types">numeric
+      types</a>.
+    </p>
+    <p>
+      The library includes a special alternative for a subset of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;&gt;</span></code>, the <a class="link" href="boost_numericconversion/bounds___traits_class.html" title="bounds&lt;&gt; traits class">bounds&lt;&gt;</a>
+      traits class, which provides a consistent way to obtain the <a class="link" href="boost_numericconversion/definitions.html#boost_numericconversion.definitions.range_and_precision" title="Range and Precision">boundary</a>
+      values for the <a class="link" href="boost_numericconversion/definitions.html#boost_numericconversion.definitions.range_and_precision" title="Range and Precision">range</a>
+      of a numeric type.
+    </p>
+    <p>
+      It also includes a set of <a class="link" href="boost_numericconversion/conversion_traits___traits_class.html" title="conversion_traits&lt;&gt; traits class">trait
+      classes</a> which describes the compile-time properties of a conversion
+      from a source to a target numeric type. Both <a class="link" href="boost_numericconversion/definitions.html#boost_numericconversion.definitions.c___arithmetic_types" title="C++ Arithmetic Types">arithmetic</a>
+      and <a class="link" href="boost_numericconversion/definitions.html#boost_numericconversion.definitions.numeric_types" title="Numeric Types">user-defined
+      numeric types</a> can be used.
+    </p>
+    <p>
+      A policy-based <a class="link" href="boost_numericconversion/converter___function_object.html" title="converter&lt;&gt; function object">converter</a>
+      object which uses <code class="computeroutput"><span class="identifier">conversion_traits</span></code>
+      to select an optimized implementation is supplied. Such implementation uses
+      an optimal range checking code suitable for the source/target combination.
+    </p>
+    <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+        
+          The converter's out-of-range behavior can be customized via an <a class="link" href="boost_numericconversion/numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_overflowhandler" title="Policy OverflowHandler">OverflowHandler</a>
+          policy.
+        
+      </li>
+<li class="listitem">
+        
+          For floating-point to integral conversions, the rounding mode can be selected
+          via the <a class="link" href="boost_numericconversion/numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_float2introunder" title="Policy Float2IntRounder">Float2IntRounder</a>
+          policy.
+        
+      </li>
+<li class="listitem">
+        
+          A custom low-level conversion routine (for UDTs for instance) can be passed
+          via a <a class="link" href="boost_numericconversion/numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_rawconverter" title="Policy RawConverter">RawConverter</a>
+          policy.
+        
+      </li>
+<li class="listitem">
+        
+          The optimized automatic range-checking logic can be overridden via a <a class="link" href="boost_numericconversion/numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_userrangechecker" title="Policy UserRangeChecker">UserRangeChecker</a>
+          policy.
+        
+      </li>
+</ul></div>
+  </div>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: November 21, 2011 at 16:44:25 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"></div>
+</body>
+</html>

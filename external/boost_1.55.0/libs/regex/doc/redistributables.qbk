@@ -1,0 +1,28 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:redist Redistributables]
+
+If you are using Microsoft or Borland C++ and link to a dll version of the 
+run time library, then you can choose to also link to a dll version of Boost.Regex 
+by defining the symbol BOOST_REGEX_DYN_LINK when you compile your code. 
+While these dll's are redistributable, there are no "standard" versions, 
+so when installing on the users PC, you should place these in a 
+directory private to your application, and not in the PC's directory path. 
+Note that if you link to a static version of your run time library, then 
+you will also link to a static version of Boost.Regex and no dll's will 
+need to be distributed. The possible Boost.Regex dll and library names are 
+computed according to the  formula given in 
+[@../../../../more/getting_started.html the getting started guide].
+
+Note: you can disable automatic library selection by defining the 
+symbol BOOST_REGEX_NO_LIB when compiling, this is useful if you want to 
+build Boost.Regex yourself in your IDE, or if you need to debug Boost.Regex. 
+
+[endsect]
+

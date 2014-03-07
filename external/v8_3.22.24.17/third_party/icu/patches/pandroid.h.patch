@@ -1,0 +1,29 @@
+--- a/public/common/unicode/pandroid.h
++++ b/public/common/unicode/pandroid.h
+@@ -272,7 +272,7 @@
+ /*===========================================================================*/
+ 
+ #ifndef U_HAVE_NL_LANGINFO_CODESET
+-#define U_HAVE_NL_LANGINFO_CODESET  1
++#define U_HAVE_NL_LANGINFO_CODESET 0 
+ #endif
+ 
+ #ifndef U_NL_LANGINFO_CODESET
+@@ -283,7 +283,7 @@
+ #define U_TZSET         tzset
+ #endif
+ #if 1
+-#define U_TIMEZONE      __timezone
++#define U_TIMEZONE      timezone
+ #endif
+ #if 1
+ #define U_TZNAME        tzname
+@@ -331,7 +331,7 @@
+ #   ifdef __cplusplus
+ #       define U_INLINE inline
+ #   else
+-#       define U_INLINE __inline__
++#       define U_INLINE inline
+ #   endif
+ #endif
+ 

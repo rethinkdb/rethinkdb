@@ -1,0 +1,172 @@
+[/
+              Copyright Andrey Semashev 2007 - 2013.
+     Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+              http://www.boost.org/LICENSE_1_0.txt)
+
+    This document is a part of Boost.Log library documentation.
+/]
+
+[section:sources Logging sources]
+
+[section:basic_logger Basic loggers]
+
+    #include <``[boost_log_sources_basic_logger_hpp]``>
+
+The simplest logging sources provided by the library are loggers [class_sources_logger] and its thread-safe version, [class_sources_logger_mt] ([class_sources_wlogger] and [class_sources_wlogger_mt] for wide-character logging, accordingly). These loggers only provide the ability to store source-specific attributes within themselves and, of course, to form log records. This type of logger should probably be used when there is no need for advanced features like severity level checks. It may well be used as a tool to collect application statistics and register application events, such as notifications and alarms. In such cases the logger is normally used in conjunction with [link log.detailed.attributes.related_components.scoped_attributes scoped attributes] to attach the needed data to the notification event. Below is an example of usage:
+
+[example_sources_network_connection]
+
+The class `network_connection` in the code snippet above represents an approach to implementing simple logging and statistical information gathering in a network-related application. Each of the presented methods of the class effectively marks a corresponding event that can be tracked and collected on the sinks level. Furthermore, other methods of the class, that are not shown here for simplicity, are able to write logs too. Note that every log record ever made in the connected state of the `network_connection` object will be implicitly marked up with the address of the remote site.
+
+[endsect]
+
+[section:severity_level_logger Loggers with severity level support]
+
+    #include <``[boost_log_sources_severity_feature_hpp]``>
+    #include <``[boost_log_sources_severity_logger_hpp]``>
+
+The ability to distinguish some log records from others based on some kind of level of severity or importance is one of the most frequently requested features. The class templates [class_sources_severity_logger] and [class_sources_severity_logger_mt] (along with their [class_sources_wseverity_logger] and [class_sources_wseverity_logger_mt] wide-character counterparts) provide this functionality.
+
+The loggers automatically register a special source-specific attribute "Severity", which can be set for every record in a compact and efficient manner, with a named argument `severity` that can be passed to the constructor and/or the `open_record` method. If passed to the logger constructor, the `severity` argument sets the default value of the severity level that will be used if none is provided in the `open_record` arguments. The `severity` argument passed to the `open_record` method sets the level of the particular log record being made. The type of the severity level can be provided as a template argument for the logger class template. The default type is `int`.
+
+The actual values of this attribute and their meaning are entirely user-defined. However, it is recommended to use the level of value equivalent to zero as a base point for other values. This is because the default-constructed logger object sets its default severity level to zero. It is also recommended to define the same levels of severity for the entire application in order to avoid confusion in the written logs later. The following code snippet shows the usage of `severity_logger`.
+
+[example_sources_severity]
+[example_sources_default_severity]
+
+Or, if you prefer logging without macros:
+
+[example_sources_severity_manual]
+
+And, of course, severity loggers also provide the same functionality the [link log.detailed.sources.basic_logger basic loggers] do.
+
+[endsect]
+
+[section:channel_logger Loggers with channel support]
+
+    #include <``[boost_log_sources_channel_feature_hpp]``>
+    #include <``[boost_log_sources_channel_logger_hpp]``>
+
+Sometimes it is important to associate log records with some application component, such as the module or class name, the relation of the logged information to some specific domain of application functionality (e.g. network or file system related messages) or some arbitrary tag that can be used later to route these records to a specific sink. This feature is fulfilled with loggers [class_sources_channel_logger], [class_sources_channel_logger_mt] and their wide-char counterparts [class_sources_wchannel_logger], [class_sources_wchannel_logger_mt]. These loggers automatically register an attribute named "Channel". The default channel name can be set in the logger constructor with a named argument `channel`. The type of the channel attribute value can be specified as a template argument for the logger, with `std::string` (`std::wstring` in case of wide character loggers) as a default. Aside from that, the usage is similar to the [link log.detailed.sources.basic_logger basic loggers]:
+
+[example_sources_network_connection_channels]
+
+It is also possible to set the channel name of individual log records. This can be useful when a [link log.detailed.sources.global_storage global logger] is used instead of an object-specific one. The channel name can be set by calling the `channel` modifier on the logger or by using a special macro for logging. For example:
+
+[example_sources_network_connection_dynamic_channels]
+
+Note that changing the channel name is persistent, so unless the channel name is reset, the subsequent records will also belong to the new channel.
+
+[tip For performance reasons it is advised to avoid dynamically setting the channel name individually for every log record, when possible. Changing the channel name involves dynamic memory allocation. Using distinct loggers for different channels allows to avoid this overhead.]
+
+[endsect]
+
+[section:exception_handling Loggers with exception handling support]
+
+    #include <``[boost_log_sources_exception_handler_feature_hpp]``>
+
+The library provides a logger feature that enables the user to handle and/or suppress exceptions at the logger level. The [class_sources_exception_handler] feature adds a `set_exception_handler` method to the logger that allows setting a function object to be called if an exception is thrown from the logging core during the filtering or processing of log records. One can use the [link log.detailed.utilities.exception_handlers library-provided adapters] to simplify implementing exception handlers. Usage example is as follows:
+
+[example_sources_exception_handler]
+
+[tip [link log.detailed.core.core.exception_handling Logging core] and [link log.detailed.sink_frontends.basic_services.exception_handling sink frontends] also support installing exception handlers.]
+
+[endsect]
+
+[section:mixed_loggers Loggers with mixed features]
+
+    #include <``[boost_log_sources_severity_channel_logger_hpp]``>
+
+If you wonder whether you can use a mixed set of several logger features in one logger, then yes, you certainly can. The library provides [class_sources_severity_channel_logger] and [class_sources_severity_channel_logger_mt] (with their wide-char analogues [class_sources_wseverity_channel_logger] and [class_sources_wseverity_channel_logger_mt]) which combine features of the described loggers with [link log.detailed.sources.severity_level_logger severity level] and [link log.detailed.sources.channel_logger channels] support. The composite loggers are templates, too, which allows you to specify severity level and channel types. You can also design your own logger features and combine them with the ones provided by the library, as described in the [link log.extension.sources Extending the library] section.
+
+The usage of the loggers with several features does not conceptually differ from the usage of the single-featured loggers. For instance, here is how a [class_sources_severity_channel_logger_mt] could be used:
+
+[example_sources_severity_channel]
+
+[endsect]
+
+[section:global_storage Global storage for loggers]
+
+    #include <``[boost_log_sources_global_logger_storage_hpp]``>
+
+Sometimes it is inconvenient to have a logger object to be able to write logs. This issue is often present in functional-style code with no obvious places where a logger could be stored. Another domain where the problem persists is generic libraries that would benefit from logging. In such cases it would be more convenient to have one or several global loggers in order to easily access them in every place when needed. In this regard `std::cout` is a good example of such a logger.
+
+The library provides a way to declare global loggers that can be accessed pretty much like `std::cout`. In fact, this feature can be used with any logger, including user-defined ones. Having declared a global logger, one can be sure to have a thread-safe access to this logger instance from any place of the application code. The library also guarantees that a global logger instance will be unique even across module boundaries. This allows employing logging even in header-only components that may get compiled into different modules.
+
+One may wonder why there is a need for something special in order to create global loggers. Why not just declare a logger variable at namespace scope and use it wherever you need? While technically this is possible, declaring and using global logger variables is complicated for the following reasons:
+
+* Order of initialization of namespace scope variables is not specified by the C++ Standard. This means that generally you cannot use the logger during this stage of initialization (i.e. before `main`).
+* Initialization of namespace scope variables is not thread-safe. You may end up initializing the same logger twice or using an uninitialized logger.
+* Using namespace scope variables in a header-only library is quite complicated. One either has to declare a variable with external linkage and define it only in a single translation unit (that is, in a separate .cpp file, which defeats the "header-only" thesis), or define a variable with internal linkage, or as a special case in an anonymous namespace (this will most likely break ODR and give unexpected results when the header is used in different translation units). There are other compiler-specific and standard tricks to tackle the problem, but they are not quite trivial and portable.
+* On most platforms namespace scope variables are local to the module where they were compiled in. That is, if variable `a` has external linkage and was compiled into modules X and Y, each of these modules has its own copy of variable `a`. To make things worse, on other platforms this variable can be shared between the modules.
+
+Global logger storage is intended to eliminate all these problems.
+
+The easiest way to declare a global logger is to use the following macro:
+
+    ``[macroref BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT]``(my_logger, src::severity_logger_mt< >)
+
+The `my_logger` argument gives the logger a name that may be used to acquire the logger instance. This name acts as a tag of the declared logger. The second parameter denotes the logger type. In multithreaded applications, when the logger can be accessed from different threads, users will normally want to use the thread-safe versions of loggers.
+
+If passing arguments to the logger constructor is needed, there is another macro:
+
+    ``[macroref BOOST_LOG_INLINE_GLOBAL_LOGGER_CTOR_ARGS]``(
+        my_logger,
+        src::severity_channel_logger< >,
+        (keywords::severity = error)(keywords::channel = "my_channel"))
+
+The last macro argument is a __boost_preprocessor__ sequence of arguments passed to the logger constructor. Be careful, however, when using non-constant expressions and references to objects as constructor arguments, since the arguments are evaluated only once and it is often difficult to tell the exact moment when it is done. The logger is constructed on the first request from whichever part of the application that has the knowledge of the logger declaration. It is up to user to make sure that all arguments have valid states at that point.
+
+The third macro of this section provides maximum initialization flexibility, allowing the user to actually define the logic of creating the logger.
+
+    ``[macroref BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT]``(my_logger, src::severity_logger_mt)
+    {
+        // Do something that needs to be done on logger initialization,
+        // e.g. add a stop watch attribute.
+        src::severity_logger_mt< > lg;
+        lg.add_attribute("StopWatch", boost::make_shared< attrs::timer >());
+        // The initializing routine must return the logger instance
+        return lg;
+    }
+
+Like the [macroref BOOST_LOG_INLINE_GLOBAL_LOGGER_CTOR_ARGS] macro, the initialization code is called only once, on the first request of the logger.
+
+[important Beware of One Definition Rule (ODR) issues. Regardless of the way of logger declaration you choose, you should ensure that [_the logger is declared in exactly the same way at all occurrences] and [_all symbol names involved in the declaration resolve to the same entities]. The latter includes the names used within the initialization routine of the [macroref BOOST_LOG_INLINE_GLOBAL_LOGGER_INIT] macro, such as references to external variables, functions and types. The library tries to protect itself from ODR violations to a certain degree, but in general the behavior is undefined if the rule is violated.]
+
+In order to alleviate ODR problems, it is possible to separate the logger declaration and its initialization routine. The library provides the following macros to achieve this:
+
+* [macroref BOOST_LOG_GLOBAL_LOGGER] provides the logger declaration. It can be used in a header, similarly to the `BOOST_LOG_INLINE_GLOBAL_LOGGER*` macros described above.
+* [macroref BOOST_LOG_GLOBAL_LOGGER_INIT], [macroref BOOST_LOG_GLOBAL_LOGGER_DEFAULT] and [macroref BOOST_LOG_GLOBAL_LOGGER_CTOR_ARGS] define the logger initialization routine. Their semantics and usage is similar to the corresponding `BOOST_LOG_INLINE_GLOBAL_LOGGER*` macros, for one exception: these macros should be used in a single .cpp file.
+
+For example:
+
+    // my_logger.h
+    // ===========
+
+    BOOST_LOG_GLOBAL_LOGGER(my_logger, src::severity_logger_mt)
+
+
+    // my_logger.cpp
+    // ===========
+
+    #include "my_logger.h"
+
+    BOOST_LOG_GLOBAL_LOGGER_INIT(my_logger, src::severity_logger_mt)
+    {
+        src::severity_logger_mt< > lg;
+        lg.add_attribute("StopWatch", boost::make_shared< attrs::timer >());
+        return lg;
+    }
+
+Regardless of the macro you used to declare the logger, you can acquire the logger instance with the static `get` function of the logger tag:
+
+    src::severity_logger_mt< >& lg = my_logger::get();
+
+Further usage of the logger is the same as if it was a regular logger object of the corresponding type.
+
+[warning It should be noted that it is not advised to use global loggers during the deinitialization stage of the application. Like any other global object in your application, the global logger may get destroyed before you try to use it. In such cases it's better to have a dedicated logger object that is guaranteed to be available as long as needed.]
+
+[endsect]
+
+[endsect]

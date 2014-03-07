@@ -1,0 +1,104 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Scary Iterators</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../intrusive.html" title="Chapter&#160;15.&#160;Boost.Intrusive">
+<link rel="prev" href="thread_safety.html" title="Thread safety guarantees">
+<link rel="next" href="equal_range_stability.html" title="Stability and insertion with hint in ordered associative containers with equivalent keys">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="thread_safety.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="equal_range_stability.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="intrusive.scary_iterators"></a><a class="link" href="scary_iterators.html" title="Scary Iterators">Scary Iterators</a>
+</h2></div></div></div>
+<p>
+      The paper N2913, titled <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2009/n2913.pdf," target="_top">SCARY
+      Iterator Assignment and Initialization</a>, proposed a requirement that
+      a standard container's iterator types have no dependency on any type argument
+      apart from the container's <code class="computeroutput"><span class="identifier">value_type</span></code>,
+      <code class="computeroutput"><span class="identifier">difference_type</span></code>, <code class="computeroutput"><span class="identifier">pointer</span> <span class="identifier">type</span></code>,
+      and <code class="computeroutput"><span class="identifier">const_pointer</span></code> type. In
+      particular, according to the proposal, the types of a standard container's
+      iterators should not depend on the container's <code class="computeroutput"><span class="identifier">key_compare</span></code>,
+      <code class="computeroutput"><span class="identifier">hasher</span></code>, <code class="computeroutput"><span class="identifier">key_equal</span></code>,
+      or <code class="computeroutput"><span class="identifier">allocator</span></code> types.
+    </p>
+<p>
+      That paper demonstrated that SCARY operations were crucial to the performant
+      implementation of common design patterns using STL components. It showed that
+      implementations that support SCARY operations reduce object code bloat by eliminating
+      redundant specializations of iterator and algorithm templates.
+    </p>
+<p>
+      <span class="bold"><strong>Boost.Intrusive</strong></span> containers are a bit different
+      from standard containers. In particular, they have no allocator parameter and
+      they can be configured with additional options not present in STL-like containers.
+      Thus <span class="bold"><strong>Boost.Intrusive</strong></span> offers its own <code class="computeroutput"><span class="identifier">SCARY</span> <span class="identifier">iterator</span></code>
+      implementation, where iterator types don't change when the container is configured
+      with an option that does not alter the value &lt;-&gt; node transformation.
+      More concretely, the following options and conditions guarantee that iterator
+      types are unchanged:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <span class="bold"><strong>All containers</strong></span>: <code class="computeroutput"><span class="identifier">size_type</span><span class="special">&lt;&gt;</span></code>, <code class="computeroutput"><span class="identifier">constant_time_size</span><span class="special">&lt;&gt;</span></code>,
+        </li>
+<li class="listitem">
+          <span class="bold"><strong><code class="computeroutput"><span class="identifier">slist</span></code></strong></span>:
+          <code class="computeroutput"><span class="identifier">cache_last</span><span class="special">&lt;&gt;</span></code>,
+          <code class="computeroutput"><span class="identifier">linear</span><span class="special">&lt;&gt;</span></code>,
+        </li>
+<li class="listitem">
+          <span class="bold"><strong><code class="computeroutput"><span class="identifier">unordered_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span></code></strong></span>:
+          <code class="computeroutput"><span class="identifier">hash</span><span class="special">&lt;&gt;</span></code>,
+          <code class="computeroutput"><span class="identifier">equal</span><span class="special">&lt;&gt;</span></code>,
+          <code class="computeroutput"><span class="identifier">power_2_buckets</span><span class="special">&lt;&gt;</span></code>,
+          <code class="computeroutput"><span class="identifier">cache_begin</span><span class="special">&lt;&gt;</span></code>.
+        </li>
+<li class="listitem">
+          <span class="bold"><strong>All tree-like containers</strong></span> (<code class="computeroutput"><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span></code>,
+          <code class="computeroutput"><span class="identifier">avl_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span></code>, <code class="computeroutput"><span class="identifier">sg_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span></code>,
+          <code class="computeroutput"><span class="identifier">bs_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span></code>, <code class="computeroutput"><span class="identifier">splay_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span></code>,
+          <code class="computeroutput"><span class="identifier">treap_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span></code>): <code class="computeroutput"><span class="identifier">compare</span><span class="special">&lt;&gt;</span></code>.
+        </li>
+<li class="listitem">
+          <span class="bold"><strong><code class="computeroutput"><span class="identifier">treap_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span></code></strong></span>:
+          <code class="computeroutput"><span class="identifier">priority</span><span class="special">&lt;&gt;</span></code>
+        </li>
+<li class="listitem">
+          <span class="bold"><strong><code class="computeroutput"><span class="identifier">bs_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span></code>,
+          <code class="computeroutput"><span class="identifier">sg_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span></code>, <code class="computeroutput"><span class="identifier">treap_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span></code>,
+          <code class="computeroutput"><span class="identifier">splay_</span><span class="special">[</span><span class="identifier">multi</span><span class="special">]</span><span class="identifier">set</span></code></strong></span>: They share the same iterator
+          type when configured with the same options.
+        </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="thread_safety.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="equal_range_stability.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,243 @@
+
+[/ Copyright 2008 Daniel James.
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) ]
+
+[template ticket[number]'''<ulink
+    url="https://svn.boost.org/trac/boost/ticket/'''[number]'''">'''#[number]'''</ulink>''']
+
+[section:changes Change Log]
+
+[h2 Review Version]
+
+Initial review version, for the review conducted from 7th December 2007 to
+16th December 2007.
+
+[h2 1.35.0 Add-on - 31st March 2008]
+
+Unofficial release uploaded to vault, to be used with Boost 1.35.0. Incorporated
+many of the suggestions from the review.
+
+* Improved portability thanks to Boost regression testing.
+* Fix lots of typos, and clearer text in the documentation.
+* Fix floating point to `std::size_t` conversion when calculating sizes from
+  the max load factor, and use `double` in the calculation for greater accuracy.
+* Fix some errors in the examples.
+
+[h2 Boost 1.36.0]
+
+First official release.
+
+* Rearrange the internals.
+* Move semantics - full support when rvalue references are available, emulated
+  using a cut down version of the Adobe move library when they are not.
+* Emplace support when rvalue references and variadic template are available.
+* More efficient node allocation when rvalue references and variadic template
+  are available.
+* Added equality operators.
+
+[h2 Boost 1.37.0]
+
+* Rename overload of `emplace` with hint, to `emplace_hint` as specified in
+  [@http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2008/n2691.pdf n2691].
+* Provide forwarding headers at `<boost/unordered/unordered_map_fwd.hpp>` and
+  `<boost/unordered/unordered_set_fwd.hpp>`.
+* Move all the implementation inside `boost/unordered`, to assist
+  modularization and hopefully make it easier to track changes in subversion.
+
+[h2 Boost 1.38.0]
+
+* Use [@boost:/libs/utility/swap.html `boost::swap`].
+* [@https://svn.boost.org/trac/boost/ticket/2237 Ticket 2237]:
+  Document that the equality and inequality operators are undefined for two
+  objects if their equality predicates aren't equivalent. Thanks to Daniel
+  Krügler.
+* [@https://svn.boost.org/trac/boost/ticket/1710 Ticket 1710]: 
+  Use a larger prime number list. Thanks to Thorsten Ottosen and Hervé
+  Brönnimann.
+* Use
+  [@boost:/libs/type_traits/doc/html/boost_typetraits/category/alignment.html
+  aligned storage] to store the types. This changes the way the allocator is
+  used to construct nodes. It used to construct the node with two calls to
+  the allocator's `construct` method - once for the pointers and once for the
+  value. It now constructs the node with a single call to construct and
+  then constructs the value using in place construction.
+* Add support for C++0x initializer lists where they're available (currently
+  only g++ 4.4 in C++0x mode).
+
+[h2 Boost 1.39.0]
+
+* [@https://svn.boost.org/trac/boost/ticket/2756 Ticket 2756]: Avoid a warning
+  on Visual C++ 2009.
+* Some other minor internal changes to the implementation, tests and
+  documentation.
+* Avoid an unnecessary copy in `operator[]`.
+* [@https://svn.boost.org/trac/boost/ticket/2975 Ticket 2975]: Fix length of
+  prime number list.
+
+[h2 Boost 1.40.0]
+
+* [@https://svn.boost.org/trac/boost/ticket/2975 Ticket 2975]:
+  Store the prime list as a preprocessor sequence - so that it will always get
+  the length right if it changes again in the future.
+* [@https://svn.boost.org/trac/boost/ticket/1978 Ticket 1978]:
+  Implement `emplace` for all compilers.
+* [@https://svn.boost.org/trac/boost/ticket/2908 Ticket 2908],
+  [@https://svn.boost.org/trac/boost/ticket/3096 Ticket 3096]:
+  Some workarounds for old versions of borland, including adding explicit
+  destructors to all containers.
+* [@https://svn.boost.org/trac/boost/ticket/3082 Ticket 3082]:
+  Disable incorrect Visual C++ warnings.
+* Better configuration for C++0x features when the headers aren't available.
+* Create less buckets by default.
+
+[h2 Boost 1.41.0 - Major update]
+
+* The original version made heavy use of macros to sidestep some of the older
+  compilers' poor template support. But since I no longer support those
+  compilers and the macro use was starting to become a maintenance burden it
+  has been rewritten to use templates instead of macros for the implementation
+  classes.
+
+* The container objcet is now smaller thanks to using `boost::compressed_pair`
+  for EBO and a slightly different function buffer - now using a bool instead
+  of a member pointer.
+
+* Buckets are allocated lazily which means that constructing an empty container
+  will not allocate any memory.
+  
+[h2 Boost 1.42.0]
+
+* Support instantiating the containers with incomplete value types.
+* Reduced the number of warnings (mostly in tests).
+* Improved codegear compatibility.
+* [@http://svn.boost.org/trac/boost/ticket/3693 Ticket 3693]:
+  Add `erase_return_void` as a temporary workaround for the current
+  `erase` which can be inefficient because it has to find the next
+  element to return an iterator.
+* Add templated find overload for compatible keys.
+* [@http://svn.boost.org/trac/boost/ticket/3773 Ticket 3773]:
+  Add missing `std` qualifier to `ptrdiff_t`.
+* Some code formatting changes to fit almost all lines into 80 characters.
+
+[h2 Boost 1.43.0]
+
+* [@http://svn.boost.org/trac/boost/ticket/3966 Ticket 3966]:
+  `erase_return_void` is now `quick_erase`, which is the
+  [@http://home.roadrunner.com/~hinnant/issue_review/lwg-active.html#579
+  current forerunner for resolving the slow erase by iterator], although
+  there's a strong possibility that this may change in the future. The old
+  method name remains for backwards compatibility but is considered deprecated
+  and will be removed in a future release.
+* Use Boost.Exception.
+* Stop using deprecated `BOOST_HAS_*` macros.
+
+[h2 Boost 1.45.0]
+
+* Fix a bug when inserting into an `unordered_map` or `unordered_set` using
+  iterators which returns `value_type` by copy.
+
+[h2 Boost 1.48.0 - Major update]
+
+This is major change which has been converted to use Boost.Move's move
+emulation, and be more compliant with the C++11 standard. See the
+[link unordered.compliance compliance section] for details.
+
+The container now meets C++11's complexity requirements, but to do so
+uses a little more memory. This means that `quick_erase` and
+`erase_return_void` are no longer required, they'll be removed in a
+future version.
+
+C++11 support has resulted in some breaking changes:
+
+* Equality comparison has been changed to the C++11 specification.
+  In a container with equivalent keys, elements in a group with equal
+  keys used to have to be in the same order to be considered equal,
+  now they can be a permutation of each other. To use the old
+  behavior define the macro `BOOST_UNORDERED_DEPRECATED_EQUALITY`.
+
+* The behaviour of swap is different when the two containers to be
+  swapped has unequal allocators. It used to allocate new nodes using
+  the appropriate allocators, it now swaps the allocators if
+  the allocator has a member structure `propagate_on_container_swap`,
+  such that `propagate_on_container_swap::value` is true.
+
+* Allocator's `construct` and `destroy` functions are called with raw
+  pointers, rather than the allocator's `pointer` type.
+
+* `emplace` used to emulate the variadic pair constructors that
+  appeared in early C++0x drafts. Since they were removed it no
+  longer does so. It does emulate the new `piecewise_construct`
+  pair constructors - only you need to use
+  `boost::piecewise_construct`. To use the old emulation of
+  the variadic consturctors define
+  `BOOST_UNORDERED_DEPRECATED_PAIR_CONSTRUCT`.
+
+[h2 Boost 1.49.0]
+
+* Fix warning due to accidental odd assignment.
+* Slightly better error messages.
+
+[h2 Boost 1.50.0]
+
+* Fix equality for `unordered_multiset` and `unordered_multimap`.
+* [@https://svn.boost.org/trac/boost/ticket/6857 Ticket 6857]:
+  Implement `reserve`.
+* [@https://svn.boost.org/trac/boost/ticket/6771 Ticket 6771]:
+  Avoid gcc's `-Wfloat-equal` warning.
+* [@https://svn.boost.org/trac/boost/ticket/6784 Ticket 6784]:
+  Fix some Sun specific code.
+* [@https://svn.boost.org/trac/boost/ticket/6190 Ticket 6190]:
+  Avoid gcc's `-Wshadow` warning.
+* [@https://svn.boost.org/trac/boost/ticket/6905 Ticket 6905]:
+  Make namespaces in macros compatible with `bcp` custom namespaces.
+  Fixed by Luke Elliott.
+* Remove some of the smaller prime number of buckets, as they may make
+  collisions quite probable (e.g. multiples of 5 are very common because
+  we used base 10).
+* On old versions of Visual C++, use the container library's implementation
+  of `allocator_traits`, as it's more likely to work.
+* On machines with 64 bit std::size_t, use power of 2 buckets, with Thomas
+  Wang's hash function to pick which one to use. As modulus is very slow
+  for 64 bit values.
+* Some internal changes.
+
+[h2 Boost 1.51.0]
+
+* Fix construction/destruction issue when using a C++11 compiler with a
+  C++03 allocator ([ticket 7100]).
+* Remove a `try..catch` to support compiling without exceptions.
+* Adjust SFINAE use to try to supprt g++ 3.4 ([ticket 7175]).
+* Updated to use the new config macros.
+
+[h2 Boost 1.52.0]
+
+* Faster assign, which assigns to existing nodes where possible, rather than
+  creating entirely new nodes and copy constructing.
+* Fixed bug in `erase_range` ([ticket 7471]).
+* Reverted some of the internal changes to how nodes are created, especially
+  for C++11 compilers. 'construct' and 'destroy' should work a little better
+  for C++11 allocators.
+* Simplified the implementation a bit. Hopefully more robust.
+
+[h2 Boost 1.53.0]
+
+* Remove support for the old pre-standard variadic pair constructors, and
+  equality implementation. Both have been deprecated since Boost 1.48.
+* Remove use of deprecated config macros.
+* More internal implementation changes, including a much simpler
+  implementation of `erase`.
+
+[h2 Boost 1.54.0]
+
+* Mark methods specified in standard as `noexpect`. More to come in the next
+  release.
+* If the hash function and equality predicate are known to both have nothrow
+  move assignment or construction then use them.
+
+[h2 Boost 1.55.0]
+
+* Avoid some warnings ([ticket 8851], [ticket 8874]).
+* Avoid exposing some detail functions via. ADL on the iterators.
+
+[endsect]

@@ -1,0 +1,146 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/gl.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/gl.xml
+ */
+gl{
+    Version{"2.0.47.53"}
+    zoneStrings{
+        "America:Argentina:Rio_Gallegos"{
+            ec{"Río Gallegos"}
+        }
+        "America:Argentina:Tucuman"{
+            ec{"Tucumán"}
+        }
+        "America:Belem"{
+            ec{"Belém"}
+        }
+        "America:Buenos_Aires"{
+            ec{"Bos Aires"}
+        }
+        "America:Cancun"{
+            ec{"Cancún"}
+        }
+        "America:Cordoba"{
+            ec{"Córdoba"}
+        }
+        "America:Indiana:Knox"{
+            ec{"Knox"}
+        }
+        "America:Indiana:Marengo"{
+            ec{"Marengo"}
+        }
+        "America:Indiana:Petersburg"{
+            ec{"Petersburg"}
+        }
+        "America:Indiana:Tell_City"{
+            ec{"Tell City"}
+        }
+        "America:Indiana:Vevay"{
+            ec{"Vevay"}
+        }
+        "America:Indiana:Vincennes"{
+            ec{"Vincennes"}
+        }
+        "America:Indiana:Winamac"{
+            ec{"Winamac"}
+        }
+        "America:Kentucky:Monticello"{
+            ec{"Monticello"}
+        }
+        "America:Maceio"{
+            ec{"Maceió"}
+        }
+        "America:Mazatlan"{
+            ec{"Mazatlán"}
+        }
+        "America:Merida"{
+            ec{"Mérida"}
+        }
+        "America:Mexico_City"{
+            ec{"Cidade de México"}
+        }
+        "America:Monterrey"{
+            ec{"Monterrei"}
+        }
+        "America:North_Dakota:Center"{
+            ec{"Central"}
+        }
+        "America:North_Dakota:New_Salem"{
+            ec{"New Salem"}
+        }
+        "America:Sao_Paulo"{
+            ec{"São Paulo"}
+        }
+        "America:St_Johns"{
+            ec{"St Johns"}
+        }
+        "Antarctica:DumontDUrville"{
+            ec{"Dumont-d'Urville"}
+        }
+        "Antarctica:South_Pole"{
+            ec{"Polo Sul"}
+        }
+        "Asia:Jakarta"{
+            ec{"Iacarta"}
+        }
+        "Asia:Samarkand"{
+            ec{"Samarcanda"}
+        }
+        "Asia:Ulaanbaatar"{
+            ec{"Ulan Bator"}
+        }
+        "Asia:Yekaterinburg"{
+            ec{"Ecaterinburgo"}
+        }
+        "Atlantic:Canary"{
+            ec{"Illas Canarias"}
+        }
+        "Etc:Unknown"{
+            ec{"Descoñecido"}
+        }
+        "Europe:Kaliningrad"{
+            ec{"Kaliningrado"}
+        }
+        "Europe:Moscow"{
+            ec{"Moscova"}
+        }
+        "Europe:Volgograd"{
+            ec{"Volgogrado"}
+        }
+        "Pacific:Easter"{
+            ec{"Illa de Pascua"}
+        }
+        "Pacific:Galapagos"{
+            ec{"Illas Galápagos"}
+        }
+        "Pacific:Honolulu"{
+            ec{"Honolulú"}
+        }
+        "meta:Europe_Central"{
+            ld{"horario de verán europeo central"}
+            ls{"horario europeo central"}
+        }
+        "meta:Europe_Eastern"{
+            ld{"horario de verán europeo oriental"}
+            ls{"horario europeo oriental"}
+        }
+        "meta:Europe_Western"{
+            ld{"horario de verán europeo occidental"}
+            ls{"horario europeo occidental"}
+        }
+        "meta:GMT"{
+            ls{"horario medio de Greenwich"}
+        }
+        fallbackFormat{"{1} ({0})"}
+        gmtFormat{"GMT{0}"}
+        hourFormat{"+HH:mm;-HH:mm"}
+        regionFormat{"Hora de {0}"}
+    }
+}

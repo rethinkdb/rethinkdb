@@ -1,0 +1,22 @@
+<section id="array.more.info">
+   <title>For more information...</title>
+   <para>
+      To find more details about using ordinary arrays in C++ and
+      the framework of the STL, see e.g.
+
+      <literallayout>
+         The C++ Standard Library - A Tutorial and Reference
+         by Nicolai M. Josuttis
+         Addison Wesley Longman, 1999
+         ISBN 0-201-37926-0
+      </literallayout>
+   </para>
+
+   <para>
+      <ulink url="http://www.josuttis.com/">
+         Home Page of Nicolai
+         Josuttis
+      </ulink>
+   </para>
+</section>
+

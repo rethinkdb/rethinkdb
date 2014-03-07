@@ -1,0 +1,423 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Iostreams Quick Reference</TITLE>
+    <LINK REL="stylesheet" HREF="../../../boost.css">
+    <LINK REL="stylesheet" HREF="theme/iostreams.css">
+<STYLE> 
+    DT A { /*text-decoration:none*/ } 
+    LI A { /*text-decoration:none;*/ font: 80% Verdana, Tahoma, Arial, Helvetica, sans-serif }
+</STYLE>
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Quick Reference</H1>
+    <HR STYLE="margin-bottom:1em">
+
+<!-- End Banner -->
+
+<DL CLASS="page-index">
+  <DT><A href="#core">Core Components</A></DT>
+  <DT><A href="#devices">Devices</A></DT>
+  <DT><A href="#filters">Filters</A></DT>
+  <DT><A href="#algorithms">Algorithms</A></DT>
+  <DT><A href="#views">Views</A></DT>
+</DL>
+
+<HR STYLE="margin-top:1em">
+
+<!-- -------------- Core Components -------------- -->
+
+<A NAME='core'></A>
+<H2>Core Components</H2>
+
+<P>These components form the interface between Boost.Iostreams and the standard iostreams library.</P>
+
+<TABLE STYLE="margin-bottom:1em" BORDER="1" CELLPADDING="6" CELLSPACING="1">
+<TR>
+    <TH>Name</TH>
+    <TH>Header<A STYLE='font-weight:normal' CLASS='footnote_ref' NAME='note_1_ref' HREF="#note_1"><SUP>[1]</SUP></A></TH>
+    <TH>Description</TH>
+</TR>
+<TR>
+    <TD><A HREF="guide/generic_streams.html#stream"><CODE>stream</CODE></A></TD>
+    <TD><A HREF="../../../boost/iostreams/stream.hpp"><CODE>stream.hpp</CODE></A></TD>
+    <TD>
+        Stream template which performs i/o using an instance of its first template parameter, which must model the concept <A HREF="concepts/device.html">Device</A>. Derives from <CODE>std::basic_istream</CODE>, <CODE>std::basic_ostream</CODE> or <CODE>std::basic_iostream</CODE> depending on whether its first template parameter models <A HREF="concepts/source.html">Source</A>, <A HREF="concepts/sink.html">Sink</A> or both.
+    </TD>
+</TR>
+<TR>
+    <TD><A HREF="guide/generic_streams.html#stream_buffer"><CODE>stream_buffer</CODE></A></TD>
+    <TD><A HREF="../../../boost/iostreams/stream_buffer.hpp"><CODE>stream_buffer.hpp</CODE></A></TD>
+    <TD>
+        Stream buffer template which performs i/o using an instance of its first template parameter, which must model the concept <A HREF="concepts/device.html">Device</A>.
+    </TD>
+</TR>
+<TR>
+    <TD><A HREF="classes/filtering_stream.html"><CODE>filtering_stream</CODE></A></TD>
+    <TD><A HREF="../../../boost/iostreams/filtering_stream.hpp"><CODE>filtering_stream.hpp</CODE></A></TD>
+    <TD>
+        Stream template which performs filtered i/o using a contained <A HREF="classes/chain.html"><CODE>chain</CODE></A>. Derives from <CODE>std::basic_istream</CODE>, <CODE>std::basic_ostream</CODE> or <CODE>std::basic_iostream</CODE> depending on its <A HREF="guide/modes.html">mode</A>, which is specified as its first template parameter.
+    </TD>
+</TR>
+<TR>
+    <TD><A HREF="classes/filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A></TD>
+    <TD><A HREF="../../../boost/iostreams/filtering_streambuf.hpp"><CODE>filtering_streambuf.hpp</CODE></A></TD>
+    <TD>
+        Stream buffer template which performs filtered i/o using a contained <A HREF="classes/chain.html"><CODE>chain</CODE></A>.
+    </TD>
+</TR>
+<TR>
+    <TD><A HREF="classes/chain.html"><CODE>chain</CODE></A></TD>
+    <TD><A HREF="../../../boost/iostreams/chain.hpp"><CODE>chain.hpp</CODE></A></TD>
+    <TD>
+        Sequence of zero or more <A HREF="concepts/filter.html">Filters</A>, followed by an optional <A HREF="concepts/device.html">Device</A>, accessed with a stack-like interface. Used by <A HREF="classes/filtering_stream.html"><CODE>filtering_stream</CODE></A> and <A HREF="classes/filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A>.
+    </TD>
+</TR>
+<TR>
+    <TD><A HREF="classes/code_converter.html"><CODE>code_converter</CODE></A></TD>
+    <TD><A HREF="../../../boost/iostreams/code_converter.hpp"><CODE>code_converter.hpp</CODE></A></TD>
+    <TD>
+        Device adapter which takes a narrow-character <A HREF="concepts/device.html">Device</A> and produces a wide-character <A HREF="concepts/device.html">Device</A> by introducing a layer of <A HREF="guide/code_conversion.html">code conversion</A>.
+    </TD>
+</TR>
+</TABLE>
+
+<!-- -------------- Devices -------------- -->
+
+<A NAME='devices'></A>
+<H2>Devices</H2>
+
+<TABLE STYLE="margin-bottom:1em" BORDER="1" CELLPADDING="6" CELLSPACING="1">
+<TR>
+    <TH>Device</TH>
+    <TH>Header<A STYLE='font-weight:normal' CLASS='footnote_ref' NAME='note_2_ref' HREF="#note_2"><SUP>[2]</SUP></A></TH>
+    <TH>Description</TH>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/array.html#array_source"><CODE>basic_array_source</CODE></A>,<BR>
+        <A HREF="classes/array.html#array_sink"><CODE>basic_array_sink</CODE></A>,<BR>
+        <A HREF="classes/array.html#array"><CODE>basic_array</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/device/array.hpp"><CODE>array.hpp</CODE></A></TD>
+    <TD>
+        Accesses a in-memory character sequence.
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/back_inserter.html#synopsis"><CODE>back_insert_device</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/device/back_inserter.hpp"><CODE>back_inserter.hpp</CODE></A></TD>
+    <TD>
+        Appends to an STL sequence.
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/file.html#file_source"><CODE>basic_file_source</CODE></A>,<BR>
+        <A HREF="classes/file.html#file_sink"><CODE>basic_file_sink</CODE></A>,<BR>
+        <A HREF="classes/file.html#file"><CODE>basic_file</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/device/file.hpp"><CODE>file.hpp</CODE></A></TD>
+    <TD>
+        Accesses the filesystem using a <CODE>std::basic_filebuf</CODE>.
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/null.html#null_source"><CODE>basic_null_source</CODE></A>
+    </TD>
+    <TD ROWSPAN=2><A HREF="../../../boost/iostreams/device/null.hpp"><CODE>null.hpp</CODE></A></TD>
+    <TD>
+        Reads characters from an empty sequence.
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/null.html#null_sink"><CODE>basic_null_sink</CODE></A>
+    </TD>
+    <TD>
+        Consumes and ignores characters.
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/file_descriptor.html#file_descriptor_source"><CODE>file_descriptor_source</CODE></A>,<BR>
+        <A HREF="classes/file_descriptor.html#file_descriptor_sink"><CODE>file_descriptor_sink</CODE></A>,<BR>
+        <A HREF="classes/file_descriptor.html#file_descriptor"><CODE>file_descriptor</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/device/file_descriptor.hpp"><CODE>file_descriptor.hpp</CODE></A></TD>
+    <TD>
+        Accesses the filesystem using an operating system file descriptor or file handle.
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/mapped_file.html#mapped_file_source"><CODE>mapped_file_source</CODE></A>,<BR>
+        <A HREF="classes/mapped_file.html#mapped_file_sink"><CODE>mapped_file_sink</CODE></A>,<BR>
+        <A HREF="classes/mapped_file.html#mapped_file"><CODE>mapped_file</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/device/mapped_file.hpp"><CODE>mapped_file.hpp</CODE></A></TD>
+    <TD>
+        Accesses a memory-mapped file.
+    </TD>
+</TR>
+</TABLE>
+
+<!-- -------------- Filters -------------- -->
+
+<A NAME='filters'></A>
+<H2>Filters</H2>
+
+<TABLE STYLE="margin-bottom:1em" BORDER="1" CELLPADDING="6" CELLSPACING="1">
+<TR>
+    <TH>Category</TH>
+    <TH>Filter</TH>
+    <TH>Header<A STYLE='font-weight:normal' CLASS='footnote_ref' NAME='note_3_ref' HREF="#note_3"><SUP>[3]</SUP></A></TH>
+    <TH>Description</TH>
+</TR>
+
+<!-- -------------- Compression -------------- -->
+
+<TR>
+    <TH ROWSPAN=3>Compression</TH>
+    <TD>
+        <A HREF="classes/bzip2.html#basic_bzip2_compressor"><CODE>basic_bzip2_compressor</CODE></A>,<BR>
+        <A HREF="classes/bzip2.html#basic_bzip2_decompressor"><CODE>basic_bzip2_decompressor</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/filter/bzip2.hpp"><CODE>bzip2.hpp</CODE></A></TD>
+    <TD>
+        Perform compression and decompression using the libbzip2 data compression library (<A CLASS='bib_ref' HREF="bibliography.html#seward">[Seward]</A>).
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/gzip.html#basic_gzip_compressor"><CODE>basic_gzip_compressor</CODE></A>,<BR>
+        <A HREF="classes/gzip.html#basic_gzip_decompressor"><CODE>basic_gzip_decompressor</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/filter/gzip.hpp"><CODE>gzip.hpp</CODE></A></TD>
+    <TD>
+        Perform compression and decompression based on the the G<SPAN STYLE="font-size:80%">ZIP</SPAN> format (<A CLASS="bib_ref" HREF="bibliography.html#deutsch3">[Deutsch3]</A>).
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/zlib.html#basic_zlib_compressor"><CODE>basic_zlib_compressor</CODE></A>,<BR>
+        <A HREF="classes/zlib.html#basic_zlib_decompressor"><CODE>basic_zlib_decompressor</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/filter/zlib.hpp"><CODE>zlib.hpp</CODE></A></TD>
+    <TD>
+        Perform compression and decompression using the zlib data compression library (<A CLASS='bib_ref' HREF="bibliography.html#gailly">[Gailly]</A>).
+    </TD>
+</TR>
+
+<!-- -------------- Text -------------- -->
+
+<TR>
+    <TH ROWSPAN=5>Text</TH>
+    <TD>
+        <A HREF="classes/counter.html"><CODE>basic_counter</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/filter/counter.hpp"><CODE>counter.hpp</CODE></A></TD>
+    <TD>
+        Maintains a character and line count.
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/regex_filter.html"><CODE>basic_regex_filter</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/filter/regex.hpp"><CODE>regex.hpp</CODE></A></TD>
+    <TD>
+        Performs text substitutions using regular expressions from the <A HREF="http://www.boost.org/libs/regex" TARGET="_top">Boost Regular Expression Library</A>.
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/grep_filter.html"><CODE>basic_grep_filter</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/filter/grep.hpp"><CODE>grep.hpp</CODE></A></TD>
+    <TD>
+        Filters character sequences line by line using regular expressions from the  <A HREF="http://www.boost.org/libs/regex" TARGET="_top">Boost Regular Expression Library</A>.
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/newline_filter.html#newline_checker"><CODE>newline_checker</CODE></A>
+    </TD>
+    <TD ROWSPAN=2><A HREF="../../../boost/iostreams/filter/newline.hpp"><CODE>newline.hpp</CODE></A></TD>
+    <TD>
+        Verifies that a character sequence conforms to a given line-ending convention.
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/newline_filter.html#newline_filter"><CODE>newline_filter</CODE></A>
+    </TD>
+    <TD>
+        Converts between the line-ending conventions used by various operating systems.
+    </TD>
+</TR>
+
+<!-- -------------- Helpers -------------- -->
+
+<TR>
+    <TH ROWSPAN=4>Helpers</TH>
+    <TD>
+        <A HREF="classes/line_filter.html"><CODE>basic_line_filter</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/filter/line.hpp"><CODE>line.hpp</CODE></A></TD>
+    <TD>
+        Filters a character sequence one line at a time.
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/stdio_filter.html"><CODE>basic_stdio_filter</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/filter/stdio.hpp"><CODE>stdio.hpp</CODE></A></TD>
+    <TD>
+         Filters by reading from standard input and writing to standard output.
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/aggregate.html"><CODE>aggregate_filter</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/filter/aggregate.hpp"><CODE>aggregate.hpp</CODE></A></TD>
+    <TD>
+         Filters an entire character sequence at once.
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="classes/symmetric_filter.html"><CODE>symmetric_filter</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/filter/symmetric.hpp"><CODE>symmetric.hpp</CODE></A></TD>
+    <TD>
+         Filters using a model of <A HREF="concepts/symmetric_filter.html">SymmetricFilter</A>.
+    </TD>
+</TR>
+</TABLE>
+
+<!-- -------------- Algorithms -------------- -->
+
+<A NAME='algorithms'></A>
+<H2>Algorithms</H2>
+
+<TABLE STYLE="margin-bottom:1em" BORDER="1" CELLPADDING="6" CELLSPACING="1">
+<TR>
+    <TH>Algorithm</TH>
+    <TH>Header</TH>
+    <TH>Description</TH>
+</TR>
+<TR>
+    <TD>
+        <A HREF="functions/copy.html"><CODE>copy</CODE></A>
+    </TD>
+    <TD><A HREF="../../../boost/iostreams/copy.hpp"><CODE>boost/iostreams/copy.hpp</CODE></A></TD>
+    <TD>
+        <P>Reads characters from a <A HREF="concepts/source.html">Source</A> and writes them to a <A HREF="concepts/sink.html">Sink</A> until the end of stream is reached; returns the number of characters written.</P>
+    </TD>
+</TR>
+</TABLE>
+
+<!-- -------------- Views -------------- -->
+
+<A NAME='views'></A>
+<H2>Views</H2>
+
+<P>
+    Each view consists of one or more class templates together with an <A HREF="http://www.boost.org/more/generic_programming.html#object_generator" TARGET="_top">object generator</A>. <I>See</I> <A HREF="guide/views.html">Views</A>.
+</P>
+
+<TABLE STYLE="margin-bottom:1em" BORDER="1" CELLPADDING="6" CELLSPACING="1">
+<TR>
+    <TH>Object Generator</TH>
+    <TH>View Template</TH>
+    <TH>Header<A STYLE='font-weight:normal' CLASS='footnote_ref' NAME='note_1_ref2' HREF="#note_1"><SUP>[1]</SUP></A></TH>
+    <TH>Description</TH>
+</TR>
+<TR>
+    <TD><A HREF="functions/combine.html"><CODE>combine</CODE></A></TD>
+    <TD><A HREF="functions/combine.html#synopsis"><CODE>combination</CODE></A></TD>
+    <TD><A HREF="../../../boost/iostreams/combine.hpp"><CODE>combine.hpp</CODE></A></TD>
+    <TD>
+        Takes a pair of <A HREF="concepts/filter.html">Filters</A> or <A HREF="concepts/device.html">Devices</A> and yields a filter or device which performs input using the first component and output using the second.
+    </TD>
+</TR>
+<TR>
+    <TD><A HREF="functions/compose.html"><CODE>compose</CODE></A></TD>
+    <TD><A HREF="functions/compose.html#composite"><CODE>composite</CODE></A></TD>
+    <TD><A HREF="../../../boost/iostreams/compose.hpp"><CODE>compose.hpp</CODE></A></TD>
+    <TD>
+        Takes a <A HREF="concepts/filter.html">Filter</A> and either a second <A HREF="concepts/filter.html">Filter</A> or a <A HREF="concepts/device.html">Device</A> and yields a Filter or Device whose output flows through the two components in order and whose input flows flows through the two components in reverse order.
+    </TD>
+</TR>
+<TR>
+    <TD><A HREF="functions/invert.html"><CODE>invert</CODE></A></TD>
+    <TD><A HREF="functions/invert.html#inverse"><CODE>inverse</CODE></A></TD>
+    <TD><A HREF="../../../boost/iostreams/invert.hpp"><CODE>invert.hpp</CODE></A></TD>
+    <TD>
+        Takes a <A HREF="concepts/filter.html">Filter</A> and yields a Filter that performs the same filtering algorithm but is an <A HREF="concepts/output_filter.html">OutputFilter</A> if the given component is an <A HREF="concepts/input_filter.html">InputFilter</A>, and an <A HREF="concepts/input_filter.html">InputFilter</A> otherwise.
+    </TD>
+</TR>
+<TR>
+    <TD><A HREF="functions/restrict.html"><CODE>restrict</CODE></A><BR><A HREF="functions/slice.html"><CODE>slice</CODE></A></TD>
+    <TD><A HREF="functions/restrict.html#restriction"><CODE>restriction</CODE></A></TD>
+    <TD><A HREF="../../../boost/iostreams/restrict.hpp"><CODE>restrict.hpp</CODE></A><BR><A HREF="../../../boost/iostreams/slice.hpp"><CODE>slice.hpp</CODE></A></TD>
+    <TD>
+        Takes a <A HREF="concepts/filter.html">Filter</A> or <A HREF="concepts/device.html">Device</A> together with a stream offset and an optional length and yields a <A HREF="concepts/filter.html">Filter</A> or <A HREF="concepts/device.html">Device</A> for accessing the specifed subquence of the given component
+    </TD>
+</TR>
+<TR>
+    <TD ROWSPAN='2'><A HREF="functions/tee.html"><CODE>tee</CODE></A></TD>
+    <TD>
+        <A HREF="functions/tee.html#tee_device"><CODE>tee_device</CODE></A>
+    </TD>
+    <TD ROWSPAN='2'><A HREF="../../../boost/iostreams/tee.hpp"><CODE>tee.hpp</CODE></A></TD>
+    <TD> 
+        Takes a pair of <A HREF="concepts/sink.html">Sinks</A> and yields a Sink which sends all incoming data to both of the given Sinks.
+    </TD>
+</TR>
+<TR>
+    <TD>
+        <A HREF="functions/tee.html#tee_filter"><CODE>tee_filter</CODE></A>
+    </TD>
+    <TD> 
+        Takes a <A HREF="concepts/filter.html">Filter</A> and a <A HREF="concepts/sink.html">Sink</A> and yields a Filter which sends all outgoing data to the Sink in addition to passing it downsteam.
+    </TD>
+</TR>
+</TABLE>
+
+<!-- Begin Footnotes -->
+
+<H4>Notes</H4>
+
+<P>
+    <A CLASS="footnote_ref" NAME="note_1" HREF="#note_1_ref"><SUP>[1]</SUP></A>Pathnames should be interpreted relative to the directory <CODE>boost/iostreams</CODE>.
+</P>
+
+<P>
+    <A CLASS="footnote_ref" NAME="note_2" HREF="#note_2_ref"><SUP>[2]</SUP></A>Pathnames should be interpreted relative to the directory <CODE>boost/iostreams/device</CODE>.
+</P>
+
+<P>
+    <A CLASS="footnote_ref" NAME="note_3" HREF="#note_3_ref"><SUP>[3]</SUP></A>Pathnames should be interpreted relative to the directory <CODE>boost/iostreams/filter</CODE>.
+</P>
+
+<!-- End Footnotes -->
+   
+<!-- Begin Footer -->
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a><br/>Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

@@ -1,0 +1,77 @@
+# Copyright 2006 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+# This is example of a fictional code generator tool.
+# It accepts a single input of type '.gci' and produces
+# either one or two outputs of type .cpp, depending
+# on the value of the feature <server-mode>
+#
+# This example is loosely based on gSOAP code generator.
+
+import type ;
+import generators ;
+import feature ;
+import common ;
+import "class" : new ;
+
+type.register GCI : gci ;
+
+feature.feature server : off on : incidental ;
+
+class soap-generator : generator
+{
+    import "class" : new ;
+
+    rule __init__ ( * : * )
+    {
+        generator.__init__ $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ;
+    }
+
+    rule run ( project name ? : property-set : sources * )
+    {
+        if ! $(sources[2])
+        {
+            # Accept only single source.
+            local t = [ $(sources[1]).type ] ;
+            if $(t) = GCI
+            {
+                # The type is correct.
+
+                # If no output name is specified, guess it from sources.
+                if ! $(name)
+                {
+                    name = [ generator.determine-output-name $(sources) ] ;
+                }
+
+                # Produce one output, using just copy.
+                local a = [ new action $(sources[1])
+                  : common.copy : $(property-set) ] ;
+                local t = [ new file-target $(name) : CPP : $(project)
+                  : $(a) ] ;
+
+                # If in server mode, create another output -- an
+                # empty file. If this were a real SOAP generator, we
+                # might have created a single action, and two targets
+                # both using that action.
+        local t2 ;
+        if [ $(property-set).get <server> ] = "on"
+        {
+                    local a = [ new action : soap.touch : $(property-set) ] ;
+                    t2 = [ new file-target $(name)_server : CPP : $(project)
+                      : $(a) ] ;
+                }
+                return [ virtual-target.register $(t) ]
+               [ virtual-target.register $(t2) ] ;
+            }
+        }
+    }
+}
+
+generators.register [ new soap-generator soap.soap : GCI : CPP ] ;
+
+TOUCH = [ common.file-touch-command ] ;
+actions touch
+{
+    $(TOUCH) $(<)
+}

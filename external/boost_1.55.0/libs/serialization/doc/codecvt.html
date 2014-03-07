@@ -1,0 +1,171 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+  == Copyright (c) 2001 Ronald Garcia
+  ==
+  == Permission to use, copy, modify, distribute and sell this software
+  == and its documentation for any purpose is hereby granted without fee,
+  == provided that the above copyright notice appears in all copies and
+  == that both that copyright notice and this permission notice appear
+  == in supporting documentation.  Ronald Garcia makes no
+  == representations about the suitability of this software for any
+  == purpose.  It is provided "as is" without express or implied warranty.
+  -->
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<head>
+<title>UTF-8 Codecvt Facet</title>
+
+</head>
+
+<body bgcolor="#ffffff" link="#0000ee" text="#000000" 
+      vlink="#551a8b" alink="#ff0000">
+<img src="../../../boost.png" alt="C++ Boost" 
+width="277" height="86"> <br clear="all">
+
+
+<a name="sec:utf8-codecvt-facet-class"></a>
+
+
+<h1><code>utf8_codecvt_facet</code></h1>
+
+
+<pre>
+template&lt;
+    typename InternType = wchar_t, 
+    typename ExternType = char
+&gt; utf8_codecvt_facet
+</pre>
+
+
+<h2>Rationale</h2>
+
+
+    UTF-8 is a method of encoding Unicode text in environments where 
+    where data is stored as 8-bit characters and some ascii characters 
+    are considered special (i.e. Unix filesystem filenames) and tend
+    to appear more commonly than other characters.  While
+    UTF-8 is convenient and efficient for storing data on filesystems, 
+    it was not meant to be manipulated in memory by
+    applications. While some applications (such as Unix's 'cat') can
+    simply ignore the encoding of data, others should convert 
+    from UTF-8 to UCS-4 (the more canonical representation of Unicode) 
+    on reading from file, and reversing the process on writing out to
+    file.
+    
+    <p>The C++ Standard IOStreams provides the <tt>std::codecvt</tt>
+    facet to handle specifically these cases.  On reading from or
+    writing to a file, the <tt>std::basic_filebuf</tt> can call out to
+    the codecvt facet to convert data representations from external
+    format (ie. UTF-8) to internal format (ie. UCS-4) and
+    vice-versa. <tt>utf8_codecvt_facet</tt> is a specialization of
+    <tt>std::codecvt</tt> specifically designed to handle the case
+    of translating between UTF-8 and UCS-4.
+
+
+<h2>Template Parameters</h2>
+
+<table border summary="template parameters">
+<tr>
+<th>Parameter</th><th>Description</th><th>Default</th>
+</tr>
+
+<tr>
+<td><tt>InternType</tt></td>
+<td>The internal type used to represent UCS-4 characters.</td>
+<td><tt>wchar_t</tt></td>
+</tr>
+
+<tr>
+<td><tt>ExternType</tt></td>
+<td>The external type used to represent UTF-8 octets.</td>
+<td><tt>char_t</tt></td>
+</tr>
+</table>
+
+
+<h2>Requirements</h2>
+
+    <tt>utf8_codecvt_facet</tt> defaults to using <tt>char</tt> as
+    it's external data type and <tt>wchar_t</tt> as it's internal
+    datatype, but on some architectures <tt>wchar_t</tt> is
+    not large enough to hold UCS-4 characters.  In order to use
+    another internal type.You must also specialize <tt>std::codecvt</tt>
+    to handle your internal and external types.
+    (<tt>std::codecvt&lt;char,wchar_t,std::mbstate_t&gt;</tt> is required to be
+    supplied by any standard-conforming compiler).
+
+
+<h2>Example Use</h2>
+    The following is a simple example of using this facet:
+
+<pre>
+  //...
+  // My encoding type
+  typedef wchar_t ucs4_t;
+
+  std::locale old_locale;
+  std::locale utf8_locale(old_locale,new utf8_codecvt_facet&lt;ucs4_t&gt;);
+
+  // Set a New global locale
+  std::locale::global(utf8_locale);
+
+  // Send the UCS-4 data out, converting to UTF-8
+  {
+    std::wofstream ofs("data.ucd");
+    ofs.imbue(utf8_locale);
+    std::copy(ucs4_data.begin(),ucs4_data.end(),
+          std::ostream_iterator&lt;ucs4_t,ucs4_t&gt;(ofs));
+  }
+
+  // Read the UTF-8 data back in, converting to UCS-4 on the way in
+  std::vector&lt;ucs4_t&gt; from_file;
+  {
+    std::wifstream ifs("data.ucd");
+    ifs.imbue(utf8_locale);
+    ucs4_t item = 0;
+    while (ifs &gt;&gt; item) from_file.push_back(item);
+  }
+  //...
+</pre>
+
+
+<h2>History</h2>
+
+    This code was originally written as an iterator adaptor over
+    containers for use with UTF-8 encoded strings in memory.
+    Dietmar Kuehl suggested that it would be better provided as a
+    codecvt facet.
+
+<h2>Resources</h2>
+
+<ul>
+<li> <a href="http://www.unicode.org">Unicode Homepage</a>
+<li> <a href="http://home.CameloT.de/langer/iostreams.htm">Standard
+      C++ IOStreams and Locales</a>
+<li> <a href="http://www.research.att.com/~bs/3rd.html">The C++
+      Programming Language Special Edition, Appendix D.</a> 
+</ul>
+
+<br>
+<hr>
+<table summary="Copyright information">
+<tr valign="top">
+<td nowrap>Copyright &copy; 2001</td>
+<td><a href="http://www.osl.iu.edu/~garcia">Ronald Garcia</a>,
+Indiana University 
+(<a href="mailto:garcia@cs.indiana.edu">garcia@osl.iu.edu</a>)<br>
+<a href="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</a>,
+Indiana University
+(<a href="mailto:lums@osl.iu.edu">lums@osl.iu.edu</a>)</td>
+</tr>
+</table>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>
+
+

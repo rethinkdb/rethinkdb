@@ -1,0 +1,126 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Tutorial</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../boost_asio.html" title="Boost.Asio">
+<link rel="prev" href="using.html" title="Using Boost.Asio">
+<link rel="next" href="tutorial/tuttimer1.html" title="Timer.1 - Using a timer synchronously">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_asio.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../boost_asio.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutorial/tuttimer1.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_asio.tutorial"></a><a class="link" href="tutorial.html" title="Tutorial">Tutorial</a>
+</h2></div></div></div>
+<h4>
+<a name="boost_asio.tutorial.h0"></a>
+      <span class="phrase"><a name="boost_asio.tutorial.basic_skills"></a></span><a class="link" href="tutorial.html#boost_asio.tutorial.basic_skills">Basic
+      Skills</a>
+    </h4>
+<p>
+      The tutorial programs in this first section introduce the fundamental concepts
+      required to use the asio toolkit. Before plunging into the complex world of
+      network programming, these tutorial programs illustrate the basic skills using
+      simple asynchronous timers.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a class="link" href="tutorial/tuttimer1.html" title="Timer.1 - Using a timer synchronously">Timer.1 - Using a timer synchronously</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="tutorial/tuttimer2.html" title="Timer.2 - Using a timer asynchronously">Timer.2 - Using a timer asynchronously</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="tutorial/tuttimer3.html" title="Timer.3 - Binding arguments to a handler">Timer.3 - Binding arguments
+          to a handler</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="tutorial/tuttimer4.html" title="Timer.4 - Using a member function as a handler">Timer.4 - Using a member
+          function as a handler</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="tutorial/tuttimer5.html" title="Timer.5 - Synchronising handlers in multithreaded programs">Timer.5 - Synchronising handlers
+          in multithreaded programs</a>
+        </li>
+</ul></div>
+<h4>
+<a name="boost_asio.tutorial.h1"></a>
+      <span class="phrase"><a name="boost_asio.tutorial.introduction_to_sockets"></a></span><a class="link" href="tutorial.html#boost_asio.tutorial.introduction_to_sockets">Introduction
+      to Sockets</a>
+    </h4>
+<p>
+      The tutorial programs in this section show how to use asio to develop simple
+      client and server programs. These tutorial programs are based around the <a href="http://www.ietf.org/rfc/rfc867.txt" target="_top">daytime</a> protocol, which supports
+      both TCP and UDP.
+    </p>
+<p>
+      The first three tutorial programs implement the daytime protocol using TCP.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a class="link" href="tutorial/tutdaytime1.html" title="Daytime.1 - A synchronous TCP daytime client">Daytime.1 - A synchronous
+          TCP daytime client</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="tutorial/tutdaytime2.html" title="Daytime.2 - A synchronous TCP daytime server">Daytime.2 - A synchronous
+          TCP daytime server</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="tutorial/tutdaytime3.html" title="Daytime.3 - An asynchronous TCP daytime server">Daytime.3 - An asynchronous
+          TCP daytime server</a>
+        </li>
+</ul></div>
+<p>
+      The next three tutorial programs implement the daytime protocol using UDP.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a class="link" href="tutorial/tutdaytime4.html" title="Daytime.4 - A synchronous UDP daytime client">Daytime.4 - A synchronous
+          UDP daytime client</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="tutorial/tutdaytime5.html" title="Daytime.5 - A synchronous UDP daytime server">Daytime.5 - A synchronous
+          UDP daytime server</a>
+        </li>
+<li class="listitem">
+          <a class="link" href="tutorial/tutdaytime6.html" title="Daytime.6 - An asynchronous UDP daytime server">Daytime.6 - An asynchronous
+          UDP daytime server</a>
+        </li>
+</ul></div>
+<p>
+      The last tutorial program in this section demonstrates how asio allows the
+      TCP and UDP servers to be easily combined into a single program.
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <a class="link" href="tutorial/tutdaytime7.html" title="Daytime.7 - A combined TCP/UDP asynchronous server">Daytime.7 - A combined
+          TCP/UDP asynchronous server</a>
+        </li></ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="using.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_asio.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../boost_asio.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tutorial/tuttimer1.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

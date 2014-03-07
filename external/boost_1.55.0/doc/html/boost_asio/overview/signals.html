@@ -1,0 +1,82 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Signal Handling</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../overview.html" title="Overview">
+<link rel="prev" href="serial_ports.html" title="Serial Ports">
+<link rel="next" href="posix.html" title="POSIX-Specific Functionality">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="serial_ports.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../overview.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="posix.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.overview.signals"></a><a class="link" href="signals.html" title="Signal Handling">Signal Handling</a>
+</h3></div></div></div>
+<p>
+        Boost.Asio supports signal handling using a class called <a class="link" href="../reference/signal_set.html" title="signal_set">signal_set</a>.
+        Programs may add one or more signals to the set, and then perform an <code class="computeroutput"><span class="identifier">async_wait</span><span class="special">()</span></code>
+        operation. The specified handler will be called when one of the signals occurs.
+        The same signal number may be registered with multiple <a class="link" href="../reference/signal_set.html" title="signal_set">signal_set</a>
+        objects, however the signal number must be used only with Boost.Asio.
+      </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">handler</span><span class="special">(</span>
+    <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span><span class="special">&amp;</span> <span class="identifier">error</span><span class="special">,</span>
+    <span class="keyword">int</span> <span class="identifier">signal_number</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">error</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="comment">// A signal occurred.</span>
+  <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="special">...</span>
+
+<span class="comment">// Construct a signal set registered for process termination.</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">signal_set</span> <span class="identifier">signals</span><span class="special">(</span><span class="identifier">io_service</span><span class="special">,</span> <span class="identifier">SIGINT</span><span class="special">,</span> <span class="identifier">SIGTERM</span><span class="special">);</span>
+
+<span class="comment">// Start an asynchronous wait for one of the signals to occur.</span>
+<span class="identifier">signals</span><span class="special">.</span><span class="identifier">async_wait</span><span class="special">(</span><span class="identifier">handler</span><span class="special">);</span>
+</pre>
+<p>
+        Signal handling also works on Windows, as the Microsoft Visual C++ runtime
+        library maps console events like Ctrl+C to the equivalent signal.
+      </p>
+<h5>
+<a name="boost_asio.overview.signals.h0"></a>
+        <span class="phrase"><a name="boost_asio.overview.signals.see_also"></a></span><a class="link" href="signals.html#boost_asio.overview.signals.see_also">See
+        Also</a>
+      </h5>
+<p>
+        <a class="link" href="../reference/signal_set.html" title="signal_set">signal_set</a>, <a class="link" href="../examples/cpp03_examples.html#boost_asio.examples.cpp03_examples.http_server">HTTP server example
+        (C++03)</a>, <a class="link" href="../examples/cpp11_examples.html#boost_asio.examples.cpp11_examples.http_server">HTTP
+        server example (C++11)</a>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="serial_ports.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../overview.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="posix.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

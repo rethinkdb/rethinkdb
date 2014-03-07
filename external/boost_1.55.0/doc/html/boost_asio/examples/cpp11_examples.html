@@ -1,0 +1,198 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>C++11 Examples</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../examples.html" title="Examples">
+<link rel="prev" href="cpp03_examples.html" title="C++03 Examples">
+<link rel="next" href="../reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="cpp03_examples.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.examples.cpp11_examples"></a><a class="link" href="cpp11_examples.html" title="C++11 Examples">C++11 Examples</a>
+</h3></div></div></div>
+<h5>
+<a name="boost_asio.examples.cpp11_examples.h0"></a>
+        <span class="phrase"><a name="boost_asio.examples.cpp11_examples.allocation"></a></span><a class="link" href="cpp11_examples.html#boost_asio.examples.cpp11_examples.allocation">Allocation</a>
+      </h5>
+<p>
+        This example shows how to customise the allocation of memory associated with
+        asynchronous operations.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            <a href="../example/cpp11/allocation/server.cpp" target="_top">boost_asio/example/cpp11/allocation/server.cpp</a>
+          </li></ul></div>
+<h5>
+<a name="boost_asio.examples.cpp11_examples.h1"></a>
+        <span class="phrase"><a name="boost_asio.examples.cpp11_examples.buffers"></a></span><a class="link" href="cpp11_examples.html#boost_asio.examples.cpp11_examples.buffers">Buffers</a>
+      </h5>
+<p>
+        This example demonstrates how to create reference counted buffers that can
+        be used with socket read and write operations.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            <a href="../example/cpp11/buffers/reference_counted.cpp" target="_top">boost_asio/example/cpp11/buffers/reference_counted.cpp</a>
+          </li></ul></div>
+<h5>
+<a name="boost_asio.examples.cpp11_examples.h2"></a>
+        <span class="phrase"><a name="boost_asio.examples.cpp11_examples.chat"></a></span><a class="link" href="cpp11_examples.html#boost_asio.examples.cpp11_examples.chat">Chat</a>
+      </h5>
+<p>
+        This example implements a chat server and client. The programs use a custom
+        protocol with a fixed length message header and variable length message body.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <a href="../example/cpp11/chat/chat_message.hpp" target="_top">boost_asio/example/cpp11/chat/chat_message.hpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/chat/chat_client.cpp" target="_top">boost_asio/example/cpp11/chat/chat_client.cpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/chat/chat_server.cpp" target="_top">boost_asio/example/cpp11/chat/chat_server.cpp</a>
+          </li>
+</ul></div>
+<h5>
+<a name="boost_asio.examples.cpp11_examples.h3"></a>
+        <span class="phrase"><a name="boost_asio.examples.cpp11_examples.echo"></a></span><a class="link" href="cpp11_examples.html#boost_asio.examples.cpp11_examples.echo">Echo</a>
+      </h5>
+<p>
+        A collection of simple clients and servers, showing the use of both synchronous
+        and asynchronous operations.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <a href="../example/cpp11/echo/async_tcp_echo_server.cpp" target="_top">boost_asio/example/cpp11/echo/async_tcp_echo_server.cpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/echo/async_udp_echo_server.cpp" target="_top">boost_asio/example/cpp11/echo/async_udp_echo_server.cpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/echo/blocking_tcp_echo_client.cpp" target="_top">boost_asio/example/cpp11/echo/blocking_tcp_echo_client.cpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/echo/blocking_tcp_echo_server.cpp" target="_top">boost_asio/example/cpp11/echo/blocking_tcp_echo_server.cpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/echo/blocking_udp_echo_client.cpp" target="_top">boost_asio/example/cpp11/echo/blocking_udp_echo_client.cpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/echo/blocking_udp_echo_server.cpp" target="_top">boost_asio/example/cpp11/echo/blocking_udp_echo_server.cpp</a>
+          </li>
+</ul></div>
+<h5>
+<a name="boost_asio.examples.cpp11_examples.h4"></a>
+        <span class="phrase"><a name="boost_asio.examples.cpp11_examples.futures"></a></span><a class="link" href="cpp11_examples.html#boost_asio.examples.cpp11_examples.futures">Futures</a>
+      </h5>
+<p>
+        This example demonstrates how to use std::future in conjunction with Boost.Asio's
+        asynchronous operations.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            <a href="../example/cpp11/futures/daytime_client.cpp" target="_top">boost_asio/example/cpp11/futures/daytime_client.cpp</a>
+          </li></ul></div>
+<h5>
+<a name="boost_asio.examples.cpp11_examples.h5"></a>
+        <span class="phrase"><a name="boost_asio.examples.cpp11_examples.http_server"></a></span><a class="link" href="cpp11_examples.html#boost_asio.examples.cpp11_examples.http_server">HTTP
+        Server</a>
+      </h5>
+<p>
+        This example illustrates the use of asio in a simple single-threaded server
+        implementation of HTTP 1.0. It demonstrates how to perform a clean shutdown
+        by cancelling all outstanding asynchronous operations.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <a href="../example/cpp11/http/server/connection.cpp" target="_top">boost_asio/example/cpp11/http/server/connection.cpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/connection.hpp" target="_top">boost_asio/example/cpp11/http/server/connection.hpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/connection_manager.cpp" target="_top">boost_asio/example/cpp11/http/server/connection_manager.cpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/connection_manager.hpp" target="_top">boost_asio/example/cpp11/http/server/connection_manager.hpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/header.hpp" target="_top">boost_asio/example/cpp11/http/server/header.hpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/main.cpp" target="_top">boost_asio/example/cpp11/http/server/main.cpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/mime_types.cpp" target="_top">boost_asio/example/cpp11/http/server/mime_types.cpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/mime_types.hpp" target="_top">boost_asio/example/cpp11/http/server/mime_types.hpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/reply.cpp" target="_top">boost_asio/example/cpp11/http/server/reply.cpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/reply.hpp" target="_top">boost_asio/example/cpp11/http/server/reply.hpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/request.hpp" target="_top">boost_asio/example/cpp11/http/server/request.hpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/request_handler.cpp" target="_top">boost_asio/example/cpp11/http/server/request_handler.cpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/request_handler.hpp" target="_top">boost_asio/example/cpp11/http/server/request_handler.hpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/request_parser.cpp" target="_top">boost_asio/example/cpp11/http/server/request_parser.cpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/request_parser.hpp" target="_top">boost_asio/example/cpp11/http/server/request_parser.hpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/server.cpp" target="_top">boost_asio/example/cpp11/http/server/server.cpp</a>
+          </li>
+<li class="listitem">
+            <a href="../example/cpp11/http/server/server.hpp" target="_top">boost_asio/example/cpp11/http/server/server.hpp</a>
+          </li>
+</ul></div>
+<h5>
+<a name="boost_asio.examples.cpp11_examples.h6"></a>
+        <span class="phrase"><a name="boost_asio.examples.cpp11_examples.spawn"></a></span><a class="link" href="cpp11_examples.html#boost_asio.examples.cpp11_examples.spawn">Spawn</a>
+      </h5>
+<p>
+        Example of using the boost::asio::spawn() function, a wrapper around the
+        <a href="http://www.boost.org/doc/libs/release/libs/coroutine/index.html" target="_top">Boost.Coroutine</a>
+        library, to implement a chain of asynchronous operations using stackful coroutines.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            <a href="../example/cpp11/spawn/echo_server.cpp" target="_top">boost_asio/example/cpp11/spawn/echo_server.cpp</a>
+          </li></ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="cpp03_examples.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

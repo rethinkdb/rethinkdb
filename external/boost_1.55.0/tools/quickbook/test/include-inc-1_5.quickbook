@@ -1,0 +1,6 @@
+[article Include Test Sub Document
+    [quickbook 1.5]
+    [id include-sub]
+]
+
+[/ Empty. Shouldn't really need this comment.]

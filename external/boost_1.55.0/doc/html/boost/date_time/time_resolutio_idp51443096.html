@@ -1,0 +1,68 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct time_resolution_traits_adapted64_impl</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.time_resolution_traits_hpp" title="Header &lt;boost/date_time/time_resolution_traits.hpp&gt;">
+<link rel="prev" href="time_resolutio_idp51491048.html" title="Struct time_resolution_traits_bi64_impl">
+<link rel="next" href="time_resolution_traits.html" title="Class template time_resolution_traits">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="time_resolutio_idp51491048.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.time_resolution_traits_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="time_resolution_traits.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.time_resolutio_idp51443096"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct time_resolution_traits_adapted64_impl</span></h2>
+<p>boost::date_time::time_resolution_traits_adapted64_impl &#8212; traits struct for <a class="link" href="time_resolution_traits.html" title="Class template time_resolution_traits">time_resolution_traits</a> implementation type </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.time_resolution_traits_hpp" title="Header &lt;boost/date_time/time_resolution_traits.hpp&gt;">boost/date_time/time_resolution_traits.hpp</a>&gt;
+
+</span>
+<span class="keyword">struct</span> <a class="link" href="time_resolutio_idp51443096.html" title="Struct time_resolution_traits_adapted64_impl">time_resolution_traits_adapted64_impl</a> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">int64_t</span>                                  <a name="boost.date_time.time_resolutio_idp51443096.int_type"></a><span class="identifier">int_type</span><span class="special">;</span> 
+  <span class="keyword">typedef</span> <a class="link" href="int_adapter.html" title="Class template int_adapter">boost::date_time::int_adapter</a><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">int64_t</span> <span class="special">&gt;</span> <a name="boost.date_time.time_resolutio_idp51443096.impl_type"></a><span class="identifier">impl_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="time_resolutio_idp51443096.html#idp21025928-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">int_type</span> <a class="link" href="time_resolutio_idp51443096.html#idp21026136-bb"><span class="identifier">as_number</span></a><span class="special">(</span><a class="link" href="time_resolutio_idp51443096.html#boost.date_time.time_resolutio_idp51443096.impl_type">impl_type</a><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="time_resolutio_idp51443096.html#idp21027000-bb"><span class="identifier">is_adapted</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp90649464"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp90649672"></a><h3>
+<a name="idp21025928-bb"></a><code class="computeroutput">time_resolution_traits_adapted64_impl</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">int_type</span> <a name="idp21026136-bb"></a><span class="identifier">as_number</span><span class="special">(</span><a class="link" href="time_resolutio_idp51443096.html#boost.date_time.time_resolutio_idp51443096.impl_type">impl_type</a> i<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="idp21027000-bb"></a><span class="identifier">is_adapted</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Used to determine if implemented type is <code class="computeroutput"><a class="link" href="int_adapter.html" title="Class template int_adapter">int_adapter</a></code> or int. </li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="time_resolutio_idp51491048.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.time_resolution_traits_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="time_resolution_traits.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

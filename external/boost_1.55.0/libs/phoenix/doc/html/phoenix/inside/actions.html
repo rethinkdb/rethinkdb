@@ -1,0 +1,209 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>More on Actions</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../inside.html" title="Inside Phoenix">
+<link rel="prev" href="expression/boilerplate_macros.html" title="Boilerplate Macros">
+<link rel="next" href="rules.html" title="Predefined Expressions and Rules">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="expression/boilerplate_macros.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../inside.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rules.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.inside.actions"></a><a class="link" href="actions.html" title="More on Actions">More on Actions</a>
+</h3></div></div></div>
+<p>
+        As you know from the <a class="link" href="actor.html" title="Actors in Detail">Actors in Detail</a>
+        section, Actions are what brings life to a Phoenix expression tree.
+      </p>
+<p>
+        When dealing with a Phoenix expression tree, it gets evaluated top-down.
+        Example:
+      </p>
+<pre class="programlisting"><span class="identifier">_1</span> <span class="special">+</span> <span class="number">3</span> <span class="special">*</span> <span class="identifier">_2</span>
+</pre>
+<p>
+        Can be visualized as an AST in the following way:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../images/simple_ast.png" alt="simple_ast"></span>
+      </p>
+<p>
+        In terms of actions this means:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">plus</span></code> is matched
+          </li>
+<li class="listitem">
+            evaluate left:
+            <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                  <code class="computeroutput"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">placeholder</span></code> is matched
+                </li></ul></div>
+          </li>
+<li class="listitem">
+            evaluate right:
+            <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem">
+                  <code class="computeroutput"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">multiplies</span></code> is matched
+                  <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: square; ">
+<li class="listitem">
+                        evaluate left:
+                        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                              <code class="computeroutput"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">value</span></code>
+                              is matched
+                            </li></ul></div>
+                      </li>
+<li class="listitem">
+                        evaluate right:
+                        <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                              <code class="computeroutput"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">placeholder</span></code>
+                              is matched
+                            </li></ul></div>
+                      </li>
+</ul></div>
+                </li></ul></div>
+          </li>
+</ul></div>
+<p>
+        Every time a rule is matched, an action will be called. The action determines
+        how the Phoenix AST will be traversed.
+      </p>
+<h5>
+<a name="phoenix.inside.actions.h0"></a>
+        <span class="phrase"><a name="phoenix.inside.actions.writing_an_action"></a></span><a class="link" href="actions.html#phoenix.inside.actions.writing_an_action">Writing
+        an Action</a>
+      </h5>
+<p>
+        As mentioned in <a class="link" href="actor.html" title="Actors in Detail">Actors in Detail</a>
+        actions are <a href="http://www.boost.org/doc/libs/release/doc/html/PrimitiveTransform.html" target="_top">Proto
+        Primitive Transforms</a> for convenience Phoenix provides an abstraction
+        to this:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Fun</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">call</span><span class="special">;</span>
+</pre>
+<p>
+        This is similar to <a href="http://www.boost.org/doc/libs/release/doc/html/boost/proto/call.html" target="_top"><code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">call</span></code></a> but does more. It calls the
+        <code class="computeroutput"><span class="identifier">Fun</span></code> function object passed
+        as template parameter with the <code class="computeroutput"><span class="identifier">Context</span></code>
+        and the children of the expression associated with the rule.
+      </p>
+<p>
+        Lets have an (simplified) example on how to write an evaluation action for
+        <code class="computeroutput"><span class="identifier">rule</span><span class="special">::</span><span class="identifier">plus</span></code>:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">plus_eval</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">int</span> <span class="identifier">result_type</span><span class="special">;</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Lhs</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Context</span><span class="special">&gt;</span>
+    <span class="identifier">result_type</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Lhs</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">Rhs</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="identifier">rhs</span><span class="special">,</span> <span class="identifier">Context</span> <span class="special">&amp;</span> <span class="identifier">ctx</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">eval</span><span class="special">(</span><span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">ctx</span><span class="special">)</span> <span class="special">+</span> <span class="identifier">eval</span><span class="special">(</span><span class="identifier">rhs</span><span class="special">,</span> <span class="identifier">ctx</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">default_actions</span><span class="special">::</span><span class="identifier">when</span><span class="special">&lt;</span><span class="identifier">rule</span><span class="special">::</span><span class="identifier">plus</span><span class="special">&gt;</span>
+    <span class="special">:</span> <span class="identifier">call</span><span class="special">&lt;</span><span class="identifier">plus_eval</span><span class="special">&gt;</span>
+<span class="special">{};</span>
+</pre>
+<p>
+        That's it. When evaluating a <code class="computeroutput"><span class="identifier">plus</span></code>
+        expression, the <code class="computeroutput"><span class="identifier">plus_eval</span></code>
+        callable gets called with the left hand side and right hand side expression
+        and the associated Context.
+      </p>
+<p>
+        <span class="bold"><strong>But there is more:</strong></span> As Actions <span class="emphasis"><em>can</em></span>
+        be full fletched <a href="http://www.boost.org/doc/libs/release/doc/html/Transform.html" target="_top">Proto
+        Transforms</a>, you can in fact use any proto expression you can imagine
+        as the action. Phoenix predifines a set of callables and transform to deal
+        with the Context information passed along and of course every Phoenix expression
+        can be used as a Phoenix grammar or <a href="http://www.boost.org/doc/libs/release/doc/html/boost/proto/pass_through.html" target="_top">Proto
+        Pass Through Transform</a>.
+      </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">functional</span><span class="special">::</span><span class="identifier">context</span><span class="special">(</span><span class="identifier">Env</span><span class="special">,</span> <span class="identifier">Actions</span><span class="special">)</span></code></span></dt>
+<dd><p>
+              A <a href="http://www.boost.org/doc/libs/release/doc/html/Callable.html" target="_top">Proto
+              Callable Transform</a> that creates a new context out of the <code class="computeroutput"><span class="identifier">Env</span></code> and <code class="computeroutput"><span class="identifier">Actions</span></code>
+              parameter
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">functional</span><span class="special">::</span><span class="identifier">env</span><span class="special">(</span><span class="identifier">Context</span><span class="special">)</span></code></span></dt>
+<dd><p>
+              A <a href="http://www.boost.org/doc/libs/release/doc/html/Callable.html" target="_top">Proto
+              Callable Transform</a> that returns the environment out of the
+              <code class="computeroutput"><span class="identifier">Context</span></code> parameter
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">functional</span><span class="special">::</span><span class="identifier">actions</span><span class="special">(</span><span class="identifier">Context</span><span class="special">)</span></code></span></dt>
+<dd><p>
+              A <a href="http://www.boost.org/doc/libs/release/doc/html/Callable.html" target="_top">Proto
+              Callable Transform</a> that returns the actions out of the <code class="computeroutput"><span class="identifier">Context</span></code> parameter
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">_context</span></code></span></dt>
+<dd><p>
+              A <a href="http://www.boost.org/doc/libs/release/doc/html/PrimitiveTransform.html" target="_top">Proto
+              Primitive Transform</a> that returns the current context
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">_env</span></code></span></dt>
+<dd><p>
+              A <a href="http://www.boost.org/doc/libs/release/doc/html/PrimitiveTransform.html" target="_top">Proto
+              Primitive Transform</a> that returns the current environment
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">_actions</span></code></span></dt>
+<dd><p>
+              A <a href="http://www.boost.org/doc/libs/release/doc/html/PrimitiveTransform.html" target="_top">Proto
+              Primitive Transform</a> that returns the current actions
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">context</span><span class="special">(</span><span class="identifier">env</span><span class="special">,</span> <span class="identifier">actions</span><span class="special">)</span></code></span></dt>
+<dd><p>
+              A regular function that creates a context
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">env</span><span class="special">(</span><span class="identifier">ctx</span><span class="special">)</span></code></span></dt>
+<dd><p>
+              A regular function that returns the environment from the given context
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">actions</span><span class="special">(</span><span class="identifier">ctx</span><span class="special">)</span></code></span></dt>
+<dd><p>
+              A regular function that returns the actions from the given context
+            </p></dd>
+</dl>
+</div>
+<p>
+        Phoenix is equipped with a predefined set of expressions, rules and actions
+        to make all the stuff work you learned in the <a class="link" href="../starter_kit.html" title="Starter Kit">Starter
+        Kit</a> and <a class="link" href="../modules.html" title="Modules">Modules</a> sections. See
+        the <a class="link" href="rules.html" title="Predefined Expressions and Rules">next section</a> for more details!
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="expression/boilerplate_macros.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../inside.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rules.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

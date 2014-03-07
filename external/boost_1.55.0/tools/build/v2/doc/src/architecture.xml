@@ -1,0 +1,668 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE appendix PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+  <appendix id="bbv2.arch">
+    <title>Boost.Build v2 architecture</title>
+
+  <sidebar>
+    <para>
+      This document is work-in progress. Do not expect much from it yet.
+    </para>
+  </sidebar>
+
+  <section id="bbv2.arch.overview">
+    <title>Overview</title>
+
+    <para>
+      Boost.Build implementation is structured in four different components:
+    "kernel", "util", "build" and "tools". The first two are relatively
+    uninteresting, so we will focus on the remaining pair. The "build" component
+    provides classes necessary to declare targets, determining which properties
+    should be used for their building, and creating the dependency graph. The
+    "tools" component provides user-visible functionality. It mostly allows
+    declaring specific kinds of main targets, as well as registering available
+    tools, which are then used when creating the dependency graph.
+    </para>
+  </section>
+
+  <section id="bbv2.arch.build">
+    <title>The build layer</title>
+
+    <para>
+      The build layer has just four main parts -- metatargets (abstract
+    targets), virtual targets, generators and properties.
+
+      <itemizedlist>
+        <listitem><para>
+          Metatargets (see the "targets.jam" module) represent all the
+        user-defined entities that can be built. The "meta" prefix signifies
+        that they do not need to correspond to exact files or even files at all
+        -- they can produce a different set of files depending on the build
+        request. Metatargets are created when Jamfiles are loaded. Each has a
+        <code>generate</code> method which is given a property set and produces
+        virtual targets for the passed properties.
+        </para></listitem>
+        <listitem><para>
+          Virtual targets (see the "virtual-targets.jam" module) correspond to
+        actual atomic updatable entities -- most typically files.
+        </para></listitem>
+        <listitem><para>
+          Properties are just (name, value) pairs, specified by the user and
+        describing how targets should be built. Properties are stored using the
+        <code>property-set</code> class.
+        </para></listitem>
+        <listitem><para>
+          Generators are objects that encapsulate specific tools -- they can
+        take a list of source virtual targets and produce new virtual targets
+        from them.
+        </para></listitem>
+      </itemizedlist>
+    </para>
+
+    <para>
+      The build process includes the following steps:
+
+      <orderedlist>
+        <listitem><para>
+          Top-level code calls the <code>generate</code> method of a metatarget
+        with some properties.
+        </para></listitem>
+
+        <listitem><para>
+          The metatarget combines the requested properties with its requirements
+        and passes the result, together with the list of sources, to the
+        <code>generators.construct</code> function.
+        </para></listitem>
+
+        <listitem><para>
+          A generator appropriate for the build properties is selected and its
+        <code>run</code> method is called. The method returns a list of virtual
+        targets
+        </para></listitem>
+
+        <listitem><para>
+          The targets are returned to the top level code. They are converted
+        into bjam targets (via <code>virtual-target.actualize</code>) and passed
+        to bjam for building.
+        </para></listitem>
+      </orderedlist>
+    </para>
+
+    <section id="bbv2.arch.build.metatargets">
+      <title>Metatargets</title>
+
+      <para>
+        There are several classes derived from "abstract-target". The
+      "main-target" class represents a top-level main target, the
+      "project-target" class acts like a container holding multiple main
+      targets, and "basic-target" class is a base class for all further target
+      types.
+      </para>
+
+      <para>
+        Since each main target can have several alternatives, all top-level
+      target objects are actually containers, referring to "real" main target
+      classes. The type of that container is "main-target". For example, given:
+<programlisting>
+alias a ;
+lib a : a.cpp : &lt;toolset&gt;gcc ;
+</programlisting>
+      we would have one-top level "main-target" instance, containing one
+      "alias-target" and one "lib-target" instance. "main-target"'s "generate"
+      method decides which of the alternative should be used, and calls
+      "generate" on the corresponding instance.
+      </para>
+
+      <para>
+        Each alternative is an instance of a class derived from "basic-target".
+      "basic-target.generate" does several things that should always be done:
+
+        <itemizedlist>
+          <listitem><para>
+            Determines what properties should be used for building the target.
+          This includes looking at requested properties, requirements, and usage
+          requirements of all sources.
+          </para></listitem>
+
+          <listitem><para>
+            Builds all sources.
+          </para></listitem>
+
+          <listitem><para>
+            Computes usage requirements that should be passed back to targets
+          depending on this one.
+          </para></listitem>
+        </itemizedlist>
+
+      For the real work of constructing a virtual target, a new method
+      "construct" is called.
+      </para>
+
+      <para>
+        The "construct" method can be implemented in any way by classes derived
+      from "basic-target", but one specific derived class plays the central role
+      -- "typed-target". That class holds the desired type of file to be
+      produced, and its "construct" method uses the generators module to do the
+      actual work.
+      </para>
+
+      <para>
+        This means that a specific metatarget subclass may avoid using
+      generators all together. However, this is deprecated and we are trying to
+      eliminate all such subclasses at the moment.
+      </para>
+
+      <para>
+        Note that the <filename>build/targets.jam</filename> file contains an
+      UML diagram which might help.
+      </para>
+    </section>
+
+    <section id="bbv2.arch.build.virtual">
+      <title>Virtual targets</title>
+
+      <para>
+        Virtual targets correspond to atomic updatable entities. Each virtual
+      target can be assigned an updating action -- instance of the
+      <code>action</code> class. The action class, in turn, contains a list of
+      source targets, properties, and a name of an bjam action which should be
+      executed.
+      </para>
+
+      <para>
+        We try hard to never create equal instances of the
+      <code>virtual-target</code> class. Code creating virtual targets passes
+      them though the <code>virtual-target.register</code> function, which
+      detects if a target with the same name, sources, and properties has
+      already been created. In that case, the preexisting target is returned.
+      </para>
+
+      <para>
+        When all virtual targets are produced, they are "actualized". This means
+      that the real file names are computed, and the commands that should be run
+      are generated. This is done by the <code>virtual-target.actualize</code>
+      and <code>action.actualize</code> methods. The first is conceptually
+      simple, while the second needs additional explanation. Commands in bjam
+      are generated in a two-stage process. First, a rule with an appropriate
+      name (for example "gcc.compile") is called and is given a list of target
+      names. The rule sets some variables, like "OPTIONS". After that, the
+      command string is taken, and variable are substitutes, so use of OPTIONS
+      inside the command string gets transformed into actual compile options.
+      </para>
+
+      <para>
+        Boost.Build added a third stage to simplify things. It is now possible
+      to automatically convert properties to appropriate variable assignments.
+      For example, &lt;debug-symbols&gt;on would add "-g" to the OPTIONS
+      variable, without requiring to manually add this logic to gcc.compile.
+      This functionality is part of the "toolset" module.
+      </para>
+
+      <para>
+        Note that the <filename>build/virtual-targets.jam</filename> file
+      contains an UML diagram which might help.
+      </para>
+    </section>
+
+    <section id="bbv2.arch.build.properties">
+      <title>Properties</title>
+
+      <para>
+        Above, we noted that metatargets are built with a set of properties.
+      That set is represented by the <code>property-set</code> class. An
+      important point is that handling of property sets can get very expensive.
+      For that reason, we make sure that for each set of (name, value) pairs
+      only one <code>property-set</code> instance is created. The
+      <code>property-set</code> uses extensive caching for all operations, so
+      most work is avoided. The <code>property-set.create</code> is the factory
+      function used to create instances of the <code>property-set</code> class.
+      </para>
+    </section>
+  </section>
+
+  <section id="bbv2.arch.tools">
+    <title>The tools layer</title>
+
+    <para>Write me!</para>
+  </section>
+
+  <section id="bbv2.arch.targets">
+    <title>Targets</title>
+
+    <para>NOTE: THIS SECTION IS NOT EXPECTED TO BE READ!
+      There are two user-visible kinds of targets in Boost.Build. First are
+    "abstract" &#x2014; they correspond to things declared by the user, e.g.
+    projects and executable files. The primary thing about abstract targets is
+    that it is possible to request them to be built with a particular set of
+    properties. Each property combination may possibly yield different built
+    files, so abstract target do not have a direct correspondence to built
+    files.
+    </para>
+
+    <para>
+      File targets, on the other hand, are associated with concrete files.
+    Dependency graphs for abstract targets with specific properties are
+    constructed from file targets. User has no way to create file targets but
+    can specify rules for detecting source file types, as well as rules for
+    transforming between file targets of different types. That information is
+    used in constructing the final dependency graph, as described in the <link
+    linkend="bbv2.arch.depends">next section</link>.
+    <emphasis role="bold">Note:</emphasis>File targets are not the same entities
+    as Jam targets; the latter are created from file targets at the latest
+    possible moment.
+    <emphasis role="bold">Note:</emphasis>"File target" is an originally
+    proposed name for what we now call virtual targets. It is more
+    understandable by users, but has one problem: virtual targets can
+    potentially be "phony", and not correspond to any file.
+    </para>
+  </section>
+
+  <section id="bbv2.arch.depends">
+    <title>Dependency scanning</title>
+
+    <para>
+      Dependency scanning is the process of finding implicit dependencies, like
+      "#include" statements in C++. The requirements for correct dependency
+      scanning mechanism are:
+    </para>
+
+    <itemizedlist>
+      <listitem><simpara>
+        <link linkend="bbv2.arch.depends.different-scanning-algorithms">Support
+      for different scanning algorithms</link>. C++ and XML have quite different
+      syntax for includes and rules for looking up the included files.
+      </simpara></listitem>
+
+      <listitem><simpara>
+        <link linkend="bbv2.arch.depends.same-file-different-scanners">Ability
+      to scan the same file several times</link>. For example, a single C++ file
+      may be compiled using different include paths.
+      </simpara></listitem>
+
+      <listitem><simpara>
+        <link linkend="bbv2.arch.depends.dependencies-on-generated-files">Proper
+      detection of dependencies on generated files.</link>
+      </simpara></listitem>
+
+      <listitem><simpara>
+        <link
+      linkend="bbv2.arch.depends.dependencies-from-generatedfiles">Proper
+      detection of dependencies from a generated file.</link>
+      </simpara></listitem>
+    </itemizedlist>
+
+    <section id="bbv2.arch.depends.different-scanning-algorithms">
+      <title>Support for different scanning algorithms</title>
+
+      <para>
+        Different scanning algorithm are encapsulated by objects called
+      "scanners". Please see the "scanner" module documentation for more
+      details.
+      </para>
+    </section>
+
+    <section id="bbv2.arch.depends.same-file-different-scanners">
+      <title>Ability to scan the same file several times</title>
+
+      <para>
+        As stated above, it is possible to compile a C++ file multiple times,
+      using different include paths. Therefore, include dependencies for those
+      compilations can be different. The problem is that bjam does not allow
+      multiple scans of the same target.
+      </para>
+
+      <para>
+        The solution in Boost.Build is straightforward. When a virtual target is
+      converted to a bjam target (via the
+      <literal>virtual-target.actualize</literal> method), we specify the
+      scanner object to be used. The actualize method will create different bjam
+      targets for different scanners.
+      </para>
+
+      <para>
+        For each Boost Jam target created with a scanner is created, a
+      corresponding one is created without it. The updating action is
+      associated with the scanner-less target, and the target with the scanner
+      is made to depend on it. That way if sources for that action are touched,
+      all targets &#x2014; with and without the scanner are considered outdated.
+      </para>
+
+      <para>
+        Consider the following example: "a.cpp" prepared from "a.verbatim",
+      compiled by two compilers using different include paths and copied into
+      some install location. The dependency graph would look like:
+      </para>
+
+<programlisting>
+a.o (&lt;toolset&gt;gcc)        &lt;--(compile)-- a.cpp (scanner1) ----+
+a.o (&lt;toolset&gt;msvc)       &lt;--(compile)-- a.cpp (scanner2) ----|
+a.cpp (installed copy)    &lt;--(copy) ----------------------- a.cpp (no scanner)
+                                                                 ^
+                                                                 |
+                       a.verbose --------------------------------+
+</programlisting>
+    </section>
+
+    <section id="bbv2.arch.depends.dependencies-on-generated-files">
+      <title>Proper detection of dependencies on generated files.</title>
+
+      <para>
+        This requirement breaks down to the following ones.
+      </para>
+
+      <orderedlist>
+        <listitem><simpara>
+          If when compiling "a.cpp" there is an include of "a.h", the "dir"
+        directory is on the include path, and a target called "a.h" will be
+        generated in "dir", then bjam should discover the include, and create
+        "a.h" before compiling "a.cpp".
+        </simpara></listitem>
+
+        <listitem><simpara>
+          Since Boost.Build almost always generates targets under the "bin"
+        directory, this should be supported as well. I.e. in the scenario above,
+        Jamfile in "dir" might create a main target, which generates "a.h". The
+        file will be generated to "dir/bin" directory, but we still have to
+        recognize the dependency.
+        </simpara></listitem>
+      </orderedlist>
+
+      <para>
+        The first requirement means that when determining what "a.h" means when
+      found in "a.cpp", we have to iterate over all directories in include
+      paths, checking for each one:
+      </para>
+
+      <orderedlist>
+        <listitem><simpara>
+          If there is a file named "a.h" in that directory, or
+        </simpara></listitem>
+
+        <listitem><simpara>
+          If there is a target called "a.h", which will be generated in that
+        that directory.
+        </simpara></listitem>
+      </orderedlist>
+
+      <para>
+        Classic Jam has built-in facilities for point (1) above, but that is not
+      enough. It is hard to implement the right semantics without builtin
+      support. For example, we could try to check if there exists a target
+      called "a.h" somewhere in the dependency graph, and add a dependency to
+      it. The problem is that without a file search in the include path, the
+      semantics may be incorrect. For example, one can have an action that
+      generated some "dummy" header, for systems which do not have a native one.
+      Naturally, we do not want to depend on that generated header on platforms
+      where a native one is included.
+      </para>
+
+      <para>
+        There are two design choices for builtin support. Suppose we have files
+      a.cpp and b.cpp, and each one includes header.h, generated by some action.
+      Dependency graph created by classic Jam would look like:
+
+<programlisting>
+a.cpp -----&gt; &lt;scanner1&gt;header.h  [search path: d1, d2, d3]
+
+                  &lt;d2&gt;header.h  --------&gt; header.y
+                  [generated in d2]
+
+b.cpp -----&gt; &lt;scanner2&gt;header.h  [search path: d1, d2, d4]
+</programlisting>
+      </para>
+
+      <para>
+        In this case, Jam thinks all header.h target are not related. The
+      correct dependency graph might be:
+
+<programlisting>
+a.cpp ----
+          \
+           &gt;----&gt;  &lt;d2&gt;header.h  --------&gt; header.y
+          /       [generated in d2]
+b.cpp ----
+</programlisting>
+
+    or
+
+<programlisting>
+a.cpp -----&gt; &lt;scanner1&gt;header.h  [search path: d1, d2, d3]
+                          |
+                       (includes)
+                          V
+                  &lt;d2&gt;header.h  --------&gt; header.y
+                  [generated in d2]
+                          ^
+                      (includes)
+                          |
+b.cpp -----&gt; &lt;scanner2&gt;header.h [ search path: d1, d2, d4]
+</programlisting>
+      </para>
+
+      <para>
+        The first alternative was used for some time. The problem however is:
+      what include paths should be used when scanning header.h? The second
+      alternative was suggested by Matt Armstrong. It has a similar effect: Any
+      target depending on &lt;scanner1&gt;header.h will also depend on
+      &lt;d2&gt;header.h. This way though we now have two different targets with
+      two different scanners, so those targets can be scanned independently. The
+      first alternative's problem is avoided, so the second alternative is
+      implemented now.
+      </para>
+
+      <para>
+        The second sub-requirements is that targets generated under the "bin"
+      directory are handled as well. Boost.Build implements a semi-automatic
+      approach. When compiling C++ files the process is:
+      </para>
+
+      <orderedlist>
+        <listitem><simpara>
+          The main target to which the compiled file belongs to is found.
+        </simpara></listitem>
+
+        <listitem><simpara>
+          All other main targets that the found one depends on are found. These
+        include: main targets used as sources as well as those specified as
+        "dependency" properties.
+        </simpara></listitem>
+
+        <listitem><simpara>
+          All directories where files belonging to those main targets will be
+        generated are added to the include path.
+        </simpara></listitem>
+      </orderedlist>
+
+      <para>
+        After this is done, dependencies are found by the approach explained
+      previously.
+      </para>
+
+      <para>
+        Note that if a target uses generated headers from another main target,
+      that main target should be explicitly specified using the dependency
+      property. It would be better to lift this requirement, but it does not
+      seem to be causing any problems in practice.
+      </para>
+
+      <para>
+        For target types other than C++, adding of include paths must be
+      implemented anew.
+      </para>
+    </section>
+
+    <section id="bbv2.arch.depends.dependencies-from-generated-files">
+      <title>Proper detection of dependencies from generated files</title>
+
+      <para>
+        Suppose file "a.cpp" includes "a.h" and both are generated by some
+      action. Note that classic Jam has two stages. In the first stage the
+      dependency graph is built and actions to be run are determined. In the
+      second stage the actions are executed. Initially, neither file exists, so
+      the include is not found. As the result, Jam might attempt to compile
+      a.cpp before creating a.h, causing the compilation to fail.
+      </para>
+
+      <para>
+        The solution in Boost.Jam is to perform additional dependency scans
+      after targets are updated. This breaks separation between build stages in
+      Jam &#x2014; which some people consider a good thing &#x2014; but I am not
+      aware of any better solution.
+      </para>
+
+      <para>
+        In order to understand the rest of this section, you better read some
+      details about Jam's dependency scanning, available at <ulink url=
+      "http://public.perforce.com:8080/@md=d&amp;cd=//public/jam/src/&amp;ra=s&amp;c=kVu@//2614?ac=10">
+      this link</ulink>.
+      </para>
+
+      <para>
+        Whenever a target is updated, Boost.Jam rescans it for includes.
+      Consider this graph, created before any actions are run.
+<programlisting>
+A -------&gt; C ----&gt; C.pro
+     /
+B --/         C-includes   ---&gt; D
+</programlisting>
+      </para>
+
+      <para>
+        Both A and B have dependency on C and C-includes (the latter dependency
+      is not shown). Say during building we have tried to create A, then tried
+      to create C and successfully created C.
+      </para>
+
+      <para>
+        In that case, the set of includes in C might well have changed. We do
+      not bother to detect precisely which includes were added or removed.
+      Instead we create another internal node C-includes-2. Then we determine
+      what actions should be run to update the target. In fact this means that
+      we perform the first stage logic when already in the execution stage.
+      </para>
+
+      <para>
+        After actions for C-includes-2 are determined, we add C-includes-2 to
+      the list of A's dependents, and stage 2 proceeds as usual. Unfortunately,
+      we can not do the same with target B, since when it is not visited, C
+      target does not know B depends on it. So, we add a flag to C marking it as
+      rescanned. When visiting the B target, the flag is noticed and
+      C-includes-2 is added to the list of B's dependencies as well.
+      </para>
+
+      <para>
+        Note also that internal nodes are sometimes updated too. Consider this
+      dependency graph:
+<programlisting>
+a.o ---&gt; a.cpp
+            a.cpp-includes --&gt;  a.h (scanned)
+                                   a.h-includes ------&gt; a.h (generated)
+                                                                 |
+                                                                 |
+            a.pro &lt;-------------------------------------------+
+</programlisting>
+      </para>
+
+      <para>
+        Here, our handling of generated headers come into play. Say that a.h
+      exists but is out of date with respect to "a.pro", then "a.h (generated)"
+      and "a.h-includes" will be marked for updating, but "a.h (scanned)" will
+      not. We have to rescan "a.h" after it has been created, but since "a.h
+      (generated)" has no associated scanner, it is only possible to rescan
+      "a.h" after "a.h-includes" target has been updated.
+      </para>
+
+      <para>
+        The above consideration lead to the decision to rescan a target whenever
+      it is updated, no matter if it is internal or not.
+      </para>
+
+    </section>
+  </section>
+
+  <warning>
+    <para>
+      The remainder of this document is not intended to be read at all. This
+    will be rearranged in the future.
+    </para>
+  </warning>
+
+  <section>
+    <title>File targets</title>
+
+    <para>
+      As described above, file targets correspond to files that Boost.Build
+    manages. Users may be concerned about file targets in three ways: when
+    declaring file target types, when declaring transformations between types
+    and when determining where a file target is to be placed. File targets can
+    also be connected to actions that determine how the target is to be created.
+    Both file targets and actions are implemented in the
+    <literal>virtual-target</literal> module.
+    </para>
+
+    <section>
+      <title>Types</title>
+
+      <para>
+        A file target can be given a type, which determines what transformations
+      can be applied to the file. The <literal>type.register</literal> rule
+      declares new types. File type can also be assigned a scanner, which is
+      then used to find implicit dependencies. See "<link
+      linkend="bbv2.arch.depends">dependency scanning</link>".
+      </para>
+    </section>
+
+    <section>
+      <title>Target paths</title>
+
+      <para>
+        To distinguish targets build with different properties, they are put in
+      different directories. Rules for determining target paths are given below:
+      </para>
+
+      <orderedlist>
+        <listitem><simpara>
+          All targets are placed under a directory corresponding to the project
+        where they are defined.
+        </simpara></listitem>
+
+        <listitem><simpara>
+          Each non free, non incidental property causes an additional element to
+        be added to the target path. That element has the the form
+        <literal>&lt;feature-name&gt;-&lt;feature-value&gt;</literal> for
+        ordinary features and <literal>&lt;feature-value&gt;</literal> for
+        implicit ones. [TODO: Add note about composite features].
+        </simpara></listitem>
+
+        <listitem><simpara>
+          If the set of free, non incidental properties is different from the
+        set of free, non incidental properties for the project in which the main
+        target that uses the target is defined, a part of the form
+        <literal>main_target-&lt;name&gt;</literal> is added to the target path.
+        <emphasis role="bold">Note:</emphasis>It would be nice to completely
+        track free features also, but this appears to be complex and not
+        extremely needed.
+        </simpara></listitem>
+      </orderedlist>
+
+      <para>
+        For example, we might have these paths:
+<programlisting>
+debug/optimization-off
+debug/main-target-a
+</programlisting>
+      </para>
+    </section>
+  </section>
+
+  </appendix>
+
+<!--
+     Local Variables:
+     mode: xml
+     sgml-indent-data: t
+     sgml-parent-document: ("userman.xml" "chapter")
+     sgml-set-face: t
+     End:
+-->

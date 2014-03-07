@@ -1,0 +1,35 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_array is_array]
+   template <class T>
+   struct is_array : public __tof {};
+  
+__inherit If T is a (possibly cv-qualified) array type then inherits from __true_type, 
+otherwise inherits from __false_type.
+
+__std_ref 3.9.2 and 8.3.4.
+
+__header ` #include <boost/type_traits/is_array.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__compat If the compiler does not support 
+partial-specialization of class templates, then this template 
+can give the wrong result with function types.
+
+__examples
+
+[:`is_array<int[2]>` inherits from `__true_type`.]
+
+[:`is_array<char[2][3]>::type` is the type `__true_type`.]
+
+[:`is_array<double[]>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_array<T>::value_type` is the type `bool`.]
+
+[endsect]
+

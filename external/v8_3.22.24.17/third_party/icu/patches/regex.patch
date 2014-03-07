@@ -1,0 +1,39 @@
+Index: source/test/testdata/regextst.txt
+===================================================================
+--- source/test/testdata/regextst.txt	(revision 30243)
++++ source/test/testdata/regextst.txt	(revision 30244)
+@@ -1,4 +1,4 @@
+-﻿# Copyright (c) 2001-2010 International Business Machines
++﻿# Copyright (c) 2001-2011 International Business Machines
+ # Corporation and others. All Rights Reserved.
+ #
+ #  file:
+@@ -1024,11 +1024,15 @@
+ "(?!0{5})(\d{5})(?!-?0{4})(-?\d{4})?"    "<0><1>94040</1><2>-3344</2></0>"
+ "(?!0{5})(\d{5})(?!-?0{4})(-?\d{4})?"    "94040-0000"
+ "(?!0{5})(\d{5})(?!-?0{4})(-?\d{4})?"    "00000-3344"
++
++#
++#    Bug 8666.  Assertion failure on match, bad operand to JMP_SAV_X opcode.
+ #
++"((.??)+|A)*"                     "<0><1><2></2></1></0>AAAAABBBBBCCCCCDDDDEEEEE"
++
+ #  Random debugging, Temporary
+ #
+ #"^(?:a?b?)*$"	                  "a--"
+-"^(?:a?b?)*$"	                  "a--"
+ 
+ "This is a string with (?:one |two |three )endings"   "<0>This is a string with two endings</0>"
+ "((?:a|b|c)whoop-dee-do) | [jkl]|zed"             "x"
+Index: source/i18n/regexcmp.cpp
+===================================================================
+--- source/i18n/regexcmp.cpp	(revision 30243)
++++ source/i18n/regexcmp.cpp	(revision 30244)
+@@ -1962,6 +1962,7 @@
+             opType == URX_CTR_LOOP     ||
+             opType == URX_CTR_LOOP_NG  ||
+             opType == URX_JMP_SAV      ||
++            opType == URX_JMP_SAV_X    ||
+             opType == URX_RELOC_OPRND)    && opValue > where) {
+             // Target location for this opcode is after the insertion point and
+             //   needs to be incremented to adjust for the insertion.

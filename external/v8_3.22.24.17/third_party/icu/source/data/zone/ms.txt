@@ -1,0 +1,223 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2011 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ms.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ms.xml
+ */
+ms{
+    Version{"2.0.59.53"}
+    zoneStrings{
+        "Asia:Brunei"{
+            ec{"Brunei"}
+        }
+        "Asia:Kuching"{
+            ec{"Kuching"}
+        }
+        "Asia:Singapore"{
+            ec{"Singapura"}
+        }
+        "Etc:Unknown"{
+            ec{"Bandar Tidak Diketahui"}
+        }
+        "meta:Alaska"{
+            ld{"Waktu Siang Alaska"}
+            lg{"Waktu Alaska"}
+            ls{"Waktu Piawai Alaska"}
+        }
+        "meta:Amazon"{
+            lg{"Waktu Amazon"}
+        }
+        "meta:America_Central"{
+            ld{"Waktu Siang Tengah"}
+            lg{"Waktu Pusat"}
+            ls{"Waktu Piawai Pusat"}
+        }
+        "meta:America_Eastern"{
+            ld{"Waktu Siang Timur"}
+            lg{"Waktu Timur"}
+            ls{"Waktu Piawai Timur"}
+        }
+        "meta:America_Mountain"{
+            ld{"Waktu Hari Siang Pergunungan"}
+            lg{"Waktu Gunung"}
+            ls{"Waktu Piawai Pergunungan"}
+        }
+        "meta:America_Pacific"{
+            ld{"Waktu Siang Pasifik"}
+            lg{"Waktu Pasifik"}
+            ls{"Waktu Piawai Pasifik"}
+        }
+        "meta:Anadyr"{
+            ld{"Waktu Musim Panas Anadyr"}
+            lg{"Waktu Anadyr"}
+            ls{"Waktu Anadyr"}
+        }
+        "meta:Argentina"{
+            ld{"Waktu Musim Panas Argentina"}
+            lg{"Waktu Argentina"}
+            ls{"Waktu Argentina"}
+        }
+        "meta:Argentina_Western"{
+            ld{"Waktu Musim Panas Barat Argentina"}
+            lg{"Waktu Barat Argentina"}
+            ls{"Waktu Argentina Barat"}
+        }
+        "meta:Atlantic"{
+            ld{"Waktu Siang Atlantik"}
+            lg{"Waktu Atlantik"}
+            ls{"Waktu Piawai Atlantik"}
+        }
+        "meta:Australia_Central"{
+            ld{"Waktu Siang Australia Tengah"}
+            lg{"Waktu Australia Tengah"}
+            ls{"Waktu Piawai Pusat Australia"}
+        }
+        "meta:Australia_CentralWestern"{
+            ld{"Waktu Siang Barat Australia Tengah"}
+            lg{"Waktu Barat Pusat Australia"}
+            ls{"Waktu Piawai Barat Pusat Australia"}
+        }
+        "meta:Australia_Eastern"{
+            ld{"Waktu Siang Australia Timur"}
+            lg{"Waktu Australia Timur"}
+            ls{"Waktu Piawai Timur Australia"}
+        }
+        "meta:Australia_Western"{
+            ld{"Waktu Siang Australia Barat"}
+            lg{"Waktu Australia Barat"}
+            ls{"Waktu Piawai Barat Australia"}
+        }
+        "meta:Brasilia"{
+            ld{"Waktu Musim Panas Brasil"}
+            lg{"Waktu Brasil"}
+            ls{"Waktu Brasil"}
+        }
+        "meta:Choibalsan"{
+            ld{"Waktu Musim Panas Choibalsan"}
+            lg{"Waktu Choibalsan"}
+            ls{"Waktu Choibalsan"}
+        }
+        "meta:Hawaii_Aleutian"{
+            lg{"Waktu Aleutian Hawaii"}
+        }
+        "meta:Hovd"{
+            ld{"Waktu Musim Panas Hovd"}
+            lg{"Waktu Hovd"}
+            ls{"Waktu Hovd"}
+        }
+        "meta:Indonesia_Central"{
+            lg{"Waktu Pusat Indonesia"}
+        }
+        "meta:Indonesia_Eastern"{
+            lg{"Waktu Timur Indonesia"}
+        }
+        "meta:Indonesia_Western"{
+            lg{"Waktu Barat Indonesia"}
+        }
+        "meta:Irkutsk"{
+            ld{"Waktu Musim Panas Irkutsk"}
+            lg{"Waktu Irkutsk"}
+            ls{"Waktu Irkutsk"}
+        }
+        "meta:Kamchatka"{
+            ld{"Waktu Musim Panas Petropavlovsk-Kamchatski"}
+            lg{"Waktu Kamchatka"}
+            ls{"Waktu Petropavlovsk-Kamchatski"}
+        }
+        "meta:Kazakhstan_Eastern"{
+            ld{"Waktu Musim Panas Timur Kazakhtan"}
+            lg{"Waktu Kazakhstan Timur"}
+            ls{"Waktu Piawai Kazakhstan Timur"}
+        }
+        "meta:Kazakhstan_Western"{
+            ld{"Waktu Musim Panas Barat Kazakhtan"}
+            lg{"Waktu Kazakhstan Barat"}
+            ls{"Waktu Piawai Kazakhstan Barat"}
+        }
+        "meta:Krasnoyarsk"{
+            ld{"Waktu Musim Panas Krasnoyarsk"}
+            lg{"Waktu Krasnoyarsk"}
+            ls{"Waktu Krasnoyarsk"}
+        }
+        "meta:Lord_Howe"{
+            ld{"Waktu Siang Lord Howe"}
+            lg{"Waktu Lord Howe"}
+            ls{"Waktu Piawai Lord Howe"}
+        }
+        "meta:Macquarie"{
+            lg{"Waktu Macquarie"}
+        }
+        "meta:Magadan"{
+            ld{"Waktu Musim Panas Magadan"}
+            lg{"Waktu Magadan"}
+            ls{"Waktu Magadan"}
+        }
+        "meta:Mongolia"{
+            ld{"Waktu Musim Panas Ulan Bator"}
+            lg{"Waktu Mongolia"}
+            ls{"Waktu Ulan Bator"}
+        }
+        "meta:Moscow"{
+            ld{"Waktu Musim Panas Moscow"}
+            lg{"Waktu Moscow"}
+            ls{"Waktu Piawai Moscow"}
+        }
+        "meta:Newfoundland"{
+            ld{"Waktu Siang Newfoundland"}
+            lg{"Waktu Newfoundland"}
+            ls{"Waktu Piawai Newfoundland"}
+        }
+        "meta:Noronha"{
+            ld{"Waktu Musim Panas Fernando de Noronha"}
+            lg{"Waktu Noronha"}
+            ls{"Waktu Fernando de Noronha"}
+        }
+        "meta:Novosibirsk"{
+            ld{"Waktu Musim Panas Novosibirsk"}
+            lg{"Waktu Novosibirsk"}
+            ls{"Waktu Novosibirsk"}
+        }
+        "meta:Omsk"{
+            ld{"Waktu Musim Panas Omsk"}
+            lg{"Waktu Omsk"}
+            ls{"Waktu Omsk"}
+        }
+        "meta:Sakhalin"{
+            ld{"Waktu Musim Panas Sakhalin"}
+            lg{"Waktu Skhalin"}
+            ls{"Waktu Skhalin"}
+        }
+        "meta:Samara"{
+            ld{"Waktu Musim Panas Samara"}
+            lg{"Waktu Samara"}
+            ls{"Waktu Samara"}
+        }
+        "meta:Vladivostok"{
+            ld{"Waktu Musim Panas Vladivostok"}
+            lg{"Waktu Vladivostok"}
+            ls{"Waktu Vladivostok"}
+        }
+        "meta:Volgograd"{
+            ld{"Waktu Musim Panas Volgogra"}
+            lg{"Waktu Volgograd"}
+            ls{"Waktu Volgograd"}
+        }
+        "meta:Yakutsk"{
+            ld{"Waktu Musim Panas Yakutsk"}
+            lg{"Waktu Yakutsk"}
+            ls{"Waktu Yakutsk"}
+        }
+        "meta:Yekaterinburg"{
+            ld{"Waktu Musim Panas Yekaterinburg"}
+            lg{"Waktu Yekaterinburg"}
+            ls{"Waktu Yekaterinburg"}
+        }
+        fallbackRegionFormat{"{1} Waktu ({0})"}
+        regionFormat{"Waktu {0}"}
+    }
+}

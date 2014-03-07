@@ -1,0 +1,227 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Introspecting Function Templates</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="prev" href="tti_usingMM.html" title="An example using the Macro Metafunctions">
+<link rel="next" href="../reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_usingMM.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="the_type_traits_introspection_library.tti_func_templates"></a><a class="link" href="tti_func_templates.html" title="Introspecting Function Templates">Introspecting
+    Function Templates</a>
+</h2></div></div></div>
+<p>
+      The one nested element which the TTI library does not introspect is function
+      templates.
+    </p>
+<p>
+      Function templates, like functions, can be member function templates or static
+      member function templates. In this respect they are related to functions. Function
+      templates represent a family of possible functions. In this respect they are
+      similar to class templates, which represent a family of possible class types.
+    </p>
+<p>
+      The technique for introspecting class templates in the TTI library is taken
+      from the implementation of the technique in the Boost MPL library. In the case
+      of <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_TEMPLATE</span></code> it
+      directly uses the Boost MPL library functionality while in the case of <code class="computeroutput"><span class="identifier">BOOST_TTI_HAS_TEMPLATE_CHECK_PARAMS</span></code> it replicates
+      much of the technique in the Boost MPL library. The technique depends directly
+      on the fact that in C++ we can pass a template as a parameter to another template
+      using what is called a "template template" parameter type.
+    </p>
+<p>
+      One obvious thing about a template template parameter type is that it is a
+      class template. For whatever historical or technical reasons, no one has ever
+      proposed that C++ have a way of passing a function template directly as a template
+      parameter, perhaps to be called a "function template template" parameter
+      type. I personally think this would be a good addition to C++ and would make
+      the ability of passing a template as a parameter to another template more orthogonal,
+      since both class templates and function templates would be supported. My efforts
+      to discuss this on the major C++ newsgroups have met with arguments both against
+      its practical usage and the justification that one can pass a function template
+      to another template nested in a non-template class, which serves as a type.
+      But of course we can do the same thing with class templates, which is in fact
+      what Boost MPL does to pass templates as metadata, yet we still have template
+      template parameters as class templates.
+    </p>
+<p>
+      Nonetheless the fact that we can pass class templates as a template parameter
+      but not function templates as a template parameter is the major factor why
+      there is no really good method for introspecting function templates at compile
+      time.
+    </p>
+<h4>
+<a name="the_type_traits_introspection_library.tti_func_templates.h0"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_func_templates.instantiating_a_nested_function_template"></a></span><a class="link" href="tti_func_templates.html#the_type_traits_introspection_library.tti_func_templates.instantiating_a_nested_function_template">Instantiating
+      a nested function template</a>
+    </h4>
+<p>
+      There is, however, an alternate but less certain way of introspecting a function
+      template. I will endeavor to explain why this way is not currently included
+      in the TTI library, but first I will explain what it is.
+    </p>
+<p>
+      It is possible to check whether some particular <span class="bold"><strong>instantiation</strong></span>
+      of a nested function template exists at compile-time without generating a compiler
+      error. Although checking if some particular instantiation of a nested function
+      template exists at compile-time does not prove that the nested function template
+      itself does or does not exist, since the instantiation itself may be incorrect
+      and fail even when the nested function template exists, it provides a partial,
+      if flawed, means of checking.
+    </p>
+<p>
+      The code to do this for member function templates looks like this ( similar
+      code also exists for static member function templates ):
+    </p>
+<pre class="programlisting"><span class="keyword">template</span>
+  <span class="special">&lt;</span>
+  <span class="keyword">class</span> <span class="identifier">C</span><span class="special">,</span>
+  <span class="keyword">class</span> <span class="identifier">T</span>
+  <span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">TestFunctionTemplate</span>
+  <span class="special">{</span>
+  <span class="keyword">typedef</span> <span class="keyword">char</span> <span class="identifier">Bad</span><span class="special">;</span>
+  <span class="keyword">struct</span> <span class="identifier">Good</span> <span class="special">{</span> <span class="keyword">char</span> <span class="identifier">x</span><span class="special">[</span><span class="number">2</span><span class="special">];</span> <span class="special">};</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="keyword">struct</span> <span class="identifier">helper</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">U</span><span class="special">&gt;</span> <span class="keyword">static</span> <span class="identifier">Good</span> <span class="identifier">check</span><span class="special">(</span><span class="identifier">helper</span><span class="special">&lt;&amp;</span><span class="identifier">U</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">SomeFuncTemplateName</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">long</span><span class="special">,</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">*);</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">U</span><span class="special">&gt;</span> <span class="keyword">static</span> <span class="identifier">Bad</span> <span class="identifier">check</span><span class="special">(...);</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">value</span><span class="special">=</span><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">check</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;(</span><span class="number">0</span><span class="special">))==</span><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">Good</span><span class="special">);</span>
+  <span class="special">};</span>
+</pre>
+<p>
+      where 'SomeFuncTemplateName' is the name of the nested function template, followed
+      by some parameters to instantiate it. The 'class C' is the type of the enclosing
+      class and the 'class T' is the type of the instantiated member function template
+      as a member function.
+    </p>
+<p>
+      As an example if we had:
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">AType</span>
+  <span class="special">{</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">X</span><span class="special">,</span><span class="keyword">class</span> <span class="identifier">Y</span><span class="special">,</span><span class="keyword">class</span> <span class="identifier">Z</span><span class="special">&gt;</span> <span class="keyword">double</span> <span class="identifier">SomeFuncTemplateName</span><span class="special">(</span><span class="identifier">X</span><span class="special">,</span><span class="identifier">Y</span> <span class="special">*,</span><span class="identifier">Z</span> <span class="special">&amp;)</span> <span class="special">{</span> <span class="keyword">return</span> <span class="number">0.0</span><span class="special">;</span> <span class="special">}</span>
+  <span class="special">};</span>
+</pre>
+<p>
+      then instantiating the above template with:
+    </p>
+<pre class="programlisting"><span class="identifier">TestFunctionTemplate</span>
+  <span class="special">&lt;</span>
+  <span class="identifier">AType</span><span class="special">,</span>
+  <span class="keyword">double</span> <span class="special">(</span><span class="identifier">AType</span><span class="special">::*)(</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">long</span> <span class="special">*,</span><span class="keyword">double</span> <span class="special">&amp;)</span>
+  <span class="special">&gt;</span>
+</pre>
+<p>
+      would provide a compile-time boolean value which would tell us whether the
+      nested member function template exists for the particular instantiation provided
+      above. Furthermore, through the use of a macro, the TTI library could provide
+      the means for specifying the name of the nested member function template ('SomeFuncTemplateName'
+      above) and its set of instantiated parameters ('int,long,double' above) for
+      generating the template.
+    </p>
+<p>
+      So why does not the TTI library not provide at least this much functionality
+      for introspecting member function templates, even if it represents a partially
+      flawed way of doing so ?
+    </p>
+<p>
+      The reason is stunningly disappointing. Although the above code is perfectly
+      correct C++ code ( 'clang' works correctly ), two of the major C++ compilers,
+      in all of their different releases, can not handle the above code correctly.
+      Both gcc ( g++ ) and Visual C++ incorrectly choose the wrong 'check' function
+      even when the correct 'check' function applies ( Comeau C++ also fails but
+      I am less concerned about that compiler since it is not used nearly as much
+      as the other two ). All my attempts at alternatives to the above code have
+      also failed. The problems with both compilers, in this regard, can be seen
+      more easily with this snippet:
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">AType</span>
+ <span class="special">{</span>
+ <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">AA</span><span class="special">&gt;</span> <span class="keyword">void</span> <span class="identifier">SomeFuncTemplate</span><span class="special">()</span> <span class="special">{</span> <span class="special">}</span>
+ <span class="special">};</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">Test</span>
+ <span class="special">{</span>
+ <span class="keyword">template</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="keyword">struct</span> <span class="identifier">helper</span><span class="special">;</span>
+ <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">U</span><span class="special">&gt;</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">check</span><span class="special">(</span><span class="identifier">helper</span><span class="special">&lt;&amp;</span><span class="identifier">U</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">SomeFuncTemplate</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">*)</span> <span class="special">{</span> <span class="special">}</span>
+ <span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+  <span class="special">{</span>
+  <span class="identifier">Test</span><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">(</span><span class="identifier">AType</span><span class="special">::*)()</span> <span class="special">&gt;::</span><span class="identifier">check</span><span class="special">&lt;</span><span class="identifier">AType</span><span class="special">&gt;(</span><span class="number">0</span><span class="special">);</span>
+  <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+  <span class="special">}</span>
+</pre>
+<p>
+      Both compilers report compile errors with this perfectly correct code,
+    </p>
+<p>
+      gcc:
+    </p>
+<pre class="programlisting"><span class="identifier">error</span><span class="special">:</span> <span class="identifier">no</span> <span class="identifier">matching</span> <span class="identifier">function</span> <span class="keyword">for</span> <span class="identifier">call</span> <span class="identifier">to</span> <span class="char">'Test&lt;void (AType::*)()&gt;::check(int)'</span>
+</pre>
+<p>
+      and msvc:
+    </p>
+<pre class="programlisting"><span class="identifier">error</span> <span class="identifier">C2770</span><span class="special">:</span> <span class="identifier">invalid</span> <span class="keyword">explicit</span> <span class="keyword">template</span> <span class="identifier">argument</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span> <span class="keyword">for</span> <span class="char">'void Test&lt;T&gt;::check(Test&lt;T&gt;::helper&lt;&amp;U::SomeFuncTemplate&lt;int&gt;&gt; *)'</span>
+</pre>
+<p>
+      There is a workaround for these compiler problems, which is to hardcode the
+      name of the enclosing class, via a macro, in the generated template rather
+      than pass it as a template type. In that case both compilers can handle both
+      the member function code and the code snippet above correctly. In essence,
+      when the line:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">U</span><span class="special">&gt;</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">check</span><span class="special">(</span><span class="identifier">helper</span><span class="special">&lt;&amp;</span><span class="identifier">U</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">SomeFuncTemplate</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">*)</span> <span class="special">{</span> <span class="special">}</span>
+</pre>
+<p>
+      gets replaced by:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">U</span><span class="special">&gt;</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">check</span><span class="special">(</span><span class="identifier">helper</span><span class="special">&lt;&amp;</span><span class="identifier">AType</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">SomeFuncTemplate</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">*)</span> <span class="special">{</span> <span class="special">}</span>
+</pre>
+<p>
+      both gcc and Visual C++ work correctly. The same goes for the 'check' line
+      in the 'TestFunctionTemplate' above.
+    </p>
+<p>
+      But the workaround destroys one of the basic tenets of the TTI library, which
+      is that the enclosing class be passed as a template parameter, especially as
+      the enclosing class need not actually exist ( see <code class="computeroutput"><span class="identifier">BOOST_TTI_MEMBER_TYPE</span></code>
+      and the previous discussion of 'Nested Types' ), without producing a compiler
+      error. So I have decided not to implement even this methodology to introspect
+      nested function templates in the TTI library.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Tropic Software
+      East Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_usingMM.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

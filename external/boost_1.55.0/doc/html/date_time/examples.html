@@ -1,0 +1,1165 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Examples</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../date_time.html" title="Chapter&#160;9.&#160;Boost.Date_Time">
+<link rel="prev" href="details.html" title="Details">
+<link rel="next" href="doxy.html" title="Library Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="details.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../date_time.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="doxy.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="date_time.examples"></a>Examples</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="examples.html#date_time.examples.dates_as_strings">Dates as Strings</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.days_alive">Days Alive</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.days_between_new_year">Days Between New Years</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.end_of_month_day">Last Day of the Months</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.localization">Localization Demonstration</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.date_period_calc">Date Period Calculations</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.print_holidays">Print Holidays</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.print_month">Print Month</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.month_add">Month Adding</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.time_math">Time Math</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.print_hours">Print Hours</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.local_utc_conversion">Local to UTC Conversion</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.time_periods">Time Periods</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.simple_time_zone">Simple Time Zones</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.calc_rules">Daylight Savings Calc Rules</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.flight">Flight Time Example</a></span></dt>
+<dt><span class="section"><a href="examples.html#date_time.examples.seconds_since_epoch">Seconds Since Epoch</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.dates_as_strings"></a>Dates as Strings</h3></div></div></div>
+<p>  
+    Various parsing and output of strings.
+  </p>
+<pre class="programlisting">
+    
+
+  /* The following is a simple example that shows conversion of dates 
+   * to and from a std::string.
+   * 
+   * Expected output:
+   * 2001-Oct-09
+   * 2001-10-09
+   * Tuesday October 9, 2001
+   * An expected exception is next: 
+   * Exception: Month number is out of range 1..12
+   */
+
+  #include "boost/date_time/gregorian/gregorian.hpp"
+  #include &lt;iostream&gt;
+  #include &lt;string&gt;
+
+  int
+  main() 
+  {
+
+    using namespace boost::gregorian;
+
+    try {
+      // The following date is in ISO 8601 extended format (CCYY-MM-DD)
+      std::string s("2001-10-9"); //2001-October-09
+      date d(from_simple_string(s));
+      std::cout &lt;&lt; to_simple_string(d) &lt;&lt; std::endl;
+      
+      //Read ISO Standard(CCYYMMDD) and output ISO Extended
+      std::string ud("20011009"); //2001-Oct-09
+      date d1(from_undelimited_string(ud));
+      std::cout &lt;&lt; to_iso_extended_string(d1) &lt;&lt; std::endl;
+      
+      //Output the parts of the date - Tuesday October 9, 2001
+      date::ymd_type ymd = d1.year_month_day();
+      greg_weekday wd = d1.day_of_week();
+      std::cout &lt;&lt; wd.as_long_string() &lt;&lt; " "
+                &lt;&lt; ymd.month.as_long_string() &lt;&lt; " "
+                &lt;&lt; ymd.day &lt;&lt; ", " &lt;&lt; ymd.year
+                &lt;&lt; std::endl;
+
+      //Let's send in month 25 by accident and create an exception
+      std::string bad_date("20012509"); //2001-??-09
+      std::cout &lt;&lt; "An expected exception is next: " &lt;&lt; std::endl;
+      date wont_construct(from_undelimited_string(bad_date));
+      //use wont_construct so compiler doesn't complain, but you wont get here!
+      std::cout &lt;&lt; "oh oh, you shouldn't reach this line: " 
+                &lt;&lt; to_iso_string(wont_construct) &lt;&lt; std::endl;
+    }
+    catch(std::exception&amp; e) {
+      std::cout &lt;&lt; "  Exception: " &lt;&lt;  e.what() &lt;&lt; std::endl;
+    }
+
+
+    return 0;
+  }
+
+    
+  </pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.days_alive"></a>Days Alive</h3></div></div></div>
+<p> 
+    Calculate the number of days you have been living using durations and dates.
+  </p>
+<pre class="programlisting">
+<code class="literal">
+<span class="comment">/* Short example that calculates the number of days since user was born.
+ * Demonstrates comparisons of durations, use of the day_clock,
+ * and parsing a date from a string.
+ */</span><span class="preprocessor">
+
+#include</span><span class="string"> "boost/date_time/gregorian/gregorian.hpp"</span><span class="preprocessor">
+#include</span><span class="special"> &lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span><span class="keyword">
+
+int</span><span class="identifier">
+main</span><span class="special">()</span><span class="special"> 
+{</span><span class="keyword">
+  
+  using</span><span class="keyword"> namespace</span><span class="identifier"> boost</span><span class="special">::</span><span class="identifier">gregorian</span><span class="special">;</span><span class="identifier">
+  std</span><span class="special">::</span><span class="identifier">string</span><span class="identifier"> s</span><span class="special">;</span><span class="identifier">
+  std</span><span class="special">::</span><span class="identifier">cout</span><span class="special"> &lt;&lt;</span><span class="string"> "Enter birth day YYYY-MM-DD (eg: 2002-02-01): "</span><span class="special">;</span><span class="identifier">
+  std</span><span class="special">::</span><span class="identifier">cin</span><span class="special"> &gt;&gt;</span><span class="identifier"> s</span><span class="special">;</span><span class="keyword">
+  try</span><span class="special"> {</span><span class="identifier">
+    date</span><span class="identifier"> birthday</span><span class="special">(</span><span class="identifier">from_simple_string</span><span class="special">(</span><span class="identifier">s</span><span class="special">));</span><span class="identifier">
+    date</span><span class="identifier"> today</span><span class="special"> =</span><span class="identifier"> day_clock</span><span class="special">::</span><span class="identifier">local_day</span><span class="special">();</span><span class="identifier">
+    days</span><span class="identifier"> days_alive</span><span class="special"> =</span><span class="identifier"> today</span><span class="special"> -</span><span class="identifier"> birthday</span><span class="special">;</span><span class="identifier">
+    days</span><span class="identifier"> one_day</span><span class="special">(</span><span class="number">1</span><span class="special">);</span><span class="keyword">
+    if</span><span class="special"> (</span><span class="identifier">days_alive</span><span class="special"> ==</span><span class="identifier"> one_day</span><span class="special">)</span><span class="special"> {</span><span class="identifier">
+      std</span><span class="special">::</span><span class="identifier">cout</span><span class="special"> &lt;&lt;</span><span class="string"> "Born yesterday, very funny"</span><span class="special"> &lt;&lt;</span><span class="identifier"> std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span><span class="special">
+    }</span><span class="keyword">
+    else</span><span class="keyword"> if</span><span class="special"> (</span><span class="identifier">days_alive</span><span class="special"> &lt;</span><span class="identifier"> days</span><span class="special">(</span><span class="number">0</span><span class="special">))</span><span class="special"> {</span><span class="identifier">
+      std</span><span class="special">::</span><span class="identifier">cout</span><span class="special"> &lt;&lt;</span><span class="string"> "Not born yet, hmm: "</span><span class="special"> &lt;&lt;</span><span class="identifier"> days_alive</span><span class="special">.</span><span class="identifier">days</span><span class="special">()</span><span class="special"> 
+                &lt;&lt;</span><span class="string"> " days"</span><span class="special"> &lt;&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span><span class="special">
+    }</span><span class="keyword">
+    else</span><span class="special"> {</span><span class="identifier">
+      std</span><span class="special">::</span><span class="identifier">cout</span><span class="special"> &lt;&lt;</span><span class="string"> "Days alive: "</span><span class="special"> &lt;&lt;</span><span class="identifier"> days_alive</span><span class="special">.</span><span class="identifier">days</span><span class="special">()</span><span class="special"> &lt;&lt;</span><span class="identifier"> std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span><span class="special">
+    }</span><span class="special">
+
+  }</span><span class="keyword">
+  catch</span><span class="special">(...)</span><span class="special"> {</span><span class="identifier">
+    std</span><span class="special">::</span><span class="identifier">cout</span><span class="special"> &lt;&lt;</span><span class="string"> "Bad date entered: "</span><span class="special"> &lt;&lt;</span><span class="identifier"> s</span><span class="special"> &lt;&lt;</span><span class="identifier"> std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span><span class="special">
+  }</span><span class="keyword">
+  return</span><span class="number"> 0</span><span class="special">;</span><span class="special">
+}</span>
+</code>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.days_between_new_year"></a>Days Between New Years</h3></div></div></div>
+<p>  
+    Calculate the number of days till new years
+  </p>
+<pre class="programlisting">
+    
+  /* Provides a simple example of using a date_generator, and simple
+   * mathematical operatorations, to calculate the days since 
+   * New Years day of this year, and days until next New Years day.
+   *
+   * Expected results:
+   * Adding together both durations will produce 366 (365 in a leap year).
+   */
+  #include &lt;iostream&gt;
+  #include "boost/date_time/gregorian/gregorian.hpp"
+
+  int
+  main() 
+  {
+    
+    using namespace boost::gregorian;
+
+    date today = day_clock::local_day();
+    partial_date new_years_day(1,Jan);
+    //Subtract two dates to get a duration
+    days days_since_year_start = today - new_years_day.get_date(today.year());
+    std::cout &lt;&lt; "Days since Jan 1: " &lt;&lt; days_since_year_start.days() 
+              &lt;&lt; std::endl;
+    
+    days days_until_year_start = new_years_day.get_date(today.year()+1) - today;
+    std::cout &lt;&lt; "Days until next Jan 1: " &lt;&lt; days_until_year_start.days() 
+              &lt;&lt; std::endl;
+    return 0;
+  };
+
+    
+  </pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.end_of_month_day"></a>Last Day of the Months</h3></div></div></div>
+<p>
+    Example that gets a month and a year from the user and finds the last day of each remaining month of that year.
+  </p>
+<pre class="programlisting">
+    
+  /* Simple program that finds the last day of the given month, 
+   * then displays the last day of every month left in the given year.
+   */
+
+  #include "boost/date_time/gregorian/gregorian.hpp"
+  #include &lt;iostream&gt;
+
+  int
+  main()
+  {
+    using namespace boost::gregorian;
+    
+    greg_year year(1400);
+    greg_month month(1);
+
+    // get a month and a year from the user
+    try {
+      int y, m;
+      std::cout &lt;&lt; "   Enter Year(ex: 2002): ";
+      std::cin &gt;&gt; y;
+      year = greg_year(y);
+      std::cout &lt;&lt; "   Enter Month(1..12): ";
+      std::cin &gt;&gt; m;
+      month = greg_month(m);
+    }
+    catch(bad_year by) {
+      std::cout &lt;&lt; "Invalid Year Entered: " &lt;&lt; by.what() &lt;&lt; '\n'
+        &lt;&lt; "Using minimum values for month and year." &lt;&lt; std::endl;
+    }
+    catch(bad_month bm) {
+      std::cout &lt;&lt; "Invalid Month Entered" &lt;&lt; bm.what() &lt;&lt; '\n'
+        &lt;&lt; "Using minimum value for month. " &lt;&lt; std::endl;
+    }
+    
+    date start_of_next_year(year+1, Jan, 1);
+    date d(year, month, 1);
+    
+    // add another month to d until we enter the next year.
+    while (d &lt; start_of_next_year){
+      std::cout &lt;&lt; to_simple_string(d.end_of_month()) &lt;&lt; std::endl;
+      d += months(1);
+    }
+
+    return 0;
+  }
+
+    
+  </pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.localization"></a>Localization Demonstration</h3></div></div></div>
+<p>
+    The boost::date_time library provides the ability to create customized locale facets. Date ordering, language, seperators, and abbreviations can be customized.
+  </p>
+<pre class="programlisting">
+    
+  /* The following shows the creation of a facet for the output of 
+   * dates in German (please forgive me for any errors in my German --
+   * I'm not a native speaker).
+   */
+
+  #include "boost/date_time/gregorian/gregorian.hpp"
+  #include &lt;iostream&gt;
+  #include &lt;algorithm&gt;
+
+  /* Define a series of char arrays for short and long name strings 
+   * to be associated with German date output (US names will be 
+   * retrieved from the locale). */
+  const char* const de_short_month_names[] = 
+  {
+    "Jan", "Feb", "Mar", "Apr", "Mai", "Jun",
+    "Jul", "Aug", "Sep", "Okt", "Nov", "Dez", "NAM" 
+  };
+  const char* const de_long_month_names[] =
+  {
+    "Januar", "Februar", "Marz", "April", "Mai",
+    "Juni", "Juli", "August", "September", "Oktober",
+    "November", "Dezember", "NichtDerMonat"
+  };
+  const char* const de_long_weekday_names[] = 
+  {
+    "Sonntag", "Montag", "Dienstag", "Mittwoch",
+    "Donnerstag", "Freitag", "Samstag"
+  };
+  const char* const de_short_weekday_names[] =
+  {
+    "Son", "Mon", "Die","Mit", "Don", "Fre", "Sam"
+  };
+
+
+  int main() 
+  {
+    using namespace boost::gregorian;
+   
+    // create some gregorian objects to output
+    date d1(2002, Oct, 1);
+    greg_month m = d1.month();
+    greg_weekday wd = d1.day_of_week();
+    
+    // create a facet and a locale for German dates
+    date_facet* german_facet = new date_facet();
+    std::cout.imbue(std::locale(std::locale::classic(), german_facet));
+
+    // create the German name collections
+    date_facet::input_collection_type short_months, long_months, 
+                                      short_weekdays, long_weekdays;
+    std::copy(&amp;de_short_month_names[0], &amp;de_short_month_names[11],
+              std::back_inserter(short_months));
+    std::copy(&amp;de_long_month_names[0], &amp;de_long_month_names[11],
+              std::back_inserter(long_months));
+    std::copy(&amp;de_short_weekday_names[0], &amp;de_short_weekday_names[6],
+              std::back_inserter(short_weekdays));
+    std::copy(&amp;de_long_weekday_names[0], &amp;de_long_weekday_names[6],
+              std::back_inserter(long_weekdays));
+
+    // replace the default names with ours
+    // NOTE: date_generators and special_values were not replaced as 
+    // they are not used in this example
+    german_facet-&gt;short_month_names(short_months);
+    german_facet-&gt;long_month_names(long_months);
+    german_facet-&gt;short_weekday_names(short_weekdays);
+    german_facet-&gt;long_weekday_names(long_weekdays);
+    
+    // output the date in German using short month names
+    german_facet-&gt;format("%d.%m.%Y");
+    std::cout &lt;&lt; d1 &lt;&lt; std::endl; //01.10.2002
+    
+    german_facet-&gt;month_format("%B");
+    std::cout &lt;&lt; m &lt;&lt; std::endl; //Oktober
+    
+    german_facet-&gt;weekday_format("%A");
+    std::cout &lt;&lt; wd &lt;&lt; std::endl; //Dienstag
+
+
+    // Output the same gregorian objects using US names
+    date_facet* us_facet = new date_facet();
+    std::cout.imbue(std::locale(std::locale::classic(), us_facet)); 
+
+    us_facet-&gt;format("%m/%d/%Y");
+    std::cout &lt;&lt; d1 &lt;&lt; std::endl; //  10/01/2002
+    
+    // English names, iso order (year-month-day), '-' separator
+    us_facet-&gt;format("%Y-%b-%d");
+    std::cout &lt;&lt; d1 &lt;&lt; std::endl; //  2002-Oct-01
+    
+    return 0;
+
+  }
+    
+  </pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.date_period_calc"></a>Date Period Calculations</h3></div></div></div>
+<p>  
+    Calculates if a date is in an 'irregular' collection of periods using period calculation functions.
+  </p>
+<pre class="programlisting">
+    
+  /*
+  This example demonstrates a simple use of periods for the calculation
+  of date information.
+
+  The example calculates if a given date is a weekend or holiday
+  given an exclusion set.  That is, each weekend or holiday is
+  entered into the set as a time interval.  Then if a given date
+  is contained within any of the intervals it is considered to
+  be within the exclusion set and hence is a offtime.
+
+  Output:
+  Number Excluded Periods: 5
+  20020202/20020203
+  20020209/20020210
+  20020212/20020212
+  20020216/20020217
+  In Exclusion Period: 20020216 --&gt; 20020216/20020217
+  20020223/20020224
+
+  */
+
+
+  #include "boost/date_time/gregorian/gregorian.hpp"
+  #include &lt;set&gt;
+  #include &lt;algorithm&gt;
+  #include &lt;iostream&gt;
+
+  typedef std::set&lt;boost::gregorian::date_period&gt; date_period_set;
+
+  //Simple population of the exclusion set
+  date_period_set
+  generateExclusion()
+  {
+    using namespace boost::gregorian;
+    date_period periods_array[] = 
+      { date_period(date(2002,Feb,2), date(2002,Feb,4)),//weekend of 2nd-3rd
+        date_period(date(2002,Feb,9), date(2002,Feb,11)),
+        date_period(date(2002,Feb,16), date(2002,Feb,18)),
+        date_period(date(2002,Feb,23), date(2002,Feb,25)),
+        date_period(date(2002,Feb,12), date(2002,Feb,13))//a random holiday 2-12
+      };
+    const int num_periods = sizeof(periods_array)/sizeof(date_period);
+
+    date_period_set ps;
+    //insert the periods in the set
+    std::insert_iterator&lt;date_period_set&gt; itr(ps, ps.begin());
+    std::copy(periods_array, periods_array+num_periods, itr );
+    return ps;
+    
+  }
+
+
+  int main() 
+  {
+    using namespace boost::gregorian;
+    
+    date_period_set ps = generateExclusion();
+    std::cout &lt;&lt; "Number Excluded Periods: "  &lt;&lt; ps.size() &lt;&lt; std::endl;
+
+    date d(2002,Feb,16);
+    date_period_set::const_iterator i = ps.begin();
+    //print the periods, check for containment
+    for (;i != ps.end(); i++) {
+      std::cout &lt;&lt; to_iso_string(*i) &lt;&lt; std::endl;
+      //if date is in exclusion period then print it
+      if (i-&gt;contains(d)) {
+        std::cout &lt;&lt; "In Exclusion Period: "
+            &lt;&lt; to_iso_string(d) &lt;&lt; " --&gt; " &lt;&lt; to_iso_string(*i)
+            &lt;&lt; std::endl;
+      }
+    }
+
+    return 0;  
+
+  }
+
+    
+  </pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.print_holidays"></a>Print Holidays</h3></div></div></div>
+<p>  
+    This is an example of using functors to define a holiday schedule
+  </p>
+<pre class="programlisting">
+    
+
+  /* Generate a set of dates using a collection of date generators
+   * Output looks like:
+   * Enter Year: 2002
+   * 2002-Jan-01 [Tue]
+   * 2002-Jan-21 [Mon]
+   * 2002-Feb-12 [Tue]
+   * 2002-Jul-04 [Thu]
+   * 2002-Sep-02 [Mon]
+   * 2002-Nov-28 [Thu]
+   * 2002-Dec-25 [Wed]
+   * Number Holidays: 7
+   */
+
+  #include "boost/date_time/gregorian/gregorian.hpp"
+  #include &lt;algorithm&gt;
+  #include &lt;functional&gt;
+  #include &lt;vector&gt;
+  #include &lt;iostream&gt;
+  #include &lt;set&gt;
+
+  void
+  print_date(boost::gregorian::date d) 
+  {
+    using namespace boost::gregorian;
+  #if defined(BOOST_DATE_TIME_NO_LOCALE)
+    std::cout &lt;&lt; to_simple_string(d) &lt;&lt; " [" &lt;&lt; d.day_of_week() &lt;&lt; "]\n";
+  #else
+    std::cout &lt;&lt; d &lt;&lt; " [" &lt;&lt; d.day_of_week() &lt;&lt; "]\n";
+  #endif
+  }
+
+
+  int
+  main() {
+
+    std::cout &lt;&lt; "Enter Year: ";
+    int year;
+    std::cin &gt;&gt; year;
+
+    using namespace boost::gregorian;
+
+    //define a collection of holidays fixed by month and day
+    std::vector&lt;year_based_generator*&gt; holidays;
+    holidays.push_back(new partial_date(1,Jan)); //Western New Year
+    holidays.push_back(new partial_date(4,Jul)); //US Independence Day
+    holidays.push_back(new partial_date(25, Dec));//Christmas day
+
+
+    //define a shorthand for the nth_day_of_the_week_in_month function object
+    typedef nth_day_of_the_week_in_month nth_dow;
+    
+    //US labor day
+    holidays.push_back(new nth_dow(nth_dow::first,  Monday,   Sep)); 
+    //MLK Day
+    holidays.push_back(new nth_dow(nth_dow::third,  Monday,   Jan)); 
+    //Pres day
+    holidays.push_back(new nth_dow(nth_dow::second, Tuesday,  Feb)); 
+    //Thanksgiving
+    holidays.push_back(new nth_dow(nth_dow::fourth, Thursday, Nov)); 
+
+    typedef std::set&lt;date&gt; date_set;
+    date_set all_holidays;
+    
+    for(std::vector&lt;year_based_generator*&gt;::iterator it = holidays.begin();
+        it != holidays.end(); ++it)
+    {
+      all_holidays.insert((*it)-&gt;get_date(year));
+    }
+
+    //print the holidays to the screen
+    std::for_each(all_holidays.begin(), all_holidays.end(), print_date);
+    std::cout &lt;&lt; "Number Holidays: " &lt;&lt; all_holidays.size() &lt;&lt; std::endl;
+
+    return 0;
+  }
+
+    
+  </pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.print_month"></a>Print Month</h3></div></div></div>
+<p>  
+    Simple utility to print out days of the month with the days of a month. Demontstrates date iteration (date_time::date_itr).
+  </p>
+<pre class="programlisting">
+    
+  /* This example prints all the dates in a month. It demonstrates
+   * the use of iterators as well as functions of the gregorian_calendar
+   * 
+   * Output:
+   * Enter Year: 2002
+   * Enter Month(1..12): 2
+   * 2002-Feb-01 [Fri]
+   * 2002-Feb-02 [Sat]
+   * 2002-Feb-03 [Sun]
+   * 2002-Feb-04 [Mon]
+   * 2002-Feb-05 [Tue]
+   * 2002-Feb-06 [Wed]
+   * 2002-Feb-07 [Thu]
+   */
+
+  #include "boost/date_time/gregorian/gregorian.hpp"
+  #include &lt;iostream&gt;
+
+  int
+  main()
+  {
+    std::cout &lt;&lt; "Enter Year: ";
+    int year, month;
+    std::cin &gt;&gt; year;
+    std::cout &lt;&lt; "Enter Month(1..12): ";
+    std::cin &gt;&gt; month;
+
+    using namespace boost::gregorian;
+    try {
+      //Use the calendar to get the last day of the month
+      int eom_day = gregorian_calendar::end_of_month_day(year,month);
+      date endOfMonth(year,month,eom_day);
+
+      //construct an iterator starting with firt day of the month
+      day_iterator ditr(date(year,month,1));
+      //loop thru the days and print each one
+      for (; ditr &lt;= endOfMonth; ++ditr) {
+  #if defined(BOOST_DATE_TIME_NO_LOCALE) 
+        std::cout &lt;&lt; to_simple_string(*ditr) &lt;&lt; " ["
+  #else
+        std::cout &lt;&lt; *ditr &lt;&lt; " ["
+  #endif
+                  &lt;&lt; ditr-&gt;day_of_week() &lt;&lt; "]"
+                  &lt;&lt; std::endl; 
+      }
+    }
+    catch(std::exception&amp; e) {
+
+      std::cout &lt;&lt; "Error bad date, check your entry: \n"
+                &lt;&lt; "  Details: " &lt;&lt; e.what() &lt;&lt; std::endl;
+    }
+    return 0;
+  }
+
+    
+  </pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.month_add"></a>Month Adding</h3></div></div></div>
+<p> 
+    Adding a month to a day without the use of iterators.
+  </p>
+<pre class="programlisting">
+    
+  /* Simple program that uses the gregorian calendar to progress by exactly
+   * one month, irregardless of how many days are in that month.
+   *
+   * This method can be used as an alternative to iterators
+   */
+
+  #include "boost/date_time/gregorian/gregorian.hpp"
+  #include &lt;iostream&gt;
+
+  int
+  main()
+  {
+
+    using namespace boost::gregorian;
+
+    date d = day_clock::local_day();
+    add_month mf(1);
+    date d2 = d + mf.get_offset(d);
+    std::cout &lt;&lt; "Today is: " &lt;&lt; to_simple_string(d) &lt;&lt; ".\n"
+      &lt;&lt; "One month from today will be: " &lt;&lt; to_simple_string(d2) 
+      &lt;&lt; std::endl;
+
+    return 0;
+  }
+    
+  </pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.time_math"></a>Time Math</h3></div></div></div>
+<p> 
+    Various types of calculations with times and time durations.  
+  </p>
+<pre class="programlisting">
+    
+  /* Some simple examples of constructing and calculating with times
+   * Output:
+   * 2002-Feb-01 00:00:00 - 2002-Feb-01 05:04:02.001000000 = -5:04:02.001000000
+   */
+
+  #include "boost/date_time/posix_time/posix_time.hpp"
+  #include &lt;iostream&gt;
+
+  int
+  main() 
+  {
+    using namespace boost::posix_time;
+    using namespace boost::gregorian;
+
+    date d(2002,Feb,1); //an arbitrary date
+    //construct a time by adding up some durations durations
+    ptime t1(d, hours(5)+minutes(4)+seconds(2)+millisec(1));
+    //construct a new time by subtracting some times
+    ptime t2 = t1 - hours(5)- minutes(4)- seconds(2)- millisec(1);
+    //construct a duration by taking the difference between times
+    time_duration td = t2 - t1;
+      
+    std::cout &lt;&lt; to_simple_string(t2) &lt;&lt; " - " 
+              &lt;&lt; to_simple_string(t1) &lt;&lt; " = "
+              &lt;&lt; to_simple_string(td) &lt;&lt; std::endl;
+    
+    return 0;
+  }
+    
+  </pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.print_hours"></a>Print Hours</h3></div></div></div>
+<p>
+    Demonstrate time iteration, clock retrieval, and simple calculation. 
+  </p>
+<pre class="programlisting">
+    
+  /* Print the remaining hours of the day
+   * Uses the clock to get the local time 
+   * Use an iterator to iterate over the remaining hours
+   * Retrieve the date part from a time
+   *
+   * Expected Output something like:
+   *
+   * 2002-Mar-08 16:30:59
+   * 2002-Mar-08 17:30:59
+   * 2002-Mar-08 18:30:59
+   * 2002-Mar-08 19:30:59
+   * 2002-Mar-08 20:30:59
+   * 2002-Mar-08 21:30:59
+   * 2002-Mar-08 22:30:59
+   * 2002-Mar-08 23:30:59
+   * Time left till midnight: 07:29:01
+   */
+
+  #include "boost/date_time/posix_time/posix_time.hpp"
+  #include &lt;iostream&gt;
+
+  int
+  main() 
+  {
+    using namespace boost::posix_time;
+    using namespace boost::gregorian;
+
+    //get the current time from the clock -- one second resolution
+    ptime now = second_clock::local_time();
+    //Get the date part out of the time
+    date today = now.date();
+    date tommorrow = today + days(1);
+    ptime tommorrow_start(tommorrow); //midnight 
+
+    //iterator adds by one hour
+    time_iterator titr(now,hours(1)); 
+    for (; titr &lt; tommorrow_start; ++titr) {
+      std::cout &lt;&lt; to_simple_string(*titr) &lt;&lt; std::endl;
+    }
+    
+    time_duration remaining = tommorrow_start - now;
+    std::cout &lt;&lt; "Time left till midnight: " 
+              &lt;&lt; to_simple_string(remaining) &lt;&lt; std::endl;
+    return 0;
+  }
+
+    
+  </pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.local_utc_conversion"></a>Local to UTC Conversion</h3></div></div></div>
+<p>
+    Demonstrate utc to local and local to utc calculations including dst.
+  </p>
+<pre class="programlisting">
+    
+
+  /* Demonstrate conversions between a local time and utc
+   * Output:
+   * 
+   * UTC &lt;--&gt; New York while DST is NOT active (5 hours)
+   * 2001-Dec-31 19:00:00 in New York is 2002-Jan-01 00:00:00 UTC time 
+   * 2002-Jan-01 00:00:00 UTC is 2001-Dec-31 19:00:00 New York time 
+   * 
+   * UTC &lt;--&gt; New York while DST is active (4 hours)
+   * 2002-May-31 20:00:00 in New York is 2002-Jun-01 00:00:00 UTC time 
+   * 2002-Jun-01 00:00:00 UTC is 2002-May-31 20:00:00 New York time 
+   * 
+   * UTC &lt;--&gt; Arizona (7 hours)
+   * 2002-May-31 17:00:00 in Arizona is 2002-Jun-01 00:00:00 UTC time 
+   */
+
+  #include "boost/date_time/posix_time/posix_time.hpp"
+  #include "boost/date_time/local_time_adjustor.hpp"
+  #include "boost/date_time/c_local_time_adjustor.hpp"
+  #include &lt;iostream&gt;
+
+  int
+  main() 
+  {
+    using namespace boost::posix_time;
+    using namespace boost::gregorian;
+
+    //This local adjustor depends on the machine TZ settings-- highly dangerous!
+    typedef boost::date_time::c_local_adjustor&lt;ptime&gt; local_adj;
+    ptime t10(date(2002,Jan,1), hours(7)); 
+    ptime t11 = local_adj::utc_to_local(t10);
+    std::cout &lt;&lt; "UTC &lt;--&gt; Zone base on TZ setting" &lt;&lt; std::endl;
+    std::cout &lt;&lt; to_simple_string(t11) &lt;&lt; " in your TZ is " 
+              &lt;&lt; to_simple_string(t10) &lt;&lt; " UTC time "
+              &lt;&lt; std::endl;
+    time_duration td = t11 - t10;
+    std::cout &lt;&lt; "A difference of: " 
+              &lt;&lt; to_simple_string(td) &lt;&lt; std::endl;
+
+
+    //eastern timezone is utc-5
+    typedef boost::date_time::local_adjustor&lt;ptime, -5, us_dst&gt; us_eastern;
+
+    ptime t1(date(2001,Dec,31), hours(19)); //5 hours b/f midnight NY time
+
+    std::cout &lt;&lt; "\nUTC &lt;--&gt; New York while DST is NOT active (5 hours)" 
+              &lt;&lt; std::endl;
+    ptime t2 =  us_eastern::local_to_utc(t1);
+    std::cout &lt;&lt; to_simple_string(t1) &lt;&lt; " in New York is " 
+              &lt;&lt; to_simple_string(t2) &lt;&lt; " UTC time "
+              &lt;&lt; std::endl;
+
+    ptime t3 = us_eastern::utc_to_local(t2);//back should be the same
+    std::cout &lt;&lt; to_simple_string(t2) &lt;&lt; " UTC is " 
+              &lt;&lt; to_simple_string(t3) &lt;&lt; " New York time "
+              &lt;&lt; "\n\n";
+
+    ptime t4(date(2002,May,31), hours(20)); //4 hours b/f midnight NY time
+    std::cout &lt;&lt; "UTC &lt;--&gt; New York while DST is active (4 hours)" &lt;&lt; std::endl;
+    ptime t5 = us_eastern::local_to_utc(t4);
+    std::cout &lt;&lt; to_simple_string(t4) &lt;&lt; " in New York is " 
+              &lt;&lt; to_simple_string(t5) &lt;&lt; " UTC time "
+              &lt;&lt; std::endl;
+
+    ptime t6 = us_eastern::utc_to_local(t5);//back should be the same
+    std::cout &lt;&lt; to_simple_string(t5) &lt;&lt; " UTC is " 
+              &lt;&lt; to_simple_string(t6) &lt;&lt; " New York time "
+              &lt;&lt; "\n" &lt;&lt; std::endl;
+
+      
+    //Arizona timezone is utc-7 with no dst
+    typedef boost::date_time::local_adjustor&lt;ptime, -7, no_dst&gt; us_arizona;
+
+    ptime t7(date(2002,May,31), hours(17)); 
+    std::cout &lt;&lt; "UTC &lt;--&gt; Arizona (7 hours)" &lt;&lt; std::endl;
+    ptime t8 = us_arizona::local_to_utc(t7);
+    std::cout &lt;&lt; to_simple_string(t7) &lt;&lt; " in Arizona is " 
+              &lt;&lt; to_simple_string(t8) &lt;&lt; " UTC time "
+              &lt;&lt; std::endl;
+
+    return 0;
+  }
+
+    
+  </pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.time_periods"></a>Time Periods</h3></div></div></div>
+<p>
+    Demonstrate some simple uses of time periods. 
+  </p>
+<pre class="programlisting">
+    
+
+  /* Some simple examples of constructing and calculating with times
+   * Returns:
+   * [2002-Feb-01 00:00:00/2002-Feb-01 23:59:59.999999999] 
+   * contains 2002-Feb-01 03:00:05
+   * [2002-Feb-01 00:00:00/2002-Feb-01 23:59:59.999999999] 
+   * intersected with
+   * [2002-Feb-01 00:00:00/2002-Feb-01 03:00:04.999999999] 
+   * is 
+   * [2002-Feb-01 00:00:00/2002-Feb-01 03:00:04.999999999]
+   */
+
+  #include "boost/date_time/posix_time/posix_time.hpp"
+  #include &lt;iostream&gt;
+
+  using namespace boost::posix_time;
+  using namespace boost::gregorian;
+
+  //Create a simple period class to contain all the times in a day
+  class day_period : public time_period
+  {
+  public:
+    day_period(date d) : time_period(ptime(d),//midnight
+                                     ptime(d,hours(24)))
+    {}
+
+  };
+
+  int
+  main() 
+  {
+
+    date d(2002,Feb,1); //an arbitrary date
+    //a period that represents a day  
+    day_period dp(d);
+    ptime t(d, hours(3)+seconds(5)); //an arbitray time on that day
+    if (dp.contains(t)) {
+      std::cout &lt;&lt; to_simple_string(dp) &lt;&lt; " contains "
+                &lt;&lt; to_simple_string(t)  &lt;&lt; std::endl;
+    }
+    //a period that represents part of the day
+    time_period part_of_day(ptime(d, hours(0)), t);
+    //intersect the 2 periods and print the results
+    if (part_of_day.intersects(dp)) {
+      time_period result = part_of_day.intersection(dp);
+      std::cout &lt;&lt; to_simple_string(dp) &lt;&lt; " intersected with\n"
+                &lt;&lt; to_simple_string(part_of_day) &lt;&lt; " is \n"
+                &lt;&lt; to_simple_string(result) &lt;&lt; std::endl;
+    }
+      
+    
+    return 0;
+  }
+
+    
+  </pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.simple_time_zone"></a>Simple Time Zones</h3></div></div></div>
+<p> 
+    Example usage of custom_time_zone as well as posix_time_zone.
+  </p>
+<pre class="programlisting">
+    
+  /* A simple example for using a custom_time_zone and a posix_time_zone.
+   */
+
+  #include "boost/date_time/local_time/local_time.hpp"
+  #include &lt;iostream&gt;
+
+  int
+  main() 
+  {
+    using namespace boost;
+    using namespace local_time;
+    using namespace gregorian;
+    using posix_time::time_duration;
+
+    /***** custom_time_zone *****/
+    
+    // create the dependent objects for a custom_time_zone
+    time_zone_names tzn("Eastern Standard Time", "EST",
+                        "Eastern Daylight Time", "EDT");
+    time_duration utc_offset(-5,0,0);
+    dst_adjustment_offsets adj_offsets(time_duration(1,0,0), 
+                                       time_duration(2,0,0), 
+                                       time_duration(2,0,0));
+    // rules for this zone are:
+    // start on first Sunday of April at 2 am
+    // end on last Sunday of October at 2 am
+    // so we use a first_last_dst_rule
+    first_day_of_the_week_in_month start_rule(Sunday, Apr);
+    last_day_of_the_week_in_month    end_rule(Sunday, Oct);
+    shared_ptr&lt;dst_calc_rule&gt; nyc_rules(new first_last_dst_rule(start_rule, 
+                                                                end_rule));
+    // create more dependent objects for a non-dst custom_time_zone
+    time_zone_names tzn2("Mountain Standard Time", "MST",
+                         "", ""); // no dst means empty dst strings
+    time_duration utc_offset2(-7,0,0);
+    dst_adjustment_offsets adj_offsets2(time_duration(0,0,0), 
+                                        time_duration(0,0,0), 
+                                        time_duration(0,0,0));
+    // no dst means we need a null pointer to the rules
+    shared_ptr&lt;dst_calc_rule&gt; phx_rules;
+
+    // create the custom_time_zones
+    time_zone_ptr nyc_1(new custom_time_zone(tzn, utc_offset, 
+                                             adj_offsets, nyc_rules));
+    time_zone_ptr phx_1(new custom_time_zone(tzn2, utc_offset2, 
+                                             adj_offsets2, phx_rules));
+
+    /***** posix_time_zone *****/
+
+    // create posix_time_zones that are the duplicates of the 
+    // custom_time_zones created above. See posix_time_zone documentation 
+    // for details on full zone names.
+    std::string nyc_string, phx_string;
+    nyc_string = "EST-05:00:00EDT+01:00:00,M4.1.0/02:00:00,M10.5.0/02:00:00";
+    // nyc_string = "EST-05EDT,M4.1.0,M10.5.0"; // shorter when defaults used
+    phx_string = "MST-07"; // no-dst
+    time_zone_ptr nyc_2(new posix_time_zone(nyc_string));
+    time_zone_ptr phx_2(new posix_time_zone(phx_string));
+   
+
+    /***** show the sets are equal *****/
+
+    std::cout &lt;&lt; "The first zone is in daylight savings from:\n " 
+      &lt;&lt; nyc_1-&gt;dst_local_start_time(2004) &lt;&lt; " through "
+      &lt;&lt; nyc_1-&gt;dst_local_end_time(2004) &lt;&lt; std::endl;
+
+    std::cout &lt;&lt; "The second zone is in daylight savings from:\n " 
+      &lt;&lt; nyc_2-&gt;dst_local_start_time(2004) &lt;&lt; " through "
+      &lt;&lt; nyc_2-&gt;dst_local_end_time(2004) &lt;&lt; std::endl;
+
+    std::cout &lt;&lt; "The third zone (no daylight savings):\n " 
+      &lt;&lt; phx_1-&gt;std_zone_abbrev() &lt;&lt; " and "
+      &lt;&lt; phx_1-&gt;base_utc_offset() &lt;&lt; std::endl;
+
+    std::cout &lt;&lt; "The fourth zone (no daylight savings):\n " 
+      &lt;&lt; phx_2-&gt;std_zone_abbrev() &lt;&lt; " and "
+      &lt;&lt; phx_2-&gt;base_utc_offset() &lt;&lt; std::endl;
+
+    return 0;
+  }
+    
+  </pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.calc_rules"></a>Daylight Savings Calc Rules</h3></div></div></div>
+<p> 
+    Example of creating various Daylight Savings Calc Rule objects.
+  </p>
+<pre class="programlisting">
+    
+  /* A simple example for creating various dst_calc_rule instances
+   */
+
+  #include "boost/date_time/gregorian/gregorian.hpp"
+  #include "boost/date_time/local_time/local_time.hpp"
+  #include &lt;iostream&gt;
+
+  int
+  main() 
+  {
+    using namespace boost;
+    using namespace local_time;
+    using namespace gregorian;
+
+    /***** create the necessary date_generator objects *****/
+    // starting generators
+    first_day_of_the_week_in_month fd_start(Sunday, May);
+    last_day_of_the_week_in_month ld_start(Sunday, May);
+    nth_day_of_the_week_in_month nkd_start(nth_day_of_the_week_in_month::third, 
+                                           Sunday, May);
+    partial_date pd_start(1, May);
+    // ending generators
+    first_day_of_the_week_in_month fd_end(Sunday, Oct);
+    last_day_of_the_week_in_month ld_end(Sunday, Oct);
+    nth_day_of_the_week_in_month nkd_end(nth_day_of_the_week_in_month::third, 
+                                         Sunday, Oct);
+    partial_date pd_end(31, Oct);
+
+    /***** create the various dst_calc_rule objects *****/
+    dst_calc_rule_ptr pdr(new partial_date_dst_rule(pd_start, pd_end));
+    dst_calc_rule_ptr flr(new first_last_dst_rule(fd_start, ld_end));
+    dst_calc_rule_ptr llr(new last_last_dst_rule(ld_start, ld_end));
+    dst_calc_rule_ptr nlr(new nth_last_dst_rule(nkd_start, ld_end));
+    dst_calc_rule_ptr ndr(new nth_day_of_the_week_in_month_dst_rule(nkd_start, 
+                                                                    nkd_end));
+
+    return 0;
+  }
+
+    
+  </pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.flight"></a>Flight Time Example</h3></div></div></div>
+<p>This example shows a program that calculates the arrival time of a plane that flys from Phoenix to New York.  During the flight New York shifts into daylight savings time (Phoenix doesn't because Arizona doesn't use dst).</p>
+<pre class="programlisting">
+<code class="literal">
+<span class="preprocessor">#include</span><span class="string"> "boost/date_time/local_time/local_time.hpp"</span><span class="preprocessor">
+#include</span><span class="special"> &lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span><span class="comment">
+
+/* This example shows a program that calculates the arrival time of a plane
+ * that flys from Phoenix to New York.  During the flight New York shifts
+ * into daylight savings time (Phoenix doesn't because Arizona doesn't use
+ * dst).  
+ *
+ * 
+ */</span><span class="keyword">
+
+int</span><span class="identifier"> main</span><span class="special">()</span><span class="special">
+{</span><span class="keyword">
+  using</span><span class="keyword"> namespace</span><span class="identifier"> boost</span><span class="special">::</span><span class="identifier">gregorian</span><span class="special">;</span><span class="keyword"> 
+  using</span><span class="keyword"> namespace</span><span class="identifier"> boost</span><span class="special">::</span><span class="identifier">local_time</span><span class="special">;</span><span class="keyword">
+  using</span><span class="keyword"> namespace</span><span class="identifier"> boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">;</span><span class="comment">
+
+
+  //setup some timezones for creating and adjusting local times
+  //This user editable file can be found in libs/date_time/data.
+</span><span class="identifier">  tz_database</span><span class="identifier"> tz_db</span><span class="special">;</span><span class="identifier">
+  tz_db</span><span class="special">.</span><span class="identifier">load_from_file</span><span class="special">(</span><span class="string">"date_time_zonespec.csv"</span><span class="special">);</span><span class="identifier">
+  time_zone_ptr</span><span class="identifier"> nyc_tz</span><span class="special"> =</span><span class="identifier"> tz_db</span><span class="special">.</span><span class="identifier">time_zone_from_region</span><span class="special">(</span><span class="string">"America/New_York"</span><span class="special">);</span><span class="comment">
+  //Use a 
+</span><span class="identifier">  time_zone_ptr</span><span class="identifier"> phx_tz</span><span class="special">(</span><span class="keyword">new</span><span class="identifier"> posix_time_zone</span><span class="special">(</span><span class="string">"MST-07:00:00"</span><span class="special">));</span><span class="comment">
+
+  //local departure time in phoenix is 11 pm on april 2 2005 
+  // (ny changes to dst on apr 3 at 2 am)
+</span><span class="identifier">  local_date_time</span><span class="identifier"> phx_departure</span><span class="special">(</span><span class="identifier">date</span><span class="special">(</span><span class="number">2005</span><span class="special">,</span><span class="identifier"> Apr</span><span class="special">,</span><span class="number"> 2</span><span class="special">),</span><span class="identifier"> hours</span><span class="special">(</span><span class="number">23</span><span class="special">),</span><span class="identifier"> 
+                                phx_tz</span><span class="special">,</span><span class="identifier"> 
+                                local_date_time</span><span class="special">::</span><span class="identifier">NOT_DATE_TIME_ON_ERROR</span><span class="special">);</span><span class="identifier">
+
+  time_duration</span><span class="identifier"> flight_length</span><span class="special"> =</span><span class="identifier"> hours</span><span class="special">(</span><span class="number">4</span><span class="special">)</span><span class="special"> +</span><span class="identifier"> minutes</span><span class="special">(</span><span class="number">30</span><span class="special">);</span><span class="identifier">
+  local_date_time</span><span class="identifier"> phx_arrival</span><span class="special"> =</span><span class="identifier"> phx_departure</span><span class="special"> +</span><span class="identifier"> flight_length</span><span class="special">;</span><span class="identifier">
+  local_date_time</span><span class="identifier"> nyc_arrival</span><span class="special"> =</span><span class="identifier"> phx_arrival</span><span class="special">.</span><span class="identifier">local_time_in</span><span class="special">(</span><span class="identifier">nyc_tz</span><span class="special">);</span><span class="identifier">
+
+  std</span><span class="special">::</span><span class="identifier">cout</span><span class="special"> &lt;&lt;</span><span class="string"> "departure phx time: "</span><span class="special"> &lt;&lt;</span><span class="identifier"> phx_departure</span><span class="special"> &lt;&lt;</span><span class="identifier"> std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span><span class="identifier">
+  std</span><span class="special">::</span><span class="identifier">cout</span><span class="special"> &lt;&lt;</span><span class="string"> "arrival phx time:   "</span><span class="special"> &lt;&lt;</span><span class="identifier"> phx_arrival</span><span class="special"> &lt;&lt;</span><span class="identifier"> std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span><span class="identifier">
+  std</span><span class="special">::</span><span class="identifier">cout</span><span class="special"> &lt;&lt;</span><span class="string"> "arrival nyc time:   "</span><span class="special"> &lt;&lt;</span><span class="identifier"> nyc_arrival</span><span class="special"> &lt;&lt;</span><span class="identifier"> std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span><span class="special">
+
+}</span>
+</code>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.examples.seconds_since_epoch"></a>Seconds Since Epoch</h3></div></div></div>
+<p> 
+    Example of calculating seconds elapsed since epoch (1970-Jan-1) using local_date_time.
+  </p>
+<pre class="programlisting">
+    
+  /* This example demonstrates the use of the time zone database and 
+   * local time to calculate the number of seconds since the UTC
+   * time_t epoch 1970-01-01 00:00:00.  Note that the selected timezone
+   * could be any timezone supported in the time zone database file which
+   * can be modified and updated as needed by the user.
+   *
+   * To solve this problem the following steps are required:
+   * 1) Get a timezone from the tz database for the local time
+   * 2) Construct a local time using the timezone
+   * 3) Construct a posix_time::ptime for the time_t epoch time
+   * 4) Convert the local_time to utc and subtract the epoch time
+   * 
+   */
+
+  #include "boost/date_time/local_time/local_time.hpp"
+  #include &lt;iostream&gt;
+
+  int main()
+  {
+    using namespace boost::gregorian; 
+    using namespace boost::local_time;
+    using namespace boost::posix_time;
+    
+    tz_database tz_db;
+    try {
+      tz_db.load_from_file("../data/date_time_zonespec.csv");
+    }catch(data_not_accessible dna) {
+      std::cerr &lt;&lt; "Error with time zone data file: " &lt;&lt; dna.what() &lt;&lt; std::endl;
+      exit(EXIT_FAILURE);
+    }catch(bad_field_count bfc) {
+      std::cerr &lt;&lt; "Error with time zone data file: " &lt;&lt; bfc.what() &lt;&lt; std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+    time_zone_ptr nyc_tz = tz_db.time_zone_from_region("America/New_York");
+    date in_date(2004,10,04);
+    time_duration td(12,14,32);
+    // construct with local time value
+    // create not-a-date-time if invalid (eg: in dst transition)
+    local_date_time nyc_time(in_date, 
+                             td, 
+                             nyc_tz, 
+                             local_date_time::NOT_DATE_TIME_ON_ERROR);
+
+    std::cout &lt;&lt; nyc_time &lt;&lt; std::endl;
+
+    ptime time_t_epoch(date(1970,1,1)); 
+    std::cout &lt;&lt; time_t_epoch &lt;&lt; std::endl;
+
+    // first convert nyc_time to utc via the utc_time() 
+    // call and subtract the ptime.
+    time_duration diff = nyc_time.utc_time() - time_t_epoch;
+
+    //Expected 1096906472
+    std::cout &lt;&lt; "Seconds diff: " &lt;&lt; diff.total_seconds() &lt;&lt; std::endl;
+
+  }
+    
+  </pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="details.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../date_time.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="doxy.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: inherit_linearly</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./inherit.html" class="navigation-link">Prev</a>&nbsp;<a href="./numeric-cast.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./inherit.html" class="navigation-link">Back</a>&nbsp;<a href="./numeric-cast.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./miscellaneous.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./miscellaneous.html" class="navigation-link">Miscellaneous</a> / <a href="./inherit-linearly.html" class="navigation-link">inherit_linearly</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="inherit-linearly">
+<h1><a class="toc-backref" href="./miscellaneous.html#id1567">inherit_linearly</a></h1>
+<div class="section" id="id1172">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename Types
+    , typename Node
+    , typename Root = <a href="./empty-base.html" class="identifier">empty_base</a>
+    &gt;
+struct <a href="./inherit-linearly.html" class="identifier">inherit_linearly</a>
+    : <a href="./fold.html" class="identifier">fold</a>&lt;Types,Root,Node&gt;
+{
+};
+</pre>
+</div>
+<div class="section" id="id1173">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>A convenience wrapper for <tt class="literal"><span class="pre"><a href="./fold.html" class="identifier">fold</a></span></tt> to use in the context of sequence-driven
+class composition. Returns the result the successive application of binary
+<tt class="literal"><span class="pre">Node</span></tt> to the result of the previous <tt class="literal"><span class="pre">Node</span></tt> invocation (<tt class="literal"><span class="pre">Root</span></tt> if it's
+the first call) and every type in the <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> <tt class="literal"><span class="pre">Types</span></tt> in order.</p>
+</div>
+<div class="section" id="id1174">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/inherit_linearly.hpp" class="header">boost/mpl/inherit_linearly.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id1175">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./metafunction.html">Metafunction</a></p>
+</div>
+<div class="section" id="id1176">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="15%" />
+<col width="32%" />
+<col width="53%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">Types</span></tt></td>
+<td><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></td>
+<td>Types to inherit from.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">Node</span></tt></td>
+<td>Binary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a></td>
+<td>A derivation metafunction.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">Root</span></tt></td>
+<td>A class type</td>
+<td>A type to be placed at the root of the class
+hierarchy.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1177">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>For any <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a> <tt class="literal"><span class="pre">types</span></tt>, binary <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a> <tt class="literal"><span class="pre">node</span></tt>, and arbitrary
+class type <tt class="literal"><span class="pre">root</span></tt>:</p>
+<pre class="literal-block">
+typedef <a href="./inherit-linearly.html" class="identifier">inherit_linearly</a>&lt;types,node,root&gt;::type r;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">A class type.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to</p>
+<pre class="last literal-block">
+typedef <a href="./fold.html" class="identifier">fold</a>&lt;types,root,node&gt;::type r;
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1178">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<p>Linear. Exactly <tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;types&gt;::value</span></tt> applications of <tt class="literal"><span class="pre">node</span></tt>.</p>
+</div>
+<div class="section" id="id1179">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+template&lt; typename T &gt; struct tuple_field
+{
+    T field;
+};
+
+template&lt; typename T &gt;
+inline
+T&amp; field(tuple_field&lt;T&gt;&amp; t)
+{
+    return t.field;
+}
+
+typedef <a href="./inherit-linearly.html" class="identifier">inherit_linearly</a>&lt;
+      <a href="./vector.html" class="identifier">vector</a>&lt;int,char const*,bool&gt;
+    , <a href="./inherit.html" class="identifier">inherit</a>&lt; <a href="./placeholders.html" class="identifier">_1</a>, tuple_field&lt;<a href="./placeholders.html" class="identifier">_2</a>&gt; &gt;
+    &gt;::type tuple;
+
+
+int main()
+{
+    tuple t;
+
+    field&lt;int&gt;(t) = -1;
+    field&lt;char const*&gt;(t) = &quot;text&quot;;
+    field&lt;bool&gt;(t) = false;
+
+    std::cout
+        &lt;&lt; field&lt;int&gt;(t) &lt;&lt; 'n'
+        &lt;&lt; field&lt;char const*&gt;(t) &lt;&lt; 'n'
+        &lt;&lt; field&lt;bool&gt;(t) &lt;&lt; 'n'
+        ;
+}
+</pre>
+</div>
+<div class="section" id="id1180">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./metafunctions.html">Metafunctions</a>, <a class="reference internal" href="./algorithms.html">Algorithms</a>, <a class="reference internal" href="./inherit.html">inherit</a>, <a class="reference internal" href="./empty-base.html">empty_base</a>, <a class="reference internal" href="./fold.html">fold</a>, <a class="reference internal" href="./reverse-fold.html">reverse_fold</a></p>
+<!-- Metafunctions/Miscellaneous//numeric_cast |50 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./inherit.html" class="navigation-link">Prev</a>&nbsp;<a href="./numeric-cast.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./inherit.html" class="navigation-link">Back</a>&nbsp;<a href="./numeric-cast.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./miscellaneous.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

@@ -1,0 +1,311 @@
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" href="../boost.css">
+<title>Boost.Python - May 2002 Progress Report</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+  <tr> 
+    <td valign="top" width="300"> 
+          <h3><a href="../../../../index.htm"><img height="86" width="277" alt=
+          "C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+      <h2 align="center">May 2002 Progress Report</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<h2>Contents</h2>
+<dl class="index">
+  <dt><a href="#intro">Introduction</a></dt>
+  <dt><a href="#features">New Features</a></dt>
+  <dl>
+    <dt><a href="#aix_shared">Shared Library Support for AIX</a><dd>
+    <dt><a href="#class_enhancements">Class Enhancements</a><dd>
+    <dl>
+      <dt><a href="#operators">Operators</a><dd>
+      <dt><a href="#iterators">Iterators</a><dd>
+      <dt><a href="#properties">Properties</a><dd>
+      <dt><a href="#setattr">setattr</a><dd>
+      <dt><a href="#module">__module__ Attribute</a><dd>
+    </dl>
+    <dt><a href="#back_reference">back_reference</a><dd>
+ </dl>
+
+  <dt><a href="#documentation">Documentation</a></dt>
+   <dt><a href="#misc">Miscellaneous</a></dt>
+  <dl class="index">
+    <dt><a href="#converters">Converters</a></dt>
+    <dt><a href="#checkins">Checkins Mailing List</a></dt>
+    <dt><a href="#shared">Shared Libraries</a></dt>
+  </dl>
+
+  <dt><a href="#next">What's Next</a></dt>
+</dl>
+
+<h2><a name="intro">Introduction</a></h2>
+
+Aside from library development, work on Boost.Python in May was
+focused on reducing the support burden. In recent weeks, responding to
+requests for support, espcially surrounding building the library, had
+begun to impede progress on development. There was a major push to
+release a stable 1.28.0 of Boost, including documentation of <a
+href="../../../../tools/build/v1/build_system.htm">Boost.Build</a> and specific
+<a href="../building.html">instructions</a> for building Boost.Python
+v1. The documentation for Boost.Python v2 was also updated as
+described <a href="#documentation">here</a>.
+
+<h2><a name="features">New Features</a></h2>
+
+  <h3><a name="aix_shared">Shared Library Support for AIX</a></h3>
+
+  The Kull group required the ability to build and test Boost.Python
+  extensions on AIX, a platform with &quot;creatively designed&quot;
+  shared library semantics. Making this work was a multi-pronged
+  effort, involving changes to Boost.Build and some great research by
+  Martin Casado which uncovered the key mechanism required to allow
+  shared libraries to use functions from the Python executable. The
+  current solution used in Boost.Build relies on a <a
+  href="../../../../tools/build/v1/gen_aix_import_file.py">Python
+  Script</a> as part of the build process. This is not a problem for
+  Boost.Python, as Python will be available. However, the commands
+  issued by the script are so simple that a 100%-pure-Boost.Jam
+  solution is surely possible. Linking on AIX is sufficiently
+  interesting to have skewed the Boost.Python development schedule a
+  bit.
+
+  <h3><a name="class_enhancements">Class Enhancements</a></h3>
+
+      <h4><a name="operators">Operators</a></h4>
+
+Support for exposing C++ operators and functions as the corresponding
+Python special methods was added. Thinking that the Boost.Python
+v1 interface was a little too esoteric (especially the use of
+<code>left_operand&lt;...&gt;/right_operand&lt;...&gt;</code> for
+asymmetric operands), I introduced a simple form of <a
+href="http://osl.iu.edu/~tveldhui/papers/Expression-Templates/exprtmpl.html">expression
+templates</a> which allow users to simply write the expressions that
+should be wrapped, as in this <a href="operators.html#examples">example</a>.
+
+      <h4><a name="iterators">Iterators</a></h4>
+
+Python iterator support as required by the Kull project resulted in a
+highly flexible interface allowing:
+
+<dl>
+
+<dt>Direct exposure of a class' <code>begin()</code> and
+<code>end()</code> functions:
+
+<pre>
+    ...
+    .def(&quot;__iter__&quot;, iterator&lt;list_int&gt;())
+</pre>
+<dd>
+
+<dt>Creation of iterators from member functions...
+<pre>
+    ...
+    .def(&quot;__iter__&quot;
+         , range(&amp;my_class::x_begin, &amp;my_class::x_end))
+    )
+</pre>
+<dd>
+
+<dt>...and member data:
+<pre>
+    ...
+    .def(&quot;__iter__&quot;
+         , range(&amp;std::pair&lt;char*,char*&gt;::first, &amp;std::pair&lt;char*,char*&gt;::second))
+    )
+</pre>
+<dd>
+
+<dt>The ability to specify <a
+href="CallPolicies.html">CallPolicies</a>, e.g. to prevent copying of
+heavyweight values:
+
+<pre>
+    ...
+    .def(&quot;__iter__&quot;, 
+         , range&lt;return_value_policy&lt;copy_non_const_reference&gt; &gt;(
+               &amp;my_sequence&lt;heavy&gt;::begin
+             , &amp;my_sequence&lt;heavy&gt;::end))
+</pre>
+<dd>
+
+</dl>
+
+      <h4><a name="properties">Properties</a></h4>
+
+The Kull iteration interfaces also required the ability to iterate
+over a sequence specified by an instance's attribute:
+<pre>
+&gt;&gt;&gt; f = field()
+&gt;&gt;&gt; for e in f.elements:
+...     print e,
+</pre>
+
+This forced the exposure of the <a
+      href="http://www.python.org/2.2/descrintro.html#property"><code>property</code></a>
+      interface used internally to implement the data member exposure
+      facility described in <a
+      href="Mar2002.html#data_members">March</a>. Properties are an
+      incredibly useful idiom, so it's good to be able to provide them
+      at little new development cost.
+
+      <h4><a name="setattr">setattr</a></h4>
+
+<code>class_&lt;&gt;</code> acquired a <code>setattr</code> member
+function which allows users to easily add new Python objects as class
+attributes.
+
+      <h4><a name="module">__module__ Attribute</a></h4>
+
+Ralf Grosse-Kunstleve has been working on pickling support for v2. To
+make it work correctly, he had to make sure that a class'
+<code>__module__</code> attribute was set correctly.
+
+<h3><a name="back_reference"><code>back_reference</code></a></h3>
+
+The new <code>back_reference&lt;T&gt;</code> template can be used as a
+function parameter when the user needs access to both a <code>T</code>
+argument and to the Python object which manages it. The function will
+only match in the overload resolution process if it would match the
+same function signature with <code>T</code> substituted for
+<code>back_reference&lt;T&gt;</code>. This feature is not yet
+documented.
+
+<h2><a name="documentation">Documentation</a></h2>
+
+In a major effort to prepare Boost.Python v2 to replace v1, many pages
+of new reference documentation were added:
+
+<blockquote>
+
+<dl>
+        <dt><a href="CallPolicies.html">CallPolicies.html</a><dd>
+        <dt><a href="Dereferenceable.html">Dereferenceable.html</a><dd>
+        <dt><a href="Extractor.html">Extractor.html</a><dd>
+        <dt><a href="HolderGenerator.html">HolderGenerator.html</a><dd>
+        <dt><a href="ResultConverter.html">ResultConverter.html</a><dd>
+        <dt><a href="call_method.html">call_method.html</a><dd>
+        <dt><a href="callbacks.html">callbacks.html</a><dd>
+        <dt><a href="data_members.html">data_members.html</a><dd>
+        <dt><a href="has_back_reference.html">has_back_reference.html</a><dd>
+        <dt><a href="implicit.html">implicit.html</a><dd>
+        <dt><a href="instance_holder.html">instance_holder.html</a><dd>
+        <dt><a href="operators.html">operators.html</a><dd>
+        <dt><a href="ptr.html">ptr.html</a><dd>
+        <dt><a href="type_id.html">type_id.html</a><dd>
+        <dt><a href="with_custodian_and_ward.html">with_custodian_and_ward.html</a><dd>
+</dl>
+
+</blockquote>
+Major updates were made to the following pages:
+
+
+<blockquote>
+<dl>
+        <dt><a href="call.html">call.html</a><dd> <dt>updated<dd>
+        <dt><a href="class.html">class.html</a><dd>
+        <dt><a href="reference.html">reference.html</a><dd>
+</dl>
+</blockquote>
+
+         As usual, careful documentation forces one to consider the
+         interface again, and there were many interface changes
+         associated with this effort, including the elevation of the
+         following components from implementation detail to
+         first-class library citizen:
+
+<blockquote>
+<dl>
+        <dt>type_id.hpp<dd>
+        <dt>pointee.hpp<dd>
+        <dt>lvalue_from_pytype.hpp<dd></dl>
+</dl>
+</blockquote>
+
+<h2><a name="misc">Miscellaneous</a></h2>
+
+    <h3><a name="converters">Converters</a></h3>
+
+It appears that the world of C++ &lt;==&gt; Python conversion rules is
+an endlessly-rich area of exploration. Completing the conversions for
+<code>char</code> and <code>char const*</code> types, as described at
+the end of <a href="Apr2002.html#missing">April's report</a>,
+uncovered some interesting new shades to the problem. It turns out to
+be worth distinguishing mutable and immutable lvalue conversions,
+because despite the fact that Python doesn't understand
+<code>const</code>, it does understand immutability (c.f. Python
+strings, which expose an immutable <code>char</code> pointer). It is
+also worth recognizing types which represent lvalue <i>sequences</i>,
+to prevent Python <code>&quot;foobar&quot;</code> from being silently
+truncated to C++ <code>'f'</code>. More details on this insight can be
+found in the mailing list <a
+href="http://mail.python.org/pipermail/c++-sig/2002-May/001023.html">
+archive</a>. I don't plan to do anything about this immediately, but I
+do think it's the right direction to go in the long run.
+
+    <h3><a name="checkins">Checkins Mailing List</a></h3>
+
+In order to better coordinate changes made by multiple developers, I
+enabled <a
+href="http://sourceforge.net/docman/display_doc.php?docid=772&group_id=1">syncmail</a>
+for the Boost.Python CVS trees, and established an associated <a
+href="http://lists.sourceforge.net/lists/listinfo/boost-python-cvs">mailing
+list</a>. Subscribe to this list to receive notices of each new
+checkin.
+
+    <h3><a name="shared">Shared Libraries</a></h3>
+
+Beyond the vagaries of dynamic linking on AIX, I have been
+participating in a more-general discussion of dynamic linking for
+C++. Needless to say, C++ dynamic linking is of critical importance to
+Boost.Python: all extension modules are normally built as shared
+libraries, and Boost.Python extension modules share a common library
+as well. 
+
+In fact, there are at least two separate conversations. One
+in the C++ standard extensions mailing list concerns what can be
+standardized for C++ and shared libraries; the other, mostly on the <a
+href="http://gcc.gnu.org/ml/gcc/">gcc</a> mailing list, concerns the
+behavior of GCC on Posix/ELF platforms. 
+
+Some of the GCC threads are here:
+
+<blockquote>
+<a
+href="http://gcc.gnu.org/ml/gcc/2002-05/msg02002.html">http://gcc.gnu.org/ml/gcc/2002-05/msg02002.html</a><br>
+<a
+href="http://gcc.gnu.org/ml/gcc/2002-05/msg02945.html">http://gcc.gnu.org/ml/gcc/2002-05/msg02945.html</a><br>
+<a href="http://gcc.gnu.org/ml/gcc/2002-05/msg01758.html">http://gcc.gnu.org/ml/gcc/2002-05/msg01758.html</a>
+</blockquote>
+
+  <h2><a name="next">What's Next</a></h2>
+
+Development is focused on what's needed to be able to retire
+Boost.Python v1. At the moment, that means deciding the user-friendly
+interfaces for to_/from_python conversion, and formally exposing the
+Python object smart pointers and object wrapper classes. Quite a few
+questions have also been showing up recently about how to embed Python
+with Boost.Python, and how to link with it statically; the solutions
+to these issues will probably have to be formalized before long.
+
+<p>Revised 
+  <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+</p>
+<p><i>&copy; Copyright <a href="http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 
+  2002. </i></p>
+</body>
+</html>

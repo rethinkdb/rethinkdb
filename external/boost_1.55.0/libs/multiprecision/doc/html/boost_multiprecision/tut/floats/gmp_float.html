@@ -1,0 +1,192 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>gmp_float</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../floats.html" title="Floating Point Numbers">
+<link rel="prev" href="cpp_dec_float.html" title="cpp_dec_float">
+<link rel="next" href="mpfr_float.html" title="mpfr_float">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="cpp_dec_float.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../floats.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mpfr_float.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_multiprecision.tut.floats.gmp_float"></a><a class="link" href="gmp_float.html" title="gmp_float">gmp_float</a>
+</h4></div></div></div>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">gmp</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">multiprecision</span><span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="identifier">Digits10</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">gmp_float</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">gmp_float</span><span class="special">&lt;</span><span class="number">50</span><span class="special">&gt;</span> <span class="special">&gt;</span>    <span class="identifier">mpf_float_50</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">gmp_float</span><span class="special">&lt;</span><span class="number">100</span><span class="special">&gt;</span> <span class="special">&gt;</span>   <span class="identifier">mpf_float_100</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">gmp_float</span><span class="special">&lt;</span><span class="number">500</span><span class="special">&gt;</span> <span class="special">&gt;</span>   <span class="identifier">mpf_float_500</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">gmp_float</span><span class="special">&lt;</span><span class="number">1000</span><span class="special">&gt;</span> <span class="special">&gt;</span>  <span class="identifier">mpf_float_1000</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">gmp_float</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span> <span class="special">&gt;</span>     <span class="identifier">mpf_float</span><span class="special">;</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<p>
+          The <code class="computeroutput"><span class="identifier">gmp_float</span></code> back-end
+          is used in conjunction with <code class="computeroutput"><span class="identifier">number</span></code>
+          : it acts as a thin wrapper around the <a href="http://gmplib.org" target="_top">GMP</a>
+          <code class="computeroutput"><span class="identifier">mpf_t</span></code> to provide an real-number
+          type that is a drop-in replacement for the native C++ floating-point types,
+          but with much greater precision.
+        </p>
+<p>
+          Type <code class="computeroutput"><span class="identifier">gmp_float</span></code> can be used
+          at fixed precision by specifying a non-zero <code class="computeroutput"><span class="identifier">Digits10</span></code>
+          template parameter, or at variable precision by setting the template argument
+          to zero. The typedefs mpf_float_50, mpf_float_100, mpf_float_500, mpf_float_1000
+          provide arithmetic types at 50, 100, 500 and 1000 decimal digits precision
+          respectively. The typedef mpf_float provides a variable precision type
+          whose precision can be controlled via the <code class="computeroutput"><span class="identifier">number</span></code>s
+          member functions.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This type only provides standard library and <code class="computeroutput"><span class="identifier">numeric_limits</span></code>
+            support when the precision is fixed at compile time.
+          </p></td></tr>
+</table></div>
+<p>
+          As well as the usual conversions from arithmetic and string types, instances
+          of <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpf_float</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span> <span class="special">&gt;</span></code> are copy constructible and assignable
+          from:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              The <a href="http://gmplib.org" target="_top">GMP</a> native types <code class="computeroutput"><span class="identifier">mpf_t</span></code>, <code class="computeroutput"><span class="identifier">mpz_t</span></code>,
+              <code class="computeroutput"><span class="identifier">mpq_t</span></code>.
+            </li>
+<li class="listitem">
+              The <code class="computeroutput"><span class="identifier">number</span></code> wrappers
+              around those types: <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">mpf_float</span><span class="special">&lt;</span><span class="identifier">M</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>,
+              <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">gmp_int</span><span class="special">&gt;</span></code>,
+              <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">gmp_rational</span><span class="special">&gt;</span></code>.
+            </li>
+</ul></div>
+<p>
+          It's also possible to access the underlying <code class="computeroutput"><span class="identifier">mpf_t</span></code>
+          via the <code class="computeroutput"><span class="identifier">data</span><span class="special">()</span></code>
+          member function of <code class="computeroutput"><span class="identifier">gmp_float</span></code>.
+        </p>
+<p>
+          Things you should know when using this type:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Default constructed <code class="computeroutput"><span class="identifier">gmp_float</span></code>s
+              have the value zero (this is the <a href="http://gmplib.org" target="_top">GMP</a>
+              library's default behavior).
+            </li>
+<li class="listitem">
+              No changes are made to the <a href="http://gmplib.org" target="_top">GMP</a>
+              library's global settings, so this type can be safely mixed with existing
+              <a href="http://gmplib.org" target="_top">GMP</a> code.
+            </li>
+<li class="listitem">
+              This backend supports rvalue-references and is move-aware, making instantiations
+              of <code class="computeroutput"><span class="identifier">number</span></code> on this backend
+              move aware.
+            </li>
+<li class="listitem">
+              It is not possible to round-trip objects of this type to and from a
+              string and get back exactly the same value. This appears to be a limitation
+              of <a href="http://gmplib.org" target="_top">GMP</a>.
+            </li>
+<li class="listitem">
+              Since the underlying <a href="http://gmplib.org" target="_top">GMP</a> types
+              have no notion of infinities or NaN's, care should be taken to avoid
+              numeric overflow or division by zero. That latter will result in a
+              std::overflow_error being thrown, while generating excessively large
+              exponents may result in instability of the underlying <a href="http://gmplib.org" target="_top">GMP</a>
+              library (in testing, converting a number with an excessively large
+              or small exponent to a string caused <a href="http://gmplib.org" target="_top">GMP</a>
+              to segfault).
+            </li>
+<li class="listitem">
+              This type can equally be used with <a href="http://mpir.org/" target="_top">MPIR</a>
+              as the underlying implementation - indeed that is the recommended option
+              on Win32.
+            </li>
+<li class="listitem">
+              Conversion from a string results in a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+              being thrown if the string can not be interpreted as a valid floating
+              point number.
+            </li>
+<li class="listitem">
+              Division by zero results in a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">overflow_error</span></code>
+              being thrown.
+            </li>
+</ul></div>
+<h6>
+<a name="boost_multiprecision.tut.floats.gmp_float.h0"></a>
+          <span class="phrase"><a name="boost_multiprecision.tut.floats.gmp_float.__ulink_url__http___gmplib_org__gmp__ulink__example_"></a></span><a class="link" href="gmp_float.html#boost_multiprecision.tut.floats.gmp_float.__ulink_url__http___gmplib_org__gmp__ulink__example_">
+          GMP example:</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">gmp</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">;</span>
+
+<span class="comment">// Operations at variable precision and limited standard library support:</span>
+<span class="identifier">mpf_float</span> <span class="identifier">a</span> <span class="special">=</span> <span class="number">2</span><span class="special">;</span>
+<span class="identifier">mpf_float</span><span class="special">::</span><span class="identifier">default_precision</span><span class="special">(</span><span class="number">1000</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">mpf_float</span><span class="special">::</span><span class="identifier">default_precision</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">sqrt</span><span class="special">(</span><span class="identifier">a</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="comment">// print root-2</span>
+
+<span class="comment">// Operations at fixed precision and full standard library support:</span>
+<span class="identifier">mpf_float_100</span> <span class="identifier">b</span> <span class="special">=</span> <span class="number">2</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">mpf_float_100</span><span class="special">&gt;::</span><span class="identifier">digits</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="comment">// We can use any C++ std lib function:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">log</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="comment">// print log(2)</span>
+<span class="comment">// We can also use any function from Boost.Math:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="comment">// These even work when the argument is an expression template:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">b</span> <span class="special">*</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+<span class="comment">// Access the underlying representation:</span>
+<span class="identifier">mpf_t</span> <span class="identifier">f</span><span class="special">;</span>
+<span class="identifier">mpf_init</span><span class="special">(</span><span class="identifier">f</span><span class="special">);</span>
+<span class="identifier">mpf_set</span><span class="special">(</span><span class="identifier">f</span><span class="special">,</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">backend</span><span class="special">().</span><span class="identifier">data</span><span class="special">());</span>
+</pre>
+<p>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="cpp_dec_float.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../floats.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mpfr_float.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

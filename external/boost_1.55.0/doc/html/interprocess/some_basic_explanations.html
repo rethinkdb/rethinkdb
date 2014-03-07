@@ -1,0 +1,576 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Some basic explanations</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../interprocess.html" title="Chapter&#160;14.&#160;Boost.Interprocess">
+<link rel="prev" href="quick_guide.html" title="Quick Guide for the Impatient">
+<link rel="next" href="sharedmemorybetweenprocesses.html" title="Sharing memory between processes">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="quick_guide.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="sharedmemorybetweenprocesses.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="interprocess.some_basic_explanations"></a><a class="link" href="some_basic_explanations.html" title="Some basic explanations">Some basic explanations</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="some_basic_explanations.html#interprocess.some_basic_explanations.processes_and_threads">Processes
+      And Threads</a></span></dt>
+<dt><span class="section"><a href="some_basic_explanations.html#interprocess.some_basic_explanations.sharing_information">Sharing
+      information between processes</a></span></dt>
+<dt><span class="section"><a href="some_basic_explanations.html#interprocess.some_basic_explanations.persistence">Persistence
+      Of Interprocess Mechanisms</a></span></dt>
+<dt><span class="section"><a href="some_basic_explanations.html#interprocess.some_basic_explanations.names">Names Of
+      Interprocess Mechanisms</a></span></dt>
+<dt><span class="section"><a href="some_basic_explanations.html#interprocess.some_basic_explanations.constructors_destructors_and_resource_lifetime">Constructors,
+      destructors and lifetime of Interprocess named resources</a></span></dt>
+<dt><span class="section"><a href="some_basic_explanations.html#interprocess.some_basic_explanations.permissions">Permissions</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.some_basic_explanations.processes_and_threads"></a><a class="link" href="some_basic_explanations.html#interprocess.some_basic_explanations.processes_and_threads" title="Processes And Threads">Processes
+      And Threads</a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Boost.Interprocess</strong></span> does not work only with
+        processes but also with threads. <span class="bold"><strong>Boost.Interprocess</strong></span>
+        synchronization mechanisms can synchronize threads from different processes,
+        but also threads from the same process.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.some_basic_explanations.sharing_information"></a><a class="link" href="some_basic_explanations.html#interprocess.some_basic_explanations.sharing_information" title="Sharing information between processes">Sharing
+      information between processes</a>
+</h3></div></div></div>
+<p>
+        In the traditional programming model an operating system has multiple processes
+        running and each process has its own address space. To share information
+        between processes we have several alternatives:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Two processes share information using a <span class="bold"><strong>file</strong></span>.
+            To access to the data, each process uses the usual file read/write mechanisms.
+            When updating/reading a file shared between processes, we need some sort
+            of synchronization, to protect readers from writers.
+          </li>
+<li class="listitem">
+            Two processes share information that resides in the <span class="bold"><strong>kernel</strong></span>
+            of the operating system. This is the case, for example, of traditional
+            message queues. The synchronization is guaranteed by the operating system
+            kernel.
+          </li>
+<li class="listitem">
+            Two processes can share a <span class="bold"><strong>memory</strong></span> region.
+            This is the case of classical shared memory or memory mapped files. Once
+            the processes set up the memory region, the processes can read/write
+            the data like any other memory segment without calling the operating
+            system's kernel. This also requires some kind of manual synchronization
+            between processes.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.some_basic_explanations.persistence"></a><a class="link" href="some_basic_explanations.html#interprocess.some_basic_explanations.persistence" title="Persistence Of Interprocess Mechanisms">Persistence
+      Of Interprocess Mechanisms</a>
+</h3></div></div></div>
+<p>
+        One of the biggest issues with interprocess communication mechanisms is the
+        lifetime of the interprocess communication mechanism. It's important to know
+        when an interprocess communication mechanism disappears from the system.
+        In <span class="bold"><strong>Boost.Interprocess</strong></span>, we can have 3 types
+        of persistence:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong>Process-persistence</strong></span>: The mechanism lasts
+            until all the processes that have opened the mechanism close it, exit
+            or crash.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Kernel-persistence</strong></span>: The mechanism exists
+            until the kernel of the operating system reboots or the mechanism is
+            explicitly deleted.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>Filesystem-persistence</strong></span>: The mechanism
+            exists until the mechanism is explicitly deleted.
+          </li>
+</ul></div>
+<p>
+        Some native POSIX and Windows IPC mechanisms have different persistence so
+        it's difficult to achieve portability between Windows and POSIX native mechanisms.
+        <span class="bold"><strong>Boost.Interprocess</strong></span> classes have the following
+        persistence:
+      </p>
+<div class="table">
+<a name="interprocess.some_basic_explanations.persistence.t0"></a><p class="title"><b>Table&#160;14.1.&#160;Boost.Interprocess Persistence Table</b></p>
+<div class="table-contents"><table class="table" summary="Boost.Interprocess Persistence Table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Mechanism
+                </p>
+              </th>
+<th>
+                <p>
+                  Persistence
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  Shared memory
+                </p>
+              </td>
+<td>
+                <p>
+                  Kernel or Filesystem
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Memory mapped file
+                </p>
+              </td>
+<td>
+                <p>
+                  Filesystem
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Process-shared mutex types
+                </p>
+              </td>
+<td>
+                <p>
+                  Process
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Process-shared semaphore
+                </p>
+              </td>
+<td>
+                <p>
+                  Process
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Process-shared condition
+                </p>
+              </td>
+<td>
+                <p>
+                  Process
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  File lock
+                </p>
+              </td>
+<td>
+                <p>
+                  Process
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Message queue
+                </p>
+              </td>
+<td>
+                <p>
+                  Kernel or Filesystem
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Named mutex
+                </p>
+              </td>
+<td>
+                <p>
+                  Kernel or Filesystem
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Named semaphore
+                </p>
+              </td>
+<td>
+                <p>
+                  Kernel or Filesystem
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Named condition
+                </p>
+              </td>
+<td>
+                <p>
+                  Kernel or Filesystem
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        As you can see, <span class="bold"><strong>Boost.Interprocess</strong></span> defines
+        some mechanisms with "Kernel or Filesystem" persistence. This is
+        because POSIX allows this possibility to native interprocess communication
+        implementations. One could, for example, implement shared memory using memory
+        mapped files and obtain filesystem persistence (for example, there is no
+        proper known way to emulate kernel persistence with a user library for Windows
+        shared memory using native shared memory, or process persistence for POSIX
+        shared memory, so the only portable way is to define "Kernel or Filesystem"
+        persistence).
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.some_basic_explanations.names"></a><a class="link" href="some_basic_explanations.html#interprocess.some_basic_explanations.names" title="Names Of Interprocess Mechanisms">Names Of
+      Interprocess Mechanisms</a>
+</h3></div></div></div>
+<p>
+        Some interprocess mechanisms are anonymous objects created in shared memory
+        or memory-mapped files but other interprocess mechanisms need a name or identifier
+        so that two unrelated processes can use the same interprocess mechanism object.
+        Examples of this are shared memory, named mutexes and named semaphores (for
+        example, native windows CreateMutex/CreateSemaphore API family).
+      </p>
+<p>
+        The name used to identify an interprocess mechanism is not portable, even
+        between UNIX systems. For this reason, <span class="bold"><strong>Boost.Interprocess</strong></span>
+        limits this name to a C++ variable identifier or keyword:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Starts with a letter, lowercase or uppercase, such as a letter from a
+            to z or from A to Z. Examples: <span class="emphasis"><em>Sharedmemory, sharedmemory,
+            sHaReDmEmOrY...</em></span>
+          </li>
+<li class="listitem">
+            Can include letters, underscore, or digits. Examples: <span class="emphasis"><em>shm1,
+            shm2and3, ShM3plus4...</em></span>
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.some_basic_explanations.constructors_destructors_and_resource_lifetime"></a><a class="link" href="some_basic_explanations.html#interprocess.some_basic_explanations.constructors_destructors_and_resource_lifetime" title="Constructors, destructors and lifetime of Interprocess named resources">Constructors,
+      destructors and lifetime of Interprocess named resources</a>
+</h3></div></div></div>
+<p>
+        Named <span class="bold"><strong>Boost.Interprocess</strong></span> resources (shared
+        memory, memory mapped files, named mutexes/conditions/semaphores) have kernel
+        or filesystem persistency. This means that even if all processes that have
+        opened those resources end, the resource will still be accessible to be opened
+        again and the resource can only be destructed via an explicit to their static
+        member <code class="computeroutput"><span class="identifier">remove</span></code> function. This
+        behavior can be easily understood, since it's the same mechanism used by
+        functions controlling file opening/creation/erasure:
+      </p>
+<div class="table">
+<a name="interprocess.some_basic_explanations.constructors_destructors_and_resource_lifetime.t0"></a><p class="title"><b>Table&#160;14.2.&#160;Boost.Interprocess-Filesystem Analogy</b></p>
+<div class="table-contents"><table class="table" summary="Boost.Interprocess-Filesystem Analogy">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Named Interprocess resource
+                </p>
+              </th>
+<th>
+                <p>
+                  Corresponding std file
+                </p>
+              </th>
+<th>
+                <p>
+                  Corresponding POSIX operation
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  Constructor
+                </p>
+              </td>
+<td>
+                <p>
+                  std::fstream constructor
+                </p>
+              </td>
+<td>
+                <p>
+                  open
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Destructor
+                </p>
+              </td>
+<td>
+                <p>
+                  std::fstream destructor
+                </p>
+              </td>
+<td>
+                <p>
+                  close
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Member <code class="computeroutput"><span class="identifier">remove</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  None. <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">remove</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  unlink
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        Now the correspondence between POSIX and Boost.Interprocess regarding shared
+        memory and named semaphores:
+      </p>
+<div class="table">
+<a name="interprocess.some_basic_explanations.constructors_destructors_and_resource_lifetime.t1"></a><p class="title"><b>Table&#160;14.3.&#160;Boost.Interprocess-POSIX shared memory</b></p>
+<div class="table-contents"><table class="table" summary="Boost.Interprocess-POSIX shared memory">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  <code class="computeroutput"><span class="identifier">shared_memory_object</span></code>
+                  operation
+                </p>
+              </th>
+<th>
+                <p>
+                  POSIX operation
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  Constructor
+                </p>
+              </td>
+<td>
+                <p>
+                  shm_open
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Destructor
+                </p>
+              </td>
+<td>
+                <p>
+                  close
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Member <code class="computeroutput"><span class="identifier">remove</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  shm_unlink
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="interprocess.some_basic_explanations.constructors_destructors_and_resource_lifetime.t2"></a><p class="title"><b>Table&#160;14.4.&#160;Boost.Interprocess-POSIX named semaphore</b></p>
+<div class="table-contents"><table class="table" summary="Boost.Interprocess-POSIX named semaphore">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  <code class="computeroutput"><span class="identifier">named_semaphore</span></code>
+                  operation
+                </p>
+              </th>
+<th>
+                <p>
+                  POSIX operation
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  Constructor
+                </p>
+              </td>
+<td>
+                <p>
+                  sem_open
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Destructor
+                </p>
+              </td>
+<td>
+                <p>
+                  close
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Member <code class="computeroutput"><span class="identifier">remove</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  sem_unlink
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        The most important property is that <span class="bold"><strong>destructors of
+        named resources don't remove the resource from the system</strong></span>, they
+        only liberate resources allocated by the system for use by the process for
+        the named resource. <span class="bold"><strong>To remove the resource from the
+        system the programmer must use <code class="computeroutput"><span class="identifier">remove</span></code></strong></span>.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.some_basic_explanations.permissions"></a><a class="link" href="some_basic_explanations.html#interprocess.some_basic_explanations.permissions" title="Permissions">Permissions</a>
+</h3></div></div></div>
+<p>
+        Named resources offered by <span class="bold"><strong>Boost.Interprocess</strong></span>
+        must cope with platform-dependant permission issues also present when creating
+        files. If a programmer wants to shared shared memory, memory mapped files
+        or named synchronization mechanisms (mutexes, semaphores, etc...) between
+        users, it's necessary to specify those permissions. Sadly, traditional UNIX
+        and Windows permissions are very different and <span class="bold"><strong>Boost.Interprocess</strong></span>
+        does not try to standardize permissions, but does not ignore them.
+      </p>
+<p>
+        All named resource creation functions take an optional <code class="computeroutput"><a class="link" href="../boost/interprocess/permissions.html" title="Class permissions">permissions
+        object</a></code> that can be configured with platform-dependant permissions.
+      </p>
+<p>
+        Since each mechanism can be emulated through diferent mechanisms (a semaphore
+        might be implement using mapped files or native semaphores) permissions types
+        could vary when the implementation of a named resource changes (eg.: in Windows
+        mutexes require <code class="computeroutput"><span class="identifier">synchronize</span> <span class="identifier">permissions</span></code>, but that's not the case of
+        files). To avoid this, <span class="bold"><strong>Boost.Interprocess</strong></span>
+        relies on file-like permissions, requiring file read-write-delete permissions
+        to open named synchronization mechanisms (mutex, semaphores, etc.) and appropiate
+        read or read-write-delete permissions for shared memory. This approach has
+        two advantages: it's similar to the UNIX philosophy and the programmer does
+        not need to know how the named resource is implemented.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="quick_guide.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="sharedmemorybetweenprocesses.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

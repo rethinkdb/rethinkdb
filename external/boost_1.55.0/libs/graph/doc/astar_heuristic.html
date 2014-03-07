@@ -1,0 +1,96 @@
+<HTML>
+<!--
+     Copyright (c) 2004 Kris Beevers
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: astar_heuristic</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>
+<pre>
+astar_heuristic&lt;Graph, CostType&gt;
+</pre>
+</H1>
+
+This class is a default implementation of the <a
+href="./AStarHeuristic.html">AStarHeuristic</a> concept.  It
+implements a "zero" heuristic -- a heuristic function that returns a
+cost of zero regardless of the vertex it is passed.
+
+<h3>Model of</h3>
+
+<a href="./AStarHeuristic.html">AStarHeuristic</a>
+
+<H3>Template Parameters</H3>
+
+<P>
+<TABLE border>
+<TR>
+<th>Parameter</th><th>Description</th><th>Default</th>
+</tr>
+
+<TR><TD><TT>Graph</TT></TD>
+<TD>
+The type of the graph being searched.
+</TD>
+<TD></TD>
+</TR>
+
+<TR><TD><TT>CostType</TT></TD>
+<TD>
+A type that can be used with the <tt>compare</tt> and
+<tt>combine</tt> functions passed to A*.  Typically an integer or
+floating point type.
+</TD>
+<TD></TD>
+</TR>
+
+</table>
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/astar_search.hpp">
+<TT>boost/graph/astar_search.hpp</TT></a>
+
+<h3>Member Functions</h3>
+
+This class implements the single member function required by <a
+href="./AStarHeuristic.html">AStarHeuristic</a>:
+
+<table border>
+<tr>
+<th>Function</th><th>Description</th>
+</tr>
+
+<tr><td><tt>
+CostType operator()(graph_traits&lt;Graph&gt;::vertex_descriptor u);
+</tt></td><td>
+Called for the target of every out edge of a vertex being examined.
+Returns the cost, estimated by the heuristic, from vertex <tt>u</tt>
+to a goal.
+</td></tr>
+
+</table>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2004</TD><TD>
+<A HREF="http://www.cs.rpi.edu/~beevek/">Kristopher Beevers</A>,
+Rensselaer Polytechnic Institute (<A
+HREF="mailto:beevek@cs.rpi.edu">beevek@cs.rpi.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

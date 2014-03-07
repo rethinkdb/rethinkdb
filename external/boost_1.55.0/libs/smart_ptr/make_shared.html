@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+	<head>
+		<title>make_shared and allocate_shared</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	</head>
+	<body text="#000000" bgColor="#ffffff">
+		<h1><A href="../../index.htm"><IMG height="86" alt="boost.png (6897 bytes)" src="../../boost.png" width="277" align="middle"
+					border="0"></A>make_shared and allocate_shared function templates</h1>
+		<p><A href="#Introduction">Introduction</A><br>
+			<A href="#Synopsis">Synopsis</A><br>
+			<A href="#functions">Free Functions</A><br>
+			<A href="#example">Example</A><br>
+		<h2><a name="Introduction">Introduction</a></h2>
+		<p>Consistent use of <a href="shared_ptr.htm"><code>shared_ptr</code></a>
+			can eliminate the need to use an explicit <code>delete</code>,
+			but alone it provides no support in avoiding explicit <code>new</code>.
+			There have been repeated requests from users for a factory function that creates
+			an object of a given type and returns a <code>shared_ptr</code> to it.
+			Besides convenience and style, such a function is also exception safe and
+			considerably faster because it can use a single allocation for both the object
+			and its corresponding control block, eliminating a significant portion of
+			<code>shared_ptr</code>'s construction overhead.
+			This eliminates one of the major efficiency complaints about <code>shared_ptr</code>.
+		</p>
+		<p>The header file &lt;boost/make_shared.hpp&gt; provides a family of overloaded function templates,
+			<code>make_shared</code> and <code>allocate_shared</code>, to address this need.
+			<code>make_shared</code> uses the global operator <code>new</code> to allocate memory,
+			whereas <code>allocate_shared</code> uses an user-supplied allocator, allowing finer control.</p>
+		<p>
+			The rationale for choosing the name <code>make_shared</code> is that the expression
+			<code>make_shared&lt;Widget&gt;()</code> can be read aloud and conveys the intended meaning.</p>
+		<h2><a name="Synopsis">Synopsis</a></h2>
+		<pre>namespace boost {
+
+  template&lt;typename T&gt; class shared_ptr;
+
+  template&lt;typename T&gt;
+    shared_ptr&lt;T&gt; <a href="#functions">make_shared</a>();
+
+  template&lt;typename T, typename A&gt;
+    shared_ptr&lt;T&gt; <a href="#functions">allocate_shared</a>( A const &amp; );
+
+#if !defined( BOOST_NO_CXX11_VARIADIC_TEMPLATES ) && !defined( BOOST_NO_CXX11_RVALUE_REFERENCES )	// C++0x prototypes
+
+  template&lt;typename T, typename... Args&gt;
+    shared_ptr&lt;T&gt; <a href="#functions">make_shared</a>( Args &amp;&amp; ... args );
+
+  template&lt;typename T, typename A, typename... Args&gt;
+    shared_ptr&lt;T&gt; <a href="#functions">allocate_shared</a>( A const &amp; a, Args &amp;&amp; ... args );
+
+#else // no C++0X support
+
+  template&lt;typename T, typename Arg1 &gt;
+    shared_ptr&lt;T&gt; <a href="#functions">make_shared</a>( Arg1 const &amp; arg1 );
+  template&lt;typename T, typename Arg1, typename Arg2 &gt;
+    shared_ptr&lt;T&gt; <a href="#functions">make_shared</a>( Arg1 const &amp; arg1, Arg2 const &amp; arg2 );
+// ...
+  template&lt;typename T, typename Arg1, typename Arg2, ..., typename ArgN &gt;
+    shared_ptr&lt;T&gt; <a href="#functions">make_shared</a>( Arg1 const &amp; arg1, Arg2 const &amp; arg2, ..., ArgN const &amp; argN );
+
+  template&lt;typename T, typename A, typename Arg1 &gt;
+    shared_ptr&lt;T&gt; <a href="#functions">allocate_shared</a>( A const &amp; a, Arg1 const &amp; arg1 );
+  template&lt;typename T, typename A, typename Arg1, typename Arg2 &gt;
+    shared_ptr&lt;T&gt; <a href="#functions">allocate_shared</a>( Arg1 const &amp; arg1, Arg2 const &amp; arg2 );
+// ...
+  template&lt;typename T, typename A, typename Arg1, typename Arg2, ..., typename ArgN &gt;
+    shared_ptr&lt;T&gt; <a href="#functions">allocate_shared</a>( A const &amp; a, Arg1 const &amp; arg1, Arg2 const &amp; arg2, ..., ArgN const &amp; argN );
+
+#endif
+}</pre>
+		<h2><a name="functions">Free Functions</a></h2>
+		<pre>template&lt;class T, class... Args&gt;
+    shared_ptr&lt;T&gt; make_shared( Args &amp;&amp; ... args );
+template&lt;class T, class A, class... Args&gt;
+    shared_ptr&lt;T&gt; allocate_shared( A const &amp; a, Args &amp;&amp; ... args );</pre>
+		<blockquote>
+			<p><b>Requires:</b> The expression <code>new( pv ) T( std::forward&lt;Args&gt;(args)... )</code>,
+				where <code>pv</code> is a <code>void*</code> pointing to storage suitable
+				to hold an object of type <code>T</code>,
+				shall be well-formed.  <code>A</code> shall be an <em>Allocator</em>,
+				as described in section 20.1.5 (<stong>Allocator requirements</strong>) of the C++ Standard.
+				The copy constructor and destructor of <code>A</code> shall not throw.</p>
+			<p><b>Effects:</b> Allocates memory suitable for an object of type <code>T</code>
+				and constructs an object in it via the placement new expression <code>new( pv ) T()</code>
+				or <code>new( pv ) T( std::forward&lt;Args&gt;(args)... )</code>.
+				<code>allocate_shared</code> uses a copy of <code>a</code> to allocate memory.
+				If an exception is thrown, has no effect.</p>
+			<p><b>Returns:</b> A <code>shared_ptr</code> instance that stores and owns the address
+				of the newly constructed object of type <code>T</code>.</p>
+			<p><b>Postconditions:</b> <code>get() != 0 &amp;&amp; use_count() == 1</code>.</p>
+			<p><b>Throws:</b> <code>bad_alloc</code>, or an exception thrown from <code>A::allocate</code>
+				or the constructor of <code>T</code>.</p>
+			<p><b>Notes:</b> This implementation allocates the memory required for the
+			returned <code>shared_ptr</code> and an object of type <code>T</code> in a single
+			allocation. This provides efficiency equivalent to an intrusive smart pointer.</p>
+			<p>The prototypes shown above are used if your compiler supports rvalue references
+			and variadic templates.  They perfectly forward the <code>args</code> parameters to
+			the constructors of <code>T</code>.</p>
+			<p>Otherwise, the implementation will fall back on
+			forwarding the arguments to the constructors of <code>T</code> as const references.
+			If you need to pass a non-const reference to a constructor of <code>T</code>,
+			you may do so by wrapping the parameter in a call to <code>boost::ref</code>.
+			In addition, you will be
+			limited to a maximum of 9 arguments (not counting the allocator argument of
+			allocate_shared).</p>
+		</blockquote>
+		<h2><a name="example">Example</a></h2>
+		<pre>boost::shared_ptr&lt;std::string&gt; x = boost::make_shared&lt;std::string&gt;("hello, world!");
+std::cout << *x;</pre>
+		<hr>
+		<p>
+			$Date: 2008-05-19 15:42:39 -0400 (Mon, 19 May 2008) $</p>
+		<p><small>Copyright 2008 Peter Dimov. Copyright 2008 Frank Mori Hess.
+				Distributed under the Boost Software License,
+				Version 1.0. See accompanying file <A href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</A>
+				or copy at <A href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>.</small></p>
+	</body>
+</html>

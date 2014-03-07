@@ -1,0 +1,297 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:string String Parsers]
+
+This module includes parsers for strings. Currently, this module
+includes the literal and string parsers and the symbol table.
+
+[heading Module Header]
+
+    // forwards to <boost/spirit/home/qi/string.hpp>
+    #include <boost/spirit/include/qi_string.hpp>
+
+Also, see __include_structure__.
+
+[/------------------------------------------------------------------------------]
+[section:string String Parsers (`string`, `lit`)]
+
+[heading Description]
+
+The `string` parser matches a string of characters. The `string` parser
+is an implicit lexeme: the `skip` parser is not applied in between
+characters of the string. The `string` parser has an associated
+__char_encoding_namespace__. This is needed when doing basic operations
+such as inhibiting case sensitivity. Examples:
+
+    string("Hello")
+    string(L"Hello")
+    string(s) // s is a std::string
+
+`lit`, like `string`, also matches a string of characters. The main
+difference is that `lit` does not synthesize an attribute. A plain
+string like `"hello"` or a `std::basic_string` is equivalent to a `lit`.
+Examples:
+
+    "Hello"
+    lit("Hello")
+    lit(L"Hello")
+    lit(s) // s is a std::string
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/string/lit.hpp>
+    #include <boost/spirit/include/qi_lit.hpp>
+    
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::lit // alias: boost::spirit::qi::lit`]]
+    [[`ns::string`]]
+]
+
+In the table above, `ns` represents a __char_encoding_namespace__. 
+
+[heading Model of]
+
+[:__primitive_parser_concept__]
+
+[variablelist Notation
+    [[`s`]      [A __string__ or a __qi_lazy_argument__ that evaluates to a __string__.]]
+    [[`ns`]     [A __char_encoding_namespace__.]]]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __primitive_parser_concept__.
+
+[table
+    [[Expression]       [Semantics]]
+    [[`s`]              [Create string parser
+                        from a string, `s`.]]
+    [[`lit(s)`]         [Create a string parser
+                        from a string, `s`.]]
+    [[`ns::string(s)`]  [Create a string parser with `ns` encoding
+                        from a string, `s`.]]
+]
+
+[heading Attributes]
+
+[table
+    [[Expression]       [Attribute]]
+    [[`s`]              [__unused__]]
+    [[`lit(s)`]         [__unused__]]
+    [[`ns::string(s)`]  [`std::basic_string<T>` where `T`
+                        is the underlying character type
+                        of `s`.]]
+]
+
+[heading Complexity]
+
+[:O(N)]
+
+where `N` is the number of characters in the string to be parsed.
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+Some using declarations:
+
+[reference_using_declarations_lit_string]
+
+Basic literals:
+
+[reference_string_literals]
+
+From a `std::string`
+
+[reference_string_std_string]
+
+Lazy strings using __phoenix__
+
+[reference_string_phoenix]
+
+[endsect] [/ lit/string]
+
+
+[/------------------------------------------------------------------------------]
+[section:symbols Symbols Parser (`symbols`)]
+
+[heading Description]
+
+The class `symbols` implements a symbol table: an associative container
+(or map) of key-value pairs where the keys are strings. The `symbols`
+class can work efficiently with 8, 16, 32 and even 64 bit characters.
+
+Traditionally, symbol table management is maintained separately outside
+the grammar through semantic actions. Contrary to standard practice, the
+Spirit symbol table class `symbols` is-a parser, an instance of which may
+be used anywhere in the grammar specification. It is an example of a
+dynamic parser. A dynamic parser is characterized by its ability to
+modify its behavior at run time. Initially, an empty symbols object
+matches nothing. At any time, symbols may be added, thus, dynamically
+altering its behavior.
+
+[heading Header]
+
+    // forwards to <boost/spirit/home/qi/string/symbols.hpp>
+    #include <boost/spirit/include/qi_symbols.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::qi::symbols`]]
+    [[`boost::spirit::qi::tst`]]
+    [[`boost::spirit::qi::tst_map`]]
+]
+
+[heading Synopsis]
+
+    template <typename Char, typename T, typename Lookup>
+    struct symbols;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]        [Description]               [Default]]
+    [[`Char`]           [The character type
+                        of the symbol strings.]     [`char`]]
+    [[`T`]              [The data type associated
+                        with each symbol.]          [__unused_type__]]
+    [[`Lookup`]         [The symbol search
+                        implementation]             [`tst<Char, T>`]]
+]
+
+[heading Model of]
+
+[:__primitive_parser_concept__]
+
+[variablelist Notation
+    [[`Sym`]        [A `symbols` type.]]
+    [[`Char`]       [A character type.]]
+    [[`T`]          [A data type.]]
+    [[`sym`, `sym2`][`symbols` objects.]]
+    [[`sseq`]       [An __stl__ container of strings.]]
+    [[`dseq`]       [An __stl__ container of data with `value_type` `T`.]]
+    [[`s1`...`sN`]  [A __string__.]]
+    [[`d1`...`dN`]  [Objects of type `T`.]]
+    [[`f`]          [A callable function or function object.]]
+    [[`f`, `l`]     [`ForwardIterator` first/last pair.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is not
+defined in __primitive_parser_concept__.
+
+[table
+    [[Expression]                   [Semantics]]
+    [[`Sym()`]                      [Construct an empty symbols names `"symbols"`.]]
+    [[`Sym(name)`]                  [Construct an empty symbols named `name`.]]
+    [[`Sym(sym2)`]                  [Copy construct a symbols from `sym2` (Another `symbols` object).]]
+    [[`Sym(sseq)`]                  [Construct symbols from `sseq` (an __stl__ container of strings) named `"symbols"`.]]
+    [[`Sym(sseq, name)`]            [Construct symbols from `sseq` (an __stl__ container of strings) named `name`.]]
+    [[`Sym(sseq, dseq)`]            [Construct symbols from `sseq` and `dseq`
+                                    (An __stl__ container of strings and an __stl__ container of
+                                    data with `value_type` `T`) which is named `"symbols"`.]]
+    [[`Sym(sseq, dseq, name)`]      [Construct symbols from `sseq` and `dseq`
+                                    (An __stl__ container of strings and an __stl__ container of
+                                    data with `value_type` `T`) which is named `name`.]]
+    [[`sym = sym2`]                 [Assign `sym2` to `sym`.]]
+    [[`sym = s1, s2, ..., sN`]      [Assign one or more symbols (`s1`...`sN`) to `sym`.]]
+    [[`sym += s1, s2, ..., sN`]     [Add one or more symbols (`s1`...`sN`) to `sym`.]]
+    [[`sym.add(s1)(s2)...(sN)`]     [Add one or more symbols (`s1`...`sN`) to `sym`.]]
+    [[`sym.add(s1, d1)(s2, d2)...(sN, dN)`]
+                                    [Add one or more symbols (`s1`...`sN`)
+                                    with associated data (`d1`...`dN`) to `sym`.]]
+    [[`sym -= s1, s2, ..., sN`]     [Remove one or more symbols (`s1`...`sN`) from `sym`.]]
+    [[`sym.remove(s1)(s2)...(sN)`]  [Remove one or more symbols (`s1`...`sN`) from `sym`.]]
+    [[`sym.clear()`]                [Erase all of the symbols in `sym`.]]
+    [[`sym.at(s)`]                  [Return a reference to the object associated
+                                    with symbol, `s`. If `sym` does not already
+                                    contain such an object, `at` inserts the default
+                                    object `T()`.]]
+    [[`sym.find(s)`]                [Return a pointer to the object associated
+                                    with symbol, `s`. If `sym` does not already
+                                    contain such an object, `find` returns a null
+                                    pointer.]]
+    [[`sym.prefix_find(f, l)`]      [Return a pointer to the object associated
+                                    with longest symbol that matches the beginning
+                                    of the range `[f, l)`, and updates `f` to point
+                                    to one past the end of that match. If no symbol matches,
+                                    then return a null pointer, and `f` is unchanged.]]
+    [[`sym.for_each(f)`]            [For each symbol in `sym`, `s`, a
+                                    `std::basic_string<Char>` with associated data,
+                                    `d`, an object of type `T`, invoke `f(s, d)`]]
+    [[`sym.name()`]                 [Retrieve the current name of the symbols object.]]
+    [[`sym.name(name)`]             [Set the current name of the symbols object to be `name`.]]
+]
+
+[heading Attributes]
+
+The attribute of `symbol<Char, T>` is `T`.
+
+[heading Complexity]
+
+The default implementation uses a Ternary Search Tree (TST) with
+complexity:
+
+[:O(log n+k)]
+
+Where k is the length of the string to be searched in a TST with n
+strings.
+
+TSTs are faster than hashing for many typical search problems especially
+when the search interface is iterator based. TSTs are many times faster
+than hash tables for unsuccessful searches since mismatches are
+discovered earlier after examining only a few characters. Hash tables
+always examine an entire key when searching.
+
+An alternative implementation uses a hybrid hash-map front end (for the
+first character) plus a TST: `tst_map`. This gives us a complexity of
+
+[:O(1 + log n+k-1)]
+
+This is found to be significantly faster than plain TST, albeit with a
+bit more memory usage requirements (each slot in the hash-map is a TST
+node). If you require a lot of symbols to be searched, use the `tst_map`
+implementation. This can be done by using `tst_map` as the third
+template parameter to the symbols class:
+
+    symbols<Char, T, tst_map<Char, T> > sym;
+
+[heading Example]
+
+[note The test harness for the example(s) below is presented in the
+__qi_basics_examples__ section.]
+
+Some using declarations:
+
+[reference_using_declarations_symbols]
+
+Symbols with data:
+
+[reference_symbols_with_data]
+
+When `symbols` is used for case-insensitive parsing (in a __qi_no_case__
+directive), added symbol strings should be in lowercase. Symbol strings
+containing one or more uppercase characters will not match any input
+when symbols is used in a `no_case` directive.
+
+[reference_symbols_with_no_case]
+
+
+[endsect] [/ symbols]
+
+[endsect] [/ String]

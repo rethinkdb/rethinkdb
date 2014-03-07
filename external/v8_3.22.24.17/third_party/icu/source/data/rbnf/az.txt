@@ -1,0 +1,103 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/rbnf/az.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/rbnf/az.xml
+ */
+az{
+    RBNFRules{
+        OrdinalRules{
+            "%%digits-ordinal-indicator:",
+            "0: ''inci;",
+            "%digits-ordinal:",
+            "-x: \u2212>>;",
+            "0: =#,##0==%%digits-ordinal-indicator=;",
+        }
+        SpelloutRules{
+            "%spellout-numbering-year:",
+            "x.x: =#,###0.#=;",
+            "0: =%spellout-numbering=;",
+            "%spellout-numbering:",
+            "0: =%spellout-cardinal=;",
+            "%spellout-cardinal:",
+            "-x: \u0259ksi >>;",
+            "x.x: << tam >>;",
+            "0: s\u0131f\u0131r;",
+            "1: bir;",
+            "2: iki;",
+            "3: \u00FC\u00E7;",
+            "4: d\u00F6rd;",
+            "5: be\u015F;",
+            "6: alt\u0131;",
+            "7: yeddi;",
+            "8: s\u0259kkiz;",
+            "9: doqquz;",
+            "10: on[ >>];",
+            "20: iyirmi[ >>];",
+            "30: otuz[ >>];",
+            "40: q\u0131rx[ >>];",
+            "50: \u0259lli[ >>];",
+            "60: atm\u0131\u015F[ >>];",
+            "70: yetmi\u015F[ >>];",
+            "80: s\u0259qs\u0259n[ >>];",
+            "90: doxsan[ >>];",
+            "100: << y\u00FCz[ >>];",
+            "1000: << min[ >>];",
+            "1000000: << milyon[ >>];",
+            "1000000000: << milyard[ >>];",
+            "1000000000000: << trilyon[ >>];",
+            "1000000000000000: << katrilyon[ >>];",
+            "1000000000000000000: =#,##0=;",
+            "%%inci:",
+            "0: inci;",
+            "1: ' =%spellout-ordinal=;",
+            "%%nci:",
+            "0: nci;",
+            "1: ' =%spellout-ordinal=;",
+            "%%ıncı:",
+            "0: \u0131nc\u0131;",
+            "1: ' =%spellout-ordinal=;",
+            "%%üncü:",
+            "0: \u00FCnc\u00FC;",
+            "1: ' =%spellout-ordinal=;",
+            "%%uncu:",
+            "0: uncu;",
+            "1: ' =%spellout-ordinal=;",
+            "%spellout-ordinal:",
+            "-x: \u0259ksi >>;",
+            "x.x: =#,##0.#=;",
+            "0: s\u0131f\u0131r\u0131nc\u0131;",
+            "1: birinci;",
+            "2: ikinci;",
+            "3: \u00FC\u00E7\u00FCnc\u00FC;",
+            "4: d\u00F6rd\u00FCnc\u00FC;",
+            "5: be\u015Finci;",
+            "6: alt\u0131nc\u0131;",
+            "7: yeddinci;",
+            "8: s\u0259kkizinci;",
+            "9: doqquzuncu;",
+            "10: on>%%uncu>;",
+            "20: iyirmi>%%nci>;",
+            "30: otuz>%%uncu>;",
+            "40: q\u0131rx>%%\u0131nc\u0131>;",
+            "50: \u0259lli>%%nci>;",
+            "60: altm\u0131\u015F>%%\u0131nc\u0131>;",
+            "70: yetmi\u015F>%%inci>;",
+            "80: s\u0259qs\u0259n>%%inci>;",
+            "90: doxsan>%%\u0131nc\u0131>;",
+            "100: <%spellout-numbering< y\u00FCz>%%\u00FCnc\u00FC>;",
+            "1000: <%spellout-numbering< bin>%%inci>;",
+            "1000000: <%spellout-numbering< milyon>%%uncu>;",
+            "1000000000: <%spellout-numbering< milyar>%%\u0131nc\u0131>;",
+            "1000000000000: <%spellout-numbering< trilyon>%%uncu>;",
+            "1000000000000000: <%spellout-numbering< katrilyon>%%uncu>;",
+            "1000000000000000000: =#,##0='inci;",
+        }
+    }
+    Version{"2.0.50.67"}
+}

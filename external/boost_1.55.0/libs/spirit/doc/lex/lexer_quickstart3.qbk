@@ -1,0 +1,141 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:lexer_quickstart3 Quickstart 3 - Counting Words Using a Parser]
+
+The whole purpose of integrating __lex__ as part of the __spirit__ library was 
+to add a library allowing the merger of lexical analysis with the parsing 
+process as defined by a __spirit__ grammar. __spirit__ parsers read their input 
+from an input sequence accessed by iterators. So naturally, we chose iterators 
+to be used as the interface between the lexer and the parser. A second goal of 
+the lexer/parser integration was to enable the usage of different 
+lexical analyzer libraries. The utilization of iterators seemed to be the 
+right choice from this standpoint as well, mainly because these can be used as
+an abstraction layer hiding implementation specifics of the used lexer 
+library. The [link spirit.lex.flowcontrol picture] below shows the common 
+flow control implemented while parsing combined with lexical analysis.
+
+[fig flowofcontrol.png..The common flow control implemented while parsing combined with lexical analysis..spirit.lex.flowcontrol]
+
+Another problem related to the integration of the lexical analyzer with the 
+parser was to find a way how the defined tokens syntactically could be blended
+with the grammar definition syntax of __spirit__. For tokens defined as 
+instances of the `token_def<>` class the most natural way of integration was 
+to allow to directly use these as parser components. Semantically these parser
+components succeed matching their input whenever the corresponding token type
+has been matched by the lexer. This quick start example will demonstrate this
+(and more) by counting words again, simply by adding up the numbers inside
+of semantic actions of a parser (for the full example code see here: 
+[@../../example/lex/word_count.cpp word_count.cpp]).
+
+
+[import ../example/lex/word_count.cpp]
+
+
+[heading Prerequisites]
+
+This example uses two of the __spirit__ library components: __lex__ and __qi__,
+consequently we have to `#include` the corresponding header files. Again, we
+need to include a couple of header files from the __boost_phoenix__ library. This 
+example shows how to attach functors to parser components, which 
+could be done using any type of C++ technique resulting in a callable object.
+Using __boost_phoenix__ for this task simplifies things and avoids adding 
+dependencies to other libraries (__boost_phoenix__ is already in use for 
+__spirit__ anyway).
+
+[wcp_includes]
+
+To make all the code below more readable we introduce the following namespaces.
+
+[wcp_namespaces]
+
+
+[heading Defining Tokens]
+
+If compared to the two previous quick start examples (__sec_lex_quickstart_1__
+and __sec_lex_quickstart_2__) the token definition class for this example does 
+not reveal any surprises. However, it uses lexer token definition macros to 
+simplify the composition of the regular expressions, which will be described in 
+more detail in the section __fixme__. Generally, any token definition is usable
+without modification from either a stand alone lexical analyzer or in conjunction
+with a parser.
+
+[wcp_token_definition]
+
+
+[heading Using Token Definition Instances as Parsers]
+
+While the integration of lexer and parser in the control flow is achieved by 
+using special iterators wrapping the lexical analyzer, we still need a means of
+expressing in the grammar what tokens to match and where. The token definition 
+class above uses three different ways of defining a token:
+
+* Using an instance of a `token_def<>`, which is handy whenever you need to 
+  specify a token attribute (for more information about lexer related 
+  attributes please look here: __sec_lex_attributes__).
+* Using a single character as the token, in this case the character represents
+  itself as a token, where the token id is the ASCII character value.
+* Using a regular expression represented as a string, where the token id needs 
+  to be specified explicitly to make the token accessible from the grammar 
+  level.
+
+All three token definition methods require a different method of grammar 
+integration. But as you can see from the following code snippet, each of these 
+methods are straightforward and blend the corresponding token instances 
+naturally with the surrounding __qi__ grammar syntax.
+
+[table
+    [[Token definition]   [Parser integration]]
+    [[`token_def<>`]      [The `token_def<>` instance is directly usable as a 
+                           parser component. Parsing of this component will 
+                           succeed if the regular expression used to define 
+                           this has been matched successfully.]]
+    [[single character]   [The single character is directly usable in the 
+                           grammar. However, under certain circumstances it needs 
+                           to be wrapped by a `char_()` parser component.
+                           Parsing of this component will succeed if the 
+                           single character has been matched.]]
+    [[explicit token id]  [To use an explicit token id in a __qi__ grammar you
+                           are required to wrap it with the special `token()` 
+                           parser component. Parsing of this component will 
+                           succeed if the current token has the same token
+                           id as specified in the expression `token(<id>)`.]]
+]
+
+The grammar definition below uses each of the three types demonstrating their
+usage.
+
+[wcp_grammar_definition]
+
+As already described (see: __sec_attributes__), the __qi__ parser 
+library builds upon a set of of fully attributed parser components. 
+Consequently, all token definitions support this attribute model as well. The 
+most natural way of implementing this was to use the token values as 
+the attributes exposed by the parser component corresponding to the token 
+definition (you can read more about this topic here: __sec_lex_tokenvalues__). 
+The example above takes advantage of the full integration of the token values 
+as the `token_def<>`'s parser attributes: the `word` token definition is 
+declared as a `token_def<std::string>`, making every instance of a `word` token
+carry the string representation of the matched input sequence as its value.
+The semantic action attached to `tok.word` receives this string (represented by 
+the `_1` placeholder) and uses it to calculate the number of matched
+characters: `ref(c) += size(_1)`.
+
+[heading Pulling Everything Together]
+
+The main function needs to implement a bit more logic now as we have to 
+initialize and start not only the lexical analysis but the parsing process as 
+well. The three type definitions (`typedef` statements) simplify the creation 
+of the lexical analyzer and the grammar. After reading the contents of the 
+given file into memory it calls the function __api_tokenize_and_parse__ to 
+initialize the lexical analysis and parsing processes.
+
+[wcp_main]
+
+
+[endsect]

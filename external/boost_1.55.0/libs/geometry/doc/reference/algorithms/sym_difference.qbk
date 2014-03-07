@@ -1,0 +1,29 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[def __this_function__ sym_difference]
+
+[heading_conformance_ogc __this_function__..SymDifference]
+
+[include reference/algorithms/difference_behavior.qbk]
+
+[include reference/algorithms/geometry_rules.qbk]
+
+[heading Example]
+[sym_difference]
+[sym_difference_output]
+
+[heading See also]
+* [link geometry.reference.algorithms.difference difference]
+* [link geometry.reference.algorithms.intersection intersection]
+* [link geometry.reference.algorithms.union_ union]
+

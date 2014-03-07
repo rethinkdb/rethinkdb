@@ -1,0 +1,135 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - Acknowledgments</title>
+  </head>
+
+  <body link="#0000ff" vlink="#800080">
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Acknowledgments</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <p><a href="http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> is
+    the architect, designer, and implementor of <b>Boost.Python</b>.</p>
+
+    <p><a href="mailto:brett.calcott@paradise.net.nz">Brett Calcott</a>
+    contributed and maintains the Visual Studio project files and
+    documentation.</p>
+
+    <p><a href="mailto:Gottfried.Ganssauge-at-haufe.de">Gottfried
+    Ganßauge</a> supplied support for opaque pointer conversions,
+    complete with documentation and a regression test (and I didn't
+    even have to ask him for those)!
+
+    <p>Joel de Guzman implemented the <a href="overloads.html">default
+    argument support</a> and wrote the excellent <a href=
+    "../tutorial/index.html">tutorial documentation</a>.</p>
+
+    <p><a href="http://www.boost.org/people/ralf_w_grosse_kunstleve.htm">Ralf W.
+    Grosse-Kunstleve</a> implemented the <a href="pickle.html">pickle
+    support</a>, and has enthusiastically supported the library since its
+    birth, contributing to design decisions and providing invaluable
+    real-world insight into user requirements. Ralf has written some <a href=
+    "faq.html#question2">extensions</a> for converting C++ containers that I
+    hope will be incorporated into the library soon. He also implemented the
+    cross-module support in the first version of Boost.Python. More
+    importantly, Ralf makes sure nobody forgets the near-perfect synergy of
+    C++ and Python for solving the problems of large-scale software
+    construction.</p>
+
+    <p><a href="http://www.boost.org/people/aleksey_gurtovoy.htm">Aleksey Gurtovoy</a>
+    wrote an incredible C++ <a href="http://www.mywikinet.com/mpl">Template
+    Metaprogramming Library</a> which allows Boost.Python to perform much of
+    its compile-time magic. In addition, Aleksey very generously contributed
+    his time and deep knowledge of the quirks of various buggy compilers to
+    help us get around problems at crucial moments.</p>
+
+    <p><a href="http://www.boost.org/people/paul_mensonides.htm">Paul Mensonides</a>,
+    building on the work <a href="http://www.boost.org/people/vesa_karvonen.htm">Vesa
+    Karvonen</a>, wrote a similarly amazing <a href=
+    "../../../preprocessor/doc/index.html">Preprocessor Metaprogramming
+    Library</a>, and generously contributed the time and expertise to get it
+    working in the Boost.Python library, rewriting much of Boost.Python to
+    use the new preproccessor metaprogramming constructs and helping us to
+    work around buggy and slow C++ preprocessors.</p>
+
+    <p><a href="mailto:nicodemus-at-globalite.com.br">Bruno da Silva de
+    Oliveira</a> contributed the ingenious <a
+    href="../../pyste/index.html">Pyste</a> (&quot;Pie-Steh&quot;)
+    code generator.
+
+    <p><a href="mailto:nickm@sitius.com">Nikolay Mladenov</a> contributed
+    <code>staticmethod</code> support.</p>
+
+    <p>Martin Casado solved some sticky problems which allow us to build the
+    Boost.Python shared library for AIX's crazy dynamic linking model.</p>
+
+    <p><a href="mailto:achim@procoders.net">Achim Domma</a> contributed some
+    of the <a href="reference.html#object_wrappers">Object Wrappers</a> and
+    HTML templates for this documentation. Dave Hawkes contributed
+    inspiration for the use of the <code><a href=
+    "scope.html#scope-spec">scope</a></code> class to simplify module
+    definition syntax. Pearu Pearson wrote some of the test cases that are in
+    the current test suite.</p>
+
+    <p>The development of this version of Boost.Python was funded in part by
+    the <a href="http://www.llnl.gov/">Lawrence Livermore National
+    Laboratories</a> and by the <a href="http://cci.lbl.gov/">Computational
+    Crystallography Initiative</a> at Lawrence Berkeley National
+    Laboratories.</p>
+
+    <p><a href="http://kogs-www.informatik.uni-hamburg.de/~koethe/">Ullrich
+    Koethe</a> had independently developed a similar system. When he
+    discovered Boost.Python v1, he generously contributed countless hours of
+    coding and much insight into improving it. He is responsible for an early
+    version of the support for function overloading and wrote the support for
+    reflecting C++ inheritance relationships. He has helped to improve
+    error-reporting from both Python and C++ (we hope to do as well in v2
+    again soon), and has designed the original support for exposing numeric
+    operators, including a way to avoid explicit coercion by means of
+    overloading.</p>
+
+    <p>The members of the boost mailing list and the Python community
+    supplied invaluable early feedback. In particular, Ron Clarke, Mark
+    Evans, Anton Gluck, Chuck Ingold, Prabhu Ramachandran, and Barry Scott
+    took the brave step of trying to use Boost.Python while it was still in
+    early stages of development.</p>
+
+    <p>The first version of Boost.Python would not have been possible without
+    the support of Dragon Systems, which supported its development and
+    release as a Boost library.</p>
+    <hr>
+
+    <p>Revised 
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+     26 November, 2002 
+    <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

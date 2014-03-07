@@ -1,0 +1,334 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Parser Directives</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../qi_parsers.html" title="Qi Parsers">
+<link rel="prev" href="auto.html" title="Auto Parsers">
+<link rel="next" href="operator.html" title="Parser Operators">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="auto.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../qi_parsers.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="operator.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.quick_reference.qi_parsers.directive"></a><a class="link" href="directive.html" title="Parser Directives">Parser
+          Directives</a>
+</h5></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/lexeme.html" title="Parser Directive Inhibiting Skipping (lexeme[])"><code class="computeroutput"><span class="identifier">lexeme</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Disable skip parsing for <code class="computeroutput"><span class="identifier">a</span></code>,
+                      does pre-skipping
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/no_skip.html" title="Parser Directive Inhibiting Skipping Without Pre-skip (no_skip[])"><code class="computeroutput"><span class="identifier">no_skip</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Disable skip parsing for <code class="computeroutput"><span class="identifier">a</span></code>,
+                      no pre-skipping
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/no_case.html" title="Parser Directive Inhibiting Case Sensitivity (no_case[])"><code class="computeroutput"><span class="identifier">no_case</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Inhibits case-sensitivity for <code class="computeroutput"><span class="identifier">a</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/omit.html" title="Parser Directive Ignoring Attribute (omit[])"><code class="computeroutput"><span class="identifier">omit</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Unused</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Ignores the attribute type of <code class="computeroutput"><span class="identifier">a</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/matches.html" title="Directive Testing if Parser Succeeded (matches[])"><code class="computeroutput"><span class="identifier">matches</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">bool</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Return if the embedded parser <code class="computeroutput"><span class="identifier">a</span></code>
+                      matched its input
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/as.html" title="Parser Directives Forcing Atomic Assignment (as&lt;T&gt;, as_string[], as_wstring[])"><code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;[]</span></code></a><code class="computeroutput"><span class="special">()[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Force atomic assignment for arbitrary attribute types
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/as.html" title="Parser Directives Forcing Atomic Assignment (as&lt;T&gt;, as_string[], as_wstring[])"><code class="computeroutput"><span class="identifier">as_string</span><span class="special">[]</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Force atomic assignment for string attributes
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/as.html" title="Parser Directives Forcing Atomic Assignment (as&lt;T&gt;, as_string[], as_wstring[])"><code class="computeroutput"><span class="identifier">as_wstring</span><span class="special">[]</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Force atomic assignment for wide character string attributes
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/raw.html" title="Directive for Transduction Parsing (raw[])"><code class="computeroutput"><span class="identifier">raw</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <a href="../../../../../../../../libs/range/doc/html/range/reference/utilities/iterator_range.html" target="_top"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_range</span></code></a><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">I</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Presents the transduction of <code class="computeroutput"><span class="identifier">a</span></code>
+                      as an iterator range
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/repeat.html" title="Repetition Parser Directive (repeat[])"><code class="computeroutput"><span class="identifier">repeat</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Repeat <code class="computeroutput"><span class="identifier">a</span></code> zero
+                      or more times
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/repeat.html" title="Repetition Parser Directive (repeat[])"><code class="computeroutput"><span class="identifier">repeat</span><span class="special">(</span><span class="identifier">N</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Repeat <code class="computeroutput"><span class="identifier">a</span></code> <code class="computeroutput"><span class="identifier">N</span></code> times
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/repeat.html" title="Repetition Parser Directive (repeat[])"><code class="computeroutput"><span class="identifier">repeat</span><span class="special">(</span><span class="identifier">N</span><span class="special">,</span>
+                      <span class="identifier">M</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Repeat <code class="computeroutput"><span class="identifier">a</span></code> <code class="computeroutput"><span class="identifier">N</span></code> to <code class="computeroutput"><span class="identifier">M</span></code>
+                      times
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/repeat.html" title="Repetition Parser Directive (repeat[])"><code class="computeroutput"><span class="identifier">repeat</span><span class="special">(</span><span class="identifier">N</span><span class="special">,</span>
+                      <span class="identifier">inf</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Repeat <code class="computeroutput"><span class="identifier">a</span></code> <code class="computeroutput"><span class="identifier">N</span></code> or more times
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/skip.html" title="Parser Directive Re-Establishing Skipping (skip[])"><code class="computeroutput"><span class="identifier">skip</span></code></a><code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Re-establish the skipper that got inhibited by lexeme or no_skip.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <a class="link" href="../../reference/directive/skip.html" title="Parser Directive Re-Establishing Skipping (skip[])"><code class="computeroutput"><span class="identifier">skip</span></code></a><code class="computeroutput"><span class="special">(</span><span class="identifier">p</span><span class="special">)[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">A</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Use <code class="computeroutput"><span class="identifier">p</span></code> as a
+                      skipper for parsing <code class="computeroutput"><span class="identifier">a</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="auto.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../qi_parsers.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="operator.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

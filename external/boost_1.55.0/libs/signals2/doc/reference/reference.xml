@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library-reference PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Douglas Gregor 2001-2004
+Copyright Frank Mori Hess 2007-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<library-reference xmlns:xi="http://www.w3.org/2001/XInclude"
+                   last-revision="$Date: 2007-03-06 16:51:55 -0500 (Tue, 06 Mar 2007) $">
+  <header name="boost/signals2.hpp" last-revision="$Date: 2007-03-06 16:51:55 -0500 (Tue, 06 Mar 2007) $">
+    <para>
+      Including the "boost/signals2.hpp" header pulls in all the other headers of the Signals2
+      library.  It is provided as a convenience.
+    </para>
+  </header>
+
+  <xi:include href="connection.xml"/>
+  <xi:include href="deconstruct.xml"/>
+  <xi:include href="dummy_mutex.xml"/>
+  <xi:include href="last_value.xml"/>
+  <xi:include href="mutex.xml"/>
+  <xi:include href="optional_last_value.xml"/>
+  <xi:include href="shared_connection_block.xml"/>
+  <xi:include href="signal_header.xml"/>
+  <xi:include href="signal_base.xml"/>
+  <xi:include href="signal_type.xml"/>
+  <xi:include href="slot.xml"/>
+  <xi:include href="slot_base.xml"/>
+  <xi:include href="trackable.xml"/>
+</library-reference>

@@ -1,0 +1,333 @@
+<HTML>
+<HEAD>
+    <TITLE>Conservative GC Porting Directions</TITLE>
+</HEAD>
+<BODY>
+<H1>Conservative GC Porting Directions</h1>
+The collector is designed to be relatively easy to port, but is not
+portable code per se.  The collector inherently has to perform operations,
+such as scanning the stack(s), that are not possible in portable C code.
+<P>
+All of the following assumes that the collector is being ported to a
+byte-addressable 32- or 64-bit machine.  Currently all successful ports
+to 64-bit machines involve LP64 targets.  The code base includes some
+provisions for P64 targets (notably win64), but that has not been tested.
+You are hereby discouraged from attempting a port to non-byte-addressable,
+or 8-bit, or 16-bit machines.
+<P>
+The difficulty of porting the collector varies greatly depending on the needed
+functionality.  In the simplest case, only some small additions are needed
+for the <TT>include/private/gcconfig.h</tt> file.  This is described in the
+following section.  Later sections discuss some of the optional features,
+which typically involve more porting effort.
+<P>
+Note that the collector makes heavy use of <TT>ifdef</tt>s.  Unlike
+some other software projects, we have concluded repeatedly that this is preferable
+to system dependent files, with code duplicated between the files.
+However, to keep this manageable, we do strongly believe in indenting
+<TT>ifdef</tt>s correctly (for historical reasons usually without the leading
+sharp sign).  (Separate source files are of course fine if they don't result in
+code duplication.)
+<H2>Adding Platforms to <TT>gcconfig.h</tt></h2>
+If neither thread support, nor tracing of dynamic library data is required,
+these are often the only changes you will need to make.
+<P>
+The <TT>gcconfig.h</tt> file consists of three sections:
+<OL>
+<LI> A section that defines GC-internal macros
+that identify the architecture (e.g. <TT>IA64</tt> or <TT>I386</tt>)
+and operating system (e.g. <TT>LINUX</tt> or <TT>MSWIN32</tt>).
+This is usually done by testing predefined macros.  By defining
+our own macros instead of using the predefined ones directly, we can
+impose a bit more consistency, and somewhat isolate ourselves from
+compiler differences.
+<P>
+It is relatively straightforward to add a new entry here.  But please try
+to be consistent with the existing code.  In particular, 64-bit variants
+of 32-bit architectures general are <I>not</i> treated as a new architecture.
+Instead we explicitly test for 64-bit-ness in the few places in which it
+matters.  (The notable exception here is <TT>I386</tt> and <TT>X86_64</tt>.
+This is partially historical, and partially justified by the fact that there
+are arguably more substantial architecture and ABI differences here than
+for RISC variants.)
+<P>
+on GNU-based systems, <TT>cpp -dM empty_source_file.c</tt> seems to generate
+a set of predefined macros.  On some other systems, the "verbose"
+compiler option may do so, or the manual page may list them.
+<LI>
+A section that defines a small number of platform-specific macros, which are
+then used directly by the collector.  For simple ports, this is where most of
+the effort is required.  We describe the macros below.
+<P>
+This section contains a subsection for each architecture (enclosed in a
+suitable <TT>ifdef</tt>.  Each subsection usually contains some
+architecture-dependent defines, followed by several sets of OS-dependent
+defines, again enclosed in <TT>ifdef</tt>s.
+<LI>
+A section that fills in defaults for some macros left undefined in the preceding
+section, and defines some other macros that rarely need adjustment for
+new platforms.  You will typically not have to touch these.
+If you are porting to an OS that
+was previously completely unsupported, it is likely that you will
+need to add another clause to the definition of <TT>GET_MEM</tt>.
+</ol>
+The following macros must be defined correctly for each architecture and operating
+system:
+<DL>
+<DT><TT>MACH_TYPE</tt>
+<DD>
+Defined to a string that represents the machine architecture.  Usually
+just the macro name used to identify the architecture, but enclosed in quotes.
+<DT><TT>OS_TYPE</tt>
+<DD>
+Defined to a string that represents the operating system name.  Usually
+just the macro name used to identify the operating system, but enclosed in quotes.
+<DT><TT>CPP_WORDSZ</tt>
+<DD>
+The word size in bits as a constant suitable for preprocessor tests,
+i.e. without casts or sizeof expressions.  Currently always defined as
+either 64 or 32.  For platforms supporting both 32- and 64-bit ABIs,
+this should be conditionally defined depending on the current ABI.
+There is a default of 32.
+<DT><TT>ALIGNMENT</tt>
+<DD>
+Defined to be the largest <TT>N</tt>, such that
+all pointer are guaranteed to be aligned on <TT>N</tt>-byte boundaries.
+defining it to be 1 will always work, but perform poorly.
+For all modern 32-bit platforms, this is 4.  For all modern 64-bit
+platforms, this is 8.  Whether or not X86 qualifies as a modern
+architecture here is compiler- and OS-dependent.
+<DT><TT>DATASTART</tt>
+<DD>
+The beginning of the main data segment.  The collector will trace all
+memory between <TT>DATASTART</tt> and <TT>DATAEND</tt> for root pointers.
+On some platforms,this can be defined to a constant address,
+though experience has shown that to be risky.  Ideally the linker will
+define a symbol (e.g. <TT>_data</tt> whose address is the beginning
+of the data segment.  Sometimes the value can be computed using
+the <TT>GC_SysVGetDataStart</tt> function.  Not used if either
+the next macro is defined, or if dynamic loading is supported, and the
+dynamic loading support defines a function
+<TT>GC_register_main_static_data()</tt> which returns false.
+<DT><TT>SEARCH_FOR_DATA_START</tt>
+<DD>
+If this is defined <TT>DATASTART</tt> will be defined to a dynamically
+computed value which is obtained by starting with the address of
+<TT>_end</tt> and walking backwards until non-addressable memory is found.
+This often works on Posix-like platforms.  It makes it harder to debug
+client programs, since startup involves generating and catching a
+segmentation fault, which tends to confuse users.
+<DT><TT>DATAEND</tt>
+<DD>
+Set to the end of the main data segment.  Defaults to <TT>end</tt>,
+where that is declared as an array.  This works in some cases, since
+the linker introduces a suitable symbol.
+<DT><TT>DATASTART2, DATAEND2</tt>
+<DD>
+Some platforms have two discontiguous main data segments, e.g.
+for initialized and uninitialized data.  If so, these two macros
+should be defined to the limits of the second main data segment.
+<DT><TT>STACK_GROWS_UP</tt>
+<DD>
+Should be defined if the stack (or thread stacks) grow towards higher
+addresses.  (This appears to be true only on PA-RISC.  If your architecture
+has more than one stack per thread, and is not already supported, you will
+need to do more work.  Grep for "IA64" in the source for an example.)
+<DT><TT>STACKBOTTOM</tt>
+<DD>
+Defined to be the cool end of the stack, which is usually the
+highest address in the stack.  It must bound the region of the
+stack that contains pointers into the GC heap.  With thread support,
+this must be the cold end of the main stack, which typically
+cannot be found in the same way as the other thread stacks.
+If this is not defined and none of the following three macros
+is defined, client code must explicitly set
+<TT>GC_stackbottom</tt> to an appropriate value before calling
+<TT>GC_INIT()</tt> or any other <TT>GC_</tt> routine.
+<DT><TT>LINUX_STACKBOTTOM</tt>
+<DD>
+May be defined instead of <TT>STACKBOTTOM</tt>.
+If defined, then the cold end of the stack will be determined
+Currently we usually read it from /proc.
+<DT><TT>HEURISTIC1</tt>
+<DD>
+May be defined instead of <TT>STACKBOTTOM</tt>.
+<TT>STACK_GRAN</tt> should generally also be undefined and defined.
+The cold end of the stack is determined by taking an address inside
+<TT>GC_init's frame</tt>, and rounding it up to
+the next multiple of <TT>STACK_GRAN</tt>.  This works well if the stack base is
+always aligned to a large power of two.
+(<TT>STACK_GRAN</tt> is predefined to 0x1000000, which is
+rarely optimal.)
+<DT><TT>HEURISTIC2</tt>
+<DD>
+May be defined instead of <TT>STACKBOTTOM</tt>.
+The cold end of the stack is determined by taking an address inside
+GC_init's frame, incrementing it repeatedly
+in small steps (decrement if <TT>STACK_GROWS_UP</tt>), and reading the value
+at each location.  We remember the value when the first
+Segmentation violation or Bus error is signalled, round that
+to the nearest plausible page boundary, and use that as the
+stack base.
+<DT><TT>DYNAMIC_LOADING</tt>
+<DD>
+Should be defined if <TT>dyn_load.c</tt> has been updated for this
+platform and tracing of dynamic library roots is supported.
+<DT><TT>MPROTECT_VDB, PROC_VDB</tt>
+<DD>
+May be defined if the corresponding "virtual dirty bit"
+implementation in os_dep.c is usable on this platform.  This
+allows incremental/generational garbage collection.
+<TT>MPROTECT_VDB</tt> identifies modified pages by
+write protecting the heap and catching faults.
+<TT>PROC_VDB</tt> uses the /proc primitives to read dirty bits.
+<DT><TT>PREFETCH, PREFETCH_FOR_WRITE</tt>
+<DD>
+The collector uses <TT>PREFETCH</tt>(<I>x</i>) to preload the cache
+with *<I>x</i>.
+This defaults to a no-op.
+<DT><TT>CLEAR_DOUBLE</tt>
+<DD>
+If <TT>CLEAR_DOUBLE</tt> is defined, then
+<TT>CLEAR_DOUBLE</tt>(x) is used as a fast way to
+clear the two words at GC_malloc-aligned address x.  By default,
+word stores of 0 are used instead.
+<DT><TT>HEAP_START</tt>
+<DD>
+<TT>HEAP_START</tt> may be defined as the initial address hint for mmap-based
+allocation.
+<DT><TT>ALIGN_DOUBLE</tt>
+<DD>
+Should be defined if the architecture requires double-word alignment
+of <TT>GC_malloc</tt>ed memory, e.g. 8-byte alignment with a
+32-bit ABI.  Most modern machines are likely to require this.
+This is no longer needed for GC7 and later.
+</dl>
+<H2>Additional requirements for a basic port</h2>
+In some cases, you may have to add additional platform-specific code
+to other files.  A likely candidate is the implementation of
+<TT>GC_with_callee_saves_pushed</tt> in </tt>mach_dep.c</tt>.
+This ensure that register contents that the collector must trace
+from are copied to the stack.  Typically this can be done portably,
+but on some platforms it may require assembly code, or just
+tweaking of conditional compilation tests.
+<P>
+For GC7, if your platform supports <TT>getcontext()</tt>, then definining
+the macro <TT>UNIX_LIKE</tt> for your OS in <TT>gcconfig.h</tt>
+(if it isn't defined there already) is likely to solve the problem.
+otherwise, if you are using gcc, <TT>_builtin_unwind_init()</tt>
+will be used, and should work fine.  If that is not applicable either,
+the implementation will try to use <TT>setjmp()</tt>.  This will work if your
+<TT>setjmp</tt> implementation saves all possibly pointer-valued registers
+into the buffer, as opposed to trying to unwind the stack at
+<TT>longjmp</tt> time.  The <TT>setjmp_test</tt> test tries to determine this,
+but often doesn't get it right.
+<P>
+In GC6.x versions of the collector, tracing of registers
+was more commonly handled
+with assembly code.  In GC7, this is generally to be avoided.
+<P>
+Most commonly <TT>os_dep.c</tt> will not require attention, but see below.
+<H2>Thread support</h2>
+Supporting threads requires that the collector be able to find and suspend
+all threads potentially accessing the garbage-collected heap, and locate
+any state associated with each thread that must be traced.
+<P>
+The functionality needed for thread support is generally implemented
+in one or more files specific to the particular thread interface.
+For example, somewhat portable pthread support is implemented
+in <TT>pthread_support.c</tt> and <TT>pthread_stop_world.c</tt>.
+The essential functionality consists of
+<DL>
+<DT><TT>GC_stop_world()</tt>
+<DD>
+Stops all threads which may access the garbage collected heap, other
+than the caller.
+<DT><TT>GC_start_world()</tt>
+<DD>
+Restart other threads.
+<DT><TT>GC_push_all_stacks()</tt>
+<DD>
+Push the contents of all thread stacks (or at least of pointer-containing
+regions in the thread stacks) onto the mark stack.
+</dl>
+These very often require that the garbage collector maintain its
+own data structures to track active threads.
+<P>
+In addition, <TT>LOCK</tt> and <TT>UNLOCK</tt> must be implemented
+in <TT>gc_locks.h</tt>
+<P>
+The easiest case is probably a new pthreads platform
+on which threads can be stopped
+with signals.  In this case, the changes involve:
+<OL>
+<LI>Introducing a suitable <TT>GC_</tt><I>X</i><TT>_THREADS</tt> macro, which should
+be automatically defined by <TT>gc_config_macros.h</tt> in the right cases.
+It should also result in a definition of <TT>GC_PTHREADS</tt>, as for the
+existing cases.
+<LI>For GC7+, ensuring that the <TT>atomic_ops</tt> package at least
+minimally supports the platform.
+If incremental GC is needed, or if pthread locks don't
+perform adequately as the allocation lock, you will probably need to
+ensure that a sufficient <TT>atomic_ops</tt> port
+exists for the platform to provided an atomic test and set
+operation.  (Current GC7 versions require more<TT>atomic_ops</tt>
+asupport than necessary.  This is a bug.)  For earlier versions define
+<TT>GC_test_and_set</tt> in <TT>gc_locks.h</tt>.
+<LI>Making any needed adjustments to <TT>pthread_stop_world.c</tt> and
+<TT>pthread_support.c</tt>.  Ideally none should be needed.  In fact,
+not all of this is as well standardized as one would like, and outright
+bugs requiring workarounds are common.
+</ol>
+Non-preemptive threads packages will probably require further work.  Similarly
+thread-local allocation and parallel marking requires further work
+in <TT>pthread_support.c</tt>, and may require better <TT>atomic_ops</tt>
+support.
+<H2>Dynamic library support</h2>
+So long as <TT>DATASTART</tt> and <TT>DATAEND</tt> are defined correctly,
+the collector will trace memory reachable from file scope or <TT>static</tt>
+variables defined as part of the main executable.  This is sufficient
+if either the program is statically linked, or if pointers to the
+garbage-collected heap are never stored in non-stack variables
+defined in dynamic libraries.
+<P>
+If dynamic library data sections must also be traced, then
+<UL>
+<LI><TT>DYNAMIC_LOADING</tt> must be defined in the appropriate section
+of <TT>gcconfig.h</tt>.
+<LI>An appropriate versions of the functions
+<TT>GC_register_dynamic_libraries()</tt> should be defined in
+<TT>dyn_load.c</tt>.  This function should invoke
+<TT>GC_cond_add_roots(</tt><I>region_start, region_end</i><TT>, TRUE)</tt>
+on each dynamic library data section.
+</ul>
+<P>
+Implementations that scan for writable data segments are error prone, particularly
+in the presence of threads.  They frequently result in race conditions
+when threads exit and stacks disappear.  They may also accidentally trace
+large regions of graphics memory, or mapped files.  On at least
+one occasion they have been known to try to trace device memory that
+could not safely be read in the manner the GC wanted to read it.
+<P>
+It is usually safer to walk the dynamic linker data structure, especially
+if the linker exports an interface to do so.  But beware of poorly documented
+locking behavior in this case.
+<H2>Incremental GC support</h2>
+For incremental and generational collection to work, <TT>os_dep.c</tt>
+must contain a suitable "virtual dirty bit" implementation, which
+allows the collector to track which heap pages (assumed to be
+a multiple of the collectors block size) have been written during
+a certain time interval.  The collector provides several
+implementations, which might be adapted.  The default
+(<TT>DEFAULT_VDB</tt>) is a placeholder which treats all pages
+as having been written.  This ensures correctness, but renders
+incremental and generational collection essentially useless.
+<H2>Stack traces for debug support</h2>
+If stack traces in objects are need for debug support,
+<TT>GC_dave_callers</tt> and <TT>GC_print_callers</tt> must be
+implemented.
+<H2>Disclaimer</h2>
+This is an initial pass at porting guidelines.  Some things
+have no doubt been overlooked.
+</body>
+</html>

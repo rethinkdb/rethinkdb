@@ -1,0 +1,239 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/kea.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/kea.xml
+ */
+kea{
+    AuxExemplarCharacters{"[á à â ã c ç é ê h í ñ ó ô q ú w y]"}
+    ExemplarCharacters{"[a b d {dj} e f g i j k l {lh} m n {nh} o p r s t {tx} u v x z]"}
+    ExemplarCharactersIndex{"[A B D E F G H I J K L M N O P R S T U V X Z]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"#,##0.00¤"}
+            }
+            symbols{
+                decimal{","}
+                group{"."}
+            }
+        }
+    }
+    Version{"2.0.47.63"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "am",
+                "pm",
+            }
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE, d 'de' MMMM 'de' y",
+                "d 'de' MMMM 'de' y",
+                "d 'de' MMM 'de' y",
+                "d/M/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                HHmm{"HH:mm"}
+                HHmmss{"HH:mm:ss"}
+                Hm{"H:mm"}
+                M{"L"}
+                MEd{"dd/MM"}
+                MMM{"LLL"}
+                MMMEd{"EEE, d MMM"}
+                MMMMEd{"EEE, d MMMM"}
+                MMMMd{"d MMMM"}
+                MMMd{"d MMM"}
+                MMdd{"dd/MM"}
+                Md{"d/M"}
+                d{"d"}
+                mmss{"mm:ss"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"MM/y"}
+                yMEd{"EEE, dd/MM/y"}
+                yMMM{"MMM 'de' y"}
+                yMMMEd{"EEE, d 'de' MMM 'de' y"}
+                yMMMM{"MMMM 'de' y"}
+                yQ{"y Q"}
+                yQQQ{"y QQQ"}
+                yyMM{"MM/yy"}
+                yyMMM{"MMM yy"}
+                yyMMMEEEd{"EEE, d 'de' MMM 'de' yy"}
+                yyMMMd{"d 'de' MMM 'de' yy"}
+                yyQ{"Q yy"}
+                yyyyMM{"MM/yyyy"}
+                yyyyMMM{"MMM 'de' yyyy"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "dum",
+                        "sig",
+                        "ter",
+                        "kua",
+                        "kin",
+                        "ses",
+                        "sab",
+                    }
+                    wide{
+                        "dumingu",
+                        "sigunda-fera",
+                        "tersa-fera",
+                        "kuarta-fera",
+                        "kinta-fera",
+                        "sesta-fera",
+                        "sabadu",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "d",
+                        "s",
+                        "t",
+                        "k",
+                        "k",
+                        "s",
+                        "s",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "AK",
+                    "DK",
+                }
+                wide{
+                    "Antis di Kristu",
+                    "Dispos di Kristu",
+                }
+            }
+            fields{
+                day{
+                    dn{"Dia"}
+                    relative{
+                        "-1"{"Onti"}
+                        "0"{"Oji"}
+                        "1"{"Manha"}
+                    }
+                }
+                dayperiod{
+                    dn{"AM/PM"}
+                }
+                era{
+                    dn{"Era"}
+                }
+                hour{
+                    dn{"Ora"}
+                }
+                minute{
+                    dn{"Minutu"}
+                }
+                month{
+                    dn{"Mes"}
+                }
+                second{
+                    dn{"Sigundu"}
+                }
+                week{
+                    dn{"Simana"}
+                }
+                weekday{
+                    dn{"Dia di simana"}
+                }
+                year{
+                    dn{"Anu"}
+                }
+                zone{
+                    dn{"Ora lokal"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "Jan",
+                        "Fev",
+                        "Mar",
+                        "Abr",
+                        "Mai",
+                        "Jun",
+                        "Jul",
+                        "Ago",
+                        "Set",
+                        "Otu",
+                        "Nuv",
+                        "Diz",
+                    }
+                    wide{
+                        "Janeru",
+                        "Fevereru",
+                        "Marsu",
+                        "Abril",
+                        "Maiu",
+                        "Junhu",
+                        "Julhu",
+                        "Agostu",
+                        "Setenbru",
+                        "Otubru",
+                        "Nuvenbru",
+                        "Dizenbru",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "J",
+                        "F",
+                        "M",
+                        "A",
+                        "M",
+                        "J",
+                        "J",
+                        "A",
+                        "S",
+                        "O",
+                        "N",
+                        "D",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "T1",
+                        "T2",
+                        "T3",
+                        "T4",
+                    }
+                    wide{
+                        "Primeru Trimestri",
+                        "Sigundu Trimestri",
+                        "Terseru Trimestri",
+                        "Kuartu Trimestri",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"»"}
+        alternateQuotationStart{"«"}
+        quotationEnd{"”"}
+        quotationStart{"“"}
+    }
+}

@@ -1,0 +1,252 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../../../../boost.css">
+
+  <title>Checking policies</title>
+</head>
+
+<body>
+  <h1>Checking policies</h1>
+
+  <p>A checking policy controls how the <code>interval</code> class will deal
+  with special cases like: empty intervals, infinite numbers, invalid
+  values.</p>
+
+  <p>For example, let's consider <code>operator+(interval, T)</code>. The
+  second argument could be an invalid value (for a floating-point number, it
+  is a NaN). What to do in such a case? First, we could say that the second
+  argument can never be an invalid number. Second, we could also say such a
+  situation can arise but is forbidden. Third, we could allow such values and
+  generate an empty interval when encountered. And there is many other
+  possibilities.</p>
+
+  <p>It is the reason why such a policy is used: there is a lot of
+  interesting behaviors and it would be sad to arbitrarily select one of
+  these.</p>
+
+  <h2>Requirements</h2>
+
+  <p>The checking class should satisfy the following requirement (in the form
+  of an interface):</p>
+  <pre>
+/* requirements for checking policy */
+struct checking
+{
+  static T pos_inf();
+  static T neg_inf();
+  static T nan();
+  static bool is_nan(const T&amp;);
+  static T empty_lower();
+  static T empty_upper();
+  static bool is_empty(const T&amp;, const T&amp;);
+};
+</pre>
+
+  <p>The first two functions, <code>pos_inf</code> and <code>neg_inf</code>,
+  are invoked each time the library has to create the infinite bound of an
+  interval. For example, <code>interval::whole</code> computes
+  <code>interval(checking::neg_inf(), checking::pos_inf())</code>. If
+  infinite values are allowed and
+  <code>std::numeric_limits&lt;T&gt;::infinity()</code> returns a correct
+  value, such a value can be used.</p>
+
+  <p>Next comes <code>nan</code>. This function is used each time a function
+  need to return a value of type <code>T</code> but is unable to compute it.
+  It only happens when one of the arguments of the function is invalid. For
+  example, if you ask what the median value of an empty interval is,
+  <code>nan</code> will be used. But please remember: <code>lower</code> and
+  <code>upper</code> directly return the value stocked in the interval; so,
+  if the interval is empty, <code>lower</code> will not answer
+  <code>by</code> a call to <code>checking::nan</code> (but will return the
+  same value than <code>checking::empty_lower</code> could return).</p>
+
+  <p><code>empty_lower</code> and <code>empty_upper</code> respectively
+  return the lower and upper bound of the empty interval. There is no
+  requirements for <code>empty_lower</code> and <code>empty_upper</code> to
+  return the same value than <code>checking::nan</code>. For example, if the
+  type <code>T</code> does not have any invalid value, the
+  <code>empty_</code> functions can return the [1;0] interval.</p>
+
+  <p><code>is_nan</code> is used to test if a value of type <code>T</code> is
+  invalid or not. <code>is_empty</code> tests if the interval formed by the
+  two arguments is empty or not. Such tests will generally be at the
+  beginning of each function which involves an argument of type
+  <code>T</code>. If one of the inputs is declared invalid, the the function
+  will try to produce an invalid value or an input interval.</p>
+
+  <h2>Synopsis</h2>
+  <pre>
+namespace boost {
+namespace numeric {
+namespace interval_lib {
+
+template&lt;class T&gt;
+struct checking_base;
+template&lt;class T, class Checking = checking_base&lt;T&gt;, class Exception = exception_create_empty&lt;T&gt; &gt;
+struct checking_no_empty;
+template&lt;class T, class Checking = checking_base&lt;T&gt; &gt;
+struct checking_no_nan;
+template&lt;class T, class Checking = checking_base&lt;T&gt;, class Exception = exception_invalid_number&lt;T&gt; &gt;
+struct checking_catch_nan;
+
+template&lt;class T&gt; struct exception_create_empty { T operator()(); };
+template&lt;class T&gt; struct exception_invalid_number { void operator()(); };
+
+} // namespace numeric
+} // namespace interval_lib
+} // namespace boost
+</pre>
+
+  <h2>Predefined classes</h2>
+
+  <p>In order to simplify the customization of the policy, some templates are
+  already defined in the library.</p>
+
+  <p>First of all, there is <code>checking_base</code>. Thanks to the
+  information provided by <code>std::numeric_limits&lt;T&gt;</code>, this
+  class is able to generate a base for the policy. If <code>T</code> has
+  quiet NaNs (as said by <code>numeric_limits::has_quiet_NaN</code>), then
+  the value is used for <code>nan</code>, <code>empty_lower</code>,
+  <code>empty_upper</code>; and a basic test is used for <code>is_nan</code>
+  (it is <code>x!=x</code>). If <code>T</code> does not have quiet NaNs, then
+  <code>nan</code> is an <code>assert(false)</code>, the empty interval is
+  [1,0], and <code>is_nan</code> always return <code>false</code>. As for
+  <code>nan</code>, <code>pos_inf</code> returns
+  <code>numeric_limits::infinity()</code> if possible, or is an
+  <code>assert(false</code>) otherwise. <code>neg_inf</code> returns the
+  opposite. Finally, <code>is_empty(T l,T u)</code> is always defined by
+  <code>!(l&lt;=u)</code>.</p>
+
+  <p>Next comes <code>checking_no_empty</code>. Using it means that each time
+  an empty interval should be produced (by <code>empty_lower</code> and
+  <code>empty_upper</code>), the function object given by the
+  <code>Exception</code> argument of the template is invoked and the value it
+  returns is propagated. So, if <code>Exception</code> is appropriately
+  defined (for example it could throw an exception, hence the name of the
+  argument), you can be sure no empty interval will ever be created. So
+  <code>is_empty</code> will always return <code>false</code> (since there is
+  no need to test for an empty interval). And as explained before, in that
+  case we can also replace <code>nan</code> by an <code>assert(false)</code>;
+  you will be sure no invalid number will ever be produced. If this template
+  is not used, it implicitly means that all the functions can produce empty
+  intervals and they correctly deal with empty interval arguments.</p>
+
+  <p>Finally there are <code>checking_no_nan</code> and
+  <code>checking_catch_nan</code>. The first one expresses the functions of
+  the library will never get an invalid number as argument. So
+  <code>is_nan</code> will only return <code>false</code>. The other one
+  means the arguments can be an invalid number but in that case,
+  <code>is_nan</code> will call the function object <code>Exception</code>
+  and return <code>false</code>. Indeed, this template means invalid numbers
+  should never make their way through to the body of the function. If none of
+  this two templates is used, it implicitly means that all the functions can
+  get invalid number arguments and they will correctly deal with them.</p>
+
+  <p><code>exception_create_empty</code> throws
+  <code>std::runtime_error</code> with the message <code>"boost::interval:
+  empty interval created"</code> and <code>exception_invalid_number</code>
+  throws <code>std::invalid_argument</code> with the message
+  <code>"boost::interval: invalid number"</code>.</p>
+
+  <h2>Customizing your own checking policy</h2>
+
+  <p>In order to define a suitable policy, you need to correctly say what you
+  expect from your interval class. First of all, are you interested in
+  getting empty intervals at the end of a calculus? If you do not want to
+  obtain empty intervals, <code>empty_lower</code> and
+  <code>empty_upper</code> have to fail when invoked (they can throw an
+  exception, set a flag, etc). However, if no function is able to produce an
+  empty interval, it is no more necessary to do the test, so
+  <code>is_empty</code> may always return <code>false</code>. In this case, a
+  good compiler will do a lot of optimizations.</p>
+
+  <p>You could also be interested in getting empty intervals at the end of
+  the calculus. For example, if you need to transform an array of unsure
+  values (or intervals) in a new array of intervals, you may not want to stop
+  the conversion at the first encountered problem. So
+  <code>empty_lower</code> and <code>empty_upper</code> need to return
+  suitable values in order to define an empty interval (you can use an upper
+  bound which is not greater or equal than the lower bound for example); and
+  <code>is_empty</code> must be able to distinguish empty intervals from the
+  valid intervals.</p>
+
+  <p>Another important question is: is it possible that some base numbers
+  (objects of type <code>T</code>) are invalid? And if it is possible, are
+  they allowed or not ? If it is not possible, no test is necessary;
+  <code>is_nan</code> may always return <code>false</code>. In this case too,
+  a good compiler will do a lot of optimizations. If function arguments can
+  hold invalid numbers, two cases must be considered according to whether
+  they are allowed or not. If they are allowed, <code>is_nan</code> just has
+  to test if they are invalid or not. If they are forbidden,
+  <code>is_nan</code> should fail (exception, assert, etc.) when invoked on
+  an invalid argument and return <code>false</code> otherwise. The value
+  returned by <code>nan</code> does not have any interest since the interval
+  functions are guaranteed not to produce invalid interval bounds unless the
+  user passes invalid numbers to the constructors. So you can put an assert
+  inside if you do not trust the library. :-)</p>
+
+  <p>And finally, you need to decide what to do with <code>nan</code> if it
+  has not already been decided at the beginning, and with
+  <code>pos_inf</code> and <code>neg_inf</code>. These functions should
+  return a value or start an exceptional behavior (especially if the base
+  type does not have corresponding values).</p>
+
+  <h2>Some examples</h2>
+
+  <ul>
+    <li>If you need a checking policy that allows the library to correctly
+    manipulate data, even if they contain invalid numbers and empty
+    intervals, then <code>checking_base&lt;T&gt;</code> is a
+    possibility.</li>
+
+    <li>If you do not want empty intervals to be created and are not sure all
+    the numbers are valid, then <code>checking_catch_nan&lt;T,
+    checking_no_empty&lt;T&gt; &gt;</code> can help you.</li>
+
+    <li>If all the numbers will be valid and if no empty interval is supposed
+    to be created (or if you do not want them to be created), then you can
+    use <code>checking_no_nan&lt;T, checking_no_empty&lt;T&gt; &gt;</code>.
+    Please note that if <code>T</code> does not have a way to represent
+    invalid numbers, then this policy will behave the same way as
+    <code>checking_no_empty&lt;T&gt;</code>. This is the default policy and
+    it is also called <code>interval_lib::checking_strict</code>.</li>
+
+    <li>If all numerical data are valid but the algorithm can produce and
+    manipulate empty intervals, then <code>checking_no_nan&lt;T&gt;</code>
+    should be used.</li>
+
+    <li>Similarly, if invalid data have to be signaled and the algorithm can
+    manipulate empty intervals, the <code>checking_catch_nan&lt;T&gt;</code>
+    is a solution.</li>
+
+    <li>If you do not mind having undefined results when an empty interval or
+    an interval number is produced, your best bet is to create your own
+    policy by overloading <code>checking_base</code> and modifying
+    <code>is_nan</code> et <code>is_empty</code> in order for them to always
+    return <code>false</code>. It is probably the fastest checking policy
+    available; however, it suffers from its deficient security.</li>
+  </ul>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%Y-%m-%d" startspan -->2006-12-24<!--webbot bot="Timestamp" endspan i-checksum="12172" --></p>
+
+  <p><i>Copyright &copy; 2002 Guillaume Melquiond, Sylvain Pion, Herv&eacute;
+  Br&ouml;nnimann, Polytechnic University<br>
+  Copyright &copy; 2003-2004 Guillaume Melquiond</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+  or copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

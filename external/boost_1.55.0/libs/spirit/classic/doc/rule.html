@@ -1,0 +1,231 @@
+<html>
+<head>
+<title>The Rule</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> 
+      <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>The Rule</b></font>
+    </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="numerics.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="epsilon.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>The <b>rule</b> is a polymorphic parser that acts as a named place-holder capturing 
+  the behavior of an EBNF expression assigned to it. Naming an EBNF expression 
+  allows it to be referenced later. The <tt>rule</tt> is a template class parameterized 
+  by the type of the scanner (<tt>ScannerT</tt>), the rule's <a href="indepth_the_parser_context.html">context</a> 
+  and its <a href="#tag">tag</a>. Default template parameters are provided to 
+  make it easy to use the rule.</p>
+<pre><code><font color="#000000"><span class=identifier>    </span><span class=keyword>template</span><span class=special>&lt;
+        </span><span class=keyword>typename </span><span class=identifier>ScannerT </span><span class=special>= </span><span class=identifier>scanner</span><span class=special>&lt;&gt;,
+        </span><span class=keyword>typename </span><span class=identifier>ContextT </span><span class=special>= </span><span class=identifier>parser_context</span><span class=special>&lt;&gt;</span><span class=identifier>,
+        </span><span class="keyword">typename</span><span class=identifier> TagT </span><span class="special">=</span><span class=identifier> parser_address_tag</span><span class=special>&gt;
+    </span><span class=keyword>class </span><span class=identifier>rule</span><span class=special>;</span></font></code></pre>
+<p>Default template parameters are supplied to handle the most common case. <tt>ScannerT</tt> 
+  defaults to <tt>scanner&lt;&gt;</tt>, a plain vanilla scanner that acts on <tt>char 
+  const<span class="operators">*</span></tt> iterators and does nothing special 
+  at all other than iterate through all the chars in the null terminated input 
+  a character at a time. The rule tag, <tt>TagT</tt>, typically used with <a href="trees.html">ASTs</a>, 
+  is used to identify a rule; it is explained <a href="#tag">here</a>. In trivial 
+  cases, declaring a rule as <tt>rule&lt;&gt;</tt> is enough. You need not be 
+  concerned at all with the <tt>ContextT</tt> template parameter unless you wish 
+  to tweak the low level behavior of the rule. Detailed information on the <tt>ContextT</tt> 
+  template parameter is provided <a href="indepth_the_parser_context.html">elsewhere</a>. 
+</p>
+<h3><a name="order_of_parameters"></a>Order of parameters</h3>
+<p>As of v1.8.0, the <tt>ScannerT</tt>, <tt>ContextT</tt> and <tt>TagT</tt> can 
+  be specified in any order. If a template parameter is missing, it will assume 
+  the defaults. Examples:</p>
+<pre><span class=identifier>    rule</span><span class=special>&lt;&gt; </span><span class=identifier>rx1</span><span class=special>;
+    </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>scanner</span><span class=special>&lt;&gt; </span><span class=special>&gt; </span><span class=identifier>rx2</span><span class=special>;
+</span>    <span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>parser_context<code><font color="#000000"><span class=special>&lt;&gt;</span></font></code> </span><span class=special>&gt; </span><span class=identifier>rx3</span><span class=special>;
+    </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>parser_context<code><font color="#000000"><span class=special>&lt;&gt;</span></font></code></span><span class=special>, </span><span class=identifier>parser_address_tag</span><span class=special>&gt; </span><span class=identifier>rx4</span><span class=special>;
+</span>    <span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>parser_address_tag</span><span class=special>&gt; </span><span class=identifier>rx5</span><span class=special>;
+</span>    <span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>parser_address_tag</span><span class=special>, </span><span class=identifier>scanner</span><span class=special>&lt;&gt;, </span><span class=identifier>parser_context<code><font color="#000000"><span class=special>&lt;&gt;</span></font></code> </span><span class=special>&gt; </span><span class=identifier>rx6</span><span class=special>;
+    </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>parser_context<code><font color="#000000"><span class=special>&lt;&gt;</span></font></code></span><span class=special>, </span><span class=identifier>scanner</span><span class=special>&lt;&gt;, </span><span class=identifier>parser_address_tag</span><span class=special>&gt; </span><span class=identifier>rx7</span><span class=special>;</span></pre>
+<h3><a name="multiple_scanner_support" id="multiple_scanner_support"></a>Multiple scanners</h3>
+<p>As of v1.8.0, rules can use one or more scanner types. There are cases, for 
+  instance, where we need a rule that can work on the phrase and character levels. 
+  Rule/scanner mismatch has been a source of confusion and is the no. 1 <a href="faq.html#scanner_business">FAQ</a>. 
+  To address this issue, we now have multiple scanner support. Example:</p>
+<pre><span class=special>    </span><span class=keyword>typedef </span><span class=identifier>scanner_list</span><span class=special>&lt;</span><span class=identifier>scanner</span><span class=special>&lt;&gt;, </span><span class=identifier>phrase_scanner_t</span><span class=special>&gt; </span><span class=identifier>scanners</span><span class=special>;
+
+    </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>scanners</span><span class=special>&gt;  </span><span class=identifier>r </span><span class=special>= </span><span class=special>+</span><span class=identifier>anychar_p</span><span class=special>;
+    </span><span class=identifier>assert</span><span class=special>(</span><span class=identifier>parse</span><span class=special>(</span><span class=string>&quot;abcdefghijk&quot;</span><span class=special>, </span><span class=identifier>r</span><span class=special>).</span><span class=identifier>full</span><span class=special>);
+    </span><span class=identifier>assert</span><span class=special>(</span><span class=identifier>parse</span><span class=special>(</span><span class=string>&quot;a b c d e f g h i j k&quot;</span><span class=special>, </span><span class=identifier>r</span><span class=special>, </span><span class=identifier>space_p</span><span class=special>).</span><span class=identifier>full</span><span class=special>);</span></pre>
+<p>Notice how rule <tt>r</tt> is used in both the phrase and character levels. 
+</p>
+<p>By default support for multiple scanners is disabled.  The macro
+  <tt>BOOST_SPIRIT_RULE_SCANNERTYPE_LIMIT</tt> must be defined to the
+  maximum number of scanners allowed in a scanner_list.  The value must
+  be greater than 1 to enable multiple scanners.  Given the
+  example above, to define a limit of two scanners for the list, the
+  following line must be inserted into the source file before the
+  inclusion of Spirit headers:
+</p>
+<pre><span class=special>    </span><span class=preprocessor>#define </span><span class=identifier>BOOST_SPIRIT_RULE_SCANNERTYPE_LIMIT</span> <span class=literal>2</span></pre>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><img src="theme/bulb.gif" width="13" height="18"> See 
+      the techniques section for an <a href="techniques.html#multiple_scanner_support">example</a> 
+      of a <a href="grammar.html">grammar</a> using a multiple scanner enabled 
+      rule, <a href="scanner.html#lexeme_scanner">lexeme_scanner</a> and <a href="scanner.html#as_lower_scanner">as_lower_scanner.</a></td>
+  </tr>
+</table>
+<h3>Rule Declarations</h3>
+<p>The rule class models EBNF's production rule. Example:</p>
+<pre><code><font color="#000000">    <span class=identifier>rule</span><span class=special>&lt;&gt; </span><span class=identifier>a_rule </span><span class=special>= </span><span class=special>*(</span><span class=identifier>a </span><span class=special>| </span><span class=identifier>b</span><span class=special>) </span><span class=special>& </span><span class=special>+(</span><span class=identifier>c </span><span class=special>| </span><span class=identifier>d </span><span class=special>| </span><span class=identifier>e</span><span class=special>);</span></font></code></pre>
+<p>The type and behavior of the right-hand (rhs) EBNF expression, which may be 
+  arbitrarily complex, is encoded in the rule named a_rule. a_rule may now be 
+  referenced elsewhere in the grammar:</p>
+<pre><code><font color="#000000">    <span class=identifier>rule</span><span class=special>&lt;&gt; </span><span class=identifier>another_rule </span><span class=special>= </span><span class=identifier>f </span><span class=special>&gt;&gt; </span><span class=identifier>g </span><span class=special>&gt;&gt; </span><span class=identifier>h </span><span class=special>&gt;&gt; </span><span class=identifier>a_rule</span><span class=special>;</span></font></code></pre>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><img src="theme/alert.gif" width="16" height="16"> <b>Referencing 
+      rules <br>
+      </b><br>
+      When a rule is referenced anywhere in the right hand side of an EBNF expression, 
+      the rule is held by the expression by reference. It is the responsibility 
+      of the client to ensure that the referenced rule stays in scope and does 
+      not get destructed while it is being referenced. </td>
+  </tr>
+</table>
+<pre><span class=special>    </span><span class=identifier>a </span><span class=special>= </span><span class=identifier>int_p</span><span class=special>;
+    </span><span class=identifier>b </span><span class=special>= </span><span class=identifier>a</span><span class=special>;
+    </span><span class=identifier>c </span><span class=special>= </span><span class=identifier>int_p </span><span class=special>&gt;&gt; </span><span class=identifier>b</span><span class=special>;</span></pre>
+<h3>Copying Rules</h3>
+<p>The rule is a weird C++ citizen, unlike any other C++ object. It does not have 
+  the proper copy and assignment semantics and cannot be stored and passed around 
+  by value. If you need to copy a rule you have to explicitly call its member 
+  function <tt>copy()</tt>:</p>
+<pre><span class=special>    </span><span class=identifier>r</span><span class="special">.</span><span class=identifier>copy()</span><span class=special>;</span></pre>
+<p>However, be warned that copying a rule will not deep copy other referenced 
+  rules of the source rule being copied. This might lead to dangling references. 
+  Again, it is the responsibility of the client to ensure that all referenced 
+  rules stay in scope and does not get destructed while it is being referenced. 
+  Caveat emptor.</p>
+<p>If you copy a rule, then you'll want to place it in a storage somewhere. The 
+  problem is how? The storage can't be another rule:</p>
+<pre>    <code><font color="#000000"><span class=identifier>rule</span><span class=special>&lt;&gt;</span></font></code> r2 <span class="special">=</span> <span class=identifier>r</span><span class="special">.</span><span class=identifier>copy()</span><span class=special>; </span><span class="comment">// BAD!</span></pre>
+<p>because rules are weird and does not have the expected C++ copy-constructor 
+  and assignment semantics! As a general rule: <strong>Don't put a copied rule 
+  into another rule! </strong>Instead, use the <a href="stored_rule.html">stored_rule</a> 
+  for that purpose.</p>
+<h3>Forward declarations</h3>
+<p>A <tt>rule</tt> may be declared before being defined to allow cyclic structures 
+  typically found in BNF declarations. Example:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>rule</span><span class=special>&lt;&gt; </span><span class=identifier>a</span><span class=special>, </span><span class=identifier>b</span><span class=special>, </span><span class=identifier>c</span><span class=special>;
+
+    </span><span class=identifier>a </span><span class=special>= </span><span class=identifier>b </span><span class=special>| </span><span class=identifier>a</span><span class=special>;
+    </span><span class=identifier>b </span><span class=special>= </span><span class=identifier>c </span><span class=special>| </span><span class=identifier>a</span><span class=special>;</span></font></code></pre>
+<h3>Recursion</h3>
+<p>The right-hand side of a rule may reference other rules, including itself. 
+  The limitation is that direct or indirect left recursion is not allowed (this 
+  is an unchecked run-time error that results in an infinite loop). This is typical 
+  of top-down parsers. Example:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>a </span><span class=special>= </span><span class=identifier>a </span><span class=special>| </span><span class=identifier>b</span><span class=special>; </span><span class=comment>// infinite loop!</span></font></code></pre>
+<table width="80%" border="0" align="center">
+  <tr> 
+    <td class="note_box"><img src="theme/lens.gif" width="15" height="16"> <b>What 
+      is left recursion?<br>
+      </b><br>
+      Left recursion happens when you have a rule that calls itself before anything 
+      else. A top-down parser will go into an infinite loop when this happens. 
+      See the <a href="faq.html#left_recursion">FAQ</a> for details on how to 
+      eliminate left recursion.</td>
+  </tr>
+</table>
+<h3>Undefined rules</h3>
+<p>An undefined rule matches nothing and is semantically equivalent to <tt>nothing_p</tt>.</p>
+<h3>Redeclarations</h3>
+<p>Like any other C++ assignment, a second assignment to a rule is destructive 
+  and will redefine it. The old definition is lost. Rules are dynamic. A rule 
+  can change its definition anytime:</p>
+<pre><code><font color="#000000"><span class=identifier>    r </span><span class=special>= </span><span class=identifier>a_definition</span><span class=special>;
+</span><span class=identifier>    r </span><span class=special>= </span><span class=identifier>another_definition</span><span class=special>;</span></font></code></pre>
+<p>Rule <tt>r</tt> loses the old definition when the second assignment is made. 
+  As mentioned, an undefined rule matches nothing and is semantically equivalent 
+  to <tt>nothing_p</tt>. 
+<h3>Dynamic Parsers</h3>
+<p>Hosting declarative EBNF in imperative C++ yields an interesting blend. We 
+  have the best of both worlds. We have the ability to conveniently modify the 
+  grammar at run time using imperative constructs such as <tt>if</tt>, <tt>else</tt> 
+  statements. Example:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=keyword>if </span><span class=special>(</span><span class=identifier>feature_is_available</span><span class=special>)
+        </span><span class=identifier>r </span><span class=special>= </span><span class=identifier>add_this_feature</span><span class=special>;</span></font></code></pre>
+<p>Rules are essentially dynamic parsers. A dynamic parser is characterized by 
+  its ability to modify its behavior at run time. Initially, an undefined rule 
+  matches nothing. At any time, the rule may be defined and redefined, thus, dynamically 
+  altering its behavior.</p>
+<h3>No start rule</h3>
+<p>Typically, parsers have what is called a start symbol, chosen to be the root 
+  of the grammar where parsing starts. The Spirit parser framework has no notion 
+  of a start symbol. Any rule can be a start symbol. This feature promotes step-wise 
+  creation of parsers. We can build parsers from the bottom up while fully testing 
+  each level or module up untill we get to the top-most level.</p>
+<h3><a name="tag"></a>Parser Tags</h3>
+<p>Rules may be tagged for identification purposes. This is necessary, especially 
+  when dealing with <a href="trees.html">parse trees and ASTs</a> to see which 
+  rule created a specific AST/parse tree node. Each rule has an ID of type <tt>parser_id</tt>. 
+  This ID can be obtained through the rule's <tt>id()</tt> member function:</p>
+<pre><code><font color="#000000"><span class=identifier>    my_rule</span><span class=special>.</span><span class=identifier>id</span><span class=special>(); </span><span class=comment>//  get my_rule's id</span></font></code></pre>
+<p>The <tt>parser_id</tt> class is declared as:</p>
+<pre>    <span class="keyword">class</span> <span class="identifier">parser_id</span><br>    <span class="special">{</span><br>    <span class="keyword">public</span><span class="special">:</span><br>                    parser_id<span class="special">();</span><br>        <span class="keyword">explicit</span>    parser_id<span class="special">(</span><span class="keyword">void const</span><span class="special">*</span> p<span class="special">);</span><br>                    parser_id<span class="special">(</span><span class="keyword">std::size_t</span> l<span class="special">);</span>
+    
+        <span class="keyword">bool</span>        <span class="keyword">operator</span><span class="special">==(</span><span class="identifier">parser_id</span> <span class="keyword">const</span><span class="special">&amp;</span> x<span class="special">)</span> const<span class="special">;</span><br>        <span class="keyword">bool</span>        <span class="keyword">operator</span><span class="special">!=(</span><span class="identifier">parser_id</span> <span class="keyword">const</span><span class="special">&amp;</span> x<span class="special">)</span> const<span class="special">;</span>
+        <span class="keyword">bool</span> <span class="keyword">       operator</span><span class="special">&lt;(</span><span class="identifier">parser_id</span> <span class="keyword">const</span><span class="special">&amp;</span> x<span class="special">)</span> const<span class="special">;</span>
+        <span class="special"></span><span class="keyword">std::size_t</span><span class="identifier"> to_long</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;
+    };</span></pre>
+<h3>parser_address_tag</h3>
+<p>The rule's <tt>TagT</tt> template parameter supplies this ID. This defaults 
+  to <tt>parser_address_tag</tt>. The <tt>parser_address_tag</tt> uses the address 
+  of the rule as its ID. This is often not the most convenient, since it is not 
+  always possible to get the address of a rule to compare against. </p>
+<h3>parser_tag</h3>
+<p>It is possible to have specific constant integers to identify a rule. For this 
+  purpose, we can use the <tt>parser_tag&lt;N&gt;</tt>, where N is a constant 
+  integer:</p>
+<pre><code><font color="#000000"><span class=identifier>    rule</span><span class=special>&lt;</span><span class=identifier>parser_tag</span><span class="special">&lt;</span><span class=identifier>123</span><span class="special">&gt; &gt; </span><span class="identifier">my_rule</span><span class="special">; </span><span class="comment">//  set my_rule's id to 123</span></font></code></pre>
+<h3>dynamic_parser_tag</h3>
+<p>The <tt>parser_tag&lt;N&gt;</tt> can only specifiy a <strong>static ID</strong>, 
+  which is defined at compile time. If you need the ID to be <strong>dynamic</strong> 
+  (changeable at runtime), you can use the <tt>dynamic_parser_tag</tt> class as 
+  the <tt>TagT</tt> template parameter. This template parameter enables the <tt>set_id()</tt> 
+  function, which may be used to set the required id at runtime:</p>
+<pre><code><font color="#000000"><span class=identifier>    rule</span><span class=special>&lt;</span><span class=identifier>dynamic_parser_tag</span><span class="special">&gt; </span><span class="identifier">my_dynrule</span><span class="special">;</span>
+    my_dynrule.set_id(1234);    <span class="comment">// set my_dynrule's id to 1234</span></font></code></pre>
+<p>If the <tt>set_id()</tt> function isn't called, the parser id defaults to the 
+  address of the rule as its ID, just like the <tt>parser_address_tag</tt> template 
+  parameter would do. </p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="numerics.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="epsilon.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+</body>
+</html>

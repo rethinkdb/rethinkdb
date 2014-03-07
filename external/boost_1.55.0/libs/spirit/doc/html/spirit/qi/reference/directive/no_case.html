@@ -1,0 +1,258 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Parser Directive Inhibiting Case Sensitivity (no_case[])</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../directive.html" title="Parser Directives">
+<link rel="prev" href="no_skip.html" title="Parser Directive Inhibiting Skipping Without Pre-skip (no_skip[])">
+<link rel="next" href="omit.html" title="Parser Directive Ignoring Attribute (omit[])">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="no_skip.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="omit.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.reference.directive.no_case"></a><a class="link" href="no_case.html" title="Parser Directive Inhibiting Case Sensitivity (no_case[])">Parser Directive
+          Inhibiting Case Sensitivity (<code class="computeroutput"><span class="identifier">no_case</span><span class="special">[]</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.qi.reference.directive.no_case.h0"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_case.description"></a></span><a class="link" href="no_case.html#spirit.qi.reference.directive.no_case.description">Description</a>
+          </h6>
+<p>
+            The <code class="computeroutput"><span class="identifier">no_case</span><span class="special">[]</span></code>
+            directive does not consume any input. The actual matching is done by
+            its subject parser. It's purpose is to force matching of the subject
+            parser (and all its children) to be case insensitive.
+          </p>
+<h6>
+<a name="spirit.qi.reference.directive.no_case.h1"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_case.header"></a></span><a class="link" href="no_case.html#spirit.qi.reference.directive.no_case.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/directive/no_case.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_no_case</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.directive.no_case.h2"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_case.namespace"></a></span><a class="link" href="no_case.html#spirit.qi.reference.directive.no_case.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody><tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ns</span><span class="special">::</span><span class="identifier">no_case</span></code>
+                    </p>
+                  </td></tr></tbody>
+</table></div>
+<p>
+            In the table above, <code class="computeroutput"><span class="identifier">ns</span></code>
+            represents a <a class="link" href="../basics.html#spirit.qi.reference.basics.character_encoding_namespace">Character
+            Encoding Namespace</a>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.directive.no_case.h3"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_case.model_of"></a></span><a class="link" href="no_case.html#spirit.qi.reference.directive.no_case.model_of">Model
+            of</a>
+          </h6>
+<p>
+            The model of <code class="computeroutput"><span class="identifier">no_case</span></code>
+            is the model of its subject parser.
+          </p>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a</span></code></span></dt>
+<dd><p>
+                  A <a class="link" href="../parser_concepts/parser.html" title="Parser"><code class="computeroutput"><span class="identifier">Parser</span></code></a>.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">ns</span></code></span></dt>
+<dd><p>
+                  A <a class="link" href="../basics.html#spirit.qi.reference.basics.character_encoding_namespace">Character
+                  Encoding Namespace</a>.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.qi.reference.directive.no_case.h4"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_case.expression_semantics"></a></span><a class="link" href="no_case.html#spirit.qi.reference.directive.no_case.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in the subject's concept.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ns</span><span class="special">::</span><span class="identifier">no_case</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Force matching of the subject parser, <code class="computeroutput"><span class="identifier">a</span></code>
+                      (and all its children) to be case insensitive
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.directive.no_case.h5"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_case.attributes"></a></span><a class="link" href="no_case.html#spirit.qi.reference.directive.no_case.attributes">Attributes</a>
+          </h6>
+<p>
+            See <a class="link" href="../../quick_reference/compound_attribute_rules.html#spirit.qi.quick_reference.compound_attribute_rules.notation">Compound
+            Attribute Notation</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">ns</span><span class="special">::</span><span class="identifier">no_case</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">ns</span><span class="special">::</span><span class="identifier">no_case</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">ns</span><span class="special">::</span><span class="identifier">no_case</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.directive.no_case.h6"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_case.complexity"></a></span><a class="link" href="no_case.html#spirit.qi.reference.directive.no_case.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              The complexity is defined by the complexity of the subject parser,
+              <code class="computeroutput"><span class="identifier">a</span></code>
+            </p></blockquote></div>
+<h6>
+<a name="spirit.qi.reference.directive.no_case.h7"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_case.example"></a></span><a class="link" href="no_case.html#spirit.qi.reference.directive.no_case.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.qi.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">no_case</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">char_</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">alnum</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">symbols</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Simple usage of <code class="computeroutput"><span class="identifier">no_case</span><span class="special">[]</span></code>:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">test_parser</span><span class="special">(</span><span class="string">"X"</span><span class="special">,</span> <span class="identifier">no_case</span><span class="special">[</span><span class="identifier">char_</span><span class="special">(</span><span class="char">'x'</span><span class="special">)]);</span>
+<span class="identifier">test_parser</span><span class="special">(</span><span class="string">"6"</span><span class="special">,</span> <span class="identifier">no_case</span><span class="special">[</span><span class="identifier">alnum</span><span class="special">]);</span>
+</pre>
+<p>
+          </p>
+<p>
+            A more sophisticated use case of <code class="computeroutput"><span class="identifier">no_case</span><span class="special">[]</span></code> in conjunction with a symbol table
+            (see <a class="link" href="../string/symbols.html" title="Symbols Parser (symbols)"><code class="computeroutput"><span class="identifier">symbols</span><span class="special">&lt;&gt;</span></code></a>
+            for more details):
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">symbols</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">sym</span><span class="special">;</span>
+
+<span class="identifier">sym</span><span class="special">.</span><span class="identifier">add</span>
+    <span class="special">(</span><span class="string">"apple"</span><span class="special">,</span> <span class="number">1</span><span class="special">)</span>    <span class="comment">// symbol strings are added in lowercase...</span>
+    <span class="special">(</span><span class="string">"banana"</span><span class="special">,</span> <span class="number">2</span><span class="special">)</span>
+    <span class="special">(</span><span class="string">"orange"</span><span class="special">,</span> <span class="number">3</span><span class="special">)</span>
+<span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">i</span><span class="special">;</span>
+<span class="comment">// ...because sym is used for case-insensitive parsing</span>
+<span class="identifier">test_parser_attr</span><span class="special">(</span><span class="string">"Apple"</span><span class="special">,</span> <span class="identifier">no_case</span><span class="special">[</span> <span class="identifier">sym</span> <span class="special">],</span> <span class="identifier">i</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">test_parser_attr</span><span class="special">(</span><span class="string">"ORANGE"</span><span class="special">,</span> <span class="identifier">no_case</span><span class="special">[</span> <span class="identifier">sym</span> <span class="special">],</span> <span class="identifier">i</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="no_skip.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="omit.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

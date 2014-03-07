@@ -1,0 +1,511 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Semi-Intrusive unordered associative containers: unordered_set, unordered_multiset</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../intrusive.html" title="Chapter&#160;15.&#160;Boost.Intrusive">
+<link rel="prev" href="set_multiset.html" title="Intrusive associative containers: set, multiset, rbtree">
+<link rel="next" href="splay_set_multiset.html" title="Intrusive splay tree based associative containers: splay_set, splay_multiset and , splay_tree">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="set_multiset.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="splay_set_multiset.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="intrusive.unordered_set_unordered_multiset"></a><a class="link" href="unordered_set_unordered_multiset.html" title="Semi-Intrusive unordered associative containers: unordered_set, unordered_multiset">Semi-Intrusive
+    unordered associative containers: unordered_set, unordered_multiset</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="unordered_set_unordered_multiset.html#intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_performance">unordered_set
+      and unordered_multiset performance notes</a></span></dt>
+<dt><span class="section"><a href="unordered_set_unordered_multiset.html#intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_hooks">unordered_set
+      and unordered_multiset hooks</a></span></dt>
+<dt><span class="section"><a href="unordered_set_unordered_multiset.html#intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_containers">unordered_set
+      and unordered_multiset containers</a></span></dt>
+<dt><span class="section"><a href="unordered_set_unordered_multiset.html#intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_example">Example</a></span></dt>
+<dt><span class="section"><a href="unordered_set_unordered_multiset.html#intrusive.unordered_set_unordered_multiset.custom_bucket_traits">Custom
+      bucket traits</a></span></dt>
+</dl></div>
+<p>
+      <span class="bold"><strong>Boost.Intrusive</strong></span> also offers hashed containers
+      that can be very useful to implement fast-lookup containers. These containers
+      (<code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set.html" title="Class template unordered_set">unordered_set</a></code>
+      and <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>)
+      are semi-intrusive containers: they need additional memory apart from the hook
+      stored in the <code class="computeroutput"><span class="identifier">value_type</span></code>. This
+      additional memory must be passed in the constructor of the container.
+    </p>
+<p>
+      Unlike C++ TR1 unordered associative containers (which are also hashed containers),
+      the contents of these semi-intrusive containers are not rehashed to maintain
+      a load factor: that would require memory management and intrusive containers
+      don't implement any memory management at all. However, the user can request
+      an explicit rehashing passing a new bucket array. This also offers an additional
+      guarantee over TR1 unordered associative containers: <span class="bold"><strong>iterators
+      are not invalidated when inserting an element</strong></span> in the container.
+    </p>
+<p>
+      As with TR1 unordered associative containers, rehashing invalidates iterators,
+      changes ordering between elements and changes which buckets elements appear
+      in, but does not invalidate pointers or references to elements.
+    </p>
+<p>
+      Apart from expected hash and equality function objects, <span class="bold"><strong>Boost.Intrusive</strong></span>
+      unordered associative containers' constructors take an argument specifying
+      an auxiliary bucket vector to be used by the container.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_performance"></a><a class="link" href="unordered_set_unordered_multiset.html#intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_performance" title="unordered_set and unordered_multiset performance notes">unordered_set
+      and unordered_multiset performance notes</a>
+</h3></div></div></div>
+<p>
+        The size overhead for a hashed container is moderate: 1 pointer per value
+        plus a bucket array per container. The size of an element of the bucket array
+        is usually one pointer. To obtain a good performance hashed container, the
+        bucket length is usually the same as the number of elements that the container
+        contains, so a well-balanced hashed container (<code class="computeroutput"><span class="identifier">bucket_count</span><span class="special">()</span></code> is equal to <code class="computeroutput"><span class="identifier">size</span><span class="special">()</span></code> ) will have an equivalent overhead of two
+        pointers per element.
+      </p>
+<p>
+        An empty, non constant-time size <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set.html" title="Class template unordered_set">unordered_set</a></code>
+        or <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>
+        has also the size of <code class="computeroutput"><span class="identifier">bucket_count</span><span class="special">()</span></code> pointers.
+      </p>
+<p>
+        Insertions, erasures, and searches, have amortized constant-time complexity
+        in hashed containers. However, some worst-case guarantees are linear. See
+        <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set.html" title="Class template unordered_set">unordered_set</a></code>
+        or <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>
+        for complexity guarantees of each operation.
+      </p>
+<p>
+        <span class="bold"><strong>Be careful with non constant-time size hashed containers</strong></span>:
+        some operations, like <code class="computeroutput"><span class="identifier">empty</span><span class="special">()</span></code>, have linear complexity, unlike other
+        <span class="bold"><strong>Boost.Intrusive</strong></span> containers.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_hooks"></a><a class="link" href="unordered_set_unordered_multiset.html#intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_hooks" title="unordered_set and unordered_multiset hooks">unordered_set
+      and unordered_multiset hooks</a>
+</h3></div></div></div>
+<p>
+        <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set.html" title="Class template unordered_set">unordered_set</a></code>
+        and <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>
+        share the same hooks. This is an advantage, because the same user type can
+        be inserted first in a <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>
+        and after that in <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set.html" title="Class template unordered_set">unordered_set</a></code>
+        without changing the definition of the user class.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="special">...</span><span class="identifier">Options</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">unordered_set_base_hook</span><span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set_base_hook.html" title="Class template unordered_set_base_hook">unordered_set_base_hook</a></code>:
+            the user class derives publicly from <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set_base_hook.html" title="Class template unordered_set_base_hook">unordered_set_base_hook</a></code>
+            to make it <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set.html" title="Class template unordered_set">unordered_set</a></code>/<code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>-compatible.
+          </li></ul></div>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="special">...</span><span class="identifier">Options</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">unordered_set_member_hook</span><span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set_member_hook.html" title="Class template unordered_set_member_hook">unordered_set_member_hook</a></code>:
+            the user class contains a public <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set_member_hook.html" title="Class template unordered_set_member_hook">unordered_set_member_hook</a></code>
+            to make it <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set.html" title="Class template unordered_set">unordered_set</a></code>/<code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>-compatible.
+          </li></ul></div>
+<p>
+        <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set_base_hook.html" title="Class template unordered_set_base_hook">unordered_set_base_hook</a></code>
+        and <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set_member_hook.html" title="Class template unordered_set_member_hook">unordered_set_member_hook</a></code>
+        receive the same options explained in the section <a class="link" href="usage.html" title="How to use Boost.Intrusive">How
+        to use Boost.Intrusive</a>:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">tag</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Tag</span><span class="special">&gt;</span></code></strong></span>
+            (for base hooks only): This argument serves as a tag, so you can derive
+            from more than one base hook. Default: <code class="computeroutput"><span class="identifier">tag</span><span class="special">&lt;</span><span class="identifier">default_tag</span><span class="special">&gt;</span></code>.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">link_mode</span><span class="special">&lt;</span><span class="identifier">link_mode_type</span>
+            <span class="identifier">LinkMode</span><span class="special">&gt;</span></code></strong></span>:
+            The linking policy. Default: <code class="computeroutput"><span class="identifier">link_mode</span><span class="special">&lt;</span><span class="identifier">safe_link</span><span class="special">&gt;</span></code>.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">void_pointer</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">VoidPointer</span><span class="special">&gt;</span></code></strong></span>:
+            The pointer type to be used internally in the hook and propagated to
+            the container. Default: <code class="computeroutput"><span class="identifier">void_pointer</span><span class="special">&lt;</span><span class="keyword">void</span><span class="special">*&gt;</span></code>.
+          </li>
+</ul></div>
+<p>
+        Apart from them, these hooks offer additional options:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">store_hash</span><span class="special">&lt;</span><span class="keyword">bool</span> <span class="identifier">Enabled</span><span class="special">&gt;</span></code></strong></span>:
+            This option reserves additional space in the hook to store the hash value
+            of the object once it's introduced in the container. When this option
+            is used, the unordered container will store the calculated hash value
+            in the hook and rehashing operations won't need to recalculate the hash
+            of the value. This option will improve the performance of unordered containers
+            when rehashing is frequent or hashing the value is a slow operation.
+            Default: <code class="computeroutput"><span class="identifier">store_hash</span><span class="special">&lt;</span><span class="keyword">false</span><span class="special">&gt;</span></code>.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">optimize_multikey</span><span class="special">&lt;</span><span class="keyword">bool</span> <span class="identifier">Enabled</span><span class="special">&gt;</span></code></strong></span>:
+            This option reserves additional space in the hook that will be used to
+            group equal elements in unordered multisets, improving significantly
+            the performance when many equal values are inserted in these containers.
+            Default: <code class="computeroutput"><span class="identifier">optimize_multikey</span><span class="special">&lt;</span><span class="keyword">false</span><span class="special">&gt;</span></code>.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_containers"></a><a class="link" href="unordered_set_unordered_multiset.html#intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_containers" title="unordered_set and unordered_multiset containers">unordered_set
+      and unordered_multiset containers</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="special">...</span><span class="identifier">Options</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">unordered_set</span><span class="special">;</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="special">...</span><span class="identifier">Options</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">unordered_multiset</span><span class="special">;</span>
+</pre>
+<p>
+        As mentioned, unordered containers need an auxiliary array to work. <span class="bold"><strong>Boost.Intrusive</strong></span> unordered containers receive this
+        auxiliary array packed in a type called <code class="computeroutput"><span class="identifier">bucket_traits</span></code>
+        (which can be also customized by a container option). All unordered containers
+        receive a <code class="computeroutput"><span class="identifier">bucket_traits</span></code> object
+        in their constructors. The default <code class="computeroutput"><span class="identifier">bucket_traits</span></code>
+        class is initialized with a pointer to an array of buckets and its size:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">unordered_set</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">MyClass</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">unordered_set_base_hook</span><span class="special">&lt;&gt;</span>
+<span class="special">{};</span>
+
+<span class="keyword">typedef</span> <span class="identifier">unordered_set</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;::</span><span class="identifier">bucket_type</span>     <span class="identifier">bucket_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">unordered_set</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;::</span><span class="identifier">bucket_traits</span>   <span class="identifier">bucket_traits</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="identifier">bucket_type</span> <span class="identifier">buckets</span><span class="special">[</span><span class="number">100</span><span class="special">];</span>
+   <span class="identifier">unordered_set</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;</span> <span class="identifier">uset</span><span class="special">(</span><span class="identifier">bucket_traits</span><span class="special">(</span><span class="identifier">buckets</span><span class="special">,</span> <span class="number">100</span><span class="special">));</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        Each hashed container needs <span class="bold"><strong>its own bucket traits</strong></span>,
+        that is, <span class="bold"><strong>its own bucket vector</strong></span>. Two hashed
+        containers <span class="bold"><strong>can't</strong></span> share the same <code class="computeroutput"><span class="identifier">bucket_type</span></code> elements. The bucket array
+        <span class="bold"><strong>must</strong></span> be destroyed <span class="bold"><strong>after</strong></span>
+        the container using it is destroyed, otherwise, the result is undefined.
+      </p>
+<p>
+        <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_set.html" title="Class template unordered_set">unordered_set</a></code>
+        and <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>
+        receive the same options explained in the section <a class="link" href="usage.html" title="How to use Boost.Intrusive">How
+        to use Boost.Intrusive</a>:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">base_hook</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Hook</span><span class="special">&gt;</span></code></strong></span>
+            / <span class="bold"><strong><code class="computeroutput"><span class="identifier">member_hook</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Hook</span><span class="special">,</span> <span class="identifier">Hook</span> <span class="identifier">T</span><span class="special">::*</span> <span class="identifier">PtrToMember</span><span class="special">&gt;</span></code></strong></span>
+            / <span class="bold"><strong><code class="computeroutput"><span class="identifier">value_traits</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ValueTraits</span><span class="special">&gt;</span></code></strong></span>:
+            To specify the hook type or value traits used to configure the container.
+            (To learn about value traits go to the section <a class="link" href="value_traits.html" title="Containers with custom ValueTraits">Containers
+            with custom ValueTraits</a>.)
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">constant_time_size</span><span class="special">&lt;</span><span class="keyword">bool</span> <span class="identifier">Enabled</span><span class="special">&gt;</span></code></strong></span>:
+            To activate the constant-time <code class="computeroutput"><span class="identifier">size</span><span class="special">()</span></code> operation. Default: <code class="computeroutput"><span class="identifier">constant_time_size</span><span class="special">&lt;</span><span class="keyword">true</span><span class="special">&gt;</span></code>
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">size_type</span><span class="special">&lt;</span><span class="keyword">bool</span> <span class="identifier">Enabled</span><span class="special">&gt;</span></code></strong></span>:
+            To specify the type that will be used to store the size of the container.
+            Default: <code class="computeroutput"><span class="identifier">size_type</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">&gt;</span></code>
+          </li>
+</ul></div>
+<p>
+        And they also can receive additional options:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">equal</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Equal</span><span class="special">&gt;</span></code></strong></span>:
+            Equality function for the objects to be inserted in containers. Default:
+            <code class="computeroutput"><span class="identifier">equal</span><span class="special">&lt;</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">equal_to</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">hash</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Hash</span><span class="special">&gt;</span></code></strong></span>:
+            Hash function to be used in the container. Default: <code class="computeroutput"><span class="identifier">hash</span><span class="special">&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">hash</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">bucket_traits</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">BucketTraits</span><span class="special">&gt;</span></code></strong></span>:
+            A type that wraps the bucket vector to be used by the unordered container.
+            Default: a type initialized by the address and size of a bucket array
+            and stores both variables internally.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">power_2_buckets</span><span class="special">&lt;</span><span class="keyword">bool</span> <span class="identifier">Enabled</span><span class="special">&gt;</span></code></strong></span>:
+            The user guarantees that only bucket arrays with power of two length
+            will be used. The container will then use masks instead of modulo operations
+            to obtain the bucket number from the hash value. Masks are faster than
+            modulo operations and for some applications modulo operations can impose
+            a considerable overhead. In debug mode an assertion will be raised if
+            the user provides a bucket length that is not power of two. Default:
+            <code class="computeroutput"><span class="identifier">power_2_buckets</span><span class="special">&lt;</span><span class="keyword">false</span><span class="special">&gt;</span></code>.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">cache_begin</span><span class="special">&lt;</span><span class="keyword">bool</span> <span class="identifier">Enabled</span><span class="special">&gt;</span></code></strong></span>:
+            <span class="bold"><strong>Note: this option is not compatible with <code class="computeroutput"><span class="identifier">auto_unlink</span></code> hooks</strong></span>. Due to
+            its internal structure, finding the first element of an unordered container
+            (<code class="computeroutput"><span class="identifier">begin</span><span class="special">()</span></code>
+            operation) is amortized constant-time. It's possible to speed up <code class="computeroutput"><span class="identifier">begin</span><span class="special">()</span></code>
+            and other operations related to it (like <code class="computeroutput"><span class="identifier">clear</span><span class="special">()</span></code>) if the container caches internally
+            the position of the first element. This imposes the overhead of one pointer
+            to the size of the container. Default: <code class="computeroutput"><span class="identifier">cache_begin</span><span class="special">&lt;</span><span class="keyword">false</span><span class="special">&gt;</span></code>.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">compare_hash</span><span class="special">&lt;</span><span class="keyword">bool</span> <span class="identifier">Enabled</span><span class="special">&gt;</span></code></strong></span>:
+            <span class="bold"><strong>Note: this option requires <code class="computeroutput"><span class="identifier">store_hash</span><span class="special">&lt;</span><span class="keyword">true</span><span class="special">&gt;</span></code> option in the hook</strong></span>. When
+            the comparison function is expensive, (e.g. strings with a long common
+            predicate) sometimes (specially when the load factor is high or we have
+            many equivalent elements in an <code class="computeroutput"><a class="link" href="../boost/intrusive/unordered_multiset.html" title="Class template unordered_multiset">unordered_multiset</a></code>
+            and no <code class="computeroutput"><span class="identifier">optimize_multikey</span><span class="special">&lt;&gt;</span></code> is activated in the hook) the
+            equality function is a performance problem. Two equal values must have
+            equal hashes, so comparing the hash values of two elements before using
+            the comparison functor can speed up some implementations.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong><code class="computeroutput"><span class="identifier">incremental</span><span class="special">&lt;</span><span class="keyword">bool</span> <span class="identifier">Enabled</span><span class="special">&gt;</span></code></strong></span>:
+            Activates incremental hashing (also known as Linear Hashing). This option
+            implies <code class="computeroutput"><span class="identifier">power_2_buckets</span><span class="special">&lt;</span><span class="keyword">true</span><span class="special">&gt;</span></code> and the container will require power
+            of two buckets. For more information on incremental hashing, see <a href="http://en.wikipedia.org/wiki/Linear_hashing" target="_top"><code class="computeroutput"><span class="identifier">Linear</span>
+            <span class="identifier">hash</span></code> on Wikipedia</a> Default:
+            <code class="computeroutput"><span class="identifier">incremental</span><span class="special">&lt;</span><span class="keyword">false</span><span class="special">&gt;</span></code>
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_example"></a><a class="link" href="unordered_set_unordered_multiset.html#intrusive.unordered_set_unordered_multiset.unordered_set_unordered_multiset_example" title="Example">Example</a>
+</h3></div></div></div>
+<p>
+        Now let's see a small example using both hooks and both containers:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">unordered_set</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">algorithm</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">functional</span><span class="special">/</span><span class="identifier">hash</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="keyword">class</span> <span class="identifier">MyClass</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">unordered_set_base_hook</span><span class="special">&lt;&gt;</span>
+<span class="special">{</span>               <span class="comment">//This is a derivation hook</span>
+   <span class="keyword">int</span> <span class="identifier">int_</span><span class="special">;</span>
+
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="identifier">unordered_set_member_hook</span><span class="special">&lt;&gt;</span> <span class="identifier">member_hook_</span><span class="special">;</span> <span class="comment">//This is a member hook</span>
+
+   <span class="identifier">MyClass</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">)</span>
+      <span class="special">:</span>  <span class="identifier">int_</span><span class="special">(</span><span class="identifier">i</span><span class="special">)</span>
+   <span class="special">{}</span>
+
+   <span class="keyword">friend</span> <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">MyClass</span> <span class="special">&amp;</span><span class="identifier">a</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">MyClass</span> <span class="special">&amp;</span><span class="identifier">b</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">a</span><span class="special">.</span><span class="identifier">int_</span> <span class="special">==</span> <span class="identifier">b</span><span class="special">.</span><span class="identifier">int_</span><span class="special">;</span>  <span class="special">}</span>
+
+   <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">hash_value</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">MyClass</span> <span class="special">&amp;</span><span class="identifier">value</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">(</span><span class="identifier">value</span><span class="special">.</span><span class="identifier">int_</span><span class="special">);</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="comment">//Define an unordered_set that will store MyClass objects using the base hook</span>
+<span class="keyword">typedef</span> <span class="identifier">unordered_set</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;</span>    <span class="identifier">BaseSet</span><span class="special">;</span>
+
+<span class="comment">//Define an unordered_multiset that will store MyClass using the member hook</span>
+<span class="keyword">typedef</span> <span class="identifier">member_hook</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">,</span> <span class="identifier">unordered_set_member_hook</span><span class="special">&lt;&gt;,</span> <span class="special">&amp;</span><span class="identifier">MyClass</span><span class="special">::</span><span class="identifier">member_hook_</span><span class="special">&gt;</span>
+   <span class="identifier">MemberOption</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">unordered_multiset</span><span class="special">&lt;</span> <span class="identifier">MyClass</span><span class="special">,</span> <span class="identifier">MemberOption</span><span class="special">&gt;</span>  <span class="identifier">MemberMultiSet</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;::</span><span class="identifier">iterator</span> <span class="identifier">VectIt</span><span class="special">;</span>
+
+   <span class="comment">//Create a vector with 100 different MyClass objects</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;</span> <span class="identifier">values</span><span class="special">;</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">100</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>  <span class="identifier">values</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">MyClass</span><span class="special">(</span><span class="identifier">i</span><span class="special">));</span>
+
+   <span class="comment">//Create a copy of the vector</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;</span> <span class="identifier">values2</span><span class="special">(</span><span class="identifier">values</span><span class="special">);</span>
+
+   <span class="comment">//Create a bucket array for base_set</span>
+   <span class="identifier">BaseSet</span><span class="special">::</span><span class="identifier">bucket_type</span> <span class="identifier">base_buckets</span><span class="special">[</span><span class="number">100</span><span class="special">];</span>
+
+   <span class="comment">//Create a bucket array for member_multi_set</span>
+   <span class="identifier">MemberMultiSet</span><span class="special">::</span><span class="identifier">bucket_type</span> <span class="identifier">member_buckets</span><span class="special">[</span><span class="number">200</span><span class="special">];</span>
+
+   <span class="comment">//Create unordered containers taking buckets as arguments</span>
+   <span class="identifier">BaseSet</span> <span class="identifier">base_set</span><span class="special">(</span><span class="identifier">BaseSet</span><span class="special">::</span><span class="identifier">bucket_traits</span><span class="special">(</span><span class="identifier">base_buckets</span><span class="special">,</span> <span class="number">100</span><span class="special">));</span>
+   <span class="identifier">MemberMultiSet</span> <span class="identifier">member_multi_set</span>
+      <span class="special">(</span><span class="identifier">MemberMultiSet</span><span class="special">::</span><span class="identifier">bucket_traits</span><span class="special">(</span><span class="identifier">member_buckets</span><span class="special">,</span> <span class="number">200</span><span class="special">));</span>
+
+   <span class="comment">//Now insert values's elements in the unordered_set</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="identifier">VectIt</span> <span class="identifier">it</span><span class="special">(</span><span class="identifier">values</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()),</span> <span class="identifier">itend</span><span class="special">(</span><span class="identifier">values</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">itend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">)</span>
+      <span class="identifier">base_set</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(*</span><span class="identifier">it</span><span class="special">);</span>
+
+   <span class="comment">//Now insert values's and values2's elements in the unordered_multiset</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="identifier">VectIt</span> <span class="identifier">it</span><span class="special">(</span><span class="identifier">values</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()),</span> <span class="identifier">itend</span><span class="special">(</span><span class="identifier">values</span><span class="special">.</span><span class="identifier">end</span><span class="special">()),</span> <span class="identifier">it2</span><span class="special">(</span><span class="identifier">values2</span><span class="special">.</span><span class="identifier">begin</span><span class="special">())</span>
+      <span class="special">;</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">itend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">,</span> <span class="special">++</span><span class="identifier">it2</span><span class="special">){</span>
+      <span class="identifier">member_multi_set</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(*</span><span class="identifier">it</span><span class="special">);</span>
+      <span class="identifier">member_multi_set</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(*</span><span class="identifier">it2</span><span class="special">);</span>
+   <span class="special">}</span>
+
+   <span class="comment">//Now find every element</span>
+   <span class="special">{</span>
+      <span class="identifier">VectIt</span> <span class="identifier">it</span><span class="special">(</span><span class="identifier">values</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()),</span> <span class="identifier">itend</span><span class="special">(</span><span class="identifier">values</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span>
+
+      <span class="keyword">for</span><span class="special">(;</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">itend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">){</span>
+         <span class="comment">//base_set should contain one element for each key</span>
+         <span class="keyword">if</span><span class="special">(</span><span class="identifier">base_set</span><span class="special">.</span><span class="identifier">count</span><span class="special">(*</span><span class="identifier">it</span><span class="special">)</span> <span class="special">!=</span> <span class="number">1</span><span class="special">)</span>           <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+         <span class="comment">//member_multi_set should contain two elements for each key</span>
+         <span class="keyword">if</span><span class="special">(</span><span class="identifier">member_multi_set</span><span class="special">.</span><span class="identifier">count</span><span class="special">(*</span><span class="identifier">it</span><span class="special">)</span> <span class="special">!=</span> <span class="number">2</span><span class="special">)</span>   <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+      <span class="special">}</span>
+   <span class="special">}</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.unordered_set_unordered_multiset.custom_bucket_traits"></a><a class="link" href="unordered_set_unordered_multiset.html#intrusive.unordered_set_unordered_multiset.custom_bucket_traits" title="Custom bucket traits">Custom
+      bucket traits</a>
+</h3></div></div></div>
+<p>
+        Instead of using the default <code class="computeroutput"><span class="identifier">bucket_traits</span></code>
+        class to store the bucket array, a user can define his own class to store
+        the bucket array using the <span class="bold"><strong><span class="emphasis"><em>bucket_traits&lt;&gt;</em></span></strong></span>
+        option. A user-defined bucket-traits must fulfill the following interface:
+      </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">my_bucket_traits</span>
+<span class="special">{</span>
+   <span class="identifier">bucket_ptr</span>        <span class="identifier">bucket_begin</span><span class="special">();</span>
+   <span class="identifier">const_bucket_ptr</span>  <span class="identifier">bucket_begin</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">bucket_count</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        The following bucket traits just stores a pointer to the bucket array but
+        the size is a compile-time constant. Note the use of the auxiliary <code class="computeroutput">unordered_bucket</code> and
+        <code class="computeroutput">unordered_bucket_ptr</code>
+        utilities to obtain the type of the bucket and its pointer before defining
+        the unordered container:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">unordered_set</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">functional</span><span class="special">/</span><span class="identifier">hash</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="comment">//A class to be inserted in an unordered_set</span>
+<span class="keyword">class</span> <span class="identifier">MyClass</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">unordered_set_base_hook</span><span class="special">&lt;&gt;</span>
+<span class="special">{</span>
+   <span class="keyword">int</span> <span class="identifier">int_</span><span class="special">;</span>
+
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="identifier">MyClass</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">int_</span><span class="special">(</span><span class="identifier">i</span><span class="special">)</span>
+   <span class="special">{}</span>
+
+   <span class="keyword">friend</span> <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==(</span><span class="keyword">const</span> <span class="identifier">MyClass</span> <span class="special">&amp;</span><span class="identifier">l</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">MyClass</span> <span class="special">&amp;</span><span class="identifier">r</span><span class="special">)</span>
+      <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">l</span><span class="special">.</span><span class="identifier">int_</span> <span class="special">==</span> <span class="identifier">r</span><span class="special">.</span><span class="identifier">int_</span><span class="special">;</span>   <span class="special">}</span>
+   <span class="keyword">friend</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">hash_value</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">MyClass</span> <span class="special">&amp;</span><span class="identifier">v</span><span class="special">)</span>
+      <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">hash_value</span><span class="special">(</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">int_</span><span class="special">);</span> <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="comment">//Define the base hook option</span>
+<span class="keyword">typedef</span> <span class="identifier">base_hook</span><span class="special">&lt;</span> <span class="identifier">unordered_set_base_hook</span><span class="special">&lt;&gt;</span> <span class="special">&gt;</span>     <span class="identifier">BaseHookOption</span><span class="special">;</span>
+
+<span class="comment">//Obtain the types of the bucket and the bucket pointer</span>
+<span class="keyword">typedef</span> <span class="identifier">unordered_bucket</span><span class="special">&lt;</span><span class="identifier">BaseHookOption</span><span class="special">&gt;::</span><span class="identifier">type</span>     <span class="identifier">BucketType</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">unordered_bucket_ptr</span><span class="special">&lt;</span><span class="identifier">BaseHookOption</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">BucketPtr</span><span class="special">;</span>
+
+<span class="comment">//The custom bucket traits.</span>
+<span class="keyword">class</span> <span class="identifier">custom_bucket_traits</span>
+<span class="special">{</span>
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">NumBuckets</span> <span class="special">=</span> <span class="number">100</span><span class="special">;</span>
+
+   <span class="identifier">custom_bucket_traits</span><span class="special">(</span><span class="identifier">BucketPtr</span> <span class="identifier">buckets</span><span class="special">)</span>
+      <span class="special">:</span>  <span class="identifier">buckets_</span><span class="special">(</span><span class="identifier">buckets</span><span class="special">)</span>
+   <span class="special">{}</span>
+
+   <span class="comment">//Functions to be implemented by custom bucket traits</span>
+   <span class="identifier">BucketPtr</span>   <span class="identifier">bucket_begin</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">buckets_</span><span class="special">;</span>  <span class="special">}</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">bucket_count</span><span class="special">()</span> <span class="keyword">const</span> <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">NumBuckets</span><span class="special">;}</span>
+
+   <span class="keyword">private</span><span class="special">:</span>
+   <span class="identifier">BucketPtr</span> <span class="identifier">buckets_</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="comment">//Define the container using the custom bucket traits</span>
+<span class="keyword">typedef</span> <span class="identifier">unordered_set</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">,</span> <span class="identifier">bucket_traits</span><span class="special">&lt;</span><span class="identifier">custom_bucket_traits</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">BucketTraitsUset</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;::</span><span class="identifier">iterator</span> <span class="identifier">VectIt</span><span class="special">;</span>
+   <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">&gt;</span> <span class="identifier">values</span><span class="special">;</span>
+
+   <span class="comment">//Fill values</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">100</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>  <span class="identifier">values</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">MyClass</span><span class="special">(</span><span class="identifier">i</span><span class="special">));</span>
+
+   <span class="comment">//Now create the bucket array and the custom bucket traits object</span>
+   <span class="identifier">BucketType</span> <span class="identifier">buckets</span><span class="special">[</span><span class="identifier">custom_bucket_traits</span><span class="special">::</span><span class="identifier">NumBuckets</span><span class="special">];</span>
+   <span class="identifier">custom_bucket_traits</span> <span class="identifier">btraits</span><span class="special">(</span><span class="identifier">buckets</span><span class="special">);</span>
+
+   <span class="comment">//Now create the unordered set</span>
+   <span class="identifier">BucketTraitsUset</span> <span class="identifier">uset</span><span class="special">(</span><span class="identifier">btraits</span><span class="special">);</span>
+
+   <span class="comment">//Insert the values in the unordered set</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="identifier">VectIt</span> <span class="identifier">it</span><span class="special">(</span><span class="identifier">values</span><span class="special">.</span><span class="identifier">begin</span><span class="special">()),</span> <span class="identifier">itend</span><span class="special">(</span><span class="identifier">values</span><span class="special">.</span><span class="identifier">end</span><span class="special">());</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">itend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">it</span><span class="special">)</span>
+      <span class="identifier">uset</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(*</span><span class="identifier">it</span><span class="special">);</span>
+
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="set_multiset.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="splay_set_multiset.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

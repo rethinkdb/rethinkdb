@@ -1,0 +1,26 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:format Search and Replace Format String Syntax]
+
+Format strings are used by the algorithm [regex_replace] and by 
+[match_results_format], and are used to transform one string into another.
+
+There are three kind of format string: [sed_format], [perl_format] and [boost_extended_format].
+
+Alternatively, when the flag `format_literal` is passed to one of these functions, 
+then the format string is treated as a string literal, and is copied unchanged 
+to the output.
+
+[include format_sed_syntax.qbk]
+[include format_perl_syntax.qbk]
+[include format_boost_syntax.qbk]
+
+[endsect]
+
+

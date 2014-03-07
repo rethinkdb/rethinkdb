@@ -1,0 +1,443 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Implementation Notes</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">Implementation Notes</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<dl class="page-index">
+  <dt><a href="#functiontemplateordering">Partial Function Template Ordering</a>
+  <dt><a href="#charencoding">Character Encoding</a>
+  <dt><a href="#tempatesyntax">Template Invocation syntax</a>
+  <dt><a href="#partialtemplatespecialization">Partial Template Specialization</a>
+  <dt><a href="#othercompilerissues">Specific Compiler/Library Issues</a>
+  <dl class="page-index">
+    <dt><a href="#gcc3x">GCC 3.X, 4.X</a>
+    <dt><a href="#gcc295">GCC 2.95</a>
+    <dt><a href="#intel80">Intel 8.0</a>
+    <dt><a href="#vc80">Visual C++ 8.0</a>
+    <dt><a href="#vc71">Visual C++ 7.1</a>
+    <dt><a href="#vc70">Visual C++ 7.0</a>
+    <dt><a href="#vc6">Visual C++ 6.0</a>
+    <dt><a href="#borland">Borland 5.64 and 5.51</a>
+    <dt><a href="#comeau">Comeau 4.3.3</a>
+    <dt><a href="#codewarrior9">Code Warrior 9.x</a>
+    <dt><a href="#codewarrior">Code Warrior 8.3</a>
+    <dt><a href="#tru64">TRU64</a>
+    <dt><a href="#dinkumware">Dinkumware Library</a>
+    <dt><a href="#stlport">STLPort 4.5.3</a>
+  </dl>
+</dl>
+
+<h3><a name="functiontemplateordering">Partial Function Template Ordering</a></h3>
+Not all C++ compilers correctly support partial function template ordering (PFTO).
+For these compilers, the following code will fail to compile:
+<pre><code>
+template&lt;class Archive, class T&gt;
+void serialize(
+    Archive & ar, 
+    T & t, 
+    const unsigned int file_version
+){
+    ...
+}
+
+template&lt;class Archive, class T&gt;
+void serialize(
+    Archive & ar, 
+    my_template&lt;T&gt & t, 
+    const unsigned int file_version
+){
+    ...
+}
+</pre></code>
+The serialization library works around this issue by using a different
+default definition of the first template:
+<pre><code>
+template&lt;class Archive, class T&gt;
+void serialize(
+    Archive & ar, 
+    T & t, 
+    const unsigned long int file_version  // Note: change to long
+){
+    ...
+}
+</pre></code>
+Now, the second template is not matched with the first one so there
+is no PFTO and no compile error.  When the serialization library invokes
+<pre><code>
+serialize(ar, t, 0);
+</pre></code>
+the function declaration is first matched against templates with
+an integer for the third argument.  If there is a match, the matching
+template is instantiated and later invoked.  If there is no match,
+an attempt is made to match other templates by converting arguments to other types.
+In this case the third argument can be converted to long to match
+the first template - which is the default.  So in this case, the first
+template will be instantiated and later invoked.  We have managed to
+use function overloading to achieve the same effect as PFTO
+were it correctly implemented.
+<p>
+This depends upon undefined behavior of a compiler already
+determined to be non-conforming.  In other words, there is no 
+guarantee that this will work on all compilers.  If a compiler does not
+correctly support PFTO and this method cannot be used to workaround
+it, non-intrusive serialization cannot be supported for that compiler.
+As of this writing, such a compiler has not been encountered.
+<p>
+It turns out that using this "trick" can create problems with
+compilers that DO correctly support PFTO.  For this reason we
+define a macro <code style="white-space: normal">BOOST_PTFO</code> which 
+is defined to be <code style="white-space: normal">long</code>
+for non-conforming compilers and nothing for conforming ones. So
+the default definition is really:
+The serialization library works around this issue by using a different
+default definition of the first template:
+<pre><code>
+template&lt;class Archive, class T&gt;
+void serialize(
+    Archive & ar, 
+    T & t, 
+    const unsigned BOOST_PFTO int file_version  // Note: change to BOOST_PFTO
+){
+    ...
+}
+</pre></code>
+
+<h3><a name="charencoding">Character Encoding</a></h3>
+The whole question of character encoding combined with wide characters
+is much more complicated than it would seem to be. The current library
+defines in 3 formats (text, binary, and XML), wide and narrow characters, 
+an attempts to be portable between compiler libraries.  The results of 
+a rather long consideration of all these factors has been to set
+default encoding according to the following rules.
+<ul>
+  <li>All text archives (i.e. <code style="white-space: normal">text_?archive</code>) will produce
+      text output in the current stream <code style="white-space: normal">locale</code>.  Generally this will
+      produce no changes in string data.
+  <li>To produce binary output with Microsoft compilers, the stream
+      will have to be opened with mode <code style="white-space: normal">ios::binary</code>.
+      Failure to do so will result in 0x0d characters (carriage-return)
+      characters being removed from the input stream if they are followed
+      by a 0x0a character (line-feed).  This could corrupt the input
+      and make the file unreadable.  On UNIX systems the <code style="white-space: normal">ios::binary</code>
+      is not required and is ignored if used.
+  <li>character XML archives (i.e. xml_oarchive) will produce XML output
+      with characters encoded according to the current stream <code style="white-space: normal">locale</code>.
+  <li>wide character XML archives (i.e. xml_woarchive) will produce
+      files encoded in UTF-8.
+</ul>
+This character encoding is implemented by changing the <code style="white-space: normal">locale</code> of the
+i/o stream used by an archive when the archive is constructed, the stream
+local is changed back to its original value. This action can be overridden 
+by specifying <code style="white-space: normal">boost::archive::no_codecvt</code>
+when the archive is opened.  In this case, the stream <code style="white-space: normal">locale</code> will
+not be changed by the serialization library.
+<p>
+Note that the code conversion included for wide character text and XML
+archives could alter <code style="white-space: normal">std::string</code> data stored in archives.
+Suppose a normal (multi-byte) character string
+is written to a wide character stream.  Our system uses the current <code style="white-space: normal">locale</code>
+to translate it to a wide character string before writing it out.  
+Upon reading, it is translated back to a (multi-byte)string. 
+If the <code style="white-space: normal">locale</code> on the platform that reads the archive is different than 
+the <code style="white-space: normal">locale</code> on the platform that wrote the stream, the actual string data
+may be altered by the serialization process. To avoid this, either
+avoid usage of <code style="white-space: normal">locale</code> dependent multi-byte strings or be sure that
+the <code style="white-space: normal">locale</code> is set correctly before reading the archive.
+<p>
+To produce wide character text output (i.e. 16 bit characters on Win32 systems),
+do the following.
+<ul>
+  <li>Open a wide character stream.
+  <li>Alter the stream <code style="white-space: normal">locale</code> to use 
+     <code style="white-space: normal">boost::archive::codecvt_null&lt;OStream::char_type&gt;</code>
+  <li>Create the archive with the flag <code style="white-space: normal">no_codecvt</code>.
+</ul>
+Naturally, the input process has to be symmetrical.
+<h3><a name="partialtemplatespecialization">Partial Template Specialization</a></h3>
+Compilers which fail to support partial template specialization will fail to compile
+the following code.  To make this compiler, the <code style="white-space: normal">const</code> has to be removed.
+<pre><code>
+void f(A const* a, text_oarchive& oa)
+{
+  oa << a;
+}
+</code></pre>
+<h3><a name="tempatesyntax">Template Invocation syntax</a></h3>
+Some compilers may not recognize the syntax:
+<pre><code>
+ar.template register_type&lt;T&gt;();
+</code></pre>
+for "registering" derived pointers of polymorphic classes.  The actual 
+function prototype is:
+<pre><code>
+template&lt;T&gt;
+void register_type(T * t = NULL);
+</code></pre>
+so that one may write <code style="white-space: normal">ar.register_type(static_cast&lt;T *&gt;(NULL))</code> instead of
+the syntax described above.
+</ul>
+<h3><a name="othercompilerissues">Specific Compiler/Library Issues</a></h3>
+
+<h4><a name="gcc3x">GCC 3.X, 4.X</a></h4>
+<ul>
+    <li>GCC versions for Cygwin and MinGW fail to support wide character I/O.  
+    So all tests using wide char I/O fail.  Note that if wide character I/O support
+    is added with STLPort, all tests complete successfully.
+    <li>This compiler generates long warning messages related to the usage of
+    non virtual destructors in polymorphic classes.  These warnings have been
+    carefully considered and the code that generates these warning has been 
+    unchanged.  In this case the warning should should be ignored as in certain
+    usages of the library, making the destructors virtual could lead to problems.
+    As an alternative, base class destructors have been made "protected" to
+    address the concerns that motivate these warning messages.  When building
+    the serialization library and tests with bjam, these warnings are suppressed. 
+    When building one's own applications, these warnings can be suppressed by
+    adding the following to the compiler command line:
+    <pre><code>
+    -Wno-non-virtual-dtor
+    -Wno-ctor-dtor-privacy
+    </code></pre>
+</ul>
+<h4><a name="gcc295">GCC 2.95</a></h4>
+All of the above plus:<br>
+<ul>
+    <li>The serialization library depends on the templated stream 
+    implementation to function properly.
+    So STLPort must be used to build the library.
+    <li>Polymorphic archive tests fail.
+    <li>XML serialization only works with version 1.6x of spirit. In order to build 
+    and use this library with this compiler, one must use version 1.6x rather than the 
+    latest version shipped with boost. See <a href="release.html">Release Notes</a>. 
+</ul>
+<h4><a name="intel80">Intel C++ 8.0</a></h4>
+No known issues. All tests compile and run in debug and release modes.
+
+<h4><a name="vc80">Visual C++ 8.0</a></h4>
+This compiler emits warnings for calls to functions from the standard
+library which are deemed security risks.  The serialization depends upon
+making some of these calls so programs which use the serialization library
+will get warning messages.  These messages can be suppressed from the command 
+line by including the following switch:
+    <pre><code>
+    /wd4996
+    </code></pre>
+
+<h4><a name="vc71">Visual C++ 7.1</a></h4>
+Derivation from an archive class defined in a DLL as described in ... will not work.
+This is due to the way that VC++ handles templated code with __decl(dllexport) and
+__decl(dllimport) specifications.  Basically, this compiler requires that all the
+instantiations have the same specification - even though they have different
+template arguments. The example <code style="white-space: normal">
+demo_portable_iarchive.cpp</code> would have to reformulated as a library or dll
+similar to the pre-defined archives in order to function.
+<p>
+This compiler does not have RTTI or exception handling turned on by default.  Although
+they are not strictly necessary to use the serialization package, the example and test
+program presume that they are enabled.  So be sure your command line or IDE settings 
+enable these features if you want to build and run these programs.
+<p>
+This compiler can treat <code style="white-space: normal">wchar_t</code> as either
+a short integer or an intrinsic type.
+If <code style="white-space: normal">/Zc:wchar_t</code> is specified on the
+compile command line, <code style="white-space: normal">wchar_t</code> will be 
+considered an intrinsic type - otherwise
+it will be treated as a synonym for a 16 bit integer.  The library can be used
+either way - <strong>BUT</strong> - both the libray <strong>AND</strong> the application 
+must be  compiled with the same switch settings.  Note that <code style="white-space: normal">BJAM</code>
+includes this switch by default.  So if want to use the libraries that
+<code style="white-space: normal">BJAM</code> builds, you should include this switch
+when you compile your own applications.
+<h5>Using the Visual C++ IDE</h5>
+The library includes a VC++ 7.1 "Solution" - <code style="white-space: normal">BoostSerializationLibrary</code>
+along with of a set of project files - one for each demo and test. Consider the following if you
+decided to use these configurations.
+<ul>
+    <li>The projects assume that the tests have been built with bjam using the default
+    locations.  This will result in a <code style="white-space: normal">bin</code> subdirectory
+    within one's main boost directory.  Below this there is a whole structure which maintains 
+    object and library files according to the type of build.  The easiest way to build this is to
+    invoke the runtest script which uses bjam. (see below)  If the libraries are not in these locations,
+    the projects will have to be modified accordingly.
+    <li>There are project configurations for all the combinations of build variants that boost
+    supports. That is for release, debug, static, static multi-threading, etc..
+    <li>If you want to use/debug the DLL versions of libraries and corresponding tests, alter
+    the project file to define <code style="white-space: normal">BOOST_ALL_DYN_LINK=1</code>.
+    Note that for the executables to run, the <code style="white-space: normal">PATH</code>
+    environmental variable will have to include the directories that contain the DLL versions of
+    the boost libraries.
+    <li>If you have difficulties building your own projects and linking with the boost libraries, 
+    compare the project settings of your own projects with the ones here.  VC sometimes requires
+    consistent settings between projects and the libraries they use in order to link properly.
+    In particular, check support for exceptions, runtime typing(RTTI), and intrinsic support for
+    wide characters.  The standard version of this library presumes that these facilities are
+    enabled.  Projects generated by the IDE wizard do not have these features enabled by default.
+    <li>Frequently when trying to build a project or view project properties, one is presented with
+    a message box with the message "unspecified error".  This seems to occur when one changes the
+    build configuration selection.  It turns out this can be "fixed" by going to the "Build" 
+    menu item, selecting "Configuration Manager" and selecting a build configuration for the project
+    you're working with.
+    <li>To test that boost libraries are built correctly, one can build and test them the way we do.
+    This entails:
+    <ol>
+        <li>downloading a copy of bjam.exe
+        <li>building process_jam_log
+        <li>building compiler_status
+	<li>invoking runtest.bat
+    </ol>
+    This will build the serialization library and run the tests on your system. If there are more than a
+    a couple of test failures, you likely won't be able to get your own projects working.  If most of the
+    tests pass, you can be confident that your own projects will work once you get your project settings
+    in sync with those included here.
+</ul>
+
+<h4><a name="vc70">Visual C++ 7.0</a></h4>
+<ul>
+    <li>The "pimpl" demo fails to link.  Cause and workaround for this is unknown
+    <li>XML serialization only works with version 1.6x of spirit.  In order to build and use this
+    library with this compiler, one must use version 1.6x rather than the latest version
+    shipped with boost.  See <a href="release.html">Release Notes</a>.
+    <li>This compiler does not support partial template specialization.  
+    The implementation of the new <code>shared_ptr</code> serialization depends upon
+    compiler support for partial template specialization.  This compiler doesn't implement this
+    feature. In order to serialize <code style="white-space: normal">shared_ptr&lt;A&gt;</code>,
+    invoke the macro <code style="white-space: normal">BOOST_SERIALIZATION_SHARED_PTR(A)</code>
+    in the header code.
+    <li>Lack of support for partial template specialization also creates problems for
+    serialization of <code style="white-space: normal">std::map</code>.  In order to serialize
+    instances of this type include the invocation of BOOST_BROKEN_COMPILER_TYPE_TRAITS_SPECIALIZATION
+    for the key type of the map.
+</ul>
+<h4><a name="vc6">Visual C++ 6.5</a></h4>
+all the above issues for Visual C++ 7.0 plus:
+<ul>
+    <li>Out of line template definitions are not recognized and fail with a confusing
+    error message.  To function save/load/serialize member function templates must be defined
+    within the class definition.  This feature is essential to <code style="white-space: normal">demo_pimpl</code>. Hence,
+    this program will fail to compile.  In this case the problem can't be worked around and
+    still demonstrate this facility.
+    <li>This compiler does not support <code style="white-space: normal">wchar_t</code> as a separate type.  It defines
+    <code style="white-space: normal">wchar_t</code> as an alias for <code style="white-space: normal">short int</code>.  In general things will still
+    function.  However certain customization, such as overloading archive operators for
+    saving/loading wide character arrays would produce surprises in this environment.
+    <li>Under certain circumstances, a program will fail to link with the message:
+    LIN1179 - "invalid or corrupt file: duplicate comdat".  According
+    to <a href="http://groups.google.com/groups?th=8a05c82c4ffee280">
+    http://groups.google.com/groups?th=8a05c82c4ffee280
+    </a> (look for P78)
+    A LNK1179 error occurs when:
+    <ul>
+        <li>The template class takes at least two arguments.
+        <li>The template is used at least two times with identical first
+        and different second arguments.
+        <li>The static member variable is of an object type with at least one
+        base class. (In another scenario it also occurred using a member
+        without a base class.)
+    </ul>
+    Working around this in the implementation of the library for this compiler
+    entailed a ridiculous amount of effort.  Even so, the effort wasn't entirely successful.
+    With this compiler, this message will still appear under the following conditions:
+    <ul>
+        <li>When serializing a class with multiple base classes.  This problem causes two 
+        failure in the test suite.  I have been unable to devise a way to work around this.
+        <li>Using more than one kind of archive in the same code module. This should be easy 
+        to work around in practice.
+    </ul>
+    <li>Code modules exceeding some undetermined size that use the library will fail with
+    <i>fatal error C1204: compiler limit : internal structure overflow</i>.  This can be addressed
+    by dividing the module into smaller ones.
+</ul>
+<h4><a name="borland">Borland 5.64 and 5.51</a></h4>
+<ul>
+    <li><code style="white-space: normal">enum</code> data members cannot be serialized.
+    Conversion to/from integers will work around the problem.
+    <li>If class serialize functions are not accessible either by making them public or by
+    including <code style="white-space: normal">friend</code> declarations as described in 
+    <a href="serialization.html#member">Class Serialization - Member Function</a>, the
+    will compile but fail at runtime.
+    <li>Tests using custom extended type which doesn't use RTTI fails. (5.64 only !).
+    <li>Tests built in release mode fail. This seems to be an issue with the boost test system
+    with this compiler.
+    <li>XML serialization only works with version 1.6x of spirit. In order to build 
+    and use this library with this compiler, one must use version 1.6x rather than the 
+    latest version shipped with boost. See <a href="release.html">Release Notes</a>. 
+</ul>
+<h4><a name="comeau">Comeau 4.3.3</a></h4>
+<ul>
+    <li>This compiler fails to make a DLL with export under windows.
+    <li>The associated library - libcomo fails when using a codecvt facet.
+    This generates a failure with all wide character archives.
+    <li>the test_set fails by going into an infinite memory leak.
+</ul>
+
+<h4><a name="codewarrior9">Code Warrior 9.x</a></h4>
+<ul>
+    <li>Some tests and demos demos fail - still under investigation
+</ul>
+
+<h4><a name="codewarrior">Code Warrior 8.3</a></h4>
+all the above issues for Code Warrior 9.x plus:
+<ul>
+    <li>This compiler only supports templated streams with the static library version.
+    <li>The above inhibits the build of DLL versions of the library.
+    <li>Some demos fail - still under investigation
+</ul>
+
+<h4><a name="tru64">TRU64</a></h4>
+All tests and demos pass except for test_variant.  Boost Variant doesn't function
+wih this compiler
+
+<h4><a name="dinkumware">Dinkumware Library</a></h4>
+Several compilers, including Visual C++ 6.0, use an older dinkumware library.  
+These platforms have several issues: 
+<ul>
+    <li>The dinkumware library shipped with this compiler does not change the locale facet
+    of an i/o stream unless the <code style="white-space: normal">imbue</code> function is called before the the
+    stream is opened.  In order to use this library with this environment to generate UTF-8
+    files, one cannot depend on the "automatic" setting of locale that archives implement. The
+    stream locale must be set explicitly on the stream before an archive is opened on it.  The
+    archive should be opened with the <code style="white-space: normal">no_codecvt</code> flag.  Note this problem will
+    occur on all compilers shipped with this library.
+    <li>Other issues have been worked around in the file.
+    <a href="../../../boost/archive/dinkumware.hpp" target="dinkumware_hpp">dinkumware.hpp</a>
+</ul>
+
+<h4><a name="stlport">STLPort 4.5.3</a></h4>
+<ul>
+    <li>when built to use dynamic linking versions of C++ runtime code (<runtime-link>dynamic)
+    all tests fail to link.  This is due to a missing symbol in the stlport library related
+    to custom codecvt facets.
+    <li>the test_set fails to run correctly. It seems the hashed set iterator doesn't
+    implement the ++ operator correctly.  This causes the test to fail by consuming all available
+    memory.  Given this, this test is commented out.
+</ul>
+
+<hr>
+<p>Revised 1 November, 2004 
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

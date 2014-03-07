@@ -1,0 +1,277 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
+        <title>Serialization - Release Notes</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+    <tr>
+        <td valign="top" width="300">
+            <h3>
+                <a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+        </td>
+        <td valign="top">
+            <h1 align="center">
+                Serialization</h1>
+            <h2 align="center">
+                Release Notes</h2>
+        </td>
+    </tr>
+</table>
+<hr>
+<dl class="index">
+    <dt><a href="#differences_1_45">Differences from version 1.45</a></dt> 
+    <dt><a href="#differences_1_43">Differences from version 1.43</a></dt> 
+    <dt><a href="#differences_1_42">Differences from version 1.42</a></dt> 
+    <dt><a href="#differences_1_41">Differences from version 1.41</a></dt> 
+    <dt><a href="#differences_1_40">Differences from version 1.40</a></dt> 
+    <dt><a href="#differences_1_39">Differences from version 1.39</a></dt> 
+    <dt><a href="#differences_1_37">Differences from version 1.37</a></dt> 
+    <dt><a href="#differences_1_35">Differences from version 1.35</a></dt>
+    <dt><a href="#differences_1_34">Differences from version 1.34</a></dt> 
+    <dt><a href="#differences_1_33">Differences from version 1.33</a></dt> 
+    <dt><a href="#differences_1_32">Differences from version 1.32</a></dt> 
+    <dt><a href="#todo">Pending Issues</a></dt>
+</dl>
+As of this writing, there are no known bugs. However, due to compiler/library 
+quirks and or bugs, some tests fail with some combinations of compilers and 
+libraries.
+<h2><a name="differences_1_45"></a>Differences from Boost 1.45</h2>
+Since the release of version 1.42, it has been discovered that binary
+archives created by versions 1.42-1.44 cannot always be read by the
+recent binary archive code.  Work has proceeded in detecting the source
+of these anomolies and those which have been reported with test cases
+have been fixed.  As of this writing, it is not known whether all
+binary archives created with these versions can be loaded.
+<h2><a name="differences_1_43"></a>Differences from Boost 1.43</h2>
+<ul>
+    <li>fixed bug in the serialization of virtual base classes.  Due
+    to heroic efforts by Takatoshi Kondo.
+    <li>Native binary archives created under versions 1.42 and 1.43
+    suffer from a serious problem.  It's likely they won't be readable
+    by this latest version. This due to the fact that 1.42 made some
+    changes in the binary format of some types.  Normally this could
+    be addressed by detecting the library version number written into
+    the archive header.  Unfortunately, this library version number
+    was not incremented at 1.42 as it should have been.  So now we have
+    two different binary archive versions with the same library version
+    number.
+    <p>
+    This has been addressed by including a small utility in the example
+    directory named fix_six.cpp.  This should be run with the command line<br>
+    <code><pre>
+    fix_six &lt;file name&gt;
+    </pre></code>
+    This will assign 7 to the library version number of the archive. This
+    fix will need to ba applied to native binary archives created with
+    boost versions 1.42 and 1.43.
+</ul>
+<h2><a name="differences_1_42"></a>Differences from Boost 1.42</h2>
+<ul>
+    <li>fixed failure of shared_ptr serialization when serializing pointers
+created from enable_shared_from_this.
+    <li>added example for a simple archive which can be used as a debug log.
+This example illustrates the implemenation of the archive concept to aid
+understanding required to create one's own archive classes. The resulting
+archive is useful for debugging in that it only 160 lines of code and is
+header only - that is, it doesn't required linking to the serialization library.
+    <li>replaced example used to show how to derive from an existing archive.
+This example creates an XML archive class which doesn't include serialization
+traits such as class_id, class_version, etc.  It might be useful for exporting
+one's class information to osme XML processor and/or debugging programs.
+    <li>compile time warnings have been implemented to detect practices which
+    though correct, will result in operation or side effects different than
+    a user probably intends.
+    <li>Some memory leaks associated with void_cast have been fixed.
+</ul>
+<h2><a name="differences_1_41"></a>Differences from Boost 1.41</h2>
+<ul>
+    <li>adjustments have been made to minimize compile time warnings.
+    <li>compile time warnings have been implemented to detect practices which
+    though correct, will result in operation or side effects different than
+    a user probably intends.
+    <li>Some memory leaks associated with void_cast have been fixed.
+</ul>
+<h2><a name="differences_1_40"></a>Differences from Boost 1.40</h2>
+This library has been tested against Boost version 1.39 and 1.40.
+<p>
+    Changes have been made to archive classes included with the library. Users who 
+    have used these a guide to making their own archive classes will find that 
+    these will likely no longer compile. This can be remedied by making the 
+    following changes in the code which instantiates these archive classes.
+</p>
+Old Code:<br>
+<code><pre>
+...
+#include &lt;boost/archive/impl/archive_pointer_iserializer.ipp&gt;
+...
+template class detail::archive_pointer_iserializer&lt;naked_text_iarchive&gt; ;
+...
+template class detail::archive_pointer_iserializer&lt;text_iarchive&gt; ;
+</pre></code>should be replaced with this new code: <code><pre>
+#include &lt;boost/archive/impl/archive_serializer_map.ipp&gt;
+...
+template class detail::archive_serializer_map&lt;naked_text_iarchive&gt; ;
+...
+template class detail::archive_serializer_map&lt;text_iarchive&gt; ;
+</pre></code>
+<!--
+<p>
+The serialization library uses the boost spirit package to load XML archives.
+We have found that all tests pass using spirit 1.6x. Spirit 1.8 and higher does not work with
+older compilers - specifically MSVC 6, Borland and GCC < 3.0.
+If you are using one of these compilers, you may download a version
+of spirit 1.6 <a href="http://spirit.sourceforge.net/index.php?doc=download/index.html">here</a>.
+To use this downloaded version rather than the one included with boost,
+set an environmental variable SPIRIT_ROOT to be equal to the root 
+directory where the downloaded copy of spirit has been placed. E. G.
+<pre><code>
+set SPIRIT_ROOT=c:/spirit16
+</code></pre>
+If you're not using bjam and the Jamfile to build the library, be sure that
+the directory which contains the version of spirit you plan to use is placed
+at the front of the list of include paths.
+-->
+<h2><a name="differences_1_39"></a>Differences from Boost 1.39</h2>
+<ul>
+    <li>
+        It is now possible to serialize an object through a pointer to a class which 
+        implements its own <code style="white-space: normal">new/delete</code>
+    operators. This functionaly is not available on some compilers.
+    <li>
+    serialization of polymorphic objects has been sped up considerably.
+</ul>
+As of this writing, all bug reports filed as TRAK tickets have been addressed. 
+There are some TRAK tickets pending which would best be described as feature 
+requests. See <a href="#todo">Pending Issues</a>.
+<h2><a name="differences_1_37"></a>Differences from Boost 1.37</h2>
+There are no new features in this version. As of this writing, all bug reports 
+filed as TRAK tickets have been addressed. There are some TRAK tickets pending 
+which would best be described as feature requests. See <a href="#todo">Pending 
+    Issues</a>.
+<h2><a name="differences_1_36"></a>Differences from Boost 1.36</h2>
+There are no new features in this version. As of this writing, all bug reports 
+filed as TRAK tickets have been addressed.
+<h2><a name="differences_1_35"></a>Differences from Boost 1.35</h2>
+<ul>
+    <li>
+    The library is now thread safe. That is, multiple archives can be open in 
+    different threads. This has been implmented with a lock-free algorithm to avoid 
+    any performance bottlenecks.
+    <li>
+    Serialization of types defined in shared libraries is now supported. shared 
+    libraries (DLLS) can be loaded/unloaded dynamically at runtime. This includes 
+    the serialization of instances of abstract base classes so that a program can 
+    be written so as to be compatible with as yet undefined and un-implemented 
+    code.
+    <li>
+    The extended type info system has been enhanced to in order to implement the 
+    above. It is now a general purpose system for creating and casting of types 
+    about which is only known a string ID and an abstract base class.
+    <li>
+    All bug reports filed as TRAK tickets have been addressed.
+    <li>
+    As of this writing, the library will fail build on older compilers such as MSVC 
+    before version 7.1 and older versions of Borland compilers. This might or might 
+    not change in the future.
+</ul>
+<h2><a name="differences_1_34"></a>Differences from Boost 1.34</h2>
+<ul>
+    <li>
+    Enhanced support for fast serialization for native binary archives. By Mattias 
+    Troyer.
+    <li>
+    Improved implementation of "export" functionality. Removes header ordering 
+    requirement and eliminates the maintenance of a pre-determined list of "known 
+    archives" By David Abrahams.
+    <li>
+    Improved support for STLPort.
+</ul>
+<h2><a name="differences_1_33"></a>Differences from Boost 1.33</h2>
+<ul>
+    <li>
+        Native Binary archives use the <code style="white-space: normal">std::streambuf</code>
+    interface. This should result in noticeably faster execution in many cases.
+</ul>
+<h2><a name="differences_1_32"></a>Differences from Boost 1.32</h2>
+<ul>
+    <li>
+        Dynamic Linking Library (DLLs and shared libraries) for platforms which support 
+        them. See <a href="../../../more/getting_started/windows.html#auto-linking">Automatic 
+            Linking on Windows</a>.
+    <li>
+    Implementation of auto-link for compilers which can support this.
+    <li>
+        Better support for <em>Argument Dependent Lookup</em>
+    and two-phase lookup. This results in simpler rules regarding the placing of 
+    serialization specializations namespaces.
+    <li>
+    Enhanced documentation to help explain usage of the above.
+    <li>
+    Adjustments to improve support for less conformant compilers.
+    <li>
+        Improved <code>const</code> correctness for save/load operators. Note that this 
+        may produce compile time errors in code which compiled without problem in 
+        earlier boost releases. In most cases the fix is trivial. In other cases, code 
+        should be scrutinized to be sure that it doesn't use the serialization system 
+        in a way which may introduce subtle bugs in to the program. A fuller 
+        explanation of this issue can be found <a target="detail" href="traits.html#tracking">
+            here</a>.
+    <li>
+        A new implementation of serialization for <code style="white-space: normal">shared_ptr&lt;T&gt;</code>. 
+        This is compatible with public interface of <code style="white-space: normal">shared_ptr&lt;T&gt;</code>
+        so it should be more robust and not have to change in the future. The 
+        implementation optionally includes code to load <code style="white-space: normal">shared_ptr&lt;T&gt;</code>
+        stored in archives created with boost 1.32. This code is stored in 'he header: <code style="white-space: normal">
+            boost/serialization/shared_ptr_132.hpp</code>. If your application needs to 
+        load archives created with boost 1.32 libraries, include the above header 
+        before each inclusion of <code style="white-space: normal">boost/serialization/shared_ptr.hpp</code>.
+    <li>
+    More compilers tested and supported.
+    <li>
+    Miscellaneous bug fixes.
+</ul>
+<h2><a name="todo"></a>Pending issues</h2>
+<ul>
+    <li>
+    Rvalues cannot be serialized. It would be possible to implement this for 
+    untracked types, but this has not been done.
+    <li>
+    Pointers to pointers cannot currently be serialized
+    <li>
+        It's possible that <code style="white-space: normal">std::string</code> and <code style="white-space: normal">
+            std::wstring</code>
+    contain characters such as '\0' and -1 (EOF) which cannot be rendered in text 
+    and XML archives without an escape mechanism. Currently there is no such escape 
+    mechanism implemented.
+    <li>
+        A subtle error in the implementation of serializaton of <code style="white-space: normal">
+            std::map</code> is fixed in this version. Unfortunately, the fix breaks 
+        serialization of <code style="white-space: normal">std::map</code>
+    for those compilers which do not support partial template specialization. Also, 
+    types which contain pointers or tracked types might not work correctly.
+    <li>
+        Serialization of virtual base classes relies upon RTTI.  It will fail when used on
+        systems which don't have RTTI enabled.
+</ul>
+<p>
+    Aside from the above, there are a number of issues related to specific 
+    platforms. These are listed in <a href="implementation.html#othercompilerissues">Specific 
+        Compiler/Library Issues</a>.
+    <hr>
+<p>
+    <i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2009. 
+        Distributed under the Boost Software License, Version 1.0. (See accompanying 
+        file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) </i>
+</p>
+</body>
+</html>

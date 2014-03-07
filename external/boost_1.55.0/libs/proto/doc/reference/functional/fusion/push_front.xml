@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/functional/fusion/push_front.hpp">
+  <para>Includes Proto callable <computeroutput><classname>boost::proto::functional::push_front</classname></computeroutput>.</para>
+
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="functional">
+
+        <!-- proto::functional::push_front -->
+        <struct name="push_front">
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+            <computeroutput>fusion::push_front()</computeroutput> algorithm on its arguments.</purpose>
+          <description>
+            <para>
+              A <conceptname>PolymorphicFunctionObject</conceptname> type that invokes the
+              <computeroutput>fusion::push_front()</computeroutput> algorithm on its arguments.</para>
+          </description>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Seq"/>
+              <template-type-parameter name="T"/>
+            </template>
+            <specialization>
+              <template-arg>This(Seq, T)</template-arg>
+            </specialization>
+            <inherit>
+              <type>fusion::result_of::push_front&lt;
+      typename boost::add_const&lt;typename boost::remove_reference&lt;Seq&gt;::type&gt;::type
+    , typename boost::remove_const&lt;typename boost::remove_reference&lt;T&gt;::type&gt;::type
+  &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename fusion::result_of::push_front&lt; Seq const, T &gt;::type</type>
+              <template>
+                <template-type-parameter name="Seq"/>
+                <template-type-parameter name="T"/>
+              </template>
+              <parameter name="seq">
+                <paramtype>Seq const &amp;</paramtype>
+              </parameter>
+              <parameter name="t">
+                <paramtype>T const &amp;</paramtype>
+              </parameter>
+              <returns>
+                <para><computeroutput>fusion::push_front(seq, t)</computeroutput></para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+
+      </namespace>
+    </namespace>
+  </namespace>
+</header>

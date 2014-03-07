@@ -1,0 +1,87 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>transfer_at_least</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="transfer_all.html" title="transfer_all">
+<link rel="next" href="transfer_exactly.html" title="transfer_exactly">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="transfer_all.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="transfer_exactly.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.transfer_at_least"></a><a class="link" href="transfer_at_least.html" title="transfer_at_least">transfer_at_least</a>
+</h3></div></div></div>
+<p>
+        <a class="indexterm" name="idp100610712"></a> 
+Return a completion condition function object that indicates
+        that a read or write operation should continue until a minimum number of
+        bytes has been transferred, or until an error occurs.
+      </p>
+<pre class="programlisting"><span class="identifier">unspecified</span> <span class="identifier">transfer_at_least</span><span class="special">(</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">minimum</span><span class="special">);</span>
+</pre>
+<p>
+        This function is used to create an object, of unspecified type, that meets
+        CompletionCondition requirements.
+      </p>
+<h5>
+<a name="boost_asio.reference.transfer_at_least.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.transfer_at_least.example"></a></span><a class="link" href="transfer_at_least.html#boost_asio.reference.transfer_at_least.example">Example</a>
+      </h5>
+<p>
+        Reading until a buffer is full or contains at least 64 bytes:
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="number">128</span><span class="special">&gt;</span> <span class="identifier">buf</span><span class="special">;</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">system</span><span class="special">::</span><span class="identifier">error_code</span> <span class="identifier">ec</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">n</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">read</span><span class="special">(</span>
+    <span class="identifier">sock</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">(</span><span class="identifier">buf</span><span class="special">),</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">transfer_at_least</span><span class="special">(</span><span class="number">64</span><span class="special">),</span> <span class="identifier">ec</span><span class="special">);</span>
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">ec</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="comment">// An error occurred.</span>
+<span class="special">}</span>
+<span class="keyword">else</span>
+<span class="special">{</span>
+  <span class="comment">// n &gt;= 64 &amp;&amp; n &lt;= 128</span>
+<span class="special">}</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.transfer_at_least.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.transfer_at_least.requirements"></a></span><a class="link" href="transfer_at_least.html#boost_asio.reference.transfer_at_least.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/completion_condition.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="transfer_all.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="transfer_exactly.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

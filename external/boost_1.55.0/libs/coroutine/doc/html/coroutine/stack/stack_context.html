@@ -1,0 +1,85 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class stack_context</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Coroutine">
+<link rel="up" href="../stack.html" title="Stack allocation">
+<link rel="prev" href="stack_allocator.html" title="Class stack_allocator">
+<link rel="next" href="segmented_stack.html" title="Segmented stacks">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="stack_allocator.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../stack.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="segmented_stack.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="coroutine.stack.stack_context"></a><a class="link" href="stack_context.html" title="Class stack_context">Class <span class="emphasis"><em>stack_context</em></span></a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Boost.Coroutine</strong></span> provides the class <span class="emphasis"><em>boost::coroutines::stack_context</em></span>
+        which will contain the stack pointer and the size of the stack. In case of
+        a <span class="emphasis"><em>segemented-stack</em></span> <span class="emphasis"><em>boost::coroutines::stack_context</em></span>
+        contains some extra controll structures.
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">stack_context</span>
+<span class="special">{</span>
+    <span class="keyword">void</span>    <span class="special">*</span>   <span class="identifier">sp</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">size</span><span class="special">;</span>
+
+    <span class="comment">// might contain addition controll structures</span>
+    <span class="comment">// for instance for segmented stacks</span>
+<span class="special">}</span>
+</pre>
+<h5>
+<a name="coroutine.stack.stack_context.h0"></a>
+        <span class="phrase"><a name="coroutine.stack.stack_context._code__phrase_role__keyword__void__phrase___phrase_role__special_____phrase___phrase_role__identifier__sp__phrase___code_"></a></span><a class="link" href="stack_context.html#coroutine.stack.stack_context._code__phrase_role__keyword__void__phrase___phrase_role__special_____phrase___phrase_role__identifier__sp__phrase___code_"><code class="computeroutput"><span class="keyword">void</span> <span class="special">*</span> <span class="identifier">sp</span></code></a>
+      </h5>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Value:</span></dt>
+<dd><p>
+              Pointer to the beginning of the stack.
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="coroutine.stack.stack_context.h1"></a>
+        <span class="phrase"><a name="coroutine.stack.stack_context._code__phrase_role__identifier__std__phrase__phrase_role__special______phrase__phrase_role__identifier__size_t__phrase___phrase_role__identifier__size__phrase___code_"></a></span><a class="link" href="stack_context.html#coroutine.stack.stack_context._code__phrase_role__identifier__std__phrase__phrase_role__special______phrase__phrase_role__identifier__size_t__phrase___phrase_role__identifier__size__phrase___code_"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span>
+        <span class="identifier">size</span></code></a>
+      </h5>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Value:</span></dt>
+<dd><p>
+              Actual size of the stack.
+            </p></dd>
+</dl>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009 Oliver Kowalke<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="stack_allocator.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../stack.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="segmented_stack.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Boost.Python Pickle Support</title>
+</head>
+
+<body>
+  <div>
+    <img src="../../../../boost.png" alt="boost.png (6897 bytes)" align=
+    "center" width="277" height="86" />
+    <hr />
+
+    <h1>Boost.Python Pickle Support</h1>Pickle is a Python module for object
+    serialization, also known as persistence, marshalling, or flattening.
+
+    <p>It is often necessary to save and restore the contents of an object to
+    a file. One approach to this problem is to write a pair of functions that
+    read and write data from a file in a special format. A powerful
+    alternative approach is to use Python's pickle module. Exploiting
+    Python's ability for introspection, the pickle module recursively
+    converts nearly arbitrary Python objects into a stream of bytes that can
+    be written to a file.</p>
+
+    <p>The Boost Python Library supports the pickle module through the
+    interface as described in detail in the <a href=
+    "http://www.python.org/doc/current/lib/module-pickle.html">Python Library
+    Reference for pickle.</a> This interface involves the special methods
+    <tt>__getinitargs__</tt>, <tt>__getstate__</tt> and <tt>__setstate__</tt>
+    as described in the following. Note that Boost.Python is also fully
+    compatible with Python's cPickle module.</p>
+    <hr />
+
+    <h2>The Boost.Python Pickle Interface</h2>At the user level, the
+    Boost.Python pickle interface involves three special methods:
+
+    <dl>
+      <dt><strong><tt>__getinitargs__</tt></strong></dt>
+
+      <dd>
+        When an instance of a Boost.Python extension class is pickled, the
+        pickler tests if the instance has a <tt>__getinitargs__</tt> method.
+        This method must return a Python tuple (it is most convenient to use
+        a boost::python::tuple). When the instance is restored by the
+        unpickler, the contents of this tuple are used as the arguments for
+        the class constructor.
+
+        <p>If <tt>__getinitargs__</tt> is not defined, <tt>pickle.load</tt>
+        will call the constructor (<tt>__init__</tt>) without arguments;
+        i.e., the object must be default-constructible.</p>
+      </dd>
+
+      <dt><strong><tt>__getstate__</tt></strong></dt>
+
+      <dd>When an instance of a Boost.Python extension class is pickled, the
+      pickler tests if the instance has a <tt>__getstate__</tt> method. This
+      method should return a Python object representing the state of the
+      instance.</dd>
+
+      <dt><strong><tt>__setstate__</tt></strong></dt>
+
+      <dd>When an instance of a Boost.Python extension class is restored by
+      the unpickler (<tt>pickle.load</tt>), it is first constructed using the
+      result of <tt>__getinitargs__</tt> as arguments (see above).
+      Subsequently the unpickler tests if the new instance has a
+      <tt>__setstate__</tt> method. If so, this method is called with the
+      result of <tt>__getstate__</tt> (a Python object) as the argument.</dd>
+    </dl>The three special methods described above may be <tt>.def()</tt>'ed
+    individually by the user. However, Boost.Python provides an easy to use
+    high-level interface via the
+    <strong><tt>boost::python::pickle_suite</tt></strong> class that also
+    enforces consistency: <tt>__getstate__</tt> and <tt>__setstate__</tt>
+    must be defined as pairs. Use of this interface is demonstrated by the
+    following examples.
+    <hr />
+
+    <h2>Examples</h2>There are three files in <tt>boost/libs/python/test</tt>
+    that show how to provide pickle support.
+    <hr />
+
+    <h3><a href="../../test/pickle1.cpp"><tt>pickle1.cpp</tt></a></h3>The C++
+    class in this example can be fully restored by passing the appropriate
+    argument to the constructor. Therefore it is sufficient to define the
+    pickle interface method <tt>__getinitargs__</tt>. This is done in the
+    following way:
+
+    <ul>
+      <li>1. Definition of the C++ pickle function:
+        <pre>
+  struct world_pickle_suite : boost::python::pickle_suite
+  {
+    static
+    boost::python::tuple
+    getinitargs(world const&amp; w)
+    {
+        return boost::python::make_tuple(w.get_country());
+    }
+  };
+</pre>
+      </li>
+
+      <li>2. Establishing the Python binding:
+        <pre>
+  class_&lt;world&gt;("world", args&lt;const std::string&amp;&gt;())
+      // ...
+      .def_pickle(world_pickle_suite())
+      // ...
+</pre>
+      </li>
+    </ul>
+    <hr />
+
+    <h3><a href="../../test/pickle2.cpp"><tt>pickle2.cpp</tt></a></h3>The C++
+    class in this example contains member data that cannot be restored by any
+    of the constructors. Therefore it is necessary to provide the
+    <tt>__getstate__</tt>/<tt>__setstate__</tt> pair of pickle interface
+    methods:
+
+    <ul>
+      <li>1. Definition of the C++ pickle functions:
+        <pre>
+  struct world_pickle_suite : boost::python::pickle_suite
+  {
+    static
+    boost::python::tuple
+    getinitargs(const world&amp; w)
+    {
+      // ...
+    }
+
+    static
+    boost::python::tuple
+    getstate(const world&amp; w)
+    {
+      // ...
+    }
+
+    static
+    void
+    setstate(world&amp; w, boost::python::tuple state)
+    {
+      // ...
+    }
+  };
+</pre>
+      </li>
+
+      <li>2. Establishing the Python bindings for the entire suite:
+        <pre>
+  class_&lt;world&gt;("world", args&lt;const std::string&amp;&gt;())
+      // ...
+      .def_pickle(world_pickle_suite())
+      // ...
+</pre>
+      </li>
+    </ul>
+
+    <p>For simplicity, the <tt>__dict__</tt> is not included in the result of
+    <tt>__getstate__</tt>. This is not generally recommended, but a valid
+    approach if it is anticipated that the object's <tt>__dict__</tt> will
+    always be empty. Note that the safety guard described below will catch
+    the cases where this assumption is violated.</p>
+    <hr />
+
+    <h3><a href="../../test/pickle3.cpp"><tt>pickle3.cpp</tt></a></h3>This
+    example is similar to <a href=
+    "../../test/pickle2.cpp"><tt>pickle2.cpp</tt></a>. However, the object's
+    <tt>__dict__</tt> is included in the result of <tt>__getstate__</tt>.
+    This requires a little more code but is unavoidable if the object's
+    <tt>__dict__</tt> is not always empty.
+    <hr />
+
+    <h2>Pitfall and Safety Guard</h2>The pickle protocol described above has
+    an important pitfall that the end user of a Boost.Python extension module
+    might not be aware of:
+
+    <p><strong><tt>__getstate__</tt> is defined and the instance's
+    <tt>__dict__</tt> is not empty.</strong></p>
+
+    <p>The author of a Boost.Python extension class might provide a
+    <tt>__getstate__</tt> method without considering the possibilities
+    that:</p>
+
+    <ul>
+      <li>his class is used in Python as a base class. Most likely the
+      <tt>__dict__</tt> of instances of the derived class needs to be pickled
+      in order to restore the instances correctly.</li>
+
+      <li>the user adds items to the instance's <tt>__dict__</tt> directly.
+      Again, the <tt>__dict__</tt> of the instance then needs to be
+      pickled.</li>
+    </ul>
+
+    <p>To alert the user to this highly unobvious problem, a safety guard is
+    provided. If <tt>__getstate__</tt> is defined and the instance's
+    <tt>__dict__</tt> is not empty, Boost.Python tests if the class has an
+    attribute <tt>__getstate_manages_dict__</tt>. An exception is raised if
+    this attribute is not defined:</p>
+    <pre>
+    RuntimeError: Incomplete pickle support (__getstate_manages_dict__ not set)
+</pre>To resolve this problem, it should first be established that the <tt>
+    __getstate__</tt> and <tt>__setstate__</tt> methods manage the
+    instances's <tt>__dict__</tt> correctly. Note that this can be done
+    either at the C++ or the Python level. Finally, the safety guard should
+    intentionally be overridden. E.g. in C++ (from <a href=
+    "../../test/pickle3.cpp"><tt>pickle3.cpp</tt></a>):
+    <pre>
+  struct world_pickle_suite : boost::python::pickle_suite
+  {
+    // ...
+
+    static bool getstate_manages_dict() { return true; }
+  };
+</pre>Alternatively in Python:
+    <pre>
+    import your_bpl_module
+    class your_class(your_bpl_module.your_class):
+      __getstate_manages_dict__ = 1
+      def __getstate__(self):
+        # your code here
+      def __setstate__(self, state):
+        # your code here
+</pre>
+    <hr />
+
+    <h2>Practical Advice</h2>
+
+    <ul>
+      <li>In Boost.Python extension modules with many extension classes,
+      providing complete pickle support for all classes would be a
+      significant overhead. In general complete pickle support should only be
+      implemented for extension classes that will eventually be pickled.</li>
+
+      <li>Avoid using <tt>__getstate__</tt> if the instance can also be
+      reconstructed by way of <tt>__getinitargs__</tt>. This automatically
+      avoids the pitfall described above.</li>
+
+      <li>If <tt>__getstate__</tt> is required, include the instance's
+      <tt>__dict__</tt> in the Python object that is returned.</li>
+    </ul>
+    <hr />
+
+    <h2>Light-weight alternative: pickle support implemented in Python</h2>
+
+    <h3><a href="../../test/pickle4.cpp"><tt>pickle4.cpp</tt></a></h3>The
+    <tt>pickle4.cpp</tt> example demonstrates an alternative technique for
+    implementing pickle support. First we direct Boost.Python via the
+    <tt>class_::enable_pickling()</tt> member function to define only the
+    basic attributes required for pickling:
+    <pre>
+  class_&lt;world&gt;("world", args&lt;const std::string&amp;&gt;())
+      // ...
+      .enable_pickling()
+      // ...
+</pre>This enables the standard Python pickle interface as described in the
+Python documentation. By "injecting" a <tt>__getinitargs__</tt> method into
+the definition of the wrapped class we make all instances pickleable:
+    <pre>
+  # import the wrapped world class
+  from pickle4_ext import world
+
+  # definition of __getinitargs__
+  def world_getinitargs(self):
+    return (self.get_country(),)
+
+  # now inject __getinitargs__ (Python is a dynamic language!)
+  world.__getinitargs__ = world_getinitargs
+</pre>See also the <a href=
+"../tutorial/doc/html/python/techniques.html#python.extending_wrapped_objects_in_python">
+    tutorial section</a> on injecting additional methods from Python.
+    <hr />
+    © Copyright Ralf W. Grosse-Kunstleve 2001-2004. Distributed under the
+    Boost Software License, Version 1.0. (See accompanying file
+    LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+    <p>Updated: Feb 2004.</p>
+  </div>
+</body>
+</html>

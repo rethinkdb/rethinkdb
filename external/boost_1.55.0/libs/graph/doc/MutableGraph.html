@@ -1,0 +1,299 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>MutableGraph</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H2><A NAME="sec:MutableGraph"></A>
+MutableGraph
+</H2>
+
+A MutableGraph can be changed via the addition or removal of
+edges and vertices.
+
+<H3>Refinement of</H3>
+
+<a href="./Graph.html">Graph</a>
+
+<h3>Notation</h3>
+
+<Table>
+<TR>
+<TD><tt>G</tt></TD>
+<TD>A type that is a model of Graph.</TD>
+</TR>
+
+<TR>
+<TD><tt>g</tt></TD>
+<TD>An object of type <tt>G</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>e</tt></TD>
+<TD>An object of type <tt>boost::graph_traits&lt;G&gt;::edge_descriptor</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>u,v</tt></TD>
+<TD>are objects of type <tt>boost::graph_traits&lt;G&gt;::vertex_descriptor</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>iter</tt></TD>
+<TD>is an object of type <tt>boost::graph_traits&lt;G&gt;::out_edge_iterator</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>p</tt></TD>
+<TD>is an object of a type that models <a
+href="http://www.sgi.com/tech/stl/Predicate.html">Predicate</a>
+and whose argument type matches the <tt>edge_descriptor</tt> type. 
+</TR>
+
+</table>
+
+<H3>Valid Expressions</H3>
+
+<table border>
+
+<tr>
+<TD><a name="sec:add-edge"><TT>add_edge(u,&nbsp;v,&nbsp;g)</TT></a></TD>
+<TD>
+Inserts the edge <i>(u,v)</i> into the graph, and returns an edge
+descriptor pointing to the new edge. If the graph disallows parallel
+edges, and the edge <i>(u,v)</i> is already in the graph, then the
+<tt>bool</tt> flag returned is <tt>false</tt> and the returned edge
+descriptor points to the already existing edge.  Note that for
+undirected graphs, <i>(u,v)</i> is the same edge as <i>(v,u)</i>, so
+after a call to the function <tt>add_edge()</tt>, this implies that
+edge <i>(u,v)</i> will appear in the out-edges of <i>u</i> and
+<i>(u,v)</i> (or equivalently <i>(v,u)</i>) will appear in the
+out-edges of <i>v</i>.  Put another way, <i>v</i> will be adjacent to
+<i>u</i> and <i>u</i> will be adjacent to <i>v</i>.
+<br>
+Return type: <TT>std::pair&lt;edge_descriptor, bool&gt;</TT>
+</TD>
+</tr>
+
+<tr>
+<TD><a name="sec:remove_edge"><TT>remove_edge(u,&nbsp;v,&nbsp;g)</TT></a></TD>
+<TD>
+Remove the edge <i>(u,v)</i> from the graph. If the
+graph allows parallel edges this remove all occurrences of
+<i>(u,v)</i>.<br>
+Return type: <TT>void</TT><br>
+Precondition: <i>u</i> and <i>v</i> are vertices in the graph.<br>
+Postcondition: <i>(u,v)</i> is no longer in the edge set for
+<TT>g</TT>.<br>
+</TD>
+</TR>
+
+
+<tr>
+<TD><TT>remove_edge(e,&nbsp;g)</TT></TD>
+<TD>Remove the edge <i>e</i> from the graph.<br>
+Return type: <TT>void</TT><br>
+Precondition: <i>e</i> is an edge in the graph.<br>
+Postcondition: <i>e</i> is no longer in the edge set for <TT>g</TT>.
+</TD>
+</TR>
+
+<tr>
+<TD><TT>remove_edge(iter,&nbsp;g)</TT></TD>
+<TD>Remove the edge pointed to be <tt>iter</tt> from the graph.  This
+expression is only required when the graph also models <a
+href="./IncidenceGraph.html">IncidenceGraph</a>.<br>
+Return type: <TT>void</TT><br>
+Precondition: <tt>*iter</tt> is an edge in the graph.<br>
+Postcondition: <tt>*iter</tt> is no longer in the edge set for <TT>g</TT>.
+</TD>
+</TR>
+
+<tr>
+<TD><TT>remove_edge_if(p,&nbsp;g)</TT></TD>
+<TD>Remove all the edges from graph <tt>g</tt> for which
+the predicate <tt>p</tt> returns true.<br>
+Return type: <TT>void</TT>
+</TD>
+</TR>
+
+<tr>
+<TD><TT>remove_out_edge_if(u,&nbsp;p,&nbsp;g)</TT></TD>
+<TD>Remove all the out-edges of vertex <tt>u</tt> for which the
+predicate <tt>p</tt> returns true. This expression is only required
+when the graph also models <a
+href="./IncidenceGraph.html">IncidenceGraph</a>.<br>
+Return type: <TT>void</TT>
+</TD>
+</TR>
+
+<tr>
+<TD><TT>remove_in_edge_if(u,&nbsp;p,&nbsp;g)</TT></TD>
+<TD>Remove all the in-edges of vertex <tt>u</tt> for which the
+predicate <tt>p</tt> returns true. This expression is only required when the
+graph also models <a
+href="./BidirectionalGraph.html">BidirectionalGraph</a>.<br>
+Return type: <TT>void</TT>
+</TD>
+</TR>
+
+
+<tr>
+<TD><a name="sec:add-vertex"><TT>add_vertex(g)</TT></a></TD>
+<TD>
+Add a new vertex to the graph. The <TT>vertex_descriptor</TT> for the
+new vertex is returned.<br>
+Return type: <TT>vertex_descriptor</TT>
+</TD>
+</TR>
+
+
+<tr>
+<TD><TT>clear_vertex(u,&nbsp;g)</TT></TD>
+<TD>
+Remove all edges to and from vertex <tt>u</tt> from the graph.<br>
+Return type: <TT>void</TT><br>
+Precondition: <tt>u</tt> is a valid vertex descriptor of <TT>g</TT>.<br>
+Postcondition: <tt>u</tt> does not appear as a source or target of
+any edge in <TT>g</TT>.
+</TD>
+</TR>
+
+<tr>
+<TD><a name="sec:remove-vertex"><TT>remove_vertex(u,&nbsp;g)</TT></a></TD>
+<TD>
+Remove <i>u</i> from the vertex set of the graph. Note that undefined
+behavior may result if there are edges remaining in the graph who's
+target is <i>u</i>. Typically the <TT>clear_vertex()</TT> function
+should be called first.<br>
+Return type: <TT>void</TT><br>
+Precondition: <TT>u</TT> is a valid vertex descriptor of <TT>g</TT>.<br>
+Postcondition: <TT>num_vertices(g)</TT> is one less, <TT>u</TT>
+no longer appears in the vertex set of the graph and it
+is no longer a valid vertex descriptor.
+</TD>
+</TR>
+</TABLE>
+
+<P>
+</LI>
+</UL>
+
+<P>
+
+<H3>Complexity Guarantees</H3>
+
+<P>
+
+<UL>
+<LI>Edge insertion must be either amortized constant time or it
+ can be <i>O(log(E/V))</i> if the insertion also checks to
+  prevent the addition of parallel edges (which is a ``feature'' of
+  some graph types).
+</LI>
+<LI>Edge removal is guaranteed to be <i>O(E)</i>.</LI>
+<LI>Vertex insertion is guaranteed to be amortized constant time.</LI>
+<LI>Clearing a vertex is <i>O(E + V)</i>.</LI>
+<LI>Vertex removal is <i>O(E + V)</i>.</LI>
+</UL>
+
+<H3>Models</H3>
+
+<UL>
+<LI><TT>adjacency_list</TT>
+</LI>
+</UL>
+
+
+<H3>Concept Checking Class</H3>
+
+<PRE>
+  template &lt;class G&gt;
+  struct MutableGraphConcept
+  {
+    typedef typename boost::graph_traits&lt;G&gt;::edge_descriptor edge_descriptor;
+    void constraints() {
+      v = add_vertex(g);
+      clear_vertex(v, g);
+      remove_vertex(v, g);
+      e_b = add_edge(u, v, g);
+      remove_edge(u, v, g);
+      remove_edge(e, g);
+    }
+    G g;
+    edge_descriptor e;
+    std::pair&lt;edge_descriptor, bool&gt; e_b;
+    typename boost::graph_traits&lt;G&gt;::vertex_descriptor u, v;
+    typename boost::graph_traits&lt;G&gt;::out_edge_iterator iter;
+  };
+
+  template &lt;class edge_descriptor&gt;
+  struct dummy_edge_predicate {
+    bool operator()(const edge_descriptor& e) const {
+      return false;
+    }
+  };
+
+  template &lt;class G&gt;
+  struct MutableIncidenceGraphConcept
+  {
+    void constraints() {
+      BOOST_CONCEPT_ASSERT(( MutableGraph&lt;G&gt; ));
+      remove_edge(iter, g);
+      remove_out_edge_if(u, p, g);
+    }
+    G g;
+    typedef typename boost::graph_traits&lt;G&gt;::edge_descriptor edge_descriptor;
+    dummy_edge_predicate&lt;edge_descriptor&gt; p;
+    typename boost::graph_traits&lt;G&gt;::vertex_descriptor u;
+    typename boost::graph_traits&lt;G&gt;::out_edge_iterator iter;
+  };
+
+  template &lt;class G&gt;
+  struct MutableBidirectionalGraphConcept
+  {
+    void constraints() {
+      BOOST_CONCEPT_ASSERT(( MutableIncidenceGraph&lt;G&gt; ));
+      remove_in_edge_if(u, p, g);
+    }
+    G g;
+    typedef typename boost::graph_traits&lt;G&gt;::edge_descriptor edge_descriptor;
+    dummy_edge_predicate&lt;edge_descriptor&gt; p;
+    typename boost::graph_traits&lt;G&gt;::vertex_descriptor u;
+  };
+
+  template &lt;class G&gt;
+  struct MutableEdgeListGraphConcept
+  {
+    void constraints() {
+      BOOST_CONCEPT_ASSERT(( MutableGraph&lt;G&gt; ));
+      remove_edge_if(p, g);
+    }
+    G g;
+    typedef typename boost::graph_traits&lt;G&gt;::edge_descriptor edge_descriptor;
+    dummy_edge_predicate&lt;edge_descriptor&gt; p;
+  };
+</PRE>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

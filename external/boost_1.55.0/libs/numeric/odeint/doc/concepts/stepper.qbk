@@ -1,0 +1,92 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+[section Stepper]
+
+This concepts specifies the interface a simple stepper has to fulfill to be used within the __integrate_functions.
+
+[heading Description]
+
+The basic stepper concept.
+A basic stepper following this Stepper concept is able to perform a single step of the solution /x(t)/ of an ODE to obtain /x(t+dt)/ using a given step size /dt/.
+Basic steppers can be Runge-Kutta steppers, symplectic steppers as well as implicit steppers.
+Depending on the actual stepper, the ODE is defined as __system, __symplectic_system, __simple_symplectic_system or __implicit_system.
+Note that all error steppers are also basic steppers.
+
+[heading Refinement of]
+
+* DefaultConstructable
+* CopyConstructable
+
+
+[heading Associated types]
+
+*  '''<para>'''[*state_type]'''</para>'''
+'''<para>'''`Stepper::state_type`'''</para>'''
+'''<para>'''The type characterizing the state of the ODE, hence ['x].'''</para>'''
+
+*  '''<para>'''[*deriv_type]'''</para>'''
+'''<para>'''`Stepper::deriv_type`'''</para>'''
+'''<para>'''The type characterizing the derivative of the ODE, hence ['d x/dt].'''</para>'''
+
+*  '''<para>'''[*time_type]'''</para>'''
+'''<para>'''`Stepper::time_type`'''</para>'''
+'''<para>'''The type characterizing the dependent variable of the ODE, hence the time ['t].'''</para>'''
+
+*  '''<para>'''[*value_type]'''</para>'''
+'''<para>'''`Stepper::value_type`'''</para>'''
+'''<para>'''The numerical data type which is used within the stepper, something like `float`, `double`, `complex&lt; double &gt;`.'''</para>'''
+
+*  '''<para>'''[*order_type]'''</para>'''
+'''<para>'''`Stepper::order_type`'''</para>'''
+'''<para>'''The type characterizing the order of the ODE, typically `unsigned short`.'''</para>'''
+
+*  '''<para>'''[*stepper_category]'''</para>'''
+'''<para>'''`Stepper::stepper_category`'''</para>'''
+'''<para>'''A tag type characterizing the category of the stepper. This type must be convertible to `stepper_tag`.'''</para>'''
+
+
+[heading Notation]
+
+[variablelist 
+  [[`Stepper`] [A type that is a model of Stepper]]
+  [[`State`] [A type representing the state /x/ of the ODE]]
+  [[`Time`] [A type representing the time /t/ of the ODE]]
+  [[`stepper`] [An object of type `Stepper`]]
+  [[`x`] [Object of type `State`]]
+  [[`t`, `dt`] [Objects of type `Time`]]
+  [[`sys`] [An object defining the ODE. Depending on the Stepper this might be a model of __system, __symplectic_system, __simple_symplectic_system or __implicit_system ]]
+]
+
+[heading Valid Expressions]
+
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Get the order] [`stepper.order()`] [`order_type`] [Returns the order of the stepper.]]
+  [[Do step] [`stepper.do_step( sys , x , t , dt )`] [`void`] [Performs one step of step size `dt`.  The newly obtained state is written in place in `x`.] ]
+
+  [/ [Do step with reference] [`stepper.do_step( boost::ref(sys) , x , t , dt )`] [`void`] [Performs one step of step size `dt`.  The newly obtained state is written in place in `x`.] ]
+
+  [/ [Do step out-of-place] [`stepper.do_step( sys , in , t , out , dt )`] [`void`] [Performs one step. The newly obtained state is written to `out`] ]
+]
+
+[heading Models]
+
+* `runge_kutta4`
+* `euler`
+* `runge_kutta_cash_karp54`
+* `runge_kutta_dopri5`
+* `runge_kutta_fehlberg78`
+* `modified_midpoint`
+* `rosenbrock4`
+
+[endsect]

@@ -1,0 +1,94 @@
+[/
+ / Copyright (c) 2008 Marcin Kalicinski (kalita <at> poczta dot onet dot pl)
+ / Copyright (c) 2009 Sebastian Redl (sebastian dot redl <at> getdesigned dot at)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+[section:accessing How to Access Data in a Property Tree]
+[/ __ptree_*__ macros expected from property_tree.qbk]
+[def __pi__ ['pi]] [/ mathematical constant]
+
+Property tree resembles (almost is) a standard container with value type of `pair<string, ptree>`. It has the usual member functions, such as __ptree_insert__, __ptree_push_back__, __ptree_find__, __ptree_erase__, etc. These can of course be used to populate and access the tree. For example the following code adds key `"pi"` with data (almost) equal to mathematical __pi__ value:
+
+ __ptree__ pt;
+ pt.__ptree_push_back__(__ptree__::__ptree_value_type__("pi", __ptree__("3.14159")));
+
+To find the value of `pi` we might do the following:
+
+ __ptree__::__ptree_const_iterator__ it = pt.__ptree_find__("pi");
+ double pi = boost::lexical_cast<double>(it->second.__ptree_data__());
+
+This looks quite cumbersome, and would be even more so if `pi` value was not stored so near the top of the tree, and we cared just a little bit more about errors. Fortunately, there is another, correct way of doing it:
+
+ ptree pt;
+ pt.__ptree_put__("pi", 3.14159);                // put double
+ double pi = pt.__ptree_get__<double>("pi");     // get double
+
+It doesn't get simpler than that. Basically, there are 2 families of member functions, __ptree_get__ and __ptree_put__, which allow intuitive access to data stored in the tree (direct children or not).
+
+[heading Three Ways of Getting Data]
+
+There are three versions of get: get, get (default-value version), and get_optional, which differ by failure handling strategy. All versions take path specifier, which determines in which key to search for a value. It can be a single key, or a path to key, where path elements are separated with a special character (a '.' if not specified differently). For example debug.logging.errorlevel might be a valid path with dot as a separator.
+
+# The throwing version (__ptree_get__):
+``
+__ptree__ pt;
+/* ... */
+float v = pt.__ptree_get__<float>("a.path.to.float.value");
+``
+This call locates the proper node in the tree and tries to translate its data string to a float value. If that fails, exception is thrown. If path does not exist, it will be __ptree_bad_path__ exception. If value could not be translated, it will be __ptree_bad_data__. Both of them derive from __ptree_error__ to make common handling possible.
+# The default-value version (__ptree_get_defaulted__):
+``
+__ptree__ pt;
+/* ... */
+float v = pt.__ptree_get_defaulted__("a.path.to.float.value", -1.f);
+``
+It will do the same as above, but if it fails, it will return the default value specified by second parameter (here -1.f) instead of throwing. This is very useful in common situations where one wants to allow omitting of some keys. Note that type specification needed in throwing version is normally not necessary here, because type is determined by the default value parameter.
+# The optional version (__ptree_get_optional__):
+``
+__ptree__ pt;
+/* ... */
+boost::optional<float> v = pt.__ptree_get_optional__<float>("a.path.to.float.value");
+``
+This version uses boost::optional class to handle extraction failure. On successful extraction, it will return boost::optional initialized with extracted value. Otherwise, it will return uninitialized boost::optional.
+
+To retrieve a value from this tree (not some subkey), use __ptree_get_value__, __ptree_get_value__ (default-value version), and __ptree_get_value_optional__. They have identical semantics to __ptree_get__ functions, except they don't take the __path__ parameter. Don't call __ptree_get__ with and empty __path__ to do this as it will try to extract contents of subkey with empty name.
+
+To use a separator character other than default '[^.]', you need to construct
+a path object explicitly. The path type for a __ptree__ is a string_path
+instantiation, so the easiest way to refer to it is __ptree__::path_type.
+This way you can use trees that have dots in their keys:
+
+ typedef ptree::path_type path;
+ pt.get<float>(path("p.a.t.h/t.o/v.a.l.u.e", '/'));
+ pt.get(path("p.a.t.h/t.o/v.a.l.u.e", '/'), 0, NULL);
+ pt.get_optional<std::string>(path("p.a.t.h/t.o/v.a.l.u.e", '/'));
+
+Note: the special overloads of __ptree_get__ and __ptree_get_optional__ taking
+a separator character that existed in pre-release versions of PropertyTree have
+been removed. This is because the overloads conflicted with using per-call data
+translators.
+
+[heading Two Ways of Putting Data]
+
+To complement __ptree_get__, there are __ptree_put__ and __ptree_add__. Contrary to __ptree_get__, they have only one variant each. This is because there is no need to deal with missing values when adding data. If the supplied value cannot be converted to the tree's data type, the functions will throw __ptree_bad_data__.
+
+ __ptree__ pt;
+ pt.__ptree_put__("a.path.to.float.value", 3.14f);
+ // Overwrites the value
+ pt.__ptree_put__("a.path.to.float.value", 2.72f);
+ // Adds a second node with the new value.
+ pt.__ptree_add__("a.path.to.float.value", 3.14f);
+
+Calling __ptree_put__ will insert a new value at specified path, so that a call to __ptree_get__ specifying the same path will retrieve it.  Further, __ptree_put__ will insert any missing path elements during path traversal. For example, calling `__ptree_put__("key1.key2.key3", 3.14f)` on an empty tree will insert three new children: `key1`, `key1.key2` and `key1.key2.key3`. The last one will receive a string `"3.14"` as data, while the two former ones will have empty data strings. __ptree_put__ always inserts new keys at the back of the existing sequences.
+The difference between __ptree_put__ and __ptree_add__ is that put will overwrite existing values if there are any, while add will create a new node to hold the value even if the specified path references an existing node.
+
+Similar to __ptree_get_value__, there is also a __ptree_put_value__ function.  It does the same for this property tree what __ptree_put__ does for its children. Thus, it does not receive a __path__:
+
+ __ptree__ pt;
+ pt.__ptree_put_value__(3.14f);
+
+There is no add_value function.
+
+[endsect]

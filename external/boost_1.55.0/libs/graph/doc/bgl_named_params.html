@@ -1,0 +1,96 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Named Parameters</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:bgl-named-params"></A>
+<pre>
+bgl_named_params&lt;Param, Type, Rest&gt;
+</pre>
+</H1>
+
+<p>
+Many of the Boost.Graph algorithms have a long list of parameters,
+most of which have default values. This causes several problems.
+First, C++ does not provide a mechanism for handling default
+parameters of template functions. However, this can be overcome by
+creating multiply version of an algorithm with different numbers of
+parameters with each version providing defaults for some subset of
+the parameters. This is the approach used in previous versions of
+Boost.Graph. This solution is still unsatisfactory for several
+reasons:
+
+<ul>
+  <li>The defaults for parameters can only been used in a particular
+  order. If the ordering of the defaults does not fit the users situation
+  he or she has to resort to providing all the parameters.
+
+  <li>Since the list of parameters is long, it is easy to forget
+   the ordering. 
+</ul>
+
+<p>
+A better solution is provided by <tt>bgl_named_params</tt>. This class
+allows users to provide parameters is any order, and matches
+arguments to parameters based on parameter names.
+
+<p>
+The following code shows an example of calling
+<tt>bellman_ford_shortest_paths</tt> using the named parameter
+technique. Each of the arguments is passed to a function whose name
+indicates which parameter the argument is for. Each of the named
+parameters is separated by a <b>period</b>, not a comma.
+
+<pre>
+  bool r = boost::bellman_ford_shortest_paths(g, int(N), 
+     boost::weight_map(weight).
+     distance_map(&amp;distance[0]).
+     predecessor_map(&amp;parent[0]));
+</pre>
+
+<p>The order in which the arguments are provided does not matter as
+long as they are matched with the correct parameter function.  Here is
+an call to <tt>bellman_ford_shortest_paths</tt> that is equivalent to
+the one above.
+
+<pre>
+  bool r = boost::bellman_ford_shortest_paths(g, int(N), 
+     boost::predecessor_map(&amp;parent[0]).
+     distance_map(&amp;distance[0]).
+     weight_map(weight));
+</pre>
+
+<p>Typically the user never needs to deal with the
+<tt>bgl_named_params</tt> class directly, since there are functions
+like <tt>boost::weight_map</tt> that create an instance of
+<tt>bgl_named_params</tt>.
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML>

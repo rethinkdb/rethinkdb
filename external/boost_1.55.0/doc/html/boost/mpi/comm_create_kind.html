@@ -1,0 +1,64 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Type comm_create_kind</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../mpi/reference.html#header.boost.mpi.communicator_hpp" title="Header &lt;boost/mpi/communicator.hpp&gt;">
+<link rel="prev" href="communicator.html" title="Class communicator">
+<link rel="next" href="any_source.html" title="Global any_source">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="communicator.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.communicator_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="any_source.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.mpi.comm_create_kind"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Type comm_create_kind</span></h2>
+<p>boost::mpi::comm_create_kind &#8212; Enumeration used to describe how to adopt a C <code class="computeroutput">MPI_Comm</code> into a Boost.MPI communicator. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../mpi/reference.html#header.boost.mpi.communicator_hpp" title="Header &lt;boost/mpi/communicator.hpp&gt;">boost/mpi/communicator.hpp</a>&gt;
+
+</span>
+
+<span class="keyword">enum</span> <span class="identifier">comm_create_kind</span> <span class="special">{</span> comm_duplicate, comm_take_ownership, comm_attach <span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp161206776"></a><h2>Description</h2>
+<p>The values for this enumeration determine how a Boost.MPI communicator will behave when constructed with an MPI communicator. The options are:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p><code class="computeroutput">comm_duplicate:</code> Duplicate the MPI_Comm communicator to create a new communicator (e.g., with MPI_Comm_dup). This new MPI_Comm communicator will be automatically freed when the Boost.MPI communicator (and all copies of it) is destroyed.</p></li>
+<li class="listitem"><p><code class="computeroutput">comm_take_ownership:</code> Take ownership of the communicator. It will be freed automatically when all of the Boost.MPI communicators go out of scope. This option must not be used with MPI_COMM_WORLD.</p></li>
+<li class="listitem"><p><code class="computeroutput">comm_attach:</code> The Boost.MPI communicator will reference the existing MPI communicator but will not free it when the Boost.MPI communicator goes out of scope. This option should only be used when the communicator is managed by the user or MPI library (e.g., MPI_COMM_WORLD). </p></li>
+</ul></div>
+<p>
+</p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2007 Douglas Gregor,
+      Matthias Troyer, Trustees of Indiana University<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="communicator.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.communicator_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="any_source.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

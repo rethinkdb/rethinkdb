@@ -1,0 +1,20 @@
+
+# (C) Copyright Tobias Schwinger 
+#
+# Use, modification and distribution are subject to the Boost Software License,
+# Version 1.0. (See http://www.boost.org/LICENSE_1_0.txt).
+
+#-------------------------------------------------------------------------------
+
+exe  interpreter_example     : interpreter_example.cpp ;
+
+exe  result_of_example       : result_of_example.cpp   ;
+
+exe  interface_example       : interface_example.cpp   ;
+
+exe  fast_mem_fn_example     : fast_mem_fn_example.cpp 
+    : <include>. ; # needed for Boost.PP file iteration with some compilers
+
+exe  macro_type_args_example : macro_type_args_example.cpp ;
+
+

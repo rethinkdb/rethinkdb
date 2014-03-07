@@ -1,0 +1,307 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Atomically Extract an Attribute Value from a Container (Karma)</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../customize.html" title="Customization of Spirit's Attribute Handling">
+<link rel="prev" href="string_traits/extract_c_string.html" title="Get a C-style String from a String Type">
+<link rel="next" href="auto.html" title="Create Components from Attributes (Qi and Karma)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="string_traits/extract_c_string.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../customize.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="auto.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.advanced.customize.attribute_as"></a><a class="link" href="attribute_as.html" title="Atomically Extract an Attribute Value from a Container (Karma)">Atomically
+        Extract an Attribute Value from a Container (Karma)</a>
+</h4></div></div></div>
+<h6>
+<a name="spirit.advanced.customize.attribute_as.h0"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.attribute_as.attribute_as"></a></span><a class="link" href="attribute_as.html#spirit.advanced.customize.attribute_as.attribute_as">attribute_as</a>
+        </h6>
+<p>
+          <code class="computeroutput"><span class="identifier">attribute_as</span></code> atomically
+          extracts an instance of a type from another type. This customization point
+          is used by the <a class="link" href="../../karma/reference/directive/as.html" title="Generator Directives Forcing Atomic Extraction (as&lt;T&gt;, as_string[], as_wstring[])"><code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;[]</span></code></a>
+          directive.
+        </p>
+<h6>
+<a name="spirit.advanced.customize.attribute_as.h1"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.attribute_as.module_headers"></a></span><a class="link" href="attribute_as.html#spirit.advanced.customize.attribute_as.module_headers">Module
+          Headers</a>
+        </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">support</span><span class="special">/</span><span class="identifier">attributes_fwd</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          Also, see <a class="link" href="../../structure/include.html" title="Include">Include Structure</a>.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This header file does not need to be included directly by any user program
+            as it is normally included by other Spirit header files relying on its
+            content.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.attribute_as.h2"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.attribute_as.namespace"></a></span><a class="link" href="attribute_as.html#spirit.advanced.customize.attribute_as.namespace">Namespace</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                  <p>
+                    Name
+                  </p>
+                </th></tr></thead>
+<tbody><tr><td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">traits</span></code>
+                  </p>
+                </td></tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.attribute_as.h3"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.attribute_as.synopsis"></a></span><a class="link" href="attribute_as.html#spirit.advanced.customize.attribute_as.synopsis">Synopsis</a>
+        </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Attribute</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Enable</span> <span class="special">=</span> <span class="keyword">void</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">attribute_as</span><span class="special">;</span>
+</pre>
+<h6>
+<a name="spirit.advanced.customize.attribute_as.h4"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.attribute_as.template_parameters"></a></span><a class="link" href="attribute_as.html#spirit.advanced.customize.attribute_as.template_parameters">Template
+          parameters</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Default
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">T</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The type of the attribute natively exposed by the component the
+                    <code class="computeroutput"><span class="identifier">attribute_as</span></code>
+                    is invoked from.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    none
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Attribute</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The type of the attribute to be used to generate output from.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    none
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Enable</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Helper template parameter usable to selectively enable or disable
+                    certain specializations of <code class="computeroutput"><span class="identifier">attribute_as</span></code>
+                    utilizing SFINAE (i.e. <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">enable_if</span></code>
+                    or <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">disable_if</span></code>).
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">void</span></code>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">attr</span></code></span></dt>
+<dd><p>
+                An instance of type <code class="computeroutput"><span class="identifier">Attrib</span></code>.
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.advanced.customize.attribute_as.h5"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.attribute_as.expression_semantics"></a></span><a class="link" href="attribute_as.html#spirit.advanced.customize.attribute_as.expression_semantics">Expression
+          Semantics</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">attribute_as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">Attribute</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The result type of the extraction.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">attribute_as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">Attribute</span><span class="special">&gt;::</span><span class="identifier">call</span><span class="special">(</span><span class="identifier">attr</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Extract and return an instance of <code class="computeroutput"><span class="identifier">type</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">attribute_as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">Attribute</span><span class="special">&gt;::</span><span class="identifier">valid_as</span><span class="special">(</span><span class="identifier">attr</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Determine, at runtime, if the extraction of an instance of <code class="computeroutput"><span class="identifier">type</span></code> from <code class="computeroutput"><span class="identifier">attr</span></code>
+                    would cause an error.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.attribute_as.h6"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.attribute_as.predefined_specializations"></a></span><a class="link" href="attribute_as.html#spirit.advanced.customize.attribute_as.predefined_specializations">Predefined
+          Specializations</a>
+        </h6>
+<p>
+          <a href="http://boost-spirit.com" target="_top">Spirit</a> predefines specializations
+          of this customization point for several types. The following table lists
+          those types together with the types exposed and the corresponding semantics:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Template Parameters
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unused_type</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The exposed typedef <code class="computeroutput"><span class="identifier">type</span></code>
+                    is defined to <code class="computeroutput"><span class="identifier">unused_type</span></code>.
+                    The function <code class="computeroutput"><span class="identifier">call</span><span class="special">()</span></code> returns an instance of <code class="computeroutput"><span class="identifier">unused_type</span></code>.
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.attribute_as.h7"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.attribute_as.when_to_implement"></a></span><a class="link" href="attribute_as.html#spirit.advanced.customize.attribute_as.when_to_implement">When
+          to implement</a>
+        </h6>
+<p>
+          This customization point may need to be implemented when using the <a class="link" href="../../karma/reference/directive/as.html" title="Generator Directives Forcing Atomic Extraction (as&lt;T&gt;, as_string[], as_wstring[])"><code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;[]</span></code></a> directive.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="string_traits/extract_c_string.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../customize.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="auto.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

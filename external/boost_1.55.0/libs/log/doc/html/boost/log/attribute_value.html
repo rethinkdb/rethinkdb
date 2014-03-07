@@ -1,0 +1,388 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class attribute_value</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../attributes.html#header.boost.log.attributes.attribute_value_hpp" title="Header &lt;boost/log/attributes/attribute_value.hpp&gt;">
+<link rel="prev" href="swap_idp25873752.html" title="Function swap">
+<link rel="next" href="attribute_value/impl.html" title="Struct impl">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="swap_idp25873752.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../attributes.html#header.boost.log.attributes.attribute_value_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="attribute_value/impl.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.attribute_value"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class attribute_value</span></h2>
+<p>boost::log::attribute_value &#8212; An attribute value class. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../attributes.html#header.boost.log.attributes.attribute_value_hpp" title="Header &lt;boost/log/attributes/attribute_value.hpp&gt;">boost/log/attributes/attribute_value.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// member classes/structs/unions</span>
+
+  <span class="comment">// A base class for an attribute value implementation.</span>
+
+  <span class="keyword">struct</span> <a class="link" href="attribute_value/impl.html" title="Struct impl">impl</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">attribute</span><span class="special">::</span><span class="identifier">impl</span> <span class="special">{</span>
+
+    <span class="comment">// <a class="link" href="attribute_value/impl.html#idp25881720-bb">public member functions</a></span>
+    <span class="keyword">bool</span> <a class="link" href="attribute_value/impl.html#idp25881928-bb"><span class="identifier">dispatch</span></a><span class="special">(</span><span class="identifier">type_dispatcher</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+    <span class="identifier">intrusive_ptr</span><span class="special">&lt;</span> <a class="link" href="attribute_value/impl.html" title="Struct impl">impl</a> <span class="special">&gt;</span> <a class="link" href="attribute_value/impl.html#idp25883896-bb"><span class="identifier">detach_from_thread</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+    <a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a> <a class="link" href="attribute_value/impl.html#idp25885592-bb"><span class="identifier">get_value</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+    <span class="identifier">type_info_wrapper</span> <a class="link" href="attribute_value/impl.html#idp25886584-bb"><span class="identifier">get_type</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+  <span class="comment">// <a class="link" href="attribute_value.html#boost.log.attribute_valueconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="attribute_value.html#idp25913960-bb"><span class="identifier">attribute_value</span></a><span class="special">(</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">default</span><span class="special">;</span>
+  <a class="link" href="attribute_value.html#idp25914424-bb"><span class="identifier">attribute_value</span></a><span class="special">(</span><a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="attribute_value.html#idp25915192-bb"><span class="identifier">attribute_value</span></a><span class="special">(</span><a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="attribute_value.html#idp25915960-bb"><span class="identifier">attribute_value</span></a><span class="special">(</span><span class="identifier">intrusive_ptr</span><span class="special">&lt;</span> <a class="link" href="attribute_value/impl.html" title="Struct impl">impl</a> <span class="special">&gt;</span><span class="special">)</span><span class="special">;</span>
+  attribute_value&amp; <a class="link" href="attribute_value.html#idp25917384-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  attribute_value&amp; <a class="link" href="attribute_value.html#idp25918280-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="attribute_value.html#idp25887496-bb">public member functions</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="attribute_value.html#idp25887704-bb"><span class="keyword">operator</span> <span class="keyword">bool</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="attribute_value.html#idp25888568-bb"><span class="keyword">operator</span><span class="special">!</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">type_info_wrapper</span> <a class="link" href="attribute_value.html#idp25889288-bb"><span class="identifier">get_type</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="attribute_value.html#idp25890248-bb"><span class="identifier">detach_from_thread</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="attribute_value.html#idp25891528-bb"><span class="identifier">dispatch</span></a><span class="special">(</span><span class="identifier">type_dispatcher</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> TagT <span class="special">=</span> <span class="keyword">void</span><span class="special">&gt;</span> 
+    <a class="link" href="result_of/extract.html" title="Struct template extract">result_of::extract</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">TagT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a class="link" href="attribute_value.html#idp25894024-bb"><span class="identifier">extract</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> TagT <span class="special">=</span> <span class="keyword">void</span><span class="special">&gt;</span> 
+    <a class="link" href="result_of/extract_or_throw.html" title="Struct template extract_or_throw">result_of::extract_or_throw</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">TagT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a class="link" href="attribute_value.html#idp25897400-bb"><span class="identifier">extract_or_throw</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> TagT <span class="special">=</span> <span class="keyword">void</span><span class="special">&gt;</span> 
+    <a class="link" href="result_of/extract_or_default.html" title="Struct template extract_or_default">result_of::extract_or_default</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">TagT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+    <a class="link" href="attribute_value.html#idp25900808-bb"><span class="identifier">extract_or_default</span></a><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> TagT <span class="special">=</span> <span class="keyword">void</span><span class="special">,</span> <span class="keyword">typename</span> DefaultT<span class="special">&gt;</span> 
+    <a class="link" href="result_of/extract_or_default.html" title="Struct template extract_or_default">result_of::extract_or_default</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">DefaultT</span><span class="special">,</span> <span class="identifier">TagT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+    <a class="link" href="attribute_value.html#idp25904808-bb"><span class="identifier">extract_or_default</span></a><span class="special">(</span><span class="identifier">DefaultT</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> VisitorT<span class="special">&gt;</span> 
+    <a class="link" href="visitation_result.html" title="Class visitation_result">visitation_result</a> <a class="link" href="attribute_value.html#idp25909096-bb"><span class="identifier">visit</span></a><span class="special">(</span><span class="identifier">VisitorT</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="attribute_value.html#idp25912776-bb"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp54895416"></a><h2>Description</h2>
+<p>An attribute value is an object that contains a piece of data that represents an attribute state at the point of the value acquisition. All major operations with log records, such as filtering and formatting, involve attribute values contained in a single view. Most likely an attribute value is implemented as a simple holder of some typed value. This holder implements the <code class="computeroutput">attribute_value::implementation</code> interface and acts as a pimpl for the <code class="computeroutput"><a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a></code> object. The <code class="computeroutput"><a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a></code> class provides type dispatching support in order to allow to extract the value from the holder.</p>
+<p>Normally, attributes and their values shall be designed in order to exclude as much interference as reasonable. Such approach allows to have more than one attribute value simultaneously, which improves scalability and allows to implement generating attributes.</p>
+<p>However, there are cases when this approach does not help to achieve the required level of independency of attribute values and attribute itself from each other at a reasonable performance tradeoff. For example, an attribute or its values may use thread-specific data, which is global and shared between all the instances of the attribute/value. Passing such an attribute value to another thread would be a disaster. To solve this the library defines an additional method for attribute values, namely <code class="computeroutput">detach_from_thread</code>. The <code class="computeroutput"><a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a></code> class forwards the call to its pimpl, which is supposed to ensure that it no longer refers to any thread-specific data after the call. The pimpl can create a new holder as a result of this method and return it to the <code class="computeroutput"><a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a></code> wrapper, which will keep the returned reference for any further calls. This method is called for all attribute values that are passed to another thread. </p>
+<div class="refsect2">
+<a name="idp54900440"></a><h3>
+<a name="boost.log.attribute_valueconstruct-copy-destruct"></a><code class="computeroutput">attribute_value</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp25913960-bb"></a><span class="identifier">attribute_value</span><span class="special">(</span><span class="special">)</span> <span class="special">=</span> <span class="keyword">default</span><span class="special">;</span></pre>
+<p>Default constructor. Creates an empty (absent) attribute value. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp25914424-bb"></a><span class="identifier">attribute_value</span><span class="special">(</span><a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a> <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Copy constructor </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp25915192-bb"></a><span class="identifier">attribute_value</span><span class="special">(</span><a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a> <span class="special">&amp;&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Move constructor </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp25915960-bb"></a><span class="identifier">attribute_value</span><span class="special">(</span><span class="identifier">intrusive_ptr</span><span class="special">&lt;</span> <a class="link" href="attribute_value/impl.html" title="Struct impl">impl</a> <span class="special">&gt;</span> p<span class="special">)</span><span class="special">;</span></pre>
+<p>Initializing constructor. Creates an attribute value that refers to the specified holder.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">p</code></span></p></td>
+<td><p>A pointer to the attribute value holder. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout">attribute_value&amp; <a name="idp25917384-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a> <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Copy assignment </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">attribute_value&amp; <a name="idp25918280-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a> <span class="special">&amp;&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Move assignment </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp54921784"></a><h3>
+<a name="idp25887496-bb"></a><code class="computeroutput">attribute_value</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp25887704-bb"></a><span class="keyword">operator</span> <span class="keyword">bool</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The operator checks if the attribute value is empty </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp25888568-bb"></a><span class="keyword">operator</span><span class="special">!</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The operator checks if the attribute value is empty </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">type_info_wrapper</span> <a name="idp25889288-bb"></a><span class="identifier">get_type</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method returns the type information of the stored value of the attribute. The returned type info wrapper may be empty if the attribute value is empty or the information cannot be provided. If the returned value is not empty, the type can be used for value extraction. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25890248-bb"></a><span class="identifier">detach_from_thread</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method is called when the attribute value is passed to another thread (e.g. in case of asynchronous logging). The value should ensure it properly owns all thread-specific data.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p>The attribute value no longer refers to any thread-specific resources. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp25891528-bb"></a><span class="identifier">dispatch</span><span class="special">(</span><span class="identifier">type_dispatcher</span> <span class="special">&amp;</span> dispatcher<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method dispatches the value to the given object. This method is a low level interface for attribute value visitation and extraction. For typical usage these interfaces may be more convenient.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">dispatcher</code></span></p></td>
+<td><p>The object that attempts to dispatch the stored value. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if the value is not empty and the <span class="emphasis"><em>dispatcher</em></span> was capable to consume the real attribute value type and <code class="computeroutput">false</code> otherwise. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> TagT <span class="special">=</span> <span class="keyword">void</span><span class="special">&gt;</span> 
+  <a class="link" href="result_of/extract.html" title="Struct template extract">result_of::extract</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">TagT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="idp25894024-bb"></a><span class="identifier">extract</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method attempts to extract the stored value, assuming the value has the specified type. One can specify either a single type or an MPL type sequence, in which case the stored value is checked against every type in the sequence.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>Include <code class="computeroutput">value_extraction.hpp</code> prior to using this method.</p></td></tr>
+</table></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The extracted value, if the attribute value is not empty and the value is the same as specified. Otherwise returns an empty value. See description of the <code class="computeroutput"><a class="link" href="result_of/extract.html" title="Struct template extract">result_of::extract</a></code> metafunction for information on the nature of the result value. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> TagT <span class="special">=</span> <span class="keyword">void</span><span class="special">&gt;</span> 
+  <a class="link" href="result_of/extract_or_throw.html" title="Struct template extract_or_throw">result_of::extract_or_throw</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">TagT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="idp25897400-bb"></a><span class="identifier">extract_or_throw</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method attempts to extract the stored value, assuming the value has the specified type. One can specify either a single type or an MPL type sequence, in which case the stored value is checked against every type in the sequence.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>Include <code class="computeroutput">value_extraction.hpp</code> prior to using this method.</p></td></tr>
+</table></div>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The extracted value, if the attribute value is not empty and the value is the same as specified. Otherwise an exception is thrown. See description of the <code class="computeroutput"><a class="link" href="result_of/extract_or_throw.html" title="Struct template extract_or_throw">result_of::extract_or_throw</a></code> metafunction for information on the nature of the result value. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> TagT <span class="special">=</span> <span class="keyword">void</span><span class="special">&gt;</span> 
+  <a class="link" href="result_of/extract_or_default.html" title="Struct template extract_or_default">result_of::extract_or_default</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">TagT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+  <a name="idp25900808-bb"></a><span class="identifier">extract_or_default</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span> def_value<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method attempts to extract the stored value, assuming the value has the specified type. One can specify either a single type or an MPL type sequence, in which case the stored value is checked against every type in the sequence. If extraction fails, the default value is returned.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>Include <code class="computeroutput">value_extraction.hpp</code> prior to using this method.</p></td></tr>
+</table></div>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">def_value</code></span></p></td>
+<td><p>Default value.</p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The extracted value, if the attribute value is not empty and the value is the same as specified. Otherwise returns the default value. See description of the <code class="computeroutput"><a class="link" href="result_of/extract_or_default.html" title="Struct template extract_or_default">result_of::extract_or_default</a></code> metafunction for information on the nature of the result value. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> TagT <span class="special">=</span> <span class="keyword">void</span><span class="special">,</span> <span class="keyword">typename</span> DefaultT<span class="special">&gt;</span> 
+  <a class="link" href="result_of/extract_or_default.html" title="Struct template extract_or_default">result_of::extract_or_default</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">DefaultT</span><span class="special">,</span> <span class="identifier">TagT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+  <a name="idp25904808-bb"></a><span class="identifier">extract_or_default</span><span class="special">(</span><span class="identifier">DefaultT</span> <span class="keyword">const</span> <span class="special">&amp;</span> def_value<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method attempts to extract the stored value, assuming the value has the specified type. One can specify either a single type or an MPL type sequence, in which case the stored value is checked against every type in the sequence. If extraction fails, the default value is returned.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>Include <code class="computeroutput">value_extraction.hpp</code> prior to using this method.</p></td></tr>
+</table></div>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">def_value</code></span></p></td>
+<td><p>Default value.</p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The extracted value, if the attribute value is not empty and the value is the same as specified. Otherwise returns the default value. See description of the <code class="computeroutput"><a class="link" href="result_of/extract_or_default.html" title="Struct template extract_or_default">result_of::extract_or_default</a></code> metafunction for information on the nature of the result value. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">typename</span> VisitorT<span class="special">&gt;</span> 
+  <a class="link" href="visitation_result.html" title="Class visitation_result">visitation_result</a> <a name="idp25909096-bb"></a><span class="identifier">visit</span><span class="special">(</span><span class="identifier">VisitorT</span> visitor<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method attempts to extract the stored value, assuming the value has the specified type, and pass it to the <span class="emphasis"><em>visitor</em></span> function object. One can specify either a single type or an MPL type sequence, in which case the stored value is checked against every type in the sequence.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>Include <code class="computeroutput">value_visitation.hpp</code> prior to using this method.</p></td></tr>
+</table></div>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">visitor</code></span></p></td>
+<td><p>A function object that will be invoked on the extracted attribute value. The visitor should be capable to be called with a single argument of any type of the specified types in <code class="computeroutput">T</code>.</p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The result of visitation. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25912776-bb"></a><span class="identifier">swap</span><span class="special">(</span><a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a> <span class="special">&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>The method swaps two attribute values </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="swap_idp25873752.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../attributes.html#header.boost.log.attributes.attribute_value_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="attribute_value/impl.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

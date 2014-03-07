@@ -1,0 +1,496 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/expr.hpp">
+  <namespace name="boost">
+    <namespace name="proto">
+
+      <!-- boost::proto::basic_expr -->
+
+      <struct name="basic_expr">
+        <template>
+          <template-type-parameter name="Tag"/>
+          <template-type-parameter name="Args"/>
+          <template-nontype-parameter name="Arity">
+            <type>long</type>
+            <default>Args::arity</default>
+          </template-nontype-parameter>
+        </template>
+
+        <purpose>Simplified representation of a node in an expression tree.</purpose>
+
+        <description>
+          <para>
+            <computeroutput>proto::basic_expr&lt;&gt;</computeroutput> is a node in an expression
+            template tree. It is a container for its child sub-trees. It also serves as the
+            terminal nodes of the tree.
+          </para>
+          <para>
+            <computeroutput>Tag</computeroutput> is type that represents the operation
+            encoded by this expression. It is typically one of the structs in the
+            <computeroutput>boost::proto::tag</computeroutput> namespace, but it doesn't
+            have to be. If <computeroutput>Arity</computeroutput> is 0 then this
+            <computeroutput>expr&lt;&gt;</computeroutput> type represents a leaf in the
+            expression tree.
+          </para>
+          <para>
+            <computeroutput>Args</computeroutput> is a list of types representing
+            the children of this expression. It is an instantiation of one of
+            <computeroutput><classname alt="proto::listN">proto::list1&lt;&gt;</classname></computeroutput>,
+            <computeroutput><classname alt="proto::listN">proto::list2&lt;&gt;</classname></computeroutput>,
+            etc. The child types
+            must all themselves be either <computeroutput>proto::expr&lt;&gt;</computeroutput>
+            or <computeroutput>proto::basic_expr&lt;&gt;&amp;</computeroutput> (or extensions thereof via
+            <computeroutput><classname>proto::extends&lt;&gt;</classname></computeroutput> or
+            <computeroutput><macroname>BOOST_PROTO_EXTENDS</macroname>()</computeroutput>), unless
+            <computeroutput>Arity</computeroutput> is 0, in which case
+            <computeroutput>Args</computeroutput> must be
+            <computeroutput>proto::term&lt;T&gt;</computeroutput>, where
+            <computeroutput>T</computeroutput> can be any type.
+          </para>
+          <para>
+            <computeroutput>proto::basic_expr&lt;&gt;</computeroutput> is a valid Fusion
+            random-access sequence, where the elements of the sequence are the child
+            expressions.
+          </para>
+        </description>
+
+        <!-- typedefs -->
+
+        <typedef name="proto_tag">
+          <type>Tag</type>
+        </typedef>
+
+        <typedef name="proto_args">
+          <type>Args</type>
+        </typedef>
+
+        <typedef name="proto_arity">
+          <type>mpl::long_&lt; Arity &gt;</type>
+        </typedef>
+
+        <typedef name="proto_domain">
+          <type><classname>proto::basic_default_domain</classname></type>
+        </typedef>
+
+        <typedef name="proto_grammar">
+          <type>basic_expr</type>
+        </typedef>
+
+        <typedef name="proto_base_expr">
+          <type>basic_expr</type>
+        </typedef>
+
+        <typedef name="proto_derived_expr">
+          <type>basic_expr</type>
+        </typedef>
+
+        <typedef name="proto_childN">
+          <type>typename Args::child<replaceable>N</replaceable></type>
+          <purpose>For each <replaceable>N</replaceable> in <replaceable>[0,max(Arity,1))</replaceable>.</purpose>
+        </typedef>
+
+        <method-group name="public static functions">
+
+          <!-- make -->
+          <method name="make" specifiers="static">
+            <type>basic_expr const</type>
+            <template>
+              <template-type-parameter name="A" pack="1"/>
+            </template>
+            <parameter name="a" pack="1">
+              <paramtype>A const &amp;</paramtype>
+            </parameter>
+            <requires>
+              <para>
+                The number of supplied arguments must be <computeroutput>max(Arity,1)</computeroutput>.
+              </para>
+            </requires>
+            <returns>
+              <para>
+                A new <computeroutput>basic_expr</computeroutput> object initialized with the specified arguments.
+              </para>
+            </returns>
+          </method>
+
+        </method-group>
+
+        <method-group name="public member functions">
+
+          <method name="proto_base">
+            <type>basic_expr &amp;</type>
+            <returns>
+              <para>
+                <computeroutput>*this</computeroutput>
+              </para>
+            </returns>
+          </method>
+
+          <method name="proto_base" cv="const">
+            <type>basic_expr const &amp;</type>
+            <description>
+              <para>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </para>
+            </description>
+          </method>
+
+        </method-group>
+      </struct>
+
+      <!-- boost::proto::expr -->
+
+      <struct name="expr">
+        <template>
+          <template-type-parameter name="Tag"/>
+          <template-type-parameter name="Args"/>
+          <template-nontype-parameter name="Arity">
+            <type>long</type>
+            <default>Args::arity</default>
+          </template-nontype-parameter>
+        </template>
+
+        <purpose>Representation of a node in an expression tree.</purpose>
+
+        <description>
+          <para>
+            <computeroutput>proto::expr&lt;&gt;</computeroutput> is a node in an expression
+            template tree. It is a container for its child sub-trees. It also serves as the
+            terminal nodes of the tree.
+          </para>
+          <para>
+            <computeroutput>Tag</computeroutput> is type that represents the operation
+            encoded by this expression. It is typically one of the structs in the
+            <computeroutput>boost::proto::tag</computeroutput> namespace, but it doesn't
+            have to be. If <computeroutput>Arity</computeroutput> is 0 then this
+            <computeroutput>expr&lt;&gt;</computeroutput> type represents a leaf in the
+            expression tree.
+          </para>
+          <para>
+            <computeroutput>Args</computeroutput> is a list of types representing
+            the children of this expression. It is an instantiation of one of
+            <computeroutput><classname alt="proto::listN">proto::list1&lt;&gt;</classname></computeroutput>,
+            <computeroutput><classname alt="proto::listN">proto::list2&lt;&gt;</classname></computeroutput>,
+            etc. The child types
+            must all themselves be either <computeroutput>proto::expr&lt;&gt;</computeroutput>
+            or <computeroutput>proto::basic_expr&lt;&gt;&amp;</computeroutput> (or extensions thereof via
+            <computeroutput><classname>proto::extends&lt;&gt;</classname></computeroutput> or
+            <computeroutput><macroname>BOOST_PROTO_EXTENDS</macroname>()</computeroutput>), unless
+            <computeroutput>Arity</computeroutput> is 0, in which case
+            <computeroutput>Args</computeroutput> must be
+            <computeroutput>proto::term&lt;T&gt;</computeroutput>, where
+            <computeroutput>T</computeroutput> can be any type.
+          </para>
+          <para>
+            <computeroutput>proto::expr&lt;&gt;</computeroutput> is a valid Fusion
+            random-access sequence, where the elements of the sequence are the child
+            expressions.
+          </para>
+        </description>
+
+        <!-- typedefs -->
+
+        <typedef name="proto_tag">
+          <type>Tag</type>
+        </typedef>
+
+        <typedef name="proto_args">
+          <type>Args</type>
+        </typedef>
+
+        <typedef name="proto_arity">
+          <type>mpl::long_&lt; Arity &gt;</type>
+        </typedef>
+
+        <typedef name="proto_domain">
+          <type><classname>proto::default_domain</classname></type>
+        </typedef>
+
+        <typedef name="proto_grammar">
+          <type><classname>proto::basic_expr</classname>&lt; Tag, Args, Arity &gt;</type>
+        </typedef>
+
+        <typedef name="proto_base_expr">
+          <type>expr</type>
+        </typedef>
+
+        <typedef name="proto_derived_expr">
+          <type>expr</type>
+        </typedef>
+
+        <typedef name="proto_childN">
+          <type>typename Args::child<replaceable>N</replaceable></type>
+          <purpose>For each <replaceable>N</replaceable> in <replaceable>[0,max(Arity,1))</replaceable>.</purpose>
+        </typedef>
+
+        <struct name="result">
+          <template>
+            <template-type-parameter name="Signature"/>
+          </template>
+          <description>
+            <para>
+              Encodes the return type of <computeroutput><classname>proto::expr&lt;&gt;</classname>::operator()</computeroutput>.
+              Makes <computeroutput><classname>proto::expr&lt;&gt;</classname></computeroutput> a TR1-style function object type
+              usable with <computeroutput>boost::result_of&lt;&gt;</computeroutput>
+            </para>
+          </description>
+          <typedef name="type">
+            <type><replaceable>unspecified</replaceable></type>
+          </typedef>
+        </struct>
+
+        <method-group name="public static functions">
+
+          <!-- make -->
+          <method name="make" specifiers="static">
+            <type>expr const</type>
+            <template>
+              <template-type-parameter name="A" pack="1"/>
+            </template>
+            <parameter name="a" pack="1">
+              <paramtype>A const &amp;</paramtype>
+            </parameter>
+            <requires>
+              <para>
+                The number of supplied arguments must be <computeroutput>max(Arity,1)</computeroutput>.
+              </para>
+            </requires>
+            <returns>
+              <para>
+                A new <computeroutput>expr</computeroutput> object initialized with the specified arguments.
+              </para>
+            </returns>
+          </method>
+
+        </method-group>
+
+        <method-group name="public member functions">
+
+          <method name="proto_base">
+            <type>expr &amp;</type>
+            <returns><para><computeroutput>*this</computeroutput></para></returns>
+          </method>
+
+          <method name="proto_base" cv="const">
+            <type>expr const &amp;</type>
+            <description>
+              <para>This is an overloaded member function, provided for convenience. It differs from
+              the above function only in what argument(s) it accepts.</para>
+            </description>
+          </method>
+
+          <!-- operator= -->
+          <method name="operator=">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>Lazy assignment expression</para>
+            </description>
+            <returns>
+              <para>A new expression node representing the assignment operation.</para>
+            </returns>
+          </method>
+
+          <method name="operator=">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A const &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </para>
+            </description>
+          </method>
+
+          <method name="operator=" cv="const">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </para>
+            </description>
+          </method>
+
+          <method name="operator=" cv="const">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A const &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </para>
+            </description>
+          </method>
+
+          <!-- operator[] -->
+          <method name="operator[]">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>Lazy subscript expression</para>
+            </description>
+            <returns>
+              <para>A new expression node representing the subscript operation.</para>
+            </returns>
+          </method>
+
+          <method name="operator[]">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A const &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </para>
+            </description>
+          </method>
+
+          <method name="operator[]" cv="const">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </para>
+            </description>
+          </method>
+
+          <method name="operator[]" cv="const">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A"/>
+            </template>
+            <parameter name="a">
+              <paramtype>A const &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </para>
+            </description>
+          </method>
+
+          <!-- operator() -->
+          <method name="operator()">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A" pack="1"/>
+            </template>
+            <parameter name="a" pack="1">
+              <paramtype>A const &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>Lazy function call</para>
+            </description>
+            <returns>
+              <para>A new expression node representing the function call operation.</para>
+            </returns>
+          </method>
+
+          <method name="operator()" cv="const">
+            <type><replaceable>unspecified</replaceable></type>
+            <template>
+              <template-type-parameter name="A" pack="1"/>
+            </template>
+            <parameter name="a" pack="1">
+              <paramtype>A const &amp;</paramtype>
+            </parameter>
+            <description>
+              <para>
+                This is an overloaded member function, provided for convenience. It differs from
+                the above function only in what argument(s) it accepts.
+              </para>
+            </description>
+          </method>
+
+        </method-group>
+
+        <data-member name="childN">
+          <type>proto_child<replaceable>N</replaceable></type>
+          <purpose>For each <replaceable>N</replaceable> in <replaceable>[0,max(Arity,1))</replaceable>.</purpose>
+        </data-member>
+
+        <data-member name="proto_arity_c" specifiers="static">
+          <type>const long</type>
+          <purpose>
+            <computeroutput>= Arity;</computeroutput>
+          </purpose>
+        </data-member>
+
+      </struct>
+
+      <!-- proto::unexpr -->
+      <struct name="unexpr">
+        <template>
+          <template-type-parameter name="Expr"/>
+        </template>
+        <purpose>Lets you inherit the interface of an expression while hiding from Proto the fact that
+          the type is a Proto expression.</purpose>
+        <inherit><type>Expr</type></inherit>
+        <method-group name="public member functions"/>
+        <constructor>
+          <parameter name="expr">
+            <paramtype>Expr const &amp;</paramtype>
+          </parameter>
+        </constructor>
+        <description>
+          <para>
+            For an expression type <computeroutput>E</computeroutput>,
+            <computeroutput>
+              <classname>proto::is_expr</classname>&lt;E&gt;::value
+            </computeroutput> is <computeroutput>true</computeroutput>, but
+            <computeroutput>
+              <classname>proto::is_expr</classname>&lt;proto::unexpr&lt;E&gt; &gt;::value
+            </computeroutput> is <computeroutput>false</computeroutput>.
+          </para>
+        </description>
+      </struct>
+
+    </namespace>
+  </namespace>
+</header>

@@ -1,0 +1,22 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:headers Headers]
+
+There are two main headers used by this library: `<boost/regex.hpp>` 
+provides full access to the main template library, while `<boost/cregex.hpp>` 
+provides access to the (deprecated) high level class RegEx, and the 
+POSIX API functions.
+
+There is also a header containing only forward declarations 
+`<boost/regex_fwd.hpp>` for use when an interface is dependent upon 
+[basic_regex], but otherwise does not need the full definitions.
+
+[endsect]
+
+

@@ -1,0 +1,41 @@
+# Copyright 2009 Karsten Ahnert and Mario Mulansky.
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+
+project
+    : requirements 
+      <include>../../../..
+      <define>BOOST_ALL_NO_LIB=1
+    : 
+    ;
+    
+
+exe harmonic_oscillator : harmonic_oscillator.cpp ;
+exe solar_system : solar_system.cpp ;
+exe chaotic_system : chaotic_system.cpp ;
+exe stiff_system : stiff_system.cpp ;
+exe fpu : fpu.cpp ;
+exe phase_oscillator_ensemble : phase_oscillator_ensemble.cpp ;
+exe harmonic_oscillator_units : harmonic_oscillator_units.cpp ;
+exe stuart_landau : stuart_landau.cpp ;
+exe two_dimensional_phase_lattice : two_dimensional_phase_lattice.cpp ;
+exe bulirsch_stoer : bulirsch_stoer.cpp ;
+exe elliptic_functions : elliptic_functions.cpp ;
+exe resizing_lattice : resizing_lattice.cpp ;
+exe list_lattice : list_lattice.cpp ;
+exe stepper_details : stepper_details.cpp ;
+exe my_vector : my_vector.cpp ;
+exe lorenz_point : lorenz_point.cpp ;
+exe van_der_pol_stiff : van_der_pol_stiff.cpp ;
+exe simple1d : simple1d.cpp ;
+exe stochastic_euler : stochastic_euler.cpp ;
+exe generation_functions : generation_functions.cpp ;
+exe heun : heun.cpp ;
+exe bind_member_functions : bind_member_functions.cpp ;
+exe bind_member_functions_cpp11 : bind_member_functions_cpp11.cpp : <cxxflags>-std=c++0x ;
+
+# build-project mtl ;
+# build-project ublas ;
+# build-project gmpxx ;

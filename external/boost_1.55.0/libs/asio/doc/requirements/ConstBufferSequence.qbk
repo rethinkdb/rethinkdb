@@ -1,0 +1,102 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:ConstBufferSequence Constant buffer sequence requirements]
+
+In the table below, `X` denotes a class containing objects of type `T`, `a`
+denotes a value of type `X` and `u` denotes an identifier.
+
+[table ConstBufferSequence requirements
+  [[expression] [return type] [assertion/note\npre/post-condition]]
+  [
+    [`X::value_type`]
+    [`T`]
+    [`T` meets the requirements for [link
+     boost_asio.reference.ConvertibleToConstBuffer
+     ConvertibleToConstBuffer].]
+  ]
+  [
+    [`X::const_iterator`]
+    [iterator type pointing to `T`]
+    [`const_iterator` meets the requirements for bidirectional iterators
+     (C++ Std, 24.1.4).]
+  ]
+  [
+    [`X(a);`]
+    []
+    [post: `equal_const_buffer_seq(a, X(a))` where the binary predicate
+     `equal_const_buffer_seq` is defined as
+     ``
+       bool equal_const_buffer_seq(
+         const X& x1, const X& x2)
+       {
+         return
+           distance(x1.begin(), x1.end())
+             == distance(x2.begin(), x2.end())
+               && equal(x1.begin(), x1.end(),
+                        x2.begin(), equal_buffer);
+       }
+     ``
+     and the binary predicate `equal_buffer` is defined as
+     ``
+      bool equal_buffer(
+        const X::value_type& v1,
+        const X::value_type& v2)
+      {
+        const_buffer b1(v1);
+        const_buffer b2(v2);
+        return
+          buffer_cast<const void*>(b1)
+            == buffer_cast<const void*>(b2)
+              && buffer_size(b1) == buffer_size(b2);
+      }
+     ``]
+  ]
+  [
+    [`X u(a);`]
+    []
+    [post:
+     ``
+      distance(a.begin(), a.end())
+        == distance(u.begin(), u.end())
+          && equal(a.begin(), a.end(),
+                   u.begin(), equal_buffer)
+     ``
+     where the binary predicate `equal_buffer` is defined as
+     ``
+      bool equal_buffer(
+        const X::value_type& v1,
+        const X::value_type& v2)
+      {
+        const_buffer b1(v1);
+        const_buffer b2(v2);
+        return
+          buffer_cast<const void*>(b1)
+            == buffer_cast<const void*>(b2)
+              && buffer_size(b1) == buffer_size(b2);
+      }
+     ``]
+  ]
+  [
+    [`(&a)->~X();`]
+    [`void`]
+    [note: the destructor is applied to every element of `a`; all the memory
+     is deallocated.]
+  ]
+  [
+    [`a.begin();`]
+    [`const_iterator` or convertible to `const_iterator`]
+    []
+  ]
+  [
+    [`a.end();`]
+    [`const_iterator` or convertible to `const_iterator`]
+    []
+  ]
+]
+
+[endsect]

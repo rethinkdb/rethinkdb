@@ -1,0 +1,73 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:for_each for_each]
+
+[heading Prototype]
+
+``
+template<
+    class SinglePassRange1,
+    class SinglePassRange2,
+    class BinaryFunction
+    >
+BinaryFunction for_each(const SinglePassRange1& rng1,
+                        const SinglePassRange2& rng2,
+                        BinaryFunction fn);
+
+template<
+    class SinglePassRange1,
+    class SinglePassRange2,
+    class BinaryFunction
+    >
+BinaryFunction for_each(const SinglePassRange1& rng1,
+                        SinglePassRange2& rng2,
+                        BinaryFunction fn);
+
+template<
+    class SinglePassRange1,
+    class SinglePassRange2,
+    class BinaryFunction
+    >
+BinaryFunction for_each(SinglePassRange1& rng1,
+                        const SinglePassRange2& rng2,
+                        BinaryFunction fn);
+
+template<
+    class SinglePassRange1,
+    class SinglePassRange2,
+    class BinaryFunction
+    >
+BinaryFunction for_each(SinglePassRange1& rng1,
+                        SinglePassRange2& rng2,
+                        BinaryFunction fn);
+``
+
+[heading Description]
+
+`for_each` traverses forward through `rng1` and `rng2` simultaneously.
+For each iteration, the element `x` is used from `rng1` and the corresponding
+element `y` is used from `rng2` to invoke `fn(x,y)`.
+
+Iteration is stopped upon reaching the end of the shorter of `rng1`, or `rng2`.
+It is safe to call this function with unequal length ranges.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm_ext/for_each.hpp`
+
+[heading Requirements]
+
+# `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+# `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+# `BinaryFunction` is a model of the `BinaryFunctionConcept`.
+# `SinglePassRange1`'s value type is convertible to `BinaryFunction`'s first argument type.
+# `SinglepassRange2`'s value type is convertible to `BinaryFunction`'s second argument type.
+
+[heading Complexity]
+
+Linear. Exactly `min(distance(rng1), distance(rng2))` applications of `BinaryFunction`.
+
+[endsect]

@@ -1,0 +1,170 @@
+# Copyright Vladimir Prus 2004.
+# Copyright Noel Belcourt 2007.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt
+# or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import clang ;
+import feature : feature ;
+import os ;
+import toolset ;
+import toolset : flags ;
+import gcc ;
+import common ;
+import errors ;
+import generators ;
+
+feature.extend-subfeature toolset clang : platform : darwin ;
+
+toolset.inherit-generators clang-darwin 
+  <toolset>clang <toolset-clang:platform>darwin 
+  : gcc 
+  # Don't inherit PCH generators. They were not tested, and probably
+  # don't work for this compiler.
+  : gcc.mingw.link gcc.mingw.link.dll gcc.compile.c.pch gcc.compile.c++.pch
+  ;
+
+generators.override clang-darwin.prebuilt : builtin.lib-generator ;
+generators.override clang-darwin.prebuilt : builtin.prebuilt ;
+generators.override clang-darwin.searched-lib-generator : searched-lib-generator ;
+
+toolset.inherit-rules clang-darwin : gcc ;
+toolset.inherit-flags clang-darwin : gcc 
+        : <inlining>off <inlining>on <inlining>full <optimization>space 
+          <warnings>off <warnings>all <warnings>on
+          <architecture>x86/<address-model>32
+          <architecture>x86/<address-model>64
+        ;
+        
+if [ MATCH (--debug-configuration) : [ modules.peek : ARGV ] ]
+{
+    .debug-configuration = true ;
+}
+                       
+# vectorization diagnostics
+feature vectorize : off on full ;
+
+# Initializes the clang-darwin toolset
+#   version in optional
+#   name (default clang++) is used to invoke the specified clang complier
+#   compile and link options allow you to specify addition command line options for each version
+rule init ( version ? :  command * : options * )
+{
+    command = [ common.get-invocation-command clang-darwin : clang++ 
+        : $(command) ] ;
+
+    # Determine the version
+    local command-string = $(command:J=" ") ;
+    if $(command)
+    {    
+        version ?= [ MATCH "^([0-9.]+)"
+            : [ SHELL "$(command-string) -dumpversion" ] ] ;
+    }
+
+    local condition = [ common.check-init-parameters clang-darwin
+        : version $(version) ] ;    
+
+    common.handle-options clang-darwin : $(condition) : $(command) : $(options) ;
+
+    gcc.init-link-flags clang-darwin darwin $(condition) ;
+
+}
+
+SPACE = " " ;
+
+flags clang-darwin.compile OPTIONS <cflags> ;
+flags clang-darwin.compile OPTIONS <cxxflags> ;
+# flags clang-darwin.compile INCLUDES <include> ;
+
+# Declare flags and action for compilation.
+toolset.flags clang-darwin.compile OPTIONS <optimization>off   : -O0 ;
+toolset.flags clang-darwin.compile OPTIONS <optimization>speed : -O3 ;
+toolset.flags clang-darwin.compile OPTIONS <optimization>space : -Os ;
+
+toolset.flags clang-darwin.compile OPTIONS <inlining>off  : -fno-inline ;
+toolset.flags clang-darwin.compile OPTIONS <inlining>on   : -Wno-inline ;
+toolset.flags clang-darwin.compile OPTIONS <inlining>full : -finline-functions -Wno-inline ;
+
+toolset.flags clang-darwin.compile OPTIONS <warnings>off : -w ;
+toolset.flags clang-darwin.compile OPTIONS <warnings>on  : -Wall ;
+toolset.flags clang-darwin.compile OPTIONS <warnings>all : -Wall -pedantic ;
+toolset.flags clang-darwin.compile OPTIONS <warnings-as-errors>on : -Werror ;
+
+toolset.flags clang-darwin.compile OPTIONS <debug-symbols>on : -g ;
+toolset.flags clang-darwin.compile OPTIONS <profiling>on : -pg ;
+toolset.flags clang-darwin.compile OPTIONS <rtti>off : -fno-rtti ;
+
+actions compile.c
+{
+    "$(CONFIG_COMMAND)" -x c $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+actions compile.c++
+{
+    "$(CONFIG_COMMAND)" -x c++ $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+flags clang-darwin ARFLAGS <archiveflags> ;
+
+# Default value. Mostly for the sake of clang-linux
+# that inherits from gcc, but does not has the same
+# logic to set the .AR variable. We can put the same
+# logic in clang-linux, but that's hardly worth the trouble
+# as on Linux, 'ar' is always available.
+.AR = ar ;
+
+rule archive ( targets * : sources * : properties * )
+{
+  # Always remove archive and start again. Here's rationale from
+  # Andre Hentz:
+  #
+  # I had a file, say a1.c, that was included into liba.a. 
+  # I moved a1.c to a2.c, updated my Jamfiles and rebuilt. 
+  # My program was crashing with absurd errors. 
+  # After some debugging I traced it back to the fact that a1.o was *still* 
+  # in liba.a 
+  #
+  # Rene Rivera:
+  #
+  # Originally removing the archive was done by splicing an RM
+  # onto the archive action. That makes archives fail to build on NT
+  # when they have many files because it will no longer execute the
+  # action directly and blow the line length limit. Instead we
+  # remove the file in a different action, just before the building
+  # of the archive.
+  #
+  local clean.a = $(targets[1])(clean) ;
+  TEMPORARY $(clean.a) ;
+  NOCARE $(clean.a) ;
+  LOCATE on $(clean.a) = [ on $(targets[1]) return $(LOCATE) ] ;
+  DEPENDS $(clean.a) : $(sources) ;
+  DEPENDS $(targets) : $(clean.a) ;
+  common.RmTemps $(clean.a) : $(targets) ;
+}
+
+actions piecemeal archive
+{
+  "$(.AR)" $(AROPTIONS) rc "$(<)" "$(>)"
+  "ranlib" -cs "$(<)"
+}
+
+flags clang-darwin.link USER_OPTIONS <linkflags> ;
+
+# Declare actions for linking
+rule link ( targets * : sources * : properties * )
+{
+  SPACE on $(targets) = " " ;
+  # Serialize execution of the 'link' action, since
+  # running N links in parallel is just slower.
+  JAM_SEMAPHORE on $(targets) = <s>clang-darwin-link-semaphore ;
+}
+
+actions link bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" $(USER_OPTIONS) -L"$(LINKPATH)" -o "$(<)" "$(>)" "$(LIBRARIES)" -l$(FINDLIBS-SA) -l$(FINDLIBS-ST) $(OPTIONS)
+}
+
+actions link.dll bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" $(USER_OPTIONS) -L"$(LINKPATH)" -o "$(<)" -single_module -dynamiclib -install_name "$(<[1]:D=)" "$(>)"  "$(LIBRARIES)" -l$(FINDLIBS-SA) -l$(FINDLIBS-ST) $(OPTIONS)
+}

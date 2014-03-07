@@ -1,0 +1,306 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+<Title>The Boost Graph Library</Title>
+<BODY bgcolor="#ffffff" link="#0000ee" text="#000000" vlink="#551a8b" 
+        alink="#ff0000"> 
+<IMG src="../../../boost.png" 
+     alt="C++ Boost" width="277" height="86"> 
+
+<h1>The Boost Graph Library (BGL)
+<a href="http://www.awprofessional.com/title/0201729148">
+<img src="bgl-cover.jpg" alt="BGL Book" align="RIGHT"></a>
+</h1>
+
+<P>
+Graphs are mathematical abstractions that are useful for solving many
+types of problems in computer science. Consequently, these
+abstractions must also be represented in computer programs.  A
+standardized generic interface for traversing graphs is of utmost
+importance to encourage reuse of graph algorithms and data structures.
+Part of the Boost Graph Library is a generic interface that allows
+access to a graph's structure, but hides the details of the
+implementation.  This is an &ldquo;open&rdquo; interface in the sense that any
+graph library that implements this interface will be interoperable
+with the BGL generic algorithms and with other algorithms that also
+use this interface. The BGL provides some general purpose graph classes
+that conform to this interface, but they are not meant to be the
+&ldquo;only&rdquo; graph classes; there certainly will be other graph classes
+that are better for certain situations.  We believe that the main
+contribution of the The BGL is the formulation of this interface.
+
+<P>
+The BGL graph interface and graph components are <I>generic</I>, in the
+same sense as the Standard Template Library (STL)&nbsp;[<A
+HREF="bibliography.html#austern99:_gener_progr_stl">2</A>].
+
+In the following sections, we review the role that generic programming
+plays in the STL and compare that to how we applied generic
+programming in the context of graphs.
+
+<P>
+Of course, if you are already familiar with generic programming,
+please dive right in! Here's the <a
+href="./table_of_contents.html">Table of Contents</a>.  For distributed-memory
+parallelism, you can also look at the <a
+href="../../graph_parallel/doc/html/index.html">Parallel BGL</a>.
+
+<P>
+The source for the BGL is available as part of the Boost distribution,
+which you can <a href="http://sourceforge.net/project/showfiles.php?group_id=7586">
+download from here</a>.
+
+<H2>How to Build the BGL</H2>
+<p><b>DON'T!</b> The Boost Graph Library is a header-only library and
+does not need to be built to be used. The only exceptions are the <a
+href="read_graphviz.html">GraphViz input parser</a> and the <a
+href="read_graphml.html">GraphML parser</a>.</p>
+
+<p>When compiling programs that use the BGL, <b>be sure to compile
+with optimization</b>. For instance, select &ldquo;Release&rdquo; mode with
+Microsoft Visual C++ or supply the flag <tt>-O2</tt> or <tt>-O3</tt>
+to GCC. </p>
+
+<H2>Genericity in STL</H2>
+
+<P>
+There are three ways in which the STL is generic.  
+
+<P>
+
+<H3>Algorithm/Data-Structure Interoperability</H3>
+
+<P>
+First, each algorithm is written in a data-structure neutral way,
+allowing a single template function to operate on many different
+classes of containers. The concept of an iterator is the key
+ingredient in this decoupling of algorithms and data-structures.  The
+impact of this technique is a reduction in the STL's code size from
+<i>O(M*N)</i> to <i>O(M+N)</i>, where <i>M</i> is the number of
+algorithms and <i>N</i> is the number of containers. Considering a
+situation of 20 algorithms and 5 data-structures, this would be the
+difference between writing 100 functions versus only 25 functions! And
+the differences continues to grow faster and faster as the number of
+algorithms and data-structures increase.
+
+<P>
+
+<H3>Extension through Function Objects</H3>
+
+<P>
+The second way that STL is generic is that its algorithms and containers
+are extensible. The user can adapt and customize the STL through the
+use of function objects. This flexibility is what makes STL such a
+great tool for solving real-world problems. Each programming problem
+brings its own set of entities and interactions that must be
+modeled. Function objects provide a mechanism for extending the STL to
+handle the specifics of each problem domain.
+
+<P>
+
+<H3>Element Type Parameterization</H3>
+
+<P>
+The third way that STL is generic is that its containers are
+parameterized on the element type. Though hugely important, this is
+perhaps the least &ldquo;interesting&rdquo; way in which STL is generic.
+Generic programming is often summarized by a brief description of
+parameterized lists such as <TT>std::list&lt;T&gt;</TT>. This hardly scratches
+the surface!
+
+<P>
+
+<H2>Genericity in the Boost Graph Library
+</H2>
+
+<P>
+Like the STL, there are three ways in which the BGL is generic.
+
+<P>
+
+<H3>Algorithm/Data-Structure Interoperability</H3>
+
+<P>
+First, the graph algorithms of the BGL are written to an interface that
+abstracts away the details of the particular graph data-structure.
+Like the STL, the BGL uses iterators to define the interface for
+data-structure traversal. There are three distinct graph traversal
+patterns: traversal of all vertices in the graph, through all of the
+edges, and along the adjacency structure of the graph (from a vertex
+to each of its neighbors). There are separate iterators for each
+pattern of traversal.
+
+<P>
+This generic interface allows template functions such as <a
+href="./breadth_first_search.html"><TT>breadth_first_search()</TT></a>
+to work on a large variety of graph data-structures, from graphs
+implemented with pointer-linked nodes to graphs encoded in
+arrays. This flexibility is especially important in the domain of
+graphs. Graph data-structures are often custom-made for a particular
+application. Traditionally, if programmers want to reuse an
+algorithm implementation they must convert/copy their graph data into
+the graph library's prescribed graph structure.  This is the case with
+libraries such as LEDA, GTL, Stanford GraphBase; it is especially true
+of graph algorithms written in Fortran. This severely limits the reuse
+of their graph algorithms.
+
+<P>
+In contrast, custom-made (or even legacy) graph structures can be used
+as-is with the generic graph algorithms of the BGL, using <I>external
+adaptation</I> (see Section <A HREF="./leda_conversion.html">How to
+Convert Existing Graphs to the BGL</A>).  External adaptation wraps a new
+interface around a data-structure without copying and without placing
+the data inside adaptor objects.  The BGL interface was carefully
+designed to make this adaptation easy. To demonstrate this, we have
+built interfacing code for using a variety of graph dstructures (LEDA
+graphs, Stanford GraphBase graphs, and even Fortran-style arrays) in
+BGL graph algorithms.
+
+<P>
+
+<H3>Extension through Visitors</H3>
+
+<P>
+Second, the graph algorithms of the BGL are extensible. The BGL introduces the
+notion of a <I>visitor</I>, which is just a function object with
+multiple methods.  In graph algorithms, there are often several key
+&ldquo;event points&rdquo; at which it is useful to insert user-defined
+operations. The visitor object has a different method that is invoked
+at each event point. The particular event points and corresponding
+visitor methods depend on the particular algorithm.  They often
+include methods like <TT>start_vertex()</TT>,
+<TT>discover_vertex()</TT>, <TT>examine_edge()</TT>,
+<tt>tree_edge()</tt>, and <TT>finish_vertex()</TT>.
+
+<P>
+
+<H3>Vertex and Edge Property Multi-Parameterization</H3>
+
+<P>
+The third way that the BGL is generic is analogous to the parameterization
+of the element-type in STL containers, though again the story is a bit
+more complicated for graphs. We need to associate values (called
+&ldquo;properties&rdquo;) with both the vertices and the edges of the graph. 
+In addition, it will often be necessary to associate
+multiple properties with each vertex and edge; this is what we mean
+by multi-parameterization. 
+The STL <tt>std::list&lt;T&gt;</tt> class has a parameter <tt>T</tt>
+for its element type. Similarly, BGL graph classes have template
+parameters for vertex and edge &ldquo;properties&rdquo;. A
+property specifies the parameterized type of the property and also assigns
+an identifying tag to the property. This tag is used to distinguish
+between the multiple properties which an edge or vertex may have. A
+property value that is attached to a 
+particular vertex or edge can be obtained via a <I>property
+map</I>. There is a separate property map for each property.
+
+<P>
+Traditional graph libraries and graph structures fall down when it
+comes to the parameterization of graph properties. This is one of the
+primary reasons that graph data-structures must be custom-built for
+applications. The parameterization of properties in the  BGL graph
+classes makes them well suited for re-use.
+
+<p>
+
+<H2>Algorithms</H2>
+
+<P>
+The BGL algorithms consist of a core set of algorithm <I>patterns</I>
+(implemented as generic algorithms) and a larger set of graph
+algorithms. The core algorithm patterns are
+
+<P>
+
+<UL>
+<LI>Breadth First Search
+</LI>
+<LI>Depth First Search
+</LI>
+<LI>Uniform Cost Search
+</LI>
+</UL>
+
+<P>
+By themselves, the algorithm patterns do not compute any meaningful
+quantities over graphs; they are merely building blocks for
+constructing graph algorithms. The graph algorithms in the BGL currently
+include
+
+<P>
+
+<UL>
+<LI>Dijkstra's Shortest Paths</LI>
+<LI>Bellman-Ford Shortest Paths</LI>
+<LI>Johnson's All-Pairs Shortest Paths</LI>
+<LI>Kruskal's Minimum Spanning Tree</LI>
+<LI>Prim's Minimum Spanning Tree</LI>
+<LI>Connected Components</LI>
+<LI>Strongly Connected Components</LI>
+<LI>Dynamic Connected Components (using Disjoint Sets)</LI>
+<LI>Topological Sort</LI>
+<LI>Transpose</LI>
+<LI>Reverse Cuthill Mckee Ordering</LI>
+<LI>Smallest Last Vertex Ordering</LI>
+<LI>Sequential Vertex Coloring</LI>
+</UL>
+
+<P>
+
+<H2>Data Structures</H2>
+
+<P>
+The BGL currently provides two graph classes and an edge list adaptor:
+<P>
+
+<UL>
+<LI><a href="adjacency_list.html"><TT>adjacency_list</TT></a></LI>
+<LI><a href="adjacency_matrix.html"><TT>adjacency_matrix</TT></a></LI>
+<LI><a href="edge_list.html"><TT>edge_list</TT></a></LI>
+</UL>
+
+<P>
+The <TT>adjacency_list</TT> class is the general purpose &ldquo;swiss army
+knife&rdquo; of graph classes. It is highly parameterized so that it can be
+optimized for different situations: the graph is directed or
+undirected, allow or disallow parallel edges, efficient access to just
+the out-edges or also to the in-edges, fast vertex insertion and
+removal at the cost of extra space overhead, etc.
+
+<P>
+The <tt>adjacency_matrix</tt> class stores edges in a <i>|V| x |V|</i>
+matrix (where <i>|V|</i> is the number of vertices). The elements of
+this matrix represent edges in the graph. Adjacency matrix
+representations are especially suitable for very dense graphs, i.e.,
+those where the number of edges approaches <i>|V|<sup>2</sup></i>.
+
+<P>
+The <TT>edge_list</TT> class is an adaptor that takes any kind of edge
+iterator and implements an <a href="./EdgeListGraph.html">Edge List Graph</a>.
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

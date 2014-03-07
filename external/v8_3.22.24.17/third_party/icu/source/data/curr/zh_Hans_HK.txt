@@ -1,0 +1,17 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/zh_Hans_HK.xml
+// *
+// ***************************************************************************
+zh_Hans_HK{
+    Currencies{
+        HKD{
+            "$",
+            "港元",
+        }
+    }
+    Version{"2.0.47.72"}
+}

@@ -1,0 +1,68 @@
+[/ File partition_point.qbk]
+
+[section:partition_point partition_point ]
+
+[/license
+Copyright (c) 2010-2012 Marshall Clow
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+]
+
+The header file 'partition_point.hpp' contains two variants of a single algorithm, `partition_point`. Given a partitioned sequence and a predicate, the algorithm finds the partition point; i.e, the first element in the sequence that does not satisfy the predicate.
+
+The routine `partition_point` takes a partitioned sequence and a predicate. It returns an iterator which 'points to' the first element in the sequence that does not satisfy the predicate. If all the items in the sequence satisfy the predicate, then it returns one past the final element in the sequence.
+
+`partition_point` come in two forms; the first one takes two iterators to define the range. The second form takes a single range parameter, and uses Boost.Range to traverse it.
+
+
+[heading interface]
+
+There are two versions; one takes two iterators, and the other takes a range.
+
+``
+template<typename ForwardIterator, typename Predicate>
+	ForwardIterator partition_point ( ForwardIterator first, ForwardIterator last, Predicate p );
+template<typename Range, typename Predicate> 
+	boost::range_iterator<Range> partition_point ( const Range &r, Predicate p );
+``
+
+[heading Examples]
+
+Given the container `c` containing `{ 0, 1, 2, 3, 14, 15 }`, then
+``
+bool lessThan10 ( int i ) { return i < 10; }
+bool isOdd ( int i ) { return i % 2 == 1; }
+
+partition_point ( c, lessThan10 ) --> c.begin () + 4  (pointing at 14)
+partition_point ( c.begin (), c.end (), lessThan10 ) --> c.begin () + 4  (pointing at 14)
+partition_point ( c.begin (), c.begin () + 3, lessThan10 ) -> c.begin () + 3 (end)
+partition_point ( c.end (), c.end (), isOdd ) --> c.end ()  // empty range
+``
+
+[heading Iterator Requirements]
+
+`partition_point` requires forward iterators or better; it will not work on input iterators or output iterators.
+
+[heading Complexity]
+
+Both of the variants of `partition_point` run in ['O( log (N))] (logarithmic) time; that is, the predicate will be will be applied approximately ['log(N)] times. To do this, however, the algorithm needs to know the size of the sequence. For forward and bidirectional iterators, calculating the size of the sequence is an ['O(N)] operation.
+
+[heading Exception Safety]
+
+Both of the variants of `partition_point` take their parameters by value or const reference, and do not depend upon any global state. Therefore, all the routines in this file provide the strong exception guarantee.
+
+[heading Notes]
+
+* The iterator-based version of the routine `partition_point` is part of the C++11 standard. When compiled using a C++11 implementation, the implementation from the standard library will be used.
+
+* For empty ranges, the partition point is the end of the range.
+
+[endsect]
+
+[/ File partition_point.qbk
+Copyright 2011 Marshall Clow
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt).
+]
+

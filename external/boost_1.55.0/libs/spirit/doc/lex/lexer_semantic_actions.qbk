@@ -1,0 +1,186 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:lexer_semantic_actions Lexer Semantic Actions]
+
+The main task of a lexer normally is to recognize tokens in the input. 
+Traditionally this has been complemented with the possibility to execute 
+arbitrary code whenever a certain token has been detected. __lex__ has been
+designed to support this mode of operation as well. We borrow from the concept
+of semantic actions for parsers (__qi__) and generators (__karma__). Lexer 
+semantic actions may be attached to any token definition. These are C++ 
+functions or function objects that are called whenever a token definition 
+successfully recognizes a portion of the input. Say you have a token definition
+`D`, and a C++ function `f`, you can make the lexer call `f` whenever it matches 
+an input by attaching `f`:
+
+    D[f]
+
+The expression above links `f` to the token definition, `D`. The required 
+prototype of `f` is:
+
+    void f (Iterator& start, Iterator& end, pass_flag& matched, Idtype& id, Context& ctx);
+
+[variablelist where:
+    [[`Iterator& start`]    [This is the iterator pointing to the begin of the 
+                             matched range in the underlying input sequence. The 
+                             type of the iterator is the same as specified while
+                             defining the type of the `lexertl::actor_lexer<...>` 
+                             (its first template parameter). The semantic action 
+                             is allowed to change the value of this iterator
+                             influencing, the matched input sequence.]]
+    [[`Iterator& end`]      [This is the iterator pointing to the end of the 
+                             matched range in the underlying input sequence. The 
+                             type of the iterator is the same as specified while
+                             defining the type of the `lexertl::actor_lexer<...>` 
+                             (its first template parameter). The semantic action 
+                             is allowed to change the value of this iterator
+                             influencing, the matched input sequence.]]
+    [[`pass_flag& matched`] [This value is pre/initialized to `pass_normal`.
+                             If the semantic action sets it to `pass_fail` this 
+                             behaves as if the token has not been matched in 
+                             the first place. If the semantic action sets this
+                             to `pass_ignore` the lexer ignores the current
+                             token and tries to match a next token from the
+                             input.]]
+    [[`Idtype& id`]         [This is the token id of the type Idtype (most of 
+                             the time this will be a `std::size_t`) for the 
+                             matched token. The semantic action is allowed to 
+                             change the value of this token id, influencing the 
+                             if of the created token.]]
+    [[`Context& ctx`]       [This is a reference to a lexer specific, 
+                             unspecified type, providing the context for the
+                             current lexer state. It can be used to access
+                             different internal data items and is needed for
+                             lexer state control from inside a semantic 
+                             action.]]
+]
+
+When using a C++ function as the semantic action the following prototypes are 
+allowed as well:
+
+    void f (Iterator& start, Iterator& end, pass_flag& matched, Idtype& id);
+    void f (Iterator& start, Iterator& end, pass_flag& matched);
+    void f (Iterator& start, Iterator& end);
+    void f ();
+
+[important In order to use lexer semantic actions you need to use type 
+           `lexertl::actor_lexer<>` as your lexer class (instead of the 
+           type `lexertl::lexer<>` as described in earlier examples).]
+
+[heading The context of a lexer semantic action]
+
+The last parameter passed to any lexer semantic action is a reference to an 
+unspecified type (see the `Context` type in the table above). This type is 
+unspecified because it depends on the token type returned by the lexer. It is 
+implemented in the internals of the iterator type exposed by the lexer.
+Nevertheless, any context type is expected to expose a couple of
+functions allowing to influence the behavior of the lexer. The following table 
+gives an overview and a short description of the available functionality.
+
+[table Functions exposed by any context passed to a lexer semantic action
+    [[Name]   [Description]]
+    [[`Iterator const& get_eoi() const`]
+     [The function `get_eoi()` may be used by to access the end iterator of 
+      the input stream the lexer has been initialized with]]
+    [[`void more()`]
+     [The function `more()` tells the lexer that the next time it matches a 
+      rule, the corresponding token should be appended onto the current token 
+      value rather than replacing it.]]
+    [[`Iterator const& less(Iterator const& it, int n)`]
+     [The function `less()` returns an iterator positioned to the nth input 
+      character beyond the current token start iterator (i.e. by passing the 
+      return value to the parameter `end` it is possible to return all but the 
+      first n characters of the current token back to the input stream.]]
+    [[`bool lookahead(std::size_t id)`]
+     [The function `lookahead()` can be used to implement lookahead for lexer 
+      engines not supporting constructs like flex' `a/b` 
+      (match `a`, but only when followed by `b`). It invokes the lexer on the 
+      input following the current token without actually moving forward in the 
+      input stream. The function returns whether the lexer was able to match a 
+      token with the given token-id `id`.]]
+    [[`std::size_t get_state() const` and `void set_state(std::size_t state)`]
+     [The functions `get_state()` and `set_state()` may be used to introspect
+      and change the current lexer state.]]
+    [[`token_value_type get_value() const` and `void set_value(Value const&)`]
+     [The functions `get_value()` and `set_value()` may be used to introspect
+      and change the current token value.]]
+]
+
+[heading Lexer Semantic Actions Using Phoenix]
+
+Even if it is possible to write your own function object implementations (i.e. 
+using Boost.Lambda or Boost.Bind), the preferred way of defining lexer semantic 
+actions is to use __boost_phoenix__. In this case you can access the parameters 
+described above by using the predefined __spirit__ placeholders: 
+
+[table Predefined Phoenix placeholders for lexer semantic actions
+    [[Placeholder]    [Description]]
+    [[`_start`]
+     [Refers to the iterator pointing to the beginning of the matched input 
+      sequence. Any modifications to this iterator value will be reflected in 
+      the generated token.]]
+    [[`_end`]
+     [Refers to the iterator pointing past the end of the matched input 
+      sequence. Any modifications to this iterator value will be reflected in 
+      the generated token.]]
+    [[`_pass`]
+     [References the value signaling the outcome of the semantic action. This 
+      is pre-initialized to `lex::pass_flags::pass_normal`. If this is set to
+      `lex::pass_flags::pass_fail`, the lexer will behave as if no token has 
+      been matched, if is set to `lex::pass_flags::pass_ignore`, the lexer will 
+      ignore the current match and proceed trying to match tokens from the 
+      input.]]
+    [[`_tokenid`]
+     [Refers to the token id of the token to be generated. Any modifications 
+      to this value will be reflected in the generated token.]]
+    [[`_val`]
+     [Refers to the value the next token will be initialized from. Any 
+      modifications to this value will be reflected in the generated token.]]
+    [[`_state`]
+     [Refers to the lexer state the input has been match in. Any modifications 
+      to this value will be reflected in the lexer itself (the next match will 
+      start in the new state). The currently generated token is not affected 
+      by changes to this variable.]]
+    [[`_eoi`]
+     [References the end iterator of the overall lexer input. This value 
+      cannot be changed.]]
+]
+
+The context object passed as the last parameter to any lexer semantic action is 
+not directly accessible while using __boost_phoenix__ expressions. We rather provide
+predefined Phoenix functions allowing to invoke the different support functions
+as mentioned above. The following table lists the available support functions 
+and describes their functionality:
+ 
+[table Support functions usable from Phoenix expressions inside lexer semantic actions
+    [[Plain function] [Phoenix function] [Description]]
+    [[`ctx.more()`]
+     [`more()`]
+     [The function `more()` tells the lexer that the next time it matches a 
+      rule, the corresponding token should be appended onto the current token 
+      value rather than replacing it.]]
+    [[`ctx.less()`]
+     [`less(n)`]
+     [The function `less()` takes a single integer parameter `n` and returns an 
+      iterator positioned to the nth input character beyond the current token 
+      start iterator (i.e. by assigning the return value to the placeholder 
+      `_end` it is possible to return all but the first `n` characters of the 
+      current token back to the input stream.]]
+    [[`ctx.lookahead()`]
+     [`lookahead(std::size_t)` or `lookahead(token_def)`]
+     [The function `lookahead()` takes a single parameter specifying the token
+      to match in the input. The function can be used for instance to implement 
+      lookahead for lexer engines not supporting constructs like flex' `a/b` 
+      (match `a`, but only when followed by `b`). It invokes the lexer on the 
+      input following the current token without actually moving forward in the 
+      input stream. The function returns whether the lexer was able to match 
+      the specified token.]]
+]
+
+[endsect]

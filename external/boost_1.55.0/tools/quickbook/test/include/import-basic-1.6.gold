@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="import-1.6" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Import Quickbook Test</title>
+  <para>
+    Macro 1: import-basic-inc1.quickbook Template 1: import-basic-1.6.quickbook
+  </para>
+  <para>
+    Macro 2: import-basic-inc2.quickbook Template 2: import-basic-1.6.quickbook
+  </para>
+</article>

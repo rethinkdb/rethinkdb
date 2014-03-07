@@ -1,0 +1,411 @@
+[/
+  (C) Copyright 20012 Vicente J. Botet Escriba.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:configuration Configuration]
+
+
+[table Default Values for Configurable Features
+    [[Feature]                  [Anti-Feature]               [V2]  [V3]  [V4]  ]
+    [[USES_CHRONO]              [DONT_USE_CHRONO]            [YES/NO] [YES/NO] [YES/NO] ]
+    [[PROVIDES_INTERRUPTIONS]   [DONT_PROVIDE_INTERRUPTIONS] [YES] [YES] [YES]  ]
+    [[THROW_IF_PRECONDITION_NOT_SATISFIED]   [-] [NO] [NO] [NO]  ]
+
+
+
+    [[PROVIDES_PROMISE_LAZY]    [DONT_PROVIDE_PROMISE_LAZY]  [YES] [NO] [NO]  ]
+
+    [[PROVIDES_BASIC_THREAD_ID] [DONT_PROVIDE_BASIC_THREAD_ID]   [NO]  [YES] [YES] ]
+    [[PROVIDES_GENERIC_SHARED_MUTEX_ON_WIN] [DONT_PROVIDE_GENERIC_SHARED_MUTEX_ON_WIN]   [NO]  [YES] [YES] ]
+
+    [[PROVIDES_SHARED_MUTEX_UPWARDS_CONVERSION]    [DONT_PROVIDE_SHARED_MUTEX_UPWARDS_CONVERSION]  [NO] [YES] [YES]  ]
+    [[PROVIDES_EXPLICIT_LOCK_CONVERSION]    [DONT_PROVIDE_EXPLICIT_LOCK_CONVERSION]  [NO] [YES] [YES]  ]
+    [[PROVIDES_FUTURE]    [DONT_PROVIDE_FUTURE]  [NO] [YES] [YES]  ]
+    [[PROVIDES_FUTURE_CTOR_ALLOCATORS]    [DONT_PROVIDE_FUTURE_CTOR_ALLOCATORS]  [NO] [YES] [YES]  ]
+    [[PROVIDES_THREAD_DESTRUCTOR_CALLS_TERMINATE_IF_JOINABLE]    [DONT_PROVIDE_THREAD_DESTRUCTOR_CALLS_TERMINATE_IF_JOINABLE]  [NO] [YES] [YES]  ]
+    [[PROVIDES_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE]    [DONT_PROVIDE_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE]  [NO] [YES] [YES]  ]
+    [[PROVIDES_ONCE_CXX11]    [DONT_PROVIDE_ONCE_CXX11]  [NO] [YES] [YES]  ]
+    [[USES_MOVE]                [DONT_USE_MOVE]              [NO] [YES] [YES] ]
+
+    [[USES_DATETIME]            [DONT_USE_DATETIME]          [YES/NO] [YES/NO] [YES/NO]  ]
+    [[PROVIDES_THREAD_EQ]       [DONT_PROVIDE_THREAD_EQ]     [YES] [YES] [NO]  ]
+    [[PROVIDES_CONDITION]       [DONT_PROVIDE_CONDITION]     [YES] [YES] [NO]  ]
+    [[PROVIDES_NESTED_LOCKS]    [DONT_PROVIDE_NESTED_LOCKS]  [YES] [YES] [NO]  ]
+    [[PROVIDES_SIGNATURE_PACKAGED_TASK]    [DONT_PROVIDE_SIGNATURE_PACKAGED_TASK]  [NO] [NO] [YES]  ]
+    [[PROVIDES_FUTURE_INVALID_AFTER_GET]    [DONT_PROVIDE_FUTURE_INVALID_AFTER_GET]  [NO] [NO] [YES]  ]
+   [/ [[PROVIDES_FUTURE_CONTINUATION]    [DONT_PROVIDE_FUTURE_CONTINUATION]  [NO] [NO] [YES]  ] ]
+
+    [[PROVIDES_VARIADIC_THREAD]    [DONT_PROVIDE_VARIADIC_THREAD]  [NO] [NO] [C++11]  ]
+
+]
+
+[section:chrono Boost.Chrono]
+
+Boost.Thread uses by default Boost.Chrono for the time related functions and define `BOOST_THREAD_USES_CHRONO` if `BOOST_THREAD_DONT_USE_CHRONO` is not defined. The user should define `BOOST_THREAD_DONT_USE_CHRONO` for compilers that don't work well with Boost.Chrono.
+
+[warning When defined BOOST_THREAD_PLATFORM_WIN32 BOOST_THREAD_USES_CHRONO is defined independently of user settings.]
+
+[endsect]
+
+
+[section:move  Boost.Move]
+
+Boost.Thread uses by default an internal move semantic implementation. Since version 3.0.0 you can use the move emulation emulation provided by Boost.Move. 
+
+When `BOOST_THREAD_VERSION==2` define `BOOST_THREAD_USES_MOVE ` if you want to use Boost.Move interface.
+When `BOOST_THREAD_VERSION>=3` define `BOOST_THREAD_DONT_USE_MOVE ` if you don't want to use Boost.Move interface.
+
+[endsect]
+
+[section:date_time  Boost.DateTime]
+
+The Boost.DateTime time related functions introduced in Boost 1.35.0, using the [link date_time Boost.Date_Time] library are deprecated. These include (but are not limited to):
+
+* __sleep__
+* __timed_join__
+* __cond_timed_wait__
+* __timed_lock_ref__
+
+
+When `BOOST_THREAD_VERSION<=3` && defined BOOST_THREAD_PLATFORM_PTHREAD define `BOOST_THREAD_DONT_USE_DATETIME` if you don't want to use Boost.DateTime related interfaces.
+When `BOOST_THREAD_VERSION>3`  && defined BOOST_THREAD_PLATFORM_PTHREAD define `BOOST_THREAD_USES_DATETIME` if you want to use Boost.DateTime related interfaces.
+
+[warning When defined BOOST_THREAD_PLATFORM_WIN32 BOOST_THREAD_USES_DATETIME is defined independently of user settings.]
+
+[endsect]
+
+[section:move  Boost.Atomic]
+
+Boost.Thread uses by default an Boost.Atomic in POSIX platforms to implement call_once..
+
+Define `BOOST_THREAD_USES_ATOMIC ` if you want to use Boost.Atomic.
+Define `BOOST_THREAD_DONT_USE_ATOMIC ` if you don't want to use Boost.Atomic or if it is not supported in your platform.
+
+[endsect]
+ 
+[section:thread_eq `boost::thread::operator==` deprecated]
+
+The following operators are deprecated: 
+
+* `boost::thread::operator==`
+* `boost::thread::operator!=`
+
+When `BOOST_THREAD_PROVIDES_THREAD_EQ` is defined Boost.Thread provides these deprecated feature. 
+
+Use instead 
+
+* `boost::thread::id::operator==`
+* `boost::thread::id::operator!=`
+
+[warning This is a breaking change respect to version 1.x.]
+
+When `BOOST_THREAD_VERSION>=4` define `BOOST_THREAD_PROVIDES_THREAD_EQ ` if you want this feature.
+When `BOOST_THREAD_VERSION<4` define `BOOST_THREAD_DONT_PROVIDE_THREAD_EQ ` if you don't want this feature.
+
+[endsect]
+
+[section:condition boost::condition deprecated]
+
+`boost::condition` is deprecated. When `BOOST_THREAD_PROVIDES_CONDITION` is defined Boost.Thread provides this deprecated feature. 
+
+Use instead `boost::condition_variable_any`.
+
+[warning This is a breaking change respect to version 1.x.]
+
+When `BOOST_THREAD_VERSION>3` define `BOOST_THREAD_PROVIDES_CONDITION` if you want this feature.
+When `BOOST_THREAD_VERSION<=3` define `BOOST_THREAD_DONT_PROVIDE_CONDITION` if you don't want this feature.
+
+[endsect]
+
+[section:nested_lock Mutex nested lock types deprecated]
+
+
+The following nested typedefs are deprecated: 
+
+* `boost::mutex::scoped_lock`, 
+* `boost::mutex::scoped_try_lock`, 
+* `boost::timed_mutex::scoped_lock` 
+* `boost::timed_mutex::scoped_try_lock` 
+* `boost::timed_mutex::timed_scoped_timed_lock` 
+* `boost::recursive_mutex::scoped_lock`, 
+* `boost::recursive_mutex::scoped_try_lock`, 
+* `boost::recursive_timed_mutex::scoped_lock` 
+* `boost::recursive_timed_mutex::scoped_try_lock` 
+* `boost::recursive_timed_mutex::timed_scoped_timed_lock` 
+
+When `BOOST_THREAD_PROVIDES_NESTED_LOCKS` is defined Boost.Thread provides these deprecated feature. 
+
+
+Use instead
+* `boost::unique_lock<boost::mutex>`, 
+* `boost::unique_lock<boost::mutex>` with the `try_to_lock_t` constructor, 
+* `boost::unique_lock<boost::timed_mutex>` 
+* `boost::unique_lock<boost::timed_mutex>` with the `try_to_lock_t` constructor 
+* `boost::unique_lock<boost::timed_mutex>` 
+* `boost::unique_lock<boost::recursive_mutex>`, 
+* `boost::unique_lock<boost::recursive_mutex>` with the `try_to_lock_t` constructor, 
+* `boost::unique_lock<boost::recursive_timed_mutex>` 
+* `boost::unique_lock<boost::recursive_timed_mutex>` with the `try_to_lock_t` constructor 
+* `boost::unique_lock<boost::recursive_timed_mutex>` 
+
+[warning This is a breaking change respect to version 1.x.]
+
+When `BOOST_THREAD_VERSION>=4` define `BOOST_THREAD_PROVIDES_NESTED_LOCKS` if you want these features.
+When `BOOST_THREAD_VERSION<4` define `BOOST_THREAD_DONT_PROVIDE_NESTED_LOCKS` if you don't want thes features.
+
+[endsect]
+
+[section:id thread::id]
+
+Boost.Thread uses by default a thread::id on Posix based on the pthread type (BOOST_THREAD_PROVIDES_BASIC_THREAD_ID). For backward compatibility and also for compilers that don't work well with this modification the user can define `BOOST_THREAD_DONT_PROVIDE_BASIC_THREAD_ID`.
+
+Define `BOOST_THREAD_DONT_PROVIDE_BASIC_THREAD_ID ` if you don't want these features.
+
+[endsect]
+[section:shared_gen  Shared Locking Generic]
+
+The shared mutex implementation on Windows platform provides currently less functionality than the generic one that is used for PTheads based platforms. In order to have access to these functions, the user needs to define `BOOST_THREAD_PROVIDES_GENERIC_SHARED_MUTEX_ON_WIN` to use the generic implementation, that while could be less efficient, provides all the functions.
+
+When `BOOST_THREAD_VERSION==2` define `BOOST_THREAD_PROVIDES_GENERIC_SHARED_MUTEX_ON_WIN ` if you want these features.
+When `BOOST_THREAD_VERSION>=3` define `BOOST_THREAD_DONT_PROVIDE_GENERIC_SHARED_MUTEX_ON_WIN ` if you don't want these features.
+
+[endsect]
+
+[section:shared_upwards Shared Locking Upwards Conversion]
+
+Boost.Threads includes in version 3 the Shared Locking Upwards Conversion as defined in [@http://home.roadrunner.com/~hinnant/bloomington/shared_mutex.html Shared Locking].
+These conversions need to be used carefully to avoid deadlock or livelock. The user need to define explicitly `BOOST_THREAD_PROVIDES_SHARED_MUTEX_UPWARDS_CONVERSION` to get these upwards conversions. 
+
+When `BOOST_THREAD_VERSION==2` define `BOOST_THREAD_PROVIDES_SHARED_MUTEX_UPWARDS_CONVERSION ` if you want these features.
+When `BOOST_THREAD_VERSION>=3` define `BOOST_THREAD_DONT_PROVIDE_SHARED_MUTEX_UPWARDS_CONVERSION ` if you don't want these features.
+
+[endsect]
+
+[section:explicit_cnv Explicit Lock Conversion]
+
+In [@http://home.roadrunner.com/~hinnant/bloomington/shared_mutex.html Shared Locking] the lock conversions are explicit. As this explicit conversion breaks the lock interfaces, it is provided only if the `BOOST_THREAD_PROVIDES_EXPLICIT_LOCK_CONVERSION` is defined.
+
+When `BOOST_THREAD_VERSION==2` define `BOOST_THREAD_PROVIDES_EXPLICIT_LOCK_CONVERSION ` if you want these features.
+When `BOOST_THREAD_VERSION==3` define `BOOST_THREAD_DONT_PROVIDE_EXPLICIT_LOCK_CONVERSION ` if you don't want these features.
+
+[endsect]
+
+
+[section:future unique_future versus future]
+
+C++11 uses `std::future`. Versions of Boost.Thread previous to version 3.0.0 uses `boost:unique_future`.
+Since version 3.0.0 `boost::future` replaces `boost::unique_future` when `BOOST_THREAD_PROVIDES_FUTURE` is defined. The documentation doesn't contains anymore however `boost::unique_future`.
+
+When `BOOST_THREAD_VERSION==2` define `BOOST_THREAD_PROVIDES_FUTURE` if you want to use boost::future.
+When `BOOST_THREAD_VERSION>=3` define `BOOST_THREAD_DONT_PROVIDE_FUTURE` if you want to use boost::unique_future.
+
+[endsect]
+
+[section:lazy promise lazy initialization]
+
+C++11 promise initialize the associated state at construction time. Versions of Boost.Thread previous to version 3.0.0 initialize it lazily at any point in time in which this associated state is needed. 
+
+Since version 3.0.0 this difference in behavior can be configured. When `BOOST_THREAD_PROVIDES_PROMISE_LAZY` is defined the backward compatible behavior is provided. 
+
+When `BOOST_THREAD_VERSION==2` define `BOOST_THREAD_DONT_PROVIDE_PROMISE_LAZY ` if you want to use boost::future.
+When `BOOST_THREAD_VERSION>=3` define `BOOST_THREAD_PROVIDES_PROMISE_LAZY ` if you want to use boost::unique_future.
+
+[endsect]
+
+[section:alloc promise Allocator constructor]
+
+C++11 std::promise provides constructors with allocators. 
+
+    template <typename R>
+    class promise
+    {
+      public:
+        template <class Allocator> 
+        explicit promise(allocator_arg_t, Allocator a);
+      // ...
+    };
+    template <class R, class Alloc> struct uses_allocator<promise<R>,Alloc>: true_type {}; 
+
+where
+
+    struct allocator_arg_t { };
+    constexpr allocator_arg_t allocator_arg = allocator_arg_t();
+
+    template <class T, class Alloc> struct uses_allocator; 
+
+Since version 3.0.0 Boost.Thread implements this constructor using the following interface
+
+    namespace boost 
+    {
+      typedef container::allocator_arg_t allocator_arg_t;
+      constexpr allocator_arg_t allocator_arg = {};
+      
+      namespace container 
+      {
+        template <class R, class Alloc> 
+        struct uses_allocator<promise<R>,Alloc>: true_type {}; 
+      }
+      template <class T, class Alloc> 
+      struct uses_allocator : public container::uses_allocator<T, Alloc> {}; 
+    }
+
+which introduces a dependency on Boost.Container. This feature is provided only if  `BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS` is defined. 
+
+When `BOOST_THREAD_VERSION==2` define `BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS ` if you want these features.
+When `BOOST_THREAD_VERSION>=3` define `BOOST_THREAD_DONT_PROVIDE_FUTURE_CTOR_ALLOCATORS ` if you don't want these features.
+
+[endsect]
+
+[section:terminate Call to terminate if joinable]
+
+C++11 has a different semantic for the thread destructor and the move assignment. Instead of detaching the thread, calls to terminate() if the thread was joinable. When `BOOST_THREAD_PROVIDES_THREAD_DESTRUCTOR_CALLS_TERMINATE_IF_JOINABLE` and `BOOST_THREAD_PROVIDES_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE` is defined Boost.Thread provides the C++ semantic.
+
+When `BOOST_THREAD_VERSION==2` define `BOOST_THREAD_PROVIDES_THREAD_DESTRUCTOR_CALLS_TERMINATE_IF_JOINABLE ` if you want these features.
+When `BOOST_THREAD_VERSION>=3` define `BOOST_THREAD_DONT_PROVIDE_THREAD_DESTRUCTOR_CALLS_TERMINATE_IF_JOINABLE ` if you don't want these features.
+
+When `BOOST_THREAD_VERSION==2` define `BOOST_THREAD_PROVIDES_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE ` if you want these features.
+When `BOOST_THREAD_VERSION>=3` define `BOOST_THREAD_DONT_PROVIDE_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE ` if you don't want these features.
+
+[endsect]
+
+[section:once_flag once_flag]
+
+C++11 defines a default constructor for once_flag. When `BOOST_THREAD_PROVIDES_ONCE_CXX11 ` is defined Boost.Thread provides this C++ semantics. In this case, the previous aggregate syntax is not supported. 
+
+  boost::once_flag once = BOOST_ONCE_INIT;
+
+You should now just do
+
+  boost::once_flag once;
+
+When `BOOST_THREAD_VERSION==2` define `BOOST_THREAD_PROVIDES_ONCE_CXX11` if you want these features.
+When `BOOST_THREAD_VERSION>=3` define `BOOST_THREAD_DONT_PROVIDE_ONCE_CXX11` if you don't want these features.
+
+[endsect]
+
+
+[section:deprecated Signature parameter for packaged_task]
+
+C++11 packaged task class has a Signature template parameter. When `BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK ` is defined Boost.Thread provides this C++ feature. 
+
+[warning This is a breaking change respect to version 3.x.]
+
+When `BOOST_THREAD_VERSION<4` define `BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK` if you want this feature.
+When `BOOST_THREAD_VERSION>=4` define `BOOST_THREAD_DONT_PROVIDE_SIGNATURE_PACKAGED_TASK` if you don't want this feature.
+
+[endsect]
+
+
+[section:thread_const-var thread constructor with variadic rvalue parameters]
+
+C++11 thread constructor accep a variable number of rvalue argumentshas. When `BOOST_THREAD_PROVIDES_VARIADIC_THREAD ` is defined Boost.Thread provides this C++ feature if the following are not defined 
+
+* BOOST_NO_CXX11_VARIADIC_TEMPLATES
+* BOOST_NO_CXX11_DECLTYPE
+* BOOST_NO_CXX11_RVALUE_REFERENCES
+* BOOST_NO_CXX11_HDR_TUPLE
+
+When `BOOST_THREAD_VERSION>4` define `BOOST_THREAD_DONT_PROVIDE_VARIADIC_THREAD ` if you don't want this feature.
+
+[endsect]
+
+[section:get_invalid future<>::get() invalidates the future]
+
+C++11 future<>::get() invalidates the future once its value has been obtained. When `BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET ` is defined Boost.Thread provides this C++ feature. 
+
+[warning This is a breaking change respect to version 3.x.]
+
+When `BOOST_THREAD_VERSION<4` define `BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET` if you want this feature.
+When `BOOST_THREAD_VERSION>=4` define `BOOST_THREAD_DONT_PROVIDE_FUTURE_INVALID_AFTER_GET` if you don't want this feature.
+
+[endsect]
+
+[section:intr Interruptions]
+
+Thread interruption, while useful, makes any interruption point less efficient than if the thread were not interruptible. 
+
+When `BOOST_THREAD_PROVIDES_INTERRUPTIONS` is defined Boost.Thread provides interruptions. 
+When `BOOST_THREAD_DONT_PROVIDE_INTERRUPTIONS` is defined Boost.Thread don't provide interruption. 
+
+Boost.Thread defines BOOST_THREAD_PROVIDES_INTERRUPTIONS if neither BOOST_THREAD_PROVIDES_INTERRUPTIONS nor BOOST_THREAD_DONT_PROVIDE_INTERRUPTIONS are defined, so that there is no compatibility break.
+
+[endsect]
+
+[section:version Version]
+
+`BOOST_THREAD_VERSION` defines the Boost.Thread version. 
+The default version is 2. In this case the following breaking or extending macros are defined if the opposite is not requested: 
+
+* `BOOST_THREAD_PROVIDES_PROMISE_LAZY`
+
+The user can request the version 3 by defining `BOOST_THREAD_VERSION` to 3. In this case the following breaking or extending macros are defined if the opposite is not requested: 
+
+* Breaking change `BOOST_THREAD_PROVIDES_EXPLICIT_LOCK_CONVERSION `
+* Conformity & Breaking change `BOOST_THREAD_PROVIDES_FUTURE`
+* Uniformity `BOOST_THREAD_PROVIDES_GENERIC_SHARED_MUTEX_ON_WIN`
+* Extension `BOOST_THREAD_PROVIDES_SHARED_MUTEX_UPWARDS_CONVERSION`
+* Conformity `BOOST_THREAD_PROVIDES_FUTURE_CTOR_ALLOCATORS`
+* Conformity & Breaking change BOOST_THREAD_PROVIDES_THREAD_DESTRUCTOR_CALLS_TERMINATE_IF_JOINABLE
+* Conformity & Breaking change BOOST_THREAD_PROVIDES_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE
+* Conformity & Breaking change `BOOST_THREAD_PROVIDES_ONCE_CXX11`
+
+* Breaking change `BOOST_THREAD_DONT_PROVIDE_PROMISE_LAZY`
+
+[/The default value for `BOOST_THREAD_VERSION` will be changed to 3 since Boost 1.54.]
+
+The user can request the version 4 by defining `BOOST_THREAD_VERSION` to 4. In this case the following breaking or extending macros are defined if the opposite is not requested: 
+
+* Conformity & Breaking change `BOOST_THREAD_PROVIDES_SIGNATURE_PACKAGED_TASK `
+* Conformity & Breaking change `BOOST_THREAD_PROVIDES_FUTURE_INVALID_AFTER_GET `
+* Conformity `BOOST_THREAD_PROVIDES_VARIADIC_THREAD`
+* Breaking change `BOOST_THREAD_DONT_PROVIDE_THREAD_EQ`
+* Breaking change `BOOST_THREAD_DONT_USE_DATETIME`
+
+
+[/The default value for `BOOST_THREAD_VERSION` will be changed to 4 since Boost 1.58.]
+
+[endsect]
+
+[endsect]
+
+[section:limitations Limitations]
+
+Some compilers don't work correctly with some of the added features.
+
+[section:sun SunPro]
+
+If __SUNPRO_CC < 0x5100 the library defines
+
+* `BOOST_THREAD_DONT_USE_MOVE`
+
+If __SUNPRO_CC < 0x5100 the library defines
+
+* `BOOST_THREAD_DONT_PROVIDE_FUTURE_CTOR_ALLOCATORS`
+
+
+[endsect]
+[section:vacpp VACPP]
+
+If __IBMCPP__ < 1100 the library defines
+
+* `BOOST_THREAD_DONT_USE_CHRONO`
+* `BOOST_THREAD_USES_DATE`
+
+And Boost.Thread doesn't links with Boost.Chrono.
+
+
+[endsect]
+[section:ce WCE]
+
+If _WIN32_WCE && _WIN32_WCE==0x501 the library defines
+
+* `BOOST_THREAD_DONT_PROVIDE_FUTURE_CTOR_ALLOCATORS`
+
+
+[endsect]
+
+[endsect]

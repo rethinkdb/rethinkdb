@@ -1,0 +1,242 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Symplectic System</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="up" href="../concepts.html" title="Concepts">
+<link rel="prev" href="system.html" title="System">
+<link rel="next" href="simple_symplectic_system.html" title="Simple Symplectic System">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../logo.jpg"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="system.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="simple_symplectic_system.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numeric_odeint.concepts.symplectic_system"></a><a class="link" href="symplectic_system.html" title="Symplectic System">Symplectic
+      System</a>
+</h3></div></div></div>
+<h5>
+<a name="boost_numeric_odeint.concepts.symplectic_system.h0"></a>
+        <span class="phrase"><a name="boost_numeric_odeint.concepts.symplectic_system.description"></a></span><a class="link" href="symplectic_system.html#boost_numeric_odeint.concepts.symplectic_system.description">Description</a>
+      </h5>
+<p>
+        This concept describes how to define a symplectic system written with generalized
+        coordinate <code class="computeroutput"><span class="identifier">q</span></code> and generalized
+        momentum <code class="computeroutput"><span class="identifier">p</span></code>:
+      </p>
+<p>
+        <span class="emphasis"><em>q'(t) = f(p) </em></span>
+      </p>
+<p>
+        <span class="emphasis"><em>p'(t) = g(q) </em></span>
+      </p>
+<p>
+        Such a situation is typically found for Hamiltonian systems with a separable
+        Hamiltonian:
+      </p>
+<p>
+        <span class="emphasis"><em>H(p,q) = H<sub>kin</sub>(p) + V(q) </em></span>
+      </p>
+<p>
+        which gives the equations of motion:
+      </p>
+<p>
+        <span class="emphasis"><em>q'(t) = dH<sub>kin</sub> / dp = f(p) </em></span>
+      </p>
+<p>
+        <span class="emphasis"><em>p'(t) = dV / dq = g(q) </em></span>
+      </p>
+<p>
+        The algorithmic implementation of this situation is described by a pair of
+        callable objects for <span class="emphasis"><em>f</em></span> and <span class="emphasis"><em>g</em></span> with
+        a specific parameter signature. Such a system should be implemented as a
+        std::pair of functions or a functors. Symplectic systems are used in symplectic
+        steppers like <code class="computeroutput"><span class="identifier">symplectic_rkn_sb3a_mclachlan</span></code>.
+      </p>
+<h5>
+<a name="boost_numeric_odeint.concepts.symplectic_system.h1"></a>
+        <span class="phrase"><a name="boost_numeric_odeint.concepts.symplectic_system.notation"></a></span><a class="link" href="symplectic_system.html#boost_numeric_odeint.concepts.symplectic_system.notation">Notation</a>
+      </h5>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">System</span></code></span></dt>
+<dd><p>
+              A type that is a model of SymplecticSystem
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Coor</span></code></span></dt>
+<dd><p>
+              The type of the coordinate <span class="emphasis"><em>q</em></span>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Momentum</span></code></span></dt>
+<dd><p>
+              The type of the momentum <span class="emphasis"><em>p</em></span>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">CoorDeriv</span></code></span></dt>
+<dd><p>
+              The type of the derivative of coordinate <span class="emphasis"><em>q'</em></span>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">MomentumDeriv</span></code></span></dt>
+<dd><p>
+              The type of the derivative of momentum <span class="emphasis"><em>p'</em></span>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">sys</span></code></span></dt>
+<dd><p>
+              An object of the type <code class="computeroutput"><span class="identifier">System</span></code>
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">q</span></code></span></dt>
+<dd><p>
+              Object of type Coor
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">p</span></code></span></dt>
+<dd><p>
+              Object of type Momentum
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">dqdt</span></code></span></dt>
+<dd><p>
+              Object of type CoorDeriv
+            </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">dpdt</span></code></span></dt>
+<dd><p>
+              Object of type MomentumDeriv
+            </p></dd>
+</dl>
+</div>
+<h5>
+<a name="boost_numeric_odeint.concepts.symplectic_system.h2"></a>
+        <span class="phrase"><a name="boost_numeric_odeint.concepts.symplectic_system.valid_expressions"></a></span><a class="link" href="symplectic_system.html#boost_numeric_odeint.concepts.symplectic_system.valid_expressions">Valid
+        expressions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Type
+                </p>
+              </th>
+<th>
+                <p>
+                  Semantics
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  Check for pair
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_pair</span><span class="special">&lt;</span>
+                  <span class="identifier">System</span> <span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Check if System is a pair
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Calculate <span class="emphasis"><em>dq/dt = f(p)</em></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sys</span><span class="special">.</span><span class="identifier">first</span><span class="special">(</span>
+                  <span class="identifier">p</span> <span class="special">,</span>
+                  <span class="identifier">dqdt</span> <span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">void</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Calculates <span class="emphasis"><em>f(p)</em></span>, the result is stored into
+                  <code class="computeroutput"><span class="identifier">dqdt</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  Calculate <span class="emphasis"><em>dp/dt = g(q)</em></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">sys</span><span class="special">.</span><span class="identifier">second</span><span class="special">(</span>
+                  <span class="identifier">q</span> <span class="special">,</span>
+                  <span class="identifier">dpdt</span> <span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">void</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Calculates <span class="emphasis"><em>g(q)</em></span>, the result is stored into
+                  <code class="computeroutput"><span class="identifier">dpdt</span></code>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="system.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="simple_symplectic_system.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

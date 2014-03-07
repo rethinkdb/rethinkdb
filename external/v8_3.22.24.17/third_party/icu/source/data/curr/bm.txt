@@ -1,0 +1,236 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/bm.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/bm.xml
+ */
+bm{
+    Currencies{
+        AED{
+            "AED",
+            "arabu mara kafoli Diram",
+        }
+        AOA{
+            "Kz",
+            "angola Kwanza",
+        }
+        AUD{
+            "AU$",
+            "ositirali Dolar",
+        }
+        BHD{
+            "BD",
+            "bareyini Dinar",
+        }
+        BIF{
+            "FBu",
+            "burundi Fraŋ",
+        }
+        BWP{
+            "BWP",
+            "bɔtisiwana Pula",
+        }
+        CAD{
+            "CA$",
+            "kanada Dolar",
+        }
+        CDF{
+            "CDF",
+            "kongole Fraŋ",
+        }
+        CHF{
+            "CHF",
+            "suwisi Fraŋ",
+        }
+        CNY{
+            "CN¥",
+            "siniwa Yuwan",
+        }
+        CVE{
+            "CV$",
+            "capivɛrdi Esekudo",
+        }
+        DJF{
+            "Fdj",
+            "jibuti Fraŋ",
+        }
+        DZD{
+            "DA",
+            "alizeri Dinar",
+        }
+        EGP{
+            "EGP",
+            "eziputi Livri",
+        }
+        ERN{
+            "Nfk",
+            "eritere Nafika",
+        }
+        ETB{
+            "Br",
+            "etiopi Bir",
+        }
+        EUR{
+            "€",
+            "ero",
+        }
+        GBP{
+            "£",
+            "angilɛ Livri Siterlingi",
+        }
+        GHC{
+            "₵",
+            "gana Sedi",
+        }
+        GMD{
+            "GMD",
+            "gambi Dalasi",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "gine Fraŋ",
+        }
+        INR{
+            "Rs",
+            "Ɛndu Rupi",
+        }
+        JPY{
+            "JP¥",
+            "zapɔne Yɛn",
+        }
+        KES{
+            "Ksh",
+            "keniya Siling",
+        }
+        KMF{
+            "CF",
+            "komɔri Fraŋ",
+        }
+        LRD{
+            "L$",
+            "liberiya Dolar",
+        }
+        LSL{
+            "LSL",
+            "lesoto Loti",
+        }
+        LYD{
+            "LD",
+            "libi Dinar",
+        }
+        MAD{
+            "MAD",
+            "marɔku Diram",
+        }
+        MGA{
+            "MGA",
+            "madagasikari Fraŋ",
+        }
+        MRO{
+            "UM",
+            "mɔritani Uguwiya",
+        }
+        MUR{
+            "MURs",
+            "morisi Rupi",
+        }
+        MWK{
+            "MWK",
+            "malawi Kwaca",
+        }
+        MZM{
+            "Mt",
+            "mozanbiki Metikali",
+        }
+        NAD{
+            "N$",
+            "namibi Dolar",
+        }
+        NGN{
+            "₦",
+            "nizeriya Nɛra",
+        }
+        RWF{
+            "RWF",
+            "ruwanda Fraŋ",
+        }
+        SAR{
+            "SR",
+            "sawudiya Riyal",
+        }
+        SCR{
+            "SRe",
+            "sesɛli Rupi",
+        }
+        SDG{
+            "SDG",
+            "sudani Dinar",
+        }
+        SDP{
+            "SDP" /** ===  */,
+            "sudani Livri",
+        }
+        SHP{
+            "SH£",
+            "Ɛlɛni-Senu Livri",
+        }
+        SLL{
+            "Le",
+            "siyeralewɔni Lewɔni",
+        }
+        SOS{
+            "Ssh",
+            "somali Siling",
+        }
+        STD{
+            "Db",
+            "sawotome Dobra",
+        }
+        SZL{
+            "SZL",
+            "swazilandi Lilangeni",
+        }
+        TND{
+            "DT",
+            "tunizi Dinar",
+        }
+        TZS{
+            "TSh",
+            "tanzani Siling",
+        }
+        UGX{
+            "USh",
+            "uganda Siling",
+        }
+        USD{
+            "US$",
+            "ameriki Dolar",
+        }
+        XAF{
+            "FCFA",
+            "sefa Fraŋ (BEAC)",
+        }
+        XOF{
+            "CFA",
+            "sefa Fraŋ (BCEAO)",
+        }
+        ZAR{
+            "R",
+            "sudafriki Randi",
+        }
+        ZMK{
+            "ZK",
+            "zambi Kwaca",
+        }
+        ZWD{
+            "Z$",
+            "zimbabuwe Dolar",
+        }
+    }
+    Version{"2.0.47.53"}
+}

@@ -1,0 +1,42 @@
+[/license
+
+Boost.Bimap
+
+Copyright (c) 2006-2007 Matias Capeletto
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+]
+
+[/ QuickBook Document version 1.4 ]
+
+[section Release notes]
+
+[heading Boost 1.53 release]
+
+* Refactor map_view_iterator to improve error messages.
+* Fixed replace_(left/right/key/data) bug when using relations with info.
+* Fixed vector_of and list_of views `assign(size_type,value_type)` bug.
+* Fixed vector_of views `operator[](size_type)` and `at(size_type)` functions return value.
+
+[heading Boost 1.52 release]
+
+* Fixed unused parameter name warnings in Boost.Bimap ([@https://svn.boost.org/trac/boost/ticket/7425 #7425]).
+
+[heading Boost 1.50 release]
+
+* Added key_type and mapped_type (leaving data_type for backward compatibility) typedefs to map views ([@https://svn.boost.org/trac/boost/ticket/6031 #6031]).
+* Removed spurious dependency on Boost.Serialization ([@https://svn.boost.org/trac/boost/ticket/3868 #3868]).
+* Solved unused constructor parameter warning ([@https://svn.boost.org/trac/boost/ticket/5749 #5749]).
+
+[heading Boost 1.45 release]
+* Fixed custom allocators ([@https://svn.boost.org/trac/boost/ticket/3665 #3665]).
+* Fixed count() constness ([@https://svn.boost.org/trac/boost/ticket/2484 #2484]).
+* Other maintenance fixes.
+
+[heading Boost 1.35 release]
+* Added to Boost Libraries. 
+
+[endsect]

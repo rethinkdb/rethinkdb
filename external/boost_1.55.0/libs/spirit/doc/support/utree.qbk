@@ -1,0 +1,99 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2011      Bryce Lelbach
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+==============================================================================/]
+
+[import ../../../../boost/spirit/home/support/utree/utree.hpp]
+[import ../../example/support/utree/sexpr_parser.hpp]
+
+[section:utree The utree data structure]
+
+`utree` is a dynamically-typed hierarchical data structure that can represent
+abstract syntax trees. It's well integrated with __qi__ and __karma__. `utree`
+can be passed as an attribute to almost any grammar. `utree`'s type system is
+implemented through the use of a discriminated union and type punning.
+
+`utree` has a minimal memory footprint. The data structure size is 16 bytes on a
+32-bit platform, and 32 bytes on 64-bit a platform (`4*sizeof(void*)`). Being a
+container of itself, it can represent tree structures.
+
+[utree_types]
+
+The UTF-8 string, UTF-8 symbol, and binary data types are internally stored 
+either directly as the node data (small string optimization applied), or they 
+are allocated from the heap, storing the pointer to the allocated data in the 
+`utree`. The maximum possible length of the data to be stored in the node data 
+depends on the platform the `utree` is compiled for. It is 14 bytes for a 
+32-bit platform and 30 bytes for a 64-bit platform.
+
+[heading Class Reference]
+
+The `utree` data structure is very versatile and can be used as an attribute
+for all possible __qi__ parsers and __karma__ generators. For this reason, it 
+exposes a set of typedef's making it compatible with STL containers:
+
+[utree_container_types]
+
+The `utree` data type exposes the functional interface of a bidirectional STL 
+container. The iterators returned from `begin()` et.al. conform to the Standard 
+requirements of a bidirectional iterator.
+
+[utree_container_functions]
+
+The exposed container interface makes the `utree` usable with all __qi__
+parser and __karma__ generator components, which are compatible with an 
+STL container attribute type.
+
+[utree_initialization]
+
+The `utree` data type exposes the functional interface compatible to 
+__boost_variant__ as well. Its very nature is to hold different data types, one
+at each point in time, making it functionally very similar to __boost_variant__.
+
+[utree_variant_functions]
+
+The exposed variant-like interface makes the `utree` usable with all __qi__
+parser and __karma__ generator components, which are compatible with an 
+__boost_variant__ attribute type.
+
+[heading String Types]
+
+[utree_strings]
+
+[heading Function Object Interface]
+
+The stored_function template class can to store a unary function objects with
+a signature of utree(scope const&) as a utree node.
+
+[utree_function_object_interface]
+
+[heading Exceptions]
+
+[utree_exceptions]
+
+[/
+  [heading Scope]
+
+  [utree_scope]
+]
+
+[heading Example: Sexpr Parser]
+
+Our first example demonstrates how to use `utree` to write a parser for
+[@http://http://en.wikipedia.org/wiki/S-expression symbolic expressions].
+While `utree` is capable of representing just about any AST, `utree`'s design
+is based on the simple yet powerful nature of symbolic expressions. This
+example introduces a number of basic and intermediate `utree` development
+techniques: using __qi__ and __karma__ integration, tracking source code
+locations and taking advantage of UTF8 support.
+
+The source for this example can be found here: [@../../example/support/utree].
+
+[utree_sexpr_parser]
+ 
+[endsect]
+

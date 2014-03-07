@@ -1,0 +1,225 @@
+[/
+              Copyright Andrey Semashev 2007 - 2013.
+     Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+              http://www.boost.org/LICENSE_1_0.txt)
+
+    This document is a part of Boost.Log library documentation.
+/]
+
+[section:rationale Rationale and FAQ]
+
+[section:why_str_lit Why string literals as scope names?]
+
+One may wonder why not allow arbitrary strings to be used as named scope names. The answer is simple: for performance and safety reasons. Named scope support functionality has one significant difference from other attribute-related features of the library. The scope stack is maintained even when no logging is done, so if a function `foo` has a `BOOST_LOG_FUNCTION()` statement in its body, it is always a slowdown. Allowing the scope name to be an arbitrary string would make the slowdown significantly greater because of the need to allocate memory and copy the string (not to mention that there would be a need to previously format it, which also takes its toll).
+
+Dynamic memory allocation also introduces exception safety issues: the `BOOST_LOG_FUNCTION()` statement (and alikes) would become a potential source of exceptions. These issues would complicate user's code if he wants to solve memory allocation problems gracefully.
+
+One possible alternative solution would be pooling pre-formatted and pre-allocated scope names somewhere but this would surely degrade performance even more and introduce the problem of detecting when to update or free pooled strings.
+
+Therefore restricting to string literals seemed to be the optimal decision, which reduced dynamic memory usage and provided enough flexibility for common needs.
+
+[endsect]
+
+[section:why_weak_scoped_attributes Why scoped attributes don't override existing attributes?]
+
+Initially scoped attributes were able to override other attributes with the same name if they were already registered by the time when a scoped attribute encountered. This allowed some interesting use cases like this:
+
+    BOOST_LOG_DECLARE_GLOBAL_LOGGER(my_logger, src::logger_mt)
+
+    void foo()
+    {
+        // This scoped attribute would temporarily replace the existing tag
+        BOOST_LOG_SCOPED_THREAD_TAG("Section", std::string, "In foo");
+
+        // This log record will have a "Section" attribute with value "In foo"
+        BOOST_LOG(get_my_logger()) << "We're in foo section";
+    }
+
+    int main(int, char*[])
+    {
+        BOOST_LOG_SCOPED_THREAD_TAG("Section", std::string, "In main");
+
+        // This log record will have a "Section" attribute with value "In main"
+        BOOST_LOG(get_my_logger()) << "We're in main section";
+
+        foo();
+
+        // This log record will have a "Section" attribute with value "In main" again
+        BOOST_LOG(get_my_logger()) << "We're in main section again";
+
+        return 0;
+    }
+
+However, this feature introduced a number of safety problems, including thread safety issues, that could be difficult to track down. For example, it was no longer safe to use logger-wide scoped attributes on the same logger from different threads, because the resulting attribute would be undefined:
+
+    BOOST_LOG_DECLARE_GLOBAL_LOGGER(my_logger, src::logger_mt)
+
+    void thread1()
+    {
+        BOOST_LOG_SCOPED_LOGGER_TAG(get_my_logger(), "Tag", std::string, "thread1");
+        BOOST_LOG(get_my_logger()) << "We're in thread1";
+    }
+
+    void thread2()
+    {
+        BOOST_LOG_SCOPED_LOGGER_TAG(get_my_logger(), "Tag", int, 10);
+        BOOST_LOG(get_my_logger()) << "We're in thread2";
+    }
+
+    int main(int, char*[])
+    {
+        BOOST_LOG_SCOPED_LOGGER_TAG(get_my_logger(), "Tag", double, -2.2);
+
+        BOOST_LOG(get_my_logger()) << "We're in main";
+
+        boost::thread t1(&thread1);
+        boost::thread t2(&thread2);
+
+        t1.join();
+        t2.join();
+
+        // Which "Tag" is registered here?
+        BOOST_LOG(get_my_logger()) << "We're in main again";
+
+        return 0;
+    }
+
+There were other issues, like having an attribute set iterator that points to one attribute object, then suddenly without seemingly modifying it it becomes pointing to a different attribute object (of, possibly, a different type). Such behavior could lead to tricky failures that would be difficult to investigate. Therefore this feature was eventually dropped, which simplified the scoped attributes implementation significantly.
+
+[endsect]
+
+[section:why_weak_record_ordering Why log records are weakly ordered in a multithreaded application?]
+
+Although the library guarantees that log records made in a given thread are always delivered to sinks in the same order as they were made in, the library cannot provide such guarantee for different threads. For instance, it is possible that thread A emits a log record and gets preempted, then thread B emits its log record and manages to deliver it to a sink before being preempted. The resulting log will contain log record from thread B before the record made in thread A. However, attribute values attached to the records will always be actual with regard to the moment of emitting the record and not the moment of passing the record to the sink. This is the reason for a strange, at first glance, situation when a log record with an earlier time stamp follows a record with a later time stamp. The problem appears quite rarely, usually when thread contention on logging is very high.
+
+There are few possible ways to cope with the problem:
+
+* Enforce strict serialization of log record being made throughout the application. This solution implies a severe performance impact in multithreaded applications because log records that otherwise could be processed concurrently would have to go serial. Since this controverses one of the [link log.moti main library goals], it was rejected.
+* Attempt to maintain log record ordering on the sink level. This solution is more or less viable. On the downside, it would introduce log record buffering, which in turn would compromise logs reliability. In the case of application crash all buffered records would be lost.
+* Bear with the problem and let mis-ordered records appear in log files occasionally. Order log records upon reading the files, if needed.
+
+The second solution was implemented as a special policy for the [link log.detailed.sink_frontends.async asynchronous sink frontend].
+
+[endsect]
+
+[section:why_attribute_manips_dont_affect_filters Why attributes set with stream manipulators do not participate in filtering?]
+
+One can add attributes to log records in the following way:
+
+    BOOST_LOG(logger) << logging::add_value("MyInt", 10) << logging::add_value("MyString", "string attribute value")
+        << "Some log message";
+
+However, filters will not be able to use MyInt and MyString attributes. The reason for this behavior is quite simple. The streaming expression is executed /after/ the filtering takes place and only /if/ the filter passed the log record. At this point these attributes have not been added to the record yet. The easiest way to pass attributes to the filter is to use scoped attributes or tags (see [link log.detailed.attributes.related_components.scoped_attributes here]).
+
+[endsect]
+
+[section:why_not_lazy_streaming Why not using lazy streaming?]
+
+One of the possible library implementations would be using lazy expressions to delay log record formatting. In essence, the expression:
+
+    logger << "Hello, world!";
+
+would become a lambda-expression that is only invoked if the filtering is successful. Although this approach has advantages, it must be noted that lazy expression construction is not zero-cost in terms of performance, code size and compile times. The following expression:
+
+    logger << "Received packet from " << ip << " of " << packet.size() << " bytes";
+
+would generate a considerable amount of code (proportional to the number of streaming operators) to be executed before filtering takes place. Another drawback is that the `packet.size()` is always called, whether or not the record is actually written to the log. In order to delay this call, yet more scaffolding is needed, possibly involving __boost_bind__, __boost_lambda__ or __boost_phoenix__. This complication is not acceptable for such a basic use case, like this.
+
+Although lazy streaming is not provided by the library out of the box, nothing prevents developing it in a separate hierarchy of loggers. See the [link log.extension.sources Extending the library] section for more information.
+
+[endsect]
+
+[section:why_not_log4j Why not using hierarchy of loggers, like in log4j? Why not Boost.Log4j? Etc.]
+
+There are enough [@http://logging.apache.org/log4j/ log4j]-like libraries available for C++ already (see [@http://logging.apache.org/log4cxx/ here], [@http://log4cplus.sourceforge.net/ here] and [@http://log4cpp.sourceforge.net/ here]), so there is no point in implementing yet another one. Instead, this library was aimed to solve more complex tasks, including ones that do not directly fall under the common definition of "logging" term as a debugging tool. Additionally, as Boost.Log was to be a generic library, it had to provide more ways of extending itself, while keeping performance as high as possible. Log4j concept seemed too limiting and inappropriate for these tasks and therefore was rejected.
+
+As for hierarchical loggers, there is no need for this feature in the current library design. One of the main benefits it provides in log4j is determining the appenders (sinks, in terms of this library) in which a log record will end up. This library achieves the same result by filtering. The other application of this feature in Boost.Log could be that the loggers in the hierarchy could combine their sets of attributes for each log record, but there was no demand in real world applications for such a feature. It can be added though, if it proves useful.
+
+[endsect]
+
+[section:fork_support Does Boost.Log support process forking?]
+
+No, currently Boost.Log does not support process forking (i.e. `fork` call in UNIX systems). There are several issues with process forking, for instance:
+
+* File sinks do not attempt to reopen log files or synchronize access to files between parent and child processes. The resulting output may be garbled.
+* File collectors do not expect several processes attempting to collect log files to the same target directory. This may result in spurious failures at log file rotation.
+* The [link log.detailed.attributes.process_id current_process_id] attribute value will not update in the child process.
+* In multithreaded applications, one can generally not guarantee that a thread is not executing some Boost.Log code while an other thread forks. Some Boost.Log resources may be left irreversibly locked or broken in the forked process. This reservation is not specific to Boost.Log, other libraries and even the application itself are susceptible to this problem.
+
+There may be other issues as well. It seems unlikely that support for forking will be added to Boost.Log any time soon.
+
+[note This does not preclude the `fork`+`exec` sequence from working. As long as the forked process doesn't try to use any of Boost.Log code, the process should be able to call `exec` or a similar function to load and start another executable.]
+
+[endsect]
+
+[section:init_term_support Does Boost.Log support logging at process initialization and termination?]
+
+It should be fine to use logging during the application initialization (i.e. before `main()` starts). But there are a number of known problems with Boost.Log that prevent it from being used at process termination (i.e. after the `main()` function returns), so the official answer to the second part is no. It may work though, in some very restricted setups, if several rules are followed:
+
+* Do not create any objects at process termination, including loggers, attributes or sinks. Try to create and cache the required objects as soon as the application starts (maybe even before `main()` starts).
+* Do not use global loggers at process termination.
+* Do not call `logging::core::get()` at process termination. Get that pointer as early as possible and keep it until the process terminates.
+* Do not use named scopes in termination code.
+
+These rules don't guarantee that the library will work in termination context but they may help to avoid problems. The library will get improved to support this use case better.
+
+[endsect]
+
+[section:why_crash_on_term Why my application crashes on process termination when file sinks are used?]
+
+There are known problems with __boost_filesystem__ (for example, [ticket 8642] and [ticket 9219]), which affect Boost.Log file sink backends. When the file sink is destroyed, it attempts to perform a final log file rotation, which involves __boost_filesystem__ for moving files. This typically happens when Boost.Log core is deinitialized, at the global deinitialization stage, after leaving `main()`. The crux of the problem is that __boost_filesystem__ uses a global locale object internally to perform character code conversion for `path`s, and this locale may get destroyed before Boost.Log is deinitialized, which results in a crash.
+
+There is no way for Boost.Log to influence the order of global deinitialization, but the problem can be worked around on the user's side. One solution is to make sure the locale is initialized /before/ Boost.Log. This can be achieved by calling `boost::filesystem::path::codecvt()` or `boost::filesystem::path::imbue()` early during the application startup, before performing any calls to Boost.Log. For example:
+
+    int main(int argc, char* argv[])
+    {
+        boost::filesystem::path::imbue(std::locale("C"));
+        initialize_log();
+
+        // ...
+    }
+
+Note that in this case you can't use Boost.Log in global constructors or you have to make sure that `boost::filesystem::path::imbue()` is still called first.
+
+Another solution is to remove and destroy file sinks from the logging core before returning from `main()`. This way file rotation will happen before leaving `main()`, while the locale is still valid. The file sinks can be removed either individually or as a part of the `remove_all_sinks()` call:
+
+    int main(int argc, char* argv[])
+    {
+        // ...
+
+        logging::core::get()->remove_all_sinks();
+
+        return 0;
+    }
+
+[endsect]
+
+[section:namespace_mangling Why my application fails to link with Boost.Log? What's the fuss about library namespaces?]
+
+The library declares the `boost::log` namespace which should be used in client code to access library components. However, internally the library uses another nested namespace for actual implementation. The namespace name is configuration and platform dependent, it can change between different releases of the library, so it should never be used in the user side code. This is done in order to make the library configuration synchronized with the application as much as possible and eliminate problems caused by configuration mismatch.
+
+Most of the time users won't even notice the existence of this internal namespace, but it often appears in compiler and linker errors and in some cases it is useful to know how to decode its name. Currently, the namespace name is composed from the following elements:
+
+[pre <version><linkage>\_<threading>\_<system>]
+
+* The `<version>` component describes the library major version. It is currently `v2`.
+* The `<linkage>` component tells whether the library is linked statically or dynamically. It is `s` if the library is linked statically and empty otherwise.
+* The `<threading>` component is `st` for single-threaded builds and `mt` for multi-threaded ones.
+* The `<system>` component describes the underlying OS API used by the library. Currently, it is only specified for multi-threaded builds. Depending on the target platform and configuration, it can be `posix`, `nt5` or `nt6`.
+
+As a couple quick examples, `v2s_st` corresponds to v2 static single-threaded build of the library and `v2_mt_posix` - to v2 dynamic multi-threaded build for POSIX system API.
+
+Namespace mangling may lead to linking errors if the application is misconfigured. One common mistake is to build dynamic version of the library and not define `BOOST_LOG_DYN_LINK` or `BOOST_ALL_DYN_LINK` when building the application, so that the library assumes static linking by default. Whenever such linking errors appear, one can decode the namespace name in the missing symbols and the exported symbols of Boost.Log library and adjust library or application [link log.installation.config configuration] accordingly.
+
+[endsect]
+
+[section:msvc_link_fails_lnk1123 Why MSVC 2010 fails to link the library with error LNK1123: failure during conversion to COFF: file invalid or corrupt?]
+
+If you have several versions of Visual Studio installed and trying to build the library with Visual Studio 2010, the compilation may fail with linker error LNK1123. This seems to be a [@http://stackoverflow.com/questions/10888391/link-fatal-error-lnk1123-failure-during-conversion-to-coff-file-invalid-or-c known problem] caused by some conflict between Visual Studio 2010 and .NET Framework 4.5, which is installed with Visual Studio 2012.
+
+The suggested solution is to upgrade Visual Studio 2010 to Visual Studio 2010 SP1 or overwrite [^"C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\cvtres.exe"] with the one of Visual Studio 2010 SP1 or 2012.
+
+[endsect]
+
+[endsect]

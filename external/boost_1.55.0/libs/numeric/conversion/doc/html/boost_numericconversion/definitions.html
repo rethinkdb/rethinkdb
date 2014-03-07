@@ -1,0 +1,1053 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Definitions</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_numericconversion.definitions"></a><a class="link" href="definitions.html" title="Definitions">Definitions</a>
+</h2></div></div></div>
+    
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.definitions.introduction"></a><a class="link" href="definitions.html#boost_numericconversion.definitions.introduction" title="Introduction">Introduction</a>
+</h3></div></div></div>
+      
+      <p>
+        This section provides definitions of terms used in the Numeric Conversion
+        library.
+      </p>
+      <div class="sidebar">
+<div class="titlepage"></div>
+      <p>
+        <span class="bold"><strong>Notation</strong></span> <span class="underline">underlined
+        text</span> denotes terms defined in the C++ standard.
+      </p>
+      <p>
+        <span class="bold"><strong>bold face</strong></span> denotes terms defined here but
+        not in the standard.
+      </p>
+      </div>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.definitions.types_and_values"></a><a class="link" href="definitions.html#boost_numericconversion.definitions.types_and_values" title="Types and Values">Types
+      and Values</a>
+</h3></div></div></div>
+      
+      <p>
+        As defined by the <span class="underline">C++ Object Model</span>
+        (&#167;1.7) the <span class="underline">storage</span> or memory on which
+        a C++ program runs is a contiguous sequence of <span class="underline">bytes</span>
+        where each byte is a contiguous sequence of bits.
+      </p>
+      <p>
+        An <span class="underline">object</span> is a region of storage (&#167;1.8)
+        and has a type (&#167;3.9).
+      </p>
+      <p>
+        A <span class="underline">type</span> is a discrete set of values.
+      </p>
+      <p>
+        An object of type <code class="computeroutput"><span class="identifier">T</span></code> has an
+        <span class="underline">object representation</span> which is the
+        sequence of bytes stored in the object (&#167;3.9/4)
+      </p>
+      <p>
+        An object of type <code class="computeroutput"><span class="identifier">T</span></code> has a
+        <span class="underline">value representation</span> which is the set
+        of bits that determine the <span class="emphasis"><em>value</em></span> of an object of that
+        type (&#167;3.9/4). For <span class="underline">POD</span> types (&#167;3.9/10),
+        this bitset is given by the object representation, but not all the bits in
+        the storage need to participate in the value representation (except for character
+        types): for example, some bits might be used for padding or there may be
+        trap-bits.
+      </p>
+      <p>
+        <span class="inlinemediaobject"><img src="../images/space.png" alt="space"></span>
+      </p>
+      <p>
+        The <span class="bold"><strong>typed value</strong></span> that is held by an object
+        is the value which is determined by its value representation.
+      </p>
+      <p>
+        An <span class="bold"><strong>abstract value</strong></span> (untyped) is the conceptual
+        information that is represented in a type (i.e. the number &#960;).
+      </p>
+      <p>
+        The <span class="bold"><strong>intrinsic value</strong></span> of an object is the
+        binary value of the sequence of unsigned characters which form its object
+        representation.
+      </p>
+      <p>
+        <span class="inlinemediaobject"><img src="../images/space.png" alt="space"></span>
+      </p>
+      <p>
+        <span class="emphasis"><em>Abstract</em></span> values can be <span class="bold"><strong>represented</strong></span>
+        in a given type.
+      </p>
+      <p>
+        To <span class="bold"><strong>represent</strong></span> an abstract value <code class="computeroutput"><span class="identifier">V</span></code> in a type <code class="computeroutput"><span class="identifier">T</span></code>
+        is to obtain a typed value <code class="computeroutput"><span class="identifier">v</span></code>
+        which corresponds to the abstract value <code class="computeroutput"><span class="identifier">V</span></code>.
+      </p>
+      <p>
+        The operation is denoted using the <code class="computeroutput"><span class="identifier">rep</span><span class="special">()</span></code> operator, as in: <code class="computeroutput"><span class="identifier">v</span><span class="special">=</span><span class="identifier">rep</span><span class="special">(</span><span class="identifier">V</span><span class="special">)</span></code>. <code class="computeroutput"><span class="identifier">v</span></code> is the <span class="bold"><strong>representation</strong></span>
+        of <code class="computeroutput"><span class="identifier">V</span></code> in the type <code class="computeroutput"><span class="identifier">T</span></code>.
+      </p>
+      <p>
+        For example, the abstract value &#960; can be represented in the type <code class="computeroutput"><span class="keyword">double</span></code> as the <code class="computeroutput"><span class="keyword">double</span>
+        <span class="identifier">value</span> <span class="identifier">M_PI</span></code>
+        and in the type <code class="computeroutput"><span class="keyword">int</span></code> as the
+        <code class="computeroutput"><span class="keyword">int</span> <span class="identifier">value</span>
+        <span class="number">3</span></code>
+      </p>
+      <p>
+        <span class="inlinemediaobject"><img src="../images/space.png" alt="space"></span>
+      </p>
+      <p>
+        Conversely, <span class="emphasis"><em>typed values</em></span> can be <span class="bold"><strong>abstracted</strong></span>.
+      </p>
+      <p>
+        To <span class="bold"><strong>abstract</strong></span> a typed value <code class="computeroutput"><span class="identifier">v</span></code> of type <code class="computeroutput"><span class="identifier">T</span></code>
+        is to obtain the abstract value <code class="computeroutput"><span class="identifier">V</span></code>
+        whose representation in <code class="computeroutput"><span class="identifier">T</span></code>
+        is <code class="computeroutput"><span class="identifier">v</span></code>.
+      </p>
+      <p>
+        The operation is denoted using the <code class="computeroutput"><span class="identifier">abt</span><span class="special">()</span></code> operator, as in: <code class="computeroutput"><span class="identifier">V</span><span class="special">=</span><span class="identifier">abt</span><span class="special">(</span><span class="identifier">v</span><span class="special">)</span></code>.
+      </p>
+      <p>
+        <code class="computeroutput"><span class="identifier">V</span></code> is the <span class="bold"><strong>abstraction</strong></span>
+        of <code class="computeroutput"><span class="identifier">v</span></code> of type <code class="computeroutput"><span class="identifier">T</span></code>.
+      </p>
+      <p>
+        Abstraction is just an abstract operation (you can't do it); but it is defined
+        nevertheless because it will be used to give the definitions in the rest
+        of this document.
+      </p>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.definitions.c___arithmetic_types"></a><a class="link" href="definitions.html#boost_numericconversion.definitions.c___arithmetic_types" title="C++ Arithmetic Types">C++
+      Arithmetic Types</a>
+</h3></div></div></div>
+      
+      <p>
+        The C++ language defines <span class="underline">fundamental types</span>
+        (&#167;3.9.1). The following subsets of the fundamental types are intended to
+        represent <span class="emphasis"><em>numbers</em></span>:
+      </p>
+      <div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term"><span class="underline">signed integer types</span> (&#167;3.9.1/2):</span></dt>
+<dd>
+            <p>
+              <code class="computeroutput"><span class="special">{</span><span class="keyword">signed</span>
+              <span class="keyword">char</span><span class="special">,</span>
+              <span class="keyword">signed</span> <span class="keyword">short</span>
+              <span class="keyword">int</span><span class="special">,</span>
+              <span class="keyword">signed</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">signed</span> <span class="keyword">long</span> <span class="keyword">int</span><span class="special">}</span></code> Can be used to represent general integer
+              numbers (both negative and positive).
+            </p>
+          </dd>
+<dt><span class="term"><span class="underline">unsigned integer types</span> (&#167;3.9.1/3):</span></dt>
+<dd>
+            <p>
+              <code class="computeroutput"><span class="special">{</span><span class="keyword">unsigned</span>
+              <span class="keyword">char</span><span class="special">,</span>
+              <span class="keyword">unsigned</span> <span class="keyword">short</span>
+              <span class="keyword">int</span><span class="special">,</span>
+              <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">unsigned</span>
+              <span class="keyword">long</span> <span class="keyword">int</span><span class="special">}</span></code> Can be used to represent positive
+              integer numbers with modulo-arithmetic.
+            </p>
+          </dd>
+<dt><span class="term"><span class="underline">floating-point types</span> (&#167;3.9.1/8):</span></dt>
+<dd>
+            <p>
+              <code class="computeroutput"><span class="special">{</span><span class="keyword">float</span><span class="special">,</span><span class="keyword">double</span><span class="special">,</span><span class="keyword">long</span> <span class="keyword">double</span><span class="special">}</span></code>
+              Can be used to represent real numbers.
+            </p>
+          </dd>
+<dt><span class="term"><span class="underline">integral or integer types</span> (&#167;3.9.1/7):</span></dt>
+<dd>
+            <p>
+              <code class="computeroutput"><span class="special">{{</span><span class="keyword">signed</span>
+              <span class="identifier">integers</span><span class="special">},{</span><span class="keyword">unsigned</span> <span class="identifier">integers</span><span class="special">},</span> <span class="keyword">bool</span><span class="special">,</span> <span class="keyword">char</span> <span class="keyword">and</span> <span class="keyword">wchar_t</span><span class="special">}</span></code>
+            </p>
+          </dd>
+<dt><span class="term"><span class="underline">arithmetic types</span> (&#167;3.9.1/8):</span></dt>
+<dd>
+            <p>
+              <code class="computeroutput"><span class="special">{{</span><span class="identifier">integer</span>
+              <span class="identifier">types</span><span class="special">},{</span><span class="identifier">floating</span> <span class="identifier">types</span><span class="special">}}</span></code>
+            </p>
+          </dd>
+</dl>
+</div>
+      <p>
+        The integer types are required to have a <span class="emphasis"><em>binary</em></span> value
+        representation.
+      </p>
+      <p>
+        Additionally, the signed/unsigned integer types of the same base type (<code class="computeroutput"><span class="keyword">short</span></code>, <code class="computeroutput"><span class="keyword">int</span></code>
+        or <code class="computeroutput"><span class="keyword">long</span></code>) are required to have
+        the same value representation, that is:
+      </p>
+<pre class="programlisting">         <span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="special">-</span><span class="number">3</span> <span class="special">;</span> <span class="comment">// suppose value representation is: 10011 (sign bit + 4 magnitude bits)</span>
+<span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">u</span> <span class="special">=</span>  <span class="identifier">i</span> <span class="special">;</span> <span class="comment">// u is required to have the same 10011 as its value representation.</span>
+</pre>
+      <p>
+        In other words, the integer types signed/unsigned X use the same value representation
+        but a different <span class="emphasis"><em>interpretation</em></span> of it; that is, their
+        <span class="emphasis"><em>typed values</em></span> might differ.
+      </p>
+      <p>
+        Another consequence of this is that the range for signed X is always a smaller
+        subset of the range of unsigned X, as required by &#167;3.9.1/3.
+      </p>
+      <div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+        <p>
+          Always remember that unsigned types, unlike signed types, have modulo-arithmetic;
+          that is, they do not overflow. This means that:
+        </p>
+        <p>
+          <span class="bold"><strong>-</strong></span> Always be extra careful when mixing
+          signed/unsigned types
+        </p>
+        <p>
+          <span class="bold"><strong>-</strong></span> Use unsigned types only when you need
+          modulo arithmetic or very very large numbers. Don't use unsigned types
+          just because you intend to deal with positive values only (you can do this
+          with signed types as well).
+        </p>
+      </td></tr>
+</table></div>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.definitions.numeric_types"></a><a class="link" href="definitions.html#boost_numericconversion.definitions.numeric_types" title="Numeric Types">Numeric
+      Types</a>
+</h3></div></div></div>
+      
+      <p>
+        This section introduces the following definitions intended to integrate arithmetic
+        types with user-defined types which behave like numbers. Some definitions
+        are purposely broad in order to include a vast variety of user-defined number
+        types.
+      </p>
+      <p>
+        Within this library, the term <span class="emphasis"><em>number</em></span> refers to an abstract
+        numeric value.
+      </p>
+      <p>
+        A type is <span class="bold"><strong>numeric</strong></span> if:
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          
+            It is an arithmetic type, or,
+          
+        </li>
+<li class="listitem">
+          
+            It is a user-defined type which
+            <div class="itemizedlist"><ul class="itemizedlist" type="circle">
+<li class="listitem">
+                
+                  Represents numeric abstract values (i.e. numbers).
+                
+              </li>
+<li class="listitem">
+                
+                  Can be converted (either implicitly or explicitly) to/from at least
+                  one arithmetic type.
+                
+              </li>
+<li class="listitem">
+                
+                  Has <a class="link" href="definitions.html#boost_numericconversion.definitions.range_and_precision" title="Range and Precision">range</a>
+                  (possibly unbounded) and <a class="link" href="definitions.html#boost_numericconversion.definitions.range_and_precision" title="Range and Precision">precision</a>
+                  (possibly dynamic or unlimited).
+                
+              </li>
+<li class="listitem">
+                
+                  Provides an specialization of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span></code>.
+                
+              </li>
+</ul></div>
+          
+        </li>
+</ul></div>
+      <p>
+        A numeric type is <span class="bold"><strong>signed</strong></span> if the abstract
+        values it represent include negative numbers.
+      </p>
+      <p>
+        A numeric type is <span class="bold"><strong>unsigned</strong></span> if the abstract
+        values it represent exclude negative numbers.
+      </p>
+      <p>
+        A numeric type is <span class="bold"><strong>modulo</strong></span> if it has modulo-arithmetic
+        (does not overflow).
+      </p>
+      <p>
+        A numeric type is <span class="bold"><strong>integer</strong></span> if the abstract
+        values it represent are whole numbers.
+      </p>
+      <p>
+        A numeric type is <span class="bold"><strong>floating</strong></span> if the abstract
+        values it represent are real numbers.
+      </p>
+      <p>
+        An <span class="bold"><strong>arithmetic value</strong></span> is the typed value of
+        an arithmetic type
+      </p>
+      <p>
+        A <span class="bold"><strong>numeric value</strong></span> is the typed value of a
+        numeric type
+      </p>
+      <p>
+        These definitions simply generalize the standard notions of arithmetic types
+        and values by introducing a superset called <span class="underline">numeric</span>.
+        All arithmetic types and values are numeric types and values, but not vice
+        versa, since user-defined numeric types are not arithmetic types.
+      </p>
+      <p>
+        The following examples clarify the differences between arithmetic and numeric
+        types (and values):
+      </p>
+<pre class="programlisting"><span class="comment">// A numeric type which is not an arithmetic type (is user-defined)</span>
+<span class="comment">// and which is intended to represent integer numbers (i.e., an 'integer' numeric type)</span>
+<span class="keyword">class</span> <span class="identifier">MyInt</span>
+<span class="special">{</span>
+    <span class="identifier">MyInt</span> <span class="special">(</span> <span class="keyword">long</span> <span class="keyword">long</span> <span class="identifier">v</span> <span class="special">)</span> <span class="special">;</span>
+    <span class="keyword">long</span> <span class="keyword">long</span> <span class="identifier">to_builtin</span><span class="special">();</span>
+<span class="special">}</span> <span class="special">;</span>
+<span class="keyword">namespace</span> <span class="identifier">std</span> <span class="special">{</span>
+<span class="keyword">template</span><span class="special">&lt;&gt;</span> <span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">MyInt</span><span class="special">&gt;</span> <span class="special">{</span> <span class="special">...</span> <span class="special">}</span> <span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// A 'floating' numeric type (double) which is also an arithmetic type (built-in),</span>
+<span class="comment">// with a float numeric value.</span>
+<span class="keyword">double</span> <span class="identifier">pi</span> <span class="special">=</span> <span class="identifier">M_PI</span> <span class="special">;</span>
+
+<span class="comment">// A 'floating' numeric type with a whole numeric value.</span>
+<span class="comment">// NOTE: numeric values are typed valued, hence, they are, for instance,</span>
+<span class="comment">// integer or floating, despite the value itself being whole or including</span>
+<span class="comment">// a fractional part.</span>
+<span class="keyword">double</span> <span class="identifier">two</span> <span class="special">=</span> <span class="number">2.0</span> <span class="special">;</span>
+
+<span class="comment">// An integer numeric type with an integer numeric value.</span>
+<span class="identifier">MyInt</span> <span class="identifier">i</span><span class="special">(</span><span class="number">1234</span><span class="special">);</span>
+</pre>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.definitions.range_and_precision"></a><a class="link" href="definitions.html#boost_numericconversion.definitions.range_and_precision" title="Range and Precision">Range
+      and Precision</a>
+</h3></div></div></div>
+      
+      <p>
+        Given a number set <code class="computeroutput"><span class="identifier">N</span></code>, some
+        of its elements are representable in a numeric type <code class="computeroutput"><span class="identifier">T</span></code>.
+      </p>
+      <p>
+        The set of representable values of type <code class="computeroutput"><span class="identifier">T</span></code>,
+        or numeric set of <code class="computeroutput"><span class="identifier">T</span></code>, is a
+        set of numeric values whose elements are the representation of some subset
+        of <code class="computeroutput"><span class="identifier">N</span></code>.
+      </p>
+      <p>
+        For example, the interval of <code class="computeroutput"><span class="keyword">int</span></code>
+        values <code class="computeroutput"><span class="special">[</span><span class="identifier">INT_MIN</span><span class="special">,</span><span class="identifier">INT_MAX</span><span class="special">]</span></code> is the set of representable values of type
+        <code class="computeroutput"><span class="keyword">int</span></code>, i.e. the <code class="computeroutput"><span class="keyword">int</span></code> numeric set, and corresponds to the representation
+        of the elements of the interval of abstract values <code class="computeroutput"><span class="special">[</span><span class="identifier">abt</span><span class="special">(</span><span class="identifier">INT_MIN</span><span class="special">),</span><span class="identifier">abt</span><span class="special">(</span><span class="identifier">INT_MAX</span><span class="special">)]</span></code>
+        from the integer numbers.
+      </p>
+      <p>
+        Similarly, the interval of <code class="computeroutput"><span class="keyword">double</span></code>
+        values <code class="computeroutput"><span class="special">[-</span><span class="identifier">DBL_MAX</span><span class="special">,</span><span class="identifier">DBL_MAX</span><span class="special">]</span></code> is the <code class="computeroutput"><span class="keyword">double</span></code>
+        numeric set, which corresponds to the subset of the real numbers from <code class="computeroutput"><span class="identifier">abt</span><span class="special">(-</span><span class="identifier">DBL_MAX</span><span class="special">)</span></code> to <code class="computeroutput"><span class="identifier">abt</span><span class="special">(</span><span class="identifier">DBL_MAX</span><span class="special">)</span></code>.
+      </p>
+      <p>
+        <span class="inlinemediaobject"><img src="../images/space.png" alt="space"></span>
+      </p>
+      <p>
+        Let <span class="bold"><strong><code class="computeroutput"><span class="identifier">next</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code></strong></span>
+        denote the lowest numeric value greater than x.
+      </p>
+      <p>
+        Let <span class="bold"><strong><code class="computeroutput"><span class="identifier">prev</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code></strong></span>
+        denote the highest numeric value lower then x.
+      </p>
+      <p>
+        Let <span class="bold"><strong><code class="computeroutput"><span class="identifier">v</span><span class="special">=</span><span class="identifier">prev</span><span class="special">(</span><span class="identifier">next</span><span class="special">(</span><span class="identifier">V</span><span class="special">))</span></code></strong></span> and <span class="bold"><strong><code class="computeroutput"><span class="identifier">v</span><span class="special">=</span><span class="identifier">next</span><span class="special">(</span><span class="identifier">prev</span><span class="special">(</span><span class="identifier">V</span><span class="special">))</span></code></strong></span>
+        be identities that relate a numeric typed value <code class="computeroutput"><span class="identifier">v</span></code>
+        with a number <code class="computeroutput"><span class="identifier">V</span></code>.
+      </p>
+      <p>
+        An ordered pair of numeric values <code class="computeroutput"><span class="identifier">x</span></code>,<code class="computeroutput"><span class="identifier">y</span></code> s.t. <code class="computeroutput"><span class="identifier">x</span><span class="special">&lt;</span><span class="identifier">y</span></code> are
+        <span class="bold"><strong>consecutive</strong></span> iff <code class="computeroutput"><span class="identifier">next</span><span class="special">(</span><span class="identifier">x</span><span class="special">)==</span><span class="identifier">y</span></code>.
+      </p>
+      <p>
+        The abstract distance between consecutive numeric values is usually referred
+        to as a <span class="underline">Unit in the Last Place</span>, or
+        <span class="bold"><strong>ulp</strong></span> for short. A ulp is a quantity whose
+        abstract magnitude is relative to the numeric values it corresponds to: If
+        the numeric set is not evenly distributed, that is, if the abstract distance
+        between consecutive numeric values varies along the set -as is the case with
+        the floating-point types-, the magnitude of 1ulp after the numeric value
+        <code class="computeroutput"><span class="identifier">x</span></code> might be (usually is) different
+        from the magnitude of a 1ulp after the numeric value y for <code class="computeroutput"><span class="identifier">x</span><span class="special">!=</span><span class="identifier">y</span></code>.
+      </p>
+      <p>
+        Since numbers are inherently ordered, a <span class="bold"><strong>numeric set</strong></span>
+        of type <code class="computeroutput"><span class="identifier">T</span></code> is an ordered sequence
+        of numeric values (of type <code class="computeroutput"><span class="identifier">T</span></code>)
+        of the form:
+      </p>
+<pre class="programlisting"><span class="identifier">REP</span><span class="special">(</span><span class="identifier">T</span><span class="special">)={</span><span class="identifier">l</span><span class="special">,</span><span class="identifier">next</span><span class="special">(</span><span class="identifier">l</span><span class="special">),</span><span class="identifier">next</span><span class="special">(</span><span class="identifier">next</span><span class="special">(</span><span class="identifier">l</span><span class="special">)),...,</span><span class="identifier">prev</span><span class="special">(</span><span class="identifier">prev</span><span class="special">(</span><span class="identifier">h</span><span class="special">)),</span><span class="identifier">prev</span><span class="special">(</span><span class="identifier">h</span><span class="special">),</span><span class="identifier">h</span><span class="special">}</span>
+</pre>
+      <p>
+        where <code class="computeroutput"><span class="identifier">l</span></code> and <code class="computeroutput"><span class="identifier">h</span></code> are respectively the lowest and highest
+        values of type <code class="computeroutput"><span class="identifier">T</span></code>, called
+        the boundary values of type <code class="computeroutput"><span class="identifier">T</span></code>.
+      </p>
+      <p>
+        <span class="inlinemediaobject"><img src="../images/space.png" alt="space"></span>
+      </p>
+      <p>
+        A numeric set is discrete. It has a <span class="bold"><strong>size</strong></span>
+        which is the number of numeric values in the set, a <span class="bold"><strong>width</strong></span>
+        which is the abstract difference between the highest and lowest boundary
+        values: <code class="computeroutput"><span class="special">[</span><span class="identifier">abt</span><span class="special">(</span><span class="identifier">h</span><span class="special">)-</span><span class="identifier">abt</span><span class="special">(</span><span class="identifier">l</span><span class="special">)]</span></code>, and a <span class="bold"><strong>density</strong></span>
+        which is the relation between its size and width: <code class="computeroutput"><span class="identifier">density</span><span class="special">=</span><span class="identifier">size</span><span class="special">/</span><span class="identifier">width</span></code>.
+      </p>
+      <p>
+        The integer types have density 1, which means that there are no unrepresentable
+        integer numbers between <code class="computeroutput"><span class="identifier">abt</span><span class="special">(</span><span class="identifier">l</span><span class="special">)</span></code>
+        and <code class="computeroutput"><span class="identifier">abt</span><span class="special">(</span><span class="identifier">h</span><span class="special">)</span></code> (i.e.
+        there are no gaps). On the other hand, floating types have density much smaller
+        than 1, which means that there are real numbers unrepresented between consecutive
+        floating values (i.e. there are gaps).
+      </p>
+      <p>
+        <span class="inlinemediaobject"><img src="../images/space.png" alt="space"></span>
+      </p>
+      <p>
+        The interval of <span class="underline">abstract values</span> <code class="computeroutput"><span class="special">[</span><span class="identifier">abt</span><span class="special">(</span><span class="identifier">l</span><span class="special">),</span><span class="identifier">abt</span><span class="special">(</span><span class="identifier">h</span><span class="special">)]</span></code>
+        is the range of the type <code class="computeroutput"><span class="identifier">T</span></code>,
+        denoted <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="identifier">T</span><span class="special">)</span></code>.
+      </p>
+      <p>
+        A range is a set of abstract values and not a set of numeric values. In other
+        documents, such as the C++ standard, the word <code class="computeroutput"><span class="identifier">range</span></code>
+        is <span class="emphasis"><em>sometimes</em></span> used as synonym for <code class="computeroutput"><span class="identifier">numeric</span>
+        <span class="identifier">set</span></code>, that is, as the ordered sequence
+        of numeric values from <code class="computeroutput"><span class="identifier">l</span></code>
+        to <code class="computeroutput"><span class="identifier">h</span></code>. In this document, however,
+        a range is an abstract interval which subtends the numeric set.
+      </p>
+      <p>
+        For example, the sequence <code class="computeroutput"><span class="special">[-</span><span class="identifier">DBL_MAX</span><span class="special">,</span><span class="identifier">DBL_MAX</span><span class="special">]</span></code>
+        is the numeric set of the type <code class="computeroutput"><span class="keyword">double</span></code>,
+        and the real interval <code class="computeroutput"><span class="special">[</span><span class="identifier">abt</span><span class="special">(-</span><span class="identifier">DBL_MAX</span><span class="special">),</span><span class="identifier">abt</span><span class="special">(</span><span class="identifier">DBL_MAX</span><span class="special">)]</span></code>
+        is its range.
+      </p>
+      <p>
+        Notice, for instance, that the range of a floating-point type is <span class="emphasis"><em>continuous</em></span>
+        unlike its numeric set.
+      </p>
+      <p>
+        This definition was chosen because:
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          
+            <span class="bold"><strong>(a)</strong></span> The discrete set of numeric values
+            is already given by the numeric set.
+          
+        </li>
+<li class="listitem">
+          
+            <span class="bold"><strong>(b)</strong></span> Abstract intervals are easier to
+            compare and overlap since only boundary values need to be considered.
+          
+        </li>
+</ul></div>
+      <p>
+        This definition allows for a concise definition of <code class="computeroutput"><span class="identifier">subranged</span></code>
+        as given in the last section.
+      </p>
+      <p>
+        The width of a numeric set, as defined, is exactly equivalent to the width
+        of a range.
+      </p>
+      <p>
+        <span class="inlinemediaobject"><img src="../images/space.png" alt="space"></span>
+      </p>
+      <p>
+        The <span class="bold"><strong>precision</strong></span> of a type is given by the
+        width or density of the numeric set.
+      </p>
+      <p>
+        For integer types, which have density 1, the precision is conceptually equivalent
+        to the range and is determined by the number of bits used in the value representation:
+        The higher the number of bits the bigger the size of the numeric set, the
+        wider the range, and the higher the precision.
+      </p>
+      <p>
+        For floating types, which have density &lt;&lt;1, the precision is given
+        not by the width of the range but by the density. In a typical implementation,
+        the range is determined by the number of bits used in the exponent, and the
+        precision by the number of bits used in the mantissa (giving the maximum
+        number of significant digits that can be exactly represented). The higher
+        the number of exponent bits the wider the range, while the higher the number
+        of mantissa bits, the higher the precision.
+      </p>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.definitions.exact__correctly_rounded_and_out_of_range_representations"></a><a class="link" href="definitions.html#boost_numericconversion.definitions.exact__correctly_rounded_and_out_of_range_representations" title="Exact, Correctly Rounded and Out-Of-Range Representations">Exact,
+      Correctly Rounded and Out-Of-Range Representations</a>
+</h3></div></div></div>
+      
+      <p>
+        Given an abstract value <code class="computeroutput"><span class="identifier">V</span></code>
+        and a type <code class="computeroutput"><span class="identifier">T</span></code> with its corresponding
+        range <code class="computeroutput"><span class="special">[</span><span class="identifier">abt</span><span class="special">(</span><span class="identifier">l</span><span class="special">),</span><span class="identifier">abt</span><span class="special">(</span><span class="identifier">h</span><span class="special">)]</span></code>:
+      </p>
+      <p>
+        If <code class="computeroutput"><span class="identifier">V</span> <span class="special">&lt;</span>
+        <span class="identifier">abt</span><span class="special">(</span><span class="identifier">l</span><span class="special">)</span></code> or
+        <code class="computeroutput"><span class="identifier">V</span> <span class="special">&gt;</span>
+        <span class="identifier">abt</span><span class="special">(</span><span class="identifier">h</span><span class="special">)</span></code>, <code class="computeroutput"><span class="identifier">V</span></code> is <span class="bold"><strong>not representable</strong></span>
+        (cannot be represented) in the type <code class="computeroutput"><span class="identifier">T</span></code>,
+        or, equivalently, it's representation in the type <code class="computeroutput"><span class="identifier">T</span></code>
+        is <span class="bold"><strong>out of range</strong></span>, or <span class="bold"><strong>overflows</strong></span>.
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          
+            If <code class="computeroutput"><span class="identifier">V</span> <span class="special">&lt;</span>
+            <span class="identifier">abt</span><span class="special">(</span><span class="identifier">l</span><span class="special">)</span></code>,
+            the <span class="bold"><strong>overflow is negative</strong></span>.
+          
+        </li>
+<li class="listitem">
+          
+            If <code class="computeroutput"><span class="identifier">V</span> <span class="special">&gt;</span>
+            <span class="identifier">abt</span><span class="special">(</span><span class="identifier">h</span><span class="special">)</span></code>,
+            the <span class="bold"><strong>overflow is positive</strong></span>.
+          
+        </li>
+</ul></div>
+      <p>
+        If <code class="computeroutput"><span class="identifier">V</span> <span class="special">&gt;=</span>
+        <span class="identifier">abt</span><span class="special">(</span><span class="identifier">l</span><span class="special">)</span></code> and
+        <code class="computeroutput"><span class="identifier">V</span> <span class="special">&lt;=</span>
+        <span class="identifier">abt</span><span class="special">(</span><span class="identifier">h</span><span class="special">)</span></code>, <code class="computeroutput"><span class="identifier">V</span></code> is <span class="bold"><strong>representable</strong></span>
+        (can be represented) in the type <code class="computeroutput"><span class="identifier">T</span></code>,
+        or, equivalently, its representation in the type <code class="computeroutput"><span class="identifier">T</span></code>
+        is <span class="bold"><strong>in range</strong></span>, or <span class="bold"><strong>does
+        not overflow</strong></span>.
+      </p>
+      <p>
+        Notice that a numeric type, such as a C++ unsigned type, can define that
+        any <code class="computeroutput"><span class="identifier">V</span></code> does not overflow by
+        always representing not <code class="computeroutput"><span class="identifier">V</span></code>
+        itself but the abstract value <code class="computeroutput"><span class="identifier">U</span>
+        <span class="special">=</span> <span class="special">[</span> <span class="identifier">V</span> <span class="special">%</span> <span class="special">(</span><span class="identifier">abt</span><span class="special">(</span><span class="identifier">h</span><span class="special">)+</span><span class="number">1</span><span class="special">)</span>
+        <span class="special">]</span></code>, which is always in range.
+      </p>
+      <p>
+        Given an abstract value <code class="computeroutput"><span class="identifier">V</span></code>
+        represented in the type <code class="computeroutput"><span class="identifier">T</span></code>
+        as <code class="computeroutput"><span class="identifier">v</span></code>, the <span class="bold"><strong>roundoff</strong></span>
+        error of the representation is the abstract difference: <code class="computeroutput"><span class="special">(</span><span class="identifier">abt</span><span class="special">(</span><span class="identifier">v</span><span class="special">)-</span><span class="identifier">V</span><span class="special">)</span></code>.
+      </p>
+      <p>
+        Notice that a representation is an <span class="emphasis"><em>operation</em></span>, hence,
+        the roundoff error corresponds to the representation operation and not to
+        the numeric value itself (i.e. numeric values do not have any error themselves)
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          
+            If the roundoff is 0, the representation is <span class="bold"><strong>exact</strong></span>,
+            and <code class="computeroutput"><span class="identifier">V</span></code> is exactly representable
+            in the type <code class="computeroutput"><span class="identifier">T</span></code>.
+          
+        </li>
+<li class="listitem">
+          
+            If the roundoff is not 0, the representation is <span class="bold"><strong>inexact</strong></span>,
+            and <code class="computeroutput"><span class="identifier">V</span></code> is inexactly representable
+            in the type <code class="computeroutput"><span class="identifier">T</span></code>.
+          
+        </li>
+</ul></div>
+      <p>
+        If a representation <code class="computeroutput"><span class="identifier">v</span></code> in
+        a type <code class="computeroutput"><span class="identifier">T</span></code> -either exact or
+        inexact-, is any of the adjacents of <code class="computeroutput"><span class="identifier">V</span></code>
+        in that type, that is, if <code class="computeroutput"><span class="identifier">v</span><span class="special">==</span><span class="identifier">prev</span></code>
+        or <code class="computeroutput"><span class="identifier">v</span><span class="special">==</span><span class="identifier">next</span></code>, the representation is faithfully
+        rounded. If the choice between <code class="computeroutput"><span class="identifier">prev</span></code>
+        and <code class="computeroutput"><span class="identifier">next</span></code> matches a given
+        <span class="bold"><strong>rounding direction</strong></span>, it is <span class="bold"><strong>correctly
+        rounded</strong></span>.
+      </p>
+      <p>
+        All exact representations are correctly rounded, but not all inexact representations
+        are. In particular, C++ requires numeric conversions (described below) and
+        the result of arithmetic operations (not covered by this document) to be
+        correctly rounded, but batch operations propagate roundoff, thus final results
+        are usually incorrectly rounded, that is, the numeric value <code class="computeroutput"><span class="identifier">r</span></code> which is the computed result is neither
+        of the adjacents of the abstract value <code class="computeroutput"><span class="identifier">R</span></code>
+        which is the theoretical result.
+      </p>
+      <p>
+        Because a correctly rounded representation is always one of adjacents of
+        the abstract value being represented, the roundoff is guaranteed to be at
+        most 1ulp.
+      </p>
+      <p>
+        The following examples summarize the given definitions. Consider:
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          
+            A numeric type <code class="computeroutput"><span class="identifier">Int</span></code> representing
+            integer numbers with a <span class="emphasis"><em>numeric set</em></span>: <code class="computeroutput"><span class="special">{-</span><span class="number">2</span><span class="special">,-</span><span class="number">1</span><span class="special">,</span><span class="number">0</span><span class="special">,</span><span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">}</span></code> and
+            <span class="emphasis"><em>range</em></span>: <code class="computeroutput"><span class="special">[-</span><span class="number">2</span><span class="special">,</span><span class="number">2</span><span class="special">]</span></code>
+          
+        </li>
+<li class="listitem">
+          
+            A numeric type <code class="computeroutput"><span class="identifier">Cardinal</span></code>
+            representing integer numbers with a <span class="emphasis"><em>numeric set</em></span>:
+            <code class="computeroutput"><span class="special">{</span><span class="number">0</span><span class="special">,</span><span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">,</span><span class="number">3</span><span class="special">,</span><span class="number">4</span><span class="special">,</span><span class="number">5</span><span class="special">,</span><span class="number">6</span><span class="special">,</span><span class="number">7</span><span class="special">,</span><span class="number">8</span><span class="special">,</span><span class="number">9</span><span class="special">}</span></code> and <span class="emphasis"><em>range</em></span>: <code class="computeroutput"><span class="special">[</span><span class="number">0</span><span class="special">,</span><span class="number">9</span><span class="special">]</span></code> (no
+            modulo-arithmetic here)
+          
+        </li>
+<li class="listitem">
+          
+            A numeric type <code class="computeroutput"><span class="identifier">Real</span></code> representing
+            real numbers with a <span class="emphasis"><em>numeric set</em></span>: <code class="computeroutput"><span class="special">{-</span><span class="number">2.0</span><span class="special">,-</span><span class="number">1.5</span><span class="special">,-</span><span class="number">1.0</span><span class="special">,-</span><span class="number">0.5</span><span class="special">,-</span><span class="number">0.0</span><span class="special">,+</span><span class="number">0.0</span><span class="special">,+</span><span class="number">0.5</span><span class="special">,+</span><span class="number">1.0</span><span class="special">,+</span><span class="number">1.5</span><span class="special">,+</span><span class="number">2.0</span><span class="special">}</span></code> and
+            <span class="emphasis"><em>range</em></span>: <code class="computeroutput"><span class="special">[-</span><span class="number">2.0</span><span class="special">,+</span><span class="number">2.0</span><span class="special">]</span></code>
+          
+        </li>
+<li class="listitem">
+          
+            A numeric type <code class="computeroutput"><span class="identifier">Whole</span></code>
+            representing real numbers with a <span class="emphasis"><em>numeric set</em></span>: <code class="computeroutput"><span class="special">{-</span><span class="number">2.0</span><span class="special">,-</span><span class="number">1.0</span><span class="special">,</span><span class="number">0.0</span><span class="special">,+</span><span class="number">1.0</span><span class="special">,+</span><span class="number">2.0</span><span class="special">}</span></code> and
+            <span class="emphasis"><em>range</em></span>: <code class="computeroutput"><span class="special">[-</span><span class="number">2.0</span><span class="special">,+</span><span class="number">2.0</span><span class="special">]</span></code>
+          
+        </li>
+</ul></div>
+      <p>
+        First, notice that the types <code class="computeroutput"><span class="identifier">Real</span></code>
+        and <code class="computeroutput"><span class="identifier">Whole</span></code> both represent
+        real numbers, have the same range, but different precision.
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          
+            The integer number <code class="computeroutput"><span class="number">1</span></code> (an
+            abstract value) can be exactly represented in any of these types.
+          
+        </li>
+<li class="listitem">
+          
+            The integer number <code class="computeroutput"><span class="special">-</span><span class="number">1</span></code>
+            can be exactly represented in <code class="computeroutput"><span class="identifier">Int</span></code>,
+            <code class="computeroutput"><span class="identifier">Real</span></code> and <code class="computeroutput"><span class="identifier">Whole</span></code>, but cannot be represented in
+            <code class="computeroutput"><span class="identifier">Cardinal</span></code>, yielding negative
+            overflow.
+          
+        </li>
+<li class="listitem">
+          
+            The real number <code class="computeroutput"><span class="number">1.5</span></code> can be
+            exactly represented in <code class="computeroutput"><span class="identifier">Real</span></code>,
+            and inexactly represented in the other types.
+          
+        </li>
+<li class="listitem">
+          
+            If <code class="computeroutput"><span class="number">1.5</span></code> is represented as
+            either <code class="computeroutput"><span class="number">1</span></code> or <code class="computeroutput"><span class="number">2</span></code> in any of the types (except <code class="computeroutput"><span class="identifier">Real</span></code>), the representation is correctly
+            rounded.
+          
+        </li>
+<li class="listitem">
+          
+            If <code class="computeroutput"><span class="number">0.5</span></code> is represented as
+            <code class="computeroutput"><span class="special">+</span><span class="number">1.5</span></code>
+            in the type <code class="computeroutput"><span class="identifier">Real</span></code>, it
+            is incorrectly rounded.
+          
+        </li>
+<li class="listitem">
+          
+            <code class="computeroutput"><span class="special">(-</span><span class="number">2.0</span><span class="special">,-</span><span class="number">1.5</span><span class="special">)</span></code>
+            are the <code class="computeroutput"><span class="identifier">Real</span></code> adjacents
+            of any real number in the interval <code class="computeroutput"><span class="special">[-</span><span class="number">2.0</span><span class="special">,-</span><span class="number">1.5</span><span class="special">]</span></code>, yet there are no <code class="computeroutput"><span class="identifier">Real</span></code>
+            adjacents for <code class="computeroutput"><span class="identifier">x</span> <span class="special">&lt;</span>
+            <span class="special">-</span><span class="number">2.0</span></code>,
+            nor for <code class="computeroutput"><span class="identifier">x</span> <span class="special">&gt;</span>
+            <span class="special">+</span><span class="number">2.0</span></code>.
+          
+        </li>
+</ul></div>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.definitions.standard__numeric__conversions"></a><a class="link" href="definitions.html#boost_numericconversion.definitions.standard__numeric__conversions" title="Standard (numeric) Conversions">Standard
+      (numeric) Conversions</a>
+</h3></div></div></div>
+      
+      <p>
+        The C++ language defines <span class="underline">Standard Conversions</span>
+        (&#167;4) some of which are conversions between arithmetic types.
+      </p>
+      <p>
+        These are <span class="underline">Integral promotions</span> (&#167;4.5),
+        <span class="underline">Integral conversions</span> (&#167;4.7), <span class="underline">Floating point promotions</span> (&#167;4.6), <span class="underline">Floating point conversions</span> (&#167;4.8) and <span class="underline">Floating-integral conversions</span> (&#167;4.9).
+      </p>
+      <p>
+        In the sequel, integral and floating point promotions are called <span class="bold"><strong>arithmetic promotions</strong></span>, and these plus integral, floating-point
+        and floating-integral conversions are called <span class="bold"><strong>arithmetic
+        conversions</strong></span> (i.e, promotions are conversions).
+      </p>
+      <p>
+        Promotions, both Integral and Floating point, are <span class="emphasis"><em>value-preserving</em></span>,
+        which means that the typed value is not changed with the conversion.
+      </p>
+      <p>
+        In the sequel, consider a source typed value <code class="computeroutput"><span class="identifier">s</span></code>
+        of type <code class="computeroutput"><span class="identifier">S</span></code>, the source abstract
+        value <code class="computeroutput"><span class="identifier">N</span><span class="special">=</span><span class="identifier">abt</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span></code>, a destination type <code class="computeroutput"><span class="identifier">T</span></code>;
+        and whenever possible, a result typed value <code class="computeroutput"><span class="identifier">t</span></code>
+        of type <code class="computeroutput"><span class="identifier">T</span></code>.
+      </p>
+      <p>
+        Integer to integer conversions are always defined:
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          
+            If <code class="computeroutput"><span class="identifier">T</span></code> is unsigned, the
+            abstract value which is effectively represented is not <code class="computeroutput"><span class="identifier">N</span></code> but <code class="computeroutput"><span class="identifier">M</span><span class="special">=[</span> <span class="identifier">N</span> <span class="special">%</span> <span class="special">(</span> <span class="identifier">abt</span><span class="special">(</span><span class="identifier">h</span><span class="special">)</span> <span class="special">+</span> <span class="number">1</span>
+            <span class="special">)</span> <span class="special">]</span></code>,
+            where <code class="computeroutput"><span class="identifier">h</span></code> is the highest
+            unsigned typed value of type <code class="computeroutput"><span class="identifier">T</span></code>.
+          
+        </li>
+<li class="listitem">
+          
+            If <code class="computeroutput"><span class="identifier">T</span></code> is signed and <code class="computeroutput"><span class="identifier">N</span></code> is not directly representable, the
+            result <code class="computeroutput"><span class="identifier">t</span></code> is <span class="underline">implementation-defined</span>, which means that
+            the C++ implementation is required to produce a value <code class="computeroutput"><span class="identifier">t</span></code>
+            even if it is totally unrelated to <code class="computeroutput"><span class="identifier">s</span></code>.
+          
+        </li>
+</ul></div>
+      <p>
+        Floating to Floating conversions are defined only if <code class="computeroutput"><span class="identifier">N</span></code>
+        is representable; if it is not, the conversion has <span class="underline">undefined
+        behavior</span>.
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          
+            If <code class="computeroutput"><span class="identifier">N</span></code> is exactly representable,
+            <code class="computeroutput"><span class="identifier">t</span></code> is required to be the
+            exact representation.
+          
+        </li>
+<li class="listitem">
+          
+            If <code class="computeroutput"><span class="identifier">N</span></code> is inexactly representable,
+            <code class="computeroutput"><span class="identifier">t</span></code> is required to be one
+            of the two adjacents, with an implementation-defined choice of rounding
+            direction; that is, the conversion is required to be correctly rounded.
+          
+        </li>
+</ul></div>
+      <p>
+        Floating to Integer conversions represent not <code class="computeroutput"><span class="identifier">N</span></code>
+        but <code class="computeroutput"><span class="identifier">M</span><span class="special">=</span><span class="identifier">trunc</span><span class="special">(</span><span class="identifier">N</span><span class="special">)</span></code>, were
+        <code class="computeroutput"><span class="identifier">trunc</span><span class="special">()</span></code>
+        is to truncate: i.e. to remove the fractional part, if any.
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist" type="disc"><li class="listitem">
+          
+            If <code class="computeroutput"><span class="identifier">M</span></code> is not representable
+            in <code class="computeroutput"><span class="identifier">T</span></code>, the conversion
+            has <span class="underline">undefined behavior</span> (unless
+            <code class="computeroutput"><span class="identifier">T</span></code> is <code class="computeroutput"><span class="keyword">bool</span></code>,
+            see &#167;4.12).
+          
+        </li></ul></div>
+      <p>
+        Integer to Floating conversions are always defined.
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          
+            If <code class="computeroutput"><span class="identifier">N</span></code> is exactly representable,
+            <code class="computeroutput"><span class="identifier">t</span></code> is required to be the
+            exact representation.
+          
+        </li>
+<li class="listitem">
+          
+            If <code class="computeroutput"><span class="identifier">N</span></code> is inexactly representable,
+            <code class="computeroutput"><span class="identifier">t</span></code> is required to be one
+            of the two adjacents, with an implementation-defined choice of rounding
+            direction; that is, the conversion is required to be correctly rounded.
+          
+        </li>
+</ul></div>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.definitions.subranged_conversion_direction__subtype_and_supertype"></a><a class="link" href="definitions.html#boost_numericconversion.definitions.subranged_conversion_direction__subtype_and_supertype" title="Subranged Conversion Direction, Subtype and Supertype">Subranged
+      Conversion Direction, Subtype and Supertype</a>
+</h3></div></div></div>
+      
+      <p>
+        Given a source type <code class="computeroutput"><span class="identifier">S</span></code> and
+        a destination type <code class="computeroutput"><span class="identifier">T</span></code>, there
+        is a <span class="bold"><strong>conversion direction</strong></span> denoted: <code class="computeroutput"><span class="identifier">S</span><span class="special">-&gt;</span><span class="identifier">T</span></code>.
+      </p>
+      <p>
+        For any two ranges the following <span class="emphasis"><em>range relation</em></span> can
+        be defined: A range <code class="computeroutput"><span class="identifier">X</span></code> can
+        be <span class="emphasis"><em>entirely contained</em></span> in a range <code class="computeroutput"><span class="identifier">Y</span></code>,
+        in which case it is said that <code class="computeroutput"><span class="identifier">X</span></code>
+        is enclosed by <code class="computeroutput"><span class="identifier">Y</span></code>.
+      </p>
+      <div class="blockquote"><blockquote class="blockquote">
+        <p>
+          <span class="bold"><strong>Formally:</strong></span> <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="identifier">S</span><span class="special">)</span></code>
+          is enclosed by <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="identifier">T</span><span class="special">)</span></code> iif
+          <code class="computeroutput"><span class="special">(</span><span class="identifier">R</span><span class="special">(</span><span class="identifier">S</span><span class="special">)</span>
+          <span class="identifier">intersection</span> <span class="identifier">R</span><span class="special">(</span><span class="identifier">T</span><span class="special">))</span>
+          <span class="special">==</span> <span class="identifier">R</span><span class="special">(</span><span class="identifier">S</span><span class="special">)</span></code>.
+        </p>
+      </blockquote></div>
+      <p>
+        If the source type range, <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="identifier">S</span><span class="special">)</span></code>,
+        is not enclosed in the target type range, <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="identifier">T</span><span class="special">)</span></code>;
+        that is, if <code class="computeroutput"><span class="special">(</span><span class="identifier">R</span><span class="special">(</span><span class="identifier">S</span><span class="special">)</span>
+        <span class="special">&amp;</span> <span class="identifier">R</span><span class="special">(</span><span class="identifier">T</span><span class="special">))</span>
+        <span class="special">!=</span> <span class="identifier">R</span><span class="special">(</span><span class="identifier">S</span><span class="special">)</span></code>,
+        the conversion direction is said to be <span class="bold"><strong>subranged</strong></span>,
+        which means that <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="identifier">S</span><span class="special">)</span></code> is not
+        entirely contained in <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="identifier">T</span><span class="special">)</span></code> and
+        therefore there is some portion of the source range which falls outside the
+        target range. In other words, if a conversion direction <code class="computeroutput"><span class="identifier">S</span><span class="special">-&gt;</span><span class="identifier">T</span></code>
+        is subranged, there are values in <code class="computeroutput"><span class="identifier">S</span></code>
+        which cannot be represented in <code class="computeroutput"><span class="identifier">T</span></code>
+        because they are out of range. Notice that for <code class="computeroutput"><span class="identifier">S</span><span class="special">-&gt;</span><span class="identifier">T</span></code>,
+        the adjective subranged applies to <code class="computeroutput"><span class="identifier">T</span></code>.
+      </p>
+      <p>
+        Examples:
+      </p>
+      <p>
+        Given the following numeric types all representing real numbers:
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          
+            <code class="computeroutput"><span class="identifier">X</span></code> with numeric set <code class="computeroutput"><span class="special">{-</span><span class="number">2.0</span><span class="special">,-</span><span class="number">1.0</span><span class="special">,</span><span class="number">0.0</span><span class="special">,+</span><span class="number">1.0</span><span class="special">,+</span><span class="number">2.0</span><span class="special">}</span></code> and
+            range <code class="computeroutput"><span class="special">[-</span><span class="number">2.0</span><span class="special">,+</span><span class="number">2.0</span><span class="special">]</span></code>
+          
+        </li>
+<li class="listitem">
+          
+            <code class="computeroutput"><span class="identifier">Y</span></code> with numeric set <code class="computeroutput"><span class="special">{-</span><span class="number">2.0</span><span class="special">,-</span><span class="number">1.5</span><span class="special">,-</span><span class="number">1.0</span><span class="special">,-</span><span class="number">0.5</span><span class="special">,</span><span class="number">0.0</span><span class="special">,+</span><span class="number">0.5</span><span class="special">,+</span><span class="number">1.0</span><span class="special">,+</span><span class="number">1.5</span><span class="special">,+</span><span class="number">2.0</span><span class="special">}</span></code> and range <code class="computeroutput"><span class="special">[-</span><span class="number">2.0</span><span class="special">,+</span><span class="number">2.0</span><span class="special">]</span></code>
+          
+        </li>
+<li class="listitem">
+          
+            <code class="computeroutput"><span class="identifier">Z</span></code> with numeric set <code class="computeroutput"><span class="special">{-</span><span class="number">1.0</span><span class="special">,</span><span class="number">0.0</span><span class="special">,+</span><span class="number">1.0</span><span class="special">}</span></code> and range <code class="computeroutput"><span class="special">[-</span><span class="number">1.0</span><span class="special">,+</span><span class="number">1.0</span><span class="special">]</span></code>
+          
+        </li>
+</ul></div>
+      <p>
+        For:
+      </p>
+      <div class="variablelist">
+<p class="title"><b></b></p>
+<dl>
+<dt><span class="term">(a) X-&gt;Y:</span></dt>
+<dd>
+            <p>
+              <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="identifier">X</span><span class="special">)</span> <span class="special">&amp;</span> <span class="identifier">R</span><span class="special">(</span><span class="identifier">Y</span><span class="special">)</span> <span class="special">==</span> <span class="identifier">R</span><span class="special">(</span><span class="identifier">X</span><span class="special">)</span></code>,
+              then <code class="computeroutput"><span class="identifier">X</span><span class="special">-&gt;</span><span class="identifier">Y</span></code> is not subranged. Thus, all values
+              of type <code class="computeroutput"><span class="identifier">X</span></code> are representable
+              in the type <code class="computeroutput"><span class="identifier">Y</span></code>.
+            </p>
+          </dd>
+<dt><span class="term">(b) Y-&gt;X:</span></dt>
+<dd>
+            <p>
+              <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="identifier">Y</span><span class="special">)</span> <span class="special">&amp;</span> <span class="identifier">R</span><span class="special">(</span><span class="identifier">X</span><span class="special">)</span> <span class="special">==</span> <span class="identifier">R</span><span class="special">(</span><span class="identifier">Y</span><span class="special">)</span></code>,
+              then <code class="computeroutput"><span class="identifier">Y</span><span class="special">-&gt;</span><span class="identifier">X</span></code> is not subranged. Thus, all values
+              of type <code class="computeroutput"><span class="identifier">Y</span></code> are representable
+              in the type <code class="computeroutput"><span class="identifier">X</span></code>, but
+              in this case, some values are <span class="emphasis"><em>inexactly</em></span> representable
+              (all the halves). (note: it is to permit this case that a range is
+              an interval of abstract values and not an interval of typed values)
+            </p>
+          </dd>
+<dt><span class="term">(b) X-&gt;Z:</span></dt>
+<dd>
+            <p>
+              <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="identifier">X</span><span class="special">)</span> <span class="special">&amp;</span> <span class="identifier">R</span><span class="special">(</span><span class="identifier">Z</span><span class="special">)</span> <span class="special">!=</span> <span class="identifier">R</span><span class="special">(</span><span class="identifier">X</span><span class="special">)</span></code>,
+              then <code class="computeroutput"><span class="identifier">X</span><span class="special">-&gt;</span><span class="identifier">Z</span></code> is subranged. Thus, some values
+              of type <code class="computeroutput"><span class="identifier">X</span></code> are not representable
+              in the type <code class="computeroutput"><span class="identifier">Z</span></code>, they
+              fall out of range <code class="computeroutput"><span class="special">(-</span><span class="number">2.0</span>
+              <span class="keyword">and</span> <span class="special">+</span><span class="number">2.0</span><span class="special">)</span></code>.
+            </p>
+          </dd>
+</dl>
+</div>
+      <p>
+        It is possible that <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="identifier">S</span><span class="special">)</span></code> is not
+        enclosed by <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="identifier">T</span><span class="special">)</span></code>, while
+        neither is <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="identifier">T</span><span class="special">)</span></code> enclosed
+        by <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="identifier">S</span><span class="special">)</span></code>; for
+        example, <code class="computeroutput"><span class="identifier">UNSIG</span><span class="special">=[</span><span class="number">0</span><span class="special">,</span><span class="number">255</span><span class="special">]</span></code> is not enclosed by <code class="computeroutput"><span class="identifier">SIG</span><span class="special">=[-</span><span class="number">128</span><span class="special">,</span><span class="number">127</span><span class="special">]</span></code>; neither
+        is <code class="computeroutput"><span class="identifier">SIG</span></code> enclosed by <code class="computeroutput"><span class="identifier">UNSIG</span></code>. This implies that is possible that
+        a conversion direction is subranged both ways. This occurs when a mixture
+        of signed/unsigned types are involved and indicates that in both directions
+        there are values which can fall out of range.
+      </p>
+      <p>
+        Given the range relation (subranged or not) of a conversion direction <code class="computeroutput"><span class="identifier">S</span><span class="special">-&gt;</span><span class="identifier">T</span></code>, it is possible to classify <code class="computeroutput"><span class="identifier">S</span></code> and <code class="computeroutput"><span class="identifier">T</span></code>
+        as <span class="bold"><strong>supertype</strong></span> and <span class="bold"><strong>subtype</strong></span>:
+        If the conversion is subranged, which means that <code class="computeroutput"><span class="identifier">T</span></code>
+        cannot represent all possible values of type <code class="computeroutput"><span class="identifier">S</span></code>,
+        <code class="computeroutput"><span class="identifier">S</span></code> is the supertype and <code class="computeroutput"><span class="identifier">T</span></code> the subtype; otherwise, <code class="computeroutput"><span class="identifier">T</span></code> is the supertype and <code class="computeroutput"><span class="identifier">S</span></code>
+        the subtype.
+      </p>
+      <p>
+        For example:
+      </p>
+      <div class="blockquote"><blockquote class="blockquote">
+        <p>
+          <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="keyword">float</span><span class="special">)=[-</span><span class="identifier">FLT_MAX</span><span class="special">,</span><span class="identifier">FLT_MAX</span><span class="special">]</span></code>
+          and <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="keyword">double</span><span class="special">)=[-</span><span class="identifier">DBL_MAX</span><span class="special">,</span><span class="identifier">DBL_MAX</span><span class="special">]</span></code>
+        </p>
+      </blockquote></div>
+      <p>
+        If <code class="computeroutput"><span class="identifier">FLT_MAX</span> <span class="special">&lt;</span>
+        <span class="identifier">DBL_MAX</span></code>:
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          
+            <code class="computeroutput"><span class="keyword">double</span><span class="special">-&gt;</span><span class="keyword">float</span></code> is subranged and <code class="computeroutput"><span class="identifier">supertype</span><span class="special">=</span><span class="keyword">double</span></code>,
+            <code class="computeroutput"><span class="identifier">subtype</span><span class="special">=</span><span class="keyword">float</span></code>.
+          
+        </li>
+<li class="listitem">
+          
+            <code class="computeroutput"><span class="keyword">float</span><span class="special">-&gt;</span><span class="keyword">double</span></code> is not subranged and <code class="computeroutput"><span class="identifier">supertype</span><span class="special">=</span><span class="keyword">double</span></code>, <code class="computeroutput"><span class="identifier">subtype</span><span class="special">=</span><span class="keyword">float</span></code>.
+          
+        </li>
+</ul></div>
+      <p>
+        Notice that while <code class="computeroutput"><span class="keyword">double</span><span class="special">-&gt;</span><span class="keyword">float</span></code> is subranged, <code class="computeroutput"><span class="keyword">float</span><span class="special">-&gt;</span><span class="keyword">double</span></code>
+        is not, which yields the same supertype,subtype for both directions.
+      </p>
+      <p>
+        Now consider:
+      </p>
+      <div class="blockquote"><blockquote class="blockquote">
+        <p>
+          <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="keyword">int</span><span class="special">)=[</span><span class="identifier">INT_MIN</span><span class="special">,</span><span class="identifier">INT_MAX</span><span class="special">]</span></code> and <code class="computeroutput"><span class="identifier">R</span><span class="special">(</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">)=[</span><span class="number">0</span><span class="special">,</span><span class="identifier">UINT_MAX</span><span class="special">]</span></code>
+        </p>
+      </blockquote></div>
+      <p>
+        A C++ implementation is required to have <code class="computeroutput"><span class="identifier">UINT_MAX</span>
+        <span class="special">&gt;</span> <span class="identifier">INT_MAX</span></code>
+        (&#167;3.9/3), so:
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          
+            'int-&gt;unsigned' is subranged (negative values fall out of range) and
+            <code class="computeroutput"><span class="identifier">supertype</span><span class="special">=</span><span class="keyword">int</span></code>, <code class="computeroutput"><span class="identifier">subtype</span><span class="special">=</span><span class="keyword">unsigned</span></code>.
+          
+        </li>
+<li class="listitem">
+          
+            'unsigned-&gt;int' is <span class="emphasis"><em>also</em></span> subranged (high positive
+            values fall out of range) and <code class="computeroutput"><span class="identifier">supertype</span><span class="special">=</span><span class="keyword">unsigned</span></code>,
+            <code class="computeroutput"><span class="identifier">subtype</span><span class="special">=</span><span class="keyword">int</span></code>.
+          
+        </li>
+</ul></div>
+      <p>
+        In this case, the conversion is subranged in both directions and the supertype,subtype
+        pairs are not invariant (under inversion of direction). This indicates that
+        none of the types can represent all the values of the other.
+      </p>
+      <p>
+        When the supertype is the same for both <code class="computeroutput"><span class="identifier">S</span><span class="special">-&gt;</span><span class="identifier">T</span></code>
+        and <code class="computeroutput"><span class="identifier">T</span><span class="special">-&gt;</span><span class="identifier">S</span></code>, it is effectively indicating a type
+        which can represent all the values of the subtype. Consequently, if a conversion
+        <code class="computeroutput"><span class="identifier">X</span><span class="special">-&gt;</span><span class="identifier">Y</span></code> is not subranged, but the opposite <code class="computeroutput"><span class="special">(</span><span class="identifier">Y</span><span class="special">-&gt;</span><span class="identifier">X</span><span class="special">)</span></code> is,
+        so that the supertype is always <code class="computeroutput"><span class="identifier">Y</span></code>,
+        it is said that the direction <code class="computeroutput"><span class="identifier">X</span><span class="special">-&gt;</span><span class="identifier">Y</span></code>
+        is <span class="bold"><strong>correctly rounded value preserving</strong></span>, meaning
+        that all such conversions are guaranteed to produce results in range and
+        correctly rounded (even if inexact). For example, all integer to floating
+        conversions are correctly rounded value preserving.
+      </p>
+    </div>
+  </div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="thing2" lang="de" dirname="thing2" last-revision="Tomorrow" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Duplicates 1.5 2</title>
+  <articleinfo>
+    <authorgroup>
+    <author>
+      <firstname>Joe</firstname> <surname>Blow</surname>
+    </author>
+    <author>
+      <firstname>Jane</firstname> <surname>Doe</surname>
+    </author>
+    </authorgroup>
+    <copyright>
+      <year>2018</year> <holder>Joe Blow</holder>
+    </copyright>
+    <copyright>
+      <year>1963</year> <holder>Jane Doe</holder>
+    </copyright>
+    <legalnotice id="thing2.legal">
+      <para>
+        Public Domain
+      </para>
+    </legalnotice>
+    <articlepurpose>
+      Another Duplicate
+    </articlepurpose>
+    <articlecategory name="category:Category 1"></articlecategory> <articlecategory
+    name="category:Category 2"></articlecategory> <biblioid class="uri">http://www.boost.org/tools/quickbook/test/doc-info-2.quickbook</biblioid>
+    <biblioid class="isbn">0-937383-18-X</biblioid>
+  </articleinfo>
+</article>

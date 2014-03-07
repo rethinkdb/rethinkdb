@@ -1,0 +1,165 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>min_element</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../non_mutating.html" title="Non-mutating algorithms">
+<link rel="prev" href="max_element.html" title="max_element">
+<link rel="next" href="mismatch.html" title="mismatch">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="max_element.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../non_mutating.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mismatch.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section range_reference_algorithms_non_mutating_min_element">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="range.reference.algorithms.non_mutating.min_element"></a><a class="link" href="min_element.html" title="min_element">min_element</a>
+</h5></div></div></div>
+<h6>
+<a name="range.reference.algorithms.non_mutating.min_element.h0"></a>
+            <span><a name="range.reference.algorithms.non_mutating.min_element.prototype"></a></span><a class="link" href="min_element.html#range.reference.algorithms.non_mutating.min_element.prototype">Prototype</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ForwardRange</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">ForwardRange</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">min_element</span><span class="special">(</span><span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ForwardRange</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">min_element</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ForwardRange</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">BinaryPredicate</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="identifier">ForwardRange</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">min_element</span><span class="special">(</span><span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">,</span> <span class="identifier">BinaryPredicate</span> <span class="identifier">pred</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ForwardRange</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">BinaryPredicate</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_iterator</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">min_element</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">,</span> <span class="identifier">BinaryPredicate</span> <span class="identifier">pred</span><span class="special">);</span>
+
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="identifier">range_return_value</span> <span class="identifier">re</span><span class="special">,</span>
+    <span class="keyword">class</span> <span class="identifier">ForwardRange</span>
+    <span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_return</span><span class="special">&lt;</span><span class="identifier">ForwardRange</span><span class="special">,</span> <span class="identifier">re</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">min_element</span><span class="special">(</span><span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="identifier">range_return_value_re</span><span class="special">,</span>
+    <span class="keyword">class</span> <span class="identifier">ForwardRange</span>
+    <span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_return</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">,</span> <span class="identifier">re</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">min_element</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="identifier">range_return_value</span> <span class="identifier">re</span><span class="special">,</span>
+    <span class="keyword">class</span> <span class="identifier">ForwardRange</span><span class="special">,</span>
+    <span class="keyword">class</span> <span class="identifier">BinaryPredicate</span>
+    <span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_return</span><span class="special">&lt;</span><span class="identifier">ForwardRange</span><span class="special">,</span> <span class="identifier">re</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">min_element</span><span class="special">(</span><span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">,</span> <span class="identifier">BinaryPredicate</span> <span class="identifier">pred</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span>
+    <span class="identifier">range_return_value</span> <span class="identifier">re</span><span class="special">,</span>
+    <span class="keyword">class</span> <span class="identifier">ForwardRange</span><span class="special">,</span>
+    <span class="keyword">class</span> <span class="identifier">BinaryPredicate</span>
+    <span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">range_return</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">,</span> <span class="identifier">re</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">min_element</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">ForwardRange</span><span class="special">&amp;</span> <span class="identifier">rng</span><span class="special">,</span> <span class="identifier">BinaryPredicate</span> <span class="identifier">pred</span><span class="special">);</span>
+</pre>
+<p>
+          </p>
+<h6>
+<a name="range.reference.algorithms.non_mutating.min_element.h1"></a>
+            <span><a name="range.reference.algorithms.non_mutating.min_element.description"></a></span><a class="link" href="min_element.html#range.reference.algorithms.non_mutating.min_element.description">Description</a>
+          </h6>
+<p>
+            The versions of <code class="computeroutput"><span class="identifier">min_element</span></code>
+            that return an iterator, return the iterator to the minimum value as
+            determined by using <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;</span></code> if a predicate is not supplied. Otherwise
+            the predicate <code class="computeroutput"><span class="identifier">pred</span></code> is
+            used to determine the minimum value. The versions of <code class="computeroutput"><span class="identifier">min_element</span></code>
+            that return a <code class="computeroutput"><span class="identifier">range_return</span></code>,
+            defines <code class="computeroutput"><span class="identifier">found</span></code> in the
+            same manner as the returned iterator described above.
+          </p>
+<h6>
+<a name="range.reference.algorithms.non_mutating.min_element.h2"></a>
+            <span><a name="range.reference.algorithms.non_mutating.min_element.definition"></a></span><a class="link" href="min_element.html#range.reference.algorithms.non_mutating.min_element.definition">Definition</a>
+          </h6>
+<p>
+            Defined in the header file <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">range</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">/</span><span class="identifier">min_element</span><span class="special">.</span><span class="identifier">hpp</span></code>
+          </p>
+<h6>
+<a name="range.reference.algorithms.non_mutating.min_element.h3"></a>
+            <span><a name="range.reference.algorithms.non_mutating.min_element.requirements"></a></span><a class="link" href="min_element.html#range.reference.algorithms.non_mutating.min_element.requirements">Requirements</a>
+          </h6>
+<p>
+            <span class="bold"><strong>For the non-predicate versions:</strong></span>
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">ForwardRange</span></code> is a
+                model of the <a class="link" href="../../../concepts/forward_range.html" title="Forward Range">Forward
+                Range</a> Concept.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">ForwardRange</span></code>'s value
+                type is a model of the <code class="computeroutput"><span class="identifier">LessThanComparableConcept</span></code>.
+              </li>
+</ul></div>
+<p>
+            <span class="bold"><strong>For the predicate versions:</strong></span>
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">ForwardRange</span></code> is a
+                model of the <a class="link" href="../../../concepts/forward_range.html" title="Forward Range">Forward
+                Range</a> Concept.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">BinaryPredicate</span></code> is
+                a model of the <code class="computeroutput"><span class="identifier">BinaryPredicateConcept</span></code>.
+              </li>
+<li class="listitem">
+                <code class="computeroutput"><span class="identifier">ForwardRange</span></code>'s value
+                type is convertible to both of <code class="computeroutput"><span class="identifier">BinaryPredicate</span></code>'s
+                argument types.
+              </li>
+</ul></div>
+<h6>
+<a name="range.reference.algorithms.non_mutating.min_element.h4"></a>
+            <span><a name="range.reference.algorithms.non_mutating.min_element.complexity"></a></span><a class="link" href="min_element.html#range.reference.algorithms.non_mutating.min_element.complexity">Complexity</a>
+          </h6>
+<p>
+            Linear. Zero comparisons if <code class="computeroutput"><span class="identifier">empty</span><span class="special">(</span><span class="identifier">rng</span><span class="special">)</span></code>, otherwise <code class="computeroutput"><span class="identifier">distance</span><span class="special">(</span><span class="identifier">rng</span><span class="special">)</span> <span class="special">-</span> <span class="number">1</span></code>
+            comparisons.
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="max_element.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../non_mutating.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mismatch.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

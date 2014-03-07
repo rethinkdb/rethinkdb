@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+
+<section id="bbv2.reference.class.main-target">
+
+  <title>Class main-target</title>
+  <indexterm>
+    <primary>main-target</primary>
+  </indexterm>
+
+<programlisting language="jam">
+class main-target : <link linkend="bbv2.reference.class.abstract-target">abstract-target</link> {
+    rule <link linkend="bbv2.reference.class.main-target.generate">generate</link> ( property-set )
+
+    # Methods inherited from <link linkend="bbv2.reference.class.abstract-target">abstract-target</link>
+    rule <link linkend="bbv2.reference.class.abstract-target.name">name</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.project">project</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.location">location</link> ( )
+    rule <link linkend="bbv2.reference.class.abstract-target.full-name">full-name</link> ( )
+}
+</programlisting>
+
+  <para>
+    A <link linkend="bbv2.reference.class.main-target">main-target</link>
+    represents a named top-level target in a Jamfile.
+  </para>
+
+  <orderedlist>
+
+    <listitem id="bbv2.reference.class.main-target.generate">
+      <indexterm zone="bbv2.reference.class.main-target.generate">
+        <primary>generate</primary>
+        <secondary>Main Target Method</secondary>
+      </indexterm>
+      <code language="jam">rule generate ( property-set )</code>
+      <para>
+        Overrides
+        <link linkend="bbv2.reference.class.abstract-target.generate">abstract-target.generate</link>.
+        
+        Select an alternative for this main target, by finding all alternatives
+        whose requirements are satisfied by <literal>property-set</literal> and
+        picking the one with the longest requirements set. Returns the result
+        of calling <link linkend="bbv2.reference.class.basic-target.generate">generate</link>
+        on that alternative.
+      </para>
+      
+      <para>
+        On success, returns:
+        <itemizedlist>
+          <listitem>a property-set with the usage requirements to be applied to dependents</listitem>
+          <listitem>a list of produced virtual targets, which may be empty.</listitem>
+        </itemizedlist>
+      </para>
+    </listitem>
+    
+  </orderedlist>
+  
+</section>

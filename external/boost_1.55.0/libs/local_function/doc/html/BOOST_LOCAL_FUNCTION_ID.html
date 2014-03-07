@@ -1,0 +1,77 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Macro BOOST_LOCAL_FUNCTION_ID</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.LocalFunction 1.0.0">
+<link rel="up" href="reference.html#header.boost.local_function_hpp" title="Header &lt;boost/local_function.hpp&gt;">
+<link rel="prev" href="BOOST_LOCAL_FUNCTION_TPL.html" title="Macro BOOST_LOCAL_FUNCTION_TPL">
+<link rel="next" href="BOOST_LOCAL_FUNCTION_ID_TPL.html" title="Macro BOOST_LOCAL_FUNCTION_ID_TPL">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_LOCAL_FUNCTION_TPL.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="reference.html#header.boost.local_function_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_LOCAL_FUNCTION_ID_TPL.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="BOOST_LOCAL_FUNCTION_ID"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Macro BOOST_LOCAL_FUNCTION_ID</span></h2>
+<p>BOOST_LOCAL_FUNCTION_ID &#8212; This macro allows to declare multiple local functions on the same line. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="reference.html#header.boost.local_function_hpp" title="Header &lt;boost/local_function.hpp&gt;">boost/local_function.hpp</a>&gt;
+
+</span>BOOST_LOCAL_FUNCTION_ID(id, declarations)</pre></div>
+<div class="refsect1">
+<a name="id881677"></a><h2>Description</h2>
+<p>This macro is equivalent to  <code class="computeroutput"><a class="link" href="BOOST_LOCAL_FUNCTION.html" title="Macro BOOST_LOCAL_FUNCTION">BOOST_LOCAL_FUNCTION</a></code> but it can be expanded multiple times on the same line if different identifiers <code class="computeroutput">id</code> are provided for each expansion (see the  <a class="link" href="boost_localfunction/advanced_topics.html" title="Advanced Topics"> Advanced Topics</a> section).</p>
+<p><span class="bold"><strong>Parameters:</strong></span> </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><span class="bold"><strong><code class="computeroutput">id</code></strong></span></td>
+<td>A unique identifier token which can be concatenated by the preprocessor (<code class="computeroutput">__LINE__</code>, <code class="computeroutput">local_function_number_1_on_line_123</code>, etc).  </td>
+</tr>
+<tr>
+<td><span class="bold"><strong><code class="computeroutput">declarations</code></strong></span></td>
+<td>Same as the <code class="computeroutput">declarations</code> parameter of the  <code class="computeroutput"><a class="link" href="BOOST_LOCAL_FUNCTION.html" title="Macro BOOST_LOCAL_FUNCTION">BOOST_LOCAL_FUNCTION</a></code> macro.  </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+</p>
+<p>The  <code class="computeroutput"><a class="link" href="BOOST_LOCAL_FUNCTION_NAME.html" title="Macro BOOST_LOCAL_FUNCTION_NAME">BOOST_LOCAL_FUNCTION_NAME</a></code> macro should be used to end each one of the multiple local function declarations as usual (and it will specify a unique name for each local function).</p>
+<p>Within templates, the special macros  <code class="computeroutput"><a class="link" href="BOOST_LOCAL_FUNCTION_ID_TPL.html" title="Macro BOOST_LOCAL_FUNCTION_ID_TPL">BOOST_LOCAL_FUNCTION_ID_TPL</a></code> must be used.</p>
+<p><span class="bold"><strong>Note:</strong></span> This macro can be useful when the local function macros are expanded within user-defined macros (because macros all expand on the same line). On some compilers (e.g., MSVC which supports the non-standard <code class="computeroutput">__COUNTER__</code> macro) it might not be necessary to use this macro but the use of this macro when expanding multiple local function macros on the same line is always necessary to ensure portability (this is because this library can only portably use <code class="computeroutput">__LINE__</code> to internally generate unique identifiers).</p>
+<p><span class="bold"><strong>See:</strong></span>  <a class="link" href="boost_localfunction/advanced_topics.html" title="Advanced Topics"> Advanced Topics</a> section,  <code class="computeroutput"><a class="link" href="BOOST_LOCAL_FUNCTION.html" title="Macro BOOST_LOCAL_FUNCTION">BOOST_LOCAL_FUNCTION</a></code>,  <code class="computeroutput"><a class="link" href="BOOST_LOCAL_FUNCTION_NAME.html" title="Macro BOOST_LOCAL_FUNCTION_NAME">BOOST_LOCAL_FUNCTION_NAME</a></code>,  <code class="computeroutput"><a class="link" href="BOOST_LOCAL_FUNCTION_ID_TPL.html" title="Macro BOOST_LOCAL_FUNCTION_ID_TPL">BOOST_LOCAL_FUNCTION_ID_TPL</a></code>. </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Lorenzo
+      Caminiti<p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or a copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_LOCAL_FUNCTION_TPL.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="reference.html#header.boost.local_function_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_LOCAL_FUNCTION_ID_TPL.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

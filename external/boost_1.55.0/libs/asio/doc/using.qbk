@@ -1,0 +1,335 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:using Using Boost.Asio]
+
+[heading Supported Platforms]
+
+The following platforms and compilers have been tested:
+
+* Win32 and Win64 using Visual C++ 7.1 and Visual C++ 8.0.
+* Win32 using MinGW.
+* Win32 using Cygwin. (`__USE_W32_SOCKETS` must be defined.)
+* Linux (2.4 or 2.6 kernels) using g++ 3.3 or later.
+* Solaris using g++ 3.3 or later.
+* Mac OS X 10.4 using g++ 3.3 or later.
+
+The following platforms may also work:
+
+* AIX 5.3 using XL C/C++ v9.
+* HP-UX 11i v3 using patched aC++ A.06.14.
+* QNX Neutrino 6.3 using g++ 3.3 or later.
+* Solaris using Sun Studio 11 or later.
+* Tru64 v5.1 using Compaq C++ v7.1.
+* Win32 using Borland C++ 5.9.2
+
+[heading Dependencies]
+
+The following libraries must be available in order to link programs that use
+Boost.Asio:
+
+* Boost.System for the `boost::system::error_code` and
+`boost::system::system_error` classes.
+
+* Boost.Regex (optional) if you use any of the [link
+boost_asio.reference.read_until `read_until()`] or [link
+boost_asio.reference.async_read_until `async_read_until()`] overloads that take
+a `boost::regex` parameter.
+
+* [@http://www.openssl.org OpenSSL] (optional) if you use Boost.Asio's SSL
+support.
+
+Furthermore, some of the examples also require the Boost.Thread,
+Boost.Date_Time or Boost.Serialization libraries.
+
+[note With MSVC or Borland C++ you may want to add `-DBOOST_DATE_TIME_NO_LIB`
+and `-DBOOST_REGEX_NO_LIB` to your project settings to disable autolinking of
+the Boost.Date_Time and Boost.Regex libraries respectively. Alternatively, you
+may choose to build these libraries and link to them.]
+
+[heading Building Boost Libraries]
+
+You may build the subset of Boost libraries required to use Boost.Asio and its
+examples by running the following command from the root of the Boost download
+package:
+
+[pre
+  bjam --with-system --with-thread --with-date_time --with-regex --with-serialization stage
+]
+
+This assumes that you have already built `bjam`. Consult the Boost.Build
+documentation for more details.
+
+[/
+
+[heading Compiling Programs With Boost.Asio]
+
+Consider the following minimal Boost.Asio program [^simple.cpp]:
+
+  #include <boost/asio.hpp>
+  #include <iostream>
+  #include <ostream>
+
+  int main()
+  {
+    boost::asio::ip::tcp::iostream s("www.boost.org", "http");
+
+    s << "GET / HTTP/1.0\r\n";
+    s << "Host: www.boost.org\r\n";
+    s << "\r\n" << std::flush;
+
+    std::cout << s.rdbuf();
+
+    return 0;
+  }
+
+The following compiler commands may be used to build the program (note that the
+name of the `boost_system` library may vary depending on the compiler version):
+
+[table
+  [
+    [OS]
+    [Compiler]
+    [Command]
+  ]
+  [
+    [FreeBSD]
+    [g++]
+    [[^g++ -I['boost_root] -pthread simple.cpp -L['boost_root]/stage/lib -lboost_system-gcc]]
+  ]
+  [
+    [Linux]
+    [g++]
+    [[^g++ -I['boost_root] -pthread simple.cpp -L['boost_root]/stage/lib -lboost_system-gcc41]]
+  ]
+  [
+    [Mac OS X]
+    [g++]
+    [[^g++ -I['boost_root] simple.cpp -L['boost_root]/stage/lib -lboost_system]]
+  ]
+  [
+    [Solaris]
+    [g++]
+    [[^g++ -I['boost_root] simple.cpp -L['boost_root]/stage/lib -lboost_system -lsocket -lnsl -lpthread]]
+  ]
+  [
+    [Windows]
+    [MSVC 7.1]
+    [[^cl /EHsc /GR /MT -I['boost_root] /D_WIN32_WINNT=0x500 simple.cpp /link /libpath:['boost_root]/stage/lib]]
+  ]
+  [
+    [Windows]
+    [MSVC 8.0]
+    [[^cl /EHsc /GR /MT /I['boost_root] /D_WIN32_WINNT=0x500 simple.cpp /link /libpath:['boost_root]/stage/lib]]
+  ]
+]
+
+]
+
+[heading Optional separate compilation]
+
+By default, Boost.Asio is a header-only library. However, some developers may
+prefer to build Boost.Asio using separately compiled source code. To do this,
+add `#include <boost/asio/impl/src.hpp>` to one (and only one) source file in a
+program, then build the program with `BOOST_ASIO_SEPARATE_COMPILATION` defined
+in the project\/compiler settings. Alternatively, `BOOST_ASIO_DYN_LINK` may be
+defined to build a separately-compiled Boost.Asio as part of a shared library.
+
+If using Boost.Asio's SSL support, you will also need to add `#include
+<boost/asio/ssl/impl/src.hpp>`.
+
+[heading Macros]
+
+The macros listed in the table below may be used to control the behaviour of
+Boost.Asio.
+
+[table
+  [[Macro][Description]]
+  [
+    [`BOOST_ASIO_ENABLE_BUFFER_DEBUGGING`]
+    [
+      Enables Boost.Asio's buffer debugging support, which can help identify when
+      invalid buffers are used in read or write operations (e.g. if a
+      std::string object being written is destroyed before the write operation
+      completes).
+
+      When using Microsoft Visual C++, this macro is defined automatically if
+      the compiler's iterator debugging support is enabled, unless
+      `BOOST_ASIO_DISABLE_BUFFER_DEBUGGING` has been defined.
+
+      When using g++, this macro is defined automatically if standard library
+      debugging is enabled (`_GLIBCXX_DEBUG` is defined), unless
+      `BOOST_ASIO_DISABLE_BUFFER_DEBUGGING` has been defined.
+    ]
+  ]
+  [
+    [`BOOST_ASIO_DISABLE_BUFFER_DEBUGGING`]
+    [
+      Explictly disables Boost.Asio's buffer debugging support.
+    ]
+  ]
+  [
+    [`BOOST_ASIO_DISABLE_DEV_POLL`]
+    [
+      Explicitly disables [^/dev/poll] support on Solaris, forcing the use of
+      a `select`-based implementation.
+    ]
+  ]
+  [
+    [`BOOST_ASIO_DISABLE_EPOLL`]
+    [
+      Explicitly disables `epoll` support on Linux, forcing the use of a
+      `select`-based implementation.
+    ]
+  ]
+  [
+    [`BOOST_ASIO_DISABLE_EVENTFD`]
+    [
+      Explicitly disables `eventfd` support on Linux, forcing the use of a
+      pipe to interrupt blocked epoll/select system calls.
+    ]
+  ]
+  [
+    [`BOOST_ASIO_DISABLE_KQUEUE`]
+    [
+      Explicitly disables `kqueue` support on Mac OS X and BSD variants,
+      forcing the use of a `select`-based implementation.
+    ]
+  ]
+  [
+    [`BOOST_ASIO_DISABLE_IOCP`]
+    [
+      Explicitly disables I/O completion ports support on Windows, forcing the
+      use of a `select`-based implementation.
+    ]
+  ]
+  [
+    [`BOOST_ASIO_DISABLE_THREADS`]
+    [
+      Explicitly disables Boost.Asio's threading support, independent of whether
+      or not Boost as a whole supports threads.
+    ]
+  ]
+  [
+    [`BOOST_ASIO_NO_WIN32_LEAN_AND_MEAN`]
+    [
+      By default, Boost.Asio will automatically define `WIN32_LEAN_AND_MEAN` when
+      compiling for Windows, to minimise the number of Windows SDK header files
+      and features that are included. The presence of
+      `BOOST_ASIO_NO_WIN32_LEAN_AND_MEAN` prevents `WIN32_LEAN_AND_MEAN` from
+      being defined.
+    ]
+  ]
+  [
+    [`BOOST_ASIO_NO_NOMINMAX`]
+    [
+      By default, Boost.Asio will automatically define `NOMINMAX` when
+      compiling for Windows, to suppress the definition of the `min()` and
+      `max()` macros. The presence of `BOOST_ASIO_NO_NOMINMAX` prevents
+      `NOMINMAX` from being defined.
+    ]
+  ]
+  [
+    [`BOOST_ASIO_NO_DEFAULT_LINKED_LIBS`]
+    [
+      When compiling for Windows using Microsoft Visual C++ or Borland C++, Boost.Asio
+      will automatically link in the necessary Windows SDK libraries for sockets
+      support (i.e. [^ws2_32.lib] and [^mswsock.lib], or [^ws2.lib] when
+      building for Windows CE). The `BOOST_ASIO_NO_DEFAULT_LINKED_LIBS` macro
+      prevents these libraries from being linked.
+    ]
+  ]
+  [
+    [`BOOST_ASIO_SOCKET_STREAMBUF_MAX_ARITY`]
+    [
+      Determines the maximum number of arguments that may be passed to the 
+      `basic_socket_streambuf` class template's `connect` member function.
+      Defaults to 5.
+    ]
+  ]
+  [
+    [`BOOST_ASIO_SOCKET_IOSTREAM_MAX_ARITY`]
+    [
+      Determines the maximum number of arguments that may be passed to the 
+      `basic_socket_iostream` class template's constructor and `connect` member
+      function. Defaults to 5.
+    ]
+  ]
+  [
+    [`BOOST_ASIO_ENABLE_CANCELIO`]
+    [
+      Enables use of the `CancelIo` function on older versions of Windows. If
+      not enabled, calls to `cancel()` on a socket object will always fail with
+      `asio::error::operation_not_supported` when run on Windows XP, Windows
+      Server 2003, and earlier versions of Windows. When running on Windows
+      Vista, Windows Server 2008, and later, the `CancelIoEx` function is
+      always used.
+
+      The `CancelIo` function has two issues that should be considered before
+      enabling its use:
+
+      * It will only cancel asynchronous operations that were initiated in the
+        current thread.
+
+      * It can appear to complete without error, but the request
+        to cancel the unfinished operations may be silently ignored by the
+        operating system. Whether it works or not seems to depend on the
+        drivers that are installed.
+
+      For portable cancellation, consider using one of the following
+      alternatives:
+
+      * Disable asio's I/O completion port backend by defining
+        BOOST_ASIO_DISABLE_IOCP.
+
+      * Use the socket object's close() function to simultaneously
+        cancel the outstanding operations and close the socket.
+    ]
+  ]
+  [
+    [`BOOST_ASIO_NO_TYPEID`]
+    [
+      Disables uses of the `typeid` operator in Boost.Asio. Defined
+      automatically if `BOOST_NO_TYPEID` is defined.
+    ]
+  ]
+  [
+    [`BOOST_ASIO_HASH_MAP_BUCKETS`]
+    [
+      Determines the number of buckets in Boost.Asio's internal `hash_map`
+      objects. The value should be a comma separated list of prime numbers, in
+      ascending order. The `hash_map` implementation will automatically
+      increase the number of buckets as the number of elements in the map
+      increases.
+
+      Some examples:
+
+      * Defining `BOOST_ASIO_HASH_MAP_BUCKETS` to `1021` means that the
+        `hash_map` objects will always contain 1021 buckets, irrespective of
+        the number of elements in the map.
+
+      * Defining `BOOST_ASIO_HASH_MAP_BUCKETS` to `53,389,1543` means that the
+        `hash_map` objects will initially contain 53 buckets. The number of
+        buckets will be increased to 389 and then 1543 as elements are added to
+        the map.
+    ]
+  ]
+]
+
+[heading Mailing List]
+
+A mailing list specifically for Boost.Asio may be found on
+[@http://sourceforge.net/mail/?group_id=122478 SourceForge.net]. Newsgroup
+access is provided via [@http://dir.gmane.org/gmane.comp.lib.boost.asio.user
+Gmane].
+
+[heading Wiki]
+
+Users are encouraged to share examples, tips and FAQs on the Boost.Asio wiki,
+which is located at [@http://think-async.com/Asio/].
+
+[endsect]

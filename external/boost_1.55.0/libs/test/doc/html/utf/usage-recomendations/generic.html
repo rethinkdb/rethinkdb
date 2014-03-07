@@ -1,0 +1,176 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Generic usage recommendations</title>
+<link rel="stylesheet" href="../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.73.2">
+<link rel="start" href="../../index.html" title="Boost Test Library">
+<link rel="up" href="../usage-recomendations.html" title="The unit test framework usage recomendations">
+<link rel="prev" href="../usage-recomendations.html" title="The unit test framework usage recomendations">
+<link rel="next" href="dot-net-specific.html" title="Microsoft Visual Studio .NET usage recommendations">
+<script language="JavaScript1.2" src="../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../utf.html">The Unit Test Framework</a> &gt; <a href="../usage-recomendations.html">Usage recomendations</a> &gt; <b>Generic</b>
+</td>
+<td><div class="spirit-nav">
+<a href="../usage-recomendations.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="dot-net-specific.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.usage-recomendations.generic"></a>Generic usage recommendations</h4></div></div></div>
+<div class="qandaset">
+<dl>
+<dt> <a href="generic.html#id535651">
+      Prefer offline compiled libraries to the inline included components
+     </a>
+</dt>
+<dt> <a href="generic.html#id535689">
+      If you use only free function based test cases advance to the automatic registration facility
+     </a>
+</dt>
+<dt> <a href="generic.html#id535714">
+      To find location of first error reported by test tool within reused template function, use special hook within 
+      framework headers
+     </a>
+</dt>
+<dt> <a href="generic.html#id535760">
+      To test reusable template base component with different template parameter use test case template facility
+     </a>
+</dt>
+<dt> <a href="generic.html#id535818">
+      Prefer BOOST_CHECK_EQUAL to BOOST_CHECK
+     </a>
+</dt>
+</dl>
+<table border="0" summary="Q and A Set">
+<col align="left" width="1%">
+<tbody>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id535651"></a><a name="id535654"></a>
+</td>
+<td align="left" valign="top"><b><p>
+      Prefer offline compiled libraries to the inline included components
+     </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p class="first-line-indented">
+      If you are just want to write quick simple test in environment where you never used Boost.Test before - yes, 
+      use included components. But if you plan to use Boost.Test on permanent basis, small investment of time needed 
+      to build (if not build yet), install and change you makefiles/project settings will soon return to you in a 
+      form of shorter compilation time. Why do you need to make your compiler do the same work over and over again?
+     </p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id535689"></a><a name="id535692"></a>
+</td>
+<td align="left" valign="top"><b><p>
+      If you use only free function based test cases advance to the automatic registration facility
+     </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p class="first-line-indented">
+      It's really easy to switch to automatic registration. And you don't need to worry about forgotten test case 
+      anymore
+     </p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id535714"></a><a name="id535717"></a>
+</td>
+<td align="left" valign="top"><b><p>
+      To find location of first error reported by test tool within reused template function, use special hook within 
+      framework headers
+     </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p class="first-line-indented">
+      In some cases you are reusing the same template based code from within one test case (actually I recommend 
+      better solution in such case- see below). Now if an error gets reported by the test tool within that reused 
+      code you may have difficulty locating were exactly error occurred. To address this issue you could either a add 
+      <a class="link" href="../user-guide/test-output/BOOST_TEST_MESSAGE.html" title="BOOST_TEST_MESSAGE">BOOST_TEST_MESSAGE</a> statements in 
+      templated code that log current type id of template parameters or you can use special hook located in 
+      unit_test_result.hpp called first_failed_assertion(). If you set a breakpoint right on the line where this 
+      function is defined you will be able to unroll the stack and see where error actually occurred.
+     </p></td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id535760"></a><a name="id535762"></a>
+</td>
+<td align="left" valign="top"><b><p>
+      To test reusable template base component with different template parameter use test case template facility
+     </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top">
+<p class="first-line-indented">
+      If you writing unit test for generic reusable component you may have a need to test it against set of different 
+      template parameter types . Most probably you will end up with a code like this:
+     </p>
+<pre class="programlisting">template&lt;typename TestType&gt;
+void
+specific_type_test( TestType* = 0 )
+{
+    MyComponent&lt;TestType&gt; c;
+    ... // here we perform actual testing
+}
+
+void my_component_test()
+{
+    specific_type_test( (int*)0 );
+    specific_type_test( (float*)0 );
+    specific_type_test( (UDT*)0 );
+    ... 
+}
+</pre>
+<p class="first-line-indented">
+      This is namely the situation where you would use test case template facility. It's not only simplify this kind 
+      of unit testing by automating some of the work, in addition every argument type gets tested separately under 
+      unit test monitor. As a result if one of types produce exception or non-fatal error you may still continue and 
+      get results from testing with other types.
+     </p>
+</td>
+</tr>
+<tr class="question">
+<td align="left" valign="top">
+<a name="id535818"></a><a name="id535820"></a>
+</td>
+<td align="left" valign="top"><b><p>
+      Prefer BOOST_CHECK_EQUAL to BOOST_CHECK
+     </p></b></td>
+</tr>
+<tr class="answer">
+<td align="left" valign="top"></td>
+<td align="left" valign="top"><p class="first-line-indented">
+      Even though BOOSK_CHECK tool is most generic and allows to validate any bool convertible expression, I would 
+      recommend to use, if possible, more specific tools dedicated to the task. For example if you need you validate 
+      some variable vs. some expected value use BOOST_CHECK_EQUAL instead. The main advantage is that in case of 
+      failure you will see the mismatched value - the information most useful for error identification. The same 
+      applies to other tools supplied by the framework.
+     </p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../usage-recomendations.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../usage-recomendations.html"><img src="../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="dot-net-specific.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

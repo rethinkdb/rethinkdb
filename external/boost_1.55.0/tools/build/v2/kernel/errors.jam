@@ -1,0 +1,287 @@
+# Copyright 2003 Dave Abrahams
+# Copyright 2004 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# Print a stack backtrace leading to this rule's caller. Each argument
+# represents a line of output to be printed after the first line of the
+# backtrace.
+#
+rule backtrace ( skip-frames prefix messages * : * )
+{
+    local frame-skips = 5 9 13 17 21 25 29 33 37 41 45 49 53 57 61 65 69 73 77 81 ;
+    local drop-elements = $(frame-skips[$(skip-frames)]) ;
+    if ! ( $(skip-frames) in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 )
+    {
+        ECHO "warning: backtrace doesn't support skipping $(skip-frames) "
+            "frames; using 1 instead." ;
+        drop-elements = 5 ;
+    }
+
+    local args = $(.args) ;
+    if $(.user-modules-only)
+    {
+        local bt = [ nearest-user-location ] ;
+        if $(bt)
+        {
+            ECHO $(prefix) at $(bt) ;
+        }
+        for local n in $(args)
+        {
+            if $($(n))-is-defined
+            {
+                ECHO $(prefix) $($(n)) ;
+            }
+        }
+    }
+    else
+    {
+        # Get the whole backtrace, then drop the initial quadruples
+        # corresponding to the frames that must be skipped.
+        local bt = [ BACKTRACE ] ;
+        bt = $(bt[$(drop-elements)-]) ;
+
+        while $(bt)
+        {
+            local m = [ MATCH ^(.+)\\.$ : $(bt[3]) ] ;
+            ECHO $(bt[1]):$(bt[2]): "in" $(bt[4]) "from module" $(m) ;
+
+            # The first time through, print each argument on a separate line.
+            for local n in $(args)
+            {
+                if $($(n))-is-defined
+                {
+                    ECHO $(prefix) $($(n)) ;
+                }
+            }
+            args = ;  # Kill args so that this never happens again.
+
+            # Move on to the next quadruple.
+            bt = $(bt[5-]) ;
+        }
+    }
+}
+
+.args ?= messages 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 ;
+.disabled ?= ;
+.last-error-$(.args) ?= ;
+
+
+# try-catch --
+#
+# This is not really an exception-handling mechanism, but it does allow us to
+# perform some error-checking on our error-checking. Errors are suppressed after
+# a try, and the first one is recorded. Use catch to check that the error
+# message matched expectations.
+
+# Begin looking for error messages.
+#
+rule try ( )
+{
+    .disabled += true ;
+    .last-error-$(.args) = ;
+}
+
+
+# Stop looking for error messages; generate an error if an argument of messages
+# is not found in the corresponding argument in the error call.
+#
+rule catch ( messages * : * )
+{
+    .disabled = $(.disabled[2-]) ;  # Pop the stack.
+
+    import sequence ;
+
+    if ! $(.last-error-$(.args))-is-defined
+    {
+        error-skip-frames 3 expected an error, but none occurred ;
+    }
+    else
+    {
+        for local n in $(.args)
+        {
+            if ! $($(n)) in $(.last-error-$(n))
+            {
+                local v = [ sequence.join $($(n)) : " " ] ;
+                v ?= "" ;
+                local joined = [ sequence.join $(.last-error-$(n)) : " " ] ;
+
+                .last-error-$(.args) = ;
+                error-skip-frames 3 expected \"$(v)\" in argument $(n) of error
+                    : got \"$(joined)\" instead ;
+            }
+        }
+    }
+}
+
+
+rule error-skip-frames ( skip-frames messages * : * )
+{
+    if ! $(.disabled)
+    {
+        backtrace $(skip-frames) error: $(messages) : $(2) : $(3) : $(4) : $(5)
+            : $(6) : $(7) : $(8) : $(9) : $(10) : $(11) : $(12) : $(13) : $(14)
+            : $(15) : $(16) : $(17) : $(18) : $(19) ;
+        EXIT ;
+    }
+    else if ! $(.last-error-$(.args))
+    {
+        for local n in $(.args)
+        {
+            # Add an extra empty string so that we always have something in the
+            # event of an error.
+            .last-error-$(n) = $($(n)) "" ;
+        }
+    }
+}
+
+if --no-error-backtrace in [ modules.peek : ARGV ]
+{
+    .no-error-backtrace = true ;
+}
+
+
+# Print an error message with a stack backtrace and exit.
+#
+rule error ( messages * : * )
+{
+    if $(.no-error-backtrace)
+    {
+        local first-printed ;
+        # Print each argument on a separate line.
+        for local n in $(.args)
+        {
+            if $($(n))-is-defined
+            {
+                if ! $(first-printed)
+                {
+                    ECHO error: $($(n)) ;
+                    first-printed = true ;
+                }
+                else
+                {
+                    ECHO $($(n)) ;
+                }
+            }
+        }
+        EXIT ;
+    }
+    else
+    {
+        error-skip-frames 3 $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) :
+            $(8) : $(9) : $(10) : $(11) : $(12) : $(13) : $(14) : $(15) : $(16)
+            : $(17) : $(18) : $(19) ;
+    }
+}
+
+
+# Same as 'error', but the generated backtrace will include only user files.
+#
+rule user-error ( messages * : * )
+{
+    .user-modules-only = 1 ;
+    error-skip-frames 3 $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) :
+        $(9) : $(10) : $(11) : $(12) : $(13) : $(14) : $(15) : $(16) : $(17) :
+        $(18) : $(19) ;
+}
+
+
+# Print a warning message with a stack backtrace and exit.
+#
+rule warning
+{
+    backtrace 2 warning: $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) :
+        $(9) : $(10) : $(11) : $(12) : $(13) : $(14) : $(15) : $(16) : $(17) :
+        $(18) : $(19) ;
+}
+
+
+# Convert an arbitrary argument list into a list with ":" separators and quoted
+# elements representing the same information. This is mostly useful for
+# formatting descriptions of arguments with which a rule was called when
+# reporting an error.
+#
+rule lol->list ( * )
+{
+    local result ;
+    local remaining = 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 ;
+    while $($(remaining))
+    {
+        local n = $(remaining[1]) ;
+        remaining = $(remaining[2-]) ;
+
+        if $(n) != 1
+        {
+            result += ":" ;
+        }
+        result += \"$($(n))\" ;
+    }
+    return $(result) ;
+}
+
+
+# Return the file:line for the nearest entry in backtrace which correspond to a
+# user module.
+#
+rule nearest-user-location ( )
+{
+    local bt = [ BACKTRACE ] ;
+
+    local result ;
+    while $(bt) && ! $(result)
+    {
+        local m = [ MATCH ^(.+)\\.$ : $(bt[3]) ] ;
+        local user-modules = ([Jj]amroot(.jam|.v2|)|([Jj]amfile(.jam|.v2|)|user-config.jam|site-config.jam|project-config.jam|project-root.jam) ;
+
+        if [ MATCH $(user-modules) : $(bt[1]:D=) ]
+        {
+            result = $(bt[1]):$(bt[2]) ;
+        }
+        bt = $(bt[5-]) ;
+    }
+    return $(result) ;
+}
+
+
+# If optimized rule is available in Jam, use it.
+if NEAREST_USER_LOCATION in [ RULENAMES ]
+{
+    rule nearest-user-location ( )
+    {
+        local r = [ NEAREST_USER_LOCATION ] ;
+        return $(r[1]):$(r[2]) ;
+    }
+}
+
+
+rule __test__ ( )
+{
+    # Show that we can correctly catch an expected error.
+    try ;
+    {
+        error an error occurred : somewhere ;
+    }
+    catch an error occurred : somewhere ;
+
+    # Show that unexpected errors generate real errors.
+    try ;
+    {
+        try ;
+        {
+            error an error occurred : somewhere ;
+        }
+        catch an error occurred : nowhere ;
+    }
+    catch expected \"nowhere\" in argument 2 ;
+
+    # Show that not catching an error where one was expected is an error.
+    try ;
+    {
+        try ;
+        {
+        }
+        catch ;
+    }
+    catch expected an error, but none occurred ;
+}

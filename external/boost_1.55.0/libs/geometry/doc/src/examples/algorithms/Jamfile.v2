@@ -1,0 +1,78 @@
+# Boost.Geometry (aka GGL, Generic Geometry Library)
+#
+# Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
+# Copyright (c) 2008-2012 Bruno Lalande, Paris, France.
+# Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+
+project boost-geometry-doc-example-algorithms
+    : # requirements
+    ;
+
+exe append : append.cpp ;
+
+exe area : area.cpp ;
+exe area_with_strategy : area_with_strategy.cpp ;
+
+exe assign : assign.cpp ;
+exe assign_2d_point : assign_2d_point.cpp ;
+exe assign_3d_point : assign_3d_point.cpp ;
+exe assign_inverse : assign_inverse.cpp ;
+exe assign_points : assign_points.cpp ;
+# exe assign_box_corners : assign_box_corners.cpp ;
+# exe assign_point_from_index : assign_point_from_index.cpp ;
+# exe assign_point_to_index : assign_point_to_index.cpp ;
+
+exe centroid : centroid.cpp ;
+exe clear : clear.cpp ;
+exe comparable_distance : comparable_distance.cpp ;
+exe convert : convert.cpp ;
+exe convex_hull : convex_hull.cpp ;
+exe correct : correct.cpp ;
+
+exe difference : difference.cpp ;
+exe distance : distance.cpp ;
+
+exe envelope : envelope.cpp ;
+exe equals : equals.cpp ;
+exe expand : expand.cpp ;
+
+exe for_each_point : for_each_point.cpp ;
+exe for_each_point_const : for_each_point_const.cpp ;
+exe for_each_segment_const : for_each_segment_const.cpp ;
+
+exe intersection_ls_ls_point : intersection_ls_ls_point.cpp ;
+exe intersection_segment : intersection_segment.cpp ;
+
+exe intersects_linestring : intersects_linestring.cpp ;
+
+exe length : length.cpp ;
+exe length_with_strategy : length_with_strategy.cpp ;
+
+exe make_2d_point : make_2d_point.cpp ;
+exe make_3d_point : make_3d_point.cpp ;
+exe make_inverse : make_inverse.cpp ;
+# exe make_with_range : make_with_range.cpp ;
+
+exe num_geometries : num_geometries.cpp ;
+exe num_interior_rings : num_interior_rings.cpp ;
+exe num_points : num_points.cpp ;
+
+exe return_envelope : return_envelope.cpp ;
+
+exe reverse : reverse.cpp ;
+
+exe simplify : length.cpp ;
+exe sym_difference : sym_difference.cpp ;
+
+exe transform : transform.cpp ;
+exe transform_with_strategy : transform_with_strategy.cpp ;
+
+exe union : union.cpp ;
+exe unique : unique.cpp ;
+
+exe within : within.cpp ;

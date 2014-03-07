@@ -1,0 +1,80 @@
+\form#0:$(mxn)$
+\form#1:$l$
+\form#2:$u$
+\form#3:$0 \leq i < m$
+\form#4:$0 \leq j < n$
+\form#5:$i>j+l$
+\form#6:$i<j-u$
+\form#7:$b_{i,j}=0$
+\form#8:$(m\times m)$
+\form#9:$0 \leq j < m$
+\form#10:$i\neq j$
+\form#11:$(m\times n)$
+\form#12:$\sum_i |x_i|$
+\form#13:$\mathcal{L}_1$
+\form#14:$\sum_i |x_i|^2$
+\form#15:$\mathcal{L}_2$
+\form#16:$\max_i |x_i|$
+\form#17:$\mathcal{L}_\infty$
+\form#18:$v_1$
+\form#19:$v_2$
+\form#20:$v$
+\form#21:$t$
+\form#22:$v_1= v_1 + t.v_2$
+\form#23:$x$
+\form#24:$y$
+\form#25:$m.x = v$
+\form#26:$ v_1 = t_1.v_1 + t_2.(m.v_2)$
+\form#27:$ m = m + t.(v_1.v_2^T)$
+\form#28:$m = m + t.(v.v^T)$
+\form#29:$m = m + t.(v.v^H)$
+\form#30:$ m=m+ t.(v_1.v_2^T + v_2.v_1^T)$
+\form#31:$m=m+t.(v_1.v_2^H) + v_2.(t.v_1)^H)$
+\form#32:$m_1=t.m_2.m_3$
+\form#33:$m_2$
+\form#34:$m_3$
+\form#35:$ m_2.x = t.m_1$
+\form#36:$m_1$
+\form#37:$m_1=t_1.m_1 + t_2.m_2.m_3$
+\form#38:$m_1=t.m_1+t_2.(m_2.m_2^T)$
+\form#39:$m_1=t.m_1+t_2.(m_2.m2^H)$
+\form#40:$m_1=t_1.m_1+t_2.(m_2.m3^T)+t_2.(m_3.m2^T)$
+\form#41:$m_1=t_1.m_1+t_2.(m_2.m_3^H)+(m_3.(t_2.m_2)^H)$
+\form#42:$(n \times n)$
+\form#43:$ 0 \leq i < n, 0 \leq j < n$
+\form#44:$m_{i,j}$
+\form#45:$(i.n + j)$
+\form#46:$(i + j.m)$
+\form#47:$\forall i,j$
+\form#48:$m_{i,j} = \overline{m_{i,j}}$
+\form#49:$(M \times N)$
+\form#50:\[ \left( \begin{array}{ccc} 1 & 1 & 1\\ 1 & 1 & 1\\ 1 & 1 & 1 \end{array} \right) - \left( \begin{array}{ccc} 1 & 0 & 0\\ 0 & 1 & 0\\ 0 & 0 & 1 \end{array} \right) = \left( \begin{array}{ccc} 0 & 1 & 1\\ 1 & 0 & 1\\ 1 & 1 & 0 \end{array} \right) \]
+\form#51:$(m \times n)$
+\form#52:$ 0 \leq i < m, 0 \leq j < n$
+\form#53:$ m_{i,j} $
+\form#54:$ (i + j.m) $
+\form#55:$M$
+\form#56:$N$
+\form#57:$(i,i)$
+\form#58:$(size1*size2) < $
+\form#59:$\mathcal{O}(log(nnz))$
+\form#60:$(n \times n )$
+\form#61:$0 \leq i < n$
+\form#62:$i>j$
+\form#63:$m_{i,j}=0$
+\form#64:$m_{i,i}=1$
+\form#65:$i<j$
+\form#66:$n$
+\form#67:$0\leq i < n$
+\form#68:$v_i$
+\form#69:$i$
+\form#70:$u_i$
+\form#71:$i \neq k$
+\form#72:$i=k$
+\form#73:$a$
+\form#74:$b$
+\form#75:$step$
+\form#76:$k = v_{i_1}$
+\form#77:$k + 1 = v_{i_2}$
+\form#78:$i_1 < i_2$
+\form#79:$ 0 \leq i < n$

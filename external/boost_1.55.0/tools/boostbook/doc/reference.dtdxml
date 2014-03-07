@@ -1,0 +1,3480 @@
+<dtd version='1.0'
+     unexpanded='1'
+     title="?untitled?"
+     namecase-general="1"
+     namecase-entity="0"
+     xml="0"
+     system-id="boostbook.dtd"
+     public-id=""
+     declaration=""
+     created-by="DTDParse V2.00"
+     created-on="Wed Feb 18 23:39:45 2009"
+>
+<attpurpose name="id">A global identifier for this element</attpurpose>
+<attpurpose name="last-revision">Set to $Date: 2003/04/13 14:46:07 $ to keep "last revised" information in sync with CVS changes</attpurpose>
+<attpurpose name="xml:base">Implementation detail used by XIncludes</attpurpose>
+<attpurpose name="name">The name of the element being declared to referenced</attpurpose>
+<attpurpose name="filename">The name of the file associated with this element</attpurpose>
+<attpurpose name="specifiers">The specifiers for this function, e.g., <code>inline</code>, <code>static</code>, etc.</attpurpose>
+<attpurpose name="cv">cv-qualifiers for this method, e.g., <code>const volatile</code></attpurpose>
+<attpurpose name="pack">Set to '1' if the parameter is a parameter pack.</attpurpose>
+
+<entity name="boost.class.content"
+        type="param"
+>
+<text-expanded>template?, inherit*, purpose?, description?,
+              (static-constant|typedef|enum|
+         copy-assignment|constructor|destructor|method-group|
+         method|overloaded-method|data-member|class|class-specialization|struct|
+         struct-specialization|union|union-specialization|free-function-group|function|overloaded-function|access)*</text-expanded>
+<text>template?, inherit*, purpose?, description?,
+              (access|%boost.class.mix;)*</text>
+</entity>
+
+<entity name="boost.function.semantics"
+        type="param"
+>
+<text-expanded>purpose?, description?, requires?, effects?, postconditions?,
+         returns?, throws?, complexity?, notes?, rationale?</text-expanded>
+<text>purpose?, description?, requires?, effects?, postconditions?,
+         returns?, throws?, complexity?, notes?, rationale?</text>
+</entity>
+
+<entity name="parameter.module"
+        type="param"
+>
+<text-expanded>IGNORE</text-expanded>
+<text>IGNORE</text>
+</entity>
+
+<entity name="local.classname.attrib"
+        type="param"
+>
+<text-expanded>alt CDATA #IMPLIED</text-expanded>
+<text>alt CDATA #IMPLIED</text>
+</entity>
+
+<entity name="boost.namespace.mix"
+        type="param"
+>
+<text-expanded>class|class-specialization|struct|struct-specialization|
+         union|union-specialization|typedef|enum|
+         free-function-group|function|overloaded-function|
+         namespace</text-expanded>
+<text>class|class-specialization|struct|struct-specialization|
+         union|union-specialization|typedef|enum|
+         free-function-group|function|overloaded-function|
+         namespace</text>
+</entity>
+
+<entity name="boost.testsuite.test.content"
+        type="param"
+>
+<text-expanded>source*, lib*, requirement*, purpose, if-fails?</text-expanded>
+<text>source*, lib*, requirement*, purpose, if-fails?</text>
+</entity>
+
+<entity name="programlisting.module"
+        type="param"
+>
+<text-expanded>IGNORE</text-expanded>
+<text>IGNORE</text>
+</entity>
+
+<entity name="local.refentry.class"
+        type="param"
+>
+<text-expanded>|library-reference|testsuite</text-expanded>
+<text>|library-reference|testsuite</text>
+</entity>
+
+<entity name="boost.common.attrib"
+        type="param"
+>
+<text-expanded>xml:base      CDATA  #IMPLIED
+                                last-revision CDATA  #IMPLIED
+                                id            CDATA  #IMPLIED</text-expanded>
+<text>%local.common.attrib;
+                                id            CDATA  #IMPLIED</text>
+</entity>
+
+<entity name="boost.class.members"
+        type="param"
+>
+<text-expanded>static-constant|typedef|enum|
+         copy-assignment|constructor|destructor|method-group|
+         method|overloaded-method|data-member|class|class-specialization|struct|
+         struct-specialization|union|union-specialization</text-expanded>
+<text>static-constant|typedef|enum|
+         copy-assignment|constructor|destructor|method-group|
+         method|overloaded-method|data-member|class|class-specialization|struct|
+         struct-specialization|union|union-specialization</text>
+</entity>
+
+<entity name="boost.class.mix"
+        type="param"
+>
+<text-expanded>static-constant|typedef|enum|
+         copy-assignment|constructor|destructor|method-group|
+         method|overloaded-method|data-member|class|class-specialization|struct|
+         struct-specialization|union|union-specialization|free-function-group|function|overloaded-function</text-expanded>
+<text>%boost.class.members;|free-function-group|function|overloaded-function</text>
+</entity>
+
+<entity name="boost.testsuite.tests"
+        type="param"
+>
+<text-expanded>compile-test|link-test|run-test|
+         compile-fail-test|link-fail-test|run-fail-test</text-expanded>
+<text>compile-test|link-test|run-test|
+         compile-fail-test|link-fail-test|run-fail-test</text>
+</entity>
+
+<entity name="local.para.class"
+        type="param"
+>
+<text-expanded>|using-namespace|using-class|librarylist|librarycategorylist</text-expanded>
+<text>|using-namespace|using-class|librarylist|librarycategorylist</text>
+</entity>
+
+<entity name="DocBook"
+        type="param"
+        public="-//OASIS//DTD DocBook XML V4.2//EN"
+        system="http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd"
+/>
+
+<entity name="local.title.char.mix"
+        type="param"
+>
+<text-expanded></text-expanded>
+<text></text>
+</entity>
+
+<entity name="local.methodname.attrib"
+        type="param"
+>
+<text-expanded>alt CDATA #IMPLIED</text-expanded>
+<text>alt CDATA #IMPLIED</text>
+</entity>
+
+<entity name="local.tech.char.class"
+        type="param"
+>
+<text-expanded>|functionname|libraryname|enumname|headername|macroname|code</text-expanded>
+<text>|functionname|libraryname|enumname|headername|macroname|code</text>
+</entity>
+
+<entity name="function.module"
+        type="param"
+>
+<text-expanded>IGNORE</text-expanded>
+<text>IGNORE</text>
+</entity>
+
+<entity name="boost.template.mix"
+        type="param"
+>
+<text-expanded>template-type-parameter|template-nontype-parameter|template-varargs</text-expanded>
+<text>template-type-parameter|template-nontype-parameter|template-varargs</text>
+</entity>
+
+<entity name="local.common.attrib"
+        type="param"
+>
+<text-expanded>xml:base      CDATA  #IMPLIED
+                                last-revision CDATA  #IMPLIED</text-expanded>
+<text>xml:base      CDATA  #IMPLIED
+                                last-revision CDATA  #IMPLIED</text>
+</entity>
+
+<entity name="type.module"
+        type="param"
+>
+<text-expanded>IGNORE</text-expanded>
+<text>IGNORE</text>
+</entity>
+
+<entity name="local.descobj.class"
+        type="param"
+>
+<text-expanded>|libraryinfo</text-expanded>
+<text>|libraryinfo</text>
+</entity>
+
+<entity name="boost.class-specialization.content"
+        type="param"
+>
+<text-expanded>template?, specialization?, inherit?, purpose?, description?,
+              (static-constant|typedef|enum|
+         copy-assignment|constructor|destructor|method-group|
+         method|overloaded-method|data-member|class|class-specialization|struct|
+         struct-specialization|union|union-specialization|free-function-group|function|overloaded-function|access)*</text-expanded>
+<text>template?, specialization?, inherit?, purpose?, description?,
+              (access|%boost.class.mix;)*</text>
+</entity>
+
+<entity name="library.content"
+        type="param"
+>
+<text-expanded>libraryinfo, (title, ((section|library-reference|testsuite))+)?</text-expanded>
+<text>libraryinfo, (title, ((section|library-reference|testsuite))+)?</text>
+</entity>
+
+<element name="class-specialization"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="specialization" occurrence="?"/>
+    <element-name name="inherit" occurrence="?"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+    <or-group occurrence="*">
+      <element-name name="access"/>
+      <element-name name="static-constant"/>
+      <element-name name="typedef"/>
+      <element-name name="enum"/>
+      <element-name name="copy-assignment"/>
+      <element-name name="constructor"/>
+      <element-name name="destructor"/>
+      <element-name name="method-group"/>
+      <element-name name="free-function-group"/>
+      <element-name name="function"/>
+      <element-name name="method"/>
+      <element-name name="overloaded-function"/>
+      <element-name name="overloaded-method"/>
+      <element-name name="data-member"/>
+      <element-name name="class"/>
+      <element-name name="class-specialization"/>
+      <element-name name="struct"/>
+      <element-name name="struct-specialization"/>
+      <element-name name="union"/>
+      <element-name name="union-specialization"/>
+    </or-group>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <parament-name name="boost.class-specialization.content"/>
+  </sequence-group>
+</content-model>
+
+<purpose>A specialization (partial or full) of a class template</purpose>
+</element>
+
+<attlist name="class-specialization">
+<attdecl>
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="link-test"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="source" occurrence="*"/>
+    <element-name name="lib" occurrence="*"/>
+    <element-name name="requirement" occurrence="*"/>
+    <element-name name="purpose"/>
+    <element-name name="if-fails" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <parament-name name="boost.testsuite.test.content"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a test that should compile and link</purpose>
+</element>
+
+<attlist name="link-test">
+<attdecl>
+     filename CDATA #REQUIRED
+     name     CDATA #IMPLIED</attdecl>
+<attribute name="filename"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="link-fail-test"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="source" occurrence="*"/>
+    <element-name name="lib" occurrence="*"/>
+    <element-name name="requirement" occurrence="*"/>
+    <element-name name="purpose"/>
+    <element-name name="if-fails" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <parament-name name="boost.testsuite.test.content"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a test that should compile but fail to link</purpose>
+</element>
+
+<attlist name="link-fail-test">
+<attdecl>
+     filename CDATA #REQUIRED
+     name     CDATA #IMPLIED</attdecl>
+<attribute name="filename"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="typedef"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="type"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="type"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a typedef</purpose>
+</element>
+
+<attlist name="typedef">
+<attdecl>
+    name     CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="static-constant"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="type"/>
+    <element-name name="default"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="type"/>
+    <element-name name="default"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a static constant, e.g., <code>const int foo = 5;</code>.</purpose>
+</element>
+
+<attlist name="static-constant">
+<attdecl>
+    name   CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="code"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>Mimics the <sgmltag>code</sgmltag> tag in HTML</purpose>
+<description>
+  <para>Text within a <sgmltag>code</sgmltag> tag is generally typeset
+  in a different, monospaced font so that it stands out as code. The
+  <sgmltag>code</sgmltag> tag in BoostBook is transformed directly
+  into the <sgmltag>computeroutput</sgmltag> tag in DocBook.</para>
+</description>
+</element>
+
+<attlist name="code">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="destructor"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+    <element-name name="requires" occurrence="?"/>
+    <element-name name="effects" occurrence="?"/>
+    <element-name name="postconditions" occurrence="?"/>
+    <element-name name="returns" occurrence="?"/>
+    <element-name name="throws" occurrence="?"/>
+    <element-name name="complexity" occurrence="?"/>
+    <element-name name="notes" occurrence="?"/>
+    <element-name name="rationale" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <parament-name name="boost.function.semantics"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a destructor for the enclosing class</purpose>
+<description>
+  <para>General documentation on functions in BoostBook is provided in
+  the <link
+  linkend="boostbook.dtd.function"><sgmltag>function</sgmltag></link>
+  element documentation.</para>
+</description>
+</element>
+
+<attlist name="destructor">
+<attdecl>
+    specifiers   CDATA  #IMPLIED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="specifiers"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="template-type-parameter"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="default" occurrence="?"/>
+    <element-name name="purpose" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="default" occurrence="?"/>
+    <element-name name="purpose" occurrence="?"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a template type parameter</purpose>
+</element>
+
+<attlist name="template-type-parameter">
+<attdecl>
+    name                     CDATA  #REQUIRED
+    pack                     CDATA  #IMPLIED 
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="pack"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="description"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>Detailed description of a construct</purpose>
+<description>
+  <para>Although the context model for this element is
+  <code>ANY</code>, detailed descriptions should contain structured
+  DocBook elements that occur within sections, e.g., paragraphs
+  (<sgmltag>para</sgmltag>, <sgmltag>simpara</sgmltag>), lists
+  (<sgmltag>orderedlist</sgmltag>, <sgmltag>itemizedlist</sgmltag>),
+  tables (<sgmltag>informaltable</sgmltag>, <sgmltag>table</sgmltag>),
+  etc.</para>
+</description>
+</element>
+
+<attlist name="description">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="librarylist"
+         content-type="element">
+<content-model-expanded>
+  <empty/>
+</content-model-expanded>
+<content-model>
+  <empty/>
+</content-model>
+<purpose>Placeholder for an alphabetical list of libraries</purpose>
+<description>
+  <para>Developers aren't generally expected to use this element. Its existence is mainly as a placeholder in <filename>boost.xml</filename> for the alphabetical list of libraries.</para>
+</description>
+</element>
+
+<attlist name="librarylist">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="library-reference"
+         content-type="element">
+<!-- DPG brazenly modified the content model here, because "ANY" is
+     not a good idea and merging this document with another is, to say the
+     least, a PITA. -->
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="title" occurrence="?"/>
+    <element-name name="section" occurrence="*"/>
+    <or-group occurrence="*">
+      <element-name name="header"/>
+      <element-name name="library-reference"/>
+    </or-group>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="title" occurrence="?"/>
+    <element-name name="section" occurrence="*"/>
+    <or-group>
+      <element-name name="header" occurrence="*"/>
+      <element-name name="library-reference" occurrence="*"/>
+    </or-group>
+  </sequence-group>
+</content-model>
+<purpose>Declares the reference material for a library</purpose>
+<description>
+  <para>Reference documentation for a library is contained with a
+  &lt;library-reference&gt; element. The &lt;library-reference&gt;
+  element has no attributes, and contains as children only
+  &lt;header&gt; elements.</para>
+
+  <para>The &lt;header&gt; element defines a C++ header file. Within
+  each C++ header file lie the definitions of C++ constructs to be
+  documented. The <code>name</code> attribute of the &lt;header&gt;
+  element gives the name of the header, as one would specify when
+  including the header. For instance, the &lt;library-reference&gt;
+  for the <libraryname>Any</libraryname> library may look like
+  this:</para>
+
+  <programlisting>&lt;library-reference&gt;
+  &lt;header name="boost/any.hpp"&gt;
+    &lt;!-- C++ constructs in this header --&gt;
+  &lt;/header&gt;
+&lt;/library-reference&gt;</programlisting>
+
+  <para>If the <libraryname>Any</libraryname> library contained
+  multiple headers, we would list them all as children of the
+  &lt;library-reference&gt; element.</para>
+
+  <para><sgmltag>library-reference</sgmltag> elements can be nested,
+  so that reference material can be divided into separate sections
+  that each contain different headers.</para>
+</description>
+</element>
+
+<attlist name="library-reference">
+<attdecl>
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="boostbook"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="title"/>
+    <or-group occurrence="*">
+      <element-name name="chapter"/>
+      <element-name name="library"/>
+    </or-group>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="title"/>
+    <or-group occurrence="*">
+      <element-name name="chapter"/>
+      <element-name name="library"/>
+    </or-group>
+  </sequence-group>
+</content-model>
+<purpose>Defines a BoostBook book</purpose>
+<description>
+  <simpara>This element is the topmost level defined by
+  <filename>boost.xml</filename> for all Boost documentation. It will
+  not generally be used by developers.</simpara>
+</description>
+</element>
+
+<attlist name="boostbook">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="union"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="inherit" occurrence="*"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+    <or-group occurrence="*">
+      <element-name name="access"/>
+      <element-name name="static-constant"/>
+      <element-name name="typedef"/>
+      <element-name name="enum"/>
+      <element-name name="copy-assignment"/>
+      <element-name name="constructor"/>
+      <element-name name="destructor"/>
+      <element-name name="method-group"/>
+      <element-name name="free-function-group"/>
+      <element-name name="function"/>
+      <element-name name="method"/>
+      <element-name name="overloaded-function"/>
+      <element-name name="overloaded-method"/>
+      <element-name name="data-member"/>
+      <element-name name="class"/>
+      <element-name name="class-specialization"/>
+      <element-name name="struct"/>
+      <element-name name="struct-specialization"/>
+      <element-name name="union"/>
+      <element-name name="union-specialization"/>
+    </or-group>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <parament-name name="boost.class.content"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a C++ union or union template</purpose>
+</element>
+
+<attlist name="union">
+<attdecl>
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="inherit"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="type"/>
+    <element-name name="purpose" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="type"/>
+    <element-name name="purpose" occurrence="?"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a base class of the enclosing class or struct</purpose>
+
+<description>
+  <para>This element contains the type of the class inherited.</para>
+</description>
+</element>
+
+<attlist name="inherit">
+<attdecl>
+    access  CDATA  #IMPLIED
+    pack    CDATA  #IMPLIED 
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="access"
+           type="#IMPLIED"
+           value="CDATA"
+           default="">
+  <purpose>The access specifier ("public", "private", or "protected") of the inheritance.</purpose>
+</attribute>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="pack"
+           type="#IMPLIED"
+           value="CDATA"
+           default="">
+  <purpose>Set to '1' if this is a pack exapansion.</purpose>
+</attribute>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="template-varargs"
+         content-type="element">
+<content-model-expanded>
+  <empty/>
+</content-model-expanded>
+<content-model>
+  <empty/>
+</content-model>
+<purpose>Declares a variable-length list of template parameters</purpose>
+
+<description>
+  <para>Variable-length template parameter lists are not allowed in
+  C++, but because they are sometimes needed in documentation they are
+  allowed in BoostBook. This element generally expands to "..." and
+  can be used anywhere any other template parameter can be
+  used.</para>
+</description>
+</element>
+
+<attlist name="template-varargs">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="source"
+         content-type="mixed">
+<content-model-expanded>
+  <or-group occurrence="*">
+    <pcdata/>
+    <element-name name="snippet"/>
+  </or-group>
+</content-model-expanded>
+<content-model>
+  <or-group occurrence="*">
+    <pcdata/>
+    <element-name name="snippet"/>
+  </or-group>
+</content-model>
+<purpose>Defines source code for a test</purpose>
+
+<description>
+  <para>This element will contain the source code for a testcase that
+  will be generated from the documentation. To reduce the amount of escaping in the text, it is recommended to use CDATA sections, which look like this:
+
+    <programlisting>&lt;![CDATA[
+&lt;your program text here: no escaping needed!&gt;
+]]&gt;</programlisting>
+  </para>
+
+  <para>In addition to CDATA sections, code snippets can be pulled in
+  from <sgmltag>programlisting</sgmltag> elements using the <link
+  linkend="boostbook.dtd.snippet"><sgmltag>snippet</sgmltag></link>
+  element.</para>
+</description>
+
+</element>
+
+<element name="function"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="type"/>
+    <element-name name="parameter" occurrence="*"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+    <element-name name="requires" occurrence="?"/>
+    <element-name name="effects" occurrence="?"/>
+    <element-name name="postconditions" occurrence="?"/>
+    <element-name name="returns" occurrence="?"/>
+    <element-name name="throws" occurrence="?"/>
+    <element-name name="complexity" occurrence="?"/>
+    <element-name name="notes" occurrence="?"/>
+    <element-name name="rationale" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="type"/>
+    <element-name name="parameter" occurrence="*"/>
+    <parament-name name="boost.function.semantics"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a function</purpose>
+<description>
+  <para>BoostBook functions are documented by specifying the
+  function's interface (e.g., its C++ signature) and its
+  behavior. Constructors, destructors, member functions, and free
+  functions all use the same documentation method, although the
+  top-level tags differ.</para>
+
+  <para>The behavior of functions in BoostBook is documenting using a
+  style similar to that of the C++ standard, with clauses describing
+  the requirements, effects, postconditions, exception behavior, and
+  return values of functions.</para>
+
+  <para>The following example illustrates some constructors and a
+  destructor for <classname>boost::any</classname>. Note that one of
+  the constructors takes a single parameter whose name is "other" and
+  whose type, <code>const any&amp;</code> is contained in the
+  &lt;paramtype&gt; element; any number of parameters may be specified
+  in this way.</para>
+
+  <programlisting>&lt;class name="any"&gt;
+  &lt;constructor&gt;
+    &lt;postconditions&gt;&lt;para&gt;&lt;this-&gt;empty()&gt;&lt;/para&gt;&lt;/postconditions&gt;
+  &lt;/constructor&gt;
+
+  &lt;constructor&gt;
+    &lt;parameter name="other"&gt;
+      &lt;paramtype&gt;const &lt;classname&gt;any&lt;/classname&gt;&amp;amp;&lt;/paramtype&gt;
+    &lt;/parameter&gt;
+
+    &lt;effects&gt;
+      &lt;simpara&gt; Copy constructor that copies
+        content of &lt;code&gt;other&lt;/code&gt; into the new instance,
+        so that any content is equivalent in both type and value to the
+        content of &lt;code&gt;other&lt;/code&gt;, or empty if
+        &lt;code&gt;other&lt;/code&gt; is
+        empty.
+      &lt;/simpara&gt;
+    &lt;/effects&gt;
+
+    &lt;throws&gt;
+      &lt;simpara&gt;May fail with a
+        &lt;classname&gt;std::bad_alloc&lt;/classname&gt; exception or any
+        exceptions arising from the copy constructor of the
+        contained type.
+      &lt;/simpara&gt;
+    &lt;/throws&gt;
+  &lt;/constructor&gt;
+
+  &lt;destructor&gt;
+     &lt;effects&gt;&lt;simpara&gt;Releases any and all resources used in
+     management of instance.&lt;/simpara&gt;&lt;/effects&gt;
+
+     &lt;throws&gt;&lt;simpara&gt;Nothing.&lt;/simpara&gt;&lt;/throws&gt;
+  &lt;/destructor&gt;
+&lt;/class&gt;</programlisting>
+</description>
+</element>
+
+<attlist name="function">
+<attdecl>
+    name         CDATA  #REQUIRED
+    specifiers   CDATA  #IMPLIED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="specifiers"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="macroname"
+         content-type="mixed">
+<content-model-expanded>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model>
+<purpose>References a macro with the given name</purpose>
+</element>
+
+<attlist name="macroname">
+<attdecl>
+    alt          CDATA  #IMPLIED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="alt"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="postconditions"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>Conditions that must hold after the function returns</purpose>
+</element>
+
+<attlist name="postconditions">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="compile-test"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="source" occurrence="*"/>
+    <element-name name="lib" occurrence="*"/>
+    <element-name name="requirement" occurrence="*"/>
+    <element-name name="purpose"/>
+    <element-name name="if-fails" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <parament-name name="boost.testsuite.test.content"/>
+  </sequence-group>
+</content-model>
+<purpose>A testcase that should compile correctly</purpose>
+</element>
+
+<attlist name="compile-test">
+<attdecl>
+     filename CDATA #REQUIRED
+     name     CDATA #IMPLIED</attdecl>
+<attribute name="filename"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="method"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="type"/>
+    <element-name name="parameter" occurrence="*"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+    <element-name name="requires" occurrence="?"/>
+    <element-name name="effects" occurrence="?"/>
+    <element-name name="postconditions" occurrence="?"/>
+    <element-name name="returns" occurrence="?"/>
+    <element-name name="throws" occurrence="?"/>
+    <element-name name="complexity" occurrence="?"/>
+    <element-name name="notes" occurrence="?"/>
+    <element-name name="rationale" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="type"/>
+    <element-name name="parameter" occurrence="*"/>
+    <parament-name name="boost.function.semantics"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a method, i.e., a member function</purpose>
+<description>
+  <para>General documentation on functions in BoostBook is provided in
+  the <link
+  linkend="boostbook.dtd.function"><sgmltag>function</sgmltag></link>
+  element documentation.</para>
+</description>
+</element>
+
+<attlist name="method">
+<attdecl>
+    name         CDATA  #REQUIRED
+    cv           CDATA  #IMPLIED
+    specifiers   CDATA  #IMPLIED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="cv"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="specifiers"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="snippet"
+         content-type="element">
+<content-model-expanded>
+  <empty/>
+</content-model-expanded>
+<content-model>
+  <empty/>
+</content-model>
+<purpose>Pulls in a code snippet from a <sgmltag>programlisting</sgmltag> element</purpose>
+</element>
+
+<attlist name="snippet">
+<attdecl>
+     name CDATA #REQUIRED</attdecl>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default="">
+  <purpose>The name of the <sgmltag>programlisting</sgmltag> element to insert</purpose>
+</attribute>
+</attlist>
+
+<element name="constructor"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="parameter" occurrence="*"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+    <element-name name="requires" occurrence="?"/>
+    <element-name name="effects" occurrence="?"/>
+    <element-name name="postconditions" occurrence="?"/>
+    <element-name name="returns" occurrence="?"/>
+    <element-name name="throws" occurrence="?"/>
+    <element-name name="complexity" occurrence="?"/>
+    <element-name name="notes" occurrence="?"/>
+    <element-name name="rationale" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="parameter" occurrence="*"/>
+    <parament-name name="boost.function.semantics"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a constructor of the enclosing class</purpose>
+<description>
+  <para>General documentation on functions in BoostBook is provided in
+  the <link
+  linkend="boostbook.dtd.function"><sgmltag>function</sgmltag></link>
+  element documentation.</para>
+</description>
+</element>
+
+<attlist name="constructor">
+<attdecl>
+    specifiers   CDATA  #IMPLIED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="specifiers"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="namespace"
+         content-type="element">
+<content-model-expanded>
+  <or-group occurrence="*">
+    <element-name name="class"/>
+    <element-name name="class-specialization"/>
+    <element-name name="struct"/>
+    <element-name name="struct-specialization"/>
+    <element-name name="union"/>
+    <element-name name="union-specialization"/>
+    <element-name name="typedef"/>
+    <element-name name="enum"/>
+    <element-name name="free-function-group"/>
+    <element-name name="function"/>
+    <element-name name="overloaded-function"/>
+    <element-name name="namespace"/>
+  </or-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group occurrence="*">
+    <parament-name name="boost.namespace.mix"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a namespace</purpose>
+
+<description>
+  <para>BoostBook namespaces are declared via the &lt;namespace&gt;
+  element. As in C++, namespaces can be nested and contain other C++
+  constructs, such as classes or functions. The <code>name</code>
+  attribute of a &lt;namespace&gt; element gives the namespace name
+  (e.g., "boost"). The <libraryname>Any</libraryname> library is
+  defined entirely within namespace boost by:</para>
+
+  <programlisting>&lt;library-reference&gt;
+  &lt;header name="boost/any.hpp"&gt;
+    &lt;namespace name="boost"&gt;
+      &lt;!-- C++ constructs in the boost namespace --&gt;
+    &lt;/namespace&gt;
+  &lt;/header&gt;
+&lt;/library-reference&gt;</programlisting>
+</description>
+</element>
+
+<attlist name="namespace">
+<attdecl>
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="if-fails"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>What it means when a testcase fails</purpose>
+<description>
+  <para>
+    Describes to the user the effect a certain failing testcase will
+    have on the usefulness of a library. This field is useful in cases
+    where a failed testcase does not mean that the library won't be
+    useful, but may mean that certain library features will not be
+    available.
+  </para>
+</description>
+</element>
+
+<element name="headername"
+         content-type="mixed">
+<content-model-expanded>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model>
+<purpose>References a C++ header with the given name</purpose>
+</element>
+
+<attlist name="headername">
+<attdecl>
+    alt          CDATA  #IMPLIED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="alt"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="free-function-group"
+         content-type="element">
+<content-model-expanded>
+  <or-group occurrence="*">
+    <element-name name="function"/>
+    <element-name name="overloaded-function"/>
+  </or-group>
+</content-model-expanded>
+<content-model>
+  <or-group occurrence="*">
+    <element-name name="function"/>
+    <element-name name="overloaded-function"/>
+  </or-group>
+</content-model>
+<purpose>A set of functions that are grouped together under one name</purpose>
+</element>
+
+<attlist name="free-function-group">
+<attdecl>
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="functionname"
+         content-type="mixed">
+<content-model-expanded>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model>
+<purpose>References a function with the given name</purpose>
+<description>
+  <para>If a function (or overloaded function) with the given,
+  possibly-qualified name is found, this generates a link to that
+  function. Lookups obey currently-active <link
+  linkend="boostbook.dtd.using-class"><sgmltag>using-class</sgmltag></link>
+  and <link
+  linkend="boostbook.dtd.using-namespace"><sgmltag>using-namespace</sgmltag></link>
+  directives to aid in the search, along with searching within the
+  current scope.</para>
+</description>
+</element>
+
+<attlist name="functionname">
+<attdecl>
+    alt          CDATA  #IMPLIED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="alt"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="librarycategory"
+         content-type="mixed">
+<content-model-expanded>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model>
+<purpose>Declares that the enclosing library is in this category</purpose>
+</element>
+
+<attlist name="librarycategory">
+<attdecl>
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="notes"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>Non-normative notes about a function's semantics</purpose>
+</element>
+
+<attlist name="notes">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="data-member"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="type"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="type"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a data member of a class</purpose>
+</element>
+
+<attlist name="data-member">
+<attdecl>
+    name         CDATA  #REQUIRED
+    specifiers   CDATA  #IMPLIED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="specifiers"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="specialization"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group occurrence="*">
+    <element-name name="template-arg"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group occurrence="*">
+    <element-name name="template-arg"/>
+  </sequence-group>
+</content-model>
+<purpose>Defines the specialization arguments for a class specialization</purpose>
+</element>
+
+<attlist name="specialization">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="union-specialization"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="specialization" occurrence="?"/>
+    <element-name name="inherit" occurrence="?"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+    <or-group occurrence="*">
+      <element-name name="access"/>
+      <element-name name="static-constant"/>
+      <element-name name="typedef"/>
+      <element-name name="enum"/>
+      <element-name name="copy-assignment"/>
+      <element-name name="constructor"/>
+      <element-name name="destructor"/>
+      <element-name name="method-group"/>
+      <element-name name="free-function-group"/>
+      <element-name name="function"/>
+      <element-name name="method"/>
+      <element-name name="overloaded-function"/>
+      <element-name name="overloaded-method"/>
+      <element-name name="data-member"/>
+      <element-name name="class"/>
+      <element-name name="class-specialization"/>
+      <element-name name="struct"/>
+      <element-name name="struct-specialization"/>
+      <element-name name="union"/>
+      <element-name name="union-specialization"/>
+    </or-group>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <parament-name name="boost.class-specialization.content"/>
+  </sequence-group>
+</content-model>
+<purpose>A specialization (full or partial) of a union template</purpose>
+</element>
+
+<attlist name="union-specialization">
+<attdecl>
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="throws"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>Description of the exceptions thrown by a function</purpose>
+</element>
+
+<attlist name="throws">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="template-arg"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>A template argument in a specialization</purpose>
+</element>
+
+<attlist name="template-arg">
+<attdecl>
+    pack    CDATA  #IMPLIED 
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="pack"
+           type="#IMPLIED"
+           value="CDATA"
+           default="">
+  <purpose>Set to '1' if this is a pack exapansion.</purpose>
+</attribute>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="globalname"
+         content-type="mixed">
+<content-model-expanded>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model>
+<purpose>References a global with the given name</purpose>
+</element>
+
+<attlist name="globalname">
+<attdecl>
+    alt          CDATA  #IMPLIED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="alt"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="method-group"
+         content-type="element">
+<content-model-expanded>
+  <or-group occurrence="*">
+    <element-name name="method"/>
+    <element-name name="overloaded-method"/>
+  </or-group>
+</content-model-expanded>
+<content-model>
+  <or-group occurrence="*">
+    <element-name name="method"/>
+    <element-name name="overloaded-method"/>
+  </or-group>
+</content-model>
+<purpose>A set of methods that are grouped together under one name</purpose>
+</element>
+
+<attlist name="method-group">
+<attdecl>
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="requirement"
+         content-type="mixed">
+<content-model-expanded>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model>
+<purpose>A requirement/property in the Jamfile for a testcase</purpose>
+<description>
+  <para>A requirement is part of the dependencies of a target in a
+  Jamfile. The <code>name</code> attribute of a requirement element
+  gives the name of the Boost.Build feature and the content of the
+  requirement gives the value of that feature. A requirement such as
+  <code>&lt;includes&gt;foo.hpp</code> would be encoded as
+  <code>&lt;requirement
+  name="includes"&gt;foo.hpp&lt;/requirement&gt;</code>.</para>
+</description>
+</element>
+
+<attlist name="requirement">
+<attdecl>
+     name CDATA #REQUIRED</attdecl>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="precondition"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>Conditions that must be met prior to executing a function</purpose>
+</element>
+
+<attlist name="precondition">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="paramtype"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>The type of a function parameter</purpose>
+</element>
+
+<attlist name="paramtype">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="using-class"
+         content-type="element">
+<content-model-expanded>
+  <empty/>
+</content-model-expanded>
+<content-model>
+  <empty/>
+</content-model>
+<purpose>Injects the method and function names of a class into the local scope</purpose>
+</element>
+
+<attlist name="using-class">
+<attdecl>
+     name        CDATA #REQUIRED
+     %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="run-test"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="source" occurrence="*"/>
+    <element-name name="lib" occurrence="*"/>
+    <element-name name="requirement" occurrence="*"/>
+    <element-name name="purpose"/>
+    <element-name name="if-fails" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <parament-name name="boost.testsuite.test.content"/>
+  </sequence-group>
+</content-model>
+<purpose>A testcase that should compile, link, and execute</purpose>
+</element>
+
+<attlist name="run-test">
+<attdecl>
+     filename CDATA #REQUIRED
+     name     CDATA #IMPLIED</attdecl>
+<attribute name="filename"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="librarypurpose"
+         content-type="mixed">
+<content-model-expanded>
+  <or-group occurrence="*">
+    <pcdata/>
+    <element-name name="code"/>
+    <element-name name="ulink"/>
+    <element-name name="functionname"/>
+    <element-name name="methodname"/>
+    <element-name name="classname"/>
+    <element-name name="macroname"/>
+    <element-name name="headername"/>
+    <element-name name="enumname"/>
+    <element-name name="globalname"/>
+  </or-group>
+</content-model-expanded>
+<content-model>
+  <or-group occurrence="*">
+    <pcdata/>
+    <element-name name="code"/>
+    <element-name name="ulink"/>
+    <element-name name="functionname"/>
+    <element-name name="methodname"/>
+    <element-name name="classname"/>
+    <element-name name="macroname"/>
+    <element-name name="headername"/>
+    <element-name name="enumname"/>
+    <element-name name="globalname"/>
+  </or-group>
+</content-model>
+<purpose>Describes in one short sentence or phrase the purpose of a library</purpose>
+</element>
+
+<attlist name="librarypurpose">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="copy-assignment"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="type" occurrence="?"/>
+    <element-name name="parameter" occurrence="*"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+    <element-name name="requires" occurrence="?"/>
+    <element-name name="effects" occurrence="?"/>
+    <element-name name="postconditions" occurrence="?"/>
+    <element-name name="returns" occurrence="?"/>
+    <element-name name="throws" occurrence="?"/>
+    <element-name name="complexity" occurrence="?"/>
+    <element-name name="notes" occurrence="?"/>
+    <element-name name="rationale" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="type" occurrence="?"/>
+    <element-name name="parameter" occurrence="*"/>
+    <parament-name name="boost.function.semantics"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a copy-assignment operator</purpose>
+<description>
+  <para>The return type of the copy-assignment operator does not need
+  to be specified. If left unspecified, it will default to an
+  unqualified reference to the enclosing class type.</para>
+
+  <para>General documentation on functions in BoostBook is provided in
+  the <link
+  linkend="boostbook.dtd.function"><sgmltag>function</sgmltag></link>
+  element documentation.</para>
+</description>
+</element>
+
+<attlist name="copy-assignment">
+<attdecl>
+    cv           CDATA  #IMPLIED
+    specifiers   CDATA  #IMPLIED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="cv"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="specifiers"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="run-fail-test"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="source" occurrence="*"/>
+    <element-name name="lib" occurrence="*"/>
+    <element-name name="requirement" occurrence="*"/>
+    <element-name name="purpose"/>
+    <element-name name="if-fails" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <parament-name name="boost.testsuite.test.content"/>
+  </sequence-group>
+</content-model>
+<purpose>A testcase that should compile and link, but fail on execution</purpose>
+</element>
+
+<attlist name="run-fail-test">
+<attdecl>
+     filename CDATA #REQUIRED
+     name     CDATA #IMPLIED</attdecl>
+<attribute name="filename"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="template"
+         content-type="element">
+<content-model-expanded>
+  <or-group occurrence="*">
+    <element-name name="template-type-parameter"/>
+    <element-name name="template-nontype-parameter"/>
+    <element-name name="template-varargs"/>
+  </or-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group occurrence="*">
+    <parament-name name="boost.template.mix"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares the template parameters of a class or function</purpose>
+</element>
+
+<attlist name="template">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="compile-fail-test"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="source" occurrence="*"/>
+    <element-name name="lib" occurrence="*"/>
+    <element-name name="requirement" occurrence="*"/>
+    <element-name name="purpose"/>
+    <element-name name="if-fails" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <parament-name name="boost.testsuite.test.content"/>
+  </sequence-group>
+</content-model>
+<purpose>A testcase that should fail to compile</purpose>
+</element>
+
+<attlist name="compile-fail-test">
+<attdecl>
+     filename CDATA #REQUIRED
+     name     CDATA #IMPLIED</attdecl>
+<attribute name="filename"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="returns"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>Description of the return value of a function</purpose>
+</element>
+
+<attlist name="returns">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="default"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>The default value of a function or template parameter</purpose>
+</element>
+
+<attlist name="default">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="parameter"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="paramtype"/>
+    <element-name name="default" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="paramtype"/>
+    <element-name name="default" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+  </sequence-group>
+</content-model>
+<purpose>A function parameter</purpose>
+</element>
+
+<attlist name="parameter">
+<attdecl>
+     name CDATA #IMPLIED
+     pack CDATA #IMPLIED</attdecl>
+<attribute name="name"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="pack"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="signature"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="type"/>
+    <element-name name="parameter" occurrence="*"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="type"/>
+    <element-name name="parameter" occurrence="*"/>
+  </sequence-group>
+</content-model>
+<purpose>One signature of an overloaded function or method</purpose>
+<description>
+  <para>
+    A signature refers to one declaration of an overloaded function or
+    method. The signature itself has no name, because the name of the
+    overloaded function or method is used. An overloaded function or
+    method will have several signatures that will generally be typeset
+    together.
+  </para>
+</description>
+</element>
+
+<attlist name="signature">
+<attdecl>
+    cv           CDATA  #IMPLIED
+    specifiers   CDATA  #IMPLIED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="cv"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="specifiers"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="overloaded-function"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="signature" occurrence="*"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+    <element-name name="requires" occurrence="?"/>
+    <element-name name="effects" occurrence="?"/>
+    <element-name name="postconditions" occurrence="?"/>
+    <element-name name="returns" occurrence="?"/>
+    <element-name name="throws" occurrence="?"/>
+    <element-name name="complexity" occurrence="?"/>
+    <element-name name="notes" occurrence="?"/>
+    <element-name name="rationale" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="signature" occurrence="*"/>
+    <parament-name name="boost.function.semantics"/>
+  </sequence-group>
+</content-model>
+<purpose>An overloaded function</purpose>
+<description>
+  <para>General documentation on functions in BoostBook is provided in
+  the <link
+  linkend="boostbook.dtd.function"><sgmltag>function</sgmltag></link>
+  element documentation.</para>
+</description>
+</element>
+
+<attlist name="overloaded-function">
+<attdecl>
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="access"
+         content-type="element">
+<content-model-expanded>
+  <or-group occurrence="+">
+    <element-name name="static-constant"/>
+    <element-name name="typedef"/>
+    <element-name name="enum"/>
+    <element-name name="copy-assignment"/>
+    <element-name name="constructor"/>
+    <element-name name="destructor"/>
+    <element-name name="method-group"/>
+    <element-name name="method"/>
+    <element-name name="overloaded-method"/>
+    <element-name name="data-member"/>
+    <element-name name="class"/>
+    <element-name name="class-specialization"/>
+    <element-name name="struct"/>
+    <element-name name="struct-specialization"/>
+    <element-name name="union"/>
+    <element-name name="union-specialization"/>
+  </or-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group occurrence="+">
+    <parament-name name="boost.class.members"/>
+  </sequence-group>
+</content-model>
+  <purpose>Declares an access specification for class members</purpose>
+
+  <description>
+    <para>The access specifications of class members (public, private, or protected) may be determined by enclosing them in an &lt;access&gt; element.</para>
+  </description>
+</element>
+
+<attlist name="access">
+<attdecl>
+    name CDATA #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default="">
+  <purpose>The name of the access specification, e.g. "public", "private", or "protected".</purpose>
+</attribute>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="class"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="inherit" occurrence="*"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+    <or-group occurrence="*">
+      <element-name name="access"/>
+      <element-name name="static-constant"/>
+      <element-name name="typedef"/>
+      <element-name name="enum"/>
+      <element-name name="copy-assignment"/>
+      <element-name name="constructor"/>
+      <element-name name="destructor"/>
+      <element-name name="method-group"/>
+      <element-name name="free-function-group"/>
+      <element-name name="function"/>
+      <element-name name="method"/>
+      <element-name name="overloaded-function"/>
+      <element-name name="overloaded-method"/>
+      <element-name name="data-member"/>
+      <element-name name="class"/>
+      <element-name name="class-specialization"/>
+      <element-name name="struct"/>
+      <element-name name="struct-specialization"/>
+      <element-name name="union"/>
+      <element-name name="union-specialization"/>
+    </or-group>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <parament-name name="boost.class.content"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a class or class template</purpose>
+
+<description>
+  <para>C++ classes and class templates are described via the
+  &lt;class&gt; element. Each class has a name (e.g., "any") given by
+  the <code>name</code> attribute, a purpose given by the
+  &lt;purpose&gt; element, documentation, and a set of types,
+  functions, base classes, and data members. Here is a minimal
+  definition of the <classname>boost::any</classname> class:</para>
+
+  <programlisting>&lt;namespace name="boost"&gt;
+  &lt;class name="any"&gt;
+    &lt;purpose&gt;
+      A class whose instances can hold instances of any type that satisfies
+      ValueType requirements.
+    &lt;/purpose&gt;
+  &lt;/class&gt;
+&lt;/namespace&gt;</programlisting>
+
+  <para>Additional class documentation can be contained in a
+  <sgmltag>description</sgmltag> element following the &lt;purpose&gt;
+  element. This documentation will be typeset prior to documentation
+  for specific elements in the class (e.g., constructors or
+  methods).</para>
+
+  <para>Class inheritance is described via the &lt;inherit&gt;
+  element. The &lt;inherit&gt; element requires an <code>access</code>
+  attribute which must be one of <emphasis>public</emphasis>,
+  <emphasis>protected</emphasis>, or <emphasis>private</emphasis>. The
+  content of the &lt;inherited&gt; element in C++ code that names the
+  class inherited, and may contain markup to link to the class. The
+  following description of the class
+  <classname>boost::bad_any_cast</classname> describes public
+  inheritance from the class <classname>std::bad_cast</classname>. It
+  also defines the &lt;purpose&gt; element, which contains a short
+  description of the use of the class.</para>
+
+  <programlisting>&lt;class name="bad_any_cast"&gt;
+  &lt;inherit access="public"&gt;&lt;classname&gt;std::bad_cast&lt;/classname&gt;&lt;/inherit&gt;
+  &lt;purpose&gt;&lt;para&gt;The exception thrown in the event of a failed
+  &lt;functionname&gt;any_cast&lt;/functionname&gt; of an
+  &lt;classname&gt;any&lt;/classname&gt; value.&lt;/para&gt;&lt;/purpose&gt;
+&lt;/class&gt;</programlisting>
+
+  <para>Class templates are defined by &lt;class&gt; elements with a
+  &lt;template&gt; child element at the beginning.</para>
+</description>
+</element>
+
+<attlist name="class">
+<attdecl>
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="librarycategorydef"
+         content-type="mixed">
+<content-model-expanded>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model>
+<purpose>Defines a new library category</purpose>
+<description>
+  <para>All library category definitions should be in <filename>doc/src/boost.xml</filename>, and the names of categories must be prefixed with "<code>category:</code>".</para>
+</description>
+</element>
+
+<attlist name="librarycategorydef">
+<attdecl>
+         name   CDATA   #REQUIRED
+         %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="type"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>The type of an element or return type of a function</purpose>
+</element>
+
+<attlist name="type">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="enumvalue"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="default" occurrence="?"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="default" occurrence="?"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+  </sequence-group>
+</content-model>
+<purpose>A single value of an enumeration</purpose>
+</element>
+
+<attlist name="enumvalue">
+<attdecl>
+    name     CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="overloaded-method"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="signature" occurrence="*"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+    <element-name name="requires" occurrence="?"/>
+    <element-name name="effects" occurrence="?"/>
+    <element-name name="postconditions" occurrence="?"/>
+    <element-name name="returns" occurrence="?"/>
+    <element-name name="throws" occurrence="?"/>
+    <element-name name="complexity" occurrence="?"/>
+    <element-name name="notes" occurrence="?"/>
+    <element-name name="rationale" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="signature" occurrence="*"/>
+    <parament-name name="boost.function.semantics"/>
+  </sequence-group>
+</content-model>
+<purpose>An overloaded method</purpose>
+<description>
+  <para>General documentation on functions in BoostBook is provided in
+  the <link
+  linkend="boostbook.dtd.function"><sgmltag>function</sgmltag></link>
+  element documentation.</para>
+</description>
+</element>
+
+<attlist name="overloaded-method">
+<attdecl>
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="programlisting"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>A sample of program code</purpose>
+</element>
+
+<attlist name="programlisting">
+<attdecl>
+     name        CDATA #IMPLIED</attdecl>
+<attribute name="name"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="complexity"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>The time/space/etc. complexity of a function</purpose>
+</element>
+
+<attlist name="complexity">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="purpose"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>A short description of an entity's use</purpose>
+</element>
+
+<attlist name="purpose">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="template-nontype-parameter"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="type"/>
+    <element-name name="default" occurrence="?"/>
+    <element-name name="purpose" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="type"/>
+    <element-name name="default" occurrence="?"/>
+    <element-name name="purpose" occurrence="?"/>
+  </sequence-group>
+</content-model>
+<purpose>A nontype template parameter</purpose>
+</element>
+
+<attlist name="template-nontype-parameter">
+<attdecl>
+    name                     CDATA  #REQUIRED
+    pack                     CDATA  #IMPLIED 
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="pack"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="library"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="libraryinfo"/>
+    <sequence-group occurrence="?">
+      <element-name name="title"/>
+      <sequence-group occurrence="+">
+        <or-group>
+          <element-name name="section"/>
+          <element-name name="library-reference"/>
+          <element-name name="testsuite"/>
+        </or-group>
+      </sequence-group>
+    </sequence-group>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <parament-name name="library.content"/>
+  </sequence-group>
+</content-model>
+<purpose>Top-level element for a library</purpose>
+</element>
+
+<attlist name="library">
+<attdecl>
+    name      CDATA   #REQUIRED
+    dirname   CDATA   #REQUIRED
+    html-only CDATA   #IMPLIED
+    url       CDATA   #IMPLIED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="dirname"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="url"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="html-only"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="librarycategorylist"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group occurrence="*">
+    <element-name name="librarycategorydef"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group occurrence="*">
+    <element-name name="librarycategorydef"/>
+  </sequence-group>
+</content-model>
+<purpose>Categorized listing of libraries</purpose>
+<description>
+  <para>This element is not intended for use by developers, but is
+  used by <filename>doc/src/boost.xml</filename> as a
+  placeholder.</para>
+</description>
+</element>
+
+<attlist name="librarycategorylist">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="using-namespace"
+         content-type="element">
+<content-model-expanded>
+  <empty/>
+</content-model-expanded>
+<content-model>
+  <empty/>
+</content-model>
+<purpose>Injects the declared names from a namespace into the local scope</purpose>
+</element>
+
+<attlist name="using-namespace">
+<attdecl>
+    name   CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="enumname"
+         content-type="mixed">
+<content-model-expanded>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model>
+<purpose>References an enumeration type with the given name</purpose>
+</element>
+
+<attlist name="enumname">
+<attdecl>
+    alt          CDATA  #IMPLIED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="alt"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="struct-specialization"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="specialization" occurrence="?"/>
+    <element-name name="inherit" occurrence="?"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+    <or-group occurrence="*">
+      <element-name name="access"/>
+      <element-name name="static-constant"/>
+      <element-name name="typedef"/>
+      <element-name name="enum"/>
+      <element-name name="copy-assignment"/>
+      <element-name name="constructor"/>
+      <element-name name="destructor"/>
+      <element-name name="method-group"/>
+      <element-name name="free-function-group"/>
+      <element-name name="function"/>
+      <element-name name="method"/>
+      <element-name name="overloaded-function"/>
+      <element-name name="overloaded-method"/>
+      <element-name name="data-member"/>
+      <element-name name="class"/>
+      <element-name name="class-specialization"/>
+      <element-name name="struct"/>
+      <element-name name="struct-specialization"/>
+      <element-name name="union"/>
+      <element-name name="union-specialization"/>
+    </or-group>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <parament-name name="boost.class-specialization.content"/>
+  </sequence-group>
+</content-model>
+<purpose>A specialization (full or partial) of a struct template</purpose>
+</element>
+
+<attlist name="struct-specialization">
+<attdecl>
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="struct"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="template" occurrence="?"/>
+    <element-name name="inherit" occurrence="*"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+    <or-group occurrence="*">
+      <element-name name="access"/>
+      <element-name name="static-constant"/>
+      <element-name name="typedef"/>
+      <element-name name="enum"/>
+      <element-name name="copy-assignment"/>
+      <element-name name="constructor"/>
+      <element-name name="destructor"/>
+      <element-name name="method-group"/>
+      <element-name name="free-function-group"/>
+      <element-name name="function"/>
+      <element-name name="method"/>
+      <element-name name="overloaded-function"/>
+      <element-name name="overloaded-method"/>
+      <element-name name="data-member"/>
+      <element-name name="class"/>
+      <element-name name="class-specialization"/>
+      <element-name name="struct"/>
+      <element-name name="struct-specialization"/>
+      <element-name name="union"/>
+      <element-name name="union-specialization"/>
+    </or-group>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <parament-name name="boost.class.content"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a C++ struct</purpose>
+</element>
+
+<attlist name="struct">
+<attdecl>
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="lib"
+         content-type="mixed">
+<content-model-expanded>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model>
+<purpose>A library dependency</purpose>
+<description>
+  <para>Declares a library dependency on the library named by the content of this element, to be emitted in a Jamfile.</para>
+</description>
+</element>
+
+<element name="enum"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="enumvalue" occurrence="*"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="enumvalue" occurrence="*"/>
+    <element-name name="purpose" occurrence="?"/>
+    <element-name name="description" occurrence="?"/>
+  </sequence-group>
+</content-model>
+<purpose>Declares an enumeration type</purpose>
+</element>
+
+<attlist name="enum">
+<attdecl>
+    name     CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="requires"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>Declares the requirements of a function</purpose>
+</element>
+
+<attlist name="requires">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="effects"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>Declares the side effects of a function</purpose>
+</element>
+
+<attlist name="effects">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="libraryname"
+         content-type="mixed">
+<content-model-expanded>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <pcdata/>
+  </sequence-group>
+</content-model>
+<purpose>References a library of the given name</purpose>
+</element>
+
+<attlist name="libraryname">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="libraryinfo"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <element-name name="author" occurrence="+"/>
+    <element-name name="copyright" occurrence="*"/>
+    <element-name name="legalnotice" occurrence="*"/>
+    <element-name name="librarypurpose"/>
+    <element-name name="librarycategory" occurrence="*"/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <element-name name="author" occurrence="+"/>
+    <element-name name="copyright" occurrence="*"/>
+    <element-name name="legalnotice" occurrence="*"/>
+    <element-name name="librarypurpose"/>
+    <element-name name="librarycategory" occurrence="*"/>
+  </sequence-group>
+</content-model>
+<purpose>Provides information about a library</purpose>
+</element>
+
+<attlist name="libraryinfo">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="testsuite"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <or-group occurrence="+">
+      <element-name name="compile-test"/>
+      <element-name name="link-test"/>
+      <element-name name="run-test"/>
+      <element-name name="compile-fail-test"/>
+      <element-name name="link-fail-test"/>
+      <element-name name="run-fail-test"/>
+    </or-group>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <sequence-group occurrence="+">
+      <parament-name name="boost.testsuite.tests"/>
+    </sequence-group>
+  </sequence-group>
+</content-model>
+<purpose>Describes a library testsuite</purpose>
+</element>
+
+<attlist name="testsuite">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="header"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>Declares a C++ header with the given name</purpose>
+</element>
+
+<attlist name="header">
+<attdecl>
+    name  CDATA  #REQUIRED
+    %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="name"
+           type="#REQUIRED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+
+<element name="rationale"
+         content-type="element">
+<content-model-expanded>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model-expanded>
+<content-model>
+  <sequence-group>
+    <any/>
+  </sequence-group>
+</content-model>
+<purpose>Describes the rationale for a particular function's design</purpose>
+</element>
+
+<attlist name="rationale">
+<attdecl> %boost.common.attrib;</attdecl>
+<attribute name="last-revision"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="id"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+<attribute name="xml:base"
+           type="#IMPLIED"
+           value="CDATA"
+           default=""/>
+</attlist>
+</dtd>

@@ -1,0 +1,125 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>degree</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../core.html" title="Core Metafunctions">
+<link rel="prev" href="cs_tag.html" title="cs_tag">
+<link rel="next" href="dimension.html" title="dimension">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="cs_tag.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="dimension.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.core.degree"></a><a class="link" href="degree.html" title="degree">degree</a>
+</h4></div></div></div>
+<p>
+          <a class="indexterm" name="idp58614696"></a>
+Unit of plane angle: Degrees.
+        </p>
+<h6>
+<a name="geometry.reference.core.degree.h0"></a>
+          <span class="phrase"><a name="geometry.reference.core.degree.description"></a></span><a class="link" href="degree.html#geometry.reference.core.degree.description">Description</a>
+        </h6>
+<p>
+          Tag defining the unit of plane angle for spherical coordinate systems.
+          This tag specifies that coordinates are defined in degrees (-180 .. 180).
+          It has to be specified for some coordinate systems.
+        </p>
+<h6>
+<a name="geometry.reference.core.degree.h1"></a>
+          <span class="phrase"><a name="geometry.reference.core.degree.synopsis"></a></span><a class="link" href="degree.html#geometry.reference.core.degree.synopsis">Synopsis</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">degree</span>
+<span class="special">{</span>
+  <span class="comment">// ...</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="geometry.reference.core.degree.h2"></a>
+          <span class="phrase"><a name="geometry.reference.core.degree.header"></a></span><a class="link" href="degree.html#geometry.reference.core.degree.header">Header</a>
+        </h6>
+<p>
+          Either
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<p>
+          Or
+        </p>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">cs</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<h6>
+<a name="geometry.reference.core.degree.h3"></a>
+          <span class="phrase"><a name="geometry.reference.core.degree.example"></a></span><a class="link" href="degree.html#geometry.reference.core.degree.example">example</a>
+        </h6>
+<p>
+          Specify two coordinate systems, one in degrees, one in radians.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">model</span><span class="special">::</span><span class="identifier">point</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="identifier">cs</span><span class="special">::</span><span class="identifier">spherical_equatorial</span><span class="special">&lt;</span><span class="identifier">degree</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">degree_point</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">model</span><span class="special">::</span><span class="identifier">point</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="identifier">cs</span><span class="special">::</span><span class="identifier">spherical_equatorial</span><span class="special">&lt;</span><span class="identifier">radian</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">radian_point</span><span class="special">;</span>
+
+    <span class="identifier">degree_point</span> <span class="identifier">d</span><span class="special">(</span><span class="number">4.893</span><span class="special">,</span> <span class="number">52.373</span><span class="special">);</span>
+    <span class="identifier">radian_point</span> <span class="identifier">r</span><span class="special">(</span><span class="number">0.041</span><span class="special">,</span> <span class="number">0.8527</span><span class="special">);</span>
+
+    <span class="keyword">double</span> <span class="identifier">dist</span> <span class="special">=</span> <span class="identifier">distance</span><span class="special">(</span><span class="identifier">d</span><span class="special">,</span> <span class="identifier">r</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span>
+        <span class="special">&lt;&lt;</span> <span class="string">"distance:"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">dist</span> <span class="special">&lt;&lt;</span> <span class="string">" over unit sphere"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span>
+        <span class="special">&lt;&lt;</span> <span class="identifier">dist</span> <span class="special">*</span> <span class="number">3959</span>  <span class="special">&lt;&lt;</span> <span class="string">" over a spherical earth, in miles"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          Output:
+        </p>
+<pre class="programlisting">distance:
+0.0675272 over unit sphere
+267.34 over a spherical earth, in miles
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="cs_tag.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="dimension.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

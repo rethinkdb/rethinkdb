@@ -1,0 +1,65 @@
+# Boost.TypeErasure library
+#
+# Copyright 2011 Steven Watanabe
+#
+# Distributed under the Boost Software License version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import path ;
+using boostbook ;
+using quickbook ;
+using doxygen ;
+
+path-constant here : . ;
+path-constant boost-root : ../../.. ;
+
+# Figure out where the root of the boost tree is relative
+# to the html directory.
+local BOOST_ROOT = [ path.relative-to
+                       [ path.join [ path.pwd ] html ]
+                       [ path.root
+                           [ path.make $(boost-root) ]
+                           [ path.pwd ] ] ] ;
+
+xml type_erasure : type_erasure.qbk : <dependency>reference ;
+
+doxygen reference
+  :
+    [ glob ../../../boost/type_erasure/*.hpp ]
+  :
+    <doxygen:param>EXPAND_ONLY_PREDEF=YES
+    <doxygen:param>"ALIASES= \\
+        CopyConstructible=\"<a href=\\\"$(BOOST_ROOT)/doc/html/CopyConstructible.html\\\">CopyConstructible</a>\" \\
+        Concept=\"@xmlonly<link linkend=\\\"boost_typeerasure.conceptdef\\\">Concept</link>@endxmlonly\" \\
+        call=\"@xmlonly<functionname alt=\\\"boost::type_erasure::call\\\">call</functionname>@endxmlonly\" \\
+        any_cast=\"@xmlonly<functionname alt=\\\"boost::type_erasure::any_cast\\\">any_cast</functionname>@endxmlonly\" \\
+        typeid_of=\"@xmlonly<functionname alt=\\\"boost::type_erasure::typeid_of\\\">typeid_of</functionname>@endxmlonly\" \\
+        binding_of=\"@xmlonly<functionname alt=\\\"boost::type_erasure::binding_of\\\">binding_of</functionname>@endxmlonly\" \\
+        is_empty=\"@xmlonly<functionname alt=\\\"boost::type_erasure::is_empty\\\">is_empty</functionname>@endxmlonly\" \\
+        require_match=\"@xmlonly<functionname alt=\\\"boost::type_erasure::require_match\\\">require_match</functionname>@endxmlonly\" "
+    <doxygen:param>"PREDEFINED= \\
+        \"BOOST_TYPE_ERASURE_DOXYGEN=1\" \\
+        \"BOOST_TYPE_ERASURE_UNARY_INPLACE_OPERATOR(name, op)=template<class T = _self> struct name { static void apply(T&); };\" \\
+        \"BOOST_TYPE_ERASURE_UNARY_OPERATOR(name, op)=template<class T = _self, class R = T> struct name { static R apply(const T&); };\" \\
+        \"BOOST_TYPE_ERASURE_BINARY_OPERATOR(name, op)=template<class T = _self, class U = T, class R = T> struct name { static R apply(const T&, const U&); };\" \\
+        \"BOOST_TYPE_ERASURE_ASSIGNMENT_OPERATOR(name, op)=template<class T = _self, class U = T> struct name { static void apply(T&, const U&); };\" \\
+        \"table_arg=table\" \\
+        \"binding_arg=binding\" \\
+        \"data_arg=data\""
+    <doxygen:param>HIDE_UNDOC_MEMBERS=NO
+    <doxygen:param>QUIET=YES
+    <doxygen:param>WARN_IF_UNDOCUMENTED=NO
+    <doxygen:param>EXTRACT_PRIVATE=NO
+    <doxygen:param>ENABLE_PREPROCESSING=YES
+    <doxygen:param>MACRO_EXPANSION=YES
+    <doxygen:param>SEARCH_INCLUDES=NO
+;
+
+boostbook standalone
+  :
+    type_erasure
+  :
+    <dependency>reference
+    <xsl:param>boost.root=../../../..
+;

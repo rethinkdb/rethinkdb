@@ -1,0 +1,129 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;27.&#160;Boost.Signals</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="ref/ack.html" title="Acknowledgements">
+<link rel="next" href="signals/tutorial.html" title="Tutorial">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ref/ack.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="signals/tutorial.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="signals"></a>Chapter&#160;27.&#160;Boost.Signals</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Douglas</span> <span class="surname">Gregor</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2001-2004 Douglas Gregor</p></div>
+<div><div class="legalnotice">
+<a name="idp203946536"></a><p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="signals.html#idp203948008">Introduction</a></span></dt>
+<dt><span class="section"><a href="signals/tutorial.html">Tutorial</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="signals/tutorial.html#idp203953016">How to Read this Tutorial</a></span></dt>
+<dt><span class="section"><a href="signals/tutorial.html#idp203956424">Compatibility Note</a></span></dt>
+<dt><span class="section"><a href="signals/tutorial.html#idp203963176">Hello, World! (Beginner)</a></span></dt>
+<dt><span class="section"><a href="signals/tutorial.html#idp203972552">Calling multiple slots</a></span></dt>
+<dt><span class="section"><a href="signals/tutorial.html#idp203997352">Passing values to and from slots</a></span></dt>
+<dt><span class="section"><a href="signals/tutorial.html#idp204068504">Connection Management</a></span></dt>
+<dt><span class="section"><a href="signals/tutorial.html#idp204114952">Example: Document-View</a></span></dt>
+<dt><span class="section"><a href="signals/tutorial.html#idp204122600">Linking against the Signals library</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="signals/reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="signals/reference.html#header.boost.signal_hpp">Header &lt;boost/signal.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="signals/reference.html#header.boost.signals.slot_hpp">Header &lt;boost/signals/slot.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="signals/reference.html#header.boost.signals.trackable_hpp">Header &lt;boost/signals/trackable.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="signals/reference.html#header.boost.signals.connection_hpp">Header &lt;boost/signals/connection.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="signals/reference.html#header.boost.visit_each_hpp">Header &lt;boost/visit_each.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="signals/reference.html#header.boost.last_value_hpp">Header &lt;boost/last_value.hpp&gt;</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="signals/s04.html">Frequently Asked Questions</a></span></dt>
+<dt><span class="section"><a href="signals/s05.html">Design Overview</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="signals/s05.html#idp204680408">Type Erasure</a></span></dt>
+<dt><span class="section"><a href="signals/s05.html#idp204684600"><code class="computeroutput">connection</code> class</a></span></dt>
+<dt><span class="section"><a href="signals/s05.html#idp204691656">Slot Call Iterator</a></span></dt>
+<dt><span class="section"><a href="signals/s05.html#idp204703592"><code class="computeroutput">visit_each</code> function template</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="signals/s06.html">Design Rationale</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="signals/s06.html#idp204712952">Choice of Slot Definitions</a></span></dt>
+<dt><span class="section"><a href="signals/s06.html#idp204718024">User-level Connection Management</a></span></dt>
+<dt><span class="section"><a href="signals/s06.html#idp204727928">Combiner Interface</a></span></dt>
+<dt><span class="section"><a href="signals/s06.html#idp204732744">Connection Interfaces: +=  operator</a></span></dt>
+<dt><span class="section"><a href="signals/s06.html#idp204743016"><code class="computeroutput">trackable</code> rationale</a></span></dt>
+<dt><span class="section"><a href="signals/s06.html#idp204753640">Comparison with other Signal/Slot implementations</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="signals/tests.html">Testsuite</a></span></dt>
+<dd><dl><dt><span class="section"><a href="signals/tests.html#idp204761016">Acceptance tests</a></span></dt></dl></dd>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="idp203948008"></a>Introduction</h2></div></div></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p><span class="bold"><strong>Boost.Signals is no longer being actively maintained.</strong></span>
+Do not use Boost.Signals for new development (use 
+<a class="link" href="signals2.html" title="Chapter&#160;28.&#160;Boost.Signals2">Boost.Signals2</a>
+instead). If you have existing Boost.Signals-based code, it will
+continue to work, but consider moving to Boost.Signals2. There is
+<a class="link" href="signals2/api_changes.html#signals2.porting" title="Porting from Boost.Signals to Boost.Signals2">
+a porting guide</a> in the Signals2 documentation.</p></td></tr>
+</table></div>
+<p>The Boost.Signals library is an implementation of a managed
+signals and slots system. Signals represent callbacks with multiple
+targets, and are also called publishers or events in similar
+systems. Signals are connected to some set of slots, which are
+callback receivers (also called event targets or subscribers), which
+are called when the signal is "emitted."</p>
+<p>Signals and slots are managed, in that signals and slots (or,
+more properly, objects that occur as part of the slots) track all
+connections and are capable of automatically disconnecting signal/slot
+connections when either is destroyed. This enables the user to make
+signal/slot connections without expending a great effort to manage the
+lifetimes of those connections with regard to the lifetimes of all
+objects involved.</p>
+<p>When signals are connected to multiple slots, there is a
+question regarding the relationship between the return values of the
+slots and the return value of the signals. Boost.Signals allows the
+user to specify the manner in which multiple return values are
+combined.</p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: May 04, 2004 at 19:17:23 +0100</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ref/ack.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="signals/tutorial.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

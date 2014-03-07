@@ -1,0 +1,26 @@
+#  Boost.Atomic library documentation Jamfile
+#
+#  Copyright Helge Bahmann 2011.
+#  Copyright Tim Blechmann 2012.
+#  Distributed under the Boost Software License, Version 1.0.
+#     (See accompanying file LICENSE_1_0.txt or copy at
+#           http://www.boost.org/LICENSE_1_0.txt)
+
+import quickbook ;
+import boostbook : boostbook ;
+
+xml atomic : atomic.qbk ;
+
+boostbook standalone
+    : atomic
+    : <xsl:param>boost.root=../../../..
+      <xsl:param>boost.libraries=../../../libraries.htm
+      <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/libs/atomic/doc/html
+    ;
+
+install css : [ glob $(BOOST_ROOT)/doc/src/*.css ]
+    : <location>html ;
+install images : [ glob $(BOOST_ROOT)/doc/src/images/*.png ]
+    : <location>html/images ;
+explicit css ;
+explicit images ;

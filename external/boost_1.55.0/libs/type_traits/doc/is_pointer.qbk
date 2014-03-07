@@ -1,0 +1,45 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_pointer is_pointer]
+   template <class T>
+   struct is_pointer : public __tof {};
+  
+__inherit If T is a (possibly cv-qualified) pointer type (includes function pointers, 
+but excludes pointers to members) then inherits from __true_type, 
+otherwise inherits from __false_type.
+
+__std_ref 3.9.2p2 and 8.3.1.
+
+__header ` #include <boost/type_traits/is_pointer.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__examples
+
+[:`is_pointer<int*>` inherits from `__true_type`.]
+
+[:`is_pointer<char* const>::type` is the type `__true_type`.]
+
+[:`is_pointer<int (*)(long)>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_pointer<int (MyClass::*)(long)>::value` is an integral constant 
+expression that evaluates to /false/.]
+
+[:`is_pointer<int (MyClass::*)>::value` is an integral constant 
+expression that evaluates to /false/.]
+
+[:`is_pointer<T>::value_type` is the type `bool`.]
+
+[important `is_pointer` detects "real" pointer types only, and /not/ smart pointers.
+Users should not specialise `is_pointer` for smart pointer types, as doing so may cause
+Boost (and other third party) code to fail to function correctly.
+Users wanting a trait to detect smart pointers should create their own. 
+However, note that there is no way in general to auto-magically detect smart pointer types, 
+so such a trait would have to be partially specialised for each supported smart pointer type.]
+
+[endsect]
+

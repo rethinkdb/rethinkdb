@@ -1,0 +1,69 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/is.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/is.xml
+ */
+is{
+    Version{"2.0.50.94"}
+    zoneStrings{
+        "America:Cancun"{
+            ec{"Kankún"}
+        }
+        "America:Mexico_City"{
+            ec{"Mexíkóborg"}
+        }
+        "America:Regina"{
+            ec{"Regína"}
+        }
+        "Antarctica:DumontDUrville"{
+            ec{"Dumont D'Urville"}
+        }
+        "Antarctica:South_Pole"{
+            ec{"Suðurpóllinn"}
+        }
+        "Asia:Jakarta"{
+            ec{"Djakarta"}
+        }
+        "Asia:Ulaanbaatar"{
+            ec{"Úlan Bator"}
+        }
+        "Atlantic:Azores"{
+            ec{"Azoreyjar"}
+        }
+        "Atlantic:Canary"{
+            ec{"Kanaríeyjar"}
+        }
+        "Etc:Unknown"{
+            ec{"óþekkt"}
+        }
+        "Europe:Moscow"{
+            ec{"Moskva"}
+        }
+        "Pacific:Easter"{
+            ec{"Páskaeyja"}
+        }
+        "Pacific:Marquesas"{
+            ec{"Marquesas-eyjar"}
+        }
+        "meta:Europe_Central"{
+            ld{"sumartími Mið-Evrópu"}
+            ls{"Mið-Evróputími"}
+            sd{"STME"}
+            ss{"MET"}
+        }
+        "meta:Europe_Eastern"{
+            ld{"sumartími Austur-Evrópu"}
+            ls{"Austur-Evróputími"}
+            sd{"STAE"}
+            ss{"AET"}
+        }
+        gmtFormat{"GMT{0}"}
+        hourFormat{"+HH:mm;−HH:mm"}
+    }
+}

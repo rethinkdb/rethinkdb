@@ -1,0 +1,207 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Boost.Regex</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Boost.Regex">
+<link rel="next" href="boost_regex/configuration.html" title="Configuration">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_regex/configuration.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="article">
+<div class="titlepage">
+<div>
+<div><h2 class="title">
+<a name="boost_regex"></a>Boost.Regex</h2></div>
+<div><div class="authorgroup"><div class="author"><h3 class="author">
+<span class="firstname">John</span> <span class="surname">Maddock</span>
+</h3></div></div></div>
+<div><p class="copyright">Copyright &#169; 1998-2010 John Maddock</p></div>
+<div><div class="legalnotice">
+<a name="boost_regex.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div>
+<hr>
+</div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="boost_regex/configuration.html">Configuration</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_regex/configuration/compiler.html">Compiler Setup</a></span></dt>
+<dt><span class="section"><a href="boost_regex/configuration/locale.html">Locale and traits class
+      selection</a></span></dt>
+<dt><span class="section"><a href="boost_regex/configuration/linkage.html">Linkage Options</a></span></dt>
+<dt><span class="section"><a href="boost_regex/configuration/algorithm.html">Algorithm Selection</a></span></dt>
+<dt><span class="section"><a href="boost_regex/configuration/tuning.html">Algorithm Tuning</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_regex/install.html">Building and Installing the Library</a></span></dt>
+<dt><span class="section"><a href="boost_regex/introduction_and_overview.html">Introduction and
+    Overview</a></span></dt>
+<dt><span class="section"><a href="boost_regex/unicode.html">Unicode and Boost.Regex</a></span></dt>
+<dt><span class="section"><a href="boost_regex/captures.html">Understanding Marked Sub-Expressions
+    and Captures</a></span></dt>
+<dt><span class="section"><a href="boost_regex/partial_matches.html">Partial Matches</a></span></dt>
+<dt><span class="section"><a href="boost_regex/syntax.html">Regular Expression Syntax</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_regex/syntax/perl_syntax.html">Perl Regular Expression
+      Syntax</a></span></dt>
+<dt><span class="section"><a href="boost_regex/syntax/basic_extended.html">POSIX Extended Regular
+      Expression Syntax</a></span></dt>
+<dt><span class="section"><a href="boost_regex/syntax/basic_syntax.html">POSIX Basic Regular
+      Expression Syntax</a></span></dt>
+<dt><span class="section"><a href="boost_regex/syntax/character_classes.html">Character Class
+      Names</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_regex/syntax/character_classes/std_char_clases.html">Character
+        Classes that are Always Supported</a></span></dt>
+<dt><span class="section"><a href="boost_regex/syntax/character_classes/optional_char_class_names.html">Character
+        classes that are supported by Unicode Regular Expressions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_regex/syntax/collating_names.html">Collating Names</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_regex/syntax/collating_names/digraphs.html">Digraphs</a></span></dt>
+<dt><span class="section"><a href="boost_regex/syntax/collating_names/posix_symbolic_names.html">POSIX
+        Symbolic Names</a></span></dt>
+<dt><span class="section"><a href="boost_regex/syntax/collating_names/named_unicode.html">Named
+        Unicode Characters</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_regex/syntax/leftmost_longest_rule.html">The Leftmost
+      Longest Rule</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_regex/format.html">Search and Replace Format String Syntax</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_regex/format/sed_format.html">Sed Format String Syntax</a></span></dt>
+<dt><span class="section"><a href="boost_regex/format/perl_format.html">Perl Format String Syntax</a></span></dt>
+<dt><span class="section"><a href="boost_regex/format/boost_format_syntax.html">Boost-Extended
+      Format String Syntax</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_regex/ref.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_regex/ref/basic_regex.html">basic_regex</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/match_results.html">match_results</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/sub_match.html">sub_match</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/regex_match.html">regex_match</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/regex_search.html">regex_search</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/regex_replace.html">regex_replace</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/regex_iterator.html">regex_iterator</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/regex_token_iterator.html">regex_token_iterator</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/bad_expression.html">bad_expression</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/syntax_option_type.html">syntax_option_type</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_regex/ref/syntax_option_type/syntax_option_type_synopsis.html">syntax_option_type
+        Synopsis</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/syntax_option_type/syntax_option_type_overview.html">Overview
+        of syntax_option_type</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/syntax_option_type/syntax_option_type_perl.html">Options
+        for Perl Regular Expressions</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/syntax_option_type/syntax_option_type_extended.html">Options
+        for POSIX Extended Regular Expressions</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/syntax_option_type/syntax_option_type_basic.html">Options
+        for POSIX Basic Regular Expressions</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/syntax_option_type/syntax_option_type_literal.html">Options
+        for Literal Strings</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_regex/ref/match_flag_type.html">match_flag_type</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/error_type.html">error_type</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/regex_traits.html">regex_traits</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/non_std_strings.html">Interfacing With Non-Standard
+      String Types</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_regex/ref/non_std_strings/icu.html">Working With Unicode
+        and ICU String Types</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_regex/ref/non_std_strings/icu/intro.html">Introduction
+          to using Regex with ICU</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/non_std_strings/icu/unicode_types.html">Unicode
+          regular expression types</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/non_std_strings/icu/unicode_algo.html">Unicode
+          Regular Expression Algorithms</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/non_std_strings/icu/unicode_iter.html">Unicode
+          Aware Regex Iterators</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_regex/ref/non_std_strings/mfc_strings.html">Using
+        Boost Regex With MFC Strings</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_regex/ref/non_std_strings/mfc_strings/mfc_intro.html">Introduction
+          to Boost.Regex and MFC Strings</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/non_std_strings/mfc_strings/mfc_regex_types.html">Regex
+          Types Used With MFC Strings</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/non_std_strings/mfc_strings/mfc_regex_create.html">Regular
+          Expression Creation From an MFC String</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/non_std_strings/mfc_strings/mfc_algo.html">Overloaded
+          Algorithms For MFC String Types</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/non_std_strings/mfc_strings/mfc_iter.html">Iterating
+          Over the Matches Within An MFC String</a></span></dt>
+</dl></dd>
+</dl></dd>
+<dt><span class="section"><a href="boost_regex/ref/posix.html">POSIX Compatible C API's</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/concepts.html">Concepts</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_regex/ref/concepts/charT_concept.html">charT Requirements</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/concepts/traits_concept.html">Traits Class
+        Requirements</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/concepts/iterator_concepts.html">Iterator
+        Requirements</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_regex/ref/deprecated_interfaces.html">Deprecated Interfaces</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_regex/ref/deprecated_interfaces/regex_format.html">regex_format
+        (Deprecated)</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/deprecated_interfaces/regex_grep.html">regex_grep
+        (Deprecated)</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/deprecated_interfaces/regex_split.html">regex_split
+        (deprecated)</a></span></dt>
+<dt><span class="section"><a href="boost_regex/ref/deprecated_interfaces/old_regex.html">High
+        Level Class RegEx (Deprecated)</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_regex/ref/internal_details.html">Internal Details</a></span></dt>
+<dd><dl><dt><span class="section"><a href="boost_regex/ref/internal_details/uni_iter.html">Unicode
+        Iterators</a></span></dt></dl></dd>
+</dl></dd>
+<dt><span class="section"><a href="boost_regex/background_information.html">Background Information</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_regex/background_information/headers.html">Headers</a></span></dt>
+<dt><span class="section"><a href="boost_regex/background_information/locale.html">Localization</a></span></dt>
+<dt><span class="section"><a href="boost_regex/background_information/thread_safety.html">Thread
+      Safety</a></span></dt>
+<dt><span class="section"><a href="boost_regex/background_information/examples.html">Test and
+      Example Programs</a></span></dt>
+<dt><span class="section"><a href="boost_regex/background_information/futher.html">References
+      and Further Information</a></span></dt>
+<dt><span class="section"><a href="boost_regex/background_information/faq.html">FAQ</a></span></dt>
+<dt><span class="section"><a href="boost_regex/background_information/performance.html">Performance</a></span></dt>
+<dt><span class="section"><a href="boost_regex/background_information/standards.html">Standards
+      Conformance</a></span></dt>
+<dt><span class="section"><a href="boost_regex/background_information/redist.html">Redistributables</a></span></dt>
+<dt><span class="section"><a href="boost_regex/background_information/acknowledgements.html">Acknowledgements</a></span></dt>
+<dt><span class="section"><a href="boost_regex/background_information/history.html">History</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<p>
+    A printer-friendly <a href="http://sourceforge.net/projects/boost/files/boost-docs/" target="_top">PDF
+    version of this manual is also available</a>.
+  </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: May 24, 2013 at 12:05:31 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_regex/configuration.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

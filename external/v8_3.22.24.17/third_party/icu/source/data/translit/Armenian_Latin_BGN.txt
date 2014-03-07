@@ -1,0 +1,134 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Armenian_Latin_BGN.txt
+# Generated from CLDR 
+#
+:: [ԱԲԳԴԵԶԷԸԹԺԻԼԽԾԿՀՁՂՃՄՅՆՇՈՉՊՋՌՍՎՏՐՑՒՓՔՕՖաբգդեզէըթժիլխծկհձղճմյնշոչպջռսվտրցւփքօֆև] ;
+:: NFD (NFC) ;
+$upperConsonants = [ԲԳԴԶԹԺԼԽԾԿՀՁՂՃՄՅՆՇՉՊՋՌՍՎՐՑՓՔՖ] ;
+$lowerConsonants = [բգդզթժլխծկհձղճմյնշչպջռսվտրցփքֆ] ;
+$consonants = [$upperConsonants $lowerConsonants] ;
+$upperVowels = [ԱԵԷԸԻՈՕՒ] ;
+$lowerVowels = [աեէըիոևօւ] ;
+$vowels = [$upperVowels $lowerVowels] ;
+$lower = [$lowerConsonants $lowerVowels] ;
+$aspirate = ’ ;
+$wordBoundary =  [^[:L:][:M:][:N:]] ;
+$wordBoundary{ԵՒ}$wordBoundary → YEV ; # ARMENIAN CAPITAL ECH + CAPITAL YIWN
+$wordBoundary{ԵՒ → YEV ; # ARMENIAN CAPITAL ECH + CAPITAL YIWN
+$vowels{ԵՒ → YEV ; # ARMENIAN CAPITAL ECH + CAPITAL YIWN
+ԵՒ → EV ; # ARMENIAN CAPITAL ECH + CAPITAL YIWN
+$wordBoundary{Եւ}$wordBoundary → Yev ; # ARMENIAN CAPITAL ECH + SMALL YIWN
+$wordBoundary{Եւ → Yev ; # ARMENIAN CAPITAL ECH + SMALL YIWN
+$vowels{Եւ → Yev ; # ARMENIAN CAPITAL ECH + SMALL YIWN
+Եւ → Ev ; # ARMENIAN CAPITAL ECH + SMALL YIWN
+$wordBoundary{եւ}$wordBoundary → yev ; # ARMENIAN SMALL ECH + SMALL YIWN
+$wordBoundary{եւ → yev ; # ARMENIAN SMALL ECH + SMALL YIWN
+$vowels{եւ → yev ; # ARMENIAN SMALL ECH + SMALL YIWN
+եւ → ev ; # ARMENIAN SMALL ECH + SMALL YIWN
+$wordBoundary{և}$wordBoundary → yev ; # ARMENIAN SMALL LIGATURE ECH YIWN
+$wordBoundary{և → yev ; # ARMENIAN SMALL LIGATURE ECH YIWN
+$vowels{և → yev ; # ARMENIAN SMALL LIGATURE ECH YIWN
+և →  ev ; # ARMENIAN SMALL LIGATURE ECH YIWN
+Ա → A ; # ARMENIAN CAPITAL LETTER AYB
+ա → a ; # ARMENIAN SMALL LETTER AYB
+Բ → B ; # ARMENIAN CAPITAL LETTER BEN
+բ → b ; # ARMENIAN SMALL LETTER BEN
+Գ → G ; # ARMENIAN CAPITAL LETTER GIM
+գ → g ; # ARMENIAN SMALL LETTER GIM
+Դ → D ; # ARMENIAN CAPITAL LETTER DA
+դ → d ; # ARMENIAN SMALL LETTER DA
+$upperVowels{Ե → YE ; # ARMENIAN CAPITAL LETTER ECH
+$lowerVowels{Ե → Ye ; # ARMENIAN CAPITAL LETTER ECH
+$wordBoundary{Ե → Ye ; # ARMENIAN CAPITAL LETTER ECH
+Ե → E ; # ARMENIAN CAPITAL LETTER ECH
+$vowels{ե → ye ; # ARMENIAN SMALL LETTER ECH
+$wordBoundary{ե → ye ; # ARMENIAN SMALL LETTER ECH
+ե → e ; # ARMENIAN SMALL LETTER ECH
+Զ → Z ; # ARMENIAN CAPITAL LETTER ZA
+զ → z ; # ARMENIAN SMALL LETTER ZA
+Է → E ; # ARMENIAN CAPITAL LETTER EH
+է → e ; # ARMENIAN SMALL LETTER EH
+Ը → Y ; # ARMENIAN CAPITAL LETTER ET
+ը → y ; # ARMENIAN SMALL LETTER ET
+Թ → T $aspirate ; # ARMENIAN CAPITAL LETTER TO
+թ → t $aspirate ; # ARMENIAN SMALL LETTER TO
+Ժ} $lower → Zh ; # ARMENIAN CAPITAL LETTER ZHE
+Ժ → ZH ; # ARMENIAN CAPITAL LETTER ZHE
+ժ → zh ; # ARMENIAN SMALL LETTER ZHE
+Ի → I ; # ARMENIAN CAPITAL LETTER INI
+ի → i ; # ARMENIAN SMALL LETTER INI
+Լ → L ; # ARMENIAN CAPITAL LETTER LIWN
+լ → l ; # ARMENIAN SMALL LETTER LIWN
+Խ} $lower → Kh ; # ARMENIAN CAPITAL LETTER XEH
+Խ → KH ; # ARMENIAN CAPITAL LETTER XEH
+խ → kh ; # ARMENIAN SMALL LETTER XEH
+Ծ} $lower → Ts ; # ARMENIAN CAPITAL LETTER CA
+Ծ → TS ; # ARMENIAN CAPITAL LETTER CA
+ծ → ts ; # ARMENIAN SMALL LETTER CA
+Կ → K ; # ARMENIAN CAPITAL LETTER KEN
+կ → k ; # ARMENIAN SMALL LETTER KEN
+Հ → H ; # ARMENIAN CAPITAL LETTER HO
+հ → h ; # ARMENIAN SMALL LETTER HO
+Ձ} $lower → Dz ; # ARMENIAN CAPITAL LETTER JA
+Ձ → DZ ; # ARMENIAN CAPITAL LETTER JA
+ձ → dz ; # ARMENIAN SMALL LETTER JA
+Ղ} $lower → Gh ; # ARMENIAN CAPITAL LETTER GHAD
+Ղ → GH ; # ARMENIAN CAPITAL LETTER GHAD
+ղ → gh ; # ARMENIAN SMALL LETTER GHAD
+Ճ} $lower → Ch ; # ARMENIAN CAPITAL LETTER CHEH
+Ճ → CH ; # ARMENIAN CAPITAL LETTER CHEH
+ճ → ch ; # ARMENIAN SMALL LETTER CHEH
+Մ → M ; # ARMENIAN CAPITAL LETTER MEN
+մ → m ; # ARMENIAN SMALL LETTER MEN
+Յ → Y ; # ARMENIAN CAPITAL LETTER YI
+յ → y ; # ARMENIAN SMALL LETTER YI
+Ն → N ; # ARMENIAN CAPITAL LETTER NOW
+ն → n ; # ARMENIAN SMALL LETTER NOW
+Շ} $lower → Sh ; # ARMENIAN CAPITAL LETTER SHA
+Շ → SH ; # ARMENIAN CAPITAL LETTER SHA
+շ → sh ; # ARMENIAN SMALL LETTER SHA
+Ու} $lower → U ; # ARMENIAN CAPITAL LETTER VO + SMALL YIWN
+ՈՒ → U ; # ARMENIAN CAPITAL LETTER VO + CAPITAL YIWN
+ու → u ; # ARMENIAN SMALL LETTER VO + SMALL YIWN
+ՈՎ → OV ;
+Ով → Ov ;
+ով → ov ;
+$wordBoundary{Ո}$lower → Vo ; # ARMENIAN CAPITAL LETTER VO
+$wordBoundary{Ո → VO ; # ARMENIAN CAPITAL LETTER VO
+Ո →  O ; # ARMENIAN CAPITAL LETTER ECH
+$wordBoundary{ո → vo ; # ARMENIAN SMALL LETTER VO
+ո →  o ; # ARMENIAN SMALL LETTER VO
+Չ} $lower → Ch $aspirate ; # ARMENIAN CAPITAL LETTER CHA
+Չ → CH $aspirate ; # ARMENIAN CAPITAL LETTER CHA
+չ → ch $aspirate ; # ARMENIAN SMALL LETTER CHA
+Պ → P ; # ARMENIAN CAPITAL LETTER PEH
+պ → p ; # ARMENIAN SMALL LETTER PEH
+Ջ → J ; # ARMENIAN CAPITAL LETTER JHEH
+ջ → j ; # ARMENIAN SMALL LETTER JHEH
+Ռ} $lower → Rr ; # ARMENIAN CAPITAL LETTER RA
+Ռ → RR ; # ARMENIAN CAPITAL LETTER RA
+ռ → rr ; # ARMENIAN SMALL LETTER RA
+Ս → S ; # ARMENIAN CAPITAL LETTER SEH
+ս → s ; # ARMENIAN SMALL LETTER SEH
+Վ → V ; # ARMENIAN CAPITAL LETTER VEW
+վ → v ; # ARMENIAN SMALL LETTER VEW
+Տ → T ; # ARMENIAN CAPITAL LETTER TIWN
+տ → t ; # ARMENIAN SMALL LETTER TIWN
+Ր → R ; # ARMENIAN CAPITAL LETTER REH
+ր → r ; # ARMENIAN SMALL LETTER REH
+Ց} $lower → Ts $aspirate ; # ARMENIAN CAPITAL LETTER CHEH
+Ց → TS $aspirate ; # ARMENIAN CAPITAL LETTER CO
+ց → ts $aspirate ; # ARMENIAN SMALL LETTER CO
+Փ → P $aspirate ; # ARMENIAN CAPITAL LETTER PIWR
+փ → p $aspirate ; # ARMENIAN SMALL LETTER PIWR
+Ք → K $aspirate ; # ARMENIAN CAPITAL LETTER KEH
+ք → k $aspirate ; # ARMENIAN SMALL LETTER KEH
+Օ → O ; # ARMENIAN CAPITAL LETTER OH
+օ → o ; # ARMENIAN SMALL LETTER OH
+Ֆ → F ; # ARMENIAN CAPITAL LETTER FEH
+ֆ → f ; # ARMENIAN SMALL LETTER FEH

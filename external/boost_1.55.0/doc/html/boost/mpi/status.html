@@ -1,0 +1,129 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class status</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../mpi/reference.html#header.boost.mpi.status_hpp" title="Header &lt;boost/mpi/status.hpp&gt;">
+<link rel="prev" href="get_content.html" title="Function template get_content">
+<link rel="next" href="timer.html" title="Class timer">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="get_content.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.status_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="timer.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.mpi.status"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class status</span></h2>
+<p>boost::mpi::status &#8212; Contains information about a message that has been or can be received. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../mpi/reference.html#header.boost.mpi.status_hpp" title="Header &lt;boost/mpi/status.hpp&gt;">boost/mpi/status.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="status.html" title="Class status">status</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="status.html#boost.mpi.statusconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="status.html#idp94637512-bb"><span class="identifier">status</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="status.html#idp94637576-bb"><span class="identifier">status</span></a><span class="special">(</span><span class="identifier">MPI_Status</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="status.html#idp94693448-bb">public member functions</a></span>
+  <span class="keyword">int</span> <a class="link" href="status.html#idp94693656-bb"><span class="identifier">source</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="status.html#idp94694360-bb"><span class="identifier">tag</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="status.html#idp94695048-bb"><span class="identifier">error</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="status.html#idp94631624-bb"><span class="identifier">cancelled</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="identifier">optional</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;</span> <a class="link" href="status.html#idp94632392-bb"><span class="identifier">count</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="status.html#idp94635640-bb"><span class="keyword">operator</span> <span class="identifier">MPI_Status</span> <span class="special">&amp;</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="status.html#idp94636568-bb"><span class="keyword">operator</span> <span class="keyword">const</span> <span class="identifier">MPI_Status</span> <span class="special">&amp;</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="keyword">mutable</span> <span class="keyword">int</span> <span class="identifier">m_count</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp163012152"></a><h2>Description</h2>
+<p>This structure contains status information about messages that have been received (with <code class="computeroutput">communicator::recv</code>) or can be received (returned from <code class="computeroutput">communicator::probe</code> or <code class="computeroutput">communicator::iprobe</code>). It permits access to the source of the message, message tag, error code (rarely used), or the number of elements that have been transmitted. </p>
+<div class="refsect2">
+<a name="idp163013864"></a><h3>
+<a name="boost.mpi.statusconstruct-copy-destruct"></a><code class="computeroutput">status</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><a name="idp94637512-bb"></a><span class="identifier">status</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><a name="idp94637576-bb"></a><span class="identifier">status</span><span class="special">(</span><span class="identifier">MPI_Status</span> <span class="keyword">const</span> <span class="special">&amp;</span> s<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp163019528"></a><h3>
+<a name="idp94693448-bb"></a><code class="computeroutput">status</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp94693656-bb"></a><span class="identifier">source</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Retrieve the source of the message. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp94694360-bb"></a><span class="identifier">tag</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Retrieve the message tag. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp94695048-bb"></a><span class="identifier">error</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Retrieve the error code. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp94631624-bb"></a><span class="identifier">cancelled</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Determine whether the communication associated with this object has been successfully cancelled. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> <span class="identifier">optional</span><span class="special">&lt;</span> <span class="keyword">int</span> <span class="special">&gt;</span> <a name="idp94632392-bb"></a><span class="identifier">count</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Determines the number of elements of type <code class="computeroutput">T</code> contained in the message. The type <code class="computeroutput">T</code> must have an associated data type, i.e., <code class="computeroutput">is_mpi_datatype&lt;T&gt;</code> must derive <code class="computeroutput">mpl::true_</code>. In cases where the type <code class="computeroutput">T</code> does not match the transmitted type, this routine will return an empty <code class="computeroutput">optional&lt;int&gt;</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>the number of <code class="computeroutput">T</code> elements in the message, if it can be determined. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp94635640-bb"></a><span class="keyword">operator</span> <span class="identifier">MPI_Status</span> <span class="special">&amp;</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>References the underlying <code class="computeroutput">MPI_Status</code> </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp94636568-bb"></a><span class="keyword">operator</span> <span class="keyword">const</span> <span class="identifier">MPI_Status</span> <span class="special">&amp;</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>References the underlying <code class="computeroutput">MPI_Status</code> </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2007 Douglas Gregor,
+      Matthias Troyer, Trustees of Indiana University<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="get_content.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.status_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="timer.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

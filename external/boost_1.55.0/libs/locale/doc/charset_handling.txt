@@ -1,0 +1,151 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page charset_handling Character Set Conversions
+
+\section codecvt Convenience Interface
+
+Boost.Locale provides \ref boost::locale::conv::to_utf() "to_utf", \ref boost::locale::conv::from_utf() "from_utf" and 
+\ref boost::locale::conv::utf_to_utf() "utf_to_utf" functions in 
+the \c boost::locale::conv namespace. They are simple and
+convenient functions to convert a string to and from
+UTF-8/16/32 strings and strings using other encodings.
+
+For example:
+
+\code
+std::string utf8_string = to_utf<char>(latin1_string,"Latin1");
+std::wstring wide_string = to_utf<wchar_t>(latin1_string,"Latin1");
+std::string latin1_string = from_utf(wide_string,"Latin1");
+std::string utf8_string2 = utf_to_utf<char>(wide_string);
+\endcode
+
+
+This function may use an explicit encoding name like "Latin1" or "ISO-8859-8",
+or use std::locale as a parameter to fetch this information from it.
+It also receives a policy parameter that tells it how to behave if the
+conversion can't be performed (i.e. an illegal or unsupported character is found).
+By default this function skips all illegal characters and tries to do the best it
+can, however, it is possible ask it to throw 
+a \ref boost::locale::conv::conversion_error "conversion_error" exception 
+by passing the \c stop flag to it:
+
+\code
+std::wstring s=to_utf<wchar_t>("\xFF\xFF","UTF-8",stop); 
+// Throws because this string is illegal in UTF-8
+\endcode
+
+\section codecvt_codecvt std::codecvt facet 
+
+Boost.Locale provides stream codepage conversion facets based on the \c std::codecvt facet.
+This allows conversion between wide-character encodings and 8-bit encodings like UTF-8, ISO-8859 or Shift-JIS.
+
+Most of compilers provide such facets, but:
+
+-   Under Windows MSVC does not support UTF-8 encodings at all.
+-   Under Linux the encodings are supported only if the required locales are generated. For example
+    it may be impossible to create a \c he_IL.CP1255  locale even when the \c he_IL  locale is available.
+
+Thus Boost.Locale provides an option to generate code-page conversion facets for use with 
+Boost.Iostreams filters or \c std::wfstream. For example:
+
+\code
+    std::locale loc= generator().generate("he_IL.UTF-8");
+    std::wofstream file.
+    file.imbue(loc);
+    file.open("hello.txt");
+    file << L"שלום!" << endl;
+\endcode
+
+Would create a file \c hello.txt encoded as UTF-8 with "שלום!" (shalom) in it.
+
+\section codecvt_iostreams_integration Integration with Boost.Iostreams
+
+You can use the \c std::codecvt facet directly,  but this is quite tricky and
+requires accurate buffer and error management.
+
+You can use the \c boost::iostreams::code_converter class for stream-oriented
+conversions between the wide-character set and narrow locale character set.
+
+This is a sample program that converts wide to narrow characters for an arbitrary
+stream:
+
+\code
+#include <boost/iostreams/stream.hpp>
+#include <boost/iostreams/categories.hpp> 
+#include <boost/iostreams/code_converter.hpp>
+
+#include <boost/locale.hpp>
+#include <iostream>
+
+namespace io = boost::iostreams;
+
+// Device that consumes the converted text,
+// In our case it just writes to standard output
+class consumer {
+public:
+    typedef char char_type;
+    typedef io::sink_tag category;
+    std::streamsize write(const char* s, std::streamsize n)
+    {
+        std::cout.write(s,n);
+        return n;
+    }
+};
+
+
+int main()
+{ 
+    // the device that converts wide characters
+    // to narrow
+    typedef io::code_converter<consumer> converter_device;
+    // the stream that uses this device
+    typedef io::stream<converter_device> converter_stream;
+
+
+    consumer cons;
+    // setup out converter to work
+    // with he_IL.UTF-8 locale 
+    converter_device dev;
+    boost::locale::generator gen;
+    dev.imbue(gen("he_IL.UTF-8"));
+    dev.open(cons);
+    converter_stream stream;
+    stream.open(dev);
+    // Now wide characters that are written
+    // to the stream would be given to
+    // our consumer as narrow characters 
+    // in UTF-8 encoding
+    stream << L"שלום" << std::flush;
+}
+
+\endcode
+
+
+\section codecvt_limitations Limitations of std::codecvt
+
+The Standard does not provide any information about \c std::mbstate_t that could be used to save
+intermediate code-page conversion states. It leaves the definition up to the compiler implementation, making it
+impossible to reimplement <tt>std::codecvt<wchar_t,char,mbstate_t></tt> for stateful encodings.
+Thus, Boost.Locale's \c codecvt facet implementation may be used with stateless encodings like UTF-8,
+ISO-8859, and Shift-JIS, but not with stateful encodings like UTF-7 or SCSU.
+
+\b Recommendation: Prefer the Unicode UTF-8 encoding for \c char based strings and files in your application.
+
+\note 
+
+The implementation of codecvt for single byte encodings like ISO-8859-X and for UTF-8 is very efficent
+and would allow fast conversion of the content, however its performance may be sub-optimal for
+double-width encodings like Shift-JIS, due to the stateless problem described above.
+
+
+*/
+
+

@@ -1,0 +1,22 @@
+{
+    "name" : "mkdirp",
+    "description" : "Recursively mkdir, like `mkdir -p`",
+    "version" : "0.3.5",
+    "author" : "James Halliday <mail@substack.net> (http://substack.net)",
+    "main" : "./index",
+    "keywords" : [
+        "mkdir",
+        "directory"
+    ],
+    "repository" : {
+        "type" : "git",
+        "url" : "http://github.com/substack/node-mkdirp.git"
+    },
+    "scripts" : {
+        "test" : "tap test/*.js"
+    },
+    "devDependencies" : {
+        "tap" : "~0.4.0"
+    },
+    "license" : "MIT"
+}

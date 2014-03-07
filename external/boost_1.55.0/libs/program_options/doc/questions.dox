@@ -1,0 +1,12 @@
+/**	@page open_questions Open questions.
+
+	<ol>
+	<li> Shouldn't validators always use "C" locale?
+
+	<li> Shouldn't validator for intr check for different bases?  
+
+	<li> Does anyone need "getop_option_description"?.
+
+	</ol>		
+
+*/

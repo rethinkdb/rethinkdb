@@ -1,0 +1,211 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../../../../boost.css">
+
+  <title>Tests and Examples</title>
+</head>
+
+<body lang="en">
+  <h1>Tests and Examples</h1>
+
+  <h2>A first example</h2>
+
+  <p>This example shows how to design a function which takes a polynomial and
+  a value and returns the sign of this polynomial at this point. This
+  function is a filter: if the answer is not guaranteed, the functions says
+  so. The reason of using a filter rather than a simple evaluation function
+  is: computations with floating-point numbers will incur approximations and
+  it can be enough to change the sign of the polynomial. So, in order to
+  validate the result, the function will use interval arithmetic.</p>
+
+  <p>The first step is the inclusion of the appropriate headers. Because the
+  function will handle floating-point bounds, the easiest solution is:</p>
+  <pre>
+#include &lt;boost/numeric/interval.hpp&gt;
+</pre>
+
+  <p>Now, let's begin the function. The polynomial is given by the array of
+  its coefficients and its size (strictly greater to its degree). In order to
+  simplify the code, two namespaces of the library are included.</p>
+  <pre>
+int sign_polynomial(double x, double P[], int sz) {
+  using namespace boost::numeric;
+  using namespace interval_lib;
+</pre>
+
+  <p>Then we can define the interval type. Since no special behavior is
+  required, the default policies are enough:</p>
+  <pre>
+  typedef interval&lt;double&gt; I;
+</pre>
+
+  <p>For the evaluation, let's just use the Horner scheme with interval
+  arithmetic. The library overloads all the arithmetic operators and provides
+  mixed operations, so the only difference between the code with and without
+  interval arithmetic lies in the type of the iterated value
+  <code>y</code>:</p>
+  <pre>
+  I y = P[sz - 1];
+  for(int i = sz - 2; i &gt;= 0; i--)
+    y = y * x + P[i];
+</pre>
+
+  <p>The last step is the computation of the sign of <code>y</code>. It is
+  done by choosing an appropriate comparison scheme and then doing the
+  comparison with the usual operators:</p>
+  <pre>
+  using namespace compare::certain;
+  if (y &gt; 0.) return 1;
+  if (y &lt; 0.) return -1;
+  return 0;
+}
+</pre>
+
+  <p>The answer <code>0</code> does not mean the polynomial is zero at this
+  point. It only means the answer is not known since <code>y</code> contains
+  zero and thus does not have a precise sign.</p>
+
+  <p>Now we have the expected function. However, due to the poor
+  implementations of floating-point rounding in most of the processors, it
+  can be useful to say to optimize the code; or rather, to let the library
+  optimize it. The main condition for this optimization is that the interval
+  code should not be mixed with floating-point code. In this example, it is
+  the case, since all the operations done in the functions involve the
+  library. So the code can be rewritten:</p>
+  <pre>
+int sign_polynomial(double x, double P[], int sz) {
+  using namespace boost::numeric;
+  using namespace interval_lib;
+  typedef interval&lt;double&gt; I_aux;
+
+  I_aux::traits_type::rounding rnd;
+  typedef unprotect&lt;I_aux&gt;::type I;
+
+  I y = P[sz - 1];
+  for(int i = sz - 2; i &gt;= 0; i--) 
+    y = y * x + P[i];
+
+  using namespace compare::certain;
+  if (y &gt; 0.) return 1;
+  if (y &lt; 0.) return -1;
+  return 0;
+}
+</pre>
+
+  <p>The difference between this code and the previous is the use of another
+  interval type. This new type <code>I</code> indicates to the library that
+  all the computations can be done without caring for the rounding mode. And
+  because of that, it is up to the function to care about it: a rounding
+  object need to be alive whenever the optimized type is used.</p>
+
+  <h2>Other tests and examples</h2>
+
+  <p>In <code>libs/numeric/interval/test/</code> and
+  <code>libs/numeric/interval/examples/</code> are some test and example
+  programs.. The examples illustrate a few uses of intervals. For a general
+  description and considerations on using this library, and some potential
+  domains of application, please read this <a href=
+  "guide.htm">mini-guide</a>.</p>
+
+  <h3>Tests</h3>
+
+  <p>The test programs are as follows. Please note that they require the use
+  of the Boost.test library and can be automatically tested by using
+  <code>bjam</code> (except for interval_test.cpp).</p>
+
+  <p><b>add.cpp</b> tests if the additive and subtractive operators and the
+  respective _std and _opp rounding functions are correctly implemented. It
+  is done by using symbolic expressions as a base type.</p>
+
+  <p><b>cmp.cpp</b>, <b>cmp_lex.cpp</b>, <b>cmp_set.cpp</b>, and
+  <b>cmp_tribool.cpp</b> test if the operators <code>&lt;</code>
+  <code>&gt;</code> <code>&lt;=</code> <code>&gt;=</code> <code>==</code>
+  <code>!=</code> behave correctly for the default, lexicographic, set, and
+  tristate comparisons. <b>cmp_exp.cpp</b> tests the explicit comparison
+  functions <code>cer..</code> and <code>pos..</code> behave correctly.
+  <b>cmp_exn.cpp</b> tests if the various policies correctly detect
+  exceptional cases. All these tests use some simple intervals ([1,2] and
+  [3,4], [1,3] and [2,4], [1,2] and [2,3], etc).</p>
+
+  <p><b>det.cpp</b> tests if the <code>_std</code> and <code>_opp</code>
+  versions in protected and unprotected mode produce the same result when
+  Gauss scheme is used on an unstable matrix (in order to exercise rounding).
+  The tests are done for <code>interval&lt;float&gt;</code> and
+  <code>interval&lt;double&gt;</code>.</p>
+
+  <p><b>fmod.cpp</b> defines a minimalistic version of
+  <code>interval&lt;int&gt;</code> and uses it in order to test
+  <code>fmod</code> on some specific interval values.</p>
+
+  <p><b>mul.cpp</b> exercises the multiplication, the finite division, the
+  square and the square root with some integer intervals leading to exact
+  results.</p>
+
+  <p><b>pi.cpp</b> tests if the interval value of &pi; (for <code>int</code>,
+  <code>float</code> and <code>double</code> base types) contains the number
+  &pi; (defined with 21 decimal digits) and if it is a subset of
+  [&pi;&plusmn;1ulp] (in order to ensure some precision).</p>
+
+  <p><b>pow.cpp</b> tests if the <code>pow</code> function behaves correctly
+  on some simple test cases.</p>
+
+  <p><b>test_float.cpp</b> exercises the arithmetic operations of the library
+  for floating point base types.</p>
+
+  <p><b>interval_test.cpp</b> tests if the interval library respects the
+  inclusion property of interval arithmetic by computing some functions and
+  operations for both <code>double</code> and
+  <code>interval&lt;double&gt;</code>.</p>
+
+  <h2>Examples</h2>
+
+  <p><b>filter.cpp</b> contains filters for computational geometry able to
+  find the sign of a determinant. This example is inspired by the article
+  <em>Interval arithmetic yields efficient dynamic filters for computational
+  geometry</em> by Br&ouml;nnimann, Burnikel and Pion, 2001.</p>
+
+  <p><b>findroot_demo.cpp</b> finds zeros of some functions by using
+  dichotomy and even produces gnuplot data for one of them. The processor has
+  to correctly handle elementary functions for this example to properly
+  work.</p>
+
+  <p><b>horner.cpp</b> is a really basic example of unprotecting the interval
+  operations for a whole function (which computes the value of a polynomial
+  by using Horner scheme).</p>
+
+  <p><b>io.cpp</b> shows some stream input and output operators for intervals
+  .The wide variety of possibilities explains why the library do not
+  implement i/o operators and they are left to the user.</p>
+
+  <p><b>newton-raphson.cpp</b> is an implementation of a specialized version
+  of Newton-Raphson algorithm for finding the zeros of a function knowing its
+  derivative. It exercises unprotecting, full division, some set operations
+  and empty intervals.</p>
+
+  <p><b>transc.cpp</b> implements the transcendental part of the rounding
+  policy for <code>double</code> by using an external library (the MPFR
+  subset of GMP in this case).</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%Y-%m-%d" startspan -->2006-12-24<!--webbot bot="Timestamp" endspan i-checksum="12172" --></p>
+
+  <p><i>Copyright &copy; 2002 Guillaume Melquiond, Sylvain Pion, Herv&eacute;
+  Br&ouml;nnimann, Polytechnic University<br>
+  Copyright &copy; 2003 Guillaume Melquiond</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+  or copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

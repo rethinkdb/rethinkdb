@@ -1,0 +1,99 @@
+<html>
+<head>
+<title>Storable Rules</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Storable 
+      Rules</b></font></td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="stored_rule.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="the_lazy_parser.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>The rule is a weird C++ citizen, unlike any other C++ object. It does not have 
+  the proper copy and assignment semantics and cannot be stored and passed around 
+  by value. You cannot store rules in STL containers (vector, stack, etc) for 
+  later use and you cannot  pass and return rules to and from functions by value.</p>
+<p>EBNF is primarily declarative. Like in functional programming, an EBNF grammar 
+  is a static recipe and there's no notion of do this then that. However, in Spirit, 
+  we managed to coax imperative C++ to take in declarative EBNF. Hah! Fun!... 
+  We did that by masquerading the C++ assignment operator to mimic EBNF's <tt>::=</tt>. 
+  To do that, we gave the rule class' assignment operator and copy constructor 
+  a different meaning and semantics. The downside is that doing so made the rule 
+  unlike any other C++ object. You can't copy it. You can't assign it. </p>
+<p>We want to have the dynamic nature of C++ to our advantage. We've seen dynamic 
+  Spirit in action here and there. There are indeed some interesting applications 
+  of dynamic parsers using Spirit. Yet, we will not fully utilize the power of 
+  dynamic parsing, unless we have a rule that behaves like any other good C++ 
+  object. With such a beast, we can write full parsers that's defined at run time, 
+  as opposed to compile time.</p>
+<p>We now have dynamic rules: <tt>stored_rules</tt>. Basically they are rules 
+  with perfect C++ assignment/copy-constructor semantics. This means that <tt>stored_rules</tt> 
+  can be stored in containers and/or dynamically created at run-time.</p>
+<pre><code><font color="#000000"><span class=identifier>    </span><span class=keyword>template</span><span class=special>&lt;
+        </span><span class=keyword>typename </span><span class=identifier>ScannerT </span><span class=special>= </span><span class=identifier>scanner</span><span class=special>&lt;&gt;,
+        </span><span class=keyword>typename </span><span class=identifier>ContextT </span><span class=special>= </span><span class=identifier>parser_context</span><span class=special>&lt;&gt;</span><span class=identifier>,
+        </span><span class="keyword">typename</span><span class=identifier> TagT </span><span class="special">=</span><span class=identifier> parser_address_tag</span><span class=special>&gt;
+    </span><span class=keyword>class </span><span class=identifier>stored_rule</span><span class=special>;</span></font></code></pre>
+<p>The interface is exactly the same as with the rule class (see the <a href="rule.html">section 
+  on rules</a> for more information regarding the API). The only difference is 
+  with the copy and assignment semantics. Now, with <tt>stored_rule</tt>s, we 
+  can dynamically and algorithmically define our rules. Here are some samples... 
+</p>
+<p>Say I want to dynamically create a rule for:</p>
+<pre>
+<span class=identifier>    start </span><span class=special>= </span><span class=special>*(</span><span class=identifier>a </span><span class=special>| </span><span class=identifier>b </span><span class=special>| </span><span class=identifier>c</span><span class=special>);</span></pre>
+<p> I can write it dynamically step-by-step:</p>
+<pre> <span class=identifier>   stored_rule</span><span class=special>&lt;&gt;  </span><span class=identifier>start</span><span class=special>;
+
+    </span><span class=identifier>start </span><span class=special>= </span><span class=identifier>a</span><span class=special>;
+    </span><span class=identifier>start </span><span class=special>= </span><span class=identifier>start</span><span class=special>.</span><span class=identifier>copy</span><span class=special>() </span><span class=special>| </span><span class=identifier>b</span><span class=special>;
+    </span><span class=identifier>start </span><span class=special>= </span><span class=identifier>start</span><span class=special>.</span><span class=identifier>copy</span><span class=special>() </span><span class=special>| </span><span class=identifier>c</span><span class=special>;
+    </span><span class=identifier>start </span><span class=special>= </span><span class=special>*(</span><span class=identifier>start</span><span class=special>.</span><span class=identifier>copy</span><span class=special>());</span></pre>
+<p>Later, I changed my mind and want to redefine it (again dynamically) as:</p>
+<pre><span class=identifier>    start </span><span class=special>= </span><span class=special>(</span><span class=identifier>a </span><span class=special>| </span><span class=identifier>b</span><span class=special>) </span><span class=special>&gt;&gt; </span><span class=special>(</span><span class=identifier>start </span><span class=special>| </span><span class=identifier>b</span><span class=special>);</span>
+</pre>
+<p>I write:</p>
+<pre> <span class=special>   </span><span class=identifier>start </span><span class=special>= </span><span class=identifier>b</span><span class=special>;
+    </span><span class=identifier>start </span><span class=special>= </span><span class=identifier>a </span><span class=special>| </span><span class=identifier>start</span><span class=special>.</span><span class=identifier>copy</span><span class=special>();
+    </span><span class=identifier>start </span><span class=special>= </span><span class=identifier>start</span><span class=special>.</span><span class=identifier>copy</span><span class=special>() </span><span class=special>&gt;&gt; </span><span class=special>(</span><span class=identifier>start </span><span class=special>| </span><span class=identifier>b</span><span class=special>);</span></pre>
+<p>Notice the statement:</p>
+<pre> <span class=special>   </span><span class=identifier>start </span><span class=special>= </span><span class=identifier>start</span><span class=special>.</span><span class=identifier>copy</span><span class=special>() </span><span class=special>| </span><span class=identifier>b</span><span class=special>;</span></pre>
+<p>Why is start.copy() required? Well, because like rules, stored rules are still 
+  embedded by reference when found in the RHS (one reason is to avoid cyclic-shared-pointers). 
+  If we write:</p>
+<pre> <span class=special>   </span><span class=identifier>start </span><span class=special>= </span><span class=identifier>start </span><span class=special>| </span><span class=identifier>b</span><span class=special>;</span></pre>
+<p>We have <strong>left-recursion</strong>! Copying copy of start avoids self 
+  referencing. What we are doing is making a copy of start, ORing it with b, then 
+  destructively assigning the result back to start.</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="stored_rule.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="the_lazy_parser.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+</body>
+</html>

@@ -1,0 +1,660 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<!--
+Copyright Douglas Gregor 2001-2004
+Copyright Frank Mori Hess 2007-2009
+
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<section last-revision="$Date: 2007-06-12 14:01:23 -0400 (Tue, 12 Jun 2007) $" id="signals2.tutorial">
+  <title>Tutorial</title>
+
+  <using-namespace name="boost::signals2"/>
+  <using-namespace name="boost"/>
+  <using-class name="boost::signals2::signal"/>
+  <using-class name="boost::signals2::slot"/>
+
+  <section>
+    <title>How to Read this Tutorial</title>
+<para>This tutorial is not meant to be read linearly. Its top-level
+structure roughly separates different concepts in the library
+(e.g., handling calling multiple slots, passing values to and from
+slots) and in each of these concepts the basic ideas are presented
+first and then more complex uses of the library are described
+later. Each of the sections is marked <emphasis>Beginner</emphasis>,
+<emphasis>Intermediate</emphasis>, or <emphasis>Advanced</emphasis> to help guide the
+reader. The <emphasis>Beginner</emphasis> sections include information that all
+library users should know; one can make good use of the Signals2
+library after having read only the <emphasis>Beginner</emphasis> sections. The
+<emphasis>Intermediate</emphasis> sections build on the <emphasis>Beginner</emphasis>
+sections with slightly more complex uses of the library. Finally,
+the <emphasis>Advanced</emphasis> sections detail very advanced uses of the
+Signals2 library, that often require a solid working knowledge of
+the <emphasis>Beginner</emphasis> and <emphasis>Intermediate</emphasis> topics; most users
+will not need to read the <emphasis>Advanced</emphasis> sections.</para>
+</section>
+
+<section><title>Hello, World! (Beginner)</title>
+<para>The following example writes "Hello, World!" using signals and
+slots. First, we create a signal <code>sig</code>, a signal that
+takes no arguments and has a void return value. Next, we connect
+the <code>hello</code> function object to the signal using the
+<code>connect</code> method. Finally, use the signal
+<code>sig</code> like a function to call the slots, which in turns
+invokes <code>HelloWorld::operator()</code> to print "Hello,
+World!".</para>
+<programlisting><xi:include href="hello_world_def_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<programlisting><xi:include href="hello_world_single_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+</section>
+
+<section><title>Calling Multiple Slots</title>
+<section><title>Connecting Multiple Slots (Beginner)</title>
+<para>Calling a single slot from a signal isn't very interesting, so
+we can make the Hello, World program more interesting by splitting
+the work of printing "Hello, World!" into two completely separate
+slots. The first slot will print "Hello" and may look like
+this:</para>
+<programlisting><xi:include href="hello_def_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<para>The second slot will print ", World!" and a newline, to complete
+the program. The second slot may look like this:</para>
+<programlisting><xi:include href="world_def_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<para>Like in our previous example, we can create a signal
+<code>sig</code> that takes no arguments and has a
+<code>void</code> return value. This time, we connect both a
+<code>hello</code> and a <code>world</code> slot to the same
+signal, and when we call the signal both slots will be called.</para>
+<programlisting><xi:include href="hello_world_multi_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<para>By default, slots are pushed onto the back of the slot list,
+so the output of this program will be as expected:</para>
+<programlisting>
+Hello, World!
+</programlisting>
+</section>
+
+<section><title>Ordering Slot Call Groups (Intermediate)</title>
+<para>Slots are free to have side effects, and that can mean that some
+slots will have to be called before others even if they are not connected in that order. The Boost.Signals2
+library allows slots to be placed into groups that are ordered in
+some way. For our Hello, World program, we want "Hello" to be
+printed before ", World!", so we put "Hello" into a group that must
+be executed before the group that ", World!" is in. To do this, we
+can supply an extra parameter at the beginning of the
+<code>connect</code> call that specifies the group. Group values
+are, by default, <code>int</code>s, and are ordered by the integer
+&lt; relation. Here's how we construct Hello, World:</para>
+<programlisting><xi:include href="hello_world_ordered_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<para>Invoking the signal will correctly print "Hello, World!", because the
+<code>Hello</code> object is in group 0, which precedes group 1 where
+the <code>World</code> object resides. The group
+parameter is, in fact, optional. We omitted it in the first Hello,
+World example because it was unnecessary when all of the slots are
+independent. So what happens if we mix calls to connect that use the
+group parameter and those that don't? The "unnamed" slots (i.e., those
+that have been connected without specifying a group name) can be
+placed at the front or back of the slot list (by passing
+<code>boost::signals2::at_front</code> or <code>boost::signals2::at_back</code>
+as the last parameter to <code><methodname
+alt="boost::signals2::signal::connect">connect</methodname></code>, respectively),
+and default to the end of the list. When
+a group is specified, the final <code>at_front</code> or <code>at_back</code>
+parameter describes where the slot
+will be placed within the group ordering.  Ungrouped slots connected with
+<code>at_front</code> will always precede all grouped slots.  Ungrouped
+slots connected with <code>at_back</code> will always succeed all
+grouped slots.
+</para>
+<para>
+  If we add a new slot to our example like this:
+</para>
+<programlisting><xi:include href="good_morning_def_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<programlisting><xi:include href="hello_world_ordered_invoke_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<para>... we will get the result we wanted:</para>
+<programlisting>
+Hello, World!
+... and good morning!
+</programlisting>
+</section>
+</section>
+
+<section><title>Passing Values to and from Slots</title>
+<section><title>Slot Arguments (Beginner)</title>
+<para>Signals can propagate arguments to each of the slots they call.
+For instance, a signal that propagates mouse motion events might
+want to pass along the new mouse coordinates and whether the mouse
+buttons are pressed.</para>
+<para>As an example, we'll create a signal that passes two
+<code>float</code> arguments to its slots. Then we'll create a few
+slots that print the results of various arithmetic operations on
+these values.</para>
+<programlisting><xi:include href="slot_arguments_slot_defs_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<programlisting><xi:include href="slot_arguments_main_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<para>This program will print out the following:</para>
+<programlisting>The arguments are 5 and 3
+The sum is 8
+The product is 15
+The difference is 2
+The quotient is 1.66667</programlisting>
+<para>So any values that are given to <code>sig</code> when it is
+called like a function are passed to each of the slots. We have to
+declare the types of these values up front when we create the
+signal. The type <code><classname>boost::signals2::signal</classname>&lt;void (float,
+float)&gt;</code> means that the signal has a <code>void</code>
+return value and takes two <code>float</code> values. Any slot
+connected to <code>sig</code> must therefore be able to take two
+<code>float</code> values.</para>
+</section>
+
+<section><title>Signal Return Values (Advanced)</title>
+<para>Just as slots can receive arguments, they can also return
+values. These values can then be returned back to the caller of the
+signal through a <firstterm>combiner</firstterm>. The combiner is a mechanism
+that can take the results of calling slots (there may be no
+results or a hundred; we don't know until the program runs) and
+coalesces them into a single result to be returned to the caller.
+The single result is often a simple function of the results of the
+slot calls: the result of the last slot call, the maximum value
+returned by any slot, or a container of all of the results are some
+possibilities.</para>
+<para>We can modify our previous arithmetic operations example
+slightly so that the slots all return the results of computing the
+product, quotient, sum, or difference. Then the signal itself can
+return a value based on these results to be printed:</para>
+<programlisting><xi:include href="signal_return_value_slot_defs_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<programlisting>boost::signals2::signal&lt;float (float, float)&gt; sig;</programlisting>
+<programlisting><xi:include href="signal_return_value_main_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+
+<para>This example program will output <code>2</code>. This is because the
+default behavior of a signal that has a return type
+(<code>float</code>, the first template argument given to the
+<code><classname>boost::signals2::signal</classname></code> class template) is to call all slots and
+then return a <classname>boost::optional</classname> containing
+the result returned by the last slot called. This
+behavior is admittedly silly for this example, because slots have
+no side effects and the result is the last slot connected.</para>
+<para>A more interesting signal result would be the maximum of the
+values returned by any slot. To do this, we create a custom
+combiner that looks like this:</para>
+<programlisting><xi:include href="custom_combiners_maximum_def_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<para>The <code>maximum</code> class template acts as a function
+object. Its result type is given by its template parameter, and
+this is the type it expects to be computing the maximum based on
+(e.g., <code>maximum&lt;float&gt;</code> would find the maximum
+<code>float</code> in a sequence of <code>float</code>s). When a
+<code>maximum</code> object is invoked, it is given an input
+iterator sequence <code>[first, last)</code> that includes the
+results of calling all of the slots. <code>maximum</code> uses this
+input iterator sequence to calculate the maximum element, and
+returns that maximum value.</para>
+<para>We actually use this new function object type by installing it
+as a combiner for our signal. The combiner template argument
+follows the signal's calling signature:</para>
+<programlisting>
+<classname>boost::signals2::signal</classname>&lt;float (float x, float y),
+              maximum&lt;float&gt; &gt; sig;
+</programlisting>
+<para>Now we can connect slots that perform arithmetic functions and
+use the signal:</para>
+<programlisting><xi:include href="custom_combiners_maximum_usage_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<para>The output of this program will be <code>15</code>, because
+regardless of the order in which the slots are connected, the product
+of 5 and 3 will be larger than the quotient, sum, or
+difference.</para>
+<para>In other cases we might want to return all of the values
+computed by the slots together, in one large data structure. This
+is easily done with a different combiner:</para>
+<programlisting><xi:include href="custom_combiners_aggregate_values_def_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<para>
+Again, we can create a signal with this new combiner:
+</para>
+<programlisting>
+<classname>boost::signals2::signal</classname>&lt;float (float, float),
+    aggregate_values&lt;std::vector&lt;float&gt; &gt; &gt; sig;</programlisting>
+<programlisting><xi:include href="custom_combiners_aggregate_values_usage_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<para>The output of this program will contain 15, 8, 1.6667, and 2. It
+is interesting here that
+the first template argument for the <code>signal</code> class,
+<code>float</code>, is not actually the return type of the signal.
+Instead, it is the return type used by the connected slots and will
+also be the <code>value_type</code> of the input iterators passed
+to the combiner. The combiner itself is a function object and its
+<code>result_type</code> member type becomes the return type of the
+signal.</para>
+<para>The input iterators passed to the combiner transform dereference
+operations into slot calls. Combiners therefore have the option to
+invoke only some slots until some particular criterion is met. For
+instance, in a distributed computing system, the combiner may ask
+each remote system whether it will handle the request. Only one
+remote system needs to handle a particular request, so after a
+remote system accepts the work we do not want to ask any other
+remote systems to perform the same task. Such a combiner need only
+check the value returned when dereferencing the iterator, and
+return when the value is acceptable. The following combiner returns
+the first non-NULL pointer to a <code>FulfilledRequest</code> data
+structure, without asking any later slots to fulfill the
+request:</para>
+<programlisting>
+struct DistributeRequest {
+  typedef FulfilledRequest* result_type;
+
+  template&lt;typename InputIterator&gt;
+  result_type operator()(InputIterator first, InputIterator last) const
+  {
+    while (first != last) {
+      if (result_type fulfilled = *first)
+        return fulfilled;
+      ++first;
+    }
+    return 0;
+  }
+};
+</programlisting>
+</section>
+</section>
+
+<section><title>Connection Management</title>
+<section><title>Disconnecting Slots (Beginner)</title>
+<para>Slots aren't expected to exist indefinitely after they are
+connected. Often slots are only used to receive a few events and
+are then disconnected, and the programmer needs control to decide
+when a slot should no longer be connected.</para>
+<para>The entry point for managing connections explicitly is the
+<code><classname>boost::signals2::connection</classname></code> class. The
+<code>connection</code> class uniquely represents the connection
+between a particular signal and a particular slot. The
+<code><methodname alt="connection::connected">connected</methodname>()</code> method checks if the signal and slot are
+still connected, and the <code><methodname alt="connection::disconnect">disconnect()</methodname></code> method
+disconnects the signal and slot if they are connected before it is
+called. Each call to the signal's <code>connect()</code> method
+returns a connection object, which can be used to determine if the
+connection still exists or to disconnect the signal and slot.</para>
+<programlisting><xi:include href="disconnect_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+</section>
+
+<section><title>Blocking Slots (Beginner)</title>
+
+<para>Slots can be temporarily "blocked", meaning that they will be
+ignored when the signal is invoked but have not been permanently disconnected.
+This is typically used to prevent infinite recursion in cases where
+otherwise running a slot would cause the signal it is connected to to be
+invoked again.  A
+<classname>boost::signals2::shared_connection_block</classname> object will
+temporarily block a slot.  The connection is unblocked by either
+destroying or calling
+<methodname alt="shared_connection_block::unblock">unblock</methodname>
+on all the
+<code>shared_connection_block</code> objects that reference the connection.
+Here is an example of
+blocking/unblocking slots:</para>
+
+<programlisting><xi:include href="block_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+
+</section>
+
+<section><title>Scoped Connections (Intermediate)</title>
+<para>The <classname>boost::signals2::scoped_connection</classname> class
+references a signal/slot connection that will be disconnected when
+the <code>scoped_connection</code> class goes out of scope. This
+ability is useful when a connection need only be temporary,
+e.g.,</para>
+<programlisting><xi:include href="scoped_connection_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+
+<para>
+  Note, attempts to initialize a scoped_connection with the assignment syntax
+  will fail due to it being noncopyable.  Either the explicit initialization syntax
+  or default construction followed by assignment from a <classname>signals2::connection</classname>
+  will work:
+</para>
+<programlisting>
+// doesn't compile due to compiler attempting to copy a temporary scoped_connection object
+// boost::signals2::scoped_connection c0 = sig.<methodname>connect</methodname>(ShortLived());
+
+// okay
+boost::signals2::scoped_connection c1(sig.<methodname>connect</methodname>(ShortLived()));
+
+// also okay
+boost::signals2::scoped_connection c2;
+c2 = sig.<methodname>connect</methodname>(ShortLived());
+</programlisting>
+</section>
+
+<section><title>Disconnecting Equivalent Slots (Intermediate)</title>
+<para>One can disconnect slots that are equivalent to a given function
+object using a form of the
+<code><methodname>signal::disconnect</methodname></code> method, so long as
+the type of the function object has an accessible <code>==</code>
+operator. For instance:
+
+</para>
+<programlisting><xi:include href="disconnect_by_slot_def_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<programlisting><classname>boost::signals2::signal</classname>&lt;void ()&gt; sig;</programlisting>
+</section>
+<programlisting><xi:include href="disconnect_by_slot_usage_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+
+<section id="signals2.tutorial.connection-management"><title>Automatic Connection Management (Intermediate)</title>
+<para>Boost.Signals2 can automatically track the lifetime of objects
+involved in signal/slot connections, including automatic
+disconnection of slots when objects involved in the slot call are
+destroyed. For instance, consider a simple news delivery service,
+where clients connect to a news provider that then sends news to
+all connected clients as information arrives. The news delivery
+service may be constructed like this: </para>
+<programlisting>
+class NewsItem { /* ... */ };
+
+typedef boost::signals2::signal&lt;void (const NewsItem&amp;)&gt; signal_type;
+signal_type deliverNews;
+</programlisting>
+
+<para>Clients that wish to receive news updates need only connect a
+function object that can receive news items to the
+<code>deliverNews</code> signal. For instance, we may have a
+special message area in our application specifically for news,
+e.g.,:</para>
+<programlisting>
+struct NewsMessageArea : public MessageArea
+{
+public:
+  // ...
+
+  void displayNews(const NewsItem&amp; news) const
+  {
+    messageText = news.text();
+    update();
+  }
+};
+
+// ...
+NewsMessageArea *newsMessageArea = new NewsMessageArea(/* ... */);
+// ...
+deliverNews.<methodname>connect</methodname>(boost::bind(&amp;NewsMessageArea::displayNews,
+  newsMessageArea, _1));
+</programlisting>
+<para>However, what if the user closes the news message area,
+destroying the <code>newsMessageArea</code> object that
+<code>deliverNews</code> knows about? Most likely, a segmentation
+fault will occur. However, with Boost.Signals2 one may track any object
+which is managed by a shared_ptr, by using
+<methodname alt="boost::signals2::slot::track">slot::track</methodname>.  A slot will automatically
+disconnect when any of its tracked objects expire.  In
+addition, Boost.Signals2 will ensure that no tracked object expires
+while the slot it is associated with is in mid-execution.  It does so by creating
+temporary shared_ptr copies of the slot's tracked objects before executing it.
+To track <code>NewsMessageArea</code>, we use a shared_ptr to manage
+its lifetime, and pass the shared_ptr to the slot via its
+<methodname alt="boost::signals2::slot::track">slot::track</methodname>
+method before connecting it,
+e.g.:</para>
+<programlisting>
+// ...
+boost::shared_ptr&lt;NewsMessageArea&gt; newsMessageArea(new NewsMessageArea(/* ... */));
+// ...
+deliverNews.<methodname>connect</methodname>(signal_type::slot_type(&amp;NewsMessageArea::displayNews,
+  newsMessageArea.get(), _1).track(newsMessageArea));
+</programlisting>
+<para>
+  Note there is no explicit call to bind() needed in the above example.  If the
+  <classname>signals2::slot</classname> constructor is passed more than one
+  argument, it will automatically pass all the arguments to <code>bind</code> and use the
+  returned function object.
+</para>
+<para>Also note, we pass an ordinary pointer as the
+  second argument to the slot constructor, using <code>newsMessageArea.get()</code>
+  instead of passing the <code>shared_ptr</code> itself.  If we had passed the
+  <code>newsMessageArea</code> itself, a copy of the <code>shared_ptr</code> would
+  have been bound into the slot function, preventing the <code>shared_ptr</code>
+  from expiring.  However, the use of
+  <methodname alt="boost::signals2::slot::track">slot::track</methodname>
+  implies we wish to allow the tracked object to expire, and automatically
+  disconnect the connection when this occurs.
+</para>
+<para>
+  <code>shared_ptr</code> classes other than <classname>boost::shared_ptr</classname>
+  (such as <code>std::shared_ptr</code>) may also be tracked for connection management
+  purposes.  They are supported by the <methodname>slot::track_foreign</methodname> method.
+</para>
+</section>
+
+  <section id="signals2.tutorial.deconstruct">
+    <title>Postconstructors and Predestructors (Advanced)</title>
+    <para>One limitation of using <code>shared_ptr</code> for tracking is that
+      an object cannot setup tracking of itself in its constructor.  However, it is
+      possible to set up tracking in a post-constructor which is called after the
+      object has been created and passed to a <classname>shared_ptr</classname>.
+      The Boost.Signals2
+      library provides support for post-constructors and pre-destructors
+      via the <functionname>deconstruct()</functionname> factory function.
+    </para>
+    <para>
+      For most cases, the simplest and most robust way to setup postconstructors
+      for a class is to define an associated <code>adl_postconstruct</code> function
+      which can be found by <functionname>deconstruct()</functionname>,
+      make the class' constructors private, and give <functionname>deconstruct</functionname>
+      access to the private constructors by declaring <classname>deconstruct_access</classname>
+      a friend.  This will ensure that objects of the class may only be created
+      through the <functionname>deconstruct()</functionname> function, and their
+      associated <code>adl_postconstruct()</code> function will always be called.
+    </para>
+    <para>The <link linkend="signals2.examples.deconstruct">examples</link> section
+      contains several examples of defining classes with postconstructors and
+      predestructors, and creating objects of these classes using
+      <functionname>deconstruct()</functionname>
+    </para>
+    <para>
+      Be aware that the postconstructor/predestructor support in Boost.Signals2
+      is in no way essential to the use of the library.  The use of
+      <functionname>deconstruct</functionname>
+      is purely optional.  One alternative is to
+      define static factory functions for your classes.  The
+      factory function can create an object, pass ownership of the object to
+      a <classname>shared_ptr</classname>, setup tracking for the object,
+      then return the <classname>shared_ptr</classname>.
+    </para>
+  </section>
+
+<section><title>When Can Disconnections Occur? (Intermediate)</title>
+<para>Signal/slot disconnections occur when any of these conditions
+occur:</para>
+<itemizedlist>
+<listitem><para>The connection is explicitly disconnected via the connection's
+<code>disconnect</code> method directly, or indirectly via the
+signal's <code>disconnect</code> method, or
+<code>scoped_connection</code>'s destructor.</para></listitem>
+<listitem><para>An object tracked by the slot is
+destroyed.</para></listitem>
+<listitem><para>The signal is destroyed.</para></listitem></itemizedlist>
+<para>These events can occur at any time without disrupting a signal's
+calling sequence. If a signal/slot connection is disconnected at
+any time during a signal's calling sequence, the calling sequence
+will still continue but will not invoke the disconnected slot.
+Additionally, a signal may be destroyed while it is in a calling
+sequence, and which case it will complete its slot call sequence
+but may not be accessed directly.</para>
+<para>Signals may be invoked recursively (e.g., a signal A calls a
+slot B that invokes signal A...). The disconnection behavior does
+not change in the recursive case, except that the slot calling
+sequence includes slot calls for all nested invocations of the
+signal.</para>
+<para>
+  Note, even after a connection is disconnected, its's associated slot
+  may still be in the process of executing.  In other words, disconnection
+  does not block waiting for the connection's associated slot to complete execution.
+  This situation may occur in a multi-threaded environment if the
+  disconnection occurs concurrently with signal invocation,
+  or in a single-threaded environment if a slot disconnects itself.
+</para>
+</section>
+
+<section><title>Passing Slots (Intermediate)</title>
+<para>Slots in the Boost.Signals2 library are created from arbitrary
+function objects, and therefore have no fixed type. However, it is
+commonplace to require that slots be passed through interfaces that
+cannot be templates. Slots can be passed via the
+<code>slot_type</code> for each particular signal type and any
+function object compatible with the signature of the signal can be
+passed to a <code>slot_type</code> parameter. For instance:</para>
+<programlisting><xi:include href="passing_slots_defs_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+<programlisting>
+<xi:include href="passing_slots_usage_code_snippet.xml"
+  xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+
+<para>The <code>doOnClick</code> method is now functionally equivalent
+to the <code>connect</code> method of the <code>onClick</code>
+signal, but the details of the <code>doOnClick</code> method can be
+hidden in an implementation detail file.</para>
+</section>
+</section>
+
+<section id="signals2.tutorial.document-view">
+  <title>Example: Document-View</title>
+
+  <para>Signals can be used to implement flexible Document-View
+  architectures. The document will contain a signal to which each of
+  the views can connect. The following <code>Document</code> class
+  defines a simple text document that supports mulitple views. Note
+  that it stores a single signal to which all of the views will be
+  connected.</para>
+
+  <programlisting><xi:include href="document_def_code_snippet.xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+
+  <para>
+    Next, we can begin to define views. The
+    following <code>TextView</code> class provides a simple view of the
+    document text.
+  </para>
+
+  <programlisting><xi:include href="text_view_def_code_snippet.xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+
+  <para>Alternatively, we can provide a view of the document
+    translated into hex values using the <code>HexView</code>
+    view:</para>
+
+  <programlisting><xi:include href="hex_view_def_code_snippet.xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+
+  <para>
+    To tie the example together, here is a
+    simple <code>main</code> function that sets up two views and then
+    modifies the document:
+  </para>
+
+  <programlisting><xi:include href="document_view_main_code_snippet.xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" parse="xml"/></programlisting>
+
+  <para>The complete example source, contributed by Keith MacDonald,
+    is available in the <link linkend="signals2.examples.document-view">examples</link> section.
+    We also provide variations on the program which employ automatic connection management
+    to disconnect views on their destruction.
+  </para>
+</section>
+
+  <section id="signals2.tutorial.extended-slot-type">
+    <title>Giving a Slot Access to its Connection (Advanced)</title>
+    <para>
+      You may encounter situations where you wish to disconnect or block a slot's
+      connection from within the slot itself.  For example, suppose you have a group
+      of asynchronous tasks, each of which emits a signal when it completes.
+      You wish to connect a slot to all the tasks to retrieve their results as
+      each completes.  Once a
+      given task completes and the slot is run, the slot no longer needs to be
+      connected to the completed task.
+      Therefore, you may wish to clean up old connections by having the slot
+      disconnect its invoking connection when it runs.
+    </para>
+    <para>
+      For a slot to disconnect (or block) its invoking connection, it must have
+      access to a <classname>signals2::connection</classname> object which references
+      the invoking signal-slot connection.  The difficulty is,
+      the <code>connection</code> object is returned by the
+      <methodname>signal::connect</methodname>
+      method, and therefore is not available until after the slot is
+      already connected to the signal.  This can be particularly troublesome
+      in a multi-threaded environment where the signal may be invoked
+      concurrently by a different thread while the slot is being connected.
+    </para>
+    <para>
+      Therefore, the signal classes provide
+      <methodname>signal::connect_extended</methodname>
+      methods, which allow slots which take an extra argument to be connected to a signal.
+      The extra argument is a <classname>signals2::connection</classname> object which refers
+      to the signal-slot connection currently invoking the slot.
+      <methodname>signal::connect_extended</methodname>
+      uses slots of the type given by the
+      <classname>signal::extended_slot_type</classname>
+      typedef.
+    </para>
+    <para>
+      The examples section includes an
+      <link linkend="signals2.examples.tutorial.extended_slot">extended_slot</link>
+      program which demonstrates the syntax for using
+      <methodname>signal::connect_extended</methodname>.
+    </para>
+  </section>
+
+  <section id="signals2.tutorial.signal-mutex-template-parameter">
+    <title>Changing the <code>Mutex</code> Type of a Signal (Advanced).</title>
+    <para>
+      For most cases the default type of <classname>boost::signals2::mutex</classname> for
+      a <classname>signals2::signal</classname>'s <code>Mutex</code> template type parameter should
+      be fine.  If you wish to use an alternate mutex type, it must be default-constructible
+      and fulfill the <code>Lockable</code> concept defined by the Boost.Thread library.
+      That is, it must have <code>lock()</code> and <code>unlock()</code> methods
+      (the <code>Lockable</code> concept also includes a <code>try_lock()</code> method
+      but this library does not require try locking).
+    </para>
+    <para>
+      The Boost.Signals2 library provides one alternate mutex class for use with <code>signal</code>:
+      <classname>boost::signals2::dummy_mutex</classname>.  This is a fake mutex for
+      use in single-threaded programs, where locking a real mutex would be useless
+      overhead.  Other mutex types you could use with <code>signal</code> include
+      <classname>boost::mutex</classname>, or the <code>std::mutex</code> from
+      C++0x.
+    </para>
+    <para>
+      Changing a signal's <code>Mutex</code> template type parameter can be tedious, due to
+      the large number of template parameters which precede it.  The
+      <classname>signal_type</classname> metafunction is particularly useful in this case,
+      since it enables named template type parameters for the <classname>signals2::signal</classname>
+      class.  For example, to declare a signal which takes an <code>int</code> as
+      an argument and uses a <classname>boost::signals2::dummy_mutex</classname>
+      for its <code>Mutex</code> types, you could write:
+    </para>
+<programlisting>namespace bs2 = boost::signals2;
+using bs2::keywords;
+bs2::signal_type&lt;void (int), mutex_type&lt;bs2::dummy_mutex&gt; &gt;::type sig;
+</programlisting>
+
+  </section>
+
+  <section>
+    <title>Linking against the Signals2 library</title>
+    <para>Unlike the original Boost.Signals library, Boost.Signals2 is currently header-only.
+    </para>
+  </section>
+
+</section>

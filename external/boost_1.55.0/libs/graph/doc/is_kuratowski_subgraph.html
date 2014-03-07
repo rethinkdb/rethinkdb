@@ -1,0 +1,126 @@
+<html><head><!-- Copyright 2007 Aaron Windsor
+     
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+  -->
+<title>Boost Graph Library: is_kuratowski_subgraph</title>
+</head>
+<body alink="#ff0000" 
+      bgcolor="#ffffff" 
+      link="#0000ee" 
+      text="#000000" 
+      vlink="#551a8b"> 
+<img src="../../../boost.png" alt="C++ Boost" height="86" width="277"> 
+
+<br clear="">
+
+<h1><tt>is_kuratowski_subgraph</tt></h1>
+
+<pre>template &lt;typename Graph, typename ForwardIterator, typename VertexIndexMap&gt;
+bool is_kuratowski_subgraph(const Graph&amp; g, ForwardIterator begin, ForwardIterator end, VertexIndexMap vm)
+</pre>
+
+<p>
+
+<tt>is_kuratowski_subgraph(g, begin, end)</tt> returns <tt>true</tt> exactly 
+when the sequence of edges defined by the range <tt>[begin, end)</tt> forms a 
+<a href="./planar_graphs.html#kuratowskisubgraphs"> Kuratowski subgraph</a> in 
+the graph <tt>g</tt>. If you need to verify that an arbitrary graph has a 
+<i>K<sub>5</sub></i> or <i>K<sub>3,3</sub></i> minor,  you should use the 
+function <tt><a href="boyer_myrvold.html">boyer_myrvold_planarity_test</a></tt>
+to isolate such a minor instead of this function. <tt>is_kuratowski_subgraph
+</tt> exists to aid in testing and verification of the function 
+<tt>boyer_myrvold_planarity_test</tt>, and for that reason, it expects its 
+input to be a restricted set of edges forming a Kuratowski subgraph, as 
+described in detail below.
+<p>
+<tt>is_kuratowski_subgraph</tt> creates a temporary graph out of the sequence 
+of edges given and repeatedly contracts edges until it ends up with a graph 
+with either all edges of degree 3 or all edges of degree 4. The final 
+contracted graph is then checked against <i>K<sub>5</sub></i> or
+<i>K<sub>3,3</sub></i> using the Boost Graph Library's 
+<a href="isomorphism.html">isomorphism</a>
+function. The contraction process starts by choosing edges adjacent to a vertex
+of degree 1 and contracting those. When none are left, it moves on to edges 
+adjacent to a vertex of degree 2. If only degree 3 vertices are left after this
+stage, the graph is checked against <i>K<sub>3,3</sub></i>. Otherwise, if 
+there's at least one degree 4 vertex, edges adjacent to degree 3 vertices are 
+contracted as neeeded and the final graph is compared to <i>K<sub>5</sub></i>.
+<p>
+In order for this process to be deterministic, we make the following two 
+restrictions on the input graph given to <tt>is_kuratowski_subgraph</tt>:
+<ol>
+<li>No edge contraction needed to produce a kuratowski subgraph results in 
+multiple edges between the same pair of vertices (No edge <i>{a,b}</i> will be 
+contracted at any point in the contraction process if <i>a</i> and <i>b</i> 
+share a common neighbor.)
+</li><li>If the graph contracts to a <i>K<sub>5</sub></i>, once the graph has 
+been contracted to only vertices of degree at least 3, no cycles exist that 
+contain solely degree 3 vertices.
+</li></ol>
+The second restriction is needed both to discriminate between targeting a 
+<i>K<sub>5</sub></i> or a <i>K<sub>3,3</sub></i> and to determinstically 
+contract the vertices of degree 4 once the <i>K<sub>5</sub></i> has been 
+targeted. The Kuratowski subgraph output by the function <tt>
+<a href="boyer_myrvold.html">boyer_myrvold_planarity_test</a></tt> is 
+guaranteed to meet both of the above requirements.
+
+
+<h3>Complexity</h3>
+
+On a graph with <i>n</i> vertices, this function runs in time <i>O(n)</i>.
+
+<h3>Where Defined</h3>
+
+<p>
+<a href="../../../boost/graph/is_kuratowski_subgraph.hpp">
+<tt>boost/graph/is_kuratowski_subgraph.hpp</tt>
+</a>
+
+</p><h3>Parameters</h3>
+
+IN: <tt>Graph&amp; g</tt>
+
+<blockquote>
+An undirected graph with no self-loops or parallel edges. The graph type must 
+be a model of <a href="VertexListGraph.html">Vertex List Graph</a>.
+</blockquote>
+
+IN: <tt>ForwardIterator</tt> 
+
+<blockquote>
+A ForwardIterator with value_type 
+<tt>graph_traits&lt;Graph&gt;::edge_descriptor</tt>.
+</blockquote>
+
+IN: <tt>VertexIndexMap vm</tt>
+
+<blockquote>
+A <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map
+</a> that maps vertices from <tt>g</tt> to distinct integers in the range 
+<tt>[0, num_vertices(g) )</tt><br>
+<b>Default</b>: <tt>get(vertex_index,g)</tt><br>
+</blockquote>
+
+
+<h3>Example</h3>
+
+<p>
+<a href="../example/kuratowski_subgraph.cpp">
+<tt>examples/kuratowski_subgraph.cpp</tt>
+</a>
+
+</p><h3>See Also</h3>
+
+<p>
+<a href="planar_graphs.html">Planar Graphs in the Boost Graph Library</a>
+
+
+<br>
+</p><hr>
+Copyright © 2007 Aaron Windsor (<a href="mailto:aaron.windsor@gmail.com">
+aaron.windsor@gmail.com</a>)
+ 
+</body></html>

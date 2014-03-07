@@ -1,0 +1,4 @@
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
+<chapter xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" id="test" rev:last-revision="$Date: 2010-10-30 15:29:27 +0100 (Sat, 30 Oct 2010) $">
+  <title>Test 'boostbook' root.</title>
+</chapter>

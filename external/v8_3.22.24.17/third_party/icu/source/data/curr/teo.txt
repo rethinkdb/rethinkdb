@@ -1,0 +1,232 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/teo.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/teo.xml
+ */
+teo{
+    Currencies{
+        AED{
+            "AED",
+            "Ango'otol lok' Falme za Kiarabu",
+        }
+        AOA{
+            "Kz",
+            "Ango'otol lok' Angola",
+        }
+        AUD{
+            "AU$",
+            "Ango'otol lok' Australia",
+        }
+        BHD{
+            "BD",
+            "Ango'otol lok' Bahareni",
+        }
+        BIF{
+            "FBu",
+            "Ango'otol lok' Burundi",
+        }
+        BWP{
+            "BWP",
+            "Ango'otol lok' Botswana",
+        }
+        CAD{
+            "CA$",
+            "Edola lok'Kanada",
+        }
+        CDF{
+            "CDF",
+            "Ango'otol lok' Kongo",
+        }
+        CHF{
+            "CHF",
+            "Ango'otol lok' Uswisi",
+        }
+        CNY{
+            "CN¥",
+            "Ango'otol lok' China",
+        }
+        CVE{
+            "CV$",
+            "Ango'otol lok' Kepuvede",
+        }
+        DJF{
+            "Fdj",
+            "Ango'otol lok' Jibuti",
+        }
+        DZD{
+            "DA",
+            "Ango'otol lok' Aljeria",
+        }
+        EGP{
+            "EGP",
+            "Epaunt lok' Misri",
+        }
+        ERN{
+            "Nfk",
+            "Ango'otol lok' Eritrea",
+        }
+        ETB{
+            "Br",
+            "Ango'otol lok' Uhabeshi",
+        }
+        EUR{
+            "€",
+            "Yuro",
+        }
+        GBP{
+            "£",
+            "Epaunt lok' Uingereza",
+        }
+        GHC{
+            "₵",
+            "Sedi ya Ghana",
+        }
+        GMD{
+            "GMD",
+            "Dalasi ya Gambia",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "Ango'otol lok' Gine",
+        }
+        INR{
+            "Rs",
+            "Ango'otol lok' India",
+        }
+        JPY{
+            "JP¥",
+            "Ango'otol lok' Kijapani",
+        }
+        KES{
+            "Ksh",
+            "Ango'otol lok' Kenya",
+        }
+        KMF{
+            "CF",
+            "Ango'otol lok' Komoro",
+        }
+        LRD{
+            "L$",
+            "edola lok' Liberia",
+        }
+        LSL{
+            "LSL",
+            "Ango'otol lok' Lesoto",
+        }
+        LYD{
+            "LD",
+            "Ango'otol lok' Libya",
+        }
+        MAD{
+            "MAD",
+            "Ango'otol lok' Moroko",
+        }
+        MGA{
+            "MGA",
+            "Ango'otol lok' Bukini",
+        }
+        MRO{
+            "UM",
+            "Ango'otol lok' Moritania",
+        }
+        MUR{
+            "MURs",
+            "Ango'otol lok' Morisi",
+        }
+        MWK{
+            "MWK",
+            "Ango'otol lok' Malawi",
+        }
+        MZM{
+            "Mt",
+            "Ango'otol lok' Msumbiji",
+        }
+        NAD{
+            "N$",
+            "Ango'otol lok' Namibia",
+        }
+        NGN{
+            "₦",
+            "Ango'otol lok' Nijeria",
+        }
+        RWF{
+            "RWF",
+            "Ango'otol lok' Rwanda",
+        }
+        SAR{
+            "SR",
+            "Ango'otol lok' Saudia",
+        }
+        SCR{
+            "SRe",
+            "Ango'otol lok' Shelisheli",
+        }
+        SDG{
+            "SDG",
+            "Epaunt Lok' Sudan",
+        }
+        SHP{
+            "SH£",
+            "Ango'otol lok' Santahelena",
+        }
+        SLL{
+            "Le",
+            "Leoni",
+        }
+        SOS{
+            "Ssh",
+            "Ango'otol lok' Somalia",
+        }
+        STD{
+            "Db",
+            "Ango'otol lok' Sao Tome na Principe",
+        }
+        SZL{
+            "SZL",
+            "Lilangeni",
+        }
+        TND{
+            "DT",
+            "Ango'otol lok' Tunisia",
+        }
+        TZS{
+            "TSh",
+            "Ango'otol lok' Tanzania",
+        }
+        UGX{
+            "USh",
+            "Ango'otol lok' Uganda",
+        }
+        USD{
+            "US$",
+            "edola lok' Amareka",
+        }
+        XAF{
+            "FCFA",
+            "Ango'otol lok' CFA BEAC",
+        }
+        XOF{
+            "CFA",
+            "Ango'otol lok' CFA BCEAO",
+        }
+        ZAR{
+            "R",
+            "Ango'otol lok' Afrika Kusini",
+        }
+        ZMK{
+            "ZK",
+            "Ango'otol lok' Zambia",
+        }
+        ZWD{
+            "Z$",
+            "Edola lok'Zimbabwe",
+        }
+    }
+    Version{"2.0.46.85"}
+}

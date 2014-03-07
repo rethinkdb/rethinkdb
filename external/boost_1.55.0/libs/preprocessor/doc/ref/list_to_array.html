@@ -1,0 +1,39 @@
+<html>
+<head>
+  <title>BOOST_PP_LIST_TO_ARRAY</title>
+  <link rel="stylesheet" type="text/css" href="../styles.css"></head>
+<body>
+<div style="margin-left: 0px;"> The <b>BOOST_PP_LIST_TO_ARRAY</b> macro
+converts a <i>list</i> to an <i>array</i>. </div>
+<h4> Usage </h4>
+<div class="code"> <b>BOOST_PP_LIST_TO_ARRAY</b>(<i>list</i>) </div>
+<h4> Arguments </h4>
+<dl>
+  <dt>list</dt>
+  <dd> The <i>list</i> to be converted. </dd>
+</dl>
+<h4>Remarks</h4>
+	<div>
+		This macro uses <b>BOOST_PP_WHILE</b>.
+		Within <b>BOOST_PP_WHILE</b>, it is more efficient to use <b>BOOST_PP_LIST_TO_ARRAY_D</b>.
+	</div>
+<h4>See Also</h4>
+<ul>
+	<li><a href="list_to_array_d.html">BOOST_PP_LIST_TO_ARRAY_D</a></li>
+</ul>
+<h4> Requirements </h4>
+<div> <b>Header:</b> &nbsp;<a href="../headers/list/to_array.html">&lt;boost/preprocessor/list/to_array.hpp&gt;</a>
+</div>
+<h4> Sample Code </h4>
+<div>
+<pre>#include &lt;<a href="../headers/list/to_array.html">boost/preprocessor/list/to_array.hpp</a>&gt;<br><br>#define LIST (a, (b, (c, <a href="nil.html">BOOST_PP_NIL</a>)))<br><br><a href="list_to_array.html">BOOST_PP_LIST_TO_ARRAY</a>(LIST) // expands to (3, (a, b, c))<br></pre>
+</div>
+<hr size="1">
+<div style="margin-left: 0px;"> <i></i><i>© Copyright Edward Diener 2011</i> </div>
+<div style="margin-left: 0px;">
+<p><small>Distributed under the Boost Software License, Version 1.0.
+(See accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+</div>
+</body>
+</html>

@@ -1,0 +1,486 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Quick Guide for the Impatient</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../interprocess.html" title="Chapter&#160;14.&#160;Boost.Interprocess">
+<link rel="prev" href="../interprocess.html" title="Chapter&#160;14.&#160;Boost.Interprocess">
+<link rel="next" href="some_basic_explanations.html" title="Some basic explanations">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../interprocess.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="some_basic_explanations.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="interprocess.quick_guide"></a><a class="link" href="quick_guide.html" title="Quick Guide for the Impatient">Quick Guide for the Impatient</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="quick_guide.html#interprocess.quick_guide.qg_memory_pool">Using shared
+      memory as a pool of unnamed memory blocks</a></span></dt>
+<dt><span class="section"><a href="quick_guide.html#interprocess.quick_guide.qg_named_interprocess">Creating
+      named shared memory objects</a></span></dt>
+<dt><span class="section"><a href="quick_guide.html#interprocess.quick_guide.qg_offset_ptr">Using an offset
+      smart pointer for shared memory</a></span></dt>
+<dt><span class="section"><a href="quick_guide.html#interprocess.quick_guide.qg_interprocess_container">Creating
+      vectors in shared memory</a></span></dt>
+<dt><span class="section"><a href="quick_guide.html#interprocess.quick_guide.qg_interprocess_map">Creating
+      maps in shared memory</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.quick_guide.qg_memory_pool"></a><a class="link" href="quick_guide.html#interprocess.quick_guide.qg_memory_pool" title="Using shared memory as a pool of unnamed memory blocks">Using shared
+      memory as a pool of unnamed memory blocks</a>
+</h3></div></div></div>
+<p>
+        You can just allocate a portion of a shared memory segment, copy the message
+        to that buffer, send the offset of that portion of shared memory to another
+        process, and you are done. Let's see the example:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">managed_shared_memory</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstdlib</span><span class="special">&gt;</span> <span class="comment">//std::system</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">sstream</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span> <span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+   <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+   <span class="keyword">if</span><span class="special">(</span><span class="identifier">argc</span> <span class="special">==</span> <span class="number">1</span><span class="special">){</span>  <span class="comment">//Parent process</span>
+      <span class="comment">//Remove shared memory on construction and destruction</span>
+      <span class="keyword">struct</span> <span class="identifier">shm_remove</span>
+      <span class="special">{</span>
+         <span class="identifier">shm_remove</span><span class="special">()</span> <span class="special">{</span>  <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+         <span class="special">~</span><span class="identifier">shm_remove</span><span class="special">(){</span>  <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+      <span class="special">}</span> <span class="identifier">remover</span><span class="special">;</span>
+
+      <span class="comment">//Create a managed shared memory segment</span>
+      <span class="identifier">managed_shared_memory</span> <span class="identifier">segment</span><span class="special">(</span><span class="identifier">create_only</span><span class="special">,</span> <span class="string">"MySharedMemory"</span><span class="special">,</span> <span class="number">65536</span><span class="special">);</span>
+
+      <span class="comment">//Allocate a portion of the segment (raw memory)</span>
+      <span class="identifier">managed_shared_memory</span><span class="special">::</span><span class="identifier">size_type</span> <span class="identifier">free_memory</span> <span class="special">=</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">get_free_memory</span><span class="special">();</span>
+      <span class="keyword">void</span> <span class="special">*</span> <span class="identifier">shptr</span> <span class="special">=</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">allocate</span><span class="special">(</span><span class="number">1024</span><span class="comment">/*bytes to allocate*/</span><span class="special">);</span>
+
+      <span class="comment">//Check invariant</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">free_memory</span> <span class="special">&lt;=</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">get_free_memory</span><span class="special">())</span>
+         <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+
+      <span class="comment">//An handle from the base address can identify any byte of the shared</span>
+      <span class="comment">//memory segment even if it is mapped in different base addresses</span>
+      <span class="identifier">managed_shared_memory</span><span class="special">::</span><span class="identifier">handle_t</span> <span class="identifier">handle</span> <span class="special">=</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">get_handle_from_address</span><span class="special">(</span><span class="identifier">shptr</span><span class="special">);</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">stringstream</span> <span class="identifier">s</span><span class="special">;</span>
+      <span class="identifier">s</span> <span class="special">&lt;&lt;</span> <span class="identifier">argv</span><span class="special">[</span><span class="number">0</span><span class="special">]</span> <span class="special">&lt;&lt;</span> <span class="string">" "</span> <span class="special">&lt;&lt;</span> <span class="identifier">handle</span><span class="special">;</span>
+      <span class="identifier">s</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ends</span><span class="special">;</span>
+      <span class="comment">//Launch child process</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="number">0</span> <span class="special">!=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">system</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">str</span><span class="special">().</span><span class="identifier">c_str</span><span class="special">()))</span>
+         <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+      <span class="comment">//Check memory has been freed</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">free_memory</span> <span class="special">!=</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">get_free_memory</span><span class="special">())</span>
+         <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+   <span class="special">}</span>
+   <span class="keyword">else</span><span class="special">{</span>
+      <span class="comment">//Open managed segment</span>
+      <span class="identifier">managed_shared_memory</span> <span class="identifier">segment</span><span class="special">(</span><span class="identifier">open_only</span><span class="special">,</span> <span class="string">"MySharedMemory"</span><span class="special">);</span>
+
+      <span class="comment">//An handle from the base address can identify any byte of the shared</span>
+      <span class="comment">//memory segment even if it is mapped in different base addresses</span>
+      <span class="identifier">managed_shared_memory</span><span class="special">::</span><span class="identifier">handle_t</span> <span class="identifier">handle</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+
+      <span class="comment">//Obtain handle value</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">stringstream</span> <span class="identifier">s</span><span class="special">;</span> <span class="identifier">s</span> <span class="special">&lt;&lt;</span> <span class="identifier">argv</span><span class="special">[</span><span class="number">1</span><span class="special">];</span> <span class="identifier">s</span> <span class="special">&gt;&gt;</span> <span class="identifier">handle</span><span class="special">;</span>
+
+      <span class="comment">//Get buffer local address from handle</span>
+      <span class="keyword">void</span> <span class="special">*</span><span class="identifier">msg</span> <span class="special">=</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">get_address_from_handle</span><span class="special">(</span><span class="identifier">handle</span><span class="special">);</span>
+
+      <span class="comment">//Deallocate previously allocated memory</span>
+      <span class="identifier">segment</span><span class="special">.</span><span class="identifier">deallocate</span><span class="special">(</span><span class="identifier">msg</span><span class="special">);</span>
+   <span class="special">}</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.quick_guide.qg_named_interprocess"></a><a class="link" href="quick_guide.html#interprocess.quick_guide.qg_named_interprocess" title="Creating named shared memory objects">Creating
+      named shared memory objects</a>
+</h3></div></div></div>
+<p>
+        You want to create objects in a shared memory segment, giving a string name
+        to them so that any other process can find, use and delete them from the
+        segment when the objects are not needed anymore. Example:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">managed_shared_memory</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstdlib</span><span class="special">&gt;</span> <span class="comment">//std::system</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstddef</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cassert</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">utility</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+   <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">MyType</span><span class="special">;</span>
+
+   <span class="keyword">if</span><span class="special">(</span><span class="identifier">argc</span> <span class="special">==</span> <span class="number">1</span><span class="special">){</span>  <span class="comment">//Parent process</span>
+      <span class="comment">//Remove shared memory on construction and destruction</span>
+      <span class="keyword">struct</span> <span class="identifier">shm_remove</span>
+      <span class="special">{</span>
+         <span class="identifier">shm_remove</span><span class="special">()</span> <span class="special">{</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+         <span class="special">~</span><span class="identifier">shm_remove</span><span class="special">(){</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+      <span class="special">}</span> <span class="identifier">remover</span><span class="special">;</span>
+
+      <span class="comment">//Construct managed shared memory</span>
+      <span class="identifier">managed_shared_memory</span> <span class="identifier">segment</span><span class="special">(</span><span class="identifier">create_only</span><span class="special">,</span> <span class="string">"MySharedMemory"</span><span class="special">,</span> <span class="number">65536</span><span class="special">);</span>
+
+      <span class="comment">//Create an object of MyType initialized to {0.0, 0}</span>
+      <span class="identifier">MyType</span> <span class="special">*</span><span class="identifier">instance</span> <span class="special">=</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;</span>
+         <span class="special">(</span><span class="string">"MyType instance"</span><span class="special">)</span>  <span class="comment">//name of the object</span>
+         <span class="special">(</span><span class="number">0.0</span><span class="special">,</span> <span class="number">0</span><span class="special">);</span>            <span class="comment">//ctor first argument</span>
+
+      <span class="comment">//Create an array of 10 elements of MyType initialized to {0.0, 0}</span>
+      <span class="identifier">MyType</span> <span class="special">*</span><span class="identifier">array</span> <span class="special">=</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;</span>
+         <span class="special">(</span><span class="string">"MyType array"</span><span class="special">)</span>     <span class="comment">//name of the object</span>
+         <span class="special">[</span><span class="number">10</span><span class="special">]</span>                 <span class="comment">//number of elements</span>
+         <span class="special">(</span><span class="number">0.0</span><span class="special">,</span> <span class="number">0</span><span class="special">);</span>            <span class="comment">//Same two ctor arguments for all objects</span>
+
+      <span class="comment">//Create an array of 3 elements of MyType initializing each one</span>
+      <span class="comment">//to a different value {0.0, 0}, {1.0, 1}, {2.0, 2}...</span>
+      <span class="keyword">float</span> <span class="identifier">float_initializer</span><span class="special">[</span><span class="number">3</span><span class="special">]</span> <span class="special">=</span> <span class="special">{</span> <span class="number">0.0</span><span class="special">,</span> <span class="number">1.0</span><span class="special">,</span> <span class="number">2.0</span> <span class="special">};</span>
+      <span class="keyword">int</span>   <span class="identifier">int_initializer</span><span class="special">[</span><span class="number">3</span><span class="special">]</span>   <span class="special">=</span> <span class="special">{</span> <span class="number">0</span><span class="special">,</span> <span class="number">1</span><span class="special">,</span> <span class="number">2</span> <span class="special">};</span>
+
+      <span class="identifier">MyType</span> <span class="special">*</span><span class="identifier">array_it</span> <span class="special">=</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">construct_it</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;</span>
+         <span class="special">(</span><span class="string">"MyType array from it"</span><span class="special">)</span>   <span class="comment">//name of the object</span>
+         <span class="special">[</span><span class="number">3</span><span class="special">]</span>                        <span class="comment">//number of elements</span>
+         <span class="special">(</span> <span class="special">&amp;</span><span class="identifier">float_initializer</span><span class="special">[</span><span class="number">0</span><span class="special">]</span>    <span class="comment">//Iterator for the 1st ctor argument</span>
+         <span class="special">,</span> <span class="special">&amp;</span><span class="identifier">int_initializer</span><span class="special">[</span><span class="number">0</span><span class="special">]);</span>    <span class="comment">//Iterator for the 2nd ctor argument</span>
+
+      <span class="comment">//Launch child process</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">s</span><span class="special">(</span><span class="identifier">argv</span><span class="special">[</span><span class="number">0</span><span class="special">]);</span> <span class="identifier">s</span> <span class="special">+=</span> <span class="string">" child "</span><span class="special">;</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="number">0</span> <span class="special">!=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">system</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">c_str</span><span class="special">()))</span>
+         <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+
+
+      <span class="comment">//Check child has destroyed all objects</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">segment</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;(</span><span class="string">"MyType array"</span><span class="special">).</span><span class="identifier">first</span> <span class="special">||</span>
+         <span class="identifier">segment</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;(</span><span class="string">"MyType instance"</span><span class="special">).</span><span class="identifier">first</span> <span class="special">||</span>
+         <span class="identifier">segment</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;(</span><span class="string">"MyType array from it"</span><span class="special">).</span><span class="identifier">first</span><span class="special">)</span>
+         <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+   <span class="special">}</span>
+   <span class="keyword">else</span><span class="special">{</span>
+      <span class="comment">//Open managed shared memory</span>
+      <span class="identifier">managed_shared_memory</span> <span class="identifier">segment</span><span class="special">(</span><span class="identifier">open_only</span><span class="special">,</span> <span class="string">"MySharedMemory"</span><span class="special">);</span>
+
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">*,</span> <span class="identifier">managed_shared_memory</span><span class="special">::</span><span class="identifier">size_type</span><span class="special">&gt;</span> <span class="identifier">res</span><span class="special">;</span>
+
+      <span class="comment">//Find the array</span>
+      <span class="identifier">res</span> <span class="special">=</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;</span> <span class="special">(</span><span class="string">"MyType array"</span><span class="special">);</span>
+      <span class="comment">//Length should be 10</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">res</span><span class="special">.</span><span class="identifier">second</span> <span class="special">!=</span> <span class="number">10</span><span class="special">)</span> <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+
+      <span class="comment">//Find the object</span>
+      <span class="identifier">res</span> <span class="special">=</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;</span> <span class="special">(</span><span class="string">"MyType instance"</span><span class="special">);</span>
+      <span class="comment">//Length should be 1</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">res</span><span class="special">.</span><span class="identifier">second</span> <span class="special">!=</span> <span class="number">1</span><span class="special">)</span> <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+
+      <span class="comment">//Find the array constructed from iterators</span>
+      <span class="identifier">res</span> <span class="special">=</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;</span> <span class="special">(</span><span class="string">"MyType array from it"</span><span class="special">);</span>
+      <span class="comment">//Length should be 3</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">res</span><span class="special">.</span><span class="identifier">second</span> <span class="special">!=</span> <span class="number">3</span><span class="special">)</span> <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+
+      <span class="comment">//We're done, delete all the objects</span>
+      <span class="identifier">segment</span><span class="special">.</span><span class="identifier">destroy</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;(</span><span class="string">"MyType array"</span><span class="special">);</span>
+      <span class="identifier">segment</span><span class="special">.</span><span class="identifier">destroy</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;(</span><span class="string">"MyType instance"</span><span class="special">);</span>
+      <span class="identifier">segment</span><span class="special">.</span><span class="identifier">destroy</span><span class="special">&lt;</span><span class="identifier">MyType</span><span class="special">&gt;(</span><span class="string">"MyType array from it"</span><span class="special">);</span>
+   <span class="special">}</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.quick_guide.qg_offset_ptr"></a><a class="link" href="quick_guide.html#interprocess.quick_guide.qg_offset_ptr" title="Using an offset smart pointer for shared memory">Using an offset
+      smart pointer for shared memory</a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Boost.Interprocess</strong></span> offers offset_ptr smart
+        pointer family as an offset pointer that stores the distance between the
+        address of the offset pointer itself and the address of the pointed object.
+        When offset_ptr is placed in a shared memory segment, it can point safely
+        objects stored in the same shared memory segment, even if the segment is
+        mapped in different base addresses in different processes.
+      </p>
+<p>
+        This allows placing objects with pointer members in shared memory. For example,
+        if we want to create a linked list in shared memory:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">managed_shared_memory</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">offset_ptr</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+<span class="comment">//Shared memory linked list node</span>
+<span class="keyword">struct</span> <span class="identifier">list_node</span>
+<span class="special">{</span>
+   <span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="identifier">list_node</span><span class="special">&gt;</span> <span class="identifier">next</span><span class="special">;</span>
+   <span class="keyword">int</span>                   <span class="identifier">value</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span> <span class="special">()</span>
+<span class="special">{</span>
+   <span class="comment">//Remove shared memory on construction and destruction</span>
+   <span class="keyword">struct</span> <span class="identifier">shm_remove</span>
+   <span class="special">{</span>
+      <span class="identifier">shm_remove</span><span class="special">()</span> <span class="special">{</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+      <span class="special">~</span><span class="identifier">shm_remove</span><span class="special">(){</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+   <span class="special">}</span> <span class="identifier">remover</span><span class="special">;</span>
+
+   <span class="comment">//Create shared memory</span>
+   <span class="identifier">managed_shared_memory</span> <span class="identifier">segment</span><span class="special">(</span><span class="identifier">create_only</span><span class="special">,</span>
+                                 <span class="string">"MySharedMemory"</span><span class="special">,</span>  <span class="comment">//segment name</span>
+                                 <span class="number">65536</span><span class="special">);</span>
+
+   <span class="comment">//Create linked list with 10 nodes in shared memory</span>
+   <span class="identifier">offset_ptr</span><span class="special">&lt;</span><span class="identifier">list_node</span><span class="special">&gt;</span> <span class="identifier">prev</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">current</span><span class="special">,</span> <span class="identifier">first</span><span class="special">;</span>
+
+   <span class="keyword">int</span> <span class="identifier">i</span><span class="special">;</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">10</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">,</span> <span class="identifier">prev</span> <span class="special">=</span> <span class="identifier">current</span><span class="special">){</span>
+      <span class="identifier">current</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">list_node</span><span class="special">*&gt;(</span><span class="identifier">segment</span><span class="special">.</span><span class="identifier">allocate</span><span class="special">(</span><span class="keyword">sizeof</span><span class="special">(</span><span class="identifier">list_node</span><span class="special">)));</span>
+      <span class="identifier">current</span><span class="special">-&gt;</span><span class="identifier">value</span> <span class="special">=</span> <span class="identifier">i</span><span class="special">;</span>
+      <span class="identifier">current</span><span class="special">-&gt;</span><span class="identifier">next</span>  <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+
+      <span class="keyword">if</span><span class="special">(!</span><span class="identifier">prev</span><span class="special">)</span>
+         <span class="identifier">first</span> <span class="special">=</span> <span class="identifier">current</span><span class="special">;</span>
+      <span class="keyword">else</span>
+         <span class="identifier">prev</span><span class="special">-&gt;</span><span class="identifier">next</span> <span class="special">=</span> <span class="identifier">current</span><span class="special">;</span>
+   <span class="special">}</span>
+
+   <span class="comment">//Communicate list to other processes</span>
+   <span class="comment">//. . .</span>
+   <span class="comment">//When done, destroy list</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="identifier">current</span> <span class="special">=</span> <span class="identifier">first</span><span class="special">;</span> <span class="identifier">current</span><span class="special">;</span> <span class="comment">/**/</span><span class="special">){</span>
+      <span class="identifier">prev</span> <span class="special">=</span> <span class="identifier">current</span><span class="special">;</span>
+      <span class="identifier">current</span> <span class="special">=</span> <span class="identifier">current</span><span class="special">-&gt;</span><span class="identifier">next</span><span class="special">;</span>
+      <span class="identifier">segment</span><span class="special">.</span><span class="identifier">deallocate</span><span class="special">(</span><span class="identifier">prev</span><span class="special">.</span><span class="identifier">get</span><span class="special">());</span>
+   <span class="special">}</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        To help with basic data structures, <span class="bold"><strong>Boost.Interprocess</strong></span>
+        offers containers like vector, list, map, so you can avoid these manual data
+        structures just like with standard containers.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.quick_guide.qg_interprocess_container"></a><a class="link" href="quick_guide.html#interprocess.quick_guide.qg_interprocess_container" title="Creating vectors in shared memory">Creating
+      vectors in shared memory</a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Boost.Interprocess</strong></span> allows creating complex
+        objects in shared memory and memory mapped files. For example, we can construct
+        STL-like containers in shared memory. To do this, we just need to create
+        a special (managed) shared memory segment, declare a <span class="bold"><strong>Boost.Interprocess</strong></span>
+        allocator and construct the vector in shared memory just if it was any other
+        object.
+      </p>
+<p>
+        The class that allows this complex structures in shared memory is called
+        <code class="computeroutput"><a class="link" href="indexes_reference.html#boost.interprocess.managed_shared_memory">boost::interprocess::managed_shared_memory</a></code>
+        and it's easy to use. Just execute this example without arguments:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">managed_shared_memory</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">containers</span><span class="special">/</span><span class="identifier">vector</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">allocators</span><span class="special">/</span><span class="identifier">allocator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cstdlib</span><span class="special">&gt;</span> <span class="comment">//std::system</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+<span class="comment">//Define an STL compatible allocator of ints that allocates from the managed_shared_memory.</span>
+<span class="comment">//This allocator will allow placing containers in the segment</span>
+<span class="keyword">typedef</span> <span class="identifier">allocator</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">managed_shared_memory</span><span class="special">::</span><span class="identifier">segment_manager</span><span class="special">&gt;</span>  <span class="identifier">ShmemAllocator</span><span class="special">;</span>
+
+<span class="comment">//Alias a vector that uses the previous STL-like allocator so that allocates</span>
+<span class="comment">//its values from the segment</span>
+<span class="keyword">typedef</span> <span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="identifier">ShmemAllocator</span><span class="special">&gt;</span> <span class="identifier">MyVector</span><span class="special">;</span>
+
+<span class="comment">//Main function. For parent process argc == 1, for child process argc == 2</span>
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span><span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+   <span class="keyword">if</span><span class="special">(</span><span class="identifier">argc</span> <span class="special">==</span> <span class="number">1</span><span class="special">){</span> <span class="comment">//Parent process</span>
+      <span class="comment">//Remove shared memory on construction and destruction</span>
+      <span class="keyword">struct</span> <span class="identifier">shm_remove</span>
+      <span class="special">{</span>
+         <span class="identifier">shm_remove</span><span class="special">()</span> <span class="special">{</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+         <span class="special">~</span><span class="identifier">shm_remove</span><span class="special">(){</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+      <span class="special">}</span> <span class="identifier">remover</span><span class="special">;</span>
+
+      <span class="comment">//Create a new segment with given name and size</span>
+      <span class="identifier">managed_shared_memory</span> <span class="identifier">segment</span><span class="special">(</span><span class="identifier">create_only</span><span class="special">,</span> <span class="string">"MySharedMemory"</span><span class="special">,</span> <span class="number">65536</span><span class="special">);</span>
+
+      <span class="comment">//Initialize shared memory STL-compatible allocator</span>
+      <span class="keyword">const</span> <span class="identifier">ShmemAllocator</span> <span class="identifier">alloc_inst</span> <span class="special">(</span><span class="identifier">segment</span><span class="special">.</span><span class="identifier">get_segment_manager</span><span class="special">());</span>
+
+      <span class="comment">//Construct a vector named "MyVector" in shared memory with argument alloc_inst</span>
+      <span class="identifier">MyVector</span> <span class="special">*</span><span class="identifier">myvector</span> <span class="special">=</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">MyVector</span><span class="special">&gt;(</span><span class="string">"MyVector"</span><span class="special">)(</span><span class="identifier">alloc_inst</span><span class="special">);</span>
+
+      <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">100</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span>  <span class="comment">//Insert data in the vector</span>
+         <span class="identifier">myvector</span><span class="special">-&gt;</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">i</span><span class="special">);</span>
+
+      <span class="comment">//Launch child process</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">s</span><span class="special">(</span><span class="identifier">argv</span><span class="special">[</span><span class="number">0</span><span class="special">]);</span> <span class="identifier">s</span> <span class="special">+=</span> <span class="string">" child "</span><span class="special">;</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="number">0</span> <span class="special">!=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">system</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">c_str</span><span class="special">()))</span>
+         <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+
+      <span class="comment">//Check child has destroyed the vector</span>
+      <span class="keyword">if</span><span class="special">(</span><span class="identifier">segment</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">MyVector</span><span class="special">&gt;(</span><span class="string">"MyVector"</span><span class="special">).</span><span class="identifier">first</span><span class="special">)</span>
+         <span class="keyword">return</span> <span class="number">1</span><span class="special">;</span>
+   <span class="special">}</span>
+   <span class="keyword">else</span><span class="special">{</span> <span class="comment">//Child process</span>
+      <span class="comment">//Open the managed segment</span>
+      <span class="identifier">managed_shared_memory</span> <span class="identifier">segment</span><span class="special">(</span><span class="identifier">open_only</span><span class="special">,</span> <span class="string">"MySharedMemory"</span><span class="special">);</span>
+
+      <span class="comment">//Find the vector using the c-string name</span>
+      <span class="identifier">MyVector</span> <span class="special">*</span><span class="identifier">myvector</span> <span class="special">=</span> <span class="identifier">segment</span><span class="special">.</span><span class="identifier">find</span><span class="special">&lt;</span><span class="identifier">MyVector</span><span class="special">&gt;(</span><span class="string">"MyVector"</span><span class="special">).</span><span class="identifier">first</span><span class="special">;</span>
+
+      <span class="comment">//Use vector in reverse order</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">sort</span><span class="special">(</span><span class="identifier">myvector</span><span class="special">-&gt;</span><span class="identifier">rbegin</span><span class="special">(),</span> <span class="identifier">myvector</span><span class="special">-&gt;</span><span class="identifier">rend</span><span class="special">());</span>
+
+      <span class="comment">//When done, destroy the vector from the segment</span>
+      <span class="identifier">segment</span><span class="special">.</span><span class="identifier">destroy</span><span class="special">&lt;</span><span class="identifier">MyVector</span><span class="special">&gt;(</span><span class="string">"MyVector"</span><span class="special">);</span>
+   <span class="special">}</span>
+
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+      </p>
+<p>
+        The parent process will create an special shared memory class that allows
+        easy construction of many complex data structures associated with a name.
+        The parent process executes the same program with an additional argument
+        so the child process opens the shared memory and uses the vector and erases
+        it.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="interprocess.quick_guide.qg_interprocess_map"></a><a class="link" href="quick_guide.html#interprocess.quick_guide.qg_interprocess_map" title="Creating maps in shared memory">Creating
+      maps in shared memory</a>
+</h3></div></div></div>
+<p>
+        Just like a vector, <span class="bold"><strong>Boost.Interprocess</strong></span> allows
+        creating maps in shared memory and memory mapped files. The only difference
+        is that like standard associative containers, <span class="bold"><strong>Boost.Interprocess</strong></span>'s
+        map needs also the comparison functor when an allocator is passed in the
+        constructor:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">managed_shared_memory</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">containers</span><span class="special">/</span><span class="identifier">map</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">interprocess</span><span class="special">/</span><span class="identifier">allocators</span><span class="special">/</span><span class="identifier">allocator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">functional</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">utility</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span> <span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">interprocess</span><span class="special">;</span>
+
+   <span class="comment">//Remove shared memory on construction and destruction</span>
+   <span class="keyword">struct</span> <span class="identifier">shm_remove</span>
+   <span class="special">{</span>
+      <span class="identifier">shm_remove</span><span class="special">()</span> <span class="special">{</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+      <span class="special">~</span><span class="identifier">shm_remove</span><span class="special">(){</span> <span class="identifier">shared_memory_object</span><span class="special">::</span><span class="identifier">remove</span><span class="special">(</span><span class="string">"MySharedMemory"</span><span class="special">);</span> <span class="special">}</span>
+   <span class="special">}</span> <span class="identifier">remover</span><span class="special">;</span>
+
+   <span class="comment">//Shared memory front-end that is able to construct objects</span>
+   <span class="comment">//associated with a c-string. Erase previous shared memory with the name</span>
+   <span class="comment">//to be used and create the memory segment at the specified address and initialize resources</span>
+   <span class="identifier">managed_shared_memory</span> <span class="identifier">segment</span>
+      <span class="special">(</span><span class="identifier">create_only</span>
+      <span class="special">,</span><span class="string">"MySharedMemory"</span> <span class="comment">//segment name</span>
+      <span class="special">,</span><span class="number">65536</span><span class="special">);</span>          <span class="comment">//segment size in bytes</span>
+
+   <span class="comment">//Note that map&lt;Key, MappedType&gt;'s value_type is std::pair&lt;const Key, MappedType&gt;,</span>
+   <span class="comment">//so the allocator must allocate that pair.</span>
+   <span class="keyword">typedef</span> <span class="keyword">int</span>    <span class="identifier">KeyType</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="keyword">float</span>  <span class="identifier">MappedType</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">float</span><span class="special">&gt;</span> <span class="identifier">ValueType</span><span class="special">;</span>
+
+   <span class="comment">//Alias an STL compatible allocator of for the map.</span>
+   <span class="comment">//This allocator will allow to place containers</span>
+   <span class="comment">//in managed shared memory segments</span>
+   <span class="keyword">typedef</span> <span class="identifier">allocator</span><span class="special">&lt;</span><span class="identifier">ValueType</span><span class="special">,</span> <span class="identifier">managed_shared_memory</span><span class="special">::</span><span class="identifier">segment_manager</span><span class="special">&gt;</span>
+      <span class="identifier">ShmemAllocator</span><span class="special">;</span>
+
+   <span class="comment">//Alias a map of ints that uses the previous STL-like allocator.</span>
+   <span class="comment">//Note that the third parameter argument is the ordering function</span>
+   <span class="comment">//of the map, just like with std::map, used to compare the keys.</span>
+   <span class="keyword">typedef</span> <span class="identifier">map</span><span class="special">&lt;</span><span class="identifier">KeyType</span><span class="special">,</span> <span class="identifier">MappedType</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="identifier">KeyType</span><span class="special">&gt;,</span> <span class="identifier">ShmemAllocator</span><span class="special">&gt;</span> <span class="identifier">MyMap</span><span class="special">;</span>
+
+   <span class="comment">//Initialize the shared memory STL-compatible allocator</span>
+   <span class="identifier">ShmemAllocator</span> <span class="identifier">alloc_inst</span> <span class="special">(</span><span class="identifier">segment</span><span class="special">.</span><span class="identifier">get_segment_manager</span><span class="special">());</span>
+
+   <span class="comment">//Construct a shared memory map.</span>
+   <span class="comment">//Note that the first parameter is the comparison function,</span>
+   <span class="comment">//and the second one the allocator.</span>
+   <span class="comment">//This the same signature as std::map's constructor taking an allocator</span>
+   <span class="identifier">MyMap</span> <span class="special">*</span><span class="identifier">mymap</span> <span class="special">=</span>
+      <span class="identifier">segment</span><span class="special">.</span><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">MyMap</span><span class="special">&gt;(</span><span class="string">"MyMap"</span><span class="special">)</span>      <span class="comment">//object name</span>
+                                 <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;()</span> <span class="comment">//first  ctor parameter</span>
+                                 <span class="special">,</span><span class="identifier">alloc_inst</span><span class="special">);</span>     <span class="comment">//second ctor parameter</span>
+
+   <span class="comment">//Insert data in the map</span>
+   <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">100</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">){</span>
+      <span class="identifier">mymap</span><span class="special">-&gt;</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">float</span><span class="special">&gt;(</span><span class="identifier">i</span><span class="special">,</span> <span class="special">(</span><span class="keyword">float</span><span class="special">)</span><span class="identifier">i</span><span class="special">));</span>
+   <span class="special">}</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        For a more advanced example including containers of containers, see the section
+        <a class="link" href="allocators_containers.html#interprocess.allocators_containers.containers_explained.containers_of_containers" title="Containers of containers">Containers
+        of containers</a>.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../interprocess.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interprocess.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="some_basic_explanations.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,75 @@
+#
+# Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+
+import os ;
+
+if [ os.name ] = SOLARIS
+{
+  lib socket ;
+  lib nsl ;
+}
+else if [ os.name ] = NT
+{
+  lib ws2_32 ;
+  lib mswsock ;
+}
+else if [ os.name ] = HPUX
+{
+  lib ipv6 ;
+}
+
+project
+  : requirements
+    <library>/boost/system//boost_system
+    <library>/boost/thread//boost_thread
+    <define>BOOST_ALL_NO_LIB=1
+    <threading>multi
+    <os>SOLARIS:<library>socket
+    <os>SOLARIS:<library>nsl
+    <os>NT:<define>_WIN32_WINNT=0x0501
+    <os>NT,<toolset>gcc:<library>ws2_32
+    <os>NT,<toolset>gcc:<library>mswsock
+    <os>NT,<toolset>gcc-cygwin:<define>__USE_W32_SOCKETS
+    <os>HPUX,<toolset>gcc:<define>_XOPEN_SOURCE_EXTENDED
+    <os>HPUX:<library>ipv6
+  ;
+
+obj timer1.obj : timer1/timer.cpp ;
+exe timer1 : timer1.obj ;
+
+obj timer2.obj : timer2/timer.cpp ;
+exe timer2 : timer2.obj ;
+
+obj timer3.obj : timer3/timer.cpp ;
+exe timer3 : timer3.obj ;
+
+obj timer4.obj : timer4/timer.cpp ;
+exe timer4 : timer4.obj ;
+
+obj timer5.obj : timer5/timer.cpp ;
+exe timer5 : timer5.obj ;
+
+obj daytime1_client.obj : daytime1/client.cpp ;
+exe daytime1_client : daytime1_client.obj ;
+
+obj daytime2_server.obj : daytime2/server.cpp ;
+exe daytime2_server : daytime2_server.obj ;
+
+obj daytime3_server.obj : daytime3/server.cpp ;
+exe daytime3_server : daytime3_server.obj ;
+
+obj daytime4_client.obj : daytime4/client.cpp ;
+exe daytime4_client : daytime4_client.obj ;
+
+obj daytime5_server.obj : daytime5/server.cpp ;
+exe daytime5_server : daytime5_server.obj ;
+
+obj daytime6_server.obj : daytime6/server.cpp ;
+exe daytime6_server : daytime6_server.obj ;
+
+obj daytime7_server.obj : daytime7/server.cpp ;
+exe daytime7_server : daytime7_server.obj ;

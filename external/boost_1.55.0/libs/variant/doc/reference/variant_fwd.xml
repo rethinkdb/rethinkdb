@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?> 
+<header name="boost/variant/variant_fwd.hpp">
+  <using-namespace name="boost"/>
+
+  <para>Provides forward declarations of the
+    <code><classname>boost::variant</classname></code>,
+    <code><classname>boost::make_variant_over</classname></code>,
+    <code><classname>boost::make_recursive_variant</classname></code>, and
+    <code><classname>boost::make_recursive_variant_over</classname></code>
+    class templates and the <code>boost::recursive_variant_</code> tag type.
+    Also defines several preprocessor symbols, as described below.</para>
+
+  <macro name="BOOST_VARIANT_LIMIT_TYPES">
+    <purpose>
+      <simpara>Expands to the length of the
+        template parameter list for
+        <code><classname>variant</classname></code>.</simpara>
+    </purpose>
+
+    <description>
+      <para><emphasis role="bold">Note</emphasis>: Conforming
+        implementations of <code>variant</code> must allow at least ten
+        template arguments. That is, BOOST_VARIANT_LIMIT_TYPES must be greater
+        or equal to <code>10</code>.</para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_VARIANT_ENUM_PARAMS" kind="functionlike">
+    <macro-parameter name="param"/>
+
+    <purpose>
+      <simpara>Enumerate parameters for use with
+        <code><classname>variant</classname></code>.</simpara>
+    </purpose>
+
+    <description>
+      <para>Expands to a comma-separated sequence of length
+        <code><macroname>BOOST_VARIANT_LIMIT_TYPES</macroname></code>, where
+        each element in the sequence consists of the concatenation of
+        <emphasis>param</emphasis> with its zero-based index into the
+        sequence. That is,
+        <code>param ## 0, param ## 1, ..., param ## BOOST_VARIANT_LIMIT_TYPES - 1</code>.</para>
+
+      <para><emphasis role="bold">Rationale</emphasis>: This macro greatly
+        simplifies for the user the process of declaring
+        <code><classname>variant</classname></code> types
+        in function templates or explicit partial specializations of class
+        templates, as shown in the
+        <link linkend="variant.tutorial.preprocessor">tutorial</link>.</para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_VARIANT_ENUM_SHIFTED_PARAMS" kind="functionlike">
+    <macro-parameter name="param"/>
+
+    <purpose>
+      <simpara>Enumerate all but the first parameter for use with
+        <code><classname>variant</classname></code>.</simpara>
+    </purpose>
+
+    <description>
+      <para>Expands to a comma-separated sequence of length
+        <code><macroname>BOOST_VARIANT_LIMIT_TYPES</macroname> - 1</code>,
+        where each element in the sequence consists of the concatenation of
+        <emphasis>param</emphasis> with its one-based index into the sequence.
+        That is,
+        <code>param ## 1, ..., param ## BOOST_VARIANT_LIMIT_TYPES - 1</code>.</para>
+
+      <para><emphasis role="bold">Note</emphasis>: This macro results in the
+        same expansion as
+        <code><macroname>BOOST_VARIANT_ENUM_PARAMS</macroname></code> -- but
+        without the first term.</para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_VARIANT_NO_REFERENCE_SUPPORT">
+    <purpose>
+      <simpara>Indicates <code><classname>variant</classname></code> does not
+        support references as bounded types.</simpara>
+    </purpose>
+
+    <description>
+      <para>Defined only if <code><classname>variant</classname></code> does
+        not support references as bounded types.</para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_VARIANT_NO_TYPE_SEQUENCE_SUPPORT">
+    <purpose>
+      <simpara>Indicates absence of support for specifying the bounded types
+        of a <code><classname>variant</classname></code> by the elements of a
+        type sequence.</simpara>
+    </purpose>
+
+    <description>
+      <para>Defined only if
+        <code><classname>make_variant_over</classname></code> and
+        <code><classname>make_recursive_variant_over</classname></code>
+        are not supported for some reason on the target compiler.</para>
+    </description>
+  </macro>
+
+  <macro name="BOOST_VARIANT_NO_FULL_RECURSIVE_VARIANT_SUPPORT">
+    <purpose>
+      <simpara>Indicates
+        <code><classname>make_recursive_variant</classname></code> operates in
+        an implementation-defined manner.</simpara>
+    </purpose>
+
+    <description>
+      <para>Defined only if
+        <code><classname>make_recursive_variant</classname></code> does not
+        operate as documented on the target compiler, but rather in an
+        implementation-defined manner.</para>
+
+      <para><emphasis role="bold">Implementation Note</emphasis>: If
+        <code>BOOST_VARIANT_NO_FULL_RECURSIVE_VARIANT_SUPPORT</code> is
+        defined for the target compiler, the current implementation uses the
+        <libraryname>MPL</libraryname> lambda mechanism to approximate the
+        desired behavior. (In most cases, however, such compilers do not have
+        full lambda support either.)</para>
+    </description>
+  </macro>
+</header>

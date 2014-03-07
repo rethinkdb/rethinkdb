@@ -1,0 +1,335 @@
+[/
+    Copyright (c) 2008-2010 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section Introduction]
+
+[/ note [* The Interval Container Library is accepted into Boost]
+
+The [*Interval Container Library] (formerly /Interval Template Library/) underwent 
+a formal review on the boost developer's list
+from February 18, 2010 to March 08, 2010 and has been accepted 
+by declaration of review manager Hartmut Kaiser
+into the boost library collection on April 18, 2010.
+
+
+The library has been refactored for the suggestions and requests
+that came up during the review. The current version is now
+ready for inclusion into the next boost release.
+The name ['*Interval Template Library (ITL)*] 
+has been changed to ['*Interval Container Library (ICL)*].
+
+If you find bugs in the library or typos or other shortcomings in
+the documentation please send reports to the boost developers list
+boost@lists.boost.org
+the boost users list or
+boost-users@lists.boost.org
+to `[afojgo<AT>gmail dot com]`.
+
+]
+
+["A bug crawls across the boost docs on my laptop screen.
+Let him be! We need all the readers we can get.] -- 
+Freely adapted from [@http://en.wikipedia.org/wiki/Jack_Kornfield Jack Kornfield]
+
+Intervals are almost ubiquitous in software development. Yet they are
+very easily coded into user defined classes by a pair of numbers
+so they are only /implicitly/ used most of the time. The meaning of
+an interval is simple. They represent all the elements between their 
+lower and upper bound and thus a set. But unlike sets, intervals
+usually can not be added to a single new interval.
+If you want to add intervals to a collection of
+intervals that does still represent a /set/,
+you arrive at the idea of /interval_sets/ provided by this library. 
+
+Interval containers of the *ICL* have been developed initially at 
+[@http://www.cortex-software.de/desktopdefault.aspx Cortex Software GmbH]
+to solve problems related to date and time interval
+computations in the context of a Hospital Information System.
+Time intervals with associated values like ['amount of invoice]
+or ['set of therapies] had to be manipulated in statistics,
+billing programs and therapy scheduling programs. 
+So the *ICL* emerged out of those industrial use cases.
+It extracts generic code that helps to solve common
+problems from the date and time problem domain and can be
+beneficial in other fields as well.
+
+One of the most advantageous aspects of interval containers is
+their very compact representation of sets and maps. Working with
+sets and maps /of elements/ can be very inefficient, if in a given
+problem domain, elements are typically occurring in contiguous
+chunks. 
+Besides a compact representation of associative containers, that
+can reduce the cost of space and time drastically, the ICL
+comes with a universal mechanism of aggregation, that allows
+to combine associated values in meaningful ways when intervals
+overlap on insertion.
+
+For a condensed introduction and overview you may want to look at the
+[@http://www.herold-faulhaber.de/boost_icl/doc/libs/icl/doc/boostcon09/intro_to_itl.pdf 
+presentation material on the *ICL* from ['*BoostCon2009*]].
+
+
+[section Definition and Basic Example]
+
+The [*Interval Container Library (ICL)] provides __itvs__ and two kinds of 
+interval containers: __itv_sets__ and __itv_maps__.
+
+* An __itv_bset__ is a *set* that is implemented as a set of intervals.
+* An __itv_bmap__ is a *map* that is implemented as a map of interval value pairs.
+
+[h4 Two Aspects]
+
+__Itv_bsets__ and __itv_bmaps__ expose two different aspects in
+their interfaces: (1) The functionality of a set or a map, which is the more 
+['*abstract aspect*]. And (2) the functionality of a container of intervals which
+is the more specific and ['*implementation related aspect*]. In practice both 
+aspects are useful and are therefore supported. 
+
+The first aspect, that will be called __bi_conceptual__ ['*aspect*], is the more important one.
+It means that we can use an __itv_set__ or __itv_map__ like a 
+set or map ['*of elements*]. It exposes the same functions.
+``
+interval_set<int> mySet;
+mySet.insert(42);
+bool has_answer = contains(mySet, 42);
+``
+
+
+The second aspect, that will be called __bi_iterative__ ['*aspect*], allows to exploit the
+fact, that the elements of __itv_sets__ and __itv_maps__ are clustered in
+['*intervals*] or ['*segments*] that we can iterate over.
+
+``
+// Switch on my favorite telecasts using an interval_set
+interval<seconds>::type news(make_seconds("20:00:00"), make_seconds("20:15:00"));
+interval<seconds>::type talk_show(make_seconds("22:45:30"), make_seconds("23:30:50"));
+interval_set<seconds> myTvProgram;
+myTvProgram.add(news).add(talk_show);
+
+// Iterating over elements (seconds) would be silly ...
+for(interval_set<seconds>::iterator telecast = myTvProgram.begin(); 
+    telecast != myTvProgram.end(); ++telecast)
+    //...so this iterates over intervals
+   TV.switch_on(*telecast);
+``
+
+Working with __itv_bsets__ and __itv_bmaps__ can be 
+beneficial whenever the elements of 
+sets appear in contiguous chunks: __itvs__. This is obviously the 
+case in many problem domains, particularly in fields that deal with 
+computations related to date and time.
+
+[h4 Addabitlity and Subtractability]
+
+Unlike `std::sets` and `maps`, __itv_bsets__ and __itv_bmaps__ implement
+concept `Addable` and `Subtractable`. So __itv_bsets__ define an 
+`operator +=` that is naturally implemented as ['*set union*] and an
+`operator -=` that is consequently implemented as ['*set difference*].
+In the *Icl* __itv_bmaps__ are addable and subtractable as well. 
+It turned out to be a very fruitful concept to propagate the
+addition or subtraction to the __itv_bmap_s__ associated values
+in cases where the insertion of an interval value pair into an
+__itv_map__ resulted in a collision of the inserted interval
+value pair with interval value pairs, that are already in the 
+__itv_map__. This operation propagation is called ['*aggregate on overlap*].
+
+  
+[h4 Aggregate on Overlap]
+
+This is a first motivating example of a very small party, demonstrating the 
+['*aggregate on overlap*] principle on __itv_maps__:
+
+In the example Mary enters the party first. She attends during the 
+time interval `[20:00,22:00)`. Harry enters later. He stays within `[21:00,23:00)`.
+``
+typedef std::set<string> guests;
+interval_map<time, guests> party; 
+party += make_pair(interval<time>::right_open(time("20:00"), time("22:00")), guests("Mary"));
+party += make_pair(interval<time>::right_open(time("21:00"), time("23:00")), guests("Harry")); 
+// party now contains
+[20:00, 21:00)->{"Mary"} 
+[21:00, 22:00)->{"Harry","Mary"} //guest sets aggregated on overlap
+[22:00, 23:00)->{"Harry"}
+``
+['*On overlap of intervals*], the corresponding name sets are ['*accumulated*]. At
+the ['*points of overlap*] the intervals are ['*split*]. The accumulation of content on
+overlap of intervals is done via an `operator +=` that has to be implemented
+for the associated values of the __itv_map__. In the example
+the associated values are `guest sets`. Thus a `guest set` has to implement
+`operator +=` as set union. 
+
+As can be seen from the example an __itv_map__ has both 
+a ['*decompositional behavior*] (on the time dimension) as well as 
+an ['*accumulative one*] (on the associated values). 
+
+Addability and aggregate on overlap are useful features on 
+__itv_maps__ implemented via function `add` and `operator +=`. 
+But you can also use them with the ['traditional] 
+[link boost_icl.function_reference.insertion insert semantics] 
+that behaves like `std::map::insert` generalized for 
+interval insertion.
+
+[endsect]
+
+[section Icl's class templates]
+
+In addition to interval containers we can work with
+containers of elements that are ['*behavioral equal*]
+to the interval containers: On the fundamental aspect
+they have exactly the same functionality.
+An __std_set__ of the STL is such an equivalent set implementation.
+Due to the aggregation facilities of the icl's interval maps
+__std_map__ is fundamentally not completely equivalent to an __itv_map__.
+Therefore there is an extra __icl_map__ class template for maps of 
+elements in the icl.
+
+
+* The __std_set__ is behavioral equal to __itv_bsets__ on the __bi_conceptual__ aspect.
+
+* An __icl_map__ is behavioral equal to __itv_bmaps__ on the __bi_conceptual__  aspect. 
+  Specifically an __icl_map__
+  implements ['*aggregate on overlap*], which is
+  named ['*aggregate on collision*] for an element container.
+
+The following tables give an overview over the main
+class templates provided by the *icl*.  
+
+[table Interval class templates
+[[group]              [form]      [template]          ]
+[[statically bounded] [asymmetric][__ro_itv__]        ]
+[[ ]                  []          [__lo_itv__]        ]
+[[ ]                  [symmetric] [__cl_itv__]        ]
+[[ ]                  []          [__op_itv__]        ]
+[[dynamically bounded][]          [__dc_itv__]        ]
+[[ ]                  []          [__ct_itv__]        ]
+]
+
+Statically bounded intervals always have the same kind of interval borders, 
+e.g. right open borders`[a..b)` for __ro_itv__. Dynamically bounded intervals
+can have different borders. Refer to the chapter about
+[link boost_icl.interface.class_templates.intervals ['*intervals*]] 
+for details.
+
+[table Container class templates
+[[granularity][style]     [sets]           [maps]           ]
+[[interval]   [joining]   [__itv_set__]    [__itv_map__]    ]
+[[]           [separating][__sep_itv_set__][]               ]
+[[]           [splitting] [__spl_itv_set__][__spl_itv_map__]]
+[[element]    []          [(__ele_set__)]  [__ele_map__]    ]
+]                                   
+
+__Std_set__ is placed in paretheses, because it is not a class template
+of the *ICL*. It can be used as element container though that is
+behavioral equal to the ICL's interval sets on their fundamental aspect.
+Column ['*style*] refers to
+the different ways in which interval containers combine added
+intervals. These ['*combining styles*] are described in the next
+section.
+
+
+[endsect]
+
+[section Interval Combining Styles]
+
+When we add intervals or interval value pairs to interval containers,
+the intervals can be added in different ways: Intervals can be
+joined or split or kept separate. The different interval combining
+styles are shown by example in the tables below.
+
+[table Interval container's ways to combine intervals 
+    [[]         [joining]       [separating]            [splitting]]
+    [[set]      [[classref boost::icl::interval_set          interval_set]]  
+                [[classref boost::icl::separate_interval_set separate_interval_set]] 
+                [[classref boost::icl::split_interval_set    split_interval_set]]]
+    [[map]      [[classref boost::icl::interval_map          interval_map]]      
+                []   
+                [[classref boost::icl::split_interval_map    split_interval_map]]]
+    [[]         [Intervals are joined on overlap or touch\n(if associated values are equal).]
+                [Intervals are joined on overlap, not on touch.]
+                [Intervals are split on overlap.\nAll interval borders are preserved.]]
+]
+
+[table Interval combining styles by example
+    [[]         [joining]       [separating]            [splitting]]
+    [[set]      [[classref boost::icl::interval_set          interval_set] /A/]  
+                [[classref boost::icl::separate_interval_set separate_interval_set] /B/] 
+                [[classref boost::icl::split_interval_set    split_interval_set] /C/]]
+[[]            
+[``
+  {[1      3)          }
++       [2      4)
++                 [4 5)
+= {[1                5)}``]
+[``
+  {[1      3)}         }
++       [2      4)
++                 [4 5)
+= {[1           4)[4 5)}``]
+[``
+  {[1      3)          }
++       [2      4)
++                 [4 5)
+= {[1 2)[2 3)[3 4)[4 5)}``]
+]
+
+    [[map]      [[classref boost::icl::interval_map          interval_map] /D/]      
+                []   
+                [[classref boost::icl::split_interval_map    split_interval_map] /E/]]
+
+[[]            
+[``
+  {[1      3)->1          }
++       [2      4)->1
++                 [4 5)->1
+= {[1 2)[2 3)[3      5)   }
+  | ->1  ->2     ->1      |``]
+[]
+[``
+  {[1      3)->1          }
++       [2      4)->1
++                 [4 5)->1
+= {[1 2)[2 3)[3 4)[4 5)   }
+  | ->1  ->2  ->1  ->1    |``]
+]
+]
+
+Note that =interval_sets= /A/, /B/ and /C/ represent the same set of elements ={1,2,3,4}= 
+and =interval_maps= /D/ and /E/ represent the same map of elements [^{1->1, 2->2, 3->1, 4->1}].
+See example program [link boost_icl.examples.interval_container Interval container]
+for an additional demo.
+
+[h4 Joining interval containers]
+
+__Itv_set__ and __itv_map__ are always 
+in a ['*minimal representation*]. This is useful in many cases, where the 
+points of insertion or intersection of intervals are not relevant. So in most 
+instances __itv_set__ and 
+__itv_map__ will be the first choice 
+for an interval container.
+
+[h4 Splitting interval containers]
+
+__Spl_itv_set__ and __spl_itv_map__ on the contrary 
+have an ['*insertion memory*]. They do accumulate interval borders both 
+from additions and intersections. This is specifically useful, if we want
+to enrich an interval container with certain time grids, like e.g. months 
+or calendar weeks or both. See example [link boost_icl.examples.time_grids time grids for months and weeks].
+
+[h4 Separating interval containers]
+
+__Sep_itv_set__ implements the separating style.
+This style preserves borders, that are never passed by an overlapping
+interval. So if all intervals that are inserted into a __sep_itv_set__ 
+are generated form a certain grid that never pass say month borders, then
+these borders are preserved in the __sep_itv_set__.
+ 
+[endsect]
+
+[endsect][/ Introduction]
+
+

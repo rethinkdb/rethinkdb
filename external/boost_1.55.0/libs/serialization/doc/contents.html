@@ -1,0 +1,340 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<title>Serialization</title>
+
+<!-- Expanding Menu Script Starts Here -->
+<script language="JavaScript">
+//<--!
+// netscape version
+
+function toggle(element) {
+  if (null == element){
+    return;
+  }
+  var targetId = element.id + "_detail";
+  targetElement = document.getElementById(targetId);
+  if (null != targetElement){
+    if (targetElement.style.display == "none") {
+      targetElement.style.display = "";
+      element.src="minus.gif";
+    }
+    else{
+      targetElement.style.display = "none";
+      element.src="plus.gif";
+    }
+  }
+}
+
+function clickHandlerNS(e) {
+  toggle(e.target);
+}
+
+// explorer version
+function clickHandlerIE() {
+  toggle(window.event.srcElement);
+}
+
+function collapse_all() {
+  var l = document.images;
+  var i = l.length;
+  while(i > 0){
+    i = i - 1;
+    var image = l[i];
+    image.style.display = "";
+    toggle(image);
+  }
+}
+
+
+function initialize() {
+  if(navigator.appName.indexOf("Netscape") != -1){
+    document.onclick = clickHandlerNS;
+    collapse_all();
+  }
+  else
+  if(navigator.appName.indexOf("Microsoft") != -1){
+    document.onclick = clickHandlerIE;
+    collapse_all();
+  }
+  else
+  if (navigator.appnName.indexOf("Konqueror") >= 0){
+    document.onclick = clickHandlerIE;
+    collapse_all();
+  }
+}
+
+//-->
+</script>
+
+</head>
+<body onload="initialize()">
+<h2>Contents</h2>
+<small>
+<!--
+<img src="dot.gif" onclick="collapse_all()">Collapse All
+-->
+<p>
+<dl class="page-index">
+  <dt><img style="display:none" src="dot.gif" id="release_notes"><a target="detail" href="release.html">Release Notes</a></dt>
+  <dt><img style="display:none" src="plus.gif" id="overview"><a target="detail" href="overview.html">Overview</a></dt>
+  <dd><div id="overview_detail"><dl class="page-index">
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="overview.html#Requirements">Requirements</a></dt>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="overview.html#Otherimplementations">Other Implementations</a></dt>
+  </dl></div></dd>
+  <dt><img style="display:none" src="plus.gif" id="tutorial"><a target="detail" href="tutorial.html">Tutorial</a></dt>
+  <dd><div id="tutorial_detail"><dl class="page-index"> 
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="tutorial.html#simplecase">A Very Simple Case</a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="tutorial.html#nonintrusiveversion">Non Intrusive Version</a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="tutorial.html#serializablemembers">Serializable Members</a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="tutorial.html#derivedclasses">Derived Classes</a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="tutorial.html#pointers">Pointers</a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="tutorial.html#arrays">Arrays</a>
+
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="tutorial.html#stl">STL Collections</a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="tutorial.html#versioning">Class Versioning</a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="tutorial.html#splitting">Splitting <code>serialize</code> into <code>save/load</code></a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="tutorial.html#archives">Archives</a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="tutorial.html#examples">List of Examples</a>
+  </dl></div></dd>
+
+  <dt><img style="display:none" src="plus.gif" id="reference"><a target="detail" href="reference.html">Reference</a></dt>
+  <dd><div id="reference_detail"><dl class="page-index"> 
+    <dt><img style="display:none" src="plus.gif" id="archive_concept"><a target="detail" href="archives.html">Archive Concepts</a>
+    <dd><div id="archive_concept_detail"><dl class="page-index">
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="archives.html#saving_interface">Saving Archive Concept</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="archives.html#loading_interface">Loading Archive Concept</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="archives.html#archive_models">Archive Models</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="archives.html#exceptions">Exceptions</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="archives.html#charactersets">Character Sets</a>
+    </dl></div></dd>
+    <dt><img style="display:none" src="plus.gif" id="serialization"><a target="detail" href="serialization.html">Serializable Concept</a>
+    <dd><div id="serialization_detail"><dl class="page-index">
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="serialization.html#primitiveoperators">Primitive Types</a>
+      <dt><img style="display:none" src="dot.gif" id="class"><a target="detail" href="serialization.html#classoperators">Class Types</a>
+      <dd><div id="class_detail"><dl class="page-index">
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="serialization.html#member">Member Function</a>
+        <dt><img style="display:none" src="plus.gif" id="splitfree"><a target="detail" href="serialization.html#free">Free Function</a>
+        <dd><div id="splitfree_detail"><dl class="page-index">
+          <dt><img style="display:none" src="dot.gif"><a target="detail" href="serialization.html#namespaces">Namespaces for Free Function Overrides</a>
+        </dl></div></dd>
+        <dt><img style="display:none" src="plus.gif" id="members"><a target="detail" href="serialization.html#classmembers">Class Members</a>
+        <dd><div id="members_detail"><dl class="page-index">
+          <dt><img style="display:none" src="dot.gif"><a target="detail" href="serialization.html#base">Base Classes</a>
+          <dt><img style="display:none" src="dot.gif"><a target="detail" href="serialization.html#const"><code>const</code> Members</a>
+          <dt><img style="display:none" src="dot.gif"><a target="detail" href="serialization.html#templates">Templates</a>
+        </dl></div></dd>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="serialization.html#versioning">Versioning</a>
+        <dt><img style="display:none" s'c="dot.gif"><a target="detail" href="serialization.html#splitting">Splitting <code>serialize</code> into <code>save/load</code></a>
+      </dl></div></dd>
+      <dt><img style="display:none" src="plus.gif" id="pointers"><a target="detail" href="serialization.html#pointeroperators">Pointers</a>
+      <dd><div id="pointers_detail"><dl class="page-index">
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="serialization.html#constructors">Non-Default Constructors</a>
+        <dt><img style="display:none" src="plus.gif" id="derivedpointers"><a target="detail" href="serialization.html#derivedpointers">Pointers to Objects of Derived Classes</a>
+        <dd><div id="derivedpointers_detail"><dl class="page-index">
+          <dt><img style="display:none" src="dot.gif"><a target="detail" href="serialization.html#registration">Registration</a>
+          <dt><img style="display:none" src="dot.gif"><a target="detail" href="serialization.html#export">Export</a>
+          <dt><img style="display:none" src="dot.gif"><a target="detail" href="serialization.html#instantiation">Instantiation</a>
+          <dt><img style="display:none" src="dot.gif"><a target="detail" href="serialization.html#selectivetracking">Selective Tracking</a>
+          <dt><img style="display:none" src="dot.gif"><a target="detail" href="serialization.html#runtimecasting">Runtime Casting</a>
+        </dl></div></dd>
+      </dl></div></dd>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="serialization.html#references">References</a>
+      <dt><img style="display:none" src="plus.gif" id="traits"><a target="detail" href="traits.html">Class Serialization Traits</a>
+      <dd><div id="traits_detail"><dl class="page-index">
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="traits.html#version">Version</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="traits.html#level">Implementation Level</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="traits.html#tracking">Object Tracking</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="traits.html#export">Export Key</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="traits.html#Abstract">Abstract</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="traits.html#typeinfo">Type Information Implementation</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="traits.html#wrappers">Wrappers</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="traits.html#bitwise">Bitwise Serialization</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="traits.html#templates">Template Serialization Traits</a>
+
+        <dt><img style="display:none" src="plus.gif" id="compiletimemessages"><a target="detail" href="traits.html#compiletime_messages">Compile Time Warnings and Errors</a>
+        <dd><div id="compiletimemessages_detail"><dl class="page-index">
+          <dt><img style="display:none" src="dot.gif"><a target="detail" href="traits.html#object_level">object_level</a>
+          <dt><img style="display:none" src="dot.gif"><a target="detail" href="traits.html#object_versioning">object_versioning</a>
+          <dt><img style="display:none" src="dot.gif"><a target="detail" href="traits.html#object_tracking">object_tracking</a>
+          <dt><img style="display:none" src="dot.gif"><a target="detail" href="traits.html#pointer_level">pointer_level</a>
+          <dt><img style="display:none" src="dot.gif"><a target="detail" href="traits.html#pointer_tracking">pointer_tracking</a>
+          <dt><img style="display:none" src="dot.gif"><a target="detail" href="traits.html#const_loading">const_loading</a>
+        </dl></div></dd>
+
+
+
+      </dl></div></dd>
+      <dt><img style="display:none" src="plus.gif" id="wrappers"><a target="detail" href="wrappers.html">Serialization Wrappers</a>
+      <dd><div id="wrappers_detail"><dl class="page-index">
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="wrappers.html#binaryobjects">Binary Objects</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="wrappers.html#arrays">Arrays</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="wrappers.html#strong_type"><code style="white-space: normal">strong_type</code></a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="wrappers.html#collection_size_type">Collection Sizes</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="wrappers.html#nvp">Name-Value Pairs</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="wrappers.html#composition">Composition</a>
+      </dl></div></dd>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="serialization.html#models">Models - Serialization Implementations Included in the Library</a>
+    </dl></div></dd>
+    <dt><img style="display:none" src="plus.gif" id="special"><a target="detail" 'ref="special.html">Special Considerations</a>
+    <dd><div id="special_detail"><dl class="page-index">
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="special.html#objecttracking">Object Tracking</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="special.html#classinfo">Class Information</a>
+      <dt><img style="display:none" src="plus.gif" id="portability"><a target="detail" href="special.html#portability">Archive Portability</a>
+      <dd><div id="portability_detail"><dl class="page-index">
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="special.html#numerics">Numerics</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="special.html#traits">Traits</a>
+      </dl></div></dd>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="special.html#binary_archives">Binary Archives</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="special.html#xml_archives">XML Archives</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="special.html#export">Exporting Class Serialization</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="special.html#static_libraries">Static Libraries and Serialization</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="special.html#dlls">DLLS - Serialization and Runtime Linking</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="special.html#plugins">Plugins</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="special.html#multi_threading">Multi-Threading</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="special.html#optimizations">Optimzations</a>
+      <dt><img style="display:none" src="plus.gif" id="exceptions"><a target="detail" href="exceptions.html">Archive Exceptions</a>
+      <dd><div id="exceptions_detail"><dl class="page-index">
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="exceptions.html#unregistered_class"><code>unregistered_class</code></a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="exceptions.html#invalid_signature"><code>invalid_signature</code></a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="exceptions.html#unsupported_version"><code>unsupported_version</code></a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="exceptions.html#pointer_conflict"><code>pointer_conflict</code></a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="exceptions.html#incompatible_native_format"><code>incompatible_format</code></a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="exceptions.html#array_size_too_short"><code>array_size_too_short</code></a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="exceptions.html#stream_error"><code>stream_error</code></a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="exceptions.html#invalid_class_name"><code>invalid_class_name</code></a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="exceptions.html#unregistered_cast"><code>unregistered_cast</code></a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="exceptions.html#xml_archive_parsing_error"><code>xml_archive_parsing_error</code></a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="exceptions.html#xml_archive_tag_mismatch"><code>xml_archive_tag_mismatch</code></a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="exceptions.html#xml_archive_tag_name_error"><code>xml_archive_tag_name_error</code></a>
+      </dl></div></dd>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="exception_safety.html">Exception Safety</a>
+    </dl></div></dd>
+    <dt><img style="display:none" src="plus.gif" id="archive_reference"><a target="detail" href="archive_reference.html">Archive Class Reference</a>
+    <dd><div id="archive_reference_detail"><dl class="page-index">
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="archive_reference.html#trivial">Trivial Archive</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="archive_reference.html#implementation">More Useful Archive Classes</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="archive_reference.html#usage">Usage</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="archive_reference.html#testing">Testing</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="archive_reference.html#polymorphic">Polymorphic Archives</a>
+    </dl></div></dd>
+  </dl></div></dd>
+  <dt><img style="display:none" src="plus.gif" id="implementation"><a target="detail" href="implementation.html">Implementation Notes</a>
+  <dd><div id="implementation_detail"><dl class="page-index">
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#functiontemplateordering">Partial Function Template Ordering</a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#charencoding">Character Encoding</a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#tempatesyntax">Template Invocation syntax</a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#partialtemplatespecialization">Partial Template Specialization</a>
+    <dt><img style="display:none" src="plus.gif" id="othercompilerissues"><a target="detail" href="implementation.html#othercompilerissues">Specific Compiler/Library Issues</a>
+    <dd><div id="othercompilerissues_detail"><dl class="page-index">
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#gcc3x">GCC 3.X,4.X</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#gcc295">GCC 2.95</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#intel80">Intel 8.0</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#vc80">Visual C++ 8.0</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#vc71">Visual C++ 7.1</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#vc70">Visual C++ 7.0</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#vc6">Visual C++ 6.0</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#borland">Borland 5.64 and 5.51</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#comeau">Comeau 4.3.3</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#codewarrior">Code Warrior 8.3</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#tru64">TRU64</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#dinkumware">Dinkumware Library</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="implementation.html#stlport">STLPort 4.5.3</a>
+    </dl></div></dd>
+    <dt><img style="display:none" src="plus.gif" id="headers"><a target="detail" href="headers.html">Code Structure</a>
+    <dd><div id="headers_detail"><dl class="page-index">
+      <dt><img style="display:none" src="plus.gif" id="userincludes"><a target="detail" href="headers.html#userincludes">Files Included by User Programs</a>
+      <dd><div id="userincludes_detail"><dl class="page-index">
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="headers.html#archiveimplementations">Archive Implementations</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="headers.html#serializationdeclarations">Serialization Declarations</a>
+        <dt><img style="display:none" 'rc="dot.gif"><a target="detail" href="headers.html#serializationimplementations">Serialization Implementations</a>
+      </dl></div>
+      <dt><img style="display:none" src="plus.gif" id="libraryimplementation"><a target="detail" href="headers.html#libraryimplementation">Files Which Implement the Library</a>
+      <dd><div id="libraryimplementation_detail"><dl class="page-index">
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="headers.html#archivedevelopment">Archive Development</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="headers.html#archiveinternals">Archive Internals</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="headers.html#codemodules">Archive Library Code Modules</a>
+        <dt><img style="display:none" src="dot.gif"><a target="detail" href="headers.html#dataflowiterators">Dataflow Iterators</a>
+      </dl></div></dd>
+    </dl></div></dd>
+  </dl></div></dd>
+  <dt><img style="display:none" src="plus.gif" id="case_studies">Case Studies
+  <dd><div id="case_studies_detail"><dl class="page-index">
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="shared_ptr.html">Template serialization - <code>shared_ptr&lt;class T&gt;</code></a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="shared_ptr2.html"><code>shared_ptr&lt;class T&gt;</code>Revisited</a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="pimpl.html">PIMPL</a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="simple_log.html">A Simple Logging Archive Class</a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="derivation.html">Derivation from an Existing Archive Class</a>
+  </dl></div></dd>
+  <dt><img style="display:none" src="plus.gif" id="otherclasses">Other Classes
+  <dd><div id="otherclasses_detail"><dl class="page-index">
+    <dt><img style="display:none" src="plus.gif" id="extended_type_info"><a target="detail" href="extended_type_info.html"><code>extended_type_info</code></a>
+    <dd><div id="extended_type_info_detail"><dl class="page-index">
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="extended_type_info.html#motivation">Motivation</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="extended_type_info.html#runtime">Runtime Interface</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="extended_type_info.html#requirements">Requirements</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="extended_type_info.html#models">Models</a>
+    </dl></div></dd>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="void_cast.html"><code>void_cast</code></a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="codecvt.html"><code>utf8_codecvt_facet</code></a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="strong_typedef.html"><code>BOOST_STRONG_TYPEDEF</code></a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="state_saver.html"><code>state_saver</code></a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="dataflow.html">Dataflow Iterators</a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="smart_cast.html"><code>smart_cast</code></a>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="static_warning.html"><code>BOOST_STATIC_WARNING</code></a>
+    <dt><img style="display:none" src="plus.gif" id="singleton"><a target="detail" href="singleton.html"><code>singleton</code></a>
+    <dd><div id="singleton_detail"><dl class="page-index">
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="singleton.html#motivation">Motivation</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="singleton.html#features">Features</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="singleton.html#classinterface">Class Interface</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="singleton.html#requirements">Requirements</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="singleton.html#examples">Examples</a>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="singleton.html#multithreading">Multi-Threading</a>
+    </dl></div></dd>
+  </dl></div></dd>
+  <!--
+  <dt><img style="display:none" src="dot.gif"><a target="detail" href="configuration.html">Configuration Information</a></dt>
+    -->
+  <dt><img style="display:none" src="dot.gif"><a target="detail" href="faq.html">Tips and Tricks</a>
+  <dt><img style="display:none" src="plus.gif" id="rationale"><a target="detail" href="rationale.html">Rationale</a></dt>
+  <dd><div id="rationale_detail"><dl class="page-index">
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="rationale.html#serialization">The term "serialization" is preferred to "persistence"</a></dt>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="rationale.html#archives">Archives are not streams</a></dt>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="rationale.html#typeid"><code style="white-space: normal">typeid</code> information is not included in archives</a></dt>
+  </dl></div></dd>
+
+  <dt><img style="display:none" src="plus.gif" id="todo"><a target="detail" href="todo.html">To Do</a></dt>
+  <dd><div id="todo_detail"><dl class="page-index">
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="todo.html#portablebinaryarchive">Portable Binary Archive</a></dt>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="todo.html#performancetesting">Performance Testing and Profiling</a></dt>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="todo.html#backversioning">Back Versioning</a></dt>
+    <dt><img style="display:none" src="dot.gif"><a target="detail" href="todo.html#nortti">Environments without RTTI</a></dt>
+
+    <dt><img style="display:none" src="plus.gif" id="newcasestudies"><a target="detail" href="new_case_studies.html">Proposed Case Studies</a></dt>
+    <dd><div id="newcasestudies_detail"><dl class="page-index">
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="new_case_studies.html#functionobject">Serializing a Function Object</a></dt>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="new_case_studies.html#archiveadaptor">Archive Adaptors</a></dt>
+      <dt><img style="display:none" src="dot.gif"><a target="detail" href="new_case_studies.html#archivehelper">Archive Helpers</a></dt>
+    </dl></div></dd>
+
+  </dl></div></dd>
+
+  <dt><img style="display:none" src="dot.gif"><a target="detail" href="history.html">History</a>
+  <!--
+  <dt><img style="display:none" src="dot.gif"><a target="detail" href="definitions.html">Definitions</a></dt>
+  <dt><img style="display:none" src="dot.gif"><a target="detail" href="faq.html">Frequently Asked Questions (FAQs)</a></dt>
+    -->
+  <dt><img style="display:none" src="dot.gif"><a target="detail" href="bibliography.html">Bibliography</a></dt>
+  <dt><img style="display:none" src="dot.gif"><a target="detail" href="acknowledgments.html">Acknowledgments</a></dt>
+</dl></div>
+</small>
+</body>
+</html>

@@ -1,0 +1,11 @@
+# Copyright 2002, 2003 Vladimir Prus 
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) 
+
+
+project lib2 ;
+use-project /lib2/helper : helper ;
+
+make c.obj : c.cpp : yfc-compile ;
+make d.obj : d.cpp : yfc-compile ;
+make l.exe : c.obj ..//a.obj : yfc-link ;

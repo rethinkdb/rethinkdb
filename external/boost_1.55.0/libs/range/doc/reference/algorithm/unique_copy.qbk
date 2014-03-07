@@ -1,0 +1,49 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:unique_copy unique_copy]
+
+[heading Prototype]
+
+``
+template<class SinglePassRange, class OutputIterator>
+OutputIterator unique_copy(const SinglePassRange& rng, OutputIterator out);
+
+template<class SinglePassRange, class OutputIterator, class BinaryPredicate>
+OutputIterator unique_copy(const SinglePassRange& rng, OutputIterator out, BinaryPredicate pred);
+``
+
+[heading Description]
+
+`unique_copy` copies the first element of each sequence of duplicates encountered in `rng` to `out`.
+
+Equality is determined by the predicate if one is supplied, or by `operator==()` for `SinglePassRange`'s value type.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/unique_copy.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate versions of unique:]
+
+* `SinglePassRange` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange` is mutable.
+* `SinglePassRange`'s value type is a model of the `EqualityComparableConcept`.
+* `OutputIterator` is a model of the `OutputIteratorConcept`.
+
+[*For the predicate versions of unique:]
+
+* `SinglePassRange` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange` is mutable.
+* `BinaryPredicate` is a model of the `BinaryPredicateConcept`.
+* `SinglePassRange`'s value type is convertible to `BinaryPredicate`'s first argument type and to `BinaryPredicate`'s second argument type.
+* `OutputIterator` is a model of the `OutputIteratorConcept`.
+
+[heading Complexity]
+
+Linear. `O(N)` where `N` is `distance(rng)`. Exactly `distance(rng)` comparisons are performed.
+
+[endsect]

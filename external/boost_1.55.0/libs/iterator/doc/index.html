@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>The Boost.Iterator Library Boost</title>
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="the-boost-iterator-library-logo">
+<h1 class="title">The Boost.Iterator Library <a class="reference external" href="../../../index.htm"><img alt="Boost" src="../../../boost.png" /></a></h1>
+
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<hr class="docutils" />
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Authors:</th><td class="field-body">David Abrahams, Jeremy Siek, Thomas Witt</td>
+</tr>
+<tr class="field"><th class="field-name">Contact:</th><td class="field-body"><a class="reference external" href="mailto:dave&#64;boost-consulting.com">dave&#64;boost-consulting.com</a>, <a class="reference external" href="mailto:jsiek&#64;osl.iu.edu">jsiek&#64;osl.iu.edu</a>, <a class="reference external" href="mailto:witt&#64;styleadvisor.com">witt&#64;styleadvisor.com</a></td>
+</tr>
+<tr class="field"><th class="field-name">organizations:</th><td class="field-body"><a class="reference external" href="http://www.boost-consulting.com">Boost Consulting</a>, Indiana University <a class="reference external" href="http://www.osl.iu.edu">Open Systems
+Lab</a>, <a class="reference external" href="http://www.styleadvisor.com">Zephyr Associates, Inc.</a></td>
+</tr>
+<tr class="field"><th class="field-name">date:</th><td class="field-body">$Date: 2011-03-29 14:17:11 -0700 (Tue, 29 Mar 2011) $</td>
+</tr>
+<tr class="field"><th class="field-name">copyright:</th><td class="field-body">Copyright David Abrahams, Jeremy Siek, Thomas Witt 2003.</td>
+</tr>
+</tbody>
+</table>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Abstract:</th><td class="field-body">The Boost Iterator Library contains two parts. The first
+is a system of <a class="reference external" href="http://www.boost.org/more/generic_programming.html#concept">concepts</a> which extend the C++ standard
+iterator requirements. The second is a framework of
+components for building iterators based on these
+extended concepts and includes several useful iterator
+adaptors. The extended iterator concepts have been
+carefully designed so that old-style iterators
+can fit in the new concepts and so that new-style
+iterators will be compatible with old-style algorithms,
+though algorithms may need to be updated if they want to
+take full advantage of the new-style iterator
+capabilities.  Several components of this library have
+been accepted into the C++ standard technical report.
+The components of the Boost Iterator Library replace the
+older Boost Iterator Adaptor Library.</td>
+</tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first"><strong>Table of Contents</strong></p>
+<ul class="simple">
+<li><a class="reference internal" href="#new-style-iterators" id="id23">New-Style Iterators</a></li>
+<li><a class="reference internal" href="#iterator-facade-and-adaptor" id="id24">Iterator Facade and Adaptor</a></li>
+<li><a class="reference internal" href="#specialized-adaptors" id="id25">Specialized Adaptors</a></li>
+<li><a class="reference internal" href="#iterator-utilities" id="id26">Iterator Utilities</a><ul>
+<li><a class="reference internal" href="#traits" id="id27">Traits</a></li>
+<li><a class="reference internal" href="#testing-and-concept-checking" id="id28">Testing and Concept Checking</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#upgrading-from-the-old-boost-iterator-adaptor-library" id="id29">Upgrading from the old Boost Iterator Adaptor Library</a></li>
+<li><a class="reference internal" href="#history" id="id30">History</a></li>
+</ul>
+</div>
+<hr class="docutils" />
+<div class="section" id="new-style-iterators">
+<h1><a class="toc-backref" href="#id23">New-Style Iterators</a></h1>
+<p>The iterator categories defined in C++98 are extremely limiting
+because they bind together two orthogonal concepts: traversal and
+element access.  For example, because a random access iterator is
+required to return a reference (and not a proxy) when dereferenced,
+it is impossible to capture the capabilities of
+<tt class="docutils literal"><span class="pre">vector&lt;bool&gt;::iterator</span></tt> using the C++98 categories.  This is the
+infamous &quot;<tt class="docutils literal"><span class="pre">vector&lt;bool&gt;</span></tt> is not a container, and its iterators
+aren't random access iterators&quot;, debacle about which Herb Sutter
+wrote two papers for the standards comittee (<a class="reference external" href="http://www.gotw.ca/publications/N1185.pdf">n1185</a> and <a class="reference external" href="http://www.gotw.ca/publications/N1211.pdf">n1211</a>),
+and a <a class="reference external" href="http://www.gotw.ca/gotw/050.htm">Guru of the Week</a>.  New-style iterators go well beyond
+patching up <tt class="docutils literal"><span class="pre">vector&lt;bool&gt;</span></tt>, though: there are lots of other
+iterators already in use which can't be adequately represented by
+the existing concepts.  For details about the new iterator
+concepts, see our</p>
+<blockquote>
+<a class="reference external" href="new-iter-concepts.html">Standard Proposal For New-Style Iterators</a> (<a class="reference external" href="new-iter-concepts.pdf">PDF</a>)</blockquote>
+</div>
+<div class="section" id="iterator-facade-and-adaptor">
+<h1><a class="toc-backref" href="#id24">Iterator Facade and Adaptor</a></h1>
+<p>Writing standard-conforming iterators is tricky, but the need comes
+up often.  In order to ease the implementation of new iterators,
+the Boost.Iterator library provides the <tt class="docutils literal"><span class="pre">iterator_facade</span></tt> class template,
+which implements many useful defaults and compile-time checks
+designed to help the iterator author ensure that his iterator is
+correct.</p>
+<p>It is also common to define a new iterator that is similar to some
+underlying iterator or iterator-like type, but that modifies some
+aspect of the underlying type's behavior.  For that purpose, the
+library supplies the <tt class="docutils literal"><span class="pre">iterator_adaptor</span></tt> class template, which is specially
+designed to take advantage of as much of the underlying type's
+behavior as possible.</p>
+<p>The documentation for these two classes can be found at the following
+web pages:</p>
+<ul class="simple">
+<li><a class="reference external" href="iterator_facade.html"><tt class="docutils literal"><span class="pre">iterator_facade</span></tt></a> (<a class="reference external" href="iterator_facade.pdf">PDF</a>)</li>
+<li><a class="reference external" href="iterator_adaptor.html"><tt class="docutils literal"><span class="pre">iterator_adaptor</span></tt></a> (<a class="reference external" href="iterator_adaptor.pdf">PDF</a>)</li>
+</ul>
+<p>Both <tt class="docutils literal"><span class="pre">iterator_facade</span></tt> and <tt class="docutils literal"><span class="pre">iterator_adaptor</span></tt> as well as many of the <a class="reference internal" href="#specialized-adaptors">specialized
+adaptors</a> mentioned below have been proposed for standardization,
+and accepted into the first C++ technical report; see our</p>
+<blockquote>
+<a class="reference external" href="facade-and-adaptor.html">Standard Proposal For Iterator Facade and Adaptor</a> (<a class="reference external" href="facade-and-adaptor.pdf">PDF</a>)</blockquote>
+<p>for more details.</p>
+</div>
+<div class="section" id="specialized-adaptors">
+<h1><a class="toc-backref" href="#id25">Specialized Adaptors</a></h1>
+<p>The iterator library supplies a useful suite of standard-conforming
+iterator templates based on the Boost <a class="reference internal" href="#iterator-facade-and-adaptor">iterator facade and adaptor</a>.</p>
+<ul class="simple">
+<li><a class="reference external" href="counting_iterator.html"><tt class="docutils literal"><span class="pre">counting_iterator</span></tt></a> (<a class="reference external" href="counting_iterator.pdf">PDF</a>): an iterator over a sequence of consecutive values.
+Implements a &quot;lazy sequence&quot;</li>
+<li><a class="reference external" href="filter_iterator.html"><tt class="docutils literal"><span class="pre">filter_iterator</span></tt></a> (<a class="reference external" href="filter_iterator.pdf">PDF</a>): an iterator over the subset of elements of some
+sequence which satisfy a given predicate</li>
+<li><a class="reference external" href="function_input_iterator.html"><tt class="docutils literal"><span class="pre">function_input_iterator</span></tt></a> (<a class="reference external" href="function_input_iterator.pdf">PDF</a>): an input iterator wrapping a generator (nullary
+function object); each time the iterator is dereferenced, the function object
+is called to get the value to return.</li>
+<li><a class="reference external" href="function_output_iterator.html"><tt class="docutils literal"><span class="pre">function_output_iterator</span></tt></a> (<a class="reference external" href="function_output_iterator.pdf">PDF</a>): an output iterator wrapping a unary function
+object; each time an element is written into the dereferenced
+iterator, it is passed as a parameter to the function object.</li>
+<li><a class="reference external" href="indirect_iterator.html"><tt class="docutils literal"><span class="pre">indirect_iterator</span></tt></a> (<a class="reference external" href="indirect_iterator.pdf">PDF</a>): an iterator over the objects <em>pointed-to</em> by the
+elements of some sequence.</li>
+<li><a class="reference external" href="permutation_iterator.html"><tt class="docutils literal"><span class="pre">permutation_iterator</span></tt></a> (<a class="reference external" href="permutation_iterator.pdf">PDF</a>): an iterator over the elements of some random-access
+sequence, rearranged according to some sequence of integer indices.</li>
+<li><a class="reference external" href="reverse_iterator.html"><tt class="docutils literal"><span class="pre">reverse_iterator</span></tt></a> (<a class="reference external" href="reverse_iterator.pdf">PDF</a>): an iterator which traverses the elements of some
+bidirectional sequence in reverse.  Corrects many of the
+shortcomings of C++98's <tt class="docutils literal"><span class="pre">std::reverse_iterator</span></tt>.</li>
+<li><a class="reference external" href="../../utility/shared_container_iterator.html"><tt class="docutils literal"><span class="pre">shared_container_iterator</span></tt></a>: an iterator over elements of a container whose
+lifetime is maintained by a <a class="reference external" href="../../smart_ptr/shared_ptr.htm"><tt class="docutils literal"><span class="pre">shared_ptr</span></tt></a> stored in the iterator.</li>
+<li><a class="reference external" href="transform_iterator.html"><tt class="docutils literal"><span class="pre">transform_iterator</span></tt></a> (<a class="reference external" href="transform_iterator.pdf">PDF</a>): an iterator over elements which are the result of
+applying some functional transformation to the elements of an
+underlying sequence.  This component also replaces the old
+<tt class="docutils literal"><span class="pre">projection_iterator_adaptor</span></tt>.</li>
+<li><a class="reference external" href="zip_iterator.html"><tt class="docutils literal"><span class="pre">zip_iterator</span></tt></a> (<a class="reference external" href="zip_iterator.pdf">PDF</a>): an iterator over tuples of the elements at corresponding
+positions of heterogeneous underlying iterators.</li>
+</ul>
+</div>
+<div class="section" id="iterator-utilities">
+<h1><a class="toc-backref" href="#id26">Iterator Utilities</a></h1>
+<div class="section" id="traits">
+<h2><a class="toc-backref" href="#id27">Traits</a></h2>
+<ul class="simple">
+<li><a class="reference external" href="pointee.html"><tt class="docutils literal"><span class="pre">pointee.hpp</span></tt></a> (<a class="reference external" href="pointee.pdf">PDF</a>): Provides the capability to deduce the referent types
+of pointers, smart pointers and iterators in generic code.  Used
+in <tt class="docutils literal"><span class="pre">indirect_iterator</span></tt>.</li>
+<li><a class="reference external" href="iterator_traits.html"><tt class="docutils literal"><span class="pre">iterator_traits.hpp</span></tt></a> (<a class="reference external" href="iterator_traits.pdf">PDF</a>): Provides <a class="reference external" href="../../mpl/doc/index.html">MPL</a>-compatible metafunctions which
+retrieve an iterator's traits.  Also corrects for the deficiencies
+of broken implementations of <tt class="docutils literal"><span class="pre">std::iterator_traits</span></tt>.</li>
+</ul>
+<!-- * |interoperable|_ (PDF__): Provides an MPL_\ -compatible metafunction for
+testing iterator interoperability -->
+<!-- comment! __ interoperable.pdf -->
+</div>
+<div class="section" id="testing-and-concept-checking">
+<h2><a class="toc-backref" href="#id28">Testing and Concept Checking</a></h2>
+<ul class="simple">
+<li><a class="reference external" href="iterator_concepts.html"><tt class="docutils literal"><span class="pre">iterator_concepts.hpp</span></tt></a> (<a class="reference external" href="iterator_concepts.pdf">PDF</a>): Concept checking classes for the new iterator concepts.</li>
+<li><a class="reference external" href="iterator_archetypes.html"><tt class="docutils literal"><span class="pre">iterator_archetypes.hpp</span></tt></a> (<a class="reference external" href="iterator_archetypes.pdf">PDF</a>): Concept archetype classes for the new iterators concepts.</li>
+</ul>
+</div>
+</div>
+<div class="section" id="upgrading-from-the-old-boost-iterator-adaptor-library">
+<h1><a class="toc-backref" href="#id29">Upgrading from the old Boost Iterator Adaptor Library</a></h1>
+<p id="upgrading">If you have been using the old Boost Iterator Adaptor library to
+implement iterators, you probably wrote a <tt class="docutils literal"><span class="pre">Policies</span></tt> class which
+captures the core operations of your iterator.  In the new library
+design, you'll move those same core operations into the body of the
+iterator class itself.  If you were writing a family of iterators,
+you probably wrote a <a class="reference external" href="http://www.boost.org/more/generic_programming.html#type_generator">type generator</a> to build the
+<tt class="docutils literal"><span class="pre">iterator_adaptor</span></tt> specialization you needed; in the new library
+design you don't need a type generator (though may want to keep it
+around as a compatibility aid for older code) because, due to the
+use of the Curiously Recurring Template Pattern (CRTP) <a class="citation-reference" href="#cop95" id="id22">[Cop95]</a>,
+you can now define the iterator class yourself and acquire
+functionality through inheritance from <tt class="docutils literal"><span class="pre">iterator_facade</span></tt> or
+<tt class="docutils literal"><span class="pre">iterator_adaptor</span></tt>.  As a result, you also get much finer control
+over how your iterator works: you can add additional constructors,
+or even override the iterator functionality provided by the
+library.</p>
+<p>If you're looking for the old <tt class="docutils literal"><span class="pre">projection_iterator</span></tt> component,
+its functionality has been merged into <tt class="docutils literal"><span class="pre">transform_iterator</span></tt>: as
+long as the function object's <tt class="docutils literal"><span class="pre">result_type</span></tt> (or the <tt class="docutils literal"><span class="pre">Reference</span></tt>
+template argument, if explicitly specified) is a true reference
+type, <tt class="docutils literal"><span class="pre">transform_iterator</span></tt> will behave like
+<tt class="docutils literal"><span class="pre">projection_iterator</span></tt> used to.</p>
+</div>
+<div class="section" id="history">
+<h1><a class="toc-backref" href="#id30">History</a></h1>
+<p>In 2000 Dave Abrahams was writing an iterator for a container of
+pointers, which would access the pointed-to elements when
+dereferenced.  Naturally, being a library writer, he decided to
+generalize the idea and the Boost Iterator Adaptor library was born.
+Dave was inspired by some writings of Andrei Alexandrescu and chose a
+policy based design (though he probably didn't capture Andrei's idea
+very well - there was only one policy class for all the iterator's
+orthogonal properties).  Soon Jeremy Siek realized he would need the
+library and they worked together to produce a &quot;Boostified&quot; version,
+which was reviewed and accepted into the library.  They wrote a paper
+and made several important revisions of the code.</p>
+<p>Eventually, several shortcomings of the older library began to make
+the need for a rewrite apparent.  Dave and Jeremy started working
+at the Santa Cruz C++ committee meeting in 2002, and had quickly
+generated a working prototype.  At the urging of Mat Marcus, they
+decided to use the GenVoca/CRTP pattern approach, and moved the
+policies into the iterator class itself.  Thomas Witt expressed
+interest and became the voice of strict compile-time checking for
+the project, adding uses of the SFINAE technique to eliminate false
+converting constructors and operators from the overload set.  He
+also recognized the need for a separate <tt class="docutils literal"><span class="pre">iterator_facade</span></tt>, and
+factored it out of <tt class="docutils literal"><span class="pre">iterator_adaptor</span></tt>.  Finally, after a
+near-complete rewrite of the prototype, they came up with the
+library you see today.</p>
+<table class="docutils citation" frame="void" id="cop95" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id22">[Cop95]</a></td><td>[Coplien, 1995] Coplien, J., Curiously Recurring Template
+Patterns, C++ Report, February 1995, pp. 24-27.</td></tr>
+</tbody>
+</table>
+<!-- LocalWords:  Abrahams Siek Witt const bool Sutter's WG int UL LI href Lvalue
+LocalWords:  ReadableIterator WritableIterator SwappableIterator cv pre iter
+LocalWords:  ConstantLvalueIterator MutableLvalueIterator CopyConstructible TR
+LocalWords:  ForwardTraversalIterator BidirectionalTraversalIterator lvalue
+LocalWords:  RandomAccessTraversalIterator dereferenceable Incrementable tmp
+LocalWords:  incrementable xxx min prev inplace png oldeqnew AccessTag struct
+LocalWords:  TraversalTag typename lvalues DWA Hmm JGS -->
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+<a class="reference external" href="index.rst">View document source</a>.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

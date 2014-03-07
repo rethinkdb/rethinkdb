@@ -1,0 +1,186 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Maps</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../semantics.html" title="Semantics">
+<link rel="prev" href="sets.html" title="Sets">
+<link rel="next" href="collectors__maps_of_sets.html" title="Collectors: Maps of Sets">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sets.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../semantics.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="collectors__maps_of_sets.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_semantics_maps" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.semantics.maps"></a><a class="link" href="maps.html" title="Maps">Maps</a>
+</h3></div></div></div>
+<p>
+        By definition a map is set of pairs. So we would expect maps to obey the
+        same laws that are valid for sets. Yet the semantics of the <span class="bold"><strong>icl's</strong></span>
+        maps may be a different one, because of it's aggregating facilities, where
+        the aggregating combiner operations are passed to combine the map's associated
+        values. It turns out, that the aggregation on overlap principle induces semantic
+        properties to icl maps in such a way, that the set of equations that are
+        valid will depend on the semantics of the type <code class="computeroutput"><span class="identifier">CodomainT</span></code>
+        of the map's associated values.
+      </p>
+<p>
+        This is less magical as it might seem at first glance. If, for instance,
+        we instantiate an <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+        to collect and concatenate <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">strings</span></code>
+        associated to intervals,
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting"><span class="identifier">interval_map</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">cat_map</span><span class="special">;</span>
+<span class="identifier">cat_map</span> <span class="special">+=</span> <span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">rightopen</span><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="number">5</span><span class="special">),</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="string">"Hello"</span><span class="special">));</span>
+<span class="identifier">cat_map</span> <span class="special">+=</span> <span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">rightopen</span><span class="special">(</span><span class="number">3</span><span class="special">,</span><span class="number">7</span><span class="special">),</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="string">" World"</span><span class="special">));</span>
+<span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"cat_map: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">cat_map</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        we won't be able to apply <code class="computeroutput"><span class="keyword">operator</span>
+        <span class="special">-=</span></code> 
+</p>
+<pre class="programlisting"><span class="comment">// This will not compile because string::operator -= is missing.
+</span><span class="identifier">cat_map</span> <span class="special">-=</span> <span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">rightopen</span><span class="special">(</span><span class="number">3</span><span class="special">,</span><span class="number">7</span><span class="special">),</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="string">" World"</span><span class="special">));</span>
+</pre>
+<p>
+        because, as std::sting does not implement <code class="computeroutput"><span class="special">-=</span></code>
+        itself, this won't compile. So all <span class="bold"><strong>laws</strong></span>,
+        that rely on <code class="computeroutput"><span class="keyword">operator</span> <span class="special">-=</span></code>
+        or <code class="computeroutput"><span class="special">-</span></code> not only will not be valid
+        they can not even be stated. This reduces the set of laws that can be valid
+        for a richer <code class="computeroutput"><span class="identifier">CodomainT</span></code> type
+        to a smaller set of laws and thus to a less restricted semantics.
+      </p>
+<p>
+        Currently we have investigated and validated two major instantiations of
+        icl::Maps,
+      </p>
+<div class="itemizedlist"><ul type="disc">
+<li>
+<span class="emphasis"><em><span class="bold"><strong>Maps of Sets</strong></span></em></span> that
+          will be called <span class="emphasis"><em><span class="bold"><strong>Collectors</strong></span></em></span>
+          and
+        </li>
+<li>
+<span class="emphasis"><em><span class="bold"><strong>Maps of Numbers</strong></span></em></span> which
+          will be called <span class="emphasis"><em><span class="bold"><strong>Quantifiers</strong></span></em></span>
+</li>
+</ul></div>
+<p>
+        both of which seem to have many interesting use cases for practical applications.
+        The semantics associated with the term <span class="emphasis"><em>Numbers</em></span> is a
+        <a href="http://en.wikipedia.org/wiki/Monoid" target="_top">commutative monoid</a>
+        for unsigned numbers and a <a href="http://en.wikipedia.org/wiki/Abelian_group" target="_top">commutative
+        or abelian group</a> for signed numbers. From a practical point of view
+        we can think of numbers as counting or quantifying the key values of the
+        map.
+      </p>
+<p>
+        Icl <span class="emphasis"><em><span class="bold"><strong>Maps of Sets</strong></span></em></span> or
+        <span class="emphasis"><em><span class="bold"><strong>Collectors</strong></span></em></span> are models
+        of concept <code class="computeroutput"><span class="identifier">Set</span></code>. This implies
+        that all laws that have been stated as a semantics for <code class="computeroutput"><span class="identifier">icl</span><span class="special">::</span><span class="identifier">Sets</span></code>
+        in the previous chapter also hold for <code class="computeroutput"><span class="identifier">Maps</span>
+        <span class="identifier">of</span> <span class="identifier">Sets</span></code>.
+        Icl <span class="emphasis"><em><span class="bold"><strong>Maps of Numbers</strong></span></em></span>
+        or <span class="emphasis"><em><span class="bold"><strong>Quantifiers</strong></span></em></span> on the
+        contrary are not models of concept <code class="computeroutput"><span class="identifier">Set</span></code>.
+        But there is a substantial intersection of laws that apply both for <code class="computeroutput"><span class="identifier">Collectors</span></code> and <code class="computeroutput"><span class="identifier">Quantifiers</span></code>.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Kind of Map
+              </p>
+              </th>
+<th>
+              <p>
+                Alias
+              </p>
+              </th>
+<th>
+              <p>
+                Behavior
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                Maps of Sets
+              </p>
+              </td>
+<td>
+              <p>
+                Collector
+              </p>
+              </td>
+<td>
+              <p>
+                Collects items <span class="bold"><strong>for</strong></span> key values
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Maps of Numbers
+              </p>
+              </td>
+<td>
+              <p>
+                Quantifier
+              </p>
+              </td>
+<td>
+              <p>
+                Counts or quantifies <span class="bold"><strong>the</strong></span> key values
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        In the next two sections the law based semantics of <span class="emphasis"><em><span class="bold"><strong>Collectors</strong></span></em></span>
+        and <span class="emphasis"><em><span class="bold"><strong>Quantifiers</strong></span></em></span> will
+        be described in more detail.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="sets.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../semantics.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="collectors__maps_of_sets.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

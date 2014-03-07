@@ -1,0 +1,346 @@
+# Copyright 2001, 2002, 2003 Dave Abrahams
+# Copyright 2006 Rene Rivera
+# Copyright 2002, 2003 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import errors ;
+import modules ;
+
+
+################################################################################
+#
+# Private implementation details.
+#
+################################################################################
+
+# Rule added as a replacement for the regular Jam = operator but which does not
+# ignore trailing empty string elements.
+#
+local rule exact-equal-test ( lhs * : rhs * )
+{
+    local lhs_extended = $(lhs) xxx ;
+    local rhs_extended = $(rhs) xxx ;
+    if $(lhs_extended) = $(rhs_extended)
+    {
+        return true ;
+    }
+}
+
+
+# Two lists are considered set-equal if they contain the same elements, ignoring
+# duplicates and ordering.
+#
+local rule set-equal-test ( set1 * : set2 * )
+{
+    if ( $(set1) in $(set2) ) && ( $(set2) in $(set1) )
+    {
+        return true ;
+    }
+}
+
+
+################################################################################
+#
+# Public interface.
+#
+################################################################################
+
+# Assert the equality of A and B, ignoring trailing empty string elements.
+#
+rule equal ( a * : b * )
+{
+    if $(a) != $(b)
+    {
+        errors.error-skip-frames 3 assertion failure: \"$(a)\" "==" \"$(b)\"
+            (ignoring trailing empty strings) ;
+    }
+}
+
+
+# Assert that the result of calling RULE-NAME on the given arguments has a false
+# logical value (is either an empty list or all empty strings).
+#
+rule false ( rule-name args * : * )
+{
+    local result ;
+    module [ CALLER_MODULE ]
+    {
+        modules.poke assert : result : [ $(1) : $(2) : $(3) : $(4) : $(5) : $(6)
+            : $(7) : $(8) : $(9) : $(10) : $(11) : $(12) : $(13) : $(14) : $(15)
+            : $(16) : $(17) : $(18) : $(19) ] ;
+    }
+
+    if $(result)
+    {
+        errors.error-skip-frames 3 assertion failure: Expected false result from
+            "[" $(rule-name) [ errors.lol->list $(args) : $(2) : $(3) : $(4) :
+            $(5) : $(6) : $(7) : $(8) : $(9) : $(10) : $(11) : $(12) : $(13) :
+            $(14) : $(15) : $(16) : $(17) : $(18) : $(19) ] "]" : Got: "["
+            \"$(result)\" "]" ;
+    }
+}
+
+
+# Assert that ELEMENT is present in LIST.
+#
+rule "in" ( element : list * )
+{
+    if ! $(element) in $(list)
+    {
+        errors.error-skip-frames 3 assertion failure: Expected \"$(element)\" in
+            "[" \"$(list)\" "]" ;
+    }
+}
+
+
+# Assert the inequality of A and B, ignoring trailing empty string elements.
+#
+rule not-equal ( a * : b * )
+{
+    if $(a) = $(b)
+    {
+        errors.error-skip-frames 3 assertion failure: \"$(a)\" "!=" \"$(b)\"
+            (ignoring trailing empty strings) ;
+    }
+}
+
+
+# Assert that ELEMENT is not present in LIST.
+#
+rule not-in ( element : list * )
+{
+    if $(element) in $(list)
+    {
+        errors.error-skip-frames 3 assertion failure: Did not expect
+            \"$(element)\" in "[" \"$(list)\" "]" ;
+    }
+}
+
+
+# Assert the inequality of A and B as sets.
+#
+rule not-set-equal ( a * : b * )
+{
+    if [ set-equal-test $(a) : $(b) ]
+    {
+        errors.error-skip-frames 3 assertion failure: Expected "[" \"$(a)\" "]"
+            and "[" \"$(b)\" "]" to not be equal as sets ;
+    }
+}
+
+
+# Assert that A and B are not exactly equal, not ignoring trailing empty string
+# elements.
+#
+rule not-exact-equal ( a * : b * )
+{
+    if [ exact-equal-test $(a) : $(b) ]
+    {
+        errors.error-skip-frames 3 assertion failure: \"$(a)\" "!=" \"$(b)\" ;
+    }
+}
+
+
+# Assert that EXPECTED is the result of calling RULE-NAME with the given
+# arguments.
+#
+rule result ( expected * : rule-name args * : * )
+{
+    local result ;
+    module [ CALLER_MODULE ]
+    {
+        modules.poke assert : result : [ $(2) : $(3) : $(4) : $(5) : $(6) : $(7)
+            : $(8) : $(9) : $(10) : $(11) : $(12) : $(13) : $(14) : $(15) :
+            $(16) : $(17) : $(18) : $(19) ] ;
+    }
+
+    if ! [ exact-equal-test $(result) : $(expected) ]
+    {
+        errors.error-skip-frames 3 assertion failure: "[" $(rule-name) [
+            errors.lol->list $(args) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) :
+            $(9) : $(10) : $(11) : $(12) : $(13) : $(14) : $(15) : $(16) : $(17)
+            : $(18) : $(19) ] "]" : Expected: "[" \"$(expected)\" "]" : Got: "["
+            \"$(result)\" "]" ;
+    }
+}
+
+
+# Assert that EXPECTED is set-equal (i.e. duplicates and ordering are ignored)
+# to the result of calling RULE-NAME with the given arguments. Note that rules
+# called this way may accept at most 18 parameters.
+#
+rule result-set-equal ( expected * : rule-name args * : * )
+{
+    local result ;
+    module [ CALLER_MODULE ]
+    {
+        modules.poke assert : result : [ $(2) : $(3) : $(4) : $(5) : $(6) : $(7)
+            : $(8) : $(9) : $(10) : $(11) : $(12) : $(13) : $(14) : $(15) :
+            $(16) : $(17) : $(18) : $(19) ] ;
+    }
+
+    if ! [ set-equal-test $(result) : $(expected) ]
+    {
+        errors.error-skip-frames 3 assertion failure: "[" $(rule-name) [
+            errors.lol->list $(args) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) :
+            $(9) : $(10) : $(11) : $(12) : $(13) : $(14) : $(15) : $(16) : $(17)
+            : $(18) : $(19) ] "]" : Expected: "[" \"$(expected)\" "]" : Got: "["
+            \"$(result)\" "]" ;
+    }
+}
+
+
+# Assert the equality of A and B as sets.
+#
+rule set-equal ( a * : b * )
+{
+    if ! [ set-equal-test $(a) : $(b) ]
+    {
+        errors.error-skip-frames 3 assertion failure: Expected "[" \"$(a)\" "]"
+            and "[" \"$(b)\" "]" to be equal as sets ;
+    }
+}
+
+
+# Assert that the result of calling RULE-NAME on the given arguments has a true
+# logical value (is neither an empty list nor all empty strings).
+#
+rule true ( rule-name args * : * )
+{
+    local result ;
+    module [ CALLER_MODULE ]
+    {
+        modules.poke assert : result : [ $(1) : $(2) : $(3) : $(4) : $(5) : $(6)
+            : $(7) : $(8) : $(9) : $(10) : $(11) : $(12) : $(13) : $(14) : $(15)
+            : $(16) : $(17) : $(18) : $(19) ] ;
+    }
+
+    if ! $(result)
+    {
+        errors.error-skip-frames 3 assertion failure: Expected true result from
+            "[" $(rule-name) [ errors.lol->list $(args) : $(2) : $(3) : $(4) :
+            $(5) : $(6) : $(7) : $(8) : $(9) : $(10) : $(11) : $(12) : $(13) :
+            $(14) : $(15) : $(16) : $(17) : $(18) : $(19) ] "]" ;
+    }
+}
+
+
+# Assert the exact equality of A and B, not ignoring trailing empty string
+# elements.
+#
+rule exact-equal ( a * : b * )
+{
+    if ! [ exact-equal-test $(a) : $(b) ]
+    {
+        errors.error-skip-frames 3 assertion failure: \"$(a)\" "==" \"$(b)\" ;
+    }
+}
+
+
+# Assert that the given variable is not an empty list.
+#
+rule variable-not-empty ( name )
+{
+    local value = [ modules.peek [ CALLER_MODULE ] : $(name) ] ;
+    if ! $(value)-is-not-empty
+    {
+        errors.error-skip-frames 3 assertion failure: Expected variable
+            \"$(name)\" not to be an empty list ;
+    }
+}
+
+
+rule __test__ ( )
+{
+    # Helper rule used to avoid test duplication related to different list
+    # equality test rules.
+    #
+    local rule run-equality-test ( equality-assert : ignore-trailing-empty-strings ? )
+    {
+        local not-equality-assert = not-$(equality-assert) ;
+
+        # When the given equality test is expected to ignore trailing empty
+        # strings some of the test results should be inverted.
+        local not-equality-assert-i = not-$(equality-assert) ;
+        if $(ignore-trailing-empty-strings)
+        {
+            not-equality-assert-i = $(equality-assert) ;
+        }
+
+            $(equality-assert)         :       ;
+            $(equality-assert)   "" "" : "" "" ;
+        $(not-equality-assert-i)       : "" "" ;
+            $(equality-assert)   x     : x     ;
+        $(not-equality-assert)         : x     ;
+        $(not-equality-assert)   ""    : x     ;
+        $(not-equality-assert)   "" "" : x     ;
+        $(not-equality-assert-i) x     : x ""  ;
+            $(equality-assert)   x ""  : x ""  ;
+        $(not-equality-assert)   x     : "" x  ;
+            $(equality-assert)   "" x  : "" x  ;
+
+            $(equality-assert) 1 2 3 : 1 2 3   ;
+        $(not-equality-assert) 1 2 3 : 3 2 1   ;
+        $(not-equality-assert) 1 2 3 : 1 5 3   ;
+        $(not-equality-assert) 1 2 3 : 1 "" 3  ;
+        $(not-equality-assert) 1 2 3 : 1 1 2 3 ;
+        $(not-equality-assert) 1 2 3 : 1 2 2 3 ;
+        $(not-equality-assert) 1 2 3 : 5 6 7   ;
+
+        # Extra variables used here just to make sure Boost Jam or Boost Build
+        # do not handle lists with empty strings differently depending on
+        # whether they are literals or stored in variables.
+
+        local empty           =         ;
+        local empty-strings   = "" ""   ;
+        local x-empty-strings = x "" "" ;
+        local empty-strings-x = "" "" x ;
+
+            $(equality-assert)                      : $(empty)           ;
+        $(not-equality-assert-i) ""                 : $(empty)           ;
+        $(not-equality-assert-i) "" ""              : $(empty)           ;
+        $(not-equality-assert-i)                    : $(empty-strings)   ;
+        $(not-equality-assert-i) ""                 : $(empty-strings)   ;
+            $(equality-assert)   "" ""              : $(empty-strings)   ;
+            $(equality-assert)   $(empty)           : $(empty)           ;
+            $(equality-assert)   $(empty-strings)   : $(empty-strings)   ;
+        $(not-equality-assert-i) $(empty)           : $(empty-strings)   ;
+            $(equality-assert)   $(x-empty-strings) : $(x-empty-strings) ;
+            $(equality-assert)   $(empty-strings-x) : $(empty-strings-x) ;
+        $(not-equality-assert)   $(empty-strings-x) : $(x-empty-strings) ;
+        $(not-equality-assert-i) x                  : $(x-empty-strings) ;
+        $(not-equality-assert)   x                  : $(empty-strings-x) ;
+        $(not-equality-assert-i) x                  : $(x-empty-strings) ;
+        $(not-equality-assert-i) x ""               : $(x-empty-strings) ;
+            $(equality-assert)   x "" ""            : $(x-empty-strings) ;
+        $(not-equality-assert)   x                  : $(empty-strings-x) ;
+        $(not-equality-assert)   "" x               : $(empty-strings-x) ;
+            $(equality-assert)   "" "" x            : $(empty-strings-x) ;
+    }
+
+
+    # ---------------
+    # Equality tests.
+    # ---------------
+
+    run-equality-test equal : ignore-trailing-empty-strings ;
+    run-equality-test exact-equal ;
+
+
+    # -------------------------
+    # assert.set-equal() tests.
+    # -------------------------
+
+        set-equal         :         ;
+    not-set-equal "" ""   :         ;
+        set-equal "" ""   : ""      ;
+        set-equal "" ""   : "" ""   ;
+        set-equal a b c   : a b c   ;
+        set-equal a b c   : b c a   ;
+        set-equal a b c a : a b c   ;
+        set-equal a b c   : a b c a ;
+    not-set-equal a b c   : a b c d ;
+    not-set-equal a b c d : a b c   ;
+}

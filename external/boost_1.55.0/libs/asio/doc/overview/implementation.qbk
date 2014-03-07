@@ -1,0 +1,305 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:implementation Platform-Specific Implementation Notes]
+
+This section lists platform-specific implementation details, such as the
+default demultiplexing mechanism, the number of threads created internally, and
+when threads are created.
+
+
+[heading Linux Kernel 2.4]
+
+Demultiplexing mechanism:
+
+* Uses `select` for demultiplexing. This means that the number of file
+descriptors in the process cannot be permitted to exceed `FD_SETSIZE`.
+
+Threads:
+
+* Demultiplexing using `select` is performed in one of the threads that calls
+`io_service::run()`, `io_service::run_one()`, `io_service::poll()` or
+`io_service::poll_one()`.
+
+* An additional thread per `io_service` is used to emulate asynchronous host
+resolution. This thread is created on the first call to either
+`ip::tcp::resolver::async_resolve()` or `ip::udp::resolver::async_resolve()`.
+
+Scatter-Gather:
+
+* At most `min(64,IOV_MAX)` buffers may be transferred in a single operation.
+
+[heading Linux Kernel 2.6]
+
+Demultiplexing mechanism:
+
+* Uses `epoll` for demultiplexing.
+
+Threads:
+
+* Demultiplexing using `epoll` is performed in one of the threads that calls
+`io_service::run()`, `io_service::run_one()`, `io_service::poll()` or
+`io_service::poll_one()`.
+
+* An additional thread per `io_service` is used to emulate asynchronous host
+resolution. This thread is created on the first call to either
+`ip::tcp::resolver::async_resolve()` or `ip::udp::resolver::async_resolve()`.
+
+Scatter-Gather:
+
+* At most `min(64,IOV_MAX)` buffers may be transferred in a single operation.
+
+
+[heading Solaris]
+
+Demultiplexing mechanism:
+
+* Uses [^/dev/poll] for demultiplexing.
+
+Threads:
+
+* Demultiplexing using [^/dev/poll] is performed in one of the threads that
+calls `io_service::run()`, `io_service::run_one()`, `io_service::poll()` or
+`io_service::poll_one()`.
+
+* An additional thread per `io_service` is used to emulate asynchronous host
+resolution. This thread is created on the first call to either
+`ip::tcp::resolver::async_resolve()` or `ip::udp::resolver::async_resolve()`.
+
+Scatter-Gather:
+
+* At most `min(64,IOV_MAX)` buffers may be transferred in a single operation.
+
+
+[heading QNX Neutrino]
+
+Demultiplexing mechanism:
+
+* Uses `select` for demultiplexing. This means that the number of file
+descriptors in the process cannot be permitted to exceed `FD_SETSIZE`.
+
+Threads:
+
+* Demultiplexing using `select` is performed in one of the threads that calls
+`io_service::run()`, `io_service::run_one()`, `io_service::poll()` or
+`io_service::poll_one()`.
+
+* An additional thread per `io_service` is used to emulate asynchronous host
+resolution. This thread is created on the first call to either
+`ip::tcp::resolver::async_resolve()` or `ip::udp::resolver::async_resolve()`.
+
+Scatter-Gather:
+
+* At most `min(64,IOV_MAX)` buffers may be transferred in a single operation.
+
+
+[heading Mac OS X]
+
+Demultiplexing mechanism:
+
+* Uses `kqueue` for demultiplexing.
+
+Threads:
+
+* Demultiplexing using `kqueue` is performed in one of the threads that calls
+`io_service::run()`, `io_service::run_one()`, `io_service::poll()` or
+`io_service::poll_one()`.
+
+* An additional thread per `io_service` is used to emulate asynchronous host
+resolution. This thread is created on the first call to either
+`ip::tcp::resolver::async_resolve()` or `ip::udp::resolver::async_resolve()`.
+
+Scatter-Gather:
+
+* At most `min(64,IOV_MAX)` buffers may be transferred in a single operation.
+
+
+[heading FreeBSD]
+
+Demultiplexing mechanism:
+
+* Uses `kqueue` for demultiplexing.
+
+Threads:
+
+* Demultiplexing using `kqueue` is performed in one of the threads that calls
+`io_service::run()`, `io_service::run_one()`, `io_service::poll()` or
+`io_service::poll_one()`.
+
+* An additional thread per `io_service` is used to emulate asynchronous host
+resolution. This thread is created on the first call to either
+`ip::tcp::resolver::async_resolve()` or `ip::udp::resolver::async_resolve()`.
+
+Scatter-Gather:
+
+* At most `min(64,IOV_MAX)` buffers may be transferred in a single operation.
+
+
+[heading AIX]
+
+Demultiplexing mechanism:
+
+* Uses `select` for demultiplexing. This means that the number of file
+descriptors in the process cannot be permitted to exceed `FD_SETSIZE`.
+
+Threads:
+
+* Demultiplexing using `select` is performed in one of the threads that calls
+`io_service::run()`, `io_service::run_one()`, `io_service::poll()` or
+`io_service::poll_one()`.
+
+* An additional thread per `io_service` is used to emulate asynchronous host
+resolution. This thread is created on the first call to either
+`ip::tcp::resolver::async_resolve()` or `ip::udp::resolver::async_resolve()`.
+
+Scatter-Gather:
+
+* At most `min(64,IOV_MAX)` buffers may be transferred in a single operation.
+
+
+[heading HP-UX]
+
+Demultiplexing mechanism:
+
+* Uses `select` for demultiplexing. This means that the number of file
+descriptors in the process cannot be permitted to exceed `FD_SETSIZE`.
+
+Threads:
+
+* Demultiplexing using `select` is performed in one of the threads that calls
+`io_service::run()`, `io_service::run_one()`, `io_service::poll()` or
+`io_service::poll_one()`.
+
+* An additional thread per `io_service` is used to emulate asynchronous host
+resolution. This thread is created on the first call to either
+`ip::tcp::resolver::async_resolve()` or `ip::udp::resolver::async_resolve()`.
+
+Scatter-Gather:
+
+* At most `min(64,IOV_MAX)` buffers may be transferred in a single operation.
+
+
+[heading Tru64]
+
+Demultiplexing mechanism:
+
+* Uses `select` for demultiplexing. This means that the number of file
+descriptors in the process cannot be permitted to exceed `FD_SETSIZE`.
+
+Threads:
+
+* Demultiplexing using `select` is performed in one of the threads that calls
+`io_service::run()`, `io_service::run_one()`, `io_service::poll()` or
+`io_service::poll_one()`.
+
+* An additional thread per `io_service` is used to emulate asynchronous host
+resolution. This thread is created on the first call to either
+`ip::tcp::resolver::async_resolve()` or `ip::udp::resolver::async_resolve()`.
+
+Scatter-Gather:
+
+* At most `min(64,IOV_MAX)` buffers may be transferred in a single operation.
+
+
+[heading Windows 95, 98 and Me]
+
+Demultiplexing mechanism:
+
+* Uses `select` for demultiplexing.
+
+Threads:
+
+* Demultiplexing using `select` is performed in one of the threads that calls
+`io_service::run()`, `io_service::run_one()`, `io_service::poll()` or
+`io_service::poll_one()`.
+
+* An additional thread per `io_service` is used to emulate asynchronous host
+resolution. This thread is created on the first call to either
+`ip::tcp::resolver::async_resolve()` or `ip::udp::resolver::async_resolve()`.
+
+Scatter-Gather:
+
+* For sockets, at most 16 buffers may be transferred in a single operation.
+
+
+[heading Windows NT, 2000, XP, 2003, Vista, 7 and 8]
+
+Demultiplexing mechanism:
+
+* Uses overlapped I/O and I/O completion ports for all asynchronous socket
+operations except for asynchronous connect.
+
+* Uses `select` for emulating asynchronous connect.
+
+Threads:
+
+* Demultiplexing using I/O completion ports is performed in all threads that call
+`io_service::run()`, `io_service::run_one()`, `io_service::poll()` or
+`io_service::poll_one()`.
+
+* An additional thread per `io_service` is used to trigger timers. This thread
+is created on construction of the first `deadline_timer` or
+`deadline_timer_service` objects.
+
+* An additional thread per `io_service` is used for the `select`
+demultiplexing. This thread is created on the first call to `async_connect()`.
+
+* An additional thread per `io_service` is used to emulate asynchronous host
+resolution. This thread is created on the first call to either
+`ip::tcp::resolver::async_resolve()` or `ip::udp::resolver::async_resolve()`.
+
+Scatter-Gather:
+
+* For sockets, at most 64 buffers may be transferred in a single operation.
+
+* For stream-oriented handles, only one buffer may be transferred in a single
+operation.
+
+[heading Windows Runtime]
+
+Boost.Asio provides limited support for the Windows Runtime. It requires that the
+language extensions be enabled. Due to the restricted facilities exposed by the
+Windows Runtime API, the support comes with the following caveats:
+
+* The core facilities such as the `io_service`, `strand`, buffers, composed
+  operations, timers, etc., should all work as normal.
+
+* For sockets, only client-side TCP is supported.
+
+* Explicit binding of a client-side TCP socket is not supported.
+
+* The `cancel()` function is not supported for sockets. Asynchronous
+  operations may only be cancelled by closing the socket.
+
+* Operations that use `null_buffers` are not supported.
+
+* Only `tcp::no_delay` and `socket_base::keep_alive` options are supported.
+
+* Resolvers do not support service names, only numbers. I.e. you must
+  use "80" rather than "http".
+
+* Most resolver query flags have no effect.
+
+Demultiplexing mechanism:
+
+* Uses the `Windows::Networking::Sockets::StreamSocket` class to implement
+  asynchronous TCP socket operations.
+
+Threads:
+
+* Event completions are delivered to the Windows thread pool and posted to the
+  `io_service` for the handler to be executed.
+
+* An additional thread per `io_service` is used to trigger timers. This thread
+  is created on construction of the first timer objects.
+
+Scatter-Gather:
+
+* For sockets, at most one buffer may be transferred in a single operation.
+
+
+[endsect]

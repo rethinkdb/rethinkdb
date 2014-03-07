@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: Incomplete Support for Lambda Expressions</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./broken-integral-constant.html" class="navigation-link">Prev</a>&nbsp;<a href="./eti.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./broken-integral-constant.html" class="navigation-link">Back</a>&nbsp;<a href="./eti.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./portability.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./technical-details.html" class="navigation-link">Technical Details</a> / <a href="./portability.html" class="navigation-link">Portability</a> / <a href="./incomplete-support-for.html" class="navigation-link">Incomplete Support for Lambda Expressions</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="incomplete-support-for">
+<h1><a class="toc-backref" href="./portability.html#id75" name="incomplete-support-for">Incomplete Support for Lambda Expressions</a></h1>
+<p>Seasoned MPL users will agree with us that if there is
+anything in the MPL that is seemingly magical both in power and
+its nature, then it's MPL lambda expressions.  In reality, the
+mechanism that bring this to life is very straightforward and
+probably can be explained to anyone generally familiar with C++
+templates in less than 10 minutes.</p>
+<!-- People are going to hate you for saying so and not actually -->
+<!-- explaining it. -->
+<p>Unfortunately, this mechanism also happens to rely on support for
+partial template specialization and template template parameters.
+Among the so-called deficient compilers — basically, most of the
+compilers released before the year 2000 — the chances are poor
+that you'll find <em>complete</em> support for <em>both</em> of these features.
+Please see our <a class="reference" href="./portability.html#compatibility-table">compatibility table</a> for the list of the products 
+which fall into this category.</p>
+<p>Although it's not possible to implement <em>fully transparent</em> lambda
+expressions without these two features, a slightly more limited
+implementation that requires some manual assistance from the
+metafunction author is possible.  This section describes the manual
+work required and the limitations of the result.</p>
+<div class="section" id="incomplete-the-problem">
+<h2><a name="incomplete-the-problem">The Problem</a></h2>
+<p>If your compiler falls into the &quot;deficient&quot; category, the following
+valid MPL metaprogram will fail to compile for you:</p>
+<pre class="literal-block">
+#include &lt;boost/mpl/apply.hpp&gt;
+
+using namespace boost::mpl;
+
+template&lt; typename T &gt; struct add_const
+{
+    typedef T const type;
+};
+
+typedef apply1&lt; add_const&lt;_1&gt;,int &gt;::type t; // t == int const
+</pre>
+<p>Worse yet, chances are it wil fail with a diagnostic backtrace
+leading you into the inside of the library and possibly creating an
+impression that there's something's wrong there. The fact is, both
+the program and the library are defect free (for the
+purpose of this particular demonstraction), and it's your compiler
+that is to blame.</p>
+</div>
+<div class="section" id="incomplete-the-solution">
+<h2><a name="incomplete-the-solution">The Solution</a></h2>
+<p>As previously mentioned, the solution requires some work from
+metafunction authors, but for the users of those metafunctions, the
+result is relatively transparent.  Here's what we have to do to our
+earlier example:</p>
+<pre class="literal-block">
+#include &lt;boost/mpl/apply.hpp&gt;
+<strong>#include &lt;boost/mpl/aux_/lambda_support.hpp&gt;</strong>
+
+using namespace boost::mpl;
+
+template&lt; typename T &gt; struct add_const
+{
+    typedef T const type;
+    <strong>BOOST_MPL_AUX_LAMBDA_SUPPORT(1, add_const, (T))</strong>
+};
+
+typedef apply1&lt; add_const&lt;_1&gt;,int &gt;::type t; // t == int const
+</pre>
+<p>With these two modifications, now the compiler that has been barking at us now 
+happily accepts it. &quot;Hey, that's not that bad at all!&quot; you might say. Just put a 
+little macro inside and be happy again.</p>
+</div>
+<div class="section" id="limitations">
+<h2><a name="limitations">Limitations</a></h2>
+<p>Unfortunately, that's not quite the end of the story. There are
+still cases where the above approach will fail and we will have to
+resort to writing out-of-line metafunction class. Here are the
+details:</p>
+<blockquote>
+<p>To make the lambda expression work without partial template
+specialization  and
+template template parameters, the MPL has to implement some other way of 
+pulling apart the template instantiations' expression tree, and the only way
+to do it is through an intrusive metafunction introspection 
+mechanism. That's what hidden behind the <tt class="literal"><span class="pre">BOOST_MPL_AUX_LAMBDA_SUPPORT</span></tt> macro 
+we've seen above.</p>
+<p>But then, after we've got the information we need (the metafunction's arity 
+and its exact template arguments) stored inside the metafunction itself, 
+the only way for the library to access it is to look inside the metafunction. 
+The latter, in its turn, means instantiating the metafunction, prematurely, 
+before the actuall call, <em>with one or more placeholder arguments</em>. This last 
+part is a potential problem.</p>
+</blockquote>
+<p>In other words, the mechanism works as long as your metafunction is
+&quot;placeholder-safe&quot; (can be safely instantiated on placeholder
+arguments), which comes down to the follwing two criteria:</p>
+<ol class="arabic simple">
+<li>The metafunction doesn't access its arguments' nested members, or</li>
+<li>The only accessed members are types named <tt class="literal"><span class="pre">::tag</span></tt> or <tt class="literal"><span class="pre">::type</span></tt> (the 
+placeholders do contain these).</li>
+</ol>
+<p>If these two hold, you can safely put <tt class="literal"><span class="pre">BOOST_MPL_AUX_LAMBDA_SUPPORT</span></tt> inside
+your metafunction and forget about the issue.  If not, your are out of luck and
+probably have to write a metafunction class instead.</p>
+<p>The good news are that most of the MPL's own metafunctions and <a class="reference" href="../../../type_traits/index.html" target="_top">Boost.Type Traits</a>
+templates are &quot;placeholder-safe&quot; and have the workaround applied to them, so
+even on broken compilers things &quot;just work&quot; in about 90% of use cases.</p>
+<p>Please refer to the MPL <a class="reference" href="./reference-manual.html">reference manual</a> for the details on the
+<tt class="literal"><span class="pre">BOOST_MPL_AUX_LAMBDA_SUPPORT</span></tt> macro.</p>
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./broken-integral-constant.html" class="navigation-link">Prev</a>&nbsp;<a href="./eti.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./broken-integral-constant.html" class="navigation-link">Back</a>&nbsp;<a href="./eti.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./portability.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

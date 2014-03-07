@@ -1,0 +1,57 @@
+[/============================================================================
+  Boost.Geometry Index
+
+  Copyright (c) 2011-2012 Adam Wulkiewicz.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section Exception safety]
+
+In order to be exception-safe the __rtree__ requires:
+
+* exception-safe copy constructor and copy assignment of the `__value__`.
+* exception-safe copy constructor and copy assignment of the `CoordinateType` used in the `Indexable`.
+* nonthrowing copy constructor of the `Translator`.
+* nonthrowing destructors of above types.
+
+[table
+[[Operation]                   [exception-safety]]
+[[`rtree()`]                   [ /nothrow/ ]]
+[[`rtree(Iterator, Iterator)`] [ *strong*  ]]
+[[`~rtree()`]                  [ /nothrow/ ]]
+[[][]]
+[[`rtree(rtree const&)`]       [ *strong*  ]]
+[[`operator=(rtree const&)`]   [ *strong*  ]]
+[[][]]
+[[`rtree(rtree &&)`]           [ /nothrow/ ]]
+[[`operator=(rtree &&)`]       [ /nothrow/ or *strong*
+[footnote /nothrow/ - if allocators are equal, *strong* - otherwise]]]
+[[`swap(rtree &)`]             [ /nothrow/ ]]
+[[][]]
+[[`insert(__value__)`]         [ not safe
+[footnote If this operation throws, the R-tree may be left in an inconsistent state, elements must not be inserted or removed, methods may return invalid data.]]]
+[[`insert(Iterator, Iterator)`][ not safe  ]]
+[[`insert(Range)`]             [ not safe  ]]
+[[`remove(__value__)`]         [ not safe  ]]
+[[`remove(Iterator, Iterator)`][ not safe  ]]
+[[`remove(Range)`]             [ not safe  ]]
+[[`clear()`]                   [ /nothrow/ ]]
+[[][]]
+[[`spatial_query(...)`]        [ *strong*  ]]
+[[`nearest_query(...)`]        [ *strong*  ]]
+[[`count(ValueOrIndexable)`]   [ /nothrow/ ]]
+[[][]]
+[[`size()`]                    [ /nothrow/ ]]
+[[`empty()`]                   [ /nothrow/ ]]
+[[`box()`]                     [ /nothrow/ or *strong*
+[footnote /nothrow/ - if `CoordinateType` has nonthrowing copy constructor, *strong* - otherwise]]]
+[[][]]
+[[`get_allocator()`]           [ /nothrow/ ]]
+[[`parameters()`]              [ /nothrow/ ]]
+[[`translator()`]              [ /nothrow/ ]]
+]
+
+[endsect] [/Exception safety/]

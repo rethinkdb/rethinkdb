@@ -1,0 +1,137 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2009 Chris Hoeppler
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:confix Qi Confix Parser Directive]
+
+[heading Description]
+
+The __qi__ `confix` directive is a unary parser component allowing to embed a
+parser (the subject) inside an opening (the prefix) and a closing (the suffix):
+
+    confix(prefix, suffix)[subject]
+
+This results in a parser that is equivalent to the sequence 
+
+    omit[prefix] >> subject >> omit[suffix]
+
+A simple example is a parser for non-nested comments which can now be written
+as:
+
+    confix("/*", "*/")[*(char_ - "*/")]  // C style comment
+    confix("//", eol)[*(char_ - eol)]    // C++ style comment
+
+Using the `confix` directive instead of the explicit sequence has the advantage
+of being able to encapsulate the prefix and the suffix into a separate construct.
+The following code snippet illustrates the idea:
+
+    namespace spirit = boost::spirit;
+    namespace repo = boost::spirit::repository;
+
+    // Define a metafunction allowing to compute the type
+    // of the confix() construct
+    template <typename Prefix, typename Suffix = Prefix>
+    struct confix_spec
+    {
+        typedef typename spirit::result_of::terminal<
+            repo::tag::confix(Prefix, Suffix)
+        >::type type;
+    };
+
+    confix_spec<std::string>::type const c_comment = repo::confix("/*", "*/");
+    confix_spec<std::string>::type const cpp_comment = repo::confix("//", "\n");
+
+Now, the comment parsers can be written as
+
+    c_comment[*(char_ - "*/")]    // C style comment
+    cpp_comment[*(char_ - eol)]   // C++ style comment
+
+[note While the `confix_p(prefix, subject, suffix)` parser in __classic__
+      was equivalent to the sequence `prefix >> *(subject - suffix) >> suffix,
+      the __qi__ `confix` directive will not perform this refactoring any more.
+      This simplifies the code and makes things more explicit.]
+
+[heading Header]
+
+    // forwards to <boost/spirit/repository/home/qi/directive/confix.hpp>
+    #include <boost/spirit/repository/include/qi_confix.hpp>
+
+[heading Synopsis]
+
+    confix(prefix, suffix)[subject]
+
+[heading Parameters]
+
+[table
+    [[Parameter]            [Description]]
+    [[`prefix`]             [The parser for the opening (the prefix).]]
+    [[`suffix`]             [The parser for the ending (the suffix).]]
+    [[`subject`]            [The parser for the input sequence between the
+                             `prefix` and `suffix` parts.]]
+]
+
+All three parameters can be arbitrarily complex parsers themselves.
+
+[heading Attribute]
+
+The `confix` directive exposes the attribute type of its subject as its own 
+attribute type. If the `subject` does not expose any attribute (the type is
+`unused_type`), then the `confix` does not expose any attribute either.
+
+    a: A, p: P, s: S: --> confix(p, s)[a]: A
+
+[note This notation is used all over the Spirit documentation and reads as:
+      Given, `a`, `p`, and `s` are parsers, and `A`, `P`, and `S` are the types
+      of their attributes, then the type of the attribute exposed by
+      `confix(p, s)[a]` will be `A`.]
+
+[heading Example]
+
+The following example shows simple use cases of the `confix` directive. We will
+illustrate its usage by generating parsers for different comment styles and 
+for some simple tagged data (for the full example code see
+[@../../example/qi/confix.cpp confix.cpp])
+
+[import ../example/qi/confix.cpp]
+
+[heading Prerequisites]
+
+In addition to the main header file needed to include the core components 
+implemented in __qi__ we add the header file needed for the new `confix` 
+directive.
+
+[qi_confix_includes]
+
+In order to make the examples below more readable we import a number of
+elements into the current namespace:
+
+[qi_confix_using]
+
+[heading Parsing Different Comment Styles]
+
+We will show how to parse different comment styles. First we will parse
+a C++ comment:
+
+[qi_confix_cpp_comment]
+
+This function will obviously parse input such as "`// This is a comment \n `".
+Similarily parsing a 'C'-style comment proves to be straightforward:
+
+[qi_confix_c_comment]
+
+which again will be able to parse e.g. "`/* This is a comment */ `".
+
+[heading Parsing Tagged Data]
+
+Generating a parser that extracts the body from the HTML snippet "`<b>The Body</b>`"
+is not very hard, either:
+
+[qi_confix_tagged_data]
+
+
+[endsect]

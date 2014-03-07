@@ -1,0 +1,22 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2011      Bryce Lelbach
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+==============================================================================/]
+
+[import ../../../../boost/spirit/home/support/iterators/line_pos_iterator.hpp]
+[/ [import ../../example/support/line_pos_iterator.cpp] ]
+
+[section:line_pos_iterator The line position iterator]
+
+[line_pos_iterator_class]
+
+[line_pos_iterator_utilities]
+
+[/ [line_pos_iterator_example] ]
+
+[endsect] [/ line_pos_iterator]
+

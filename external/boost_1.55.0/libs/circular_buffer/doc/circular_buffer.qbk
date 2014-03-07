@@ -1,0 +1,618 @@
+[article Boost.Circular Buffer
+    [quickbook 1.6]
+    [id circular_buffer]
+    [copyright 2003-2013 Jan Gaspar]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+    [authors [Gaspar, Jan]]
+    [source-mode c++]
+]
+
+[/ Links - by (most common) convention, prefixed with double underscore so not confused with other names.]
+[def __alert      [$./images/alert.png]] [/ Examples of your own images (in doc/html/images/ .]
+[def __tip        [$./images/tip.png]]
+[/ If you provide a file type like .png, you will probably find that the file is missing in the pdf version.]
+[/ This is because the default file type specified is .png in html, but .svg for pdf version.]
+
+[/ Some links to external sources.]
+[/ You often want to link more than once, so using a def ensures you always refer to the same location.]
+[def __boost [@http://www.boost.org/ Boost]] [/Boost.org]
+[def __boostroot [@boost: Boost root]] [/ Your boost root]
+[/Note the custom boost root url schema for linking to files within the Boost distribution.]
+[/Note It can't be used for images, nor for pdf, so not so useful.]
+[/def __boostlicense [@http://www.boost.org/LICENSE_1_0.txt Boost License]]
+[/ Or refer to your most recent version of Boost.]
+[def __boostlicense [@boost:/LICENSE_1_0.txt Boost License]]
+[def __boostbook [@http://www.boost.org/doc/html/boostbook.html BoostBook]]
+[def __boostbook_docs [@http://www.boost.org/doc/libs/1_53_0/doc/html/boostbook.html BoostBook documentation]]
+[def __quickbook  [@http://www.boost.org/doc/tools/quickbook/index.html Quickbook]]
+[def __quickbook_syntax [@http://www.boost.org/doc/libs/1_53_0/doc/html/quickbook/ref.html Quickbook Syntax Compendium]]
+[def __docbook [@http://www.docbook.org/ DocBook]]
+[def __doxygen [@http://www.doxygen.org/ Doxygen]]
+[def __autoindex [@boost:/tools/auto_index/doc/html/index.html AutoIndex]]
+[def __pdf [@http://www.adobe.com/products/acrobat/adobepdf.html PDF]]
+[def __textpad [@http://www.textpad.com Textpad]]
+[def __emacs [@http://www.gnu.org/software/emacs/ GNU emacs]]
+[def __css [@http://en.wikipedia.org/wiki/Cascading_Style_Sheets Cascading Style Sheet]]
+[def __intro [link circular_buffer.intro Introduction]] [/Link to a Quickbook section (see below).]
+
+[def __docbook_params [@http://docbook.sourceforge.net/release/xsl/current/doc/ Docbook xsl:param format options]]
+
+[def __cb [classref boost::circular_buffer circular_buffer]]
+[def __cbso [classref boost::circular_buffer_space_optimized circular_buffer_space_optimized]]
+[def __min_capacity [memberref boost::circular_buffer_space_optimized::min_capacity() min_capacity]]
+[def __capacity_control [memberref boost::circular_buffer_space_optimized::capacity_control () capacity_control ]]
+
+[def __debug_support  [link circular_buffer.implmentation.debug_support debug support]]
+
+[include ../../../tools/auto_index/include/auto_index_helpers.qbk]
+[/ Must be first included file!]
+
+[note A printer-friendly PDF version of this manual is also available.]
+
+[section:intro Introduction]
+
+A Circular Buffer.
+
+[h2 Description]
+
+The term [@http://en.wikipedia.org/wiki/Circular_buffer circular buffer]
+(also called a ['ring] or ['cyclic buffer])
+refers to an area in memory which is used to store incoming data.
+When the buffer is filled,
+new data is written starting at the beginning of the buffer and overwriting the old.
+
+[classref boost::circular_buffer] is a STL compliant container.
+
+It is a kind of sequence similar to [@http://www.sgi.com/tech/stl/List.html std::list]
+or [@http://www.sgi.com/tech/stl/Deque.html std::deque].
+It supports random access iterators, constant time insert and erase operations
+at the beginning or the end of the buffer and interoperability with std algorithms.
+
+The __cb is especially designed to provide [*fixed capacity] storage.
+When its capacity is exhausted, newly inserted elements will cause elements
+to be overwritten, either at the beginning or end of the buffer
+(depending on what insert operation is used).
+
+The __cb only allocates memory when created,
+when the capacity is adjusted explicitly,
+or as necessary to accommodate resizing or assign operations.
+
+[$../../libs/circular_buffer/doc/images/circular_buffer.png]
+
+There is also a __cbso version available.
+
+[$../../libs/circular_buffer/doc/images/space_optimized.png]
+
+__cbso is an adaptation of the __cb
+which [*does not allocate memory all at once when created],
+instead it allocates memory as needed.
+
+The predictive memory allocation is similar to typical `std::vector` implementation.
+Memory is automatically freed as the size of the container decreases.
+
+The memory allocation process of the space-optimized circular buffer.
+The __min_capacity  of the capacity controller represents
+the minimal guaranteed amount of allocated memory.
+The allocated memory will never drop under this value.
+The default value of the `min_capacity` is set to 0.
+The `min_capacity` can be set using the constructor parameter __capacity_control
+or the function `set_capacity`.
+
+The space-optimized version is, of course, a little slower.
+
+[endsect] [/section:intro Introduction]
+
+[section:example Circular_buffer example]
+
+Here is a simple example to introduce the class __cb.
+
+[import ../example/circular_buffer_example.cpp]
+
+[circular_buffer_example_1]
+
+This example shows contruction, inserting elements, overwriting and popping.
+
+[circular_buffer_example_2]
+
+[/circular_buffer_example_output - there is no output for this example]
+
+You can see the full example code at [@boost:libs/circular_buffer/example/circular_buffer_example.cpp  circular_buffer_example.cpp].
+
+The full annotated description is in the C++ Reference section.
+
+[endsect] [/section:example circular_buffer example]
+
+[section:rationale Rationale]
+
+The basic motivation behind the __cb was to create a container which would [*work seamlessly with STL].
+
+Additionally, the design of the __cb was guided by the following principles:
+
+* Maximum ['efficiency] for envisaged applications.
+* Suitable for ['general purpose use].
+* The behaviour of the buffer as ['intuitive] as possible.
+* Suitable for ['specialization] by means of adaptors. (The __cbso is such an example of the adaptor.)
+* Easy to ['debug]. (See Debug Support for details.)
+
+In order to achieve maximum efficiency, the __cb and __cbso store their elements in a
+[*contiguous region of memory], which then enables:
+
+* Use of fixed memory and no implicit or unexpected memory allocation.
+* Fast constant-time insertion and removal of elements from the front and back.
+* Fast constant-time random access of elements.
+* Suitability for real-time and performance critical applications.
+
+Possible applications of the circular buffer include:
+
+* Storage of the ['most recently received samples], overwriting the oldest as new samples arrive.
+* As an underlying container for a ['bounded buffer]
+(see the Bounded Buffer example, code at [@boost:libs/circular_buffer/example/circular_buffer_bound_example.cpp  circular_buffer_bound_example.cpp]).
+* A kind of ['cache] storing a specified number of last inserted elements.
+* Efficient fixed capacity ['FIFO (First In, First Out)],
+* Efficient fixed capacity ['LIFO (Last In, First Out)] queue which removes the oldest (inserted as first) elements when full.
+
+[endsect] [/section:rationale Rationale]
+
+[section:implementation Implementation ]
+
+The following paragraphs describe issues that had to be considered during the implementation of the circular_buffer:
+
+[h3 Thread-Safety]
+
+The thread-safety of the __cb is the same as the thread-safety of containers in most STL implementations.
+This means the __cb is not fully thread-safe.
+The thread-safety is guaranteed only in the sense that simultaneous accesses
+to distinct instances of the __cb are safe,
+and simultaneous read accesses to a shared __cb are safe.
+
+If multiple threads access a single __cb,
+and at least one of the threads may potentially write,
+then the user is responsible for ensuring mutual exclusion between the threads during the container accesses.
+The mutual exclusion between the threads can be achieved by wrapping
+operations of the underlying __cb with a lock acquisition and release.
+(See the Bounded Buffer example code at [@boost:libs/circular_buffer/example/circular_buffer_bound_example.cpp  circular_buffer_bound_example.cpp])
+
+[h3 Overwrite Operation]
+
+Overwrite operation occurs when an element is inserted into a full __cb -
+the old element is being overwritten by the new one.
+There was a discussion what exactly "overwriting of an element" means during the formal review.
+It may be either a destruction of the original element and
+a consequent inplace construction of a new element
+or it may be an assignment of a new element into an old one.
+The __cb implements assignment because it is more effective.
+
+From the point of business logic of a stored element,
+the destruction/construction operation and assignment usually mean the same.
+However, in very rare cases (if in any) they may differ.
+If there is a requirement for elements to be destructed/constructed instead of being assigned,
+consider implementing a wrapper of the element which would implement the assign operator,
+and store the wrappers instead.
+It is necessary to note that storing such wrappers has a drawback.
+The destruction/construction will be invoked on every assignment of the wrapper -
+not only when a wrapper is being overwritten (when the buffer is full)
+but also when the stored wrappers are being shifted
+(e.g. as a result of insertion into the middle of container).
+
+[h3 Writing to a Full Buffer]
+
+There are several options how to cope if a data source produces more data than can fit in the fixed-sized buffer:
+
+* Inform the data source to wait until there is room in the buffer (e.g. by throwing an overflow exception).
+* If the oldest data is the most important, ignore new data from the source until there is room in the buffer again.
+* If the latest data is the most important, write over the oldest data.
+* Let the producer to be responsible for checking the size of the buffer prior writing into it.
+
+It is apparent that the __cb implements the third option.
+But it may be less apparent it does not implement any other option -
+especially the first two.
+One can get an impression that the __cb should implement first three options
+and offer a mechanism of choosing among them. This impression is wrong.
+
+The __cb was designed and optimized to be circular
+(which means overwriting the oldest data when full).
+If such a controlling mechanism had been enabled,
+it would just complicate the matters
+and the usage of the __cb would be probably less straightforward.
+
+Moreover, the first two options (and the fourth option as well)
+do not require the buffer to be circular at all.
+If there is a need for the first or second option, consider implementing an adaptor of e.g. std::vector.
+In this case the __cb is not suitable for adapting, because,
+contrary to std::vector, it bears an overhead for its circular behaviour.
+
+[h3 Reading/Removing from an Empty Buffer]
+
+When reading or removing an element from an empty buffer,
+the buffer should be able to notify the data consumer
+(e.g. by throwing underflow exception) that there are no elements stored in it.
+The __cb does not implement such a behaviour for two reasons:
+
+* It would introduce a performance overhead.
+* No other std container implements it this way.
+
+It is considered to be a bug to read or remove an element
+(e.g. by calling [memberref boost::circular_buffer::front() front()]
+or [memberref boost::circular_buffer::pop_back() pop_back()])
+from an empty std container and from an empty __cb as well.
+The data consumer has to test if the container is not empty before reading/removing from it by testing
+[memberref boost::circular_buffer::empty empty()].
+However, when reading from the __cb,
+there is an option to rely on the [memberref boost::circular_buffer::at() at()]
+method which throws an exception when the index is out of range.
+
+[h3 Iterator Invalidation]
+
+An iterator is usually considered to be invalidated if an element,
+the iterator pointed to, had been removed or overwritten by an another element.
+This definition is enforced by the Debug Support and is documented for every method.
+However, some applications utilizing __cb may require less strict definition:
+an iterator is invalid only if it points to an uninitialized memory.
+
+Consider following example:
+
+[import ../example/circular_buffer_iter_example.cpp]
+
+[circular_buffer_iter_example_1]
+
+The iterator does not point to the original element any more
+(and is considered to be invalid from the "strict" point of view)
+but it still points to the same valid place in the memory.
+This "soft" definition of iterator invalidation is supported by the __cb
+but should be considered as an implementation detail rather than a full-fledged feature.
+The rules when the iterator is still valid can be inferred from the code in
+[@boost:libs/circular_buffer/test/soft_iterator_invalidation.cpp soft_iterator_invalidation.cpp].
+
+
+[h3 Move emulation and rvalues]
+
+Since Boost 1.54.0 support for move semantics was implemented using 
+the [@boost:libs/move/index.html Boost.Move] library.
+If rvalue references are available __cb will use them, but if not it uses a close,
+but imperfect emulation. On such compilers:
+
+* Non-copyable objects can be stored in the containers.
+  They can be constructed in place using `emplace`, or if they support
+  Boost.Move, moved into place.
+* The containers themselves are not movable.
+* Argument forwarding is not perfect.
+
+__cb will use rvalues and move emulations for value types only if move constructor and move assignment operator of the value type do not throw;
+or if the value type has no copy constructor.
+
+Some methods won't use move constructor for the value type at all, if the constructor throws. This is 
+required for data consistency and avoidance of situations, when aftrer an exception __cb 
+contains moved away objects along with the good ones.
+
+See documentation for [@boost:libs/type_traits/doc/html/boost_typetraits/reference/is_copy_constructible.html `is_copy_constructible`], [@boost:libs/type_traits/doc/html/boost_typetraits/reference/is_nothrow_move_assignable.html `is_nothrow_move_assignable`] and [@boost:libs/type_traits/doc/html/boost_typetraits/reference/is_nothrow_move_constructible.html `is_nothrow_move_constructible`] type triats. 
+There you'll find information about how to make constructor of class noexcept and how to make a non-copyable 
+class in C++03 and C++98.
+
+Performance of __cb will *greatly improve* if value type has noexcept move constructor and noexcept move assignment.
+
+[h3 Exceptions of move_if_noexcept(T&)]
+
+Reference documentation of the __cb contains notes like "Throws: See Exceptions of `move_if_noexcept(T&)`".
+That note means the following: `move_if_noexcept(T& value)` does not throws exceptions at all, but it returns
+`value` as rvalue reference only if class `T` have noexcept move constructor and noexcept move assignment operator; 
+or if it has no copy constructor. Otherwise `move_if_noexcept(T& value)` returns `value` as const reference. 
+
+This leads us to the following situation:
+
+* If `value` has a noexcept move constructor and noexcept move assignment operator, then no exceptions will be thrown at all.
+* If `value` has a throwing move constructor and some copy constructor, then method may throw exceptions of copy constructor.
+* If `value` has no copy constructor, then method may throw exceptions of move constructor.
+
+`move_if_noexcept(T&)` uses [@boost:libs/move/index.html Boost.Move], [@boost:libs/type_traits/doc/html/boost_typetraits/reference/is_copy_constructible.html `is_copy_constructible`], [@boost:libs/type_traits/doc/html/boost_typetraits/reference/is_nothrow_move_assignable.html `is_nothrow_move_assignable`] and [@boost:libs/type_traits/doc/html/boost_typetraits/reference/is_nothrow_move_constructible.html `is_nothrow_move_constructible`] type triats. 
+
+
+[h3 Caveats]
+
+The __cb should not be used for storing pointers to dynamically allocated objects.
+When a circular buffer becomes full, further insertion will overwrite the stored pointers
+- resulting in a [*memory leak]. One recommend alternative is the use of smart pointers, for example
+[@http://www.boost.org/doc/libs/1_53_0/libs/smart_ptr/smart_ptr.htm Boost Smart pointers].
+
+[@http://en.wikipedia.org/wiki/Std::auto_ptr std::auto_ptr]
+
+[caution Any container of `std::auto_ptr` is considered particularly hazardous.]
+
+[tip Never create a circular buffer of `std::auto_ptr`.
+Refer to Scott Meyers' excellent book Effective STL for a detailed discussion.
+(Meyers S., Effective STL: 50 Specific Ways to Improve Your Use of the Standard Template Library.
+Addison-Wesley, 2001.)
+]
+
+While internals of a __cb are circular, [*iterators are not].
+Iterators of a __cb are only valid for the range `\[begin(), end()\]`,
+so for example: iterators `(begin() - 1)` and `(end() + 1)` are both invalid.
+
+[h3 Debug Support]
+
+In order to help a programmer to avoid and find common bugs,
+the __cb contains a kind of debug support.
+
+The __cb maintains a list of valid iterators.
+As soon as any element gets destroyed all iterators pointing to this element
+are removed from this list and explicitly invalidated (an invalidation flag is set).
+The debug support also consists of many assertions (`BOOST_ASSERT` macros)
+which ensure the __cb and its iterators are used in the correct manner at runtime.
+In case an invalid iterator is used, the assertion will report an error.
+The connection of explicit iterator invalidation and assertions
+makes a very robust debug technique which catches most of the errors.
+
+Moreover, the uninitialized memory allocated by __cb is filled with the value `0xcc` in the debug mode.
+When debugging the code, this can help the programmer  to recognize the initialized memory from the uninitialized.
+For details refer the source code [@boost:boost/circular_buffer/debug.hpp circular_buffer/debug.hpp].
+
+The debug support is enabled only in the debug mode (when the `NDEBUG` is not defined).
+It can also be explicitly disabled (only for __cb)
+by defining macro BOOST_CB_DISABLE_DEBUG.
+
+[h3 Compatibility with Interprocess library]
+
+The __cb is compatible with the [@boost:libs/interprocess/index.html  Boost.Interprocess]
+[/ This should be in @boost:libs/interprocess/doc/index.html ]
+library used for interprocess communication.
+Considering that the circular_buffer's debug support relies on 'raw' pointers
+(which is not permited by the Interprocess library)
+the code has to compiled with `-DBOOST_CB_DISABLE_DEBUG` or `-DNDEBUG` (which disables the Debug Support).
+Not doing that will cause the compilation to fail.
+
+[endsect] [/section:implementation Implementation ]
+
+[section:examples More Examples]
+
+[h3 Summing all the values in a circular buffer]
+
+[import ../example/circular_buffer_sum_example.cpp]
+
+[circular_buffer_sum_example_1]
+
+[/circular_buffer_example_output - there is no output for this example]
+
+The __cb has a capacity of three `int`.
+Therefore, the size of the buffer will never exceed three.
+The `std::accumulate` algorithm evaluates the sum of the stored elements.
+The semantics of the __cb can be inferred from the assertions.
+
+You can see the full example code at [@boost:libs/circular_buffer/example/circular_buffer_sum_example.cpp  circular_buffer_sum_example.cpp].
+
+[h3 Bounded Buffer Example]
+
+The bounded buffer is normally used in a producer-consumer mode:
+producer threads produce items and store them in the container
+and consumer threads remove these items and process them.
+The bounded buffer has to guarantee that
+
+* producers do not insert items into the container when the container is full,
+* consumers do not try to remove items when the container is empty,
+* each produced item is consumed by exactly one consumer.
+
+[import ../example/circular_buffer_bound_example.cpp]
+
+[circular_buffer_bound_example_1]
+
+[/ there is no output for this example]
+
+The bounded_buffer relies on [@boost:/doc/html/thread.html Boost.Thread]
+and [@boost:libs/bind/index.html Boost.Bind] libraries
+and [@boost:libs/utility/call_traits.htm Boost.call_traits utility].
+
+The [memberref boost::circular_buffer::push_front() push_front()]
+method is called by the producer thread in order to insert a new item into the buffer.
+The method locks the mutex and waits until there is a space for the new item.
+(The mutex is unlocked during the waiting stage and has to be regained when the condition is met.)
+If there is a space in the buffer available,
+the execution continues and the method inserts the item at the end of the __cb.
+Then it increments the number of unread items and unlocks the mutex
+(in case an exception is thrown before the mutex is unlocked,
+the mutex is unlocked automatically by the destructor of the scoped_lock).
+At last the method notifies one of the consumer threads
+waiting for a new item to be inserted into the buffer.
+
+The [memberref boost::circular_buffer::pop_back() pop_back()]
+method is called by the consumer thread in order to read the next item from the buffer.
+ The method locks the mutex and waits until there is an unread item in the buffer.
+If there is at least one unread item,
+the method decrements the number of unread items and reads the next item from the __cb.
+Then it unlocks the mutex and notifies one of the producer threads
+waiting for the buffer to free a space for the next item.
+
+The `bounded buffer::pop_back()`
+method [*does not remove the item] but the item is left
+in the circular_buffer which then [*replaces it with a new one]
+(inserted by a producer) when the circular_buffer is full.
+This technique is more effective than removing the item
+explicitly by calling the  [memberref boost::circular_buffer::pop_back() circular_buffer::pop_back()]
+method of the __cb.
+
+This claim is based on the assumption that an assignment (replacement)
+of a new item into an old one is more effective than a destruction
+(removal) of an old item and a consequent inplace construction (insertion) of a new item.
+
+For comparison of bounded buffers based on different containers compile and
+run [@boost:libs/circular_buffer/test/bounded_buffer_comparison.cpp bounded_buffer_comparison.cpp].
+The test should reveal the bounded buffer based on the __cb is most effective
+closely followed by the `std::deque` based bounded buffer.
+(In reality, the result may differ sometimes because the test
+is always affected by external factors such as immediate CPU load.)
+
+[import ../test/bounded_buffer_comparison.cpp]
+
+You can see the full test code at [@boost:libs/circular_buffer/test/bounded_buffer_comparison.cpp bounded_buffer_comparison.cpp],
+and an example of output is [bounded_buffer_comparison_output].
+
+[endsect] [/section:examples More examples]
+
+[section:headers Header Files]
+
+The circular buffer library is defined in the file [@boost:boost/circular_buffer.hpp circular_buffer.hpp].
+
+  #include <boost/circular_buffer.hpp>
+
+(There is also a forward declaration for the __cb
+in the header file [@boost:boost/circular_buffer_fwd.hpp circular_buffer_fwd.hpp]).
+
+The __cb is defined in the file [@boost:boost/circular_buffer/base.hpp base.hpp].
+
+The __cbso is defined in the file [@boost:boost/circular_buffer/space_optimized.hpp space_optimized.hpp].
+
+[endsect] [/section:headers Header Files]
+
+[section:concepts Modelled Concepts]
+
+[@http://www.sgi.com/tech/stl/RandomAccessContainer.html Random Access Container],
+[@http://www.sgi.com/tech/stl/FrontInsertionSequence.html Front Insertion Sequence], and
+[@http://www.sgi.com/tech/stl/BackInsertionSequence.html Back Insertion sequence]
+
+[endsect] [/section:concepts Modelled Concepts]
+
+[section:template_params Template Parameters]
+
+[table:templ Template parameter requirements
+[[parameter] [Requirements]]
+[[T] [The type of the elements stored in the circular_buffer.
+The T has to be [@boost:libs/utility/Assignable.html Assignable]
+and [@boost:libs/utility/CopyConstructible.html CopyConstructible].
+Moreover T has to be [@http://www.sgi.com/tech/stl/DefaultConstructible.html DefaultConstructible]
+if supplied as a default parameter when invoking some of the circular_buffer's methods,
+e.g. `insert(iterator pos, const value_type& item = value_type())`.
+And [@http://www.sgi.com/tech/stl/EqualityComparable.html EqualityComparable]
+and/or [@boost:libs/utility/LessThanComparable.html LessThanComparable]
+if the circular_buffer will be compared with another container.]]
+[[Alloc] [The allocator type used for all internal memory management.
+The Alloc has to meet the allocator requirements imposed by STL.]]
+]
+
+[endsect] [/section:template_params Template Parameters]
+
+[section:tickets Trac Tickets]
+
+Report and view bugs and features by adding a ticket at [@https://svn.boost.org/trac/boost Boost.Trac].
+
+Existing open tickets for this library alone can be viewed
+[@https://svn.boost.org/trac/boost/query?status=assigned&status=new&status=reopened&component=circular_buffer&col=id&col=summary&col=status&col=owner&col=type&col=milestone&order=priority here].
+Existing tickets for this library - including closed ones - can be viewed
+[@https://svn.boost.org/trac/boost/query?status=assigned&status=closed&status=new&status=reopened&component=circular_buffer&col=id&col=summary&col=status&col=owner&col=type&col=milestone&order=priority here].
+
+Type: Bugs
+
+[@https://svn.boost.org/trac/boost/ticket/4100 #4100] Some boost classes have sizeof that depends on NDEBUG.
+
+[@https://svn.boost.org/trac/boost/ticket/5362 #5362] circular_buffer does not compile with BOOST_NO_EXCEPTIONS.
+
+[@https://svn.boost.org/trac/boost/ticket/6277 #6277] Checked iterators are not threadsafe.
+
+[@https://svn.boost.org/trac/boost/ticket/6747 #6747] Circular_Buffer / Bounded_Buffer inside Template class problem.
+
+[@https://svn.boost.org/trac/boost/ticket/7025 #7025] circular buffer reports warning: " type qualifiers ignored on function return type" while compile.
+
+[@https://svn.boost.org/trac/boost/ticket/7950 #7950] Eliminate W4-warnings under VS2005.
+
+[@https://svn.boost.org/trac/boost/ticket/8012 #8012] Inconsistency in `linearize()`.
+
+[@https://svn.boost.org/trac/boost/ticket/8438 #8438] `vector` & __cb storage misbehave when using compiler optimizations.
+
+Type: Feature Requests
+
+[@https://svn.boost.org/trac/boost/ticket/5511 #5511] Documentation needs some improvement.
+
+[@https://svn.boost.org/trac/boost/ticket/7888 #7888] circular_buffer should support move semantics.
+
+Type: Patches
+
+[@https://svn.boost.org/trac/boost/ticket/8032 #8032] Warning fixes in circular_buffer.
+
+[endsect] [/section:tickets Trac Tickets]
+
+[section:release Release Notes]
+
+[h4 Boost 1.55]
+
+* Documentation refactored by Paul A. Bristow using Quickbook, Doxygen and Autoindexing.
+* Rvalue references emulation added by Antony Polukhin using Boost.Move. 
+
+[h4 Boost 1.42]
+
+* Added methods erase_begin(size_type) and erase_end(size_type) with constant complexity for such types of stored elements which do not need an explicit destruction e.g. int or double.
+* Similarly changed implementation of the clear() method and the destructor so their complexity is now constant for such types of stored elements which do not require an explicit destruction (the complexity for other types remains linear).
+
+[h4 Boost 1.37]
+
+ *Added new methods is_linearized() and rotate(const_iterator).
+* Fixed bugs:
+[@https://svn.boost.org/trac/boost/ticket/1987 #1987] Patch to make circular_buffer.hpp #includes absolute.
+[@https://svn.boost.org/trac/boost/ticket/1852 #1852] Copy constructor does not copy capacity.
+
+[h4 Boost 1.36]
+
+* Changed behaviour of the circular_buffer(const allocator_type&) constructor.
+Since this version the constructor does not allocate any memory and both capacity and size are set to zero.
+* Fixed bug:
+ [@https://svn.boost.org/trac/boost/ticket/191 #1919] Default constructed circular buffer throws std::bad_alloc.
+
+[h4 Boost 1.35]
+* Initial release.
+
+[endsect] [/section:release Release Notes]
+
+[section:acknowledgements Acknowledgements]
+
+Thomas Witt in 2002 produced a prototype called cyclic buffer.
+
+The circular_buffer has a short history. Its first version was a std::deque adaptor.
+This container was not very effective because of many reallocations when inserting/removing an element.
+Thomas Wenish did a review of this version and
+motivated me to create a circular buffer which allocates memory at once when created.
+
+The second version adapted `std::vector` but it has been abandoned soon
+because of limited control over iterator invalidation.
+The current version is a full-fledged STL compliant container.
+
+Pavel Vozenilek did a thorough review of this version and came with many good ideas and improvements.
+
+The idea of the space optimized circular buffer has been introduced by Pavel Vozenilek.
+
+Also, I would like to thank Howard Hinnant, Nigel Stewart and everyone
+who participated at the formal review for valuable comments and ideas.
+
+Paul A. Bristow refactored the documentation in 2013 to use the full power of Quickbook, Doxygen and Autoindexing.
+
+[endsect] [/section:acknowledgements Acknowledgements]
+
+
+[section:version_id Documentation Version Info]
+
+Last edit to Quickbook file __FILENAME__ was at __TIME__ on __DATE__.
+
+[tip This should appear on the pdf version
+(but may be redundant on a html version where the last edit date is on the first (home) page).]
+
+[warning Home page "Last revised" is GMT, not local time.  Last edit date is local time.]
+[/See also Adobe Reader pdf File Properties for creation date, and PDF producer, version and page count.]
+
+[endsect] [/section:version_id Version Info]
+
+[xinclude autodoc.xml] [/ Using Doxygen reference documentation.]
+[/ The position of this in the Quickbook determines the location of the Doxygen references section.]
+[/ Index(es) should be invoked in the main module, not within a section.]
+
+'''
+  <index/>
+'''
+
+[/ circular_buffer.qbk
+  Copyright 2013 Paul A. Bristow.
+  Copyright 2003-2008 Jan Gaspar.
+
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+

@@ -1,0 +1,150 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>MutablePropertyGraph</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+
+<H2>
+<A NAME="sec:MutablePropertyGraph"></A>
+MutablePropertyGraph
+</H2>
+
+A MutablePropertyGraph is a <a
+href="./MutableGraph.html">MutableGraph</a> with properties attached
+internally to the vertices and edges. When adding vertices and edges
+the value of the properties can be given.
+
+
+<H3>Refinement of</H3>
+
+<a href="./MutableGraph.html">MutableGraph</a> and
+<a href="./PropertyGraph.html">PropertyGraph</a>
+
+<H3>Notation</H3>
+
+
+<TABLE>
+
+<TR>
+<TD><tt>G</tt></TD>
+<TD>A type that is a model of Graph.</TD>
+</TR>
+
+<TR>
+<TD><tt>g</tt></TD>
+<TD>An object of type <tt>G</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>e</tt></TD>
+<TD>An object of type <tt>boost::graph_traits&lt;G&gt;::edge_descriptor</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>u,v</tt></TD>
+<TD>are objects of type <tt>boost::graph_traits&lt;G&gt;::vertex_descriptor</tt>.</TD>
+</TR>
+
+<TR>
+<TD><TT>ep</TT></TD><TD>is an object of type <TT>G::edge_property_type</TT></TD>
+</TR>
+
+<TR>
+<TD><TT>vp</TT></TD><TD>is an object of type <TT>G::vertex_property_type</TT></TD>
+</TR>
+
+</TABLE>
+
+<P>
+
+<H3>Associated Types</H3>
+
+<table border>
+
+<tr>
+<td>Edge Property Type </td>
+<td><TT>graph_traits&lt;G&gt;::edge_property_type</TT></td>
+</tr>
+
+<tr>
+<td>Vertex Property Type </td>
+<td><TT>graph_traits&lt;G&gt;::vertex_property_type</TT> </td>
+</tr>
+
+</table>
+
+<H3>Valid Expressions</h3>
+
+<table border>
+
+<tr>
+<TD><TT>add_edge(u,&nbsp;v,&nbsp;ep,&nbsp;g)</TT></TD>
+<TD>Inserts the edge <i>(u,v)</i> into the graph, and
+copies object <TT>ep</TT> into the property for that edge.<br>
+Return type: <TT>std::pair&lt;edge_descriptor, bool&gt;</TT></TD>
+</TR>
+
+<tr>
+<TD><TT>add_vertex(vp,&nbsp;g)</TT></TD>
+<TD>
+Add a new vertex to the graph and copy <TT>vp</TT> into the
+property for the new vertex. The <TT>vertex_descriptor</TT> for the new
+vertex is returned.<br>
+Return type: <TT>vertex_descriptor</TT>
+</TD>
+</TR>
+
+</TABLE>
+
+
+<H3>Models</H3>
+
+<UL>
+<LI><TT>adjacency_list</TT></LI>
+</UL>
+
+<H3>Concept Checking Class</H3>
+
+<P>
+<PRE>
+  template &lt;class G&gt;
+  struct MutablePropertyGraphConcept
+  {
+    typedef typename boost::graph_traits&lt;G&gt;::edge_descriptor edge_descriptor;
+    void constraints() {
+      BOOST_CONCEPT_ASSERT(( MutableGraphConcept&lt;G&gt; ));
+      v = add_vertex(vp, g);
+      p = add_edge(u, v, ep, g);
+    }
+    G g;
+    std::pair&lt;edge_descriptor, bool&gt; p;
+    typename boost::graph_traits&lt;G&gt;::vertex_descriptor u, v;
+    typename boost::graph_traits&lt;G&gt;::vertex_property_type vp;
+    typename boost::graph_traits&lt;G&gt;::edge_property_type ep;
+  };
+</PRE>
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

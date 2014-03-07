@@ -1,0 +1,63 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:remove_if remove_if]
+
+[heading Prototype]
+
+``
+template<
+    class ForwardRange,
+    class UnaryPredicate
+    >
+typename range_iterator<ForwardRange>::type
+remove(ForwardRange& rng, UnaryPredicate pred);
+
+template<
+    class ForwardRange,
+    class UnaryPredicate
+    >
+typename range_iterator<const ForwardRange>::type
+remove(const ForwardRange& rng, UnaryPredicate pred);
+
+template<
+    range_return_value re,
+    class ForwardRange,
+    class UnaryPredicate
+    >
+typename range_return<ForwardRange,re>::type
+remove(ForwardRange& rng, UnaryPredicate pred);
+
+template<
+    range_return_value re,
+    class ForwardRange,
+    class UnaryPredicate
+    >
+typename range_return<const ForwardRange,re>::type
+remove(const ForwardRange& rng, UnaryPredicate pred);
+``
+
+[heading Description]
+
+`remove_if` removes from `rng` all of the elements `x` for which `pred(x)` is `true`. The versions of `remove_if` that return an iterator, return an iterator `new_last` such that the range `[begin(rng), new_last)` contains no elements where `pred(x)` is `true`. The iterators in the range `[new_last, end(rng))` are dereferenceable, but the elements are unspecified.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/remove_if.hpp`
+
+[heading Requirements]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange` is mutable.
+* `UnaryPredicate` is a model of the `PredicateConcept`.
+* `ForwardRange`'s value type is convertible to `UnaryPredicate`'s argument type.
+
+[heading Complexity]
+
+Linear. `remove_if` performs exactly `distance(rng)` applications of `pred`.
+
+[endsect]
+
+

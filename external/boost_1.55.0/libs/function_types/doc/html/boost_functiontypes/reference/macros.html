@@ -1,0 +1,226 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Macros</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.FunctionTypes 2.5">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="tag_types.html" title="Tag Types">
+<link rel="next" href="../rationale.html" title="Rationale">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tag_types.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../rationale.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_functiontypes.reference.macros"></a><a class="link" href="macros.html" title="Macros">Macros</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_MAX_ARITY">BOOST_FT_MAX_ARITY</a></span></dt>
+<dt><span class="section"><a href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_CC_NAMES">BOOST_FT_CC_NAMES</a></span></dt>
+<dt><span class="section"><a href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_CC">BOOST_FT_CC_*</a></span></dt>
+<dt><span class="section"><a href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_COMMON_X86_CCs">BOOST_FT_COMMON_X86_CCs</a></span></dt>
+<dt><span class="section"><a href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_SYNTAX">BOOST_FT_SYNTAX</a></span></dt>
+<dt><span class="section"><a href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_NULLARY_PARAM">BOOST_FT_NULLARY_PARAM</a></span></dt>
+<dt><span class="section"><a href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_NO_CV_FUNC_SUPPORT">BOOST_FT_NO_CV_FUNC_SUPPORT</a></span></dt>
+<dt><span class="section"><a href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_PREPROCESSING_MODE">BOOST_FT_PREPROCESSING_MODE</a></span></dt>
+<dt><span class="section"><a href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_CC_PREPROCESSING">BOOST_FT_CC_PREPROCESSING</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.macros.BOOST_FT_MAX_ARITY"></a><a class="link" href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_MAX_ARITY" title="BOOST_FT_MAX_ARITY">BOOST_FT_MAX_ARITY</a>
+</h4></div></div></div>
+<p>
+          Expands to a numeric value that describes the maximum function arity supported
+          by the library.
+        </p>
+<p>
+          Defaults to 20 if not explicitly defined by the user before inclusion of
+          the first library header.
+        </p>
+</div>
+<p>
+        <span class="bold"><strong>The following macros do not need to be defined, unless
+        to configure the library to work with a compiler and/or calling convention
+        not covered by the auto-detection mechanism in <code class="literal">boost/function_types/config/compiler.hpp</code>.</strong></span>
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.macros.BOOST_FT_CC_NAMES"></a><a class="link" href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_CC_NAMES" title="BOOST_FT_CC_NAMES">BOOST_FT_CC_NAMES</a>
+</h4></div></div></div>
+<p>
+          Expands to a <a href="../../../../../preprocessor/doc/data/sequences.html" target="_top">sequence</a>
+          of ternary <a href="../../../../../preprocessor/doc/data/tuples.html" target="_top">tuples</a>
+          (these data types are defined in the <a href="../../../../../preprocessor/doc/index.html" target="_top">documentation
+          of the Boost Preprocessor library</a>). Each sequence element describes
+          one calling convention specifier. The first element in each tuple is the
+          macro suffix for <a class="link" href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_CC" title="BOOST_FT_CC_*"><code class="literal">BOOST_FT_CC_*</code></a>,
+          the second element is the name of the tag that describes the calling convention
+          and the third is the name of the specifier. The specifier is allowed to
+          be an empty string, so the third tuple element is either <a href="../../../../../preprocessor/doc/ref/empty.html" target="_top"><code class="literal">BOOST_PP_EMPTY</code></a>
+          or <a href="../../../../../preprocessor/doc/ref/identity.html" target="_top"><code class="literal">BOOST_PP_IDENTITY</code></a><code class="literal">(<span class="emphasis"><em>name</em></span>)</code>.
+        </p>
+<p>
+          Define this macro to extend the set of possible names for custom calling
+          conventions. The macro expands to nothing by default.
+        </p>
+<p>
+          The following names are predefined by the library and must not occur in
+          the definition of <code class="literal">BOOST_FT_CC_NAMES</code>:
+        </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_FT_BUILTIN_CC_NAMES</span> <span class="special">\</span>
+  <span class="special">((</span> <span class="identifier">IMPLICIT</span>           <span class="special">,</span> <span class="identifier">implicit_cc</span> <span class="special">,</span> <span class="identifier">BOOST_PP_EMPTY</span>                <span class="special">))\</span>
+  <span class="special">((</span> <span class="identifier">CDECL</span>              <span class="special">,</span> <span class="identifier">cdecl_cc</span>    <span class="special">,</span> <span class="identifier">BOOST_PP_IDENTITY</span><span class="special">(</span><span class="identifier">__cdecl</span>   <span class="special">)</span> <span class="special">))\</span>
+  <span class="special">((</span> <span class="identifier">STDCALL</span>            <span class="special">,</span> <span class="identifier">stdcall_cc</span>  <span class="special">,</span> <span class="identifier">BOOST_PP_IDENTITY</span><span class="special">(</span><span class="identifier">__stdcall</span> <span class="special">)</span> <span class="special">))\</span>
+  <span class="special">((</span> <span class="identifier">PASCAL</span>             <span class="special">,</span> <span class="identifier">pascal_cc</span>   <span class="special">,</span> <span class="identifier">BOOST_PP_IDENTITY</span><span class="special">(</span><span class="identifier">pascal</span>    <span class="special">)</span> <span class="special">))\</span>
+  <span class="special">((</span> <span class="identifier">FASTCALL</span>           <span class="special">,</span> <span class="identifier">fastcall_cc</span> <span class="special">,</span> <span class="identifier">BOOST_PP_IDENTITY</span><span class="special">(</span><span class="identifier">__fastcall</span><span class="special">)</span> <span class="special">))\</span>
+  <span class="special">((</span> <span class="identifier">CLRCALL</span>            <span class="special">,</span> <span class="identifier">clrcall_cc</span>  <span class="special">,</span> <span class="identifier">BOOST_PP_IDENTITY</span><span class="special">(</span><span class="identifier">__clrcall</span> <span class="special">)</span> <span class="special">))\</span>
+  <span class="special">((</span> <span class="identifier">THISCALL</span>           <span class="special">,</span> <span class="identifier">thiscall_cc</span> <span class="special">,</span> <span class="identifier">BOOST_PP_IDENTITY</span><span class="special">(</span><span class="identifier">__thiscall</span><span class="special">)</span> <span class="special">))\</span>
+  <span class="special">((</span> <span class="identifier">IMPLICIT_THISCALL</span>  <span class="special">,</span> <span class="identifier">thiscall_cc</span> <span class="special">,</span> <span class="identifier">BOOST_PP_EMPTY</span>                <span class="special">))</span> 
+<span class="comment">// Don't get confused by the last line, here (thiscall can't be specified
+</span><span class="comment">// explicitly prior to MSVC 8).
+</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.macros.BOOST_FT_CC"></a><a class="link" href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_CC" title="BOOST_FT_CC_*">BOOST_FT_CC_*</a>
+</h4></div></div></div>
+<p>
+          Enables a specific calling convention. * denotes the macro suffix, as defined
+          by <a class="link" href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_CC_NAMES" title="BOOST_FT_CC_NAMES"><code class="literal">BOOST_FT_CC_NAMES</code></a>
+          or <a class="link" href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_CC_NAMES" title="BOOST_FT_CC_NAMES"><code class="literal">BOOST_FT_BUILTIN_CC_NAMES</code></a>.
+        </p>
+<p>
+          The macro expands to a list of restrictions, separated by the <code class="literal">|</code>
+          character. Possible items are:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+              callable_builtin
+            </li>
+<li class="listitem">
+              member
+            </li>
+<li class="listitem">
+              non_member
+            </li>
+<li class="listitem">
+              variadic
+            </li>
+<li class="listitem">
+              non_variadic
+            </li>
+</ul></div>
+<p>
+          If no such macro is defined for a particular calling convention, it is
+          disabled. Example:
+        </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_FT_CC_STDCALL</span> <span class="identifier">non_variadic</span><span class="special">|</span><span class="identifier">callable_builtin</span>
+<span class="comment">// enables stdcall calling convention for all non-variadic, 
+</span><span class="comment">// callable, builtin types
+</span></pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.macros.BOOST_FT_COMMON_X86_CCs"></a><a class="link" href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_COMMON_X86_CCs" title="BOOST_FT_COMMON_X86_CCs">BOOST_FT_COMMON_X86_CCs</a>
+</h4></div></div></div>
+<p>
+          Defining this macro causes the following macros to be defined, if not defined
+          already:
+        </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_FT_CC_CDECL</span> <span class="identifier">BOOST_FT_COMMON_X86_CCs</span>
+<span class="preprocessor">#define</span> <span class="identifier">BOOST_FT_CC_STDCALL</span> <span class="identifier">non_variadic</span><span class="special">|</span><span class="identifier">BOOST_FT_COMMON_X86_CCs</span>
+<span class="preprocessor">#define</span> <span class="identifier">BOOST_FT_CC_FASTCALL</span> <span class="identifier">non_variadic</span><span class="special">|</span><span class="identifier">BOOST_FT_COMMON_X86_CCs</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.macros.BOOST_FT_SYNTAX"></a><a class="link" href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_SYNTAX" title="BOOST_FT_SYNTAX">BOOST_FT_SYNTAX</a>
+</h4></div></div></div>
+<p>
+          This macro allows to change the syntax of callable builtin types. It is
+          useful to handle the compiler specific placement of the calling convention
+          specifier.
+        </p>
+<p>
+          The default definition is as follows:
+        </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_FT_SYNTAX</span><span class="special">(</span><span class="identifier">result</span><span class="special">,</span><span class="identifier">lparen</span><span class="special">,</span><span class="identifier">cc_spec</span><span class="special">,</span><span class="identifier">type_mod</span><span class="special">,</span><span class="identifier">name</span><span class="special">,</span><span class="identifier">rparen</span><span class="special">)</span> <span class="special">\</span>
+          <span class="identifier">result</span><span class="special">()</span> <span class="identifier">lparen</span><span class="special">()</span> <span class="identifier">cc_spec</span><span class="special">()</span> <span class="identifier">type_mod</span><span class="special">()</span> <span class="identifier">name</span><span class="special">()</span> <span class="identifier">rparen</span><span class="special">()</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.macros.BOOST_FT_NULLARY_PARAM"></a><a class="link" href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_NULLARY_PARAM" title="BOOST_FT_NULLARY_PARAM">BOOST_FT_NULLARY_PARAM</a>
+</h4></div></div></div>
+<p>
+          Set to <code class="literal">void</code> for compilers that insist on a <code class="literal">void</code>
+          parameter for nullary function types, empty by default.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.macros.BOOST_FT_NO_CV_FUNC_SUPPORT"></a><a class="link" href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_NO_CV_FUNC_SUPPORT" title="BOOST_FT_NO_CV_FUNC_SUPPORT">BOOST_FT_NO_CV_FUNC_SUPPORT</a>
+</h4></div></div></div>
+<p>
+          Disables support for cv-qualified function types. Cv-qualified function
+          types are illegal by the current standard version, but there is a pending
+          defect report on that issue. It defaults to <code class="literal">1</code> until
+          the standard changes, setting this macro to <code class="literal">0</code> may not
+          work.
+        </p>
+</div>
+<p>
+        <span class="bold"><strong>The following macros are useful for testing when changing
+        the source code of the library.</strong></span>
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.macros.BOOST_FT_PREPROCESSING_MODE"></a><a class="link" href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_PREPROCESSING_MODE" title="BOOST_FT_PREPROCESSING_MODE">BOOST_FT_PREPROCESSING_MODE</a>
+</h4></div></div></div>
+<p>
+          Makes the compiler preprocess as much as possible of the library code (rather
+          than loading already-preprocessed header files) if defined.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_functiontypes.reference.macros.BOOST_FT_CC_PREPROCESSING"></a><a class="link" href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_CC_PREPROCESSING" title="BOOST_FT_CC_PREPROCESSING">BOOST_FT_CC_PREPROCESSING</a>
+</h4></div></div></div>
+<p>
+          Makes the compiler preprocess the loop over possible names for custom calling
+          conventions (rather than loading an already-preprocessed header file) if
+          defined.
+        </p>
+<p>
+          This macro is defined automatically if <a class="link" href="macros.html#boost_functiontypes.reference.macros.BOOST_FT_CC_NAMES" title="BOOST_FT_CC_NAMES"><code class="literal">BOOST_FT_CC_NAMES</code></a>
+          has been defined.
+        </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2004-2007 Tobias
+      Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tag_types.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../rationale.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

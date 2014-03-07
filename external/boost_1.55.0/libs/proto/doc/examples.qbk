@@ -1,0 +1,172 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[import ../example/hello.cpp]
+[import ../example/calc1.cpp]
+[import ../example/calc2.cpp]
+[import ../example/calc3.cpp]
+[import ../example/lazy_vector.cpp]
+[import ../example/mixed.cpp]
+[import ../example/rgb.cpp]
+[import ../example/tarray.cpp]
+[import ../example/vec3.cpp]
+[import ../example/vector.cpp]
+[import ../example/map_assign.cpp]
+[import ../example/futures.cpp]
+[import ../example/mini_lambda.cpp]
+[import ../example/external_transforms.cpp]
+
+[/===============]
+[section Examples]
+[/===============]
+
+A code example is worth a thousand words ...
+
+[/================================================================================]
+[section:hello_world Hello World:
+    Building an Expression Template and Evaluating It]
+[/================================================================================]
+
+A trivial example which builds and expression template and evaluates it.
+
+[HelloWorld]
+
+[endsect]
+
+[/==================================================]
+[section:calc1 Calc1: Defining an Evaluation Context]
+[/==================================================]
+
+A simple example that builds a miniature embedded domain-specific language for lazy arithmetic expressions, with TR1 bind-style argument placeholders.
+
+[Calc1]
+
+[endsect]
+
+[/============================================================]
+[section:calc2 Calc2: Adding Members Using [^proto::extends<>]]
+[/============================================================]
+
+An extension of the Calc1 example that uses _extends_ to make calculator expressions valid function objects that can be used with STL algorithms.
+
+[Calc2]
+
+[endsect]
+
+[/===============================================]
+[section:calc3 Calc3: Defining a Simple Transform]
+[/===============================================]
+
+An extension of the Calc2 example that uses a Proto transform to calculate the arity of a calculator expression and statically assert that the correct number of arguments are passed.
+
+[Calc3]
+
+[endsect]
+
+[/==============================================================]
+[section:lazy_vector Lazy Vector: Controlling Operator Overloads]
+[/==============================================================]
+
+This example constructs a mini-library for linear algebra, using expression templates to eliminate the need for temporaries when adding vectors of numbers.
+
+This example uses a domain with a grammar to prune the set of overloaded operators. Only those operators that produce valid lazy vector expressions are allowed.
+
+[LazyVector]
+
+[endsect]
+
+[/========================================================]
+[section:rgb RGB: Type Manipulations with Proto Transforms]
+[/========================================================]
+
+This is a simple example of doing arbitrary type manipulations with Proto transforms. It takes some expression involving primary colors and combines the colors according to arbitrary rules. It is a port of the RGB example from _PETE_.
+
+[RGB]
+
+[endsect]
+
+[/=====================================================]
+[section:tarray TArray: A Simple Linear Algebra Library]
+[/=====================================================]
+
+This example constructs a mini-library for linear algebra, using expression templates to eliminate the need for temporaries when adding arrays of numbers. It duplicates the TArray example from _PETE_.
+
+[TArray]
+
+[endsect]
+
+[/========================================================]
+[section:vec3 Vec3: Computing With Transforms and Contexts]
+[/========================================================]
+
+This is a simple example using `proto::extends<>` to extend a terminal type with additional behaviors, and using custom contexts and `proto::eval()` for evaluating expressions. It is a port of the Vec3 example from _PETE_.
+
+[Vec3]
+
+[endsect]
+
+[/========================================================]
+[section:vector Vector: Adapting a Non-Proto Terminal Type]
+[/========================================================]
+
+This is an example of using `BOOST_PROTO_DEFINE_OPERATORS()` to Protofy expressions using `std::vector<>`, a non-Proto type. It is a port of the Vector example from _PETE_.
+
+[Vector]
+
+[endsect]
+
+[/=============================================================]
+[section:mixed Mixed: Adapting Several Non-Proto Terminal Types]
+[/=============================================================]
+
+This is an example of using `BOOST_PROTO_DEFINE_OPERATORS()` to Protofy expressions using `std::vector<>` and `std::list<>`, non-Proto types. It is a port of the Mixed example from _PETE_.
+
+[Mixed]
+
+[endsect]
+
+[/=======================================================]
+[section:map_assign Map Assign: An Intermediate Transform]
+[/=======================================================]
+
+A demonstration of how to implement `map_list_of()` from the Boost.Assign library using Proto. `map_list_assign()` is used to conveniently initialize a `std::map<>`. By using Proto, we can avoid any dynamic allocation while building the intermediate representation.
+
+[MapAssign]
+
+[endsect]
+
+[/===========================================================]
+[section:future_group Future Group: A More Advanced Transform]
+[/===========================================================]
+
+An advanced example of a Proto transform that implements Howard Hinnant's design for /future groups/ that block for all or some asynchronous operations to complete and returns their results in a tuple of the appropriate type.
+
+[FutureGroup]
+
+[endsect]
+
+[/========================================================]
+[section:lambda Lambda: A Simple Lambda Library with Proto]
+[/========================================================]
+
+This is an advanced example that shows how to implement a simple lambda EDSL with Proto, like the Boost.Lambda_library. It uses contexts, transforms and expression extension.
+
+[Lambda]
+
+[endsect]
+
+[/===============================================================================]
+[section:checked_calc Checked Calculator: A Simple Example of External Transforms]
+[/===============================================================================]
+
+This is an advanced example that shows how to externally parameterize a grammar's transforms. It defines a calculator EDSL with a grammar that can perform either checked or unchecked arithmetic.
+
+[CheckedCalc]
+
+[endsect]
+
+[endsect]

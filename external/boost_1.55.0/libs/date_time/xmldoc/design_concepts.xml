@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2004 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.design_concepts">
+  <title>Design Concepts</title>
+
+  <para>
+    A large part of the genesis of this library has been the observation that few date-time libraries are built in a fashion that allows customization and extension. A typical example, the calendar logic is built directly into the date class. Or the clock retrieval functions are built directly into the time class. These design decisions usually make it impossible to extend or change the library behavior. At a more fundamental level, there are usually assumptions about the resolution of time representation or the gregorian calendar. 
+  </para>
+  <para>
+    Often times, the result is that a project must settle for a less than complete library because of a requirement for high resolution time representation or other assumptions that do not match the implementation of the library. This is extremely unfortunate because development of a library of this sort is far from a trivial task. 
+  </para>
+  <para>
+    While the design is far from perfect the current design is far more flexible than any date-time library the author is aware of. It is expected that the various aspects of extensibility will be better documented in future versions. Information about the design goals of the library is <link linkend="date_time.design_goals">summarized here</link>. 
+  </para>
+</section>

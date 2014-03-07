@@ -1,0 +1,91 @@
+[section:main_intro About the Math Toolkit]
+
+This library is divided into three interconnected parts:
+
+[h4 Statistical Distributions]
+
+Provides a reasonably comprehensive set of
+[link dist statistical distributions],
+upon which higher level statistical tests can be built.
+
+The initial focus is on the central
+[@http://en.wikipedia.org/wiki/Univariate univariate ]
+[@http://mathworld.wolfram.com/StatisticalDistribution.html distributions].
+Both [@http://mathworld.wolfram.com/ContinuousDistribution.html continuous]
+(like [link math_toolkit.dist_ref.dists.normal_dist normal]
+& [link math_toolkit.dist_ref.dists.f_dist Fisher])
+and [@http://mathworld.wolfram.com/DiscreteDistribution.html discrete]
+(like [link math_toolkit.dist_ref.dists.binomial_dist binomial]
+& [link math_toolkit.dist_ref.dists.poisson_dist Poisson])
+distributions are provided.
+
+A [link math_toolkit.stat_tut comprehensive tutorial is provided],
+along with a series of
+[link math_toolkit.stat_tut.weg worked examples] illustrating
+how the library is used to conduct statistical tests.
+
+[h4 Mathematical Special Functions]
+
+Provides a small number of high quality
+[link special special functions],
+initially these were concentrated on functions used in statistical applications
+along with those in the [tr1].
+
+The function families currently implemented are the gamma, beta & erf functions
+along with the incomplete gamma and beta functions (four variants
+of each) and all the possible inverses of these, plus digamma,
+various factorial functions,
+Bessel functions, elliptic integrals, sinus cardinals (along with their
+hyperbolic variants), inverse hyperbolic functions, Legrendre/Laguerre/Hermite
+polynomials and various
+special power and logarithmic functions.
+
+All the implementations
+are fully generic and support the use of arbitrary "real-number" types,
+including __multiprecision,
+although they are optimised for use with types with known-about
+[@http://en.wikipedia.org/wiki/Significand significand (or mantissa)]
+sizes: typically `float`, `double` or `long double`.
+
+[h4 Implementation Toolkit]
+
+Provides [link toolkit many of the tools] required to implement
+mathematical special functions: hopefully the presence of
+these will encourage other authors to contribute more special
+function implementations in the future.  These tools are currently
+considered experimental: they are "exposed implementation details"
+whose interfaces and\/or implementations may change.
+
+There are helpers for the
+[link math_toolkit.internals1.series_evaluation
+evaluation of infinite series],
+[link math_toolkit.internals1.cf continued
+fractions] and [link math_toolkit.internals1.rational
+rational approximations].
+
+There is a fairly comprehensive set of root finding and
+[link math_toolkit.internals1.minima function minimisation
+algorithms]: the root finding algorithms are both
+[link math_toolkit.internals1.roots with] and
+[link math_toolkit.internals1.roots2 without] derivative support.
+
+A [link math_toolkit.internals2.minimax
+Remez algorithm implementation] allows for the locating of minimax rational
+approximations.
+
+There are also (experimental) classes for the
+[link math_toolkit.internals2.polynomials manipulation of polynomials], for
+[link math_toolkit.internals2.error_test
+testing a special function against tabulated test data], and for
+the [link math_toolkit.internals2.test_data
+rapid generation of test data] and/or data for output to an
+external graphing application.
+
+[endsect] [/section:intro Introduction]
+
+[/
+  Copyright 2006, 2012 John Maddock and Paul A. Bristow.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]

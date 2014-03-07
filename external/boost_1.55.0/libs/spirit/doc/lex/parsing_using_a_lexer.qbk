@@ -1,0 +1,15 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:lexer_parsing Parsing using a Lexer]
+
+[/ write about integration of lexer component with __qi__]
+
+[/ write about iterator interface exposed by a __lex__ lexer]
+
+[endsect]

@@ -1,0 +1,10 @@
+[article Expect template to fail because there are not enough arguments.
+]
+
+[template ternary[x y z] [x][y][z]]
+
+[section Failure]
+
+[ternary a b ]
+
+[endsect]

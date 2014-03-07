@@ -1,0 +1,154 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>VertexListGraph</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+
+<H2><A NAME="concept:VertexListGraph">
+VertexListGraph
+</H2>
+
+The <I>VertexListGraph</I> concept refines the <a
+href="./Graph.html">Graph</a> concept, and adds the requirement for
+efficient traversal of all the vertices in the graph.
+
+<H3>Refinement of</H3>
+
+<a href="./Graph.html">Graph</a>
+
+<H3>Associated Types</H3>
+
+<Table border>
+
+<tr>
+<td><tt>boost::graph_traits&lt;G&gt;::traversal_category</tt><br><br>
+ This tag type must be convertible to <tt>vertex_list_graph_tag</tt>.
+</td>
+</tr>
+
+<TR>
+<TD><tt>boost::graph_traits&lt;G&gt;::vertex_iterator</tt><br><br>
+A vertex iterator (obtained via <TT>vertices(g)</TT>) provides access
+to all of the vertices in a graph.  A vertex iterator type must meet
+the requirements of <a
+href="../../utility/MultiPassInputIterator.html">MultiPassInputIterator</a>. The
+value type of the vertex iterator must be the vertex descriptor of the
+graph.
+</TD>
+</TR>
+
+<tr>
+<td><tt>boost::graph_traits&lt;G&gt;::vertices_size_type</tt><br><br>
+The unsigned integer type used to represent the number of vertices
+in the graph.
+</td>
+</tr>
+
+</table>
+
+<h3>Valid Expressions</h3>
+
+<table border>
+
+<tr>
+<th>Name</th><th>Expression</th><th>Return Type</th><th>Description</th>
+</tr>
+
+<tr>
+<td>Vertex Set of the Graph</td>
+<td><a name="sec:vertices"><TT>vertices(g)</TT></a></TD>
+<TD><TT>std::pair&lt;vertex_iterator,&nbsp;vertex_iterator&gt;</TT></TD>
+<TD>
+Returns an iterator-range providing access to all the vertices in the
+graph<TT>g</TT>.
+</TD>
+</TR>
+
+<tr>
+<td>Number of Vertices in the Graph </td>
+<td><TT>num_vertices(g)</TT></TD>
+<TD><TT>vertices_size_type</TT></TD>
+<TD>Returns the number of vertices in the graph <TT>g</TT>.</TD>
+</TR>
+
+</TABLE>
+
+
+<H3>Complexity guarantees</H3>
+
+<P>
+The <TT>vertices()</TT> function must return in constant time.
+
+<H3>See Also</H3>
+
+<a href="./graph_concepts.html">Graph concepts</a>
+
+
+<H3>Design Rationale</H3>
+
+One issue in the design of this concept is whether to include the
+refinement from the <a href="./IncidenceGraph.html">IncidenceGraph</a>
+and <a href="./AdjacencyGraph.html">AdjacencyGraph</a> concepts.  The
+ability to traverse the vertices of a graph is orthogonal to
+traversing out-edges, so it would make sense to have a VertexListGraph
+concept that only includes vertex traversal. However, such a concept
+would no longer really be a graph, but would just be a set, and the
+STL already has concepts for dealing with such things. However, there
+are many BGL algorithms that need to traverse the vertices and
+out-edges of a graph, so for convenience a concept is needed that
+groups these requirements together, hence the VertexListGraph concept.
+
+
+<H3>Concept Checking Class</H3>
+
+<P>
+<PRE>
+  template &lt;class G&gt;
+  struct VertexListGraphConcept
+  {
+    typedef typename boost::graph_traits&lt;G&gt;::vertex_iterator 
+      vertex_iterator;
+    void constraints() {
+      BOOST_CONCEPT_ASSERT(( IncidenceGraphConcept&lt;G&gt; ));
+      BOOST_CONCEPT_ASSERT(( AdjacencyGraphConcept&lt;G&gt; ));
+      BOOST_CONCEPT_ASSERT(( MultiPassInputIteratorConcept&lt;vertex_iterator&gt; ));
+
+      p = vertices(g);
+      V = num_vertices(g);
+      v = *p.first;
+      const_constraints(g);
+    }
+    void const_constraints(const G&amp; g) {
+      p = vertices(g);
+      V = num_vertices(g);
+      v = *p.first;
+    }
+    std::pair&lt;vertex_iterator, vertex_iterator&gt; p;
+    typename boost::graph_traits&lt;G&gt;::vertex_descriptor v;
+    typename boost::graph_traits&lt;G&gt;::vertices_size_type V;
+    G g;
+  };
+</PRE>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

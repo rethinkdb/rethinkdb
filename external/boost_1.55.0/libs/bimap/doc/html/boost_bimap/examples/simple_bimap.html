@@ -1,0 +1,201 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Simple Bimap</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.77.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Bimap">
+<link rel="up" href="../examples.html" title="Examples">
+<link rel="prev" href="../examples.html" title="Examples">
+<link rel="next" href="mighty_bimap.html" title="Mighty Bimap">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../examples.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mighty_bimap.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_bimap_examples_simple_bimap">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_bimap.examples.simple_bimap"></a><a class="link" href="simple_bimap.html" title="Simple Bimap">Simple Bimap</a>
+</h3></div></div></div>
+<p>
+        This is the example from the one minute tutorial section.
+      </p>
+<p>
+        <a href="../../../../example/simple_bimap.cpp" target="_top">Go to source code</a>
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">class</span> <span class="identifier">MapType</span> <span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">print_map</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">MapType</span> <span class="special">&amp;</span> <span class="identifier">map</span><span class="special">,</span>
+               <span class="keyword">const</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="special">&amp;</span> <span class="identifier">separator</span><span class="special">,</span>
+               <span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&amp;</span> <span class="identifier">os</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">MapType</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">const_iterator</span><span class="special">;</span>
+
+    <span class="keyword">for</span><span class="special">(</span> <span class="identifier">const_iterator</span> <span class="identifier">i</span> <span class="special">=</span> <span class="identifier">map</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">iend</span> <span class="special">=</span> <span class="identifier">map</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span> <span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">iend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">os</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span><span class="special">-&gt;</span><span class="identifier">first</span> <span class="special">&lt;&lt;</span> <span class="identifier">separator</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span><span class="special">-&gt;</span><span class="identifier">second</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Soccer World cup</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bimap</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="keyword">int</span> <span class="special">&gt;</span> <span class="identifier">results_bimap</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">results_bimap</span><span class="special">::</span><span class="identifier">value_type</span> <span class="identifier">position</span><span class="special">;</span>
+
+    <span class="identifier">results_bimap</span> <span class="identifier">results</span><span class="special">;</span>
+    <span class="identifier">results</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">position</span><span class="special">(</span><span class="string">"Argentina"</span>    <span class="special">,</span><span class="number">1</span><span class="special">)</span> <span class="special">);</span>
+    <span class="identifier">results</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">position</span><span class="special">(</span><span class="string">"Spain"</span>        <span class="special">,</span><span class="number">2</span><span class="special">)</span> <span class="special">);</span>
+    <span class="identifier">results</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">position</span><span class="special">(</span><span class="string">"Germany"</span>      <span class="special">,</span><span class="number">3</span><span class="special">)</span> <span class="special">);</span>
+    <span class="identifier">results</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">position</span><span class="special">(</span><span class="string">"France"</span>       <span class="special">,</span><span class="number">4</span><span class="special">)</span> <span class="special">);</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"The number of countries is "</span> <span class="special">&lt;&lt;</span> <span class="identifier">results</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span>
+              <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"The winner is "</span> <span class="special">&lt;&lt;</span> <span class="identifier">results</span><span class="special">.</span><span class="identifier">right</span><span class="special">.</span><span class="identifier">at</span><span class="special">(</span><span class="number">1</span><span class="special">)</span>
+              <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span>
+              <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Countries names ordered by their final position:"</span>
+              <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="comment">// results.right works like a std::map&lt; int, std::string &gt;</span>
+
+    <span class="identifier">print_map</span><span class="special">(</span> <span class="identifier">results</span><span class="special">.</span><span class="identifier">right</span><span class="special">,</span> <span class="string">") "</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">);</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span>
+              <span class="special">&lt;&lt;</span> <span class="string">"Countries names ordered alphabetically along with"</span>
+                    <span class="string">"their final position:"</span>
+              <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="comment">// results.left works like a std::map&lt; std::string, int &gt;</span>
+
+    <span class="identifier">print_map</span><span class="special">(</span> <span class="identifier">results</span><span class="special">.</span><span class="identifier">left</span><span class="special">,</span> <span class="string">" ends in position "</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">);</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        You can rewrite it using tags to gain readability.
+      </p>
+<p>
+        <a href="../../../../example/tagged_simple_bimap.cpp" target="_top">Go to source code</a>
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">bimap</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">struct</span> <span class="identifier">country</span>  <span class="special">{};</span>
+<span class="keyword">struct</span> <span class="identifier">place</span>    <span class="special">{};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bimaps</span><span class="special">;</span>
+
+    <span class="comment">// Soccer World cup.</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">bimap</span>
+    <span class="special">&lt;</span>
+        <span class="identifier">tagged</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">country</span> <span class="special">&gt;,</span>
+        <span class="identifier">tagged</span><span class="special">&lt;</span> <span class="keyword">int</span>        <span class="special">,</span> <span class="identifier">place</span>   <span class="special">&gt;</span>
+
+    <span class="special">&gt;</span> <span class="identifier">results_bimap</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">results_bimap</span><span class="special">::</span><span class="identifier">value_type</span> <span class="identifier">position</span><span class="special">;</span>
+
+    <span class="identifier">results_bimap</span> <span class="identifier">results</span><span class="special">;</span>
+    <span class="identifier">results</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">position</span><span class="special">(</span><span class="string">"Argentina"</span>    <span class="special">,</span><span class="number">1</span><span class="special">)</span> <span class="special">);</span>
+    <span class="identifier">results</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">position</span><span class="special">(</span><span class="string">"Spain"</span>        <span class="special">,</span><span class="number">2</span><span class="special">)</span> <span class="special">);</span>
+    <span class="identifier">results</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">position</span><span class="special">(</span><span class="string">"Germany"</span>      <span class="special">,</span><span class="number">3</span><span class="special">)</span> <span class="special">);</span>
+    <span class="identifier">results</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span> <span class="identifier">position</span><span class="special">(</span><span class="string">"France"</span>       <span class="special">,</span><span class="number">4</span><span class="special">)</span> <span class="special">);</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Countries names ordered by their final position:"</span>
+                <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <a class="co" name="boost_bimap.examples.simple_bimap.c0" href="simple_bimap.html#boost_bimap.examples.simple_bimap.c1"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a><span class="keyword">for</span><span class="special">(</span> <span class="identifier">results_bimap</span><span class="special">::</span><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">place</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span>
+            <span class="identifier">i</span>    <span class="special">=</span> <span class="identifier">results</span><span class="special">.</span><span class="identifier">by</span><span class="special">&lt;</span><span class="identifier">place</span><span class="special">&gt;().</span><span class="identifier">begin</span><span class="special">(),</span>
+            <span class="identifier">iend</span> <span class="special">=</span> <span class="identifier">results</span><span class="special">.</span><span class="identifier">by</span><span class="special">&lt;</span><span class="identifier">place</span><span class="special">&gt;().</span><span class="identifier">end</span><span class="special">()</span> <span class="special">;</span>
+            <span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">iend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <a class="co" name="boost_bimap.examples.simple_bimap.c2" href="simple_bimap.html#boost_bimap.examples.simple_bimap.c3"><img src="../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a><span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span><span class="special">-&gt;</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">place</span>  <span class="special">&gt;()</span> <span class="special">&lt;&lt;</span> <span class="string">") "</span>
+                  <span class="special">&lt;&lt;</span> <span class="identifier">i</span><span class="special">-&gt;</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">country</span><span class="special">&gt;()</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span>
+              <span class="special">&lt;&lt;</span> <span class="string">"Countries names ordered alfabetically along with"</span>
+                 <span class="string">"their final position:"</span>
+              <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+    <a class="co" name="boost_bimap.examples.simple_bimap.c4" href="simple_bimap.html#boost_bimap.examples.simple_bimap.c5"><img src="../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a><span class="keyword">for</span><span class="special">(</span> <span class="identifier">results_bimap</span><span class="special">::</span><span class="identifier">map_by</span><span class="special">&lt;</span><span class="identifier">country</span><span class="special">&gt;::</span><span class="identifier">const_iterator</span>
+            <span class="identifier">i</span>    <span class="special">=</span> <span class="identifier">results</span><span class="special">.</span><span class="identifier">by</span><span class="special">&lt;</span><span class="identifier">country</span><span class="special">&gt;().</span><span class="identifier">begin</span><span class="special">(),</span>
+            <span class="identifier">iend</span> <span class="special">=</span> <span class="identifier">results</span><span class="special">.</span><span class="identifier">by</span><span class="special">&lt;</span><span class="identifier">country</span><span class="special">&gt;().</span><span class="identifier">end</span><span class="special">()</span> <span class="special">;</span>
+            <span class="identifier">i</span> <span class="special">!=</span> <span class="identifier">iend</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span><span class="special">-&gt;</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">country</span><span class="special">&gt;()</span> <span class="special">&lt;&lt;</span> <span class="string">" ends "</span>
+                  <span class="special">&lt;&lt;</span> <span class="identifier">i</span><span class="special">-&gt;</span><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">place</span>  <span class="special">&gt;()</span> <span class="special">&lt;&lt;</span> <span class="string">"&#186;"</span>
+                  <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<div class="calloutlist"><table border="0" summary="Callout list">
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="boost_bimap.examples.simple_bimap.c1"></a><a href="#boost_bimap.examples.simple_bimap.c0"><img src="../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+            <code class="computeroutput"><span class="identifier">results</span><span class="special">.</span><span class="identifier">by</span><span class="special">&lt;</span><span class="identifier">place</span><span class="special">&gt;()</span></code>
+            is equivalent to <code class="computeroutput"><span class="identifier">results</span><span class="special">.</span><span class="identifier">right</span></code>
+          </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="boost_bimap.examples.simple_bimap.c3"></a><a href="#boost_bimap.examples.simple_bimap.c2"><img src="../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+            <code class="computeroutput"><span class="identifier">get</span><span class="special">&lt;</span><span class="identifier">Tag</span><span class="special">&gt;</span></code>
+            works for each view of the bimap
+          </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="boost_bimap.examples.simple_bimap.c5"></a><a href="#boost_bimap.examples.simple_bimap.c4"><img src="../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+            <code class="computeroutput"><span class="identifier">results</span><span class="special">.</span><span class="identifier">by</span><span class="special">&lt;</span><span class="identifier">country</span><span class="special">&gt;()</span></code>
+            is equivalent to <code class="computeroutput"><span class="identifier">results</span><span class="special">.</span><span class="identifier">left</span></code>
+          </p></td>
+</tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2012 Matias Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../examples.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="mighty_bimap.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

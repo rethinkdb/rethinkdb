@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+ Copyright (c) 2010 International Business Machines Corporation and others. All rights reserved.
+-->
+<!DOCTYPE ldml SYSTEM "http://www.unicode.org/repos/cldr/trunk/common/dtd/ldml.dtd"
+[
+   <!ENTITY % icu SYSTEM "http://www.unicode.org/repos/cldr/trunk/common/dtd/ldmlICU.dtd">
+   %icu;
+]
+>
+<ldml>
+    <identity>
+        <version number="$Revision: 28903 $"/>
+        <generation date="$Date: 2010/10/25 11:00:00 $"/>
+        <language type="fi"/> 
+    </identity>
+    <special xmlns:icu="http://www.icu-project.org/">
+        <icu:breakIteratorData>
+            <icu:boundaries>
+                <icu:line     icu:dependency="line_fi.brk"/>
+            </icu:boundaries>
+        </icu:breakIteratorData>
+    </special>
+</ldml>
+

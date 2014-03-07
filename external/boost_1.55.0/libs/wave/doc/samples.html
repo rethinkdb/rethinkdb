@@ -1,0 +1,115 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>Samples</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body text="#000000" background="theme/bkd.gif">
+<table width="100%" border="0" cellspacing="2" background="theme/bkd2.gif">
+  <tr>
+    <td width="21">
+      <h1></h1></td>
+    <td width="885"> <font face="Verdana, Arial, Helvetica, sans-serif"><b><font size="6">Samples</font></b></font></td>
+    <td width="96"><a href="http://www.boost.org"><img src="theme/wave.gif" width="93" height="68" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="wave_driver.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="references.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p dir="ltr">The <tt>Wave</tt> library contains several samples illustrating how to use the different features. This section describes these samples and its main characteristics. </p>
+<h2 dir="ltr">The quick_start sample</h2>
+ <p>The <tt>quick_start</tt> sample shows a minimal way to use the <tt>Wave</tt> preprocessor library. It simply opens the file given as the first command line argument, preprocesses it assuming that there aren't any additional include paths or macros defined and outputs the textual representation of the tokens generated from the given input file. This sample may be used to introduce yourself to <tt>Wave</tt>, because it does not contain all the potential additional complexity exposed by more complex samples. </p>
+ <h2>The lexed_tokens sample</h2>
+ <p>The <tt>lexed_tokens</tt> sample shows a minimal way to use the C++ lexing component of Wave without using the preprocessor. It opens the file specified as the first command line argument and prints out the contents of the tokens returned from the lexer. </p>
+ <h2>The <strong>cpp_tokens sample </strong></h2>
+<p dir="ltr">The <tt>cpp_tokens</tt> sample dumps out the information contained within the tokens returned from the iterator supplied by the <tt>Wave</tt> library. It shows, how to use the <tt>Wave</tt> library in conjunction with custom lexer and custom token types. The lexer used within this sample is <tt>SLex</tt> <a href="references.html#slex">[5]</a> based, i.e. it <tt></tt> is feeded during runtime (at startup) with the token definitions (regular expressions) and generates a resulting DFA table. This table is used for token identification and is saved to disc afterwards to avoid the table generation process at the next program startup. The name of the file to which the DFA table is saved is <tt>wave_slex_lexer.dfa</tt>. </p>
+<p dir="ltr">The main advantage of this <tt>SLex</tt> based lexer if compared to the default <tt>Re2C</tt> <a href="references.html#re2c">[3]</a> generated lexer is, that it provides not only the line information, where a particular token was recognized, but also the related column position. Otherwise the <tt>SLex</tt> based lexer is functionally fully compatible to the <tt>Re2C</tt> based one, i.e. you always may switch your application to use it, if you additionally need to get the column information back from the preprocessing. </p>
+<p dir="ltr">Since no additional command line parameters are supported by this sample, it won't work well with include files, which aren't located in the same directory as the inspected input file. The command line syntax is straight forward:</p>
+<pre>    cpp_tokens input_file</pre>
+<h2 dir="ltr">The list_includes sample </h2>
+<p dir="ltr">The <tt>list_includes</tt> sample shows how the <tt>Wave</tt> library may be used to generate a include file dependency list for a particular input file. It completely depends on the default library configuration. The command line syntax for this sample is given below: </p>
+<pre>    Usage: list_includes [options] file ...:
+        -h [ --help ]        : print out program usage (this message)
+        -v [ --version ]     : print the version number
+        -I [ --path ] dir    : specify additional include directory
+        -S [ --syspath ] dir : specify additional system include directory
+</pre>
+<p dir="ltr">Please note though, that this sample will output only those include file names, which are visible to the preprocessor, i.e. given the following code snippet, only one of the two include file directives is triggered during preprocessing and for this reason only the corresponding file name is reported by the <tt>list_includes</tt> sample:
+<pre><span class="preprocessor">    #if</span> <span class="keyword">defined</span></span><span class="special">(</span>INCLUDE_FILE_A<span class="special">)</span>
+<span class="preprocessor">    #  include</span> <span class="literal">&quot;file_a.h&quot;</span> 
+<span class="preprocessor">    #else</span>
+<span class="preprocessor">    #  include</span> <span class="literal">&quot;file_b.h&quot;</span>
+<span class="preprocessor">    #endif</span></pre>
+<h2 dir="ltr">The advanced_hooks sample</h2>
+<p dir="ltr">The <tt>advanced_hooks</tt> sample is based on the <tt>quick_start</tt> sample mentioned above. It shows how you may want to use the advanced preprocessing hooks of the <tt>Wave</tt> library to get in the output not only the preprocessed tokens from the evaluated conditional blocks, but also the tokens recognized inside the non-evaluated conditional blocks. To make the generated token stream useful for further processing the tokens from the non-evaluated conditional blocks are commented out. </p>
+<p dir="ltr">Here is a small sample what the <tt>advanced_hooks</tt> sample does. Consider the following input: </p>
+<pre>    <span class="preprocessor">#define</span> TEST 1
+<span class="preprocessor">    #if</span> <span class="keyword">defined</span>(TEST)
+    <span class="string">&quot;TEST was defined: &quot;</span> TEST
+    <span class="preprocessor">#else</span>
+    <span class="string">&quot;TEST was not defined!&quot;</span>
+    <span class="preprocessor">#endif</span></pre>
+<p>which will produce as its output:</p>
+<pre><span class="comment">    //&quot;#if defined(TEST)</span>
+    <span class="string">&quot;TEST was defined: &quot;</span> 1
+    <span class="comment">//&quot;#else</span>
+    <span class="comment">//&quot;TEST was not defined!&quot;</span>
+    <span class="comment">//&quot;#endif</span></pre>
+<p dir="ltr">As you can see, the sample application prints out the conditional directives in a commented out manner as well. </p>
+<h2 dir="ltr">The  wave sample</h2>
+<p dir="ltr">Because of its general usefulness the <tt>wave</tt> sample is not located in the sample directory of the library, but inside the tools directory of Boost. The wave sample is usable as a full fledged preprocessor executable 
+  on top of any other C++ compiler. It outputs the textual representation of the 
+preprocessed tokens generated from a given input file. It is described in more details <a href="wave_driver.html">here</a>. </p>
+<h2 dir="ltr">The  waveidl sample </h2>
+<p dir="ltr">The main point of the <tt>waveidl</tt> sample is to show, how a completely independent lexer type may be used in conjunction with the default token type of the <tt>Wave</tt> library. The lexer used in this sample is supposed to be used for an IDL language based preprocessor. It is based on the <tt>Re2C</tt> tool too, but recognizes a different set of tokens as the default C++ lexer contained within the <tt>Wave</tt> library. So this lexer does not recognize any keywords (except <tt>true</tt> and <tt>false</tt>, which are needed by the preprocessor itself). This is needed because there exist different IDL languages, where identifiers of one language may be keywords of others. Certainly this implies to postpone keyword identification after the preprocessing, but allows to use <tt>Wave</tt> for all of the IDL derivatives. </p>
+<p dir="ltr">It is only possible to use the <tt>Wave</tt> library to write an IDL preprocessor, because the token sets for both languages are very similar. The tokens to be recognized by the <tt>waveidl</tt> IDL language preprocessor is nearly a complete subset of the full C++ token set. </p>
+<p dir="ltr">The command line syntax usable for this sample is shown below:</p>
+<pre>  Usage: waveidl [options] [@config-file(s)] file:
+
+
+    Options allowed on the command line only:
+      -h [ --help ]           : print out program usage (this message)
+      -v [ --version ]        : print the version number
+      -c [ --copyright ]      : print out the copyright statement
+      --config-file filepath  : specify a config file (alternatively: @filepath)
+
+        
+    Options allowed additionally in a config file:
+      -o [ --output ] path    : specify a file to use for output instead of stdout
+      -I [ --include ] path   : specify an additional include directory
+      -S [ --sysinclude ] syspath : specify an additional system include directory
+      -D [ --define ] macro[=[value]] : specify a macro to define
+      -P [ --predefine ] macro[=[value]] : specify a macro to predefine
+      -U [ --undefine ] macro : specify a macro to undefine
+</pre>
+<h2>The hannibal sample </h2>
+<p>The <tt>hannibal</tt> sample shows how to base a spirit grammar on the <tt>Wave</tt> library. It was initially written and contributed to the <tt>Wave</tt> library by Danny Havenith (see his related web page <a href="http://havenith-verlinden.nl/hannibal/">here</a>). The grammar of this example uses <tt>Wave</tt> as its preprocessor. It implements around 120 of the approximately 250 grammar rules as they can be   found in <em>The C++ Programming Language, Third Edition</em>. The 120 rules allow   a C++ source file to be parsed for all type information and declarations. In   fact this grammar parses as good as anything, it parses C++ declarations, including class and template definitions, but skips function bodies. If so configured, the program will output an xml dump of the generated parse tree. </p>
+<p>It may be a good starting point for a grammar that can be used for things like   reverse engineering as some UML modelling tools do. Or whatever use you may find   for a grammar that gives you a list of all templates and classes in a file and their members. <br>
+</p>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="wave_driver.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="references.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003-2011 Hartmut Kaiser<br>
+    <br>
+<font size="2">Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<span class="updated"></span>
+<p class="copyright"><span class="updated">Last updated:
+  <!-- #BeginDate format:fcAm1m -->Wednesday, June 21, 2006  22:12<!-- #EndDate -->
+  </span></p>
+<p>&nbsp;</p>
+</body>
+</html>

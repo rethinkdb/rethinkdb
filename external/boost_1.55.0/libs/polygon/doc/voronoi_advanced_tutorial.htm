@@ -1,0 +1,462 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+
+
+  
+  <meta http-equiv="Content-Type" content="text/html; charset=windows-1252"><title>Voronoi Advanced Tutorial</title></head><body>
+<h1>Voronoi Advanced Tutorial<br>
+</h1>
+
+This tutorial consists of two parts. The first one provides two
+examples of a real world problems that default configuration of Voronoi
+library is capable to solve. By default configuration we mean the one
+that accepts
+signed 32-bit integer and outputs floating-point (64-bit
+double) coordinates. We provide those examples to convince even the
+most skeptical users that they probably don't need to configure library
+for higher-precision input or output coordinate types. However if the
+posed problem really requires those, fully featured configuration of
+both input and output coordinate types is provided in the second part
+of this tutorial.<br>
+
+<h2>Red Planet</h2>
+
+<h3>Problem Statement</h3>
+
+<img style="width: 665px; height: 369px;" alt="" src="images/rover.jpg"><br>
+
+<br>Lets imagine that NASA is
+planning to send a new robot to Mars. Each day the center situated on Earth
+will send a destination point coordinates the robot needs to reach by
+the end of the day. Of course we'd like to save as much energy as
+possible thus choosing the shortest possible path. This would be a
+straight line in a perfect world (we don't consider curvature of
+surface), but situation becomes more complicated as there are some
+rocks and wells on Mars our robot can't go through. Behind of those our
+robot has some dimensions that might not allow it to pass narrow places.<br>
+
+<h3>Application of Voronoi diagram</h3>
+
+The problem above could be solved using Voronoi diagram. The first
+stage would be to discretize obstacles (rocks and wells) with
+polylines. Afterwards we will compute Voronoi diagram of the input set
+of segments. As each Voronoi edge is equidistant from the two closest
+sites we are able to filter edges the robot won't be able to pass due
+to it's dimensions. The last step would be to run a bit optimized A*
+algorithm to find
+the shortest or at least suboptimal path and we are done.<br>
+
+<h3>Discretization of input geometries</h3>
+
+To show how good is the default input coordinate type provided by the
+Voronoi library
+we will discretize the whole area of Mars. That will be approximately
+1.44 *&nbsp; 10^8&nbsp; square kilometres that is equal to 1.44 *&nbsp;
+10^18&nbsp; square centimetres, which could be snapped to the integer
+grid with a side of 1.2 * 10^9 centimetres.&nbsp; To make the Voronoi
+graph
+precise on the boundaries of that grid we will replicate input map 9
+times (3x3), thus Voronoi diagram within a central piece will
+provide us with a correct connectivity graph. This step will increase
+the size of our grid to 3.6 * 10^9 centimetres that is less than 2^32.
+So we are able to discretize the Red Planet's surface within a 1
+centimetre
+precision using the default input coordinate type (signed 32-bit
+integer). That would imply maximum absolute error to be
+equal up to 0.5 centimetres per coordinate. Considering the radius of
+our robot to be
+0.3 metres and for security reasons avoiding any large enough obstacles
+that are within 1 metre distance from it that error would be irrelevant.<br>
+
+<span style="color: rgb(0, 0, 0); font-family: sans-serif; font-size: 12px; font-style: normal; font-variant: normal; font-weight: normal; letter-spacing: normal; line-height: 13px; orphans: 2; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; background-color: rgb(249, 249, 249); display: inline ! important; float: none;"></span>
+<h3>Output analysis</h3>
+
+Estimates of the resulting Voronoi diagram precision were already
+explained <a href="voronoi_main.htm">here</a>.
+So to avoid those computations again we will simply state that the
+maximum absolute error of the output geometries will be on the grid
+boundaries and will be equal to 2^-16 centimetres, which is
+approximately equal to 150 nanometres and is 100 times larger than
+a radius of a complex molecule. We would like to notice that the
+absolute error of the discretization step is much higher than the one
+produced by the Voronoi diagram construction algorithm.
+<h2>VLSI Design</h2>
+
+<h3>Problem Statement</h3>
+
+<img style="width: 400px; height: 283px;" alt="" src="images/vlsi.jpg"><br>
+
+<br>
+
+Very-large-scale integration (<a href="http://www.rulabinsky.com/cavd/index.html">VLSI</a>) is the
+process of creating
+integrated circuits by combining thousands of transistors into a single
+chip. Considering the fact that it may take weeks or months to get an
+integrated circuit manufactured, designers often spend large amounts of
+time analyzing their layouts to avoid costly mistakes. One of the
+common static analysis checks is minimum distance requirement between
+the components of an integrated circuit (distance should be greater
+than
+specified value).<br>
+
+<h3>Application of Voronoi diagram</h3>
+
+It appears that the minimum distance between components of the input
+set of points and segments corresponds to the one of the Voronoi
+diagram edges. This means that we can iterate through each edge of
+the Voronoi graph, extract the pair of input geometries that form it
+and find
+the distance between those. As the total amount of such edges is O(N)
+value
+(N - is the number of input geometries) the minimum distance could be
+efficiently find in a linear time once we construct the diagram.<br>
+
+<h3>Discretization of input geometries</h3>
+
+The average size of the modern CPUs is around 2.5 x 2.5 centimetres.
+Snapping this to the 32-bit integer grid will give discretization
+precision of 2.5 / 2^33 centimetres or 3 picometres that is 10 times
+smaller value than radius of an atom. That would be probably good
+enough precision even for a few next generations of processors.<br>
+
+<h3>Output analysis</h3>
+
+The maximum absolute error of the output geometries will be 2.5 / 2^47
+centimetres or 0.2 femtometres that is 10 times smaller value than
+the radius of an electron. However in this particular case we are not
+interested in the precision of the output, rather in its topology. As
+it was noticed on
+the <a href="voronoi_main.htm">Voronoi main page</a> very small edges
+are removed from the Voronoi diagram. However user should not worry
+because the edge that correspond to the minimal distance won't be among
+those. That means that we would be able to 100% correctly identify a
+pair of closest objects within the discretization precision.<br>
+
+<h2>Conclusions</h2>
+
+The above two examples show usage of the default Voronoi coordinate
+types
+in the macro and micro world. The main point of those was to give the user
+understanding of a scale that the default coordinate types provide. There
+are
+two main points we didn't mention before, but that would be relevant to
+the most real world problems:<br>
+
+<ul>
+
+  <li>The absolute error of the coordinates of the output Voronoi
+diagram
+inside the 32-bit integer discretization grid is slightly smaller than
+the absolute error of discretization itself, thus could be neglected at
+all.</li>
+  <li>In both problems above we didn't consider error of measurement.
+For example: is it possible to construct a map of the Mars within the
+0.5
+centimetres precision, or to get coordinates of the circuit parts
+withing the subatomic precision? I guess the answer for both questions
+would be "No". And that actually means that the error of the
+discretization
+step could be neglected comparing to the error produced by the
+measuring
+devices.<br>
+  </li>
+</ul>
+The second statement means that there is actually no point to provide
+implementation that operates with floating-point input coordinates,
+because those always could be snapped to the integer grid. In case the
+user is not satisfied with the precision that the 32-bit integer grid
+provides or would like to retrieve coordinates of the output geometries
+within a smaller
+relative error, follow the next paragraph.<br>
+
+<h2>Voronoi Coordinate Types Configuration</h2>
+
+In the following chapter we are going to extend input coordinate type
+to the 48-bit signed
+integer and output coordinate type to the 80-bit IEEE floating-point
+type
+(long double). The code for this chapter is available in <a href="../example/voronoi_advanced_tutorial.cpp">voroni_advanced_tutorial.cpp</a>.
+While it won't be possible to compile it using the MSVC compiler (it
+doesn't
+support 80-bit long double type; ieee754.h header is required), it
+should give a clear understanding of how the library supports the user
+provided coordinate types.<br>
+
+<br>
+
+So the main step would be to declare the voronoi coordinate type traits
+that satisfy set of restrictions explained <a href="voronoi_builder.htm">here</a>:<br>
+
+<br>
+
+<span style="font-family: Courier New,Courier,monospace;">struct
+my_voronoi_ctype_traits {</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef boost::int64_t int_type;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef detail::extended_int&lt;3&gt; int_x2_type;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef detail::extended_int&lt;3&gt; uint_x2_type;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef detail::extended_int&lt;128&gt; big_int_type;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef fpt80 fpt_type;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef fpt80 efpt_type;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef my_ulp_comparison ulp_cmp_type;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef my_fpt_converter to_fpt_converter_type;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef my_fpt_converter to_efpt_converter_type;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">};<br>
+<br>
+</span>It is always better to use C++ built-in types wherever it's
+possible. That's why we use the 64-bit signed integer type to handle
+our
+input coordinates. <span style="font-family: Courier New,Courier,monospace;">int_x2_type</span>
+and <span style="font-family: Courier New,Courier,monospace;">uint_x2_type</span>
+is required to handle 96-bit signed/unsigned integers. As there is no
+such built-in type we use library provided efficient fixed integer
+type.
+The big integer type should be capable to handle 48 * 64 bit integers,
+that is
+less than 32 * 128, and so far we are good with <span style="font-family: Courier New,Courier,monospace;">extended_int&lt;128&gt;</span>
+type. We use the same floating point type for both <span style="font-family: Courier New,Courier,monospace;">fpt_type</span>
+and <span style="font-family: Courier New,Courier,monospace;">efpt_type</span>
+as it has enough exponent bits to represent both 48 * 32 bit and 48 *
+64 bit integers (that is also the reason we don't need two
+floating-point converter structures). The <span style="font-family: Courier New,Courier,monospace;">ulp_cmp_type</span>
+structure checks weather two IEEE floating-point values are within the
+given signed integer ulp range (we won't analyze corresponding code
+here as it requires deep understanding of the <a href="http://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html">floating-point
+architecture</a> and its <a href="../../../boost/polygon/detail/voronoi_ctypes.hpp">usage to compare
+floating-point values</a>), but just to mention the declaration is
+following:<br>
+
+<span style="font-family: Courier New,Courier,monospace;"></span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">struct
+my_ulp_comparison {</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp; enum
+Result {</span><span style="font-family: Courier New,Courier,monospace;"><br>
+&nbsp;&nbsp;&nbsp; LESS = -1,</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;
+EQUAL = 0,</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;
+MORE = 1</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp; };</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp; Result
+operator()(fpt80 a, fpt80 b, unsigned int maxUlps) const;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">};<br>
+<br>
+</span>The last step would be to declare the <span style="font-family: Courier New,Courier,monospace;">my_fpt_converter</span>
+structure (converts the integer types to the floating-point type):<br>
+
+<br>
+
+<span style="font-family: Courier New,Courier,monospace;">struct
+my_fpt_converter {</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+template &lt;typename T&gt;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp; fpt80
+operator()(const T&amp; that) const {</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;
+return static_cast&lt;fpt80&gt;(that);</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp; }</span><br style="font-family: Courier New,Courier,monospace;">
+
+<br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+template &lt;size_t N&gt;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp; fpt80
+operator()(const typename detail::extended_int&lt;N&gt;&amp; that)
+const {</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;
+fpt80 result = 0.0;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;
+for (size_t i = 1; i &lt;= (std::min)((size_t)3, that.size()); ++i) {</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+if (i != 1)</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+result *= static_cast&lt;fpt80&gt;(0x100000000ULL);</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+result += that.chunks()[that.size() - i];</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;
+}</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;
+return (that.count() &lt; 0) ? -result : result;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp; }</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">};<br>
+<br>
+</span>At this point we are done with declaration of the Voronoi
+coordinate type traits. The next step is to declare the Voronoi diagram
+traits:<br>
+
+<br>
+
+<span style="font-family: Courier New,Courier,monospace;">struct
+my_voronoi_diagram_traits {</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef fpt80 coordinate_type;</span><span style="font-family: Courier New,Courier,monospace;"></span><span style="font-family: Courier New,Courier,monospace;"></span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef voronoi_cell&lt;coordinate_type&gt; cell_type;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef voronoi_vertex&lt;coordinate_type&gt; vertex_type;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef voronoi_edge&lt;coordinate_type&gt; edge_type;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+typedef struct {</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp; public:</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;
+enum { ULPS = 128 };</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;
+bool operator()(const point_type &amp;v1, const point_type &amp;v2)
+const {</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+return (ulp_cmp(v1.x(), v2.x(), ULPS) == my_ulp_comparison::EQUAL
+&amp;&amp;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ulp_cmp(v1.y(), v2.y(), ULPS) == my_ulp_comparison::EQUAL);</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;
+}</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+private:</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;&nbsp;&nbsp;
+my_ulp_comparison ulp_cmp;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp; }
+vertex_equality_predicate_type;</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">};</span><br>
+
+<span style="font-family: Courier New,Courier,monospace;"></span><br>
+
+Above we simply declared the Voronoi primitive types
+and vertex
+equality predicate using the new coordinate type and corresponding ulp
+comparison structure. As we are done with the declaration of the
+coordinate
+type specific structures we are ready to proceed to the construction
+step itself. The first step would be to initialize voronoi_builder
+structure with a set of random points:<br>
+
+<br>
+
+<span style="font-family: Courier New,Courier,monospace;">// Random
+generator and distribution. MAX is equal to 2^48.</span><br>
+
+<span style="font-family: Courier New,Courier,monospace;">boost::mt19937_64
+gen(std::time(0));</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">boost::random::uniform_int_distribution&lt;boost::int64_t&gt;
+distr(-MAX, MAX-1);<br>
+<br>
+</span><span style="font-family: Courier New,Courier,monospace;">
+// Declaring and configuring Voronoi builder with the new coordinate
+type traits.<br>
+voronoi_builder&lt;boost::int64_t, my_voronoi_ctype_traits&gt; vb;</span><br>
+<span style="font-family: Courier New,Courier,monospace;"></span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">// Voronoi
+builder initialization step.<br>
+for (size_t i = 0; i &lt; GENERATED_POINTS; ++i) {</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+boost::int64_t x = distr(gen);</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+boost::int64_t y = distr(gen);</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">&nbsp;
+vb.insert_point(x, y);</span><br style="font-family: Courier New,Courier,monospace;">
+
+<span style="font-family: Courier New,Courier,monospace;">}<br>
+<br>
+</span>The second step would be to generate the Voronoi diagram and
+this is done as before with the two lines of code:<br>
+
+<br>
+
+<span style="font-family: Courier New,Courier,monospace;">// Declaring
+and configuring Voronoi diagram structure with the new coordinate type
+traits.<br>
+voronoi_diagram&lt;fpt80, my_voronoi_diagram_traits&gt; vd;</span><br>
+
+<span style="font-family: Courier New,Courier,monospace;">vb.construct(&amp;vd);<br>
+<br>
+</span>From this point the user can operate with the Voronoi diagram
+data structure
+and in our tutorial we output some simple stats of the resulting
+Voronoi graph. Probably the hardest part of this tutorial is
+the declaration of the ulp comparison structure. The library provides
+efficient well-commented cross-platform implementation for 64-bit
+floating-point type (double). So the best advice would be to follow
+that implementation, but before doing that really consider thoughtfully if the
+default
+coordinate types are not capable to deal with your problem.<br>
+
+<br>
+
+<table class="docinfo" id="table1" frame="void" rules="none">
+
+  <colgroup> <col class="docinfo-name"><col class="docinfo-content"> </colgroup>
+  <tbody valign="top">
+    <tr>
+      <th class="docinfo-name">Copyright:</th>
+      <td>Copyright © Andrii Sydorchuk 2010-2012.</td>
+    </tr>
+    <tr class="field">
+      <th class="docinfo-name">License:</th>
+      <td class="field-body">Distributed under the Boost Software
+License, Version 1.0. (See accompanying file <tt class="literal"> <span class="pre">LICENSE_1_0.txt</span></tt> or copy at <a class="reference" target="_top" href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)</td>
+    </tr>
+  </tbody>
+</table>
+
+
+</body></html>

@@ -1,0 +1,354 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Re-Initialize an Attribute Value before Parsing (Qi)</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../customize.html" title="Customization of Spirit's Attribute Handling">
+<link rel="prev" href="store_value/push_back.html" title="Store a Parsed Attribute Value into a Container (Qi)">
+<link rel="next" href="extract_from.html" title="Extract an Attribute Value to Generate Output (Karma)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="store_value/push_back.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../customize.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="extract_from.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.advanced.customize.clear_value"></a><a class="link" href="clear_value.html" title="Re-Initialize an Attribute Value before Parsing (Qi)">Re-Initialize
+        an Attribute Value before Parsing (Qi)</a>
+</h4></div></div></div>
+<h6>
+<a name="spirit.advanced.customize.clear_value.h0"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.clear_value.clear_value"></a></span><a class="link" href="clear_value.html#spirit.advanced.customize.clear_value.clear_value">clear_value</a>
+        </h6>
+<p>
+          The template <code class="computeroutput"><span class="identifier">clear_value</span></code>
+          is a type used as an attribute customization point. It is invoked by the
+          <span class="emphasis"><em>Qi</em></span> repetitive parsers (<a class="link" href="../../qi/reference/operator/kleene.html" title="Kleene Parser (*a)">Kleene</a>,
+          <a class="link" href="../../qi/reference/operator/plus.html" title="Plus Parser (+a)">Plus</a>, <a class="link" href="../../qi/reference/operator/list.html" title="List Parser (a % b)">List</a>,
+          and <a class="link" href="../../qi/reference/directive/repeat.html" title="Repetition Parser Directive (repeat[])">Repeat</a>)
+          in order to re-initialize the attribute instance passed to the embedded
+          parser after it has been stored in the provided container. This re-initialized
+          attribute instance is reused during the next iteration of the repetitive
+          parser.
+        </p>
+<h6>
+<a name="spirit.advanced.customize.clear_value.h1"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.clear_value.module_headers"></a></span><a class="link" href="clear_value.html#spirit.advanced.customize.clear_value.module_headers">Module Headers</a>
+        </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">support</span><span class="special">/</span><span class="identifier">attributes</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          Also, see <a class="link" href="../../structure/include.html" title="Include">Include Structure</a>.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This header file does not need to be included directly by any user program
+            as it is normally included by other Spirit header files relying on its
+            content.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.clear_value.h2"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.clear_value.namespace"></a></span><a class="link" href="clear_value.html#spirit.advanced.customize.clear_value.namespace">Namespace</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                  <p>
+                    Name
+                  </p>
+                </th></tr></thead>
+<tbody><tr><td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">traits</span></code>
+                  </p>
+                </td></tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.clear_value.h3"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.clear_value.synopsis"></a></span><a class="link" href="clear_value.html#spirit.advanced.customize.clear_value.synopsis">Synopsis</a>
+        </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Attrib</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Enable</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">clear_value</span>
+<span class="special">{</span>
+    <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">call</span><span class="special">(</span><span class="identifier">Attrib</span><span class="special">&amp;</span> <span class="identifier">val</span><span class="special">);</span>
+<span class="special">};</span>
+</pre>
+<h6>
+<a name="spirit.advanced.customize.clear_value.h4"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.clear_value.template_parameters"></a></span><a class="link" href="clear_value.html#spirit.advanced.customize.clear_value.template_parameters">Template
+          parameters</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Parameter
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Default
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Attrib</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    The type, <code class="computeroutput"><span class="identifier">Attrib</span></code>
+                    of the attribute to be re-initialized.
+                  </p>
+                </td>
+<td>
+                  <p>
+                    none
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Enable</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Helper template parameter usable to selectively enable or disable
+                    certain specializations of <code class="computeroutput"><span class="identifier">clear_value</span></code>
+                    utilizing SFINAE (i.e. <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">enable_if</span></code>
+                    or <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">disable_if</span></code>).
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="keyword">void</span></code>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Attrib</span></code></span></dt>
+<dd><p>
+                A type to be used as a container to store attribute values in.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">attr</span></code></span></dt>
+<dd><p>
+                An attribute instance of type <code class="computeroutput"><span class="identifier">Attrib</span></code>.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">T1</span></code>, <code class="computeroutput"><span class="identifier">T2</span></code>, ...</span></dt>
+<dd><p>
+                Arbitrary types
+              </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.advanced.customize.clear_value.h5"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.clear_value.expression_semantics"></a></span><a class="link" href="clear_value.html#spirit.advanced.customize.clear_value.expression_semantics">Expression
+          Semantics</a>
+        </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">clear_value</span><span class="special">&lt;</span><span class="identifier">Attrib</span><span class="special">&gt;::</span><span class="identifier">call</span><span class="special">(</span><span class="identifier">Attrib</span><span class="special">&amp;</span> <span class="identifier">attr</span><span class="special">)</span></pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Re-initialize the instance referred to by <code class="computeroutput"><span class="identifier">attr</span></code>
+                    in the most efficient way.
+                  </p>
+                </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.clear_value.h6"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.clear_value.predefined_specializations"></a></span><a class="link" href="clear_value.html#spirit.advanced.customize.clear_value.predefined_specializations">Predefined
+          Specializations</a>
+        </h6>
+<p>
+          <a href="http://boost-spirit.com" target="_top">Spirit</a> predefines specializations
+          of this customization point for several types. The following table lists
+          those types together with the types exposed and the corresponding semantics:
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Template Parameters
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">Attrib</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Re-initialize using assignment of default constructed value.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Any type <code class="computeroutput"><span class="identifier">T</span></code> for
+                    which <code class="computeroutput"><span class="identifier">is_container</span><span class="special">&lt;&gt;::</span><span class="identifier">type</span></code>
+                    is <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Call the member function <code class="computeroutput"><span class="identifier">attr</span><span class="special">.</span><span class="identifier">clear</span><span class="special">()</span></code> for the passed attribute instance.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">Attrib</span><span class="special">&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Clear the <code class="computeroutput"><span class="identifier">optional</span></code>
+                    instance and leave it uninitialized.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">variant</span><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span>
+                    <span class="identifier">T2</span><span class="special">,</span>
+                    <span class="special">...&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Invoke the <code class="computeroutput"><span class="identifier">clear_value</span></code>
+                    customization point for the currently held value.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;</span><span class="identifier">T1</span><span class="special">,</span>
+                    <span class="identifier">T2</span><span class="special">,</span>
+                    <span class="special">...&gt;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Invoke the <code class="computeroutput"><span class="identifier">clear_value</span></code>
+                    customization point for all elements of the tuple.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unused_type</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Do nothing.
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.advanced.customize.clear_value.h7"></a>
+          <span class="phrase"><a name="spirit.advanced.customize.clear_value.when_to_implement"></a></span><a class="link" href="clear_value.html#spirit.advanced.customize.clear_value.when_to_implement">When
+          to Implement</a>
+        </h6>
+<p>
+          The customization point <code class="computeroutput"><span class="identifier">clear_value</span></code>
+          needs to be implemented for a specific type whenever this type is to be
+          used as an attribute to be stored into a STL container and if the type
+          cannot be re-initialized using one of the specializations listed above.
+          Examples for this might be types not being default constructible or container
+          types not exposing a member function <code class="computeroutput"><span class="identifier">clear</span><span class="special">()</span></code>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="store_value/push_back.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../customize.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="extract_from.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Improved numeric_cast&lt;&gt;</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_numericconversion.improved_numeric_cast__"></a><a class="link" href="improved_numeric_cast__.html" title="Improved numeric_cast&lt;&gt;">Improved
+    numeric_cast&lt;&gt;</a>
+</h2></div></div></div>
+    
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.improved_numeric_cast__.introduction"></a><a class="link" href="improved_numeric_cast__.html#boost_numericconversion.improved_numeric_cast__.introduction" title="Introduction">Introduction</a>
+</h3></div></div></div>
+      
+      <p>
+        The lack of preservation of range makes conversions between numeric types
+        error prone. This is true for both implicit conversions and explicit conversions
+        (through <code class="computeroutput"><span class="keyword">static_cast</span></code>). <a class="link" href="improved_numeric_cast__.html#boost_numericconversion.improved_numeric_cast__.numeric_cast" title="numeric_cast"><code class="computeroutput"><span class="identifier">numeric_cast</span></code></a> detects loss of range
+        when a numeric type is converted, and throws an exception if the range cannot
+        be preserved.
+      </p>
+      <p>
+        There are several situations where conversions are unsafe:
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          
+            Conversions from an integral type with a wider range than the target
+            integral type.
+          
+        </li>
+<li class="listitem">
+          
+            Conversions from unsigned to signed (and vice versa) integral types.
+          
+        </li>
+<li class="listitem">
+          
+            Conversions from floating point types to integral types.
+          
+        </li>
+</ul></div>
+      <p>
+        The C++ Standard does not specify the behavior when a numeric type is assigned
+        a value that cannot be represented by the type, except for unsigned integral
+        types [3.9.1.4], which must obey the laws of arithmetic modulo 2n (this implies
+        that the result will be reduced modulo the number that is one greater than
+        the largest value that can be represented). The fact that the behavior for
+        overflow is undefined for all conversions (except the aforementioned unsigned
+        to unsigned) makes any code that may produce positive or negative overflows
+        exposed to portability issues.
+      </p>
+      <p>
+        By default <code class="computeroutput"><span class="identifier">numeric_cast</span></code> adheres
+        to the rules for implicit conversions mandated by the C++ Standard, such
+        as truncating floating point types when converting to integral types. The
+        implementation must guarantee that for a conversion to a type that can hold
+        all possible values of the source type, there will be no runtime overhead.
+      </p>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.improved_numeric_cast__.numeric_cast"></a><a class="link" href="improved_numeric_cast__.html#boost_numericconversion.improved_numeric_cast__.numeric_cast" title="numeric_cast">numeric_cast</a>
+</h3></div></div></div>
+      
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Target</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Source</span><span class="special">&gt;</span> <span class="keyword">inline</span>
+<span class="identifier">Target</span> <span class="identifier">numeric_cast</span><span class="special">(</span> <span class="identifier">Source</span> <span class="identifier">arg</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">conversion_traits</span><span class="special">&lt;</span><span class="identifier">Target</span><span class="special">,</span> <span class="identifier">Source</span><span class="special">&gt;</span>   <span class="identifier">conv_traits</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">numeric_cast_traits</span><span class="special">&lt;</span><span class="identifier">Target</span><span class="special">,</span> <span class="identifier">Source</span><span class="special">&gt;</span> <span class="identifier">cast_traits</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">converter</span>
+        <span class="special">&lt;</span>
+            <span class="identifier">Target</span><span class="special">,</span>
+            <span class="identifier">Source</span><span class="special">,</span>
+            <span class="identifier">conv_traits</span><span class="special">,</span>
+            <span class="keyword">typename</span> <span class="identifier">cast_traits</span><span class="special">::</span><span class="identifier">overflow_policy</span><span class="special">,</span>
+            <span class="keyword">typename</span> <span class="identifier">cast_traits</span><span class="special">::</span><span class="identifier">rounding_policy</span><span class="special">,</span>
+            <span class="identifier">raw_converter</span><span class="special">&lt;</span><span class="identifier">conv_traits</span><span class="special">&gt;,</span>
+            <span class="keyword">typename</span> <span class="identifier">cast_traits</span><span class="special">::</span><span class="identifier">range_checking_policy</span>
+        <span class="special">&gt;</span> <span class="identifier">converter</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="identifier">converter</span><span class="special">::</span><span class="identifier">convert</span><span class="special">(</span><span class="identifier">arg</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+      <p>
+        <code class="computeroutput"><span class="identifier">numeric_cast</span></code> returns the
+        result of converting a value of type Source to a value of type Target. If
+        out-of-range is detected, an overflow policy is executed whose default behavior
+        is to throw an an exception (see <a class="link" href="numeric_converter_policy_classes.html#numeric_conversion_bad_numeric_cast">bad_numeric_cast</a>,
+        <a class="link" href="numeric_converter_policy_classes.html#numeric_conversion_negative_overflow">negative_overflow</a>
+        and <a class="link" href="numeric_converter_policy_classes.html#numeric_conversion_possitive_overflow">positive_overflow</a>
+        ).
+      </p>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.improved_numeric_cast__.numeric_cast_traits"></a><a class="link" href="improved_numeric_cast__.html#boost_numericconversion.improved_numeric_cast__.numeric_cast_traits" title="numeric_cast_traits">numeric_cast_traits</a>
+</h3></div></div></div>
+      
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Target</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Source</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">EnableIf</span> <span class="special">=</span> <span class="keyword">void</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">numeric_cast_traits</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">def_overflow_handler</span>    <span class="identifier">overflow_policy</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">UseInternalRangeChecker</span> <span class="identifier">range_checking_policy</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">Trunc</span><span class="special">&lt;</span><span class="identifier">Source</span><span class="special">&gt;</span>           <span class="identifier">rounding_policy</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+      <p>
+        The behavior of <code class="computeroutput"><span class="identifier">numeric_cast</span></code>
+        may be tailored for custom numeric types through the specialization of <code class="computeroutput"><span class="identifier">numeric_cast_traits</span></code>. (see <a class="link" href="type_requirements_and_user_defined_types_support.html" title="Type Requirements and User-defined-types support">User
+        Defined Types</a> for details. )
+      </p>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.improved_numeric_cast__.examples"></a><a class="link" href="improved_numeric_cast__.html#boost_numericconversion.improved_numeric_cast__.examples" title="Examples">Examples</a>
+</h3></div></div></div>
+      
+      <p>
+        The following example performs some typical conversions between numeric types:
+      </p>
+      <div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          
+            include &lt;boost/numeric/conversion/cast.hpp&gt;
+          
+        </li>
+<li class="listitem">
+          
+            include &lt;iostream&gt;
+          
+        </li>
+</ol></div>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric_cast</span><span class="special">;</span>
+
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">bad_numeric_cast</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">positive_overflow</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">negative_overflow</span><span class="special">;</span>
+
+    <span class="keyword">try</span>
+    <span class="special">{</span>
+        <span class="keyword">int</span> <span class="identifier">i</span><span class="special">=</span><span class="number">42</span><span class="special">;</span>
+        <span class="keyword">short</span> <span class="identifier">s</span><span class="special">=</span><span class="identifier">numeric_cast</span><span class="special">&lt;</span><span class="keyword">short</span><span class="special">&gt;(</span><span class="identifier">i</span><span class="special">);</span> <span class="comment">// This conversion succeeds (is in range)</span>
+    <span class="special">}</span>
+    <span class="keyword">catch</span><span class="special">(</span><span class="identifier">negative_overflow</span><span class="special">&amp;</span> <span class="identifier">e</span><span class="special">)</span> <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">e</span><span class="special">.</span><span class="identifier">what</span><span class="special">();</span>
+    <span class="special">}</span>
+    <span class="keyword">catch</span><span class="special">(</span><span class="identifier">positive_overflow</span><span class="special">&amp;</span> <span class="identifier">e</span><span class="special">)</span> <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">e</span><span class="special">.</span><span class="identifier">what</span><span class="special">();</span>
+    <span class="special">}</span>
+
+    <span class="keyword">try</span>
+    <span class="special">{</span>
+        <span class="keyword">float</span> <span class="identifier">f</span><span class="special">=-</span><span class="number">42.1234</span><span class="special">;</span>
+
+        <span class="comment">// This will cause a boost::numeric::negative_overflow exception to be thrown</span>
+        <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="identifier">i</span><span class="special">=</span><span class="identifier">numeric_cast</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">f</span><span class="special">);</span>
+    <span class="special">}</span>
+    <span class="keyword">catch</span><span class="special">(</span><span class="identifier">bad_numeric_cast</span><span class="special">&amp;</span> <span class="identifier">e</span><span class="special">)</span> <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">e</span><span class="special">.</span><span class="identifier">what</span><span class="special">();</span>
+    <span class="special">}</span>
+
+    <span class="keyword">double</span> <span class="identifier">d</span><span class="special">=</span> <span class="identifier">f</span> <span class="special">+</span> <span class="identifier">numeric_cast</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;(</span><span class="number">123</span><span class="special">);</span> <span class="comment">// int -&gt; double</span>
+
+    <span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="identifier">l</span><span class="special">=</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">long</span><span class="special">&gt;::</span><span class="identifier">max</span><span class="special">();</span>
+
+    <span class="keyword">try</span>
+    <span class="special">{</span>
+        <span class="comment">// This will cause a boost::numeric::positive_overflow exception to be thrown</span>
+        <span class="comment">// NOTE: *operations* on unsigned integral types cannot cause overflow</span>
+        <span class="comment">// but *conversions* to a signed type ARE range checked by numeric_cast.</span>
+
+        <span class="keyword">unsigned</span> <span class="keyword">char</span> <span class="identifier">c</span><span class="special">=</span><span class="identifier">numeric_cast</span><span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">&gt;(</span><span class="identifier">l</span><span class="special">);</span>
+    <span class="special">}</span>
+    <span class="keyword">catch</span><span class="special">(</span><span class="identifier">positive_overflow</span><span class="special">&amp;</span> <span class="identifier">e</span><span class="special">)</span> <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">e</span><span class="special">.</span><span class="identifier">what</span><span class="special">();</span>
+    <span class="special">}</span>
+
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+    </div>
+  </div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+</body>
+</html>

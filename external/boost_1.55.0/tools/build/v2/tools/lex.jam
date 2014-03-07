@@ -1,0 +1,33 @@
+# Copyright 2003 Vladimir Prus 
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) 
+
+import type ;
+import generators ;
+import feature ;
+import property ;
+
+
+feature.feature flex.prefix : : free ;
+type.register LEX : l ;
+type.register LEX++ : ll ;
+generators.register-standard lex.lex : LEX : C ;
+generators.register-standard lex.lex : LEX++ : CPP ;
+
+rule init ( )
+{
+}
+
+rule lex ( target : source : properties * )
+{   
+    local r = [ property.select flex.prefix : $(properties) ] ;
+    if $(r)
+    {
+        PREFIX on $(<) = $(r:G=) ;
+    }
+}
+
+actions lex 
+{
+    flex -P$(PREFIX) -o$(<) $(>)    
+}

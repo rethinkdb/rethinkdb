@@ -1,0 +1,31 @@
+[/ 
+  (C) Copyright Edward Diener 2011
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:tti_acknowledgments Acknowledgments]
+
+The TTI library came out of my effort to take the 
+`type_traits_ext` part of the unfinished Concept Traits
+Library and expand it. So my first thanks go to 
+Terje Slettebo and Tobias Schwinger, the authors of 
+the CTL. I have taken, and hopefully improved upon, 
+the ideas and implementation in that library, and added
+some new functionality.
+
+I would also like to thank Joel Falcou for 
+his help and his introspection work. 
+
+Two of the introspection templates are taken from the MPL and 
+lifted into my library under a different name for the sake 
+of completeness, so I would like to thank Aleksey Gurtovoy and
+David Abrahams for that library, and Daniel Walker for work on 
+those MPL introspection macros.
+
+Finally thanks to Anthony Williams for supplying a workaround 
+for a Visual C++ bug which is needed for introspecting member 
+data where the type of the member data is a compound type.
+
+[endsect]

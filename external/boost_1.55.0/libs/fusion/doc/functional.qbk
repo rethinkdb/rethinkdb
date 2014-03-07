@@ -1,0 +1,1402 @@
+[/==============================================================================
+    Copyright (C) 2006 Tobias Schwinger
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section Functional]
+
+Components to call functions and function objects and to make Fusion code
+callable through a function object interface.
+
+[heading Header]
+
+  #include <boost/fusion/functional.hpp>
+
+[heading Fused and unfused forms]
+
+What is a function call?
+
+    f (a,b,c)
+
+It is a name and a tuple written next to each other, left-to-right.
+
+Although the C++ syntax does not allow to replace [^(a,b,c)] with some Fusion
+__sequence__, introducing yet another function provides a solution:
+
+   invoke(f,my_sequence)
+
+Alternatively it is possible to apply a simple transformation to [^f] in order
+to achieve the same effect:
+
+   f tuple <=> ``f'`` (tuple)
+
+Now, [^f'] is an unary function that takes the arguments to `f` as a tuple;
+[^f'] is the /fused/ form of `f`.
+Reading the above equivalence right-to-left to get the inverse transformation,
+`f` is the /unfused/ form of [^f'].
+
+[heading Calling functions and function objects]
+
+Having generic C++ code call back arbitrary functions provided by the client
+used to be a heavily repetitive task, as different functions can differ in
+arity, invocation syntax and other properties that might be part of the type.
+Transporting arguments as Fusion sequences and factoring out the invocation
+makes Fusion algorithms applicable to function arguments and also reduces
+the problem to one invocation syntax and a fixed arity (instead of an arbitrary
+number of arbitrary arguments times several syntactic variants times additional
+properties).
+
+Transforming an unfused function into its fused counterpart allows n-ary
+calls from an algorithm that invokes an unary __poly_func_obj__ with
+__sequence__ arguments.
+
+The library provides several function templates to invoke different kinds of
+functions and adapters to transform them into fused form, respectively.
+Every variant has a corresponding generator function template that returns
+an adapter instance for the given argument.
+
+Constructors can be called applying __boost_func_factory__.
+
+[heading Making Fusion code callable through a function object interface]
+
+Transforming a fused function into its unfused counterpart allows to create
+function objects to accept arbitrary calls. In other words, an unary function
+object can be implemented instead of (maybe heavily overloaded) function
+templates or function call operators.
+
+The library provides both a strictly typed and a generic variant for this 
+transformation. The latter should be used in combination with
+__boost_func_forward__ to attack __the_forwarding_problem__. 
+
+Both variants have a corresponding generator function template that returns an
+adapter instance for the given argument.
+
+[/ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ]
+
+[section Concepts]
+
+
+[section:callable Callable Object]
+
+[heading Description]
+
+A pointer to a function, a pointer to member function, a pointer to member
+data, or a class type whose objects can appear immediately to the left of a
+function call operator.
+
+[heading Models]
+* function pointer types
+* member (function or data) pointer types
+* all kinds of function objects
+
+[heading Examples]
+
+  & a_free_function
+  & a_class::a_static_member_function
+  & a_class::a_nonstatic_data_member
+  & a_class::a_nonstatic_member_function
+  std::less<int>()
+  // using namespace boost;
+  bind(std::less<int>(), _1, 5)
+  lambda::_1 += lambda::_2;
+  fusion::__make_fused_function_object__(std::less<int>())
+
+
+[endsect]
+
+
+[section:reg_callable Regular Callable Object]
+
+[heading Description]
+
+A non-member-pointer __callable_obj__ type: A pointer to a function or a class
+type whose objects can appear immediately to the left of a function call operator.
+
+[heading Refinement of]
+* __callable_obj__
+
+[variablelist Notation
+    [[`F`][A possibly const qualified Deferred Callable Object type]]
+    [[`f`][An object or reference to an object of type F]]
+    [[`A1 ...AN`][Argument types]]
+    [[`a1 ...aN`][Objects or references to objects with types `A1 ...AN`]]
+]
+
+[heading Expression requirements]
+
+[table
+    [[Expression][Return Type][Runtime Complexity]]
+    [[`f(a1, ...aN)`][Unspecified][Unspecified]]
+]
+
+[heading Models]
+* function pointer types
+* all kinds of function objects
+
+[heading Examples]
+
+  & a_free_function
+  & a_class::a_static_member_function
+  std::less<int>()
+  // using namespace boost;
+  bind(std::less<int>(), _1, 5)
+  lambda::_1 += lambda::_2;
+  fusion::__make_fused_function_object__(std::less<int>())
+
+[endsect]
+
+
+[section:def_callable Deferred Callable Object]
+
+[heading Description]
+
+__callable_obj__ types that work with __boost_result_of__ to determine the
+result of a call.
+
+[heading Refinement of]
+* __callable_obj__
+
+[blurb note Once C++ supports the [^decltype] keyword, all models of
+__callable_obj__ will also be models of __def_callable_obj__, because
+function objects won't need client-side support for `result_of`.
+]
+
+[variablelist Notation
+    [[`F`][A possibly const qualified Deferred Callable Object type]]
+    [[`A1 ...AN`][Argument types]]
+    [[`a1 ...aN`][Objects or references to objects with types `A1 ...AN`]]
+    [[`T1 ...TN`][`T`i is `A`i `&` if `a`i is an __lvalue__, same as `A`i, otherwise]]
+]
+
+[heading Expression requirements]
+
+[table
+    [[Expression][Type]]
+    [[__boost_result_of_call__`< F(T1 ...TN) >::type`][Result of a call with `A1 ...AN`-typed arguments]]
+]
+
+[heading Models]
+* __poly_func_obj__ types
+* member (function or data) pointer types
+
+[heading Examples]
+
+  & a_free_function
+  & a_class::a_static_member_function
+  & a_class::a_nonstatic_data_member
+  & a_class::a_nonstatic_member_function
+  std::less<int>()
+  // using namespace boost;
+  bind(std::less<int>(), _1, 5)
+  // Note: Boost.Lambda expressions don't work with __boost_result_of__
+  fusion::__make_fused_function_object__(std::less<int>())
+
+[endsect]
+
+
+[section:poly Polymorphic Function Object]
+
+[heading Description]
+
+A non-member-pointer __def_callable_obj__ type.
+
+[heading Refinement of]
+* __reg_callable_obj__
+* __def_callable_obj__
+
+[variablelist Notation
+    [[`F`][A possibly const-qualified Polymorphic Function Object type]]
+    [[`f`][An object or reference to an object of type F]]
+    [[`A1 ...AN`][Argument types]]
+    [[`a1 ...aN`][Objects or references to objects with types `A1 ...AN`]]
+    [[`T1 ...TN`][`T`i is `A`i `&` if `a`i is an __lvalue__, same as `A`i, otherwise]]
+]
+
+[heading Expression requirements]
+
+[table
+    [[Expression][Return Type][Runtime Complexity]]
+    [[`f(a1, ...aN)`][`result_of< F(T1, ...TN) >::type`][Unspecified]]
+]
+
+[heading Models]
+* function pointers
+* function objects of the Standard Library
+* all Fusion __functional_adapters__
+
+[heading Examples]
+
+  & a_free_function
+  & a_class::a_static_member_function
+  std::less<int>()
+  // using namespace boost;
+  bind(std::less<int>(), _1, 5)
+  // Note: Boost.Lambda expressions don't work with __boost_result_of__
+  fusion::__make_fused_function_object__(std::less<int>())
+
+[endsect]
+
+
+[endsect]
+
+[/ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ]
+
+[section Invocation]
+
+[section Functions]
+
+[section invoke]
+
+[heading Description]
+
+Calls a __def_callable_obj__ with the arguments from a __sequence__.
+
+The first template parameter can be specialized explicitly to avoid copying
+and/or to control the const qualification of a function object.
+
+If the target function is a pointer to a class members, the corresponding
+object can be specified as a reference, pointer, or smart pointer.
+In case of the latter, a freestanding [^get_pointer] function must be
+defined (Boost provides this function for [^std::auto_ptr] and
+__boost_shared_ptr_call__).
+
+Constructors can be called applying __boost_func_factory__.
+
+[heading Synopsis]
+    template<
+        typename Function,
+        class Sequence
+        >
+    typename __result_of_invoke__<Function, Sequence>::type
+    invoke(Function f, Sequence & s);
+
+    template<
+        typename Function,
+        class Sequence
+        >
+    typename __result_of_invoke__<Function, Sequence const>::type
+    invoke(Function f, Sequence const & s);
+
+[heading Parameters]
+[table
+    [[Parameter]  [Requirement]                    [Description]]
+    [[`f`]        [A __def_callable_obj__]         [The function to call.]]
+    [[`s`]        [A __forward_sequence__]         [The arguments.]]
+]
+
+[heading Expression Semantics]
+
+    invoke(f,s);
+
+[*Return type]: Return type of `f` when invoked with the elements in `s` as its
+arguments.
+
+[*Semantics]: Invokes `f` with the elements in `s` as arguments and returns
+the result of the call expression.
+
+[heading Header]
+
+  #include <boost/fusion/functional/invocation/invoke.hpp>
+
+[heading Example]
+    __std_plus_doc__<int> add;
+    assert(invoke(add,__make_vector__(1,1)) == 2);
+
+[heading See also]
+* __invoke_procedure__
+* __invoke_function_object__
+* __result_of_invoke__
+* __fused__
+* __make_fused__
+
+[endsect]
+
+[section:invoke_proc invoke_procedure]
+
+[heading Description]
+
+Calls a __callable_obj__ with the arguments from a __sequence__. The result
+of the call is ignored.
+
+The first template parameter can be specialized explicitly to avoid copying
+and/or to control the const qualification of a function object.
+
+For pointers to class members corresponding object can be specified as
+a reference, pointer, or smart pointer. In case of the latter, a freestanding
+[^get_pointer] function must be defined (Boost provides this function for
+[^std::auto_ptr] and __boost_shared_ptr_call__).
+
+The target function must not be a pointer to a member object (dereferencing
+such a pointer without returning anything does not make sense, so it isn't
+implemented).
+
+[heading Synopsis]
+    template<
+        typename Function,
+        class Sequence
+        >
+    typename __result_of_invoke_procedure__<Function, Sequence>::type
+    invoke_procedure(Function f, Sequence & s);
+
+    template<
+        typename Function,
+        class Sequence
+        >
+    typename __result_of_invoke_procedure__<Function, Sequence const>::type
+    invoke_procedure(Function f, Sequence const & s);
+
+[heading Parameters]
+[table
+    [[Parameter]  [Requirement]                    [Description]]
+    [[`f`]        [Model of __callable_obj__]      [The function to call.]]
+    [[`s`]        [Model of __forward_sequence__]  [The arguments.]]
+]
+
+[heading Expression Semantics]
+
+    invoke_procedure(f,s);
+
+[*Return type]: `void`
+
+[*Semantics]: Invokes `f` with the elements in `s` as arguments.
+
+[heading Header]
+
+  #include <booost/fusion/functional/invocation/invoke_procedure.hpp>
+
+[heading Example]
+    __vector__<int,int> v(1,2);
+    using namespace boost::lambda;
+    invoke_procedure(_1 += _2, v);
+    assert(__front__(v) == 3);
+
+[heading See also]
+* __invoke__
+* __invoke_function_object__
+* __result_of_invoke_procedure__
+* __fused_procedure__
+* __make_fused_procedure__
+
+[endsect]
+
+[section:invoke_fobj invoke_function_object]
+
+[heading Description]
+
+Calls a __poly_func_obj__ with the arguments from a __sequence__.
+
+The first template parameter can be specialized explicitly to avoid copying
+and/or to control the const qualification of a function object.
+
+Constructors can be called applying __boost_func_factory__.
+
+[heading Synopsis]
+    template<
+        typename Function,
+        class Sequence
+        >
+    typename __result_of_invoke_function_object__<Function, Sequence>::type
+    invoke_function_object(Function f, Sequence & s);
+
+    template<
+        typename Function,
+        class Sequence
+        >
+    typename __result_of_invoke_function_object__<Function, Sequence const>::type
+    invoke_function_object(Function f, Sequence const & s);
+
+[heading Parameters]
+[table
+    [[Parameter]  [Requirement]                    [Description]]
+    [[`f`]        [Model of __poly_func_obj__]     [The function object to call.]]
+    [[`s`]        [Model of __forward_sequence__]  [The arguments.]]
+]
+
+[heading Expression Semantics]
+
+    invoke_function_object(f,s);
+
+[*Return type]: Return type of `f` when invoked with the elements in `s` as its
+arguments.
+
+[*Semantics]: Invokes `f` with the elements in `s` as arguments and returns the
+result of the call expression.
+
+[heading Header]
+
+  #include <boost/fusion/functional/invocation/invoke_function_object.hpp>
+
+[heading Example]
+    struct sub
+    {
+        template <typename Sig>
+        struct result;
+
+        template <class Self, typename T>
+        struct result< Self(T,T) >
+        { typedef typename remove_reference<T>::type type; };
+
+        template<typename T>
+        T operator()(T lhs, T rhs) const
+        {
+            return lhs - rhs;
+        }
+    };
+
+    void try_it()
+    {
+        sub f;
+        assert(f(2,1) == invoke_function_object(f,__make_vector__(2,1)));
+    }
+
+[heading See also]
+* __invoke__
+* __invoke_procedure__
+* __result_of_invoke_function_object__
+* __fused_function_object__
+* __make_fused_function_object__
+
+[endsect]
+
+[endsect] [/ Functions]
+
+[section Metafunctions]
+
+[section invoke]
+
+[heading Description]
+Returns the result type of __invoke__.
+
+[heading Synopsis]
+    namespace result_of
+    {
+        template<
+            typename Function,
+            class Sequence
+            >
+        struct invoke
+        {
+            typedef __unspecified__ type;
+        };
+    }
+
+[heading See also]
+* __invoke__
+* __fused__
+
+[endsect]
+
+[section:invoke_proc invoke_procedure]
+
+[heading Description]
+Returns the result type of __invoke_procedure__.
+
+[heading Synopsis]
+    namespace result_of
+    {
+        template<
+            typename Function,
+            class Sequence
+            >
+        struct invoke_procedure
+        {
+            typedef __unspecified__ type;
+        };
+    }
+
+[heading See also]
+* __invoke_procedure__
+* __fused_procedure__
+
+[endsect]
+
+[section:invoke_fobj invoke_function_object]
+
+[heading Description]
+Returns the result type of __invoke_function_object__.
+
+[heading Synopsis]
+    namespace result_of
+    {
+        template<
+            class Function,
+            class Sequence
+            >
+        struct invoke_function_object
+        {
+            typedef __unspecified__ type;
+        };
+    }
+
+[heading See also]
+* __invoke_function_object__
+* __fused_function_object__
+
+[endsect]
+
+[endsect] [/ Metafunctions ]
+
+[section Limits]
+
+[heading Header]
+
+  #include <boost/fusion/functional/invocation/limits.hpp>
+
+[heading Macros]
+
+The following macros can be defined to change the maximum arity. 
+The default is 6.
+
+* BOOST_FUSION_INVOKE_MAX_ARITY
+* BOOST_FUSION_INVOKE_PROCEDURE_MAX_ARITY
+* BOOST_FUSION_INVOKE_FUNCTION_OBJECT_MAX_ARITY
+
+[endsect]
+
+[endsect] [/ Invocation ]
+
+[/ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ]
+
+[section:adapters Adapters]
+
+Function object templates to transform a particular target function.
+
+[section fused]
+
+[heading Description]
+
+An unary __poly_func_obj__ adapter template for __def_callable_obj__ target
+functions. It takes a __forward_sequence__ that contains the arguments for the
+target function.
+
+The type of the target function is allowed to be const qualified or a
+reference. Const qualification is preserved and propagated appropriately
+(in other words, only const versions of [^operator()] can be used for a
+target function object that is const or, if the target function object
+is held by value, the adapter is const - these semantics have nothing to
+do with the const qualification of a member function, which is referring
+to the type of object pointed to by [^this] which is specified with the
+first element in the sequence passed to the adapter).
+
+If the target function is a pointer to a class members, the corresponding
+object can be specified as a reference, pointer, or smart pointer.
+In case of the latter, a freestanding [^get_pointer] function must be
+defined (Boost provides this function for [^std::auto_ptr] and
+__boost_shared_ptr_call__).
+
+[heading Header]
+
+  #include <boost/fusion/functional/adapter/fused.hpp>
+
+[heading Synopsis]
+    template <typename Function>
+    class fused;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]                   [Default]]
+    [[`Function`]           [A __def_callable_obj__]        []]
+]
+
+[heading Model of]
+
+* __poly_func_obj__
+* __def_callable_obj__
+
+[variablelist Notation
+    [[`R`] [A possibly const qualified __def_callable_obj__ type or reference type thereof]]
+    [[`r`] [An object convertible to `R`]]
+    [[`s`] [A __sequence__ of arguments that are accepted by `r`]]
+    [[`f`] [An instance of `fused<R>`]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]    [Semantics]]
+    [[`fused<R>(r)`] [Creates a fused function as described above, initializes the target function with `r`.]]
+    [[`fused<R>()`]  [Creates a fused function as described above, attempts to use `R`'s default constructor.]]
+    [[`f(s)`]        [Calls `r` with the elements in `s` as its arguments.]]
+]
+
+[heading Example]
+    fused< __std_plus_doc__<long> > f;
+    assert(f(__make_vector__(1,2l)) == 3l);
+
+[heading See also]
+
+* __fused_procedure__
+* __fused_function_object__
+* __invoke__
+* __make_fused__
+* __deduce__
+
+[endsect]
+
+[section fused_procedure]
+
+[heading Description]
+
+An unary __poly_func_obj__ adapter template for __callable_obj__ target
+functions. It takes a __forward_sequence__ that contains the arguments for
+the target function.
+
+The result is discared and the adapter's return type is `void`.
+
+The type of the target function is allowed to be const qualified or a
+reference. Const qualification is preserved and propagated appropriately
+(in other words, only const versions of [^operator()] can be used for a
+target function object that is const or, if the target function object
+is held by value, the adapter is const - these semantics have nothing to
+do with the const qualification of a member function, which is referring
+to the type of object pointed to by [^this] which is specified with the
+first element in the sequence passed to the adapter).
+
+If the target function is a pointer to a members function, the corresponding
+object can be specified as a reference, pointer, or smart pointer.
+In case of the latter, a freestanding [^get_pointer] function must be
+defined (Boost provides this function for [^std::auto_ptr] and
+__boost_shared_ptr_call__).
+
+The target function must not be a pointer to a member object (dereferencing
+such a pointer without returning anything does not make sense, so this case
+is not implemented).
+
+[heading Header]
+
+  #include <boost/fusion/functional/adapter/fused_procedure.hpp>
+
+[heading Synopsis]
+    template <typename Function>
+    class fused_procedure;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]                   [Default]]
+    [[`Function`]           [__callable_obj__ type]         []]
+]
+
+[heading Model of]
+
+* __poly_func_obj__
+* __def_callable_obj__
+
+[variablelist Notation
+    [[`R`] [A possibly const qualified __callable_obj__ type or reference type thereof]]
+    [[`r`] [An object convertible to `R`]]
+    [[`s`] [A __sequence__ of arguments that are accepted by `r`]]
+    [[`f`] [An instance of `fused<R>`]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]              [Semantics]]
+    [[`fused_procedure<R>(r)`] [Creates a fused function as described above, initializes the target function with `r`.]]
+    [[`fused_procedure<R>()`]  [Creates a fused function as described above, attempts to use `R`'s default constructor.]]
+    [[`f(s)`]                  [Calls `r` with the elements in `s` as its arguments.]]
+]
+
+[heading Example]
+    template<class SequenceOfSequences, class Func>
+    void n_ary_for_each(SequenceOfSequences const & s, Func const & f)
+    {
+        __for_each__(__zip_view__<SequenceOfSequences>(s),
+            fused_procedure<Func const &>(f));
+    }
+
+    void try_it()
+    {
+        __vector__<int,float> a(2,2.0f);
+        __vector__<int,float> b(1,1.5f);
+        using namespace boost::lambda;
+        n_ary_for_each(__vector_tie__(a,b), _1 -= _2);
+        assert(a == __make_vector__(1,0.5f));
+    }
+
+[heading See also]
+
+* __fused__
+* __fused_function_object__
+* __invoke_procedure__
+* __make_fused_procedure__
+
+[endsect]
+
+[section fused_function_object]
+
+[heading Description]
+
+An unary __poly_func_obj__ adapter template for a __poly_func_obj__ target
+function. It takes a __forward_sequence__ that contains the arguments for the
+target function.
+
+The type of the target function is allowed to be const qualified or a
+reference. Const qualification is preserved and propagated appropriately
+(in other words, only const versions of [^operator()] can be used for an
+target function object that is const or, if the target function object
+is held by value, the adapter is const).
+
+[heading Header]
+
+  #include <boost/fusion/functional/adapter/fused_function_object.hpp>
+
+[heading Synopsis]
+    template <class Function>
+    class fused_function_object;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]                   [Default]]
+    [[`Function`]           [__poly_func_obj__ type]        []]
+]
+
+[heading Model of]
+
+* __poly_func_obj__
+* __def_callable_obj__
+
+[variablelist Notation
+    [[`R`] [A possibly const qualified __poly_func_obj__ type or reference type thereof]]
+    [[`r`] [An object convertible to `R`]]
+    [[`s`] [A __sequence__ of arguments that are accepted by `r`]]
+    [[`f`] [An instance of `fused<R>`]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]                    [Semantics]]
+    [[`fused_function_object<R>(r)`] [Creates a fused function as described above, initializes the target function with `r`.]]
+    [[`fused_function_object<R>()`]  [Creates a fused function as described above, attempts to use `R`'s default constructor.]]
+    [[`f(s)`]                        [Calls `r` with the elements in `s` as its arguments.]]
+]
+
+[heading Example]
+    template<class SeqOfSeqs, class Func>
+    typename __result_of_transform__< zip_view<SeqOfSeqs> const,
+        fused_function_object<Func const &> >::type
+    n_ary_transform(SeqOfSeqs const & s, Func const & f)
+    {
+        return __transform__(zip_view<SeqOfSeqs>(s),
+            fused_function_object<Func const &>(f));
+    }
+
+    struct sub
+    {
+        template <typename Sig>
+        struct result;
+
+        template <class Self, typename T>
+        struct result< Self(T,T) >
+        { typedef typename remove_reference<T>::type type; };
+
+        template<typename T>
+        T operator()(T lhs, T rhs) const
+        {
+            return lhs - rhs;
+        }
+    };
+
+    void try_it()
+    {
+        __vector__<int,float> a(2,2.0f);
+        __vector__<int,float> b(1,1.5f);
+        __vector__<int,float> c(1,0.5f);
+        assert(c == n_ary_transform(__vector_tie__(a,b), sub()));
+    }
+
+[heading See also]
+
+* __fused__
+* __fused_procedure__
+* __invoke_function_object__
+* __make_fused_function_object__
+* __deduce__
+
+[endsect]
+
+
+[section unfused]
+
+[heading Description]
+
+An n-ary __poly_func_obj__ adapter template for an unary __poly_func_obj__
+target function. When called, its arguments are bundled to a
+__random_access_sequence__ of references that is passed to the target function
+object.
+
+The nullary overload of the call operator can be removed by setting the
+second template parameter to `false`, which is very useful if the result type
+computation would result in a compile error, otherwise (nullary call
+operator's prototypes can't be templates and thus are instantiated as early
+as the class template).
+
+Only __lvalue__ arguments are accepted. To overcome this limitation, apply
+__boost_func_forward__.
+
+The type of the target function is allowed to be const qualified or a
+reference. Const qualification is preserved and propagated appropriately.
+In other words, only const versions of [^operator()] can be used if
+the target function object is const - or, in case the target function
+object is held by value, the adapter is const.
+
+[heading Header]
+
+  #include <boost/fusion/functional/adapter/unfused.hpp>
+
+[heading Synopsis]
+    template <class Function, bool AllowNullary = true>
+    class unfused;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]  [Description]               [Default]]
+    [[`Function`] [A unary __poly_func_obj__] []]
+    [[`AllowNullary`] [Boolean constant] [true]]
+]
+
+[heading Model of]
+
+* __poly_func_obj__
+* __def_callable_obj__
+
+[variablelist Notation
+    [[`F`]         [A possibly const qualified, unary __poly_func_obj__ type or reference type thereof]]
+    [[`f`]         [An object convertible to `F`]]
+    [[`UL`]        [The type `unfused<F>`]]
+    [[`ul`]        [An instance of `UL`, initialized with `f`]]
+    [[`a0`...`aN`] [Arguments to `ul`]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]      [Semantics]]
+    [[`UL(f)`]         [Creates a fused function as described above, initializes the target function with `f`.]]
+    [[`UL()`]          [Creates a fused function as described above, attempts to use `F`'s default constructor.]]
+    [[`ul(a0`...`aN)`] [Calls `f` with a __sequence__ that contains references to the arguments `a0`...`aN`.]]
+]
+
+[heading Example]
+    struct fused_incrementer
+    {
+        template <class Seq>
+        struct result
+        {
+            typedef void type;
+        };
+
+        template <class Seq>
+        void operator()(Seq const & s) const
+        {
+            __for_each__(s,++boost::lambda::_1);
+        }
+    };
+
+    void try_it()
+    {
+        unfused<fused_incrementer> increment;
+        int a = 2; char b = 'X';
+        increment(a,b);
+        assert(a == 3 && b == 'Y');
+    }
+
+[heading See also]
+* __unfused_typed__
+* __make_unfused__
+
+[endsect]
+
+[section unfused_typed]
+
+[heading Description]
+
+An n-ary __poly_func_obj__ adapter template for an unary __poly_func_obj__
+target function. When called, its arguments are bundled to a
+__random_access_sequence__ that is passed to the target function object.
+
+The call operators of  esulting function objects are strictly typed
+(in other words, non-templatized) with the types from a __sequence__.
+
+The type of the target function is allowed to be const qualified or a
+reference. Const qualification is preserved and propagated appropriately
+(in other words, only const versions of [^operator()] can be used if
+the target function object is const - or, in case the target function object
+is held by value, the adapter is const).
+
+[blurb __note__ For Microsoft Visual C++ 7.1 (Visual Studio 2003) the detection
+of the Function Object's const qualification easily causes an internal error.
+Therefore the adapter is always treated as if it was const. ]
+
+[blurb __tip__ If the type sequence passed to this template contains
+non-reference elements, the element is copied only once - the call operator's
+signature is optimized automatically to avoid by-value parameters.]
+
+[heading Header]
+
+  #include <boost/fusion/functional/adapter/unfused_typed.hpp>
+
+[heading Synopsis]
+    template <class Function, class Sequence>
+    class unfused_typed;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]  [Description]               [Default]]
+    [[`Function`] [A unary __poly_func_obj__] []]
+    [[`Sequence`] [A __sequence__]            []]
+]
+
+[heading Model of]
+
+* __poly_func_obj__
+* __def_callable_obj__
+
+[variablelist Notation
+    [[`F`]         [A possibly const qualified, unary __poly_func_obj__ type or reference type thereof]]
+    [[`f`]         [An object convertible to `F`]]
+    [[`S`]         [A __sequence__ of parameter types]]
+    [[`UT`]        [The type `unfused_typed<F,S>`]]
+    [[`ut`]        [An instance of `UT`, initialized with `f`]]
+    [[`a0`...`aN`] [Arguments to `ut`, convertible to the types in `S`]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]      [Semantics]]
+    [[`UT(f)`]         [Creates a fused function as described above, initializes the target function with `f`.]]
+    [[`UT()`]          [Creates a fused function as described above, attempts to use `F`'s default constructor.]]
+    [[`ut(a0`...`aN)`] [Calls `f` with an instance of `S` (or a subsequence of `S` starting at the first element,
+                        if fewer arguments are given and the overload hasn't been disabled) initialized with
+                        `a0`...`aN`.]]
+]
+
+[heading Example]
+    struct add_assign // applies operator+=
+    {
+        typedef void result_type; // for simplicity
+
+        template <typename T>
+        void operator()(T & lhs, T const & rhs) const
+        {
+            lhs += rhs;
+        }
+    };
+
+    template <class Tie>
+    class fused_parallel_adder
+    {
+        Tie tie_dest;
+    public:
+        explicit fused_parallel_adder(Tie const & dest)
+            : tie_dest(dest)
+        { }
+
+        typedef void result_type;
+
+        template <class Seq>
+        void operator()(Seq const & s) const
+        {
+            for_each( zip(tie_dest,s), fused<add_assign>() );
+        }
+    };
+
+    // accepts a tie and creates a typed function object from it
+    struct fused_parallel_adder_maker
+    {
+        template <typename Sig>
+        struct result;
+
+        template <class Self, class Seq>
+        struct result< Self(Seq) >
+        {
+            typedef typename remove_reference<Seq>::type seq;
+
+            typedef unfused_typed< fused_parallel_adder<seq>,
+                typename mpl::transform<seq, remove_reference<_> >::type > type;
+        };
+
+        template <class Seq>
+        typename result< void(Seq) >::type operator()(Seq const & tie)
+        {
+            return typename result< void(Seq) >::type(
+                fused_parallel_adder<Seq>(tie) );
+        }
+    };
+    unfused<fused_parallel_adder_maker> parallel_add;
+
+    void try_it()
+    {
+        int a = 2; char b = 'X';
+        // the second call is strictly typed with the types deduced from the
+        // first call
+        parallel_add(a,b)(3,2);
+        parallel_add(a,b)(3);
+        parallel_add(a,b)();
+        assert(a == 8 && b == 'Z');
+    }
+
+[heading See also]
+* __unfused__
+* __deduce__
+* __deduce_sequence__
+
+[endsect]
+
+[section Limits]
+
+[heading Header]
+
+  #include <boost/fusion/functional/adapter/limits.hpp>
+
+[heading Macros]
+
+The following macros can be defined to change the maximum arity. 
+The value used for these macros must not exceed `FUSION_MAX_VECTOR_SIZE`.
+The default is 6.
+
+* BOOST_FUSION_UNFUSED_MAX_ARITY
+* BOOST_FUSION_UNFUSED_TYPE_MAX_ARITY
+
+[endsect]
+
+[endsect] [/ Adapters]
+
+[/ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ]
+
+[section Generation]
+
+[section Functions]
+
+[section:mk_fused make_fused]
+
+[heading Description]
+Creates a __fused__ adapter for a given __def_callable_obj__. The usual
+__element_conversion__ is applied to the target function.
+
+[heading Synopsis]
+    template <typename F>
+    inline typename __result_of_make_fused__<F>::type
+    make_fused(F const & f);
+
+[heading Parameters]
+[table
+    [[Parameter]  [Requirement]                    [Description]]
+    [[`f`]        [Model of __def_callable_obj__]  [The function to transform.]]
+]
+
+[heading Expression Semantics]
+
+    make_fused(f);
+
+[*Return type]: A specialization of __fused__.
+
+[*Semantics]: Returns a __fused__ adapter for `f`.
+
+[heading Header]
+
+    #include <boost/fusion/functional/generation/make_fused.hpp>
+    #include <boost/fusion/include/make_fused.hpp>
+
+[heading Example]
+    float sub(float a, float b) { return a - b; }
+
+    void try_it()
+    {
+        __vector__<int,float> a(2,2.0f);
+        __vector__<int,float> b(1,1.5f);
+        __vector__<float,float> c(1.0f,0.5f);
+        assert(c == __transform__(__zip__(a,b), make_fused(& sub)));
+        assert(c == __transform__(__zip__(a,b), make_fused(__std_minus_doc__<float>())));
+    }
+
+[heading See also]
+* __fused__
+* __deduce__
+* __result_of_make_fused__
+
+[endsect]
+
+[section:mk_fused_proc make_fused_procedure]
+
+[heading Description]
+Creates a __fused_procedure__ adapter for a given __def_callable_obj__.
+The usual __element_conversion__ applied to the target function.
+
+[heading Synopsis]
+    template <typename F>
+    inline typename __result_of_make_fused_procedure__<F>::type
+    make_fused_procedure(F const & f);
+
+[heading Parameters]
+[table
+    [[Parameter]  [Requirement]                    [Description]]
+    [[`f`]        [Model of __callable_obj__]      [The function to transform.]]
+]
+
+[heading Expression Semantics]
+
+    make_fused_procedure(f);
+
+[*Return type]: A specialization of __fused_procedure__.
+
+[*Semantics]: Returns a __fused_procedure__ adapter for `f`.
+
+[heading Header]
+
+    #include <boost/fusion/functional/generation/make_fused_procedure.hpp>
+    #include <boost/fusion/include/make_fused_procedure.hpp>
+
+[heading Example]
+    __vector__<int,int,int> v(1,2,3);
+    using namespace boost::lambda;
+    make_fused_procedure(_1 += _2 - _3)(v);
+    assert(__front__(v) == 0);
+
+[heading See also]
+* __fused_procedure__
+* __deduce__
+* __result_of_make_fused_procedure__
+
+[endsect]
+
+[section:mk_fused_fobj make_fused_function_object]
+
+[heading Description]
+Creates a __fused_function_object__ adapter for a given __def_callable_obj__.
+The usual __element_conversion__ is applied to the target function.
+
+[heading Synopsis]
+    template <typename F>
+    inline typename __result_of_make_fused_function_object__<F>::type
+    make_fused_function_object(F const & f);
+
+[heading Parameters]
+[table
+    [[Parameter]  [Requirement]                    [Description]]
+    [[`f`]        [Model of __poly_func_obj__]     [The function to transform.]]
+]
+
+[heading Expression Semantics]
+
+    make_fused_function_object(f);
+
+[*Return type]: A specialization of __fused_function_object__.
+
+[*Semantics]: Returns a __fused_function_object__ adapter for `f`.
+
+[heading Header]
+
+    #include <boost/fusion/functional/generation/make_fused_function_object.hpp>
+    #include <boost/fusion/include/make_fused_function_object.hpp>
+
+[heading Example]
+    struct sub
+    {
+        template <typename Sig>
+        struct result;
+
+        template <class Self, typename T>
+        struct result< Self(T,T) >
+        { typedef typename remove_reference<T>::type type; };
+
+        template<typename T>
+        T operator()(T lhs, T rhs) const
+        {
+            return lhs - rhs;
+        }
+    };
+
+    void try_it()
+    {
+        __vector__<int,float> a(2,2.0f);
+        __vector__<int,float> b(1,1.5f);
+        __vector__<int,float> c(1,0.5f);
+        assert(c == __transform__(__zip__(a,b), make_fused_function_object(sub())));
+    }
+
+[heading See also]
+* __fused_function_object__
+* __deduce__
+* __result_of_make_fused_function_object__
+
+[endsect]
+
+[section:mk_unfused make_unfused]
+
+[heading Description]
+Creates a __unfused__ adapter for a given, unary __poly_func_obj__.
+The usual __element_conversion__ is applied to the target function.
+
+[heading Synopsis]
+    template <typename F>
+    inline typename __result_of_make_unfused__<F>::type
+    make_unfused(F const & f);
+
+[heading Parameters]
+[table
+    [[Parameter]  [Requirement]                    [Description]]
+    [[`f`]        [Model of __poly_func_obj__]     [The function to transform.]]
+]
+
+[heading Expression Semantics]
+
+    make_unfused(f);
+
+[*Return type]: A specialization of __unfused__.
+
+[*Semantics]: Returns a __unfused__ adapter for `f`.
+
+[heading Header]
+
+    #include <boost/fusion/functional/generation/make_unfused.hpp>
+    #include <boost/fusion/include/make_unfused.hpp>
+
+[heading Example]
+    struct fused_incrementer
+    {
+        template <class Seq>
+        struct result
+        {
+            typedef void type;
+        };
+
+        template <class Seq>
+        void operator()(Seq const & s) const
+        {
+            __for_each__(s,++boost::lambda::_1);
+        }
+    };
+
+    void try_it()
+    {
+        int a = 2; char b = 'X';
+        make_unfused(fused_incrementer())(a,b);
+        assert(a == 3 && b == 'Y');
+    }
+
+[heading See also]
+* __unfused__
+* __deduce__
+* __result_of_make_unfused__
+
+[endsect]
+
+[endsect] [/ Functions]
+
+[section Metafunctions]
+
+[section:mk_fused make_fused]
+
+[heading Description]
+Returns the result type of __make_fused__.
+
+[heading Header]
+
+    #include <boost/fusion/functional/generation/make_fused.hpp>
+    #include <boost/fusion/include/make_fused.hpp>
+
+[heading Synopsis]
+    namespace result_of
+    {
+        template<typename Function>
+        struct make_fused
+        {
+            typedef __unspecified__ type;
+        };
+    }
+
+[heading See also]
+* __make_fused__
+
+[endsect]
+
+[section:mk_fused_proc make_fused_procedure]
+
+[heading Description]
+Returns the result type of __make_fused_procedure__.
+
+[heading Header]
+
+    #include <boost/fusion/functional/generation/make_fused_procedure.hpp>
+    #include <boost/fusion/include/make_fused_procedure.hpp>
+
+[heading Synopsis]
+    namespace result_of
+    {
+        template<typename Function>
+        struct make_fused_procedure
+        {
+            typedef __unspecified__ type;
+        };
+    }
+
+[heading See also]
+* __make_fused_procedure__
+
+[endsect]
+
+[section:mk_fused_fobj make_fused_function_object]
+
+[heading Description]
+Returns the result type of __make_fused_function_object__.
+
+[heading Header]
+
+    #include <boost/fusion/functional/generation/make_fused_function_object.hpp>
+    #include <boost/fusion/include/make_fused_function_object.hpp>
+
+[heading Synopsis]
+    namespace result_of
+    {
+        template<typename Function>
+        struct make_fused_function_object
+        {
+            typedef __unspecified__ type;
+        };
+    }
+
+[heading See also]
+* __make_fused_function_object__
+
+[endsect]
+
+[section:mk_unfused make_unfused]
+
+[heading Description]
+Returns the result type of __make_unfused__.
+
+[heading Header]
+
+    #include <boost/fusion/functional/generation/make_unfused.hpp>
+    #include <boost/fusion/include/make_unfused.hpp>
+
+[heading Synopsis]
+    namespace result_of
+    {
+        template<typename Function>
+        struct make_unfused
+        {
+            typedef __unspecified__ type;
+        };
+    }
+
+[heading See also]
+* __make_unfused__
+
+[endsect]
+
+[endsect] [/ Metafunctions]
+
+[endsect] [/ Generation]
+
+[endsect] [/ Functional ]

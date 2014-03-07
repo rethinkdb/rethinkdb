@@ -1,0 +1,18 @@
+> example --log_level=test_suite
+Running 4 test cases...
+Entering test suite "Master Test Suite"
+Entering test suite "test_suite1"
+Entering test case "test_case1"
+Leaving test case "test_case1"
+Entering test case "test_case2"
+Leaving test case "test_case2"
+Leaving test suite "test_suite1"
+Entering test suite "test_suite2"
+Entering test case "test_case3"
+Leaving test case "test_case3"
+Entering test case "test_case4"
+Leaving test case "test_case4"
+Leaving test suite "test_suite2"
+Leaving test suite "Master Test Suite"
+
+*** No errors detected

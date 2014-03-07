@@ -1,0 +1,84 @@
+# (C) Copyright 2004: Eric Niebler
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# bring in rules for testing
+import testing ;
+
+project
+    : requirements
+        <toolset>intel:<debug-symbols>off
+        # Turn off debug symbols on MSVC to bring down the size of object files
+        <toolset>msvc:<debug-symbols>off
+        <toolset>msvc-8.0:<define>_SCL_SECURE_NO_DEPRECATE
+        <toolset>msvc-8.0:<define>_CRT_SECURE_NO_DEPRECATE
+        <toolset>msvc-9.0:<define>_SCL_SECURE_NO_DEPRECATE
+        <toolset>msvc-10.0:<define>_SCL_SECURE_NO_WARNINGS
+        <toolset>msvc-11.0:<define>_SCL_SECURE_NO_DEPRECATE
+        <toolset>msvc-11.0:<define>_SCL_SECURE_NO_WARNINGS
+        <toolset>gcc:<cxxflags>-ftemplate-depth-1024
+        <toolset>darwin:<cxxflags>-ftemplate-depth-1024
+#        <toolset>gcc:<cxxflags>-W
+#        <toolset>gcc:<cxxflags>-Wall
+#        <toolset>msvc:<cxxflags>-W4
+        <toolset>msvc,<stdlib>stlport:<define>_STLP_EXPOSE_GLOBALS_IMPLEMENTATION
+        <library>/boost/test//boost_unit_test_framework
+        <link>static
+    ;
+
+test-suite "xpressive"
+       : [ run regress.cpp : : : <toolset>msvc:<cxxflags>/bigobj <dependency>regress.txt ]
+         [ run regress_u.cpp : : : <toolset>msvc:<cxxflags>/bigobj <dependency>regress.txt ]
+         [ run c_traits.cpp : : : <toolset>msvc:<cxxflags>/bigobj <dependency>regress.txt ]
+         [ run c_traits_u.cpp : : : <toolset>msvc:<cxxflags>/bigobj <dependency>regress.txt ]
+         [ run test1.cpp ]
+         [ run test2.cpp ]
+         [ run test3.cpp ]
+         [ run test4.cpp ]
+         [ run test5.cpp ]
+         [ run test6.cpp ]
+         [ run test7.cpp ]
+         [ run test8.cpp ]
+         [ run test9.cpp ]
+         [ run test10.cpp ]
+         [ run test11.cpp ]
+         [ run test1u.cpp ]
+         [ run test2u.cpp ]
+         [ run test3u.cpp ]
+         [ run test4u.cpp ]
+         [ run test5u.cpp ]
+         [ run test6u.cpp ]
+         [ run test7u.cpp ]
+         [ run test8u.cpp ]
+         [ run test9u.cpp ]
+         [ run test10u.cpp ]
+         [ run test11u.cpp ]
+         [ run misc1.cpp ]
+         [ run misc2.cpp ]
+         [ run test_format.cpp ]
+         [ run test_cycles.cpp ]
+         [ run test_non_char.cpp ]
+         [ run test_static.cpp ]
+         [ run test_actions.cpp ]
+         [ run test_assert.cpp ]
+         [ run test_assert_with_placeholder.cpp ]
+         [ run test_symbols.cpp ]
+         [ run test_dynamic.cpp ]
+         [ run test_dynamic_grammar.cpp ]
+         [ run test_skip.cpp ]
+         [ link multiple_defs1.cpp multiple_defs2.cpp : : multiple_defs ]
+         [ compile test_basic_regex.cpp ]
+         [ compile test_match_results.cpp ]
+         [ compile test_regex_algorithms.cpp ]
+         [ compile test_regex_compiler.cpp ]
+         [ compile test_regex_constants.cpp ]
+         [ compile test_regex_error.cpp ]
+         [ compile test_regex_iterator.cpp ]
+         [ compile test_regex_primitives.cpp ]
+         [ compile test_regex_token_iterator.cpp ]
+         [ compile test_regex_traits.cpp ]
+         [ compile test_sub_match.cpp ]
+#         [ compile test_typeof.cpp ]
+#         [ compile test_typeof2.cpp ]
+    ;
+

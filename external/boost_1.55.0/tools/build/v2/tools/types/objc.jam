@@ -1,0 +1,26 @@
+# Copyright Rene Rivera 2008, 2010.
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+import type ;
+import scanner ;
+import types/cpp ;
+
+class objc-scanner : c-scanner
+{
+    rule __init__ ( includes * )
+    {
+        c-scanner.__init__ $(includes) ;
+    }
+
+    rule pattern ( )
+    {
+        return "#[ \t]*include|import[ ]*(<(.*)>|\"(.*)\")" ;
+    }
+}
+
+scanner.register objc-scanner : include ;
+
+type.register OBJECTIVE_C : m ;
+type.register OBJECTIVE_CPP : mm ;
+type.set-scanner OBJECTIVE_C : objc-scanner ;
+type.set-scanner OBJECTIVE_CPP : objc-scanner ;

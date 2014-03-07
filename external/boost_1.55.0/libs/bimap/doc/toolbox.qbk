@@ -1,0 +1,75 @@
+[/license
+
+Boost.Bimap
+
+Copyright (c) 2006-2007 Matias Capeletto
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+]
+
+[/ QuickBook Document version 1.4 ]
+
+[section Bimap Toolbox]
+
+[section Mutant]
+
+[tip
+A mutant class defines storage compatible views in its declaration.
+You can the use the mutate<View>(m) function to get a view of the
+data with zero overhead.
+]
+
+__UNDER_CONSTRUCTION__
+
+[endsect]
+
+[section Structured_pair]
+
+[tip
+A structured pair allows you to control the order of the two types.
+You can instantiate it so the ['second] member appears in the first
+position.
+]
+
+__UNDER_CONSTRUCTION__
+
+
+[endsect]
+
+[section Tagged]
+
+[tip
+Tagged idiom and support metafunctions.
+]
+
+__UNDER_CONSTRUCTION__
+
+
+[endsect]
+
+[section Relation]
+
+[tip
+The bidirectional std::pair cousin.
+]
+
+__UNDER_CONSTRUCTION__
+
+[endsect]
+
+[section Container_adaptor]
+
+[tip
+Easy way to adapt a container so it behaves different in some aspect.
+It is the same concept that is use in iterator_adaptor.
+]
+
+__UNDER_CONSTRUCTION__
+
+[endsect]
+
+
+[endsect]

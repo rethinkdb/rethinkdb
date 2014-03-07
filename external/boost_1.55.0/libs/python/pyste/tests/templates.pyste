@@ -1,0 +1,8 @@
+Point = Template('templates::Point', 'templates.h')
+rename(Point.x, 'i')
+rename(Point.y, 'j')
+IPoint = Point('int')
+FPoint = Point('double', 'FPoint')
+rename(IPoint, 'IPoint')
+rename(IPoint.x, 'x')
+rename(IPoint.y, 'y')

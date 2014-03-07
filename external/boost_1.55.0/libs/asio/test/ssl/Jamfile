@@ -1,0 +1,46 @@
+#
+# Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+
+subproject libs/asio/test/ssl ;
+
+# bring in the rules for testing
+import testing ;
+
+project boost : $(BOOST_ROOT) ;
+
+if $(UNIX)
+{
+  switch $(JAMUNAME)
+  {
+  case SunOS* :
+    {
+      SOCKET_LIBS = <find-library>socket <find-library>nsl ;
+    }
+  }
+}
+
+template unit_test
+  : <lib>@boost/libs/system/build/boost_system
+  : <lib>@boost/libs/test/build/boost_test_exec_monitor
+  : <include>../../../..
+    <define>BOOST_ALL_NO_LIB=1
+    <threading>multi
+    <find-library>ssl
+    <find-library>crypto
+    <mingw><*><find-library>ws2_32
+    <mingw><*><find-library>mswsock
+    $(SOCKET_LIBS)
+  ;
+
+run basic_context.cpp <template>unit_test ;
+run context_base.cpp <template>unit_test ;
+run context_service.cpp <template>unit_test ;
+run context.cpp <template>unit_test ;
+run rfc2818_verification.cpp <template>unit_test ;
+run stream_base.cpp <template>unit_test ;
+run stream_service.cpp <template>unit_test ;
+run stream.cpp <template>unit_test ;

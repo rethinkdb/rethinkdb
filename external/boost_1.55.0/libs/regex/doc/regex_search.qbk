@@ -1,0 +1,193 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:regex_search regex_search]
+
+   #include <boost/regex.hpp> 
+
+The algorithm [regex_search] will search a range denoted by a pair of 
+bidirectional-iterators for a given regular expression. The algorithm 
+uses various heuristics to reduce the search time by only checking 
+for a match if a match could conceivably start at that position. The 
+algorithm is defined as follows:
+
+   template <class BidirectionalIterator, 
+            class Allocator, class charT, class traits>
+   bool regex_search(BidirectionalIterator first, BidirectionalIterator last,
+                     match_results<BidirectionalIterator, Allocator>& m,
+                     const basic_regex<charT, traits>& e,
+                     match_flag_type flags = match_default);
+                     
+   template <class ST, class SA, 
+            class Allocator, class charT, class traits> 
+   bool regex_search(const basic_string<charT, ST, SA>& s, 
+                     match_results<
+                        typename basic_string<charT, ST,SA>::const_iterator, 
+                        Allocator>& m, 
+                     const basic_regex<charT, traits>& e, 
+                     match_flag_type flags = match_default); 
+             
+   template<class charT, class Allocator, class traits> 
+   bool regex_search(const charT* str, 
+                     match_results<const charT*, Allocator>& m, 
+                     const basic_regex<charT, traits>& e,
+                     match_flag_type flags = match_default);
+                     
+   template <class BidirectionalIterator, class charT, class traits>                
+   bool regex_search(BidirectionalIterator first, BidirectionalIterator last, 
+                     const basic_regex<charT, traits>& e, 
+                     match_flag_type flags = match_default); 
+                     
+   template <class charT, class traits> 
+   bool regex_search(const charT* str, 
+                     const basic_regex<charT, traits>& e, 
+                     match_flag_type flags = match_default); 
+                     
+   template<class ST, class SA, class charT, class traits>
+   bool regex_search(const basic_string<charT, ST, SA>& s,
+                     const basic_regex<charT, traits>& e,
+                     match_flag_type flags = match_default);
+
+[h4 Description]
+
+   template <class BidirectionalIterator, class Allocator, class charT, class traits>
+   bool regex_search(BidirectionalIterator first, BidirectionalIterator last,
+                     match_results<BidirectionalIterator, Allocator>& m,
+                     const basic_regex<charT, traits>& e,
+                     match_flag_type flags = match_default);
+
+[*Requires]: Type BidirectionalIterator meets the requirements of a Bidirectional Iterator (24.1.4).
+
+[*Effects]: Determines whether there is some sub-sequence within \[first,last) 
+that matches the regular expression /e/, parameter /flags/ is used to control 
+how the expression is matched against the character sequence. Returns 
+true if such a sequence exists, false otherwise.
+
+[*Throws]: `std::runtime_error` if the complexity of matching the expression 
+against an N character string begins to exceed O(N[super 2]), or if the 
+program runs out of stack space while matching the expression (if Boost.Regex is 
+configured in recursive mode), or if the matcher exhausts its permitted 
+memory allocation (if Boost.Regex is configured in non-recursive mode).
+
+[*Postconditions]: If the function returns false, then the effect on 
+parameter /m/ is undefined, otherwise the effects on parameter /m/ 
+are given in the table:
+
+[table
+[[Element][Value]]
+[[`m.size()`][`e.mark_count()`]]
+[[`m.empty()`][`false`]]
+[[`m.prefix().first`][`first`]]
+[[`m.prefix().last`][`m[0].first`]]
+[[`m.prefix().matched`][`m.prefix().first != m.prefix().second`]]
+[[`m.suffix().first`][`m[0].second`]]
+[[`m.suffix().last`][`last`]]
+[[`m.suffix().matched`][`m.suffix().first != m.suffix().second`]]
+[[`m[0].first`][The start of the sequence of characters that matched the regular expression]]
+[[`m[0].second`][The end of the sequence of characters that matched the regular expression]]
+[[`m[0].matched`][true if a full match was found, and false if it was a partial match (found as a result of the match_partial flag being set).]]
+[[`m[n].first`][For all integers `n < m.size()`, the start of the sequence that 
+      matched sub-expression /n/. Alternatively, if sub-expression /n/ did not 
+      participate in the match, then last.]]
+[[`m[n].second`][For all integers `n < m.size()`, the end of the sequence that 
+      matched sub-expression /n/. Alternatively, if sub-expression /n/ did not 
+      participate in the match, then `last`.]]
+[[`m[n].matched`][For all integers `n < m.size()`, true if sub-expression /n/ 
+      participated in the match, false otherwise.]]
+]
+
+   template <class charT, class Allocator, class traits>
+   bool regex_search(const charT* str, match_results<const charT*, Allocator>& m,
+                     const basic_regex<charT, traits>& e,
+                     match_flag_type flags = match_default);
+
+[*Effects]: Returns the result of `regex_search(str, str + char_traits<charT>::length(str), m, e, flags)`.
+
+   template <class ST, class SA, class Allocator, class charT,
+            class traits>
+   bool regex_search(const basic_string<charT, ST, SA>& s,
+                     match_results<typename basic_string<charT, ST, SA>::const_iterator, Allocator>& m,
+                     const basic_regex<charT, traits>& e,
+                     match_flag_type flags = match_default);
+
+[*Effects]: Returns the result of `regex_search(s.begin(), s.end(), m, e, flags)`.
+
+   template <class iterator, class charT, class traits>
+   bool regex_search(iterator first, iterator last,
+                     const basic_regex<charT, traits>& e,
+                     match_flag_type flags = match_default);
+
+[*Effects]: Behaves "as if" by constructing an instance of 
+`match_results<BidirectionalIterator> what`, and then returning the result of 
+`regex_search(first, last, what, e, flags)`.
+
+   template <class charT, class traits>
+   bool regex_search(const charT* str
+                     const basic_regex<charT, traits>& e,
+                     match_flag_type flags = match_default);
+
+[*Effects]: Returns the result of `regex_search(str, str + char_traits<charT>::length(str), e, flags)`.
+
+   template <class ST, class SA, class charT, class traits>
+   bool regex_search(const basic_string<charT, ST, SA>& s,
+                     const basic_regex<charT, traits>& e,
+                     match_flag_type flags = match_default);
+
+[*Effects]: Returns the result of `regex_search(s.begin(), s.end(), e, flags)`.
+
+[h4 Examples]
+
+The following example, takes the contents of a file in the form of a string, 
+and searches for all the C++ class declarations in the file. The code will 
+work regardless of the way that `std::string` is implemented, for example it 
+could easily be modified to work with the SGI rope class, which uses a 
+non-contiguous storage strategy.
+
+   #include <string> 
+   #include <map> 
+   #include <boost/regex.hpp> 
+
+   // purpose: 
+   // takes the contents of a file in the form of a string 
+   // and searches for all the C++ class definitions, storing 
+   // their locations in a map of strings/int's 
+   typedef std::map<std::string, int, std::less<std::string> > map_type; 
+
+   boost::regex expression(
+      "^(template[[:space:]]*<[^;:{]+>[[:space:]]*)?"
+      "(class|struct)[[:space:]]*"
+      "(\\<\\w+\\>([[:blank:]]*\\([^)]*\\))?"
+      "[[:space:]]*)*(\\<\\w*\\>)[[:space:]]*"
+      "(<[^;:{]+>[[:space:]]*)?(\\{|:[^;\\{()]*\\{)"); 
+
+   void IndexClasses(map_type& m, const std::string& file) 
+   { 
+      std::string::const_iterator start, end; 
+      start = file.begin(); 
+      end = file.end(); 
+         boost::match_results<std::string::const_iterator> what; 
+      boost::match_flag_type flags = boost::match_default; 
+      while(regex_search(start, end, what, expression, flags)) 
+      { 
+         // what[0] contains the whole string 
+         // what[5] contains the class name. 
+         // what[6] contains the template specialisation if any. 
+         // add class name and position to map: 
+         m[std::string(what[5].first, what[5].second) 
+               + std::string(what[6].first, what[6].second)] 
+            = what[5].first - file.begin(); 
+         // update search position: 
+         start = what[0].second; 
+         // update flags: 
+         flags |= boost::match_prev_avail; 
+         flags |= boost::match_not_bob; 
+      } 
+   }
+     
+[endsect]
+

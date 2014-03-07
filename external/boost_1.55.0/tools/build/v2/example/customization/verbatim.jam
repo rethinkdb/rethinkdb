@@ -1,0 +1,51 @@
+# Copyright 2003, 2004 Vladimir Prus 
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) 
+
+#  This file shows some of the primary customization mechanisms in Boost.Build V2
+#  and should serve as a basic for your own customization.
+#  Each part has a comment describing its purpose, and you can pick the parts
+#  which are relevant to your case, remove everything else, and then change names
+#  and actions to taste.
+
+#  Declare a new target type. This allows Boost.Build to do something sensible
+#  when targets with the .verbatim extension are found in sources.
+import type ;
+type.register VERBATIM : verbatim ;
+
+#  Declare a dependency scanner for the new target type. The
+#  'inline-file.py' script does not handle includes, so this is
+#  only for illustraction.
+import scanner ;
+#  First, define a new class, derived from 'common-scanner',
+#  that class has all the interesting logic, and we only need
+#  to override the 'pattern' method which return regular
+#  expression to use when scanning.
+class verbatim-scanner : common-scanner 
+{
+    rule pattern ( )
+    {
+        return "//###include[ ]*\"([^\"]*)\"" ;
+    }
+}
+
+# Register the scanner class. The 'include' is
+# the property which specifies the search path
+# for includes.
+scanner.register verbatim-scanner : include ;
+# Assign the scanner class to the target type.
+# Now, all .verbatim sources will be scanned.
+# To test this, build the project, touch the 
+# t2.verbatim file and build again.
+type.set-scanner VERBATIM : verbatim-scanner ;
+
+import generators ;
+generators.register-standard verbatim.inline-file : VERBATIM : CPP ;
+
+# Note: To use Cygwin Python on Windows change the following line
+# to "python inline_file.py $(<) $(>)"
+# Also, make sure that "python" in in PATH.
+actions inline-file 
+{
+    "./inline_file.py" $(<) $(>)
+}

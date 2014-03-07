@@ -1,0 +1,141 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Overlap counter</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../examples.html" title="Examples">
+<link rel="prev" href="interval_container.html" title="Interval container">
+<link rel="next" href="partys_height_average.html" title="Party's height average">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="interval_container.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="partys_height_average.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_examples_overlap_counter" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.examples.overlap_counter"></a><a class="link" href="overlap_counter.html" title="Overlap counter">Overlap counter</a>
+</h3></div></div></div>
+<p>
+        Example <span class="bold"><strong>overlap counter</strong></span> provides the simplest
+        application of an interval_map that maps intervals to integers. An interval_map&lt;int,int&gt;
+        serves as an overlap counter if we only add interval value pairs that carry
+        1 as associated value.
+      </p>
+<p>
+        Doing so, the associated values that are accumulated in the interval_map
+        are just the number of overlaps of all added intervals.
+      </p>
+<p>
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">split_interval_map</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">icl</span><span class="special">;</span>
+
+
+<span class="comment">/* The most simple example of an interval_map is an overlap counter.
+   If intervals are added that are associated with the value 1,
+   all overlaps of added intervals are counted as a result in the
+   associated values. 
+*/</span>
+<span class="keyword">typedef</span> <span class="identifier">interval_map</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">OverlapCounterT</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">print_overlaps</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">OverlapCounterT</span><span class="special">&amp;</span> <span class="identifier">counter</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">for</span><span class="special">(</span><span class="identifier">OverlapCounterT</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">it</span> <span class="special">=</span> <span class="identifier">counter</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span> <span class="identifier">it</span> <span class="special">!=</span> <span class="identifier">counter</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span> <span class="identifier">it</span><span class="special">++)</span>
+    <span class="special">{</span>
+        <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">itv</span>  <span class="special">=</span> <span class="special">(*</span><span class="identifier">it</span><span class="special">).</span><span class="identifier">first</span><span class="special">;</span>
+        <span class="keyword">int</span> <span class="identifier">overlaps_count</span> <span class="special">=</span> <span class="special">(*</span><span class="identifier">it</span><span class="special">).</span><span class="identifier">second</span><span class="special">;</span>
+        <span class="keyword">if</span><span class="special">(</span><span class="identifier">overlaps_count</span> <span class="special">==</span> <span class="number">1</span><span class="special">)</span>
+            <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"in interval "</span> <span class="special">&lt;&lt;</span> <span class="identifier">itv</span> <span class="special">&lt;&lt;</span> <span class="string">" intervals do not overlap"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+        <span class="keyword">else</span>
+            <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"in interval "</span> <span class="special">&lt;&lt;</span> <span class="identifier">itv</span> <span class="special">&lt;&lt;</span> <span class="string">": "</span><span class="special">&lt;&lt;</span> <span class="identifier">overlaps_count</span> <span class="special">&lt;&lt;</span> <span class="string">" intervals overlap"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">overlap_counter</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">OverlapCounterT</span> <span class="identifier">overlap_counter</span><span class="special">;</span>
+    <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">inter_val</span><span class="special">;</span>
+
+    <span class="identifier">inter_val</span> <span class="special">=</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(</span><span class="number">4</span><span class="special">,</span><span class="number">8</span><span class="special">);</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-- adding   "</span> <span class="special">&lt;&lt;</span> <span class="identifier">inter_val</span> <span class="special">&lt;&lt;</span> <span class="string">" -----------------------------------------"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">overlap_counter</span> <span class="special">+=</span> <span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">inter_val</span><span class="special">,</span> <span class="number">1</span><span class="special">);</span>
+    <span class="identifier">print_overlaps</span><span class="special">(</span><span class="identifier">overlap_counter</span><span class="special">);</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-----------------------------------------------------------"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="identifier">inter_val</span> <span class="special">=</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(</span><span class="number">6</span><span class="special">,</span><span class="number">9</span><span class="special">);</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-- adding   "</span> <span class="special">&lt;&lt;</span> <span class="identifier">inter_val</span> <span class="special">&lt;&lt;</span> <span class="string">" -----------------------------------------"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">overlap_counter</span> <span class="special">+=</span> <span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">inter_val</span><span class="special">,</span> <span class="number">1</span><span class="special">);</span>
+    <span class="identifier">print_overlaps</span><span class="special">(</span><span class="identifier">overlap_counter</span><span class="special">);</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-----------------------------------------------------------"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="identifier">inter_val</span> <span class="special">=</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(</span><span class="number">1</span><span class="special">,</span><span class="number">9</span><span class="special">);</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-- adding   "</span> <span class="special">&lt;&lt;</span> <span class="identifier">inter_val</span> <span class="special">&lt;&lt;</span> <span class="string">" -----------------------------------------"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">overlap_counter</span> <span class="special">+=</span> <span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">inter_val</span><span class="special">,</span> <span class="number">1</span><span class="special">);</span>
+    <span class="identifier">print_overlaps</span><span class="special">(</span><span class="identifier">overlap_counter</span><span class="special">);</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-----------------------------------------------------------"</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+    
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"&gt;&gt;Interval Container Library: Sample overlap_counter.cpp &lt;&lt;\n"</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-----------------------------------------------------------\n"</span><span class="special">;</span>
+    <span class="identifier">overlap_counter</span><span class="special">();</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="comment">// Program output:
+</span>
+<span class="comment">// &gt;&gt;Interval Container Library: Sample overlap_counter.cpp &lt;&lt;
+</span><span class="comment">// -----------------------------------------------------------
+</span><span class="comment">// -- adding   [4,8) -----------------------------------------
+</span><span class="comment">// in interval [4,8) intervals do not overlap
+</span><span class="comment">// -----------------------------------------------------------
+</span><span class="comment">// -- adding   [6,9) -----------------------------------------
+</span><span class="comment">// in interval [4,6) intervals do not overlap
+</span><span class="comment">// in interval [6,8): 2 intervals overlap
+</span><span class="comment">// in interval [8,9) intervals do not overlap
+</span><span class="comment">// -----------------------------------------------------------
+</span><span class="comment">// -- adding   [1,9) -----------------------------------------
+</span><span class="comment">// in interval [1,4) intervals do not overlap
+</span><span class="comment">// in interval [4,6): 2 intervals overlap
+</span><span class="comment">// in interval [6,8): 3 intervals overlap
+</span><span class="comment">// in interval [8,9): 2 intervals overlap
+</span><span class="comment">// -----------------------------------------------------------
+</span></pre>
+<p>
+        </p>
+<p>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="interval_container.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="partys_height_average.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

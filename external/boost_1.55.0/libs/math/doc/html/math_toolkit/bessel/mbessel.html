@@ -1,0 +1,490 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Modified Bessel Functions of the First and Second Kinds</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Math Toolkit">
+<link rel="up" href="../bessel.html" title="Bessel Functions">
+<link rel="prev" href="bessel_root.html" title="Finding Zeros of Bessel Functions of the First and Second Kinds">
+<link rel="next" href="sph_bessel.html" title="Spherical Bessel Functions of the First and Second Kinds">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="bessel_root.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bessel.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="sph_bessel.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="math_toolkit.bessel.mbessel"></a><a class="link" href="mbessel.html" title="Modified Bessel Functions of the First and Second Kinds">Modified Bessel Functions
+      of the First and Second Kinds</a>
+</h3></div></div></div>
+<h5>
+<a name="math_toolkit.bessel.mbessel.h0"></a>
+        <span class="phrase"><a name="math_toolkit.bessel.mbessel.synopsis"></a></span><a class="link" href="mbessel.html#math_toolkit.bessel.mbessel.synopsis">Synopsis</a>
+      </h5>
+<p>
+        <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">special_functions</span><span class="special">/</span><span class="identifier">bessel</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">cyl_bessel_i</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">v</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">cyl_bessel_i</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">v</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">cyl_bessel_k</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">v</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">cyl_bessel_k</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">v</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<h5>
+<a name="math_toolkit.bessel.mbessel.h1"></a>
+        <span class="phrase"><a name="math_toolkit.bessel.mbessel.description"></a></span><a class="link" href="mbessel.html#math_toolkit.bessel.mbessel.description">Description</a>
+      </h5>
+<p>
+        The functions <a class="link" href="mbessel.html" title="Modified Bessel Functions of the First and Second Kinds">cyl_bessel_i</a>
+        and <a class="link" href="mbessel.html" title="Modified Bessel Functions of the First and Second Kinds">cyl_bessel_k</a> return
+        the result of the modified Bessel functions of the first and second kind
+        respectively:
+      </p>
+<p>
+        cyl_bessel_i(v, x) = I<sub>v</sub>(x)
+      </p>
+<p>
+        cyl_bessel_k(v, x) = K<sub>v</sub>(x)
+      </p>
+<p>
+        where:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel2.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel3.png"></span>
+      </p>
+<p>
+        The return type of these functions is computed using the <a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>result
+        type calculation rules</em></span></a> when T1 and T2 are different types.
+        The functions are also optimised for the relatively common case that T1 is
+        an integer.
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<p>
+        The functions return the result of <a class="link" href="../error_handling.html#math_toolkit.error_handling.domain_error">domain_error</a>
+        whenever the result is undefined or complex. For <a class="link" href="bessel_first.html" title="Bessel Functions of the First and Second Kinds">cyl_bessel_j</a>
+        this occurs when <code class="computeroutput"><span class="identifier">x</span> <span class="special">&lt;</span>
+        <span class="number">0</span></code> and v is not an integer, or when
+        <code class="computeroutput"><span class="identifier">x</span> <span class="special">==</span>
+        <span class="number">0</span></code> and <code class="computeroutput"><span class="identifier">v</span>
+        <span class="special">!=</span> <span class="number">0</span></code>.
+        For <a class="link" href="bessel_first.html" title="Bessel Functions of the First and Second Kinds">cyl_neumann</a> this
+        occurs when <code class="computeroutput"><span class="identifier">x</span> <span class="special">&lt;=</span>
+        <span class="number">0</span></code>.
+      </p>
+<p>
+        The following graph illustrates the exponential behaviour of I<sub>v</sub>.
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../graphs/cyl_bessel_i.png" align="middle"></span>
+      </p>
+<p>
+        The following graph illustrates the exponential decay of K<sub>v</sub>.
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../graphs/cyl_bessel_k.png" align="middle"></span>
+      </p>
+<h5>
+<a name="math_toolkit.bessel.mbessel.h2"></a>
+        <span class="phrase"><a name="math_toolkit.bessel.mbessel.testing"></a></span><a class="link" href="mbessel.html#math_toolkit.bessel.mbessel.testing">Testing</a>
+      </h5>
+<p>
+        There are two sets of test values: spot values calculated using <a href="http://functions.wolfram.com" target="_top">functions.wolfram.com</a>,
+        and a much larger set of tests computed using a simplified version of this
+        implementation (with all the special case handling removed).
+      </p>
+<h5>
+<a name="math_toolkit.bessel.mbessel.h3"></a>
+        <span class="phrase"><a name="math_toolkit.bessel.mbessel.accuracy"></a></span><a class="link" href="mbessel.html#math_toolkit.bessel.mbessel.accuracy">Accuracy</a>
+      </h5>
+<p>
+        The following tables show how the accuracy of these functions varies on various
+        platforms, along with a comparison to the <a href="http://www.gnu.org/software/gsl/" target="_top">GSL-1.9</a>
+        library. Note that only results for the widest floating-point type on the
+        system are given, as narrower types have <a class="link" href="../relative_error.html#math_toolkit.relative_error.zero_error">effectively
+        zero error</a>. All values are relative errors in units of epsilon.
+      </p>
+<div class="table">
+<a name="math_toolkit.bessel.mbessel.errors_rates_in_cyl_bessel_i"></a><p class="title"><b>Table&#160;3.23.&#160;Errors Rates in cyl_bessel_i</b></p>
+<div class="table-contents"><table class="table" summary="Errors Rates in cyl_bessel_i">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Significand Size
+                </p>
+              </th>
+<th>
+                <p>
+                  Platform and Compiler
+                </p>
+              </th>
+<th>
+                <p>
+                  I<sub>v</sub>
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  53
+                </p>
+              </td>
+<td>
+                <p>
+                  Win32 / Visual C++ 8.0
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=10 Mean=3.4 GSL Peak=6000
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  Red Hat Linux IA64 / G++ 3.4
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=11 Mean=3
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  SUSE Linux AMD64 / G++ 4.1
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=11 Mean=4
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  113
+                </p>
+              </td>
+<td>
+                <p>
+                  HP-UX / HP aCC 6
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=15 Mean=4
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="math_toolkit.bessel.mbessel.errors_rates_in_cyl_bessel_k"></a><p class="title"><b>Table&#160;3.24.&#160;Errors Rates in cyl_bessel_k</b></p>
+<div class="table-contents"><table class="table" summary="Errors Rates in cyl_bessel_k">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Significand Size
+                </p>
+              </th>
+<th>
+                <p>
+                  Platform and Compiler
+                </p>
+              </th>
+<th>
+                <p>
+                  K<sub>v</sub>
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  53
+                </p>
+              </td>
+<td>
+                <p>
+                  Win32 / Visual C++ 8.0
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=9 Mean=2
+                </p>
+                <p>
+                  GSL Peak=9
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  Red Hat Linux IA64 / G++ 3.4
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=10 Mean=2
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  SUSE Linux AMD64 / G++ 4.1
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=10 Mean=2
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  113
+                </p>
+              </td>
+<td>
+                <p>
+                  HP-UX / HP aCC 6
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=12 Mean=5
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><h5>
+<a name="math_toolkit.bessel.mbessel.h4"></a>
+        <span class="phrase"><a name="math_toolkit.bessel.mbessel.implementation"></a></span><a class="link" href="mbessel.html#math_toolkit.bessel.mbessel.implementation">Implementation</a>
+      </h5>
+<p>
+        The following are handled as special cases first:
+      </p>
+<p>
+        When computing I<sub>v</sub> &#160; for <span class="emphasis"><em>x &lt; 0</em></span>, then &#957; &#160; must be an integer
+        or a domain error occurs. If &#957; &#160; is an integer, then the function is odd if &#957; &#160; is
+        odd and even if &#957; &#160; is even, and we can reflect to <span class="emphasis"><em>x &gt; 0</em></span>.
+      </p>
+<p>
+        For I<sub>v</sub> &#160; with v equal to 0, 1 or 0.5 are handled as special cases.
+      </p>
+<p>
+        The 0 and 1 cases use minimax rational approximations on finite and infinite
+        intervals. The coefficients are from:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            J.M. Blair and C.A. Edwards, <span class="emphasis"><em>Stable rational minimax approximations
+            to the modified Bessel functions I_0(x) and I_1(x)</em></span>, Atomic
+            Energy of Canada Limited Report 4928, Chalk River, 1974.
+          </li>
+<li class="listitem">
+            S. Moshier, <span class="emphasis"><em>Methods and Programs for Mathematical Functions</em></span>,
+            Ellis Horwood Ltd, Chichester, 1989.
+          </li>
+</ul></div>
+<p>
+        While the 0.5 case is a simple trigonometric function:
+      </p>
+<p>
+        I<sub>0.5</sub>(x) = sqrt(2 / &#960;x) * sinh(x)
+      </p>
+<p>
+        For K<sub>v</sub> &#160; with <span class="emphasis"><em>v</em></span> an integer, the result is calculated using
+        the recurrence relation:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel5.png"></span>
+      </p>
+<p>
+        starting from K<sub>0</sub> &#160; and K<sub>1</sub> &#160; which are calculated using rational the approximations
+        above. These rational approximations are accurate to around 19 digits, and
+        are therefore only used when T has no more than 64 binary digits of precision.
+      </p>
+<p>
+        When <span class="emphasis"><em>x</em></span> is small compared to <span class="emphasis"><em>v</em></span>,
+        I<sub>v</sub>x &#160; is best computed directly from the series:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel17.png"></span>
+      </p>
+<p>
+        In the general case, we first normalize &#957; &#160; to [<code class="literal">0, [inf]</code>)
+        with the help of the reflection formulae:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel9.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel10.png"></span>
+      </p>
+<p>
+        Let &#956; &#160; = &#957; - floor(&#957; + 1/2), then &#956; &#160; is the fractional part of &#957; &#160; such that |&#956;| &lt;= 1/2
+        (we need this for convergence later). The idea is to calculate K<sub>&#956;</sub>(x) and K<sub>&#956;+1</sub>(x),
+        and use them to obtain I<sub>&#957;</sub>(x) and K<sub>&#957;</sub>(x).
+      </p>
+<p>
+        The algorithm is proposed by Temme in N.M. Temme, <span class="emphasis"><em>On the numerical
+        evaluation of the modified bessel function of the third kind</em></span>,
+        Journal of Computational Physics, vol 19, 324 (1975), which needs two continued
+        fractions as well as the Wronskian:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel11.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel12.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel8.png"></span>
+      </p>
+<p>
+        The continued fractions are computed using the modified Lentz's method (W.J.
+        Lentz, <span class="emphasis"><em>Generating Bessel functions in Mie scattering calculations
+        using continued fractions</em></span>, Applied Optics, vol 15, 668 (1976)).
+        Their convergence rates depend on <span class="emphasis"><em>x</em></span>, therefore we need
+        different strategies for large <span class="emphasis"><em>x</em></span> and small <span class="emphasis"><em>x</em></span>.
+      </p>
+<p>
+        <span class="emphasis"><em>x &gt; v</em></span>, CF1 needs O(<span class="emphasis"><em>x</em></span>) iterations
+        to converge, CF2 converges rapidly.
+      </p>
+<p>
+        <span class="emphasis"><em>x &lt;= v</em></span>, CF1 converges rapidly, CF2 fails to converge
+        when <span class="emphasis"><em>x</em></span> <code class="literal">-&gt;</code> 0.
+      </p>
+<p>
+        When <span class="emphasis"><em>x</em></span> is large (<span class="emphasis"><em>x</em></span> &gt; 2), both
+        continued fractions converge (CF1 may be slow for really large <span class="emphasis"><em>x</em></span>).
+        K<sub>&#956;</sub> &#160; and K<sub>&#956;+1</sub> &#160;
+can be calculated by
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel13.png"></span>
+      </p>
+<p>
+        where
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel14.png"></span>
+      </p>
+<p>
+        <span class="emphasis"><em>S</em></span> is also a series that is summed along with CF2, see
+        I.J. Thompson and A.R. Barnett, <span class="emphasis"><em>Modified Bessel functions I_v and
+        K_v of real order and complex argument to selected accuracy</em></span>, Computer
+        Physics Communications, vol 47, 245 (1987).
+      </p>
+<p>
+        When <span class="emphasis"><em>x</em></span> is small (<span class="emphasis"><em>x</em></span> &lt;= 2), CF2
+        convergence may fail (but CF1 works very well). The solution here is Temme's
+        series:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel15.png"></span>
+      </p>
+<p>
+        where
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/mbessel16.png"></span>
+      </p>
+<p>
+        f<sub>k</sub> &#160; and h<sub>k</sub> &#160;
+are also computed by recursions (involving gamma functions), but
+        the formulas are a little complicated, readers are referred to N.M. Temme,
+        <span class="emphasis"><em>On the numerical evaluation of the modified Bessel function of
+        the third kind</em></span>, Journal of Computational Physics, vol 19, 324
+        (1975). Note: Temme's series converge only for |&#956;| &lt;= 1/2.
+      </p>
+<p>
+        K<sub>&#957;</sub>(x) is then calculated from the forward recurrence, as is K<sub>&#957;+1</sub>(x). With these
+        two values and f<sub>&#957;</sub>, the Wronskian yields I<sub>&#957;</sub>(x) directly.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="bessel_root.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bessel.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="sph_bessel.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

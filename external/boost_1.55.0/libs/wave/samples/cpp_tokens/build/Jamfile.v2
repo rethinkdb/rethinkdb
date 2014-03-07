@@ -1,0 +1,38 @@
+# Boost.Wave: A Standard compliant C++ preprocessor library
+#
+# Boost Wave Library Sample Build Jamfile (cpp_tokens)
+#
+# http://www.boost.org/
+#
+# Copyright (c) 2001-2010 Hartmut Kaiser. Distributed under the Boost 
+# Software License, Version 1.0. (See accompanying file 
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+SOURCES =
+        ../cpp_tokens 
+        ../instantiate_cpp_exprgrammar 
+        ../instantiate_cpp_grammar 
+        ../instantiate_cpp_literalgrs
+        ../instantiate_defined_grammar
+        ../instantiate_slex_lexer 
+    ;
+
+exe cpp_tokens
+    :
+        $(SOURCES)
+        /boost/wave//boost_wave
+        /boost/program_options//boost_program_options
+        /boost/filesystem//boost_filesystem     
+        /boost/system//boost_system     
+        /boost/thread//boost_thread
+        /boost/date_time//boost_date_time
+    ;
+
+for local source in $(SOURCES)
+{
+    local requirements ;
+    # workaround for compiler bug
+    requirements += <toolset-msvc:version>7.1:<rtti>off ;
+    requirements += <toolset-msvc:version>7.1_stlport4:<rtti>off ;
+    obj $(source) : $(source).cpp : $(requirements) ;
+}

@@ -1,0 +1,505 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Sets and Maps</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../concepts.html" title="Concepts">
+<link rel="prev" href="aspects.html" title="Aspects">
+<link rel="next" href="aggrovering.html" title="Addability, Subtractability and Aggregate on Overlap">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="aspects.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="aggrovering.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_concepts_sets_and_maps" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.concepts.sets_and_maps"></a><a class="link" href="sets_and_maps.html" title="Sets and Maps">Sets and Maps</a>
+</h3></div></div></div>
+<a name="boost_icl.concepts.sets_and_maps.a_set_concept"></a><h6>
+<a name="id1110451"></a>
+        <a class="link" href="sets_and_maps.html#boost_icl.concepts.sets_and_maps.a_set_concept">A Set Concept</a>
+      </h6>
+<p>
+        On the fundamental aspect all <code class="computeroutput"><a class="link" href="../../boost/icl/interval_base_set.html" title="Class template interval_base_set">interval_sets</a></code>
+        are models of a concept <code class="computeroutput"><span class="identifier">Set</span></code>.
+        The <code class="computeroutput"><span class="identifier">Set</span></code> concept of the Interval
+        Template Library refers to the mathematical notion of a set.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Function
+              </p>
+              </th>
+<th>
+              <p>
+                Variant
+              </p>
+              </th>
+<th>
+              <p>
+                implemented as
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                empty set
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Set</span><span class="special">::</span><span class="identifier">Set</span><span class="special">()</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                subset relation
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">Set</span><span class="special">::</span><span class="identifier">within</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Set</span><span class="special">&amp;</span>
+                <span class="identifier">s1</span><span class="special">,</span>
+                <span class="keyword">const</span> <span class="identifier">Set</span><span class="special">&amp;</span> <span class="identifier">s2</span><span class="special">)</span><span class="keyword">const</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                equality
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">is_element_equal</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Set</span><span class="special">&amp;</span>
+                <span class="identifier">s1</span><span class="special">,</span>
+                <span class="keyword">const</span> <span class="identifier">Set</span><span class="special">&amp;</span> <span class="identifier">s2</span><span class="special">)</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                set union
+              </p>
+              </td>
+<td>
+              <p>
+                inplace
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Set</span><span class="special">&amp;</span>
+                <span class="keyword">operator</span> <span class="special">+=</span>
+                <span class="special">(</span><span class="identifier">Set</span><span class="special">&amp;</span> <span class="identifier">s1</span><span class="special">,</span> <span class="keyword">const</span>
+                <span class="identifier">Set</span><span class="special">&amp;</span>
+                <span class="identifier">s2</span><span class="special">)</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Set</span> <span class="keyword">operator</span>
+                <span class="special">+</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">Set</span><span class="special">&amp;</span> <span class="identifier">s1</span><span class="special">,</span> <span class="keyword">const</span>
+                <span class="identifier">Set</span><span class="special">&amp;</span>
+                <span class="identifier">s2</span><span class="special">)</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                set difference
+              </p>
+              </td>
+<td>
+              <p>
+                inplace
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Set</span><span class="special">&amp;</span>
+                <span class="keyword">operator</span> <span class="special">-=</span>
+                <span class="special">(</span><span class="identifier">Set</span><span class="special">&amp;</span> <span class="identifier">s1</span><span class="special">,</span> <span class="keyword">const</span>
+                <span class="identifier">Set</span><span class="special">&amp;</span>
+                <span class="identifier">s2</span><span class="special">)</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Set</span> <span class="keyword">operator</span>
+                <span class="special">-</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">Set</span><span class="special">&amp;</span> <span class="identifier">s1</span><span class="special">,</span> <span class="keyword">const</span>
+                <span class="identifier">Set</span><span class="special">&amp;</span>
+                <span class="identifier">s2</span><span class="special">)</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                set intersection
+              </p>
+              </td>
+<td>
+              <p>
+                inplace
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Set</span><span class="special">&amp;</span>
+                <span class="keyword">operator</span> <span class="special">&amp;=</span>
+                <span class="special">(</span><span class="identifier">Set</span><span class="special">&amp;</span> <span class="identifier">s1</span><span class="special">,</span> <span class="keyword">const</span>
+                <span class="identifier">Set</span><span class="special">&amp;</span>
+                <span class="identifier">s2</span><span class="special">)</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Set</span> <span class="keyword">operator</span>
+                <span class="special">&amp;</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">Set</span><span class="special">&amp;</span> <span class="identifier">s1</span><span class="special">,</span> <span class="keyword">const</span>
+                <span class="identifier">Set</span><span class="special">&amp;</span>
+                <span class="identifier">s2</span><span class="special">)</span></code>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        Equality on <code class="computeroutput"><span class="identifier">Sets</span></code> is not implemented
+        as <code class="computeroutput"><span class="keyword">operator</span> <span class="special">==</span></code>,
+        because <code class="computeroutput"><span class="keyword">operator</span> <span class="special">==</span></code>
+        is used for the stronger lexicographical equality on segments, that takes
+        the segmentation of elements into account.
+      </p>
+<p>
+        Being models of concept <code class="computeroutput"><span class="identifier">Set</span></code>,
+        <a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code>
+        </a> and all <code class="computeroutput"><a class="link" href="../../boost/icl/interval_base_set.html" title="Class template interval_base_set">interval_sets</a></code>
+        implement these operations and obey the associated laws on <code class="computeroutput"><span class="identifier">Sets</span></code>. See e.g. <a href="http://en.wikipedia.org/wiki/Algebra_of_sets" target="_top">an
+        algebra of sets here</a>.
+      </p>
+<a name="boost_icl.concepts.sets_and_maps.making_intervals_complete"></a><h6>
+<a name="id1111342"></a>
+        <a class="link" href="sets_and_maps.html#boost_icl.concepts.sets_and_maps.making_intervals_complete">Making
+        intervals complete</a>
+      </h6>
+<p>
+        An <code class="computeroutput"><a class="link" href="../../boost/icl/interval.html" title="Struct template interval">interval</a></code> is considered
+        to be a set of elements as well. With respect to the <code class="computeroutput"><span class="identifier">Set</span></code>
+        concept presented above <code class="computeroutput"><a class="link" href="../../boost/icl/interval.html" title="Struct template interval">interval</a></code>
+        implements the concept only partially. The reason for that is that addition
+        and subtraction can not be defined on <code class="computeroutput"><a class="link" href="../../boost/icl/interval.html" title="Struct template interval">intervals</a></code>.
+        Two intervals <code class="computeroutput"><span class="special">[</span><span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">]</span></code>
+        and <code class="computeroutput"><span class="special">[</span><span class="number">4</span><span class="special">,</span><span class="number">5</span><span class="special">]</span></code>
+        are not addable to a <span class="emphasis"><em><span class="bold"><strong>single</strong></span></em></span>
+        new <code class="computeroutput"><a class="link" href="../../boost/icl/interval.html" title="Struct template interval">interval</a></code>. In other
+        words <code class="computeroutput"><a class="link" href="../../boost/icl/interval.html" title="Struct template interval">intervals</a></code> are incomplete
+        w.r.t. union and difference. <code class="computeroutput"><a class="link" href="../../boost/icl/interval_set.html" title="Class template interval_set">Interval_sets</a></code>
+        can be defined as the <span class="emphasis"><em><span class="bold"><strong>completion</strong></span></em></span>
+        of intervals for the union and difference operations.
+      </p>
+<p>
+        When we claim that addition or subtraction can not be defined on intervals,
+        we are not considering things like e.g. interval arithmetics, where these
+        operations can be defined, but with a different semantics.
+      </p>
+<a name="boost_icl.concepts.sets_and_maps.a_map_concept"></a><h6>
+<a name="id1111470"></a>
+        <a class="link" href="sets_and_maps.html#boost_icl.concepts.sets_and_maps.a_map_concept">A Map Concept</a>
+      </h6>
+<p>
+        On the fundamental aspect <code class="computeroutput"><a class="link" href="../../boost/icl/map.html" title="Class template map">icl::map</a></code>
+        and all <code class="computeroutput"><a class="link" href="../../boost/icl/interval_base_map.html" title="Class template interval_base_map">interval_maps</a></code>
+        are models of a concept <code class="computeroutput"><span class="identifier">Map</span></code>.
+        Since a <code class="computeroutput"><span class="identifier">map</span></code> is a <code class="computeroutput"><span class="identifier">set</span> <span class="identifier">of</span> <span class="identifier">pairs</span></code>, we try to design the <code class="computeroutput"><span class="identifier">Map</span></code> concept in accordance to the <code class="computeroutput"><span class="identifier">Set</span></code> concept above.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Function
+              </p>
+              </th>
+<th>
+              <p>
+                Variant
+              </p>
+              </th>
+<th>
+              <p>
+                implemented as
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                empty map
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Map</span><span class="special">::</span><span class="identifier">Map</span><span class="special">()</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                subset relation
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">within</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Map</span><span class="special">&amp;</span>
+                <span class="identifier">s2</span><span class="special">,</span>
+                <span class="keyword">const</span> <span class="identifier">Map</span><span class="special">&amp;</span> <span class="identifier">s2</span><span class="special">)</span><span class="keyword">const</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                equality
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">bool</span> <span class="identifier">is_element_equal</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Map</span><span class="special">&amp;</span>
+                <span class="identifier">s1</span><span class="special">,</span>
+                <span class="keyword">const</span> <span class="identifier">Map</span><span class="special">&amp;</span> <span class="identifier">s2</span><span class="special">)</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                map union
+              </p>
+              </td>
+<td>
+              <p>
+                inplace
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Map</span><span class="special">&amp;</span>
+                <span class="keyword">operator</span> <span class="special">+=</span>
+                <span class="special">(</span><span class="identifier">Map</span><span class="special">&amp;</span> <span class="identifier">s1</span><span class="special">,</span> <span class="keyword">const</span>
+                <span class="identifier">Map</span><span class="special">&amp;</span>
+                <span class="identifier">s2</span><span class="special">)</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Map</span> <span class="keyword">operator</span>
+                <span class="special">+</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">Map</span><span class="special">&amp;</span> <span class="identifier">s1</span><span class="special">,</span> <span class="keyword">const</span>
+                <span class="identifier">Map</span><span class="special">&amp;</span>
+                <span class="identifier">s2</span><span class="special">)</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                map difference
+              </p>
+              </td>
+<td>
+              <p>
+                inplace
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Map</span><span class="special">&amp;</span>
+                <span class="keyword">operator</span> <span class="special">-=</span>
+                <span class="special">(</span><span class="identifier">Map</span><span class="special">&amp;</span> <span class="identifier">s1</span><span class="special">,</span> <span class="keyword">const</span>
+                <span class="identifier">Map</span><span class="special">&amp;</span>
+                <span class="identifier">s2</span><span class="special">)</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Map</span> <span class="keyword">operator</span>
+                <span class="special">-</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">Map</span><span class="special">&amp;</span> <span class="identifier">s1</span><span class="special">,</span> <span class="keyword">const</span>
+                <span class="identifier">Map</span><span class="special">&amp;</span>
+                <span class="identifier">s2</span><span class="special">)</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                map intersection
+              </p>
+              </td>
+<td>
+              <p>
+                inplace
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Map</span><span class="special">&amp;</span>
+                <span class="keyword">operator</span> <span class="special">&amp;=</span>
+                <span class="special">(</span><span class="identifier">Map</span><span class="special">&amp;</span> <span class="identifier">s1</span><span class="special">,</span> <span class="keyword">const</span>
+                <span class="identifier">Map</span><span class="special">&amp;</span>
+                <span class="identifier">s2</span><span class="special">)</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">Map</span> <span class="keyword">operator</span>
+                <span class="special">&amp;</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">Map</span><span class="special">&amp;</span> <span class="identifier">s1</span><span class="special">,</span> <span class="keyword">const</span>
+                <span class="identifier">Map</span><span class="special">&amp;</span>
+                <span class="identifier">s2</span><span class="special">)</span></code>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        As one can see, on the abstract kernel the signatures of the icl's <code class="computeroutput"><span class="identifier">Set</span></code> and <code class="computeroutput"><span class="identifier">Map</span></code>
+        concepts are identical, except for the typename. While signatures are identical
+        The sets of valid laws are different, which will be described in more detail
+        in the sections on the <a class="link" href="../semantics/sets.html" title="Sets">semantics
+        of icl Sets</a> and <a class="link" href="../semantics/maps.html" title="Maps">Maps</a>.
+        These semantic differences are mainly based on the implementation of the
+        pivotal member functions <code class="computeroutput"><span class="identifier">add</span></code>
+        and <code class="computeroutput"><span class="identifier">subtract</span></code> for elements
+        and intervals that again serve for implementing <code class="computeroutput"><span class="keyword">operator</span>
+        <span class="special">+=</span></code> and <code class="computeroutput"><span class="keyword">operator</span>
+        <span class="special">-=</span></code>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="aspects.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="aggrovering.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,159 @@
+{
+  "source": "doc/api/https.markdown",
+  "modules": [
+    {
+      "textRaw": "HTTPS",
+      "name": "https",
+      "stability": 3,
+      "stabilityText": "Stable",
+      "desc": "<p>HTTPS is the HTTP protocol over TLS/SSL. In Node this is implemented as a\nseparate module.\n\n</p>\n",
+      "classes": [
+        {
+          "textRaw": "Class: https.Server",
+          "type": "class",
+          "name": "https.Server",
+          "desc": "<p>This class is a subclass of <code>tls.Server</code> and emits events same as\n<code>http.Server</code>. See <code>http.Server</code> for more information.\n\n</p>\n"
+        },
+        {
+          "textRaw": "Class: https.Agent",
+          "type": "class",
+          "name": "https.Agent",
+          "desc": "<p>An Agent object for HTTPS similar to [http.Agent][].  See [https.request()][]\nfor more information.\n\n\n</p>\n"
+        }
+      ],
+      "methods": [
+        {
+          "textRaw": "https.createServer(options, [requestListener])",
+          "type": "method",
+          "name": "createServer",
+          "desc": "<p>Returns a new HTTPS web server object. The <code>options</code> is similar to\n[tls.createServer()][].  The <code>requestListener</code> is a function which is\nautomatically added to the <code>&#39;request&#39;</code> event.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>// curl -k https://localhost:8000/\nvar https = require(&#39;https&#39;);\nvar fs = require(&#39;fs&#39;);\n\nvar options = {\n  key: fs.readFileSync(&#39;test/fixtures/keys/agent2-key.pem&#39;),\n  cert: fs.readFileSync(&#39;test/fixtures/keys/agent2-cert.pem&#39;)\n};\n\nhttps.createServer(options, function (req, res) {\n  res.writeHead(200);\n  res.end(&quot;hello world\\n&quot;);\n}).listen(8000);</code></pre>\n<p>Or\n\n</p>\n<pre><code>var https = require(&#39;https&#39;);\nvar fs = require(&#39;fs&#39;);\n\nvar options = {\n  pfx: fs.readFileSync(&#39;server.pfx&#39;)\n};\n\nhttps.createServer(options, function (req, res) {\n  res.writeHead(200);\n  res.end(&quot;hello world\\n&quot;);\n}).listen(8000);</code></pre>\n",
+          "methods": [
+            {
+              "textRaw": "server.listen(path, [callback])",
+              "type": "method",
+              "name": "listen",
+              "desc": "<p>See [http.listen()][] for details.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "handle"
+                    },
+                    {
+                      "name": "callback",
+                      "optional": true
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "path"
+                    },
+                    {
+                      "name": "callback",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "server.listen(handle, [callback])",
+              "type": "method",
+              "name": "listen",
+              "desc": "<p>See [http.listen()][] for details.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "handle"
+                    },
+                    {
+                      "name": "callback",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "server.close([callback])",
+              "type": "method",
+              "name": "close",
+              "desc": "<p>See [http.close()][] for details.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "callback",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "options"
+                },
+                {
+                  "name": "requestListener",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "https.request(options, callback)",
+          "type": "method",
+          "name": "request",
+          "desc": "<p>Makes a request to a secure web server.\n\n</p>\n<p><code>options</code> can be an object or a string. If <code>options</code> is a string, it is\nautomatically parsed with <a href=\"url.html#url.parse\">url.parse()</a>.\n\n</p>\n<p>All options from [http.request()][] are valid.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>var https = require(&#39;https&#39;);\n\nvar options = {\n  hostname: &#39;encrypted.google.com&#39;,\n  port: 443,\n  path: &#39;/&#39;,\n  method: &#39;GET&#39;\n};\n\nvar req = https.request(options, function(res) {\n  console.log(&quot;statusCode: &quot;, res.statusCode);\n  console.log(&quot;headers: &quot;, res.headers);\n\n  res.on(&#39;data&#39;, function(d) {\n    process.stdout.write(d);\n  });\n});\nreq.end();\n\nreq.on(&#39;error&#39;, function(e) {\n  console.error(e);\n});</code></pre>\n<p>The options argument has the following options\n\n</p>\n<ul>\n<li><code>host</code>: A domain name or IP address of the server to issue the request to.\nDefaults to <code>&#39;localhost&#39;</code>.</li>\n<li><code>hostname</code>: To support <code>url.parse()</code> <code>hostname</code> is preferred over <code>host</code></li>\n<li><code>port</code>: Port of remote server. Defaults to 443.</li>\n<li><code>method</code>: A string specifying the HTTP request method. Defaults to <code>&#39;GET&#39;</code>.</li>\n<li><code>path</code>: Request path. Defaults to <code>&#39;/&#39;</code>. Should include query string if any.\nE.G. <code>&#39;/index.html?page=12&#39;</code></li>\n<li><code>headers</code>: An object containing request headers.</li>\n<li><code>auth</code>: Basic authentication i.e. <code>&#39;user:password&#39;</code> to compute an\nAuthorization header.</li>\n<li><code>agent</code>: Controls [Agent][] behavior. When an Agent is used request will\ndefault to <code>Connection: keep-alive</code>. Possible values:<ul>\n<li><code>undefined</code> (default): use [globalAgent][] for this host and port.</li>\n<li><code>Agent</code> object: explicitly use the passed in <code>Agent</code>.</li>\n<li><code>false</code>: opts out of connection pooling with an Agent, defaults request to\n<code>Connection: close</code>.</li>\n</ul>\n</li>\n</ul>\n<p>The following options from [tls.connect()][] can also be specified. However, a\n[globalAgent][] silently ignores these.\n\n</p>\n<ul>\n<li><code>pfx</code>: Certificate, Private key and CA certificates to use for SSL. Default <code>null</code>.</li>\n<li><code>key</code>: Private key to use for SSL. Default <code>null</code>.</li>\n<li><code>passphrase</code>: A string of passphrase for the private key or pfx. Default <code>null</code>.</li>\n<li><code>cert</code>: Public x509 certificate to use. Default <code>null</code>.</li>\n<li><code>ca</code>: An authority certificate or array of authority certificates to check\nthe remote host against.</li>\n<li><code>ciphers</code>: A string describing the ciphers to use or exclude. Consult\n<a href=\"http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT\">http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT</a> for\ndetails on the format.</li>\n<li><code>rejectUnauthorized</code>: If <code>true</code>, the server certificate is verified against\nthe list of supplied CAs. An <code>&#39;error&#39;</code> event is emitted if verification\nfails. Verification happens at the connection level, <em>before</em> the HTTP\nrequest is sent. Default <code>true</code>.</li>\n<li><code>secureProtocol</code>: The SSL method to use, e.g. <code>SSLv3_method</code> to force\nSSL version 3. The possible values depend on your installation of\nOpenSSL and are defined in the constant [SSL_METHODS][].</li>\n</ul>\n<p>In order to specify these options, use a custom <code>Agent</code>.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>var options = {\n  hostname: &#39;encrypted.google.com&#39;,\n  port: 443,\n  path: &#39;/&#39;,\n  method: &#39;GET&#39;,\n  key: fs.readFileSync(&#39;test/fixtures/keys/agent2-key.pem&#39;),\n  cert: fs.readFileSync(&#39;test/fixtures/keys/agent2-cert.pem&#39;)\n};\noptions.agent = new https.Agent(options);\n\nvar req = https.request(options, function(res) {\n  ...\n}</code></pre>\n<p>Or does not use an <code>Agent</code>.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>var options = {\n  hostname: &#39;encrypted.google.com&#39;,\n  port: 443,\n  path: &#39;/&#39;,\n  method: &#39;GET&#39;,\n  key: fs.readFileSync(&#39;test/fixtures/keys/agent2-key.pem&#39;),\n  cert: fs.readFileSync(&#39;test/fixtures/keys/agent2-cert.pem&#39;),\n  agent: false\n};\n\nvar req = https.request(options, function(res) {\n  ...\n}</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "options"
+                },
+                {
+                  "name": "callback"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "https.get(options, callback)",
+          "type": "method",
+          "name": "get",
+          "desc": "<p>Like <code>http.get()</code> but for HTTPS.\n\n</p>\n<p><code>options</code> can be an object or a string. If <code>options</code> is a string, it is\nautomatically parsed with <a href=\"url.html#url.parse\">url.parse()</a>.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>var https = require(&#39;https&#39;);\n\nhttps.get(&#39;https://encrypted.google.com/&#39;, function(res) {\n  console.log(&quot;statusCode: &quot;, res.statusCode);\n  console.log(&quot;headers: &quot;, res.headers);\n\n  res.on(&#39;data&#39;, function(d) {\n    process.stdout.write(d);\n  });\n\n}).on(&#39;error&#39;, function(e) {\n  console.error(e);\n});</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "options"
+                },
+                {
+                  "name": "callback"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "textRaw": "https.globalAgent",
+          "name": "globalAgent",
+          "desc": "<p>Global instance of [https.Agent][] for all HTTPS client requests.\n\n</p>\n"
+        }
+      ],
+      "type": "module",
+      "displayName": "HTTPS"
+    }
+  ]
+}

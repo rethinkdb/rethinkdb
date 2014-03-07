@@ -1,0 +1,94 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+
+/*!
+
+\mainpage Boost.Locale
+
+\section main_intro What is Boost.Locale?
+
+Boost.Locale is a library that provides high quality
+localization facilities in a C++ way. It was originally designed
+a part of <a href="http://cppcms.sourceforge.net/">CppCMS</a> - C++ Web Framework
+project and then contributed to Boost.
+
+Boost.Locale gives powerful tools for development of cross platform
+localized software - the software that talks to user
+in its language.
+
+Provided Features:
+
+-   Correct case conversion, case folding and normalization.
+-   Collation (sorting), including support for 4 Unicode
+    collation levels.
+-   Date, time, timezone and calendar manipulations,
+    formatting and parsing, including transparent support
+    for calendars other than Gregorian.
+-   Boundary analysis for characters, words, sentences and
+    line-breaks.
+-   Number formatting, spelling and parsing.
+-   Monetary formatting and parsing.
+-   Powerful message formatting (string translation)
+    including support for plural forms, using GNU catalogs.
+-   Character set conversion.
+-   Transparent support for 8-bit character sets like Latin1
+-   Support for \c char and \c wchar_t
+-   Experimental support for C++0x \c char16_t and \c char32_t
+    strings and streams.
+
+Boost.Locale enhances and unifies the standard library's API
+the way it becomes useful and convenient for development
+of cross platform and "cross-culture" software.
+
+In order to achieve this goal Boost.Locale uses 
+the-state-of-the-art Unicode and Localization
+library: <a href="http://icu-project.org/">ICU</a> - International Components for Unicode.
+
+Boost.Locale creates the natural glue between the C++ locales
+framework, iostreams, and the powerful ICU library.
+
+Boost.Locale provides non-ICU based localization support as well.
+It is based on the operating system native API or on the standard
+C++ library support. Sacrificing some less important features,
+Boost.Locale becomes less powerful but lighter and easier to deploy
+and use library.
+
+
+\section main_tutorial Tutorials
+
+- \subpage std_locales
+- \subpage using_boost_locale
+    - \ref locale_gen
+    - \ref collation
+    - \ref conversions
+    - \ref formatting_and_parsing
+    - \ref messages_formatting
+    - \ref charset_handling 
+    - \ref boundary_analysys
+    - \ref localized_text_formatting
+    - \ref dates_times_timezones
+    - \ref locale_information
+    - \ref working_with_multiple_locales
+- \subpage using_localization_backends
+- \subpage recommendations_and_myths
+- \subpage building_boost_locale
+- \subpage appendix
+    - \ref rationale
+    - \ref faq
+    - \ref default_encoding_under_windows
+    - \ref running_examples_under_windows 
+    - \ref gettext_for_windows
+    - \ref glossary
+    - \ref tested_compilers_and_paltforms 
+    - \ref status_of_cpp0x_characters_support
+    - \ref special_thanks
+- \subpage changelog
+*/
+

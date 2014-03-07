@@ -1,0 +1,43 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_const is_const]
+
+   template <class T>
+   struct is_const : public __tof {};
+  
+__inherit If T is a (top level) const-qualified type then inherits from __true_type, 
+otherwise inherits from __false_type.
+
+__std_ref 3.9.3.
+
+__header ` #include <boost/type_traits/is_const.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__examples
+
+[:`is_const<int const>` inherits from `__true_type`.]
+
+[:`is_const<int const volatile>::type` is the type `__true_type`.]
+
+[:`is_const<int* const>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_const<int const*>::value` is an integral constant 
+expression that evaluates to /false/: the const-qualifier is not
+at the top level in this case.]
+
+[:`is_const<int const&>::value` is an integral constant 
+expression that evaluates to /false/: the const-qualifier is not
+at the top level in this case.]
+
+[:`is_const<int>::value` is an integral constant 
+expression that evaluates to /false/.]
+
+[:`is_const<T>::value_type` is the type `bool`.]
+
+[endsect]
+

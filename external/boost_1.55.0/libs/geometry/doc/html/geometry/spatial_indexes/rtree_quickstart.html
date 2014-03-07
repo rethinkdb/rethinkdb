@@ -1,0 +1,178 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Quick Start</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../spatial_indexes.html" title="Spatial Indexes">
+<link rel="prev" href="introduction.html" title="Introduction">
+<link rel="next" href="creation_and_modification.html" title="Creation and Modification">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../spatial_indexes.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="creation_and_modification.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="geometry.spatial_indexes.rtree_quickstart"></a><a class="link" href="rtree_quickstart.html" title="Quick Start">Quick Start</a>
+</h3></div></div></div>
+<p>
+        This Quick Start section shows simple way to creating a typical R-tree and
+        perform spatial query.
+      </p>
+<p>
+        The code below assumes that following files are included and namespaces used.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">point</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">box</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">index</span><span class="special">/</span><span class="identifier">rtree</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">// to store queries results</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+
+<span class="comment">// just for output</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">foreach</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">bg</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">;</span>
+<span class="keyword">namespace</span> <span class="identifier">bgi</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">index</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        Typically you'll store e.g. <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">Box</span><span class="special">,</span> <span class="identifier">MyGeometryId</span><span class="special">&gt;</span></code> in the R-tree. <code class="computeroutput"><span class="identifier">MyGeometryId</span></code>
+        will be some identifier of a complex <code class="computeroutput"><span class="identifier">Geometry</span></code>
+        stored in other container, e.g. index type of a <code class="computeroutput"><span class="identifier">Polygon</span></code>
+        stored in the vector or an iterator of list of <code class="computeroutput"><span class="identifier">Ring</span></code>s.
+        To keep it simple to define <code class="computeroutput"><span class="identifier">Value</span></code>
+        we will use predefined Box and unsigned int.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">point</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">cs</span><span class="special">::</span><span class="identifier">cartesian</span><span class="special">&gt;</span> <span class="identifier">point</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">box</span><span class="special">&lt;</span><span class="identifier">point</span><span class="special">&gt;</span> <span class="identifier">box</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">box</span><span class="special">,</span> <span class="keyword">unsigned</span><span class="special">&gt;</span> <span class="identifier">value</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        R-tree may be created using various algorithm and parameters. You should
+        choose the algorithm you'll find the best for your purpose. In this example
+        we will use quadratic algorithm. Parameters are passed as template parameters.
+        Maximum number of elements in nodes is set to 16.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// create the rtree using default constructor</span>
+<span class="identifier">bgi</span><span class="special">::</span><span class="identifier">rtree</span><span class="special">&lt;</span> <span class="identifier">value</span><span class="special">,</span> <span class="identifier">bgi</span><span class="special">::</span><span class="identifier">quadratic</span><span class="special">&lt;</span><span class="number">16</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">rtree</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        Typically <code class="computeroutput"><span class="identifier">Value</span></code>s will be
+        generated in a loop from e.g. <code class="computeroutput"><span class="identifier">Polygon</span></code>s
+        stored in some other container. In this case <code class="computeroutput"><span class="identifier">Box</span></code>
+        objects will probably be created with <code class="computeroutput"><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">envelope</span><span class="special">()</span></code> function. But to keep it simple lets just
+        generate some boxes manually and insert them into the R-tree by using <code class="computeroutput"><span class="identifier">insert</span><span class="special">()</span></code>
+        method.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// create some values</span>
+<span class="keyword">for</span> <span class="special">(</span> <span class="keyword">unsigned</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span> <span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="number">10</span> <span class="special">;</span> <span class="special">++</span><span class="identifier">i</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">// create a box</span>
+    <span class="identifier">box</span> <span class="identifier">b</span><span class="special">(</span><span class="identifier">point</span><span class="special">(</span><span class="identifier">i</span><span class="special">,</span> <span class="identifier">i</span><span class="special">),</span> <span class="identifier">point</span><span class="special">(</span><span class="identifier">i</span> <span class="special">+</span> <span class="number">0.5f</span><span class="special">,</span> <span class="identifier">i</span> <span class="special">+</span> <span class="number">0.5f</span><span class="special">));</span>
+    <span class="comment">// insert new value</span>
+    <span class="identifier">rtree</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">i</span><span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        There are various types of spatial queries that may be performed, they can
+        be even combined together in one call. For simplicity, we use the default
+        one. The following query return values intersecting a box. The sequence of
+        <code class="computeroutput"><span class="identifier">Values</span></code> in the result is not
+        specified.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// find values intersecting some area defined by a box</span>
+<span class="identifier">box</span> <span class="identifier">query_box</span><span class="special">(</span><span class="identifier">point</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">),</span> <span class="identifier">point</span><span class="special">(</span><span class="number">5</span><span class="special">,</span> <span class="number">5</span><span class="special">));</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">value</span><span class="special">&gt;</span> <span class="identifier">result_s</span><span class="special">;</span>
+<span class="identifier">rtree</span><span class="special">.</span><span class="identifier">query</span><span class="special">(</span><span class="identifier">bgi</span><span class="special">::</span><span class="identifier">intersects</span><span class="special">(</span><span class="identifier">query_box</span><span class="special">),</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">back_inserter</span><span class="special">(</span><span class="identifier">result_s</span><span class="special">));</span>
+</pre>
+<p>
+      </p>
+<p>
+        Other type of query is k-nearest neighbor search. It returns some number
+        of values nearest to some point in space. The default knn query may be performed
+        as follows. The sequence of <code class="computeroutput"><span class="identifier">Values</span></code>
+        in the result is not specified.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// find 5 nearest values to a point</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">value</span><span class="special">&gt;</span> <span class="identifier">result_n</span><span class="special">;</span>
+<span class="identifier">rtree</span><span class="special">.</span><span class="identifier">query</span><span class="special">(</span><span class="identifier">bgi</span><span class="special">::</span><span class="identifier">nearest</span><span class="special">(</span><span class="identifier">point</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">),</span> <span class="number">5</span><span class="special">),</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">back_inserter</span><span class="special">(</span><span class="identifier">result_n</span><span class="special">));</span>
+</pre>
+<p>
+      </p>
+<p>
+        At the end we'll print results.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// display results</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"spatial query box:"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">wkt</span><span class="special">&lt;</span><span class="identifier">box</span><span class="special">&gt;(</span><span class="identifier">query_box</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"spatial query result:"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">BOOST_FOREACH</span><span class="special">(</span><span class="identifier">value</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">v</span><span class="special">,</span> <span class="identifier">result_s</span><span class="special">)</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">wkt</span><span class="special">&lt;</span><span class="identifier">box</span><span class="special">&gt;(</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">first</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">" - "</span> <span class="special">&lt;&lt;</span> <span class="identifier">v</span><span class="special">.</span><span class="identifier">second</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"knn query point:"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">wkt</span><span class="special">&lt;</span><span class="identifier">point</span><span class="special">&gt;(</span><span class="identifier">point</span><span class="special">(</span><span class="number">0</span><span class="special">,</span> <span class="number">0</span><span class="special">))</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"knn query result:"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">BOOST_FOREACH</span><span class="special">(</span><span class="identifier">value</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">v</span><span class="special">,</span> <span class="identifier">result_n</span><span class="special">)</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">bg</span><span class="special">::</span><span class="identifier">wkt</span><span class="special">&lt;</span><span class="identifier">box</span><span class="special">&gt;(</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">first</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="string">" - "</span> <span class="special">&lt;&lt;</span> <span class="identifier">v</span><span class="special">.</span><span class="identifier">second</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<h4>
+<a name="geometry.spatial_indexes.rtree_quickstart.h0"></a>
+        <span class="phrase"><a name="geometry.spatial_indexes.rtree_quickstart.more"></a></span><a class="link" href="rtree_quickstart.html#geometry.spatial_indexes.rtree_quickstart.more">More</a>
+      </h4>
+<p>
+        More information about the R-tree implementation, other algorithms and queries
+        may be found in other parts of this documentation.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../spatial_indexes.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="creation_and_modification.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

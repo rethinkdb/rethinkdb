@@ -1,0 +1,73 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Hebrew_Latin.txt
+# Generated from CLDR 
+#
+:: [[:Hebrew:] [:^ccc=0:] [\u05B0-\u05B9\u05BB-\u05BC\u05C1-\u05C2ℵ-ℸ\u0304\u05BF] - [\u05BD]] ;
+:: nfkd (nfc) ;
+$letterAfter = [:M:]* [:L:] ;
+ח ↔ h\u0331 ;
+צ ↔ z\u0331 } $letterAfter;
+ץ ↔ z\u0331 ;
+ש ↔ s\u0327 ;
+ת ↔ t\u0327 ;
+א ↔ ʼ ;
+ב ↔ b ;
+ג ↔ g ;
+ד ↔ d ;
+ה ↔ h ;
+ו ↔ w ;
+ז ↔ z ;
+ט ↔ t ;
+י ↔ y ;
+כ ↔ k } $letterAfter;
+ך ↔ k ;
+ל ↔ l ;
+מ ↔ m } $letterAfter;
+ם ↔ m ;
+נ ↔ n  } $letterAfter;
+ן ↔ n ;
+ס ↔ s ;
+ע ↔ ʻ ;
+פ ↔ p } $letterAfter;
+ף ↔ p ;
+ק ↔ q ;
+ר ↔ r ;
+װ → |  וו; # HEBREW LIGATURE YIDDISH DOUBLE VAV
+ױ → | וי; # HEBREW LIGATURE YIDDISH VAV YOD
+ײ → | יי ; # HEBREW LIGATURE YIDDISH DOUBLE YOD
+\u05BC ↔ \u0307 ; # dagesh just goes to overdot for now
+\u05C1 ↔ \u030C ; # shin dot -→ sh
+\u05C2 ↔ \u0302 ; # sin dot -→ s
+$above = [^[:ccc=0:][:ccc=230:]]*;
+‎\u05B2‎ → à ;
+‎\u05B2‎ $1← a ($above)  \u0300;
+‎\u05B8‎ → á ;
+‎\u05B8‎  $1 ← a ($above)  \u0301;
+‎\u05B1‎ → è ;
+‎\u05B1‎  $1 ← e ($above)  \u0300;
+‎\u05B5‎ → é ;
+‎\u05B5‎  $1 ← e ($above)   \u0301;
+‎\u05B0‎ → e \u0306 ;
+‎\u05B0‎  $1 ← e ($above)   \u0306;
+‎\u05B9‎ → ò ;
+‎\u05B9‎  $1 ← o ($above)   \u0300;
+\u05B4 ↔ i ;
+\u05BB ↔ u ;
+\u05B7 ↔ a ;
+\u05B6 ↔ e ;
+\u05B3 ↔ o ;
+\u05BF ↔   \u0304 ;
+ק ← c ;
+פ ← f } $letterAfter;
+ף ← f ;
+ז ← j ;
+ו ← v ;
+כס ← x ;
+:: (lower);
+:: nfc (nfd) ;
+:: ([[:Latin:] [:^ccc=0:] [ʻ-ʼ\u0300-\u0302\u0307\u030C\u0327\u0331\u0340-\u0341    \u0304 ]]);

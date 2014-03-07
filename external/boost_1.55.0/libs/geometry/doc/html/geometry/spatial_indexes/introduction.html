@@ -1,0 +1,419 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Introduction</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../spatial_indexes.html" title="Spatial Indexes">
+<link rel="prev" href="../spatial_indexes.html" title="Spatial Indexes">
+<link rel="next" href="rtree_quickstart.html" title="Quick Start">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../spatial_indexes.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../spatial_indexes.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rtree_quickstart.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="geometry.spatial_indexes.introduction"></a><a class="link" href="introduction.html" title="Introduction">Introduction</a>
+</h3></div></div></div>
+<p>
+        The Boost.Geometry.Index is intended to gather data structures called spatial
+        indexes which may be used to accelerate searching for objects in space. In
+        general, spatial indexes stores geometric objects' representations and allows
+        searching for objects occupying some space or close to some point in space.
+      </p>
+<p>
+        Currently, only one spatial index is implemented - R-tree.
+      </p>
+<h5>
+<a name="geometry.spatial_indexes.introduction.h0"></a>
+        <span class="phrase"><a name="geometry.spatial_indexes.introduction.r_tree"></a></span><a class="link" href="introduction.html#geometry.spatial_indexes.introduction.r_tree">R-tree</a>
+      </h5>
+<p>
+        R-tree is a tree data structure used for spatial searching. It was proposed
+        by Antonin Guttman in 1984 <a href="#ftn.geometry.spatial_indexes.introduction.f0" class="footnote" name="geometry.spatial_indexes.introduction.f0"><sup class="footnote">[1]</sup></a> as an expansion of B-tree for multi-dimensional data. It may
+        be used to store points or volumetric data in order to perform a spatial
+        query. This query may for example return objects that are inside some area
+        or are close to some point in space <a href="#ftn.geometry.spatial_indexes.introduction.f1" class="footnote" name="geometry.spatial_indexes.introduction.f1"><sup class="footnote">[2]</sup></a>. It's possible to insert new objects or to remove the ones already
+        stored.
+      </p>
+<p>
+        The R-tree structure is presented on the image below. Each R-tree's node
+        store a box describing the space occupied by its children nodes. At the bottom
+        of the structure, there are leaf-nodes which contains values (geometric objects
+        representations).
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../img/index/rtree/rstar.png" alt="rstar"></span>
+      </p>
+<p>
+        The R-tree is a self-balanced data structure. The key part of balancing algorithm
+        is node splitting algorithm <a href="#ftn.geometry.spatial_indexes.introduction.f2" class="footnote" name="geometry.spatial_indexes.introduction.f2"><sup class="footnote">[3]</sup></a> <a href="#ftn.geometry.spatial_indexes.introduction.f3" class="footnote" name="geometry.spatial_indexes.introduction.f3"><sup class="footnote">[4]</sup></a>. Each algorithm produces different splits so the internal structure
+        of a tree may be different for each one of them. In general, more complex
+        algorithms analyses elements better and produces less overlapping nodes.
+        In the searching process less nodes must be traversed in order to find desired
+        objects. On the other hand more complex analysis takes more time. In general
+        faster inserting will result in slower searching and vice versa. The performance
+        of the R-tree depends on balancing algorithm, parameters and data inserted
+        into the container.
+      </p>
+<p>
+        Additionally there are also algorithms creating R-tree containing some, number
+        of objects. This technique is called bulk loading and is done by use of packing
+        algorithm <a href="#ftn.geometry.spatial_indexes.introduction.f4" class="footnote" name="geometry.spatial_indexes.introduction.f4"><sup class="footnote">[5]</sup></a> <a href="#ftn.geometry.spatial_indexes.introduction.f5" class="footnote" name="geometry.spatial_indexes.introduction.f5"><sup class="footnote">[6]</sup></a>. This method is faster and results in R-trees with better internal
+        structure. This means that the query performance is increased.
+      </p>
+<p>
+        The examples of structures of trees created by use of different algorithms
+        and exemplary operations times are presented below.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              </th>
+<th>
+                <p>
+                  Linear algorithm
+                </p>
+              </th>
+<th>
+                <p>
+                  Quadratic algorithm
+                </p>
+              </th>
+<th>
+                <p>
+                  R*-tree
+                </p>
+              </th>
+<th>
+                <p>
+                  Packing algorithm
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>Example structure</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="inlinemediaobject"><img src="../../img/index/rtree/linear.png" alt="linear"></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="inlinemediaobject"><img src="../../img/index/rtree/quadratic.png" alt="quadratic"></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="inlinemediaobject"><img src="../../img/index/rtree/rstar.png" alt="rstar"></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="inlinemediaobject"><img src="../../img/index/rtree/bulk.png" alt="bulk"></span>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>1M Values inserts</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  1.76s
+                </p>
+              </td>
+<td>
+                <p>
+                  2.47s
+                </p>
+              </td>
+<td>
+                <p>
+                  6.19s
+                </p>
+              </td>
+<td>
+                <p>
+                  1.67s
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>100k spatial queries</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  2.21s
+                </p>
+              </td>
+<td>
+                <p>
+                  0.51s
+                </p>
+              </td>
+<td>
+                <p>
+                  0.12s
+                </p>
+              </td>
+<td>
+                <p>
+                  0.07s
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>100k knn queries</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  6.37s
+                </p>
+              </td>
+<td>
+                <p>
+                  2.09s
+                </p>
+              </td>
+<td>
+                <p>
+                  0.64s
+                </p>
+              </td>
+<td>
+                <p>
+                  0.52s
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        The performance of the R-tree for different values of Max parameter and Min=0.5*Max
+        is presented in the table below. The configuration of the machine used for
+        testing is: <span class="emphasis"><em>Intel(R) Core(TM) i7 870 @ 2.93GHz, 8GB RAM, MS Windows
+        7 x64</em></span>. In the two upper figures you can see the performance of
+        the R-tree storing random, relatively small, non-overlapping, 2d boxes. In
+        the lower ones, the performance of the R-tree also storing random, 2d boxes,
+        but this time quite big and possibly overlapping. As you can see, the R-tree
+        performance is different in both cases.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              </th>
+<th>
+                <p>
+                  building
+                </p>
+              </th>
+<th>
+                <p>
+                  querying
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>non overlapping</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="inlinemediaobject"><img src="../../img/index/rtree/build_non_ovl.png" alt="build_non_ovl"></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="inlinemediaobject"><img src="../../img/index/rtree/query_non_ovl.png" alt="query_non_ovl"></span>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>overlapping</strong></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="inlinemediaobject"><img src="../../img/index/rtree/build_ovl.png" alt="build_ovl"></span>
+                </p>
+              </td>
+<td>
+                <p>
+                  <span class="inlinemediaobject"><img src="../../img/index/rtree/query_ovl.png" alt="query_ovl"></span>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="geometry.spatial_indexes.introduction.h1"></a>
+        <span class="phrase"><a name="geometry.spatial_indexes.introduction.implementation_details"></a></span><a class="link" href="introduction.html#geometry.spatial_indexes.introduction.implementation_details">Implementation
+        details</a>
+      </h5>
+<p>
+        Key features of this implementation of the R-tree are:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            capable to store arbitrary Value type,
+          </li>
+<li class="listitem">
+            three different balancing algorithms - linear, quadratic or rstar,
+          </li>
+<li class="listitem">
+            creation using packing algorithm,
+          </li>
+<li class="listitem">
+            parameters (including maximal and minimal number of elements) may be
+            passed as compile- or run-time parameters, in compile-time version nodes
+            elements are stored in static-size containers,
+          </li>
+<li class="listitem">
+            advanced queries - e.g. search for 5 nearest Values to some point and
+            intersecting some Geometry but not within the other one,
+          </li>
+<li class="listitem">
+            iterative queries - by use of iterators,
+          </li>
+<li class="listitem">
+            C++11 conformant: move semantics, stateful allocators,
+          </li>
+<li class="listitem">
+            capable to store Value type with no default constructor,
+          </li>
+<li class="listitem">
+            in-memory storage (shared memory by use of Boost.Interprocess allocator).
+          </li>
+</ul></div>
+<h5>
+<a name="geometry.spatial_indexes.introduction.h2"></a>
+        <span class="phrase"><a name="geometry.spatial_indexes.introduction.planned_features"></a></span><a class="link" href="introduction.html#geometry.spatial_indexes.introduction.planned_features">Planned
+        features</a>
+      </h5>
+<p>
+        Below you can find features that will (or probably will) be added in the
+        future releases:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            path/ray query predicate - search for Values along Segment or LineString,
+            closest to the starting point,
+          </li>
+<li class="listitem">
+            user-defined distance calculation in nearest() predicate,
+          </li>
+<li class="listitem">
+            serialization,
+          </li>
+<li class="listitem">
+            persistent storage.
+          </li>
+</ul></div>
+<h5>
+<a name="geometry.spatial_indexes.introduction.h3"></a>
+        <span class="phrase"><a name="geometry.spatial_indexes.introduction.dependencies"></a></span><a class="link" href="introduction.html#geometry.spatial_indexes.introduction.dependencies">Dependencies</a>
+      </h5>
+<p>
+        R-tree depends on <span class="bold"><strong>Boost.Move</strong></span>, <span class="bold"><strong>Boost.Container</strong></span>, <span class="bold"><strong>Boost.Tuple</strong></span>,
+        <span class="bold"><strong>Boost.Utility</strong></span>, <span class="bold"><strong>Boost.MPL</strong></span>.
+      </p>
+<h5>
+<a name="geometry.spatial_indexes.introduction.h4"></a>
+        <span class="phrase"><a name="geometry.spatial_indexes.introduction.contributors"></a></span><a class="link" href="introduction.html#geometry.spatial_indexes.introduction.contributors">Contributors</a>
+      </h5>
+<p>
+        The spatial index was originally started by Federico J. Fernandez during
+        the Google Summer of Code 2008 program, mentored by Hartmut Kaiser.
+      </p>
+<h5>
+<a name="geometry.spatial_indexes.introduction.h5"></a>
+        <span class="phrase"><a name="geometry.spatial_indexes.introduction.spatial_thanks"></a></span><a class="link" href="introduction.html#geometry.spatial_indexes.introduction.spatial_thanks">Spatial thanks</a>
+      </h5>
+<p>
+        I'd like to thank Barend Gehrels, Bruno Lalande, Mateusz &#321;oskot, Lucanus
+        J. Simonson for their support and ideas.
+      </p>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.geometry.spatial_indexes.introduction.f0" class="footnote"><p><a href="#geometry.spatial_indexes.introduction.f0" class="para"><sup class="para">[1] </sup></a>
+          Guttman, A. (1984). <span class="emphasis"><em>R-Trees: A Dynamic Index Structure for Spatial
+          Searching</em></span>
+        </p></div>
+<div id="ftn.geometry.spatial_indexes.introduction.f1" class="footnote"><p><a href="#geometry.spatial_indexes.introduction.f1" class="para"><sup class="para">[2] </sup></a>
+          Cheung, K.; Fu, A. (1998). <span class="emphasis"><em>Enhanced Nearest Neighbour Search
+          on the R-tree</em></span>
+        </p></div>
+<div id="ftn.geometry.spatial_indexes.introduction.f2" class="footnote"><p><a href="#geometry.spatial_indexes.introduction.f2" class="para"><sup class="para">[3] </sup></a>
+          Greene, D. (1989). <span class="emphasis"><em>An implementation and performance analysis
+          of spatial data access methods</em></span>
+        </p></div>
+<div id="ftn.geometry.spatial_indexes.introduction.f3" class="footnote"><p><a href="#geometry.spatial_indexes.introduction.f3" class="para"><sup class="para">[4] </sup></a>
+          Beckmann, N.; Kriegel, H. P.; Schneider, R.; Seeger, B. (1990). <span class="emphasis"><em>The
+          R*-tree: an efficient and robust access method for points and rectangles</em></span>
+        </p></div>
+<div id="ftn.geometry.spatial_indexes.introduction.f4" class="footnote"><p><a href="#geometry.spatial_indexes.introduction.f4" class="para"><sup class="para">[5] </sup></a>
+          Leutenegger, Scott T.; Edgington, Jeffrey M.; Lopez, Mario A. (1997).
+          <span class="emphasis"><em>STR: A Simple and Efficient Algorithm for R-Tree Packing</em></span>
+        </p></div>
+<div id="ftn.geometry.spatial_indexes.introduction.f5" class="footnote"><p><a href="#geometry.spatial_indexes.introduction.f5" class="para"><sup class="para">[6] </sup></a>
+          Garcia, Yvan J.; Lopez, Mario A.; Leutenegger, Scott T. (1997). <span class="emphasis"><em>A
+          Greedy Algorithm for Bulk Loading R-trees</em></span>
+        </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../spatial_indexes.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../spatial_indexes.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rtree_quickstart.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

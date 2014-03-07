@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: apply/lambda Semantics</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./changes-in-boost-1-32-0.html" class="navigation-link">Prev</a>&nbsp;<a href="./iterator-protocol.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./iterator-protocol.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./changes-in-boost-1-32-0.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./changelog-history.html" class="navigation-link">Changelog & History</a> / <a href="./changes-in-boost-1-32-0.html" class="navigation-link">Changes in Boost 1.32.0 Release</a> / <a href="./apply-lambda-semantics.html" class="navigation-link">apply/lambda Semantics</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="apply-lambda-semantics">
+<h1><a class="toc-backref" href="./changes-in-boost-1-32-0.html#id64" name="apply-lambda-semantics"><tt class="literal"><span class="pre">apply</span></tt>/<tt class="literal"><span class="pre">lambda</span></tt> Semantics</a></h1>
+<ol class="arabic">
+<li><p class="first">Nullary metafunction classes are now consistent with all other
+metafunction classes, rather than being identical to nullary
+metafunctions:</p>
+<table border="1" class="table">
+<colgroup>
+<col width="37%" />
+<col width="22%" />
+<col width="40%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th><p class="first last">Nullary...</p>
+</th>
+<th><p class="first last">Before</p>
+</th>
+<th><p class="first last">Now</p>
+</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><p class="first last">Metafunction</p>
+</td>
+<td><p class="first last"><tt class="literal"><span class="pre">f::type</span></tt></p>
+</td>
+<td><p class="first last"><tt class="literal"><span class="pre">f::type</span></tt></p>
+</td>
+</tr>
+<tr><td><p class="first last">Metafunction class</p>
+</td>
+<td><p class="first last"><tt class="literal"><span class="pre">c::type</span></tt></p>
+</td>
+<td><p class="first last"><tt class="literal"><span class="pre">c::apply&lt;&gt;::type</span></tt> or
+<tt class="literal"><span class="pre">c::apply::type</span></tt> <a class="footnote-reference" href="#id21" id="id20" name="id20">[7]</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>This fixes a flaw in the metafunction class/metafunction algebra 
+that long has been a major source of other inconsistencies throughout 
+the library.</p>
+</li>
+<li><p class="first">The <tt class="literal"><span class="pre">apply</span></tt> metafunction now automatically invokes <tt class="literal"><span class="pre">lambda</span></tt>
+on its first argument.  For example, the following is well-formed now:</p>
+<pre class="literal-block">
+typedef apply&lt; plus&lt;_1,_1&gt;, int_&lt;2&gt; &gt;::type four;
+</pre>
+<p><tt class="literal"><span class="pre">apply_wrap</span></tt><em>n</em> auxiliary metafunctions are available for rare cases 
+when it's crucial to eliminate the small overhead associated with lambda 
+expressions while still avoiding various compiler bugs known to
+cause problems with
+the obvious <tt class="literal"><span class="pre">f::template</span> <span class="pre">apply&lt;...&gt;::type</span></tt> syntax.</p>
+</li>
+<li><p class="first">The <tt class="literal"><span class="pre">lambda</span></tt> implementation for broken compilers has been
+reworked to emulate the semantics of the full-fledged version
+as closely as possible; consequently, any code out there that
+was taking advantage of the semantic quirks of less complete
+emulation in the previous release may stop working with the new
+one.</p>
+</li>
+</ol>
+<p>To get a detailed picture of the new apply/lambda semantics, please
+see the test case at
+<a class="reference" href="http://cvs.sourceforge.net/viewcvs.py/boost/boost/libs/mpl/test/apply.cpp?view=markup" target="_top">http://cvs.sourceforge.net/viewcvs.py/boost/boost/libs/mpl/test/apply.cpp?view=markup</a>
+and the corresponding sections of the MPL <a class="reference" href="./reference-manual.html">reference manual</a>.</p>
+<table class="footnote" frame="void" id="id21" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id20" name="id21">[7]</a></td><td>The second form is available only on fully conforming compilers.</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./changes-in-boost-1-32-0.html" class="navigation-link">Prev</a>&nbsp;<a href="./iterator-protocol.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./iterator-protocol.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./changes-in-boost-1-32-0.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

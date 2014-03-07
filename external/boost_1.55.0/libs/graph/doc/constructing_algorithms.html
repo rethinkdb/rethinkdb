@@ -1,0 +1,183 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Constructing Graph Algorithms</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>Constructing graph algorithms with BGL</H1>
+
+<P>
+The <I>main</I> goal of  BGL is not to provide a nice graph class, or
+to provide a comprehensive set of reusable graph algorithms (though
+these are goals). The main goal of BGL is to encourage others to
+write reusable graph algorithms. By reusable we mean maximally
+reusable.  Generic programming is a methodology for making algorithms
+maximally reusable, and in this section we will discuss how to apply
+generic programming to constructing graph algorithms.
+
+<P>
+To illustrate the generic programming process we will step though the
+construction of a graph coloring algorithm. The graph coloring problem
+(or more specifically, the vertex coloring problem) is to label each
+vertex in a graph <i>G</i> with a color such that no two adjacent
+vertices are labeled with the same color and such that the minimum
+number of colors are used. In general, the graph coloring problem is
+NP-complete, and therefore it is impossible to find an optimal
+solution in a reasonable amount of time. However, there are many
+algorithms that use heuristics to find colorings that are close to the
+minimum.
+
+<P>
+The particular algorithm we present here is based on the linear time
+<TT>SEQ</TT> subroutine that is used in the estimation of sparse
+Jacobian and Hessian matrices&nbsp;[<A
+HREF="bibliography.html#curtis74:_jacob">9</A>,<A
+HREF="bibliography.html#coleman84:_estim_jacob">7</A>,<A
+HREF="bibliography.html#coleman85:_algor">6</A>].  This algorithm
+visits all of the vertices in the graph according to the order defined
+by the input order. At each vertex the algorithm marks the colors of
+the adjacent vertices, and then chooses the smallest unmarked color
+for the color of the current vertex. If all of the colors are already
+marked, a new color is created.  A color is considered marked if its
+mark number is equal to the current vertex number. This saves the
+trouble of having to reset the marks for each vertex. The
+effectiveness of this algorithm is highly dependent on the input
+vertex order. There are several ordering algorithms, including the
+<I>largest-first</I>&nbsp;[<A HREF="bibliography.html#welsch67">31</A>],
+<I>smallest-last</I>&nbsp;[<a
+href="bibliography.html#matula72:_graph_theory_computing">29</a>], and
+<I>incidence degree</I>&nbsp;[<a
+href="bibliography.html#brelaz79:_new">32</a>] algorithms, which
+improve the effectiveness of this coloring algorithm.
+
+<P>
+The first decision to make when constructing a generic graph algorithm
+is to decide what graph operations are necessary for implementing the
+algorithm, and which graph concepts the operations map to.  In this
+algorithm we will need to traverse through all of the vertices to
+intialize the vertex colors. We also need to access the adjacent
+vertices. Therefore, we will choose the <a
+href="./VertexListGraph.html">VertexListGraph</a> concept because it
+is the minimum concept that includes these operations.  The graph type
+will be parameterized in the template function for this algorithm. We
+do not restrict the graph type to a particular graph class, such as
+the BGL <a href="./adjacency_list.html"><TT>adjacency_list</TT></a>,
+for this would drastically limit the reusability of the algorithm (as
+most algorithms written to date are). We do restrict the graph type to
+those types that model <a
+href="./VertexListGraph.html">VertexListGraph</a>. This is enforced by
+the use of those graph operations in the algorithm, and furthermore by
+our explicit requirement added as a concept check with
+<TT>BOOST_CONCEPT_ASSERT()</TT> (see Section <A
+HREF="../../concept_check/concept_check.htm">Concept
+Checking</A> for more details about concept checking).
+
+<P>
+Next we need to think about what vertex or edge properties will be
+used in the algorithm. In this case, the only property is vertex
+color. The most flexible way to specify access to vertex color is to
+use the propery map interface. This gives the user of the
+algorithm the ability to decide how they want to store the properties.
+Since we will need to both read and write the colors we specify the
+requirements as <a
+href="../../property_map/doc/ReadWritePropertyMap.html">ReadWritePropertyMap</a>. The
+<TT>key_type</TT> of the color map must be the
+<TT>vertex_descriptor</TT> from the graph, and the <TT>value_type</TT>
+must be some kind of integer. We also specify the interface for the
+<TT>order</TT> parameter as a property map, in this case a <a
+href="../../property_map/doc/ReadablePropertyMap.html">ReadablePropertyMap</a>. For
+order, the <TT>key_type</TT> is an integer offset and the
+<TT>value_type</TT> is a <TT>vertex_descriptor</TT>. Again we enforce
+these requirements with concept checks. The return value of this
+algorithm is the number of colors that were needed to color the graph,
+hence the return type of the function is the graph's
+<TT>vertices_size_type</TT>. The following code shows the interface for our
+graph algorithm as a template function, the concept checks, and some
+typedefs. The implementation is straightforward, the only step not
+discussed above is the color initialization step, where we set the
+color of all the vertices to "uncolored."
+
+<P>
+<PRE>
+namespace boost {
+  template &lt;class VertexListGraph, class Order, class Color&gt;
+  typename graph_traits&lt;VertexListGraph&gt;::vertices_size_type
+  sequential_vertex_color_ting(const VertexListGraph&amp; G, 
+    Order order, Color color)
+  {
+    typedef graph_traits&lt;VertexListGraph&gt; GraphTraits;
+    typedef typename GraphTraits::vertex_descriptor vertex_descriptor;
+    typedef typename GraphTraits::vertices_size_type size_type;
+    typedef typename property_traits&lt;Color&gt;::value_type ColorType;
+    typedef typename property_traits&lt;Order&gt;::value_type OrderType;
+
+    BOOST_CONCEPT_ASSERT(( VertexListGraphConcept&lt;VertexListGraph&gt; ));
+    BOOST_CONCEPT_ASSERT(( ReadWritePropertyMapConcept&lt;Color, vertex_descriptor&gt; ));
+    BOOST_CONCEPT_ASSERT(( IntegerConcept&lt;ColorType&gt; ));
+    BOOST_CONCEPT_ASSERT(( ReadablePropertyMapConcept&lt;Order, size_type&gt; ));
+    BOOST_STATIC_ASSERT((is_same&lt;OrderType, vertex_descriptor&gt;::value));
+    
+    size_type max_color = 0;
+    const size_type V = num_vertices(G);
+    std::vector&lt;size_type&gt; 
+      mark(V, numeric_limits_max(max_color));
+    
+    typename GraphTraits::vertex_iterator v, vend;
+    for (tie(v, vend) = vertices(G); v != vend; ++v)
+      color[*v] = V - 1; // which means "not colored"
+    
+    for (size_type i = 0; i &lt; V; i++) {
+      vertex_descriptor current = order[i];
+
+      // mark all the colors of the adjacent vertices
+      typename GraphTraits::adjacency_iterator ai, aend;
+      for (tie(ai, aend) = adjacent_vertices(current, G); ai != aend; ++ai)
+        mark[color[*ai]] = i; 
+
+      // find the smallest color unused by the adjacent vertices
+      size_type smallest_color = 0;
+      while (smallest_color &lt; max_color &amp;&amp; mark[smallest_color] == i) 
+        ++smallest_color;
+
+      // if all the colors are used up, increase the number of colors
+      if (smallest_color == max_color)
+        ++max_color;
+
+      color[current] = smallest_color;
+    }
+    return max_color;
+  }
+} // namespace boost
+</PRE>
+
+<P>
+
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

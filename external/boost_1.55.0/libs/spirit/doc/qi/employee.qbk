@@ -1,0 +1,225 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Employee - Parsing into structs]
+
+It's a common question in the __spirit_list__: How do I parse and place
+the results into a C++ struct? Of course, at this point, you already
+know various ways to do it, using semantic actions. There are many ways
+to skin a cat. Spirit2, being fully attributed, makes it even easier.
+The next example demonstrates some features of Spirit2 that make this
+easy. In the process, you'll learn about:
+
+* More about attributes
+* Auto rules
+* Some more built-in parsers
+* Directives
+
+[import ../../example/qi/employee.cpp]
+
+First, let's create a struct representing an employee:
+
+[tutorial_employee_struct]
+
+Then, we need to tell __fusion__ about our employee struct to make it a first-class 
+fusion citizen that the grammar can utilize. If you don't know fusion yet, 
+it is a __boost__ library for working with heterogeneous collections of data, 
+commonly referred to as tuples. Spirit uses fusion extensively as part of its 
+infrastructure.
+
+In fusion's view, a struct is just a form of a tuple. You can adapt any struct
+to be a fully conforming fusion tuple:
+
+[tutorial_employee_adapt_struct]
+
+Now we'll write a parser for our employee. Inputs will be of the form:
+
+    employee{ age, "surname", "forename", salary }
+
+Here goes:
+
+[tutorial_employee_parser]
+
+The full cpp file for this example can be found here: [@../../example/qi/employee.cpp]
+
+Let's walk through this one step at a time (not necessarily from top to bottom).
+
+    template <typename Iterator>
+    struct employee_parser : grammar<Iterator, employee(), space_type>
+
+`employee_parser` is a grammar. Like before, we make it a template so that we can
+reuse it for different iterator types. The grammar's signature is:
+
+    employee()
+
+meaning, the parser generates employee structs. `employee_parser` skips white
+spaces using `space_type` as its skip parser.
+
+    employee_parser() : employee_parser::base_type(start)
+
+Initializes the base class.
+
+    rule<Iterator, std::string(), space_type> quoted_string;
+    rule<Iterator, employee(), space_type> start;
+
+Declares two rules: `quoted_string` and `start`. `start` has the same template
+parameters as the grammar itself. `quoted_string` has a `std::string` attribute.
+
+[heading Lexeme]
+
+    lexeme['"' >> +(char_ - '"') >> '"'];
+
+`lexeme` inhibits space skipping from the open brace to the closing brace.
+The expression parses quoted strings.
+
+    +(char_ - '"')
+
+parses one or more chars, except the double quote. It stops when it sees
+a double quote.
+
+[heading Difference]
+
+The expression:
+
+    a - b
+
+parses `a` but not `b`. Its attribute is just `A`; the attribute of `a`. `b`'s
+attribute is ignored. Hence, the attribute of:
+
+    char_ - '"'
+
+is just `char`.
+
+[heading Plus]
+
+    +a
+
+is similar to Kleene star. Rather than match everything, `+a` matches one or more.
+Like it's related function, the Kleene star, its attribute is a `std::vector<A>` 
+where `A` is the attribute of `a`. So, putting all these together, the attribute 
+of
+
+    +(char_ - '"')
+
+is then:
+
+    std::vector<char>
+
+[heading Sequence Attribute]
+
+Now what's the attribute of
+
+    '"' >> +(char_ - '"') >> '"'
+
+?
+
+Well, typically, the attribute of:
+
+    a >> b >> c
+
+is:
+
+    fusion::vector<A, B, C>
+
+where `A` is the attribute of `a`, `B` is the attribute of `b` and `C` is the
+attribute of `c`. What is `fusion::vector`? - a tuple.
+
+[note If you don't know what I am talking about, see: [@http://tinyurl.com/6xun4j
+Fusion Vector]. It might be a good idea to have a look into __fusion__ at this
+point. You'll definitely see more of it in the coming pages.]
+
+[heading Attribute Collapsing]
+
+Some parsers, especially those very little literal parsers you see, like `'"'`,
+do not have attributes.
+
+Nodes without attributes are disregarded. In a sequence, like above, all nodes
+with no attributes are filtered out of the `fusion::vector`. So, since `'"'` has
+no attribute, and `+(char_ - '"')` has a `std::vector<char>` attribute, the
+whole expression's attribute should have been:
+
+    fusion::vector<std::vector<char> >
+
+But wait, there's one more collapsing rule: If the attribute is followed by a 
+single element `fusion::vector`, The element is stripped naked from its container. 
+To make a long story short, the attribute of the expression:
+
+    '"' >> +(char_ - '"') >> '"'
+
+is:
+
+    std::vector<char>
+
+[heading Auto Rules]
+
+It is typical to see rules like:
+
+    r = p[_val = _1];
+
+If you have a rule definition such as the above, where the attribute of the RHS 
+(right hand side) of the rule is compatible with the attribute of the LHS (left 
+hand side), then you can rewrite it as:
+
+    r %= p;
+
+The attribute of `p` automatically uses the attribute of `r`.
+
+So, going back to our `quoted_string` rule:
+
+    quoted_string %= lexeme['"' >> +(char_ - '"') >> '"'];
+
+is a simplified version of:
+
+    quoted_string = lexeme['"' >> +(char_ - '"') >> '"'][_val = _1];
+
+The attribute of the `quoted_string` rule: `std::string` *is compatible* with
+the attribute of the RHS: `std::vector<char>`. The RHS extracts the parsed
+attribute directly into the rule's attribute, in-situ.
+
+[note `r %= p` and `r = p` are equivalent if there are no semantic actions
+      associated with `p`. ]
+
+
+[heading Finally]
+
+We're down to one rule, the start rule:
+
+    start %=
+        lit("employee")
+        >> '{'
+        >>  int_ >> ','
+        >>  quoted_string >> ','
+        >>  quoted_string >> ','
+        >>  double_
+        >>  '}'
+        ;
+
+Applying our collapsing rules above, the RHS has an attribute of:
+
+    fusion::vector<int, std::string, std::string, double>
+
+These nodes do not have an attribute:
+
+* `lit("employee")`
+* `'{'`
+* `','`
+* `'}'`
+
+[note In case you are wondering, `lit("employee")` is the same as "employee". We
+had to wrap it inside `lit` because immediately after it is `>> '{'`. You can't
+right-shift a `char[]` and a `char` - you know, C++ syntax rules.]
+
+Recall that the attribute of `start` is the `employee` struct:
+
+[tutorial_employee_struct]
+
+Now everything is clear, right? The `struct employee` *IS* compatible with
+`fusion::vector<int, std::string, std::string, double>`. So, the RHS of `start`
+uses start's attribute (a `struct employee`) in-situ when it does its work.
+
+[endsect]

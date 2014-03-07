@@ -1,0 +1,40 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:lex_basics Basics]
+
+[heading Examples]
+
+All sections in the reference present some real world examples. The
+examples use a common test harness to keep the example code as minimal
+and direct to the point as possible. The test harness is presented
+below.
+
+Some includes:
+
+[reference_lex_includes]
+
+Our test functions:
+
+This one tests token definitions.
+
+[reference_lex_test]
+
+[heading Models]
+
+Predefined models include:
+
+* any literal string, e.g. "Hello, World", 
+* a pointer/reference to a null-terminated array of characters
+* a `std::basic_string<Char>`
+
+The namespace `boost::spirit::traits` is open for users to provide their
+own specializations.
+
+[endsect]
+

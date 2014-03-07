@@ -1,0 +1,126 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template special_values_parser</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.special_values_parser_hpp" title="Header &lt;boost/date_time/special_values_parser.hpp&gt;">
+<link rel="prev" href="special_values_formatter.html" title="Class template special_values_formatter">
+<link rel="next" href="convert_string_type.html" title="Function template convert_string_type">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="special_values_formatter.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.special_values_parser_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="convert_string_type.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.date_time.special_values_parser"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template special_values_parser</span></h2>
+<p>boost::date_time::special_values_parser &#8212; Class for special_value parsing. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.special_values_parser_hpp" title="Header &lt;boost/date_time/special_values_parser.hpp&gt;">boost/date_time/special_values_parser.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> date_type<span class="special">,</span> <span class="keyword">typename</span> charT<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="special_values_parser.html" title="Class template special_values_parser">special_values_parser</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span>                <a name="boost.date_time.special_values_parser.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>    
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">istreambuf_iterator</span><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span>         <a name="boost.date_time.special_values_parser.stream_itr_type"></a><span class="identifier">stream_itr_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">date_type</span><span class="special">::</span><span class="identifier">duration_type</span>                  <a name="boost.date_time.special_values_parser.duration_type"></a><span class="identifier">duration_type</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <a class="link" href="string_parse_tree.html" title="Struct template string_parse_tree">string_parse_tree</a><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span>                <a name="boost.date_time.special_values_parser.parse_tree_type"></a><span class="identifier">parse_tree_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> parse_tree_type::parse_match_result_type  <a name="boost.date_time.special_values_parser.match_results"></a><span class="identifier">match_results</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">charT</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <a name="boost.date_time.special_values_parser.collection_type"></a><span class="identifier">collection_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">charT</span>                                     <a name="boost.date_time.special_values_parser.char_type"></a><span class="identifier">char_type</span><span class="special">;</span>      
+
+  <span class="comment">// <a class="link" href="special_values_parser.html#boost.date_time.special_values_parserconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="special_values_parser.html#idp19029800-bb"><span class="identifier">special_values_parser</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="special_values_parser.html#idp19030440-bb"><span class="identifier">special_values_parser</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> 
+                        <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> 
+                        <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="special_values_parser.html#idp54422488-bb"><span class="identifier">special_values_parser</span></a><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">collection_type</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">,</span> 
+                        <span class="keyword">typename</span> <span class="identifier">collection_type</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="special_values_parser.html#idp22407032-bb"><span class="identifier">special_values_parser</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="special_values_parser.html" title="Class template special_values_parser">special_values_parser</a><span class="special">&lt;</span> <span class="identifier">date_type</span><span class="special">,</span> <span class="identifier">charT</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="special_values_parser.html#idp34465544-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="special_values_parser.html#idp34465752-bb"><span class="identifier">sv_strings</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> 
+                  <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">,</span> 
+                  <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="special_values_parser.html#idp21713480-bb"><span class="identifier">match</span></a><span class="special">(</span><span class="identifier">stream_itr_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">stream_itr_type</span> <span class="special">&amp;</span><span class="special">,</span> <a class="link" href="special_values_parser.html#boost.date_time.special_values_parser.match_results">match_results</a> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="identifier">nadt_string</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="identifier">neg_inf_string</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="identifier">pos_inf_string</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="identifier">min_date_time_string</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">char_type</span> <span class="identifier">max_date_time_string</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp88948168"></a><h2>Description</h2>
+<p>TODO: add doc-comments for which elements can be changed Parses input stream for strings representing special_values. Special values parsed are:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>not_a_date_time</p></li>
+<li class="listitem"><p>neg_infin</p></li>
+<li class="listitem"><p>pod_infin</p></li>
+<li class="listitem"><p>min_date_time</p></li>
+<li class="listitem"><p>max_date_time </p></li>
+</ul></div>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp88949896"></a><h3>
+<a name="boost.date_time.special_values_parserconstruct-copy-destruct"></a><code class="computeroutput">special_values_parser</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp19029800-bb"></a><span class="identifier">special_values_parser</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Creates a <code class="computeroutput"><a class="link" href="special_values_parser.html" title="Class template special_values_parser">special_values_parser</a></code> with the default set of "sv_strings". </li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp19030440-bb"></a><span class="identifier">special_values_parser</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> nadt_str<span class="special">,</span> 
+                      <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> neg_inf_str<span class="special">,</span> 
+                      <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> pos_inf_str<span class="special">,</span> 
+                      <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> min_dt_str<span class="special">,</span> 
+                      <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> max_dt_str<span class="special">)</span><span class="special">;</span></pre>Creates a <code class="computeroutput"><a class="link" href="special_values_parser.html" title="Class template special_values_parser">special_values_parser</a></code> using a user defined set of element strings. </li>
+<li class="listitem"><pre class="literallayout"><a name="idp54422488-bb"></a><span class="identifier">special_values_parser</span><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">collection_type</span><span class="special">::</span><span class="identifier">iterator</span> beg<span class="special">,</span> 
+                      <span class="keyword">typename</span> <span class="identifier">collection_type</span><span class="special">::</span><span class="identifier">iterator</span> end<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><a name="idp22407032-bb"></a><span class="identifier">special_values_parser</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="special_values_parser.html" title="Class template special_values_parser">special_values_parser</a><span class="special">&lt;</span> <span class="identifier">date_type</span><span class="special">,</span> <span class="identifier">charT</span> <span class="special">&gt;</span> <span class="special">&amp;</span> svp<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp88971640"></a><h3>
+<a name="idp34465544-bb"></a><code class="computeroutput">special_values_parser</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp34465752-bb"></a><span class="identifier">sv_strings</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> nadt_str<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> neg_inf_str<span class="special">,</span> 
+                <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> pos_inf_str<span class="special">,</span> 
+                <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> min_dt_str<span class="special">,</span> 
+                <span class="keyword">const</span> <span class="identifier">string_type</span> <span class="special">&amp;</span> max_dt_str<span class="special">)</span><span class="special">;</span></pre>Replace special value strings. </li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp21713480-bb"></a><span class="identifier">match</span><span class="special">(</span><span class="identifier">stream_itr_type</span> <span class="special">&amp;</span> sitr<span class="special">,</span> <span class="identifier">stream_itr_type</span> <span class="special">&amp;</span> str_end<span class="special">,</span> 
+           <a class="link" href="special_values_parser.html#boost.date_time.special_values_parser.match_results">match_results</a> <span class="special">&amp;</span> mr<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Sets match_results.current_match to the corresponding special_value or -1. </li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="special_values_formatter.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.special_values_parser_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="convert_string_type.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

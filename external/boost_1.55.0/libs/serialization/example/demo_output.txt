@@ -1,0 +1,51 @@
+original schedule
+6:24 bob 
+0x003265C8  34º135'52.56" 134º22'78.3" 24th Street and 10th Avenue
+0x00326648  35º137'23.456" 133º35'54.12" State street and Cathedral Vista Lane
+0x00326768  35º136'15.456" 133º32'15.3" White House
+9:57 bob 
+0x003265C8  34º135'52.56" 134º22'78.3" 24th Street and 10th Avenue
+0x00326648  35º137'23.456" 133º35'54.12" State street and Cathedral Vista Lane
+0x00326768  35º136'15.456" 133º32'15.3" White House
+11:2 alice 
+0x003265C8  34º135'52.56" 134º22'78.3" 24th Street and 10th Avenue
+0x00326648  35º137'23.456" 133º35'54.12" State street and Cathedral Vista Lane
+0x00326768  35º136'15.456" 133º32'15.3" White House
+7:17 ted 
+0x003267D0  35º134'48.789" 133º32'16.23" Lincoln Memorial
+0x00326768  35º136'15.456" 133º32'15.3" White House
+0x00326648  35º137'23.456" 133º35'54.12" State street and Cathedral Vista Lane
+9:38 ted 
+0x003267D0  35º134'48.789" 133º32'16.23" Lincoln Memorial
+0x00326768  35º136'15.456" 133º32'15.3" White House
+0x00326648  35º137'23.456" 133º35'54.12" State street and Cathedral Vista Lane
+11:47 alice 
+0x003267D0  35º134'48.789" 133º32'16.23" Lincoln Memorial
+0x00326768  35º136'15.456" 133º32'15.3" White House
+0x00326648  35º137'23.456" 133º35'54.12" State street and Cathedral Vista Lane
+restored schedule
+6:24  
+0x0032A2F8  34º135'52.56" 134º22'78.3" 24th Street and 10th Avenue
+0x0032A508  35º137'23.456" 133º35'54.12" State street and Cathedral Vista Lane
+0x0032A628  35º136'15.456" 133º32'15.3" White House
+9:57  
+0x0032A2F8  34º135'52.56" 134º22'78.3" 24th Street and 10th Avenue
+0x0032A508  35º137'23.456" 133º35'54.12" State street and Cathedral Vista Lane
+0x0032A628  35º136'15.456" 133º32'15.3" White House
+11:2  
+0x0032A2F8  34º135'52.56" 134º22'78.3" 24th Street and 10th Avenue
+0x0032A508  35º137'23.456" 133º35'54.12" State street and Cathedral Vista Lane
+0x0032A628  35º136'15.456" 133º32'15.3" White House
+7:17  
+0x0032A8C0  35º134'48.789" 133º32'16.23" Lincoln Memorial
+0x0032A628  35º136'15.456" 133º32'15.3" White House
+0x0032A508  35º137'23.456" 133º35'54.12" State street and Cathedral Vista Lane
+9:38  
+0x0032A8C0  35º134'48.789" 133º32'16.23" Lincoln Memorial
+0x0032A628  35º136'15.456" 133º32'15.3" White House
+0x0032A508  35º137'23.456" 133º35'54.12" State street and Cathedral Vista Lane
+11:47  
+0x0032A8C0  35º134'48.789" 133º32'16.23" Lincoln Memorial
+0x0032A628  35º136'15.456" 133º32'15.3" White House
+0x0032A508  35º137'23.456" 133º35'54.12" State street and Cathedral Vista Lane
+*** No errors detected

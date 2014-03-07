@@ -1,0 +1,61 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/shi.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/shi.xml
+ */
+shi{
+    Languages{
+        ak{"takant"}
+        am{"tamharit"}
+        ar{"taɛrabt"}
+        be{"tabilarust"}
+        bg{"tablɣarit"}
+        bn{"tabnɣalit"}
+        cs{"tatcikit"}
+        de{"talimant"}
+        el{"tagrigit"}
+        en{"tanglizt"}
+        es{"tasbnyulit"}
+        fa{"tafursit"}
+        fr{"tafransist"}
+        ha{"tahawsat"}
+        hi{"tahindit"}
+        hu{"tahnɣarit"}
+        id{"tandunisit"}
+        ig{"tigbut"}
+        it{"taṭalyant"}
+        ja{"tajabbunit"}
+        jv{"tajavanit"}
+        km{"taxmirt"}
+        ko{"takurit"}
+        ms{"tamalawit"}
+        my{"tabirmanit"}
+        ne{"tanibalit"}
+        nl{"tahulandit"}
+        pa{"tabnjabit"}
+        pl{"tabulunit"}
+        pt{"tabṛṭqizt"}
+        ro{"tarumanit"}
+        ru{"tarusit"}
+        rw{"taruwandit"}
+        shi{"tamazight"}
+        so{"tasumalit"}
+        sv{"taswidit"}
+        ta{"tatamilt"}
+        th{"tataylandit"}
+        tr{"taturkit"}
+        uk{"tukranit"}
+        ur{"turdut"}
+        vi{"tafitnamit"}
+        yo{"tayrubat"}
+        zh{"tacinwit"}
+        zu{"tazulut"}
+    }
+    Version{"2.0.45.90"}
+}

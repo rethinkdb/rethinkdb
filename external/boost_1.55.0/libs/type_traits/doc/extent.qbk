@@ -1,0 +1,48 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:extent extent]
+   template <class T, std::size_t N = 0>
+   struct extent : public __integral_constant<std::size_t, EXTENT(T,N)> {};
+  
+__inherit Class template extent inherits from `__integral_constant<std::size_t, EXTENT(T,N)>`, 
+where `EXTENT(T,N)` is the number of elements in the N'th array dimension of type `T`.
+
+If `T` is not a (built-in) array type, or if `N > __rank<T>::value`, or if the N'th array bound
+is incomplete, then `EXTENT(T,N)` is zero.
+
+__header ` #include <boost/type_traits/extent.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__examples
+
+[:`extent<int[1]>` inherits from `__integral_constant<std::size_t, 1>`.]
+
+[:`extent<double[2][3][4], 0>::type` is the type `__integral_constant<std::size_t, 2>`.]
+
+[:`extent<double[2][3][4], 1>::type` is the type `__integral_constant<std::size_t, 3>`.]
+
+[:`extent<double[2][3][4], 3>::type` is the type `__integral_constant<std::size_t, 4>`.]
+
+[:`extent<int[4]>::value` is an integral constant 
+expression that evaluates to /4/.]
+
+[:`extent<int[][2]>::value` is an integral constant 
+expression that evaluates to /0/.]
+
+[:`extent<int[][2], 1>::value` is an integral constant 
+expression that evaluates to /2/.]
+
+[:`extent<int*>::value` is an integral constant 
+expression that evaluates to /0/.]
+
+[:`extent<boost::array<int, 3> >::value` is an integral constant 
+expression that evaluates to /0/: `boost::array` is a class type and [*not an array type]!]
+
+[:`extent<T>::value_type` is the type `std::size_t`.]
+
+[endsect]
+

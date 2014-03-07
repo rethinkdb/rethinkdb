@@ -1,0 +1,69 @@
+[/
+ / Copyright (c) 2008 Marcin Kalicinski (kalita <at> poczta dot onet dot pl)
+ / Copyright (c) 2009 Sebastian Redl (sebastian dot redl <at> getdesigned dot at)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+[section JSON Parser]
+[def __json__ [@http://en.wikipedia.org/wiki/JSON JSON format]]
+The __json__ is a data interchange format derived from the object literal
+notation of JavaScript. (JSON stands for JavaScript Object Notation.)
+JSON is a simple, compact format for loosely structured node trees of any depth,
+very similar to the property tree dataset. It is less structured than XML and
+has no schema support, but has the advantage of being simpler, smaller and typed
+without the need for a complex schema.
+
+The property tree dataset is not typed, and does not support arrays as such.
+Thus, the following JSON / property tree mapping is used:
+
+* JSON objects are mapped to nodes. Each property is a child node.
+* JSON arrays are mapped to nodes. Each element is a child node with an empty
+  name. If a node has both named and unnamed child nodes, it cannot be mapped
+  to a JSON representation.
+* JSON values are mapped to nodes containing the value. However, all type
+  information is lost; numbers, as well as the literals "null", "true" and
+  "false" are simply mapped to their string form.
+* Property tree nodes containing both child nodes and data cannot be mapped.
+
+JSON round-trips, except for the type information loss.
+
+For example this JSON:
+
+ {
+    "menu": 
+    {
+       "foo": true,
+       "bar": "true",
+       "value": 102.3E+06,
+       "popup": 
+       [
+          {"value": "New", "onclick": "CreateNewDoc()"},
+          {"value": "Open", "onclick": "OpenDoc()"},
+       ]
+    }
+ }
+
+will be translated into the following property tree:
+
+ menu
+ {
+    foo true
+    bar true
+    value 102.3E+06
+    popup
+    {
+       ""
+       {
+          value New
+          onclick CreateNewDoc()
+       }
+       ""
+       {
+          value Open
+          onclick OpenDoc()
+       }
+    }
+ }
+
+[endsect] [/json_parser]

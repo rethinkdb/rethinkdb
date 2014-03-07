@@ -1,0 +1,29 @@
+# Copyright Vladimir Prus 2004.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt
+# or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# This is a generic 'como' toolset. Depending on the current system, it
+# forwards either to 'como-linux' or 'como-win' modules.
+
+import feature ;
+import os ;
+import toolset ;
+
+feature.extend toolset : como ;
+feature.subfeature toolset como : platform : : propagated link-incompatible ;
+
+rule init ( * : * )
+{
+    if [ os.name ] = LINUX
+    {
+        toolset.using como-linux : 
+          $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ;
+    }
+    else
+    {
+        toolset.using como-win :
+          $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ;
+
+    }        
+}

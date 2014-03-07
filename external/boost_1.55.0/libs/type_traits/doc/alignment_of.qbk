@@ -1,0 +1,34 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:alignment_of alignment_of]
+   template <class T>
+   struct alignment_of : public __integral_constant<std::size_t, ALIGNOF(T)> {};
+  
+__inherit Class template `alignment_of` inherits from 
+`__integral_constant<std::size_t, ALIGNOF(T)>`, where `ALIGNOF(T)` is the
+alignment of type T.  
+
+['Note: strictly speaking you should only rely on 
+the value of `ALIGNOF(T)` being a multiple of the true alignment of T, although
+in practice it does compute the correct value in all the cases we know about.]
+
+__header ` #include <boost/type_traits/alignment_of.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__examples
+
+[:`alignment_of<int>` inherits from `__integral_constant<std::size_t, ALIGNOF(int)>`.]
+
+[:`alignment_of<char>::type` is the type `__integral_constant<std::size_t, ALIGNOF(char)>`.]
+
+[:`alignment_of<double>::value` is an integral constant 
+expression with value `ALIGNOF(double)`.]
+
+[:`alignment_of<T>::value_type` is the type `std::size_t`.]
+
+[endsect]
+

@@ -1,0 +1,17 @@
+#  Copyright (c) 2006 Vladimir Prus.
+#
+#  Use, modification and distribution is subject to the Boost Software
+#  License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+#  http://www.boost.org/LICENSE_1_0.txt)
+
+#  Forwarning toolset file to Qt GUI library. Forwards to the toolset file
+#  for the current version of Qt.
+
+import qt4 ;
+
+rule init ( prefix : full_bin ? : full_inc ? : full_lib ? : version ? : condition * )
+{
+    qt4.init $(prefix) : $(full_bin)  : $(full_inc) : $(full_lib) : $(version) : $(condition) ;
+}
+
+

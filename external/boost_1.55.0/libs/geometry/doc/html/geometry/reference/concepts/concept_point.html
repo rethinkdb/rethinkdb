@@ -1,0 +1,137 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Point Concept</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../concepts.html" title="Concepts">
+<link rel="prev" href="../concepts.html" title="Concepts">
+<link rel="next" href="concept_linestring.html" title="Linestring Concept">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../concepts.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concept_linestring.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="geometry.reference.concepts.concept_point"></a><a class="link" href="concept_point.html" title="Point Concept">Point Concept</a>
+</h4></div></div></div>
+<h6>
+<a name="geometry.reference.concepts.concept_point.h0"></a>
+          <span class="phrase"><a name="geometry.reference.concepts.concept_point.description"></a></span><a class="link" href="concept_point.html#geometry.reference.concepts.concept_point.description">Description</a>
+        </h6>
+<p>
+          The Point Concept describes the requirements for a point type. All algorithms
+          in Boost.Geometry will check any geometry arguments against the concept
+          requirements.
+        </p>
+<p>
+          A point is <span class="emphasis"><em>an entity that has a location in space or on a plane,
+          but has no extent</em></span> (<a href="http://en.wikipedia.org/wiki/Point_(geometry)" target="_top">wiki</a>).
+          The point is the most basic geometry of Boost.Geometry, most other geometries
+          consist of points. <span class="emphasis"><em>(Exceptions are box and segment, which might
+          consist of two points but that is not necessarily the case.)</em></span>
+        </p>
+<h6>
+<a name="geometry.reference.concepts.concept_point.h1"></a>
+          <span class="phrase"><a name="geometry.reference.concepts.concept_point.concept_definition"></a></span><a class="link" href="concept_point.html#geometry.reference.concepts.concept_point.concept_definition">Concept
+          Definition</a>
+        </h6>
+<p>
+          The Point Concept is defined as following:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              there must be a specialization of <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">tag</span></code>,
+              defining <code class="computeroutput"><span class="identifier">point_tag</span></code>
+              as type
+            </li>
+<li class="listitem">
+              there must be a specialization of <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">coordinate_type</span></code>,
+              defining the type of its coordinates
+            </li>
+<li class="listitem">
+              there must be a specialization of <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">coordinate_system</span></code>,
+              defining its coordinate system (cartesian, spherical, etc)
+            </li>
+<li class="listitem">
+              there must be a specialization of <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">dimension</span></code>,
+              defining its number of dimensions (2, 3, ...) (hint: derive it conveniently
+              from <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">int_</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;</span></code>
+              for X Dimensional)
+            </li>
+<li class="listitem">
+              there must be a specialization of <code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">access</span></code>,
+              per dimension, with two functions:
+              <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                    <code class="computeroutput"><span class="identifier">get</span></code> to get a
+                    coordinate value
+                  </li>
+<li class="listitem">
+                    <code class="computeroutput"><span class="identifier">set</span></code> to set a
+                    coordinate value (this one is not checked for ConstPoint)
+                  </li>
+</ul></div>
+            </li>
+</ul></div>
+<h6>
+<a name="geometry.reference.concepts.concept_point.h2"></a>
+          <span class="phrase"><a name="geometry.reference.concepts.concept_point.available_models"></a></span><a class="link" href="concept_point.html#geometry.reference.concepts.concept_point.available_models">Available
+          Models</a>
+        </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              <a class="link" href="../models/model_point.html" title="model::point">model::point</a>
+            </li>
+<li class="listitem">
+              <a class="link" href="../models/model_d2_point_xy.html" title="model::d2::point_xy">model::d2::point_xy</a>
+            </li>
+<li class="listitem">
+              a lat long point (currently in an extension)
+            </li>
+<li class="listitem">
+              <a class="link" href="../adapted/c_array.html" title="C array">C array</a>
+            </li>
+<li class="listitem">
+              <a class="link" href="../adapted/boost_array.html" title="Boost.Array">Boost.Array</a>
+            </li>
+<li class="listitem">
+              <a class="link" href="../adapted/boost_fusion.html" title="Boost.Fusion">Boost.Fusion</a>
+            </li>
+<li class="listitem">
+              <a class="link" href="../adapted/boost_polygon.html" title="Boost.Polygon">Boost.Polygon</a>
+            </li>
+<li class="listitem">
+              <a class="link" href="../adapted/boost_tuple.html" title="Boost.Tuple">Boost.Tuple</a>
+            </li>
+<li class="listitem">
+              other point types, adapted e.g. using one of the <a class="link" href="../adapted.html" title="Adapted models">registration
+              macro's</a>
+            </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../concepts.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concept_linestring.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

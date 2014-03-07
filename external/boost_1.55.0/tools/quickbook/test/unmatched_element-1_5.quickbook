@@ -1,0 +1,12 @@
+[article Unmatched elements
+[quickbook 1.5]
+]
+
+[template identity[x]
+
+[x]
+]
+
+[* [non-element]]
+
+[identity [non-element]]

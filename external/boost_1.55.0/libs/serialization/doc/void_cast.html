@@ -1,0 +1,104 @@
+﻿<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-4 Robert Ramey - http://www.rrsd.com . 
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - BOOST_STATIC_WARNING</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center"><code>void_cast</code></h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<h3>Motivation</h3>
+C++ includes the operator <code style="white-space: normal">dynamic_cast&lt;T&gt;(U * u)</code>
+for casting a pointer at runtime between two related types. However, this can only be 
+used for polymorphic classes.  That is, it can only be used with related classes which have at least one virtual function.
+Limiting the serializaton of pointers to only such class would diminish the applicability
+of the library.
+
+<h3>Usage</h3>
+
+The following functions are defined in the header
+<a target="void_cast" href="../../../boost/serialization/void_cast.hpp">void_cast.hpp</a>.
+They are declared in the namespace
+<code style="white-space: normal">boost::serialization</code>.
+
+<dl>
+<dt><h4><pre><code>
+template&lt;class Derived, class Base&gt;
+const void_cast_detail::void_caster &
+void_cast_register(
+    Derived const * derived = NULL, 
+    Base * const base = NULL
+)
+</code></pre></h4></dt>
+<dd>
+This function "registers" a pair of related types.  It stores the fact that
+<code style="white-space: normal">Derived</code> is immediately derived from 
+<code style="white-space: normal">Base</code> in a global table. 
+<ul>
+  <li>This "registration" can be invoked anywhere in the program.  The table is built at
+  pre-runtime and is available anywhere else in the program.
+  <li>only adjacent base/derived pairs need be registered.  That is,
+  <pre><code>
+  void_cast_register&lt;A, B&gt;();
+  void_cast_register&lt;B, C&gt;();
+  </code></pre>
+  automatically derives the fact that A can be upcast to C and vice-versa.
+</ul>
+</dd>
+
+<dt><h4><pre><code>
+void *
+void_upcast(
+    extended_type_info const & derived_type,
+    extended_type_info const & base_type,
+    void * const t 
+);
+</code></pre></h4></dt>
+
+<dt><h4><pre><code>
+void *
+void_downcast(
+    extended_type_info const & derived_type,
+    extended_type_info const & base_type,
+    void * const t 
+);
+</code></pre></h4></dt>
+<dd>
+These functions cast a void pointer from one type to another.  The source and
+definition types are specified by passing references to the corresponding
+<a href="extended_type_info.html"><code style="white-space: normal">
+extended_type_info</code></a>
+records.  An attempt to cast between types not "registered" with
+<code style="white-space: normal">void_cast_register</code> 
+will throw a
+<a href="exceptions.html"><code style="white-space: normal">boost::archive::archive_exception</code></a>
+with value equal to
+<code style="white-space: normal">unregistered_cast</code>
+</dd>
+</dl>
+
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2004. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

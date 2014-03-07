@@ -1,0 +1,273 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/lt.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/lt.xml
+ */
+lt{
+    Countries{
+        419{"Lotynų Amerika"}
+        AC{"Ascension sala"}
+        AD{"Andora"}
+        AE{"Jungtiniai Arabų Emyratai"}
+        AF{"Afganistanas"}
+        AG{"Antigva ir Barbuda"}
+        AI{"Angilija"}
+        AL{"Albanija"}
+        AM{"Armėnija"}
+        AN{"Olandijos Antilai"}
+        AO{"Angola"}
+        AQ{"Antarktis"}
+        AR{"Argentina"}
+        AS{"Amerikos Samoa"}
+        AT{"Austrija"}
+        AU{"Australija"}
+        AW{"Aruba"}
+        AX{"Alandų salos"}
+        AZ{"Azerbaidžanas"}
+        BA{"Bosnija ir Hercegovina"}
+        BB{"Barbadosas"}
+        BD{"Bangladešas"}
+        BE{"Belgija"}
+        BF{"Burkina Fasas"}
+        BG{"Bulgarija"}
+        BH{"Bahreinas"}
+        BI{"Burundis"}
+        BJ{"Beninas"}
+        BL{"Švento Baltramiejaus sala"}
+        BM{"Bermuda"}
+        BN{"Brunėjus"}
+        BO{"Bolivija"}
+        BR{"Brazilija"}
+        BS{"Bahamos"}
+        BT{"Butanas"}
+        BV{"Bouvet sala"}
+        BW{"Botsvana"}
+        BY{"Baltarusija"}
+        BZ{"Belizas"}
+        CA{"Kanada"}
+        CC{"Kokosų salos"}
+        CD{"Kongo Demokratinė Respublika"}
+        CF{"Centrinės Afrikos Respublika"}
+        CG{"Kongas"}
+        CH{"Šveicarija"}
+        CI{"Dramblio Kaulo Krantas"}
+        CK{"Kuko salos"}
+        CL{"Čilė"}
+        CM{"Kamerūnas"}
+        CN{"Kinija"}
+        CO{"Kolumbija"}
+        CP{"Clipperton sala"}
+        CR{"Kosta Rika"}
+        CS{"Serbija ir Juodkalnija"}
+        CU{"Kuba"}
+        CV{"Žaliasis Kyšulys"}
+        CX{"Kalėdų sala"}
+        CY{"Kipras"}
+        CZ{"Čekija"}
+        DE{"Vokietija"}
+        DG{"Diego Garcia"}
+        DJ{"Džibutis"}
+        DK{"Danija"}
+        DM{"Dominika"}
+        DO{"Dominikos Respublika"}
+        DZ{"Alžyras"}
+        EA{"Ceuta ir Melilla"}
+        EC{"Ekvadoras"}
+        EE{"Estija"}
+        EG{"Egiptas"}
+        EH{"Vakarų Sachara"}
+        ER{"Eritrėja"}
+        ES{"Ispanija"}
+        ET{"Etiopija"}
+        EU{"Europos Sąjunga"}
+        FI{"Suomija"}
+        FJ{"Fidžis"}
+        FK{"Falklando salos"}
+        FM{"Mikronezija"}
+        FO{"Farerų salos"}
+        FR{"Prancūzija"}
+        GA{"Gabonas"}
+        GB{"Didžioji Britanija"}
+        GD{"Grenada"}
+        GE{"Gruzija"}
+        GF{"Prancūzijos Gviana"}
+        GG{"Guernsis"}
+        GH{"Gana"}
+        GI{"Gibraltaras"}
+        GL{"Grenlandija"}
+        GM{"Gambija"}
+        GN{"Gvinėja"}
+        GP{"Gvadelupė"}
+        GQ{"Pusiaujo Gvinėja"}
+        GR{"Graikija"}
+        GS{"Pietų Džordžija ir Pietų Sandvičo salos"}
+        GT{"Gvatemala"}
+        GU{"Guamas"}
+        GW{"Bisau Gvinėja"}
+        GY{"Gajana"}
+        HK{"Kinijos S. A. R. Honkongas"}
+        HM{"Heardo ir McDonaldo Salų Sritis"}
+        HN{"Hondūras"}
+        HR{"Kroatija"}
+        HT{"Haitis"}
+        HU{"Vengrija"}
+        IC{"Kanarų salos"}
+        ID{"Indonezija"}
+        IE{"Airija"}
+        IL{"Izraelis"}
+        IM{"Meino sala"}
+        IN{"Indija"}
+        IO{"Indijos vandenyno britų sritis"}
+        IQ{"Irakas"}
+        IR{"Iranas"}
+        IS{"Islandija"}
+        IT{"Italija"}
+        JE{"Džersis"}
+        JM{"Jamaika"}
+        JO{"Jordanija"}
+        JP{"Japonija"}
+        KE{"Kenija"}
+        KG{"Kirgiztanas"}
+        KH{"Kambodža"}
+        KI{"Kiribatis"}
+        KM{"Komorai"}
+        KN{"Sent Kitsas ir Nevis"}
+        KP{"Šiaurės Korėja"}
+        KR{"Pietų Korėja"}
+        KW{"Kuveitas"}
+        KY{"Kaimanų salos"}
+        KZ{"Kazachstanas"}
+        LA{"Laosas"}
+        LB{"Libanas"}
+        LC{"Šventoji Liucija"}
+        LI{"Lichtenšteinas"}
+        LK{"Šri Lanka"}
+        LR{"Liberija"}
+        LS{"Lesotas"}
+        LT{"Lietuva"}
+        LU{"Liuksemburgas"}
+        LV{"Latvija"}
+        LY{"Libija"}
+        MA{"Marokas"}
+        MC{"Monakas"}
+        MD{"Moldova"}
+        ME{"Juodkalnija"}
+        MF{"Saint-Martin"}
+        MG{"Madagaskaras"}
+        MH{"Maršalo Salos"}
+        MK{"Makedonija"}
+        ML{"Malis"}
+        MM{"Mianmaras"}
+        MN{"Mongolija"}
+        MO{"Macao"}
+        MP{"Marianos šiaurinės salos"}
+        MQ{"Martinika"}
+        MR{"Mauritanija"}
+        MS{"Montserratas"}
+        MT{"Malta"}
+        MU{"Mauricijus"}
+        MV{"Maldivai"}
+        MW{"Malavis"}
+        MX{"Meksika"}
+        MY{"Malaizija"}
+        MZ{"Mozambikas"}
+        NA{"Namibija"}
+        NC{"Naujoji Kaledonija"}
+        NE{"Nigeris"}
+        NF{"Norfolko sala"}
+        NG{"Nigerija"}
+        NI{"Nikaragva"}
+        NL{"Nyderlandai"}
+        NO{"Norvegija"}
+        NP{"Nepalas"}
+        NR{"Nauru"}
+        NU{"Niue"}
+        NZ{"Naujoji Zelandija"}
+        OM{"Omanas"}
+        PA{"Panama"}
+        PE{"Peru"}
+        PF{"Prancūzų Polinezija"}
+        PG{"Papua Naujoji Gvinėja"}
+        PH{"Filipinai"}
+        PK{"Pakistanas"}
+        PL{"Lenkija"}
+        PM{"Sen Pjeras ir Mikelonas"}
+        PN{"Pitkernas"}
+        PR{"Puerto Rikas"}
+        PS{"Palestinos teritorija"}
+        PT{"Portugalija"}
+        PW{"Palau"}
+        PY{"Paragvajus"}
+        QA{"Kataras"}
+        QO{"Nuošali Okeanija"}
+        RE{"Reunionas"}
+        RO{"Rumunija"}
+        RS{"Serbija"}
+        RU{"Rusijos Federacija"}
+        RW{"Ruanda"}
+        SA{"Saudo Arabija"}
+        SB{"Saliamono salos"}
+        SC{"Seišeliai"}
+        SD{"Sudanas"}
+        SE{"Švedija"}
+        SG{"Singapūras"}
+        SH{"Šventoji Elena"}
+        SI{"Slovėnija"}
+        SJ{"Svalbardo ir Jan Majen salos"}
+        SK{"Slovakija"}
+        SL{"Siera Leonė"}
+        SM{"San Marinas"}
+        SN{"Senegalas"}
+        SO{"Somalis"}
+        SR{"Surinamas"}
+        ST{"San Tomė ir Principė"}
+        SV{"Salvadoras"}
+        SY{"Sirija"}
+        SZ{"Svazilendas"}
+        TA{"Tristan da Cunha"}
+        TC{"Turkso ir Caicoso salos"}
+        TD{"Čadas"}
+        TF{"Prancūzijos Pietų sritys"}
+        TG{"Togas"}
+        TH{"Tailandas"}
+        TJ{"Tadžikistanas"}
+        TK{"Tokelau"}
+        TL{"Rytų Timoras"}
+        TM{"Turkmėnistanas"}
+        TN{"Tunisas"}
+        TO{"Tonga"}
+        TR{"Turkija"}
+        TT{"Trinidadas ir Tobagas"}
+        TV{"Tuvalu"}
+        TW{"Taivanas"}
+        TZ{"Tanzanija"}
+        UA{"Ukraina"}
+        UG{"Uganda"}
+        UM{"Jungtinių Valstijų mažosios aplinkinės salos"}
+        US{"Jungtinės Valstijos"}
+        UY{"Urugvajus"}
+        UZ{"Uzbekistanas"}
+        VA{"Vatikanas"}
+        VC{"Šventasis Vincentas ir Grenadinai"}
+        VE{"Venesuela"}
+        VG{"Didžiosios Britanijos Mergelių salos"}
+        VI{"Mergelių salos (JAV)"}
+        VN{"Vietnamas"}
+        VU{"Vanuatu"}
+        WF{"Wallisas ir Futuna"}
+        WS{"Samoa"}
+        YE{"Jemenas"}
+        YT{"Mayotte’as"}
+        ZA{"Pietų Afrika"}
+        ZM{"Zambija"}
+        ZW{"Zimbabvė"}
+        ZZ{"Nežinoma ar neteisinga sritis"}
+    }
+    Version{"2.0.50.94"}
+}

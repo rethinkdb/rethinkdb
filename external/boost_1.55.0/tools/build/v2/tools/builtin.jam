@@ -1,0 +1,974 @@
+# Copyright 2002, 2003, 2004, 2005 Dave Abrahams
+# Copyright 2002, 2005, 2006, 2007, 2010 Rene Rivera
+# Copyright 2006 Juergen Hunold
+# Copyright 2005 Toon Knapen
+# Copyright 2002, 2003, 2004, 2005, 2006 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# Defines standard features and rules.
+
+import alias ;
+import "class" : new ;
+import errors ;
+import feature ;
+import generators ;
+import numbers ;
+import os ;
+import path ;
+import print ;
+import project ;
+import property ;
+import regex ;
+import scanner ;
+import sequence ;
+import stage ;
+import symlink ;
+import toolset ;
+import type ;
+import targets ;
+import types/register ;
+import utility ;
+import virtual-target ;
+import message ;
+import convert ;
+
+# FIXME: the following generate module import is not needed here but removing it
+# too hastly will break using code (e.g. the main Boost library Jamroot file)
+# that forgot to import the generate module before calling the generate rule.
+import generate ;
+
+
+.os-names = aix bsd cygwin darwin freebsd hpux iphone linux netbsd openbsd osf
+    qnx qnxnto sgi solaris unix unixware windows
+    elf  # Not actually an OS -- used for targeting bare metal where object
+         # format is ELF.  This catches both -elf and -eabi gcc targets and well
+         # as other compilers targeting ELF. It is not clear how often we need
+         # the 'elf' key as opposed to other bare metal targets, but let us
+         # stick with gcc naming.
+    ;
+
+# Feature used to determine which OS we're on. New <target-os> and <host-os>
+# features should be used instead.
+local os = [ modules.peek : OS ] ;
+feature.feature os : $(os) : propagated link-incompatible ;
+
+
+# Translates from bjam current OS to the os tags used in host-os and target-os,
+# i.e. returns the running host-os.
+#
+local rule default-host-os ( )
+{
+    local host-os ;
+    if [ os.name ] in $(.os-names:U)
+    {
+        host-os = [ os.name ] ;
+    }
+    else
+    {
+        switch [ os.name ]
+        {
+            case NT           : host-os = windows ;
+            case AS400        : host-os = unix    ;
+            case MINGW        : host-os = windows ;
+            case BSDI         : host-os = bsd     ;
+            case COHERENT     : host-os = unix    ;
+            case DRAGONFLYBSD : host-os = bsd     ;
+            case IRIX         : host-os = sgi     ;
+            case MACOSX       : host-os = darwin  ;
+            case KFREEBSD     : host-os = freebsd ;
+            case LINUX        : host-os = linux   ;
+            case SUNOS        :
+              ECHO "SunOS is not a supported operating system." ;
+              ECHO "We believe last version of SunOS was released in 1992, " ;
+              ECHO "so if you get this message, something is very wrong with configuration logic. " ;
+              ECHO "Please report this as a bug. " ;
+              EXIT ;
+            case *            : host-os = unix    ;
+        }
+    }
+    return $(host-os:L) ;
+}
+
+
+# The two OS features define a known set of abstract OS names. The host-os is
+# the OS under which bjam is running. Even though this should really be a fixed
+# property we need to list all the values to prevent unknown value errors. Both
+# set the default value to the current OS to account for the default use case of
+# building on the target OS.
+feature.feature host-os : $(.os-names) ;
+feature.set-default host-os : [ default-host-os ] ;
+
+feature.feature target-os : $(.os-names) : propagated link-incompatible ;
+feature.set-default target-os : [ default-host-os ] ;
+
+
+feature.feature toolset            :                 : implicit propagated symmetric ;
+feature.feature stdlib             : native          : propagated composite ;
+feature.feature link               : shared static   : propagated ;
+feature.feature runtime-link       : shared static   : propagated ;
+feature.feature runtime-debugging  : on off          : propagated ;
+feature.feature optimization       : off speed space : propagated ;
+feature.feature profiling          : off on          : propagated ;
+feature.feature inlining           : off on full     : propagated ;
+feature.feature threading          : single multi    : propagated ;
+feature.feature rtti               : on off          : propagated ;
+feature.feature exception-handling : on off          : propagated ;
+
+# Whether there is support for asynchronous EH (e.g. catching SEGVs).
+feature.feature asynch-exceptions  : off on          : propagated ;
+
+# Whether all extern "C" functions are considered nothrow by default.
+feature.feature extern-c-nothrow   : off on          : propagated ;
+
+feature.feature debug-symbols      : on off          : propagated ;
+# Controls whether the binary should be stripped -- that is have
+# everything not necessary to running removed. This option should
+# not be very often needed. Also, this feature will show up in
+# target paths of everything, not just binaries. Should fix that
+# when impelementing feature relevance.
+feature.feature strip              : off on          : propagated ;
+feature.feature define             :                 : free ;
+feature.feature undef              :                 : free ;
+feature.feature "include"          :                 : free path ; #order-sensitive ;
+feature.feature cflags             :                 : free ;
+feature.feature cxxflags           :                 : free ;
+feature.feature fflags             :                 : free ;
+feature.feature asmflags           :                 : free ;
+feature.feature linkflags          :                 : free ;
+feature.feature archiveflags       :                 : free ;
+feature.feature version            :                 : free ;
+
+# Generic, i.e. non-language specific, flags for tools.
+feature.feature flags           : : free ;
+feature.feature location-prefix : : free ;
+
+
+# The following features are incidental since they have no effect on built
+# products. Not making them incidental will result in problems in corner cases,
+# e.g.:
+#
+#    unit-test a : a.cpp : <use>b ;
+#    lib b : a.cpp b ;
+#
+# Here, if <use> is not incidental, we would decide we have two targets for
+# a.obj with different properties and complain about it.
+#
+# Note that making a feature incidental does not mean it is ignored. It may be
+# ignored when creating a virtual target, but the rest of build process will use
+# them.
+feature.feature use                 : : free dependency incidental ;
+feature.feature dependency          : : free dependency incidental ;
+feature.feature implicit-dependency : : free dependency incidental ;
+
+feature.feature warnings :
+    on         # Enable default/"reasonable" warning level for the tool.
+    all        # Enable all possible warnings issued by the tool.
+    off        # Disable all warnings issued by the tool.
+  : incidental propagated ;
+
+feature.feature warnings-as-errors :
+    off        # Do not fail the compilation if there are warnings.
+    on         # Fail the compilation if there are warnings.
+  : incidental propagated ;
+
+# Feature that allows us to configure the maximal template instantiation depth
+# level allowed by a C++ compiler. Applies only to C++ toolsets whose compilers
+# actually support this configuration setting.
+#
+# Note that Boost Build currently does not allow defining features that take any
+# positive integral value as a parameter, which is what we need here, so we just
+# define some of the values here and leave it up to the user to extend this set
+# as he needs using the feature.extend rule.
+#
+# TODO: This should be upgraded as soon as Boost Build adds support for custom
+# validated feature values or at least features allowing any positive integral
+# value. See related Boost Build related trac ticket #194.
+#
+feature.feature c++-template-depth
+    :
+        [ numbers.range 64 1024 : 64 ]
+        [ numbers.range 20 1000 : 10 ]
+        #   Maximum template instantiation depth guaranteed for ANSI/ISO C++
+        # conforming programs.
+        17
+    :
+        incidental optional propagated ;
+
+feature.feature source              :            : free dependency incidental ;
+feature.feature library             :            : free dependency incidental ;
+feature.feature file                :            : free dependency incidental ;
+feature.feature find-shared-library :            : free ; #order-sensitive ;
+feature.feature find-static-library :            : free ; #order-sensitive ;
+feature.feature library-path        :            : free path ; #order-sensitive ;
+
+# Internal feature.
+feature.feature library-file        :            : free dependency ;
+
+feature.feature name                :            : free ;
+feature.feature tag                 :            : free ;
+feature.feature search              :            : free path ; #order-sensitive ;
+feature.feature location            :            : free path ;
+feature.feature dll-path            :            : free path ;
+feature.feature hardcode-dll-paths  : true false : incidental ;
+
+
+# An internal feature that holds the paths of all dependency shared libraries.
+# On Windows, it is needed so that we can add all those paths to PATH when
+# running applications. On Linux, it is needed to add proper -rpath-link command
+# line options.
+feature.feature xdll-path : : free path ;
+
+# Provides means to specify def-file for windows DLLs.
+feature.feature def-file : : free dependency ;
+
+feature.feature suppress-import-lib : false true : incidental ;
+
+# Internal feature used to store the name of a bjam action to call when building
+# a target.
+feature.feature action : : free ;
+
+# This feature is used to allow specific generators to run. For example, QT
+# tools can only be invoked when QT library is used. In that case, <allow>qt
+# will be in usage requirement of the library.
+feature.feature allow : : free ;
+
+# The addressing model to generate code for. Currently a limited set only
+# specifying the bit size of pointers.
+feature.feature address-model : 16 32 64 32_64 : propagated optional ;
+
+# Type of CPU architecture to compile for.
+feature.feature architecture :
+    # x86 and x86-64
+    x86
+
+    # ia64
+    ia64
+
+    # Sparc
+    sparc
+
+    # RS/6000 & PowerPC
+    power
+
+    # MIPS/SGI
+    mips1 mips2 mips3 mips4 mips32 mips32r2 mips64
+
+    # HP/PA-RISC
+    parisc
+
+    # Advanced RISC Machines
+    arm
+
+    # Combined architectures for platforms/toolsets that support building for
+    # multiple architectures at once. "combined" would be the default multi-arch
+    # for the toolset.
+    combined
+    combined-x86-power
+
+    : propagated optional ;
+
+# The specific instruction set in an architecture to compile.
+feature.feature instruction-set :
+    # x86 and x86-64
+    native i486 i586 i686 pentium pentium-mmx pentiumpro pentium2 pentium3
+    pentium3m pentium-m pentium4 pentium4m prescott nocona core2 corei7 corei7-avx core-avx-i
+    conroe conroe-xe conroe-l allendale merom merom-xe kentsfield kentsfield-xe penryn wolfdale
+    yorksfield nehalem sandy-bridge ivy-bridge haswell k6 k6-2 k6-3 athlon athlon-tbird athlon-4 athlon-xp
+    athlon-mp k8 opteron athlon64 athlon-fx k8-sse3 opteron-sse3 athlon64-sse3 amdfam10 barcelona
+    bdver1 bdver2 bdver3 btver1 btver2 winchip-c6 winchip2 c3 c3-2 atom
+
+    # ia64
+    itanium itanium1 merced itanium2 mckinley
+
+    # Sparc
+    v7 cypress v8 supersparc sparclite hypersparc sparclite86x f930 f934
+    sparclet tsc701 v9 ultrasparc ultrasparc3
+
+    # RS/6000 & PowerPC
+    401 403 405 405fp 440 440fp 505 601 602 603 603e 604 604e 620 630 740 7400
+    7450 750 801 821 823 860 970 8540 power-common ec603e g3 g4 g5 power power2
+    power3 power4 power5 powerpc powerpc64 rios rios1 rsc rios2 rs64a
+
+    # MIPS
+    4kc 4kp 5kc 20kc m4k r2000 r3000 r3900 r4000 r4100 r4300 r4400 r4600 r4650
+    r6000 r8000 rm7000 rm9000 orion sb1 vr4100 vr4111 vr4120 vr4130 vr4300
+    vr5000 vr5400 vr5500
+
+    # HP/PA-RISC
+    700 7100 7100lc 7200 7300 8000
+
+    # Advanced RISC Machines
+    armv2 armv2a armv3 armv3m armv4 armv4t armv5 armv5t armv5te armv6 armv6j iwmmxt ep9312
+	armv7 armv7s
+
+    : propagated optional ;
+
+# Used to select a specific variant of C++ ABI if the compiler supports several.
+feature.feature c++abi : : propagated optional ;
+
+feature.feature conditional : : incidental free ;
+
+# The value of 'no' prevents building of a target.
+feature.feature build : yes no : optional ;
+
+# Windows-specific features
+
+feature.feature user-interface : console gui wince native auto ;
+
+feature.feature variant : : implicit composite propagated symmetric ;
+
+
+# Declares a new variant.
+#
+# First determines explicit properties for this variant, by refining parents'
+# explicit properties with the passed explicit properties. The result is
+# remembered and will be used if this variant is used as parent.
+#
+# Second, determines the full property set for this variant by adding to the
+# explicit properties default values for all missing non-symmetric properties.
+#
+# Lastly, makes appropriate value of 'variant' property expand to the full
+# property set.
+#
+rule variant ( name            # Name of the variant
+    : parents-or-properties *  # Specifies parent variants, if
+                               # 'explicit-properties' are given, and
+                               # explicit-properties or parents otherwise.
+    : explicit-properties *    # Explicit properties.
+    )
+{
+    local parents ;
+    if ! $(explicit-properties)
+    {
+        if $(parents-or-properties[1]:G)
+        {
+            explicit-properties = $(parents-or-properties) ;
+        }
+        else
+        {
+            parents = $(parents-or-properties) ;
+        }
+    }
+    else
+    {
+        parents = $(parents-or-properties) ;
+    }
+
+    # The problem is that we have to check for conflicts between base variants.
+    if $(parents[2])
+    {
+        errors.error "multiple base variants are not yet supported" ;
+    }
+
+    local inherited ;
+    # Add explicitly specified properties for parents.
+    for local p in $(parents)
+    {
+        # TODO: This check may be made stricter.
+        if ! [ feature.is-implicit-value $(p) ]
+        {
+            errors.error "Invalid base variant" $(p)  ;
+        }
+
+        inherited += $(.explicit-properties.$(p)) ;
+    }
+    property.validate $(explicit-properties) ;
+    explicit-properties = [ property.refine $(inherited)
+        : $(explicit-properties) ] ;
+
+    # Record explicitly specified properties for this variant. We do this after
+    # inheriting parents' properties so they affect other variants derived from
+    # this one.
+    .explicit-properties.$(name) = $(explicit-properties) ;
+
+    feature.extend variant : $(name) ;
+    feature.compose <variant>$(name) : $(explicit-properties) ;
+}
+IMPORT $(__name__) : variant : : variant ;
+
+
+variant debug   : <optimization>off <debug-symbols>on <inlining>off
+                  <runtime-debugging>on ;
+variant release : <optimization>speed <debug-symbols>off <inlining>full
+                  <runtime-debugging>off <define>NDEBUG ;
+variant profile : release : <profiling>on <debug-symbols>on ;
+
+
+class searched-lib-target : abstract-file-target
+{
+    rule __init__ ( name
+        : project
+        : shared ?
+        : search *
+        : action
+    )
+    {
+        abstract-file-target.__init__ $(name) : SEARCHED_LIB : $(project)
+          : $(action) : ;
+
+        self.shared = $(shared) ;
+        self.search = $(search) ;
+    }
+
+    rule shared ( )
+    {
+        return $(self.shared) ;
+    }
+
+    rule search ( )
+    {
+        return $(self.search) ;
+    }
+
+    rule actualize-location ( target )
+    {
+        NOTFILE $(target) ;
+    }
+
+    rule path ( )
+    {
+    }
+}
+
+
+# The generator class for libraries (target type LIB). Depending on properties
+# it will request building of the appropriate specific library type --
+# -- SHARED_LIB, STATIC_LIB or SHARED_LIB.
+#
+class lib-generator : generator
+{
+    rule __init__ ( * : * )
+    {
+        generator.__init__ $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8)
+            : $(9) : $(10) : $(11) : $(12) : $(13) : $(14) : $(15) : $(16) :
+            $(17) : $(18) : $(19) ;
+    }
+
+    rule run ( project name ? : property-set : sources * )
+    {
+        # The lib generator is composing, and can be only invoked with an
+        # explicit name. This check is present in generator.run (and so in
+        # builtin.linking-generator) but duplicated here to avoid doing extra
+        # work.
+        if $(name)
+        {
+            local properties = [ $(property-set).raw ] ;
+            # Determine the needed target type.
+            local actual-type ;
+                # <source>files can be generated by <conditional>@rule feature
+                # in which case we do not consider it a SEARCHED_LIB type.
+            if ! <source> in $(properties:G) &&
+               ( <search> in $(properties:G) || <name> in $(properties:G) )
+            {
+                actual-type = SEARCHED_LIB ;
+            }
+            else if <file> in $(properties:G)
+            {
+                actual-type = LIB ;
+            }
+            else if <link>shared in $(properties)
+            {
+                actual-type = SHARED_LIB ;
+            }
+            else
+            {
+                actual-type = STATIC_LIB ;
+            }
+            property-set = [ $(property-set).add-raw <main-target-type>LIB ] ;
+            # Construct the target.
+            return [ generators.construct $(project) $(name) : $(actual-type)
+                : $(property-set) : $(sources) ] ;
+        }
+    }
+
+    rule viable-source-types ( )
+    {
+        return * ;
+    }
+}
+
+
+generators.register [ new lib-generator builtin.lib-generator :  : LIB ] ;
+
+
+# The implementation of the 'lib' rule. Beyond standard syntax that rule allows
+# simplified: "lib a b c ;".
+#
+rule lib ( names + : sources * : requirements * : default-build * :
+    usage-requirements * )
+{
+    if $(names[2])
+    {
+        if <name> in $(requirements:G)
+        {
+            errors.user-error "When several names are given to the 'lib' rule" :
+                "it is not allowed to specify the <name> feature." ;
+        }
+        if $(sources)
+        {
+            errors.user-error "When several names are given to the 'lib' rule" :
+                "it is not allowed to specify sources." ;
+        }
+    }
+
+    # This is a circular module dependency so it must be imported here.
+    import targets ;
+
+    local project = [ project.current ] ;
+    local result ;
+
+    for local name in $(names)
+    {
+        local r = $(requirements) ;
+        # Support " lib a ; " and " lib a b c ; " syntax.
+        if ! $(sources) && ! <name> in $(requirements:G)
+                        && ! <file> in $(requirements:G)
+        {
+            r += <name>$(name) ;
+        }
+        result += [ targets.main-target-alternative
+            [ new typed-target $(name) : $(project) : LIB
+                : [ targets.main-target-sources $(sources) : $(name) ]
+                : [ targets.main-target-requirements $(r) : $(project) ]
+                : [ targets.main-target-default-build $(default-build) : $(project) ]
+                : [ targets.main-target-usage-requirements $(usage-requirements) : $(project) ]
+            ] ] ;
+    }
+    return $(result) ;
+}
+IMPORT $(__name__) : lib : : lib ;
+
+
+class searched-lib-generator : generator
+{
+    import property-set ;
+
+    rule __init__ ( )
+    {
+        # The requirements cause the generators to be tried *only* when we are
+        # building a lib target with a 'search' feature. This seems ugly --- all
+        # we want is to make sure searched-lib-generator is not invoked deep
+        # inside transformation search to produce intermediate targets.
+        generator.__init__ searched-lib-generator : : SEARCHED_LIB ;
+    }
+
+    rule run ( project name ? : property-set : sources * )
+    {
+        if $(name)
+        {
+            # If 'name' is empty, it means we have not been called to build a
+            # top-level target. In this case, we just fail immediately, because
+            # searched-lib-generator cannot be used to produce intermediate
+            # targets.
+
+            local properties = [ $(property-set).raw ] ;
+            local shared ;
+            if <link>shared in $(properties)
+            {
+                shared = true ;
+            }
+
+            local search = [ feature.get-values <search> : $(properties) ] ;
+
+            local a = [ new null-action $(property-set) ] ;
+            local lib-name = [ feature.get-values <name> : $(properties) ] ;
+            lib-name ?= $(name) ;
+            local t = [ new searched-lib-target $(lib-name) : $(project)
+                : $(shared) : $(search) : $(a) ] ;
+            # We return sources for a simple reason. If there is
+            #    lib png : z : <name>png ;
+            # the 'z' target should be returned, so that apps linking to 'png'
+            # will link to 'z', too.
+            return [ property-set.create <xdll-path>$(search) ]
+                   [ virtual-target.register $(t) ] $(sources) ;
+        }
+    }
+}
+
+generators.register [ new searched-lib-generator ] ;
+
+
+class prebuilt-lib-generator : generator
+{
+    rule __init__ ( * : * )
+    {
+        generator.__init__ $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8)
+            : $(9) : $(10) : $(11) : $(12) : $(13) : $(14) : $(15) : $(16) :
+            $(17) : $(18) : $(19) ;
+    }
+
+    rule run ( project name ? : property-set : sources * )
+    {
+        local f = [ $(property-set).get <file> ] ;
+        return $(f) $(sources) ;
+    }
+}
+
+generators.register
+  [ new prebuilt-lib-generator builtin.prebuilt : : LIB : <file> ] ;
+
+generators.override builtin.prebuilt : builtin.lib-generator ;
+
+class preprocessed-target-class : basic-target
+{
+    import generators ;
+    rule construct ( name : sources * : property-set )
+    {
+        local result = [ generators.construct [ project ]
+            $(name) : PREPROCESSED_CPP : $(property-set) : $(sources) ] ;
+        if ! $(result)
+        {
+            result = [ generators.construct [ project ]
+                $(name) : PREPROCESSED_C : $(property-set) : $(sources) ] ;
+        }
+        if ! $(result)
+        {
+            local s ;
+            for x in $(sources)
+            {
+                s += [ $(x).name ] ;
+            }
+            local p = [ project ] ;
+            errors.user-error
+                "In project" [ $(p).name ] :
+                "Could not construct preprocessed file \"$(name)\" from $(s:J=, )." ;
+        }
+        return $(result) ;
+    }
+}
+
+rule preprocessed ( name : sources * : requirements * : default-build * :
+    usage-requirements * )
+{
+    local project = [ project.current ] ;
+    return [ targets.main-target-alternative
+        [ new preprocessed-target-class $(name) : $(project)
+            : [ targets.main-target-sources $(sources) : $(name) ]
+            : [ targets.main-target-requirements $(requirements) : $(project) ]
+            : [ targets.main-target-default-build $(default-build) : $(project) ]
+            : [ targets.main-target-usage-requirements $(usage-requirements) : $(project) ]
+        ] ] ;
+}
+
+IMPORT $(__name__) : preprocessed : : preprocessed ;
+
+class compile-action : action
+{
+    import sequence ;
+
+    rule __init__ ( targets * : sources * : action-name : properties * )
+    {
+        action.__init__ $(targets) : $(sources) : $(action-name) : $(properties) ;
+    }
+
+    # For all virtual targets for the same dependency graph as self, i.e. which
+    # belong to the same main target, add their directories to the include path.
+    #
+    rule adjust-properties ( property-set )
+    {
+        local s = [ $(self.targets[1]).creating-subvariant ] ;
+        if $(s)
+        {
+            return [ $(property-set).add-raw
+              [ $(s).implicit-includes "include" : H ] ] ;
+        }
+        else
+        {
+            return $(property-set) ;
+        }
+    }
+}
+
+
+# Declare a special compiler generator. The only thing it does is changing the
+# type used to represent 'action' in the constructed dependency graph to
+# 'compile-action'. That class in turn adds additional include paths to handle
+# cases when a source file includes headers which are generated themselves.
+#
+class C-compiling-generator : generator
+{
+    rule __init__ ( id : source-types + : target-types + : requirements *
+        : optional-properties * )
+    {
+        generator.__init__ $(id) : $(source-types) : $(target-types) :
+            $(requirements) : $(optional-properties) ;
+    }
+
+    rule action-class ( )
+    {
+        return compile-action ;
+    }
+}
+
+
+rule register-c-compiler ( id : source-types + : target-types + : requirements *
+    : optional-properties * )
+{
+    generators.register [ new C-compiling-generator $(id) : $(source-types) :
+        $(target-types) : $(requirements) : $(optional-properties) ] ;
+}
+
+# FIXME: this is ugly, should find a better way (we would like client code to
+# register all generators as "generators.some-rule" instead of
+# "some-module.some-rule".)
+#
+IMPORT $(__name__) : register-c-compiler : : generators.register-c-compiler ;
+
+
+# The generator class for handling EXE and SHARED_LIB creation.
+#
+class linking-generator : generator
+{
+    import path ;
+    import project ;
+    import property-set ;
+    import type ;
+
+    rule __init__ ( id
+        composing ?    :  # The generator will be composing if a non-empty
+                          # string is passed or the parameter is not given. To
+                          # make the generator non-composing, pass an empty
+                          # string ("").
+        source-types + :
+        target-types + :
+        requirements * )
+    {
+        composing ?= true ;
+        generator.__init__ $(id) $(composing) : $(source-types)
+            : $(target-types) : $(requirements) ;
+    }
+
+    rule run ( project name ? : property-set : sources + )
+    {
+        sources += [ $(property-set).get <library>  ] ;
+
+        # Add <library-path> properties for all searched libraries.
+        local extra ;
+        for local s in $(sources)
+        {
+            if [ $(s).type ] = SEARCHED_LIB
+            {
+                local search = [ $(s).search ] ;
+                extra += <library-path>$(search) ;
+            }
+        }
+
+        # It is possible that sources include shared libraries that did not came
+        # from 'lib' targets, e.g. .so files specified as sources. In this case
+        # we have to add extra dll-path properties and propagate extra xdll-path
+        # properties so that application linking to us will get xdll-path to
+        # those libraries.
+        local extra-xdll-paths ;
+        for local s in $(sources)
+        {
+            if [ type.is-derived [ $(s).type ] SHARED_LIB ] && ! [ $(s).action ]
+            {
+                # Unfortunately, we do not have a good way to find the path to a
+                # file, so use this nasty approach.
+                #
+                # TODO: This needs to be done better. One thing that is really
+                # broken with this is that it does not work correctly with
+                # projects having multiple source locations.
+                local p = [ $(s).project ] ;
+                local location = [ path.root [ $(s).name ]
+                    [ $(p).get source-location ] ] ;
+                extra-xdll-paths += [ path.parent $(location) ] ;
+            }
+        }
+
+        # Hardcode DLL paths only when linking executables.
+        # Pros: do not need to relink libraries when installing.
+        # Cons: "standalone" libraries (plugins, python extensions) can not
+        # hardcode paths to dependent libraries.
+        if [ $(property-set).get <hardcode-dll-paths> ] = true
+            && [ type.is-derived $(self.target-types[1]) EXE ]
+        {
+            local xdll-path = [ $(property-set).get <xdll-path> ] ;
+            extra += <dll-path>$(xdll-path) <dll-path>$(extra-xdll-paths) ;
+        }
+
+        if $(extra)
+        {
+            property-set = [ $(property-set).add-raw $(extra) ] ;
+        }
+
+        local result = [ generator.run $(project) $(name) : $(property-set)
+            : $(sources) ] ;
+
+        local ur ;
+        if $(result)
+        {
+            ur = [ extra-usage-requirements $(result) : $(property-set) ] ;
+            ur = [ $(ur).add
+              [ property-set.create <xdll-path>$(extra-xdll-paths) ] ] ;
+        }
+        return $(ur) $(result) ;
+    }
+
+    rule extra-usage-requirements ( created-targets * : property-set )
+    {
+        local result = [ property-set.empty ] ;
+        local extra ;
+
+        # Add appropricate <xdll-path> usage requirements.
+        local raw = [ $(property-set).raw ] ;
+        if <link>shared in $(raw)
+        {
+            local paths ;
+            local pwd = [ path.pwd ] ;
+            for local t in $(created-targets)
+            {
+                if [ type.is-derived [ $(t).type ] SHARED_LIB ]
+                {
+                    paths += [ path.root [ path.make [ $(t).path ] ] $(pwd) ] ;
+                }
+            }
+            extra += $(paths:G=<xdll-path>) ;
+        }
+
+        # We need to pass <xdll-path> features that we've got from sources,
+        # because if a shared library is built, exe using it needs to know paths
+        # to other shared libraries this one depends on in order to be able to
+        # find them all at runtime.
+
+        # Just pass all features in property-set, it is theorically possible
+        # that we will propagate <xdll-path> features explicitly specified by
+        # the user, but then the user is to blaim for using an internal feature.
+        local values = [ $(property-set).get <xdll-path> ] ;
+        extra += $(values:G=<xdll-path>) ;
+
+        if $(extra)
+        {
+            result = [ property-set.create $(extra) ] ;
+        }
+        return $(result) ;
+    }
+
+    rule generated-targets ( sources + : property-set : project name ? )
+    {
+        local sources2 ;     # Sources to pass to inherited rule.
+        local properties2 ;  # Properties to pass to inherited rule.
+        local libraries ;    # Library sources.
+
+        # Searched libraries are not passed as arguments to the linker but via
+        # some option. So, we pass them to the action using a property.
+        properties2 = [ $(property-set).raw ] ;
+        local fsa ;
+        local fst ;
+        for local s in $(sources)
+        {
+            if [ type.is-derived [ $(s).type ] SEARCHED_LIB ]
+            {
+                local name = [ $(s).name ] ;
+                if [ $(s).shared ]
+                {
+                    fsa += $(name) ;
+                }
+                else
+                {
+                    fst += $(name) ;
+                }
+            }
+            else
+            {
+                sources2 += $(s) ;
+            }
+        }
+        properties2 += <find-shared-library>$(fsa:J=&&)
+                       <find-static-library>$(fst:J=&&) ;
+
+        return [ generator.generated-targets $(sources2)
+            : [ property-set.create $(properties2) ] : $(project) $(name) ] ;
+    }
+}
+
+
+rule register-linker ( id composing ? : source-types + : target-types +
+    : requirements * )
+{
+    generators.register [ new linking-generator $(id) $(composing)
+        : $(source-types) : $(target-types) : $(requirements) ] ;
+}
+
+
+# The generator class for handling STATIC_LIB creation.
+#
+class archive-generator : generator
+{
+    import property-set ;
+
+    rule __init__ ( id composing ? : source-types + : target-types +
+        : requirements * )
+    {
+        composing ?= true ;
+        generator.__init__ $(id) $(composing) : $(source-types)
+            : $(target-types) : $(requirements) ;
+    }
+
+    rule run ( project name ? : property-set : sources + )
+    {
+        sources += [ $(property-set).get <library>  ] ;
+
+        local result = [ generator.run $(project) $(name) : $(property-set)
+            : $(sources) ] ;
+
+        # For static linking, if we get a library in source, we can not directly
+        # link to it so we need to cause our dependencies to link to that
+        # library. There are two approaches:
+        # - adding the library to the list of returned targets.
+        # - using the <library> usage requirements.
+        # The problem with the first is:
+        #
+        #     lib a1 : : <file>liba1.a ;
+        #     lib a2 : a2.cpp a1 : <link>static ;
+        #     install dist : a2 ;
+        #
+        # here we will try to install 'a1', even though it is not necessary in
+        # the general case. With the second approach, even indirect dependants
+        # will link to the library, but it should not cause any harm. So, return
+        # all LIB sources together with created targets, so that dependants link
+        # to them.
+        local usage-requirements ;
+        if [ $(property-set).get <link> ] = static
+        {
+            for local t in $(sources)
+            {
+                if [ type.is-derived [ $(t).type ] LIB ]
+                {
+                    usage-requirements += <library>$(t) ;
+                }
+            }
+        }
+
+        usage-requirements = [ property-set.create $(usage-requirements) ] ;
+
+        return $(usage-requirements) $(result) ;
+    }
+}
+
+
+rule register-archiver ( id composing ? : source-types + : target-types +
+    : requirements * )
+{
+    generators.register [ new archive-generator $(id) $(composing)
+        : $(source-types) : $(target-types) : $(requirements) ] ;
+}
+
+
+# Generator that accepts everything and produces nothing. Useful as a general
+# fallback for toolset-specific actions like PCH generation.
+#
+class dummy-generator : generator
+{
+    import property-set ;
+
+    rule run ( project name ? : property-set : sources + )
+    {
+        return [ property-set.empty ] ;
+    }
+}
+
+IMPORT $(__name__) : register-linker register-archiver
+    : : generators.register-linker generators.register-archiver ;

@@ -1,0 +1,162 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+
+\page formatting_and_parsing Numbers, Time and Currency formatting and parsing
+
+All formatting and parsing is performed via the standard I/O streams. Each of the above information types is represented as a number.
+The formatting information is set using iostream manipulators. All manipulators are placed in the boost::locale::as namespace.
+
+For example:
+
+\code
+    cout << as::currency << 123.45 << endl;
+    // display 123.45 in local currency representation.
+    cin >> as::currency >> x ;
+    // Parse currency representation and store it in x
+\endcode
+
+There is a special manipulator \c as::posix that "unsets" locale-specific settings and returns them to the default \c iostream formatting
+and parsing methods. Please note, such formats may still be localized by the default \c std::num_put and \c std::num_get facets.
+
+\section numbers_formatting Numbers and number manipulators
+
+Here are the manipulators for number formatting:
+
+-   \c as::number -- format number according to local specifications, it takes into account various \c std::ios_base flags like scientific
+    format and precision.
+    \n
+-   \c as::percent -- format number as "percent" format. For example:
+    \code
+        cout << as::percent << 0.25 <<endl;
+    \endcode
+    Would create an output that may look like this:
+    \verbatim
+    25%
+    \endverbatim
+    \n
+-   \c as::spellout -- spell the number. For example, under the English locale, 103 may be displayed as "one hundred three".
+    \b Note: not all locales provide rules for spelling numbers. In such a case the number would be displayed in decimal format.
+    \n
+-   \c as::ordinal -- display an order-of element. For example "2" would be displayed as "2nd" under the English locale. As in
+    the above case, not all locales provide ordinal rules.
+
+\section currency_formatting Currency formatting
+
+These are the manipulators for currency formatting:
+
+-   \c as::currency -- set the format to currency mode.
+-   \c as::currency_iso -- change the currency format to international, like "USD" instead of "$". This flag is supported
+    when using ICU 4.2 and above.
+-   \c as::currency_national -- change currency format to national, like "$".
+-   \c as::currency_default -- return to the default (national) currency format.
+
+\note \c as::currency_XYZ  manipulators have no effect on general formatting, only on the currency format. You must use both currency
+and number manipulators to use a non-default format.
+
+\section date_and_time_formatting Date and Time formatting
+
+Dates and times are represented as POSIX time. When date-time formatting is turned on in the \c iostream, each number is treated as a
+POSIX time. The number may be an integer or a double.
+
+There are four major manipulators for Date and Time formatting:
+
+-   \c as::date -- date only
+-   \c as::time -- time only
+-   \c as::datetime -- both date and time
+-   \c as::ftime -- parameterized manipulator that allows specification of time in the format that is used in the \c strftime function.
+    \b Note: not all formatting flags of \c strftime are supported.
+
+For example:
+
+\code
+    time_t now=time(0);
+    cout << "Today is "<< as::date << now << " and tomorrow is " << now+24*3600 << endl;
+    cout << "Current time is "<< as::time << now << endl;
+    cout << "The current weekday is "<< as::ftime("%A") << now << endl;
+\endcode
+
+More fine-grained control of date-time formatting is also available:
+
+-   \c as::time_default , \c as::time_short , \c as::time_medium , \c as::time_long , \c as::time_full  -- change time formatting.
+-   \c as::date_default , \c as::date_short , \c as::date_medium , \c as::date_long , \c as::date_full  -- change date formatting.
+
+These manipulators, when used together with the \c as::date, \c as::time, or \c as::datetime manipulators, change the date-time representation.
+The default format is medium.
+
+
+By default, the date and time are shown in the local time zone. This behavior may be changed with the following manipulators:
+
+-   \c as::gmt -- display date and time in GMT.
+-   \c as::local_time  -- display in local time zone (default).
+-   \c as::time_zone  -- parameterized manipulator that sets the time-zone ID for date-time formatting and parsing. It
+    takes a string parameter that represents the time zone ID.
+
+For example:
+
+\code
+    double now=time(0);
+    cout << as::datetime << as::local_time << "Local time is: "<< now << endl;
+    cout << as::gmt << "GMT Time is: "<< now <<endl;
+    cout << as::time_zone("EST") << "Eastern Standard Time is: "<< now <<endl;
+\endcode
+
+There is a list of supported \c strftime flags by ICU backend:
+
+-   \c \%a  -- Abbreviated  weekday (Sun.)
+-   \c \%A  -- Full weekday (Sunday)
+-   \c \%b  -- Abbreviated month (Jan.)
+-   \c \%B  -- Full month (January)
+-   \c \%c  -- Locale date-time format. \b Note: prefer using \c as::datetime
+-   \c \%d  -- Day of Month [01,31]
+-   \c \%e  -- Day of Month [1,31]
+-   \c \%h  -- Same as \c \%b 
+-   \c \%H  -- 24 clock hour [00,23]
+-   \c \%I  -- 12 clock hour [01,12]
+-   \c \%j  -- Day of year [1,366]
+-   \c \%m  -- Month [01,12]
+-   \c \%M  -- Minute [00,59]
+-   \c \%n  -- New Line
+-   \c \%p  -- AM/PM in locale representation
+-   \c \%r  -- Time with AM/PM, same as \c \%I:\%M:\%S \%p 
+-   \c \%R  -- Same as \c \%H:\%M 
+-   \c \%S  -- Second [00,61]
+-   \c \%t  -- Tab character
+-   \c \%T  -- Same as \c \%H:\%M:\%S 
+-   \c \%x  -- Local date representation. **Note:** prefer using \c as::date
+-   \c \%X  -- Local time representation. **Note:** prefer using \c as::time
+-   \c \%y  -- Year [00,99]
+-   \c \%Y  -- 4 digits year. (2009)
+-   \c \%Z  -- Time Zone
+-   \c \%\%  -- Percent symbol
+
+Unsupported \c strftime flags are: \c \%C , \c \%u , \c \%U , \c \%V , \c \%w , \c \%W . Also, the \c O and \c E modifiers are not supported.
+
+
+\b General \b recommendations
+
+- Prefer using generic date-time manipulators rather than specifying the full format using \c as::ftime.
+- Remember that current calendars may be not Gregorian.
+
+
+\section formatting_internals Internals
+
+Formatting information is stored in a stream class by using the \c xalloc, \c pword, and \c register_callback  member functions
+of \c std::ios_base . All the information is stored and managed using a special object bound to \c iostream, and the manipulators just
+change its state.
+
+When a number is written to or read from the stream, a custom Boost.Locale facet accesses the object and checks the required formatting
+information. Then it creates a special object that actually formats the number and caches it in the \c iostream. The
+next time a number is written to the stream, the same formatter would be used unless some flags had changed and formatter object is
+invalid.
+
+*/
+
+

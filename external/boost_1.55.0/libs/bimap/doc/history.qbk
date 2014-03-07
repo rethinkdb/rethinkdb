@@ -1,0 +1,450 @@
+[/license
+
+Boost.Bimap
+
+Copyright (c) 2006-2007 Matias Capeletto
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+]
+
+[/ QuickBook Document version 1.4 ]
+
+[section History]
+
+[section The long path from Code Project to Boost]
+
+[variablelist
+[[2002 - bimap at Code Project]
+[
+Joaquin Lopez Muñoz posted his first 
+[@http://www.codeproject.com/vcpp/stl/bimap.asp#test_suite bimap library]
+in 2002. Tons of users have been using it. He then
+[@http://aspn.activestate.com/ASPN/Mail/Message/boost/1404881 asked the
+list for interest] in his library in 2003. Luckily, there was a lot of
+interest and Joaquin started to boostify the code. At some point all the
+developers seemed to agree that, rather than a bidirectional map, it would
+be better to work on an N-indexed set that contained Joaquin's library as a
+particular case.
+]]
+
+[[2003 - multiindex_set]
+[
+The library grew enormously and was ready for a formal review in
+2003. At this point, the container was a lot more powerful, but
+everything comes with a price and this new beast lacked the simplicity
+of the original bimap.
+]]
+
+[[2004 - indexed_set]
+[
+In 2004, the formal review ended well for the new multi-indexed
+container. This Swiss army knife introduced several new features, such
+as non-unique indexes, hashed indices and sequenced indices. In the list
+of improvements to the library, it was mentioned that a bidirectional
+map should be coded in top of this container.
+]]
+
+[[2005 - multi_index_container]
+[
+Once in Boost, the library switched to the now familiar name
+"Boost.MultiIndex". Late in 2004, it formally became a member of Boost.
+Joaquin continued to enchance the library and added new features such as
+composite keys and random-access indices.
+]]
+
+[[2006 - Multi Index Specialized Containers SoC project]
+[
+In 2006, during the formal review of Boost.Property_tree, the need
+for a bidirectional map container built on top of Boost.MultiIndex arose
+again. Boost entered the Google SoC 2006 as a mentor organization at the
+same time. Joaquin put himself forward as a mentor. He proposed to build
+not only a bidirectional map, but a myriad multi-indexed specialized
+containers. Matias Capeletto presented an application to code Boost.Misc
+for the SoC and was elected, along with nine other students. Matias's and
+Joaquin's SoC project ends with a working implementation of the bimap
+library that was presented in an informal review. By the end of the year
+the library was queued for a formal review.
+]]
+
+[[2007 - Boost.Bimap]
+[
+The formal review took place at the beggining of the year and Boost.Bimap 
+was accepted in Boost.
+]]
+]
+
+[endsect]
+
+[section MultiIndex and Bimap]
+
+This is the conversation thread that began during Boost.PropertyTree formal
+review process. The review was very interesting and very deep topics were 
+addressed. It is quite interesting and it is now part of this library history.
+Enjoy!
+
+
+[*Marcin]
+[:['
+The biggest virtue of property_tree is easy to use interface.
+If we try to make generic tree of it, it will be compromised.
+]]
+
+[*Gennadiy]
+[:['
+IMO the same result (as library presents) could be achieved
+just by using multi_index.
+]]
+
+[*Marcin]
+[:['
+Could you elaborate more on that? I considered use of
+multi_index to implement indexing for properties, but it only affected the
+implementation part of library, not interface, and because I already had a
+working, exception safe solution, I didn't see the reason to dump it and add
+another dependency on another library.
+]]
+
+[*Gennadiy]
+[:['
+I mean why do I need this half baked property_tree as another
+data structure? Property tree supports nothing in itself. It's just a data
+structure. You have parsers that produce property tree out of different sources.
+But you mat as well produce maps or something else. Here for example All that
+I need to do to "implement" similar functionality as your property tree:
+]]
+
+``
+// Data structure itself
+template<typename ValueType,typename KeyType>
+struct Node;
+template<typename ValueType,typename KeyType>
+struct ptree_gen {
+    typedef std::pair<KeyType,Node<ValueType,KeyType> > mi_value;
+    typedef multi_index_container<mi_value, indexed_by<...> > type;
+};
+template<typename ValueType,typename KeyType>
+struct Node {
+    ValueType v;
+    ptree_gen<ValueType,KeyType>::type children;
+};
+// serialization support
+template<class Archive,typename ValueType,typename KeyType>
+void serialize(Archive & ar, Node<ValueType,KeyType>& n,
+               const unsigned int version)
+{
+    ar & n.v;
+    ar & n.children;
+}
+// some access methods
+template<typename ValueType,typename KeyType>
+ValueType const&
+get( string const& keys, ptree_gen<ValueType,KeyType>::type const& src )
+{
+    std::pait<string,string> sk = split( keys, "." );
+    Node const& N = src.find( sk.first );
+    return sk.second.empty() ? N.v : get( sk.second, N.children );
+}
+``
+
+[:['
+Use it like this:
+]]
+
+``
+ptree_gen<string,string>::type PT;
+boost::archive::text_iarchive ia( std::ifstream ifs("filename") );
+ia >> PT;
+string value = get( "a.b.c.d", PT );
+``
+
+[:['
+Now tell me how property_tree interface is easier? And what is the value in
+50k of Code you need to implement this data structure.
+]]
+
+[*Thorsten]
+[:['
+Seriously Gennadiy, do you really see newbies writing
+the code you just did?
+]]
+
+[*Marcin]
+[:['
+What you just implemented is stripped down, bare bones version
+of property_tree that, among other things, does not allow you to produce human
+editable XML files. Now add more interface (aka get functions), add more
+archives to serialization lib, add customization, add transparent
+translation from strings to arbitrary types and vice versa. Spend some weeks
+trying to get all the corner cases right, and then some more weeks trying to
+smooth rough edges in the interface. Then write tests. Write docs. At the
+end, I believe you will not get much less code than there is in the library
+already. Maybe you get some savings by using multi_index instead of manual
+indexing.
+]]
+[:['
+The reason why ptree does not use multi index is because implementation
+existed long before I considered submitting to boost, probably before even I
+knew of multi index existence. It was working well. Later, when I was
+improving it during pre-review process, I seriously considered using
+multi-index. But I decided it is not worth throwing everything out.
+]]
+[:['
+Although ptree has large interface with many functions modifying state of
+the tree, it uses "single point of change" approach. Every insert eventually
+goes through one function, which takes care of exception safety and keeping
+index in sync with data. The same applies to erase. This function has 9
+lines of code in case of insert, and (by coincidence) also 9 in case of
+erase. By using multi index these functions would obviously be simplified,
+maybe to 4 lines each. Net gain: 10 lines of code (out of several hundred in
+ptree_implementation.hpp).
+]]
+[:['
+I'm aware that there are performance gains to be reaped as well, but at that
+time I was rather focusing on getting the interface right.
+]]
+
+[*Dave]
+[:['
+That's perfectly reasonable, but (through no fault of yours) 
+it misses the point I was trying to make.  I guess I should have said,
+"...that demonstrates it to be the best implementation."
+]]
+[:['
+All I'm saying is that the extent to which a Boost library
+implementation should leverage other Boost libraries is not a question
+that can always be decided based on following simple guidelines, and
+that if this library is accepted, it's worth revisiting your decision.
+]]
+
+[*Thorsten]
+[:['
+I think it is important to focus on the interface in 
+the review, but I also see several benefits of an implementation that builds on
+Boost.MultiIndex:'
+]]
+[:['- fewer bugs like the one Joaquin found]]
+[:['- better space efficiency]]
+[:['- exception-safety guarantees are immediately full-filled (I haven't
+looked, but I suspect that there are several bugs in this area)]]
+
+[*Daniel]
+[:['
+Multi_index supports everything a bimap would, but its
+interface is more cumbersome. I for one won't use a W3DOM-like library
+if we get one, but I would happily use property_tree. I've also only
+used multi_index once, and that was to use it as a bidirectional map.
+Property_tree covers other areas as well as being a potential subset of
+an XML library, but I still hold there is value in such a subset.
+]]
+
+[*Boris]
+[:['
+I haven't used program_options yet. But if I understand
+correctly both libraries seem to support storing and accessing data with
+strings that might describe some kind of hierarchy. This seems to be the core
+idea of both libraries - is this correct?
+]]
+[:['
+Then it wouldn't matter much what container is used. However a generic tree
+which can store data hierarchically probably makes most sense. If I
+understand correctly both libraries could make use of such a class?
+]]
+
+[*Marcin]
+[:['
+I think generic tree container is material for another library.
+Whether property_tree should be based on it or not is a matter of internal
+implementation, and generally of little interest to users. The biggest value
+of property_tree is in its easy to use interface, that should not be
+compromised, if at all possible. I have been already reassured in this view
+by quite many people who took their time to review the library.
+]]
+
+[*Boris]
+[:['
+I was trying to see the big picture: I rather prefer a C++
+standard based on a few well-known concepts like containers, iterators,
+algorithms etc. instead of having a C++ standard with hundreds of components 
+which are tailored for specific needs, collaborate with only a handful of other
+components and think they provide an easy-to-use interface while all the
+easy-to-use interfaces make the whole standard less easy-to-use.
+]]
+[:['
+That said I have used your property tree library myself to read and write a
+configuration file. It was indeed very easy to use. However it would have
+been even easier if it was something I had known before like eg. an
+iterator. For now I will definitely use your property tree library but would
+appreciate if existing concepts were reused many C++ developers are familiar
+with. My opinion is that your library should be a part of Boost but should
+be more generalized in the future.
+]]
+
+[*Thorsten]
+[:['
+Well, I think we need both. Boost.MultiIndex is a great 
+library and can do all kinds of wonderful things. But I would still like to see
+a bidirectional map (boost::bimap) written as a wrapper around it to
+get an easy and specialized interface.
+]]
+
+[*Pavel]
+[:['
+Bimap is available in libs/multi-index/examples/bimap.cpp.
+]]
+
+[*Thorsten]
+[:['
+Right, but the real value comes when somebody designs a nice
+STL-like interface and write docs etc, at least that was my point.
+]]
+
+[*Dave]
+[:['
+IMO Thorsten is exactly right.  This is precisely the sort of 
+thing that could be added to the library as part of its ongoing maintenance
+and development (without review, of course).
+]]
+
+[*Joaquin]
+[:['
+Thorsten, we have talked about this privately in the past, 
+but I feel like bringing it to the list in the hope of getting the attention 
+of potential contributors:
+]]
+[:['
+There are some data structures buildable with B.MI which are regarded as
+particularly useful or common, like for instance the bidirectional map or
+bimap. A lean and mean implementation is provided in the aforementioned
+example, but certainly a much carefully crafted interface can be provided
+keeping B.MI as the implementation core: operator\[\], selection of
+1-1/1-N/N-1/N-N variants, hashing/ordering, etc.
+]]
+[:['
+I'm afraid I don't have the time to pursue this, as the current roadmap for
+core features of B.MI is taking all the spare time I can dedicate to the
+library. For this reason, I would love to see some volunteer jumping in who
+can develop this and other singular containers using B.MI (a cache container
+comes to mind) and then propose the results here either as a stand alone 
+library of as part of B.MI --I'd prefer the former so as to keep the size
+of B.MI bounded.
+]]
+[:['
+If there's such a volunteer I can provide her with some help/mentoring. I also
+wonder whether this is a task suitable to be proposed for Google Summer of 
+Code.
+]]
+
+[*Thorsten]
+[:['
+I think it would be good for SOC. All the really hard things
+are taken care of by B.MI, and so it seems reasonable for a student to be able
+to fill in the details.
+]]
+
+[*Dave]
+[:['
+Great!
+]]
+
+[*Jeff]
+[:['
+Please write a proposal!
+]]
+
+[*Joaquin]
+[:['
+I've just done so:
+]]
+
+[blurb *Specialized containers with Boost.MultiIndex*
+
+    *Introduction*
+
+    Boost.MultiIndex allows the construction of complex data structures involving
+    two or more indexing mechanisms on the same set of elements. Out of the
+    unlimited range of possible data structures specifiable within
+    Boost.MultiIndex, some particular configurations arise recurrently:
+
+    *a.* A bidirectional map or bimap is a container of elements of type pair<T,Q>
+    where fast look up is provided both for the T and the Q field,
+    in contrast with a regular STL map which only allows for fast look up on T.
+
+    *b.* An MRU (most recently used) list keeps the n last referenced elements:
+    when a new item is inserted and the list has reached its maximum length, the
+    oldest element is erased, whereas if an insertion is tried of a preexistence
+    element, this gets promoted to the first position. MRU lists can be used to
+    implement dynamic caches and the kind of behavior exhibited by programs
+    featuring a "Recent files" menu command, for instance.
+
+    Although Boost.MultiIndex provides the mechanisms to build these common structures,
+    the resulting interface can be cumbersome and too general in comparison with
+    specialized containers focusing on such particular structures.
+
+    *Goal*
+
+    To write a library of specialized containers like the ones described above, using
+    Boost.MultiIndex as the implementation core. Besides bimap and MRU list, the student
+    can also propose other specialized containers of interest in the community. It is
+    expected that the library meets the standards of quality required by Boost for an
+    eventual inclusion in this project, which implies a strong emphasis on interface
+    design, documentation and unit testing; the mentor will be guiding the student
+    through the complete cycle from specification and requirements gathering to
+    documentation and actual coding. The final result of the project must then contain:
+
+    *a.* Source code following
+    [@http://boost.org/more/lib_guide.htm#Guidelines Boost programming guidelines].
+
+    *b.* User documentation. Requirements on the format are loose, though the
+    [@http://www.boost.org/tools/quickbook/ QuickBook] format is
+    gaining acceptance within Boost.
+
+    *c.* Complete set of unit tests powered by
+    [@http://www.boost.org/boost-build2/ Boost Build System V2].
+
+    *Requirements*
+
+    *a.* Intermediate-to-high level in C++, with emphasis in generic programming
+    (templates).
+
+    *b.* Knowledge of the STL framework and design principles. Of course, knowledge
+    of Boost in general and Boost.MultiIndex in particular is a big plus.
+
+    *c.* Acquaintance with at least two different C++ programming environments.
+
+    *d.* Some fluency in the English language; subsequent reviews of the documentation
+    can help smooth rough edges here, though.
+
+    *e.* A mathematical inclination and previous exposure to a formal Algorithms course
+    would help very much.
+
+    *f.* A craving for extreme quality work.
+
+    *Benefits for the student*
+
+    The student taking on this project will have the opportunity to learn the complete
+    process of software production inside a highly regarded C++ open source institution,
+    and even see her work included in Boost eventually. The completion of the project
+    involves non-trivial problems in C++ interface design and so-called modern C++
+    programming, high quality user documentation and unit testing. The student will
+    also learn, perhaps to her surprise, that most of the time will be spent gathering
+    and trying ideas and, in general, thinking, rather than writing actual code.
+]
+
+[*Matias]
+[:['
+I am planning to submit an application to SoC. I will love to make real
+the specialized containers you mention and try to include some useful others.
+]]
+
+[:[^
+And then... after long hours of coding (and fun) this library saw the light.
+]]
+
+[:__BOOST_BIMAP_LOGO__]
+
+[endsect]
+
+[endsect]

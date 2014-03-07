@@ -1,0 +1,934 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Associated Types</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../interface.html" title="Interface">
+<link rel="prev" href="required_concepts.html" title="Required Concepts">
+<link rel="next" href="function_synopsis.html" title="Function Synopsis">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="required_concepts.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interface.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="function_synopsis.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_interface_associated_types" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.interface.associated_types"></a><a class="link" href="associated_types.html" title="Associated Types">Associated Types</a>
+</h3></div></div></div>
+<p>
+        In order to give an overview over <span class="emphasis"><em><span class="bold"><strong>associated
+        types</strong></span></em></span> the <span class="bold"><strong>icl</strong></span> works
+        with, we will apply abbreviations again that were introduced in the presentaiton
+        of icl class templates,
+      </p>
+<pre class="programlisting">interval     &lt;D,       cp,             &gt;
+interval_sets&lt;D,       cp,        I, a &gt;
+interval_maps&lt;D, C, T, cp, cb, s, I, a &gt;
+icl::map     &lt;D, C, T, cp, cb, s,    a &gt;
+</pre>
+<p>
+        where these placeholders were used:
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting"><span class="identifier">D</span>  <span class="special">:=</span> <span class="keyword">class</span> <span class="identifier">DomainT</span><span class="special">,</span>
+<span class="identifier">C</span>  <span class="special">:=</span> <span class="keyword">class</span> <span class="identifier">CodomainT</span><span class="special">,</span>
+<span class="identifier">T</span>  <span class="special">:=</span> <span class="keyword">class</span> <span class="identifier">Traits</span><span class="special">,</span>
+<span class="identifier">cp</span> <span class="special">:=</span> <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">D</span><span class="special">&gt;</span><span class="keyword">class</span> <span class="identifier">Compare</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">,</span>
+<span class="identifier">cb</span> <span class="special">:=</span> <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">C</span><span class="special">&gt;</span><span class="keyword">class</span> <span class="identifier">Combine</span> <span class="special">=</span> <span class="identifier">icl</span><span class="special">::</span><span class="identifier">inplace_plus</span><span class="special">,</span>
+<span class="identifier">s</span>  <span class="special">:=</span> <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">C</span><span class="special">&gt;</span><span class="keyword">class</span> <span class="identifier">Section</span> <span class="special">=</span> <span class="identifier">icl</span><span class="special">::</span><span class="identifier">inplace_et</span><span class="special">,</span>
+<span class="identifier">I</span>  <span class="special">:=</span> <span class="keyword">class</span> <span class="identifier">Interval</span> <span class="special">=</span> <span class="identifier">icl</span><span class="special">::</span><span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">cp</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">a</span>  <span class="special">:=</span> <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span><span class="keyword">class</span> <span class="identifier">Alloc</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span>
+</pre>
+<p>
+        With some additions, 
+</p>
+<pre class="programlisting"><span class="identifier">sz</span> <span class="special">:=</span> <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">D</span><span class="special">&gt;</span><span class="keyword">class</span> <span class="identifier">size</span>
+<span class="identifier">df</span> <span class="special">:=</span> <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">D</span><span class="special">&gt;</span><span class="keyword">class</span> <span class="identifier">difference</span>
+<span class="identifier">Xl</span> <span class="special">:=</span> <span class="keyword">class</span> <span class="identifier">ExclusiveLess</span> <span class="special">=</span> <span class="identifier">exclusive_less</span><span class="special">&lt;</span><span class="identifier">Interval</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="identifier">inv</span><span class="special">:=</span> <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Combiner</span><span class="special">&gt;</span><span class="keyword">class</span> <span class="identifier">inverse</span>
+<span class="special">(</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">U</span><span class="special">)</span> <span class="special">:=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">U</span><span class="special">&gt;</span> <span class="keyword">for</span> <span class="identifier">typnames</span> <span class="identifier">T</span><span class="special">,</span><span class="identifier">U</span>
+</pre>
+<p>
+      </p>
+<p>
+        we can summarize the associated types as follows. Again two additional columns
+        for easy comparison with stl sets and maps are provided.
+      </p>
+<div class="table">
+<a name="id1146193"></a><p class="title"><b>Table&#160;1.12.&#160;Icl Associated types</b></p>
+<div class="table-contents"><table class="table" summary="Icl Associated types">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+            <p>
+              Purpose
+            </p>
+            </th>
+<th>
+            <p>
+              Aspect
+            </p>
+            </th>
+<th>
+            <p>
+              Type
+            </p>
+            </th>
+<th>
+            <p>
+              intervals
+            </p>
+            </th>
+<th>
+            <p>
+              interval<br> sets
+            </p>
+            </th>
+<th>
+            <p>
+              interval<br> maps
+            </p>
+            </th>
+<th>
+            <p>
+              element<br> sets
+            </p>
+            </th>
+<th>
+            <p>
+              element<br> maps
+            </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+            <p>
+              <span class="emphasis"><em><span class="bold"><strong>Data</strong></span></em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              fundamental
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">domain_type</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">codomain_type</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">C</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">C</span></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">element_type</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="special">(</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">C</span><span class="special">)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="special">(</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">C</span><span class="special">)</span></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">segment_type</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">cp</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">cp</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="special">(</span><span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">cp</span><span class="special">&gt;,</span><span class="identifier">C</span><span class="special">)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>size</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">size_type</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">sz</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">sz</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">sz</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">sz</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">sz</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">difference_type</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">df</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">df</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">df</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">sz</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">sz</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              intervals
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> maps
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> maps
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <span class="emphasis"><em><span class="bold"><strong>Data</strong></span></em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              segmental
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">key_type</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">cp</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">cp</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">data_type</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">cp</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">C</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">C</span></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">value_type</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">cp</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="special">(</span><span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">cp</span><span class="special">&gt;,</span><span class="identifier">C</span><span class="special">)</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">D</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="special">(</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">C</span><span class="special">)</span></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">interval_type</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">cp</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">cp</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">cp</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <span class="emphasis"><em>allocation</em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">allocator_type</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">a</span><span class="special">&lt;</span><span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">cp</span><span class="special">&gt;&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">a</span><span class="special">&lt;(</span><span class="identifier">i</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">cp</span><span class="special">&gt;,</span>
+              <span class="identifier">C</span><span class="special">)&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">a</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">a</span><span class="special">&lt;(</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">C</span><span class="special">)&gt;</span></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              intervals
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              interval<br> maps
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> sets
+            </p>
+            </td>
+<td>
+            <p>
+              element<br> maps
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <span class="emphasis"><em><span class="bold"><strong>Ordering</strong></span></em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              fundamental
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">domain_compare</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">cp</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">cp</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">cp</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">cp</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">cp</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              segmental
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">key_compare</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">cp</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">Xl</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">Xl</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">cp</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">cp</span><span class="special">&lt;</span><span class="identifier">D</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">interval_compare</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">Xl</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">Xl</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <span class="emphasis"><em><span class="bold"><strong>Aggregation</strong></span></em></span>
+            </p>
+            </td>
+<td>
+            <p>
+              fundamental
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">codomain_combine</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">cb</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">cb</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">inverse_codomain_combine</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">inv</span><span class="special">&lt;</span><span class="identifier">cb</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">inv</span><span class="special">&lt;</span><span class="identifier">cb</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;&gt;</span></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">codomain_intersect</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">s</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">s</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;</span></code>
+            </p>
+            </td>
+</tr>
+<tr>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">inverse_codomain_intersect</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">inv</span><span class="special">&lt;</span><span class="identifier">s</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;&gt;</span></code>
+            </p>
+            </td>
+<td>
+            <p>
+            </p>
+            </td>
+<td>
+            <p>
+              <code class="computeroutput"><span class="identifier">inv</span><span class="special">&lt;</span><span class="identifier">s</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">&gt;&gt;</span></code>
+            </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="required_concepts.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../interface.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="function_synopsis.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

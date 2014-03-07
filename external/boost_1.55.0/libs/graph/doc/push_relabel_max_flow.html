@@ -1,0 +1,256 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Push-Relabel Maximum Flow</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:push_relabel_max_flow">
+<TT>push_relabel_max_flow</TT>
+</H1>
+
+<P>
+<PRE>
+<i>// named parameter version</i>
+template &lt;class Graph, class P, class T, class R&gt;
+typename property_traits&lt;CapacityEdgeMap&gt;::value_type
+push_relabel_max_flow(Graph&amp; g, 
+   typename graph_traits&lt;Graph&gt;::vertex_descriptor src,
+   typename graph_traits&lt;Graph&gt;::vertex_descriptor sink,
+   const bgl_named_params&lt;P, T, R&gt;&amp; params = <i>all defaults</i>)
+
+<i>// non-named parameter version</i>
+template &lt;class Graph, 
+	  class CapacityEdgeMap, class ResidualCapacityEdgeMap,
+	  class ReverseEdgeMap, class VertexIndexMap&gt;
+typename property_traits&lt;CapacityEdgeMap&gt;::value_type
+push_relabel_max_flow(Graph&amp; g, 
+   typename graph_traits&lt;Graph&gt;::vertex_descriptor src,
+   typename graph_traits&lt;Graph&gt;::vertex_descriptor sink,
+   CapacityEdgeMap cap, ResidualCapacityEdgeMap res,
+   ReverseEdgeMap rev, VertexIndexMap index_map)
+</PRE>
+
+<P>
+The <tt>push_relabel_max_flow()</tt> function calculates the maximum flow
+of a network. See Section <a
+href="./graph_theory_review.html#sec:network-flow-algorithms">Network
+Flow Algorithms</a> for a description of maximum flow.  The calculated
+maximum flow will be the return value of the function. The function
+also calculates the flow values <i>f(u,v)</i> for all <i>(u,v)</i> in
+<i>E</i>, which are returned in the form of the residual capacity
+<i>r(u,v) = c(u,v) - f(u,v)</i>. 
+
+<p>
+There are several special requirements on the input graph and property
+map parameters for this algorithm. First, the directed graph
+<i>G=(V,E)</i> that represents the network must be augmented to
+include the reverse edge for every edge in <i>E</i>.  That is, the
+input graph should be <i>G<sub>in</sub> = (V,{E U
+E<sup>T</sup>})</i>. The <tt>ReverseEdgeMap</tt> argument <tt>rev</tt>
+must map each edge in the original graph to its reverse edge, that is
+<i>(u,v) -> (v,u)</i> for all <i>(u,v)</i> in <i>E</i>. The
+<tt>CapacityEdgeMap</tt> argument <tt>cap</tt> must map each edge in
+<i>E</i> to a positive number, and each edge in <i>E<sup>T</sup></i>
+to 0.
+
+<p>
+This algorithm was developed by <a
+href="./bibliography.html#goldberg85:_new_max_flow_algor">Goldberg</a>.
+
+
+<H3>Complexity</H3>
+
+The time complexity is <i>O(V<sup>3</sup>)</i>.
+
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/push_relabel_max_flow.hpp"><TT>boost/graph/preflow_push_max_flow.hpp</TT></a>
+
+<P>
+
+<h3>Parameters</h3>
+
+IN: <tt>VertexListGraph&amp; g</tt>
+<blockquote>
+  A directed graph. The
+  graph's type must be a model of <a
+  href="./VertexListGraph.html">Vertex List Graph</a>. For each edge
+  <i>(u,v)</i> in the graph, the reverse edge <i>(v,u)</i> must also
+  be in the graph.
+</blockquote>
+
+IN: <tt>vertex_descriptor src</tt>
+<blockquote>
+  The source vertex for the flow network graph.
+</blockquote>
+  
+IN: <tt>vertex_descriptor sink</tt>
+<blockquote>
+  The sink vertex for the flow network graph.
+</blockquote>
+
+<h3>Named Parameters</h3>
+  
+IN: <tt>capacity_map(EdgeCapacityMap cap)</tt>
+<blockquote>
+  The edge capacity property map. The type must be a model of a
+  constant <a
+  href="../../property_map/doc/LvaluePropertyMap.html">Lvalue Property Map</a>. The
+  key type of the map must be the graph's edge descriptor type.<br>
+  <b>Default:</b> <tt>get(edge_capacity, g)</tt>
+</blockquote>
+  
+OUT: <tt>residual_capacity_map(ResidualCapacityEdgeMap res)</tt>
+<blockquote>
+  The edge residual capacity property map. The type must be a model of
+  a mutable <a
+  href="../../property_map/doc/LvaluePropertyMap.html">Lvalue Property Map</a>. The
+  key type of the map must be the graph's edge descriptor type.<br>
+  <b>Default:</b> <tt>get(edge_residual_capacity, g)</tt>
+</blockquote>
+  
+IN: <tt>reverse_edge_map(ReverseEdgeMap rev)</tt>
+<blockquote>
+  An edge property map that maps every edge <i>(u,v)</i> in the graph
+  to the reverse edge <i>(v,u)</i>. The map must be a model of
+  constant <a
+  href="../../property_map/doc/LvaluePropertyMap.html">Lvalue Property Map</a>. The
+  key type of the map must be the graph's edge descriptor type.<br>
+  <b>Default:</b> <tt>get(edge_reverse, g)</tt>
+</blockquote>
+   
+IN: <tt>vertex_index_map(VertexIndexMap index_map)</tt>
+<blockquote>
+  Maps each vertex of the graph to a unique integer in the range
+  <tt>[0, num_vertices(g))</tt>. The map must be a model of constant <a
+  href="../../property_map/doc/LvaluePropertyMap.html">LvaluePropertyMap</a>. The
+  key type of the map must be the graph's vertex descriptor type.<br>
+  <b>Default:</b> <tt>get(vertex_index, g)</tt>
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacenty_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.
+   <br>
+</blockquote>
+
+
+<h3>Example</h3>
+
+This reads in an example maximum flow problem (a graph with edge
+capacities) from a file in the DIMACS format. The source for this
+example can be found in <a
+href="../example/max_flow.cpp"><tt>example/max_flow.cpp</tt></a>.
+
+<pre>
+#include &lt;boost/config.hpp&gt;
+#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;boost/graph/push_relabel_max_flow.hpp&gt;
+#include &lt;boost/graph/adjacency_list.hpp&gt;
+#include &lt;boost/graph/read_dimacs.hpp&gt;
+
+int
+main()
+{
+  using namespace boost;
+
+  typedef adjacency_list_traits&lt;vecS, vecS, directedS&gt; Traits;
+  typedef adjacency_list&lt;vecS, vecS, directedS, 
+    property&lt;vertex_name_t, std::string&gt;,
+    property&lt;edge_capacity_t, long,
+      property&lt;edge_residual_capacity_t, long,
+	property&lt;edge_reverse_t, Traits::edge_descriptor&gt; &gt; &gt;
+  &gt; Graph;
+
+  Graph g;
+  long flow;
+
+  property_map&lt;Graph, edge_capacity_t&gt;::type 
+    capacity = get(edge_capacity, g);
+  property_map&lt;Graph, edge_reverse_t&gt;::type 
+    rev = get(edge_reverse, g);
+  property_map&lt;Graph, edge_residual_capacity_t&gt;::type 
+    residual_capacity = get(edge_residual_capacity, g);
+
+  Traits::vertex_descriptor s, t;
+  read_dimacs_max_flow(g, capacity, rev, s, t);
+
+  flow = push_relabel_max_flow(g, s, t);
+
+  std::cout &lt;&lt; "c  The total flow:" &lt;&lt; std::endl;
+  std::cout &lt;&lt; "s " &lt;&lt; flow &lt;&lt; std::endl &lt;&lt; std::endl;
+
+  std::cout &lt;&lt; "c flow values:" &lt;&lt; std::endl;
+  graph_traits&lt;Graph&gt;::vertex_iterator u_iter, u_end;
+  graph_traits&lt;Graph&gt;::out_edge_iterator ei, e_end;
+  for (tie(u_iter, u_end) = vertices(g); u_iter != u_end; ++u_iter)
+    for (tie(ei, e_end) = out_edges(*u_iter, g); ei != e_end; ++ei)
+      if (capacity[*ei] &gt; 0)
+        std::cout &lt;&lt; "f " &lt;&lt; *u_iter &lt;&lt; " " &lt;&lt; target(*ei, g) &lt;&lt; " " 
+                  &lt;&lt; (capacity[*ei] - residual_capacity[*ei]) &lt;&lt; std::endl;
+  return 0;
+}
+</pre>
+The output is:
+<pre>
+c  The total flow:
+s 4
+
+c flow values:
+f 0 1 4
+f 1 2 4
+f 2 3 2
+f 2 4 2
+f 3 1 0
+f 3 6 2
+f 4 5 3
+f 5 6 0
+f 5 7 3
+f 6 4 1
+f 6 7 1
+</pre>
+
+<h3>See Also</h3>
+
+<a href="./edmonds_karp_max_flow.html"><tt>edmonds_karp_max_flow()</tt></a><br>
+<a href="./boykov_kolmogorov_max_flow.html"><tt>boykov_kolmogorov_max_flow()</tt></a>.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 
+<!--  LocalWords:  HTML Siek BGCOLOR ffffff ee VLINK ALINK ff IMG SRC preflow
+ -->
+<!--  LocalWords:  gif ALT BR sec TT DIV CELLPADDING TR TD PRE lt
+ -->
+<!--  LocalWords:  typename VertexListGraph CapacityEdgeMap ReverseEdgeMap gt
+ -->
+<!--  LocalWords:  ResidualCapacityEdgeMap VertexIndexMap src rev ColorMap pred
+ -->
+<!--  LocalWords:  PredEdgeMap tt href html hpp ul li nbsp br LvaluePropertyMap
+ -->
+<!--  LocalWords:  num ColorValue DIMACS cpp pre config iostream dimacs int std
+ -->
+<!--  LocalWords:  namespace vecS directedS cout endl iter ei HR valign nowrap
+ -->
+<!--  LocalWords:  jeremy siek htm Univ mailto jsiek lsc edu
+ -->

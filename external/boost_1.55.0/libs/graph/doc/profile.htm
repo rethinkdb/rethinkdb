@@ -1,0 +1,44 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<!-- saved from url=(0050)http://www.boost.org/libs/graph/doc/bandwidth.html -->
+<HTML><HEAD><TITLE>Boost Graph Library: Bandwidth</TITLE>
+<META http-equiv=Content-Type content="text/html; charset=windows-1252"><!--
+  -- Copyright (c) Jeremy Siek 2000
+  --
+  -- Distributed under the Boost Software License, Version 1.0.
+  -- (See accompanying file LICENSE_1_0.txt or copy at
+  -- http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<META content="MSHTML 6.00.2715.400" name=GENERATOR></HEAD>
+<BODY text=#000000 vLink=#551a8b aLink=#ff0000 link=#0000ee bgColor=#ffffff>
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> <BR>
+<H1><A name=sec:bandwidth></a><tt>profile</tt> </H1>
+<PRE>  (1)
+  template &lt;typename Graph&gt;
+  typename graph_traits&lt;Graph&gt;::vertices_size_type
+  profile(const Graph&amp; g)
+
+  (2)
+  template &lt;typename Graph, typename VertexIndexMap&gt;
+  typename graph_traits&lt;Graph&gt;::vertices_size_type
+  profile(const Graph&amp; g, VertexIndexMap index_map)
+</PRE>
+<p>The<b> profile</b> is the sum of all the maximum distances between the <i>i-th</i> 
+  vertex and any of its neighbors with an index <i>j&gt;i</i>.</p>
+<p><BR>
+  <I>B(G) = max { |index[u] - index[v]|&nbsp;&nbsp;| (u,v) in E }</I><BR>
+</p>
+<H3>Defined in</H3>
+<A 
+href="http://www.boost.org/boost/graph/bandwidth.hpp"><TT>boost/graph/profile.hpp</TT></A> 
+<BR>
+<HR>
+
+<TABLE width="677">
+  <TBODY> 
+  <TR vAlign=top>
+    <TD noWrap>Copyright © 2001-2002</TD>
+    <TD>Marc Wintermantel, ETH Zurich (<A 
+      href="mailto:wintermantel@imes.mavt.ethz.ch">wintermantel@imes.mavt.ethz.ch</a>) 
+    </TD>
+  </TR></TBODY></TABLE></BODY></HTML>

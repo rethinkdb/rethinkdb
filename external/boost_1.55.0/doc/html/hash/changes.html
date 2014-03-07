@@ -1,0 +1,389 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Change Log</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../hash.html" title="Chapter&#160;12.&#160;Boost.Functional/Hash">
+<link rel="prev" href="disable.html" title="Disabling The Extensions">
+<link rel="next" href="rationale.html" title="Rationale">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="disable.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../hash.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rationale.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="hash.changes"></a><a class="link" href="changes.html" title="Change Log">Change Log</a>
+</h2></div></div></div>
+<h3>
+<a name="hash.changes.h0"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_33_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_33_0">Boost
+      1.33.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          Initial Release
+        </li></ul></div>
+<h3>
+<a name="hash.changes.h1"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_33_1"></a></span><a class="link" href="changes.html#hash.changes.boost_1_33_1">Boost
+      1.33.1</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          Fixed the points example, as pointed out by &#27784;&#24935;&#23792;.
+        </li></ul></div>
+<h3>
+<a name="hash.changes.h2"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_34_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_34_0">Boost
+      1.34.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Use declarations for standard classes, so that the library doesn't need
+          to include all of their headers
+        </li>
+<li class="listitem">
+          Deprecated the <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">functional</span><span class="special">/</span><span class="identifier">hash</span><span class="comment">/*.hpp&gt;</span></code> headers. Now a single header,
+          &lt;<code class="computeroutput"><a class="link" href="reference.html#header.boost.functional.hash_hpp" title="Header &lt;boost/functional/hash.hpp&gt;">boost/functional/hash.hpp</a></code>&gt;
+          is used.
+        </li>
+<li class="listitem">
+          Add support for the <code class="computeroutput"><span class="identifier">BOOST_HASH_NO_EXTENSIONS</span></code>
+          macro, which disables the extensions to TR1.
+        </li>
+<li class="listitem">
+          Minor improvements to the hash functions for floating point numbers.
+        </li>
+<li class="listitem">
+          Update the portable example to hopefully be more generally portable.
+        </li>
+</ul></div>
+<h3>
+<a name="hash.changes.h3"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_34_1"></a></span><a class="link" href="changes.html#hash.changes.boost_1_34_1">Boost
+      1.34.1</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/952" target="_top">Ticket 952</a>:
+          Suppress incorrect 64-bit warning on Visual C++.
+        </li></ul></div>
+<h3>
+<a name="hash.changes.h4"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_35_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_35_0">Boost
+      1.35.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Support for <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">long</span></code>,
+          <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">complex</span></code>.
+        </li>
+<li class="listitem">
+          Improved algorithm for hashing floating point numbers:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                Improved portablity, as described by Daniel Kr&#252;gler in <a href="http://lists.boost.org/boost-users/2005/08/13418.php" target="_top">a
+                post to the boost users list</a>.
+              </li>
+<li class="listitem">
+                Fits more information into each combine loop, which can reduce the
+                the number of times combine is called and hopefully give a better
+                quality hash function.
+              </li>
+<li class="listitem">
+                Improved the algorithm for hashing floating point numbers.
+              </li>
+<li class="listitem">
+                On Cygwin use a binary hash function for floating point numbers,
+                as Cygwin doesn't have decent floating point functions for <code class="computeroutput"><span class="keyword">long</span> <span class="keyword">double</span></code>.
+              </li>
+<li class="listitem">
+                Never uses <code class="computeroutput"><span class="identifier">fpclass</span></code>
+                which doesn't support <code class="computeroutput"><span class="keyword">long</span>
+                <span class="keyword">double</span></code>.
+              </li>
+<li class="listitem">
+                <a href="http://svn.boost.org/trac/boost/ticket/1064" target="_top">Ticket 1064</a>:
+                Removed unnecessary use of <code class="computeroutput"><span class="identifier">errno</span></code>.
+              </li>
+</ul></div>
+        </li>
+<li class="listitem">
+          Explicitly overload for more built in types.
+        </li>
+<li class="listitem">
+          Minor improvements to the documentation.
+        </li>
+<li class="listitem">
+          A few bug and warning fixes:
+          <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; ">
+<li class="listitem">
+                <a href="http://svn.boost.org/trac/boost/ticket/1509" target="_top">Ticket 1509</a>:
+                Suppress another Visual C++ warning.
+              </li>
+<li class="listitem">
+                Some workarounds for the Sun compilers.
+              </li>
+</ul></div>
+        </li>
+</ul></div>
+<h3>
+<a name="hash.changes.h5"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_36_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_36_0">Boost
+      1.36.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Stop using OpenBSD's dodgy <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span></code>.
+        </li>
+<li class="listitem">
+          Using the boost typedefs for <code class="computeroutput"><span class="keyword">long</span>
+          <span class="keyword">long</span></code> and <code class="computeroutput"><span class="keyword">unsigned</span>
+          <span class="keyword">long</span> <span class="keyword">long</span></code>.
+        </li>
+<li class="listitem">
+          Move the extensions into their own header.
+        </li>
+</ul></div>
+<h3>
+<a name="hash.changes.h6"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_37_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_37_0">Boost
+      1.37.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/2264" target="_top">Ticket 2264</a>:
+          In Visual C++, always use C99 float functions for <code class="computeroutput"><span class="keyword">long</span>
+          <span class="keyword">double</span></code> and <code class="computeroutput"><span class="keyword">float</span></code>
+          as the C++ overloads aren't always availables.
+        </li></ul></div>
+<h3>
+<a name="hash.changes.h7"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_38_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_38_0">Boost
+      1.38.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Changed the warnings in the deprecated headers from 1.34.0 to errors. These
+          will be removed in a future version of Boost.
+        </li>
+<li class="listitem">
+          Moved detail headers out of <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">functional</span><span class="special">/</span><span class="identifier">detail</span></code>,
+          since they are part of functional/hash, not functional. <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">functional</span><span class="special">/</span><span class="identifier">detail</span><span class="special">/</span><span class="identifier">container_fwd</span><span class="special">.</span><span class="identifier">hpp</span></code>
+          has been moved to <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">detail</span><span class="special">/</span><span class="identifier">container_fwd</span><span class="special">.</span><span class="identifier">hpp</span></code>
+          as it's used outside of this library, the others have been moved to <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">functional</span><span class="special">/</span><span class="identifier">hash</span><span class="special">/</span><span class="identifier">detail</span></code>.
+        </li>
+</ul></div>
+<h3>
+<a name="hash.changes.h8"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_39_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_39_0">Boost
+      1.39.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Move the hash_fwd.hpp implementation into the hash subdirectory, leaving
+          a forwarding header in the old location. You should still use the old location,
+          the new location is mainly for implementation and possible modularization.
+        </li>
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/2412" target="_top">Ticket 2412</a>:
+          Removed deprecated headers.
+        </li>
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/2957" target="_top">Ticket 2957</a>:
+          Fix configuration for vxworks.
+        </li>
+</ul></div>
+<h3>
+<a name="hash.changes.h9"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_40_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_40_0">Boost
+      1.40.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Automatically configure the float functions using template metaprogramming
+          instead of trying to configure every possibility manually.
+        </li>
+<li class="listitem">
+          Workaround for when STLport doesn't support long double.
+        </li>
+</ul></div>
+<h3>
+<a name="hash.changes.h10"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_42_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_42_0">Boost
+      1.42.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Reduce the number of warnings for Visual C++ warning level 4.
+        </li>
+<li class="listitem">
+          Some code formatting changes to fit lines into 80 characters.
+        </li>
+<li class="listitem">
+          Rename an internal namespace.
+        </li>
+</ul></div>
+<h3>
+<a name="hash.changes.h11"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_43_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_43_0">Boost
+      1.43.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/3866" target="_top">Ticket 3866</a>:
+          Don't foward declare containers when using gcc's parallel library, allow
+          user to stop forward declaration by defining the <code class="computeroutput"><span class="identifier">BOOST_DETAIL_NO_CONTAINER_FWD</span></code>
+          macro.
+        </li>
+<li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/4038" target="_top">Ticket 4038</a>:
+          Avoid hashing 0.5 and 0 to the same number.
+        </li>
+<li class="listitem">
+          Stop using deprecated <code class="computeroutput"><span class="identifier">BOOST_HAS_</span><span class="special">*</span></code> macros.
+        </li>
+</ul></div>
+<h3>
+<a name="hash.changes.h12"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_44_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_44_0">Boost
+      1.44.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          Add option to prevent implicit conversions when calling <code class="computeroutput"><span class="identifier">hash_value</span></code>
+          by defining <code class="computeroutput"><span class="identifier">BOOST_HASH_NO_IMPLICIT_CASTS</span></code>.
+          When using <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">hash</span></code> for a type that does not have <code class="computeroutput"><span class="identifier">hash_value</span></code> declared but does have an
+          implicit conversion to a type that does, it would use that implicit conversion
+          to hash it. Which can sometimes go very wrong, e.g. using a conversion
+          to bool and only hashing to 2 possible values. Since fixing this is a breaking
+          change and was only approached quite late in the release cycle with little
+          discussion it's opt-in for now. This, or something like it, will become
+          the default in a future version.
+        </li></ul></div>
+<h3>
+<a name="hash.changes.h13"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_46_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_46_0">Boost
+      1.46.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          Avoid warning due with gcc's <code class="computeroutput"><span class="special">-</span><span class="identifier">Wconversion</span></code> flag.
+        </li></ul></div>
+<h3>
+<a name="hash.changes.h14"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_50_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_50_0">Boost
+      1.50.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6771" target="_top">Ticket 6771</a>:
+          Avoid gcc's <code class="computeroutput"><span class="special">-</span><span class="identifier">Wfloat</span><span class="special">-</span><span class="identifier">equal</span></code>
+          warning.
+        </li>
+<li class="listitem">
+          <a href="http://svn.boost.org/trac/boost/ticket/6806" target="_top">Ticket 6806</a>:
+          Support <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">array</span></code> and <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">tuple</span></code>
+          when available.
+        </li>
+<li class="listitem">
+          Add deprecation warning to the long deprecated <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">functional</span><span class="special">/</span><span class="identifier">detail</span><span class="special">/</span><span class="identifier">container_fwd</span><span class="special">.</span><span class="identifier">hpp</span></code>.
+        </li>
+</ul></div>
+<h3>
+<a name="hash.changes.h15"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_51_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_51_0">Boost
+      1.51.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Support the standard smart pointers.
+        </li>
+<li class="listitem">
+          <code class="computeroutput"><span class="identifier">hash_value</span></code> now implemented
+          using SFINAE to avoid implicit casts to built in types when calling it.
+        </li>
+<li class="listitem">
+          Updated to use the new config macros.
+        </li>
+</ul></div>
+<h3>
+<a name="hash.changes.h16"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_52_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_52_0">Boost
+      1.52.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Restore <code class="computeroutput"><span class="keyword">enum</span></code> support, which
+          was accidentally removed in the last version.
+        </li>
+<li class="listitem">
+          New floating point hasher - will hash the binary representation on more
+          platforms, which should be faster.
+        </li>
+</ul></div>
+<h3>
+<a name="hash.changes.h17"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_53_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_53_0">Boost
+      1.53.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Add support for <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">int128_type</span></code> and <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">uint128_type</span></code>
+          where available - currently only <code class="computeroutput"><span class="identifier">__int128</span></code>
+          and <code class="computeroutput"><span class="keyword">unsigned</span> <span class="identifier">__int128</span></code>
+          on some versions of gcc.
+        </li>
+<li class="listitem">
+          On platforms that are known to have the standard floating point functions,
+          don't use automatic detection - which can break if there are ambiguous
+          overloads.
+        </li>
+<li class="listitem">
+          Fix undefined behaviour when using the binary float hash (Thomas Heller).
+        </li>
+</ul></div>
+<h3>
+<a name="hash.changes.h18"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_54_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_54_0">Boost
+      1.54.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+          <a href="https://svn.boost.org/trac/boost/ticket/7957" target="_top">Ticket 7957</a>:
+          Fixed a typo.
+        </li></ul></div>
+<h3>
+<a name="hash.changes.h19"></a>
+      <span class="phrase"><a name="hash.changes.boost_1_55_0"></a></span><a class="link" href="changes.html#hash.changes.boost_1_55_0">Boost
+      1.55.0</a>
+    </h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          Simplify a SFINAE check so that it will hopefully work on Sun 5.9 (<a href="https://svn.boost.org/trac/boost/ticket/8822" target="_top">#8822</a>).
+        </li>
+<li class="listitem">
+          Suppress Visual C++ infinite loop warning (<a href="https://svn.boost.org/trac/boost/ticket/8568" target="_top">#8568</a>).
+        </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2008 Daniel
+      James<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="disable.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../hash.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rationale.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

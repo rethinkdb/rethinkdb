@@ -1,0 +1,44 @@
+
+# Copyright (C) 2009-2012 Lorenzo Caminiti
+# Distributed under the Boost Software License, Version 1.0
+# (see accompanying file LICENSE_1_0.txt or a copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+# Home at http://www.boost.org/libs/utility/identity_type
+
+import quickbook ;
+using boostbook ;
+
+doxygen reference : ../../../../boost/utility/identity_type.hpp
+    :   <reftitle>"Reference"
+        <doxygen:param>PREDEFINED="DOXYGEN"
+        <doxygen:param>QUIET=YES
+        <doxygen:param>WARN_IF_UNDOCUMENTED=NO
+        <doxygen:param>HIDE_UNDOC_MEMBERS=YES
+        <doxygen:param>HIDE_UNDOC_CLASSES=YES
+        <doxygen:param>ALIASES=" Params=\"<b>Parameters:</b> <table border="0">\" Param{2}=\"<tr><td><b><tt>\\1</tt></b></td><td>\\2</td></tr>\" EndParams=\"</table>\" Returns=\"<b>Returns:</b>\" Note=\"<b>Note:</b>\" Warning=\"<b>Warning:</b>\" See=\"<b>See:</b>\" RefSect{2}=\"\\xmlonly<link linkend='boost_utility_identitytype.\\1'>\\2</link>\\endxmlonly\" RefClass{1}=\"\\xmlonly<computeroutput><classname alt='\\1'>\\1</classname></computeroutput>\\endxmlonly\" RefFunc{1}=\"\\xmlonly<computeroutput><functionname alt='\\1'>\\1</functionname></computeroutput>\\endxmlonly\" RefMacro{1}=\"\\xmlonly<computeroutput><macroname alt='\\1'>\\1</macroname></computeroutput>\\endxmlonly\" "
+    ;
+
+# This target must be called "index" so to generate "index.html" file.
+xml index : identity_type.qbk : <dependency>reference ;
+
+boostbook doc : index
+    :   <location>html
+        <format>onehtml
+        <xsl:param>toc.section.depth=0
+        <xsl:param>html.stylesheet=../../../../../doc/src/boostbook.css
+        <xsl:param>boost.root=../../../../..
+    ;
+
+#
+# This is very imperfect - it results in both html and pdf docs being built,
+# for some reason I can't get the "onehtml" format specified above to play nice
+# with the usual incantations for mixed pdf/html builds. JM 06/2012.
+#
+boostbook pdf_doc : index
+    :
+       <format>pdf
+       <format>html:<build>no
+    ;
+
+install pdf_doc_install : pdf_doc : <location>. <name>identity_type.pdf <install-type>PDF ;
+explicit pdf_doc_install ;

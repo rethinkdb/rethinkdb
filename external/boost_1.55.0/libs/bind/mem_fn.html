@@ -1,0 +1,406 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+	<head>
+		<title>Boost: mem_fn.hpp documentation</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	</head>
+	<body bgcolor="white" style="MARGIN-LEFT: 5%; MARGIN-RIGHT: 5%">
+		<table border="0" width="100%">
+			<tr>
+				<td width="277"><A href="../../index.htm"> <img src="../../boost.png" alt="boost.png (6897 bytes)" width="277" height="86" border="0"></A>
+				</td>
+				<td align="center">
+					<h1>mem_fn.hpp</h1>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2" height="64">&nbsp;</td>
+			</tr>
+		</table>
+		<h2>Contents</h2>
+		<h3 style="MARGIN-LEFT: 20pt"><a href="#Purpose">Purpose</a></h3>
+		<h3 style="MARGIN-LEFT: 20pt"><a href="#FAQ">Frequently Asked Questions</a></h3>
+		<h4 style="MARGIN-LEFT: 40pt"><a href="#Q1">Can <b>mem_fn</b> be used instead of the 
+				standard <b>std::mem_fun[_ref]</b> adaptors?</a></h4>
+		<h4 style="MARGIN-LEFT: 40pt"><a href="#Q2">Should I replace every occurence of <b>std::mem_fun[_ref]</b>
+				with <b>mem_fn</b> in my existing code?</a></h4>
+		<h4 style="MARGIN-LEFT: 40pt"><a href="#Q3">Does <b>mem_fn</b> work with COM methods?</a></h4>
+		<h4 style="MARGIN-LEFT: 40pt"><a href="#Q4">Why isn't BOOST_MEM_FN_ENABLE_STDCALL 
+				defined automatically?</a></h4>
+		<h3 style="MARGIN-LEFT: 20pt"><a href="#Interface">Interface</a></h3>
+		<h4 style="MARGIN-LEFT: 40pt"><a href="#Synopsis">Synopsis</a></h4>
+		<h4 style="MARGIN-LEFT: 40pt"><a href="#CommonRequirements">Common requirements</a></h4>
+		<h4 style="MARGIN-LEFT: 40pt"><a href="#get_pointer">get_pointer</a></h4>
+		<h4 style="MARGIN-LEFT: 40pt"><a href="#mem_fn">mem_fn</a></h4>
+		<h3 style="MARGIN-LEFT: 20pt"><a href="#Implementation">Implementation</a></h3>
+		<h4 style="MARGIN-LEFT: 40pt"><a href="#Files">Files</a></h4>
+		<h4 style="MARGIN-LEFT: 40pt"><a href="#Dependencies">Dependencies</a></h4>
+		<h4 style="MARGIN-LEFT: 40pt"><a href="#NumberOfArguments">Number of Arguments</a></h4>
+		<h4 style="MARGIN-LEFT: 40pt"><a href="#stdcall">"__stdcall", "__cdecl" and 
+				"__fastcall" Support</a></h4>
+		<h3 style="MARGIN-LEFT: 20pt"><a href="#Acknowledgements">Acknowledgements</a></h3>
+		<h2><a name="Purpose">Purpose</a></h2>
+		<p>
+			<b>boost::mem_fn</b> is a generalization of the standard functions <b>std::mem_fun</b>
+			and <b>std::mem_fun_ref</b>. It supports member function pointers with more 
+			than one argument, and the returned function object can take a pointer, a 
+			reference, or a smart pointer to an object instance as its first argument. <STRONG>mem_fn</STRONG>
+			also supports pointers to data members by treating them as functions taking no 
+			arguments and returning a (const) reference to the member.
+		</p>
+		<p>
+			The purpose of <b>mem_fn</b> is twofold. First, it allows users to invoke a 
+			member function on a container with the familiar
+		</p>
+		<pre>
+    std::for_each(v.begin(), v.end(), boost::mem_fn(&amp;Shape::draw));
+</pre>
+		<p>
+			syntax, even when the container stores smart pointers.
+		</p>
+		<p>
+			Second, it can be used as a building block by library developers that want to 
+			treat a pointer to member function as a function object. A library might define 
+			an enhanced <b>for_each</b> algorithm with an overload of the form:
+		</p>
+		<pre>
+template&lt;class It, class R, class T&gt; void for_each(It first, It last, R (T::*pmf) ())
+{
+    std::for_each(first, last, boost::mem_fn(pmf));
+}
+</pre>
+		<p>
+			that will allow the convenient syntax:
+		</p>
+		<pre>
+    for_each(v.begin(), v.end(), &amp;Shape::draw);
+</pre>
+		<p>
+			When documenting the feature, the library author will simply state:
+		</p>
+		<h4 style="MARGIN-LEFT: 20pt">template&lt;class It, class R, class T&gt; void 
+			for_each(It first, It last, R (T::*pmf) ());</h4>
+		<p style="MARGIN-LEFT: 20pt">
+			<b>Effects:</b> equivalent to std::for_each(first, last, boost::mem_fn(pmf));
+		</p>
+		<p>
+			where <b>boost::mem_fn</b> can be a link to this page. See <a href="bind.html">the 
+				documentation of <b>bind</b></a> for an example.
+		</p>
+		<p>
+			<b>mem_fn</b> takes one argument, a pointer to a member, and returns a function 
+			object suitable for use with standard or user-defined algorithms:
+		</p>
+		<pre>
+struct X
+{
+    void f();
+};
+
+void g(std::vector&lt;X&gt; &amp; v)
+{
+    std::for_each(v.begin(), v.end(), boost::mem_fn(&amp;X::f));
+};
+
+void h(std::vector&lt;X *&gt; const &amp; v)
+{
+    std::for_each(v.begin(), v.end(), boost::mem_fn(&amp;X::f));
+};
+
+void k(std::vector&lt;boost::shared_ptr&lt;X&gt; &gt; const &amp; v)
+{
+    std::for_each(v.begin(), v.end(), boost::mem_fn(&amp;X::f));
+};
+</pre>
+		<p>
+			The returned function object takes the same arguments as the input member 
+			function plus a "flexible" first argument that represents the object instance.
+		</p>
+		<p>
+			When the function object is invoked with a first argument <b>x</b> that is 
+			neither a pointer nor a reference to the appropriate class (<b>X</b> in the 
+			example above), it uses <tt>get_pointer(x)</tt> to obtain a pointer from <b>x</b>. 
+			Library authors can "register" their smart pointer classes by supplying an 
+			appropriate <b>get_pointer</b> overload, allowing <b>mem_fn</b> to recognize 
+			and support them.
+		</p>
+		<p>
+			[Note: <b>get_pointer</b> is not restricted to return a pointer. Any object 
+			that can be used in a member function call expression <tt>(x-&gt;*pmf)(...)</tt>
+			will work.]
+		</p>
+		<p>
+			[Note: the library uses an unqualified call to <b>get_pointer</b>. Therefore, 
+			it will find, through argument-dependent lookup, <b>get_pointer</b> overloads 
+			that are defined in the same namespace as the corresponding smart pointer 
+			class, in addition to any <b>boost::get_pointer</b> overloads.]
+		</p>
+		<p>
+			All function objects returned by <b>mem_fn</b> expose a <b>result_type</b> typedef 
+			that represents the return type of the member function. For data members, <STRONG>result_type</STRONG>
+			is defined as the type of the member.
+		</p>
+		<h2><a name="FAQ">Frequently Asked Questions</a></h2>
+		<h3><a name="Q1">Can <b>mem_fn</b> be used instead of the standard <b>std::mem_fun[_ref]</b>
+				adaptors?</a></h3>
+		<p>
+			Yes. For simple uses, <b>mem_fn</b> provides additional functionality that the 
+			standard adaptors do not. Complicated expressions that use <b>std::bind1st</b>, <b>std::bind2nd</b>
+			or <a href="../compose/index.htm"><b>Boost.Compose</b></a> along with the 
+			standard adaptors can be rewritten using <a href="bind.html"><b>boost::bind</b></a>
+			that automatically takes advantage of <b>mem_fn</b>.
+		</p>
+		<h3><a name="Q2">Should I replace every occurence of <b>std::mem_fun[_ref]</b> with <b>mem_fn</b>
+				in my existing code?</a></h3>
+		<p>
+			No, unless you have good reasons to do so. <b>mem_fn</b> is not 100% compatible 
+			with the standard adaptors, although it comes pretty close. In particular, <b>mem_fn</b>
+			does not return objects of type <b>std::[const_]mem_fun[1][_ref]_t</b>, as the 
+			standard adaptors do, and it is not possible to fully describe the type of the 
+			first argument using the standard <b>argument_type</b> and <b>first_argument_type</b>
+			nested typedefs. Libraries that need adaptable function objects in order to 
+			function might not like <b>mem_fn</b>.
+		</p>
+		<h3><a name="Q3">Does <b>mem_fn</b> work with COM methods?</a></h3>
+		<p>
+			Yes, if you <a href="#stdcall">#define BOOST_MEM_FN_ENABLE_STDCALL</a>.
+		</p>
+		<h3><a name="Q4">Why isn't BOOST_MEM_FN_ENABLE_STDCALL defined automatically?</a></h3>
+		<p>
+			Non-portable extensions, in general, should default to off to prevent vendor 
+			lock-in. Had BOOST_MEM_FN_ENABLE_STDCALL been defined automatically, you could 
+			have accidentally taken advantage of it without realizing that your code is, 
+			perhaps, no longer portable. In addition, it is possible for the default 
+			calling convention to be __stdcall, in which case enabling __stdcall support 
+			will result in duplicate definitions.
+		</p>
+		<h2><a name="Interface">Interface</a></h2>
+		<h3><a name="Synopsis">Synopsis</a></h3>
+		<pre>
+namespace boost
+{
+
+template&lt;class T&gt; T * <a href="#get_pointer_1">get_pointer</a>(T * p);
+
+template&lt;class R, class T&gt; <i>unspecified-1</i> <a href="#mem_fn_1">mem_fn</a>(R (T::*pmf) ());
+
+template&lt;class R, class T&gt; <i>unspecified-2</i> <a href="#mem_fn_2">mem_fn</a>(R (T::*pmf) () const);
+
+template&lt;class R, class T&gt; <i>unspecified-2-1</i> <a href="#mem_fn_2_1">mem_fn</a>(R T::*pm);
+
+template&lt;class R, class T, class A1&gt; <i>unspecified-3</i> <a href="#mem_fn_3">mem_fn</a>(R (T::*pmf) (A1));
+
+template&lt;class R, class T, class A1&gt; <i>unspecified-4</i> <a href="#mem_fn_4">mem_fn</a>(R (T::*pmf) (A1) const);
+
+template&lt;class R, class T, class A1, class A2&gt; <i>unspecified-5</i> <a href="#mem_fn_5">mem_fn</a>(R (T::*pmf) (A1, A2));
+
+template&lt;class R, class T, class A1, class A2&gt; <i>unspecified-6</i> <a href="#mem_fn_6">mem_fn</a>(R (T::*pmf) (A1, A2) const);
+
+// implementation defined number of additional overloads for more arguments
+
+}
+</pre>
+		<h3><a name="CommonRequirements">Common requirements</a></h3>
+		<p>
+			All <tt><i>unspecified-N</i></tt> types mentioned in the Synopsis are <b>CopyConstructible</b>
+			and <b>Assignable</b>. Their copy constructors and assignment operators do not 
+			throw exceptions. <tt><i>unspecified-N</i>::result_type</tt> is defined as the 
+			return type of the member function pointer passed as an argument to <b>mem_fn</b>
+			(<b>R</b> in the Synopsis.) <tt><i>unspecified-2-1</i>::result_type</tt> is 
+			defined as <tt>R</tt>.
+		</p>
+		<h3><a name="get_pointer">get_pointer</a></h3>
+		<h4><a name="get_pointer_1">template&lt;class T&gt; T * get_pointer(T * p)</a></h4>
+		<blockquote>
+			<p>
+				<b>Returns:</b> <tt>p</tt>.
+			</p>
+			<p>
+				<b>Throws:</b> Nothing.
+			</p>
+		</blockquote>
+		<h3><a name="mem_fn">mem_fn</a></h3>
+		<h4><a name="mem_fn_1">template&lt;class R, class T&gt; <i>unspecified-1</i> mem_fn(R 
+				(T::*pmf) ())</a></h4>
+		<blockquote>
+			<p>
+				<b>Returns:</b> a function object <i>f</i> such that the expression <tt><i>f(t)</i></tt>
+				is equivalent to <tt>(t.*pmf)()</tt> when <i>t</i> is an l-value of type <STRONG>T </STRONG>
+				or derived, <tt>(get_pointer(t)-&gt;*pmf)()</tt> otherwise.
+			</p>
+			<p>
+				<b>Throws:</b> Nothing.
+			</p>
+		</blockquote>
+		<h4><a name="mem_fn_2">template&lt;class R, class T&gt; <i>unspecified-2</i> mem_fn(R 
+				(T::*pmf) () const)</a></h4>
+		<blockquote>
+			<p>
+				<b>Returns:</b> a function object <i>f</i> such that the expression <tt><i>f(t)</i></tt>
+				is equivalent to <tt>(t.*pmf)()</tt> when <i>t</i> is of type <STRONG>T</STRONG>
+				<EM>[const]<STRONG> </STRONG></EM>or derived, <tt>(get_pointer(t)-&gt;*pmf)()</tt>
+				otherwise.
+			</p>
+			<p>
+				<b>Throws:</b> Nothing.
+			</p>
+		</blockquote>
+		<h4><a name="mem_fn_2_1">template&lt;class R, class T&gt; <i>unspecified-2-1</i> mem_fn(R 
+				T::*pm)</a></h4>
+		<blockquote>
+			<p>
+				<b>Returns:</b> a function object <i>f</i> such that the expression <tt><i>f(t)</i></tt>
+				is equivalent to <tt>t.*pm</tt> when <i>t</i> is of type <STRONG>T</STRONG> <EM>[const]<STRONG>
+					</STRONG></EM>or derived, <tt>get_pointer(t)-&gt;*pm</tt> otherwise.
+			</p>
+			<p>
+				<b>Throws:</b> Nothing.
+			</p>
+		</blockquote>
+		<h4><a name="mem_fn_3">template&lt;class R, class T, class A1&gt; <i>unspecified-3</i> mem_fn(R 
+				(T::*pmf) (A1))</a></h4>
+		<blockquote>
+			<p>
+				<b>Returns:</b> a function object <i>f</i> such that the expression <tt><i>f(t, a1)</i></tt>
+				is equivalent to <tt>(t.*pmf)(a1)</tt> when <i>t</i> is an l-value of type <STRONG>T
+				</STRONG>or derived, <tt>(get_pointer(t)-&gt;*pmf)(a1)</tt> otherwise.
+			</p>
+			<p>
+				<b>Throws:</b> Nothing.
+			</p>
+		</blockquote>
+		<h4><a name="mem_fn_4">template&lt;class R, class T, class A1&gt; <i>unspecified-4</i> mem_fn(R 
+				(T::*pmf) (A1) const)</a></h4>
+		<blockquote>
+			<p>
+				<b>Returns:</b> a function object <i>f</i> such that the expression <tt><i>f(t, a1)</i></tt>
+				is equivalent to <tt>(t.*pmf)(a1)</tt> when <i>t</i> is of type <STRONG>T</STRONG>
+				<EM>[const]<STRONG> </STRONG></EM>or derived, <tt>(get_pointer(t)-&gt;*pmf)(a1)</tt>
+				otherwise.
+			</p>
+			<p>
+				<b>Throws:</b> Nothing.
+			</p>
+		</blockquote>
+		<h4><a name="mem_fn_5">template&lt;class R, class T, class A1, class A2&gt; <i>unspecified-5</i>
+				mem_fn(R (T::*pmf) (A1, A2))</a></h4>
+		<blockquote>
+			<p>
+				<b>Returns:</b> a function object <i>f</i> such that the expression <tt><i>f(t, a1, a2)</i></tt>
+				is equivalent to <tt>(t.*pmf)(a1, a2)</tt> when <i>t</i> is an l-value of type <STRONG>
+					T</STRONG> or derived, <tt>(get_pointer(t)-&gt;*pmf)(a1, a2)</tt> otherwise.
+			</p>
+			<p>
+				<b>Throws:</b> Nothing.
+			</p>
+		</blockquote>
+		<h4><a name="mem_fn_6">template&lt;class R, class T, class A1, class A2&gt; <i>unspecified-6</i>
+				mem_fn(R (T::*pmf) (A1, A2) const)</a></h4>
+		<blockquote>
+			<p>
+				<b>Returns:</b> a function object <i>f</i> such that the expression <tt><i>f(t, a1, a2)</i></tt>
+				is equivalent to <tt>(t.*pmf)(a1, a2)</tt> when <i>t</i> is of type <STRONG>T</STRONG>
+				<EM>[const]</EM> or derived, <tt>(get_pointer(t)-&gt;*pmf)(a1, a2)</tt> otherwise.
+			</p>
+			<p>
+				<b>Throws:</b> Nothing.
+			</p>
+		</blockquote>
+		<h2><a name="Implementation">Implementation</a></h2>
+		<h3><a name="Files">Files</a></h3>
+		<ul>
+			<li>
+				<a href="../../boost/mem_fn.hpp">boost/mem_fn.hpp</a>
+			(main header)
+			<li>
+				<a href="../../boost/bind/mem_fn_cc.hpp">boost/bind/mem_fn_cc.hpp</a>
+			(used by mem_fn.hpp, do not include directly)
+			<li>
+				<a href="../../boost/bind/mem_fn_vw.hpp">boost/bind/mem_fn_vw.hpp</a>
+			(used by mem_fn.hpp, do not include directly)
+			<li>
+				<a href="../../boost/bind/mem_fn_template.hpp">boost/bind/mem_fn_template.hpp</a>
+			(used by mem_fn.hpp, do not include directly)
+			<li>
+				<a href="test/mem_fn_test.cpp">libs/bind/test/mem_fn_test.cpp</a>
+			(test)
+			<li>
+				<a href="test/mem_fn_derived_test.cpp">libs/bind/test/mem_fn_derived_test.cpp</a>
+			(test with derived objects)
+			<li>
+				<a href="test/mem_fn_fastcall_test.cpp">libs/bind/test/mem_fn_fastcall_test.cpp</a>
+			(test for __fastcall)
+			<li>
+				<a href="test/mem_fn_stdcall_test.cpp">libs/bind/test/mem_fn_stdcall_test.cpp</a>
+			(test for __stdcall)
+			<li>
+				<a href="test/mem_fn_void_test.cpp">libs/bind/test/mem_fn_void_test.cpp</a> (test 
+				for void returns)</li>
+		</ul>
+		<h3><a name="Dependencies">Dependencies</a></h3>
+		<ul>
+			<li>
+				<a href="../config/config.htm">Boost.Config</a></li>
+		</ul>
+		<h3><a name="NumberOfArguments">Number of Arguments</a></h3>
+		<p>
+			This implementation supports member functions with up to eight arguments. This 
+			is not an inherent limitation of the design, but an implementation detail.
+		</p>
+		<h3><a name="stdcall">"__stdcall", "__cdecl" and "__fastcall" Support</a></h3>
+		<p>
+			Some platforms allow several types of member functions that differ by their <b>calling 
+				convention</b> (the rules by which the function is invoked: how are 
+			arguments passed, how is the return value handled, and who cleans up the stack 
+			- if any.)
+		</p>
+		<p>
+			For example, Windows API functions and COM interface member functions use a 
+			calling convention known as <b>__stdcall</b>. Borland VCL components use <STRONG>__fastcall</STRONG>. 
+			UDK, the component model of OpenOffice.org, uses <STRONG>__cdecl</STRONG>.
+		</p>
+		<p>
+			To use <b>mem_fn</b> with <b>__stdcall</b> member functions, <b>#define</b> the 
+			macro <b>BOOST_MEM_FN_ENABLE_STDCALL</b> before including, directly or 
+			indirectly, <b>&lt;boost/mem_fn.hpp&gt;</b>.
+		</p>
+		<P>To use <B>mem_fn</B> with <B>__fastcall</B> member functions, <B>#define</B> the 
+			macro <B>BOOST_MEM_FN_ENABLE_FASTCALL</B> before including <B>&lt;boost/mem_fn.hpp&gt;</B>.
+		</P>
+		<P>To use <B>mem_fn</B> with <B>__cdecl</B> member functions, <B>#define</B> the 
+			macro <B>BOOST_MEM_FN_ENABLE_CDECL</B> before including <B>&lt;boost/mem_fn.hpp&gt;</B>.
+		</P>
+		<P><STRONG>It is best to define these macros in the project options, via -D on the 
+				command line, or as the first line in the translation unit (.cpp file) where 
+				mem_fn is used.</STRONG> Not following this rule can lead to obscure errors 
+			when a header includes mem_fn.hpp before the macro has been defined.</P>
+		<P>[Note: this is a non-portable extension. It is not part of the interface.]
+		</P>
+		<p>
+			[Note: Some compilers provide only minimal support for the <b>__stdcall</b> keyword.]
+		</p>
+		<h2><a name="Acknowledgements">Acknowledgements</a></h2>
+		<p>
+			Rene Jager's initial suggestion of using traits classes to make <b>mem_fn</b> adapt 
+			to user-defined smart pointers inspired the <b>get_pointer</b>-based design.
+		</p>
+		<p>
+			Numerous improvements were suggested during the formal review period by Richard 
+			Crossley, Jens Maurer, Ed Brey, and others. Review manager was Darin Adler.
+		</p>
+		<p>
+			Steve Anichini pointed out that COM interfaces use <b>__stdcall</b>.
+		</p>
+		<p>
+			Dave Abrahams modified <b>bind</b> and <b>mem_fn</b> to support void returns on 
+			deficient compilers.
+		</p>
+		<p>Daniel Boelzle pointed out that UDK uses <STRONG>__cdecl</STRONG>.<br>
+			<br>
+			<br>
+			<small>Copyright © 2001, 2002 by Peter Dimov and Multi Media Ltd. Copyright 
+				2003-2005 Peter Dimov. Distributed under the Boost Software License, Version 
+				1.0. See accompanying file <A href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or 
+				copy at <A href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>.</small></p>
+	</body>
+</html>

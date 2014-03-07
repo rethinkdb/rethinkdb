@@ -1,0 +1,101 @@
+<html>
+<head>
+	<title>BOOST_PP_RELATIVE_ITERATION</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+	<div style="margin-left:  0px;">
+		The <b>BOOST_PP_RELATIVE_ITERATION</b> macro expands to the iteration value of a <i>file-iteration</i> depth relative to the current depth.
+	</div>
+	<h4>Usage</h4>
+		<div class="code">
+			<b>BOOST_PP_RELATIVE_ITERATION</b>(<i>i</i>)
+		</div>
+	<h4>Arguments</h4>
+		<dl>
+			<dt>i</dt>
+			<dd>
+				The relative depth of the frame whose iteration value is to be retreived.&nbsp;
+				Valid values range from <i>0</i> to <b>BOOST_PP_ITERATION_DEPTH</b>() - <i>1</i>.
+			</dd>
+		</dl>
+	<h4>Remarks</h4>
+		<div>
+			This macro is only valid when a <i>file-iteration</i> is in progress.
+		</div>
+		<div>
+			The argument <i>i</i> is interpreted as the number of frames <i>outward</i> from the current frame.&nbsp;
+			Therefore, <b>BOOST_PP_RELATIVE_ITERATION</b>(<i>0</i>) is equivalent to <b>BOOST_PP_ITERATION</b>().
+		</div>
+	<h4>Requirements</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/iteration/iterate.html">&lt;boost/preprocessor/iteration/iterate.hpp&gt;</a>
+		</div>
+	<h4>Sample Code</h4>
+<div><pre>
+// file.h
+#if !<a href="is_iterating.html">BOOST_PP_IS_ITERATING</a>
+
+   #ifndef FILE_H_
+   #define FILE_H_
+
+   #include &lt;<a href="../headers/iteration/iterate.html">boost/preprocessor/iteration/iterate.hpp</a>&gt;
+
+1st iteration:
+   #define <a href="iteration_params_x.html">BOOST_PP_ITERATION_PARAMS_1</a> (4, (0, 3, "file.h", 0x0001))
+   #include <a href="iterate.html">BOOST_PP_ITERATE</a>()
+
+2nd iteration:
+   #define <a href="iteration_params_x.html">BOOST_PP_ITERATION_PARAMS_1</a> (4, (1, 10, "file.h", 0x0002))
+   #include <a href="iterate.html">BOOST_PP_ITERATE</a>()
+
+   #endif
+
+#elif <a href="iteration_depth.html">BOOST_PP_ITERATION_DEPTH</a>() == 1 \
+   &amp;&amp; <a href="iteration_flags.html">BOOST_PP_ITERATION_FLAGS</a>() == 0x0001 \
+   /**/
+
+   --
+   #define <a href="iteration_params_x.html">BOOST_PP_ITERATION_PARAMS_2</a> (3, (1, 10, "file.h"))
+   #include <a href="iterate.html">BOOST_PP_ITERATE</a>()
+
+#elif <a href="iteration_depth.html">BOOST_PP_ITERATION_DEPTH</a>() == 1 \
+   &amp;&amp; <a href="iteration_flags.html">BOOST_PP_ITERATION_FLAGS</a>() == 0x0002 \
+   /**/
+
+   --
+   #define <a href="iteration_params_x.html">BOOST_PP_ITERATION_PARAMS_2</a> \
+      (3, (1, <a href="iteration.html">BOOST_PP_ITERATION</a>(), "file.h")) \
+      /**/
+   #include <a href="iterate.html">BOOST_PP_ITERATE</a>()
+
+#elif <a href="iteration_depth.html">BOOST_PP_ITERATION_DEPTH</a>() == 2 \
+   &amp;&amp; <a href="frame_flags.html">BOOST_PP_FRAME_FLAGS</a>(1) == 0x0001 \
+   /**/
+
+   --
+   #define <a href="iteration_params_x.html">BOOST_PP_ITERATION_PARAMS_3</a> \
+      (3, (1, <a href="iteration.html">BOOST_PP_ITERATION</a>(), "file.h")) \
+      /**/
+   #include <a href="iterate.html">BOOST_PP_ITERATE</a>()
+
+#else // used by both
+
+   previous: <a href="relative_iteration.html">BOOST_PP_RELATIVE_ITERATION</a>(1)
+   current: <a href="iteration.html">BOOST_PP_ITERATION</a>()
+
+#endif
+</pre></div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

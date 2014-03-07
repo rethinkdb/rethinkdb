@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Esprima: Syntax Validator</title>
+<script src="../test/3rdparty/platform.js"></script>
+<script src="checkenv.js"></script>
+<script src="../esprima.js"></script>
+<script src="../assets/codemirror/codemirror.js"></script>
+<script src="../assets/codemirror/javascript.js"></script>
+<link rel="stylesheet" type="text/css" href="../assets/codemirror/codemirror.css"/>
+<link rel="stylesheet" type="text/css" href="../assets/style.css"/>
+<style>
+table th, table td {
+    text-align: left;
+    background-color: white;
+}
+
+tbody tr:nth-child(odd) td {
+    background-color: white;
+}
+
+tbody td {
+    background-color: white;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="topbar">
+<ul class="nav">
+<li><a href="../index.html">&larr; Home</a></li>
+<li><a href="http://github.com/ariya/esprima">Code</a></li>
+<li><a href="../doc/index.html">Documentation</a></li>
+<li><a href="http://issues.esprima.org">Issues</a></li>
+</ul>
+</div>
+
+<h1>Syntax Validator <small>checks for mistakes and errors</small></h1>
+
+<p>Esprima version <span id="version"></span>.</p>
+
+<p>Type ECMAScript code:</p>
+<div><textarea id="code" autofocus="autofocus" cols="70" rows="15" spellcheck="false">
+return 42; // Return statement not inside a function
+
+function f() {
+  'use strict';
+
+  // No more octal
+  var x = 042;
+
+  // Duplicate property
+  var y = { x: 1, x: 2 };
+
+  // With statement can't be used
+  with (z) {}
+
+}
+</textarea></div>
+<p id="codemirror" align="right"><small>The above code editor is based on <a href="http://codemirror.net" target="_blank">CodeMirror</a>.</small></p>
+
+<div id="result"><p>No result yet.</p></div>
+
+<div class="footer"><strong>Esprima</strong> is created by
+    <a href="http://ariya.ofilabs.com/about" target="_blank">Ariya Hidayat</a>. Follow <a href="http://twitter.com/ariyahidayat">@ariyahidayat</a> on Twitter.
+</div>
+
+<div id="testbox"><textarea id="test"></textarea></div>
+</div>
+<script src="validate.js"></script>
+</body>
+</html>

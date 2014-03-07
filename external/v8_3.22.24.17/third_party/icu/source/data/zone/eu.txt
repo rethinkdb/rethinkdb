@@ -1,0 +1,40 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/eu.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/eu.xml
+ */
+eu{
+    Version{"2.0.50.95"}
+    zoneStrings{
+        "America:North_Dakota:Center"{
+            ec{"Ameriketako Estatu Batuak (Erdialdea, Ipar Dakota)"}
+        }
+        "Atlantic:Canary"{
+            ec{"Espainia (Kanariak)"}
+        }
+        "Etc:Unknown"{
+            ec{"Ezezaguna"}
+        }
+        "meta:Europe_Central"{
+            cu:int{1}
+        }
+        "meta:Europe_Eastern"{
+            cu:int{1}
+        }
+        "meta:Europe_Western"{
+            cu:int{1}
+        }
+        "meta:GMT"{
+            cu:int{1}
+        }
+        fallbackFormat{"{1} ({0})"}
+        gmtFormat{"GMT{0}"}
+        hourFormat{"+HH:mm;-HH:mm"}
+    }
+}

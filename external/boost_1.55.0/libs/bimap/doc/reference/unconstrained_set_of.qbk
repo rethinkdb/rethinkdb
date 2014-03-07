@@ -1,0 +1,123 @@
+[/license
+
+Boost.Bimap
+
+Copyright (c) 2006-2007 Matias Capeletto
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+]
+
+[/ QuickBook Document version 1.4 ]
+
+[section unconstrained_set_of Reference]
+
+[section Header "boost/bimap/unconstrained_set_of.hpp" synopsis]
+
+    namespace boost {
+    namespace bimaps {
+
+
+    template< class KeyType >
+    struct unconstrained_set_of;
+
+    struct unconstrained_set_of_relation;
+
+
+    } // namespace bimap
+    } // namespace boost
+
+[endsect]
+
+[section unconstrained_set_of Views]
+
+An unconstrained_set_of set view is a view with no constraints. The use
+of these kind of view boost the bimap performance but the view can not
+be accessed. An unconstrained view is an empty class.
+
+    namespace boost {
+    namespace bimaps {
+    namespace views {
+
+    template< ``['-implementation defined parameter list-]`` >
+    class ``['-implementation defined view name-]``
+    {
+        // Empty view
+    };
+
+    } // namespace views
+    } // namespace bimap
+    } // namespace boost
+
+
+
+In the case of a `bimap< unconstrained_set_of<Left>, ... >`
+
+In the set view:
+
+    typedef signature-compatible with relation< Left, ... > key_type;
+    typedef signature-compatible with relation< Left, ... > value_type;
+
+In the left map view:
+
+    typedef  Left  key_type;
+    typedef  ...   mapped_type;
+
+    typedef signature-compatible with std::pair< Left, ... > value_type;
+
+In the right map view:
+
+    typedef  ...  key_type;
+    typedef  Left mapped_type;
+
+    typedef signature-compatible with std::pair< ... , Left > value_type;
+
+
+
+[#unconstrained_set_of_complexity_signature]
+
+[section Complexity signature]
+
+We adopt the scheme outlined in the
+[link complexity_signature_explanation complexity signature section].
+An unconstrained view can not be accessed by the user, but the
+formulas to find the order of an operation for a bimap hold with
+the following definitions.
+The complexity signature of a `unconstrained_set_of` view is:
+
+* copying: `c(n) = 0`
+* insertion: `i(n) = 0`
+* hinted insertion: `h(n) = 0`
+* deletion: `d(n) = 0`
+* replacement: `r(n) = 0`
+* modifying: `m(n) = 0`
+
+[endsect]
+
+[section Serialization]
+
+Views cannot be serialized on their own, but only as part of the
+`bimap` into which they are embedded. In describing the additional
+preconditions and guarantees associated to `list_of` views with respect to
+serialization of their embedding containers, we use the concepts defined in the
+`bimap` serialization section.
+
+[blurb [*Operation:] saving of a `bimap` b to an output archive
+(XML archive) ar.]
+
+* [*Requires:] No additional requirements to those imposed by the container.
+
+[blurb [*Operation:] loading of a `bimap` b' from an input archive
+(XML archive) ar.]
+
+* [*Requires:] No additional requirements to those imposed by the container.
+
+
+[endsect]
+[endsect]
+
+[endsect]
+
+

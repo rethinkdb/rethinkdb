@@ -1,0 +1,55 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/rbnf/fi.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/rbnf/fi.xml
+ */
+fi{
+    RBNFRules{
+        SpelloutRules{
+            "%spellout-numbering-year:",
+            "-x: miinus >>;",
+            "x.x: =#,###0.#=;",
+            "0: =%spellout-numbering=;",
+            "1100/100: <<\u00ADsataa[\u00AD>>];",
+            "10000: =%spellout-numbering=;",
+            "%spellout-numbering:",
+            "0: =%spellout-cardinal=;",
+            "%spellout-cardinal:",
+            "-x: miinus >>;",
+            "x.x: << pilkku >>;",
+            "0: nolla;",
+            "1: yksi;",
+            "2: kaksi;",
+            "3: kolme;",
+            "4: nelj\u00E4;",
+            "5: viisi;",
+            "6: kuusi;",
+            "7: seitsem\u00E4n;",
+            "8: kahdeksan;",
+            "9: yhdeks\u00E4n;",
+            "10: kymmenen;",
+            "11: >>toista;",
+            "20: <<kymment\u00E4[\u00AD>>];",
+            "100: <<sata[\u00AD>>];",
+            "200: <<sataa[\u00AD>>];",
+            "1000: <<\u00ADtuhat[ >>];",
+            "2000: <<\u00ADtuhatta[ >>];",
+            "1000000: << miljoona[ >>];",
+            "2000000: << miljoonan[ >>];",
+            "1000000000: << miljardi[ >>];",
+            "2000000000: << miljardin[ >>];",
+            "1000000000000: << biljoona[ >>];",
+            "2000000000000: << biljoonan[ >>];",
+            "1000000000000000: << biljardi[ >>];",
+            "2000000000000000: << biljardin[ >>];",
+            "1000000000000000000: =#,##0=;",
+        }
+    }
+    Version{"2.0.41.26"}
+}

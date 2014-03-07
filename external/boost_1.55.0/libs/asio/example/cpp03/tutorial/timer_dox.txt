@@ -1,0 +1,380 @@
+//
+// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+
+/**
+\page tuttimer1 Timer.1 - Using a timer synchronously
+
+This tutorial program introduces asio by showing how to perform a blocking
+wait on a timer.
+
+\dontinclude timer1/timer.cpp
+\skip #include
+
+We start by including the necessary header files.
+
+All of the asio classes can be used by simply including the <tt>"asio.hpp"</tt>
+header file.
+
+\until asio.hpp
+
+Since this example uses timers, we need to include the appropriate
+Boost.Date_Time header file for manipulating times.
+
+\until posix_time.hpp
+
+All programs that use asio need to have at least one boost::asio::io_service object.
+This class provides access to I/O functionality. We declare an object of this
+type first thing in the main function.
+
+\until boost::asio::io_service
+
+Next we declare an object of type boost::asio::deadline_timer. The core asio classes
+that provide I/O functionality (or as in this case timer functionality) always
+take a reference to an io_service as their first constructor argument. The
+second argument to the constructor sets the timer to expire 5 seconds from now.
+
+\until boost::asio::deadline_timer
+
+In this simple example we perform a blocking wait on the timer.
+That is, the call to boost::asio::deadline_timer::wait() will not return until the
+timer has expired, 5 seconds after it was created (i.e. <b>not</b> from when the
+wait starts).
+
+A deadline timer is always in one of two states: "expired" or "not expired". If
+the boost::asio::deadline_timer::wait() function is called on an expired timer, it
+will return immediately.
+
+\until wait
+
+Finally we print the obligatory <tt>"Hello, world!"</tt>
+message to show when the timer has expired.
+
+\until }
+
+See the \ref tuttimer1src "full source listing" \n
+Return to the \ref index "tutorial index" \n
+Next: \ref tuttimer2
+
+*/
+
+/**
+\page tuttimer1src Source listing for Timer.1
+\include timer1/timer.cpp
+Return to \ref tuttimer1
+*/
+
+/**
+\page tuttimer2 Timer.2 - Using a timer asynchronously
+
+This tutorial program demonstrates how to use asio's asynchronous callback
+functionality by modifying the program from tutorial Timer.1 to perform an
+asynchronous wait on the timer.
+
+\dontinclude timer2/timer.cpp
+\skip #include
+
+\until posix_time.hpp
+
+Using asio's asynchronous functionality means having a callback
+function that will be called when an asynchronous operation completes. In this
+program we define a function called <tt>print</tt> to be called when the
+asynchronous wait finishes.
+
+\until boost::asio::deadline_timer 
+
+Next, instead of doing a blocking wait as in tutorial Timer.1,
+we call the boost::asio::deadline_timer::async_wait() function to perform an
+asynchronous wait. When calling this function we pass the <tt>print</tt>
+callback handler that was defined above.
+
+\skipline async_wait
+
+Finally, we must call the boost::asio::io_service::run() member function
+on the io_service object.
+
+The asio library provides a guarantee that callback handlers will <b>only</b>
+be called from threads that are currently calling boost::asio::io_service::run().
+Therefore unless the boost::asio::io_service::run() function is called the callback for
+the asynchronous wait completion will never be invoked.
+
+The boost::asio::io_service::run() function will also continue to run while there is
+still "work" to do. In this example, the work is the asynchronous wait on the
+timer, so the call will not return until the timer has expired and the
+callback has completed.
+
+It is important to remember to give the io_service some work to do before
+calling boost::asio::io_service::run(). For example, if we had omitted the above call
+to boost::asio::deadline_timer::async_wait(), the io_service would not have had any
+work to do, and consequently boost::asio::io_service::run() would have returned
+immediately.
+
+\skip run
+\until }
+
+See the \ref tuttimer2src "full source listing" \n
+Return to the \ref index "tutorial index" \n
+Previous: \ref tuttimer1 \n
+Next: \ref tuttimer3
+
+*/
+
+/**
+\page tuttimer2src Source listing for Timer.2
+\include timer2/timer.cpp
+Return to \ref tuttimer2
+*/
+
+/**
+\page tuttimer3 Timer.3 - Binding arguments to a handler
+
+In this tutorial we will modify the program from tutorial Timer.2 so that the
+timer fires once a second. This will show how to pass additional parameters to
+your handler function.
+
+\dontinclude timer3/timer.cpp
+\skip #include
+
+\until posix_time.hpp
+
+To implement a repeating timer using asio you need to change
+the timer's expiry time in your callback function, and to then start a new
+asynchronous wait. Obviously this means that the callback function will need
+to be able to access the timer object. To this end we add two new parameters
+to the <tt>print</tt> function:
+
+\li A pointer to a timer object.
+
+\li A counter so that we can stop the program when the timer fires for the
+sixth time.
+
+\until {
+
+As mentioned above, this tutorial program uses a counter to
+stop running when the timer fires for the sixth time. However you will observe
+that there is no explicit call to ask the io_service to stop. Recall that in
+tutorial Timer.2 we learnt that the boost::asio::io_service::run() function completes
+when there is no more "work" to do. By not starting a new asynchronous wait on
+the timer when <tt>count</tt> reaches 5, the io_service will run out of work and
+stop running.
+
+\until ++
+
+Next we move the expiry time for the timer along by one second
+from the previous expiry time. By calculating the new expiry time relative to
+the old, we can ensure that the timer does not drift away from the
+whole-second mark due to any delays in processing the handler.
+
+\until expires_at
+
+Then we start a new asynchronous wait on the timer. As you can
+see, the boost::bind() function is used to associate the extra parameters
+with your callback handler. The boost::asio::deadline_timer::async_wait() function
+expects a handler function (or function object) with the signature
+<tt>void(const boost::system::error_code&)</tt>. Binding the additional parameters
+converts your <tt>print</tt> function into a function object that matches the
+signature correctly.
+
+See the <a href="http://www.boost.org/libs/bind/bind.html">Boost.Bind
+documentation</a> for more information on how to use boost::bind().
+
+In this example, the boost::asio::placeholders::error argument to boost::bind() is a
+named placeholder for the error object passed to the handler. When initiating
+the asynchronous operation, and if using boost::bind(), you must specify only
+the arguments that match the handler's parameter list. In tutorial Timer.4 you
+will see that this placeholder may be elided if the parameter is not needed by
+the callback handler.
+
+\until boost::asio::io_service
+
+A new <tt>count</tt> variable is added so that we can stop the
+program when the timer fires for the sixth time.
+
+\until boost::asio::deadline_timer
+
+As in Step 4, when making the call to
+boost::asio::deadline_timer::async_wait() from <tt>main</tt> we bind the additional
+parameters needed for the <tt>print</tt> function.
+
+\until run
+
+Finally, just to prove that the <tt>count</tt> variable was
+being used in the <tt>print</tt> handler function, we will print out its new
+value.
+
+\until }
+
+See the \ref tuttimer3src "full source listing" \n
+Return to the \ref index "tutorial index" \n
+Previous: \ref tuttimer2 \n
+Next: \ref tuttimer4
+
+*/
+
+/**
+\page tuttimer3src Source listing for Timer.3
+\include timer3/timer.cpp
+Return to \ref tuttimer3
+*/
+
+/**
+\page tuttimer4 Timer.4 - Using a member function as a handler
+
+In this tutorial we will see how to use a class member function as a callback
+handler. The program should execute identically to the tutorial program from
+tutorial Timer.3.
+
+\dontinclude timer4/timer.cpp
+\skip #include
+
+\until posix_time.hpp
+
+Instead of defining a free function <tt>print</tt> as the
+callback handler, as we did in the earlier tutorial programs, we now define a
+class called <tt>printer</tt>.
+
+\until public
+
+The constructor of this class will take a reference to the
+io_service object and use it when initialising the <tt>timer_</tt> member. The
+counter used to shut down the program is now also a member of the class.
+
+\until {
+
+The boost::bind() function works just as well with class
+member functions as with free functions. Since all non-static class member
+functions have an implicit <tt>this</tt> parameter, we need to bind
+<tt>this</tt> to the function. As in tutorial Timer.3, boost::bind()
+converts our callback handler (now a member function) into a function object
+that can be invoked as though it has the signature <tt>void(const
+boost::system::error_code&)</tt>.
+
+You will note that the boost::asio::placeholders::error placeholder is not specified
+here, as the <tt>print</tt> member function does not accept an error object as
+a parameter.
+
+\until }
+
+In the class destructor we will print out the final value of
+the counter.
+
+\until }
+
+The <tt>print</tt> member function is very similar to the
+<tt>print</tt> function from tutorial Timer.3, except that it now operates on
+the class data members instead of having the timer and counter passed in as
+parameters.
+
+\until };
+
+The <tt>main</tt> function is much simpler than before, as it
+now declares a local <tt>printer</tt> object before running the io_service as
+normal.
+
+\until }
+
+See the \ref tuttimer4src "full source listing" \n
+Return to the \ref index "tutorial index" \n
+Previous: \ref tuttimer3 \n
+Next: \ref tuttimer5 \n
+
+*/
+
+/**
+\page tuttimer4src Source listing for Timer.4
+\include timer4/timer.cpp
+Return to \ref tuttimer4
+*/
+
+/**
+\page tuttimer5 Timer.5 - Synchronising handlers in multithreaded programs
+
+This tutorial demonstrates the use of the boost::asio::strand class to synchronise
+callback handlers in a multithreaded program.
+
+The previous four tutorials avoided the issue of handler synchronisation by
+calling the boost::asio::io_service::run() function from one thread only. As you
+already know, the asio library provides a guarantee that callback handlers will
+<b>only</b> be called from threads that are currently calling
+boost::asio::io_service::run(). Consequently, calling boost::asio::io_service::run() from
+only one thread ensures that callback handlers cannot run concurrently.
+
+The single threaded approach is usually the best place to start when
+developing applications using asio. The downside is the limitations it places
+on programs, particularly servers, including:
+
+<ul>
+<li>Poor responsiveness when handlers can take a long time to complete.</li>
+<li>An inability to scale on multiprocessor systems.</li>
+</ul>
+
+If you find yourself running into these limitations, an alternative approach
+is to have a pool of threads calling boost::asio::io_service::run(). However, as this
+allows handlers to execute concurrently, we need a method of synchronisation
+when handlers might be accessing a shared, thread-unsafe resource.
+
+\dontinclude timer5/timer.cpp
+\skip #include
+
+\until posix_time.hpp
+
+We start by defining a class called <tt>printer</tt>, similar
+to the class in the previous tutorial. This class will extend the previous
+tutorial by running two timers in parallel.
+
+\until public
+
+In addition to initialising a pair of boost::asio::deadline_timer members, the
+constructor initialises the <tt>strand_</tt> member, an object of type
+boost::asio::strand.
+
+An boost::asio::strand guarantees that, for those handlers that are dispatched through
+it, an executing handler will be allowed to complete before the next one is
+started. This is guaranteed irrespective of the number of threads that are
+calling boost::asio::io_service::run(). Of course, the handlers may still execute
+concurrently with other handlers that were <b>not</b> dispatched through an
+boost::asio::strand, or were dispatched through a different boost::asio::strand object.
+
+\until {
+
+When initiating the asynchronous operations, each callback handler is "wrapped"
+using the boost::asio::strand object. The boost::asio::strand::wrap() function returns a new
+handler that automatically dispatches its contained handler through the
+boost::asio::strand object. By wrapping the handlers using the same boost::asio::strand, we
+are ensuring that they cannot execute concurrently.
+
+\until }
+\until }
+
+In a multithreaded program, the handlers for asynchronous
+operations should be synchronised if they access shared resources. In this
+tutorial, the shared resources used by the handlers (<tt>print1</tt> and
+<tt>print2</tt>) are <tt>std::cout</tt> and the <tt>count_</tt> data member.
+
+\until };
+
+The <tt>main</tt> function now causes boost::asio::io_service::run() to
+be called from two threads: the main thread and one additional thread. This is
+accomplished using an boost::thread object.
+
+Just as it would with a call from a single thread, concurrent calls to
+boost::asio::io_service::run() will continue to execute while there is "work" left to
+do. The background thread will not exit until all asynchronous operations have
+completed.
+
+\until }
+
+See the \ref tuttimer5src "full source listing" \n
+Return to the \ref index "tutorial index" \n
+Previous: \ref tuttimer4 \n
+
+*/
+
+/**
+\page tuttimer5src Source listing for Timer.5
+\include timer5/timer.cpp
+Return to \ref tuttimer5
+*/

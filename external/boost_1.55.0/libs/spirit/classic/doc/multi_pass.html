@@ -1,0 +1,276 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><title>The multi_pass</title>
+
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css"></head>
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tbody><tr> 
+    <td width="10"> 
+    <br>
+</td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>The 
+      multi_pass</b></font> </td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</tbody></table>
+<br>
+<table border="0">
+  <tbody><tr>
+    <td width="10"><br>
+</td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="trees.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="file_iterator.html"><img src="theme/r_arr.gif" border="0"></a></td>
+   </tr>
+</tbody></table>
+<p>Backtracking in Spirit requires the use of the following types of iterator: 
+  forward, bidirectional, or random access. Because of backtracking, input iterators 
+  cannot be used. Therefore, the standard library classes istreambuf_iterator 
+  and istream_iterator, that fall under the category of input iterators, cannot 
+  be used. Another input iterator that is of interest is one that wraps a lexer, 
+  such as LEX.</p>
+<table width="80%" border="0" align="center">
+  <tbody><tr> 
+    <td class="note_box"> <img src="theme/note.gif" width="16" height="16"> <b>Input 
+      Iterators</b> <br>
+      <br>
+      In general, Spirit is a backtracking parser. This is not an absolute requirement 
+      though. In the future, we shall see more deterministic parsers that require 
+      no more than 1 character (token) of lookahead. Such parsers allow us to 
+      use input iterators such as the istream_iterator as is. </td>
+  </tr>
+</tbody></table>
+<p> Unfortunately, with an input iterator, there is no way to save an iterator 
+  position, and thus input iterators will not work with backtracking in Spirit. 
+  One solution to this problem is to simply load all the data to be parsed into 
+  a container, such as a vector or deque, and then pass the begin and end of the 
+  container to Spirit. This method can be too memory intensive for certain applications, 
+  which is why the multi_pass iterator was created.</p>
+<p> The multi_pass iterator will convert any input iterator into a forward iterator 
+  suitable for use with Spirit. multi_pass will buffer data when needed and will 
+  discard the buffer when only one copy of the iterator exists.</p>
+<p> A grammar must be designed with care if the multi_pass iterator is used. Any rule that may 
+  need to backtrack, such as one that contains an alternative, will cause data to be buffered. The rules that are optimal to 
+  use are sequence and repetition. Sequences of the form <tt>a &gt;&gt; b</tt> 
+  will not buffer data at all. Any rule that repeats, such as kleene_star (<tt>*a</tt>) 
+  or positive such as (<tt>+a</tt>), will only buffer the data for the current 
+  repetition.</p>
+<p> In typical grammars, ambiguity and therefore lookahead is often localized. 
+  In fact, many well designed languages are fully deterministic and require no 
+  lookahead at all. Peeking at the first character from the input will immediately 
+  determine the alternative branch to take. Yet, even with highly ambiguous grammars, 
+  alternatives are often of the form <tt>*(a | b | c | d)</tt>. The input iterator 
+  moves on and is never stuck at the beginning. Let's look at a Pascal snippet 
+  for example:</p>
+<pre>    <code><span class="identifier">program </span><span class="special">=<br>    </span><span class="identifier">    programHeading </span><span class="special">&gt;&gt; </span><span class="identifier">block </span><span class="special">&gt;&gt; </span><span class="literal">'.'<br>    </span><span class="special">    ;<br><br>    </span><span class="identifier">block </span><span class="special">=<br>       *(    </span><span class="identifier">labelDeclarationPart<br>        </span><span class="special">|    </span><span class="identifier">constantDefinitionPart<br>        </span><span class="special">|    </span><span class="identifier">typeDefinitionPart<br>      </span><span class="special">  |    </span><span class="identifier">variableDeclarationPart<br>        </span><span class="special">|  </span><span class="identifier">  procedureAndFunctionDeclarationPart<br>      </span><span class="special">  )<br>        &gt;&gt;   </span><span class="identifier">statementPart<br>        </span><span class="special">;<br></span></code></pre>
+<p> Notice the alternatives inside the Kleene star in the rule block . The rule 
+  gobbles the input in a linear manner and throws away the past history with each 
+  iteration. As this is fully deterministic LL(1) grammar, each failed alternative 
+  only has to peek 1 character (token). The alternative that consumes more than 
+  1 character (token) is definitely a winner. After which, the Kleene star moves 
+  on to the next.</p>
+<p>Be mindful if you use the free parse functions. 
+  All of these make a copy of the iterator passed to them.<br>
+</p>
+<p>Now, after the lecture on the features to be careful with when using multi_pass,
+you may think that multi_pass is way too restrictive to use. &nbsp;That's
+not the case. &nbsp;If your grammar is deterministic, you can make use of flush_multi_pass in your grammar to ensure that data is not buffered when unnecessary.<br>
+</p>
+
+<p> Again, following up the example we started to use in the section on the scanner 
+  . Here's an example using the multi_pass: This time around we are extracting 
+  our input from the input stream using an istreambuf_iterator.</p>
+<pre>    <span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>    
+<code><span class="preprocessor">    #include </span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">iterator</span><span class="special">/</span><span class="identifier">multi_pass</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span><span class="comment">
+
+    </span><span class="keyword">using namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">;
+    </span><span class="keyword">using namespace</span> <span class="identifier">std</span><span class="special">;</span>
+    
+    <span class="identifier">ifstream in</span><span class="special">(</span><span class="string">"input_file.txt"</span><span class="special">); </span><span class="comment">// we get our input from this file<br><br>    </span><span class="keyword">typedef char </span><span class="identifier">char_type</span><span class="special">;</span>
+    <span class="keyword">typedef </span><span class="identifier">multi_pass</span><span class="special">&lt;</span><span class="identifier">istreambuf_iterator</span><span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">&gt; &gt; </span><span class="identifier">iterator_type</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">skip_parser_iteration_policy</span><span class="special">&lt;</span><span class="identifier">space_parser</span><span class="special">&gt;</span> <span class="identifier">iter_policy_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">scanner_policies</span><span class="special">&lt;</span>iter_policy_type<span class="special">&gt;</span> <span class="identifier">scanner_policies_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">scanner</span><span class="special">&lt;</span>iterator_type, scanner_policies_type<span class="special">&gt;</span> <span class="identifier">scanner_type</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> rule<span class="special">&lt;</span>scanner_type<span class="special">&gt;</span> <span class="identifier">rule_type</span><span class="special">;</span>
+
+    <span class="identifier">iter_policy_type</span> <span class="identifier">iter_policy</span><span class="special">(</span><span class="identifier">space_p</span><span class="special">);</span>
+    <span class="identifier">scanner_policies_type</span> <span class="identifier">policies</span><span class="special">(</span><span class="identifier">iter_policy</span><span class="special">);</span>
+    iterator_type first(
+        make_multi_pass(std::istreambuf_iterator&lt;char_type&gt;(in)));
+
+    scanner_type <span class="identifier">scan</span><span class="special">(</span>
+        first<span class="special">,</span> make_multi_pass(std::istreambuf_iterator<span class="special">&lt;</span><span class="identifier">char_type</span><span class="special">&gt;()),</span>
+        <span class="identifier">policies</span><span class="special">)</span>;
+<span class="special"><br>    </span><span class="identifier">rule_type   n_list </span><span class="special">= </span><span class="identifier">real_p </span><span class="special">&gt;&gt; *(</span><span class="literal">',' </span><span class="special">&gt;&gt; </span><span class="identifier">real_p</span><span class="special">);<br>    </span><span class="identifier">match</span><span class="special">&lt;&gt;</span><span class="identifier">     m </span><span class="special">= </span><span class="identifier">n_list</span><span class="special">.</span><span class="identifier">parse</span><span class="special">(</span><span class="identifier">scan</span><span class="special">);<br></span></code></pre>
+<a name="flush_multi_pass"></a> 
+<h2>flush_multi_pass</h2>
+<p> There is a predefined pseudo-parser called flush_multi_pass. When this parser 
+  is used with multi_pass, it will call multi_pass::clear_queue(). This will cause 
+  any buffered data to be erased. This also will invalidate all other copies of 
+  multi_pass and they should not be used. If they are, an boost::illegal_backtracking 
+  exception will be thrown.</p>
+<a name="multi_pass_policies"></a>
+<h2>multi_pass Policies</h2>
+<p> multi_pass is a templated policy driven class. The description of multi_pass 
+  above is how it was originally implemented (before it used policies), and is 
+  the default configuration now. But, multi_pass is capable of much more. Because 
+  of the open-ended nature of policies, you can write your own policy to make 
+  multi_pass behave in a way that we never before imagined.</p>
+<p> The multi_pass class has five template parameters:</p>
+<ul>
+  <li>InputT - The type multi_pass uses to acquire it's input. This is typically 
+    an input iterator, or functor.</li>
+  <li>InputPolicy - A class that defines how multi_pass acquires it's input. The 
+    InputPolicy is parameterized by InputT.</li>
+  <li>OwnershipPolicy - This policy determines how multi_pass deals with it's 
+    shared components.</li>
+  <li>CheckingPolicy - This policy determines how checking for invalid iterators 
+    is done.</li>
+  <li>StoragePolicy - The buffering scheme used by multi_pass is determined and 
+    managed by the StoragePolicy.</li>
+</ul>
+<a name="predefined_policies"></a>
+<h2>Predefined policies</h2>
+<p> All predefined multi_pass policies are in the namespace boost::spirit::multi_pass_policies.</p>
+<a name="predefined_inputpolicy_classes"></a>
+<h3>Predefined InputPolicy classes</h3>
+<a name="input_iterator"></a>
+<h4>input_iterator</h4>
+<p> This policy directs multi_pass to read from an input iterator of type InputT.</p>
+<a name="lex_input"></a>
+<h4>lex_input</h4>
+<p> This policy obtains it's input by calling yylex(), which would typically be 
+  provided by a scanner generated by LEX. If you use this policy your code must 
+  link against a LEX generated scanner.</p>
+<a name="functor_input"></a>
+<h4>functor_input</h4>
+<p> This input policy obtains it's data by calling a functor of type InputT. The 
+  functor must meet certain requirements. It must have a typedef called result_type 
+  which should be the type returned from operator(). Also, since an input policy 
+  needs a way to determine when the end of input has been reached, the functor 
+  must contain a static variable named eof which is comparable to a variable of 
+  result_type.</p>
+<a name="predefined_ownershippolicy_classes"></a>
+<h3>Predefined OwnershipPolicy classes</h3>
+<a name="ref_counted"></a>
+<h4>ref_counted</h4>
+<p> This class uses a reference counting scheme. multi_pass will delete it's shared 
+  components when the count reaches zero.</p>
+<a name="first_owner"></a>
+<h4>first_owner</h4>
+<p> When this policy is used, the first multi_pass created will be the one that 
+  deletes the shared data. Each copy will not take ownership of the shared data. 
+  This works well for spirit, since no dynamic allocation of iterators is done. 
+  All copies are made on the stack, so the original iterator has the longest lifespan.</p>
+<a name="predefined_checkingpolicy_classes"></a> 
+<h3>Predefined CheckingPolicy classes</h3>
+<a name="no_check"></a>
+<h4>no_check</h4>
+<p> This policy does no checking at all.</p>
+<a name="buf_id_check"></a>
+<h4>buf_id_check</h4>
+<p> buf_id_check keeps around a buffer id, or a buffer age. Every time clear_queue() 
+  is called on a multi_pass iterator, it is possible that all other iterators 
+  become invalid. When clear_queue() is called, buf_id_check increments the buffer 
+  id. When an iterator is dereferenced, this policy checks that the buffer id 
+  of the iterator matches the shared buffer id. This policy is most effective 
+  when used together with the std_deque StoragePolicy. It should not be used with 
+  the fixed_size_queue StoragePolicy, because it will not detect iterator dereferences 
+  that are out of range.</p>
+<a name="full_check"></a>
+<h4>full_check</h4>
+<p> This policy has not been implemented yet. When it is, it will keep track of 
+  all iterators and make sure that they are all valid.</p>
+<a name="predefined_storagepolicy_classes"></a>
+<h3>Predefined StoragePolicy classes</h3>
+<a name="std_deque"></a>
+<h4>std_deque</h4>
+<p> This policy keeps all buffered data in a std::deque. All data is stored as 
+  long as there is more than one iterator. Once the iterator count goes down to 
+  one, and the queue is no longer needed, it is cleared, freeing up memory. The 
+  queue can also be forcibly cleared by calling multi_pass::clear_queue().</p>
+<a name="fixed_size_queue_lt_n_gt_"></a>
+<h4>fixed_size_queue&lt;N&gt;</h4>
+<p> fixed_size_queue keeps a circular buffer that is size N+1 and stores N elements. 
+  fixed_size_queue is a template with a std::size_t parameter that specified the 
+  queue size. It is your responsibility to ensure that N is big enough for your 
+  parser. Whenever the foremost iterator is incremented, the last character of 
+  the buffer is automatically erased. Currently there is no way to tell if an 
+  iterator is trailing too far behind and has become invalid. No dynamic allocation 
+  is done by this policy during normal iterator operation, only on initial construction. 
+  The memory usage of this StoragePolicy is set at N+1 bytes, unlike std_deque, 
+  which is unbounded.</p>
+<a name="combinations__how_to_specify_your_own_custom_multi_pass"></a>
+<h2>Combinations: How to specify your own custom multi_pass</h2>
+<p> The beauty of policy based designs is that you can mix and match policies 
+  to create your own custom class by selecting the policies you want. Here's an 
+  example of how to specify a custom multi_pass that wraps an istream_iterator&lt;char&gt;, 
+  and is slightly more efficient than the default because it uses the first_owner 
+  OwnershipPolicy and the no_check CheckingPolicy:</p>
+<pre>    <code><span class="keyword">typedef </span><span class="identifier">multi_pass</span><span class="special">&lt;<br>        </span><span class="identifier">istream_iterator</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;,<br>        </span><span class="identifier">multi_pass_policies</span><span class="special">::</span><span class="identifier">input_iterator</span><span class="special">,<br>        </span><span class="identifier">multi_pass_policies</span><span class="special">::</span><span class="identifier">first_owner</span><span class="special">,<br>        </span><span class="identifier">multi_pass_policies</span><span class="special">::</span><span class="identifier">no_check</span><span class="special">,<br>        </span><span class="identifier">multi_pass_policies</span><span class="special">::</span><span class="identifier">std_deque<br>    </span><span class="special">&gt; </span><span class="identifier">first_owner_multi_pass_type</span><span class="special">;<br></span></code></pre>
+<p> The default template parameters for multi_pass are: input_iterator InputPolicy, 
+  ref_counted OwnershipPolicy, buf_id_check CheckingPolicy and std_deque StoragePolicy. 
+  So if you use multi_pass&lt;istream_iterator&lt;char&gt; &gt; you will get those 
+  pre-defined behaviors while wrapping an istream_iterator&lt;char&gt;.</p>
+<p> There is one other pre-defined class called look_ahead. look_ahead has two 
+  template parameters: InputT, the type of the input iterator to wrap, and a std::size_t 
+  N, which specifies the size of the buffer to the fixed_size_queue policy. While 
+  the default multi_pass configuration is designed for safey, look_ahead is designed 
+  for speed. look_ahead is derived from a multi_pass with the following policies: 
+  input_iterator InputPolicy, first_owner OwnershipPolicy, no_check CheckingPolicy, 
+  and fixed_size_queue&lt;N&gt; StoragePolicy.</p>
+<a name="how_to_write_a_functor_for_use_with_the_functor_input_inputpolicy"></a>
+<h3>How to write a functor for use with the functor_input InputPolicy</h3>
+<p> If you want to use the functor_input InputPolicy, you can write your own functor 
+  that will supply the input to multi_pass. The functor must satisfy two requirements. 
+  It must have a typedef result_type which specifies the return type of operator(). 
+  This is standard practice in the STL. Also, it must supply a static variable 
+  called eof which is compared against to know whether the input has reached the 
+  end. Here is an example:</p>
+<pre>    <code><span class="keyword">class </span><span class="identifier">my_functor<br>    </span><span class="special">{<br>    </span><span class="keyword">public</span><span class="special">:<br><br>        </span><span class="keyword">typedef char </span><span class="identifier">result_type</span><span class="special">;<br><br>        </span><span class="identifier">my_functor</span><span class="special">()<br>        : </span><span class="identifier">c</span><span class="special">(</span><span class="literal">'A'</span><span class="special">) {}<br><br>        </span><span class="keyword">char operator</span><span class="special">()() </span><span class="keyword">const<br>        </span><span class="special">{<br>            </span><span class="keyword">if </span><span class="special">(</span><span class="identifier">c </span><span class="special">== </span><span class="literal">'M'</span><span class="special">)<br>                </span><span class="keyword">return </span><span class="identifier">eof</span><span class="special">;<br>            </span><span class="keyword">else<br>                return </span><span class="identifier">c</span><span class="special">++;<br>        }<br><br>        </span><span class="keyword">static </span><span class="identifier">result_type eof</span><span class="special">;<br><br>    </span><span class="keyword">private</span><span class="special">:<br><br>        </span><span class="keyword">char </span><span class="identifier">c</span><span class="special">;<br>    };<br><br>    </span><span class="identifier">my_functor</span><span class="special">::</span><span class="identifier">result_type my_functor</span><span class="special">::</span><span class="identifier">eof </span><span class="special">= </span><span class="literal">'\0'</span><span class="special">;<br><br>    </span><span class="keyword">typedef </span><span class="identifier">multi_pass</span><span class="special">&lt;<br>        </span><span class="identifier">my_functor</span><span class="special">,<br>        </span><span class="identifier">multi_pass_policies</span><span class="special">::</span><span class="identifier">functor_input</span><span class="special">,<br>        </span><span class="identifier">multi_pass_policies</span><span class="special">::</span><span class="identifier">first_owner</span><span class="special">,<br>        </span><span class="identifier">multi_pass_policies</span><span class="special">::</span><span class="identifier">no_check</span><span class="special">,<br>        </span><span class="identifier">multi_pass_policies</span><span class="special">::</span><span class="identifier">std_deque<br>    </span><span class="special">&gt; </span><span class="identifier">functor_multi_pass_type</span><span class="special">;<br><br>    </span><span class="identifier">functor_multi_pass_type first </span><span class="special">= </span><span class="identifier">functor_multi_pass_type</span><span class="special">(</span><span class="identifier">my_functor</span><span class="special">());<br>    </span><span class="identifier">functor_multi_pass_type last</span><span class="special">;<br></span></code></pre>
+<a name="how_to_write_policies_for_use_with_multi_pass"></a>
+<h3>How to write policies for use with multi_pass</h3>
+<a name="inputpolicy"></a>
+<h4>InputPolicy</h4>
+<p> An InputPolicy must have the following interface:</p>
+<pre>    <code><span class="keyword">class </span><span class="identifier">my_input_policy </span><span class="comment">// your policy name<br>    </span><span class="special">{<br>    </span><span class="keyword">public</span><span class="special">:<br><br>    </span><span class="comment">//  class inner will be instantiated with the type given<br>    //  as the InputT parameter to multi_pass.<br><br>        </span><span class="keyword">template </span><span class="special">&lt;</span><span class="keyword">typename </span><span class="identifier">InputT</span><span class="special">&gt;<br>        </span><span class="keyword">class </span><span class="identifier">inner<br>        </span><span class="special">{<br>        </span><span class="keyword">public</span><span class="special">:<br><br>            </span><span class="comment">// these typedefs determine the iterator_traits for multi_pass<br>            </span><span class="keyword">typedef </span><span class="identifier">x </span><span class="identifier">value_type</span><span class="special">;<br>            </span><span class="keyword">typedef </span><span class="identifier">x </span><span class="identifier">difference_type</span><span class="special">;<br>            </span><span class="keyword">typedef </span><span class="identifier">x </span><span class="identifier">pointer</span><span class="special">;<br>            </span><span class="keyword">typedef </span><span class="identifier">x </span><span class="identifier">reference</span><span class="special">;<br><br>        </span><span class="keyword">protected</span><span class="special">:<br><br>            </span><span class="identifier">inner</span><span class="special">();<br>            </span><span class="identifier">inner</span><span class="special">(</span><span class="identifier">InputT </span><span class="identifier">x</span><span class="special">);<br>            </span><span class="identifier">inner</span><span class="special">(</span><span class="identifier">inner </span><span class="keyword">const</span><span class="special">&amp; </span><span class="identifier">x</span><span class="special">);<br>            </span><span class="comment">// delete or clean up any state<br>            </span><span class="keyword">void </span><span class="identifier">destroy</span><span class="special">();<br>            </span><span class="comment">// return true if *this and x have the same input<br>            </span><span class="keyword">bool </span><span class="identifier">same_input</span><span class="special">(</span><span class="identifier">inner </span><span class="keyword">const</span><span class="special">&amp; </span><span class="identifier">x</span><span class="special">) </span><span class="keyword">const</span><span class="special">;<br>            </span><span class="keyword">void </span><span class="identifier">swap</span><span class="special">(</span><span class="identifier">inner</span><span class="special">&amp; </span><span class="identifier">x</span><span class="special">);<br><br>        </span><span class="keyword">public</span><span class="special">:<br><br>            </span><span class="comment">// get an instance from the input<br>            </span><span class="identifier">result_type </span><span class="identifier">get_input</span><span class="special">() </span><span class="keyword">const</span><span class="special">;<br>            </span><span class="comment">// advance the input<br>            </span><span class="keyword">void </span><span class="identifier">advance_input</span><span class="special">();<br>            </span><span class="comment">// return true if the input is at the end<br>            </span><span class="keyword">bool </span><span class="identifier">input_at_eof</span><span class="special">() </span><span class="keyword">const</span><span class="special">;<br>        </span><span class="special">};<br>    </span><span class="special">};<br></span></code></pre>
+<p> Because of the way that multi_pass shares a buffer and input among multiple 
+  copies, class inner should keep a pointer to it's input. The copy constructor 
+  should simply copy the pointer. destroy() should delete it. same_input should 
+  compare the pointers. For more details see the various implementations of InputPolicy 
+  classes.</p>
+<a name="ownershippolicy"></a>
+<h4>OwnershipPolicy</h4>
+<p> The OwnershipPolicy must have the following interface:</p>
+<pre>    <code><span class="keyword">class </span><span class="identifier">my_ownership_policy<br>    </span><span class="special">{<br>    </span><span class="keyword">protected</span><span class="special">:<br><br>        </span><span class="identifier">my_ownership_policy</span><span class="special">();<br>        </span><span class="identifier">my_ownership_policy</span><span class="special">(</span><span class="identifier">my_ownership_policy </span><span class="keyword">const</span><span class="special">&amp; </span><span class="identifier">x</span><span class="special">);<br>        </span><span class="comment">// clone is called when a copy of the iterator is made<br>        </span><span class="keyword">void </span><span class="identifier">clone</span><span class="special">();<br>        </span><span class="comment">// called when a copy is deleted. Return true to indicate<br>        // resources should be released<br>        </span><span class="keyword">bool </span><span class="identifier">release</span><span class="special">();<br>        </span><span class="keyword">void </span><span class="identifier">swap</span><span class="special">(</span><span class="identifier">my_ownership_policy</span><span class="special">&amp; </span><span class="identifier">x</span><span class="special">);<br><br>    </span><span class="keyword">public</span><span class="special">:<br>        </span><span class="comment">// returns true if there is only one iterator in existence.<br>        // std_dequeue StoragePolicy will free it's buffered data if this<br>        // returns true.<br>        </span><span class="keyword">bool </span><span class="identifier">unique</span><span class="special">() </span><span class="keyword">const</span><span class="special">;<br>    </span><span class="special">};<br></span></code></pre>
+<a name="checkingpolicy"></a>
+<h4>CheckingPolicy</h4>
+<p> The CheckingPolicy must have the following interface:</p>
+<pre>    <code><span class="keyword">class </span><span class="identifier">my_check<br>    </span><span class="special">{<br>    </span><span class="keyword">protected</span><span class="special">:<br><br>        </span><span class="identifier">my_check</span><span class="special">();<br>        </span><span class="identifier">my_check</span><span class="special">(</span><span class="identifier">my_check </span><span class="keyword">const</span><span class="special">&amp; </span><span class="identifier">x</span><span class="special">);<br>        </span><span class="keyword">void </span><span class="identifier">destroy</span><span class="special">();<br>        </span><span class="keyword">void </span><span class="identifier">swap</span><span class="special">(</span><span class="identifier">my_check</span><span class="special">&amp; </span><span class="identifier">x</span><span class="special">);<br>        </span><span class="comment">// check should make sure that this iterator is valid<br>        </span><span class="keyword">void </span><span class="identifier">check_if_valid</span><span class="special">() </span><span class="keyword">const</span><span class="special">;<br>        </span><span class="keyword">void </span><span class="identifier">clear_queue</span><span class="special">();<br>    </span><span class="special">};<br></span></code></pre>
+<a name="storagepolicy"></a>
+<h4>StoragePolicy</h4>
+<p> A StoragePolicy must have the following interface:</p>
+<pre>    <code><span class="keyword">class </span><span class="identifier">my_storage_policy<br>    </span><span class="special">{<br>    </span><span class="keyword">public</span><span class="special">:<br><br>    </span><span class="comment">// class inner will be instantiated with the value_type from the InputPolicy<br><br>        </span><span class="keyword">template </span><span class="special">&lt;</span><span class="keyword">typename </span><span class="identifier">ValueT</span><span class="special">&gt;<br>        </span><span class="keyword">class </span><span class="identifier">inner<br>        </span><span class="special">{<br>        </span><span class="keyword">protected</span><span class="special">:<br><br>            </span><span class="identifier">inner</span><span class="special">();<br>            </span><span class="identifier">inner</span><span class="special">(</span><span class="identifier">inner </span><span class="keyword">const</span><span class="special">&amp; </span><span class="identifier">x</span><span class="special">);<br>            </span><span class="comment">// will be called from the destructor of the last iterator.<br>            </span><span class="keyword">void </span><span class="identifier">destroy</span><span class="special">();<br>            </span><span class="keyword">void </span><span class="identifier">swap</span><span class="special">(</span><span class="identifier">inner</span><span class="special">&amp; </span><span class="identifier">x</span><span class="special">);<br>            </span><span class="comment">// This is called when the iterator is dereferenced. It's a template<br>            // method so we can recover the type of the multi_pass iterator<br>            // and access it.<br>            </span><span class="keyword">template </span><span class="special">&lt;</span><span class="keyword">typename </span><span class="identifier">MultiPassT</span><span class="special">&gt;<br>            </span><span class="keyword">static </span><span class="identifier">ValueT </span><span class="identifier">dereference</span><span class="special">(</span><span class="identifier">MultiPassT </span><span class="keyword">const</span><span class="special">&amp; </span><span class="identifier">mp</span><span class="special">);<br>            </span><span class="comment">// This is called when the iterator is incremented. It's a template<br>            // method so we can recover the type of the multi_pass iterator<br>            // and access it.<br>            </span><span class="keyword">template </span><span class="special">&lt;</span><span class="keyword">typename </span><span class="identifier">MultiPassT</span><span class="special">&gt;<br>            </span><span class="keyword">static </span><span class="keyword">void </span><span class="identifier">increment</span><span class="special">(</span><span class="identifier">MultiPassT</span><span class="special">&amp; </span><span class="identifier">mp</span><span class="special">);<br>            </span><span class="keyword">void </span><span class="identifier">clear_queue</span><span class="special">();<br>            </span><span class="comment">// called to determine whether the iterator is an eof iterator<br>            </span><span class="keyword">template </span><span class="special">&lt;</span><span class="keyword">typename </span><span class="identifier">MultiPassT</span><span class="special">&gt;<br>            </span><span class="keyword">static </span><span class="keyword">bool </span><span class="identifier">is_eof</span><span class="special">(</span><span class="identifier">MultiPassT </span><span class="keyword">const</span><span class="special">&amp; </span><span class="identifier">mp</span><span class="special">);<br>            </span><span class="comment">// called by operator==<br>            </span><span class="keyword">bool </span><span class="identifier">equal_to</span><span class="special">(</span><span class="identifier">inner </span><span class="keyword">const</span><span class="special">&amp; </span><span class="identifier">x</span><span class="special">) </span><span class="keyword">const</span><span class="special">;<br>            </span><span class="comment">// called by operator&lt;<br>            </span><span class="keyword">bool </span><span class="identifier">less_than</span><span class="special">(</span><span class="identifier">inner </span><span class="keyword">const</span><span class="special">&amp; </span><span class="identifier">x</span><span class="special">) </span><span class="keyword">const</span><span class="special">;<br>        </span><span class="special">}; </span><span class="comment"> // class inner<br>    </span><span class="special">};<br></span></code></pre>
+<p> A StoragePolicy is the trickiest policy to write. You should study and understand 
+  the existing StoragePolicy classes before you try and write your own.</p>
+<table border="0">
+  <tbody><tr> 
+    <td width="10"><br>
+</td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="trees.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="file_iterator.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</tbody></table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2001-2002 Daniel C. Nuffer<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<p class="copyright">&nbsp;</p>
+<br>
+</body></html>

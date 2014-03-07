@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL Non-Distributed Betweenness Centrality</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-non-distributed-betweenness-centrality">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> Non-Distributed Betweenness Centrality</h1>
+
+<!-- Copyright (C) 2004-2009 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<pre class="literal-block">
+// named parameter versions
+template&lt;typename ProcessGroup, typename Graph, typename Param, typename Tag, typename Rest&gt;
+void
+non_distributed_brandes_betweenness_centrality(const ProcessGroup&amp; pg, const Graph&amp; g,
+                                               const bgl_named_params&lt;Param,Tag,Rest&gt;&amp; params);
+
+template&lt;typename ProcessGroup, typename Graph, typename CentralityMap,
+         typename Buffer&gt;
+void
+non_distributed_brandes_betweenness_centrality(const ProcessGroup&amp; pg, const Graph&amp; g,
+                                               CentralityMap centrality, Buffer sources);
+
+template&lt;typename ProcessGroup, typename Graph, typename CentralityMap,
+         typename EdgeCentralityMap, typename Buffer&gt;
+void
+non_distributed_brandes_betweenness_centrality(const ProcessGroup&amp; pg, const Graph&amp; g,
+                                               CentralityMap centrality,
+                                               EdgeCentralityMap edge_centrality_map,
+                                               Buffer sources);
+
+// non-named parameter versions
+template&lt;typename ProcessGroup, typename Graph, typename CentralityMap,
+         typename EdgeCentralityMap, typename IncomingMap, typename DistanceMap,
+         typename DependencyMap, typename PathCountMap, typename VertexIndexMap,
+         typename Buffer&gt;
+void
+non_distributed_brandes_betweenness_centrality(const ProcessGroup&amp; pg,
+                                               const Graph&amp; g,
+                                               CentralityMap centrality,
+                                               EdgeCentralityMap edge_centrality_map,
+                                               IncomingMap incoming,
+                                               DistanceMap distance,
+                                               DependencyMap dependency,
+                                               PathCountMap path_count,
+                                               VertexIndexMap vertex_index,
+                                               Buffer sources);
+
+template&lt;typename ProcessGroup, typename Graph, typename CentralityMap,
+         typename EdgeCentralityMap, typename IncomingMap, typename DistanceMap,
+         typename DependencyMap, typename PathCountMap, typename VertexIndexMap,
+         typename WeightMap, typename Buffer&gt;
+void
+non_distributed_brandes_betweenness_centrality(const ProcessGroup&amp; pg,
+                                               const Graph&amp; g,
+                                               CentralityMap centrality,
+                                               EdgeCentralityMap edge_centrality_map,
+                                               IncomingMap incoming,
+                                               DistanceMap distance,
+                                               DependencyMap dependency,
+                                               PathCountMap path_count,
+                                               VertexIndexMap vertex_index,
+                                               WeightMap weight_map,
+                                               Buffer sources);
+
+// helper functions
+template&lt;typename Graph, typename CentralityMap&gt;
+typename property_traits&lt;CentralityMap&gt;::value_type
+central_point_dominance(const Graph&amp; g, CentralityMap centrality);
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">non_distributed_betweenness_centrality()</span></tt> function computes the
+betweenness centrality of the vertices and edges in a graph.  The name
+is somewhat confusing, the graph <tt class="docutils literal"><span class="pre">g</span></tt> is not a distributed graph,
+however the algorithm does run in parallel.  Rather than parallelizing
+the individual shortest paths calculations that are required by
+betweenness centrality, this variant of the algorithm performs the
+shortest paths calculations in parallel with each process in <tt class="docutils literal"><span class="pre">pg</span></tt>
+calculating the shortest path from a different set of source vertices
+using the BGL's implementation of <a class="reference external" href="http://www.boost.org/libs/graph/doc/dijkstra_shortest_paths.html">Dijkstra shortest paths</a>.  Each
+process accumulates into it's local centrality map and once all the
+shortest paths calculations are performed a reduction is performed to
+combine the centrality from all the processes.</p>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#where-defined" id="id1">Where Defined</a></li>
+<li><a class="reference internal" href="#parameters" id="id2">Parameters</a></li>
+<li><a class="reference internal" href="#complexity" id="id3">Complexity</a></li>
+<li><a class="reference internal" href="#algorithm-description" id="id4">Algorithm Description</a></li>
+</ul>
+</div>
+<div class="section" id="where-defined">
+<h1><a class="toc-backref" href="#id1">Where Defined</a></h1>
+<p>&lt;<tt class="docutils literal"><span class="pre">boost/graph/distributed/betweenness_centrality.hpp</span></tt>&gt;</p>
+</div>
+<div class="section" id="parameters">
+<h1><a class="toc-backref" href="#id2">Parameters</a></h1>
+<dl class="docutils">
+<dt>IN: <tt class="docutils literal"><span class="pre">const</span> <span class="pre">ProcessGroup&amp;</span> <span class="pre">pg</span></tt></dt>
+<dd>The process group over which the the processes involved in
+betweenness centrality communicate.  The process group type must
+model the <a class="reference external" href="process_group.html">Process Group</a> concept.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">const</span> <span class="pre">Graph&amp;</span> <span class="pre">g</span></tt></dt>
+<dd>The graph type must be a model of the <a class="reference external" href="http://www.boost.org/libs/graph/doc/IncidenceGraph.html">Incidence Graph</a> concept.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">CentralityMap</span> <span class="pre">centrality</span></tt></dt>
+<dd><p class="first">A centrality map may be supplied to the algorithm, if one is not
+supplied a <tt class="docutils literal"><span class="pre">dummy_property_map</span></tt> will be used and no vertex
+centrality information will be recorded.  The key type of the
+<tt class="docutils literal"><span class="pre">CentralityMap</span></tt> must be the graph's vertex descriptor type.</p>
+<p class="last"><strong>Default</strong>: A <tt class="docutils literal"><span class="pre">dummy_property_map</span></tt>.</p>
+</dd>
+<dt>IN:  <tt class="docutils literal"><span class="pre">EdgeCentralityMap</span> <span class="pre">edge_centrality_map</span></tt></dt>
+<dd><p class="first">An edge centrality map may be supplied to the algorithm, if one is
+not supplied a <tt class="docutils literal"><span class="pre">dummy_property_map</span></tt> will be used and no edge
+centrality information will be recorded.  The key type of the
+<tt class="docutils literal"><span class="pre">EdgeCentralityMap</span></tt> must be the graph's vertex descriptor type.</p>
+<p class="last"><strong>Default</strong>: A <tt class="docutils literal"><span class="pre">dummy_property_map</span></tt>.</p>
+</dd>
+<dt>IN:  <tt class="docutils literal"><span class="pre">IncomingMap</span> <span class="pre">incoming</span></tt></dt>
+<dd><p class="first">The incoming map contains the incoming edges to a vertex that are
+part of shortest paths to that vertex.  Its key type must be the
+graph's vertex descriptor type and its value type must be the
+graph's edge descriptor type.</p>
+<dl class="last docutils">
+<dt><strong>Default</strong>: An <tt class="docutils literal"><span class="pre">iterator_property_map</span></tt> created from a</dt>
+<dd><tt class="docutils literal"><span class="pre">std::vector</span></tt> of <tt class="docutils literal"><span class="pre">std::vector</span></tt> of the graph's edge descriptor
+type.</dd>
+</dl>
+</dd>
+<dt>IN:  <tt class="docutils literal"><span class="pre">DistanceMap</span> <span class="pre">distance</span></tt></dt>
+<dd><p class="first">The distance map records the distance to vertices during the
+shortest paths portion of the algorithm.  Its key type must be the
+graph's vertex descriptor type.</p>
+<dl class="last docutils">
+<dt><strong>Default</strong>: An <tt class="docutils literal"><span class="pre">iterator_property_map</span></tt> created from a</dt>
+<dd><tt class="docutils literal"><span class="pre">std::vector</span></tt> of the value type of the <tt class="docutils literal"><span class="pre">CentralityMap</span></tt>.</dd>
+</dl>
+</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">DependencyMap</span> <span class="pre">dependency</span></tt></dt>
+<dd><p class="first">The dependency map records the dependency of each vertex during the
+centrality calculation portion of the algorithm.  Its key type must
+be the graph's vertex descriptor type.</p>
+<dl class="last docutils">
+<dt><strong>Default</strong>: An <tt class="docutils literal"><span class="pre">iterator_property_map</span></tt> created from a</dt>
+<dd><tt class="docutils literal"><span class="pre">std::vector</span></tt> of the value type of the <tt class="docutils literal"><span class="pre">CentralityMap</span></tt>.</dd>
+</dl>
+</dd>
+<dt>IN:  <tt class="docutils literal"><span class="pre">PathCountMap</span> <span class="pre">path_count</span></tt></dt>
+<dd><p class="first">The path count map records the number of shortest paths each vertex
+is on during the centrality calculation portion of the algorithm.
+Its key type must be the graph's vertex descriptor type.</p>
+<dl class="last docutils">
+<dt><strong>Default</strong>: An <tt class="docutils literal"><span class="pre">iterator_property_map</span></tt> created from a</dt>
+<dd><tt class="docutils literal"><span class="pre">std::vector</span></tt> of the graph's degree size type.</dd>
+</dl>
+</dd>
+<dt>IN:  <tt class="docutils literal"><span class="pre">VertexIndexMap</span> <span class="pre">vertex_index</span></tt></dt>
+<dd><p class="first">A model of <a class="reference external" href="http://www.boost.org/libs/property_map/ReadablePropertyMap.html">Readable Property Map</a> whose key type is the vertex
+descriptor type of the graph <tt class="docutils literal"><span class="pre">g</span></tt> and whose value type is an
+integral type. The property map should map from vertices to their
+(local) indices in the range <em>[0, num_vertices(g))</em>.</p>
+<p class="last"><strong>Default</strong>: <tt class="docutils literal"><span class="pre">get(vertex_index,</span> <span class="pre">g)</span></tt></p>
+</dd>
+<dt>IN:  <tt class="docutils literal"><span class="pre">WeightMap</span> <span class="pre">weight_map</span></tt></dt>
+<dd>A model of <a class="reference external" href="http://www.boost.org/libs/property_map/ReadablePropertyMap.html">Readable Property Map</a> whose key type is the edge
+descriptor type of the graph <tt class="docutils literal"><span class="pre">g</span></tt>.  If not supplied the betweenness
+centrality calculation will be unweighted.</dd>
+<dt>IN: <tt class="docutils literal"><span class="pre">Buffer</span> <span class="pre">sources</span></tt></dt>
+<dd><p class="first">A model of <a class="reference external" href="http://www.boost.org/libs/graph/doc/Buffer.html">Buffer</a> containing the starting vertices for the
+algorithm.  If <tt class="docutils literal"><span class="pre">sources</span></tt> is empty a complete betweenness
+centrality calculation using all vertices in <tt class="docutils literal"><span class="pre">g</span></tt> will be
+performed.  The value type of the Buffer must be the graph's vertex
+descriptor type.</p>
+<p class="last"><strong>Default</strong>: An empty <tt class="docutils literal"><span class="pre">boost::queue</span></tt> of int.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="complexity">
+<h1><a class="toc-backref" href="#id3">Complexity</a></h1>
+<p>Each of the shortest paths calculations is <em>O(V log V)</em> and each of
+them may be run in parallel (one per process in <tt class="docutils literal"><span class="pre">pg</span></tt>).  The
+reduction phase to calculate the total centrality at the end of the
+shortest paths phase is <em>O(V log V)</em>.</p>
+</div>
+<div class="section" id="algorithm-description">
+<h1><a class="toc-backref" href="#id4">Algorithm Description</a></h1>
+<p>The algorithm uses a non-distributed (sequential) graph, as well as
+non-distributed property maps.  Each process contains a separate copy
+of the sequential graph <tt class="docutils literal"><span class="pre">g</span></tt>.  In order for the algorithm to be
+correct, these copies of <tt class="docutils literal"><span class="pre">g</span></tt> must be identical.  The <tt class="docutils literal"><span class="pre">sources</span></tt>
+buffer contains the vertices to use as the source of single source
+shortest paths calculations when approximating betweenness centrality
+using a subset of the vertices in the graph.  If <tt class="docutils literal"><span class="pre">sources</span></tt> is empty
+then a complete betweenness centrality calculation is performed using
+all vertices.</p>
+<p>In the sequential phase of the algorithm each process computes
+shortest paths from a subset of the vertices in the graph using the
+Brandes shortest paths methods from the BGL's betweenness centrality
+implementation.  In the parallel phase of the algorithm a reduction is
+performed to sum the values computed by each process for all vertices
+in the graph.</p>
+<p>Either weighted or unweighted betweenness centrality is calculated
+depending on whether a <tt class="docutils literal"><span class="pre">WeightMap</span></tt> is passed.</p>
+<hr class="docutils" />
+<p>Copyright (C) 2009 The Trustees of Indiana University.</p>
+<p>Authors: Nick Edmonds and Andrew Lumsdaine</p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:22 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

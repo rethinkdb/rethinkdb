@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: Intrinsic Metafunctions</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./zip-view.html" class="navigation-link">Prev</a>&nbsp;<a href="./at.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./views.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./sequences.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./sequences.html" class="navigation-link">Sequences</a> / <a href="./intrinsic-metafunctions.html" class="navigation-link">Intrinsic Metafunctions</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="intrinsic-metafunctions">
+<h1><a class="toc-backref" href="./sequences.html#id1424">Intrinsic Metafunctions</a></h1>
+<p id="label-sequences-intrinsic-metafunctions">The metafunctions that form the essential interface of sequence <a class="reference internal" href="./classes.html#label-sequences-classes">classes</a>
+documented in the corresponding <a class="reference internal" href="./concepts.html#label-sequences-concepts">sequence concepts</a> are known as
+<em>intrinsic sequence operations</em>. They differ from generic
+<a class="reference internal" href="./algorithms.html">sequence algorithms</a> in that, in general, they need to be implemented
+from scratch for each new sequence class <a class="footnote-reference" href="#intrinsic" id="id175">[1]</a>.</p>
+<p>It's worth noting that STL counterparts of these metafunctions are
+usually implemented as member functions.</p>
+<table class="docutils footnote" frame="void" id="intrinsic" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id175">[1]</a></td><td>In practice, many of intrinsic metafunctions offer a
+default implementation that will work in majority of cases, given
+that you've implemented the core functionality they rely on (such
+as <a class="reference internal" href="./begin.html">begin</a> / <a class="reference internal" href="./end.html">end</a>).</td></tr>
+</tbody>
+</table>
+<!-- Sequences/Intrinsic Metafunctions//at -->
+<ul class="toc simple" id="outline">
+<li><a class="reference internal" href="./at.html" id="id1425">at</a></li>
+<li><a class="reference internal" href="./at-c.html" id="id1426">at_c</a></li>
+<li><a class="reference internal" href="./back.html" id="id1427">back</a></li>
+<li><a class="reference internal" href="./begin.html" id="id1428">begin</a></li>
+<li><a class="reference internal" href="./clear.html" id="id1429">clear</a></li>
+<li><a class="reference internal" href="./empty.html" id="id1430">empty</a></li>
+<li><a class="reference internal" href="./end.html" id="id1431">end</a></li>
+<li><a class="reference internal" href="./erase.html" id="id1432">erase</a></li>
+<li><a class="reference internal" href="./erase-key.html" id="id1433">erase_key</a></li>
+<li><a class="reference internal" href="./front.html" id="id1434">front</a></li>
+<li><a class="reference internal" href="./has-key.html" id="id1435">has_key</a></li>
+<li><a class="reference internal" href="./insert.html" id="id1436">insert</a></li>
+<li><a class="reference internal" href="./insert-range.html" id="id1437">insert_range</a></li>
+<li><a class="reference internal" href="./is-sequence.html" id="id1438">is_sequence</a></li>
+<li><a class="reference internal" href="./key-type.html" id="id1439">key_type</a></li>
+<li><a class="reference internal" href="./order.html" id="id1440">order</a></li>
+<li><a class="reference internal" href="./pop-back.html" id="id1441">pop_back</a></li>
+<li><a class="reference internal" href="./pop-front.html" id="id1442">pop_front</a></li>
+<li><a class="reference internal" href="./push-back.html" id="id1443">push_back</a></li>
+<li><a class="reference internal" href="./push-front.html" id="id1444">push_front</a></li>
+<li><a class="reference internal" href="./sequence-tag.html" id="id1445">sequence_tag</a></li>
+<li><a class="reference internal" href="./size.html" id="id1446">size</a></li>
+<li><a class="reference internal" href="./value-type.html" id="id1447">value_type</a></li>
+</ul>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./zip-view.html" class="navigation-link">Prev</a>&nbsp;<a href="./at.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./views.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./sequences.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

@@ -1,0 +1,25 @@
+#  Boost.Minmax Library test Jamfile
+#
+#  Copyright (C) 2002--2004, Herve Bronnimann
+#
+# Use, modification, and distribution is subject to the Boost Software
+# License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+#
+
+import testing ;
+
+alias unit_test_framework
+    : # sources
+        /boost//unit_test_framework
+    ;        
+
+{
+  test-suite algorithm/minmax:
+   : [ run minmax_element_test.cpp unit_test_framework
+       : : : : minmax_element ]
+     [ run minmax_test.cpp unit_test_framework
+       : : : : minmax ]      
+   ;
+}
+

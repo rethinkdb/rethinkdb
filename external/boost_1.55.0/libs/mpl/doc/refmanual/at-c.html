@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: at_c</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./at.html" class="navigation-link">Prev</a>&nbsp;<a href="./back.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./at.html" class="navigation-link">Back</a>&nbsp;<a href="./back.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./intrinsic-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./sequences.html" class="navigation-link">Sequences</a> / <a href="./intrinsic-metafunctions.html" class="navigation-link">Intrinsic Metafunctions</a> / <a href="./at-c.html" class="navigation-link">at_c</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="at-c">
+<h1><a class="toc-backref" href="./intrinsic-metafunctions.html#id1426">at_c</a></h1>
+<div class="section" id="id185">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename Sequence
+    , long n
+    &gt;
+struct <a href="./at-c.html" class="identifier">at_c</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id186">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>Returns a type identical to the <tt class="literal"><span class="pre">n</span></tt>th element from the beginning of
+the sequence. <tt class="literal"><span class="pre"><a href="./at-c.html" class="identifier">at_c</a>&lt;Sequence,n&gt;::type</span></tt> is a shorcut notation for
+<tt class="literal"><span class="pre"><a href="./at.html" class="identifier">at</a>&lt;</span> <span class="pre">Sequence,</span> <span class="pre"><a href="./long.html" class="identifier">long_</a>&lt;n&gt;</span> <span class="pre">&gt;::type</span></tt>.</p>
+</div>
+<div class="section" id="id187">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/at.hpp" class="header">boost/mpl/at.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id188">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="15%" />
+<col width="36%" />
+<col width="48%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">Sequence</span></tt></td>
+<td><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></td>
+<td>A sequence to be examined.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">n</span></tt></td>
+<td>A compile-time integral constant</td>
+<td>An offset from the beginning of the sequence
+specifying the element to be retrieved.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id189">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<pre class="literal-block">
+typedef <a href="./at-c.html" class="identifier">at_c</a>&lt;Sequence,n&gt;::type t;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">A type</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><p class="first"><tt class="literal"><span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">n</span> <span class="pre">&lt;</span> <span class="pre"><a href="./size.html" class="identifier">size</a>&lt;Sequence&gt;::value</span></tt></p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first">Equivalent to</p>
+<pre class="last literal-block">
+typedef <a href="./at.html" class="identifier">at</a>&lt; Sequence, <a href="./long.html" class="identifier">long_</a>&lt;n&gt; &gt;::type t;
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id190">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="47%" />
+<col width="53%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Sequence archetype</th>
+<th class="head">Complexity</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></td>
+<td>Linear.</td>
+</tr>
+<tr><td><a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a></td>
+<td>Amortized constant time.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id191">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./range-c.html" class="identifier">range_c</a>&lt;long,10,50&gt; range;
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( (<a href="./at-c.html" class="identifier">at_c</a>&lt; range,0 &gt;::type::value), ==, 10 );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( (<a href="./at-c.html" class="identifier">at_c</a>&lt; range,10 &gt;::type::value), ==, 20 );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( (<a href="./at-c.html" class="identifier">at_c</a>&lt; range,40 &gt;::type::value), ==, 50 );
+</pre>
+</div>
+<div class="section" id="id192">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a>, <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>, <a class="reference internal" href="./at.html">at</a>, <a class="reference internal" href="./front.html">front</a>, <a class="reference internal" href="./back.html">back</a></p>
+<!-- Sequences/Intrinsic Metafunctions//back -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./at.html" class="navigation-link">Prev</a>&nbsp;<a href="./back.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./at.html" class="navigation-link">Back</a>&nbsp;<a href="./back.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./intrinsic-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

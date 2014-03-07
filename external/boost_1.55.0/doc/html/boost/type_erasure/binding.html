@@ -1,0 +1,240 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template binding</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.binding_hpp" title="Header &lt;boost/type_erasure/binding.hpp&gt;">
+<link rel="prev" href="any_cast_idp21896760.html" title="Function any_cast">
+<link rel="next" href="binding_of.html" title="Function template binding_of">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="any_cast_idp21896760.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.binding_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="binding_of.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.type_erasure.binding"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template binding</span></h2>
+<p>boost::type_erasure::binding</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.binding_hpp" title="Header &lt;boost/type_erasure/binding.hpp&gt;">boost/type_erasure/binding.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="binding.html" title="Class template binding">binding</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="binding.html#boost.type_erasure.bindingconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="binding.html#idp96207048-bb"><span class="identifier">binding</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Map<span class="special">&gt;</span> <span class="keyword">explicit</span> <a class="link" href="binding.html#idp96504376-bb"><span class="identifier">binding</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Map</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Map<span class="special">&gt;</span> <a class="link" href="binding.html#idp96506520-bb"><span class="identifier">binding</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="static_binding.html" title="Struct template static_binding">static_binding</a><span class="special">&lt;</span> <span class="identifier">Map</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Map<span class="special">&gt;</span> 
+    <a class="link" href="binding.html#idp52056440-bb"><span class="identifier">binding</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a><span class="special">&lt;</span> <span class="identifier">Concept2</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Map</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Map<span class="special">&gt;</span> 
+    <a class="link" href="binding.html#idp34920584-bb"><span class="identifier">binding</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a><span class="special">&lt;</span> <span class="identifier">Concept2</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="static_binding.html" title="Struct template static_binding">static_binding</a><span class="special">&lt;</span> <span class="identifier">Map</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="binding.html#idp20693336-bb">friend functions</a></span>
+  <span class="keyword">friend</span> <span class="keyword">bool</span> <a class="link" href="binding.html#idp20693544-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">friend</span> <span class="keyword">bool</span> <a class="link" href="binding.html#idp93847656-bb"><span class="keyword">operator</span><span class="special">!=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp228464488"></a><h2>Description</h2>
+<p>Stores the binding of a <code class="computeroutput">Concept</code> to a set of actual types. <code class="computeroutput">Concept</code> is interpreted in the same way as with <a class="link" href="any.html" title="Class template any">any</a>. </p>
+<div class="refsect2">
+<a name="idp228466024"></a><h3>
+<a name="boost.type_erasure.bindingconstruct-copy-destruct"></a><code class="computeroutput">binding</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp96207048-bb"></a><span class="identifier">binding</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p><a class="link" href="relaxed.html" title="Struct relaxed">relaxed</a> must be in <code class="computeroutput">Concept</code>.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Nothing. </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Map<span class="special">&gt;</span> <span class="keyword">explicit</span> <a name="idp96504376-bb"></a><span class="identifier">binding</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">Map</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p><code class="computeroutput">Map</code> must be an MPL map with an entry for each placeholder referred to by <code class="computeroutput">Concept</code>.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Nothing. </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Map<span class="special">&gt;</span> <a name="idp96506520-bb"></a><span class="identifier">binding</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="static_binding.html" title="Struct template static_binding">static_binding</a><span class="special">&lt;</span> <span class="identifier">Map</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p><code class="computeroutput">Map</code> must be an MPL map with an entry for each placeholder referred to by <code class="computeroutput">Concept</code>.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Nothing. </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Map<span class="special">&gt;</span> 
+  <a name="idp52056440-bb"></a><span class="identifier">binding</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a><span class="special">&lt;</span> <span class="identifier">Concept2</span> <span class="special">&gt;</span> <span class="special">&amp;</span> other<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Map</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Converts from another set of bindings.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>Map must be an MPL map with an entry for each placeholder referred to by <code class="computeroutput">Concept</code>. The mapped type should be the corresponding placeholder in Concept2.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>std::bad_alloc </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Concept2<span class="special">,</span> <span class="keyword">typename</span> Map<span class="special">&gt;</span> 
+  <a name="idp34920584-bb"></a><span class="identifier">binding</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a><span class="special">&lt;</span> <span class="identifier">Concept2</span> <span class="special">&gt;</span> <span class="special">&amp;</span> other<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="static_binding.html" title="Struct template static_binding">static_binding</a><span class="special">&lt;</span> <span class="identifier">Map</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Converts from another set of bindings.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>Map must be an MPL map with an entry for each placeholder referred to by <code class="computeroutput">Concept</code>. The mapped type should be the corresponding placeholder in Concept2.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>std::bad_alloc </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp228502920"></a><h3>
+<a name="idp20693336-bb"></a><code class="computeroutput">binding</code> friend functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">friend</span> <span class="keyword">bool</span> <a name="idp20693544-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a> <span class="special">&amp;</span> lhs<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>true iff the sets of types that the placeholders bind to are the same for both arguments.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Nothing. </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">friend</span> <span class="keyword">bool</span> <a name="idp93847656-bb"></a><span class="keyword">operator</span><span class="special">!=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a> <span class="special">&amp;</span> lhs<span class="special">,</span> <span class="keyword">const</span> <a class="link" href="binding.html" title="Class template binding">binding</a> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>true iff the arguments do not map to identical sets of types.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Throws:</span></p></td>
+<td>Nothing. </td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="any_cast_idp21896760.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_typeerasure/reference.html#header.boost.type_erasure.binding_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="binding_of.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

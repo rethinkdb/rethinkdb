@@ -1,0 +1,66 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Runtime configuration or what are the strings I can pull?</title>
+<link rel="stylesheet" href="../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Boost Test Library">
+<link rel="up" href="../user-guide.html" title="Unit Test Framework: User's guide">
+<link rel="prev" href="test-output/test-progress.html" title="Test progress display">
+<link rel="next" href="runtime-config/run-by-name.html" title="Running specific test units selected by their name">
+<script language="JavaScript1.2" src="../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../utf.html">The Unit Test Framework</a> &gt; <a href="../user-guide.html">User's guide</a><a href="../testing-tools.html">
+      &gt;
+      </a><b>Runtime configuration </b>
+</td>
+<td><div class="spirit-nav">
+<a href="test-output/test-progress.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="runtime-config/run-by-name.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.user-guide.runtime-config"></a>Runtime configuration  or what are the strings I can pull?</h4></div></div></div>
+<p class="first-line-indented">
+  The <acronym class="acronym">UTF</acronym> supports multiple parameters that affect test module execution. To set the parameter's value you can
+  either use a runtime configuration subsystem interface from within the test module initialization function or you can
+  specify the value at runtime during test module invocation.
+ </p>
+<p class="first-line-indented">
+  The <acronym class="acronym">UTF</acronym> provides two ways to set a parameter at runtime: by specifying a command line argument and by setting an
+  environment variable. The command line argument always overrides the corresponding environment variable.
+ </p>
+<p class="first-line-indented">
+  During test module initialization the <acronym class="acronym">UTF</acronym> parses the command line and excludes all parameters that belong to it and
+  their values from the argument list. The rest of command line is forwarded to the test module initialization function
+  supplied by you. The command line argument format expected by the <acronym class="acronym">UTF</acronym> is:
+ </p>
+<p> 
+  --&lt;command line argument name&gt;=&lt;argument_value&gt;.
+ </p>
+<p class="first-line-indented">
+  The command line argument name is case sensitive. It is required to match exactly the name in parameter specification.
+  There should not be any spaces between '=' and either command line argument name or argument value.
+ </p>
+<p class="first-line-indented">
+  The corresponding environment variable name is also case sensitive and is required to exactly match the name in the
+  parameter specification.
+ </p>
+<p class="first-line-indented">
+  All information about supported parameters is summarized below in the reference section.
+ </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="test-output/test-progress.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../user-guide.html"><img src="../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="runtime-config/run-by-name.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

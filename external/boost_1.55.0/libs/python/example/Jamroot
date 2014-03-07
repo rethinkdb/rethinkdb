@@ -1,0 +1,43 @@
+# Copyright David Abrahams 2006. Distributed under the Boost
+# Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Specify the path to the Boost project.  If you move this project,
+# adjust this path to refer to the Boost root directory.
+use-project boost 
+  : ../../.. ;
+
+# Set up the project-wide requirements that everything uses the
+# boost_python library from the project whose global ID is
+# /boost/python.
+project
+  : requirements <library>/boost/python//boost_python 
+                 <implicit-dependency>/boost//headers 
+  : usage-requirements <implicit-dependency>/boost//headers 
+  ;
+
+# Declare the three extension modules.  You can specify multiple
+# source files after the colon separated by spaces.
+python-extension getting_started1 : getting_started1.cpp ;
+python-extension getting_started2 : getting_started2.cpp ;
+python-extension std_pair_ext : std_pair.cpp ;
+
+# A little "rule" (function) to clean up the syntax of declaring tests
+# of these extension modules.
+local rule run-test ( test-name : sources + )
+{
+    import testing ;
+    testing.make-test run-pyd : $(sources) : : $(test-name) ;
+}
+
+# Declare test targets
+run-test test1 : getting_started1 test_getting_started1.py ;
+run-test test2 : getting_started2 test_getting_started2.py ;
+run-test test3 : std_pair_ext test_std_pair.py ;
+
+# A target that runs all the tests
+alias test : test1 test2 test3 ;
+
+# Only run tests when explicitly requested
+explicit test test1 test2 test3 ;
+

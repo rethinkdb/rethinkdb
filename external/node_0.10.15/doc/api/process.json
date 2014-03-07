@@ -1,0 +1,341 @@
+{
+  "source": "doc/api/process.markdown",
+  "globals": [
+    {
+      "textRaw": "process",
+      "name": "process",
+      "type": "global",
+      "desc": "<p>The <code>process</code> object is a global object and can be accessed from anywhere.\nIt is an instance of [EventEmitter][].\n\n\n</p>\n",
+      "events": [
+        {
+          "textRaw": "Event: 'exit'",
+          "type": "event",
+          "name": "exit",
+          "desc": "<p>Emitted when the process is about to exit.  This is a good hook to perform\nconstant time checks of the module&#39;s state (like for unit tests).  The main\nevent loop will no longer be run after the &#39;exit&#39; callback finishes, so\ntimers may not be scheduled.\n\n</p>\n<p>Example of listening for <code>exit</code>:\n\n</p>\n<pre><code>process.on(&#39;exit&#39;, function() {\n  setTimeout(function() {\n    console.log(&#39;This will not run&#39;);\n  }, 0);\n  console.log(&#39;About to exit.&#39;);\n});</code></pre>\n",
+          "params": []
+        },
+        {
+          "textRaw": "Event: 'uncaughtException'",
+          "type": "event",
+          "name": "uncaughtException",
+          "desc": "<p>Emitted when an exception bubbles all the way back to the event loop. If a\nlistener is added for this exception, the default action (which is to print\na stack trace and exit) will not occur.\n\n</p>\n<p>Example of listening for <code>uncaughtException</code>:\n\n</p>\n<pre><code>process.on(&#39;uncaughtException&#39;, function(err) {\n  console.log(&#39;Caught exception: &#39; + err);\n});\n\nsetTimeout(function() {\n  console.log(&#39;This will still run.&#39;);\n}, 500);\n\n// Intentionally cause an exception, but don&#39;t catch it.\nnonexistentFunc();\nconsole.log(&#39;This will not run.&#39;);</code></pre>\n<p>Note that <code>uncaughtException</code> is a very crude mechanism for exception\nhandling and may be removed in the future.\n\n</p>\n<p>Don&#39;t use it, use <a href=\"domain.html\">domains</a> instead. If you do use it, restart\nyour application after every unhandled exception!\n\n</p>\n<p>Do <em>not</em> use it as the node.js equivalent of <code>On Error Resume Next</code>. An\nunhandled exception means your application - and by extension node.js itself -\nis in an undefined state. Blindly resuming means <em>anything</em> could happen.\n\n</p>\n<p>Think of resuming as pulling the power cord when you are upgrading your system.\nNine out of ten times nothing happens - but the 10th time, your system is bust.\n\n</p>\n<p>You have been warned.\n\n</p>\n",
+          "params": []
+        },
+        {
+          "textRaw": "Signal Events",
+          "name": "SIGINT, SIGUSR1, etc.",
+          "type": "event",
+          "desc": "<p>Emitted when the processes receives a signal. See sigaction(2) for a list of\nstandard POSIX signal names such as SIGINT, SIGUSR1, etc.\n\n</p>\n<p>Example of listening for <code>SIGINT</code>:\n\n</p>\n<pre><code>// Start reading from stdin so we don&#39;t exit.\nprocess.stdin.resume();\n\nprocess.on(&#39;SIGINT&#39;, function() {\n  console.log(&#39;Got SIGINT.  Press Control-D to exit.&#39;);\n});</code></pre>\n<p>An easy way to send the <code>SIGINT</code> signal is with <code>Control-C</code> in most terminal\nprograms.\n\n\n</p>\n",
+          "params": []
+        }
+      ],
+      "properties": [
+        {
+          "textRaw": "process.stdout",
+          "name": "stdout",
+          "desc": "<p>A <code>Writable Stream</code> to <code>stdout</code>.\n\n</p>\n<p>Example: the definition of <code>console.log</code>\n\n</p>\n<pre><code>console.log = function(d) {\n  process.stdout.write(d + &#39;\\n&#39;);\n};</code></pre>\n<p><code>process.stderr</code> and <code>process.stdout</code> are unlike other streams in Node in\nthat writes to them are usually blocking.  They are blocking in the case\nthat they refer to regular files or TTY file descriptors. In the case they\nrefer to pipes, they are non-blocking like other streams.\n\n</p>\n<p>To check if Node is being run in a TTY context, read the <code>isTTY</code> property\non <code>process.stderr</code>, <code>process.stdout</code>, or <code>process.stdin</code>:\n\n</p>\n<pre><code>$ node -p &quot;Boolean(process.stdin.isTTY)&quot;\ntrue\n$ echo &quot;foo&quot; | node -p &quot;Boolean(process.stdin.isTTY)&quot;\nfalse\n\n$ node -p &quot;Boolean(process.stdout.isTTY)&quot;\ntrue\n$ node -p &quot;Boolean(process.stdout.isTTY)&quot; | cat\nfalse</code></pre>\n<p>See <a href=\"tty.html#tty_tty\">the tty docs</a> for more information.\n\n</p>\n"
+        },
+        {
+          "textRaw": "process.stderr",
+          "name": "stderr",
+          "desc": "<p>A writable stream to stderr.\n\n</p>\n<p><code>process.stderr</code> and <code>process.stdout</code> are unlike other streams in Node in\nthat writes to them are usually blocking.  They are blocking in the case\nthat they refer to regular files or TTY file descriptors. In the case they\nrefer to pipes, they are non-blocking like other streams.\n\n\n</p>\n"
+        },
+        {
+          "textRaw": "process.stdin",
+          "name": "stdin",
+          "desc": "<p>A <code>Readable Stream</code> for stdin. The stdin stream is paused by default, so one\nmust call <code>process.stdin.resume()</code> to read from it.\n\n</p>\n<p>Example of opening standard input and listening for both events:\n\n</p>\n<pre><code>process.stdin.resume();\nprocess.stdin.setEncoding(&#39;utf8&#39;);\n\nprocess.stdin.on(&#39;data&#39;, function(chunk) {\n  process.stdout.write(&#39;data: &#39; + chunk);\n});\n\nprocess.stdin.on(&#39;end&#39;, function() {\n  process.stdout.write(&#39;end&#39;);\n});</code></pre>\n"
+        },
+        {
+          "textRaw": "process.argv",
+          "name": "argv",
+          "desc": "<p>An array containing the command line arguments.  The first element will be\n&#39;node&#39;, the second element will be the name of the JavaScript file.  The\nnext elements will be any additional command line arguments.\n\n</p>\n<pre><code>// print process.argv\nprocess.argv.forEach(function(val, index, array) {\n  console.log(index + &#39;: &#39; + val);\n});</code></pre>\n<p>This will generate:\n\n</p>\n<pre><code>$ node process-2.js one two=three four\n0: node\n1: /Users/mjr/work/node/process-2.js\n2: one\n3: two=three\n4: four</code></pre>\n"
+        },
+        {
+          "textRaw": "process.execPath",
+          "name": "execPath",
+          "desc": "<p>This is the absolute pathname of the executable that started the process.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>/usr/local/bin/node</code></pre>\n"
+        },
+        {
+          "textRaw": "process.env",
+          "name": "env",
+          "desc": "<p>An object containing the user environment. See environ(7).\n\n\n</p>\n"
+        },
+        {
+          "textRaw": "process.version",
+          "name": "version",
+          "desc": "<p>A compiled-in property that exposes <code>NODE_VERSION</code>.\n\n</p>\n<pre><code>console.log(&#39;Version: &#39; + process.version);</code></pre>\n"
+        },
+        {
+          "textRaw": "process.versions",
+          "name": "versions",
+          "desc": "<p>A property exposing version strings of node and its dependencies.\n\n</p>\n<pre><code>console.log(process.versions);</code></pre>\n<p>Will print something like:\n\n</p>\n<pre><code>{ http_parser: &#39;1.0&#39;,\n  node: &#39;0.10.4&#39;,\n  v8: &#39;3.14.5.8&#39;,\n  ares: &#39;1.9.0-DEV&#39;,\n  uv: &#39;0.10.3&#39;,\n  zlib: &#39;1.2.3&#39;,\n  modules: &#39;11&#39;,\n  openssl: &#39;1.0.1e&#39; }</code></pre>\n"
+        },
+        {
+          "textRaw": "process.config",
+          "name": "config",
+          "desc": "<p>An Object containing the JavaScript representation of the configure options\nthat were used to compile the current node executable. This is the same as\nthe &quot;config.gypi&quot; file that was produced when running the <code>./configure</code> script.\n\n</p>\n<p>An example of the possible output looks like:\n\n</p>\n<pre><code>{ target_defaults:\n   { cflags: [],\n     default_configuration: &#39;Release&#39;,\n     defines: [],\n     include_dirs: [],\n     libraries: [] },\n  variables:\n   { host_arch: &#39;x64&#39;,\n     node_install_npm: &#39;true&#39;,\n     node_prefix: &#39;&#39;,\n     node_shared_cares: &#39;false&#39;,\n     node_shared_http_parser: &#39;false&#39;,\n     node_shared_libuv: &#39;false&#39;,\n     node_shared_v8: &#39;false&#39;,\n     node_shared_zlib: &#39;false&#39;,\n     node_use_dtrace: &#39;false&#39;,\n     node_use_openssl: &#39;true&#39;,\n     node_shared_openssl: &#39;false&#39;,\n     strict_aliasing: &#39;true&#39;,\n     target_arch: &#39;x64&#39;,\n     v8_use_snapshot: &#39;true&#39; } }</code></pre>\n"
+        },
+        {
+          "textRaw": "process.pid",
+          "name": "pid",
+          "desc": "<p>The PID of the process.\n\n</p>\n<pre><code>console.log(&#39;This process is pid &#39; + process.pid);</code></pre>\n"
+        },
+        {
+          "textRaw": "process.title",
+          "name": "title",
+          "desc": "<p>Getter/setter to set what is displayed in &#39;ps&#39;.\n\n</p>\n<p>When used as a setter, the maximum length is platform-specific and probably\nshort.\n\n</p>\n<p>On Linux and OS X, it&#39;s limited to the size of the binary name plus the\nlength of the command line arguments because it overwrites the argv memory.\n\n</p>\n<p>v0.8 allowed for longer process title strings by also overwriting the environ\nmemory but that was potentially insecure/confusing in some (rather obscure)\ncases.\n\n\n</p>\n"
+        },
+        {
+          "textRaw": "process.arch",
+          "name": "arch",
+          "desc": "<p>What processor architecture you&#39;re running on: <code>&#39;arm&#39;</code>, <code>&#39;ia32&#39;</code>, or <code>&#39;x64&#39;</code>.\n\n</p>\n<pre><code>console.log(&#39;This processor architecture is &#39; + process.arch);</code></pre>\n"
+        },
+        {
+          "textRaw": "process.platform",
+          "name": "platform",
+          "desc": "<p>What platform you&#39;re running on:\n<code>&#39;darwin&#39;</code>, <code>&#39;freebsd&#39;</code>, <code>&#39;linux&#39;</code>, <code>&#39;sunos&#39;</code> or <code>&#39;win32&#39;</code>\n\n</p>\n<pre><code>console.log(&#39;This platform is &#39; + process.platform);</code></pre>\n"
+        },
+        {
+          "textRaw": "`maxTickDepth` {Number} Default = 1000 ",
+          "name": "maxTickDepth",
+          "desc": "<p>Callbacks passed to <code>process.nextTick</code> will <em>usually</em> be called at the\nend of the current flow of execution, and are thus approximately as fast\nas calling a function synchronously.  Left unchecked, this would starve\nthe event loop, preventing any I/O from occurring.\n\n</p>\n<p>Consider this code:\n\n</p>\n<pre><code>process.nextTick(function foo() {\n  process.nextTick(foo);\n});</code></pre>\n<p>In order to avoid the situation where Node is blocked by an infinite\nloop of recursive series of nextTick calls, it defers to allow some I/O\nto be done every so often.\n\n</p>\n<p>The <code>process.maxTickDepth</code> value is the maximum depth of\nnextTick-calling nextTick-callbacks that will be evaluated before\nallowing other forms of I/O to occur.\n\n</p>\n",
+          "shortDesc": "Default = 1000"
+        }
+      ],
+      "methods": [
+        {
+          "textRaw": "process.abort()",
+          "type": "method",
+          "name": "abort",
+          "desc": "<p>This causes node to emit an abort. This will cause node to exit and\ngenerate a core file.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "process.chdir(directory)",
+          "type": "method",
+          "name": "chdir",
+          "desc": "<p>Changes the current working directory of the process or throws an exception if that fails.\n\n</p>\n<pre><code>console.log(&#39;Starting directory: &#39; + process.cwd());\ntry {\n  process.chdir(&#39;/tmp&#39;);\n  console.log(&#39;New directory: &#39; + process.cwd());\n}\ncatch (err) {\n  console.log(&#39;chdir: &#39; + err);\n}</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "directory"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "process.cwd()",
+          "type": "method",
+          "name": "cwd",
+          "desc": "<p>Returns the current working directory of the process.\n\n</p>\n<pre><code>console.log(&#39;Current directory: &#39; + process.cwd());</code></pre>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "process.exit([code])",
+          "type": "method",
+          "name": "exit",
+          "desc": "<p>Ends the process with the specified <code>code</code>.  If omitted, exit uses the\n&#39;success&#39; code <code>0</code>.\n\n</p>\n<p>To exit with a &#39;failure&#39; code:\n\n</p>\n<pre><code>process.exit(1);</code></pre>\n<p>The shell that executed node should see the exit code as 1.\n\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "code",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "process.getgid()",
+          "type": "method",
+          "name": "getgid",
+          "desc": "<p>Note: this function is only available on POSIX platforms (i.e. not Windows)\n\n</p>\n<p>Gets the group identity of the process. (See getgid(2).)\nThis is the numerical group id, not the group name.\n\n</p>\n<pre><code>if (process.getgid) {\n  console.log(&#39;Current gid: &#39; + process.getgid());\n}</code></pre>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "process.setgid(id)",
+          "type": "method",
+          "name": "setgid",
+          "desc": "<p>Note: this function is only available on POSIX platforms (i.e. not Windows)\n\n</p>\n<p>Sets the group identity of the process. (See setgid(2).)  This accepts either\na numerical ID or a groupname string. If a groupname is specified, this method\nblocks while resolving it to a numerical ID.\n\n</p>\n<pre><code>if (process.getgid &amp;&amp; process.setgid) {\n  console.log(&#39;Current gid: &#39; + process.getgid());\n  try {\n    process.setgid(501);\n    console.log(&#39;New gid: &#39; + process.getgid());\n  }\n  catch (err) {\n    console.log(&#39;Failed to set gid: &#39; + err);\n  }\n}</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "id"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "process.getuid()",
+          "type": "method",
+          "name": "getuid",
+          "desc": "<p>Note: this function is only available on POSIX platforms (i.e. not Windows)\n\n</p>\n<p>Gets the user identity of the process. (See getuid(2).)\nThis is the numerical userid, not the username.\n\n</p>\n<pre><code>if (process.getuid) {\n  console.log(&#39;Current uid: &#39; + process.getuid());\n}</code></pre>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "process.setuid(id)",
+          "type": "method",
+          "name": "setuid",
+          "desc": "<p>Note: this function is only available on POSIX platforms (i.e. not Windows)\n\n</p>\n<p>Sets the user identity of the process. (See setuid(2).)  This accepts either\na numerical ID or a username string.  If a username is specified, this method\nblocks while resolving it to a numerical ID.\n\n</p>\n<pre><code>if (process.getuid &amp;&amp; process.setuid) {\n  console.log(&#39;Current uid: &#39; + process.getuid());\n  try {\n    process.setuid(501);\n    console.log(&#39;New uid: &#39; + process.getuid());\n  }\n  catch (err) {\n    console.log(&#39;Failed to set uid: &#39; + err);\n  }\n}</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "id"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "process.getgroups()",
+          "type": "method",
+          "name": "getgroups",
+          "desc": "<p>Note: this function is only available on POSIX platforms (i.e. not Windows)\n\n</p>\n<p>Returns an array with the supplementary group IDs. POSIX leaves it unspecified\nif the effective group ID is included but node.js ensures it always is.\n\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "process.setgroups(groups)",
+          "type": "method",
+          "name": "setgroups",
+          "desc": "<p>Note: this function is only available on POSIX platforms (i.e. not Windows)\n\n</p>\n<p>Sets the supplementary group IDs. This is a privileged operation, meaning you\nneed to be root or have the CAP_SETGID capability.\n\n</p>\n<p>The list can contain group IDs, group names or both.\n\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "groups"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "process.initgroups(user, extra_group)",
+          "type": "method",
+          "name": "initgroups",
+          "desc": "<p>Note: this function is only available on POSIX platforms (i.e. not Windows)\n\n</p>\n<p>Reads /etc/group and initializes the group access list, using all groups of\nwhich the user is a member. This is a privileged operation, meaning you need\nto be root or have the CAP_SETGID capability.\n\n</p>\n<p><code>user</code> is a user name or user ID. <code>extra_group</code> is a group name or group ID.\n\n</p>\n<p>Some care needs to be taken when dropping privileges. Example:\n\n</p>\n<pre><code>console.log(process.getgroups());         // [ 0 ]\nprocess.initgroups(&#39;bnoordhuis&#39;, 1000);   // switch user\nconsole.log(process.getgroups());         // [ 27, 30, 46, 1000, 0 ]\nprocess.setgid(1000);                     // drop root gid\nconsole.log(process.getgroups());         // [ 27, 30, 46, 1000 ]</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "user"
+                },
+                {
+                  "name": "extra_group"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "process.kill(pid, [signal])",
+          "type": "method",
+          "name": "kill",
+          "desc": "<p>Send a signal to a process. <code>pid</code> is the process id and <code>signal</code> is the\nstring describing the signal to send.  Signal names are strings like\n&#39;SIGINT&#39; or &#39;SIGUSR1&#39;.  If omitted, the signal will be &#39;SIGTERM&#39;.\nSee kill(2) for more information.\n\n</p>\n<p>Note that just because the name of this function is <code>process.kill</code>, it is\nreally just a signal sender, like the <code>kill</code> system call.  The signal sent\nmay do something other than kill the target process.\n\n</p>\n<p>Example of sending a signal to yourself:\n\n</p>\n<pre><code>process.on(&#39;SIGHUP&#39;, function() {\n  console.log(&#39;Got SIGHUP signal.&#39;);\n});\n\nsetTimeout(function() {\n  console.log(&#39;Exiting.&#39;);\n  process.exit(0);\n}, 100);\n\nprocess.kill(process.pid, &#39;SIGHUP&#39;);</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "pid"
+                },
+                {
+                  "name": "signal",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "process.memoryUsage()",
+          "type": "method",
+          "name": "memoryUsage",
+          "desc": "<p>Returns an object describing the memory usage of the Node process\nmeasured in bytes.\n\n</p>\n<pre><code>var util = require(&#39;util&#39;);\n\nconsole.log(util.inspect(process.memoryUsage()));</code></pre>\n<p>This will generate:\n\n</p>\n<pre><code>{ rss: 4935680,\n  heapTotal: 1826816,\n  heapUsed: 650472 }</code></pre>\n<p><code>heapTotal</code> and <code>heapUsed</code> refer to V8&#39;s memory usage.\n\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "process.nextTick(callback)",
+          "type": "method",
+          "name": "nextTick",
+          "desc": "<p>On the next loop around the event loop call this callback.\nThis is <em>not</em> a simple alias to <code>setTimeout(fn, 0)</code>, it&#39;s much more\nefficient.  It typically runs before any other I/O events fire, but there\nare some exceptions.  See <code>process.maxTickDepth</code> below.\n\n</p>\n<pre><code>process.nextTick(function() {\n  console.log(&#39;nextTick callback&#39;);\n});</code></pre>\n<p>This is important in developing APIs where you want to give the user the\nchance to assign event handlers after an object has been constructed,\nbut before any I/O has occurred.\n\n</p>\n<pre><code>function MyThing(options) {\n  this.setupOptions(options);\n\n  process.nextTick(function() {\n    this.startDoingStuff();\n  }.bind(this));\n}\n\nvar thing = new MyThing();\nthing.getReadyForStuff();\n\n// thing.startDoingStuff() gets called now, not before.</code></pre>\n<p>It is very important for APIs to be either 100% synchronous or 100%\nasynchronous.  Consider this example:\n\n</p>\n<pre><code>// WARNING!  DO NOT USE!  BAD UNSAFE HAZARD!\nfunction maybeSync(arg, cb) {\n  if (arg) {\n    cb();\n    return;\n  }\n\n  fs.stat(&#39;file&#39;, cb);\n}</code></pre>\n<p>This API is hazardous.  If you do this:\n\n</p>\n<pre><code>maybeSync(true, function() {\n  foo();\n});\nbar();</code></pre>\n<p>then it&#39;s not clear whether <code>foo()</code> or <code>bar()</code> will be called first.\n\n</p>\n<p>This approach is much better:\n\n</p>\n<pre><code>function definitelyAsync(arg, cb) {\n  if (arg) {\n    process.nextTick(cb);\n    return;\n  }\n\n  fs.stat(&#39;file&#39;, cb);\n}</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "callback"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "process.umask([mask])",
+          "type": "method",
+          "name": "umask",
+          "desc": "<p>Sets or reads the process&#39;s file mode creation mask. Child processes inherit\nthe mask from the parent process. Returns the old mask if <code>mask</code> argument is\ngiven, otherwise returns the current mask.\n\n</p>\n<pre><code>var oldmask, newmask = 0644;\n\noldmask = process.umask(newmask);\nconsole.log(&#39;Changed umask from: &#39; + oldmask.toString(8) +\n            &#39; to &#39; + newmask.toString(8));</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "mask",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "process.uptime()",
+          "type": "method",
+          "name": "uptime",
+          "desc": "<p>Number of seconds Node has been running.\n\n\n</p>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        },
+        {
+          "textRaw": "process.hrtime()",
+          "type": "method",
+          "name": "hrtime",
+          "desc": "<p>Returns the current high-resolution real time in a <code>[seconds, nanoseconds]</code>\ntuple Array. It is relative to an arbitrary time in the past. It is not\nrelated to the time of day and therefore not subject to clock drift. The\nprimary use is for measuring performance between intervals.\n\n</p>\n<p>You may pass in the result of a previous call to <code>process.hrtime()</code> to get\na diff reading, useful for benchmarks and measuring intervals:\n\n</p>\n<pre><code>var time = process.hrtime();\n// [ 1800216, 25 ]\n\nsetTimeout(function() {\n  var diff = process.hrtime(time);\n  // [ 1, 552 ]\n\n  console.log(&#39;benchmark took %d nanoseconds&#39;, diff[0] * 1e9 + diff[1]);\n  // benchmark took 1000000527 nanoseconds\n}, 1000);</code></pre>\n",
+          "signatures": [
+            {
+              "params": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

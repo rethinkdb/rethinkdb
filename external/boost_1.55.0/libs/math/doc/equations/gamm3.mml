@@ -1,0 +1,25 @@
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+  <mrow>
+    <mi>&#x0393;</mi>
+    <mfenced>
+      <mrow>
+        <mi>z</mi>
+      </mrow>
+    </mfenced>
+    <mo>=</mo>
+    <mfrac>
+      <mrow>
+        <mi>&#x0393;</mi>
+        <mfenced>
+          <mrow>
+            <mi>z</mi>
+            <mo>+</mo>
+            <mn>1</mn>
+          </mrow>
+        </mfenced>
+      </mrow>
+      <mi>z</mi>
+    </mfrac>
+  </mrow>
+</math>
+

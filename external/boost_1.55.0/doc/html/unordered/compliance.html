@@ -1,0 +1,182 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>C++11 Compliance</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../unordered.html" title="Chapter&#160;37.&#160;Boost.Unordered">
+<link rel="prev" href="comparison.html" title="Comparison with Associative Containers">
+<link rel="next" href="rationale.html" title="Implementation Rationale">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="comparison.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../unordered.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rationale.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="unordered.compliance"></a><a class="link" href="compliance.html" title="C++11 Compliance">C++11 Compliance</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="compliance.html#unordered.compliance.move">Move emulation</a></span></dt>
+<dt><span class="section"><a href="compliance.html#unordered.compliance.allocator_compliance">Use of allocators</a></span></dt>
+<dt><span class="section"><a href="compliance.html#unordered.compliance.pairs">Pairs</a></span></dt>
+<dt><span class="section"><a href="compliance.html#unordered.compliance.misc">Miscellaneous</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="unordered.compliance.move"></a><a class="link" href="compliance.html#unordered.compliance.move" title="Move emulation">Move emulation</a>
+</h3></div></div></div>
+<p>
+        Support for move semantics is implemented using Boost.Move. If rvalue references
+        are available it will use them, but if not it uses a close, but imperfect
+        emulation. On such compilers:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Non-copyable objects can be stored in the containers. They can be constructed
+            in place using <code class="computeroutput"><span class="identifier">emplace</span></code>,
+            or if they support Boost.Move, moved into place.
+          </li>
+<li class="listitem">
+            The containers themselves are not movable.
+          </li>
+<li class="listitem">
+            Argument forwarding is not perfect.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="unordered.compliance.allocator_compliance"></a><a class="link" href="compliance.html#unordered.compliance.allocator_compliance" title="Use of allocators">Use of allocators</a>
+</h3></div></div></div>
+<p>
+        C++11 introduced a new allocator system. It's backwards compatible due to
+        the lax requirements for allocators in the old standard, but might need some
+        changes for allocators which worked with the old versions of the unordered
+        containers. It uses a traits class, <code class="computeroutput"><span class="identifier">allocator_traits</span></code>
+        to handle the allocator adding extra functionality, and making some methods
+        and types optional. During development a stable release of <code class="computeroutput"><span class="identifier">allocator_traits</span></code> wasn't available so an
+        internal partial implementation is always used in this version. Hopefully
+        a future version will use the standard implementation where available.
+      </p>
+<p>
+        The member functions <code class="computeroutput"><span class="identifier">construct</span></code>,
+        <code class="computeroutput"><span class="identifier">destroy</span></code> and <code class="computeroutput"><span class="identifier">max_size</span></code> are now optional, if they're not
+        available a fallback is used. A full implementation of <code class="computeroutput"><span class="identifier">allocator_traits</span></code>
+        requires sophisticated member function detection so that the fallback is
+        used whenever the member function call is not well formed. This requires
+        support for SFINAE expressions, which are available on GCC from version 4.4
+        and Clang.
+      </p>
+<p>
+        On other compilers, there's just a test to see if the allocator has a member,
+        but no check that it can be called. So rather than using a fallback there
+        will just be a compile error.
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">propagate_on_container_copy_assignment</span></code>,
+        <code class="computeroutput"><span class="identifier">propagate_on_container_move_assignment</span></code>,
+        <code class="computeroutput"><span class="identifier">propagate_on_container_swap</span></code>
+        and <code class="computeroutput"><span class="identifier">select_on_container_copy_construction</span></code>
+        are also supported. Due to imperfect move emulation, some assignments might
+        check <code class="computeroutput"><span class="identifier">propagate_on_container_copy_assignment</span></code>
+        on some compilers and <code class="computeroutput"><span class="identifier">propagate_on_container_move_assignment</span></code>
+        on others.
+      </p>
+<p>
+        The use of the allocator's construct and destruct methods might be a bit
+        surprising. Nodes are constructed and destructed using the allocator, but
+        the elements are stored in aligned space within the node and constructed
+        and destructed by calling the constructor and destructor directly.
+      </p>
+<p>
+        In C++11 the allocator's construct function has the signature:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">U</span><span class="special">,</span> <span class="keyword">class</span><span class="special">...</span> <span class="identifier">Args</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">construct</span><span class="special">(</span><span class="identifier">U</span><span class="special">*</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">Args</span><span class="special">&amp;&amp;...</span> <span class="identifier">args</span><span class="special">);</span>
+</pre>
+<p>
+        which supports calling <code class="computeroutput"><span class="identifier">construct</span></code>
+        for the contained object, but most existing allocators don't support this.
+        If member function detection was good enough then with old allocators it
+        would fall back to calling the element's constructor directly but in general,
+        detection isn't good enough to do this which is why Boost.Unordered just
+        calls the constructor directly every time. In most cases this will work okay.
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">pointer_traits</span></code> aren't used.
+        Instead, pointer types are obtained from rebound allocators, this can cause
+        problems if the allocator can't be used with incomplete types. If <code class="computeroutput"><span class="identifier">const_pointer</span></code> is not defined in the allocator,
+        <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">pointer_to_other</span><span class="special">&lt;</span><span class="identifier">pointer</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">value_type</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+        is used to obtain a const pointer.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="unordered.compliance.pairs"></a><a class="link" href="compliance.html#unordered.compliance.pairs" title="Pairs">Pairs</a>
+</h3></div></div></div>
+<p>
+        Since the containers use <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code>
+        they're limited to the version from the current standard library. But since
+        C++11 <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code>'s <code class="computeroutput"><span class="identifier">piecewise_construct</span></code>
+        based constructor is very useful, <code class="computeroutput"><span class="identifier">emplace</span></code>
+        emulates it with a <code class="computeroutput"><span class="identifier">piecewise_construct</span></code>
+        in the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unordered</span></code> namespace. So for example, the
+        following will work:
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">unordered_multimap</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">complex</span><span class="special">&gt;</span> <span class="identifier">x</span><span class="special">;</span>
+
+<span class="identifier">x</span><span class="special">.</span><span class="identifier">emplace</span><span class="special">(</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">unordered</span><span class="special">::</span><span class="identifier">piecewise_construct</span><span class="special">,</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span><span class="string">"key"</span><span class="special">),</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">make_tuple</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">));</span>
+</pre>
+<p>
+        Older drafts of the standard also supported variadic constructors for <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code>,
+        where the first argument would be used for the first part of the pair, and
+        the remaining for the second part.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="unordered.compliance.misc"></a><a class="link" href="compliance.html#unordered.compliance.misc" title="Miscellaneous">Miscellaneous</a>
+</h3></div></div></div>
+<p>
+        When swapping, <code class="computeroutput"><span class="identifier">Pred</span></code> and
+        <code class="computeroutput"><span class="identifier">Hash</span></code> are not currently swapped
+        by calling <code class="computeroutput"><span class="identifier">swap</span></code>, their copy
+        constructors are used. As a consequence when swapping an exception may be
+        throw from their copy constructor.
+      </p>
+<p>
+        Variadic constructor arguments for <code class="computeroutput"><span class="identifier">emplace</span></code>
+        are only used when both rvalue references and variadic template parameters
+        are available. Otherwise <code class="computeroutput"><span class="identifier">emplace</span></code>
+        can only take up to 10 constructors arguments.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003, 2004 Jeremy B. Maitin-Shepard<br>Copyright &#169; 2005-2008 Daniel
+      James<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="comparison.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../unordered.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="rationale.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

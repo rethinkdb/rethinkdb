@@ -1,0 +1,163 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:buffers Buffers]
+
+Fundamentally, I/O involves the transfer of data to and from contiguous regions
+of memory, called buffers. These buffers can be simply expressed as a tuple
+consisting of a pointer and a size in bytes. However, to allow the development
+of efficient network applications, Boost.Asio includes support for scatter-gather
+operations. These operations involve one or more buffers:
+
+* A scatter-read receives data into multiple buffers.
+* A gather-write transmits multiple buffers.
+
+Therefore we require an abstraction to represent a collection of buffers. The
+approach used in Boost.Asio is to define a type (actually two types) to
+represent a single buffer. These can be stored in a container, which may be
+passed to the scatter-gather operations.
+
+In addition to specifying buffers as a pointer and size in bytes, Boost.Asio makes a
+distinction between modifiable memory (called mutable) and non-modifiable
+memory (where the latter is created from the storage for a const-qualified
+variable). These two types could therefore be defined as follows:
+
+  typedef std::pair<void*, std::size_t> mutable_buffer;
+  typedef std::pair<const void*, std::size_t> const_buffer;
+
+Here, a mutable_buffer would be convertible to a const_buffer, but conversion
+in the opposite direction is not valid.
+
+However, Boost.Asio does not use the above definitions as-is, but instead defines two
+classes: `mutable_buffer` and `const_buffer`. The goal of these is to provide
+an opaque representation of contiguous memory, where:
+
+* Types behave as std::pair would in conversions. That is, a `mutable_buffer` is
+  convertible to a `const_buffer`, but the opposite conversion is disallowed.
+
+* There is protection against buffer overruns. Given a buffer instance, a user
+  can only create another buffer representing the same range of memory or a
+  sub-range of it. To provide further safety, the library also includes
+  mechanisms for automatically determining the size of a buffer from an array,
+  `boost::array` or `std::vector` of POD elements, or from a `std::string`.
+
+* Type safety violations must be explicitly requested using the `buffer_cast`
+  function. In general an application should never need to do this, but it is
+  required by the library implementation to pass the raw memory to the
+  underlying operating system functions.
+
+Finally, multiple buffers can be passed to scatter-gather operations (such as
+[link boost_asio.reference.read read()] or [link boost_asio.reference.write write()]) by
+putting the buffer objects into a container. The `MutableBufferSequence` and
+`ConstBufferSequence` concepts have been defined so that containers such as
+`std::vector`, `std::list`, `std::vector` or `boost::array` can be used.
+
+[heading Streambuf for Integration with Iostreams]
+
+The class `boost::asio::basic_streambuf` is derived from `std::basic_streambuf` to
+associate the input sequence and output sequence with one or more objects of
+some character array type, whose elements store arbitrary values. These
+character array objects are internal to the streambuf object, but direct access
+to the array elements is provided to permit them to be used with I/O
+operations, such as the send or receive operations of a socket:
+
+* The input sequence of the streambuf is accessible via the [link
+  boost_asio.reference.basic_streambuf.data data()] member function. The return type
+  of this function meets the `ConstBufferSequence` requirements.
+
+* The output sequence of the streambuf is accessible via the [link
+  boost_asio.reference.basic_streambuf.data prepare()] member function. The return
+  type of this function meets the `MutableBufferSequence` requirements.
+
+* Data is transferred from the front of the output sequence to the back of the
+  input sequence by calling the [link boost_asio.reference.basic_streambuf.commit
+  commit()] member function.
+
+* Data is removed from the front of the input sequence by calling the [link
+  boost_asio.reference.basic_streambuf.consume consume()] member function.
+
+The streambuf constructor accepts a `size_t` argument specifying the maximum of
+the sum of the sizes of the input sequence and output sequence. Any operation
+that would, if successful, grow the internal data beyond this limit will throw
+a `std::length_error` exception.
+
+[heading Bytewise Traversal of Buffer Sequences]
+
+The `buffers_iterator<>` class template allows buffer sequences (i.e. types
+meeting `MutableBufferSequence` or `ConstBufferSequence` requirements) to be
+traversed as though they were a contiguous sequence of bytes. Helper functions
+called buffers_begin() and buffers_end() are also provided, where the
+buffers_iterator<> template parameter is automatically deduced.
+
+As an example, to read a single line from a socket and into a `std::string`,
+you may write:
+
+  boost::asio::streambuf sb;
+  ...
+  std::size_t n = boost::asio::read_until(sock, sb, '\n');
+  boost::asio::streambuf::const_buffers_type bufs = sb.data();
+  std::string line(
+      boost::asio::buffers_begin(bufs),
+      boost::asio::buffers_begin(bufs) + n);
+
+[heading Buffer Debugging]
+
+Some standard library implementations, such as the one that ships with
+Microsoft Visual C++ 8.0 and later, provide a feature called iterator
+debugging. What this means is that the validity of iterators is checked at
+runtime. If a program tries to use an iterator that has been invalidated, an
+assertion will be triggered. For example:
+
+  std::vector<int> v(1)
+  std::vector<int>::iterator i = v.begin();
+  v.clear(); // invalidates iterators
+  *i = 0; // assertion!
+
+Boost.Asio takes advantage of this feature to add buffer debugging. Consider the
+following code:
+
+  void dont_do_this()
+  {
+   std::string msg = "Hello, world!";
+   boost::asio::async_write(sock, boost::asio::buffer(msg), my_handler);
+  }
+
+When you call an asynchronous read or write you need to ensure that the buffers
+for the operation are valid until the completion handler is called. In the
+above example, the buffer is the `std::string` variable `msg`. This variable is
+on the stack, and so it goes out of scope before the asynchronous operation
+completes. If you're lucky then the application will crash, but random failures
+are more likely.
+
+When buffer debugging is enabled, Boost.Asio stores an iterator into the string until
+the asynchronous operation completes, and then dereferences it to check its
+validity. In the above example you would observe an assertion failure just
+before Boost.Asio tries to call the completion handler.
+
+This feature is automatically made available for Microsoft Visual Studio 8.0 or
+later and for GCC when `_GLIBCXX_DEBUG` is defined. There is a performance cost
+to this checking, so buffer debugging is only enabled in debug builds. For
+other compilers it may be enabled by defining `BOOST_ASIO_ENABLE_BUFFER_DEBUGGING`.
+It can also be explicitly disabled by defining `BOOST_ASIO_DISABLE_BUFFER_DEBUGGING`.
+
+[heading See Also]
+
+[link boost_asio.reference.buffer buffer],
+[link boost_asio.reference.buffers_begin buffers_begin],
+[link boost_asio.reference.buffers_end buffers_end],
+[link boost_asio.reference.buffers_iterator buffers_iterator],
+[link boost_asio.reference.const_buffer const_buffer],
+[link boost_asio.reference.const_buffers_1 const_buffers_1],
+[link boost_asio.reference.mutable_buffer mutable_buffer],
+[link boost_asio.reference.mutable_buffers_1 mutable_buffers_1],
+[link boost_asio.reference.streambuf streambuf],
+[link boost_asio.reference.ConstBufferSequence ConstBufferSequence],
+[link boost_asio.reference.MutableBufferSequence MutableBufferSequence],
+[link boost_asio.examples.cpp03_examples.buffers buffers example (C++03)],
+[link boost_asio.examples.cpp11_examples.buffers buffers example (c++11)].
+
+[endsect]

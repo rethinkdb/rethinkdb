@@ -1,0 +1,131 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <meta name="GENERATOR" content="Microsoft FrontPage 6.0">
+  <meta name="ProgId" content="FrontPage.Editor.Document">
+
+  <title>Boost Offset Separator</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000" link="#0000EE" vlink="#551A8B" alink=
+"#FF0000">
+  <p><img src="../../boost.png" alt="C++ Boost" width="277" height=
+  "86"><br></p>
+
+  <h1 align="center">Offset Separator</h1>
+  <pre>
+class offset_separator
+</pre>
+
+  <p>The <tt>offset_separator</tt> class is an implementation of the <a href=
+  "tokenizerfunction.htm">TokenizerFunction</a> concept that can be used with
+  the <a href="tokenizer.htm">tokenizer</a> class to break text up into
+  tokens. The <tt>offset_separator</tt> breaks a sequence of <tt>Char</tt>'s
+  into strings based on a sequence of offsets. For example, if you had the
+  string "12252001" and offsets (2,2,4) it would break the string into 12 25
+  2001. Here is an example.</p>
+
+  <h2>Example</h2>
+  <pre>
+// simple_example_3.cpp
+#include&lt;iostream&gt;
+#include&lt;boost/tokenizer.hpp&gt;
+#include&lt;string&gt;
+
+int main(){
+   using namespace std;
+   using namespace boost;
+   string s = "12252001";
+   int offsets[] = {2,2,4};
+   offset_separator f(offsets, offsets+3);
+   tokenizer&lt;offset_separator&gt; tok(s,f);
+   for(tokenizer&lt;offset_separator&gt;::iterator beg=tok.begin(); beg!=tok.end();++beg){
+     cout &lt;&lt; *beg &lt;&lt; "\n";
+   }
+}
+</pre>
+
+  <p>&nbsp;</p>
+
+  <h2>Construction and Usage</h2>
+
+  <p>The offset_separator has 1 constructor of interest. (The default
+  constructor is just there to make some compilers happy). The declaration is
+  below</p>
+  <pre>
+template&lt;typename Iter&gt;
+offset_separator(Iter begin,Iter end,bool bwrapoffsets = true, bool breturnpartiallast = true)
+</pre>
+
+  <table border="1" summary="">
+    <tr>
+      <td>
+        <p align="center"><strong>Parameter</strong></p>
+      </td>
+
+      <td>
+        <p align="center"><strong>Description</strong></p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>begin, end</td>
+
+      <td>Specify the sequence of integer offsets.</td>
+    </tr>
+
+    <tr>
+      <td>bwrapoffsets</td>
+
+      <td>Tells whether to wrap around to the beginning of the offsets when
+      the all the offsets have been used. For example the string
+      "1225200101012002" with offsets (2,2,4) with bwrapoffsets to true,
+      would parse to 12 25 2001 01 01 2002. With bwrapoffsets to false, it
+      would parse to 12 25 2001 and then stop because all the offsets have
+      been used.</td>
+    </tr>
+
+    <tr>
+      <td>breturnpartiallast</td>
+
+      <td>Tells whether, when the parsed sequence terminates before yielding
+      the number of characters in the current offset, to create a token with
+      what was parsed, or to ignore it. For example the string "122501" with
+      offsets (2,2,4) with breturnpartiallast set to true will parse to 12 25
+      01. With it set to false, it will parse to 12 25 and then will stop
+      because there are only 2 characters left in the sequence instead of the
+      4 that should have been there.</td>
+    </tr>
+  </table>
+
+  <p>To use this class, pass an object of it anywhere a TokenizerFunction is
+  required. If you default constructruct the object, it will just return
+  every character in the parsed sequence as a token. (ie it defaults to an
+  offset of 1, and bwrapoffsets is true).</p>
+
+  <p>&nbsp;</p>
+
+  <h2>Model of</h2>
+
+  <p><a href="tokenizerfunction.htm">TokenizerFunction</a></p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->25
+  December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38518" --></p>
+
+  <p><i>Copyright &copy; 2001 John R. Bandela</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

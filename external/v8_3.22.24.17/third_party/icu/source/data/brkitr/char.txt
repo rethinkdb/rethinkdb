@@ -1,0 +1,71 @@
+#
+#   Copyright (C) 2002-2010, International Business Machines Corporation and others.
+#       All Rights Reserved.
+#
+#   file:  char.txt 
+#
+#   ICU Character Break Rules, also known as Grapheme Cluster Boundaries
+#      See Unicode Standard Annex #29.
+#      These rules are based on TR29 Revision 16, for Unicode Version 6.0
+#
+
+#
+#  Character Class Definitions.
+#
+$CR          = [\p{Grapheme_Cluster_Break = CR}];
+$LF          = [\p{Grapheme_Cluster_Break = LF}];
+$Control     = [\p{Grapheme_Cluster_Break = Control}];
+$Prepend     = [\p{Grapheme_Cluster_Break = Prepend}];
+$Extend      = [\p{Grapheme_Cluster_Break = Extend}];
+$SpacingMark = [\p{Grapheme_Cluster_Break = SpacingMark}];
+
+#
+# Korean Syllable Definitions
+#
+$L       = [\p{Grapheme_Cluster_Break = L}];
+$V       = [\p{Grapheme_Cluster_Break = V}];
+$T       = [\p{Grapheme_Cluster_Break = T}];
+
+$LV      = [\p{Grapheme_Cluster_Break = LV}];
+$LVT     = [\p{Grapheme_Cluster_Break = LVT}];
+
+
+## -------------------------------------------------
+!!chain;
+
+!!forward;
+
+$CR $LF;
+
+$L ($L | $V | $LV | $LVT);
+($LV | $V) ($V | $T);
+($LVT | $T) $T;
+
+[^$Control $CR $LF] $Extend;
+
+[^$Control $CR $LF] $SpacingMark;
+$Prepend [^$Control $CR $LF];
+
+
+## -------------------------------------------------
+
+!!reverse;
+$LF $CR;
+($L | $V | $LV | $LVT) $L;
+($V | $T) ($LV | $V);
+$T ($LVT | $T);
+
+$Extend      [^$Control $CR $LF];
+$SpacingMark [^$Control $CR $LF];
+[^$Control $CR $LF] $Prepend;
+
+
+## -------------------------------------------------
+
+!!safe_reverse;
+
+
+## -------------------------------------------------
+
+!!safe_forward;
+

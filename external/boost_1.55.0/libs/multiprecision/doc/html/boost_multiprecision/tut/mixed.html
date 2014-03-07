@@ -1,0 +1,180 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Mixed Precision Arithmetic</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../tut.html" title="Tutorial">
+<link rel="prev" href="rounding.html" title="Rounding Rules for Conversions">
+<link rel="next" href="gen_int.html" title="Generic Integer Operations">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="rounding.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="gen_int.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_multiprecision.tut.mixed"></a><a class="link" href="mixed.html" title="Mixed Precision Arithmetic">Mixed Precision Arithmetic</a>
+</h3></div></div></div>
+<p>
+        Mixed precision arithmetic is fully supported by the library.
+      </p>
+<p>
+        There are two different forms:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Where the operands are of different precision.
+          </li>
+<li class="listitem">
+            Where the operands are of the same precision, but yield a higher precision
+            result.
+          </li>
+</ul></div>
+<h5>
+<a name="boost_multiprecision.tut.mixed.h0"></a>
+        <span class="phrase"><a name="boost_multiprecision.tut.mixed.mixing_operands_of_differing_precision"></a></span><a class="link" href="mixed.html#boost_multiprecision.tut.mixed.mixing_operands_of_differing_precision">Mixing
+        Operands of Differing Precision</a>
+      </h5>
+<p>
+        If the arguments to a binary operator are of different precision, then the
+        operation is allowed as long as there is an unambiguous implicit conversion
+        from one argument type to the other. In all cases the arithmetic is performed
+        "as if" the lower precision type is promoted to the higher precision
+        type before applying the operator. However, particular backends may optimise
+        this and avoid actually creating a temporary if they are able to do so.
+      </p>
+<p>
+        For example:
+      </p>
+<pre class="programlisting"><span class="identifier">mpfr_float_50</span>         <span class="identifier">a</span><span class="special">(</span><span class="number">2</span><span class="special">),</span> <span class="identifier">b</span><span class="special">;</span>
+<span class="identifier">mpfr_float_100</span>        <span class="identifier">c</span><span class="special">(</span><span class="number">3</span><span class="special">),</span> <span class="identifier">d</span><span class="special">;</span>
+<span class="identifier">static_mpfr_float_50</span>  <span class="identifier">e</span><span class="special">(</span><span class="number">5</span><span class="special">),</span> <span class="identifier">f</span><span class="special">;</span>
+<span class="identifier">mpz_int</span>               <span class="identifier">i</span><span class="special">(</span><span class="number">20</span><span class="special">);</span>
+
+<span class="identifier">d</span> <span class="special">=</span> <span class="identifier">a</span> <span class="special">*</span> <span class="identifier">c</span><span class="special">;</span>  <span class="comment">// OK, result of operand is an mpfr_float_100.</span>
+<span class="identifier">b</span> <span class="special">=</span> <span class="identifier">a</span> <span class="special">*</span> <span class="identifier">c</span><span class="special">;</span>  <span class="comment">// Error, can't convert the result to an mpfr_float_50 as it will lose digits.</span>
+<span class="identifier">f</span> <span class="special">=</span> <span class="identifier">a</span> <span class="special">*</span> <span class="identifier">e</span><span class="special">;</span>  <span class="comment">// Error, operator is ambiguous, result could be of either type.</span>
+<span class="identifier">f</span> <span class="special">=</span> <span class="identifier">e</span> <span class="special">*</span> <span class="identifier">i</span><span class="special">;</span>  <span class="comment">// OK, unambiguous conversion from mpz_int to static_mpfr_float_50</span>
+</pre>
+<h5>
+<a name="boost_multiprecision.tut.mixed.h1"></a>
+        <span class="phrase"><a name="boost_multiprecision.tut.mixed.operands_of_the_same_precision"></a></span><a class="link" href="mixed.html#boost_multiprecision.tut.mixed.operands_of_the_same_precision">Operands
+        of the Same Precision</a>
+      </h5>
+<p>
+        Sometimes you want to apply an operator to two arguments of the same precision
+        in such a way as to obtain a result of higher precision. The most common
+        situation occurs with fixed precision integers, where you want to multiply
+        two N-bit numbers to obtain a 2N-bit result. This is supported in this library
+        by the following free functions:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ResultType</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Source1</span> <span class="keyword">class</span> <span class="identifier">Source2</span><span class="special">&gt;</span>
+<span class="identifier">ResultType</span><span class="special">&amp;</span> <span class="identifier">add</span><span class="special">(</span><span class="identifier">ResultType</span><span class="special">&amp;</span> <span class="identifier">result</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Source1</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Source2</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ResultType</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Source1</span> <span class="keyword">class</span> <span class="identifier">Source2</span><span class="special">&gt;</span>
+<span class="identifier">ResultType</span><span class="special">&amp;</span> <span class="identifier">subtract</span><span class="special">(</span><span class="identifier">ResultType</span><span class="special">&amp;</span> <span class="identifier">result</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Source1</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Source2</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">ResultType</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Source1</span> <span class="keyword">class</span> <span class="identifier">Source2</span><span class="special">&gt;</span>
+<span class="identifier">ResultType</span><span class="special">&amp;</span> <span class="identifier">multiply</span><span class="special">(</span><span class="identifier">ResultType</span><span class="special">&amp;</span> <span class="identifier">result</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Source1</span><span class="special">&amp;</span> <span class="identifier">a</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">Source2</span><span class="special">&amp;</span> <span class="identifier">b</span><span class="special">);</span>
+</pre>
+<p>
+        These functions apply the named operator to the arguments <span class="emphasis"><em>a</em></span>
+        and <span class="emphasis"><em>b</em></span> and store the result in <span class="emphasis"><em>result</em></span>,
+        returning <span class="emphasis"><em>result</em></span>. In all cases they behave "as
+        if" arguments <span class="emphasis"><em>a</em></span> and <span class="emphasis"><em>b</em></span> were
+        first promoted to type <code class="computeroutput"><span class="identifier">ResultType</span></code>
+        before applying the operator, though particular backends may well avoid that
+        step by way of an optimization.
+      </p>
+<p>
+        The type <code class="computeroutput"><span class="identifier">ResultType</span></code> must
+        be an instance of class <code class="computeroutput"><span class="identifier">number</span></code>,
+        and the types <code class="computeroutput"><span class="identifier">Source1</span></code> and
+        <code class="computeroutput"><span class="identifier">Source2</span></code> may be either instances
+        of class <code class="computeroutput"><span class="identifier">number</span></code> or native
+        integer types. The latter is an optimization that allows arithmetic to be
+        performed on native integer types producing an extended precision result.
+      </p>
+<p>
+        For example:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">cpp_int</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">;</span>
+
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">uint64_t</span> <span class="identifier">i</span> <span class="special">=</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">uint64_t</span><span class="special">&gt;::</span><span class="identifier">max</span><span class="special">)();</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">uint64_t</span> <span class="identifier">j</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span>
+
+<span class="identifier">uint128_t</span> <span class="identifier">ui128</span><span class="special">;</span>
+<span class="identifier">uint256_t</span> <span class="identifier">ui256</span><span class="special">;</span>
+<span class="comment">//</span>
+<span class="comment">// Start by performing arithmetic on 64-bit integers to yield 128-bit results:</span>
+<span class="comment">//</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">hex</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">showbase</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">hex</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">showbase</span> <span class="special">&lt;&lt;</span> <span class="identifier">add</span><span class="special">(</span><span class="identifier">ui128</span><span class="special">,</span> <span class="identifier">i</span><span class="special">,</span> <span class="identifier">j</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">hex</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">showbase</span> <span class="special">&lt;&lt;</span> <span class="identifier">multiply</span><span class="special">(</span><span class="identifier">ui128</span><span class="special">,</span> <span class="identifier">i</span><span class="special">,</span> <span class="identifier">i</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="comment">//</span>
+<span class="comment">// The try squaring a 128-bit integer to yield a 256-bit result:</span>
+<span class="comment">//</span>
+<span class="identifier">ui128</span> <span class="special">=</span> <span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">uint128_t</span><span class="special">&gt;::</span><span class="identifier">max</span><span class="special">)();</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">hex</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">showbase</span> <span class="special">&lt;&lt;</span> <span class="identifier">multiply</span><span class="special">(</span><span class="identifier">ui256</span><span class="special">,</span> <span class="identifier">ui128</span><span class="special">,</span> <span class="identifier">ui128</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        Produces the output:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="number">0</span><span class="identifier">xffffffffffffffff</span>
+<span class="number">0</span><span class="identifier">x10000000000000000</span>
+<span class="number">0</span><span class="identifier">xFFFFFFFFFFFFFFFE0000000000000001</span>
+<span class="number">0</span><span class="identifier">xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE00000000000000000000000000000001</span>
+</pre>
+<p>
+      </p>
+<h5>
+<a name="boost_multiprecision.tut.mixed.h2"></a>
+        <span class="phrase"><a name="boost_multiprecision.tut.mixed.backends_with_optimized_mixed_precision_arithmetic"></a></span><a class="link" href="mixed.html#boost_multiprecision.tut.mixed.backends_with_optimized_mixed_precision_arithmetic">Backends
+        With Optimized Mixed Precision Arithmetic</a>
+      </h5>
+<p>
+        The following backends have at least some direct support for mixed precision
+        arithmetic, and therefore avoid creating unnecessary temporaries when using
+        the interfaces above. Therefore when using these types it's more efficient
+        to use mixed precision arithmetic, than it is to explicitly cast the operands
+        to the result type:
+      </p>
+<p>
+        <a class="link" href="floats/mpfr_float.html" title="mpfr_float">mpfr_float</a>,
+        <a class="link" href="floats/gmp_float.html" title="gmp_float">gmp_float</a>,
+        <a class="link" href="ints/cpp_int.html" title="cpp_int">cpp_int</a>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="rounding.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="gen_int.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

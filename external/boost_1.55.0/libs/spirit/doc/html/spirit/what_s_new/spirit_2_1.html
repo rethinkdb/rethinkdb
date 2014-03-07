@@ -1,0 +1,309 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Spirit V2.1</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../what_s_new.html" title="What's New">
+<link rel="prev" href="spirit_2_2.html" title="Spirit V2.2">
+<link rel="next" href="spirit_1_x.html" title="Spirit Classic">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="spirit_2_2.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../what_s_new.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="spirit_1_x.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="spirit.what_s_new.spirit_2_1"></a><a class="link" href="spirit_2_1.html" title="Spirit V2.1">Spirit V2.1</a>
+</h3></div></div></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_1.h0"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_1.what_s_changed_in__emphasis_spirit_qi__emphasis__and__emphasis_spirit_karma__emphasis__from_v2_0__boost_v1_37_0__to_v2_1__boost_v1_41_0_"></a></span><a class="link" href="spirit_2_1.html#spirit.what_s_new.spirit_2_1.what_s_changed_in__emphasis_spirit_qi__emphasis__and__emphasis_spirit_karma__emphasis__from_v2_0__boost_v1_37_0__to_v2_1__boost_v1_41_0_">What's
+        changed in <span class="emphasis"><em>Spirit.Qi</em></span> and <span class="emphasis"><em>Spirit.Karma</em></span>
+        from V2.0 (Boost V1.37.0) to V2.1 (Boost V1.41.0)</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <a href="http://boost-spirit.com" target="_top">Spirit</a> is now based on the
+            newest version of <a href="../../../../../../doc/html/proto.html" target="_top">Boost.Proto</a>
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_parse</span></code>, <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_format</span></code>
+            now post-skip by default.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">generate_delimited</span></code> and <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">format_delimited</span></code> now don't do pre-
+            delimiting by default.
+          </li>
+<li class="listitem">
+            Changed parameter sequence of <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_parse</span></code>,
+            <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_match</span></code>, <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">generate_delimited</span></code>,
+            and <code class="computeroutput"><span class="identifier">match_delimited</span></code>.
+            The attribute is now always the last parameter.
+          </li>
+<li class="listitem">
+            Added new overloads of those functions allowing to explicitly specify
+            the post-skipping and pre-delimiting behavior.
+          </li>
+<li class="listitem">
+            Added multi attribute API functions
+          </li>
+<li class="listitem">
+            Removed <code class="computeroutput"><span class="identifier">grammar_def</span><span class="special">&lt;&gt;</span></code>
+          </li>
+<li class="listitem">
+            Removed functions <code class="computeroutput"><span class="identifier">make_parser</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">make_generator</span><span class="special">()</span></code>
+          </li>
+<li class="listitem">
+            Removed <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">none</span></code> and <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">none</span></code>
+          </li>
+<li class="listitem">
+            Sequences and lists now accept a standard container as their attribute
+          </li>
+<li class="listitem">
+            The string placeholder terminal now can take other strings as its parameter
+            (i.e. std::string)
+          </li>
+<li class="listitem">
+            All terminals taking literals now accept a (lazy) function object as
+            well
+          </li>
+<li class="listitem">
+            All placeholders for terminals and directives (such as <code class="computeroutput"><span class="identifier">int_</span></code>, <code class="computeroutput"><span class="identifier">double_</span></code>,
+            <code class="computeroutput"><span class="identifier">verbatim</span></code>, etc.) were
+            previously defined in the namespace <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span></code>
+            only. Now these are additionally imported into the namespaces <code class="computeroutput"><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span></code>, <code class="computeroutput"><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span></code>,
+            and <code class="computeroutput"><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lex</span></code> (if they are supported by the corresponding
+            sub-library).
+          </li>
+<li class="listitem">
+            The terminal placeholders <code class="computeroutput"><span class="identifier">char_</span></code>
+            and <code class="computeroutput"><span class="identifier">string</span></code> are not defined
+            in the namespace <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span></code>
+            anymore as they have been moved to the character set namespaces, allowing
+            to do proper character set handling based on the used namespace (as
+            <code class="computeroutput"><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span></code>, etc.)
+          </li>
+<li class="listitem">
+            The <code class="computeroutput"><span class="identifier">uint</span></code>, <code class="computeroutput"><span class="identifier">ushort</span></code>, <code class="computeroutput"><span class="identifier">ulong</span></code>,
+            and <code class="computeroutput"><span class="identifier">byte</span></code> terminal placeholders
+            have been renamed to <code class="computeroutput"><span class="identifier">uint_</span></code>,
+            <code class="computeroutput"><span class="identifier">ushort_</span></code>, <code class="computeroutput"><span class="identifier">ulong_</span></code>, and <code class="computeroutput"><span class="identifier">byte_</span></code>.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">skip</span><span class="special">[]</span></code>
+            now re-enables outer skipper if used inside <code class="computeroutput"><span class="identifier">lexeme</span><span class="special">[]</span></code>
+          </li>
+<li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">maxwidth</span><span class="special">[]</span></code>
+            directive (see <a class="link" href="../karma/reference/directive/maxwidth.html" title="Generator Directives Controlling the Maximum Field Width (maxwidth[])"><code class="computeroutput"><span class="identifier">maxwidth</span></code></a>)
+          </li>
+<li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">omit</span><span class="special">[]</span></code>
+            allowing to consume the attribute of subject generator without emitting
+            any output (see <a class="link" href="../karma/reference/directive/omit.html" title="Generator Directives Consuming Attributes (omit[] and skip[])"><code class="computeroutput"><span class="identifier">omit</span></code></a>).
+          </li>
+<li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">buffer</span><span class="special">[]</span></code>
+            allowing to avoid unwanted output to be generated in case of a generator
+            failing in the middle of a sequence (see <a class="link" href="../karma/reference/directive/buffer.html" title="Generator Directive for Temporary Output Buffering (buffer[])"><code class="computeroutput"><span class="identifier">buffer</span></code></a>).
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">delimit</span><span class="special">[]</span></code>
+            now re-enables outer delimiter if used inside <code class="computeroutput"><span class="identifier">verbatim</span><span class="special">[]</span></code>
+          </li>
+<li class="listitem">
+            Karma: added and-predicate (<code class="computeroutput"><span class="keyword">operator</span><span class="special">&amp;()</span></code>) and not-predicate (<code class="computeroutput"><span class="keyword">operator</span><span class="special">!()</span></code>)
+            Both now always consume an attribute.
+          </li>
+<li class="listitem">
+            Karma: changed semantics of <code class="computeroutput"><span class="identifier">char_</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">string</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">int_</span><span class="special">()</span></code> et.al., and <code class="computeroutput"><span class="identifier">double_</span><span class="special">()</span></code> et.al.: all of these generators now
+            always expose an attribute. If they do not have an associated attribute,
+            they generate their immediate literal. If they have an associated attribute,
+            the generators first test if the attribute value is equal to the immediate
+            literal. They fail and do not generate anything if those are not equal.
+            Otherwise they generate their immediate literal. For more information
+            see for instance <a class="link" href="../karma/reference/numeric/signed_int.html" title="Signed Integer Number Generators (int_, etc.)"><code class="computeroutput"><span class="identifier">int_</span></code></a>.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">lit</span><span class="special">()</span></code>
+            can now be used to generate integer and floating point numbers
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span></code> and <code class="computeroutput"><span class="identifier">karma</span><span class="special">::</span><span class="identifier">rule</span></code>
+            now can be directly initialized using their copy constructor. I.e. this
+            works now: <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;...&gt;</span>
+            <span class="identifier">r</span> <span class="special">=</span>
+            <span class="special">...</span><span class="identifier">some</span>
+            <span class="identifier">parser</span><span class="special">...;</span></code>.
+          </li>
+<li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">attr</span><span class="special">()</span></code>
+            exposing its immediate parameter as its attribute.
+          </li>
+<li class="listitem">
+            Added boolean parsers and generators (<code class="computeroutput"><span class="identifier">bool_</span></code>,
+            <code class="computeroutput"><span class="identifier">true_</span></code>, <code class="computeroutput"><span class="identifier">false_</span></code>).
+          </li>
+<li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">attr_cast</span><span class="special">&lt;&gt;</span></code>
+            enabling in place attribute type conversion in Qi and Karma grammars.
+          </li>
+<li class="listitem">
+            Almost all Karma generators now accept <code class="computeroutput"><span class="identifier">optional</span><span class="special">&lt;&gt;</span></code> attributes and will fail generating
+            if this is not initialized.
+          </li>
+<li class="listitem">
+            Qi and Karma rules now automatically detect whether to apply auto-rule
+            semantics or not (no need for using <code class="computeroutput"><span class="keyword">operator</span><span class="special">%=()</span></code> anymore, even if it's still existing).
+            Auto-rule semantics are applied if the right hand side has no semantic
+            actions attached to any of the elements. This works for rule initialization
+            and assignment.
+          </li>
+<li class="listitem">
+            Qi and Karma rules now do intrinsic attribute transformation based on
+            the attribute customization point <a class="link" href="../advanced/customize/transform.html" title="Transform an Attribute to a Different Type (Qi and Karma)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">transform_attribute</span></code></a>.
+          </li>
+<li class="listitem">
+            All char_ parsers now always expose an attribute. Earlier <code class="computeroutput"><span class="identifier">char_</span><span class="special">(...)</span></code>
+            didn't expose an attribute while <code class="computeroutput"><span class="identifier">char_</span></code>
+            did. If you need a literal parser not exposing any attribute use <code class="computeroutput"><span class="identifier">lit</span><span class="special">(...)</span></code>
+            instead.
+          </li>
+<li class="listitem">
+            The qi::int_spec, qi::real_spec, karma::int_spec, and karma real_spec
+            types do not exist anymore. These have been replaced with qi::int_parser,
+            qi::real_parser, karma::int_generator, and karma::real_generator.
+          </li>
+</ul></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_1.h1"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_1.what_s_changed_in__emphasis_spirit_lex__emphasis__from_v2_0__boost_v1_37_0__to_v2_1__boost_v1_41_0_"></a></span><a class="link" href="spirit_2_1.html#spirit.what_s_new.spirit_2_1.what_s_changed_in__emphasis_spirit_lex__emphasis__from_v2_0__boost_v1_37_0__to_v2_1__boost_v1_41_0_">What's
+        changed in <span class="emphasis"><em>Spirit.Lex</em></span> from V2.0 (Boost V1.37.0) to V2.1
+        (Boost V1.41.0)</a>
+      </h5>
+<p>
+        Here is a list of changes in <span class="emphasis"><em>Spirit.Lex</em></span> since version
+        2.0. <span class="emphasis"><em>Spirit.Lex</em></span> 2.1 is a complete rewrite of the <span class="emphasis"><em>Spirit.Lex</em></span>
+        distributed with Boost V1.37. As with all code portions of the <a href="http://boost-spirit.com" target="_top">Spirit</a>
+        library, <span class="emphasis"><em>Spirit.Lex</em></span> is usable as stand alone piece.
+        <span class="emphasis"><em>Spirit.Lex</em></span> now uses the infrastructure provided by
+        <a href="http://boost-spirit.com" target="_top">Spirit</a> version 2.1.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The lex::lexer_def class has been renamed to lex::lexer, while the original
+            class lex::lexer does not exist anymore. This simplifies the creation
+            of lexers.
+          </li>
+<li class="listitem">
+            The lex::lexer class does not have the function <code class="computeroutput"><span class="identifier">def</span><span class="special">(</span><span class="identifier">Self</span><span class="special">&amp;</span> <span class="identifier">self</span><span class="special">)</span></code> anymore, token definitions can be added
+            to the lexer at any time, usually in the constructor of the user defined
+            lexer class:
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Lexer</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">example_tokens</span> <span class="special">:</span> <span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;</span><span class="identifier">Lexer</span><span class="special">&gt;</span>
+<span class="special">{</span>
+      <span class="identifier">example_tokens</span><span class="special">()</span>
+      <span class="special">{</span>
+          <span class="comment">// your token definitions here</span>
+          <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">self</span> <span class="special">=</span> <span class="special">...</span>
+      <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+          </li>
+<li class="listitem">
+            The new lexer class can now be used directly. The function <code class="computeroutput"><span class="identifier">make_lexer</span><span class="special">()</span></code>
+            has been removed.
+          </li>
+<li class="listitem">
+            The <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">tokenize_and_parse</span><span class="special">()</span></code>
+            and <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">tokenize_and_phrase_parse</span><span class="special">()</span></code>
+            functions have been changed to match the parameter sequence as implemented
+            by the <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">parse</span><span class="special">()</span></code>
+            and <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_parse</span><span class="special">()</span></code>
+            functions. Both take an arbitrary number of attribute arguments as the
+            last parameters. This argument list is limited by the macro <code class="computeroutput"><span class="identifier">SPIRIT_ARGUMENTS_LIMIT</span></code>.
+          </li>
+<li class="listitem">
+            The <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl_lexer</span></code>, and <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl_token</span></code>
+            classes have been moved to the <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span></code>
+            namespace and the names have been changed to <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">lexer</span></code>,
+            <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">token</span></code>. This also applies to the <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexert_actor_lexer</span></code>, and the <code class="computeroutput"><span class="identifier">static_lexertl_</span><span class="special">*</span></code>
+            family of types.
+          </li>
+<li class="listitem">
+            The class <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl_token_set</span></code> has been removed.
+            This functionality is now available from the lexer class.
+          </li>
+<li class="listitem">
+            The <span class="emphasis"><em>Spirit.Lex</em></span> library has been updated to use the
+            newest version of Ben Hansons <a href="http://www.benhanson.net/lexertl.html" target="_top">Lexertl</a>
+            lexer construction library (Boost review pending).
+          </li>
+<li class="listitem">
+            The <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;</span><span class="identifier">Lexer</span><span class="special">&gt;</span></code>
+            template constructor now takes an optional parameter specifying the
+            <code class="computeroutput"><span class="identifier">match_flags</span></code> to be used
+            for table generation. Currently, there are the following flags available:
+<pre class="programlisting"><span class="identifier">match_flags</span><span class="special">::</span><span class="identifier">match_default</span><span class="special">,</span>          <span class="comment">// no flags</span>
+<span class="identifier">match_flags</span><span class="special">::</span><span class="identifier">match_not_dot_newline</span><span class="special">,</span>  <span class="comment">// the regex '.' doesn't match newlines</span>
+<span class="identifier">match_flags</span><span class="special">::</span><span class="identifier">match_icase</span>             <span class="comment">// all matching operations are case insensitive</span>
+</pre>
+            If no parameter is passed to the constructor, <code class="computeroutput"><span class="identifier">match_flags</span><span class="special">::</span><span class="identifier">match_default</span></code>
+            is used, i.e. the <code class="computeroutput"><span class="special">.</span></code> matches
+            newlines and matching is case sensitive.
+          </li>
+<li class="listitem">
+            The <code class="computeroutput"><span class="identifier">char_</span><span class="special">()</span></code>
+            and <code class="computeroutput"><span class="identifier">string</span><span class="special">()</span></code>
+            placeholders can now be used for token definitions and are synonymous
+            with <code class="computeroutput"><span class="identifier">token_def</span></code>.
+          </li>
+<li class="listitem">
+            Lexer semantic actions now have to conform to a changed interface (see
+            <a class="link" href="../lex/abstracts/lexer_semantic_actions.html" title="Lexer Semantic Actions">Lexer Semantic
+            Actions</a> for details).
+          </li>
+<li class="listitem">
+            Added placeholder symbols usable from the inside of lexer semantic actions
+            while using Phoenix: <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">_start</span></code>,
+            <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">_end</span></code>, <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">_eoi</span></code>,
+            <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">_state</span></code>, <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">_val</span></code>,
+            and <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">_pass</span></code> (see <a class="link" href="../lex/abstracts/lexer_semantic_actions.html" title="Lexer Semantic Actions">Lexer
+            Semantic Actions</a> for more details).
+          </li>
+<li class="listitem">
+            Added (lazy) support functions usable from the inside of lexer semantic
+            actions while using Phoenix: <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">more</span><span class="special">()</span></code>, <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">less</span><span class="special">()</span></code>, and <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lookahead</span><span class="special">()</span></code> (see <a class="link" href="../lex/abstracts/lexer_semantic_actions.html" title="Lexer Semantic Actions">Lexer
+            Semantic Actions</a> for more details).
+          </li>
+<li class="listitem">
+            Removed <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">omitted</span></code> in favor of <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">omit</span></code>
+            to unify the overall interface.
+          </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="spirit_2_2.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../what_s_new.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="spirit_1_x.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

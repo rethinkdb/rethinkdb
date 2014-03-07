@@ -1,0 +1,306 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;1.&#160;Phoenix 3.0</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="next" href="phoenix/what_s_new.html" title="What's New">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="phoenix/what_s_new.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="phoenix"></a>Chapter&#160;1.&#160;Phoenix 3.0</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Joel</span> <span class="surname">de Guzman</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Dan</span> <span class="surname">Marsden</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Thomas</span> <span class="surname">Heller</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller</p></div>
+<div><div class="legalnotice">
+<a name="phoenix.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="phoenix/what_s_new.html">What's New</a></span></dt>
+<dd><dl><dt><span class="section"><a href="phoenix/what_s_new/phoenix_3_0.html">Phoenix 3.0</a></span></dt></dl></dd>
+<dt><span class="section"><a href="phoenix/introduction.html">Introduction</a></span></dt>
+<dt><span class="section"><a href="phoenix/starter_kit.html">Starter Kit</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="phoenix/starter_kit/values.html">Values</a></span></dt>
+<dt><span class="section"><a href="phoenix/starter_kit/references.html">References</a></span></dt>
+<dt><span class="section"><a href="phoenix/starter_kit/arguments.html">Arguments</a></span></dt>
+<dt><span class="section"><a href="phoenix/starter_kit/lazy_operators.html">Lazy Operators</a></span></dt>
+<dt><span class="section"><a href="phoenix/starter_kit/lazy_statements.html">Lazy Statements</a></span></dt>
+<dt><span class="section"><a href="phoenix/starter_kit/construct__new__delete__casts.html">Construct,
+      New, Delete, Casts</a></span></dt>
+<dt><span class="section"><a href="phoenix/starter_kit/lazy_functions.html">Lazy Functions</a></span></dt>
+<dt><span class="section"><a href="phoenix/starter_kit/more.html">More</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="phoenix/basics.html">Basics</a></span></dt>
+<dt><span class="section"><a href="phoenix/organization.html">Organization</a></span></dt>
+<dt><span class="section"><a href="phoenix/actor.html">Actor</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules.html">Modules</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="phoenix/modules/core.html">Core</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="phoenix/modules/core/values.html">Values</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/core/references.html">References</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/core/arguments.html">Arguments</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/core/nothing.html">Nothing</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="phoenix/modules/function.html">Function</a></span></dt>
+<dd><dl><dt><span class="section"><a href="phoenix/modules/function/adapting_functions.html">Adapting
+        Functions</a></span></dt></dl></dd>
+<dt><span class="section"><a href="phoenix/modules/operator.html">Operator</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/statement.html">Statement</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="phoenix/modules/statement/block_statement.html">Block Statement</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/statement/if__statement.html">if_ Statement</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/statement/___if_else_____statement.html">if_else_ Statement</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/statement/switch__statement.html">switch_
+        Statement</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/statement/while__statement.html">while_
+        Statement</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/statement/___do_while_____statement.html">do_while_ Statement</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/statement/for_statement.html">for_ Statement</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/statement/try__catch__statement.html">try_
+        catch_ Statement</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/statement/throw_.html">throw_</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="phoenix/modules/object.html">Object</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="phoenix/modules/object/construction.html">Construction</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/object/new.html">New</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/object/delete.html">Delete</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/object/casts.html">Casts</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="phoenix/modules/scope.html">Scope</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="phoenix/modules/scope/local_variables.html">Local Variables</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/scope/let.html">let</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/scope/lambda.html">lambda</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="phoenix/modules/bind.html">Bind</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="phoenix/modules/bind/binding_function_objects.html">Binding
+        Function Objects</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/bind/binding_functions.html">Binding Functions</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/bind/binding_member_functions.html">Binding
+        Member Functions</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/bind/binding_member_variables.html">Binding
+        Member Variables</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/bind/compatibility_with_boost_bind.html">Compatibility
+        with Boost.Bind</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="phoenix/modules/stl.html">STL</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="phoenix/modules/stl/container.html">Container</a></span></dt>
+<dt><span class="section"><a href="phoenix/modules/stl/algorithm.html">Algorithm</a></span></dt>
+</dl></dd>
+</dl></dd>
+<dt><span class="section"><a href="phoenix/inside.html">Inside Phoenix</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="phoenix/inside/actor.html">Actors in Detail</a></span></dt>
+<dt><span class="section"><a href="phoenix/inside/expression.html">Phoenix Expressions</a></span></dt>
+<dd><dl><dt><span class="section"><a href="phoenix/inside/expression/boilerplate_macros.html">Boilerplate
+        Macros</a></span></dt></dl></dd>
+<dt><span class="section"><a href="phoenix/inside/actions.html">More on Actions</a></span></dt>
+<dt><span class="section"><a href="phoenix/inside/rules.html">Predefined Expressions and Rules</a></span></dt>
+<dt><span class="section"><a href="phoenix/inside/custom_terminals.html">Custom Terminals</a></span></dt>
+<dt><span class="section"><a href="phoenix/inside/placeholder_unification.html">Placeholder Unification</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="phoenix/examples.html">Advanced Examples</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="phoenix/examples/extending_actors.html">Extending Actors</a></span></dt>
+<dt><span class="section"><a href="phoenix/examples/adding_an_expression.html">Adding an expression</a></span></dt>
+<dt><span class="section"><a href="phoenix/examples/transforming_the_expression_tree.html">Transforming
+      the Expression Tree</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="phoenix/wrap_up.html">Wrap Up</a></span></dt>
+<dt><span class="section"><a href="phoenix/acknowledgments.html">Acknowledgments</a></span></dt>
+<dt><span class="section"><a href="phoenix/references.html">References</a></span></dt>
+</dl>
+</div>
+<h2>
+<a name="phoenix.h0"></a>
+    <span class="phrase"><a name="phoenix.preface"></a></span><a class="link" href="index.html#phoenix.preface">Preface</a>
+  </h2>
+<div class="blockquote"><blockquote class="blockquote"><p>
+      <span class="emphasis"><em>Functional programming is so called because a program consists entirely
+      of functions. The main program itself is written as a function which receives
+      the program's input as its argument and delivers the program's output as its
+      result. Typically the main function is defined in terms of other functions,
+      which in turn are defined in terms of still more functions until at the bottom
+      level the functions are language primitives.</em></span>
+    </p></blockquote></div>
+<div class="blockquote"><blockquote class="blockquote"><p>
+      <span class="bold"><strong>John Hughes</strong></span>-- <span class="emphasis"><em>Why Functional Programming
+      Matters</em></span>
+    </p></blockquote></div>
+<p>
+    <span class="inlinemediaobject"><img src="images/lambda_cpp.png" alt="lambda_cpp"></span>
+  </p>
+<h3>
+<a name="phoenix.h1"></a>
+    <span class="phrase"><a name="phoenix.description"></a></span><a class="link" href="index.html#phoenix.description">Description</a>
+  </h3>
+<p>
+    Phoenix enables Functional Programming (FP) in C++. The design and implementation
+    of Phoenix is highly influenced by <a href="http://www.cc.gatech.edu/~yannis/fc++/" target="_top">FC++</a>
+    by Yannis Smaragdakis and Brian McNamara and the <a href="http://www.boost.org/libs/lambda/doc/index.html" target="_top">BLL</a>
+    (Boost Lambda Library) by Jaakko Jaarvi and Gary Powell. Phoenix is a blend of
+    FC++ and BLL using the implementation techniques used in the <a href="http://spirit.sourceforge.net" target="_top">Spirit</a>
+    inline parser.
+  </p>
+<p>
+    Phoenix is a header only library. It is extremely modular by design. One can
+    extract and use only a small subset of the full library, literally tearing the
+    library into small pieces, without fear that the pieces won't work anymore. The
+    library is organized in highly independent modules and layers.
+  </p>
+<h3>
+<a name="phoenix.h2"></a>
+    <span class="phrase"><a name="phoenix.how_to_use_this_manual"></a></span><a class="link" href="index.html#phoenix.how_to_use_this_manual">How
+    to use this manual</a>
+  </h3>
+<p>
+    The Phoenix library is organized in logical modules. This documentation provides
+    a user's guide and reference for each module in the library. A simple and clear
+    code example is worth a hundred lines of documentation; therefore, the user's
+    guide is presented with abundant examples annotated and explained in step-wise
+    manner. The user's guide is based on examples: lots of them.
+  </p>
+<p>
+    As much as possible, forward information (i.e. citing a specific piece of information
+    that has not yet been discussed) is avoided in the user's manual portion of each
+    module. In many cases, though, it is unavoidable that advanced but related topics
+    not be interspersed with the normal flow of discussion. To alleviate this problem,
+    topics categorized as "advanced" may be skipped at first reading.
+  </p>
+<p>
+    Some icons are used to mark certain topics indicative of their relevance. These
+    icons precede some text to indicate:
+  </p>
+<div class="table">
+<a name="phoenix.t0"></a><p class="title"><b>Table&#160;1.1.&#160;Icons</b></p>
+<div class="table-contents"><table class="table" summary="Icons">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+            <p>
+              Icon
+            </p>
+          </th>
+<th>
+            <p>
+              Name
+            </p>
+          </th>
+<th>
+            <p>
+              Meaning
+            </p>
+          </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+            <p>
+              <span class="inlinemediaobject"><img src="images/note.png" alt="note"></span>
+            </p>
+          </td>
+<td>
+            <p>
+              Note
+            </p>
+          </td>
+<td>
+            <p>
+              Information provided is auxiliary but will give the reader a deeper
+              insight into a specific topic. May be skipped.
+            </p>
+          </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <span class="inlinemediaobject"><img src="images/alert.png" alt="alert"></span>
+            </p>
+          </td>
+<td>
+            <p>
+              Alert
+            </p>
+          </td>
+<td>
+            <p>
+              Information provided is of utmost importance.
+            </p>
+          </td>
+</tr>
+<tr>
+<td>
+            <p>
+              <span class="inlinemediaobject"><img src="images/tip.png" alt="tip"></span>
+            </p>
+          </td>
+<td>
+            <p>
+              Tip
+            </p>
+          </td>
+<td>
+            <p>
+              A potentially useful and helpful piece of information.
+            </p>
+          </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="sidebar">
+<div class="titlepage"></div>
+<p>
+    <span class="inlinemediaobject"><img src="images/note.png" alt="note"></span> Unless otherwise noted <code class="computeroutput"><span class="keyword">using</span>
+    <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">;</span></code>
+    is assumed
+  </p>
+</div>
+<h3>
+<a name="phoenix.h3"></a>
+    <span class="phrase"><a name="phoenix._emphasis_role__bold___emphasis____to_joel_s_dear_daughter__phoenix__emphasis___emphasis_"></a></span><a class="link" href="index.html#phoenix._emphasis_role__bold___emphasis____to_joel_s_dear_daughter__phoenix__emphasis___emphasis_"><span class="bold"><strong><span class="emphasis"><em>...To Joel's dear daughter, Phoenix</em></span></strong></span></a>
+  </h3>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:37:22 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="phoenix/what_s_new.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

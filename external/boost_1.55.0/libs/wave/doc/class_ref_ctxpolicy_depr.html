@@ -1,0 +1,342 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>The Context Policy</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link href="theme/style.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" cellspacing="2" background="theme/bkd2.gif">
+  <tr> 
+    <td width="21"> <h1></h1></td>
+    <td width="885"> <font face="Verdana, Arial, Helvetica, sans-serif"><b><font size="6">The 
+      Context Policy (depreciated interface) </font></b></font></td>
+    <td width="96"><a href="http://www.boost.org"><img src="theme/wave.gif" width="93" height="68" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="class_reference_inptpolcy.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="class_reference_lexer.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<blockquote> 
+  <p><a href="class_reference_ctxpolicy.html#introduction">Introduction</a><br>
+    <a href="class_reference_ctxpolicy.html#header_synopsis">Header 'wave/preprocessing_hooks.hpp' 
+    synopsis</a><br>
+    <a href="class_reference_ctxpolicy.html#member_functions">Member functions</a></p>
+</blockquote>
+<h2><b><a name="introduction"></a>Introduction</b></h2>
+<p>Please note that the following description relates to a depreciated interface as it was used by default up to Boost V1.34.x. For the new interface please refer to <a href="class_reference_ctxpolicy.html">The Context Policy</a>. You can still force to use this older interface by defining the <tt>BOOST_WAVE_USE_DEPRECIATED_PREPROCESSING_HOOKS</tt> preprocessing constant as outlined in the <a href="compiletime_config.html">Compile 
+Time Configuration</a> section. By default the new interface is used starting Boost V1.35.0, while the older one is used by default otherwise. </p>
+<p>The context policy is used to provide callback hooks, which are called from inside the library into the user code, whenever</p>
+<ul>
+  <li>a preprocessor directive has been recognized, </li>
+  <li>a token is about to be returned from the preprocessor, </li>
+  <li>a macro get's defined or undefined, </li>
+  <li>a macro has been expanded or rescanned,</li>
+  <li>an include file has been opened or left, </li>
+  <li>a conditional expression was evaluated,</li>
+  <li>a token has to be skipped because it is contained in a non-evaluated conditional block, </li>
+  <li> a pragma of the form <tt>'wave option[(value)]'</tt> has been recognised. </li>
+</ul>
+<p>This policy type is used as a template parameter to the <a href="class_reference_context.html"><tt>boost::wave::context&lt;&gt;</tt></a> 
+  object, where the default policy provides empty hook functions only.</p>
+<h2><a name="header_synopsis"></a>Header <a href="http://svn.boost.org/trac/boost/browser/trunk/boost/wave/preprocessing_hooks.hpp">wave/preprocessing_hooks.hpp</a> 
+  synopsis</h2>
+<pre>
+<span class="keyword">namespace</span> boost {
+<span class="keyword">namespace</span> wave {
+<span class="keyword">namespace</span> context_policies {
+ 
+    <span class="keyword">struct</span> default_preprocessing_hooks {
+
+        <span class="comment">// general hook functions</span>
+        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> TokenT&gt;
+        <span class="keyword">void</span> <a href="class_reference_ctxpolicy.html#found_directive">found_directive</a>(TokenT <span class="keyword">const </span>&amp;directive);<br>
+        <span class="comment">// test, whether a given token may be skipped</span><br>        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> ContextT&gt;
+        <span class="keyword">bool</span> <a href="class_reference_ctxpolicy.html#may_skip_whitespace">may_skip_whitespace</a> (ContextT <span class="keyword">const</span>&amp; ctx,
+            TokenT &amp;token, <span class="keyword">bool</span> &amp;skipped_newline);<br>
+        </span><span class="comment">// Conditional compilation</span><span class="keyword">
+        template</span> &lt;<span class="keyword">typename</span> ContainerT&gt;<br>        <span class="keyword">bool</span> <a href="class_reference_ctxpolicy.html#evaluated_conditional_expression">evaluated_conditional_expression</a>(ContainerT <span class="keyword">const</span>&amp; expression, <br>            <span class="keyword">bool</span> expression_value);<br>
+        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> TokenT&gt;
+        <span class="keyword">void</span> <a href="class_reference_ctxpolicy.html#skipped_token">skipped_token</a>(TokenT <span class="keyword">const</span></span>&amp; token);<br>
+        <span class="comment">// macro expansion tracing</span><span class="keyword">
+        template</span> &lt;<span class="keyword">typename</span> TokenT, <span class="keyword">typename</span> ContainerT&gt;
+        <span class="keyword">void</span> <a href="class_reference_ctxpolicy.html#expanding_function_like_macro">expanding_function_like_macro</a>(TokenT <span class="keyword">const</span> &amp;macrodef, 
+            <span class="keyword">std::vector</span>&lt;TokenT&gt; <span class="keyword">const</span> &amp;formal_args, 
+            ContainerT <span class="keyword">const</span> &amp;definition, TokenT <span class="keyword">const</span> &amp;macrocall, 
+            <span class="keyword">std::vector</span>&lt;ContainerT&gt; <span class="keyword">const</span> &amp;arguments);
+ 
+        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> TokenT, <span class="keyword">typename</span> ContainerT&gt;
+        <span class="keyword">void</span> <a href="class_reference_ctxpolicy.html#expanding_object_like_macro">expanding_object_like_macro</a>(TokenT <span class="keyword">const</span> &amp;macro, 
+            ContainerT <span class="keyword">const</span> &amp;definition, TokenT <span class="keyword">const</span> &amp;macrocall);
+ 
+        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> ContainerT&gt;
+        <span class="keyword">void</span> <a href="class_reference_ctxpolicy.html#expanded_macro">expanded_macro</a>(ContainerT <span class="keyword">const</span> &amp;result);
+ 
+        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> ContainerT&gt;
+        <span class="keyword">void</span> <a href="class_reference_ctxpolicy.html#expanded_macro">rescanned_macro</a>(ContainerT <span class="keyword">const</span> &amp;result);
+
+        <span class="comment">// include file tracing functions</span>
+        <span class="keyword">void</span> <a href="class_reference_ctxpolicy.html#opened_include_file">found_include_directive</a>(std::string <span class="keyword">const</span> &amp;filename,
+            <span class="keyword">bool</span> include_next);
+
+        <span class="keyword">void </span><a href="class_reference_ctxpolicy.html#opened_include_file">opened_include_file</a>(std::string <span class="keyword">const</span> &amp;relname, 
+            std::string const&amp; absname,
+            std::size_t include_depth, <span class="keyword">bool</span> is_system_include); 
+
+        <span class="keyword">void</span> <a href="class_reference_ctxpolicy.html#returning_from_include_file">returning_from_include_file</a>();
+
+        <span class="comment">// interpretation of #pragma's of the form </span>
+        <span class="comment">// 'wave option[(value)]'</span>
+        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> ContextT, <span class="keyword">typename</span> ContainerT&gt;
+        bool <a href="class_reference_ctxpolicy.html#interpret_pragma">interpret_pragma</a>(ContextT <span class="keyword">const</span> &amp;ctx, ContainerT &amp;pending, 
+            <span class="keyword">typename</span> ContextT::token_type <span class="keyword">const</span> &amp;option, 
+            ContainerT <span class="keyword">const</span> &amp;values, 
+            <span class="keyword">typename</span> ContextT::token_type <span class="keyword">const</span> &amp;pragma_token);
+
+        <span class="comment">// macro definition hooks</span>
+        <span class="keyword">template</span> &lt;
+            <span class="keyword">typename</span> TokenT, <span class="keyword">typename</span> ParametersT, <span class="keyword">typename</span> DefinitionT
+        &gt;
+        <span class="keyword">void</span> <a href="class_reference_ctxpolicy.html#defined_macro">defined_macro</a>(TokenT <span class="keyword">const</span> &amp;name, <span class="keyword">bool</span> is_functionlike,
+            ParametersT <span class="keyword">const</span> &amp;parameters, DefinitionT <span class="keyword">const</span> &amp;definition,
+            <span class="keyword">bool</span> is_predefined);
+
+        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> TokenT&gt;
+        <span class="keyword">void</span> <a href="class_reference_ctxpolicy.html#undefined_macro">undefined_macro</a>(TokenT<span class="keyword">const</span> &amp;name);
+    };
+
+}}}   <span class="comment">// namespace boost::wave::context_policies</span></pre>
+<h2><a name="member_functions"></a>Member functions</h2>
+<h3>General hook functions </h3>
+<p><a name="found_directive"></a><strong>found_directive</strong></p>
+<pre>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> TokenT&gt;
+    <span class="keyword">void</span> found_directive(TokenT <span class="keyword">const </span>&amp;directive);
+</pre>
+<blockquote>
+  <p>The function <tt>found_directive</tt> is called, whenever the preprocessor has detected one of the preprocessing directives (<span class="preprocessor">#define</span>, <span class="preprocessor">#undef</span>, <span class="preprocessor">#if</span>, <span class="preprocessor">#idef</span>, <span class="preprocessor">#ifndef</span>, <span class="preprocessor">#elif</span>, <span class="preprocessor">#endif</span>, <span class="preprocessor">#error</span>, <span class="preprocessor">#include</span>, <span class="preprocessor">#pragma</span> or <span class="preprocessor">#warning</span>) .</p>
+  <p>The parameter <tt>directive</tt> refers to the token containing the detected preprocessing directive. </p>
+</blockquote>
+<p><a name="may_skip_whitespace" id="may_skip"></a><strong>may_skipwhitespace</strong></p>
+<pre>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> ContextT, <span class="keyword">typename</span> TokenT&gt;
+    <span class="keyword">bool</span> may_skip_whitespace(ContextT <span class="keyword">const</span>&amp; ctx, TokenT &amp;token, <span class="keyword">bool</span>&amp; skipped_newline);
+</pre>
+<blockquote>
+  <p>The function <tt>may_skipwhitespace</tt> will be called by the library, whenever a token is about to be returned to the calling application. </p>
+  <p>The <tt>ctx</tt> parameter provides a reference to the <tt>context_type</tt> used during instantiation of the preprocessing iterators by the user. Note, this parameter was added for the Wave V1.2.4 release. </p>
+  <p>The <tt>token</tt> parameter holds a reference to the current token. The policy is free to change this token if needed.</p>
+  <p>The <tt>skipped_newline</tt> parameter holds a reference to a boolean value which should be set to true by the policy function whenever a newline is going to be skipped. </p>
+  <p>If the return value is <tt>true</tt>, the given token is skipped and the preprocessing continues to the next token. If the return value is <tt>false</tt>, the given token is returned to the calling application. Caution has to be used, because by returning <span class="keyword">true</span> the policy function is able to force skipping even significant tokens not only whitespace. </p>
+</blockquote>
+<h3>Conditional compilation hook functions </h3>
+<p><a name="evaluated_conditional_expression"></a><strong>evaluated_conditional_expression</strong></p>
+<pre><span class="keyword">    template</span> &lt;<span class="keyword">typename</span> ContainerT&gt;<br><span class="keyword">    void</span> evaluated_conditional_expression(
+        ContainerT <span class="keyword">const</span>&amp; expression, <span class="keyword">bool</span> expression_value);
+</pre>
+<blockquote>
+  <p>The function <tt>evaluated_conditional_expression</tt> is called, whenever the preprocessor has encountered a <span class="preprocessor">#if</span>, <span class="preprocessor">#elif</span>, <span class="preprocessor">#ifdef</span> or <span class="preprocessor">#ifndef</span> directive. This hook gets passed the non-expanded conditional expression (as it was given in the analysed source file) and the result of the evaluation of this expression in the current preprocessing context.</p>
+  <p>The parameter <tt>expression</tt> holds the non-expanded token sequence 
+  comprising the evaluated expression.</p>
+  <p>The parameter <tt>expression_value</tt> contains the result of the evaluation of 
+    the expression in the current preprocessing context.<br>
+  </p>
+</blockquote>
+<p><a name="skipped_token"></a><strong>skipped_token</strong></p>
+<pre>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> TokenT&gt;
+    <span class="keyword">void</span> skipped_token(TokenT <span class="keyword">const</span>&amp; token);
+</pre>
+<blockquote>
+  <p>The function <tt>skipped_token</tt> is called, whenever a token is about to be skipped due to a false preprocessor condition (code fragments to be
+  skipped inside the not evaluated conditional <span class="preprocessor">#if</span>/<span class="preprocessor">#else</span>/<span class="preprocessor">#endif</span> branches).</p>
+  <p>The parameter <tt>token</tt> refers to the token to be skipped.</p>
+</blockquote>
+<h3>Macro expansion tracking functions</h3>
+<p><a name="expanding_function_like_macro"></a><b>expanding_function_like_macro</b></p>
+<pre><span class="keyword">    template</span> &lt;<span class="keyword">typename</span> TokenT, <span class="keyword">typename</span> ContainerT&gt;
+    <span class="keyword">void</span> expanding_function_like_macro(TokenT <span class="keyword">const</span> &amp;macrodef, 
+        <span class="keyword">std::vector</span>&lt;TokenT&gt; <span class="keyword">const</span> &amp;formal_args, 
+        ContainerT <span class="keyword">const</span> &amp;definition, TokenT <span class="keyword">const</span> &amp;macrocall, 
+        <span class="keyword">std::vector</span>&lt;ContainerT&gt; <span class="keyword">const</span> &amp;arguments);</pre>
+<blockquote> 
+  <p>The function <tt>expanding_function_like_macro</tt> is called, whenever a 
+    function-like macro is to be expanded, i.e. <i>before</i> the actual expansion 
+    starts.</p>
+  <p>The <tt>macroname</tt> parameter marks the position where the macro to expand 
+    is defined. It contains the token which identifies the macro name used inside 
+    the corresponding macro definition.</p>
+  <p>The <tt>formal_args</tt> parameter holds the formal arguments used during 
+    the definition of the macro. </p>
+  <p>The <tt>definition</tt> parameter holds the macro definition for the macro 
+    to trace. This is a standard STL container which holds the token sequence 
+    identified during the macro definition as the macro replacement list.</p>
+  <p>The <tt>macrocall</tt> parameter marks the position where this macro is invoked. 
+    It contains the token, which identifies the macro call inside the preprocessed 
+    input stream. </p>
+  <p>The <tt>arguments</tt> parameter holds the macro arguments used during the 
+    invocation of the macro. This is a vector of standard STL containers which 
+    contain the token sequences identified at the position of the macro call as 
+    the arguments to be used during the macro expansion. </p>
+</blockquote>
+<p><a name="expanding_object_like_macro"></a><b>expanding_object_like_macro</b></p>
+<pre>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> TokenT, <span class="keyword">typename</span> ContainerT&gt;
+    <span class="keyword">void</span> expanding_object_like_macro(TokenT <span class="keyword">const</span> &amp;macro, 
+        ContainerT <span class="keyword">const</span> &amp;definition, TokenT <span class="keyword">const</span> &amp;macrocall);
+</pre>
+<blockquote> 
+  <p>The function <tt>expanding_object_like_macro</tt> is called, whenever a object-like 
+    macro is to be expanded, i.e. <i>before</i> the actual expansion starts.</p>
+  <p>The <tt>macroname</tt> parameter marks the position where the macro to expand 
+    is defined. It contains the token which identifies the macro name used inside 
+    the corresponding macro definition.</p>
+  <p> The <tt>definition</tt> parameter holds the macro definition for the macro 
+    to trace. This is a standard STL container which holds the token sequence 
+    identified during the macro definition as the macro replacement list.</p>
+  <p>The <tt>macrocall</tt> parameter marks the position where this macro is invoked. 
+    It contains the token which identifies the macro call inside the preprocessed 
+    input stream. </p>
+</blockquote>
+<p><a name="expanded_macro"></a><b>expanded_macro</b></p>
+<pre>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> ContainerT&gt;
+    <span class="keyword">void</span> expanded_macro(ContainerT <span class="keyword">const</span> &amp;result);
+</pre>
+<blockquote> 
+  <p>The function <tt>expanded_macro</tt> is called whenever the expansion of 
+    a macro is finished, the replacement list is completely scanned and the identified 
+    macros herein are replaced by its corresponding expansion results, but <i>before</i> 
+    the rescanning process starts.</p>
+  <p>The parameter <tt>result</tt> contains the the result of the macro expansion 
+    so far. This is a standard STL container containing the generated token sequence.</p>
+</blockquote>
+<p><a name="rescanned_macro"></a><b>rescanned_macro</b></p>
+<pre>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> ContainerT&gt;
+    <span class="keyword">void</span> rescanned_macro(ContainerT <span class="keyword">const</span> &amp;result);
+</pre>
+<blockquote> 
+  <p>The function <tt>rescanned_macro</tt> is called whenever the rescanning 
+    of a macro is finished, i.e. the macro expansion is complete.</p>
+  <p>The parameter <tt>result</tt> contains the the result of the whole macro 
+    expansion. This is a standard STL container containing the generated token 
+    sequence.</p>
+</blockquote>
+<h3>Include file tracing functions</h3>
+<p><a name="opened_include_file" id="found_include_directive"></a><strong>found_include_directive</strong></p>
+<pre>    <span class="keyword">void</span> found_include_directive(std::string <span class="keyword">const</span> &amp;filename,
+        <span class="keyword">bool</span> include_next);
+</pre>
+<blockquote>
+  <p>The function <tt>found_include_directive</tt> is called whenever whenever a #include directive was located..</p>
+  <p>The parameter <tt>filename</tt> contains the (expanded) file name found after 
+    the <span class="preprocessor">#include</span> directive. This has the format <tt>&lt;file&gt;</tt>, <tt>&quot;file&quot;</tt> or 
+    <tt>file</tt>. 
+    The formats <tt>&lt;file&gt;</tt> or <tt>&quot;file&quot;</tt> are used for <span class="preprocessor">#include</span> directives found 
+    in the preprocessed token stream, the format <tt>file</tt> is used for files
+  specified through the --force_include command line argument.</p>
+  <p>The parameter <tt>include_next</tt> is set to true if the found directive was
+    a <span class="preprocessor">#include_next</span> directive and the <tt>BOOST_WAVE_SUPPORT_INCLUDE_NEXT</tt>    preprocessing constant was defined to something != 0.<br>
+  </p>
+</blockquote>
+<p><a name="opened_include_file" id="opened_include_file"></a><strong>opened_include_file</strong></p>
+<pre>    <span class="keyword">void</span> opened_include_file(std::string <span class="keyword">const</span> &amp;rel_filename, 
+        std::string <span class="keyword">const</span> &amp;abs_filename, 
+        std::size_t include_depth, <span class="keyword">bool</span> is_system_include);
+</pre>
+<blockquote> 
+  <p>The function <tt>opened_include_file</tt> is called whenever a file referred 
+    by an <span class="preprocessor">#include</span> directive was successfully located and opened.</p>
+  <p>The parameter <tt>rel_filename</tt> contains the (normalised) probably relative file system path of the opened file. The concrete format of this file name depends on the format of the include search path given to the library beforehand.</p>
+  <p>The parameter <tt>abs_filename</tt> contains the (normalised) full file system path of the 
+      opened file.</p>
+  <p>The <tt>include_depth</tt> parameter contains the current include file depth. 
+  </p>
+  <p>The <tt>is_system_include</tt> parameter denotes, if the given file was found 
+    as a result of a <tt>#include&nbsp;&lt;...&gt;</tt> directive.</p>
+</blockquote>
+<p><a name="returning_from_include_file" id="returning_from_include_file"></a><strong>returning_from_include_file</strong></p>
+<pre>    <span class="keyword">void</span> returning_from_include_file();
+</pre>
+<blockquote> 
+  <p>The function <tt>returning_from_include_file</tt> is called whenever an 
+    included file is about to be closed after it's processing is complete.</p>
+</blockquote>
+<h3>Interpretation of #pragma's</h3>
+<p><strong><a name="interpret_pragma"></a>interpret_pragma</strong></p>
+<pre>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> ContextT, <span class="keyword">typename</span> ContainerT&gt;
+    bool <a href="class_reference_ctxpolicy.html#interpret_pragma">interpret_pragma</a>(ContextT <span class="keyword">const</span> &amp;ctx, ContainerT &amp;pending, 
+        <span class="keyword">typename</span> ContextT::token_type <span class="keyword">const</span> &amp;option, 
+        ContainerT <span class="keyword">const</span> &amp;values, 
+        <span class="keyword">typename</span> ContextT::token_type<span class="keyword"> const</span> &amp;pragma_token);
+</pre>
+<blockquote> 
+  <p>The function <tt>interpret_pragma</tt> is called whenever an unrecognized 
+    <tt>#pragma&nbsp;wave&nbsp;...</tt> or operator <tt>_Pragma(&quot;wave&nbsp;...&quot;)</tt> 
+    is found in the input stream.</p>
+  <p>The <tt>ctx</tt> parameter provides a reference to the <tt>context_type</tt> used during instantiation of the preprocessing iterators by the user. </p>
+  <p>The <tt>pending</tt> parameter may be used to push tokens back into the input 
+    stream which are to be used as the replacement text for the whole <tt>#pragma&nbsp;wave()</tt> 
+    directive. If this sequence is left empty, no replacement takes place, i.e. 
+    the interpreted directive is removed from the generated token stream.</p>
+  <p>The <tt>option</tt> parameter contains the name of the interpreted pragma.</p>
+  <p>The <tt>values</tt> parameter holds the value of the parameter provided to 
+    the pragma operator.</p>
+  <p>The <tt>pragma_token</tt> parameter contains the actual #pragma token which 
+    may be used for extraction of the location information for some error output.</p>
+  <p>If the return value is 'false', the whole #pragma directive is interpreted 
+    as unknown and a corresponding error message is issued. A return value of 
+    'true' signs a successful interpretation of the given #pragma.<br>
+  </p>
+</blockquote>
+<h3>Macro definition </h3>
+<p><strong><a name="defined_macro" id="defined_macro"></a>defined_macro</strong></p>
+<pre>    <span class="keyword">template</span> &lt;
+        <span class="keyword">typename</span> TokenT, <span class="keyword">typename</span> ParametersT, <span class="keyword">typename</span> DefinitionT
+    &gt;
+    <span class="keyword">void</span> <a href="class_reference_ctxpolicy.html#defined_macro">defined_macro</a>(TokenT <span class="keyword">const</span> &amp;name, <span class="keyword">bool</span> is_functionlike,
+        ParametersT <span class="keyword">const</span> &amp;parameters, DefinitionT <span class="keyword">const</span> &amp;definition,
+        <span class="keyword">bool</span> is_predefined);
+</pre>
+<blockquote>  <p>The function <tt>defined_macro</tt> is called whenever a macro was defined successfully.</p>
+  <p>The parameter <tt>name</tt> is a reference to the token holding the macro name.</p>
+  <p>The parameter <tt>is_functionlike</tt> is set to true whenever the newly 
+    defined macro is defined as a function like macro.</p>
+  <p>The parameter <tt>parameters</tt> holds the parameter tokens for the macro
+      definition. If the macro has no parameters or if it is a object like
+  macro, then this container is empty.</p>
+  <p>The parameter <tt>definition</tt> contains the token sequence given as the
+  replacement sequence (definition part) of the newly defined macro.</p>
+  <p>The parameter <tt>is_predefined</tt> is set to true for all macros predefined 
+      during the initialisation pahase of the library.<br>
+  </p>
+</blockquote>
+<p><strong><a name="undefined_macro" id="undefined_macro"></a>undefined_macro</strong></p>
+<pre>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> TokenT&gt;
+    <span class="keyword">void</span> <a href="class_reference_ctxpolicy.html#undefined_macro">undefined_macro</a>(TokenT<span class="keyword">const</span> &amp;name);
+</pre>
+<blockquote>
+  <p>The function <tt>undefined_macro</tt> is called whenever a macro definition
+    was removed successfully.</p>
+  <p>The parameter <tt>name</tt> holds the token of the macro which definition was removed.<br>
+  </p>
+</blockquote>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="class_reference_inptpolcy.html"><img src="theme/l_arr.gif" width="20" height="19" border="0"></a></td>
+    <td width="30"><a href="class_reference_lexer.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003-2011 Hartmut Kaiser<br>
+  <br>
+<font size="2">Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+<p class="copyright"><span class="updated">Last updated: 
+  <!-- #BeginDate format:fcAm1m -->Tuesday, May 23, 2006  12:52<!-- #EndDate -->
+</span></p>
+</body>
+</html>

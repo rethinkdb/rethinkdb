@@ -1,0 +1,30 @@
+#!/bin/sh
+cwd=`pwd`
+dir=`basename ${cwd}`
+#
+# When compiling a file that goes into libunwind, we only
+# need to compile it when we really do support UNW_LOCAL_ONLY.
+# In contrast, libunwind-tests should always get compiled.
+#
+if test $dir = "tests"; then
+  local_only_test=""
+else
+  local_only_test="defined(UNW_LOCAL_ONLY) && "
+fi
+for gname in `ls G*.c G*.cxx G*.S 2>/dev/null`; do
+	lname="L$(expr $gname : '.\(.*\)')"
+	bk edit $lname >/dev/null 2>&1
+	ext=$(expr $gname : '[^.]*[.]\(.*\)')
+	if [ "$ext" = "S" ]; then
+	    include=""
+	else
+	    include="#include <libunwind.h>"
+	fi
+	echo -e "\
+#define UNW_LOCAL_ONLY\n\
+$include\n\
+#if ${local_only_test}!defined(UNW_REMOTE_ONLY)\n\
+#include \"$gname\"\n\
+#endif" > $lname
+	echo created $lname
+done

@@ -1,0 +1,135 @@
+<html>
+<head>
+	<title>problems.html</title>
+	<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+<h4>Known Problems of the C/C++ Preprocessor</h4>
+<div>
+	Preprocessor metaprogramming is subject to heated discussions.&nbsp;
+	Part of this is caused by bad experiences with dangerous techniques,
+	such as defining inline functions using macros.&nbsp;
+	As a rule of thumb, if you can find a clean and manageable way to do something
+	without the preprocessor, then you should do it that way.
+</div>
+<div>
+	Let's survey some of the widely known problems of the preprocessor in a problem/solution format.
+</div>
+<h4>Problem #1</h4>
+<div>
+	The preprocessor does not respect scope, therefore macros can accidentally and sometimes silently replace code.
+</div>
+<div>
+	<b>Solution A</b>
+	<div>
+		Use all caps identifiers for macros and only macros.&nbsp;
+		This practically eliminates the possibility that a macro might replace other kinds of code accidentally.
+	</div>
+</div>
+<div>
+	<b>Solution B</b>
+	<div>
+		Use the local macro idiom:
+	</div>
+<div class="code"><pre>
+#define MACRO ...
+// use MACRO
+#undef MACRO
+</pre></div>
+	<div>
+		This makes sure that a macro cannot accidentally replace code outside of the scope of the local macro.
+	</div>
+	<div>
+		A problem with this solution is that the #undef cannot be automated and may be forgotten.&nbsp;
+		Experienced programmers generally write the #undef either immediately before (in time)
+		or immediately after writing the macro definition.
+	</div>
+</div>
+<div>
+	<b>Solution C</b>
+	<div>
+		Use the unique macro prefix idiom.
+	</div>
+<div class="code"><pre>
+#define UMP_MACRO
+// use UMP_MACRO
+</pre></div>
+	<div>
+		This makes accidental substitution and collisions highly unlikely.&nbsp;
+		Problems with this solution include:
+	</div>
+	<ul>
+		<li>There can still be naming collisions inside a large project.</li>
+		<li>Macros still pollute the global namespace.</li>
+	</ul>
+	<i>By combining all solutions, whenever possible, the scope problem can be largely avoided.</i>
+</div>
+<h4>Problem #2</h4>
+<div>
+	Preprocessor code is difficult to read.&nbsp;
+	It requires an understanding of the basic process of how the preprocessor recursively expands macros,
+	finding macro definitions, and mentally substituting the parameters of the macro.
+</div>
+<div>
+	<b>Solution</b>
+	<div>
+		Any kind of programming requires a basic understanding of how the code is executed.&nbsp;
+		Any parameterization technique, including simple functions and templates requires finding
+		the definition and mentally substituting parameters.
+	</div>
+	<div>
+		However, it is good to know a few techniques:
+	</div>
+	<ul>
+		<li>By using as many local macros as reasonable, the bulk of the searching process can be eliminated.</li>
+		<li>Code browsers and text search tools make it easier to find the definitions.</li>
+		<li>The compiler can be used for generating the preprocessed source code in order to look for bugs.</li>
+		<li>
+			Before turning something into a preprocessor metaprogram, first implement a small scale version
+			of it without the preprocessor.&nbsp;
+			The work bottom-up, replacing hand-written constructs by using the preprocessor.&nbsp;
+			This way you can test the code incrementally.&nbsp;
+			Experienced programmers often skip many stages, but if something proves too complex to write
+			directly, it is always possible to fall back to incremental methods.
+		</li>
+		<li>
+			If you insert a special symbol into the preprocessor code in places where there should be a line break,
+			you can make code readable after preprocessing simply by using a search and replace tool.
+		</li>
+	</ul>
+	<i>An especially important thing to remember is to limit the use of the preprocessor to
+	structured, well-understood, and safe methods.&nbsp;
+	Structure helps to understand complex systems <a href="../bibliography.html#mcconnell">[McConnell]</a>.</i>
+</div>
+<h4>Problem #3</h4>
+<div>
+	"I'd like to see Cpp abolished." - <i>Bjarne Stroustrup</i> in <a href="../bibliography.html#stroustrup">[Stroustrup]</a>.
+</div>
+<div>
+	<b>Solution</b>
+	<div>
+		The C/C++ preprocessor will be here for a long time.
+	</div>
+	<i>In practice, preprocessor metaprogramming is far simpler and more portable than template metaprogramming <a href="../bibliography.html#czarnecki">[Czarnecki]</a>.</i>
+</div>
+<hr size="1">
+<div style="margin-left: 0px;">
+	<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+</div>
+<div style="margin-left: 0px;">
+Permission to copy, use, modify, sell and distribute this document is granted provided this copyright notice appears in all copies.&nbsp;
+This document is provided "as is" without express or implied warranty and with no claim as to its suitability for any purpose.
+</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

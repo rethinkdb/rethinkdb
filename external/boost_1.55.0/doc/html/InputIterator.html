@@ -1,0 +1,216 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Concept InputIterator</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="idp18734808-bb.html#concepts.reference" title="Concept reference">
+<link rel="prev" href="Assignable.html" title="Concept Assignable">
+<link rel="next" href="OutputIterator.html" title="Concept OutputIterator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="Assignable.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="idp18734808-bb.html#concepts.reference"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="OutputIterator.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="InputIterator"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Concept InputIterator</span></h2>
+<p>InputIterator</p>
+</div>
+<div class="refsect1">
+<a name="idp75706952"></a><h2>Description</h2>
+<p>An input iterator is an iterator that can read through a sequence of
+  values.  It is single-pass (old values of the iterator cannot be
+  re-used), and read-only.</p>
+<p>An input iterator represents a position in a sequence.  Therefore, the
+  iterator can point into the sequence (returning a value when dereferenced
+  and being incrementable), or be off-the-end (and not dereferenceable or
+  incrementable).</p>
+</div>
+<div class="refsect1">
+<a name="idp75708024"></a><h2>Refinement of</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p><a class="link" href="Assignable.html" title="Concept Assignable">Assignable</a></p></li>
+<li class="listitem"><p><a class="link" href="DefaultConstructible.html" title="Concept DefaultConstructible">DefaultConstructible</a></p></li>
+<li class="listitem"><p><a class="link" href="EqualityComparable.html" title="Concept EqualityComparable">EqualityComparable</a></p></li>
+</ul></div>
+</div>
+<div class="refsect1">
+<a name="idp75709784"></a><h2>Associated types</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+<p><span class="bold"><strong>value_type</strong></span></p>
+<pre class="literallayout">std::iterator_traits&lt;Iter&gt;::value_type</pre>
+<p>The value type of the iterator (not necessarily what
+    <code class="computeroutput">*i</code> returns)</p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>difference_type</strong></span></p>
+<pre class="literallayout">std::iterator_traits&lt;Iter&gt;::difference_type</pre>
+<p>The difference type of the iterator</p>
+</li>
+<li class="listitem">
+<p><span class="bold"><strong>category</strong></span></p>
+<pre class="literallayout">std::iterator_traits&lt;Iter&gt;::iterator_category</pre>
+<p>The category of the iterator</p>
+</li>
+</ul></div>
+</div>
+<div class="refsect1">
+<a name="idp75713592"></a><h2>Notation</h2>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term">Iter</span></dt>
+<dd>A type playing the role of iterator-type in the <a class="link" href="InputIterator.html" title="Concept InputIterator">InputIterator</a> concept.</dd>
+<dt>
+<span class="term"><code class="varname">i</code>, </span><span class="term"><code class="varname">j</code></span>
+</dt>
+<dd>Objects of type Iter</dd>
+<dt><span class="term"><code class="varname">x</code></span></dt>
+<dd>Object of type value_type</dd>
+</dl></div>
+</div>
+<div class="refsect1">
+<a name="idp75715848"></a><h2>Type expressions</h2>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term">Category tag</span></dt>
+<dd><p><span class="type">category</span> must be
+                  derived from <span class="type">std::input_iterator_tag</span>,  a model  of <a class="link" href="DefaultConstructible.html" title="Concept DefaultConstructible">DefaultConstructible</a>,  and  a model  of <a class="link" href="CopyConstructible.html" title="Concept CopyConstructible">CopyConstructible</a>.
+                </p></dd>
+<dt><span class="term">Value type copy constructibility</span></dt>
+<dd><p><span class="type">value_type</span> must be
+                   a model  of <a class="link" href="CopyConstructible.html" title="Concept CopyConstructible">CopyConstructible</a>.
+                </p></dd>
+<dt><span class="term">Difference type properties</span></dt>
+<dd><p><span class="type">difference_type</span> must be
+                   a model  of <a class="link" href="SignedInteger.html" title="Concept SignedInteger">SignedInteger</a>.
+                </p></dd>
+</dl></div>
+</div>
+<div class="refsect1">
+<a name="idp75720072"></a><h2>Valid expressions</h2>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Type</th>
+<th>Precondition</th>
+<th>Semantics</th>
+<th>Postcondition</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><p>Dereference</p></td>
+<td><p>*i</p></td>
+<td><p>Convertible to <span class="type">value_type</span></p></td>
+<td><p><code class="computeroutput">i</code> is incrementable (not
+    off-the-end)</p></td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr>
+<td><p>Preincrement</p></td>
+<td><p>++i</p></td>
+<td><p><span class="type">Iter &amp;</span></p></td>
+<td><p><code class="computeroutput">i</code> is incrementable (not
+    off-the-end)</p></td>
+<td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr>
+<td><p>Postincrement</p></td>
+<td><p>i++</p></td>
+<td><p></p></td>
+<td><p><code class="computeroutput">i</code> is incrementable (not
+    off-the-end)</p></td>
+<td><p>Equivalent to <code class="computeroutput">(void)(++i)</code></p></td>
+<td><p><code class="computeroutput">i</code> is dereferenceable or
+    off-the-end</p></td>
+</tr>
+<tr>
+<td><p>Postincrement and dereference</p></td>
+<td><p>*i++</p></td>
+<td><p>Convertible to <span class="type">value_type</span></p></td>
+<td><p><code class="computeroutput">i</code> is incrementable (not
+    off-the-end)</p></td>
+<td><p>Equivalent to <code class="computeroutput">{value_type t = *i; ++i; return t;}</code></p></td>
+<td><p><code class="computeroutput">i</code> is dereferenceable or
+    off-the-end</p></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<div class="refsect1">
+<a name="idp75728872"></a><h2>Complexity</h2>
+<p>
+  All iterator operations must take amortized constant time.
+  </p>
+</div>
+<div class="refsect1">
+<a name="idp75729288"></a><h2>Models</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><span class="simplelist"><span class="type">std::istream_iterator</span></span></li></ul></div>
+</div>
+<div class="refsect1">
+<a name="idp75730040"></a><h2>See also</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p><a class="link" href="DefaultConstructible.html" title="Concept DefaultConstructible">DefaultConstructible</a></p></li>
+<li class="listitem"><p><a class="link" href="EqualityComparable.html" title="Concept EqualityComparable">EqualityComparable</a></p></li>
+<li class="listitem"><p><a class="link" href="ForwardIterator.html" title="Concept ForwardIterator">ForwardIterator</a></p></li>
+<li class="listitem"><p><a class="link" href="OutputIterator.html" title="Concept OutputIterator">OutputIterator</a></p></li>
+</ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001, 2002 Indiana University<br>Copyright &#169; 2000, 2001 University of Notre Dame du Lac<br>Copyright &#169; 2000 Jeremy Siek, Lie-Quan Lee, Andrew Lumsdaine<br>Copyright &#169; 1996-1999 Silicon Graphics Computer Systems, Inc.<br>Copyright &#169; 1994 Hewlett-Packard Company<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+<p>This product includes software developed at the University
+      of Notre Dame and the Pervasive Technology Labs at Indiana
+      University. For technical information contact Andrew Lumsdaine
+      at the Pervasive Technology Labs at Indiana University.  For
+      administrative and license questions contact the Advanced
+      Research and Technology Institute at 351 West 10th Street.
+      Indianapolis, Indiana 46202, phone 317-278-4100, fax
+      317-274-5902.</p>
+<p>Some concepts based on versions from the MTL draft manual
+      and Boost Graph and Property Map documentation, the SGI Standard
+      Template Library documentation and the Hewlett-Packard STL,
+      under the following license: 
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>Permission to use, copy, modify, distribute and
+        sell this software and its documentation for any purpose is
+        hereby granted without fee, provided that the above copyright
+        notice appears in all copies and that both that copyright
+        notice and this permission notice appear in supporting
+        documentation.  Silicon Graphics makes no representations
+        about the suitability of this software for any purpose.  It is
+        provided "as is" without express or implied
+        warranty.</p></blockquote></div>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="Assignable.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="idp18734808-bb.html#concepts.reference"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="OutputIterator.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

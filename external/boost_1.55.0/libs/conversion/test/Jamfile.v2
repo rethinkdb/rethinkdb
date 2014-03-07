@@ -1,0 +1,73 @@
+# Copyright (C) 2001-2003 Douglas Gregor
+# Copyright (C) 2011-2013 Antony Polukhin
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+
+import testing ;
+import feature ;
+
+project
+    : requirements
+        <library>/boost/test//boost_unit_test_framework
+        <link>static
+        <toolset>gcc-4.7:<cxxflags>-ftrapv
+        <toolset>gcc-4.6:<cxxflags>-ftrapv
+        <toolset>clang:<cxxflags>-ftrapv
+        # default to all warnings on:
+        <warnings>all
+        # set warnings as errors for those compilers we know we get warning free:
+        <toolset>gcc:<cxxflags>-Wextra
+        <toolset>gcc:<cxxflags>-Wno-uninitialized
+    ;
+
+# Thanks to Steven Watanabe for helping with <nowchar> feature
+feature.feature nowchar : on :
+ composite optional propagated link-incompatible ;
+feature.compose <nowchar>on : <cxxflags>/Zc:wchar_t- ;
+
+test-suite conversion
+  : [ run implicit_cast.cpp ]
+    [ compile-fail implicit_cast_fail.cpp ]
+    [ run ../cast_test.cpp ]
+    [ run ../numeric_cast_test.cpp ]
+    [ run ../lexical_cast_test.cpp ]
+    [ run lexical_cast_loopback_test.cpp ]
+    [ run lexical_cast_abstract_test.cpp ]
+    [ run lexical_cast_noncopyable_test.cpp ]
+    [ run lexical_cast_vc8_bug_test.cpp ]
+    [ run lexical_cast_wchars_test.cpp ]
+    [ run lexical_cast_float_types_test.cpp ]
+    [ run lexical_cast_inf_nan_test.cpp ]
+    [ run lexical_cast_containers_test.cpp : : : <toolset>gcc:<cxxflags>-Wno-long-long <toolset>clang:<cxxflags>-Wno-long-long ]
+    [ run lexical_cast_empty_input_test.cpp ]
+    [ run lexical_cast_pointers_test.cpp ]
+    [ compile lexical_cast_typedefed_wchar_test.cpp : <toolset>msvc:<nowchar>on ]
+    [ run lexical_cast_typedefed_wchar_test_runtime.cpp : : : <toolset>msvc:<nowchar>on <toolset>msvc,<stdlib>stlport:<build>no ]
+    [ run lexical_cast_no_locale_test.cpp : : : <define>BOOST_NO_STD_LOCALE <define>BOOST_LEXICAL_CAST_ASSUME_C_LOCALE ]
+    [ run lexical_cast_no_exceptions_test.cpp : : : <define>BOOST_NO_EXCEPTIONS
+      <toolset>gcc-4.3:<cxxflags>-fno-exceptions
+      <toolset>gcc-4.4:<cxxflags>-fno-exceptions
+      <toolset>gcc-4.5:<cxxflags>-fno-exceptions
+      <toolset>gcc-4.6:<cxxflags>-fno-exceptions
+      <toolset>gcc-4.7:<cxxflags>-fno-exceptions
+      <toolset>gcc-4.8:<cxxflags>-fno-exceptions
+      <toolset>clang:<cxxflags>-fno-exceptions
+    ]
+    [ run lexical_cast_iterator_range_test.cpp ]
+    [ run lexical_cast_arrays_test.cpp ]
+    [ run lexical_cast_integral_types_test.cpp ]
+    [ run lexical_cast_stream_detection_test.cpp ]
+    [ run lexical_cast_stream_traits_test.cpp ]
+    [ compile-fail lexical_cast_to_pointer_test.cpp ]
+    [ run lexical_cast_filesystem_test.cpp ../../filesystem/build//boost_filesystem/<link>static ]
+  ;
+
+# Assuring that examples compile and run. Adding sources from `example` directory to the `conversion` test suite. 
+for local p in [ glob ../example/*.cpp ]
+{
+    conversion += [ run $(p) ] ;
+}
+
+

@@ -1,0 +1,35 @@
+# Lambda library
+
+# Copyright (C) 2001-2003 Jaakko Järvi
+
+# Use, modification and distribution is subject to the Boost Software License, 
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at 
+# http://www.boost.org/LICENSE_1_0.txt) 
+
+# For more information, see http://www.boost.org/
+
+import testing ;
+
+project 
+  : requirements <toolset>msvc:<asynch-exceptions>on
+  ;
+          
+test-suite lambda
+  : [ run algorithm_test.cpp ]
+    [ run bind_tests_simple.cpp ]
+    [ run bind_tests_advanced.cpp ]
+    [ run bind_tests_simple_f_refs.cpp ]
+    [ run bll_and_function.cpp ]
+    [ run cast_test.cpp : : : : lambda_cast_test ]
+    [ run constructor_tests.cpp ]
+    [ run control_structures.cpp ]
+    [ run exception_test.cpp ]
+    [ run extending_rt_traits.cpp ]
+    [ run is_instance_of_test.cpp ]
+    [ run member_pointer_test.cpp ]
+    [ run operator_tests_simple.cpp ]
+    [ run phoenix_control_structures.cpp ]
+    [ run switch_construct.cpp ]
+    [ run result_of_tests.cpp ]
+    [ run ret_test.cpp ]
+  ;      

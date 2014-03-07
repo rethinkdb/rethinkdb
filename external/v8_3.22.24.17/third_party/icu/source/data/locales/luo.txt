@@ -1,0 +1,226 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/luo.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/luo.xml
+ */
+luo{
+    AuxExemplarCharacters{"[q x z]"}
+    ExemplarCharacters{"[a b c d e f g h i j k l m n o p r s t u v w y]"}
+    ExemplarCharactersIndex{"[A B C D E F G H I J K L M N O P R S T U V W Y]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"#,##0.00¤"}
+            }
+        }
+    }
+    Version{"2.0.45.90"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "OD",
+                "OT",
+            }
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, d MMMM y",
+                "d MMMM y",
+                "d MMM y",
+                "dd/MM/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                M{"L"}
+                MEd{"E, M/d"}
+                MMM{"LLL"}
+                MMMEd{"E, MMM d"}
+                MMMMEd{"E, MMMM d"}
+                MMMMd{"MMMM d"}
+                MMMd{"MMM d"}
+                Md{"M/d"}
+                d{"d"}
+                hm{"h:mm a"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"M/y"}
+                yMEd{"EEE, M/d/y"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE, MMM d, y"}
+                yMMMM{"MMMM y"}
+                yQ{"Q y"}
+                yQQQ{"QQQ y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "JMP",
+                        "WUT",
+                        "TAR",
+                        "TAD",
+                        "TAN",
+                        "TAB",
+                        "NGS",
+                    }
+                    wide{
+                        "Jumapil",
+                        "Wuok Tich",
+                        "Tich Ariyo",
+                        "Tich Adek",
+                        "Tich Ang'wen",
+                        "Tich Abich",
+                        "Ngeso",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "J",
+                        "W",
+                        "T",
+                        "T",
+                        "T",
+                        "T",
+                        "N",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "BC",
+                    "AD",
+                }
+                wide{
+                    "Kapok Kristo obiro",
+                    "Ka Kristo osebiro",
+                }
+            }
+            fields{
+                day{
+                    dn{"chieng'"}
+                    relative{
+                        "-1"{"nyoro"}
+                        "0"{"kawuono"}
+                        "1"{"kiny"}
+                    }
+                }
+                dayperiod{
+                    dn{"odieochieng'/otieno"}
+                }
+                era{
+                    dn{"ndalo"}
+                }
+                hour{
+                    dn{"saa"}
+                }
+                minute{
+                    dn{"dakika"}
+                }
+                month{
+                    dn{"dwe"}
+                }
+                second{
+                    dn{"nyiriri mar saa"}
+                }
+                week{
+                    dn{"juma"}
+                }
+                weekday{
+                    dn{"ndalo mar juma"}
+                }
+                year{
+                    dn{"higa"}
+                }
+                zone{
+                    dn{"kar saa"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "DAC",
+                        "DAR",
+                        "DAD",
+                        "DAN",
+                        "DAH",
+                        "DAU",
+                        "DAO",
+                        "DAB",
+                        "DOC",
+                        "DAP",
+                        "DGI",
+                        "DAG",
+                    }
+                    wide{
+                        "Dwe mar Achiel",
+                        "Dwe mar Ariyo",
+                        "Dwe mar Adek",
+                        "Dwe mar Ang'wen",
+                        "Dwe mar Abich",
+                        "Dwe mar Auchiel",
+                        "Dwe mar Abiriyo",
+                        "Dwe mar Aboro",
+                        "Dwe mar Ochiko",
+                        "Dwe mar Apar",
+                        "Dwe mar gi achiel",
+                        "Dwe mar Apar gi ariyo",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "C",
+                        "R",
+                        "D",
+                        "N",
+                        "B",
+                        "U",
+                        "B",
+                        "B",
+                        "C",
+                        "P",
+                        "C",
+                        "P",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "NMN1",
+                        "NMN2",
+                        "NMN3",
+                        "NMN4",
+                    }
+                    wide{
+                        "nus mar nus 1",
+                        "nus mar nus 2",
+                        "nus mar nus 3",
+                        "nus mar nus 4",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"”"}
+        alternateQuotationStart{"“"}
+        quotationEnd{"’"}
+        quotationStart{"‘"}
+    }
+}

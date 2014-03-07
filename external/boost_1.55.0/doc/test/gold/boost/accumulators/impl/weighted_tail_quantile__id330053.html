@@ -1,0 +1,91 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template weighted_tail_quantile_impl</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../../index.html" title="Document To Test Formatting">
+<link rel="up" href="../../../document_to_test_formatting/accumulators.html#header.doc.test.weighted_tail_quantile_hpp" title="Header &lt;doc/test/weighted_tail_quantile.hpp&gt;">
+<link rel="prev" href="../extract/weighted_tail_quantile.html" title="Global weighted_tail_quantile">
+<link rel="next" href="../tag/weighted_tail_quantile.html" title="Struct template weighted_tail_quantile">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../extract/weighted_tail_quantile.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../document_to_test_formatting/accumulators.html#header.doc.test.weighted_tail_quantile_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../tag/weighted_tail_quantile.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.accumulators.impl.weighted_tail_quantile__id330053"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template weighted_tail_quantile_impl</span></h2>
+<p>boost::accumulators::impl::weighted_tail_quantile_impl &#8212; Tail quantile estimation based on order statistics of weighted samples (for both left and right tails). </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../document_to_test_formatting/accumulators.html#header.doc.test.weighted_tail_quantile_hpp" title="Header &lt;doc/test/weighted_tail_quantile.hpp&gt;">doc/test/weighted_tail_quantile.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Sample<span class="special">,</span> <span class="keyword">typename</span> Weight<span class="special">,</span> <span class="keyword">typename</span> LeftRight<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="weighted_tail_quantile__id330053.html" title="Struct template weighted_tail_quantile_impl">weighted_tail_quantile_impl</a> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">numeric</span><span class="special">::</span><span class="identifier">functional</span><span class="special">::</span><span class="identifier">average</span><span class="special">&lt;</span> <span class="identifier">Weight</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">result_type</span> <a name="boost.accumulators.impl.weighted_tail_quantile__id330053.float_type"></a><span class="identifier">float_type</span><span class="special">;</span> 
+  <span class="keyword">typedef</span> <span class="identifier">Sample</span>                                                           <a name="boost.accumulators.impl.weighted_tail_quantile__id330053.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="weighted_tail_quantile__id330053.html#boost.accumulators.impl.weighted_tail_quantile__id330053construct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="weighted_tail_quantile__id330053.html#id330297-bb"><span class="identifier">weighted_tail_quantile_impl</span></a><span class="special">(</span><span class="identifier">dont_care</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="weighted_tail_quantile__id330053.html#id330273-bb">public member functions</a></span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Args<span class="special">&gt;</span> <span class="identifier">result_type</span> <a class="link" href="weighted_tail_quantile__id330053.html#id330277-bb"><span class="identifier">result</span></a><span class="special">(</span><span class="identifier">Args</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="id779890"></a><h2>Description</h2>
+<p>An estimator <span class="inlinemediaobject"><img src="../../../images/accumulators/form_0.png"></span> of tail quantiles with level <span class="inlinemediaobject"><img src="../../../images/accumulators/form_1.png"></span> based on order statistics <span class="inlinemediaobject"><img src="../../../images/accumulators/form_2.png"></span> of weighted samples are given by <span class="inlinemediaobject"><img src="../../../images/accumulators/form_3.png"></span> (left tail) and <span class="inlinemediaobject"><img src="../../../images/accumulators/form_4.png"></span> (right tail), where</p>
+<div class="equation">
+<a name="id779998"></a><p class="title"><b>Equation&#160;1.&#160;</b></p>
+<div class="equation-contents"><div class="mediaobject" align="center"><img src="../../../images/accumulators/form_5.png" align="middle"></div></div>
+</div>
+<p><br class="equation-break"></p>
+<p>and</p>
+<div class="equation">
+<a name="id780026"></a><p class="title"><b>Equation&#160;2.&#160;</b></p>
+<div class="equation-contents"><div class="mediaobject" align="center"><img src="../../../images/accumulators/form_6.png" align="middle"></div></div>
+</div>
+<p><br class="equation-break"></p>
+<p><span class="inlinemediaobject"><img src="../../../images/accumulators/form_7.png"></span> being the number of samples and <span class="inlinemediaobject"><img src="../../../images/accumulators/form_8.png"></span> the sum of all weights.</p>
+<p>
+</p>
+<div class="refsect2">
+<a name="id780095"></a><h3>
+<a name="boost.accumulators.impl.weighted_tail_quantile__id330053construct-copy-destruct"></a><code class="computeroutput">weighted_tail_quantile_impl</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><a name="id330297-bb"></a><span class="identifier">weighted_tail_quantile_impl</span><span class="special">(</span><span class="identifier">dont_care</span><span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+<div class="refsect2">
+<a name="id780149"></a><h3>
+<a name="id330273-bb"></a><code class="computeroutput">weighted_tail_quantile_impl</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Args<span class="special">&gt;</span> <span class="identifier">result_type</span> <a name="id330277-bb"></a><span class="identifier">result</span><span class="special">(</span><span class="identifier">Args</span> <span class="keyword">const</span> <span class="special">&amp;</span> args<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre></li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 John Maddock, Joel de Guzman, Eric Niebler and Matias
+      Capeletto<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../extract/weighted_tail_quantile.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../document_to_test_formatting/accumulators.html#header.doc.test.weighted_tail_quantile_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../tag/weighted_tail_quantile.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

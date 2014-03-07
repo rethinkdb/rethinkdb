@@ -1,0 +1,273 @@
+<html><head><!--
+     Copyright 2005 Aaron Windsor
+    
+     Use, modification and distribution is subject to the Boost Software
+     License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+      Author: Aaron Windsor
+  --><title>Boost Graph Library: Maximum Cardinality Matching</title></head>
+<body alink="#ff0000" bgcolor="#ffffff" link="#0000ee" text="#000000" vlink="#551a8b">
+<img src="../../../boost.png" alt="C++ Boost" height="86" width="277">
+<br clear="">
+<h1>
+<a name="sec:maximum_cardinality_matching">Maximum Cardinality Matching</a>
+</h1>
+<pre>
+template &lt;typename Graph, typename MateMap&gt;
+void edmonds_maximum_cardinality_matching(const Graph&amp; g, MateMap mate);
+
+template &lt;typename Graph, typename MateMap, typename VertexIndexMap&gt;
+void edmonds_maximum_cardinality_matching(const Graph&amp; g, MateMap mate, VertexIndexMap vm);
+
+template &lt;typename Graph, typename MateMap&gt;
+bool checked_edmonds_maximum_cardinality_matching(const Graph&amp; g, MateMap mate);
+
+template &lt;typename Graph, typename MateMap, typename VertexIndexMap&gt;
+bool checked_edmonds_maximum_cardinality_matching(const Graph&amp; g, MateMap mate, VertexIndexMap vm);
+</pre>
+<p>
+<a name="sec:matching">A <i>matching</i> is a subset of the edges
+of a graph such that no two edges share a common vertex.
+Two different matchings in the same graph are illustrated below (edges in the
+matching are colored blue.) The matching on the left is a <i>maximal matching</i>, 
+meaning that its size can't be increased by adding edges. The matching on the 
+right is a <i>maximum cardinality matching</i>, meaning that is has maximum size 
+over all matchings in the graph.
+
+</a></p><p></p><center>
+<table border="0">
+<tr>
+<td><a name="fig:maximal_matching"><img src="figs/maximal-match.png"></a></td>
+<td width="150"></td>
+<td><a name="fig:maximum_matching"><img src="figs/maximum-match.png"></a></td>
+</tr>
+</table>
+</center>
+
+<p>
+Both <tt>edmonds_maximum_cardinality_matching</tt> and 
+<tt>checked_edmonds_maximum_cardinality_matching</tt> find the
+maximum cardinality matching in any undirected graph. The matching is returned in a
+<tt>MateMap</tt>, which is a 
+<a href="../../property_map/doc/ReadWritePropertyMap.html">ReadWritePropertyMap</a> 
+that maps vertices to vertices. In the mapping returned, each vertex is either mapped
+to the vertex it's matched to, or to <tt>graph_traits&lt;Graph&gt;::null_vertex()</tt> if it
+doesn't participate in the matching. If no <tt>VertexIndexMap</tt> is provided, both functions
+assume that the <tt>VertexIndexMap</tt> is provided as an internal graph property accessible
+by calling <tt>get(vertex_index,g)</tt>. The only difference between 
+<tt>edmonds_maximum_cardinality_matching</tt> and 
+<tt>checked_edmonds_maximum_cardinality_matching</tt> is that as a final step, 
+the latter algorithm runs a simple verification on the matching computed and 
+returns <tt>true</tt> if and only if the matching is indeed
+a maximum cardinality matching.
+
+<p>
+Given a matching M, any vertex that isn't covered by an edge in M is called <i>free</i>. Any
+simple path containing exactly <i>2n + 1</i> edges that starts and ends at free vertices and contains 
+<i>n</i> edges from M is called an <i>alternating path</i>. Given an alternating path <i>p</i>, all matching and 
+non-matching edges on <i>p</i> can be swapped, resulting in a new matching that's larger than the
+original matching by exactly one edge. This method of incrementally increasing the size of matching, along 
+with the following fact, forms the basis of Edmonds' matching algorithm:
+
+<blockquote>
+<i>An alternating path through the matching M exists if and only if M is not a maximum cardinality matching.</i>
+</blockquote>
+
+The difficult part is, of course, finding an augmenting path whenever one exists.
+The algorithm we use for finding a maximum cardinality matching consists of three basic steps:
+<ol>
+<li>Create an initial matching.
+<li>Repeatedly find an augmenting path and use it to increase the size of the matching until no augmenting path exists.
+<li>Verify that the matching found is a maximum cardinality matching.
+</ol>
+
+If you use <tt>checked_edmonds_maximum_cardinality_matching</tt> or 
+<tt>edmonds_maximum_cardinality_matching</tt>, all three of these
+steps are chosen for you, but it's easy to plug in different algorithms for these three steps
+using a generic matching function discussed below - in fact, both <tt>checked_edmonds_maximum_cardinality_matching</tt> 
+and <tt>edmonds_maximum_cardinality_matching</tt> are just inlined specializations of this function. 
+
+<p>
+When quoting time bounds for algorithms, we assume that <tt>VertexIndexMap</tt> is a property map 
+that allows for constant-time mapping between vertices and indices (which is easily achieved if, 
+for instance, the vertices are stored in contiguous memory.) We use <i>n</i> and <i>m</i> to represent the size 
+of the vertex and edge sets, respectively, of the input graph.
+
+<h4>Algorithms for Creating an Initial Matching</h4>
+
+<ul>
+<li><b><tt>empty_matching</tt></b>: Takes time <i>O(n)</i> to initialize the empty matching.
+<li><b><tt>greedy_matching</tt></b>: The matching obtained by iterating through the edges and adding an edge
+if it doesn't conflict with the edges already in the matching. This matching is maximal, and is therefore
+guaranteed to contain at least half of the edges that a maximum matching has. Takes time <i>O(m log n)</i>.
+<li><b><tt>extra_greedy_matching</tt></b>: Sorts the edges in increasing order of the degree of the vertices
+contained in each edge, then constructs a greedy matching from those edges. Also a maximal matching, and can
+sometimes be much closer to the maximum cardinality matching than a simple <tt>greedy_matching</tt>. 
+Takes time <i>O(m log n)</i>, but the constants involved make this a slower algorithm than 
+<tt>greedy_matching</tt>.
+</ul>
+
+<h4>Algorithms for Finding an Augmenting Path</h4>
+
+<ul>
+<li><b><tt>edmonds_augmenting_path_finder</tt></b>: Finds an augmenting path in time <i>O(m alpha(m,n))</i>, 
+where <i>alpha(m,n)</i> is an inverse of the Ackerman function. <i>alpha(m,n)</i> is one of the slowest 
+growing functions that occurs naturally in computer science; essentially, <i>alpha(m,n)</i> &le; 4 for any 
+graph that we'd ever hope to run this algorithm on. Since we arrive at a maximum cardinality matching after 
+augmenting <i>O(n)</i> matchings, the entire algorithm takes time <i>O(mn alpha(m,n))</i>. Edmonds' original
+algorithm appeared in [<a href="bibliography.html#edmonds65">64</a>], but our implementation of 
+Edmonds' algorithm closely follows Tarjan's 
+description of the algorithm from [<a href="bibliography.html#tarjan83:_data_struct_network_algo">27</a>].
+<li><b><tt>no_augmenting_path_finder</tt></b>: Can be used if no augmentation of the initial matching is desired.
+</ul>
+
+<h4>Verification Algorithms</h4>
+
+<ul>
+<li><b><tt>maximum_cardinality_matching_verifier</tt></b>: Returns true if and only if the matching found is a 
+maximum cardinality matching. Takes time <i>O(m alpha(m,n))</i>, which is on the order of a single iteration 
+of Edmonds' algorithm.
+<li><b><tt>no_matching_verifier</tt></b>: Always returns true
+</ul>
+
+Why is a verification algorithm needed? Edmonds' algorithm is fairly complex, and it's nearly 
+impossible for a human without a few days of spare time to figure out if the matching produced by 
+<tt>edmonds_matching</tt> on a graph with, say, 100 vertices and 500 edges is indeed a maximum cardinality 
+matching. A verification algorithm can do this mechanically, and it's much easier to verify by inspection 
+that the verification algorithm has been implemented correctly than it is to verify by inspection that 
+Edmonds' algorithm has been implemented correctly. 
+The Boost Graph library makes it incredibly simple to perform the subroutines needed by the verifier 
+(such as finding all the connected components of odd cardinality in a graph, or creating the induced graph 
+on all vertices with a certain label) in just a few lines of code.
+
+<p>
+Understanding how the verifier works requires a few graph-theoretic facts. 
+Let <i>m(G)</i> be the size of a maximum cardinality matching in the graph <i>G</i>.
+Denote by <i>o(G)</i> the number of connected components in <i>G</i> of odd cardinality, and for a set of 
+vertices <i>X</i>, denote by <i>G - X</i> the induced graph on the vertex set <i>V(G) - X</i>. Then the 
+Tutte-Berge Formula says that
+<blockquote>
+<i>2 * m(G) = min ( |V(G)| + |X| - o(G-X) )</i>
+</blockquote>
+Where the minimum is taken over all subsets <i>X</i> of the vertex set <i>V(G)</i>. A side effect of the 
+Edmonds Blossom-Shrinking algorithm is that it computes what is known as the Edmonds-Gallai decomposition 
+of a graph: it decomposes the graph into three disjoint sets of vertices, one of which achieves the minimum 
+in the Tutte-Berge Formula.
+
+An outline of our verification procedure is:
+
+Given a <tt>Graph g</tt> and <tt>MateMap mate</tt>,
+<ol>
+<li>Check to make sure that <tt>mate</tt> is a valid matching on <tt>g</tt>.
+<li>Run <tt>edmonds_augmenting_path_finder</tt> once on <tt>g</tt> and <tt>mate</tt>. If it finds an augmenting
+path, the matching isn't a maximum cardinality matching. Otherwise, we retrieve a copy of the <tt>vertex_state</tt>
+map used by the <tt>edmonds_augmenting_path_finder</tt>. The Edmonds-Gallai decomposition tells us that the set
+of vertices labeled <tt>V_ODD</tt> by the <tt>vertex_state</tt> map can be used as the set X to achieve the 
+minimum in the Tutte-Berge Formula.
+<li>Count the number of vertices labeled <tt>V_ODD</tt>, store this in <tt>num_odd_vertices</tt>.
+<li>Create a <a href="filtered_graph.html"><tt>filtered_graph</tt></a>
+consisting of all vertices that aren't labeled <tt>V_ODD</tt>. Count the number of odd connected components
+in this graph and store the result in <tt>num_odd_connected_components</tt>.
+<li>Test to see if equality holds in the Tutte-Berge formula using |X| = <tt>num_odd_vertices</tt> and o(G-X) = <tt>num_odd_connected_components</tt>. Return true if it holds, false otherwise.
+</ol>
+
+Assuming these steps are implemented correctly, the verifier will never return a false positive,
+and will only return a false negative if <tt>edmonds_augmenting_path_finder</tt> doesn't compute the
+<tt>vertex_state</tt> map correctly, in which case the <tt>edmonds_augmenting_path_finder</tt>
+isn't working correctly. 
+
+
+<h4>Creating Your Own Matching Algorithms</h4>
+
+Creating a matching algorithm is as simple as plugging the algorithms described above into a generic
+matching function, which has the following signature:
+<pre>
+template &lt;typename Graph, 
+	  typename MateMap,
+	  typename VertexIndexMap,
+	  template &lt;typename, typename, typename&gt; class AugmentingPathFinder, 
+	  template &lt;typename, typename&gt; class InitialMatchingFinder,
+	  template &lt;typename, typename, typename&gt; class MatchingVerifier&gt;
+  bool matching(const Graph& g, MateMap mate, VertexIndexMap vm)
+</pre>
+The matching functions provided for you are just inlined specializations of this function:
+<tt>edmonds_maximum_cardinality_matching</tt> uses <tt>edmonds_augmenting_path_finder</tt> 
+as the <tt>AugmentingPathFinder</tt>, <tt>extra_greedy_matching</tt> as the <tt>InitialMatchingFinder</tt>, 
+and <tt>no_matching_verifier</tt> as the <tt>MatchingVerifier</tt>. 
+<tt>checked_edmonds_maximum_cardinality_matching</tt> uses the same parameters except that
+<tt>maximum_cardinality_matching_verifier</tt> is used for the <tt>MatchingVerifier</tt>.
+
+<p>
+These aren't necessarily the best choices for any situation - for example, it's been claimed in the literature
+that for sparse graphs, Edmonds' algorithm converges to the maximum cardinality matching more quickly if it 
+isn't supplied with an intitial matching. Such an algorithm can be easily assembled by calling <tt>matching</tt> with
+<ul>
+<li><tt>AugmentingPathFinder = edmonds_augmenting_path_finder</tt>
+<li><tt>InitialMatchingFinder = empty_matching</tt>
+</ul>
+and choosing the <tt>MatchingVerifier</tt> depending on how careful you're feeling.
+
+<p>
+Suppose instead that you want a relatively large matching quickly, but are not exactly interested in a maximum matching. 
+Both extra_greedy_matching and greedy_matching find maximal matchings, which means they're guaranteed to be at 
+least half the size of a maximum cardinality matching, so you could call <tt>matching</tt> with
+<ul>
+<li><tt>AugmentingPathFinder = no_augmenting_path_finder</tt>
+<li><tt>InitialMatchingFinder = extra_greedy_matching</tt>
+<li><tt>MatchingVerifier = maximum_cardinality_matching_verifier</tt>
+</ul>
+The resulting algorithm will find an extra greedy matching in time <i>O(m log n)</i> without looking for 
+augmenting paths. As a bonus, the return value of this function is true if and only if the extra greedy 
+matching happens to be a maximum cardinality matching.
+
+</p><h3>Where Defined</h3>
+
+<p>
+<a href="../../../boost/graph/max_cardinality_matching.hpp"><tt>boost/graph/max_cardinality_matching.hpp</tt></a>
+
+
+</p><h3>Parameters</h3>
+
+IN: <tt>const Graph&amp; g</tt>
+<blockquote>
+An undirected graph. The graph type must be a model of 
+<a href="VertexAndEdgeListGraph.html">Vertex and Edge List Graph</a> and
+<a href="IncidenceGraph.html">Incidence Graph</a>.<br>
+</blockquote>
+
+IN: <tt>VertexIndexMap vm</tt>
+<blockquote>
+Must be a model of <a href="../../property_map/doc/ReadablePropertyMap.html">ReadablePropertyMap</a>, mapping vertices to integer indices.
+</blockquote>
+
+OUT: <tt>MateMap mate</tt>
+<blockquote>
+Must be a model of <a href="../../property_map/doc/ReadWritePropertyMap.html">ReadWritePropertyMap</a>, mapping
+vertices to vertices. For any vertex v in the graph, <tt>get(mate,v)</tt> will be the vertex that v is matched to, or
+<tt>graph_traits<Graph>::null_vertex()</tt> if v isn't matched.
+</blockquote>
+
+<h3>Complexity</h3>
+
+<p>
+Let <i>m</i> and <i>n</i> be the number of edges and vertices in the input graph, respectively. Assuming the 
+<tt>VertexIndexMap</tt> supplied allows constant-time lookups, the time complexity for both 
+<tt>edmonds_matching</tt> and <tt>checked_edmonds_matching</tt> is <i>O(mn alpha(m,n))</i>. 
+<i>alpha(m,n)</i> is a slow growing function that is at most 4 for any feasible input.
+</p><p>
+
+</p><h3>Example</h3>
+
+<p> The file <a href="../example/matching_example.cpp"><tt>example/matching_example.cpp</tt></a>
+contains an example.
+
+<br>
+</p><hr>
+<table>
+<tbody><tr valign="top">
+<td nowrap="nowrap">Copyright © 2005</td><td>
+Aaron Windsor (<a href="mailto:aaron.windsor@gmail.com">aaron.windsor@gmail.com</a>)<br>
+</td></tr></tbody></table>
+
+</body></html>

@@ -1,0 +1,214 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ee.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ee.xml
+ */
+ee{
+    AuxExemplarCharacters{"[c j q]"}
+    ExemplarCharacters{
+        "[a à á ã b d ɖ {dz} e è é ẽ ɛ {ɛ\u0301} {ɛ\u0300} {ɛ\u0303} f ƒ g {gb} ɣ h i"
+        " ì í ĩ k {kp} l m n {ny} ŋ o ò ó õ ɔ {ɔ\u0301} {ɔ\u0300} {ɔ\u0303} p r s t {"
+        "ts} u ù ú ũ v ʋ w x y z]"
+    }
+    ExemplarCharactersIndex{"[A B C D Ɖ E Ɛ F Ƒ G Ɣ H I J K L M N Ŋ O Ɔ P Q R S T U V Ʋ W X Y Z]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤#,##0.00;(¤#,##0.00)"}
+            }
+        }
+    }
+    Version{"2.0.50.66"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "AN",
+                "EW",
+            }
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, d MMMM y",
+                "d MMMM y",
+                "d MMM y",
+                "dd/MM/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Hm{"HH:mm"}
+                Hms{"HH:mm:ss"}
+                M{"L"}
+                MEd{"E, M/d"}
+                MMM{"LLL"}
+                MMMEd{"E, MMM d"}
+                MMMMEd{"E, MMMM d"}
+                MMMMd{"MMMM d"}
+                MMMd{"MMM d"}
+                Md{"M/d"}
+                d{"d"}
+                hm{"h:mm a"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"M/y"}
+                yMEd{"EEE, M/d/y"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE, MMM d, y"}
+                yMMMM{"MMMM y"}
+                yQ{"Q y"}
+                yQQQ{"QQQ y"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "Kɔs Kwe",
+                        "Dzo",
+                        "Bra",
+                        "Kuɖ",
+                        "Yaw",
+                        "Fiɖ",
+                        "Mem",
+                    }
+                    wide{
+                        "Kɔsiɖa",
+                        "Dzoɖa",
+                        "Braɖa",
+                        "Kuɖa",
+                        "Yawoɖa",
+                        "Fiɖa",
+                        "Memleɖa",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "K",
+                        "D",
+                        "B",
+                        "K",
+                        "Y",
+                        "F",
+                        "M",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "HY",
+                    "YŊ",
+                }
+                wide{
+                    "Hafi Yesu Va Do ŋgɔ",
+                    "Yesu Ŋɔli",
+                }
+            }
+            fields{
+                day{
+                    dn{"Ŋkɛkɛ"}
+                    relative{
+                        "-1"{"Nyitsɔ"}
+                        "0"{"Egbe"}
+                        "1"{"Etsɔ"}
+                    }
+                }
+                dayperiod{
+                    dn{"Ŋkɛkɛ"}
+                }
+                era{
+                    dn{"Ɛra"}
+                }
+                hour{
+                    dn{"Gaƒoƒo"}
+                }
+                minute{
+                    dn{"Mintigaƒoƒo"}
+                }
+                month{
+                    dn{"Xleti"}
+                }
+                second{
+                    dn{"Sekondgaƒoƒo"}
+                }
+                week{
+                    dn{"Kwasida deka"}
+                }
+                weekday{
+                    dn{"Ŋkɛkɛ"}
+                }
+                year{
+                    dn{"Efe"}
+                }
+                zone{
+                    dn{"Gamɛ"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "Dzv",
+                        "Dzd",
+                        "Ted",
+                        "Afɔ",
+                        "Dam",
+                        "Mas",
+                        "Sia",
+                        "Dea",
+                        "Any",
+                        "Kel",
+                        "Ade",
+                        "Dzm",
+                    }
+                    wide{
+                        "Dzove",
+                        "Dzodze",
+                        "Tedoxe",
+                        "Afɔfiɛ",
+                        "Dama",
+                        "Masa",
+                        "Siamlɔm",
+                        "Deasiamime",
+                        "Anyɔnyɔ",
+                        "Kele",
+                        "Adeɛmekpɔxe",
+                        "Dzome",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "D",
+                        "D",
+                        "T",
+                        "A",
+                        "D",
+                        "M",
+                        "S",
+                        "D",
+                        "A",
+                        "K",
+                        "A",
+                        "D",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"“"}
+        alternateQuotationStart{"“"}
+        quotationEnd{"'"}
+        quotationStart{"'"}
+    }
+}

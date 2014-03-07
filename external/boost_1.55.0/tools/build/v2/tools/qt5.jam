@@ -1,0 +1,728 @@
+# Copyright 2002-2006 Vladimir Prus
+# Copyright 2005 Alo Sarv
+# Copyright 2005-2012 Juergen Hunold
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# Qt5 library support module
+#
+# The module attempts to auto-detect QT installation location from QTDIR
+# environment variable; failing that, installation location can be passed as
+# argument:
+#
+# toolset.using qt5 : /usr/local/Trolltech/Qt-5.0.0 ;
+#
+# The module supports code generation from .ui and .qrc files, as well as
+# running the moc preprocessor on headers. Note that you must list all your
+# moc-able headers in sources.
+#
+# Example:
+#
+#     exe myapp : myapp.cpp myapp.h myapp.ui myapp.qrc
+#                 /qt5//QtGui /qt5//QtNetwork ;
+#
+# It's also possible to run moc on cpp sources:
+#
+#   import cast ;
+#
+#   exe myapp : myapp.cpp [ cast _ moccable-cpp : myapp.cpp ] /qt5//QtGui ;
+#
+# When moccing source file myapp.cpp you need to include "myapp.moc" from
+# myapp.cpp. When moccing .h files, the output of moc will be automatically
+# compiled and linked in, you don't need any includes.
+#
+# This is consistent with Qt guidelines:
+# http://qt-project.org/doc/qt-5.0/moc.html
+
+# The .qrc processing utility supports various command line option (see
+# http://qt-project.org/doc/qt-5.0/rcc.html for a complete list). The
+# module provides default arguments for the "output file" and
+# "initialization function name" options. Other options can be set through
+# the <rccflags> build property. E.g. if you wish the compression settings
+# to be more aggressive than the defaults, you can apply them too all .qrc
+# files like this:
+#
+#   project my-qt-project :
+#               requirements
+#               <rccflags>"-compress 9 -threshold 10"
+#           ;
+#
+# Of course, this property can also be specified on individual targets.
+
+
+import modules ;
+import feature ;
+import errors ;
+import type ;
+import "class" : new ;
+import generators ;
+import project ;
+import toolset : flags ;
+import os ;
+import virtual-target ;
+import scanner ;
+
+# The Qt version used for requirements
+# Valid are <qt>5.0 or <qt>5.1.0
+# Auto-detection via qmake sets '<qt>major.minor.patch'
+feature.feature qt5 : : propagated ;
+
+# Extra flags for rcc
+# $TODO: figure out how to declare this only once
+# feature.feature rccflags : : free ;
+
+project.initialize $(__name__) ;
+project qt5 ;
+
+# Save the project so that we tolerate 'import + using' combo.
+.project = [ project.current ] ;
+
+# Helper utils for easy debug output
+if [ MATCH (--debug-configuration) : [ modules.peek : ARGV ] ]
+{
+    .debug-configuration = TRUE ;
+}
+
+local rule debug-message ( message * )
+{
+    if $(.debug-configuration) = TRUE
+    {
+        ECHO notice: [qt5-cfg] $(message) ;
+    }
+}
+
+# Capture qmake output line by line
+local rule read-output ( content )
+{
+    local lines ;
+    local nl = "
+" ;
+    local << = "([^$(nl)]*)[$(nl)](.*)" ;
+    local line+ = [ MATCH "$(<<)" : "$(content)" ] ;
+    while $(line+)
+    {
+        lines += $(line+[1]) ;
+        line+ = [ MATCH "$(<<)" : "$(line+[2])" ] ;
+    }
+    return $(lines) ;
+}
+
+# Capture Qt version from qmake
+local rule check-version ( bin_prefix )
+{
+    full-cmd = $(bin_prefix)"/qmake -v" ;
+    debug-message Running '$(full-cmd)' ;
+    local output = [ SHELL $(full-cmd) ] ;
+    for line in [ read-output $(output) ]
+    {
+        # Parse the output to get all the results.
+        if [ MATCH "QMake" : $(line) ]
+        {
+            # Skip first line of output
+        }
+        else
+        {
+            temp = [ MATCH "([0-9]*)\\.([0-9]*)\\.([0-9]*)" : $(line) ] ;
+        }
+    }
+    return $(temp) ;
+}
+
+# Validate the version string and extract the major/minor part we care about.
+#
+local rule split-version ( version )
+{
+    local major-minor = [ MATCH ^([0-9]+)\.([0-9]+)(.*)$ : $(version) : 1 2 3 ] ;
+    if ! $(major-minor[2]) || $(major-minor[3])
+    {
+        ECHO "Warning: 'using qt' expects a two part (major, minor) version number; got" $(version) instead ;
+
+        # Add a zero to account for the missing digit if necessary.
+        major-minor += 0 ;
+    }
+
+    return $(major-minor[1]) $(major-minor[2]) ;
+}
+
+# Initialize the QT support module.
+# Parameters:
+# - 'prefix'    parameter tells where Qt is installed.
+# - 'version'   optional version of Qt, else autodetected via 'qmake -v'
+# - 'condition' optional requirements
+# - 'namespace' optional support for configure -qtnamespace
+# - 'infix'     optional support for configure -qtlibinfix
+# - 'full_bin'  optional full path to Qt binaries (qmake,moc,uic,rcc)
+# - 'full_inc'  optional full path to Qt top-level include directory
+# - 'full_lib'  optional full path to Qt library directory
+rule init ( prefix : version ? : condition * : namespace ? : infix ? : full_bin ? : full_inc ? : full_lib ? )
+{
+    project.push-current $(.project) ;
+
+    debug-message "==== Configuring Qt ... ====" ;
+    for local v in version prefix condition namespace infix full_bin full_inc full_lib
+    {
+        if $($(v))
+        {
+            debug-message "  user-specified "$(v): '$($(v))' ;
+        }
+    }
+
+    # Needed as default value
+    .prefix = $(prefix) ;
+
+    # pre-build paths to detect reinitializations changes
+    local inc_prefix lib_prefix bin_prefix ;
+    if $(full_inc)
+    {
+        inc_prefix = $(full_inc) ;
+    }
+    else
+    {
+        inc_prefix = $(prefix)/include ;
+    }
+    if $(full_lib)
+    {
+        lib_prefix = $(full_lib) ;
+    }
+    else
+    {
+        lib_prefix = $(prefix)/lib ;
+    }
+    if $(full_bin)
+    {
+        bin_prefix = $(full_bin) ;
+    }
+    else
+    {
+        bin_prefix = $(prefix)/bin ;
+    }
+
+    # Globally needed variables
+    .incprefix = $(inc_prefix) ;
+    .libprefix = $(lib_prefix) ;
+    .binprefix = $(bin_prefix) ;
+
+    if ! $(.initialized)
+    {
+        # Make sure this is initialised only once
+        .initialized = true ;
+
+        # Generates cpp files from header files using "moc" tool
+        generators.register-standard qt5.moc : H : CPP(moc_%) : <allow>qt5 ;
+
+        # The OBJ result type is a fake, 'H' will be really produced. See
+        # comments on the generator class, defined below the 'init' function.
+        generators.register [ new uic-5-generator qt5.uic : UI : OBJ :
+            <allow>qt5  ] ;
+
+        # The OBJ result type is a fake here too.
+        generators.register [ new moc-h-5-generator
+            qt5.moc.inc : MOCCABLE5_CPP : OBJ : <allow>qt5 ] ;
+
+        generators.register [ new moc-inc-5-generator
+            qt5.moc.inc : MOCCABLE5_H : OBJ : <allow>qt5 ] ;
+
+        # Generates .cpp files from .qrc files.
+        generators.register-standard qt5.rcc : QRC : CPP(qrc_%) : <allow>qt5 ;
+
+        # dependency scanner for wrapped files.
+        type.set-scanner QRC : qrc-5-scanner ;
+
+        # Save value of first occuring prefix
+        .PREFIX = $(prefix) ;
+    }
+
+    if $(version)
+    {
+        major-minor = [ split-version $(version) ] ;
+        version = $(major-minor:J=.) ;
+    }
+    else
+    {
+        version = [ check-version $(bin_prefix) ] ;
+        if $(version)
+        {
+            version = $(version:J=.) ;
+        }
+        debug-message Detected version '$(version)' ;
+    }
+
+    local target-requirements = $(condition) ;
+
+    # Add the version, if any, to the target requirements.
+    if $(version)
+    {
+        if ! $(version) in [ feature.values qt5 ]
+        {
+            feature.extend qt5 : $(version) ;
+        }
+        target-requirements += <qt5>$(version:E=default) ;
+    }
+
+    local target-os = [ feature.get-values target-os : $(condition) ] ;
+    if ! $(target-os)
+    {
+        target-os ?= [ feature.defaults target-os ] ;
+        target-os = $(target-os:G=) ;
+        target-requirements += <target-os>$(target-os) ;
+    }
+
+    # Build exact requirements for the tools
+    local tools-requirements = $(target-requirements:J=/) ;
+
+    debug-message "Details of this Qt configuration:" ;
+    debug-message "  prefix:      " '$(prefix:E=<empty>)' ;
+    debug-message "  binary path: " '$(bin_prefix:E=<empty>)' ;
+    debug-message "  include path:" '$(inc_prefix:E=<empty>)' ;
+    debug-message "  library path:" '$(lib_prefix:E=<empty>)' ;
+    debug-message "  target requirements:" '$(target-requirements)' ;
+    debug-message "  tool requirements:  " '$(tools-requirements)' ;
+
+    # setup the paths for the tools
+    toolset.flags qt5.moc .BINPREFIX $(tools-requirements) : $(bin_prefix) ;
+    toolset.flags qt5.rcc .BINPREFIX $(tools-requirements) : $(bin_prefix) ;
+    toolset.flags qt5.uic .BINPREFIX $(tools-requirements) : $(bin_prefix) ;
+
+    # TODO: 2009-02-12: Better support for directories
+    # Most likely needed are separate getters for: include,libraries,binaries and sources.
+    toolset.flags qt5.directory .PREFIX $(tools-requirements) : $(prefix) ;
+
+    # Test for a buildable Qt.
+    if [ glob $(.prefix)/Jamroot ]
+    {
+       .bjam-qt = true
+
+       # this will declare QtCore (and qtmain on <target-os>windows)
+       add-shared-library QtCore ;
+   }
+   else
+   # Setup common pre-built Qt.
+   # Special setup for QtCore on which everything depends
+   {
+       local link = [ feature.get-values link : $(condition) ] ;
+
+       local usage-requirements =
+           <include>$(.incprefix)
+           <library-path>$(.libprefix)
+           <threading>multi
+           <allow>qt5 ;
+
+       if $(link) in shared
+       {
+           usage-requirements += <dll-path>$(.libprefix) ;
+       }
+
+       local suffix ;
+
+       # debug versions on unix have to be built
+       # separately and therefore have no suffix.
+       .infix_version = "" ;
+       .suffix_debug = "" ;
+
+       # Control flag for auto-configuration of the debug libraries.
+       # This setup requires Qt 'configure -debug-and-release'.
+       # Only available on some platforms.
+       # ToDo: 2009-02-12: Maybe throw this away and
+       # require separate setup with <variant>debug as condition.
+       .have_separate_debug = FALSE ;
+
+       # Setup other platforms
+       if $(target-os) in windows cygwin
+       {
+           .have_separate_debug = TRUE ;
+
+           # On NT, the libs have "d" suffix in debug builds.
+           .suffix_debug = "d" ;
+
+           .infix_version = "5" ;
+
+           # On Windows we must link against the qtmain library
+           lib qtmain
+               : # sources
+               : # requirements
+                  <name>qtmain$(.suffix_debug)
+                  <variant>debug
+                  $(target-requirements)
+               ;
+
+           lib qtmain
+               : # sources
+               : # requirements
+                   <name>qtmain
+                   $(target-requirements)
+               ;
+       }
+       else if $(target-os) = darwin
+       {
+           # On MacOS X, both debug and release libraries are available.
+           .suffix_debug = "_debug" ;
+
+           .have_separate_debug = TRUE ;
+
+           alias qtmain ;
+       }
+       else
+       {
+           alias qtmain : : $(target-requirements) ;
+           .infix_version = "5" ;
+       }
+
+       lib QtCore : qtmain
+           : # requirements
+             <name>Qt$(.infix_version)Core
+             $(target-requirements)
+           : # default-build
+           : # usage-requirements
+             <define>QT_CORE_LIB
+             <define>QT_NO_DEBUG
+             <include>$(.incprefix)/QtCore
+             $(usage-requirements)
+           ;
+
+       if $(.have_separate_debug) = TRUE
+       {
+           debug-message Configure debug libraries with suffix '$(.suffix_debug)' ;
+
+           lib QtCore : $(main)
+               : # requirements
+                 <name>Qt$(.infix_version)Core$(.suffix_debug)
+                 <variant>debug
+                 $(target-requirements)
+               : # default-build
+               : # usage-requirements
+                 <define>QT_CORE_LIB
+                 <include>$(.incprefix)/QtCore
+                 $(usage-requirements)
+               ;
+        }
+    }
+
+    # Initialising the remaining libraries is canonical
+    # parameters 'module' : 'depends-on' : 'usage-define' : 'requirements' : 'include'
+    # 'include' only for non-canonical include paths.
+    add-shared-library QtGui     : QtCore : QT_GUI_LIB     : $(target-requirements) ;
+    add-shared-library QtWidgets : QtGui  : QT_WIDGETS_LIB : $(target-requirements) ;
+    add-shared-library QtNetwork : QtCore : QT_NETWORK_LIB : $(target-requirements) ;
+    add-shared-library QtSql     : QtCore : QT_SQL_LIB     : $(target-requirements) ;
+    add-shared-library QtXml     : QtCore : QT_XML_LIB     : $(target-requirements) ;
+    add-shared-library QtPrintSupport : QtGui : QT_PRINTSUPPORT_LIB : $(target-requirements) ;
+    add-shared-library QtConcurrent : QtCore : QT_CONCURRENT_LIB : $(target-requirements) ;
+
+    add-shared-library QtOpenGL : QtGui : QT_OPENGL_LIB : $(target-requirements) ;
+    add-shared-library QtSvg : QtXml QtOpenGL : QT_SVG_LIB : $(target-requirements) ;
+
+    add-shared-library QtTest : QtCore : : $(target-requirements) ;
+
+    # Qt designer library et. al.
+    add-shared-library QtDesigner : QtGui QtXml : : $(target-requirements) ;
+    add-shared-library QtDesignerComponents : QtGui QtXml : : $(target-requirements) ;
+    add-static-library QtUiTools : QtGui QtXml : $(target-requirements) ;
+
+    # DBus-Support
+    add-shared-library QtDBus : QtXml : : $(target-requirements) ;
+
+    # Script-Engine and Tools
+    add-shared-library QtScript : QtGui QtXml : QT_SCRIPT_LIB : $(target-requirements) ;
+    add-shared-library QtScriptTools : QtScript : QT_SCRIPTTOOLS_LIB : $(target-requirements) ;
+
+    # WebKit
+    add-shared-library QtWebKit        : QtGui : QT_WEBKIT_LIB : $(target-requirements) ;
+    add-shared-library QtWebKitWidgets : QtGui : QT_WEBKITWIDGETS_LIB : $(target-requirements) ;
+
+    # Multimedia engine
+    add-shared-library QtMultimedia : QtGui : QT_MULTIMEDIA_LIB : $(target-requirements) ;
+    add-shared-library QtMultimediaWidgets : QtMultimedia : QT_MULTIMEDIAWIDGETS_LIB : $(target-requirements) ;
+
+    # 
+    add-shared-library QtXmlPatterns : QtNetwork : QT_XMLPATTERNS_LIB : $(target-requirements) ;
+
+    # Help-Engine
+    add-shared-library QtHelp    : QtGui QtSql QtXml : : $(target-requirements) ;
+    add-shared-library QtCLucene : QCore QtSql QtXml : : $(target-requirements) ;
+
+    # QtQuick
+    add-shared-library QtQml            : QtCore QtNetwork QtGui : QT_QML_LIB : $(target-requirements) ;
+    add-shared-library QtQuick          : QtQml : QT_QUICK_LIB : $(target-requirements) ;
+    add-shared-library QtQuickParticles : QtQml : : $(target-requirements) ;
+    add-shared-library QtQuickTest      : QtQml : : $(target-requirements) ;
+
+    # Regular expression support
+    add-shared-library QtV8 : QtCore : : $(target-requirements) ;
+
+    # QML-Engine version1
+    add-shared-library QtDeclarative : QtXml : : $(target-requirements) ;
+
+    debug-message "==== Configured Qt-$(version) ====" ;
+
+    project.pop-current ;
+}
+
+rule initialized ( )
+{
+    return $(.initialized) ;
+}
+
+
+
+# This custom generator is needed because in QT5, UI files are translated only
+# into H files, and no C++ files are created. Further, the H files need not be
+# passed via MOC. The header is used only via inclusion. If we define a standard
+# UI -> H generator, Boost.Build will run MOC on H, and then compile the
+# resulting cpp. It will give a warning, since output from moc will be empty.
+#
+# This generator is declared with a UI -> OBJ signature, so it gets invoked when
+# linking generator tries to convert sources to OBJ, but it produces target of
+# type H. This is non-standard, but allowed. That header won't be mocced.
+#
+class uic-5-generator : generator
+{
+    rule __init__ ( * : * )
+    {
+        generator.__init__ $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ;
+    }
+
+    rule run ( project name ? : property-set : sources * )
+    {
+        if ! $(name)
+        {
+            name = [ $(sources[0]).name ] ;
+            name = $(name:B) ;
+        }
+
+        local a = [ new action $(sources[1]) : qt5.uic : $(property-set) ] ;
+
+        # The 'ui_' prefix is to match qmake's default behavior.
+        local target = [ new file-target ui_$(name) : H : $(project) : $(a) ] ;
+
+        local r = [ virtual-target.register $(target) ] ;
+
+        # Since this generator will return a H target, the linking generator
+        # won't use it at all, and won't set any dependency on it. However, we
+        # need the target to be seen by bjam, so that dependency from sources to
+        # this generated header is detected -- if jam does not know about this
+        # target, it won't do anything.
+        DEPENDS all : [ $(r).actualize ] ;
+
+        return $(r) ;
+    }
+}
+
+
+class moc-h-5-generator : generator
+{
+    rule __init__ ( * : * )
+    {
+        generator.__init__ $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ;
+    }
+
+    rule run ( project name ? : property-set : sources * )
+    {
+        if ! $(sources[2]) && [ $(sources[1]).type ] = MOCCABLE5_CPP
+        {
+            name = [ $(sources[0]).name ] ;
+            name = $(name:B) ;
+
+            local a = [ new action $(sources[1]) : qt5.moc.inc :
+                $(property-set) ] ;
+
+            local target = [ new file-target $(name) : MOC : $(project) : $(a)
+                ] ;
+
+            local r = [ virtual-target.register $(target) ] ;
+
+            # Since this generator will return a H target, the linking generator
+            # won't use it at all, and won't set any dependency on it. However,
+            # we need the target to be seen by bjam, so that dependency from
+            # sources to this generated header is detected -- if jam does not
+            # know about this target, it won't do anything.
+            DEPENDS all : [ $(r).actualize ] ;
+
+            return $(r) ;
+        }
+    }
+}
+
+
+class moc-inc-5-generator : generator
+{
+    rule __init__ ( * : * )
+    {
+        generator.__init__ $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ;
+    }
+
+    rule run ( project name ? : property-set : sources * )
+    {
+        if ! $(sources[2]) && [ $(sources[1]).type ] = MOCCABLE5_H
+        {
+            name = [ $(sources[0]).name ] ;
+            name = $(name:B) ;
+
+            local a = [ new action $(sources[1]) : qt5.moc.inc :
+                $(property-set) ] ;
+
+            local target = [ new file-target moc_$(name) : CPP : $(project) :
+                $(a) ] ;
+
+            # Since this generator will return a H target, the linking generator
+            # won't use it at all, and won't set any dependency on it. However,
+            # we need the target to be seen by bjam, so that dependency from
+            # sources to this generated header is detected -- if jam does not
+            # know about this target, it won't do anything.
+            DEPENDS all : [ $(target).actualize ] ;
+
+            return [ virtual-target.register $(target) ] ;
+        }
+    }
+}
+
+
+# Query the installation directory. This is needed in at least two scenarios.
+# First, when re-using sources from the Qt-Tree. Second, to "install" custom Qt
+# plugins to the Qt-Tree.
+#
+rule directory
+{
+    return $(.PREFIX) ;
+}
+
+# Add a shared Qt library.
+rule add-shared-library ( lib-name : depends-on * : usage-defines * : requirements * :  include ? )
+{
+     add-library $(lib-name) : $(.infix_version) : $(depends-on) : $(usage-defines) : $(requirements) : $(include) ;
+}
+
+# Add a static Qt library.
+rule add-static-library ( lib-name : depends-on * : usage-defines * : requirements * : include ? )
+{
+     add-library $(lib-name) : $(.infix_version) : $(depends-on) : $(usage-defines) : $(requirements) : $(include) ;
+}
+
+# Add a Qt library.
+# Static libs are unversioned, whereas shared libs have the major number as suffix.
+# Creates both release and debug versions on platforms where both are enabled by Qt configure.
+# Flags:
+# - lib-name Qt library Name
+# - version  Qt major number used as shared library suffix (QtCore5.so)
+# - depends-on other Qt libraries
+# - usage-defines those are set by qmake, so set them when using this library
+# - requirements addional requirements
+# - include non-canonical include path. The canonical path is $(.incprefix)/$(lib-name).
+rule add-library ( lib-name : version ? : depends-on * : usage-defines * : requirements * : include ? )
+{
+    if $(.bjam-qt)
+    {
+        # Import Qt module
+        # Eveything will be setup there
+        alias $(lib-name)
+           : $(.prefix)//$(lib-name)
+           :
+           :
+           : <allow>qt5 ;
+    }
+    else
+    {
+        local real_include ;
+        real_include ?= $(include) ;
+        real_include ?= $(lib-name) ;
+
+        local real_name = [ MATCH ^Qt(.*) : $(lib-name) ] ;
+
+        lib $(lib-name)
+           : # sources
+             $(depends-on)
+           : # requirements
+             <name>Qt$(version)$(real_name)
+             $(requirements)
+           : # default-build
+           : # usage-requirements
+             <define>$(usage-defines)
+             <include>$(.incprefix)/$(real_include)
+           ;
+
+        if $(.have_separate_debug) = TRUE
+        {
+            lib $(lib-name)
+               : # sources
+                 $(depends-on)
+               : # requirements
+                 <name>Qt$(version)$(real_name)$(.suffix_debug)
+                 $(requirements)
+                 <variant>debug
+               : # default-build
+               : # usage-requirements
+                 <define>$(usage-defines)
+                 <include>$(.incprefix)/$(real_include)
+               ;
+        }
+    }
+
+    # Make library explicit so that a simple <use>qt5 will not bring in everything.
+    # And some components like QtDBus/Phonon may not be available on all platforms.
+    explicit $(lib-name) ;
+}
+
+# Use $(.BINPREFIX[-1]) for the paths as several tools-requirements can match.
+# The exact match is the last one.
+
+# Get <include> and <defines> from current toolset.
+flags qt5.moc INCLUDES <include> ;
+flags qt5.moc DEFINES <define> ;
+
+# need a newline for expansion of DEFINES and INCLUDES in the response file.
+.nl  = "
+" ;
+
+# Processes headers to create Qt MetaObject information. Qt5-moc has its
+# c++-parser, so pass INCLUDES and DEFINES.
+# We use response file with one INCLUDE/DEFINE per line
+#
+actions moc
+{
+    $(.BINPREFIX[-1])/moc -f $(>) -o $(<) @"@($(<).rsp:E=-D$(DEFINES)$(.nl) -I$(INCLUDES:T)$(.nl))"
+}
+
+# When moccing files for include only, we don't need -f, otherwise the generated
+# code will include the .cpp and we'll get duplicated symbols.
+#
+actions moc.inc
+{
+    $(.BINPREFIX[-1])/moc $(>) -o $(<) @"@($(<).rsp:E=-D$(DEFINES)$(.nl) -I$(INCLUDES:T)$(.nl))"
+}
+
+
+# Get extra options for RCC
+flags qt5.rcc RCC_OPTIONS <rccflags> ;
+
+# Generates source files from resource files.
+#
+actions rcc
+{
+    $(.BINPREFIX[-1])/rcc $(>) -name $(>:B) $(RCC_OPTIONS) -o $(<)
+}
+
+
+# Generates user-interface source from .ui files.
+#
+actions uic
+{
+    $(.BINPREFIX[-1])/uic $(>) -o $(<)
+}
+
+
+# Scanner for .qrc files. Look for the CDATA section of the <file> tag. Ignore
+# the "alias" attribute. See http://doc.trolltech.com/qt/resources.html for
+# detailed documentation of the Qt Resource System.
+#
+class qrc-5-scanner : common-scanner
+{
+    rule pattern ( )
+    {
+        return "<file.*>(.*)</file>" ;
+    }
+}
+
+
+# Wrapped files are "included".
+scanner.register qrc-5-scanner : include ;

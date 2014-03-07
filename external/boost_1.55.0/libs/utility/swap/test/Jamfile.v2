@@ -1,0 +1,37 @@
+# Copyright (c) 2007, 2008 Joseph Gauterin
+#
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# bring in rules for testing
+import testing ;
+
+test-suite utility/swap
+    :
+    [ compile root_header_1.cpp                                  ]
+    [ compile root_header_2.cpp                                  ]
+    [ compile lib_header_1.cpp                                   ]
+    [ compile lib_header_2.cpp                                   ]
+    [ compile mixed_headers_1.cpp                                ]
+    [ compile mixed_headers_2.cpp                                ]
+    [ run primitive.cpp ../../../test/build//boost_test_exec_monitor/<link>static                      ]
+    [ run specialized_in_boost.cpp ../../../test/build//boost_test_exec_monitor/<link>static           ]
+    [ run specialized_in_global.cpp ../../../test/build//boost_test_exec_monitor/<link>static          ]
+    [ run specialized_in_other.cpp ../../../test/build//boost_test_exec_monitor/<link>static           ]
+    [ run specialized_in_std.cpp ../../../test/build//boost_test_exec_monitor/<link>static             ]
+    [ run specialized_in_boost_and_other.cpp ../../../test/build//boost_test_exec_monitor/<link>static ]
+    [ run std_bitset.cpp ../../../test/build//boost_test_exec_monitor/<link>static                     ]
+    [ run std_dateorder.cpp ../../../test/build//boost_test_exec_monitor/<link>static                  ]
+    [ run std_string.cpp ../../../test/build//boost_test_exec_monitor/<link>static                     ]
+    [ run std_typeinfo_ptr.cpp ../../../test/build//boost_test_exec_monitor/<link>static               ]
+    [ run std_vector_of_boost.cpp ../../../test/build//boost_test_exec_monitor/<link>static            ]
+    [ run std_vector_of_global.cpp ../../../test/build//boost_test_exec_monitor/<link>static           ]
+    [ run std_vector_of_other.cpp ../../../test/build//boost_test_exec_monitor/<link>static            ]
+    [ run no_ambiguity_in_boost.cpp ../../../test/build//boost_test_exec_monitor/<link>static          ]
+    [ run array_of_array_of_class.cpp ../../../test/build//boost_test_exec_monitor/<link>static        ]
+    [ run array_of_array_of_int.cpp ../../../test/build//boost_test_exec_monitor/<link>static          ]
+    [ run array_of_class.cpp ../../../test/build//boost_test_exec_monitor/<link>static                 ]
+    [ run array_of_int.cpp ../../../test/build//boost_test_exec_monitor/<link>static                   ]
+    [ run array_of_template.cpp ../../../test/build//boost_test_exec_monitor/<link>static              ]
+    ;

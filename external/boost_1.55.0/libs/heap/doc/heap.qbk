@@ -1,0 +1,422 @@
+[library Boost.Heap
+    [quickbook 1.4]
+    [authors [Blechmann, Tim]]
+    [copyright 2010-2011 Tim Blechmann]
+    [category algorithms]
+    [purpose
+        heap data structures
+    ]
+    [id heap]
+    [dirname heap]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[c++]
+
+
+[/  Links   ]
+
+[def _heap_                      [^boost.heap]]
+
+[/  unspecified stuff   ]
+[def __unspecified_int__ /unspecified-int-type/]
+[def __unspecified__ /unspecified/]
+[def __unspecified_bool__ /unspecified-bool-type/]
+
+[section Introduction & Motivation]
+
+_heap_ is an implementation of priority queues. Priority queues are queue data structures, that order their elements by
+a priority. The STL provides a single template class =std::priority_queue=, which only provides a limited functionality.
+To overcome these limitations, _heap_ implements [link heap.data_structures data structures] with more functionality and
+different performance characteristics. Especially, it deals with additional aspects:
+
+* *Mutability*: The priority of heap elements can be modified.
+* *Iterators*: Heaps provide iterators to iterate all elements.
+* *Mergable*: While all heaps can be merged, some can be merged efficiently.
+* *Stability*: Heaps can be configured to be stable sorted.
+* *Comparison*: Heaps can be compared for equivalence.
+
+[endsect]
+
+[section:concepts Concepts & Interface]
+
+[section:basic Basic Priority Queue Interface]
+
+Priority queues are queues of objects, that are ordered by their priority. They support the operations of adding nodes to
+the data structure, accessing the top element (the element with the highest priority), and removing the top element.
+
+[note _heap_ implements priority queues as max-heaps to be consistent with the STL heap functions. This is in contrast to
+the typical textbook design, which uses min-heaps.]
+
+[h5 Synopsis]
+
+    template <typename T, class ...Options>
+    class priority_queue
+    {
+        // types
+        typedef T                   value_type;
+        typedef ``/unspecified/``         size_type;
+        typedef ``/unspecified/``         difference_type;
+
+        typedef ``/unspecified/``         allocator_type;
+        typedef ``/unspecified/``         value_compare;
+
+        typedef ``/unspecified/``         reference;
+        typedef ``/unspecified/``         const_reference;
+        typedef ``/unspecified/``         pointer;
+        typedef ``/unspecified/``         const_pointer;
+
+        // construct/copy/destruct
+        explicit priority_queue(value_compare const & = value_compare());
+        priority_queue(priority_queue const &);
+        priority_queue& operator=(priority_queue const &);
+        priority_queue(priority_queue &&);                  // move semantics (C++11 only)
+        priority_queue& operator=(priority_queue &&);       // move semantics (C++11 only)
+
+        // public member functions
+        ``/unspecified/`` push(const_reference);                  // push new element to heap
+        template<class... Args> void emplace(Args &&...);   // push new element to heap, C++11 only
+        const_reference top() const;                        // return top element
+        void pop();                                         // remove top element
+        void clear();                                       // clear heap
+        size_type size() const;                             // number of elements
+        bool empty() const;                                 // priority queue is empty
+        allocator_type get_allocator(void) const;           // return allocator
+        size_type max_size(void) const;                     // maximal possible size
+        void reserve(size_type);                            // reserve space, only available if (has_reserve == true)
+
+        // heap equivalence
+        template<typename HeapType> bool operator==(HeapType const &) const;
+        template<typename HeapType> bool operator!=(HeapType const &) const;
+
+        // heap comparison
+        template<typename HeapType> bool operator<(HeapType const &) const;
+        template<typename HeapType> bool operator>(HeapType const &) const;
+        template<typename HeapType> bool operator>=(HeapType const &) const;
+        template<typename HeapType> bool operator<=(HeapType const &) const;
+
+        // public data members
+        static const bool constant_time_size;               // size() has constant complexity
+        static const bool has_ordered_iterators;            // priority queue has ``[link heap.concepts.iterators ordered iterators]``
+        static const bool is_mergable;                      // priority queue is efficiently ``[link heap.concepts.merge mergable]``
+        static const bool is_stable;                        // priority queue has a ``[link heap.concepts.stability stable heap order]``
+        static const bool has_reserve;                      // priority queue has a reserve() member
+    };
+
+[h5 Example]
+
+[import ../examples/interface.cpp]
+[basic_interface]
+
+[endsect]
+
+
+[section:iterators Priority Queue Iterators]
+
+[h5 Synopsis]
+    class iteratable_heap_interface
+    {
+    public:
+        // types
+        typedef ``/unspecified/``         iterator;
+        typedef ``/unspecified/``         const_iterator;
+        typedef ``/unspecified/``         ordered_iterator;
+
+        // public member functions
+        iterator begin(void) const;
+        iterator end(void) const;
+        ordered_iterator ordered_begin(void) const;
+        ordered_iterator ordered_end(void) const;
+    };
+
+Priority queues provide iterators, that can be used to traverse their elements. All heap iterators are const_iterators, that means
+they cannot be used to modify the values, because changing the value of a heap node may corrupt the heap order. Details about
+modifying heap nodes are described in the section about the [link heap.concepts.mutability mutability interface].
+
+Iterators do not visit heap elements in any specific order. Unless otherwise noted, all non-const heap member functions invalidate
+iterators, while all const member functions preserve the iterator validity.
+
+[note Some implementations require iterators, that contain a set of elements, that are *discovered*, but not *visited*. Therefore
+copying iterators can be inefficient and should be avoided.]
+
+[h5 Example]
+[iterator_interface]
+
+[section:ordered_iterators Ordered Iterators]
+
+Except for [classref boost::heap::priority_queue] all _heap_ data structures support ordered iterators, which visit all elements
+of the heap in heap-order. The implementation of these [^ordered_iterator]s requires some internal bookkeeping, so iterating the a
+heap in heap order has an amortized complexity of O(N*log(N)).
+
+[h5 Example]
+[ordered_iterator_interface]
+
+[endsect]
+
+[endsect]
+
+[section:comparing Comparing Priority Queues & Equivalence]
+
+The data structures of _heap_ can be compared with standard comparison operators. The comparison is performed by comparing two
+heaps element by element using =value_compare=.
+
+[note Depending on the heap type, this operation can be rather expensive, because both data structures need to be traversed in
+heap order. On heaps without ordered iterators, the heap needs to be copied internally. The typical complexity is O(n log(n)).]
+
+[endsect]
+
+
+[section:merge Merging Priority Queues]
+
+
+[h3 Mergable Priority Queues]
+
+[h5 Synopsis]
+    class mergable_heap_interface
+    {
+    public:
+        // public member functions
+        void merge(mergable_heap_interface &);
+    };
+
+_heap_ has a concept of a Mergable Priority Queue. A mergable priority queue can efficiently be merged with a different instance
+of the same type.
+
+[h5 Example]
+[merge_interface]
+
+
+[h3 Heap Merge Algorithms]
+
+_heap_ provides a =heap_merge()= algorithm that is can be used to merge different kinds of heaps. Using this algorithm, all _heap_
+data structures can be merged, although some cannot be merged efficiently.
+
+[h5 Example]
+[heap_merge_algorithm]
+
+[endsect]
+
+[section:mutability Mutability]
+
+Some priority queues of _heap_ are mutable, that means the priority of their elements can be changed. To achieve mutability,
+_heap_ introduces the concept of *handles*, which can be used to access the internal nodes of the priority queue in order to
+change its value and to restore the heap order.
+
+[h5 Synopsis]
+    class mutable_heap_interface
+    {
+    public:
+        typedef ``/unspecified/`` iterator;
+        struct handle_type
+        {
+            value_type & operator*() const;
+        };
+
+        static handle_type s_iterator_to_handle(iterator const &);
+
+        // priority queue interface
+        handle_type push(T const & v);
+
+        // update element via assignment and fix heap
+        void update(handle_type const & handle, value_type const & v);
+        void increase(handle_type const & handle, value_type const & v);
+        void decrease(handle_type const & handle, value_type const & v);
+
+        // fix heap after element has been changed via the handle
+        void update(handle_type const & handle);
+        void increase(handle_type const & handle);
+        void decrease(handle_type const & handle);
+    };
+
+[warning Incorrect use of =increase= or =decrease= may corrupt the priority queue data structure. If unsure use =update= can be
+used at the cost of efficiency.]
+
+[h5 Example]
+[mutable_interface]
+
+Note that handles can be stored inside the =value_type=:
+
+[mutable_interface_handle_in_value]
+
+[h3 The Fixup Interface]
+
+There are two different APIs to support mutability. The first family of functions provides update functionality by changing
+the current element by assigning a new value. The second family of functions can be used to fix the heap data structure after
+an element has been changed directly via a handle. While this provides the user with a means to modify the priority of queue
+elements without the need to change their non-priority part, this needs to be handled with care. The heap needs to be fixed up
+immediately after the priority of the element has been changed.
+
+
+Beside an =update= function, two additional functions =increase= and =decrease= are provided, that are generally more efficient
+than the generic =update= function. However the user has do ensure, that the priority of an element is changed to the right
+direction.
+
+[h5 Example]
+
+[mutable_fixup_interface]
+
+Iterators can be coverted to handles using the static member function =s_handle_from_iterator=. However most implementations of
+=update= invalidate all iterators. The most notable exception is the [classref boost::heap::fibonacci_heap fibonacci heap],
+providing a lazy update function, that just invalidates the iterators, that are related to this handle.
+
+[warning After changing the priority via a handle, the heap needs to be fixed by calling one of the update functions. Otherwise the
+priority queue structure may be corrupted!]
+
+[endsect]
+
+[section:stability Stability]
+
+A priority queue is `stable', if elements with the same priority are popped from the heap, in the same order as
+they are inserted. The data structures provided by _heap_, can be configured to be stable at compile time using the
+[classref boost::heap::stable] policy. Two notions of stability are supported. If a heap is configured with *no stability*,
+the order of nodes of the same priority is undefined, if it is configured as *stable*, nodes of the same priority are ordered by
+their insertion time.
+
+Stability is achieved by associating an integer version count with each value in order to distinguish values with the same node.
+The type of this version count defaults to =boost::uintmax_t=, which is at least 64bit on most systems. However it can be
+configured to use a different type using the [classref boost::heap::stability_counter_type] template argument.
+
+[warning The stability counter is prone to integer overflows. If an overflow occurs during a =push()= call, the operation
+ will fail and an exception is thrown. Later =push()= call will succeed, but the stable heap order will be compromised. However an
+ integer overflow at 64bit is very unlikely: if an application would issue one =push()= operation per microsecond, the value will
+ overflow in more than 500000 years.]
+
+[endsect]
+
+
+[endsect]
+
+[section:data_structures Data Structures]
+_heap_ provides the following data structures:
+
+[variablelist
+    [[[classref boost::heap::priority_queue]]
+     [
+         The [classref boost::heap::priority_queue priority_queue] class is a wrapper to the stl heap functions. It implements
+         a heap as container adaptor ontop of a =std::vector= and is immutable.
+     ]
+    ]
+
+    [[[classref boost::heap::d_ary_heap]]
+     [
+        [@http://en.wikipedia.org/wiki/D-ary_heap D-ary heaps] are a generalization of binary heap with each non-leaf node
+        having N children. For a low arity, the height of the heap is larger, but the number of comparisons to find the largest
+        child node is bigger. D-ary heaps are implemented as container adaptors based on a =std::vector=.
+
+        The data structure can be configured as mutable. This is achieved by storing the values inside a std::list.
+     ]
+    ]
+
+    [[[classref boost::heap::binomial_heap]]
+     [
+        [@http://en.wikipedia.org/wiki/Binomial_heap Binomial heaps] are node-base heaps, that are implemented as a set of
+        binomial trees of piecewise different order. The most important heap operations have a worst-case complexity of O(log n).
+        In contrast to d-ary heaps, binomial heaps can also be merged in O(log n).
+     ]
+    ]
+
+    [[[classref boost::heap::fibonacci_heap]]
+     [
+        [@http://en.wikipedia.org/wiki/Fibonacci_heap Fibonacci heaps] are node-base heaps, that are implemented as a forest of
+        heap-ordered trees. They provide better amortized performance than binomial heaps. Except =pop()= and =erase()=, the most
+        important heap operations have constant amortized complexity.
+     ]
+    ]
+
+    [[[classref boost::heap::pairing_heap]]
+     [
+        [@http://en.wikipedia.org/wiki/Pairing_heap Pairing heaps] are self-adjusting node-based heaps. Although design and
+        implementation are rather simple, the complexity analysis is yet unsolved. For details, consult:
+
+        Pettie, Seth (2005), "Towards a final analysis of pairing heaps", Proc. 46th Annual IEEE Symposium on Foundations of Computer Science, pp. 174–183
+     ]
+    ]
+
+    [[[classref boost::heap::skew_heap]]
+     [
+        [@http://en.wikipedia.org/wiki/Skew_heap Skew heaps] are self-adjusting node-based heaps. Although there are no
+        constraints for the tree structure, all heap operations can be performed in O(log n).
+     ]
+    ]
+]
+
+[table Comparison of amortized complexity
+    [[]                                             [[^top()]]  [[^push()]]     [[^pop()]]  [[^update()]] [[^increase()]]   [[^decrease()]] [[^erase()]] [[^merge_and_clear()]]]
+    [[[classref boost::heap::priority_queue]]       [[^O(1)]]   [O(log(N))]     [O(log(N))] [n/a]         [n/a]             [n/a]           [n/a]        [O((N+M)*log(N+M))]]
+    [[[classref boost::heap::d_ary_heap]]           [[^O(1)]]   [O(log(N))]     [O(log(N))] [O(log(N))]   [O(log(N))]       [O(log(N))]     [O(log(N))]  [O((N+M)*log(N+M))]]
+    [[[classref boost::heap::binomial_heap]]        [[^O(1)]]   [O(log(N))]     [O(log(N))] [O(log(N))]   [O(log(N))]       [O(log(N))]     [O(log(N))]  [O(log(N+M))]]
+    [[[classref boost::heap::fibonacci_heap]]       [[^O(1)]]   [O(1)]          [O(log(N))] [O(log(N))
+        [footnote The fibonacci a [^update_lazy()] method, which has O(log(N)) amortized complexity as well, but does not try to consolidate the internal forest]
+                                                                                            ]             [O(1)]            [O(log(N))]     [O(log(N))]  [O(1)]]
+
+    [[[classref boost::heap::pairing_heap]]         [[^O(1)]]   [O(2**2*log(log(N)))]   [O(log(N))] [O(2**2*log(log(N)))]   [O(2**2*log(log(N)))]  [O(2**2*log(log(N)))]    [O(2**2*log(log(N)))]   [O(2**2*log(log(N)))]]
+    [[[classref boost::heap::skew_heap]]            [[^O(1)]]   [O(log(N))]     [O(log(N))]  [O(log(N))]   [O(log(N))]       [O(log(N))]     [O(log(N))]    [O(log(N+M))]]
+]
+
+
+
+[section Data Structure Configuration]
+
+The data structures can be configured with [@boost:/libs/parameter/doc/html/index.html Boost.Parameter]-style templates.
+
+[variablelist
+    [[[classref boost::heap::compare]]
+     [Predicate for defining the heap order, optional
+      (defaults to =boost::heap::compare<std::less<T> >=)]
+    ]
+    [[[classref boost::heap::allocator]]
+     [Allocator for internal memory management, optional
+      (defaults to =boost::heap::allocator<std::allocator<T> >=)]
+    ]
+    [[[classref boost::heap::stable]]
+     [Configures the heap to use a [link heap.concepts.stability stable heap order], optional (defaults to =boost::heap::stable<false>=).
+     ]
+    ]
+    [[[classref boost::heap::mutable_]]
+     [Configures the heap to be mutable. [classref boost::heap::d_ary_heap] and [classref boost::heap::skew_heap] have to be configured
+      with this policy to enable the [link heap.concepts.mutability mutability interface].
+     ]
+    ]
+    [[[classref boost::heap::stability_counter_type]]
+     [Configures the integer type used for the stability counter, optional (defaults to =boost::heap::stability_counter_type<boost::uintmax_t>=).
+      For more details, consult the [link heap.concepts.stability Stability] section.
+     ]
+    ]
+    [[[classref boost::heap::constant_time_size]]
+     [Specifies, whether =size()= should have linear or constant complexity. This argument is only available for node-based
+      heap data structures and if available, it is optional (defaults to =boost::heap::constant_time_size<true>=)]
+    ]
+
+    [[[classref boost::heap::arity]]
+     [Specifies the arity of a d-ary heap. For details, please consult the class reference of [classref boost::heap::d_ary_heap]]
+    ]
+
+    [[[classref boost::heap::store_parent_pointer]]
+     [Store the parent pointer in the heap nodes. This policy is only available in the [classref boost::heap::skew_heap].
+     ]
+    ]
+]
+
+[endsect]
+
+[endsect]
+
+
+[xinclude autodoc.xml]
+
+
+[section Acknowledgements]
+
+[variablelist
+    [[Google Inc.]
+     [For sponsoring the development of this library during the Summer of Code 2010]
+    ]
+    [[Hartmut Kaiser]
+     [For mentoring the Summer of Code project]
+    ]
+]
+[endsect]

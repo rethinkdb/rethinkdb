@@ -1,0 +1,580 @@
+<!DOCTYPE html PUBLIC "-//W3C/utf-8XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content=
+"HTML Tidy for Linux/x86 (vers 1st March 2004), see www.w3.org" />
+<meta http-equiv="Content-Type" content=
+"text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Banded Matrix</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Banded Matrix</h1>
+<div class="toc" id="toc"></div>
+<h2><a name="banded_matrix"></a>Banded Matrix</h2>
+<h4>Description</h4>
+<p>The templated class <code>banded_matrix&lt;T, F, A&gt;</code> is
+the base container adaptor for banded matrices. For a <em>(m x
+n</em>)-dimensional banded matrix with <em>l</em> lower and
+<em>u</em> upper diagonals and <em>0 &lt;= i &lt; m</em>, <em>0
+&lt;= j &lt; n</em> holds <em>b</em><sub><em>i, j</em></sub> <em>=
+0</em>, if <em>i &gt; j + l</em> or <em>i &lt; j - u</em>. The
+storage of banded matrices is packed.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/banded.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    banded_matrix&lt;double&gt; m (3, 3, 1, 1);
+    for (signed i = 0; i &lt; signed (m.size1 ()); ++ i)
+        for (signed j = std::max (i - 1, 0); j &lt; std::min (i + 2, signed (m.size2 ())); ++ j)
+            m (i, j) = 3 * i + j;
+    std::cout &lt;&lt; m &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header banded.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The type of object stored in the matrix.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>F</code></td>
+<td>Functor describing the storage organization. <a href=
+"#banded_matrix_1">[1]</a></td>
+<td><code>row_major</code></td>
+</tr>
+<tr>
+<td><code>A</code></td>
+<td>The type of the adapted array. <a href=
+"#banded_matrix_2">[2]</a></td>
+<td><code>unbounded_array&lt;T&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="container_concept.htm#matrix">Matrix</a> .</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"container_concept.htm#matrix">Matrix</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_container&lt;banded_matrix&lt;T, F, A&gt;
+&gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>banded_matrix ()</code></td>
+<td>Allocates an uninitialized <code>banded_matrix</code> that
+holds zero rows of zero elements.</td>
+</tr>
+<tr>
+<td><code>banded_matrix (size_type size1, size_type size2,
+size_type lower = 0, size_type upper = 0)</code></td>
+<td>Allocates an uninitialized <code>banded_matrix</code> that
+holds <code>(lower + 1 + upper)</code> diagonals around the main
+diagonal of a matrix with <code>size1</code> rows of
+<code>size2</code> elements.</td>
+</tr>
+<tr>
+<td><code>banded_matrix (const banded_matrix &amp;m)</code></td>
+<td>The copy constructor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+banded_matrix (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended copy constructor.</td>
+</tr>
+<tr>
+<td><code>void resize (size_type size1, size_type size2, size_type
+lower = 0, size_type upper = 0, bool preserve = true)</code></td>
+<td>Reallocates a <code>banded_matrix</code> to hold <code>(lower +
+1 + upper)</code> diagonals around the main diagonal of a matrix
+with <code>size1</code> rows of <code>size2</code> elements. The
+existing elements of the <code>banded_matrix</code> are preseved
+when specified.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>size_type lower () const</code></td>
+<td>Returns the number of diagonals below the main diagonal.</td>
+</tr>
+<tr>
+<td><code>size_type upper () const</code></td>
+<td>Returns the number of diagonals above the main diagonal.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns a <code>const</code> reference of the <code>j</code>
+-th element in the <code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i, size_type
+j)</code></td>
+<td>Returns a reference of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>banded_matrix &amp;operator = (const banded_matrix
+&amp;m)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>banded_matrix &amp;assign_temporary (banded_matrix
+&amp;m)</code></td>
+<td>Assigns a temporary. May change the banded matrix
+<code>m</code> .</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+banded_matrix &amp;operator = (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+banded_matrix &amp;assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a matrix expression to the banded matrix. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+banded_matrix &amp;operator += (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Adds the matrix expression to
+the banded matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+banded_matrix &amp;plus_assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Adds a matrix expression to the banded matrix. Left and right
+hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+banded_matrix &amp;operator -= (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the matrix expression
+from the banded matrix.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+banded_matrix &amp;minus_assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Subtracts a matrix expression from the banded matrix. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+banded_matrix &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the banded matrix
+with a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+banded_matrix &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the banded matrix
+through a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (banded_matrix &amp;m)</code></td>
+<td>Swaps the contents of the banded matrices.</td>
+</tr>
+<tr>
+<td><code>void insert (size_type i, size_type j, const_reference
+t)</code></td>
+<td>Inserts the value <code>t</code> at the <code>j</code>-th
+element of the <code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>void erase (size_type i, size_type j)</code></td>
+<td>Erases the value at the <code>j</code>-th elemenst of the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>void clear ()</code></td>
+<td>Clears the matrix.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the <code>banded_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the <code>banded_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 begin1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the beginning of
+the <code>banded_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 end1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the end of the
+<code>banded_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the <code>banded_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the <code>banded_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 begin2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the beginning of
+the <code>banded_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 end2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the end of the
+<code>banded_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed <code>banded_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed <code>banded_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rbegin1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the
+beginning of the reversed <code>banded_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rend1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the end of
+the reversed <code>banded_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed <code>banded_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed <code>banded_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rbegin2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the
+beginning of the reversed <code>banded_matrix</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rend2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the end of
+the reversed <code>banded_matrix</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4>Notes</h4>
+<p><a name="banded_matrix_1" id="banded_matrix_1">[1]</a> Supported
+parameters for the storage organization are <code>row_major</code>
+and <code>column_major</code>.</p>
+<p><a name="banded_matrix_2" id="banded_matrix_2">[2]</a> Supported
+parameters for the adapted array are
+<code>unbounded_array&lt;T&gt;</code> ,
+<code>bounded_array&lt;T&gt;</code> and
+<code>std::vector&lt;T&gt;</code> .</p>
+<h2><a name="banded_adaptor"></a>Banded Adaptor</h2>
+<h4>Description</h4>
+<p>The templated class <code>banded_adaptor&lt;M&gt;</code> is a
+banded matrix adaptor for other matrices.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/banded.hpp&gt;
+#include &lt;boost/numeric/ublas/io.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    matrix&lt;double&gt; m (3, 3);
+    banded_adaptor&lt;matrix&lt;double&gt; &gt; ba (m, 1, 1);
+    for (signed i = 0; i &lt; signed (ba.size1 ()); ++ i)
+        for (signed j = std::max (i - 1, 0); j &lt; std::min (i + 2, signed (ba.size2 ())); ++ j)
+            ba (i, j) = 3 * i + j;
+    std::cout &lt;&lt; ba &lt;&lt; std::endl;
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header banded.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td>The type of the adapted matrix.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="expression_concept.htm#matrix_expression">Matrix Expression</a>
+.</p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of <a href=
+"expression_concept.htm#matrix_expression">Matrix Expression</a> .</p>
+<h4>Public base classes</h4>
+<p><code>matrix_expression&lt;banded_adaptor&lt;M&gt;
+&gt;</code></p>
+<h4>Members</h4>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+<tr>
+<td><code>banded_adaptor (matrix_type &amp;data, size_type lower =
+0, size_type upper = 0)</code></td>
+<td>Constructs a <code>banded_adaptor</code> that holds
+<code>(lower + 1 + upper)</code> diagonals around the main diagonal
+of a matrix.</td>
+</tr>
+<tr>
+<td><code>banded_adaptor (const banded_adaptor &amp;m)</code></td>
+<td>The copy constructor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+banded_adaptor (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended copy constructor.</td>
+</tr>
+<tr>
+<td><code>size_type size1 () const</code></td>
+<td>Returns the number of rows.</td>
+</tr>
+<tr>
+<td><code>size_type size2 () const</code></td>
+<td>Returns the number of columns.</td>
+</tr>
+<tr>
+<td><code>size_type lower () const</code></td>
+<td>Returns the number of diagonals below the main diagonal.</td>
+</tr>
+<tr>
+<td><code>size_type upper () const</code></td>
+<td>Returns the number of diagonals above the main diagonal.</td>
+</tr>
+<tr>
+<td><code>const_reference operator () (size_type i, size_type j)
+const</code></td>
+<td>Returns a <code>const</code> reference of the <code>j</code>
+-th element in the <code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>reference operator () (size_type i, size_type
+j)</code></td>
+<td>Returns a reference of the <code>j</code>-th element in the
+<code>i</code>-th row.</td>
+</tr>
+<tr>
+<td><code>banded_adaptor &amp;operator = (const banded_adaptor
+&amp;m)</code></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><code>banded_adaptor &amp;assign_temporary (banded_adaptor
+&amp;m)</code></td>
+<td>Assigns a temporary. May change the banded adaptor
+<code>m</code> .</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+banded_adaptor &amp;operator = (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>The extended assignment operator.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+banded_adaptor &amp;assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Assigns a matrix expression to the banded adaptor. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+banded_adaptor &amp;operator += (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Adds the matrix expression to
+the banded adaptor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+banded_adaptor &amp;plus_assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Adds a matrix expression to the banded adaptor. Left and right
+hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+banded_adaptor &amp;operator -= (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>A computed assignment operator. Subtracts the matrix expression
+from the banded adaptor.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AE&gt;<br />
+banded_adaptor &amp;minus_assign (const matrix_expression&lt;AE&gt;
+&amp;ae)</code></td>
+<td>Subtracts a matrix expression from the banded adaptor. Left and
+right hand side of the assignment should be independent.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+banded_adaptor &amp;operator *= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Multiplies the banded adaptor
+with a scalar.</td>
+</tr>
+<tr>
+<td><code>template&lt;class AT&gt;<br />
+banded_adaptor &amp;operator /= (const AT &amp;at)</code></td>
+<td>A computed assignment operator. Divides the banded adaptor
+through a scalar.</td>
+</tr>
+<tr>
+<td><code>void swap (banded_adaptor &amp;m)</code></td>
+<td>Swaps the contents of the banded adaptors.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 begin1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the
+beginning of the <code>banded_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator1 end1 () const</code></td>
+<td>Returns a <code>const_iterator1</code> pointing to the end of
+the <code>banded_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 begin1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the beginning of
+the <code>banded_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>iterator1 end1 ()</code></td>
+<td>Returns a <code>iterator1</code> pointing to the end of the
+<code>banded_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 begin2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the
+beginning of the <code>banded_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator2 end2 () const</code></td>
+<td>Returns a <code>const_iterator2</code> pointing to the end of
+the <code>banded_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 begin2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the beginning of
+the <code>banded_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>iterator2 end2 ()</code></td>
+<td>Returns a <code>iterator2</code> pointing to the end of the
+<code>banded_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rbegin1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+beginning of the reversed <code>banded_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator1 rend1 () const</code></td>
+<td>Returns a <code>const_reverse_iterator1</code> pointing to the
+end of the reversed <code>banded_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rbegin1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the
+beginning of the reversed <code>banded_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator1 rend1 ()</code></td>
+<td>Returns a <code>reverse_iterator1</code> pointing to the end of
+the reversed <code>banded_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rbegin2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+beginning of the reversed <code>banded_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator2 rend2 () const</code></td>
+<td>Returns a <code>const_reverse_iterator2</code> pointing to the
+end of the reversed <code>banded_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rbegin2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the
+beginning of the reversed <code>banded_adaptor</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator2 rend2 ()</code></td>
+<td>Returns a <code>reverse_iterator2</code> pointing to the end of
+the reversed <code>banded_adaptor</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p>Copyright (&copy;) 2000-2002 Joerg Walter, Mathias Koch<br />
+   Use, modification and distribution are subject to the
+   Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt
+   or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt</a>).
+</p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

@@ -1,0 +1,422 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/de.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/de.xml
+ */
+de{
+    Version{"2.0.51.59"}
+    zoneStrings{
+        "Africa:Accra"{
+            ec{"Akkra"}
+        }
+        "Africa:Addis_Ababa"{
+            ec{"Addis Abeba"}
+        }
+        "Africa:Algiers"{
+            ec{"Algier"}
+        }
+        "Africa:Cairo"{
+            ec{"Kairo"}
+        }
+        "Africa:Dar_es_Salaam"{
+            ec{"Daressalam"}
+        }
+        "Africa:Djibouti"{
+            ec{"Dschibuti"}
+        }
+        "Africa:El_Aaiun"{
+            ec{"El Aaiún"}
+        }
+        "Africa:Khartoum"{
+            ec{"Khartum"}
+        }
+        "Africa:Mogadishu"{
+            ec{"Mogadischu"}
+        }
+        "Africa:Niamey"{
+            ec{"Niger"}
+        }
+        "Africa:Ouagadougou"{
+            ec{"Wagadugu"}
+        }
+        "Africa:Sao_Tome"{
+            ec{"São Tomé"}
+        }
+        "Africa:Tripoli"{
+            ec{"Tripolis"}
+        }
+        "America:Asuncion"{
+            ec{"Asunción"}
+        }
+        "America:Cayman"{
+            ec{"Kaimaninseln"}
+        }
+        "America:Curacao"{
+            ec{"Curaçao"}
+        }
+        "America:El_Salvador"{
+            ec{"Salvador"}
+        }
+        "America:Havana"{
+            ec{"Havanna"}
+        }
+        "America:Jamaica"{
+            ec{"Jamaika"}
+        }
+        "America:Mexico_City"{
+            ec{"Mexiko-Stadt"}
+        }
+        "America:Port_of_Spain"{
+            ec{"Port-of-Spain"}
+        }
+        "America:St_Kitts"{
+            ec{"St. Kitts"}
+        }
+        "America:St_Lucia"{
+            ec{"St. Lucia"}
+        }
+        "America:St_Thomas"{
+            ec{"St. Thomas"}
+        }
+        "America:St_Vincent"{
+            ec{"St. Vincent"}
+        }
+        "Antarctica:DumontDUrville"{
+            ec{"Dumont D'Urville"}
+        }
+        "Antarctica:South_Pole"{
+            ec{"Südpol"}
+        }
+        "Antarctica:Vostok"{
+            ec{"Wostok"}
+        }
+        "Asia:Aqtobe"{
+            ec{"Aktobe"}
+        }
+        "Asia:Baghdad"{
+            ec{"Bagdad"}
+        }
+        "Asia:Bishkek"{
+            ec{"Bischkek"}
+        }
+        "Asia:Damascus"{
+            ec{"Damaskus"}
+        }
+        "Asia:Dushanbe"{
+            ec{"Duschanbe"}
+        }
+        "Asia:Hong_Kong"{
+            ec{"Hongkong"}
+        }
+        "Asia:Kamchatka"{
+            ec{"Kamtschatka"}
+        }
+        "Asia:Krasnoyarsk"{
+            ec{"Krasnojarsk"}
+        }
+        "Asia:Macau"{
+            ec{"Macao"}
+        }
+        "Asia:Muscat"{
+            ec{"Muskat"}
+        }
+        "Asia:Nicosia"{
+            ec{"Nikosia"}
+        }
+        "Asia:Novosibirsk"{
+            ec{"Nowosibirsk"}
+        }
+        "Asia:Pyongyang"{
+            ec{"Pjöngjang"}
+        }
+        "Asia:Qatar"{
+            ec{"Katar"}
+        }
+        "Asia:Riyadh"{
+            ec{"Riad"}
+        }
+        "Asia:Sakhalin"{
+            ec{"Sachalin"}
+        }
+        "Asia:Singapore"{
+            ec{"Singapur"}
+        }
+        "Asia:Taipei"{
+            ec{"Taipeh"}
+        }
+        "Asia:Tashkent"{
+            ec{"Taschkent"}
+        }
+        "Asia:Tbilisi"{
+            ec{"Tiflis"}
+        }
+        "Asia:Tehran"{
+            ec{"Teheran"}
+        }
+        "Asia:Tokyo"{
+            ec{"Tokio"}
+        }
+        "Asia:Vladivostok"{
+            ec{"Wladiwostok"}
+        }
+        "Asia:Yakutsk"{
+            ec{"Jakutsk"}
+        }
+        "Asia:Yekaterinburg"{
+            ec{"Jekaterinburg"}
+        }
+        "Asia:Yerevan"{
+            ec{"Erivan"}
+        }
+        "Atlantic:Azores"{
+            ec{"Azoren"}
+        }
+        "Atlantic:Bermuda"{
+            ec{"Bermudas"}
+        }
+        "Atlantic:Canary"{
+            ec{"Kanaren"}
+        }
+        "Atlantic:Cape_Verde"{
+            ec{"Kap Verde"}
+        }
+        "Atlantic:Faeroe"{
+            ec{"Färöer"}
+        }
+        "Atlantic:South_Georgia"{
+            ec{"Süd-Georgien"}
+        }
+        "Atlantic:St_Helena"{
+            ec{"St. Helena"}
+        }
+        "Etc:Unknown"{
+            ec{"Unbekannt"}
+        }
+        "Europe:Athens"{
+            ec{"Athen"}
+        }
+        "Europe:Brussels"{
+            ec{"Brüssel"}
+        }
+        "Europe:Bucharest"{
+            ec{"Bukarest"}
+        }
+        "Europe:Chisinau"{
+            ec{"Kischinau"}
+        }
+        "Europe:Copenhagen"{
+            ec{"Kopenhagen"}
+        }
+        "Europe:Kiev"{
+            ec{"Kiew"}
+        }
+        "Europe:Lisbon"{
+            ec{"Lissabon"}
+        }
+        "Europe:Luxembourg"{
+            ec{"Luxemburg"}
+        }
+        "Europe:Moscow"{
+            ec{"Moskau"}
+        }
+        "Europe:Rome"{
+            ec{"Rom"}
+        }
+        "Europe:Tirane"{
+            ec{"Tirana"}
+        }
+        "Europe:Uzhgorod"{
+            ec{"Uschgorod"}
+        }
+        "Europe:Vienna"{
+            ec{"Wien"}
+        }
+        "Europe:Vilnius"{
+            ec{"Wilna"}
+        }
+        "Europe:Warsaw"{
+            ec{"Warschau"}
+        }
+        "Europe:Zaporozhye"{
+            ec{"Saporischja"}
+        }
+        "Europe:Zurich"{
+            ec{"Zürich"}
+        }
+        "Indian:Christmas"{
+            ec{"Weihnachts-Inseln"}
+        }
+        "Indian:Comoro"{
+            ec{"Komoren"}
+        }
+        "Indian:Maldives"{
+            ec{"Malediven"}
+        }
+        "Indian:Reunion"{
+            ec{"Réunion"}
+        }
+        "Pacific:Easter"{
+            ec{"Osterinsel"}
+        }
+        "Pacific:Fiji"{
+            ec{"Fidschi"}
+        }
+        "meta:Acre"{
+            ld{"Acre-Sommerzeit"}
+            ls{"Acre-Zeit"}
+        }
+        "meta:Afghanistan"{
+            ls{"Afghanistan-Zeit"}
+        }
+        "meta:Africa_Central"{
+            ls{"Zentralafrikanische Zeit"}
+        }
+        "meta:Africa_Eastern"{
+            ls{"Ostafrikanische Zeit"}
+        }
+        "meta:Africa_Southern"{
+            lg{"Südafrikanische Zeit"}
+            ls{"Südafrikanische Standardzeit"}
+        }
+        "meta:Africa_Western"{
+            ld{"Westafrikanische Sommerzeit"}
+            ls{"Westafrikanische Zeit"}
+        }
+        "meta:Aktyubinsk"{
+            ld{"Aktyubinsk-Sommerzeit"}
+            ls{"Aktyubinsk-Zeit"}
+        }
+        "meta:Alaska"{
+            cu:int{1}
+            lg{"Alaska-Zeit"}
+            ls{"Alaska-Standardzeit"}
+        }
+        "meta:Alaska_Hawaii"{
+            lg{"Alaska-Hawaii-Zeit"}
+            ls{"Alaska-Hawaii-Standardzeit"}
+        }
+        "meta:Almaty"{
+            ld{"Almaty-Sommerzeit"}
+            ls{"Almaty-Zeit"}
+        }
+        "meta:Amazon"{
+            ld{"Amazonas-Sommerzeit"}
+        }
+        "meta:America_Central"{
+            ld{"Nordamerikanische Inland-Sommerzeit"}
+            lg{"Nordamerikanische Inlandzeit"}
+            ls{"Nordamerikanische Inland-Winterzeit"}
+        }
+        "meta:America_Eastern"{
+            ld{"Nordamerikanische Ostküsten-Sommerzeit"}
+            lg{"Nordamerikanische Ostküstenzeit"}
+            ls{"Nordamerikanische Ostküsten-Winterzeit"}
+        }
+        "meta:America_Mountain"{
+            ld{"Rocky Mountain Sommerzeit"}
+            lg{"Rocky Mountain Zeit"}
+            ls{"Rocky Mountain Winterzeit"}
+        }
+        "meta:America_Pacific"{
+            ld{"Nordamerikanische Westküsten-Sommerzeit"}
+            lg{"Nordamerikanische Westküstenzeit"}
+            ls{"Nordamerikanische Westküsten-Winterzeit"}
+        }
+        "meta:Anadyr"{
+            ld{"Anadyr Sommerzeit"}
+            lg{"Anadyr Zeit"}
+            ls{"Anadyr Winterzeit"}
+        }
+        "meta:Arabian"{
+            ld{"Arabische Sommerzeit"}
+            lg{"Arabische Zeit"}
+            ls{"Arabische Winterzeit"}
+        }
+        "meta:Argentina"{
+            ld{"Argentinische Sommerzeit"}
+            lg{"Argentinische Zeit"}
+            ls{"Argentinische Winterzeit"}
+        }
+        "meta:Argentina_Western"{
+            ld{"West-Argentinische Sommerzeit"}
+            lg{"West-Argentinische Zeit"}
+            ls{"West-Argentinische Winterzeit"}
+        }
+        "meta:Atlantic"{
+            ld{"Atlantik-Sommerzeit"}
+            lg{"Atlantik-Zeit"}
+            ls{"Atlantik-Winterzeit"}
+        }
+        "meta:Australia_Central"{
+            ld{"Zentralaustralische Sommerzeit"}
+            lg{"Zentralaustralische Zeit"}
+            ls{"Zentralaustralische Winterzeit"}
+        }
+        "meta:Australia_CentralWestern"{
+            ld{"Zentral-/Westaustralische Sommerzeit"}
+            lg{"Zentral-/Westaustralische Zeit"}
+            ls{"Zentral-/Westaustralische Winterzeit"}
+        }
+        "meta:Australia_Eastern"{
+            ld{"Ostaustralische Sommerzeit"}
+            lg{"Ostaustralische Zeit"}
+            ls{"Ostaustralische Winterzeit"}
+        }
+        "meta:Australia_Western"{
+            ld{"Westaustralische Sommerzeit"}
+            lg{"Westaustralische Zeit"}
+            ls{"Westaustralische Winterzeit"}
+        }
+        "meta:China"{
+            ld{"Chinesische Sommerzeit"}
+            lg{"Chinesische Zeit"}
+            ls{"Chinesische Winterzeit"}
+        }
+        "meta:Europe_Central"{
+            cu:int{1}
+            ld{"Mitteleuropäische Sommerzeit"}
+            lg{"Mitteleuropäische Zeit"}
+            ls{"Mitteleuropäische Winterzeit"}
+            sd{"MESZ"}
+            ss{"MEZ"}
+        }
+        "meta:Europe_Eastern"{
+            ld{"Osteuropäische Sommerzeit"}
+            lg{"Osteuropäische Zeit"}
+            ls{"Osteuropäische Winterzeit"}
+            sd{"OESZ"}
+            ss{"OEZ"}
+        }
+        "meta:Europe_Western"{
+            ld{"Westeuropäische Sommerzeit"}
+            lg{"Westeuropäische Zeit"}
+            ls{"Westeuropäische Winterzeit"}
+            sd{"WESZ"}
+            ss{"WEZ"}
+        }
+        "meta:Korea"{
+            ld{"Koreanische Sommerzeit"}
+            lg{"Koreanische Zeit"}
+            ls{"Koreanische Winterzeit"}
+        }
+        "meta:Moscow"{
+            ld{"Moskauer Sommerzeit"}
+            lg{"Moskauer Zeit"}
+            ls{"Moskauer Winterzeit"}
+        }
+        "meta:Japan"{
+            ld{"Japanische Sommerzeit"}
+            lg{"Japanische Zeit"}
+            ls{"Japanische Winterzeit"}
+        }
+        fallbackFormat{"{1} ({0})"}
+        gmtFormat{"GMT{0}"}
+        hourFormat{"+HH:mm;-HH:mm"}
+    }
+}

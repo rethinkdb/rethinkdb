@@ -1,0 +1,55 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template result&lt;This(Sequence)&gt;</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../front.html#idp254515816" title="Description">
+<link rel="prev" href="result.html" title="Struct template result">
+<link rel="next" href="../back.html" title="Struct back">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="result.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../front.html#idp254515816"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../back.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.xpressive.op.front.result_This(S_idp163461208"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template result&lt;This(Sequence)&gt;</span></h2>
+<p>boost::xpressive::op::front::result&lt;This(Sequence)&gt;</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../../xpressive/reference.html#header.boost.xpressive.regex_actions_hpp" title="Header &lt;boost/xpressive/regex_actions.hpp&gt;">boost/xpressive/regex_actions.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> This<span class="special">,</span> <span class="keyword">typename</span> Sequence<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="result_This_S_idp163461208.html" title="Struct template result&lt;This(Sequence)&gt;">result</a><span class="special">&lt;</span><span class="identifier">This</span><span class="special">(</span><span class="identifier">Sequence</span><span class="special">)</span><span class="special">&gt;</span> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">remove_reference</span><span class="special">&lt;</span> <span class="identifier">Sequence</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>                                                                                              <a name="boost.xpressive.op.front.result_This(S_idp163461208.sequence_type"></a><span class="identifier">sequence_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">if_c</span><span class="special">&lt;</span> <span class="identifier">is_const</span><span class="special">&lt;</span> <span class="identifier">sequence_type</span> <span class="special">&gt;</span><span class="special">::</span><a class="link" href="../../value.html" title="Struct template value">value</a><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">sequence_type</span><span class="special">::</span><span class="identifier">const_reference</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">sequence_type</span><span class="special">::</span><span class="identifier">reference</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="boost.xpressive.op.front.result_This(S_idp163461208.type"></a><span class="identifier">type</span><span class="special">;</span>         
+<span class="special">}</span><span class="special">;</span></pre></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="result.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../front.html#idp254515816"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../back.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

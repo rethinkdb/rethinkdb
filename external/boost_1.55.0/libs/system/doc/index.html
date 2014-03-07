@@ -1,0 +1,159 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Language" content="en-us">
+<meta name="GENERATOR" content="Microsoft FrontPage 5.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Boost System Library</title>
+<link rel="stylesheet" type="text/css" href="../../../doc/src/minimal.css">
+</head>
+
+<body>
+
+<table border="0" cellpadding="5" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111">
+  <tr>
+    <td width="277">
+<a href="../../../index.html">
+<img src="../../../boost.png" alt="boost.png (6897 bytes)" align="middle" width="277" height="86" border="0"></a></td>
+    <td width="337" align="middle">
+    <font size="7">System Library</font>
+    </td>
+  </tr>
+</table>
+
+<table border="0" cellpadding="5" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" bgcolor="#D7EEFF" width="100%">
+  <tr>
+    <td><a href="../../../index.htm">Boost Home</a>&nbsp;&nbsp;&nbsp; <a href="index.html">
+    Library Home</a>&nbsp;&nbsp; Tutorial&nbsp;&nbsp; <a href="reference.html">
+    Reference</a></td>
+  </tr>
+</table>
+
+<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" align="right">
+  <tr>
+    <td width="100%" bgcolor="#D7EEFF" align="center">
+      <i><b>Contents</b></i></td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#E8F5FF">
+      <a href="#Introduction">Introduction</a><br>
+      <a href="#Design_Rationale">Design Rationale</a><br>
+      <a href="#History">History</a><br>
+      <a href="#Acknowledgements">Acknowledgements</a>
+    </td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#D7EEFF" align="center">
+      <b><i>Headers</i></b></td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#E8F5FF">
+      <a href="reference.html#Header-error_code">&lt;boost/system/error_code.hpp&gt;</a><br>
+      <a href="reference.html#Header-system_error">
+      &lt;boost/system/system_error.hpp&gt;</a><br>
+      <a href="../../../boost/system/cygwin_error.hpp">
+      &lt;boost/system/cygwin_error.hpp&gt;</a><br>
+      <a href="../../../boost/system/linux_error.hpp">
+      &lt;boost/system/linux_error.hpp&gt;</a><br>
+      <a href="../../../boost/system/windows_error.hpp">
+      &lt;boost/system/windows_error.hpp&gt;</a></td>
+  </tr>
+</table>
+
+<h2><a name="Introduction">Introduction</a></h2>
+
+<p>Error conditions originating from the operating system or other low-level 
+application program interfaces (API's) are typically reported via an integer 
+representing an error code. When these low-level API calls are wrapped in 
+portable code, such as in a portable library, some users want to deal with the 
+error codes in portable ways. Other users need to get at the system specific 
+error codes, so they can deal with system specific needs. The Boost System 
+library provides simple, light-weight <a href="reference.html#Class-error_code">
+error_code</a> objects that encapsulate system-specific error code values, yet 
+also provide access to more abstract and portable error conditions via
+<a href="reference.html#Class-error_condition">error_condition</a> objects. 
+Because error_code objects can represent errors from sources other than the 
+operating system, including user-defined sources, each error_code and 
+error_condition has an associated <a href="reference.html#Class-error_category">
+error_category</a>.</p>
+
+<p>An exception class,&nbsp; <a href="reference.html#Class-system_error">
+system_error</a>, is provided. Derived from std::runtime_error, it captures the 
+underlying error_code for the problem causing the exception so that this 
+important information is not lost.</p>
+<p>While exceptions are the preferred C++ default error code reporting 
+mechanism, users of libraries dependent on low-level API's&nbsp;often need overloads 
+reporting error conditions via error code arguments and/or return values rather 
+than via throwing exceptions. Otherwise, when errors are not exceptional 
+occurrences and must be dealt with as they arise, programs become littered with 
+try/catch blocks, unreadable, and very inefficient. The Boost System library 
+supports both error reporting by exception and by error code.</p>
+<p>In addition to portable errors codes and conditions supported by the <code>
+error_code.hpp</code> header, system-specific headers support the Cygwin, Linux, 
+and Windows platforms. These headers are effectively no-ops if included for 
+platforms other than their intended target.</p>
+<table border="1" cellpadding="10" cellspacing="1" style="border-collapse: collapse" bordercolor="#111111">
+  <tr>
+    <td>The Boost System Library will become part of the C++0x Standard Library. 
+    A number of changes, particularly to names, were made by the C++ committee 
+    during standardization. The Boost implementation is tracking those changes. 
+    See <a href="reference.html#Deprecated-names">Deprecated names</a> for 
+    synonyms provided to prevent breakage of existing user code. See
+    <a href="reference.html#Breaking-changes">Breaking changes</a> for changes 
+    that unavoidably break existing user code. All breaking changes are noisy 
+    and will cause compile-time errors.</td>
+  </tr>
+</table>
+<h2><a name="Design_Rationale">Design Rationale</a></h2>
+<p>Class <code>error_code</code>&nbsp; and <code>error_condition</code> are designed as a value types so 
+they can be copied 
+without slicing and do not requiring heap allocation, but still have polymorphic 
+behavior based on the error category. This is achieved by abstract base class
+<code>error_category</code> supplying the polymorphic behavior, and <code>
+error_code</code> and <code>error_condition</code> containing a pointer to an object of a type derived from <code>
+error_category</code>.</p>
+<p>Many of the detailed design decisions were driven by the requirements that 
+users to be able to add additional error categories, and that it be no more 
+difficult to write portable code than system-specific code.</p>
+<p>The <code>operator&lt;&lt;</code> overload for <code>error_code</code> eliminates a 
+misleading conversion to bool in code like <code>cout &lt;&lt; ec</code>, where <code>
+ec</code> is of type <code>error_code</code>. It is also useful in its own 
+right.</p>
+<h2><a name="History">History</a></h2>
+<p><a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2006/n1975.html">
+N1975</a>, Filesystem Library Proposal for TR2, accepted for Library Technical 
+Report 2 (TR2) at the Berlin meeting, included additional components to 
+supplement the Standard Library's Diagnostics clause. Since then, these error 
+reporting components have received wider public scrutiny and enhancements have 
+been made to the design. The enhanced version has been used by N2054, Networking 
+Library Proposal for TR2, demonstrating that these error reporting components 
+are useful beyond the original Filesystem Library.</p>
+<p>The original proposal viewed error categories as a binary choice between
+<code>errno</code> (i.e. POSIX-style) and the native operating system's error 
+codes. The proposed components now allow as many additional error categories as 
+are needed by either implementations or by users. The need to support additional 
+error categories, for example, occurs in some networking library implementations 
+because they are built on top of the POSIX <code>getaddrinfo</code> API that 
+uses error codes not based on <code>errno</code>.</p>
+<h2><a name="Acknowledgements">Acknowledgements</a></h2>
+<p>Christopher Kohlhoff and Peter Dimov made important contributions to the 
+design. Comments and suggestions were also received from Pavel Vozenilek, 
+Gennaro Prota, Dave Abrahams, Jeff Garland, Iain Hanson, Oliver Kowalke, and 
+Oleg Abrosimov. Christopher Kohlhoff suggested several improvements to the N2066 
+paper. Johan Nilsson's comments led to several of the refinements in N2066 .</p>
+<hr>
+
+<p>Revised 
+<!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%B %d, %Y" startspan -->May 28, 2010<!--webbot bot="Timestamp" endspan i-checksum="11241" --> </font>
+</p>
+
+<p>© Copyright Beman Dawes, 1999</p>
+
+<p>Distributed under the Boost Software License, Version 1.0.
+(See file <a href="../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a>
+or&nbsp; <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>) </p>
+
+</body>
+
+</html>

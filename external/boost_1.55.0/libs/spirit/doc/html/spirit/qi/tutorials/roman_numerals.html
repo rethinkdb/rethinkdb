@@ -1,0 +1,392 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Roman Numerals</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Tutorials">
+<link rel="prev" href="number_list_attribute___one_more__with_style.html" title="Number List Attribute - one more, with style">
+<link rel="next" href="employee___parsing_into_structs.html" title="Employee - Parsing into structs">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="number_list_attribute___one_more__with_style.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="employee___parsing_into_structs.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.qi.tutorials.roman_numerals"></a><a class="link" href="roman_numerals.html" title="Roman Numerals">Roman Numerals</a>
+</h4></div></div></div>
+<p>
+          This example demonstrates:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              symbol table
+            </li>
+<li class="listitem">
+              rule
+            </li>
+<li class="listitem">
+              grammar
+            </li>
+</ul></div>
+<h6>
+<a name="spirit.qi.tutorials.roman_numerals.h0"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.roman_numerals.symbol_table"></a></span><a class="link" href="roman_numerals.html#spirit.qi.tutorials.roman_numerals.symbol_table">Symbol
+          Table</a>
+        </h6>
+<p>
+          The symbol table holds a dictionary of symbols where each symbol is a sequence
+          of characters (a <code class="computeroutput"><span class="keyword">char</span></code>, <code class="computeroutput"><span class="keyword">wchar_t</span></code>, <code class="computeroutput"><span class="keyword">int</span></code>,
+          enumeration etc.) . The template class, parameterized by the character
+          type, can work efficiently with 8, 16, 32 and even 64 bit characters. Mutable
+          data of type T are associated with each symbol.
+        </p>
+<p>
+          Traditionally, symbol table management is maintained separately outside
+          the BNF grammar through semantic actions. Contrary to standard practice,
+          the Spirit symbol table class <code class="computeroutput"><span class="identifier">symbols</span></code>
+          is a parser. An object of which may be used anywhere in the EBNF grammar
+          specification. It is an example of a dynamic parser. A dynamic parser is
+          characterized by its ability to modify its behavior at run time. Initially,
+          an empty symbols object matches nothing. At any time, symbols may be added
+          or removed, thus, dynamically altering its behavior.
+        </p>
+<p>
+          Each entry in a symbol table has an associated mutable data slot. In this
+          regard, one can view the symbol table as an associative container (or map)
+          of key-value pairs where the keys are strings.
+        </p>
+<p>
+          The symbols class expects two template parameters. The first parameter
+          specifies the character type of the symbols. The second specifies the data
+          type associated with each symbol: its attribute.
+        </p>
+<p>
+          Here's a parser for roman hundreds (100..900) using the symbol table. Keep
+          in mind that the data associated with each slot is the parser's attribute
+          (which is passed to attached semantic actions).
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">hundreds_</span> <span class="special">:</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">symbols</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="keyword">unsigned</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">hundreds_</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="identifier">add</span>
+            <span class="special">(</span><span class="string">"C"</span>    <span class="special">,</span> <span class="number">100</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"CC"</span>   <span class="special">,</span> <span class="number">200</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"CCC"</span>  <span class="special">,</span> <span class="number">300</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"CD"</span>   <span class="special">,</span> <span class="number">400</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"D"</span>    <span class="special">,</span> <span class="number">500</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"DC"</span>   <span class="special">,</span> <span class="number">600</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"DCC"</span>  <span class="special">,</span> <span class="number">700</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"DCCC"</span> <span class="special">,</span> <span class="number">800</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"CM"</span>   <span class="special">,</span> <span class="number">900</span><span class="special">)</span>
+        <span class="special">;</span>
+    <span class="special">}</span>
+
+<span class="special">}</span> <span class="identifier">hundreds</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          Here's a parser for roman tens (10..90):
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">tens_</span> <span class="special">:</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">symbols</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="keyword">unsigned</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">tens_</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="identifier">add</span>
+            <span class="special">(</span><span class="string">"X"</span>    <span class="special">,</span> <span class="number">10</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"XX"</span>   <span class="special">,</span> <span class="number">20</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"XXX"</span>  <span class="special">,</span> <span class="number">30</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"XL"</span>   <span class="special">,</span> <span class="number">40</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"L"</span>    <span class="special">,</span> <span class="number">50</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"LX"</span>   <span class="special">,</span> <span class="number">60</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"LXX"</span>  <span class="special">,</span> <span class="number">70</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"LXXX"</span> <span class="special">,</span> <span class="number">80</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"XC"</span>   <span class="special">,</span> <span class="number">90</span><span class="special">)</span>
+        <span class="special">;</span>
+    <span class="special">}</span>
+
+<span class="special">}</span> <span class="identifier">tens</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          and, finally, for ones (1..9):
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">ones_</span> <span class="special">:</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">symbols</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="keyword">unsigned</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">ones_</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="identifier">add</span>
+            <span class="special">(</span><span class="string">"I"</span>    <span class="special">,</span> <span class="number">1</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"II"</span>   <span class="special">,</span> <span class="number">2</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"III"</span>  <span class="special">,</span> <span class="number">3</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"IV"</span>   <span class="special">,</span> <span class="number">4</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"V"</span>    <span class="special">,</span> <span class="number">5</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"VI"</span>   <span class="special">,</span> <span class="number">6</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"VII"</span>  <span class="special">,</span> <span class="number">7</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"VIII"</span> <span class="special">,</span> <span class="number">8</span><span class="special">)</span>
+            <span class="special">(</span><span class="string">"IX"</span>   <span class="special">,</span> <span class="number">9</span><span class="special">)</span>
+        <span class="special">;</span>
+    <span class="special">}</span>
+
+<span class="special">}</span> <span class="identifier">ones</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          Now we can use <code class="computeroutput"><span class="identifier">hundreds</span></code>,
+          <code class="computeroutput"><span class="identifier">tens</span></code> and <code class="computeroutput"><span class="identifier">ones</span></code> anywhere in our parser expressions.
+          They are all parsers.
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.roman_numerals.h1"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.roman_numerals.rules"></a></span><a class="link" href="roman_numerals.html#spirit.qi.tutorials.roman_numerals.rules">Rules</a>
+        </h6>
+<p>
+          Up until now, we've been inlining our parser expressions, passing them
+          directly to the <code class="computeroutput"><span class="identifier">phrase_parse</span></code>
+          function. The expression evaluates into a temporary, unnamed parser which
+          is passed into the <code class="computeroutput"><span class="identifier">phrase_parse</span></code>
+          function, used, and then destroyed. This is fine for small parsers. When
+          the expressions get complicated, you'd want to break the expressions into
+          smaller easier-to-understand pieces, name them, and refer to them from
+          other parser expressions by name.
+        </p>
+<p>
+          A parser expression can be assigned to what is called a "rule".
+          There are various ways to declare rules. The simplest form is:
+        </p>
+<pre class="programlisting"><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;</span> <span class="identifier">r</span><span class="special">;</span>
+</pre>
+<p>
+          At the very least, the rule needs to know the iterator type it will be
+          working on. This rule cannot be used with <code class="computeroutput"><span class="identifier">phrase_parse</span></code>.
+          It can only be used with the <code class="computeroutput"><span class="identifier">parse</span></code>
+          function -- a version that does not do white space skipping (does not have
+          the skipper argument). If you want to have it skip white spaces, you need
+          to pass in the type skip parser, as in the next form:
+        </p>
+<pre class="programlisting"><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">Skipper</span><span class="special">&gt;</span> <span class="identifier">r</span><span class="special">;</span>
+</pre>
+<p>
+          Example:
+        </p>
+<pre class="programlisting"><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">,</span> <span class="identifier">space_type</span><span class="special">&gt;</span> <span class="identifier">r</span><span class="special">;</span>
+</pre>
+<p>
+          This type of rule can be used for both <code class="computeroutput"><span class="identifier">phrase_parse</span></code>
+          and <code class="computeroutput"><span class="identifier">parse</span></code>.
+        </p>
+<p>
+          For our next example, there's one more rule form you should know about:
+        </p>
+<pre class="programlisting"><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">Signature</span><span class="special">&gt;</span> <span class="identifier">r</span><span class="special">;</span>
+</pre>
+<p>
+          or
+        </p>
+<pre class="programlisting"><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">Signature</span><span class="special">,</span> <span class="identifier">Skipper</span><span class="special">&gt;</span> <span class="identifier">r</span><span class="special">;</span>
+</pre>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            All rule template arguments after Iterator can be supplied in any order.
+          </p></td></tr>
+</table></div>
+<p>
+          The Signature specifies the attributes of the rule. You've seen that our
+          parsers can have an attribute. Recall that the <code class="computeroutput"><span class="identifier">double_</span></code>
+          parser has an attribute of <code class="computeroutput"><span class="keyword">double</span></code>.
+          To be precise, these are <span class="emphasis"><em>synthesized</em></span> attributes. The
+          parser "synthesizes" the attribute value. Think of them as function
+          return values.
+        </p>
+<p>
+          There's another type of attribute called "inherited" attribute.
+          We won't need them for now, but it's good that you be aware of such attributes.
+          You can think of them as function arguments. And, rightly so, the rule
+          signature is a function signature of the form:
+        </p>
+<pre class="programlisting"><span class="identifier">result</span><span class="special">(</span><span class="identifier">argN</span><span class="special">,</span> <span class="identifier">argN</span><span class="special">,...,</span> <span class="identifier">argN</span><span class="special">)</span>
+</pre>
+<p>
+          After having declared a rule, you can now assign any parser expression
+          to it. Example:
+        </p>
+<pre class="programlisting"><span class="identifier">r</span> <span class="special">=</span> <span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="char">','</span> <span class="special">&gt;&gt;</span> <span class="identifier">double_</span><span class="special">);</span>
+</pre>
+<h6>
+<a name="spirit.qi.tutorials.roman_numerals.h2"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.roman_numerals.grammars"></a></span><a class="link" href="roman_numerals.html#spirit.qi.tutorials.roman_numerals.grammars">Grammars</a>
+        </h6>
+<p>
+          A grammar encapsulates one or more rules. It has the same template parameters
+          as the rule. You declare a grammar by:
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              deriving a struct (or class) from the <code class="computeroutput"><span class="identifier">grammar</span></code>
+              class template
+            </li>
+<li class="listitem">
+              declare one or more rules as member variables
+            </li>
+<li class="listitem">
+              initialize the base grammar class by giving it the start rule (its
+              the first rule that gets called when the grammar starts parsing)
+            </li>
+<li class="listitem">
+              initialize your rules in your constructor
+            </li>
+</ol></div>
+<p>
+          The roman numeral grammar is a very nice and simple example of a grammar:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">roman</span> <span class="special">:</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">unsigned</span><span class="special">()&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">roman</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">roman</span><span class="special">::</span><span class="identifier">base_type</span><span class="special">(</span><span class="identifier">start</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">eps</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">lit</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">_val</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">_1</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">char_</span><span class="special">;</span>
+
+        <span class="identifier">start</span> <span class="special">=</span> <span class="identifier">eps</span>             <span class="special">[</span><span class="identifier">_val</span> <span class="special">=</span> <span class="number">0</span><span class="special">]</span> <span class="special">&gt;&gt;</span>
+            <span class="special">(</span>
+                <span class="special">+</span><span class="identifier">lit</span><span class="special">(</span><span class="char">'M'</span><span class="special">)</span>       <span class="special">[</span><span class="identifier">_val</span> <span class="special">+=</span> <span class="number">1000</span><span class="special">]</span>
+                <span class="special">||</span>  <span class="identifier">hundreds</span>    <span class="special">[</span><span class="identifier">_val</span> <span class="special">+=</span> <span class="identifier">_1</span><span class="special">]</span>
+                <span class="special">||</span>  <span class="identifier">tens</span>        <span class="special">[</span><span class="identifier">_val</span> <span class="special">+=</span> <span class="identifier">_1</span><span class="special">]</span>
+                <span class="special">||</span>  <span class="identifier">ones</span>        <span class="special">[</span><span class="identifier">_val</span> <span class="special">+=</span> <span class="identifier">_1</span><span class="special">]</span>
+            <span class="special">)</span>
+        <span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">unsigned</span><span class="special">()&gt;</span> <span class="identifier">start</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          Things to take notice of:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              The grammar and start rule signature is <code class="computeroutput"><span class="keyword">unsigned</span><span class="special">()</span></code>. It has a synthesized attribute (return
+              value) of type <code class="computeroutput"><span class="keyword">unsigned</span></code>
+              with no inherited attributes (arguments).
+            </li>
+<li class="listitem">
+              We did not specify a skip-parser. We don't want to skip in between
+              the numerals.
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">roman</span><span class="special">::</span><span class="identifier">base_type</span></code> is a typedef for <code class="computeroutput"><span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span>
+              <span class="keyword">unsigned</span><span class="special">()&gt;</span></code>.
+              If <code class="computeroutput"><span class="identifier">roman</span></code> was not a
+              template, you could simply write: base_type(start)
+            </li>
+<li class="listitem">
+              It's best to make your grammar templates such that they can be reused
+              for different iterator types.
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">_val</span></code> is another <a href="../../../../../phoenix/doc/html/index.html" target="_top">Phoenix</a> placeholder
+              representing the rule's synthesized attribute.
+            </li>
+<li class="listitem">
+              <code class="computeroutput"><span class="identifier">eps</span></code> is a special spirit
+              parser that consumes no input but is always successful. We use it to
+              initialize <code class="computeroutput"><span class="identifier">_val</span></code>, the
+              rule's synthesized attribute, to zero before anything else. The actual
+              parser starts at <code class="computeroutput"><span class="special">+</span><span class="identifier">char_</span><span class="special">(</span><span class="char">'M'</span><span class="special">)</span></code>,
+              parsing roman thousands. Using <code class="computeroutput"><span class="identifier">eps</span></code>
+              this way is good for doing pre and post initializations.
+            </li>
+<li class="listitem">
+              The expression <code class="computeroutput"><span class="identifier">a</span> <span class="special">||</span>
+              <span class="identifier">b</span></code> reads: match a or b and
+              in sequence. That is, if both <code class="computeroutput"><span class="identifier">a</span></code>
+              and <code class="computeroutput"><span class="identifier">b</span></code> match, it must
+              be in sequence; this is equivalent to <code class="computeroutput"><span class="identifier">a</span>
+              <span class="special">&gt;&gt;</span> <span class="special">-</span><span class="identifier">b</span> <span class="special">|</span> <span class="identifier">b</span></code>, but more efficient.
+            </li>
+</ul></div>
+<h6>
+<a name="spirit.qi.tutorials.roman_numerals.h3"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.roman_numerals.let_s_parse_"></a></span><a class="link" href="roman_numerals.html#spirit.qi.tutorials.roman_numerals.let_s_parse_">Let's
+          Parse!</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">bool</span> <span class="identifier">r</span> <span class="special">=</span> <span class="identifier">parse</span><span class="special">(</span><span class="identifier">iter</span><span class="special">,</span> <span class="identifier">end</span><span class="special">,</span> <span class="identifier">roman_parser</span><span class="special">,</span> <span class="identifier">result</span><span class="special">);</span>
+
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">r</span> <span class="special">&amp;&amp;</span> <span class="identifier">iter</span> <span class="special">==</span> <span class="identifier">end</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-------------------------\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Parsing succeeded\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"result = "</span> <span class="special">&lt;&lt;</span> <span class="identifier">result</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-------------------------\n"</span><span class="special">;</span>
+<span class="special">}</span>
+<span class="keyword">else</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">rest</span><span class="special">(</span><span class="identifier">iter</span><span class="special">,</span> <span class="identifier">end</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-------------------------\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Parsing failed\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"stopped at: \": "</span> <span class="special">&lt;&lt;</span> <span class="identifier">rest</span> <span class="special">&lt;&lt;</span> <span class="string">"\"\n"</span><span class="special">;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-------------------------\n"</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          <code class="computeroutput"><span class="identifier">roman_parser</span></code> is an object
+          of type <code class="computeroutput"><span class="identifier">roman</span></code>, our roman
+          numeral parser. This time around we are using the no-skipping version of
+          the parse functions. We do not want to skip any spaces! We are also passing
+          in an attribute, <code class="computeroutput"><span class="keyword">unsigned</span> <span class="identifier">result</span></code>, which will receive the parsed
+          value.
+        </p>
+<p>
+          The full cpp file for this example can be found here: <a href="../../../../../example/qi/roman.cpp" target="_top">../../example/qi/roman.cpp</a>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="number_list_attribute___one_more__with_style.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="employee___parsing_into_structs.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

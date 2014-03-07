@@ -1,0 +1,448 @@
+[/
+    Boost.Optional
+
+    Copyright (c) 2003-2007 Fernando Luis Cacciola Carballal
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section Type Requirements and User-defined-types support]
+
+[section Type Requirements]
+
+Both arithmetic (built-in) and user-defined numeric types require proper
+specialization of `std::numeric_limits<>` (that is, with (in-class) integral
+constants).
+
+The library uses `std::numeric_limits<T>::is_specialized` to detect whether
+the type is builtin or user defined, and `std::numeric_limits<T>::is_integer`,
+`std::numeric_limits<T>::is_signed` to detect whether the type is integer
+or floating point; and whether it is signed/unsigned.
+
+The default `Float2IntRounder` policies uses unqualified calls to functions
+`floor()` and `ceil()`; but the standard functions are introduced in scope
+by a using directive:
+
+    using std::floor ; return floor(s);
+
+Therefore, for builtin arithmetic types, the std functions will be used.
+User defined types should provide overloaded versions of these functions in
+order to use the default rounder policies. If these overloads are defined
+within a user namespace argument dependent lookup (ADL) should find them,
+but if your compiler has a weak ADL you might need to put these functions
+some place else or write your own rounder policy.
+
+The default `Trunc<>` rounder policy needs to determine if the source value
+is positive or not, and for this it evaluates the expression
+`s < static_cast<S>(0)`. Therefore, user defined types require a visible
+`operator<` in order to use the `Trunc<>` policy (the default).
+
+
+[endsect]
+
+[section UDT's special semantics]
+
+[heading Conversion Traits]
+
+If a User Defined Type is involved in a conversion, it is ['assumed] that
+the UDT has [link boost_numericconversion.definitions.range_and_precision wider range] 
+than any built-in type, and consequently the values
+of some `converter_traits<>` members are hardwired regardless of the reality.
+The following table summarizes this:
+
+* `Target=`['UDT] and `Source=`['built-in]
+    * `subranged=false`
+    * `supertype=Target`
+    * `subtype=Source`
+* `Target=`['built-in] and `Source=`['UDT]
+    * `subranged=true`
+    * `supertype=Source`
+    * `subtype=Target`
+
+* `Target=`['UDT] and `Source=`['UDT]
+    * `subranged=false`
+    * `supertype=Target`
+    * `subtype=Source`
+
+
+The `Traits` member `udt_mixture` can be used to detect whether a UDT is involved
+and to infer the validity of the other members as shown above.
+
+[heading Range Checking]
+
+Because User Defined Numeric Types might have peculiar ranges (such as an
+unbounded range), this library does not attempt to supply a meaningful range
+checking logic when UDTs are involved in a conversion. Therefore, if either
+Target or Source are not built-in types, the bundled range checking of the
+`converter<>` function object is automatically disabled. However, it is possible
+to supply a user-defined range-checker. See 
+[link boost_numericconversion.type_requirements_and_user_defined_types_support.special_policies Special Policies]
+
+[endsect]
+
+[section Special Policies]
+
+There are two components of the `converter<>` class that might require special
+behavior if User Defined Numeric Types are involved: the Range Checking and the
+Raw Conversion.
+
+When both Target and Source are built-in types, the converter class uses an internal
+range checking logic which is optimized and customized for the combined properties
+of the types.
+
+However, this internal logic is disabled when either type is User Defined.
+In this case, the user can specify an ['external] range checking policy which will be
+used in place of the internal code. See
+[link boost_numericconversion.type_requirements_and_user_defined_types_support.udts_with_numeric_cast numeric_cast_traits]
+for details on using UDTs with `numeric_cast`.
+
+The converter class performs the actual conversion using a Raw Converter policy.
+The default raw converter simply performs a `static_cast<Target>(source)`.
+
+However, if the a UDT is involved, the `static_cast` might not work. In this case,
+the user can implement and pass a different raw converter policy.
+See [link boost_numericconversion.numeric_converter_policy_classes.policy_rawconverter RawConverter] policy for details.
+
+[endsect]
+
+[section UDTs with numeric_cast]
+
+In order to employ UDTs with `numeric_cast`, the user should define
+a `numeric_cast_traits` specialization on the UDT for each conversion.
+Here is an example of specializations for converting between the UDT
+and any other type:
+
+    namespace boost { namespace numeric {
+    template <typename Source>
+    struct numeric_cast_traits<UDT, Source>
+    {
+        typedef conversion_traits<UDT, Source>      conv_traits;
+        
+        //! The following are required:
+        typedef YourOverflowHandlerPolicy           overflow_policy;
+        typedef YourRangeCheckerPolicy<conv_traits> range_checking_policy;
+        typedef YourFloat2IntRounderPolicy<Source>  rounding_policy;
+    };
+    template <typename Target>
+    struct numeric_cast_traits<Target, UDT>
+    {
+        typedef conversion_traits<Target, UDT>      conv_traits;
+        
+        //! The following are required:
+        typedef YourOverflowHandlerPolicy           overflow_policy;
+        typedef YourRangeCheckerPolicy<conv_traits> range_checking_policy;
+        typedef YourFloat2IntRounderPolicy<UDT>     rounding_policy;
+    };
+    }}//namespace boost::numeric;
+
+These specializations are already defined with default values for the built-in
+numeric types. It is possible to disable the generation of specializations for
+built-in types by defining `BOOST_NUMERIC_CONVERSION_RELAX_BUILT_IN_CAST_TRAITS`.
+For details on defining custom policies see [link boost_numericconversion.numeric_converter_policy_classes Converter Policies].
+
+Here is a full example of how to define a custom UDT for use with `numeric_cast`:
+
+    //! Define a simple custom number
+    struct Double
+        :   boost::ordered_field_operators
+            <
+                Double
+              , boost::ordered_field_operators2< Double, long double
+              , boost::ordered_field_operators2< Double, double
+              , boost::ordered_field_operators2< Double, float
+              , boost::ordered_field_operators2< Double, int
+              , boost::ordered_field_operators2< Double, unsigned int
+              , boost::ordered_field_operators2< Double, long
+              , boost::ordered_field_operators2< Double, unsigned long
+              , boost::ordered_field_operators2< Double, long long
+              , boost::ordered_field_operators2< Double, unsigned long long
+              , boost::ordered_field_operators2< Double, char
+              , boost::ordered_field_operators2< Double, unsigned char
+              , boost::ordered_field_operators2< Double, short
+              , boost::ordered_field_operators2< Double, unsigned short
+            > > > > > > > > > > > > > >
+    {
+        Double()
+            : v(0)
+        {}
+
+        template <typename T>
+        explicit Double( T v )
+            : v(static_cast<double>(v))
+        {}
+
+        template <typename T>
+        Double& operator= ( T t )
+        {
+            v = static_cast<double>(t);
+            return *this;
+        }
+
+        bool operator < ( const Double& rhs ) const
+        {
+            return v < rhs.v;
+        }
+
+        template <typename T>
+        bool operator < ( T rhs ) const
+        {
+            return v < static_cast<double>(rhs);
+        }
+
+        bool operator > ( const Double& rhs ) const
+        {
+            return v > rhs.v;
+        }
+    
+        template <typename T>
+        bool operator > ( T rhs ) const
+        {
+            return v > static_cast<double>(rhs);
+        }
+    
+        bool operator ==( const Double& rhs ) const
+        {
+            return v == rhs.v;
+        }
+    
+        template <typename T>
+        bool operator == ( T rhs ) const
+        {
+            return v == static_cast<double>(rhs);
+        }
+    
+        bool operator !() const
+        {
+            return v == 0; 
+        }
+    
+        Double operator -() const
+        {
+            return Double(-v);
+        }
+    
+        Double& operator +=( const Double& t )
+        {
+            v += t.v;
+            return *this;
+        }
+    
+        template <typename T>
+        Double& operator +=( T t )
+        {
+            v += static_cast<double>(t);
+            return *this;
+        }
+    
+        Double& operator -=( const Double& t )
+        {
+            v -= t.v;
+            return *this;
+        }
+    
+        template <typename T>
+        Double& operator -=( T t )
+        {
+            v -= static_cast<double>(t);
+            return *this;
+        }
+    
+        Double& operator *= ( const Double& factor )
+        {
+            v *= factor.v;
+            return *this;
+        }
+    
+        template <typename T>
+        Double& operator *=( T t )
+        {
+            v *= static_cast<double>(t);
+            return *this;
+        }
+
+        Double& operator /= (const Double& divisor)
+        {
+            v /= divisor.v;
+            return *this;
+        }
+    
+        template <typename T>
+        Double& operator /=( T t )
+        {
+             v /= static_cast<double>(t);
+            return (*this);       
+        }
+    
+        double v;
+    };
+
+    //! Define numeric_limits for the custom type.
+    namespace std
+    {
+        template<>
+        class numeric_limits<Double> : public numeric_limits<double>
+        {
+        public:
+
+            //! Limit our Double to a range of +/- 100.0
+            static Double (min)()
+            {            
+                return Double(1.e-2);
+            }
+
+            static Double (max)()
+            {
+                return Double(1.e2);
+            }
+
+            static Double epsilon()
+            {
+                return Double( std::numeric_limits<double>::epsilon() );
+            }
+        };
+    }
+
+    //! Define range checking and overflow policies.
+    namespace custom
+    {
+        //! Define a custom range checker
+        template<typename Traits, typename OverFlowHandler>
+        struct range_checker
+        {
+            typedef typename Traits::argument_type argument_type ;
+            typedef typename Traits::source_type S;
+            typedef typename Traits::target_type T;
+        
+            //! Check range of integral types.
+            static boost::numeric::range_check_result out_of_range( argument_type s )
+            {
+                using namespace boost::numeric;
+                if( s > bounds<T>::highest() )
+                    return cPosOverflow;
+                else if( s < bounds<T>::lowest() )
+                    return cNegOverflow;
+                else
+                    return cInRange;
+            }
+
+            static void validate_range ( argument_type s )
+            {
+                BOOST_STATIC_ASSERT( std::numeric_limits<T>::is_bounded );
+                OverFlowHandler()( out_of_range(s) );
+            }
+        };
+
+        //! Overflow handler
+        struct positive_overflow{};
+        struct negative_overflow{};
+
+        struct overflow_handler
+        {
+            void operator() ( boost::numeric::range_check_result r )
+            {
+                using namespace boost::numeric;
+                if( r == cNegOverflow )
+                    throw negative_overflow() ;
+                else if( r == cPosOverflow )
+                    throw positive_overflow() ;
+            }
+        };
+
+        //! Define a rounding policy and specialize on the custom type.
+        template<class S>
+        struct Ceil : boost::numeric::Ceil<S>{};
+
+        template<>
+        struct Ceil<Double>
+        {
+          typedef Double source_type;
+
+          typedef Double const& argument_type;
+
+          static source_type nearbyint ( argument_type s )
+          {
+    #if !defined(BOOST_NO_STDC_NAMESPACE)
+              using std::ceil ;
+    #endif
+              return Double( ceil(s.v) );
+          }
+
+          typedef boost::mpl::integral_c< std::float_round_style, std::round_toward_infinity> round_style;
+        };
+
+        //! Define a rounding policy and specialize on the custom type.
+        template<class S>
+        struct Trunc: boost::numeric::Trunc<S>{};
+
+        template<>
+        struct Trunc<Double>
+        {
+          typedef Double source_type;
+
+          typedef Double const& argument_type;
+
+          static source_type nearbyint ( argument_type s )
+          {
+    #if !defined(BOOST_NO_STDC_NAMESPACE)
+              using std::floor;
+    #endif
+              return Double( floor(s.v) );
+          }
+
+          typedef boost::mpl::integral_c< std::float_round_style, std::round_toward_zero> round_style;
+        };
+    }//namespace custom;
+
+    namespace boost { namespace numeric {
+
+        //! Define the numeric_cast_traits specializations on the custom type.
+        template <typename S>
+        struct numeric_cast_traits<Double, S>
+        {
+            typedef custom::overflow_handler                         overflow_policy;
+            typedef custom::range_checker
+                    <
+                        boost::numeric::conversion_traits<Double, S>
+                      , overflow_policy
+                    >                                                range_checking_policy;
+            typedef boost::numeric::Trunc<S>                         rounding_policy;
+        };
+    
+        template <typename T>
+        struct numeric_cast_traits<T, Double>
+        {
+            typedef custom::overflow_handler                         overflow_policy;
+            typedef custom::range_checker
+                    <
+                        boost::numeric::conversion_traits<T, Double>
+                      , overflow_policy
+                    >                                                range_checking_policy;
+            typedef custom::Trunc<Double>                            rounding_policy;
+        };
+
+        //! Define the conversion from the custom type to built-in types and vice-versa.
+        template<typename T>
+        struct raw_converter< conversion_traits< T, Double > >
+        {
+            static T low_level_convert ( const Double& n )
+            {
+                return static_cast<T>( n.v ); 
+            }
+        };
+
+        template<typename S>
+        struct raw_converter< conversion_traits< Double, S > >
+        {
+            static Double low_level_convert ( const S& n )
+            {
+                return Double(n); 
+            }
+        };
+    }}//namespace boost::numeric;
+	
+[endsect]
+
+[endsect]
+

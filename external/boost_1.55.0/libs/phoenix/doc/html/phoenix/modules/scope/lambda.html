@@ -1,0 +1,194 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>lambda</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../scope.html" title="Scope">
+<link rel="prev" href="let.html" title="let">
+<link rel="next" href="../bind.html" title="Bind">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="let.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../scope.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../bind.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.modules.scope.lambda"></a><a class="link" href="lambda.html" title="lambda">lambda</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">scope</span><span class="special">/</span><span class="identifier">lambda</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          A lot of times, you'd want to write a lazy function that accepts one or
+          more functions (higher order functions). STL algorithms come to mind, for
+          example. Consider a lazy version of <code class="computeroutput"><span class="identifier">stl</span><span class="special">::</span><span class="identifier">for_each</span></code>:
+        </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">for_each_impl</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">C</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">result</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">void</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">C</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&gt;</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">C</span><span class="special">&amp;</span> <span class="identifier">c</span><span class="special">,</span> <span class="identifier">F</span> <span class="identifier">f</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">f</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">for_each_impl</span><span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">for_each</span> <span class="special">=</span> <span class="identifier">for_each_impl</span><span class="special">();</span>
+</pre>
+<p>
+          Notice that the function accepts another function, <code class="computeroutput"><span class="identifier">f</span></code>
+          as an argument. The scope of this function, <code class="computeroutput"><span class="identifier">f</span></code>,
+          is limited within the <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>. When <code class="computeroutput"><span class="identifier">f</span></code>
+          is called inside <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">for_each</span></code>, it exists in a new scope, along
+          with new arguments and, possibly, local variables. This new scope is not
+          at all related to the outer scopes beyond the <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>.
+        </p>
+<p>
+          Simple syntax:
+        </p>
+<pre class="programlisting"><span class="identifier">lambda</span>
+<span class="special">[</span>
+    <span class="identifier">lambda</span><span class="special">-</span><span class="identifier">body</span>
+<span class="special">]</span>
+</pre>
+<p>
+          Like <code class="computeroutput"><span class="identifier">let</span></code>, local variables
+          may be declared, allowing 1..N local variable declarations (where N ==
+          <code class="computeroutput"><span class="identifier">BOOST_PHOENIX_LOCAL_LIMIT</span></code>):
+        </p>
+<pre class="programlisting"><span class="identifier">lambda</span><span class="special">(</span><span class="identifier">local</span><span class="special">-</span><span class="identifier">declarations</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="identifier">lambda</span><span class="special">-</span><span class="identifier">body</span>
+<span class="special">]</span>
+</pre>
+<p>
+          The same restrictions apply with regard to scope and visibility. The RHS
+          (right hand side lambda-expression) of each local-declaration cannot refer
+          to any LHS local-id. The local-ids are not in scope yet; they will be in
+          scope only in the lambda-body:
+        </p>
+<pre class="programlisting"><span class="identifier">lambda</span><span class="special">(</span>
+    <span class="identifier">_a</span> <span class="special">=</span> <span class="number">1</span>
+  <span class="special">,</span> <span class="identifier">_b</span> <span class="special">=</span> <span class="identifier">_a</span> <span class="comment">// Error: _a is not in scope yet</span>
+<span class="special">)</span>
+</pre>
+<p>
+          See <a class="link" href="let.html#phoenix.modules.scope.let.visibility"><code class="computeroutput"><span class="identifier">let</span></code> Visibility</a> for more information.
+        </p>
+<p>
+          Example: Using our lazy <code class="computeroutput"><span class="identifier">for_each</span></code>
+          let's print all the elements in a container:
+        </p>
+<pre class="programlisting"><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">lambda</span><span class="special">[</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span><span class="special">])</span>
+</pre>
+<p>
+          As far as the arguments are concerned (arg1..argN), the scope in which
+          the lambda-body exists is totally new. The left <code class="computeroutput"><span class="identifier">arg1</span></code>
+          refers to the argument passed to <code class="computeroutput"><span class="identifier">for_each</span></code>
+          (a container). The right <code class="computeroutput"><span class="identifier">arg1</span></code>
+          refers to the argument passed by <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">for_each</span></code>
+          when we finally get to call <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code> in our <code class="computeroutput"><span class="identifier">for_each_impl</span></code>
+          above (a container element).
+        </p>
+<p>
+          Yet, we may wish to get information from outer scopes. While we do not
+          have access to arguments in outer scopes, what we still have is access
+          to local variables from outer scopes. We may only be able to pass argument
+          related information from outer <code class="computeroutput"><span class="identifier">lambda</span></code>
+          scopes through the local variables.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This is a crucial difference between <code class="computeroutput"><span class="identifier">let</span></code>
+            and <code class="computeroutput"><span class="identifier">lambda</span></code>: <code class="computeroutput"><span class="identifier">let</span></code> does not introduce new arguments;
+            <code class="computeroutput"><span class="identifier">lambda</span></code> does.
+          </p></td></tr>
+</table></div>
+<p>
+          Another example: Using our lazy <code class="computeroutput"><span class="identifier">for_each</span></code>,
+          and a lazy <code class="computeroutput"><span class="identifier">push_back</span></code>:
+        </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">push_back_impl</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">C</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">result</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">void</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">C</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">C</span><span class="special">&amp;</span> <span class="identifier">c</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">c</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">x</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">push_back_impl</span><span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">push_back</span> <span class="special">=</span> <span class="identifier">push_back_impl</span><span class="special">();</span>
+</pre>
+<p>
+          write a lambda expression that accepts:
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              a 2-dimensional container (e.g. <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>)
+            </li>
+<li class="listitem">
+              a container element (e.g. <code class="computeroutput"><span class="keyword">int</span></code>)
+            </li>
+</ol></div>
+<p>
+          and pushes-back the element to each of the <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code>.
+        </p>
+<p>
+          Solution:
+        </p>
+<pre class="programlisting"><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span>
+    <span class="identifier">lambda</span><span class="special">(</span><span class="identifier">_a</span> <span class="special">=</span> <span class="identifier">arg2</span><span class="special">)</span>
+    <span class="special">[</span>
+        <span class="identifier">push_back</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">_a</span><span class="special">)</span>
+    <span class="special">]</span>
+<span class="special">)</span>
+</pre>
+<p>
+          Since we do not have access to the arguments of the outer scopes beyond
+          the lambda-body, we introduce a local variable <code class="computeroutput"><span class="identifier">_a</span></code>
+          that captures the second outer argument: <code class="computeroutput"><span class="identifier">arg2</span></code>.
+          Hence: _a = arg2. This local variable is visible inside the lambda scope.
+        </p>
+<p>
+          (See <a href="../../../../../example/lambda.cpp" target="_top">lambda.cpp</a>)
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="let.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../scope.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../bind.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

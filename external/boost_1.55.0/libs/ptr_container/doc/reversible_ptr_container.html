@@ -1,0 +1,826 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.10: http://docutils.sourceforge.net/" />
+<title>Boost Pointer Container Library</title>
+<style type="text/css">
+
+/*
+:Author: David Goodger
+:Contact: goodger@users.sourceforge.net
+:Date: $Date: 2007-11-25 10:38:02 -0800 (Sun, 25 Nov 2007) $
+:Revision: $Revision: 41370 $
+:Copyright: This stylesheet has been placed in the public domain.
+
+Default cascading style sheet for the HTML output of Docutils.
+
+See http://docutils.sf.net/docs/howto/html-stylesheets.html for how to
+customize this style sheet.
+*/
+
+/* "! important" is used here to override other ``margin-top`` and
+   ``margin-bottom`` styles that are later in the stylesheet or 
+   more specific.  See http://www.w3.org/TR/CSS1#the-cascade */
+.first {
+  margin-top: 0 ! important }
+
+.last, .with-subtitle {
+  margin-bottom: 0 ! important }
+
+.hidden {
+  display: none }
+
+a.toc-backref {
+  text-decoration: none ;
+  color: black }
+
+blockquote.epigraph {
+  margin: 2em 5em ; }
+
+dl.docutils dd {
+  margin-bottom: 0.5em }
+
+/* Uncomment (and remove this text!) to get bold-faced definition list terms
+dl.docutils dt {
+  font-weight: bold }
+*/
+
+div.abstract {
+  margin: 2em 5em }
+
+div.abstract p.topic-title {
+  font-weight: bold ;
+  text-align: center }
+
+div.admonition, div.attention, div.caution, div.danger, div.error,
+div.hint, div.important, div.note, div.tip, div.warning {
+  margin: 2em ;
+  border: medium outset ;
+  padding: 1em }
+
+div.admonition p.admonition-title, div.hint p.admonition-title,
+div.important p.admonition-title, div.note p.admonition-title,
+div.tip p.admonition-title {
+  font-weight: bold ;
+  font-family: sans-serif }
+
+div.attention p.admonition-title, div.caution p.admonition-title,
+div.danger p.admonition-title, div.error p.admonition-title,
+div.warning p.admonition-title {
+  color: red ;
+  font-weight: bold ;
+  font-family: sans-serif }
+
+/* Uncomment (and remove this text!) to get reduced vertical space in
+   compound paragraphs.
+div.compound .compound-first, div.compound .compound-middle {
+  margin-bottom: 0.5em }
+
+div.compound .compound-last, div.compound .compound-middle {
+  margin-top: 0.5em }
+*/
+
+div.dedication {
+  margin: 2em 5em ;
+  text-align: center ;
+  font-style: italic }
+
+div.dedication p.topic-title {
+  font-weight: bold ;
+  font-style: normal }
+
+div.figure {
+  margin-left: 2em }
+
+div.footer, div.header {
+  clear: both;
+  font-size: smaller }
+
+div.line-block {
+  display: block ;
+  margin-top: 1em ;
+  margin-bottom: 1em }
+
+div.line-block div.line-block {
+  margin-top: 0 ;
+  margin-bottom: 0 ;
+  margin-left: 1.5em }
+
+div.sidebar {
+  margin-left: 1em ;
+  border: medium outset ;
+  padding: 1em ;
+  background-color: #ffffee ;
+  width: 40% ;
+  float: right ;
+  clear: right }
+
+div.sidebar p.rubric {
+  font-family: sans-serif ;
+  font-size: medium }
+
+div.system-messages {
+  margin: 5em }
+
+div.system-messages h1 {
+  color: red }
+
+div.system-message {
+  border: medium outset ;
+  padding: 1em }
+
+div.system-message p.system-message-title {
+  color: red ;
+  font-weight: bold }
+
+div.topic {
+  margin: 2em }
+
+h1.section-subtitle, h2.section-subtitle, h3.section-subtitle,
+h4.section-subtitle, h5.section-subtitle, h6.section-subtitle {
+  margin-top: 0.4em }
+
+h1.title {
+  text-align: center }
+
+h2.subtitle {
+  text-align: center }
+
+hr.docutils {
+  width: 75% }
+
+img.align-left {
+  clear: left }
+
+img.align-right {
+  clear: right }
+
+img.borderless {
+  border: 0 }
+
+ol.simple, ul.simple {
+  margin-bottom: 1em }
+
+ol.arabic {
+  list-style: decimal }
+
+ol.loweralpha {
+  list-style: lower-alpha }
+
+ol.upperalpha {
+  list-style: upper-alpha }
+
+ol.lowerroman {
+  list-style: lower-roman }
+
+ol.upperroman {
+  list-style: upper-roman }
+
+p.attribution {
+  text-align: right ;
+  margin-left: 50% }
+
+p.caption {
+  font-style: italic }
+
+p.credits {
+  font-style: italic ;
+  font-size: smaller }
+
+p.label {
+  white-space: nowrap }
+
+p.rubric {
+  font-weight: bold ;
+  font-size: larger ;
+  color: maroon ;
+  text-align: center }
+
+p.sidebar-title {
+  font-family: sans-serif ;
+  font-weight: bold ;
+  font-size: larger }
+
+p.sidebar-subtitle {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+p.topic-title {
+  font-weight: bold }
+
+pre.address {
+  margin-bottom: 0 ;
+  margin-top: 0 ;
+  font-family: serif ;
+  font-size: 100% }
+
+pre.line-block {
+  font-family: serif ;
+  font-size: 100% }
+
+pre.literal-block, pre.doctest-block {
+  margin-left: 2em ;
+  margin-right: 2em ;
+  background-color: #eeeeee }
+
+span.classifier {
+  font-family: sans-serif ;
+  font-style: oblique }
+
+span.classifier-delimiter {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+span.interpreted {
+  font-family: sans-serif }
+
+span.option {
+  white-space: nowrap }
+
+span.pre {
+  white-space: pre }
+
+span.problematic {
+  color: red }
+
+span.section-subtitle {
+  /* font-size relative to parent (h1..h6 element) */
+  font-size: 80% }
+
+table.citation {
+  border-left: solid thin gray }
+
+table.docinfo {
+  margin: 2em 4em }
+
+table.docutils {
+  margin-top: 0.5em ;
+  margin-bottom: 0.5em }
+
+table.footnote {
+  border-left: solid thin black }
+
+table.docutils td, table.docutils th,
+table.docinfo td, table.docinfo th {
+  padding-left: 0.5em ;
+  padding-right: 0.5em ;
+  vertical-align: top }
+
+table.docutils th.field-name, table.docinfo th.docinfo-name {
+  font-weight: bold ;
+  text-align: left ;
+  white-space: nowrap ;
+  padding-left: 0 }
+
+h1 tt.docutils, h2 tt.docutils, h3 tt.docutils,
+h4 tt.docutils, h5 tt.docutils, h6 tt.docutils {
+  font-size: 100% }
+
+tt.docutils {
+  background-color: #eeeeee }
+
+ul.auto-toc {
+  list-style-type: none }
+
+</style>
+</head>
+<body>
+<div class="document" id="boost-pointer-container-library">
+<h1 class="title"><img alt="Boost" src="boost.png" /> Pointer Container Library</h1>
+<div class="section">
+<h1><a id="class-reversible-ptr-container" name="class-reversible-ptr-container">Class <tt class="docutils literal"><span class="pre">reversible_ptr_container</span></tt></a></h1>
+<p>This class is not a real class that can be found in the library. 
+Its purpose is to present the general interface of all the pointer containers.</p>
+<p><strong>Hierarchy:</strong></p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">reversible_ptr_container</span></tt><ul>
+<li><a class="reference" href="ptr_sequence_adapter.html">ptr_sequence_adapter</a><ul>
+<li><a class="reference" href="ptr_vector.html">ptr_vector</a></li>
+<li><a class="reference" href="ptr_list.html">ptr_list</a></li>
+<li><a class="reference" href="ptr_deque.html">ptr_deque</a></li>
+<li><a class="reference" href="ptr_array.html">ptr_array</a></li>
+</ul>
+</li>
+<li><a class="reference" href="associative_ptr_container.html">associative_ptr_container</a><ul>
+<li><a class="reference" href="ptr_set_adapter.html">ptr_set_adapter</a></li>
+<li><a class="reference" href="ptr_multiset_adapter.html">ptr_multiset_adapter</a></li>
+<li><a class="reference" href="ptr_map_adapter.html">ptr_map_adapter</a></li>
+<li><a class="reference" href="ptr_multimap_adapter.html">ptr_multi_map_adapter</a><ul>
+<li><a class="reference" href="ptr_set.html">ptr_set</a></li>
+<li><a class="reference" href="ptr_multiset.html">ptr_multi_set</a></li>
+<li><a class="reference" href="ptr_map.html">ptr_map</a></li>
+<li><a class="reference" href="ptr_multimap.html">ptr_multimap</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>Navigate:</strong></p>
+<ul class="simple">
+<li><a class="reference" href="ptr_container.html">home</a></li>
+<li><a class="reference" href="reference.html">reference</a></li>
+</ul>
+<p><strong>synopsis:</strong></p>
+<pre class="literal-block">
+namespace boost
+{      
+    template
+    &lt; 
+        class T, 
+        class CloneAllocator,
+        class VoidPtrContainer
+    &gt;
+    class reversible_ptr_container 
+    {
+    public: // <a class="reference" href="#typedefs">typedefs</a>
+        typedef  T*                                           value_type;
+        typedef  T&amp;                                           reference;
+        typedef  const T&amp;                                     const_reference;
+        typedef  <em>implementation defined</em>                       iterator;
+        typedef  <em>implementation defined</em>                       const_iterator;
+        typedef  typename VoidPtrContainer::differnce_type    difference_type; 
+        typedef  typename VoidPtrContainer::size_type         size_type;
+        typedef  typename VoidPtrContainer::allocator_type    allocator_type;
+        typedef  <em>implementation defined</em>                       reverse_iterator;
+        typedef  <em>implementation defined</em>                       const_reverse_iterator;
+        typedef  <em>implementation defined</em>                       auto_type;
+    
+    public: // <a class="reference" href="#construct-copy-destroy">construct/copy/destroy</a>
+        reversible_ptr_container();
+        explicit reversible_ptr_container( const reversible_ptr_container&amp; r );                
+        template&lt; class Derived &gt;
+        explicit reversible_ptr_container( const reversible_ptr_container&lt;Derived&gt;&amp; r );
+        explicit reversible_ptr_container( std::auto_ptr&lt;reversible_ptr_container&gt; r );
+        template&lt; class InputIterator &gt;
+        reversible_ptr_container( InputIterator first, InputIterator last );
+        
+        ~reversible_ptr_container();
+
+        reversible_ptr_container&amp;  operator=( const reversible_ptr_container&amp; r );
+        template&lt;class Derived&gt;
+        reversible_ptr_container&amp;  operator=( const reversible_ptr_container&lt;Derived&gt;&amp; r );
+        reversible_ptr_container&amp;  operator=( std::auto_ptr&lt;reversible_ptr_container&gt; r );
+        allocator_type             get_allocator() const;                                      
+    
+    public: // <a class="reference" href="#iterators">iterators</a>
+        iterator                begin();
+        const_iterator          begin() const;
+        iterator                end();
+        const_iterator          end() const;
+        reverse_iterator        rbegin();
+        const_reverse_iterator  rbegin() const;
+        reverse_iterator        rend();
+        const_reverse_iterator  rend() const;
+        
+    public: // <a class="reference" href="#capacity">capacity</a>
+        size_type  size() const;
+        size_type  max_size() const;
+        bool       empty() const;       
+    
+    public: // <a class="reference" href="#modifiers">modifiers</a>
+        void                     swap( reversible_ptr_container&amp; r );
+        void                     clear():
+        VoidPtrContainer&amp;        base();
+        const VoidPtrContainer&amp;  base() const;
+    
+    public: // <a class="reference" href="#pointer-container-requirements">pointer container requirements</a>
+        auto_type                                replace( iterator position, T* x );
+        template&lt; class U &gt;
+        auto_type                                replace( iterator position, std::auto_ptr&lt;U&gt; x );    
+        std::auto_ptr&lt;reversible_ptr_container&gt;  clone() const;    
+        std::auto_ptr&lt;reversible_ptr_container&gt;  release();
+        auto_type                                release( iterator position );
+                    
+    }; //  class 'reversible_ptr_container'
+
+    // <a class="reference" href="#comparison">comparison</a>            
+    template &lt; class T, class CA, class VPC &gt;
+    bool operator==( const reversible_ptr_container&lt;T,CA,VPC&gt;&amp; x,
+                     const reversible_ptr_container&lt;T,CA,VPC&gt;&amp; y);
+    
+    template &lt; class T, class CA, class VPC  &gt;
+    bool operator&lt;( const reversible_ptr_container&lt;T,CA,VPC&gt;&amp; x,
+                    const reversible_ptr_container&lt;T,CA,VPC&gt;&amp; y);
+    
+    template &lt; class T, class CA, class VPC  &gt;
+    bool operator!=( const reversible_ptr_container&lt;T,CA,VPC&gt;&amp; x,
+                     const reversible_ptr_container&lt;T,CA,VPC&gt;&amp; y);
+    
+    template &lt; class T,  class CA, class VPC &gt;
+    bool operator&gt;( const reversible_ptr_container&lt;T,CA,VPC&gt;&amp; x,
+                    const reversible_ptr_container&lt;T,CA,VPC&gt;&amp; y);
+    
+    template &lt; class T,  class CA, class VPC &gt;
+    bool operator&gt;=( const reversible_ptr_container&lt;T,CA,VPC&gt;&amp; x,
+                     const reversible_ptr_container&lt;T,CA,VPC&gt;&amp; y);
+    
+    template &lt; class T,  class CA, class VPC &gt;
+    bool operator&lt;=( const reversible_ptr_container&lt;T,CA,VPC&gt;&amp; x,
+                     const reversible_ptr_container&lt;T,CA,VPC&gt;&amp; y);
+
+    template&lt; class T,  class CA, class VPC  &gt;
+    void swap( reversible_ptr_container&lt;T,CA,VPC&gt;&amp; x,
+               reversible_ptr_container&lt;T,CA,VPC&gt;&amp; y );
+
+    // <a class="reference" href="#cloneability">cloneability</a>
+    template&lt; class T,  class CA, class VPC &gt;
+    reversible_ptr_container&lt;T,CA,VPC&gt;*
+    new_clone( const reversible_ptr_container&lt;T,CA,VPC&gt;&amp; r );
+
+    // <a class="reference" href="#null-predicate">null predicate</a>
+    template&lt; class Iterator &gt;
+    bool is_null( Iterator i );
+    
+    // <a class="reference" href="#serialization">serialization</a>
+    template&lt;class Archive, class T, class CA, class VPC&gt;
+    void serialize( Archive&amp; ar, reversible_ptr_container&lt;T,CÁ,VPC&gt;&amp; c, const unsigned int version );
+
+
+} // namespace 'boost'
+</pre>
+</div>
+<div class="section">
+<h1><a id="semantics" name="semantics">Semantics</a></h1>
+<div class="section">
+<h2><a id="semantics-typedefs" name="semantics-typedefs"><span id="typedefs"></span>Semantics: typedefs</a></h2>
+<p>Notice how these two types differ:</p>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">typedef</span> <span class="pre">T*</span> <span class="pre">value_type;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>notice this has pointer type</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">typedef</span> <span class="pre">T&amp;</span> <span class="pre">reference;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>notice this is not a pointer type</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+<p>This is done to be able to add pointers directly
+to the container, but to hide the pointers externally.</p>
+<!-- - ``typedef *implementation defined* object_type;``
+- this is ``T`` for sequences and sets
+- this is ``std::pair<const Key, void*>`` for maps -->
+<p>Also notice that</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">typedef</span> <span class="pre">...</span> <span class="pre">iterator</span></tt></li>
+</ul>
+<p>allows one to iterate over <tt class="docutils literal"><span class="pre">T&amp;</span></tt> objects, not <tt class="docutils literal"><span class="pre">T*</span></tt>.
+Note that:</p>
+<pre class="literal-block">
+iterator i = ...;
+i.base();
+</pre>
+<p>returns an iterator that allows one to iterate over <tt class="docutils literal"><span class="pre">void*</span></tt>
+elements (<em>this is very rarely needed and you should not use the
+functionality unless you know what you are doing</em>).</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">typedef</span> <span class="pre">...</span> <span class="pre">auto_type</span></tt></li>
+</ul>
+<p>This declaration hides a pointer pointer type. You can rely on the following
+operations</p>
+<pre class="literal-block">
+T* operator-&gt;() const;
+T&amp; operator*() const;
+T* release();
+~auto_type();
+operator <em>implementation-defined bool</em>();
+</pre>
+<p>The destructor will delete the stored object <em>using the clone allocator of the container</em>
+(this explains why we cannot use <tt class="docutils literal"><span class="pre">std::auto_ptr&lt;T&gt;</span></tt>). It might help to
+think it is just an <tt class="docutils literal"><span class="pre">std::auto_ptr&lt;T&gt;</span></tt>. You can also return
+the pointer from a function or assign it to another pointer via the <tt class="docutils literal"><span class="pre">move()</span></tt>
+function</p>
+<pre class="literal-block">
+auto_type ptr   = ...;
+auto_type other = boost::ptr_container::move( ptr );
+return boost::ptr_container::move( other );
+</pre>
+</div>
+<div class="section">
+<h2><a id="semantics-construct-copy-destroy" name="semantics-construct-copy-destroy"><span id="construct-copy-destroy"></span>Semantics: construct/copy/destroy</a></h2>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">reversible_ptr_container();</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Constructs an empty container</li>
+<li>Postconditions: <tt class="docutils literal"><span class="pre">size()</span> <span class="pre">==</span> <span class="pre">0</span></tt></li>
+</ul>
+</blockquote>
+</li>
+</ul>
+<!-- - ``reversible_ptr_container( size_type n, const T& x );``
+
+- Effects: Constructs a container with ``n`` clones of ``x``
+
+- Postconditions: ``size() == n`` -->
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">explicit</span> <span class="pre">reversible_ptr_container(</span> <span class="pre">const</span> <span class="pre">reversible_ptr_container&amp;</span> <span class="pre">r</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Constructs a container by cloning all elements of <tt class="docutils literal"><span class="pre">r</span></tt></li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">template&lt;</span> <span class="pre">class</span> <span class="pre">Derived</span> <span class="pre">&gt;</span> <span class="pre">explicit</span> <span class="pre">reversible_ptr_container(</span> <span class="pre">const</span> <span class="pre">reversible_ptr_container&lt;Derived&gt;&amp;</span> <span class="pre">r</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Constructs a container by cloning all elements of <tt class="docutils literal"><span class="pre">r</span></tt></li>
+<li>Requirements: <tt class="docutils literal"><span class="pre">Derived</span></tt> is derived from <tt class="docutils literal"><span class="pre">T</span></tt></li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">explicit</span> <span class="pre">reversible_ptr_container(</span> <span class="pre">std::auto_ptr&lt;</span> <span class="pre">reversible_ptr_container</span> <span class="pre">&gt;</span> <span class="pre">r</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Constructs a container by taking ownership of the supplied pointers</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">template&lt;</span> <span class="pre">class</span> <span class="pre">InputIterator</span> <span class="pre">&gt;</span></tt>
+<tt class="docutils literal"><span class="pre">reversible_ptr_container(</span> <span class="pre">InputIterator</span> <span class="pre">first,</span> <span class="pre">InputIterator</span> <span class="pre">last</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Requirements: <tt class="docutils literal"><span class="pre">(first,last]</span></tt> is a valid range</li>
+<li>Effects: Constructs a container with a cloned range of <tt class="docutils literal"><span class="pre">(first,last]</span></tt></li>
+<li>Postconditions: <tt class="docutils literal"><span class="pre">size()</span> <span class="pre">==</span> <span class="pre">std::distance(</span> <span class="pre">first,</span> <span class="pre">last</span> <span class="pre">)</span></tt></li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">~reversible_ptr_container();</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Deletes the stored objects via the clone allocator</li>
+<li>Throws: Nothing</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">reversible_ptr_container&amp;</span> <span class="pre">operator=(</span> <span class="pre">const</span> <span class="pre">reversible_ptr_container&amp;</span> <span class="pre">r</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Assigns a clone of <tt class="docutils literal"><span class="pre">r</span></tt></li>
+<li>Exception safety: strong guarantee</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">template&lt;class</span> <span class="pre">Derived&gt;</span> <span class="pre">reversible_ptr_container&amp;</span> <span class="pre">operator=(</span> <span class="pre">const</span> <span class="pre">reversible_ptr_container&lt;Derived&gt;&amp;</span> <span class="pre">r</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Assigns a clone of <tt class="docutils literal"><span class="pre">r</span></tt></li>
+<li>Requirements: <tt class="docutils literal"><span class="pre">Derived</span></tt> is derived from <tt class="docutils literal"><span class="pre">T</span></tt></li>
+<li>Exception safety: Strong guarantee</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">reversible_ptr_container&amp;</span> <span class="pre">operator=(</span> <span class="pre">std::auto_ptr&lt;reversible_ptr_container&gt;</span> <span class="pre">r</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Deletes the stored objects and then takes ownership of the supplied pointers</li>
+<li>Throws: Nothing</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">allocator_type</span> <span class="pre">get_allocator()</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Returns a copy of the allocator of the container object</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+</div>
+<div class="section">
+<h2><a id="semantics-iterators" name="semantics-iterators"><span id="iterators"></span>Semantics: iterators</a></h2>
+<p><strong>See also:</strong> <a class="reference" href="conventions.html#iterators-are-invalidated-as-in-the-corresponding-standard-container">iterator invalidation</a></p>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">iterator</span> <span class="pre">begin();</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">const_iterator</span> <span class="pre">begin()</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Returns a mutable/non-mutable iterator with <tt class="docutils literal"><span class="pre">value_type</span> <span class="pre">T</span></tt></li>
+<li>Throws: Nothing</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">iterator</span> <span class="pre">end();</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">const_iterator</span> <span class="pre">end()</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Returns a mutable/non-mutable iterator with <tt class="docutils literal"><span class="pre">value_type</span> <span class="pre">T</span></tt></li>
+<li>Throws: Nothing</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">reverse_iterator</span> <span class="pre">rbegin();</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">const_reverse_iterator</span> <span class="pre">rbegin()</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Returns a mutable/non-mutable reverse iterator with <tt class="docutils literal"><span class="pre">value_type</span> <span class="pre">T</span></tt></li>
+<li>Throws: Nothing</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">reverse_iterator</span> <span class="pre">rend();</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">const_reverse_iterator</span> <span class="pre">rend()</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Returns a mutable/non-mutable reverse iterator with <tt class="docutils literal"><span class="pre">value_type</span> <span class="pre">T</span></tt></li>
+<li>Throws: Nothing</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+</div>
+<div class="section">
+<h2><a id="semantics-capacity" name="semantics-capacity"><span id="capacity"></span>Semantics: capacity</a></h2>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">size_type</span> <span class="pre">size()</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Returns the number of stored elements</li>
+<li>Throws: Nothing</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">size_type</span> <span class="pre">max_size()</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Returns the maximum number of stored elements</li>
+<li>Throws: Nothing</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">bool</span> <span class="pre">empty()</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Returns whether the container is empty or not</li>
+<li>Throws: Nothing</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+</div>
+<div class="section">
+<h2><a id="semantics-modifiers" name="semantics-modifiers"><span id="modifiers"></span>Semantics: modifiers</a></h2>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">void</span> <span class="pre">swap(</span> <span class="pre">reversible_ptr_container&amp;</span> <span class="pre">r</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Swaps the content of the two containers</li>
+<li>Throws: Nothing</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">void</span> <span class="pre">clear();</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Destroys all object of the container</li>
+<li>Postconditions: <tt class="docutils literal"><span class="pre">empty()</span> <span class="pre">==</span> <span class="pre">true</span></tt></li>
+<li>Throws: Nothing</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">VoidPtrContainer&amp;</span> <span class="pre">base();</span></tt></p>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">const</span> <span class="pre">VoidPtrContainer&amp;</span> <span class="pre">base()</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Returns: a reference to the wrapped container</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+</div>
+<div class="section">
+<h2><a id="semantics-pointer-container-requirements" name="semantics-pointer-container-requirements"><span id="pointer-container-requirements"></span>Semantics: pointer container requirements</a></h2>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">auto_type</span> <span class="pre">replace(</span> <span class="pre">iterator</span> <span class="pre">position,</span> <span class="pre">T*</span> <span class="pre">x</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Requirements: <tt class="docutils literal"><span class="pre">not</span> <span class="pre">empty()</span> <span class="pre">and</span> <span class="pre">x</span> <span class="pre">!=</span> <span class="pre">0</span></tt></li>
+<li>Effects: returns the object pointed to by <tt class="docutils literal"><span class="pre">position</span></tt> and replaces it with <tt class="docutils literal"><span class="pre">x</span></tt>.</li>
+<li>Throws: <tt class="docutils literal"><span class="pre">bad_ptr_container_operation</span></tt> if the container is empty and <tt class="docutils literal"><span class="pre">bad_pointer</span></tt> if <tt class="docutils literal"><span class="pre">x</span> <span class="pre">==</span> <span class="pre">0</span></tt>.</li>
+<li>Exception safety: Strong guarantee</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">template&lt;</span> <span class="pre">class</span> <span class="pre">U</span> <span class="pre">&gt;</span> <span class="pre">auto_type</span> <span class="pre">replace(</span> <span class="pre">iterator</span> <span class="pre">position,</span> <span class="pre">std::auto_ptr&lt;U&gt;</span> <span class="pre">x</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: <tt class="docutils literal"><span class="pre">return</span> <span class="pre">replace(</span> <span class="pre">position,</span> <span class="pre">x.release()</span> <span class="pre">);</span></tt></li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">std::auto_ptr&lt;</span> <span class="pre">reversible_ptr_container</span> <span class="pre">&gt;</span> <span class="pre">clone()</span> <span class="pre">const;</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Returns a deep copy of the container</li>
+<li>Throws: <tt class="docutils literal"><span class="pre">std::bad_alloc</span></tt> if there is not enough memory to make a clone of the container</li>
+<li>Complexity: Linear</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">std::auto_ptr&lt;</span> <span class="pre">reversible_ptr_container</span> <span class="pre">&gt;</span> <span class="pre">release();</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: Releases ownership of the container. This is a useful way of returning a container from a function.</li>
+<li>Postconditions: <tt class="docutils literal"><span class="pre">empty()</span> <span class="pre">==</span> <span class="pre">true</span></tt></li>
+<li>Throws: <tt class="docutils literal"><span class="pre">std::bad_alloc</span></tt> if the return value cannot be allocated</li>
+<li>Exception safety: Strong guarantee</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><tt class="docutils literal"><span class="pre">auto_type</span> <span class="pre">release(</span> <span class="pre">iterator</span> <span class="pre">position</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Requirements: <tt class="docutils literal"><span class="pre">not</span> <span class="pre">empty();</span></tt></li>
+<li>Effects: Releases ownership of the pointer referred to by position</li>
+<li>Postconditions: <tt class="docutils literal"><span class="pre">size()</span></tt> is one less</li>
+<li>Throws: <tt class="docutils literal"><span class="pre">bad_ptr_container_operation</span></tt> if the container is empty</li>
+<li>Exception safety: Strong guarantee</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+</div>
+<div class="section">
+<h2><a id="semantics-comparison" name="semantics-comparison"><span id="comparison"></span>Semantics: comparison</a></h2>
+<p>These functions compare the underlying range of objects. 
+So</p>
+<pre class="literal-block">
+operation( const ptr_container&amp; l, const ptr_container&amp; r );
+</pre>
+<p>has the effect one would expect of normal standard containers. Hence
+objects are compared and not the pointers to objects.</p>
+</div>
+<div class="section">
+<h2><a id="semantics-cloneability" name="semantics-cloneability"><span id="cloneability"></span>Semantics: cloneability</a></h2>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">template&lt;</span> <span class="pre">class</span> <span class="pre">T,</span> <span class="pre">class</span> <span class="pre">CloneAllocator</span> <span class="pre">&gt;</span>
+<span class="pre">reversible_ptr_container&lt;T,CA,VPC&gt;*</span> 
+<span class="pre">new_clone(</span> <span class="pre">const</span> <span class="pre">reversible_ptr_container&lt;T,CA,VPC&gt;&amp;</span> <span class="pre">r</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Effects: <tt class="docutils literal"><span class="pre">return</span> <span class="pre">r.clone().release();</span></tt></li>
+<li>Remarks: This function is only defined for concrete <a class="reference" href="ptr_container.html#smart-containers">pointer containers</a>, but not for 
+<a class="reference" href="ptr_container.html#smart-container-adapters">pointer container adapters</a>.</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+</div>
+<div class="section">
+<h2><a id="semantics-null-predicate" name="semantics-null-predicate"><span id="null-predicate"></span>Semantics: null predicate</a></h2>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">template&lt;</span> <span class="pre">class</span> <span class="pre">Iterator</span> <span class="pre">&gt;</span> <span class="pre">bool</span> <span class="pre">is_null(</span> <span class="pre">Iterator</span> <span class="pre">i</span> <span class="pre">);</span></tt></p>
+<blockquote>
+<ul class="simple">
+<li>Requirements: <tt class="docutils literal"><span class="pre">i</span></tt> is a valid dereferencable iterator</li>
+<li>Returns: <tt class="docutils literal"><span class="pre">*i.base()</span> <span class="pre">==</span> <span class="pre">0;</span></tt></li>
+</ul>
+</blockquote>
+</li>
+</ul>
+</div>
+<div class="section">
+<h2><a id="semantics-serialization" name="semantics-serialization"><span id="serialization"></span>Semantics: serialization</a></h2>
+<p>All containers can be serialized by means of
+<a class="reference" href="../../serialization/index.html">Boost.Serialization</a>. For an overview, see
+<a class="reference" href="reference.html#serialization">Serialization of Pointer Containers</a>.</p>
+<blockquote>
+<pre class="literal-block">
+template&lt;class Archive, class T, class CA, class VPC&gt;
+void serialize( Archive&amp; ar, reversible_ptr_container&lt;T,CA,VPC&gt;&amp; c, const unsigned int version );
+</pre>
+</blockquote>
+<ul class="simple">
+<li>Effects: Saves or loads the container to/from the archive.</li>
+<li>Remarks: This function is called automatically be stream operators in
+Boost.Serialization</li>
+<li>Exception safety: Loading gives the basic guarantee</li>
+</ul>
+<hr><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Copyright:</th><td class="field-body">Thorsten Ottosen 2004-2007. Use, modification and distribution is subject to the Boost Software License, Version 1.0 (see <a class="reference" href="http://www.boost.org/LICENSE_1_0.txt">LICENSE_1_0.txt</a>).</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</body>
+</html>

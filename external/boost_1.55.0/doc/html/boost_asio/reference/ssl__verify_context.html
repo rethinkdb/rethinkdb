@@ -1,0 +1,151 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>ssl::verify_context</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="ssl__verify_client_once.html" title="ssl::verify_client_once">
+<link rel="next" href="ssl__verify_context/native_handle.html" title="ssl::verify_context::native_handle">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ssl__verify_client_once.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ssl__verify_context/native_handle.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.ssl__verify_context"></a><a class="link" href="ssl__verify_context.html" title="ssl::verify_context">ssl::verify_context</a>
+</h3></div></div></div>
+<p>
+        A simple wrapper around the X509_STORE_CTX type, used during verification
+        of a peer certificate.
+      </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">verify_context</span> <span class="special">:</span>
+  <span class="identifier">noncopyable</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.ssl__verify_context.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.ssl__verify_context.types"></a></span><a class="link" href="ssl__verify_context.html#boost_asio.reference.ssl__verify_context.types">Types</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  <a class="link" href="ssl__verify_context/native_handle_type.html" title="ssl::verify_context::native_handle_type"><span class="bold"><strong>native_handle_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The native handle type of the verification context.
+                </p>
+              </td>
+</tr></tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.ssl__verify_context.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.ssl__verify_context.member_functions"></a></span><a class="link" href="ssl__verify_context.html#boost_asio.reference.ssl__verify_context.member_functions">Member
+        Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ssl__verify_context/native_handle.html" title="ssl::verify_context::native_handle"><span class="bold"><strong>native_handle</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Get the underlying implementation in the native type.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="ssl__verify_context/verify_context.html" title="ssl::verify_context::verify_context"><span class="bold"><strong>verify_context</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Constructor.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.ssl__verify_context.h2"></a>
+        <span class="phrase"><a name="boost_asio.reference.ssl__verify_context.remarks"></a></span><a class="link" href="ssl__verify_context.html#boost_asio.reference.ssl__verify_context.remarks">Remarks</a>
+      </h5>
+<p>
+        The <a class="link" href="ssl__verify_context.html" title="ssl::verify_context"><code class="computeroutput"><span class="identifier">ssl</span><span class="special">::</span><span class="identifier">verify_context</span></code></a>
+        does not own the underlying X509_STORE_CTX object.
+      </p>
+<h5>
+<a name="boost_asio.reference.ssl__verify_context.h3"></a>
+        <span class="phrase"><a name="boost_asio.reference.ssl__verify_context.requirements"></a></span><a class="link" href="ssl__verify_context.html#boost_asio.reference.ssl__verify_context.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/ssl/verify_context.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio/ssl.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ssl__verify_client_once.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ssl__verify_context/native_handle.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

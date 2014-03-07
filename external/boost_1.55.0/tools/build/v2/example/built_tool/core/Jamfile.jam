@@ -1,0 +1,30 @@
+
+import toolset ;
+
+project : requirements <tblgen>../tblgen//tblgen ;
+
+
+# Create a.c using a custom action defined below.
+make a.c : a.td : @tblgen ;
+
+# Use a.c in executable.
+exe core : core.cpp a.c ;
+
+# The action has to invoke the tool built in other
+# parts of the project. The <tblgen> feature is used
+# to specify the location of the tool, and the flags
+# statement below make the full path to the tool
+# available inside the action.
+toolset.flags tblgen COMMAND <tblgen> ;
+
+# We generally want a.c to be rebuilt when the tool changes.
+rule tblgen ( targets * : sources * : properties * )
+{
+    DEPENDS $(targets) : [ on $(targets) return $(COMMAND) ] ;
+}
+
+# The action that invokes the tool
+actions tblgen bind COMMAND
+{
+    $(COMMAND:E=tblgen) > $(<)
+}

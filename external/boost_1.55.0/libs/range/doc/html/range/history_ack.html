@@ -1,0 +1,157 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>History and Acknowledgement</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Range 2.0">
+<link rel="prev" href="faq.html" title="FAQ">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="faq.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+<div class="section range_history_ack">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="range.history_ack"></a><a class="link" href="history_ack.html" title="History and Acknowledgement">History and Acknowledgement</a>
+</h2></div></div></div>
+<h4>
+<a name="range.history_ack.h0"></a>
+      <span><a name="range.history_ack.version_1___before_boost_1_43"></a></span><a class="link" href="history_ack.html#range.history_ack.version_1___before_boost_1_43">Version
+      1 - before Boost 1.43</a>
+    </h4>
+<p>
+      The library have been under way for a long time. Dietmar K&#252;hl originally intended
+      to submit an <code class="computeroutput"><span class="identifier">array_traits</span></code> class
+      template which had most of the functionality present now, but only for arrays
+      and standard containers.
+    </p>
+<p>
+      Meanwhile work on algorithms for containers in various contexts showed the
+      need for handling pairs of iterators, and string libraries needed special treatment
+      of character arrays. In the end it made sense to formalize the minimal requirements
+      of these similar concepts. And the results are the Range concepts found in
+      this library.
+    </p>
+<p>
+      The term Range was adopted because of paragraph 24.1/7 from the C++ standard:
+    </p>
+<p>
+      Most of the library's algorithmic templates that operate on data structures
+      have interfaces that use ranges. A range is a pair of iterators that designate
+      the beginning and end of the computation. A range [i, i) is an empty range;
+      in general, a range [i, j) refers to the elements in the data structure starting
+      with the one pointed to by i and up to but not including the one pointed to
+      by j. Range [i, j) is valid if and only if j is reachable from i. The result
+      of the application of functions in the library to invalid ranges is undefined.
+    </p>
+<p>
+      Special thanks goes to
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          Pavol Droba for help with documentation and implementation
+        </li>
+<li class="listitem">
+          Pavel Vozenilek for help with porting the library
+        </li>
+<li class="listitem">
+          Jonathan Turkanis and John Torjo for help with documentation
+        </li>
+<li class="listitem">
+          Hartmut Kaiser for being review manager
+        </li>
+<li class="listitem">
+          Jonathan Turkanis for porting the lib (as far as possible) to vc6 and vc7.
+        </li>
+</ul></div>
+<p>
+      The concept checks and their documentation was provided by Daniel Walker.
+    </p>
+<h4>
+<a name="range.history_ack.h1"></a>
+      <span><a name="range.history_ack.version_2___boost_1_43_and_beyond"></a></span><a class="link" href="history_ack.html#range.history_ack.version_2___boost_1_43_and_beyond">Version
+      2 - Boost 1.43 and beyond</a>
+    </h4>
+<p>
+      This version introduced Range Adaptors and Range Algorithms. This version 2
+      is the result of a merge of all of the RangeEx features into Boost.Range.
+    </p>
+<p>
+      There were an enormous number of very significant contributors through all
+      stages of this library.
+    </p>
+<p>
+      Prior to Boost.RangeEx there had been a number of Range library implementations,
+      these include library implementations by Eric Niebler, Adobe, Shunsuke Sogame
+      etc. Eric Niebler contributed the Range Adaptor idea which is arguably the
+      single biggest innovation in this library. Inevitably a great deal of commonality
+      evolved in each of these libraries, but a considerable amount of effort was
+      expended to learn from all of the divergent techniques.
+    </p>
+<p>
+      The people in the following list all made contributions in the form of reviews,
+      user feedback, design suggestions, or defect detection:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          Thorsten Ottosen: review management, design advice, documentation feedback
+        </li>
+<li class="listitem">
+          Eric Niebler: early implementation, and review feedback
+        </li>
+<li class="listitem">
+          Joel de Guzman: review
+        </li>
+<li class="listitem">
+          Mathias Gaunard: review
+        </li>
+<li class="listitem">
+          David Abrahams: implementation advice
+        </li>
+<li class="listitem">
+          Robert Jones: defect reports, usage feedback
+        </li>
+<li class="listitem">
+          Sean Parent: contributed experience from the Adobe range library
+        </li>
+<li class="listitem">
+          Arno Schoedl: implementations, and review
+        </li>
+<li class="listitem">
+          Rogier van Dalen: review
+        </li>
+<li class="listitem">
+          Vincente Botet: review, documentation feedback
+        </li>
+</ul></div>
+<p>
+      Regardless of how I write this section it will never truly fairly capture the
+      gratitude that I feel to all who have contributed. Thank you everyone.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2010 Thorsten Ottosen,
+      Neil Groves<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="faq.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+</body>
+</html>

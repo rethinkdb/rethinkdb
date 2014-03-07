@@ -1,0 +1,19 @@
+# Copyright 2004, 2005, 2006 Vladimir Prus 
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) 
+
+
+# Skeleton for test configuration. If your local configuration 
+# interferes with testing, rename this files to 'test-system.jam'
+# and tweak it. When tests are run, only this file will be loaded,
+# while site-config.jam and user-config.jam will be ignored.
+
+using gcc ;
+
+using boostbook 
+     : /home/ghost/Store/docbook/xsl
+     : /home/ghost/Store/docbook/dtd
+     : /home/ghost/Work/Boost/boost-svn/tools/boostbook
+     ; 
+using doxygen ;
+using qt4 : /usr/share/qt4 ;

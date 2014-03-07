@@ -1,0 +1,680 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:basic_regex basic_regex]
+
+[h4 Synopsis]
+
+   #include <boost/regex.hpp>
+
+The template class `basic_regex` encapsulates regular expression 
+parsing and compilation. The class takes two template parameters:
+
+* `charT`: determines the character type, i.e. either `char` or `wchar_t`; 
+see [link boost_regex.ref.concepts.charT_concept charT concept].
+* `traits`: determines the behavior of the character type, for example which 
+character class names are recognized. A default traits class is provided: 
+`regex_traits<charT>`.  See also 
+[link boost_regex.ref.concepts.traits_concept traits concept].
+
+For ease of use there are two typedefs that define the two standard 
+`basic_regex` instances, unless you want to use custom traits classes or 
+non-standard character types (for example see 
+[link boost_regex.ref.non_std_strings.icu unicode support]), 
+you won't need to use anything other than these:
+
+   namespace boost{
+
+   template <class charT, class traits = regex_traits<charT>  >
+   class basic_regex;
+   
+   typedef basic_regex<char>      regex;
+   typedef basic_regex<wchar_t>   wregex;
+
+   }
+
+The definition of `basic_regex` follows: it is based very closely on class 
+`basic_string`, and fulfils the requirements for a constant-container of `charT`.
+
+   namespace boost{
+
+   template <class  charT, class traits = regex_traits<charT> >
+   class basic_regex {
+      public:          
+      // types:
+      typedef          charT                                value_type;
+      typedef          implementation-specific              const_iterator;
+      typedef          const_iterator                       iterator;                 
+      typedef          charT&                               reference;           
+      typedef          const charT&                         const_reference;           
+      typedef          std::ptrdiff_t                       difference_type;                 
+      typedef          std::size_t                          size_type;
+      typedef          regex_constants::``[syntax_option_type]``  flag_type;
+      typedef typename traits::locale_type                  locale_type;
+
+      // constants:
+      // main option selection:
+      static const regex_constants::``[syntax_option_type]`` normal          
+                                                   = regex_constants::normal;
+      static const regex_constants::``[syntax_option_type]`` ECMAScript      
+                                                   = normal;
+      static const regex_constants::``[syntax_option_type]`` JavaScript      
+                                                   = normal;
+      static const regex_constants::``[syntax_option_type]`` JScript         
+                                                   = normal;
+      static const regex_constants::``[syntax_option_type]`` basic           
+                                                   = regex_constants::basic;
+      static const regex_constants::``[syntax_option_type]`` extended        
+                                                   = regex_constants::extended;
+      static const regex_constants::``[syntax_option_type]`` awk             
+                                                   = regex_constants::awk;
+      static const regex_constants::``[syntax_option_type]`` grep            
+                                                   = regex_constants::grep;
+      static const regex_constants::``[syntax_option_type]`` egrep           
+                                                   = regex_constants::egrep;
+      static const regex_constants::``[syntax_option_type]`` sed             
+                                                   = basic = regex_constants::sed;
+      static const regex_constants::``[syntax_option_type]`` perl            
+                                                   = regex_constants::perl;
+      static const regex_constants::``[syntax_option_type]`` literal         
+                                                   = regex_constants::literal;
+
+      // modifiers specific to perl expressions:
+      static const regex_constants::``[syntax_option_type]`` no_mod_m        
+                                                   = regex_constants::no_mod_m;
+      static const regex_constants::``[syntax_option_type]`` no_mod_s        
+                                                   = regex_constants::no_mod_s;
+      static const regex_constants::``[syntax_option_type]`` mod_s           
+                                                   = regex_constants::mod_s;
+      static const regex_constants::``[syntax_option_type]`` mod_x           
+                                                   = regex_constants::mod_x;
+
+      // modifiers specific to POSIX basic expressions:
+      static const regex_constants::``[syntax_option_type]`` bk_plus_qm      
+                                                   = regex_constants::bk_plus_qm;
+      static const regex_constants::``[syntax_option_type]`` bk_vbar         
+                                                   = regex_constants::bk_vbar
+      static const regex_constants::``[syntax_option_type]`` no_char_classes 
+                                                   = regex_constants::no_char_classes
+      static const regex_constants::``[syntax_option_type]`` no_intervals    
+                                                   = regex_constants::no_intervals
+
+      // common modifiers:
+      static const regex_constants::``[syntax_option_type]`` nosubs          
+                                                   = regex_constants::nosubs;
+      static const regex_constants::``[syntax_option_type]`` optimize        
+                                                   = regex_constants::optimize;
+      static const regex_constants::``[syntax_option_type]`` collate         
+                                                   = regex_constants::collate;
+      static const regex_constants::``[syntax_option_type]`` newline_alt     
+                                                   = regex_constants::newline_alt;
+      static const regex_constants::``[syntax_option_type]`` no_except       
+                                                   = regex_constants::newline_alt;
+
+      // construct/copy/destroy:
+      explicit ``[link boost_regex.basic_regex.construct1 basic_regex]`` ();
+      explicit ``[link boost_regex.basic_regex.construct2 basic_regex]``(const  charT* p, flag_type f = regex_constants::normal);
+      ``[link boost_regex.basic_regex.construct3 basic_regex]``(const charT* p1, const  charT* p2, 
+                  flag_type f = regex_constants::normal);
+      ``[link boost_regex.basic_regex.construct4 basic_regex]``(const charT* p, size_type len, flag_type  f);
+      ``[link boost_regex.basic_regex.construct5 basic_regex]``(const basic_regex&);
+
+      template <class ST, class SA>
+      explicit ``[link boost_regex.basic_regex.construct6 basic_regex]``(const basic_string<charT, ST,  SA>& p, 
+                           flag_type f = regex_constants::normal);
+
+      template <class InputIterator>
+      ``[link boost_regex.basic_regex.construct7 basic_regex]``(InputIterator first,  InputIterator last, 
+                  flag_type f = regex_constants::normal);
+
+      ~basic_regex();
+      ``[link boost_regex.basic_regex.opeq1 basic_regex& operator=]``(const basic_regex&);
+      ``[link boost_regex.basic_regex.opeq2 basic_regex& operator=]`` (const charT* ptr); 
+
+      template <class ST, class SA> 
+      ``[link boost_regex.basic_regex.opeq3 basic_regex& operator=]`` (const basic_string<charT, ST, SA>& p);
+      // iterators: 
+      ``[link boost_regex.basic_regex.subexpression std::pair<const_iterator, const_iterator> subexpression]``(size_type n) const; 
+      ``[link boost_regex.basic_regex.begin const_iterator begin]``() const; 
+      ``[link boost_regex.basic_regex.end const_iterator end]``() const;
+      // capacity: 
+      ``[link boost_regex.basic_regex.size size_type size]``() const; 
+      ``[link boost_regex.basic_regex.max_size size_type max_size]``() const; 
+      ``[link boost_regex.basic_regex.empty bool empty]``() const; 
+      ``[link boost_regex.basic_regex.mark_count size_type mark_count]``()const; 
+      //
+      // modifiers: 
+      ``[link boost_regex.basic_regex.assign1 basic_regex& assign]``(const basic_regex& that); 
+      ``[link boost_regex.basic_regex.assign2 basic_regex& assign]``(const charT* ptr, 
+                          flag_type f = regex_constants::normal);
+      ``[link boost_regex.basic_regex.assign3 basic_regex& assign]``(const charT* ptr, unsigned int len, flag_type f);
+
+      template <class string_traits, class A>
+      ``[link boost_regex.basic_regex.assign4 basic_regex& assign]``(const basic_string<charT, string_traits, A>& s,
+                          flag_type f = regex_constants::normal);
+
+      template <class InputIterator>
+      ``[link boost_regex.basic_regex.assign5 basic_regex& assign]``(InputIterator first, InputIterator last,
+                          flag_type f = regex_constants::normal);
+
+      // const operations:
+      ``[link boost_regex.basic_regex.flags flag_type flags]``() const;
+      ``[link boost_regex.basic_regex.status int status]``()const;
+      ``[link boost_regex.basic_regex.str basic_string<charT> str]``() const;
+      ``[link boost_regex.basic_regex.compare int compare]``(basic_regex&) const;
+      // locale:
+      ``[link boost_regex.basic_regex.imbue locale_type imbue]``(locale_type loc);
+      ``[link boost_regex.basic_regex.getloc locale_type getloc]``() const;
+      // swap
+      ``[link boost_regex.basic_regex.swap void swap]``(basic_regex&) throw();
+   };
+
+   template <class charT, class traits>
+   ``[link boost_regex.basic_regex.op_eq bool operator ==]`` (const basic_regex<charT, traits>& lhs,
+                     const basic_regex<charT, traits>& rhs);
+
+   template <class charT, class traits>
+   ``[link boost_regex.basic_regex.op_ne bool operator !=]`` (const basic_regex<charT, traits>& lhs,
+                     const basic_regex<charT, traits>& rhs);
+
+   template <class charT, class traits>
+   ``[link boost_regex.basic_regex.op_lt bool operator <]`` (const basic_regex<charT, traits>& lhs,
+                  const basic_regex<charT, traits>& rhs);
+
+   template <class charT, class traits>
+   ``[link boost_regex.basic_regex.op_le bool operator <=]`` (const basic_regex<charT, traits>& lhs,
+                     const basic_regex<charT, traits>& rhs);
+
+   template <class charT, class traits>
+   ``[link boost_regex.basic_regex.op_ge bool operator >=]`` (const basic_regex<charT, traits>& lhs,
+                     const basic_regex<charT, traits>& rhs);
+
+   template <class charT, class traits>
+   ``[link boost_regex.basic_regex.op_gt bool operator >]`` (const basic_regex<charT, traits>& lhs,
+                  const basic_regex<charT, traits>& rhs);
+
+   template <class charT, class io_traits, class re_traits>
+   basic_ostream<charT, io_traits>&
+      ``[link boost_regex.basic_regex.op_stream operator <<]`` (basic_ostream<charT, io_traits>& os,
+                  const basic_regex<charT, re_traits>& e);
+
+   template <class charT, class traits>
+   ``[link boost_regex.basic_regex.op_swap void swap]``(basic_regex<charT, traits>& e1,
+            basic_regex<charT, traits>& e2);
+
+   typedef basic_regex<char> regex;
+   typedef basic_regex<wchar_t> wregex;
+
+   } // namespace boost
+
+[h4 Description]
+
+Class `basic_regex` has the following public members:
+
+   // main option selection:
+   static const regex_constants::``[syntax_option_type]`` normal           
+                                             = regex_constants::normal;
+   static const regex_constants::``[syntax_option_type]`` ECMAScript       
+                                             = normal;
+   static const regex_constants::``[syntax_option_type]`` JavaScript       
+                                             = normal;
+   static const regex_constants::``[syntax_option_type]`` JScript          
+                                             = normal;
+   static const regex_constants::``[syntax_option_type]`` basic            
+                                             = regex_constants::basic;
+   static const regex_constants::``[syntax_option_type]`` extended         
+                                             = regex_constants::extended;
+   static const regex_constants::``[syntax_option_type]`` awk              
+                                             = regex_constants::awk;
+   static const regex_constants::``[syntax_option_type]`` grep             
+                                             = regex_constants::grep;
+   static const regex_constants::``[syntax_option_type]`` egrep            
+                                             = regex_constants::egrep;
+   static const regex_constants::``[syntax_option_type]`` sed              
+                                             = regex_constants::sed;
+   static const regex_constants::``[syntax_option_type]`` perl             
+                                             = regex_constants::perl;
+   static const regex_constants::``[syntax_option_type]`` literal          
+                                             = regex_constants::literal;
+
+   // modifiers specific to perl expressions:
+   static const regex_constants::``[syntax_option_type]`` no_mod_m         
+                                             = regex_constants::no_mod_m;
+   static const regex_constants::``[syntax_option_type]`` no_mod_s         
+                                             = regex_constants::no_mod_s;
+   static const regex_constants::``[syntax_option_type]`` mod_s            
+                                             = regex_constants::mod_s;
+   static const regex_constants::``[syntax_option_type]`` mod_x            
+                                             = regex_constants::mod_x;
+
+   // modifiers specific to POSIX basic expressions:
+   static const regex_constants::``[syntax_option_type]`` bk_plus_qm       
+                                             = regex_constants::bk_plus_qm;
+   static const regex_constants::``[syntax_option_type]`` bk_vbar          
+                                             = regex_constants::bk_vbar
+   static const regex_constants::``[syntax_option_type]`` no_char_classes  
+                                             = regex_constants::no_char_classes
+   static const regex_constants::``[syntax_option_type]`` no_intervals     
+                                             = regex_constants::no_intervals
+
+   // common modifiers:
+   static const regex_constants::``[syntax_option_type]`` nosubs           
+                                             = regex_constants::nosubs;
+   static const regex_constants::``[syntax_option_type]`` optimize         
+                                             = regex_constants::optimize;
+   static const regex_constants::``[syntax_option_type]`` collate          
+                                             = regex_constants::collate;
+   static const regex_constants::``[syntax_option_type]`` newline_alt      
+                                             = regex_constants::newline_alt;
+
+The meaning of these options is documented in the [syntax_option_type]
+section.
+
+The static constant members are provided as synonyms for the constants declared 
+in namespace `boost::regex_constants`; for each constant of type [syntax_option_type] 
+declared in namespace `boost::regex_constants` then a constant with the same name, 
+type and value is declared within the scope of basic_regex.
+
+[#boost_regex.basic_regex.construct1]
+
+   basic_regex();
+
+[*Effects]: Constructs an object of class `basic_regex`. 
+
+[table basic_regex default construction postconditions
+[[Element][Value]]
+[[`empty()`][`true`]]
+[[`size()`][`0`]]
+[[`str()`][`basic_string<charT>()`]]
+]
+
+[#boost_regex.basic_regex.construct2]
+
+   basic_regex(const charT* p, flag_type f = regex_constants::normal);
+
+[*Requires]: /p/ shall not be a null pointer.
+
+[*Throws]: [bad_expression] if /p/ is not a valid regular expression, 
+unless the flag `no_except` is set in /f/.
+
+[*Effects]: Constructs an object of class [basic_regex]; the object's internal 
+finite state machine is constructed from the regular expression contained 
+in the null-terminated string /p/, and interpreted according to the 
+[link boost_regex.ref.syntax_option_type option 
+flags] specified in /f/. 
+
+[table Postconditions for basic_regex construction
+[[Element][Value]]
+[[`empty()`][`false`]]
+[[`size()`][`char_traits<charT>::length(p)`]]
+[[`str()`][`basic_string<charT>(p)`]]
+[[`flags()`][['f]]]
+[[`mark_count()`][The number of marked sub-expressions within the expression.]]
+]
+
+[#boost_regex.basic_regex.construct3]
+
+   basic_regex(const charT* p1, const charT* p2, 
+               flag_type f = regex_constants::normal);
+
+[*Requires]: /p1/ and /p2/ are not null pointers, `p1 < p2`.
+
+[*Throws]: bad_expression if \[p1,p2) is not a valid regular expression, unless 
+the flag `no_except` is set in /f/.
+
+[*Effects]: Constructs an object of class [basic_regex]; the object's 
+internal finite state machine is constructed from the regular expression 
+contained in the sequence of characters \[p1,p2), and interpreted according the 
+[link boost_regex.ref.syntax_option_type option flags] specified in /f/. 
+
+[table Postconditions for basic_regex construction
+[[Element][Value]]
+[[`empty()`][`false`]]
+[[`size()`][`std::distance(p1,p2)`]]
+[[`str()`][`basic_string<charT>(p1,p2)`]]
+[[`flags()`][['f]]]
+[[`mark_count()`][The number of marked sub-expressions within the expression.]]
+]
+
+[#boost_regex.basic_regex.construct4]
+
+   basic_regex(const charT* p, size_type len, flag_type f);
+
+[*Requires]: /p/ shall not be a null pointer, `len < max_size()`.
+
+[*Throws]: [bad_expression] if /p/ is not a valid regular expression, unless 
+the flag `no_except` is set in /f/.
+
+[*Effects]: Constructs an object of class [basic_regex]; the object's 
+internal finite state machine is constructed from the regular expression 
+contained in the sequence of characters \[p, p+len), and interpreted 
+according the option flags specified in /f/. 
+
+[table Postconditions for basic_regex construction
+[[Element][Value]]
+[[`empty()`][`false`]]
+[[`size()`][['len]]]
+[[`str()`][`basic_string<charT>(p, len)`]]
+[[`flags()`][['f]]]
+[[`mark_count()`][The number of marked sub-expressions within the expression.]]
+]
+
+[#boost_regex.basic_regex.construct5]
+
+   basic_regex(const basic_regex& e);
+
+[*Effects]: Constructs an object of class [basic_regex] as a copy of the object 
+/e/. 
+
+[#boost_regex.basic_regex.construct6]
+
+   template <class ST, class SA>
+   basic_regex(const basic_string<charT, ST, SA>& s, 
+               flag_type f = regex_constants::normal);
+
+[*Throws]: [bad_expression] if /s/ is not a valid regular expression, 
+unless the flag `no_except` is set in /f/.
+
+[*Effects]: Constructs an object of class [basic_regex]; the object's 
+internal finite state machine is constructed from the regular expression 
+contained in the string /s/, and interpreted according to the [link boost_regex.ref.syntax_option_type option 
+flags] specified in /f/. 
+
+[table Postconditions for basic_regex construction
+[[Element][Value]]
+[[`empty()`][`false`]]
+[[`size()`][`s.size()`]]
+[[`str()`][['s]]]
+[[`flags()`][['f]]]
+[[`mark_count()`][The number of marked sub-expressions within the expression.]]
+]
+
+[#boost_regex.basic_regex.construct7]
+
+   template <class ForwardIterator>
+   basic_regex(ForwardIterator first, ForwardIterator last, 
+               flag_type f = regex_constants::normal);
+
+[*Throws]: [bad_expression] if the sequence \[first, last) is not a valid 
+regular expression, unless the flag `no_except` is set in /f/.
+
+[*Effects]: Constructs an object of class [basic_regex]; the object's 
+internal finite state machine is constructed from the regular expression 
+contained in the sequence of characters \[first, last), and interpreted 
+according to the [link boost_regex.ref.syntax_option_type option flags] specified in /f/. 
+
+[table Postconditions for basic_regex construction
+[[Element][Value]]
+[[`empty()`][`false`]]
+[[`size()`][`distance(first,last)`]]
+[[`str()`][`basic_string<charT>(first,last)`]]
+[[`flags()`][['f]]]
+[[`mark_count()`][The number of marked sub-expressions within the expression.]]
+]
+
+[#boost_regex.basic_regex.opeq1]
+
+   basic_regex& operator=(const basic_regex& e);
+
+[*Effects]: Returns the result of `assign(e.str(), e.flags())`.
+
+[#boost_regex.basic_regex.opeq2]
+
+   basic_regex& operator=(const charT* ptr);
+
+[*Requires]: /p/ shall not be a null pointer.
+
+[*Effects]: Returns the result of `assign(ptr)`.
+
+[#boost_regex.basic_regex.opeq3]
+
+   template <class ST, class SA>
+   basic_regex& operator=(const basic_string<charT, ST, SA>& p);
+
+[*Effects]: Returns the result of `assign(p)`.
+
+[#boost_regex.basic_regex.subexpression]
+
+   std::pair<const_iterator, const_iterator> subexpression(size_type n) const;
+
+[*Effects]: Returns a pair of iterators denoting the location of 
+marked subexpression /n/ within the original regular expression string.
+The returned iterators are relative to `begin()` and `end()`.
+
+[*Requires]: The expression must have been compiled with the
+[syntax_option_type] save_subexpression_location set.  Argument
+/n/ must be in within the range `1 <= n < mark_count()`.
+
+[#boost_regex.basic_regex.begin]
+
+   const_iterator begin() const;
+
+[*Effects]: Returns a starting iterator to a sequence of characters representing 
+the regular expression.
+
+[#boost_regex.basic_regex.end]
+
+   const_iterator end() const;
+
+[*Effects]: Returns termination iterator to a sequence of characters representing 
+the regular expression.
+
+[#boost_regex.basic_regex.size]
+
+   size_type size() const;
+
+[*Effects]: Returns the length of the sequence of characters representing the regular expression.
+
+[#boost_regex.basic_regex.max_size]
+
+   size_type max_size() const;
+
+[*Effects]: Returns the maximum length of the sequence of characters representing 
+the regular expression.
+
+[#boost_regex.basic_regex.empty]
+
+   bool empty() const;
+
+[*Effects]: Returns true if the object does not contain a valid regular expression, 
+otherwise false.
+
+[#boost_regex.basic_regex.mark_count]
+
+   size_type mark_count() const;
+
+[*Effects]: Returns the number of marked sub-expressions within the regular expresion.
+
+[#boost_regex.basic_regex.assign1]
+
+   basic_regex& assign(const basic_regex& that);
+
+[*Effects]: Returns [link boost_regex.basic_regex.assign4 `assign(that.str(), that.flags())`].
+
+[#boost_regex.basic_regex.assign2]
+
+   basic_regex& assign(const charT* ptr, flag_type f = regex_constants::normal);
+
+[*Effects]: Returns [link boost_regex.basic_regex.assign4 `assign(string_type(ptr), f)`].
+
+[#boost_regex.basic_regex.assign3]
+
+   basic_regex& assign(const charT* ptr, unsigned int len, flag_type f);
+
+[*Effects]: Returns [link boost_regex.basic_regex.assign4 `assign(string_type(ptr, len), f)`].
+
+[#boost_regex.basic_regex.assign4]
+
+   template <class string_traits, class A>
+   basic_regex& assign(const basic_string<charT, string_traits, A>& s,
+                     flag_type f = regex_constants::normal);
+
+[*Throws]: [bad_expression] if /s/ is not a valid regular expression, 
+unless the flag `no_except` is set in /f/.
+
+[*Returns]: *this.
+
+[*Effects]: Assigns the regular expression contained in the string /s/, 
+interpreted according the [link boost_regex.ref.syntax_option_type option flags] 
+specified in /f/. 
+
+[table Postconditions for basic_regex::assign
+[[Element][Value]]
+[[`empty()`][`false`]]
+[[`size()`][`s.size()`]]
+[[`str()`][['s]]]
+[[`flags()`][['f]]]
+[[`mark_count()`][The number of marked sub-expressions within the expression.]]
+]
+
+[#boost_regex.basic_regex.assign5]
+
+   template <class InputIterator>
+   basic_regex& assign(InputIterator first, InputIterator last,
+                       flag_type f = regex_constants::normal);
+
+[*Requires]: The type `InputIterator` corresponds to the 
+[@http://input_iterator Input Iterator requirements 
+(24.1.1)].
+
+[*Effects]: Returns [link boost_regex.basic_regex.assign4 `assign(string_type(first, last), f)`].
+
+[#boost_regex.basic_regex.flags]
+
+   flag_type flags() const;
+
+[*Effects]: Returns a copy of the [link boost_regex.ref.syntax_option_type 
+regular expression syntax flags] that were passed to the object's constructor, 
+or the last call to `assign`.
+
+[#boost_regex.basic_regex.status]
+
+   int status() const;
+
+[*Effects]: Returns zero if the expression contains a valid regular expression, 
+otherwise an error code.  This member function is retained for use in 
+environments that cannot use exception handling.
+
+[#boost_regex.basic_regex.str]
+
+   basic_string<charT> str() const;
+
+[*Effects]: Returns a copy of the character sequence passed to the object's constructor, 
+or the last call to assign.
+
+[#boost_regex.basic_regex.compare]
+
+   int compare(basic_regex& e)const;
+
+[*Effects]: If `flags() == e.flags()` then returns `str().compare(e.str())`, 
+otherwise returns `flags() - e.flags()`.
+
+[#boost_regex.basic_regex.imbue]
+
+   locale_type imbue(locale_type l);
+
+[*Effects]: Returns the result of `traits_inst.imbue(l)` where `traits_inst` is 
+a (default initialized) instance of the template parameter `traits` stored 
+within the object. Calls to `imbue` invalidate any currently contained 
+regular expression.
+
+[*Postcondition]: `empty() == true`.
+
+[#boost_regex.basic_regex.getloc]
+
+   locale_type getloc() const;
+
+[*Effects]: Returns the result of `traits_inst.getloc()` where `traits_inst` is 
+a (default initialized) instance of the template parameter traits stored 
+within the object.
+
+[#boost_regex.basic_regex.swap]
+
+   void swap(basic_regex& e) throw();
+
+[*Effects]: Swaps the contents of the two regular expressions.
+
+[*Postcondition]: `*this` contains the regular expression that was in /e/, /e/ contains 
+the regular expression that was in `*this`.
+
+[*Complexity]: constant time.
+
+[note Comparisons between [basic_regex] objects are provided on an 
+experimental basis: please note that these are not present in the [tr1], 
+so use with care if you are writing code that may need to be ported
+to other implementations of [basic_regex].]
+
+[#boost_regex.basic_regex.op_eq]
+
+   template <class charT, class traits>
+   bool operator == (const basic_regex<charT, traits>& lhs,
+                     const basic_regex<charT, traits>& rhs);
+
+[*Effects]: Returns `lhs.compare(rhs) == 0`.
+
+[#boost_regex.basic_regex.op_ne]
+
+   template <class charT, class traits>
+   bool operator != (const basic_regex<charT, traits>& lhs,
+                     const basic_regex<charT, traits>& rhs);
+
+[*Effects]: Returns `lhs.compare(rhs) != 0`.
+
+[#boost_regex.basic_regex.op_lt]
+
+   template <class charT, class traits>
+   bool operator < (const basic_regex<charT, traits>& lhs,
+                  const basic_regex<charT, traits>& rhs);
+
+[*Effects]: Returns `lhs.compare(rhs) < 0`.
+
+[#boost_regex.basic_regex.op_le]
+
+   template <class charT, class traits>
+   bool operator <= (const basic_regex<charT, traits>& lhs,
+                     const basic_regex<charT, traits>& rhs);
+
+[*Effects]: Returns `lhs.compare(rhs) <= 0`.
+
+[#boost_regex.basic_regex.op_ge]
+
+   template <class charT, class traits>
+   bool operator >= (const basic_regex<charT, traits>& lhs,
+                     const basic_regex<charT, traits>& rhs);
+
+[*Effects]: Returns `lhs.compare(rhs) >= 0`.
+
+[#boost_regex.basic_regex.op_gt]
+
+   template <class charT, class traits>
+   bool operator > (const basic_regex<charT, traits>& lhs,
+                  const basic_regex<charT, traits>& rhs);
+
+[*Effects]: Returns `lhs.compare(rhs) > 0`.
+
+[note The basic_regex stream inserter is provided on an experimental basis, 
+and outputs the textual representation of the expression to the stream.]
+
+[#boost_regex.basic_regex.op_stream]
+
+   template <class charT, class io_traits, class re_traits>
+   basic_ostream<charT, io_traits>&
+      operator << (basic_ostream<charT, io_traits>& os
+                  const basic_regex<charT, re_traits>& e);
+
+[*Effects]: Returns `(os << e.str())`.
+
+[#boost_regex.basic_regex.op_swap]
+
+   template <class charT, class traits>
+   void swap(basic_regex<charT, traits>& lhs,
+            basic_regex<charT, traits>& rhs);
+
+[*Effects]: calls `lhs.swap(rhs)`.
+
+[endsect]
+

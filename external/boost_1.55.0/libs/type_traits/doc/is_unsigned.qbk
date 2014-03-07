@@ -1,0 +1,42 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:is_unsigned is_unsigned]
+
+   template <class T>
+   struct is_unsigned : public __tof {};
+  
+__inherit If T is an unsigned integer type or an enumerated type with an
+underlying unsigned integer type, then inherits from __true_type, 
+otherwise inherits from __false_type.
+
+__std_ref 3.9.1, 7.2.
+
+__header ` #include <boost/type_traits/is_unsigned.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__examples
+
+[:`is_unsigned<unsigned int>` inherits from `__true_type`.]
+
+[:`is_unsigned<unsigned int const volatile>::type` is the type `__true_type`.]
+
+[:`is_unsigned<int>::value` is an integral constant 
+expression that evaluates to /false/.]
+
+[:`is_unsigned<myclass>::value` is an integral constant 
+expression that evaluates to /false/.]
+
+[:`is_unsigned<char>::value` is an integral constant 
+expression whose value depends upon the signedness of type `char`.]
+
+[:`is_unsigned<unsigned long long>::value` is an integral constant 
+expression that evaluates to /true/.]
+
+[:`is_unsigned<T>::value_type` is the type `bool`.]
+
+[endsect]
+

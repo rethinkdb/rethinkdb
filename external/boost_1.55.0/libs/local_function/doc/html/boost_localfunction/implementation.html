@@ -1,0 +1,230 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Annex: Implementation</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.LocalFunction 1.0.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.LocalFunction 1.0.0">
+<link rel="prev" href="no_variadic_macros.html" title="Annex: No Variadic Macros">
+<link rel="next" href="../reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="no_variadic_macros.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_localfunction_implementation">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_localfunction.implementation"></a><a class="link" href="implementation.html" title="Annex: Implementation">Annex: Implementation</a>
+</h2></div></div></div>
+<p>
+      This section gives an overview of the key programming techniques used to implement
+      this library.
+    </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        The code listed here can be used by curious readers and library maintainers
+        as a reference in trying to understand the library source code. There is
+        absolutely no guarantee that the library implementation uses the exact code
+        listed here.
+      </p></td></tr>
+</table></div>
+<h4>
+<a name="boost_localfunction.implementation.h0"></a>
+      <span><a name="boost_localfunction.implementation.local_classes_as_template_parameters"></a></span><a class="link" href="implementation.html#boost_localfunction.implementation.local_classes_as_template_parameters">Local
+      Classes as Template Parameters</a>
+    </h4>
+<p>
+      This library uses a local class to implement the local function object. However,
+      in <a href="http://www.open-std.org/JTC1/SC22/WG21/docs/standards" target="_top">C++03</a>
+      local classes (and therefore the local function objects they implement) cannot
+      be passed as template parameters (e.g., to the <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">for_each</span></code>
+      algorithm), this is instead possible in <a href="http://www.open-std.org/JTC1/SC22/WG21/" target="_top">C++11</a>,
+      MSVC, and some other compilers (see <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2657.htm" target="_top">[N2657]</a>
+      and <a href="http://www.boost.org/libs/chrono" target="_top">Boost.Config</a>'s <code class="computeroutput"><span class="identifier">BOOST_NO_LOCAL_CLASS_TEMPLATE_PARAMETERS</span></code>).
+      To work around this limitation, this library investigated the following two
+      "tricks" (both tricks can be extended to support function default
+      parameters):
+    </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          The <span class="emphasis"><em>casting functor trick</em></span> uses a non-local functor
+          that calls a static member function of the local class via a function pointer.
+          The static member function then calls the correct local function body after
+          type casting the object from a <code class="computeroutput"><span class="keyword">void</span><span class="special">*</span></code> pointer (local classes can always be used
+          for type casting via <code class="computeroutput"><span class="keyword">static_cast</span></code>
+          or similar).
+        </li>
+<li class="listitem">
+          The <span class="emphasis"><em>virtual functor trick</em></span> derives the local functor
+          class from a non-local base class. The correct overridden implementation
+          of the virtual <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>
+          is then called via dynamic binding.
+        </li>
+</ol></div>
+<p>
+      For example (see also <a href="../../../example/impl_tparam_tricks.cpp" target="_top"><code class="literal">impl_tparam_tricks.cpp</code></a>):
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">detail</span><span class="special">/</span><span class="identifier">lightweight_test</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">algorithm</span><span class="special">&gt;</span>
+
+<span class="comment">// Casting functor trick.</span>
+<span class="keyword">struct</span> <span class="identifier">casting_func</span> <span class="special">{</span>
+    <span class="keyword">explicit</span> <span class="identifier">casting_func</span><span class="special">(</span><span class="keyword">void</span><span class="special">*</span> <span class="identifier">obj</span><span class="special">,</span> <span class="keyword">void</span> <span class="special">(*</span><span class="identifier">call</span><span class="special">)(</span><span class="keyword">void</span><span class="special">*,</span> <span class="keyword">const</span> <span class="keyword">int</span><span class="special">&amp;))</span>
+            <span class="special">:</span> <span class="identifier">obj_</span><span class="special">(</span><span class="identifier">obj</span><span class="special">),</span> <span class="identifier">call_</span><span class="special">(</span><span class="identifier">call</span><span class="special">)</span> <span class="special">{}</span>
+    <span class="comment">// Unfortunately, function pointer call is not inlined.</span>
+    <span class="keyword">inline</span> <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">num</span><span class="special">)</span> <span class="special">{</span> <span class="identifier">call_</span><span class="special">(</span><span class="identifier">obj_</span><span class="special">,</span> <span class="identifier">num</span><span class="special">);</span> <span class="special">}</span>
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="keyword">void</span><span class="special">*</span> <span class="identifier">obj_</span><span class="special">;</span>
+    <span class="keyword">void</span> <span class="special">(*</span><span class="identifier">call_</span><span class="special">)(</span><span class="keyword">void</span><span class="special">*,</span> <span class="keyword">const</span> <span class="keyword">int</span><span class="special">&amp;);</span>
+<span class="special">};</span>
+
+<span class="comment">// Virtual functor trick.</span>
+<span class="keyword">struct</span> <span class="identifier">virtual_func</span> <span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">interface</span> <span class="special">{</span>
+        <span class="comment">// Unfortunately, virtual function call is not inlined.</span>
+        <span class="keyword">inline</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="keyword">int</span><span class="special">&amp;)</span> <span class="special">{}</span>
+    <span class="special">};</span>
+    <span class="keyword">explicit</span> <span class="identifier">virtual_func</span><span class="special">(</span><span class="identifier">interface</span><span class="special">&amp;</span> <span class="identifier">func</span><span class="special">):</span> <span class="identifier">func_</span><span class="special">(&amp;</span><span class="identifier">func</span><span class="special">)</span> <span class="special">{}</span>
+    <span class="keyword">inline</span> <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">num</span><span class="special">)</span> <span class="special">{</span> <span class="special">(*</span><span class="identifier">func_</span><span class="special">)(</span><span class="identifier">num</span><span class="special">);</span> <span class="special">}</span>
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">interface</span><span class="special">*</span> <span class="identifier">func_</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">sum</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">factor</span> <span class="special">=</span> <span class="number">10</span><span class="special">;</span>
+
+    <span class="comment">// Local class for local function.</span>
+    <span class="keyword">struct</span> <span class="identifier">local_add</span> <span class="special">:</span> <span class="identifier">virtual_func</span><span class="special">::</span><span class="identifier">interface</span> <span class="special">{</span>
+        <span class="keyword">explicit</span> <span class="identifier">local_add</span><span class="special">(</span><span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">_sum</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">_factor</span><span class="special">)</span>
+                <span class="special">:</span> <span class="identifier">sum_</span><span class="special">(</span><span class="identifier">_sum</span><span class="special">),</span> <span class="identifier">factor_</span><span class="special">(</span><span class="identifier">_factor</span><span class="special">)</span> <span class="special">{}</span>
+        <span class="keyword">inline</span> <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">num</span><span class="special">)</span> <span class="special">{</span>
+            <span class="identifier">body</span><span class="special">(</span><span class="identifier">sum_</span><span class="special">,</span> <span class="identifier">factor_</span><span class="special">,</span> <span class="identifier">num</span><span class="special">);</span>
+        <span class="special">}</span>
+        <span class="keyword">inline</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">call</span><span class="special">(</span><span class="keyword">void</span><span class="special">*</span> <span class="identifier">obj</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">num</span><span class="special">)</span> <span class="special">{</span>
+            <span class="identifier">local_add</span><span class="special">*</span> <span class="identifier">self</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">local_add</span><span class="special">*&gt;(</span><span class="identifier">obj</span><span class="special">);</span>
+            <span class="identifier">self</span><span class="special">-&gt;</span><span class="identifier">body</span><span class="special">(</span><span class="identifier">self</span><span class="special">-&gt;</span><span class="identifier">sum_</span><span class="special">,</span> <span class="identifier">self</span><span class="special">-&gt;</span><span class="identifier">factor_</span><span class="special">,</span> <span class="identifier">num</span><span class="special">);</span>
+        <span class="special">}</span>
+    <span class="keyword">private</span><span class="special">:</span>
+        <span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">sum_</span><span class="special">;</span>
+        <span class="keyword">const</span> <span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">factor_</span><span class="special">;</span>
+        <span class="keyword">inline</span> <span class="keyword">void</span> <span class="identifier">body</span><span class="special">(</span><span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">sum</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">factor</span><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">int</span><span class="special">&amp;</span> <span class="identifier">num</span><span class="special">)</span> <span class="special">{</span>
+            <span class="identifier">sum</span> <span class="special">+=</span> <span class="identifier">factor</span> <span class="special">*</span> <span class="identifier">num</span><span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">}</span> <span class="identifier">add_local</span><span class="special">(</span><span class="identifier">sum</span><span class="special">,</span> <span class="identifier">factor</span><span class="special">);</span>
+    <span class="identifier">casting_func</span> <span class="identifier">add_casting</span><span class="special">(&amp;</span><span class="identifier">add_local</span><span class="special">,</span> <span class="special">&amp;</span><span class="identifier">local_add</span><span class="special">::</span><span class="identifier">call</span><span class="special">);</span>
+    <span class="identifier">virtual_func</span> <span class="identifier">add_virtual</span><span class="special">(</span><span class="identifier">add_local</span><span class="special">);</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">v</span><span class="special">(</span><span class="number">10</span><span class="special">);</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">fill</span><span class="special">(</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">v</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="number">1</span><span class="special">);</span>
+
+    <span class="comment">// std::for_each(v.begin(), v.end(), add_local); // Error but OK on C++11.</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">v</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">add_casting</span><span class="special">);</span> <span class="comment">// OK.</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">v</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">v</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">add_virtual</span><span class="special">);</span> <span class="comment">// OK.</span>
+
+    <span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">sum</span> <span class="special">==</span> <span class="number">200</span><span class="special">);</span>
+    <span class="keyword">return</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">report_errors</span><span class="special">();</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<p>
+      The casting functor trick measured slightly better run-time performances than
+      the virtual functor trick so the current implementation of this library uses
+      the casting functor trick (probably because in addition to the indirect function
+      call, the virtual functor trick also requires accessing the <a href="http://en.wikipedia.org/wiki/Virtual_method_table" target="_top">virtual
+      function table</a>). However, neither one of the two tricks was observed
+      to allow for compiler optimizations that inline the local function calls (because
+      they rely on one indirect function call via either a function pointer or a
+      virtual function respectively). Therefore, on compilers that accept local classes
+      as template parameters (MSVC, <a href="http://www.open-std.org/JTC1/SC22/WG21/" target="_top">C++11</a>,
+      etc, see <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2008/n2657.htm" target="_top">[N2657]</a>
+      and <a href="http://www.boost.org/libs/chrono" target="_top">Boost.Config</a>'s <code class="computeroutput"><span class="identifier">BOOST_NO_LOCAL_CLASS_TEMPLATE_PARAMETERS</span></code>),
+      this library automatically generates code that passes the local class type
+      directly as template parameter without using neither one of these two tricks
+      in order to take full advantage of compiler optimizations that inline the local
+      function calls.
+    </p>
+<h4>
+<a name="boost_localfunction.implementation.h1"></a>
+      <span><a name="boost_localfunction.implementation.parsing_macros"></a></span><a class="link" href="implementation.html#boost_localfunction.implementation.parsing_macros">Parsing
+      Macros</a>
+    </h4>
+<p>
+      This library macros can parse the list of specified parameters and detect if
+      any of the bound variable names matches the token <code class="computeroutput"><span class="identifier">this_</span></code>
+      (to generate special code to bind the object in scope), or if the variable
+      is bound by <code class="computeroutput"><span class="keyword">const</span></code> (to generate
+      special code to bind by constant), etc. The parameter tokens are inspected
+      using preprocessor meta-programming and specifically using the macros defined
+      by the files in the <code class="literal">boost/local_function/detail/preprocessor/keyword/</code>
+      directory. <sup>[<a name="boost_localfunction.implementation.f0" href="#ftn.boost_localfunction.implementation.f0" class="footnote">31</a>]</sup>
+    </p>
+<p>
+      For example, the following code defines a macro that allows the preprocessor
+      to detect if a set of space-separated tokens ends with <code class="computeroutput"><span class="identifier">this_</span></code>
+      or not (see also <a href="../../../example/impl_pp_keyword.cpp" target="_top"><code class="literal">impl_pp_keyword.cpp</code></a>):
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">local_function</span><span class="special">/</span><span class="identifier">detail</span><span class="special">/</span><span class="identifier">preprocessor</span><span class="special">/</span><span class="identifier">keyword</span><span class="special">/</span><span class="identifier">thisunderscore</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">local_function</span><span class="special">/</span><span class="identifier">detail</span><span class="special">/</span><span class="identifier">preprocessor</span><span class="special">/</span><span class="identifier">keyword</span><span class="special">/</span><span class="keyword">const</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">local_function</span><span class="special">/</span><span class="identifier">detail</span><span class="special">/</span><span class="identifier">preprocessor</span><span class="special">/</span><span class="identifier">keyword</span><span class="special">/</span><span class="identifier">bind</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">detail</span><span class="special">/</span><span class="identifier">lightweight_test</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">// Expand to 1 if space-separated tokens end with `this_`, 0 otherwise.</span>
+<span class="preprocessor">#define</span> <span class="identifier">IS_THIS_BACK</span><span class="special">(</span><span class="identifier">tokens</span><span class="special">)</span> <span class="special">\</span>
+    <span class="identifier">BOOST_LOCAL_FUNCTION_DETAIL_PP_KEYWORD_IS_THISUNDERSCORE_BACK</span><span class="special">(</span> <span class="special">\</span>
+    <span class="identifier">BOOST_LOCAL_FUNCTION_DETAIL_PP_KEYWORD_BIND_REMOVE_FRONT</span><span class="special">(</span> <span class="special">\</span>
+    <span class="identifier">BOOST_LOCAL_FUNCTION_DETAIL_PP_KEYWORD_CONST_REMOVE_FRONT</span><span class="special">(</span> <span class="special">\</span>
+        <span class="identifier">tokens</span> <span class="special">\</span>
+    <span class="special">)))</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="special">{</span>
+    <span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">IS_THIS_BACK</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">bind</span> <span class="identifier">this_</span><span class="special">)</span> <span class="special">==</span> <span class="number">1</span><span class="special">);</span>
+    <span class="identifier">BOOST_TEST</span><span class="special">(</span><span class="identifier">IS_THIS_BACK</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">bind</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="special">==</span> <span class="number">0</span><span class="special">);</span>
+    <span class="keyword">return</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">report_errors</span><span class="special">();</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<div class="footnotes">
+<br><hr width="100" align="left">
+<div class="footnote"><p><sup>[<a id="ftn.boost_localfunction.implementation.f0" href="#boost_localfunction.implementation.f0" class="para">31</a>] </sup>
+        This technique is at the core of even more complex preprocessor parsing macros
+        like the ones that parse the <a href="http://sourceforge.net/projects/contractpp" target="_top">Contract++</a>
+        syntax.
+      </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Lorenzo
+      Caminiti<p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or a copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="no_variadic_macros.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../reference.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

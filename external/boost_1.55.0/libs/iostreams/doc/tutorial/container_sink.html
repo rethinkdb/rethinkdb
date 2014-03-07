@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Tutorial</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Tutorial</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='container_source.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='container_device.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<A NAME="container_sink"></A>
+<H2>2.1.3. Writing a <CODE>container_sink</CODE></H2>
+
+<P>Suppose you want to write a Device for appending characters to an STL container. A Device which only supports writing is called a <A HREF="../concepts/sink.html">Sink</A>. A typical narrow-character Sink looks like this:
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS="literal">&lt;iosfwd&gt;</SPAN>                          <SPAN CLASS='comment'>// streamsize</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/categories.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/categories.hpp&gt;</SPAN></A>  <SPAN CLASS='comment'>// sink_tag
+</SPAN>
+<SPAN CLASS='keyword'>namespace</SPAN> io = boost::iostreams;
+
+<SPAN CLASS='keyword'>class</SPAN> my_sink {
+<SPAN CLASS='keyword'>public</SPAN>:
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='keyword'>char</SPAN>      char_type;
+    <SPAN CLASS='keyword'>typedef</SPAN> sink_tag  category;
+
+    std::streamsize write(const <SPAN CLASS='keyword'>char</SPAN>* s, std::streamsize n)
+    {
+        <SPAN CLASS='comment'>// Write up to n characters to the underlying </SPAN>
+        <SPAN CLASS='comment'>// data sink into the buffer s, returning the </SPAN>
+        <SPAN CLASS='comment'>// number of characters written</SPAN>
+    }
+
+    <SPAN CLASS='comment'>/* Other members */</SPAN>
+};</PRE>
+
+<P>Here the member type <A HREF="../guide/traits.html#char_type"><CODE>char_type</CODE></A> indicates the type of characters handled by my_source, which will almost always be <CODE>char</CODE> or <CODE>wchar_t</CODE>. The member type <A HREF="../guide/traits.html#char_type">category</A> indicates which of the fundamental i/o operations are supported by the device. The category tag <A HREF="../guide/traits.html#category_tags"><CODE>sink_tag</CODE></A> indicates that only <A HREF="../functions/write.html"><CODE>write</CODE></A> is supported.</P>
+
+<P>The member function <CODE>write</CODE> writes up to <CODE>n</CODE> character into the buffer <CODE>s</CODE> and returns the number of character written. In general, <CODE>write</CODE> may return fewer characters than requested, in which case the Sink is call <I>non-blocking</I>. Non-blocking Devices do not interact well with stanard streams and stream buffers, however, so most devices should be <A HREF="../concepts/blocking.html">Blocking</A>. <I>See</I> <A HREF="../guide/asynchronous.html">Asynchronous and Non-Blocking I/O</A>.</P>
+
+<P>You could also write the above example as follows:</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/concepts.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/concepts.hpp&gt;</SPAN></A>  <SPAN CLASS='comment'>// sink</SPAN>
+
+<SPAN CLASS='keyword'>class</SPAN> my_sink : <SPAN CLASS='keyword'>public</SPAN> sink {
+<SPAN CLASS='keyword'>public</SPAN>:
+    std::streamsize write(const <SPAN CLASS='keyword'>char</SPAN>* s, std::streamsize n);
+
+    <SPAN CLASS='comment'>/* Other members */</SPAN>
+};</PRE>
+
+<P>Here <A HREF="../classes/device.html#synopsis"><CODE>sink</CODE></A> is a convenience base class which provides the member types <CODE>char_type</CODE> and <CODE>category</CODE>, as well as no-op implementations of member functions <CODE>close</CODE> and <CODE>imbue</CODE>, not needed here.
+
+<P>You're now ready to write your <CODE>container_sink</CODE>.</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;algorithm&gt;</SPAN>                       <SPAN CLASS='comment'>// copy, min</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;iosfwd&gt;</SPAN>                          <SPAN CLASS='comment'>// streamsize</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS='header' HREF="../../../../boost/iostreams/categories.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/categories.hpp&gt;</SPAN></A>  <SPAN CLASS='comment'>// sink_tag</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> boost { <SPAN CLASS='keyword'>namespace</SPAN> iostreams { <SPAN CLASS='keyword'>namespace</SPAN> example {
+
+<SPAN CLASS='keyword'>template</SPAN>&lt;<SPAN CLASS='keyword'>typename</SPAN> Container&gt;
+<SPAN CLASS='keyword'>class</SPAN> container_sink {
+<SPAN CLASS='keyword'>public</SPAN>:
+    <SPAN CLASS='keyword'>typedef</SPAN> <SPAN CLASS='keyword'>typename</SPAN> Container::value_type  char_type;
+    <SPAN CLASS='keyword'>typedef</SPAN> sink_tag                        category;
+    container_sink(Container&amp; container) : container_(container) { }
+    std::streamsize write(const char_type* s, std::streamsize n)
+    {
+        container_.insert(container_.end(), s, s + n);
+        <SPAN CLASS='keyword'>return</SPAN> n;
+    }
+    Container&amp; container() { return container_; }
+<SPAN CLASS='keyword'>private</SPAN>:
+    Container&amp; container_;
+};
+
+} } } <SPAN CLASS='comment'>// End namespace boost::iostreams:example</SPAN></PRE>
+
+<P>Here, note that</P>
+<UL>
+<LI>The member type <CODE>char_type</CODE> is defined to be equal to the containers's <CODE>value_type</CODE>;
+<LI>The member type <CODE>category</CODE> tells the Iostreams library that <CODE>container_sink</CODE> is a model of <A HREF="../concepts/sink.html">Sink</A>;
+<LI>A <CODE>container_sink</CODE> can be constructed from a instance of <CODE>Container</CODE>, which is passed and stored by reference, and accessible <I>via</I> the member function <CODE>container()</CODE>; and
+<LI>The implementation of <CODE>write()</CODE> simply appends the characters in the specified buffer to the underlying container using the container's <CODE>insert</CODE> funcion,
+</UL>
+
+<P>You can write to a container_sink as follows</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;cassert&gt;</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;string&gt;</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/stream.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/stream.hpp&gt;</SPAN></A>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../example/container_device.hpp"><SPAN CLASS='literal'>&lt;libs/iostreams/example/container_device.hpp&gt;</SPAN></A> <SPAN CLASS='comment'>// container_sink</SPAN>
+
+<SPAN CLASS='keyword'>namespace</SPAN> io = boost::iostreams;
+<SPAN CLASS='keyword'>namespace</SPAN> ex = boost::iostreams::example;
+
+<SPAN CLASS='keyword'>int</SPAN> main()
+{
+    <SPAN CLASS='keyword'>using</SPAN> <SPAN CLASS='keyword'>namespace</SPAN> std;
+    <SPAN CLASS='keyword'>typedef</SPAN> ex::container_sink&lt;string&gt; string_sink;
+
+    string                   result;
+    io::stream&lt;string_sink&gt;  out(result);
+    out &lt;&lt; <SPAN CLASS='literal'>"Hello World!"</SPAN>;
+    out.flush();
+    assert(result == <SPAN CLASS='literal'>"Hello World!"</SPAN>);
+}</PRE>
+
+<P>Note that the Iostreams library provides buffering by default. Consequently, the stream <CODE>out</CODE> must be flushed before the characters written are guaranteed to be reflected in the underlying <CODE>string</CODE>.
+
+<P>Finally, I should mention that the Iostreams library offers easier ways to append to an STL-compatible container.
+
+First, OutputIterators can be added directly to <A HREF="../guide/filtering_streams.html">filtering streams and stream buffers</A>. So you could write:</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;cassert&gt;</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;iterator&gt;</SPAN>  <SPAN CLASS='comment'>// back_inserter</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;string&gt;</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/filtering_stream.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/filtering_stream.hpp&gt;</SPAN></A>
+
+<SPAN CLASS='keyword'>namespace</SPAN> io = boost::iostreams;
+
+<SPAN CLASS='keyword'>int</SPAN> main()
+{
+    <SPAN CLASS='keyword'>using</SPAN> <SPAN CLASS='keyword'>namespace</SPAN> std;
+
+    string                 result;
+    io::filtering_ostream  out(back_inserter(result));
+    out &lt;&lt; <SPAN CLASS='literal'>"Hello World!"</SPAN>;
+    out.flush();
+    assert(result == <SPAN CLASS='literal'>"Hello World!"</SPAN>);
+}</PRE>
+
+<P>Second, the Iostreams library provides a version of <CODE>back_inserter</CODE> that is somewhat more efficient than <CODE>std::back_inserter</CODE> because the Sink it returns uses <CODE>insert</CODE> rather than <CODE>push_back</CODE>. So you could write:</P>
+
+<PRE CLASS="broken_ie"><SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;cassert&gt;</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <SPAN CLASS='literal'>&lt;string&gt;</SPAN>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/device/back_inserter.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/device/back_inserter.hpp&gt;</SPAN></A>
+<SPAN CLASS='preprocessor'>#include</SPAN> <A CLASS="HEADER" HREF="../../../../boost/iostreams/filtering_stream.hpp"><SPAN CLASS='literal'>&lt;boost/iostreams/filtering_stream.hpp&gt;</SPAN></A>
+
+<SPAN CLASS='keyword'>namespace</SPAN> io = boost::iostreams;
+
+<SPAN CLASS='keyword'>int</SPAN> main()
+{
+    <SPAN CLASS='keyword'>using</SPAN> <SPAN CLASS='keyword'>namespace</SPAN> std;
+
+    string                 result;
+    io::filtering_ostream  out(io::back_inserter(result));
+    out &lt;&lt; <SPAN CLASS='literal'>"Hello World!"</SPAN>;
+    out.flush();
+    assert(result == <SPAN CLASS='literal'>"Hello World!"</SPAN>);
+}</PRE>
+
+<!-- Begin Nav -->
+
+<DIV CLASS='nav'>
+    <A HREF='container_source.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/prev.png'></A>
+    <A HREF='tutorial.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/up.png'></A>
+    <A HREF='container_device.html'><IMG BORDER=0 WIDTH=19 HEIGHT=19 SRC='../../../../doc/src/images/next.png'></A>
+</DIV>
+
+<!-- End Nav -->
+
+<!-- Begin Footer -->
+
+<HR>
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Use, modification, and distribution are subject to the Boost Software License, Version 2.0. (See accompanying file <A HREF="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+<!-- End Footer -->
+
+</BODY>

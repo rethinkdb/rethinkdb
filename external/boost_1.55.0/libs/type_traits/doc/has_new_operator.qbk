@@ -1,0 +1,49 @@
+[/ 
+  Copyright 2009 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:has_new_operator has_new_operator]
+   template <class T>
+   struct has_new_operator : public __tof {};
+  
+__inherit If T is a (possibly cv-qualified) type with an overloaded new-operator
+then inherits from __true_type, otherwise inherits from __false_type.
+
+__compat Not usable with compilers that do not support "substitution failure is not an error"
+(in which case BOOST_NO_SFINAE will be defined), also known to be broken with 
+the Borland/Codegear compiler.
+
+__std_ref 12.5.
+
+__header ` #include <boost/type_traits/has_new_operator.hpp>` or ` #include <boost/type_traits.hpp>`
+
+__examples
+
+Given:
+
+	class A { void* operator new(std::size_t); };
+	class B { void* operator new(std::size_t, const std::nothrow&); };
+	class C { void* operator new(std::size_t, void*); };
+	class D { void* operator new[](std::size_t); };
+	class E { void* operator new[](std::size_t, const std::nothrow&); };
+	class F { void* operator new[](std::size_t, void*); };
+	
+Then:
+
+[:`has_new_operator<A>` inherits from `__true_type`.]
+
+[:`has_new_operator<B>` inherits from `__true_type`.]
+
+[:`has_new_operator<C>` inherits from `__true_type`.]
+
+[:`has_new_operator<D>` inherits from `__true_type`.]
+
+[:`has_new_operator<E>` inherits from `__true_type`.]
+
+[:`has_new_operator<F>` inherits from `__true_type`.]
+
+[endsect]
+

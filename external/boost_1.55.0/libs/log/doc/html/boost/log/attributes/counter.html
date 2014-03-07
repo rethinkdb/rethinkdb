@@ -1,0 +1,132 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template counter</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../attributes.html#header.boost.log.attributes.counter_hpp" title="Header &lt;boost/log/attributes/counter.hpp&gt;">
+<link rel="prev" href="make_constant.html" title="Function template make_constant">
+<link rel="next" href="counter/impl.html" title="Class impl">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_constant.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../attributes.html#header.boost.log.attributes.counter_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="counter/impl.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.attributes.counter"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template counter</span></h2>
+<p>boost::log::attributes::counter &#8212; A class of an attribute that counts an integral value. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../attributes.html#header.boost.log.attributes.counter_hpp" title="Header &lt;boost/log/attributes/counter.hpp&gt;">boost/log/attributes/counter.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="counter.html" title="Class template counter">counter</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">attribute</span> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">T</span> <a name="boost.log.attributes.counter.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>  <span class="comment">// A counter value type. </span>
+
+  <span class="comment">// member classes/structs/unions</span>
+
+  <span class="comment">// Base class for factory implementation.</span>
+
+  <span class="keyword">class</span> <a class="link" href="counter/impl.html" title="Class impl">impl</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">attribute</span><span class="special">::</span><span class="identifier">impl</span> <span class="special">{</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="keyword">class</span> <a class="link" href="counter/impl_dec.html" title="Class impl_dec">impl_dec</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">counter</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">impl</span> <span class="special">{</span>
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// <a class="link" href="counter/impl_dec.html#boost.log.attributes.counter.impl_decconstruct-copy-destruct">construct/copy/destruct</a></span>
+    <span class="keyword">explicit</span> <a class="link" href="counter/impl_dec.html#idp26015432-bb"><span class="identifier">impl_dec</span></a><span class="special">(</span><span class="identifier">value_type</span><span class="special">)</span><span class="special">;</span>
+
+    <span class="comment">// <a class="link" href="counter/impl_dec.html#idp26014696-bb">public member functions</a></span>
+    <a class="link" href="../attribute_value.html" title="Class attribute_value">attribute_value</a> <a class="link" href="counter/impl_dec.html#idp26014904-bb"><span class="identifier">get_value</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="keyword">class</span> <a class="link" href="counter/impl_generic.html" title="Class impl_generic">impl_generic</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">counter</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">impl</span> <span class="special">{</span>
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// <a class="link" href="counter/impl_generic.html#boost.log.attributes.counter.impl_genericconstruct-copy-destruct">construct/copy/destruct</a></span>
+    <a class="link" href="counter/impl_generic.html#idp26017400-bb"><span class="identifier">impl_generic</span></a><span class="special">(</span><span class="identifier">value_type</span><span class="special">,</span> <span class="keyword">long</span><span class="special">)</span><span class="special">;</span>
+
+    <span class="comment">// <a class="link" href="counter/impl_generic.html#idp26016664-bb">public member functions</a></span>
+    <a class="link" href="../attribute_value.html" title="Class attribute_value">attribute_value</a> <a class="link" href="counter/impl_generic.html#idp26016872-bb"><span class="identifier">get_value</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="keyword">class</span> <a class="link" href="counter/impl_inc.html" title="Class impl_inc">impl_inc</a> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">counter</span><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">impl</span> <span class="special">{</span>
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="comment">// <a class="link" href="counter/impl_inc.html#boost.log.attributes.counter.impl_incconstruct-copy-destruct">construct/copy/destruct</a></span>
+    <span class="keyword">explicit</span> <a class="link" href="counter/impl_inc.html#idp26019576-bb"><span class="identifier">impl_inc</span></a><span class="special">(</span><span class="identifier">value_type</span><span class="special">)</span><span class="special">;</span>
+
+    <span class="comment">// <a class="link" href="counter/impl_inc.html#idp26018840-bb">public member functions</a></span>
+    <a class="link" href="../attribute_value.html" title="Class attribute_value">attribute_value</a> <a class="link" href="counter/impl_inc.html#idp26019048-bb"><span class="identifier">get_value</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="counter.html#boost.log.attributes.counterconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="counter.html#idp26021032-bb"><span class="identifier">counter</span></a><span class="special">(</span><span class="identifier">value_type</span> <span class="special">=</span> <span class="special">(</span><span class="identifier">value_type</span><span class="special">)</span> <span class="number">0</span><span class="special">,</span> <span class="keyword">long</span> <span class="special">=</span> <span class="number">1</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="counter.html#idp26023080-bb"><span class="identifier">counter</span></a><span class="special">(</span><a class="link" href="cast_source.html" title="Class cast_source">cast_source</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp55604072"></a><h2>Description</h2>
+<p>This type of attribute acts as a counter, that is, it returns a monotonously changing value each time requested. The attribute value type can be specified as a template parameter. However, the type must be an integral type of size no more than <code class="computeroutput">sizeof(long)</code>. </p>
+<div class="refsect2">
+<a name="idp55605000"></a><h3>
+<a name="boost.log.attributes.counterconstruct-copy-destruct"></a><code class="computeroutput">counter</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp26021032-bb"></a><span class="identifier">counter</span><span class="special">(</span><span class="identifier">value_type</span> initial <span class="special">=</span> <span class="special">(</span><span class="identifier">value_type</span><span class="special">)</span> <span class="number">0</span><span class="special">,</span> <span class="keyword">long</span> step <span class="special">=</span> <span class="number">1</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">initial</code></span></p></td>
+<td><p>Initial value of the counter </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">step</code></span></p></td>
+<td><p>Changing step of the counter. Each value acquired from the attribute will be greater than the previous one to this amount. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp26023080-bb"></a><span class="identifier">counter</span><span class="special">(</span><a class="link" href="cast_source.html" title="Class cast_source">cast_source</a> <span class="keyword">const</span> <span class="special">&amp;</span> source<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor for casting support </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="make_constant.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../attributes.html#header.boost.log.attributes.counter_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="counter/impl.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

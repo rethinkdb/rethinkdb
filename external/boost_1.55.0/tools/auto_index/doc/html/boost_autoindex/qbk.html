@@ -1,0 +1,229 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Quickbook Support</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Boost.AutoIndex">
+<link rel="up" href="../index.html" title="Boost.AutoIndex">
+<link rel="prev" href="xml.html" title="XML Handling">
+<link rel="next" href="comm_ref.html" title="Command Line Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="xml.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="comm_ref.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_autoindex.qbk"></a><a class="link" href="qbk.html" title="Quickbook Support">Quickbook Support</a>
+</h2></div></div></div>
+<p>
+      The file auto_index_helpers.qbk in <span class="emphasis"><em>boost-path</em></span>/tools/auto_index/include
+      contains various Quickbook templates to assist with AutoIndex support. One
+      would normally add the above path to your include search path via an <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">include</span><span class="special">&gt;</span><span class="identifier">path</span></code>
+      statement in your Jamfile, and then make the templates available to your Quickbook
+      source via a:
+    </p>
+<pre class="programlisting">[include auto_index_helpers.qbk]</pre>
+<p>
+      statement at the start of your Quickbook file.
+    </p>
+<p>
+      The available templates are then:
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Template
+              </p>
+            </th>
+<th>
+              <p>
+                Description
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">index</span><span class="special">]</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Creates a main index, with no "type" category set, which
+                will be titled simply "Index".
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">named_index</span>
+                <span class="identifier">type</span> <span class="identifier">title</span><span class="special">]</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Creates an index with the type attribute set to "type"
+                and the title will be "title".<br> For example to create
+                an index containing only class names one would typically add <code class="computeroutput"><span class="special">[</span><span class="identifier">named_index</span>
+                <span class="identifier">class_name</span> <span class="identifier">Class</span>
+                <span class="identifier">Index</span><span class="special">]</span></code>
+                to your Quickbook source.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">AutoIndex</span>
+                <span class="identifier">Arg</span><span class="special">]</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Creates a Docbook processing instruction that will be handled by
+                AutoIndex, valid values for "Arg" are either "IgnoreSection"
+                or "IgnoreBlock".
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">indexterm1</span>
+                <span class="identifier">primary</span><span class="special">-</span><span class="identifier">key</span><span class="special">]</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Creates a manual index entry that will link to the current section,
+                and have a single primary key "primary-key". Note that
+                this index key will not have a "type" attribute set, and
+                so will only appear in the main index.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">indexterm2</span>
+                <span class="identifier">primary</span><span class="special">-</span><span class="identifier">key</span> <span class="identifier">secondary</span><span class="special">-</span><span class="identifier">key</span><span class="special">]</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Creates a manual index entry that will link to the current section,
+                and has "primary-key" and "secondary key" as
+                the primary and secondary keys respectively. Note that this index
+                key will not have a "type" attribute set, and so will only
+                appear in the main index.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">indexterm3</span>
+                <span class="identifier">primary</span><span class="special">-</span><span class="identifier">key</span> <span class="identifier">secondary</span><span class="special">-</span><span class="identifier">key</span>
+                <span class="identifier">tertiary</span><span class="special">-</span><span class="identifier">key</span><span class="special">]</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Creates a manual index entry that will link to the current section,
+                and have primary, secondary and tertiary keys: "primary-key",
+                "secondary key" and "tertiary key". Note that
+                this index key will not have a "type" attribute set, and
+                so will only appear in the main index.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">typed_indexterm1</span>
+                <span class="identifier">type</span> <span class="identifier">primary</span><span class="special">-</span><span class="identifier">key</span><span class="special">]</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Creates a manual index entry that will link to the current section,
+                and have a single primary key "primary-key". Note that
+                this index key will have the "type" attribute set to the
+                "type" argument, and so may appear in named sub-indexes
+                that also have their type attribute set.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">typed_indexterm2</span>
+                <span class="identifier">type</span> <span class="identifier">primary</span><span class="special">-</span><span class="identifier">key</span>
+                <span class="identifier">secondary</span><span class="special">-</span><span class="identifier">key</span><span class="special">]</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Creates a manual index entry that will link to the current section,
+                and has "primary-key" and "secondary key" as
+                the primary and secondary keys respectively. Note that this index
+                key will have the "type" attribute set to the "type"
+                argument, and so may appear in named sub-indexes that also have their
+                type attribute set.
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">[</span><span class="identifier">typed_indexterm3</span>
+                <span class="identifier">type</span> <span class="identifier">primary</span><span class="special">-</span><span class="identifier">key</span>
+                <span class="identifier">secondary</span><span class="special">-</span><span class="identifier">key</span> <span class="identifier">tertiary</span><span class="special">-</span><span class="identifier">key</span><span class="special">]</span></code>
+              </p>
+            </td>
+<td>
+              <p>
+                Creates a manual index entry that will link to the current section,
+                and have primary, secondary and tertiary keys: "primary-key",
+                "secondary key" and "tertiary key". Note that
+                this index key will have the "type" attribute set to the
+                "type" argument, and so may appear in named sub-indexes
+                that also have their type attribute set.
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008, 2011 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="xml.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="comm_ref.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

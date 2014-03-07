@@ -1,0 +1,75 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:intrinsics Support for Compiler Intrinsics]
+
+There are some traits that can not be implemented within the current C++ language:
+to make these traits "just work" with user defined types, some kind of additional
+help from the compiler is required.  Currently (April 2008) Visual C++ 8 and 9,
+GNU GCC 4.3 and MWCW 9 provide at least some of the the necessary intrinsics, 
+and other compilers will no doubt follow in due course.  
+
+The Following traits classes always need compiler support to do the right thing 
+for all types 
+(but all have safe fallback positions if this support is unavailable):
+
+* __is_union
+* __is_pod
+* __has_trivial_constructor
+* __has_trivial_copy
+* __has_trivial_move_constructor
+* __has_trivial_assign
+* __has_trivial_move_assign
+* __has_trivial_destructor
+* __has_nothrow_constructor
+* __has_nothrow_copy
+* __has_nothrow_assign
+* __has_virtual_destructor
+
+The following traits classes can't be portably implemented in the C++ language, 
+although in practice, the implementations do in fact do the right thing on all
+the compilers we know about:
+
+* __is_empty
+* __is_polymorphic
+
+The following traits classes are dependent on one or more of the above:
+
+* __is_class
+* __is_stateless
+
+The hooks for compiler-intrinsic support are defined in 
+[@../../../../boost/type_traits/intrinsics.hpp boost/type_traits/intrinsics.hpp], adding support for new compilers is simply
+a matter of defining one of more of the following macros:
+
+[table Macros for Compiler Intrinsics
+   [[BOOST_IS_UNION(T)][Should evaluate to true if T is a union type]]
+   [[BOOST_IS_POD(T)][Should evaluate to true if T is a POD type]]
+   [[BOOST_IS_EMPTY(T)][Should evaluate to true if T is an empty struct or union]]
+   [[BOOST_HAS_TRIVIAL_CONSTRUCTOR(T)][Should evaluate to true if the default constructor for T is trivial (i.e. has no effect)]]
+   [[BOOST_HAS_TRIVIAL_COPY(T)][Should evaluate to true if T has a trivial copy constructor (and can therefore be replaced by a call to memcpy)]]
+   [[BOOST_HAS_TRIVIAL_MOVE_CONSTRUCTOR(T)][Should evaluate to true if T has a trivial move constructor (and can therefore be replaced by a call to memcpy)]]
+   [[BOOST_HAS_TRIVIAL_ASSIGN(T)][Should evaluate to true if T has a trivial assignment operator (and can therefore be replaced by a call to memcpy)]]
+   [[BOOST_HAS_TRIVIAL_MOVE_ASSIGN(T)][Should evaluate to true if T has a trivial move assignment operator (and can therefore be replaced by a call to memcpy)]]
+   [[BOOST_HAS_TRIVIAL_DESTRUCTOR(T)][Should evaluate to true if T has a trivial destructor (i.e. ~T() has no effect)]]
+   [[BOOST_HAS_NOTHROW_CONSTRUCTOR(T)][Should evaluate to true if `T x;` can not throw]]
+   [[BOOST_HAS_NOTHROW_COPY(T)][Should evaluate to true if `T(t)` can not throw]]
+   [[BOOST_HAS_NOTHROW_ASSIGN(T)][Should evaluate to true if `T t, u; t = u` can not throw]]
+   [[BOOST_HAS_VIRTUAL_DESTRUCTOR(T)][Should evaluate to true T has a virtual destructor]]
+
+   [[BOOST_IS_ABSTRACT(T)][Should evaluate to true if T is an abstract type]]
+   [[BOOST_IS_BASE_OF(T,U)][Should evaluate to true if T is a base class of U]]
+   [[BOOST_IS_CLASS(T)][Should evaluate to true if T is a class type]]
+   [[BOOST_IS_CONVERTIBLE(T,U)][Should evaluate to true if T is convertible to U]]
+   [[BOOST_IS_ENUM(T)][Should evaluate to true is T is an enum]]
+   [[BOOST_IS_POLYMORPHIC(T)][Should evaluate to true if T is a polymorphic type]]
+   [[BOOST_ALIGNMENT_OF(T)][Should evaluate to the alignment requirements of type T.]]
+   
+]
+
+[endsect]
+

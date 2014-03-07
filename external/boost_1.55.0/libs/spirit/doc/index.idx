@@ -1,0 +1,287 @@
+#==============================================================================
+#   Copyright (c) 2001-2011 Hartmut Kaiser
+#
+#   Use, modification and distribution is subject to the Boost Software
+#   License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+
+#!scan-path "../../../boost/spirit/home/qi" ".*hpp" true
+#!scan-path "../../../boost/spirit/home/karma" ".*hpp" true
+
+###############################################################################
+# Qi API
+parse "" ".*qi.reference.parse_api.iterator_api.*" qi_index
+phrase_parse "" ".*qi.reference.parse_api.iterator_api.*" qi_index
+match "" ".*qi.reference.parse_api.stream_api.*" qi_index
+phrase_match "" ".*qi.reference.parse_api.stream_api.*" qi_index
+skip_flag::postskip "postskip" ".*qi.reference.parse_api.*_api.*" qi_index
+skip_flag::dont_postskip "dont_postskip" ".*qi.reference.parse_api.*_api.*" qi_index
+create_parser "" ".*qi.reference.parse_api.*" qi_index
+create_parser_exists "" ".*qi.reference.parse_api.*" qi_index
+
+parser "[P|p]arser" ".*qi.reference.parser_concepts.*" qi_index
+
+###############################################################################
+# Karma API
+generate "" ".*karma.reference.generate_api.iterator_api.*" karma_index
+generate_delimited "" ".*karma.reference.generate_api.iterator_api.*" karma_index
+format "" ".*karma.reference.generate_api.stream_api.*" karma_index
+format_delimited "" ".*karma.reference.generate_api.stream_api.*" karma_index
+delimit_flag::pre_delimit "pre_delimit" ".*karma.reference.generate_api.*_api.*" karma_index
+delimit_flag::dont_predelimit "dont_predelimit" ".*karma.reference.generate_api.*_api.*" karma_index
+create_generator "" ".*karma.reference.generate_api.*" karma_index
+create_generator_exists "" ".*karma.reference.generate_api.*" karma_index
+
+generator "[G|g]enerator" ".*karma.reference.generator_concepts.*" karma_index
+
+###############################################################################
+# auto parser/generator
+auto_ "" ".*qi.reference.auto.*" qi_index
+auto_ "" ".*karma.reference.auto.*" karma_index
+
+# auxiliary parsers/generators
+attr "" ".*qi.reference.auxiliary.attr" qi_index
+attr_cast "" ".*qi.reference.auxiliary.attr_cast.*" qi_index
+eol "" ".*qi.reference.auxiliary.eol.*" qi_index
+eoi "" ".*qi.reference.auxiliary.eoi.*" qi_index
+eps "" ".*qi.reference.auxiliary.eps.*" qi_index
+lazy "" ".*qi.reference.auxiliary.lazy.*" qi_index
+
+attr_cast "" ".*karma.reference.auxiliary.attr_cast.*" karma_index
+eol "" ".*karma.reference.auxiliary.eol.*" karma_index
+eoi "" ".*karma.reference.auxiliary.eoi.*" karma_index
+eps "" ".*karma.reference.auxiliary.eps.*" karma_index
+lazy "" ".*karma.reference.auxiliary.lazy.*" karma_index
+
+# binary parsers/generators
+byte_ "" ".*qi.reference.binary.binary_native.*" qi_index
+word "" ".*qi.reference.binary.binary_native.*" qi_index
+dword "" ".*qi.reference.binary.binary_native.*" qi_index
+qword "" ".*qi.reference.binary.binary_native.*" qi_index
+bin_float "" ".*qi.reference.binary.binary_native.*" qi_index
+bin_double "" ".*qi.reference.binary.binary_native.*" qi_index
+little_word "" ".*qi.reference.binary.binary_little.*" qi_index
+little_dword "" ".*qi.reference.binary.binary_little.*" qi_index
+little_qword "" ".*qi.reference.binary.binary_little.*" qi_index
+little_bin_float "" ".*qi.reference.binary.binary_little.*" qi_index
+little_bin_double "" ".*qi.reference.binary.binary_little.*" qi_index
+big_word "" ".*qi.reference.binary.binary_big.*" qi_index
+big_dword "" ".*qi.reference.binary.binary_big.*" qi_index
+big_qword "" ".*qi.reference.binary.binary_big.*" qi_index
+big_bin_float "" ".*qi.reference.binary.binary_big.*" qi_index
+big_bin_double "" ".*qi.reference.binary.binary_big.*" qi_index
+
+byte_ "" ".*karma.reference.binary.binary_native.*" karma_index
+word "" ".*karma.reference.binary.binary_native.*" karma_index
+dword "" ".*karma.reference.binary.binary_native.*" karma_index
+qword "" ".*karma.reference.binary.binary_native.*" karma_index
+bin_float "" ".*karma.reference.binary.binary_native.*" karma_index
+bin_double "" ".*karma.reference.binary.binary_native.*" karma_index
+little_word "" ".*karma.reference.binary.binary_little.*" karma_index
+little_dword "" ".*karma.reference.binary.binary_little.*" karma_index
+little_qword "" ".*karma.reference.binary.binary_little.*" karma_index
+little_bin_float "" ".*karma.reference.binary.binary_little.*" karma_index
+little_bin_double "" ".*karma.reference.binary.binary_little.*" karma_index
+big_word "" ".*karma.reference.binary.binary_big.*" karma_index
+big_dword "" ".*karma.reference.binary.binary_big.*" karma_index
+big_qword "" ".*karma.reference.binary.binary_big.*" karma_index
+big_bin_float "" ".*karma.reference.binary.binary_big.*" karma_index
+big_bin_double "" ".*karma.reference.binary.binary_big.*" karma_index
+
+# char parsers/generators
+char_ "" ".*qi.reference.char\..*" qi_index
+lit "" "((.*qi.reference.(char|string))|(.*qi.reference.numeric)).*" qi_index
+alnum "" ".*qi.reference.char.char_.*" qi_index
+alpha "" ".*qi.reference.char.char_.*" qi_index
+blank "" ".*qi.reference.char.char_.*" qi_index
+cntrl "" ".*qi.reference.char.char_.*" qi_index
+digit "" ".*qi.reference.char.char_.*" qi_index
+graph "" ".*qi.reference.char.char_.*" qi_index
+print "" ".*qi.reference.char.char_.*" qi_index
+punct "" ".*qi.reference.char.char_class.*" qi_index
+space "" ".*qi.reference.char.char_class.*" qi_index
+xdigit "" ".*qi.reference.char.char_.*" qi_index
+
+lower "" ".*qi.reference.char.char_class.*" qi_index
+upper "" ".*qi.reference.char.char_class.*" qi_index
+
+char_ "" ".*karma.reference.char\..*" karma_index
+lit "" "((.*karma.reference.(char|string))|(.*karma.reference.numeric)).*" karma_index
+alnum "" ".*karma.reference.char.char_.*" karma_index
+alpha "" ".*karma.reference.char.char_.*" karma_index
+blank "" ".*karma.reference.char.char_.*" karma_index
+cntrl "" ".*karma.reference.char.char_.*" karma_index
+digit "" ".*karma.reference.char.char_.*" karma_index
+graph "" ".*karma.reference.char.char_.*" karma_index
+print "" ".*karma.reference.char.char_.*" karma_index
+punct "" ".*karma.reference.char.char_class.*" karma_index
+space "" ".*karma.reference.char.char_class.*" karma_index
+xdigit "" ".*karma.reference.char.char_.*" karma_index
+
+lower "" ".*karma.reference.((char.char_class.*)|(directive\..*))" karma_index
+upper "" ".*karma.reference.((char.char_class.*)|(directive\..*))" karma_index
+
+# directives
+lexeme "" ".*qi.reference.directive\..*" qi_index
+no_skip "" ".*qi.reference.directive\..*" qi_index
+no_case "" ".*qi.reference.directive\..*" qi_index
+raw "" ".*qi.reference.directive\..*" qi_index
+matches "" ".*qi.reference.directive\..*" qi_index
+skip "" ".*qi.reference.directive\..*" qi_index
+repeat "" ".*qi.reference.directive\..*" qi_index
+inf "" ".*qi.reference.directive\..*" qi_index
+omit "" ".*qi.reference.directive\..*" qi_index
+"as<T>" "as" ".*qi.reference.directive.as" qi_index
+as_string "" ".*qi.reference.directive.as" qi_index
+as_wstring "" ".*qi.reference.directive.as" qi_index
+hold "" ".*qi.reference.directive.hold" qi_index
+
+
+left_align "" ".*karma.reference.directive.alignment.*" karma_index
+center "" ".*karma.reference.directive.alignment.*" karma_index
+right_align "" ".*karma.reference.directive.alignment.*" karma_index
+verbatim "" ".*karma.reference.directive\..*" karma_index
+delimit "" ".*karma.reference.directive\..*" karma_index
+no_delimit "" ".*karma.reference.directive\..*" karma_index
+maxwidth "" ".*karma.reference.directive\..*" karma_index
+buffer "" ".*karma.reference.directive\..*" karma_index
+duplicate "" ".*karma.reference.directive\..*" karma_index
+columns "" ".*karma.reference.directive\..*" karma_index
+repeat "" ".*karma.reference.directive\..*" karma_index
+inf "" ".*karma.reference.directive\..*" karma_index
+omit "" ".*karma.reference.directive\..*" karma_index
+"as<T>" "as" ".*karma.reference.directive.as" karma_index
+as_string "" ".*karma.reference.directive.as" karma_index
+as_wstring "" ".*karma.reference.directive.as" karma_index
+
+# nonterminal parsers/generators
+rule "" ".*qi.reference.nonterminal.rule.*" qi_index
+grammar "" ".*qi.reference.nonterminal.grammar.*" qi_index
+
+rule "" ".*karma.reference.nonterminal.rule.*" karma_index
+grammar "" ".*karma.reference.nonterminal.grammar.*" karma_index
+
+# numeric parsers/generators
+int_ "" ".*qi.reference.numeric\..*" qi_index
+bin "" ".*qi.reference.numeric\..*" qi_index
+oct "" ".*qi.reference.numeric\..*" qi_index
+hex "" ".*qi.reference.numeric\..*" qi_index
+ushort_ "" ".*qi.reference.numeric\..*" qi_index
+uint_ "" ".*qi.reference.numeric\..*" qi_index
+ulong_ "" ".*qi.reference.numeric\..*" qi_index
+ulong_long "" ".*qi.reference.numeric\..*" qi_index
+short_ "" ".*qi.reference.numeric\..*" qi_index
+int_ "" ".*qi.reference.numeric\..*" qi_index
+long_ "" ".*qi.reference.numeric\..*" qi_index
+long_long "" ".*qi.reference.numeric\..*" qi_index
+float_ "" ".*qi.reference.numeric\..*" qi_index
+double_ "" ".*qi.reference.numeric\..*" qi_index
+long_double "" ".*qi.reference.numeric\..*" qi_index
+bool_ "" ".*qi.reference.numeric\..*" qi_index
+true_ "" ".*qi.reference.numeric\..*" qi_index
+false_ "" ".*qi.reference.numeric\..*" qi_index
+
+int_ "" ".*karma.reference.numeric\..*" karma_index
+bin "" ".*karma.reference.numeric\..*" karma_index
+oct "" ".*karma.reference.numeric\..*" karma_index
+hex "" ".*karma.reference.numeric\..*" karma_index
+ushort_ "" ".*karma.reference.numeric\..*" karma_index
+uint_ "" ".*karma.reference.numeric\..*" karma_index
+ulong_ "" ".*karma.reference.numeric\..*" karma_index
+ulong_long "" ".*karma.reference.numeric\..*" karma_index
+short_ "" ".*karma.reference.numeric\..*" karma_index
+int_ "" ".*karma.reference.numeric\..*" karma_index
+long_ "" ".*karma.reference.numeric\..*" karma_index
+long_long "" ".*karma.reference.numeric\..*" karma_index
+float_ "" ".*karma.reference.numeric\..*" karma_index
+double_ "" ".*karma.reference.numeric\..*" karma_index
+long_double "" ".*karma.reference.numeric\..*" karma_index
+bool_ "" ".*karma.reference.numeric\..*" karma_index
+true_ "" ".*karma.reference.numeric\..*" karma_index
+false_ "" ".*karma.reference.numeric\..*" karma_index
+
+bool_policies "" ".*qi.reference.numeric\..*" qi_index
+real_policies "" ".*qi.reference.numeric\..*" qi_index
+ureal_policies "" ".*qi.reference.numeric\..*" qi_index
+
+bool_policies "" ".*karma.reference.numeric\..*" karma_index
+real_policies "" ".*karma.reference.numeric\..*" karma_index
+ureal_policies "" ".*karma.reference.numeric\..*" karma_index
+
+bool_parser "" ".*qi.reference.numeric\..*" qi_index
+int_parser "" ".*qi.reference.numeric\..*" qi_index
+uint_parser "" ".*qi.reference.numeric\..*" qi_index
+real_parser "" ".*qi.reference.numeric\..*" qi_index
+strict_real_parser "" ".*qi.reference.numeric\..*" qi_index
+
+bool_generator "" ".*karma.reference.numeric\..*" karma_index
+int_generator "" ".*karma.reference.numeric\..*" karma_index
+uint_generator "" ".*karma.reference.numeric\..*" karma_index
+real_generator "" ".*karma.reference.numeric\..*" karma_index
+
+# parser/generator operators
+"sequence (a >> b)" "sequence" ".*qi.reference.operator.sequence.*" qi_index
+"alternative (a | b)" "alternative" ".*qi.reference.operator.alternative.*" qi_index
+"kleene (*a)" "[K|k]leene" ".*qi.reference.operator.kleene.*" qi_index
+"plus (+a)" "[P|p]lus" ".*qi.reference.operator.plus.*" qi_index
+"list (a % b)" "list" ".*qi.reference.operator.list.*" qi_index
+"optional (-a)" "optional" ".*qi.reference.operator.optional.*" qi_index
+"and-predicate (&a)" "and-predicate" ".*qi.reference.operator.and_predicate.*" qi_index
+"not-predicate (!a)" "not-predicate" ".*qi.reference.operator.not_predicate.*" qi_index
+
+"expectation (a > b)" "expectation" ".*qi.reference.operator.expect.*" qi_index
+"difference (a - b)" "difference" ".*qi.reference.operator.difference.*" qi_index
+"permutation (a ^ b)" "permutation" ".*qi.reference.operator.permutation.*" qi_index
+"sequential-or (a || b)" "sequential-or" ".*qi.reference.operator.sequential_or.*" qi_index
+
+"sequence (a << b)" "sequence" ".*karma.reference.operator.sequence.*" karma_index
+"alternative (a | b)" "alternative" ".*karma.reference.operator.alternative.*" karma_index
+"kleene (*a)" "[K|k]leene" ".*karma.reference.operator.kleene.*" karma_index
+"plus (+a)" "[P|p]lus" ".*karma.reference.operator.plus.*" karma_index
+"list (a % b)" "list" ".*karma.reference.operator.list.*" karma_index
+"optional (-a)" "optional" ".*karma.reference.operator.optional.*" karma_index
+"and-predicate (&a)" "and-predicate" ".*karma.reference.operator.and_predicate.*" karma_index
+"not-predicate (!a)" "not-predicate" ".*karma.reference.operator.not_predicate.*" karma_index
+
+# stream parsers/generators
+stream "" ".*qi.reference.operator.stream\..*" qi_index
+wstream "" ".*qi.reference.operator.stream\..*" qi_index
+
+stream_parser "" ".*qi.reference.operator.stream\..*" qi_index
+
+stream "" ".*karma.reference.operator.stream\..*" karma_index
+wstream "" ".*karma.reference.operator.stream\..*" karma_index
+
+stream_generator "" ".*karma.reference.operator.stream\..*" karma_index
+
+# string parsers/generators
+string "" ".*qi.reference.string\..*" qi_index
+symbols "" ".*qi.reference.string\..*" qi_index
+
+string "" ".*karma.reference.string\..*" karma_index
+symbols "" ".*karma.reference.string\..*" karma_index
+
+# semantic actions
+"Semantic Action" "[A|a]ctions+" ".*(qi.reference|turorials).(action|semantic_actions).*" qi_index
+"Semantic Action" "[A|a]ctions+" ".*(karma.reference|turorials).(action|semantic_actions).*" karma_index
+
+# placeholders
+placeholders "_\d|_r\d|_val|_[a-j]|_pass" ".*qi.quick_reference.phoenix.*" qi_index
+"_1 ... _N" "_\d" ".*qi.quick_reference.phoenix.*" qi_index
+"_r1 ... _rN" "_r\d" ".*qi.quick_reference.phoenix.*" qi_index
+_val "" ".*qi.quick_reference.phoenix.*" qi_index
+"_a ... _j" "_[a-j]" ".*qi.quick_reference.phoenix.*" qi_index
+_pass "" ".*qi.quick_reference.phoenix.*" qi_index
+placeholders "_\d|_r\d|_val|_[a-j]|_pass" ".*karma.quick_reference.phoenix.*" karma_index
+"_1 ... _N" "_\d" ".*karma.quick_reference.phoenix.*" karma_index
+"_r1 ... _rN" "_r\d" ".*karma.quick_reference.phoenix.*" karma_index
+_val "" ".*karma.quick_reference.phoenix.*" karma_index
+"_a ... _j" "_[a-j]" ".*karma.quick_reference.phoenix.*" karma_index
+_pass "" ".*karma.quick_reference.phoenix.*" karma_index
+
+###############################################################################
+#!exclude N
+#!exclude type iterator Auto call where: f info derived_type subject_type
+#!exclude if floatfield precision trailing_zeros force_sign in pointer
+#!exclude result_type value_type difference_type assign clear

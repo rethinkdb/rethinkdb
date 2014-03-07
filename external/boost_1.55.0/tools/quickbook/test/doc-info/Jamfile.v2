@@ -1,0 +1,38 @@
+#
+#   Copyright (c) 2005 João Abecasis
+#
+#   Distributed under the Boost Software License, Version 1.0. (See
+#   accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#
+
+project quickbook/tests/doc-info ;
+
+import quickbook-testing : quickbook-test quickbook-error-test ;
+
+test-suite quickbook.test :
+    [ quickbook-test escape-1.6 ]
+    [ quickbook-test encode-1.5 ]
+    [ quickbook-test author1 ]
+    [ quickbook-test author2 ]
+    [ quickbook-test empty-attributes ]
+    [ quickbook-test escaped_attributes1-1_7 ]
+    [ quickbook-test escaped_attributes2-1_7 ]
+    [ quickbook-test duplicates-1.1 ]
+    [ quickbook-test duplicates-1.5 ]
+    [ quickbook-test macros1-1_5 ]
+    [ quickbook-test macros1-1_6 ]
+    [ quickbook-test source-mode-1.4 ]
+    [ quickbook-test source-mode-1.5 ]
+    [ quickbook-test source-mode-1.6 ]
+    [ quickbook-test copyright1 ]
+    [ quickbook-error-test copyright-fail1 ]
+    [ quickbook-error-test copyright-fail2 ]
+    [ quickbook-test id1-1.5 ]
+    [ quickbook-test title_trailing_space-1_1 ]
+    [ quickbook-test title_trailing_space-1_6 ]
+    [ quickbook-test empty_title-1_1 ]
+    [ quickbook-test empty_title-1_5 ]
+    [ quickbook-test empty_title-1_6 ]
+    [ quickbook-error-test missing_doc_info-1_6-fail ]
+    ;

@@ -1,0 +1,21 @@
+# Linux user-config.jam
+
+import toolset : using ;
+
+using gcc ;
+
+using python ; # requires pythonN.NN-dev be installed
+
+# Boost iostreams requires no user-config.jam entries,
+# but does require zliblg-dev, libbz2-dev, be installed
+
+using xsltproc ;
+
+using boostbook
+    : /usr/share/xml/docbook/stylesheet/nwalsh
+    : /usr/share/xml/docbook/schema/dtd/4.2
+    ;
+
+# Remove this line if you're not using doxygen
+using doxygen ;
+using quickbook ;

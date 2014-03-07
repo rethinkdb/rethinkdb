@@ -1,0 +1,1579 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Composite</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.0">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Phoenix 2.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Phoenix 2.0">
+<link rel="prev" href="primitives.html" title="Primitives">
+<link rel="next" href="container.html" title="Container">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="primitives.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="container.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="phoenix.composite"></a><a class="link" href="composite.html" title="Composite">Composite</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="composite.html#phoenix.composite.function">Function</a></span></dt>
+<dt><span class="section"><a href="composite.html#phoenix.composite.operator">Operator</a></span></dt>
+<dt><span class="section"><a href="composite.html#phoenix.composite.statement">Statement</a></span></dt>
+<dt><span class="section"><a href="composite.html#phoenix.composite.object">Object</a></span></dt>
+<dt><span class="section"><a href="composite.html#phoenix.composite.scope">Scope</a></span></dt>
+<dt><span class="section"><a href="composite.html#phoenix.composite.bind">Bind</a></span></dt>
+</dl></div>
+<p>
+      Actors may be combined in a multitude of ways to form composites. Composites
+      are actors that are composed of zero or more actors. Composition is hierarchical.
+      An element of the composite can be a primitive or again another composite.
+      The flexibility to arbitrarily compose hierarchical structures allows us to
+      form intricate constructions that model complex functions, statements and expressions.
+    </p>
+<p>
+      A composite is-a tuple of 0..N actors. N is the predefined maximum actors a
+      composite can take.
+    </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        You can set <code class="computeroutput"><span class="identifier">PHOENIX_COMPOSITE_LIMIT</span></code>,
+        the predefined maximum actors a composite can take. By default, <code class="computeroutput"><span class="identifier">PHOENIX_COMPOSITE_LIMIT</span></code> is set to <code class="computeroutput"><span class="identifier">PHOENIX_LIMIT</span></code> (See <a class="link" href="actors.html" title="Actors">Actors</a>).
+      </p></td></tr>
+</table></div>
+<p>
+      As mentioned, each of the actors A0..AN can, in turn, be another composite,
+      since a composite is itself an actor. This makes the composite a recursive
+      structure. The actual evaluation is handled by a composite specific eval policy.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.composite.function"></a><a class="link" href="composite.html#phoenix.composite.function" title="Function">Function</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">function</span><span class="special">/</span><span class="identifier">function</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        The <code class="computeroutput"><span class="identifier">function</span></code> class template
+        provides a mechanism for implementing lazily evaluated functions. Syntactically,
+        a lazy function looks like an ordinary C/C++ function. The function call
+        looks familiar and feels the same as ordinary C++ functions. However, unlike
+        ordinary functions, the actual function execution is deferred.
+      </p>
+<p>
+        Unlike ordinary function pointers or functor objects that need to be explicitly
+        bound through the bind function (see <a class="link" href="composite.html#phoenix.composite.bind" title="Bind">Bind</a>),
+        the argument types of these functions are automatically lazily bound.
+      </p>
+<p>
+        In order to create a lazy function, we need to implement a model of the FunctionEval
+        concept. For a function that takes <code class="computeroutput"><span class="identifier">N</span></code>
+        arguments, a model of FunctionEval must provide:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            An <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>
+            that implements that takes <code class="computeroutput"><span class="identifier">N</span></code>
+            arguments, and implements the function logic.
+          </li>
+<li class="listitem">
+            A nested metafunction <code class="computeroutput"><span class="identifier">result</span><span class="special">&lt;</span><span class="identifier">A1</span><span class="special">,</span> <span class="special">...</span> <span class="identifier">AN</span><span class="special">&gt;</span></code>
+            that takes the types of the <code class="computeroutput"><span class="identifier">N</span></code>
+            arguments to the function and returns the result type of the function.
+            (There is a special case for function objects that accept no arguments.
+            Such nullary functors are only required to define a typedef <code class="computeroutput"><span class="identifier">result_type</span></code> that reflects the return
+            type of its <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>).
+          </li>
+</ul></div>
+<p>
+        For example, the following type implements the FunctionEval concept, in order
+        to provide a lazy factorial function:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">factorial_impl</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Arg</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">result</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">Arg</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Arg</span><span class="special">&gt;</span>
+    <span class="identifier">Arg</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Arg</span> <span class="identifier">n</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="special">(</span><span class="identifier">n</span> <span class="special">&lt;=</span> <span class="number">0</span><span class="special">)</span> <span class="special">?</span> <span class="number">1</span> <span class="special">:</span> <span class="identifier">n</span> <span class="special">*</span> <span class="keyword">this</span><span class="special">-&gt;</span><span class="keyword">operator</span><span class="special">()(</span><span class="identifier">n</span><span class="special">-</span><span class="number">1</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        (See <a href="../../../example/users_manual/factorial.cpp" target="_top">factorial.cpp</a>)
+      </p>
+<p>
+        Having implemented the <code class="computeroutput"><span class="identifier">factorial_impl</span></code>
+        type, we can declare and instantiate a lazy <code class="computeroutput"><span class="identifier">factorial</span></code>
+        function this way:
+      </p>
+<pre class="programlisting"><span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">factorial_impl</span><span class="special">&gt;</span> <span class="identifier">factorial</span><span class="special">;</span>
+</pre>
+<p>
+        Invoking a lazy function such as <code class="computeroutput"><span class="identifier">factorial</span></code>
+        does not immediately execute the function object <code class="computeroutput"><span class="identifier">factorial_impl</span></code>.
+        Instead, an <a class="link" href="actors.html" title="Actors">actor</a> object is created
+        and returned to the caller. Example:
+      </p>
+<pre class="programlisting"><span class="identifier">factorial</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">)</span>
+</pre>
+<p>
+        does nothing more than return an actor. A second function call will invoke
+        the actual factorial function. Example:
+      </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">4</span><span class="special">;</span>
+<span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">factorial</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">)(</span><span class="identifier">i</span><span class="special">);</span>
+</pre>
+<p>
+        will print out "24".
+      </p>
+<p>
+        Take note that in certain cases (e.g. for function objects with state), an
+        instance of the model of FunctionEval may be passed on to the constructor.
+        Example:
+      </p>
+<pre class="programlisting"><span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">factorial_impl</span><span class="special">&gt;</span> <span class="identifier">factorial</span><span class="special">(</span><span class="identifier">ftor</span><span class="special">);</span>
+</pre>
+<p>
+        where ftor is an instance of factorial_impl (this is not necessary in this
+        case as <code class="computeroutput"><span class="identifier">factorial_impl</span></code> does
+        not require any state).
+      </p>
+<div class="sidebar">
+<p class="title"><b></b></p>
+<p>
+        <span class="inlinemediaobject"><img src="../images/alert.png" alt="alert"></span> Take care though when using function objects with state
+        because they are often copied repeatedly, and state may change in one of
+        the copies, rather than the original.
+      </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.composite.operator"></a><a class="link" href="composite.html#phoenix.composite.operator" title="Operator">Operator</a>
+</h3></div></div></div>
+<p>
+        This facility provides a mechanism for lazily evaluating operators. Syntactically,
+        a lazy operator looks and feels like an ordinary C/C++ infix, prefix or postfix
+        operator. The operator application looks the same. However, unlike ordinary
+        operators, the actual operator execution is deferred. Samples:
+      </p>
+<pre class="programlisting"><span class="identifier">arg1</span> <span class="special">+</span> <span class="identifier">arg2</span>
+<span class="number">1</span> <span class="special">+</span> <span class="identifier">arg1</span> <span class="special">*</span> <span class="identifier">arg2</span>
+<span class="number">1</span> <span class="special">/</span> <span class="special">-</span><span class="identifier">arg1</span>
+<span class="identifier">arg1</span> <span class="special">&lt;</span> <span class="number">150</span>
+</pre>
+<p>
+        We have seen the lazy operators in action (see <a class="link" href="starter_kit.html" title="Starter Kit">Quick
+        Start</a>). Let's go back and examine them a little bit further:
+      </p>
+<pre class="programlisting"><span class="identifier">find_if</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">arg1</span> <span class="special">%</span> <span class="number">2</span> <span class="special">==</span> <span class="number">1</span><span class="special">)</span>
+</pre>
+<p>
+        Through operator overloading, the expression <code class="computeroutput"><span class="identifier">arg1</span>
+        <span class="special">%</span> <span class="number">2</span> <span class="special">==</span> <span class="number">1</span></code> actually
+        generates an actor. This actor object is passed on to STL's <code class="computeroutput"><span class="identifier">find_if</span></code> function. From the viewpoint of
+        STL, the composite is simply a function object expecting a single argument
+        of the containers value_type. For each element in <code class="computeroutput"><span class="identifier">c</span></code>,
+        the element is passed on as an argument <code class="computeroutput"><span class="identifier">arg1</span></code>
+        to the actor (function object). The actor checks if this is an odd value
+        based on the expression <code class="computeroutput"><span class="identifier">arg1</span> <span class="special">%</span> <span class="number">2</span> <span class="special">==</span>
+        <span class="number">1</span></code> where arg1 is replaced by the container's
+        element.
+      </p>
+<p>
+        Like lazy functions (see <a class="link" href="composite.html#phoenix.composite.function" title="Function">function</a>),
+        lazy operators are not immediately executed when invoked. Instead, an actor
+        (see <a class="link" href="actors.html" title="Actors">actors</a>) object is created and
+        returned to the caller. Example:
+      </p>
+<pre class="programlisting"><span class="special">(</span><span class="identifier">arg1</span> <span class="special">+</span> <span class="identifier">arg2</span><span class="special">)</span> <span class="special">*</span> <span class="identifier">arg3</span>
+</pre>
+<p>
+        does nothing more than return an actor. A second function call will evaluate
+        the actual operators. Example:
+      </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">4</span><span class="special">,</span> <span class="identifier">j</span> <span class="special">=</span> <span class="number">5</span><span class="special">,</span> <span class="identifier">k</span> <span class="special">=</span> <span class="number">6</span><span class="special">;</span>
+<span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="special">((</span><span class="identifier">arg1</span> <span class="special">+</span> <span class="identifier">arg2</span><span class="special">)</span> <span class="special">*</span> <span class="identifier">arg3</span><span class="special">)(</span><span class="identifier">i</span><span class="special">,</span> <span class="identifier">j</span><span class="special">,</span> <span class="identifier">k</span><span class="special">);</span>
+</pre>
+<p>
+        will print out "54".
+      </p>
+<p>
+        Operator expressions are lazily evaluated following four simple rules:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            A binary operator, except <code class="computeroutput"><span class="special">-&gt;*</span></code>
+            will be lazily evaluated when <span class="emphasis"><em>at least</em></span> one of its
+            operands is an actor object (see <a class="link" href="actors.html" title="Actors">actors</a>).
+          </li>
+<li class="listitem">
+            Unary operators are lazily evaluated if their argument is an actor object.
+          </li>
+<li class="listitem">
+            Operator <code class="computeroutput"><span class="special">-&gt;*</span></code> is lazily
+            evaluated if the left hand argument is an actor object.
+          </li>
+<li class="listitem">
+            The result of a lazy operator is an actor object that can in turn allow
+            the applications of rules 1 and 2.
+          </li>
+</ol></div>
+<p>
+        For example, to check the following expression is lazily evaluated:
+      </p>
+<pre class="programlisting"><span class="special">-(</span><span class="identifier">arg1</span> <span class="special">+</span> <span class="number">3</span> <span class="special">+</span> <span class="number">6</span><span class="special">)</span>
+</pre>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            Following rule 1, <code class="computeroutput"><span class="identifier">arg1</span> <span class="special">+</span> <span class="number">3</span></code> is
+            lazily evaluated since <code class="computeroutput"><span class="identifier">arg1</span></code>
+            is an actor (see <a class="link" href="primitives.html" title="Primitives">primitives</a>).
+          </li>
+<li class="listitem">
+            The result of this <code class="computeroutput"><span class="identifier">arg1</span> <span class="special">+</span> <span class="number">3</span></code> expression
+            is an actor object, following rule 4.
+          </li>
+<li class="listitem">
+            Continuing, <code class="computeroutput"><span class="identifier">arg1</span> <span class="special">+</span>
+            <span class="number">3</span> <span class="special">+</span> <span class="number">6</span></code> is again lazily evaluated. Rule 2.
+          </li>
+<li class="listitem">
+            By rule 4 again, the result of <code class="computeroutput"><span class="identifier">arg1</span>
+            <span class="special">+</span> <span class="number">3</span> <span class="special">+</span> <span class="number">6</span></code> is
+            an actor object.
+          </li>
+<li class="listitem">
+            As <code class="computeroutput"><span class="identifier">arg1</span> <span class="special">+</span>
+            <span class="number">3</span> <span class="special">+</span> <span class="number">6</span></code> is an actor, <code class="computeroutput"><span class="special">-(</span><span class="identifier">arg1</span> <span class="special">+</span> <span class="number">3</span> <span class="special">+</span> <span class="number">6</span><span class="special">)</span></code> is lazily evaluated. Rule 2.
+          </li>
+</ol></div>
+<p>
+        Lazy-operator application is highly contagious. In most cases, a single
+        <code class="computeroutput"><span class="identifier">argN</span></code> actor infects all its
+        immediate neighbors within a group (first level or parenthesized expression).
+      </p>
+<p>
+        Note that at least one operand of any operator must be a valid actor for
+        lazy evaluation to take effect. To force lazy evaluation of an ordinary expression,
+        we can use <code class="computeroutput"><span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>, <code class="computeroutput"><span class="identifier">val</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code> or <code class="computeroutput"><span class="identifier">cref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+        to transform an operand into a valid actor object (see <a class="link" href="primitives.html" title="Primitives">primitives</a>.
+        For example:
+      </p>
+<pre class="programlisting"><span class="number">1</span> <span class="special">&lt;&lt;</span> <span class="number">3</span><span class="special">;</span>      <span class="comment">// Immediately evaluated
+</span><span class="identifier">val</span><span class="special">(</span><span class="number">1</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="number">3</span><span class="special">;</span> <span class="comment">// Lazily evaluated
+</span></pre>
+<a name="phoenix.composite.operator.supported_operators"></a><h3>
+<a name="id841223"></a>
+        <a class="link" href="composite.html#phoenix.composite.operator.supported_operators">Supported
+        operators</a>
+      </h3>
+<a name="phoenix.composite.operator.unary_operators"></a><h4>
+<a name="id841237"></a>
+        <a class="link" href="composite.html#phoenix.composite.operator.unary_operators">Unary operators</a>
+      </h4>
+<pre class="programlisting"><span class="identifier">prefix</span><span class="special">:</span>   <span class="special">~,</span> <span class="special">!,</span> <span class="special">-,</span> <span class="special">+,</span> <span class="special">++,</span> <span class="special">--,</span> <span class="special">&amp;</span> <span class="special">(</span><span class="identifier">reference</span><span class="special">),</span> <span class="special">*</span> <span class="special">(</span><span class="identifier">dereference</span><span class="special">)</span>
+<span class="identifier">postfix</span><span class="special">:</span>  <span class="special">++,</span> <span class="special">--</span>
+</pre>
+<a name="phoenix.composite.operator.binary_operators"></a><h4>
+<a name="id841342"></a>
+        <a class="link" href="composite.html#phoenix.composite.operator.binary_operators">Binary operators</a>
+      </h4>
+<pre class="programlisting"><span class="special">=,</span> <span class="special">[],</span> <span class="special">+=,</span> <span class="special">-=,</span> <span class="special">*=,</span> <span class="special">/=,</span> <span class="special">%=,</span> <span class="special">&amp;=,</span> <span class="special">|=,</span> <span class="special">^=,</span> <span class="special">&lt;&lt;=,</span> <span class="special">&gt;&gt;=</span>
+<span class="special">+,</span> <span class="special">-,</span> <span class="special">*,</span> <span class="special">/,</span> <span class="special">%,</span> <span class="special">&amp;,</span> <span class="special">|,</span> <span class="special">^,</span> <span class="special">&lt;&lt;,</span> <span class="special">&gt;&gt;</span>
+<span class="special">==,</span> <span class="special">!=,</span> <span class="special">&lt;,</span> <span class="special">&gt;,</span> <span class="special">&lt;=,</span> <span class="special">&gt;=</span>
+<span class="special">&amp;&amp;,</span> <span class="special">||,</span> <span class="special">-&gt;*</span>
+</pre>
+<a name="phoenix.composite.operator.ternary_operator"></a><h4>
+<a name="id841508"></a>
+        <a class="link" href="composite.html#phoenix.composite.operator.ternary_operator">Ternary operator</a>
+      </h4>
+<pre class="programlisting"><span class="identifier">if_else</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span>
+</pre>
+<p>
+        The ternary operator deserves special mention. Since C++ does not allow us
+        to overload the conditional expression: <code class="computeroutput"><span class="identifier">c</span>
+        <span class="special">?</span> <span class="identifier">a</span> <span class="special">:</span> <span class="identifier">b</span></code>, the
+        if_else pseudo function is provided for this purpose. The behavior is identical,
+        albeit in a lazy manner.
+      </p>
+<a name="phoenix.composite.operator.member_pointer_operator"></a><h4>
+<a name="id842680"></a>
+        <a class="link" href="composite.html#phoenix.composite.operator.member_pointer_operator">Member
+        pointer operator</a>
+      </h4>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">-&gt;*</span><span class="identifier">member_object_pointer</span>
+<span class="identifier">a</span><span class="special">-&gt;*</span><span class="identifier">member_function_pointer</span>
+</pre>
+<p>
+        The left hand side of the member pointer operator must be an actor returning
+        a pointer type. The right hand side of the member pointer operator may be
+        either a pointer to member object or pointer to member function.
+      </p>
+<p>
+        If the right hand side is a member object pointer, the result is an actor
+        which, when evaluated, returns a reference to that member. For example:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">A</span>
+<span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">member</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="identifier">A</span><span class="special">*</span> <span class="identifier">a</span> <span class="special">=</span> <span class="keyword">new</span> <span class="identifier">A</span><span class="special">;</span>
+<span class="special">...</span>
+
+<span class="special">(</span><span class="identifier">arg1</span><span class="special">-&gt;*&amp;</span><span class="identifier">A</span><span class="special">::</span><span class="identifier">member</span><span class="special">)(</span><span class="identifier">a</span><span class="special">);</span> <span class="comment">// returns member a-&gt;member
+</span></pre>
+<p>
+        If the right hand side is a member function pointer, the result is an actor
+        which, when invoked, calls the specified member function. For example:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">A</span>
+<span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">func</span><span class="special">(</span><span class="keyword">int</span><span class="special">);</span>
+<span class="special">};</span>
+
+<span class="identifier">A</span><span class="special">*</span> <span class="identifier">a</span> <span class="special">=</span> <span class="keyword">new</span> <span class="identifier">A</span><span class="special">;</span>
+<span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+
+<span class="special">(</span><span class="identifier">arg1</span><span class="special">-&gt;*&amp;</span><span class="identifier">A</span><span class="special">::</span><span class="identifier">func</span><span class="special">)(</span><span class="identifier">arg2</span><span class="special">)(</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">i</span><span class="special">);</span> <span class="comment">// returns a-&gt;func(i)
+</span></pre>
+<div class="table">
+<a name="id842987"></a><p class="title"><b>Table&#160;1.4.&#160;Include Files</b></p>
+<div class="table-contents"><table class="table" summary="Include Files">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Operators
+                </p>
+              </th>
+<th>
+                <p>
+                  File
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">-</span></code>, <code class="computeroutput"><span class="special">+</span></code>,
+                  <code class="computeroutput"><span class="special">++</span></code>, <code class="computeroutput"><span class="special">--</span></code>, <code class="computeroutput"><span class="special">+=</span></code>,
+                  <code class="computeroutput"><span class="special">-=</span></code>, <code class="computeroutput"><span class="special">*=</span></code>, <code class="computeroutput"><span class="special">/=</span></code>,
+                  <code class="computeroutput"><span class="special">%=</span></code>, <code class="computeroutput"><span class="special">*</span></code>, <code class="computeroutput"><span class="special">/</span></code>,
+                  <code class="computeroutput"><span class="special">%</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">arithmetic</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&amp;=</span></code>, <code class="computeroutput"><span class="special">|=</span></code>, <code class="computeroutput"><span class="special">^=</span></code>,
+                  <code class="computeroutput"><span class="special">&lt;&lt;=</span></code>, <code class="computeroutput"><span class="special">&gt;&gt;=</span></code>, <code class="computeroutput"><span class="special">&amp;</span></code>,
+                  <code class="computeroutput"><span class="special">|</span></code>, <code class="computeroutput"><span class="special">^</span></code>,
+                  <code class="computeroutput"><span class="special">&lt;&lt;</span></code>, <code class="computeroutput"><span class="special">&gt;&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">bitwise</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">==</span></code>, <code class="computeroutput"><span class="special">!=</span></code>, <code class="computeroutput"><span class="special">&lt;</span></code>,
+                  <code class="computeroutput"><span class="special">&lt;=</span></code>, <code class="computeroutput"><span class="special">&gt;</span></code>, <code class="computeroutput"><span class="special">&gt;=</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">comparison</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&lt;&lt;</span></code>, <code class="computeroutput"><span class="special">&gt;&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">io</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">!</span></code>, &amp;&amp;, <code class="computeroutput"><span class="special">||</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">logical</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">&amp;</span><span class="identifier">x</span></code>,
+                  <code class="computeroutput"><span class="special">*</span><span class="identifier">p</span></code>,
+                  <code class="computeroutput"><span class="special">=</span></code>, <code class="computeroutput"><span class="special">[]</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">self</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">if_else</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span>
+                  <span class="identifier">a</span><span class="special">,</span>
+                  <span class="identifier">b</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">if_else</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">-&gt;*</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="keyword">operator</span><span class="special">/</span><span class="identifier">member</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.composite.statement"></a><a class="link" href="composite.html#phoenix.composite.statement" title="Statement">Statement</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="composite.html#phoenix.composite.statement.block_statement">Block
+        Statement</a></span></dt>
+<dt><span class="section"><a href="composite.html#phoenix.composite.statement.if__statement">if_ Statement</a></span></dt>
+<dt><span class="section"><a href="composite.html#phoenix.composite.statement.if__else___statement">if_else_
+        statement</a></span></dt>
+<dt><span class="section"><a href="composite.html#phoenix.composite.statement.switch__statement">switch_
+        statement</a></span></dt>
+<dt><span class="section"><a href="composite.html#phoenix.composite.statement.while__statement">while_
+        Statement</a></span></dt>
+<dt><span class="section"><a href="composite.html#phoenix.composite.statement.do__while___statement">do_while_
+        Statement</a></span></dt>
+<dt><span class="section"><a href="composite.html#phoenix.composite.statement.for__statement">for_ Statement</a></span></dt>
+<dt><span class="section"><a href="composite.html#phoenix.composite.statement.try__catch__statement">try_
+        catch_ Statement</a></span></dt>
+<dt><span class="section"><a href="composite.html#phoenix.composite.statement.throw_">throw_</a></span></dt>
+</dl></div>
+<p>
+        <span class="bold"><strong><span class="emphasis"><em>Lazy statements...</em></span></strong></span>
+      </p>
+<p>
+        The primitives and composite building blocks presented so far are sufficiently
+        powerful to construct quite elaborate structures. We have presented lazy-
+        functions and lazy-operators. How about lazy-statements? First, an appetizer:
+      </p>
+<p>
+        Print all odd-numbered contents of an STL container using <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">for_each</span></code>
+        (<a href="../../../example/users_manual/all_odds.cpp" target="_top">all_odds.cpp</a>):
+      </p>
+<pre class="programlisting"><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+    <span class="identifier">if_</span><span class="special">(</span><span class="identifier">arg1</span> <span class="special">%</span> <span class="number">2</span> <span class="special">==</span> <span class="number">1</span><span class="special">)</span>
+    <span class="special">[</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span> <span class="special">&lt;&lt;</span> <span class="char">' '</span>
+    <span class="special">]</span>
+<span class="special">);</span>
+</pre>
+<p>
+        Huh? Is that valid C++? Read on...
+      </p>
+<p>
+        Yes, it is valid C++. The sample code above is as close as you can get to
+        the syntax of C++. This stylized C++ syntax differs from actual C++ code.
+        First, the <code class="computeroutput"><span class="keyword">if</span></code> has a trailing
+        underscore. Second, the block uses square brackets instead of the familiar
+        curly braces {}.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+          <span class="bold"><strong>C++ in C++?</strong></span>
+        </p>
+<p>
+          In as much as <a href="http://spirit.sourceforge.net" target="_top">Spirit</a>
+          attempts to mimic EBNF in C++, Phoenix attempts to mimic C++ in C++!!!
+        </p>
+</td></tr>
+</table></div>
+<p>
+        Here are more examples with annotations. The code almost speaks for itself.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.composite.statement.block_statement"></a><a class="link" href="composite.html#phoenix.composite.statement.block_statement" title="Block Statement">Block
+        Statement</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">statement</span><span class="special">/</span><span class="identifier">sequence</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          Syntax:
+        </p>
+<pre class="programlisting"><span class="identifier">statement</span><span class="special">,</span>
+<span class="identifier">statement</span><span class="special">,</span>
+<span class="special">....</span>
+<span class="identifier">statement</span>
+</pre>
+<p>
+          Basically, these are comma separated statements. Take note that unlike
+          the C/C++ semicolon, the comma is a separator put <span class="bold"><strong>in-between</strong></span>
+          statements. This is like Pascal's semicolon separator, rather than C/C++'s
+          semicolon terminator. For example:
+        </p>
+<pre class="programlisting"><span class="identifier">statement</span><span class="special">,</span>
+<span class="identifier">statement</span><span class="special">,</span>
+<span class="identifier">statement</span><span class="special">,</span> <span class="comment">// ERROR!
+</span></pre>
+<p>
+          Is an error. The last statement should not have a comma. Block statements
+          can be grouped using the parentheses. Again, the last statement in a group
+          should not have a trailing comma.
+        </p>
+<pre class="programlisting"><span class="identifier">statement</span><span class="special">,</span>
+<span class="identifier">statement</span><span class="special">,</span>
+<span class="special">(</span>
+    <span class="identifier">statement</span><span class="special">,</span>
+    <span class="identifier">statement</span>
+<span class="special">),</span>
+<span class="identifier">statement</span>
+</pre>
+<p>
+          Outside the square brackets, block statements should be grouped. For example:
+        </p>
+<pre class="programlisting"><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+    <span class="special">(</span>
+        <span class="identifier">do_this</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">),</span>
+        <span class="identifier">do_that</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">)</span>
+    <span class="special">)</span>
+<span class="special">);</span>
+</pre>
+<p>
+          Wrapping a comma operator chain around a parentheses pair blocks the interpretation
+          as an argument separator. The reason for the exception for the square bracket
+          operator is that the operator always takes exactly one argument, so it
+          "transforms" any attempt at multiple arguments with a comma operator
+          chain (and spits out an error for zero arguments).
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.composite.statement.if__statement"></a><a class="link" href="composite.html#phoenix.composite.statement.if__statement" title="if_ Statement">if_ Statement</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">statement</span><span class="special">/</span><span class="keyword">if</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          We have seen the <code class="computeroutput"><span class="identifier">if_</span></code> statement.
+          The syntax is:
+        </p>
+<pre class="programlisting"><span class="identifier">if_</span><span class="special">(</span><span class="identifier">conditional_expression</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="identifier">sequenced_statements</span>
+<span class="special">]</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.composite.statement.if__else___statement"></a><a class="link" href="composite.html#phoenix.composite.statement.if__else___statement" title="if_else_ statement">if_else_
+        statement</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">statement</span><span class="special">/</span><span class="keyword">if</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          The syntax is
+        </p>
+<pre class="programlisting"><span class="identifier">if_</span><span class="special">(</span><span class="identifier">conditional_expression</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="identifier">sequenced_statements</span>
+<span class="special">]</span>
+<span class="special">.</span><span class="identifier">else_</span>
+<span class="special">[</span>
+    <span class="identifier">sequenced_statements</span>
+<span class="special">]</span>
+</pre>
+<p>
+          Take note that <code class="computeroutput"><span class="keyword">else</span></code> has a
+          leading dot and a trailing underscore: <code class="computeroutput"><span class="special">.</span><span class="identifier">else_</span></code>
+        </p>
+<p>
+          Example: This code prints out all the elements and appends <code class="computeroutput"><span class="string">" &gt; 5"</span></code>, <code class="computeroutput"><span class="string">"
+          == 5"</span></code> or <code class="computeroutput"><span class="string">" &lt; 5"</span></code>
+          depending on the element's actual value:
+        </p>
+<pre class="programlisting"><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+    <span class="identifier">if_</span><span class="special">(</span><span class="identifier">arg1</span> <span class="special">&gt;</span> <span class="number">5</span><span class="special">)</span>
+    <span class="special">[</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span> <span class="special">&lt;&lt;</span> <span class="string">" &gt; 5\n"</span>
+    <span class="special">]</span>
+    <span class="special">.</span><span class="identifier">else_</span>
+    <span class="special">[</span>
+        <span class="identifier">if_</span><span class="special">(</span><span class="identifier">arg1</span> <span class="special">==</span> <span class="number">5</span><span class="special">)</span>
+        <span class="special">[</span>
+            <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span> <span class="special">&lt;&lt;</span> <span class="string">" == 5\n"</span>
+        <span class="special">]</span>
+        <span class="special">.</span><span class="identifier">else_</span>
+        <span class="special">[</span>
+            <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span> <span class="special">&lt;&lt;</span> <span class="string">" &lt; 5\n"</span>
+        <span class="special">]</span>
+    <span class="special">]</span>
+<span class="special">);</span>
+</pre>
+<p>
+          Notice how the <code class="computeroutput"><span class="identifier">if_else_</span></code>
+          statement is nested.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.composite.statement.switch__statement"></a><a class="link" href="composite.html#phoenix.composite.statement.switch__statement" title="switch_ statement">switch_
+        statement</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">statement</span><span class="special">/</span><span class="keyword">switch</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          The syntax is:
+        </p>
+<pre class="programlisting"><span class="identifier">switch_</span><span class="special">(</span><span class="identifier">integral_expression</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="identifier">case_</span><span class="special">&lt;</span><span class="identifier">integral_value</span><span class="special">&gt;(</span><span class="identifier">sequenced_statements</span><span class="special">),</span>
+    <span class="special">...</span>
+    <span class="identifier">default_</span><span class="special">&lt;</span><span class="identifier">integral_value</span><span class="special">&gt;(</span><span class="identifier">sequenced_statements</span><span class="special">)</span>
+<span class="special">]</span>
+</pre>
+<p>
+          A comma separated list of cases, and an optional default can be provided.
+          Note unlike a normal switch statement, cases do not fall through.
+        </p>
+<p>
+          Example: This code prints out <code class="computeroutput"><span class="string">"one"</span></code>,
+          <code class="computeroutput"><span class="string">"two"</span></code> or <code class="computeroutput"><span class="string">"other value"</span></code> depending on the
+          element's actual value:
+        </p>
+<pre class="programlisting"><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+    <span class="identifier">switch_</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">)</span>
+    <span class="special">[</span>
+        <span class="identifier">case_</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"one"</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">),</span>
+        <span class="identifier">case_</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;(</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"two"</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">),</span>
+        <span class="identifier">default_</span><span class="special">(</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"other value"</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="char">'\n'</span><span class="special">)</span>
+    <span class="special">]</span>
+<span class="special">);</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.composite.statement.while__statement"></a><a class="link" href="composite.html#phoenix.composite.statement.while__statement" title="while_ Statement">while_
+        Statement</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">statement</span><span class="special">/</span><span class="keyword">while</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          The syntax is:
+        </p>
+<pre class="programlisting"><span class="identifier">while_</span><span class="special">(</span><span class="identifier">conditional_expression</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="identifier">sequenced_statements</span>
+<span class="special">]</span>
+</pre>
+<p>
+          Example: This code decrements each element until it reaches zero and prints
+          out the number at each step. A newline terminates the printout of each
+          value.
+        </p>
+<pre class="programlisting"><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+    <span class="special">(</span>
+        <span class="identifier">while_</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">--)</span>
+        <span class="special">[</span>
+            <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span> <span class="special">&lt;&lt;</span> <span class="string">", "</span>
+        <span class="special">],</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"\n"</span><span class="special">)</span>
+    <span class="special">)</span>
+<span class="special">);</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.composite.statement.do__while___statement"></a><a class="link" href="composite.html#phoenix.composite.statement.do__while___statement" title="do_while_ Statement">do_while_
+        Statement</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">statement</span><span class="special">/</span><span class="identifier">do_while</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          The syntax is:
+        </p>
+<pre class="programlisting"><span class="identifier">do_</span>
+<span class="special">[</span>
+    <span class="identifier">sequenced_statements</span>
+<span class="special">]</span>
+<span class="special">.</span><span class="identifier">while_</span><span class="special">(</span><span class="identifier">conditional_expression</span><span class="special">)</span>
+</pre>
+<p>
+          Again, take note that <code class="computeroutput"><span class="keyword">while</span></code>
+          has a leading dot and a trailing underscore: <code class="computeroutput"><span class="special">.</span><span class="identifier">while_</span></code>
+        </p>
+<p>
+          Example: This code is almost the same as the previous example above with
+          a slight twist in logic.
+        </p>
+<pre class="programlisting"><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+    <span class="special">(</span>
+        <span class="identifier">do_</span>
+        <span class="special">[</span>
+            <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span> <span class="special">&lt;&lt;</span> <span class="string">", "</span>
+        <span class="special">]</span>
+        <span class="special">.</span><span class="identifier">while_</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">--),</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"\n"</span><span class="special">)</span>
+    <span class="special">)</span>
+<span class="special">);</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.composite.statement.for__statement"></a><a class="link" href="composite.html#phoenix.composite.statement.for__statement" title="for_ Statement">for_ Statement</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">statement</span><span class="special">/</span><span class="keyword">for</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          The syntax is:
+        </p>
+<pre class="programlisting"><span class="identifier">for_</span><span class="special">(</span><span class="identifier">init_statement</span><span class="special">,</span> <span class="identifier">conditional_expression</span><span class="special">,</span> <span class="identifier">step_statement</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="identifier">sequenced_statements</span>
+<span class="special">]</span>
+</pre>
+<p>
+          It is again very similar to the C++ for statement. Take note that the init_statement,
+          conditional_expression and step_statement are separated by the comma instead
+          of the semi-colon and each must be present (i.e. <code class="computeroutput"><span class="identifier">for_</span><span class="special">(,,)</span></code> is invalid). This is a case where the
+          <a class="link" href="primitives.html#phoenix.primitives.nothing" title="Nothing">nothing</a> actor can be
+          useful.
+        </p>
+<p>
+          Example: This code prints each element N times where N is the element's
+          value. A newline terminates the printout of each value.
+        </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">iii</span><span class="special">;</span>
+<span class="identifier">for_each</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span>
+    <span class="special">(</span>
+        <span class="identifier">for_</span><span class="special">(</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">iii</span><span class="special">)</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="identifier">ref</span><span class="special">(</span><span class="identifier">iii</span><span class="special">)</span> <span class="special">&lt;</span> <span class="identifier">arg1</span><span class="special">,</span> <span class="special">++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">iii</span><span class="special">))</span>
+        <span class="special">[</span>
+            <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span> <span class="special">&lt;&lt;</span> <span class="string">", "</span>
+        <span class="special">],</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"\n"</span><span class="special">)</span>
+    <span class="special">)</span>
+<span class="special">);</span>
+</pre>
+<p>
+          As before, all these are lazily evaluated. The result of such statements
+          are in fact composites that are passed on to STL's for_each function. In
+          the viewpoint of <code class="computeroutput"><span class="identifier">for_each</span></code>,
+          what was passed is just a functor, no more, no less.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Unlike lazy functions and lazy operators, lazy statements always return
+            void.
+          </p></td></tr>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.composite.statement.try__catch__statement"></a><a class="link" href="composite.html#phoenix.composite.statement.try__catch__statement" title="try_ catch_ Statement">try_
+        catch_ Statement</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">statement</span><span class="special">/</span><span class="identifier">try_catch</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          The syntax is:
+        </p>
+<pre class="programlisting"><span class="identifier">try_</span>
+<span class="special">[</span>
+    <span class="identifier">sequenced_statements</span>
+<span class="special">]</span>
+<span class="special">.</span><span class="identifier">catch_</span><span class="special">&lt;</span><span class="identifier">exception_type</span><span class="special">&gt;()</span>
+<span class="special">[</span>
+    <span class="identifier">sequenced_statements</span>
+<span class="special">]</span>
+<span class="special">...</span>
+<span class="special">.</span><span class="identifier">catch_all</span>
+<span class="special">[</span>
+    <span class="identifier">sequenced_statement</span>
+<span class="special">]</span>
+</pre>
+<p>
+          Note the usual underscore after try and catch, and the extra parentheses
+          required after the catch.
+        </p>
+<p>
+          Example: The following code calls the (lazy) function <code class="computeroutput"><span class="identifier">f</span></code>
+          for each element, and prints messages about different exception types it
+          catches.
+        </p>
+<pre class="programlisting"><span class="identifier">try_</span>
+<span class="special">[</span>
+    <span class="identifier">f</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">)</span>
+<span class="special">]</span>
+<span class="special">.</span><span class="identifier">catch_</span><span class="special">&lt;</span><span class="identifier">runtime_error</span><span class="special">&gt;()</span>
+<span class="special">[</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"caught runtime error or derived\n"</span><span class="special">)</span>
+<span class="special">]</span>
+<span class="special">.</span><span class="identifier">catch_</span><span class="special">&lt;</span><span class="identifier">exception</span><span class="special">&gt;()</span>
+<span class="special">[</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"caught exception or derived\n"</span><span class="special">)</span>
+<span class="special">]</span>
+<span class="special">.</span><span class="identifier">catch_all</span>
+<span class="special">[</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"caught some other type of exception\n"</span><span class="special">)</span>
+<span class="special">]</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.composite.statement.throw_"></a><a class="link" href="composite.html#phoenix.composite.statement.throw_" title="throw_">throw_</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">statement</span><span class="special">/</span><span class="keyword">throw</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          As a natural companion to the try/catch support, the statement module provides
+          lazy throwing and rethrowing of exceptions.
+        </p>
+<p>
+          The syntax to throw an exception is:
+        </p>
+<pre class="programlisting"><span class="identifier">throw_</span><span class="special">(</span><span class="identifier">exception_expression</span><span class="special">)</span>
+</pre>
+<p>
+          The syntax to rethrow an exception is:
+        </p>
+<pre class="programlisting"><span class="identifier">throw_</span><span class="special">()</span>
+</pre>
+<p>
+          Example: This code extends the try/catch example, rethrowing exceptions
+          derived from runtime_error or exception, and translating other exception
+          types to runtime_errors.
+        </p>
+<pre class="programlisting"><span class="identifier">try_</span>
+<span class="special">[</span>
+    <span class="identifier">f</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">)</span>
+<span class="special">]</span>
+<span class="special">.</span><span class="identifier">catch_</span><span class="special">&lt;</span><span class="identifier">runtime_error</span><span class="special">&gt;()</span>
+<span class="special">[</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"caught runtime error or derived\n"</span><span class="special">),</span>
+    <span class="identifier">throw_</span><span class="special">()</span>
+<span class="special">]</span>
+<span class="special">.</span><span class="identifier">catch_</span><span class="special">&lt;</span><span class="identifier">exception</span><span class="special">&gt;()</span>
+<span class="special">[</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"caught exception or derived\n"</span><span class="special">),</span>
+    <span class="identifier">throw_</span><span class="special">()</span>
+<span class="special">]</span>
+<span class="special">.</span><span class="identifier">catch_all</span>
+<span class="special">[</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">val</span><span class="special">(</span><span class="string">"caught some other type of exception\n"</span><span class="special">),</span>
+    <span class="identifier">throw_</span><span class="special">(</span><span class="identifier">runtime_error</span><span class="special">(</span><span class="string">"translated exception"</span><span class="special">))</span>
+<span class="special">]</span>
+</pre>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.composite.object"></a><a class="link" href="composite.html#phoenix.composite.object" title="Object">Object</a>
+</h3></div></div></div>
+<p>
+        The Object module deals with object construction, destruction and conversion.
+        The module provides <span class="emphasis"><em>"lazy"</em></span> versions of C++'s
+        object constructor, <code class="computeroutput"><span class="keyword">new</span></code>, <code class="computeroutput"><span class="keyword">delete</span></code>, <code class="computeroutput"><span class="keyword">static_cast</span></code>,
+        <code class="computeroutput"><span class="keyword">dynamic_cast</span></code>, <code class="computeroutput"><span class="keyword">const_cast</span></code> and <code class="computeroutput"><span class="keyword">reinterpret_cast</span></code>.
+      </p>
+<a name="phoenix.composite.object.construction"></a><h3>
+<a name="id848746"></a>
+        <a class="link" href="composite.html#phoenix.composite.object.construction">Construction</a>
+      </h3>
+<p>
+        <span class="bold"><strong><span class="emphasis"><em>Lazy constructors...</em></span></strong></span>
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">object</span><span class="special">/</span><span class="identifier">construct</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Lazily construct an object from an arbitrary set of arguments:
+      </p>
+<pre class="programlisting"><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;(</span><span class="identifier">ctor_arg1</span><span class="special">,</span> <span class="identifier">ctor_arg2</span><span class="special">,</span> <span class="special">...,</span> <span class="identifier">ctor_argN</span><span class="special">);</span>
+</pre>
+<p>
+        where the given parameters are the parameters to the constructor of the object
+        of type T (This implies, that type T is expected to have a constructor with
+        a corresponding set of parameter types.).
+      </p>
+<p>
+        Example:
+      </p>
+<pre class="programlisting"><span class="identifier">construct</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">arg2</span><span class="special">)</span>
+</pre>
+<p>
+        Constructs a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code> from <code class="computeroutput"><span class="identifier">arg1</span></code>
+        and <code class="computeroutput"><span class="identifier">arg2</span></code>.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          The maximum number of actual parameters is limited by the preprocessor
+          constant PHOENIX_COMPOSITE_LIMIT. Note though, that this limit should not
+          be greater than PHOENIX_LIMIT. By default, <code class="computeroutput"><span class="identifier">PHOENIX_COMPOSITE_LIMIT</span></code>
+          is set to <code class="computeroutput"><span class="identifier">PHOENIX_LIMIT</span></code>
+          (See <a class="link" href="actors.html" title="Actors">Actors</a>).
+        </p></td></tr>
+</table></div>
+<a name="phoenix.composite.object.new"></a><h3>
+<a name="id848992"></a>
+        <a class="link" href="composite.html#phoenix.composite.object.new">New</a>
+      </h3>
+<p>
+        <span class="bold"><strong><span class="emphasis"><em>Lazy new...</em></span></strong></span>
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">object</span><span class="special">/</span><span class="keyword">new</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Lazily construct an object, on the heap, from an arbitrary set of arguments:
+      </p>
+<pre class="programlisting"><span class="identifier">new_</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;(</span><span class="identifier">ctor_arg1</span><span class="special">,</span> <span class="identifier">ctor_arg2</span><span class="special">,</span> <span class="special">...,</span> <span class="identifier">ctor_argN</span><span class="special">);</span>
+</pre>
+<p>
+        where the given parameters are the parameters to the constructor of the object
+        of type T (This implies, that type T is expected to have a constructor with
+        a corresponding set of parameter types.).
+      </p>
+<p>
+        Example:
+      </p>
+<pre class="programlisting"><span class="identifier">new_</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">arg2</span><span class="special">)</span> <span class="comment">// note the spelling of new_ (with trailing underscore)
+</span></pre>
+<p>
+        Creates a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code> from <code class="computeroutput"><span class="identifier">arg1</span></code>
+        and <code class="computeroutput"><span class="identifier">arg2</span></code> on the heap.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Again, the maximum number of actual parameters is limited by the preprocessor
+          constant PHOENIX_COMPOSITE_LIMIT. See the note above.
+        </p></td></tr>
+</table></div>
+<a name="phoenix.composite.object.delete"></a><h3>
+<a name="id849224"></a>
+        <a class="link" href="composite.html#phoenix.composite.object.delete">Delete</a>
+      </h3>
+<p>
+        <span class="bold"><strong><span class="emphasis"><em>Lazy delete...</em></span></strong></span>
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">object</span><span class="special">/</span><span class="keyword">delete</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Lazily delete an object, from the heap:
+      </p>
+<pre class="programlisting"><span class="identifier">delete_</span><span class="special">(</span><span class="identifier">arg</span><span class="special">);</span>
+</pre>
+<p>
+        where arg is assumed to be a pointer to an object.
+      </p>
+<p>
+        Example:
+      </p>
+<pre class="programlisting"><span class="identifier">delete_</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;(</span><span class="identifier">arg1</span><span class="special">)</span> <span class="comment">// note the spelling of delete_ (with trailing underscore)
+</span></pre>
+<a name="phoenix.composite.object.casts"></a><h3>
+<a name="id849378"></a>
+        <a class="link" href="composite.html#phoenix.composite.object.casts">Casts</a>
+      </h3>
+<p>
+        <span class="bold"><strong><span class="emphasis"><em>Lazy casts...</em></span></strong></span>
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">object</span><span class="special">/</span><span class="keyword">static_cast</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">object</span><span class="special">/</span><span class="keyword">dynamic_cast</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">object</span><span class="special">/</span><span class="keyword">const_cast</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">object</span><span class="special">/</span><span class="keyword">reinterpret_cast</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        The set of lazy C++ cast template functions provide a way of lazily casting
+        an object of a certain type to another type. The syntax resembles the well
+        known C++ casts. Take note however that the lazy versions have a trailing
+        underscore.
+      </p>
+<pre class="programlisting"><span class="identifier">static_cast_</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;(</span><span class="identifier">lambda_expression</span><span class="special">)</span>
+<span class="identifier">dynamic_cast_</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;(</span><span class="identifier">lambda_expression</span><span class="special">)</span>
+<span class="identifier">const_cast_</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;(</span><span class="identifier">lambda_expression</span><span class="special">)</span>
+<span class="identifier">reinterpret_cast_</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;(</span><span class="identifier">lambda_expression</span><span class="special">)</span>
+</pre>
+<p>
+        Example:
+      </p>
+<pre class="programlisting"><span class="identifier">static_cast_</span><span class="special">&lt;</span><span class="identifier">Base</span><span class="special">*&gt;(&amp;</span><span class="identifier">arg1</span><span class="special">)</span>
+</pre>
+<p>
+        Static-casts the address of <code class="computeroutput"><span class="identifier">arg1</span></code>
+        to a <code class="computeroutput"><span class="identifier">Base</span><span class="special">*</span></code>.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.composite.scope"></a><a class="link" href="composite.html#phoenix.composite.scope" title="Scope">Scope</a>
+</h3></div></div></div>
+<p>
+        Up until now, the most basic ingredient is missing: creation of and access
+        to local variables in the stack. When recursion comes into play, you will
+        soon realize the need to have true local variables. It may seem that we do
+        not need this at all since an unnamed lambda function cannot call itself
+        anyway; at least not directly. With some sort of arrangement, situations
+        will arise where a lambda function becomes recursive. A typical situation
+        occurs when we store a lambda function in a <a href="http://www.boost.org/libs/function" target="_top">Boost.Function</a>,
+        essentially naming the unnamed lambda.
+      </p>
+<p>
+        There will also be situations where a lambda function gets passed as an argument
+        to another function. This is a more common situation. In this case, the lambda
+        function assumes a new scope; new arguments and possibly new local variables.
+      </p>
+<p>
+        This section deals with local variables and nested lambda scopes.
+      </p>
+<a name="phoenix.composite.scope.local_variables"></a><h3>
+<a name="id849821"></a>
+        <a class="link" href="composite.html#phoenix.composite.scope.local_variables">Local Variables</a>
+      </h3>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">scope</span><span class="special">/</span><span class="identifier">local_variable</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        We use an instance of:
+      </p>
+<pre class="programlisting"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">local_variable</span><span class="special">&lt;</span><span class="identifier">Key</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+</pre>
+<p>
+        to represent a local variable. The local variable acts as an imaginary data-bin
+        where a local, stack based data will be placed. <code class="computeroutput"><span class="identifier">Key</span></code>
+        is an arbitrary type that is used to identify the local variable. Example:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">size_key</span><span class="special">;</span>
+<span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">local_variable</span><span class="special">&lt;</span><span class="identifier">size_key</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">size</span><span class="special">;</span>
+</pre>
+<a name="phoenix.composite.scope.predefined_local_variables"></a><h3>
+<a name="id849996"></a>
+        <a class="link" href="composite.html#phoenix.composite.scope.predefined_local_variables">Predefined
+        Local Variables</a>
+      </h3>
+<p>
+        There are a few predefined instances of <code class="computeroutput"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">local_variable</span><span class="special">&lt;</span><span class="identifier">Key</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>
+        named <code class="computeroutput"><span class="identifier">_a</span></code>..<code class="computeroutput"><span class="identifier">_z</span></code>
+        that you can already use. To make use of them, simply use the <code class="computeroutput"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">local_names</span></code>:
+      </p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">local_names</span><span class="special">;</span>
+</pre>
+<a name="phoenix.composite.scope.let"></a><h3>
+<a name="id850120"></a>
+        <a class="link" href="composite.html#phoenix.composite.scope.let">let</a>
+      </h3>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">scope</span><span class="special">/</span><span class="identifier">let</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        You declare local variables using the syntax:
+      </p>
+<pre class="programlisting"><span class="identifier">let</span><span class="special">(</span><span class="identifier">local</span><span class="special">-</span><span class="identifier">declarations</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="identifier">let</span><span class="special">-</span><span class="identifier">body</span>
+<span class="special">]</span>
+</pre>
+<p>
+        <code class="computeroutput"><span class="identifier">let</span></code> allows 1..N local variable
+        declarations (where N == <code class="computeroutput"><span class="identifier">PHOENIX_LOCAL_LIMIT</span></code>).
+        Each declaration follows the form:
+      </p>
+<pre class="programlisting"><span class="identifier">local</span><span class="special">-</span><span class="identifier">id</span> <span class="special">=</span> <span class="identifier">lambda</span><span class="special">-</span><span class="identifier">expression</span>
+</pre>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          You can set <code class="computeroutput"><span class="identifier">PHOENIX_LOCAL_LIMIT</span></code>,
+          the predefined maximum local variable declarations in a let expression.
+          By default, <code class="computeroutput"><span class="identifier">PHOENIX_LOCAL_LIMIT</span></code>
+          is set to <code class="computeroutput"><span class="identifier">PHOENIX_LIMIT</span></code>.
+        </p></td></tr>
+</table></div>
+<p>
+        Example:
+      </p>
+<pre class="programlisting"><span class="identifier">let</span><span class="special">(</span><span class="identifier">_a</span> <span class="special">=</span> <span class="number">123</span><span class="special">,</span> <span class="identifier">_b</span> <span class="special">=</span> <span class="number">456</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="identifier">_a</span> <span class="special">+</span> <span class="identifier">_b</span>
+<span class="special">]</span>
+</pre>
+<a name="phoenix.composite.scope.reference_preservation"></a><h3>
+<a name="id850404"></a>
+        <a class="link" href="composite.html#phoenix.composite.scope.reference_preservation">Reference
+        Preservation</a>
+      </h3>
+<p>
+        The type of the local variable assumes the type of the lambda- expression.
+        Type deduction is reference preserving. For example:
+      </p>
+<pre class="programlisting"><span class="identifier">let</span><span class="special">(</span><span class="identifier">_a</span> <span class="special">=</span> <span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">_b</span> <span class="special">=</span> <span class="number">456</span><span class="special">)</span>
+</pre>
+<p>
+        <code class="computeroutput"><span class="identifier">_a</span></code> assumes the type of <code class="computeroutput"><span class="identifier">arg1</span></code>: a reference to an argument, while
+        <code class="computeroutput"><span class="identifier">_b</span></code> has type <code class="computeroutput"><span class="keyword">int</span></code>.
+      </p>
+<p>
+        Consider this:
+      </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span>
+
+<span class="identifier">let</span><span class="special">(</span><span class="identifier">_a</span> <span class="special">=</span> <span class="identifier">arg1</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="special">--</span><span class="identifier">_a</span> <span class="special">&lt;&lt;</span> <span class="char">' '</span>
+<span class="special">]</span>
+<span class="special">(</span><span class="identifier">i</span><span class="special">);</span>
+
+<span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+        the output of above is : 0 0
+      </p>
+<p>
+        While with this:
+      </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span>
+
+<span class="identifier">let</span><span class="special">(</span><span class="identifier">_a</span> <span class="special">=</span> <span class="identifier">val</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">))</span>
+<span class="special">[</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="special">--</span><span class="identifier">_a</span> <span class="special">&lt;&lt;</span> <span class="char">' '</span>
+<span class="special">]</span>
+<span class="special">(</span><span class="identifier">i</span><span class="special">);</span>
+
+<span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+        the output is : 0 1
+      </p>
+<p>
+        Reference preservation is necessary because we need to have L-value access
+        to outer lambda-scopes (especially the arguments). <code class="computeroutput"><span class="identifier">arg</span></code>s
+        and <code class="computeroutput"><span class="identifier">ref</span></code>s are L-values. <code class="computeroutput"><span class="identifier">val</span></code>s are R-values.
+      </p>
+<a name="phoenix.composite.scope.visibility"></a><h3>
+<a name="id850804"></a>
+        <a class="link" href="composite.html#phoenix.composite.scope.visibility">Visibility</a>
+      </h3>
+<p>
+        The scope and lifetimes of the local variables is limited within the let-body.
+        <code class="computeroutput"><span class="identifier">let</span></code> blocks can be nested.
+        A local variable may hide an outer local variable. For example:
+      </p>
+<pre class="programlisting"><span class="identifier">let</span><span class="special">(</span><span class="identifier">_x</span> <span class="special">=</span> <span class="number">1</span><span class="special">,</span> <span class="identifier">_y</span> <span class="special">=</span> <span class="string">", World"</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="comment">// _x here is an int: 1
+</span>
+    <span class="identifier">let</span><span class="special">(</span><span class="identifier">_x</span> <span class="special">=</span> <span class="string">"Hello"</span><span class="special">)</span> <span class="comment">// hides the outer _x
+</span>    <span class="special">[</span>
+        <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">_x</span> <span class="special">&lt;&lt;</span> <span class="identifier">_y</span> <span class="comment">// prints "Hello, World"
+</span>    <span class="special">]</span>
+<span class="special">]</span>
+</pre>
+<p>
+        The RHS (right hand side lambda-expression) of each local-declaration cannot
+        refer to any LHS local-id. At this point, the local-ids are not in scope
+        yet; they will only be in scope in the let-body. The code below is in error:
+      </p>
+<pre class="programlisting"><span class="identifier">let</span><span class="special">(</span>
+    <span class="identifier">_a</span> <span class="special">=</span> <span class="number">1</span>
+  <span class="special">,</span> <span class="identifier">_b</span> <span class="special">=</span> <span class="identifier">_a</span> <span class="comment">// Error: _a is not in scope yet
+</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="comment">// _a and _b's scope starts here
+</span>    <span class="comment">/*. body .*/</span>
+<span class="special">]</span>
+</pre>
+<p>
+        However, if an outer let scope is available, this will be searched. Since
+        the scope of the RHS of a local-declaration is the outer scope enclosing
+        the let, the RHS of a local-declaration can refer to a local variable of
+        an outer scope:
+      </p>
+<pre class="programlisting"><span class="identifier">let</span><span class="special">(</span><span class="identifier">_a</span> <span class="special">=</span> <span class="number">1</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="identifier">let</span><span class="special">(</span>
+        <span class="identifier">_a</span> <span class="special">=</span> <span class="number">1</span>
+      <span class="special">,</span> <span class="identifier">_b</span> <span class="special">=</span> <span class="identifier">_a</span> <span class="comment">// Ok. _a refers to the outer _a
+</span>    <span class="special">)</span>
+    <span class="special">[</span>
+        <span class="comment">/*. body .*/</span>
+    <span class="special">]</span>
+<span class="special">]</span>
+</pre>
+<a name="phoenix.composite.scope.lambda"></a><h3>
+<a name="id852781"></a>
+        <a class="link" href="composite.html#phoenix.composite.scope.lambda">lambda</a>
+      </h3>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">scope</span><span class="special">/</span><span class="identifier">lambda</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        A lot of times, you'd want to write a lazy function that accepts one or more
+        functions (higher order functions). STL algorithms come to mind, for example.
+        Consider a lazy version of <code class="computeroutput"><span class="identifier">stl</span><span class="special">::</span><span class="identifier">for_each</span></code>:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">for_each_impl</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">C</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">result</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">void</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">C</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&gt;</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">C</span><span class="special">&amp;</span> <span class="identifier">c</span><span class="special">,</span> <span class="identifier">F</span> <span class="identifier">f</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">f</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">for_each_impl</span><span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">for_each</span> <span class="special">=</span> <span class="identifier">for_each_impl</span><span class="special">();</span>
+</pre>
+<p>
+        Notice that the function accepts another function, <code class="computeroutput"><span class="identifier">f</span></code>
+        as an argument. The scope of this function, <code class="computeroutput"><span class="identifier">f</span></code>,
+        is limited within the <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>. When <code class="computeroutput"><span class="identifier">f</span></code>
+        is called inside <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">for_each</span></code>, it exists in a new scope, along
+        with new arguments and, possibly, local variables. This new scope is not
+        at all related to the outer scopes beyond the <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>.
+      </p>
+<p>
+        Simple syntax:
+      </p>
+<pre class="programlisting"><span class="identifier">lambda</span>
+<span class="special">[</span>
+    <span class="identifier">lambda</span><span class="special">-</span><span class="identifier">body</span>
+<span class="special">]</span>
+</pre>
+<p>
+        Like <code class="computeroutput"><span class="identifier">let</span></code>, local variables
+        may be declared, allowing 1..N local variable declarations (where N == <code class="computeroutput"><span class="identifier">PHOENIX_LOCAL_LIMIT</span></code>):
+      </p>
+<pre class="programlisting"><span class="identifier">lambda</span><span class="special">(</span><span class="identifier">local</span><span class="special">-</span><span class="identifier">declarations</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="identifier">lambda</span><span class="special">-</span><span class="identifier">body</span>
+<span class="special">]</span>
+</pre>
+<p>
+        The same restrictions apply with regard to scope and visibility. The RHS
+        (right hand side lambda-expression) of each local-declaration cannot refer
+        to any LHS local-id. The local-ids are not in scope yet; they will be in
+        scope only in the lambda-body:
+      </p>
+<pre class="programlisting"><span class="identifier">lambda</span><span class="special">(</span>
+    <span class="identifier">_a</span> <span class="special">=</span> <span class="number">1</span>
+  <span class="special">,</span> <span class="identifier">_b</span> <span class="special">=</span> <span class="identifier">_a</span> <span class="comment">// Error: _a is not in scope yet
+</span><span class="special">)</span>
+</pre>
+<p>
+        See <a class="link" href="composite.html#phoenix.composite.scope.visibility"><code class="computeroutput"><span class="identifier">let</span></code>
+        Visibility</a> above for more information.
+      </p>
+<p>
+        Example: Using our lazy <code class="computeroutput"><span class="identifier">for_each</span></code>
+        let's print all the elements in a container:
+      </p>
+<pre class="programlisting"><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">lambda</span><span class="special">[</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">arg1</span><span class="special">])</span>
+</pre>
+<p>
+        As far as the arguments are concerned (arg1..argN), the scope in which the
+        lambda-body exists is totally new. The left <code class="computeroutput"><span class="identifier">arg1</span></code>
+        refers to the argument passed to <code class="computeroutput"><span class="identifier">for_each</span></code>
+        (a container). The right <code class="computeroutput"><span class="identifier">arg1</span></code>
+        refers to the argument passed by <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">for_each</span></code>
+        when we finally get to call <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code> in our <code class="computeroutput"><span class="identifier">for_each_impl</span></code>
+        above (a container element).
+      </p>
+<p>
+        Yet, we may wish to get information from outer scopes. While we do not have
+        access to arguments in outer scopes, what we still have is access to local
+        variables from outer scopes. We may only be able to pass argument related
+        information from outer <code class="computeroutput"><span class="identifier">lambda</span></code>
+        scopes through the local variables.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          This is a crucial difference between <code class="computeroutput"><span class="identifier">let</span></code>
+          and <code class="computeroutput"><span class="identifier">lambda</span></code>: <code class="computeroutput"><span class="identifier">let</span></code> does not introduce new arguments;
+          <code class="computeroutput"><span class="identifier">lambda</span></code> does.
+        </p></td></tr>
+</table></div>
+<p>
+        Another example: Using our lazy <code class="computeroutput"><span class="identifier">for_each</span></code>,
+        and a lazy <code class="computeroutput"><span class="identifier">push_back</span></code>:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">push_back_impl</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">C</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">result</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">void</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">C</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">C</span><span class="special">&amp;</span> <span class="identifier">c</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="identifier">c</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">x</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">push_back_impl</span><span class="special">&gt;</span> <span class="keyword">const</span> <span class="identifier">push_back</span> <span class="special">=</span> <span class="identifier">push_back_impl</span><span class="special">();</span>
+</pre>
+<p>
+        write a lambda expression that accepts:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            a 2-dimensional container (e.g. <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>)
+          </li>
+<li class="listitem">
+            a container element (e.g. <code class="computeroutput"><span class="keyword">int</span></code>)
+          </li>
+</ol></div>
+<p>
+        and pushes-back the element to each of the <code class="computeroutput"><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span></code>.
+      </p>
+<p>
+        Solution:
+      </p>
+<pre class="programlisting"><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span>
+    <span class="identifier">lambda</span><span class="special">(</span><span class="identifier">_a</span> <span class="special">=</span> <span class="identifier">arg2</span><span class="special">)</span>
+    <span class="special">[</span>
+        <span class="identifier">push_back</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">_a</span><span class="special">)</span>
+    <span class="special">]</span>
+<span class="special">)</span>
+</pre>
+<p>
+        Since we do not have access to the arguments of the outer scopes beyond the
+        lambda-body, we introduce a local variable <code class="computeroutput"><span class="identifier">_a</span></code>
+        that captures the second outer argument: <code class="computeroutput"><span class="identifier">arg2</span></code>.
+        Hence: _a = arg2. This local variable is visible inside the lambda scope.
+      </p>
+<p>
+        (See <a href="../../../example/users_manual/lambda.cpp" target="_top">lambda.cpp</a>)
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.composite.bind"></a><a class="link" href="composite.html#phoenix.composite.bind" title="Bind">Bind</a>
+</h3></div></div></div>
+<p>
+        <span class="emphasis"><em>Binding</em></span> is the act of tying together a function to some
+        arguments for deferred (lazy) evaluation. Named <a class="link" href="composite.html#phoenix.composite.function" title="Function">Lazy
+        functions</a> require a bit of typing. Unlike (unnamed) lambda expressions,
+        we need to write a functor somewhere off-line, detached from the call site.
+        If you wish to transform a plain function, member function or member variable
+        to a lambda expression, <code class="computeroutput"><span class="identifier">bind</span></code>
+        is your friend.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Take note that binders are monomorphic. Rather than binding functions,
+          the preferred way is to write true generic and polymorphic <a class="link" href="composite.html#phoenix.composite.function" title="Function">lazy-functions</a>.
+          However, since most of the time we are dealing with adaptation of existing
+          code, binders get the job done faster.
+        </p></td></tr>
+</table></div>
+<p>
+        There is a set of overloaded <code class="computeroutput"><span class="identifier">bind</span></code>
+        template functions. Each <code class="computeroutput"><span class="identifier">bind</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code>
+        function generates a suitable binder object, a <a class="link" href="composite.html" title="Composite">composite</a>.
+      </p>
+<a name="phoenix.composite.bind.binding_functions"></a><h3>
+<a name="id854091"></a>
+        <a class="link" href="composite.html#phoenix.composite.bind.binding_functions">Binding Functions</a>
+      </h3>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">bind</span><span class="special">/</span><span class="identifier">bind_function</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Example, given a function <code class="computeroutput"><span class="identifier">foo</span></code>:
+      </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">foo</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">n</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">n</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        Here's how the function <code class="computeroutput"><span class="identifier">foo</span></code>
+        may be bound:
+      </p>
+<pre class="programlisting"><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">foo</span><span class="special">,</span> <span class="identifier">arg1</span><span class="special">)</span>
+</pre>
+<p>
+        This is now a full-fledged <a class="link" href="composite.html" title="Composite">composite</a>
+        that can finally be evaluated by another function call invocation. A second
+        function call will invoke the actual <code class="computeroutput"><span class="identifier">foo</span></code>
+        function. Example:
+      </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">4</span><span class="special">;</span>
+<span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">foo</span><span class="special">,</span> <span class="identifier">arg1</span><span class="special">)(</span><span class="identifier">i</span><span class="special">);</span>
+</pre>
+<p>
+        will print out "4".
+      </p>
+<a name="phoenix.composite.bind.binding_member_functions"></a><h3>
+<a name="id854374"></a>
+        <a class="link" href="composite.html#phoenix.composite.bind.binding_member_functions">Binding Member
+        Functions</a>
+      </h3>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">bind</span><span class="special">/</span><span class="identifier">bind_member_function</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Binding member functions can be done similarly. A bound member function takes
+        in a pointer or reference to an object as the first argument. For instance,
+        given:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">xyz</span>
+<span class="special">{</span>
+    <span class="keyword">void</span> <span class="identifier">foo</span><span class="special">(</span><span class="keyword">int</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        <code class="computeroutput"><span class="identifier">xyz</span></code>'s <code class="computeroutput"><span class="identifier">foo</span></code>
+        member function can be bound as:
+      </p>
+<pre class="programlisting"><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">xyz</span><span class="special">::</span><span class="identifier">foo</span><span class="special">,</span> <span class="identifier">obj</span><span class="special">,</span> <span class="identifier">arg1</span><span class="special">)</span> <span class="comment">// obj is an xyz object
+</span></pre>
+<p>
+        Take note that a lazy-member functions expects the first argument to be a
+        pointer or reference to an object. Both the object (reference or pointer)
+        and the arguments can be lazily bound. Examples:
+      </p>
+<pre class="programlisting"><span class="identifier">xyz</span> <span class="identifier">obj</span><span class="special">;</span>
+<span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">xyz</span><span class="special">::</span><span class="identifier">foo</span><span class="special">,</span> <span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">arg2</span><span class="special">)</span>     <span class="comment">// arg1.foo(arg2)
+</span><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">xyz</span><span class="special">::</span><span class="identifier">foo</span><span class="special">,</span> <span class="identifier">obj</span><span class="special">,</span> <span class="identifier">arg1</span><span class="special">)</span>      <span class="comment">// obj.foo(arg1)
+</span><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">xyz</span><span class="special">::</span><span class="identifier">foo</span><span class="special">,</span> <span class="identifier">obj</span><span class="special">,</span> <span class="number">100</span><span class="special">)</span>       <span class="comment">// obj.foo(100)
+</span></pre>
+<a name="phoenix.composite.bind.binding_member_variables"></a><h3>
+<a name="id854721"></a>
+        <a class="link" href="composite.html#phoenix.composite.bind.binding_member_variables">Binding Member
+        Variables</a>
+      </h3>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">bind</span><span class="special">/</span><span class="identifier">bind_member_variable</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Member variables can also be bound much like member functions. Member variables
+        are not functions. Yet, like the <a class="link" href="primitives.html#phoenix.primitives.references" title="References"><code class="computeroutput"><span class="identifier">ref</span><span class="special">(</span><span class="identifier">x</span><span class="special">)</span></code></a> that acts like a nullary function
+        returning a reference to the data, member variables, when bound, act like
+        a unary function, taking in a pointer or reference to an object as its argument
+        and returning a reference to the bound member variable. For instance, given:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">xyz</span>
+<span class="special">{</span>
+    <span class="keyword">int</span> <span class="identifier">v</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        <code class="computeroutput"><span class="identifier">xyz</span><span class="special">::</span><span class="identifier">v</span></code> can be bound as:
+      </p>
+<pre class="programlisting"><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">xyz</span><span class="special">::</span><span class="identifier">v</span><span class="special">,</span> <span class="identifier">obj</span><span class="special">)</span> <span class="comment">// obj is an xyz object
+</span></pre>
+<p>
+        As noted, just like the bound member function, a bound member variable also
+        expects the first (and only) argument to be a pointer or reference to an
+        object. The object (reference or pointer) can be lazily bound. Examples:
+      </p>
+<pre class="programlisting"><span class="identifier">xyz</span> <span class="identifier">obj</span><span class="special">;</span>
+<span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">xyz</span><span class="special">::</span><span class="identifier">v</span><span class="special">,</span> <span class="identifier">arg1</span><span class="special">)</span>             <span class="comment">// arg1.v
+</span><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">xyz</span><span class="special">::</span><span class="identifier">v</span><span class="special">,</span> <span class="identifier">obj</span><span class="special">)</span>              <span class="comment">// obj.v
+</span><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">xyz</span><span class="special">::</span><span class="identifier">v</span><span class="special">,</span> <span class="identifier">arg1</span><span class="special">)(</span><span class="identifier">obj</span><span class="special">)</span> <span class="special">=</span> <span class="number">4</span>    <span class="comment">// obj.v = 4
+</span></pre>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005 Joel
+      de Guzman, Dan Marsden<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="primitives.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="container.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

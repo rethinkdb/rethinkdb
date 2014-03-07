@@ -1,0 +1,421 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>svg_mapper</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../svg.html" title="SVG (Scalable Vector Graphics)">
+<link rel="prev" href="svg.html" title="svg">
+<link rel="next" href="../../iterators.html" title="Iterators">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="svg.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../svg.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../iterators.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.io.svg.svg_mapper"></a><a class="link" href="svg_mapper.html" title="svg_mapper">svg_mapper</a>
+</h5></div></div></div>
+<p>
+            <a class="indexterm" name="idp59413720"></a>
+Helper class to create SVG maps.
+          </p>
+<h6>
+<a name="geometry.reference.io.svg.svg_mapper.h0"></a>
+            <span class="phrase"><a name="geometry.reference.io.svg.svg_mapper.synopsis"></a></span><a class="link" href="svg_mapper.html#geometry.reference.io.svg.svg_mapper.synopsis">Synopsis</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Point</span><span class="special">,</span> <span class="keyword">bool</span> <span class="identifier">SameScale</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">svg_mapper</span>
+      <span class="special">:</span> <span class="identifier">noncopyable</span>
+<span class="special">{</span>
+  <span class="comment">// ...</span>
+<span class="special">};</span>
+</pre>
+<p>
+          </p>
+<h6>
+<a name="geometry.reference.io.svg.svg_mapper.h1"></a>
+            <span class="phrase"><a name="geometry.reference.io.svg.svg_mapper.template_parameter_s_"></a></span><a class="link" href="svg_mapper.html#geometry.reference.io.svg.svg_mapper.template_parameter_s_">Template
+            parameter(s)</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Default
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      typename Point
+                    </p>
+                  </td>
+<td>
+                  </td>
+<td>
+                    <p>
+                      Point type, for input geometries.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      bool SameScale
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      true
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Boolean flag indicating if horizontal and vertical scale should
+                      be the same. The default value is true
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.io.svg.svg_mapper.h2"></a>
+            <span class="phrase"><a name="geometry.reference.io.svg.svg_mapper.constructor_s_"></a></span><a class="link" href="svg_mapper.html#geometry.reference.io.svg.svg_mapper.constructor_s_">Constructor(s)</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Function
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Parameters
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">svg_mapper</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">ostream</span> <span class="special">&amp;</span> <span class="identifier">stream</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">width</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">height</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">width_height</span> <span class="special">=</span> <span class="string">"width=\"100%\" height=\"100%\""</span><span class="special">)</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Constructor, initializing the SVG map. Opens and initializes
+                      the SVG. Should be called explicitly.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="bold"><strong>std::ostream &amp;</strong></span>: <span class="emphasis"><em>stream</em></span>:
+                      Output stream, should be a stream already open
+                    </p>
+                    <p>
+                      <span class="bold"><strong>int</strong></span>: <span class="emphasis"><em>width</em></span>:
+                      Width of the SVG map (in SVG pixels)
+                    </p>
+                    <p>
+                      <span class="bold"><strong>int</strong></span>: <span class="emphasis"><em>height</em></span>:
+                      Height of the SVG map (in SVG pixels)
+                    </p>
+                    <p>
+                      <span class="bold"><strong>std::string const &amp;</strong></span>:
+                      <span class="emphasis"><em>width_height</em></span>: Optional information to
+                      increase width and/or height
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="special">~</span><span class="identifier">svg_mapper</span><span class="special">()</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Destructor, called automatically. Closes the SVG by streaming
+                      &lt;/svg&gt;
+                    </p>
+                  </td>
+<td>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.io.svg.svg_mapper.h3"></a>
+            <span class="phrase"><a name="geometry.reference.io.svg.svg_mapper.member_function_s_"></a></span><a class="link" href="svg_mapper.html#geometry.reference.io.svg.svg_mapper.member_function_s_">Member
+            Function(s)</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Function
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Parameters
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Returns
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">add</span><span class="special">(</span><span class="identifier">Geometry</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry</span><span class="special">)</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Adds a geometry to the transformation matrix. After doing this,
+                      the specified geometry can be mapped fully into the SVG map.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="bold"><strong>Geometry const &amp;</strong></span>: <span class="emphasis"><em>geometry</em></span>:
+                      A model of the specified concept
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">map</span><span class="special">(</span><span class="identifier">Geometry</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">style</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">size</span> <span class="special">=</span> <span class="special">-</span><span class="number">1</span><span class="special">)</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Maps a geometry into the SVG map using the specified style.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="bold"><strong>Geometry const &amp;</strong></span>: <span class="emphasis"><em>geometry</em></span>:
+                      A model of the specified concept
+                    </p>
+                    <p>
+                      <span class="bold"><strong>std::string const &amp;</strong></span>:
+                      <span class="emphasis"><em>style</em></span>: String containing verbatim SVG
+                      style information
+                    </p>
+                    <p>
+                      <span class="bold"><strong>int</strong></span>: <span class="emphasis"><em>size</em></span>:
+                      Optional size (used for SVG points) in SVG pixels. For linestrings,
+                      specify linewidth in the SVG style information
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">TextPoint</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">text</span><span class="special">(</span><span class="identifier">TextPoint</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">point</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">s</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">style</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">offset_x</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">offset_y</span> <span class="special">=</span> <span class="number">0</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">lineheight</span> <span class="special">=</span> <span class="number">10</span><span class="special">)</span></pre>
+<p>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Adds a text to the SVG map.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="bold"><strong>TextPoint const &amp;</strong></span>: <span class="emphasis"><em>point</em></span>:
+                      Location of the text (in map units)
+                    </p>
+                    <p>
+                      <span class="bold"><strong>std::string const &amp;</strong></span>:
+                      <span class="emphasis"><em>s</em></span>: The text itself
+                    </p>
+                    <p>
+                      <span class="bold"><strong>std::string const &amp;</strong></span>:
+                      <span class="emphasis"><em>style</em></span>: String containing verbatim SVG
+                      style information, of the text
+                    </p>
+                    <p>
+                      <span class="bold"><strong>int</strong></span>: <span class="emphasis"><em>offset_x</em></span>:
+                      Offset in SVG pixels, defaults to 0
+                    </p>
+                    <p>
+                      <span class="bold"><strong>int</strong></span>: <span class="emphasis"><em>offset_y</em></span>:
+                      Offset in SVG pixels, defaults to 0
+                    </p>
+                    <p>
+                      <span class="bold"><strong>int</strong></span>: <span class="emphasis"><em>lineheight</em></span>:
+                      Line height in SVG pixels, in case the text contains
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.io.svg.svg_mapper.h4"></a>
+            <span class="phrase"><a name="geometry.reference.io.svg.svg_mapper.header"></a></span><a class="link" href="svg_mapper.html#geometry.reference.io.svg.svg_mapper.header">Header</a>
+          </h6>
+<p>
+            Either
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<p>
+            Or
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">io</span><span class="special">/</span><span class="identifier">svg</span><span class="special">/</span><span class="identifier">svg_mapper</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<h6>
+<a name="geometry.reference.io.svg.svg_mapper.h5"></a>
+            <span class="phrase"><a name="geometry.reference.io.svg.svg_mapper.example"></a></span><a class="link" href="svg_mapper.html#geometry.reference.io.svg.svg_mapper.example">Example</a>
+          </h6>
+<p>
+            Shows the usage of svg_mapper
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">fstream</span><span class="special">&gt;</span>
+
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">point_xy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometries</span><span class="special">/</span><span class="identifier">polygon</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="comment">// Specify the basic type</span>
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">d2</span><span class="special">::</span><span class="identifier">point_xy</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">point_type</span><span class="special">;</span>
+
+    <span class="comment">// Declare some geometries and set their values</span>
+    <span class="identifier">point_type</span> <span class="identifier">a</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">assign_values</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="number">3</span><span class="special">,</span> <span class="number">6</span><span class="special">);</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">polygon</span><span class="special">&lt;</span><span class="identifier">point_type</span><span class="special">&gt;</span> <span class="identifier">b</span><span class="special">;</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">read_wkt</span><span class="special">(</span><span class="string">"POLYGON((0 0,0 7,4 2,2 0,0 0))"</span><span class="special">,</span> <span class="identifier">b</span><span class="special">);</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">model</span><span class="special">::</span><span class="identifier">linestring</span><span class="special">&lt;</span><span class="identifier">point_type</span><span class="special">&gt;</span> <span class="identifier">c</span><span class="special">;</span>
+    <span class="identifier">c</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">point_type</span><span class="special">(</span><span class="number">3</span><span class="special">,</span> <span class="number">4</span><span class="special">));</span>
+    <span class="identifier">c</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">point_type</span><span class="special">(</span><span class="number">4</span><span class="special">,</span> <span class="number">5</span><span class="special">));</span>
+
+    <span class="comment">// Declare a stream and an SVG mapper</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">ofstream</span> <span class="identifier">svg</span><span class="special">(</span><span class="string">"my_map.svg"</span><span class="special">);</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">geometry</span><span class="special">::</span><span class="identifier">svg_mapper</span><span class="special">&lt;</span><span class="identifier">point_type</span><span class="special">&gt;</span> <span class="identifier">mapper</span><span class="special">(</span><span class="identifier">svg</span><span class="special">,</span> <span class="number">400</span><span class="special">,</span> <span class="number">400</span><span class="special">);</span>
+
+    <span class="comment">// Add geometries such that all these geometries fit on the map</span>
+    <span class="identifier">mapper</span><span class="special">.</span><span class="identifier">add</span><span class="special">(</span><span class="identifier">a</span><span class="special">);</span>
+    <span class="identifier">mapper</span><span class="special">.</span><span class="identifier">add</span><span class="special">(</span><span class="identifier">b</span><span class="special">);</span>
+    <span class="identifier">mapper</span><span class="special">.</span><span class="identifier">add</span><span class="special">(</span><span class="identifier">c</span><span class="special">);</span>
+
+    <span class="comment">// Draw the geometries on the SVG map, using a specific SVG style</span>
+    <span class="identifier">mapper</span><span class="special">.</span><span class="identifier">map</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span> <span class="string">"fill-opacity:0.5;fill:rgb(153,204,0);stroke:rgb(153,204,0);stroke-width:2"</span><span class="special">,</span> <span class="number">5</span><span class="special">);</span>
+    <span class="identifier">mapper</span><span class="special">.</span><span class="identifier">map</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="string">"fill-opacity:0.3;fill:rgb(51,51,153);stroke:rgb(51,51,153);stroke-width:2"</span><span class="special">);</span>
+    <span class="identifier">mapper</span><span class="special">.</span><span class="identifier">map</span><span class="special">(</span><span class="identifier">c</span><span class="special">,</span> <span class="string">"opacity:0.4;fill:none;stroke:rgb(212,0,0);stroke-width:5"</span><span class="special">);</span>
+
+    <span class="comment">// Destructor of map will be called - adding &lt;/svg&gt;</span>
+    <span class="comment">// Destructor of stream will be called, closing the file</span>
+
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+            Output:
+          </p>
+<p>
+            <span class="inlinemediaobject"><img src="../../../../img/io/svg_mapper.png" alt="svg_mapper"></span>
+          </p>
+<h6>
+<a name="geometry.reference.io.svg.svg_mapper.h6"></a>
+            <span class="phrase"><a name="geometry.reference.io.svg.svg_mapper.see_also"></a></span><a class="link" href="svg_mapper.html#geometry.reference.io.svg.svg_mapper.see_also">See
+            also</a>
+          </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <a class="link" href="svg.html" title="svg">The SVG manipulator</a>
+              </li></ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="svg.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../svg.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../iterators.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

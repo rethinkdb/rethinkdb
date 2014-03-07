@@ -1,0 +1,139 @@
+<HTML>
+<!--
+     Copyright (c) Piotr Wygocki 2013
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Find Flow Cost</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:find_flow_cost">
+<TT>find_flow_cost</TT>
+</H1>
+
+<PRE>
+<i>// named parameter version</i>
+template &lt;class <a href="./Graph.html">Graph</a>&gt;
+typename property_traits&lt;typename property_map &lt; Graph, edge_capacity_t &gt;::type&gt;::value_type
+find_flow_cost(const Graph &amp; g,
+        const bgl_named_params&lt;P, T, R&gt; &amp; params  = <i>all defaults</i>)
+
+<i>// non-named parameter version</i>
+template&lt;class <a href="./Graph.html">Graph</a>, class Capacity, class ResidualCapacity, class Weight&gt;
+typename property_traits&lt;typename property_map &lt; Graph, edge_capacity_t &gt;::type&gt;::value_type
+find_flow_cost(const Graph &amp; g, Capacity capacity, ResidualCapacity residual_capacity, Weight weight) 
+</PRE>
+
+<P>
+The <tt>find_flow_cost()</tt> function calculates the minimum cost maximum flow value of a network and given flow. See Section <a
+href="./graph_theory_review.html#sec:network-flow-algorithms">Network
+Flow Algorithms</a> for a description of maximum flow.  
+The function  calculates the cost from the flow values <i>f(u,v)</i> for <i>(u,v)</i> in
+<i>E</i>, which are passed in the form of the residual capacity
+<i>r(u,v) = c(u,v) - f(u,v)</i>. 
+
+<p>
+In order to compute the min cost max flow use : 
+<a href="./successive_shortest_path_nonnegative_weights.html"><tt>successive_shortest_path_nonnegative_weights()</tt></a>  or
+<a href="./cycle_canceling.html"><tt>cycle_canceling()</tt></a>.
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/successive_shortest_path_nonnegative_weights.hpp"><TT>boost/graph/successive_shortest_path_nonnegative_weights.hpp</TT></a>
+
+<P>
+
+<h3>Parameters</h3>
+
+IN: <tt>const Graph&amp; g</tt>
+<blockquote>
+  A directed graph. The
+  graph's type must be a model of <a
+  href="./VertexListGraph.html">VertexListGraph</a> and <a href="./IncidenceGraph.html">IncidenceGraph</a> For each edge
+  <i>(u,v)</i> in the graph, the reverse edge <i>(v,u)</i> must also
+  be in the graph.
+</blockquote>
+<h3>Named Parameters</h3>
+
+
+IN: <tt>capacity_map(CapacityEdgeMap cap)</tt>
+<blockquote>
+  The edge capacity property map. The type must be a model of a
+  constant <a
+  href="../../property_map/doc/LvaluePropertyMap.html">Lvalue Property Map</a>. The
+  key type of the map must be the graph's edge descriptor type.<br>
+  <b>Default:</b> <tt>get(edge_capacity, g)</tt>
+</blockquote>
+  
+IN: <tt>residual_capacity_map(ResidualCapacityEdgeMap res)</tt>
+<blockquote>
+  This maps edges to their residual capacity. The type must be a model
+  of a mutable <a
+  href="../../property_map/doc/LvaluePropertyMap.html">Lvalue Property
+  Map</a>. The key type of the map must be the graph's edge descriptor
+  type.<br>
+  <b>Default:</b> <tt>get(edge_residual_capacity, g)</tt>
+</blockquote>
+
+
+IN: <tt>weight_map(WeightMap w_map)</tt>   
+<blockquote>
+  The weight or ``cost'' of each edge in the graph.
+  The type <tt>WeightMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>. The edge descriptor type of
+  the graph needs to be usable as the key type for the weight
+  map. The value type for this map must be
+  the same as the value type of the distance map.<br>
+  <b>Default:</b>  <tt>get(edge_weight, g)</tt><br>
+
+</blockquote>
+
+<h3>Complexity</h3>
+The complexity is <i> O(|E|)</i>, 
+
+<h3>Example</h3>
+
+The function is used in the successive_shortest_path_nonnegative_weights example. The program in <a
+href="../example/successive_shortest_path_nonnegative_weights_example.cpp"><tt>example/successive_shortest_path_nonnegative_weights_example.cpp</tt></a>.
+
+<h3>See Also</h3>
+
+<a href="./cycle_canceling.html"><tt>cycle_canceling()</tt></a><br>
+<a href="./successive_shortest_path_nonnegative_weights.html"><tt>successive_shortest_path_nonnegative_weights()</tt></a>.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2013</TD><TD>
+Piotr Wygocki, University of Warsaw (<A HREF="mailto:wygos@mimuw.edu.pl">wygos at mimuw.edu.pl</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 
+<!--  LocalWords:  HTML Siek Edmonds BGCOLOR ffffff ee VLINK ALINK ff IMG SRC
+ -->
+<!--  LocalWords:  gif ALT BR sec edmonds karp TT DIV CELLPADDING TR TD PRE lt
+ -->
+<!--  LocalWords:  typename VertexListGraph CapacityEdgeMap ReverseEdgeMap gt
+ -->
+<!--  LocalWords:  ResidualCapacityEdgeMap VertexIndexMap src rev ColorMap pred
+ -->
+<!--  LocalWords:  PredEdgeMap tt href html hpp ul li nbsp br LvaluePropertyMap
+ -->
+<!--  LocalWords:  num ColorValue DIMACS cpp pre config iostream dimacs int std
+ -->
+<!--  LocalWords:  namespace vecS directedS cout endl iter ei HR valign nowrap
+ -->
+<!--  LocalWords:  jeremy siek htm Univ mailto jsiek lsc edu
+p -->
+

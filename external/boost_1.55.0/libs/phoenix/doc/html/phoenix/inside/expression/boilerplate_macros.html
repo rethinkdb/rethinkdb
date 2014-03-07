@@ -1,0 +1,515 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Boilerplate Macros</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../expression.html" title="Phoenix Expressions">
+<link rel="prev" href="../expression.html" title="Phoenix Expressions">
+<link rel="next" href="../actions.html" title="More on Actions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../expression.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../expression.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../actions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.inside.expression.boilerplate_macros"></a><a class="link" href="boilerplate_macros.html" title="Boilerplate Macros">Boilerplate
+        Macros</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression">BOOST_PHOENIX_DEFINE_EXPRESSION</a></span></dt>
+<dt><span class="section"><a href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg">BOOST_PHOENIX_DEFINE_EXPRESSION_VARARG</a></span></dt>
+<dt><span class="section"><a href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext">BOOST_PHOENIX_DEFINE_EXPRESSION_EXT</a></span></dt>
+<dt><span class="section"><a href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg">BOOST_PHOENIX_DEFINE_EXPRESSION_EXT_VARARG</a></span></dt>
+</dl></div>
+<p>
+          When having more and more expressions, you start to realize that this is
+          a very repetetive task. Phoenix provides boilerplate macros that make defining
+          Phoenix Expressions as you have seen in the <a class="link" href="../expression.html" title="Phoenix Expressions">previous
+          section</a> look like a piece of cake.
+        </p>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression"></a><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression" title="BOOST_PHOENIX_DEFINE_EXPRESSION">BOOST_PHOENIX_DEFINE_EXPRESSION</a>
+</h5></div></div></div>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression.h0"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression.description"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression.description">Description</a>
+          </h6>
+<p>
+            <code class="computeroutput"><span class="identifier">BOOST_PHOENIX_DEFINE_EXPRESSION</span></code>
+            is a macro that can be used to generate all the necessary boilerplate
+            to create Phoenix Expressions
+          </p>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression.h1"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression.synopsis"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="identifier">BOOST_PHOENIX_DEFINE_EXPRESSION</span><span class="special">(</span>
+    <span class="special">(</span><span class="identifier">namespace_seq</span><span class="special">)(</span><span class="identifier">name</span><span class="special">)</span>
+  <span class="special">,</span> <span class="special">(</span><span class="identifier">child_grammar0</span><span class="special">)</span>
+    <span class="special">(</span><span class="identifier">child_grammar1</span><span class="special">)</span>
+    <span class="special">...</span>
+<span class="special">)</span>
+</pre>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression.h2"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression.semantics"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression.semantics">Semantics</a>
+          </h6>
+<p>
+            The above macro generates the necessary code for an expression <code class="computeroutput"><span class="identifier">name</span></code> in namespace <code class="computeroutput"><span class="identifier">namespace_seq</span></code>.
+            The sequence of <code class="computeroutput"><span class="special">(</span><span class="identifier">child_grammarN</span><span class="special">)</span></code> declares how many children the expression
+            will have and what <code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">grammar</span></code>
+            they match.
+          </p>
+<p>
+            The macro should be used at global scope. <code class="computeroutput"><span class="identifier">namespace_seq</span></code>
+            shall be the sequence of namespaces under which the following symbols
+            will be defined:
+          </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">tag</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">name</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">expression</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="keyword">typename</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">name</span>
+        <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">expr</span><span class="special">&lt;</span>
+            <span class="identifier">tag</span><span class="special">::</span><span class="identifier">name</span>
+          <span class="special">,</span> <span class="identifier">A0</span>
+          <span class="special">,</span> <span class="identifier">A1</span>
+            <span class="special">...</span>
+          <span class="special">,</span> <span class="identifier">AN</span>
+        <span class="special">&gt;</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">rule</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">name</span>
+        <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">expr</span><span class="special">&lt;</span>
+            <span class="identifier">child_grammar0</span>
+          <span class="special">,</span> <span class="identifier">child_grammar1</span>
+            <span class="special">...</span>
+          <span class="special">,</span> <span class="identifier">child_grammarN</span>
+        <span class="special">&gt;</span>
+    <span class="special">{};</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">functional</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">make_name</span><span class="special">;</span> <span class="comment">// A polymorphic function object that can be called to create the expression node</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">result_of</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="keyword">typename</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">make_name</span><span class="special">;</span> <span class="comment">// The result type of the expression node</span>
+<span class="special">}</span>
+
+<span class="comment">// convenience polymorphic function to create an expression node</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="keyword">typename</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+<span class="identifier">result_of</span><span class="special">::</span><span class="identifier">make_name</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">,</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+<span class="identifier">make_name</span><span class="special">(</span><span class="identifier">A0</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">a0</span><span class="special">,</span> <span class="identifier">A1</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">a1</span> <span class="special">...</span> <span class="identifier">AN</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">an</span><span class="special">);</span>
+</pre>
+<p>
+            This macros also adds a specialization for <code class="computeroutput"><span class="identifier">meta_grammar</span><span class="special">::</span><span class="identifier">case_</span><span class="special">&lt;</span><span class="identifier">tag</span><span class="special">::</span><span class="identifier">name</span><span class="special">&gt;</span></code> to enable the rule for further use
+            in actions.
+          </p>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression.h3"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression.header"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">expression</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression.h4"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression.example"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression.example">Example</a>
+          </h6>
+<p>
+            The example from the previous section can be rewritten as:
+          </p>
+<pre class="programlisting"><span class="identifier">BOOST_PHOENIX_DEFINE_EXPRESSION</span><span class="special">(</span>
+    <span class="special">(</span><span class="identifier">plus</span><span class="special">)</span>
+  <span class="special">,</span> <span class="special">(</span><span class="identifier">meta_grammar</span><span class="special">)</span>               <span class="comment">// Lhs</span>
+    <span class="special">(</span><span class="identifier">meta_grammar</span><span class="special">)</span>               <span class="comment">// Rhs</span>
+<span class="special">)</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Lhs</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Rhs</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">plus</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span> <span class="identifier">Rhs</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">plus</span><span class="special">(</span><span class="identifier">Lhs</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">Rhs</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">plus</span><span class="special">&lt;</span><span class="identifier">Lhs</span><span class="special">,</span> <span class="identifier">Rhs</span><span class="special">&gt;::</span><span class="identifier">make</span><span class="special">(</span><span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">rhs</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg"></a><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg" title="BOOST_PHOENIX_DEFINE_EXPRESSION_VARARG">BOOST_PHOENIX_DEFINE_EXPRESSION_VARARG</a>
+</h5></div></div></div>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg.h0"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg.description"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg.description">Description</a>
+          </h6>
+<p>
+            <code class="computeroutput"><span class="identifier">BOOST_PHOENIX_DEFINE_EXPRESSION_VARARG</span></code>
+            is a macro that can be used to generate all the necessary boilerplate
+            to create Phoenix Expressions
+          </p>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg.h1"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg.synopsis"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="identifier">BOOST_PHOENIX_DEFINE_EXPRESSION_VARARG</span><span class="special">(</span>
+    <span class="special">(</span><span class="identifier">namespace_seq</span><span class="special">)(</span><span class="identifier">name</span><span class="special">)</span>
+  <span class="special">,</span> <span class="special">(</span><span class="identifier">child_grammar0</span><span class="special">)</span>
+    <span class="special">(</span><span class="identifier">child_grammar1</span><span class="special">)</span>
+    <span class="special">...</span>
+    <span class="special">(</span><span class="identifier">child_grammarN</span><span class="special">)</span>
+  <span class="special">,</span> <span class="identifier">N</span>
+<span class="special">)</span>
+</pre>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg.h2"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg.semantics"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg.semantics">Semantics</a>
+          </h6>
+<p>
+            The above macro generates the necessary code for an expression <code class="computeroutput"><span class="identifier">name</span></code> in namespace <code class="computeroutput"><span class="identifier">namespace_seq</span></code>.
+            <code class="computeroutput"><span class="identifier">N</span></code> is the maximum number
+            of variable children. All but the last elements in the grammar sequence
+            are required children of the expression, and the last denotes a variable
+            number of children. The number of children an expression of this kind
+            can hold is therefor <code class="computeroutput"><span class="identifier">N</span><span class="special">-</span><span class="number">1</span></code> plus
+            the size of the sequence
+          </p>
+<p>
+            The macro should be used at global scope. <code class="computeroutput"><span class="identifier">namespace_seq</span></code>
+            shall be the sequence of namespaces under which the following symbols
+            will be defined:
+          </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">tag</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">name</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">expression</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="keyword">typename</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">name</span>
+        <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">expr</span><span class="special">&lt;</span>
+            <span class="identifier">tag</span><span class="special">::</span><span class="identifier">name</span>
+          <span class="special">,</span> <span class="identifier">A0</span>
+          <span class="special">,</span> <span class="identifier">A1</span>
+            <span class="special">...</span>
+          <span class="special">,</span> <span class="identifier">AN</span>
+        <span class="special">&gt;</span>
+    <span class="special">{};</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">rule</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">name</span>
+        <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">name</span><span class="special">&lt;</span>
+            <span class="identifier">child_grammar0</span>
+          <span class="special">,</span> <span class="identifier">child_grammar1</span>
+            <span class="special">...</span>
+          <span class="special">,</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">vararg</span><span class="special">&lt;</span><span class="identifier">child_grammarN</span><span class="special">&gt;</span>
+        <span class="special">&gt;</span>
+    <span class="special">{};</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">functional</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">make_name</span><span class="special">;</span> <span class="comment">// A polymorphic function object that can be called to create the expression node</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">result_of</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="keyword">typename</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">make_name</span><span class="special">;</span> <span class="comment">// The result type of the expression node</span>
+<span class="special">}</span>
+
+<span class="comment">// convenience polymorphic function to create an expression node</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="keyword">typename</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+<span class="identifier">result_of</span><span class="special">::</span><span class="identifier">make_name</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">,</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+<span class="identifier">make_name</span><span class="special">(</span><span class="identifier">A0</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">a0</span><span class="special">,</span> <span class="identifier">A1</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">a1</span> <span class="special">...</span> <span class="identifier">AN</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">an</span><span class="special">);</span>
+</pre>
+<p>
+            This macros also adds a specialization for <code class="computeroutput"><span class="identifier">meta_grammar</span><span class="special">::</span><span class="identifier">case_</span><span class="special">&lt;</span><span class="identifier">tag</span><span class="special">::</span><span class="identifier">name</span><span class="special">&gt;</span></code> to enable the rule for further use
+            in actions.
+          </p>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg.h3"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg.header"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">expression</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg.h4"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg.example"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_vararg.example">Example</a>
+          </h6>
+<pre class="programlisting"><span class="identifier">BOOST_PHOENIX_DEFINE_EXPRESSION_VARARG</span><span class="special">(</span>
+    <span class="special">(</span><span class="identifier">boost</span><span class="special">)(</span><span class="identifier">phoenix</span><span class="special">)(</span><span class="identifier">mem_fun_ptr</span><span class="special">)</span>
+  <span class="special">,</span> <span class="special">(</span><span class="identifier">meta_grammar</span><span class="special">)</span>                <span class="comment">// Pointer to Object</span>
+    <span class="special">(</span><span class="identifier">meta_grammar</span><span class="special">)</span>                <span class="comment">// Member pointer</span>
+    <span class="special">(</span><span class="identifier">meta_grammar</span><span class="special">)</span>                <span class="comment">// Variable number of arguments</span>
+  <span class="special">,</span> <span class="identifier">BOOST_PHOENIX_LIMIT</span>
+<span class="special">)</span>
+</pre>
+<p>
+            This defines the member function pointer operator expression as described
+            in <a class="link" href="../../modules/operator.html" title="Operator">operators</a>.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext"></a><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext" title="BOOST_PHOENIX_DEFINE_EXPRESSION_EXT">BOOST_PHOENIX_DEFINE_EXPRESSION_EXT</a>
+</h5></div></div></div>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext.h0"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext.description"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext.description">Description</a>
+          </h6>
+<p>
+            <code class="computeroutput"><span class="identifier">BOOST_PHOENIX_DEFINE_EXPRESSION_EXT</span></code>
+            is a macro that can be used to generate all the necessary boilerplate
+            to create Phoenix Expressions
+          </p>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext.h1"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext.synopsis"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="identifier">BOOST_PHOENIX_DEFINE_EXPRESSION_EXT</span><span class="special">(</span>
+    <span class="identifier">actor</span>
+  <span class="special">,</span> <span class="special">(</span><span class="identifier">namespace_seq</span><span class="special">)(</span><span class="identifier">name</span><span class="special">)</span>
+  <span class="special">,</span> <span class="special">(</span><span class="identifier">child_grammar0</span><span class="special">)</span>
+    <span class="special">(</span><span class="identifier">child_grammar1</span><span class="special">)</span>
+    <span class="special">...</span>
+    <span class="special">(</span><span class="identifier">child_grammarN</span><span class="special">)</span>
+  <span class="special">,</span> <span class="identifier">N</span>
+<span class="special">)</span>
+</pre>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext.h2"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext.semantics"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext.semantics">Semantics</a>
+          </h6>
+<p>
+            The above macro generates the necessary code for an expression <code class="computeroutput"><span class="identifier">name</span></code> in namespace <code class="computeroutput"><span class="identifier">namespace_seq</span></code>.
+            The sequence of <code class="computeroutput"><span class="special">(</span><span class="identifier">child_grammarN</span><span class="special">)</span></code> declares how many children the expression
+            will have and what <code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">grammar</span></code>
+            they match.
+          </p>
+<p>
+            The macro should be used at global scope. <code class="computeroutput"><span class="identifier">namespace_seq</span></code>
+            shall be the sequence of namespaces under which the following symbols
+            will be defined:
+          </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">tag</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">name</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">expression</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="keyword">typename</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">name</span>
+        <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">expr_ext</span><span class="special">&lt;</span>
+            <span class="identifier">actor</span>
+          <span class="special">,</span> <span class="identifier">tag</span><span class="special">::</span><span class="identifier">name</span>
+          <span class="special">,</span> <span class="identifier">A0</span>
+          <span class="special">,</span> <span class="identifier">A1</span>
+            <span class="special">...</span>
+          <span class="special">,</span> <span class="identifier">AN</span>
+        <span class="special">&gt;</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">rule</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">name</span>
+        <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">expr</span><span class="special">&lt;</span>
+            <span class="identifier">child_grammar0</span>
+          <span class="special">,</span> <span class="identifier">child_grammar1</span>
+            <span class="special">...</span>
+          <span class="special">,</span> <span class="identifier">child_grammarN</span>
+        <span class="special">&gt;</span>
+    <span class="special">{};</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">functional</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">make_name</span><span class="special">;</span> <span class="comment">// A polymorphic function object that can be called to create the expression node</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">result_of</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="keyword">typename</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">make_name</span><span class="special">;</span> <span class="comment">// The result type of the expression node</span>
+<span class="special">}</span>
+
+<span class="comment">// convenience polymorphic function to create an expression node</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="keyword">typename</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+<span class="identifier">result_of</span><span class="special">::</span><span class="identifier">make_name</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">,</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+<span class="identifier">make_name</span><span class="special">(</span><span class="identifier">A0</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">a0</span><span class="special">,</span> <span class="identifier">A1</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">a1</span> <span class="special">...</span> <span class="identifier">AN</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">an</span><span class="special">);</span>
+</pre>
+<p>
+            This macros also adds a specialization for <code class="computeroutput"><span class="identifier">meta_grammar</span><span class="special">::</span><span class="identifier">case_</span><span class="special">&lt;</span><span class="identifier">tag</span><span class="special">::</span><span class="identifier">name</span><span class="special">&gt;</span></code> to enable the rule for further use
+            in actions.
+          </p>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext.h3"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext.header"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">expression</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext.h4"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext.example"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext.example">Example</a>
+          </h6>
+<pre class="programlisting"><span class="identifier">BOOST_PHOENIX_DEFINE_EXPRESSION_EXT</span><span class="special">(</span>
+    <span class="identifier">if_actor</span>
+  <span class="special">,</span> <span class="special">(</span><span class="identifier">boost</span><span class="special">)(</span><span class="identifier">phoenix</span><span class="special">)(</span><span class="identifier">if_</span><span class="special">)</span>
+  <span class="special">,</span> <span class="special">(</span><span class="identifier">meta_grammar</span><span class="special">)</span> <span class="comment">// Cond</span>
+    <span class="special">(</span><span class="identifier">meta_grammar</span><span class="special">)</span> <span class="comment">// Then</span>
+<span class="special">)</span>
+</pre>
+<p>
+            This defines the if_ expression. The custom actor defines <code class="computeroutput"><span class="identifier">else_</span></code> as a member.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg"></a><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg" title="BOOST_PHOENIX_DEFINE_EXPRESSION_EXT_VARARG">BOOST_PHOENIX_DEFINE_EXPRESSION_EXT_VARARG</a>
+</h5></div></div></div>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg.h0"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg.description"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg.description">Description</a>
+          </h6>
+<p>
+            <code class="computeroutput"><span class="identifier">BOOST_PHOENIX_DEFINE_EXPRESSION_EXT_VARARG</span></code>
+            is a macro that can be used to generate all the necessary boilerplate
+            to create Phoenix Expressions
+          </p>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg.h1"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg.synopsis"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="identifier">BOOST_PHOENIX_DEFINE_EXPRESSION_EXT_VARARG</span><span class="special">(</span>
+    <span class="identifier">actor</span>
+  <span class="special">,</span> <span class="special">(</span><span class="identifier">namespace_seq</span><span class="special">)(</span><span class="identifier">name</span><span class="special">)</span>
+  <span class="special">,</span> <span class="special">(</span><span class="identifier">child_grammar0</span><span class="special">)</span>
+    <span class="special">(</span><span class="identifier">child_grammar1</span><span class="special">)</span>
+    <span class="special">...</span>
+    <span class="special">(</span><span class="identifier">child_grammarN</span><span class="special">)</span>
+  <span class="special">,</span> <span class="identifier">N</span>
+<span class="special">)</span>
+</pre>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg.h2"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg.semantics"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg.semantics">Semantics</a>
+          </h6>
+<p>
+            The above macro generates the necessary code for an expression <code class="computeroutput"><span class="identifier">name</span></code> in namespace <code class="computeroutput"><span class="identifier">namespace_seq</span></code>.
+            <code class="computeroutput"><span class="identifier">N</span></code> is the maximum number
+            of variable children. All but the last elements in the grammar sequence
+            are required children of the expression, and the last denotes a variable
+            number of children. The number of children an expression of this kind
+            can hold is therefor <code class="computeroutput"><span class="identifier">N</span><span class="special">-</span><span class="number">1</span></code> plus
+            the size of the sequence
+          </p>
+<p>
+            The macro should be used at global scope. <code class="computeroutput"><span class="identifier">namespace_seq</span></code>
+            shall be the sequence of namespaces under which the following symbols
+            will be defined:
+          </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">tag</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">name</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">expression</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="keyword">typename</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">name</span>
+        <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">expr_ext</span><span class="special">&lt;</span>
+            <span class="identifier">actor</span>
+          <span class="special">,</span> <span class="identifier">tag</span><span class="special">::</span><span class="identifier">name</span>
+          <span class="special">,</span> <span class="identifier">A0</span>
+          <span class="special">,</span> <span class="identifier">A1</span>
+            <span class="special">...</span>
+          <span class="special">,</span> <span class="identifier">AN</span>
+        <span class="special">&gt;</span>
+    <span class="special">{};</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">rule</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">name</span>
+        <span class="special">:</span> <span class="identifier">expression</span><span class="special">::</span><span class="identifier">name</span><span class="special">&lt;</span>
+            <span class="identifier">child_grammar0</span>
+          <span class="special">,</span> <span class="identifier">child_grammar1</span>
+            <span class="special">...</span>
+          <span class="special">,</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">vararg</span><span class="special">&lt;</span><span class="identifier">child_grammarN</span><span class="special">&gt;</span>
+        <span class="special">&gt;</span>
+    <span class="special">{};</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">functional</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">make_name</span><span class="special">;</span> <span class="comment">// A polymorphic function object that can be called to create the expression node</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">result_of</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="keyword">typename</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">make_name</span><span class="special">;</span> <span class="comment">// The result type of the expression node</span>
+<span class="special">}</span>
+
+<span class="comment">// convenience polymorphic function to create an expression node</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="keyword">typename</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+<span class="identifier">result_of</span><span class="special">::</span><span class="identifier">make_name</span><span class="special">&lt;</span><span class="identifier">A0</span><span class="special">,</span> <span class="identifier">A1</span> <span class="special">...</span> <span class="identifier">AN</span><span class="special">&gt;</span>
+<span class="identifier">make_name</span><span class="special">(</span><span class="identifier">A0</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">a0</span><span class="special">,</span> <span class="identifier">A1</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">a1</span> <span class="special">...</span> <span class="identifier">AN</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">an</span><span class="special">);</span>
+</pre>
+<p>
+            This macros also adds a specialization for <code class="computeroutput"><span class="identifier">meta_grammar</span><span class="special">::</span><span class="identifier">case_</span><span class="special">&lt;</span><span class="identifier">tag</span><span class="special">::</span><span class="identifier">name</span><span class="special">&gt;</span></code> to enable the rule for further use
+            in actions.
+          </p>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg.h3"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg.header"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">core</span><span class="special">/</span><span class="identifier">expression</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg.h4"></a>
+            <span class="phrase"><a name="phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg.example"></a></span><a class="link" href="boilerplate_macros.html#phoenix.inside.expression.boilerplate_macros.boost_phoenix_define_expression_ext_vararg.example">Example</a>
+          </h6>
+<p>
+            TBD
+          </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../expression.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../expression.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../actions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,246 @@
+# Copyright (C) Reece H Dunn 2004
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# based on the msvc.jam toolset
+
+import property ;
+import generators ;
+import os ;
+import type ;
+import toolset : flags ;
+import errors : error ;
+import feature : feature get-values ;
+import path ;
+import sequence : unique ;
+import common ;
+
+if [ MATCH (--debug-configuration) : [ modules.peek : ARGV ] ]
+{
+   .debug-configuration = true ;
+}
+
+feature.extend toolset : cw ;
+
+toolset.add-requirements <toolset>cw,<runtime-link>shared:<threading>multi ;
+
+nl = "
+" ;
+
+rule init ( version ? : command * : options * )
+{
+   # TODO: fix the $(command[1]) = $(compiler) issue
+    
+    setup = [ get-values <setup> : $(options) ] ;
+    setup    ?= cwenv.bat ;
+    compiler = [ get-values <compiler> : $(options) ] ;
+    compiler ?= mwcc ;
+    linker = [ get-values <linker> : $(options) ] ;
+    linker   ?= mwld ;
+
+    local condition = [ common.check-init-parameters cw :
+        version $(version) ] ;
+
+    command = [ common.get-invocation-command cw : mwcc.exe : $(command) :
+        [ default-paths $(version) ] ] ;
+    
+    common.handle-options cw : $(condition) : $(command) : $(options) ;
+
+    local root = [ feature.get-values <root> : $(options) ] ;    
+    if $(command)
+    {
+        command = [ common.get-absolute-tool-path $(command[-1]) ] ;
+    }
+    local tool-root = $(command) ;
+
+    setup = $(tool-root)\\$(setup) ;
+
+   # map the batch file in setup so it can be executed
+
+    other-tools = $(tool-root:D) ;
+    root ?= $(other-tools:D) ;
+    
+    flags cw.link RUN_PATH $(condition) : 
+        "$(root)\\Win32-x86 Support\\Libraries\\Runtime"
+        "$(root)\\Win32-x86 Support\\Libraries\\Runtime\\Libs\\MSL_All-DLLs" ;      
+    
+    setup = "set \"CWFOLDER="$(root)"\" && call \""$(setup)"\" > nul " ;
+
+   if [ os.name ] = NT
+   {
+      setup = $(setup)"
+" ;
+   }
+   else
+   {
+      setup = "cmd /S /C "$(setup)" \"&&\" " ;
+   }
+
+   # bind the setup command to the tool so it can be executed before the
+   # command
+
+   local prefix = $(setup) ;
+
+   flags cw.compile .CC $(condition) : $(prefix)$(compiler) ;
+   flags cw.link .LD $(condition) : $(prefix)$(linker) ;
+   flags cw.archive .LD $(condition) : $(prefix)$(linker) ;
+
+    if [ MATCH ^([89]\\.) : $(version) ]   
+    {
+        if [ os.name ] = NT
+        {
+        # The runtime libraries
+        flags cw.compile CFLAGS <runtime-link>static/<threading>single/<runtime-debugging>off : -runtime ss ;
+        flags cw.compile CFLAGS <runtime-link>static/<threading>single/<runtime-debugging>on : -runtime ssd ;
+        
+        flags cw.compile CFLAGS <runtime-link>static/<threading>multi/<runtime-debugging>off : -runtime sm ;
+        flags cw.compile CFLAGS <runtime-link>static/<threading>multi/<runtime-debugging>on : -runtime smd ;
+        
+        flags cw.compile CFLAGS <runtime-link>shared/<runtime-debugging>off : -runtime dm ;
+        flags cw.compile CFLAGS <runtime-link>shared/<runtime-debugging>on : -runtime dmd ;
+        }        
+    }    
+}
+
+
+local rule default-paths ( version ? )  # FIXME
+{
+   local possible-paths ;
+   local ProgramFiles = [ common.get-program-files-dir ] ;
+
+   # TODO: add support for cw8 and cw9 detection
+
+   local version-6-path = $(ProgramFiles)"\\Metrowerks\\CodeWarrior" ;
+   possible-paths += $(version-6-path) ;
+
+   # perform post-processing
+
+   possible-paths
+      = $(possible-paths)"\\Other Metrowerks Tools\\Command Line Tools" ;
+
+   possible-paths += [ modules.peek : PATH Path path ] ;
+
+   return $(possible-paths) ;
+}
+
+
+
+
+## declare generators
+
+generators.register-c-compiler cw.compile.c++ : CPP : OBJ : <toolset>cw ;
+generators.register-c-compiler cw.compile.c : C : OBJ : <toolset>cw ;
+
+generators.register-linker cw.link
+   : OBJ SEARCHED_LIB STATIC_LIB IMPORT_LIB
+   : EXE
+   : <toolset>cw
+   ;
+generators.register-linker cw.link.dll
+   : OBJ SEARCHED_LIB STATIC_LIB IMPORT_LIB
+   : SHARED_LIB IMPORT_LIB
+   : <toolset>cw
+   ;
+
+generators.register-archiver cw.archive
+   : OBJ
+   : STATIC_LIB
+   : <toolset>cw
+   ;
+
+## compilation phase
+
+flags cw WHATEVER <toolset-cw:version> ;
+
+flags cw.compile CFLAGS <debug-symbols>on : -g ;
+flags cw.compile CFLAGS <optimization>off : -O0 ;
+flags cw.compile CFLAGS <optimization>speed : -O4,p ;
+flags cw.compile CFLAGS <optimization>space : -O4,s ;
+flags cw.compile CFLAGS <inlining>off : -inline off ;
+flags cw.compile CFLAGS <inlining>on : -inline on ;
+flags cw.compile CFLAGS <inlining>full : -inline all ;
+flags cw.compile CFLAGS <exception-handling>off : -Cpp_exceptions off ;
+
+
+flags cw.compile CFLAGS <rtti>on : -RTTI on ;
+flags cw.compile CFLAGS <rtti>off : -RTTI off ;
+
+flags cw.compile CFLAGS <warnings>on : -w on ;
+flags cw.compile CFLAGS <warnings>off : -w off ;
+flags cw.compile CFLAGS <warnings>all : -w all ;
+flags cw.compile CFLAGS <warnings-as-errors>on : -w error ;
+
+flags cw.compile USER_CFLAGS <cflags> : ;
+flags cw.compile.c++ USER_CFLAGS <cxxflags> : ;
+
+flags cw.compile DEFINES <define> ;
+flags cw.compile UNDEFS <undef> ;
+flags cw.compile INCLUDES <include> ;
+
+actions compile.c
+{
+   $(.CC) -c -cwd include -lang c -U$(UNDEFS) $(CFLAGS) $(USER_CFLAGS) -I- -o "$(<)" @"@($(<[1]:W).rsp:E=$(nl)"$(>)" $(nl)-D$(DEFINES) $(nl)"-I$(INCLUDES)")"
+}
+actions compile.c++
+{
+   $(.CC) -c -cwd include -lang c++ -U$(UNDEFS) $(CFLAGS) $(USER_CFLAGS) -I- -o "$(<)" @"@($(<[1]:W).rsp:E=$(nl)"$(>)" $(nl)-D$(DEFINES) $(nl)"-I$(INCLUDES)")"
+}
+
+## linking phase
+
+flags cw.link DEF_FILE <def-file> ;
+
+flags cw LINKFLAGS : -search ;
+flags cw LINKFLAGS <debug-symbols>on : -g ;
+flags cw LINKFLAGS <user-interface>console : -subsystem console ;
+flags cw LINKFLAGS <user-interface>gui : -subsystem windows ;
+flags cw LINKFLAGS <user-interface>wince : -subsystem wince ;
+flags cw LINKFLAGS <user-interface>native : -subsystem native ;
+flags cw LINKFLAGS <user-interface>auto : -subsystem auto ;
+
+flags cw LINKFLAGS <main-target-type>LIB/<link>static : -library ;
+
+flags cw.link USER_LINKFLAGS <linkflags> ;
+flags cw.link LINKPATH <library-path> ;
+
+flags cw.link FINDLIBS_ST <find-static-library> ;
+flags cw.link FINDLIBS_SA <find-shared-library> ;
+flags cw.link LIBRARY_OPTION <toolset>cw : "" : unchecked ;
+flags cw.link LIBRARIES_MENTIONED_BY_FILE : <library-file> ;
+
+rule link.dll ( targets + : sources * : properties * )
+{
+    DEPENDS $(<) : [ on $(<) return $(DEF_FILE) ] ;
+}
+
+if [ os.name ] in NT
+{
+   actions archive
+   {
+      if exist "$(<[1])" DEL "$(<[1])"
+      $(.LD) -library -o "$(<[1])" @"@($(<[1]:W).rsp:E=$(nl)"$(>)" $(nl)$(LIBRARIES_MENTIONED_BY_FILE) $(nl)"$(LIBRARY_OPTION)$(FINDLIBS_ST:S=.lib)" $(nl)"$(LIBRARY_OPTION)$(FINDLIBS_SA:S=.lib)")"
+   }
+}
+else # cygwin
+{
+   actions archive
+   {
+      _bbv2_out_="$(<)"
+      if test -f "$_bbv2_out_" ; then
+         _bbv2_existing_="$(<:W)"
+      fi
+      $(.LD) -library -o "$(<:W)" $_bbv2_existing_ @"@($(<[1]:W).rsp:E=$(nl)"$(>)" $(nl)$(LIBRARIES_MENTIONED_BY_FILE) $(nl)"$(LIBRARY_OPTION)$(FINDLIBS_ST:S=.lib)" $(nl)"$(LIBRARY_OPTION)$(FINDLIBS_SA:S=.lib)")"
+   }
+}
+
+actions link bind DEF_FILE
+{
+   $(.LD) -o "$(<[1]:W)" -L"$(LINKPATH)" $(LINKFLAGS) $(USER_LINKFLAGS) @"@($(<[1]:W).rsp:E=$(nl)"$(>)" $(nl)$(LIBRARIES_MENTIONED_BY_FILE) $(nl)"$(LIBRARY_OPTION)$(FINDLIBS_ST:S=.lib)" $(nl)"$(LIBRARY_OPTION)$(FINDLIBS_SA:S=.lib)")"
+}
+
+actions link.dll bind DEF_FILE
+{
+   $(.LD) -shared -o "$(<[1]:W)" -implib "$(<[2]:W)" -L"$(LINKPATH)" $(LINKFLAGS) -f"$(DEF_FILE)" $(USER_LINKFLAGS) @"@($(<[1]:W).rsp:E=$(nl)"$(>)" $(nl)$(LIBRARIES_MENTIONED_BY_FILE) $(nl)"$(LIBRARY_OPTION)$(FINDLIBS_ST:S=.lib)" $(nl)"$(LIBRARY_OPTION)$(FINDLIBS_SA:S=.lib)")"
+}
+

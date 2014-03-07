@@ -1,0 +1,250 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Part II. Boost Test Library: The Program Execution Monitor</title>
+<link rel="stylesheet" href="../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="index.html" title="Boost Test Library">
+<link rel="up" href="index.html" title="Boost Test Library">
+<link rel="prev" href="execution-monitor/reference.html" title="The Execution Monitor reference">
+<link rel="next" href="prg-exec-monitor/impl.html" title="The Program Execution Monitor implementation">
+<script language="JavaScript1.2" src="../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <b>The Program Execution Monitor</b><a href="minimal.html">
+      &gt;
+      </a>
+</td>
+<td><div class="spirit-nav">
+<a href="execution-monitor/reference.html"><img src="../../../../doc/html/images/prev.png" alt="Prev"></a><a href="prg-exec-monitor/impl.html"><img src="../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="part" lang="en">
+<div class="titlepage"><div><div><h1 class="title">
+<a name="pem"></a>Part II. Boost Test Library: The Program Execution Monitor</h1></div></div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><a href="prg-exec-monitor/impl.html">Implementation</a></dt>
+<dt><a href="prg-exec-monitor/compilation.html">Compilation</a></dt>
+</dl>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="pem.intro"></a>Introduction</h3></div></div></div>
+<p class="first-line-indented">
+    The components of a C++ program may report user-detected errors in several ways, such as via a return value or 
+    throwing an exception. System-detected errors such as dereferencing an invalid pointer are reported in other ways, 
+    totally operating system and compiler dependent.
+   </p>
+<p class="first-line-indented">
+    Yet many C++ programs, both production and test, must run in an environment where uniform reporting of errors is 
+    necessary. For example, converting otherwise uncaught exceptions to non-zero program return codes allows many 
+    command line, script, or batch environments to continue processing in a controlled manner. Even some 
+    <acronym class="acronym">GUI</acronym> environments benefit from the unification of errors into program return codes.
+   </p>
+<p class="first-line-indented">
+    <em class="firstterm">The Boost Test Library's Program Execution Monitor</em> relieves users from messy error 
+    detection and reporting duties by providing a replacement function main() which calls a user-supplied cpp_main() 
+    function within a monitored environment. The supplied main() then uniformly detects and reports the occurrence of 
+    several types of errors, reducing them to a uniform return code which is returned to the host environment.
+   </p>
+<p class="first-line-indented">
+    Uniform error reporting is particularly useful for programs running unattended under control of scripts or batch 
+    files. Some operating systems pop up message boxes if an uncaught exception occurs, and this requires manual 
+    intervention. By converting such exceptions into non-zero program return codes, the library makes the program a 
+    better citizen. More uniform reporting of errors isn't a benefit to some programs, particularly programs always 
+    run by hand of a knowledgeable person. So the Program Execution Monitor wouldn't be worth using in that environment.
+   </p>
+<p class="first-line-indented">
+    Uniform error reporting can be also useful in test environments such as the Boost regression tests. Be aware though 
+    in such case it might be preferable to use the <a class="link" href="utf.html" title="Part IV. Boost Test Library: The Unit Test Framework">Unit Test Framework</a>, cause it allows one 
+    to use the <a class="link" href="utf/testing-tools.html" title="The UTF testing tools or tester's toolbox for all occasions">Testing tools</a> and generate more detailed error information.
+   </p>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="pem.usage"></a>Usage</h3></div></div></div>
+<p class="first-line-indented">
+   To facilitate uniform error reporting the Program Execution Monitor supplies function main() as part if it's implementation. To use the 
+   Program Execution Monitor instead of regular function main your program is required to supply a function cpp_main() with same signature.
+  </p>
+<p class="first-line-indented">
+   Here is the traditional Hello World program implemented using the Program Execution Monitor:
+  </p>
+<div class="example">
+<a name="pem.usage.example24"></a><p class="title"><b>Example 1. The Program Execution Monitor: Hello World</b></p>
+<div class="example-contents">
+<pre class="programlisting">#include &lt;iostream&gt;
+#include &lt;boost/test/included/prg_exec_monitor.hpp&gt; 
+
+//____________________________________________________________________________//
+
+int cpp_main( int, char* [] ) // note name cpp_main, not main.
+{
+    std::cout &lt;&lt; "Hello, world\n";
+
+    return 0;
+}
+
+//____________________________________________________________________________//
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../src/examples/example24.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id631216" onclick="toggle_element( 'example24-output', 'id631216', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example24-output">Hello, world
+
+no errors detected</pre>
+</div>
+</div>
+<br class="example-break"><p class="first-line-indented">
+   It really is that simple - just change the name of your initial function from main() to cpp_main(). Do make sure 
+   the argc and argv parameters are specified (although you don't have to name them if you don't use them).
+  </p>
+<p class="first-line-indented">
+   The Program Execution Monitor treats as errors:
+  </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>Exceptions thrown from cpp_main().</li>
+<li>Non-zero return from cpp_main().</li>
+</ul></div>
+<p class="first-line-indented">
+   So what if some function had thrown a runtime_error with the message "big trouble" and it's not trapped by any 
+   catch clause? Like in a following example:
+  </p>
+<div class="example">
+<a name="pem.usage.example25"></a><p class="title"><b>Example 2. The Program Execution Monitor: standard exception detection</b></p>
+<div class="example-contents">
+<pre class="programlisting">#include &lt;stdexcept&gt;
+#include &lt;boost/test/included/prg_exec_monitor.hpp&gt; 
+
+//____________________________________________________________________________//
+
+int foo() { throw std::runtime_exception( "big trouble" ); }
+
+//____________________________________________________________________________//
+
+int cpp_main( int, char* [] ) // note the name
+{
+    foo();
+
+    return 0;
+}
+
+//____________________________________________________________________________//
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../src/examples/example25.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id631346" onclick="toggle_element( 'example25-output', 'id631346', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example25-output">**** exception(205): std::runtime_error: big trouble
+******** errors detected; see standard output for details ********</pre>
+</div>
+</div>
+<br class="example-break"><p class="first-line-indented">
+   Note that in both examples above we used single-header variant of the Program Execution Monitor. Alternatively we can build and link with
+   standalone library. In case of static library we are not required to include any Program Execution Monitor related headers. To use dynamic 
+   library you are required to include 
+   <a href="../../../../boost/test/prg_exec_monitor.hpp" target="_top"><code class="filename">boost/test/prg_exec_monitor.hpp</code></a>
+   and define <a class="xref" href="prg-exec-monitor/compilation.html#pem.flag.dyn-link">BOOST_TEST_DYN_LINK</a> during program compilation. The same 
+   header is required if you want to employ <a class="link" href="prg-exec-monitor/compilation.html#pem.compilation.auto-linking" title="Support of the auto-linking feature">auto-linking</a> feature.
+  </p>
+<p class="first-line-indented">
+   Let's consider an example where function cpp_main() had  bubbled up a return code of 5:
+  </p>
+<div class="example">
+<a name="pem.usage.example26"></a><p class="title"><b>Example 3. The Program Execution Monitor: error return code detection</b></p>
+<div class="example-contents">
+<pre class="programlisting">#include &lt;boost/test/prg_exec_monitor.hpp&gt; // this header is optional
+
+//____________________________________________________________________________//
+
+int cpp_main( int, char* [] ) // note the name
+{
+    return 5;
+}
+
+//____________________________________________________________________________//
+</pre>
+<table class="simplelist" border="0" summary="Simple list"><tr>
+<td><code class="literal"><a href="../src/examples/example26.cpp" target="_top">Source code</a></code></td>
+<td> | </td>
+<td><code class="literal"><a href="#" target="_top" id="id631477" onclick="toggle_element( 'example26-output', 'id631477', 'Show output', 'Hide output' ); return false;">Show output</a></code></td>
+</tr></table>
+<pre class="example-output" id="example26-output">**** error return code: 5
+******** errors detected; see standard output for details ********</pre>
+</div>
+</div>
+<br class="example-break"><p class="first-line-indented">
+   The Program Execution Monitor reports errors to both cout (details) and cerr (summary). Primary detailed error 
+   messages appear on standard output stream so that it is properly interlaced with other output, thus aiding error 
+   analysis. While the final error notification message appears on standard error stream. This increases the 
+   visibility of error notification if standard output and error streams are directed to different devices or files.
+ </p>
+<p class="first-line-indented">
+   The Program Execution Monitor's supplied main() will return following result codes:
+  </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>boost::exit_success - no errors</li>
+<li>boost::exit_failure - non-zero and non-boost::exit_success return code from cpp_main().</li>
+<li>boost::exit_exception_failure - cpp_main() throw an exception.</li>
+</ul></div>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="pem.config"></a>Configuration</h3></div></div></div>
+<p class="first-line-indented">
+   There are two aspects of the Program Execution Monitor behavior that you can customize at runtime. Customization is performed using 
+   environment variables.
+  </p>
+<div class="table">
+<a name="pem.config.flags"></a><p class="title"><b>Table 1. The Program Execution Monitor configuration environment variables</b></p>
+<div class="table-contents"><table class="table" summary="The Program Execution Monitor configuration environment variables">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Flag</th>
+<th>Usage</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>BOOST_TEST_CATCH_SYSTEM_ERRORS</td>
+<td>
+       allows customizing behavior of the Program Execution Monitor in regards of catching system errors. For more details about the 
+       meaning of this option see the <a class="link" href="execution-monitor/reference.html#boost.execution_monitor" title="Class execution_monitor">Execution Monitor</a>. If you 
+       want to prevent the Program Execution Monitor from catching system exception, set the value of this 
+       variable to "no". The default value is "yes".
+      </td>
+</tr>
+<tr>
+<td>BOOST_PRG_MON_CONFIRM</td>
+<td>
+       allows avoiding success confirmation message. Some users prefer to see a confirmation message in case if program
+       successfully executed. While others don't like the clutter or any output is prohibited by organization standards.
+       To avoid the message set the value of this variable to "no". The default value is "yes".
+      </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised:  ,  at  </small></p></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="execution-monitor/reference.html"><img src="../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="index.html"><img src="../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="prg-exec-monitor/impl.html"><img src="../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

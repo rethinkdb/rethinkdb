@@ -1,0 +1,705 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class attribute_value_set</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../attributes.html#header.boost.log.attributes.attribute_value_set_hpp" title="Header &lt;boost/log/attributes/attribute_value_set.hpp&gt;">
+<link rel="prev" href="attributes/make_attribute_value.html" title="Function template make_attribute_value">
+<link rel="next" href="swap_idp25987608.html" title="Function swap">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="attributes/make_attribute_value.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../attributes.html#header.boost.log.attributes.attribute_value_set_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="swap_idp25987608.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.attribute_value_set"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class attribute_value_set</span></h2>
+<p>boost::log::attribute_value_set &#8212; A set of attribute values. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../attributes.html#header.boost.log.attributes.attribute_value_set_hpp" title="Header &lt;boost/log/attributes/attribute_value_set.hpp&gt;">boost/log/attributes/attribute_value_set.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="attribute_value_set.html" title="Class attribute_value_set">attribute_value_set</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="attribute_value_set.html#boost.log.attribute_value_settypes">types</a></span>
+  <span class="keyword">typedef</span> <a class="link" href="attribute_name.html" title="Class attribute_name">attribute_name</a>                           <a name="boost.log.attribute_value_set.key_type"></a><span class="identifier">key_type</span><span class="special">;</span>         <span class="comment">// Key type. </span>
+  <span class="keyword">typedef</span> <a class="link" href="attribute_value.html" title="Class attribute_value">attribute_value</a>                          <a name="boost.log.attribute_value_set.mapped_type"></a><span class="identifier">mapped_type</span><span class="special">;</span>      <span class="comment">// Mapped attribute type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="keyword">const</span> <span class="identifier">key_type</span><span class="special">,</span> <span class="identifier">mapped_type</span> <span class="special">&gt;</span> <a name="boost.log.attribute_value_set.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>       <span class="comment">// Value type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">value_type</span> <span class="special">&amp;</span>                             <a name="boost.log.attribute_value_set.reference"></a><span class="identifier">reference</span><span class="special">;</span>        <span class="comment">// Reference type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">&amp;</span>                       <a name="boost.log.attribute_value_set.const_reference"></a><span class="identifier">const_reference</span><span class="special">;</span>  <span class="comment">// Const reference type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">value_type</span> <span class="special">*</span>                             <a name="boost.log.attribute_value_set.pointer"></a><span class="identifier">pointer</span><span class="special">;</span>          <span class="comment">// Pointer type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">*</span>                       <a name="boost.log.attribute_value_set.const_pointer"></a><span class="identifier">const_pointer</span><span class="special">;</span>    <span class="comment">// Const pointer type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span>                              <a name="boost.log.attribute_value_set.size_type"></a><span class="identifier">size_type</span><span class="special">;</span>        <span class="comment">// Size type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span>                           <a name="boost.log.attribute_value_set.difference_type"></a><span class="identifier">difference_type</span><span class="special">;</span>  <span class="comment">// Pointer difference type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span>                   <a class="link" href="attribute_value_set.html#boost.log.attribute_value_set.const_iterator"><span class="identifier">const_iterator</span></a><span class="special">;</span> 
+
+  <span class="comment">// <a class="link" href="attribute_value_set.html#boost.log.attribute_value_setconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="attribute_value_set.html#idp25969304-bb"><span class="identifier">attribute_value_set</span></a><span class="special">(</span><span class="identifier">size_type</span> <span class="special">=</span> <span class="number">8</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="attribute_value_set.html#idp25971176-bb"><span class="identifier">attribute_value_set</span></a><span class="special">(</span><a class="link" href="attribute_value_set.html" title="Class attribute_value_set">attribute_value_set</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="attribute_value_set.html#idp25971960-bb"><span class="identifier">attribute_value_set</span></a><span class="special">(</span><a class="link" href="attribute_set.html" title="Class attribute_set">attribute_set</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <a class="link" href="attribute_set.html" title="Class attribute_set">attribute_set</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                      <a class="link" href="attribute_set.html" title="Class attribute_set">attribute_set</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">8</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="attribute_value_set.html#idp25975944-bb"><span class="identifier">attribute_value_set</span></a><span class="special">(</span><a class="link" href="attribute_value_set.html" title="Class attribute_value_set">attribute_value_set</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <a class="link" href="attribute_set.html" title="Class attribute_set">attribute_set</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                      <a class="link" href="attribute_set.html" title="Class attribute_set">attribute_set</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">8</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="attribute_value_set.html#idp25980376-bb"><span class="identifier">attribute_value_set</span></a><span class="special">(</span><a class="link" href="attribute_value_set.html" title="Class attribute_value_set">attribute_value_set</a> <span class="special">&amp;&amp;</span><span class="special">,</span> <a class="link" href="attribute_set.html" title="Class attribute_set">attribute_set</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> 
+                      <a class="link" href="attribute_set.html" title="Class attribute_set">attribute_set</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">8</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="attribute_value_set.html#idp25984808-bb"><span class="identifier">attribute_value_set</span></a><span class="special">(</span><a class="link" href="attribute_value_set.html" title="Class attribute_value_set">attribute_value_set</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  attribute_value_set&amp; <a class="link" href="attribute_value_set.html#idp25986776-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="attribute_value_set.html" title="Class attribute_value_set">attribute_value_set</a><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="attribute_value_set.html#idp25986456-bb"><span class="special">~</span><span class="identifier">attribute_value_set</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="attribute_value_set.html#idp25941512-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="attribute_value_set.html#idp25941720-bb"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="attribute_value_set.html" title="Class attribute_value_set">attribute_value_set</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="attribute_value_set.html#idp25943304-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="attribute_value_set.html#idp25944216-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="attribute_value_set.html#idp25945144-bb"><span class="identifier">size</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="attribute_value_set.html#idp25946040-bb"><span class="identifier">empty</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="attribute_value_set.html#idp25946984-bb"><span class="identifier">find</span></a><span class="special">(</span><span class="identifier">key_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">mapped_type</span> <a class="link" href="attribute_value_set.html#idp25948888-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="identifier">key_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">&gt;</span> 
+    <a class="link" href="result_of/extract.html" title="Struct template extract">result_of::extract</a><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">expressions</span><span class="special">::</span><span class="identifier">attribute_keyword</span><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">DescriptorT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+    <a class="link" href="attribute_value_set.html#idp25950792-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="identifier">expressions</span><span class="special">::</span><span class="identifier">attribute_keyword</span><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="attribute_value_set.html#idp25954040-bb"><span class="identifier">count</span></a><span class="special">(</span><span class="identifier">key_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="attribute_value_set.html#idp25955848-bb"><span class="identifier">freeze</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> <a class="link" href="attribute_value_set.html#idp25956936-bb"><span class="identifier">insert</span></a><span class="special">(</span><span class="identifier">key_type</span><span class="special">,</span> <span class="identifier">mapped_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> <a class="link" href="attribute_value_set.html#idp25960040-bb"><span class="identifier">insert</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FwdIteratorT<span class="special">&gt;</span> <span class="keyword">void</span> <a class="link" href="attribute_value_set.html#idp25962568-bb"><span class="identifier">insert</span></a><span class="special">(</span><span class="identifier">FwdIteratorT</span><span class="special">,</span> <span class="identifier">FwdIteratorT</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FwdIteratorT<span class="special">,</span> <span class="keyword">typename</span> OutputIteratorT<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="attribute_value_set.html#idp25965336-bb"><span class="identifier">insert</span></a><span class="special">(</span><span class="identifier">FwdIteratorT</span><span class="special">,</span> <span class="identifier">FwdIteratorT</span><span class="special">,</span> <span class="identifier">OutputIteratorT</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp55241208"></a><h2>Description</h2>
+<p>The set of attribute values is an associative container with attribute name as a key and a pointer to attribute value object as a mapped type. This is a collection of elements with unique keys, that is, there can be only one attribute value with a given name in the set. With respect to read-only capabilities, the set interface is close to <code class="computeroutput">std::unordered_map</code>.</p>
+<p>The set is designed to be only capable of adding elements to it. Once added, the attribute value cannot be removed from the set.</p>
+<p>An instance of attribute value set can be constructed from three attribute sets. The constructor attempts to accommodate values of all attributes from the sets. The situation when a same-named attribute is found in more than one attribute set is possible. This problem is solved on construction of the value set: the three attribute sets have different priorities when it comes to solving conflicts.</p>
+<p>From the library perspective the three source attribute sets are global, thread-specific and source-specific attributes, with the latter having the highest priority. This feature allows to override attributes of wider scopes with the more specific ones.</p>
+<p>For sake of performance, the attribute values are not immediately acquired from attribute sets at construction. Instead, on-demand acquisition is performed either on iterator dereferencing or on call to the <code class="computeroutput">freeze</code> method. Once acquired, the attribute value stays within the set until its destruction. This nuance does not affect other set properties, such as size or lookup ability. The logging core automatically freezes the set at the right point, so users should not be bothered unless they manually create attribute value sets.</p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>The attribute sets that were used for the value set construction must not be modified or destroyed until the value set is frozen. Otherwise the behavior is undefined. </p></td></tr>
+</table></div>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp55244920"></a><h3>
+<a name="boost.log.attribute_value_settypes"></a><code class="computeroutput">attribute_value_set</code> 
+        public
+       types</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">implementation_defined</span> <a name="boost.log.attribute_value_set.const_iterator"></a><span class="identifier">const_iterator</span><span class="special">;</span></p>
+<p>Constant iterator type with bidirectional capabilities. </p>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp55247992"></a><h3>
+<a name="boost.log.attribute_value_setconstruct-copy-destruct"></a><code class="computeroutput">attribute_value_set</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp25969304-bb"></a><span class="identifier">attribute_value_set</span><span class="special">(</span><span class="identifier">size_type</span> reserve_count <span class="special">=</span> <span class="number">8</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Default constructor</p>
+<p>The constructor creates an empty set which can be filled later by subsequent calls of <code class="computeroutput">insert</code> method. Optionally, the amount of storage reserved for elements to be inserted may be passed to the constructor. The constructed set is frozen.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">reserve_count</code></span></p></td>
+<td><p>Number of elements to reserve space for. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp25971176-bb"></a><span class="identifier">attribute_value_set</span><span class="special">(</span><a class="link" href="attribute_value_set.html" title="Class attribute_value_set">attribute_value_set</a> <span class="special">&amp;&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Move constructor </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp25971960-bb"></a><span class="identifier">attribute_value_set</span><span class="special">(</span><a class="link" href="attribute_set.html" title="Class attribute_set">attribute_set</a> <span class="keyword">const</span> <span class="special">&amp;</span> source_attrs<span class="special">,</span> 
+                    <a class="link" href="attribute_set.html" title="Class attribute_set">attribute_set</a> <span class="keyword">const</span> <span class="special">&amp;</span> thread_attrs<span class="special">,</span> 
+                    <a class="link" href="attribute_set.html" title="Class attribute_set">attribute_set</a> <span class="keyword">const</span> <span class="special">&amp;</span> global_attrs<span class="special">,</span> 
+                    <span class="identifier">size_type</span> reserve_count <span class="special">=</span> <span class="number">8</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The constructor adopts three attribute sets into the value set. The <span class="emphasis"><em>source_attrs</em></span> attributes have the greatest preference when a same-named attribute is found in several sets, <span class="emphasis"><em>global_attrs</em></span> has the least. The constructed set is not frozen.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">global_attrs</code></span></p></td>
+<td><p>A set of global attributes. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">reserve_count</code></span></p></td>
+<td><p>Amount of elements to reserve space for, in addition to the elements in the three attribute sets provided. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">source_attrs</code></span></p></td>
+<td><p>A set of source-specific attributes. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">thread_attrs</code></span></p></td>
+<td><p>A set of thread-specific attributes. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp25975944-bb"></a><span class="identifier">attribute_value_set</span><span class="special">(</span><a class="link" href="attribute_value_set.html" title="Class attribute_value_set">attribute_value_set</a> <span class="keyword">const</span> <span class="special">&amp;</span> source_attrs<span class="special">,</span> 
+                    <a class="link" href="attribute_set.html" title="Class attribute_set">attribute_set</a> <span class="keyword">const</span> <span class="special">&amp;</span> thread_attrs<span class="special">,</span> 
+                    <a class="link" href="attribute_set.html" title="Class attribute_set">attribute_set</a> <span class="keyword">const</span> <span class="special">&amp;</span> global_attrs<span class="special">,</span> 
+                    <span class="identifier">size_type</span> reserve_count <span class="special">=</span> <span class="number">8</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The constructor adopts three attribute sets into the value set. The <span class="emphasis"><em>source_attrs</em></span> attributes have the greatest preference when a same-named attribute is found in several sets, <span class="emphasis"><em>global_attrs</em></span> has the least. The constructed set is not frozen.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">global_attrs</code></span></p></td>
+<td><p>A set of global attributes. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">reserve_count</code></span></p></td>
+<td><p>Amount of elements to reserve space for, in addition to the elements in the three attribute sets provided. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">source_attrs</code></span></p></td>
+<td><p>A set of source-specific attributes. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">thread_attrs</code></span></p></td>
+<td><p>A set of thread-specific attributes. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>The <span class="emphasis"><em>source_attrs</em></span> set is frozen.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp25980376-bb"></a><span class="identifier">attribute_value_set</span><span class="special">(</span><a class="link" href="attribute_value_set.html" title="Class attribute_value_set">attribute_value_set</a> <span class="special">&amp;&amp;</span> source_attrs<span class="special">,</span> 
+                    <a class="link" href="attribute_set.html" title="Class attribute_set">attribute_set</a> <span class="keyword">const</span> <span class="special">&amp;</span> thread_attrs<span class="special">,</span> 
+                    <a class="link" href="attribute_set.html" title="Class attribute_set">attribute_set</a> <span class="keyword">const</span> <span class="special">&amp;</span> global_attrs<span class="special">,</span> 
+                    <span class="identifier">size_type</span> reserve_count <span class="special">=</span> <span class="number">8</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The constructor adopts three attribute sets into the value set. The <span class="emphasis"><em>source_attrs</em></span> attributes have the greatest preference when a same-named attribute is found in several sets, <span class="emphasis"><em>global_attrs</em></span> has the least. The constructed set is not frozen.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">global_attrs</code></span></p></td>
+<td><p>A set of global attributes. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">reserve_count</code></span></p></td>
+<td><p>Amount of elements to reserve space for, in addition to the elements in the three attribute sets provided. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">source_attrs</code></span></p></td>
+<td><p>A set of source-specific attributes. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">thread_attrs</code></span></p></td>
+<td><p>A set of thread-specific attributes. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>The <span class="emphasis"><em>source_attrs</em></span> set is frozen.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp25984808-bb"></a><span class="identifier">attribute_value_set</span><span class="special">(</span><a class="link" href="attribute_value_set.html" title="Class attribute_value_set">attribute_value_set</a> <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Copy constructor.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>The original set is frozen. </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p>The constructed set is frozen, <code class="computeroutput">std::equal(begin(), end(), that.begin()) == true</code> </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout">attribute_value_set&amp; <a name="idp25986776-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="attribute_value_set.html" title="Class attribute_value_set">attribute_value_set</a> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Assignment operator </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp25986456-bb"></a><span class="special">~</span><span class="identifier">attribute_value_set</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destructor. Releases all referenced attribute values. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp55302424"></a><h3>
+<a name="idp25941512-bb"></a><code class="computeroutput">attribute_value_set</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25941720-bb"></a><span class="identifier">swap</span><span class="special">(</span><a class="link" href="attribute_value_set.html" title="Class attribute_value_set">attribute_value_set</a> <span class="special">&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Swaps two sets</p>
+<p><span class="bold"><strong>Throws:</strong></span> Nothing. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp25943304-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Iterator to the first element of the set. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp25944216-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Iterator to the after-the-last element of the set. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp25945144-bb"></a><span class="identifier">size</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Number of elements in the set. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp25946040-bb"></a><span class="identifier">empty</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>true if there are no elements in the container, false otherwise. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp25946984-bb"></a><span class="identifier">find</span><span class="special">(</span><span class="identifier">key_type</span> key<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method finds the attribute value by name.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">key</code></span></p></td>
+<td><p>Attribute name. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Iterator to the found element or <code class="computeroutput">end()</code> if the attribute with such name is not found. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">mapped_type</span> <a name="idp25948888-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="identifier">key_type</span> key<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Alternative lookup syntax.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">key</code></span></p></td>
+<td><p>Attribute name. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A pointer to the attribute value if it is found with <span class="emphasis"><em>key</em></span>, default-constructed mapped value otherwise. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">&gt;</span> 
+  <a class="link" href="result_of/extract.html" title="Struct template extract">result_of::extract</a><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">expressions</span><span class="special">::</span><span class="identifier">attribute_keyword</span><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">DescriptorT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+  <a name="idp25950792-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="identifier">expressions</span><span class="special">::</span><span class="identifier">attribute_keyword</span><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> keyword<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Alternative lookup syntax.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">keyword</code></span></p></td>
+<td><p>Attribute keyword. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A <code class="computeroutput">value_ref</code> with extracted attribute value if it is found, empty <code class="computeroutput">value_ref</code> otherwise. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp25954040-bb"></a><span class="identifier">count</span><span class="special">(</span><span class="identifier">key_type</span> key<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method counts the number of the attribute value occurrences in the set. Since there can be only one attribute value with a particular key, the method always return 0 or 1.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">key</code></span></p></td>
+<td><p>Attribute name. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The number of times the attribute value is found in the container. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp25955848-bb"></a><span class="identifier">freeze</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method acquires values of all adopted attributes.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p>The set is frozen. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> 
+<a name="idp25956936-bb"></a><span class="identifier">insert</span><span class="special">(</span><span class="identifier">key_type</span> key<span class="special">,</span> <span class="identifier">mapped_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> mapped<span class="special">)</span><span class="special">;</span></pre>
+<p>Inserts an element into the set. The complexity of the operation is amortized constant.</p>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">key</code></span></p></td>
+<td><p>The attribute name. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">mapped</code></span></p></td>
+<td><p>The attribute value.</p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>The set is frozen.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>An iterator to the inserted element and <code class="computeroutput">true</code> if insertion succeeded. Otherwise, if the set already contains a same-named attribute value, iterator to the existing element and <code class="computeroutput">false</code>. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span> <span class="identifier">const_iterator</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">&gt;</span> <a name="idp25960040-bb"></a><span class="identifier">insert</span><span class="special">(</span><span class="identifier">const_reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p>Inserts an element into the set. The complexity of the operation is amortized constant.</p>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">value</code></span></p></td>
+<td><p>The attribute name and value.</p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>The set is frozen.</p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>An iterator to the inserted element and <code class="computeroutput">true</code> if insertion succeeded. Otherwise, if the set already contains a same-named attribute value, iterator to the existing element and <code class="computeroutput">false</code>. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FwdIteratorT<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp25962568-bb"></a><span class="identifier">insert</span><span class="special">(</span><span class="identifier">FwdIteratorT</span> begin<span class="special">,</span> <span class="identifier">FwdIteratorT</span> end<span class="special">)</span><span class="special">;</span></pre>
+<p>Mass insertion method. The complexity of the operation is linear to the number of elements inserted.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">begin</code></span></p></td>
+<td><p>A forward iterator that points to the first element to be inserted. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">end</code></span></p></td>
+<td><p>A forward iterator that points to the after-the-last element to be inserted. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>The set is frozen.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FwdIteratorT<span class="special">,</span> <span class="keyword">typename</span> OutputIteratorT<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="idp25965336-bb"></a><span class="identifier">insert</span><span class="special">(</span><span class="identifier">FwdIteratorT</span> begin<span class="special">,</span> <span class="identifier">FwdIteratorT</span> end<span class="special">,</span> <span class="identifier">OutputIteratorT</span> out<span class="special">)</span><span class="special">;</span></pre>
+<p>Mass insertion method with ability to acquire iterators to the inserted elements. The complexity of the operation is linear to the number of elements inserted times the complexity of filling the <span class="emphasis"><em>out</em></span> iterator.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">begin</code></span></p></td>
+<td><p>A forward iterator that points to the first element to be inserted. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">end</code></span></p></td>
+<td><p>A forward iterator that points to the after-the-last element to be inserted. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">out</code></span></p></td>
+<td><p>An output iterator that receives results of insertion of the elements. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p>The set is frozen.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="attributes/make_attribute_value.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../attributes.html#header.boost.log.attributes.attribute_value_set_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="swap_idp25987608.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

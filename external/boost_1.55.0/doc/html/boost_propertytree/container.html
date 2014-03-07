@@ -1,0 +1,72 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Property Tree as a Container</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../property_tree.html" title="Chapter&#160;22.&#160;Boost.PropertyTree">
+<link rel="prev" href="tutorial.html" title="Five Minute Tutorial">
+<link rel="next" href="synopsis.html" title="Property Tree Synopsis">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tutorial.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../property_tree.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="synopsis.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_propertytree.container"></a><a class="link" href="container.html" title="Property Tree as a Container">Property Tree as a Container</a>
+</h2></div></div></div>
+<p>
+      Every property tree node models the ReversibleSequence concept, providing access
+      to its immediate children. This means that iterating over a <code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code>
+      (which is the same as its root node - every <code class="computeroutput"><a class="link" href="../boost/property_tree/ptree.html" title="Type definition ptree">ptree</a></code>
+      node is also the subtree it starts) iterates only a single level of the hierarchy.
+      There is no way to iterate over the entire tree.
+    </p>
+<p>
+      It is very important to remember that the property sequence is <span class="bold"><strong>not</strong></span>
+      ordered by the key. It preserves the order of insertion. It closely resembles
+      a std::list. Fast access to children by name is provided via a separate lookup
+      structure. Do not attempt to use algorithms that expect an ordered sequence
+      (like binary_search) on a node's children.
+    </p>
+<p>
+      The property tree exposes a second container-like interface, called the associative
+      view. Its iterator type is the nested type assoc_iterator (and its const counterpart
+      const_assoc_iterator). You can get an ordered view of all children by using
+      ordered_begin() and ordered_end().
+    </p>
+<p>
+      The associative view also provides find() and equal_range() members, which
+      return assoc_iterators, but otherwise have the same semantics as the members
+      of std::map of the same name.
+    </p>
+<p>
+      You can get a normal iterator from an assoc_iterator by using the to_iterator()
+      member function. Converting the other way is not possible.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Marcin Kalicinski<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tutorial.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../property_tree.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="synopsis.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

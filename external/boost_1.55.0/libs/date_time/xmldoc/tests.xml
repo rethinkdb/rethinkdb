@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2004 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.tests">
+  <title>Tests</title>
+
+  <para>
+    The library provides a large number of tests in the 
+    <programlisting>
+      libs/date_time/test
+      libs/date_time/test/gregorian
+      libs/date_time/test/posix_time
+      libs/date_time/test/local_time
+    </programlisting>
+    directories. Building and executing these tests assures that the installation is correct and that the library is functioning correctly. In addition, these tests facilitate the porting to new compilers. Finally, the tests provide examples of many functions not explicitly described in the usage examples. 
+  </para>
+</section>

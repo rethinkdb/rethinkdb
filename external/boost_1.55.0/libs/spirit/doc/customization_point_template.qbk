@@ -1,0 +1,82 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:Customization_Point XXX]
+
+[heading Customization_Point]
+
+Short description here...
+
+[heading Module Headers]
+
+    #include <boost/spirit/xxx.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::xxx`]]
+]
+
+[heading Synopsis]
+
+    template <typename T>
+    struct XXX;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`T`]                  [What is T]                 []]
+]
+
+[variablelist Notation
+    [[`xxx`]     [An XXX]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]       [Semantics]]
+    [[`xxx`]            [Semantics of `xxx`]]
+]
+
+[heading Predefined Specializations]
+
+[table
+    [[Type]  [Semantics]]
+    [[`xxx`] [Summary of the specialization.]]
+]
+
+[heading When to implement]
+
+Describe when this customization point needs to be implemented by the user.
+
+[heading Related Attribute Customization Points]
+
+If this customization point is implemented, the following other customization 
+points need to be implemented as well.
+
+[table
+    [[Name]                   [When to implement]]
+]
+
+[heading Example]
+
+Real example code. Use Quickbook import mechanism to link to actual
+working code snippets here.
+
+[endsect] [/ XXX]
+

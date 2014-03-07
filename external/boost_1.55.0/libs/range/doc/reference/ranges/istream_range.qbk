@@ -1,0 +1,24 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:istream_range istream_range]
+
+[heading Prototype]
+
+``
+template< class Type, class Elem, class Traits > inline
+iterator_range< std::istream_iterator<Type, Elem, Traits> >
+istream_range(std::basic_istream<Elem, Traits>& in);
+``
+
+[heading Description]
+
+`istream_range` is a function to generator that generates an `iterator_range` wrapping a `std::istream_iterator`.
+
+[heading Definition]
+
+Defined in header file `boost/range/istream_range.hpp`
+
+[endsect]

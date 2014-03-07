@@ -1,0 +1,95 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+    <head>
+        <title>intrusive_ref_counter</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    </head>
+    <body text="#000000" bgColor="#ffffff">
+        <h1><A href="../../index.htm"><IMG height="86" alt="boost.png (6897 bytes)" src="../../boost.png" width="277" align="middle"
+                    border="0"></A>basic_intrusive_ref_counter class template</h1>
+        <p>
+            <A href="#Introduction">Introduction</A><br>
+            <A href="#Synopsis">Synopsis</A><br>
+            <A href="#Members">Members</A><br>
+        </p>
+        <h2><a name="Introduction">Introduction</a></h2>
+        <p>The <STRONG>intrusive_ref_counter</STRONG> class template implements a reference counter for a derived
+            user&apos;s class that is intended to be used with <STRONG><a href="intrusive_ptr.html">intrusive_ptr</a></STRONG>.
+            The base class has associated <STRONG>intrusive_ptr_add_ref</STRONG> and <STRONG>intrusive_ptr_release</STRONG> functions
+            which modify the reference counter as needed and destroy the user's object when the counter drops to zero.</p>
+        <p>The class template is parameterized on <STRONG>DerivedT</STRONG> and <STRONG>CounterPolicyT</STRONG> parameters.
+            The first parameter is the user&apos;s class that derives from <STRONG>intrusive_ref_counter</STRONG>. This type
+            is needed in order to destroy the object correctly when there are no references to it left.</p>
+        <p>The second parameter is a policy that defines the nature of the reference counter.
+            Boost.SmartPtr provides two such policies: <STRONG>thread_unsafe_counter</STRONG> and <STRONG>thread_safe_counter</STRONG>. The former
+            instructs the <STRONG>intrusive_ref_counter</STRONG> base class to use a counter only suitable for a single-threaded use.
+            Pointers to a single object that uses this kind of reference counter must not be used in different threads. The latter policy
+            makes the reference counter thread-safe, unless the target platform doesn't support threading. Since in modern systems support for
+            threading is common, the default counter policy is <STRONG>thread_safe_counter</STRONG>.</p>
+        <h2><a name="Synopsis">Synopsis</a></h2>
+        <pre>namespace boost {
+
+  struct thread_unsafe_counter;
+  struct thread_safe_counter;
+
+  template&lt;class DerivedT, class CounterPolicyT = thread_safe_counter&gt;
+  class intrusive_ref_counter
+  {
+  public:
+      <A href="#constructors" >intrusive_ref_counter</A>() = noexcept;
+      <A href="#constructors" >intrusive_ref_counter</A>(intrusive_ref_counter const &amp; r) = noexcept;
+
+      intrusive_ref_counter &amp; <A href="#assignment" >operator=</A>(intrusive_ref_counter const &amp; r) noexcept;
+
+      unsigned int <a href="#use_count" >use_count</a>() const noexcept;
+
+  protected:
+      <A href="#destructor" >~intrusive_ref_counter</A>() = default;
+  };
+
+}</pre>
+        <h2><a name="Members">Members</a></h2>
+        <h3><a name="constructors">constructors</a></h3>
+        <pre>intrusive_ref_counter();</pre>
+        <blockquote>
+            <p><b>Postconditions:</b> <code>use_count() == 0</code>.</p>
+            <p><b>Throws:</b> nothing.</p>
+            <P><B>Notes:</B> The pointer to the constructed object is expected to be passed to <STRONG>intrusive_ptr</STRONG>
+            constructor, assignment operator or <STRONG>reset()</STRONG> method, which would increment the reference counter.</P>
+        </blockquote>
+        <pre>intrusive_ref_counter(intrusive_ref_counter const &amp;);</pre>
+        <blockquote>
+            <p><b>Postconditions:</b> <code>use_count() == 0</code>.</p>
+            <p><b>Throws:</b> nothing.</p>
+            <P><B>Notes:</B> The pointer to the constructed object is expected to be passed to <STRONG>intrusive_ptr</STRONG>
+            constructor, assignment operator or <STRONG>reset()</STRONG> method, which would increment the reference counter.</P>
+        </blockquote>
+        <h3><a name="destructor">destructor</a></h3>
+        <pre>~intrusive_ref_counter();</pre>
+        <BLOCKQUOTE>
+            <p><b>Throws:</b> nothing.</p>
+            <P><B>Effects:</B> Destroys the counter object.</P>
+            <P><B>Notes:</B> The destructor is protected so that the object can only be destroyed through the <STRONG>DerivedT</STRONG> class.</P>
+        </BLOCKQUOTE>
+        <H3><a name="assignment">assignment</a></H3>
+        <pre>intrusive_ref_counter &amp; operator=(intrusive_ref_counter const &amp; r) noexcept;</pre>
+        <BLOCKQUOTE>
+            <P><B>Effects:</B> Does nothing, reference counter is not modified.</P>
+            <P><B>Returns:</B> <code>*this</code>.</P>
+        </BLOCKQUOTE>
+        <H3><a name="use_count">use_count</a></H3>
+        <pre>unsigned int use_count() const noexcept;</pre>
+        <BLOCKQUOTE>
+            <p><b>Returns:</b> The current value of the reference counter.</p>
+            <p><b>Throws:</b> nothing.</p>
+            <P><B>Notes:</B> The returned value may not be actual in multi-threaded applications.</P>
+        </BLOCKQUOTE>
+        <hr>
+        <p>
+            $Date: 2013-09-08 10:17:18 -0700 (Sun, 08 Sep 2013) $</p>
+        <p>
+            <small>Copyright © 2013 Andrey Semashev. Distributed under the Boost Software License, Version 
+                1.0. See accompanying file <A href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or 
+                copy at <A href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>.</small></p>
+    </body>
+</html>

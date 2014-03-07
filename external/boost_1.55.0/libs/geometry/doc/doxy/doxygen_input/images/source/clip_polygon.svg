@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="354.33069"
+   height="354.33069"
+   id="svg2"
+   sodipodi:version="0.32"
+   inkscape:version="0.46"
+   version="1.0"
+   sodipodi:docbase="c:\svn\geolib\trunk\src\cpp\library\gl\geometry\doc\geometry\images"
+   sodipodi:docname="clip_polygon.svg"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape"
+   inkscape:export-filename="c:\svn\geolib\trunk\src\cpp\library\gl\geometry\doc\geometry\images\clip_polygon.png"
+   inkscape:export-xdpi="199.51997"
+   inkscape:export-ydpi="199.51997">
+  <defs
+     id="defs4">
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 177.16534 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="354.33069 : 177.16534 : 1"
+       inkscape:persp3d-origin="177.16534 : 118.11023 : 1"
+       id="perspective13" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     gridtolerance="50"
+     guidetolerance="10"
+     objecttolerance="10"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="5.1707054"
+     inkscape:cx="151.57677"
+     inkscape:cy="65.287038"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     width="10cm"
+     height="10cm"
+     showgrid="true"
+     gridanglex="8.4666669mm"
+     gridanglez="8.4666669mm"
+     grid_units="mm"
+     inkscape:grid-bbox="false"
+     inkscape:window-width="1280"
+     inkscape:window-height="774"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     units="cm">
+    <inkscape:grid
+       id="GridFromPre046Settings"
+       type="xygrid"
+       originx="0px"
+       originy="0px"
+       spacingx="1mm"
+       spacingy="1mm"
+       color="#0000ff"
+       empcolor="#0000ff"
+       opacity="0.2"
+       empopacity="0.4"
+       empspacing="5" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-38.639912,-633.95635)">
+    <rect
+       style="opacity:0.35031846;fill:#0092ff;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.46545494px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       id="rect2234"
+       width="106.77697"
+       height="35.16954"
+       x="108.55672"
+       y="899.84406"
+       transform="matrix(1,0,-1.8627311e-2,0.9998265,0,0)"
+       inkscape:export-xdpi="311.54001"
+       inkscape:export-ydpi="311.54001" />
+    <path
+       style="opacity:0.56687897;fill:#fff900;fill-opacity:1;stroke:#121518;stroke-opacity:1;stroke-width:0.9992126;stroke-miterlimit:4;stroke-dasharray:none;stroke-linejoin:round"
+       d="M 184,882 L 159,918 L 170,932 L 159,946 L 137.84854,924.45625 L 123.69708,928.09125 L 109.97083,942.15146 L 142,964 L 212,960 L 229,946 L 227,896 L 184,882 z M 194,910 L 209,921 L 187,939 L 180,917 L 194,910 z "
+       id="path2161"
+       sodipodi:nodetypes="ccccccccccccccccc"
+       inkscape:export-filename="c:\svn\geolib\trunk\src\cpp\library\gl\geometry\doc\geometry\images\rect2234.png"
+       inkscape:export-xdpi="311.54001"
+       inkscape:export-ydpi="311.54001" />
+    <path
+       style="opacity:0.60352418;fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#ff0000;stroke-width:2.12598419;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 171.68397,899.63498 L 158.96522,917.94748 L 169.96522,931.94748 L 167.71522,934.82248 L 185.65272,934.82248 L 179.96522,916.94748 L 193.96522,909.94748 L 198.27772,913.10373 L 198.52772,899.63498 L 171.68397,899.63498 z M 137.80897,924.41623 L 123.65272,928.04123 L 117.02773,934.82248 L 148.02772,934.82248 L 137.80897,924.41623 z M 197.96522,929.94748 L 191.99647,934.82248 L 197.87147,934.82248 L 197.96522,929.94748 z"
+       id="path2183"
+       inkscape:export-filename="c:\svn\geolib\trunk\src\cpp\library\gl\geometry\doc\geometry\images\rect2234.png"
+       inkscape:export-xdpi="311.54001"
+       inkscape:export-ydpi="311.54001" />
+  </g>
+</svg>

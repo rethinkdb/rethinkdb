@@ -1,0 +1,629 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek 2000
+     Copyright (c) Daniel Trebbien 2010
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Graph Theory Review</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>Review of Elementary Graph Theory</H1>
+
+<P>
+
+<P>
+This chapter is meant as a refresher on elementary graph theory. If
+the reader has some previous acquaintance with graph algorithms, this
+chapter should be enough to get started.  If the reader has no
+previous background in graph algorithms we suggest a more thorough
+introduction such as <a
+href="http://toc.lcs.mit.edu/~clr/">Introduction to Algorithms</a>
+by Cormen, Leiserson, and Rivest.
+
+<P>
+
+<H1>The Graph Abstraction</H1>
+
+<P>
+A graph is a mathematical abstraction that is useful for solving many
+kinds of problems. Fundamentally, a graph consists of a set of
+vertices, and a set of edges, where an edge is something that connects
+two vertices in the graph. More precisely, a <a
+name="def:graph"><I>graph</I></a> is a pair <i>(V,E)</i>, where
+<i>V</i> is a finite set and <i>E</i> is a binary relation on
+<i>V</i>. <i>V</i> is called a <a name="def:vertex-set"><I>vertex
+set</I></a> whose elements are called <I>vertices</I>.  <i>E</i> is a
+collection of edges, where an <a name="def:edge"><I>edge</I></a> is a
+pair <i>(u,v)</i> with <i>u,v</i> in <i>V</i>.  In a <a
+name="def:directed-graph"><I>directed graph</I></a>, edges are ordered
+pairs, connecting a <a name="def:source"><I>source</I></a> vertex to a
+<a name="def:target"><I>target</I></a> vertex. In an <a
+name="def:undirected-graph"><I>undirected graph</I></a> edges are
+unordered pairs and connect the two vertices in both directions, hence
+in an undirected graph <i>(u,v)</i> and <i>(v,u)</i> are two ways of
+writing the same edge.
+
+<P>
+This definition of a graph is vague in certain respects; it does not
+say what a vertex or edge represents. They could be cities with
+connecting roads, or web-pages with hyperlinks. These details are left
+out of the definition of a graph for an important reason; they are not
+a necessary part of the graph <I>abstraction</I>. By leaving out the
+details we can construct a theory that is reusable, that can help us
+solve lots of different kinds of problems.
+
+<P>
+Back to the definition: a graph is a set of vertices and edges.  For
+purposes of demonstration, let us consider a graph where we have
+labeled the vertices with letters, and we write an edge simply as a
+pair of letters. Now we can write down an example of a directed graph
+as follows:
+
+<P>
+<BR>
+<DIV ALIGN="center">
+<table><tr><td><tt>
+V = {v, b, x, z, a, y } <br>
+E = { (b,y), (b,y), (y,v), (z,a), (x,x), (b,x), (x,v), (a,z) } <br>
+G = (V, E)
+</tt></td></tr></table>
+</DIV>
+<BR CLEAR="ALL"><P></P>
+
+
+<P>
+<A HREF="#fig:directed-graph">Figure 1</A> gives a pictorial view of
+this graph.  The edge <i>(x,x)</i> is called a <a
+name="def:self-loop"><I>self-loop</I></a>.  Edges <i>(b,y)</i> and
+<i>(b,y)</i> are <I>parallel edges</I>, which are allowed in a <a
+name="def:multigraph"><I>multigraph</I></a> (but are normally not
+allowed in a directed or undirected graph).
+
+<P>
+
+<P></P>
+<DIV ALIGN="center"><A NAME="fig:directed-graph"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 1:</STRONG>
+Example of a directed graph.</CAPTION>
+<TR><TD><IMG SRC="./figs/digraph.gif" width="124" height="163"></TD></TR>
+</TABLE>
+</DIV><P></P>
+
+<P>
+Next we have a similar graph, though this time it is undirected.  <A
+HREF="#fig:undirected-graph">Figure 2</A> gives the pictorial view.
+Self loops are not allowed in undirected graphs. This graph is the <a
+name="def:undirected-version"><I>undirected version</i></a. of the the
+previous graph (minus the parallel edge <i>(b,y)</i>), meaning it has
+the same vertices and the same edges with their directions removed.
+Also the self edge has been removed, and edges such as <i>(a,z)</i>
+and <i>(z,a)</i> are collapsed into one edge. One can go the other
+way, and make a <a name="def:directed-version"><I>directed version</i>
+of an undirected graph be replacing each edge by two edges, one
+pointing in each direction.
+
+<P>
+<BR>
+<DIV ALIGN="CENTER">
+<table><tr><td><tt>
+V = {v, b, x, z, a, y }<br>
+E = { (b,y), (y,v), (z,a), (b,x), (x,v) }<br>
+G = (V, E)
+</tt></td></tr></table>
+</DIV>
+<BR CLEAR="ALL"><P></P>
+
+<P>
+
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:undirected-graph"></A><A NAME="1524"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 2:</STRONG>
+Example of an undirected graph.</CAPTION>
+<TR><TD><IMG SRC="./figs/undigraph.gif" width="103" height="163"></TD></TR>
+</TABLE>
+</DIV><P></P>
+
+<P>
+Now for some more graph terminology. If some edge <i>(u,v)</i> is in
+graph , then vertex <i>v</i> is <a
+name="def:adjacent"><I>adjacent</I></a> to vertex <i>u</i>.  In a
+directed graph, edge <i>(u,v)</i> is an <a
+name="def:out-edge"><I>out-edge</I></a> of vertex <i>u</i> and an <a
+name="def:in-edge"><I>in-edge</I></a> of vertex <i>v</i>. In an
+undirected graph edge <i>(u,v)</i> is <a
+name="def:incident-on"><I>incident on</I></a> vertices <i>u</i> and
+<i>v</i>.
+
+<P>
+In <A HREF="#fig:directed-graph">Figure 1</A>,
+ vertex <i>y</i> is adjacent to vertex <i>b</i> (but <i>b</i> is not
+ adjacent to <i>y</i>). The edge <i>(b,y)</i> is an out-edge of
+ <i>b</i> and an in-edge of <i>y</i>. In <A
+ HREF="#fig:undirected-graph">Figure 2</A>,
+ <i>y</i> is adjacent to <i>b</i> and vice-versa. The edge
+ <i>(y,b)</i> is incident on vertices <i>y</i> and <i>b</i>.
+
+<P>
+In a directed graph, the number of out-edges of a vertex is its <a
+name="def:out-degree"><I>out-degree</I></a> and the number of in-edges
+is its <a name="def:in-degree"><I>in-degree</I></a>.  For an
+undirected graph, the number of edges incident to a vertex is its <a
+name="def:degree"><I>degree</I></a>. In <A
+HREF="#fig:directed-graph">Figure 1</A>, vertex <i>b</i> has an
+out-degree of 3 and an in-degree of zero. In <A
+HREF="#fig:undirected-graph">Figure 2</A>, vertex <i>b</i> simply has
+a degree of 2.
+
+<P>
+Now a <a name="def:path"><i>path</i></a> is a sequence of edges in a
+graph such that the target vertex of each edge is the source vertex of
+the next edge in the sequence. If there is a path starting at vertex
+<i>u</i> and ending at vertex <i>v</i> we say that <i>v</i> is <a
+name="def:reachable"><i>reachable</i></a> from <i>u</i>.  A path is <a
+name="def:simple-path"><I>simple</I></a> if none of the vertices in
+the sequence are repeated. The path &lt;(b,x), (x,v)&gt; is simple,
+while the path &lt;(a,z), (z,a)&gt; is not. Also, the path &lt;(a,z),
+(z,a)&gt; is called a <a name="def:cycle"><I>cycle</I></a> because the
+first and last vertex in the path are the same. A graph with no cycles
+is <a name="def:acyclic"><I>acyclic</I></a>.
+
+<P>
+A <a name="def:planar-graph"><I>planar graph</I></a> is a graph that
+can be drawn on a plane without any of the edges crossing over each
+other. Such a drawing is called a <I>plane graph</I>. A <a
+name="def:face"><I>face</I></a> of a plane graph is a connected region
+of the plane surrounded by edges. An important property of planar
+graphs is that the number of faces, edges, and vertices are related
+through Euler's formula: <i>|F| - |E| + |V| = 2</i>. This means that a
+simple planar graph has at most <i>O(|V|)</i> edges.
+
+<P>
+
+<P>
+
+<H1>Graph Data Structures</H1>
+
+<P>
+The primary property of a graph to consider when deciding which data
+structure to use is <I>sparsity</I>, the number of edges relative to
+the number of vertices in the graph. A graph where <i>E</i> is close
+to </i>V<sup>2</sup></i> is a <I>dense</I> graph, whereas a graph
+where <i>E = alpha V</i> and <i>alpha</i> is much smaller than
+<i>V</i> is a <I>sparse</I> graph. For dense graphs, the
+<I>adjacency-matrix representation</I> is usually the best choice,
+whereas for sparse graphs the <I>adjacency-list representation</I> is
+a better choice. Also the <I>edge-list representation</I> is a space
+efficient choice for sparse graphs that is appropriate in some
+situations.
+
+<P>
+
+<H2>Adjacency Matrix Representation</H2>
+
+<P>
+An adjacency-matrix representation of a graph is a 2-dimensional <i>V
+x V</i> array. Each element in the array <i>a<sub>uv</sub></i> stores
+a Boolean value saying whether the edge <i>(u,v)</i> is in the graph.
+<A HREF="#fig:adj-matrix">Figure 3</A> depicts an adjacency matrix for
+the graph in <A HREF="#fig:directed-graph">Figure 1</A> (minus the
+parallel edge <i>(b,y)</i>).  The ammount of space required to store
+an adjacency-matrix is <i>O(V<sup>2</sup>)</i>. Any edge can be
+accessed, added, or removed in <i>O(1)</i> time.  To add or remove a
+vertex requires reallocating and copying the whole graph, an
+<i>O(V<sup>2</sup>)</i> operation.  The <a
+href="./adjacency_matrix.html"><tt>adjacency_matrix</tt></a> class
+implements the BGL graph interface in terms of the adjacency-matrix
+data-structure.
+
+
+<P>
+
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:adj-matrix"></A><A NAME="1701"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 3:</STRONG>
+The Adjacency Matrix Graph Representation.</CAPTION>
+<TR><TD><IMG SRC="./figs/adj_matrix.gif" width="136" height="135"></TD></TR>
+</TABLE>
+</DIV><P></P>
+
+<P>
+
+<H2><A NAME="sec:adjacency-list-representation"></A>
+Adjacency List Representation
+</H2>
+
+<P>
+An adjacency-list representation of a graph stores an out-edge
+sequence for each vertex. For sparse graphs this saves space since
+only <i>O(V + E)</i> memory is required. In addition, the out-edges
+for each vertex can be accessed more efficiently. Edge insertion is
+<i>O(1)</i>, though accessing any given edge is <i>O(alpha)</i>, where
+<i>alpha</i> is the sparsity factor of the matrix (which is equal to
+the maximum number of out-edges for any vertex in the graph).  <A
+HREF="#fig:adj-list">Figure 4</A> depicts an
+adjacency-list representation of the graph in <A
+HREF="#fig:directed-graph">Figure 1</A>. The
+<a href="./adjacency_list.html"><TT>adjacency_list</TT></a> class is
+an implementation of the adjacency-list representation.
+
+<P>
+
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:adj-list"></A><A NAME="1713"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 4:</STRONG>
+The Adjacency List Graph Representation.</CAPTION>
+<TR><TD><IMG SRC="./figs/adj_list.gif" width="108" height="122"></TD></TR>
+</TABLE>
+</DIV><P></P>
+
+<P>
+
+<H2>Edge List Representation</H2>
+
+<P>
+An edge-list representation of a graph is simply a sequence of edges,
+where each edge is represented as a pair of vertex ID's.  The memory
+required is only <i>O(E)</i>. Edge insertion is typically <i>O(1)</i>,
+though accessing a particular edge is <i>O(E)</i> (not efficient).  <A
+HREF="#fig:edge-list">Figure 5</A> shows an
+edge-list representation of the graph in <A
+HREF="#fig:directed-graph">Figure 1</A>. The
+<a href="./edge_list.html"><TT>edge_list</TT></a> adaptor class can be
+used to create implementations of the edge-list representation.
+
+<P>
+
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:edge-list"></A><A NAME="1724"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 5:</STRONG>
+The Edge List Graph Representation.</CAPTION>
+<TR><TD><IMG SRC="./figs/edge_list.gif" width="322" height="22"></TD></TR>
+</TABLE>
+</DIV><P></P>
+
+
+<P>
+
+<H1>Graph Algorithms</H1>
+
+<P>
+
+<H2>Graph Search Algorithms</H2>
+
+<P>
+<I>Tree edges</I> are edges in the search tree (or forest) constructed
+(implicitly or explicitly) by running a graph search algorithm over a
+graph.  An edge <i>(u,v)</i> is a tree edge if <i>v</i> was first
+discovered while exploring (corresponding to the <a
+href="./visitor_concepts.html">visitor</a> <TT>explore()</TT> method)
+edge <i>(u,v)</i>. <I>Back edges</I> connect vertices to their
+ancestors in a search tree. So for edge <i>(u,v)</i> the vertex
+<i>v</i> must be the ancestor of vertex <i>u</i>. Self loops are
+considered to be back edges. <I>Forward edges</I> are non-tree edges
+<i>(u,v)</i> that connect a vertex <i>u</i> to a descendant <i>v</i>
+in a search tree.  <I>Cross edges</I> are edges that do not fall into
+the above three categories.
+
+<P>
+
+<H2><A NAME="sec:bfs-algorithm"></A>
+Breadth-First Search
+</H2>
+
+<P>
+Breadth-first search is a traversal through a graph that touches all
+of the vertices reachable from a particular source vertex. In
+addition, the order of the traversal is such that the algorithm will
+explore all of the neighbors of a vertex before proceeding on to the
+neighbors of its neighbors. One way to think of breadth-first search
+is that it expands like a wave emanating from a stone dropped into a
+pool of water.  Vertices in the same ``wave'' are the same distance
+from the source vertex. A vertex is <I>discovered</I> the first time
+it is encountered by the algorithm. A vertex is <I>finished</I> after
+all of its neighbors are explored. Here's an example to help make this
+clear. A graph is shown in <A
+HREF="#fig:bfs-example">Figure 6</A> and the
+BFS discovery and finish order for the vertices is shown below.
+
+<P>
+
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:bfs-example"></A><A NAME="1826"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 6:</STRONG>
+Breadth-first search spreading through a graph.</CAPTION>
+<TR><TD><IMG SRC="./figs/bfs_example.gif" width="242" height="143"></TD></TR>
+</TABLE>
+</DIV><P></P>
+
+<P>
+<PRE>
+  order of discovery: s r w v t x u y 
+  order of finish: s r w v t x u y
+</PRE>
+
+<P>
+We start at vertex <i>s</i>, and first visit <i>r</i> and <i>w</i> (the two
+neighbors of <i>s</i>). Once both neighbors of are visited, we visit the
+neighbor of <i>r</i> (vertex <i>v</i>), then the neighbors of <i>w</i>
+(the discovery order between <i>r</i> and <i>w</i> does not matter)
+which are <i>t</i> and <i>x</i>. Finally we visit the neighbors of
+<i>t</i> and <i>x</i>, which are <i>u</i> and <i>y</i>.
+
+<P>
+For the algorithm to keep track of where it is in the graph, and which
+vertex to visit next, BFS needs to color the vertices (see the section
+on <a href="./using_property_maps.html">Property Maps</a>
+for more details about attaching properties to graphs). The place to
+put the color can either be inside the graph, or it can be passed into
+the algorithm as an argument.
+
+<P>
+
+<H2><A NAME="sec:dfs-algorithm"></A>
+Depth-First Search
+</H2>
+
+<P>
+A depth first search (DFS) visits all the vertices in a graph. When
+choosing which edge to explore next, this algorithm always chooses to
+go ``deeper'' into the graph. That is, it will pick the next adjacent
+unvisited vertex until reaching a vertex that has no unvisited
+adjacent vertices. The algorithm will then backtrack to the previous
+vertex and continue along any as-yet unexplored edges from that
+vertex. After DFS has visited all the reachable vertices from a
+particular source vertex, it chooses one of the remaining undiscovered
+vertices and continues the search. This process creates a set of
+<I>depth-first trees</I> which together form the <I>depth-first
+ forest</I>. A depth-first search categorizes the edges in the graph
+into three categories: tree-edges, back-edges, and forward or
+cross-edges (it does not specify which).  There are typically many
+valid depth-first forests for a given graph, and therefore many
+different (and equally valid) ways to categorize the edges.
+
+<P>
+One interesting property of depth-first search is that the discover
+and finish times for each vertex form a parenthesis structure.  If we
+use an open-parenthesis when a vertex is discovered, and a
+close-parenthesis when a vertex is finished, then the result is a
+properly nested set of parenthesis.  <A
+HREF="#fig:dfs-example">Figure 7</A> shows
+DFS applied to an undirected graph, with the edges labeled in the
+order they were explored.  Below we list the vertices of the graph
+ordered by discover and finish time, as well as show the parenthesis structure.  DFS is used as the kernel for several other graph
+algorithms, including topological sort and two of the connected
+component algorithms. It can also be used to detect cycles (see the <A
+HREF="file_dependency_example.html#sec:cycles">Cylic Dependencies </a>
+section of the File Dependency Example).
+
+<P>
+
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:dfs-example"></A><A NAME="1841"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 7:</STRONG>
+Depth-first search on an undirected graph.</CAPTION>
+<TR><TD><IMG SRC="./figs/dfs.gif" width="141" height="204"></TD></TR>
+</TABLE>
+</DIV><P></P>
+
+<P>
+<PRE>
+  order of discovery: a b e d c f g h i
+  order of finish: d f c e b a
+  parenthesis: (a (b (e (d d) (c (f f) c) e) b) a) (g (h (i i) h) g)
+</PRE>
+
+<P>
+
+<H2><a name="sec:minimum-spanning-tree">Minimum Spanning Tree Problem</a></H2>
+
+<P>
+The <I>minimum-spanning-tree problem</I> is defined as follows: find
+an acyclic subset <i>T</i> of <i>E</i> that connects all of the vertices
+in the graph and whose total weight is minimized, where the
+total weight is given by
+<P></P>
+<DIV ALIGN="left">
+<i>w(T)</i> = sum of <i>w(u,v)</i> over all <i>(u,v)</i> in <i>T</i>,
+where <i>w(u,v)</i> is the weight on the edge <i>(u,v)</i>
+</DIV>
+<BR CLEAR="ALL">
+<P></P>
+<i>T</i> is called the <I>spanning tree</I>.
+
+<!--
+<P>
+Kruskal's algorithm&nbsp;[<A
+ HREF="bibliography.html#kruskal56">18</A>]
+for solving the minimum spanning tree problem. This is a greedy
+algorithm to calculate the minimum spanning tree for an undirected
+graph with weighted edges. 
+
+<P>
+This is Prim's algorithm&nbsp;[<A
+ HREF="bibliography.html#prim57:_short">25</A>] for solving the
+ minimum spanning tree problem for an undirected graph with weighted
+ edges. The implementation is simply a call to <a
+ href="./dijkstra_shortest_paths.html"><TT>dijkstra_shortest_paths()</TT></a>
+ with the appropriate choice of comparison and combine functors.
+-->
+
+<P>
+
+<H2><a name="sec:shortest-paths-algorithms">Shortest-Paths Algorithms</a></H2>
+
+<P>
+One of the classic problems in graph theory is to find the shortest
+path between two vertices in a graph. Formally, a <I>path</I> is a
+sequence of vertices <i>&lt;v<sub>0</sub>,v<sub>1</sub>,...,v<sub>k</sub>&gt;</i>
+in a graph <i>G = (V, E)</i> such that each vertex is connected to the
+next vertex in the sequence (the edges
+<i>(v<sub>i</sub>,v<sub>i+1</sub>)</i> for <i>i=0,1,...,k-1</i> are in
+the edge set <i>E</i>). In the shortest-path problem, each edge is
+given a real-valued weight. We can therefore talk about the <I>weight
+of a path</I><BR>
+
+<p></p>
+<DIV ALIGN="left">
+<i>w(p) = sum from i=1..k of w(v<sub>i-1</sub>,v<sub>i</sub>)</i>
+</DIV>
+<BR CLEAR="ALL"><P></P>
+
+The <I>shortest path weight</I> from vertex <i>u</i> to <i>v</i> is then
+
+<BR>
+<p></p>
+<DIV ALIGN="left">
+<i>delta (u,v) = min { w(p) : u --> v }</i> if there is a path from
+<i>u</i> to <i>v</i> <br>
+<i>delta (u,v) = infinity</i> otherwise.
+</DIV>
+<BR CLEAR="ALL"><P></P>
+
+A <I>shortest path</I> is any path who's path weight is equal to the
+<I>shortest path weight</I>.
+
+<P>
+There are several variants of the shortest path problem. Above we
+defined the <I>single-pair</I> problem, but there is also the
+<I>single-source problem</I> (all shortest paths from one vertex to
+every other vertex in the graph), the equivalent
+<I>single-destination problem</I>, and the <I>all-pairs problem</I>.
+It turns out that there are no algorithms for solving the single-pair
+problem that are asymptotically faster than algorithms that solve the
+single-source problem.
+
+<P>
+A <I>shortest-paths tree</I> rooted at vertex in graph <i>G=(V,E)</i>
+is a directed subgraph <G'> where <i>V'</i> is a subset
+of <i>V</i> and <i>E'</i> is a subset of <i>E</i>, <i>V'</i> is the
+set of vertices reachable from , <i>G'</i> forms a rooted tree with
+root , and for all <i>v</i> in <i>V'</i> the unique simple path from
+to <i>v</i> in <i>G'</i> is a shortest path from to <i>v</i> in . The
+result of a single-source algorithm is a shortest-paths tree.
+
+<P>
+
+<H2><a name="sec:network-flow-algorithms">Network Flow Algorithms</H2>
+
+<p>
+A flow network is a directed graph <i>G=(V,E)</i> with a
+<b><i>source</i></b> vertex <i>s</i> and a <b><i>sink</i></b> vertex
+<i>t</i>. Each edge has a positive real valued <b><i>capacity</i></b>
+function <i>c</i> and there is a <b><i>flow</i></b> function <i>f</i>
+defined over every vertex pair. The flow function must satisfy three
+contraints:
+
+<p>
+<i>f(u,v) <= c(u,v) for all (u,v) in V x V</i> (Capacity constraint) <br>
+<i>f(u,v) = - f(v,u) for all (u,v) in V x V</i> (Skew symmetry)<br>
+<i>sum<sub>v in V</sub> f(u,v) = 0 for all u in V - {s,t}</i> (Flow conservation)
+
+<p>
+The <b><i>flow</i></b> of the network is the net flow entering the
+sink vertex <i>t</i> (which is equal to the net flow leaving the
+source vertex <i>s</i>).<p>
+
+<i>|f| = sum<sub>u in V</sub> f(u,t) = sum<sub>v in V</sub> f(s,v)</i>
+
+<p>
+The <b><i>residual capacity</i></b> of an edge is <i>r(u,v) = c(u,v) -
+f(u,v)</i>. The edges with <i>r(u,v) > 0</i> are residual edges
+<i>E<sub>f</sub></i> which induce the residual graph <i>G<sub>f</sub>
+= (V, E<sub>f</sub>)</i>. An edge with <i>r(u,v) = 0</i> is
+<b><i>saturated</i></b>.
+
+<p>
+The <b><i>maximum flow problem</i></b> is to determine the maximum
+possible value for <i>|f|</i> and the corresponding flow values for
+every vertex pair in the graph.
+<p>
+The <b><i>minimum cost maximum flow problem</i></b> is to determine the maximum flow which minimizes <i> sum<sub>(u,v) in E</sub>
+cost(u,v) * f(u,v) </i>.
+
+<p>
+A flow network is shown in <a href="#fig:max-flow">Figure
+8</a>. Vertex <i>A</i> is the source vertex and <i>H</i> is the target
+vertex.
+
+<P></P>
+<DIV ALIGN="center"><A NAME="fig:max-flow"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 8:</STRONG> A Maximum Flow
+Network.<br> Edges are labeled with the flow and capacity
+values.</CAPTION>
+<TR><TD><IMG SRC="./figs/max-flow.gif" width="578" height="240"></TD></TR>
+</TABLE>
+</DIV><P></P>
+
+<p>
+There is a long history of algorithms for solving the maximum flow
+problem, with the first algorithm due to <a
+href="./bibliography.html#ford56:_maxim">Ford and Fulkerson</a>. The
+best general purpose algorithm to date is the push-relabel algorithm
+of <a
+href="./bibliography.html#goldberg85:_new_max_flow_algor">Goldberg</a>
+which is based on the notion of a <b><i>preflow</i></b> introduced by
+<a href="./bibliography.html#karzanov74:_deter">Karzanov</a>.
+
+
+<h2><a name="sec:min-cut-algorithms">Minimum Cut Algorithms</a></h2>
+
+<h3>Undirected Graphs</h3>
+<p>Given an undirected graph <i>G</i> = (<i>V</i>, <i>E</i>), a <em>cut</em> of <i>G</i> is a partition of the vertices into two, non-empty sets <i>X</i> and <img src="stoer_wagner_imgs/6e4.gif" alt="\overline{X} = V - X" style="vertical-align: middle; padding-bottom: 2px">. The <i>weight</i> of a cut is defined as the number of edges between sets <i>X</i> and <img src="stoer_wagner_imgs/f79.gif" alt="\overline{X}" style="vertical-align: middle; padding-bottom: 3px"> if <i>G</i> is unweighted, or the sum of the weights of all edges between sets <i>X</i> and <img src="stoer_wagner_imgs/f79.gif" alt="\overline{X}" style="vertical-align: middle; padding-bottom: 3px"> if <i>G</i> is weighted (each edge has an associated, non-negative weight).
+
+<p>When the weight of a cut <img src="stoer_wagner_imgs/8b7.gif" alt="C = \{X, \overline{X}\}" style="vertical-align: middle"> is minimal for a graph <i>G</i> (that is, no other cut of <i>G</i> has a lesser weight), then the cut is known as a <em>minimum cut</em> or a <em>min-cut</em>. For example, given this weighted graph:
+
+<p><a href="stoer_wagner_imgs/stoer_wagner-example.dot"><img src="stoer_wagner_imgs/stoer_wagner-example.gif"></a>
+
+<p>The cut {{0, 6}, {3, 2, 7, 1, 5, 4}} has weight 13:
+
+<p><a href="stoer_wagner_imgs/stoer_wagner-example-c1.dot"><img src="stoer_wagner_imgs/stoer_wagner-example-c1.gif"></a>
+
+<p>And the min-cut is {{0, 1, 4, 5}, {2, 3, 6, 7}} (weight 4):
+
+<p><a href="stoer_wagner_imgs/stoer_wagner-example-min-cut.dot"><img src="stoer_wagner_imgs/stoer_wagner-example-min-cut.gif"></a>
+
+<p>Unlike this example, a graph will sometimes have multiple min-cuts, all of equal weight. A minimum cut algorithm determines one of them as well as the min-cut weight.
+
+<h3>Directed Graphs</h3>
+
+<p>Given a directed graph <i>G</i> = (<i>V</i>, <i>E</i>), a <em>cut</em> of <i>G</i> is a partition of the vertices into two, non-empty sets <i>S</i> and <i>T</i> where <i>S</i> is known as the set of <em>source vertices</em> and <i>T</i> is known as the set of <em>sink vertices</em>. The <em>capacity</em> of a cut <i>C</i> = (<i>S</i>, <i>T</i>) is the number of edges from a vertex in <i>S</i> to a vertex in <i>T</i> if <i>G</i> is unweighted, or the sum of weights of edges from a vertex in <i>S</i> to a vertex in <i>T</i> if <i>G</i> is weighted.
+
+<p>When the capacity of a cut <i>C</i> = (<i>S</i>, <i>T</i>) of a directed graph is minimal (that is, no other cut of <i>G</i> has lesser capacity), then <i>C</i> is known as a <em>minimum cut</em> or <em>min-cut</em>.
+
+<p>For example, given this directed graph:
+
+<p><a href="stoer_wagner_imgs/digraph1.dot"><img src="stoer_wagner_imgs/digraph1.gif"></a>
+
+<p>A min-cut is:
+
+<p><a href="stoer_wagner_imgs/digraph1-min-cut.dot"><img src="stoer_wagner_imgs/digraph1-min-cut.gif"></a>
+
+<p>where <i>S</i> = {0}, <i>T</i> = {1, 2, 3}, and the min-cut capacity is 1.
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>, Indiana University (<A HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

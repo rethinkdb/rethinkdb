@@ -1,0 +1,189 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class interprocess_upgradable_mutex</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.interprocess_upgradable_mutex_hpp" title="Header &lt;boost/interprocess/sync/interprocess_upgradable_mutex.hpp&gt;">
+<link rel="prev" href="interprocess_s_idp28542712.html" title="Class interprocess_sharable_mutex">
+<link rel="next" href="defer_lock_type.html" title="Struct defer_lock_type">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="interprocess_s_idp28542712.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.interprocess_upgradable_mutex_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="defer_lock_type.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.interprocess.interprocess_u_idp28558424"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class interprocess_upgradable_mutex</span></h2>
+<p>boost::interprocess::interprocess_upgradable_mutex</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.interprocess_upgradable_mutex_hpp" title="Header &lt;boost/interprocess/sync/interprocess_upgradable_mutex.hpp&gt;">boost/interprocess/sync/interprocess_upgradable_mutex.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="interprocess_u_idp28558424.html" title="Class interprocess_upgradable_mutex">interprocess_upgradable_mutex</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="interprocess_u_idp28558424.html#boost.interprocess.interprocess_u_idp28558424construct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="interprocess_u_idp28558424.html#idp28559560-bb"><span class="identifier">interprocess_upgradable_mutex</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="interprocess_u_idp28558424.html" title="Class interprocess_upgradable_mutex">interprocess_upgradable_mutex</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="interprocess_u_idp28558424.html#idp28589736-bb"><span class="identifier">interprocess_upgradable_mutex</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  interprocess_upgradable_mutex&amp; 
+  <a class="link" href="interprocess_u_idp28558424.html#idp28560200-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="interprocess_u_idp28558424.html" title="Class interprocess_upgradable_mutex">interprocess_upgradable_mutex</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="interprocess_u_idp28558424.html#idp28590440-bb"><span class="special">~</span><span class="identifier">interprocess_upgradable_mutex</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="interprocess_u_idp28558424.html#idp28560968-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="interprocess_u_idp28558424.html#idp28561176-bb"><span class="identifier">lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="interprocess_u_idp28558424.html#idp28562456-bb"><span class="identifier">try_lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="interprocess_u_idp28558424.html#idp28563832-bb"><span class="identifier">timed_lock</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="interprocess_u_idp28558424.html#idp28565560-bb"><span class="identifier">unlock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="interprocess_u_idp28558424.html#idp28566808-bb"><span class="identifier">lock_sharable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="interprocess_u_idp28558424.html#idp28568056-bb"><span class="identifier">try_lock_sharable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="interprocess_u_idp28558424.html#idp28569416-bb"><span class="identifier">timed_lock_sharable</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="interprocess_u_idp28558424.html#idp28571128-bb"><span class="identifier">unlock_sharable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="interprocess_u_idp28558424.html#idp28572376-bb"><span class="identifier">lock_upgradable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="interprocess_u_idp28558424.html#idp28573640-bb"><span class="identifier">try_lock_upgradable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="interprocess_u_idp28558424.html#idp28575016-bb"><span class="identifier">timed_lock_upgradable</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="interprocess_u_idp28558424.html#idp28576744-bb"><span class="identifier">unlock_upgradable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="interprocess_u_idp28558424.html#idp28578008-bb"><span class="identifier">unlock_and_lock_upgradable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="interprocess_u_idp28558424.html#idp28579320-bb"><span class="identifier">unlock_and_lock_sharable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="interprocess_u_idp28558424.html#idp28580632-bb"><span class="identifier">unlock_upgradable_and_lock_sharable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="interprocess_u_idp28558424.html#idp28581960-bb"><span class="identifier">unlock_upgradable_and_lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="interprocess_u_idp28558424.html#idp28583336-bb"><span class="identifier">try_unlock_upgradable_and_lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">*</span><span class="keyword">bool</span> <a class="link" href="interprocess_u_idp28558424.html#idp28584824-bb"><span class="identifier">timed_unlock_upgradable_and_lock</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="interprocess_u_idp28558424.html#idp28586744-bb"><span class="identifier">try_unlock_sharable_and_lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="interprocess_u_idp28558424.html#idp28588232-bb"><span class="identifier">try_unlock_sharable_and_lock_upgradable</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp118524040"></a><h2>Description</h2>
+<p>Wraps a <a class="link" href="interprocess_u_idp28558424.html" title="Class interprocess_upgradable_mutex">interprocess_upgradable_mutex</a> that can be placed in shared memory and can be shared between processes. Allows timed lock tries </p>
+<div class="refsect2">
+<a name="idp118525032"></a><h3>
+<a name="boost.interprocess.interprocess_u_idp28558424construct-copy-destruct"></a><code class="computeroutput">interprocess_upgradable_mutex</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><a name="idp28559560-bb"></a><span class="identifier">interprocess_upgradable_mutex</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="interprocess_u_idp28558424.html" title="Class interprocess_upgradable_mutex">interprocess_upgradable_mutex</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28589736-bb"></a><span class="identifier">interprocess_upgradable_mutex</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs the upgradable lock. Throws <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem"><pre class="literallayout">interprocess_upgradable_mutex&amp; 
+<a name="idp28560200-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="interprocess_u_idp28558424.html" title="Class interprocess_upgradable_mutex">interprocess_upgradable_mutex</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28590440-bb"></a><span class="special">~</span><span class="identifier">interprocess_upgradable_mutex</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destroys the upgradable lock. Does not throw. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp118537144"></a><h3>
+<a name="idp28560968-bb"></a><code class="computeroutput">interprocess_upgradable_mutex</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28561176-bb"></a><span class="identifier">lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: The calling thread tries to obtain exclusive ownership of the mutex, and if another thread has exclusive, sharable or upgradable ownership of the mutex, it waits until it can obtain the ownership. Throws: <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28562456-bb"></a><span class="identifier">try_lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: The calling thread tries to acquire exclusive ownership of the mutex without waiting. If no other thread has exclusive, sharable or upgradable ownership of the mutex this succeeds. Returns: If it can acquire exclusive ownership immediately returns true. If it has to wait, returns false. Throws: <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28563832-bb"></a><span class="identifier">timed_lock</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span> abs_time<span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: The calling thread tries to acquire exclusive ownership of the mutex waiting if necessary until no other thread has exclusive, sharable or upgradable ownership of the mutex or abs_time is reached. Returns: If acquires exclusive ownership, returns true. Otherwise returns false. Throws: <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28565560-bb"></a><span class="identifier">unlock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Precondition: The thread must have exclusive ownership of the mutex. Effects: The calling thread releases the exclusive ownership of the mutex. Throws: An exception derived from <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28566808-bb"></a><span class="identifier">lock_sharable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: The calling thread tries to obtain sharable ownership of the mutex, and if another thread has exclusive ownership of the mutex, waits until it can obtain the ownership. Throws: <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28568056-bb"></a><span class="identifier">try_lock_sharable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: The calling thread tries to acquire sharable ownership of the mutex without waiting. If no other thread has exclusive ownership of the mutex this succeeds. Returns: If it can acquire sharable ownership immediately returns true. If it has to wait, returns false. Throws: <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28569416-bb"></a><span class="identifier">timed_lock_sharable</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span> abs_time<span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: The calling thread tries to acquire sharable ownership of the mutex waiting if necessary until no other thread has exclusive ownership of the mutex or abs_time is reached. Returns: If acquires sharable ownership, returns true. Otherwise returns false. Throws: <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28571128-bb"></a><span class="identifier">unlock_sharable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Precondition: The thread must have sharable ownership of the mutex. Effects: The calling thread releases the sharable ownership of the mutex. Throws: An exception derived from <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28572376-bb"></a><span class="identifier">lock_upgradable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: The calling thread tries to obtain upgradable ownership of the mutex, and if another thread has exclusive or upgradable ownership of the mutex, waits until it can obtain the ownership. Throws: <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28573640-bb"></a><span class="identifier">try_lock_upgradable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: The calling thread tries to acquire upgradable ownership of the mutex without waiting. If no other thread has exclusive or upgradable ownership of the mutex this succeeds. Returns: If it can acquire upgradable ownership immediately returns true. If it has to wait, returns false. Throws: <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28575016-bb"></a><span class="identifier">timed_lock_upgradable</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span> abs_time<span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: The calling thread tries to acquire upgradable ownership of the mutex waiting if necessary until no other thread has exclusive or upgradable ownership of the mutex or abs_time is reached. Returns: If acquires upgradable ownership, returns true. Otherwise returns false. Throws: <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28576744-bb"></a><span class="identifier">unlock_upgradable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Precondition: The thread must have upgradable ownership of the mutex. Effects: The calling thread releases the upgradable ownership of the mutex. Throws: An exception derived from <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28578008-bb"></a><span class="identifier">unlock_and_lock_upgradable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Precondition: The thread must have exclusive ownership of the mutex. Effects: The thread atomically releases exclusive ownership and acquires upgradable ownership. This operation is non-blocking. Throws: An exception derived from <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28579320-bb"></a><span class="identifier">unlock_and_lock_sharable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Precondition: The thread must have exclusive ownership of the mutex. Effects: The thread atomically releases exclusive ownership and acquires sharable ownership. This operation is non-blocking. Throws: An exception derived from <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28580632-bb"></a><span class="identifier">unlock_upgradable_and_lock_sharable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Precondition: The thread must have upgradable ownership of the mutex. Effects: The thread atomically releases upgradable ownership and acquires sharable ownership. This operation is non-blocking. Throws: An exception derived from <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28581960-bb"></a><span class="identifier">unlock_upgradable_and_lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Precondition: The thread must have upgradable ownership of the mutex. Effects: The thread atomically releases upgradable ownership and acquires exclusive ownership. This operation will block until all threads with sharable ownership release their sharable lock. Throws: An exception derived from <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28583336-bb"></a><span class="identifier">try_unlock_upgradable_and_lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Precondition: The thread must have upgradable ownership of the mutex. Effects: The thread atomically releases upgradable ownership and tries to acquire exclusive ownership. This operation will fail if there are threads with sharable ownership, but it will maintain upgradable ownership. Returns: If acquires exclusive ownership, returns true. Otherwise returns false. Throws: An exception derived from <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="special">*</span><span class="keyword">bool</span> <a name="idp28584824-bb"></a><span class="identifier">timed_unlock_upgradable_and_lock</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span> abs_time<span class="special">)</span><span class="special">;</span></pre>
+<p>Precondition: The thread must have upgradable ownership of the mutex. Effects: The thread atomically releases upgradable ownership and tries to acquire exclusive ownership, waiting if necessary until abs_time. This operation will fail if there are threads with sharable ownership or timeout reaches, but it will maintain upgradable ownership. Returns: If acquires exclusive ownership, returns true. Otherwise returns false. Throws: An exception derived from <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28586744-bb"></a><span class="identifier">try_unlock_sharable_and_lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Precondition: The thread must have sharable ownership of the mutex. Effects: The thread atomically releases sharable ownership and tries to acquire exclusive ownership. This operation will fail if there are threads with sharable or upgradable ownership, but it will maintain sharable ownership. Returns: If acquires exclusive ownership, returns true. Otherwise returns false. Throws: An exception derived from <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28588232-bb"></a><span class="identifier">try_unlock_sharable_and_lock_upgradable</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Precondition: The thread must have sharable ownership of the mutex. Effects: The thread atomically releases sharable ownership and tries to acquire upgradable ownership. This operation will fail if there are threads with sharable or upgradable ownership, but it will maintain sharable ownership. Returns: If acquires upgradable ownership, returns true. Otherwise returns false. Throws: An exception derived from <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> on error. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="interprocess_s_idp28542712.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.interprocess_upgradable_mutex_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="defer_lock_type.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

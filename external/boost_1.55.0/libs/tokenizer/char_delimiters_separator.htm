@@ -1,0 +1,156 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <meta name="GENERATOR" content="Microsoft FrontPage 6.0">
+  <meta name="ProgId" content="FrontPage.Editor.Document">
+
+  <title>Boost Char Delimiters Separator</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000" link="#0000EE" vlink="#551A8B" alink=
+"#FF0000">
+  <p><img src="../../boost.png" alt="C++ Boost" width="277" height=
+  "86"><br></p><font color="red">Note: This class is deprecated. Please use
+  <a href="char_separator.htm"><tt>char_separator</tt></a> instead.</font>
+
+  <h1 align="center">Char Delimiters Separator</h1>
+  <pre>
+template &lt;class Char, class Traits = std::char_traits&lt;Char&gt; &gt;
+class char_delimiters_separator{
+</pre>
+
+  <p>The char_delimiters_separator class is an implementation of the <a href=
+  "tokenizerfunction.htm">TokenizerFunction</a> concept that can be used to
+  break text up into tokens. It is the default TokenizerFunction for
+  tokenizer and token_iterator_generator. An example is below.</p>
+
+  <h2>Example</h2>
+  <pre>
+// simple_example_4.cpp
+#include&lt;iostream&gt;
+#include&lt;boost/tokenizer.hpp&gt;
+#include&lt;string&gt;
+
+int main(){
+   using namespace std;
+   using namespace boost;
+   string s = "This is,  a test";
+   tokenizer&lt;char_delimiters_separator&lt;char&gt; &gt; tok(s);
+   for(tokenizer&lt;char_delimiters_separator&lt;char&gt; &gt;::iterator beg=tok.begin(); beg!=tok.end();++beg){
+       cout &lt;&lt; *beg &lt;&lt; "\n";
+   }
+}
+</pre>
+
+  <h2>Construction and Usage</h2>
+
+  <p>There is one constructor of interest. It is as follows</p>
+  <pre>
+explicit char_delimiters_separator(bool return_delims = false, 
+const Char* returnable = "",const Char* nonreturnable = "" )
+</pre>
+
+  <table border="1" summary="">
+    <tr>
+      <td>
+        <p align="center"><strong>Parameter</strong></p>
+      </td>
+
+      <td>
+        <p align="center"><strong>Description</strong></p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>return_delims</td>
+
+      <td>Whether or not to return the delimiters that have been found. Note
+      that not all delimiters can be returned. See the other two parameters
+      for explanation.</td>
+    </tr>
+
+    <tr>
+      <td>returnable</td>
+
+      <td>This specifies the returnable delimiters. These are the delimiters
+      that can be returned as tokens when return_delims is true. Since these
+      are typically punctuation, if a 0 is provided as the argument, then the
+      returnable delmiters will be all characters Cfor which std::ispunct(C)
+      yields a true value. If an argument of "" is provided, then this is
+      taken to mean that there are noreturnable delimiters.</td>
+    </tr>
+
+    <tr>
+      <td>nonreturnable</td>
+
+      <td>This specifies the nonreturnable delimiters. These are delimiters
+      that cannot be returned as tokens. Since these are typically
+      whitespace, if 0 is specified as an argument, then the nonreturnable
+      delimiters will be all characters C for which std::isspace(C) yields a
+      true value. If an argument of "" is provided, then this is taken to
+      mean that there are no non-returnable delimiters.</td>
+    </tr>
+  </table>
+
+  <p>The reason there is a distinction between nonreturnable and returnable
+  delimiters is that some delimiters are just used to split up tokens and are
+  nothing more. Take for example the following string "b c +". Assume you are
+  writing a simple calculator to parse expression in post fix notation. While
+  both the space and the + separate tokens, you only only interested in the +
+  and not in the space. Indeed having the space returned as a token would
+  only complicate your code. In this case you would specify + as a
+  returnable, and space as a nonreturnable delimiter.</p>
+
+  <p>To use this class, pass an object of it anywhere a TokenizerFunction
+  object is required.</p>
+
+  <h3>Template Parameters</h3>
+
+  <table border="1" summary="">
+    <tr>
+      <th>Parameter</th>
+
+      <th>Description</th>
+    </tr>
+
+    <tr>
+      <td><tt>Char</tt></td>
+
+      <td>The type of the elements within a token, typically
+      <tt>char</tt>.</td>
+    </tr>
+
+    <tr>
+      <td>Traits</td>
+
+      <td>The traits class for Char, typically
+      std::char_traits&lt;Char&gt;</td>
+    </tr>
+  </table>
+
+  <h2>Model of</h2>
+
+  <p><a href="tokenizerfunction.htm">TokenizerFunction</a></p>
+
+  <p>&nbsp;</p>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->25
+  December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38518" --></p>
+
+  <p><i>Copyright &copy; 2001 John R. Bandela</i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

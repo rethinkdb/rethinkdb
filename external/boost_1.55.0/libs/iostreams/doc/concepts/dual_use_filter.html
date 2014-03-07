@@ -1,0 +1,74 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>DualUseFilter</TITLE>
+    <LINK REL="stylesheet" HREF="../../../../boost.css">
+    <LINK REL="stylesheet" HREF="../theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">DualUseFilter</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<H2>Description</H2>
+
+<P>
+    A DualUseFilter is a Filter which can act as an <A HREF="input_filter.html">InputFilter</A> or as an <A HREF="output_filter.html">OutputFilter</A>, but not as both simultaneously. 
+</P>
+<P>
+    DualUseFilters help reduce the number of different Filter types required to implement a particlar filtering algorithm. For example, by implementing <A HREF="../classes/regex_filter.html"><CODE>basic_regex_filter</CODE></A> as a DualUseFilter, the Iostreams library avoids having to define separate templates <CODE>basic_regex_input_filter</CODE> and <CODE>basic_regex_output_filter</CODE>.
+</P>
+
+<H2>Refinement of</H2>
+
+<P><A HREF="input_filter.html">InputFilter</A>, <A HREF="output_filter.html">OutputFilter</A>.</P>
+
+<H2>Associated Types</H2>
+
+<TABLE CELLPADDING="5" BORDER="1">
+    <TR><TD>Character type</TD><TD>The type of the characters in the filtered sequences</TD></TR>
+    <TR>
+        <TD>Category</TD>
+        <TD>
+            A type convertible to <A HREF="../guide/traits.html#category_tags"><CODE>filter_tag</CODE></A> and to <A HREF="../guide/modes.html#mode_tags"><CODE>dual_use</CODE></A>
+        </TD>
+    </TR>
+    <TR>
+        <TD>Mode</TD>
+        <TD>
+            The unique <I>most-derived</I> <A HREF="../guide/modes.html#mode_tags">mode tag</A> to which Category is convertible
+        </TD>
+    </TR>
+</TABLE>
+
+<H2>Valid Expressions / Semantics</H2>
+
+Same as <A HREF="bidirectional_filter.html">BidirectionalFilter</A>.
+
+<H2>Exceptions</H2>
+
+Same as <A HREF="bidirectional_filter.html">BidirectionalFilter</A>.
+
+<H2>Models</H2>
+
+<UL>
+    <LI>The <A HREF="../guide/text_processing.html">Text Processing Filters</A>.
+    <LI>The compression and decompression filters, except for <A HREF="../classes/gzip.html#basic_gzip_decompressor"><CODE>basic_gzip_decompressor</CODE></A>.
+</UL>
+
+<!-- Begin Footer -->
+
+<HR>
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+
+<!-- End Footer -->
+
+</BODY>

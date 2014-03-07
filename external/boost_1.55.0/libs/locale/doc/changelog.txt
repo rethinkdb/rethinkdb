@@ -1,0 +1,25 @@
+//
+//  Copyright (c) 2009-2011 Artyom Beilis (Tonkikh)
+//
+//  Distributed under the Boost Software License, Version 1.0. (See
+//  accompanying file LICENSE_1_0.txt or copy at
+//  http://www.boost.org/LICENSE_1_0.txt)
+//
+
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4 filetype=cpp.doxygen
+/*!
+\page changelog Changelog
+
+
+- 1.53.0 - Bug fixes: 7743, 7386, 7734, 7701, 7368, 7762:
+   -  7743 - security related bug fix, some invalid UTF-8 sequences where accepted as valid 
+   -  7386 - invalid Windows codepage names used
+   -  7734 - fixed missing documentation, caused by a error in Doxygen formatting
+   -  7701 - fixed missing \c std:: in some places
+   -  7368, 7762 - Spelling, grammar, typos
+- 1.49.0
+   - Fixed incorrect use of MultiByteToWideChar in detection of invalid input sequences 
+- 1.48.0 - First Release
+
+
+*/

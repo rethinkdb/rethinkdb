@@ -1,0 +1,190 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template scoped_lock</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp" title="Header &lt;boost/interprocess/interprocess_fwd.hpp&gt;">
+<link rel="prev" href="flat_map_index_aux.html" title="Struct template flat_map_index_aux">
+<link rel="next" href="sharable_lock.html" title="Class template sharable_lock">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="flat_map_index_aux.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="sharable_lock.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.interprocess.scoped_lock"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template scoped_lock</span></h2>
+<p>boost::interprocess::scoped_lock</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp" title="Header &lt;boost/interprocess/interprocess_fwd.hpp&gt;">boost/interprocess/interprocess_fwd.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Mutex<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="scoped_lock.html#boost.interprocess.scoped_lockconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="scoped_lock.html#idp27546120-bb"><span class="identifier">scoped_lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="scoped_lock.html#idp27546840-bb"><span class="identifier">scoped_lock</span></a><span class="special">(</span><span class="identifier">mutex_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="scoped_lock.html#idp27547864-bb"><span class="identifier">scoped_lock</span></a><span class="special">(</span><span class="identifier">mutex_type</span> <span class="special">&amp;</span><span class="special">,</span> <a class="link" href="defer_lock_type.html" title="Struct defer_lock_type">defer_lock_type</a><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="scoped_lock.html#idp27549032-bb"><span class="identifier">scoped_lock</span></a><span class="special">(</span><span class="identifier">mutex_type</span> <span class="special">&amp;</span><span class="special">,</span> <a class="link" href="accept_ownership_type.html" title="Struct accept_ownership_type">accept_ownership_type</a><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="scoped_lock.html#idp27550216-bb"><span class="identifier">scoped_lock</span></a><span class="special">(</span><span class="identifier">mutex_type</span> <span class="special">&amp;</span><span class="special">,</span> <a class="link" href="try_to_lock_type.html" title="Struct try_to_lock_type">try_to_lock_type</a><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="scoped_lock.html#idp27551672-bb"><span class="identifier">scoped_lock</span></a><span class="special">(</span><span class="identifier">mutex_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+    <span class="keyword">explicit</span> <a class="link" href="scoped_lock.html#idp27553112-bb"><span class="identifier">scoped_lock</span></a><span class="special">(</span><a class="link" href="upgradable_lock.html" title="Class template upgradable_lock">upgradable_lock</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span><span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+    <a class="link" href="scoped_lock.html#idp27558232-bb"><span class="identifier">scoped_lock</span></a><span class="special">(</span><a class="link" href="upgradable_lock.html" title="Class template upgradable_lock">upgradable_lock</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span><span class="special">,</span> <a class="link" href="try_to_lock_type.html" title="Struct try_to_lock_type">try_to_lock_type</a><span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+    <a class="link" href="scoped_lock.html#idp27561032-bb"><span class="identifier">scoped_lock</span></a><span class="special">(</span><a class="link" href="upgradable_lock.html" title="Class template upgradable_lock">upgradable_lock</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">,</span> 
+                <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+    <a class="link" href="scoped_lock.html#idp27563800-bb"><span class="identifier">scoped_lock</span></a><span class="special">(</span><a class="link" href="sharable_lock.html" title="Class template sharable_lock">sharable_lock</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span><span class="special">,</span> <a class="link" href="try_to_lock_type.html" title="Struct try_to_lock_type">try_to_lock_type</a><span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  scoped_lock&amp; <a class="link" href="scoped_lock.html#idp27566968-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="scoped_lock.html#idp27566584-bb"><span class="special">~</span><span class="identifier">scoped_lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="scoped_lock.html#idp27534600-bb">public member functions</a></span>
+   <a class="link" href="scoped_lock.html#idp27534808-bb"><span class="identifier">m_locked</span></a><span class="special">(</span><span class="identifier">scop</span><span class="special">.</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="scoped_lock.html#idp27535528-bb"><span class="identifier">lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">*</span><span class="keyword">bool</span> <a class="link" href="scoped_lock.html#idp27536824-bb"><span class="identifier">try_lock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">*</span><span class="keyword">bool</span> <a class="link" href="scoped_lock.html#idp27538328-bb"><span class="identifier">timed_lock</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="special">*</span><span class="keyword">void</span> <a class="link" href="scoped_lock.html#idp27540232-bb"><span class="identifier">unlock</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="scoped_lock.html#idp27541512-bb"><span class="identifier">owns</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <a class="link" href="scoped_lock.html#idp27542616-bb"><span class="keyword">operator</span> <span class="identifier">unspecified_bool_type</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">mutex_type</span> <span class="special">*</span> <a class="link" href="scoped_lock.html#idp27543352-bb"><span class="identifier">mutex</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">mutex_type</span> <span class="special">*</span> <a class="link" href="scoped_lock.html#idp27544104-bb"><span class="identifier">release</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="scoped_lock.html#idp27544904-bb"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a><span class="special">&lt;</span> <span class="identifier">mutex_type</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp112677256"></a><h2>Description</h2>
+<p><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a> is meant to carry out the tasks for locking, unlocking, try-locking and timed-locking (recursive or not) for the Mutex. The Mutex need not supply all of this functionality. If the client of scoped_lock&lt;Mutex&gt; does not use functionality which the Mutex does not supply, no harm is done. Mutex ownership transfer is supported through the syntax of move semantics. Ownership transfer is allowed both by construction and assignment. The <a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a> does not support copy semantics. A compile time error results if copy construction or copy assignment is attempted. Mutex ownership can also be moved from an <a class="link" href="upgradable_lock.html" title="Class template upgradable_lock">upgradable_lock</a> and <a class="link" href="sharable_lock.html" title="Class template sharable_lock">sharable_lock</a> via constructor. In this role, <a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a> shares the same functionality as a write_lock. </p>
+<div class="refsect2">
+<a name="idp112680040"></a><h3>
+<a name="boost.interprocess.scoped_lockconstruct-copy-destruct"></a><code class="computeroutput">scoped_lock</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp27546120-bb"></a><span class="identifier">scoped_lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: Default constructs a <code class="computeroutput"><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a></code>. Postconditions: owns() == false and mutex() == 0. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp27546840-bb"></a><span class="identifier">scoped_lock</span><span class="special">(</span><span class="identifier">mutex_type</span> <span class="special">&amp;</span> m<span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: m.lock(). Postconditions: owns() == true and mutex() == &amp;m. Notes: The constructor will take ownership of the mutex. If another thread already owns the mutex, this thread will block until the mutex is released. Whether or not this constructor handles recursive locking depends upon the mutex. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp27547864-bb"></a><span class="identifier">scoped_lock</span><span class="special">(</span><span class="identifier">mutex_type</span> <span class="special">&amp;</span> m<span class="special">,</span> <a class="link" href="defer_lock_type.html" title="Struct defer_lock_type">defer_lock_type</a><span class="special">)</span><span class="special">;</span></pre>
+<p>Postconditions: owns() == false, and mutex() == &amp;m. Notes: The constructor will not take ownership of the mutex. There is no effect required on the referenced mutex. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp27549032-bb"></a><span class="identifier">scoped_lock</span><span class="special">(</span><span class="identifier">mutex_type</span> <span class="special">&amp;</span> m<span class="special">,</span> <a class="link" href="accept_ownership_type.html" title="Struct accept_ownership_type">accept_ownership_type</a><span class="special">)</span><span class="special">;</span></pre>
+<p>Postconditions: owns() == true, and mutex() == &amp;m. Notes: The constructor will suppose that the mutex is already locked. There is no effect required on the referenced mutex. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp27550216-bb"></a><span class="identifier">scoped_lock</span><span class="special">(</span><span class="identifier">mutex_type</span> <span class="special">&amp;</span> m<span class="special">,</span> <a class="link" href="try_to_lock_type.html" title="Struct try_to_lock_type">try_to_lock_type</a><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: m.try_lock(). Postconditions: mutex() == &amp;m. owns() == the return value of the m.try_lock() executed within the constructor. Notes: The constructor will take ownership of the mutex if it can do so without waiting. Whether or not this constructor handles recursive locking depends upon the mutex. If the mutex_type does not support try_lock, this constructor will fail at compile time if instantiated, but otherwise have no effect. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp27551672-bb"></a><span class="identifier">scoped_lock</span><span class="special">(</span><span class="identifier">mutex_type</span> <span class="special">&amp;</span> m<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span> abs_time<span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: m.timed_lock(abs_time). Postconditions: mutex() == &amp;m. owns() == the return value of the m.timed_lock(abs_time) executed within the constructor. Notes: The constructor will take ownership of the mutex if it can do it until abs_time is reached. Whether or not this constructor handles recursive locking depends upon the mutex. If the mutex_type does not support try_lock, this constructor will fail at compile time if instantiated, but otherwise have no effect. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="keyword">explicit</span> <a name="idp27553112-bb"></a><span class="identifier">scoped_lock</span><span class="special">(</span><a class="link" href="upgradable_lock.html" title="Class template upgradable_lock">upgradable_lock</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span> upgr<span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: If upgr.owns() then calls unlock_upgradable_and_lock() on the referenced mutex. upgr.release() is called. Postconditions: mutex() == the value upgr.mutex() had before the construction. upgr.mutex() == 0. owns() == upgr.owns() before the construction. upgr.owns() == false after the construction. Notes: If upgr is locked, this constructor will lock this <code class="computeroutput"><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a></code> while unlocking upgr. If upgr is unlocked, then this <code class="computeroutput"><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a></code> will be unlocked as well. Only a moved <code class="computeroutput"><a class="link" href="upgradable_lock.html" title="Class template upgradable_lock">upgradable_lock</a></code>'s will match this signature. An non-moved <code class="computeroutput"><a class="link" href="upgradable_lock.html" title="Class template upgradable_lock">upgradable_lock</a></code> can be moved with the expression: "boost::move(lock);" This constructor may block if other threads hold a <code class="computeroutput"><a class="link" href="sharable_lock.html" title="Class template sharable_lock">sharable_lock</a></code> on this mutex (<code class="computeroutput"><a class="link" href="sharable_lock.html" title="Class template sharable_lock">sharable_lock</a></code>'s can share ownership with an <code class="computeroutput"><a class="link" href="upgradable_lock.html" title="Class template upgradable_lock">upgradable_lock</a></code>). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <a name="idp27558232-bb"></a><span class="identifier">scoped_lock</span><span class="special">(</span><a class="link" href="upgradable_lock.html" title="Class template upgradable_lock">upgradable_lock</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span> upgr<span class="special">,</span> <a class="link" href="try_to_lock_type.html" title="Struct try_to_lock_type">try_to_lock_type</a><span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: If upgr.owns() then calls try_unlock_upgradable_and_lock() on the referenced mutex: a)if try_unlock_upgradable_and_lock() returns true then mutex() obtains the value from upgr.release() and owns() is set to true. b)if try_unlock_upgradable_and_lock() returns false then upgr is unaffected and this <code class="computeroutput"><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a></code> construction as the same effects as a default construction. c)Else upgr.owns() is false. mutex() obtains the value from upgr.release() and owns() is set to false Notes: This construction will not block. It will try to obtain mutex ownership from upgr immediately, while changing the lock type from a "read lock" to a "write lock". If the "read lock" isn't held in the first place, the mutex merely changes type to an unlocked "write lock". If the "read lock" is held, then mutex transfer occurs only if it can do so in a non-blocking manner. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <a name="idp27561032-bb"></a><span class="identifier">scoped_lock</span><span class="special">(</span><a class="link" href="upgradable_lock.html" title="Class template upgradable_lock">upgradable_lock</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span> upgr<span class="special">,</span> 
+              <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span> abs_time<span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: If upgr.owns() then calls timed_unlock_upgradable_and_lock(abs_time) on the referenced mutex: a)if timed_unlock_upgradable_and_lock(abs_time) returns true then mutex() obtains the value from upgr.release() and owns() is set to true. b)if timed_unlock_upgradable_and_lock(abs_time) returns false then upgr is unaffected and this <code class="computeroutput"><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a></code> construction as the same effects as a default construction. c)Else upgr.owns() is false. mutex() obtains the value from upgr.release() and owns() is set to false Notes: This construction will not block. It will try to obtain mutex ownership from upgr immediately, while changing the lock type from a "read lock" to a "write lock". If the "read lock" isn't held in the first place, the mutex merely changes type to an unlocked "write lock". If the "read lock" is held, then mutex transfer occurs only if it can do so in a non-blocking manner. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <a name="idp27563800-bb"></a><span class="identifier">scoped_lock</span><span class="special">(</span><a class="link" href="sharable_lock.html" title="Class template sharable_lock">sharable_lock</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span> <span class="special">&amp;&amp;</span> shar<span class="special">,</span> <a class="link" href="try_to_lock_type.html" title="Struct try_to_lock_type">try_to_lock_type</a><span class="special">,</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: If shar.owns() then calls try_unlock_sharable_and_lock() on the referenced mutex. a)if try_unlock_sharable_and_lock() returns true then mutex() obtains the value from shar.release() and owns() is set to true. b)if try_unlock_sharable_and_lock() returns false then shar is unaffected and this <code class="computeroutput"><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a></code> construction has the same effects as a default construction. c)Else shar.owns() is false. mutex() obtains the value from shar.release() and owns() is set to false Notes: This construction will not block. It will try to obtain mutex ownership from shar immediately, while changing the lock type from a "read lock" to a "write lock". If the "read lock" isn't held in the first place, the mutex merely changes type to an unlocked "write lock". If the "read lock" is held, then mutex transfer occurs only if it can do so in a non-blocking manner. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">scoped_lock&amp; <a name="idp27566968-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a> <span class="special">&amp;&amp;</span> scop<span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: If owns() before the call, then unlock() is called on mutex(). *this gets the state of scop and scop gets set to a default constructed state. Notes: With a recursive mutex it is possible that both this and scop own the same mutex before the assignment. In this case, this will own the mutex after the assignment (and scop will not), but the mutex's lock count will be decremented by one. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp27566584-bb"></a><span class="special">~</span><span class="identifier">scoped_lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: if (owns()) mp_mutex-&gt;unlock(). Notes: The destructor behavior ensures that the mutex lock is not leaked. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp112744248"></a><h3>
+<a name="idp27534600-bb"></a><code class="computeroutput">scoped_lock</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"> <a name="idp27534808-bb"></a><span class="identifier">m_locked</span><span class="special">(</span><span class="identifier">scop</span><span class="special">.</span> owns<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27535528-bb"></a><span class="identifier">lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: If mutex() == 0 or if already locked, throws a lock_exception() exception. Calls lock() on the referenced mutex. Postconditions: owns() == true. Notes: The <code class="computeroutput"><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a></code> changes from a state of not owning the mutex, to owning the mutex, blocking if necessary. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="special">*</span><span class="keyword">bool</span> <a name="idp27536824-bb"></a><span class="identifier">try_lock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: If mutex() == 0 or if already locked, throws a lock_exception() exception. Calls try_lock() on the referenced mutex. Postconditions: owns() == the value returned from mutex()-&gt;try_lock(). Notes: The <code class="computeroutput"><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a></code> changes from a state of not owning the mutex, to owning the mutex, but only if blocking was not required. If the mutex_type does not support try_lock(), this function will fail at compile time if instantiated, but otherwise have no effect. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="special">*</span><span class="keyword">bool</span> <a name="idp27538328-bb"></a><span class="identifier">timed_lock</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span> abs_time<span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: If mutex() == 0 or if already locked, throws a lock_exception() exception. Calls timed_lock(abs_time) on the referenced mutex. Postconditions: owns() == the value returned from mutex()-&gt; timed_lock(abs_time). Notes: The <code class="computeroutput"><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a></code> changes from a state of not owning the mutex, to owning the mutex, but only if it can obtain ownership by the specified time. If the mutex_type does not support timed_lock (), this function will fail at compile time if instantiated, but otherwise have no effect. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="special">*</span><span class="keyword">void</span> <a name="idp27540232-bb"></a><span class="identifier">unlock</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: If mutex() == 0 or if not locked, throws a lock_exception() exception. Calls unlock() on the referenced mutex. Postconditions: owns() == false. Notes: The <code class="computeroutput"><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a></code> changes from a state of owning the mutex, to not owning the mutex. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp27541512-bb"></a><span class="identifier">owns</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Effects: Returns true if this <code class="computeroutput"><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a></code> has acquired the referenced mutex. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp27542616-bb"></a><span class="keyword">operator</span> <span class="identifier">unspecified_bool_type</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Conversion to bool. Returns owns(). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">mutex_type</span> <span class="special">*</span> <a name="idp27543352-bb"></a><span class="identifier">mutex</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Effects: Returns a pointer to the referenced mutex, or 0 if there is no mutex to reference. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">mutex_type</span> <span class="special">*</span> <a name="idp27544104-bb"></a><span class="identifier">release</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: Returns a pointer to the referenced mutex, or 0 if there is no mutex to reference. Postconditions: mutex() == 0 and owns() == false. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp27544904-bb"></a><span class="identifier">swap</span><span class="special">(</span><a class="link" href="scoped_lock.html" title="Class template scoped_lock">scoped_lock</a><span class="special">&lt;</span> <span class="identifier">mutex_type</span> <span class="special">&gt;</span> <span class="special">&amp;</span> other<span class="special">)</span><span class="special">;</span></pre>
+<p>Effects: Swaps state with moved lock. Throws: Nothing. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="flat_map_index_aux.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.interprocess_fwd_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="sharable_lock.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,60 @@
+[/
+    Boost.Optional
+
+    Copyright (c) 2003-2007 Fernando Luis Cacciola Carballal
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[section Acknowledgments]
+
+[heading Pre-formal review]
+
+* Peter Dimov suggested the name 'optional', and was the first to point out
+the need for aligned storage.
+* Douglas Gregor developed 'type_with_alignment', and later Eric Friedman
+coded 'aligned_storage', which are the core of the optional class
+implementation.
+* Andrei Alexandrescu and Brian Parker also worked with aligned storage
+techniques and their work influenced the current implementation.
+* Gennadiy Rozental made extensive and important comments which shaped the
+design.
+* Vesa Karvonen and Douglas Gregor made quite useful comparisons between
+optional, variant and any; and made other relevant comments.
+* Douglas Gregor and Peter Dimov commented on comparisons and evaluation
+in boolean contexts.
+* Eric Friedman helped understand the issues involved with aligned storage,
+move/copy operations and exception safety.
+* Many others have participated with useful comments: Aleksey Gurotov,
+Kevlin Henney, David Abrahams, and others I can't recall.
+
+[heading Post-formal review]
+
+* William Kempf carefully considered the originally proposed interface
+and suggested the new interface which is currently used. He also started and
+fueled the discussion about the analogy optional<>/smart pointer and about
+relational operators.
+* Peter Dimov, Joel de Guzman, David Abrahams, Tanton Gibbs and Ian Hanson
+focused on the relational semantics of optional (originally undefined);
+concluding with the fact that the pointer-like interface doesn't make it a
+pointer so it shall have deep relational operators.
+* Augustus Saunders also explored the different relational semantics between
+optional<> and a pointer and developed the OptionalPointee concept as an aid
+against potential conflicts on generic code.
+* Joel de Guzman noticed that optional<> can be seen as an API on top of
+variant<T,nil_t>.
+* Dave Gomboc explained the meaning and usage of the Haskell analog to
+optional<>: the Maybe type constructor (analogy originally pointed out by
+David Sankel).
+* Other comments were posted by Vincent Finn, Anthony Williams, Ed Brey,
+Rob Stewart, and others.
+* Joel de Guzman made the case for the support of references and helped
+with the proper semantics.
+* Mat Marcus shown the virtues of a value-oriented interface, influencing
+the current design, and contributed the idea of "none".
+
+[endsect]
+

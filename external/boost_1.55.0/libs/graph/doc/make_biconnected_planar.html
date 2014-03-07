@@ -1,0 +1,117 @@
+<HTML>
+<!-- Copyright 2007 Aaron Windsor
+     
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+  -->
+<Head>
+<Title>Boost Graph Library: make_biconnected_planar</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><tt>make_biconnected_planar</tt></H1>
+
+<p>
+
+<pre>
+template &lt;typename Graph, typename PlanarEmbedding, typename EdgeIndexMap, typename AddEdgeVisitor&gt;
+void make_biconnected_planar(Graph& g, PlanarEmbedding embedding, EdgeIndexMap em, AddEdgeVisitor& vis);
+</pre>
+
+<p>
+
+A graph <i>G</i> is biconnected if, for every pair of vertices <i>u,v</i> in 
+<i>G</i>, there is a cycle containing both <i>u</i> and <i>v</i>. 
+Alternatively, a graph is biconnected if it is connected and cannot be made 
+disconnected by removing any single vertex. <tt>make_biconnected_planar</tt> 
+takes a <a href="./make_connected.html">connected</a> 
+<a href="planar_graphs.html">planar</a> graph <tt>g</tt> as input and adds zero
+or more edges to make <tt>g</tt> biconnected while preserving planarity.
+<p>
+The default behavior of <tt>make_biconnected_planar</tt> is to modify the 
+graph <tt>g</tt> by calling <tt>add_edge(u,v,g)</tt> for every pair of 
+vertices <i>(u,v)</i> where an edge needs to be added to make <tt>g</tt> 
+biconnected. This behavior can be overriden by providing a vistor as the 
+<tt>AddEdgeVisitor</tt> parameter. The only requirement for an 
+<tt>AddEdgeVisitor</tt> is that it define a member function with the 
+following signature:
+<pre>
+template &lt;typename Graph, typename Vertex&gt;
+void visit_vertex_pair(Vertex u, Vertex v, Graph& g);
+</pre>
+This event point can also be used as a hook to update the underlying edge
+index map automatically as edges are added. See the 
+documentation for the <a href="./AddEdgeVisitor.html">AddEdgeVisitor</a> 
+concept for more information.
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/make_biconnected_planar.hpp">
+<TT>boost/graph/make_biconnected_planar.hpp</TT>
+</a>
+
+<h3>Parameters</h3>
+
+IN/OUT: <tt>Graph&amp; g</tt>
+
+<blockquote>
+An undirected graph. The graph type must be a model of <a
+href="VertexListGraph.html">Vertex List Graph</a>, <a
+href="IncidenceGraph.html">Incidence Graph</a>, and
+a <a href="MutableGraph.html">Mutable Graph</a><br>
+</blockquote>
+
+IN: <tt>PlanarEmbedding embedding</tt>
+
+<blockquote>
+A model of <a href="PlanarEmbedding.html">PlanarEmbedding</a>.
+</blockquote>
+
+IN: <tt>EdgeIndexMap vm</tt>
+
+<blockquote>
+A <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map
+</a> that maps edges from <tt>g</tt> to distinct integers in the range 
+<tt>[0, num_edges(g) )</tt><br>
+<b>Default</b>: <tt>get(edge_index,g)</tt><br>
+</blockquote>
+
+IN: <tt>AddEdgeVisitor</tt>
+
+<blockquote>
+A model of <a href="AddEdgeVisitor.html">AddEdgeVisitor
+</a>.<br>
+<b>Default</b>: <tt>default_add_edge_visitor</tt>, a class defines 
+<tt>visit_vertex_pair</tt> to dispatch its calls to <tt>add_edge</tt>.
+</blockquote>
+
+
+<h3>Complexity</h3>
+
+On a planar graph with <i>n</i> vertices, <tt>make_biconnected_planar</tt> 
+runs in time <i>O(n)</i>
+
+<H3>Example</H3>
+
+<P>
+<a href="../example/make_biconnected_planar.cpp">
+<TT>examples/make_biconnected_planar.cpp</TT>
+</a>
+
+<h3>See Also</h3>
+
+<a href="planar_graphs.html">Planar Graphs in the Boost Graph Library</a>
+
+<br>
+<HR>
+Copyright &copy; 2007 Aaron Windsor (<a href="mailto:aaron.windsor@gmail.com">
+aaron.windsor@gmail.com</a>)
+</BODY>
+</HTML> 

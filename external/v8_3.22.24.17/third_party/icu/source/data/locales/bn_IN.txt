@@ -1,0 +1,55 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/bn_IN.xml
+// *
+// ***************************************************************************
+bn_IN{
+    Version{"2.0.47.53"}
+    calendar{
+        gregorian{
+            DateTimeElements:intvector{
+                1,
+                4,
+            }
+            fields{
+                day{
+                    relative{
+                        "-2"{"গতপরশু"}
+                        "-3"{"গততরশু"}
+                    }
+                }
+                hour{
+                    dn{"ঘণ্টা"}
+                }
+                second{
+                    dn{"সেকেণ্ড"}
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "ত্রৈমাসিক",
+                        "ষাণ্মাসিক",
+                        "চতুর্থাংশ ৩",
+                        "বার্ষিক",
+                    }
+                    wide{
+                        "ত্রৈমাসিক",
+                        "ষাণ্মাসিক",
+                        "তৃতীয় চতুর্থাংশ",
+                        "বার্ষিক",
+                    }
+                }
+            }
+            weekend:intvector{
+                1,
+                0,
+                1,
+                86400000,
+            }
+        }
+    }
+}

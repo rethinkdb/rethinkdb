@@ -1,0 +1,48 @@
+# Boost serialization Library performance test Jamfile
+
+#  (C) Copyright Robert Ramey 2002-2004.
+#  Use, modification, and distribution are subject to the 
+#  Boost Software License, Version 1.0. (See accompanying file 
+#  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+
+project libs/serialization/performance
+    : default-build release
+    : id serialization_performance
+    ;
+
+# import rules from the boost serialization test
+# import ../util/test : test-bsl-run-no-lib ;
+import ../util/test :
+    run-template
+    run-invoke
+    run-winvoke
+    test-bsl-run-no-lib
+    test-bsl-run
+    test-bsl-run_archive
+    test-bsl-run_files
+    test-bsl-run_polymorphic_archive
+;
+
+BOOST_ARCHIVE_LIST = [ modules.peek : BOOST_ARCHIVE_LIST ] ;
+
+test-suite "performance" :
+    [ test-bsl-run_files peformance_array : ../test/A ]
+#    [ test-bsl-run_files performance_binary ]
+#    [ test-bsl-run_files performance_polymorphic ]
+#    [ test-bsl-run_files performance_vector ]
+#    [ test-bsl-run_files performance_no_rtti ]
+#    [ test-bsl-run_files performance_simple_class ]
+#    [ test-bsl-run_polymorphic_archive performance_polymorphic : ../test/test_polymorphic_A ]
+    
+    [ test-bsl-run-no-lib performance_iterators ]
+    [ test-bsl-run-no-lib performance_iterators_base64 ]
+#    [ test-bsl-run-no-lib performance_utf8_codecvt 
+#        : ../src/utf8_codecvt_facet
+#        : # <dependency>../../config/test/all//BOOST_NO_STD_WSTREAMBUF
+#    ]
+#    [ test-bsl-run-no-lib performance_codecvt_null 
+#        : ../src/codecvt_null 
+#        : # <dependency>../../config/test/all//BOOST_NO_STD_WSTREAMBUF
+#    ]
+;

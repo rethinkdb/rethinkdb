@@ -1,0 +1,183 @@
+<HTML>
+<!--
+     Copyright (c) JongSoo Park 2005
+    
+     Distributed under the Boost Software License, Version 1.0. (See
+     accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: Lengauer-Tarjan Dominator Tree Algorithm</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><A NAME="sec:lengauer-tarjan"></A>
+<TT>lengauer_tarjan_dominator_tree</TT>
+</H1>
+
+
+<P>
+<PRE>
+<i>// The simplest version:
+// Data structures for depth first search is created internally,
+// and depth first search runs internally.</i>
+template &lt;class Graph, class DomTreePredMap&gt;
+void
+lengauer_tarjan_dominator_tree
+  (const Graph&amp; g,
+   const typename graph_traits&lt;Graph&gt;::vertex_descriptor&amp; entry,
+   DomTreePredMap domTreePredMap)
+
+<i>// The version providing data structures for depth first search:
+// After calling this function,
+// user can reuse the depth first search related information
+// filled in property maps.</i>
+template &lt;class Graph, class IndexMap, class TimeMap, class PredMap,
+             class VertexVector, class DomTreePredMap&gt;
+void
+lengauer_tarjan_dominator_tree
+  (const Graph&amp; g,
+   const typename graph_traits&lt;Graph&gt;::vertex_descriptor&amp; entry,
+   const IndexMap&amp; indexMap,
+   TimeMap dfnumMap, PredMap parentMap, VertexVector&amp; verticesByDFNum,
+   DomTreePredMap domTreePredMap)
+
+<i>// The version without depth first search:
+// The caller should provide depth first search related information
+// evaluated before.</i>
+template &lt;class Graph, class IndexMap, class TimeMap, class PredMap,
+             class VertexVector, class DomTreePredMap&gt;
+void
+lengauer_tarjan_dominator_tree_without_dfs(
+  (const Graph&amp; g,
+   const typename graph_traits&lt;Graph&gt;::vertex_descriptor&amp; entry,
+   const IndexMap&amp; indexMap,
+   TimeMap dfnumMap, PredMap parentMap, VertexVector&amp; verticesByDFNum,
+   DomTreePredMap domTreePredMap)
+</PRE>
+
+<P> This algorithm&nbsp;[<A
+HREF="bibliography.html#lengauer-tarjan79">65</A>,<A
+HREF="bibliography.html#muchnick97">66</A>,<A
+HREF="bibliography.html#appel98">67</A>] builds the dominator tree for
+directed graph. There are three options for dealing the depth first
+search related values. The simplest version creates data structures
+and run depth first search internally. However, chances are that a
+user wants to reuse the depth first search data, so we have two
+versions.  </P>
+
+<P> A vertex <i>u</i> dominates a vertex <i>v</i>, if every path of
+directed graph from the entry to <i>v</i> must go through <i>u</i>. In
+the left graph of <a href="#fig:dominator-tree-example">Figure 1</a>,
+vertex 1 dominates vertex 2, 3, 4, 5, 6 and 7, because we have to pass
+vertex 1 to reach those vertex. Note that vertex 4 dominates vertex 6,
+even though vertex 4 is a successor of vertex 6. Dominator
+relationship is useful in many applications especially for compiler
+optimization. We can define the immediate dominator for each vertex
+such that <i>idom(n) dominates n</i> but does not dominate any other
+dominator of <i>n</i>. For example, vertex 1, 3 and 4 are dominators
+of vertex 6, but vertex 4 is the immediate dominator, because vertex 1
+and 3 dominates vertex 4. If we make every idom of each vertex as its
+parent, we can build the dominator tree like the right part of <a
+href="#fig:dominator-tree-example">Figure 1</a> </P>
+
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:dominator-tree-example">
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure 1:</STRONG>
+An example graph and its dominator tree.</CAPTION>
+<TR>
+<TD><IMG SRC="./figs/dominator-tree1.gif"></TD>
+<TD>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+<TD><IMG SRC="./figs/dominator-tree2.gif"></TD>
+</TR>
+</TABLE>
+</DIV><P></P>
+
+<P> An easy way to build dominator tree is to use iterative bit vector
+algorithm, but it may be slow in the worst case. We implemented
+Lengauer-Tarjan algorithm whose time complexity is
+<i>O((V+E)log(V+E))</i>.  </P>
+
+<P> Lengauer-Tarjan algorithm utilizes two techniques. The first one
+is, as an intermediate step, finding semidominator which is relatively
+easier to evaluate than immediate dominator, and the second one is the
+path compression. For the detail of the algorithm, see [<A
+HREF="bibliography.html#lengauer-tarjan79">65</A>].  </P>
+
+<h3>Where Defined</h3>
+
+<a href="../../../boost/graph/dominator_tree.hpp"><tt>boost/graph/dominator_tree.hpp</tt></a>
+
+<h3>Parameters</h3>
+
+IN: <tt>const Graph&amp; g</tt>
+<blockquote>
+  The graph object on which the algorithm will be applied.
+  The type <tt>Graph</tt> must be a model of
+  <a href="./VertexListGraph.html">Vertex List Graph</a>
+  and <a href="./BidirectionalGraph.html">Bidirectional Graph</a>.<br>
+</blockquote>
+
+IN: <tt>vertex_descriptor entry</tt>
+<blockquote>
+  The entry vertex. The dominator tree will be rooted at this vertex.
+</blockquote>
+
+IN: <tt>IndexMap indexMap</tt>
+<blockquote>
+  This maps each vertex to an integer in the range <tt>[0, num_vertices(g))</tt>.
+  The type 
+  <tt>VertexIndexMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>. The value type of the map must be an
+  integer type. The vertex descriptor type of the graph needs to be
+  usable as the key type of the map.
+</blockquote>
+
+IN/OUT: <tt>TimeMap dfnumMap</tt>
+<blockquote>
+  The sequence number of depth first search. The type <tt>TimeMap</tt> must be a model of <a href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write Property Map</a>. The vertex descriptor type of the graph needs to be usable as the key type of the <tt>TimeMap</tt>.
+</blockquote>
+
+IN/OUT: <tt>PredMap parentMap</tt>
+<blockquote>
+  The predecessor map records the parent of the depth first search tree. The <tt>PredMap</tt> type must be a <a href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write Property Map</a> whose key and value types are the same as the vertex descriptor type of the graph.
+</blockquote>
+
+IN/OUT: <tt>VertexVector verticesByDFNum</tt>
+<blockquote>
+  The vector containing vertices in depth first search order. If we access this vector sequentially, it's equivalent to access vertices by depth first search order.
+</blockquote>
+
+OUT: <tt>DomTreePredMap domTreePredMap</tt>
+<blockquote>
+  The dominator tree where parents are each children's immediate dominator.
+</blockquote>
+
+<H3>Complexity</H3>
+
+<P>
+The time complexity is <i>O((V+E)log(V+E))</i>.
+
+<H3>Example</H3>
+
+<P>
+See <a href="../test/dominator_tree_test.cpp">
+<TT>test/dominator_tree_test.cpp</TT></a> for an example of using Dijkstra's
+algorithm.
+
+<br>
+<HR>
+<TABLE>
+<TR valign="top">
+<TD>Copyright &copy; 2005</TD><TD>
+JongSoo Park, Stanford University
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 
+

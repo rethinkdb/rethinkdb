@@ -1,0 +1,278 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Concept SignedInteger</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="idp18734808-bb.html#concepts.reference" title="Concept reference">
+<link rel="prev" href="LessThanComparable.html" title="Concept LessThanComparable">
+<link rel="next" href="container.html" title="Chapter&#160;8.&#160;Boost.Container">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="LessThanComparable.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="idp18734808-bb.html#concepts.reference"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="container.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="SignedInteger"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Concept SignedInteger</span></h2>
+<p>SignedInteger</p>
+</div>
+<div class="refsect1">
+<a name="idp75874008"></a><h2>Refinement of</h2>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p><a class="link" href="CopyConstructible.html" title="Concept CopyConstructible">CopyConstructible</a></p></li>
+<li class="listitem"><p><a class="link" href="Assignable.html" title="Concept Assignable">Assignable</a></p></li>
+<li class="listitem"><p><a class="link" href="DefaultConstructible.html" title="Concept DefaultConstructible">DefaultConstructible</a></p></li>
+<li class="listitem"><p><a class="link" href="EqualityComparable.html" title="Concept EqualityComparable">EqualityComparable</a></p></li>
+<li class="listitem"><p><a class="link" href="LessThanComparable.html" title="Concept LessThanComparable">LessThanComparable</a></p></li>
+</ul></div>
+</div>
+<div class="refsect1">
+<a name="idp75876792"></a><h2>Notation</h2>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term">T</span></dt>
+<dd>A type playing the role of integral-type in the <a class="link" href="SignedInteger.html" title="Concept SignedInteger">SignedInteger</a> concept.</dd>
+<dt>
+<span class="term"><code class="varname">x</code>, </span><span class="term"><code class="varname">y</code>, </span><span class="term"><code class="varname">z</code></span>
+</dt>
+<dd>Objects of type T</dd>
+<dt>
+<span class="term"><code class="varname">a</code>, </span><span class="term"><code class="varname">b</code></span>
+</dt>
+<dd>Objects of type int</dd>
+</dl></div>
+</div>
+<div class="refsect1">
+<a name="idp75879496"></a><h2>Type expressions</h2>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term">Conversion to int</span></dt>
+<dd><p><span class="type">T</span> must be
+                  convertible to <span class="type">int</span>.
+                </p></dd>
+</dl></div>
+</div>
+<div class="refsect1">
+<a name="idp75880600"></a><h2>Valid expressions</h2>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Name</th>
+<th>Expression</th>
+<th>Type</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><p>Conversion from int</p></td>
+<td><p>T(a)</p></td>
+<td><p><span class="type">T</span></p></td>
+</tr>
+<tr>
+<td><p>Preincrement</p></td>
+<td><p>++x</p></td>
+<td><p><span class="type">T &amp;</span></p></td>
+</tr>
+<tr>
+<td><p>Predecrement</p></td>
+<td><p>--x</p></td>
+<td><p><span class="type">T &amp;</span></p></td>
+</tr>
+<tr>
+<td><p>Postincrement</p></td>
+<td><p>x++</p></td>
+<td><p><span class="type">T</span></p></td>
+</tr>
+<tr>
+<td><p>Postdecrement</p></td>
+<td><p>x--</p></td>
+<td><p><span class="type">T</span></p></td>
+</tr>
+<tr>
+<td><p>Sum</p></td>
+<td><p>x + y</p></td>
+<td><p><span class="type">T</span></p></td>
+</tr>
+<tr>
+<td><p>Sum with int</p></td>
+<td><p>x + a</p></td>
+<td><p><span class="type">T</span></p></td>
+</tr>
+<tr>
+<td><p>Sum-assignment</p></td>
+<td><p>x += y</p></td>
+<td><p><span class="type">T &amp;</span></p></td>
+</tr>
+<tr>
+<td><p>Sum-assignment with int</p></td>
+<td><p>x += a</p></td>
+<td><p><span class="type">T &amp;</span></p></td>
+</tr>
+<tr>
+<td><p>Difference</p></td>
+<td><p>x - y</p></td>
+<td><p><span class="type">T</span></p></td>
+</tr>
+<tr>
+<td><p>Difference with int</p></td>
+<td><p>x - a</p></td>
+<td><p><span class="type">T</span></p></td>
+</tr>
+<tr>
+<td><p>Product</p></td>
+<td><p>x * y</p></td>
+<td><p><span class="type">T</span></p></td>
+</tr>
+<tr>
+<td><p>Product with int</p></td>
+<td><p>x * a</p></td>
+<td><p><span class="type">T</span></p></td>
+</tr>
+<tr>
+<td><p>Product-assignment with int</p></td>
+<td><p>x *= a</p></td>
+<td><p><span class="type">T &amp;</span></p></td>
+</tr>
+<tr>
+<td><p>Product with int on left</p></td>
+<td><p>a * x</p></td>
+<td><p><span class="type">T</span></p></td>
+</tr>
+<tr>
+<td><p>Quotient</p></td>
+<td><p>x / y</p></td>
+<td><p><span class="type">T</span></p></td>
+</tr>
+<tr>
+<td><p>Quotient with int</p></td>
+<td><p>x / a</p></td>
+<td><p><span class="type">T</span></p></td>
+</tr>
+<tr>
+<td><p>Right-shift</p></td>
+<td><p>x &gt;&gt; y</p></td>
+<td><p><span class="type">T</span></p></td>
+</tr>
+<tr>
+<td><p>Right-shift with int</p></td>
+<td><p>x &gt;&gt; a</p></td>
+<td><p><span class="type">T</span></p></td>
+</tr>
+<tr>
+<td><p>Right-shift-assignment with int</p></td>
+<td><p>x &gt;&gt;= a</p></td>
+<td><p><span class="type">T &amp;</span></p></td>
+</tr>
+<tr>
+<td><p>Less-than comparison</p></td>
+<td><p>x &lt; y</p></td>
+<td><p>Convertible to <span class="type">bool</span></p></td>
+</tr>
+<tr>
+<td><p>Less-than comparison with int</p></td>
+<td><p>x &lt; a</p></td>
+<td><p>Convertible to <span class="type">bool</span></p></td>
+</tr>
+<tr>
+<td><p>Less-than comparison with size_t</p></td>
+<td><p>x &lt; boost::sample_value &lt; std::size_t &gt;()</p></td>
+<td><p>Convertible to <span class="type">bool</span></p></td>
+</tr>
+<tr>
+<td><p>Greater-than comparison</p></td>
+<td><p>x &gt; y</p></td>
+<td><p>Convertible to <span class="type">bool</span></p></td>
+</tr>
+<tr>
+<td><p>Greater-than comparison with int</p></td>
+<td><p>x &gt; a</p></td>
+<td><p>Convertible to <span class="type">bool</span></p></td>
+</tr>
+<tr>
+<td><p>Less-than-or-equal comparison</p></td>
+<td><p>x &lt;= y</p></td>
+<td><p>Convertible to <span class="type">bool</span></p></td>
+</tr>
+<tr>
+<td><p>Less-than-or-equal comparison with int</p></td>
+<td><p>x &lt;= a</p></td>
+<td><p>Convertible to <span class="type">bool</span></p></td>
+</tr>
+<tr>
+<td><p>Greater-than-or-equal comparison</p></td>
+<td><p>x &gt;= y</p></td>
+<td><p>Convertible to <span class="type">bool</span></p></td>
+</tr>
+<tr>
+<td><p>Greater-than-or-equal comparison with int</p></td>
+<td><p>x &gt;= a</p></td>
+<td><p>Convertible to <span class="type">bool</span></p></td>
+</tr>
+<tr>
+<td><p>Greater-than-or-equal comparison with int on left</p></td>
+<td><p>a &gt;= x</p></td>
+<td><p>Convertible to <span class="type">bool</span></p></td>
+</tr>
+<tr>
+<td><p>Equality comparison</p></td>
+<td><p>x == y</p></td>
+<td><p>Convertible to <span class="type">bool</span></p></td>
+</tr>
+<tr>
+<td><p>Equality comparison with int</p></td>
+<td><p>x == a</p></td>
+<td><p>Convertible to <span class="type">bool</span></p></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001, 2002 Indiana University<br>Copyright &#169; 2000, 2001 University of Notre Dame du Lac<br>Copyright &#169; 2000 Jeremy Siek, Lie-Quan Lee, Andrew Lumsdaine<br>Copyright &#169; 1996-1999 Silicon Graphics Computer Systems, Inc.<br>Copyright &#169; 1994 Hewlett-Packard Company<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+<p>This product includes software developed at the University
+      of Notre Dame and the Pervasive Technology Labs at Indiana
+      University. For technical information contact Andrew Lumsdaine
+      at the Pervasive Technology Labs at Indiana University.  For
+      administrative and license questions contact the Advanced
+      Research and Technology Institute at 351 West 10th Street.
+      Indianapolis, Indiana 46202, phone 317-278-4100, fax
+      317-274-5902.</p>
+<p>Some concepts based on versions from the MTL draft manual
+      and Boost Graph and Property Map documentation, the SGI Standard
+      Template Library documentation and the Hewlett-Packard STL,
+      under the following license: 
+        </p>
+<div class="blockquote"><blockquote class="blockquote"><p>Permission to use, copy, modify, distribute and
+        sell this software and its documentation for any purpose is
+        hereby granted without fee, provided that the above copyright
+        notice appears in all copies and that both that copyright
+        notice and this permission notice appear in supporting
+        documentation.  Silicon Graphics makes no representations
+        about the suitability of this software for any purpose.  It is
+        provided "as is" without express or implied
+        warranty.</p></blockquote></div>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="LessThanComparable.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="idp18734808-bb.html#concepts.reference"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="container.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

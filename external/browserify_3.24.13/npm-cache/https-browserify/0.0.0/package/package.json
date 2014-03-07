@@ -1,0 +1,22 @@
+{
+  "name": "https-browserify",
+  "version": "0.0.0",
+  "description": "https module compatability for browserify",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/substack/https-browserify.git"
+  },
+  "homepage": "https://github.com/substack/https-browserify",
+  "keywords": [
+    "https",
+    "browser",
+    "browserify"
+  ],
+  "author": {
+    "name": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net"
+  },
+  "license": "MIT"
+}

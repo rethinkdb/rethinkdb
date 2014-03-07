@@ -1,0 +1,112 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[def __limit_note__ 
+The maximum number of actual parameters is limited by the
+preprocessor constant BOOST_PHOENIX_COMPOSITE_LIMIT. Note though, that this limit
+should not be greater than BOOST_PHOENIX_LIMIT. By default, `BOOST_PHOENIX_COMPOSITE_LIMIT`
+is set to `BOOST_PHOENIX_LIMIT` (See [link phoenix.actor Actor]).
+]
+
+[section Object]
+
+The Object module deals with object construction, destruction and conversion.
+The module provides /"lazy"/ versions of C++'s object constructor, `new`,
+`delete`, `static_cast`, `dynamic_cast`, `const_cast` and `reinterpret_cast`.
+
+[section Construction]
+
+[*/Lazy constructors.../]
+
+    #include <boost/phoenix/object/construct.hpp>
+
+Lazily construct an object from an arbitrary set of arguments:
+
+    construct<T>(ctor_arg1, ctor_arg2, ..., ctor_argN);
+
+where the given parameters are the parameters to the constructor of the object of
+type T (This implies, that type T is expected to have a constructor with a
+corresponding set of parameter types.).
+
+Example:
+
+    construct<std::string>(arg1, arg2)
+
+Constructs a `std::string` from `arg1` and `arg2`.
+
+[note __limit_note__ ]
+
+[endsect]
+[section New]
+
+[*/Lazy new.../]
+
+    #include <boost/phoenix/object/new.hpp>
+
+Lazily construct an object, on the heap, from an arbitrary set of arguments:
+
+    new_<T>(ctor_arg1, ctor_arg2, ..., ctor_argN);
+
+where the given parameters are the parameters to the contractor of the object of
+type T (This implies, that type T is expected to have a constructor with a
+corresponding set of parameter types.).
+
+Example:
+
+    new_<std::string>(arg1, arg2) // note the spelling of new_ (with trailing underscore)
+
+Creates a `std::string` from `arg1` and `arg2` on the heap.
+
+[note __limit_note__ ]
+
+[endsect]
+[section Delete]
+
+[*/Lazy delete.../]
+
+    #include <boost/phoenix/object/delete.hpp>
+
+Lazily delete an object, from the heap:
+
+    delete_(arg);
+
+where arg is assumed to be a pointer to an object.
+
+Example:
+
+    delete_<std::string>(arg1) // note the spelling of delete_ (with trailing underscore)
+
+[endsect]
+[section Casts]
+
+[*/Lazy casts.../]
+
+    #include <boost/phoenix/object/static_cast.hpp>
+    #include <boost/phoenix/object/dynamic_cast.hpp>
+    #include <boost/phoenix/object/const_cast.hpp>
+    #include <boost/phoenix/object/reinterpret_cast.hpp>
+
+The set of lazy C++ cast template functions provide a way of lazily casting an
+object of a certain type to another type. The syntax resembles the well known
+C++ casts. Take note however that the lazy versions have a trailing underscore.
+
+    static_cast_<T>(lambda_expression)
+    dynamic_cast_<T>(lambda_expression)
+    const_cast_<T>(lambda_expression)
+    reinterpret_cast_<T>(lambda_expression)
+
+Example:
+
+    static_cast_<Base*>(&arg1)
+
+Static-casts the address of `arg1` to a `Base*`.
+
+[endsect]
+
+[endsect]

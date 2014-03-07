@@ -1,0 +1,38 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:promote promote]
+
+   template <class T>
+   struct promote
+   {
+      typedef __below type;
+   };
+  
+__type If integral or floating point promotion can be applied to an rvalue
+of type `T`, then applies integral and floating point promotions to `T` and
+keeps cv-qualifiers of `T`, otherwise leaves `T` unchanged. See also
+__integral_promotion and __floating_point_promotion.
+
+__std_ref 4.5 except 4.5/3 (integral bit-field) and 4.6.
+
+__header ` #include <boost/type_traits/promote.hpp>` or ` #include <boost/type_traits.hpp>`
+
+[table Examples
+
+[ [Expression] [Result Type]]
+
+[[`promote<short volatile>::type`][`int volatile`]]
+
+[[`promote<float const>::type`][`double const`]]
+
+[[`promote<short&>::type`][`short&`]]
+
+]
+
+[endsect]
+

@@ -1,0 +1,87 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function as_child</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../proto/reference.html#header.boost.proto.traits_hpp" title="Header &lt;boost/proto/traits.hpp&gt;">
+<link rel="prev" href="as_expr_idp68166056.html" title="Function as_expr">
+<link rel="next" href="child_idp68188920.html" title="Function child">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="as_expr_idp68166056.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.traits_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="child_idp68188920.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.as_child_idp68177480"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function as_child</span></h2>
+<p>boost::proto::as_child &#8212; A function that wraps non-Proto objects in Proto terminals (by reference) and leaves
+          Proto expression types alone.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../proto/reference.html#header.boost.proto.traits_hpp" title="Header &lt;boost/proto/traits.hpp&gt;">boost/proto/traits.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="keyword">typename</span> <a class="link" href="result_of/as_child.html" title="Struct template as_child">proto::result_of::as_child</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="identifier">as_child</span><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span> t<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="keyword">typename</span> <a class="link" href="result_of/as_child.html" title="Struct template as_child">proto::result_of::as_child</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="identifier">as_child</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span> t<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../Domain.html" title="Concept Domain">Domain</a><span class="special">,</span> <span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="keyword">typename</span> <a class="link" href="result_of/as_child.html" title="Struct template as_child">proto::result_of::as_child</a><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Domain</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="identifier">as_child</span><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span> t<span class="special">)</span><span class="special">;</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../Domain.html" title="Concept Domain">Domain</a><span class="special">,</span> <span class="keyword">typename</span> T<span class="special">&gt;</span> 
+  <span class="keyword">typename</span> <a class="link" href="result_of/as_child.html" title="Struct template as_child">proto::result_of::as_child</a><span class="special">&lt;</span> <span class="identifier">T</span> <span class="keyword">const</span><span class="special">,</span> <span class="identifier">Domain</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+  <span class="identifier">as_child</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span> <span class="special">&amp;</span> t<span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp184880280"></a><h2>Description</h2>
+<p>
+            The <code class="computeroutput">proto::as_child()</code> function returns Proto expression
+            objects that are suitable for storage as child nodes in an expression tree. It turns
+            non-Proto objects into Proto terminals. Its behavior is domain-specific. By default,
+            non-Proto types are held wrapped by reference in a new Proto terminal expression, and
+            objects that are already Proto expressions are simply returned by reference.
+          </p>
+<p>
+            If <code class="computeroutput">Domain</code> is not explicitly specified, it is assumed to
+            be <code class="computeroutput"><code class="computeroutput"><a class="link" href="default_domain.html" title="Struct default_domain">proto::default_domain</a></code></code>.
+          </p>
+<p>
+            See <code class="computeroutput"><code class="computeroutput"><a class="link" href="domain/as_child.html" title="Struct template as_child">proto::domain::as_child</a></code>&lt;&gt;</code>
+            for a complete description of this function's default behavior.
+          </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><code class="computeroutput">typename Domain::template as_child&lt; T &gt;()(t)</code></td>
+</tr></tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="as_expr_idp68166056.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../proto/reference.html#header.boost.proto.traits_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="child_idp68188920.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

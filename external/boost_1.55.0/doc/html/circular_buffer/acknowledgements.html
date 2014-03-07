@@ -1,0 +1,74 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Acknowledgements</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../circular_buffer.html" title="Chapter&#160;6.&#160;Boost.Circular Buffer">
+<link rel="prev" href="release.html" title="Release Notes">
+<link rel="next" href="version_id.html" title="Documentation Version Info">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="release.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../circular_buffer.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="version_id.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="circular_buffer.acknowledgements"></a><a class="link" href="acknowledgements.html" title="Acknowledgements">Acknowledgements</a>
+</h2></div></div></div>
+<p>
+      Thomas Witt in 2002 produced a prototype called cyclic buffer.
+    </p>
+<p>
+      The circular_buffer has a short history. Its first version was a std::deque
+      adaptor. This container was not very effective because of many reallocations
+      when inserting/removing an element. Thomas Wenish did a review of this version
+      and motivated me to create a circular buffer which allocates memory at once
+      when created.
+    </p>
+<p>
+      The second version adapted <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span></code>
+      but it has been abandoned soon because of limited control over iterator invalidation.
+      The current version is a full-fledged STL compliant container.
+    </p>
+<p>
+      Pavel Vozenilek did a thorough review of this version and came with many good
+      ideas and improvements.
+    </p>
+<p>
+      The idea of the space optimized circular buffer has been introduced by Pavel
+      Vozenilek.
+    </p>
+<p>
+      Also, I would like to thank Howard Hinnant, Nigel Stewart and everyone who
+      participated at the formal review for valuable comments and ideas.
+    </p>
+<p>
+      Paul A. Bristow refactored the documentation in 2013 to use the full power
+      of Quickbook, Doxygen and Autoindexing.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Jan Gaspar<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="release.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../circular_buffer.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="version_id.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

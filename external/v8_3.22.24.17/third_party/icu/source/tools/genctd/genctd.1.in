@@ -1,0 +1,111 @@
+.\" Hey, Emacs! This is -*-nroff-*- you know...
+.\"
+.\" genctd.1: manual page for the genctd utility
+.\"
+.\" Copyright (C) 2006-2007 International Business Machines Corporation and others
+.\"
+.TH GENCTD 1 "8 March 2006" "ICU MANPAGE" "ICU @VERSION@ Manual"
+.SH NAME
+.B genctd
+\- Compiles word list into ICU compact trie dictionary
+.SH SYNOPSIS
+.B genctd
+[
+.BR "\-h\fP, \fB\-?\fP, \fB\-\-help"
+]
+[
+.BR "\-V\fP, \fB\-\-version"
+]
+[
+.BR "\-c\fP, \fB\-\-copyright"
+]
+[
+.BR "\-v\fP, \fB\-\-verbose"
+]
+[
+.BI "\-d\fP, \fB\-\-destdir" " destination"
+]
+[
+.BI "\-i\fP, \fB\-\-icudatadir" " directory"
+]
+.BI "\-o\fP, \fB\-\-out" " output\-file"
+.IR " dictionary\-file"
+.SH DESCRIPTION
+.B genctd
+reads the word list from
+.I dictionary-file
+and creates a compact trie dictionary file. Normally this data file has the 
+.B .ctd
+extension.
+.PP
+Words begin at the beginning of a line and are terminated by the first whitespace.
+Lines that begin with whitespace are ignored.
+.SH OPTIONS
+.TP
+.BR "\-h\fP, \fB\-?\fP, \fB\-\-help"
+Print help about usage and exit.
+.TP
+.BR "\-V\fP, \fB\-\-version"
+Print the version of
+.B genctd
+and exit.
+.TP
+.BR "\-c\fP, \fB\-\-copyright"
+Embeds the standard ICU copyright into the
+.IR output-file .
+.TP
+.BR "\-v\fP, \fB\-\-verbose"
+Display extra informative messages during execution.
+.TP
+.BI "\-d\fP, \fB\-\-destdir" " destination"
+Set the destination directory of the
+.IR output-file
+to
+.IR destination .
+.TP
+.BI "\-i\fP, \fB\-\-icudatadir" " directory"
+Look for any necessary ICU data files in
+.IR directory .
+For example, the file
+.B pnames.icu
+must be located when ICU's data is not built as a shared library.
+The default ICU data directory is specified by the environment variable
+.BR ICU_DATA .
+Most configurations of ICU do not require this argument.
+.TP
+.BI " dictionary\-file"
+The source file to read.
+.TP
+.BI "\-o\fP, \fB\-\-out" " output\-file"
+The output data file to write.
+.SH CAVEATS
+When the
+.IR dictionary-file
+contains a byte order mark (BOM) at the beginning of the file, which is the Unicode character
+.B U+FEFF,
+then the
+.IR dictionary-file
+is interpreted as Unicode. Without the BOM,
+the file is interpreted in the current operating system default codepage.
+In order to eliminate any ambiguity of the encoding for how the
+.IR rule-file
+was written, it is recommended that you write this file in UTF-8
+with the BOM.
+.SH ENVIRONMENT
+.TP 10
+.B ICU_DATA
+Specifies the directory containing ICU data. Defaults to
+.BR @thepkgicudatadir@/@PACKAGE@/@VERSION@/ .
+Some tools in ICU depend on the presence of the trailing slash. It is thus
+important to make sure that it is present if
+.B ICU_DATA
+is set.
+.SH AUTHORS
+Deborah Goldsmith
+.SH VERSION
+1.0
+.SH COPYRIGHT
+Copyright (C) 2006 International Business Machines Corporation and others
+.SH SEE ALSO
+.BR http://www.icu-project.org/userguide/boundaryAnalysis.html
+

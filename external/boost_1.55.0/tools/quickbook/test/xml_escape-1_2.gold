@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<library id="test_that__amp____lt__are_being_escaped_" name="Test that &amp;, &lt; are being escaped."
+dirname="test_that__amp____lt__are_being_escaped_" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <libraryinfo>
+    <legalnotice id="test_that__amp____lt__are_being_escaped_.legal">
+      <para>
+        &amp; should be &amp;amp;, &lt; should &amp;lt;
+      </para>
+    </legalnotice>
+    <librarypurpose>
+      &amp; should be &amp;amp;, &lt; should &amp;lt;
+    </librarypurpose>
+  </libraryinfo>
+  <title>Test that &amp;, &lt; are being escaped.</title>
+  <section id="test_that__amp____lt__are_being_escaped_.escapes___explicitly_written_markup">
+    <title>Escapes &amp; explicitly written markup</title>
+    <itemizedlist>
+      <listitem>
+        <simpara>
+          &amp; -&gt; &amp;amp;
+        </simpara>
+      </listitem>
+      <listitem>
+        <simpara>
+          &lt; -&gt; &amp;lt;
+        </simpara>
+      </listitem>
+      <listitem>
+        <simpara>
+          &gt; -&gt; &amp;gt;
+        </simpara>
+      </listitem>
+      <listitem>
+        <simpara>
+          &quot; -&gt; &amp;quot;
+        </simpara>
+      </listitem>
+    </itemizedlist>
+  </section>
+</library>

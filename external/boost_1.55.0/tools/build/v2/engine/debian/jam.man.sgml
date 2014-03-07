@@ -1,0 +1,236 @@
+<!doctype refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
+
+<!-- Process this file with docbook-to-man to generate an nroff manual
+     page: `docbook-to-man manpage.sgml > manpage.1'.  You may view
+     the manual page with: `docbook-to-man manpage.sgml | nroff -man |
+     less'.  A typical entry in a Makefile or Makefile.am is:
+
+manpage.1: manpage.sgml
+	docbook-to-man $< > $@
+  -->
+
+  <!ENTITY dhfirstname "<firstname>Yann</firstname>">
+  <!ENTITY dhsurname   "<surname>Dirson</surname>">
+  <!-- Please adjust the date whenever revising the manpage. -->
+  <!ENTITY dhdate      "<date>mai 23, 2001</date>">
+  <!ENTITY dhemail     "<email>dirson@debian.org</email>">
+  <!ENTITY dhusername  "Yann Dirson">
+  <!ENTITY dhpackage   "jam">
+
+  <!ENTITY debian      "<productname>Debian GNU/Linux</productname>">
+  <!ENTITY gnu         "<acronym>GNU</acronym>">
+]>
+
+<refentry>
+  <refentryinfo>
+    <address>
+      &dhemail;
+    </address>
+    <author>
+      &dhfirstname;
+      &dhsurname;
+    </author>
+    <copyright>
+      <year>2001</year>
+      <holder>&dhusername;</holder>
+    </copyright>
+    &dhdate;
+  </refentryinfo>
+
+  <refmeta>
+    <refentrytitle>JAM</refentrytitle>
+    <manvolnum>1</manvolnum>
+  </refmeta>
+
+  <refnamediv>
+    <refname>Jam/MR</refname>
+    <refpurpose>Make(1) Redux</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis>
+      <command>jam</command>
+
+      <arg><option>-a</option></arg>
+      <arg><option>-n</option></arg>
+      <arg><option>-v</option></arg>
+
+      <arg><option>-d <replaceable/debug/</option></arg>
+      <arg><option>-f <replaceable/jambase/</option></arg>
+      <arg><option>-j <replaceable/jobs/</option></arg>
+      <arg><option>-o <replaceable/actionsfile/</option></arg>
+      <arg><option>-s <replaceable/var/=<replaceable/value/</option></arg>
+      <arg><option>-t <replaceable/target/</option></arg>
+
+      <arg repeat><option><replaceable/target/</option></arg>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>DESCRIPTION</title>
+
+    <para>Jam is a program construction tool, like make(1).</para>
+
+    <para>Jam recursively builds target files from source files, using
+    dependency information and updating actions expressed in the
+    Jambase file, which is written in jam's own interpreted language.
+    The default Jambase is compiled into jam and provides a
+    boilerplate for common use, relying on a user-provide file
+    "Jamfile" to enumerate actual targets and sources.</para>
+  </refsect1>
+
+  <refsect1>
+    <title>OPTIONS</title>
+
+    <variablelist>
+      <varlistentry>
+        <term><option/-a/</term>
+        <listitem>
+          <para>Build all targets anyway, even if they are up-to-date.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option>-d <replaceable/n/</option></term>
+        <listitem>
+          <para>Enable cummulative debugging levels from 1 to
+	    <replaceable/n/. Interesting values are:
+
+	    <glosslist>
+	      <glossentry><glossterm/1/ <glossdef><simpara/Show
+	      actions (the default)/</glossdef></glossentry>
+
+	      <glossentry><glossterm/2/ <glossdef><simpara/Show
+	      "quiet" actions and display all action
+	      text/</glossdef></glossentry>
+
+	      <glossentry><glossterm/3/ <glossdef><simpara>Show
+	      dependency analysis, and target/source
+	      timestamps/paths</simpara></glossdef></glossentry>
+
+	      <glossentry><glossterm/4/ <glossdef><simpara/Show shell
+	      arguments/</glossdef></glossentry>
+
+	      <glossentry><glossterm/5/ <glossdef><simpara/Show rule
+	      invocations and variable
+	      expansions/</glossdef></glossentry>
+
+	      <glossentry><glossterm/6/ <glossdef><simpara>Show
+	      directory/header file/archive
+	      scans</simpara></glossdef></glossentry>
+
+	      <glossentry><glossterm/7/ <glossdef><simpara/Show
+	      variable settings/</glossdef></glossentry>
+
+	      <glossentry><glossterm/8/ <glossdef><simpara/Show
+	      variable fetches/</glossdef></glossentry>
+
+	      <glossentry><glossterm/9/ <glossdef><simpara/Show
+	      variable manipulation, scanner
+	      tokens/</glossdef></glossentry>
+	    </glosslist>
+	  </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option>-d +<replaceable/n/</option></term>
+        <listitem>
+          <para>Enable debugging level <replaceable/n/.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option/-d 0/</term>
+        <listitem>
+          <para>Turn off all debugging levels. Only errors are not
+          suppressed.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option>-f <replaceable/jambase/</option></term>
+        <listitem>
+          <para>Read <replaceable/jambase/ instead of using the
+          built-in Jambase. Only one <option/-f/ flag is permitted,
+          but the <replaceable/jambase/ may explicitly include other
+          files.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option>-j <replaceable/n/</option></term>
+        <listitem>
+          <para>Run up to <replaceable/n/ shell commands concurrently
+          (UNIX and NT only). The default is 1.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option/-n/</term>
+        <listitem>
+          <para>Don't actually execute the updating actions, but do
+          everything else. This changes the debug level default to
+          <option/-d2/.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option>-o <replaceable/file/</option></term>
+        <listitem>
+          <para>Write the updating actions to the specified file
+          instead of running them (or outputting them, as on the
+          Mac).</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option>-s <replaceable/var/=<replaceable/value/</option></term>
+        <listitem>
+          <para>Set the variable <replaceable/var/ to
+          <replaceable/value/, overriding both internal variables and
+          variables imported from the environment. </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option>-t <replaceable/target/</option></term>
+        <listitem>
+          <para>Rebuild <replaceable/target/ and everything that
+          depends on it, even if it is up-to-date.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option/-v/</term>
+        <listitem>
+          <para>Print the version of jam and exit.</para>
+        </listitem>
+      </varlistentry>
+
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>SEE ALSO</title>
+
+    <para>Jam is documented fully in HTML pages available on Debian
+    systems from
+    <filename>/usr/share/doc/jam/Jam.html</filename>.</para>
+  </refsect1>
+
+  <refsect1>
+    <title>AUTHOR</title>
+
+    <para>This manual page was created by &dhusername; &dhemail; from
+    the <filename/Jam.html/ documentation, for the &debian; system
+    (but may be used by others).</para>
+  </refsect1>
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+sgml-omittag:t
+sgml-shorttag:t
+End:
+-->

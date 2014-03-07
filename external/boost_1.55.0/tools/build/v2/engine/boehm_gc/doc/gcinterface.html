@@ -1,0 +1,278 @@
+<!DOCTYPE HTML>
+<HEAD>
+<TITLE>Garbage Collector Interface</TITLE>
+</HEAD>
+<BODY>
+<H1>C Interface</h1>
+On many platforms, a single-threaded garbage collector library can be built
+to act as a plug-in malloc replacement.
+(Build with <TT>-DREDIRECT_MALLOC=GC_malloc -DIGNORE_FREE</tt>.)
+This is often the best way to deal with third-party libraries
+which leak or prematurely free objects.  <TT>-DREDIRECT_MALLOC</tt> is intended
+primarily as an easy way to adapt old code, not for new development.
+<P>
+New code should use the interface discussed below.
+<P>
+Code must be linked against the GC library.  On most UNIX platforms,
+depending on how the collector is built, this will be <TT>gc.a</tt>
+or <TT>libgc.{a,so}</tt>.
+<P>
+The following describes the standard C interface to the garbage collector.
+It is not a complete definition of the interface.  It describes only the
+most commonly used functionality, approximately in decreasing order of
+frequency of use.
+The full interface is described in
+<A HREF="http://hpl.hp.com/personal/Hans_Boehm/gc/gc_source/gch.txt">gc.h</a>
+or <TT>gc.h</tt> in the distribution.
+<P>
+Clients should include <TT>gc.h</tt>.
+<P>
+In the case of multithreaded code,
+<TT>gc.h</tt> should be included after the threads header file, and
+after defining the appropriate <TT>GC_</tt><I>XXXX</i><TT>_THREADS</tt> macro.
+(For 6.2alpha4 and later, simply defining <TT>GC_THREADS</tt> should suffice.)
+The header file <TT>gc.h</tt> must be included
+in files that use either GC or threads primitives, since threads primitives
+will be redefined to cooperate with the GC on many platforms.
+<P>
+Thread users should also be aware that on many platforms objects reachable
+only from thread-local variables may be prematurely reclaimed.
+Thus objects pointed to by thread-local variables should also be pointed to
+by a globally visible data structure.  (This is viewed as a bug, but as
+one that is exceedingly hard to fix without some libc hooks.)
+<DL>
+<DT> <B>void * GC_MALLOC(size_t <I>nbytes</i>)</b>
+<DD>
+Allocates and clears <I>nbytes</i> of storage.
+Requires (amortized) time proportional to <I>nbytes</i>.
+The resulting object will be automatically deallocated when unreferenced.
+References from objects allocated with the system malloc are usually not
+considered by the collector.  (See <TT>GC_MALLOC_UNCOLLECTABLE</tt>, however.)
+<TT>GC_MALLOC</tt> is a macro which invokes <TT>GC_malloc</tt> by default or,
+if <TT>GC_DEBUG</tt>
+is defined before <TT>gc.h</tt> is included, a debugging version that checks
+occasionally for overwrite errors, and the like.
+<DT> <B>void * GC_MALLOC_ATOMIC(size_t <I>nbytes</i>)</b>
+<DD>
+Allocates <I>nbytes</i> of storage.
+Requires (amortized) time proportional to <I>nbytes</i>.
+The resulting object will be automatically deallocated when unreferenced.
+The client promises that the resulting object will never contain any pointers.
+The memory is not cleared.
+This is the preferred way to allocate strings, floating point arrays,
+bitmaps, etc.
+More precise information about pointer locations can be communicated to the
+collector using the interface in
+<A HREF="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source/gc_typedh.txt">gc_typed.h</a> in the distribution.
+<DT> <B>void * GC_MALLOC_UNCOLLECTABLE(size_t <I>nbytes</i>)</b>
+<DD>
+Identical to <TT>GC_MALLOC</tt>,
+except that the resulting object is not automatically
+deallocated.  Unlike the system-provided malloc, the collector does
+scan the object for pointers to garbage-collectable memory, even if the
+block itself does not appear to be reachable.  (Objects allocated in this way
+are effectively treated as roots by the collector.)
+<DT> <B> void * GC_REALLOC(void *<I>old</i>, size_t <I>new_size</i>) </b>
+<DD>
+Allocate a new object of the indicated size and copy (a prefix of) the
+old object into the new object.  The old object is reused in place if
+convenient.  If the original object was allocated with
+<TT>GC_MALLOC_ATOMIC</tt>,
+the new object is subject to the same constraints.  If it was allocated
+as an uncollectable object, then the new object is uncollectable, and
+the old object (if different) is deallocated.
+<DT> <B> void GC_FREE(void *<I>dead</i>) </b>
+<DD>
+Explicitly deallocate an object.  Typically not useful for small
+collectable objects.
+<DT> <B> void * GC_MALLOC_IGNORE_OFF_PAGE(size_t <I>nbytes</i>) </b>
+<DD>
+<DT> <B> void * GC_MALLOC_ATOMIC_IGNORE_OFF_PAGE(size_t <I>nbytes</i>) </b>
+<DD>
+Analogous to <TT>GC_MALLOC</tt> and <TT>GC_MALLOC_ATOMIC</tt>,
+except that the client
+guarantees that as long
+as the resulting object is of use, a pointer is maintained to someplace
+inside the first 512 bytes of the object.  This pointer should be declared
+volatile to avoid interference from compiler optimizations.
+(Other nonvolatile pointers to the object may exist as well.)
+This is the
+preferred way to allocate objects that are likely to be &gt; 100KBytes in size.
+It greatly reduces the risk that such objects will be accidentally retained
+when they are no longer needed.  Thus space usage may be significantly reduced.
+<DT> <B> void GC_INIT(void) </b>
+<DD>
+On some platforms, it is necessary to invoke this
+<I>from the main executable, not from a dynamic library,</i> before
+the initial invocation of a GC routine.  It is recommended that this be done
+in portable code, though we try to ensure that it expands to a no-op
+on as many platforms as possible.  As of GC 7.0, it is required if
+thread-local allocation is enabled in the collector build, and <TT>malloc</tt>
+is not redirected to <TT>GC_malloc</tt>.
+<DT> <B> void GC_gcollect(void) </b>
+<DD>
+Explicitly force a garbage collection.
+<DT> <B> void GC_enable_incremental(void) </b>
+<DD>
+Cause the garbage collector to perform a small amount of work
+every few invocations of <TT>GC_MALLOC</tt> or the like, instead of performing
+an entire collection at once.  This is likely to increase total
+running time.  It will improve response on a platform that either has
+suitable support in the garbage collector (Linux and most Unix
+versions, win32 if the collector was suitably built) or if "stubborn"
+allocation is used (see
+<A HREF="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source/gch.txt">gc.h</a>).
+On many platforms this interacts poorly with system calls 
+that write to the garbage collected heap.
+<DT> <B> GC_warn_proc GC_set_warn_proc(GC_warn_proc <I>p</i>) </b>
+<DD>
+Replace the default procedure used by the collector to print warnings.
+The collector
+may otherwise write to sterr, most commonly because GC_malloc was used
+in a situation in which GC_malloc_ignore_off_page would have been more
+appropriate.  See <A HREF="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source/gch.txt">gc.h</a> for details.
+<DT> <B> void GC_REGISTER_FINALIZER(...) </b>
+<DD>
+Register a function to be called when an object becomes inaccessible.
+This is often useful as a backup method for releasing system resources
+(<I>e.g.</i> closing files) when the object referencing them becomes
+inaccessible.
+It is not an acceptable method to perform actions that must be performed
+in a timely fashion.
+See <A HREF="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source/gch.txt">gc.h</a> for details of the interface.
+See <A HREF="http://www.hpl.hp.com/personal/Hans_Boehm/gc/finalization.html">here</a> for a more detailed discussion
+of the design.
+<P>
+Note that an object may become inaccessible before client code is done
+operating on objects referenced by its fields.
+Suitable synchronization is usually required.
+See <A HREF="http://portal.acm.org/citation.cfm?doid=604131.604153">here</a>
+or <A HREF="http://www.hpl.hp.com/techreports/2002/HPL-2002-335.html">here</a>
+for details.
+</dl>
+<P>
+If you are concerned with multiprocessor performance and scalability,
+you should consider enabling and using thread local allocation (<I>e.g.</i>
+<TT>GC_LOCAL_MALLOC</tt>, see <TT>gc_local_alloc.h</tt>.  If your platform
+supports it, you should build the collector with parallel marking support
+(<TT>-DPARALLEL_MARK</tt>, or <TT>--enable-parallel-mark</tt>).
+<P>
+If the collector is used in an environment in which pointer location
+information for heap objects is easily available, this can be passed on
+to the collector using the interfaces in either <TT>gc_typed.h</tt>
+or <TT>gc_gcj.h</tt>.
+<P>
+The collector distribution also includes a <B>string package</b> that takes
+advantage of the collector.  For details see
+<A HREF="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source/cordh.txt">cord.h</a>
+
+<H1>C++ Interface</h1>
+The C++ interface is implemented as a thin layer on the C interface.
+Unfortunately, this thin layer appears to be very sensitive to variations
+in C++ implementations, particularly since it tries to replace the global
+::new operator, something that appears to not be well-standardized.
+Your platform may need minor adjustments in this layer (gc_cpp.cc, gc_cpp.h,
+and possibly gc_allocator.h).  Such changes do not require understanding
+of collector internals, though they may require a good understanding of
+your platform.  (Patches enhancing portability are welcome.
+But it's easy to break one platform by fixing another.)
+<P>
+Usage of the collector from C++ is also complicated by the fact that there
+are many "standard" ways to allocate memory in C++.  The default ::new
+operator, default malloc, and default STL allocators allocate memory
+that is not garbage collected, and is not normally "traced" by the
+collector.  This means that any pointers in memory allocated by these
+default allocators will not be seen by the collector.  Garbage-collectable
+memory referenced only by pointers stored in such default-allocated
+objects is likely to be reclaimed prematurely by the collector.
+<P>
+It is the programmers responsibility to ensure that garbage-collectable
+memory is referenced by pointers stored in one of
+<UL>
+<LI> Program variables
+<LI> Garbage-collected objects
+<LI> Uncollected but "traceable" objects
+</ul>
+"Traceable" objects are not necessarily reclaimed by the collector,
+but are scanned for pointers to collectable objects.
+They are usually allocated by <TT>GC_MALLOC_UNCOLLECTABLE</tt>, as described
+above, and through some interfaces described below.
+<P>
+(On most platforms, the collector may not trace correctly from in-flight
+exception objects.  Thus objects thrown as exceptions should only
+point to otherwise reachable memory.  This is another bug whose
+proper repair requires platform hooks.)
+<P>
+The easiest way to ensure that collectable objects are properly referenced
+is to allocate only collectable objects.  This requires that every
+allocation go through one of the following interfaces, each one of
+which replaces a standard C++ allocation mechanism:
+<DL>
+<DT> <B> STL allocators </b>
+<DD>
+<P>
+Recent versions of the collector also include a more standard-conforming
+allocator implementation in <TT>gc_allocator.h</tt>.  It defines
+<UL>
+<LI> traceable_allocator
+<LI> gc_allocator
+</ul>
+which may be used either directly to allocate memory or to instantiate
+container templates. 
+The former allocates uncollectable but traced memory.
+The latter allocates garbage-collected memory.
+<P>
+These should work with any fully standard-conforming C++ compiler.
+<P>
+Users of the <A HREF="http://www.sgi.com/tech/stl">SGI extended STL</a>
+or its derivatives (including most g++ versions)
+can alternatively include <TT>new_gc_alloc.h</tt> before including
+STL header files.
+(<TT>gc_alloc.h</tt> corresponds to now obsolete versions of the
+SGI STL.)  This interface is no longer recommended, but it has existed
+for much longer.
+<P>
+This defines SGI-style allocators
+<UL>
+<LI> alloc
+<LI> single_client_alloc
+<LI> gc_alloc
+<LI> single_client_gc_alloc
+</ul>
+The first two allocate uncollectable but traced
+memory, while the second two allocate collectable memory.
+The single_client versions are not safe for concurrent access by
+multiple threads, but are faster.
+<P>
+For an example, click <A HREF="http://hpl.hp.com/personal/Hans_Boehm/gc/gc_alloc_exC.txt">here</a>.
+<DT> <B> Class inheritance based interface </b>
+<DD>
+Users may include gc_cpp.h and then cause members of classes to
+be allocated in garbage collectable memory by having those classes
+inherit from class gc.
+For details see <A HREF="http://hpl.hp.com/personal/Hans_Boehm/gc/gc_source/gc_cpph.txt">gc_cpp.h</a>.
+<P>
+Linking against libgccpp in addition to the gc library overrides
+::new (and friends) to allocate traceable memory but uncollectable
+memory, making it safe to refer to collectable objects from the resulting
+memory.
+<DT> <B> C interface </b>
+<DD>
+It is also possible to use the C interface from 
+<A HREF="http://hpl.hp.com/personal/Hans_Boehm/gc/gc_source/gch.txt">gc.h</a> directly.
+On platforms which use malloc to implement ::new, it should usually be possible
+to use a version of the collector that has been compiled as a malloc
+replacement.  It is also possible to replace ::new and other allocation
+functions suitably, as is done by libgccpp.
+<P>
+Note that user-implemented small-block allocation often works poorly with
+an underlying garbage-collected large block allocator, since the collector
+has to view all objects accessible from the user's free list as reachable.
+This is likely to cause problems if <TT>GC_MALLOC</tt>
+is used with something like
+the original HP version of STL.
+This approach works well with the SGI versions of the STL only if the
+<TT>malloc_alloc</tt> allocator is used.
+</dl>
+</body>
+</html>

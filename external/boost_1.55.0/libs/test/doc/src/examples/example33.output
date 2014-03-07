@@ -1,0 +1,8 @@
+> example
+Running 1 test case...                                                          
+test.cpp(8): error in "test": check (char)0x26 =.= 0x04 failed.                 
+Mismatch in a position 1                                                        
+Mismatch in a position 5                                                        
+Operands bit sizes mismatch: 8 != 32                                            
+                                                                                
+*** 1 failure detected in test suite "example" 

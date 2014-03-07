@@ -1,0 +1,60 @@
+<html>
+<head>
+        <title>BOOST_PP_SEQ_CAT_S</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+</head>
+<body>
+		<div style="margin-left: 0px;">
+			The <b>BOOST_PP_SEQ_CAT_S</b> macro concatenates all elements in a <i>seq</i>.&nbsp; 
+			It reenters <b>BOOST_PP_SEQ_FOLD_LEFT</b> with maximum efficiency.
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_CAT_S</b>(<i>s</i>, <i>seq</i>)
+		</div>
+		<h4>
+			Arguments
+		</h4>
+		<dl>
+			<dt>s</dt>
+			<dd>
+				The next available <b>BOOST_PP_SEQ_FOLD_LEFT</b> fold step.
+			</dd>
+			<dt>seq</dt>
+			<dd>
+				The <i>seq</i> whose elements are to be concatenated.
+			</dd>
+		</dl>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			Elements are concatenated left-to-right starting with index <i>0</i>.
+		</div>
+		<h4>
+			See Also
+		</h4>
+		<ul>
+			<li>
+				<a href="seq_cat.html">BOOST_PP_SEQ_CAT</a></li>
+		</ul>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/cat.html">&lt;boost/preprocessor/seq/cat.hpp&gt;</a>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		<br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+</body>
+</html>

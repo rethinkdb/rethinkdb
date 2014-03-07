@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<section id="variant.tutorial.basic">
+  <title>Basic Usage</title>
+
+<using-namespace name="boost"/>
+<using-class name="boost::variant"/>
+
+<para>A discriminated union container on some set of types is defined by
+  instantiating the <code><classname>boost::variant</classname></code> class
+  template with the desired types. These types are called
+  <emphasis role="bold">bounded types</emphasis> and are subject to the
+  requirements of the
+  <link linkend="variant.concepts.bounded-type"><emphasis>BoundedType</emphasis></link>
+  concept. Any number of bounded types may be specified, up to some
+  implementation-defined limit (see 
+  <code><macroname>BOOST_VARIANT_LIMIT_TYPES</macroname></code>).</para>
+
+<para>For example, the following declares a discriminated union container on
+  <code>int</code> and <code>std::string</code>:
+
+<programlisting><classname>boost::variant</classname>&lt; int, std::string &gt; v;</programlisting>
+
+</para>
+
+<para>By default, a <code>variant</code> default-constructs its first
+  bounded type, so <code>v</code> initially contains <code>int(0)</code>. If
+  this is not desired, or if the first bounded type is not
+  default-constructible, a <code>variant</code> can be constructed
+  directly from any value convertible to one of its bounded types. Similarly,
+  a <code>variant</code> can be assigned any value convertible to one of its
+  bounded types, as demonstrated in the following:
+
+<programlisting>v = "hello";</programlisting>
+
+</para>
+
+<para>Now <code>v</code> contains a <code>std::string</code> equal to
+  <code>"hello"</code>. We can demonstrate this by
+  <emphasis role="bold">streaming</emphasis>&nbsp;<code>v</code> to standard
+  output:
+
+<programlisting>std::cout &lt;&lt; v &lt;&lt; std::endl;</programlisting>
+
+</para>
+
+<para>Usually though, we would like to do more with the content of a
+  <code>variant</code> than streaming. Thus, we need some way to access the
+  contained value. There are two ways to accomplish this:
+  <code><functionname>apply_visitor</functionname></code>, which is safest
+  and very powerful, and
+  <code><functionname>get</functionname>&lt;T&gt;</code>, which is
+  sometimes more convenient to use.</para>
+
+<para>For instance, suppose we wanted to concatenate to the string contained
+  in <code>v</code>. With <emphasis role="bold">value retrieval</emphasis>
+  by <code><functionname>get</functionname></code>, this may be accomplished
+  quite simply, as seen in the following:
+
+<programlisting>std::string&amp; str = <functionname>boost::get</functionname>&lt;std::string&gt;(v);
+str += " world! ";</programlisting>
+
+</para>
+
+<para>As desired, the <code>std::string</code> contained by <code>v</code> now
+  is equal to <code>"hello world! "</code>. Again, we can demonstrate this by
+  streaming <code>v</code> to standard output:
+
+<programlisting>std::cout &lt;&lt; v &lt;&lt; std::endl;</programlisting>
+
+</para>
+
+<para>While use of <code>get</code> is perfectly acceptable in this trivial
+  example, <code>get</code> generally suffers from several significant
+  shortcomings. For instance, if we were to write a function accepting a
+  <code>variant&lt;int, std::string&gt;</code>, we would not know whether
+  the passed <code>variant</code> contained an <code>int</code> or a
+  <code>std::string</code>. If we insisted upon continued use of
+  <code>get</code>, we would need to query the <code>variant</code> for its
+  contained type. The following function, which &quot;doubles&quot; the
+  content of the given <code>variant</code>, demonstrates this approach:
+
+<programlisting>void times_two( boost::variant&lt; int, std::string &gt; &amp; operand )
+{
+    if ( int* pi = <functionname>boost::get</functionname>&lt;int&gt;( &amp;operand ) )
+        *pi *= 2;
+    else if ( std::string* pstr = <functionname>boost::get</functionname>&lt;std::string&gt;( &amp;operand ) )
+        *pstr += *pstr;
+}</programlisting>
+
+</para>
+
+<para>However, such code is quite brittle, and without careful attention will
+  likely lead to the introduction of subtle logical errors detectable only at
+  runtime. For instance, consider if we wished to extend
+  <code>times_two</code> to operate on a <code>variant</code> with additional
+  bounded types. Specifically, let's add
+  <code>std::complex&lt;double&gt;</code> to the set. Clearly, we would need
+  to at least change the function declaration:
+
+<programlisting>void times_two( boost::variant&lt; int, std::string, std::complex&lt;double&gt; &gt; &amp; operand )
+{
+    // as above...?
+}</programlisting>
+
+</para>
+
+<para>Of course, additional changes are required, for currently if the passed
+  <code>variant</code> in fact contained a <code>std::complex</code> value,
+  <code>times_two</code> would silently return -- without any of the desired
+  side-effects and without any error. In this case, the fix is obvious. But in
+  more complicated programs, it could take considerable time to identify and
+  locate the error in the first place.</para>
+
+<para>Thus, real-world use of <code>variant</code> typically demands an access
+  mechanism more robust than <code>get</code>. For this reason,
+  <code>variant</code> supports compile-time checked
+  <emphasis role="bold">visitation</emphasis> via
+  <code><functionname>apply_visitor</functionname></code>. Visitation requires
+  that the programmer explicitly handle (or ignore) each bounded type. Failure
+  to do so results in a compile-time error.</para>
+
+<para>Visitation of a <code>variant</code> requires a visitor object. The
+  following demonstrates one such implementation of a visitor implementating
+  behavior identical to <code>times_two</code>:
+
+<programlisting>class times_two_visitor
+    : public <classname>boost::static_visitor</classname>&lt;&gt;
+{
+public:
+
+    void operator()(int &amp; i) const
+    {
+        i *= 2;
+    }
+
+    void operator()(std::string &amp; str) const
+    {
+        str += str;
+    }
+
+};</programlisting>
+
+</para>
+
+<para>With the implementation of the above visitor, we can then apply it to
+  <code>v</code>, as seen in the following:
+
+<programlisting><functionname>boost::apply_visitor</functionname>( times_two_visitor(), v );</programlisting>
+
+</para>
+
+<para>As expected, the content of <code>v</code> is now a
+  <code>std::string</code> equal to <code>"hello world! hello world! "</code>.
+  (We'll skip the verification this time.)</para>
+
+<para>In addition to enhanced robustness, visitation provides another
+  important advantage over <code>get</code>: the ability to write generic
+  visitors. For instance, the following visitor will &quot;double&quot; the
+  content of <emphasis>any</emphasis>&nbsp;<code>variant</code> (provided its
+  bounded types each support operator+=):
+
+<programlisting>class times_two_generic
+    : public <classname>boost::static_visitor</classname>&lt;&gt;
+{
+public:
+
+    template &lt;typename T&gt;
+    void operator()( T &amp; operand ) const
+    {
+        operand += operand;
+    }
+
+};</programlisting>
+
+</para>
+
+<para>Again, <code>apply_visitor</code> sets the wheels in motion:
+
+<programlisting><functionname>boost::apply_visitor</functionname>( times_two_generic(), v );</programlisting>
+
+</para>
+
+<para>While the initial setup costs of visitation may exceed that required for
+  <code>get</code>, the benefits quickly become significant. Before concluding
+  this section, we should explore one last benefit of visitation with
+  <code>apply_visitor</code>:
+  <emphasis role="bold">delayed visitation</emphasis>. Namely, a special form
+  of <code>apply_visitor</code> is available that does not immediately apply
+  the given visitor to any <code>variant</code> but rather returns a function
+  object that operates on any <code>variant</code> given to it. This behavior
+  is particularly useful when operating on sequences of <code>variant</code>
+  type, as the following demonstrates:
+
+<programlisting>std::vector&lt; <classname>boost::variant</classname>&lt;int, std::string&gt; &gt; vec;
+vec.push_back( 21 );
+vec.push_back( "hello " );
+
+times_two_generic visitor;
+std::for_each(
+      vec.begin(), vec.end()
+   , <functionname>boost::apply_visitor</functionname>(visitor)
+   );</programlisting>
+
+</para>
+
+</section>

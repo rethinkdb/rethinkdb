@@ -1,0 +1,230 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Parser Directive Inhibiting Skipping Without Pre-skip (no_skip[])</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../directive.html" title="Parser Directives">
+<link rel="prev" href="lexeme.html" title="Parser Directive Inhibiting Skipping (lexeme[])">
+<link rel="next" href="no_case.html" title="Parser Directive Inhibiting Case Sensitivity (no_case[])">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lexeme.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="no_case.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.reference.directive.no_skip"></a><a class="link" href="no_skip.html" title="Parser Directive Inhibiting Skipping Without Pre-skip (no_skip[])">Parser Directive
+          Inhibiting Skipping Without Pre-skip (<code class="computeroutput"><span class="identifier">no_skip</span><span class="special">[]</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.qi.reference.directive.no_skip.h0"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_skip.description"></a></span><a class="link" href="no_skip.html#spirit.qi.reference.directive.no_skip.description">Description</a>
+          </h6>
+<p>
+            The <code class="computeroutput"><span class="identifier">no_skip</span><span class="special">[]</span></code>
+            directive turns off white space skipping. The difference to <a class="link" href="lexeme.html" title="Parser Directive Inhibiting Skipping (lexeme[])"><code class="computeroutput"><span class="identifier">lexeme</span></code></a> is that it does not do
+            pre-skipping in any case. Otherwise it is completely equivalent to the
+            <a class="link" href="lexeme.html" title="Parser Directive Inhibiting Skipping (lexeme[])"><code class="computeroutput"><span class="identifier">lexeme</span></code></a>
+            directive.
+          </p>
+<h6>
+<a name="spirit.qi.reference.directive.no_skip.h1"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_skip.header"></a></span><a class="link" href="no_skip.html#spirit.qi.reference.directive.no_skip.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/directive/no_skip.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_no_skip</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.directive.no_skip.h2"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_skip.namespace"></a></span><a class="link" href="no_skip.html#spirit.qi.reference.directive.no_skip.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody><tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">no_skip</span> <span class="comment">//
+                      alias: boost::spirit::qi::no_skip</span></code>
+                    </p>
+                  </td></tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.directive.no_skip.h3"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_skip.model_of"></a></span><a class="link" href="no_skip.html#spirit.qi.reference.directive.no_skip.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../parser_concepts/unaryparser.html" title="UnaryParser"><code class="computeroutput"><span class="identifier">UnaryParser</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a</span></code></span></dt>
+<dd><p>
+                  A <a class="link" href="../parser_concepts/parser.html" title="Parser"><code class="computeroutput"><span class="identifier">Parser</span></code></a>.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.qi.reference.directive.no_skip.h4"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_skip.expression_semantics"></a></span><a class="link" href="no_skip.html#spirit.qi.reference.directive.no_skip.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../parser_concepts/unaryparser.html" title="UnaryParser"><code class="computeroutput"><span class="identifier">UnaryParser</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">no_skip</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Turns off white space skipping for the subject parser, <code class="computeroutput"><span class="identifier">a</span></code> (and all its children).
+                      This directive does not pre-skips.
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.directive.no_skip.h5"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_skip.attributes"></a></span><a class="link" href="no_skip.html#spirit.qi.reference.directive.no_skip.attributes">Attributes</a>
+          </h6>
+<p>
+            See <a class="link" href="../../quick_reference/compound_attribute_rules.html#spirit.qi.quick_reference.compound_attribute_rules.notation">Compound
+            Attribute Notation</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">no_skip</span><span class="special">[</span><span class="identifier">a</span><span class="special">]</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="identifier">no_skip</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">A</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="identifier">no_skip</span><span class="special">[</span><span class="identifier">a</span><span class="special">]:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.directive.no_skip.h6"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_skip.complexity"></a></span><a class="link" href="no_skip.html#spirit.qi.reference.directive.no_skip.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              The complexity is defined by the complexity of the subject parser,
+              <code class="computeroutput"><span class="identifier">a</span></code>
+            </p></blockquote></div>
+<h6>
+<a name="spirit.qi.reference.directive.no_skip.h7"></a>
+            <span class="phrase"><a name="spirit.qi.reference.directive.no_skip.example"></a></span><a class="link" href="no_skip.html#spirit.qi.reference.directive.no_skip.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.qi.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">no_skip</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">char_</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Simple usage of <code class="computeroutput"><span class="identifier">no_skip</span><span class="special">[]</span></code>:
+          </p>
+<p>
+            The use of no_skip here will prevent skipping of whitespace in front
+            and in between the characters of the string <code class="computeroutput"><span class="char">'
+            abc '</span></code>.
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span><span class="special">;</span>
+<span class="identifier">test_phrase_parser_attr</span><span class="special">(</span><span class="string">"'  abc  '"</span><span class="special">,</span>
+    <span class="char">'\''</span> <span class="special">&gt;&gt;</span> <span class="identifier">no_skip</span><span class="special">[+~</span><span class="identifier">char_</span><span class="special">(</span><span class="char">'\''</span><span class="special">)]</span> <span class="special">&gt;&gt;</span> <span class="char">'\''</span><span class="special">,</span> <span class="identifier">str</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">str</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>    <span class="comment">// will output: &gt;  abc  &lt;</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lexeme.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../directive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="no_case.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

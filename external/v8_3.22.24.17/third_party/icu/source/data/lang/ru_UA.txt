@@ -1,0 +1,17 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ru_UA.xml
+// *
+// ***************************************************************************
+ru_UA{
+    Languages{
+        apa{"апачский"}
+        den{"слэйви"}
+        mh{"маршальский"}
+        tlh{"клингон"}
+    }
+    Version{"2.0.47.63"}
+}

@@ -1,0 +1,57 @@
+<!--
+ Copyright 2004 Eric Niebler.
+
+ Distributed under the Boost Software License, Version 1.0.
+ (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<informaltable frame="all">
+<bridgehead renderas="sect4"><phrase role="table-title">Short Matches</phrase></bridgehead>
+<tgroup cols="5">
+<thead>
+<row>
+<entry>static xpressive</entry><entry>dynamic xpressive</entry><entry>Boost</entry><entry>Text</entry><entry>Expression</entry>
+</row>
+</thead>
+<tbody>
+<row>
+<entry><phrase role="highlight">1<para/>(3.2e&#8209;007s)</phrase></entry><entry>1.37<para/>(4.4e&#8209;007s)</entry><entry>2.38<para/>(7.6e&#8209;007s)</entry><entry>100- this is a line of ftp response which contains a message string</entry><entry><literal>^([0-9]+)(\-| |$)(.*)$</literal></entry>
+</row>
+<row>
+<entry><phrase role="highlight">1<para/>(6.4e&#8209;007s)</phrase></entry><entry>1.12<para/>(7.15e&#8209;007s)</entry><entry>1.72<para/>(1.1e&#8209;006s)</entry><entry>1234-5678-1234-456</entry><entry><literal>([[:digit:]]{4}[- ]){3}[[:digit:]]{3,4}</literal></entry>
+</row>
+<row>
+<entry><phrase role="highlight">1<para/>(9.82e&#8209;007s)</phrase></entry><entry>1.3<para/>(1.28e&#8209;006s)</entry><entry>1.61<para/>(1.58e&#8209;006s)</entry><entry>john_maddock@compuserve.com</entry><entry><literal>^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$</literal></entry>
+</row>
+<row>
+<entry><phrase role="highlight">1<para/>(8.94e&#8209;007s)</phrase></entry><entry>1.3<para/>(1.16e&#8209;006s)</entry><entry>1.7<para/>(1.52e&#8209;006s)</entry><entry>foo12@foo.edu</entry><entry><literal>^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$</literal></entry>
+</row>
+<row>
+<entry><phrase role="highlight">1<para/>(9.09e&#8209;007s)</phrase></entry><entry>1.28<para/>(1.16e&#8209;006s)</entry><entry>1.67<para/>(1.52e&#8209;006s)</entry><entry>bob.smith@foo.tv</entry><entry><literal>^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$</literal></entry>
+</row>
+<row>
+<entry><phrase role="highlight">1<para/>(3.06e&#8209;007s)</phrase></entry><entry><phrase role="highlight">1.07<para/>(3.28e&#8209;007s)</phrase></entry><entry>1.95<para/>(5.96e&#8209;007s)</entry><entry>EH10 2QQ</entry><entry><literal>^[a-zA-Z]{1,2}[0-9][0-9A-Za-z]{0,1} {0,1}[0-9][A-Za-z]{2}$</literal></entry>
+</row>
+<row>
+<entry><phrase role="highlight">1<para/>(3.13e&#8209;007s)</phrase></entry><entry><phrase role="highlight">1.09<para/>(3.42e&#8209;007s)</phrase></entry><entry>1.86<para/>(5.81e&#8209;007s)</entry><entry>G1 1AA</entry><entry><literal>^[a-zA-Z]{1,2}[0-9][0-9A-Za-z]{0,1} {0,1}[0-9][A-Za-z]{2}$</literal></entry>
+</row>
+<row>
+<entry><phrase role="highlight">1<para/>(3.2e&#8209;007s)</phrase></entry><entry><phrase role="highlight">1.09<para/>(3.5e&#8209;007s)</phrase></entry><entry>1.86<para/>(5.96e&#8209;007s)</entry><entry>SW1 1ZZ</entry><entry><literal>^[a-zA-Z]{1,2}[0-9][0-9A-Za-z]{0,1} {0,1}[0-9][A-Za-z]{2}$</literal></entry>
+</row>
+<row>
+<entry><phrase role="highlight">1<para/>(2.68e&#8209;007s)</phrase></entry><entry>1.22<para/>(3.28e&#8209;007s)</entry><entry>2<para/>(5.36e&#8209;007s)</entry><entry>4/1/2001</entry><entry><literal>^[[:digit:]]{1,2}/[[:digit:]]{1,2}/[[:digit:]]{4}$</literal></entry>
+</row>
+<row>
+<entry><phrase role="highlight">1<para/>(2.76e&#8209;007s)</phrase></entry><entry>1.16<para/>(3.2e&#8209;007s)</entry><entry>1.94<para/>(5.36e&#8209;007s)</entry><entry>12/12/2001</entry><entry><literal>^[[:digit:]]{1,2}/[[:digit:]]{1,2}/[[:digit:]]{4}$</literal></entry>
+</row>
+<row>
+<entry><phrase role="highlight">1<para/>(2.98e&#8209;007s)</phrase></entry><entry><phrase role="highlight">1.03<para/>(3.06e&#8209;007s)</phrase></entry><entry>1.85<para/>(5.51e&#8209;007s)</entry><entry>123</entry><entry><literal>^[-+]?[[:digit:]]*\.?[[:digit:]]*$</literal></entry>
+</row>
+<row>
+<entry><phrase role="highlight">1<para/>(3.2e&#8209;007s)</phrase></entry><entry>1.12<para/>(3.58e&#8209;007s)</entry><entry>1.81<para/>(5.81e&#8209;007s)</entry><entry>+3.14159</entry><entry><literal>^[-+]?[[:digit:]]*\.?[[:digit:]]*$</literal></entry>
+</row>
+<row>
+<entry><phrase role="highlight">1<para/>(3.28e&#8209;007s)</phrase></entry><entry>1.11<para/>(3.65e&#8209;007s)</entry><entry>1.77<para/>(5.81e&#8209;007s)</entry><entry>-3.14159</entry><entry><literal>^[-+]?[[:digit:]]*\.?[[:digit:]]*$</literal></entry>
+</row>
+</tbody>
+</tgroup>
+</informaltable>

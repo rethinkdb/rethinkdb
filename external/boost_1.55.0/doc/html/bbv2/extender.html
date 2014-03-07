@@ -1,0 +1,1044 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Extender Manual</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../bbv2.html" title="Chapter&#160;43.&#160;Boost.Build V2 User Manual">
+<link rel="prev" href="reference.html" title="Reference">
+<link rel="next" href="faq.html" title="Frequently Asked Questions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reference.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bbv2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="faq.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="bbv2.extender"></a>Extender Manual</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="extender.html#bbv2.extender.intro">Introduction</a></span></dt>
+<dt><span class="section"><a href="extender.html#bbv2.extender.example">Example: 1-to-1 generator</a></span></dt>
+<dt><span class="section"><a href="extender.html#bbv2.extending.targets">Target types</a></span></dt>
+<dt><span class="section"><a href="extender.html#bbv2.extending.tools">Tools and generators</a></span></dt>
+<dt><span class="section"><a href="extender.html#bbv2.extending.features">Features</a></span></dt>
+<dt><span class="section"><a href="extender.html#bbv2.extending.rules">Main target rules</a></span></dt>
+<dt><span class="section"><a href="extender.html#bbv2.extending.toolset_modules">Toolset modules</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.extender.intro"></a>Introduction</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="extender.html#bbv2.extender.overview.metatargets">Metatargets</a></span></dt>
+<dt><span class="section"><a href="extender.html#bbv2.extender.overview.targets">Concrete targets</a></span></dt>
+<dt><span class="section"><a href="extender.html#bbv2.extender.overview.generators">Generators</a></span></dt>
+</dl></div>
+<p>
+        This section explains how to extend Boost.Build to accomodate your
+        local requirements&#8212;primarily to add support for non-standard
+        tools you have. Before we start, be sure you have read and understoon
+        the concept of metatarget, <a class="xref" href="overview.html#bbv2.overview.concepts" title="Concepts">the section called &#8220;Concepts&#8221;</a>,
+        which is critical to understanding the remaining material.
+      </p>
+<p>
+        The current version of Boost.Build has three levels of targets, listed
+        below.
+      </p>
+<div class="variablelist"><dl class="variablelist">
+<dt><span class="term">metatarget</span></dt>
+<dd><p>
+              Object that is created from declarations in Jamfiles. May
+              be called with a set of properties to produce concrete
+              targets.
+            </p></dd>
+<dt><span class="term">concrete target</span></dt>
+<dd><p>
+              Object that corresponds to a file or an action.
+            </p></dd>
+<dt><span class="term">jam target</span></dt>
+<dd><p>
+              Low-level concrete target that is specific to Boost.Jam build
+              engine. Essentially a string&#8212;most often a name of file.                
+            </p></dd>
+</dl></div>
+<p>
+        In most cases, you will only have to deal with concrete targets and
+        the process that creates concrete targets from
+        metatargets. Extending metatarget level is rarely required. The jam
+        targets are typically only used inside the command line patterns.
+      </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>All of the Boost.Jam target-related builtin functions, like
+        <code class="computeroutput">DEPENDS</code> or <code class="computeroutput">ALWAYS</code> operate on jam
+        targets. Applying them to metatargets or concrete targets has no
+        effect.</p></td></tr>
+</table></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.extender.overview.metatargets"></a>Metatargets</h4></div></div></div>
+<p>Metatarget is an object that records information specified
+        in Jamfile, such as metatarget kind, name, sources and properties,
+        and can be called with specific properties to generate concrete
+        targets. At the code level it is represented by an instance of
+        class derived from <a class="link" href="reference.html#bbv2.reference.class.abstract-target" title="Class abstract-target">abstract-target</a>. 
+        <a href="#ftn.idp263017992" class="footnote" name="idp263017992"><sup class="footnote">[16]</sup></a>
+        </p>
+<p>The <a class="link" href="reference.html#bbv2.reference.class.abstract-target.generate">generate</a>
+        method takes the build properties
+        (as an instance of the <a class="link" href="reference.html#bbv2.reference.class.property-set" title="Class property-set">
+        property-set</a> class) and returns
+        a list containing:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>As front element&#8212;Usage-requirements from this invocation
+          (an instance of <a class="link" href="reference.html#bbv2.reference.class.property-set" title="Class property-set">
+          property-set</a>)</p></li>
+<li class="listitem"><p>As subsequent elements&#8212;created concrete targets (
+          instances of the <code class="computeroutput">virtual-target</code> class.)</p></li>
+</ul></div>
+<p>It's possible to lookup a metataget by target-id using the 
+        <code class="computeroutput">targets.resolve-reference</code> function, and the
+        <code class="computeroutput">targets.generate-from-reference</code> function can both
+        lookup and generate a metatarget.</p>
+<p>The <a class="link" href="reference.html#bbv2.reference.class.abstract-target" title="Class abstract-target">abstract-target</a>
+        class has three immediate derived classes:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p><a class="link" href="reference.html#bbv2.reference.class.project-target" title="Class project-target">project-target</a> that
+          corresponds to a project and is not intended for further
+          subclassing. The <a class="link" href="reference.html#bbv2.reference.class.project-target.generate">
+          generate</a> method of this
+          class builds all targets in the project that are not marked as
+          explicit.</p></li>
+<li class="listitem"><p><a class="link" href="reference.html#bbv2.reference.class.main-target" title="Class main-target">main-target</a>
+          corresponds to a target in a project
+          and contains one or more target alternatives. This class also should not be 
+          subclassed. The <a class="link" href="reference.html#bbv2.reference.class.main-target.generate">generate</a>
+          method of this class selects an alternative to build, and calls the
+          <a class="link" href="reference.html#bbv2.reference.class.basic-target.generate">generate</a>
+          method of that alternative.</p></li>
+<li class="listitem"><p><a class="link" href="reference.html#bbv2.reference.class.basic-target" title="Class basic-target">basic-target</a>
+          corresponds to a specific target alternative. This is base class,
+          with a number of derived classes.  The
+          <a class="link" href="reference.html#bbv2.reference.class.basic-target.generate">generate</a> method
+          processes the target requirements and requested build properties to
+          determine final properties for the target, builds all sources, and
+          finally calls the abstract
+          <a class="link" href="reference.html#bbv2.reference.class.basic-target.construct">construct</a>
+          method with the list of source virtual targets, and the final properties.
+          </p></li>
+</ul></div>
+<p>The instances of the <a class="link" href="reference.html#bbv2.reference.class.project-target" title="Class project-target">project-target</a> and
+        <a class="link" href="reference.html#bbv2.reference.class.main-target" title="Class main-target">main-target</a> classes are created
+        implicitly&#8212;when loading a new Jamfiles, or when a new target
+        alternative with as-yet unknown name is created.  The instances of the
+        classes derived from <a class="link" href="reference.html#bbv2.reference.class.basic-target" title="Class basic-target">basic-target</a>
+        are typically created when Jamfile calls a <em class="firstterm">metatarget rule</em>,
+        such as such as <code class="computeroutput">exe</code>.
+        </p>
+<p>It it permissible to create a custom class derived from
+        <a class="link" href="reference.html#bbv2.reference.class.basic-target" title="Class basic-target">basic-target</a> and create new metatarget rule
+        that creates instance of such target. However, in the majority
+        of cases, a specific subclass of <a class="link" href="reference.html#bbv2.reference.class.basic-target" title="Class basic-target">basic-target</a>&#8212;
+        <a class="link" href="reference.html#bbv2.reference.class.typed-target" title="Class typed-target">typed-target</a> is used. That class is associated
+        with a <em class="firstterm">type</em> and relays to <em class="firstterm">generators</em>
+        to construct concrete targets of that type. This process will be explained below.
+        When a new type is declared, a new metatarget rule is automatically defined.
+        That rule creates new instance of type-target, associated with that type.                
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.extender.overview.targets"></a>Concrete targets</h4></div></div></div>
+<p>Concrete targets are represented by instance of classes derived
+        from <code class="computeroutput">virtual-target</code>. The most commonly used
+        subclass is <code class="computeroutput">file-target</code>. A file target is associated
+        with an action that creates it&#8212; an instance of the <code class="computeroutput">action</code>
+        class. The action, in turn, hold a list of source targets. It also holds the 
+        <a class="link" href="reference.html#bbv2.reference.class.property-set" title="Class property-set">property-set</a>
+        instance with the build properties that should be used for the action.</p>
+<p>Here's an example of creating a target from another target, <code class="computeroutput">source</code></p>
+<pre class="programlisting">
+local a = [ new action $(source) : common.copy : $(property-set) ] ;
+local t = [ new file-target $(name) : CPP : $(project) : $(a) ] ;
+</pre>
+<p>The first line creates an instance of the <code class="computeroutput">action</code> class.
+        The first parameter is the list of sources. The second parameter is the name
+        a jam-level <a class="link" href="overview.html#bbv2.overview.jam_language.actions">action</a>.
+        The third parameter is the property-set applying to this action. The second line
+        creates a target. We specifie a name, a type and a project. We also pass the
+        action object created earlier.  If the action creates several targets, we can repeat
+        the second line several times.</p>
+<p>In some cases, code that creates concrete targets may be invoked more than
+        once with the same properties. Returning to different instance of <code class="computeroutput">file-target</code>
+        that correspond to the same file clearly will result in problems. Therefore, whenever
+        returning targets you should pass them via the <code class="computeroutput">virtual-target.register</code>
+        function, besides allowing Boost Build to track which virtual targets
+        got created for each metatarget, this will also replace targets with previously created identical
+        ones, as necessary.<a href="#ftn.idp263041080" class="footnote" name="idp263041080"><sup class="footnote">[17]</sup></a>
+        Here are a couple of examples:
+</p>
+<pre class="programlisting">
+return [ virtual-target.register $(t) ] ;
+return [ sequence.transform virtual-target.register : $(targets) ] ;
+</pre>
+<p>
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.extender.overview.generators"></a>Generators</h4></div></div></div>
+<p>In theory, every kind of metatarget in Boost.Build (like <code class="computeroutput">exe</code>, 
+        <code class="computeroutput">lib</code> or <code class="computeroutput">obj</code>) could be implemented
+        by writing a new metatarget class that, independently of the other code, figures
+        what files to produce and what commands to use. However, that would be rather inflexible.
+        For example, adding support for a new compiler would require editing several metatargets.
+        </p>
+<p>In practice, most files have specific types, and most tools
+        consume and produce files of specific type. To take advantage of this
+        fact, Boost.Build defines concept of target type and
+        <a class="indexterm" name="idp263044664"></a>
+        <em class="firstterm">generators</em>, and has special metatarget class
+        <a class="link" href="reference.html#bbv2.reference.class.typed-target" title="Class typed-target">typed-target</a>.  Target type is merely an
+        identifier. It is associated with a set of file extensions that
+        correspond to that type. Generator is an abstraction of a tool. It advertises
+        the types it produces and, if called with a set of input target, tries to construct
+        output targets of the advertised types. Finally,
+        <a class="link" href="reference.html#bbv2.reference.class.typed-target" title="Class typed-target">typed-target</a>
+        is associated with specific target type, and relays the generator (or generators)
+        for that type.
+        </p>
+<p>A generator is an instance of a class derived from <code class="computeroutput">generator</code>.
+        The <code class="computeroutput">generator</code> class itself is suitable for common cases.
+        You can define derived classes for custom scenarios.</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.extender.example"></a>Example: 1-to-1 generator</h3></div></div></div>
+<p>Say you're writing an application that generates C++ code. If
+      you ever did this, you know that it's not nice. Embedding large
+      portions of C++ code in string literals is very awkward. A much
+      better solution is:</p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            Write the template of the code to be generated, leaving
+            placeholders at the points that will change
+          </li>
+<li class="listitem">
+            Access the template in your application and replace
+            placeholders with appropriate text.
+          </li>
+<li class="listitem">Write the result.</li>
+</ol></div>
+<p>It's quite easy to achieve. You write special verbatim files that are
+      just C++, except that the very first line of the file contains the name of a
+      variable that should be generated. A simple tool is created that takes a
+      verbatim file and creates a cpp file with a single <code class="computeroutput">char*</code> variable
+      whose name is taken from the first line of the verbatim file and whose value
+      is the file's properly quoted content.</p>
+<p>Let's see what Boost.Build can do.</p>
+<p>First off, Boost.Build has no idea about "verbatim files". So, you must
+      register a new target type. The following code does it:</p>
+<pre class="programlisting">
+import type ;
+type.register VERBATIM : verbatim ;
+</pre>
+<p>The first parameter to <a class="link" href="reference.html#bbv2.reference.modules.type.register">type.register</a> gives
+      the name of the declared type. By convention, it's uppercase. The second
+      parameter is the suffix for files of this type. So, if Boost.Build sees
+      <code class="filename">code.verbatim</code> in a list of sources, it knows that it's of
+      type <code class="computeroutput">VERBATIM</code>.</p>
+<p>Next, you tell Boost.Build that the verbatim files can be
+      transformed into C++ files in one build step.  A
+      <em class="firstterm">generator</em> is a template for a build step that
+      transforms targets of one type (or set of types) into another.  Our
+      generator will be called <code class="computeroutput">verbatim.inline-file</code>; it
+      transforms <code class="computeroutput">VERBATIM</code> files into <code class="computeroutput">CPP</code> files:
+
+</p>
+<pre class="programlisting">
+import generators ;
+generators.register-standard verbatim.inline-file : VERBATIM : CPP ;
+</pre>
+<p>
+  </p>
+<p>Lastly, you have to inform Boost.Build about the shell
+       commands used to make that transformation.  That's done with an
+       <code class="computeroutput">actions</code> declaration.
+
+</p>
+<pre class="programlisting">
+actions inline-file
+{
+    "./inline-file.py" $(&lt;) $(&gt;)
+}
+</pre>
+<p>
+
+
+
+
+</p>
+<p>
+    Now, we're ready to tie it all together. Put all the code above in file
+    <code class="filename">verbatim.jam</code>, add <code class="computeroutput">import verbatim ;</code> to
+    <code class="filename">Jamroot.jam</code>, and it's possible to write the following
+    in your Jamfile:
+  </p>
+<pre class="programlisting">
+exe codegen : codegen.cpp class_template.verbatim usage.verbatim ;
+</pre>
+<p>
+    The listed verbatim files will be automatically converted into C++ source
+    files, compiled and then linked to the codegen executable.
+  </p>
+<p>
+    In subsequent sections, we will extend this example, and review all the
+    mechanisms in detail. The complete code is available in the
+    <code class="filename">example/customization</code> directory.
+  </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.extending.targets"></a>Target types</h3></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="extender.html#bbv2.extending.scanners">Scanners</a></span></dt></dl></div>
+<p>The first thing we did in the <a class="link" href="extender.html#bbv2.extender.intro" title="Introduction">intruduction</a> was declaring a
+      new target type:
+</p>
+<pre class="programlisting">
+import type ;
+type.register VERBATIM : verbatim ;
+</pre>
+<p>
+        The type is the most important property of a target. Boost.Build can
+        automatically generate necessary build actions only because you
+        specify the desired type (using the different main target rules), and
+        because Boost.Build can guess the type of sources from their
+        extensions.
+      </p>
+<p>The first two parameters for the <code class="computeroutput">type.register</code> rule
+        are the name of new type and the list of extensions associated with
+        it. A file with an extension from the list will have the given target
+        type. In the case where a target of the declared type is generated
+        from other sources, the first specified extension will be used.
+      </p>
+<p>Sometimes you want to change the suffix used for generated targets
+      depending on build properties, such as toolset. For example, some compiler
+      uses extension <code class="literal">elf</code> for executable files. You can use the
+      <code class="computeroutput">type.set-generated-target-suffix</code> rule:
+</p>
+<pre class="programlisting">
+type.set-generated-target-suffix EXE : &lt;toolset&gt;elf : elf ;
+</pre>
+<p>
+    </p>
+<p>A new target type can be inherited from an existing one.
+</p>
+<pre class="programlisting">
+type.register PLUGIN : : SHARED_LIB ;
+</pre>
+<p>
+      The above code defines a new type derived from
+      <code class="computeroutput">SHARED_LIB</code>. Initially, the new type inherits all the
+      properties of the base type - in particular generators and suffix.
+      Typically, you'll change the new type in some way. For example, using
+      <code class="computeroutput">type.set-generated-target-suffix</code> you can set the suffix for
+      the new type. Or you can write special a generator for the new type. For
+      example, it can generate additional metainformation for the plugin.
+      In either way, the <code class="computeroutput">PLUGIN</code> type can be used whenever
+      <code class="computeroutput">SHARED_LIB</code> can. For example, you can directly link plugins
+      to an application.
+    </p>
+<p>A type can be defined as "main", in which case Boost.Build will
+      automatically declare a main target rule for building targets of that
+      type. More details can be found <a class="link" href="extender.html#bbv2.extending.rules.main-type">later</a>.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="bbv2.extending.scanners"></a>Scanners</h4></div></div></div>
+<p>
+          Sometimes, a file can refer to other files via some include system. To
+          make Boost.Build track dependencies between included files, you need
+          to provide a scanner. The primary limitation is that only one scanner
+          can be assigned to a target type.
+        </p>
+<p>First, we need to declare a new class for the scanner:
+</p>
+<pre class="programlisting">
+class verbatim-scanner : common-scanner
+{
+    rule pattern ( )
+    {
+        return "//###include[ ]*\"([^\"]*)\"" ;
+    }
+}
+</pre>
+<p>
+          All the complex logic is in the <code class="computeroutput">common-scanner</code>
+          class, and you only need to override the method that returns
+          the regular expression to be used for scanning. The
+          parentheses in the regular expression indicate which part
+          of the string is the name of the included file.  Only the
+          first parenthesized group in the regular expression will be
+          recognized; if you can't express everything you want that
+          way, you can return multiple regular expressions, each of
+          which contains a parenthesized group to be matched.
+        </p>
+<p>After that, we need to register our scanner class:
+</p>
+<pre class="programlisting">
+scanner.register verbatim-scanner : include ;
+</pre>
+<p>
+            The value of the second parameter, in this case
+            <code class="computeroutput">include</code>, specifies the properties that contain the list
+            of paths that should be searched for the included files.
+         </p>
+<p>Finally, we assign the new scanner to the <code class="computeroutput">VERBATIM</code>
+        target type:
+</p>
+<pre class="programlisting">
+type.set-scanner VERBATIM : verbatim-scanner ;
+</pre>
+<p>
+          That's enough for scanning include dependencies.
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.extending.tools"></a>Tools and generators</h3></div></div></div>
+<p>
+        This section will describe how Boost.Build can be extended to support
+        new tools.
+      </p>
+<p>For each additional tool, a Boost.Build object called generator
+        must be created. That object has specific types of targets that it
+        accepts and produces. Using that information, Boost.Build is able
+        to automatically invoke the generator. For example, if you declare a
+        generator that takes a target of the type <code class="literal">D</code> and
+        produces a target of the type <code class="literal">OBJ</code>, when placing a
+        file with extention <code class="literal">.d</code> in a list of sources will
+        cause Boost.Build to invoke your generator, and then to link the
+        resulting object file into an application. (Of course, this requires
+        that you specify that the <code class="literal">.d</code> extension corresponds
+        to the <code class="literal">D</code> type.)
+      </p>
+<p>Each generator should be an instance of a class derived from the
+        <code class="computeroutput">generator</code> class. In the simplest case, you don't need to
+        create a derived class, but simply create an instance of the
+        <code class="computeroutput">generator</code> class. Let's review the example we've seen in the
+        <a class="link" href="extender.html#bbv2.extender.intro" title="Introduction">introduction</a>.
+        
+</p>
+<pre class="programlisting">
+import generators ;
+generators.register-standard verbatim.inline-file : VERBATIM : CPP ;
+actions inline-file
+{
+    "./inline-file.py" $(&lt;) $(&gt;)
+}
+</pre>
+<p>
+      </p>
+<p>We declare a standard generator, specifying its id, the source type
+        and the target type. When invoked, the generator will create a target
+        of type <code class="literal">CPP</code> with a source target of
+        type <code class="literal">VERBATIM</code> as the only source. But what command
+        will be used to actually generate the file? In bjam, actions are
+        specified using named "actions" blocks and the name of the action
+        block should be specified when creating targets. By convention,
+        generators use the same name of the action block as their own id. So,
+        in above example, the "inline-file" actions block will be used to
+        convert the source into the target.
+      </p>
+<p>
+        There are two primary kinds of generators: standard and composing,
+        which are registered with the
+        <code class="computeroutput">generators.register-standard</code> and the
+        <code class="computeroutput">generators.register-composing</code> rules, respectively. For
+        example:
+</p>
+<pre class="programlisting">
+generators.register-standard verbatim.inline-file : VERBATIM : CPP ;
+generators.register-composing mex.mex : CPP LIB : MEX ;
+</pre>
+<p>
+        The first (standard) generator takes a <span class="emphasis"><em>single</em></span>
+        source of type <code class="computeroutput">VERBATIM</code> and produces a result. The second
+        (composing) generator takes any number of sources, which can have either
+        the <code class="computeroutput">CPP</code> or the <code class="computeroutput">LIB</code> type. Composing generators
+        are typically used for generating top-level target type. For example,
+        the first generator invoked when building an <code class="computeroutput">exe</code> target is
+        a composing generator corresponding to the proper linker.
+      </p>
+<p>You should also know about two specific functions for registering
+        generators: <code class="computeroutput">generators.register-c-compiler</code> and
+        <code class="computeroutput">generators.register-linker</code>. The first sets up header
+        dependecy scanning for C files, and the seconds handles various
+        complexities like searched libraries. For that reason, you should always
+        use those functions when adding support for compilers and linkers.
+      </p>
+<p>(Need a note about UNIX)</p>
+<h4>
+<a name="idp263085752"></a>Custom generator classes</h4>
+<p>The standard generators allows you to specify source and target
+        types, an action, and a set of flags. If you need anything more complex,
+        
+        you need to create a new generator class with your own logic. Then,
+        you have to create an instance of that class and register it. Here's
+        an example how you can create your own generator class:
+</p>
+<pre class="programlisting">
+class custom-generator : generator
+{
+    rule __init__ ( * : * )
+    {
+        generator.__init__ $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ;
+    }
+
+}
+
+generators.register
+  [ new custom-generator verbatim.inline-file : VERBATIM : CPP ] ;
+</pre>
+<p>
+        This generator will work exactly like the
+        <code class="computeroutput">verbatim.inline-file</code> generator we've defined above, but
+        it's possible to customize the behaviour by overriding methods of the
+        <code class="computeroutput">generator</code> class.
+      </p>
+<p>There are two methods of interest. The <code class="computeroutput">run</code> method is
+        responsible for the overall process - it takes a number of source targets,
+        converts them to the right types, and creates the result. The
+        <code class="computeroutput">generated-targets</code> method is called when all sources are
+        converted to the right types to actually create the result.
+      </p>
+<p>The <code class="computeroutput">generated-targets</code> method can be overridden when you
+        want to add additional properties to the generated targets or use
+        additional sources. For a real-life example, suppose you have a program
+        analysis tool that should be given a name of executable and the list of
+        all sources. Naturally, you don't want to list all source files
+        manually. Here's how the <code class="computeroutput">generated-targets</code> method can find
+        the list of sources automatically:
+</p>
+<pre class="programlisting">
+class itrace-generator : generator {
+....
+    rule generated-targets ( sources + : property-set : project name ? )
+    {
+        local leaves ;
+        local temp = [ virtual-target.traverse $(sources[1]) : : include-sources ] ;
+        for local t in $(temp)
+        {
+            if ! [ $(t).action ]
+            {
+                leaves += $(t) ;
+            }
+        }
+        return [ generator.generated-targets $(sources) $(leafs)
+          : $(property-set) : $(project) $(name) ] ;
+    }
+}
+generators.register [ new itrace-generator nm.itrace : EXE : ITRACE ] ;
+</pre>
+<p>
+        The <code class="computeroutput">generated-targets</code> method will be called with a single
+        source target of type <code class="literal">EXE</code>. The call to
+        <code class="computeroutput">virtual-target.traverse</code> will return all targets the
+        executable depends on, and we further find files that are not
+        produced from anything. 
+        The found targets are added to the sources.
+      </p>
+<p>The <code class="computeroutput">run</code> method can be overriden to completely
+        customize the way the generator works. In particular, the conversion of
+        sources to the desired types can be completely customized. Here's
+        another real example. Tests for the Boost Python library usually
+        consist of two parts: a Python program and a C++ file. The C++ file is
+        compiled to Python extension that is loaded by the Python
+        program. But in the likely case that both files have the same name,
+        the created Python extension must be renamed. Otherwise, the Python
+        program will import itself, not the extension. Here's how it can be
+        done:
+</p>
+<pre class="programlisting">
+rule run ( project name ? : property-set : sources * )
+{
+    local python ;
+    for local s in $(sources)
+    {
+        if [ $(s).type ] = PY
+        {
+            python = $(s) ;
+        }
+    }
+    
+    local libs ;
+    for local s in $(sources)
+    {
+        if [ type.is-derived [ $(s).type ] LIB ]
+        {
+            libs += $(s) ;
+        }
+    }
+
+    local new-sources ;
+    for local s in $(sources)
+    {
+        if [ type.is-derived [ $(s).type ] CPP ]
+        {
+            local name = [ $(s).name ] ;    # get the target's basename
+            if $(name) = [ $(python).name ]
+            {
+                name = $(name)_ext ;        # rename the target
+            }
+            new-sources += [ generators.construct $(project) $(name) :
+              PYTHON_EXTENSION : $(property-set) : $(s) $(libs) ] ;
+        }
+    }
+
+    result = [ construct-result $(python) $(new-sources) : $(project) $(name)
+                 : $(property-set) ] ;
+}
+</pre>
+<p>
+        
+
+        First, we separate all source into python files, libraries and C++
+        sources. For each C++ source we create a separate Python extension by
+        calling <code class="computeroutput">generators.construct</code> and passing the C++ source
+        and the libraries. At this point, we also change the extension's name,
+        if necessary.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.extending.features"></a>Features</h3></div></div></div>
+<p>
+        Often, we need to control the options passed the invoked tools. This
+        is done with features. Consider an example:
+</p>
+<pre class="programlisting">
+# Declare a new free feature
+import feature : feature ;
+feature verbatim-options : : free ;
+
+# Cause the value of the 'verbatim-options' feature to be
+# available as 'OPTIONS' variable inside verbatim.inline-file
+import toolset : flags ;
+flags verbatim.inline-file OPTIONS &lt;verbatim-options&gt; ;
+
+# Use the "OPTIONS" variable
+actions inline-file
+{
+    "./inline-file.py" $(OPTIONS) $(&lt;) $(&gt;)
+}
+</pre>
+<p>
+        We first define a new feature. Then, the <code class="computeroutput">flags</code> invocation
+        says that whenever verbatin.inline-file action is run, the value of
+        the <code class="computeroutput">verbatim-options</code> feature will be added to the
+        <code class="computeroutput">OPTIONS</code> variable, and can be used inside the action body.
+        You'd need to consult online help (--help) to find all the features of
+        the <code class="computeroutput">toolset.flags</code> rule.
+        
+      </p>
+<p>
+      Although you can define any set of features and interpret their values
+      in any way, Boost.Build suggests the following coding standard for
+      designing features.
+    </p>
+<p>Most features should have a fixed set of values that is portable
+      (tool neutral) across the class of tools they are designed to work
+      with. The user does not have to adjust the values for a exact tool.  For
+      example, <code class="computeroutput">&lt;optimization&gt;speed</code> has the same meaning for
+      all C++ compilers and the user does not have to worry about the exact
+      options passed to the compiler's command line.
+    </p>
+<p>
+      Besides such portable features there are special 'raw' features that
+      allow the user to pass any value to the command line parameters for a
+      particular tool, if so desired. For example, the
+      <code class="computeroutput">&lt;cxxflags&gt;</code> feature allows you to pass any command line
+      options to a C++ compiler. The <code class="computeroutput">&lt;include&gt;</code> feature
+      allows you to pass any string preceded by <code class="computeroutput">-I</code> and the interpretation
+      is tool-specific.  (See <a class="xref" href="faq.html#bbv2.faq.external" title="Can I get capture external program output using a Boost.Jam variable?">the section called &#8220;
+      Can I get capture external program output using a Boost.Jam variable?
+    &#8221;</a> for an example of very smart usage of that
+      feature).  Of course one should always strive to use portable
+      features, but these are still be provided as a backdoor just to make
+      sure Boost.Build does not take away any control from the user.
+    </p>
+<p>
+      Using portable features is a good idea because:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>When a portable feature is given a fixed set of
+          values, you can build your project with two different
+          settings of the feature and Boost.Build will automatically
+          use two different directories for generated files.
+          Boost.Build does not try to separate targets built with
+          different raw options.
+            
+          </p></li>
+<li class="listitem"><p>Unlike with &#8220;raw&#8221; features, you don't need to use
+          specific command-line flags in your Jamfile, and it will be
+          more likely to work with other tools.
+          </p></li>
+</ul></div>
+<p>
+    </p>
+<h4>
+<a name="idp263102648"></a>Steps for adding a feauture</h4>
+<p>Adding a feature requires three steps:
+
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<p>Declaring a feature. For that, the "feature.feature"
+              rule is used. You have to decide on the set of <a class="link" href="reference.html#bbv2.reference.features.attributes" title="Feature Attributes">feature
+              attributes</a>:
+
+              </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>if you want a feature value set for one target
+                to automaticaly propagate to its dependant targets then make it
+                &#8220;propagated&#8221;. </p></li>
+<li class="listitem"><p>if a feature does not have a fixed list of
+                values, it must be &#8220;free.&#8221;  For example, the <code class="computeroutput">include
+                </code> feature is a free feature.</p></li>
+<li class="listitem"><p>if a feature is used to refer to a path relative
+                to the Jamfile, it must be a &#8220;path&#8221; feature. Such features will
+                also get their values automatically converted to Boost Build's
+                internal path representation. For example, <code class="computeroutput">include</code>
+                is a path feature.</p></li>
+<li class="listitem"><p>if feature is used to refer to some target, it
+                must be a &#8220;dependency&#8221; feature. </p></li>
+</ul></div>
+<p>
+              </p>
+</li>
+<li class="listitem"><p>Representing the feature value in a
+          target-specific variable. Build actions are command
+          templates modified by Boost.Jam variable expansions.  The
+          <code class="computeroutput">toolset.flags</code> rule sets a target-specific
+          variable to the value of a feature.</p></li>
+<li class="listitem"><p>Using the variable. The variable set in step 2 can
+              be used in a build action to form command parameters or
+              files.</p></li>
+</ol></div>
+<p>
+      </p>
+<h4>
+<a name="idp263108616"></a>Another example</h4>
+<p>Here's another example.
+        Let's see how we can make a feature that refers to a target. For example,
+        when linking dynamic libraries on Windows, one sometimes needs to
+        specify a "DEF file", telling what functions should be exported. It
+        would be nice to use this file like this:
+</p>
+<pre class="programlisting">
+        lib a : a.cpp : &lt;def-file&gt;a.def ;
+</pre>
+<p>
+
+        Actually, this feature is already supported, but anyway...
+        
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<p>Since the feature refers to a target, it must be "dependency".
+</p>
+<pre class="programlisting">
+feature def-file : : free dependency ;
+</pre>
+<p>
+            </p>
+</li>
+<li class="listitem">
+<p>One of the toolsets that cares about
+        
+        DEF files is msvc. The following line should be added to it.
+        
+
+</p>
+<pre class="programlisting">
+flags msvc.link DEF_FILE &lt;def-file&gt; ;
+</pre>
+<p>
+            
+            </p>
+</li>
+<li class="listitem">
+<p>Since the DEF_FILE variable is not used by the
+msvc.link action,
+
+we need to modify it to be:
+
+</p>
+<pre class="programlisting">
+actions link bind DEF_FILE
+{
+    $(.LD) .... /DEF:$(DEF_FILE) ....
+}
+</pre>
+<p>
+            </p>
+<p> Note the <code class="computeroutput">bind DEF_FILE</code> part. It tells
+          bjam to translate the internal target name in
+          <code class="varname">DEF_FILE</code> to a corresponding filename in
+          the <code class="computeroutput">link</code> action.  Without it the expansion of
+          <code class="computeroutput">$(DEF_FILE)</code> would be a strange symbol that is
+          not likely to make sense for the linker.
+          </p>
+<p>
+            We are almost done, but we should stop for a small workaround. Add the following
+            code to msvc.jam
+
+</p>
+<pre class="programlisting">
+rule link
+{
+    DEPENDS $(&lt;) : [ on $(&lt;) return $(DEF_FILE) ] ;
+}
+</pre>
+<p>
+
+
+            This is needed to accomodate some bug in bjam, which hopefully
+            will be fixed one day.
+            
+</p>
+</li>
+</ol></div>
+<h4>
+<a name="idp263115288"></a>Variants and composite features.</h4>
+<p>Sometimes you want to create a shortcut for some set of
+        features. For example, <code class="computeroutput">release</code> is a value of
+        <code class="computeroutput">&lt;variant&gt;</code> and is a shortcut for a set of features.
+      </p>
+<p>It is possible to define your own build variants. For example:
+</p>
+<pre class="programlisting">
+variant crazy : &lt;optimization&gt;speed &lt;inlining&gt;off
+                &lt;debug-symbols&gt;on &lt;profiling&gt;on ;
+</pre>
+<p>
+        will define a new variant with the specified set of properties. You
+        can also extend an existing variant:
+</p>
+<pre class="programlisting">
+variant super_release : release : &lt;define&gt;USE_ASM ;
+</pre>
+<p>
+        In this case, <code class="computeroutput">super_release</code> will expand to all properties
+        specified by <code class="computeroutput">release</code>, and the additional one you've specified.
+      </p>
+<p>You are not restricted to using the <code class="computeroutput">variant</code> feature
+      only.
+      
+      Here's example that defines a brand new feature:
+</p>
+<pre class="programlisting">
+feature parallelism : mpi fake none : composite link-incompatible ;
+feature.compose &lt;parallelism&gt;mpi : &lt;library&gt;/mpi//mpi/&lt;parallelism&gt;none ;
+feature.compose &lt;parallelism&gt;fake : &lt;library&gt;/mpi//fake/&lt;parallelism&gt;none ;
+</pre>
+<p>
+
+        This will allow you to specify the value of feature
+        <code class="computeroutput">parallelism</code>, which will expand to link to the necessary
+        library.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.extending.rules"></a>Main target rules</h3></div></div></div>
+<p>
+      A main target rule (e.g &#8220;<a class="link" href="tasks.html#bbv2.tasks.programs" title="Programs">exe</a>&#8221;
+      Or &#8220;<a class="link" href="tasks.html#bbv2.tasks.libraries" title="Libraries">lib</a>&#8221;) creates a top-level target. It's quite likely that you'll want to declare your own and
+      there are two ways to do that.
+      
+    </p>
+<p><a name="bbv2.extending.rules.main-type"></a>The first way applies when
+
+      your target rule should just produce a target of specific type. In that case, a
+      rule is already defined for you! When you define a new type, Boost.Build
+      automatically defines a corresponding rule. The name of the rule is
+      obtained from the name of the type, by downcasing all letters and
+      replacing underscores with dashes.
+      
+      For example, if you create a module
+      <code class="filename">obfuscate.jam</code> containing:
+
+</p>
+<pre class="programlisting">
+import type ;
+type.register OBFUSCATED_CPP  : ocpp ;
+
+import generators ;
+generators.register-standard obfuscate.file : CPP : OBFUSCATED_CPP ;
+</pre>
+<p>
+      and import that module, you'll be able to use the rule "obfuscated-cpp"
+      in Jamfiles, which will convert source to the OBFUSCATED_CPP type.
+    </p>
+<p>
+      The second way is to write a wrapper rule that calls any of the existing
+      rules. For example, suppose you have only one library per directory and
+      want all cpp files in the directory to be compiled into that library. You
+      can achieve this effect using:
+</p>
+<pre class="programlisting">
+lib codegen : [ glob *.cpp ] ;
+</pre>
+<p>
+      If you want to make it even simpler, you could add the following
+      definition to the <code class="filename">Jamroot.jam</code> file:
+</p>
+<pre class="programlisting">
+rule glib ( name : extra-sources * : requirements * )
+{
+    lib $(name) : [ glob *.cpp ] $(extra-sources) : $(requirements) ;
+}
+</pre>
+<p>
+      allowing you to reduce the Jamfile to just
+</p>
+<pre class="programlisting">
+glib codegen ;
+</pre>
+<p>
+    </p>
+<p>
+      Note that because you can associate a custom generator with a target type,
+      the logic of building can be rather complicated. For example, the
+      <code class="computeroutput">boostbook</code> module declares a target type
+      <code class="computeroutput">BOOSTBOOK_MAIN</code> and a custom generator for that type. You can
+      use that as example if your main target rule is non-trivial.
+    </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="bbv2.extending.toolset_modules"></a>Toolset modules</h3></div></div></div>
+<p>
+      If your extensions will be used only on one project, they can be placed in
+      a separate <code class="filename">.jam</code> file and imported by your
+      <code class="filename">Jamroot.jam</code>. If the extensions will be used on many
+      projects, users will thank you for a finishing touch.
+    </p>
+<p>The <code class="computeroutput">using</code> rule provides a standard mechanism
+    for loading and configuring extensions.  To make it work, your module
+    
+    should provide an <code class="computeroutput">init</code> rule. The rule will be called
+    with the same parameters that were passed to the
+    <code class="computeroutput">using</code> rule. The set of allowed parameters is
+    determined by you. For example, you can allow the user to specify
+    paths, tool versions, and other options.
+    
+    </p>
+<p>Here are some guidelines that help to make Boost.Build more
+      consistent:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>The <code class="computeroutput">init</code> rule should never fail. Even if
+          the user provided an incorrect path, you should emit a warning and go
+          on. Configuration may be shared between different machines, and
+          wrong values on one machine can be OK on another.
+          
+          </p></li>
+<li class="listitem">
+<p>Prefer specifying the command to be executed
+        to specifying the tool's installation path. First of all, this
+        gives more control: it's possible to specify
+</p>
+<pre class="programlisting">
+/usr/bin/g++-snapshot
+time g++
+
+</pre>
+<p>
+            as the command. Second, while some tools have a logical
+            "installation root", it's better if the user doesn't have to remember whether
+            a specific tool requires a full command or a path.
+            
+          </p>
+</li>
+<li class="listitem">
+<p>Check for multiple initialization. A user can try to
+            initialize the module several times. You need to check for this
+            and decide what to do. Typically, unless you support several
+            versions of a tool, duplicate initialization is a user error.
+            
+            If the
+            tool's version can be specified during initialization, make sure the
+            version is either always specified, or never specified (in which
+            case the tool is initialied only once). For example, if you allow:
+</p>
+<pre class="programlisting">
+using yfc ;
+using yfc : 3.3 ;
+using yfc : 3.4 ;
+</pre>
+<p>
+            Then it's not clear if the first initialization corresponds to
+            version 3.3 of the tool, version 3.4 of the tool, or some other
+            version. This can lead to building twice with the same version.
+            
+            </p>
+</li>
+<li class="listitem">
+<p>If possible, <code class="computeroutput">init</code> must be callable
+          with no parameters. In which case, it should try to autodetect all
+          the necessary information, for example, by looking for a tool in
+          <code class="envar">PATH</code> or in common installation locations. Often this
+          is possible and allows the user to simply write:
+</p>
+<pre class="programlisting">
+using yfc ;
+</pre>
+<p>
+          </p>
+</li>
+<li class="listitem"><p>Consider using facilities in the
+          <code class="computeroutput">tools/common</code> module. You can take a look at how
+          <code class="computeroutput">tools/gcc.jam</code> uses that module in the <code class="computeroutput">init</code> rule.
+          </p></li>
+</ul></div>
+<p>
+    </p>
+</div>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.idp263017992" class="footnote"><p><a href="#idp263017992" class="para"><sup class="para">[16] </sup></a>This name is historic, and will be eventuall changed to 
+        <code class="computeroutput">metatarget</code></p></div>
+<div id="ftn.idp263041080" class="footnote"><p><a href="#idp263041080" class="para"><sup class="para">[17] </sup></a>This create-then-register pattern is caused by limitations 
+        of the Boost.Jam language. Python port is likely to never create duplicate targets.</p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2009 Vladimir Prus<p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reference.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bbv2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="faq.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

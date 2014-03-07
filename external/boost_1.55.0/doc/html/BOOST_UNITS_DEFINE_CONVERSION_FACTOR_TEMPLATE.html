@@ -1,0 +1,54 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Macro BOOST_UNITS_DEFINE_CONVERSION_FACTOR_TEMPLATE</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="boost_units/Reference.html#header.boost.units.conversion_hpp" title="Header &lt;boost/units/conversion.hpp&gt;">
+<link rel="prev" href="BOOST_UNITS_DEFINE_CONVERSION_FACTOR.html" title="Macro BOOST_UNITS_DEFINE_CONVERSION_FACTOR">
+<link rel="next" href="BOOST_UNITS_DEFAULT_CONVERSION.html" title="Macro BOOST_UNITS_DEFAULT_CONVERSION">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_UNITS_DEFINE_CONVERSION_FACTOR.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="boost_units/Reference.html#header.boost.units.conversion_hpp"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_UNITS_DEFAULT_CONVERSION.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="BOOST_UNITS_DEFINE_CONVERSION_FACTOR_TEMPLATE"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Macro BOOST_UNITS_DEFINE_CONVERSION_FACTOR_TEMPLATE</span></h2>
+<p>BOOST_UNITS_DEFINE_CONVERSION_FACTOR_TEMPLATE</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="boost_units/Reference.html#header.boost.units.conversion_hpp" title="Header &lt;boost/units/conversion.hpp&gt;">boost/units/conversion.hpp</a>&gt;
+
+</span>BOOST_UNITS_DEFINE_CONVERSION_FACTOR_TEMPLATE(Params, Source, Destination, type_, value_)</pre></div>
+<div class="refsect1">
+<a name="idp234502392"></a><h2>Description</h2>
+<p>Defines the conversion factor from a base unit to any other base unit with the same dimensions. Params should be a Boost.Preprocessor Seq of template parameters, such as (class T1)(class T2) All uses of must appear at global scope. The reverse conversion will be defined automatically. This macro is a little dangerous, because, unlike the non-template form, it will silently fail if either base unit is scaled. This is probably not an issue if both the source and destination types depend on the template parameters, but be aware that a generic conversion to kilograms is not going to work. </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2008 Matthias Christian Schabel<br>Copyright &#169; 2007-2010 Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_UNITS_DEFINE_CONVERSION_FACTOR.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="boost_units/Reference.html#header.boost.units.conversion_hpp"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_UNITS_DEFAULT_CONVERSION.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

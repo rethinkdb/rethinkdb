@@ -1,0 +1,782 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Scoped Threads</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../thread.html" title="Chapter&#160;31.&#160;Thread 4.2.0">
+<link rel="prev" href="thread_management.html" title="Thread Management">
+<link rel="next" href="synchronization.html" title="Synchronization">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="thread_management.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../thread.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="synchronization.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="thread.ScopedThreads"></a><a class="link" href="ScopedThreads.html" title="Scoped Threads">Scoped Threads</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.motovation">Motivation</a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.tutorial">Tutorial</a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.thread_functors">Free Thread Functors</a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.strict_scoped_thread">Class <code class="computeroutput"><span class="identifier">strict_scoped_thread</span></code></a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread">Class <code class="computeroutput"><span class="identifier">scoped_thread</span></code></a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.non_member_swap">Non-member function
+      <code class="computeroutput"><span class="identifier">swap</span><span class="special">(</span><span class="identifier">scoped_thread</span><span class="special">&amp;,</span><span class="identifier">scoped_thread</span><span class="special">&amp;)</span></code></a></span></dt>
+</dl></div>
+<h4>
+<a name="thread.ScopedThreads.h0"></a>
+      <span class="phrase"><a name="thread.ScopedThreads.synopsis"></a></span><a class="link" href="ScopedThreads.html#thread.ScopedThreads.synopsis">Synopsis</a>
+    </h4>
+<pre class="programlisting"><span class="comment">//#include &lt;boost/thread/scoped_thread.hpp&gt;</span>
+
+<span class="keyword">struct</span> <span class="identifier">detach</span><span class="special">;</span>
+<span class="keyword">struct</span> <span class="identifier">join_if_joinable</span><span class="special">;</span>
+<span class="keyword">struct</span> <span class="identifier">interrupt_and_join_if_joinable</span><span class="special">;</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">CallableThread</span> <span class="special">=</span> <span class="identifier">join_if_joinable</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">strict_scoped_thread</span><span class="special">;</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">CallableThread</span> <span class="special">=</span> <span class="identifier">join_if_joinable</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">scoped_thread</span><span class="special">;</span>
+<span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">scoped_thread</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span><span class="identifier">scoped_thread</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="keyword">noexcept</span><span class="special">;</span>
+</pre>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="thread.ScopedThreads.motovation"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.motovation" title="Motivation">Motivation</a>
+</h3></div></div></div>
+<p>
+        Based on the scoped_thread class defined in C++ Concurrency in Action Boost.Thread
+        defines a thread wrapper class that instead of calling terminate if the thread
+        is joinable on destruction, call a specific action given as template parameter.
+      </p>
+<p>
+        While the scoped_thread class defined in C++ Concurrency in Action is closer
+        to strict_scoped_thread class that doesn't allows any change in the wrapped
+        thread, Boost.Thread provides a class scoped_thread that provides the same
+        non-deprecated interface than <a class="link" href="thread_management.html#thread.thread_management.thread" title="Class thread"><code class="computeroutput"><span class="identifier">thread</span></code></a>.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="thread.ScopedThreads.tutorial"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.tutorial" title="Tutorial">Tutorial</a>
+</h3></div></div></div>
+<p>
+        Scoped Threads are wrappers around a thread that allows the user to state
+        what to do at destruction time. One of the common uses is to join the thread
+        at destruction time so this is the default behavior. This is the single difference
+        respect to a thread. While thread call std::terminate() on the destructor
+        is the thread is joinable, strict_scoped_thread&lt;&gt; or scoped_thread&lt;&gt;
+        join the thread if joinable.
+      </p>
+<p>
+        The difference between strict_scoped_thread and scoped_thread is that the
+        strict_scoped_thread hides completely the owned thread and so the user can
+        do nothing with the owned thread other than the specific action given as
+        parameter, while scoped_thread provide the same interface than <a class="link" href="thread_management.html#thread.thread_management.thread" title="Class thread"><code class="computeroutput"><span class="identifier">thread</span></code></a> and forwards all the operations.
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">strict_scoped_thread</span><span class="special">&lt;&gt;</span> <span class="identifier">t1</span><span class="special">((</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span><span class="special">(</span><span class="identifier">F</span><span class="special">)));</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">strict_scoped_thread</span><span class="special">&lt;&gt;</span> <span class="identifier">t2</span><span class="special">((</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span><span class="special">(</span><span class="identifier">F</span><span class="special">)));</span>
+<span class="identifier">t2</span><span class="special">.</span><span class="identifier">interrupt</span><span class="special">();</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="thread.ScopedThreads.thread_functors"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.thread_functors" title="Free Thread Functors">Free Thread Functors</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.thread_functors.detach">Functor
+        <code class="computeroutput"><span class="identifier">detach</span></code></a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.thread_functors.join_if_joinable">Functor
+        <code class="computeroutput"><span class="identifier">join_if_joinable</span></code></a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.thread_functors.interrupt_and_join_if_joinable">Functor
+        <code class="computeroutput"><span class="identifier">interrupt_and_join_if_joinable</span></code></a></span></dt>
+</dl></div>
+<pre class="programlisting"><span class="comment">//#include &lt;boost/thread/scoped_thread.hpp&gt;</span>
+
+<span class="keyword">struct</span> <span class="identifier">detach</span><span class="special">;</span>
+<span class="keyword">struct</span> <span class="identifier">join_if_joinable</span><span class="special">;</span>
+<span class="keyword">struct</span> <span class="identifier">interrupt_and_join_if_joinable</span><span class="special">;</span>
+</pre>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.thread_functors.detach"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.thread_functors.detach" title="Functor detach">Functor
+        <code class="computeroutput"><span class="identifier">detach</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">detach</span>
+<span class="special">{</span>
+  <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">thread</span><span class="special">&amp;</span> <span class="identifier">t</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="identifier">t</span><span class="special">.</span><span class="identifier">detach</span><span class="special">();</span>
+  <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.thread_functors.join_if_joinable"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.thread_functors.join_if_joinable" title="Functor join_if_joinable">Functor
+        <code class="computeroutput"><span class="identifier">join_if_joinable</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">join_if_joinable</span>
+<span class="special">{</span>
+  <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">thread</span><span class="special">&amp;</span> <span class="identifier">t</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">t</span><span class="special">.</span><span class="identifier">joinable</span><span class="special">())</span>
+    <span class="special">{</span>
+      <span class="identifier">t</span><span class="special">.</span><span class="identifier">join</span><span class="special">();</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.thread_functors.interrupt_and_join_if_joinable"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.thread_functors.interrupt_and_join_if_joinable" title="Functor interrupt_and_join_if_joinable">Functor
+        <code class="computeroutput"><span class="identifier">interrupt_and_join_if_joinable</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">interrupt_and_join_if_joinable</span>
+<span class="special">{</span>
+  <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">thread</span><span class="special">&amp;</span> <span class="identifier">t</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="identifier">t</span><span class="special">.</span><span class="identifier">interrupt</span><span class="special">();</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">t</span><span class="special">.</span><span class="identifier">joinable</span><span class="special">())</span>
+    <span class="special">{</span>
+      <span class="identifier">t</span><span class="special">.</span><span class="identifier">join</span><span class="special">();</span>
+    <span class="special">}</span>
+  <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="thread.ScopedThreads.strict_scoped_thread"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.strict_scoped_thread" title="Class strict_scoped_thread">Class <code class="computeroutput"><span class="identifier">strict_scoped_thread</span></code></a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.strict_scoped_thread.default_constructor">Constructor
+        from a <a class="link" href="thread_management.html#thread.thread_management.thread" title="Class thread"><code class="computeroutput"><span class="identifier">thread</span></code></a></a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.strict_scoped_thread.call_constructor">Move
+        Constructor from a Callable</a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.strict_scoped_thread.destructor">Destructor</a></span></dt>
+</dl></div>
+<pre class="programlisting"><span class="comment">// #include &lt;boost/thread/scoped_thread.hpp&gt;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">CallableThread</span> <span class="special">=</span> <span class="identifier">join_if_joinable</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">strict_scoped_thread</span>
+<span class="special">{</span>
+  <span class="identifier">thread</span> <span class="identifier">t_</span><span class="special">;</span> <span class="comment">// for exposition purposes only</span>
+<span class="keyword">public</span><span class="special">:</span>
+
+  <span class="identifier">strict_scoped_thread</span><span class="special">(</span><span class="identifier">strict_scoped_thread</span> <span class="keyword">const</span><span class="special">&amp;)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span>
+  <span class="identifier">strict_scoped_thread</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">strict_scoped_thread</span> <span class="keyword">const</span><span class="special">&amp;)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span>
+
+  <span class="keyword">explicit</span> <span class="identifier">strict_scoped_thread</span><span class="special">(</span><span class="identifier">thread</span><span class="special">&amp;&amp;</span> <span class="identifier">t</span><span class="special">)</span> <span class="keyword">noexcept</span><span class="special">;</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&amp;&amp;,</span> <span class="keyword">typename</span> <span class="special">...</span><span class="identifier">Args</span><span class="special">&gt;</span>
+  <span class="keyword">explicit</span> <span class="identifier">strict_scoped_thread</span><span class="special">(</span><span class="identifier">F</span><span class="special">&amp;&amp;,</span> <span class="identifier">Args</span><span class="special">&amp;&amp;...);</span>
+
+  <span class="special">~</span><span class="identifier">strict_scoped_thread</span><span class="special">();</span>
+
+<span class="special">};</span>
+</pre>
+<p>
+        RAI <a class="link" href="thread_management.html#thread.thread_management.thread" title="Class thread"><code class="computeroutput"><span class="identifier">thread</span></code></a>
+        wrapper adding a specific destroyer allowing to master what can be done at
+        destruction time.
+      </p>
+<p>
+        CallableThread: A callable <code class="computeroutput"><span class="keyword">void</span><span class="special">(</span><span class="identifier">thread</span><span class="special">&amp;)</span></code>.
+      </p>
+<p>
+        The default is a <code class="computeroutput"><span class="identifier">join_if_joinable</span></code>.
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">std</span><span class="special">/</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span></code> destructor terminates the program
+        if the <a class="link" href="thread_management.html#thread.thread_management.thread" title="Class thread"><code class="computeroutput"><span class="identifier">thread</span></code></a>
+        is not joinable. This wrapper can be used to join the thread before destroying
+        it seems a natural need.
+      </p>
+<h5>
+<a name="thread.ScopedThreads.strict_scoped_thread.h0"></a>
+        <span class="phrase"><a name="thread.ScopedThreads.strict_scoped_thread.example"></a></span><a class="link" href="ScopedThreads.html#thread.ScopedThreads.strict_scoped_thread.example">Example</a>
+      </h5>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">strict_scoped_thread</span><span class="special">&lt;&gt;</span> <span class="identifier">t</span><span class="special">((</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span><span class="special">(</span><span class="identifier">F</span><span class="special">)));</span>
+</pre>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.strict_scoped_thread.default_constructor"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.strict_scoped_thread.default_constructor" title="Constructor from a thread">Constructor
+        from a <code class="computeroutput"><span class="identifier">thread</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">explicit</span> <span class="identifier">strict_scoped_thread</span><span class="special">(</span><span class="identifier">thread</span><span class="special">&amp;&amp;</span> <span class="identifier">t</span><span class="special">)</span> <span class="keyword">noexcept</span><span class="special">;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                move the thread to own <code class="computeroutput"><span class="identifier">t_</span></code>
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.strict_scoped_thread.call_constructor"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.strict_scoped_thread.call_constructor" title="Move Constructor from a Callable">Move
+        Constructor from a Callable</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&amp;&amp;,</span> <span class="keyword">typename</span> <span class="special">...</span><span class="identifier">Args</span><span class="special">&gt;</span>
+<span class="keyword">explicit</span> <span class="identifier">strict_scoped_thread</span><span class="special">(</span><span class="identifier">F</span><span class="special">&amp;&amp;,</span> <span class="identifier">Args</span><span class="special">&amp;&amp;...);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Construct a internal thread in place.
+              </p></dd>
+<dt><span class="term">Postconditions:</span></dt>
+<dd><p>
+                <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span><span class="special">.</span><span class="identifier">t_</span></code>
+                refers to the newly created thread of execution and <code class="computeroutput"><span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">get_id</span><span class="special">()!=</span><span class="identifier">thread</span><span class="special">::</span><span class="identifier">id</span><span class="special">()</span></code>.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Any exception the thread construction can throw.
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.strict_scoped_thread.destructor"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.strict_scoped_thread.destructor" title="Destructor">Destructor</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="special">~</span><span class="identifier">strict_scoped_thread</span><span class="special">();</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Equivalent to <code class="computeroutput"><span class="identifier">CallableThread</span><span class="special">()(</span><span class="identifier">t_</span><span class="special">)</span></code>.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing: The <code class="computeroutput"><span class="identifier">CallableThread</span><span class="special">()(</span><span class="identifier">t_</span><span class="special">)</span></code> should not throw when joining the
+                thread as the scoped variable is on a scope outside the thread function.
+              </p></dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="thread.ScopedThreads.scoped_thread"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread" title="Class scoped_thread">Class <code class="computeroutput"><span class="identifier">scoped_thread</span></code></a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.default_constructor">Default
+        Constructor</a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.move_constructor">Move
+        Constructor</a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.move_assignment">Move
+        assignment operator</a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.thread_constructor">Move
+        Constructor from a <a class="link" href="thread_management.html#thread.thread_management.thread" title="Class thread"><code class="computeroutput"><span class="identifier">thread</span></code></a></a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.call_constructor">Move
+        Constructor from a Callable</a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.destructor">Destructor</a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.joinable">Member
+        function <code class="computeroutput"><span class="identifier">joinable</span><span class="special">()</span></code></a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.join">Member function
+        <code class="computeroutput"><span class="identifier">join</span><span class="special">()</span></code></a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.try_join_for">Member
+        function <code class="computeroutput"><span class="identifier">try_join_for</span><span class="special">()</span></code></a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.try_join_until">Member
+        function <code class="computeroutput"><span class="identifier">try_join_until</span><span class="special">()</span></code></a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.detach">Member function
+        <code class="computeroutput"><span class="identifier">detach</span><span class="special">()</span></code></a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.get_id">Member function
+        <code class="computeroutput"><span class="identifier">get_id</span><span class="special">()</span></code></a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.interrupt">Member
+        function <code class="computeroutput"><span class="identifier">interrupt</span><span class="special">()</span></code></a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.hardware_concurrency">Static
+        member function <code class="computeroutput"><span class="identifier">hardware_concurrency</span><span class="special">()</span></code></a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.nativehandle">Member
+        function <code class="computeroutput"><span class="identifier">native_handle</span><span class="special">()</span></code></a></span></dt>
+<dt><span class="section"><a href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.swap">Member function
+        <code class="computeroutput"><span class="identifier">swap</span><span class="special">()</span></code></a></span></dt>
+</dl></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">thread</span><span class="special">/</span><span class="identifier">scoped_thread</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">CallableThread</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">scoped_thread</span>
+<span class="special">{</span>
+  <span class="identifier">thread</span> <span class="identifier">t_</span><span class="special">;</span> <span class="comment">// for exposition purposes only</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="identifier">scoped_thread</span><span class="special">()</span> <span class="keyword">noexcept</span><span class="special">;</span>
+    <span class="identifier">scoped_thread</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">scoped_thread</span><span class="special">&amp;)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span>
+    <span class="identifier">scoped_thread</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="keyword">const</span> <span class="identifier">scoped_thread</span><span class="special">&amp;)</span> <span class="special">=</span> <span class="keyword">delete</span><span class="special">;</span>
+
+    <span class="keyword">explicit</span> <span class="identifier">scoped_thread</span><span class="special">(</span><span class="identifier">thread</span><span class="special">&amp;&amp;</span> <span class="identifier">th</span><span class="special">)</span> <span class="keyword">noexcept</span><span class="special">;</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&amp;&amp;,</span> <span class="keyword">typename</span> <span class="special">...</span><span class="identifier">Args</span><span class="special">&gt;</span>
+    <span class="keyword">explicit</span> <span class="identifier">scoped_thread</span><span class="special">(</span><span class="identifier">F</span><span class="special">&amp;&amp;,</span> <span class="identifier">Args</span><span class="special">&amp;&amp;...);</span>
+
+    <span class="special">~</span><span class="identifier">scoped_thread</span><span class="special">();</span>
+
+    <span class="comment">// move support</span>
+    <span class="identifier">scoped_thread</span><span class="special">(</span><span class="identifier">scoped_thread</span> <span class="special">&amp;&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">noexcept</span><span class="special">;</span>
+    <span class="identifier">scoped_thread</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">scoped_thread</span> <span class="special">&amp;&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">noexcept</span><span class="special">;</span>
+
+    <span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">scoped_thread</span><span class="special">&amp;</span> <span class="identifier">x</span><span class="special">)</span> <span class="keyword">noexcept</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">thread</span><span class="special">::</span><span class="identifier">id</span> <span class="identifier">id</span><span class="special">;</span>
+
+    <span class="identifier">id</span> <span class="identifier">get_id</span><span class="special">()</span> <span class="keyword">const</span> <span class="keyword">noexcept</span><span class="special">;</span>
+
+    <span class="keyword">bool</span> <span class="identifier">joinable</span><span class="special">()</span> <span class="keyword">const</span> <span class="keyword">noexcept</span><span class="special">;</span>
+    <span class="keyword">void</span> <span class="identifier">join</span><span class="special">();</span>
+<span class="preprocessor">#ifdef</span> <span class="identifier">BOOST_THREAD_USES_CHRONO</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Rep</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Period</span><span class="special">&gt;</span>
+    <span class="keyword">bool</span> <span class="identifier">try_join_for</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">chrono</span><span class="special">::</span><span class="identifier">duration</span><span class="special">&lt;</span><span class="identifier">Rep</span><span class="special">,</span> <span class="identifier">Period</span><span class="special">&gt;&amp;</span> <span class="identifier">rel_time</span><span class="special">);</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Clock</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Duration</span><span class="special">&gt;</span>
+    <span class="keyword">bool</span> <span class="identifier">try_join_until</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">chrono</span><span class="special">::</span><span class="identifier">time_point</span><span class="special">&lt;</span><span class="identifier">Clock</span><span class="special">,</span> <span class="identifier">Duration</span><span class="special">&gt;&amp;</span> <span class="identifier">t</span><span class="special">);</span>
+<span class="preprocessor">#endif</span>
+
+    <span class="keyword">void</span> <span class="identifier">detach</span><span class="special">();</span>
+
+    <span class="keyword">static</span> <span class="keyword">unsigned</span> <span class="identifier">hardware_concurrency</span><span class="special">()</span> <span class="keyword">noexcept</span><span class="special">;</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">thread</span><span class="special">::</span><span class="identifier">native_handle_type</span> <span class="identifier">native_handle_type</span><span class="special">;</span>
+    <span class="identifier">native_handle_type</span> <span class="identifier">native_handle</span><span class="special">();</span>
+
+<span class="preprocessor">#if</span> <span class="identifier">defined</span> <span class="identifier">BOOST_THREAD_PROVIDES_INTERRUPTIONS</span>
+    <span class="keyword">void</span> <span class="identifier">interrupt</span><span class="special">();</span>
+    <span class="keyword">bool</span> <span class="identifier">interruption_requested</span><span class="special">()</span> <span class="keyword">const</span> <span class="keyword">noexcept</span><span class="special">;</span>
+<span class="preprocessor">#endif</span>
+
+
+<span class="special">};</span>
+
+<span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">scoped_thread</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span><span class="identifier">scoped_thread</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="keyword">noexcept</span><span class="special">;</span>
+</pre>
+<p>
+        RAI <a class="link" href="thread_management.html#thread.thread_management.thread" title="Class thread"><code class="computeroutput"><span class="identifier">thread</span></code></a>
+        wrapper adding a specific destroyer allowing to master what can be done at
+        destruction time.
+      </p>
+<p>
+        CallableThread: A callable void(thread&amp;). The default is join_if_joinable.
+      </p>
+<p>
+        thread std::thread destructor terminates the program if the thread is not
+        joinable. Having a wrapper that can join the thread before destroying it
+        seems a natural need.
+      </p>
+<p>
+        Remark: <code class="computeroutput"><span class="identifier">scoped_thread</span></code> is
+        not a <a class="link" href="thread_management.html#thread.thread_management.thread" title="Class thread"><code class="computeroutput"><span class="identifier">thread</span></code></a>
+        as <a class="link" href="thread_management.html#thread.thread_management.thread" title="Class thread"><code class="computeroutput"><span class="identifier">thread</span></code></a>
+        is not designed to be derived from as a polymorphic type.
+      </p>
+<p>
+        Anyway <code class="computeroutput"><span class="identifier">scoped_thread</span></code> can
+        be used in most of the contexts a <a class="link" href="thread_management.html#thread.thread_management.thread" title="Class thread"><code class="computeroutput"><span class="identifier">thread</span></code></a> could be used as it has the
+        same non-deprecated interface with the exception of the construction.
+      </p>
+<h5>
+<a name="thread.ScopedThreads.scoped_thread.h0"></a>
+        <span class="phrase"><a name="thread.ScopedThreads.scoped_thread.example"></a></span><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.example">Example</a>
+      </h5>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">scoped_thread</span><span class="special">&lt;&gt;</span> <span class="identifier">t</span><span class="special">((</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">thread</span><span class="special">(</span><span class="identifier">F</span><span class="special">)));</span>
+<span class="identifier">t</span><span class="special">.</span><span class="identifier">interrupt</span><span class="special">();</span>
+</pre>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.default_constructor"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.default_constructor" title="Default Constructor">Default
+        Constructor</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="identifier">scoped_thread</span><span class="special">()</span> <span class="keyword">noexcept</span><span class="special">;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Constructs a scoped_thread instance that wraps to <span class="emphasis"><em>Not-a-Thread</em></span>.
+              </p></dd>
+<dt><span class="term">Postconditions:</span></dt>
+<dd><p>
+                <code class="computeroutput"><span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">get_id</span><span class="special">()==</span><span class="identifier">thread</span><span class="special">::</span><span class="identifier">id</span><span class="special">()</span></code>
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.move_constructor"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.move_constructor" title="Move Constructor">Move
+        Constructor</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="identifier">scoped_thread</span><span class="special">(</span><span class="identifier">scoped_thread</span><span class="special">&amp;&amp;</span> <span class="identifier">other</span><span class="special">)</span> <span class="keyword">noexcept</span><span class="special">;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Transfers ownership of the scoped_thread managed by <code class="computeroutput"><span class="identifier">other</span></code> (if any) to the newly constructed
+                scoped_thread instance.
+              </p></dd>
+<dt><span class="term">Postconditions:</span></dt>
+<dd><p>
+                <code class="computeroutput"><span class="identifier">other</span><span class="special">.</span><span class="identifier">get_id</span><span class="special">()==</span><span class="identifier">thread</span><span class="special">::</span><span class="identifier">id</span><span class="special">()</span></code>
+                and <code class="computeroutput"><span class="identifier">get_id</span><span class="special">()</span></code>
+                returns the value of <code class="computeroutput"><span class="identifier">other</span><span class="special">.</span><span class="identifier">get_id</span><span class="special">()</span></code> prior to the construction
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.move_assignment"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.move_assignment" title="Move assignment operator">Move
+        assignment operator</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="identifier">scoped_thread</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">scoped_thread</span><span class="special">&amp;&amp;</span> <span class="identifier">other</span><span class="special">)</span> <span class="keyword">noexcept</span><span class="special">;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd>
+<p>
+                Transfers ownership of the scoped_thread managed by <code class="computeroutput"><span class="identifier">other</span></code> (if any) to <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>.
+              </p>
+<p>
+                - if defined <code class="computeroutput"><span class="identifier">BOOST_THREAD_DONT_PROVIDE_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE</span></code>:
+                If there was a <code class="computeroutput"><span class="identifier">scoped_thread</span></code>
+                previously associated with <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code> then that <code class="computeroutput"><span class="identifier">scoped_thread</span></code>
+                is detached, DEPRECATED
+              </p>
+<p>
+                - if defined <code class="computeroutput"><span class="identifier">BOOST_THREAD_PROVIDES_THREAD_MOVE_ASSIGN_CALLS_TERMINATE_IF_JOINABLE</span></code>:
+                If the <code class="computeroutput"><span class="identifier">scoped_thread</span></code>
+                is joinable calls to std::terminate.
+              </p>
+</dd>
+<dt><span class="term">Postconditions:</span></dt>
+<dd><p>
+                <code class="computeroutput"><span class="identifier">other</span><span class="special">-&gt;</span><span class="identifier">get_id</span><span class="special">()==</span><span class="identifier">thread</span><span class="special">::</span><span class="identifier">id</span><span class="special">()</span></code>
+                and <code class="computeroutput"><span class="identifier">get_id</span><span class="special">()</span></code>
+                returns the value of <code class="computeroutput"><span class="identifier">other</span><span class="special">.</span><span class="identifier">get_id</span><span class="special">()</span></code> prior to the assignment.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.thread_constructor"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.thread_constructor" title="Move Constructor from a thread">Move
+        Constructor from a <code class="computeroutput"><span class="identifier">thread</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="identifier">scoped_thread</span><span class="special">(</span><span class="identifier">thread</span><span class="special">&amp;&amp;</span> <span class="identifier">t</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                move the thread to own <code class="computeroutput"><span class="identifier">t_</span></code>.
+              </p></dd>
+<dt><span class="term">Postconditions:</span></dt>
+<dd><p>
+                <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span><span class="special">.</span><span class="identifier">t_</span></code>
+                refers to the newly created thread of execution and <code class="computeroutput"><span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">get_id</span><span class="special">()!=</span><span class="identifier">thread</span><span class="special">::</span><span class="identifier">id</span><span class="special">()</span></code>.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.call_constructor"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.call_constructor" title="Move Constructor from a Callable">Move
+        Constructor from a Callable</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&amp;&amp;,</span> <span class="keyword">typename</span> <span class="special">...</span><span class="identifier">Args</span><span class="special">&gt;</span>
+<span class="keyword">explicit</span> <span class="identifier">scoped_thread</span><span class="special">(</span><span class="identifier">F</span><span class="special">&amp;&amp;,</span> <span class="identifier">Args</span><span class="special">&amp;&amp;...);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Construct a internal thread in place.
+              </p></dd>
+<dt><span class="term">Postconditions:</span></dt>
+<dd><p>
+                <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span><span class="special">.</span><span class="identifier">t_</span></code>
+                refers to the newly created thread of execution and <code class="computeroutput"><span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">get_id</span><span class="special">()!=</span><span class="identifier">thread</span><span class="special">::</span><span class="identifier">id</span><span class="special">()</span></code>.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Any exception the thread construction can throw.
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.destructor"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.destructor" title="Destructor">Destructor</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="special">~</span><span class="identifier">scoped_thread</span><span class="special">();</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Equivalent to <code class="computeroutput"><span class="identifier">CallableThread</span><span class="special">()(</span><span class="identifier">t_</span><span class="special">)</span></code>.
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing: The <code class="computeroutput"><span class="identifier">CallableThread</span><span class="special">()(</span><span class="identifier">t_</span><span class="special">)</span></code> should not throw when joining the
+                thread as the scoped variable is on a scope outside the thread function.
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.joinable"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.joinable" title="Member function joinable()">Member
+        function <code class="computeroutput"><span class="identifier">joinable</span><span class="special">()</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">bool</span> <span class="identifier">joinable</span><span class="special">()</span> <span class="keyword">const</span> <span class="keyword">noexcept</span><span class="special">;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Returns:</span></dt>
+<dd><p>
+                Equivalent to return t_.joinable().
+              </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                Nothing
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.join"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.join" title="Member function join()">Member function
+        <code class="computeroutput"><span class="identifier">join</span><span class="special">()</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">join</span><span class="special">();</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Equivalent to t_.join().
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.try_join_for"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.try_join_for" title="Member function try_join_for()">Member
+        function <code class="computeroutput"><span class="identifier">try_join_for</span><span class="special">()</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Rep</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Period</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">try_join_for</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">chrono</span><span class="special">::</span><span class="identifier">duration</span><span class="special">&lt;</span><span class="identifier">Rep</span><span class="special">,</span> <span class="identifier">Period</span><span class="special">&gt;&amp;</span> <span class="identifier">rel_time</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Equivalent to return <code class="computeroutput"><span class="identifier">t_</span><span class="special">.</span><span class="identifier">try_join_for</span><span class="special">(</span><span class="identifier">rel_time</span><span class="special">)</span></code>.
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.try_join_until"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.try_join_until" title="Member function try_join_until()">Member
+        function <code class="computeroutput"><span class="identifier">try_join_until</span><span class="special">()</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Clock</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Duration</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">try_join_until</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">chrono</span><span class="special">::</span><span class="identifier">time_point</span><span class="special">&lt;</span><span class="identifier">Clock</span><span class="special">,</span> <span class="identifier">Duration</span><span class="special">&gt;&amp;</span> <span class="identifier">abs_time</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Equivalent to return <code class="computeroutput"><span class="identifier">t_</span><span class="special">.</span><span class="identifier">try_join_until</span><span class="special">(</span><span class="identifier">abs_time</span><span class="special">)</span></code>.
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.detach"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.detach" title="Member function detach()">Member function
+        <code class="computeroutput"><span class="identifier">detach</span><span class="special">()</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">detach</span><span class="special">();</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Equivalent to <code class="computeroutput"><span class="identifier">t_</span><span class="special">.</span><span class="identifier">detach</span><span class="special">()</span></code>.
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.get_id"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.get_id" title="Member function get_id()">Member function
+        <code class="computeroutput"><span class="identifier">get_id</span><span class="special">()</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="identifier">thread</span><span class="special">::</span><span class="identifier">id</span> <span class="identifier">get_id</span><span class="special">()</span> <span class="keyword">const</span> <span class="keyword">noexcept</span><span class="special">;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Equivalent to return <code class="computeroutput"><span class="identifier">t_</span><span class="special">.</span><span class="identifier">get_id</span><span class="special">()</span></code>.
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.interrupt"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.interrupt" title="Member function interrupt()">Member
+        function <code class="computeroutput"><span class="identifier">interrupt</span><span class="special">()</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">interrupt</span><span class="special">();</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Equivalent to <code class="computeroutput"><span class="identifier">t_</span><span class="special">.</span><span class="identifier">interrupt</span><span class="special">()</span></code>.
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.hardware_concurrency"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.hardware_concurrency" title="Static member function hardware_concurrency()">Static
+        member function <code class="computeroutput"><span class="identifier">hardware_concurrency</span><span class="special">()</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">unsigned</span> <span class="identifier">hardware_concurrency</span><span class="special">()</span> <span class="identifier">noexecpt</span><span class="special">;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Equivalent to return <code class="computeroutput"><span class="identifier">thread</span><span class="special">::</span><span class="identifier">hardware_concurrency</span><span class="special">()</span></code>.
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.nativehandle"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.nativehandle" title="Member function native_handle()">Member
+        function <code class="computeroutput"><span class="identifier">native_handle</span><span class="special">()</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">thread</span><span class="special">::</span><span class="identifier">native_handle_type</span> <span class="identifier">native_handle_type</span><span class="special">;</span>
+<span class="identifier">native_handle_type</span> <span class="identifier">native_handle</span><span class="special">();</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Equivalent to return <code class="computeroutput"><span class="identifier">t_</span><span class="special">.</span><span class="identifier">native_handle</span><span class="special">()</span></code>.
+              </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.ScopedThreads.scoped_thread.swap"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.scoped_thread.swap" title="Member function swap()">Member function
+        <code class="computeroutput"><span class="identifier">swap</span><span class="special">()</span></code></a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">scoped_thread</span><span class="special">&amp;</span> <span class="identifier">other</span><span class="special">)</span> <span class="keyword">noexcept</span><span class="special">;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                Equivalent <code class="computeroutput"><span class="identifier">t_</span><span class="special">.</span><span class="identifier">swap</span><span class="special">(</span><span class="identifier">other</span><span class="special">.</span><span class="identifier">t_</span><span class="special">)</span></code>.
+              </p></dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="thread.ScopedThreads.non_member_swap"></a><a class="link" href="ScopedThreads.html#thread.ScopedThreads.non_member_swap" title="Non-member function swap(scoped_thread&amp;,scoped_thread&amp;)">Non-member function
+      <code class="computeroutput"><span class="identifier">swap</span><span class="special">(</span><span class="identifier">scoped_thread</span><span class="special">&amp;,</span><span class="identifier">scoped_thread</span><span class="special">&amp;)</span></code></a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">thread</span><span class="special">/</span><span class="identifier">scoped_thread</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">scoped_thread</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span><span class="identifier">scoped_thread</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="keyword">noexcept</span><span class="special">;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+              <code class="computeroutput"><span class="identifier">lhs</span><span class="special">.</span><span class="identifier">swap</span><span class="special">(</span><span class="identifier">rhs</span><span class="special">)</span></code>.
+            </p></dd>
+</dl>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -11 Anthony Williams<br>Copyright &#169; 2011 -13 Vicente J. Botet Escriba<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="thread_management.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../thread.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="synchronization.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+#  Boost.IO Library test Jamfile
+#
+#  Copyright 2003 Daryle Walker.  Use, modification, and distribution
+#  are subject to the Boost Software License, Version 1.0.  (See
+#  accompanying file LICENSE_1_0.txt or a copy at
+#  <http://www.boost.org/LICENSE_1_0.txt>.)
+#
+#  See <http://www.boost.org/libs/io/> for the library's home page.
+
+test-suite "io"
+   :    [  run ios_state_unit_test.cpp 
+                ../../../libs/test/build//boost_unit_test_framework/<link>static
+              : # args
+              : # input files
+              # : std::locale-support
+        ]
+
+        [ run ios_state_test.cpp 
+                ../../../libs/test/build//boost_test_exec_monitor/<link>static
+              : # args
+              : # input files
+              # : std::locale-support
+        ]
+        
+        [ run quoted_manip_test.cpp ]
+  ;

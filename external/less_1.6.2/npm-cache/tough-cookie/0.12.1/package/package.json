@@ -1,0 +1,39 @@
+{
+  "author": "GoInstant Inc., a salesforce.com company",
+  "license": "MIT",
+  "name": "tough-cookie",
+  "description": "RFC6265 Cookies and Cookie Jar for node.js",
+  "keywords": [
+    "HTTP",
+    "cookie",
+    "cookies",
+    "set-cookie",
+    "cookiejar",
+    "jar",
+    "RFC6265",
+    "RFC2965"
+  ],
+  "version": "0.12.1",
+  "homepage": "https://github.com/goinstant/tough-cookie",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/goinstant/tough-cookie.git"
+  },
+  "bugs": {
+    "url": "https://github.com/goinstant/tough-cookie/issues"
+  },
+  "main": "./lib/cookie",
+  "scripts": {
+    "test": "vows test.js"
+  },
+  "engines": {
+    "node": ">=0.4.12"
+  },
+  "dependencies": {
+    "punycode": ">=0.2.0"
+  },
+  "devDependencies": {
+    "vows": "0.7.0",
+    "async": ">=0.1.12"
+  }
+}

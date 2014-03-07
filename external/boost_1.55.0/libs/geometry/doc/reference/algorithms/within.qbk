@@ -1,0 +1,35 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[def __this_function__ within]
+
+[heading_conformance_ogc __this_function__..Within]
+[note OGC defines within as completely within and not on the border. See the notes for within / on the border]
+
+[include generated/within_status.qbk]
+[note In this status matrix above: columns are types of first parameter
+  and rows are types of second parameter. So a point can be checked to be 
+  within a polygon, but not vice versa.]
+  
+[heading Notes]
+If a point is located exactly on the border of a geometry, the result depends on the strategy.
+The default strategy ([link geometry.reference.strategies.strategy_within_winding Winding (coordinate system agnostic)]) 
+returns false in that case.
+
+If a polygon has a reverse oriented (e.g. counterclockwise for a clockwise typed polygon), the result also depends on the strategy.
+The default strategy returns still true if a point is completely within the reversed polygon. There is a specific strategy which returns false in this case.
+
+[heading Complexity]
+Linear
+
+[heading See also]
+* [link geometry.reference.algorithms.covered_by covered_by]

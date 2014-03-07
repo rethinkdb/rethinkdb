@@ -1,0 +1,225 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Spirit V2.4.2</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../what_s_new.html" title="What's New">
+<link rel="prev" href="spirit_2_5.html" title="Spirit V2.5">
+<link rel="next" href="spirit_2_4_1.html" title="Spirit V2.4.1">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="spirit_2_5.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../what_s_new.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="spirit_2_4_1.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="spirit.what_s_new.spirit_2_4_2"></a><a class="link" href="spirit_2_4_2.html" title="Spirit V2.4.2">Spirit V2.4.2</a>
+</h3></div></div></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_4_2.h0"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_4_2.what_s_changed_in__emphasis_spirit_qi__emphasis__and__emphasis_spirit_karma__emphasis__from_v2_4_1__boost_v1_45_0__to_v2_4_2__boost_v1_46_0_"></a></span><a class="link" href="spirit_2_4_2.html#spirit.what_s_new.spirit_2_4_2.what_s_changed_in__emphasis_spirit_qi__emphasis__and__emphasis_spirit_karma__emphasis__from_v2_4_1__boost_v1_45_0__to_v2_4_2__boost_v1_46_0_">What's
+        changed in <span class="emphasis"><em>Spirit.Qi</em></span> and <span class="emphasis"><em>Spirit.Karma</em></span>
+        from V2.4.1 (Boost V1.45.0) to V2.4.2 (Boost V1.46.0)</a>
+      </h5>
+<h5>
+<a name="spirit.what_s_new.spirit_2_4_2.h1"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_4_2.new_features_in_qi_or_karma"></a></span><a class="link" href="spirit_2_4_2.html#spirit.what_s_new.spirit_2_4_2.new_features_in_qi_or_karma">New
+        Features in Qi or Karma</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Added keyword indexes for <span class="emphasis"><em>Spirit.Qi</em></span> and <span class="emphasis"><em>Spirit.Karma</em></span>
+            to the docs.
+          </li>
+<li class="listitem">
+            Introduced a new customization point <a class="link" href="../advanced/customize/assign_to/assign_to_container_from_value.html" title="Store an Attribute Value into a Container after a Parser Produced a Value (Qi)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">assign_to_container_from_value</span></code></a>
+            which is invoked for container attributes whenever an attribute value
+            needs to be added to that container.
+          </li>
+<li class="listitem">
+            Replaced <code class="computeroutput"><span class="identifier">proto</span><span class="special">::</span><span class="identifier">lit</span></code> (which was used to implement <code class="computeroutput"><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lit</span></code>) with a separate version allowing
+            to distinguish 'lit(foo)' from 'foo'. This should not change any semantics
+            nor should it break exiting code.
+          </li>
+<li class="listitem">
+            Added the <span class="emphasis"><em>Spirit.Qi</em></span> directive <a class="link" href="../qi/reference/directive/as.html" title="Parser Directives Forcing Atomic Assignment (as&lt;T&gt;, as_string[], as_wstring[])"><code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;[]</span></code></a>
+            (and its string specializations <a class="link" href="../qi/reference/directive/as.html" title="Parser Directives Forcing Atomic Assignment (as&lt;T&gt;, as_string[], as_wstring[])"><code class="computeroutput"><span class="identifier">as_string</span><span class="special">[]</span></code></a>
+            and <a class="link" href="../qi/reference/directive/as.html" title="Parser Directives Forcing Atomic Assignment (as&lt;T&gt;, as_string[], as_wstring[])"><code class="computeroutput"><span class="identifier">as_wstring</span><span class="special">[]</span></code></a>) enabling asignment of container
+            attribute types as a whole.
+          </li>
+<li class="listitem">
+            Added the <span class="emphasis"><em>Spirit.Karma</em></span> directive <a class="link" href="../karma/reference/directive/as.html" title="Generator Directives Forcing Atomic Extraction (as&lt;T&gt;, as_string[], as_wstring[])"><code class="computeroutput"><span class="identifier">as</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;[]</span></code></a>
+            (and its string specializations <a class="link" href="../karma/reference/directive/as.html" title="Generator Directives Forcing Atomic Extraction (as&lt;T&gt;, as_string[], as_wstring[])"><code class="computeroutput"><span class="identifier">as_string</span><span class="special">[]</span></code></a>
+            and <a class="link" href="../karma/reference/directive/as.html" title="Generator Directives Forcing Atomic Extraction (as&lt;T&gt;, as_string[], as_wstring[])"><code class="computeroutput"><span class="identifier">as_wstring</span><span class="special">[]</span></code></a>)
+            enabling handling of container attribute types during output generation
+            as a whole.
+          </li>
+<li class="listitem">
+            In <span class="emphasis"><em>Spirit.Qi</em></span>, <code class="computeroutput"><span class="identifier">lit</span><span class="special">()</span></code> can now be used for numeric literals
+            as well.
+          </li>
+<li class="listitem">
+            The <a class="link" href="../qi/reference/string/symbols.html" title="Symbols Parser (symbols)"><code class="computeroutput"><span class="identifier">symbols</span><span class="special">&lt;&gt;</span></code></a>
+            parser component now has an explicit name used for error handling and
+            debugging, which can be set using the new member functions <code class="computeroutput"><span class="identifier">sym</span><span class="special">.</span><span class="identifier">name</span><span class="special">(...)</span></code>.
+            Thanks to teajay for contributing a patch.
+          </li>
+<li class="listitem">
+            The <a class="link" href="../karma/reference/string/symbols.html" title="Symbols Generator (symbols)"><code class="computeroutput"><span class="identifier">symbols</span><span class="special">&lt;</span><span class="identifier">Attrib</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span></code></a>
+            generator component now has an explicit name used for error handling
+            and debugging, which can be set using the new member functions <code class="computeroutput"><span class="identifier">sym</span><span class="special">.</span><span class="identifier">name</span><span class="special">(...)</span></code>.
+          </li>
+</ul></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_4_2.h2"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_4_2.bug_fixes_in_qi_or_karma"></a></span><a class="link" href="spirit_2_4_2.html#spirit.what_s_new.spirit_2_4_2.bug_fixes_in_qi_or_karma">Bug Fixes
+        in Qi or Karma</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Fixed a problem in handling container attributes for <span class="emphasis"><em>Spirit.Qi</em></span>
+            sequences, which caused the properly parsed attributes of the first elements
+            being overwritten by later elements of the sequence.
+          </li>
+<li class="listitem">
+            Fixed the <span class="emphasis"><em>Spirit.Karma</em></span> generator <a class="link" href="../karma/reference/string.html" title="String Generators"><code class="computeroutput"><span class="identifier">string</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span></code></a>.
+            It succeeded even if <code class="computeroutput"><span class="identifier">s</span></code>
+            matched only a prefix of its attribute.
+          </li>
+</ul></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_4_2.h3"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_4_2.what_s_changed_in__emphasis_spirit_lex__emphasis__from_v2_4_1__boost_v1_45_0__to_v2_4_2__boost_v1_46_0_"></a></span><a class="link" href="spirit_2_4_2.html#spirit.what_s_new.spirit_2_4_2.what_s_changed_in__emphasis_spirit_lex__emphasis__from_v2_4_1__boost_v1_45_0__to_v2_4_2__boost_v1_46_0_">What's
+        changed in <span class="emphasis"><em>Spirit.Lex</em></span> from V2.4.1 (Boost V1.45.0) to
+        V2.4.2 (Boost V1.46.0)</a>
+      </h5>
+<h5>
+<a name="spirit.what_s_new.spirit_2_4_2.h4"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_4_2.new_features_in_lex"></a></span><a class="link" href="spirit_2_4_2.html#spirit.what_s_new.spirit_2_4_2.new_features_in_lex">New
+        Features in Lex</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">tokenid</span><span class="special">()</span></code>
+            primitive parser allowing to match arbitrary lexer tokens based on a
+            given token id. The difference to <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">token</span><span class="special">()</span></code> is, that it exposes as its attribute
+            the token id of the matched token (instead of the iterator_range of the
+            matched input, as <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">token</span><span class="special">()</span></code> does).
+          </li>
+<li class="listitem">
+            Added an additional template parameter to the default <code class="computeroutput"><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">token</span><span class="special">&lt;&gt;</span></code> definition: the type of the token
+            id. This type defaults to <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span></code>.
+            Any type used as the id type needs to be (explicitly) convertible from
+            <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span></code>.
+          </li>
+<li class="listitem">
+            It's now possible to attach lexer semantic actions to token definitions
+            based on <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="keyword">char</span><span class="special">()</span></code>
+            and <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">string</span><span class="special">()</span></code>.
+          </li>
+<li class="listitem">
+            It's now possible to specify a lexer state the lexer should automatically
+            be switched to after matching certain tokens. For this reason the token
+            definition syntax has been extended:
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Lexer</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">lexer</span> <span class="special">:</span> <span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;</span><span class="identifier">Lexer</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">lexer</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="identifier">int_</span> <span class="special">=</span> <span class="string">"[1-9][0-9]*"</span><span class="special">;</span>
+        <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">self</span><span class="special">(</span><span class="string">"INITIAL"</span><span class="special">,</span> <span class="string">"TARGETSTATE"</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">int_</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="identifier">lex</span><span class="special">::</span><span class="identifier">token_def</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">int_</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+            This example lexer will match a <code class="computeroutput"><span class="identifier">int_</span></code>
+            token and will switch the lexer to the state <code class="computeroutput"><span class="string">"TARGETSTATE"</span></code>
+            afterwards. If the second argument is not specified the lexer remains
+            in the previous state (as before).
+          </li>
+<li class="listitem">
+            The parser primitives <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">token</span></code>
+            and <code class="computeroutput"><span class="identifier">qi</span><span class="special">::</span><span class="identifier">tokenid</span></code> can now be used without any
+            argument. In this case they will match any token.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lit</span><span class="special">()</span></code>
+            has been removed.
+          </li>
+</ul></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_4_2.h5"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_4_2.bug_fixes_in_lex"></a></span><a class="link" href="spirit_2_4_2.html#spirit.what_s_new.spirit_2_4_2.bug_fixes_in_lex">Bug
+        Fixes in Lex</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Fixed an issue in the Lexer giving problems while assigning tokens to
+            all lexer states at once. This is now possible by simply using "*"
+            as the state name. For instance this will add the token int_ to all lexer
+            states:
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Lexer</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">lexer</span> <span class="special">:</span> <span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;</span><span class="identifier">Lexer</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">lexer</span><span class="special">()</span>
+    <span class="special">{</span>
+        <span class="identifier">int_</span> <span class="special">=</span> <span class="string">"[1-9][0-9]*"</span><span class="special">;</span>
+        <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">self</span><span class="special">(</span><span class="string">"*"</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">int_</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="identifier">lex</span><span class="special">::</span><span class="identifier">token_def</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">int_</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+            Note: the <code class="computeroutput"><span class="identifier">self</span><span class="special">(</span><span class="string">"*"</span><span class="special">)</span>
+            <span class="special">=</span> <span class="special">...</span></code>
+            must be executed after all lexer states have been introduced to the lexer
+            object.
+          </li>
+<li class="listitem">
+            Fixed lexer lookahead. The lookahead operation is now evaluated using
+            the lexer state the <code class="computeroutput"><span class="identifier">token_def</span></code>
+            instance used as its argument is associated with.
+          </li>
+<li class="listitem">
+            Fixed a problem in the <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+            iterator causing wrong tokens to be returned to the user. This could
+            happen in conjunction with a lexer which performed lexer state changes
+            and was using <code class="computeroutput"><span class="identifier">pass_fail</span></code>
+            in semantic actions to make a token match fail.
+          </li>
+</ul></div>
+<h5>
+<a name="spirit.what_s_new.spirit_2_4_2.h6"></a>
+        <span class="phrase"><a name="spirit.what_s_new.spirit_2_4_2.known_problems"></a></span><a class="link" href="spirit_2_4_2.html#spirit.what_s_new.spirit_2_4_2.known_problems">Known
+        Problems</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            <span class="emphasis"><em>Spirit.Qi</em></span> integer literals (like <code class="computeroutput"><span class="identifier">int_</span><span class="special">(</span><span class="number">10</span><span class="special">)</span></code>)
+            consume input on failure, which can lead to problems with the alternative
+            operator.
+          </li></ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="spirit_2_5.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../what_s_new.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="spirit_2_4_1.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,142 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:posix POSIX Compatible C API's]
+
+[note this is an abridged reference to the POSIX API functions, these are provided 
+for compatibility with other libraries, rather than as an API to be used 
+in new code (unless you need access from a language other than C++). 
+This version of these functions should also happily coexist with other versions, 
+as the names used are macros that expand to the actual function names.] 
+
+   #include <boost/cregex.hpp>
+   
+or:
+
+   #include <boost/regex.h>
+
+The following functions are available for users who need a POSIX compatible 
+C library, they are available in both Unicode and narrow character versions, 
+the standard POSIX API names are macros that expand to one version or the 
+other depending upon whether UNICODE is defined or not.
+
+[important Note that all the symbols defined here are enclosed inside namespace 
+`boost` when used in C++ programs, unless you use `#include <boost/regex.h>` 
+instead - in which case the symbols are still defined in namespace boost, but 
+are made available in the global namespace as well.]
+
+The functions are defined as:
+
+   extern "C" {
+   
+   struct regex_tA;
+   struct regex_tW;
+   
+   int regcompA(regex_tA*, const char*, int);
+   unsigned int regerrorA(int, const regex_tA*, char*, unsigned int);
+   int regexecA(const regex_tA*, const char*, unsigned int, regmatch_t*, int);
+   void regfreeA(regex_tA*);
+
+   int regcompW(regex_tW*, const wchar_t*, int);
+   unsigned int regerrorW(int, const regex_tW*, wchar_t*, unsigned int);
+   int regexecW(const regex_tW*, const wchar_t*, unsigned int, regmatch_t*, int);
+   void regfreeW(regex_tW*);
+
+   #ifdef UNICODE
+   #define regcomp regcompW
+   #define regerror regerrorW
+   #define regexec regexecW
+   #define regfree regfreeW
+   #define regex_t regex_tW
+   #else
+   #define regcomp regcompA
+   #define regerror regerrorA
+   #define regexec regexecA
+   #define regfree regfreeA
+   #define regex_t regex_tA
+   #endif
+   }
+
+All the functions operate on structure regex_t, which exposes two public members:
+
+[table
+[[Member][Meaning]]
+[[`unsigned int re_nsub`][This is filled in by `regcomp` and indicates the number of sub-expressions contained in the regular expression.]]
+[[`const TCHAR* re_endp`][Points to the end of the expression to compile when the flag REG_PEND is set.]]
+]
+
+[note `regex_t` is actually a `#define` - it is either `regex_tA` or `regex_tW` 
+depending upon whether `UNICODE` is defined or not, `TCHAR` is either `char` 
+or `wchar_t` again depending upon the macro `UNICODE`.]
+
+[#regcomp][h4 regcomp]
+
+`regcomp` takes a pointer to a `regex_t`, a pointer to the expression to 
+compile and a flags parameter which can be a combination of:
+ 
+[table
+[[Flag][Meaning]]
+[[REG_EXTENDED][Compiles modern regular expressions. Equivalent to `regbase::char_classes | regbase::intervals | regbase::bk_refs`. 	 ]]
+[[REG_BASIC][Compiles basic (obsolete) regular expression syntax. Equivalent to `regbase::char_classes | regbase::intervals | regbase::limited_ops | regbase::bk_braces | regbase::bk_parens | regbase::bk_refs`. 	 ]]
+[[REG_NOSPEC][All characters are ordinary, the expression is a literal string. 	 ]]
+[[REG_ICASE][Compiles for matching that ignores character case. 	 ]]
+[[REG_NOSUB][Has no effect in this library. 	 ]]
+[[REG_NEWLINE][When this flag is set a dot does not match the newline character. 	 ]]
+[[REG_PEND][When this flag is set the re_endp parameter of the regex_t structure must point to the end of the regular expression to compile. 	 ]]
+[[REG_NOCOLLATE][When this flag is set then locale dependent collation for character ranges is turned off. 	 ]]
+[[REG_ESCAPE_IN_LISTS][When this flag is set, then escape sequences are permitted in bracket expressions (character sets). 	 ]]
+[[REG_NEWLINE_ALT ][When this flag is set then the newline character is equivalent to the alternation operator |. 	 ]]
+[[REG_PERL][Compiles Perl like regular expressions. 	 ]]
+[[REG_AWK][A shortcut for awk-like behavior: `REG_EXTENDED | REG_ESCAPE_IN_LISTS` 	 ]]
+[[REG_GREP][A shortcut for grep like behavior: `REG_BASIC | REG_NEWLINE_ALT` 	 ]]
+[[REG_EGREP][A shortcut for egrep like behavior: `REG_EXTENDED | REG_NEWLINE_ALT` 	 ]]
+]
+
+[#regerror][h4 regerror]
+
+regerror takes the following parameters, it maps an error code to a human 
+readable string:
+
+[table
+[[Parameter][Meaning]]
+[[int code][The error code. 	 ]]
+[[const regex_t* e][The regular expression (can be null). 	 ]]
+[[char* buf][The buffer to fill in with the error message. 	 ]]
+[[unsigned int buf_size][The length of buf. 	 ]]
+]
+
+If the error code is OR'ed with REG_ITOA then the message that results is the 
+printable name of the code rather than a message, for example "REG_BADPAT". 
+If the code is REG_ATIO then e must not be null and e->re_pend must point 
+to the printable name of an error code, the return value is then the value 
+of the error code. For any other value of code, the return value is the 
+number of characters in the error message, if the return value is greater than 
+or equal to buf_size then regerror will have to be called again with a larger buffer.
+
+[#regexec][h4 regexec]
+
+regexec finds the first occurrence of expression e within string buf. 
+If len is non-zero then /*m/ is filled in with what matched the regular 
+expression, m[0] contains what matched the whole string, m[1] the 
+first sub-expression etc, see regmatch_t in the header file declaration 
+for more details. The eflags parameter can be a combination of:
+ 
+[table
+[[Flag][Meaning]]
+[[REG_NOTBOL][Parameter buf does not represent the start of a line. 	 ]]
+[[REG_NOTEOL][Parameter buf does not terminate at the end of a line. 	 ]]
+[[REG_STARTEND][The string searched starts at buf + pmatch\[0\].rm_so and ends at buf + pmatch\[0\].rm_eo. 	 ]]
+]
+
+[#regfree][h4 regfree]
+
+`regfree` frees all the memory that was allocated by regcomp.
+
+[endsect]
+
+
+

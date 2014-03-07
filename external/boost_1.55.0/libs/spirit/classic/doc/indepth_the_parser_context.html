@@ -1,0 +1,226 @@
+<html>
+<head>
+<title>In-depth: The Parser Context</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> 
+    </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>In-depth: 
+      The Parser Context</b></font></td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr>
+    <td width="10"></td>
+    <td width="30"><a href="../index.html">
+    <img src="theme/u_arr.gif" border="0" width="20" height="19"></a></td>
+    <td width="30"><a href="indepth_the_scanner.html">
+    <img src="theme/l_arr.gif" border="0" width="20" height="19"></a></td>
+    <td width="30"><a href="predefined_actors.html">
+    <img src="theme/r_arr.gif" border="0" width="20" height="19"></a></td>
+  </tr>
+</table>
+<h2>Overview</h2>
+<p>The parser's <b>context</b> is yet another concept. An instance (object) of 
+    the <tt>context</tt> class is created before a non-terminal starts parsing and 
+    is destructed after parsing has concluded. A non-terminal is either a <tt>rule</tt>, 
+    a <tt>subrule</tt>, or a <tt>grammar</tt>. Non-terminals have a <tt>ContextT</tt> template parameter. The following pseudo code depicts what's happening when 
+    a non-terminal is invoked:</p>
+<pre><code><font color="#000000"><span class=special>    </span><span class=identifier>return_type
+    </span><span class=identifier>a_non_terminal</span><span class=special>::</span><span class=identifier>parse</span><span class=special>(</span><span class=identifier>ScannerT </span><span class=keyword>const</span><span class=special>& </span><span class=identifier>scan</span><span class=special>)
+    {
+        </span><span class=identifier>context_t ctx</span><span class=special>(/**/);
+        </span><span class=identifier>ctx</span><span class=special>.</span><span class=identifier>pre_parse</span><span class=special>(/**/);
+
+        </span><span class=comment>//  main parse code of the non-terminal here...
+
+        </span><span class=keyword>return </span><span class=identifier>ctx</span><span class=special>.</span><span class=identifier>post_parse</span><span class=special>(/**/);
+    }</span></font></code></pre>
+<p>The context is provided for extensibility. Its main purpose is to expose the 
+  start and end of the non-terminal's parse member function to accommodate external 
+  hooks. We can extend the non-terminal in a multitude of ways by writing specialized 
+  context classes, without modifying the class itself. For example, we can make 
+  the non-terminal emit debug diagnostics information by writing a context class 
+  that prints out the current state of the scanner at each point in the parse 
+  traversal where the non-terminal is invoked.</p>
+<p>Example of a parser context that prints out debug information:</p>
+<pre><code><font color="#000000">    pre_parse</font>:<font color="#000000">      non-terminal XXX is entered<font color="#0000ff">.</font> The current state of the input
+                    is <font color="#616161"><i>&quot;hello world, this is a test&quot;</i></font>
+
+    post_parse</font>:<font color="#000000">     non-terminal XXX has concluded<font color="#0000ff">,</font> the non-terminal matched <font color="#616161"><i>&quot;hello world&quot;</i></font><font color="#0000ff">.</font>
+                    The current state of the input is <font color="#616161"><i>&quot;, this is a test&quot;</i></font></font></code></pre>
+<p>Most of the time, the context will be invisible from the user's view. In general, 
+  clients of the framework need not deal directly nor even know about contexts. 
+  Power users, however, might find some use of contexts. Thus, this is part of 
+  the public API. Other parts of the framework in other layers above the core 
+  take advantage of the context to extend non-terminals. </p>
+<h2>Class declaration</h2>
+<p>The <tt>parser_context</tt> class is the default context class that the non-terminal 
+    uses. </p>
+<pre><span class=keyword>    </span><span class="identifier">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">AttrT</span> <span class="special">=</span> <span class="identifier">nil_t</span><span class="special">&gt;</span><span class=keyword><br>    struct </span><span class=identifier>parser_context
+</span><span class=special>    {
+        </span><span class=keyword>typedef </span>AttrT <span class=identifier>attr_t</span><span class=special>;
+        </span><span class=keyword>typedef </span><span class=identifier>implementation_defined base_t</span><span class=special>;
+        </span><span class="keyword">typedef</span><span class=special> </span>parser_context_linker<span class="special">&lt;</span>parser_context<span class="special">&lt;</span><span class="identifier">AttrT</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">context_linker_t</span><span class=special>;
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ParserT</span><span class=special>&gt;
+        </span><span class=identifier>parser_context</span><span class=special>(</span><span class=identifier>ParserT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>p</span><span class=special>) {}
+
+    </span><span class=keyword>    template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ParserT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+    </span><span class=keyword>    void
+    </span><span class=identifier>    pre_parse</span><span class=special>(</span><span class=identifier>ParserT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>p</span><span class=special>, </span><span class=identifier>ScannerT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>) {}
+
+        </span><span class=keyword>template </span><span class=special>&lt;</span><span class=keyword>typename </span><span class=identifier>ResultT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>ParserT</span><span class=special>, </span><span class=keyword>typename </span><span class=identifier>ScannerT</span><span class=special>&gt;
+        </span><span class=identifier>ResultT</span><span class=special>&amp;
+    </span><span class=identifier>    post_parse</span><span class=special>(</span><span class=identifier>ResultT</span><span class=special>&amp; </span><span class=identifier>hit</span><span class=special>, </span><span class=identifier>ParserT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>p</span><span class=special>, </span><span class=identifier>ScannerT </span><span class=keyword>const</span><span class=special>&amp; </span><span class=identifier>scan</span><span class=special>)
+        { </span><span class=keyword>return </span><span class=identifier>hit</span><span class=special>; }
+    };</span></pre>
+<p>The non-terminal's <tt>ContextT</tt> template parameter is a concept. The <tt>parser_context</tt> 
+  class above is the simplest model of this concept. The default <tt>parser_context</tt>'s<tt> 
+  pre_parse</tt> and <tt>post_parse</tt> member functions are simply no-ops. You 
+  can think of the non-terminal's <tt>ContextT</tt> template parameter as the 
+  policy that governs how the non-terminal will behave before and after parsing. 
+  The client can supply her own context policy by passing a user defined context 
+  template parameter to a particular non-terminal.</p>
+<table width="90%" border="0" align="center">
+  <tr> 
+    <td class="table_title" colspan="8"> Parser Context Policies </td>
+  </tr>
+  <tr> 
+  <tr> 
+    <td class="table_cells"><strong><span class=identifier>attr_t</span></strong></td>
+    <td class="table_cells">typedef: the attribute type of the non-terminal. See 
+      the <a href="indepth_the_parser.html#match">match</a>.</td>
+  </tr>
+  <td class="table_cells"><strong><span class=identifier>base_t</span></strong></td>
+  <td class="table_cells">typedef: the base class of the non-terminal. The non-terminal 
+    inherits from this class.</td>
+  </tr>
+  <tr> 
+    <td class="table_cells"><strong><span class="identifier">context_linker_t</span></strong></td>
+    <td class="table_cells">typedef: this class type opens up the possibility 
+      for Spirit to plug in additional functionality into the non-terminal parse 
+      function or even bypass the given context. This should simply be typedefed 
+      to <tt>parser_context_linker&lt;T&gt;</tt> where T is the type of the user 
+      defined context class.</td>
+  </tr>
+  <td class="table_cells"><strong>constructor</strong></td>
+  <td class="table_cells">Construct the context. The non-terminal is passed as 
+    an argument to the constructor.</td>
+  </tr>
+  <tr> 
+    <td class="table_cells"><strong>pre_parse</strong></td>
+    <td class="table_cells">Do something prior to parsing. The non-terminal and 
+      the current scanner are passed as arguments.</td>
+  </tr>
+  <tr> 
+    <td class="table_cells"><strong>post_parse</strong></td>
+    <td class="table_cells">Do something after parsing. This is called regardless 
+      of the parse result. A reference to the parser's result is passed in. The 
+      context has the power to modify this. The non-terminal and the current scanner 
+      are also passed as arguments.</td>
+  </tr>
+</table>
+<p>The <tt>base_t</tt> deserves further explanation. Here goes... The context 
+  is strictly a stack based class. It is created before parsing and destructed 
+  after the non-terminal's parse member function exits. Sometimes, we need 
+auxiliary 
+  data that exists throughout the full lifetime of the non-terminal host. 
+  Since the non-terminal inherits from the context's <tt>base_t</tt>, the context 
+  itself, when created, gets access to this upon construction when the non-terminal 
+  is passed as an argument to the constructor. Ditto on <tt>pre_parse</tt> and 
+  <tt>post_parse</tt>.</p>
+<p>The non-terminal inherits from the context's <tt>base_t</tt> typedef. The sole 
+  requirement is that it is a class that is default constructible. The copy-construction 
+  and assignment requirements depends on the host. If the host requires it, so 
+  does the context's <tt>base_t</tt>. In general, it wouldn't hurt to provide 
+  these basic requirements.</p>
+<h2>Non-default Attribute Type </h2>
+<p>Right out of the box, the <tt>parser_context</tt> class may be paramaterized with a type other than the default <tt>nil_t</tt>. The following code demonstrates the usage of the <tt>parser_context</tt> template with an explicit argument to declare rules with match results different from <tt>nil_t</tt>:</p>
+<pre><span class=number>    </span><span class=identifier>rule</span><span class=special>&lt;</span><span class=identifier>parser_context</span><span class=special>&lt;</span><span class=keyword>int</span><span class=special>&gt; </span><span class=special>&gt; </span><span class=identifier>int_rule </span><span class=special>= </span><span class=identifier>int_p</span><span class=special>;
+
+    </span><span class=identifier>parse</span><span class=special>(
+        </span><span class=string>&quot;123&quot;</span><span class=special>,
+        </span><span class=comment>// Using a returned value in the semantic action
+        </span><span class=identifier>int_rule</span><span class=special>[</span><span class=identifier>cout </span><span class=special>&lt;&lt; </span><span class=identifier>arg1 </span><span class=special>&lt;&lt; </span><span class=identifier>endl</span><span class=special>] 
+    </span><span class=special>);</span> </pre>
+<p>In this example, <tt>int_rule</tt> is declared with <tt>int</tt>  attribute type. Hence, the <tt>int_rule</tt> variable  can hold any parser which returns an <tt>int</tt> value (for example <tt>int_p</tt> or <tt>bin_p</tt>). The important thing to note is that we can use the returned value in the semantic action bound to the <tt>int_rule</tt>. </p>
+<p><img src="theme/lens.gif" width="15" height="16"> See <a href="../example/fundamental/parser_context.cpp">parser_context.cpp</a> in the examples. This is part of the Spirit distribution.</p>
+<h2>An Example </h2>
+<p>As an example let's have a look at the Spirit parser context, which inserts some debug output to the parsing process:</p>
+<pre>    <span class="keyword">template</span>&lt;<span class="keyword">typename</span> ContextT&gt;
+    <span class="keyword">struct</span> parser_context_linker : <span class="keyword">public</span> ContextT
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> ContextT base_t;
+
+        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> ParserT&gt;
+        parser_context_linker(ParserT const&amp; p)
+        : ContextT(p) {}
+        
+    <span class="comment">// This is called just before parsing of this non-terminal</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> ParserT<span class="special">,</span> <span class="keyword">typename</span> ScannerT<span class="special">&gt;</span>
+        <span class="keyword">void</span> pre_parse<span class="special">(</span>ParserT <span class="keyword">const</span><span class="special">&amp;</span> p<span class="special">,</span> ScannerT <span class="special">&amp;</span>scan<span class="special">)</span>
+        <span class="special">{</span>
+        <span class="comment">// call the pre_parse function of the base class</span>
+            <span class="keyword">this</span><span class="special">-&gt;</span>base_t<span class="special">::</span>pre_parse<span class="special">(</span>p<span class="special">,</span> scan<span class="special">);</span>
+<span class="preprocessor">
+#if</span> <span class="identifier">BOOST_SPIRIT_DEBUG_FLAGS</span> <span class="special">&amp;</span> <span class="identifier">BOOST_SPIRIT_DEBUG_FLAGS_NODES</span>
+            <span class="keyword">if</span> <span class="special">(</span>trace_parser<span class="special">(</span>p<span class="special">.</span>derived<span class="special">())) {</span>
+            <span class="comment">// print out pre parse info</span>
+                impl<span class="special">::</span>print_node_info<span class="special">(</span>
+                <span class="keyword">false</span><span class="special">,</span> scan.get_level<span class="special">(),</span> <span class="keyword">false</span><span class="special">,</span>
+                parser_name<span class="special">(</span>p.derived<span class="special">()),</span>
+                scan<span class="special">.</span>first<span class="special">,</span> scan.last<span class="special">);</span>
+            <span class="special">}</span>
+            scan.get_level<span class="special">()++;</span>  <span class="comment">// increase nesting level</span>
+<span class="preprocessor">#endif</span> 
+        <span class="special">}</span>
+    <span class="comment">// This is called just after parsing of the current non-terminal</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> ResultT<span class="special">,</span> <span class="keyword">typename</span> ParserT<span class="special">,</span> <span class="keyword">typename</span> ScannerT<span class="special">&gt;</span>
+        ResultT<span class="special">&amp;</span> post_parse<span class="special">(</span>
+            ResultT<span class="special">&amp;</span> hit<span class="special">,</span> ParserT <span class="keyword">const</span><span class="special">&amp;</span> p<span class="special">,</span> ScannerT<span class="special">&amp;</span> scan<span class="special">)
+        {</span>
+<span class="preprocessor">
+#if</span> <span class="identifier">BOOST_SPIRIT_DEBUG_FLAGS</span> <span class="special">&amp;</span> <span class="identifier">BOOST_SPIRIT_DEBUG_FLAGS_NODES</span>
+            <span class="special">--</span>scan.get_level<span class="special">();</span>  <span class="comment">// decrease nesting level</span>
+            <span class="keyword">if</span> <span class="special">(</span>trace_parser<span class="special">(</span>p<span class="special">.</span>derived<span class="special">())) {</span>
+                impl<span class="special">::</span>print_node_info<span class="special">(</span>
+                    hit<span class="special">,</span> scan<span class="special">.</span>get_level<span class="special">(),</span> <span class="keyword">true</span><span class="special">,</span>
+                    parser_name<span class="special">(</span>p<span class="special">.</span>derived<span class="special">()),</span>
+                    scan<span class="special">.</span>first<span class="special">,</span> scan<span class="special">.</span>last<span class="special">);
+            }</span>
+<span class="preprocessor">#endif</span>
+        <span class="comment">// call the post_parse function of the base class</span>
+            <span class="keyword">return</span> <span class="keyword">this</span><span class="special">-&gt;</span>base_t<span class="special">::</span>post_parse<span class="special">(</span>hit<span class="special">,</span> p<span class="special">,</span> scan<span class="special">);
+        }
+    };</span>
+</pre>
+<p>During debugging (<tt>BOOST_SPIRIT_DEBUG</tt> is defined) this parser context is injected into the derivation hierarchy of the current <tt>parser_context</tt>, which was originally specified to be used for a concrete parser, so the template parameter <tt>ContextT</tt> represents the original <tt>parser_context</tt>. For this reason the <tt>pre_parse</tt> and <tt>post_parse</tt> functions call it's counterparts from the base class. Additionally these functions call a special <tt>print_node_info</tt> function, which does the actual output of the parser state info of the current non-terminal. For more info about the printed information, you may want to have a look at the topic <a href="debugging.html">Debugging</a>.</p>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html">
+    <img src="theme/u_arr.gif" border="0" width="20" height="19"></a></td>
+    <td width="30"><a href="indepth_the_scanner.html">
+    <img src="theme/l_arr.gif" border="0" width="20" height="19"></a></td>
+    <td width="30"><a href="predefined_actors.html">
+    <img src="theme/r_arr.gif" border="0" width="20" height="19"></a></td>
+  </tr>
+</table>
+<br>
+<hr size="1">
+<p class="copyright">Copyright &copy; 1998-2003 Joel de Guzman<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p class="copyright">&nbsp;</p>
+</body>
+</html>

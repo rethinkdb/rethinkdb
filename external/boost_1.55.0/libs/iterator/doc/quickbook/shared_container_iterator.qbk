@@ -1,0 +1,248 @@
+
+[section:shared_container Shared Container Iterator]
+
+Defined in header [@../../../boost/shared_container_iterator.hpp `boost/shared_container_iterator.hpp`].
+
+The purpose of the shared container iterator is to attach the lifetime
+of a container to the lifetime of its iterators. In other words, the
+container will not be deleted until after all its iterators are
+destroyed. The shared container iterator is typically used to
+implement functions that return iterators over a range of objects that
+only need to exist for the lifetime of the iterators. By returning a
+pair of shared iterators from a function, the callee can return a
+heap-allocated range of objects whose lifetime is automatically
+managed.
+
+The shared container iterator augments an iterator over a shared
+container. It maintains a reference count on the shared container. If
+only shared container iterators hold references to the container, the
+container's lifetime will end when the last shared container iterator
+over it is destroyed. In any case, the shared container is guaranteed
+to persist beyond the lifetime of all the iterators. In all other
+ways, the shared container iterator behaves the same as its base
+iterator.
+
+[h2 Synopsis]
+
+  namespace boost {
+    template <typename Container>
+    class shared_container_iterator;
+   
+    template <typename Container>
+    shared_container_iterator<Container>
+    make_shared_container_iterator(typename Container::iterator base, 
+      boost::shared_ptr<Container> const& container);
+   
+    std::pair<
+      typename shared_container_iterator<Container>,
+      typename shared_container_iterator<Container>
+    >
+    make_shared_container_range(boost::shared_ptr<Container> const& container);
+  }
+
+[section:shared_container_type The Shared Container Iterator Type]
+
+  template <typename Container> class shared_container_iterator;
+
+The class template `shared_container_iterator` is the shared container
+iterator type. The `Container` template type argument must model the
+[@http://www.sgi.com/tech/stl/Container.html Container] concept. 
+
+[h2 Example]
+
+The following example illustrates how to create an iterator that
+regulates the lifetime of a reference counted `std::vector`. Though the
+original shared pointer `ints` ceases to exist after `set_range()`
+returns, the `shared_counter_iterator` objects maintain references to
+the underlying vector and thereby extend the container's lifetime.
+
+[@../../../libs/utility/shared_iterator_example1.cpp `shared_iterator_example1.cpp`]:
+
+  #include "shared_container_iterator.hpp"
+  #include "boost/shared_ptr.hpp"
+  #include <algorithm>
+  #include <iostream>
+  #include <vector>
+   
+  typedef boost::shared_container_iterator< std::vector<int> > iterator;
+   
+   
+  void set_range(iterator& i, iterator& end)  {
+   
+    boost::shared_ptr< std::vector<int> > ints(new std::vector<int>());
+    
+    ints->push_back(0);
+    ints->push_back(1);
+    ints->push_back(2);
+    ints->push_back(3);
+    ints->push_back(4);
+    ints->push_back(5);
+    
+    i = iterator(ints->begin(),ints);
+    end = iterator(ints->end(),ints);
+  }
+   
+   
+  int main() {
+   
+    iterator i,end;
+   
+    set_range(i,end);
+   
+    std::copy(i,end,std::ostream_iterator<int>(std::cout,","));
+    std::cout.put('\n');
+   
+    return 0;
+  }
+
+The output from this part is:
+
+  0,1,2,3,4,5,
+
+[table Template Parameters
+  [[Parameter][Description]]
+  [[Container][The type of the container that we wish to iterate over. It must be a model of the Container concept.]]
+]
+
+[h2 Concepts]
+
+The `shared_container_iterator` type models the same iterator concept
+as the base iterator (`Container::iterator`).
+
+[h2 Operations]
+
+The `shared_container_iterator` type implements the member functions
+and operators required of the
+[@http://www.sgi.com/tech/stl/RandomAccessIterator.html Random Access
+Iterator] concept, though only operations defined for the base
+iterator will be valid. In addition it has the following constructor:
+
+  shared_container_iterator(Container::iterator const& it,
+                            boost::shared_ptr<Container> const& container)
+
+[endsect]
+
+[section:shared_container_object_generator The Shared Container Iterator Object Generator]
+
+  template <typename Container>
+  shared_container_iterator<Container>
+  make_shared_container_iterator(Container::iterator base,
+                                 boost::shared_ptr<Container> const& container)
+
+This function provides an alternative to directly constructing a
+`shared_container_iterator`. Using the object generator, a 
+`shared_container_iterator` can be created and passed to a function without
+explicitly specifying its type.
+
+[h2 Example]
+
+This example, similar to the previous, 
+uses `make_shared_container_iterator()` to create the iterators.
+
+[@../../../libs/utility/shared_iterator_example2.cpp `shared_iterator_example2.cpp`]:
+
+  #include "shared_container_iterator.hpp"
+  #include "boost/shared_ptr.hpp"
+  #include <algorithm>
+  #include <iterator>
+  #include <iostream>
+  #include <vector>
+   
+   
+  template <typename Iterator>
+  void print_range_nl (Iterator begin, Iterator end) {
+    typedef typename std::iterator_traits<Iterator>::value_type val;
+    std::copy(begin,end,std::ostream_iterator<val>(std::cout,","));
+    std::cout.put('\n');
+  }
+   
+   
+  int main() {
+   
+    typedef boost::shared_ptr< std::vector<int> > ints_t;
+    {
+      ints_t ints(new std::vector<int>());
+   
+      ints->push_back(0);
+      ints->push_back(1);
+      ints->push_back(2);
+      ints->push_back(3);
+      ints->push_back(4);
+      ints->push_back(5);
+   
+      print_range_nl(boost::make_shared_container_iterator(ints->begin(),ints),
+                     boost::make_shared_container_iterator(ints->end(),ints));
+    }
+    
+   
+   
+    return 0;
+  }
+
+Observe that the `shared_container_iterator` type is never explicitly
+named. The output from this example is the same as the previous.
+
+[endsect]
+
+[section:shared_container_generator The Shared Container Iterator Range Generator]
+
+  template <typename Container>
+  std::pair<
+    shared_container_iterator<Container>,
+    shared_container_iterator<Container>
+  >
+  make_shared_container_range(boost::shared_ptr<Container> const& container);
+  Class shared_container_iterator is meant primarily to return, using iterators, a range of values that we can guarantee will be alive as long as the iterators are. This is a convenience function to do just that. It is equivalent to
+  std::make_pair(make_shared_container_iterator(container->begin(),container),
+                 make_shared_container_iterator(container->end(),container));
+
+[h2 Example]
+
+In the following example, a range of values is returned as a pair of shared_container_iterator objects.
+
+[@../../../libs/utility/shared_iterator_example3.cpp `shared_iterator_example3.cpp`]:
+
+  #include "shared_container_iterator.hpp"
+  #include "boost/shared_ptr.hpp"
+  #include "boost/tuple/tuple.hpp" // for boost::tie
+  #include <algorithm>              // for std::copy
+  #include <iostream>              
+  #include <vector>
+   
+   
+  typedef boost::shared_container_iterator< std::vector<int> > iterator; 
+   
+  std::pair<iterator,iterator>
+  return_range() {
+    boost::shared_ptr< std::vector<int> > range(new std::vector<int>());
+    range->push_back(0);
+    range->push_back(1);
+    range->push_back(2);
+    range->push_back(3);
+    range->push_back(4);
+    range->push_back(5);
+    return boost::make_shared_container_range(range);
+  }
+   
+   
+  int main() {
+   
+   
+    iterator i,end;
+    
+    boost::tie(i,end) = return_range();
+   
+    std::copy(i,end,std::ostream_iterator<int>(std::cout,","));
+    std::cout.put('\n');
+   
+    return 0;
+  }
+
+Though the range object only lives for the duration of the
+`return_range` call, the reference counted `std::vector` will live
+until `i` and `end` are both destroyed. The output from this example is
+the same as the previous two.
+
+[endsect]
+
+[endsect]

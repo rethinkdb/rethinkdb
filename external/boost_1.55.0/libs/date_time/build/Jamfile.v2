@@ -1,0 +1,34 @@
+# Copyright (c) 2002-2005 CrystalClear Software, Inc.
+# Use, modification and distribution is subject to the 
+# Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+#
+# Boost.date_time build and test Jamfile
+#
+#  Based on boost.python Jamfile
+#
+# To run all tests quietly: jam test
+#
+# Declares the following targets:
+#   1. libboost_date_time, a static link library to be linked with all
+#      Boost.date_time modules
+#
+
+
+project boost/date_time
+    : requirements
+        <define>DATE_TIME_INLINE
+	<link>shared:<define>BOOST_ALL_DYN_LINK=1	
+	<link>static:<define>BOOST_DATE_TIME_STATIC_LINK	
+    : usage-requirements 	
+        <define>DATE_TIME_INLINE
+        <link>shared:<define>BOOST_DATE_TIME_DYN_LINK=1
+    : source-location ../src
+    ;
+
+# Base names of the source files for libboost_date_time
+CPP_SOURCES = greg_month greg_weekday date_generators ;
+
+lib boost_date_time : gregorian/$(CPP_SOURCES).cpp ;
+
+boost-install boost_date_time ;

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>jQuery Version Test</title>
+        <script src="../../require.js"></script>
+        <script type="text/javascript" src="../doh/runner.js"></script>
+        <script type="text/javascript" src="../doh/_browserRunner.js"></script>
+        <script>
+            require({
+                    baseUrl: "./scripts/",
+                    paths: {
+                        jquery: "jquery-1.4.4"
+                    },
+                    jQuery: "1.4.4"
+                });
+        </script>
+        <!-- This script calls define but for a different version of jQuery -->
+        <script type="text/javascript" src="scripts/jquery-1.7b2.js"></script>
+        <script>
+            require(["require", "jquery"], function (require) {
+                doh.register(
+                    "jqueryVersion2",
+                    [
+                        function jqueryVersion2(t){
+                            t.is("1.4.4", require('jquery').fn.jquery);
+                        }
+                    ]
+                );
+                doh.run();
+            });
+        </script>
+    </head>
+    <body>
+        <h1>jQuery Version Test</h1>
+        <p>Tests loading of two different jQuery versions but only using the
+        second one since it was the one specified in the require config.</p>
+        <p>Check console for output.</p>
+    </body>
+</html>

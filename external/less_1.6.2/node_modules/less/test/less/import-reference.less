@@ -1,0 +1,18 @@
+@import (reference) url("import-once.less");
+@import (reference) url("css-3.less");
+@import (reference) url("media.less");
+/*
+  The media statement above is invalid (no selector)
+  We should ban invalid media queries with properties and no selector?
+*/
+@import (reference) url("import/import-reference.less");
+
+.b {
+  .z();
+}
+
+.zz();
+
+.visible:extend(.z all) {
+  extend: test;
+}

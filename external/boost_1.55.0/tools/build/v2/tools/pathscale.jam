@@ -1,0 +1,178 @@
+#  Copyright 2006 Noel Belcourt
+#  Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+
+import property ;
+import generators ;
+import toolset : flags ;
+import feature ;
+import type ;
+import os ;
+import common ;
+import fortran ;
+
+feature.extend toolset : pathscale ;
+toolset.inherit pathscale : unix ;
+generators.override pathscale.prebuilt : builtin.prebuilt ;
+generators.override pathscale.searched-lib-generator : searched-lib-generator ;
+
+# Documentation and toolchain description located
+# http://www.pathscale.com/docs.html
+
+rule init ( version ? : command * : options * ) 
+{
+  command = [ common.get-invocation-command pathscale : pathCC : $(command) 
+    : /opt/ekopath/bin ] ;
+  
+  # Determine the version
+  local command-string = $(command:J=" ") ;
+  if $(command)
+  {    
+      version ?= [ MATCH "^([0-9.]+)"
+          : [ SHELL "$(command-string) -dumpversion" ] ] ;
+  }
+  
+  local condition = [ common.check-init-parameters pathscale
+    : version $(version) ] ;
+
+  common.handle-options pathscale : $(condition) : $(command) : $(options) ;
+    
+  toolset.flags pathscale.compile.fortran90 OPTIONS $(condition) :
+    [ feature.get-values <fflags> : $(options) ] : unchecked ;
+
+  command_c = $(command_c[1--2]) $(command[-1]:B=pathcc) ;
+
+  toolset.flags pathscale CONFIG_C_COMMAND $(condition) : $(command_c) ;
+
+  # fortran support
+  local f-command = [ common.get-invocation-command pathscale : pathf90 : $(command) ] ;
+  local command_f = $(command_f[1--2]) $(f-command[-1]:B=pathf90) ;
+  local command_f90 = $(command_f[1--2]) $(f-command[-1]:B=pathf90) ;
+
+  toolset.flags pathscale CONFIG_F_COMMAND $(condition) : $(command_f) ;
+  toolset.flags pathscale CONFIG_F90_COMMAND $(condition) : $(command_f90) ;
+
+  # always link lib rt to resolve clock_gettime()
+  flags pathscale.link FINDLIBS-SA : rt : unchecked ;
+
+  switch [ os.name ]
+  {
+    case SOLARIS :
+        toolset.flags pathscale.link RPATH_OPTION $(condition) : -Wl,-R, -Wl, : unchecked ;
+
+    case * : # GNU
+        toolset.flags pathscale.link RPATH_OPTION $(condition) : -Wl,-rpath=  : unchecked ;
+  }
+}
+
+# Declare generators
+generators.register-c-compiler pathscale.compile.c : C : OBJ : <toolset>pathscale ;
+generators.register-c-compiler pathscale.compile.c++ : CPP : OBJ : <toolset>pathscale ;
+generators.register-fortran-compiler pathscale.compile.fortran : FORTRAN : OBJ : <toolset>pathscale ;
+generators.register-fortran90-compiler pathscale.compile.fortran90 : FORTRAN90 : OBJ : <toolset>pathscale ;
+
+# Declare flags and actions for compilation
+flags pathscale.compile OPTIONS <optimization>off   : -O0 ;
+flags pathscale.compile OPTIONS <optimization>speed : -O3 ;
+flags pathscale.compile OPTIONS <optimization>space : -Os ;
+
+flags pathscale.compile OPTIONS <inlining>off  : -noinline ;
+flags pathscale.compile OPTIONS <inlining>on   : -inline ;
+flags pathscale.compile OPTIONS <inlining>full : -inline ;
+
+flags pathscale.compile OPTIONS <warnings>off           : -woffall ;
+flags pathscale.compile OPTIONS <warnings>on            : -Wall ;
+flags pathscale.compile OPTIONS <warnings>all           : -Wall -pedantic ;
+flags pathscale.compile OPTIONS <warnings-as-errors>on  : -Werror ;
+
+flags pathscale.compile OPTIONS <debug-symbols>on : -ggdb ;
+flags pathscale.compile OPTIONS <profiling>on     : -pg ;
+flags pathscale.compile OPTIONS <link>shared      : -fPIC ;
+flags pathscale.compile OPTIONS <address-model>32 : -m32 ;
+flags pathscale.compile OPTIONS <address-model>64 : -m64 ;
+
+flags pathscale.compile USER_OPTIONS <cflags> ;
+flags pathscale.compile.c++ USER_OPTIONS <cxxflags> ;
+flags pathscale.compile DEFINES <define> ;
+flags pathscale.compile INCLUDES <include> ;
+
+flags pathscale.compile.fortran USER_OPTIONS <fflags> ;
+flags pathscale.compile.fortran90 USER_OPTIONS <fflags> ;
+
+actions compile.c
+{
+    "$(CONFIG_C_COMMAND)" $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+actions compile.c++
+{
+    "$(CONFIG_COMMAND)" $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+actions compile.fortran
+{
+    "$(CONFIG_F_COMMAND)" $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+rule compile.fortran90 ( targets * : sources * : properties * )
+{
+  # the space rule inserts spaces between targets and it's necessary
+  SPACE on $(targets) = " " ;
+  # Serialize execution of the compile.fortran90 action
+  # F90 source must be compiled in a particular order so we
+  # serialize the build as a parallel F90 compile might fail
+  JAM_SEMAPHORE on $(targets) = <s>pathscale-f90-semaphore ;
+}
+
+actions compile.fortran90
+{
+    "$(CONFIG_F90_COMMAND)" $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -module $(<[1]:D) -c -o "$(<)" "$(>)"
+}
+
+# Declare flags and actions for linking
+flags pathscale.link OPTIONS <debug-symbols>on : -ggdb -rdynamic ;
+# Strip the binary when no debugging is needed
+flags pathscale.link OPTIONS <debug-symbols>off : -g0 ;
+flags pathscale.link OPTIONS <profiling>on : -pg ;
+flags pathscale.link USER_OPTIONS <linkflags> ;
+flags pathscale.link LINKPATH <library-path> ;
+flags pathscale.link FINDLIBS-ST <find-static-library> ;
+flags pathscale.link FINDLIBS-SA <find-shared-library> ;
+flags pathscale.link FINDLIBS-SA <threading>multi : pthread ;
+flags pathscale.link LIBRARIES <library-file> ;
+flags pathscale.link LINK-RUNTIME <runtime-link>static : static ;
+flags pathscale.link LINK-RUNTIME <runtime-link>shared : dynamic ;
+flags pathscale.link RPATH <dll-path> ;
+# On gcc, there are separate options for dll path at runtime and
+# link time. On Solaris, there's only one: -R, so we have to use
+# it, even though it's bad idea.
+flags pathscale.link RPATH <xdll-path> ;
+
+rule link ( targets * : sources * : properties * )
+{
+    SPACE on $(targets) = " " ;
+}
+
+actions link bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" $(OPTIONS) $(USER_OPTIONS) -L"$(LINKPATH)" $(RPATH_OPTION:E=-Wl,-rpath=)"$(RPATH)" -o "$(<)" "$(>)" "$(LIBRARIES)" -l$(FINDLIBS-SA) -l$(FINDLIBS-ST)
+}
+
+# Slight mods for dlls
+rule link.dll ( targets * : sources * : properties * )
+{
+    SPACE on $(targets) = " " ;
+}
+
+actions link.dll bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" $(OPTIONS) $(USER_OPTIONS) -L"$(LINKPATH)" $(RPATH_OPTION:E=-Wl,-rpath=)"$(RPATH)" -o "$(<)" -Wl,-soname$(SPACE)-Wl,$(<[1]:D=) -shared "$(>)" "$(LIBRARIES)" -l$(FINDLIBS-SA) -l$(FINDLIBS-ST)
+}
+
+# Declare action for creating static libraries
+# "$(CONFIG_COMMAND)" -ar -o "$(<)" "$(>)"
+actions piecemeal archive
+{
+    ar $(ARFLAGS) ru "$(<)" "$(>)"
+}

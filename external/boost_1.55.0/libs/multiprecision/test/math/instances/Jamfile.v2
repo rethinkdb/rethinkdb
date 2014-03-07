@@ -1,0 +1,80 @@
+# copyright John Maddock 2013
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt.
+
+import modules ;
+import path ;
+
+local ntl-path = [ modules.peek : NTL_PATH ] ;
+local gmp_path = [ modules.peek : GMP_PATH ] ;
+local mpfr_path = [ modules.peek : MPFR_PATH ] ;
+local mpfi_path = [ modules.peek : MPFI_PATH ] ;
+local tommath_path = [ modules.peek : TOMMATH_PATH ] ;
+
+project : requirements
+   <include>$(gmp_path)
+   <include>$(gmp_path)/mpfr
+   <include>$(gmp_path)/gmpfrxx
+   <include>$(mpfr_path)
+   <include>$(mpfi_path)
+   <include>$(mpfi_path)/src
+   <include>$(tommath_path)
+   <include>../../..
+   # We set these to make it easier to set up and test GMP and MPFR under Win32:
+   #<toolset>msvc:<runtime-link>static
+   #<toolset>msvc:<link>static
+   #<toolset>msvc:<warnings>all
+   #<toolset>intel-win:<runtime-link>static
+   #<toolset>intel-win:<link>static
+   # Speed up compiles:
+   #<toolset>msvc:<debug-symbols>off
+   #<toolset>intel:<debug-symbols>off
+   <toolset>gcc:<cxxflags>-Wall
+   <toolset>gcc:<cxxflags>-Wextra
+   <toolset>intel:<define>SLOW_COMPILER
+   ;
+
+lib gmp : : <search>$(gmp_path) ;
+lib mpfr : : <search>$(gmp_path) <search>$(mpfr_path) <search>$(mpfr_path)/build.vc10/lib/Win32/Debug ;
+lib mpfi : : <search>$(gmp_path) <search>$(mpfr_path) <search>$(mpfr_path)/build.vc10/lib/Win32/Debug <search>$(mpfi_path) <search>$(mpfi_path)/src ;
+lib quadmath ;
+
+rule generate_objs ( suffix : variant_count : build_opts * )
+{
+   local result ;
+   switch $(variant_count)
+   {
+   case "1" : variant_list = 1 ;
+   case "2" : variant_list = 1 2 ;
+   case "3" : variant_list = 1 2 3 ;
+   case "4" : variant_list = 1 2 3 4 ;
+   case "5" : variant_list = 1 2 3 4 5 ;
+   case "6" : variant_list = 1 2 3 4 5 6 ;
+   }
+
+   for group_id in 1 2 3 4 5 6 7 8 9 10
+   {
+      for variant_id in $(variant_list)
+      {
+         name = "test_instances$(suffix)_$(group_id)_$(variant_id)" ;
+         obj $(name) : instances.cpp : release <define>BOOST_MATH_TEST_TYPE=test_type_$(variant_id) <define>TEST_GROUP_$(group_id) $(build_opts) ;
+         result += $(name) ;
+      }
+   }
+   return $(result) ;
+}
+
+lib test_instances_mpf : [ generate_objs "_mpf" : 4 : <define>TEST_MPF_50 ] : [ check-target-builds ../../../config//has_gmp : : <build>no ] ;
+lib test_instances_mpfr : [ generate_objs "_mpfr" : 3 : <define>TEST_MPFR_50 ] : [ check-target-builds ../../../config//has_mpfr : : <build>no ] ;
+lib test_instances_cpp_dec_float : [ generate_objs "_cpp_dec_float" : 3 : <define>TEST_CPP_DEC_FLOAT ] : ;
+lib test_instances_float128 : [ generate_objs "_float128" : 1 : <define>TEST_FLOAT128 ] : [ check-target-builds ../../../config//has_float128 : : <build>no ] ;
+lib test_instances_intel_quad : [ generate_objs "_intel_quad" : 1 : <define>TEST_FLOAT128 <cxxflags>-Qoption,cpp,--extended_float_type ] : [ check-target-builds ../../../config//has_intel_quad : <cxxflags>-Qoption,cpp,--extended_float_type : <build>no ] ;
+
+explicit test_instances_mpf ;
+explicit test_instances_mpfr ;
+explicit test_instances_cpp_dec_float ;
+explicit test_instances_float128 ;
+explicit test_instances_intel_quad ;
+
+

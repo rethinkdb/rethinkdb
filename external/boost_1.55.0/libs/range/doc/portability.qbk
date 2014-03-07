@@ -1,0 +1,27 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:portability Portability]
+
+A huge effort has been made to port the library to as many compilers as possible.
+
+Full support for built-in arrays require that the compiler supports class template partial specialization. For non-conforming compilers there might be a chance that it works anyway thanks to workarounds in the type traits library.
+Visual C++ 6/7.0 has a limited support for arrays: as long as the arrays are of built-in type it should work.
+
+Notice also that some compilers cannot do function template ordering properly. In that case one must rely of __range_iterator__ and a single function definition instead of overloaded versions for const and non-const arguments. So if one cares about old compilers, one should not pass rvalues to the functions.
+
+For maximum portability you should follow these guidelines:
+
+# do not use built-in arrays,
+# do not pass rvalues to __begin__`()`, __end__`()` and __iterator_range__ Range constructors and assignment operators,
+# use __const_begin__`()` and __const_end__`()` whenever your code by intention is read-only; this will also solve most rvalue problems,
+# do not rely on ADL:
+  * if you overload functions, include that header before the headers in this library,
+  * put all overloads in namespace boost.
+
+
+
+[endsect]
+

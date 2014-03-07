@@ -1,0 +1,125 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: dijkstra_visitor</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1>
+<pre>
+dijkstra_visitor&lt;EventVisitorList&gt;
+</pre>
+</H1>
+
+This class is an adapter that converts a list of <a
+href="./EventVisitor.html">EventVisitor</a>s (constructed using
+<tt>std::pair</tt>) into a <a
+href="./DijkstraVisitor.html">DijkstraVisitor</a>.
+
+
+<h3>Example</h3>
+
+This is an excerpt from <a
+href="../example/dave.cpp"><tt>examples/dave.cpp</tt></a>
+where the <tt>copy_graph</tt> single-event visitor
+is used to create a copy the shortest-paths search-tree calculated
+by Dijkstra's algorithm.
+
+<pre>
+boost::dijkstra_shortest_paths
+  (G, vertex(a, G), 
+   distance_map(make_iterator_property_map(distance.begin(), vertex_id, distance[0])).
+   predecessor_map(make_iterator_property_map(parent.begin(), vertex_id, parent[0])).
+   visitor(make_dijkstra_visitor(copy_graph(G_copy, on_examine_edge()))));
+</pre>
+
+
+<h3>Model of</h3>
+
+<a href="./DijkstraVisitor.html">Dijkstra Visitor</a>
+
+<H3>Template Parameters</H3>
+
+<P>
+<TABLE border>
+<TR>
+<th>Parameter</th><th>Description</th><th>Default</th>
+</tr>
+
+<TR><TD><TT>EventVisitorList</TT></TD>
+<TD>
+A list of <a href="./EventVisitor.html">EventVisitor</a>'s created
+with <tt>std::pair</tt>.
+</TD>
+<TD><TT><a href="./null_visitor.html"><tt>null_visitor</tt></a></TT></TD>
+</TR>
+
+</table>
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/dijkstra_shortest_paths.hpp">
+<TT>boost/graph/dijkstra_shortest_paths.hpp</TT></a>
+
+<h3>Member Functions</h3>
+
+This class implements all of the member functions required by <a
+href="./DijkstraVisitor.html">DijkstraVisitor</a>. In each
+function the appropriate event is dispatched to the <a
+href="./EventVisitor.html">EventVisitor</a> in the EventVisitorList.
+
+<h3>Non-Member Functions</h3>
+
+<table border>
+<tr>
+<th>Function</th><th>Description</th>
+</tr>
+
+<tr><td><tt>
+template &lt;class EventVisitorList&gt;<br>
+dijkstra_visitor&lt;EventVisitorList&gt;<br>
+make_dijkstra_visitor(EventVisitorList ev_list);
+</tt></td><td>
+Returns the event visitor list adapted to be a Dijkstra Visitor.
+</td></tr>
+
+</table>
+
+<h3>See Also</h3>
+
+<a href="./visitor_concepts.html">Visitor concepts</a>
+<p>
+The following are event visitors: <a
+ href="./predecessor_recorder.html"><tt>predecessor_recorder</tt></a>,
+<a href="./distance_recorder.html"><tt>distance_recorder</tt></a>
+<a href="./time_stamper.html"><tt>time_stamper</tt></a>,
+and <a href="./property_writer.html"><tt>property_writer</tt></a>.
+
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

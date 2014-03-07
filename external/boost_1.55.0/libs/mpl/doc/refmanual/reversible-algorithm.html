@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: Reversible Algorithm</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./inserter.html" class="navigation-link">Prev</a>&nbsp;<a href="./inserters.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./inserter.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./algorithms-concepts.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./algorithms.html" class="navigation-link">Algorithms</a> / <a href="./algorithms-concepts.html" class="navigation-link">Concepts</a> / <a href="./reversible-algorithm.html" class="navigation-link">Reversible Algorithm</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="reversible-algorithm">
+<h1><a class="toc-backref" href="./algorithms-concepts.html#id1463">Reversible Algorithm</a></h1>
+<div class="section" id="id459">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>A <a class="reference internal" href="./reversible-algorithm.html">Reversible Algorithm</a> is a member of a pair of
+transformation algorithms that iterate over their input sequence(s)
+in opposite directions. For each reversible
+algorithm <tt class="literal"><span class="pre">x</span></tt> there exists a <em>counterpart</em> algorithm <tt class="literal"><span class="pre">reverse_x</span></tt>,
+that exhibits the exact semantics of <tt class="literal"><span class="pre">x</span></tt> except that the elements
+of its input sequence argument(s) are processed in the reverse
+order.</p>
+</div>
+<div class="section" id="id460">
+<h3><a class="subsection-title" href="#expression-requirements" name="expression-requirements">Expression requirements</a></h3>
+<p>In the following table and subsequent specifications, <tt class="literal"><span class="pre">x</span></tt> is a placeholder token for the actual
+<a class="reference internal" href="./reversible-algorithm.html">Reversible Algorithm</a>'s name, <em>s</em><sub>1</sub>,<em>s</em><sub>2</sub>,...<em>s</em><sub>n</sub> are
+<a class="reference internal" href="./forward-sequence.html">Forward Sequence</a>s, and <tt class="literal"><span class="pre">in</span></tt> is an <a class="reference internal" href="./inserter.html">Inserter</a>.</p>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="48%" />
+<col width="28%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Expression</th>
+<th class="head">Type</th>
+<th class="head">Complexity</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">x&lt;</span></tt><em>s</em><sub>1</sub>,<em>s</em><sub>2</sub>,...<em>s</em><sub>n</sub>, ...<tt class="literal"><span class="pre">&gt;::type</span></tt></td>
+<td><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></td>
+<td>Unspecified.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">x&lt;</span></tt><em>s</em><sub>1</sub>,<em>s</em><sub>2</sub>,...<em>s</em><sub>n</sub>, ... <tt class="literal"><span class="pre">in&gt;::type</span></tt></td>
+<td>Any type</td>
+<td>Unspecified.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">reverse_x&lt;</span></tt><em>s</em><sub>1</sub>,<em>s</em><sub>2</sub>,...<em>s</em><sub>n</sub>, ...<tt class="literal"><span class="pre">&gt;::type</span></tt></td>
+<td><a class="reference internal" href="./forward-sequence.html">Forward Sequence</a></td>
+<td>Unspecified.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">reverse_x&lt;</span></tt><em>s</em><sub>1</sub>,<em>s</em><sub>2</sub>,...<em>s</em><sub>n</sub>, ... <tt class="literal"><span class="pre">in&gt;::type</span></tt></td>
+<td>Any type</td>
+<td>Unspecified.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id461">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<pre class="literal-block">
+typedef x&lt;<em>s</em><sub>1</sub>,<em>s</em><sub>2</sub>,...<em>s</em><sub>n</sub>,...&gt;::type t;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><p class="first"><em>s</em><sub>1</sub> is an <a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first"><tt class="literal"><span class="pre">t</span></tt> is equivalent to</p>
+<pre class="literal-block">
+x&lt;
+      <em>s</em><sub>1</sub>,<em>s</em><sub>2</sub>,...<em>s</em><sub>n</sub>,...
+    , <a href="./back-inserter.html" class="identifier">back_inserter</a>&lt; <a href="./clear.html" class="identifier">clear</a>&lt;<em>s</em><sub>1</sub>&gt;::type &gt;
+    &gt;::type
+</pre>
+<p>if <tt class="literal"><span class="pre">has_push_back&lt;</span></tt><em>s</em><sub>1</sub><tt class="literal"><span class="pre">&gt;::value</span> <span class="pre">==</span> <span class="pre">true</span></tt> and</p>
+<pre class="literal-block">
+reverse_x&lt;
+      <em>s</em><sub>1</sub>,<em>s</em><sub>2</sub>,...<em>s</em><sub>n</sub>,...
+    , <a href="./front-inserter.html" class="identifier">front_inserter</a>&lt; <a href="./clear.html" class="identifier">clear</a>&lt;<em>s</em><sub>1</sub>&gt;::type &gt;
+    &gt;::type
+</pre>
+<p class="last">otherwise.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- .......................................................................... -->
+<pre class="literal-block">
+typedef x&lt;<em>s</em><sub>1</sub>,<em>s</em><sub>2</sub>,...<em>s</em><sub>n</sub>,...in&gt;::type t;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><tt class="literal"><span class="pre">t</span></tt> is the result of an <tt class="literal"><span class="pre">x</span></tt> invocation with arguments
+<em>s</em><sub>1</sub>,<em>s</em><sub>2</sub>,... <em>s</em><sub>n</sub>,...<tt class="literal"><span class="pre">in</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<!-- .......................................................................... -->
+<pre class="literal-block">
+typedef reverse_x&lt;<em>s</em><sub>1</sub>,<em>s</em><sub>2</sub>,... <em>s</em><sub>n</sub>,... &gt;::type t;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><p class="first"><em>s</em><sub>1</sub> is an <a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first"><tt class="literal"><span class="pre">t</span></tt> is equivalent to</p>
+<pre class="literal-block">
+x&lt;
+      <em>s</em><sub>1</sub>,<em>s</em><sub>2</sub>,...<em>s</em><sub>n</sub>,...
+    , <a href="./front-inserter.html" class="identifier">front_inserter</a>&lt; <a href="./clear.html" class="identifier">clear</a>&lt;<em>s</em><sub>1</sub>&gt;::type &gt;
+    &gt;::type
+</pre>
+<p>if <tt class="literal"><span class="pre">has_push_front&lt;</span></tt><em>s</em><sub>1</sub><tt class="literal"><span class="pre">&gt;::value</span> <span class="pre">==</span> <span class="pre">true</span></tt> and</p>
+<pre class="literal-block">
+reverse_x&lt;
+      <em>s</em><sub>1</sub>,<em>s</em><sub>2</sub>,...<em>s</em><sub>n</sub>,...
+    , <a href="./back-inserter.html" class="identifier">back_inserter</a>&lt; <a href="./clear.html" class="identifier">clear</a>&lt;<em>s</em><sub>1</sub>&gt;::type &gt;
+    &gt;::type
+</pre>
+<p class="last">otherwise.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- .......................................................................... -->
+<pre class="literal-block">
+typedef reverse_x&lt;<em>s</em><sub>1</sub>,<em>s</em><sub>2</sub>,...<em>s</em><sub>n</sub>,... in&gt;::type t;
+</pre>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><tt class="literal"><span class="pre">t</span></tt> is the result of a <tt class="literal"><span class="pre">reverse_x</span></tt> invocation with arguments
+<em>s</em><sub>1</sub>,<em>s</em><sub>2</sub>,...<em>s</em><sub>n</sub>,...<tt class="literal"><span class="pre">in</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id462">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./transform.html" class="identifier">transform</a>&lt;
+      <a href="./range-c.html" class="identifier">range_c</a>&lt;int,0,10&gt;
+    , <a href="./plus.html" class="identifier">plus</a>&lt;<a href="./placeholders.html" class="identifier">_1</a>,<a href="./int.html" class="identifier">int_</a>&lt;7&gt; &gt;
+    , <a href="./back-inserter.html" class="identifier">back_inserter</a>&lt; vector0&lt;&gt; &gt;
+    &gt;::type r1;
+
+typedef <a href="./transform.html" class="identifier">transform</a>&lt; r1, <a href="./minus.html" class="identifier">minus</a>&lt;<a href="./placeholders.html" class="identifier">_1</a>,<a href="./int.html" class="identifier">int_</a>&lt;2&gt; &gt; &gt;::type r2;
+typedef <a href="./reverse-transform.html" class="identifier">reverse_transform</a>&lt;
+      r2
+    , <a href="./minus.html" class="identifier">minus</a>&lt;<a href="./placeholders.html" class="identifier">_1</a>,5&gt;
+    , <a href="./front-inserter.html" class="identifier">front_inserter</a>&lt; vector0&lt;&gt; &gt;
+    &gt;::type r3;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( <a href="./equal.html" class="identifier">equal</a>&lt;r1, <a href="./range-c.html" class="identifier">range_c</a>&lt;int,7,17&gt; &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( <a href="./equal.html" class="identifier">equal</a>&lt;r2, <a href="./range-c.html" class="identifier">range_c</a>&lt;int,5,15&gt; &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( <a href="./equal.html" class="identifier">equal</a>&lt;r3, <a href="./range-c.html" class="identifier">range_c</a>&lt;int,0,10&gt; > ));
+</pre>
+</div>
+<div class="section" id="id463">
+<h3><a class="subsection-title" href="#models" name="models">Models</a></h3>
+<ul class="simple">
+<li><a class="reference internal" href="./transform.html">transform</a></li>
+<li><a class="reference internal" href="./remove.html">remove</a></li>
+<li><a class="reference internal" href="./replace.html">replace</a></li>
+</ul>
+</div>
+<div class="section" id="id464">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./transformation-algorithms.html">Transformation Algorithms</a>, <a class="reference internal" href="./inserter.html">Inserter</a></p>
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./inserter.html" class="navigation-link">Prev</a>&nbsp;<a href="./inserters.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./inserter.html" class="navigation-link">Back</a>&nbsp;Along</span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./algorithms-concepts.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

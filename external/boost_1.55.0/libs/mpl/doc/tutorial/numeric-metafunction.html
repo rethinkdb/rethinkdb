@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: Numeric Metafunction Protocol/Infrastructure</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./tag-dispatching-protocol.html" class="navigation-link">Prev</a>&nbsp;<a href="./renaming-cleanup.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tag-dispatching-protocol.html" class="navigation-link">Back</a>&nbsp;<a href="./renaming-cleanup.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./changes-in-boost-1-32-0.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./changelog-history.html" class="navigation-link">Changelog & History</a> / <a href="./changes-in-boost-1-32-0.html" class="navigation-link">Changes in Boost 1.32.0 Release</a> / <a href="./numeric-metafunction.html" class="navigation-link">Numeric Metafunction Protocol/Infrastructure</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="numeric-metafunction">
+<h1><a class="toc-backref" href="./changes-in-boost-1-32-0.html#id67" name="numeric-metafunction">Numeric Metafunction Protocol/Infrastructure</a></h1>
+<p>The arithmetic, comparison and bitwise metafunctions are now
+<cite>polymorphic</cite>, and can operate on a variety of numeric types,
+including rational, fixed-point and complex numbers.  They allow
+<cite>mixed arithmetic</cite>, meaning that you can perform an operation on
+arguments of different types, and the result will yield the
+largest/most general of the argument types. The infrastructure
+allows user-defined numeric types to be freely intermixed with
+predefined library types. See
+<a class="reference" href="http://cvs.sourceforge.net/viewcvs.py/boost/boost/libs/mpl/test/numeric_ops.cpp?view=markup" target="_top">http://cvs.sourceforge.net/viewcvs.py/boost/boost/libs/mpl/test/numeric_ops.cpp?view=markup</a>
+for an illustrative example, and the <a class="reference" href="./reference-manual.html">reference manual</a> for
+the formal infrastructure specification.</p>
+<p>If you were using MPL numeric metafunctions on your own integral
+wrapper class similar to <tt class="literal"><span class="pre">mpl::int_</span></tt>, you can plug your class
+into the new infrastructure by extending it with the following
+member:</p>
+<pre class="literal-block">
+typedef mpl::integral_c_tag tag;
+</pre>
+<p>For example:</p>
+<table border="1" class="table">
+<colgroup>
+<col width="48%" />
+<col width="52%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th>Before</th>
+<th>Now</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><pre class="first last literal-block">
+template&lt; int n &gt; struct my_int
+{
+    static int const value = n;
+    typedef my_int type;
+};
+</pre>
+</td>
+<td><pre class="first last literal-block">
+template&lt; int n &gt; struct my_int
+{
+    <strong>typedef mpl::integral_c_tag tag;</strong>
+    static int const value = n;
+    typedef my_int type;
+};
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./tag-dispatching-protocol.html" class="navigation-link">Prev</a>&nbsp;<a href="./renaming-cleanup.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tag-dispatching-protocol.html" class="navigation-link">Back</a>&nbsp;<a href="./renaming-cleanup.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./changes-in-boost-1-32-0.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

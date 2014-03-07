@@ -1,0 +1,45 @@
+{
+  "name": "astw",
+  "version": "0.1.0",
+  "description": "walk the ast with references to parent nodes",
+  "main": "index.js",
+  "dependencies": {
+    "esprima-six": "0.0.3"
+  },
+  "devDependencies": {
+    "tape": "~2.4.1",
+    "escodegen": "~0.0.17"
+  },
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "testling": {
+    "files": "test/*.js",
+    "browsers": [
+      "ie/6..latest",
+      "chrome/20..latest",
+      "firefox/10..latest",
+      "safari/latest",
+      "opera/11.0..latest",
+      "iphone/6",
+      "ipad/6"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/substack/astw.git"
+  },
+  "homepage": "https://github.com/substack/astw",
+  "keywords": [
+    "ast",
+    "walk",
+    "source",
+    "esprima"
+  ],
+  "author": {
+    "name": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net"
+  },
+  "license": "MIT"
+}

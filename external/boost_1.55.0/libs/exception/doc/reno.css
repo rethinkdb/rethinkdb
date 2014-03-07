@@ -1,0 +1,226 @@
+/*
+ *  Copyright (c) 2006-2008 Emil Dotchevski and Reverge Studios, Inc.
+ *
+ *  Distributed under the Boost Software License, Version 1.0. (See accompanying
+ *  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ */
+
+body
+{
+	font-family: Trebuchet, Verdana, Arial, Helvetica, Sans;
+	font-size: 10pt;
+	margin: 0;
+	padding: 0;
+	background-color: #E5E5E5;
+}
+
+.RenoPageList,
+ol,
+ul
+{
+	clear: both;
+}
+
+.RenoPageList
+{
+	margin:0;
+}
+
+h1
+{
+	font-size: 24pt;
+	clear: left;
+	padding-top: 5pt;
+	padding-bottom: 5pt;
+	margin-top: 0;
+	margin-bottom: 0;
+}
+
+h2
+{
+	font-size: 18pt;
+	clear: left;
+	padding-top: 20pt;
+	padding-bottom: 5pt;
+	margin-top: 0;
+	margin-bottom: 0;
+}
+
+h3
+{
+	font-size: 14pt;
+	clear: left;
+	padding-top: 15pt;
+	padding-bottom: 5pt;
+	margin-top: 0;
+	margin-bottom: 0;
+}
+
+h4
+{
+	font-size: 10pt;
+	float: left;
+	clear: left;
+	padding-top: 5pt;
+	padding-bottom: 0;
+	margin-top: 0;
+	margin-bottom: 0;
+	margin-right: 4pt;
+}
+
+p
+{
+	font-size: 10pt;
+	padding-top: 5pt;
+	padding-bottom: 5pt;
+	margin-top: 0;
+	margin-bottom: 0;
+	clear:right;
+}
+
+pre
+{
+	border-top: 1px solid #C5C5C5;
+	border-bottom: 1px solid #C5C5C5;
+	border-left: 1px solid #C5C5C5;
+	border-right: 1px solid #C5C5C5;
+	font-size: 10pt;
+	padding-top: 5pt;
+	padding-bottom: 5pt;
+	padding-left: 5pt;
+	padding-right: 5pt;
+	margin-left: 18pt;
+	margin-right: 18pt;
+	margin-top: 10pt;
+	margin-bottom: 10pt;
+	clear: both;
+}
+
+ol,ul
+{
+	padding-top: 0;
+	padding-bottom: 0;
+	margin-top: 0;
+	margin-bottom: 0;
+}
+
+ul li
+{
+	padding-top: 5pt;
+	padding-bottom: 5pt;
+	margin-top: 0;
+	margin-bottom: 0;
+}
+
+.RenoIndex h3
+{
+	margin: 20pt 0 5pt 0;
+	padding: 2pt;
+	display: inline;
+	border: 1.5pt solid #A0A0A0;
+	float: left;
+	clear: both;
+	width: 15pt;
+	text-align: center;
+	background-color: #EAEAEA;
+}
+
+.RenoIndex p
+{
+	clear: both;
+	margin: 0;
+	padding: 0;
+}
+
+.RenoHookUnbound,
+.RenoHookBound
+{
+	background-position: left center;
+	background-image: url('link.gif');
+	background-repeat: no-repeat;
+	padding-left: 10pt;
+}
+
+.RenoIncludeDIV
+{
+	padding: 0;
+	margin: 0;
+}
+
+.RenoError
+{
+	background-color: red;
+	color: white;
+	display: inline;
+}
+
+a
+{
+	text-decoration: underline;
+	color: #0000AA;
+}
+
+tt
+{
+	font-size: 10pt;
+}
+
+hr
+{
+	border: 0;
+	color: black;
+	background-color: black;
+	height: 1px;
+	margin-top: 20pt;
+}
+
+blockquote
+{
+	padding-top: 0;
+	padding-bottom: 0;
+	padding-right: 0;
+	padding-left: 20pt;
+	margin: 0;
+}
+
+#boost_logo
+{
+	float:right;
+}
+
+#footer
+{
+	margin-top:20pt;
+}
+
+.logo_pic
+{
+	border:0;
+}
+
+.logo
+{
+	float:right;
+	margin-left: 6pt;
+	margin-right: -4pt;
+}
+
+.body-0
+{
+	min-width: 40em;
+	padding-left: 30px;
+	background: url(shade-l.png) repeat-y left;
+}
+.body-1
+{
+	padding-right: 30px;
+	background: url(shade-r.png) repeat-y right;
+}
+.body-2
+{
+	background-color: white;
+	padding: 0 8pt 0 8pt;
+	margin-left: 0;
+	border-top: solid 2.5pt #717171;
+	border-bottom: solid 3pt #717171;
+}

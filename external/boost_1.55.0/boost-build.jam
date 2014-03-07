@@ -1,0 +1,17 @@
+# Copyright (C) 2002-2003 David Abrahams.
+# Copyright (C) 2002-2003 Vladimir Prus.
+# Copyright (C) 2003,2007 Rene Rivera.
+# Use, modification and distribution are subject to the
+# Boost Software License, Version 1.0. (See accompanying file
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#   This is the initial file loaded by Boost Jam when run from any Boost library
+# folder. It allows us to choose which Boost Build installation to use for
+# building Boost libraries. Unless explicitly selected using a command-line
+# option, the version included with the Boost library distribution is used (as
+# opposed to any other Boost Build version installed on the user's sytem).
+
+BOOST_ROOT = $(.boost-build-file:D) ;
+BOOST_BUILD = [ MATCH --boost-build=(.*) : $(ARGV) ] ;
+BOOST_BUILD ?= tools/build/v2 ;
+boost-build $(BOOST_BUILD) ;

@@ -1,0 +1,39 @@
+# Boost Timer Library test Jamfile
+
+# Copyright Beman Dawes 2003, 2006, 2011
+
+# Distributed under the Boost Software License, Version 1.0.
+# See http://www.boost.org/LICENSE_1_0.txt
+
+# See library home page at http://www.boost.org/libs/timer
+
+project
+    : requirements
+      <library>/boost/timer//boost_timer
+      <toolset>msvc:<asynch-exceptions>on
+    ;
+ 
+   test-suite "timer"
+   :
+     [ run ../example/auto_cpu_timer_example.cpp
+       : # command line
+       : # input files
+       : <test-info>always_show_run_output # requirements
+     ]
+     [ run cpu_timer_info.cpp
+       : # command line
+       : # input files
+       : <test-info>always_show_run_output # requirements
+     ]
+     [ run cpu_timer_test.cpp
+       : # command line
+       : # input files
+       : <test-info>always_show_run_output # requirements
+     ]
+     [ run ../example/timex.cpp
+       : echo "Hello, world"
+	     :
+	     : <test-info>always_show_run_output
+     ]
+     [ compile original_timer_test.cpp ]
+   ;

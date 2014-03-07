@@ -1,0 +1,786 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>covered_by (with strategy)</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../covered_by.html" title="covered_by">
+<link rel="prev" href="covered_by_2.html" title="covered_by">
+<link rel="next" href="../difference.html" title="difference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="covered_by_2.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../covered_by.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../difference.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy"></a><a class="link" href="covered_by_3_with_strategy.html" title="covered_by (with strategy)">covered_by
+          (with strategy)</a>
+</h5></div></div></div>
+<p>
+            <a class="indexterm" name="idp53925544"></a>
+Checks if the first geometry is inside or on border the second geometry
+            using the specified strategy.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.h0"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.description"></a></span><a class="link" href="covered_by_3_with_strategy.html#geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.description">Description</a>
+          </h6>
+<p>
+            The free function covered_by checks if the first geometry is inside or
+            on border the second geometry, using the specified strategy. Reasons
+            to specify a strategy include: use another coordinate system for calculations;
+            construct the strategy beforehand (e.g. with the radius of the Earth);
+            select a strategy when there are more than one available for a calculation.
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.h1"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.synopsis"></a></span><a class="link" href="covered_by_3_with_strategy.html#geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.synopsis">Synopsis</a>
+          </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Geometry1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Geometry2</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Strategy</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">covered_by</span><span class="special">(</span><span class="identifier">Geometry1</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry1</span><span class="special">,</span> <span class="identifier">Geometry2</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">geometry2</span><span class="special">,</span> <span class="identifier">Strategy</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">strategy</span><span class="special">)</span></pre>
+<p>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.h2"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.parameters"></a></span><a class="link" href="covered_by_3_with_strategy.html#geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Concept
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Name
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Geometry1 const &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Geometry Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      geometry1
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A model of the specified concept which might be inside or on
+                      the border of the second geometry
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Geometry2 const &amp;
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Any type fulfilling a Geometry Concept
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      geometry2
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      A model of the specified concept which might cover the first
+                      geometry
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Strategy const &amp;
+                    </p>
+                  </td>
+<td>
+                  </td>
+<td>
+                    <p>
+                      strategy
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      strategy to be used
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.h3"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.returns"></a></span><a class="link" href="covered_by_3_with_strategy.html#geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.returns">Returns</a>
+          </h6>
+<p>
+            true if geometry1 is inside of or on the border of geometry2, else false
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.h4"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.header"></a></span><a class="link" href="covered_by_3_with_strategy.html#geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.header">Header</a>
+          </h6>
+<p>
+            Either
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<p>
+            Or
+          </p>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">algorithms</span><span class="special">/</span><span class="identifier">covered_by</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.h5"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.conformance"></a></span><a class="link" href="covered_by_3_with_strategy.html#geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.conformance">Conformance</a>
+          </h6>
+<p>
+            The function covered_by is not defined by OGC.
+          </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              Both PostGIS and Oracle contain an algorithm with the same name and
+              the same functionality. See the <a href="http://www.postgis.org/docs/ST_CoveredBy.html" target="_top">PostGIS
+              documentation</a>.
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.h6"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.supported_geometries"></a></span><a class="link" href="covered_by_3_with_strategy.html#geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.supported_geometries">Supported
+            geometries</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  </th>
+<th>
+                    <p>
+                      Point
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Segment
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Box
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Linestring
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Ring
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Polygon
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      MultiPoint
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      MultiLinestring
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      MultiPolygon
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      Point
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Segment
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Box
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Linestring
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Ring
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      Polygon
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      MultiPoint
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      MultiLinestring
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      MultiPolygon
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/ok.png" alt="ok"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <span class="inlinemediaobject"><img src="../../../../img/nyi.png" alt="nyi"></span>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              In this status matrix above: columns are types of first parameter and
+              rows are types of second parameter. So a point can be checked to be
+              covered by a polygon, but not vice versa.
+            </p></td></tr>
+</table></div>
+<h6>
+<a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.h7"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.complexity"></a></span><a class="link" href="covered_by_3_with_strategy.html#geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.complexity">Complexity</a>
+          </h6>
+<p>
+            Linear
+          </p>
+<h6>
+<a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.h8"></a>
+            <span class="phrase"><a name="geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.see_also"></a></span><a class="link" href="covered_by_3_with_strategy.html#geometry.reference.algorithms.covered_by.covered_by_3_with_strategy.see_also">See
+            also</a>
+          </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+                <a class="link" href="../within.html" title="within">within</a>
+              </li></ul></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The difference with the <code class="computeroutput"><span class="identifier">within</span></code>
+              algorithm is that this algorithm checks the border by default
+            </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="covered_by_2.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../covered_by.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../difference.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

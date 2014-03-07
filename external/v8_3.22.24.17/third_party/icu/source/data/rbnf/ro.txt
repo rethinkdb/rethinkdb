@@ -1,0 +1,100 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/rbnf/ro.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/rbnf/ro.xml
+ */
+ro{
+    RBNFRules{
+        OrdinalRules{
+            "%digits-ordinal:",
+            "-x: \u2212>>;",
+            "0: =#,##0=a;",
+        }
+        SpelloutRules{
+            "%spellout-numbering-year:",
+            "x.x: =#,###0.#=;",
+            "0: =%spellout-numbering=;",
+            "%spellout-numbering:",
+            "0: =%spellout-cardinal-masculine=;",
+            "%spellout-cardinal-masculine:",
+            "-x: minus >>;",
+            "x.x: << virgul\u0103 >>;",
+            "0: zero;",
+            "1: unu;",
+            "2: doi;",
+            "3: trei;",
+            "4: patru;",
+            "5: cinci;",
+            "6: \u015Fase;",
+            "7: \u015Fapte;",
+            "8: opt;",
+            "9: nou\u0103;",
+            "10: zece;",
+            "11: unsprezece;",
+            "12: >>sprezece;",
+            "20: <%spellout-cardinal-feminine<zeci[ \u015Fi >>];",
+            "100: una sut\u0103[ >>];",
+            "200: <%spellout-cardinal-feminine< sute[ >>];",
+            "1000: una mie[ >>];",
+            "2000: <%spellout-cardinal-feminine< mii[ >>];",
+            "1000000: <%spellout-cardinal-neutre< milion[ >>];",
+            "2000000: <%spellout-cardinal-neutre< milioane[ >>];",
+            "1000000000: <%spellout-cardinal-neutre< miliard[ >>];",
+            "2000000000: <%spellout-cardinal-neutre< miliarde[ >>];",
+            "1000000000000: <%spellout-cardinal-neutre< bilion[ >>];",
+            "2000000000000: <%spellout-cardinal-neutre< bilioane[ >>];",
+            "1000000000000000: <%spellout-cardinal-neutre< biliard[ >>];",
+            "2000000000000000: <%spellout-cardinal-neutre< biliarde[ >>];",
+            "1000000000000000000: =#,##0=;",
+            "%spellout-cardinal-feminine:",
+            "-x: minus >>;",
+            "x.x: << virgul\u0103 >>;",
+            "0: zero;",
+            "1: una;",
+            "2: dou\u0103;",
+            "3: =%spellout-cardinal-masculine=;",
+            "12: >>sprezece;",
+            "20: <%spellout-cardinal-feminine<zeci[ \u015Fi >>];",
+            "100: una sut\u0103[ >>];",
+            "200: <%spellout-cardinal-feminine< sute[ >>];",
+            "1000: una mie[ >>];",
+            "2000: <%spellout-cardinal-feminine< mii[ >>];",
+            "1000000: <%spellout-cardinal-neutre< milion[ >>];",
+            "2000000: <%spellout-cardinal-neutre< milioane[ >>];",
+            "1000000000: <%spellout-cardinal-neutre< miliard[ >>];",
+            "2000000000: <%spellout-cardinal-neutre< miliarde[ >>];",
+            "1000000000000: <%spellout-cardinal-neutre< bilion[ >>];",
+            "2000000000000: <%spellout-cardinal-neutre< bilioane[ >>];",
+            "1000000000000000: <%spellout-cardinal-neutre< biliard[ >>];",
+            "2000000000000000: <%spellout-cardinal-neutre< biliarde[ >>];",
+            "1000000000000000000: =#,##0=;",
+            "%spellout-cardinal-neutre:",
+            "-x: minus >>;",
+            "x.x: << virgul\u0103 >>;",
+            "0: zero;",
+            "1: unu;",
+            "2: =%spellout-cardinal-feminine=;",
+            "20: <%spellout-cardinal-feminine<zeci[ \u015Fi >>];",
+            "100: una sut\u0103[ >>];",
+            "200: <%spellout-cardinal-feminine< sute[ >>];",
+            "1000: una mie[ >>];",
+            "2000: <%spellout-cardinal-feminine< mii[ >>];",
+            "1000000: <%spellout-cardinal-neutre< milion[ >>];",
+            "2000000: <%spellout-cardinal-neutre< milioane[ >>];",
+            "1000000000: <%spellout-cardinal-neutre< miliard[ >>];",
+            "2000000000: <%spellout-cardinal-neutre< miliarde[ >>];",
+            "1000000000000: <%spellout-cardinal-neutre< bilion[ >>];",
+            "2000000000000: <%spellout-cardinal-neutre< bilioane[ >>];",
+            "1000000000000000: <%spellout-cardinal-neutre< biliard[ >>];",
+            "2000000000000000: <%spellout-cardinal-neutre< biliarde[ >>];",
+            "1000000000000000000: =#,##0=;",
+        }
+    }
+    Version{"2.0.41.26"}
+}

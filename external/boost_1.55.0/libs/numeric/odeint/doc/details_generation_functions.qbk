@@ -1,0 +1,43 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section Generation functions]
+
+[import ../examples/generation_functions.cpp]
+
+In the __tutorial we have learned how we can use the generation functions `make_controlled` and `make_dense_output` to create controlled and dense output stepper from a simple stepper or an error stepper. The syntax of these two functions is very simple:
+
+[generation_functions_syntax_auto]
+
+The first two parameters are the absolute and the relative error tolerances and the third parameter is the stepper. In C++03 you can infer the type from the `result_of` mechanism:
+
+[generation_functions_syntax_result_of]
+
+To use your own steppers with the `make_controlled` or `make_dense_output` you need to specialize two class templates. Suppose your steppers are called `custom_stepper`, `custom_controller` and `custom_dense_output`. Then, the first class you need to specialize is `boost::numeric::get_controller`, a meta function returning the type of the controller:
+
+[generation_functions_get_controller]
+
+The second one is a factory class `boost::numeric::odeint::controller_factory` which constructs the controller from the tolerances and the stepper. In our dummy implementation this class is
+
+[generation_functions_controller_factory]
+
+This is all to use the `make_controlled` mechanism. Now you can use your controller via
+
+[generation_functions_example_custom_controller]
+
+For the dense_output_stepper everything works similar. Here you have to specialize `boost::numeric::odeint::get_dense_output` and `boost::numeric::odeint::dense_output_factory`. These two classes have the same syntax as their relatives `get_controller` and `controller_factory`.
+
+All controllers and dense-output steppers in odeint can be used with these mechanisms. In the table below you will find, which steppers is constructed from `make_controlled` or `make_dense_output` if applied on a stepper from odeint:
+
+[include make_controlled_table.qbk]
+[include make_dense_output_table.qbk]
+
+[endsect]

@@ -1,0 +1,90 @@
+[/
+  (C) Copyright 2007-8 Anthony Williams.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:once One-time Initialization]
+
+  #include <boost/thread/once.hpp>
+
+  namespace boost
+  {
+    struct once_flag;
+    template<typename Function, class ...ArgTypes>
+    inline void call_once(once_flag& flag, Function&& f, ArgTypes&&... args);
+
+  #if defined BOOST_THREAD_PROVIDES_DEPRECATED_FEATURES_SINCE_V3_0_0
+    void call_once(void (*func)(),once_flag& flag);
+  #endif
+
+  }
+
+[warning the variadic prototype is provided only on C++11 compilers supporting variadic templates, otherwise the interface is limited up to 3 parameters.]
+
+[warning the move semantics is ensured only on C++11 compilers supporting SFINAE expression, decltype N3276 and auto. Waiting for a boost::bind that is move aware.]
+
+
+`boost::call_once` provides a mechanism for ensuring that an initialization routine is run exactly once without data races or deadlocks.
+
+[section:once_flag Typedef `once_flag`]
+
+    #ifdef BOOST_THREAD_PROVIDES_ONCE_CXX11
+    struct once_flag
+    {
+      constexprr once_flag() noexcept;
+      once_flag(const once_flag&) = delete;
+      once_flag& operator=(const once_flag&) = delete;
+    };
+    #else
+    typedef platform-specific-type once_flag;
+    #define BOOST_ONCE_INIT platform-specific-initializer
+    #endif
+
+Objects of type `boost::once_flag` shall be initialized with `BOOST_ONCE_INIT` if BOOST_THREAD_PROVIDES_ONCE_CXX11 is not defined
+
+    boost::once_flag f=BOOST_ONCE_INIT;
+
+[endsect]
+
+[section:call_once Non-member function `call_once`]
+
+    template<typename Function, class ...ArgTypes>
+    inline void call_once(once_flag& flag, Function&& f, ArgTypes&&... args);
+
+[variablelist
+
+[[Requires:] [`Function` and each or the `ArgTypes` are `MoveConstructible` and `invoke(decay_copy(boost::forward<Function>(f)), decay_copy(boost::forward<ArgTypes>(args))...)` shall be well formed. ]]
+
+[[Effects:] [Calls to `call_once` on the same `once_flag` object are serialized. If there has been no prior effective `call_once` on
+the same `once_flag` object, the argument `func` is called as-if by invoking `invoke(decay_copy(boost::forward<Function>(f)), decay_copy(boost::forward<ArgTypes>(args))...)`, and the invocation of
+`call_once` is effective if and only if `invoke(decay_copy(boost::forward<Function>(f)), decay_copy(boost::forward<ArgTypes>(args))...)` returns without exception. If an exception is thrown, the exception is propagated to the caller. If there has been a prior effective `call_once` on the same `once_flag` object, the `call_once` returns
+without invoking `func`. ]]
+
+[[Synchronization:] [The completion of an effective `call_once` invocation on a `once_flag` object, synchronizes with
+all subsequent `call_once` invocations on the same `once_flag` object. ]]
+
+[[Throws:] [`thread_resource_error` when the effects cannot be achieved or any exception propagated from `func`.]]
+
+[[Note:] [The function passed to `call_once` must not also call
+`call_once` passing the same `once_flag` object. This may cause
+deadlock, or invoking the passed function a second time. The
+alternative is to allow the second call to return immediately, but
+that assumes the code knows it has been called recursively, and can
+proceed even though the call to `call_once` didn't actually call the
+function, in which case it could also avoid calling `call_once`
+recursively.]]
+
+
+[[Note:] [On some compilers this function has some restrictions, e.g. if variadic templates are not supported the number of arguments is limited to 3; .]]
+
+]
+
+    void call_once(void (*func)(),once_flag& flag);
+    
+This second overload is provided for backwards compatibility and is deprecated. The effects of `call_once(func,flag)` shall be the same as those of
+`call_once(flag,func)`.
+
+[endsect]
+[endsect]

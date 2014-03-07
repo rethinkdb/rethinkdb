@@ -1,0 +1,602 @@
+<html>
+
+<head>
+<title>Quick Reference</title>
+<link rel="stylesheet" href="theme/style.css" type="text/css">
+</head>
+
+<body>
+<table width="100%" border="0" background="theme/bkd2.gif" cellspacing="2">
+  <tr> 
+    <td width="10"> </td>
+    <td width="85%"> <font size="6" face="Verdana, Arial, Helvetica, sans-serif"><b>Quick 
+      Reference </b></font></td>
+    <td width="112"><a href="http://spirit.sf.net"><img src="theme/spirit.gif" width="112" height="48" align="right" border="0"></a></td>
+  </tr>
+</table>
+<br>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="error_handling.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="includes.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<p>This isn't intended to be a full, detailed reference; nor is it intended to 
+  be of any use to readers who aren't already familiar with Spirit. It's just 
+  a brief reminder of the syntax and behaviour of each component, with links to 
+  the full documentation. </p>
+<ul>
+  <li><strong>Primitive parser generators</strong> <i>(action arguments are listed 
+    on the right)</i> 
+    <ul>
+      <li><a href="quickref.html#null_parsers">Null parsers</a></li>
+      <li><a href="quickref.html#character_parsers">Character parsers</a></li>
+      <li><a href="quickref.html#number_parsers">Number parsers</a></li>
+      <li><a href="quickref.html#otherlexeme_parsers">Other lexeme parsers</a></li>
+      <li><a href="quickref.html#text_parsers">Text parsers</a><br>
+        <br>
+      </li>
+    </ul>
+  </li>
+  <li><strong>Other parser elements</strong> 
+    <ul>
+      <li><a href="quickref.html#compound_parsers">Compound parsers</a></li>
+      <li><a href="quickref.html#general_directives">General directives</a></li>
+      <li><a href="quickref.html#tree_specific_directives">Tree-specific directives</a><br>
+        <br>
+      </li>
+    </ul>
+  </li>
+  <li><strong>Operators</strong> 
+    <ul>
+      <li><a href="quickref.html#unary_operators">Unary operators</a></li>
+      <li><a href="quickref.html#binary_operators">Binary operators</a> <i>(in order of precedence)<br>
+        </i></li>
+    </ul>
+  </li>
+</ul>
+
+<table>
+
+    <tr>
+
+        <td valign="top">
+
+            <table>
+
+                <tr>
+                    <td class="table_title" colspan="3"><a name="null_parsers"></a>Null parsers</td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">end_p</a></code></td>
+                    <td class="table_cells">Matches EOF</td>
+                    <td class="table_cells"><i>iter,iter</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">eps_p</a><br />
+            <a href="primitives.html">eps_p</a>(P)</code></td>
+                    <td class="table_cells">Matches without consuming text</td>
+                    <td class="table_cells"><i>iter,iter</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">epsilon_p</a><br />
+            <a href="primitives.html">epsilon_p</a>(P)</code></td>
+                    <td class="table_cells">Synonym for <b>eps_p</b></td>
+                    <td class="table_cells"><i>iter,iter</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">nothing_p</a></code></td>
+                    <td class="table_cells">Always fails</td>
+                    <td class="table_cells"><i>iter,iter</i></td>
+                </tr>
+
+                <tr>
+                    <td class="table_title" colspan="3"><a name="character_parsers"></a>Character parsers</td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">alnum_p</a></code></td>
+                    <td class="table_cells">Matches any alphanumeric character</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">alpha_p</a></code></td>
+                    <td class="table_cells">Matches any letter</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">anychar_p</a></code></td>
+                    <td class="table_cells">Matches any character</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">blank_p</a></code></td>
+                    <td class="table_cells">Matches a space or tab</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="primitives.html">ch_p</a>(char)</code></td>
+                    <td class="table_cells">Matches a character</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="character_sets.html">chset_p</a>(charset)</code></td>
+                    <td class="table_cells">Matches a character in the set</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">cntrl_p</a></code></td>
+                    <td class="table_cells">Matches any control character</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">digit_p</a></code></td>
+                    <td class="table_cells">Matches any digit</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="parametric_parsers.html">f_ch_p</a>(func)</code></td>
+                    <td class="table_cells">Matches a character</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="parametric_parsers.html">f_range_p</a>(func1, 
+            func2)</code></td>
+                    <td class="table_cells">Matches any character in the inclusive range</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">graph_p</a></code></td>
+                    <td class="table_cells">Matches any non-space printable character</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">lower_p</a></code></td>
+                    <td class="table_cells">Matches any lower-case letter</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">print_p</a></code></td>
+                    <td class="table_cells">Matches any printable character</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">punct_p</a></code></td>
+                    <td class="table_cells">Matches any punctuation mark</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="primitives.html">range_p</a>(char1, 
+            char2)</code></td>
+                    <td class="table_cells">Matches any character in the inclusive range</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="numerics.html">sign_p</a></code></td>
+                    <td class="table_cells">Matches a plus or minus sign</td>
+                    <td class="table_cells"><i>bool</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">space_p</a></code></td>
+                    <td class="table_cells">Matches any whitespace character</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">upper_p</a></code></td>
+                    <td class="table_cells">Matches any upper-case letter</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">xdigit_p</a></code></td>
+                    <td class="table_cells">Matches any hexadecimal digit</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+
+                <tr>
+                    <td class="table_title" colspan="3"><a name="number_parsers"></a>Number parsers</td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="numerics.html">bin_p</a></code></td>
+                    <td class="table_cells">Matches an unsigned binary integer</td>
+                    <td class="table_cells"><i>numeric</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="numerics.html">hex_p</a></code></td>
+                    <td class="table_cells">Matches an unsigned hexadecimal integer</td>
+                    <td class="table_cells"><i>numeric</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="numerics.html">int_p</a></code></td>
+                    <td class="table_cells">Matches a signed decimal integer</td>
+                    <td class="table_cells"><i>numeric</i></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="numerics.html">int_parser</a>&lt;type, 
+            base, min, max&gt;</code></td>
+                    <td class="table_cells">Matches a signed integer with <b>min</b> to <b>max</b> digits</td>
+                    <td class="table_cells"><i>numeric</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="numerics.html">oct_p</a></code></td>
+                    <td class="table_cells">Matches an unsigned octal integer</td>
+                    <td class="table_cells"><i>numeric</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="numerics.html">real_p</a></code></td>
+                    <td class="table_cells">Matches a floating point number</td>
+                    <td class="table_cells"><i>numeric</i></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="numerics.html">real_parser</a>&lt;type, 
+            policy&gt;</code></td>
+                    <td class="table_cells">Matches a floating point number</td>
+                    <td class="table_cells"><i>numeric</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="numerics.html">strict_real_p</a></code></td>
+                    <td class="table_cells">Matches a floating point number (requires decimal point)</td>
+                    <td class="table_cells"><i>numeric</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="numerics.html">strict_ureal_p</a></code></td>
+                    <td class="table_cells">Matches an unsigned FP number (requires decimal point)</td>
+                    <td class="table_cells"><i>numeric</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="numerics.html">uint_p</a></code></td>
+                    <td class="table_cells">Matches an unsigned decimal integer</td>
+                    <td class="table_cells"><i>numeric</i></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="numerics.html">uint_parser</a>&lt;type, 
+            base, min, max&gt;</code></td>
+                    <td class="table_cells">Matches an unsigned integer with <b>min</b> to <b>max</b> digits</td>
+                    <td class="table_cells"><i>numeric</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="numerics.html">ureal_p</a></code></td>
+                    <td class="table_cells">Matches an unsigned FP number</td>
+                    <td class="table_cells"><i>numeric</i></td>
+                </tr>
+
+                <tr>
+                    <td class="table_title" colspan="3" id="other_lexeme_parsers"><a name="otherlexeme_parsers"></a>Other lexeme parsers</td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="escape_char_parser.html">c_escape_ch_p</a></code></td>
+                    <td class="table_cells">Matches a C escape code</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="confix.html">comment_p</a>(string)<br />
+            <a href="confix.html">comment_p</a> (string1, string2)</code></td>
+                    <td class="table_cells">Matches C++ or C-style comments</td>
+                    <td class="table_cells"><i>iter,iter</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="primitives.html">eol_p</a></code></td>
+                    <td class="table_cells">Matches CR, LF, or any combination</td>
+                    <td class="table_cells"><i>iter,iter</i></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="parametric_parsers.html">f_str_p</a>(func1, 
+            func2)</code></td>
+                    <td class="table_cells">Matches a string</td>
+                    <td class="table_cells"><i>iter,iter</i></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="escape_char_parser.html">lex_escape_ch_p</a></code></td>
+                    <td class="table_cells">Matches a C escape code or any backslash escape</td>
+                    <td class="table_cells"><i>char</i></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="regular_expression_parser.html">regex_p</a>(regex)</code></td>
+                    <td class="table_cells">Matches a regular expression</td>
+                    <td class="table_cells"><i>iter,iter</i></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="primitives.html">str_p</a>(string)<br />
+            <a href="primitives.html">str_p</a>(iter1, iter2)</code></td>
+                    <td class="table_cells">Matches a string</td>
+                    <td class="table_cells"><i>iter,iter</i></td>
+                </tr>
+
+                <tr>
+                    <td class="table_title" colspan="3"><a name="text_parsers"></a>Text parsers</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="primitives.html">chseq_p</a>(string)<br />
+            <a href="primitives.html">chseq_p</a>(iter1, iter2)</code></td>
+                    <td class="table_cells">Matches a string, possibly with embedded whitespace</td>
+                    <td class="table_cells"><i>iter,iter</i></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="parametric_parsers.html">f_chseq_p</a>(func1, 
+            func2)</code></td>
+                    <td class="table_cells">Matches a string, possibly with embedded whitespace</td>
+                    <td class="table_cells"><i>iter,iter</i></td>
+                </tr>
+
+            </table>
+
+        </td>
+
+        <td width="10">&nbsp;</td>
+
+        <td valign="top">
+
+            <table>
+
+                <tr>
+                    <td class="table_title" colspan="2"><a name="compound_parsers"></a>Compound parsers</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="confix.html">confix_p</a>(open, 
+            exp, close)</code></td>
+                    <td class="table_cells">Matches <b>open &gt;&gt; (exp - close) &gt;&gt; close</b></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="dynamic_parsers.html">do_p</a>[P].<a href="dynamic_parsers.html">while_p</a>(cond)</code></td>
+                    <td class="table_cells">Matches while a condition is true (at least once)</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="dynamic_parsers.html">for_p</a>(init, 
+            cond, step)[P]</code></td>
+                    <td class="table_cells">Matches in a loop</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="functor_parser.html">functor_parser</a>&lt;func&gt;</code></td>
+                    <td class="table_cells">Wraps an external parser</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="dynamic_parsers.html">if_p</a>(cond)[P]<br />
+            <a href="dynamic_parsers.html">if_p</a>(cond)[P].<a href="dynamic_parsers.html">else_p</a>[P]</code></td>
+                    <td class="table_cells">Matches depending on a condition</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="the_lazy_parser.html">lazy_p</a>(P)</code></td>
+                    <td class="table_cells">Evaluates a parser at run time</td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="list_parsers.html">list_p</a> <br />
+            <a href="list_parsers.html">list_p</a>(del)<br />
+            <a href="list_parsers.html">list_p</a>(item, del)<br />
+            <a href="list_parsers.html">list_p</a>(item, del, end)</code></td>
+                    <td class="table_cells">Matches a delimited list</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="loops.html">repeat_p</a>(num)[P]<br />
+            <a href="loops.html">repeat_p</a>(min, max)[P]<br />
+            <a href="loops.html">repeat_p</a>(min, <a href="loops.html">more</a>)[P]</code></td>
+                    <td class="table_cells">Matches multiple times</td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="dynamic_parsers.html">while_p</a> (cond) [P]</code></td>
+                    <td class="table_cells">Matches while a condition is true</td>
+                </tr>
+
+                <tr>
+                    <td class="table_title" colspan="2" id="general_directives"><a name="general_directives"></a>General directives</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="directives.html">as_lower_d</a>[P]</code></td>
+                    <td class="table_cells">Converts text to lower case before matching</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="refactoring.html">attach_action_d</a>[(P1 
+            op P2)[act]]</code></td>
+                    <td class="table_cells">Transforms to <b>P1 [act] op P2 [act]</b></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="directives.html">lexeme_d</a>[P]</code></td>
+                    <td class="table_cells">Turns off whitespace skipping</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="directives.html">limit_d</a>[P](min, 
+            max)</code></td>
+                    <td class="table_cells">Matches only if the value is within the range</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="directives.html">longest_d</a>[P]</code></td>
+                    <td class="table_cells">Matches the longest of alternatives</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="directives.html">max_limit_d</a>[P](max)</code></td>
+                    <td class="table_cells">Matches only if <b>value &lt;= max</b></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="directives.html">min_limit_d</a>[P](min)</code></td>
+                    <td class="table_cells">Matches only if <b>value &gt;= min</b></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="refactoring.html">refactor_action_d</a>[P1 
+            [act] op P2]</code></td>
+                    <td class="table_cells">Transforms to <b>(P1 op P2) [act]</b></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="refactoring.html">refactor_unary_d</a>[op1 
+            P1 op2 P2]</code></td>
+                    <td class="table_cells">Transforms to <b>op1 (P1 op2 P2)</b></td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="scoped_lock.html">scoped_lock_d</a>[P](mutex)</code></td>
+                    <td class="table_cells">Locks a mutex while matching</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="directives.html">shortest_d</a>[P]</code></td>
+                    <td class="table_cells">Matches the shortest of alternatives</td>
+                </tr>
+
+                <tr>
+                    <td class="table_title" colspan="2"><a name="tree_specific_directives"></a>Tree-specific directives</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="trees.html">access_node_d</a>[P]</code></td>
+                    <td class="table_cells">Passes node value to action</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="trees.html">discard_first_node_d</a>[P]</code></td>
+                    <td class="table_cells">Discards first node</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="trees.html">discard_last_node_d</a>[P]</code></td>
+                    <td class="table_cells">Discards last node</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="trees.html">discard_node_d</a>[P]</code></td>
+                    <td class="table_cells">Discards the generated node</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="trees.html">infix_node_d</a>[P]</code></td>
+                    <td class="table_cells">Discards even-position nodes</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="trees.html">inner_node_d</a>[P]</code></td>
+                    <td class="table_cells">Discards first and last nodes</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="trees.html">leaf_node_d</a>[P]</code></td>
+                    <td class="table_cells">Generates a single node with no children</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="trees.html">no_node_d</a>[P]</code></td>
+                    <td class="table_cells">Does not generate a node</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="trees.html">root_node_d</a>[P]</code></td>
+                    <td class="table_cells">Identifies root nodes for an AST</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="trees.html">token_node_d</a>[P]</code></td>
+                    <td class="table_cells">Synonym for <b>leaf_node_d</b></td>
+                </tr>
+
+                <tr>
+                    <td class="table_title" colspan="2"><a name="unary_operators"></a>Unary operators</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="operators.html">!P</a></code></td>
+                    <td class="table_cells">Matches <b>P</b> or an empty string</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="operators.html">*P</a></code></td>
+                    <td class="table_cells">Matches <b>P</b> zero or more times</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="operators.html">+P</a></code></td>
+                    <td class="table_cells">Matches <b>P</b> one or more times</td>
+                </tr>
+                <tr>
+                    
+          <td class="table_cells"><code><a href="primitives.html">~P</a></code></td>
+                    <td class="table_cells">Matches anything that does not match <b>P</b></td>
+                </tr>
+
+                <tr>
+                    <td class="table_title" colspan="2"><a name="binary_operators"></a>Binary operators</td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="operators.html">P1 % P2</a></code></td>
+                    <td class="table_cells">Matches one or more <b>P1</b> separated by <b>P2</b></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="operators.html">P1 - P2</a></code></td>
+                    <td class="table_cells">Matches <b>P1</b> but not <b>P2</b></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="operators.html">P1 &gt;&gt; P2</a></code></td>
+                    <td class="table_cells">Matches <b>P1</b> followed by <b>P2</b></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="operators.html">P1 &amp; P2</a></code></td>
+                    <td class="table_cells">Matches both <b>P1</b> and <b>P2</b></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="operators.html">P1 ^ P2</a></code></td>
+                    <td class="table_cells">Matches <b>P1</b> or <b>P2</b>, but not both</td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="operators.html">P1 | P2</a></code></td>
+                    <td class="table_cells">Matches <b>P1</b> or <b>P2</b></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="operators.html">P1 &amp;&amp; P2</a></code></td>
+                    <td class="table_cells">Synonym for <b>P1 &gt;&gt; P2</b></td>
+                </tr>
+                <tr>
+                    <td class="table_cells"><code><a href="operators.html">P1 || P2</a></code></td>
+                    <td class="table_cells">Matches <b>P1 | P2 | P1 &gt;&gt; P2</b></td>
+                </tr>
+
+            </table>
+
+        </td>
+
+    </tr>
+
+</table>
+
+<br>
+<table border="0">
+  <tr> 
+    <td width="10"></td>
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+    <td width="30"><a href="error_handling.html"><img src="theme/l_arr.gif" border="0"></a></td>
+    <td width="30"><a href="includes.html"><img src="theme/r_arr.gif" border="0"></a></td>
+  </tr>
+</table>
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003 Ross Smith<br>
+  <br>
+  <font size="2">Use, modification and distribution is subject to the Boost Software 
+  License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)</font></p>
+<p>&nbsp;</p>
+</body>
+
+</html>

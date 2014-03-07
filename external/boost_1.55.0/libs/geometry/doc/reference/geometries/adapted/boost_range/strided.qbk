@@ -1,0 +1,37 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2007-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2008-2012 Bruno Lalande, Paris, France.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section:strided Boost.Range strided]
+
+[def __adaptor__ Boost.Range strided range adaptor]
+
+__adaptor__ is adapted to Boost.Geometry
+
+[heading Description]
+
+__adaptor__ makes a strided range (usually begin a linestring or ring) such that
+traversal is performed in steps of n.
+
+[heading Model of]
+[include adapts_model.qbk]
+
+[heading Header]
+`#include <boost/geometry/geometries/adapted/boost_range/strided.hpp>`
+
+__not_in_boost_geometry_hpp__
+
+[heading Example]
+[boost_range_strided]
+[boost_range_strided_output]
+
+[endsect]
+

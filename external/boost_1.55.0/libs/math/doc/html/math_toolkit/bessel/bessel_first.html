@@ -1,0 +1,697 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Bessel Functions of the First and Second Kinds</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Math Toolkit">
+<link rel="up" href="../bessel.html" title="Bessel Functions">
+<link rel="prev" href="bessel_over.html" title="Bessel Function Overview">
+<link rel="next" href="bessel_root.html" title="Finding Zeros of Bessel Functions of the First and Second Kinds">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="bessel_over.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bessel.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bessel_root.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="math_toolkit.bessel.bessel_first"></a><a class="link" href="bessel_first.html" title="Bessel Functions of the First and Second Kinds">Bessel Functions of
+      the First and Second Kinds</a>
+</h3></div></div></div>
+<h5>
+<a name="math_toolkit.bessel.bessel_first.h0"></a>
+        <span class="phrase"><a name="math_toolkit.bessel.bessel_first.synopsis"></a></span><a class="link" href="bessel_first.html#math_toolkit.bessel.bessel_first.synopsis">Synopsis</a>
+      </h5>
+<p>
+        <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">special_functions</span><span class="special">/</span><span class="identifier">bessel</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">cyl_bessel_j</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">v</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">cyl_bessel_j</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">v</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">cyl_neumann</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">v</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">cyl_neumann</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">v</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<h5>
+<a name="math_toolkit.bessel.bessel_first.h1"></a>
+        <span class="phrase"><a name="math_toolkit.bessel.bessel_first.description"></a></span><a class="link" href="bessel_first.html#math_toolkit.bessel.bessel_first.description">Description</a>
+      </h5>
+<p>
+        The functions <a class="link" href="bessel_first.html" title="Bessel Functions of the First and Second Kinds">cyl_bessel_j</a>
+        and <a class="link" href="bessel_first.html" title="Bessel Functions of the First and Second Kinds">cyl_neumann</a> return
+        the result of the Bessel functions of the first and second kinds respectively:
+      </p>
+<p>
+        cyl_bessel_j(v, x) = J<sub>v</sub>(x)
+      </p>
+<p>
+        cyl_neumann(v, x) = Y<sub>v</sub>(x) = N<sub>v</sub>(x)
+      </p>
+<p>
+        where:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel2.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel3.png"></span>
+      </p>
+<p>
+        The return type of these functions is computed using the <a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>result
+        type calculation rules</em></span></a> when T1 and T2 are different types.
+        The functions are also optimised for the relatively common case that T1 is
+        an integer.
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<p>
+        The functions return the result of <a class="link" href="../error_handling.html#math_toolkit.error_handling.domain_error">domain_error</a>
+        whenever the result is undefined or complex. For <a class="link" href="bessel_first.html" title="Bessel Functions of the First and Second Kinds">cyl_bessel_j</a>
+        this occurs when <code class="computeroutput"><span class="identifier">x</span> <span class="special">&lt;</span>
+        <span class="number">0</span></code> and v is not an integer, or when
+        <code class="computeroutput"><span class="identifier">x</span> <span class="special">==</span>
+        <span class="number">0</span></code> and <code class="computeroutput"><span class="identifier">v</span>
+        <span class="special">!=</span> <span class="number">0</span></code>.
+        For <a class="link" href="bessel_first.html" title="Bessel Functions of the First and Second Kinds">cyl_neumann</a> this
+        occurs when <code class="computeroutput"><span class="identifier">x</span> <span class="special">&lt;=</span>
+        <span class="number">0</span></code>.
+      </p>
+<p>
+        The following graph illustrates the cyclic nature of J<sub>v</sub>:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../graphs/cyl_bessel_j.png" align="middle"></span>
+      </p>
+<p>
+        The following graph shows the behaviour of Y<sub>v</sub>: this is also cyclic for large
+        <span class="emphasis"><em>x</em></span>, but tends to -&#8734; &#160; for small <span class="emphasis"><em>x</em></span>:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../graphs/cyl_neumann.png" align="middle"></span>
+      </p>
+<h5>
+<a name="math_toolkit.bessel.bessel_first.h2"></a>
+        <span class="phrase"><a name="math_toolkit.bessel.bessel_first.testing"></a></span><a class="link" href="bessel_first.html#math_toolkit.bessel.bessel_first.testing">Testing</a>
+      </h5>
+<p>
+        There are two sets of test values: spot values calculated using <a href="http://functions.wolfram.com" target="_top">functions.wolfram.com</a>,
+        and a much larger set of tests computed using a simplified version of this
+        implementation (with all the special case handling removed).
+      </p>
+<h5>
+<a name="math_toolkit.bessel.bessel_first.h3"></a>
+        <span class="phrase"><a name="math_toolkit.bessel.bessel_first.accuracy"></a></span><a class="link" href="bessel_first.html#math_toolkit.bessel.bessel_first.accuracy">Accuracy</a>
+      </h5>
+<p>
+        The following tables show how the accuracy of these functions varies on various
+        platforms, along with comparisons to the <a href="http://www.gnu.org/software/gsl/" target="_top">GSL-1.9</a>
+        and <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> libraries.
+        Note that the cyclic nature of these functions means that they have an infinite
+        number of irrational roots: in general these functions have arbitrarily large
+        <span class="emphasis"><em>relative</em></span> errors when the arguments are sufficiently
+        close to a root. Of course the absolute error in such cases is always small.
+        Note that only results for the widest floating-point type on the system are
+        given as narrower types have <a class="link" href="../relative_error.html#math_toolkit.relative_error.zero_error">effectively
+        zero error</a>. All values are relative errors in units of epsilon.
+      </p>
+<div class="table">
+<a name="math_toolkit.bessel.bessel_first.errors_rates_in_cyl_bessel_j"></a><p class="title"><b>Table&#160;3.21.&#160;Errors Rates in cyl_bessel_j</b></p>
+<div class="table-contents"><table class="table" summary="Errors Rates in cyl_bessel_j">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Significand Size
+                </p>
+              </th>
+<th>
+                <p>
+                  Platform and Compiler
+                </p>
+              </th>
+<th>
+                <p>
+                  J<sub>0</sub> &#160; and J<sub>1</sub>
+                </p>
+              </th>
+<th>
+                <p>
+                  J<sub>v</sub>
+                </p>
+              </th>
+<th>
+                <p>
+                  J<sub>v</sub> &#160; (large values of x &gt; 1000)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  53
+                </p>
+              </td>
+<td>
+                <p>
+                  Win32 / Visual C++ 8.0
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2.5 Mean=1.1
+                </p>
+                <p>
+                  GSL Peak=6.6
+                </p>
+                <p>
+                  <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> Peak=2.5
+                  Mean=1.1
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=11 Mean=2.2
+                </p>
+                <p>
+                  GSL Peak=11
+                </p>
+                <p>
+                  <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> Peak=17
+                  Mean=2.5
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=59 Mean=10
+                </p>
+                <p>
+                  GSL Peak=6x10<sup>11</sup>
+                </p>
+                <p>
+                  <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> Peak=2x10<sup>5</sup>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  Red Hat Linux IA64 / G++ 3.4
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=7 Mean=3
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=117 Mean=10
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2x10<sup>4</sup> &#160; Mean=6x10<sup>3</sup>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  SUSE Linux AMD64 / G++ 4.1
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=7 Mean=3
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=400 Mean=40
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2x10<sup>4</sup> &#160; Mean=1x10<sup>4</sup>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  113
+                </p>
+              </td>
+<td>
+                <p>
+                  HP-UX / HP aCC 6
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=14 Mean=6
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=29 Mean=3
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2700 Mean=450
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="math_toolkit.bessel.bessel_first.errors_rates_in_cyl_neumann"></a><p class="title"><b>Table&#160;3.22.&#160;Errors Rates in cyl_neumann</b></p>
+<div class="table-contents"><table class="table" summary="Errors Rates in cyl_neumann">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Significand Size
+                </p>
+              </th>
+<th>
+                <p>
+                  Platform and Compiler
+                </p>
+              </th>
+<th>
+                <p>
+                  Y<sub>0</sub> &#160; and Y<sub>1</sub>
+                </p>
+              </th>
+<th>
+                <p>
+                  Y<sub>n</sub> (integer orders)
+                </p>
+              </th>
+<th>
+                <p>
+                  Y<sub>v</sub> (fractional orders)
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  53
+                </p>
+              </td>
+<td>
+                <p>
+                  Win32 / Visual C++ 8.0
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=4.7 Mean=1.7
+                </p>
+                <p>
+                  GSL Peak=34 Mean=9
+                </p>
+                <p>
+                  <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> Peak=330
+                  Mean=54
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=117 Mean=10
+                </p>
+                <p>
+                  GSL Peak=500 Mean=54
+                </p>
+                <p>
+                  <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> Peak=923
+                  Mean=83
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=800 Mean=40
+                </p>
+                <p>
+                  GSL Peak=1.4x10<sup>6</sup> &#160; Mean=7x10<sup>4</sup> &#160;
+                </p>
+                <p>
+                  <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> Peak=+INF
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  Red Hat Linux IA64 / G++ 3.4
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=470 Mean=56
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=843 Mean=51
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=741 Mean=51
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  SUSE Linux AMD64 / G++ 4.1
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=1300 Mean=424
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2x10<sup>4</sup> &#160; Mean=8x10<sup>3</sup>
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=1x10<sup>5</sup> &#160; Mean=6x10<sup>3</sup>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  113
+                </p>
+              </td>
+<td>
+                <p>
+                  HP-UX / HP aCC 6
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=180 Mean=63
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=340 Mean=150
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2x10<sup>4</sup> &#160; Mean=1200
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        Note that for large <span class="emphasis"><em>x</em></span> these functions are largely dependent
+        on the accuracy of the <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">sin</span></code> and
+        <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">cos</span></code> functions.
+      </p>
+<p>
+        Comparison to GSL and <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a>
+        is interesting: both <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a>
+        and this library optimise the integer order case - leading to identical results
+        - simply using the general case is for the most part slightly more accurate
+        though, as noted by the better accuracy of GSL in the integer argument cases.
+        This implementation tends to perform much better when the arguments become
+        large, <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> in particular
+        produces some remarkably inaccurate results with some of the test data (no
+        significant figures correct), and even GSL performs badly with some inputs
+        to J<sub>v</sub>. Note that by way of double-checking these results, the worst performing
+        <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> and GSL cases were
+        recomputed using <a href="http://functions.wolfram.com" target="_top">functions.wolfram.com</a>,
+        and the result checked against our test data: no errors in the test data
+        were found.
+      </p>
+<h5>
+<a name="math_toolkit.bessel.bessel_first.h4"></a>
+        <span class="phrase"><a name="math_toolkit.bessel.bessel_first.implementation"></a></span><a class="link" href="bessel_first.html#math_toolkit.bessel.bessel_first.implementation">Implementation</a>
+      </h5>
+<p>
+        The implementation is mostly about filtering off various special cases:
+      </p>
+<p>
+        When <span class="emphasis"><em>x</em></span> is negative, then the order <span class="emphasis"><em>v</em></span>
+        must be an integer or the result is a domain error. If the order is an integer
+        then the function is odd for odd orders and even for even orders, so we reflect
+        to <span class="emphasis"><em>x &gt; 0</em></span>.
+      </p>
+<p>
+        When the order <span class="emphasis"><em>v</em></span> is negative then the reflection formulae
+        can be used to move to <span class="emphasis"><em>v &gt; 0</em></span>:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel9.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel10.png"></span>
+      </p>
+<p>
+        Note that if the order is an integer, then these formulae reduce to:
+      </p>
+<p>
+        J<sub>-n</sub> = (-1)<sup>n</sup>J<sub>n</sub>
+      </p>
+<p>
+        Y<sub>-n</sub> = (-1)<sup>n</sup>Y<sub>n</sub>
+      </p>
+<p>
+        However, in general, a negative order implies that we will need to compute
+        both J and Y.
+      </p>
+<p>
+        When <span class="emphasis"><em>x</em></span> is large compared to the order <span class="emphasis"><em>v</em></span>
+        then the asymptotic expansions for large <span class="emphasis"><em>x</em></span> in M. Abramowitz
+        and I.A. Stegun, <span class="emphasis"><em>Handbook of Mathematical Functions</em></span>
+        9.2.19 are used (these were found to be more reliable than those in A&amp;S
+        9.2.5).
+      </p>
+<p>
+        When the order <span class="emphasis"><em>v</em></span> is an integer the method first relates
+        the result to J<sub>0</sub>, J<sub>1</sub>, Y<sub>0</sub> &#160; and Y<sub>1</sub> &#160; using either forwards or backwards recurrence
+        (Miller's algorithm) depending upon which is stable. The values for J<sub>0</sub>, J<sub>1</sub>,
+        Y<sub>0</sub> &#160; and Y<sub>1</sub> &#160; are calculated using the rational minimax approximations on root-bracketing
+        intervals for small <span class="emphasis"><em>|x|</em></span> and Hankel asymptotic expansion
+        for large <span class="emphasis"><em>|x|</em></span>. The coefficients are from:
+      </p>
+<p>
+        W.J. Cody, <span class="emphasis"><em>ALGORITHM 715: SPECFUN - A Portable FORTRAN Package
+        of Special Function Routines and Test Drivers</em></span>, ACM Transactions
+        on Mathematical Software, vol 19, 22 (1993).
+      </p>
+<p>
+        and
+      </p>
+<p>
+        J.F. Hart et al, <span class="emphasis"><em>Computer Approximations</em></span>, John Wiley
+        &amp; Sons, New York, 1968.
+      </p>
+<p>
+        These approximations are accurate to around 19 decimal digits: therefore
+        these methods are not used when type T has more than 64 binary digits.
+      </p>
+<p>
+        When <span class="emphasis"><em>x</em></span> is smaller than machine epsilon then the following
+        approximations for Y<sub>0</sub>(x), Y<sub>1</sub>(x), Y<sub>2</sub>(x) and Y<sub>n</sub>(x) can be used (see: <a href="http://functions.wolfram.com/03.03.06.0037.01" target="_top">http://functions.wolfram.com/03.03.06.0037.01</a>,
+        <a href="http://functions.wolfram.com/03.03.06.0038.01" target="_top">http://functions.wolfram.com/03.03.06.0038.01</a>,
+        <a href="http://functions.wolfram.com/03.03.06.0039.01" target="_top">http://functions.wolfram.com/03.03.06.0039.01</a>
+        and <a href="http://functions.wolfram.com/03.03.06.0040.01" target="_top">http://functions.wolfram.com/03.03.06.0040.01</a>):
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel_y0_small_z.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel_y1_small_z.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel_y2_small_z.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel_yn_small_z.png"></span>
+      </p>
+<p>
+        When <span class="emphasis"><em>x</em></span> is small compared to <span class="emphasis"><em>v</em></span> and
+        <span class="emphasis"><em>v</em></span> is not an integer, then the following series approximation
+        can be used for Y<sub>v</sub>(x), this is also an area where other approximations are
+        often too slow to converge to be used (see <a href="http://functions.wolfram.com/03.03.06.0034.01" target="_top">http://functions.wolfram.com/03.03.06.0034.01</a>):
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel_yv_small_z.png"></span>
+      </p>
+<p>
+        When <span class="emphasis"><em>x</em></span> is small compared to <span class="emphasis"><em>v</em></span>,
+        J<sub>v</sub>x &#160; is best computed directly from the series:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel2.png"></span>
+      </p>
+<p>
+        In the general case we compute J<sub>v</sub> &#160; and Y<sub>v</sub> &#160; simultaneously.
+      </p>
+<p>
+        To get the initial values, let &#956; &#160; = &#957; - floor(&#957; + 1/2), then &#956; &#160; is the fractional part
+        of &#957; &#160; such that |&#956;| &lt;= 1/2 (we need this for convergence later). The idea
+        is to calculate J<sub>&#956;</sub>(x), J<sub>&#956;+1</sub>(x), Y<sub>&#956;</sub>(x), Y<sub>&#956;+1</sub>(x) and use them to obtain J<sub>&#957;</sub>(x), Y<sub>&#957;</sub>(x).
+      </p>
+<p>
+        The algorithm is called Steed's method, which needs two continued fractions
+        as well as the Wronskian:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel8.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel11.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel12.png"></span>
+      </p>
+<p>
+        See: F.S. Acton, <span class="emphasis"><em>Numerical Methods that Work</em></span>, The Mathematical
+        Association of America, Washington, 1997.
+      </p>
+<p>
+        The continued fractions are computed using the modified Lentz's method (W.J.
+        Lentz, <span class="emphasis"><em>Generating Bessel functions in Mie scattering calculations
+        using continued fractions</em></span>, Applied Optics, vol 15, 668 (1976)).
+        Their convergence rates depend on <span class="emphasis"><em>x</em></span>, therefore we need
+        different strategies for large <span class="emphasis"><em>x</em></span> and small <span class="emphasis"><em>x</em></span>.
+      </p>
+<p>
+        <span class="emphasis"><em>x &gt; v</em></span>, CF1 needs O(<span class="emphasis"><em>x</em></span>) iterations
+        to converge, CF2 converges rapidly
+      </p>
+<p>
+        <span class="emphasis"><em>x &lt;= v</em></span>, CF1 converges rapidly, CF2 fails to converge
+        when <span class="emphasis"><em>x</em></span> <code class="literal">-&gt;</code> 0
+      </p>
+<p>
+        When <span class="emphasis"><em>x</em></span> is large (<span class="emphasis"><em>x</em></span> &gt; 2), both
+        continued fractions converge (CF1 may be slow for really large <span class="emphasis"><em>x</em></span>).
+        J<sub>&#956;</sub>, J<sub>&#956;+1</sub>, Y<sub>&#956;</sub>, Y<sub>&#956;+1</sub> can be calculated by
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel13.png"></span>
+      </p>
+<p>
+        where
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel14.png"></span>
+      </p>
+<p>
+        J<sub>&#957;</sub> and Y<sub>&#956;</sub> are then calculated using backward (Miller's algorithm) and forward
+        recurrence respectively.
+      </p>
+<p>
+        When <span class="emphasis"><em>x</em></span> is small (<span class="emphasis"><em>x</em></span> &lt;= 2), CF2
+        convergence may fail (but CF1 works very well). The solution here is Temme's
+        series:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel15.png"></span>
+      </p>
+<p>
+        where
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/bessel16.png"></span>
+      </p>
+<p>
+        g<sub>k</sub> &#160; and h<sub>k</sub> &#160;
+are also computed by recursions (involving gamma functions), but
+        the formulas are a little complicated, readers are refered to N.M. Temme,
+        <span class="emphasis"><em>On the numerical evaluation of the ordinary Bessel function of
+        the second kind</em></span>, Journal of Computational Physics, vol 21, 343
+        (1976). Note Temme's series converge only for |&#956;| &lt;= 1/2.
+      </p>
+<p>
+        As the previous case, Y<sub>&#957;</sub> &#160; is calculated from the forward recurrence, so is Y<sub>&#957;+1</sub>.
+        With these two values and f<sub>&#957;</sub>, the Wronskian yields J<sub>&#957;</sub>(x) directly without backward
+        recurrence.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="bessel_over.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../bessel.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="bessel_root.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

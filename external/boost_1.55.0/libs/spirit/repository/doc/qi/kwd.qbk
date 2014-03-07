@@ -1,0 +1,95 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2011 Thomas Bernard
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:kwd Qi Keyword Parser Directive ]
+
+[heading Description]
+
+The `kwd[]` and `ikwd[]` provide a powerful and flexible mechanism for parsing keyword
+based input. It works in conjuction with the / operator to create an effective
+keyword parsing loop. The keyword parsing loop doesn't require the 
+keywords to appear in a defined order in the input but also provides the possibility
+to check how many times a keyword appears in the input.
+
+The kwd directive will parse the keywords respecting case sensitivity whereas the ikwd
+direcive is case insensitive. You can mix the kwd and ikwd directives inside a set of 
+keywords, but be aware that this has a small overhead. It should be prefered not to 
+mix the kwd and ikwd directives.
+
+The kwd directive is very similar to the repeat directive in that it enables to enforce
+keyword occurence constraints but also provides very interesting speed improvement
+over the pure EBNF syntax or the Nabialek-Trick. 
+
+[heading Header]
+
+    // forwards to <boost/spirit/repository/home/qi/directive/kwd.hpp>
+    #include <boost/spirit/repository/include/qi_kwd.hpp>
+
+[heading Synopsis]
+
+[table
+    [[Expression]               [Semantics]]
+    [[`kwd(keyword)[subject]`]              [Parse ( `"keyword"` > `subject`) zero or more times.]]
+    [[`kwd(keyword,n)[subject]`]           [Parse ( `"keyword"` > `subject`) exactly `n` times.]]
+    [[`kwd(keyword,min, max)[subject]`]    [Parse ( `"keyword"` > `subject`) at least `min` times and at most `max` times.]]
+    [[`kwd(keyword,min, inf)[subject]`]    [Parse ( `"keyword"` > `subject`) at least `min` or more. ]]
+]
+
+For non case sensitive keywords use the ikwd directive.
+
+[heading Parameters]
+
+[table
+    [[Parameter]            [Description]]
+    [[`keyword`]             [The parser for the opening (the prefix).]]    
+    [[`subject`]            [The parser for the input sequence following the keyword part.]]
+    [[`n`]            [Int representing the exact number of times the keyword must be repeated.]]
+    [[`min`]            [Int representing the minimum number of times the keyword must be repeated.]]
+    [[`max`]            [Int representing the maximum number of times the keyword must be repeated.]]
+]
+
+All three parameters can be arbitrarily complex parsers themselves.
+
+
+[heading Attributes]
+
+[table
+    [[Expression]             [Attribute]]
+    [[`kwd(k1)[a]`]
+[``a: A --> kwd(k1)[a]: optional<A> or vector<A>
+a: Unused --> kwd(k1)[a]: Unused``]]
+    [[`kwd(k1,n)[a]`]
+[``a: A --> kwd(k1,n)[a]: optional<A> or vector<A>
+a: Unused --> kwd(k1,n)[a]: Unused``]]
+    [[`kwd(k1,min, max)[a]`]
+[``a: A --> kwd(k1,min, max)[a]: optional<A> or vector<A>
+a: Unused --> kwd(k1,min, max)[a]: Unused``]]
+    [[`kwd(k1,min, inf)[a]`]
+[``a: A --> kwd(k1,min, inf)[a]: optional<A> or vector<A>
+a: Unused --> kwd(k1,min, inf)[a]: Unused``]]
+]
+
+[heading Complexity]
+
+[:The overall complexity is defined by the complexity of its subject
+parser. The complexity of the keyword list construct `kwd` itself is O(N), where N is the number
+of repetitions executed.
+
+The complexity of the keyword list itself determined by the complexity of the internal TST contents :
+
+O(log n+k)
+
+Where k is the length of the string to be searched in a TST with n strings.
+]
+
+[heading Example]
+
+Please refer to keyword_list.
+
+[endsect]

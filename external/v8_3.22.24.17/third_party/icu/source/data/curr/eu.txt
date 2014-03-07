@@ -1,0 +1,32 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/eu.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/eu.xml
+ */
+eu{
+    Currencies{
+        ESP{
+            "₧" /** ===  */,
+            "ESP",
+            {
+                /**
+                 * Duplicated from NumberPatterns resource
+                 */
+                "#,##0.00 ¤",
+                ",",
+                ".",
+            }
+        }
+    }
+    CurrencyUnitPatterns{
+        one{"{0}{1}"}
+        other{"{0} {1}"}
+    }
+    Version{"2.0.50.95"}
+}

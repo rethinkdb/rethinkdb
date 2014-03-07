@@ -1,0 +1,26 @@
+<!--
+Copyright Daniel James 2008-2009
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+-->
+<section id="unordered.bibliography">
+<title>Bibliography</title>
+<bibliography>
+  <biblioentry>
+    <biblioset relation="journal">
+      <title>C/C++ Users Journal</title>
+      <date>February, 2006</date>
+    </biblioset>
+    <biblioset relation="article">
+      <authorgroup>
+        <author>
+          <firstname>Pete</firstname>
+          <surname>Becker</surname>
+        </author>
+      </authorgroup>
+      <title><ulink url="http://www.ddj.com/cpp/184402066">STL and TR1: Part III - Unordered containers</ulink></title>
+    </biblioset>
+    <para>An introducation to the standard unordered containers.</para>
+  </biblioentry>
+</bibliography>
+</section>

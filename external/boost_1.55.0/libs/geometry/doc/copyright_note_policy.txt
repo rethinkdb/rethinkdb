@@ -1,0 +1,41 @@
+===========================================================================
+ Copyright (c) 2007-2011 Barend Gehrels, Amsterdam, the Netherlands.
+ Copyright (c) 2008-2011 Bruno Lalande, Paris, France.
+ Copyright (c) 2009-2011 Mateusz Loskot, London, UK.
+
+ Use, modification and distribution is subject to the Boost Software License,
+ Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+ http://www.boost.org/LICENSE_1_0.txt)
+============================================================================
+
+The default copyright note for C++ source files reads:
+
+// Boost.Geometry (aka GGL, Generic Geometry Library)
+
+// Copyright (c) 2007-2011 Barend Gehrels, Amsterdam, the Netherlands.
+// Copyright (c) 2008-2011 Bruno Lalande, Paris, France.
+// Copyright (c) 2009-2011 Mateusz Loskot, London, UK.
+
+// Parts of Boost.Geometry are redesigned from Geodan's Geographic Library
+// (geolib/GGL), copyright (c) 1995-2010 Geodan, Amsterdam, the Netherlands.
+
+// Use, modification and distribution is subject to the Boost Software License,
+// Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+// http://www.boost.org/LICENSE_1_0.txt)
+
+Exceptions:
+1) Major work of any author -> might change order, change date
+2) Exclusive work of one author including design -> might take sole copyright
+	Examples:
+		- adapted geometry types e.g. array, Boost.Polygon
+		- implemented file-format e.g. WKB
+		- implemented specific strategy or algorithm e.g. intersections
+3) Examples -> might take sole copyright
+4) Tests -> might take sole copyright
+5) Docs -> might take sole copyright
+6) Utilities e.g. converters -> might take sole copyright
+
+
+
+The copyright note for other (source) files as .py, Jamfiles, etc is similar 
+and comments are changed accordingly.

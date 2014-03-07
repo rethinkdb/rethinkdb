@@ -1,0 +1,207 @@
+# Copyright John Maddock 2008. Use, modification, and distribution are
+# subject to the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+import os ;
+import common ;
+import doxygen ;
+using quickbook ;
+import modules ;
+
+path-constant images_location : html ;
+
+#
+# Accumulators docs are dependent upon
+# latex dvips and ps being in your PATH.
+# This is true for most Unix installs, but
+# not on Win32, where you will need to install
+# MkTex and Ghostscript and add these tools
+# to your path.
+#
+make latex.check : : @check-latex ;
+actions check-latex
+{
+    latex -version > latex.version
+}
+
+make dvips.check : : @check-dvips ;
+actions check-dvips
+{
+    dvips -version > dvips.version
+}
+
+make gs.check : : @check-gs ;
+
+import os ;
+
+if [ os.name ] = "NT"
+{
+   actions check-gs
+   {
+       gswin32c -version > gs.version
+   }
+}
+else
+{
+   actions check-gs
+   {
+       gs -version > gs.version
+   }
+}
+
+
+# Use Doxygen to emit a tagfile with the definition of depends_on<>. That
+# tagfile will be used by Doxygen below when generating the Statistics Library
+# Reference. This is all so that the Doxygen-generated documentation for the
+# features shows the dependency relationships between them.
+doxygen tagfile
+    :
+        ../../boost/accumulators/framework/depends_on.hpp
+        ../../boost/accumulators/framework/extractor.hpp
+    :
+        <doxygen:param>MACRO_EXPANSION=YES
+        <doxygen:param>EXPAND_ONLY_PREDEF=YES
+        <doxygen:param>GENERATE_TAGFILE=accumulators.tag
+        <doxygen:param>"PREDEFINED=\"BOOST_ACCUMULATORS_DOXYGEN_INVOKED=1\" \\
+                                   \"BOOST_PP_REPEAT_FROM_TO(a,b,c,d)=\" \\
+                                   \"BOOST_PP_ENUM_PARAMS(a,b)=b ## 1, b ## 2, ...\""
+        <dependency>latex.check
+        <dependency>dvips.check
+        <dependency>gs.check
+    ;
+
+# Generate the HTML form of the stats documentation, as this causes Doxygen to
+# generate .png images for the LaTeX formulas embedded in the doc comments.
+doxygen statsdoc.html
+    :
+        weighted_tail_quantile.hpp
+    :
+        <dependency>latex.check
+        <dependency>dvips.check
+        <dependency>gs.check
+    ;
+
+if [ os.name ] = NT
+{
+    CP = copy /y ;
+    MKDIR = mkdir ;
+    FROM = \\..\\..\\..\\html\\statsdoc\\*.png ;
+    TOHTML = .\\html\\images\\accumulators ;
+    TOPDF = \\images\\accumulators ;
+}
+else
+{
+    CP = cp ;
+    MKDIR = mkdir -p ;
+    FROM = /../../html/statsdoc/*.png ;
+    TOHTML = ./html/images/accumulators ;
+    TOPDF = /images/accumulators ;
+}
+
+actions copy-latex-pngs
+{
+    $(MKDIR) $(TOHTML)
+    $(MKDIR) $(<:D)$(TOPDF)
+    $(CP) $(<:D)$(FROM) $(TOHTML)
+    $(CP) $(<:D)$(FROM) $(<:D)$(TOPDF)
+    echo "Stamped" > "$(<)"
+}
+
+# This causes the png files built above to be copied into the
+# html/images/accumulators directory.
+make statsdoclatex.tag
+    : statsdoc.html
+    : @copy-latex-pngs
+    ;
+
+doxygen statsdoc
+    :
+        weighted_tail_quantile.hpp
+    :
+        <doxygen:param>EXTRACT_ALL=YES
+        <doxygen:param>"PREDEFINED=\"BOOST_ACCUMULATORS_DOXYGEN_INVOKED=1\" \\
+                                   \"BOOST_PP_REPEAT_FROM_TO(a,b,c,d)=\" \\
+                                   \"BOOST_PP_REPEAT(a,b,c)=\" \\
+                                   \"BOOST_PARAMETER_KEYWORD(a,b)=\\
+                                         namespace a { struct b {}; } \\
+                                         boost::parameter::keyword<a::b> const b;\" \\
+                                   \"BOOST_PP_ENUM_PARAMS(a,b)=b ## 1, b ## 2, ...\""
+        <doxygen:param>HIDE_UNDOC_MEMBERS=NO
+        <doxygen:param>EXTRACT_PRIVATE=NO
+        <doxygen:param>ENABLE_PREPROCESSING=YES
+        <doxygen:param>MACRO_EXPANSION=YES
+        <doxygen:param>EXPAND_ONLY_PREDEF=YES
+        <doxygen:param>SEARCH_INCLUDES=NO
+        <doxygen:param>TAGFILES=accumulators.tag
+        <xsl:param>boost.doxygen.header.prefix=doc
+        <xsl:param>boost.doxygen.formuladir=images/accumulators/
+        <reftitle>"Statistics Library Reference"
+        <dependency>tagfile
+        <dependency>statsdoclatex.tag
+        <dependency>latex.check
+        <dependency>dvips.check
+        <dependency>gs.check
+    ;
+
+if htmlhelp in [ modules.peek : ARGV ]
+{
+	#
+	# Start with a rule to convert htmlhelp project into
+	# compiled help file:
+	#
+	make htmlhelp/htmlhelp.chm : standalone : @hhc ;
+	actions ignore hhc
+	{
+		hhc htmlhelp/htmlhelp.hhp
+	}
+	#
+	# These install rules copy our images into a subdirectory of the created
+	# htmlhelp project directory: unfortunately hhc.exe will only embed
+	# images in a subdirectory of the project root.
+	#
+	install htmlhelp1 : [ glob html/images/*.png ] : <location>htmlhelp/images ;
+	install htmlhelp1a : [ glob html/images/*.svg ] : <location>htmlhelp/images ;
+	install htmlhelp2 : [ glob html/images/accumulators/*.png ] : <dependency>statsdoc <location>htmlhelp/images/accumulators ;
+	install htmlhelp3 : [ glob ../src/images/*.png ] : <dependency>statsdoc <location>htmlhelp/images ;
+	install htmlhelp4 : [ glob ../src/images/callouts/*.png ] : <dependency>statsdoc <location>htmlhelp/images/callouts ;
+}
+
+xml test : test.qbk ;
+boostbook standalone
+    :
+        test
+    :
+        <dependency>statsdoc
+        <format>htmlhelp:<dependency>htmlhelp1
+        <format>htmlhelp:<dependency>htmlhelp1a
+        <format>htmlhelp:<dependency>htmlhelp2
+        <format>htmlhelp:<dependency>htmlhelp3
+        <format>htmlhelp:<dependency>htmlhelp4
+
+        # HTML options first:
+        #======================================================================
+
+        <xsl:param>toc.max.depth=2
+        <xsl:param>toc.section.depth=2
+        <xsl:param>chunk.section.depth=1
+        <xsl:param>boost.root=../../..
+        <xsl:param>navig.graphics=1
+        <xsl:param>boost.mathjax=1
+        <xsl:path>$(images_location)/..
+
+
+        # PDF Options:
+        #======================================================================
+        <format>pdf:<xsl:param>img.src.path=$(images_location)/
+        <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/doc/test/html
+
+        # HTML Help Options:
+        #======================================================================
+        #<format>htmlhelp:<xsl:param>img.src.path=../html
+        <format>htmlhelp:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/doc/test/html
+        <format>htmlhelp:<xsl:param>htmlhelp.chm=test.chm
+    ;
+
+
+install pdfinstall : standalone/<format>pdf : <location>. <install-type>PDF ;
+explicit pdfinstall ;

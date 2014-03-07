@@ -1,0 +1,902 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Synchronized Data Structures</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../thread.html" title="Chapter&#160;31.&#160;Thread 4.2.0">
+<link rel="prev" href="thread_local_storage.html" title="Thread Local Storage">
+<link rel="next" href="time.html" title="Time Requirements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="thread_local_storage.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../thread.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="time.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="thread.sds"></a><a class="link" href="sds.html" title="Synchronized Data Structures">Synchronized Data Structures</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="sds.html#thread.sds.synchronized_valuesxxx">Synchronized Values
+      - EXPERIMENTAL</a></span></dt></dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="thread.sds.synchronized_valuesxxx"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx" title="Synchronized Values - EXPERIMENTAL">Synchronized Values
+      - EXPERIMENTAL</a>
+</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="sds.html#thread.sds.synchronized_valuesxxx.tutorial">Tutorial</a></span></dt>
+<dt><span class="section"><a href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref">Reference
+        </a></span></dt>
+</dl></div>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          These features are experimental and subject to change in future versions.
+          There are not too much tests yet, so it is possible that you can find out
+          some trivial bugs :(
+        </p></td></tr>
+</table></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.sds.synchronized_valuesxxx.tutorial"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.tutorial" title="Tutorial">Tutorial</a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="sds.html#thread.sds.synchronized_valuesxxx.tutorial.the_problem_with_mutexes">The
+          Problem with Mutexes</a></span></dt>
+<dt><span class="section"><a href="sds.html#thread.sds.synchronized_valuesxxx.tutorial.beyond_simple_accesses">Beyond
+          Simple Accesses</a></span></dt>
+<dt><span class="section"><a href="sds.html#thread.sds.synchronized_valuesxxx.tutorial.operations_across_multiple_objects">Operations
+          Across Multiple Objects</a></span></dt>
+<dt><span class="section"><a href="sds.html#thread.sds.synchronized_valuesxxx.tutorial.value_semantics">Value
+          semantics</a></span></dt>
+</dl></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            This tutorial is an adaptation of the paper of Anthony Williams "Enforcing
+            Correct Mutex Usage with Synchronized Values" to the Boost library.
+          </p></td></tr>
+</table></div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.sds.synchronized_valuesxxx.tutorial.the_problem_with_mutexes"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.tutorial.the_problem_with_mutexes" title="The Problem with Mutexes">The
+          Problem with Mutexes</a>
+</h5></div></div></div>
+<p>
+            The key problem with protecting shared data with a mutex is that there
+            is no easy way to associate the mutex with the data. It is thus relatively
+            easy to accidentally write code that fails to lock the right mutex -
+            or even locks the wrong mutex - and the compiler will not help you.
+          </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">mutex</span> <span class="identifier">m1</span><span class="special">;</span>
+<span class="keyword">int</span> <span class="identifier">value1</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">mutex</span> <span class="identifier">m2</span><span class="special">;</span>
+<span class="keyword">int</span> <span class="identifier">value2</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">readValue1</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lock_guard</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span><span class="special">&gt;</span> <span class="identifier">lk</span><span class="special">(</span><span class="identifier">m1</span><span class="special">);</span>
+  <span class="keyword">return</span> <span class="identifier">value1</span><span class="special">;</span>
+<span class="special">}</span>
+<span class="keyword">int</span> <span class="identifier">readValue2</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lock_guard</span><span class="special">&lt;</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">mutex</span><span class="special">&gt;</span> <span class="identifier">lk</span><span class="special">(</span><span class="identifier">m1</span><span class="special">);</span> <span class="comment">// oops: wrong mutex</span>
+  <span class="keyword">return</span> <span class="identifier">value2</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+            Moreover, managing the mutex lock also clutters the source code, making
+            it harder to see what is really going on.
+          </p>
+<p>
+            The use of synchronized_value solves both these problems - the mutex
+            is intimately tied to the value, so you cannot access it without a lock,
+            and yet access semantics are still straightforward. For simple accesses,
+            synchronized_value behaves like a pointer-to-T; for example:
+          </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">value3</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">readValue3</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">return</span> <span class="special">*</span><span class="identifier">value3</span><span class="special">;</span>
+<span class="special">}</span>
+<span class="keyword">void</span> <span class="identifier">setValue3</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">newVal</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="special">*</span><span class="identifier">value3</span><span class="special">=</span><span class="identifier">newVal</span><span class="special">;</span>
+<span class="special">}</span>
+<span class="keyword">void</span> <span class="identifier">appendToValue3</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">extra</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="identifier">value3</span><span class="special">-&gt;</span><span class="identifier">append</span><span class="special">(</span><span class="identifier">extra</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+            Both forms of pointer dereference return a proxy object rather than a
+            real reference, to ensure that the lock on the mutex is held across the
+            assignment or method call, but this is transparent to the user.
+          </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.sds.synchronized_valuesxxx.tutorial.beyond_simple_accesses"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.tutorial.beyond_simple_accesses" title="Beyond Simple Accesses">Beyond
+          Simple Accesses</a>
+</h5></div></div></div>
+<p>
+            The pointer-like semantics work very well for simple accesses such as
+            assignment and calls to member functions. However, sometimes you need
+            to perform an operation that requires multiple accesses under protection
+            of the same lock, and that's what the synchronize() method provides.
+          </p>
+<p>
+            By calling synchronize() you obtain an strict_lock_ptr object that holds
+            a lock on the mutex protecting the data, and which can be used to access
+            the protected data. The lock is held until the strict_lock_ptr object
+            is destroyed, so you can safely perform multi-part operations. The strict_lock_ptr
+            object also acts as a pointer-to-T, just like synchronized_value does,
+            but this time the lock is already held. For example, the following function
+            adds a trailing slash to a path held in a synchronized_value. The use
+            of the strict_lock_ptr object ensures that the string hasn't changed
+            in between the query and the update.
+          </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">addTrailingSlashIfMissing</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">path</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">strict_lock_ptr</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">u</span><span class="special">=</span><span class="identifier">path</span><span class="special">.</span><span class="identifier">synchronize</span><span class="special">();</span>
+
+  <span class="keyword">if</span><span class="special">(</span><span class="identifier">u</span><span class="special">-&gt;</span><span class="identifier">empty</span><span class="special">()</span> <span class="special">||</span> <span class="special">(*</span><span class="identifier">u</span><span class="special">-&gt;</span><span class="identifier">rbegin</span><span class="special">()!=</span><span class="char">'/'</span><span class="special">))</span>
+  <span class="special">{</span>
+    <span class="special">*</span><span class="identifier">u</span><span class="special">+=</span><span class="char">'/'</span><span class="special">;</span>
+  <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.sds.synchronized_valuesxxx.tutorial.operations_across_multiple_objects"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.tutorial.operations_across_multiple_objects" title="Operations Across Multiple Objects">Operations
+          Across Multiple Objects</a>
+</h5></div></div></div>
+<p>
+            Though synchronized_value works very well for protecting a single object
+            of type T, nothing that we've seen so far solves the problem of operations
+            that require atomic access to multiple objects unless those objects can
+            be combined within a single structure protected by a single mutex.
+          </p>
+<p>
+            One way to protect access to two synchronized_value objects is to construct
+            a strict_lock_ptr for each object and use those to access the respective
+            protected values; for instance:
+          </p>
+<pre class="programlisting"><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">queue</span><span class="special">&lt;</span><span class="identifier">MessageType</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">q1</span><span class="special">,</span><span class="identifier">q2</span><span class="special">;</span>
+<span class="keyword">void</span> <span class="identifier">transferMessage</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="identifier">strict_lock_ptr</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">queue</span><span class="special">&lt;</span><span class="identifier">MessageType</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">u1</span> <span class="special">=</span> <span class="identifier">q1</span><span class="special">.</span><span class="identifier">synchronize</span><span class="special">();</span>
+  <span class="identifier">strict_lock_ptr</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">queue</span><span class="special">&lt;</span><span class="identifier">MessageType</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">u2</span> <span class="special">=</span> <span class="identifier">q2</span><span class="special">.</span><span class="identifier">synchronize</span><span class="special">();</span>
+
+  <span class="keyword">if</span><span class="special">(!</span><span class="identifier">u1</span><span class="special">-&gt;</span><span class="identifier">empty</span><span class="special">())</span>
+  <span class="special">{</span>
+    <span class="identifier">u2</span><span class="special">-&gt;</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">u1</span><span class="special">-&gt;</span><span class="identifier">front</span><span class="special">());</span>
+    <span class="identifier">u1</span><span class="special">-&gt;</span><span class="identifier">pop_front</span><span class="special">();</span>
+  <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+<p>
+            This works well in some scenarios, but not all -- if the same two objects
+            are updated together in different sections of code then you need to take
+            care to ensure that the strict_lock_ptr objects are constructed in the
+            same sequence in all cases, otherwise you have the potential for deadlock.
+            This is just the same as when acquiring any two mutexes.
+          </p>
+<p>
+            In order to be able to use the dead-lock free lock algorithms we need
+            to use instead unique_lock_ptr, which is Lockable.
+          </p>
+<pre class="programlisting"><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">queue</span><span class="special">&lt;</span><span class="identifier">MessageType</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">q1</span><span class="special">,</span><span class="identifier">q2</span><span class="special">;</span>
+<span class="keyword">void</span> <span class="identifier">transferMessage</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="identifier">unique_lock_ptr</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">queue</span><span class="special">&lt;</span><span class="identifier">MessageType</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">u1</span> <span class="special">=</span> <span class="identifier">q1</span><span class="special">.</span><span class="identifier">unique_synchronize</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">defer_lock</span><span class="special">);</span>
+  <span class="identifier">unique_lock_ptr</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">queue</span><span class="special">&lt;</span><span class="identifier">MessageType</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">u2</span> <span class="special">=</span> <span class="identifier">q2</span><span class="special">.</span><span class="identifier">unique_synchronize</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">defer_lock</span><span class="special">);</span>
+  <span class="identifier">boost</span><span class="special">::</span><span class="identifier">lock</span><span class="special">(</span><span class="identifier">u1</span><span class="special">,</span><span class="identifier">u2</span><span class="special">);</span> <span class="comment">// dead-lock free algorithm</span>
+
+  <span class="keyword">if</span><span class="special">(!</span><span class="identifier">u1</span><span class="special">-&gt;</span><span class="identifier">empty</span><span class="special">())</span>
+  <span class="special">{</span>
+    <span class="identifier">u2</span><span class="special">-&gt;</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">u1</span><span class="special">-&gt;</span><span class="identifier">front</span><span class="special">());</span>
+    <span class="identifier">u1</span><span class="special">-&gt;</span><span class="identifier">pop_front</span><span class="special">();</span>
+  <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+<p>
+            While the preceding takes care of dead-lock, the access to the synchronized_value
+            via unique_lock_ptr requires a lock that is not forced by the interface.
+            An alternative on compilers providing a standard library that supports
+            movable std::tuple is to use the free synchronize function, which will
+            lock all the mutexes associated to the synchronized values and return
+            a tuple os strict_lock_ptr.
+          </p>
+<pre class="programlisting"><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">queue</span><span class="special">&lt;</span><span class="identifier">MessageType</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">q1</span><span class="special">,</span><span class="identifier">q2</span><span class="special">;</span>
+<span class="keyword">void</span> <span class="identifier">transferMessage</span><span class="special">()</span>
+<span class="special">{</span>
+  <span class="keyword">auto</span> <span class="identifier">lks</span> <span class="special">=</span> <span class="identifier">synchronize</span><span class="special">(</span><span class="identifier">u1</span><span class="special">,</span><span class="identifier">u2</span><span class="special">);</span> <span class="comment">// dead-lock free algorithm</span>
+
+  <span class="keyword">if</span><span class="special">(!</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">lks</span><span class="special">)-&gt;</span><span class="identifier">empty</span><span class="special">())</span>
+  <span class="special">{</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;(</span><span class="identifier">lks</span><span class="special">)-&gt;</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">u1</span><span class="special">-&gt;</span><span class="identifier">front</span><span class="special">());</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">get</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">lks</span><span class="special">)-&gt;</span><span class="identifier">pop_front</span><span class="special">();</span>
+  <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.sds.synchronized_valuesxxx.tutorial.value_semantics"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.tutorial.value_semantics" title="Value semantics">Value
+          semantics</a>
+</h5></div></div></div>
+<p>
+            synchronized_value has value semantics even if the syntax lets is close
+            to a pointer (this is just because we are unable to define smart references).
+          </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref" title="Reference">Reference
+        </a>
+</h4></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value">Class
+          <code class="computeroutput"><span class="identifier">synchronized_value</span></code></a></span></dt>
+<dt><span class="section"><a href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronize">Non-Member
+          Function <code class="computeroutput"><span class="identifier">synchronize</span></code></a></span></dt>
+</dl></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">thread</span><span class="special">/</span><span class="identifier">synchronized_value</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Lockable</span> <span class="special">=</span> <span class="identifier">mutex</span><span class="special">&gt;</span>
+  <span class="keyword">class</span> <span class="identifier">synchronized_value</span><span class="special">;</span>
+
+  <span class="comment">// Specialized swap algorithm</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">T</span> <span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">T</span> <span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+
+  <span class="comment">// Hash support</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">struct</span> <span class="identifier">hash</span><span class="special">&lt;</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="special">&gt;;</span>
+
+  <span class="comment">// Comparison</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==(</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span><span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">!=(</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span><span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&lt;(</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span><span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&lt;=(</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span><span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&gt;(</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span><span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&gt;=(</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span><span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span>
+
+  <span class="comment">// Comparison with T</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span><span class="identifier">rhs</span><span class="special">);</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">!=(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span><span class="identifier">rhs</span><span class="special">);</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&lt;(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span><span class="identifier">rhs</span><span class="special">);</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&lt;=(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span><span class="identifier">rhs</span><span class="special">);</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&gt;(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span><span class="identifier">rhs</span><span class="special">);</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&gt;=(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span><span class="identifier">rhs</span><span class="special">);</span>
+
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">==(</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">!=(</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&lt;(</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&lt;=(</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&gt;(</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">L</span><span class="special">&gt;</span>
+  <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">&gt;=(</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">L</span><span class="special">&gt;</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">lhs</span><span class="special">,</span> <span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+
+<span class="preprocessor">#if</span> <span class="special">!</span> <span class="identifier">defined</span><span class="special">(</span><span class="identifier">BOOST_THREAD_NO_SYNCHRONIZE</span><span class="special">)</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="special">...</span><span class="identifier">SV</span><span class="special">&gt;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">synchronized_value_strict_lock_ptr</span><span class="special">&lt;</span><span class="identifier">SV</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="special">...&gt;</span> <span class="identifier">synchronize</span><span class="special">(</span><span class="identifier">SV</span><span class="special">&amp;</span> <span class="special">...</span><span class="identifier">sv</span><span class="special">);</span>
+<span class="preprocessor">#endif</span>
+<span class="special">}</span>
+</pre>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value" title="Class synchronized_value">Class
+          <code class="computeroutput"><span class="identifier">synchronized_value</span></code></a>
+</h5></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">thread</span><span class="special">/</span><span class="identifier">synchronized_value</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Lockable</span> <span class="special">=</span> <span class="identifier">mutex</span><span class="special">&gt;</span>
+  <span class="keyword">class</span> <span class="identifier">synchronized_value</span>
+  <span class="special">{</span>
+  <span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">typedef</span> <span class="identifier">T</span> <span class="identifier">value_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">Lockable</span> <span class="identifier">mutex_type</span><span class="special">;</span>
+
+    <span class="identifier">synchronized_value</span><span class="special">()</span> <span class="identifier">noexept</span><span class="special">(</span><span class="identifier">is_nothrow_default_constructible</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">);</span>
+    <span class="identifier">synchronized_value</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">other</span><span class="special">)</span> <span class="identifier">noexept</span><span class="special">(</span><span class="identifier">is_nothrow_copy_constructible</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">);</span>
+    <span class="identifier">synchronized_value</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;&amp;</span> <span class="identifier">other</span><span class="special">)</span> <span class="identifier">noexept</span><span class="special">(</span><span class="identifier">is_nothrow_move_constructible</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">);</span>
+    <span class="identifier">synchronized_value</span><span class="special">(</span><span class="identifier">synchronized_value</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+    <span class="identifier">synchronized_value</span><span class="special">(</span><span class="identifier">synchronized_value</span><span class="special">&amp;&amp;</span> <span class="identifier">other</span><span class="special">);</span>
+
+    <span class="comment">// mutation</span>
+    <span class="identifier">synchronized_value</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">synchronized_value</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+    <span class="identifier">synchronized_value</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">value_type</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">val</span><span class="special">);</span>
+    <span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">synchronized_value</span> <span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+    <span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+
+    <span class="comment">//observers</span>
+    <span class="identifier">T</span> <span class="identifier">get</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="preprocessor">#if</span> <span class="special">!</span> <span class="identifier">defined</span><span class="special">(</span><span class="identifier">BOOST_NO_CXX11_EXPLICIT_CONVERSION_OPERATORS</span><span class="special">)</span>
+    <span class="keyword">explicit</span> <span class="keyword">operator</span> <span class="identifier">T</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="preprocessor">#endif</span>
+
+    <span class="identifier">strict_lock_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">Lockable</span><span class="special">&gt;</span> <span class="keyword">operator</span><span class="special">-&gt;();</span>
+    <span class="identifier">const_strict_lock_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">Lockable</span><span class="special">&gt;</span> <span class="keyword">operator</span><span class="special">-&gt;()</span> <span class="keyword">const</span><span class="special">;</span>
+    <span class="identifier">strict_lock_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">Lockable</span><span class="special">&gt;</span> <span class="identifier">synchronize</span><span class="special">();</span>
+    <span class="identifier">const_strict_lock_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">Lockable</span><span class="special">&gt;</span> <span class="identifier">synchronize</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="identifier">deref_value</span> <span class="keyword">operator</span><span class="special">*();;</span>
+    <span class="identifier">const_deref_value</span> <span class="keyword">operator</span><span class="special">*()</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">T</span> <span class="identifier">value_</span><span class="special">;</span> <span class="comment">// for exposition only</span>
+    <span class="keyword">mutable</span> <span class="identifier">mutex_type</span> <span class="identifier">mtx_</span><span class="special">;</span>  <span class="comment">// for exposition only</span>
+  <span class="special">};</span>
+<span class="special">}</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Requires:</span></dt>
+<dd><p>
+                  <code class="computeroutput"><span class="identifier">Lockable</span></code> is <code class="computeroutput"><span class="identifier">Lockable</span></code>.
+                </p></dd>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.constructor"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.constructor" title="synchronized_value()"><code class="computeroutput"><span class="identifier">synchronized_value</span><span class="special">()</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="identifier">synchronized_value</span><span class="special">()</span> <span class="identifier">noexept</span><span class="special">(</span><span class="identifier">is_nothrow_default_constructible</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Requires:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">T</span></code> is <code class="computeroutput"><span class="identifier">DefaultConstructible</span></code>.
+                  </p></dd>
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                    Default constructs the cloaked value_type
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Any exception thrown by <code class="computeroutput"><span class="identifier">value_type</span><span class="special">()</span></code>.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.constructor_vt"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.constructor_vt" title="synchronized_value(T const&amp;)"><code class="computeroutput"><span class="identifier">synchronized_value</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;)</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="identifier">synchronized_value</span><span class="special">(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">other</span><span class="special">)</span> <span class="identifier">noexept</span><span class="special">(</span><span class="identifier">is_nothrow_copy_constructible</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Requires:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">T</span></code> is <code class="computeroutput"><span class="identifier">CopyConstructible</span></code>.
+                  </p></dd>
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                    Copy constructs the cloaked value_type using the parameter <code class="computeroutput"><span class="identifier">other</span></code>
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Any exception thrown by <code class="computeroutput"><span class="identifier">value_type</span><span class="special">(</span><span class="identifier">other</span><span class="special">)</span></code>.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.copy_cons"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.copy_cons" title="synchronized_value(synchronized_value const&amp;)"><code class="computeroutput"><span class="identifier">synchronized_value</span><span class="special">(</span><span class="identifier">synchronized_value</span> <span class="keyword">const</span><span class="special">&amp;)</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="identifier">synchronized_value</span><span class="special">(</span><span class="identifier">synchronized_value</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Requires:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">T</span></code> is <code class="computeroutput"><span class="identifier">DefaultConstructible</span></code> and <code class="computeroutput"><span class="identifier">Assignable</span></code>.
+                  </p></dd>
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                    Assigns the value on a scope protected by the mutex of the rhs.
+                    The mutex is not copied.
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Any exception thrown by <code class="computeroutput"><span class="identifier">value_type</span><span class="special">()</span></code> or <code class="computeroutput"><span class="identifier">value_type</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">value_type</span><span class="special">&amp;)</span></code> or <code class="computeroutput"><span class="identifier">mtx_</span><span class="special">.</span><span class="identifier">lock</span><span class="special">()</span></code>.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.move_vt"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.move_vt" title="synchronized_value(T&amp;&amp;)"><code class="computeroutput"><span class="identifier">synchronized_value</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;&amp;)</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="identifier">synchronized_value</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;&amp;</span> <span class="identifier">other</span><span class="special">)</span> <span class="identifier">noexept</span><span class="special">(</span><span class="identifier">is_nothrow_move_constructible</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Requires:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">T</span></code> is <code class="computeroutput"><span class="identifier">CopyMovable</span> </code>.
+                  </p></dd>
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                    Move constructs the cloaked value_type
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Any exception thrown by <code class="computeroutput"><span class="identifier">value_type</span><span class="special">(</span><span class="identifier">value_type</span><span class="special">&amp;&amp;)</span></code>.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.move"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.move" title="synchronized_value(synchronized_value&amp;&amp;)"><code class="computeroutput"><span class="identifier">synchronized_value</span><span class="special">(</span><span class="identifier">synchronized_value</span><span class="special">&amp;&amp;)</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="identifier">synchronized_value</span><span class="special">(</span><span class="identifier">synchronized_value</span><span class="special">&amp;&amp;</span> <span class="identifier">other</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Requires:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">T</span></code> is <code class="computeroutput"><span class="identifier">CopyMovable</span> </code>.
+                  </p></dd>
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                    Move constructs the cloaked value_type
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Any exception thrown by <code class="computeroutput"><span class="identifier">value_type</span><span class="special">(</span><span class="identifier">value_type</span><span class="special">&amp;&amp;)</span></code> or <code class="computeroutput"><span class="identifier">mtx_</span><span class="special">.</span><span class="identifier">lock</span><span class="special">()</span></code>.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.assign"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.assign" title="operator=(synchronized_value const&amp;)"><code class="computeroutput"><span class="keyword">operator</span><span class="special">=(</span><span class="identifier">synchronized_value</span> <span class="keyword">const</span><span class="special">&amp;)</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="identifier">synchronized_value</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">synchronized_value</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Requires:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">T</span></code> is <code class="computeroutput"><span class="identifier">Assignale</span></code>.
+                  </p></dd>
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                    Copies the underlying value on a scope protected by the two mutexes.
+                    The mutex is not copied. The locks are acquired avoiding deadlock.
+                    For example, there is no problem if one thread assigns <code class="computeroutput"><span class="identifier">a</span> <span class="special">=</span>
+                    <span class="identifier">b</span></code> and the other assigns
+                    <code class="computeroutput"><span class="identifier">b</span> <span class="special">=</span>
+                    <span class="identifier">a</span></code>.
+                  </p></dd>
+<dt><span class="term">Return:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Any exception thrown by <code class="computeroutput"><span class="identifier">value_type</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">(</span><span class="identifier">value_type</span>
+                    <span class="keyword">const</span><span class="special">&amp;)</span></code>
+                    or <code class="computeroutput"><span class="identifier">mtx_</span><span class="special">.</span><span class="identifier">lock</span><span class="special">()</span></code>.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.assign_vt"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.assign_vt" title="operator=(T const&amp;)"><code class="computeroutput"><span class="keyword">operator</span><span class="special">=(</span><span class="identifier">T</span> <span class="keyword">const</span><span class="special">&amp;)</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="identifier">synchronized_value</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">value_type</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">val</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Requires:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">T</span></code> is <code class="computeroutput"><span class="identifier">Assignale</span></code>.
+                  </p></dd>
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                    Copies the value on a scope protected by the mutex.
+                  </p></dd>
+<dt><span class="term">Return:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="special">*</span><span class="keyword">this</span></code>
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Any exception thrown by <code class="computeroutput"><span class="identifier">value_type</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">(</span><span class="identifier">value_type</span>
+                    <span class="keyword">const</span><span class="special">&amp;)</span></code>
+                    or <code class="computeroutput"><span class="identifier">mtx_</span><span class="special">.</span><span class="identifier">lock</span><span class="special">()</span></code>.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.get"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.get" title="get() const"><code class="computeroutput"><span class="identifier">get</span><span class="special">()</span> <span class="keyword">const</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="identifier">T</span> <span class="identifier">get</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Requires:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">T</span></code> is <code class="computeroutput"><span class="identifier">CopyConstructible</span></code>.
+                  </p></dd>
+<dt><span class="term">Return:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">A</span> <span class="identifier">copy</span>
+                    <span class="identifier">of</span> <span class="identifier">the</span>
+                    <span class="keyword">protected</span> <span class="identifier">value</span>
+                    <span class="identifier">obtained</span> <span class="identifier">on</span>
+                    <span class="identifier">a</span> <span class="identifier">scope</span>
+                    <span class="keyword">protected</span> <span class="identifier">by</span>
+                    <span class="identifier">the</span> <span class="identifier">mutex</span><span class="special">.</span></code>
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Any exception thrown by <code class="computeroutput"><span class="identifier">value_type</span><span class="special">(</span><span class="identifier">value_type</span>
+                    <span class="keyword">const</span><span class="special">&amp;)</span></code>
+                    or <code class="computeroutput"><span class="identifier">mtx_</span><span class="special">.</span><span class="identifier">lock</span><span class="special">()</span></code>.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.T"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.T" title="operator T() const"><code class="computeroutput"><span class="keyword">operator</span> <span class="identifier">T</span><span class="special">()</span> <span class="keyword">const</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#if</span> <span class="special">!</span> <span class="identifier">defined</span><span class="special">(</span><span class="identifier">BOOST_NO_CXX11_EXPLICIT_CONVERSION_OPERATORS</span><span class="special">)</span>
+  <span class="keyword">explicit</span> <span class="keyword">operator</span> <span class="identifier">T</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="preprocessor">#endif</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Requires:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">T</span></code> is <code class="computeroutput"><span class="identifier">CopyConstructible</span></code>.
+                  </p></dd>
+<dt><span class="term">Return:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">A</span> <span class="identifier">copy</span>
+                    <span class="identifier">of</span> <span class="identifier">the</span>
+                    <span class="keyword">protected</span> <span class="identifier">value</span>
+                    <span class="identifier">obtained</span> <span class="identifier">on</span>
+                    <span class="identifier">a</span> <span class="identifier">scope</span>
+                    <span class="keyword">protected</span> <span class="identifier">by</span>
+                    <span class="identifier">the</span> <span class="identifier">mutex</span><span class="special">.</span></code>
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Any exception thrown by <code class="computeroutput"><span class="identifier">value_type</span><span class="special">(</span><span class="identifier">value_type</span>
+                    <span class="keyword">const</span><span class="special">&amp;)</span></code>
+                    or <code class="computeroutput"><span class="identifier">mtx_</span><span class="special">.</span><span class="identifier">lock</span><span class="special">()</span></code>.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.swap"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.swap" title="swap(synchronized_value&amp;)"><code class="computeroutput"><span class="identifier">swap</span><span class="special">(</span><span class="identifier">synchronized_value</span><span class="special">&amp;)</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">synchronized_value</span> <span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Requires:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">T</span></code> is <code class="computeroutput"><span class="identifier">Assignale</span></code>.
+                  </p></dd>
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                    Swaps the data on a scope protected by both mutex. Both mutex
+                    are acquired to avoid dead-lock. The mutexes are not swapped.
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Any exception thrown by <code class="computeroutput"><span class="identifier">swap</span><span class="special">(</span><span class="identifier">value_</span><span class="special">,</span> <span class="identifier">rhs</span><span class="special">.</span><span class="identifier">value</span><span class="special">)</span></code> or <code class="computeroutput"><span class="identifier">mtx_</span><span class="special">.</span><span class="identifier">lock</span><span class="special">()</span></code> or <code class="computeroutput"><span class="identifier">rhs_</span><span class="special">.</span><span class="identifier">mtx_</span><span class="special">.</span><span class="identifier">lock</span><span class="special">()</span></code>.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.swap_vt"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.swap_vt" title="swap(synchronized_value&amp;)"><code class="computeroutput"><span class="identifier">swap</span><span class="special">(</span><span class="identifier">synchronized_value</span><span class="special">&amp;)</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">value_type</span> <span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Requires:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">T</span></code> is <code class="computeroutput"><span class="identifier">Swapable</span></code>.
+                  </p></dd>
+<dt><span class="term">Effects:</span></dt>
+<dd><p>
+                    Swaps the data on a scope protected by both mutex. Both mutex
+                    are acquired to avoid dead-lock. The mutexes are not swapped.
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Any exception thrown by <code class="computeroutput"><span class="identifier">swap</span><span class="special">(</span><span class="identifier">value_</span><span class="special">,</span> <span class="identifier">rhs</span><span class="special">)</span></code> or <code class="computeroutput"><span class="identifier">mtx_</span><span class="special">.</span><span class="identifier">lock</span><span class="special">()</span></code>.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.indir"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.indir" title="operator-&gt;()"><code class="computeroutput"><span class="keyword">operator</span><span class="special">-&gt;()</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="identifier">strict_lock_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">Lockable</span><span class="special">&gt;</span> <span class="keyword">operator</span><span class="special">-&gt;();</span>
+</pre>
+<p>
+              Essentially calling a method <code class="computeroutput"><span class="identifier">obj</span><span class="special">-&gt;</span><span class="identifier">foo</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">z</span><span class="special">)</span></code> calls the method <code class="computeroutput"><span class="identifier">foo</span><span class="special">(</span><span class="identifier">x</span><span class="special">,</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">z</span><span class="special">)</span></code> inside a critical section as long-lived
+              as the call itself.
+            </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Return:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">A</span> <span class="identifier">strict_lock_ptr</span><span class="special">&lt;&gt;.</span></code>
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Nothing.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.indir_const"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.indir_const" title="operator-&gt;() const"><code class="computeroutput"><span class="keyword">operator</span><span class="special">-&gt;()</span>
+            <span class="keyword">const</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="identifier">const_strict_lock_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">Lockable</span><span class="special">&gt;</span> <span class="keyword">operator</span><span class="special">-&gt;()</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+              If the <code class="computeroutput"><span class="identifier">synchronized_value</span></code>
+              object involved is const-qualified, then you'll only be able to call
+              const methods through <code class="computeroutput"><span class="keyword">operator</span><span class="special">-&gt;</span></code>. So, for example, <code class="computeroutput"><span class="identifier">vec</span><span class="special">-&gt;</span><span class="identifier">push_back</span><span class="special">(</span><span class="string">"xyz"</span><span class="special">)</span></code>
+              won't work if <code class="computeroutput"><span class="identifier">vec</span></code> were
+              const-qualified. The locking mechanism capitalizes on the assumption
+              that const methods don't modify their underlying data.
+            </p>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Return:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">A</span> <span class="identifier">const_strict_lock_ptr</span>
+                    <span class="special">&lt;&gt;.</span></code>
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Nothing.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.synchronize"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.synchronize" title="synchronize()"><code class="computeroutput"><span class="identifier">synchronize</span><span class="special">()</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="identifier">strict_lock_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">Lockable</span><span class="special">&gt;</span> <span class="identifier">synchronize</span><span class="special">();</span>
+</pre>
+<p>
+              The synchronize() factory make easier to lock on a scope. As discussed,
+              <code class="computeroutput"><span class="keyword">operator</span><span class="special">-&gt;</span></code>
+              can only lock over the duration of a call, so it is insufficient for
+              complex operations. With <code class="computeroutput"><span class="identifier">synchronize</span><span class="special">()</span></code> you get to lock the object in a scoped
+              and to directly access the object inside that scope.
+            </p>
+<p>
+              <span class="bold"><strong>Example:</strong></span>
+            </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">fun</span><span class="special">(</span><span class="identifier">synchronized_value</span><span class="special">&lt;</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;&gt;</span> <span class="special">&amp;</span> <span class="identifier">vec</span><span class="special">)</span> <span class="special">{</span>
+  <span class="keyword">auto</span> <span class="identifier">vec2</span><span class="special">=</span><span class="identifier">vec</span><span class="special">.</span><span class="identifier">synchronize</span><span class="special">();</span>
+  <span class="identifier">vec2</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="number">42</span><span class="special">);</span>
+  <span class="identifier">assert</span><span class="special">(</span><span class="identifier">vec2</span><span class="special">.</span><span class="identifier">back</span><span class="special">()</span> <span class="special">==</span> <span class="number">42</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Return:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">A</span> <span class="identifier">strict_lock_ptr</span>
+                    <span class="special">&lt;&gt;.</span></code>
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Nothing.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.synchronize_const"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.synchronize_const" title="synchronize() const"><code class="computeroutput"><span class="identifier">synchronize</span><span class="special">()</span>
+            <span class="keyword">const</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="identifier">const_strict_lock_ptr</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">Lockable</span><span class="special">&gt;</span> <span class="identifier">synchronize</span><span class="special">()</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Return:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">A</span> <span class="identifier">const_strict_lock_ptr</span>
+                    <span class="special">&lt;&gt;.</span></code>
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Nothing.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.deref"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.deref" title="operator*()"><code class="computeroutput"><span class="keyword">operator</span><span class="special">*()</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="identifier">deref_value</span> <span class="keyword">operator</span><span class="special">*();;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Return:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">A</span> <span class="identifier">an</span>
+                    <span class="identifier">instance</span> <span class="identifier">of</span>
+                    <span class="identifier">a</span> <span class="keyword">class</span>
+                    <span class="identifier">that</span> <span class="identifier">locks</span>
+                    <span class="identifier">the</span> <span class="identifier">mutex</span>
+                    <span class="identifier">on</span> <span class="identifier">construction</span>
+                    <span class="keyword">and</span> <span class="identifier">unlocks</span>
+                    <span class="identifier">it</span> <span class="identifier">on</span>
+                    <span class="identifier">destruction</span> <span class="keyword">and</span>
+                    <span class="identifier">provides</span> <span class="identifier">implicit</span>
+                    <span class="identifier">conversion</span> <span class="identifier">to</span>
+                    <span class="identifier">a</span> <span class="identifier">reference</span>
+                    <span class="identifier">to</span> <span class="identifier">the</span>
+                    <span class="keyword">protected</span> <span class="identifier">value</span><span class="special">.</span></code>
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Nothing.
+                  </p></dd>
+</dl>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.deref_const"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronized_value.deref_const" title="operator*() const"><code class="computeroutput"><span class="keyword">operator</span><span class="special">*()</span>
+            <span class="keyword">const</span></code></a>
+</h6></div></div></div>
+<pre class="programlisting"><span class="identifier">const_deref_value</span> <span class="keyword">operator</span><span class="special">*()</span> <span class="keyword">const</span><span class="special">;</span>
+</pre>
+<div class="variablelist">
+<p class="title"><b></b></p>
+<dl class="variablelist">
+<dt><span class="term">Return:</span></dt>
+<dd><p>
+                    <code class="computeroutput"><span class="identifier">A</span> <span class="identifier">an</span>
+                    <span class="identifier">instance</span> <span class="identifier">of</span>
+                    <span class="identifier">a</span> <span class="keyword">class</span>
+                    <span class="identifier">that</span> <span class="identifier">locks</span>
+                    <span class="identifier">the</span> <span class="identifier">mutex</span>
+                    <span class="identifier">on</span> <span class="identifier">construction</span>
+                    <span class="keyword">and</span> <span class="identifier">unlocks</span>
+                    <span class="identifier">it</span> <span class="identifier">on</span>
+                    <span class="identifier">destruction</span> <span class="keyword">and</span>
+                    <span class="identifier">provides</span> <span class="identifier">implicit</span>
+                    <span class="identifier">conversion</span> <span class="identifier">to</span>
+                    <span class="identifier">a</span> <span class="identifier">constant</span>
+                    <span class="identifier">reference</span> <span class="identifier">to</span>
+                    <span class="identifier">the</span> <span class="keyword">protected</span>
+                    <span class="identifier">value</span><span class="special">.</span></code>
+                  </p></dd>
+<dt><span class="term">Throws:</span></dt>
+<dd><p>
+                    Nothing.
+                  </p></dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronize"></a><a class="link" href="sds.html#thread.sds.synchronized_valuesxxx.synchronized_value_ref.synchronize" title="Non-Member Function synchronize">Non-Member
+          Function <code class="computeroutput"><span class="identifier">synchronize</span></code></a>
+</h5></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">thread</span><span class="special">/</span><span class="identifier">synchronized_value</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+<span class="preprocessor">#if</span> <span class="special">!</span> <span class="identifier">defined</span><span class="special">(</span><span class="identifier">BOOST_THREAD_NO_SYNCHRONIZE</span><span class="special">)</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="special">...</span><span class="identifier">SV</span><span class="special">&gt;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">tuple</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">synchronized_value_strict_lock_ptr</span><span class="special">&lt;</span><span class="identifier">SV</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="special">...&gt;</span> <span class="identifier">synchronize</span><span class="special">(</span><span class="identifier">SV</span><span class="special">&amp;</span> <span class="special">...</span><span class="identifier">sv</span><span class="special">);</span>
+<span class="preprocessor">#endif</span>
+<span class="special">}</span>
+</pre>
+</div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -11 Anthony Williams<br>Copyright &#169; 2011 -13 Vicente J. Botet Escriba<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="thread_local_storage.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../thread.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="time.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

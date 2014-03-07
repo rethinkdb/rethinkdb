@@ -1,0 +1,34 @@
+# Copyright Vladimir Prus 2004.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt
+# or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# This is a generic 'intel' toolset. Depending on the current
+# system, it forwards either to 'intel-linux' or 'intel-win'
+# modules.
+
+import feature ;
+import os ;
+import toolset ;
+
+feature.extend toolset : intel ;
+feature.subfeature toolset intel : platform : : propagated link-incompatible ;
+
+rule init ( * : * )
+{
+    if [ os.name ] = LINUX
+    {
+        toolset.using intel-linux : 
+          $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ;
+    }
+    else if [ os.name ] = MACOSX
+    {
+        toolset.using intel-darwin : 
+          $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ;
+    }
+    else
+    {
+        toolset.using intel-win :
+          $(1) : $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ;
+    }        
+}

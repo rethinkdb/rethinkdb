@@ -1,0 +1,69 @@
+Index: source/common/normalizer2impl.h
+===================================================================
+--- source/common/normalizer2impl.h	(revision 73520)
++++ source/common/normalizer2impl.h	(working copy)
+@@ -31,7 +31,7 @@
+ 
+ U_NAMESPACE_BEGIN
+ 
+-class CanonIterData;
++struct CanonIterData;
+ 
+ class Hangul {
+ public:
+Index: source/common/locmap.c
+===================================================================
+--- source/common/locmap.c	(revision 73520)
++++ source/common/locmap.c	(working copy)
+@@ -30,9 +30,11 @@
+ #include "cstring.h"
+ #include "cmemory.h"
+ 
++#if 0
+ #if defined(U_WINDOWS) && defined(_MSC_VER) && (_MSC_VER >= 1500)
+ #define USE_WINDOWS_LOCALE_API
+ #endif
++#endif
+ 
+ #ifdef USE_WINDOWS_LOCALE_API
+ #include <windows.h>
+Index: source/common/putil.c
+===================================================================
+--- source/common/putil.c	(revision 73520)
++++ source/common/putil.c	(working copy)
+@@ -2159,7 +2159,7 @@
+   
+   if(U_FAILURE(*status)) return NULL;
+   
+-  lib = LoadLibrary(libName);
++  lib = LoadLibraryA(libName);
+   
+   if(lib==NULL) {
+     *status = U_MISSING_RESOURCE_ERROR;
+Index: source/i18n/zstrfmt.h
+===================================================================
+--- source/i18n/zstrfmt.h	(revision 73520)
++++ source/i18n/zstrfmt.h	(working copy)
+@@ -80,7 +80,7 @@
+  * ZSFStringPool   Pool of (UChar *) strings.  Provides for sharing of repeated
+  *                 strings within ZoneStringFormats.
+  */
+-class ZSFStringPoolChunk;
++struct ZSFStringPoolChunk;
+ class ZSFStringPool: public UMemory {
+   public:
+     ZSFStringPool(UErrorCode &status);
+Index: source/i18n/fmtable.cpp
+===================================================================
+--- source/i18n/fmtable.cpp	(revision 73520)
++++ source/i18n/fmtable.cpp	(working copy)
+@@ -199,6 +199,9 @@
+ // -------------------------------------
+ // copy constructor
+ 
++#ifdef U_WINODWS
++#pragram warning(disable: 4996)
++#endif
+ 
+ Formattable::Formattable(const Formattable &source)
+      :  UObject(*this)

@@ -1,0 +1,166 @@
+# Boost.Range library
+#
+#  Copyright Neil Groves 2009
+#  Copyright Thorsten Ottosen 2003-2004. Use, modification and
+#  distribution is subject to the Boost Software License, Version
+#  1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#  http://www.boost.org/LICENSE_1_0.txt)
+#
+# For more information, see http://www.boost.org/libs/range/
+#
+
+# bring in rules for testing
+import testing ;
+
+project
+	: requirements
+		<library>/boost/test//boost_unit_test_framework/
+		<library>/boost/regex//boost_regex/
+		<link>static
+		<threading>multi
+	;
+
+rule range-test ( name : includes * )
+{
+    return [
+        run $(name).cpp /boost/test//boost_unit_test_framework /boost/regex//boost_regex/<link>static
+        :
+        :
+        : <toolset>gcc:<cxxflags>"-Wall -Wunused "
+        ] ;
+}
+
+test-suite range :
+	[ compile-fail compile_fail/iterator_range1.cpp ]
+	[ range-test adaptor_test/adjacent_filtered ]
+	[ range-test adaptor_test/copied ]
+	[ range-test adaptor_test/filtered ]
+	[ range-test adaptor_test/indexed ]
+	[ range-test adaptor_test/indirected ]
+	[ range-test adaptor_test/map ]
+	[ range-test adaptor_test/replaced ]
+	[ range-test adaptor_test/replaced_if ]
+	[ range-test adaptor_test/reversed ]
+	[ range-test adaptor_test/sliced ]
+	[ range-test adaptor_test/strided ]
+	[ range-test adaptor_test/strided2 ]
+	[ range-test adaptor_test/tokenized ]
+	[ range-test adaptor_test/transformed ]
+	[ range-test adaptor_test/type_erased ]
+	[ range-test adaptor_test/uniqued ]
+	[ range-test adaptor_test/adjacent_filtered_example ]
+	[ range-test adaptor_test/copied_example ]
+	[ range-test adaptor_test/filtered_example ]
+	[ range-test adaptor_test/indexed_example ]
+	[ range-test adaptor_test/indirected_example ]
+	[ range-test adaptor_test/map_keys_example ]
+	[ range-test adaptor_test/map_values_example ]
+	[ range-test adaptor_test/replaced_example ]
+	[ range-test adaptor_test/replaced_if_example ]
+	[ range-test adaptor_test/reversed_example ]
+	[ range-test adaptor_test/sliced_example ]
+	[ range-test adaptor_test/strided_example ]
+	[ range-test adaptor_test/transformed_example ]
+	[ range-test adaptor_test/tokenized_example ]
+	[ range-test adaptor_test/type_erased_example ]
+	[ range-test adaptor_test/uniqued_example ]
+	[ range-test algorithm_test/adjacent_find ]
+	[ range-test algorithm_test/binary_search ]
+	[ range-test algorithm_test/copy ]
+	[ range-test algorithm_test/copy_backward ]
+	[ range-test algorithm_test/count ]
+	[ range-test algorithm_test/count_if ]
+	[ range-test algorithm_test/equal ]
+	[ range-test algorithm_test/equal_range ]
+	[ range-test algorithm_test/fill ]
+	[ range-test algorithm_test/find ]
+	[ range-test algorithm_test/find_if ]
+	[ range-test algorithm_test/find_end ]
+	[ range-test algorithm_test/find_first_of ]
+	[ range-test algorithm_test/for_each ]
+	[ range-test algorithm_test/generate ]
+	[ range-test algorithm_test/heap ]
+	[ range-test algorithm_test/includes ]
+	[ range-test algorithm_test/inplace_merge ]
+	[ range-test algorithm_test/lexicographical_compare ]
+	[ range-test algorithm_test/lower_bound ]
+	[ range-test algorithm_test/max_element ]
+	[ range-test algorithm_test/merge ]
+	[ range-test algorithm_test/min_element ]
+	[ range-test algorithm_test/mismatch ]
+	[ range-test algorithm_test/next_permutation ]
+	[ range-test algorithm_test/nth_element ]
+	[ range-test algorithm_test/partial_sort ]
+	[ range-test algorithm_test/partition ]
+	[ range-test algorithm_test/prev_permutation ]
+	[ range-test algorithm_test/random_shuffle ]
+	[ range-test algorithm_test/remove ]
+	[ range-test algorithm_test/remove_copy ]
+	[ range-test algorithm_test/remove_copy_if ]
+	[ range-test algorithm_test/remove_if ]
+	[ range-test algorithm_test/replace ]
+	[ range-test algorithm_test/replace_copy ]
+	[ range-test algorithm_test/replace_copy_if ]
+	[ range-test algorithm_test/replace_if ]
+	[ range-test algorithm_test/reverse ]
+	[ range-test algorithm_test/reverse_copy ]
+	[ range-test algorithm_test/rotate ]
+	[ range-test algorithm_test/rotate_copy ]
+	[ range-test algorithm_test/search ]
+	[ range-test algorithm_test/search_n ]
+	[ range-test algorithm_test/set_difference ]
+	[ range-test algorithm_test/set_intersection ]
+	[ range-test algorithm_test/set_symmetric_difference ]
+	[ range-test algorithm_test/set_union ]
+	[ range-test algorithm_test/sort ]
+	[ range-test algorithm_test/stable_partition ]
+	[ range-test algorithm_test/stable_sort ]
+	[ range-test algorithm_test/swap_ranges ]
+	[ range-test algorithm_test/transform ]
+	[ range-test algorithm_test/unique ]
+	[ range-test algorithm_test/unique_copy ]
+	[ range-test algorithm_test/upper_bound ]
+	[ range-test algorithm_ext_test/copy_n ]
+	[ range-test algorithm_ext_test/erase ]
+	[ range-test algorithm_ext_test/for_each_ext ]
+	[ range-test algorithm_ext_test/insert ]
+	[ range-test algorithm_ext_test/iota ]
+	[ range-test algorithm_ext_test/is_sorted ]
+	[ range-test algorithm_ext_test/overwrite ]
+	[ range-test algorithm_ext_test/push_back ]
+	[ range-test algorithm_ext_test/push_front ]
+	[ range-test adl_conformance ]
+	[ range-test adl_conformance_no_using ]
+	[ range-test algorithm ]
+	[ range-test algorithm_example ]
+	[ range-test array ]
+#	[ range-test atl : <include>$(VC71_ROOT)/atlmfc/include ]
+    [ range-test begin ]
+	[ range-test combine ]
+	[ range-test compat2 ]
+	[ range-test compat3 ]
+	[ range-test const_ranges ]
+	[ range-test counting_range ]
+	[ range-test end ]
+	[ range-test extension_mechanism ]
+	[ range-test extension_size ]
+	[ range-test has_range_iterator ]
+	[ range-test irange ]
+	[ range-test istream_range ]
+	[ range-test iterator_pair ]
+	[ range-test iterator_range ]
+#   	[ range-test mfc : <include>$(VC71_ROOT)/atlmfc/include ]
+    [ range-test join ]
+	[ range-test partial_workaround ]
+	[ range-test pointer_as_iterator ]
+	[ range-test reversible_range ]
+	[ range-test std_container ]
+	[ range-test string ]
+	[ range-test sub_range ]
+	[ range-test ticket_5486 ]
+	[ range-test ticket_5544_terminate_irange ]
+	[ range-test ticket_5547 ]
+	[ range-test ticket_5556_is_sorted_namespace ]
+	[ range-test ticket_6944 ]
+    ;
+

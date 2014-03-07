@@ -1,0 +1,430 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Elliptic Integrals - Carlson Form</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Math Toolkit">
+<link rel="up" href="../ellint.html" title="Elliptic Integrals">
+<link rel="prev" href="ellint_intro.html" title="Elliptic Integral Overview">
+<link rel="next" href="ellint_1.html" title="Elliptic Integrals of the First Kind - Legendre Form">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ellint_intro.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ellint.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ellint_1.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="math_toolkit.ellint.ellint_carlson"></a><a class="link" href="ellint_carlson.html" title="Elliptic Integrals - Carlson Form">Elliptic Integrals
+      - Carlson Form</a>
+</h3></div></div></div>
+<h5>
+<a name="math_toolkit.ellint.ellint_carlson.h0"></a>
+        <span class="phrase"><a name="math_toolkit.ellint.ellint_carlson.synopsis"></a></span><a class="link" href="ellint_carlson.html#math_toolkit.ellint.ellint_carlson.synopsis">Synopsis</a>
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">special_functions</span><span class="special">/</span><span class="identifier">ellint_rf</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">math</span> <span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rf</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">z</span><span class="special">)</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rf</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">z</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;)</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">special_functions</span><span class="special">/</span><span class="identifier">ellint_rd</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">math</span> <span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rd</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">z</span><span class="special">)</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rd</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">z</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;)</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">special_functions</span><span class="special">/</span><span class="identifier">ellint_rj</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">math</span> <span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T4</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rj</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">z</span><span class="special">,</span> <span class="identifier">T4</span> <span class="identifier">p</span><span class="special">)</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T4</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rj</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">z</span><span class="special">,</span> <span class="identifier">T4</span> <span class="identifier">p</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;)</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">special_functions</span><span class="special">/</span><span class="identifier">ellint_rc</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">math</span> <span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rc</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">)</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rc</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;)</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<h5>
+<a name="math_toolkit.ellint.ellint_carlson.h1"></a>
+        <span class="phrase"><a name="math_toolkit.ellint.ellint_carlson.description"></a></span><a class="link" href="ellint_carlson.html#math_toolkit.ellint.ellint_carlson.description">Description</a>
+      </h5>
+<p>
+        These functions return Carlson's symmetrical elliptic integrals, the functions
+        have complicated behavior over all their possible domains, but the following
+        graph gives an idea of their behavior:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../graphs/ellint_carlson.png" align="middle"></span>
+      </p>
+<p>
+        The return type of these functions is computed using the <a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>result
+        type calculation rules</em></span></a> when the arguments are of different
+        types: otherwise the return is the same type as the arguments.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rf</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">z</span><span class="special">)</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rf</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">z</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;)</span>
+</pre>
+<p>
+        Returns Carlson's Elliptic Integral R<sub>F</sub>:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ellint9.png"></span>
+      </p>
+<p>
+        Requires that all of the arguments are non-negative, and at most one may
+        be zero. Otherwise returns the result of <a class="link" href="../error_handling.html#math_toolkit.error_handling.domain_error">domain_error</a>.
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rd</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">z</span><span class="special">)</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rd</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">z</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;)</span>
+</pre>
+<p>
+        Returns Carlson's elliptic integral R<sub>D</sub>:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ellint10.png"></span>
+      </p>
+<p>
+        Requires that x and y are non-negative, with at most one of them zero, and
+        that z &gt;= 0. Otherwise returns the result of <a class="link" href="../error_handling.html#math_toolkit.error_handling.domain_error">domain_error</a>.
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T4</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rj</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">z</span><span class="special">,</span> <span class="identifier">T4</span> <span class="identifier">p</span><span class="special">)</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T4</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rj</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">z</span><span class="special">,</span> <span class="identifier">T4</span> <span class="identifier">p</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;)</span>
+</pre>
+<p>
+        Returns Carlson's elliptic integral R<sub>J</sub>:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ellint11.png"></span>
+      </p>
+<p>
+        Requires that x, y and z are non-negative, with at most one of them zero,
+        and that <span class="emphasis"><em>p != 0</em></span>. Otherwise returns the result of <a class="link" href="../error_handling.html#math_toolkit.error_handling.domain_error">domain_error</a>.
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<p>
+        When <span class="emphasis"><em>p &lt; 0</em></span> the function returns the <a href="http://en.wikipedia.org/wiki/Cauchy_principal_value" target="_top">Cauchy
+        principal value</a> using the relation:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ellint17.png"></span>
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rc</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">)</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ellint_rc</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">y</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;)</span>
+</pre>
+<p>
+        Returns Carlson's elliptic integral R<sub>C</sub>:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ellint12.png"></span>
+      </p>
+<p>
+        Requires that <span class="emphasis"><em>x &gt; 0</em></span> and that <span class="emphasis"><em>y != 0</em></span>.
+        Otherwise returns the result of <a class="link" href="../error_handling.html#math_toolkit.error_handling.domain_error">domain_error</a>.
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<p>
+        When <span class="emphasis"><em>y &lt; 0</em></span> the function returns the <a href="http://mathworld.wolfram.com/CauchyPrincipalValue.html" target="_top">Cauchy
+        principal value</a> using the relation:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ellint18.png"></span>
+      </p>
+<h5>
+<a name="math_toolkit.ellint.ellint_carlson.h2"></a>
+        <span class="phrase"><a name="math_toolkit.ellint.ellint_carlson.testing"></a></span><a class="link" href="ellint_carlson.html#math_toolkit.ellint.ellint_carlson.testing">Testing</a>
+      </h5>
+<p>
+        There are two sets of tests.
+      </p>
+<p>
+        Spot tests compare selected values with test data given in:
+      </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+          B. C. Carlson, <span class="emphasis"><em><a href="http://arxiv.org/abs/math.CA/9409227" target="_top">Numerical
+          computation of real or complex elliptic integrals</a></em></span>. Numerical
+          Algorithms, Volume 10, Number 1 / March, 1995, pp 13-26.
+        </p></blockquote></div>
+<p>
+        Random test data generated using NTL::RR at 1000-bit precision and our implementation
+        checks for rounding-errors and/or regressions.
+      </p>
+<p>
+        There are also sanity checks that use the inter-relations between the integrals
+        to verify their correctness: see the above Carlson paper for details.
+      </p>
+<h5>
+<a name="math_toolkit.ellint.ellint_carlson.h3"></a>
+        <span class="phrase"><a name="math_toolkit.ellint.ellint_carlson.accuracy"></a></span><a class="link" href="ellint_carlson.html#math_toolkit.ellint.ellint_carlson.accuracy">Accuracy</a>
+      </h5>
+<p>
+        These functions are computed using only basic arithmetic operations, so there
+        isn't much variation in accuracy over differing platforms. Note that only
+        results for the widest floating-point type on the system are given as narrower
+        types have <a class="link" href="../relative_error.html#math_toolkit.relative_error.zero_error">effectively
+        zero error</a>. All values are relative errors in units of epsilon.
+      </p>
+<div class="table">
+<a name="math_toolkit.ellint.ellint_carlson.errors_rates_in_the_carlson_elli"></a><p class="title"><b>Table&#160;3.25.&#160;Errors Rates in the Carlson Elliptic Integrals</b></p>
+<div class="table-contents"><table class="table" summary="Errors Rates in the Carlson Elliptic Integrals">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Significand Size
+                </p>
+              </th>
+<th>
+                <p>
+                  Platform and Compiler
+                </p>
+              </th>
+<th>
+                <p>
+                  R<sub>F</sub>
+                </p>
+              </th>
+<th>
+                <p>
+                  R<sub>D</sub>
+                </p>
+              </th>
+<th>
+                <p>
+                  R<sub>J</sub>
+                </p>
+              </th>
+<th>
+                <p>
+                  R<sub>C</sub>
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  53
+                </p>
+              </td>
+<td>
+                <p>
+                  Win32 / Visual C++ 8.0
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2.9 Mean=0.75
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2.6 Mean=0.9
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=108 Mean=6.9
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2.4 Mean=0.6
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  Red Hat Linux / G++ 3.4
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2.5 Mean=0.75
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2.7 Mean=0.9
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=105 Mean=8
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=1.9 Mean=0.7
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  113
+                </p>
+              </td>
+<td>
+                <p>
+                  HP-UX / HP aCC 6
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=5.3 Mean=1.6
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=2.9 Mean=0.99
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=180 Mean=12
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=1.8 Mean=0.7
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><h5>
+<a name="math_toolkit.ellint.ellint_carlson.h4"></a>
+        <span class="phrase"><a name="math_toolkit.ellint.ellint_carlson.implementation"></a></span><a class="link" href="ellint_carlson.html#math_toolkit.ellint.ellint_carlson.implementation">Implementation</a>
+      </h5>
+<p>
+        The key of Carlson's algorithm [<a class="link" href="ellint_intro.html#ellint_ref_carlson79">Carlson79</a>]
+        is the duplication theorem:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ellint13.png"></span>
+      </p>
+<p>
+        By applying it repeatedly, <span class="emphasis"><em>x</em></span>, <span class="emphasis"><em>y</em></span>,
+        <span class="emphasis"><em>z</em></span> get closer and closer. When they are nearly equal,
+        the special case equation
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ellint16.png"></span>
+      </p>
+<p>
+        is used. More specifically, <span class="emphasis"><em>[R F]</em></span> is evaluated from
+        a Taylor series expansion to the fifth order. The calculations of the other
+        three integrals are analogous.
+      </p>
+<p>
+        For <span class="emphasis"><em>p &lt; 0</em></span> in <span class="emphasis"><em>R<sub>J</sub>(x, y, z, p)</em></span>
+        and <span class="emphasis"><em>y &lt; 0</em></span> in <span class="emphasis"><em>R<sub>C</sub>(x, y)</em></span>, the integrals
+        are singular and their <a href="http://mathworld.wolfram.com/CauchyPrincipalValue.html" target="_top">Cauchy
+        principal values</a> are returned via the relations:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ellint17.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ellint18.png"></span>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ellint_intro.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../ellint.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ellint_1.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,81 @@
+#==============================================================================
+#   Copyright (c) 2002 Joel de Guzman
+#   http://spirit.sourceforge.net/
+#
+#   Use, modification and distribution is subject to the Boost Software
+#   License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+#
+#  Phoenix examples boost-jam file
+#  Joel de Guzman [Sept 27, 2002]
+#
+
+unit-test binary_tests
+    : binary_tests.cpp
+    :
+    ;
+
+unit-test binders_tests
+    : binders_tests.cpp
+    :
+    ;
+
+unit-test functors_tests
+    : functors_tests.cpp
+    :
+    ;
+
+unit-test iostream_tests
+    : iostream_tests.cpp
+    :
+    ;
+
+
+unit-test mixed_binary_tests
+    : mixed_binary_tests.cpp
+    :
+    ;
+
+
+unit-test more_expressions_tests
+    : more_expressions_tests.cpp
+    :
+    ;
+
+
+unit-test primitives_tests
+    : primitives_tests.cpp
+    :
+    ;
+
+
+unit-test statements_tests
+    : statements_tests.cpp
+    :
+    ;
+
+
+unit-test stl_tests
+    : stl_tests.cpp
+    :
+    ;
+
+
+unit-test tuples_tests
+    : tuples_tests.cpp
+    :
+    ;
+
+
+unit-test unary_tests
+    : unary_tests.cpp
+    :
+    ;
+
+
+unit-test new_tests
+    : new_test.cpp
+    :
+    ;
+

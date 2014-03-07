@@ -1,0 +1,318 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[library Boost.TypeTraits
+    [quickbook 1.5]
+    [copyright 2000 2011 Adobe Systems Inc, David Abrahams, Frederic Bron,
+    Steve Cleary, Beman Dawes, Aleksey Gurtovoy, Howard Hinnant, Jesse Jones,
+    Mat Marcus, Itay Maman, John Maddock, Alexander Nasonov, Thorsten Ottosen,
+    Roman Perepelitsa, Robert Ramey, Jeremy Siek, Robert Stewart and Steven Watanabe]
+    [purpose Meta-programming support library]
+    [license
+         Distributed under the Boost Software License, Version 1.0.
+         (See accompanying file LICENSE_1_0.txt or copy at
+         [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+    [authors [authors, various]]
+    [category template]
+    [category generic]
+    [last-revision $Date: 2013-08-26 03:43:14 -0700 (Mon, 26 Aug 2013) $]
+]
+
+[include ../../../tools/auto_index/include/auto_index_helpers.qbk]
+
+[def __boost_root ../../../../]
+[def __tof '''<replaceable><link linkend="boost_typetraits.reference.integral_constant">true_type</link>-or-<link linkend="boost_typetraits.reference.integral_constant">false_type</link></replaceable>''']
+[def __below '''<replaceable>see-below</replaceable>''']
+[def __true_type [link boost_typetraits.reference.integral_constant true_type]]
+[def __false_type [link boost_typetraits.reference.integral_constant false_type]]
+[def __integral_constant [link boost_typetraits.reference.integral_constant integral_constant]]
+[def __inherit [*Inherits:]]
+[def __std_ref [*C++ Standard Reference:]]
+[def __header [*Header:]]
+[def __compat [*Compiler Compatibility:]]
+[def __examples [*Examples:]]
+[def __type [*type:]]
+[def __transform_workaround [link boost_typetraits.category.transform.broken_compiler_workarounds_ compiler workarounds]]
+[def __intrinsics [link boost_typetraits.intrinsics intrinsics]]
+
+[def __is_void [link boost_typetraits.reference.is_void is_void]]
+[def __is_integral [link boost_typetraits.reference.is_integral is_integral]]
+[def __is_floating_point [link boost_typetraits.reference.is_floating_point is_floating_point]]
+[def __is_pointer [link boost_typetraits.reference.is_pointer is_pointer]]
+[def __is_reference [link boost_typetraits.reference.is_reference is_reference]]
+[def __is_lvalue_reference [link boost_typetraits.reference.is_lvalue_reference is_lvalue_reference]]
+[def __is_rvalue_reference [link boost_typetraits.reference.is_rvalue_reference is_rvalue_reference]]
+[def __is_member_pointer [link boost_typetraits.reference.is_member_pointer is_member_pointer]]
+[def __is_array [link boost_typetraits.reference.is_array is_array]]
+[def __is_union [link boost_typetraits.reference.is_union is_union]]
+[def __is_class [link boost_typetraits.reference.is_class is_class]]
+[def __is_enum [link boost_typetraits.reference.is_enum is_enum]]
+[def __is_enum [link boost_typetraits.reference.is_enum is_enum]]
+[def __is_function [link boost_typetraits.reference.is_function is_function]]
+
+[def __is_arithmetic [link boost_typetraits.reference.is_arithmetic is_arithmetic]]
+[def __is_fundamental [link boost_typetraits.reference.is_fundamental is_fundamental]]
+[def __is_object [link boost_typetraits.reference.is_object is_object]]
+[def __is_scalar [link boost_typetraits.reference.is_scalar is_scalar]]
+[def __is_compound [link boost_typetraits.reference.is_compound is_compound]]
+[def __is_member_function_pointer [link boost_typetraits.reference.is_member_function_pointer is_member_function_pointer]]
+[def __is_member_object_pointer [link boost_typetraits.reference.is_member_object_pointer is_member_object_pointer]]
+
+[def __alignment_of [link boost_typetraits.reference.alignment_of alignment_of]]
+[def __rank [link boost_typetraits.reference.rank rank]]
+[def __extent [link boost_typetraits.reference.extent extent]]
+[def __is_empty [link boost_typetraits.reference.is_empty is_empty]]
+[def __is_const [link boost_typetraits.reference.is_const is_const]]
+[def __is_copy_constructible [link boost_typetraits.reference.is_copy_constructible is_copy_constructible]]
+[def __is_volatile [link boost_typetraits.reference.is_volatile is_volatile]]
+[def __is_abstract [link boost_typetraits.reference.is_abstract is_abstract]]
+[def __is_polymorphic [link boost_typetraits.reference.is_polymorphic is_polymorphic]]
+[def __is_signed [link boost_typetraits.reference.is_signed is_signed]]
+[def __is_unsigned [link boost_typetraits.reference.is_unsigned is_unsigned]]
+[def __has_virtual_destructor [link boost_typetraits.reference.has_virtual_destructor has_virtual_destructor]]
+[def __is_pod [link boost_typetraits.reference.is_pod is_pod]]
+[def __has_trivial_constructor [link boost_typetraits.reference.has_trivial_constructor has_trivial_constructor]]
+[def __has_new_operator [link boost_typetraits.reference.has_new_operator has_new_operator]]
+[def __has_trivial_copy [link boost_typetraits.reference.has_trivial_copy has_trivial_copy]]
+[def __has_trivial_default_constructor [link boost_typetraits.reference.has_trivial_constructor has_trivial_default_constructor]]
+[def __has_trivial_copy_constructor [link boost_typetraits.reference.has_trivial_copy has_trivial_copy_constructor]]
+[def __has_trivial_move_constructor [link boost_typetraits.reference.has_trivial_move_constructor has_trivial_move_constructor]]
+[def __has_trivial_assign [link boost_typetraits.reference.has_trivial_assign has_trivial_assign]]
+[def __has_trivial_move_assign [link boost_typetraits.reference.has_trivial_move_assign has_trivial_move_assign]]
+[def __has_trivial_destructor [link boost_typetraits.reference.has_trivial_destructor has_trivial_destructor]]
+[def __is_stateless [link boost_typetraits.reference.is_stateless is_stateless]]
+[def __has_nothrow_constructor [link boost_typetraits.reference.has_nothrow_constructor has_nothrow_constructor]]
+[def __has_nothrow_copy [link boost_typetraits.reference.has_nothrow_copy has_nothrow_copy]]
+[def __has_nothrow_default_constructor [link boost_typetraits.reference.has_nothrow_constructor has_nothrow_default_constructor]]
+[def __has_nothrow_copy_constructor [link boost_typetraits.reference.has_nothrow_copy has_nothrow_copy_constructor]]
+[def __is_nothrow_move_constructible [link boost_typetraits.reference.is_nothrow_move_constructible is_nothrow_move_constructible]]
+[def __has_nothrow_assign [link boost_typetraits.reference.has_nothrow_assign has_nothrow_assign]]
+[def __is_nothrow_move_assignable [link boost_typetraits.reference.is_nothrow_move_assignable is_nothrow_move_assignable]]
+
+[def __is_base_of [link boost_typetraits.reference.is_base_of is_base_of]]
+[def __is_virtual_base_of [link boost_typetraits.reference.is_virtual_base_of is_virtual_base_of]]
+[def __is_convertible [link boost_typetraits.reference.is_convertible is_convertible]]
+[def __is_same [link boost_typetraits.reference.is_same is_same]]
+
+[def __remove_const [link boost_typetraits.reference.remove_const remove_const]]
+[def __remove_volatile [link boost_typetraits.reference.remove_volatile remove_volatile]]
+[def __remove_cv [link boost_typetraits.reference.remove_cv remove_cv]]
+[def __remove_reference [link boost_typetraits.reference.remove_reference remove_reference]]
+[def __remove_extent [link boost_typetraits.reference.remove_extent remove_extent]]
+[def __remove_all_extents [link boost_typetraits.reference.remove_all_extents remove_all_extents]]
+[def __remove_pointer [link boost_typetraits.reference.remove_pointer remove_pointer]]
+[def __add_reference [link boost_typetraits.reference.add_reference add_reference]]
+[def __add_lvalue_reference [link boost_typetraits.reference.add_lvalue_reference add_lvalue_reference]]
+[def __add_rvalue_reference [link boost_typetraits.reference.add_rvalue_reference add_rvalue_reference]]
+[def __add_pointer [link boost_typetraits.reference.add_pointer add_pointer]]
+[def __add_const [link boost_typetraits.reference.add_const add_const]]
+[def __add_volatile [link boost_typetraits.reference.add_volatile add_volatile]]
+[def __add_cv [link boost_typetraits.reference.add_cv add_cv]]
+[def __common_type [link boost_typetraits.reference.common_type common_type]]
+[def __conditional [link boost_typetraits.reference.conditional conditional]]
+
+[def __type_with_alignment [link boost_typetraits.reference.type_with_alignment type_with_alignment]]
+[def __aligned_storage [link boost_typetraits.reference.aligned_storage aligned_storage]]
+
+[def __function_traits [link boost_typetraits.reference.function_traits function_traits]]
+
+[def __promote [link boost_typetraits.reference.promote promote]]
+[def __integral_promotion [link boost_typetraits.reference.integral_promotion integral_promotion]]
+[def __floating_point_promotion [link boost_typetraits.reference.floating_point_promotion floating_point_promotion]]
+
+[def __make_signed [link boost_typetraits.reference.make_signed make_signed]]
+[def __make_unsigned [link boost_typetraits.reference.make_unsigned make_unsigned]]
+[def __decay [link boost_typetraits.reference.decay decay]]
+[def __is_complex [link boost_typetraits.reference.is_complex is_complex]]
+
+A printer-friendly [@http://sourceforge.net/projects/boost/files/boost-docs/ 
+ PDF version of this manual is also available].
+
+[section:intro Introduction]
+
+The Boost type-traits library contains a 
+set of very specific traits classes, each of which encapsulate a single trait 
+from the C++ type system; for example, is a type a pointer or a reference type? 
+Or does a type have a trivial constructor, or a const-qualifier?
+ 
+The type-traits classes share a unified design: each class inherits from  
+the type __true_type if the type has the specified property and inherits from
+__false_type otherwise.
+
+The type-traits library also contains a set of classes that perform a 
+specific transformation on a type; for example, they can remove a 
+top-level const or volatile qualifier from a type. Each class that 
+performs a transformation defines a single typedef-member `type` 
+that is the result of the transformation.
+
+[endsect]
+
+[include background.qbk]
+
+[section:category Type Traits by Category]
+
+[include value_traits.qbk]
+[include transform_traits.qbk]
+[include alignment_traits.qbk]
+[include decomposing_func.qbk]
+
+[endsect]
+
+[include user_defined.qbk]
+[include intrinsics.qbk]
+[include mpl.qbk]
+[include examples.qbk]
+
+[section:reference Alphabetical Reference]
+
+[include add_const.qbk]
+[include add_cv.qbk]
+[include add_lvalue_reference.qbk]
+[include add_pointer.qbk]
+[include add_reference.qbk]
+[include add_rvalue_reference.qbk]
+[include add_volatile.qbk]
+[include aligned_storage.qbk]
+[include alignment_of.qbk]
+[include conditional.qbk]
+[include common_type.qbk]
+[include decay.qbk]
+[include extent.qbk]
+[include floating_point_promotion.qbk]
+[include function_traits.qbk]
+
+[include has_bit_and.qbk]
+[include has_bit_and_assign.qbk]
+[include has_bit_or.qbk]
+[include has_bit_or_assign.qbk]
+[include has_bit_xor.qbk]
+[include has_bit_xor_assign.qbk]
+[include has_complement.qbk]
+[include has_dereference.qbk]
+[include has_divides.qbk]
+[include has_divides_assign.qbk]
+[include has_equal_to.qbk]
+[include has_greater.qbk]
+[include has_greater_equal.qbk]
+[include has_left_shift.qbk]
+[include has_left_shift_assign.qbk]
+[include has_less.qbk]
+[include has_less_equal.qbk]
+[include has_logical_and.qbk]
+[include has_logical_not.qbk]
+[include has_logical_or.qbk]
+[include has_minus.qbk]
+[include has_minus_assign.qbk]
+[include has_modulus.qbk]
+[include has_modulus_assign.qbk]
+[include has_multiplies.qbk]
+[include has_multiplies_assign.qbk]
+[include has_negate.qbk]
+[include has_new_operator.qbk]
+[include has_not_equal_to.qbk]
+[include has_nothrow_assign.qbk]
+[include has_nothrow_constructor.qbk]
+[include has_nothrow_copy.qbk]
+[section:has_nothrow_cp_cons has_nothrow_copy_constructor]
+See __has_nothrow_copy.
+[endsect]
+[section:has_no_throw_def_cons has_nothrow_default_constructor]
+See __has_nothrow_constructor.
+[endsect]
+[include has_plus.qbk]
+[include has_plus_assign.qbk]
+[include has_post_decrement.qbk]
+[include has_post_increment.qbk]
+[include has_pre_decrement.qbk]
+[include has_pre_increment.qbk]
+[include has_right_shift.qbk]
+[include has_right_shift_assign.qbk]
+[include has_trivial_assign.qbk]
+[include has_trivial_constructor.qbk]
+[include has_trivial_copy.qbk]
+[section:has_trivial_cp_cons has_trivial_copy_constructor]
+See __has_trivial_copy.
+[endsect]
+[section:has_trivial_def_cons has_trivial_default_constructor]
+See __has_trivial_constructor.
+[endsect]
+[include has_trivial_destructor.qbk]
+[include has_trivial_move_assign.qbk]
+[include has_trivial_move_constructor.qbk]
+[include has_unary_minus.qbk]
+[include has_unary_plus.qbk]
+[include has_virtual_destructor.qbk]
+
+[include integral_constant.qbk]
+[include integral_promotion.qbk]
+
+[include is_abstract.qbk]
+[include is_arithmetic.qbk]
+[include is_array.qbk]
+[include is_base_of.qbk]
+[include is_class.qbk]
+[include is_complex.qbk]
+[include is_compound.qbk]
+[include is_const.qbk]
+[include is_convertible.qbk]
+[include is_copy_constructible.qbk]
+[include is_empty.qbk]
+[include is_enum.qbk]
+[include is_floating_point.qbk]
+[include is_function.qbk]
+[include is_fundamental.qbk]
+[include is_integral.qbk]
+[include is_lvalue_reference.qbk]
+[include is_member_function_pointer.qbk]
+[include is_member_object_pointer.qbk]
+[include is_member_pointer.qbk]
+[include is_nothrow_move_assignable.qbk]
+[include is_nothrow_move_constructible.qbk]
+[include is_object.qbk]
+[include is_pod.qbk]
+[include is_pointer.qbk]
+[include is_polymorphic.qbk]
+[include is_reference.qbk]
+[include is_rvalue_reference.qbk]
+[include is_same.qbk]
+[include is_scalar.qbk]
+[include is_signed.qbk]
+[include is_stateless.qbk]
+[include is_union.qbk]
+[include is_unsigned.qbk]
+[include is_virtual_base_of.qbk]
+[include is_void.qbk]
+[include is_volatile.qbk]
+
+[include make_signed.qbk]
+[include make_unsigned.qbk]
+
+[include promote.qbk]
+[include rank.qbk]
+
+[include remove_all_extents.qbk]
+[include remove_const.qbk]
+[include remove_cv.qbk]
+[include remove_extent.qbk]
+[include remove_pointer.qbk]
+[include remove_reference.qbk]
+[include remove_volatile.qbk]
+[include type_with_alignment.qbk]
+
+[endsect]
+
+[include history.qbk]
+[include credits.qbk]
+
+[named_index class_name Class Index]
+[named_index typedef_name Typedef Index]
+[named_index macro_name Macro Index]
+[index]
+
+
+

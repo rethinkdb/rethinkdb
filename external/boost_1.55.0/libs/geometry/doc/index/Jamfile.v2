@@ -1,0 +1,32 @@
+# Boost.Geometry Index
+#
+# Copyright (c) 2011-2012 Adam Wulkiewicz.
+#
+# Use, modification and distribution is subject to the Boost Software License,
+# Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+project geometry_index/doc ;
+
+import boostbook ;
+import quickbook ;
+
+boostbook geometry_index-doc
+    :
+	index.qbk
+	:
+    <dependency>Jamfile.v2
+    <dependency>generated/rtree.qbk
+	
+    <format>html
+	<format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/doc/html
+    <xsl:param>chunk.section.depth=2
+    <xsl:param>chunk.first.sections=1
+    <xsl:param>toc.section.depth=3
+    <xsl:param>toc.max.depth=2
+    <xsl:param>generate.section.toc.level=2
+    <xsl:param>boost.root=http://www.boost.org/doc/libs/release
+    
+    <quickbook-define>enable_index
+    <include>$(here)
+    ;

@@ -1,0 +1,272 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2006 Dan Marsden
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section Tuple]
+
+The TR1 technical report describes extensions to the C++ standard library.
+Many of these extensions will be considered for the next
+iteration of the C++ standard. TR1 describes a tuple type, and
+support for treating `std::pair` as a type of tuple.
+
+Fusion provides full support for the __tr1__tuple__ interface, and the extended
+uses of `std::pair` described in the TR1 document.
+
+[section Class template tuple]
+Fusion's implementation of the __tr1__tuple__ is also a fusion __forward_sequence__.
+As such the fusion tuple type provides a lot of functionality beyond that required by TR1.
+
+Currently tuple is basically a synonym for __vector__, although this may be changed
+in future releases of fusion.
+
+[heading Synopsis]
+    template<
+        typename T1 = __unspecified__,
+        typename T2 = __unspecified__,
+        ...
+        typename TN = __unspecified__>
+    class tuple;
+
+/tuple.hpp>
+
+[section Construction]
+
+[heading Description]
+The __tr1__tuple__ type provides a default constructor, a constructor that takes initializers for all of its elements, a copy constructor, and a converting copy constructor. The details of the various constructors are described in this section.
+
+[heading Specification]
+
+[variablelist Notation
+    [[`T1 ... TN`, `U1 ... UN`][Tuple element types]]
+    [[`P1 ... PN`]             [Parameter types]]
+    [[`Ti`, `Ui`]              [The type of the `i`th element of a tuple]]
+    [[`Pi`]                    [The type of the `i`th parameter]]
+]
+
+    tuple();
+
+[*Requirements]: Each `Ti` is default constructable.
+
+[*Semantics]: Default initializes each element of the tuple.
+
+    tuple(P1,P2,...,PN);
+
+[*Requirements]: Each `Pi` is `Ti` if `Ti` is a reference type, `const Ti&` otherwise.
+
+[*Semantics]: Copy initializes each element with the corresponding parameter.
+
+    tuple(const tuple& t);
+
+[*Requirements]: Each `Ti` should be copy constructable.
+
+[*Semantics]: Copy constructs each element of `*this` with the corresponding element of `t`.
+
+    template<typename U1, typename U2, ..., typename UN>
+    tuple(const tuple<U1, U2, ..., UN>& t);
+
+[*Requirements]: Each `Ti` shall be constructible from the corresponding `Ui`.
+
+[*Semantics]: Constructs each element of `*this` with the corresponding element of `t`.
+
+[endsect]
+
+[section Tuple creation functions]
+
+[heading Description]
+TR1 describes 2 utility functions for creating __tr1__tuple__s. `make_tuple` builds a tuple out of it's argument list, and `tie` builds a tuple of references to it's arguments. The details of these creation functions are described in this section.
+
+[heading Specification]
+
+    template<typename T1, typename T2, ..., typename TN>
+    tuple<V1, V2, ..., VN> make_tuple(const T1& t1, const T2& t2, ..., const TN& tn);
+
+Where `Vi` is `X&` if the cv-unqualified type `Ti` is `reference_wrapper<X>`, otherwise `Vi` is `Ti`.
+
+[*Returns]: `tuple<V1, V2, ..., VN>(t1, t2, ..., tN)`
+
+    template<typename T1, typename T2, ..., typename TN>
+    tuple<T1&, T2&, ..., TN&> tie(T1& t1, T2& t2, ..., TN& tn);
+
+[*Returns]: tuple<T1&, T2&, ..., TN&>(t1, t2, ..., tN). When argument `ti` is `ignore`, assigning any value to the corresponding tuple element has no effect.
+
+[endsect]
+
+[section Tuple helper classes]
+
+[heading Description]
+The __tr1__tuple__ provides 2 helper traits, for compile time access to the tuple size, and the element types.
+
+[heading Specification]
+
+    tuple_size<T>::value
+
+[*Requires]: `T` is any fusion sequence type, including `tuple`.
+
+[*Type]: __mpl_integral_constant__
+
+[*Value]: The number of elements in the sequence. Equivalent to `__result_of_size__<T>::type`.
+
+    tuple_element<I, T>::type
+
+[*Requires]: `T` is any fusion sequence type, including `tuple`. `0 <= I < N` or the program is ill formed.
+
+[*Value]: The type of the `I`th element of `T`. Equivalent to `__result_of_value_at__<I,T>::type`.
+
+[endsect]
+
+[section Element access]
+
+[heading Description]
+The __tr1__tuple__ provides the `get` function to provide access to it's elements by zero based numeric index.
+
+[heading Specification]
+    template<int I, T>
+    RJ get(T& t);
+
+[*Requires]: `0 < I <= N`. The program is ill formed if `I` is out of bounds.
+`T` is any fusion sequence type, including `tuple`.
+
+[*Return type]: `RJ` is equivalent to `__result_of_at_c__<I,T>::type`.
+
+[*Returns]: A reference to the `I`th element of `T`.
+
+    template<int I, typename T>
+    PJ get(T const& t);
+
+[*Requires]: `0 < I <= N`. The program is ill formed if `I` is out of bounds.
+`T` is any fusion sequence type, including `tuple`.
+
+[*Return type]: `PJ` is equivalent to `__result_of_at_c__<I,T>::type`.
+
+[*Returns]: A const reference to the `I`th element of `T`.
+
+[endsect]
+
+[section Relational operators]
+
+[heading Description]
+The __tr1__tuple__ provides the standard boolean relational operators.
+
+[heading Specification]
+
+[variablelist Notation
+    [[`T1 ... TN`, `U1 ... UN`][Tuple element types]]
+    [[`P1 ... PN`]             [Parameter types]]
+    [[`Ti`, `Ui`]              [The type of the `i`th element of a tuple]]
+    [[`Pi`]                    [The type of the `i`th parameter]]
+]
+
+    template<typename T1, typename T2, ..., typename TN,
+             typename U1, typename U2, ..., typename UN>
+    bool operator==(
+        const tuple<T1, T2, ..., TN>& lhs,
+        const tuple<U1, U2, ..., UN>& rhs);
+
+[*Requirements]: For all `i`, `1 <= i < N`, `__tuple_get__<i>(lhs) == __tuple_get__<i>(rhs)` is a valid
+expression returning a type that is convertible to `bool`.
+
+[*Semantics]: Returns `true` if and only if `__tuple_get__<i>(lhs) == __tuple_get__<i>(rhs)` for all `i`.
+For any 2 zero length tuples `e` and `f`, `e == f` returns `true`.
+
+    template<typename T1, typename T2, ..., typename TN,
+             typename U1, typename U2, ..., typename UN>
+    bool operator<(
+        const tuple<T1, T2, ..., TN>& lhs,
+        const tuple<U1, U2, ..., UN>& rhs);
+
+[*Requirements]: For all `i`, `1 <= i < N`, `__tuple_get__<i>(lhs) < __tuple_get__<i>(rhs)` is a valid
+expression returning a type that is convertible to `bool`.
+
+[*Semantics]: Returns the lexicographical comparison of between `lhs` and `rhs`.
+
+    template<typename T1, typename T2, ..., typename TN,
+             typename U1, typename U2, ..., typename UN>
+    bool operator!=(
+        const tuple<T1, T2, ..., TN>& lhs,
+        const tuple<U1, U2, ..., UN>& rhs);
+
+[*Requirements]: For all `i`, `1 <= i < N`, `__tuple_get__<i>(lhs) == __tuple_get__<i>(rhs)` is a valid
+expression returning a type that is convertible to `bool`.
+
+[*Semantics]: Returns `!(lhs == rhs)`.
+
+    template<typename T1, typename T2, ..., typename TN,
+             typename U1, typename U2, ..., typename UN>
+    bool operator<=(
+        const tuple<T1, T2, ..., TN>& lhs,
+        const tuple<U1, U2, ..., UN>& rhs);
+
+[*Requirements]: For all `i`, `1 <= i < N`, `__tuple_get__<i>(rhs) < __tuple_get__<i>(lhs)` is a valid
+expression returning a type that is convertible to `bool`.
+
+[*Semantics]: Returns `!(rhs < lhs)`
+
+    template<typename T1, typename T2, ..., typename TN,
+             typename U1, typename U2, ..., typename UN>
+    bool operator>(
+        const tuple<T1, T2, ..., TN>& lhs,
+        const tuple<U1, U2, ..., UN>& rhs);
+
+[*Requirements]: For all `i`, `1 <= i < N`, `__tuple_get__<i>(rhs) < __tuple_get__<i>(lhs)` is a valid
+expression returning a type that is convertible to `bool`.
+
+[*Semantics]: Returns `rhs < lhs`.
+
+    template<typename T1, typename T2, ..., typename TN,
+             typename U1, typename U2, ..., typename UN>
+    bool operator>=(
+        const tuple<T1, T2, ..., TN>& lhs,
+        const tuple<U1, U2, ..., UN>& rhs);
+
+[*Requirements]: For all `i`, `1 <= i < N`, `__tuple_get__<i>(lhs) < __tuple_get__<i>(rhs)` is a valid
+expression returning a type that is convertible to `bool`.
+
+[*Semantics]: Returns `!(lhs < rhs)`.
+
+[endsect]
+
+[endsect]
+
+[section Pairs]
+
+[heading Description]
+The __tr1__tuple__ interface is specified to provide uniform access to `std::pair` as if it were a 2 element tuple.
+
+[heading Specification]
+
+    tuple_size<std::pair<T1, T2> >::value
+
+[*Type]: An __mpl_integral_constant__
+
+[*Value]: Returns 2, the number of elements in a pair.
+
+    tuple_element<0, std::pair<T1, T2> >::type
+
+[*Type]: `T1`
+
+[*Value]: Returns the type of the first element of the pair
+
+    tuple_element<1, std::pair<T1, T2> >::type
+
+[*Type]: `T2`
+
+[*Value]: Returns the type of the second element of the pair
+
+    template<int I, typename T1, typename T2>
+    P& get(std::pair<T1, T2>& pr);
+
+    template<int I, typename T1, typename T2>
+    const P& get(const std::pair<T1, T2>& pr);
+
+[*Type]: If `I == 0` `P` is `T1`, else if `I == 1` `P` is `T2` else the program is ill-formed.
+
+[*Returns: `pr.first` if `I == 0` else `pr.second`.
+
+[endsect]
+
+[endsect]
+

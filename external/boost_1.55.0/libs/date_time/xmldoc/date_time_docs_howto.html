@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+  <title>Date Time Documentation Howto</title>
+  <meta name="GENERATOR" content="Quanta Plus">
+  <style type="text/css">
+    .copyright      { color: #666666; font-size: small; }
+    .screen {
+      background: #EEF6FF;
+      font-family: monospace; 
+      display: block;
+      margin-left:  4%;
+      margin-right: 4%;
+      padding: 0.5pc 0.5pc 0.5pc 0.5pc;
+    }
+    .fname { font-family: monospace; }
+  </style>
+</head>
+<body>
+  <h2>Date Time Documentation Howto</h2>
+  <h3>Instructions for:</h3>
+  <ol>
+    <li><A href="#exclusive_html">Building Exclusive Date Time HTML Documentation</A></li>
+    <li><A href="#exclusive_pdf">Building Exclusive Date Time PDF</A></li>
+    <li><A href="#doxy_ref">Generating Date Time Doxygen Reference</A></li>
+    <li><A href="#xsl_mods">Making further changes to the date_time_fo_stylesheet</A></li>
+  </ol>
+  <hr>
+  <A name="exclusive_html"><h3>Building Exclusive Date Time HTML Documentation</h3></A>
+  <p>No modifications are necessary to build an exclusive set of date time html documentation. Simply run bjam:<br>
+  <div class="screen">bjam --v2 date_time_doc</div><br>
+  The resulting html can be found in <font class="fname">xmldoc/html</font>. NOTE: the stylesheet may not be present. It can be copied from the <font class="fname">$BOOST_ROOT/doc/html</font> directory.</p>
+  <hr>
+  <a name="exclusive_pdf"><h3>Building Exclusive Date Time PDF</h3></a>
+  <p><strong>Prerequisite:</strong> bjam must be able to build documentation for 'fo' output (necessary aditions must have been added to <font class="fname">user-config.jam</font>).</p>
+
+  <p>Necessary modifications to build the date time pdf are:
+  <ol>
+    <li>Add the new stylesheet to <font class="fname">boostbook.jam</font>.<div class="screen">
+    <pre>
+rule docbook-to-fo ( target : source : properties * )
+{
+  #local native-path = [ path.native $(.boostbook-xsl-dir) ] ;
+  #local stylesheet = $(native-path:B=fo:S=.xsl) ;
+  local boost-root =  [ modules.peek : BOOST_ROOT ];
+  local stylesheet = "$(boost-root)/libs/date_time/xmldoc/date_time_fo_stylesheet.xsl" ;
+  xslt $(target) : $(source) $(stylesheet) : $(properties) ;
+}</pre></div></li>
+    <li>Build <font class="fname">exclusive_date_time.fo</font>.
+    <div class="screen">bjam --v2 date_time_doc fo</div></li>
+    <li>Build the pdf.<div class="screen">fop ../../../bin.v2/libs/date_time/.../exclusive_date_time.fo date_time.pdf</div></li>
+  </ol>
+  </p>
+					<p><strong>BUILD ERRORS:</strong> During the fo->pdf step, an error stating that an id already exists may appear. This error appears to be introduced during the xml->fo step. There are two possible workarounds for this (depending on where the duplicated id apears). If the duplicate id appears in the reference section, find the offending id and change it manually (ex: "id2534038" -> "id2534039"). If the id appears in the documentation generated from the xml, change one of the anchor names in one of the xml files. <strong>Note:</strong> This does not mean there is an error in the xml. The anchor and link that is known to have an effect is <font class="fname">date_input_facet_intro</font> (change the 'd' to a 'f', or back, should do the trick).</p>
+  <hr>
+  <a name="doxy_ref"><h3>Generating Date Time Doxygen Reference</h3></a>
+  <p>Each doxygen reference file must be built, copied, and modified seperately. The steps to build all four <font class="fname">*.boostbook</font> reference files are:
+  <ol>
+    <li>Generate the <font class="fname">*.boostbook</font> files.</li>
+    <li>Copy the <font class="fname">*.boostbook</font> files to the xmldoc directory.</li>
+    <li>Fix the section tags and add copyright statement.</li>
+    </ol>
+    <div class="screen"><pre>
+bjam --v2 date_time_autodoc  \
+          gregorian_autodoc  \
+          posix_time_autodoc \
+          local_time_autodoc
+cp ../../../bin.v2/libs/.../*.boostbook .
+./ref_tag_fix.pl</pre></div>
+    </p>
+    <hr>
+    <a name="xsl_mods"><h3>Making further changes to the date_time_fo_stylesheet</h3></a>
+    <p>The stylesheet currently sets the left, right, and bottom margins. It also reduces the font-size for table cells that have the &#060;screen&#062; tags in them. The font-size reduction is accomplished by breaking the entire string (between the &#060;screen&#062; tags) into segments delimited by '\n'. Each of these segment's lengths are checked and the longest segment is used in calculating the amount of font-size reduction.</p>
+    <p>There are two variables used in adjusting the font-size: <font class="fname">char-per-cell</font> &#038; <font class="fname">min-reduction</font>. These hold the number of characters that can fit into a cell and the minimum percentage of reduction allowed (expressed as an integer).</p>
+    <p>Determining the number of characters that will fit into a cell is not the most gracefull of operations. Simply put, the minimum reduction must be set to 100 (no reduction allowed) and the pdf must be built. From there the number of characters that will fit must be manually counted.</p>
+    <hr>
+    <div><p class="copyright">Copyright &#169; 2001-2005 CrystalClear Software, Inc</p></div>
+    <div class="legalnotice">
+      <p>Subject to the Boost Software License, Version 1.0. <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</ahref="http://www.boost.org/LICENSE_1_0.txt"></p></div>
+  </body>
+</html>

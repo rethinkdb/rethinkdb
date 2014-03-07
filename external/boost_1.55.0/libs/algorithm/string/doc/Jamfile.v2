@@ -1,0 +1,59 @@
+#  Boost string_algo library documentation Jamfile  ---------------------------------
+#
+#  Copyright Pavol Droba 2002-2003. Use, modification and
+#  distribution is subject to the Boost Software License, Version
+#  1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#  http://www.boost.org/LICENSE_1_0.txt)
+#
+#  See http://www.boost.org for updates, documentation, and revision history.
+
+import toolset ;
+toolset.using doxygen ;
+
+boostbook string_algo : string_algo.xml autodoc 
+	:
+        <xsl:param>boost.root=../../../../..
+        <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/doc/html
+	;
+
+doxygen autodoc
+    :   
+    [ glob ../../../../boost/algorithm/string.hpp ]
+    [ glob ../../../../boost/algorithm/string_regex.hpp ]
+
+    [ glob ../../../../boost/algorithm/string/classification.hpp ]
+    [ glob ../../../../boost/algorithm/string/iterator_range.hpp ]       
+    [ glob ../../../../boost/algorithm/string/sequence_traits.hpp ]
+    [ glob ../../../../boost/algorithm/string/std_containers_traits.hpp ]
+    [ glob ../../../../boost/algorithm/string/concept.hpp ]
+    [ glob ../../../../boost/algorithm/string/compare.hpp ]
+    [ glob ../../../../boost/algorithm/string/constants.hpp ]
+    [ glob ../../../../boost/algorithm/string/case_conv.hpp ]
+    [ glob ../../../../boost/algorithm/string/find.hpp ]
+    [ glob ../../../../boost/algorithm/string/finder.hpp ]
+    [ glob ../../../../boost/algorithm/string/find_iterator.hpp ]
+    [ glob ../../../../boost/algorithm/string/trim.hpp ]
+    [ glob ../../../../boost/algorithm/string/predicate.hpp ]
+    [ glob ../../../../boost/algorithm/string/split.hpp ]
+    [ glob ../../../../boost/algorithm/string/iter_find.hpp ]
+    [ glob ../../../../boost/algorithm/string/erase.hpp ]
+    [ glob ../../../../boost/algorithm/string/join.hpp ]
+    [ glob ../../../../boost/algorithm/string/replace.hpp ]
+    [ glob ../../../../boost/algorithm/string/find_format.hpp ]
+    [ glob ../../../../boost/algorithm/string/formatter.hpp ]
+    [ glob ../../../../boost/algorithm/string/regex.hpp ]
+    [ glob ../../../../boost/algorithm/string/regex_find_format.hpp ]
+    [ glob ../../../../boost/algorithm/string/trim_all.hpp ]
+    :
+    <doxygen:param>HIDE_UNDOC_MEMBERS=YES
+    <doxygen:param>EXTRACT_PRIVATE=NO
+    <doxygen:param>ENABLE_PREPROCESSING=YES
+    <doxygen:param>MACRO_EXPANSION=YES
+    <doxygen:param>EXPAND_ONLY_PREDEF=YES
+    <doxygen:param>SEARCH_INCLUDES=YES
+    <doxygen:param>PREDEFINED="BOOST_STRING_TYPENAME=typename \"BOOST_STATIC_CONSTANT(type,var)=static const type var;\""
+    ;
+        
+
+
+

@@ -1,0 +1,84 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class xsi_key</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../interprocess/indexes_reference.html#header.boost.interprocess.xsi_key_hpp" title="Header &lt;boost/interprocess/xsi_key.hpp&gt;">
+<link rel="prev" href="windows_shared_memory.html" title="Class windows_shared_memory">
+<link rel="next" href="xsi_shared_memory.html" title="Class xsi_shared_memory">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="windows_shared_memory.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.xsi_key_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="xsi_shared_memory.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.interprocess.xsi_key"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class xsi_key</span></h2>
+<p>boost::interprocess::xsi_key</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../interprocess/indexes_reference.html#header.boost.interprocess.xsi_key_hpp" title="Header &lt;boost/interprocess/xsi_key.hpp&gt;">boost/interprocess/xsi_key.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="xsi_key.html" title="Class xsi_key">xsi_key</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="xsi_key.html#boost.interprocess.xsi_keyconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="xsi_key.html#idp28774312-bb"><span class="identifier">xsi_key</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="xsi_key.html#idp28774984-bb"><span class="identifier">xsi_key</span></a><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uint8_t</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="xsi_key.html#idp28773464-bb">public member functions</a></span>
+  <span class="identifier">key_t</span> <a class="link" href="xsi_key.html#idp28773672-bb"><span class="identifier">get_key</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp119573240"></a><h2>Description</h2>
+<p>A class that wraps XSI (System V) key_t type. This type calculates key_t from path and id using ftok or sets key to IPC_PRIVATE using the default constructor. </p>
+<div class="refsect2">
+<a name="idp119573736"></a><h3>
+<a name="boost.interprocess.xsi_keyconstruct-copy-destruct"></a><code class="computeroutput">xsi_key</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp28774312-bb"></a><span class="identifier">xsi_key</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Default constructor. Represents a private <code class="computeroutput"><a class="link" href="xsi_key.html" title="Class xsi_key">xsi_key</a></code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28774984-bb"></a><span class="identifier">xsi_key</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> path<span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">uint8_t</span> id<span class="special">)</span><span class="special">;</span></pre>
+<p>Creates a new XSI shared memory with a key obtained from a call to ftok (with path "path" and id "id"), of size "size" and permissions "perm". If the shared memory previously exists, throws an error. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp119581784"></a><h3>
+<a name="idp28773464-bb"></a><code class="computeroutput">xsi_key</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="identifier">key_t</span> <a name="idp28773672-bb"></a><span class="identifier">get_key</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>Returns the internal key_t value. </li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="windows_shared_memory.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.xsi_key_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="xsi_shared_memory.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

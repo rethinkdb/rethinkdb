@@ -1,0 +1,93 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/kw.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/kw.xml
+ */
+kw{
+    ExemplarCharacters{"[a b c d e f g h i j k l m n o p q r s t u v w x y z]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤#,##0.00"}
+            }
+        }
+    }
+    Version{"2.0.47.67"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "a.m.",
+                "p.m.",
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "Sul",
+                        "Lun",
+                        "Mth",
+                        "Mhr",
+                        "Yow",
+                        "Gwe",
+                        "Sad",
+                    }
+                    wide{
+                        "De Sul",
+                        "De Lun",
+                        "De Merth",
+                        "De Merher",
+                        "De Yow",
+                        "De Gwener",
+                        "De Sadorn",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "RC",
+                    "AD",
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "Gen",
+                        "Whe",
+                        "Mer",
+                        "Ebr",
+                        "Me",
+                        "Efn",
+                        "Gor",
+                        "Est",
+                        "Gwn",
+                        "Hed",
+                        "Du",
+                        "Kev",
+                    }
+                    wide{
+                        "Mys Genver",
+                        "Mys Whevrel",
+                        "Mys Merth",
+                        "Mys Ebrel",
+                        "Mys Me",
+                        "Mys Efan",
+                        "Mys Gortheren",
+                        "Mye Est",
+                        "Mys Gwyngala",
+                        "Mys Hedra",
+                        "Mys Du",
+                        "Mys Kevardhu",
+                    }
+                }
+            }
+        }
+    }
+}

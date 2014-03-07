@@ -1,0 +1,359 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Configuring and building the library</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../installation.html" title="Installation and compatibility">
+<link rel="prev" href="../installation.html" title="Installation and compatibility">
+<link rel="next" href="../defs.html" title="Definitions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../installation.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../installation.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../defs.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.installation.config"></a><a class="link" href="config.html" title="Configuring and building the library">Configuring and building the
+      library</a>
+</h3></div></div></div>
+<p>
+        The library has a separately compiled part which should be built as described
+        in the <a href="http://www.boost.org/doc/libs/release/more/getting_started/" target="_top">Getting
+        Started guide</a>. One thing should be noted, though. If your application
+        consists of more than one module (e.g. an exe and one or several dll's) that
+        use Boost.Log, the library <span class="underline">must</span> be
+        built as a shared object. If you have a single executable or a single module
+        that works with Boost.Log, you may build the library as a static library.
+      </p>
+<p>
+        The library supports a number of configuration macros:
+      </p>
+<div class="table">
+<a name="log.installation.config.configuration_macros"></a><p class="title"><b>Table&#160;1.1.&#160;Configuration macros</b></p>
+<div class="table-contents"><table class="table" summary="Configuration macros">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Macro name
+                </p>
+              </th>
+<th>
+                <p>
+                  Effect
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_LOG_DYN_LINK</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  If defined in user code, the library will assume the binary is
+                  built as a dynamically loaded library ("dll" or "so").
+                  Otherwise it is assumed that the library is built in static mode.
+                  This macro must be either defined or not defined for all translation
+                  units of user application that uses logging. This macro can help
+                  with auto-linking on platforms that support it.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_ALL_DYN_LINK</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Same as <code class="computeroutput"><span class="identifier">BOOST_LOG_DYN_LINK</span></code>
+                  but also affects other Boost libraries the same way.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_LOG_NO_THREADS</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  If defined, disables multithreading support. Affects the compilation
+                  of both the library and users' code. The macro is automatically
+                  defined if no threading support is detected.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_LOG_WITHOUT_CHAR</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  If defined, disables support for narrow character logging. Affects
+                  the compilation of both the library and users' code.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_LOG_WITHOUT_WCHAR_T</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  If defined, disables support for wide character logging. Affects
+                  the compilation of both the library and users' code.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_LOG_NO_QUERY_PERFORMANCE_COUNTER</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  This macro is only useful on Windows. It affects the compilation
+                  of both the library and users' code. If defined, disables support
+                  for the <code class="computeroutput"><span class="identifier">QueryPerformanceCounter</span></code>
+                  API in the <code class="computeroutput"><span class="identifier">timer</span></code>
+                  attribute. This will result in significantly less accurate time
+                  readings. The macro is intended to solve possible problems with
+                  earlier revisions of AMD Athlon CPU, described <a href="http://support.microsoft.com/?scid=kb;en-us;895980" target="_top">here</a>
+                  and <a href="http://support.microsoft.com/?id=896256" target="_top">here</a>.
+                  There are also known chipset hardware failures that may prevent
+                  this API from functioning properly (see <a href="http://support.microsoft.com/kb/274323" target="_top">here</a>).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_LOG_USE_NATIVE_SYSLOG</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Affects only the compilation of the library. If for some reason
+                  support for the native SysLog API is not detected automatically,
+                  define this macro to forcibly enable it
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_LOG_WITHOUT_DEFAULT_FACTORIES</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Affects only the compilation of the library. If defined, the parsers
+                  for settings will be built without any default factories for filters
+                  and formatters. The user will have to register all attributes in
+                  the library before parsing any filters or formatters from strings.
+                  This can substantially reduce the binary size.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_LOG_WITHOUT_SETTINGS_PARSERS</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Affects only the compilation of the library. If defined, none of
+                  the facilities related to the parsers for settings will be built.
+                  This can substantially reduce the binary size.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_LOG_WITHOUT_DEBUG_OUTPUT</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Affects only the compilation of the library. If defined, the support
+                  for debugger output on Windows will not be built.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_LOG_WITHOUT_EVENT_LOG</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Affects only the compilation of the library. If defined, the support
+                  for Windows event log will not be built. Defining the macro also
+                  makes Message Compiler toolset unnecessary.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_LOG_WITHOUT_SYSLOG</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Affects only the compilation of the library. If defined, the support
+                  for syslog backend will not be built.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_LOG_NO_SHORTHAND_NAMES</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Affects only the compilation of users' code. If defined, some deprecated
+                  shorthand macro names will not be available.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_LOG_USE_WINNT6_API</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Affects the compilation of both the library and users' code. This
+                  macro is Windows-specific. If defined, the library makes use of
+                  the Windows NT 6 (Vista, Server 2008) and later APIs to generate
+                  more efficient code. This macro will also enable some experimental
+                  features of the library. Note, however, that the resulting binary
+                  will not run on Windows prior to NT 6. In order to use this feature
+                  Platform SDK 6.0 or later is required.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">BOOST_LOG_USE_COMPILER_TLS</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Affects only the compilation of the library. This macro enables
+                  support for compiler intrinsics for thread-local storage. Defining
+                  it may improve performance of Boost.Log if certain usage limitations
+                  are acceptable. See below for more comments.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        You can define configuration macros in the <code class="computeroutput"><span class="identifier">bjam</span></code>
+        command line, like this:
+      </p>
+<pre class="programlisting">bjam --with-log variant=release define=BOOST_LOG_WITHOUT_EVENT_LOG define=BOOST_LOG_USE_WINNT6_API stage
+</pre>
+<p>
+        However, it may be more convenient to define configuration macros in the
+        "boost/config/user.hpp" file in order to automatically define them
+        both for the library and user's projects. If none of the options are specified,
+        the library will try to support the most comprehensive setup, including support
+        for all character types and features available for the target platform.
+      </p>
+<p>
+        The logging library uses several other Boost libraries that require building
+        too. These are <a href="http://www.boost.org/doc/libs/release/libs/filesystem/doc/index.htm" target="_top">Boost.Filesystem</a>,
+        <a href="http://www.boost.org/doc/libs/release/libs/system/doc/index.html" target="_top">Boost.System</a>,
+        <a href="http://www.boost.org/doc/libs/release/doc/html/date_time.html" target="_top">Boost.DateTime</a>
+        and <a href="http://www.boost.org/doc/libs/release/doc/html/thread.html" target="_top">Boost.Thread</a>.
+        Refer to their documentation for detailed instructions on the building procedure.
+      </p>
+<p>
+        One final thing should be added. The library requires run-time type information
+        (RTTI) to be enabled for both the library compilation and user's code compilation.
+        Normally, this won't need anything from you except to verify that RTTI support
+        is not disabled in your project.
+      </p>
+<h5>
+<a name="log.installation.config.h0"></a>
+        <span class="phrase"><a name="log.installation.config.notes_about_compiler_supplied_intrinsics_for_tls"></a></span><a class="link" href="config.html#log.installation.config.notes_about_compiler_supplied_intrinsics_for_tls">Notes
+        about compiler-supplied intrinsics for TLS</a>
+      </h5>
+<p>
+        Many widely used compilers support builtin intrinsics for managing thread-local
+        storage, which is used in several parts of the library. This feature is also
+        included in the C++11 standard. Generally, these intrinsics allow for a much
+        more efficient access to the storage than any surrogate implementation, be
+        that <a href="http://www.boost.org/doc/libs/release/doc/html/thread.html" target="_top">Boost.Thread</a>
+        or even native operating system API. However, this feature has several caveats:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Some operating systems don't support the use of these intrinsics in case
+            if the TLS is defined in a shared library that is dynamically loaded
+            during the application run time. These systems include Linux and Windows
+            prior to Vista. Windows Vista and later do not have this issue.
+          </li>
+<li class="listitem">
+            The TLS may not be reliably accessed from global constructors and destructors.
+            At least MSVC 8.0 on Windows is known to have this problem.
+          </li>
+</ul></div>
+<p>
+        The library provides the <code class="computeroutput"><span class="identifier">BOOST_LOG_USE_COMPILER_TLS</span></code>
+        configuration macro that allows to enable the use of this feature, which
+        will improve the library performance at the cost of these limitations:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The application executable must be linked with the Boost.Log library.
+            It should not be loaded dynamically during run time.
+          </li>
+<li class="listitem">
+            The application must not use logging in global constructors or destructors.
+          </li>
+</ul></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../installation.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../installation.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../defs.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

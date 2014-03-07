@@ -1,0 +1,70 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+
+[/
+Steppers supporting __boost_range:
+
+* adams_bashforth_moulton
+* bulirsch_stoer_dense_out
+* bulirsch_stoer
+* controlled_runge_kutta
+* dense_output_runge_kutta
+* euler
+* explicit_error_generic_rk
+* explicit_generic_rk
+* rosenbrock4_controller
+* rosenbrock4_dense_output
+* rosenbrock4
+* runge_kutta4_classic
+* runge_kutta4
+* runge_kutta_cash_karp54_classic
+* runge_kutta_cash_karp54
+* runge_kutta_dopri5
+* runge_kutta_fehlberg78
+* symplectic_euler
+* symplectic_rkn_sb3a_mclachlan
+
+Algebras supporting __boost_range
+
+* range_algebra
+* thrust_algebra
+/]
+
+[table Steppers supporting Boost.Range
+  [[Stepper]]
+  [[adams_bashforth_moulton]]
+  [[bulirsch_stoer_dense_out]]
+  [[bulirsch_stoer]]
+  [[controlled_runge_kutta]]
+  [[dense_output_runge_kutta]]
+  [[euler]]
+  [[explicit_error_generic_rk]]
+  [[explicit_generic_rk]]
+  [[rosenbrock4_controller]]
+  [[rosenbrock4_dense_output]]
+  [[rosenbrock4]]
+  [[runge_kutta4_classic]]
+  [[runge_kutta4]]
+  [[runge_kutta_cash_karp54_classic]]
+  [[runge_kutta_cash_karp54]]
+  [[runge_kutta_dopri5]]
+  [[runge_kutta_fehlberg78]]
+  [[symplectic_euler]]
+  [[symplectic_rkn_sb3a_mclachlan]]
+]
+
+[table Algebras supporting Boost.Range
+  [[algebra]]
+  [[range_algebra]]
+  [[thrust_algebra]]
+]

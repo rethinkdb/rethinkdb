@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: vector</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./classes.html" class="navigation-link">Prev</a>&nbsp;<a href="./list.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./list.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./classes.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./sequences.html" class="navigation-link">Sequences</a> / <a href="./classes.html" class="navigation-link">Classes</a> / <a href="./vector.html" class="navigation-link">vector</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="vector">
+<h1><a class="toc-backref" href="./classes.html#id1406">vector</a></h1>
+<div class="section" id="id51">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p><tt class="literal"><span class="pre"><a href="./vector.html" class="identifier">vector</a></span></tt> is a <a class="reference internal" href="./variadic-sequence.html">variadic</a>, <a class="reference internal" href="./random-access-sequence.html">random access</a>, <a class="reference internal" href="./extensible-sequence.html">extensible</a> sequence of types that
+supports constant-time insertion and removal of elements at both ends, and
+linear-time insertion and removal of elements in the middle. On compilers that
+support the <tt class="literal"><span class="pre">typeof</span></tt> extension, <tt class="literal"><span class="pre"><a href="./vector.html" class="identifier">vector</a></span></tt> is the simplest and in many cases the
+most efficient sequence.</p>
+</div>
+<div class="section" id="header">
+<h3>Header</h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="26%" />
+<col width="74%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Sequence form</th>
+<th class="head">Header</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Variadic</td>
+<td><tt class="literal"><span class="pre">#include &lt;<a href="../../../../boost/mpl/vector.hpp" class="header">boost/mpl/vector.hpp</a>&gt;</span></tt></td>
+</tr>
+<tr><td>Numbered</td>
+<td><tt class="literal"><span class="pre">#include &lt;boost/mpl/vector/vector</span></tt><em>n</em><tt class="literal"><span class="pre">.hpp&gt;</span></tt></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="model-of">
+<h3>Model of</h3>
+<ul class="simple">
+<li><a class="reference internal" href="./variadic-sequence.html">Variadic Sequence</a></li>
+<li><a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a></li>
+<li><a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a></li>
+<li><a class="reference internal" href="./back-extensible-sequence.html">Back Extensible Sequence</a></li>
+<li><a class="reference internal" href="./front-extensible-sequence.html">Front Extensible Sequence</a></li>
+</ul>
+</div>
+<div class="section" id="id54">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>In the following table, <tt class="literal"><span class="pre">v</span></tt> is an instance of <tt class="literal"><span class="pre"><a href="./vector.html" class="identifier">vector</a></span></tt>, <tt class="literal"><span class="pre">pos</span></tt> and <tt class="literal"><span class="pre">last</span></tt> are iterators
+into <tt class="literal"><span class="pre">v</span></tt>, <tt class="literal"><span class="pre">r</span></tt> is a <a class="reference internal" href="./forward-sequence.html">Forward Sequence</a>, <tt class="literal"><span class="pre">n</span></tt> is an <a class="reference internal" href="./integral-constant.html">Integral Constant</a>, and <tt class="literal"><span class="pre">x</span></tt> and
+<em>t</em><sub>1</sub>,<em>t</em><sub>2</sub>,... <em>t</em><sub>n</sub> are arbitrary types.</p>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="40%" />
+<col width="60%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Expression</th>
+<th class="head">Semantics</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><pre class="first last literal-block">
+<a href="./vector.html" class="identifier">vector</a>&lt;<em>t</em><sub>1</sub>,<em>t</em><sub>2</sub>,... <em>t</em><sub>n</sub>&gt;
+<a href="./vector.html" class="identifier">vector</a><em>n</em>&lt;<em>t</em><sub>1</sub>,<em>t</em><sub>2</sub>,... <em>t</em><sub>n</sub>&gt;
+</pre>
+</td>
+<td><tt class="literal"><span class="pre"><a href="./vector.html" class="identifier">vector</a></span></tt> of elements <em>t</em><sub>1</sub>,<em>t</em><sub>2</sub>,... <em>t</em><sub>n</sub>; see
+<a class="reference internal" href="./variadic-sequence.html">Variadic Sequence</a>.</td>
+</tr>
+<tr><td><pre class="first last literal-block">
+<a href="./vector.html" class="identifier">vector</a>&lt;<em>t</em><sub>1</sub>,<em>t</em><sub>2</sub>,... <em>t</em><sub>n</sub>&gt;::type
+<a href="./vector.html" class="identifier">vector</a><em>n</em>&lt;<em>t</em><sub>1</sub>,<em>t</em><sub>2</sub>,... <em>t</em><sub>n</sub>&gt;::type
+</pre>
+</td>
+<td>Identical to <tt class="literal"><span class="pre"><a href="./vector.html" class="identifier">vector</a></span></tt><em>n</em><tt class="literal"><span class="pre">&lt;</span></tt><em>t</em><sub>1</sub>,<em>t</em><sub>2</sub>,... <em>t</em><sub>n</sub><tt class="literal"><span class="pre">&gt;</span></tt>;
+see <a class="reference internal" href="./variadic-sequence.html">Variadic Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;v&gt;::type</span></tt></td>
+<td>An iterator pointing to the beginning of <tt class="literal"><span class="pre">v</span></tt>;
+see <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;v&gt;::type</span></tt></td>
+<td>An iterator pointing to the end of <tt class="literal"><span class="pre">v</span></tt>;
+see <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;v&gt;::type</span></tt></td>
+<td>The size of <tt class="literal"><span class="pre">v</span></tt>; see <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./empty.html" class="identifier">empty</a>&lt;v&gt;::type</span></tt></td>
+<td>A boolean <a class="reference internal" href="./integral-constant.html">Integral Constant</a> <tt class="literal"><span class="pre">c</span></tt> such that
+<tt class="literal"><span class="pre">c::value</span> <span class="pre">==</span> <span class="pre">true</span></tt> if and only if the sequence is empty;
+see <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./front.html" class="identifier">front</a>&lt;v&gt;::type</span></tt></td>
+<td>The first element in <tt class="literal"><span class="pre">v</span></tt>; see
+<a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./back.html" class="identifier">back</a>&lt;v&gt;::type</span></tt></td>
+<td>The last element in <tt class="literal"><span class="pre">v</span></tt>; see
+<a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./at.html" class="identifier">at</a>&lt;v,n&gt;::type</span></tt></td>
+<td>The <tt class="literal"><span class="pre">n</span></tt>th element from the beginning of <tt class="literal"><span class="pre">v</span></tt>; see
+<a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./insert.html" class="identifier">insert</a>&lt;v,pos,x&gt;::type</span></tt></td>
+<td>A new <tt class="literal"><span class="pre"><a href="./vector.html" class="identifier">vector</a></span></tt> of following elements:
+[<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;v&gt;::type</span></tt>, <tt class="literal"><span class="pre">pos</span></tt>), <tt class="literal"><span class="pre">x</span></tt>,
+[<tt class="literal"><span class="pre">pos</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;v&gt;::type</span></tt>); see <a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./insert-range.html" class="identifier">insert_range</a>&lt;v,pos,r&gt;::type</span></tt></td>
+<td>A new <tt class="literal"><span class="pre"><a href="./vector.html" class="identifier">vector</a></span></tt> of following elements:
+[<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;v&gt;::type</span></tt>, <tt class="literal"><span class="pre">pos</span></tt>),
+[<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;r&gt;::type</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;r&gt;::type</span></tt>)
+[<tt class="literal"><span class="pre">pos</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;v&gt;::type</span></tt>); see <a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./erase.html" class="identifier">erase</a>&lt;v,pos&gt;::type</span></tt></td>
+<td>A new <tt class="literal"><span class="pre"><a href="./vector.html" class="identifier">vector</a></span></tt> of following elements:
+[<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;v&gt;::type</span></tt>, <tt class="literal"><span class="pre">pos</span></tt>),
+[<tt class="literal"><span class="pre"><a href="./next.html" class="identifier">next</a>&lt;pos&gt;::type</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;v&gt;::type</span></tt>); see
+<a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./erase.html" class="identifier">erase</a>&lt;v,pos,last&gt;::type</span></tt></td>
+<td>A new <tt class="literal"><span class="pre"><a href="./vector.html" class="identifier">vector</a></span></tt> of following elements:
+[<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;v&gt;::type</span></tt>, <tt class="literal"><span class="pre">pos</span></tt>),
+[<tt class="literal"><span class="pre">last</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;v&gt;::type</span></tt>); see <a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./clear.html" class="identifier">clear</a>&lt;v&gt;::type</span></tt></td>
+<td>An empty <tt class="literal"><span class="pre"><a href="./vector.html" class="identifier">vector</a></span></tt>; see <a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./push-back.html" class="identifier">push_back</a>&lt;v,x&gt;::type</span></tt></td>
+<td>A new <tt class="literal"><span class="pre"><a href="./vector.html" class="identifier">vector</a></span></tt> of following elements:
+[<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;v&gt;::type</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;v&gt;::type</span></tt>), <tt class="literal"><span class="pre">x</span></tt>;
+see <a class="reference internal" href="./back-extensible-sequence.html">Back Extensible Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./pop-back.html" class="identifier">pop_back</a>&lt;v&gt;::type</span></tt></td>
+<td>A new <tt class="literal"><span class="pre"><a href="./vector.html" class="identifier">vector</a></span></tt> of following elements:
+[<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;v&gt;::type</span></tt>, <tt class="literal"><span class="pre"><a href="./prior.html" class="identifier">prior</a>&lt;</span> <span class="pre"><a href="./end.html" class="identifier">end</a>&lt;v&gt;::type</span> <span class="pre">&gt;::type</span></tt>);
+see <a class="reference internal" href="./back-extensible-sequence.html">Back Extensible Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./push-front.html" class="identifier">push_front</a>&lt;v,x&gt;::type</span></tt></td>
+<td>A new <tt class="literal"><span class="pre"><a href="./vector.html" class="identifier">vector</a></span></tt> of following elements:
+<tt class="literal"><span class="pre">x</span></tt>, [<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;v&gt;::type</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;v&gt;::type</span></tt>); see <a class="reference internal" href="./front-extensible-sequence.html">Front Extensible Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./pop-front.html" class="identifier">pop_front</a>&lt;v&gt;::type</span></tt></td>
+<td>A new <tt class="literal"><span class="pre"><a href="./vector.html" class="identifier">vector</a></span></tt> of following elements:
+[<tt class="literal"><span class="pre"><a href="./next.html" class="identifier">next</a>&lt;</span> <span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;v&gt;::type</span> <span class="pre">&gt;::type</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;v&gt;::type</span></tt>);
+see <a class="reference internal" href="./front-extensible-sequence.html">Front Extensible Sequence</a>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="example">
+<h3>Example</h3>
+<pre class="literal-block">
+typedef <a href="./vector.html" class="identifier">vector</a>&lt;float,double,long double&gt; floats;
+typedef <a href="./push-back.html" class="identifier">push_back</a>&lt;floats,int&gt;::type types;
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; <a href="./at-c.html" class="identifier">at_c</a>&lt;types,3&gt;::type, int > ));
+</pre>
+</div>
+<div class="section" id="id55">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./sequences.html">Sequences</a>, <a class="reference internal" href="./variadic-sequence.html">Variadic Sequence</a>, <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>, <a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a>, <a class="reference internal" href="./vector-c.html">vector_c</a>, <a class="reference internal" href="./list.html">list</a></p>
+<!-- Sequences/Classes//list |20 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./classes.html" class="navigation-link">Prev</a>&nbsp;<a href="./list.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group">Back&nbsp;<a href="./list.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./classes.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

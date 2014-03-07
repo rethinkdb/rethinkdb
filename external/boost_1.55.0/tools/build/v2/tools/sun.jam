@@ -1,0 +1,142 @@
+#  Copyright (C) Christopher Currie 2003. Permission to copy, use,
+#  modify, sell and distribute this software is granted provided this
+#  copyright notice appears in all copies. This software is provided
+#  "as is" without express or implied warranty, and with no claim as
+#  to its suitability for any purpose.
+
+import property ;
+import generators ;
+import os ;
+import toolset : flags ;
+import feature ;
+import type ;
+import common ;
+
+feature.extend toolset : sun ;
+toolset.inherit  sun : unix ;
+generators.override sun.prebuilt : builtin.lib-generator ;
+generators.override sun.prebuilt : builtin.prebuilt ;
+generators.override sun.searched-lib-generator : searched-lib-generator ;
+
+feature.extend stdlib : sun-stlport ;
+feature.compose <stdlib>sun-stlport
+    : <cxxflags>-library=stlport4 <linkflags>-library=stlport4
+    ;
+
+rule init ( version ? : command * : options * ) 
+{
+    local condition = [ 
+      common.check-init-parameters sun : version $(version) ] ;
+    
+    command = [ common.get-invocation-command sun : CC 
+        : $(command) : "/opt/SUNWspro/bin" ] ;
+
+    # Even if the real compiler is not found, put CC to
+    # command line so that user see command line that would have being executed.
+    command ?= CC ;
+
+    common.handle-options sun : $(condition) : $(command) : $(options) ;
+    
+    command_c = $(command[1--2]) $(command[-1]:B=cc) ;
+
+    toolset.flags sun CONFIG_C_COMMAND $(condition) : $(command_c) ;
+}
+
+# Declare generators
+generators.register-c-compiler sun.compile.c : C : OBJ : <toolset>sun ;
+generators.register-c-compiler sun.compile.c++ : CPP : OBJ : <toolset>sun ;
+
+# Declare flags and actions for compilation
+flags sun.compile OPTIONS <debug-symbols>on : -g ;
+flags sun.compile OPTIONS <profiling>on : -xprofile=tcov ;
+flags sun.compile OPTIONS <optimization>speed : -xO4  ;
+flags sun.compile OPTIONS <optimization>space : -xO2 -xspace ;
+flags sun.compile OPTIONS <threading>multi : -mt ;
+flags sun.compile OPTIONS <warnings>off : -erroff ;
+flags sun.compile OPTIONS <warnings>on : -erroff=%none ;
+flags sun.compile OPTIONS <warnings>all  : -erroff=%none ;
+flags sun.compile OPTIONS <warnings-as-errors>on : -errwarn ;
+
+flags sun.compile.c++ OPTIONS <inlining>off : +d ;
+
+# The -m32 and -m64 options are supported starting
+# with Sun Studio 12.  On earlier compilers, the
+# 'address-model' feature is not supported and should not
+# be used. Instead, use -xarch=generic64 command line
+# option.
+# See http://svn.boost.org/trac/boost/ticket/1186
+# for details.
+flags sun OPTIONS <address-model>32 : -m32 ;
+flags sun OPTIONS <address-model>64 : -m64 ;
+# On sparc, there's a difference between -Kpic
+# and -KPIC. The first is slightly more efficient,
+# but has the limits on the size of GOT table.
+# For minimal fuss on user side, we use -KPIC here.
+# See http://svn.boost.org/trac/boost/ticket/1186#comment:6
+# for detailed explanation.
+flags sun OPTIONS <link>shared : -KPIC ;
+
+flags sun.compile OPTIONS <cflags> ;
+flags sun.compile.c++ OPTIONS <cxxflags> ;
+flags sun.compile DEFINES <define> ;
+flags sun.compile INCLUDES <include> ;
+
+actions compile.c
+{
+    "$(CONFIG_C_COMMAND)" $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+actions compile.c++
+{
+    "$(CONFIG_COMMAND)" $(OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+# Declare flags and actions for linking
+flags sun.link OPTIONS <debug-symbols>on : -g ;
+# Strip the binary when no debugging is needed
+flags sun.link OPTIONS <debug-symbols>off : -s ;
+flags sun.link OPTIONS <profiling>on : -xprofile=tcov ;
+flags sun.link OPTIONS <threading>multi : -mt ;
+flags sun.link OPTIONS <linkflags> ;
+flags sun.link LINKPATH <library-path> ;
+flags sun.link FINDLIBS-ST <find-static-library> ;
+flags sun.link FINDLIBS-SA <find-shared-library> ;
+flags sun.link LIBRARIES <library-file> ;
+flags sun.link LINK-RUNTIME <runtime-link>static : static ;
+flags sun.link LINK-RUNTIME <runtime-link>shared : dynamic ;
+flags sun.link RPATH <dll-path> ;
+# On gcc, there are separate options for dll path at runtime and
+# link time. On Solaris, there's only one: -R, so we have to use
+# it, even though it's bad idea.
+flags sun.link RPATH <xdll-path> ;
+
+# The POSIX real-time library is always needed (nanosleep, clock_gettime etc.)
+flags sun.link FINDLIBS-SA : rt ;
+
+rule link ( targets * : sources * : properties * )
+{
+    SPACE on $(targets) = " " ;
+}
+
+actions link bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" $(OPTIONS) -L"$(LINKPATH)" -R"$(RPATH)" -o "$(<)" "$(>)" "$(LIBRARIES)" -Bdynamic -l$(FINDLIBS-SA) -Bstatic -l$(FINDLIBS-ST) -B$(LINK-RUNTIME)
+}
+
+# Slight mods for dlls
+rule link.dll ( targets * : sources * : properties * )
+{
+    SPACE on $(targets) = " " ;
+}
+
+actions link.dll bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" $(OPTIONS) -L"$(LINKPATH)" -R"$(RPATH)" -o "$(<)" -h$(<[1]:D=) -G "$(>)" "$(LIBRARIES)" -Bdynamic -l$(FINDLIBS-SA) -Bstatic -l$(FINDLIBS-ST) -B$(LINK-RUNTIME)
+}
+
+# Declare action for creating static libraries
+actions piecemeal archive
+{
+    "$(CONFIG_COMMAND)" -xar -o "$(<)" "$(>)"
+}
+

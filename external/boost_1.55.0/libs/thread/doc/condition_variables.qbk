@@ -1,0 +1,790 @@
+[/
+  (C) Copyright 2007-11 Anthony Williams.
+  (C) Copyright 2011-12 Vicente J. Botet Escriba.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:condvar_ref Condition Variables]
+
+[heading Synopsis]
+
+  namespace boost 
+  {
+    enum class cv_status;
+    {
+      no_timeout,
+      timeout
+    };
+    class condition_variable;
+    class condition_variable_any;
+    void notify_all_at_thread_exit(condition_variable& cond, unique_lock<mutex> lk);
+  }
+
+The classes `condition_variable` and `condition_variable_any` provide a
+mechanism for one thread to wait for notification from another thread that a
+particular condition has become true. The general usage pattern is that one
+thread locks a mutex and then calls `wait` on an instance of
+`condition_variable` or `condition_variable_any`. When the thread is woken from
+the wait, then it checks to see if the appropriate condition is now true, and
+continues if so. If the condition is not true, then the thread then calls `wait`
+again to resume waiting. In the simplest case, this condition is just a boolean
+variable:
+
+    boost::condition_variable cond;
+    boost::mutex mut;
+    bool data_ready;
+
+    void process_data();
+
+    void wait_for_data_to_process()
+    {
+        boost::unique_lock<boost::mutex> lock(mut);
+        while(!data_ready)
+        {
+            cond.wait(lock);
+        }
+        process_data();
+    }
+
+Notice that the `lock` is passed to `wait`: `wait` will atomically add the
+thread to the set of threads waiting on the condition variable, and unlock the
+mutex. When the thread is woken, the mutex will be locked again before the call
+to `wait` returns. This allows other threads to acquire the mutex in order to
+update the shared data, and ensures that the data associated with the condition
+is correctly synchronized.
+
+In the mean time, another thread sets the condition to `true`, and then calls
+either `notify_one` or `notify_all` on the condition variable to wake one
+waiting thread or all the waiting threads respectively.
+
+    void retrieve_data();
+    void prepare_data();
+
+    void prepare_data_for_processing()
+    {
+        retrieve_data();
+        prepare_data();
+        {
+            boost::lock_guard<boost::mutex> lock(mut);
+            data_ready=true;
+        }
+        cond.notify_one();
+    }
+
+Note that the same mutex is locked before the shared data is updated, but that
+the mutex does not have to be locked across the call to `notify_one`.
+
+This example uses an object of type `condition_variable`, but would work just as
+well with an object of type `condition_variable_any`: `condition_variable_any`
+is more general, and will work with any kind of lock or mutex, whereas
+`condition_variable` requires that the lock passed to `wait` is an instance of
+`boost::unique_lock<boost::mutex>`. This enables `condition_variable` to make
+optimizations in some cases, based on the knowledge of the mutex type;
+`condition_variable_any` typically has a more complex implementation than
+`condition_variable`.
+
+[section:condition_variable Class `condition_variable`]
+
+    //#include <boost/thread/condition_variable.hpp>
+
+    namespace boost
+    {
+        class condition_variable
+        {
+        public:
+            condition_variable();
+            ~condition_variable();
+
+            void notify_one() noexcept;
+            void notify_all() noexcept;
+
+            void wait(boost::unique_lock<boost::mutex>& lock);
+
+            template<typename predicate_type>
+            void wait(boost::unique_lock<boost::mutex>& lock,predicate_type predicate);
+
+            template <class Clock, class Duration>
+            typename cv_status::type
+            wait_until(
+                unique_lock<mutex>& lock,
+                const chrono::time_point<Clock, Duration>& t);
+
+            template <class Clock, class Duration, class Predicate>
+            bool
+            wait_until(
+                unique_lock<mutex>& lock,
+                const chrono::time_point<Clock, Duration>& t,
+                Predicate pred);
+
+            template <class Rep, class Period>
+            typename cv_status::type
+            wait_for(
+                unique_lock<mutex>& lock,
+                const chrono::duration<Rep, Period>& d);
+
+            template <class Rep, class Period, class Predicate>
+            bool
+            wait_for(
+                unique_lock<mutex>& lock,
+                const chrono::duration<Rep, Period>& d,
+                Predicate pred);
+
+        #if defined BOOST_THREAD_USES_DATETIME
+            bool timed_wait(boost::unique_lock<boost::mutex>& lock,boost::system_time const& abs_time);
+            template<typename duration_type>
+            bool timed_wait(boost::unique_lock<boost::mutex>& lock,duration_type const& rel_time);
+            template<typename predicate_type>
+            bool timed_wait(boost::unique_lock<boost::mutex>& lock,boost::system_time const& abs_time,predicate_type predicate);
+            template<typename duration_type,typename predicate_type>
+            bool timed_wait(boost::unique_lock<boost::mutex>& lock,duration_type const& rel_time,predicate_type predicate);
+            bool timed_wait(boost::unique_lock<boost::mutex>& lock,boost::xtime const& abs_time);
+
+            template<typename predicate_type>
+            bool timed_wait(boost::unique_lock<boost::mutex>& lock,boost::xtime const& abs_time,predicate_type predicate);
+        #endif
+
+        };
+    }
+
+[section:constructor `condition_variable()`]
+
+[variablelist
+
+[[Effects:] [Constructs an object of class `condition_variable`.]]
+
+[[Throws:] [__thread_resource_error__ if an error occurs.]]
+
+]
+
+[endsect]
+
+[section:destructor `~condition_variable()`]
+
+[variablelist
+
+[[Precondition:] [All threads waiting on `*this` have been notified by a call to
+`notify_one` or `notify_all` (though the respective calls to `wait` or
+`timed_wait` need not have returned).]]
+
+[[Effects:] [Destroys the object.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+[section:notify_one `void notify_one()`]
+
+[variablelist
+
+[[Effects:] [If any threads are currently __blocked__ waiting on `*this` in a call
+to `wait` or `timed_wait`, unblocks one of those threads.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+[section:notify_all `void notify_all()`]
+
+[variablelist
+
+[[Effects:] [If any threads are currently __blocked__ waiting on `*this` in a call
+to `wait` or `timed_wait`, unblocks all of those threads.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+[section:wait `void wait(boost::unique_lock<boost::mutex>& lock)`]
+
+[variablelist
+
+[[Precondition:] [`lock` is locked by the current thread, and either no other
+thread is currently waiting on `*this`, or the execution of the `mutex()` member
+function on the `lock` objects supplied in the calls to `wait` or `timed_wait`
+in all the threads currently waiting on `*this` would return the same value as
+`lock->mutex()` for this call to `wait`.]]
+
+[[Effects:] [Atomically call `lock.unlock()` and blocks the current thread. The
+thread will unblock when notified by a call to `this->notify_one()` or
+`this->notify_all()`, or spuriously. When the thread is unblocked (for whatever
+reason), the lock is reacquired by invoking `lock.lock()` before the call to
+`wait` returns. The lock is also reacquired by invoking `lock.lock()` if the
+function exits with an exception.]]
+
+[[Postcondition:] [`lock` is locked by the current thread.]]
+
+[[Throws:] [__thread_resource_error__ if an error
+occurs. __thread_interrupted__ if the wait was interrupted by a call to
+__interrupt__ on the __thread__ object associated with the current thread of execution.]]
+
+]
+
+[endsect]
+
+[section:wait_predicate `template<typename predicate_type> void wait(boost::unique_lock<boost::mutex>& lock, predicate_type pred)`]
+
+[variablelist
+
+[[Effects:] [As-if ``
+while(!pred())
+{
+    wait(lock);
+}
+``]]
+
+]
+
+[endsect]
+
+[section:timed_wait `bool timed_wait(boost::unique_lock<boost::mutex>& lock,boost::system_time const& abs_time)`]
+
+[variablelist
+
+[[Precondition:] [`lock` is locked by the current thread, and either no other
+thread is currently waiting on `*this`, or the execution of the `mutex()` member
+function on the `lock` objects supplied in the calls to `wait` or `timed_wait`
+in all the threads currently waiting on `*this` would return the same value as
+`lock->mutex()` for this call to `wait`.]]
+
+[[Effects:] [Atomically call `lock.unlock()` and blocks the current thread. The
+thread will unblock when notified by a call to `this->notify_one()` or
+`this->notify_all()`, when the time as reported by `boost::get_system_time()`
+would be equal to or later than the specified `abs_time`, or spuriously. When
+the thread is unblocked (for whatever reason), the lock is reacquired by
+invoking `lock.lock()` before the call to `wait` returns. The lock is also
+reacquired by invoking `lock.lock()` if the function exits with an exception.]]
+
+[[Returns:] [`false` if the call is returning because the time specified by
+`abs_time` was reached, `true` otherwise.]]
+
+[[Postcondition:] [`lock` is locked by the current thread.]]
+
+[[Throws:] [__thread_resource_error__ if an error
+occurs. __thread_interrupted__ if the wait was interrupted by a call to
+__interrupt__ on the __thread__ object associated with the current thread of execution.]]
+
+]
+
+[endsect]
+
+[section:timed_wait_rel `template<typename duration_type> bool timed_wait(boost::unique_lock<boost::mutex>& lock,duration_type const& rel_time)`]
+
+[variablelist
+
+[[Precondition:] [`lock` is locked by the current thread, and either no other
+thread is currently waiting on `*this`, or the execution of the `mutex()` member
+function on the `lock` objects supplied in the calls to `wait` or `timed_wait`
+in all the threads currently waiting on `*this` would return the same value as
+`lock->mutex()` for this call to `wait`.]]
+
+[[Effects:] [Atomically call `lock.unlock()` and blocks the current thread. The
+thread will unblock when notified by a call to `this->notify_one()` or
+`this->notify_all()`, after the period of time indicated by the `rel_time`
+argument has elapsed, or spuriously. When the thread is unblocked (for whatever
+reason), the lock is reacquired by invoking `lock.lock()` before the call to
+`wait` returns. The lock is also reacquired by invoking `lock.lock()` if the
+function exits with an exception.]]
+
+[[Returns:] [`false` if the call is returning because the time period specified
+by `rel_time` has elapsed, `true` otherwise.]]
+
+[[Postcondition:] [`lock` is locked by the current thread.]]
+
+[[Throws:] [__thread_resource_error__ if an error
+occurs. __thread_interrupted__ if the wait was interrupted by a call to
+__interrupt__ on the __thread__ object associated with the current thread of execution.]]
+
+]
+
+[note The duration overload of timed_wait is difficult to use correctly. The overload taking a predicate should be preferred in most cases.]
+
+[endsect]
+
+[section:timed_wait_predicate `template<typename predicate_type> bool timed_wait(boost::unique_lock<boost::mutex>& lock, boost::system_time const& abs_time, predicate_type pred)`]
+
+[variablelist
+
+[[Effects:] [As-if ``
+while(!pred())
+{
+    if(!timed_wait(lock,abs_time))
+    {
+        return pred();
+    }
+}
+return true;
+``]]
+
+]
+
+[endsect]
+
+
+[section:wait_until `template <class Clock, class Duration> cv_status wait_until(boost::unique_lock<boost::mutex>& lock, const chrono::time_point<Clock, Duration>& abs_time)`]
+
+[variablelist
+
+[[Precondition:] [`lock` is locked by the current thread, and either no other
+thread is currently waiting on `*this`, or the execution of the `mutex()` member
+function on the `lock` objects supplied in the calls to `wait` or `wait_for` or `wait_until`
+in all the threads currently waiting on `*this` would return the same value as
+`lock->mutex()` for this call to `wait`.]]
+
+[[Effects:] [Atomically call `lock.unlock()` and blocks the current thread. The
+thread will unblock when notified by a call to `this->notify_one()` or
+`this->notify_all()`, when the time as reported by `Clock::now()`
+would be equal to or later than the specified `abs_time`, or spuriously. When
+the thread is unblocked (for whatever reason), the lock is reacquired by
+invoking `lock.lock()` before the call to `wait` returns. The lock is also
+reacquired by invoking `lock.lock()` if the function exits with an exception.]]
+
+[[Returns:] [`cv_status::timeout` if the call is returning because the time specified by
+`abs_time` was reached, `cv_status::no_timeout` otherwise.]]
+
+[[Postcondition:] [`lock` is locked by the current thread.]]
+
+[[Throws:] [__thread_resource_error__ if an error
+occurs. __thread_interrupted__ if the wait was interrupted by a call to
+__interrupt__ on the __thread__ object associated with the current thread of execution.]]
+
+]
+
+[endsect]
+
+[section:wait_for `template <class Rep, class Period> cv_status wait_for(boost::unique_lock<boost::mutex>& lock, const chrono::duration<Rep, Period>& rel_time)`]
+
+
+[variablelist
+
+[[Precondition:] [`lock` is locked by the current thread, and either no other
+thread is currently waiting on `*this`, or the execution of the `mutex()` member
+function on the `lock` objects supplied in the calls to `wait` or `wait_until` or `wait_for`
+in all the threads currently waiting on `*this` would return the same value as
+`lock->mutex()` for this call to `wait`.]]
+
+[[Effects:] [Atomically call `lock.unlock()` and blocks the current thread. The
+thread will unblock when notified by a call to `this->notify_one()` or
+`this->notify_all()`, after the period of time indicated by the `rel_time`
+argument has elapsed, or spuriously. When the thread is unblocked (for whatever
+reason), the lock is reacquired by invoking `lock.lock()` before the call to
+`wait` returns. The lock is also reacquired by invoking `lock.lock()` if the
+function exits with an exception.]]
+
+[[Returns:] [`cv_status::timeout ` if the call is returning because the time period specified
+by `rel_time` has elapsed, `cv_status::no_timeout ` otherwise.]]
+
+[[Postcondition:] [`lock` is locked by the current thread.]]
+
+[[Throws:] [__thread_resource_error__ if an error
+occurs. __thread_interrupted__ if the wait was interrupted by a call to
+__interrupt__ on the __thread__ object associated with the current thread of execution.]]
+
+]
+
+[note The duration overload of timed_wait is difficult to use correctly. The overload taking a predicate should be preferred in most cases.]
+
+[endsect]
+
+[section:wait_until_predicate `template <class Clock, class Duration, class Predicate> bool wait_until(boost::unique_lock<boost::mutex>& lock, const chrono::time_point<Clock, Duration>& abs_time, Predicate pred)`]
+
+
+[variablelist
+
+[[Effects:] [As-if ``
+while(!pred())
+{
+    if(!wait_until(lock,abs_time))
+    {
+        return pred();
+    }
+}
+return true;
+``]]
+
+]
+
+[endsect]
+
+[section:wait_for_predicate `template <class Rep, class Period, class Predicate> bool wait_for(boost::unique_lock<boost::mutex>& lock, const chrono::duration<Rep, Period>& rel_time, Predicate pred)`]
+
+
+[variablelist
+
+[[Effects:] [As-if ``
+return wait_until(lock, chrono::steady_clock::now() + d, boost::move(pred));
+``]]
+
+]
+
+[endsect]
+
+
+
+
+[endsect]
+
+[section:condition_variable_any Class `condition_variable_any`]
+
+    //#include <boost/thread/condition_variable.hpp>
+
+    namespace boost
+    {
+        class condition_variable_any
+        {
+        public:
+            condition_variable_any();
+            ~condition_variable_any();
+
+            void notify_one();
+            void notify_all();
+
+            template<typename lock_type>
+            void wait(lock_type& lock);
+
+            template<typename lock_type,typename predicate_type>
+            void wait(lock_type& lock,predicate_type predicate);
+
+            template <class lock_type, class Clock, class Duration>
+            cv_status wait_until(
+                lock_type& lock,
+                const chrono::time_point<Clock, Duration>& t);
+
+            template <class lock_type, class Clock, class Duration, class Predicate>
+            bool wait_until(
+                lock_type& lock,
+                const chrono::time_point<Clock, Duration>& t,
+                Predicate pred);
+
+
+            template <class lock_type, class Rep, class Period>
+            cv_status wait_for(
+                lock_type& lock,
+                const chrono::duration<Rep, Period>& d);
+
+            template <class lock_type, class Rep, class Period, class Predicate>
+            bool wait_for(
+                lock_type& lock,
+                const chrono::duration<Rep, Period>& d,
+                Predicate pred);
+
+        #if defined BOOST_THREAD_USES_DATETIME
+            template<typename lock_type>
+            bool timed_wait(lock_type& lock,boost::system_time const& abs_time);
+            template<typename lock_type,typename duration_type>
+            bool timed_wait(lock_type& lock,duration_type const& rel_time);
+            template<typename lock_type,typename predicate_type>
+            bool timed_wait(lock_type& lock,boost::system_time const& abs_time,predicate_type predicate);
+            template<typename lock_type,typename duration_type,typename predicate_type>
+            bool timed_wait(lock_type& lock,duration_type const& rel_time,predicate_type predicate);
+            template<typename lock_type>
+            bool timed_wait(lock_type>& lock,boost::xtime const& abs_time);
+            template<typename lock_type,typename predicate_type>
+            bool timed_wait(lock_type& lock,boost::xtime const& abs_time,predicate_type predicate);
+        #endif
+        };
+    }
+
+[section:constructor `condition_variable_any()`]
+
+[variablelist
+
+[[Effects:] [Constructs an object of class `condition_variable_any`.]]
+
+[[Throws:] [__thread_resource_error__ if an error occurs.]]
+
+]
+
+[endsect]
+
+[section:destructor `~condition_variable_any()`]
+
+[variablelist
+
+[[Precondition:] [All threads waiting on `*this` have been notified by a call to
+`notify_one` or `notify_all` (though the respective calls to `wait` or
+`timed_wait` need not have returned).]]
+
+[[Effects:] [Destroys the object.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+[section:notify_one `void notify_one()`]
+
+[variablelist
+
+[[Effects:] [If any threads are currently __blocked__ waiting on `*this` in a call
+to `wait` or `timed_wait`, unblocks one of those threads.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+[section:notify_all `void notify_all()`]
+
+[variablelist
+
+[[Effects:] [If any threads are currently __blocked__ waiting on `*this` in a call
+to `wait` or `timed_wait`, unblocks all of those threads.]]
+
+[[Throws:] [Nothing.]]
+
+]
+
+[endsect]
+
+[section:wait `template<typename lock_type> void wait(lock_type& lock)`]
+
+[variablelist
+
+[[Effects:] [Atomically call `lock.unlock()` and blocks the current thread. The
+thread will unblock when notified by a call to `this->notify_one()` or
+`this->notify_all()`, or spuriously. When the thread is unblocked (for whatever
+reason), the lock is reacquired by invoking `lock.lock()` before the call to
+`wait` returns. The lock is also reacquired by invoking `lock.lock()` if the
+function exits with an exception.]]
+
+[[Postcondition:] [`lock` is locked by the current thread.]]
+
+[[Throws:] [__thread_resource_error__ if an error
+occurs. __thread_interrupted__ if the wait was interrupted by a call to
+__interrupt__ on the __thread__ object associated with the current thread of execution.]]
+
+]
+
+[endsect]
+
+[section:wait_predicate `template<typename lock_type,typename predicate_type> void wait(lock_type& lock, predicate_type pred)`]
+
+[variablelist
+
+[[Effects:] [As-if ``
+while(!pred())
+{
+    wait(lock);
+}
+``]]
+
+]
+
+[endsect]
+
+[section:timed_wait `template<typename lock_type> bool timed_wait(lock_type& lock,boost::system_time const& abs_time)`]
+
+[variablelist
+
+[[Effects:] [Atomically call `lock.unlock()` and blocks the current thread. The
+thread will unblock when notified by a call to `this->notify_one()` or
+`this->notify_all()`, when the time as reported by `boost::get_system_time()`
+would be equal to or later than the specified `abs_time`, or spuriously. When
+the thread is unblocked (for whatever reason), the lock is reacquired by
+invoking `lock.lock()` before the call to `wait` returns. The lock is also
+reacquired by invoking `lock.lock()` if the function exits with an exception.]]
+
+[[Returns:] [`false` if the call is returning because the time specified by
+`abs_time` was reached, `true` otherwise.]]
+
+[[Postcondition:] [`lock` is locked by the current thread.]]
+
+[[Throws:] [__thread_resource_error__ if an error
+occurs. __thread_interrupted__ if the wait was interrupted by a call to
+__interrupt__ on the __thread__ object associated with the current thread of execution.]]
+
+]
+
+[endsect]
+
+[section:timed_wait_rel `template<typename lock_type,typename duration_type> bool timed_wait(lock_type& lock,duration_type const& rel_time)`]
+
+[variablelist
+
+[[Effects:] [Atomically call `lock.unlock()` and blocks the current thread. The
+thread will unblock when notified by a call to `this->notify_one()` or
+`this->notify_all()`, after the period of time indicated by the `rel_time`
+argument has elapsed, or spuriously. When the thread is unblocked (for whatever
+reason), the lock is reacquired by invoking `lock.lock()` before the call to
+`wait` returns. The lock is also reacquired by invoking `lock.lock()` if the
+function exits with an exception.]]
+
+[[Returns:] [`false` if the call is returning because the time period specified
+by `rel_time` has elapsed, `true` otherwise.]]
+
+[[Postcondition:] [`lock` is locked by the current thread.]]
+
+[[Throws:] [__thread_resource_error__ if an error
+occurs. __thread_interrupted__ if the wait was interrupted by a call to
+__interrupt__ on the __thread__ object associated with the current thread of execution.]]
+
+]
+
+[note The duration overload of timed_wait is difficult to use correctly. The overload taking a predicate should be preferred in most cases.]
+
+[endsect]
+
+[section:timed_wait_predicate `template<typename lock_type,typename predicate_type> bool timed_wait(lock_type& lock, boost::system_time const& abs_time, predicate_type pred)`]
+
+[variablelist
+
+[[Effects:] [As-if ``
+while(!pred())
+{
+    if(!timed_wait(lock,abs_time))
+    {
+        return pred();
+    }
+}
+return true;
+``]]
+
+]
+
+[endsect]
+
+[section:wait_until `template <class lock_type, class Clock, class Duration> cv_status wait_until(lock_type& lock, const chrono::time_point<Clock, Duration>& abs_time)`]
+
+[variablelist
+
+[[Effects:] [Atomically call `lock.unlock()` and blocks the current thread. The
+thread will unblock when notified by a call to `this->notify_one()` or
+`this->notify_all()`, when the time as reported by `Clock::now()`
+would be equal to or later than the specified `abs_time`, or spuriously. When
+the thread is unblocked (for whatever reason), the lock is reacquired by
+invoking `lock.lock()` before the call to `wait` returns. The lock is also
+reacquired by invoking `lock.lock()` if the function exits with an exception.]]
+
+[[Returns:] [`cv_status::timeout` if the call is returning because the time specified by
+`abs_time` was reached, `cv_status::no_timeout` otherwise.]]
+
+[[Postcondition:] [`lock` is locked by the current thread.]]
+
+[[Throws:] [__thread_resource_error__ if an error
+occurs. __thread_interrupted__ if the wait was interrupted by a call to
+__interrupt__ on the __thread__ object associated with the current thread of execution.]]
+
+]
+
+[endsect]
+
+[section:wait_for `template <class lock_type, class Rep, class Period> cv_status wait_for(lock_type& lock, const chrono::duration<Rep, Period>& rel_time)`]
+
+[variablelist
+
+[[Effects:] [Atomically call `lock.unlock()` and blocks the current thread. The
+thread will unblock when notified by a call to `this->notify_one()` or
+`this->notify_all()`, after the period of time indicated by the `rel_time`
+argument has elapsed, or spuriously. When the thread is unblocked (for whatever
+reason), the lock is reacquired by invoking `lock.lock()` before the call to
+`wait` returns. The lock is also reacquired by invoking `lock.lock()` if the
+function exits with an exception.]]
+
+[[Returns:] [`cv_status::timeout` if the call is returning because the time specified by
+`abs_time` was reached, `cv_status::no_timeout` otherwise.]]
+
+[[Postcondition:] [`lock` is locked by the current thread.]]
+
+[[Throws:] [__thread_resource_error__ if an error
+occurs. __thread_interrupted__ if the wait was interrupted by a call to
+__interrupt__ on the __thread__ object associated with the current thread of execution.]]
+
+]
+
+[note The duration overload of timed_wait is difficult to use correctly. The overload taking a predicate should be preferred in most cases.]
+
+[endsect]
+
+[section:wait_until_predicate `template <class lock_type, class Clock, class Duration, class Predicate> bool wait_until(lock_type& lock, const chrono::time_point<Clock, Duration>& abs_time, Predicate pred)`]
+
+[variablelist
+
+[[Effects:] [As-if ``
+while(!pred())
+{
+    if(!__cvany_wait_until(lock,abs_time))
+    {
+        return pred();
+    }
+}
+return true;
+``]]
+
+]
+
+[endsect]
+
+[section:wait_for_predicate `template <class lock_type, class Rep, class Period, class Predicate> bool wait_for(lock_type& lock, const chrono::duration<Rep, Period>& rel_time, Predicate pred)`]
+
+[variablelist
+
+[[Effects:] [As-if ``
+return wait_until(lock, chrono::steady_clock::now() + d, boost::move(pred));
+``]]
+
+]
+
+[endsect]
+
+[endsect]
+
+[section:condition Typedef `condition` DEPRECATED V3]
+
+  // #include <boost/thread/condition.hpp>
+  namespace boost 
+  {
+
+    typedef condition_variable_any condition;
+
+  }
+
+The typedef `condition` is provided for backwards compatibility with previous boost releases.
+
+[endsect]
+
+
+[section:notify_all_at_thread_exit Non-member Function `notify_all_at_thread_exit`()]
+
+  // #include <boost/thread/condition_variable.hpp>
+
+  namespace boost
+  {
+    void notify_all_at_thread_exit(condition_variable& cond, unique_lock<mutex> lk);
+  }
+
+[variablelist
+
+[[Requires:] [`lk` is locked by the calling thread and either no other thread is waiting on `cond`, or `lk.mutex()` returns the same value for each of the lock arguments supplied by all concurrently waiting (via `wait`, `wait_for`, or `wait_until`) threads.]]
+[[Effects:] [transfers ownership of the lock associated with `lk` into internal storage and schedules `cond` to be notified when the current thread exits, after all objects of thread storage duration associated with the current thread have been destroyed. This notification shall be as if
+
+``
+  lk.unlock();
+  cond.notify_all();
+``
+
+]]
+
+]
+
+[/
+[[Synchronization:] [The call to notify_all_at_thread_exit and the completion of the destructors for all the current thread’s variables of thread storage duration synchronize with (1.10) calls to functions waiting on cond.
+]]
+[[Note:] [The supplied lock will be held until the thread exits, and care must be taken to ensure that this does not cause deadlock due to lock ordering issues. After calling notify_all_at_thread_exit it is recommended that the thread should be exited as soon as possible, and that no blocking or time-consuming tasks are run on that thread.
+]]
+[[Note:] [It is the user’s responsibility to ensure that waiting threads do not erroneously assume that the thread has finished if they experience spurious wakeups. This typically requires that the condition being waited for is satisfied while holding the lock on lk, and that this lock is not released and reacquired prior to calling notify_all_at_thread_exit.
+]]
+]
+
+[endsect]
+
+[endsect]

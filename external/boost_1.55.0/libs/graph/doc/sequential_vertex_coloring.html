@@ -1,0 +1,116 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<!--
+     Copyright (c) 2005 Trustees of Indiana University
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+  <head>
+    <title>Boost Graph Library: Sequential Vertex Coloring</title>
+  </head>
+
+  <body>
+    <IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+<h1><img src="figs/python.gif" alt="(Python)"/><tt>sequential_vertex_coloring</tt></h1>
+
+    <p>
+    <pre>
+template&lt;class VertexListGraph, class OrderPA, class ColorMap&gt;
+typename property_traits&lt;ColorMap&gt;::value_type
+sequential_vertex_coloring(const VertexListGraph&amp; g, OrderPA order, 
+                           ColorMap color);
+
+template&lt;class VertexListGraph, class ColorMap&gt;
+typename property_traits&lt;ColorMap&gt;::value_type
+sequential_vertex_coloring(const VertexListGraph&amp; g, ColorMap color);
+    </pre>
+
+<p>Computes a <a href="graph_coloring.html">vertex coloring</a> for
+the vertices in the graph, using a simple algorithm [<a
+href="bibliography.html#coleman83">59</a>]. Given vertices 
+ordered v<sub>1</sub>, v<sub>2</sub>, ... , v<sub>n</sub>, for k = 1,
+2, ..., n the algorithm assigns v<sub>k</sub> to the smallest possible
+color. The algorithm does not guarantee an optimum coloring.
+
+<p>Here is the coloring that would be produced on a graph given the
+vertex ordering A, B, C, D, E.
+
+<p><img src="figs/sequential_vertex_coloring.png">,
+
+<h3>Where Defined</h3>
+<a href="../../../boost/graph/sequential_vertex_coloring.hpp"><tt>boost/graph/sequential_vertex_coloring.hpp</tt></a>
+
+<h3>Parameters</h3>
+IN: <tt>const Graph&amp; g</tt>
+<blockquote>
+  The graph object on which the algorithm will be applied.  The type
+  <tt>Graph</tt> must be a model of <a
+  href="VertexListGraph.html">Vertex List Graph</a> and <a
+  href="AdjacencyGraph.html">Adjacency Graph</a>.<br>
+<b>Python</b>: The parameter is named <tt>graph</tt>.
+</blockquote>
+    
+OUT: <tt>ColorMap color</tt> 
+<blockquote>
+  This property map records the colors of each vertex. It must be a
+  model of
+  <a href="../../property_map/doc/WritablePropertyMap.html">Writeable
+  Property Map</a> whose key type is the same as the vertex descriptor
+  type of the graph and whose value type is an integral type that can
+  store all values of the graph's <tt>vertices_size_type</tt>.<br>
+  <b>Python</b>: Must be an <tt>vertex_int_map</tt> for the graph.
+</blockquote>
+
+IN: <tt>OrderPA order</tt> 
+<blockquote>
+  A mapping from integers in the range <em>[0, num_vertices(g))</em>
+  to the vertices of the graph.<br>
+
+  <b>Default:</b> A property map ordering the vertices in the same way
+  they are ordered by <tt>vertices(g)</tt>.<br>
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+<h3>Complexity</h3>
+
+The time complexity is <em>O(V(d+k))</em>, where <em>V</em> is the
+number of vertices, <em>d</em> is the maximum degree of the vertices
+in the graph, and <em>k</em> is the number of colors used.
+
+<h3>Example</h3>
+<pre>
+  typedef adjacency_list&lt;listS, vecS, undirectedS&gt; Graph;
+  typedef graph_traits&lt;Graph&gt;::vertex_descriptor vertex_descriptor;
+  typedef graph_traits&lt;Graph&gt;::vertices_size_type vertices_size_type;
+  typedef property_map&lt;Graph, vertex_index_t&gt;::const_type vertex_index_map;
+
+  typedef std::pair&lt;int, int&gt; Edge;
+  enum nodes {A, B, C, D, E, n};
+  Edge edge_array[] = { Edge(A, C), Edge(B, B), Edge(B, D), Edge(B, E), 
+                        Edge(C, B), Edge(C, D), Edge(D, E), Edge(E, A), 
+                        Edge(E, B) };
+  int m = sizeof(edge_array) / sizeof(Edge);
+  Graph g(edge_array, edge_array + m, n);
+
+  <em>// Test with the normal order</em>
+  std::vector&lt;vertices_size_type&gt; color_vec(num_vertices(g));
+  iterator_property_map&lt;vertices_size_type*, vertex_index_map&gt;
+    color(&amp;color_vec.front(), get(vertex_index, g));
+  <b>vertices_size_type num_colors = sequential_vertex_coloring(g, color);</b>
+</pre>
+
+    <hr>
+
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 1997-2004</TD><TD>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/doug_gregor.html">Douglas Gregor</A>, Indiana University (dgregor -at- cs.indiana.edu)</A>)
+</TD></TR></TABLE>
+  </body>
+</html>

@@ -1,0 +1,4 @@
+{ "name": "packed-less",
+  "version": "1.6.2",
+  "dependencies": { "less": "1.6.2" },
+  "bundleDependencies": [ "less" ] }

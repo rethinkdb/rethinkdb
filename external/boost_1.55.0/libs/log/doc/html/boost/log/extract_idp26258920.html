@@ -1,0 +1,84 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function template extract</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../attributes.html#header.boost.log.attributes.value_extraction_hpp" title="Header &lt;boost/log/attributes/value_extraction.hpp&gt;">
+<link rel="prev" href="extract_or_def_idp26254856.html" title="Function template extract_or_default">
+<link rel="next" href="extract_idp26262712.html" title="Function template extract">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="extract_or_def_idp26254856.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../attributes.html#header.boost.log.attributes.value_extraction_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="extract_idp26262712.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.extract_idp26258920"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Function template extract</span></h2>
+<p>boost::log::extract</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../attributes.html#header.boost.log.attributes.value_extraction_hpp" title="Header &lt;boost/log/attributes/value_extraction.hpp&gt;">boost/log/attributes/value_extraction.hpp</a>&gt;
+
+</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DescriptorT<span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT<span class="special">&gt;</span> 
+  <a class="link" href="result_of/extract.html" title="Struct template extract">result_of::extract</a><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="identifier">DescriptorT</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">DescriptorT</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> 
+  <span class="identifier">extract</span><span class="special">(</span><span class="identifier">expressions</span><span class="special">::</span><span class="identifier">attribute_keyword</span><span class="special">&lt;</span> <span class="identifier">DescriptorT</span><span class="special">,</span> <span class="identifier">ActorT</span> <span class="special">&gt;</span> <span class="keyword">const</span> <span class="special">&amp;</span> keyword<span class="special">,</span> 
+          <a class="link" href="attribute_value_set.html" title="Class attribute_value_set">attribute_value_set</a> <span class="keyword">const</span> <span class="special">&amp;</span> attrs<span class="special">)</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp57371720"></a><h2>Description</h2>
+<p>The function extracts an attribute value from the view. The user has to explicitly specify the type or set of possible types of the attribute value to be extracted.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">attrs</code></span></p></td>
+<td><p>A set of attribute values in which to look for the specified attribute value. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">keyword</code></span></p></td>
+<td><p>The keyword of the attribute value to extract. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>A <code class="computeroutput">value_ref</code> that refers to the extracted value, if found. An empty value otherwise. </p></td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="extract_or_def_idp26254856.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../attributes.html#header.boost.log.attributes.value_extraction_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="extract_idp26262712.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

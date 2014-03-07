@@ -1,0 +1,520 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>The Incomplete Beta Function Inverses</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Math Toolkit">
+<link rel="up" href="../sf_beta.html" title="Beta Functions">
+<link rel="prev" href="ibeta_function.html" title="Incomplete Beta Functions">
+<link rel="next" href="beta_derivative.html" title="Derivative of the Incomplete Beta Function">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ibeta_function.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../sf_beta.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="beta_derivative.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="math_toolkit.sf_beta.ibeta_inv_function"></a><a class="link" href="ibeta_inv_function.html" title="The Incomplete Beta Function Inverses">The Incomplete
+      Beta Function Inverses</a>
+</h3></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">special_functions</span><span class="special">/</span><span class="identifier">beta</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">math</span><span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T4</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">T4</span><span class="special">*</span> <span class="identifier">py</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T4</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">T4</span><span class="special">*</span> <span class="identifier">py</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">q</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">q</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T4</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">q</span><span class="special">,</span> <span class="identifier">T4</span><span class="special">*</span> <span class="identifier">py</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T4</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">q</span><span class="special">,</span> <span class="identifier">T4</span><span class="special">*</span> <span class="identifier">py</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_inva</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_inva</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_inva</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">q</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_inva</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">q</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_invb</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_invb</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_invb</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">q</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_invb</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">q</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<h5>
+<a name="math_toolkit.sf_beta.ibeta_inv_function.h0"></a>
+        <span class="phrase"><a name="math_toolkit.sf_beta.ibeta_inv_function.description"></a></span><a class="link" href="ibeta_inv_function.html#math_toolkit.sf_beta.ibeta_inv_function.description">Description</a>
+      </h5>
+<p>
+        There are six <a href="http://functions.wolfram.com/GammaBetaErf/" target="_top">incomplete
+        beta function inverses</a> which allow you solve for any of the three
+        parameters to the incomplete beta, starting from either the result of the
+        incomplete beta (p) or its complement (q).
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+          When people normally talk about the inverse of the incomplete beta function,
+          they are talking about inverting on parameter <span class="emphasis"><em>x</em></span>. These
+          are implemented here as ibeta_inv and ibetac_inv, and are by far the most
+          efficient of the inverses presented here.
+        </p>
+<p>
+          The inverses on the <span class="emphasis"><em>a</em></span> and <span class="emphasis"><em>b</em></span> parameters
+          find use in some statistical applications, but have to be computed by rather
+          brute force numerical techniques and are consequently several times slower.
+          These are implemented here as ibeta_inva and ibeta_invb, and complement
+          versions ibetac_inva and ibetac_invb.
+        </p>
+</td></tr>
+</table></div>
+<p>
+        The return type of these functions is computed using the <a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>result
+        type calculation rules</em></span></a> when called with arguments T1...TN
+        of different types.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T4</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">T4</span><span class="special">*</span> <span class="identifier">py</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T4</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">T4</span><span class="special">*</span> <span class="identifier">py</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<p>
+        Returns a value <span class="emphasis"><em>x</em></span> such that: <code class="computeroutput"><span class="identifier">p</span>
+        <span class="special">=</span> <span class="identifier">ibeta</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span>
+        <span class="identifier">b</span><span class="special">,</span> <span class="identifier">x</span><span class="special">);</span></code> and
+        sets <code class="computeroutput"><span class="special">*</span><span class="identifier">py</span>
+        <span class="special">=</span> <span class="number">1</span> <span class="special">-</span> <span class="identifier">x</span></code> when
+        the <code class="computeroutput"><span class="identifier">py</span></code> parameter is provided
+        and is non-null. Note that internally this function computes whichever is
+        the smaller of <code class="computeroutput"><span class="identifier">x</span></code> and <code class="computeroutput"><span class="number">1</span><span class="special">-</span><span class="identifier">x</span></code>,
+        and therefore the value assigned to <code class="computeroutput"><span class="special">*</span><span class="identifier">py</span></code> is free from cancellation errors. That
+        means that even if the function returns <code class="computeroutput"><span class="number">1</span></code>,
+        the value stored in <code class="computeroutput"><span class="special">*</span><span class="identifier">py</span></code>
+        may be non-zero, albeit very small.
+      </p>
+<p>
+        Requires: <span class="emphasis"><em>a,b &gt; 0</em></span> and <span class="emphasis"><em>0 &lt;= p &lt;= 1</em></span>.
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">q</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">q</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T4</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">q</span><span class="special">,</span> <span class="identifier">T4</span><span class="special">*</span> <span class="identifier">py</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T4</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_inv</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">q</span><span class="special">,</span> <span class="identifier">T4</span><span class="special">*</span> <span class="identifier">py</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<p>
+        Returns a value <span class="emphasis"><em>x</em></span> such that: <code class="computeroutput"><span class="identifier">q</span>
+        <span class="special">=</span> <span class="identifier">ibetac</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span>
+        <span class="identifier">b</span><span class="special">,</span> <span class="identifier">x</span><span class="special">);</span></code> and
+        sets <code class="computeroutput"><span class="special">*</span><span class="identifier">py</span>
+        <span class="special">=</span> <span class="number">1</span> <span class="special">-</span> <span class="identifier">x</span></code> when
+        the <code class="computeroutput"><span class="identifier">py</span></code> parameter is provided
+        and is non-null. Note that internally this function computes whichever is
+        the smaller of <code class="computeroutput"><span class="identifier">x</span></code> and <code class="computeroutput"><span class="number">1</span><span class="special">-</span><span class="identifier">x</span></code>,
+        and therefore the value assigned to <code class="computeroutput"><span class="special">*</span><span class="identifier">py</span></code> is free from cancellation errors. That
+        means that even if the function returns <code class="computeroutput"><span class="number">1</span></code>,
+        the value stored in <code class="computeroutput"><span class="special">*</span><span class="identifier">py</span></code>
+        may be non-zero, albeit very small.
+      </p>
+<p>
+        Requires: <span class="emphasis"><em>a,b &gt; 0</em></span> and <span class="emphasis"><em>0 &lt;= q &lt;= 1</em></span>.
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_inva</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_inva</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<p>
+        Returns a value <span class="emphasis"><em>a</em></span> such that: <code class="computeroutput"><span class="identifier">p</span>
+        <span class="special">=</span> <span class="identifier">ibeta</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span>
+        <span class="identifier">b</span><span class="special">,</span> <span class="identifier">x</span><span class="special">);</span></code>
+      </p>
+<p>
+        Requires: <span class="emphasis"><em>b &gt; 0</em></span>, <span class="emphasis"><em>0 &lt; x &lt; 1</em></span>
+        and <span class="emphasis"><em>0 &lt;= p &lt;= 1</em></span>.
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_inva</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_inva</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<p>
+        Returns a value <span class="emphasis"><em>a</em></span> such that: <code class="computeroutput"><span class="identifier">q</span>
+        <span class="special">=</span> <span class="identifier">ibetac</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span>
+        <span class="identifier">b</span><span class="special">,</span> <span class="identifier">x</span><span class="special">);</span></code>
+      </p>
+<p>
+        Requires: <span class="emphasis"><em>b &gt; 0</em></span>, <span class="emphasis"><em>0 &lt; x &lt; 1</em></span>
+        and <span class="emphasis"><em>0 &lt;= q &lt;= 1</em></span>.
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_invb</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibeta_invb</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<p>
+        Returns a value <span class="emphasis"><em>b</em></span> such that: <code class="computeroutput"><span class="identifier">p</span>
+        <span class="special">=</span> <span class="identifier">ibeta</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span>
+        <span class="identifier">b</span><span class="special">,</span> <span class="identifier">x</span><span class="special">);</span></code>
+      </p>
+<p>
+        Requires: <span class="emphasis"><em>a &gt; 0</em></span>, <span class="emphasis"><em>0 &lt; x &lt; 1</em></span>
+        and <span class="emphasis"><em>0 &lt;= p &lt;= 1</em></span>.
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_invb</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T2</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">T3</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">ibetac_invb</span><span class="special">(</span><span class="identifier">T1</span> <span class="identifier">b</span><span class="special">,</span> <span class="identifier">T2</span> <span class="identifier">x</span><span class="special">,</span> <span class="identifier">T3</span> <span class="identifier">p</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<p>
+        Returns a value <span class="emphasis"><em>b</em></span> such that: <code class="computeroutput"><span class="identifier">q</span>
+        <span class="special">=</span> <span class="identifier">ibetac</span><span class="special">(</span><span class="identifier">a</span><span class="special">,</span>
+        <span class="identifier">b</span><span class="special">,</span> <span class="identifier">x</span><span class="special">);</span></code>
+      </p>
+<p>
+        Requires: <span class="emphasis"><em>a &gt; 0</em></span>, <span class="emphasis"><em>0 &lt; x &lt; 1</em></span>
+        and <span class="emphasis"><em>0 &lt;= q &lt;= 1</em></span>.
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<h5>
+<a name="math_toolkit.sf_beta.ibeta_inv_function.h1"></a>
+        <span class="phrase"><a name="math_toolkit.sf_beta.ibeta_inv_function.accuracy"></a></span><a class="link" href="ibeta_inv_function.html#math_toolkit.sf_beta.ibeta_inv_function.accuracy">Accuracy</a>
+      </h5>
+<p>
+        The accuracy of these functions should closely follow that of the regular
+        forward incomplete beta functions. However, note that in some parts of their
+        domain, these functions can be extremely sensitive to changes in input, particularly
+        when the argument <span class="emphasis"><em>p</em></span> (or it's complement <span class="emphasis"><em>q</em></span>)
+        is very close to <code class="computeroutput"><span class="number">0</span></code> or <code class="computeroutput"><span class="number">1</span></code>.
+      </p>
+<h5>
+<a name="math_toolkit.sf_beta.ibeta_inv_function.h2"></a>
+        <span class="phrase"><a name="math_toolkit.sf_beta.ibeta_inv_function.testing"></a></span><a class="link" href="ibeta_inv_function.html#math_toolkit.sf_beta.ibeta_inv_function.testing">Testing</a>
+      </h5>
+<p>
+        There are two sets of tests:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Basic sanity checks attempt to "round-trip" from <span class="emphasis"><em>a,
+            b</em></span> and <span class="emphasis"><em>x</em></span> to <span class="emphasis"><em>p</em></span> or
+            <span class="emphasis"><em>q</em></span> and back again. These tests have quite generous
+            tolerances: in general both the incomplete beta and its inverses change
+            so rapidly, that round tripping to more than a couple of significant
+            digits isn't possible. This is especially true when <span class="emphasis"><em>p</em></span>
+            or <span class="emphasis"><em>q</em></span> is very near one: in this case there isn't
+            enough "information content" in the input to the inverse function
+            to get back where you started.
+          </li>
+<li class="listitem">
+            Accuracy checks using high precision test values. These measure the accuracy
+            of the result, given exact input values.
+          </li>
+</ul></div>
+<h5>
+<a name="math_toolkit.sf_beta.ibeta_inv_function.h3"></a>
+        <span class="phrase"><a name="math_toolkit.sf_beta.ibeta_inv_function.implementation_of_ibeta_inv_and_"></a></span><a class="link" href="ibeta_inv_function.html#math_toolkit.sf_beta.ibeta_inv_function.implementation_of_ibeta_inv_and_">Implementation
+        of ibeta_inv and ibetac_inv</a>
+      </h5>
+<p>
+        These two functions share a common implementation.
+      </p>
+<p>
+        First an initial approximation to x is computed then the last few bits are
+        cleaned up using <a href="http://en.wikipedia.org/wiki/Simple_rational_approximation" target="_top">Halley
+        iteration</a>. The iteration limit is set to 1/2 of the number of bits
+        in T, which by experiment is sufficient to ensure that the inverses are at
+        least as accurate as the normal incomplete beta functions. Up to 5 iterations
+        may be required in extreme cases, although normally only one or two are required.
+        Further, the number of iterations required decreases with increasing <span class="emphasis"><em>a</em></span>
+        and <span class="emphasis"><em>b</em></span> (which generally form the more important use cases).
+      </p>
+<p>
+        The initial guesses used for iteration are obtained as follows:
+      </p>
+<p>
+        Firstly recall that:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ibeta_inv5.png"></span>
+      </p>
+<p>
+        We may wish to start from either p or q, and to calculate either x or y.
+        In addition at any stage we can exchange a for b, p for q, and x for y if
+        it results in a more manageable problem.
+      </p>
+<p>
+        For <code class="computeroutput"><span class="identifier">a</span><span class="special">+</span><span class="identifier">b</span> <span class="special">&gt;=</span> <span class="number">5</span></code> the initial guess is computed using the methods
+        described in:
+      </p>
+<p>
+        Asymptotic Inversion of the Incomplete Beta Function, by N. M. <a href="http://homepages.cwi.nl/~nicot/" target="_top">Temme</a>.
+        Journal of Computational and Applied Mathematics 41 (1992) 145-157.
+      </p>
+<p>
+        The nearly symmetrical case (section 2 of the paper) is used for
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ibeta_inv2.png"></span>
+      </p>
+<p>
+        and involves solving the inverse error function first. The method is accurate
+        to at least 2 decimal digits when <code class="literal">a = 5</code> rising to at least
+        8 digits when <code class="literal">a = 10<sup>5</sup></code>.
+      </p>
+<p>
+        The general error function case (section 3 of the paper) is used for
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ibeta_inv3.png"></span>
+      </p>
+<p>
+        and again expresses the inverse incomplete beta in terms of the inverse of
+        the error function. The method is accurate to at least 2 decimal digits when
+        <code class="literal">a+b = 5</code> rising to 11 digits when <code class="literal">a+b = 10<sup>5</sup></code>.
+        However, when the result is expected to be very small, and when a+b is also
+        small, then its accuracy tails off, in this case when p<sup>1/a</sup> &lt; 0.0025 then
+        it is better to use the following as an initial estimate:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ibeta_inv4.png"></span>
+      </p>
+<p>
+        Finally the for all other cases where <code class="computeroutput"><span class="identifier">a</span><span class="special">+</span><span class="identifier">b</span> <span class="special">&gt;</span>
+        <span class="number">5</span></code> the method of section 4 of the paper
+        is used. This expresses the inverse incomplete beta in terms of the inverse
+        of the incomplete gamma function, and is therefore significantly more expensive
+        to compute than the other cases. However the method is accurate to at least
+        3 decimal digits when <code class="literal">a = 5</code> rising to at least 10 digits
+        when <code class="literal">a = 10<sup>5</sup></code>. This method is limited to a &gt; b, and
+        therefore we need to perform an exchange a for b, p for q and x for y when
+        this is not the case. In addition when p is close to 1 the method is inaccurate
+        should we actually want y rather than x as output. Therefore when q is small
+        (<code class="literal">q<sup>1/p</sup> &lt; 10<sup>-3</sup></code>) we use:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ibeta_inv6.png"></span>
+      </p>
+<p>
+        which is both cheaper to compute than the full method, and a more accurate
+        estimate on q.
+      </p>
+<p>
+        When a and b are both small there is a distinct lack of information in the
+        literature on how to proceed. I am extremely grateful to Prof Nico Temme
+        who provided the following information with a great deal of patience and
+        explanation on his part. Any errors that follow are entirely my own, and
+        not Prof Temme's.
+      </p>
+<p>
+        When a and b are both less than 1, then there is a point of inflection in
+        the incomplete beta at point <code class="computeroutput"><span class="identifier">xs</span>
+        <span class="special">=</span> <span class="special">(</span><span class="number">1</span> <span class="special">-</span> <span class="identifier">a</span><span class="special">)</span> <span class="special">/</span> <span class="special">(</span><span class="number">2</span> <span class="special">-</span> <span class="identifier">a</span>
+        <span class="special">-</span> <span class="identifier">b</span><span class="special">)</span></code>. Therefore if <code class="literal">p &gt; I<sub>x</sub>(a,b)</code>
+        we swap a for b, p for q and x for y, so that now we always look for a point
+        x below the point of inflection <code class="computeroutput"><span class="identifier">xs</span></code>,
+        and on a convex curve. An initial estimate for x is made with:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ibeta_inv7.png"></span>
+      </p>
+<p>
+        which is provably below the true value for x: <a href="http://en.wikipedia.org/wiki/Newton%27s_method" target="_top">Newton
+        iteration</a> will therefore smoothly converge on x without problems
+        caused by overshooting etc.
+      </p>
+<p>
+        When a and b are both greater than 1, but a+b is too small to use the other
+        methods mentioned above, we proceed as follows. Observe that there is a point
+        of inflection in the incomplete beta at <code class="computeroutput"><span class="identifier">xs</span>
+        <span class="special">=</span> <span class="special">(</span><span class="number">1</span> <span class="special">-</span> <span class="identifier">a</span><span class="special">)</span> <span class="special">/</span> <span class="special">(</span><span class="number">2</span> <span class="special">-</span> <span class="identifier">a</span>
+        <span class="special">-</span> <span class="identifier">b</span><span class="special">)</span></code>. Therefore if <code class="literal">p &gt; I<sub>x</sub>(a,b)</code>
+        we swap a for b, p for q and x for y, so that now we always look for a point
+        x below the point of inflection <code class="computeroutput"><span class="identifier">xs</span></code>,
+        and on a concave curve. An initial estimate for x is made with:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ibeta_inv4.png"></span>
+      </p>
+<p>
+        which can be improved somewhat to:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ibeta_inv1.png"></span>
+      </p>
+<p>
+        when b and x are both small (I've used b &lt; a and x &lt; 0.2). This actually
+        under-estimates x, which drops us on the wrong side of x for Newton iteration
+        to converge monotonically. However, use of higher derivatives and Halley
+        iteration keeps everything under control.
+      </p>
+<p>
+        The final case to be considered if when one of a and b is less than or equal
+        to 1, and the other greater that 1. Here, if b &lt; a we swap a for b, p
+        for q and x for y. Now the curve of the incomplete beta is convex with no
+        points of inflection in [0,1]. For small p, x can be estimated using
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ibeta_inv4.png"></span>
+      </p>
+<p>
+        which under-estimates x, and drops us on the right side of the true value
+        for Newton iteration to converge monotonically. However, when p is large
+        this can quite badly underestimate x. This is especially an issue when we
+        really want to find y, in which case this method can be an arbitrary number
+        of order of magnitudes out, leading to very poor convergence during iteration.
+      </p>
+<p>
+        Things can be improved by considering the incomplete beta as a distorted
+        quarter circle, and estimating y from:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/ibeta_inv8.png"></span>
+      </p>
+<p>
+        This doesn't guarantee that we will drop in on the right side of x for monotonic
+        convergence, but it does get us close enough that Halley iteration rapidly
+        converges on the true value.
+      </p>
+<h5>
+<a name="math_toolkit.sf_beta.ibeta_inv_function.h4"></a>
+        <span class="phrase"><a name="math_toolkit.sf_beta.ibeta_inv_function.implementation_of_inverses_on_th"></a></span><a class="link" href="ibeta_inv_function.html#math_toolkit.sf_beta.ibeta_inv_function.implementation_of_inverses_on_th">Implementation
+        of inverses on the a and b parameters</a>
+      </h5>
+<p>
+        These four functions share a common implementation.
+      </p>
+<p>
+        First an initial approximation is computed for <span class="emphasis"><em>a</em></span> or
+        <span class="emphasis"><em>b</em></span>: where possible this uses a Cornish-Fisher expansion
+        for the negative binomial distribution to get within around 1 of the result.
+        However, when <span class="emphasis"><em>a</em></span> or <span class="emphasis"><em>b</em></span> are very small
+        the Cornish Fisher expansion is not usable, in this case the initial approximation
+        is chosen so that I<sub>x</sub>(a, b) is near the middle of the range [0,1].
+      </p>
+<p>
+        This initial guess is then used as a starting value for a generic root finding
+        algorithm. The algorithm converges rapidly on the root once it has been bracketed,
+        but bracketing the root may take several iterations. A better initial approximation
+        for <span class="emphasis"><em>a</em></span> or <span class="emphasis"><em>b</em></span> would improve these
+        functions quite substantially: currently 10-20 incomplete beta function invocations
+        are required to find the root.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="ibeta_function.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../sf_beta.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="beta_derivative.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

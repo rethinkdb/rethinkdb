@@ -1,0 +1,53 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:timers Timers]
+
+Long running I/O operations will often have a deadline by which they must have
+completed. These deadlines may be expressed as absolute times, but are often
+calculated relative to the current time.
+
+As a simple example, to perform a synchronous wait operation on a timer using a
+relative time one may write:
+
+  io_service i;
+  ...
+  deadline_timer t(i);
+  t.expires_from_now(boost::posix_time::seconds(5));
+  t.wait();
+
+More commonly, a program will perform an asynchronous wait operation on a
+timer:
+
+  void handler(boost::system::error_code ec) { ... }
+  ...
+  io_service i;
+  ...
+  deadline_timer t(i);
+  t.expires_from_now(boost::posix_time::milliseconds(400));
+  t.async_wait(handler);
+  ...
+  i.run();
+
+The deadline associated with a timer may also be obtained as a relative time:
+
+  boost::posix_time::time_duration time_until_expiry
+    = t.expires_from_now();
+
+or as an absolute time to allow composition of timers:
+
+  deadline_timer t2(i);
+  t2.expires_at(t.expires_at() + boost::posix_time::seconds(30));
+
+[heading See Also]
+
+[link boost_asio.reference.basic_deadline_timer basic_deadline_timer],
+[link boost_asio.reference.deadline_timer deadline_timer],
+[link boost_asio.reference.deadline_timer_service deadline_timer_service],
+[link boost_asio.tutorial.tuttimer1 timer tutorials].
+
+[endsect]

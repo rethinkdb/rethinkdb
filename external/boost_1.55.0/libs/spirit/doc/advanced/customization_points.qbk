@@ -1,0 +1,2869 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[import ../example/karma/customize_embedded_container.cpp]    [/ this pulls in the embedded_container example]
+[import ../example/karma/customize_counter.cpp]               [/ this pulls in the counter example]
+[import ../example/karma/customize_use_as_container.cpp]      [/ this pulls in the use_as_container example]
+
+[def __customize_embedded_container_example__ [link spirit.advanced.customize.iterate.container_iterator.example embedded_container_example]]
+[def __customize_counter_example__ [link spirit.advanced.customize.iterate.deref_iterator.example counter_example]]
+[def __customize_use_as_container_example__ [link spirit.advanced.customize.iterate.next_iterator.example use_as_container]]
+
+[section:customize Customization of Spirit's Attribute Handling]
+
+[heading Why do we need Attribute Customization Points]
+
+[important Before you read on please be aware that the interfaces described in
+           this section are not finalized and may change in the future without 
+           attempting to be backwards compatible. We document the customization
+           point interfaces anyways as we think they are important. 
+           Understanding customization points helps understanding Spirit. 
+           Additionally they prove to be powerful tools enabling full 
+           integration of the user's data structures with /Qi's/ parsers and
+           /Karma's/ generators.]
+
+__spirit__ has been written with extensibility in mind. It provides many 
+different attribute customization points allowing to integrate custom data 
+types with the process of parsing in __qi__ or output generation with 
+__karma__. All attribute customization points are exposed using a similar 
+technique: full or partial template specialization. __spirit__ generally 
+implements the main template, providing a default implementation. You as the 
+user have to provide a partial or full specialization of this template for the 
+data types you want to integrate with the library. In fact, the library uses 
+these customization points itself for instance to handle the magic of the 
+__unused_type__ attribute type. 
+
+Here is an example showing the __customize_container_value__ customization point 
+used by different parsers (such as __qi_kleene__, __qi_plus__, etc.) to find 
+the attribute type to be stored in a supplied STL container:
+
+[import ../../../../boost/spirit/home/support/container.hpp]
+
+[customization_container_value_default]
+
+This template is instantiated by the library at the appropriate places while 
+using the supplied container type as the template argument. The embedded `type` 
+is used as the attribute type while parsing the elements to be store in that 
+container.
+
+The following example shows the predefined specialization for __unused_type__:
+
+[customization_container_value_unused]
+
+which defines its embedded `type` to be __unused_type__ as well, this way
+propagating the 'don't care' attribute status to the embedded parser.
+
+All attribute customization points follow the same scheme. The last template 
+parameter is always `typename Enable = void` allowing to apply SFINAE for
+fine grained control over the template specialization process. But most of the
+time you can safely forget about its existence.
+
+The following sections will describe all customization points, together with a 
+description which needs to be specialized for what purpose.
+
+[heading The Usage of Customization Points]
+
+The different customizations points are used by different parts of the library.
+Part of the customizations points are used by both, __qi__ and __karma__, 
+whereas others are specialized to be applied for one of the sub-libraries only.
+We will explain when a specific customization point needs to be implemented and,
+equally important, which customization points need to be implemented at the 
+same time. Often it is not sufficient to provide a specialization for one 
+single customization point only, in this case you as the user have to provide
+all necessary customizations for your data type you want to integrate with the
+library.
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:is_container Determine if a Type Should be Treated as a Container (Qi and Karma)]
+
+[heading is_container]
+
+The template `is_container` is a template meta-function used as an attribute 
+customization point. It is invoked by the /Qi/ __qi_sequence__ (`>>`) and 
+/Karma/ __karma_sequence__ operators in order to determine whether a supplied
+attribute can potentially be treated as a container.
+
+[heading Header]
+
+    #include <boost/spirit/home/support/container.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Container, typename Enable>
+    struct is_container
+    {
+        <unspecified>;
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]                                 [Default]]
+    [[`Container`]          [The type, `Container` which needs to 
+                             be tested whether it has to be treated
+                             as a container]                              [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `is_container` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation
+    [[`C`]          [A type to be tested whether it needs to be treated
+                     as a container.]]
+    [[`T1`, `T2`, ...]  [Arbitrary types]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]                 [Semantics]]
+    [[`is_container<C>::type`]    [Result of the metafunction that evaluates to 
+                                   `mpl::true_` if a given type, `C`, is to be 
+                                   treated as a container, `mpl::false_` otherwise 
+                                   Generally, any implementation of `is_container` 
+                                   needs to behave as if if was a __mpl_boolean_constant__..]]
+]
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. The following table lists those types together with the 
+conditions for which the corresponding specializations will evaluate to 
+`mpl::true_` (see __mpl_boolean_constant__):
+
+[table
+    [[Template Parameters]     [Semantics]]
+    [[`T`]                    [Returns `mpl::true_` if `T` has the following 
+                               embedded types defined: `value_type`, 
+                               `iterator`, `size_type`, and`reference`.
+                               Otherwise it will return `mpl::false_`.]]
+    [[`boost::optional<T>`]   [Returns `is_container<T>::type`]]
+    [[`boost::variant<T1, T2, ...>`]
+                              [Returns `mpl::true_` if at least one of the 
+                              `is_container<TN>::type` returns `mpl::true_` 
+                              (where `TN` is `T1`, `T2`, ...).
+                              Otherwise it will return `mpl::false_`.]]
+    [[__unused_type__]        [Returns `mpl::false_`.]]
+]
+
+[heading When to implement]
+
+The customization point `is_container` needs to be implemented for a specific 
+type whenever this type is to be used as an attribute in place of a STL 
+container. It is applicable for parsers (__qi__) and generators (__karma__).
+As a rule of thumb: it has to be implemented whenever a certain type 
+is to be passed as an attribute to a parser or a generator normally exposing a 
+STL container, `C` and if the type does not expose the interface of a STL container
+(i.e. `is_container<C>::type` would normally return `mpl::false_`). These 
+components have an attribute propagation rule in the form:
+
+    a: A --> Op(a): vector<A>
+
+where `Op(a)` stands for any meaningful operation on the component `a`.
+
+[heading Related Attribute Customization Points]
+
+If this customization point is implemented, the following other customization 
+points might need to be implemented as well.
+
+[table
+    [[Name]                   [When to implement]]
+    [[__customize_container_value__]      [Needs to be implemented whenever `is_container` is implemented.]]
+    [[__customize_push_back_container__]  [Qi: __qi_list__, __qi_kleene__, __qi_plus__, [qi_repeat Repeat].]]
+    [[__customize_container_iterator__]   [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_begin_container__]      [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_end_container__]        [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_deref_iterator__]       [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_next_iterator__]        [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_compare_iterators__]    [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_clear_value__]          [Qi: __qi_list__, __qi_kleene__, __qi_plus__, [qi_repeat Repeat].]]
+]
+
+[heading Example]
+
+For examples of how to use the customization point `is_container` please
+see here: __customize_embedded_container_example__, 
+__customize_use_as_container_example__, and __customize_counter_example__.
+
+[endsect] [/ is_container]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:is_string Determine if a Type Should be Treated as a String (Qi and Karma)]
+
+[heading is_string]
+
+The `is_string` customization point is a template meta-function. It is used by
+/Qi/ [qi_lit_string String Literals] (`lit(str)`), /Qi/ [qi_lit_char Character Literals]
+(`lit(c)`), /Karma/ [karma_lit_string String Literals] (`lit(str)`), /Karma/ [karma_lit_char Character Literals]
+(`lit(c)`) and other Spirit components. It determines whether a supplied type
+can be treated as a string.
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/support/string_traits.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename T>
+    struct is_string
+    {
+        <unspecified>;
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter] [Description]                                        [Default]]
+    [[`T`]       [The type, `T` which needs to be tested as a string] [none]]
+]
+
+[variablelist Notation
+    [[`T`]              [An arbitrary type.]]
+    [[`N`]              [An arbitrary integral constant.]]
+    [[`Char`]           [A character type.]]
+    [[`Traits`]         [A character traits type.]]
+    [[`Allocator`]      [A standard allocator type.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]       [Semantics]]
+    [[`is_string<T>::type`] [Result of the metafunction that evalutes to mpl::true_
+                             if a given type, `T`, is to be treated as a string and
+                             mpl::false_ otherwise. Generally,
+                             any implementation of `is_string` needs to behave as 
+                             if if was a __mpl_boolean_constant__.]]
+]
+
+[heading Predefined Specializations]
+
+[table
+    [[Type]                                           [Semantics]]
+    [[`T`]                                            [Returns `mpl::false_`.]]
+    [[`T const`]                                      [Returns `is_string<T>`.]]
+    [[`char const*`]                                  [Returns `mpl::true_`.]]
+    [[`wchar_t const*`]                               [Returns `mpl::true_`.]]
+    [[`char*`]                                        [Returns `mpl::true_`.]]
+    [[`wchar_t*`]                                     [Returns `mpl::true_`.]]
+    [[`char[N]`]                                      [Returns `mpl::true_`.]]
+    [[`wchar_t[N]`]                                   [Returns `mpl::true_`.]]
+    [[`char const[N]`]                                [Returns `mpl::true_`.]]
+    [[`wchar_t const[N]`]                             [Returns `mpl::true_`.]]
+    [[`char(&)[N]`]                                   [Returns `mpl::true_`.]]
+    [[`wchar_t(&)[N]`]                                [Returns `mpl::true_`.]]
+    [[`char const(&)[N]`]                             [Returns `mpl::true_`.]]
+    [[`wchar_t const(&)[N]`]                          [Returns `mpl::true_`.]]
+    [[`std::basic_string<Char, Traits, Allocator>`]   [Returns `mpl::true_`.]]
+]
+
+[heading When to implement]
+
+This customization point needs to be implemented to use user-defined string classes
+that do not correspond to std::string syntax and semantics.
+
+[heading Related Attribute Customization Points]
+
+If this customization point is implemented, the following other customization 
+points need to be implemented as well.
+
+[table
+    [[Name]                   [When to implement]]
+    [[__customize_is_char__]   [For string types whose underlying character type
+                                is not `char` or `wchar_t`, `is_char` must be 
+                                implemented.]]
+    [[__customize_char_type_of__] [Whenever `is_string` is implemented.]]
+    [[__customize_extract_c_string__] [Whenever `is_string` is implemented.]]
+]
+
+[/ TODO: examples ]
+
+[endsect] [/ is_string]
+
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:handles_container Determine Whether a Component Handles Container Attributes (Qi and Karma)]
+
+[heading handles_container]
+
+The template `handles_container` is a template meta-function used as an attribute 
+customization point. It is invoked by the /Qi/ __qi_sequence__ (`>>`) and 
+/Karma/ __karma_sequence__ operators in order to determine whether a sequence 
+element (component) handles container attributes directly. This customization
+point is invoked for container attributes only, and only if the sequence is
+compatible with the supplied container attribute.
+
+If a component, which is part of a sequence is able to handle a container 
+attribute directly, the sequence passes the attribute to the component without
+any additional action. In __qi__ the component uses the attribute to directly
+store all matched attributes. In __karma__ the generator component extracts
+the attributes needed for output generation directly from this attribute.
+
+If a component, which is part of a sequence is not able to handle container
+attributes, in __qi__ the sequence passes a new instance of the container 
+attributes' `value_type` to the parser component, inserting the result into
+the attribute on behalf of the parser component. In __karma__ the sequence 
+extracts the next container element on behalf of the generator component and 
+passing it the extracted value.
+
+[heading Header]
+
+    #include <boost/spirit/home/support/handles_container.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <
+        typename Component, typename Attribute, typename Context, 
+        typename Iterator, typename Enable>
+    struct handles_container
+    {
+        <unspecified>;
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]                                 [Default]]
+    [[`Component`]          [The component type `Component` which needs to 
+                             be tested whether it handles container attributes 
+                             directly.]                              [none]]
+    [[`Attribute`]          [The attribute type `Attribute` as passed to the 
+                             sequence operator.]                     [none]]
+    [[`Context`]            [This is the type of the current component execution 
+                             context.]                               [`unused_type`]]
+    [[`Iterator`]           [The type, `Iterator` is the type of the iterators
+                             used to invoke the component.]          [`unused_type`]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `is_container` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation
+    [[`Component`]  [A component type to be tested whether it directly handles 
+                     container attributes in the context of sequences.]]
+    [[`Attribute`]  [A container attribute type as passed to the sequence.]]
+    [[`T1`, `T2`, ...]  [Arbitrary types]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]                   [Semantics]]
+    [[`handles_container<Component, Attribute>::type`] 
+                                    [Result of the metafunction that evaluates to 
+                                     `mpl::true_` if a given component type `Component`, 
+                                     handles container attributes directly, 
+                                     `mpl::false_` otherwise. Generally,
+                                    any implementation of `handles_container` needs to 
+                                    behave as if if was a __mpl_boolean_constant__.]]
+]
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. The following table lists those types together with the 
+conditions for which the corresponding specializations will evaluate to 
+`mpl::true_` (see __mpl_boolean_constant__):
+
+[table
+    [[Template Parameters]     [Semantics]]
+    [[`Component`, `Attribute`] [Always returns `mpl::false_` (the default).]]
+    [[`rule<Iterator, T1, T2, T3, T4>`, `Attribute`]
+                                [Returns `is_container<A>`, where `A` is the 
+                                 attribute exposed by the rule (__qi__ and 
+                                 __karma__).]]
+    [[`grammar<Iterator, T1, T2, T3, T4>`, `Attribute`]
+                                [Returns `is_container<A>`, where `A` is the 
+                                 attribute exposed by the grammar (__qi__ and 
+                                 __karma__).]]
+]
+
+[heading When to implement]
+
+The customization point `handles_container` needs to be implemented for a 
+specific type whenever this type directly handles container attributes. 
+It is applicable for parsers (__qi__) and generators (__karma__). It will have
+to be implemented under rare circumstances only.
+
+[/ TODO: examples ]
+
+[endsect] [/ handles_container]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:transform Transform an Attribute to a Different Type (Qi and Karma)]
+
+[heading transform_attribute]
+
+The template `transform_attribute` is a type used as an attribute customization 
+point. It is invoked by /Qi/ `rule`, semantic action and `attr_cast`, and /Karma/ 
+`rule`, semantic action and [karma_attr_cast `attr_cast`]. It is used to 
+automatically transform the user 
+provided attribute to the attribute type expected by the right hand side 
+component (for `rule`), the semantic action, or the embedded component 
+(for `attr_cast`).
+
+[note The interface of this customization point has been changed with Boost 
+      V1.44. We added the `Domain` template parameter to allow for more fine 
+      grained specializations for __qi__ and __karma__.]
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/support/attributes.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Exposed, typename Transformed, typename Domain, typename Enable>
+    struct transform_attribute
+    {
+        typedef <unspecified> type;
+
+        static type pre(Exposed& val);
+        static void post(Exposed& val, type attr);    // Qi only
+        static void fail(Exposed&);                   // Qi only
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Exposed`]            [The attribute type supplied to the component
+                             which needs to be transformed.]    [none]]
+    [[`Transformed`]        [The attribute type expected by the component
+                             to be provided as the result of the transformation.] [none]]
+    [[`Domain`]             [The domain of the sub library the template is 
+                             instantiated in. Typically this is either `qi::domain`
+                             or `karma::domain`.]        [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `transform_attribute` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation
+    [[`Exposed`]          [The type, `Exposed` is the type of the attribute as
+                           passed in by the user.]]
+    [[`Transformed`]      [The type, `Transformed` is the type of the attribute 
+                           as passed along to the right hand side of the `rule`
+                           (embedded component of `attr_cast`).]]
+    [[`Domain`]             [The domain of the sub library the template is 
+                             instantiated in. Typically this is either `qi::domain`
+                             or `karma::domain`.]]
+    [[`exposed`]          [An instance of type `Exposed`.]]
+    [[`transformed`]      [An instance of type `Transformed`.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]       [Semantics]]
+    [[`transform_attribute<Exposed, Transformed, Domain>::type`] 
+                        [Evaluates to the type to be used as the result of the 
+                         transformation (to be passed to the right hand side of
+                         the `rule` or to the embedded component of the 
+                         `attr_cast`. Most of the time this is equal to 
+                         `Transformed`, but in other cases this might evaluate to
+                         `Transformed&` instead avoiding superfluous object
+                         creation.]]
+    [[
+``type transform_attribute<Exposed, Transformed, Domain>::pre(exposed)``]
+                        [Do `pre`-transformation before invoking the right hand
+                         side component for `rule` (or the embedded component 
+                         for `attr_cast`). This takes the attribute supplied as by
+                         the user (of type `Exposed`) and returns the attribute
+                         to be passed down the component hierarchy (of the type 
+                         as exposed by the metafunction `type`). This function
+                         will be called in /Qi/ and for /Karma/.]]
+    [[
+``void transform_attribute<Exposed, Transformed, Domain>::post(exposed, transformed)``]
+                        [Do `post`-transformation after the invocation of the 
+                         right hand side component for `rule` (or the embedded 
+                         component for `attr_cast`). This takes the original 
+                         attribute as supplied by the user and the attribute 
+                         as returned from the right hand side (embedded) 
+                         component and is expected to propagate the result back 
+                         into the supplied attribute instance. This function 
+                         will be called in /Qi/ only.]]
+    [[
+``void transform_attribute<Exposed, Transformed, Domain>::fail(exposed)``]
+                        [Handling failing parse operations of the
+                         right hand side component for `rule` (or the embedded 
+                         component for `attr_cast`). This function 
+                         will be called in /Qi/ only.]]
+]
+
+[heading Predefined Specializations]
+
+[table
+    [[Template parameters]        [Semantics]]
+    [[`Exposed`, `Transformed`]   [`type` evaluates to `Transformed`, 
+                                   `pre()` returns a new instance of `Transformed`
+                                   constructed from the argument of type `Exposed`, 
+                                   `post()` assigns `transformed` to `exposed`.]]
+    [[`optional<Exposed>`, `Transformed`, 
+      `typename disable_if<is_same<optional<Exposed>, Transformed> >::type`]   
+                                  [`type` evaluates to `Transformed&`, 
+                                   `pre()` returns a reference to the instance of `Transformed`
+                                   stored in the passed optional (the argument of type `optional<Exposed>`), 
+                                   the optional instance is initialized, if needed.
+                                   `post()` does nothing, `fail()` resets the
+                                   optional (its parameter) instance to the non-initialized state.]]
+    [[`Exposed&`, `Transformed`]  [`type` evaluates to `Transformed`, 
+                                   `pre()` returns a new instance of `Transformed`
+                                   constructed from the argument of type `Exposed`, 
+                                   `post()` assigns `transformed` to `exposed`.]]
+    [[`Attrib&`, `Attrib`]        [`type` evaluates to `Attrib&`, 
+                                   `pre()` returns it's argument, `post()` does
+                                   nothing.]]
+    [[`Exposed const`, `Transformed`] [(usind in /Karma/ only) `type` evaluates to 
+                                   `Transformed`, `pre()` returns it's argument, 
+                                   `post()` is not implemented.]]
+    [[`Attrib const&`, `Attrib`]  [(usind in /Karma/ only) `type` evaluates to `Attrib const&`, 
+                                   `pre()` returns it's argument, `post()` is not 
+                                   implemented.]]
+    [[`Attrib const`, `Attrib`]   [(usind in /Karma/ only) `type` evaluates to `Attrib const&`, 
+                                   `pre()` returns it's argument, `post()` is not 
+                                   implemented.]]
+    [[__unused_type__, `Attrib`]  [`type` evaluates to __unused_type__, `pre()` 
+                                   and `post()` do nothing.]]
+    [[`Attrib`, __unused_type__]  [`type` evaluates to __unused_type__, `pre()` 
+                                   and `post()` do nothing.]]
+]
+
+[heading When to implement]
+
+The customization point `transform_attribute` needs to be implemented for a 
+specific pair of types whenever the attribute type supplied to a `rule` or 
+`attr_cast` cannot automatically transformed to the attribute type expected by
+the right hand side of the `rule` (embedded component of the `attr_cast`) 
+because the default implementation as shown above is not applicable. Examples 
+for this could be that the type `Transformed` is not constructible from 
+the type `Exposed`.
+
+[/ TODO: examples ]
+
+[endsect] [/ transform]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[/ section:optional Handling of Optional Attributes (Qi and Karma)]
+
+[/ optional_attribute]
+
+[/ endsect] [/ optional]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:assign_to Store a Parsed Attribute Value (Qi)]
+
+After parsing input and generating an attribute value this value needs to 
+assigned to the attribute instance provided by the user. The customization
+points `assign_to_attribute_from_iterators` and `assign_to_attribute_from_value`
+are utilized to adapt this assignment to the concrete type to be assigned.
+This section describes both.
+
+[section:assign_to_attribute_from_iterators Store an Attribute after a Parser Produced a Pair of Iterators (Qi)]
+
+[heading assign_to_attribute_from_iterators]
+
+The template `assign_to_attribute_from_iterators` is a type used as an attribute 
+customization point. It is invoked by the those /Qi/ parsers not producing any
+attribute value but returning a pair of iterators pointing to the matched input
+sequence. It is used to either store the iterator pair into the attribute 
+instance provided by the user or to convert the iterator pair into an attribute 
+as provided by the user.
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/qi/detail/assign_to.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Attrib, typename Iterator, typename Enable>
+    struct assign_to_attribute_from_iterators
+    {
+        static void call(Iterator const& first, Iterator const& last, Attrib& attr);
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Attrib`]             [The type, `Attrib` is the type of the attribute as
+                             passed in by the user.]                 [none]]
+    [[`Iterator`]           [The type, `Iterator` is the type of the iterators
+                             as produced by the parser.]             [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `assign_to_attribute_from_value` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation
+    [[`Attrib`]     [A type to be used as the target to store the attribute value in.]]
+    [[`attr`]       [An attribute instance of type `Attrib`.]]
+    [[`Iterator`]   [The iterator type used by the parser. This type usually
+                     corresponds to the iterators as passed in by the user.]]
+    [[`begin`, `end`] [Iterator instances of type `Iterator` pointing to the 
+                     begin and the end of the matched input sequence.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]       [Semantics]]
+    [[
+``assign_to_attribute_from_iterators<Attrib, Iterator>::call(b, e, attr)``] 
+                        [Use the iterators `begin` and `end` to initialize
+                         the attribute `attr`.]]
+]
+
+[heading Predefined Specializations]
+
+[table
+    [[Template Parameters]    [Semantics]]
+    [[`Attrib`, `Iterator`]   [Execute an assignment `attr = Attrib(begin, end)`.]]
+    [[__unused_type__, `T`]   [Do nothing.]]
+]
+
+[heading When to implement]
+
+The customization point `assign_to_attribute_from_iterators` needs to be 
+implemented for a specific type whenever the default implementation as shown
+above is not applicable. Examples for this could be that the type `Attrib` is
+not constructible from the pair of iterators.
+
+[/ TODO: examples ]
+
+[endsect] [/ assign_to_attribute_from_iterators]
+
+[section:assign_to_attribute_from_value Store an Attribute Value after a Parser Produced a Value (Qi)]
+
+[heading assign_to_attribute_from_value]
+
+The template `assign_to_attribute_from_value` is a type used as an attribute 
+customization point. It is invoked by all primitive /Qi/ parsers in order 
+to store a parsed attribute value into the attribute instance provided by the 
+user, if this attribute is not a container type (`is_container<T>::type` 
+evaluates to `mpl::false_`, where `T` is the attribute type).
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/qi/detail/assign_to.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Attrib, typename T, typename Enable>
+    struct assign_to_attribute_from_value
+    {
+        static void call(T const& val, Attrib& attr);
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Attrib`]             [The type, `Attrib` is the type of the attribute as
+                             passed in by the user. This type is not a container
+                             type (`is_container<Attrib>::type` evaluates to 
+                             `mpl::false_`).]                 [none]]
+    [[`T`]                  [The type, `T` is the type of the attribute instance
+                             as produced by the parser.]             [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `assign_to_attribute_from_value` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation
+    [[`Attrib`]     [A type to be used as the target to store the attribute 
+                     value in. This type is guaranteed not to be a container 
+                     type (`is_container<Attrib>::type` evaluates to 
+                     `mpl::false_`).]]
+    [[`attr`]       [An attribute instance of type `Attrib`.]]
+    [[`T`]          [A type as produced by the parser. The parser temporarily stores 
+                     its parsed values using this type.]]
+    [[`t`]          [An attribute instance of type `T`.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]       [Semantics]]
+    [[
+``assign_to_attribute_from_value<Attrib, T>::call(t, attr)``] 
+                        [Copy (assign) the value `t` to the attribute `attr`.]]
+]
+
+[heading Predefined Specializations]
+
+[table
+    [[Template Parameters]    [Semantics]]
+    [[`Attrib`, `T`]          [Assign the argument `t` to `attr`.]]
+    [[__unused_type__, `T`]   [Do nothing.]]
+]
+
+[heading When to implement]
+
+The customization point `assign_to_attribute_from_value` needs to be 
+implemented for a specific type whenever the default implementation as shown
+above is not applicable. Examples for this could be that the type `Attrib` is
+not copy constructible.
+
+[/ TODO: examples ]
+
+[endsect] [/ assign_to_attribute_from_value]
+
+[section:assign_to_container_from_value Store an Attribute Value into a Container after a Parser Produced a Value (Qi)]
+
+[heading assign_to_container_from_value]
+
+The template `assign_to_container_from_value` is a type used as an attribute 
+customization point. It is invoked by all primitive /Qi/ parsers in order 
+to store a parsed attribute value into the attribute instance provided by the 
+user, if this attribute is a container type (`is_container<T>::type` evaluates 
+to `mpl::true_`, where `T` is the attribute type).
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/qi/detail/assign_to.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Attrib, typename T, typename Enable>
+    struct assign_to_container_from_value
+    {
+        static void call(T const& val, Attrib& attr);
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Attrib`]             [The type, `Attrib` is the type of the attribute as
+                             passed in by the user. This type is a container
+                             type (`is_container<Attrib>::type` evaluates to 
+                             `mpl::true_`).]                 [none]]
+    [[`T`]                  [The type, `T` is the type of the attribute instance
+                             as produced by the parser.]             [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `assign_to_container_from_value` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation
+    [[`Attrib`]     [A type to be used as the target to store the attribute 
+                     value in. This type is guaranteed to be a container 
+                     type (`is_container<Attrib>::type` evaluates to 
+                     `mpl::true_`).]]
+    [[`attr`]       [An attribute instance of type `Attrib`.]]
+    [[`T`]          [A type as produced by the parser. The parser temporarily stores 
+                     its parsed values using this type.]]
+    [[`t`]          [An attribute instance of type `T`.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]       [Semantics]]
+    [[
+``assign_to_container_from_value<Attrib, T>::call(t, attr)``] 
+                        [Add the value `t` to the container attribute `attr`.]]
+]
+
+[heading Predefined Specializations]
+
+[table
+    [[Template Parameters]    [Semantics]]
+    [[`Attrib`, `T`]          [Add the argument `t` to `attr`.]]
+    [[__unused_type__, `T`]   [Do nothing.]]
+]
+
+[heading When to implement]
+
+The customization point `assign_to_container_from_value` needs to be 
+implemented for a specific type whenever the default implementation as shown
+above is not applicable. Examples for this could be that the type `Attrib` is
+not copy constructible.
+
+[/ TODO: examples ]
+
+[endsect] [/ assign_to_container_from_value]
+
+[endsect] [/ assign_to]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:store_value Store Parsed Attribute Values into a Container (Qi)]
+
+In order to customize Spirit to accept a given data type as a container for 
+elements parsed by any of the repetitive parsers (__qi_kleene__, __qi_plus__,
+__qi_list__, and [qi_repeat Repeat]) two attribute customization points have to be 
+specialized: __customize_container_value__ and __customize_push_back_container__. 
+This section describes both.
+
+[section:container_value Determine the Type to be Stored in a Container (Qi)]
+
+[heading container_value]
+
+The template `container_value` is a template meta function used as an attribute 
+customization point. It is invoked by the /Qi/ repetitive parsers
+(__qi_kleene__, __qi_plus__, __qi_list__, and [qi_repeat Repeat]) to determine the 
+type to store in a container.
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/support/container.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Container, typename Enable>
+    struct container_value
+    {
+        typedef <unspecified> type;
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Container`]          [The type `Container` is the type for which the 
+                             type f the elements has to be deduced.]      [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `container_value` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist 
+    [[`C`]          [A type to be tested whether it needs to be treated
+                     as a container.]]
+    [[`T1`, `T2`, ...]  [Arbitrary types]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]                 [Semantics]]
+    [[`container_value<C>::type`] [Metafunction that evaluates to the type
+                                   to be stored in a given container type, 
+                                   `C`.]]
+]
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. The following table lists those types together with the types
+exposed and the corresponding semantics:
+
+[table
+    [[Template Parameters]     [Semantics]]
+    [[`C`]                    [The non-const `value_type` of the given container
+                               type, `C`. ]]
+    [[`boost::optional<C>`]   [Returns `container_value<C>::type`]]
+    [[`boost::variant<T1, T2, ...>`]
+                              [Returns `container_value<TN>::value` for the 
+                               first `TN` (out of `T1`, `T2`, ...) for which
+                               `is_container<TN>::type` evaluates to `mpl::true_`.
+                               Otherwise it will return __unused_type__.]]
+    [[__unused_type__]        [Returns __unused_type__.]]
+]
+
+[heading When to implement]
+
+The customization point `is_container` needs to be implemented for a specific 
+type whenever this type is to be used as an attribute in place of a STL 
+container. It is applicable for parsers (__qi__) only. As a rule of thumb: it 
+has to be implemented whenever a certain type is to be passed as an attribute 
+to a parser normally exposing a STL container  and if the type does not expose
+the interface of a STL container (i.e. no embedded typedef for `value_type`). 
+These components have an attribute propagation rule in the form:
+
+    a: A --> Op(a): vector<A>
+
+where `Op(a)` stands for any meaningful operation on the component `a`.
+
+[heading Related Attribute Customization Points]
+
+If this customization point is implemented, the following other customization 
+points might need to be implemented as well.
+
+[table
+    [[Name]                   [When to implement]]
+    [[__customize_push_back_container__]  [Qi: __qi_list__, __qi_kleene__, __qi_plus__, [qi_repeat Repeat].]]
+    [[__customize_clear_value__]  [Qi: __qi_list__, __qi_kleene__, __qi_plus__, [qi_repeat Repeat].]]
+]
+
+[heading Example]
+
+Here is an example showing the default implementation of the 
+__customize_container_value__ customization point provided by the library:
+
+[customization_container_value_default]
+
+This template is instantiated by the library at the appropriate places while 
+using the supplied container type as the template argument. The embedded `type` 
+is used as the attribute type while parsing the elements to be store in that 
+container.
+
+The following example shows the predefined specialization for __unused_type__:
+
+[customization_container_value_unused]
+
+which defines its embedded `type` to be __unused_type__ as well, this way
+propagating the 'don't care' attribute status to the embedded parser.
+
+[/ TODO: examples ]
+
+[endsect] [/ container_value]
+
+[section:push_back Store a Parsed Attribute Value into a Container (Qi)]
+
+[heading push_back_container]
+
+The template `push_back_container` is a type used as an attribute customization 
+point. It is invoked by the /Qi/ repetitive parsers (__qi_kleene__, __qi_plus__, 
+__qi_list__, and [qi_repeat Repeat]) to store a parsed attribute value into a 
+container.
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/support/container.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Container, typename Attrib, typename Enable>
+    struct push_back_container
+    {
+        static bool call(Container& c, Attrib const& val);
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Container`]          [The type, `Container` needs to 
+                             be tested whether it has to be treated
+                             as a container]                              [none]]
+    [[`Attrib`]             [The type, `Attrib` is the one returned from the 
+                             customization point __customize_container_value__
+                             and represents the attribute value to be stored in 
+                             the container of type `Container`.]          [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `push_back_container` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation 
+    [[`C`]          [A type to be used as a container to store attribute values in.]]
+    [[`c`]          [A container instance of type `C`.]
+    [[`Attrib`]     [A type to be used as a container to store attribute values in.]]
+    [[`attr`]       [An attribute instance of type `Attrib`.]]
+    [[`T1`, `T2`, ...]  [Arbitrary types]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]                     [Semantics]]
+    [[
+``push_back_container<C, Attrib>::call(c, attr)``] 
+                                      [Static function that is invoked whenever an 
+                                       attribute value, `attr` needs to be stored 
+                                       into the container instance `c`. This function
+                                       should return `true` on success and `false`
+                                       otherwise. Returning `false` causes the 
+                                       corresponding parser to fail.]]
+]
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. The following table lists those types together with the types
+exposed and the corresponding semantics:
+
+[table
+    [[Template Parameters]     [Semantics]]
+    [[`C`, `Attrib`]           [Store the provided attribute instance `attr` into 
+                                the given container `c` using the function call
+                                `c.insert(c.end(), attr)`.]]
+    [[`boost::optional<C>`, `Attrib`] 
+                               [If the provided instance of `boost::optional<>` is not
+                                initialized, invoke the appropriate initialization
+                                and afterwards apply the customization point
+                                `push_back_container<C, Attrib>`, treating the
+                                instance held by the optional (of type `C`) as 
+                                the container to store the attribute in.]]
+    [[`boost::variant<T1, T2, ...>`, `Attrib`]
+                               [If the instance of the variant currently holds a
+                                value with a type, `TN`, for which `is_container<TN>::type`
+                                evaluates to `mpl::true_`, this customization
+                                point specialization will apply 
+                                `push_back_container<TN, Attrib>`, treating the
+                                instance held by the variant (of type `TN`) as 
+                                the container to store the attribute in. Otherwise
+                                it will raise an assertion.]]
+    [[__unused_type__]         [Do nothing.]]
+]
+
+[heading When to Implement]
+
+The customization point `push_back_container` needs to be implemented for a 
+specific type whenever this type is to be used as an attribute in place of a STL 
+container. It is applicable for parsers (__qi__) only. As a rule of thumb: it 
+has to be implemented whenever a certain type is to be passed as an attribute 
+to a parser normally exposing a STL container and if the type does not expose 
+the interface of a STL container (i.e. no function being equivalent to 
+`c.insert(c.end(), attr)`. These components have an attribute propagation rule 
+in the form:
+
+    a: A --> Op(a): vector<A>
+
+where `Op(a)` stands for any meaningful operation on the component `a`.
+
+[heading Related Attribute Customization Points]
+
+If this customization point is implemented, the following other customization 
+points might need to be implemented as well.
+
+[table
+    [[Name]                   [When to implement]]
+    [[__customize_container_value__]  [Qi: __qi_list__, __qi_kleene__, __qi_plus__, [qi_repeat Repeat].]]
+    [[__customize_clear_value__]  [Qi: __qi_list__, __qi_kleene__, __qi_plus__, [qi_repeat Repeat].]]
+]
+
+[heading Example]
+
+Here is an example showing the default implementation of the 
+__customize_container_value__ customization point provided by the library:
+
+[customization_push_back_default]
+
+This template is instantiated by the library at the appropriate places while 
+using the supplied container and element types as the template arguments. The 
+member function `call()` will be called whenever an element has to be added to 
+the supplied container
+
+The following example shows the predefined specialization for __unused_type__:
+
+[customization_push_back_unused]
+
+which defines an empty member function `call()`.
+
+[/ TODO: examples ]
+
+[endsect] [/ push_back]
+
+[endsect] [/ store_value]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:clear_value Re-Initialize an Attribute Value before Parsing (Qi)]
+
+[heading clear_value]
+
+The template `clear_value` is a type used as an attribute customization point. 
+It is invoked by the /Qi/ repetitive parsers (__qi_kleene__, __qi_plus__, 
+__qi_list__, and [qi_repeat Repeat]) in order to re-initialize the attribute 
+instance passed to the embedded parser after it has been stored in the provided 
+container. This re-initialized attribute instance is reused during the next 
+iteration of the repetitive parser.
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/support/attributes.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Attrib, typename Enable>
+    struct clear_value
+    {
+        static void call(Attrib& val);
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Attrib`]             [The type, `Attrib` of the attribute to be 
+                             re-initialized.]                 [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `clear_value` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation
+    [[`Attrib`]     [A type to be used as a container to store attribute values in.]]
+    [[`attr`]       [An attribute instance of type `Attrib`.]]
+    [[`T1`, `T2`, ...]  [Arbitrary types]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]       [Semantics]]
+    [[
+``clear_value<Attrib>::call(Attrib& attr)``] [Re-initialize the instance referred to by
+                              `attr` in the most efficient way.]]
+]
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. The following table lists those types together with the types
+exposed and the corresponding semantics:
+
+[table
+    [[Template Parameters]     [Semantics]]
+    [[`Attrib`]               [Re-initialize using assignment of  default 
+                               constructed value.]]
+    [[Any type `T` for which `is_container<>::type` is `mpl::true_`]
+                              [Call the member function `attr.clear()` for the 
+                               passed attribute instance.]]
+    [[`boost::optional<Attrib>`] [Clear the `optional` instance and leave it
+                               uninitialized.]]
+    [[`boost::variant<T1, T2, ...>`][Invoke the `clear_value` customization 
+                               point for the currently held value.]]
+    [[`fusion::tuple<T1, T2, ...>`][Invoke the `clear_value` customization 
+                               point for all elements of the tuple.]]
+    [[__unused_type__]        [Do nothing.]]
+]
+
+[heading When to Implement]
+
+The customization point `clear_value` needs to be implemented for a 
+specific type whenever this type is to be used as an attribute to be stored 
+into a STL container and if the type cannot be re-initialized using one of the
+specializations listed above. Examples for this might be types not being default
+constructible or container types not exposing a member function `clear()`.
+
+[/ TODO: examples ]
+
+[endsect] [/ clear_value]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:extract_from Extract an Attribute Value to Generate Output (Karma)]
+
+[heading extract_from]
+
+Before generating output for a value this value needs to extracted from the 
+attribute instance provided by the user. The customization point 
+`extract_from_attribute` is utilized to adapt this extraction for any data type possibly
+used to store the values to output.
+
+[note The interface of this customization point has been changed with Boost 
+      V1.44. We added the `Exposed` template parameter to allow for more fine 
+      grained specializations of the required __karma__ attribute 
+      transformations.]
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/karma/detail/extract_from.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Exposed, typename Attrib, typename Enable>
+    struct extract_from_attribute
+    {
+        typedef <unspecified> type;
+
+        template <typename Context>
+        static type call(Attrib const& attr, Context& context);
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Exposed`]            [The type, `Exposed` of the attribute natively
+                             exposed by the component the `extract_from_attribute` is
+                             invoked from.]             [none]]
+    [[`Attrib`]             [The type, `Attrib` of the attribute to be used to
+                             generate output from.]                 [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `clear_value` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+    [[`Context`]            [This is the type of the current generator execution 
+                             context.]]
+]
+
+[variablelist Notation
+    [[`Exposed`]    [A type exposed as the native attribute of a component.]]
+    [[`Attrib`]     [A type to be used to generate output from.]]
+    [[`attr`]       [An attribute instance of type `Attrib`.]]
+    [[`ctx`]        [An instance of type `Context`.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]       [Semantics]]
+    [[
+``extract_from_attribute<Exposed, Attrib>::call(attr, ctx)``] 
+                        [Extract the value to generate 
+                         output from `attr` and return it to the caller.]]
+]
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. The following table lists those types together with the types
+exposed and the corresponding semantics:
+
+[table
+    [[Template Parameters]     [Semantics]]
+    [[`Attrib`]                [The exposed typedef `type` is defined to 
+                                `Attrib const&`. The function `call()` returns 
+                                the argument by reference without change.]] 
+    [[`boost::optional<Attrib>`]  [The exposed typedef `type` is defined to 
+                                `Attrib const&`. The function `call()` returns 
+                                the value held by the `optional<>` argument
+                                by reference without change.]]
+    [[`boost::reference_wrapper<Attrib>`]
+                               [The exposed typedef `type` is defined to 
+                                `Attrib const&`. The function `call()` returns 
+                                the value held by the `reference_wrapper<>` 
+                                argument by reference without change.]]
+    [[__unused_type__]         [The exposed typedef `type` is defined to 
+                                __unused_type__. The function `call()` returns
+                                an instance of __unused_type__.]]
+]
+
+[heading When to implement]
+
+The customization point `extract_from_attribute` needs to be implemented for a 
+specific type whenever the default implementation as shown above is not 
+applicable. Examples for this could be that the type to be extracted is 
+different from `Attrib` and is not copy constructible.
+
+[/ TODO: examples ]
+
+[endsect] [/ extract_from]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:extract_from_container Extract From a Container Attribute Value to Generate Output (Karma)]
+
+[heading extract_from_container]
+
+Before generating output for a value this value needs to extracted from the 
+attribute instance provided by the user. The customization point 
+`extract_from_container` is utilized to adapt this extraction for any data type possibly
+used to store the values to output.
+
+[note The interface of this customization point has been changed with Boost 
+      V1.44. We added the `Exposed` template parameter to allow for more fine 
+      grained specializations of the required __karma__ attribute 
+      transformations.]
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/karma/detail/extract_from.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Exposed, typename Attrib, typename Enable>
+    struct extract_from_container
+    {
+        typedef <unspecified> type;
+
+        template <typename Context>
+        static type call(Attrib const& attr, Context& context);
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Exposed`]            [The type, `Exposed` of the attribute natively
+                             exposed by the component the `extract_from_container` is
+                             invoked from.]             [none]]
+    [[`Attrib`]             [The type, `Attrib` is the container attribute to be used to
+                             generate output from.]                 [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `clear_value` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+    [[`Context`]            [This is the type of the current generator execution 
+                             context.]]
+]
+
+[heading Notation]
+
+[variablelist Notation
+    [[`Exposed`]    [A type exposed as the native attribute of a component.]]
+    [[`Attrib`]     [A container type to be used to generate output from.]]
+    [[`attr`]       [An attribute instance of type `Attrib`.]]
+    [[`ctx`]        [An instance of type `Context`.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]       [Semantics]]
+    [[
+``extract_from_container<Exposed, Attrib>::call(attr, ctx)``] 
+                        [Extract the value to generate 
+                         output from the contaner given by `attr` and return 
+                         it to the caller.]]
+]
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. The following table lists those types together with the types
+exposed and the corresponding semantics:
+
+[table
+    [[Template Parameters]     [Value]]
+    [[`Attrib`]                [The exposed typedef `type` is defined to 
+                                `Attrib const&`. The function `call()` returns 
+                                the argument by reference without change.]] 
+    [[__unused_type__]         [The exposed typedef `type` is defined to 
+                                __unused_type__. The function `call()` returns
+                                an instance of __unused_type__.]]
+]
+
+[heading When to implement]
+
+The customization point `extract_from_container` needs to be implemented for a 
+specific container type whenever the default implementation as shown above is not 
+applicable. Examples for this could be that the type to be extracted is 
+different from `Attrib` and is not copy constructible.
+
+[heading Example]
+
+TBD
+
+[endsect] [/ extract_from]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:iterate Extract Attribute Values to Generate Output from a Container (Karma)]
+
+[section:container_iterator Determine the Type of the Iterator of a Container]
+
+[heading container_iterator]
+
+The template `container_iterator` is a template meta-function used as an attribute 
+customization point. It is invoked by the /Karma/ repetitive generators (such 
+as __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, and
+[karma_repeat Repeat]) in order to determine the type of the iterator to use to
+iterate over the items to be exposed as the elements of a container.
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/support/container.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Container, typename Enable>
+    struct container_iterator
+    {
+        typedef <unspecified> type;
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Container`]          [The type, `Container` for which the 
+                             iterator type has to be returned]            [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `container_iterator` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation 
+    [[`C`]              [A container type the iterator type needs to be evaluated for.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]                     [Semantics]]
+    [[`container_iterator<C>::type`]  [Result of the metafunction that evaluates 
+                                       the type to be used as the iterator for
+                                       accessing all elements of a container, `C`.]]
+]
+
+The returned type conceptually needs to be equivalent to a standard forward
+iterator. But it does not have to expose the standardized interface. If this
+customization point is implemented for a certain container type, all related
+customization points need to be implemented as well (see 
+[link spirit.advanced.customize.iterate.container_iterator.related_attribute_customization_points Related Attribute Customization Points] 
+below). This encapsulates the specific iterator interface required for a 
+given type. The minimal requirements for a type to be exposed as an iterator in 
+this context are:
+
+* it needs to be comparable for equality (see __customize_compare_iterators__),
+* it needs to be incrementable (see __customize_next_iterator__),
+* it needs to be dereferencible (see __customize_deref_iterator__).
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. The following table lists those types together with the 
+types returned by the embedded typedef `type`:
+
+[table
+    [[Template Parameters]     [Semantics]]
+    [[`C`]                     [Returns `C::iterator`.]]
+    [[`C const`]               [Returns `C::const_iterator`.]]
+    [[__unused_type__]         [Returns __unused_type__` const*`.]]
+]
+
+[heading When to implement]
+
+The customization point `container_iterator` needs to be implemented for a specific 
+type whenever this type is to be used as an attribute in place of a STL 
+container. It is applicable for generators (__karma__) only. As a rule of thumb: 
+it has to be implemented whenever a certain type is to be passed as an attribute 
+to a generator normally exposing a STL container, `C` and if the type does not expose 
+the interface of a STL container (i.e. `is_container<C>::type` would normally 
+return `mpl::false_`). 
+
+[heading Related Attribute Customization Points]
+
+If this customization point is implemented, the following other customization 
+points might need to be implemented as well.
+
+[table
+    [[Name]                               [When to implement]]
+    [[__customize_is_container__]         [Needs to be implemented whenever a type is to be used as a container attribute in /Karma/.]]
+    [[__customize_container_iterator__]   [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_begin_container__]      [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_end_container__]        [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_deref_iterator__]       [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_next_iterator__]        [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_compare_iterators__]    [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+]
+
+[heading Example]
+
+Here are the header files needed to make the example code below compile:
+
+[customize_karma_embedded_container_includes]
+
+The example (for the full source code please see here:
+[@../../example/karma/customize_embedded_container.cpp customize_embedded_container.cpp]) 
+uses the data structure
+
+[customize_karma_embedded_container_data]
+
+as a direct container attribute to the __karma_list__ generator. In order to 
+make this data structure compatible we need to specialize a couple of attribute 
+customization points: __customize_is_container__, __customize_container_iterator__, 
+__customize_begin_container__, and __customize_end_container__. As you can see
+the specializations simply expose the embedded `std::vector<int>` as the 
+container to use. We don't need to specialize the customization points related 
+to iterators (__customize_deref_iterator__, __customize_next_iterator__,
+and __customize_compare_iterators__) as we expose a standard iterator and the 
+default implementation of these customizations handles standard iterators out 
+of the box. 
+
+[customize_karma_embedded_container_traits]
+
+The last code snippet shows an example using an instance of the data structure 
+`client::embedded_container` to generate output from a __karma_list__ 
+generator:
+
+[customize_karma_embedded_container]
+
+As you can see, the specializations for the customization points as defined 
+above enable the seamless integration of the custom data structure without 
+having to modify the output format or the generator itself.
+
+For other examples of how to use the customization point `container_iterator` 
+please see here: __customize_use_as_container_example__ and
+__customize_counter_example__.
+
+[endsect] [/ container_iterator]
+
+
+[section:begin_container Get the Iterator pointing to the Begin of a Container Attribute]
+
+[heading begin_container]
+
+The template `begin_container` is a type used as an attribute customization point. 
+It is invoked by the /Karma/ repetitive generators (such as __karma_list__, 
+[karma_kleene Kleene (unary `*`)], __karma_plus__, and [karma_repeat Repeat]) 
+in order to get an iterator pointing to the first element of the container 
+holding the attributes to generate output from.
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/support/container.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Container, typename Enable>
+    struct begin_container
+    {
+        static typename container_iterator<Container>::type 
+        call(Container& c);
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Container`]          [The type, `Container` for which the iterator pointing 
+                             to the first element has to be returned]    [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `begin_container` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation 
+    [[`C`]              [A container type the begin iterator needs to be returned for.]]
+    [[`c`]              [An instance of a container, `C`.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]                     [Semantics]]
+    [[`begin_container<C>::call(c)`]  [Return the iterator usable to dereference 
+                                       the first element of the given container, 
+                                       `c`. The type of the returned iterator is 
+                                       expected to be the same as the type returned 
+                                       by the customization point 
+                                       __customize_container_iterator__.]]
+]
+
+The returned instance conceptually needs to be equivalent to a standard forward
+iterator. But it does not have to expose the standardized interface. If this
+customization point is implemented for a certain container type, all related
+customization points need to be implemented as well (see 
+[link spirit.advanced.customize.iterate.begin_container.related_attribute_customization_points Related Attribute Customization Points] 
+below). This encapsulates the specific iterator interface required for a 
+given type. The minimal requirements for a type to be exposed as an iterator in 
+this context are:
+
+* it needs to be comparable for equality (see __customize_compare_iterators__),
+* it needs to be incrementable (see __customize_next_iterator__),
+* it needs to be dereferencible (see __customize_deref_iterator__).
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. The following table lists those types together with the 
+types returned by the embedded typedef `type`:
+
+[table
+    [[Template Parameters]     [Semantics]]
+    [[`C`]                     [Returns `c.begin()`.]]
+    [[`C const`]               [Returns `c.begin()`.]]
+    [[__unused_type__]         [Returns `&unused`.]]
+]
+
+[heading When to implement]
+
+The customization point `begin_container` needs to be implemented for a specific 
+type whenever this type is to be used as an attribute in place of a STL 
+container. It is applicable for generators (__karma__) only. As a rule of thumb: 
+it has to be implemented whenever a certain type is to be passed as an attribute 
+to a generator normally exposing a STL container, `C` and if the type does not expose 
+the interface of a STL container (i.e. `is_container<C>::type` would normally 
+return `mpl::false_`). 
+
+[heading Related Attribute Customization Points]
+
+If this customization point is implemented, the following other customization 
+points might need to be implemented as well.
+
+[table
+    [[Name]                               [When to implement]]
+    [[__customize_is_container__]         [Needs to be implemented whenever a type is to be used as a container attribute in /Karma/.]]
+    [[__customize_container_iterator__]   [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_begin_container__]      [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_end_container__]        [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_deref_iterator__]       [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_next_iterator__]        [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_compare_iterators__]    [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+]
+
+[heading Example]
+
+For examples of how to use the customization point `begin_container` please
+see here: __customize_embedded_container_example__,
+__customize_use_as_container_example__, and __customize_counter_example__.
+
+[endsect] [/ begin_container]
+
+
+[section:end_container Get the Iterator pointing to the End of a Container Attribute]
+
+[heading end_container]
+
+The template `end_container` is a type used as an attribute customization point. 
+It is invoked by the /Karma/ repetitive generators (such as __karma_list__, 
+[karma_kleene Kleene (unary `*`)], __karma_plus__, and [karma_repeat Repeat]) 
+in order to get an iterator pointing to the end of the container 
+holding the attributes to generate output from.
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/support/container.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Container, typename Enable>
+    struct end_container
+    {
+        static typename container_iterator<Container>::type 
+        call(Container& c);
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Container`]          [The type, `Container` for which the iterator pointing 
+                             to the first element has to be returned]    [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `end_container` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation
+    [[`C`]              [A container type the end iterator needs to be returned for.]]
+    [[`c`]              [An instance of a container, `C`.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]                     [Semantics]]
+    [[`end_container<C>::call(c)`]    [Return the iterator usable to compare a
+                                       different iterator with in order to detect
+                                       whether the other iterator reached the end 
+                                       of the given container, `c`. The type of 
+                                       the returned iterator is expected to be the 
+                                       same as the type returned by the 
+                                       customization point __customize_container_iterator__.]]
+]
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. The following table lists those types together with the 
+types returned by the embedded typedef `type`:
+
+[table
+    [[Template Parameters]     [Semantics]]
+    [[`C`]                     [Returns `c.end()`.]]
+    [[`C const`]               [Returns `c.end()`.]]
+    [[__unused_type__]         [Returns `&unused`.]]
+]
+
+[heading When to implement]
+
+The customization point `end_container` needs to be implemented for a specific 
+type whenever this type is to be used as an attribute in place of a STL 
+container. It is applicable for generators (__karma__) only. As a rule of thumb: 
+it has to be implemented whenever a certain type is to be passed as an attribute 
+to a generator normally exposing a STL container, `C` and if the type does not expose 
+the interface of a STL container (i.e. `is_container<C>::type` would normally 
+return `mpl::false_`). 
+
+[heading Related Attribute Customization Points]
+
+If this customization point is implemented, the following other customization 
+points might need to be implemented as well.
+
+[table
+    [[Name]                               [When to implement]]
+    [[__customize_is_container__]         [Needs to be implemented whenever a type is to be used as a container attribute in /Karma/.]]
+    [[__customize_container_iterator__]   [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_begin_container__]      [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_end_container__]        [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_deref_iterator__]       [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_next_iterator__]        [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_compare_iterators__]    [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+]
+
+[heading Example]
+
+For examples of how to use the customization point `end_container` please
+see here: __customize_embedded_container_example__,
+__customize_use_as_container_example__, and __customize_counter_example__.
+
+[endsect] [/ end_container]
+
+
+[section:next_iterator Increment the Iterator pointing into a Container Attribute]
+
+[heading next_iterator]
+
+The template `next_iterator` is a type used as an attribute customization point. 
+It is invoked by the /Karma/ repetitive generators (such as __karma_list__, 
+[karma_kleene Kleene (unary `*`)], __karma_plus__, and [karma_repeat Repeat]) 
+in order to get an iterator pointing to the next element of a container 
+holding the attributes to generate output from.
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/support/container.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Iterator, typename Enable>
+    struct next_iterator
+    {
+        static void call(Iterator& it);
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Iterator`]           [The type, `Iterator` of the iterator to increment.
+                             This is the same as the type returned by the 
+                             customization point __customize_container_iterator__.]    [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `next_iterator` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation 
+    [[`Iterator`]       [An iterator type.]]
+    [[`it`]             [An instance of an iterator of type `Iterator`.]]
+    [[`C`]              [A container type whose iterator type is `Iterator`.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]                     [Semantics]]
+    [[`next_iterator<Iterator>::call(it)`]    [Increment the iterator pointing so that 
+                                       it is pointing to the next element.]]
+]
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. The following table lists those types together with the 
+types returned by the embedded typedef `type`:
+
+[table
+    [[Template Parameters]     [Semantics]]
+    [[`Iterator`]              [Executes `++it`.]]
+    [[__unused_type__` const*`][Does nothing.]]
+]
+
+[heading When to implement]
+
+The customization point `next_iterator` needs to be implemented for a specific 
+iterator type whenever the container this iterator belongs to is to be used as 
+an attribute in place of a STL container. It is applicable for generators 
+(__karma__) only. As a rule of thumb: it has to be implemented whenever a certain 
+iterator type belongs to a container which is to be passed as an attribute 
+to a generator normally exposing a STL container, `C` and if the container type 
+does not expose the interface of a STL container (i.e. `is_container<C>::type` 
+would normally return `mpl::false_`). 
+
+[heading Related Attribute Customization Points]
+
+If this customization point is implemented, the following other customization 
+points might need to be implemented as well.
+
+[table
+    [[Name]                               [When to implement]]
+    [[__customize_is_container__]         [Needs to be implemented whenever a type is to be used as a container attribute in /Karma/.]]
+    [[__customize_container_iterator__]   [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_begin_container__]      [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_end_container__]        [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_deref_iterator__]       [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_next_iterator__]        [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_compare_iterators__]    [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+]
+
+[heading Example]
+
+Here are the header files needed to make the example code below compile:
+
+[customize_karma_use_as_container_includes]
+
+The example (for the full source code please see here:
+[@../../example/karma/customize_use_as_container.cpp customize_use_as_container.cpp]) 
+uses the data structure
+
+[customize_karma_use_as_container_data]
+
+as a direct attribute to the __karma_list__ generator. This type does not 
+expose any of the interfaces of an STL container. It does not even expose the 
+usual semantics of a container. The purpose of this artificial example is to 
+demonstrate how the customization points can be used to expose independent data
+elements as a single container. The example shows how to enable its use as an 
+attribute to /Karma's/ repetitive generators.
+
+In order to make this data structure compatible we need to specialize a couple 
+of attribute customization points: __customize_is_container__, 
+__customize_container_iterator__, __customize_begin_container__, and
+__customize_end_container__. In addition, we specialize all of the 
+iterator related customization points as well: __customize_deref_iterator__,
+__customize_next_iterator__, and __customize_compare_iterators__.
+
+[customize_karma_use_as_container_traits]
+[customize_karma_use_as_container_iterator_traits]
+
+The last code snippet shows an example using an instance of the data structure 
+`client::use_as_container` to generate output from a __karma_list__ generator:
+
+[customize_karma_use_as_container]
+
+As you can see, the specializations for the customization points as defined 
+above enable the seamless integration of the custom data structure without 
+having to modify the output format or the generator itself.
+
+[endsect] [/ next_iterator]
+
+
+[section:deref_iterator Dereference the Iterator pointing into a Container Attribute]
+
+[heading deref_iterator]
+
+The template `deref_iterator` is a type used as an attribute customization point. 
+It is invoked by the /Karma/ repetitive generators (such as __karma_list__, 
+[karma_kleene Kleene (unary `*`)], __karma_plus__, and [karma_repeat Repeat]) 
+in order to dereference an iterator pointing to an element of a container 
+holding the attributes to generate output from.
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/support/container.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Iterator, typename Enable>
+    struct deref_iterator
+    {
+        typedef <unspecified> type;
+        static type call(Iterator& it);
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Iterator`]           [The type, `Iterator` of the iterator to dereference.
+                             This is the same as the type returned by the 
+                             customization point __customize_container_iterator__.]    [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `deref_iterator` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation 
+    [[`Iterator`]       [An iterator type.]]
+    [[`it`]             [An instance of an iterator of type `Iterator`.]]
+    [[`C`]              [A container type whose iterator type is `Iterator`.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]                             [Semantics]]
+    [[`deref_iterator<Iterator>::type`]       [Metafunction result evaluating to the 
+                                      type returned by dereferencing the iterator.]]
+    [[`deref_iterator<Iterator>::call(it)`]   [Return the element in the container
+                                      referred to by the iterator. The type of the
+                                      returned value is the same as returned by the 
+                                      metafunction result `type`.]]
+]
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. The following table lists those types together with the 
+types returned by the embedded typedef `type`:
+
+[table
+    [[Template Parameters]     [Semantics]]
+    [[`Iterator`]              [The metafunction result `type` evaluates to 
+              `boost::detail::iterator_traits<Iterator>::reference` and the 
+              function `call()` returns `*it`.]]
+    [[__unused_type__` const*`][The metafunction result `type` evaluates to 
+              __unused_type__ and the function `call()` returns `unused`.]]
+]
+
+[heading When to implement]
+
+The customization point `deref_iterator` needs to be implemented for a specific 
+iterator type whenever the container this iterator belongs to is to be used as 
+an attribute in place of a STL container. It is applicable for generators 
+(__karma__) only. As a rule of thumb: it has to be implemented whenever a certain 
+iterator type belongs to a container which is to be passed as an attribute 
+to a generator normally exposing a STL container, `C` and if the container type 
+does not expose the interface of a STL container (i.e. `is_container<C>::type` 
+would normally return `mpl::false_`). 
+
+[heading Related Attribute Customization Points]
+
+If this customization point is implemented, the following other customization 
+points might need to be implemented as well.
+
+[table
+    [[Name]                               [When to implement]]
+    [[__customize_is_container__]         [Needs to be implemented whenever a type is to be used as a container attribute in /Karma/.]]
+    [[__customize_container_iterator__]   [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_begin_container__]      [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_end_container__]        [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_deref_iterator__]       [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_next_iterator__]        [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_compare_iterators__]    [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+]
+
+[heading Example]
+
+Here are the header files needed to make the example code below compile:
+
+[customize_karma_counter_includes]
+
+The example (for the full source code please see here:
+[@../../example/karma/customize_counter.cpp customize_counter.cpp]) 
+uses the data structure
+
+[customize_karma_counter_data]
+
+as a direct attribute to the __karma_list__ generator. This type does not 
+expose any of the interfaces of an STL container. It does not even expose the 
+usual semantics of a container. The presented customization points build a 
+counter instance which is incremented each time it is accessed. The examples 
+shows how to enable its use as an attribute to /Karma's/ repetitive generators.
+
+In order to make this data structure compatible we need to specialize a couple 
+of attribute customization points: __customize_is_container__, 
+__customize_container_iterator__, __customize_begin_container__, and
+__customize_end_container__. In addition, we specialize one of the 
+iterator related customization points as well: __customize_deref_iterator__.
+
+[customize_karma_counter_traits]
+[customize_karma_counter_iterator_traits]
+
+The last code snippet shows an example using an instance of the data structure 
+`client::counter` to generate output from a __karma_list__ generator:
+
+[customize_karma_counter]
+
+As you can see, the specializations for the customization points as defined 
+above enable the seamless integration of the custom data structure without 
+having to modify the output format or the generator itself.
+
+For other examples of how to use the customization point `deref_iterator` 
+please see here: __customize_use_as_container_example__.
+
+[endsect] [/ deref_iterator]
+
+
+[section:compare_iterators Compare two Iterator pointing into a Container Attribute for Equality]
+
+[heading compare_iterators]
+
+The template `compare_iterators` is a type used as an attribute customization 
+point. It is invoked by the /Karma/ repetitive generators (such as __karma_list__, 
+[karma_kleene Kleene (unary `*`)], __karma_plus__, and [karma_repeat Repeat]) 
+in order to compare the current iterator (returned either from 
+__customize_begin_container__ or from __customize_next_iterator__) with the end 
+iterator (returned from __customize_end_container__) in order to find the end 
+of the element sequence to generate output for.
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/support/container.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename Iterator, typename Enable>
+    struct compare_iterators
+    {
+        static bool call(Iterator const& it1, Iterator const& it2);
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`Iterator`]           [The type, `Iterator` of the iterator to dereference.
+                             This is the same as the type returned by the 
+                             customization point __customize_container_iterator__.]    [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `compare_iterators` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation
+    [[`Iterator`]       [An iterator type.]]
+    [[`it1`, `it2`]     [Instances of an iterator of type `Iterator`.]]
+    [[`C`]              [A container type whose iterator type is `Iterator`.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]                             [Semantics]]
+    [[`compare_iterators<Iterator>::call(it1, it2)`]   
+                                              [Returns whether the iterators `it1`
+                                               `it2` are to be treated as being 
+                                               equal.]]
+]
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. The following table lists those types together with the 
+types returned by the embedded typedef `type`:
+
+[table
+    [[Template Parameters]     [Semantics]]
+    [[`Iterator`]              [The function `call()` returns it1 == it2.]]
+    [[__unused_type__` const*`][The function `call()` always returns false.]]
+]
+
+[heading When to implement]
+
+The customization point `compare_iterators` needs to be implemented for a specific 
+iterator type whenever the container this iterator belongs to is to be used as 
+an attribute in place of a STL container. It is applicable for generators 
+(__karma__) only. As a rule of thumb: it has to be implemented whenever a certain 
+iterator type belongs to a container which is to be passed as an attribute 
+to a generator normally exposing a STL container, `C` and if the container type 
+does not expose the interface of a STL container (i.e. `is_container<C>::type` 
+would normally return `mpl::false_`). 
+
+[heading Related Attribute Customization Points]
+
+If this customization point is implemented, the following other customization 
+points might need to be implemented as well.
+
+[table
+    [[Name]                               [When to implement]]
+    [[__customize_is_container__]         [Needs to be implemented whenever a type is to be used as a container attribute in /Karma/.]]
+    [[__customize_container_iterator__]   [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_begin_container__]      [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_end_container__]        [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_deref_iterator__]       [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_next_iterator__]        [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+    [[__customize_compare_iterators__]    [Karma: __karma_list__, [karma_kleene Kleene (unary `*`)], __karma_plus__, [karma_repeat Repeat].]]
+]
+
+[heading Example]
+
+For an example of how to use the customization point `compare_iterators` 
+please see here: __customize_use_as_container_example__.
+
+[endsect] [/ compare_iterators]
+
+[endsect] [/ iterate]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:string_traits Extract a C-Style String to Generate Output from a String Type (Karma)]
+
+[section:is_char Determine if a Type is a Character]
+
+[heading is_char]
+
+`is_char` is a metafunction that detects if a given type is a character.
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/support/string_traits.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename T>
+    struct is_char 
+    {
+        <unspecified>;
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter] [Description]         [Default]]
+    [[`T`]       [The type to detect.] [none]]
+]
+
+[variablelist Notation
+    [[`T`]     [An arbitrary type]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]         [Semantics]]
+    [[`is_char<T>::type`] [`mpl::true_` if T should be treated as a character
+                           type, and `mpl::false_` otherwise. Generally,
+                           any implementation of `is_char` needs to behave as 
+                           if if was a __mpl_boolean_constant__.]]
+]
+
+[heading Predefined Specializations]
+
+[table
+    [[Type]      [Semantics]]
+    [[`T`]       [`mpl::false_`]]
+    [[`T const`] [`is_char<T>`]]
+    [[`char`]    [`mpl::true_`]]
+    [[`wchar_t`] [`mpl::true_`]]
+]
+
+[heading When to implement]
+
+This customization point needs to be implemented for any strings that use a
+type other than `char` or `wchar_t to store character data.
+
+[heading Related Attribute Customization Points]
+
+If this customization point is implemented, the following other customization 
+points need to be implemented as well.
+
+[table
+    [[Name]                   [When to implement]]
+    [[__customize_is_string__] [Whenever `is_char` is implemented.]]
+    [[__customize_char_type_of__] [Whenever `is_char` is implemented.]]
+]
+
+[/ TODO: examples ]
+
+[endsect] [/ is_char]
+
+[section:char_type_of Determine the Character Type of a String]
+
+[heading char_type_of]
+
+This customization point is an MPL metafunction which returns the character
+type of a given string type. `char_type_of` handles user-defined types such as
+std::string, as well as C-style strings.
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/support/string_traits.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename T>
+    struct char_type_of
+    {
+        typedef <unspecified> type;
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter] [Description]    [Default]]
+    [[`T`]       [A string type.] [none]]
+]
+
+[variablelist Notation
+    [[`T`]              [An arbitrary type.]]
+    [[`N`]              [An arbitrary integral constant.]]
+    [[`Char`]           [A character type.]]
+    [[`Traits`]         [A character traits type.]]
+    [[`Allocator`]      [A standard allocator type.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]               [Semantics]]
+    [[`char_type_of<T>::type`]  [The character type of the string type `T`.]]
+]
+
+[heading Predefined Specializations]
+
+[table
+    [[Type]  [Semantics]]
+    [[`T const`]                                      [Returns `char_type_of<T>`.]]
+    [[`char`]                                         [Returns `char`.]]
+    [[`wchar_t`]                                      [Returns `wchar_t`.]]
+    [[`char const*`]                                  [Returns `char const`.]]
+    [[`wchar_t const*`]                               [Returns `wchar_t const`.]]
+    [[`char*`]                                        [Returns `char`.]]
+    [[`wchar_t*`]                                     [Returns `wchar_t`.]]
+    [[`char[N]`]                                      [Returns `char`.]]
+    [[`wchar_t[N]`]                                   [Returns `wchar_t`.]]
+    [[`char const[N]`]                                [Returns `char const`.]]
+    [[`wchar_t const[N]`]                             [Returns `wchar_t const`.]]
+    [[`char(&)[N]`]                                   [Returns `char`.]]
+    [[`wchar_t(&)[N]`]                                [Returns `wchar_t`.]]
+    [[`char const(&)[N]`]                             [Returns `char const`.]]
+    [[`wchar_t const(&)[N]`]                          [Returns `wchar_t const`.]]
+    [[`std::basic_string<Char, Traits, Allocator>`]   [Returns `Char`.]]
+]
+
+[heading When to implement]
+
+This customization point needs to be implemented whenever __customize_is_string__
+is implemented.
+
+[heading Related Attribute Customization Points]
+
+If this customization point is implemented, the following other customization 
+points need to be implemented as well.
+
+[table
+    [[Name]                   [When to implement]]
+    [[__customize_is_char__]   [For string types whose underlying character type
+                                is not `char` or `wchar_t`, `is_char` must be 
+                                implemented.]]
+    [[__customize_is_string__] [Whenever `char_type_of` is implemented.]]
+    [[__customize_extract_c_string__] [Whenever `char_type_of` is implemented.]]
+]
+
+[/ TODO: examples ]
+
+[endsect] [/ char_type_of]
+
+[section:extract_c_string Get a C-style String from a String Type]
+
+[heading extract_c_string]
+
+`extract_c_string` returns a pointer to an array of elements of a const character
+type. It is invoked through a static method `call`. This customization point is
+responsible for handling it's own garbage collecting; the lifetime of the returned
+C-string must be no shorter than the lifetime of the string instance passed to
+the `call` method. 
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/support/string_traits.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename String>
+    struct extract_c_string
+    {
+        typedef <unspecified> char_type;
+
+        static char_type const* call (String const&);
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter] [Description]    [Default]]
+    [[`String`]  [A string type.] [none]]
+]
+
+[variablelist Notation
+    [[`T`]              [An arbitrary type.]]
+    [[`Char`]           [A character type.]]
+    [[`Traits`]         [A character traits type.]]
+    [[`Allocator`]      [A standard allocator type.]]
+    [[`str`]            [A string instance.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]                       [Semantics]]
+    [[`extract_c_string<T>::char_type`] [The return type of `call`.]]
+    [[`extract_c_string<T>::call(str)`] [Extract a c-string of type `char_type`
+                                         from `str`.]]
+]
+
+[heading Predefined Specializations]
+
+[table
+    [[Type]  [Semantics]]
+    [[`T`]   [`call` takes a parameter of type `T const*`, and returns it without
+              modification. An overload of `call` takes a parameter of type `T*`
+              and casts it to `T const*`, returning the result. `char_type` is
+              `char_type_of<T>::type`.]]
+    [[`T const`]   [`call` takes a parameter `str` of type `T const` and returns
+                    `extract_c_string<T>::call(str)`. `char_type` is 
+                    `char_type_of<T>::type`.]]
+    [[`T&`]        [`call` takes a parameter `str` of type `T&` and returns
+                    `extract_c_string<T>::call(str)`. `char_type` is 
+                    `char_type_of<T>::type`.]]
+    [[`T const&`]  [`call` takes a parameter `str` of type `T const&` and returns
+                    `extract_c_string<T>::call(str)`. `char_type` is 
+                    `char_type_of<T>::type`.]]
+    [[`std::basic_string<Char, Traits, Allocator>`]
+     [`call` takes a parameter `str` and returns `str.c_str()`. `char_type` is
+      `Char`.]]
+]
+
+[heading When to implement]
+
+This customization point needs to be implemented whenever __customize_is_string__
+is implemented.
+
+[heading Related Attribute Customization Points]
+
+If this customization point is implemented, the following other customization 
+points need to be implemented as well.
+
+[table
+    [[Name]                   [When to implement]]
+    [[__customize_is_char__]   [For string types whose underlying character type
+                                is not `char` or `wchar_t`, `is_char` must be 
+                                implemented.]]
+    [[__customize_is_string__] [Whenever `extract_c_string` is implemented.]]
+    [[__customize_char_type_of__] [Whenever `extract_c_string` is implemented.]]
+]
+
+[/ TODO: examples ]
+
+[endsect] [/ string]
+
+[endsect] [/ string_traits]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:attribute_as Atomically Extract an Attribute Value from a Container (Karma)]
+
+[heading attribute_as]
+
+`attribute_as` atomically extracts an instance of a type from another type.
+This customization point is used by the __karma_as__ directive. 
+
+[heading Module Headers]
+
+    #include <boost/spirit/home/support/attributes_fwd.hpp>
+
+Also, see __include_structure__.
+
+[note This header file does not need to be included directly by any user 
+      program as it is normally included by other Spirit header files relying
+      on its content.]
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename T, typename Attribute, typename Enable = void>
+    struct attribute_as;
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`T`]                  [The type of the attribute natively
+                             exposed by the component the `attribute_as` is
+                             invoked from.]                         [none]]
+    [[`Attribute`]          [The type of the attribute to be used to
+                             generate output from.]                 [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `attribute_as` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation
+    [[`attr`]       [An instance of type `Attrib`.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]                               [Semantics]]
+    [[`attribute_as<T, Attribute>::type`]       [The result type of the extraction.]]
+    [[`attribute_as<T, Attribute>::call(attr)`] [Extract and return an instance
+                                                 of `type`.]]
+    [[`attribute_as<T, Attribute>::valid_as(attr)`] [Determine, at runtime, if the extraction of
+                                                     an instance of `type` from `attr`
+                                                     would cause an error.]]
+]
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. The following table lists those types together with the types
+exposed and the corresponding semantics:
+
+[table
+    [[Template Parameters]     [Semantics]]
+    [[__unused_type__]         [The exposed typedef `type` is defined to 
+                                __unused_type__. The function `call()` returns
+                                an instance of __unused_type__.]]
+]
+
+[heading When to implement]
+
+This customization point may need to be implemented when using the __karma_as__
+directive.
+
+[/ TODO: examples ]
+
+[endsect] [/ attribute_as]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:auto Create Components from Attributes (Qi and Karma)]
+
+[def __auto_parser_requirements__ [link spirit.qi.reference.auto.additional_requirements Additional Attribute Requirements for Parsers]]
+[def __auto_generator_requirements__ [link spirit.karma.reference.auto.additional_requirements Additional Attribute Requirements for Generators]]
+[def __auto_parser_example__ [link spirit.qi.reference.auto.example Example for Using the `qi::auto_` Parser]]
+[def __auto_generator_example__ [link spirit.karma.reference.auto.example Example for Using the `karma::auto_` Generator]]
+
+__spirit__ supports the creation of a default parser or a default generator from
+a given attribute type. It implements a minimal set of predefined mappings from 
+different attribute types to parsers and generators (for a description of the
+predefined mappings see __auto_parser_requirements__ and 
+__auto_generator_requirements__). 
+The customization points described in this section (__customize_create_parser__ 
+and __customize_create_generator__) can be specialized to define additional 
+mappings for custom data types.
+
+[section:create_parser Define a Custom Attribute Mapping for a Parser]
+
+[heading create_parser]
+
+The template `create_parser` is a type used as an customization point. It is 
+invoked by the /Qi/ __create_parser__ API function in order to create
+a custom mapping of the given data type to a parser expression. This 
+parser expression will be returned from __create_parser__ whenever the
+given data type is encountered.
+
+[heading Module Headers]
+
+    // forwards to <boost/spirit/home/qi/auto.hpp>
+    #include <boost/spirit/include/qi_auto.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename T, typename Enable>
+    struct create_parser
+    {
+        typedef <unspecified> type; 
+        static type const& call();
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`T`]                  [The type, `T` for which a custom mapping to a 
+                             parser should be established.]            [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `create_generator` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation 
+    [[`T`]              [An arbitrary type.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]                             [Semantics]]
+    [[`create_parser<T>::type`]               [Defines the type of the parser 
+                                               expression returned from `call`.]]
+    [[`create_parser<T>::call()`]             [Returns a parser expression (usually
+                                               this is a proto::expression) to be used
+                                               as the default parser for the given 
+                                               type, `T`.]]
+]
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. All predefined mappings are listed here: __auto_parser_requirements__.
+
+[note It is possible to overload the predefined mappings for the listed types 
+      by providing your own specialization of the `create_parser` customization
+      point for the type to modify.]
+
+[heading When to implement]
+
+The customization point `create_parser` needs to be implemented for a specific 
+type whenever this type should be usable with the API function __create_parser__ 
+(which includes using the `qi::auto_` parser and the special API functions
+based on the automatic creation of the matching parser type). 
+
+[heading Example]
+
+For an example of how to use the customization point `create_parser` 
+please see here: __auto_parser_example__.
+
+[endsect]
+
+[section:create_generator Define a Custom Attribute Mapping for a Generator]
+
+[heading create_generator]
+
+The template `create_generator` is a type used as an customization point. It is 
+invoked by the /Karma/ __create_generator__ API function in order to create
+a custom mapping of the given data type to a generator expression. This 
+generator expression will be returned from __create_generator__ whenever the
+given data type is encountered.
+
+[heading Module Headers]
+
+    // forwards to <boost/spirit/home/karma/auto.hpp>
+    #include <boost/spirit/include/karma_auto.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::traits`]]
+]
+
+[heading Synopsis]
+
+    template <typename T, typename Enable>
+    struct create_generator
+    {
+        typedef <unspecified> type; 
+        static type const& call();
+    };
+
+[heading Template parameters]
+
+[table
+    [[Parameter]            [Description]               [Default]]
+    [[`T`]                  [The type, `T` for which a custom mapping to a 
+                             generator should be established.]            [none]]
+    [[`Enable`]             [Helper template parameter usable to selectively
+                             enable or disable certain specializations
+                             of `create_generator` utilizing SFINAE (i.e.
+                             `boost::enable_if` or `boost::disable_if`).] [`void`]]
+]
+
+[variablelist Notation 
+    [[`T`]              [An arbitrary type.]]
+]
+
+[heading Expression Semantics]
+
+[table
+    [[Expression]                             [Semantics]]
+    [[`create_generator<T>::type`]            [Defines the type of the generator 
+                                               expression returned from `call`.]]
+    [[`create_generator<T>::call()`]          [Returns a generator expression (usually
+                                               this is a proto::expression) to be used
+                                               as the default generator for the given 
+                                               type, `T`.]]
+]
+
+[heading Predefined Specializations]
+
+__spirit__ predefines specializations of this customization point for  
+several types. All predefined mappings are listed here: __auto_generator_requirements__.
+
+[note It is possible to overload the predefined mappings for the listed types 
+      by providing your own specialization of the `create_generator` customization
+      point for the type to modify.]
+
+[heading When to implement]
+
+The customization point `create_generator` needs to be implemented for a specific 
+type whenever this type should be usable with the API function __create_generator__ 
+(which includes using the `karma::auto_` generator and the special API functions
+based on the automatic creation of the matching generator type). 
+
+[heading Example]
+
+For an example of how to use the customization point `create_generator` 
+please see here: __auto_generator_example__.
+
+[endsect]
+
+[endsect]
+
+[endsect] [/ customize]
+

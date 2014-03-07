@@ -1,0 +1,260 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/af.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/af.xml
+ */
+af{
+    Currencies{
+        AED{
+            "AED",
+            "Verenigde Arabiese Emirate dirham",
+        }
+        AOA{
+            "Kz",
+            "Angolese kwanza",
+        }
+        AUD{
+            "AU$",
+            "Australiese dollar",
+        }
+        BHD{
+            "BD",
+            "Bahrainse dinar",
+        }
+        BIF{
+            "FBu",
+            "Burundiese frank",
+        }
+        BRL{
+            "R$",
+            "Reaal",
+        }
+        BWP{
+            "BWP",
+            "Botswana pula",
+        }
+        CAD{
+            "CA$",
+            "Kanadese dollar",
+        }
+        CDF{
+            "CDF",
+            "Kongolese frank",
+        }
+        CHF{
+            "CHF",
+            "Switserse frank",
+        }
+        CNY{
+            "CN¥",
+            "Sjinese joean renminbi",
+        }
+        CVE{
+            "CV$",
+            "Kaap Verdiese escudo",
+        }
+        DJF{
+            "Fdj",
+            "Djiboeti frank",
+        }
+        DZD{
+            "DA",
+            "Algeriese dinar",
+        }
+        EGP{
+            "EGP",
+            "Egiptiese pond",
+        }
+        ERN{
+            "Nfk",
+            "Eritrese nakfa",
+        }
+        ETB{
+            "Br",
+            "Etiopiese birr",
+        }
+        EUR{
+            "€",
+            "Euro",
+        }
+        GBP{
+            "£",
+            "Britse pond",
+        }
+        GHC{
+            "₵",
+            "Ghanese cedi",
+        }
+        GMD{
+            "GMD",
+            "Gambiese dalasi",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "Guinese frank",
+        }
+        INR{
+            "Rs",
+            "Indiese rupee",
+        }
+        ITL{
+            "IT₤",
+            "Italiaanse lier",
+        }
+        JPY{
+            "JP¥",
+            "Japannese jen",
+        }
+        KES{
+            "Ksh",
+            "Keniaanse sjieling",
+        }
+        KMF{
+            "CF",
+            "Comoriese frank",
+        }
+        LRD{
+            "L$",
+            "Liberiese dollar",
+        }
+        LSL{
+            "LSL",
+            "Lesotho loti",
+        }
+        LYD{
+            "LD",
+            "Libiese dinar",
+        }
+        MAD{
+            "MAD",
+            "Marokkaanse dirham",
+        }
+        MGA{
+            "MGA",
+            "Malgassiese frank",
+        }
+        MRO{
+            "UM",
+            "Mauritaniese ouguiya",
+        }
+        MUR{
+            "MURs",
+            "Mauritiaanse rupee",
+        }
+        MWK{
+            "MWK",
+            "Malawiese kwacha",
+        }
+        MZM{
+            "Mt",
+            "Mosambiekse metical",
+        }
+        NAD{
+            "N$",
+            "Namibiese dollar",
+        }
+        NGN{
+            "₦",
+            "Nigeriese naira",
+        }
+        RUB{
+            "RUB",
+            "Roebel",
+        }
+        RWF{
+            "RWF",
+            "Rwandiese frank",
+        }
+        SAR{
+            "SR",
+            "Saoedi-Arabiese riyal",
+        }
+        SCR{
+            "SRe",
+            "Seychellese rupee",
+        }
+        SDG{
+            "SDG",
+            "Soedannese pond",
+        }
+        SDP{
+            "SDP" /** ===  */,
+            "Ou Soedannese pond",
+        }
+        SHP{
+            "SH£",
+            "Sint Helena pond",
+        }
+        SLL{
+            "Le",
+            "Sierra Leonese leone",
+        }
+        SOS{
+            "Ssh",
+            "Somaliese sjieling",
+        }
+        STD{
+            "Db",
+            "São Tomé en Principe dobra",
+        }
+        SZL{
+            "SZL",
+            "Swazilandse lilangeni",
+        }
+        TND{
+            "DT",
+            "Tunisiese dinar",
+        }
+        TRL{
+            "TRL",
+            "Ou Turkse lier",
+        }
+        TRY{
+            "TL",
+            "Turkse lier",
+        }
+        TZS{
+            "TSh",
+            "Tanzaniese sjieling",
+        }
+        UGX{
+            "USh",
+            "Ugandese sjieling",
+        }
+        USD{
+            "US$",
+            "Amerikaanse dollar",
+        }
+        XAF{
+            "FCFA",
+            "CFA frank BEAC",
+        }
+        XOF{
+            "CFA",
+            "CFA frank BCEAO",
+        }
+        XXX{
+            "XXX",
+            "Onbekende of ongeldige geldeenheid",
+        }
+        ZAR{
+            "R",
+            "Suid-Afrikaanse rand",
+        }
+        ZMK{
+            "ZK",
+            "Zambiese kwacha",
+        }
+        ZWD{
+            "Z$",
+            "Zimbabwiese dollar",
+        }
+    }
+    Version{"2.0.47.68"}
+}

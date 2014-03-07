@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Boost read_graphml</title>
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-read-graphml">
+<h1 class="title"><a class="reference external" href="../../../index.htm"><img align="middle" alt="Boost" class="align-middle" src="../../../boost.png" /></a> <tt class="docutils literal"><span class="pre">read_graphml</span></tt></h1>
+
+<!-- Copyright (C) 2006  Tiago de Paula Peixoto <tiago@forked.de>
+
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+Authors: Tiago de Paula Peixoto -->
+<pre class="literal-block">
+void read_graphml(std::istream&amp; in, MutableGraph&amp; graph,
+                  dynamic_properties&amp; dp, size_t graph_index = 0);
+</pre>
+<p>The <tt class="docutils literal"><span class="pre">read_graphml</span></tt> function interprets a graph described using the
+<a class="reference external" href="http://graphml.graphdrawing.org/">GraphML</a> format and builds a BGL graph that captures that
+description.  Using this function, you can initialize a graph using
+data stored as text.</p>
+<p>The GraphML format can specify both directed and undirected graphs, and
+<tt class="docutils literal"><span class="pre">read_graphml</span></tt> differentiates between the two. One must pass
+<tt class="docutils literal"><span class="pre">read_graphml</span></tt> an undirected graph when reading an undirected graph;
+the same is true for directed graphs. Furthermore, <tt class="docutils literal"><span class="pre">read_graphml</span></tt>
+will throw an exception if it encounters parallel edges and cannot add
+them to the graph.</p>
+<p>To handle attributes expressed in the GraphML format, <tt class="docutils literal"><span class="pre">read_graphml</span></tt>
+takes a <a class="reference external" href="../../property_map/doc/dynamic_property_map.html">dynamic_properties</a> object and operates on its collection of
+property maps.  The reader passes all the properties encountered to
+this object, using the GraphML attribute names as the property names,
+and with the appropriate C++ value type based on the GraphML attribute type
+definition. Graph properties are also set with the same
+<a class="reference external" href="../../property_map/doc/dynamic_property_map.html">dynamic_properties</a> object, where the key type is the type of the graph itself.</p>
+<p>If the file contains multiple graphs, the <tt class="docutils literal"><span class="pre">graph_index</span></tt> parameter controls
+which graph will be loaded.  It defaults to <tt class="docutils literal"><span class="pre">0</span></tt>, meaning that the first graph
+in the file will be loaded.  If <tt class="docutils literal"><span class="pre">graph_index</span></tt> is greater than or equal to the
+number of graphs in the file, an empty graph will be returned.</p>
+<dl class="docutils">
+<dt>Requirements:</dt>
+<dd><ul class="first last simple">
+<li>The type of the graph must model the <a class="reference external" href="MutableGraph.html">Mutable Graph</a> concept.</li>
+<li>The type of the iterator must model the <a class="reference external" href="../../iterator/index.html">Multi-Pass Iterator</a>
+concept.</li>
+<li>The property map value types must be default-constructible.</li>
+</ul>
+</dd>
+</dl>
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#where-defined" id="id2">Where Defined</a></li>
+<li><a class="reference internal" href="#exceptions" id="id3">Exceptions</a></li>
+<li><a class="reference internal" href="#building-the-graphml-reader" id="id4">Building the GraphML reader</a></li>
+<li><a class="reference internal" href="#notes" id="id5">Notes</a></li>
+<li><a class="reference internal" href="#see-also" id="id6">See Also</a></li>
+</ul>
+</div>
+<div class="section" id="where-defined">
+<h1><a class="toc-backref" href="#id2">Where Defined</a></h1>
+<p><tt class="docutils literal"><span class="pre">&lt;boost/graph/graphml.hpp&gt;</span></tt></p>
+</div>
+<div class="section" id="exceptions">
+<h1><a class="toc-backref" href="#id3">Exceptions</a></h1>
+<pre class="literal-block">
+struct graph_exception : public std::exception {
+  virtual ~graph_exception() throw();
+  virtual const char* what() const throw() = 0;
+};
+
+struct bad_parallel_edge : public graph_exception {
+  std::string from;
+  std::string to;
+
+  bad_parallel_edge(const std::string&amp;, const std::string&amp;);
+  virtual ~bad_parallel_edge() throw();
+  const char* what() const throw();
+};
+
+struct directed_graph_error : public graph_exception {
+  virtual ~directed_graph_error() throw();
+  virtual const char* what() const throw();
+};
+
+struct undirected_graph_error : public graph_exception {
+  virtual ~undirected_graph_error() throw();
+  virtual const char* what() const throw();
+};
+
+struct parse_error : public graph_exception {
+  parse_error(const std::string&amp;);
+  virtual ~parse_error() throw() {}
+  virtual const char* what() const throw();
+  std::string statement;
+  std::string error;
+};
+</pre>
+<p>Under certain circumstances, <tt class="docutils literal"><span class="pre">read_graphml</span></tt> will throw one of the
+above exceptions.  The three concrete exceptions can all be caught
+using the general <tt class="docutils literal"><span class="pre">graph_exception</span></tt> moniker when greater precision
+is not needed.  In addition, all of the above exceptions derive from
+the standard <tt class="docutils literal"><span class="pre">std::exception</span></tt> for even more generalized error
+handling.</p>
+<p>The <tt class="docutils literal"><span class="pre">bad_parallel_edge</span></tt> exception is thrown when an attempt to add a
+parallel edge to the supplied MutableGraph fails.  The GraphML format
+supports parallel edges, but some BGL-compatible graph types do not.
+One example of such a graph is <tt class="docutils literal"><span class="pre">boost::adjacency_list&lt;setS,vecS&gt;</span></tt>,
+which allows at most one edge can between any two vertices.</p>
+<p>The <tt class="docutils literal"><span class="pre">directed_graph_error</span></tt> exception occurs when an undirected graph
+type is passed to <tt class="docutils literal"><span class="pre">read_graph</span></tt>, but the graph defined in the GraphML
+file contains at least one directed edge.</p>
+<p>The <tt class="docutils literal"><span class="pre">undirected_graph_error</span></tt> exception occurs when a directed graph
+type is passed to <tt class="docutils literal"><span class="pre">read_graph</span></tt>,  but the graph defined in the GraphML
+file contains at least one undirected edge.</p>
+<p>The <tt class="docutils literal"><span class="pre">parse_error</span></tt> exception occurs when a syntax error is
+encountered in the GraphML file. The error string will contain the
+line and column where the error was encountered.</p>
+</div>
+<div class="section" id="building-the-graphml-reader">
+<h1><a class="toc-backref" href="#id4">Building the GraphML reader</a></h1>
+<p>To use the GraphML reader, you will need to build and link against
+the &quot;boost_graph&quot; library. The library can be built by following the
+<a class="reference external" href="../../../more/getting_started.html#Build_Install">Boost Jam Build Instructions</a> for the subdirectory <tt class="docutils literal"><span class="pre">libs/graph/build</span></tt>.</p>
+</div>
+<div class="section" id="notes">
+<h1><a class="toc-backref" href="#id5">Notes</a></h1>
+<blockquote>
+<ul class="simple">
+<li>On successful reading of a graph, every vertex and edge will have
+an associated value for every respective edge and vertex property
+encountered while interpreting the graph.  These values will be set
+using the <tt class="docutils literal"><span class="pre">dynamic_properties</span></tt> object.  Some properties may be
+<tt class="docutils literal"><span class="pre">put</span></tt> multiple times during the course of reading in order to
+ensure the GraphML semantics.  Those edges and vertices that are
+not explicitly given a value for a property (and that property has
+no default) will be given the default constructed value of the
+value type.  <strong>Be sure that property map value types are default
+constructible.</strong></li>
+<li>Nested graphs are supported as long as they are exactly of the same
+type as the root graph, i.e., are also directed or undirected. Note
+that since nested graphs are not directly supported by BGL, they
+are in fact completely ignored when building the graph, and the
+internal vertices or edges are interpreted as belonging to the root
+graph.</li>
+<li>Hyperedges and Ports are not supported.</li>
+</ul>
+</blockquote>
+</div>
+<div class="section" id="see-also">
+<h1><a class="toc-backref" href="#id6">See Also</a></h1>
+<p><a class="reference external" href="write_graphml.html">write_graphml</a></p>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2012-11-12 22:25 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

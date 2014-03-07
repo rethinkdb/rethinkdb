@@ -1,0 +1,106 @@
+#  Boost.Intrusive library documentation Jamfile
+#
+#  Copyright Ion Gaztanaga 2006.
+#  Distributed under the Boost Software License, Version 1.0.
+#     (See accompanying file LICENSE_1_0.txt or copy at
+#           http://www.boost.org/LICENSE_1_0.txt)
+#
+# See http://www.boost.org/libs/intrusive for documentation.
+
+using auto-index ;
+
+import doxygen ;
+import quickbook ;
+path-constant here : . ;
+
+
+
+doxygen autodoc
+   :
+      [ glob ../../../boost/intrusive/*.hpp ]
+   :
+   <doxygen:param>HIDE_UNDOC_MEMBERS=YES
+   <doxygen:param>HIDE_UNDOC_MEMBERS=YES
+   <doxygen:param>HIDE_UNDOC_CLASSES=YES
+   <doxygen:param>EXTRACT_PRIVATE=NO
+   <doxygen:param>ENABLE_PREPROCESSING=YES
+   <doxygen:param>MACRO_EXPANSION=YES
+   <doxygen:param>"PREDEFINED=\"BOOST_INTRUSIVE_DOXYGEN_INVOKED\" \\
+                  \"BOOST_INTRUSIVE_IMPDEF(T)=implementation_defined\" \\
+                  \"BOOST_INTRUSIVE_SEEDOC(T)=see_documentation\" \\
+                  \"BOOST_RV_REF(T)=T &&\" \\
+                  \"BOOST_RV_REF_BEG=\" \\
+                  \"BOOST_RV_REF_END=&&\" \\
+                  \"list_impl=list\" \\
+                  \"slist_impl=slist\" \\
+                  \"set_impl=set\" \\
+                  \"multiset_impl=multiset\" \\
+                  \"bstree_impl=bstree\" \\
+                  \"rbtree_impl=rbtree\" \\
+                  \"unordered_set_impl=unordered_set\" \\
+                  \"unordered_multiset_impl=unordered_multiset\" \\
+                  \"hashtable_impl=hashtable\" \\
+                  \"splay_set_impl=splay_set\" \\
+                  \"splay_multiset_impl=splay_multiset\" \\
+                  \"splaytree_impl=splaytree\" \\
+                  \"sg_set_impl=sg_set\" \\
+                  \"sg_multiset_impl=sg_multiset\" \\
+                  \"sgtree_impl=sgtree\" \\
+                  \"avl_set_impl=avl_set\" \\
+                  \"avl_multiset_impl=avl_multiset\" \\
+                  \"avltree_impl=avltree\" \\
+                  \"treap_set_impl=treap_set\" \\
+                  \"treap_multiset_impl=treap_multiset\" \\
+                  \"treap_impl=treap\""
+   ;
+
+xml intrusive : intrusive.qbk
+              :
+                 <include>../../../tools/auto_index/include
+              ;
+
+boostbook standalone
+   :
+      intrusive
+   :
+        <format>html:<xsl:param>boost.root=../../../..
+        <format>html:<xsl:param>boost.libraries=../../../../libs/libraries.htm
+        <xsl:param>generate.section.toc.level=3
+        <xsl:param>chunk.first.sections=1
+        <dependency>autodoc
+
+        # Build requirements go here:
+
+        # <auto-index>on (or off) one turns on (or off) indexing:
+        <auto-index>on
+
+        # Turns on (or off) auto-index-verbose for diagnostic info.
+        # This is highly recommended until you have got all the many details correct!
+        <auto-index-verbose>on
+
+        # Choose the indexing method (separately for html and PDF) - see manual.
+        # Choose indexing method for PDFs:
+        <format>pdf:<auto-index-internal>off
+
+        # Choose indexing method for html:
+        <format>html:<auto-index-internal>on
+        <format>docbook:<auto-index-internal>on
+
+        # Set the name of the script file to use (index.idx is popular):
+        <auto-index-script>$(here)/index.idx
+        # Commands in the script file should all use RELATIVE PATHS
+        # otherwise the script will not be portable to other machines.
+        # Relative paths are normally taken as relative to the location
+        # of the script file, but we can add a prefix to all
+        # those relative paths using the <auto-index-prefix> feature.
+        # The path specified by <auto-index-prefix> may be either relative or
+        # absolute, for example the following will get us up to the boost root
+        # directory for most Boost libraries:
+        <auto-index-prefix>"$(here)/../../.."
+
+   ;
+
+install pdfinstall : standalone/<format>pdf : <name>intrusive.pdf <location>. <install-type>PDF <format>pdf ;
+explicit pdfinstall ;
+
+

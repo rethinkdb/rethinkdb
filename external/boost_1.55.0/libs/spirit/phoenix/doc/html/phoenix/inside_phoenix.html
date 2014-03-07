@@ -1,0 +1,901 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Inside Phoenix</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.0">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Phoenix 2.0">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Phoenix 2.0">
+<link rel="prev" href="algorithm.html" title="Algorithm">
+<link rel="next" href="wrap_up.html" title="Wrap Up">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="algorithm.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="wrap_up.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="phoenix.inside_phoenix"></a><a class="link" href="inside_phoenix.html" title="Inside Phoenix">Inside Phoenix</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail">Actors In Detail</a></span></dt>
+<dt><span class="section"><a href="inside_phoenix.html#phoenix.inside_phoenix.actor_example">Actor Example</a></span></dt>
+<dt><span class="section"><a href="inside_phoenix.html#phoenix.inside_phoenix.composites_in_detail">Composites
+      In Detail</a></span></dt>
+<dt><span class="section"><a href="inside_phoenix.html#phoenix.inside_phoenix.composing">Composing</a></span></dt>
+<dt><span class="section"><a href="inside_phoenix.html#phoenix.inside_phoenix.extending">Extending</a></span></dt>
+</dl></div>
+<p>
+      This chapter explains in more detail how the library operates. The information
+      henceforth should not be necessary to those who are interested in just using
+      the library. However, a microscopic view might prove to be beneficial to moderate
+      to advanced programmers who wish to extend the library.
+    </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.inside_phoenix.actors_in_detail"></a><a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail" title="Actors In Detail">Actors In Detail</a>
+</h3></div></div></div>
+<a name="phoenix.inside_phoenix.actors_in_detail.actor_concept"></a><h4>
+<a name="id868040"></a>
+        <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.actor_concept">Actor
+        Concept</a>
+      </h4>
+<p>
+        The main concept is the <code class="computeroutput"><span class="identifier">Actor</span></code>.
+        Actors are function objects (that can accept 0 to N arguments (where N is
+        a predefined maximum).
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          You can set <code class="computeroutput"><span class="identifier">PHOENIX_LIMIT</span></code>,
+          the predefined maximum arity an actor can take. By default, <code class="computeroutput"><span class="identifier">PHOENIX_LIMIT</span></code> is set to 10.
+        </p></td></tr>
+</table></div>
+<a name="phoenix.inside_phoenix.actors_in_detail.actor_template_class"></a><h4>
+<a name="id868088"></a>
+        <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.actor_template_class">actor
+        template class</a>
+      </h4>
+<p>
+        The <code class="computeroutput"><span class="identifier">actor</span></code> template class
+        models the <code class="computeroutput"><span class="identifier">Actor</span></code> concept:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Eval</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">actor</span> <span class="special">:</span> <span class="identifier">Eval</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">Eval</span> <span class="identifier">eval_type</span><span class="special">;</span>
+
+    <span class="identifier">actor</span><span class="special">();</span>
+    <span class="identifier">actor</span><span class="special">(</span><span class="identifier">Eval</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">base</span><span class="special">);</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T0</span><span class="special">&gt;</span>
+    <span class="keyword">explicit</span> <span class="identifier">actor</span><span class="special">(</span><span class="identifier">T0</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">_0</span><span class="special">);</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T1</span><span class="special">&gt;</span>
+    <span class="identifier">actor</span><span class="special">(</span><span class="identifier">T0</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">_0</span><span class="special">,</span> <span class="identifier">T1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">_1</span><span class="special">);</span>
+
+    <span class="comment">// more constructors
+</span>
+    <span class="keyword">typename</span> <span class="identifier">apply_actor</span><span class="special">&lt;</span><span class="identifier">eval_type</span><span class="special">,</span> <span class="identifier">basic_environment</span><span class="special">&lt;&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span>
+    <span class="keyword">operator</span><span class="special">()()</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T0</span><span class="special">&gt;</span>
+    <span class="keyword">typename</span> <span class="identifier">apply_actor</span><span class="special">&lt;</span><span class="identifier">eval_type</span><span class="special">,</span> <span class="identifier">basic_environment</span><span class="special">&lt;</span><span class="identifier">T0</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span>
+    <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">T0</span><span class="special">&amp;</span> <span class="identifier">_0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T1</span><span class="special">&gt;</span>
+    <span class="keyword">typename</span> <span class="identifier">apply_actor</span><span class="special">&lt;</span><span class="identifier">eval_type</span><span class="special">,</span> <span class="identifier">basic_environment</span><span class="special">&lt;</span><span class="identifier">T0</span><span class="special">,</span> <span class="identifier">T1</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span>
+    <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">T0</span><span class="special">&amp;</span> <span class="identifier">_0</span><span class="special">,</span> <span class="identifier">T1</span><span class="special">&amp;</span> <span class="identifier">_1</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+    <span class="comment">// function call operators
+</span><span class="special">};</span>
+</pre>
+<div class="table">
+<a name="id869218"></a><p class="title"><b>Table&#160;1.10.&#160;Actor Concept Requirements</b></p>
+<div class="table-contents"><table class="table" summary="Actor Concept Requirements">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Result/Semantics
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span><span class="special">::</span><span class="identifier">eval_type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The actor's Eval type
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Default Constructor
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span><span class="special">(</span><span class="identifier">base</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Constructor from Eval
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span><span class="special">(</span><span class="identifier">arg0</span><span class="special">,</span>
+                  <span class="identifier">arg1</span><span class="special">,</span>
+                  <span class="special">...,</span> <span class="identifier">argN</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Pass through constructors
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">x</span><span class="special">(</span><span class="identifier">arg0</span><span class="special">,</span>
+                  <span class="identifier">arg1</span><span class="special">,</span>
+                  <span class="special">...,</span> <span class="identifier">argN</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Function call operators
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><a name="phoenix.inside_phoenix.actors_in_detail.eval_concept"></a><h4>
+<a name="id869477"></a>
+        <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.eval_concept">Eval
+        Concept</a>
+      </h4>
+<p>
+        The <code class="computeroutput"><span class="identifier">actor</span></code> template class
+        has a single template parameter, <code class="computeroutput"><span class="identifier">Eval</span></code>,
+        from which it derives from. While the <code class="computeroutput"><span class="identifier">Actor</span></code>
+        concept represents a function, the <code class="computeroutput"><span class="identifier">Eval</span></code>
+        concept represents the function body. The requirements for <code class="computeroutput"><span class="identifier">Eval</span></code> are intentionally kept simple, to
+        make it easy to write models of the concept. We shall see an example in the
+        <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actor_example" title="Actor Example">next section</a>.
+      </p>
+<div class="table">
+<a name="id869532"></a><p class="title"><b>Table&#160;1.11.&#160;Eval Concept Requirements</b></p>
+<div class="table-contents"><table class="table" summary="Eval Concept Requirements">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Result/Semantics
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">return</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">eval</span><span class="special">(</span><span class="identifier">env</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Evaluates the function (see Environment below)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span><span class="special">::</span><span class="identifier">result</span><span class="special">&lt;</span><span class="identifier">Env</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The return type of eval (see Environment below)
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><a name="phoenix.inside_phoenix.actors_in_detail.constructors"></a><h4>
+<a name="id869669"></a>
+        <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.constructors">Constructors</a>
+      </h4>
+<p>
+        In addition to a default constructor and an constructor from a Eval object,
+        there are templated (pass through) constructors for 1 to N arguments (N ==
+        <code class="computeroutput"><span class="identifier">PHOENIX_LIMIT</span></code>). These constructors
+        simply forward the arguments to the <code class="computeroutput"><span class="identifier">base</span></code>.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+          <span class="bold"><strong>Parametric Base Class Pattern</strong></span>
+        </p>
+<p>
+          Notice that actor derives from its template argument Eval. This is the
+          inverse of the curiously recurring template pattern (CRTP). With the CRTP,
+          a class, T, has a Derived template parameter that is assumed to be its
+          subclass. The "parametric base class pattern" (PBCP), on the
+          other hand, inverses the inheritance and makes a class, T, the derived
+          class. Both CRTP and PBCP techniques have its pros and cons, which is outside
+          the scope of this document. CRTP should really be renamed "parametric
+          subclass pattern (PSCP), but again, that's another story.
+        </p>
+</td></tr>
+</table></div>
+<a name="phoenix.inside_phoenix.actors_in_detail.function_call_operators"></a><h4>
+<a name="id869718"></a>
+        <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.function_call_operators">Function
+        Call Operators</a>
+      </h4>
+<p>
+        There are N function call operators for 0 to N arguments (N == <code class="computeroutput"><span class="identifier">PHOENIX_LIMIT</span></code>). The actor class accepts
+        the arguments and forwards the arguments to the actor's base <code class="computeroutput"><span class="identifier">Eval</span></code> for evaluation.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+          <span class="bold"><strong>Forwarding Function Problem</strong></span>
+        </p>
+<p>
+          The function call operators cannot accept non-const temporaries and literal
+          constants. There is a known issue with current C++ called the "<a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2002/n1385.htm" target="_top">Forwarding
+          Function Problem</a>". The problem is that given an arbitrary
+          function <code class="computeroutput"><span class="identifier">F</span></code>, using current
+          C++ language rules, one cannot create a forwarding function <code class="computeroutput"><span class="identifier">FF</span></code> that transparently assumes the arguments
+          of <code class="computeroutput"><span class="identifier">F</span></code>. Disallowing non-const
+          rvalues arguments partially solves the problem but prohibits code such
+          as <code class="computeroutput"><span class="identifier">f</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">);</span></code>.
+        </p>
+</td></tr>
+</table></div>
+<a name="phoenix.inside_phoenix.actors_in_detail.environment"></a><h4>
+<a name="id869830"></a>
+        <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.environment">Environment</a>
+      </h4>
+<p>
+        On an actor function call, before calling the actor's <code class="computeroutput"><span class="identifier">Eval</span><span class="special">::</span><span class="identifier">eval</span></code>
+        for evaluation, the actor creates an <span class="emphasis"><em><span class="bold"><strong>environment</strong></span></em></span>.
+        Basically, the environment packages the arguments in a tuple. The <code class="computeroutput"><span class="identifier">Environment</span></code> is a concept, of which, the
+        <code class="computeroutput"><span class="identifier">basic_environment</span></code> template
+        class is a model of.
+      </p>
+<div class="table">
+<a name="id869879"></a><p class="title"><b>Table&#160;1.12.&#160;Environment Concept Requirements</b></p>
+<div class="table-contents"><table class="table" summary="Environment Concept Requirements">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Result/Semantics
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">x</span><span class="special">.</span><span class="identifier">args</span><span class="special">()</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The arguments in a tie (a tuple of references)
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span><span class="special">::</span><span class="identifier">args_type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The arguments' types in an MPL sequence
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span><span class="special">::</span><span class="identifier">tie_type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The tie (tuple of references) type
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        Schematically:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../images/funnel_in.png" alt="funnel_in"></span>
+      </p>
+<p>
+        Other parts of the library (e.g. the scope module) extends the <code class="computeroutput"><span class="identifier">Environment</span></code> concept to hold other information
+        such as local variables, etc.
+      </p>
+<a name="phoenix.inside_phoenix.actors_in_detail.apply_actor"></a><h4>
+<a name="id870054"></a>
+        <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.apply_actor">apply_actor</a>
+      </h4>
+<p>
+        <code class="computeroutput"><span class="identifier">apply_actor</span></code> is a standard
+        MPL style metafunction that simply calls the Action's <code class="computeroutput"><span class="identifier">result</span></code>
+        nested metafunction:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Action</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Env</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">apply_actor</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Action</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">result</span><span class="special">&lt;</span><span class="identifier">Env</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        After evaluating the arguments and doing some computation, the <code class="computeroutput"><span class="identifier">eval</span></code> member function returns something
+        back to the client. To do this, the forwarding function (the actor's <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>)
+        needs to know the return type of the eval member function that it is calling.
+        For this purpose, models of <code class="computeroutput"><span class="identifier">Eval</span></code>
+        are required to provide a nested template class:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Env</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">result</span><span class="special">;</span>
+</pre>
+<p>
+        This nested class provides the result type information returned by the <code class="computeroutput"><span class="identifier">Eval</span></code>'s <code class="computeroutput"><span class="identifier">eval</span></code>
+        member function. The nested template class <code class="computeroutput"><span class="identifier">result</span></code>
+        should have a typedef <code class="computeroutput"><span class="identifier">type</span></code>
+        that reflects the return type of its member function <code class="computeroutput"><span class="identifier">eval</span></code>.
+      </p>
+<p>
+        For reference, here's a typical <code class="computeroutput"><span class="identifier">actor</span><span class="special">::</span><span class="keyword">operator</span><span class="special">()</span></code> that accepts two arguments:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T1</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">apply_actor</span><span class="special">&lt;</span><span class="identifier">eval_type</span><span class="special">,</span> <span class="identifier">basic_environment</span><span class="special">&lt;</span><span class="identifier">T0</span><span class="special">,</span> <span class="identifier">T1</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="keyword">operator</span><span class="special">()(</span><span class="identifier">T0</span><span class="special">&amp;</span> <span class="identifier">_0</span><span class="special">,</span> <span class="identifier">T1</span><span class="special">&amp;</span> <span class="identifier">_1</span><span class="special">)</span> <span class="keyword">const</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">eval_type</span><span class="special">::</span><span class="identifier">eval</span><span class="special">(</span><span class="identifier">basic_environment</span><span class="special">&lt;</span><span class="identifier">T0</span><span class="special">,</span> <span class="identifier">T1</span><span class="special">&gt;(</span><span class="identifier">_0</span><span class="special">,</span> <span class="identifier">_1</span><span class="special">));</span>
+<span class="special">}</span>
+</pre>
+<a name="phoenix.inside_phoenix.actors_in_detail.actor_result"></a><h4>
+<a name="id870527"></a>
+        <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.actor_result">actor_result</a>
+      </h4>
+<p>
+        For reasons of symmetry to the family of <code class="computeroutput"><span class="identifier">actor</span><span class="special">::</span><span class="keyword">operator</span><span class="special">()</span></code> there is a special metafunction usable
+        for actor result type calculation named <code class="computeroutput"><span class="identifier">actor_result</span></code>.
+        This metafunction allows us to directly to specify the types of the parameters
+        to be passed to the <code class="computeroutput"><span class="identifier">actor</span><span class="special">::</span><span class="keyword">operator</span><span class="special">()</span></code> function. Here's a typical <code class="computeroutput"><span class="identifier">actor_result</span></code> that accepts two arguments:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Action</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T1</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">actor_result</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">basic_environment</span><span class="special">&lt;</span><span class="identifier">T0</span><span class="special">,</span> <span class="identifier">T1</span><span class="special">&gt;</span> <span class="identifier">env_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Action</span><span class="special">::</span><span class="keyword">template</span> <span class="identifier">result</span><span class="special">&lt;</span><span class="identifier">env_type</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.inside_phoenix.actor_example"></a><a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actor_example" title="Actor Example">Actor Example</a>
+</h3></div></div></div>
+<p>
+        Let us see a very simple prototypical example of an actor. This is not a
+        toy example. This is actually part of the library. Remember the <a class="link" href="primitives.html#phoenix.primitives.references" title="References"><code class="computeroutput"><span class="identifier">reference</span></code></a>?.
+      </p>
+<p>
+        First, we have a model of the <code class="computeroutput"><span class="identifier">Eval</span></code>
+        concept: the <code class="computeroutput"><span class="identifier">reference</span></code>:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">reference</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Env</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">result</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="identifier">reference</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">arg</span><span class="special">)</span>
+        <span class="special">:</span> <span class="identifier">ref</span><span class="special">(</span><span class="identifier">arg</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Env</span><span class="special">&gt;</span>
+    <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">eval</span><span class="special">(</span><span class="identifier">Env</span> <span class="keyword">const</span><span class="special">&amp;)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">ref</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">ref</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        Models of <code class="computeroutput"><span class="identifier">Eval</span></code> are never
+        created directly and its instances never exist alone. We have to wrap it
+        inside the <code class="computeroutput"><span class="identifier">actor</span></code> template
+        class to be useful. The <code class="computeroutput"><span class="identifier">ref</span></code>
+        template function does this for us:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">reference</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="keyword">const</span>
+<span class="identifier">ref</span><span class="special">(</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">v</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">reference</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;(</span><span class="identifier">v</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+        The <code class="computeroutput"><span class="identifier">reference</span></code> template class
+        conforms to the <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.eval_concept"><code class="computeroutput"><span class="identifier">Eval</span></code></a> concept. It has a nested <code class="computeroutput"><span class="identifier">result</span></code> metafunction that reflects the return
+        type of its <code class="computeroutput"><span class="identifier">eval</span></code> member function,
+        which performs the actual function. <code class="computeroutput"><span class="identifier">reference</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+        stores a reference to a <code class="computeroutput"><span class="identifier">T</span></code>.
+        Its <code class="computeroutput"><span class="identifier">eval</span></code> member function
+        simply returns the reference. It does not make use of the environment <code class="computeroutput"><span class="identifier">Env</span></code>.
+      </p>
+<p>
+        <span class="emphasis"><em>Pretty simple...</em></span>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.inside_phoenix.composites_in_detail"></a><a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.composites_in_detail" title="Composites In Detail">Composites
+      In Detail</a>
+</h3></div></div></div>
+<p>
+        We stated before that composites are actors that are composed of zero or
+        more actors (see <a class="link" href="composite.html" title="Composite">Composite</a>). This
+        is not quite accurate. The definition was sufficient at that point where
+        we opted to keep things simple and not bury the reader with details which
+        she might not need anyway.
+      </p>
+<p>
+        Actually, a composite is a model of the <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.eval_concept"><code class="computeroutput"><span class="identifier">Eval</span></code></a> concept (more on this later).
+        At the same time, it is also composed of 0..N (where N is a predefined maximum)
+        <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.eval_concept"><code class="computeroutput"><span class="identifier">Eval</span></code></a> instances and an eval policy.
+        The individual <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.eval_concept"><code class="computeroutput"><span class="identifier">Eval</span></code></a> instances are stored in a tuple.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          In a sense, the original definition of "composite", more or less,
+          will do just fine because <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.eval_concept"><code class="computeroutput"><span class="identifier">Eval</span></code></a> instances never exist alone
+          and are always wrapped in an <code class="computeroutput"><span class="identifier">actor</span></code>
+          template class which inherits from it anyway. The resulting actor IS-AN
+          <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.eval_concept"><code class="computeroutput"><span class="identifier">Eval</span></code></a>.
+        </p></td></tr>
+</table></div>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          You can set <code class="computeroutput"><span class="identifier">PHOENIX_COMPOSITE_LIMIT</span></code>,
+          the predefined maximum <code class="computeroutput"><span class="identifier">Eval</span></code>s
+          (actors) a composite can take. By default, <code class="computeroutput"><span class="identifier">PHOENIX_COMPOSITE_LIMIT</span></code>
+          is set to <code class="computeroutput"><span class="identifier">PHOENIX_LIMIT</span></code>
+          (See <a class="link" href="actors.html" title="Actors">Actors</a>).
+        </p></td></tr>
+</table></div>
+<a name="phoenix.inside_phoenix.composites_in_detail.composite_template_class"></a><h3>
+<a name="id872570"></a>
+        <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.composites_in_detail.composite_template_class">composite
+        template class</a>
+      </h3>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">EvalPolicy</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">EvalTuple</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">composite</span> <span class="special">:</span> <span class="identifier">EvalTuple</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">EvalTuple</span> <span class="identifier">base_type</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">EvalPolicy</span> <span class="identifier">eval_policy_type</span><span class="special">;</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Env</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">result</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">implementation</span><span class="special">-</span><span class="identifier">defined</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="identifier">composite</span><span class="special">();</span>
+    <span class="identifier">composite</span><span class="special">(</span><span class="identifier">base_type</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">actors</span><span class="special">);</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">U0</span><span class="special">&gt;</span>
+    <span class="identifier">composite</span><span class="special">(</span><span class="identifier">U0</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">_0</span><span class="special">);</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">U0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">U1</span><span class="special">&gt;</span>
+    <span class="identifier">composite</span><span class="special">(</span><span class="identifier">U0</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">_0</span><span class="special">,</span> <span class="identifier">U1</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">_1</span><span class="special">);</span>
+
+    <span class="comment">// more constructors
+</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Env</span><span class="special">&gt;</span>
+    <span class="keyword">typename</span> <span class="identifier">result</span><span class="special">&lt;</span><span class="identifier">Env</span><span class="special">&gt;::</span><span class="identifier">type</span>
+    <span class="identifier">eval</span><span class="special">(</span><span class="identifier">Env</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">env</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<a name="phoenix.inside_phoenix.composites_in_detail.evaltuple"></a><h3>
+<a name="id873013"></a>
+        <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.composites_in_detail.evaltuple">EvalTuple</a>
+      </h3>
+<p>
+        <code class="computeroutput"><span class="identifier">EvalTuple</span></code>, holds all the
+        <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.eval_concept"><code class="computeroutput"><span class="identifier">Eval</span></code></a> instances. The <code class="computeroutput"><span class="identifier">composite</span></code> template class inherits from
+        it. In addition to a default constructor and a constructor from an <code class="computeroutput"><span class="identifier">EvalTuple</span></code> object, there are templated (pass
+        through) constructors for 1 to N arguments (again, where N == <code class="computeroutput"><span class="identifier">PHOENIX_COMPOSITE_LIMIT</span></code>). These constructors
+        simply forward the arguments to the <code class="computeroutput"><span class="identifier">EvalTuple</span></code>
+        base class.
+      </p>
+<a name="phoenix.inside_phoenix.composites_in_detail.evalpolicy"></a><h3>
+<a name="id873075"></a>
+        <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.composites_in_detail.evalpolicy">EvalPolicy</a>
+      </h3>
+<p>
+        The composite's <code class="computeroutput"><span class="identifier">eval</span></code> member
+        function calls its <code class="computeroutput"><span class="identifier">EvalPolicy</span></code>'s
+        <code class="computeroutput"><span class="identifier">eval</span></code> member function (a static
+        member function) passing in the <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.environment">environment</a>
+        and each of its actors, in parallel. The following diagram illustrates what's
+        happening:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../images/funnel_out.png" alt="funnel_out"></span>
+      </p>
+<div class="table">
+<a name="id873133"></a><p class="title"><b>Table&#160;1.13.&#160;EvalPolicy Requirements</b></p>
+<div class="table-contents"><table class="table" summary="EvalPolicy Requirements">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Expression
+                </p>
+              </th>
+<th>
+                <p>
+                  Result/Semantics
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">x</span><span class="special">.</span><span class="identifier">eval</span><span class="special">&lt;</span><span class="identifier">RT</span><span class="special">&gt;(</span><span class="identifier">env</span><span class="special">,</span>
+                  <span class="identifier">eval0</span><span class="special">,</span>
+                  <span class="identifier">eval1</span><span class="special">,</span>
+                  <span class="special">...,</span> <span class="identifier">evalN</span><span class="special">)</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Evaluate the composite
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">T</span><span class="special">::</span><span class="identifier">result</span><span class="special">&lt;</span><span class="identifier">Env</span><span class="special">,</span>
+                  <span class="identifier">Eval0</span><span class="special">,</span>
+                  <span class="identifier">Eval1</span><span class="special">,</span>
+                  <span class="identifier">Eval2</span><span class="special">,</span>
+                  <span class="special">...,</span> <span class="identifier">EvalN</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The return type of eval
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        The <code class="computeroutput"><span class="identifier">EvalPolicy</span></code> is expected
+        to have a nested template class <code class="computeroutput"><span class="identifier">result</span></code>
+        which has a typedef <code class="computeroutput"><span class="identifier">type</span></code>
+        that reflects the return type of its member function <code class="computeroutput"><span class="identifier">eval</span></code>.
+        Here's a typical example of the composite's eval member function for a 2-actor
+        composite:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Env</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <span class="identifier">result</span><span class="special">&lt;</span><span class="identifier">Env</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">eval</span><span class="special">(</span><span class="identifier">Env</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">env</span><span class="special">)</span> <span class="keyword">const</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">result</span><span class="special">&lt;</span><span class="identifier">Env</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">return_type</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="identifier">EvalPolicy</span><span class="special">::</span><span class="keyword">template</span>
+        <span class="identifier">eval</span><span class="special">&lt;</span><span class="identifier">return_type</span><span class="special">&gt;(</span>
+            <span class="identifier">env</span>
+          <span class="special">,</span> <span class="identifier">get</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(*</span><span class="keyword">this</span><span class="special">)</span>   <span class="comment">// gets the 0th element from EvalTuple
+</span>          <span class="special">,</span> <span class="identifier">get</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(*</span><span class="keyword">this</span><span class="special">));</span> <span class="comment">// gets the 1st element from EvalTuple
+</span><span class="special">}</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.inside_phoenix.composing"></a><a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.composing" title="Composing">Composing</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="inside_phoenix.html#phoenix.inside_phoenix.composing.compose">compose</a></span></dt>
+<dt><span class="section"><a href="inside_phoenix.html#phoenix.inside_phoenix.composing.as_composite">as_composite</a></span></dt>
+<dt><span class="section"><a href="inside_phoenix.html#phoenix.inside_phoenix.composing.composite_example">Composite
+        Example</a></span></dt>
+</dl></div>
+<p>
+        Composites are never instantiated directly. Front end expression templates
+        are used to generate the composites. Using expression templates, we implement
+        a DSEL (Domain Specific Embedded Language) that mimics native C++. You've
+        seen this DSEL in action in the preceding sections. It is most evident in
+        the <a class="link" href="composite.html#phoenix.composite.statement" title="Statement">Statement</a> section.
+      </p>
+<p>
+        There are some facilities in the library to make composition of composites
+        easier. We have a set of overloaded <code class="computeroutput"><span class="identifier">compose</span></code>
+        functions and an <code class="computeroutput"><span class="identifier">as_composite</span></code>
+        metafunction. Together, these helpers make composing a breeze. We'll provide
+        an <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.composing.composite_example" title="Composite Example">example
+        of a composite</a> later to see why.
+      </p>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.inside_phoenix.composing.compose"></a><a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.composing.compose" title="compose">compose</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="identifier">compose</span><span class="special">&lt;</span><span class="identifier">EvalPolicy</span><span class="special">&gt;(</span><span class="identifier">arg0</span><span class="special">,</span> <span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">arg2</span><span class="special">,</span> <span class="special">...,</span> <span class="identifier">argN</span><span class="special">);</span>
+</pre>
+<p>
+          Given an <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.composites_in_detail.evalpolicy"><code class="computeroutput"><span class="identifier">EvalPolicy</span></code></a> and some arguments
+          <code class="computeroutput"><span class="identifier">arg0</span></code>...argN, returns a
+          proper <code class="computeroutput"><span class="identifier">composite</span></code>. The arguments
+          may or may not be phoenix actors (primitives of composites). If not, the
+          arguments are converted to actors appropriately. For example:
+        </p>
+<pre class="programlisting"><span class="identifier">compose</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;(</span><span class="number">3</span><span class="special">)</span>
+</pre>
+<p>
+          converts the argument <code class="computeroutput"><span class="number">3</span></code> to
+          an <code class="computeroutput"><span class="identifier">actor</span><span class="special">&lt;</span><span class="identifier">value</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="special">&gt;(</span><span class="number">3</span><span class="special">)</span></code>.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.inside_phoenix.composing.as_composite"></a><a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.composing.as_composite" title="as_composite">as_composite</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="identifier">as_composite</span><span class="special">&lt;</span><span class="identifier">EvalPolicy</span><span class="special">,</span> <span class="identifier">Arg0</span><span class="special">,</span> <span class="identifier">Arg1</span><span class="special">,</span> <span class="identifier">Arg2</span><span class="special">,</span> <span class="special">...,</span> <span class="identifier">ArgN</span><span class="special">&gt;::</span><span class="identifier">type</span>
+</pre>
+<p>
+          This is the metafunction counterpart of <code class="computeroutput"><span class="identifier">compose</span></code>.
+          Given an <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.composites_in_detail.evalpolicy"><code class="computeroutput"><span class="identifier">EvalPolicy</span></code></a> and some argument types
+          <code class="computeroutput"><span class="identifier">Arg0</span></code>...ArgN, returns a
+          proper <code class="computeroutput"><span class="identifier">composite</span></code> type.
+          For example:
+        </p>
+<pre class="programlisting"><span class="identifier">as_composite</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">type</span>
+</pre>
+<p>
+          is the composite type of the <code class="computeroutput"><span class="identifier">compose</span><span class="special">&lt;</span><span class="identifier">X</span><span class="special">&gt;(</span><span class="number">3</span><span class="special">)</span></code>
+          expression above.
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.inside_phoenix.composing.composite_example"></a><a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.composing.composite_example" title="Composite Example">Composite
+        Example</a>
+</h4></div></div></div>
+<p>
+          Now, let's examine an example. Again, this is not a toy example. This is
+          actually part of the library. Remember the <a class="link" href="composite.html#phoenix.composite.statement.while__statement" title="while_ Statement"><code class="computeroutput"><span class="identifier">while_</span></code></a> lazy statement? Putting
+          together everything we've learned so far, we will present it here in its
+          entirety (verbatim):
+        </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">while_eval</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Env</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Cond</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Do</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">result</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">void</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">RT</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Env</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Cond</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Do</span><span class="special">&gt;</span>
+    <span class="keyword">static</span> <span class="keyword">void</span>
+    <span class="identifier">eval</span><span class="special">(</span><span class="identifier">Env</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">env</span><span class="special">,</span> <span class="identifier">Cond</span><span class="special">&amp;</span> <span class="identifier">cond</span><span class="special">,</span> <span class="identifier">Do</span><span class="special">&amp;</span> <span class="identifier">do_</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">while</span> <span class="special">(</span><span class="identifier">cond</span><span class="special">.</span><span class="identifier">eval</span><span class="special">(</span><span class="identifier">env</span><span class="special">))</span>
+            <span class="identifier">do_</span><span class="special">.</span><span class="identifier">eval</span><span class="special">(</span><span class="identifier">env</span><span class="special">);</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Cond</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">while_gen</span>
+<span class="special">{</span>
+    <span class="identifier">while_gen</span><span class="special">(</span><span class="identifier">Cond</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">cond</span><span class="special">)</span>
+        <span class="special">:</span> <span class="identifier">cond</span><span class="special">(</span><span class="identifier">cond</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Do</span><span class="special">&gt;</span>
+    <span class="identifier">actor</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">as_composite</span><span class="special">&lt;</span><span class="identifier">while_eval</span><span class="special">,</span> <span class="identifier">Cond</span><span class="special">,</span> <span class="identifier">Do</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;</span>
+    <span class="keyword">operator</span><span class="special">[](</span><span class="identifier">Do</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">do_</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">compose</span><span class="special">&lt;</span><span class="identifier">while_eval</span><span class="special">&gt;(</span><span class="identifier">cond</span><span class="special">,</span> <span class="identifier">do_</span><span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="identifier">Cond</span> <span class="identifier">cond</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Cond</span><span class="special">&gt;</span>
+<span class="identifier">while_gen</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">&gt;</span>
+<span class="identifier">while_</span><span class="special">(</span><span class="identifier">Cond</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">cond</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">while_gen</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">&gt;(</span><span class="identifier">cond</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+          <code class="computeroutput"><span class="identifier">while_eval</span></code> is an example
+          of an <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.composites_in_detail.evalpolicy"><code class="computeroutput"><span class="identifier">EvalPolicy</span></code></a>. <code class="computeroutput"><span class="identifier">while_gen</span></code>
+          and <code class="computeroutput"><span class="identifier">while_</span></code> are the expression
+          template front ends. Let's break this apart to understand what's happening.
+          Let's start at the bottom. It's easier that way.
+        </p>
+<p>
+          When you write:
+        </p>
+<pre class="programlisting"><span class="identifier">while_</span><span class="special">(</span><span class="identifier">cond</span><span class="special">)</span>
+</pre>
+<p>
+          we generate an instance of <code class="computeroutput"><span class="identifier">while_gen</span><span class="special">&lt;</span><span class="identifier">Cond</span><span class="special">&gt;</span></code>, where <code class="computeroutput"><span class="identifier">Cond</span></code>
+          is the type of <code class="computeroutput"><span class="identifier">cond</span></code>. <code class="computeroutput"><span class="identifier">cond</span></code> can be an arbitrarily complex actor
+          expression. The <code class="computeroutput"><span class="identifier">while_gen</span></code>
+          template class has an <code class="computeroutput"><span class="keyword">operator</span><span class="special">[]</span></code> accepting another expression. If we write:
+        </p>
+<pre class="programlisting"><span class="identifier">while_</span><span class="special">(</span><span class="identifier">cond</span><span class="special">)</span>
+<span class="special">[</span>
+    <span class="identifier">do_</span>
+<span class="special">]</span>
+</pre>
+<p>
+          it will generate a proper composite with the type:
+        </p>
+<pre class="programlisting"><span class="identifier">as_composite</span><span class="special">&lt;</span><span class="identifier">while_eval</span><span class="special">,</span> <span class="identifier">Cond</span><span class="special">,</span> <span class="identifier">Do</span><span class="special">&gt;::</span><span class="identifier">type</span>
+</pre>
+<p>
+          where <code class="computeroutput"><span class="identifier">Cond</span></code> is the type
+          of <code class="computeroutput"><span class="identifier">cond</span></code> and <code class="computeroutput"><span class="identifier">Do</span></code> is the type of <code class="computeroutput"><span class="identifier">do_</span></code>.
+          Notice how we are using phoenix's <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.composing" title="Composing">composition</a>
+          (<code class="computeroutput"><span class="identifier">compose</span></code> and <code class="computeroutput"><span class="identifier">as_composite</span></code>) mechanisms here
+        </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Do</span><span class="special">&gt;</span>
+<span class="identifier">actor</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">as_composite</span><span class="special">&lt;</span><span class="identifier">while_eval</span><span class="special">,</span> <span class="identifier">Cond</span><span class="special">,</span> <span class="identifier">Do</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;</span>
+<span class="keyword">operator</span><span class="special">[](</span><span class="identifier">Do</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">do_</span><span class="special">)</span> <span class="keyword">const</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="identifier">compose</span><span class="special">&lt;</span><span class="identifier">while_eval</span><span class="special">&gt;(</span><span class="identifier">cond</span><span class="special">,</span> <span class="identifier">do_</span><span class="special">);</span>
+<span class="special">}</span>
+</pre>
+<p>
+          Finally, the <code class="computeroutput"><span class="identifier">while_eval</span></code>
+          does its thing:
+        </p>
+<pre class="programlisting"><span class="keyword">while</span> <span class="special">(</span><span class="identifier">cond</span><span class="special">.</span><span class="identifier">eval</span><span class="special">(</span><span class="identifier">env</span><span class="special">))</span>
+    <span class="identifier">do_</span><span class="special">.</span><span class="identifier">eval</span><span class="special">(</span><span class="identifier">env</span><span class="special">);</span>
+</pre>
+<p>
+          <code class="computeroutput"><span class="identifier">cond</span></code> and <code class="computeroutput"><span class="identifier">do_</span></code>, at this point, are instances of
+          <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.eval_concept"><code class="computeroutput"><span class="identifier">Eval</span></code></a>. <code class="computeroutput"><span class="identifier">cond</span></code>
+          and <code class="computeroutput"><span class="identifier">do_</span></code> are the <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.eval_concept"><code class="computeroutput"><span class="identifier">Eval</span></code></a> elements held by the composite's
+          <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.composites_in_detail.evaltuple"><code class="computeroutput"><span class="identifier">EvalTuple</span></code></a>. <code class="computeroutput"><span class="identifier">env</span></code>
+          is the <a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.actors_in_detail.environment"><code class="computeroutput"><span class="identifier">Environment</span></code></a>.
+        </p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.inside_phoenix.extending"></a><a class="link" href="inside_phoenix.html#phoenix.inside_phoenix.extending" title="Extending">Extending</a>
+</h3></div></div></div>
+<p>
+        We've shown how it is very easy to extend phoenix by writing new primitives
+        and composites. The modular design of Phoenix makes it extremely extensible.
+        We have seen that layer upon layer, the whole library is built on a solid
+        foundation. There are only a few simple well designed concepts that are laid
+        out like bricks. Overall, the library is designed to be extended. Everything
+        above the core layer can in fact be considered just as extensions to the
+        library. This modular design was inherited from the <a href="http://spirit.sourceforge.net" target="_top">Spirit</a>
+        inline parser library.
+      </p>
+<p>
+        Extension is non-intrusive. And, whenever a component or module is extended,
+        the new extension automatically becomes a first class citizen and is automatically
+        recognized by all modules and components in the library.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005 Joel
+      de Guzman, Dan Marsden<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="algorithm.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="wrap_up.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

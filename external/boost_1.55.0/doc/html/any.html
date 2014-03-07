@@ -1,0 +1,112 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;2.&#160;Boost.Any</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="boost/numeric/functional/as_one_T__std__idp34396776.html" title="Struct template as_one&lt;T, std_vector_tag&gt;">
+<link rel="next" href="any/s02.html" title="Examples">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost/numeric/functional/as_one_T__std__idp34396776.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="any/s02.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="any"></a>Chapter&#160;2.&#160;Boost.Any</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Kevlin</span> <span class="surname">Henney</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2001 Kevlin Henney</p></div>
+<div><div class="legalnotice">
+<a name="idp61674408"></a><p>Distributed under the Boost Software License, Version 1.0.
+      (See accompanying file <code class="filename">LICENSE_1_0.txt</code> or copy at 
+      <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="any.html#idp61675880">Introduction</a></span></dt>
+<dt><span class="section"><a href="any/s02.html">Examples</a></span></dt>
+<dt><span class="section"><a href="any/reference.html">Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="any/reference.html#any.ValueType"><span class="emphasis"><em>ValueType</em></span> requirements</a></span></dt>
+<dt><span class="section"><a href="any/reference.html#header.boost.any_hpp">Header &lt;boost/any.hpp&gt;</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="any/s04.html">Acknowledgements</a></span></dt>
+</dl>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="idp61675880"></a>Introduction</h2></div></div></div>
+<p>There are times when a generic (in the sense of
+    <span class="emphasis"><em>general</em></span> as opposed to
+    <span class="emphasis"><em>template-based programming</em></span>) type is needed:
+    variables that are truly variable, accommodating values of many
+    other more specific types rather than C++'s normal strict and
+    static types. We can distinguish three basic kinds of generic
+    type:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>Converting types that can hold one of a number of
+        possible value types, e.g. <code class="computeroutput">int</code> and
+        <code class="computeroutput">string</code>, and freely convert between them, for
+        instance interpreting <code class="computeroutput">5</code> as <code class="computeroutput">"5"</code> or
+        vice-versa.  Such types are common in scripting and other
+        interpreted
+        languages. 
+        <code class="computeroutput">boost::lexical_cast</code>
+        supports such conversion functionality.</p></li>
+<li class="listitem"><p>
+        Discriminated types that contain values of different types but
+        do not attempt conversion between them, i.e. <code class="computeroutput">5</code> is
+        held strictly as an <code class="computeroutput">int</code> and is not implicitly
+        convertible either to <code class="computeroutput">"5"</code> or to
+        <code class="computeroutput">5.0</code>. Their indifference to interpretation but
+        awareness of type effectively makes them safe, generic
+        containers of single values, with no scope for surprises from
+        ambiguous conversions.</p></li>
+<li class="listitem"><p>
+        Indiscriminate types that can refer to anything but are
+        oblivious to the actual underlying type, entrusting all forms
+        of access and interpretation to the programmer. This niche is
+        dominated by <code class="computeroutput">void *</code>, which offers plenty of scope
+        for surprising, undefined behavior.</p></li>
+</ul></div>
+<p>The <code class="computeroutput"><a class="link" href="boost/any.html" title="Class any">boost::any</a></code> class
+    (based on the class of the same name described in <a href="http://www.two-sdg.demon.co.uk/curbralan/papers/ValuedConversions.pdf" target="_top">"Valued
+    Conversions"</a> by Kevlin Henney, <span class="emphasis"><em>C++
+    Report</em></span> 12(7), July/August 2000) is a variant value type
+    based on the second category. It supports copying of any value
+    type and safe checked extraction of that value strictly against
+    its type. A similar design, offering more appropriate operators,
+    can be used for a generalized function adaptor,
+    <code class="computeroutput">any_function</code>, a generalized iterator adaptor,
+    <code class="computeroutput">any_iterator</code>, and other object types that need
+    uniform runtime treatment but support only compile-time template
+    parameter conformance.</p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: June 01, 2013 at 19:56:30 +0100</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="boost/numeric/functional/as_one_T__std__idp34396776.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="any/s02.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

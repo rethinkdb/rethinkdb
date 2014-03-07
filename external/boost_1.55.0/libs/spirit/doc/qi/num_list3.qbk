@@ -1,0 +1,33 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Number List Redux - list syntax]
+
+
+So far, we've been using the syntax:
+
+    double_ >> *(',' >> double_)
+
+to parse a comma-delimited list of numbers. Such lists are common in parsing and
+Spirit provides a simpler shortcut for them. The expression above can be
+simplified to:
+
+    double_ % ','
+
+read as: a list of doubles separated by `','`.
+
+
+This sample, again a variation of our previous example, demonstrates just that:
+
+[import ../../example/qi/num_list3.cpp]
+
+[tutorial_numlist3]
+
+The full cpp file for this example can be found here: [@../../example/qi/num_list3.cpp]
+
+[endsect]

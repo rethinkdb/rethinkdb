@@ -1,0 +1,153 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template separate_interval_set</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../../header/boost/icl/separate_interval_set_hpp.html" title="Header &lt;boost/icl/separate_interval_set.hpp&gt;">
+<link rel="prev" href="../../header/boost/icl/separate_interval_set_hpp.html" title="Header &lt;boost/icl/separate_interval_set.hpp&gt;">
+<link rel="next" href="is_set_icl_separa_id677689.html" title="Struct template is_set&lt;icl::separate_interval_set&lt; DomainT, Compare, Interval, Alloc &gt;&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../header/boost/icl/separate_interval_set_hpp.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../header/boost/icl/separate_interval_set_hpp.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_set_icl_separa_id677689.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry" lang="en">
+<a name="boost.icl.separate_interval_set"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template separate_interval_set</span></h2>
+<p>boost::icl::separate_interval_set &#8212; Implements a set as a set of intervals - leaving adjoining intervals separate. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../header/boost/icl/separate_interval_set_hpp.html" title="Header &lt;boost/icl/separate_interval_set.hpp&gt;">boost/icl/separate_interval_set.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> DomainT<span class="special">,</span> 
+         <span class="identifier">ICL_COMPARE</span> Compare <span class="special">=</span> <span class="identifier">ICL_COMPARE_INSTANCE</span><span class="special">(</span><span class="identifier">ICL_COMPARE_DEFAULT</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">)</span><span class="special">,</span> 
+         <span class="identifier">ICL_INTERVAL</span><span class="special">(</span><span class="identifier">ICL_COMPARE</span><span class="special">)</span> Interval <span class="special">=</span> <span class="identifier">ICL_INTERVAL_INSTANCE</span><span class="special">(</span><span class="identifier">ICL_INTERVAL_DEFAULT</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">Compare</span><span class="special">)</span><span class="special">,</span> 
+         <span class="identifier">ICL_ALLOC</span> Alloc <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a> <span class="special">:</span> <span class="keyword">public</span> boost::icl::interval_base_set&lt; boost::icl::separate_interval_set&lt; DomainT, Compare, Interval, Alloc &gt;, DomainT, Compare, Interval, Alloc &gt;
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <a class="link" href="separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a><span class="special">&lt;</span> <span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">Compare</span><span class="special">,</span> <span class="identifier">Interval</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span>   <a name="boost.icl.separate_interval_set.type"></a><span class="identifier">type</span><span class="special">;</span>                 
+  <span class="keyword">typedef</span> <a class="link" href="interval_base_set.html" title="Class template interval_base_set">interval_base_set</a><span class="special">&lt;</span> <a class="link" href="separate_interval_set.html#boost.icl.separate_interval_set.type">type</a><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">Compare</span><span class="special">,</span> <span class="identifier">Interval</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <a name="boost.icl.separate_interval_set.base_type"></a><span class="identifier">base_type</span><span class="special">;</span>            
+  <span class="keyword">typedef</span> <a class="link" href="separate_interval_set.html#boost.icl.separate_interval_set.type">type</a>                                                         <a name="boost.icl.separate_interval_set.overloadable_type"></a><span class="identifier">overloadable_type</span><span class="special">;</span>      <span class="comment">// Auxilliary type for overloadresolution. </span>
+  <span class="keyword">typedef</span> <a class="link" href="separate_interval_set.html#boost.icl.separate_interval_set.type">type</a>                                                         <a name="boost.icl.separate_interval_set.key_object_type"></a><span class="identifier">key_object_type</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <a class="link" href="interval_set.html" title="Class template interval_set">interval_set</a><span class="special">&lt;</span> <span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">Compare</span><span class="special">,</span> <span class="identifier">Interval</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span>            <a name="boost.icl.separate_interval_set.joint_type"></a><span class="identifier">joint_type</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <span class="identifier">DomainT</span>                                                      <a name="boost.icl.separate_interval_set.domain_type"></a><span class="identifier">domain_type</span><span class="special">;</span>            <span class="comment">// The domain type of the set. </span>
+  <span class="keyword">typedef</span> <span class="identifier">DomainT</span>                                                      <a name="boost.icl.separate_interval_set.codomain_type"></a><span class="identifier">codomain_type</span><span class="special">;</span>          <span class="comment">// The codomaintype is the same as domain_type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">DomainT</span>                                                      <a name="boost.icl.separate_interval_set.element_type"></a><span class="identifier">element_type</span><span class="special">;</span>           <span class="comment">// The element type of the set. </span>
+  <span class="keyword">typedef</span> <span class="identifier">interval_type</span>                                                <a name="boost.icl.separate_interval_set.segment_type"></a><span class="identifier">segment_type</span><span class="special">;</span>           <span class="comment">// The segment type of the set. </span>
+  <span class="keyword">typedef</span> <span class="identifier">exclusive_less_than</span><span class="special">&lt;</span> <span class="identifier">interval_type</span> <span class="special">&gt;</span>                         <a name="boost.icl.separate_interval_set.interval_compare"></a><span class="identifier">interval_compare</span><span class="special">;</span>       <span class="comment">// Comparison functor for intervals. </span>
+  <span class="keyword">typedef</span> <span class="identifier">exclusive_less_than</span><span class="special">&lt;</span> <span class="identifier">interval_type</span> <span class="special">&gt;</span>                         <a name="boost.icl.separate_interval_set.key_compare"></a><span class="identifier">key_compare</span><span class="special">;</span>            <span class="comment">// Comparison functor for keys. </span>
+  <span class="keyword">typedef</span> <span class="identifier">Alloc</span><span class="special">&lt;</span> <span class="identifier">interval_type</span> <span class="special">&gt;</span>                                       <a name="boost.icl.separate_interval_set.allocator_type"></a><span class="identifier">allocator_type</span><span class="special">;</span>         <span class="comment">// The allocator type of the set. </span>
+  <span class="keyword">typedef</span> <span class="identifier">Alloc</span><span class="special">&lt;</span> <span class="identifier">DomainT</span> <span class="special">&gt;</span>                                             <a name="boost.icl.separate_interval_set.domain_allocator_type"></a><span class="identifier">domain_allocator_type</span><span class="special">;</span>  <span class="comment">// allocator type of the corresponding element set </span>
+  <span class="keyword">typedef</span> <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">atomized_type</span>                                     <a name="boost.icl.separate_interval_set.atomized_type"></a><span class="identifier">atomized_type</span><span class="special">;</span>          <span class="comment">// The corresponding atomized type representing this interval container of elements. </span>
+  <span class="keyword">typedef</span> <span class="identifier">base_type</span><span class="special">::</span><span class="identifier">ImplSetT</span>                                          <a name="boost.icl.separate_interval_set.ImplSetT"></a><span class="identifier">ImplSetT</span><span class="special">;</span>               <span class="comment">// Container type for the implementation. </span>
+  <span class="keyword">typedef</span> <span class="identifier">ImplSetT</span><span class="special">::</span><span class="identifier">key_type</span>                                           <a name="boost.icl.separate_interval_set.key_type"></a><span class="identifier">key_type</span><span class="special">;</span>               <span class="comment">// key type of the implementing container </span>
+  <span class="keyword">typedef</span> <span class="identifier">ImplSetT</span><span class="special">::</span><span class="identifier">value_type</span>                                         <a name="boost.icl.separate_interval_set.data_type"></a><span class="identifier">data_type</span><span class="special">;</span>              <span class="comment">// data type of the implementing container </span>
+  <span class="keyword">typedef</span> <span class="identifier">ImplSetT</span><span class="special">::</span><span class="identifier">value_type</span>                                         <a name="boost.icl.separate_interval_set.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>             <span class="comment">// value type of the implementing container </span>
+  <span class="keyword">typedef</span> <span class="identifier">ImplSetT</span><span class="special">::</span><span class="identifier">iterator</span>                                           <a name="boost.icl.separate_interval_set.iterator"></a><span class="identifier">iterator</span><span class="special">;</span>               <span class="comment">// iterator for iteration over intervals </span>
+  <span class="keyword">typedef</span> <span class="identifier">ImplSetT</span><span class="special">::</span><span class="identifier">const_iterator</span>                                     <a name="boost.icl.separate_interval_set.const_iterator"></a><span class="identifier">const_iterator</span><span class="special">;</span>         <span class="comment">// const_iterator for iteration over intervals </span>
+
+  <span class="comment">// <a class="link" href="separate_interval_set.html#boost.icl.separate_interval_setconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="separate_interval_set.html#id677557-bb"><span class="identifier">separate_interval_set</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="separate_interval_set.html#id677560-bb"><span class="identifier">separate_interval_set</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SubType<span class="special">&gt;</span> 
+    <a class="link" href="separate_interval_set.html#id677572-bb"><span class="identifier">separate_interval_set</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="interval_base_set.html" title="Class template interval_base_set">interval_base_set</a><span class="special">&lt;</span> <span class="identifier">SubType</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">Compare</span><span class="special">,</span> <span class="identifier">Interval</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="separate_interval_set.html#id677590-bb"><span class="identifier">separate_interval_set</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">domain_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="separate_interval_set.html#id677600-bb"><span class="identifier">separate_interval_set</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">interval_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="separate_interval_set.html#id677627-bb"><span class="identifier">separate_interval_set</span></a><span class="special">(</span><a class="link" href="separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SubType<span class="special">&gt;</span> 
+    separate_interval_set&amp; 
+    <a class="link" href="separate_interval_set.html#id677609-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="interval_base_set.html" title="Class template interval_base_set">interval_base_set</a><span class="special">&lt;</span> <span class="identifier">SubType</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">Compare</span><span class="special">,</span> <span class="identifier">Interval</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  separate_interval_set&amp; <a class="link" href="separate_interval_set.html#id677638-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="separate_interval_set.html#id677486-bb">public member functions</a></span>
+  <span class="keyword">typedef</span> <a class="link" href="separate_interval_set.html#id677488-bb"><span class="identifier">ICL_INTERVAL_TYPE</span></a><span class="special">(</span><span class="identifier">Interval</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">Compare</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <a class="link" href="separate_interval_set.html#id677511-bb"><span class="identifier">ICL_COMPARE_DOMAIN</span></a><span class="special">(</span><span class="identifier">Compare</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SubType<span class="special">&gt;</span> 
+    <span class="keyword">void</span> <a class="link" href="separate_interval_set.html#id677529-bb"><span class="identifier">assign</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="interval_base_set.html" title="Class template interval_base_set">interval_base_set</a><span class="special">&lt;</span> <span class="identifier">SubType</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">Compare</span><span class="special">,</span> <span class="identifier">Interval</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="separate_interval_set.html#id677649-bb">private member functions</a></span>
+  <span class="identifier">iterator</span> <a class="link" href="separate_interval_set.html#id677651-bb"><span class="identifier">handle_inserted</span></a><span class="special">(</span><span class="identifier">iterator</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="separate_interval_set.html#id677662-bb"><span class="identifier">add_over</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">interval_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">iterator</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="separate_interval_set.html#id677678-bb"><span class="identifier">add_over</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">interval_type</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1" lang="en">
+<a name="id1309213"></a><h2>Description</h2>
+<div class="refsect2" lang="en">
+<a name="id1309216"></a><h3>
+<a name="boost.icl.separate_interval_setconstruct-copy-destruct"></a><code class="computeroutput">separate_interval_set</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol type="1">
+<li>
+<pre class="literallayout"><a name="id677557-bb"></a><span class="identifier">separate_interval_set</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Default constructor for the empty object. </li>
+<li>
+<pre class="literallayout"><a name="id677560-bb"></a><span class="identifier">separate_interval_set</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a> <span class="special">&amp;</span> src<span class="special">)</span><span class="special">;</span></pre>Copy constructor. </li>
+<li>
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SubType<span class="special">&gt;</span> 
+  <a name="id677572-bb"></a><span class="identifier">separate_interval_set</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="interval_base_set.html" title="Class template interval_base_set">interval_base_set</a><span class="special">&lt;</span> <span class="identifier">SubType</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">Compare</span><span class="special">,</span> <span class="identifier">Interval</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> src<span class="special">)</span><span class="special">;</span></pre>Copy constructor for base_type. </li>
+<li>
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="id677590-bb"></a><span class="identifier">separate_interval_set</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">domain_type</span> <span class="special">&amp;</span> elem<span class="special">)</span><span class="special">;</span></pre>Constructor for a single element. </li>
+<li>
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="id677600-bb"></a><span class="identifier">separate_interval_set</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">interval_type</span> <span class="special">&amp;</span> itv<span class="special">)</span><span class="special">;</span></pre>Constructor for a single interval. </li>
+<li>
+<pre class="literallayout"><a name="id677627-bb"></a><span class="identifier">separate_interval_set</span><span class="special">(</span><a class="link" href="separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a> <span class="special">&amp;&amp;</span> src<span class="special">)</span><span class="special">;</span></pre>Move constructor. </li>
+<li>
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SubType<span class="special">&gt;</span> 
+  separate_interval_set&amp; 
+  <a name="id677609-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="interval_base_set.html" title="Class template interval_base_set">interval_base_set</a><span class="special">&lt;</span> <span class="identifier">SubType</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">Compare</span><span class="special">,</span> <span class="identifier">Interval</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> src<span class="special">)</span><span class="special">;</span></pre>Assignment operator. </li>
+<li>
+<pre class="literallayout">separate_interval_set&amp; <a name="id677638-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="separate_interval_set.html" title="Class template separate_interval_set">separate_interval_set</a> <span class="special">&amp;&amp;</span> src<span class="special">)</span><span class="special">;</span></pre>Move assignment operator. </li>
+</ol></div>
+</div>
+<div class="refsect2" lang="en">
+<a name="id1309658"></a><h3>
+<a name="id677486-bb"></a><code class="computeroutput">separate_interval_set</code> public member functions</h3>
+<div class="orderedlist"><ol type="1">
+<li>
+<pre class="literallayout"><span class="keyword">typedef</span> <a name="id677488-bb"></a><span class="identifier">ICL_INTERVAL_TYPE</span><span class="special">(</span><span class="identifier">Interval</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">Compare</span><span class="special">)</span><span class="special">;</span></pre>The interval type of the set. </li>
+<li>
+<pre class="literallayout"><span class="keyword">typedef</span> <a name="id677511-bb"></a><span class="identifier">ICL_COMPARE_DOMAIN</span><span class="special">(</span><span class="identifier">Compare</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">)</span><span class="special">;</span></pre>Comparison functor for domain values. </li>
+<li>
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> SubType<span class="special">&gt;</span> 
+  <span class="keyword">void</span> <a name="id677529-bb"></a><span class="identifier">assign</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="interval_base_set.html" title="Class template interval_base_set">interval_base_set</a><span class="special">&lt;</span> <span class="identifier">SubType</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">Compare</span><span class="special">,</span> <span class="identifier">Interval</span><span class="special">,</span> <span class="identifier">Alloc</span> <span class="special">&gt;</span> <span class="special">&amp;</span> src<span class="special">)</span><span class="special">;</span></pre>Assignment from a base <code class="computeroutput"><a class="link" href="interval_set.html" title="Class template interval_set">interval_set</a></code>. </li>
+</ol></div>
+</div>
+<div class="refsect2" lang="en">
+<a name="id1309875"></a><h3>
+<a name="id677649-bb"></a><code class="computeroutput">separate_interval_set</code> private member functions</h3>
+<div class="orderedlist"><ol type="1">
+<li><pre class="literallayout"><span class="identifier">iterator</span> <a name="id677651-bb"></a><span class="identifier">handle_inserted</span><span class="special">(</span><span class="identifier">iterator</span> inserted_<span class="special">)</span><span class="special">;</span></pre></li>
+<li><pre class="literallayout"><span class="identifier">iterator</span> <a name="id677662-bb"></a><span class="identifier">add_over</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">interval_type</span> <span class="special">&amp;</span> addend<span class="special">,</span> <span class="identifier">iterator</span> last_<span class="special">)</span><span class="special">;</span></pre></li>
+<li><pre class="literallayout"><span class="identifier">iterator</span> <a name="id677678-bb"></a><span class="identifier">add_over</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">interval_type</span> <span class="special">&amp;</span> addend<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../header/boost/icl/separate_interval_set_hpp.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../header/boost/icl/separate_interval_set_hpp.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="is_set_icl_separa_id677689.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

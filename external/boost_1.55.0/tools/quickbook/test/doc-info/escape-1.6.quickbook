@@ -1,0 +1,12 @@
+[article Karel Vom\u00E1\u010Dka and Tom\u00E1\u0161 Martin\u00EDk
+[quickbook 1.6]
+[authors [Meik\u00E4l\u00E4inen, Matti][Peri\u0107, Pero]]
+[copyright 2010 Me\u00F0al-J\u00F3n and J\u00F3na J\u00F3nsd\u00F3ttir]
+[source-mode teletype]
+[purpose Inline code test: `1 + 2`]
+[category tests]
+[category irrelevance]
+[/ [category commented out] ]
+[biblioid uri http://www.boost.org/tools/quickbook/test/doc-info-1.quickbook]
+[lang en]
+]

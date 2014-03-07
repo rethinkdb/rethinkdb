@@ -1,0 +1,50 @@
+
+[/ Copyright 2011 Daniel James.
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) ]
+
+[section:rationale Rationale]
+
+The rationale can be found in the original design
+[footnote issue 6.18 of the __issues__ (page 63)].
+
+[heading Quality of the hash function]
+
+Many hash functions strive to have little correlation between the input
+and output values. They attempt to uniformally distribute the output
+values for very similar inputs. This hash function makes no such
+attempt. In fact, for integers, the result of the hash function is often
+just the input value. So similar but different input values will often
+result in similar but different output values.
+This means that it is not appropriate as a general hash function. For
+example, a hash table may discard bits from the hash function resulting
+in likely collisions, or might have poor collision resolution when hash
+values are clustered together. In such cases this hash function will
+preform poorly.
+
+But the standard has no such requirement for the hash function,
+it just requires that the hashes of two different values are unlikely
+to collide. Containers or algorithms
+designed to work with the standard hash function will have to be
+implemented to work well when the hash function's output is correlated
+to its input. Since they are paying that cost a higher quality hash function
+would be wasteful.
+
+For other use cases, if you do need a higher quality hash function,
+then neither the standard hash function or `boost::hash` are appropriate.
+There are several options
+available. One is to use a second hash on the output of this hash
+function, such as [@http://www.concentric.net/~ttwang/tech/inthash.htm
+Thomas Wang's hash function]. This this may not work as
+well as a hash algorithm tailored for the input.
+
+For strings there are several fast, high quality hash functions
+available (for example [@http://code.google.com/p/smhasher/ MurmurHash3]
+and [@http://code.google.com/p/cityhash/ Google's CityHash]),
+although they tend to be more machine specific.
+These may also be appropriate for hashing a binary representation of
+your data - providing that all equal values have an equal
+representation, which is not always the case (e.g. for floating point
+values).
+
+[endsect]

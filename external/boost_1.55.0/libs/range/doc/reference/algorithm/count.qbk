@@ -1,0 +1,41 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:count count]
+
+[heading Prototype]
+
+``
+template<class SinglePassRange, class Value>
+typename range_difference<SinglePassRange>::type
+count(SinglePassRange& rng, const Value& val);
+
+template<class SinglePassRange, class Value>
+typename range_difference<const SinglePassRange>::type
+count(const SinglePassRange& rng, const Value& val);
+``
+
+[heading Description]
+
+`count` returns the number of elements `x` in `rng` where `x == val` is `true`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/count.hpp`
+
+[heading Requirements]
+
+* `SinglePassRange` is a model of the __single_pass_range__ Concept.
+* `Value` is a model of the `EqualityComparableConcept`.
+* `SinglePassRange`'s value type is a model of the `EqualityComparableConcept`.
+* An object of `SinglePassRange`'s value type can be compared for equality with an object of type `Value`.
+
+[heading Complexity]
+
+Linear. Exactly `distance(rng)` comparisons.
+
+[endsect]
+
+

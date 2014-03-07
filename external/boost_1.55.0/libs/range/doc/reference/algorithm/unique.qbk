@@ -1,0 +1,77 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:unique unique]
+
+[heading Prototype]
+
+``
+template<class ForwardRange>
+typename range_return<ForwardRange, return_begin_found>::type
+unique(ForwardRange& rng);
+
+template<class ForwardRange>
+typename range_return<const ForwardRange, return_begin_found>::type
+unique(const ForwardRange& rng);
+
+template<class ForwardRange, class BinaryPredicate>
+typename range_return<ForwardRange, return_begin_found>::type
+unique(ForwardRange& rng, BinaryPredicate pred);
+
+template<class ForwardRange, class BinaryPredicate>
+typename range_return<const ForwardRange, return_begin_found>::type
+unique(const ForwardRange& rng, BinaryPredicate pred);
+
+template<range_return_value re, class ForwardRange>
+typename range_return<ForwardRange, re>::type
+unique(ForwardRange& rng);
+
+template<range_return_value re, class ForwardRange>
+typename range_return<const ForwardRange, re>::type
+unique(const ForwardRange& rng);
+
+template<range_return_value re, class ForwardRange, class BinaryPredicate>
+typename range_return<ForwardRange, re>::type
+unique(ForwardRange& rng, BinaryPredicate pred);
+
+template<range_return_value re, class ForwardRange, class BinaryPredicate>
+typename range_return<const ForwardRange, re>::type
+unique(const ForwardRange& rng, BinaryPredicate pred);
+``
+
+[heading Description]
+
+`unique` removes all but the first element of each sequence of duplicate encountered in `rng`.
+
+Elements in the range `[new_last, end(rng))` are dereferenceable but undefined.
+
+Equality is determined by the predicate if one is supplied, or by `operator==()` for `ForwardRange`'s value type.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/unique.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate versions of unique:]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange` is mutable.
+* `ForwardRange`'s value type is a model of the `EqualityComparableConcept`.
+
+[*For the predicate versions of unique:]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange` is mutable.
+* `BinaryPredicate` is a model of the `BinaryPredicateConcept`.
+* `ForwardRange`'s value type is convertible to `BinaryPredicate`'s first argument type and to `BinaryPredicate`'s second argument type.
+
+[heading Complexity]
+
+Linear. `O(N)` where `N` is `distance(rng)`. Exactly `distance(rng)` comparisons are performed.
+
+[endsect]
+
+

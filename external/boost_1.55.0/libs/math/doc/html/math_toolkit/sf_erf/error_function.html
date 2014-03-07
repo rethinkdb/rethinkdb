@@ -1,0 +1,629 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Error Functions</title>
+<link rel="stylesheet" href="../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Math Toolkit">
+<link rel="up" href="../sf_erf.html" title="Error Functions">
+<link rel="prev" href="../sf_erf.html" title="Error Functions">
+<link rel="next" href="error_inv.html" title="Error Function Inverses">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../sf_erf.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../sf_erf.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="error_inv.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="math_toolkit.sf_erf.error_function"></a><a class="link" href="error_function.html" title="Error Functions">Error Functions</a>
+</h3></div></div></div>
+<h5>
+<a name="math_toolkit.sf_erf.error_function.h0"></a>
+        <span class="phrase"><a name="math_toolkit.sf_erf.error_function.synopsis"></a></span><a class="link" href="error_function.html#math_toolkit.sf_erf.error_function.synopsis">Synopsis</a>
+      </h5>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">special_functions</span><span class="special">/</span><span class="identifier">erf</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">math</span><span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">erf</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">erf</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">erfc</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">erfc</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<p>
+        The return type of these functions is computed using the <a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>result
+        type calculation rules</em></span></a>: the return type is <code class="computeroutput"><span class="keyword">double</span></code> if T is an integer type, and T otherwise.
+      </p>
+<p>
+        The final <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a> argument is optional and can
+        be used to control the behaviour of the function: how it handles errors,
+        what level of precision to use etc. Refer to the <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">policy
+        documentation for more details</a>.
+      </p>
+<h5>
+<a name="math_toolkit.sf_erf.error_function.h1"></a>
+        <span class="phrase"><a name="math_toolkit.sf_erf.error_function.description"></a></span><a class="link" href="error_function.html#math_toolkit.sf_erf.error_function.description">Description</a>
+      </h5>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">erf</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">erf</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<p>
+        Returns the <a href="http://en.wikipedia.org/wiki/Error_function" target="_top">error
+        function</a> <a href="http://functions.wolfram.com/GammaBetaErf/Erf/" target="_top">erf</a>
+        of z:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/erf1.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../graphs/erf.png" align="middle"></span>
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">erfc</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&gt;</span>
+<a class="link" href="../result_type.html" title="Calculation of the Type of the Result"><span class="emphasis"><em>calculated-result-type</em></span></a> <span class="identifier">erfc</span><span class="special">(</span><span class="identifier">T</span> <span class="identifier">z</span><span class="special">,</span> <span class="keyword">const</span> <a class="link" href="../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a><span class="special">&amp;);</span>
+</pre>
+<p>
+        Returns the complement of the <a href="http://functions.wolfram.com/GammaBetaErf/Erfc/" target="_top">error
+        function</a> of z:
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../equations/erf2.png"></span>
+      </p>
+<p>
+        <span class="inlinemediaobject"><img src="../../../graphs/erfc.png" align="middle"></span>
+      </p>
+<h5>
+<a name="math_toolkit.sf_erf.error_function.h2"></a>
+        <span class="phrase"><a name="math_toolkit.sf_erf.error_function.accuracy"></a></span><a class="link" href="error_function.html#math_toolkit.sf_erf.error_function.accuracy">Accuracy</a>
+      </h5>
+<p>
+        The following table shows the peak errors (in units of epsilon) found on
+        various platforms with various floating point types, along with comparisons
+        to the <a href="http://www.gnu.org/software/gsl/" target="_top">GSL-1.9</a>, <a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>, <a href="http://docs.hp.com/en/B9106-90010/index.html" target="_top">HP-UX
+        C Library</a> and <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a>
+        libraries. Unless otherwise specified any floating point type that is narrower
+        than the one shown will have <a class="link" href="../relative_error.html#math_toolkit.relative_error.zero_error">effectively
+        zero error</a>.
+      </p>
+<div class="table">
+<a name="math_toolkit.sf_erf.error_function.errors_in_the_function_erf_z"></a><p class="title"><b>Table&#160;3.12.&#160;Errors In the Function erf(z)</b></p>
+<div class="table-contents"><table class="table" summary="Errors In the Function erf(z)">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Significand Size
+                </p>
+              </th>
+<th>
+                <p>
+                  Platform and Compiler
+                </p>
+              </th>
+<th>
+                <p>
+                  z &lt; 0.5
+                </p>
+              </th>
+<th>
+                <p>
+                  0.5 &lt; z &lt; 8
+                </p>
+              </th>
+<th>
+                <p>
+                  z &gt; 8
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  53
+                </p>
+              </td>
+<td>
+                <p>
+                  Win32, Visual C++ 8
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0 Mean=0
+                </p>
+                <p>
+                  GSL Peak=2.0 Mean=0.3
+                </p>
+                <p>
+                  <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> Peak=1.1
+                  Mean=0.7
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0.9 Mean=0.09
+                </p>
+                <p>
+                  GSL Peak=2.3 Mean=0.3
+                </p>
+                <p>
+                  <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> Peak=1.3
+                  Mean=0.2
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0 Mean=0
+                </p>
+                <p>
+                  GSL Peak=0 Mean=0
+                </p>
+                <p>
+                  <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> Peak=0
+                  Mean=0
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  RedHat Linux IA32, gcc-3.3
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0.7 Mean=0.07
+                </p>
+                <p>
+                  <a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=0.9 Mean=0.2
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0.9 Mean=0.2
+                </p>
+                <p>
+                  <a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=0.9 Mean=0.07
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0 Mean=0
+                </p>
+                <p>
+                  <a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=0 Mean=0
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  Redhat Linux IA64, gcc-3.4.4
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0.7 Mean=0.07
+                </p>
+                <p>
+                  <a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=0 Mean=0
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0.9 Mean=0.1
+                </p>
+                <p>
+                  <a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=0.5 Mean=0.03
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0 Mean=0
+                </p>
+                <p>
+                  <a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=0 Mean=0
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  113
+                </p>
+              </td>
+<td>
+                <p>
+                  HPUX IA64, aCC A.06.06
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0.8 Mean=0.1
+                </p>
+                <p>
+                  <a href="http://docs.hp.com/en/B9106-90010/index.html" target="_top">HP-UX
+                  C Library</a> Lib Peak=0.9 Mean=0.2
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0.9 Mean=0.1
+                </p>
+                <p>
+                  <a href="http://docs.hp.com/en/B9106-90010/index.html" target="_top">HP-UX
+                  C Library</a> Lib Peak=0.5 Mean=0.02
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0 Mean=0
+                </p>
+                <p>
+                  <a href="http://docs.hp.com/en/B9106-90010/index.html" target="_top">HP-UX
+                  C Library</a> Lib Peak=0 Mean=0
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="math_toolkit.sf_erf.error_function.errors_in_the_function_erfc_z"></a><p class="title"><b>Table&#160;3.13.&#160;Errors In the Function erfc(z)</b></p>
+<div class="table-contents"><table class="table" summary="Errors In the Function erfc(z)">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Significand Size
+                </p>
+              </th>
+<th>
+                <p>
+                  Platform and Compiler
+                </p>
+              </th>
+<th>
+                <p>
+                  z &lt; 0.5
+                </p>
+              </th>
+<th>
+                <p>
+                  0.5 &lt; z &lt; 8
+                </p>
+              </th>
+<th>
+                <p>
+                  z &gt; 8
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  53
+                </p>
+              </td>
+<td>
+                <p>
+                  Win32, Visual C++ 8
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0.7 Mean=0.06
+                </p>
+                <p>
+                  GSL Peak=1.0 Mean=0.4
+                </p>
+                <p>
+                  <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> Peak=0.7
+                  Mean=0.06
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0.99 Mean=0.3
+                </p>
+                <p>
+                  GSL Peak=2.6 Mean=0.6
+                </p>
+                <p>
+                  <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> Peak=3.6
+                  Mean=0.7
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=1.0 Mean=0.2
+                </p>
+                <p>
+                  GSL Peak=3.9 Mean=0.4
+                </p>
+                <p>
+                  <a href="http://www.netlib.org/cephes/" target="_top">Cephes</a> Peak=2.7
+                  Mean=0.4
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  RedHat Linux IA32, gcc-3.3
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0 Mean=0
+                </p>
+                <p>
+                  <a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=0 Mean=0
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=1.4 Mean=0.3
+                </p>
+                <p>
+                  <a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=1.3 Mean=0.3
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=1.6 Mean=0.4
+                </p>
+                <p>
+                  <a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=1.3 Mean=0.4
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  64
+                </p>
+              </td>
+<td>
+                <p>
+                  Redhat Linux IA64, gcc-3.4.4
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0 Mean=0
+                </p>
+                <p>
+                  <a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=0 Mean=0
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=1.4 Mean=0.3
+                </p>
+                <p>
+                  <a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=0 Mean=0
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=1.5 Mean=0.4
+                </p>
+                <p>
+                  <a href="http://www.gnu.org/software/libc/" target="_top">GNU C Lib</a>
+                  Peak=0 Mean=0
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  113
+                </p>
+              </td>
+<td>
+                <p>
+                  HPUX IA64, aCC A.06.06
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=0 Mean=0
+                </p>
+                <p>
+                  <a href="http://docs.hp.com/en/B9106-90010/index.html" target="_top">HP-UX
+                  C Library</a> Peak=0 Mean=0
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=1.5 Mean=0.3
+                </p>
+                <p>
+                  <a href="http://docs.hp.com/en/B9106-90010/index.html" target="_top">HP-UX
+                  C Library</a> Peak=0.9 Mean=0.08
+                </p>
+              </td>
+<td>
+                <p>
+                  Peak=1.6 Mean=0.4
+                </p>
+                <p>
+                  <a href="http://docs.hp.com/en/B9106-90010/index.html" target="_top">HP-UX
+                  C Library</a> Peak=0.9 Mean=0.1
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><h5>
+<a name="math_toolkit.sf_erf.error_function.h3"></a>
+        <span class="phrase"><a name="math_toolkit.sf_erf.error_function.testing"></a></span><a class="link" href="error_function.html#math_toolkit.sf_erf.error_function.testing">Testing</a>
+      </h5>
+<p>
+        The tests for these functions come in two parts: basic sanity checks use
+        spot values calculated using <a href="http://functions.wolfram.com/webMathematica/FunctionEvaluation.jsp?name=Erf" target="_top">Mathworld's
+        online evaluator</a>, while accuracy checks use high-precision test values
+        calculated at 1000-bit precision with <a href="http://shoup.net/ntl/doc/RR.txt" target="_top">NTL::RR</a>
+        and this implementation. Note that the generic and type-specific versions
+        of these functions use differing implementations internally, so this gives
+        us reasonably independent test data. Using our test data to test other "known
+        good" implementations also provides an additional sanity check.
+      </p>
+<h5>
+<a name="math_toolkit.sf_erf.error_function.h4"></a>
+        <span class="phrase"><a name="math_toolkit.sf_erf.error_function.implementation"></a></span><a class="link" href="error_function.html#math_toolkit.sf_erf.error_function.implementation">Implementation</a>
+      </h5>
+<p>
+        All versions of these functions first use the usual reflection formulas to
+        make their arguments positive:
+      </p>
+<pre class="programlisting"><span class="identifier">erf</span><span class="special">(-</span><span class="identifier">z</span><span class="special">)</span> <span class="special">=</span> <span class="number">1</span> <span class="special">-</span> <span class="identifier">erf</span><span class="special">(</span><span class="identifier">z</span><span class="special">);</span>
+
+<span class="identifier">erfc</span><span class="special">(-</span><span class="identifier">z</span><span class="special">)</span> <span class="special">=</span> <span class="number">2</span> <span class="special">-</span> <span class="identifier">erfc</span><span class="special">(</span><span class="identifier">z</span><span class="special">);</span>  <span class="comment">// preferred when -z &lt; -0.5</span>
+
+<span class="identifier">erfc</span><span class="special">(-</span><span class="identifier">z</span><span class="special">)</span> <span class="special">=</span> <span class="number">1</span> <span class="special">+</span> <span class="identifier">erf</span><span class="special">(</span><span class="identifier">z</span><span class="special">);</span>   <span class="comment">// preferred when -0.5 &lt;= -z &lt; 0</span>
+</pre>
+<p>
+        The generic versions of these functions are implemented in terms of the incomplete
+        gamma function.
+      </p>
+<p>
+        When the significand (mantissa) size is recognised (currently for 53, 64
+        and 113-bit reals, plus single-precision 24-bit handled via promotion to
+        double) then a series of rational approximations <a class="link" href="../sf_implementation.html#math_toolkit.sf_implementation.rational_approximations_used">devised
+        by JM</a> are used.
+      </p>
+<p>
+        For <code class="computeroutput"><span class="identifier">z</span> <span class="special">&lt;=</span>
+        <span class="number">0.5</span></code> then a rational approximation to
+        erf is used, based on the observation that erf is an odd function and therefore
+        erf is calculated using:
+      </p>
+<pre class="programlisting"><span class="identifier">erf</span><span class="special">(</span><span class="identifier">z</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">z</span> <span class="special">*</span> <span class="special">(</span><span class="identifier">C</span> <span class="special">+</span> <span class="identifier">R</span><span class="special">(</span><span class="identifier">z</span><span class="special">*</span><span class="identifier">z</span><span class="special">));</span>
+</pre>
+<p>
+        where the rational approximation R(z*z) is optimised for absolute error:
+        as long as its absolute error is small enough compared to the constant C,
+        then any round-off error incurred during the computation of R(z*z) will effectively
+        disappear from the result. As a result the error for erf and erfc in this
+        region is very low: the last bit is incorrect in only a very small number
+        of cases.
+      </p>
+<p>
+        For <code class="computeroutput"><span class="identifier">z</span> <span class="special">&gt;</span>
+        <span class="number">0.5</span></code> we observe that over a small interval
+        [a, b) then:
+      </p>
+<pre class="programlisting"><span class="identifier">erfc</span><span class="special">(</span><span class="identifier">z</span><span class="special">)</span> <span class="special">*</span> <span class="identifier">exp</span><span class="special">(</span><span class="identifier">z</span><span class="special">*</span><span class="identifier">z</span><span class="special">)</span> <span class="special">*</span> <span class="identifier">z</span> <span class="special">~</span> <span class="identifier">c</span>
+</pre>
+<p>
+        for some constant c.
+      </p>
+<p>
+        Therefore for <code class="computeroutput"><span class="identifier">z</span> <span class="special">&gt;</span>
+        <span class="number">0.5</span></code> we calculate erfc using:
+      </p>
+<pre class="programlisting"><span class="identifier">erfc</span><span class="special">(</span><span class="identifier">z</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">exp</span><span class="special">(-</span><span class="identifier">z</span><span class="special">*</span><span class="identifier">z</span><span class="special">)</span> <span class="special">*</span> <span class="special">(</span><span class="identifier">C</span> <span class="special">+</span> <span class="identifier">R</span><span class="special">(</span><span class="identifier">z</span> <span class="special">-</span> <span class="identifier">B</span><span class="special">))</span> <span class="special">/</span> <span class="identifier">z</span><span class="special">;</span>
+</pre>
+<p>
+        Again R(z - B) is optimised for absolute error, and the constant <code class="computeroutput"><span class="identifier">C</span></code> is the average of <code class="computeroutput"><span class="identifier">erfc</span><span class="special">(</span><span class="identifier">z</span><span class="special">)</span>
+        <span class="special">*</span> <span class="identifier">exp</span><span class="special">(</span><span class="identifier">z</span><span class="special">*</span><span class="identifier">z</span><span class="special">)</span> <span class="special">*</span>
+        <span class="identifier">z</span></code> taken at the endpoints of the
+        range. Once again, as long as the absolute error in R(z - B) is small compared
+        to <code class="computeroutput"><span class="identifier">c</span></code> then <code class="computeroutput"><span class="identifier">c</span>
+        <span class="special">+</span> <span class="identifier">R</span><span class="special">(</span><span class="identifier">z</span> <span class="special">-</span>
+        <span class="identifier">B</span><span class="special">)</span></code>
+        will be correctly rounded, and the error in the result will depend only on
+        the accuracy of the exp function. In practice, in all but a very small number
+        of cases, the error is confined to the last bit of the result. The constant
+        <code class="computeroutput"><span class="identifier">B</span></code> is chosen so that the left
+        hand end of the range of the rational approximation is 0.
+      </p>
+<p>
+        For large <code class="computeroutput"><span class="identifier">z</span></code> over a range
+        [a, +&#8734;] the above approximation is modified to:
+      </p>
+<pre class="programlisting"><span class="identifier">erfc</span><span class="special">(</span><span class="identifier">z</span><span class="special">)</span> <span class="special">=</span> <span class="identifier">exp</span><span class="special">(-</span><span class="identifier">z</span><span class="special">*</span><span class="identifier">z</span><span class="special">)</span> <span class="special">*</span> <span class="special">(</span><span class="identifier">C</span> <span class="special">+</span> <span class="identifier">R</span><span class="special">(</span><span class="number">1</span> <span class="special">/</span> <span class="identifier">z</span><span class="special">))</span> <span class="special">/</span> <span class="identifier">z</span><span class="special">;</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../sf_erf.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../sf_erf.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="error_inv.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

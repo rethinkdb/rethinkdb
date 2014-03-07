@@ -1,0 +1,86 @@
+Index: source/common/uloc.c
+===================================================================
+--- source/common/uloc.c	(revision 68397)
++++ source/common/uloc.c	(working copy)
+@@ -693,6 +693,13 @@
+                     keywordList[numKeywords].keyword[n++] = uprv_tolower(pos[i]);
+                 }
+             }
++
++            /* zero-length keyword is an error. */
++            if (n == 0) {
++                *status = U_INVALID_FORMAT_ERROR;
++                return 0;
++            }
++
+             keywordList[numKeywords].keyword[n] = 0;
+             keywordList[numKeywords].keywordLen = n;
+             /* now grab the value part. First we skip the '=' */
+@@ -701,8 +708,15 @@
+             while(*equalSign == ' ') {
+                 equalSign++;
+             }
++
++            /* Premature end or zero-length value */
++            if (!equalSign || equalSign == semicolon) {
++                *status = U_INVALID_FORMAT_ERROR;
++                return 0;
++            }
++
+             keywordList[numKeywords].valueStart = equalSign;
+-            
++
+             pos = semicolon;
+             i = 0;
+             if(pos) {
+@@ -713,7 +727,7 @@
+                 pos++;
+             } else {
+                 i = (int32_t)uprv_strlen(equalSign);
+-                while(equalSign[i-1] == ' ') {
++                while(i && equalSign[i-1] == ' ') {
+                     i--;
+                 }
+                 keywordList[numKeywords].valueLen = i;
+@@ -1797,7 +1811,7 @@
+                 int32_t variantLen = _deleteVariant(variant, uprv_min(variantSize, (nameCapacity-len)), variantToCompare, n);
+                 len -= variantLen;
+                 if (variantLen > 0) {
+-                    if (name[len-1] == '_') { /* delete trailing '_' */
++                    if (len > 0 && name[len-1] == '_') { /* delete trailing '_' */
+                         --len;
+                     }
+                     addKeyword = VARIANT_MAP[j].keyword;
+@@ -1805,7 +1819,7 @@
+                     break;
+                 }
+             }
+-            if (name[len-1] == '_') { /* delete trailing '_' */
++            if (len > 0 && len <= nameCapacity && name[len-1] == '_') { /* delete trailing '_' */
+                 --len;
+             }
+         }
+Index: source/common/uresbund.c
+===================================================================
+--- source/common/uresbund.c	(revision 122103)
++++ source/common/uresbund.c	(working copy)
+@@ -319,7 +319,7 @@
+     UResourceDataEntry *r = NULL;
+     UResourceDataEntry find;
+     /*int32_t hashValue;*/
+-    char name[96];
++    char name[100];
+     char aliasName[100] = { 0 };
+     int32_t aliasLen = 0;
+     /*UBool isAlias = FALSE;*/
+@@ -528,8 +528,8 @@
+     UBool hasChopped = TRUE;
+     UBool usingUSRData = U_USE_USRDATA && ( path == NULL || uprv_strncmp(path,U_ICUDATA_NAME,8) == 0);
+ 
+-    char name[96];
+-    char usrDataPath[96];
++    char name[100];
++    char usrDataPath[100];
+ 
+     initCache(status);
+ 

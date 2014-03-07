@@ -1,0 +1,34 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Introduction]
+
+[$images/banner.png]
+
+The Phoenix library enables FP techniques such as higher order functions,
+/lambda/ (unnamed functions), /currying/ (partial function application) and lazy
+evaluation in C++. The focus is more on usefulness and practicality than purity,
+elegance and strict adherence to FP principles.
+
+FP is a programming discipline that is not at all tied to a specific language.
+FP as a programming discipline can, in fact, be applied to many programming
+languages. In the realm of C++ for instance, we are seeing more FP techniques
+being applied. C++ is sufficiently rich to support at least some of the most
+important facets of FP. C++ is a multiparadigm programming language. It is not
+only procedural. It is not only object oriented. Beneath the core of the
+standard C++ library, a closer look into STL gives us a glimpse of FP already in
+place. It is obvious that the authors of STL know and practice FP. In the near
+future, we shall surely see more FP trickle down into the mainstream.
+
+The truth is, most of the FP techniques can coexist quite well with the standard
+object oriented and imperative programming paradigms. When we are using STL
+algorithms and functors (function objects) for example, we are already doing FP.
+Phoenix is an evolutionary next step.
+
+[endsect]

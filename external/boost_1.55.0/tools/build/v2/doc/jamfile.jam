@@ -1,0 +1,26 @@
+# Copyright 2004,2006 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+import quickbook ;
+using boostbook ;
+
+project tools/build/v2/doc 
+    ;
+
+boostbook userman : src/standalone.xml 
+   : <xsl:param>toc.section.depth=1
+     <xsl:param>doc.standalone=true 
+     <xsl:param>nav.layout=none
+     <implicit-dependency>jam_docs
+     <dependency>jam_docs
+     <xsl:param>boost.root=../../../../..
+     <xsl:param>boost.defaults=Boost
+   ;
+   
+xml jam_docs : bjam.qbk ;   
+   
+if ! $(BOOST_ROOT)
+{   
+    BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;   
+}    

@@ -1,0 +1,186 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!-- Copyright (c) Jeremy Siek and Andrew Lumsdaine 2000 -->
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for Linux/x86 (vers 1 September 2005), see www.w3.org" />
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii" />
+
+  <title>Using Concept Checks</title>
+  <link rel="stylesheet" href="../../rst.css" type="text/css" />
+</head>
+
+<body bgcolor="#FFFFFF" link="#0000EE" text="#000000" vlink="#551A8B" alink=
+"#FF0000">
+  <img src="../../boost.png" alt="C++ Boost" width="277" height=
+  "86" /><br clear="none" />
+
+  <h2><a name="using-concept-checks" id="using-concept-checks">Using Concept
+  Checks</a></h2>
+
+  <p>For each concept there is a concept checking class template that can be
+  used to make sure that a given type (or set of types) models the concept.
+  The Boost Concept Checking Library (BCCL) includes concept checking class
+  templates for all of the concepts used in the C++ standard library and a
+  few more. See the <a href="./reference.htm">Reference</a> section for a
+  complete list. In addition, other boost libraries come with concept
+  checking classes for the concepts that are particular to those libraries.
+  For example, there are <a href="../graph/doc/graph_concepts.html">graph
+  concepts</a> and <a href="../property_map/doc/property_map.html">property map
+  concepts</a>. Also, whenever <b>anyone</b> writing function templates needs
+  to express requirements that are not yet stated by an existing concept, a
+  new concept checking class should be created. How to do this is explained
+  in <a href="./creating_concepts.htm">Creating Concept Checking
+  Classes</a>.</p>
+
+  <p>An example of a concept checking class from the BCCL is the
+  <tt>EqualityComparableConcept</tt> class. The class corresponds to the
+  EqualityComparable requirements described in 20.1.1 of the C++ Standard,
+  and to the <a href=
+  "http://www.sgi.com/tech/stl/EqualityComparable.html">EqualityComparable</a>
+  concept documented in the SGI STL.</p>
+  <pre>
+template &lt;class T&gt;
+struct EqualityComparable;
+</pre>
+
+  <p>The template argument is the type to be checked. That is, the purpose of
+  <tt>EqualityComparable&lt;<em>X</em>&gt;</tt> is to make sure that
+  <tt><em>X</em></tt> models the EqualityComparable concept.</p>
+
+  <h4><tt>BOOST_CONCEPT_ASSERT()</tt></h4>
+
+  <p>The most versatile way of checking concept requirements is to use the
+  <code>BOOST_CONCEPT_ASSERT()</code> macro. You can use this macro at any
+  scope, by passing a concept checking template specialization enclosed in
+  parentheses. <strong>Note:</strong> that means invocations of
+  <code>BOOST_CONCEPT_ASSERT</code> will appear to use <strong>double
+  parentheses</strong>.</p>
+  <pre>
+<font color="green">// In my library:</font>
+template &lt;class T&gt;
+void generic_library_function(T x)
+{
+  BOOST_CONCEPT_ASSERT<strong>((</strong>EqualityComparable&lt;T&gt;<strong>))</strong>;
+  <font color="green">// ...</font>
+};
+
+template &lt;class It&gt;
+class generic_library_class
+{
+  BOOST_CONCEPT_ASSERT<strong>((</strong>RandomAccessIterator&lt;It&gt;<strong>))</strong>;
+  <font color="green">// ...</font>
+};
+
+<font color="green">// In the user's code:</font>  
+class foo {
+  <font color="green">//... </font>
+};
+
+int main() {
+  foo x;
+  generic_library_function(x);
+  generic_library_class&lt;std::vector&lt;char&gt;::iterator&gt; y;
+  <font color="green">//...</font> 
+}
+</pre>
+
+  <h4><tt>BOOST_CONCEPT_REQUIRES</tt></h4>
+
+  <p>One of the nice things about the proposed C++0x <a href=
+  "http://www.generic-programming.org/languages/conceptcpp/tutorial">syntax
+  for declaring concept constrained function templates</a> is the way that
+  constraints are part of the function <em>declaration</em>, so clients will
+  see them. <code>BOOST_CONCEPT_ASSERT</code> can only express constraints
+  within the function template definition, which hides the constraint in the
+  function body. Aside from the loss of a self-documenting interface,
+  asserting conformance only in the function body can undesirably delay
+  checking if the function is explicitly instantiated in a different
+  translation unit from the one in which it is called, or if the compiler
+  does link-time instantiation.</p>
+
+  <p>The <tt>BOOST_CONCEPT_REQUIRES</tt> macro can be used in a function
+  template declaration to check whether some type models a concept. It
+  accepts two arguments, a <strong>list of constraints</strong>, and the
+  function template's return type. The list of constraints takes the form of
+  a sequence of adjacent concept checking template specializations,
+  <strong>in double parentheses</strong>, and the function's return type must
+  also be parenthesized. For example, the standard <code>stable_sort</code>
+  algorithm might be declared as follows: class</p>
+  <pre>
+template&lt;typename RanIter&gt;
+BOOST_CONCEPT_REQUIRES(
+    ((Mutable_RandomAccessIterator&lt;RanIter&gt;))
+    ((LessThanComparable&lt;typename Mutable_RandomAccessIterator&lt;RanIter&gt;::value_type&gt;)),
+    (void)) <font color="green">// return type</font>
+    stable_sort(RanIter,RanIter);
+</pre>
+
+  <p>Note that the algorithm requires that the value type of the iterator be
+  LessThanComparable, and it accesses that value type through the
+  <code>Mutable_RandomAccessIterator</code> concept checking template. In
+  general, the Boost concept checking classes expose associated types as
+  nested member typedefs so that you can use this syntax, which mimics the
+  approach used in the concept support proposed for the next version of
+  C++.</p>
+
+  <h4>Multi-Type Concepts</h4>
+
+  <p>Some concepts deal with more than one type. In this case the
+  corresponding concept checking class will have multiple template
+  parameters. The following example shows how <tt>BOOST_CONCEPT_REQUIRES</tt>
+  is used with the <a href=
+  "../property_map/doc/ReadWritePropertyMap.html">ReadWritePropertyMap</a>
+  concept, which takes two type parameters: a property map and the key type
+  for the map.</p>
+  <pre>
+template &lt;class G, class Buffer, class BFSVisitor, 
+          class ColorMap&gt;
+BOOST_CONCEPT_REQUIRES(
+  ((ReadWritePropertyMap&lt;ColorMap, typename IncidenceGraph&lt;G&gt;::vertex_descriptor&gt;)),
+  (void)) <font color="green">// return type</font>
+breadth_first_search(G&amp; g, 
+  typename graph_traits&lt;IncidenceGraph&gt;::vertex_descriptor s, 
+  Buffer&amp; Q, BFSVisitor vis, ColorMap color)
+{
+  typedef typename IncidenceGraph&lt;G&gt;::vertex_descriptor Vertex;
+  ...
+}
+</pre>
+
+  <p>Although concept checks are designed for use by generic library
+  implementors, they can also be useful to end users. Sometimes one may not
+  be sure whether some type models a particular concept. The syntactic
+  requirements, at least, can easily be checked by creating a small program
+  and using <tt>BOOST_CONCEPT_ASSERT</tt> with the type and concept in
+  question. For example:</p>
+  <pre>
+<font color=
+"green">// Make sure list&lt;int&gt; has bidirectional iterators.</font>
+BOOST_CONCEPT_ASSERT((BidirectionalIterator&lt;std::list&lt;int&gt;::iterator&gt;));
+</pre>
+
+  <p><a href="./concept_check.htm">Prev: Concept Checking
+  Introduction</a><br />
+  <a href="./creating_concepts.htm">Next: Creating Concept Checking
+  Classes</a><br /></p>
+  <hr />
+
+  <table>
+    <tr valign="top">
+      <td nowrap="nowrap">Copyright &copy; 2000</td>
+
+      <td><a href="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</a>(<a href=
+      "mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</a>) Andrew
+      Lumsdaine(<a href="mailto:lums@osl.iu.edu">lums@osl.iu.edu</a>), 2007
+      <a href="mailto:dave@boost-consulting.com">David Abrahams</a>.</td>
+    </tr>
+  </table>
+</body>
+</html>

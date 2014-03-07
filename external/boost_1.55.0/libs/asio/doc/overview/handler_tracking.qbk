@@ -1,0 +1,102 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:handler_tracking Handler Tracking]
+
+To aid in debugging asynchronous programs, Boost.Asio provides support for handler
+tracking. When enabled by defining `BOOST_ASIO_ENABLE_HANDLER_TRACKING`, Boost.Asio
+writes debugging output to the standard error stream. The output records
+asynchronous operations and the relationships between their handlers.
+
+[teletype]
+This feature is useful when debugging and you need to know how your
+asynchronous operations are chained together, or what the pending asynchronous
+operations are. As an illustration, here is the output when you run the HTTP
+Server example, handle a single request, then shut down via Ctrl+C:
+
+  @asio|1298160085.070638|0*1|signal_set@0x7fff50528f40.async_wait
+  @asio|1298160085.070888|0*2|socket@0x7fff50528f60.async_accept
+  @asio|1298160085.070913|0|resolver@0x7fff50528e28.cancel
+  @asio|1298160118.075438|>2|ec=asio.system:0
+  @asio|1298160118.075472|2*3|socket@0xb39048.async_receive
+  @asio|1298160118.075507|2*4|socket@0x7fff50528f60.async_accept
+  @asio|1298160118.075527|<2|
+  @asio|1298160118.075540|>3|ec=asio.system:0,bytes_transferred=122
+  @asio|1298160118.075731|3*5|socket@0xb39048.async_send
+  @asio|1298160118.075778|<3|
+  @asio|1298160118.075793|>5|ec=asio.system:0,bytes_transferred=156
+  @asio|1298160118.075831|5|socket@0xb39048.close
+  @asio|1298160118.075855|<5|
+  @asio|1298160122.827317|>1|ec=asio.system:0,signal_number=2
+  @asio|1298160122.827333|1|socket@0x7fff50528f60.close
+  @asio|1298160122.827359|<1|
+  @asio|1298160122.827370|>4|ec=asio.system:125
+  @asio|1298160122.827378|<4|
+  @asio|1298160122.827394|0|signal_set@0x7fff50528f40.cancel
+
+Each line is of the form:
+
+  <tag>|<timestamp>|<action>|<description>
+
+The `<tag>` is always `@asio`, and is used to identify and extract the handler
+tracking messages from the program output.
+
+The `<timestamp>` is seconds and microseconds from 1 Jan 1970 UTC.
+
+The `<action>` takes one of the following forms:
+
+[variablelist
+  [
+    [>n]
+    [The program entered the handler number `n`. The `<description>` shows the
+    arguments to the handler.]
+  ]
+  [
+    [<n]
+    [The program left handler number `n`.]
+  ]
+  [
+    [!n]
+    [The program left handler number n due to an exception.]
+  ]
+  [
+    [~n]
+    [The handler number `n` was destroyed without having been invoked. This is
+    usually the case for any unfinished asynchronous operations when the
+    `io_service` is destroyed.]
+  ]
+  [
+    [n*m]
+    [The handler number `n` created a new asynchronous operation with completion
+    handler number `m`. The `<description>` shows what asynchronous operation
+    was started.]
+  ]
+  [
+    [n]
+    [The handler number n performed some other operation. The `<description>`
+    shows what function was called. Currently only `close()` and `cancel()`
+    operations are logged, as these may affect the state of pending
+    asynchronous operations.]
+  ]
+]
+
+Where the `<description>` shows a synchronous or asynchronous operation, the
+format is `<object-type>@<pointer>.<operation>`. For handler entry, it shows a
+comma-separated list of arguments and their values.
+
+As shown above, Each handler is assigned a numeric identifier. Where the
+handler tracking output shows a handler number of 0, it means that the action
+was performed outside of any handler.
+
+[heading Visual Representations]
+
+The handler tracking output may be post-processed using the included
+[^handlerviz.pl] tool to create a visual representation of the handlers
+(requires the GraphViz tool [^dot]).
+[c++]
+
+[endsect]

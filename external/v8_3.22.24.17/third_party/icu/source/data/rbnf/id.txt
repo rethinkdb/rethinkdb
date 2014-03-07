@@ -1,0 +1,57 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/rbnf/id.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/rbnf/id.xml
+ */
+id{
+    RBNFRules{
+        OrdinalRules{
+            "%digits-ordinal:",
+            "-x: ke\u2212>#,##0>;",
+            "0: ke=#,##0=;",
+        }
+        SpelloutRules{
+            "%spellout-numbering-year:",
+            "x.x: =#,###0.#=;",
+            "0: =%spellout-numbering=;",
+            "%spellout-numbering:",
+            "0: =%spellout-cardinal=;",
+            "%spellout-cardinal:",
+            "-x: minus >>;",
+            "x.x: << titik >>;",
+            "0: kosong;",
+            "1: satu;",
+            "2: dua;",
+            "3: tiga;",
+            "4: empat;",
+            "5: lima;",
+            "6: enam;",
+            "7: tujuh;",
+            "8: delapan;",
+            "9: sembilan;",
+            "10: sepuluh;",
+            "11: sebelas;",
+            "12: >> belas;",
+            "20: << puluh[ >>];",
+            "100: seratus[ >>];",
+            "200: << ratus[ >>];",
+            "1000: seribu[ >>];",
+            "2000: << ribu[ >>];",
+            "1000000: << juts[ >>];",
+            "1000000000: << milyar[ >>];",
+            "1000000000000: << bilyun[ >>];",
+            "1000000000000000: << bilyar[ >>];",
+            "1000000000000000000: =#,##0.#=;",
+            "%spellout-ordinal:",
+            "x.x: =#,##0.#=;",
+            "0: ke=%spellout-cardinal=;",
+        }
+    }
+    Version{"2.0.41.26"}
+}

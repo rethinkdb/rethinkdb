@@ -1,0 +1,67 @@
+# Function library
+
+# Copyright Douglas Gregor 2001-2003. Use, modification and
+# distribution is subject to the Boost Software License, Version
+# 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+# For more information, see http://www.boost.org/
+
+project
+    : requirements <toolset>msvc:<asynch-exceptions>on
+    : source-location $(BOOST_ROOT)
+    ;
+
+# bring in rules for testing
+import testing ;
+
+{
+
+  test-suite function
+    : 
+  [ run libs/function/test/function_test.cpp :  :  :  : lib_function_test ]
+
+  [ run libs/function/test/function_n_test.cpp :  :  :  :  ]
+
+  [ run libs/function/test/allocator_test.cpp ../../../libs/test/build//boost_test_exec_monitor :  :  :  :  ]
+
+  [ run libs/function/test/stateless_test.cpp ../../../libs/test/build//boost_test_exec_monitor :  :  :  :  ]
+
+  [ run libs/function/test/lambda_test.cpp ../../../libs/test/build//boost_test_exec_monitor :  :  :  :  ]
+
+  [ compile-fail libs/function/test/function_test_fail1.cpp :  :  :  :  ]
+
+  [ compile-fail libs/function/test/function_test_fail2.cpp :  :  :  :  ]
+
+  [ compile libs/function/test/function_30.cpp :  :  :  :  ] 
+
+  [ run libs/function/test/function_arith_cxx98.cpp :  :  :  :  ]
+
+  [ run libs/function/test/function_arith_portable.cpp :  :  :  :  ]
+
+  [ run libs/function/test/sum_avg_cxx98.cpp :  :  :  :  ]
+
+  [ run libs/function/test/sum_avg_portable.cpp :  :  :  :  ]
+
+  [ run libs/function/test/mem_fun_cxx98.cpp :  :  :  :  ]
+
+  [ run libs/function/test/mem_fun_portable.cpp :  :  :  :  ]
+
+  [ run libs/function/test/std_bind_cxx98.cpp :  :  :  :  ]
+
+  [ run libs/function/test/std_bind_portable.cpp :  :  :  :  ]
+
+  [ run libs/function/test/function_ref_cxx98.cpp :  :  :  :  ]
+
+  [ run libs/function/test/function_ref_portable.cpp :  :  :  :  ]
+  
+  [ run libs/function/test/contains_test.cpp : : : : ]
+   
+  [ run libs/function/test/contains2_test.cpp : : : : ]
+   
+  [ run libs/function/test/nothrow_swap.cpp :  :  :  :  ]
+
+  [ compile libs/function/test/function_typeof_test.cpp ]
+ ;
+}
+      

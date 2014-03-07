@@ -1,0 +1,40 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><title> Concepts and External Concepts </title><meta http-equiv="Content-Type"content="text/html; charset=iso-8859-1"></head> <body><table  ><tr  ><td  ><img src="../../../../boost.png" width="100%" border="0"></td><td  ><h1  >Concepts and External Concepts</h1></td></tr></table><p  >Generic programming in C++ is characterized by the use of function and class templates where
+                the template parameter(s) must satisfy certain requirements.Often these
+                requirements are so important that we give them a name: we call
+                such a set of type requirements a <b>concept</b>. We say that a type <i>
+                conforms to a concept</i> or that it <i>is a model of a concept</i> if it
+                satisfies all of those requirements. The concept can be specified as a set
+                of member functions with well-defined semantics
+                and a set of nested typedefs with well-defined properties.</p><p  >Often it much more flexible to provide free-standing functions and typedefs
+            which provides the exact same semantics (but a different syntax) as
+            specified
+            by the concept. This allows generic code to treat different types <i> as if
+            </i> they fulfilled the concept. In this case we say that the concept has
+            been <b> externalized </b> or that the new requirements constitutes an <b>external
+            concept </b>. We say that a type <i> conforms to an external concept </i>
+            or that it <i> is a model of an external concept </i>. A concept may exist
+            without a corresponding external concept and conversely.</p><p  >Whenever a concept specifies a member function, the corresponding  external
+            concept
+            must specify a free-standing function of the same name, same return type and
+            the same argument list except there is an extra first argument which must
+            be of the type (or a reference to that type) that is to fulfill the external
+            concept. If the corresonding member function has any cv-qulifiers, the
+            first argument must have the same cv-qualifiers. Whenever a concept
+            specifies a nested typedef, the corresponding external concept
+            specifies a <b>type-generator</b>, that is, a type with a nested typedef
+            named <code>type</code>. The type-generator has the name as the nested typedef with
+            <code>_of</code> appended.
+            The converse relationship of an external concept and its corresponding concept
+            also holds.</p><p  ><b  ><i  >Example:</i></b></p><p  >A type <code>T</code> fulfills the FooConcept if it
+            has the follwing public members:</p><code> void T::foo( int ) const; <br>
+                 int T::bar(); <br> 
+               typedef <i>implementation defined </i> foo_type;</code><p  >The corresponding external concept is the ExternalFooConcept.</p><p  >A type <code>T</code> fullfills the ExternalFooConcept if these
+            free-standing functions and type-generators exists:</p><code>void foo( const T&, int ); <br>
+                int bar( T& ); <br>
+             foo_type_of< T >::type;</code> <br> <br><hr size="1" ><h3  >Literature</h3><ul  ><li  > <a href="http://www.boost.org/more/generic_programming.html#type_generator" target="_self" >Type Generators</a> </li><li  > <a href="http://www.boost.org/more/generic_programming.html#concept" target="_self" >Concepts</a> </li><li  > <a href="http://www.sgi.com/tech/stl/stl_introduction.html" target="_self" >Concepts and SGI STL</a> </li></ul><hr size="1" ><p  >&copy; Thorsten Ottosen 2003-2004 (nesotto_AT_cs.auc.dk).
+<br>Use, modification and distribution is subject to the Boost
+ Software License, Version 1.0. (See accompanying file
+ <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+</br>
+</p>
+ <!-- Copyright Dezide Aps 2003-2004 -->

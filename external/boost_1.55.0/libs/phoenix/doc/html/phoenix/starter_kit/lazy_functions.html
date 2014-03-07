@@ -1,0 +1,109 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Lazy Functions</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../starter_kit.html" title="Starter Kit">
+<link rel="prev" href="construct__new__delete__casts.html" title="Construct, New, Delete, Casts">
+<link rel="next" href="more.html" title="More">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="construct__new__delete__casts.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../starter_kit.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="more.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="phoenix.starter_kit.lazy_functions"></a><a class="link" href="lazy_functions.html" title="Lazy Functions">Lazy Functions</a>
+</h3></div></div></div>
+<p>
+        As you write more lambda functions, you'll notice certain patterns that you
+        wish to refactor as reusable functions. When you reach that point, you'll
+        wish that ordinary functions can co-exist with phoenix functions. Unfortunately,
+        the <span class="emphasis"><em>immediate</em></span> nature of plain C++ functions make them
+        incompatible.
+      </p>
+<p>
+        Lazy functions are your friends. The library provides a facility to make
+        lazy functions. The code below is a rewrite of the <code class="computeroutput"><span class="identifier">is_odd</span></code>
+        function using the facility:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">is_odd_impl</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">bool</span> <span class="identifier">result_type</span><span class="special">;</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Arg</span><span class="special">&gt;</span>
+    <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Arg</span> <span class="identifier">arg1</span><span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">arg1</span> <span class="special">%</span> <span class="number">2</span> <span class="special">==</span> <span class="number">1</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">is_odd_impl</span><span class="special">&gt;</span> <span class="identifier">is_odd</span><span class="special">;</span>
+</pre>
+<h5>
+<a name="phoenix.starter_kit.lazy_functions.h0"></a>
+        <span class="phrase"><a name="phoenix.starter_kit.lazy_functions.things_to_note_"></a></span><a class="link" href="lazy_functions.html#phoenix.starter_kit.lazy_functions.things_to_note_">Things
+        to note:</a>
+      </h5>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Result type deduction is implemented with the help of the result_of protocol.
+            For more information see <a href="http://www.boost.org/doc/libs/release/libs/utility/utility.htm#result_of" target="_top">Boost.Result
+            Of</a>
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">is_odd_impl</span></code> implements
+            the function.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">is_odd</span></code>, an instance of
+            <code class="computeroutput"><span class="identifier">function</span><span class="special">&lt;</span><span class="identifier">is_odd_impl</span><span class="special">&gt;</span></code>,
+            is the lazy function.
+          </li>
+</ul></div>
+<p>
+        Now, <code class="computeroutput"><span class="identifier">is_odd</span></code> is a truly lazy
+        function that we can use in conjunction with the rest of phoenix. Example:
+      </p>
+<pre class="programlisting"><span class="identifier">std</span><span class="special">::</span><span class="identifier">find_if</span><span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">c</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">is_odd</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">));</span>
+</pre>
+<p>
+        (See <a href="../../../../example/function.cpp" target="_top">function.cpp</a>)
+      </p>
+<h5>
+<a name="phoenix.starter_kit.lazy_functions.h1"></a>
+        <span class="phrase"><a name="phoenix.starter_kit.lazy_functions.predefined_lazy_functions"></a></span><a class="link" href="lazy_functions.html#phoenix.starter_kit.lazy_functions.predefined_lazy_functions">Predefined
+        Lazy Functions</a>
+      </h5>
+<p>
+        The library is chock full of STL savvy, predefined lazy functions covering
+        the whole of the STL containers, iterators and algorithms. For example, there
+        are lazy versions of container related operations such as assign, at, back,
+        begin, pop_back, pop_front, push_back, push_front, etc. (See <a class="link" href="../modules/stl.html" title="STL">STL</a>).
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="construct__new__delete__casts.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../starter_kit.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="more.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,56 @@
+[/
+    Copyright (c) 2008-2009 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[/ //= Size ===================================================================]
+[section Size]
+
+[table
+[[['*Size*]]                    [__ch_itvs__][__ch_itv_sets__][__ch_itv_maps__][__ch_ele_sets__][__ch_ele_maps__]]
+[[`size_type T::size()const`\n
+  `size_type size(const T&)`]               [__O1__]  [__On__] [__On__] [__O1__] [__O1__]   ]
+[[`size_type cardinality(const T&)`]        [__O1__]  [__On__] [__On__] [__O1__] [__O1__]   ]
+[[`difference_type length(const T&)`]       [__O1__]  [__On__] [__On__]   [ ]      [ ]      ]
+[[`size_type iterative_size(const T&)`]        [ ]    [__O1__] [__O1__] [__O1__] [__O1__]   ]
+[[`size_type interval_count(const T&)`]        [ ]    [__O1__] [__O1__]   [ ]      [ ]      ]
+]
+
+For *icl* containers the single `size` function known from std containers
+branches into tree to five different members functions.
+The table above shows the types, `size` functions are implemented for,
+together with their *complexities*. Linear complexities __On__ refer to the container's
+`iterative_size`: 
+``
+n = y.iterative_size()
+``
+
+The next table gives a short definition for the different size functions.
+
+[table
+[[['*Size*]]                                      [Types] [Description]                                        ]
+[[`size_type interval_count(const T&)`]            [__S __M] [The number of intervals of an interval container.]                         ]
+[[`size_type iterative_size(const T&)`]    [__S __M __s __m] [The number of objects in an icl container that can be iterated over.]      ]
+[[`difference_type length(const T&)`]       [__i __S __M] [The length of an interval or the sum of lengths of
+                                                          an interval container's intervals, that's `domain_type` has a `difference_type`.]     ]
+[[`size_type cardinality(const T&)`][__i __S __M __s __m] [The number of elements of an interval or a container.
+                                                           For continuous data types cardinality can be /infinite/.]                ]
+[[`size_type T::size()const`\n
+  `size_type size(const T&)`]       [__i __S __M __s __m] [The number of elements of an interval or a container,
+                                                           which is also it's `cardinality`.]                                        ]
+]
+
+['*Back to section . . .*]
+[table
+[]
+[[[link function_synopsis_table ['*Function Synopsis*]] ] ]
+[[[link boost_icl.interface ['*Interface*]]             ] ]
+]
+
+[endsect][/ Size]
+
+

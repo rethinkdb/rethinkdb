@@ -1,0 +1,35 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2009-2012 Barend Gehrels, Amsterdam, the Netherlands.
+  Copyright (c) 2009-2012 Mateusz Loskot, London, UK.
+  Copyright (c) 2009-2012 Bruno Lalande, Paris, France.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[def __this_function__ covered_by]
+
+[heading_conformance_no_ogc __this_function__]
+[note Both PostGIS and Oracle contain an algorithm with the same name and the 
+  same functionality.
+  See the [@http://www.postgis.org/docs/ST_CoveredBy.html PostGIS documentation]. 
+]
+
+[include generated/covered_by_status.qbk]
+[note In this status matrix above: columns are types of first parameter
+  and rows are types of second parameter. So a point can be checked to be 
+  covered by a polygon, but not vice versa.
+]
+
+[heading Complexity]
+Linear
+
+[heading See also]
+* [link geometry.reference.algorithms.within within]
+
+[note The difference with the `within` algorithm is that this algorithm checks the
+  border by default
+]

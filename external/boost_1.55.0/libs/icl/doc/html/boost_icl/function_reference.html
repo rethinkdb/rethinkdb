@@ -1,0 +1,185 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Function Reference</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="prev" href="implementation/inplace_and_infix_operators.html" title="Inplace and infix operators">
+<link rel="next" href="function_reference/segmentational_fineness.html" title="Segmentational Fineness">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="implementation/inplace_and_infix_operators.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="function_reference/segmentational_fineness.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_function_reference" lang="en">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_icl.function_reference"></a><a class="link" href="function_reference.html" title="Function Reference">Function Reference</a>
+</h2></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="function_reference.html#boost_icl.function_reference.overload_tables">Overload
+      tables</a></span></dt>
+<dt><span class="section"><a href="function_reference/segmentational_fineness.html">Segmentational
+      Fineness</a></span></dt>
+<dt><span class="section"><a href="function_reference/key_types.html">Key Types</a></span></dt>
+<dt><span class="section"><a href="function_reference/construct__copy__destruct.html">Construct,
+      copy, destruct</a></span></dt>
+<dt><span class="section"><a href="function_reference/containedness.html">Containedness</a></span></dt>
+<dt><span class="section"><a href="function_reference/equivalences_and_orderings.html">Equivalences
+      and Orderings</a></span></dt>
+<dt><span class="section"><a href="function_reference/size.html">Size</a></span></dt>
+<dt><span class="section"><a href="function_reference/range.html">Range</a></span></dt>
+<dt><span class="section"><a href="function_reference/selection.html">Selection</a></span></dt>
+<dt><span class="section"><a href="function_reference/addition.html">Addition</a></span></dt>
+<dt><span class="section"><a href="function_reference/subtraction.html">Subtraction</a></span></dt>
+<dt><span class="section"><a href="function_reference/insertion.html">Insertion</a></span></dt>
+<dt><span class="section"><a href="function_reference/erasure.html">Erasure</a></span></dt>
+<dt><span class="section"><a href="function_reference/intersection.html">Intersection</a></span></dt>
+<dt><span class="section"><a href="function_reference/symmetric_difference.html">Symmetric
+      Difference</a></span></dt>
+<dt><span class="section"><a href="function_reference/iterator_related.html">Iterator
+      related</a></span></dt>
+<dt><span class="section"><a href="function_reference/element_iteration.html">Element
+      iteration</a></span></dt>
+<dt><span class="section"><a href="function_reference/streaming__conversion.html">Streaming,
+      conversion</a></span></dt>
+<dt><span class="section"><a href="function_reference/interval_construction.html">Interval
+      Construction</a></span></dt>
+<dt><span class="section"><a href="function_reference/additional_interval_orderings.html">Additional
+      Interval Orderings</a></span></dt>
+<dt><span class="section"><a href="function_reference/miscellaneous_interval_functions.html">Miscellaneous
+      Interval Functions</a></span></dt>
+</dl></div>
+<p>
+      Section <a class="link" href="interface/function_synopsis.html" title="Function Synopsis">Function Synopsis</a>
+      above gave an overview of the polymorphic functions of the icl. This is what
+      you will need to find the desired possibilities to combine icl functions and
+      objects most of the time. The functions and overloads that you intuitively
+      expect should be provided, so you won't need to refer to the documentation
+      very often.
+    </p>
+<p>
+      If you are interested
+    </p>
+<div class="itemizedlist"><ul type="disc">
+<li>
+        in the <span class="emphasis"><em><span class="bold"><strong>specific design of the function overloads</strong></span></em></span>,
+      </li>
+<li>
+        in <span class="emphasis"><em><span class="bold"><strong>complexity characteristics</strong></span></em></span>
+        for certain overloads
+      </li>
+<li>
+        or if the compiler <span class="emphasis"><em><span class="bold"><strong>refuses to resolve</strong></span></em></span>
+        specific function application you want to use,
+      </li>
+</ul></div>
+<p>
+      refer to this section that describes the polymorphic function families of the
+      icl in detail.
+    </p>
+<a name="boost_icl.function_reference.placeholders"></a><h6>
+<a name="id1168358"></a>
+      <a class="link" href="function_reference.html#boost_icl.function_reference.placeholders">Placeholders</a>
+    </h6>
+<p>
+      For a concise representation the same <a class="link" href="interface/function_synopsis.html#element_type">placeholders</a>
+      will be used that have been introduced in section <a class="link" href="interface/function_synopsis.html" title="Function Synopsis">Function
+      Synopsis</a>.
+    </p>
+<a name="boost_icl.function_reference.more_specific_function_documentation"></a><h6>
+<a name="id1168386"></a>
+      <a class="link" href="function_reference.html#boost_icl.function_reference.more_specific_function_documentation">More
+      specific function documentation</a>
+    </h6>
+<p>
+      This section covers the most important polymorphical and namespace global functions
+      of the <span class="bold"><strong>icl</strong></span>. More specific functions can be
+      looked up in the doxygen generated <a class="link" href="../interval_container_library_reference.html" title="Interval Container Library Reference">reference
+      documentation</a>.
+    </p>
+<div class="section boost_icl_function_reference_overload_tables" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.function_reference.overload_tables"></a><a class="link" href="function_reference.html#boost_icl.function_reference.overload_tables" title="Overload tables">Overload
+      tables</a>
+</h3></div></div></div>
+<p>
+        Many of the <span class="bold"><strong>icl's</strong></span> functions are overloaded
+        for elements, segments, element and interval containers. But not all type
+        combinations are provided. Also the admissible type combinations are different
+        for different functions and operations. To concisely represent the overloads
+        that can be used we use synoptical tables that contain possible type combinations
+        for an operation. These are called <span class="emphasis"><em><span class="bold"><strong>overload
+        tables</strong></span></em></span>. As an example the overload tables for the inplace
+        intersection <code class="computeroutput"><span class="keyword">operator</span> <span class="special">&amp;=</span></code>
+        are given:
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting"><span class="comment">// overload tables for
+</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">&amp;=</span> <span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span>
+
+<span class="identifier">element</span> <span class="identifier">containers</span><span class="special">:</span>     <span class="identifier">interval</span> <span class="identifier">containers</span><span class="special">:</span>  
+<span class="special">&amp;=</span> <span class="special">|</span> <span class="identifier">e</span> <span class="identifier">b</span> <span class="identifier">s</span> <span class="identifier">m</span>            <span class="special">&amp;=</span> <span class="special">|</span> <span class="identifier">e</span> <span class="identifier">i</span> <span class="identifier">b</span> <span class="identifier">p</span> <span class="identifier">S</span> <span class="identifier">M</span>    
+<span class="special">---+--------</span>            <span class="special">---+------------</span>    
+<span class="identifier">s</span>  <span class="special">|</span> <span class="identifier">s</span>   <span class="identifier">s</span>              <span class="identifier">S</span>  <span class="special">|</span> <span class="identifier">S</span> <span class="identifier">S</span>     <span class="identifier">S</span>       
+<span class="identifier">m</span>  <span class="special">|</span> <span class="identifier">m</span> <span class="identifier">m</span> <span class="identifier">m</span> <span class="identifier">m</span>            <span class="identifier">M</span>  <span class="special">|</span> <span class="identifier">M</span> <span class="identifier">M</span> <span class="identifier">M</span> <span class="identifier">M</span> <span class="identifier">M</span> <span class="identifier">M</span>    
+</pre>
+<p>
+      </p>
+<p>
+        For the binary <code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;</span>
+        <span class="keyword">operator</span> <span class="special">&amp;=</span>
+        <span class="special">(</span><span class="identifier">T</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;)</span></code>
+        there are two different tables for the overloads of element and interval
+        containers. The first argument type <code class="computeroutput"><span class="identifier">T</span></code>
+        is displayed as row headers of the tables. The second argument type <code class="computeroutput"><span class="identifier">P</span></code> is displayed as column headers of the
+        tables. If a combination of <code class="computeroutput"><span class="identifier">T</span></code>
+        and <code class="computeroutput"><span class="identifier">P</span></code> is admissible the related
+        cell of the table is non empty. It displays the result type of the operation.
+        In this example the result type is always equal to the first argument.
+      </p>
+<p>
+        The possible types that can be instantiated for <code class="computeroutput"><span class="identifier">T</span></code>
+        and <code class="computeroutput"><span class="identifier">P</span></code> are element, interval
+        and container types abbreviated by placeholders that are defined <a class="link" href="interface/function_synopsis.html" title="Function Synopsis">here</a>
+        and can be summarized as
+      </p>
+<p>
+        <a class="link" href="interface/function_synopsis.html#itl_set_type"><span class="bold"><strong>s</strong></span></a> :
+        element set, <a class="link" href="interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+        : interval sets, <a class="link" href="interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+        : elements, <a class="link" href="interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+        : intervals<br> <a class="link" href="interface/function_synopsis.html#itl_map_type"><span class="bold"><strong>m</strong></span></a>:element
+        map, <a class="link" href="interface/function_synopsis.html#interval_map_types"><span class="bold"><strong>M</strong></span></a>:interval
+        maps, <a class="link" href="interface/function_synopsis.html#element_mapping_type"><span class="bold"><strong>b</strong></span></a>:element-value
+        pairs, <a class="link" href="interface/function_synopsis.html#interval_mapping_type"><span class="bold"><strong>p</strong></span></a>:interval-value
+        pairs
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="implementation/inplace_and_infix_operators.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="function_reference/segmentational_fineness.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

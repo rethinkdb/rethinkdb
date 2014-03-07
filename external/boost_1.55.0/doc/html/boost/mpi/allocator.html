@@ -1,0 +1,203 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template allocator</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../mpi/reference.html#header.boost.mpi.allocator_hpp" title="Header &lt;boost/mpi/allocator.hpp&gt;">
+<link rel="prev" href="../../mpi/reference.html" title="Reference">
+<link rel="next" href="allocator/rebind.html" title="Struct template rebind">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../mpi/reference.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.allocator_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="allocator/rebind.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.mpi.allocator"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template allocator</span></h2>
+<p>boost::mpi::allocator &#8212; Standard Library-compliant allocator for the MPI-2 memory allocation routines. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../mpi/reference.html#header.boost.mpi.allocator_hpp" title="Header &lt;boost/mpi/allocator.hpp&gt;">boost/mpi/allocator.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span>    <a name="boost.mpi.allocator.size_type"></a><span class="identifier">size_type</span><span class="special">;</span>        <span class="comment">// Holds the size of objects. </span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span> <a name="boost.mpi.allocator.difference_type"></a><span class="identifier">difference_type</span><span class="special">;</span>  <span class="comment">// Holds the number of elements between two pointers. </span>
+  <span class="keyword">typedef</span> <span class="identifier">T</span> <span class="special">*</span>            <a name="boost.mpi.allocator.pointer"></a><span class="identifier">pointer</span><span class="special">;</span>          <span class="comment">// A pointer to an object of type <code class="computeroutput">T</code>. </span>
+  <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">T</span> <span class="special">*</span>      <a name="boost.mpi.allocator.const_pointer"></a><span class="identifier">const_pointer</span><span class="special">;</span>    <span class="comment">// A pointer to a constant object of type <code class="computeroutput">T</code>. </span>
+  <span class="keyword">typedef</span> <span class="identifier">T</span> <span class="special">&amp;</span>            <a name="boost.mpi.allocator.reference"></a><span class="identifier">reference</span><span class="special">;</span>        <span class="comment">// A reference to an object of type <code class="computeroutput">T</code>. </span>
+  <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span>      <a name="boost.mpi.allocator.const_reference"></a><span class="identifier">const_reference</span><span class="special">;</span>  <span class="comment">// A reference to a constant object of type <code class="computeroutput">T</code>. </span>
+  <span class="keyword">typedef</span> <span class="identifier">T</span>              <a name="boost.mpi.allocator.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>       <span class="comment">// The type of memory allocated by this allocator. </span>
+
+  <span class="comment">// member classes/structs/unions</span>
+
+  <span class="comment">// Retrieve the type of an allocator similar to this allocator but for a
+  // different value type.</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> 
+  <span class="keyword">struct</span> <a class="link" href="allocator/rebind.html" title="Struct template rebind">rebind</a> <span class="special">{</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a><span class="special">&lt;</span> <span class="identifier">U</span> <span class="special">&gt;</span> <a class="link" href="allocator/rebind.html#boost.mpi.allocator.rebind.other"><span class="identifier">other</span></a><span class="special">;</span>
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="allocator.html#boost.mpi.allocatorconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="allocator.html#idp95774520-bb"><span class="identifier">allocator</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="allocator.html#idp95774824-bb"><span class="identifier">allocator</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> <a class="link" href="allocator.html#idp95775672-bb"><span class="identifier">allocator</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a><span class="special">&lt;</span> <span class="identifier">U</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="allocator.html#idp95776984-bb"><span class="special">~</span><span class="identifier">allocator</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="allocator.html#idp95762712-bb">public member functions</a></span>
+  <span class="identifier">pointer</span> <a class="link" href="allocator.html#idp95762920-bb"><span class="identifier">address</span></a><span class="special">(</span><span class="identifier">reference</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_pointer</span> <a class="link" href="allocator.html#idp95764168-bb"><span class="identifier">address</span></a><span class="special">(</span><span class="identifier">const_reference</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">pointer</span> <a class="link" href="allocator.html#idp95765416-bb"><span class="identifier">allocate</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">const_pointer</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="allocator.html#idp95768184-bb"><span class="identifier">deallocate</span></a><span class="special">(</span><span class="identifier">pointer</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="allocator.html#idp95770472-bb"><span class="identifier">max_size</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="allocator.html#idp95771432-bb"><span class="identifier">construct</span></a><span class="special">(</span><span class="identifier">pointer</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="allocator.html#idp95773256-bb"><span class="identifier">destroy</span></a><span class="special">(</span><span class="identifier">pointer</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp159952744"></a><h2>Description</h2>
+<p>This allocator provides a standard C++ interface to the <code class="computeroutput">MPI_Alloc_mem</code> and <code class="computeroutput">MPI_Free_mem</code> routines of MPI-2. It is intended to be used with the containers in the Standard Library (<code class="computeroutput">vector</code>, in particular) in cases where the contents of the container will be directly transmitted via MPI. This allocator is also used internally by the library for character buffers that will be used in the transmission of data.</p>
+<p>The <code class="computeroutput">allocator</code> class template only provides MPI memory allocation when the underlying MPI implementation is either MPI-2 compliant or is known to provide <code class="computeroutput">MPI_Alloc_mem</code> and <code class="computeroutput">MPI_Free_mem</code> as extensions. When the MPI memory allocation routines are not available, <code class="computeroutput">allocator</code> is brought in directly from namespace <code class="computeroutput">std</code>, so that standard allocators are used throughout. The macro <code class="computeroutput">BOOST_MPI_HAS_MEMORY_ALLOCATION</code> will be defined when the MPI-2 memory allocation facilities are available. </p>
+<div class="refsect2">
+<a name="idp159957080"></a><h3>
+<a name="boost.mpi.allocatorconstruct-copy-destruct"></a><code class="computeroutput">allocator</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp95774520-bb"></a><span class="identifier">allocator</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Default-construct an allocator. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp95774824-bb"></a><span class="identifier">allocator</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Copy-construct an allocator. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> U<span class="special">&gt;</span> <a name="idp95775672-bb"></a><span class="identifier">allocator</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a><span class="special">&lt;</span> <span class="identifier">U</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Copy-construct an allocator from another allocator for a different value type. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp95776984-bb"></a><span class="special">~</span><span class="identifier">allocator</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destroy an allocator. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp159970344"></a><h3>
+<a name="idp95762712-bb"></a><code class="computeroutput">allocator</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">pointer</span> <a name="idp95762920-bb"></a><span class="identifier">address</span><span class="special">(</span><span class="identifier">reference</span> x<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the address of object <code class="computeroutput">x</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_pointer</span> <a name="idp95764168-bb"></a><span class="identifier">address</span><span class="special">(</span><span class="identifier">const_reference</span> x<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the address of object <code class="computeroutput">x</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">pointer</span> <a name="idp95765416-bb"></a><span class="identifier">allocate</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">,</span> <a class="link" href="allocator.html" title="Class template allocator">allocator</a><span class="special">&lt;</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">const_pointer</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Allocate enough memory for <code class="computeroutput">n</code> elements of type <code class="computeroutput">T</code>.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">n</code></span></p></td>
+<td><p>The number of elements for which memory should be allocated.</p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>a pointer to the newly-allocated memory </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp95768184-bb"></a><span class="identifier">deallocate</span><span class="special">(</span><span class="identifier">pointer</span> p<span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Deallocate memory referred to by the pointer <code class="computeroutput">p</code>.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">p</code></span></p></td>
+<td><p>The pointer whose memory should be deallocated. This pointer shall have been returned from the <code class="computeroutput">allocate()</code> function and not have already been freed. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp95770472-bb"></a><span class="identifier">max_size</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Returns the maximum number of elements that can be allocated with <code class="computeroutput">allocate()</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp95771432-bb"></a><span class="identifier">construct</span><span class="special">(</span><span class="identifier">pointer</span> p<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T</span> <span class="special">&amp;</span> val<span class="special">)</span><span class="special">;</span></pre>
+<p>Construct a copy of <code class="computeroutput">val</code> at the location referenced by <code class="computeroutput">p</code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp95773256-bb"></a><span class="identifier">destroy</span><span class="special">(</span><span class="identifier">pointer</span> p<span class="special">)</span><span class="special">;</span></pre>
+<p>Destroy the object referenced by <code class="computeroutput">p</code>. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp160026680"></a><h3>Specializations</h3>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><a class="link" href="allocator_void_idp95777272.html" title="Class allocator&lt;void&gt;">Class allocator&lt;void&gt;</a></p></li></ul></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2007 Douglas Gregor,
+      Matthias Troyer, Trustees of Indiana University<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../../mpi/reference.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.allocator_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="allocator/rebind.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,326 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Nonterminals</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../quick_reference.html" title="Quick Reference">
+<link rel="prev" href="compound_attribute_rules.html" title="Compound Attribute Rules">
+<link rel="next" href="semantic_actions.html" title="Parser Semantic Actions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="compound_attribute_rules.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../quick_reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="semantic_actions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.qi.quick_reference.non_terminals"></a><a class="link" href="non_terminals.html" title="Nonterminals">Nonterminals</a>
+</h4></div></div></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">RT</span></code></span></dt>
+<dd><p>
+                Synthesized attribute. The rule or grammar's return type.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Arg1</span></code>, <code class="computeroutput"><span class="identifier">Arg2</span></code>, <code class="computeroutput"><span class="identifier">ArgN</span></code></span></dt>
+<dd><p>
+                Inherited attributes. Zero or more arguments.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">L1</span></code>, <code class="computeroutput"><span class="identifier">L2</span></code>, <code class="computeroutput"><span class="identifier">LN</span></code></span></dt>
+<dd><p>
+                Zero or more local variables.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">r</span><span class="special">,</span>
+            <span class="identifier">r2</span></code></span></dt>
+<dd><p>
+                Rules
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">g</span></code></span></dt>
+<dd><p>
+                A grammar
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">p</span></code></span></dt>
+<dd><p>
+                A parser expression
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">my_grammar</span></code></span></dt>
+<dd><p>
+                A user defined grammar
+              </p></dd>
+</dl>
+</div>
+<div class="variablelist">
+<p class="title"><b>Terminology</b></p>
+<dl class="variablelist">
+<dt><span class="term">Signature</span></dt>
+<dd><p>
+                <code class="computeroutput"><span class="identifier">RT</span><span class="special">(</span><span class="identifier">Arg1</span><span class="special">,</span>
+                <span class="identifier">Arg2</span> <span class="special">...</span>
+                <span class="special">,</span><span class="identifier">ArgN</span><span class="special">)</span></code>. The signature specifies the synthesized
+                (return value) and inherited (arguments) attributes.
+              </p></dd>
+<dt><span class="term">Locals</span></dt>
+<dd><p>
+                <code class="computeroutput"><span class="identifier">locals</span><span class="special">&lt;</span><span class="identifier">L1</span><span class="special">,</span> <span class="identifier">L2</span> <span class="special">...,</span>
+                <span class="identifier">LN</span><span class="special">&gt;</span></code>.
+                The local variables.
+              </p></dd>
+<dt><span class="term">Skipper</span></dt>
+<dd><p>
+                The skip-parser type
+              </p></dd>
+</dl>
+</div>
+<div class="variablelist">
+<p class="title"><b>Template Arguments</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Iterator</span></code></span></dt>
+<dd><p>
+                The iterator type you will use for parsing.
+              </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">A1</span></code>, <code class="computeroutput"><span class="identifier">A2</span></code>, <code class="computeroutput"><span class="identifier">A3</span></code></span></dt>
+<dd><p>
+                Can be one of 1) Signature 2) Locals 3) Skipper.
+              </p></dd>
+</dl>
+</div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Expression
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Description
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span>
+                    <span class="identifier">A1</span><span class="special">,</span>
+                    <span class="identifier">A2</span><span class="special">,</span>
+                    <span class="identifier">A3</span><span class="special">&gt;</span>
+                    <span class="identifier">r</span><span class="special">(</span><span class="identifier">name</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Rule declaration. <code class="computeroutput"><span class="identifier">Iterator</span></code>
+                    is required. <code class="computeroutput"><span class="identifier">A1</span><span class="special">,</span> <span class="identifier">A2</span><span class="special">,</span> <span class="identifier">A3</span></code>
+                    are optional and can be specified in any order. <code class="computeroutput"><span class="identifier">name</span></code> is an optional string
+                    that gives the rule its name, useful for debugging and error
+                    handling.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span>
+                    <span class="identifier">A1</span><span class="special">,</span>
+                    <span class="identifier">A2</span><span class="special">,</span>
+                    <span class="identifier">A3</span><span class="special">&gt;</span>
+                    <span class="identifier">r</span><span class="special">(</span><span class="identifier">r2</span><span class="special">);</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Copy construct rule <code class="computeroutput"><span class="identifier">r</span></code>
+                    from rule <code class="computeroutput"><span class="identifier">r2</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">r</span> <span class="special">=</span>
+                    <span class="identifier">r2</span><span class="special">;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Assign rule <code class="computeroutput"><span class="identifier">r2</span></code>
+                    to <code class="computeroutput"><span class="identifier">r</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">r</span><span class="special">.</span><span class="identifier">alias</span><span class="special">()</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    return an alias of <code class="computeroutput"><span class="identifier">r</span></code>.
+                    The alias is a parser that holds a reference to <code class="computeroutput"><span class="identifier">r</span></code>. Reference semantics.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">r</span><span class="special">.</span><span class="identifier">copy</span><span class="special">()</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Get a copy of <code class="computeroutput"><span class="identifier">r</span></code>.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">r</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="identifier">name</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Naming a rule
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">r</span><span class="special">.</span><span class="identifier">name</span><span class="special">()</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Getting the name of a rule
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    debug(r)
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Debug rule <code class="computeroutput"><span class="identifier">r</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">r</span> <span class="special">=</span>
+                    <span class="identifier">p</span><span class="special">;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Rule definition
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">r</span> <span class="special">%=</span>
+                    <span class="identifier">p</span><span class="special">;</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Auto-rule definition. The attribute of <code class="computeroutput"><span class="identifier">p</span></code>
+                    should be compatible with the synthesized attribute of <code class="computeroutput"><span class="identifier">r</span></code>. When <code class="computeroutput"><span class="identifier">p</span></code>
+                    is successful, its attribute is automatically propagated to
+                    <code class="computeroutput"><span class="identifier">r</span></code>'s synthesized
+                    attribute.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">my_grammar</span> <span class="special">:</span> <span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">A1</span><span class="special">,</span> <span class="identifier">A2</span><span class="special">,</span> <span class="identifier">A3</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">my_grammar</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">my_grammar</span><span class="special">::</span><span class="identifier">base_type</span><span class="special">(</span><span class="identifier">start</span><span class="special">,</span> <span class="identifier">name</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="comment">// Rule definitions</span>
+        <span class="identifier">start</span> <span class="special">=</span> <span class="comment">/* ... */</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">A1</span><span class="special">,</span> <span class="identifier">A2</span><span class="special">,</span> <span class="identifier">A3</span><span class="special">&gt;</span> <span class="identifier">start</span><span class="special">;</span>
+    <span class="comment">// more rule declarations...</span>
+<span class="special">};</span>
+</pre>
+<p>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Grammar definition. <code class="computeroutput"><span class="identifier">name</span></code>
+                    is an optional string that gives the grammar its name, useful
+                    for debugging and error handling.
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">g</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="identifier">name</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Naming a grammar
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">g</span><span class="special">.</span><span class="identifier">name</span><span class="special">()</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Getting the name of a grammar
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="compound_attribute_rules.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../quick_reference.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="semantic_actions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,41 @@
+[/ 
+  Copyright 2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+[section:add_cv add_cv]
+
+   template <class T>
+   struct add_cv
+   {
+      typedef __below type;
+   };
+  
+__type The same type as `T const volatile` for all `T`.  
+
+__std_ref 3.9.3.
+
+__compat If the compiler does not support partial specialization of class-templates
+then this template will compile, but the member `type` will always be the same as 
+type `T` except where __transform_workaround have been applied.
+
+__header ` #include <boost/type_traits/add_cv.hpp>` or ` #include <boost/type_traits.hpp>`
+
+[table Examples
+
+[ [Expression] [Result Type]]
+
+[[`add_cv<int>::type`][`int const volatile`]]
+
+[[`add_cv<int&>::type`] [`int&`]]
+
+[[`add_cv<int*>::type`] [`int* const volatile`]]
+
+[[`add_cv<int const>::type`] [`int const volatile`]]
+
+]
+
+[endsect]
+

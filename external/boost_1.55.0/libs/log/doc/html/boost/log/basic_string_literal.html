@@ -1,0 +1,1144 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template basic_string_literal</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../utilities.html#header.boost.log.utility.string_literal_hpp" title="Header &lt;boost/log/utility/string_literal.hpp&gt;">
+<link rel="prev" href="strictest_lock.html" title="Struct template strictest_lock">
+<link rel="next" href="basic_string_l_idp28576392.html" title="Global basic_string_literal&lt; T &gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="strictest_lock.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../utilities.html#header.boost.log.utility.string_literal_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_string_l_idp28576392.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.basic_string_literal"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template basic_string_literal</span></h2>
+<p>boost::log::basic_string_literal &#8212; String literal wrapper. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../utilities.html#header.boost.log.utility.string_literal_hpp" title="Header &lt;boost/log/utility/string_literal.hpp&gt;">boost/log/utility/string_literal.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> CharT<span class="special">,</span> <span class="keyword">typename</span> TraitsT<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="basic_string_literal.html" title="Class template basic_string_literal">basic_string_literal</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">CharT</span>                                        <a name="boost.log.basic_string_literal.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>            
+  <span class="keyword">typedef</span> <span class="identifier">TraitsT</span>                                      <a name="boost.log.basic_string_literal.traits_type"></a><span class="identifier">traits_type</span><span class="special">;</span>           
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span>                                  <a name="boost.log.basic_string_literal.size_type"></a><span class="identifier">size_type</span><span class="special">;</span>             
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ptrdiff_t</span>                               <a name="boost.log.basic_string_literal.difference_type"></a><span class="identifier">difference_type</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">*</span>                           <a name="boost.log.basic_string_literal.const_pointer"></a><span class="identifier">const_pointer</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">&amp;</span>                           <a name="boost.log.basic_string_literal.const_reference"></a><span class="identifier">const_reference</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="keyword">const</span> <span class="identifier">value_type</span> <span class="special">*</span>                           <a name="boost.log.basic_string_literal.const_iterator"></a><span class="identifier">const_iterator</span><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">reverse_iterator</span><span class="special">&lt;</span> <span class="identifier">const_iterator</span> <span class="special">&gt;</span>      <a name="boost.log.basic_string_literal.const_reverse_iterator"></a><span class="identifier">const_reverse_iterator</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_string</span><span class="special">&lt;</span> <span class="identifier">value_type</span><span class="special">,</span> <span class="identifier">traits_type</span> <span class="special">&gt;</span> <a name="boost.log.basic_string_literal.string_type"></a><span class="identifier">string_type</span><span class="special">;</span>             <span class="comment">// Corresponding STL string type. </span>
+
+  <span class="comment">// <a class="link" href="basic_string_literal.html#boost.log.basic_string_literalconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="basic_string_literal.html#idp28567896-bb"><span class="identifier">basic_string_literal</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="identifier">size_type</span> LenV<span class="special">&gt;</span> <a class="link" href="basic_string_literal.html#idp28568664-bb"><span class="identifier">basic_string_literal</span></a><span class="special">(</span><span class="identifier">T</span><span class="special">(</span><span class="special">&amp;</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="basic_string_literal.html#idp28570888-bb"><span class="identifier">basic_string_literal</span></a><span class="special">(</span><a class="link" href="basic_string_literal.html" title="Class template basic_string_literal">basic_string_literal</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  basic_string_literal&amp; <a class="link" href="basic_string_literal.html#idp28572408-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span>this_type <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="identifier">size_type</span> LenV<span class="special">&gt;</span> basic_string_literal&amp; <a class="link" href="basic_string_literal.html#idp28574040-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="identifier">T</span><span class="special">(</span><span class="special">&amp;</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="basic_string_literal.html#idp28503432-bb">public member functions</a></span>
+  <span class="keyword">bool</span> <a class="link" href="basic_string_literal.html#idp28503640-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span>this_type <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="basic_string_literal.html#idp28505800-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="identifier">const_pointer</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="basic_string_literal.html#idp28507896-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="basic_string_literal.html#idp28509928-bb"><span class="keyword">operator</span><span class="special">&lt;</span></a><span class="special">(</span>this_type <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="basic_string_literal.html#idp28512072-bb"><span class="keyword">operator</span><span class="special">&lt;</span></a><span class="special">(</span><span class="identifier">const_pointer</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="basic_string_literal.html#idp28514152-bb"><span class="keyword">operator</span><span class="special">&lt;</span></a><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="basic_string_literal.html#idp28516168-bb"><span class="keyword">operator</span><span class="special">&gt;</span></a><span class="special">(</span>this_type <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="basic_string_literal.html#idp28518312-bb"><span class="keyword">operator</span><span class="special">&gt;</span></a><span class="special">(</span><span class="identifier">const_pointer</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="basic_string_literal.html#idp28520392-bb"><span class="keyword">operator</span><span class="special">&gt;</span></a><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_reference</span> <a class="link" href="basic_string_literal.html#idp28522408-bb"><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_reference</span> <a class="link" href="basic_string_literal.html#idp28524392-bb"><span class="identifier">at</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_pointer</span> <a class="link" href="basic_string_literal.html#idp28526856-bb"><span class="identifier">c_str</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_pointer</span> <a class="link" href="basic_string_literal.html#idp28527768-bb"><span class="identifier">data</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string_literal.html#idp28528680-bb"><span class="identifier">size</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string_literal.html#idp28529576-bb"><span class="identifier">length</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="basic_string_literal.html#idp28530472-bb"><span class="identifier">empty</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="basic_string_literal.html#idp28531752-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_iterator</span> <a class="link" href="basic_string_literal.html#idp28532680-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_reverse_iterator</span> <a class="link" href="basic_string_literal.html#idp28533608-bb"><span class="identifier">rbegin</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">const_reverse_iterator</span> <a class="link" href="basic_string_literal.html#idp28534568-bb"><span class="identifier">rend</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">string_type</span> <a class="link" href="basic_string_literal.html#idp28535528-bb"><span class="identifier">str</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="basic_string_literal.html#idp28536440-bb"><span class="identifier">clear</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="basic_string_literal.html#idp28537624-bb"><span class="identifier">swap</span></a><span class="special">(</span>this_type <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  this_type <span class="special">&amp;</span> <a class="link" href="basic_string_literal.html#idp28538792-bb"><span class="identifier">assign</span></a><span class="special">(</span>this_type <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="identifier">size_type</span> LenV<span class="special">&gt;</span> this_type <span class="special">&amp;</span> <a class="link" href="basic_string_literal.html#idp28540840-bb"><span class="identifier">assign</span></a><span class="special">(</span><span class="identifier">T</span><span class="special">(</span><span class="special">&amp;</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="basic_string_literal.html#idp28543592-bb"><span class="identifier">copy</span></a><span class="special">(</span><span class="identifier">value_type</span> <span class="special">*</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="basic_string_literal.html#idp28547864-bb"><span class="identifier">compare</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">const_pointer</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="basic_string_literal.html#idp28552904-bb"><span class="identifier">compare</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">const_pointer</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="basic_string_literal.html#idp28557160-bb"><span class="identifier">compare</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">,</span> this_type <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="basic_string_literal.html#idp28561480-bb"><span class="identifier">compare</span></a><span class="special">(</span><span class="identifier">const_pointer</span><span class="special">,</span> <span class="identifier">size_type</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="basic_string_literal.html#idp28564120-bb"><span class="identifier">compare</span></a><span class="special">(</span><span class="identifier">const_pointer</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">int</span> <a class="link" href="basic_string_literal.html#idp28565976-bb"><span class="identifier">compare</span></a><span class="special">(</span>this_type <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp70676088"></a><h2>Description</h2>
+<p>The <code class="computeroutput"><a class="link" href="basic_string_literal.html" title="Class template basic_string_literal">basic_string_literal</a></code> is a thin wrapper around a constant string literal. It provides interface similar to STL strings, but because of read-only nature of string literals, lacks ability to modify string contents. However, <code class="computeroutput"><a class="link" href="basic_string_literal.html" title="Class template basic_string_literal">basic_string_literal</a></code> objects can be assigned to and cleared.</p>
+<p>The main advantage of this class comparing to other string classes is that it doesn't dynamically allocate memory and therefore is fast, thin and exception safe. </p>
+<div class="refsect2">
+<a name="idp70678280"></a><h3>
+<a name="boost.log.basic_string_literalconstruct-copy-destruct"></a><code class="computeroutput">basic_string_literal</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp28567896-bb"></a><span class="identifier">basic_string_literal</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p><code class="computeroutput">empty() == true</code> </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="identifier">size_type</span> LenV<span class="special">&gt;</span> <a name="idp28568664-bb"></a><span class="identifier">basic_string_literal</span><span class="special">(</span><span class="identifier">T</span><span class="special">(</span><span class="special">&amp;</span><span class="special">)</span> p<span class="special">)</span><span class="special">;</span></pre>
+<p>Constructor from a string literal</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">p</code></span></p></td>
+<td><p>A zero-terminated constant sequence of characters </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p><code class="computeroutput">*this == p</code> </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28570888-bb"></a><span class="identifier">basic_string_literal</span><span class="special">(</span><a class="link" href="basic_string_literal.html" title="Class template basic_string_literal">basic_string_literal</a> <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Copy constructor</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">that</code></span></p></td>
+<td><p>Source literal to copy string from </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p><code class="computeroutput">*this == that</code> </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout">basic_string_literal&amp; <a name="idp28572408-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span>this_type <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Assignment operator</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">that</code></span></p></td>
+<td><p>Source literal to copy string from </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p><code class="computeroutput">*this == that</code> </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="identifier">size_type</span> LenV<span class="special">&gt;</span> basic_string_literal&amp; <a name="idp28574040-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="identifier">T</span><span class="special">(</span><span class="special">&amp;</span><span class="special">)</span> p<span class="special">)</span><span class="special">;</span></pre>
+<p>Assignment from a string literal</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">p</code></span></p></td>
+<td><p>A zero-terminated constant sequence of characters </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p><code class="computeroutput">*this == p</code> </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp70708184"></a><h3>
+<a name="idp28503432-bb"></a><code class="computeroutput">basic_string_literal</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28503640-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span>this_type <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Lexicographical comparison (equality)</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">that</code></span></p></td>
+<td><p>Comparand </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if the comparand string equals to this string, <code class="computeroutput">false</code> otherwise </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28505800-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><span class="identifier">const_pointer</span> str<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Lexicographical comparison (equality)</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">str</code></span></p></td>
+<td><p>Comparand. Must point to a zero-terminated sequence of characters, must not be NULL. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if the comparand string equals to this string, <code class="computeroutput">false</code> otherwise </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28507896-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Lexicographical comparison (equality)</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">that</code></span></p></td>
+<td><p>Comparand </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if the comparand string equals to this string, <code class="computeroutput">false</code> otherwise </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28509928-bb"></a><span class="keyword">operator</span><span class="special">&lt;</span><span class="special">(</span>this_type <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Lexicographical comparison (less ordering)</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">that</code></span></p></td>
+<td><p>Comparand </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if this string is less than the comparand, <code class="computeroutput">false</code> otherwise </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28512072-bb"></a><span class="keyword">operator</span><span class="special">&lt;</span><span class="special">(</span><span class="identifier">const_pointer</span> str<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Lexicographical comparison (less ordering)</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">str</code></span></p></td>
+<td><p>Comparand. Must point to a zero-terminated sequence of characters, must not be NULL. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if this string is less than the comparand, <code class="computeroutput">false</code> otherwise </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28514152-bb"></a><span class="keyword">operator</span><span class="special">&lt;</span><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Lexicographical comparison (less ordering)</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">that</code></span></p></td>
+<td><p>Comparand </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if this string is less than the comparand, <code class="computeroutput">false</code> otherwise </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28516168-bb"></a><span class="keyword">operator</span><span class="special">&gt;</span><span class="special">(</span>this_type <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Lexicographical comparison (greater ordering)</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">that</code></span></p></td>
+<td><p>Comparand </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if this string is greater than the comparand, <code class="computeroutput">false</code> otherwise </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28518312-bb"></a><span class="keyword">operator</span><span class="special">&gt;</span><span class="special">(</span><span class="identifier">const_pointer</span> str<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Lexicographical comparison (greater ordering)</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">str</code></span></p></td>
+<td><p>Comparand. Must point to a zero-terminated sequence of characters, must not be NULL. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if this string is greater than the comparand, <code class="computeroutput">false</code> otherwise </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28520392-bb"></a><span class="keyword">operator</span><span class="special">&gt;</span><span class="special">(</span><span class="identifier">string_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Lexicographical comparison (greater ordering)</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">that</code></span></p></td>
+<td><p>Comparand </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if this string is greater than the comparand, <code class="computeroutput">false</code> otherwise </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reference</span> <a name="idp28522408-bb"></a><span class="keyword">operator</span><span class="special">[</span><span class="special">]</span><span class="special">(</span><span class="identifier">size_type</span> i<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Subscript operator</p>
+<p>
+
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">i</code></span></p></td>
+<td><p>Requested character index </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p><code class="computeroutput">i &lt; size()</code> </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Constant reference to the requested character </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reference</span> <a name="idp28524392-bb"></a><span class="identifier">at</span><span class="special">(</span><span class="identifier">size_type</span> i<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Checked subscript</p>
+<p>
+
+<span class="bold"><strong>Throws:</strong></span> An <code class="computeroutput">std::exception</code>-based exception if index <span class="emphasis"><em>i</em></span> is out of string boundaries </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">i</code></span></p></td>
+<td><p>Requested character index </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Constant reference to the requested character</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_pointer</span> <a name="idp28526856-bb"></a><span class="identifier">c_str</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Pointer to the beginning of the literal </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_pointer</span> <a name="idp28527768-bb"></a><span class="identifier">data</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Pointer to the beginning of the literal </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp28528680-bb"></a><span class="identifier">size</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Length of the literal </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp28529576-bb"></a><span class="identifier">length</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Length of the literal </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28530472-bb"></a><span class="identifier">empty</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p><code class="computeroutput">true</code> if the literal is an empty string, <code class="computeroutput">false</code> otherwise </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp28531752-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Iterator that points to the first character of the literal </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_iterator</span> <a name="idp28532680-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Iterator that points after the last character of the literal </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reverse_iterator</span> <a name="idp28533608-bb"></a><span class="identifier">rbegin</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Reverse iterator that points to the last character of the literal </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reverse_iterator</span> <a name="idp28534568-bb"></a><span class="identifier">rend</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Reverse iterator that points before the first character of the literal </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">string_type</span> <a name="idp28535528-bb"></a><span class="identifier">str</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>STL string constructed from the literal </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28536440-bb"></a><span class="identifier">clear</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>The method clears the literal</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p><code class="computeroutput">empty() == true</code> </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28537624-bb"></a><span class="identifier">swap</span><span class="special">(</span>this_type <span class="special">&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>The method swaps two literals </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">this_type <span class="special">&amp;</span> <a name="idp28538792-bb"></a><span class="identifier">assign</span><span class="special">(</span>this_type <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span><span class="special">;</span></pre>
+<p>Assignment from another literal</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">that</code></span></p></td>
+<td><p>Source literal to copy string from </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p><code class="computeroutput">*this == that</code> </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="identifier">size_type</span> LenV<span class="special">&gt;</span> this_type <span class="special">&amp;</span> <a name="idp28540840-bb"></a><span class="identifier">assign</span><span class="special">(</span><span class="identifier">T</span><span class="special">(</span><span class="special">&amp;</span><span class="special">)</span> p<span class="special">)</span><span class="special">;</span></pre>
+<p>Assignment from another literal</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">p</code></span></p></td>
+<td><p>A zero-terminated constant sequence of characters </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Postconditions:</span></p></td>
+<td><p><code class="computeroutput">*this == p</code> </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp28543592-bb"></a><span class="identifier">copy</span><span class="special">(</span><span class="identifier">value_type</span> <span class="special">*</span> str<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">,</span> <span class="identifier">size_type</span> pos <span class="special">=</span> <span class="number">0</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>The method copies the literal or its portion to an external buffer</p>
+<p>
+
+
+<span class="bold"><strong>Throws:</strong></span> An <code class="computeroutput">std::exception</code>-based exception if <span class="emphasis"><em>pos</em></span> is out of range. </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">n</code></span></p></td>
+<td><p>Maximum number of characters to copy </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">pos</code></span></p></td>
+<td><p>Starting position to start copying from </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">str</code></span></p></td>
+<td><p>Pointer to the external buffer beginning. Must not be NULL. The buffer must have enough capacity to accommodate the requested number of characters. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p><code class="computeroutput">pos &lt;= size()</code> </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Number of characters copied</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp28547864-bb"></a><span class="identifier">compare</span><span class="special">(</span><span class="identifier">size_type</span> pos<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">,</span> <span class="identifier">const_pointer</span> str<span class="special">,</span> <span class="identifier">size_type</span> len<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Lexicographically compares the argument string to a part of this string</p>
+<p>
+
+
+<span class="bold"><strong>Throws:</strong></span> An <code class="computeroutput">std::exception</code>-based exception if <span class="emphasis"><em>pos</em></span> is out of range. </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">len</code></span></p></td>
+<td><p>Number of characters in the sequence <span class="emphasis"><em>str</em></span>. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">n</code></span></p></td>
+<td><p>Length of the substring of this string to perform comparison to </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">pos</code></span></p></td>
+<td><p>Starting position within this string to perform comparison to </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">str</code></span></p></td>
+<td><p>Comparand. Must point to a sequence of characters, must not be NULL. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p><code class="computeroutput">pos &lt;= size()</code> </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Zero if the comparand equals this string, a negative value if this string is less than the comparand, a positive value if this string is greater than the comparand.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp28552904-bb"></a><span class="identifier">compare</span><span class="special">(</span><span class="identifier">size_type</span> pos<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">,</span> <span class="identifier">const_pointer</span> str<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Lexicographically compares the argument string to a part of this string</p>
+<p>
+
+
+<span class="bold"><strong>Throws:</strong></span> An <code class="computeroutput">std::exception</code>-based exception if <span class="emphasis"><em>pos</em></span> is out of range. </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">n</code></span></p></td>
+<td><p>Length of the substring of this string to perform comparison to </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">pos</code></span></p></td>
+<td><p>Starting position within this string to perform comparison to </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">str</code></span></p></td>
+<td><p>Comparand. Must point to a zero-terminated sequence of characters, must not be NULL. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p><code class="computeroutput">pos &lt;= size()</code> </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Zero if the comparand equals this string, a negative value if this string is less than the comparand, a positive value if this string is greater than the comparand.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp28557160-bb"></a><span class="identifier">compare</span><span class="special">(</span><span class="identifier">size_type</span> pos<span class="special">,</span> <span class="identifier">size_type</span> n<span class="special">,</span> this_type <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Lexicographically compares the argument string literal to a part of this string</p>
+<p>
+
+
+<span class="bold"><strong>Throws:</strong></span> An <code class="computeroutput">std::exception</code>-based exception if <span class="emphasis"><em>pos</em></span> is out of range. </p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">n</code></span></p></td>
+<td><p>Length of the substring of this string to perform comparison to </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">pos</code></span></p></td>
+<td><p>Starting position within this string to perform comparison to </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">that</code></span></p></td>
+<td><p>Comparand </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Requires:</span></p></td>
+<td><p><code class="computeroutput">pos &lt;= size()</code> </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Zero if the comparand equals this string, a negative value if this string is less than the comparand, a positive value if this string is greater than the comparand.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp28561480-bb"></a><span class="identifier">compare</span><span class="special">(</span><span class="identifier">const_pointer</span> str<span class="special">,</span> <span class="identifier">size_type</span> len<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Lexicographically compares the argument string to this string</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">len</code></span></p></td>
+<td><p>Number of characters in the sequence <span class="emphasis"><em>str</em></span>. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">str</code></span></p></td>
+<td><p>Comparand. Must point to a sequence of characters, must not be NULL. </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Zero if the comparand equals this string, a negative value if this string is less than the comparand, a positive value if this string is greater than the comparand. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp28564120-bb"></a><span class="identifier">compare</span><span class="special">(</span><span class="identifier">const_pointer</span> str<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Lexicographically compares the argument string to this string</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">str</code></span></p></td>
+<td><p>Comparand. Must point to a zero-terminated sequence of characters, must not be NULL. </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Zero if the comparand equals this string, a negative value if this string is less than the comparand, a positive value if this string is greater than the comparand. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">int</span> <a name="idp28565976-bb"></a><span class="identifier">compare</span><span class="special">(</span>this_type <span class="keyword">const</span> <span class="special">&amp;</span> that<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Lexicographically compares the argument string to this string</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">that</code></span></p></td>
+<td><p>Comparand </p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Zero if the comparand equals this string, a negative value if this string is less than the comparand, a positive value if this string is greater than the comparand. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="strictest_lock.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../utilities.html#header.boost.log.utility.string_literal_hpp"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_string_l_idp28576392.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,27 @@
+
+[/ Copyright 2005-2008 Daniel James.
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) ]
+
+[section:links Links]
+
+[*A Proposal to Add Hash Tables to the Standard Library]
+[@http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2003/n1456.html]
+The hash table proposal explains much of the design. The hash function object
+is discussed in Section D.
+
+[*The C++ Standard Library Technical Report.]
+[@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2005/n1836.pdf]
+Contains the hash function specification in section 6.3.2.
+
+[*Library Extension Technical Report Issues List.]
+[@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2005/n1837.pdf]
+The library implements the extension described in Issue 6.18, pages 63-67.
+
+[*Methods for Identifying Versioned and Plagiarised Documents]
+Timothy C. Hoad, Justin Zobel
+[@http://www.cs.rmit.edu.au/~jz/fulltext/jasist-tch.pdf]
+Contains the hash function that [funcref boost::hash_combine] is based on.
+
+[endsect]
+

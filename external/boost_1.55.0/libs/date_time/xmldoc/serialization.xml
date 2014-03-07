@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.serialization">
+  <title>Serialization</title>
+
+  <para>
+    The boost::date_time library is compatible with the boost::serialization library's text and xml archives. The list of classes that are serializable are:
+  </para>
+  
+  <bridgehead renderas="sect3">boost::gregorian</bridgehead>
+
+  <informaltable frame="all" pgwide="1">
+    <tgroup cols="3">
+      <tbody>
+	<row>
+          <entry><link linkend="date_time.gregorian.date_class">date</link></entry> 
+	  <entry><link linkend="date_time.gregorian.date_duration">date_duration</link></entry> 
+	  <entry><link linkend="date_time.gregorian.date_period">date_period</link></entry> 
+	</row> 
+	<row>
+	  <entry><link linkend="date_time.gregorian.date_algorithms">partial_date</link></entry> 
+	  <entry><link linkend="date_time.gregorian.date_algorithms">nth_day_of_week_in_month</link></entry> 
+	  <entry><link linkend="date_time.gregorian.date_algorithms">first_day_of_week_in_month</link></entry> 
+	</row> 
+	<row>
+	  <entry><link linkend="date_time.gregorian.date_algorithms">last_day_of_week_in_month</link></entry> 
+	  <entry><link linkend="date_time.gregorian.date_algorithms">first_day_of_week_before</link></entry> 
+	  <entry><link linkend="date_time.gregorian.date_algorithms">first_day_of_week_after</link></entry> 
+	</row> 
+	<row>
+          <entry>greg_month</entry> <!-- no docs to link to for these three -->
+          <entry>greg_day</entry> 
+	  <entry>greg_weekday</entry> 
+	</row> 
+      </tbody>
+    </tgroup>
+  </informaltable>
+  
+  <bridgehead renderas="sect3">boost::posix_time</bridgehead>
+
+  <informaltable frame="all" pgwide="1">
+    <tgroup cols="3">
+      <tbody>
+	<row>
+	  <entry><link linkend="date_time.posix_time.ptime_class">ptime</link></entry> 
+	  <entry><link linkend="date_time.posix_time.time_duration">time_duration</link></entry> 
+            <entry><link linkend="date_time.posix_time.time_period">time_period</link></entry> 
+	</row> 
+      </tbody>
+    </tgroup>
+  </informaltable>
+      
+  <para>
+    No extra steps are required to build the date_time library for serialization use.
+  </para>
+
+  <para>NOTE: due to a change in the serialization library interface, it is now required that all streamable objects be const prior to writing to the archive. The following template function will allow for this (and is used in the date_time tests). At this time no special steps are necessary to read from an archive.
+    <programlisting>
+      template&lt;class archive_type, class temporal_type>
+      void save_to(archive_type&amp; ar, const temporal_type&amp; tt)
+      {
+        ar &lt;&lt; tt;
+      }
+    </programlisting>
+  </para>
+
+  <para>
+    Example text_archive usage:
+    <programlisting>
+      using namespace boost::posix_time;
+      using namespace boost::gregorian;
+      ptime pt(date(2002, Feb, 14)), hours(10)), pt2(not_a_date_time);
+      std::ofstream ofs("tmp_file");
+      archive::test_oarchive oa(ofs);
+      save_to(oa, pt);                 // NOTE: no macro
+      ofs.close();
+      std::ifstream ifs("tmp_file");
+      archive::text_iarchive ia(ifs);
+      ia &gt;&gt; pt2;                       // NOTE: no macro
+      ifs.close();
+      pt == pt2; // true</programlisting>
+  </para>
+
+  <para>
+    Example xml_archive usage:
+    <programlisting>
+      using namespace boost::gregorian;
+      date d(2002, Feb, 14), d2(not_a_date_time);
+      std::ofstream ofs("tmp_file");
+      archive::xml_oarchive oa(ofs);
+      save_to(oa, BOOST_SERIALIZATION_NVP(d)); // macro required for xml_archive
+      ofs.close();
+      std::ifstream ifs("tmp_file");
+      archive::xml_iarchive ia(ifs);
+      ia &gt;&gt; BOOST_SERIALIZATION_NVP(d2);       // macro required for xml_archive
+      ifs.close();
+      d == d2; // true</programlisting>
+  </para>
+
+  <para>
+    To use the date_time serialization code, the proper header files must be explicitly included. The header files are:
+    <programlisting>
+      boost/date_time/gregorian/greg_serialize.hpp</programlisting>
+    and
+    <programlisting>
+      boost/date_time/posix_time/time_serialize.hpp</programlisting>
+  </para>
+
+</section>

@@ -1,0 +1,39 @@
+#
+# Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+
+subproject libs/asio/example/http/server4 ;
+
+project boost : $(BOOST_ROOT) ;
+
+if $(UNIX)
+{
+  switch $(JAMUNAME)
+  {
+  case SunOS* :
+    {
+      SOCKET_LIBS = <find-library>socket <find-library>nsl ;
+    }
+  }
+}
+
+exe http_server
+  : <lib>@boost/libs/thread/build/boost_thread
+    <lib>@boost/libs/system/build/boost_system
+    file_handler.cpp
+    main.cpp
+    mime_types.cpp
+    reply.cpp
+    request_parser.cpp
+    server.cpp
+  : <include>$(BOOST_ROOT)
+    <include>../../../../..
+    <define>BOOST_ALL_NO_LIB=1
+    <threading>multi
+    <mingw><*><find-library>ws2_32
+    <mingw><*><find-library>mswsock
+    $(SOCKET_LIBS)
+  ;

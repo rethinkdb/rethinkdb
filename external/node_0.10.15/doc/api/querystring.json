@@ -1,0 +1,78 @@
+{
+  "source": "doc/api/querystring.markdown",
+  "modules": [
+    {
+      "textRaw": "Query String",
+      "name": "querystring",
+      "stability": 3,
+      "stabilityText": "Stable",
+      "desc": "<p>This module provides utilities for dealing with query strings.\nIt provides the following methods:\n\n</p>\n",
+      "methods": [
+        {
+          "textRaw": "querystring.stringify(obj, [sep], [eq])",
+          "type": "method",
+          "name": "stringify",
+          "desc": "<p>Serialize an object to a query string.\nOptionally override the default separator (<code>&#39;&amp;&#39;</code>) and assignment (<code>&#39;=&#39;</code>)\ncharacters.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>querystring.stringify({ foo: &#39;bar&#39;, baz: [&#39;qux&#39;, &#39;quux&#39;], corge: &#39;&#39; })\n// returns\n&#39;foo=bar&amp;baz=qux&amp;baz=quux&amp;corge=&#39;\n\nquerystring.stringify({foo: &#39;bar&#39;, baz: &#39;qux&#39;}, &#39;;&#39;, &#39;:&#39;)\n// returns\n&#39;foo:bar;baz:qux&#39;</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "obj"
+                },
+                {
+                  "name": "sep",
+                  "optional": true
+                },
+                {
+                  "name": "eq",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "querystring.parse(str, [sep], [eq], [options])",
+          "type": "method",
+          "name": "parse",
+          "desc": "<p>Deserialize a query string to an object.\nOptionally override the default separator (<code>&#39;&amp;&#39;</code>) and assignment (<code>&#39;=&#39;</code>)\ncharacters.\n\n</p>\n<p>Options object may contain <code>maxKeys</code> property (equal to 1000 by default), it&#39;ll\nbe used to limit processed keys. Set it to 0 to remove key count limitation.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>querystring.parse(&#39;foo=bar&amp;baz=qux&amp;baz=quux&amp;corge&#39;)\n// returns\n{ foo: &#39;bar&#39;, baz: [&#39;qux&#39;, &#39;quux&#39;], corge: &#39;&#39; }</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "str"
+                },
+                {
+                  "name": "sep",
+                  "optional": true
+                },
+                {
+                  "name": "eq",
+                  "optional": true
+                },
+                {
+                  "name": "options",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "textRaw": "querystring.escape",
+          "name": "escape",
+          "desc": "<p>The escape function used by <code>querystring.stringify</code>,\nprovided so that it could be overridden if necessary.\n\n</p>\n"
+        },
+        {
+          "textRaw": "querystring.unescape",
+          "name": "unescape",
+          "desc": "<p>The unescape function used by <code>querystring.parse</code>,\nprovided so that it could be overridden if necessary.\n</p>\n"
+        }
+      ],
+      "type": "module",
+      "displayName": "querystring"
+    }
+  ]
+}

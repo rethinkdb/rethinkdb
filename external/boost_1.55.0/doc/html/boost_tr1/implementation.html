@@ -1,0 +1,79 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Implementation</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_tr1.html" title="Chapter&#160;32.&#160;Boost.TR1">
+<link rel="prev" href="header_list.html" title="TR1 By Header">
+<link rel="next" href="testing.html" title="Testing">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="header_list.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_tr1.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="testing.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_tr1.implementation"></a><a class="link" href="implementation.html" title="Implementation">Implementation</a>
+</h2></div></div></div>
+<p>
+      When Boost.TR1 is <a class="link" href="config.html" title="Configuration">configured</a> to make
+      use of your standard library's native TR1 implementation, then it doesn't do
+      very much: it just includes the appropriate header.
+    </p>
+<p>
+      When Boost.TR1 is using the Boost implementation of a particular component,
+      then it includes the appropriate Boost header(s) and imports the necessary
+      declarations in <code class="computeroutput"><span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">tr1</span></code> with
+      using declarations. Note that only those declarations that are part of the
+      standard are imported: the implementation is deliberately quite strict about
+      not including any Boost-specific extensions in <code class="computeroutput"><span class="keyword">namespace</span>
+      <span class="identifier">std</span><span class="special">::</span><span class="identifier">tr1</span></code>, in order to catch any portability errors
+      in user code. If you really need to use Boost-specific extensions then you
+      should include the Boost headers directly and use the declarations in <code class="computeroutput"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span></code> instead. Note that this style of implementation
+      is not completely standards-conforming, in particular it is not possible to
+      add user-defined template specializations of TR1 components into <code class="computeroutput"><span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">tr1</span></code>. There
+      are also one or two Boost libraries that are not yet fully standards conforming,
+      any such non-conformities are documented in <a class="link" href="subject_list.html" title="TR1 By Subject">the
+      TR1 by subject section</a>. Hopefully, occurrences of non-standard behavior
+      should be extremely rare in practice however.
+    </p>
+<p>
+      If you use the standard conforming header includes (in <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tr1</span><span class="special">/</span><span class="identifier">tr1</span></code>) then these header names can sometimes
+      conflict with existing standard library headers (for example <code class="computeroutput"><span class="identifier">shared_ptr</span></code> is added to the existing standard
+      library header <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">memory</span><span class="special">&gt;</span></code> rather than it's own header). These headers
+      forward on to your existing standard library header in one of two ways: for
+      gcc it uses <code class="computeroutput"><span class="preprocessor">#include_next</span></code>,
+      and for other compilers it uses the macro <code class="computeroutput"><span class="identifier">BOOST_TR1_STD_HEADER</span><span class="special">(</span><span class="identifier">header</span><span class="special">)</span></code>
+      (defined in <a href="../../../boost/tr1/detail/config.hpp" target="_top">boost/tr1/detail/config.hpp</a>)
+      which evaluates to <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;../</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">header</span><span class="special">&gt;</span></code>.
+      This should work "straight out the box" for most compilers, but does
+      mean that these headers should <span class="bold"><strong>never</strong></span> be placed
+      inside a directory called "include" that is already in your compiler's
+      search path.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="header_list.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_tr1.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="testing.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

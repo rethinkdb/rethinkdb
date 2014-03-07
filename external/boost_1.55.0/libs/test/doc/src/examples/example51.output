@@ -1,0 +1,5 @@
+> example
+Running 1 test case...
+test.cpp(13): warning in "test_case0": condition sizeof(int) > 4 is not satisfied
+
+*** No errors detected

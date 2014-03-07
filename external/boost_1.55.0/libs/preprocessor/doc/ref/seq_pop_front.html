@@ -1,0 +1,68 @@
+<html>
+	<head>
+		<title>BOOST_PP_SEQ_POP_FRONT</title>
+		<link rel="stylesheet" type="text/css" href="../styles.css">
+	</head>
+	<body>
+		<div style="margin-left:  0px;">
+			The <b>BOOST_PP_SEQ_POP_FRONT</b> macro pops an element from the beginning of a <i>seq</i>.
+		</div>
+		<h4>
+			Usage
+		</h4>
+		<div class="code">
+			<b>BOOST_PP_SEQ_POP_FRONT</b>(<i>seq</i>)
+		</div>
+		<h4>
+			Arguments
+		</h4>
+		<dl>
+			<dt>seq</dt>
+			<dd>
+				The <i>seq</i> to pop an element from.
+			</dd>
+		</dl>
+		<h4>
+			Remarks
+		</h4>
+		<div>
+			This macro returns <i>seq</i> after removing the first element.&nbsp;
+		</div>
+		<h4>
+			See Also
+		</h4>
+		<ul>
+			<li>
+				<a href="seq_pop_back.html">BOOST_PP_SEQ_POP_BACK</a></li>
+		</ul>
+		<h4>
+			Requirements
+		</h4>
+		<div>
+			<b>Header:</b> &nbsp;<a href="../headers/seq/pop_front.html">&lt;boost/preprocessor/seq/pop_front.hpp&gt;</a>
+		</div>
+		<h4>
+			Sample Code
+		</h4>
+		<div>
+			<pre>
+#include &lt;<a href="../headers/seq/pop_front.html">boost/preprocessor/seq/pop_front.hpp</a>&gt;
+
+#define SEQ (a)(b)(c)
+
+<a href="seq_pop_front.html">BOOST_PP_SEQ_POP_FRONT</a>(SEQ) // expands to (b)(c)
+</pre>
+		</div>
+	<hr size="1">
+	<div style="margin-left: 0px;">
+		<i>© Copyright <a href="http://www.housemarque.com" target="_top">Housemarque Oy</a> 2002</i>
+		</br><i>© Copyright Paul Mensonides 2002</i>
+	</div>
+	<div style="margin-left: 0px;">
+		<p><small>Distributed under the Boost Software License, Version 1.0. (See
+		accompanying file <a href="../../../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+		copy at <a href=
+		"http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a>)</small></p>
+	</div>
+	</body>
+</html>

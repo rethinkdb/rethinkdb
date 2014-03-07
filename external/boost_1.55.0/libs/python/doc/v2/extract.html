@@ -1,0 +1,232 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 1st August 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/extract.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/extract.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#classes">Classes</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#extract-spec">Class <code>extract</code></a></dt>
+
+          <dd>
+            <dl class="page-index">
+              <dt><a href="#extract-spec-synopsis">Class <code>extract</code>
+              synopsis</a></dt>
+
+              <dt><a href="#extract-spec-ctors">Class <code>extract</code>
+              constructors and destructor</a></dt>
+
+              <dt><a href="#extract-spec-observers">Class
+              <code>extract</code> observer functions</a></dt>
+            </dl>
+          </dd>
+        </dl>
+      </dd>
+
+
+      <dt><a href="#examples">Example</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p>Exposes a mechanism for extracting C++ object values from
+    generalized Python objects. Note that
+    <code>extract&lt;</code>...<code>&gt;</code> can also be used to
+    &quot;downcast&quot; an <a
+    href="object.html#object-spec">object</a> to some specific <a
+    href="ObjectWrapper.html#ObjectWrapper-concept">ObjectWrapper</a>. Because
+    invoking a mutable python type with an argument of the same type
+    (e.g. <code>list([1,2])</code> typically makes a <em>copy</em> of
+    the argument object, this may be the only way to access the <a
+    href="ObjectWrapper.html#ObjectWrapper-concept">ObjectWrapper</a>'s
+    interface on the original object.
+
+    <h2><a name="classes"></a>Classes</h2>
+
+    <h3><a name="extract-spec"></a>Class template <code>extract</code></h3>
+
+    <p><code>extract&lt;T&gt;</code> can be used to extract a value of
+    an arbitrary C++ type from an instance of <code><a
+    href="object.html#object-spec">object</a></code>. Two usages are supported:
+<ol>
+<li><b><code>extract&lt;T&gt;(o)</code></b> is a temporary object
+which is implicitly convertible to <code>T</code> (explicit conversion
+is also available through the object's function-call
+operator). However, if no conversion is available which can convert
+<code>o</code> to an object of type <code>T</code>, a Python
+<code>TypeError</code> exception will be <a
+href="definitions.html#raise">raised</a>.
+
+<li><b><code>extract&lt;T&gt; x(o);</code></b> constructs an extractor
+whose <code>check()</code> member function can be used to ask whether
+a conversion is available without causing an exception to be thrown.
+</ol>
+
+    <h4><a name="extract-spec-synopsis"></a>Class template <code>extract</code>
+    synopsis</h4>
+<pre>
+namespace boost { namespace python
+{
+  template &lt;class T&gt;
+  struct extract
+  {
+      typedef <i>unspecified</i> result_type;
+
+      extract(PyObject*);
+      extract(object const&amp;);
+
+      result_type operator()() const;
+      operator result_type() const;
+
+      bool check() const;
+  };
+}}
+</pre>
+
+    <h4><a name="extract-spec-ctors"></a>Class <code>extract</code>
+    constructors and destructor</h4>
+<pre>
+extract(PyObject* p);
+extract(object const&amp;);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> The first form requires that <code>p</code> is non-null.</dt>
+
+      <dt><b>Effects:</b>Stores a pointer to the Python object managed
+      by its constructor argument. In particular, the reference
+      count of the object is not incremented. The onus is on the user
+      to be sure it is not destroyed before the extractor's conversion
+      function is called.</dt>
+    </dl>
+
+    <h4><a name="extract-spec-observers"></a>Class <code>extract</code>
+    observer functions</h4>
+<pre>
+result_type operator()() const;
+operator result_type() const;
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Effects:</b> Converts the stored pointer to
+      <code>result_type</code>, which is either <code>T</code> or
+      <code>T const&amp;</code>.
+      </dt>
+
+      <dt><b>Returns:</b> An object of <code>result_type</code>
+      corresponding to the one referenced by the stored pointer.</dt>
+
+      <dt><b>Throws:</b> <code><a
+      href="errors.html#error_already_set-spec">error_already_set</a></code>
+      and sets a <code>TypeError</code> if no such conversion is
+      available. May also emit other unspecified exceptions thrown by
+      the converter which is actually used.</dt>
+    </dl>
+
+<pre>
+bool check() const;
+</pre>
+
+    <dl class="function-semantics">
+
+      <dt><b>Postconditions:</b> None. In particular, note that a
+      return value of <code>true</code> does not preclude an exception
+      being thrown from <code>operator result_type()</code> or
+      <code>operator()()</code>.</dt>
+
+      <dt><b>Returns:</b> <code>false</code> <i>only</i> if no conversion from the
+      stored pointer to <code>T</code> is available.</dt>
+
+    </dl>
+
+
+    <h2><a name="examples"></a>Examples</h2>
+
+<pre>
+#include &lt;cstdio&gt;
+using namespace boost::python;
+int Print(str s)
+{ 
+   // extract a C string from the Python string object
+   char const* c_str = extract&lt;char const*&gt;(s);
+
+   // Print it using printf
+   std::printf(&quot;%s\n&quot;, c_str);
+
+   // Get the Python string's length and convert it to an int
+   return extract&lt;int&gt;(s.attr(&quot;__len__&quot;)())
+}
+</pre>
+
+The following example shows how extract can be used along with
+<code><a
+href="class.html#class_-spec">class_</a>&lt;</code>...<code>&gt;</code>
+to create and access an instance of a wrapped C++ class.
+
+<pre>
+struct X
+{
+   X(int x) : v(x) {}
+   int value() { return v; }
+ private:
+   int v;
+};
+
+BOOST_PYTHON_MODULE(extract_ext)
+{
+    object x_class(
+       class_&lt;X&gt;(&quot;X&quot;, init&lt;int&gt;())
+          .def(&quot;value&quot;, &amp;X::value))
+          ;
+        
+    // Instantiate an X object through the Python interface. 
+    // Its lifetime is now managed by x_obj.
+    object x_obj = x_class(3);
+
+    // Get a reference to the C++ object out of the Python object
+    X&amp; x = extract&lt;X&amp;&gt;(x_obj);
+    assert(x.value() == 3);
+}
+</pre>
+    <p>Revised 15 November, 2002</p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

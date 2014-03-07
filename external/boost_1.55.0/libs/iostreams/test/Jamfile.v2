@@ -1,0 +1,150 @@
+# Boost.Iostreams Library test Jamfile
+
+# (C) Copyright 2008 CodeRage, LLC (turkanis at coderage dot com)
+# (C) Copyright 2004-2007 Jonathan Turkanis
+# Distributed under the Boost Software License, Version 1.0. (See accompanying 
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt.)
+
+# See http://www.boost.org/libs/iostreams for documentation.
+
+import stlport ;
+import modules ;
+
+local NO_BZIP2 = [ modules.peek : NO_BZIP2 ] ;
+local NO_ZLIB = [ modules.peek : NO_ZLIB ] ;
+local LARGE_FILE_TEMP = [ modules.peek : LARGE_FILE_TEMP ] ;
+local LARGE_FILE_KEEP = [ modules.peek : LARGE_FILE_KEEP ] ;
+
+rule test-iostreams ( sources * : requirements * : target-name ? ) {
+    return [
+            run
+                $(sources)
+                /boost/test//boost_unit_test_framework/<link>static
+                /boost/filesystem//boost_filesystem/<link>static
+            : # command
+            : # input files
+            : # build requirements
+                <toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+                <toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+                <toolset>cw-9.3,<os>darwin:<runtime-link>static
+                <define>BOOST_IOSTREAMS_NO_LIB
+                <link>shared:<define>BOOST_IOSTREAMS_DYN_LINK=1
+                $(requirements)
+            : $(target-name)
+        ] ;
+}
+
+rule compile-fail-iostreams ( sources * : requirements * : target-name ? ) {
+    return [
+            compile-fail
+                $(sources)
+                /boost/test//boost_unit_test_framework/<link>static
+                /boost/filesystem//boost_filesystem/<link>static
+            : # build requirements
+                <toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+                <toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+                <toolset>cw-9.3,<os>darwin:<runtime-link>static
+                <define>BOOST_IOSTREAMS_NO_LIB
+                <link>shared:<define>BOOST_IOSTREAMS_DYN_LINK=1
+                $(requirements)
+            : $(target-name)
+        ] ;
+}
+
+
+    local all-tests = 
+          [ test-iostreams array_test.cpp ]
+          [ test-iostreams auto_close_test.cpp ]
+          [ test-iostreams buffer_size_test.cpp ]
+          [ test-iostreams close_test.cpp ]
+          [ test-iostreams 
+                code_converter_test.cpp    
+                detail/utf8_codecvt_facet.cpp ]
+          [ test-iostreams combine_test.cpp ]
+          [ test-iostreams compose_test.cpp ]
+          [ test-iostreams component_access_test.cpp ]
+          [ test-iostreams copy_test.cpp ]
+          [ test-iostreams counter_test.cpp ]
+          [ test-iostreams direct_adapter_test.cpp ]
+          [ test-iostreams example_test.cpp ]
+          [ test-iostreams execute_test.cpp ]
+          [ test-iostreams file_test.cpp ]
+          [ test-iostreams file_descriptor_test.cpp
+                ../build//boost_iostreams ]
+          [ test-iostreams deprecated_file_descriptor_test.cpp
+                ../build//boost_iostreams
+                : <define>BOOST_IOSTREAMS_USE_DEPRECATED ]
+          [ compile-fail-iostreams deprecated_file_descriptor_test.cpp
+                :
+                : deprecated_file_descriptor_fail ]
+          [ test-iostreams filtering_stream_test.cpp ]
+          [ test-iostreams finite_state_filter_test.cpp ]
+          [ test-iostreams flush_test.cpp ]
+          [ test-iostreams 
+                grep_test.cpp     
+                /boost/regex//boost_regex ]
+          [ test-iostreams invert_test.cpp ]
+          [ test-iostreams line_filter_test.cpp ]
+          [ test-iostreams mapped_file_test.cpp 
+                ../build//boost_iostreams ]
+          [ test-iostreams path_test.cpp ]
+          [ test-iostreams newline_test.cpp ]
+          [ test-iostreams null_test.cpp ]
+          [ test-iostreams operation_sequence_test.cpp ]
+          [ test-iostreams pipeline_test.cpp ]
+          [ test-iostreams 
+                regex_filter_test.cpp     
+                /boost/regex//boost_regex ]
+          [ test-iostreams restrict_test.cpp ]
+          [ test-iostreams seekable_file_test.cpp ]
+          [ test-iostreams seekable_filter_test.cpp ]
+          [ test-iostreams sequence_test.cpp ]
+          [ test-iostreams slice_test.cpp ]
+          [ test-iostreams stdio_filter_test.cpp ]
+          [ test-iostreams stream_offset_32bit_test.cpp ]
+          [ test-iostreams stream_offset_64bit_test.cpp ]
+          #[ test-iostreams stream_state_test.cpp ]
+          [ test-iostreams symmetric_filter_test.cpp ]
+          [ test-iostreams tee_test.cpp ]
+          [ test-iostreams wide_stream_test.cpp ]
+          [ test-iostreams windows_pipe_test.cpp
+               ../build//boost_iostreams
+               : <build>no <target-os>windows:<build>yes ]
+          ;  
+
+      if $(LARGE_FILE_KEEP) 
+      {
+          all-tests += 
+              [ test-iostreams 
+                    large_file_test.cpp 
+                    ../src/file_descriptor.cpp
+                    ../src/mapped_file.cpp
+                  : <define>LARGE_FILE_KEEP=$(LARGE_FILE_KEEP)
+                    <link>static ] ;
+      }
+      if $(LARGE_FILE_TEMP)
+      {
+          all-tests += 
+              [ test-iostreams 
+                    large_file_test.cpp 
+                    ../src/file_descriptor.cpp
+                    ../src/mapped_file.cpp
+                  : <define>LARGE_FILE_TEMP=$(LARGE_FILE_TEMP)
+                    <link>static ] ;
+      }
+      if ! $(NO_BZIP2)
+      {     
+          all-tests += [ test-iostreams 
+                    bzip2_test.cpp ../build//boost_iostreams ] ;
+      }
+      if ! $(NO_ZLIB)
+      {              
+          all-tests += 
+              [ test-iostreams 
+                    gzip_test.cpp ../build//boost_iostreams ]
+              [ test-iostreams 
+                    zlib_test.cpp ../build//boost_iostreams ] ;
+      }
+          
+    test-suite "iostreams" : $(all-tests) ;
+    

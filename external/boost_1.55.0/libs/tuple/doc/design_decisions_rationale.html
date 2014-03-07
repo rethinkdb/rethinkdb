@@ -1,0 +1,155 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+
+<title>Design decisions rationale for Boost Tuple Library</title>
+
+<body bgcolor="#FFFFFF" text="#000000">
+
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86">
+
+<h1>Tuple Library : design decisions rationale</h1>
+
+<h2>About namespaces</h2>
+
+<p>
+There was a discussion about whether tuples should be in a separate namespace or directly in the <code>boost</code> namespace.
+The common principle is that domain libraries (like <i>graph</i>, <i>python</i>) should be on a separate
+subnamespace, while utility like libraries directly in the <code>boost</code> namespace.
+Tuples are somewhere in between, as the tuple template is clearly a general utility, but the library introduces quite a lot of names in addition to just the tuple template. 
+Tuples were originally under a subnamespace.
+As a result of the discussion, tuple definitions were moved directly under the <code>boost</code> namespace.
+As a result of a continued discussion, the subnamespace was reintroduced.
+The final (I truly hope so) solution is now to have all definitions in namespace <code>::boost::tuples</code>, and the most common names in the <code>::boost</code> namespace as well. 
+This is accomplished with using declarations (suggested by Dave Abrahams):</p>
+<pre><code>namespace boost {
+  namespace tuples {
+      ...      
+    // All library code
+      ...
+  }
+  using tuples::tuple; 
+  using tuples::make_tuple;
+  using tuples::tie;
+  using tuples::get;
+}
+</code></pre>
+<p>With this arrangement, tuple creation with direct constructor calls, <code>make_tuple</code> or <code>tie</code> functions do not need the namespace qualifier.
+Further, all functions that manipulate tuples are found with Koenig-lookup.
+The only exceptions are the <code>get&lt;N&gt;</code> functions, which are always called with an explicitly qualified template argument, and thus Koenig-lookup does not apply.
+Therefore, get is lifted to <code>::boost</code> namespace with a using declaration.
+Hence, the interface for an application programmer is in practice under the namespace <code>::boost</code>.
+</p>
+<p>
+The other names, forming an interface for library writers (cons lists, metafunctions manipulating cons lists, ...) remain in the subnamespace <code>::boost::tuples</code>.
+Note, that the names <code>ignore</code>, <code>set_open</code>, <code>set_close</code> and <code>set_delimiter</code> are considered to be part of the application programmer's interface, but are still not under <code>boost</code> namespace. 
+The reason being the danger for name clashes for these common names.
+Further, the usage of these features is probably not very frequent.
+</p>
+
+<h4>For those who are really interested in namespaces</h4>
+
+<p>
+The subnamespace name <i>tuples</i> raised some discussion.
+The rationale for not using the most natural name 'tuple' is to avoid having an identical name with the tuple template. 
+Namespace names are, however, not generally in plural form in boost libraries. 
+First, no real trouble was reported for using the same name for a namespace and a class and we considered changing the name 'tuples' to 'tuple'.
+But we found some trouble after all.
+Both gcc and edg compilers reject using declarations where the namespace and class names are identical:</p>
+
+<pre><code>namespace boost {
+  namespace tuple {
+    ... tie(...);
+    class tuple; 
+&nbsp;     ...
+  }
+  using tuple::tie; // ok
+  using tuple::tuple; // error
+    ...
+}
+</code></pre>
+
+<p>Note, however, that a corresponding using declaration in the global namespace seems to be ok:</p>
+
+<pre><code>
+using boost::tuple::tuple; // ok;
+</code></pre>
+
+
+<h2>The end mark of the cons list (nil, null_type, ...)</h2>
+
+<p>
+Tuples are internally represented as <code>cons</code> lists:
+
+<pre><code>tuple&lt;int, int&gt;
+</code></pre> 
+<p>inherits from</p>
+<pre><code>cons&lt;int, cons&lt;int, null_type&gt; &gt;
+</code></pre>
+
+<p>
+<code>null_type</code> is the end mark of the list. Original proposition was <code>nil</code>, but the name is used in MacOS, and might have caused problems, so <code>null_type</code> was chosen instead.
+Other names considered were <i>null_t</i> and <i>unit</i> (the empty tuple type in SML).</p>
+<p>
+Note that <code>null_type</code> is the internal representation of an empty tuple: <code>tuple&lt;&gt;</code> inherits from <code>null_type</code>.
+</p>
+
+<h2>Element indexing</h2>
+
+<p>
+Whether to use 0- or 1-based indexing was discussed more than thoroughly, and the following observations were made:</p>
+
+<ul>
+<li> 0-based indexing is 'the C++ way' and used with arrays etc.</li>
+<li> 1-based 'name like' indexing exists as well, eg. <code>bind1st</code>, <code>bind2nd</code>, <code>pair::first</code>, etc.</li>
+</ul>
+<p>Tuple access with the syntax <code>get&lt;N&gt;(a)</code>, or <code>a.get&lt;N&gt;()</code> (where <code>a</code> is a tuple and <code>N</code> an index), was considered to be of the first category, hence, the index of the first element in a tuple is 0.</p>
+
+<p>
+A suggestion to provide 1-based 'name like' indexing with constants like <code>_1st</code>, <code>_2nd</code>, <code>_3rd</code>, ... was made.
+By suitably chosen constant types, this would allow alternative syntaxes:
+
+<pre><code>a.get&lt;0&gt;() == a.get(_1st) == a[_1st] == a(_1st);
+</code></pre>
+
+<p>We chose not to provide more than one indexing method for the following reasons:</p>
+<ul>
+<li>0-based indexing might not please everyone, but once its fixed, it is less confusing than having two different methods (would anyone want such constants for arrays?).</li>
+<li>Adding the other indexing scheme doesn't really provide anything new (like a new feature) to the user of the library.</li>
+<li>C++ variable and constant naming rules don't give many possibilities for defining short and nice index constants (like <code>_1st</code>, ...). 
+Let the binding and lambda libraries use these for a better purpose.</li>
+<li>The access syntax <code>a[_1st]</code> (or <code>a(_1st)</code>) is appealing, and almost made us add the index constants after all. However, 0-based subscripting is so deep in C++, that we had a fear for confusion.</li>
+<li>
+Such constants are easy to add.
+</li>
+</ul>
+
+
+<h2>Tuple comparison</h2>
+
+<p>The comparison operator implements lexicographical order. 
+Other orderings were considered, mainly dominance (<i>a &lt; b iff for each i a(i) &lt; b(i)</i>). 
+Our belief is, that lexicographical ordering, though not mathematically the most natural one, is the most frequently needed ordering in everyday programming.</p>
+
+<h2>Streaming</h2>
+
+<p>
+The characters specified with tuple stream manipulators are stored within the space allocated by <code>ios_base::xalloc</code>, which allocates storage for <code>long</code> type objects.
+<code>static_cast</code> is used in casting between <code>long</code> and the stream's character type. 
+Streams that have character types not convertible back and forth to long thus fail to compile.</p>
+
+<p>This may be revisited at some point. The two possible solutions are:</p>
+<ul>
+<li>Allow only plain <code>char</code> types as the tuple delimiters and use <code>widen</code> and <code>narrow</code> to convert between the real character type of the stream. 
+This would always compile, but some calls to set manipulators might result in a different
+  character than expected (some default character).</li>
+<li>Allocate enough space to hold the real character type of the stream. 
+This means memory for holding the delimiter characters must be allocated separately, and that pointers to this memory are stored in the space allocated with <code>ios_base::xalloc</code>.
+Any volunteers?</li>
+</ul>
+
+<A href="tuple_users_guide.html">Back to the user's guide</A>
+<hr><p>&copy; Copyright Jaakko J&auml;rvi 2001. 
+</body>
+</html>
+

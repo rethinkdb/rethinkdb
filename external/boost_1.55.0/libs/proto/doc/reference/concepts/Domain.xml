@@ -1,0 +1,202 @@
+<?xml version="1.0" ?>
+<!--
+  Copyright 2010 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<concept name="Domain" category="utility">
+  <param name="Domain" role="domain-type" />
+  <param name="Expr" role="expression-type" />
+  <param name="Object" role="object-type" />
+
+  <models-sentence>
+    The type <arg num="1" /> must be a model of <self/>. It also
+    models Unary Polymorphic Function.
+  </models-sentence>
+
+  <models-sentence>
+    The type <arg num="2" /> must be a model of <conceptname>Expr</conceptname>
+  </models-sentence>
+
+  <description>
+    <para>
+      A Domain creates an association between expressions and a so-called
+      generator, which is a function that maps an expression in the default
+      domain to an equivalent expression in this Domain. It also associates
+      an expression with a grammar, to which all expressions within this
+      Domain must conform.
+    </para>
+  </description>
+
+  <notation variables="d">
+    <sample-value>
+      <type name="Domain" />
+    </sample-value>
+  </notation>
+
+  <notation variables="e">
+    <sample-value>
+      <type name="Expr" />
+    </sample-value>
+  </notation>
+
+  <notation variables="o">
+    <sample-value>
+      <type name="Object" />
+    </sample-value>
+  </notation>
+
+  <associated-type name="proto_grammar">
+    <get-member-type name="proto_grammar">
+      <type name="Domain"/>
+    </get-member-type>
+    <description>
+      <simpara>The grammar to which every expression in this Domain
+        must conform.</simpara>
+    </description>
+  </associated-type>
+
+  <associated-type name="proto_generator">
+    <get-member-type name="proto_generator">
+      <type name="Domain"/>
+    </get-member-type>
+    <description>
+      <simpara>
+        A Unary Polymorphic Function that accepts expressions in the
+        default domain and emits expressions in this Domain.
+      </simpara>
+    </description>
+  </associated-type>
+
+  <associated-type name="proto_super_domain">
+    <get-member-type name="proto_super_domain">
+      <type name="Domain"/>
+    </get-member-type>
+    <description>
+      <simpara>
+        The Domain that is a super-domain of this domain, if
+        any such domain exists. If not, it is some unspecified
+        type.
+      </simpara>
+    </description>
+  </associated-type>
+
+  <associated-type name="result_type">
+    <get-member-type name="type">
+      <apply-template name="boost::result_of">
+        <type name="Domain(Expr)"/>
+      </apply-template>
+    </get-member-type>
+    <description>
+      <simpara>
+        The type of the result of applying
+        <computeroutput>proto_generator</computeroutput> to
+        the specified expression type. The result is required to
+        model <conceptname>Expr</conceptname>. The domain type
+        associated with <computeroutput>result_type</computeroutput>
+        (<computeroutput>result_type::proto_domain</computeroutput>)
+        is required to be the same type as this Domain.
+      </simpara>
+    </description>
+  </associated-type>
+
+  <associated-type name="as_expr_result_type">
+    <get-member-type name="result_type">
+      <apply-template name="Domain::as_expr">
+        <type name="Object"/>
+      </apply-template>
+    </get-member-type>
+    <description>
+      <simpara>
+        The result of converting some type to a Proto expression
+        type in this domain. This is used, for instance, when
+        calculating the type of a variable to hold a Proto
+        expression.
+        <computeroutput>as_expr_result_type</computeroutput>
+        models
+        <computeroutput><conceptname>Expr</conceptname></computeroutput>.
+      </simpara>
+    </description>
+  </associated-type>
+
+  <associated-type name="as_child_result_type">
+    <get-member-type name="result_type">
+      <apply-template name="Domain::as_child">
+        <type name="Object"/>
+      </apply-template>
+    </get-member-type>
+    <description>
+      <simpara>
+        The result of converting some type to a Proto expression
+        type in this domain. This is used, for instance, to
+        compute the type of an object suitable for storage
+        as a child in an expression tree.
+        <computeroutput>as_child_result_type</computeroutput>
+        models
+        <computeroutput><conceptname>Expr</conceptname></computeroutput>.
+      </simpara>
+    </description>
+  </associated-type>
+
+  <valid-expression name="Apply Generator">
+    <apply-function name="d">
+      <sample-value>
+        <type name="Expr"/>
+      </sample-value>
+    </apply-function>
+    <return-type>
+      <require-same-type testable="yes">
+        <type name="result_type"/>
+      </require-same-type>
+    </return-type>
+    <semantics>
+      The result of applying <computeroutput>proto_generator</computeroutput>
+      to the specified expression.
+    </semantics>
+  </valid-expression>
+
+  <valid-expression name="As Expression">
+    <apply-function name="Domain::as_expr&lt; Object &gt;()">
+      <sample-value>
+        <type name="Object"/>
+      </sample-value>
+    </apply-function>
+    <return-type>
+      <require-same-type testable="yes">
+        <type name="as_expr_result_type"/>
+      </require-same-type>
+    </return-type>
+    <semantics>
+      The result of converting some object to a Proto expression
+      in this domain. It returns a Proto expression object that
+      is suitable for storage in a variable. It should return a
+      new object, which may be a copy of the object passed in.
+    </semantics>
+  </valid-expression>
+
+  <valid-expression name="As Child">
+    <apply-function name="Domain::as_child&lt; Object &gt;()">
+      <sample-value>
+        <type name="Object"/>
+      </sample-value>
+    </apply-function>
+    <return-type>
+      <require-same-type testable="yes">
+        <type name="as_child_result_type"/>
+      </require-same-type>
+    </return-type>
+    <semantics>
+      The result of converting some object to a Proto expression
+      in this domain. It returns an object suitable for storage
+      as a child in an expression tree, which may simply be a
+      reference to the object passed in.
+    </semantics>
+  </valid-expression>
+
+  <example-model>
+    <type name="boost::proto::default_domain" />
+  </example-model>
+
+</concept>

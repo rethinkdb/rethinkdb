@@ -1,0 +1,160 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Installation and compatibility</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="prev" href="how_to_read.html" title="How to read the documentation">
+<link rel="next" href="installation/config.html" title="Configuring and building the library">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="how_to_read.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="installation/config.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="log.installation"></a><a class="link" href="installation.html" title="Installation and compatibility">Installation and compatibility</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="installation.html#log.installation.supported_compilers">Supported compilers
+      and platforms</a></span></dt>
+<dt><span class="section"><a href="installation/config.html">Configuring and building the
+      library</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="log.installation.supported_compilers"></a><a class="link" href="installation.html#log.installation.supported_compilers" title="Supported compilers and platforms">Supported compilers
+      and platforms</a>
+</h3></div></div></div>
+<p>
+        The library should build and work with a reasonably compliant compiler. The
+        library was successfully built and tested on the following platforms:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Windows XP, Windows Vista, Windows 7. MSVC 8.0 SP1, MSVC 9.0 and newer.
+          </li>
+<li class="listitem">
+            Linux. GCC 4.5 and newer. Older versions may work too, but it was not
+            tested.
+          </li>
+<li class="listitem">
+            Linux. Intel C++ 13.1.0.146 Build 20130121.
+          </li>
+<li class="listitem">
+            Linux. Clang 3.2.
+          </li>
+</ul></div>
+<p>
+        The following compilers/platforms are not supported and will likely fail
+        to compile the library:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            C++11 compilers with non-C++11 standard libraries (like Clang with libstdc++
+            from GCC 4.2). Please, use a C++11 standard library in C++11 mode.
+          </li>
+<li class="listitem">
+            MSVC 8.0 (without SP1) and older.
+          </li>
+<li class="listitem">
+            GCC 4.0 and older.
+          </li>
+<li class="listitem">
+            Borland C++ 5.5.1 (free version). Newer versions might or might not work.
+          </li>
+<li class="listitem">
+            Solaris Studio 12.3 and older.
+          </li>
+<li class="listitem">
+            Windows 9x, ME, NT4 and older are not supported.
+          </li>
+</ul></div>
+<p>
+        Boost.Log should be compatible with all hardware architectures supported
+        by Boost. However, in case of 32 bit x86 architecture the library requires
+        at least i586 class CPU to run.
+      </p>
+<h5>
+<a name="log.installation.supported_compilers.h0"></a>
+        <span class="phrase"><a name="log.installation.supported_compilers.notes_for_mingw__cygwin_and_visual_studio_express_edition_users"></a></span><a class="link" href="installation.html#log.installation.supported_compilers.notes_for_mingw__cygwin_and_visual_studio_express_edition_users">Notes
+        for MinGW, Cygwin and Visual Studio Express Edition users</a>
+      </h5>
+<p>
+        In order to compile the library with these compilers special preparations
+        are needed. First, in case of MinGW or Cygwin make sure you have installed
+        the latest GCC version. The library will most likely fail to compile with
+        GCC 3.x.
+      </p>
+<p>
+        Second, at some point the library will require a Message Compiler tool (<code class="computeroutput"><span class="identifier">mc</span><span class="special">.</span><span class="identifier">exe</span></code>),
+        which is not available in MinGW, Cygwin and some versions of MSVC Express
+        Edition. Typically the library build scripts will automatically detect if
+        message compiler is present on the system and disable Event log related portion
+        of the library if it's not. If Event log support is required and it is not
+        found on the system, you have three options to settle the problem. The recommended
+        solution is to obtain the original <code class="computeroutput"><span class="identifier">mc</span><span class="special">.</span><span class="identifier">exe</span></code>. This
+        tool is available in Windows SDK, which can be downloaded from the Microsoft
+        site freely (for example, <a href="http://www.microsoft.com/downloads/details.aspx?FamilyID=71deb800-c591-4f97-a900-bea146e4fae1&amp;displaylang=en" target="_top">here</a>).
+        Also, this tool should be available in Visual Studio 2010 Express Edition.
+        During the compilation, <code class="computeroutput"><span class="identifier">mc</span><span class="special">.</span><span class="identifier">exe</span></code> should
+        be accessible through one of the directories in your <code class="computeroutput"><span class="identifier">PATH</span></code>
+        environment variable.
+      </p>
+<p>
+        Another way is to attempt to use the <code class="computeroutput"><span class="identifier">windmc</span><span class="special">.</span><span class="identifier">exe</span></code> tool
+        distributed with MinGW and Cygwin, which is the analogue of the original
+        <code class="computeroutput"><span class="identifier">mc</span><span class="special">.</span><span class="identifier">exe</span></code>. In order to do that you will have
+        to patch Boost.Build files (in particular, the <code class="computeroutput"><span class="identifier">tools</span><span class="special">/</span><span class="identifier">build</span><span class="special">/</span><span class="identifier">v2</span><span class="special">/</span><span class="identifier">tools</span><span class="special">/</span><span class="identifier">mc</span><span class="special">.</span><span class="identifier">jam</span></code>
+        file) as described in <a href="https://svn.boost.org/trac/boost/ticket/4111" target="_top">this</a>
+        ticket. After that you will be able to specify the <code class="computeroutput"><span class="identifier">mc</span><span class="special">-</span><span class="identifier">compiler</span><span class="special">=</span><span class="identifier">windmc</span></code>
+        option to bjam to build the library.
+      </p>
+<p>
+        In case if message compiler detection fails for some reason, you can explicitly
+        disable support for event log backend by defining the <code class="computeroutput"><span class="identifier">BOOST_LOG_WITHOUT_EVENT_LOG</span></code>
+        configuration macro when building the library. This will remove the need
+        for the message compiler. See <a class="link" href="installation/config.html" title="Configuring and building the library">this
+        section</a> for more configuration options.
+      </p>
+<p>
+        MinGW users on Windows XP may be affected by the <a href="http://sourceforge.net/p/mingw-w64/bugs/307/" target="_top">bug</a>
+        in msvcrt.dll that is bundled with the operating system. The bug manifests
+        itself as crashes while the library formats log records. This problem is
+        not specific to Boost.Log and may also show in different contexts related
+        to locale and IO-streams management.
+      </p>
+<h5>
+<a name="log.installation.supported_compilers.h1"></a>
+        <span class="phrase"><a name="log.installation.supported_compilers.additional_notes_for_cygwin_users"></a></span><a class="link" href="installation.html#log.installation.supported_compilers.additional_notes_for_cygwin_users">Additional
+        notes for Cygwin users</a>
+      </h5>
+<p>
+        Cygwin support is very preliminary. The default GCC version available in
+        Cygwin (4.5.3 as of this writing) is unable to compile the library because
+        of compiler errors. You will have to build a newer GCC from sources. Even
+        then some Boost.Log functionality is not available. In particular, the socket-based
+        syslog backend is not supported, as it is based on <a href="http://www.boost.org/doc/libs/release/doc/html/boost_asio.html" target="_top">Boost.ASIO</a>,
+        which doesn't compile on this platform. However, the native syslog support
+        is still in place.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="how_to_read.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="installation/config.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

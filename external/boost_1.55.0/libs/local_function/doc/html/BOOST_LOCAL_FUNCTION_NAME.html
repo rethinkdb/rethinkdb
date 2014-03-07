@@ -1,0 +1,90 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Macro BOOST_LOCAL_FUNCTION_NAME</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.LocalFunction 1.0.0">
+<link rel="up" href="reference.html#header.boost.local_function_hpp" title="Header &lt;boost/local_function.hpp&gt;">
+<link rel="prev" href="BOOST_LOCAL_FUNCTION_ID_TPL.html" title="Macro BOOST_LOCAL_FUNCTION_ID_TPL">
+<link rel="next" href="BOOST_LOCAL_FUNCTION_NAME_TPL.html" title="Macro BOOST_LOCAL_FUNCTION_NAME_TPL">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_LOCAL_FUNCTION_ID_TPL.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="reference.html#header.boost.local_function_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_LOCAL_FUNCTION_NAME_TPL.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="BOOST_LOCAL_FUNCTION_NAME"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Macro BOOST_LOCAL_FUNCTION_NAME</span></h2>
+<p>BOOST_LOCAL_FUNCTION_NAME &#8212; This macro is used to end a local function declaration specifying its name. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="reference.html#header.boost.local_function_hpp" title="Header &lt;boost/local_function.hpp&gt;">boost/local_function.hpp</a>&gt;
+
+</span>BOOST_LOCAL_FUNCTION_NAME(qualified_name)</pre></div>
+<div class="refsect1">
+<a name="id882675"></a><h2>Description</h2>
+<p>This macro must follow the local function body code block <code class="computeroutput">{ ... }</code>: </p>
+<pre class="programlisting"><span class="special">{</span> <span class="comment">// Some declarative context.</span>
+    <span class="special">...</span>
+    <span class="identifier">result_type</span> <span class="identifier">BOOST_LOCAL_FUNCTION</span><span class="special">(</span><span class="identifier">declarations</span><span class="special">)</span> <span class="special">{</span>
+        <span class="special">...</span> <span class="comment">// Body code.</span>
+    <span class="special">}</span> <span class="identifier">BOOST_LOCAL_FUNCTION_NAME</span><span class="special">(</span><span class="identifier">qualified_name</span><span class="special">)</span>
+    <span class="special">...</span>
+<span class="special">}</span>
+</pre>
+<p>Within templates, the special macros  <code class="computeroutput"><a class="link" href="BOOST_LOCAL_FUNCTION_TPL.html" title="Macro BOOST_LOCAL_FUNCTION_TPL">BOOST_LOCAL_FUNCTION_TPL</a></code> and  <code class="computeroutput"><a class="link" href="BOOST_LOCAL_FUNCTION_NAME_TPL.html" title="Macro BOOST_LOCAL_FUNCTION_NAME_TPL">BOOST_LOCAL_FUNCTION_NAME_TPL</a></code> must be used.</p>
+<p><span class="bold"><strong>Parameters:</strong></span> </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody><tr>
+<td><span class="bold"><strong><code class="computeroutput">qualified_name</code></strong></span></td>
+<td>The name of the local function optionally qualified as follow: <pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting">    <span class="identifier">name</span><span class="special">:</span>
+            <span class="special">[</span><span class="keyword">inline</span><span class="special">]</span> <span class="special">[</span><span class="identifier">recursive</span><span class="special">]</span> <span class="identifier">local_function_name</span>
+</pre> (Lexical conventions: <code class="computeroutput">token1 | token2</code> means either <code class="computeroutput">token1</code> or <code class="computeroutput">token2</code>; <code class="computeroutput">[token]</code> means either <code class="computeroutput">token</code> or nothing; <code class="computeroutput">{expression}</code> means the token resulting from the expression.)  </td>
+</tr></tbody>
+</table></div>
+<p>
+</p>
+<p>The local function name can be qualified by prefixing it with the keyword <code class="computeroutput">inline</code> (see the  <a class="link" href="boost_localfunction/advanced_topics.html" title="Advanced Topics"> Advanced Topics</a> section): </p>
+<pre class="programlisting">    <span class="identifier">BOOST_LOCAL_FUNCTION_NAME</span><span class="special">(</span><span class="keyword">inline</span> <span class="identifier">local_function_name</span><span class="special">)</span>
+</pre>
+<p> This increases the chances that the compiler will be able to inline the local function calls (thus reducing run-time). However, inline local functions cannot be passed as template parameters (e.g., to <code class="computeroutput">std::for_each</code>) or assigned to other functors (e.g., to <code class="computeroutput">boost::function</code>). That is true on C++03 compilers but inline local functions can instead be passed as template parameters on C++11 compilers. On C++11 compilers, there is no need to declare a local function lined because this library will automatically use C++11 specific features to inline the local function while always allowing to pass it as a template parameter. This optimization is automatically enabled when the Boost.Config macro <code class="computeroutput">BOOST_NO_LOCAL_CLASS_TEMPLATE_PARAMETERS</code> is not defined but it also be forced using  <code class="computeroutput"><a class="link" href="BOOST_LOCAL_FUNCTION_CONFIG_LOCALS_AS_TPARAMS.html" title="Macro BOOST_LOCAL_FUNCTION_CONFIG_LOCALS_AS_TPARAMS">BOOST_LOCAL_FUNCTION_CONFIG_LOCALS_AS_TPARAMS</a></code>.</p>
+<p>The local function name can also be qualified by prefixing it with the "keyword" <code class="computeroutput">recursive</code> (see the  <a class="link" href="boost_localfunction/advanced_topics.html" title="Advanced Topics"> Advanced Topics</a> section): </p>
+<pre class="programlisting">    <span class="identifier">BOOST_LOCAL_FUNCTION_NAME</span><span class="special">(</span><span class="identifier">recursive</span> <span class="identifier">local_function_name</span><span class="special">)</span>
+</pre>
+<p> This allows the local function to recursively call itself from its body (as usual in C++). However, recursive local functions should only be called within their declaration scope (otherwise the result is undefined behaviour). Finally, compilers have not been observed to be able to inline recursive local function calls, not even when the recursive local function is also declared inline: </p>
+<pre class="programlisting">    <span class="identifier">BOOST_LOCAL_FUNCTION</span><span class="special">(</span><span class="keyword">inline</span> <span class="identifier">recursive</span> <span class="identifier">local_function_name</span><span class="special">)</span>
+</pre>
+<p><span class="bold"><strong>Note:</strong></span> The local function name cannot be the name of an operator <code class="computeroutput">operator...</code> and it cannot be the same name of another local function declared within the same enclosing scope (but <code class="computeroutput">boost::overloaded_function</code> can be used to overload local functions, see Boost.Functional/OverloadedFunction and the  <a class="link" href="boost_localfunction/advanced_topics.html" title="Advanced Topics"> Advanced Topics</a> section).</p>
+<p><span class="bold"><strong>See:</strong></span>  <a class="link" href="boost_localfunction/tutorial.html" title="Tutorial"> Tutorial</a> section,  <a class="link" href="boost_localfunction/advanced_topics.html" title="Advanced Topics"> Advanced Topics</a> section,  <code class="computeroutput"><a class="link" href="BOOST_LOCAL_FUNCTION.html" title="Macro BOOST_LOCAL_FUNCTION">BOOST_LOCAL_FUNCTION</a></code>,  <code class="computeroutput"><a class="link" href="BOOST_LOCAL_FUNCTION_NAME_TPL.html" title="Macro BOOST_LOCAL_FUNCTION_NAME_TPL">BOOST_LOCAL_FUNCTION_NAME_TPL</a></code>. </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2012 Lorenzo
+      Caminiti<p>
+        Distributed under the Boost Software License, Version 1.0 (see accompanying
+        file LICENSE_1_0.txt or a copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="BOOST_LOCAL_FUNCTION_ID_TPL.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="reference.html#header.boost.local_function_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="BOOST_LOCAL_FUNCTION_NAME_TPL.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

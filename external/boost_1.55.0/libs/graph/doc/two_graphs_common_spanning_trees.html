@@ -1,0 +1,143 @@
+<html>
+<!--
+          Copyright (C) 2012, Michele Caini.
+ Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+          http://www.boost.org/LICENSE_1_0.txt)
+
+          Two Graphs Common Spanning Trees Algorithm
+      Based on academic article of Mint, Read and Tarjan
+     Efficient Algorithm for Common Spanning Tree Problem
+ Electron. Lett., 28 April 1983, Volume 19, Issue 9, p.346–347
+-->
+<head>
+<title>Boost Graph Library: Two-Graphs Common Spanning Trees</title>
+<body bgcolo="#ffffff" link="#0000ee" text="#000000" vlink="#551a8b" alink="#ff0000">
+<img src="../../../boost.png" alt="C++ Boost" width="277" height="86">
+
+<br clear>
+
+<h1><tt><a name="sec:two-graphs-common-spanning-trees">Two-Graphs Common Spanning Trees (MRT Algorithm)</a></tt></h1>
+
+<p>
+The <b>MRT</b> algorithm, based on an academic article of <b>Mint</b>, <b>Read</b> and
+<b>Tarjan</b>, is an efficient algorithm for the common spanning tree problem.<br/>
+This kind of algorithm is widely used in electronics, being the basis of the
+analysis of electrical circuits. Another area of interest may be that of the
+networking.
+</p>
+
+<p>
+The proposed algorithm receives several arguments and works with callbacks.<br/>
+The prototypes are:
+</p>
+
+<p>
+<i>// Ordered Edges List</i>
+<pre>
+template &lt; typename Graph, typename Order, typename Func, typename Seq &gt;
+void two_graphs_common_spanning_trees
+  (
+    const Graph&amp; iG,
+    Order iG_map,
+    const Graph&amp; vG,
+    Order vG_map,
+    Func func,
+    Seq inL
+  )
+</pre>
+
+<i>// Unordered Edges List</i>
+<pre>
+template &lt; typename Graph, typename Func, typename Seq &gt;
+void two_graphs_common_spanning_trees
+  (
+    const Graph&amp; iG,
+    const Graph&amp; vG,
+    Func func,
+    Seq inL
+  )
+</pre>
+</p>
+
+<p>
+The problem of common spanning tree is easily described.<br/>
+Imagine we have two graphs that are represented as lists of edges. A common
+spanning tree is a set of indices that identifies a spanning tree for both
+the first and for the second of the two graphs. Despite it is easily accomplished
+with edge list representation for graphs, it is intuitively difficult to achieve
+with adjacency list representation. This is due to the fact that it is necessary
+to represent an edge with an absolute index.
+</p>
+<p>
+Note that the set of common spanning trees of the two graphs is a subset of
+the set of spanning trees of the first graph, as well as those of the second
+graph.
+</p>
+
+<h3>Where Defined</h3>
+
+<p>
+<a href="../../../boost/graph/two_graphs_common_spanning_trees.hpp"><TT>boost/graph/two_graphs_common_spanning_trees.hpp</TT></a>
+
+<h3>Parameters</h3>
+
+<tt>const Graph& iG, const Graph& vG</tt>
+<blockquote>
+These are the graphs to be analyzed.<br/>
+They must comply with the concepts VertexAndEdgeListGraphConcept and IncidenceGraphConcept.<br/>
+In addition, the directed_category should be of type undirected_tag.
+</blockquote>
+
+<tt>Order iG_map, Order vG_map</tt>
+<blockquote>
+These are lists of references to edges, that define the preferred order for access to the lists of edges.<br/>
+They must comply with the concept RandomAccessContainer.
+</blockquote>
+
+<tt>Func func</tt>
+<blockquote>
+This is a callback that is invoked by the algorithm for each common spanning tree found.<br/>
+It must comply with the concept UnaryFunction with void as return value, and an object of type <i>typeof(inL)</i> as argument.
+</blockquote>
+
+<tt>Seq inL<a href="#1">[1]</a></tt>
+<blockquote>
+This is the way in which the edges are marked as belonging to the common spanning tree.<br/>
+It must comply with the concept Mutable_RandomAccessContainer. In addition, the value_type should be of type bool.
+If the i-th edge or <i>inL[i]</i> is true, then it belongs to the common spanning tree, otherwise it does not belong.
+</blockquote>
+
+<h3>Example</h3>
+
+<p>
+The file
+<a href="../example/two_graphs_common_spanning_trees.cpp"><tt>examples/two_graphs_common_spanning_trees.cpp</tt></a>
+contains an example of finding common spanning trees of two undirected graphs.
+</p>
+
+<h3>Notes</h3>
+
+<p>
+<a name="1">[1]</a><br/>
+  The presence of <i>inL</i> may seem senseless. The algorithm can use a vector of
+  placeholders internally generated. However, doing so has more flexibility on
+  the callback function. Moreover, being largely involved in the electronics
+  world, there are cases where some edges have to be forced in every tree (ie
+  you want to search all the trees that have the same root): With this
+  solution, the problem is easily solved.<br/>
+  Intuitively from the above, <i>inL</i> must be of a size equal to <i>(V-1)</i>, where
+  <i>V</i> is the number of vertices of the graph.
+</p>
+
+<br/>
+<hr>
+<table>
+<tr valign=top>
+<td nowrap>Copyright &copy; 2012</td>
+<td>Michele Caini, (<a href="mailto:michele.caini@gmail.com">michele.caini@gmail.com</a>)</td>
+</tr>
+</table>
+
+</body>
+</html>

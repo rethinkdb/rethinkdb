@@ -1,0 +1,106 @@
+[/
+    Copyright 2002,2004,2006 Joel de Guzman, Eric Niebler
+    Copyright 2010-2011 Daniel James
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[chapter Quick Reference
+    [quickbook 1.6]
+    [compatibility-mode 1.5]
+    [id quickbook.ref]
+    [source-mode teletype]
+]
+
+[teletype]
+
+[template ordered_list_sample[]
+```
+# one
+# two
+# three
+```
+]
+
+[template unordered_list_sample[]
+```
+* one
+* two
+* three
+```
+]
+
+[template table_sample[]
+```
+[table Title
+[[a][b][c]]
+[[a][b][c]]
+]
+```
+]
+
+[template var_list_sample[]
+```
+[variablelist Title
+[[a][b]]
+[[a][b]]
+]
+```
+]
+
+
+[table Syntax Compendium
+    [[To do this...]        [Use this...]                                   [See this...]]
+    [[comment]              [`[/ some comment]`]                            [__comments__]]
+    [[['italics]]           [`['italics] or /italics/`]                     [__font_styles__ and __simple_formatting__]]
+    [[[*bold]]              [`[*bold] or *bold*`]                           [__font_styles__ and __simple_formatting__]]
+    [[[_underline]]         [`[_underline] or _underline_`]                 [__font_styles__ and __simple_formatting__]]
+    [[[^teletype]]          [`[^teletype] or =teletype=`]                   [__font_styles__ and __simple_formatting__]]
+    [[[-strikethrough]]     [`[-strikethrough]`]                            [__font_styles__ and __simple_formatting__]]
+    [[[~replaceable]]       [`[~replaceable]`]                              [__replaceable__]]
+    [[source mode]          [`[c++]` or `[python]`]                         [__source_mode__]]
+    [[inline code]          [[^'''`int main();`''']]                        [__inline_code__]]
+    [[code block]           [[^'''``int main();``''']]                      [__code__]]
+    [[code escape]          [[^'''``from c++ to QuickBook``''']]            [__escape_back__]]
+    [[line break]           [`[br] or \n`]                                  [__line_break__ *DEPRECATED*]]
+    [[anchor]               [`[#anchor]`]                                   [__anchors__]]
+    [[link]                 [`[@http://www.boost.org Boost]`]               [__links__]]
+    [[anchor link]          [`[link section.anchor Link text]`]             [__anchor_links__]]
+    [[refentry link]        [`[link xml.refentry Link text]`]               [__refentry_links__]]
+    [[function link]        [`[funcref fully::qualified::function_name Link text]`]      [__code_links__]]
+    [[class link]           [`[classref fully::qualified::class_name Link text]`]        [__code_links__]]
+    [[member link]          [`[memberref fully::qualified::member_name Link text]`]      [__code_links__]]
+    [[enum link]            [`[enumref fully::qualified::enum_name Link text]`]          [__code_links__]]
+    [[macro link]           [`[macroref MACRO_NAME Link text]`]                          [__code_links__]]
+    [[concept link]         [`[conceptref ConceptName Link text]`]                       [__code_links__]]
+    [[header link]          [`[headerref path/to/header.hpp Link text]`]                 [__code_links__]]
+    [[global link]          [`[globalref fully::qualified::global Link text]`]           [__code_links__]]
+    [[escape]               [`'''escaped text (no processing/formatting)'''`]            [__escape__]]
+    [[single char escape]   [`\c`]                                          [__single_char_escape__]]
+    [[images]               [`[$image.jpg]`]                                [__images__]]
+    [[begin section]        [`[section The Section Title]`]                 [__section__]]
+    [[end section]          [`[endsect]`]                                   [__section__]]
+    [[paragraph]            [No markup. Paragraphs start left-flushed and are terminated by two or more newlines.]  [__paragraphs__]]
+    [[ordered list]         [[ordered_list_sample]]                         [__ordered_lists__]]
+    [[unordered list]       [[unordered_list_sample]]                       [__unordered_lists__]]
+    [[code]                 [No markup. Preformatted code starts with a space or a tab.]        [__code__]]
+    [[preformatted]         [`[pre preformatted]`]                          [__preformatted__]]
+    [[block quote]          [`[:sometext...]`]                              [__blockquote__]]
+    [[heading 1]            [`[h1 Heading 1]`]                              [__heading__]]
+    [[heading 2]            [`[h2 Heading 2]`]                              [__heading__]]
+    [[heading 3]            [`[h3 Heading 3]`]                              [__heading__]]
+    [[heading 4]            [`[h4 Heading 4]`]                              [__heading__]]
+    [[heading 5]            [`[h5 Heading 5]`]                              [__heading__]]
+    [[heading 6]            [`[h6 Heading 6]`]                              [__heading__]]
+    [[macro]                [`[def macro_identifier some text]`]            [__macros__]]
+    [[template]             [`[template[a b] [a] body [b]]`]                [__templates__]]
+    [[blurb]                [`[blurb advertisement or note...]`]            [__blurbs__]]
+    [[admonition]           [`[warning Warning text...]`]                   [__admonitions__]]
+    [[table]                [[table_sample]]                                [__tables__]]
+    [[variablelist]         [[var_list_sample]]                             [__variable_lists__]]
+    [[include]              [`[include someother.qbk]`]                     [__include__]]
+    [[conditional generation]
+                            [`[? symbol phrase]`]                           [__cond__]]
+]

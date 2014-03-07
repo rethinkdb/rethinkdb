@@ -1,0 +1,1220 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Projects</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="prev" href="examples/custom_interval.html" title="Custom interval">
+<link rel="next" href="concepts.html" title="Concepts">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="examples/custom_interval.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concepts.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_projects" lang="en">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_icl.projects"></a><a class="link" href="projects.html" title="Projects">Projects</a>
+</h2></div></div></div>
+<div class="toc"><dl><dt><span class="section"><a href="projects.html#boost_icl.projects.large_bitset">Large Bitset</a></span></dt></dl></div>
+<p>
+      <span class="emphasis"><em><span class="bold"><strong>Projects</strong></span></em></span> are examples
+      on the usage of interval containers that go beyond small toy snippets of code.
+      The code presented here addresses more serious applications that approach the
+      quality of real world programming. At the same time it aims to guide the reader
+      more deeply into various aspects of the library. In order not to overburden
+      the reader with implementation details, the code in <span class="emphasis"><em><span class="bold"><strong>projects</strong></span></em></span>
+      tries to be <span class="emphasis"><em><span class="bold"><strong>minimal</strong></span></em></span>.
+      It has a focus on the main aspects of the projects and is not intended to be
+      complete and mature like the library code itself. Cause it's minimal, project
+      code lives in <code class="computeroutput"><span class="keyword">namespace</span> <span class="identifier">mini</span></code>.
+    </p>
+<div class="section boost_icl_projects_large_bitset" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.projects.large_bitset"></a><a class="link" href="projects.html#boost_icl.projects.large_bitset" title="Large Bitset">Large Bitset</a>
+</h3></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="projects.html#boost_icl.projects.large_bitset.using_large_bitset">Using
+        large_bitset</a></span></dt>
+<dt><span class="section"><a href="projects.html#boost_icl.projects.large_bitset.the_interval_bitmap">The
+        interval_bitmap</a></span></dt>
+<dt><span class="section"><a href="projects.html#boost_icl.projects.large_bitset.a_class_implementation_for_the_bitset_type">A
+        class implementation for the bitset type</a></span></dt>
+<dt><span class="section"><a href="projects.html#boost_icl.projects.large_bitset.implementation_of_a_large_bitset">Implementation
+        of a large bitset</a></span></dt>
+</dl></div>
+<p>
+        Bitsets are just sets. Sets of unsigned integrals, to be more precise. The
+        prefix <span class="emphasis"><em><span class="bold"><strong>bit</strong></span></em></span> usually
+        only indicates, that the representation of those sets is organized in a compressed
+        form that exploits the fact, that we can switch on an off single bits in
+        machine words. Bitsets are therefore known to be very small and thus efficient.
+        The efficiency of bitsets is usually coupled to the precondition that the
+        range of values of elements is relatively small, like [0..32) or [0..64),
+        values that can be typically represented in single or a small number of machine
+        words. If we wanted to represent a set containing two values {1, 1000000},
+        we would be much better off using other sets like e.g. an <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code>.
+      </p>
+<p>
+        Bitsets compress well, if elements spread over narrow ranges only. Interval
+        sets compress well, if many elements are clustered over intervals. They can
+        span large sets very efficiently then. In project <span class="emphasis"><em><span class="bold"><strong>Large
+        Bitset</strong></span></em></span> we want to <span class="emphasis"><em><span class="bold"><strong>combine
+        the bit compression and the interval compression</strong></span></em></span> to
+        achieve a set implementation, that is capable of spanning large chunks of
+        contiguous elements using intervals and also to represent more narrow <span class="emphasis"><em>nests</em></span>
+        of varying bit sequences using bitset compression. As we will see, this can
+        be achieved using only a small amount of code because most of the properties
+        we need are provided by an <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+        of <code class="computeroutput"><span class="identifier">bitsets</span></code>:
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">interval_map</span><span class="special">&lt;</span><span class="identifier">IntegralT</span><span class="special">,</span> <span class="identifier">SomeBitSet</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;,</span> <span class="identifier">partial_absorber</span><span class="special">,</span>
+                     <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">,</span> <span class="identifier">inplace_bit_add</span><span class="special">,</span> <span class="identifier">inplace_bit_and</span><span class="special">&gt;</span> <span class="identifier">IntervalBitmap</span><span class="special">;</span>
+</pre>
+<p>
+      </p>
+<p>
+        Such an <code class="computeroutput"><span class="identifier">IntervalBitmap</span></code> represents
+        <code class="computeroutput"><span class="identifier">k</span><span class="special">*</span><span class="identifier">N</span></code> bits for every segment. 
+</p>
+<pre class="programlisting"><span class="special">[</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">a</span><span class="special">+</span><span class="identifier">k</span><span class="special">)-&gt;</span><span class="char">'1111....1111'</span> <span class="comment">// N bits associated: Represents a total of k*N bits.  
+</span></pre>
+<p>
+      </p>
+<p>
+        For the interval <code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">,</span> <span class="identifier">a</span><span class="special">+</span><span class="identifier">k</span><span class="special">)</span></code> above
+        all bits are set. But we can also have individual <span class="emphasis"><em>nests</em></span>
+        or <span class="emphasis"><em>clusters</em></span> of bitsequences.
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting"><span class="special">[</span><span class="identifier">b</span><span class="special">,</span>  <span class="identifier">b</span><span class="special">+</span><span class="number">1</span><span class="special">)-&gt;</span><span class="char">'01001011...1'</span>
+<span class="special">[</span><span class="identifier">b</span><span class="special">+</span><span class="number">1</span><span class="special">,</span><span class="identifier">b</span><span class="special">+</span><span class="number">2</span><span class="special">)-&gt;</span><span class="char">'11010001...0'</span>
+<span class="special">.</span> <span class="special">.</span> <span class="special">.</span>
+</pre>
+<p>
+      </p>
+<p>
+        and we can span intervals of equal bit sequences that represent periodic
+        patterns.
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting"><span class="special">[</span><span class="identifier">c</span><span class="special">,</span><span class="identifier">d</span><span class="special">)-&gt;</span><span class="char">'010101....01'</span>  <span class="comment">// Every second bit is set              in range [c,d)
+</span><span class="special">[</span><span class="identifier">d</span><span class="special">,</span><span class="identifier">e</span><span class="special">)-&gt;</span><span class="char">'001100..0011'</span>  <span class="comment">// Every two bits alterate              in range [d,e)
+</span><span class="special">[</span><span class="identifier">e</span><span class="special">,</span><span class="identifier">f</span><span class="special">)-&gt;</span><span class="char">'bit-sequence'</span>  <span class="comment">// 'bit-sequence' reoccurs every N bits in range [e,f)
+</span></pre>
+<p>
+      </p>
+<p>
+        An <code class="computeroutput"><span class="identifier">IntervalBitmap</span></code> can represent
+        <code class="computeroutput"><span class="identifier">N</span><span class="special">*(</span><span class="number">2</span><span class="special">^</span><span class="identifier">M</span><span class="special">)</span></code> elements, if <code class="computeroutput"><span class="identifier">M</span></code>
+        is the number of bits of the integral type <code class="computeroutput"><span class="identifier">IntegralT</span></code>.
+        Unlike bitsets, that usually represent <span class="emphasis"><em><span class="bold"><strong>unsigned</strong></span></em></span>
+        integral numbers, large_bitset may range over negative numbers as well. There
+        are fields where such large bitsets implementations are needed. E.g. for
+        the compact representation of large file allocation tables. What remains
+        to be done for project <span class="bold"><strong>Large Bitset</strong></span> is to
+        code a wrapper <code class="computeroutput"><span class="keyword">class</span> <span class="identifier">large_bitset</span></code>
+        around <code class="computeroutput"><span class="identifier">IntervalBitmap</span></code> so
+        that <code class="computeroutput"><span class="identifier">large_bitset</span></code> looks and
+        feels like a usual set class.
+      </p>
+<div class="section boost_icl_projects_large_bitset_using_large_bitset" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.projects.large_bitset.using_large_bitset"></a><a class="link" href="projects.html#boost_icl.projects.large_bitset.using_large_bitset" title="Using large_bitset">Using
+        large_bitset</a>
+</h4></div></div></div>
+<p>
+          To quicken your appetite for a look at the implementation here are a few
+          use cases first. Within the examples that follow, we will use <code class="computeroutput"><span class="identifier">nat</span></code><code class="literal"><span class="emphasis"><em>k</em></span></code>
+          for unsigned integrals and <code class="computeroutput"><span class="identifier">bits</span></code><code class="literal"><span class="emphasis"><em>k</em></span></code>
+          for bitsets containing <code class="literal"><span class="emphasis"><em>k</em></span></code> bits.
+        </p>
+<p>
+          Let's start large. In the first example . . .
+        </p>
+<p>
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">test_large</span><span class="special">()</span>
+<span class="special">{</span> 
+    <span class="keyword">const</span> <span class="identifier">nat64</span> <span class="identifier">much</span> <span class="special">=</span> <span class="number">0</span><span class="identifier">xffffffffffffffffull</span><span class="special">;</span> 
+    <span class="identifier">large_bitset</span><span class="special">&lt;&gt;</span> <span class="identifier">venti</span><span class="special">;</span> <span class="comment">// ... the largest, I can think of ;)
+</span>    <span class="identifier">venti</span> <span class="special">+=</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">nat64</span><span class="special">&gt;(</span><span class="number">0</span><span class="special">,</span> <span class="identifier">much</span><span class="special">);</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"----- Test function test_large() -----------------------------------------------\n"</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"We have just turned on the awesome amount of 18,446,744,073,709,551,616 bits ;-)\n"</span><span class="special">;</span>
+    <span class="identifier">venti</span><span class="special">.</span><span class="identifier">show_segments</span><span class="special">();</span>
+    </pre>
+<p>
+          </p>
+<p>
+        </p>
+<p>
+          . . . we are testing the limits. First we set all bits and then we switch
+          off the very last bit.
+        </p>
+<p>
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting">    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"---- Let's swich off the very last bit -----------------------------------------\n"</span><span class="special">;</span>
+    <span class="identifier">venti</span> <span class="special">-=</span> <span class="identifier">much</span><span class="special">;</span>
+    <span class="identifier">venti</span><span class="special">.</span><span class="identifier">show_segments</span><span class="special">();</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"---- Venti is plenty ... let's do something small: A tall ----------------------\n\n"</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+        </p>
+<p>
+          Program output (<span class="emphasis"><em>a little beautified</em></span>): 
+</p>
+<pre class="programlisting"><span class="special">-----</span> <span class="identifier">Test</span> <span class="identifier">function</span> <span class="identifier">test_large</span><span class="special">()</span> <span class="special">-----------------------------------------------</span>
+<span class="identifier">We</span> <span class="identifier">have</span> <span class="identifier">just</span> <span class="identifier">turned</span> <span class="identifier">on</span> <span class="identifier">the</span> <span class="identifier">awesome</span> <span class="identifier">amount</span> <span class="identifier">of</span> <span class="number">18</span><span class="special">,</span><span class="number">446</span><span class="special">,</span><span class="number">744</span><span class="special">,</span><span class="number">073</span><span class="special">,</span><span class="number">709</span><span class="special">,</span><span class="number">551</span><span class="special">,</span><span class="number">616</span> <span class="identifier">bits</span> <span class="special">;-)</span>
+<span class="special">[</span>                 <span class="number">0</span><span class="special">,</span> <span class="number">288230376151711744</span><span class="special">)</span> <span class="special">-&gt;</span> <span class="number">1111111111111111111111111111111111111111111111111111111111111111</span>
+<span class="special">----</span> <span class="identifier">Let</span><span class="char">'s swich off the very last bit -----------------------------------------
+[                 0, 288230376151711743) -&gt; 1111111111111111111111111111111111111111111111111111111111111111
+[288230376151711743, 288230376151711744) -&gt; 1111111111111111111111111111111111111111111111111111111111111110
+---- Venti is plenty ... let'</span><span class="identifier">s</span> <span class="keyword">do</span> <span class="identifier">something</span> <span class="identifier">small</span><span class="special">:</span> <span class="identifier">A</span> <span class="identifier">tall</span> <span class="special">----------------------</span>
+</pre>
+<p>
+        </p>
+<p>
+          More readable is a smaller version of <code class="computeroutput"><span class="identifier">large_bitset</span></code>.
+          In function <code class="computeroutput"><span class="identifier">test_small</span><span class="special">()</span></code> we apply a few more operations . . .
+        </p>
+<p>
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">test_small</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">nat32</span><span class="special">,</span> <span class="identifier">bits8</span><span class="special">&gt;</span> <span class="identifier">tall</span><span class="special">;</span> <span class="comment">// small is tall ...
+</span>        <span class="comment">// ... because even this 'small' large_bitset 
+</span>        <span class="comment">// can represent up to 2^32 == 4,294,967,296 bits.
+</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"----- Test function test_small() -----------\n"</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-- Switch on all bits in range [0,64] ------\n"</span><span class="special">;</span>
+    <span class="identifier">tall</span> <span class="special">+=</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">nat</span><span class="special">&gt;(</span><span class="number">0</span><span class="special">,</span> <span class="number">64</span><span class="special">);</span>
+    <span class="identifier">tall</span><span class="special">.</span><span class="identifier">show_segments</span><span class="special">();</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"--------------------------------------------\n"</span><span class="special">;</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-- Turn off bits: 25,27,28 -----------------\n"</span><span class="special">;</span>
+
+    <span class="special">(((</span><span class="identifier">tall</span> <span class="special">-=</span> <span class="number">25</span><span class="special">)</span> <span class="special">-=</span> <span class="number">27</span><span class="special">)</span> <span class="special">-=</span> <span class="number">28</span><span class="special">)</span> <span class="special">;</span>
+    <span class="identifier">tall</span><span class="special">.</span><span class="identifier">show_segments</span><span class="special">();</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"--------------------------------------------\n"</span><span class="special">;</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-- Flip bits in range [24,30) --------------\n"</span><span class="special">;</span>
+    <span class="identifier">tall</span> <span class="special">^=</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">nat</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(</span><span class="number">24</span><span class="special">,</span><span class="number">30</span><span class="special">);</span>
+    <span class="identifier">tall</span><span class="special">.</span><span class="identifier">show_segments</span><span class="special">();</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"--------------------------------------------\n"</span><span class="special">;</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-- Remove the first 10 bits ----------------\n"</span><span class="special">;</span>
+    <span class="identifier">tall</span> <span class="special">-=</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">nat</span><span class="special">&gt;::</span><span class="identifier">right_open</span><span class="special">(</span><span class="number">0</span><span class="special">,</span><span class="number">10</span><span class="special">);</span>
+    <span class="identifier">tall</span><span class="special">.</span><span class="identifier">show_segments</span><span class="special">();</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-- Remove even bits in range [0,72) --------\n"</span><span class="special">;</span>
+    <span class="keyword">int</span> <span class="identifier">bit</span><span class="special">;</span>
+    <span class="keyword">for</span><span class="special">(</span><span class="identifier">bit</span><span class="special">=</span><span class="number">0</span><span class="special">;</span> <span class="identifier">bit</span><span class="special">&lt;</span><span class="number">72</span><span class="special">;</span> <span class="identifier">bit</span><span class="special">++)</span> <span class="keyword">if</span><span class="special">(!(</span><span class="identifier">bit</span><span class="special">%</span><span class="number">2</span><span class="special">))</span> <span class="identifier">tall</span> <span class="special">-=</span> <span class="identifier">bit</span><span class="special">;</span>
+    <span class="identifier">tall</span><span class="special">.</span><span class="identifier">show_segments</span><span class="special">();</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"--    Set odd  bits in range [0,72) --------\n"</span><span class="special">;</span>
+    <span class="keyword">for</span><span class="special">(</span><span class="identifier">bit</span><span class="special">=</span><span class="number">0</span><span class="special">;</span> <span class="identifier">bit</span><span class="special">&lt;</span><span class="number">72</span><span class="special">;</span> <span class="identifier">bit</span><span class="special">++)</span> <span class="keyword">if</span><span class="special">(</span><span class="identifier">bit</span><span class="special">%</span><span class="number">2</span><span class="special">)</span> <span class="identifier">tall</span> <span class="special">+=</span> <span class="identifier">bit</span><span class="special">;</span>
+    <span class="identifier">tall</span><span class="special">.</span><span class="identifier">show_segments</span><span class="special">();</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"--------------------------------------------\n\n"</span><span class="special">;</span>
+
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+        </p>
+<p>
+          . . . producing this output: 
+</p>
+<pre class="programlisting"><span class="special">-----</span> <span class="identifier">Test</span> <span class="identifier">function</span> <span class="identifier">test_small</span><span class="special">()</span> <span class="special">-----------</span>
+<span class="special">--</span> <span class="identifier">Switch</span> <span class="identifier">on</span> <span class="identifier">all</span> <span class="identifier">bits</span> <span class="identifier">in</span> <span class="identifier">range</span> <span class="special">[</span><span class="number">0</span><span class="special">,</span><span class="number">64</span><span class="special">]</span> <span class="special">------</span>
+<span class="special">[</span><span class="number">0</span><span class="special">,</span><span class="number">8</span><span class="special">)-&gt;</span><span class="number">11111111</span>
+<span class="special">[</span><span class="number">8</span><span class="special">,</span><span class="number">9</span><span class="special">)-&gt;</span><span class="number">10000000</span>
+<span class="special">--------------------------------------------</span>
+<span class="special">--</span> <span class="identifier">Turn</span> <span class="identifier">off</span> <span class="identifier">bits</span><span class="special">:</span> <span class="number">25</span><span class="special">,</span><span class="number">27</span><span class="special">,</span><span class="number">28</span> <span class="special">-----------------</span>
+<span class="special">[</span><span class="number">0</span><span class="special">,</span><span class="number">3</span><span class="special">)-&gt;</span><span class="number">11111111</span>
+<span class="special">[</span><span class="number">3</span><span class="special">,</span><span class="number">4</span><span class="special">)-&gt;</span><span class="number">10100111</span>
+<span class="special">[</span><span class="number">4</span><span class="special">,</span><span class="number">8</span><span class="special">)-&gt;</span><span class="number">11111111</span>
+<span class="special">[</span><span class="number">8</span><span class="special">,</span><span class="number">9</span><span class="special">)-&gt;</span><span class="number">10000000</span>
+<span class="special">--------------------------------------------</span>
+<span class="special">--</span> <span class="identifier">Flip</span> <span class="identifier">bits</span> <span class="identifier">in</span> <span class="identifier">range</span> <span class="special">[</span><span class="number">24</span><span class="special">,</span><span class="number">30</span><span class="special">)</span> <span class="special">--------------</span>
+<span class="special">[</span><span class="number">0</span><span class="special">,</span><span class="number">3</span><span class="special">)-&gt;</span><span class="number">11111111</span>
+<span class="special">[</span><span class="number">3</span><span class="special">,</span><span class="number">4</span><span class="special">)-&gt;</span><span class="number">01011011</span>
+<span class="special">[</span><span class="number">4</span><span class="special">,</span><span class="number">8</span><span class="special">)-&gt;</span><span class="number">11111111</span>
+<span class="special">[</span><span class="number">8</span><span class="special">,</span><span class="number">9</span><span class="special">)-&gt;</span><span class="number">10000000</span>
+<span class="special">--------------------------------------------</span>
+<span class="special">--</span> <span class="identifier">Remove</span> <span class="identifier">the</span> <span class="identifier">first</span> <span class="number">10</span> <span class="identifier">bits</span> <span class="special">----------------</span>
+<span class="special">[</span><span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">)-&gt;</span><span class="number">00111111</span>
+<span class="special">[</span><span class="number">2</span><span class="special">,</span><span class="number">3</span><span class="special">)-&gt;</span><span class="number">11111111</span>
+<span class="special">[</span><span class="number">3</span><span class="special">,</span><span class="number">4</span><span class="special">)-&gt;</span><span class="number">01011011</span>
+<span class="special">[</span><span class="number">4</span><span class="special">,</span><span class="number">8</span><span class="special">)-&gt;</span><span class="number">11111111</span>
+<span class="special">[</span><span class="number">8</span><span class="special">,</span><span class="number">9</span><span class="special">)-&gt;</span><span class="number">10000000</span>
+<span class="special">--</span> <span class="identifier">Remove</span> <span class="identifier">even</span> <span class="identifier">bits</span> <span class="identifier">in</span> <span class="identifier">range</span> <span class="special">[</span><span class="number">0</span><span class="special">,</span><span class="number">72</span><span class="special">)</span> <span class="special">--------</span>
+<span class="special">[</span><span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">)-&gt;</span><span class="number">00010101</span>
+<span class="special">[</span><span class="number">2</span><span class="special">,</span><span class="number">3</span><span class="special">)-&gt;</span><span class="number">01010101</span>
+<span class="special">[</span><span class="number">3</span><span class="special">,</span><span class="number">4</span><span class="special">)-&gt;</span><span class="number">01010001</span>
+<span class="special">[</span><span class="number">4</span><span class="special">,</span><span class="number">8</span><span class="special">)-&gt;</span><span class="number">01010101</span>
+<span class="special">--</span>    <span class="identifier">Set</span> <span class="identifier">odd</span>  <span class="identifier">bits</span> <span class="identifier">in</span> <span class="identifier">range</span> <span class="special">[</span><span class="number">0</span><span class="special">,</span><span class="number">72</span><span class="special">)</span> <span class="special">--------</span>
+<span class="special">[</span><span class="number">0</span><span class="special">,</span><span class="number">9</span><span class="special">)-&gt;</span><span class="number">01010101</span>
+<span class="special">--------------------------------------------</span>
+</pre>
+<p>
+        </p>
+<p>
+          Finally, we present a little <span class="emphasis"><em>picturesque</em></span> example,
+          that demonstrates that <code class="computeroutput"><span class="identifier">large_bitset</span></code>
+          can also serve as a self compressing bitmap, that we can 'paint' with.
+        </p>
+<p>
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">test_picturesque</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">nat</span><span class="special">,</span> <span class="identifier">bits8</span><span class="special">&gt;</span> <span class="identifier">Bit8Set</span><span class="special">;</span>
+
+    <span class="identifier">Bit8Set</span> <span class="identifier">square</span><span class="special">,</span> <span class="identifier">stare</span><span class="special">;</span>
+    <span class="identifier">square</span> <span class="special">+=</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">nat</span><span class="special">&gt;(</span><span class="number">0</span><span class="special">,</span><span class="number">8</span><span class="special">);</span>
+    <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">=</span><span class="number">1</span><span class="special">;</span> <span class="identifier">i</span><span class="special">&lt;</span><span class="number">5</span><span class="special">;</span> <span class="identifier">i</span><span class="special">++)</span>
+    <span class="special">{</span> 
+        <span class="identifier">square</span> <span class="special">+=</span> <span class="number">8</span><span class="special">*</span><span class="identifier">i</span><span class="special">;</span> 
+        <span class="identifier">square</span> <span class="special">+=</span> <span class="number">8</span><span class="special">*</span><span class="identifier">i</span><span class="special">+</span><span class="number">7</span><span class="special">;</span> 
+    <span class="special">}</span>
+
+    <span class="identifier">square</span> <span class="special">+=</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">nat</span><span class="special">&gt;(</span><span class="number">41</span><span class="special">,</span><span class="number">47</span><span class="special">);</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"----- Test function test_picturesque() -----\n"</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-------- empty face:       "</span> 
+         <span class="special">&lt;&lt;</span> <span class="identifier">square</span><span class="special">.</span><span class="identifier">interval_count</span><span class="special">()</span>           <span class="special">&lt;&lt;</span> <span class="string">" intervals -----\n"</span><span class="special">;</span>
+    <span class="identifier">square</span><span class="special">.</span><span class="identifier">show_matrix</span><span class="special">(</span><span class="string">" *"</span><span class="special">);</span>
+
+    <span class="identifier">stare</span> <span class="special">+=</span> <span class="number">18</span><span class="special">;</span> <span class="identifier">stare</span> <span class="special">+=</span> <span class="number">21</span><span class="special">;</span>
+    <span class="identifier">stare</span> <span class="special">+=</span> <span class="identifier">discrete_interval</span><span class="special">&lt;</span><span class="identifier">nat</span><span class="special">&gt;(</span><span class="number">34</span><span class="special">,</span><span class="number">38</span><span class="special">);</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-------- compressed smile: "</span> 
+         <span class="special">&lt;&lt;</span> <span class="identifier">stare</span><span class="special">.</span><span class="identifier">interval_count</span><span class="special">()</span>            <span class="special">&lt;&lt;</span> <span class="string">" intervals -----\n"</span><span class="special">;</span>
+    <span class="identifier">stare</span><span class="special">.</span><span class="identifier">show_matrix</span><span class="special">(</span><span class="string">" *"</span><span class="special">);</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"-------- staring bitset:   "</span> 
+         <span class="special">&lt;&lt;</span> <span class="special">(</span><span class="identifier">square</span> <span class="special">+</span> <span class="identifier">stare</span><span class="special">).</span><span class="identifier">interval_count</span><span class="special">()</span> <span class="special">&lt;&lt;</span> <span class="string">" intervals -----\n"</span><span class="special">;</span>
+    <span class="special">(</span><span class="identifier">square</span> <span class="special">+</span> <span class="identifier">stare</span><span class="special">).</span><span class="identifier">show_matrix</span><span class="special">(</span><span class="string">" *"</span><span class="special">);</span>
+
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"--------------------------------------------\n"</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          </p>
+<p>
+        </p>
+<p>
+          Note that we have two <code class="computeroutput"><span class="identifier">large_bitsets</span></code>
+          for the <span class="emphasis"><em>outline</em></span> and the <span class="emphasis"><em>interior</em></span>.
+          Both parts are compressed but we can compose both by <code class="computeroutput"><span class="keyword">operator</span>
+          <span class="special">+</span></code>, because the right <span class="emphasis"><em>positions</em></span>
+          are provided. This is the program output:
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="special">-----</span> <span class="identifier">Test</span> <span class="identifier">function</span> <span class="identifier">test_picturesque</span><span class="special">()</span> <span class="special">-----</span>
+<span class="special">--------</span> <span class="identifier">empty</span> <span class="identifier">face</span><span class="special">:</span>       <span class="number">3</span> <span class="identifier">intervals</span> <span class="special">-----</span>
+<span class="special">********</span>
+<span class="special">*</span>      <span class="special">*</span>
+<span class="special">*</span>      <span class="special">*</span>
+<span class="special">*</span>      <span class="special">*</span>
+<span class="special">*</span>      <span class="special">*</span>
+ <span class="special">******</span>
+<span class="special">--------</span> <span class="identifier">compressed</span> <span class="identifier">smile</span><span class="special">:</span> <span class="number">2</span> <span class="identifier">intervals</span> <span class="special">-----</span>
+  <span class="special">*</span>  <span class="special">*</span>
+  <span class="special">****</span>
+<span class="special">--------</span> <span class="identifier">staring</span> <span class="identifier">bitset</span><span class="special">:</span>   <span class="number">6</span> <span class="identifier">intervals</span> <span class="special">-----</span>
+<span class="special">********</span>
+<span class="special">*</span>      <span class="special">*</span>
+<span class="special">*</span> <span class="special">*</span>  <span class="special">*</span> <span class="special">*</span>
+<span class="special">*</span>      <span class="special">*</span>
+<span class="special">*</span> <span class="special">****</span> <span class="special">*</span>
+ <span class="special">******</span>
+<span class="special">--------------------------------------------</span>
+</pre>
+<p>
+        </p>
+<p>
+          So, may be you are curious how this class template is coded on top of
+          <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code> using
+          only about 250 lines of code. This is shown in the sections that follow.
+        </p>
+</div>
+<div class="section boost_icl_projects_large_bitset_the_interval_bitmap" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.projects.large_bitset.the_interval_bitmap"></a><a class="link" href="projects.html#boost_icl.projects.large_bitset.the_interval_bitmap" title="The interval_bitmap">The
+        interval_bitmap</a>
+</h4></div></div></div>
+<p>
+          To begin, let's look at the basic data type again, that will be providing
+          the major functionality:
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">interval_map</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">BitSetT</span><span class="special">,</span> <span class="identifier">partial_absorber</span><span class="special">,</span>
+                     <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">,</span> <span class="identifier">inplace_bit_add</span><span class="special">,</span> <span class="identifier">inplace_bit_and</span><span class="special">&gt;</span> <span class="identifier">IntervalBitmap</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<p>
+          <code class="computeroutput"><span class="identifier">DomainT</span></code> is supposed to
+          be an integral type, the bitset type <code class="computeroutput"><span class="identifier">BitSetT</span></code>
+          will be a wrapper class around an unsigned integral type. <code class="computeroutput"><span class="identifier">BitSetT</span></code> has to implement bitwise operators
+          that will be called by the functors <code class="computeroutput"><span class="identifier">inplace_bit_add</span><span class="special">&lt;</span><span class="identifier">BitSetT</span><span class="special">&gt;</span></code> and <code class="computeroutput"><span class="identifier">inplace_bit_and</span><span class="special">&lt;</span><span class="identifier">BitSetT</span><span class="special">&gt;</span></code>. The type trait of interval_map is
+          <code class="computeroutput"><span class="identifier">partial_absorber</span></code>, which
+          means that it is <span class="emphasis"><em>partial</em></span> and that empty <code class="computeroutput"><span class="identifier">BitSetTs</span></code> are not stored in the map. This
+          is desired and keeps the <code class="computeroutput"><span class="identifier">interval_map</span></code>
+          minimal, storing only bitsets, that contain at least one bit switched on.
+          Functor template <code class="computeroutput"><span class="identifier">inplace_bit_add</span></code>
+          for parameter <code class="computeroutput"><span class="identifier">Combine</span></code> indicates
+          that we do not expect <code class="computeroutput"><span class="keyword">operator</span> <span class="special">+=</span></code> as addition but the bitwise operator
+          <code class="computeroutput"><span class="special">|=</span></code>. For template parameter
+          <code class="computeroutput"><span class="identifier">Section</span></code> which is instaniated
+          by <code class="computeroutput"><span class="identifier">inplace_bit_and</span></code> we expect
+          the bitwise <code class="computeroutput"><span class="special">&amp;=</span></code> operator.
+        </p>
+</div>
+<div class="section boost_icl_projects_large_bitset_a_class_implementation_for_the_bitset_type" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.projects.large_bitset.a_class_implementation_for_the_bitset_type"></a><a class="link" href="projects.html#boost_icl.projects.large_bitset.a_class_implementation_for_the_bitset_type" title="A class implementation for the bitset type">A
+        class implementation for the bitset type</a>
+</h4></div></div></div>
+<p>
+          The code of the project is enclosed in a <code class="computeroutput"><span class="keyword">namespace</span>
+          <span class="identifier">mini</span></code>. The name indicates, that
+          the implementation is a <span class="emphasis"><em>minimal</em></span> example implementation.
+          The name of the bitset class will be <code class="computeroutput"><span class="identifier">bits</span></code>
+          or <code class="computeroutput"><span class="identifier">mini</span><span class="special">::</span><span class="identifier">bits</span></code> if qualified.
+        </p>
+<p>
+          To be used as a codomain parameter of class template <code class="computeroutput"><a class="link" href="../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>,
+          <code class="computeroutput"><span class="identifier">mini</span><span class="special">::</span><span class="identifier">bits</span></code> has to implement all the functions
+          that are required for a codomain_type in general, which are the default
+          constructor <code class="computeroutput"><span class="identifier">bits</span><span class="special">()</span></code>
+          and an equality <code class="computeroutput"><span class="keyword">operator</span><span class="special">==</span></code>.
+          Moreover <code class="computeroutput"><span class="identifier">mini</span><span class="special">::</span><span class="identifier">bits</span></code> has to implement operators required
+          by the instantiations for parameter <code class="computeroutput"><span class="identifier">Combine</span></code>
+          and <code class="computeroutput"><span class="identifier">Section</span></code> which are
+          <code class="computeroutput"><span class="identifier">inplace_bit_add</span></code> and <code class="computeroutput"><span class="identifier">inplace_bit_and</span></code>. From functors <code class="computeroutput"><span class="identifier">inplace_bit_add</span></code> and <code class="computeroutput"><span class="identifier">inplace_bit_and</span></code>
+          there are inverse functors <code class="computeroutput"><span class="identifier">inplace_bit_subtract</span></code>
+          and <code class="computeroutput"><span class="identifier">inplace_bit_xor</span></code>. Those
+          functors use operators <code class="computeroutput"><span class="special">|=</span> <span class="special">&amp;=</span> <span class="special">^=</span></code>
+          and <code class="computeroutput"><span class="special">~</span></code>. Finally if we want
+          to apply lexicographical and subset comparison on large_bitset, we also
+          need an <code class="computeroutput"><span class="keyword">operator</span> <span class="special">&lt;</span></code>.
+          All the operators that we need can be implemented for <code class="computeroutput"><span class="identifier">mini</span><span class="special">::</span><span class="identifier">bits</span></code>
+          on a few lines:
+        </p>
+<p>
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">NaturalT</span><span class="special">&gt;</span> <span class="keyword">class</span> <span class="identifier">bits</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">typedef</span> <span class="identifier">NaturalT</span> <span class="identifier">word_type</span><span class="special">;</span>
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">int</span>       <span class="identifier">digits</span> <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">NaturalT</span><span class="special">&gt;::</span><span class="identifier">digits</span><span class="special">;</span>
+    <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">word_type</span> <span class="identifier">w1</span>     <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">NaturalT</span><span class="special">&gt;(</span><span class="number">1</span><span class="special">)</span> <span class="special">;</span>
+
+    <span class="identifier">bits</span><span class="special">():</span><span class="identifier">_bits</span><span class="special">(){}</span>
+    <span class="keyword">explicit</span> <span class="identifier">bits</span><span class="special">(</span><span class="identifier">word_type</span> <span class="identifier">value</span><span class="special">):</span><span class="identifier">_bits</span><span class="special">(</span><span class="identifier">value</span><span class="special">){}</span>
+
+    <span class="identifier">word_type</span> <span class="identifier">word</span><span class="special">()</span><span class="keyword">const</span><span class="special">{</span> <span class="keyword">return</span> <span class="identifier">_bits</span><span class="special">;</span> <span class="special">}</span>
+    <span class="identifier">bits</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">|=</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">bits</span><span class="special">&amp;</span> <span class="identifier">value</span><span class="special">){</span><span class="identifier">_bits</span> <span class="special">|=</span> <span class="identifier">value</span><span class="special">.</span><span class="identifier">_bits</span><span class="special">;</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;}</span>
+    <span class="identifier">bits</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">&amp;=</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">bits</span><span class="special">&amp;</span> <span class="identifier">value</span><span class="special">){</span><span class="identifier">_bits</span> <span class="special">&amp;=</span> <span class="identifier">value</span><span class="special">.</span><span class="identifier">_bits</span><span class="special">;</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;}</span>
+    <span class="identifier">bits</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">^=</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">bits</span><span class="special">&amp;</span> <span class="identifier">value</span><span class="special">){</span><span class="identifier">_bits</span> <span class="special">^=</span> <span class="identifier">value</span><span class="special">.</span><span class="identifier">_bits</span><span class="special">;</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;}</span>
+    <span class="identifier">bits</span>  <span class="keyword">operator</span> <span class="special">~</span>  <span class="special">()</span><span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">bits</span><span class="special">(~</span><span class="identifier">_bits</span><span class="special">);</span> <span class="special">}</span>
+    <span class="keyword">bool</span> <span class="keyword">operator</span>  <span class="special">&lt;</span>  <span class="special">(</span><span class="keyword">const</span> <span class="identifier">bits</span><span class="special">&amp;</span> <span class="identifier">value</span><span class="special">)</span><span class="keyword">const</span><span class="special">{</span><span class="keyword">return</span> <span class="identifier">_bits</span> <span class="special">&lt;</span> <span class="identifier">value</span><span class="special">.</span><span class="identifier">_bits</span><span class="special">;}</span>
+    <span class="keyword">bool</span> <span class="keyword">operator</span>  <span class="special">==</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">bits</span><span class="special">&amp;</span> <span class="identifier">value</span><span class="special">)</span><span class="keyword">const</span><span class="special">{</span><span class="keyword">return</span> <span class="identifier">_bits</span> <span class="special">==</span> <span class="identifier">value</span><span class="special">.</span><span class="identifier">_bits</span><span class="special">;}</span>
+
+    <span class="keyword">bool</span> <span class="identifier">contains</span><span class="special">(</span><span class="identifier">word_type</span> <span class="identifier">element</span><span class="special">)</span><span class="keyword">const</span><span class="special">{</span> <span class="keyword">return</span> <span class="special">((</span><span class="identifier">w1</span> <span class="special">&lt;&lt;</span> <span class="identifier">element</span><span class="special">)</span> <span class="special">&amp;</span> <span class="identifier">_bits</span><span class="special">)</span> <span class="special">!=</span> <span class="number">0</span><span class="special">;</span> <span class="special">}</span> 
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">as_string</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="identifier">off_on</span><span class="special">[</span><span class="number">2</span><span class="special">]</span> <span class="special">=</span> <span class="string">" 1"</span><span class="special">)</span><span class="keyword">const</span><span class="special">;</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">word_type</span> <span class="identifier">_bits</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+          </p>
+<p>
+        </p>
+<p>
+          Finally there is one important piece of meta information, we have to provide:
+          <code class="computeroutput"><span class="identifier">mini</span><span class="special">::</span><span class="identifier">bits</span></code> has to be recognized as a <code class="computeroutput"><span class="identifier">Set</span></code> by the icl code. Otherwise we can
+          not exploit the fact that a map of sets is model of <code class="computeroutput"><span class="identifier">Set</span></code>
+          and the resulting large_bitset would not behave like a set. So we have
+          to say that <code class="computeroutput"><span class="identifier">mini</span><span class="special">::</span><span class="identifier">bits</span></code> shall be sets:
+        </p>
+<p>
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">icl</span> 
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">NaturalT</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">is_set</span><span class="special">&lt;</span><span class="identifier">mini</span><span class="special">::</span><span class="identifier">bits</span><span class="special">&lt;</span><span class="identifier">NaturalT</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+    <span class="special">{</span> 
+        <span class="keyword">typedef</span> <span class="identifier">is_set</span><span class="special">&lt;</span><span class="identifier">mini</span><span class="special">::</span><span class="identifier">bits</span><span class="special">&lt;</span><span class="identifier">NaturalT</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">type</span><span class="special">;</span>
+        <span class="identifier">BOOST_STATIC_CONSTANT</span><span class="special">(</span><span class="keyword">bool</span><span class="special">,</span> <span class="identifier">value</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">);</span> 
+    <span class="special">};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">NaturalT</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">has_set_semantics</span><span class="special">&lt;</span><span class="identifier">mini</span><span class="special">::</span><span class="identifier">bits</span><span class="special">&lt;</span><span class="identifier">NaturalT</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+    <span class="special">{</span> 
+        <span class="keyword">typedef</span> <span class="identifier">has_set_semantics</span><span class="special">&lt;</span><span class="identifier">mini</span><span class="special">::</span><span class="identifier">bits</span><span class="special">&lt;</span><span class="identifier">NaturalT</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">type</span><span class="special">;</span>
+        <span class="identifier">BOOST_STATIC_CONSTANT</span><span class="special">(</span><span class="keyword">bool</span><span class="special">,</span> <span class="identifier">value</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">);</span> 
+    <span class="special">};</span>
+<span class="special">}}</span>
+</pre>
+<p>
+          </p>
+<p>
+        </p>
+<p>
+          This is done by adding a partial template specialization to the type trait
+          template <code class="computeroutput"><span class="identifier">icl</span><span class="special">::</span><span class="identifier">is_set</span></code>. For the extension of this type
+          trait template and the result values of inclusion_compare we need these
+          <code class="computeroutput"><span class="preprocessor">#includes</span></code> for the implementation
+          of <code class="computeroutput"><span class="identifier">mini</span><span class="special">::</span><span class="identifier">bits</span></code>:
+        </p>
+<p>
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting">                                               <span class="comment">// These includes are needed ...
+</span><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>                              <span class="comment">// for conversion to output and to
+</span><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">/</span><span class="identifier">has_set_semantics</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;//</span><span class="identifier">declare</span> <span class="identifier">that</span> <span class="identifier">bits</span> <span class="identifier">has</span> <span class="identifier">the</span>
+                                               <span class="comment">// behavior of a set.
+</span></pre>
+<p>
+          </p>
+<p>
+        </p>
+</div>
+<div class="section boost_icl_projects_large_bitset_implementation_of_a_large_bitset" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_icl.projects.large_bitset.implementation_of_a_large_bitset"></a><a class="link" href="projects.html#boost_icl.projects.large_bitset.implementation_of_a_large_bitset" title="Implementation of a large bitset">Implementation
+        of a large bitset</a>
+</h4></div></div></div>
+<div class="toc"><dl>
+<dt><span class="section"><a href="projects.html#boost_icl.projects.large_bitset.implementation_of_a_large_bitset.large_bitset__public_interface">large_bitset:
+          Public interface</a></span></dt>
+<dt><span class="section"><a href="projects.html#boost_icl.projects.large_bitset.implementation_of_a_large_bitset.large_bitset__private_implementation">large_bitset:
+          Private implementation</a></span></dt>
+</dl></div>
+<p>
+          Having finished our <code class="computeroutput"><span class="identifier">mini</span><span class="special">::</span><span class="identifier">bits</span></code>
+          implementation, we can start to code the wrapper class that hides the efficient
+          interval map of mini::bits and exposes a simple and convenient set behavior
+          to the world of users.
+        </p>
+<p>
+          Let's start with the required <code class="computeroutput"><span class="preprocessor">#include</span></code>s
+          this time:
+        </p>
+<p>
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>                   <span class="comment">// to organize output
+</span><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">limits</span><span class="special">&gt;</span>                     <span class="comment">// limits and associated constants
+</span><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">operators</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>        <span class="comment">// to define operators with minimal effort
+</span><span class="preprocessor">#include</span> <span class="string">"meta_log.hpp"</span>               <span class="comment">// a meta logarithm
+</span><span class="preprocessor">#include</span> <span class="string">"bits.hpp"</span>                   <span class="comment">// a minimal bitset implementation
+</span><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">interval_map</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span> <span class="comment">// base of large bitsets
+</span>
+<span class="keyword">namespace</span> <span class="identifier">mini</span> <span class="comment">// minimal implementations for example projects
+</span><span class="special">{</span>
+</pre>
+<p>
+          </p>
+<p>
+        </p>
+<p>
+          Besides <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">interval_map</span><span class="special">.</span><span class="identifier">hpp</span></code> and <code class="computeroutput"><span class="identifier">bits</span><span class="special">.</span><span class="identifier">hpp</span></code>
+          the most important include here is <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">operators</span><span class="special">.</span><span class="identifier">hpp</span></code>.
+          We use this library in order to further minimize the code and to provide
+          pretty extensive operator functionality using very little code.
+        </p>
+<p>
+          For a short and concise naming of the most important unsigned integer types
+          and the corresponding <code class="computeroutput"><span class="identifier">mini</span><span class="special">::</span><span class="identifier">bits</span></code>
+          we define this:
+        </p>
+<p>
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="keyword">unsigned</span> <span class="keyword">char</span>      <span class="identifier">nat8</span><span class="special">;</span> <span class="comment">// nati i: number bits
+</span><span class="keyword">typedef</span> <span class="keyword">unsigned</span> <span class="keyword">short</span>     <span class="identifier">nat16</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="keyword">unsigned</span> <span class="keyword">long</span>      <span class="identifier">nat32</span><span class="special">;</span> 
+<span class="keyword">typedef</span> <span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span> <span class="identifier">nat64</span><span class="special">;</span> 
+<span class="keyword">typedef</span> <span class="keyword">unsigned</span> <span class="keyword">long</span>      <span class="identifier">nat</span><span class="special">;</span> 
+
+<span class="keyword">typedef</span> <span class="identifier">bits</span><span class="special">&lt;</span><span class="identifier">nat8</span><span class="special">&gt;</span>  <span class="identifier">bits8</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">bits</span><span class="special">&lt;</span><span class="identifier">nat16</span><span class="special">&gt;</span> <span class="identifier">bits16</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">bits</span><span class="special">&lt;</span><span class="identifier">nat32</span><span class="special">&gt;</span> <span class="identifier">bits32</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">bits</span><span class="special">&lt;</span><span class="identifier">nat64</span><span class="special">&gt;</span> <span class="identifier">bits64</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+        </p>
+<div class="section boost_icl_projects_large_bitset_implementation_of_a_large_bitset_large_bitset__public_interface" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_icl.projects.large_bitset.implementation_of_a_large_bitset.large_bitset__public_interface"></a><a class="link" href="projects.html#boost_icl.projects.large_bitset.implementation_of_a_large_bitset.large_bitset__public_interface" title="large_bitset: Public interface">large_bitset:
+          Public interface</a>
+</h5></div></div></div>
+<p>
+            And now let's code <code class="computeroutput"><span class="identifier">large_bitset</span></code>.
+          </p>
+<p>
+            </p>
+<p>
+              
+</p>
+<pre class="programlisting"><span class="keyword">template</span> 
+<span class="special">&lt;</span>
+    <span class="keyword">typename</span>    <span class="identifier">DomainT</span> <span class="special">=</span> <span class="identifier">nat64</span><span class="special">,</span> 
+    <span class="keyword">typename</span>    <span class="identifier">BitSetT</span> <span class="special">=</span> <span class="identifier">bits64</span><span class="special">,</span> 
+    <span class="identifier">ICL_COMPARE</span> <span class="identifier">Compare</span> <span class="special">=</span> <span class="identifier">ICL_COMPARE_INSTANCE</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">),</span>
+    <span class="identifier">ICL_INTERVAL</span><span class="special">(</span><span class="identifier">ICL_COMPARE</span><span class="special">)</span> <span class="identifier">Interval</span> <span class="special">=</span> <span class="identifier">ICL_INTERVAL_INSTANCE</span><span class="special">(</span><span class="identifier">ICL_INTERVAL_DEFAULT</span><span class="special">,</span> <span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">Compare</span><span class="special">),</span>
+    <span class="identifier">ICL_ALLOC</span>   <span class="identifier">Alloc</span>   <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">allocator</span>
+<span class="special">&gt;</span> 
+<span class="keyword">class</span> <span class="identifier">large_bitset</span>
+    <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">equality_comparable</span> <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;</span>
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">less_than_comparable</span><span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;</span>
+
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">addable</span>       <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;</span>
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">orable</span>        <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;</span>
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">subtractable</span>  <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;</span>
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">andable</span>       <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;</span>
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">xorable</span>       <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;</span>
+
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">addable2</span>      <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;,</span> <span class="identifier">DomainT</span>
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">orable2</span>       <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;,</span> <span class="identifier">DomainT</span>
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">subtractable2</span> <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;,</span> <span class="identifier">DomainT</span>
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">andable2</span>      <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;,</span> <span class="identifier">DomainT</span>
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">xorable2</span>      <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;,</span> <span class="identifier">DomainT</span>
+
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">addable2</span>      <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;,</span> <span class="identifier">ICL_INTERVAL_TYPE</span><span class="special">(</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">)</span>
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">orable2</span>       <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;,</span> <span class="identifier">ICL_INTERVAL_TYPE</span><span class="special">(</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">)</span>
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">subtractable2</span> <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;,</span> <span class="identifier">ICL_INTERVAL_TYPE</span><span class="special">(</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">)</span>
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">andable2</span>      <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;,</span> <span class="identifier">ICL_INTERVAL_TYPE</span><span class="special">(</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">)</span>
+    <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">xorable2</span>      <span class="special">&lt;</span> <span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">BitSetT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">,</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">Alloc</span><span class="special">&gt;,</span> <span class="identifier">ICL_INTERVAL_TYPE</span><span class="special">(</span><span class="identifier">Interval</span><span class="special">,</span><span class="identifier">DomainT</span><span class="special">,</span><span class="identifier">Compare</span><span class="special">)</span>
+      <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span>
+    <span class="comment">//^ &amp; - | + ^ &amp; - | + ^ &amp; - | + &lt; == 
+</span>    <span class="comment">//segment   element   container
+</span></pre>
+<p>
+            </p>
+<p>
+          </p>
+<p>
+            The first template parameter <code class="computeroutput"><span class="identifier">DomainT</span></code>
+            will be instantiated with an integral type that defines the kind of numbers
+            that can be elements of the set. Since we want to go for a large set
+            we use <code class="computeroutput"><span class="identifier">nat64</span></code> as default
+            which is a 64 bit unsigned integer ranging from <code class="computeroutput"><span class="number">0</span></code>
+            to <code class="computeroutput"><span class="number">2</span><span class="special">^</span><span class="number">64</span><span class="special">-</span><span class="number">1</span></code>.
+            As bitset parameter we also choose a 64-bit default. Parameters <code class="computeroutput"><span class="identifier">Combine</span></code> and <code class="computeroutput"><span class="identifier">Interval</span></code>
+            are necessary to be passed to dependent type expressions. An allocator
+            can be chosen, if desired.
+          </p>
+<p>
+            The nested list of private inheritance contains groups of template instantiations
+            from <a href="http://www.boost.org/doc/libs/1_39_0/libs/utility/operators.htm" target="_top">Boost.Operator</a>,
+            that provides derivable operators from more fundamental once. Implementing
+            the fundamental operators, we get the derivable ones <span class="emphasis"><em>for free</em></span>.
+            Below is a short overview of what we get using Boost.Operator, where
+            <a class="link" href="interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+            stands for <code class="computeroutput"><span class="identifier">large_bitset</span></code>,
+            <a class="link" href="interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>
+            for it's <code class="computeroutput"><span class="identifier">interval_type</span></code>
+            and <a class="link" href="interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>
+            for it's <code class="computeroutput"><span class="identifier">domain_type</span></code>
+            or <code class="computeroutput"><span class="identifier">element_type</span></code>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Group
+                  </p>
+                  </th>
+<th>
+                  <p>
+                    fundamental
+                  </p>
+                  </th>
+<th>
+                  <p>
+                    derivable
+                  </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    Equality, ordering
+                  </p>
+                  </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">==</span></code>
+                  </p>
+                  </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">!=</span></code>
+                  </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                  </p>
+                  </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">&lt;</span></code>
+                  </p>
+                  </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">&gt;</span> <span class="special">&lt;=</span>
+                    <span class="special">&gt;=</span></code>
+                  </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Set operators (<a class="link" href="interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                    x <a class="link" href="interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>)
+                  </p>
+                  </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">+=</span> <span class="special">|=</span>
+                    <span class="special">-=</span> <span class="special">&amp;=</span>
+                    <span class="special">^=</span></code>
+                  </p>
+                  </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">+</span> <span class="special">|</span>
+                    <span class="special">-</span> <span class="special">&amp;</span>
+                    <span class="special">^</span></code>
+                  </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Set operators (<a class="link" href="interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                    x <a class="link" href="interface/function_synopsis.html#element_type"><span class="bold"><strong>e</strong></span></a>)
+                  </p>
+                  </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">+=</span> <span class="special">|=</span>
+                    <span class="special">-=</span> <span class="special">&amp;=</span>
+                    <span class="special">^=</span></code>
+                  </p>
+                  </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">+</span> <span class="special">|</span>
+                    <span class="special">-</span> <span class="special">&amp;</span>
+                    <span class="special">^</span></code>
+                  </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    Set operators (<a class="link" href="interface/function_synopsis.html#interval_set_types"><span class="bold"><strong>S</strong></span></a>
+                    x <a class="link" href="interface/function_synopsis.html#interval_type"><span class="bold"><strong>i</strong></span></a>)
+                  </p>
+                  </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">+=</span> <span class="special">|=</span>
+                    <span class="special">-=</span> <span class="special">&amp;=</span>
+                    <span class="special">^=</span></code>
+                  </p>
+                  </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="special">+</span> <span class="special">|</span>
+                    <span class="special">-</span> <span class="special">&amp;</span>
+                    <span class="special">^</span></code>
+                  </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+            There is a number of associated types
+          </p>
+<p>
+            </p>
+<p>
+              
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">icl</span><span class="special">::</span><span class="identifier">interval_map</span>
+    <span class="special">&lt;</span><span class="identifier">DomainT</span><span class="special">,</span> <span class="identifier">BitSetT</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">icl</span><span class="special">::</span><span class="identifier">partial_absorber</span><span class="special">,</span> 
+     <span class="identifier">std</span><span class="special">::</span><span class="identifier">less</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">icl</span><span class="special">::</span><span class="identifier">inplace_bit_add</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">icl</span><span class="special">::</span><span class="identifier">inplace_bit_and</span><span class="special">&gt;</span> <span class="identifier">interval_bitmap_type</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">DomainT</span>                                      <span class="identifier">domain_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">DomainT</span>                                      <span class="identifier">element_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">BitSetT</span>                                      <span class="identifier">bitset_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">BitSetT</span><span class="special">::</span><span class="identifier">word_type</span>                  <span class="identifier">word_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">interval_bitmap_type</span><span class="special">::</span><span class="identifier">interval_type</span> <span class="identifier">interval_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">interval_bitmap_type</span><span class="special">::</span><span class="identifier">value_type</span>    <span class="identifier">value_type</span><span class="special">;</span>
+</pre>
+<p>
+            </p>
+<p>
+          </p>
+<p>
+            most importantly the implementing <code class="computeroutput"><span class="identifier">interval_bitmap_type</span></code>
+            that is used for the implementing container.
+          </p>
+<p>
+            </p>
+<p>
+              
+</p>
+<pre class="programlisting"><span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">interval_bitmap_type</span> <span class="identifier">_map</span><span class="special">;</span>
+</pre>
+<p>
+            </p>
+<p>
+          </p>
+<p>
+            In order to use <a href="http://www.boost.org/doc/libs/1_39_0/libs/utility/operators.htm" target="_top">Boost.Operator</a>
+            we have to implement the fundamental operators as class members. This
+            can be done quite schematically.
+          </p>
+<p>
+            </p>
+<p>
+              
+</p>
+<pre class="programlisting"><span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">bool</span>     <span class="keyword">operator</span> <span class="special">==(</span><span class="keyword">const</span> <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span><span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">_map</span> <span class="special">==</span> <span class="identifier">rhs</span><span class="special">.</span><span class="identifier">_map</span><span class="special">;</span> <span class="special">}</span>
+    <span class="keyword">bool</span>     <span class="keyword">operator</span> <span class="special">&lt;</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span><span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">_map</span> <span class="special">&lt;</span>  <span class="identifier">rhs</span><span class="special">.</span><span class="identifier">_map</span><span class="special">;</span> <span class="special">}</span>
+
+    <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">+=(</span><span class="keyword">const</span> <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="special">{</span><span class="identifier">_map</span> <span class="special">+=</span> <span class="identifier">rhs</span><span class="special">.</span><span class="identifier">_map</span><span class="special">;</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;}</span>
+    <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">|=(</span><span class="keyword">const</span> <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="special">{</span><span class="identifier">_map</span> <span class="special">|=</span> <span class="identifier">rhs</span><span class="special">.</span><span class="identifier">_map</span><span class="special">;</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;}</span>
+    <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">-=(</span><span class="keyword">const</span> <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="special">{</span><span class="identifier">_map</span> <span class="special">-=</span> <span class="identifier">rhs</span><span class="special">.</span><span class="identifier">_map</span><span class="special">;</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;}</span>
+    <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">&amp;=(</span><span class="keyword">const</span> <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="special">{</span><span class="identifier">_map</span> <span class="special">&amp;=</span> <span class="identifier">rhs</span><span class="special">.</span><span class="identifier">_map</span><span class="special">;</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;}</span>
+    <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">^=(</span><span class="keyword">const</span> <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="special">{</span><span class="identifier">_map</span> <span class="special">^=</span> <span class="identifier">rhs</span><span class="special">.</span><span class="identifier">_map</span><span class="special">;</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;}</span>
+
+    <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">+=(</span><span class="keyword">const</span> <span class="identifier">element_type</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">add</span><span class="special">(</span><span class="identifier">interval_type</span><span class="special">(</span><span class="identifier">rhs</span><span class="special">));</span>      <span class="special">}</span>
+    <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">|=(</span><span class="keyword">const</span> <span class="identifier">element_type</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">add</span><span class="special">(</span><span class="identifier">interval_type</span><span class="special">(</span><span class="identifier">rhs</span><span class="special">));</span>      <span class="special">}</span>
+    <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">-=(</span><span class="keyword">const</span> <span class="identifier">element_type</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">subtract</span><span class="special">(</span><span class="identifier">interval_type</span><span class="special">(</span><span class="identifier">rhs</span><span class="special">));</span> <span class="special">}</span>
+    <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">&amp;=(</span><span class="keyword">const</span> <span class="identifier">element_type</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">intersect</span><span class="special">(</span><span class="identifier">interval_type</span><span class="special">(</span><span class="identifier">rhs</span><span class="special">));}</span>
+    <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">^=(</span><span class="keyword">const</span> <span class="identifier">element_type</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">)</span> <span class="special">{</span><span class="keyword">return</span> <span class="identifier">flip</span><span class="special">(</span><span class="identifier">interval_type</span><span class="special">(</span><span class="identifier">rhs</span><span class="special">));</span>     <span class="special">}</span>
+
+    <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">+=(</span><span class="keyword">const</span> <span class="identifier">interval_type</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">){</span><span class="keyword">return</span> <span class="identifier">add</span><span class="special">(</span><span class="identifier">rhs</span><span class="special">);</span>      <span class="special">}</span>
+    <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">|=(</span><span class="keyword">const</span> <span class="identifier">interval_type</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">){</span><span class="keyword">return</span> <span class="identifier">add</span><span class="special">(</span><span class="identifier">rhs</span><span class="special">);</span>      <span class="special">}</span>
+    <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">-=(</span><span class="keyword">const</span> <span class="identifier">interval_type</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">){</span><span class="keyword">return</span> <span class="identifier">subtract</span><span class="special">(</span><span class="identifier">rhs</span><span class="special">);</span> <span class="special">}</span>
+    <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">&amp;=(</span><span class="keyword">const</span> <span class="identifier">interval_type</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">){</span><span class="keyword">return</span> <span class="identifier">intersect</span><span class="special">(</span><span class="identifier">rhs</span><span class="special">);}</span>
+    <span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">^=(</span><span class="keyword">const</span> <span class="identifier">interval_type</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">){</span><span class="keyword">return</span> <span class="identifier">flip</span><span class="special">(</span><span class="identifier">rhs</span><span class="special">);</span>     <span class="special">}</span>
+    </pre>
+<p>
+            </p>
+<p>
+          </p>
+<p>
+            As we can see, the seven most important operators that work on the class
+            type <code class="computeroutput"><span class="identifier">large_bitset</span></code> can
+            be directly implemented by propagating the operation to the implementing
+            <code class="computeroutput"><span class="identifier">_map</span></code> of type <code class="computeroutput"><span class="identifier">interval_bitmap_type</span></code>. For the operators
+            that work on segment and element types, we use member functions <code class="computeroutput"><span class="identifier">add</span></code>, <code class="computeroutput"><span class="identifier">subtract</span></code>,
+            <code class="computeroutput"><span class="identifier">intersect</span></code> and <code class="computeroutput"><span class="identifier">flip</span></code>. As we will see only a small amount
+            of adaper code is needed to couple those functions with the functionality
+            of the implementing container.
+          </p>
+<p>
+            Member functions <code class="computeroutput"><span class="identifier">add</span></code>,
+            <code class="computeroutput"><span class="identifier">subtract</span></code>, <code class="computeroutput"><span class="identifier">intersect</span></code> and <code class="computeroutput"><span class="identifier">flip</span></code>,
+            that allow to combine <span class="emphasis"><em><span class="bold"><strong>intervals</strong></span></em></span>
+            to <code class="computeroutput"><span class="identifier">large_bitsets</span></code> can
+            be uniformly implemented using a private function <code class="computeroutput"><span class="identifier">segment_apply</span></code>
+            that applies <span class="emphasis"><em>addition</em></span>, <span class="emphasis"><em>subtraction</em></span>,
+            <span class="emphasis"><em>intersection</em></span> or <span class="emphasis"><em>symmetric difference</em></span>,
+            after having translated the interval's borders into the right bitset
+            positions.
+          </p>
+<p>
+            </p>
+<p>
+              
+</p>
+<pre class="programlisting"><span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="identifier">add</span>      <span class="special">(</span><span class="keyword">const</span> <span class="identifier">interval_type</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">){</span><span class="keyword">return</span> <span class="identifier">segment_apply</span><span class="special">(&amp;</span><span class="identifier">large_bitset</span><span class="special">::</span><span class="identifier">add_</span><span class="special">,</span>      <span class="identifier">rhs</span><span class="special">);}</span>
+<span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="identifier">subtract</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">interval_type</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">){</span><span class="keyword">return</span> <span class="identifier">segment_apply</span><span class="special">(&amp;</span><span class="identifier">large_bitset</span><span class="special">::</span><span class="identifier">subtract_</span><span class="special">,</span> <span class="identifier">rhs</span><span class="special">);}</span>
+<span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="identifier">intersect</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">interval_type</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">){</span><span class="keyword">return</span> <span class="identifier">segment_apply</span><span class="special">(&amp;</span><span class="identifier">large_bitset</span><span class="special">::</span><span class="identifier">intersect_</span><span class="special">,</span><span class="identifier">rhs</span><span class="special">);}</span>
+<span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="identifier">flip</span>     <span class="special">(</span><span class="keyword">const</span> <span class="identifier">interval_type</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">){</span><span class="keyword">return</span> <span class="identifier">segment_apply</span><span class="special">(&amp;</span><span class="identifier">large_bitset</span><span class="special">::</span><span class="identifier">flip_</span><span class="special">,</span>     <span class="identifier">rhs</span><span class="special">);}</span>
+</pre>
+<p>
+            </p>
+<p>
+          </p>
+<p>
+            In the sample programs, that we will present to demonstrate the capabilities
+            of <code class="computeroutput"><span class="identifier">large_bitset</span></code> we will
+            need a few additional functions specifically output functions in two
+            different flavors.
+          </p>
+<p>
+            </p>
+<p>
+              
+</p>
+<pre class="programlisting"><span class="identifier">size_t</span> <span class="identifier">interval_count</span><span class="special">()</span><span class="keyword">const</span> <span class="special">{</span> <span class="keyword">return</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">icl</span><span class="special">::</span><span class="identifier">interval_count</span><span class="special">(</span><span class="identifier">_map</span><span class="special">);</span> <span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">show_segments</span><span class="special">()</span><span class="keyword">const</span>
+<span class="special">{</span>
+    <span class="keyword">for</span><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">interval_bitmap_type</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">it_</span> <span class="special">=</span> <span class="identifier">_map</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+        <span class="identifier">it_</span> <span class="special">!=</span> <span class="identifier">_map</span><span class="special">.</span><span class="identifier">end</span><span class="special">();</span> <span class="special">++</span><span class="identifier">it_</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">interval_type</span>   <span class="identifier">itv</span>  <span class="special">=</span> <span class="identifier">it_</span><span class="special">-&gt;</span><span class="identifier">first</span><span class="special">;</span>
+        <span class="identifier">bitset_type</span>     <span class="identifier">bits</span> <span class="special">=</span> <span class="identifier">it_</span><span class="special">-&gt;</span><span class="identifier">second</span><span class="special">;</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">itv</span> <span class="special">&lt;&lt;</span> <span class="string">"-&gt;"</span> <span class="special">&lt;&lt;</span> <span class="identifier">bits</span><span class="special">.</span><span class="identifier">as_string</span><span class="special">(</span><span class="string">"01"</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="keyword">void</span> <span class="identifier">show_matrix</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="identifier">off_on</span><span class="special">[</span><span class="number">2</span><span class="special">]</span> <span class="special">=</span> <span class="string">" 1"</span><span class="special">)</span><span class="keyword">const</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">;</span>
+    <span class="keyword">typename</span> <span class="identifier">interval_bitmap_type</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">iter</span> <span class="special">=</span> <span class="identifier">_map</span><span class="special">.</span><span class="identifier">begin</span><span class="special">();</span>
+    <span class="keyword">while</span><span class="special">(</span><span class="identifier">iter</span> <span class="special">!=</span> <span class="identifier">_map</span><span class="special">.</span><span class="identifier">end</span><span class="special">())</span>
+    <span class="special">{</span>
+        <span class="identifier">element_type</span> <span class="identifier">fst</span> <span class="special">=</span> <span class="identifier">icl</span><span class="special">::</span><span class="identifier">first</span><span class="special">(</span><span class="identifier">iter</span><span class="special">-&gt;</span><span class="identifier">first</span><span class="special">),</span> <span class="identifier">lst</span> <span class="special">=</span> <span class="identifier">icl</span><span class="special">::</span><span class="identifier">last</span><span class="special">(</span><span class="identifier">iter</span><span class="special">-&gt;</span><span class="identifier">first</span><span class="special">);</span>
+        <span class="keyword">for</span><span class="special">(</span><span class="identifier">element_type</span> <span class="identifier">chunk</span> <span class="special">=</span> <span class="identifier">fst</span><span class="special">;</span> <span class="identifier">chunk</span> <span class="special">&lt;=</span> <span class="identifier">lst</span><span class="special">;</span> <span class="identifier">chunk</span><span class="special">++)</span>
+            <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">iter</span><span class="special">-&gt;</span><span class="identifier">second</span><span class="special">.</span><span class="identifier">as_string</span><span class="special">(</span><span class="identifier">off_on</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+        <span class="special">++</span><span class="identifier">iter</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+<p>
+            </p>
+<p>
+          </p>
+<div class="itemizedlist"><ul type="disc">
+<li>
+              The first one, <code class="computeroutput"><span class="identifier">show_segments</span><span class="special">()</span></code> shows the container content as it
+              is implemented, in the compressed form.
+            </li>
+<li>
+              The second function <code class="computeroutput"><span class="identifier">show_matrix</span></code>
+              shows the complete matrix of bits that is represented by the container.
+            </li>
+</ul></div>
+</div>
+<div class="section boost_icl_projects_large_bitset_implementation_of_a_large_bitset_large_bitset__private_implementation" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="boost_icl.projects.large_bitset.implementation_of_a_large_bitset.large_bitset__private_implementation"></a><a class="link" href="projects.html#boost_icl.projects.large_bitset.implementation_of_a_large_bitset.large_bitset__private_implementation" title="large_bitset: Private implementation">large_bitset:
+          Private implementation</a>
+</h5></div></div></div>
+<p>
+            In order to implement operations like the addition of an element say
+            <code class="computeroutput"><span class="number">42</span></code> to the large bitset, we
+            need to translate the <span class="emphasis"><em>value</em></span> to the <span class="emphasis"><em>position</em></span>
+            of the associated <span class="bold"><strong>bit</strong></span> representing
+            <code class="computeroutput"><span class="number">42</span></code> in the interval container
+            of bitsets. As an example, suppose we use a 
+</p>
+<pre class="programlisting"><span class="identifier">large_bitset</span><span class="special">&lt;</span><span class="identifier">nat</span><span class="special">,</span> <span class="identifier">mini</span><span class="special">::</span><span class="identifier">bits8</span><span class="special">&gt;</span> <span class="identifier">lbs</span><span class="special">;</span>
+</pre>
+<p>
+            that carries small bitsets of 8 bits only. The first four interval of
+            <code class="computeroutput"><span class="identifier">lbs</span></code> are assumed to be
+            associated with some bitsets. Now we want to add the interval <code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">]==[</span><span class="number">5</span><span class="special">,</span><span class="number">27</span><span class="special">]</span></code>. This
+            will result in the following situation: 
+</p>
+<pre class="programlisting">   <span class="special">[</span><span class="number">0</span><span class="special">,</span><span class="number">1</span><span class="special">)-&gt;</span>   <span class="special">[</span><span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">)-&gt;</span>   <span class="special">[</span><span class="number">2</span><span class="special">,</span><span class="number">3</span><span class="special">)-&gt;</span>   <span class="special">[</span><span class="number">3</span><span class="special">,</span><span class="number">4</span><span class="special">)-&gt;</span>   
+   <span class="special">[</span><span class="number">00101100</span><span class="special">][</span><span class="number">11001011</span><span class="special">][</span><span class="number">11101001</span><span class="special">][</span><span class="number">11100000</span><span class="special">]</span>
+<span class="special">+</span>       <span class="special">[</span><span class="number">111</span>  <span class="number">11111111</span>  <span class="number">11111111</span>  <span class="number">1111</span><span class="special">]</span>      <span class="special">[</span><span class="number">5</span><span class="special">,</span><span class="number">27</span><span class="special">]</span> <span class="identifier">as</span> <span class="identifier">bitset</span>
+         <span class="identifier">a</span>                           <span class="identifier">b</span>
+         
+<span class="special">=&gt;</span> <span class="special">[</span><span class="number">0</span><span class="special">,</span><span class="number">1</span><span class="special">)-&gt;</span>   <span class="special">[</span><span class="number">1</span><span class="special">,</span><span class="number">3</span><span class="special">)-&gt;</span>   <span class="special">[</span><span class="number">3</span><span class="special">,</span><span class="number">4</span><span class="special">)-&gt;</span>
+   <span class="special">[</span><span class="number">00101111</span><span class="special">][</span><span class="number">11111111</span><span class="special">][</span><span class="number">11110000</span><span class="special">]</span>
+</pre>
+<p>
+            So we have to convert values 5 and 27 into a part that points to the
+            interval and a part that refers to the position within the interval,
+            which is done by a <span class="emphasis"><em>division</em></span> and a <span class="emphasis"><em>modulo</em></span>
+            computation. (In order to have a consistent representation of the bitsequences
+            across the containers, within this project, bitsets are denoted with
+            the <span class="emphasis"><em><span class="bold"><strong>least significant bit on the left!</strong></span></em></span>)
+          </p>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="identifier">A</span> <span class="special">=</span> <span class="identifier">a</span><span class="special">/</span><span class="number">8</span> <span class="special">=</span>  <span class="number">5</span><span class="special">/</span><span class="number">8</span> <span class="special">=</span> <span class="number">0</span> <span class="comment">// refers to interval 
+</span><span class="identifier">B</span> <span class="special">=</span> <span class="identifier">b</span><span class="special">/</span><span class="number">8</span> <span class="special">=</span> <span class="number">27</span><span class="special">/</span><span class="number">8</span> <span class="special">=</span> <span class="number">3</span>
+<span class="identifier">R</span> <span class="special">=</span> <span class="identifier">a</span><span class="special">%</span><span class="number">8</span> <span class="special">=</span>  <span class="number">5</span><span class="special">%</span><span class="number">8</span> <span class="special">=</span> <span class="number">5</span> <span class="comment">// refers to the position in the associated bitset.
+</span><span class="identifier">S</span> <span class="special">=</span> <span class="identifier">b</span><span class="special">%</span><span class="number">8</span> <span class="special">=</span> <span class="number">27</span><span class="special">%</span><span class="number">8</span> <span class="special">=</span> <span class="number">3</span>
+</pre>
+<p>
+          </p>
+<p>
+            All <span class="emphasis"><em>division</em></span> and <span class="emphasis"><em>modulo operations</em></span>
+            needed here are always done using a divisor <code class="computeroutput"><span class="identifier">d</span></code>
+            that is a power of <code class="computeroutput"><span class="number">2</span></code>: <code class="computeroutput"><span class="identifier">d</span> <span class="special">=</span> <span class="number">2</span><span class="special">^</span><span class="identifier">x</span></code>.
+            Therefore division and modulo can be expressed by bitset operations.
+            The constants needed for those bitset computations are defined here:
+          </p>
+<p>
+            </p>
+<p>
+              
+</p>
+<pre class="programlisting"><span class="keyword">private</span><span class="special">:</span>                                      <span class="comment">// Example value
+</span>    <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">word_type</span>                    <span class="comment">//   8-bit case  
+</span>        <span class="identifier">digits</span>  <span class="special">=</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span>         <span class="comment">// --------------------------------------------------------------
+</span>                  <span class="special">&lt;</span><span class="identifier">word_type</span><span class="special">&gt;::</span><span class="identifier">digits</span>       <span class="special">,</span> <span class="comment">//   8           Size of the associated bitsets 
+</span>        <span class="identifier">divisor</span> <span class="special">=</span> <span class="identifier">digits</span>                    <span class="special">,</span> <span class="comment">//   8           Divisor to find intervals for values
+</span>        <span class="identifier">last</span>    <span class="special">=</span> <span class="identifier">digits</span><span class="special">-</span><span class="number">1</span>                  <span class="special">,</span> <span class="comment">//   7           Last bit (0 based)
+</span>        <span class="identifier">shift</span>   <span class="special">=</span> <span class="identifier">log2_</span><span class="special">&lt;</span><span class="identifier">divisor</span><span class="special">&gt;::</span><span class="identifier">value</span>     <span class="special">,</span> <span class="comment">//   3           To express the division as bit shift
+</span>        <span class="identifier">w1</span>      <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">word_type</span><span class="special">&gt;(</span><span class="number">1</span><span class="special">)</span> <span class="special">,</span> <span class="comment">//               Helps to avoid static_casts for long long
+</span>        <span class="identifier">mask</span>    <span class="special">=</span> <span class="identifier">divisor</span> <span class="special">-</span> <span class="identifier">w1</span>              <span class="special">,</span> <span class="comment">//   7=11100000  Helps to express the modulo operation as bit_and
+</span>        <span class="identifier">all</span>     <span class="special">=</span> <span class="special">~</span><span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">word_type</span><span class="special">&gt;(</span><span class="number">0</span><span class="special">),</span> <span class="comment">// 255=11111111  Helps to express a complete associated bitset
+</span>        <span class="identifier">top</span>     <span class="special">=</span> <span class="identifier">w1</span> <span class="special">&lt;&lt;</span> <span class="special">(</span><span class="identifier">digits</span><span class="special">-</span><span class="identifier">w1</span><span class="special">)</span>      <span class="special">;</span>    <span class="comment">// 128=00000001  Value of the most significant bit of associated bitsets
+</span>                                              <span class="comment">//            !&gt; Note: Most signigicant bit on the right.
+</span>    </pre>
+<p>
+            </p>
+<p>
+          </p>
+<p>
+            Looking at the example again, we can see that we have to identify the
+            positions of the beginning and ending of the interval [5,27] that is
+            to insert, and then <span class="emphasis"><em><span class="bold"><strong>subdivide</strong></span></em></span>
+            that range of bitsets into three partitions.
+          </p>
+<div class="orderedlist"><ol type="1">
+<li>
+              The bitset where the interval starts.
+            </li>
+<li>
+              the bitset where the interval ends
+            </li>
+<li>
+              The bitsets that are completely overlapped by the interval
+            </li>
+</ol></div>
+<p>
+            
+</p>
+<pre class="programlisting"><span class="identifier">combine</span> <span class="identifier">interval</span> <span class="special">[</span><span class="number">5</span><span class="special">,</span><span class="number">27</span><span class="special">]</span> <span class="identifier">to</span> <span class="identifier">large_bitset</span> <span class="identifier">lbs</span> <span class="identifier">w</span><span class="special">.</span><span class="identifier">r</span><span class="special">.</span><span class="identifier">t</span><span class="special">.</span> <span class="identifier">some</span> <span class="identifier">operation</span> <span class="identifier">o</span>
+
+   <span class="special">[</span><span class="number">0</span><span class="special">,</span><span class="number">1</span><span class="special">)-&gt;</span>   <span class="special">[</span><span class="number">1</span><span class="special">,</span><span class="number">2</span><span class="special">)-&gt;</span>   <span class="special">[</span><span class="number">2</span><span class="special">,</span><span class="number">3</span><span class="special">)-&gt;</span>   <span class="special">[</span><span class="number">3</span><span class="special">,</span><span class="number">4</span><span class="special">)-&gt;</span>   
+   <span class="special">[</span><span class="number">00101100</span><span class="special">][</span><span class="number">11001011</span><span class="special">][</span><span class="number">11101001</span><span class="special">][</span><span class="number">11100000</span><span class="special">]</span>
+<span class="identifier">o</span>       <span class="special">[</span><span class="number">111</span>  <span class="number">11111111</span>  <span class="number">11111111</span>  <span class="number">1111</span><span class="special">]</span>
+         <span class="identifier">a</span>                           <span class="identifier">b</span>
+<span class="identifier">subdivide</span><span class="special">:</span>
+   <span class="special">[</span><span class="identifier">first</span><span class="special">!</span>  <span class="special">][</span><span class="identifier">mid_1</span><span class="special">]</span> <span class="special">.</span> <span class="special">.</span> <span class="special">.[</span><span class="identifier">mid_n</span><span class="special">][</span>   <span class="special">!</span><span class="identifier">last</span><span class="special">]</span>
+   <span class="special">[</span><span class="number">00000111</span><span class="special">][</span><span class="number">1.</span><span class="special">..</span><span class="number">1</span><span class="special">]</span> <span class="special">.</span> <span class="special">.</span> <span class="special">.[</span><span class="number">1.</span><span class="special">..</span><span class="number">1</span><span class="special">][</span><span class="number">11110000</span><span class="special">]</span>
+</pre>
+<p>
+          </p>
+<p>
+            After subdividing, we perform the operation <code class="computeroutput"><span class="identifier">o</span></code>
+            as follows:
+          </p>
+<div class="orderedlist"><ol type="1">
+<li>
+              For the first bitset: Set all bits from ther starting bit (<code class="computeroutput"><span class="special">!</span></code>) to the end of the bitset to <code class="computeroutput"><span class="number">1</span></code>. All other bits are <code class="computeroutput"><span class="number">0</span></code>.
+              Then perform operation <code class="computeroutput"><span class="identifier">o</span></code>:
+              <code class="computeroutput"><span class="identifier">_map</span> <span class="identifier">o</span><span class="special">=</span> <span class="special">([</span><span class="number">0</span><span class="special">,</span><span class="number">1</span><span class="special">)-&gt;</span><span class="number">00000111</span><span class="special">)</span></code>
+</li>
+<li>
+              For the last bitset: Set all bits from the beginning of the bitset
+              to the ending bit (<code class="computeroutput"><span class="special">!</span></code>)
+              to <code class="computeroutput"><span class="number">1</span></code>. All other bits are
+              <code class="computeroutput"><span class="number">0</span></code>. Then perform operation
+              <code class="computeroutput"><span class="identifier">o</span></code>: <code class="computeroutput"><span class="identifier">_map</span>
+              <span class="identifier">o</span><span class="special">=</span>
+              <span class="special">([</span><span class="number">3</span><span class="special">,</span><span class="number">4</span><span class="special">)-&gt;</span><span class="number">11110000</span><span class="special">)</span></code>
+</li>
+<li>
+              For the range of bitsets in between the staring and ending one, perform
+              operation <code class="computeroutput"><span class="identifier">o</span></code>: <code class="computeroutput"><span class="identifier">_map</span> <span class="identifier">o</span><span class="special">=</span> <span class="special">([</span><span class="number">1</span><span class="special">,</span><span class="number">3</span><span class="special">)-&gt;</span><span class="number">11111111</span><span class="special">)</span></code>
+</li>
+</ol></div>
+<p>
+            The algorithm, that has been outlined and illustrated by the example,
+            is implemented by the private member function <code class="computeroutput"><span class="identifier">segment_apply</span></code>.
+            To make the combiner operation a variable in this algorithm, we use a
+            <span class="emphasis"><em>pointer to member function type</em></span>
+          </p>
+<p>
+            </p>
+<p>
+              
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="keyword">void</span> <span class="special">(</span><span class="identifier">large_bitset</span><span class="special">::*</span><span class="identifier">segment_combiner</span><span class="special">)(</span><span class="identifier">element_type</span><span class="special">,</span> <span class="identifier">element_type</span><span class="special">,</span> <span class="identifier">bitset_type</span><span class="special">);</span>
+</pre>
+<p>
+            </p>
+<p>
+          </p>
+<p>
+            as first function argument. We will pass member functions <code class="computeroutput"><span class="identifier">combine_</span></code> here, 
+</p>
+<pre class="programlisting"><span class="identifier">combine_</span><span class="special">(</span><span class="identifier">first_of_interval</span><span class="special">,</span> <span class="identifier">end_of_interval</span><span class="special">,</span> <span class="identifier">some_bitset</span><span class="special">);</span>
+</pre>
+<p>
+            that take the beginning and ending of an interval and a bitset and combine
+            them to the implementing <code class="computeroutput"><span class="identifier">interval_bitmap_type</span>
+            <span class="identifier">_map</span></code>. Here are these functions:
+          </p>
+<p>
+            </p>
+<p>
+              
+</p>
+<pre class="programlisting"><span class="keyword">void</span>       <span class="identifier">add_</span><span class="special">(</span><span class="identifier">DomainT</span> <span class="identifier">lo</span><span class="special">,</span> <span class="identifier">DomainT</span> <span class="identifier">up</span><span class="special">,</span> <span class="identifier">BitSetT</span> <span class="identifier">bits</span><span class="special">){</span><span class="identifier">_map</span> <span class="special">+=</span> <span class="identifier">value_type</span><span class="special">(</span><span class="identifier">interval_type</span><span class="special">::</span><span class="identifier">right_open</span><span class="special">(</span><span class="identifier">lo</span><span class="special">,</span><span class="identifier">up</span><span class="special">),</span> <span class="identifier">bits</span><span class="special">);}</span>
+<span class="keyword">void</span>  <span class="identifier">subtract_</span><span class="special">(</span><span class="identifier">DomainT</span> <span class="identifier">lo</span><span class="special">,</span> <span class="identifier">DomainT</span> <span class="identifier">up</span><span class="special">,</span> <span class="identifier">BitSetT</span> <span class="identifier">bits</span><span class="special">){</span><span class="identifier">_map</span> <span class="special">-=</span> <span class="identifier">value_type</span><span class="special">(</span><span class="identifier">interval_type</span><span class="special">::</span><span class="identifier">right_open</span><span class="special">(</span><span class="identifier">lo</span><span class="special">,</span><span class="identifier">up</span><span class="special">),</span> <span class="identifier">bits</span><span class="special">);}</span>
+<span class="keyword">void</span> <span class="identifier">intersect_</span><span class="special">(</span><span class="identifier">DomainT</span> <span class="identifier">lo</span><span class="special">,</span> <span class="identifier">DomainT</span> <span class="identifier">up</span><span class="special">,</span> <span class="identifier">BitSetT</span> <span class="identifier">bits</span><span class="special">){</span><span class="identifier">_map</span> <span class="special">&amp;=</span> <span class="identifier">value_type</span><span class="special">(</span><span class="identifier">interval_type</span><span class="special">::</span><span class="identifier">right_open</span><span class="special">(</span><span class="identifier">lo</span><span class="special">,</span><span class="identifier">up</span><span class="special">),</span> <span class="identifier">bits</span><span class="special">);}</span>
+<span class="keyword">void</span>      <span class="identifier">flip_</span><span class="special">(</span><span class="identifier">DomainT</span> <span class="identifier">lo</span><span class="special">,</span> <span class="identifier">DomainT</span> <span class="identifier">up</span><span class="special">,</span> <span class="identifier">BitSetT</span> <span class="identifier">bits</span><span class="special">){</span><span class="identifier">_map</span> <span class="special">^=</span> <span class="identifier">value_type</span><span class="special">(</span><span class="identifier">interval_type</span><span class="special">::</span><span class="identifier">right_open</span><span class="special">(</span><span class="identifier">lo</span><span class="special">,</span><span class="identifier">up</span><span class="special">),</span> <span class="identifier">bits</span><span class="special">);}</span>
+</pre>
+<p>
+            </p>
+<p>
+          </p>
+<p>
+            Finally we can code function <code class="computeroutput"><span class="identifier">segment_apply</span></code>,
+            that does the partitioning and subsequent combining:
+          </p>
+<p>
+            </p>
+<p>
+              
+</p>
+<pre class="programlisting"><span class="identifier">large_bitset</span><span class="special">&amp;</span> <span class="identifier">segment_apply</span><span class="special">(</span><span class="identifier">segment_combiner</span> <span class="identifier">combine</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">interval_type</span><span class="special">&amp;</span> <span class="identifier">operand</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">;</span>
+    <span class="keyword">if</span><span class="special">(</span><span class="identifier">icl</span><span class="special">::</span><span class="identifier">is_empty</span><span class="special">(</span><span class="identifier">operand</span><span class="special">))</span>
+        <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span>
+                                                        <span class="comment">// same as
+</span>    <span class="identifier">element_type</span>   <span class="identifier">base</span> <span class="special">=</span> <span class="identifier">icl</span><span class="special">::</span><span class="identifier">first</span><span class="special">(</span><span class="identifier">operand</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="identifier">shift</span><span class="special">,</span> <span class="comment">// icl::first(operand) / divisor
+</span>                   <span class="identifier">ceil</span> <span class="special">=</span> <span class="identifier">icl</span><span class="special">::</span><span class="identifier">last</span> <span class="special">(</span><span class="identifier">operand</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="identifier">shift</span><span class="special">;</span> <span class="comment">// icl::last (operand) / divisor
+</span>    <span class="identifier">word_type</span> <span class="identifier">base_rest</span> <span class="special">=</span> <span class="identifier">icl</span><span class="special">::</span><span class="identifier">first</span><span class="special">(</span><span class="identifier">operand</span><span class="special">)</span> <span class="special">&amp;</span>  <span class="identifier">mask</span> <span class="special">,</span> <span class="comment">// icl::first(operand) % divisor
+</span>              <span class="identifier">ceil_rest</span> <span class="special">=</span> <span class="identifier">icl</span><span class="special">::</span><span class="identifier">last</span> <span class="special">(</span><span class="identifier">operand</span><span class="special">)</span> <span class="special">&amp;</span>  <span class="identifier">mask</span> <span class="special">;</span> <span class="comment">// icl::last (operand) % divisor  
+</span>
+    <span class="keyword">if</span><span class="special">(</span><span class="identifier">base</span> <span class="special">==</span> <span class="identifier">ceil</span><span class="special">)</span> <span class="comment">// [first, last] are within one bitset (chunk)
+</span>        <span class="special">(</span><span class="keyword">this</span><span class="special">-&gt;*</span><span class="identifier">combine</span><span class="special">)(</span><span class="identifier">base</span><span class="special">,</span> <span class="identifier">base</span><span class="special">+</span><span class="number">1</span><span class="special">,</span> <span class="identifier">bitset_type</span><span class="special">(</span>  <span class="identifier">to_upper_from</span><span class="special">(</span><span class="identifier">base_rest</span><span class="special">)</span>
+                                                   <span class="special">&amp;</span> <span class="identifier">from_lower_to</span><span class="special">(</span><span class="identifier">ceil_rest</span><span class="special">)));</span>
+    <span class="keyword">else</span> <span class="comment">// [first, last] spread over more than one bitset (chunk)
+</span>    <span class="special">{</span>
+        <span class="identifier">element_type</span> <span class="identifier">mid_low</span> <span class="special">=</span> <span class="identifier">base_rest</span> <span class="special">==</span> <span class="number">0</span>   <span class="special">?</span> <span class="identifier">base</span>   <span class="special">:</span> <span class="identifier">base</span><span class="special">+</span><span class="number">1</span><span class="special">,</span> <span class="comment">// first element of mid part 
+</span>                     <span class="identifier">mid_up</span>  <span class="special">=</span> <span class="identifier">ceil_rest</span> <span class="special">==</span> <span class="identifier">all</span> <span class="special">?</span> <span class="identifier">ceil</span><span class="special">+</span><span class="number">1</span> <span class="special">:</span> <span class="identifier">ceil</span>  <span class="special">;</span> <span class="comment">// last  element of mid part
+</span>
+        <span class="keyword">if</span><span class="special">(</span><span class="identifier">base_rest</span> <span class="special">&gt;</span> <span class="number">0</span><span class="special">)</span>    <span class="comment">// Bitset of base interval has to be filled from base_rest to last
+</span>            <span class="special">(</span><span class="keyword">this</span><span class="special">-&gt;*</span><span class="identifier">combine</span><span class="special">)(</span><span class="identifier">base</span><span class="special">,</span> <span class="identifier">base</span><span class="special">+</span><span class="number">1</span><span class="special">,</span> <span class="identifier">bitset_type</span><span class="special">(</span><span class="identifier">to_upper_from</span><span class="special">(</span><span class="identifier">base_rest</span><span class="special">)));</span>
+        <span class="keyword">if</span><span class="special">(</span><span class="identifier">ceil_rest</span> <span class="special">&lt;</span> <span class="identifier">all</span><span class="special">)</span>  <span class="comment">// Bitset of ceil interval has to be filled from first to ceil_rest
+</span>            <span class="special">(</span><span class="keyword">this</span><span class="special">-&gt;*</span><span class="identifier">combine</span><span class="special">)(</span><span class="identifier">ceil</span><span class="special">,</span> <span class="identifier">ceil</span><span class="special">+</span><span class="number">1</span><span class="special">,</span> <span class="identifier">bitset_type</span><span class="special">(</span><span class="identifier">from_lower_to</span><span class="special">(</span><span class="identifier">ceil_rest</span><span class="special">)));</span>
+        <span class="keyword">if</span><span class="special">(</span><span class="identifier">mid_low</span> <span class="special">&lt;</span> <span class="identifier">mid_up</span><span class="special">)</span> <span class="comment">// For the middle part all bits have to set.
+</span>            <span class="special">(</span><span class="keyword">this</span><span class="special">-&gt;*</span><span class="identifier">combine</span><span class="special">)(</span><span class="identifier">mid_low</span><span class="special">,</span> <span class="identifier">mid_up</span><span class="special">,</span> <span class="identifier">bitset_type</span><span class="special">(</span><span class="identifier">all</span><span class="special">));</span>
+    <span class="special">}</span>
+    <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+            </p>
+<p>
+          </p>
+<p>
+            The functions that help filling bitsets to and from a given bit are implemented
+            here:
+            </p>
+<p>
+              
+</p>
+<pre class="programlisting"><span class="keyword">static</span> <span class="identifier">word_type</span> <span class="identifier">from_lower_to</span><span class="special">(</span><span class="identifier">word_type</span> <span class="identifier">bit</span><span class="special">){</span><span class="keyword">return</span> <span class="identifier">bit</span><span class="special">==</span><span class="identifier">last</span> <span class="special">?</span> <span class="identifier">all</span> <span class="special">:</span> <span class="special">(</span><span class="identifier">w1</span><span class="special">&lt;&lt;(</span><span class="identifier">bit</span><span class="special">+</span><span class="identifier">w1</span><span class="special">))-</span><span class="identifier">w1</span><span class="special">;}</span>
+<span class="keyword">static</span> <span class="identifier">word_type</span> <span class="identifier">to_upper_from</span><span class="special">(</span><span class="identifier">word_type</span> <span class="identifier">bit</span><span class="special">){</span><span class="keyword">return</span> <span class="identifier">bit</span><span class="special">==</span><span class="identifier">last</span> <span class="special">?</span> <span class="identifier">top</span> <span class="special">:</span> <span class="special">~((</span><span class="identifier">w1</span><span class="special">&lt;&lt;</span><span class="identifier">bit</span><span class="special">)-</span><span class="identifier">w1</span><span class="special">);</span> <span class="special">}</span>
+</pre>
+<p>
+            </p>
+<p>
+          </p>
+<p>
+            This completes the implementation of class template <code class="computeroutput"><span class="identifier">large_bitset</span></code>.
+            Using only a small amount of mostly schematic code, we have been able
+            to provide a pretty powerful, self compressing and generally usable set
+            type for all integral domain types.
+          </p>
+</div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="examples/custom_interval.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concepts.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

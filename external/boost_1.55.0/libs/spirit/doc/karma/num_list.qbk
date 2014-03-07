@@ -1,0 +1,108 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2001-2011 Joel de Guzman
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:num_list Number List - Printing Numbers From a std::vector]
+
+[heading Using the List Operator]
+
+The C++ Standard library lacks an important feature, namely the support for
+any formatted output of containers. Sure, it's fairly easy to write a custom 
+routine to output a specific container, but doing so over and over again is 
+tedious at best. In this section we will demonstrate some more of the 
+capabilities of __karma__ for generating output from arbitrary STL containers. 
+We will build on the example presented in an earlier section (see 
+[link spirit.karma.tutorials.warming_up Warming Up]).
+
+The full source code of the example shown in this section can be found here: 
+[@../../example/karma/num_list2.cpp num_list2.cpp].
+
+[import ../../example/karma/num_list2.cpp]
+
+This time we take advantage of Karma's __karma_list__ operator. The semantics 
+of the list operator are fully equivalent to the semantics of the sequence
+we used before. The generator expression
+
+    double_ << *(',' << double_)
+
+is semantically equivalent to the generator expression
+
+    double_ % ','
+
+simplifying the overall code. The list operator's attribute is compatible with 
+any STL container as well. For a change we use a `std::vector<double>`
+instead of the `std::list<double>` we used before. Additionally, the routine
+`generate_numbers` takes the container as a template parameter, so it will now 
+work with any STL container holding `double` numbers.
+
+[tutorial_karma_numlist2]
+
+[note Despite the container being a template parameter, the __karma__ 
+      formatting expression (`double_ % ','`) does not depend on the actual 
+      type of the passed container. The only precondition to be met here is 
+      that the elements stored in the container have to be convertible to 
+      `double`.]
+
+[heading Generate Output from Arbitrary Data]
+
+The output routine developed above is still not generically usable for all types 
+of STL containers and for arbitrary elements stored in them. In order to be 
+usable the items stored in the container still need to be convertible to a 
+`double`. Fortunately __karma__ is capable to output arbitrary 
+data types while using the same format description expression. It implements 
+the [karma_stream `stream`] generators which are able to consume any attribute
+type as long as a matching standard streaming operator is defined. I.e. 
+for any attribute type `Attrib` a function:
+
+    std::ostream& operator<< (std::ostream&, Attrib const&);
+
+needs to be available. The [karma_stream `stream`] generator will use the 
+standard streaming operator to generate the output. 
+
+The following example modifies the code shown above to utilize the 
+[karma_stream `stream`] operator, which makes it compatible with almost any 
+data type. We implement a custom data type `complex` to demonstrate this. The 
+example shows how it is possible to integrate this (or any other) custom data 
+type into the __karma__ generator framework.
+
+[import ../../example/karma/num_list3.cpp]
+
+This is the custom data structure together with the required standard streaming 
+operator:
+
+[tutorial_karma_numlist3_complex]
+
+And this is the actual call to generate the output from a vector of those. This
+time we interleave the generated output with newline breaks (see 
+__karma_eol__), putting each complex number onto a separate line:
+
+[tutorial_karma_numlist3]
+
+The code shown is fully generic and can be used with any STL container as long 
+as the data items stored in that container implement the standard streaming 
+operator.
+
+The full source code of the example presented in this section can be found here: 
+[@../../example/karma/num_list3.cpp num_list3.cpp].
+
+[endsect]
+
+[/////////////////////////////////////////////////////////////////////////////]
+[section:num_matrix Matrix of Numbers - Printing Numbers From a Matrix]
+
+In this section we will discuss the possibilities of __karma__ when it comes to
+generating output from more complex - but still regular - data structures.
+For simplicity we will use a `std::vector<std::vector<int> >` as a poor 
+man's matrix representation. But even if the data structure seems to be very 
+simple, the presented principles are applicable to more complex, or custom
+data structures as well. The full source code of the example discussed in this 
+section can be found here: [@../../example/karma/num_matrix.cpp num_matrix.cpp].
+
+[import ../../example/karma/num_matrix.cpp]
+
+[endsect]

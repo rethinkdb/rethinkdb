@@ -1,0 +1,260 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>boost::geometry::index::indexable</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../observers.html" title="Observers (boost::geometry::index::)">
+<link rel="prev" href="../observers.html" title="Observers (boost::geometry::index::)">
+<link rel="next" href="boost__geometry__index__equal_to.html" title="boost::geometry::index::equal_to">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../observers.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../observers.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost__geometry__index__equal_to.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable"></a><a name="structboost_1_1geometry_1_1index_1_1indexable"></a><a class="link" href="boost__geometry__index__indexable.html" title="boost::geometry::index::indexable">boost::geometry::index::indexable</a>
+</h5></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="boost__geometry__index__indexable.html#geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.operator___value_const___">operator()(Value
+            const &amp;)</a></span></dt></dl></div>
+<p>
+            <a class="indexterm" name="idp62274504"></a><a class="indexterm" name="idp62274840"></a><a class="indexterm" name="idp62275176"></a><a class="indexterm" name="idp62275512"></a>
+The function object extracting Indexable from Value.
+          </p>
+<h6>
+<a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.h0"></a>
+            <span class="phrase"><a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.description"></a></span><a class="link" href="boost__geometry__index__indexable.html#geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.description">Description</a>
+          </h6>
+<p>
+            It translates Value object to Indexable object. The default version handles
+            Values which are Indexables. This template is also specialized for std::pair&lt;Indexable,
+            T2&gt; and boost::tuple&lt;Indexable, ...&gt;.
+          </p>
+<h6>
+<a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.h1"></a>
+            <span class="phrase"><a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.header"></a></span><a class="link" href="boost__geometry__index__indexable.html#geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.header">Header</a>
+          </h6>
+<p>
+            <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">geometry</span><span class="special">/</span><span class="identifier">index</span><span class="special">/</span><span class="identifier">indexable</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+          </p>
+<h6>
+<a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.h2"></a>
+            <span class="phrase"><a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.synopsis"></a></span><a class="link" href="boost__geometry__index__indexable.html#geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><code class="computeroutput"><span class="keyword">template</span><span class="special">&lt;</span></code><code class="computeroutput"><span class="keyword">typename</span> <span class="identifier">Value</span></code><code class="computeroutput"><span class="special">&gt;</span></code>
+<code class="computeroutput"><span class="keyword">struct</span> <span class="identifier">indexable</span></code>
+<code class="computeroutput"><span class="special">{</span></code>
+<code class="computeroutput">  <span class="comment">// ...</span></code>
+<code class="computeroutput"><span class="special">};</span></code>
+</pre>
+<h6>
+<a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.h3"></a>
+            <span class="phrase"><a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.template_parameter_s_"></a></span><a class="link" href="boost__geometry__index__indexable.html#geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.template_parameter_s_">Template
+            parameter(s)</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Value</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The Value type which may be translated directly to the Indexable.
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.h4"></a>
+            <span class="phrase"><a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.typedef_s_"></a></span><a class="link" href="boost__geometry__index__indexable.html#geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.typedef_s_">Typedef(s)</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <a name="structboost_1_1geometry_1_1index_1_1indexable_1a1b2b7a94fb62e59fd1f0587fa0aef5ef"></a><code class="computeroutput"><span class="identifier">result_type</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The type of result returned by function object.
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.h5"></a>
+            <span class="phrase"><a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.member_s_"></a></span><a class="link" href="boost__geometry__index__indexable.html#geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.member_s_">Member(s)</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Modifier
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Function
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">const</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <a class="link" href="boost__geometry__index__indexable.html#structboost_1_1geometry_1_1index_1_1indexable_1afa5f2cdc3390a6f1f394890e479df794"><code class="computeroutput"><span class="keyword">operator</span><span class="special">()(</span><span class="identifier">Value</span> <span class="keyword">const</span>
+                      <span class="special">&amp;)</span></code></a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Return indexable extracted from the value.
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<div class="section">
+<div class="titlepage"><div><div><h6 class="title">
+<a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.operator___value_const___"></a><a name="structboost_1_1geometry_1_1index_1_1indexable_1afa5f2cdc3390a6f1f394890e479df794"></a><a class="link" href="boost__geometry__index__indexable.html#geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.operator___value_const___" title="operator()(Value const &amp;)">operator()(Value
+            const &amp;)</a>
+</h6></div></div></div>
+<p>
+              <a class="indexterm" name="idp62312648"></a>
+Return indexable extracted from the value.
+            </p>
+<h7><a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.operator___value_const___.h0"></a>
+              <span class="phrase"><a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.operator___value_const___.synopsis"></a></span><a class="link" href="boost__geometry__index__indexable.html#geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.operator___value_const___.synopsis">Synopsis</a>
+            </h7><pre class="programlisting"><code class="literal"><a class="link" href="boost__geometry__index__indexable.html#structboost_1_1geometry_1_1index_1_1indexable_1a1b2b7a94fb62e59fd1f0587fa0aef5ef">result_type</a></code> <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code><code class="computeroutput"><span class="special">(</span></code><code class="computeroutput"><span class="identifier">Value</span> <span class="keyword">const</span> <span class="special">&amp;</span></code> <code class="computeroutput"><span class="identifier">v</span></code><code class="computeroutput"><span class="special">)</span></code>
+</pre>
+<h7><a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.operator___value_const___.h1"></a>
+              <span class="phrase"><a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.operator___value_const___.modifier_s_"></a></span><a class="link" href="boost__geometry__index__indexable.html#geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.operator___value_const___.modifier_s_">Modifier(s)</a>
+            </h7><p>
+</p>
+<pre class="programlisting"><span class="keyword">const</span></pre>
+<p>
+            </p>
+<h7><a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.operator___value_const___.h2"></a>
+              <span class="phrase"><a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.operator___value_const___.parameter_s_"></a></span><a class="link" href="boost__geometry__index__indexable.html#geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.operator___value_const___.parameter_s_">Parameter(s)</a>
+            </h7><div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                      <p>
+                        Type
+                      </p>
+                    </th>
+<th>
+                      <p>
+                        Name
+                      </p>
+                    </th>
+<th>
+                      <p>
+                        Description
+                      </p>
+                    </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                      <p>
+                        <code class="computeroutput"><span class="identifier">Value</span> <span class="keyword">const</span>
+                        <span class="special">&amp;</span></code>
+                      </p>
+                    </td>
+<td>
+                      <p>
+                        <code class="computeroutput"><span class="identifier">v</span></code>
+                      </p>
+                    </td>
+<td>
+                      <p>
+                        The value.
+                      </p>
+                    </td>
+</tr></tbody>
+</table></div>
+<h7><a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.operator___value_const___.h3"></a>
+              <span class="phrase"><a name="geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.operator___value_const___.returns"></a></span><a class="link" href="boost__geometry__index__indexable.html#geometry.reference.spatial_indexes.observers.boost__geometry__index__indexable.operator___value_const___.returns">Returns</a>
+            </h7><p>
+              The indexable.
+            </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../observers.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../observers.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="boost__geometry__index__equal_to.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

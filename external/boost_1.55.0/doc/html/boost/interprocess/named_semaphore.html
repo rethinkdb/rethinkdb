@@ -1,0 +1,129 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class named_semaphore</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.named_semaphore_hpp" title="Header &lt;boost/interprocess/sync/named_semaphore.hpp&gt;">
+<link rel="prev" href="named_recursive_mutex.html" title="Class named_recursive_mutex">
+<link rel="next" href="named_sharable_mutex.html" title="Class named_sharable_mutex">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="named_recursive_mutex.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.named_semaphore_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="named_sharable_mutex.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.interprocess.named_semaphore"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class named_semaphore</span></h2>
+<p>boost::interprocess::named_semaphore</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.named_semaphore_hpp" title="Header &lt;boost/interprocess/sync/named_semaphore.hpp&gt;">boost/interprocess/sync/named_semaphore.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="named_semaphore.html" title="Class named_semaphore">named_semaphore</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="named_semaphore.html#boost.interprocess.named_semaphoreconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="named_semaphore.html#idp28666664-bb"><span class="identifier">named_semaphore</span></a><span class="special">(</span><a class="link" href="create_only_t.html" title="Struct create_only_t">create_only_t</a><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">,</span> 
+                  <span class="keyword">const</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a> <span class="special">&amp;</span> <span class="special">=</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="named_semaphore.html#idp28669512-bb"><span class="identifier">named_semaphore</span></a><span class="special">(</span><a class="link" href="open_or_create_t.html" title="Struct open_or_create_t">open_or_create_t</a><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span><span class="special">,</span> 
+                  <span class="keyword">const</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a> <span class="special">&amp;</span> <span class="special">=</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="named_semaphore.html#idp28673624-bb"><span class="identifier">named_semaphore</span></a><span class="special">(</span><a class="link" href="open_only_t.html" title="Struct open_only_t">open_only_t</a><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="named_semaphore.html#idp28675160-bb"><span class="special">~</span><span class="identifier">named_semaphore</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="named_semaphore.html#idp28661336-bb">public member functions</a></span>
+  <span class="keyword">void</span> <a class="link" href="named_semaphore.html#idp28661544-bb"><span class="identifier">post</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="named_semaphore.html#idp28662824-bb"><span class="identifier">wait</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="named_semaphore.html#idp28664072-bb"><span class="identifier">try_wait</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="named_semaphore.html#idp28665320-bb"><span class="identifier">timed_wait</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="named_semaphore.html#idp28675768-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="named_semaphore.html#idp28675976-bb"><span class="identifier">remove</span></a><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp119019224"></a><h2>Description</h2>
+<p>A semaphore with a global name, so it can be found from different processes. Allows several resource sharing patterns and efficient acknowledgment mechanisms. </p>
+<div class="refsect2">
+<a name="idp119019720"></a><h3>
+<a name="boost.interprocess.named_semaphoreconstruct-copy-destruct"></a><code class="computeroutput">named_semaphore</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp28666664-bb"></a><span class="identifier">named_semaphore</span><span class="special">(</span><a class="link" href="create_only_t.html" title="Struct create_only_t">create_only_t</a><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> name<span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> initialCount<span class="special">,</span> 
+                <span class="keyword">const</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a> <span class="special">&amp;</span> perm <span class="special">=</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Creates a global semaphore with a name, and an initial count. If the semaphore can't be created throws <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28669512-bb"></a><span class="identifier">named_semaphore</span><span class="special">(</span><a class="link" href="open_or_create_t.html" title="Struct open_or_create_t">open_or_create_t</a><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> name<span class="special">,</span> 
+                <span class="keyword">unsigned</span> <span class="keyword">int</span> initialCount<span class="special">,</span> 
+                <span class="keyword">const</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a> <span class="special">&amp;</span> perm <span class="special">=</span> <a class="link" href="permissions.html" title="Class permissions">permissions</a><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Opens or creates a global semaphore with a name, and an initial count. If the semaphore is created, this call is equivalent to <code class="computeroutput"><a class="link" href="named_semaphore.html" title="Class named_semaphore">named_semaphore</a></code>(<code class="computeroutput"><a class="link" href="create_only_t.html" title="Struct create_only_t">create_only_t</a></code>, ...) If the semaphore is already created, this call is equivalent to <code class="computeroutput"><a class="link" href="named_semaphore.html" title="Class named_semaphore">named_semaphore</a></code>(<code class="computeroutput"><a class="link" href="open_only_t.html" title="Struct open_only_t">open_only_t</a></code>, ... ) and initialCount is ignored. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28673624-bb"></a><span class="identifier">named_semaphore</span><span class="special">(</span><a class="link" href="open_only_t.html" title="Struct open_only_t">open_only_t</a><span class="special">,</span> <span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> name<span class="special">)</span><span class="special">;</span></pre>
+<p>Opens a global semaphore with a name if that semaphore is previously. created. If it is not previously created this function throws <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code>. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp28675160-bb"></a><span class="special">~</span><span class="identifier">named_semaphore</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destroys *this and indicates that the calling process is finished using the resource. The destructor function will deallocate any system resources allocated by the system for use by this process for this resource. The resource can still be opened again calling the open constructor overload. To erase the resource from the system use remove(). </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp119045832"></a><h3>
+<a name="idp28661336-bb"></a><code class="computeroutput">named_semaphore</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28661544-bb"></a><span class="identifier">post</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Increments the semaphore count. If there are processes/threads blocked waiting for the semaphore, then one of these processes will return successfully from its wait function. If there is an error an <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> exception is thrown. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp28662824-bb"></a><span class="identifier">wait</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Decrements the semaphore. If the semaphore value is not greater than zero, then the calling process/thread blocks until it can decrement the counter. If there is an error an <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> exception is thrown. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28664072-bb"></a><span class="identifier">try_wait</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Decrements the semaphore if the semaphore's value is greater than zero and returns true. If the value is not greater than zero returns false. If there is an error an <code class="computeroutput"><a class="link" href="interprocess_exception.html" title="Class interprocess_exception">interprocess_exception</a></code> exception is thrown. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp28665320-bb"></a><span class="identifier">timed_wait</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">posix_time</span><span class="special">::</span><span class="identifier">ptime</span> <span class="special">&amp;</span> abs_time<span class="special">)</span><span class="special">;</span></pre>
+<p>Decrements the semaphore if the semaphore's value is greater than zero and returns true. Otherwise, waits for the semaphore to the posted or the timeout expires. If the timeout expires, the function returns false. If the semaphore is posted the function returns true. If there is an error throws sem_exception </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp119060792"></a><h3>
+<a name="idp28675768-bb"></a><code class="computeroutput">named_semaphore</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="idp28675976-bb"></a><span class="identifier">remove</span><span class="special">(</span><span class="keyword">const</span> <span class="keyword">char</span> <span class="special">*</span> name<span class="special">)</span><span class="special">;</span></pre>
+<p>Erases a named semaphore from the system. Returns false on error. Never throws. </p>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="named_recursive_mutex.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../interprocess/indexes_reference.html#header.boost.interprocess.sync.named_semaphore_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="named_sharable_mutex.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

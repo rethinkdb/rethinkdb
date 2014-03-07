@@ -1,0 +1,288 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/fil.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/fil.xml
+ */
+fil{
+    AuxExemplarCharacters{"[á à â é è ê í ì î ó ò ô ú ù û]"}
+    ExemplarCharacters{"[a b c d e f g h i j k l m n ñ {ng} o p q r s t u v w x y z]"}
+    ExemplarCharactersCurrency{"[a b c d e f g h i j k l m n o p q r s t u v w x y z]"}
+    ExemplarCharactersIndex{"[A B C D E F G H I J K L M N O P Q R S T U V W X Y Z]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤ #,##0.00"}
+                decimalFormat{"#,##0.###"}
+                percentFormat{"#,##0%"}
+                scientificFormat{"#E0"}
+            }
+            symbols{
+                decimal{"."}
+                exponential{"E"}
+                group{","}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"-"}
+                nan{"NaN"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    Version{"2.0.48.64"}
+    calendar{
+        gregorian{
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE, MMMM dd y",
+                "MMMM d, y",
+                "MMM d, y",
+                "M/d/yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                MEd{"E, M-d"}
+                MMM{"LLL"}
+                MMMEd{"E MMM d"}
+                MMMMEd{"E MMMM d"}
+                MMMMd{"MMMM d"}
+                MMMd{"MMM d"}
+                Md{"M-d"}
+		d{"d"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"yyyy-M"}
+                yMEd{"EEE, yyyy-M-d"}
+                yMMM{"y MMM"}
+                yMMMEd{"EEE, y MMM d"}
+                yMMMM{"y MMMM"}
+                yQQQ{"y QQQ"}
+                yyMM{"yy-MM"}
+                yyMMM{"MMM yy"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "Lin",
+                        "Lun",
+                        "Mar",
+                        "Mye",
+                        "Huw",
+                        "Bye",
+                        "Sab",
+                    }
+                    wide{
+                        "Linggo",
+                        "Lunes",
+                        "Martes",
+                        "Miyerkules",
+                        "Huwebes",
+                        "Biyernes",
+                        "Sabado",
+                    }
+                }
+                stand-alone{
+                    abbreviated{
+                        "Lin",
+                        "Lun",
+                        "Mar",
+                        "Miy",
+                        "Huw",
+                        "Biy",
+                        "Sab",
+                    }
+                    narrow{
+                        "L",
+                        "L",
+                        "M",
+                        "M",
+                        "H",
+                        "B",
+                        "S",
+                    }
+                }
+            }
+            fields{
+                day{
+                    dn{"Araw"}
+                    relative{
+                        "-1"{"Yesterday"}
+                        "0"{"Today"}
+                        "1"{"Tomorrow"}
+                    }
+                }
+                dayperiod{
+                    dn{"Dayperiod"}
+                }
+                era{
+                    dn{"Era"}
+                }
+                hour{
+                    dn{"Oras"}
+                }
+                minute{
+                    dn{"Minuto"}
+                }
+                month{
+                    dn{"Buwan"}
+                }
+                second{
+                    dn{"Segundo"}
+                }
+                week{
+                    dn{"Linggo"}
+                }
+                weekday{
+                    dn{"Araw ng Linggo"}
+                }
+                year{
+                    dn{"Taon"}
+                }
+                zone{
+                    dn{"Zone"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "Ene",
+                        "Peb",
+                        "Mar",
+                        "Abr",
+                        "May",
+                        "Hun",
+                        "Hul",
+                        "Ago",
+                        "Set",
+                        "Okt",
+                        "Nob",
+                        "Dis",
+                    }
+                    wide{
+                        "Enero",
+                        "Pebrero",
+                        "Marso",
+                        "Abril",
+                        "Mayo",
+                        "Hunyo",
+                        "Hulyo",
+                        "Agosto",
+                        "Setyembre",
+                        "Oktubre",
+                        "Nobyembre",
+                        "Disyembre",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "E",
+                        "P",
+                        "M",
+                        "A",
+                        "M",
+                        "H",
+                        "H",
+                        "A",
+                        "S",
+                        "O",
+                        "N",
+                        "D",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"’"}
+        alternateQuotationStart{"‘"}
+        quotationEnd{"”"}
+        quotationStart{"“"}
+    }
+    listPattern{
+        standard{
+            2{"{0} at {1}"}
+            end{"{0} at {1}"}
+        }
+    }
+    measurementSystemNames{
+        US{"US"}
+        metric{"Metric"}
+    }
+    units{
+        day{
+            one{"{0} araw"}
+            other{"{0} araw"}
+        }
+        hour{
+            one{"{0} oras"}
+            other{"{0} oras"}
+        }
+        minute{
+            one{"{0} minuto"}
+            other{"{0} minuto"}
+        }
+        month{
+            one{"{0} buwan"}
+            other{"{0} buwan"}
+        }
+        second{
+            one{"{0} segundo"}
+            other{"{0} segundo"}
+        }
+        week{
+            one{"{0} linggo"}
+            other{"{0} linggo"}
+        }
+        year{
+            one{"{0} taon"}
+            other{"{0} taon"}
+        }
+    }
+    unitsShort{
+        day{
+            one{"{0} arw"}
+            other{"{0} arw"}
+        }
+        hour{
+            one{"{0} or"}
+            other{"{0} or"}
+        }
+        minute{
+            one{"{0} min"}
+            other{"{0} min"}
+        }
+        month{
+            one{"{0} buw"}
+            other{"{0} buw"}
+        }
+        second{
+            one{"{0} seg"}
+            other{"{0} seg"}
+        }
+        week{
+            one{"{0} ling"}
+            other{"{0} ling"}
+        }
+        year{
+            one{"{0} ta"}
+            other{"{0} ta"}
+        }
+    }
+}

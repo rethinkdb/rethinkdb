@@ -1,0 +1,65 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template root_typeof_helper&lt;unit&lt; Dim, System &gt;, static_rational&lt; N, D &gt;&gt;</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../boost_units/Reference.html#header.boost.units.unit_hpp" title="Header &lt;boost/units/unit.hpp&gt;">
+<link rel="prev" href="power_typeof__idp157236232.html" title="Struct template power_typeof_helper&lt;unit&lt; Dim, System &gt;, static_rational&lt; N, D &gt;&gt;">
+<link rel="next" href="amount_base_dimension.html" title="Struct amount_base_dimension">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="power_typeof__idp157236232.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_units/Reference.html#header.boost.units.unit_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="amount_base_dimension.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.units.root_typeof_h_idp157241864"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template root_typeof_helper&lt;unit&lt; Dim, System &gt;, static_rational&lt; N, D &gt;&gt;</span></h2>
+<p>boost::units::root_typeof_helper&lt;unit&lt; Dim, System &gt;, static_rational&lt; N, D &gt;&gt; &#8212; take the <code class="computeroutput"><a class="link" href="static_rational.html" title="Class template static_rational">static_rational</a></code> root of a unit </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../boost_units/Reference.html#header.boost.units.unit_hpp" title="Header &lt;boost/units/unit.hpp&gt;">boost/units/unit.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Dim<span class="special">,</span> <span class="keyword">typename</span> System<span class="special">,</span> <span class="keyword">long</span> N<span class="special">,</span> <span class="keyword">long</span> D<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="root_typeof_h_idp157241864.html" title="Struct template root_typeof_helper&lt;unit&lt; Dim, System &gt;, static_rational&lt; N, D &gt;&gt;">root_typeof_helper</a><span class="special">&lt;</span><span class="identifier">unit</span><span class="special">&lt;</span> <span class="identifier">Dim</span><span class="special">,</span> <span class="identifier">System</span> <span class="special">&gt;</span><span class="special">,</span> <span class="identifier">static_rational</span><span class="special">&lt;</span> <span class="identifier">N</span><span class="special">,</span> <span class="identifier">D</span> <span class="special">&gt;</span><span class="special">&gt;</span> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <a class="link" href="unit.html" title="Class template unit">unit</a><span class="special">&lt;</span> <span class="keyword">typename</span> <a class="link" href="static_root.html" title="Struct template static_root">static_root</a><span class="special">&lt;</span> <span class="identifier">Dim</span><span class="special">,</span> <a class="link" href="static_rational.html" title="Class template static_rational">static_rational</a><span class="special">&lt;</span> <span class="identifier">N</span><span class="special">,</span> <span class="identifier">D</span> <span class="special">&gt;</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span><span class="special">,</span> <span class="keyword">typename</span> <a class="link" href="static_root.html" title="Struct template static_root">static_root</a><span class="special">&lt;</span> <span class="identifier">System</span><span class="special">,</span> <a class="link" href="static_rational.html" title="Class template static_rational">static_rational</a><span class="special">&lt;</span> <span class="identifier">N</span><span class="special">,</span> <span class="identifier">D</span> <span class="special">&gt;</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <span class="special">&gt;</span> <a name="boost.units.root_typeof_h_idp157241864.type"></a><span class="identifier">type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="root_typeof_h_idp157241864.html#idp157246248-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">type</span> <a class="link" href="root_typeof_h_idp157241864.html#idp157246456-bb"><span class="identifier">value</span></a><span class="special">(</span><span class="keyword">const</span> <a class="link" href="unit.html" title="Class template unit">unit</a><span class="special">&lt;</span> <span class="identifier">Dim</span><span class="special">,</span> <span class="identifier">System</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp238678072"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp238678280"></a><h3>
+<a name="idp157246248-bb"></a><code class="computeroutput">root_typeof_helper</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><pre class="literallayout"><span class="keyword">static</span> <span class="identifier">type</span> <a name="idp157246456-bb"></a><span class="identifier">value</span><span class="special">(</span><span class="keyword">const</span> <a class="link" href="unit.html" title="Class template unit">unit</a><span class="special">&lt;</span> <span class="identifier">Dim</span><span class="special">,</span> <span class="identifier">System</span> <span class="special">&gt;</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre></li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2008 Matthias Christian Schabel<br>Copyright &#169; 2007-2010 Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="power_typeof__idp157236232.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../boost_units/Reference.html#header.boost.units.unit_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="amount_base_dimension.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

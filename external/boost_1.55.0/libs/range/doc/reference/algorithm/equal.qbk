@@ -1,0 +1,64 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:equal equal]
+
+[heading Prototype]
+
+``
+template<
+    class SinglePassRange1,
+    class SinglePassRange2
+>
+bool equal(const SinglePassRange1& rng1,
+           const SinglePassRange2& rng2);
+
+template<
+    class SinglePassRange1,
+    class SinglePassRange2,
+    class BinaryPredicate
+>
+bool equal(const SinglePassRange1& rng1,
+           const SinglePassRange2& rng2,
+           BinaryPredicate         pred);
+``
+
+[heading Description]
+
+`equal` returns `true` if `distance(rng1)` is equal to the `distance(rng2)` and for each element `x` in `rng1`, the corresponding element `y` in `rng2` is equal. Otherwise `false` is returned.
+
+In this range version of `equal` it is perfectly acceptable to pass in two ranges of unequal lengths.
+
+Elements are considered equal in the non-predicate version if `operator==` returns `true`. Elements are considered equal in the predicate version if `pred(x,y)` is `true`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/equal.hpp`
+
+[heading Requirements]
+
+[*For the non-predicate versions:]
+
+* `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange1`'s value type is a model of the `EqualityComparableConcept`.
+* `SinglePassRange2`'s value type is a model of the `EqualityComparableConcept`.
+* `SinglePassRange1`'s value type can be compared for equality with `SinglePassRange2`'s value type.
+
+[*For the predicate versions:]
+
+* `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+* `BinaryPredicate` is a model of the `BinaryPredicateConcept`.
+* `SinglePassRange1`'s value type is convertible to `BinaryPredicate`'s first argument type.
+* `SinglePassRange2`'s value type is convertible to `BinaryPredicate`'s second argument type.
+
+[heading Complexity]
+
+Linear. At most `min(distance(rng1), distance(rng2))` comparisons.
+
+[endsect]
+
+

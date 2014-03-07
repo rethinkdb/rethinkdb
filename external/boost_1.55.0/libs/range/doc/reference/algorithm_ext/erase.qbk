@@ -1,0 +1,37 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:erase erase]
+
+[heading Prototype]
+
+``
+template<class Container>
+Container& erase(
+    Container& target,
+    iterator_range<typename Container::iterator> to_erase);
+``
+
+[heading Description]
+
+`erase` the iterator range `to_erase` from the container `target`.
+
+`remove_erase` performs the frequently used combination equivalent to `target.erase(std::remove(target.begin(), target.end(), value), target.end());`
+
+`remove_erase_if` performs the frequently used combination equivalent to `target.erase(std::remove_if(target.begin(), target.end(), pred), target.end());`
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm_ext/erase.hpp`
+
+[heading Requirements]
+
+# `Container` supports erase of an iterator range.
+
+[heading Complexity]
+
+Linear. Proprotional to `distance(to_erase)`.
+
+[endsect]

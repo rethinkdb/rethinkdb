@@ -1,0 +1,156 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>const_buffer</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="connect/overload8.html" title="connect (8 of 8 overloads)">
+<link rel="next" href="const_buffer/const_buffer.html" title="const_buffer::const_buffer">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="connect/overload8.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="const_buffer/const_buffer.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.const_buffer"></a><a class="link" href="const_buffer.html" title="const_buffer">const_buffer</a>
+</h3></div></div></div>
+<p>
+        Holds a buffer that cannot be modified.
+      </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">const_buffer</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.const_buffer.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.const_buffer.member_functions"></a></span><a class="link" href="const_buffer.html#boost_asio.reference.const_buffer.member_functions">Member
+        Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  <a class="link" href="const_buffer/const_buffer.html" title="const_buffer::const_buffer"><span class="bold"><strong>const_buffer</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Construct an empty buffer.
+                </p>
+                <p>
+                  Construct a buffer to represent a given memory range.
+                </p>
+                <p>
+                  Construct a non-modifiable buffer from a modifiable one.
+                </p>
+              </td>
+</tr></tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.const_buffer.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.const_buffer.related_functions"></a></span><a class="link" href="const_buffer.html#boost_asio.reference.const_buffer.related_functions">Related
+        Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  <a class="link" href="const_buffer/operator_plus_.html" title="const_buffer::operator+"><span class="bold"><strong>operator+</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Create a new non-modifiable buffer that is offset from the start
+                  of another.
+                </p>
+              </td>
+</tr></tbody>
+</table></div>
+<p>
+        The <a class="link" href="const_buffer.html" title="const_buffer"><code class="computeroutput"><span class="identifier">const_buffer</span></code></a>
+        class provides a safe representation of a buffer that cannot be modified.
+        It does not own the underlying data, and so is cheap to copy or assign.
+      </p>
+<h5>
+<a name="boost_asio.reference.const_buffer.h2"></a>
+        <span class="phrase"><a name="boost_asio.reference.const_buffer.accessing_buffer_contents"></a></span><a class="link" href="const_buffer.html#boost_asio.reference.const_buffer.accessing_buffer_contents">Accessing
+        Buffer Contents</a>
+      </h5>
+<p>
+        The contents of a buffer may be accessed using the <a class="link" href="buffer_size.html" title="buffer_size"><code class="computeroutput"><span class="identifier">buffer_size</span></code></a> and <a class="link" href="buffer_cast.html" title="buffer_cast"><code class="computeroutput"><span class="identifier">buffer_cast</span></code></a> functions:
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">const_buffer</span> <span class="identifier">b1</span> <span class="special">=</span> <span class="special">...;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">s1</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer_size</span><span class="special">(</span><span class="identifier">b1</span><span class="special">);</span>
+<span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">p1</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer_cast</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="keyword">char</span><span class="special">*&gt;(</span><span class="identifier">b1</span><span class="special">);</span>
+</pre>
+<p>
+        The <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">buffer_cast</span></code> function permits violations
+        of type safety, so uses of it in application code should be carefully considered.
+      </p>
+<h5>
+<a name="boost_asio.reference.const_buffer.h3"></a>
+        <span class="phrase"><a name="boost_asio.reference.const_buffer.requirements"></a></span><a class="link" href="const_buffer.html#boost_asio.reference.const_buffer.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/buffer.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="connect/overload8.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="const_buffer/const_buffer.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

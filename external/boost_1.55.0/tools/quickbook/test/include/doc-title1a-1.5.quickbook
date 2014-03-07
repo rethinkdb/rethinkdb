@@ -1,0 +1,20 @@
+[article Doc Title 1a
+[quickbook 1.5]
+[id doc-title]
+]
+
+[/ A repeat of doc-title1, but with an explicit id. ]
+
+[heading a1]
+
+[include doc-title1-inc1.quickbook]
+
+[heading a2]
+
+[include doc-title1-inc2.quickbook]
+
+[heading a3]
+
+[include doc-title1-inc3.quickbook]
+
+[heading a4]

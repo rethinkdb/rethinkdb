@@ -1,0 +1,219 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>Bounded Array;</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Bounded Array Storage</h1>
+<div class="toc" id="toc"></div>
+<h2><a name="bounded_array"></a>Bounded Array</h2>
+<h4>Description</h4>
+<p>The templated class <code>bounded_array&lt;T, N, ALLOC&gt;</code> implements a bounded storage array. The bounded array is similar to a C++ array type in that its maximum size is bounded by N and is allocated on the stack instead of the heap. Similarly a <code>bounded_array</code> requires no secondary storage and ALLOC is only used to specify <code>size_type</code> and <code>difference_type</code>.
+</p>
+<p>When resized <code>bounded_array</code> never reallocated the storage. It is therefore always efficient to resize a <code>bounded_array</code> but the size bound N must not be exceeded.</p>
+<h4>Example</h4>
+<pre>
+#include &lt;boost/numeric/ublas/storage.hpp&gt;
+
+int main () {
+    using namespace boost::numeric::ublas;
+    bounded_array&lt;double, 3&gt; a (3);
+    for (unsigned i = 0; i &lt; a.size (); ++ i) {
+        a [i] = i;
+        std::cout &lt;&lt; a [i] &lt;&lt; std::endl;
+    }
+}
+</pre>
+<h4>Definition</h4>
+<p>Defined in the header storage.hpp.</p>
+<h4>Template parameters</h4>
+<table border="1" summary="parameters">
+<tbody>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>The type of object stored in the array.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>N</code></td>
+<td>The allocation size of the array.</td>
+<td></td>
+</tr>
+<tr>
+<td><code>ALLOC</code></td>
+<td>An STL Allocator</td>
+<td>std::allocator</td>
+</tr>
+</tbody>
+</table>
+<h4>Model of</h4>
+<p><a href="storage_concept.htm">Storage</a></p>
+<h4>Type requirements</h4>
+<p>None, except for those imposed by the requirements of Storage.</p>
+<h4>Public base classes</h4>
+<p>None.</p>
+<h4>Members</h4>
+<ul>
+<li>The description does not describe what the member actually does, this can be looked up
+in the corresponding concept documentation, but instead contains a remark on the implementation of the
+member inside this model of the concept.</li>
+<li>Typography:
+<ul>
+<li>Members that are not part of the implemented concepts are <font color="blue">in blue</font>.</li>
+</ul>
+</li>
+</ul>
+<table border="1" summary="members">
+<tbody>
+<tr>
+<th>Member</th>
+<th>Where defined</th>
+<th>Description</th>
+</tr>
+<tr><td><code>value_type</code></td><td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td><td></tr>
+<tr><td><code>pointer</code></td><td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td><td>Defined as <code>value_type*</code></td></tr>
+<tr><td><code>const_pointer</code></td><td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td><td>Defined as <code>const value_type*</code></td></tr>
+<tr><td><code>reference</code></td><td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td><td>Defined as <code>value_type&amp;</code></td></tr>
+<tr><td><code>const_reference</code></td><td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td><td>Defined as <code>const value_type&amp;</code></td></tr>
+<tr><td><code>size_type</code></td><td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td><td>Defined as <code>Alloc::size_type</code></td></tr>
+<tr><td><code>difference_type</code></td><td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td><td>Defined as <code>Alloc::difference_type</code></td></tr>
+<tr><td><code>iterator</code></td><td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td><td>Defined as <code>pointer</code></td></tr>
+<tr><td><code>const_iterator</code></td><td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td><td>Defined as <code>const_pointer</code></td></tr>
+<tr><td><code>revere_iterator</code></td><td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td><td>Defined as <code>std::reverse_iterator&lt;iterator&gt;</code></td></tr>
+<tr><td><code>const_revere_iterator</code></td><td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td><td>Defined as <code>std::reverse_iterator&lt;const_iterator&gt;</code></td></tr>
+<tr>
+<td><code>bounded_array ()</code></td>
+<td><a href="storage_concept.htm">Storage</a></td>
+<td>Creates an <code>unbounded_array</code> that holds <strong>zero</strong> elements.</td> 
+</tr>
+<tr>
+<td><code>bounded_array (size_type size)</code></td>
+<td><a href="storage_concept.htm">Storage</a></td>
+<td>Creates a uninitialized <code>bounded_array</code> that holds <code>size</code> elements. All the elements are default constructed.</td>
+</tr>
+<tr>
+<td><code>bounded_array (size_type size, const T&amp; init)</code></td>
+<td><a href="storage_concept.htm">Storage</a></td>
+<td>Creates an initialized <code>bounded_array</code> that holds <code>size</code> elements. All the elements are constructed from the <code>init</code> value.</td>
+</tr>
+<tr>
+<td><code>bounded_array (const bounded_array &amp;c)</code></td>
+<td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td>
+<td>The copy constructor.</td>
+</tr>
+<tr>
+<td><code>~bounded_array ()</code></td>
+<td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td>
+<td>Deallocates the <code>bounded_array</code> itself.</td>
+</tr>
+<tr>
+<td><code>void resize (size_type size)</code></td>
+<td><a href="storage_concept.htm">Storage</a>
+<td>Reallocates a <code>bounded_array</code> to hold <code>size</code> elements.</td>
+</tr>
+<tr>
+<td><code>void resize (size_type size, const T&amp; t)</code></td>
+<td><a href="storage_concept.htm">Storage</a>
+<td>Reallocates a <code>bounded_array</code> to hold <code>size</code> elements.</td>
+</tr>
+<tr>
+<td><code>size_type size () const</code></td>
+<td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td>
+<td>Returns the size of the <code>bounded_array</code>.</td>
+</tr>
+<tr>
+<td><code>const_reference operator [] (size_type i) const</code></td>
+<td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td>
+<td>Returns a <code>const</code> reference of the <code>i</code> -th element.</td>
+</tr>
+<tr>
+<td><code>reference operator [] (size_type i)</code></td>
+<td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td>
+<td>Returns a reference of the <code>i</code>-th element.</td>
+</tr>
+<tr>
+<td><code>bounded_array &amp;operator = (const bounded_array &amp;a)</code></td>
+<td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td>
+<td>The assignment operator.</td>
+</tr>
+<tr>
+<td><font color="blue"><code>bounded_array &amp;assign_temporary (bounded_array &amp;a)</code></font></td>
+<td></td>
+<td>Assigns a temporary. May change the array <code>a</code>.</td>
+</tr>
+<tr>
+<td><code>void swap (bounded_array &amp;a)</code></td>
+<td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td>
+<td>Swaps the contents of the arrays.</td>
+</tr>
+<tr>
+<td><code>const_iterator begin () const</code></td>
+<td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td>
+<td>Returns a <code>const_iterator</code> pointing to the beginning of the <code>bounded_array</code>.</td>
+</tr>
+<tr>
+<td><code>const_iterator end () const</code></td>
+<td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td>
+<td>Returns a <code>const_iterator</code> pointing to the end of the <code>bounded_array</code>.</td> 
+</tr>
+<tr>
+<td><code>iterator begin ()</code></td>
+<td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td>
+<td>Returns a <code>iterator</code> pointing to the beginning of the <code>bounded_array</code>.</td>
+</tr>
+<tr>
+<td><code>iterator end ()</code></td>
+<td><a href="http://www.sgi.com/tech/stl/Container.html">Container</a></td>
+<td>Returns a <code>iterator</code> pointing to the end of the <code>bounded_array</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rbegin () const</code></td>
+<td><a href="http://www.sgi.com/tech/stl/ReversibleContainer.html">Reversible Container</a></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the beginning of the reversed <code>bounded_array</code>.</td>
+</tr>
+<tr>
+<td><code>const_reverse_iterator rend () const</code></td>
+<td><a href="http://www.sgi.com/tech/stl/ReversibleContainer.html">Reversible Container</a></td>
+<td>Returns a <code>const_reverse_iterator</code> pointing to the end of the reversed <code>bounded_array</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rbegin ()</code></td>
+<td><a href="http://www.sgi.com/tech/stl/ReversibleContainer.html">Reversible Container</a></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the beginning of the reversed <code>bounded_array</code>.</td>
+</tr>
+<tr>
+<td><code>reverse_iterator rend ()</code></td>
+<td><a href="http://www.sgi.com/tech/stl/ReversibleContainer.html">Reversible Container</a></td>
+<td>Returns a <code>reverse_iterator</code> pointing to the end of the reversed <code>bounded_array</code>.</td>
+</tr>
+</tbody>
+</table>
+   <hr />
+   <p>
+      Copyright (&copy;) 2000-2004 Michael Stevens, Mathias Koch,
+      Joerg Walter, Gunter Winkler<br />
+      Use, modification and distribution are subject to the
+      Boost Software License, Version 1.0.
+      (See accompanying file LICENSE_1_0.txt
+      or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+         http://www.boost.org/LICENSE_1_0.txt
+      </a>).
+   </p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

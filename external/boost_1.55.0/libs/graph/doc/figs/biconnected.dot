@@ -1,0 +1,17 @@
+graph A {
+  node[shape="circle"]
+B [ style="filled", fillcolor="red" ];
+G [ style="filled", fillcolor="red" ];
+A [ style="filled", fillcolor="red" ];
+A -- F[label="1"]
+A -- B[label="1"]
+A -- G[label="3"]
+B -- C[label="0"]
+B -- D[label="0"]
+B -- E[label="1"]
+C -- D[label="0"]
+E -- F[label="1"]
+G -- I[label="2"]
+G -- H[label="2"]
+H -- I[label="2"]
+}

@@ -1,0 +1,121 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Struct template callable_eval</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../../proto/reference.html#header.boost.proto.context.callable_hpp" title="Header &lt;boost/proto/context/callable.hpp&gt;">
+<link rel="prev" href="../external_transforms/when.html" title="Struct template when">
+<link rel="next" href="callable_context.html" title="Struct template callable_context">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../external_transforms/when.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../proto/reference.html#header.boost.proto.context.callable_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="callable_context.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.proto.context.callable_eval"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Struct template callable_eval</span></h2>
+<p>boost::proto::context::callable_eval &#8212; A BinaryFunction that accepts a Proto expression and a callable context and calls
+            the context with the expression tag and children as arguments, effectively fanning the
+            expression out. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../proto/reference.html#header.boost.proto.context.callable_hpp" title="Header &lt;boost/proto/context/callable.hpp&gt;">boost/proto/context/callable.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="../../../Expr.html" title="Concept Expr">Expr</a><span class="special">,</span> <span class="keyword">typename</span> Context<span class="special">&gt;</span> 
+<span class="keyword">struct</span> <a class="link" href="callable_eval.html" title="Struct template callable_eval">callable_eval</a> <span class="special">{</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">&lt;</span>
+    <span class="identifier">Context</span><span class="special">(</span>
+      <span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">::</span><span class="identifier">proto_tag</span><span class="special">,</span>
+      <span class="keyword">typename</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">child_c</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span><span class="special">,</span>
+      <span class="special">...</span>
+      <span class="keyword">typename</span> <span class="identifier">proto</span><span class="special">::</span><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">child_c</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span><span class="special">,</span>
+    <span class="special">)</span><span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span>
+   <a name="boost.proto.context.callable_eval.result_type"></a><span class="identifier">result_type</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="callable_eval.html#idp69054968-bb">public member functions</a></span>
+  <span class="identifier">result_type</span> <a class="link" href="callable_eval.html#idp69055256-bb"><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span></a><span class="special">(</span><span class="identifier">Expr</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">Context</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp188462968"></a><h2>Description</h2>
+<p>
+              <code class="computeroutput">proto::context::callable_eval&lt;&gt;</code> requires that
+              <code class="computeroutput">Context</code> is a <a class="link" href="../../../PolymorphicFunctionObject.html" title="Concept PolymorphicFunctionObject">PolymorphicFunctionObject</a>
+              that can be invoked with <code class="computeroutput">Expr</code>'s tag and children as
+              expressions, as follows:
+              </p>
+<pre class="programlisting"><span class="identifier">context</span><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">Expr</span><span class="special">::</span><span class="identifier">proto_tag</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> <a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;</span><span class="special">(</span><span class="identifier">expr</span><span class="special">)</span><span class="special">,</span> <span class="special">...</span> <a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span><span class="special">(</span><span class="identifier">expr</span><span class="special">)</span><span class="special">)</span></pre>
+<p>
+            </p>
+<div class="refsect2">
+<a name="idp188472696"></a><h3>
+<a name="idp69054968-bb"></a><code class="computeroutput">callable_eval</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="identifier">result_type</span> <a name="idp69055256-bb"></a><span class="keyword">operator</span><span class="special">(</span><span class="special">)</span><span class="special">(</span><span class="identifier">Expr</span> <span class="special">&amp;</span> expr<span class="special">,</span> <span class="identifier">Context</span> <span class="special">&amp;</span> context<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">context</code></span></p></td>
+<td><p>The callable evaluation context </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">expr</code></span></p></td>
+<td><p>The current expression </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>
+                  <code class="computeroutput">
+                    context(typename Expr::proto_tag(),
+                    <a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a>&lt;0&gt;(expr),...
+                    <a class="link" href="../child_c_idp68301400.html" title="Function child_c">proto::child_c</a>&lt;N&gt;(expr))
+                  </code>
+                </p></td>
+</tr>
+</tbody>
+</table></div>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../external_transforms/when.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../proto/reference.html#header.boost.proto.context.callable_hpp"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="callable_context.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

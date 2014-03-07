@@ -1,0 +1,28 @@
+[/
+ / Copyright (c) 2009 Steven Watanabe
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See
+ / accompanying file LICENSE_1_0.txt or copy at
+ / http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section Generating integers in a range]
+
+[import ../example/die.cpp]
+[die]
+
+[endsect]
+
+[section Generating integers with different probabilities]
+
+[import ../example/weighted_die.cpp]
+[weighted_die]
+
+[endsect]
+
+[section Generating a random password]
+
+[import ../example/password.cpp]
+[password]
+
+[endsect]

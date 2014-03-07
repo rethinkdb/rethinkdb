@@ -1,0 +1,191 @@
+# Copyright (c) 2004-2011 Michael Stevens, David Bellot
+# Use, modification and distribution are subject to the
+# Boost Software License, Version 1.0. (See accompanying file
+# LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Bring in rules for testing
+import testing ;
+
+# Define features to test:
+#  Value types: USE_FLOAT USE_DOUBLE USE_STD_COMPLEX
+#  Proxies: USE_RANGE USE_SLICE
+#  Storage types: USE_BOUNDED_ARRAY USE_UNBOUNDED_ARRAY
+#  Vector types: USE_STD_VECTOR USE_BOUNDED_VECTOR
+#  Matrix types: USE_MATRIX USE_BOUNDED_MATRIX USE_VECTOR_OF_VECTOR
+#  Adaptors: USE_ADAPTOR
+
+UBLAS_TESTSET = [ modules.peek : UBLAS_TESTSET ] ;
+UBLAS_TESTSET ?=
+            USE_DOUBLE USE_STD_COMPLEX
+            USE_RANGE USE_SLICE
+            USE_UNBOUNDED_ARRAY USE_STD_VECTOR USE_BOUNDED_VECTOR USE_MATRIX
+            ;
+
+#  Sparse storage: USE_MAP_ARRAY USE_STD_MAP
+#  Sparse vectors: USE_MAPPED_VECTOR USE_COMPRESSED_VECTOR USE_COORDINATE_VECTOR
+#  Sparse matrices: USE_MAPPED_MATRIX USE_COMPRESSED_MATRIX USE_COORDINATE_MATRIX USE_MAPPED_VECTOR_OF_MAPPED_VECTOR USE_GENERALIZED_VECTOR_OF_VECTOR
+
+UBLAS_TESTSET_SPARSE = [ modules.peek : UBLAS_TESTSET_SPARSE ] ;
+UBLAS_TESTSET_SPARSE ?= 
+            USE_DOUBLE USE_STD_COMPLEX
+            # USE_RANGE USE_SLICE	 # Too complex for regression testing
+            USE_UNBOUNDED_ARRAY
+			USE_MAP_ARRAY USE_STD_MAP
+            USE_MAPPED_VECTOR USE_COMPRESSED_VECTOR 
+            USE_MAPPED_MATRIX USE_COMPRESSED_MATRIX 
+			;
+# Generalize VofV still failing
+#            USE_GENERALIZED_VECTOR_OF_VECTOR
+
+UBLAS_TESTSET_SPARSE_COO = [ modules.peek : UBLAS_TESTSET_SPARSE_COO ] ;
+UBLAS_TESTSET_SPARSE_COO ?= 
+            USE_DOUBLE USE_STD_COMPLEX
+            USE_UNBOUNDED_ARRAY
+            USE_COORDINATE_VECTOR
+            USE_COORDINATE_MATRIX 
+			;
+
+
+# Project settings
+project
+    : requirements
+       <define>BOOST_UBLAS_NO_EXCEPTIONS
+       <toolset>vacpp:<define>"BOOST_UBLAS_NO_ELEMENT_PROXIES"
+    ;
+
+
+test-suite numeric/uBLAS
+    : [ run test1.cpp
+            test11.cpp
+            test12.cpp
+            test13.cpp
+        : # args
+        : # input files
+        : # requirements
+            <define>$(UBLAS_TESTSET)
+      ]
+      [ run test2.cpp
+            test21.cpp
+            test22.cpp
+            test23.cpp
+        : : :
+            <define>$(UBLAS_TESTSET)
+      ]
+      [ run test3.cpp
+            test31.cpp
+            test32.cpp
+            test33.cpp
+        : : :
+            <define>$(UBLAS_TESTSET_SPARSE)
+            <define>$(UBLAS_TESTSET_SPARSE_COO)
+      ]
+      [ run test3.cpp
+            test31.cpp
+            test32.cpp
+            test33.cpp
+        : : :
+            <define>USE_FLOAT
+            <define>USE_DOUBLE 
+            <define>USE_STD_COMPLEX 
+            <define>USE_STD_MAP
+            <define>USE_MAPPED_VECTOR_OF_MAPPED_VECTOR 
+        : test3_mvov 
+        :
+      ]
+      [ run test4.cpp
+            test42.cpp
+            test43.cpp
+        : : :
+            <define>$(UBLAS_TESTSET)
+      ]
+      [ run test5.cpp
+            test52.cpp
+            test53.cpp
+        : : :
+            <define>$(UBLAS_TESTSET)
+      ]
+      [ run test6.cpp
+            test62.cpp
+            test63.cpp
+        : : :
+            <define>$(UBLAS_TESTSET)
+      ]
+# Test commented out because boost::interval does not behave like a scalar type
+#      [ run test7.cpp
+#            test71.cpp
+#            test72.cpp
+#            test73.cpp
+#        : : :
+#            <define>BOOST_UBLAS_USE_INTERVAL
+#            <define>$(UBLAS_TESTSET)
+#      ]
+
+      [ run placement_new.cpp
+      ]
+      [ compile concepts.cpp
+        : # requirements
+            <define>EXTERNAL
+#            <define>INTERAL
+#            <define>SKIP_BAD
+            <toolset>intel-linux:<cxxflags>"-Xc"
+            <toolset>darwin:<cxxflags>"-fabi-version=0"
+      ]
+      [ run test_lu.cpp
+      ]
+      [ run triangular_access.cpp
+        : : :
+            <define>NOMESSAGES
+      ]
+      [ run triangular_layout.cpp
+      ]
+      [ run comp_mat_erase.cpp
+      ]
+      [ run sparse_view_test.cpp
+      ]
+      [ run begin_end.cpp
+      ]
+      [ run num_columns.cpp
+      ]
+      [ run num_rows.cpp
+      ]
+      [ run size.cpp
+      ]
+      [ run test_coordinate_matrix_sort.cpp
+      ]
+      [ run test_complex_norms.cpp
+      ]
+	  [ run test_assignment.cpp
+	  ]
+	  [ run test_triangular.cpp
+        :
+        :
+        : <library>/boost/timer//boost_timer
+	  ]
+	  [ run test_ticket7296.cpp
+	  ]
+      [ run test_inplace_solve.cpp
+        : 
+        : 
+        : <define>$(UBLAS_TESTSET) 
+        : test_inplace_solve_basic
+        :
+      ]
+      [ run test_inplace_solve.cpp
+        : 
+        : 
+        : <define>$(UBLAS_TESTSET_SPARSE) <define>$(UBLAS_TESTSET_SPARSE_COO)
+        : test_inplace_solve_sparse
+        :
+      ]
+      [ run test_inplace_solve.cpp
+        : 
+        : 
+        : <define>USE_MAPPED_VECTOR_OF_MAPPED_VECTOR
+        : test_inplace_solve_mvov
+        :
+      ]
+      [ run test_coordinate_vector_inplace_merge.cpp 
+      ]
+      [ run test_coordinate_matrix_inplace_merge.cpp 
+      ]
+    ;

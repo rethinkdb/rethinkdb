@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.5: http://docutils.sourceforge.net/" />
+<title>Iterator Archetype</title>
+<meta name="author" content="David Abrahams, Jeremy Siek, Thomas Witt" />
+<meta name="organization" content="Boost Consulting, Indiana University Open Systems Lab, Zephyr Associates, Inc." />
+<meta name="date" content="2006-09-11" />
+<meta name="copyright" content="Copyright David Abrahams, Jeremy Siek, and Thomas Witt 2004." />
+<link rel="stylesheet" href="../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="iterator-archetype">
+<h1 class="title">Iterator Archetype</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>David Abrahams, Jeremy Siek, Thomas Witt</td></tr>
+<tr><th class="docinfo-name">Contact:</th>
+<td><a class="first reference external" href="mailto:dave&#64;boost-consulting.com">dave&#64;boost-consulting.com</a>, <a class="reference external" href="mailto:jsiek&#64;osl.iu.edu">jsiek&#64;osl.iu.edu</a>, <a class="last reference external" href="mailto:witt&#64;styleadvisor.com">witt&#64;styleadvisor.com</a></td></tr>
+<tr><th class="docinfo-name">Organization:</th>
+<td><a class="first reference external" href="http://www.boost-consulting.com">Boost Consulting</a>, Indiana University <a class="reference external" href="http://www.osl.iu.edu">Open Systems
+Lab</a>, <a class="last reference external" href="http://www.styleadvisor.com">Zephyr Associates, Inc.</a></td></tr>
+<tr><th class="docinfo-name">Date:</th>
+<td>2006-09-11</td></tr>
+<tr><th class="docinfo-name">Copyright:</th>
+<td>Copyright David Abrahams, Jeremy Siek, and Thomas Witt 2004.</td></tr>
+</tbody>
+</table>
+<!-- Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">abstract:</th><td class="field-body">The <tt class="docutils literal"><span class="pre">iterator_archetype</span></tt> class constructs a minimal implementation of
+one of the iterator access concepts and one of the iterator traversal concepts.
+This is used for doing a compile-time check to see if a the type requirements
+of a template are really enough to cover the implementation of the template.
+For further information see the documentation for the <a class="reference external" href="../../concept_check/index.html"><tt class="docutils literal"><span class="pre">boost::concept_check</span></tt></a> library.</td>
+</tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#reference" id="id1">Reference</a><ul>
+<li><a class="reference internal" href="#iterator-archetype-synopsis" id="id2"><tt class="docutils literal"><span class="pre">iterator_archetype</span></tt> Synopsis</a></li>
+<li><a class="reference internal" href="#access-category-tags" id="id3"><tt class="docutils literal"><span class="pre">Access</span> <span class="pre">Category</span> <span class="pre">Tags</span></tt></a></li>
+<li><a class="reference internal" href="#iterator-archetype-requirements" id="id4"><tt class="docutils literal"><span class="pre">iterator_archetype</span></tt> Requirements</a></li>
+<li><a class="reference internal" href="#iterator-archetype-models" id="id5"><tt class="docutils literal"><span class="pre">iterator_archetype</span></tt> Models</a></li>
+<li><a class="reference internal" href="#traits" id="id6"><tt class="docutils literal"><span class="pre">Traits</span></tt></a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="reference">
+<h1><a class="toc-backref" href="#id1">Reference</a></h1>
+<div class="section" id="iterator-archetype-synopsis">
+<h2><a class="toc-backref" href="#id2"><tt class="docutils literal"><span class="pre">iterator_archetype</span></tt> Synopsis</a></h2>
+<pre class="literal-block">
+namespace iterator_archetypes
+{
+    // Access categories
+
+    typedef /*implementation  defined*/ readable_iterator_t;
+    typedef /*implementation  defined*/ writable_iterator_t;
+    typedef /*implementation  defined*/ readable_writable_iterator_t;
+    typedef /*implementation  defined*/ readable_lvalue_iterator_t;
+    typedef /*implementation  defined*/ writable_lvalue_iterator_t;
+
+}
+
+template &lt;
+    class Value
+  , class AccessCategory
+  , class TraversalCategory
+&gt;
+class iterator_archetype
+{
+    typedef /* see below */ value_type;
+    typedef /* see below */ reference;
+    typedef /* see below */ pointer;
+    typedef /* see below */ difference_type;
+    typedef /* see below */ iterator_category;
+};
+</pre>
+</div>
+<div class="section" id="access-category-tags">
+<h2><a class="toc-backref" href="#id3"><tt class="docutils literal"><span class="pre">Access</span> <span class="pre">Category</span> <span class="pre">Tags</span></tt></a></h2>
+<p>The access category types provided correspond to the following
+standard iterator access concept combinations:</p>
+<pre class="literal-block">
+readable_iterator_t :=
+
+  Readable Iterator
+
+writable_iterator_t :=
+
+  Writeable Iterator
+
+readable_writable_iterator_t :=
+
+  Readable Iterator &amp; Writeable Iterator &amp; Swappable Iterator
+
+readable_lvalue_iterator_t :=
+
+  Readable Iterator &amp; Lvalue Iterator
+
+writeable_lvalue_iterator_t :=
+
+  Readable Iterator &amp; Writeable Iterator &amp; Swappable Iterator &amp; Lvalue Iterator
+</pre>
+</div>
+<div class="section" id="iterator-archetype-requirements">
+<h2><a class="toc-backref" href="#id4"><tt class="docutils literal"><span class="pre">iterator_archetype</span></tt> Requirements</a></h2>
+<p>The <tt class="docutils literal"><span class="pre">AccessCategory</span></tt> argument must be one of the predefined access
+category tags. The <tt class="docutils literal"><span class="pre">TraversalCategory</span></tt> must be one of the standard
+traversal tags. The <tt class="docutils literal"><span class="pre">Value</span></tt> type must satisfy the requirements of
+the iterator concept specified by <tt class="docutils literal"><span class="pre">AccessCategory</span></tt> and
+<tt class="docutils literal"><span class="pre">TraversalCategory</span></tt> as implied by the nested traits types.</p>
+</div>
+<div class="section" id="iterator-archetype-models">
+<h2><a class="toc-backref" href="#id5"><tt class="docutils literal"><span class="pre">iterator_archetype</span></tt> Models</a></h2>
+<p><tt class="docutils literal"><span class="pre">iterator_archetype</span></tt> models the iterator concepts specified by the
+<tt class="docutils literal"><span class="pre">AccessCategory</span></tt> and <tt class="docutils literal"><span class="pre">TraversalCategory</span></tt>
+arguments. <tt class="docutils literal"><span class="pre">iterator_archetype</span></tt> does not model any other access
+concepts or any more derived traversal concepts.</p>
+</div>
+<div class="section" id="traits">
+<h2><a class="toc-backref" href="#id6"><tt class="docutils literal"><span class="pre">Traits</span></tt></a></h2>
+<p>The nested trait types are defined as follows:</p>
+<pre class="literal-block">
+if (AccessCategory == readable_iterator_t)
+
+  value_type = Value
+  reference  = Value
+  pointer    = Value*
+
+else if (AccessCategory == writable_iterator_t)
+
+  value_type = void
+  reference  = void
+  pointer    = void
+
+else if (AccessCategory == readable_writable_iterator_t)
+
+  value_type = Value
+
+  reference :=
+
+    A type X that is convertible to Value for which the following
+    expression is valid. Given an object x of type X and v of type
+    Value.
+
+    x = v
+
+  pointer    = Value*
+
+else if (AccessCategory == readable_lvalue_iterator_t)
+
+  value_type = Value
+  reference  = Value const&amp;
+  pointer    = Value const*
+
+else if (AccessCategory == writable_lvalue_iterator_t)
+
+  value_type = Value
+  reference  = Value&amp;
+  pointer    = Value*
+
+if ( TraversalCategory is convertible to forward_traversal_tag )
+
+  difference_type := ptrdiff_t
+
+else
+
+  difference_type := unspecified type
+
+
+iterator_category :=
+
+  A type X satisfying the following two constraints:
+
+     1. X is convertible to X1, and not to any more-derived
+        type, where X1 is defined by:
+
+          if (reference is a reference type
+              &amp;&amp; TraversalCategory is convertible to forward_traversal_tag)
+          {
+              if (TraversalCategory is convertible to random_access_traversal_tag)
+                  X1 = random_access_iterator_tag
+              else if (TraversalCategory is convertible to bidirectional_traversal_tag)
+                  X1 = bidirectional_iterator_tag
+              else
+                  X1 = forward_iterator_tag
+          }
+          else
+          {
+              if (TraversalCategory is convertible to single_pass_traversal_tag
+                  &amp;&amp; reference != void)
+                  X1 = input_iterator_tag
+              else
+                  X1 = output_iterator_tag
+          }
+
+     2. X is convertible to TraversalCategory
+</pre>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+<a class="reference external" href="iterator_archetypes.rst">View document source</a>.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

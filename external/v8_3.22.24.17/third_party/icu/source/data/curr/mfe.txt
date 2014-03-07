@@ -1,0 +1,236 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/mfe.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/mfe.xml
+ */
+mfe{
+    Currencies{
+        AED{
+            "AED",
+            "dirham Emira arab ini",
+        }
+        AOA{
+            "Kz",
+            "kwanza angole",
+        }
+        AUD{
+            "AU$",
+            "dolar ostralien",
+        }
+        BHD{
+            "BD",
+            "dinar bahreïn",
+        }
+        BIF{
+            "FBu",
+            "fran burunde",
+        }
+        BWP{
+            "BWP",
+            "pula ya botswane",
+        }
+        CAD{
+            "CA$",
+            "dolar kanadien",
+        }
+        CDF{
+            "CDF",
+            "fran kongole",
+        }
+        CHF{
+            "CHF",
+            "fran swis",
+        }
+        CNY{
+            "CN¥",
+            "yuan renminbi sinwa",
+        }
+        CVE{
+            "CV$",
+            "eskudo kapverdien",
+        }
+        DJF{
+            "Fdj",
+            "fran djiboutien",
+        }
+        DZD{
+            "DA",
+            "dinar alzerien",
+        }
+        EGP{
+            "EGP",
+            "liv ezipsien",
+        }
+        ERN{
+            "Nfk",
+            "nafka erythreen",
+        }
+        ETB{
+            "Br",
+            "birr etiopien",
+        }
+        EUR{
+            "€",
+            "euro",
+        }
+        GBP{
+            "£",
+            "liv sterlin",
+        }
+        GHC{
+            "₵",
+            "sedi ganeen",
+        }
+        GMD{
+            "GMD",
+            "dalasi gambien",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "fran gineen",
+        }
+        INR{
+            "Rs",
+            "roupi",
+        }
+        JPY{
+            "JP¥",
+            "yen zapone",
+        }
+        KES{
+            "Ksh",
+            "shiling kenyan",
+        }
+        KMF{
+            "CF",
+            "fran komorien",
+        }
+        LRD{
+            "L$",
+            "dolar liberien",
+        }
+        LSL{
+            "LSL",
+            "loti lezoto",
+        }
+        LYD{
+            "LD",
+            "dinar libien",
+        }
+        MAD{
+            "MAD",
+            "dirham marokin",
+        }
+        MGA{
+            "MGA",
+            "fran malgas",
+        }
+        MRO{
+            "UM",
+            "ouguiya moritanien",
+        }
+        MUR{
+            "MURs",
+            "roupi morisien",
+        }
+        MWK{
+            "MWK",
+            "kwacha malawit",
+        }
+        MZM{
+            "Mt",
+            "metikal mozanbikin",
+        }
+        NAD{
+            "N$",
+            "dolar namibien",
+        }
+        NGN{
+            "₦",
+            "naira nizerian",
+        }
+        RWF{
+            "RWF",
+            "fran rwande",
+        }
+        SAR{
+            "SR",
+            "rial saoudien",
+        }
+        SCR{
+            "SRe",
+            "roupi seselwa",
+        }
+        SDG{
+            "SDG",
+            "dinar soudane",
+        }
+        SDP{
+            "SDP" /** ===  */,
+            "liv soudane",
+        }
+        SHP{
+            "SH£",
+            "liv Sainte-Hélène",
+        }
+        SLL{
+            "Le",
+            "leonn Sierra-Leone",
+        }
+        SOS{
+            "Ssh",
+            "shilingi somalien",
+        }
+        STD{
+            "Db",
+            "dobra santomeen",
+        }
+        SZL{
+            "SZL",
+            "lilangeni swazi",
+        }
+        TND{
+            "DT",
+            "dinar tinizien",
+        }
+        TZS{
+            "TSh",
+            "shiling tanzanien",
+        }
+        UGX{
+            "USh",
+            "shiling ougande",
+        }
+        USD{
+            "US$",
+            "dolar amerikin",
+        }
+        XAF{
+            "FCFA",
+            "fran CFA (BEAC)",
+        }
+        XOF{
+            "CFA",
+            "fran CFA (BCEAO)",
+        }
+        ZAR{
+            "R",
+            "rand sid-afrikin",
+        }
+        ZMK{
+            "ZK",
+            "kwacha zanbien",
+        }
+        ZWD{
+            "Z$",
+            "dolar zimbawe",
+        }
+    }
+    Version{"2.0.47.63"}
+}

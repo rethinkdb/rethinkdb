@@ -1,0 +1,177 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Extending Actors]
+
+[link phoenix.inside.actor Actors] are one of the main parts of the
+library, and one of the many customization points. The default actor implementation
+provides several operator() overloads which deal with the evaluation of expressions.
+
+For some use cases this might not be enough. For convenience it is thinkable to
+provide custom member functions which generate new expressions. An example is the
+[link phoenix.modules.statement.___if_else_____statement '''if_else_'''
+Statement] which provides an additional else member for generating a lazy if-else
+expression. With this the actual Phoenix expression becomes more expressive.
+
+Another scenario is to give actors the semantics of a certain well known interface
+or concept. This tutorial like section will provide information on how to implement
+a custom actor which is usable as if it were a
+[@http://www.sgi.com/tech/stl/Container.html STL Container].
+
+[heading Requirements]
+
+Let's repeat what we want to have:
+
+[table
+	[[Expression] [Semantics]]
+	[[`a.begin()`] [Returns an iterator pointing to the first element in the container.]]
+	[[`a.end()`] [Returns an iterator pointing one past the last element in the container.]]
+	[[`a.size()`] [Returns the size of the container, that is, its number of elements.]]
+	[[`a.max_size()`] [Returns the largest size that this container can ever have.]]
+	[[`a.empty()`] [Equivalent to a.size() == 0. (But possibly faster.)]]
+	[[`a.swap(b)`] [Equivalent to swap(a,b)]]
+]
+
+Additionally, we want all the operator() overloads of the regular actor.
+
+[heading Defining the actor]
+
+The first version of our `container_actor` interface will show the general
+principle. This will be continually extended. For the sake of simplicity,
+every member function generator will return [link phoenix.modules.core.nothing `nothing`]
+at first.
+
+	template <typename Expr>
+	struct container_actor
+		: actor<Expr>
+	{
+		typedef actor<Expr> base_type;
+		typedef container_actor<Expr> that_type;
+		
+		container_actor( base_type const& base )
+			: base_type( base ) {}
+
+		expression::null<mpl::void_>::type const begin() const { return nothing; }
+		expression::null<mpl::void_>::type const end() const { return nothing; }
+		expression::null<mpl::void_>::type const size() const { return nothing; }
+		expression::null<mpl::void_>::type const max_size() const { return nothing; }
+		expression::null<mpl::void_>::type const empty() const { return nothing; }
+
+		// Note that swap is the only function needing another container.
+		template <typename Container>
+		expression::null<mpl::void_>::type const swap( actor<Container> const& ) const { return nothing; }
+	};
+
+[heading Using the actor]
+
+Although the member functions do nothing right now, we want to test if we can use
+our new actor.
+
+First, lets create a generator which wraps the `container_actor` around any other
+expression:
+
+    template <typename Expr>
+    container_actor<Expr> const
+    container( actor<Expr> const& expr )
+    {
+        return expr;
+    }
+
+Now let's test this:
+
+	std::vector<int> v;
+	v.push_back(0);
+	v.push_back(1);
+	v.push_back(2);
+	v.push_back(3);
+
+	(container(arg1).size())(v);
+
+Granted, this is not really elegant and not very practical (we could have just
+used phoenix::begin(v) from the [link phoenix.modules.stl.algorithm Phoenix algorithm module], 
+but we can do better.
+
+Let's have an [link phoenix.modules.core.arguments argument placeholder]
+which is usable as if it was a STL container:
+
+	container_actor<expression::argument<1>::type> const con1;
+	// and so on ...
+
+The above example can be rewritten as:
+
+	std::vector<int> v;
+	v.push_back(0);
+	v.push_back(1);
+	v.push_back(2);
+	v.push_back(3);
+
+	(con1.size())(v);
+
+Wow, that was easy!
+
+[heading Adding life to the actor]
+
+This one will be even easier!
+
+First, we define a [link phoenix.modules.function lazy function] which
+evaluates the expression we want to implement.
+Following is the implementation of the size function:
+
+	struct size_impl
+	{
+		// result_of protocol:
+		template <typename Sig>
+		struct result;
+
+		template <typename This, typename Container>
+		struct result<This(Container)>
+		{
+			// Note, remove reference here, because Container can be anything
+			typedef typename boost::remove_reference<Container>::type container_type;
+
+			// The result will be size_type
+			typedef typename container_type::size_type type;
+		};
+
+		template <typename Container>
+		typename result<size_impl(Container const&)>::type
+		operator()(Container const& container) const
+		{
+			return container.size();
+		}
+	};
+
+Good, this was the first part. The second part will be to implement the size member
+function of `container_actor`:
+	
+	template <typename Expr>
+	struct container_actor
+		: actor<Expr>
+	{
+		typedef actor<Expr> base_type;
+		typedef container_actor<Expr> that_type;
+		
+		container_actor( base_type const& base )
+			: base_type( base ) {}
+
+		typename expression::function<size_impl, that_type>::type const
+		size() const
+		{
+			function<size_impl> const f = size_impl();
+			return f(*this);
+		}
+	
+		// the rest ...
+	};
+
+It is left as an exercise to the user to implement the missing parts by reusing
+functions from the [link phoenix.modules.stl.algorithm Phoenix Algorithm Module]
+(the impatient take a look here: [@../../example/container_actor.cpp container_actor.cpp]).
+
+[endsect]

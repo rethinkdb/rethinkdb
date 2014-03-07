@@ -1,0 +1,91 @@
+/** @page recipes Recipes
+
+    Here, we'll give solution for some desires which seem common.
+
+    @section recipe_parameter_validation How to check for correct option value types and assign them?
+
+    There's the boost::program_options::parameter function. It
+    returns a object, which, if passed as the second parameter
+    to boost::program_options::option_description constructor,
+    establishes correct validation routine. A simple example
+    is
+    @code
+    options_description desc;
+    desc.add_options()
+    ("foo", parameter<int>("arg"), "obscure option")
+    ;
+    @endcode
+
+    If you pass an address of <tt>int</tt> variable as the second
+    parameter of the <tt>parameter</tt> function, that variable will
+    be assigned the options's value.
+
+    @sa @ref variables_map
+
+    @section recipe_lazy What if I don't want to declare any options?
+
+    I'm not sure this is good idea. In particular, mistyped options
+    will be silently ignored, leading to possible user surprises. 
+    Futher, the boost::program_options::cmdline class was specially
+    designed to be very lightweight. 
+
+    Anyway, there's a version of the parse_command_line function
+    which does not take an options_description instance. Also, the
+    cmdline class ctor accepts an 'allow_unregistered' parameter. 
+    In both cases, all options will be allowed, and treated as if
+    they have optional parameter.
+
+    Note that with the default style, 
+    @verbatim
+    --foo bar
+    @endverbatim
+    will be taken as option "foo" with value "bar", which is
+    probably not correct. You should disable option parameter in
+    the next token to avoid problems.
+
+    @sa boost::program_options::cmdline
+
+    @section recipe_multiple_modules I have several separate modules which must controlled by options. What am I to do?
+
+    There are several solutions. 
+
+    @subsection sb1 Everything's global
+
+    You can create a single instance of the <tt>options_description</tt> class
+    somewhere near <tt>main</tt>. All the modules will export their own
+    options using other <tt>options_description</tt> instances which can
+    be added to the main one. After that, you'd parse command line and 
+    config files. The parsing results will be stored in one variables_map,
+    which will be passed to all modules, which can work with their own 
+    options.
+
+    @subsection sb2 Private option data
+
+    Assume one of the modules does not like to see irrelevant options.
+    For example, it outputs a configuration file for other program, and
+    irrelevant options will confuse that program. 
+
+    It's possible to give the module only the options that it has
+    registered. First, the module provides an options_description instance
+    which is added to the global one. Second the command line is parsed
+    to produce an options_and_arguments instance. Lastly, the <tt>store</tt>
+    function is called. If passed the options_description instance previously
+    returned by the module, it will store only options specified in that
+    instance. 
+    @sa @ref multiple_modules
+    
+
+    @subsection sb3 Unique option names
+
+    The most general solution would be to give unique names to options
+    for different modules. One module will declare option "module1.server",
+    and another would declare "module2.internal_checks". Of course, there
+    can be global options like "verbosity", declared by <tt>main</tt> and
+    used by all modules.
+
+    This solution avoids all possible name clashes between modules. On
+    the other hand, longer option names can be less user-friendly. This
+    problem can be alleviated if module prefix is used only for less 
+    common option, needed for fine-tuning.
+
+*/

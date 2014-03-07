@@ -1,0 +1,149 @@
+@import url("doc/src/boostbook.css");
+@import url("doc/src/docutils.css");
+/* Copyright David Abrahams 2006. Distributed under the Boost
+   Software License, Version 1.0. (See accompanying
+   file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ */
+
+dl.docutils dt {
+  font-weight: bold }
+
+img.boost-logo {
+  border: none;
+  vertical-align: middle
+}
+
+pre.literal-block span.concept {
+  font-style: italic;
+}
+
+.nav { 
+display: inline;
+list-style-type: none;
+}
+
+.prevpage {
+padding-top: -5px;
+text-align: left;
+float: left;
+}
+
+.nextpage {
+padding-top: -20px;
+text-align: right;
+float: right;
+}
+
+div.small {
+   font-size: smaller }
+
+h2 a { 
+   font-size: 90%; 
+}
+h3 a { 
+   font-size: 80%; 
+}
+h4 a { 
+   font-size: 70%; 
+}
+h5 a { 
+   font-size: 60%; 
+}
+
+dl,table
+{
+   text-align: left;
+   font-size: 10pt; 
+   line-height: 1.15;
+}
+
+
+/*=============================================================================
+    Tables
+=============================================================================*/
+
+/* The only clue docutils gives us that tables are logically tables,
+   and not, e.g., footnotes, is that they have border="1".  Therefore
+   we're keying off of that.  We used to manually patch docutils to
+   add a "table" class to all logical tables, but that proved much too
+   fragile.
+*/
+
+    table[border="1"]
+    {
+        width: 92%;
+        margin-left: 4%;
+        margin-right: 4%;
+    }
+    
+    table[border="1"]
+    {
+        padding: 4px;
+    }
+    
+    /* Table Cells */
+    table[border="1"] tr td
+    {
+        padding: 0.5em;
+        text-align: left;
+        font-size: 9pt;
+    }
+
+    table[border="1"] tr th
+    {
+        padding: 0.5em 0.5em 0.5em 0.5em;
+        border: 1pt solid white;
+        font-size: 80%;
+    }
+
+    @media screen
+    {
+    
+    /* Tables */
+        table[border="1"] tr td
+        {
+            border: 1px solid #DCDCDC;
+        }
+    
+        table[border="1"] tr th
+        {
+            background-color: #F0F0F0;
+            border: 1px solid #DCDCDC;
+        }
+
+        pre, 
+        .screen
+        {
+            border: 1px solid #DCDCDC;
+        }
+    
+        td pre
+        td .screen
+        {
+            border: 0px
+        }
+    
+        .sidebar pre
+        {
+            border: 0px
+        }
+    
+    }
+
+    pre, 
+    .screen
+    {
+        font-size: 9pt;
+        display: block;
+        margin: 1pc 4% 0pc 4%;
+        padding: 0.5pc 0.5pc 0.5pc 0.5pc;
+    }
+
+    /* Program listings in tables don't get borders */
+    td pre, 
+    td .screen
+    {
+        margin: 0pc 0pc 0pc 0pc;
+        padding:  0pc 0pc 0pc 0pc;
+    }
+

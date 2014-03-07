@@ -1,0 +1,126 @@
+Index: source/common/udata.cpp
+===================================================================
+--- source/common/udata.cpp	(revision 68397)
++++ source/common/udata.cpp	(working copy)
+@@ -610,7 +610,7 @@
+  *      our common data.                                                *
+  *                                                                      *
+  *----------------------------------------------------------------------*/
+-extern "C" const DataHeader U_DATA_API U_ICUDATA_ENTRY_POINT;
++extern "C" const ICU_Data_Header U_DATA_API U_ICUDATA_ENTRY_POINT;
+ 
+ /*
+  * This would be a good place for weak-linkage declarations of
+@@ -656,7 +656,7 @@
+         if(gCommonICUDataArray[commonDataIndex] == NULL) {
+             int32_t i;
+             for(i = 0; i < commonDataIndex; ++i) {
+-                if(gCommonICUDataArray[i]->pHeader == &U_ICUDATA_ENTRY_POINT) {
++                if(gCommonICUDataArray[i]->pHeader == &U_ICUDATA_ENTRY_POINT.hdr) {
+                     /* The linked-in data is already in the list. */
+                     return NULL;
+                 }
+@@ -675,7 +675,7 @@
+                 setCommonICUDataPointer(uprv_getICUData_conversion(), FALSE, pErrorCode);
+             }
+             */
+-            setCommonICUDataPointer(&U_ICUDATA_ENTRY_POINT, FALSE, pErrorCode);
++            setCommonICUDataPointer(&U_ICUDATA_ENTRY_POINT.hdr, FALSE, pErrorCode);
+         }
+         return gCommonICUDataArray[commonDataIndex];
+     }
+Index: source/common/ucmndata.h
+===================================================================
+--- source/common/ucmndata.h	(revision 68397)
++++ source/common/ucmndata.h	(working copy)
+@@ -44,6 +44,20 @@
+ } DataHeader;
+ 
+ typedef struct {
++    DataHeader hdr;
++    char padding[8];
++    uint32_t count, reserved;
++    /*
++    const struct {
++    const char *const name; 
++    const void *const data;
++    } toc[1];
++    */
++   int   fakeNameAndData[4];       /* TODO:  Change this header type from */
++                                   /*        pointerTOC to OffsetTOC.     */
++} ICU_Data_Header;
++
++typedef struct {
+     uint32_t nameOffset;
+     uint32_t dataOffset;
+ } UDataOffsetTOCEntry;
+Index: source/stubdata/stubdata.c
+===================================================================
+--- source/stubdata/stubdata.c	(revision 68397)
++++ source/stubdata/stubdata.c	(working copy)
+@@ -20,45 +20,34 @@
+ #include "unicode/utypes.h"
+ #include "unicode/udata.h"
+ #include "unicode/uversion.h"
++#include "ucmndata.h"
+ 
+ 
+-typedef struct {
+-    uint16_t headerSize;
+-    uint8_t magic1, magic2;
+-    UDataInfo info;
+-    char padding[8];
+-    uint32_t count, reserved;
+-    /*
+-    const struct {
+-    const char *const name; 
+-    const void *const data;
+-    } toc[1];
+-    */
+-   int   fakeNameAndData[4];       /* TODO:  Change this header type from */
+-                                   /*        pointerTOC to OffsetTOC.     */
+-} ICU_Data_Header;
+-
+ U_EXPORT const ICU_Data_Header U_ICUDATA_ENTRY_POINT = {
+-    32,          /* headerSize */
+-    0xda,        /* magic1,  (see struct MappedData in udata.c)  */
+-    0x27,        /* magic2     */
+-    {            /*UDataInfo   */
+-        sizeof(UDataInfo),      /* size        */
+-        0,                      /* reserved    */
++    {            /* DataHeader */
++        {            /* MappedData */
++            32,          /* headerSize */
++            0xda,        /* magic1,  (see struct MappedData in udata.c)  */
++            0x27,        /* magic2     */
++        },
++        {            /*UDataInfo   */
++            sizeof(UDataInfo),      /* size        */
++            0,                      /* reserved    */
+ 
+ #if U_IS_BIG_ENDIAN
+-        1,
++            1,
+ #else
+-        0,
++            0,
+ #endif
+ 
+-        U_CHARSET_FAMILY,
+-        sizeof(UChar),   
+-        0,               /* reserved      */
+-        {                /* data format identifier */
+-           0x54, 0x6f, 0x43, 0x50}, /* "ToCP" */
+-           {1, 0, 0, 0},   /* format version major, minor, milli, micro */
+-           {0, 0, 0, 0}    /* dataVersion   */
++            U_CHARSET_FAMILY,
++            sizeof(UChar),   
++            0,               /* reserved      */
++            {                /* data format identifier */
++               0x54, 0x6f, 0x43, 0x50}, /* "ToCP" */
++               {1, 0, 0, 0},   /* format version major, minor, milli, micro */
++               {0, 0, 0, 0}    /* dataVersion   */
++        },
+     },
+     {0,0,0,0,0,0,0,0},  /* Padding[8]   */ 
+     0,                  /* count        */

@@ -1,0 +1,74 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+
+[section Controlled Stepper]
+
+This concept specifies the interface a controlled stepper has to fulfill to be used within __integrate_functions.
+
+[heading Description]
+
+A controlled stepper following this Controlled Stepper concept provides the possibility to perform one step of the solution /x(t)/ of an ODE with step-size /dt/ to obtain /x(t+dt)/ with a given step-size /dt/.
+Depending on an error estimate of the solution the step might be rejected and a smaller step-size is suggested.
+
+[heading Associated types]
+
+*  '''<para>'''[*state_type]'''</para>'''
+'''<para>'''`Stepper::state_type`'''</para>'''
+'''<para>'''The type characterizing the state of the ODE, hence ['x].'''</para>'''
+
+*  '''<para>'''[*deriv_type]'''</para>'''
+'''<para>'''`Stepper::deriv_type`'''</para>'''
+'''<para>'''The type characterizing the derivative of the ODE, hence ['d x/dt].'''</para>'''
+
+*  '''<para>'''[*time_type]'''</para>'''
+'''<para>'''`Stepper::time_type`'''</para>'''
+'''<para>'''The type characterizing the dependent variable of the ODE, hence the time ['t].'''</para>'''
+
+*  '''<para>'''[*value_type]'''</para>'''
+'''<para>'''`Stepper::value_type`'''</para>'''
+'''<para>'''The numerical data type which is used within the stepper, something like `float`, `double`, `complex&lt; double &gt;`.'''</para>'''
+
+*  '''<para>'''[*stepper_category]'''</para>'''
+'''<para>'''`Stepper::stepper_category`'''</para>'''
+'''<para>'''A tag type characterizing the category of the stepper. This type must be convertible to `controlled_stepper_tag`.'''</para>'''
+
+
+
+[heading Notation]
+
+[variablelist 
+  [[`ControlledStepper`] [A type that is a model of Controlled Stepper]]
+  [[`State`] [A type representing the state /x/ of the ODE]]
+  [[`Time`] [A type representing the time /t/ of the ODE]]
+  [[`stepper`] [An object of type `ControlledStepper`]]
+  [[`x`] [Object of type `State`]]
+  [[`t`, `dt`] [Objects of type `Time`]]
+  [[`sys`] [An object defining the ODE, should be a model of __system, __symplectic_system, __simple_symplectic_system or __implicit_system.]]
+]
+
+[heading Valid Expressions]
+
+[table
+  [[Name] [Expression] [Type] [Semantics]]
+  [[Do step] [``stepper.try_step( sys , x , t , dt )``] [`controlled_step_result`] [Tries one step of step size `dt`. If the step was successful, `success` is returned, the resulting state is written to `x`, the new time is stored in `t` and `dt` now contains a new (possibly larger) step-size for the next step. If the error was too big, `rejected` is returned and the results are neglected - `x` and `t` are unchanged and `dt` now contains a reduced step-size to be used for the next try.] ]
+  [/ [Do step with reference] [`stepper.try_step( boost::ref(sys) , x , t , dt )`] [`void`] [Same as above with `System` as reference] ]
+]
+
+[heading Models]
+
+* `controlled_error_stepper< runge_kutta_cash_karp54 >`
+* `controlled_error_stepper_fsal< runge_kutta_dopri5 >`
+* `controlled_error_stepper< runge_kutta_fehlberg78 >`
+* `rosenbrock4_controller`
+* `bulirsch_stoer`
+
+[endsect]

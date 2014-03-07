@@ -1,0 +1,94 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:perf Appendix 4: Performance Comparison]
+
+The performance of xpressive is competitive with _regexpp_. I have run performance
+benchmarks comparing static xpressive, dynamic xpressive and _regexpp_ on two platforms:
+gcc (Cygwin) and Visual C++. The tests include short matches and long searches. For both
+platforms, xpressive comes off well on short matches and roughly on par with _regexpp_ on
+long searches.
+
+<disclaimer>
+As with all benchmarks,
+the true test is how xpressive performs with ['your] patterns, ['your] input, and ['your]
+platform, so if performance matters in your application, it's best to run your own tests.
+</disclaimer>
+
+[section:perf_gcc xpressive vs. Boost.Regex with GCC (Cygwin)]
+
+Below are the results of a performance comparison between:
+
+* static xpressive
+* dynamic xpressive
+* _regexpp_
+
+[variablelist Test Specifications
+[[Hardware:]             [hyper-threaded 3GHz Xeon with 1Gb RAM]]
+[[Operating System:]     [Windows XP Pro + Cygwin]]
+[[Compiler:]             [GNU C++ version 3.4.4 (Cygwin special)]]
+[[C++ Standard Library:] [GNU libstdc++ version 3.4.4]]
+[[_regexpp_ Version:]    [1.33+, BOOST_REGEX_USE_CPP_LOCALE, BOOST_REGEX_RECURSIVE]]
+[[xpressive Version:]    [0.9.6a]]
+]
+
+[h2 Comparison 1: Short Matches]
+
+The following tests evaluate the time taken to match the expression to the input string.
+For each result, the top number has been normalized relative to the fastest time, so 1.0
+is as good as it gets. The bottom number (in parentheses) is the actual time in seconds.
+The best time has been marked in green.
+
+[xinclude ../perf/gcc/short_matches.xml]
+
+[h2 Comparison 2: Long Searches]
+
+The next test measures the time to find ['all] matches in a long English text. The text is the
+[@http://www.gutenberg.org/dirs/3/2/0/3200/3200.zip complete works of Mark Twain],
+from [@http://promo.net/pg/ Project Gutenberg]. The text is 19Mb long. As above, the top number
+is the normalized time and the bottom number is the actual time. The best time is in green.
+
+[xinclude ../perf/gcc/long_twain_search.xml]
+
+[endsect]
+[section:perf_msvc xpressive vs. Boost.Regex with Visual C++]
+
+Below are the results of a performance comparison between:
+
+* static xpressive
+* dynamic xpressive
+* _regexpp_
+
+[variablelist Test Specifications
+[[Hardware:]             [hyper-threaded 3GHz Xeon with 1Gb RAM]]
+[[Operating System:]     [Windows XP Pro]]
+[[Compiler:]             [Visual C++ .NET 2003 (7.1)]]
+[[C++ Standard Library:] [Dinkumware, version 313]]
+[[_regexpp_ Version:]    [1.33+, BOOST_REGEX_USE_CPP_LOCALE, BOOST_REGEX_RECURSIVE]]
+[[xpressive Version:]    [0.9.6a]]
+]
+
+[h2 Comparison 1: Short Matches]
+
+The following tests evaluate the time taken to match the expression to the input string.
+For each result, the top number has been normalized relative to the fastest time, so 1.0
+is as good as it gets. The bottom number (in parentheses) is the actual time in seconds.
+The best time has been marked in green.
+
+[xinclude ../perf/msvc/short_matches.xml]
+
+[h2 Comparison 2: Long Searches]
+
+The next test measures the time to find ['all] matches in a long English text. The text is the
+[@http://www.gutenberg.org/dirs/3/2/0/3200/3200.zip complete works of Mark Twain],
+from [@http://promo.net/pg/ Project Gutenberg]. The text is 19Mb long. As above, the top number
+is the normalized time and the bottom number is the actual time. The best time is in green.
+
+[xinclude ../perf/msvc/long_twain_search.xml]
+
+[endsect]
+[endsect]

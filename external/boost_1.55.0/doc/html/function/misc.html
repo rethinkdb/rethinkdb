@@ -1,0 +1,111 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Miscellaneous Notes</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../function.html" title="Chapter&#160;11.&#160;Boost.Function">
+<link rel="prev" href="faq.html" title="Frequently Asked Questions">
+<link rel="next" href="testsuite.html" title="Testsuite">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="faq.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="testsuite.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="function.misc"></a>Miscellaneous Notes</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="misc.html#idp97044072">Boost.Function vs. Function Pointers</a></span></dt>
+<dt><span class="section"><a href="misc.html#idp97048024">Performance</a></span></dt>
+<dt><span class="section"><a href="misc.html#idp97052008">Combatting virtual function "bloat"</a></span></dt>
+<dt><span class="section"><a href="misc.html#idp97053528">Acknowledgements</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp97044072"></a>Boost.Function vs. Function Pointers</h3></div></div></div>
+<p>Boost.Function has several advantages over function pointers, namely:
+
+</p>
+<div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: disc; ">
+<li class="listitem"><p>Boost.Function allows arbitrary compatible function objects to be targets (instead of requiring an exact function signature).</p></li>
+<li class="listitem"><p>Boost.Function may be used with argument-binding and other function object construction libraries.</p></li>
+<li class="listitem"><p>Boost.Function has predictible behavior when an empty function object is called. </p></li>
+</ul></div>
+<p> And, of course, function pointers have several advantages over Boost.Function:
+
+</p>
+<div class="itemizedlist"><ul class="itemizedlist compact" style="list-style-type: disc; ">
+<li class="listitem"><p> Function pointers are smaller (the size of one pointer instead of four or more) </p></li>
+<li class="listitem"><p> Function pointers are faster (Boost.Function may require two calls through function pointers) </p></li>
+<li class="listitem"><p> Function pointers are backward-compatible with C libraries.</p></li>
+<li class="listitem"><p> More readable error messages. </p></li>
+</ul></div>
+<p>
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp97048024"></a>Performance</h3></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="misc.html#idp97048360">Function object wrapper size</a></span></dt>
+<dt><span class="section"><a href="misc.html#idp97049336">Copying efficiency</a></span></dt>
+<dt><span class="section"><a href="misc.html#idp97051048">Invocation efficiency</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp97048360"></a>Function object wrapper size</h4></div></div></div>
+<p> Function object wrappers will be the size of a struct containing a member function pointer and two data pointers. The actual size can vary significantly depending on the underlying platform; on 32-bit Mac OS X with GCC, this amounts to 16 bytes, while it is 32 bytes Windows with Visual C++. Additionally, the function object target may be allocated on the heap, if it cannot be placed into the small-object buffer in the <code class="computeroutput">boost::function</code> object.</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp97049336"></a>Copying efficiency</h4></div></div></div>
+<p> Copying function object wrappers may require allocating memory for a copy of the function object target. The default allocator may be replaced with a faster custom allocator or one may choose to allow the function object wrappers to only store function object targets by reference (using <code class="computeroutput">ref</code>) if the cost of this cloning becomes prohibitive. Small function objects can be stored within the <code class="computeroutput">boost::function</code> object itself, improving copying efficiency.</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="idp97051048"></a>Invocation efficiency</h4></div></div></div>
+<p> With a properly inlining compiler, an invocation of a function object requires one call through a function pointer. If the call is to a free function pointer, an additional call must be made to that function pointer (unless the compiler has very powerful interprocedural analysis).</p>
+</div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp97052008"></a>Combatting virtual function "bloat"</h3></div></div></div>
+<p> The use of virtual functions tends to cause 'code bloat' on many compilers. When a class contains a virtual function, it is necessary to emit an additional function that classifies the type of the object. It has been our experience that these auxiliary functions increase the size of the executable significantly when many <code class="computeroutput">boost::function</code> objects are used. </p>
+<p> In Boost.Function, an alternative but equivalent approach was taken using free functions instead of virtual functions. The Boost.Function object essentially holds two pointers to make a valid target call: a void pointer to the function object it contains and a void pointer to an "invoker" that can call the function object, given the function pointer. This invoker function performs the argument and return value conversions Boost.Function provides. A third pointer points to a free function called the "manager", which handles the cloning and destruction of function objects. The scheme is typesafe because the only functions that actually handle the function object, the invoker and the manager, are instantiated given the type of the function object, so they can safely cast the incoming void pointer (the function object pointer) to the appropriate type.</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp97053528"></a>Acknowledgements</h3></div></div></div>
+<p> Many people were involved in the construction of this
+    library. William Kempf, Jesse Jones and Karl Nelson were all
+    extremely helpful in isolating an interface and scope for the
+    library. John Maddock managed the formal review, and many
+    reviewers gave excellent comments on interface, implementation,
+    and documentation. Peter Dimov led us to the function
+    declarator-based syntax.</p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: July 14, 2008 at 19:32:29 +0100</small></p></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="faq.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="testsuite.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

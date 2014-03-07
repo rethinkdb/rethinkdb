@@ -1,0 +1,21 @@
+graph G {
+  rankdir="LR"
+  size="5,3"
+  ratio="fill"
+  node[shape="circle"]
+  A B C D E F G H
+  A -- B
+  A -- C
+  A -- D
+  B -- C
+  B -- D
+  C -- D
+  D -- E
+  D -- H
+  E -- F
+  E -- G
+  E -- H
+  F -- G
+  F -- H
+  G -- H
+}

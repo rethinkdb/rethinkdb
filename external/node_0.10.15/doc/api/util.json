@@ -1,0 +1,243 @@
+{
+  "source": "doc/api/util.markdown",
+  "modules": [
+    {
+      "textRaw": "util",
+      "name": "util",
+      "stability": 5,
+      "stabilityText": "Locked",
+      "desc": "<p>These functions are in the module <code>&#39;util&#39;</code>. Use <code>require(&#39;util&#39;)</code> to access\nthem.\n\n\n</p>\n",
+      "methods": [
+        {
+          "textRaw": "util.format(format, [...])",
+          "type": "method",
+          "name": "format",
+          "desc": "<p>Returns a formatted string using the first argument as a <code>printf</code>-like format.\n\n</p>\n<p>The first argument is a string that contains zero or more <em>placeholders</em>.\nEach placeholder is replaced with the converted value from its corresponding\nargument. Supported placeholders are:\n\n</p>\n<ul>\n<li><code>%s</code> - String.</li>\n<li><code>%d</code> - Number (both integer and float).</li>\n<li><code>%j</code> - JSON.</li>\n<li><code>%</code> - single percent sign (<code>&#39;%&#39;</code>). This does not consume an argument.</li>\n</ul>\n<p>If the placeholder does not have a corresponding argument, the placeholder is\nnot replaced.\n\n</p>\n<pre><code>util.format(&#39;%s:%s&#39;, &#39;foo&#39;); // &#39;foo:%s&#39;</code></pre>\n<p>If there are more arguments than placeholders, the extra arguments are\nconverted to strings with <code>util.inspect()</code> and these strings are concatenated,\ndelimited by a space.\n\n</p>\n<pre><code>util.format(&#39;%s:%s&#39;, &#39;foo&#39;, &#39;bar&#39;, &#39;baz&#39;); // &#39;foo:bar baz&#39;</code></pre>\n<p>If the first argument is not a format string then <code>util.format()</code> returns\na string that is the concatenation of all its arguments separated by spaces.\nEach argument is converted to a string with <code>util.inspect()</code>.\n\n</p>\n<pre><code>util.format(1, 2, 3); // &#39;1 2 3&#39;</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "format"
+                },
+                {
+                  "name": "...",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "util.debug(string)",
+          "type": "method",
+          "name": "debug",
+          "desc": "<p>A synchronous output function. Will block the process and\noutput <code>string</code> immediately to <code>stderr</code>.\n\n</p>\n<pre><code>require(&#39;util&#39;).debug(&#39;message on stderr&#39;);</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "string"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "util.error([...])",
+          "type": "method",
+          "name": "error",
+          "desc": "<p>Same as <code>util.debug()</code> except this will output all arguments immediately to\n<code>stderr</code>.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "...",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "util.puts([...])",
+          "type": "method",
+          "name": "puts",
+          "desc": "<p>A synchronous output function. Will block the process and output all arguments\nto <code>stdout</code> with newlines after each argument.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "...",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "util.print([...])",
+          "type": "method",
+          "name": "print",
+          "desc": "<p>A synchronous output function. Will block the process, cast each argument to a\nstring then output to <code>stdout</code>. Does not place newlines after each argument.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "...",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "util.log(string)",
+          "type": "method",
+          "name": "log",
+          "desc": "<p>Output with timestamp on <code>stdout</code>.\n\n</p>\n<pre><code>require(&#39;util&#39;).log(&#39;Timestamped message.&#39;);</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "string"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "util.inspect(object, [options])",
+          "type": "method",
+          "name": "inspect",
+          "desc": "<p>Return a string representation of <code>object</code>, which is useful for debugging.\n\n</p>\n<p>An optional <em>options</em> object may be passed that alters certain aspects of the\nformatted string:\n\n</p>\n<ul>\n<li><p><code>showHidden</code> - if <code>true</code> then the object&#39;s non-enumerable properties will be\nshown too. Defaults to <code>false</code>.</p>\n</li>\n<li><p><code>depth</code> - tells <code>inspect</code> how many times to recurse while formatting the\nobject. This is useful for inspecting large complicated objects. Defaults to\n<code>2</code>. To make it recurse indefinitely pass <code>null</code>.</p>\n</li>\n<li><p><code>colors</code> - if <code>true</code>, then the output will be styled with ANSI color codes.\nDefaults to <code>false</code>. Colors are customizable, see below.</p>\n</li>\n<li><p><code>customInspect</code> - if <code>false</code>, then custom <code>inspect()</code> functions defined on the\nobjects being inspected won&#39;t be called. Defaults to <code>true</code>.</p>\n</li>\n</ul>\n<p>Example of inspecting all properties of the <code>util</code> object:\n\n</p>\n<pre><code>var util = require(&#39;util&#39;);\n\nconsole.log(util.inspect(util, { showHidden: true, depth: null }));</code></pre>\n",
+          "modules": [
+            {
+              "textRaw": "Customizing `util.inspect` colors",
+              "name": "customizing_`util.inspect`_colors",
+              "desc": "<p>Color output (if enabled) of <code>util.inspect</code> is customizable globally\nvia <code>util.inspect.styles</code> and <code>util.inspect.colors</code> objects.\n\n</p>\n<p><code>util.inspect.styles</code> is a map assigning each style a color\nfrom <code>util.inspect.colors</code>.\nHighlighted styles and their default values are:\n <em> <code>number</code> (yellow)\n </em> <code>boolean</code> (yellow)\n <em> <code>string</code> (green)\n </em> <code>date</code> (magenta)\n <em> <code>regexp</code> (red)\n </em> <code>null</code> (bold)\n <em> <code>undefined</code> (grey)\n </em> <code>special</code> - only function at this time (cyan)\n * <code>name</code> (intentionally no styling)\n\n</p>\n<p>Predefined color codes are: <code>white</code>, <code>grey</code>, <code>black</code>, <code>blue</code>, <code>cyan</code>, \n<code>green</code>, <code>magenta</code>, <code>red</code> and <code>yellow</code>.\nThere are also <code>bold</code>, <code>italic</code>, <code>underline</code> and <code>inverse</code> codes.\n\n</p>\n<p>Objects also may define their own <code>inspect(depth)</code> function which <code>util.inspect()</code>\nwill invoke and use the result of when inspecting the object:\n\n</p>\n<pre><code>var util = require(&#39;util&#39;);\n\nvar obj = { name: &#39;nate&#39; };\nobj.inspect = function(depth) {\n  return &#39;{&#39; + this.name + &#39;}&#39;;\n};\n\nutil.inspect(obj);\n  // &quot;{nate}&quot;</code></pre>\n",
+              "type": "module",
+              "displayName": "Customizing `util.inspect` colors"
+            }
+          ],
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "object"
+                },
+                {
+                  "name": "options",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "util.isArray(object)",
+          "type": "method",
+          "name": "isArray",
+          "desc": "<p>Returns <code>true</code> if the given &quot;object&quot; is an <code>Array</code>. <code>false</code> otherwise.\n\n</p>\n<pre><code>var util = require(&#39;util&#39;);\n\nutil.isArray([])\n  // true\nutil.isArray(new Array)\n  // true\nutil.isArray({})\n  // false</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "object"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "util.isRegExp(object)",
+          "type": "method",
+          "name": "isRegExp",
+          "desc": "<p>Returns <code>true</code> if the given &quot;object&quot; is a <code>RegExp</code>. <code>false</code> otherwise.\n\n</p>\n<pre><code>var util = require(&#39;util&#39;);\n\nutil.isRegExp(/some regexp/)\n  // true\nutil.isRegExp(new RegExp(&#39;another regexp&#39;))\n  // true\nutil.isRegExp({})\n  // false</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "object"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "util.isDate(object)",
+          "type": "method",
+          "name": "isDate",
+          "desc": "<p>Returns <code>true</code> if the given &quot;object&quot; is a <code>Date</code>. <code>false</code> otherwise.\n\n</p>\n<pre><code>var util = require(&#39;util&#39;);\n\nutil.isDate(new Date())\n  // true\nutil.isDate(Date())\n  // false (without &#39;new&#39; returns a String)\nutil.isDate({})\n  // false</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "object"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "util.isError(object)",
+          "type": "method",
+          "name": "isError",
+          "desc": "<p>Returns <code>true</code> if the given &quot;object&quot; is an <code>Error</code>. <code>false</code> otherwise.\n\n</p>\n<pre><code>var util = require(&#39;util&#39;);\n\nutil.isError(new Error())\n  // true\nutil.isError(new TypeError())\n  // true\nutil.isError({ name: &#39;Error&#39;, message: &#39;an error occurred&#39; })\n  // false</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "object"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "util.pump(readableStream, writableStream, [callback])",
+          "type": "method",
+          "name": "pump",
+          "stability": 0,
+          "stabilityText": "Deprecated: Use readableStream.pipe(writableStream)",
+          "desc": "<p>Read the data from <code>readableStream</code> and send it to the <code>writableStream</code>.\nWhen <code>writableStream.write(data)</code> returns <code>false</code> <code>readableStream</code> will be\npaused until the <code>drain</code> event occurs on the <code>writableStream</code>. <code>callback</code> gets\nan error as its only argument and is called when <code>writableStream</code> is closed or\nwhen an error occurs.\n\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "readableStream"
+                },
+                {
+                  "name": "writableStream"
+                },
+                {
+                  "name": "callback",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "util.inherits(constructor, superConstructor)",
+          "type": "method",
+          "name": "inherits",
+          "desc": "<p>Inherit the prototype methods from one\n<a href=\"https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Object/constructor\">constructor</a>\ninto another.  The prototype of <code>constructor</code> will be set to a new\nobject created from <code>superConstructor</code>.\n\n</p>\n<p>As an additional convenience, <code>superConstructor</code> will be accessible\nthrough the <code>constructor.super_</code> property.\n\n</p>\n<pre><code>var util = require(&quot;util&quot;);\nvar events = require(&quot;events&quot;);\n\nfunction MyStream() {\n    events.EventEmitter.call(this);\n}\n\nutil.inherits(MyStream, events.EventEmitter);\n\nMyStream.prototype.write = function(data) {\n    this.emit(&quot;data&quot;, data);\n}\n\nvar stream = new MyStream();\n\nconsole.log(stream instanceof events.EventEmitter); // true\nconsole.log(MyStream.super_ === events.EventEmitter); // true\n\nstream.on(&quot;data&quot;, function(data) {\n    console.log(&#39;Received data: &quot;&#39; + data + &#39;&quot;&#39;);\n})\nstream.write(&quot;It works!&quot;); // Received data: &quot;It works!&quot;</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "constructor"
+                },
+                {
+                  "name": "superConstructor"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "type": "module",
+      "displayName": "util"
+    }
+  ]
+}

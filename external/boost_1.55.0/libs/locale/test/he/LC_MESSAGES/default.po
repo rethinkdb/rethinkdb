@@ -1,0 +1,35 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural= (n==1 ? 0 : (n==2 ? 1 : (n>10 ? 3 : 2)))  ;\n"
+
+msgid "בדיקה"
+msgstr "test"
+
+msgid "hello"
+msgstr "שלום"
+
+msgid "#hello"
+msgstr "#שלום"
+
+msgctxt "context"
+msgid "hello"
+msgstr "שלום בהקשר אחר"
+
+msgid "x day"
+msgid_plural "x days"
+msgstr[0] "יום x"
+msgstr[1] "יומיים"
+msgstr[2] "x ימים"
+msgstr[3] "x יום"
+
+msgctxt "context"
+msgid "x day"
+msgid_plural "בהקשר x days"
+msgstr[0] "בהקשר יום x"
+msgstr[1] "בהקשר יומיים"
+msgstr[2] "בהקשר x ימים"
+msgstr[3] "בהקשר x יום"
+

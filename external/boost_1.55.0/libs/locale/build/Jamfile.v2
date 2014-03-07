@@ -1,0 +1,436 @@
+# copyright John Maddock 2003, Artyom Beilis 2010
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or copy at 
+# http://www.boost.org/LICENSE_1_0.txt.
+
+
+
+project /boost/locale
+    : source-location ../src
+    ;
+
+import configure ;
+import os ;
+import toolset ;
+import project ;
+import feature ;
+# Features
+
+feature.feature boost.locale.iconv : on off : optional propagated ;
+feature.feature boost.locale.icu : on off :  optional propagated ;
+feature.feature boost.locale.posix : on off : optional propagated ;
+feature.feature boost.locale.std : on off : optional propagated ;
+feature.feature boost.locale.winapi : on off : optional propagated ;
+
+# Configuration of libraries
+
+## iconv
+
+obj has_iconv_libc_obj : ../build/has_iconv.cpp ;
+exe has_iconv : has_iconv_libc_obj ;
+explicit has_iconv ;
+
+ICONV_PATH = [ modules.peek : ICONV_PATH ] ;
+
+lib iconv 
+  : 
+  : <search>$(ICONV_PATH)/lib <link>shared <runtime-link>shared
+  :
+  : <include>$(ICONV_PATH)/include 
+  ;
+
+explicit iconv ;
+
+obj has_iconv_libc_ext : ../build/has_iconv.cpp iconv ;
+exe has_external_iconv : has_iconv_libc_ext iconv ;
+explicit has_external_iconv ;
+
+exe accepts_shared_option   : ../build/option.cpp 
+                            :   <cxxflags>-shared-libstdc++ 
+                                <cxxflags>-shared-libgcc
+                                <linkflags>-shared-libstdc++
+                                <linkflags>-shared-libgcc
+                            ;
+
+
+ICU_PATH =  [ modules.peek : ICU_PATH ] ;
+ICU_LINK =  [ modules.peek : ICU_LINK ] ;
+
+if $(ICU_LINK)
+{
+    ICU_OPTS = <include>$(ICU_PATH)/include <linkflags>$(ICU_LINK) <dll-path>$(ICU_PATH)/bin <runtime-link>shared ;
+    ICU64_OPTS = <include>$(ICU_PATH)/include <linkflags>$(ICU_LINK) <dll-path>$(ICU_PATH)/bin64 <runtime-link>shared ;
+}
+else
+{
+    searched-lib icuuc : :  <name>icuuc
+                            <search>$(ICU_PATH)/lib 
+                            <link>shared 
+                            <runtime-link>shared ;
+
+    searched-lib icuuc : :  <toolset>msvc
+                            <variant>debug
+                            <name>icuucd
+                            <search>$(ICU_PATH)/lib
+                            <link>shared
+                            <runtime-link>shared ;
+
+    searched-lib icuuc : :  <name>this_is_an_invalid_library_name ;
+
+    searched-lib icudt : :  <search>$(ICU_PATH)/lib
+                            <name>icudata
+                            <link>shared
+                            <runtime-link>shared ;
+
+    searched-lib icudt : :  <search>$(ICU_PATH)/lib
+                            <name>icudt
+                            <toolset>msvc
+                            <link>shared
+                            <runtime-link>shared ;
+
+    searched-lib icudt : :  <name>this_is_an_invalid_library_name ;
+
+    searched-lib icuin : :  <search>$(ICU_PATH)/lib
+                            <name>icui18n
+                            <link>shared
+                            <runtime-link>shared ;
+
+    searched-lib icuin : :  <toolset>msvc
+                            <variant>debug
+                            <name>icuind
+                            <search>$(ICU_PATH)/lib
+                            <link>shared
+                            <runtime-link>shared ;
+
+    searched-lib icuin : :  <toolset>msvc
+                            <variant>release
+                            <name>icuin
+                            <search>$(ICU_PATH)/lib
+                            <link>shared
+                            <runtime-link>shared ;
+
+    searched-lib icuin : :  <name>this_is_an_invalid_library_name ;
+
+    explicit icuuc icudt icuin ;
+
+    ICU_OPTS =   <include>$(ICU_PATH)/include 
+      <library>icuuc/<link>shared/<runtime-link>shared 
+      <library>icudt/<link>shared/<runtime-link>shared 
+      <library>icuin/<link>shared/<runtime-link>shared
+      <dll-path>$(ICU_PATH)/bin
+        <runtime-link>shared ;
+
+
+
+    searched-lib icuuc_64 : :   <name>icuuc
+                                <search>$(ICU_PATH)/lib64 
+                                <link>shared 
+                                <runtime-link>shared ;
+
+    searched-lib icuuc_64 : :   <toolset>msvc
+                                <variant>debug
+                                <name>icuucd
+                                <search>$(ICU_PATH)/lib64
+                                <link>shared
+                                <runtime-link>shared ;
+
+    searched-lib icuuc_64 : :   <name>this_is_an_invalid_library_name ;
+
+    searched-lib icudt_64 : :   <search>$(ICU_PATH)/lib64
+                                <name>icudata
+                                <link>shared
+                                <runtime-link>shared ;
+
+    searched-lib icudt_64 : :   <search>$(ICU_PATH)/lib64
+                                <name>icudt
+                                <toolset>msvc
+                                <link>shared
+                                <runtime-link>shared ;
+
+    searched-lib icudt_64 : :   <name>this_is_an_invalid_library_name ;
+
+    searched-lib icuin_64 : :   <search>$(ICU_PATH)/lib64
+                                <name>icui18n
+                                <link>shared
+                                <runtime-link>shared ;
+
+    searched-lib icuin_64 : :   <toolset>msvc
+                                <variant>debug
+                                <name>icuind
+                                <search>$(ICU_PATH)/lib64
+                                <link>shared
+                                <runtime-link>shared ;
+
+    searched-lib icuin_64 : :   <toolset>msvc
+                                <variant>release
+                                <name>icuin
+                                <search>$(ICU_PATH)/lib64
+                                <link>shared
+                                <runtime-link>shared ;
+
+    searched-lib icuin_64 : :   <name>this_is_an_invalid_library_name ;
+
+    explicit icuuc_64 icudt_64 icuin_64 ;
+
+    ICU64_OPTS =   <include>$(ICU_PATH)/include 
+      <library>icuuc_64/<link>shared/<runtime-link>shared 
+      <library>icudt_64/<link>shared/<runtime-link>shared 
+      <library>icuin_64/<link>shared/<runtime-link>shared
+      <dll-path>$(ICU_PATH)/bin64
+        <runtime-link>shared ;
+ 
+    
+}
+
+obj has_icu_obj     : ../build/has_icu_test.cpp : $(ICU_OPTS)   ;
+obj has_icu64_obj   : ../build/has_icu_test.cpp : $(ICU64_OPTS) ;
+
+exe has_icu   : has_icu_obj   : $(ICU_OPTS)   ;
+exe has_icu64 : has_icu64_obj : $(ICU64_OPTS) ;
+
+explicit has_icu has_icu64 ;
+
+
+# This function is called whenever the 'boost_locale' metatarget
+# below is generated and figures what external components we have,
+# what user wants, and what sources have to be compiled in the end.
+rule configure-full ( properties * : flags-only )
+{
+
+    local result ;
+    local flags-result ;
+    
+    local found-iconv ;
+    
+    if <boost.locale.iconv>on in $(properties)
+      || ! <boost.locale.iconv> in $(properties:G) 
+        && ! <target-os>solaris in $(properties)
+    {
+        # See if iconv is bundled with standard library.
+        if [ configure.builds has_iconv : $(properties) : "iconv (libc)" ]
+        {
+            found-iconv = true ;
+        }
+        else 
+        {
+            if [ configure.builds has_external_iconv : $(properties) : "iconv (separate)" ]
+            {
+                found-iconv = true ;
+                result += <library>iconv ;
+            }
+        }
+    }        
+    if $(found-iconv) 
+    {
+        flags-result += <define>BOOST_LOCALE_WITH_ICONV=1 ;
+    }
+
+    local found-icu ;
+
+    if ! <boost.locale.icu>off in $(properties)
+    {
+        if [ configure.builds has_icu : $(properties) : "icu" ]
+        {
+            found-icu = true ;
+            flags-result += <define>BOOST_LOCALE_WITH_ICU=1 $(ICU_OPTS) ;
+        }
+        else if [ configure.builds has_icu64 : $(properties) : "icu (lib64)" ]
+        {
+            found-icu = true ;
+            flags-result += <define>BOOST_LOCALE_WITH_ICU=1 $(ICU64_OPTS) ;
+        }
+
+        if $(found-icu)
+        {
+            ICU_SOURCES = 
+                boundary
+                codecvt
+                collator
+                conversion
+                date_time
+                formatter
+                icu_backend
+                numeric
+                time_zone
+                ;
+            
+            result += <source>icu/$(ICU_SOURCES).cpp 
+                      <library>../../thread/build//boost_thread 
+                      ;
+        }
+
+    }
+        
+    if ! $(found-iconv) && ! $(found-icu) && ! <target-os>windows in $(properties) && ! <target-os>cygwin in $(properties) 
+    {
+        ECHO "- Boost.Locale needs either iconv or ICU library to be built." ;
+        result += <build>no ;
+    }
+    
+    if ! <boost.locale.std> in $(properties:G)
+    {
+        if <toolset>sun in $(properties)
+        {
+            properties += <boost.locale.std>off ;
+        }
+        else
+        {
+            properties += <boost.locale.std>on ;
+        }                
+    }
+    
+    if <boost.locale.std>off in $(properties)
+    {
+        flags-result += <define>BOOST_LOCALE_NO_STD_BACKEND=1 ;
+    }
+    else
+    {
+        STD_SOURCES =
+          codecvt
+          collate
+          converter
+          numeric
+          std_backend
+          ;
+        result += <source>std/$(STD_SOURCES).cpp ;
+    }
+    
+    if ! <boost.locale.winapi> in $(properties:G)
+    {
+        if <target-os>windows in $(properties) 
+          || <target-os>cygwin in $(properties)
+        {
+            properties += <boost.locale.winapi>on ;
+        }      
+        else
+        {
+            properties += <boost.locale.winapi>off ;
+        }                
+    }
+    if  <target-os>windows in $(properties) 
+        && <toolset>gcc in $(properties) 
+        && <link>shared in $(properties)
+        && [ configure.builds accepts_shared_option : $(properties) : "g++ -shared-* supported" ]
+    {
+        flags-result += <cxxflags>-shared-libstdc++ 
+                        <cxxflags>-shared-libgcc
+                        <linkflags>-shared-libstdc++
+                        <linkflags>-shared-libgcc
+                        ;
+    }
+    
+    if <boost.locale.winapi>off in $(properties)
+    {
+        flags-result += <define>BOOST_LOCALE_NO_WINAPI_BACKEND=1 ;
+    }
+    else
+    {
+        WINAPI_SOURCES = 
+            collate
+            converter
+            numeric
+            win_backend
+          ;
+        result += <source>win32/$(WINAPI_SOURCES).cpp ;
+    }
+    
+    if ( ! <boost.locale.winapi>off in $(properties) || ! <boost.locale.std>off in $(properties) )
+       && ( <target-os>windows in $(properties) || <target-os>cygwin in $(properties) )
+    {
+        result += <source>win32/lcid.cpp ;
+    }
+ 
+    if ! <boost.locale.posix> in $(properties:G)
+    {
+        if <target-os>linux in $(properties) || <target-os>darwin in $(properties)
+        {
+            properties += <boost.locale.posix>on ;
+        }
+        else
+        {
+            properties += <boost.locale.posix>off ;            
+        }        
+    }
+    
+    if <boost.locale.posix>off in $(properties)
+    {
+        flags-result += <define>BOOST_LOCALE_NO_POSIX_BACKEND=1 ;        
+    }
+    else
+    {
+        POSIX_SOURCES = 
+          collate
+          converter
+          numeric
+          codecvt
+          posix_backend
+          ;
+        result += <source>posix/$(POSIX_SOURCES).cpp ;
+    }
+
+    if <boost.locale.posix>on in $(properties) || <boost.locale.std>on in $(properties) || <boost.locale.winapi>on in $(properties)
+    {
+        result += <source>util/gregorian.cpp ;
+    }
+    
+    result += <library>../../system/build//boost_system ;
+
+
+    if "$(flags-only)" = "flags" 
+    {
+        return $(flags-result) ;
+    }
+    else {
+        result += $(flags-result) ;
+        return $(result) ;
+    }
+}
+
+rule configure ( properties * )
+{
+    local result = [ configure-full $(properties) : "all" ] ;
+    return $(result) ;
+    
+}
+
+rule configure-flags ( properties * )
+{
+    local result ;
+    result = [ configure-full $(properties) : "flags" ] ;
+    return $(result) ;
+    
+}
+
+
+alias build_options : : : : <conditional>@configure ;
+alias build_flags : : : : <conditional>@configure-flags ;
+
+lib boost_locale 
+    : 
+        encoding/codepage.cpp
+        shared/date_time.cpp
+        shared/format.cpp
+        shared/formatting.cpp
+        shared/generator.cpp
+        shared/ids.cpp
+        shared/localization_backend.cpp
+        shared/message.cpp
+        shared/mo_lambda.cpp
+        util/codecvt_converter.cpp
+        util/default_locale.cpp
+        util/info.cpp
+        util/locale_data.cpp  
+    :
+      # Don't link explicitly, not required
+      <define>BOOST_THREAD_NO_LIB=1
+      <link>shared:<define>BOOST_LOCALE_DYN_LINK=1
+      <threading>multi
+      # Meanwhile remove this
+      <conditional>@configure
+    ;
+
+boost-install boost_locale ;
+
+
+# vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
+

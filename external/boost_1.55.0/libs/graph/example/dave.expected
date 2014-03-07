@@ -1,0 +1,24 @@
+a --> c d 
+b --> a d 
+c --> f 
+d --> c e f 
+e --> b g 
+f --> e g 
+g --> 
+Starting graph:
+a 2147483647 (a,c) (a,d) 
+c 2147483647 (c,f) 
+d 2147483647 (d,c) (d,e) (d,f) 
+f 2147483647 (f,e) (f,g) 
+e 2147483647 (e,b) (e,g) 
+g 2147483647 
+b 2147483647 (b,a) (b,d) 
+
+Result:
+a 0 (a,c) (a,d) 
+c 3 (c,f) 
+d 4 (d,c) (d,e) (d,f) 
+f 9 (f,e) (f,g) 
+e 4 (e,b) (e,g) 
+g 7 
+b 14 (b,a) (b,d) 

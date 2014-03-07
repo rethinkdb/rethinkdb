@@ -1,0 +1,163 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.MultiIndex Documentation - Tests</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+<link rel="start" href="index.html">
+<link rel="prev" href="examples.html">
+<link rel="up" href="index.html">
+<link rel="next" href="future_work.html">
+</head>
+
+<body>
+<h1><img src="../../../boost.png" alt="boost.png (6897 bytes)" align=
+"middle" width="277" height="86">Boost.MultiIndex Tests</h1>
+
+<div class="prev_link"><a href="examples.html"><img src="prev.gif" alt="examples" border="0"><br>
+Examples
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="future_work.html"><img src="next.gif" alt="future work" border="0"><br>
+Future work
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<p>
+The Boost.MultiIndex test suite exercises the whole spectrum of
+functionalities provided by the library. Although the tests are not meant
+to serve as a learning guide, the interested reader may find it
+useful to inspect the source code to gain familiarity
+with some of the least common features offered by Boost.MultiIndex.
+</p>
+
+<p align="center">
+<table cellspacing="0" cellpadding="5">
+  <caption><b>Boost.MultiIndex test suite.</b></caption>
+<tr>
+  <th>Program</th>
+  <th>Description</th>
+</tr>
+<tr>
+  <td><a href="../test/test_basic.cpp"><code>test_basic.cpp</code></a></td>
+  <td>Simple program along the lines of the employees example studied in the
+  tutorial.</td>
+</tr>
+<tr class="odd_tr">
+  <td><a href="../test/test_capacity.cpp"><code>test_capacity.cpp</code></a></td>
+  <td><code>empty</code>, <code>size</code>, <code>resize</code>
+  (non key-based indices) and <code>reserve</code>/<code>capacity</code>
+  (random access indices only).</td>
+</tr>
+<tr>
+  <td><a href="../test/test_comparison.cpp"><code>test_comparison.cpp</code></a></td>
+  <td>Comparison between indices.</td>
+</tr>
+<tr class="odd_tr">
+  <td><a href="../test/test_composite_key.cpp"><code>test_composite_key.cpp</code></a></td>
+  <td><code>composite_key</code> and <code>composite_key_compare</code>.</td>
+</tr>
+<tr>
+  <td><a href="../test/test_conv_iterators.cpp"><code>test_conv_iterators.cpp</code></a></td>
+  <td>Checks convertibility of non-constant to constant iterators.</td>
+</tr>
+<tr class="odd_tr">
+  <td><a href="../test/test_copy_assignment.cpp"><code>test_copy_assignment.cpp</code></a></td>
+  <td>Various forms of assignment: copy, <code>operator =</code>, insertion,
+  (non key-based indices only) <code>assign</code> .
+</tr>
+<tr>
+  <td><a href="../test/test_hash_ops.cpp"><code>test_hash_ops.cpp</code></a></td>
+  <td>Hashing operations.</td>
+</tr>
+<tr class="odd_tr">
+  <td><a href="../test/test_iterators.cpp"><code>test_iterators.cpp</code></a></td>
+  <td>Constant and non-constant iterators and their reverse variants.</td>
+</tr>
+<tr>
+  <td><a href="../test/test_key_extractors.cpp"><code>test_key_extractors.cpp</code></a></td>
+  <td>Covers all use cases of key extractors shipped with the library.</td>
+</tr>
+<tr class="odd_tr">
+  <td><a href="../test/test_list_ops.cpp"><code>test_list_ops.cpp</code></a></td>
+  <td>List-like operations particular to sequenced and random access indices.</td>
+</tr>
+<tr>
+  <td><a href="../test/test_modifiers.cpp"><code>test_modifiers.cpp</code></a></td>
+  <td>Checks the family of insertion and erasing operations.</td>
+</tr>
+<tr class="odd_tr">
+  <td><a href="../test/test_mpl_ops.cpp"><code>test_mpl_ops.cpp</code></a></td>
+  <td>Metaprogramming manipulations of <code>multi_index_container</code> types.</td>
+</tr>
+<tr>
+  <td><a href="../test/test_observers.cpp"><code>test_observers.cpp</code></a></td>
+  <td>Checks observer member functions of ordered and hashed indices.</td>
+</tr>
+<tr class="odd_tr">
+  <td><a href="../test/test_projection.cpp"><code>test_projection.cpp</code></a></td>
+  <td>Projection of iterators among indices.</td>
+</tr>
+<tr>
+  <td><a href="../test/test_range.cpp"><code>test_range.cpp</code></a></td>
+  <td>Exercises the <code>range</code> facility (ordered indices only).</td>
+</tr>
+<tr class="odd_tr">
+  <td><a href="../test/test_rearrange.cpp"><code>test_rearrange.cpp</code></a></td>
+  <td>Rearrange functions of sequenced and random access indices.</td>
+</tr>
+<tr>
+  <td><a href="../test/test_safe_mode.cpp"><code>test_safe_mode.cpp</code></a></td>
+  <td>Comprehensive coverage of all conditions checked in safe mode.</td> 
+</tr>
+<tr class="odd_tr">
+  <td><a href="../test/test_serialization1.cpp"><code>test_serialization1.cpp</code></a><br>
+      <a href="../test/test_serialization2.cpp"><code>test_serialization2.cpp</code></a><br>
+      <a href="../test/test_serialization3.cpp"><code>test_serialization3.cpp</code></a></td>
+  <td>Serialization support.</td> 
+</tr>
+<tr>
+  <td><a href="../test/test_set_ops.cpp"><code>test_set_ops.cpp</code></a></td>
+  <td>Set-like operations particular to ordered indices.</td>
+</tr>
+<tr class="odd_tr">
+  <td><a href="../test/test_special_set_ops.cpp"><code>test_special_set_ops.cpp</code></a></td>
+  <td>Checks special lookup operations using compatible sorting criteria.</td>
+</tr>
+<tr>
+  <td><a href="../test/test_update.cpp"><code>test_update.cpp</code></a></td>
+  <td><code>replace</code>, <code>modify</code> and <code>modify_key</code>.</td>
+</tr>
+</table>
+</p>
+
+<hr>
+
+<div class="prev_link"><a href="examples.html"><img src="prev.gif" alt="examples" border="0"><br>
+Examples
+</a></div>
+<div class="up_link"><a href="index.html"><img src="up.gif" alt="index" border="0"><br>
+Index
+</a></div>
+<div class="next_link"><a href="future_work.html"><img src="next.gif" alt="future work" border="0"><br>
+Future work
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+
+<p>Revised July 11th 2007</p>
+
+<p>&copy; Copyright 2003-2007 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

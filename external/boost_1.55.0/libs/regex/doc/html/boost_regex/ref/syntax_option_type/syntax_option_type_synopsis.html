@@ -1,0 +1,102 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>syntax_option_type Synopsis</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Boost.Regex">
+<link rel="up" href="../syntax_option_type.html" title="syntax_option_type">
+<link rel="prev" href="../syntax_option_type.html" title="syntax_option_type">
+<link rel="next" href="syntax_option_type_overview.html" title="Overview of syntax_option_type">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../syntax_option_type.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../syntax_option_type.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="syntax_option_type_overview.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_ref_syntax_option_type_syntax_option_type_synopsis">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_regex.ref.syntax_option_type.syntax_option_type_synopsis"></a><a class="link" href="syntax_option_type_synopsis.html" title="syntax_option_type Synopsis">syntax_option_type
+        Synopsis</a>
+</h4></div></div></div>
+<p>
+          Type <a class="link" href="../syntax_option_type.html" title="syntax_option_type"><code class="computeroutput"><span class="identifier">syntax_option_type</span></code></a>
+          is an implementation specific bitmask type that controls how a regular
+          expression string is to be interpreted. For convenience note that all the
+          constants listed here, are also duplicated within the scope of class template
+          <a class="link" href="../basic_regex.html" title="basic_regex"><code class="computeroutput"><span class="identifier">basic_regex</span></code></a>.
+        </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">regex_constants</span><span class="special">{</span>
+
+<span class="keyword">typedef</span> <span class="identifier">implementation</span><span class="special">-</span><span class="identifier">specific</span><span class="special">-</span><span class="identifier">bitmask</span><span class="special">-</span><span class="identifier">type</span> <span class="identifier">syntax_option_type</span><span class="special">;</span>
+
+<span class="comment">// these flags are standardized:</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">normal</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">ECMAScript</span> <span class="special">=</span> <span class="identifier">normal</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">JavaScript</span> <span class="special">=</span> <span class="identifier">normal</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">JScript</span> <span class="special">=</span> <span class="identifier">normal</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">perl</span> <span class="special">=</span> <span class="identifier">normal</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">basic</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">sed</span> <span class="special">=</span> <span class="identifier">basic</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">extended</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">awk</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">grep</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">egrep</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">icase</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">nosubs</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">optimize</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">collate</span><span class="special">;</span>
+
+<span class="comment">// </span>
+<span class="comment">// The remaining options are specific to Boost.Regex:</span>
+<span class="comment">//</span>
+
+<span class="comment">// Options common to both Perl and POSIX regular expressions:</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">newline_alt</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">no_except</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span>  <span class="identifier">save_subexpression_location</span><span class="special">;</span>
+
+<span class="comment">// Perl specific options:</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">no_mod_m</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">no_mod_s</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">mod_s</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">mod_x</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">no_empty_expressions</span><span class="special">;</span>
+
+<span class="comment">// POSIX extended specific options:</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">no_escape_in_lists</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">no_bk_refs</span><span class="special">;</span>
+
+<span class="comment">// POSIX basic specific options:</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">no_escape_in_lists</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">no_char_classes</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">no_intervals</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">bk_plus_qm</span><span class="special">;</span>
+<span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">syntax_option_type</span> <span class="identifier">bk_vbar</span><span class="special">;</span>
+
+<span class="special">}</span> <span class="comment">// namespace regex_constants</span>
+<span class="special">}</span> <span class="comment">// namespace std</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../syntax_option_type.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../syntax_option_type.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="syntax_option_type_overview.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

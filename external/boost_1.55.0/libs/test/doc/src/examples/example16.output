@@ -1,0 +1,6 @@
+> example --log_level=message
+Running 1 test case...
+test.cpp(8): error in "free_test_function": check 2 == 1 failed
+Test case has less failures then expected
+
+*** No errors detected

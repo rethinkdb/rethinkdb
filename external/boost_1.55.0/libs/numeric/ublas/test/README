@@ -1,0 +1,31 @@
+Copyright (c) 2000-2011 Joerg Walter, Mathias Koch, David Bellot
+
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+
+uBLAS test director
+	Use boost::test to test various uBLAS containers and expressions
+
+The tests can be used individually or automaticaly as part of the uBLAS regression tests.
+
+The tests are broken down in directorys as follows:
+
+test1 - dense vector and matrix tests
+test2 - BLAS tests
+test3 - sparse vector and matrix tests
+test4 - banded/diagonal matrix tests
+test5 - triangular matrix tests
+test6 - symmetric matrix tests
+test7 - dense vector and matrix tests with boost::numeric::internal values
+
+Each test directory contains:
+	testX.hpp	Headers and types to be tested
+	testX.cpp	Call the test functions for the defined types
+	testX1.cpp	Implements vector tests	
+	testX2.cpp	Implements vector/matrix tests	
+	testX3.cpp	Implements matrix tests	
+
+Missing in these tests
+	a) Runtime result validation.
+	b) Iterator interface tests. Only complete container expressions are tested

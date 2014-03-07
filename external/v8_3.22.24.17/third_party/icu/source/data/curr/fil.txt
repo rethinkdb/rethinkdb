@@ -1,0 +1,228 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/fil.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/fil.xml
+ */
+fil{
+    Currencies{
+        AED{
+            "AED",
+            "United Arab Emirates Dirham",
+        }
+        ARS{
+            "AR$",
+            "Argentine Peso",
+        }
+        AUD{
+            "AU$",
+            "Australian Dollar",
+        }
+        BGN{
+            "BGN",
+            "Bulgarian Lev",
+        }
+        BOB{
+            "Bs",
+            "Bolivian Boliviano",
+        }
+        BRL{
+            "R$",
+            "Brazilian Real",
+        }
+        CAD{
+            "CA$",
+            "Canadian Dollar",
+        }
+        CHF{
+            "CHF",
+            "Swiss Francs",
+        }
+        CLP{
+            "CL$",
+            "Chilean Peso",
+        }
+        CNY{
+            "CN¥",
+            "Yuan Renminbi",
+        }
+        COP{
+            "CO$",
+            "Colombian Peso",
+        }
+        CZK{
+            "Kč",
+            "Czech Koruna",
+        }
+        DEM{
+            "DM",
+            "Deutsche Marks",
+        }
+        DKK{
+            "Dkr",
+            "Denmark Kroner",
+        }
+        EEK{
+            "Ekr",
+            "Estonian Kroon",
+        }
+        EGP{
+            "EGP",
+            "Egyptian Pound",
+        }
+        EUR{
+            "€",
+            "Euros",
+        }
+        FRF{
+            "₣",
+            "French Franc",
+        }
+        GBP{
+            "£",
+            "British Pounds Sterling",
+        }
+        HKD{
+            "HK$",
+            "Hong Kong Dollars",
+        }
+        HRK{
+            "kn",
+            "Croatian Kuna",
+        }
+        HUF{
+            "Ft",
+            "Hungarian Forint",
+        }
+        IDR{
+            "Rp",
+            "Indonesian Rupiah",
+        }
+        ILS{
+            "₪",
+            "Israeli Shekel",
+        }
+        INR{
+            "Rs",
+            "Indian Rupee",
+        }
+        JPY{
+            "JP¥",
+            "Japanese Yen",
+        }
+        KRW{
+            "₩",
+            "South Korean Won",
+        }
+        LTL{
+            "Lt",
+            "Lithuanian Litas",
+        }
+        MAD{
+            "MAD",
+            "Moroccan Dirham",
+        }
+        MXN{
+            "MX$",
+            "Mexico Peso",
+        }
+        MYR{
+            "RM",
+            "Malaysian Ringgit",
+        }
+        NOK{
+            "Nkr",
+            "Norwegian Kroner",
+        }
+        NZD{
+            "NZ$",
+            "New Zealand Dollars",
+        }
+        PEN{
+            "S/.",
+            "Peruvian Nuevo Sol",
+        }
+        PHP{
+            "₱",
+            "Philippine Peso",
+        }
+        PKR{
+            "PKRs",
+            "Pakistan Rupee",
+        }
+        PLN{
+            "zł",
+            "Polish NewZloty",
+        }
+        RON{
+            "RON",
+            "Romanian Leu",
+        }
+        RSD{
+            "din.",
+            "Serbian Dinar",
+        }
+        RUB{
+            "RUB",
+            "Russian Ruble",
+        }
+        SAR{
+            "SR",
+            "Saudi Riyal",
+        }
+        SEK{
+            "Skr",
+            "Sweden Kronor",
+        }
+        SGD{
+            "S$",
+            "Singapore Dollars",
+        }
+        SIT{
+            "SIT" /** ===  */,
+            "Slovenian Tolar",
+        }
+        SKK{
+            "Sk",
+            "Slovak Koruna",
+        }
+        THB{
+            "฿",
+            "Thai Baht",
+        }
+        TRY{
+            "TL",
+            "Turkish Lira",
+        }
+        TWD{
+            "NT$",
+            "New Taiwan Dollar",
+        }
+        USD{
+            "US$",
+            "US Dollar",
+        }
+        VEB{
+            "VEB" /** ===  */,
+            "Venezuela Bolivar",
+        }
+        XXX{
+            "XXX",
+            "XXX",
+        }
+        ZAR{
+            "R",
+            "South African Rand",
+        }
+    }
+    CurrencyUnitPatterns{
+        one{"{0} {1}"}
+        other{"{0} {1}"}
+    }
+    Version{"2.0.48.64"}
+}

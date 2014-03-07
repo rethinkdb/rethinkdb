@@ -1,0 +1,22 @@
+[/============================================================================
+  Boost.Geometry (aka GGL, Generic Geometry Library)
+
+  Copyright (c) 2011-2012 Barend Gehrels, Amsterdam, the Netherlands.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[include reference/algorithms/difference_behavior.qbk]
+
+[include reference/algorithms/geometry_rules.qbk]
+
+[heading Example]
+[difference_inserter] [difference_inserter_output]
+
+[heading See also]
+* [link geometry.reference.algorithms.sym_difference.sym_difference_inserter_3 sym_difference_inserter (symmetric difference)]
+* [link geometry.reference.algorithms.intersection.intersection_inserter_3 intersection_inserter]
+* [link geometry.reference.algorithms.union.union_inserter_3 union_inserter]
+

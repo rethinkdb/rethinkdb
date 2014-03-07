@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="variable_list_tests" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Variable List Tests</title>
+  <variablelist>
+    <title>Empty</title>
+  </variablelist>
+  <variablelist>
+    <title>One entry</title>
+    <varlistentry>
+      <term>a</term>
+      <listitem>
+        <para>
+          b
+        </para>
+      </listitem>
+    </varlistentry>
+  </variablelist>
+  <variablelist>
+    <title>One entry, multiple items</title>
+    <varlistentry>
+      <term>a</term>
+      <listitem>
+        <para>
+          b
+        </para>
+        <para>
+          c
+        </para>
+      </listitem>
+    </varlistentry>
+  </variablelist>
+  <variablelist>
+    <title>Several entries</title>
+    <varlistentry>
+      <term>a</term>
+      <listitem>
+        <para>
+          b
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>a</term>
+      <listitem>
+        <para>
+          b
+        </para>
+        <para>
+          c
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>a</term>
+      <listitem>
+        <para>
+          b
+        </para>
+        <para>
+          c
+        </para>
+        <para>
+          d
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>a</term>
+      <listitem>
+        <para>
+          b
+        </para>
+        <para>
+          c
+        </para>
+        <para>
+          d
+        </para>
+        <para>
+          e
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term>a</term>
+      <listitem>
+        <para>
+          b
+        </para>
+      </listitem>
+    </varlistentry>
+  </variablelist>
+  <anchor id="id1"/>
+  <variablelist>
+    <title>Variable List with anchors</title>
+    <varlistentry>
+      <term><anchor id="id2"/>a<anchor id="id3"/></term>
+      <listitem>
+        <para>
+          <anchor id="id4"/>b<anchor id="id5"/>
+        </para>
+      </listitem>
+    </varlistentry>
+  </variablelist>
+</article>

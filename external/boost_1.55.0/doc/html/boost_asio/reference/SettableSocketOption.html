@@ -1,0 +1,159 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Settable socket option requirements</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="SettableSerialPortOption.html" title="Settable serial port option requirements">
+<link rel="next" href="ShutdownHandler.html" title="SSL shutdown handler requirements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="SettableSerialPortOption.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ShutdownHandler.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.SettableSocketOption"></a><a class="link" href="SettableSocketOption.html" title="Settable socket option requirements">Settable socket
+      option requirements</a>
+</h3></div></div></div>
+<p>
+        In the table below, <code class="computeroutput"><span class="identifier">X</span></code> denotes
+        a socket option class, <code class="computeroutput"><span class="identifier">a</span></code>
+        denotes a value of <code class="computeroutput"><span class="identifier">X</span></code>, <code class="computeroutput"><span class="identifier">p</span></code> denotes a value that meets the <a class="link" href="Protocol.html" title="Protocol requirements">protocol</a> requirements, and
+        <code class="computeroutput"><span class="identifier">u</span></code> denotes an identifier.
+      </p>
+<div class="table">
+<a name="boost_asio.reference.SettableSocketOption.t0"></a><p class="title"><b>Table&#160;27.&#160;SettableSocketOption requirements</b></p>
+<div class="table-contents"><table class="table" summary="SettableSocketOption requirements">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  expression
+                </p>
+              </th>
+<th>
+                <p>
+                  type
+                </p>
+              </th>
+<th>
+                <p>
+                  assertion/note<br> pre/post-conditions
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">level</span><span class="special">(</span><span class="identifier">p</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">int</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns a value suitable for passing as the <span class="emphasis"><em>level</em></span>
+                  argument to <span class="emphasis"><em>POSIX</em></span> <a href="http://www.opengroup.org/onlinepubs/000095399/functions/setsockopt.html" target="_top"><code class="computeroutput"><span class="identifier">setsockopt</span><span class="special">()</span></code></a>
+                  (or equivalent).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="identifier">p</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">int</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns a value suitable for passing as the <span class="emphasis"><em>option_name</em></span>
+                  argument to <span class="emphasis"><em>POSIX</em></span> <a href="http://www.opengroup.org/onlinepubs/000095399/functions/setsockopt.html" target="_top"><code class="computeroutput"><span class="identifier">setsockopt</span><span class="special">()</span></code></a>
+                  (or equivalent).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">const</span> <span class="identifier">X</span><span class="special">&amp;</span> <span class="identifier">u</span>
+                  <span class="special">=</span> <span class="identifier">a</span><span class="special">;</span> <span class="identifier">u</span><span class="special">.</span><span class="identifier">data</span><span class="special">(</span><span class="identifier">p</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  a pointer, convertible to <code class="computeroutput"><span class="keyword">const</span>
+                  <span class="keyword">void</span><span class="special">*</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns a pointer suitable for passing as the <span class="emphasis"><em>option_value</em></span>
+                  argument to <span class="emphasis"><em>POSIX</em></span> <a href="http://www.opengroup.org/onlinepubs/000095399/functions/setsockopt.html" target="_top"><code class="computeroutput"><span class="identifier">setsockopt</span><span class="special">()</span></code></a>
+                  (or equivalent).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">size</span><span class="special">(</span><span class="identifier">p</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">size_t</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns a value suitable for passing as the <span class="emphasis"><em>option_len</em></span>
+                  argument to <span class="emphasis"><em>POSIX</em></span> <a href="http://www.opengroup.org/onlinepubs/000095399/functions/setsockopt.html" target="_top"><code class="computeroutput"><span class="identifier">setsockopt</span><span class="special">()</span></code></a>
+                  (or equivalent), after appropriate integer conversion has been
+                  performed.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="SettableSerialPortOption.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="ShutdownHandler.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

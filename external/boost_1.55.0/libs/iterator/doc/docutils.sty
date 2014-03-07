@@ -1,0 +1,54 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%% docutils.sty: A style for docutils latex output %%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% o author: Alexander Schmolck (a.schmolck@gmx.net)
+%% o created: 2002-07-07 10:50:31+00:40
+%% o last modified: $Date: 2004/01/29 05:55:26 $
+%% o keywords: 
+%% o license: 
+%XXX titlesec
+%% XXX geometry
+\usepackage{graphicx}
+\usepackage{latexsym} % extra symbols
+\usepackage{url} % !!!: pay attention when using in other commands!!!
+\usepackage{verbatim} % normal verbatim has lenght-limit
+\usepackage{enumerate} % easy style choice with e.g: ``\begin{enumerate}[Ex i.]``
+\usepackage{hyperref} %href, htarget and hlink XXX: pdfauthor, pdfcreator etc.
+\usepackage{xr} %XXX do we need this?
+% need this to have ``fboxes`` in ``enviroments``, as well as ``verbatim``s
+\usepackage{fancybox} 
+\usepackage{mdwtab} % better tables and arrays (fixes spacing and adds
+                    % vertical align and multirows (m))
+\usepackage{ltxtable} % long and autoscaling tables (use X for autoscaled
+                      % columns)
+\newcommand{\transition}{\vspace{2em}\par\hrule{}\par\vspace{2em}}
+\newcommand{\classifier}[1]{(\textit{#1})}
+\newenvironment{topic}[1]%
+{\begin{Sbox}%
+    \begin{minipage}{.8\textwidth}%
+      \protect{\large{\textbf{#1}}}\par\vspace{.5em}}%
+{\end{minipage}\end{Sbox}\fbox{\TheSbox}\par\vspace{.5em}}
+%XXX shadow box for warnings?
+\newenvironment{admonition}[1]%
+{\begin{center}%
+  \begin{Sbox}%
+    \begin{minipage}{.9\textwidth}%
+      \protect{\textsc{#1}}\par\vspace{.2em}}%
+{\end{minipage}\end{Sbox}\fbox{\TheSbox}\par\vspace{.5em}\end{center}}
+
+\newenvironment{doctest}%
+{\VerbatimEnvironment
+ \begin{Verbatim}}%
+{\end{Verbatim}}
+% {%
+%     \begin{Sbox}%
+%     \begin{minipage}{.8\textwidth}%
+%       \protect{\large{\textsc{#1}}\par\vspace{.5em}}}%
+% {\end{minipage}\end{Sbox}\fbox{\TheSbox}\par\vspace{.5em}}
+%{\end{minipage}\end{Sbox}\fbox{\TheSbox}}
+
+
+%% just a piece of example code
+% \newcommand{\vitem}%
+% {\SaveVerb[{\item[\UseVerb{\MyTemp}]}]{\MyTemp}}

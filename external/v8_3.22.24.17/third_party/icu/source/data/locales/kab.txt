@@ -1,0 +1,234 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/kab.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/kab.xml
+ */
+kab{
+    AuxExemplarCharacters{"[o v]"}
+    ExemplarCharacters{"[a b c č d ḍ e ɛ f g ǧ ɣ h ḥ i j k l m n p q r ṛ s ṣ t ṭ u w x y z ẓ]"}
+    ExemplarCharactersIndex{"[A B C Č D Ḍ E Ɛ F G Ǧ Ɣ H Ḥ I J K L M N P Q R Ṛ S Ṣ T Ṭ U W X Y Z Ẓ]"}
+    LocaleScript{
+        "Latn",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"#,##0.00¤"}
+            }
+            symbols{
+                decimal{","}
+                group{" "}
+            }
+        }
+    }
+    Version{"2.0.47.70"}
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "n tufat",
+                "n tmeddit",
+            }
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE d MMMM y",
+                "d MMMM y",
+                "d MMM, y",
+                "d/M/yyyy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                M{"M"}
+                MMM{"MMM"}
+                MMMEd{"E d MMM"}
+                MMMMEd{"EEE d MMMM"}
+                MMMMd{"d MMMM"}
+                MMMd{"d MMM"}
+                MMMdd{"dd MMM"}
+                MMd{"d/MM"}
+                MMdd{"dd/MM"}
+                Md{"d/M"}
+                Med{"EEE d/M"}
+                ms{"m:ss"}
+                y{"y"}
+                yM{"M/y"}
+                yMEd{"EEE d/M/y"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEE d MMM y"}
+                yMMMM{"MMMM y"}
+                yQ{"'T'Q y"}
+                yQQQ{"QQQ y"}
+                yyMM{"MM/y"}
+                yyMMM{"MMM yy"}
+                yyMMMEEEd{"EEE d MMM yy"}
+                yyMMMd{"d MMM yy"}
+                yyyyMMMM{"MMMM yyyy"}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "Yan",
+                        "San",
+                        "Kraḍ",
+                        "Kuẓ",
+                        "Sam",
+                        "Sḍis",
+                        "Say",
+                    }
+                    wide{
+                        "Yanass",
+                        "Sanass",
+                        "Kraḍass",
+                        "Kuẓass",
+                        "Samass",
+                        "Sḍisass",
+                        "Sayass",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "Y",
+                        "S",
+                        "K",
+                        "K",
+                        "S",
+                        "S",
+                        "S",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "snd. T.Ɛ",
+                    "sld. T.Ɛ",
+                }
+                wide{
+                    "send talalit n Ɛisa",
+                    "seld talalit n Ɛisa",
+                }
+            }
+            fields{
+                day{
+                    dn{"Ass"}
+                    relative{
+                        "-1"{"Iḍelli"}
+                        "0"{"Ass-a"}
+                        "1"{"Azekka"}
+                    }
+                }
+                dayperiod{
+                    dn{"n tufat / n tmeddit"}
+                }
+                era{
+                    dn{"Tallit"}
+                }
+                hour{
+                    dn{"Tamert"}
+                }
+                minute{
+                    dn{"Tamrect"}
+                }
+                month{
+                    dn{"Aggur"}
+                }
+                second{
+                    dn{"Tasint"}
+                }
+                week{
+                    dn{"Ddurt"}
+                }
+                weekday{
+                    dn{"Ussan n ddurt"}
+                }
+                year{
+                    dn{"Aseggas"}
+                }
+                zone{
+                    dn{"Aseglem asergan"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "Yen",
+                        "Fur",
+                        "Meɣ",
+                        "Yeb",
+                        "May",
+                        "Yun",
+                        "Yul",
+                        "Ɣuc",
+                        "Cte",
+                        "Tub",
+                        "Nun",
+                        "Duǧ",
+                    }
+                    wide{
+                        "Yennayer",
+                        "Fuṛar",
+                        "Meɣres",
+                        "Yebrir",
+                        "Mayyu",
+                        "Yunyu",
+                        "Yulyu",
+                        "Ɣuct",
+                        "Ctembeṛ",
+                        "Tubeṛ",
+                        "Nunembeṛ",
+                        "Duǧembeṛ",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "Y",
+                        "F",
+                        "M",
+                        "Y",
+                        "M",
+                        "Y",
+                        "Y",
+                        "Ɣ",
+                        "C",
+                        "T",
+                        "N",
+                        "D",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "Kḍg1",
+                        "Kḍg2",
+                        "Kḍg3",
+                        "Kḍg4",
+                    }
+                    wide{
+                        "akraḍaggur amenzu",
+                        "akraḍaggur wis-sin",
+                        "akraḍaggur wis-kraḍ",
+                        "akraḍaggur wis-kuẓ",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"”"}
+        alternateQuotationStart{"“"}
+        quotationEnd{"»"}
+        quotationStart{"«"}
+    }
+}

@@ -1,0 +1,169 @@
+# Jamfile.v2
+#
+# Copyright (c) 2009
+# Steven Watanabe
+#
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+using quickbook ;
+using doxygen ;
+using boostbook ;
+import regex ;
+import os ;
+import path ;
+
+doxygen_files =
+    additive_combine
+    bernoulli_distribution
+    binomial_distribution
+    cauchy_distribution
+    chi_squared_distribution
+    discard_block
+    discrete_distribution
+    exponential_distribution
+    extreme_value_distribution
+    fisher_f_distribution
+    gamma_distribution
+    geometric_distribution
+    independent_bits
+    inversive_congruential
+    lagged_fibonacci
+    linear_congruential
+    linear_feedback_shift
+    lognormal_distribution
+    mersenne_twister
+    negative_binomial_distribution
+    normal_distribution
+    piecewise_constant_distribution
+    piecewise_linear_distribution
+    poisson_distribution
+    random_device
+    random_number_generator
+    ranlux
+    seed_seq
+    shuffle_order
+    # shuffle_output
+    student_t_distribution
+    subtract_with_carry
+    taus88
+    triangle_distribution
+    uniform_01
+    uniform_int_distribution
+    uniform_on_sphere
+    uniform_real_distribution
+    uniform_smallint
+    variate_generator
+    weibull_distribution
+    xor_combine
+;
+
+path-constant here : . ;
+path-constant boost-root : ../../.. ;
+
+# Figure out where the root of the boost tree is relative
+# to the html directory.
+local BOOST_ROOT = [ path.relative-to
+                       [ path.join [ path.pwd ] html ]
+                       [ path.root
+                           [ path.make $(boost-root) ]
+                           [ path.pwd ] ] ] ;
+
+doxygen reference :
+    $(here)/../../../boost/random/$(doxygen_files).hpp
+    $(here)/../../../boost/random.hpp
+  :
+    <doxygen:param>EXPAND_ONLY_PREDEF=YES
+    <doxygen:param>"ALIASES= \\
+        xmlnote=\"@xmlonly <note><para> @endxmlonly\" \\
+        endxmlnote=\"@xmlonly </para></note> @endxmlonly\" \\
+        xmlwarning=\"@xmlonly <warning><para> @endxmlonly\" \\
+        endxmlwarning=\"@xmlonly </para></warning> @endxmlonly\" \\
+        blockquote=\"@xmlonly <blockquote><para> @endxmlonly\" \\
+        endblockquote=\"@xmlonly </para></blockquote> @endxmlonly\" \\
+        boost=\"$(BOOST_ROOT)\" \\
+        random_distribution=\"@xmlonly <link linkend=\\\"boost_random.reference.concepts.random_distribution\\\">random distribution</link> @endxmlonly\" \\
+        pseudo_random_number_generator=\"@xmlonly <link linkend=\\\"boost_random.reference.concepts.pseudo_random_number_generator\\\">pseudo-random number generator</link> @endxmlonly\" \\
+        uniform_random_number_generator=\"@xmlonly <link linkend=\\\"boost_random.reference.concepts.uniform_random_number_generator\\\">uniform random number generator</link> @endxmlonly\" \\
+        nondeterministic_random_number_generator=\"@xmlonly <link linkend=\\\"boost_random.reference.concepts.non_deterministic_uniform_random_number_generator\\\">non-deterministic random number generator</link> @endxmlonly\" \\
+        generators=\"@xmlonly <link linkend=\\\"boost_random.reference.generators\\\">generators</link> @endxmlonly\" \\
+        distributions=\"@xmlonly <link linkend=\\\"boost_random.reference.distributions\\\">distributions</link> @endxmlonly\" \\
+        additive_combine_engine=\"@xmlonly <classname alt=\\\"boost::random::additive_combine_engine\\\">additive_combine_engine</classname> @endxmlonly\" \\
+        discard_block_engine=\"@xmlonly <classname alt=\\\"boost::random::discard_block_engine\\\">discard_block_engine</classname> @endxmlonly\" \\
+        lagged_fibonacci_engine=\"@xmlonly<classname alt=\\\"boost::random::lagged_fibonacci_engine\\\">lagged_fibonacci_engine</classname>@endxmlonly\" \\
+        subtract_with_carry_01_engine=\"@xmlonly<classname alt=\\\"boost::random::subtract_with_carry_01_engine\\\">subtract_with_carry_01_engine</classname>@endxmlonly\" \\
+        linear_congruential_engine=\"@xmlonly<classname alt=\\\"boost::random::linear_congruential_engine\\\">linear_congruential_engine</classname>@endxmlonly\" \\
+        minstd_rand=\"@xmlonly <classname alt=\\\"boost::random::minstd_rand\\\">minstd_rand</classname> @endxmlonly\" \\
+        minstd_rand0=\"@xmlonly <classname alt=\\\"boost::random::minstd_rand0\\\">minstd_rand0</classname> @endxmlonly\" \\
+        rand48=\"@xmlonly <classname alt=\\\"boost::random::rand48\\\">rand48</classname> @endxmlonly\" \\
+        mt11213b=\"@xmlonly <classname alt=\\\"boost::random::mt11213b\\\">mt11213b</classname> @endxmlonly\" \\
+        mt19937=\"@xmlonly <classname alt=\\\"boost::random::mt19937\\\">mt19937</classname> @endxmlonly\" \\
+        ecuyer1988=\"@xmlonly <classname alt=\\\"boost::random::ecuyer1988\\\">ecuyer1988</classname> @endxmlonly\" \\
+        lagged_fibonacci607=\"@xmlonly <classname alt=\\\"boost::random::lagged_fibonacci607\\\">lagged_fibonacci607</classname> @endxmlonly\" \\
+        lagged_fibonacci44497=\"@xmlonly <classname alt=\\\"boost::random::lagged_fibonacci44497\\\">lagged_fibonacci44497</classname> @endxmlonly\" \\
+        bernoulli_distribution=\"@xmlonly <classname alt=\\\"boost::random::bernoulli_distribution\\\">bernoulli_distribution</classname> @endxmlonly\" \\
+        cauchy_distribution=\"@xmlonly <classname alt=\\\"boost::random::cauchy_distribution\\\">cauchy_distribution</classname> @endxmlonly\" \\
+        uniform_01=\"@xmlonly<classname alt=\\\"boost::random::uniform_01\\\">uniform_01</classname>@endxmlonly\" \\
+        random_device=\"@xmlonly<classname alt=\\\"boost::random::random_device\\\">random_device</classname>@endxmlonly\""
+    <doxygen:param>HIDE_UNDOC_MEMBERS=NO
+    <doxygen:param>QUIET=YES
+    <doxygen:param>WARN_IF_UNDOCUMENTED=NO
+    <doxygen:param>EXTRACT_PRIVATE=NO
+    <doxygen:param>ENABLE_PREPROCESSING=YES
+    <doxygen:param>MACRO_EXPANSION=YES
+    <doxygen:param>SEARCH_INCLUDES=NO
+    # Expand macros and clean up a bunch of ugly names
+    <doxygen:param>"PREDEFINED= \\
+        \"BOOST_RANDOM_DOXYGEN=1\" \\
+        \"BOOST_PREVENT_MACRO_SUBSTITUTION=\" \\
+        \"BOOST_STATIC_ASSERT(x)=\" \\
+        \"BOOST_STATIC_CONSTANT(type,value)=static const type value\" \\
+        \"UINT64_C(value)=value ## ull\" \\
+        \"BOOST_RANDOM_DECL=\" \\
+        \"RealType(x)=x\" \\
+        \"result_type(x)=x\" \\
+        \"p_arg=p\" \\
+        \"median_arg=median\" \\
+        \"mean_arg=mean\" \\
+        \"sigma_arg=sigma\" \\
+        \"lambda_arg=lambda\" \\
+        \"alpha_arg=alpha\" \\
+        \"beta_arg=beta\" \\
+        \"a_arg=a\" \\
+        \"b_arg=b\" \\
+        \"c_arg=c\" \\
+        \"t_arg=t\" \\
+        \"m_arg=m\" \\
+        \"n_arg=n\" \\
+        \"s_arg=s\" \\
+        \"k_arg=k\" \\
+        \"min_arg=min\" \\
+        \"max_arg=max\" \\
+        \"dim_arg=dim\" \\
+        \"parm=param\" \\
+        \"aseed=seed\" \\
+        \"seed_arg=seed\" \\
+        \"BOOST_RANDOM_DETAIL_OSTREAM_OPERATOR(os,T,t)=template<class CharT, class Traits> friend std::basic_ostream<CharT,Traits>& operator<<(std::basic_ostream<CharT,Traits>& os, const T& t)\" \\
+        \"BOOST_RANDOM_DETAIL_ISTREAM_OPERATOR(is,T,t)=template<class CharT, class Traits> friend std::basic_istream<CharT,Traits>& operator>>(std::basic_istream<CharT,Traits>& is, const T& t)\" \\
+        \"BOOST_RANDOM_DETAIL_EQUALITY_OPERATOR(T,lhs,rhs)=friend bool operator==(const T& lhs, const T& rhs)\" \\
+        \"BOOST_RANDOM_DETAIL_INEQUALITY_OPERATOR(T)=friend bool operator!=(const T& lhs, const T& rhs) { return !(lhs == rhs); }\" \\
+        \"BOOST_RANDOM_DETAIL_ARITHMETIC_CONSTRUCTOR(Self,T,t)=explicit Self(T t)\" \\
+        \"BOOST_RANDOM_DETAIL_GENERATOR_CONSTRUCTOR(Self,T,t)=template<class T> explicit Self(T& t)\" \\
+        \"BOOST_RANDOM_DETAIL_SEED_SEQ_CONSTRUCTOR(Self,T,t)=template<class T> explicit Self(T& t)\" \\
+        \"BOOST_RANDOM_DETAIL_ARITHMETIC_SEED(Self,T,t)=void seed(T t)\" \\
+        \"BOOST_RANDOM_DETAIL_GENERATOR_SEED(Self,T,t)=template<class T> void seed(T& t)\" \\
+        \"BOOST_RANDOM_DETAIL_SEED_SEQ_SEED(Self,T,t)=template<class T> void seed(T& t)\""
+    <reftitle>"Headers"
+    <doxygen:xml-imagedir>images/random
+;
+
+xml random : random.qbk : <dependency>reference ;
+
+boostbook standalone :
+    random
+  :
+    <implicit-dependency>reference
+    <xsl:param>boost.root=../../../..
+    <xsl:param>chunk.section.depth=2
+;

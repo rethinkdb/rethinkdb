@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.local_time.local_time_period">
+  <title>Local Time Period</title>
+
+  <link linkend="local_time_period_intro">Introduction</link> --
+  <link linkend="local_time_period_header">Header</link> --
+  <link linkend="local_time_period_constr">Construction</link> --
+  <link linkend="local_time_period_accessors">Accessors</link> --
+  <link linkend="local_time_period_operators">Operators</link>
+
+  <anchor id="local_time_period_intro" />
+  <bridgehead renderas="sect3">Introduction</bridgehead>
+  <para>
+    The class <code>boost::local_time::local_time_period</code> provides direct representation for ranges between two local times. Periods provide the ability to simplify some types of calculations by simplifying the conditional logic of the program. 
+  </para>
+  <para>
+    A period that is created with beginning and end points being equal, or with a duration of zero, is known as a zero length period. Zero length periods are considered invalid (it is perfectly legal to construct an invalid period). For these periods, the <code>last</code> point will always be one unit less that the <code>begin</code> point.
+  </para>
+
+  <anchor id="local_time_period_header" />
+  <bridgehead renderas="sect3">Header</bridgehead>
+  <para>
+    <programlisting>#include "boost/date_time/local_time/local_time.hpp" //include all types plus i/o
+or
+#include "boost/date_time/local_time/local_time_types.hpp" //no i/o just types</programlisting>
+  </para>
+
+  <anchor id="local_time_period_constr" />
+  <bridgehead renderas="sect3">Construction</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+            <entry valign="top" morerows="1"><screen>local_time_period(...)
+  Parameters:
+    local_date_time beginning
+    local_date_time end</screen></entry>
+	    <entry> Create a period as [begin, end). If end is &lt;= begin then the period will be defined as invalid.</entry>
+	  </row>
+	  <row>
+            <entry><screen>time_zone_ptr 
+  zone(new posix_time_zone("MST-07"));
+local_date_time 
+  beg(ptime(date(2005,Jan,1),hours(0)), zone);
+local_date_time 
+  end(ptime(date(2005,Feb,1),hours(0)), zone);
+// period for the entire month of Jan 2005
+local_time_period ltp(beg, end);</screen>
+	    </entry>
+          </row>
+
+	  <row>
+            <entry valign="top" morerows="1"><screen>local_time_period(...)
+  Parameters:
+    local_date_time beginning
+    time_duration length</screen></entry>
+	    <entry>Create a period as [begin, begin+len) where end would be begin+len. If len is &lt;= zero then the period will be defined as invalid.</entry>
+	  </row>
+	  <row>
+            <entry><screen>time_zone_ptr 
+  zone(new posix_time_zone("MST-07"));
+local_date_time 
+  beg(ptime(date(2005,Jan,1),hours(0)), zone);
+// period for the whole day of 2005-Jan-01
+local_time_period ltp(beg, hours(24));</screen>
+	    </entry>
+          </row>
+          
+          <row>
+	    <entry valign="top" morerows="1"><screen>local_time_period(local_time_period rhs)</screen></entry>
+	    <entry>Copy constructor</entry>
+	  </row>
+	  <row>
+	    <entry><screen>local_time_period ltp1(ltp);</screen></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="local_time_period_accessors" />
+  <bridgehead renderas="sect3">Accessors</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+	    <entry valign="top" morerows="1"><screen>local_date_time begin()</screen></entry>
+	    <entry>Return first local_date_time of the period.</entry>
+	  </row>
+	  <row>
+            <entry><screen>time_zone_ptr 
+  zone(new posix_time_zone("MST-07"));
+local_date_time 
+  ldt((ptime(date(2005,Jan,1)),hours(0)), zone);
+local_time_period ltp(ldt, hours(2));
+ltp.begin(); // => 2005-Jan-01 00:00:00</screen>
+	    </entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>local_date_time last()</screen></entry>
+	    <entry>Return last local_date_time in the period</entry>
+	  </row>
+	  <row>
+            <entry><screen>time_zone_ptr 
+  zone(new posix_time_zone("MST-07"));
+local_date_time 
+  ldt((ptime(date(2005,Jan,1),hours(0))), zone);
+local_time_period ltp(ldt, hours(2));
+ltp.last(); // => 2005-Jan-01 01:59:59.999999999</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>local_date_time end()</screen></entry>
+	    <entry>Return one past the last in period</entry>
+	  </row>
+	  <row>
+            <entry><screen>time_zone_ptr 
+  zone(new posix_time_zone("MST-07"));
+local_date_time 
+  ldt((ptime(date(2005,Jan,1),hours(0))), zone);
+local_time_period ltp(ldt, hours(2));
+ltp.end(); // => 2005-Jan-01 02:00:00</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>time_duration length()</screen></entry>
+	    <entry>Return the length of the local_time period.</entry>
+	  </row>
+	  <row>
+            <entry><screen>time_zone_ptr 
+  zone(new posix_time_zone("MST-07"));
+local_date_time 
+  ldt((ptime(date(2005,Jan,1),hours(0))), zone);
+local_time_period ltp(ldt, hours(2));
+ltp.length(); // => 02:00:00</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>bool is_null()</screen></entry>
+	    <entry>True if period is not well formed. eg: end less than or equal to begin.</entry>
+	  </row>
+	  <row>
+            <entry><screen>time_zone_ptr 
+  zone(new posix_time_zone("MST-07"));
+local_date_time 
+  beg((ptime(date(2005,Feb,1),hours(0))), zone);
+local_date_time 
+  end((ptime(date(2005,Jan,1),hours(0))), zone);
+local_time_period ltp(beg, end);
+ltp.is_null(); // => true</screen>
+	    </entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>bool contains(local_date_time)</screen></entry>
+	    <entry>True if local_date_time is within the period. Zero length periods cannot contain any points</entry>
+	  </row>
+	  <row>
+            <entry><screen>time_zone_ptr 
+  zone(new posix_time_zone("MST-07"));
+local_date_time 
+  beg((ptime(date(2005,Jan,1),hours(0))), zone);
+local_date_time 
+  end((ptime(date(2005,Feb,1),hours(0))), zone);
+local_time_period jan_mst(beg, end);
+
+local_date_time 
+ldt((ptime(date(2005,Jan,15),hours(12))), zone);
+jan_mst.contains(ldt); // => true
+
+local_time_period zero(beg, beg);
+zero.contains(beg); // false</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>bool contains(local_time_period)</screen></entry>
+	    <entry>True if period is within the period</entry>
+	  </row>
+	  <row>
+            <entry><screen>// using jan_mst period from previous example
+
+local_date_time 
+  beg((ptime(date(2005,Jan,7),hours(0))), zone);
+local_time_period ltp(beg, hours(24));
+
+jan_mst.contains(ltp); // => true</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>bool intersects(local_time_period)</screen></entry>
+	    <entry> True if periods overlap</entry>
+	  </row>
+	  <row>
+            <entry><screen>// using jan_mst period from previous example
+
+local_date_time 
+  beg((ptime(date(2005,Jan,7),hours(0))), zone);
+local_date_time 
+  end((ptime(date(2005,Feb,7),hours(0))), zone);
+local_time_period ltp(beg, end);
+
+jan_mst.intersects(ltp); // => true</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>local_time_period intersection(local_time_period)</screen></entry>
+	    <entry>Calculate the intersection of 2 periods. Null if no intersection.</entry>
+	  </row>
+	  <row>
+            <entry><screen>// using jan_mst period from previous example
+
+local_date_time 
+  beg((ptime(date(2005,Jan,7),hours(0))), zone);
+local_date_time 
+  end((ptime(date(2005,Feb,7),hours(0))), zone);
+local_time_period ltp(beg, end);
+
+local_time_period res(jan_mst.intersection(ltp));
+// res => 2005-Jan-07 00:00:00 through
+// 2005-Jan-31 23:59:59.999999999 (inclusive)</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>local_time_period merge(local_time_period)</screen></entry>
+	    <entry>Returns union of two periods. Null if no intersection.</entry>
+	  </row>
+	  <row>
+            <entry><screen>// using jan_mst period from previous example
+
+local_date_time 
+  beg((ptime(date(2005,Jan,7),hours(0))), zone);
+local_date_time 
+  end((ptime(date(2005,Feb,7),hours(0))), zone);
+local_time_period ltp(beg, end);
+
+local_time_period res(jan_mst.merge(ltp));
+// res => 2005-Jan-07 00:00:00 through
+// 2005-Feb-06 23:59:59.999999999 (inclusive)</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>local_time_period span(local_time_period)</screen></entry>
+	    <entry>Combines two periods and any gap between them such that begin = min(p1.begin, p2.begin) and end = max(p1.end , p2.end).</entry>
+	  </row>
+	  <row>
+            <entry><screen>// using jan_mst period from previous example
+
+local_date_time 
+  beg((ptime(date(2005,Mar,1),hours(0))), zone);
+local_date_time 
+  end((ptime(date(2005,Apr,1),hours(0))), zone);
+local_time_period mar_mst(beg, end);
+
+local_time_period res(jan_mst.span(mar_mst));
+// res => 2005-Jan-01 00:00:00 through
+// 2005-Mar-31 23:59:59.999999999 (inclusive)</screen></entry>
+          </row>
+          
+          <row>
+	    <entry valign="top" morerows="1"><screen>void shift(time_duration)</screen></entry>
+	    <entry>Add duration to both begin and end.</entry>
+	  </row>
+	  <row>
+            <entry><screen>local_date_time 
+  beg((ptime(date(2005,Mar,1),hours(0))), zone);
+local_date_time 
+  end((ptime(date(2005,Apr,1),hours(0))), zone);
+local_time_period mar_mst(beg, end);
+
+mar_mst.shift(hours(48));
+// mar_mst => 2005-Mar-03 00:00:00 through
+// 2005-Apr-02 23:59:59.999999999 (inclusive)</screen></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+
+  <anchor id="local_time_period_operators" />
+  <bridgehead renderas="sect3">Operators</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry valign="top" morerows="1">Syntax</entry>
+	    <entry>Description</entry>
+	  </row>
+	  <row>
+	    <entry>Example</entry>
+	  </row>
+	</thead>
+        <tbody>
+          <!-- TODO: the streaming operators have not bee changed from time_period to local_time_period
+          <row>
+	    <entry valign="top" morerows="1"><screen>operator&lt;&lt;</screen></entry>
+            <entry>Output streaming operator for time duration. Uses facet to output [date time_of_day/date time_of_day]. The default is format is <code>[YYYY-mmm-DD hh:mm:ss.fffffffff/YYYY-mmm-DD hh:mm:ss.fffffffff]</code> string where <code>mmm</code> is 3 char month name and the fractional seconds are left out when zero.</entry>
+	  </row>
+	  <row>
+            <entry><screen>[2002-Jan-01 01:25:10.000000001/ \
+    2002-Jan-31 01:25:10.123456789]</screen></entry>
+          </row>
+
+	  <row>
+	    <entry valign="top" morerows="1"><screen>operator&gt;&gt;</screen></entry>
+            <entry>Input streaming operator for time duration. Uses facet to read [date time_of_day/date time_of_day]. The default is format is <code>[YYYY-mmm-DD hh:mm:ss.fffffffff/YYYY-mmm-DD hh:mm:ss.fffffffff]</code> string where <code>mmm</code> is 3 char month name and the fractional seconds are left out when zero.</entry>
+	  </row>
+	  <row>
+            <entry><screen>[2002-Jan-01 01:25:10.000000001/ \
+    2002-Jan-31 01:25:10.123456789]</screen></entry>
+          </row>
+          -->
+	  <row>
+	    <entry valign="top" morerows="1"><screen>operator==, operator!=</screen></entry>
+	    <entry>Equality operators. Periods are equal if ltp1.begin == ltp2.begin &amp;&amp; ltp1.last == ltp2.last</entry>
+	  </row>
+	  <row>
+	    <entry><screen>if (ltp1 == ltp2) {...</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>operator&lt;</screen></entry>
+	    <entry>Ordering with no overlap. True if ltp1.end() less than ltp2.begin()</entry>
+	  </row>
+	  <row>
+	    <entry><screen>if (ltp1 &lt; ltp2) {...</screen></entry>
+          </row>
+          
+	  <row>
+	    <entry valign="top" morerows="1"><screen>operator&gt;</screen></entry>
+	    <entry>Ordering with no overlap. True if ltp1.begin() greater than ltp2.end()</entry>
+	  </row>
+	  <row>
+	    <entry><screen>if (ltp1 > ltp2) {... etc</screen></entry>
+          </row>
+          
+          <row>
+	    <entry valign="top" morerows="1"><screen>operator&lt;=, operator&gt;=</screen></entry>
+	    <entry>Defined in terms of the other operators.</entry>
+	  </row>
+	  <row>
+	    <entry></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+</section>

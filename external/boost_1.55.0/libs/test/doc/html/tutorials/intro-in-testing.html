@@ -1,0 +1,215 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Introduction into testing or why testing is worth the effort</title>
+<link rel="stylesheet" href="../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../index.html" title="Boost Test Library">
+<link rel="up" href="../utf/tutorials.html" title="The unit test framework tutorials">
+<link rel="prev" href="../utf/tutorials.html" title="The unit test framework tutorials">
+<link rel="next" href="hello-the-testing-world.html" title="Hello the testing world or beginner's introduction into testing using the Unit Test Framework">
+<script language="JavaScript1.2" src="../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../utf.html">The Unit Test Framework</a> &gt; <a href="../utf/tutorials.html">Tutorials</a><a href="../utf/compilation.html">
+      &gt;
+      </a><b>Introduction into testing</b>
+</td>
+<td><div class="spirit-nav">
+<a href="../utf/tutorials.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="hello-the-testing-world.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div>
+<div><h4 class="title">
+<a name="tutorial.intro-in-testing"></a>Introduction into testing  or why testing is worth the effort</h4></div>
+<div><div class="author">
+<h3 class="author">
+<span class="firstname">John</span> <span class="othername">R</span> <span class="surname">Phillips</span>
+</h3>
+<code class="email">&lt;<a class="email" href="mailto:jphillip%20at%20capital%20dot%20edu%20(please%20unobscure)">jphillip at capital dot edu (please unobscure)</a>&gt;</code>
+</div></div>
+<div><p class="copyright">Copyright © 2006 John R. Phillips</p></div>
+<div><div class="legalnotice">
+<a name="id644286"></a><p>
+    Use, modification and distribution is subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at
+    <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a> )
+   </p>
+</div></div>
+</div></div>
+<p class="first-line-indented">
+  For almost everyone, the first introduction to the craft of programming is a version of the simple "Hello World" program. In C++, this first example might be written as
+ </p>
+<pre class="programlisting">#include &lt;ostream&gt; 
+
+int main()
+{
+    std::cout &lt;&lt; "Hello World\n";
+}
+</pre>
+<p class="first-line-indented">
+  This is a good introduction for several reasons. One is that the program is short enough, and the logic of its
+  execution simple enough that direct inspection can show whether it is correct in all use cases known to the new
+  student programmer. If this were the complexity of all programming, there would be no need to test anything before
+  using it. In programming as a new student experiences it, testing is pointless and adds unneeded complexity.
+ </p>
+<p class="first-line-indented">
+  However, no actual programs are as simple as an introductory lesson makes "Hello World" seem. Not even "Hello World".
+  In all real programs, there are decisions to be made and multiple paths of execution based on these decisions. These
+  decisions could be based on user input, streaming data, resource availability and dozens of other factors. The
+  programmer strives to control the inputs, and results of these decisions, but no one can keep all of them clearly
+  in mind once the size of the project exceeds just a few hundred lines. Even "Hello World" hides complexities of
+  this sort in the simple seeming call to std::cout.
+ </p>
+<p class="first-line-indented">
+  Since the individual programmer can no longer determine the correctness of the program, there is a need for a
+  different approach. An obvious possibility is testing the program after construction. Someone develops a set of
+  test cases, where inputs are given to the program such that the behavior and outputs of a correctly performing
+  program are known. The performance of the new program is compared to known standards and the new program either
+  passes or fails. If it fails, attempts are made to fix it. If the test cases are carefully chosen, the specifics of
+  the failure give an indication of what in the program needs to be fixed.
+ </p>
+<p class="first-line-indented">
+  This is an improvement over just not knowing whether the program is working properly, but it isn't a big improvement.
+  If the whole program is tested at once, it is nearly impossible to develop test cases that clearly indicate what
+  the failure is. The system is too complex, and the programmer still needs to understand almost all of the possible
+  outcomes to be able to develop tests. As always, when a problem is too big and complicated a good idea is to try
+  splitting it into smaller and simpler pieces.
+ </p>
+<p class="first-line-indented">
+  This approach leads to a layered system of testing, that is similar to the layered approach to original development
+  and should be integrated into it. When writing a program, the design is factored into small units that are
+  conceptually and structurally easier to grasp. A standard rule for this is that one unit performs one job or
+  embodies one concept. These simple units are composed into larger and more complicated algorithms by passing needed
+  information into a unit and receiving the desired result out of it. The units are integrated to perform the whole
+  task. Testing should reflect this structure of development.
+ </p>
+<p class="first-line-indented">
+  The simplest layer is Unit Testing. A unit is the smallest conceptually whole segment of the program. Examples of
+  basic units might be a single class or a single function. For each unit, the tester (who may or may not be the
+  programmer) attempts to determine what states the unit can encounter while executing as part of the program. These
+  states include determining the range of appropriate inputs to the unit, determining the range of possible
+  inappropriate inputs, and recognizing any ways the state of the rest of the program might affect execution in this
+  unit.
+ </p>
+<p class="first-line-indented">
+  With so many general statements, an example will help clarify. Imagine the following procedural function is part of
+  a program, and the programmer wants to test it. For the sake of brevity, header includes and namespace qualifiers
+  have been suppressed.
+ </p>
+<pre class="programlisting">double find_root( double             (*f)(double), 
+                  double               low_guess, 
+                  double               high_guess, 
+                  std::vector&lt;double&gt;&amp; steps, 
+                  double               tolerance )
+{
+    double solution;
+    bool   converged = false;
+
+    while(not converged)
+    {
+        double temp = (low_guess + high_guess) / 2.0;
+        steps.push_back( temp );
+
+        double f_temp = f(temp);
+        double f_low = f(low_guess);
+        
+        if(abs(f_temp) &lt; tolerance)
+        {
+            solution  = temp;
+            converged = true;
+        }
+        else if(f_temp / abs(f_temp) == f_low / abs(f_low))
+        {
+            low_guess = temp;
+            converged = false;
+        }
+        else
+        {
+            high_guess = temp;
+            converged = false;
+        }
+    }
+    
+    return solution;
+}
+</pre>
+<p class="first-line-indented">
+  This code, although brief and simple is getting long enough that it takes attention to find what is done and why.
+  It is no longer obvious at a glance what the intent of the program is, so careful naming must be used to carry that
+  intent.
+ </p>
+<p class="first-line-indented">
+  Thanks to the control structures, there are some obvious execution paths in the code. However, there are also a few
+  less obvious paths. For example, if the root finder takes many steps to converge to an acceptable answer, the
+  vector that is holding the history of steps taken may need to reallocate for additional space. In this case, there
+  are many hidden steps in the single push_back command. These steps also include the chance of failure, since that
+  is always a possibility in a memory allocation.
+ </p>
+<p class="first-line-indented">
+  A second example notes that the value of the function at the low guess has not been tested, so there is the chance
+  of a zero division. Also, if the value of the function at the high guess is zero, the root finder will miss that
+  root entirely. It may even fall into an infinite loop if no root lies between the low and high values.
+ </p>
+<p class="first-line-indented">
+  In this unit, proper testing includes checking the behavior in each possibility. It also includes checking the
+  function by giving inputs where the correct answer is known and checking the results against that answer. Thus,
+  the unit is tested in every execution path to assure proper behavior.
+ </p>
+<p class="first-line-indented">
+  Test cases are chosen to expose as many errors as possible. A defining characteristic of a good test case is that
+  the programmer knows what the unit should do if it is functioning properly. Test cases should be generated to
+  exercise each available execution path. For the above snippet, this includes the obvious and the not so obvious
+  paths. Every path should be tested, since every path is a possible outcome of program execution.
+ </p>
+<p class="first-line-indented">
+  Thus, to write a good testing suite, the tester must know the structure of the code. The most dependable way to
+  accomplish this is if the original programmer writes tests as part of creating the code. In fact, it is advisable
+  that the tests are produced before the code is written, and updated whenever structure decisions are changed. This
+  way, the tests are written with a view toward how the unit should perform instead of reproducing the programmer's
+  thinking from writing the code. While black box testing is also useful, it is important that someone who knows the
+  design decisions made and the rationale for those decisions test the code unit. A programmer who can't devise 
+  good tests for a unit does not yet know the problem at hand well enough to program dependably.
+ </p>
+<p class="first-line-indented">
+  When a unit is completed and tested, it is ready for integration with other units in the program. This is
+  integration should also be tested. At this point, the test cases focus on the interaction between the units. Tests
+  are designed to exercise each way the units can affect each other.
+ </p>
+<p class="first-line-indented">
+  This is the point in development where proper unit testing really shines. If each unit is doing what it should be
+  doing and not creating unexpected side effects, any issues in testing a set of integrated units must come from how
+  they are passing information. Thus, the nearly intractable problem of finding an error while many units interact
+  becomes the less intimidating problem of finding the breakdown in communications.
+ </p>
+<p class="first-line-indented">
+  At each layer of increasing complexity, new tests are run, and if the prior tests of the components are well
+  designed and all issues are fixed, new errors are isolated to the integration. This process continues, in parallel
+  with development, from the smallest units to the completed program.
+ </p>
+<p class="first-line-indented">
+  This shows that there is a need to be able to check and test code snippets such as individual functions and classes
+  independent the program of which they will become a part. That is, the need for a means to provide predetermined
+  inputs to the unit to check the outputs against expected results. Such a system must allow for both normal
+  operation  and error conditions, allow the programmer to produce a thorough description of the results.
+ </p>
+<p class="first-line-indented">
+  This is the goal and rationale for all unit testing, and supporting testing of this sort is the purpose of the
+  Boost.Test library. As is shown below, Boost.Test provides a well-integrated set of tools to support this testing
+  effort throughout the programming and maintenance cycles of software development.
+ </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../utf/tutorials.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../utf/tutorials.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="hello-the-testing-world.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

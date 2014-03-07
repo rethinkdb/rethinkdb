@@ -1,0 +1,11 @@
+
+using qt ;
+import cast ;
+
+project 
+    : default-build <threading>multi 
+    ;
+
+exe main : main.cpp [ cast _ moccable-cpp : main.cpp ]
+           /qt//qt 
+    ;

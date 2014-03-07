@@ -1,0 +1,157 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>begin</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Fusion 2.1">
+<link rel="up" href="../functions.html" title="Functions">
+<link rel="prev" href="../functions.html" title="Functions">
+<link rel="next" href="end.html" title="end">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../functions.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../functions.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="end.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="fusion.sequence.intrinsic.functions.begin"></a><a class="link" href="begin.html" title="begin">begin</a>
+</h5></div></div></div>
+<h6>
+<a name="fusion.sequence.intrinsic.functions.begin.h0"></a>
+            <span class="phrase"><a name="fusion.sequence.intrinsic.functions.begin.description"></a></span><a class="link" href="begin.html#fusion.sequence.intrinsic.functions.begin.description">Description</a>
+          </h6>
+<p>
+            Returns an iterator pointing to the first element in the sequence.
+          </p>
+<h6>
+<a name="fusion.sequence.intrinsic.functions.begin.h1"></a>
+            <span class="phrase"><a name="fusion.sequence.intrinsic.functions.begin.synopsis"></a></span><a class="link" href="begin.html#fusion.sequence.intrinsic.functions.begin.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Sequence</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <a class="link" href="../metafunctions/begin.html" title="begin"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">begin</span></code></a><span class="special">&lt;</span><span class="identifier">Sequence</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">begin</span><span class="special">(</span><span class="identifier">Sequence</span><span class="special">&amp;</span> <span class="identifier">seq</span><span class="special">);</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Sequence</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <a class="link" href="../metafunctions/begin.html" title="begin"><code class="computeroutput"><span class="identifier">result_of</span><span class="special">::</span><span class="identifier">begin</span></code></a><span class="special">&lt;</span><span class="identifier">Sequence</span> <span class="keyword">const</span><span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="identifier">begin</span><span class="special">(</span><span class="identifier">Sequence</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">seq</span><span class="special">);</span>
+</pre>
+<h6>
+<a name="fusion.sequence.intrinsic.functions.begin.h2"></a>
+            <span class="phrase"><a name="fusion.sequence.intrinsic.functions.begin.parameters"></a></span><a class="link" href="begin.html#fusion.sequence.intrinsic.functions.begin.parameters">Parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Requirement
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">seq</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Model of <a class="link" href="../../concepts/forward_sequence.html" title="Forward Sequence">Forward
+                      Sequence</a>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The sequence we wish to get an iterator from.
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="fusion.sequence.intrinsic.functions.begin.h3"></a>
+            <span class="phrase"><a name="fusion.sequence.intrinsic.functions.begin.expression_semantics"></a></span><a class="link" href="begin.html#fusion.sequence.intrinsic.functions.begin.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<pre class="programlisting"><span class="identifier">begin</span><span class="special">(</span><span class="identifier">seq</span><span class="special">);</span>
+</pre>
+<p>
+            <span class="bold"><strong>Return type</strong></span>:
+          </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                A model of <a class="link" href="../../../iterator/concepts/forward_iterator.html" title="Forward Iterator">Forward
+                Iterator</a> if <code class="computeroutput"><span class="identifier">seq</span></code>
+                is a <a class="link" href="../../concepts/forward_sequence.html" title="Forward Sequence">Forward
+                Sequence</a> else, <a class="link" href="../../../iterator/concepts/bidirectional_iterator.html" title="Bidirectional Iterator">Bidirectional
+                Iterator</a> if <code class="computeroutput"><span class="identifier">seq</span></code>
+                is a <a class="link" href="../../concepts/bidirectional_sequence.html" title="Bidirectional Sequence">Bidirectional
+                Sequence</a> else, <a class="link" href="../../../iterator/concepts/random_access_iterator.html" title="Random Access Iterator">Random
+                Access Iterator</a> if <code class="computeroutput"><span class="identifier">seq</span></code>
+                is a <a class="link" href="../../concepts/random_access_sequence.html" title="Random Access Sequence">Random
+                Access Sequence</a>.
+              </li>
+<li class="listitem">
+                A model of <a class="link" href="../../../iterator/concepts/associative_iterator.html" title="Associative Iterator">Associative
+                Iterator</a> if <code class="computeroutput"><span class="identifier">seq</span></code>
+                is an <a class="link" href="../../concepts/associative_sequence.html" title="Associative Sequence">Associative
+                Sequence</a>.
+              </li>
+</ul></div>
+<p>
+            <span class="bold"><strong>Semantics</strong></span>: Returns an iterator pointing
+            to the first element in the sequence.
+          </p>
+<h6>
+<a name="fusion.sequence.intrinsic.functions.begin.h4"></a>
+            <span class="phrase"><a name="fusion.sequence.intrinsic.functions.begin.header"></a></span><a class="link" href="begin.html#fusion.sequence.intrinsic.functions.begin.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">sequence</span><span class="special">/</span><span class="identifier">intrinsic</span><span class="special">/</span><span class="identifier">begin</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">begin</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="fusion.sequence.intrinsic.functions.begin.h5"></a>
+            <span class="phrase"><a name="fusion.sequence.intrinsic.functions.begin.example"></a></span><a class="link" href="begin.html#fusion.sequence.intrinsic.functions.begin.example">Example</a>
+          </h6>
+<pre class="programlisting"><a class="link" href="../../../container/vector.html" title="vector"><code class="computeroutput"><span class="identifier">vector</span></code></a><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">v</span><span class="special">(</span><span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">);</span>
+<span class="identifier">assert</span><span class="special">(</span><a class="link" href="../../../iterator/functions/deref.html" title="deref"><code class="computeroutput"><span class="identifier">deref</span></code></a><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">v</span><span class="special">))</span> <span class="special">==</span> <span class="number">1</span><span class="special">);</span>
+</pre>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2006, 2011, 2012 Joel de Guzman,
+      Dan Marsden, Tobias Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../functions.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../functions.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="end.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

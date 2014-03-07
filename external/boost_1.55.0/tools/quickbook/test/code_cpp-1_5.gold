@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="c___code_blocks" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>C++ Code Blocks</title>
+<programlisting><phrase role="preprocessor">#include</phrase> <phrase role="special">&lt;</phrase><phrase role="identifier">some_header</phrase><phrase role="special">&gt;</phrase>
+    <phrase role="preprocessor">#include</phrase> <phrase role="string">&quot;another_header.hpp&quot;</phrase>
+<phrase role="preprocessor">#   define</phrase> <phrase role="identifier">A_MACRO</phrase> <phrase role="identifier">value</phrase>
+<phrase role="preprocessor">#define</phrase> <phrase role="identifier">stringize</phrase><phrase role="special">(</phrase><phrase role="identifier">hello</phrase><phrase role="special">)</phrase> <phrase role="special">#</phrase><phrase role="identifier">hello</phrase>
+<phrase role="comment">// No escape</phrase>
+<phrase role="comment">/* No escape */</phrase>
+<phrase role="comment">/* No escape
+ * with newlines
+ */</phrase>
+<phrase role="comment">// In Header: &lt;<ulink url="boost:/boost/optional/optional.hpp">boost/optional/optional.hpp</ulink>&gt;</phrase>
+<phrase role="comment">/* In Header: &lt;<ulink url="boost:/boost/optional/optional.hpp">boost/optional/optional.hpp</ulink>&gt; */</phrase>
+<phrase role="comment">/* Multiple escapes: <emphasis>italic</emphasis>
+ * <emphasis role="underline">underline</emphasis><emphasis role="bold">bold</emphasis>
+ */</phrase>
+<phrase role="comment">/* Token pasting: */</phrase> <phrase role="identifier">a</phrase><phrase role="special">##</phrase><phrase role="identifier">b</phrase>
+</programlisting>
+  <para>
+    A badly formed comment:
+  </para>
+<programlisting><phrase role="comment">/* Oh dear
+</phrase></programlisting>
+  <para>
+    A badly formed comment with an escape:
+  </para>
+<programlisting><phrase role="comment">/* Oh dear <emphasis role="bold">bold</emphasis>
+</phrase></programlisting>
+  <para>
+    Just some code:
+  </para>
+<programlisting><phrase role="keyword">int</phrase> <phrase role="identifier">main</phrase><phrase role="special">()</phrase> <phrase role="special">{</phrase>
+    <phrase role="keyword">constexpr</phrase> <phrase role="keyword">char32_t</phrase> <phrase role="identifier">x</phrase> <phrase role="special">=</phrase> <phrase role="char">'a'</phrase><phrase role="special">;</phrase>
+    <phrase role="keyword">const</phrase> <phrase role="keyword">auto</phrase> <phrase role="identifier">y</phrase> <phrase role="special">=</phrase> <phrase role="identifier">x</phrase> <phrase role="special">-</phrase> <phrase role="char">' '</phrase><phrase role="special">;</phrase>
+<phrase role="special">}</phrase>
+</programlisting>
+</article>

@@ -1,0 +1,40 @@
+[/
+    Copyright (c) 2010-2010 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section Customization]
+
+[section Intervals]
+
+The *icl* provides the possibility of customizing user defined interval class templates
+and class types with static interval borders to be used with interval containers. 
+
+There is a template __itv_tr__, that has to be instatiated for the user defined
+interval type, in order to provide associated types and basic functions.
+Bound types of the interval are assigned by specializing the template 
+`interval_bound_type`.
+
+[table
+[[Customize]        [Name]             [Description]]
+[[associated types] [`interval_type`]  [interval type of the partial specialisation for the user defined type] ]
+[[]                 [`domain_type`]    [the domain or element type of the interval]                            ]
+[[]                 [`domain_compare`] [the ordering on the elements]                                          ]
+[[basic functions]  [`construct(const domain_type&, const domain_type&)`] [construct an interval]              ]
+[[]                 [`lower(const interval_type&)`]                       [select the interval's lower bound]  ]
+[[]                 [`upper(const interval_type&)`]                       [select the interval's upper bound]  ]
+[[interval bounds]  [`interval_bound_type<interval_type>{...}`] [specialize meta function `interval_bound_type`
+                                                                 to assign one of the 4 bound types to the user defined interval. ]  ]
+]
+
+How to do the customization in detail is shown in example 
+[link boost_icl.examples.custom_interval custom interval].
+
+[endsect][/ Intervals]
+
+[endsect][/ Customization]
+
+

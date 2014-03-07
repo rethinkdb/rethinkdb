@@ -1,0 +1,609 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="identifiers_in_quickbook_1_6" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Identifiers in quickbook 1.6</title>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h0">
+    <phrase id="identifiers_in_quickbook_1_6.test_heading_with_code"/><link linkend="identifiers_in_quickbook_1_6.test_heading_with_code">Test
+    heading with <code><phrase role="identifier">code</phrase></code></link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h1">
+    <phrase id="identifiers_in_quickbook_1_6.identifier_10_0"/><link linkend="identifiers_in_quickbook_1_6.identifier_10_0">Identifier
+    10</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h2">
+    <phrase id="identifiers_in_quickbook_1_6.identifier_10_1"/><link linkend="identifiers_in_quickbook_1_6.identifier_10_1">Identifier
+    10</link>
+  </bridgehead>
+  <table frame="all" id="identifiers_in_quickbook_1_6.identifier_10_2">
+    <title>Identifier 10</title>
+    <tgroup cols="1">
+      <tbody>
+        <row>
+          <entry>
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h3">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_du"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_du">Generate
+    a really long id and duplicate it by having several headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h4">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d0"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d0">Generate
+    a really long id and duplicate it by having several headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h5">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d1"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d1">Generate
+    a really long id and duplicate it by having lots of headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h6">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d2"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d2">Generate
+    a really long id and duplicate it by having lots of headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h7">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d3"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d3">Generate
+    a really long id and duplicate it by having lots of headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h8">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d5"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d5">Generate
+    a really long id and duplicate it by having several headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h9">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d6"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d6">Generate
+    a really long id and duplicate it by having several headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h10">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d7"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d7">Generate
+    a really long id and duplicate it by having several headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h11">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d8"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d8">Generate
+    a really long id and duplicate it by having several headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h12">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d9"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d9">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h13">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_0"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_0">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h14">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_1"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_1">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h15">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_2"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_2">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h16">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_3"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_3">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h17">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_4"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_4">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h18">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_5"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_5">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h19">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_6"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_6">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h20">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_7"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_7">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h21">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_8"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_8">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h22">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_9"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_9">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h23">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_10"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_10">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h24">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_11"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_11">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h25">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_12"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_12">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h26">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_13"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_13">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h27">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_14"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_14">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h28">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_16"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_16">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h29">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_17"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_17">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h30">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_18"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_18">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h31">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_19"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_19">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h32">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_20"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_20">Generate
+    a really long id and duplicate it by having too many headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h33">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_21"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_21">Generate
+    a really long id and duplicate it by having several headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h34">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_22"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_22">Generate
+    a really long id and duplicate it by having several headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h35">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_23"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_23">Generate
+    a really long id and duplicate it by having several headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h36">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_24"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_24">Generate
+    a really long id and duplicate it by having several headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h37">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_25"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_25">Generate
+    a really long id and duplicate it by having several headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h38">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_26"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_26">Generate
+    a really long id and duplicate it by having several headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h39">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_27"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_27">Generate
+    a really long id and duplicate it by having several headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h40">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_28"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_28">Generate
+    a really long id and duplicate it by having several headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h41">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_29"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_29">Generate
+    a really long id and duplicate it by having even more headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h42">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_30"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_30">Generate
+    a really long id and duplicate it by having even more headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h43">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_31"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_31">Generate
+    a really long id and duplicate it by having even more headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h44">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_32"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_32">Generate
+    a really long id and duplicate it by having several headers</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h45">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d4"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_d4">Generate
+    a really long id and d4</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h46">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_15"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_15">Generate
+    a really long id and 15</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h47">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_33"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_33">Generate
+    a really long id and d4</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h48">
+    <phrase id="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_34"/><link
+    linkend="identifiers_in_quickbook_1_6.generate_a_really_long_id_and_34">Generate
+    a really long id and 15</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h49">
+    <phrase id="identifiers_in_quickbook_1_6.a2345678901234567890123456789012"/><link
+    linkend="identifiers_in_quickbook_1_6.a2345678901234567890123456789012">a2345678901234567890123456789012</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h50">
+    <phrase id="identifiers_in_quickbook_1_6.a0"/><link linkend="identifiers_in_quickbook_1_6.a0">a2345678901234567890123456789012</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h51">
+    <phrase id="identifiers_in_quickbook_1_6.abcdefghijklmnopqrstuvwxyzabcdef"/><link
+    linkend="identifiers_in_quickbook_1_6.abcdefghijklmnopqrstuvwxyzabcdef">abcdefghijklmnopqrstuvwxyzabcdef</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h52">
+    <phrase id="identifiers_in_quickbook_1_6.abcdefghijklmnopqrstuvwxyzabcde0"/><link
+    linkend="identifiers_in_quickbook_1_6.abcdefghijklmnopqrstuvwxyzabcde0">abcdefghijklmnopqrstuvwxyzabcdef</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h53">
+    <phrase id="identifiers_in_quickbook_1_6.abcdefghijklmnopqrstuvwxyzabcde1"/><link
+    linkend="identifiers_in_quickbook_1_6.abcdefghijklmnopqrstuvwxyzabcde1">abcdefghijklmnopqrstuvwxyzabcdef</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h54">
+    <phrase id="identifiers_in_quickbook_1_6.abcdefghijklmnopqrstuvwxyzabcde2"/><link
+    linkend="identifiers_in_quickbook_1_6.abcdefghijklmnopqrstuvwxyzabcde2">abcdefghijklmnopqrstuvwxyzabcdef</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h55">
+    <phrase id="identifiers_in_quickbook_1_6.markup_in_heading_in_order_to_te"/><link
+    linkend="identifiers_in_quickbook_1_6.markup_in_heading_in_order_to_te">Markup
+    in <code><phrase role="identifier">heading</phrase></code> in <emphasis role="bold">order</emphasis>
+    to test normalization</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h56">
+    <phrase id="identifiers_in_quickbook_1_6.markup_in_heading_in_order_to_t0"/><link
+    linkend="identifiers_in_quickbook_1_6.markup_in_heading_in_order_to_t0">Markup
+    in <code><phrase role="identifier">heading</phrase></code> in <emphasis role="bold">order</emphasis>
+    to test normalization</link>
+  </bridgehead>
+  <bridgehead renderas="sect2" id="identifiers_in_quickbook_1_6.h57">
+    <phrase id="identifiers_in_quickbook_1_6.markup_in_heading_in_order_to_t1"/><link
+    linkend="identifiers_in_quickbook_1_6.markup_in_heading_in_order_to_t1">Markup
+    in <code><phrase role="identifier">heading</phrase></code> in <emphasis role="bold">order</emphasis>
+    to test normalization</link>
+  </bridgehead>
+  <section id="identifiers_in_quickbook_1_6.identifier_10">
+    <title><link linkend="identifiers_in_quickbook_1_6.identifier_10">Identifier
+    10</link></title>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h0">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_du"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_du">Generate
+      a really long id and duplicate it by having several headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h1">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d0"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d0">Generate
+      a really long id and duplicate it by having several headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h2">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d1"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d1">Generate
+      a really long id and duplicate it by having lots of headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h4">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d2"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d2">Generate
+      a really long id and duplicate it by having lots of headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h5">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d3"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d3">Generate
+      a really long id and duplicate it by having lots of headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h6">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d5"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d5">Generate
+      a really long id and duplicate it by having several headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h7">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d6"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d6">Generate
+      a really long id and duplicate it by having several headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h8">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d7"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d7">Generate
+      a really long id and duplicate it by having several headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h9">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d8"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d8">Generate
+      a really long id and duplicate it by having several headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h10">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d9"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d9">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h11">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_0"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_0">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h12">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_1"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_1">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h13">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_2"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_2">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h14">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_3"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_3">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h15">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_4"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_4">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h16">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_5"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_5">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h17">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_6"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_6">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h18">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_7"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_7">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h19">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_8"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_8">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h20">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_9"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_9">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h21">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_10"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_10">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h22">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_11"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_11">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h23">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_12"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_12">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h24">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_13"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_13">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h25">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_14"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_14">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h26">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_16"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_16">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h27">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_17"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_17">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h28">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_18"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_18">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h29">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_19"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_19">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h30">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_20"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_20">Generate
+      a really long id and duplicate it by having too many headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h31">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_21"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_21">Generate
+      a really long id and duplicate it by having several headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h32">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_22"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_22">Generate
+      a really long id and duplicate it by having several headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h33">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_23"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_23">Generate
+      a really long id and duplicate it by having several headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h34">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_24"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_24">Generate
+      a really long id and duplicate it by having several headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h35">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_25"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_25">Generate
+      a really long id and duplicate it by having several headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h36">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_26"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_26">Generate
+      a really long id and duplicate it by having several headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h37">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_27"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_27">Generate
+      a really long id and duplicate it by having several headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h38">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_28"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_28">Generate
+      a really long id and duplicate it by having several headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h39">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_29"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_29">Generate
+      a really long id and duplicate it by having even more headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h40">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_30"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_30">Generate
+      a really long id and duplicate it by having even more headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h41">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_31"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_31">Generate
+      a really long id and duplicate it by having even more headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h42">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_32"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_32">Generate
+      a really long id and duplicate it by having several headers</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h43">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d4"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_d4">Generate
+      a really long id and d4</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h44">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_15"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_15">Generate
+      a really long id and 15</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h45">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_33"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_33">Generate
+      a really long id and d4</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h46">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_34"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.generate_a_really_long_id_and_34">Generate
+      a really long id and 15</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h47">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.a2345678901234567890123456789012"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.a2345678901234567890123456789012">a2345678901234567890123456789012</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h48">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.a0"/><link linkend="identifiers_in_quickbook_1_6.identifier_10.a0">a2345678901234567890123456789012</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h49">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.abcdefghijklmnopqrstuvwxyzabcdef"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.abcdefghijklmnopqrstuvwxyzabcdef">abcdefghijklmnopqrstuvwxyzabcdef</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h50">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.abcdefghijklmnopqrstuvwxyzabcde0"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.abcdefghijklmnopqrstuvwxyzabcde0">abcdefghijklmnopqrstuvwxyzabcdef</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h51">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.abcdefghijklmnopqrstuvwxyzabcde1"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.abcdefghijklmnopqrstuvwxyzabcde1">abcdefghijklmnopqrstuvwxyzabcdef</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h52">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.abcdefghijklmnopqrstuvwxyzabcde2"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.abcdefghijklmnopqrstuvwxyzabcde2">abcdefghijklmnopqrstuvwxyzabcdef</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h53">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.markup_in_heading_in_order_to_te"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.markup_in_heading_in_order_to_te">Markup
+      in <code><phrase role="identifier">heading</phrase></code> in <emphasis role="bold">order</emphasis>
+      to test normalization</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h54">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.markup_in_heading_in_order_to_t0"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.markup_in_heading_in_order_to_t0">Markup
+      in <code><phrase role="identifier">heading</phrase></code> in <emphasis role="bold">order</emphasis>
+      to test normalization</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.identifier_10.h55">
+      <phrase id="identifiers_in_quickbook_1_6.identifier_10.markup_in_heading_in_order_to_t1"/><link
+      linkend="identifiers_in_quickbook_1_6.identifier_10.markup_in_heading_in_order_to_t1">Markup
+      in <code><phrase role="identifier">heading</phrase></code> in <emphasis role="bold">order</emphasis>
+      to test normalization</link>
+    </bridgehead>
+    <table frame="all" id="identifiers_in_quickbook_1_6.identifier_10.h3">
+      <title>h3</title>
+      <tgroup cols="1">
+        <tbody>
+          <row>
+            <entry>
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+    <table frame="all" id="identifiers_in_quickbook_1_6.identifier_10.h3_0">
+      <title>h3</title>
+      <tgroup cols="1">
+        <tbody>
+          <row>
+            <entry>
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+  </section>
+  <section id="identifiers_in_quickbook_1_6.punctuation_stuff">
+    <title><link linkend="identifiers_in_quickbook_1_6.punctuation_stuff">Punctuation
+    &amp; stuff</link></title>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.punctuation_stuff.h0">
+      <phrase id="identifiers_in_quickbook_1_6.punctuation_stuff.a_b"/><link linkend="identifiers_in_quickbook_1_6.punctuation_stuff.a_b">A
+      + B</link>
+    </bridgehead>
+    <bridgehead renderas="sect3" id="identifiers_in_quickbook_1_6.punctuation_stuff.h1">
+      <phrase id="identifiers_in_quickbook_1_6.punctuation_stuff.a_b0"/><link linkend="identifiers_in_quickbook_1_6.punctuation_stuff.a_b0">A
+      + B</link>
+    </bridgehead>
+  </section>
+</article>

@@ -1,0 +1,19 @@
+[article Images 1.5
+    [quickbook 1.5]
+]
+
+[$test.gif]
+[$test this.gif]
+[$test&this.gif]
+[$test.gif [width 10cm] [height 10cm]]
+[$test.gif [alt Foo]]
+[$test.gif [alt Foobie foobie foo]]
+[$test.gif [alt Foo & bar]]
+[$test.gif [alt Foo] [width 10cm] [height 10cm]]
+
+[$ [/comment] test.gif  ]
+[$ [/comment] test.gif [/comment] ]
+[$ [/comment] test.gif [/comment] [alt comment] ]
+
+[/ This should warn about repeated attribute and then ignore it. ]
+[$test.gif [width 10cm] [height 10cm] [width 20cm]]

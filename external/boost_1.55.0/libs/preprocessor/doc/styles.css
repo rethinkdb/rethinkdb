@@ -1,0 +1,87 @@
+a {
+	color:  black;
+	font-weight:  normal;
+}
+a.na:link, a.na:visited {
+	color:  #dddddd;
+	text-decoration:  line-through;
+}
+a:link, a:visited, a:active {
+	color:  gray;
+	text-decoration:  none;
+}
+a.local {
+	font-weight:  bold;
+}
+a:hover, a.na:hover {
+	color:  blue;
+}
+body {
+	color:  black; background-color:  white;
+}
+.code {
+	color:  black; background-color:  #dddddd;
+	letter-spacing:  1px;
+	border:  1px solid; border-color:  black;
+	padding-left:  12px; padding-right:  12px; padding-top:  5px; padding-bottom:  5px;
+	margin-left:  20px;
+}
+dd {
+	padding-left:  40px;
+	margin-left:  0px; margin-bottom:  10px;
+}
+div {
+	margin-top:  10px; margin-bottom:  10px; margin-left:  20px;
+}
+dl {
+	margin-top:  0px; margin-bottom:  0px;
+}
+dt {
+	font-style:  italic;
+	padding-left:  20px;
+	margin-top:  10px;
+}
+h4, h5 {
+	margin-top:  10px; margin-bottom:  10px;
+}
+hr {
+	margin-top:  0px; margin-bottom:  0px;
+}
+.incompatibility {
+	color:  red;
+}
+.indent {
+	margin-top:  0px; margin-bottom:  0px;
+}
+pre {
+	letter-spacing:  1px;
+	padding:  0px;
+	margin:  0px;
+}
+pre a:hover {
+	color:  orange;
+}
+s {
+	color:  #dddddd;
+}
+.sig {
+	font-style:  italic;
+	color:  #aaaaaa;
+	text-align:  right;
+}
+span {
+	display:  block;
+	margin:  0px;
+}
+ul {
+	margin-top:  10px; margin-bottom:  10px; margin-left:  20px;
+	padding-left:  17px;
+}
+
+/*
+© Copyright Housemarque Oy 2002
+© Copyright Paul Mensonides 2002
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+*/

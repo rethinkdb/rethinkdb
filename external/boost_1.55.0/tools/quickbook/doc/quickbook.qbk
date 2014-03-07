@@ -1,0 +1,94 @@
+[/
+    Copyright 2002,2004,2006 Joel de Guzman, Eric Niebler
+    Copyright 2010-2011 Daniel James
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[part Quickbook
+    [quickbook 1.6]
+    [compatibility-mode 1.5]
+    [id quickbook]
+    [version 1.6]
+    [authors [de Guzman, Joel], [Niebler, Eric]]
+    [copyright 2002 2004 2006 Joel de Guzman, Eric Niebler]
+    [copyright 2010-2011 Daniel James]
+    [purpose /WikiWiki/ style documentation tool]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+    [source-mode teletype]
+]
+
+[/ QuickBook Document version 1.5 ]
+[/ Sept 24, 2002 ]
+[/ Sept 2, 2004 ]
+[/ Feb 14, 2005 ]
+[/ Sept 13, 2005 ]
+
+[/ Some links]
+
+[def :-)            [$../src/images/smiley.png]]
+[def __spirit__     [@http://spirit.sourceforge.net Spirit]]
+[def __boostbook__  [@http://www.boost.org/doc/html/boostbook.html BoostBook]]
+[def __docbook__    [@http://www.docbook.org/ DocBook]]
+
+[def __comments__           [link quickbook.ref.comments Comments]]
+
+[def __font_styles__        [link quickbook.ref.font_styles Font Styles]]
+[def __quotations__         [link quickbook.ref.quotations Quotations]]
+[def __replaceable__        [link quickbook.ref.replaceable Replaceble]]
+[def __simple_formatting__  [link quickbook.ref.simple_formatting Simple formatting]]
+[def __inline_code__        [link quickbook.ref.inline_code Inline code]]
+[def __code_blocks__        [link quickbook.ref.code_blocks Code blocks]]
+[def __source_mode__        [link quickbook.ref.source_mode Source Mode]]
+[def __line_break__         [link quickbook.ref.line_break line-break]]
+[def __anchors__            [link quickbook.ref.anchors Anchors]]
+[def __links__              [link quickbook.ref.links Links]]
+[def __anchor_links__       [link quickbook.ref.anchor_links Anchor links]]
+[def __refentry_links__     [link quickbook.ref.refentry_links refentry links]]
+[def __code_links__         [link quickbook.ref.code_links function, class, member, enum, macro, concept or header links]]
+[def __escape__             [link quickbook.ref.escape Escape]]
+[def __single_char_escape__ [link quickbook.ref.single_char_escape Single char escape]]
+[def __images__             [link quickbook.ref.images Images]]
+[def __cond__               [link quickbook.ref.cond Conditional Generation]]
+
+[def __document__           [link quickbook.ref.docinfo Document]]
+[def __section__            [link quickbook.ref.section Section]]
+[def __xinclude__           [link quickbook.ref.xinclude  xinclude]]
+[def __paragraphs__         [link quickbook.ref.paragraphs Paragraphs]]
+[def __ordered_lists__      [link quickbook.ref.ordered_lists Ordered lists]]
+[def __list_hierarchies__   [link quickbook.ref.list_hierarchies List Hierarchies]]
+[def __long_list_lines__    [link quickbook.ref.long_list_lines Long List Lines]]
+[def __unordered_lists__    [link quickbook.ref.unordered_lists Unordered lists]]
+[def __mixed_lists__        [link quickbook.ref.mixed_lists Mixed lists]]
+[def __code__               [link quickbook.ref.code Code]]
+[def __escape_back__        [link quickbook.ref.escape_back Escaping Back To QuickBook]]
+[def __preformatted__       [link quickbook.ref.preformatted Preformatted]]
+[def __blockquote__         [link quickbook.ref.blockquote Blockquote]]
+[def __heading__            [link quickbook.ref.headings Heading]]
+[def __macros__             [link quickbook.ref.macros Macros]]
+[def __templates__          [link quickbook.ref.templates Templates]]
+[def __predefined_macros__  [link quickbook.ref.predefined_macros Predefined Macros]]
+[def __blurbs__             [link quickbook.ref.blurbs Blurbs]]
+[def __admonitions__        [link quickbook.ref.admonitions Admonitions]]
+[def __tables__             [link quickbook.ref.tables Tables]]
+[def __variable_lists__     [link quickbook.ref.variable_lists Variable Lists]]
+[def __include__            [link quickbook.ref.include Include]]
+[def __import__             [link quickbook.ref.import Import]]
+
+[include introduction.qbk]
+[include change_log.qbk]
+[include syntax.qbk]
+[include structure.qbk]
+[include phrase.qbk]
+[include block.qbk]
+[include language_versions.qbk]
+[include install.qbk]
+[include editors.qbk]
+[include faq.qbk]
+[include ref.qbk]

@@ -1,0 +1,34 @@
+#
+#          Copyright Andrey Semashev 2007 - 2013.
+# Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+#
+
+import project ;
+
+project /boost/x86-extensions
+    : source-location .
+    : requirements
+        <pch>off
+    ;
+
+obj ssse3 : ssse3.cpp
+    :
+        <toolset>gcc:<cxxflags>"-march=core2 -msse -msse2 -msse3 -mssse3"
+        <toolset>clang:<cxxflags>"-march=core2 -msse -msse2 -msse3 -mssse3"
+        <toolset>intel-linux:<cxxflags>"-march=core2 -msse -msse2 -msse3 -mssse3"
+        <toolset>intel-darwin:<cxxflags>"-march=core2 -msse -msse2 -msse3 -mssse3"
+        <toolset>intel-win:<cxxflags>"/QxSSSE3"
+    ;
+
+obj avx2 : avx2.cpp
+    :
+        <toolset>gcc:<cxxflags>"-march=core-avx2 -mavx -mavx2 -fabi-version=0"
+        <toolset>clang:<cxxflags>"-march=core-avx2 -mavx -mavx2"
+        <toolset>intel-linux:<cxxflags>"-march=core-avx2 -mavx -mavx2 -fabi-version=0"
+        <toolset>intel-darwin:<cxxflags>"-march=core-avx2 -mavx -mavx2 -fabi-version=0"
+        <toolset>intel-win:<cxxflags>"/QxAVX2"
+        <toolset>msvc:<cxxflags>"/arch:AVX"
+    ;
+

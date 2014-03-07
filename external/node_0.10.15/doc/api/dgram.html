@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>UDP / Datagram Sockets Node.js v0.10.15 Manual &amp; Documentation</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/sh.css">
+  <link rel="canonical" href="http://nodejs.org/api/dgram.html">
+</head>
+<body class="alt apidoc" id="api-section-dgram">
+    <div id="intro" class="interior">
+        <a href="/" title="Go back to the home page">
+            <img id="logo" src="http://nodejs.org/images/logo-light.png" alt="node.js">
+        </a>
+    </div>
+    <div id="content" class="clearfix">
+        <div id="column2" class="interior">
+            <ul>
+                <li><a href="/" class="home">Home</a></li>
+                <li><a href="/download/" class="download">Download</a></li>
+                <li><a href="/about/" class="about">About</a></li>
+                <li><a href="http://npmjs.org/" class="npm">npm Registry</a></li>
+                <li><a href="http://nodejs.org/api/" class="docs current">Docs</a></li>
+                <li><a href="http://blog.nodejs.org" class="blog">Blog</a></li>
+                <li><a href="/community/" class="community">Community</a></li>
+                <li><a href="/logos/" class="logos">Logos</a></li>
+                <li><a href="http://jobs.nodejs.org/" class="jobs">Jobs</a></li>
+            </ul>
+            <p class="twitter"><a href="http://twitter.com/nodejs">@nodejs</a></p>
+        </div>
+
+        <div id="column1" class="interior">
+          <header>
+            <h1>Node.js v0.10.15 Manual &amp; Documentation</h1>
+            <div id="gtoc">
+              <p>
+                <a href="index.html" name="toc">Index</a> |
+                <a href="all.html">View on single page</a> |
+                <a href="dgram.json">View as JSON</a>
+              </p>
+            </div>
+            <hr>
+          </header>
+
+          <div id="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+<li><a href="#dgram_udp_datagram_sockets">UDP / Datagram Sockets</a><ul>
+<li><a href="#dgram_dgram_createsocket_type_callback">dgram.createSocket(type, [callback])</a></li>
+<li><a href="#dgram_class_dgram_socket">Class: dgram.Socket</a><ul>
+<li><a href="#dgram_event_message">Event: &#39;message&#39;</a></li>
+<li><a href="#dgram_event_listening">Event: &#39;listening&#39;</a></li>
+<li><a href="#dgram_event_close">Event: &#39;close&#39;</a></li>
+<li><a href="#dgram_event_error">Event: &#39;error&#39;</a></li>
+<li><a href="#dgram_socket_send_buf_offset_length_port_address_callback">socket.send(buf, offset, length, port, address, [callback])</a></li>
+<li><a href="#dgram_socket_bind_port_address_callback">socket.bind(port, [address], [callback])</a></li>
+<li><a href="#dgram_socket_close">socket.close()</a></li>
+<li><a href="#dgram_socket_address">socket.address()</a></li>
+<li><a href="#dgram_socket_setbroadcast_flag">socket.setBroadcast(flag)</a></li>
+<li><a href="#dgram_socket_setttl_ttl">socket.setTTL(ttl)</a></li>
+<li><a href="#dgram_socket_setmulticastttl_ttl">socket.setMulticastTTL(ttl)</a></li>
+<li><a href="#dgram_socket_setmulticastloopback_flag">socket.setMulticastLoopback(flag)</a></li>
+<li><a href="#dgram_socket_addmembership_multicastaddress_multicastinterface">socket.addMembership(multicastAddress, [multicastInterface])</a></li>
+<li><a href="#dgram_socket_dropmembership_multicastaddress_multicastinterface">socket.dropMembership(multicastAddress, [multicastInterface])</a></li>
+<li><a href="#dgram_socket_unref">socket.unref()</a></li>
+<li><a href="#dgram_socket_ref">socket.ref()</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+
+          <div id="apicontent">
+            <h1>UDP / Datagram Sockets<span><a class="mark" href="#dgram_udp_datagram_sockets" id="dgram_udp_datagram_sockets">#</a></span></h1>
+<pre class="api_stability_3">Stability: 3 - Stable</pre><!-- name=dgram -->
+
+<p>Datagram sockets are available through <code>require(&#39;dgram&#39;)</code>.
+
+</p>
+<p>Important note: the behavior of <code>dgram.Socket#bind()</code> has changed in v0.10
+and is always asynchronous now.  If you have code that looks like this:
+
+</p>
+<pre><code>var s = dgram.createSocket(&#39;udp4&#39;);
+s.bind(1234);
+s.addMembership(&#39;224.0.0.114&#39;);</code></pre>
+<p>You have to change it to this:
+
+</p>
+<pre><code>var s = dgram.createSocket(&#39;udp4&#39;);
+s.bind(1234, function() {
+  s.addMembership(&#39;224.0.0.114&#39;);
+});</code></pre>
+<h2>dgram.createSocket(type, [callback])<span><a class="mark" href="#dgram_dgram_createsocket_type_callback" id="dgram_dgram_createsocket_type_callback">#</a></span></h2>
+<div class="signature"><ul>
+<li><code>type</code> String. Either &#39;udp4&#39; or &#39;udp6&#39;</li>
+<li><code>callback</code> Function. Attached as a listener to <code>message</code> events.
+Optional</li>
+<li>Returns: Socket object</li>
+</div></ul>
+<p>Creates a datagram Socket of the specified types.  Valid types are <code>udp4</code>
+and <code>udp6</code>.
+
+</p>
+<p>Takes an optional callback which is added as a listener for <code>message</code> events.
+
+</p>
+<p>Call <code>socket.bind</code> if you want to receive datagrams. <code>socket.bind()</code> will bind
+to the &quot;all interfaces&quot; address on a random port (it does the right thing for
+both <code>udp4</code> and <code>udp6</code> sockets). You can then retrieve the address and port
+with <code>socket.address().address</code> and <code>socket.address().port</code>.
+
+</p>
+<h2>Class: dgram.Socket<span><a class="mark" href="#dgram_class_dgram_socket" id="dgram_class_dgram_socket">#</a></span></h2>
+<p>The dgram Socket class encapsulates the datagram functionality.  It
+should be created via <code>dgram.createSocket(type, [callback])</code>.
+
+</p>
+<h3>Event: &#39;message&#39;<span><a class="mark" href="#dgram_event_message" id="dgram_event_message">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>msg</code> Buffer object. The message</li>
+<li><code>rinfo</code> Object. Remote address information</li>
+</div></ul>
+<p>Emitted when a new datagram is available on a socket.  <code>msg</code> is a <code>Buffer</code> and <code>rinfo</code> is
+an object with the sender&#39;s address information and the number of bytes in the datagram.
+
+</p>
+<h3>Event: &#39;listening&#39;<span><a class="mark" href="#dgram_event_listening" id="dgram_event_listening">#</a></span></h3>
+<p>Emitted when a socket starts listening for datagrams.  This happens as soon as UDP sockets
+are created.
+
+</p>
+<h3>Event: &#39;close&#39;<span><a class="mark" href="#dgram_event_close" id="dgram_event_close">#</a></span></h3>
+<p>Emitted when a socket is closed with <code>close()</code>.  No new <code>message</code> events will be emitted
+on this socket.
+
+</p>
+<h3>Event: &#39;error&#39;<span><a class="mark" href="#dgram_event_error" id="dgram_event_error">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>exception</code> Error object</li>
+</div></ul>
+<p>Emitted when an error occurs.
+
+</p>
+<h3>socket.send(buf, offset, length, port, address, [callback])<span><a class="mark" href="#dgram_socket_send_buf_offset_length_port_address_callback" id="dgram_socket_send_buf_offset_length_port_address_callback">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>buf</code> Buffer object.  Message to be sent</li>
+<li><code>offset</code> Integer. Offset in the buffer where the message starts.</li>
+<li><code>length</code> Integer. Number of bytes in the message.</li>
+<li><code>port</code> Integer. destination port</li>
+<li><code>address</code> String. destination IP</li>
+<li><code>callback</code> Function. Callback when message is done being delivered.
+Optional.</li>
+</div></ul>
+<p>For UDP sockets, the destination port and IP address must be specified.  A string
+may be supplied for the <code>address</code> parameter, and it will be resolved with DNS.  An
+optional callback may be specified to detect any DNS errors and when <code>buf</code> may be
+re-used.  Note that DNS lookups will delay the time that a send takes place, at
+least until the next tick.  The only way to know for sure that a send has taken place
+is to use the callback.
+
+</p>
+<p>If the socket has not been previously bound with a call to <code>bind</code>, it&#39;s
+assigned a random port number and bound to the &quot;all interfaces&quot; address
+(0.0.0.0 for <code>udp4</code> sockets, ::0 for <code>udp6</code> sockets).
+
+</p>
+<p>Example of sending a UDP packet to a random port on <code>localhost</code>;
+
+</p>
+<pre><code>var dgram = require(&#39;dgram&#39;);
+var message = new Buffer(&quot;Some bytes&quot;);
+var client = dgram.createSocket(&quot;udp4&quot;);
+client.send(message, 0, message.length, 41234, &quot;localhost&quot;, function(err, bytes) {
+  client.close();
+});</code></pre>
+<p><strong>A Note about UDP datagram size</strong>
+
+</p>
+<p>The maximum size of an <code>IPv4/v6</code> datagram depends on the <code>MTU</code> (<em>Maximum Transmission Unit</em>)
+and on the <code>Payload Length</code> field size.
+
+</p>
+<ul>
+<li><p>The <code>Payload Length</code> field is <code>16 bits</code> wide, which means that a normal payload
+cannot be larger than 64K octets including internet header and data
+(65,507 bytes = 65,535 − 8 bytes UDP header − 20 bytes IP header);
+this is generally true for loopback interfaces, but such long datagrams
+are impractical for most hosts and networks.</p>
+</li>
+<li><p>The <code>MTU</code> is the largest size a given link layer technology can support for datagrams.
+For any link, <code>IPv4</code> mandates a minimum <code>MTU</code> of <code>68</code> octets, while the recommended <code>MTU</code>
+for IPv4 is <code>576</code> (typically recommended as the <code>MTU</code> for dial-up type applications),
+whether they arrive whole or in fragments.</p>
+<p>For <code>IPv6</code>, the minimum <code>MTU</code> is <code>1280</code> octets, however, the mandatory minimum
+fragment reassembly buffer size is <code>1500</code> octets.
+The value of <code>68</code> octets is very small, since most current link layer technologies have
+a minimum <code>MTU</code> of <code>1500</code> (like Ethernet).</p>
+</li>
+</ul>
+<p>Note that it&#39;s impossible to know in advance the MTU of each link through which
+a packet might travel, and that generally sending a datagram greater than
+the (receiver) <code>MTU</code> won&#39;t work (the packet gets silently dropped, without
+informing the source that the data did not reach its intended recipient).
+
+</p>
+<h3>socket.bind(port, [address], [callback])<span><a class="mark" href="#dgram_socket_bind_port_address_callback" id="dgram_socket_bind_port_address_callback">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>port</code> Integer</li>
+<li><code>address</code> String, Optional</li>
+<li><code>callback</code> Function, Optional</li>
+</div></ul>
+<p>For UDP sockets, listen for datagrams on a named <code>port</code> and optional <code>address</code>.
+If <code>address</code> is not specified, the OS will try to listen on all addresses.
+
+</p>
+<p>The <code>callback</code> argument, if provided, is added as a one-shot <code>&#39;listening&#39;</code>
+event listener.
+
+</p>
+<p>Example of a UDP server listening on port 41234:
+
+</p>
+<pre><code>var dgram = require(&quot;dgram&quot;);
+
+var server = dgram.createSocket(&quot;udp4&quot;);
+
+server.on(&quot;message&quot;, function (msg, rinfo) {
+  console.log(&quot;server got: &quot; + msg + &quot; from &quot; +
+    rinfo.address + &quot;:&quot; + rinfo.port);
+});
+
+server.on(&quot;listening&quot;, function () {
+  var address = server.address();
+  console.log(&quot;server listening &quot; +
+      address.address + &quot;:&quot; + address.port);
+});
+
+server.bind(41234);
+// server listening 0.0.0.0:41234</code></pre>
+<h3>socket.close()<span><a class="mark" href="#dgram_socket_close" id="dgram_socket_close">#</a></span></h3>
+<p>Close the underlying socket and stop listening for data on it.
+
+</p>
+<h3>socket.address()<span><a class="mark" href="#dgram_socket_address" id="dgram_socket_address">#</a></span></h3>
+<p>Returns an object containing the address information for a socket.  For UDP sockets,
+this object will contain <code>address</code> , <code>family</code> and <code>port</code>.
+
+</p>
+<h3>socket.setBroadcast(flag)<span><a class="mark" href="#dgram_socket_setbroadcast_flag" id="dgram_socket_setbroadcast_flag">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>flag</code> Boolean</li>
+</div></ul>
+<p>Sets or clears the <code>SO_BROADCAST</code> socket option.  When this option is set, UDP packets
+may be sent to a local interface&#39;s broadcast address.
+
+</p>
+<h3>socket.setTTL(ttl)<span><a class="mark" href="#dgram_socket_setttl_ttl" id="dgram_socket_setttl_ttl">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>ttl</code> Integer</li>
+</div></ul>
+<p>Sets the <code>IP_TTL</code> socket option.  TTL stands for &quot;Time to Live,&quot; but in this context it
+specifies the number of IP hops that a packet is allowed to go through.  Each router or
+gateway that forwards a packet decrements the TTL.  If the TTL is decremented to 0 by a
+router, it will not be forwarded.  Changing TTL values is typically done for network
+probes or when multicasting.
+
+</p>
+<p>The argument to <code>setTTL()</code> is a number of hops between 1 and 255.  The default on most
+systems is 64.
+
+</p>
+<h3>socket.setMulticastTTL(ttl)<span><a class="mark" href="#dgram_socket_setmulticastttl_ttl" id="dgram_socket_setmulticastttl_ttl">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>ttl</code> Integer</li>
+</div></ul>
+<p>Sets the <code>IP_MULTICAST_TTL</code> socket option.  TTL stands for &quot;Time to Live,&quot; but in this
+context it specifies the number of IP hops that a packet is allowed to go through,
+specifically for multicast traffic.  Each router or gateway that forwards a packet
+decrements the TTL. If the TTL is decremented to 0 by a router, it will not be forwarded.
+
+</p>
+<p>The argument to <code>setMulticastTTL()</code> is a number of hops between 0 and 255.  The default on most
+systems is 1.
+
+</p>
+<h3>socket.setMulticastLoopback(flag)<span><a class="mark" href="#dgram_socket_setmulticastloopback_flag" id="dgram_socket_setmulticastloopback_flag">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>flag</code> Boolean</li>
+</div></ul>
+<p>Sets or clears the <code>IP_MULTICAST_LOOP</code> socket option.  When this option is set, multicast
+packets will also be received on the local interface.
+
+</p>
+<h3>socket.addMembership(multicastAddress, [multicastInterface])<span><a class="mark" href="#dgram_socket_addmembership_multicastaddress_multicastinterface" id="dgram_socket_addmembership_multicastaddress_multicastinterface">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>multicastAddress</code> String</li>
+<li><code>multicastInterface</code> String, Optional</li>
+</div></ul>
+<p>Tells the kernel to join a multicast group with <code>IP_ADD_MEMBERSHIP</code> socket option.
+
+</p>
+<p>If <code>multicastInterface</code> is not specified, the OS will try to add membership to all valid
+interfaces.
+
+</p>
+<h3>socket.dropMembership(multicastAddress, [multicastInterface])<span><a class="mark" href="#dgram_socket_dropmembership_multicastaddress_multicastinterface" id="dgram_socket_dropmembership_multicastaddress_multicastinterface">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>multicastAddress</code> String</li>
+<li><code>multicastInterface</code> String, Optional</li>
+</div></ul>
+<p>Opposite of <code>addMembership</code> - tells the kernel to leave a multicast group with
+<code>IP_DROP_MEMBERSHIP</code> socket option. This is automatically called by the kernel
+when the socket is closed or process terminates, so most apps will never need to call
+this.
+
+</p>
+<p>If <code>multicastInterface</code> is not specified, the OS will try to drop membership to all valid
+interfaces.
+
+</p>
+<h3>socket.unref()<span><a class="mark" href="#dgram_socket_unref" id="dgram_socket_unref">#</a></span></h3>
+<p>Calling <code>unref</code> on a socket will allow the program to exit if this is the only
+active socket in the event system. If the socket is already <code>unref</code>d calling
+<code>unref</code> again will have no effect.
+
+</p>
+<h3>socket.ref()<span><a class="mark" href="#dgram_socket_ref" id="dgram_socket_ref">#</a></span></h3>
+<p>Opposite of <code>unref</code>, calling <code>ref</code> on a previously <code>unref</code>d socket will <em>not</em>
+let the program exit if it&#39;s the only socket left (the default behavior). If
+the socket is <code>ref</code>d calling <code>ref</code> again will have no effect.
+</p>
+
+          </div>
+        </div>
+    </div>
+    <div id="footer">
+        <a href="http://joyent.com" class="joyent-logo">Joyent</a>
+        <ul class="clearfix">
+            <li><a href="/">Node.js</a></li>
+            <li><a href="/download/">Download</a></li>
+            <li><a href="/about/">About</a></li>
+            <li><a href="http://npmjs.org/">npm Registry</a></li>
+            <li><a href="http://nodejs.org/api/">Docs</a></li>
+            <li><a href="http://blog.nodejs.org">Blog</a></li>
+            <li><a href="/community/">Community</a></li>
+            <li><a href="/logos/">Logos</a></li>
+            <li><a href="http://jobs.nodejs.org/">Jobs</a></li>
+            <li><a href="http://twitter.com/nodejs" class="twitter">@nodejs</a></li>
+        </ul>
+
+        <p>Copyright <a href="http://joyent.com/">Joyent, Inc</a>, Node.js is a <a href="/trademark-policy.pdf">trademark</a> of Joyent, Inc. View <a href="https://raw.github.com/joyent/node/v0.10.15/LICENSE">license</a>.</p>
+    </div>
+
+  <script src="../sh_main.js"></script>
+  <script src="../sh_javascript.min.js"></script>
+  <script>highlight(undefined, undefined, 'pre');</script>
+  <script>
+    window._gaq = [['_setAccount', 'UA-10874194-2'], ['_trackPageview']];
+    (function(d, t) {
+      var g = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      g.src = '//www.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+  </script>
+</body>
+</html>
+

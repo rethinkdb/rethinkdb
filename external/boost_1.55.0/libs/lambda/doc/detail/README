@@ -1,0 +1,7 @@
+- lambda_doc.xml is a DocBook xml file from which the lambda docs are
+generated
+- lambda_doc_chunks.xsl loads the stylesheets that generate a separate
+html-file for each section
+- lambda_doc.xsl loads stylesheets that generate one big html-file
+(you need to edit the paths in these files to make them work)
+

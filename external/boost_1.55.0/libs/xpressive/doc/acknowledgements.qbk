@@ -1,0 +1,38 @@
+[/
+ / Copyright (c) 2008 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Acknowledgments]
+
+I am indebted to [@http://boost.org/people/joel_de_guzman.htm Joel de Guzman]
+and [@http://boost.org/people/hartmut_kaiser.htm Hartmut Kaiser] for their
+expert advice during the early states of xpressive's development. Much of
+static xpressive's syntax is owes a large debt to _spirit_, including the
+syntax for xpressive's semantic actions. I am thankful for
+[@http://boost.org/people/john_maddock.htm John Maddock]'s excellent work on
+his proposal to add regular expressions to the standard library, and for
+various ideas borrowed liberally from his regex implementation. I'd also like
+to thank [@http://moderncppdesign.com/ Andrei Alexandrescu] for his input
+regarding the behavior of nested regex objects, and
+[@http://boost.org/people/dave_abrahams.htm Dave Abrahams] for his suggestions
+regarding the regex domain-specific embedded language. Noel Belcourt helped
+porting xpressive to the Metrowerks CodeWarrior compiler. Markus
+Sch'''&ouml;'''pflin helped to track down a bug on HP Tru64, and Steven
+Watanabe suggested the fix.
+
+Special thanks are due to David Jenkins who contributed both ideas, code and
+documentation for xpressive's semantic actions, symbol tables and attributes.
+Xpressive's ternary search trie implementation is David's, as is the number
+parser example in [^libs/xpressive/example/numbers.cpp] and the documentation
+for symbol tables and attributes.
+
+Thanks to John Fletcher for helping track down a runtime assertion when using
+xpressive with Howard Hinnant's most excellent libc++.
+
+Finally, I would like to thank [@http://boost.org/people/thomas_witt.html Thomas Witt]
+for acting as xpressive's review manager.
+
+[endsect]

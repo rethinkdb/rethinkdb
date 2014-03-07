@@ -1,0 +1,225 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Optional Parser (-a)</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../operator.html" title="Parser Operators">
+<link rel="prev" href="not_predicate.html" title="Not-Predicate Parser (!a)">
+<link rel="next" href="permutation.html" title="Permutation Parser (a ^ b)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="not_predicate.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../operator.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="permutation.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.qi.reference.operator.optional"></a><a class="link" href="optional.html" title="Optional Parser (-a)">Optional Parser
+          (<code class="computeroutput"><span class="special">-</span><span class="identifier">a</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.qi.reference.operator.optional.h0"></a>
+            <span class="phrase"><a name="spirit.qi.reference.operator.optional.description"></a></span><a class="link" href="optional.html#spirit.qi.reference.operator.optional.description">Description</a>
+          </h6>
+<p>
+            The optional operator, <code class="computeroutput"><span class="special">-</span><span class="identifier">a</span></code>, is a unary operator that matches
+            its operand zero or one time.
+          </p>
+<h6>
+<a name="spirit.qi.reference.operator.optional.h1"></a>
+            <span class="phrase"><a name="spirit.qi.reference.operator.optional.header"></a></span><a class="link" href="optional.html#spirit.qi.reference.operator.optional.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/qi/operator/optional.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_optional</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.qi.reference.operator.optional.h2"></a>
+            <span class="phrase"><a name="spirit.qi.reference.operator.optional.model_of"></a></span><a class="link" href="optional.html#spirit.qi.reference.operator.optional.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../parser_concepts/unaryparser.html" title="UnaryParser"><code class="computeroutput"><span class="identifier">UnaryParser</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">a</span></code></span></dt>
+<dd><p>
+                  A <a class="link" href="../parser_concepts/parser.html" title="Parser"><code class="computeroutput"><span class="identifier">Parser</span></code></a>
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.qi.reference.operator.optional.h3"></a>
+            <span class="phrase"><a name="spirit.qi.reference.operator.optional.expression_semantics"></a></span><a class="link" href="optional.html#spirit.qi.reference.operator.optional.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../parser_concepts/unaryparser.html" title="UnaryParser"><code class="computeroutput"><span class="identifier">UnaryParser</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="special">-</span><span class="identifier">a</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Match <code class="computeroutput"><span class="identifier">a</span></code> zero
+                      or one time.
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.operator.optional.h4"></a>
+            <span class="phrase"><a name="spirit.qi.reference.operator.optional.attributes"></a></span><a class="link" href="optional.html#spirit.qi.reference.operator.optional.attributes">Attributes</a>
+          </h6>
+<p>
+            See <a class="link" href="../../quick_reference/compound_attribute_rules.html#spirit.qi.quick_reference.compound_attribute_rules.notation">Compound
+            Attribute Notation</a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Attribute
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="special">-</span><span class="identifier">a</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting"><span class="identifier">a</span><span class="special">:</span> <span class="identifier">A</span> <span class="special">--&gt;</span> <span class="special">-</span><span class="identifier">a</span><span class="special">:</span> <span class="identifier">optional</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">&gt;</span>
+<span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span> <span class="special">--&gt;</span> <span class="special">-</span><span class="identifier">a</span><span class="special">:</span> <span class="identifier">Unused</span></pre>
+<p>
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.qi.reference.operator.optional.h5"></a>
+            <span class="phrase"><a name="spirit.qi.reference.operator.optional.complexity"></a></span><a class="link" href="optional.html#spirit.qi.reference.operator.optional.complexity">Complexity</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              The complexity is defined by the complexity of the operand, <code class="computeroutput"><span class="identifier">a</span></code>
+            </p></blockquote></div>
+<h6>
+<a name="spirit.qi.reference.operator.optional.h6"></a>
+            <span class="phrase"><a name="spirit.qi.reference.operator.optional.example"></a></span><a class="link" href="optional.html#spirit.qi.reference.operator.optional.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.qi.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">char_</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">lexeme</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">int_</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">vector</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">fusion</span><span class="special">::</span><span class="identifier">at_c</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">optional</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Parse a person info with name (in quotes) optional age <a href="#ftn.spirit.qi.reference.operator.optional.f0" class="footnote" name="spirit.qi.reference.operator.optional.f0"><sup class="footnote">[9]</sup></a> and optional sex, all separated by comma.
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">,</span> <span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;,</span> <span class="identifier">optional</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">attr</span><span class="special">;</span>
+
+<span class="identifier">test_phrase_parser_attr</span><span class="special">(</span>
+    <span class="string">"\"James Bond\", M"</span>
+  <span class="special">,</span> <span class="identifier">lexeme</span><span class="special">[</span><span class="char">'"'</span> <span class="special">&gt;&gt;</span> <span class="special">+(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">'"'</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="char">'"'</span><span class="special">]</span>    <span class="comment">// name</span>
+        <span class="special">&gt;&gt;</span> <span class="special">-(</span><span class="char">','</span> <span class="special">&gt;&gt;</span> <span class="identifier">int_</span><span class="special">)</span>                   <span class="comment">// optional age</span>
+        <span class="special">&gt;&gt;</span> <span class="special">-(</span><span class="char">','</span> <span class="special">&gt;&gt;</span> <span class="identifier">char_</span><span class="special">)</span>                  <span class="comment">// optional sex</span>
+  <span class="special">,</span> <span class="identifier">attr</span><span class="special">);</span>
+
+<span class="comment">// Should print: James Bond,M</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">0</span><span class="special">&gt;(</span><span class="identifier">attr</span><span class="special">);</span>                 <span class="comment">// print name</span>
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">attr</span><span class="special">))</span>                          <span class="comment">// print optional age</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="char">','</span> <span class="special">&lt;&lt;</span> <span class="special">*</span><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">1</span><span class="special">&gt;(</span><span class="identifier">attr</span><span class="special">);</span>
+<span class="keyword">if</span> <span class="special">(</span><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;(</span><span class="identifier">attr</span><span class="special">))</span>                          <span class="comment">// print optional sex</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="char">','</span> <span class="special">&lt;&lt;</span> <span class="special">*</span><span class="identifier">at_c</span><span class="special">&lt;</span><span class="number">2</span><span class="special">&gt;(</span><span class="identifier">attr</span><span class="special">);</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<div class="footnotes">
+<br><hr style="width:100; text-align:left;margin-left: 0">
+<div id="ftn.spirit.qi.reference.operator.optional.f0" class="footnote"><p><a href="#spirit.qi.reference.operator.optional.f0" class="para"><sup class="para">[9] </sup></a>
+              James Bond is shy about his age :-)
+            </p></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="not_predicate.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../operator.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="permutation.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

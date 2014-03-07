@@ -1,0 +1,334 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>The Static Lexer Model</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../abstracts.html" title="Abstracts">
+<link rel="prev" href="lexer_semantic_actions.html" title="Lexer Semantic Actions">
+<link rel="next" href="../quick_reference.html" title="Quick Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lexer_semantic_actions.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../abstracts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../quick_reference.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.lex.abstracts.lexer_static_model"></a><a class="link" href="lexer_static_model.html" title="The Static Lexer Model">The <span class="emphasis"><em>Static</em></span>
+        Lexer Model</a>
+</h4></div></div></div>
+<p>
+          The documentation of <span class="emphasis"><em>Spirit.Lex</em></span> so far mostly was
+          about describing the features of the <span class="emphasis"><em>dynamic</em></span> model,
+          where the tables needed for lexical analysis are generated from the regular
+          expressions at runtime. The big advantage of the dynamic model is its flexibility,
+          and its integration with the <a href="http://boost-spirit.com" target="_top">Spirit</a>
+          library and the C++ host language. Its big disadvantage is the need to
+          spend additional runtime to generate the tables, which especially might
+          be a limitation for larger lexical analyzers. The <span class="emphasis"><em>static</em></span>
+          model strives to build upon the smooth integration with <a href="http://boost-spirit.com" target="_top">Spirit</a>
+          and C++, and reuses large parts of the <span class="emphasis"><em>Spirit.Lex</em></span>
+          library as described so far, while overcoming the additional runtime requirements
+          by using pre-generated tables and tokenizer routines. To make the code
+          generation as simple as possible, the static model reuses the token definition
+          types developed for the <span class="emphasis"><em>dynamic</em></span> model without any
+          changes. As will be shown in this section, building a code generator based
+          on an existing token definition type is a matter of writing 3 lines of
+          code.
+        </p>
+<p>
+          Assuming you already built a dynamic lexer for your problem, there are
+          two more steps needed to create a static lexical analyzer using <span class="emphasis"><em>Spirit.Lex</em></span>:
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              generating the C++ code for the static analyzer (including the tokenization
+              function and corresponding tables), and
+            </li>
+<li class="listitem">
+              modifying the dynamic lexical analyzer to use the generated code.
+            </li>
+</ol></div>
+<p>
+          Both steps are described in more detail in the two sections below (for
+          the full source code used in this example see the code here: <a href="../../../../../example/lex/static_lexer/word_count_tokens.hpp" target="_top">the
+          common token definition</a>, <a href="../../../../../example/lex/static_lexer/word_count_generate.cpp" target="_top">the
+          code generator</a>, <a href="../../../../../example/lex/static_lexer/word_count_static.hpp" target="_top">the
+          generated code</a>, and <a href="../../../../../example/lex/static_lexer/word_count_static.cpp" target="_top">the
+          static lexical analyzer</a>).
+        </p>
+<p>
+          But first we provide the code snippets needed to further understand the
+          descriptions. Both, the definition of the used token identifier and the
+          of the token definition class in this example are put into a separate header
+          file to make these available to the code generator and the static lexical
+          analyzer.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">enum</span> <span class="identifier">tokenids</span>
+<span class="special">{</span>
+    <span class="identifier">IDANY</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lex</span><span class="special">::</span><span class="identifier">min_token_id</span> <span class="special">+</span> <span class="number">1</span><span class="special">,</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          The important point here is, that the token definition class is not different
+          from a similar class to be used for a dynamic lexical analyzer. The library
+          has been designed in a way, that all components (dynamic lexical analyzer,
+          code generator, and static lexical analyzer) can reuse the very same token
+          definition syntax.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">// This token definition class can be used without any change for all three</span>
+<span class="comment">// possible use cases: a dynamic lexical analyzer, a code generator, and a</span>
+<span class="comment">// static lexical analyzer.</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">BaseLexer</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">word_count_tokens</span> <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;</span><span class="identifier">BaseLexer</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">word_count_tokens</span><span class="special">()</span>
+      <span class="special">:</span> <span class="identifier">word_count_tokens</span><span class="special">::</span><span class="identifier">base_type</span><span class="special">(</span>
+          <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lex</span><span class="special">::</span><span class="identifier">match_flags</span><span class="special">::</span><span class="identifier">match_not_dot_newline</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="comment">// define tokens and associate them with the lexer</span>
+        <span class="identifier">word</span> <span class="special">=</span> <span class="string">"[^ \t\n]+"</span><span class="special">;</span>
+        <span class="keyword">this</span><span class="special">-&gt;</span><span class="identifier">self</span> <span class="special">=</span> <span class="identifier">word</span> <span class="special">|</span> <span class="char">'\n'</span> <span class="special">|</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lex</span><span class="special">::</span><span class="identifier">token_def</span><span class="special">&lt;&gt;(</span><span class="string">"."</span><span class="special">,</span> <span class="identifier">IDANY</span><span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">lex</span><span class="special">::</span><span class="identifier">token_def</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span> <span class="identifier">word</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<p>
+          The only thing changing between the three different use cases is the template
+          parameter used to instantiate a concrete token definition. For the dynamic
+          model and the code generator you probably will use the <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;&gt;</span></code> template, where for the static
+          model you will use the <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">static_lexer</span><span class="special">&lt;&gt;</span></code> type as the template parameter.
+        </p>
+<p>
+          This example not only shows how to build a static lexer, but it additionally
+          demonstrates how such a lexer can be used for parsing in conjunction with
+          a <span class="emphasis"><em>Spirit.Qi</em></span> grammar. For completeness, we provide
+          the simple grammar used in this example. As you can see, this grammar does
+          not have any dependencies on the static lexical analyzer, and for this
+          reason it is not different from a grammar used either without a lexer or
+          using a dynamic lexical analyzer as described before.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="comment">//  This is an ordinary grammar definition following the rules defined by </span>
+<span class="comment">//  Spirit.Qi. There is nothing specific about it, except it gets the token</span>
+<span class="comment">//  definition class instance passed to the constructor to allow accessing the</span>
+<span class="comment">//  embedded token_def&lt;&gt; instances.</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">word_count_grammar</span> <span class="special">:</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">TokenDef</span><span class="special">&gt;</span>
+    <span class="identifier">word_count_grammar</span><span class="special">(</span><span class="identifier">TokenDef</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">tok</span><span class="special">)</span>
+      <span class="special">:</span> <span class="identifier">word_count_grammar</span><span class="special">::</span><span class="identifier">base_type</span><span class="special">(</span><span class="identifier">start</span><span class="special">)</span>
+      <span class="special">,</span> <span class="identifier">c</span><span class="special">(</span><span class="number">0</span><span class="special">),</span> <span class="identifier">w</span><span class="special">(</span><span class="number">0</span><span class="special">),</span> <span class="identifier">l</span><span class="special">(</span><span class="number">0</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">ref</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">size</span><span class="special">;</span>
+
+        <span class="comment">//  associate the defined tokens with the lexer, at the same time </span>
+        <span class="comment">//  defining the actions to be executed </span>
+        <span class="identifier">start</span> <span class="special">=</span>  <span class="special">*(</span>   <span class="identifier">tok</span><span class="special">.</span><span class="identifier">word</span>          <span class="special">[</span> <span class="special">++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">w</span><span class="special">),</span> <span class="identifier">ref</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span> <span class="special">+=</span> <span class="identifier">size</span><span class="special">(</span><span class="identifier">_1</span><span class="special">)</span> <span class="special">]</span>
+                  <span class="special">|</span>   <span class="identifier">lit</span><span class="special">(</span><span class="char">'\n'</span><span class="special">)</span>         <span class="special">[</span> <span class="special">++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">l</span><span class="special">),</span> <span class="special">++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span> <span class="special">]</span>
+                  <span class="special">|</span>   <span class="identifier">qi</span><span class="special">::</span><span class="identifier">token</span><span class="special">(</span><span class="identifier">IDANY</span><span class="special">)</span>  <span class="special">[</span> <span class="special">++</span><span class="identifier">ref</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span> <span class="special">]</span>
+                  <span class="special">)</span>
+              <span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">c</span><span class="special">,</span> <span class="identifier">w</span><span class="special">,</span> <span class="identifier">l</span><span class="special">;</span>      <span class="comment">// counter for characters, words, and lines</span>
+    <span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">&gt;</span> <span class="identifier">start</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="spirit.lex.abstracts.lexer_static_model.h0"></a>
+          <span class="phrase"><a name="spirit.lex.abstracts.lexer_static_model.generating_the_static_analyzer"></a></span><a class="link" href="lexer_static_model.html#spirit.lex.abstracts.lexer_static_model.generating_the_static_analyzer">Generating
+          the Static Analyzer</a>
+        </h6>
+<p>
+          The first additional step to perform in order to create a static lexical
+          analyzer is to create a small stand alone program for creating the lexer
+          tables and the corresponding tokenization function. For this purpose the
+          <span class="emphasis"><em>Spirit.Lex</em></span> library exposes a special API - the function
+          <code class="computeroutput"><span class="identifier">generate_static_dfa</span><span class="special">()</span></code>
+          . It implements the whole code generator, no further code is needed. All
+          what it takes to invoke this function is to supply a token definition instance,
+          an output stream to use to generate the code to, and an optional string
+          to be used as a suffix for the name of the generated function. All in all
+          just a couple lines of code.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+    <span class="comment">// create the lexer object instance needed to invoke the generator</span>
+    <span class="identifier">word_count_tokens</span><span class="special">&lt;</span><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;&gt;</span> <span class="special">&gt;</span> <span class="identifier">word_count</span><span class="special">;</span> <span class="comment">// the token definition</span>
+
+    <span class="comment">// open the output file, where the generated tokenizer function will be </span>
+    <span class="comment">// written to</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">ofstream</span> <span class="identifier">out</span><span class="special">(</span><span class="identifier">argc</span> <span class="special">&lt;</span> <span class="number">2</span> <span class="special">?</span> <span class="string">"word_count_static.hpp"</span> <span class="special">:</span> <span class="identifier">argv</span><span class="special">[</span><span class="number">1</span><span class="special">]);</span>
+
+    <span class="comment">// invoke the generator, passing the token definition, the output stream </span>
+    <span class="comment">// and the name suffix of the tables and functions to be generated</span>
+    <span class="comment">//</span>
+    <span class="comment">// The suffix "wc" used below results in a type lexertl::static_::lexer_wc</span>
+    <span class="comment">// to be generated, which needs to be passed as a template parameter to the </span>
+    <span class="comment">// lexertl::static_lexer template (see word_count_static.cpp).</span>
+    <span class="keyword">return</span> <span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">generate_static_dfa</span><span class="special">(</span><span class="identifier">word_count</span><span class="special">,</span> <span class="identifier">out</span><span class="special">,</span> <span class="string">"wc"</span><span class="special">)</span> <span class="special">?</span> <span class="number">0</span> <span class="special">:</span> <span class="special">-</span><span class="number">1</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<p>
+          The shown code generator will generate output, which should be stored in
+          a file for later inclusion into the static lexical analyzer as shown in
+          the next topic (the full generated code can be viewed <a href="../../../../../example/lex/static_lexer/word_count_static.hpp" target="_top">here</a>).
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The generated code will have compiled in the version number of the current
+            <span class="emphasis"><em>Spirit.Lex</em></span> library. This version number is used
+            at compilation time of your static lexer object to ensure this is compiled
+            using exactly the same version of the <span class="emphasis"><em>Spirit.Lex</em></span>
+            library as the lexer tables have been generated with. If the versions
+            do not match you will see an compilation error mentioning an <code class="computeroutput"><span class="identifier">incompatible_static_lexer_version</span></code>.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.lex.abstracts.lexer_static_model.h1"></a>
+          <span class="phrase"><a name="spirit.lex.abstracts.lexer_static_model.modifying_the_dynamic_analyzer"></a></span><a class="link" href="lexer_static_model.html#spirit.lex.abstracts.lexer_static_model.modifying_the_dynamic_analyzer">Modifying
+          the Dynamic Analyzer</a>
+        </h6>
+<p>
+          The second required step to convert an existing dynamic lexer into a static
+          one is to change your main program at two places. First, you need to change
+          the type of the used lexer (that is the template parameter used while instantiating
+          your token definition class). While in the dynamic model we have been using
+          the <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">lexer</span><span class="special">&lt;&gt;</span></code>
+          template, we now need to change that to the <code class="computeroutput"><span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">static_lexer</span><span class="special">&lt;&gt;</span></code> type. The second change is tightly
+          related to the first one and involves correcting the corresponding <code class="computeroutput"><span class="preprocessor">#include</span></code> statement to:
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">lex_static_lexertl</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        </p>
+<p>
+          Otherwise the main program is not different from an equivalent program
+          using the dynamic model. This feature makes it easy to develop the lexer
+          in dynamic mode and to switch to the static mode after the code has been
+          stabilized. The simple generator application shown above enables the integration
+          of the code generator into any existing build process. The following code
+          snippet provides the overall main function, highlighting the code to be
+          changed.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">argc</span><span class="special">,</span> <span class="keyword">char</span><span class="special">*</span> <span class="identifier">argv</span><span class="special">[])</span>
+<span class="special">{</span>
+    <span class="comment">// Define the token type to be used: 'std::string' is available as the type </span>
+    <span class="comment">// of the token value.</span>
+    <span class="keyword">typedef</span> <span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">token</span><span class="special">&lt;</span>
+        <span class="keyword">char</span> <span class="keyword">const</span><span class="special">*,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">&gt;</span>
+    <span class="special">&gt;</span> <span class="identifier">token_type</span><span class="special">;</span>
+
+    <span class="comment">// Define the lexer type to be used as the base class for our token </span>
+    <span class="comment">// definition.</span>
+    <span class="comment">//</span>
+    <span class="comment">// This is the only place where the code is different from an equivalent</span>
+    <span class="comment">// dynamic lexical analyzer. We use the `lexertl::static_lexer&lt;&gt;` instead of</span>
+    <span class="comment">// the `lexertl::lexer&lt;&gt;` as the base class for our token defintion type.</span>
+    <span class="comment">//</span>
+    <span class="comment">// As we specified the suffix "wc" while generating the static tables we </span>
+    <span class="comment">// need to pass the type lexertl::static_::lexer_wc as the second template</span>
+    <span class="comment">// parameter below (see word_count_generate.cpp).</span>
+    <span class="keyword">typedef</span> <span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">static_lexer</span><span class="special">&lt;</span>
+        <span class="identifier">token_type</span><span class="special">,</span> <span class="identifier">lex</span><span class="special">::</span><span class="identifier">lexertl</span><span class="special">::</span><span class="identifier">static_</span><span class="special">::</span><span class="identifier">lexer_wc</span>
+    <span class="special">&gt;</span> <span class="identifier">lexer_type</span><span class="special">;</span>
+
+    <span class="comment">// Define the iterator type exposed by the lexer.</span>
+    <span class="keyword">typedef</span> <span class="identifier">word_count_tokens</span><span class="special">&lt;</span><span class="identifier">lexer_type</span><span class="special">&gt;::</span><span class="identifier">iterator_type</span> <span class="identifier">iterator_type</span><span class="special">;</span>
+
+    <span class="comment">// Now we use the types defined above to create the lexer and grammar</span>
+    <span class="comment">// object instances needed to invoke the parsing process.</span>
+    <span class="identifier">word_count_tokens</span><span class="special">&lt;</span><span class="identifier">lexer_type</span><span class="special">&gt;</span> <span class="identifier">word_count</span><span class="special">;</span>           <span class="comment">// Our lexer</span>
+    <span class="identifier">word_count_grammar</span><span class="special">&lt;</span><span class="identifier">iterator_type</span><span class="special">&gt;</span> <span class="identifier">g</span> <span class="special">(</span><span class="identifier">word_count</span><span class="special">);</span>   <span class="comment">// Our parser</span>
+
+    <span class="comment">// Read in the file into memory.</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">str</span> <span class="special">(</span><span class="identifier">read_from_file</span><span class="special">(</span><span class="number">1</span> <span class="special">==</span> <span class="identifier">argc</span> <span class="special">?</span> <span class="string">"word_count.input"</span> <span class="special">:</span> <span class="identifier">argv</span><span class="special">[</span><span class="number">1</span><span class="special">]));</span>
+    <span class="keyword">char</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">first</span> <span class="special">=</span> <span class="identifier">str</span><span class="special">.</span><span class="identifier">c_str</span><span class="special">();</span>
+    <span class="keyword">char</span> <span class="keyword">const</span><span class="special">*</span> <span class="identifier">last</span> <span class="special">=</span> <span class="special">&amp;</span><span class="identifier">first</span><span class="special">[</span><span class="identifier">str</span><span class="special">.</span><span class="identifier">size</span><span class="special">()];</span>
+
+    <span class="comment">// Parsing is done based on the the token stream, not the character stream.</span>
+    <span class="keyword">bool</span> <span class="identifier">r</span> <span class="special">=</span> <span class="identifier">lex</span><span class="special">::</span><span class="identifier">tokenize_and_parse</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">word_count</span><span class="special">,</span> <span class="identifier">g</span><span class="special">);</span>
+
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">r</span><span class="special">)</span> <span class="special">{</span>    <span class="comment">// success</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"lines: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">g</span><span class="special">.</span><span class="identifier">l</span> <span class="special">&lt;&lt;</span> <span class="string">", words: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">g</span><span class="special">.</span><span class="identifier">w</span>
+                  <span class="special">&lt;&lt;</span> <span class="string">", characters: "</span> <span class="special">&lt;&lt;</span> <span class="identifier">g</span><span class="special">.</span><span class="identifier">c</span> <span class="special">&lt;&lt;</span> <span class="string">"\n"</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">else</span> <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span> <span class="identifier">rest</span><span class="special">(</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">last</span><span class="special">);</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cerr</span> <span class="special">&lt;&lt;</span> <span class="string">"Parsing failed\n"</span> <span class="special">&lt;&lt;</span> <span class="string">"stopped at: \""</span>
+                  <span class="special">&lt;&lt;</span> <span class="identifier">rest</span> <span class="special">&lt;&lt;</span> <span class="string">"\"\n"</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            The generated code for the static lexer contains the token ids as they
+            have been assigned, either explicitly by the programmer or implicitly
+            during lexer construction. It is your responsibility to make sure that
+            all instances of a particular static lexer type use exactly the same
+            token ids. The constructor of the lexer object has a second (default)
+            parameter allowing it to designate a starting token id to be used while
+            assigning the ids to the token definitions. The requirement above is
+            fulfilled by default as long as no <code class="computeroutput"><span class="identifier">first_id</span></code>
+            is specified during construction of the static lexer instances.
+          </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="lexer_semantic_actions.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../abstracts.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../quick_reference.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

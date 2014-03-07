@@ -1,0 +1,168 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>The supplied test runners or where is the entrance?</title>
+<link rel="stylesheet" href="../../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Boost Test Library">
+<link rel="up" href="../user-guide.html" title="Unit Test Framework: User's guide">
+<link rel="prev" href="usage-variants/extern-test-runner-variant.html" title="The external test runner variant of the UTF">
+<link rel="next" href="usage-variants/extern-test-runner.html" title="External test runner variant of the UTF">
+<script language="JavaScript1.2" src="../../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../../utf.html">The Unit Test Framework</a> &gt; <a href="../user-guide.html">User's guide</a><a href="../testing-tools.html">
+      &gt;
+      </a><b>Supplied test runners</b><a href="initialization.html">
+      &gt;
+      </a>
+</td>
+<td><div class="spirit-nav">
+<a href="usage-variants/extern-test-runner-variant.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="usage-variants/extern-test-runner.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.user-guide.test-runners"></a>The supplied test runners  or where is the entrance?</h4></div></div></div>
+<p class="first-line-indented">
+   All usage variants of the <acronym class="acronym">UTF</acronym>, excluding the 
+   <a class="link" href="usage-variants/extern-test-runner.html" title="External test runner variant of the UTF">external test runner</a>, supply the test runner in a form of 
+   free function named unit_test_main with the following signature:
+  </p>
+<pre class="programlisting">int unit_test_main( init_unit_test_func init_func, int argc, char* argv[] );</pre>
+<p class="first-line-indented">
+   To invoke the test runner you are required to supply the pointer to the <a class="link" href="../user-guide.html#test-module.def">test module</a>
+   initialization function as the first argument to the test runner function. In majority of the cases this function is 
+   invoked directly from test executable entry point - function main(). In most usage variants the <acronym class="acronym">UTF</acronym> can 
+   automatically generate default function main() implementation as either part of the library or test module itself. 
+   Since the function main needs to refer to the initialization function by name, it is predefined by the default 
+   implementation and you are required to match both specific signature and name, when implementing initialization 
+   function. If you for any reason prefer more flexibility you can opt to implement the function main() yourself, in 
+   which case it's going to be your responsibility to invoke the test runner, but the initialization function name is 
+   not enforces the <acronym class="acronym">UTF</acronym>. See below for flags that needs to be defined/undefined in each usage variant to enable this.
+  </p>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../../../../doc/html/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+    In spite syntactic similarity the signatures of the test runner function in fact are different for different usage 
+    variants. The cause is different signature of the test module initialization function referred by the 
+    <a class="link" href="initialization.html#utf.user-guide.initialization.signature-typedef" title="Initialization function signature access">typedef init_unit_test_func</a>. This makes static
+    and dynamic library usage variants incompatible and they can't be easily switched on a fly.
+   </p></td></tr>
+</table></div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.user-guide.static-lib-runner"></a>Static library variant of the <acronym class="acronym">UTF</acronym>
+</h5></div></div></div>
+<p class="first-line-indented">
+    By default this variant supplies the function main() as part of static library. If this is for any reason undesirable 
+    you need to define the flag <a class="xref" href="../compilation.html#utf.flag.no-main">BOOST_TEST_NO_MAIN</a> during the library 
+    compilation and the function main() implementation won't be generated.
+   </p>
+<p class="first-line-indented">
+    In addition to the <a class="link" href="usage-variants/static-lib-variant.html" title="The static library variant of the UTF">initialization function signature requirement</a>
+    default function main() implementation assumes the name of initialization function is init_unit_test_suite
+   </p>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.user-guide.dynamic-lib-runner"></a>Dynamic library variant of the <acronym class="acronym">UTF</acronym>
+</h5></div></div></div>
+<p class="first-line-indented">
+    Unlike the static library variant function main() can't reside in the dynamic library body. Instead this variant
+    supplies default function main() implementation as part of the header 
+    <code class="filename">boost/test/unit_test.hpp</code> to be generated as part of your test file body. 
+    The function main() is generated only if either the <a class="xref" href="../compilation.html#utf.flag.main">BOOST_TEST_MAIN</a> or 
+    the <a class="xref" href="../compilation.html#utf.flag.module">BOOST_TEST_MODULE</a> flags are defined during a test module compilation. 
+    For <a class="link" href="../user-guide.html#single-file-test-module.def">single-file test module</a> flags can be defined either in a 
+    test module's makefile or before the header <code class="filename">boost/test/unit_test.hpp</code>
+    inclusion. For a <a class="xref" href="../user-guide.html#multi-file-test-module.def">multi-file test module</a> flags can't
+    be defined in makefile and have to be defined in only one of the test files to avoid duplicate copies of the 
+    function main().
+   </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../../../../../doc/html/images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+     The same flags also govern generation of an empty 
+     <a class="link" href="initialization.html" title="Test module initialization or ready, set">test module initialization function</a>. This means that if you 
+     need to implement either function main() or initialization function manually, you can't define the above flags
+     and are required to manually implement both of them.
+    </p></td></tr>
+</table></div>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.user-guide.single-header-runner"></a>Single-header variant of the <acronym class="acronym">UTF</acronym>
+</h5></div></div></div>
+<p class="first-line-indented">
+    By default this variant supplies function main() as part of the header 
+    <code class="filename">boost/test/included/unit_test.hpp</code> to be generated as part of your test file 
+    body. If this is for any reason undesirable you need to define the flag 
+    <a class="xref" href="../compilation.html#utf.flag.no-main">BOOST_TEST_NO_MAIN</a> during test module compilation and the function main()
+    implementation won't be generated.
+   </p>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="utf.user-guide.runners-exit-status"></a>Generated exit status values</h5></div></div></div>
+<p class="first-line-indented">
+    Once testing is finished, all supplied test runners report the results and returns an exit status value. Here are
+    the summary of all possible generated values:
+   </p>
+<div class="table">
+<a name="utf.user-guide.runners-exit-status-summary"></a><p class="title"><b>Table 4. Generated exit status values</b></p>
+<div class="table-contents"><table class="table" summary="Generated exit status values">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>boost::exit_success</td>
+<td>
+        No errors occurred during the test or the success result code was explicitly requested with the no_result_code
+        parameter.
+       </td>
+</tr>
+<tr>
+<td>boost::exit_test_failure</td>
+<td>
+        Non-fatal errors detected and no uncaught exceptions were thrown during testing or the <acronym class="acronym">UTF</acronym> fails during
+        initialization.
+       </td>
+</tr>
+<tr>
+<td>boost::exit_exception_failure</td>
+<td>
+        Fatal errors were detected or uncaught exceptions thrown during testing.
+       </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="usage-variants/extern-test-runner-variant.html"><img src="../../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../user-guide.html"><img src="../../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="usage-variants/extern-test-runner.html"><img src="../../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

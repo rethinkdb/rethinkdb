@@ -1,0 +1,40 @@
+[/============================================================================
+  Boost.Geometry Index
+
+  Copyright (c) 2011-2013 Adam Wulkiewicz.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section:reference Reference]
+
+[include ../generated/rtree.qbk]
+[include ../generated/rtree_functions.qbk]
+
+[section:parameters R-tree parameters (boost::geometry::index::)]
+
+[include ../generated/rtree_linear.qbk]
+[include ../generated/rtree_quadratic.qbk]
+[include ../generated/rtree_rstar.qbk]
+[include ../generated/rtree_dynamic_linear.qbk]
+[include ../generated/rtree_dynamic_quadratic.qbk]
+[include ../generated/rtree_dynamic_rstar.qbk]
+
+[endsect]
+
+[/section:function_objects Function objects (boost::geometry::index::)/]
+
+[include ../generated/indexable.qbk]
+[include ../generated/equal_to.qbk]
+
+[/endsect/]
+
+[include ../generated/predicates.qbk]
+[include ../generated/nearest_relations.qbk]
+[include ../generated/adaptors.qbk]
+
+[include ../generated/inserters.qbk]
+
+[endsect]

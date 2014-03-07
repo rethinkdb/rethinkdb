@@ -1,0 +1,130 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Threads and Boost.Asio</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../core.html" title="Core Concepts and Functionality">
+<link rel="prev" href="async.html" title="The Proactor Design Pattern: Concurrency Without Threads">
+<link rel="next" href="strands.html" title="Strands: Use Threads Without Explicit Locking">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="async.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="strands.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.overview.core.threads"></a><a class="link" href="threads.html" title="Threads and Boost.Asio">Threads and Boost.Asio</a>
+</h4></div></div></div>
+<h6>
+<a name="boost_asio.overview.core.threads.h0"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.threads.thread_safety"></a></span><a class="link" href="threads.html#boost_asio.overview.core.threads.thread_safety">Thread
+          Safety</a>
+        </h6>
+<p>
+          In general, it is safe to make concurrent use of distinct objects, but
+          unsafe to make concurrent use of a single object. However, types such as
+          <code class="computeroutput"><span class="identifier">io_service</span></code> provide a stronger
+          guarantee that it is safe to use a single object concurrently.
+        </p>
+<h6>
+<a name="boost_asio.overview.core.threads.h1"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.threads.thread_pools"></a></span><a class="link" href="threads.html#boost_asio.overview.core.threads.thread_pools">Thread
+          Pools</a>
+        </h6>
+<p>
+          Multiple threads may call <code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">run</span><span class="special">()</span></code> to set up a pool of threads from which
+          completion handlers may be invoked. This approach may also be used with
+          <code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">post</span><span class="special">()</span></code>
+          to use a means to perform any computational tasks across a thread pool.
+        </p>
+<p>
+          Note that all threads that have joined an <code class="computeroutput"><span class="identifier">io_service</span></code>'s
+          pool are considered equivalent, and the <code class="computeroutput"><span class="identifier">io_service</span></code>
+          may distribute work across them in an arbitrary fashion.
+        </p>
+<h6>
+<a name="boost_asio.overview.core.threads.h2"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.threads.internal_threads"></a></span><a class="link" href="threads.html#boost_asio.overview.core.threads.internal_threads">Internal
+          Threads</a>
+        </h6>
+<p>
+          The implementation of this library for a particular platform may make use
+          of one or more internal threads to emulate asynchronicity. As far as possible,
+          these threads must be invisible to the library user. In particular, the
+          threads:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              must not call the user's code directly; and
+            </li>
+<li class="listitem">
+              must block all signals.
+            </li>
+</ul></div>
+<p>
+          This approach is complemented by the following guarantee:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+              Asynchronous completion handlers will only be called from threads that
+              are currently calling <code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">run</span><span class="special">()</span></code>.
+            </li></ul></div>
+<p>
+          Consequently, it is the library user's responsibility to create and manage
+          all threads to which the notifications will be delivered.
+        </p>
+<p>
+          The reasons for this approach include:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              By only calling <code class="computeroutput"><span class="identifier">io_service</span><span class="special">::</span><span class="identifier">run</span><span class="special">()</span></code> from a single thread, the user's
+              code can avoid the development complexity associated with synchronisation.
+              For example, a library user can implement scalable servers that are
+              single-threaded (from the user's point of view).
+            </li>
+<li class="listitem">
+              A library user may need to perform initialisation in a thread shortly
+              after the thread starts and before any other application code is executed.
+              For example, users of Microsoft's COM must call <code class="computeroutput"><span class="identifier">CoInitializeEx</span></code>
+              before any other COM operations can be called from that thread.
+            </li>
+<li class="listitem">
+              The library interface is decoupled from interfaces for thread creation
+              and management, and permits implementations on platforms where threads
+              are not available.
+            </li>
+</ul></div>
+<h6>
+<a name="boost_asio.overview.core.threads.h3"></a>
+          <span class="phrase"><a name="boost_asio.overview.core.threads.see_also"></a></span><a class="link" href="threads.html#boost_asio.overview.core.threads.see_also">See
+          Also</a>
+        </h6>
+<p>
+          <a class="link" href="../../reference/io_service.html" title="io_service">io_service</a>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="async.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../core.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="strands.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,24 @@
+#==============================================================================
+#    Copyright (c) 2003, 2005 Joel de Guzman
+#
+#   Use, modification and distribution is subject to the Boost Software
+#   License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#==============================================================================
+
+project boost/libs/spirit/doc/phoenix/doc ;
+import boostbook : boostbook ;
+using quickbook ;
+
+path-constant images : html ;
+
+boostbook quickbook
+    :
+        users_manual.qbk
+    :
+        <xsl:param>boost.root=../../../../..
+        <format>pdf:<xsl:param>img.src.path=$(images)/
+        <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/libs/spirit/phoenix/doc/html
+    ;
+
+

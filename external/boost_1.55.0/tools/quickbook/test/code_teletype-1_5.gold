@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="code_block_teletype_1" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Code Block Teletype 1</title>
+  <section id="code_block_teletype_1.a_code_block">
+    <title><link linkend="code_block_teletype_1.a_code_block">A code block</link></title>
+<programlisting>Just some plain text.
+With some <emphasis role="bold">quickbook</emphasis> thrown in?
+</programlisting>
+  </section>
+</article>

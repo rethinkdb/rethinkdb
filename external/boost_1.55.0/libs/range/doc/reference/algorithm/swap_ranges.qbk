@@ -1,0 +1,37 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:swap_ranges swap_ranges]
+
+[heading Prototype]
+
+``
+template<class SinglePassRange1, class SinglePassRange2>
+SinglePassRange2& swap_ranges(SinglePassRange1& rng1, SinglePassRange& rng2);
+``
+
+[heading Description]
+
+`swap_ranges` swaps each element `x` in `rng1` with the corresponding element `y` in `rng2`.
+Returns a reference to `rng2`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/swap_ranges.hpp`
+
+[heading Requirements]
+
+* `SinglePassRange1` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange1` is mutable.
+* `SinglePassRange2` is a model of the __single_pass_range__ Concept.
+* `SinglePassRange2` is mutable.
+
+[heading Complexity]
+
+Linear. Exactly `distance(rng1)` elements are swapped.
+
+[endsect]
+
+

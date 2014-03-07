@@ -1,0 +1,253 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Introspecting an inner class template</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="prev" href="tti_detail_has_type.html" title="Introspecting an inner type">
+<link rel="next" href="tti_detail_has_template/tti_detail_has_template_metafunction.html" title="Using the has_template_(xxx) metafunction">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_detail_has_type.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_detail_has_template/tti_detail_has_template_metafunction.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="the_type_traits_introspection_library.tti_detail_has_template"></a><a class="link" href="tti_detail_has_template.html" title="Introspecting an inner class template">Introspecting
+    an inner class template</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="tti_detail_has_template.html#the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro">Using
+      the BOOST_TTI_HAS_TEMPLATE macro</a></span></dt>
+<dt><span class="section"><a href="tti_detail_has_template/tti_detail_has_template_metafunction.html">Using
+      the has_template_(xxx) metafunction</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro"></a><a class="link" href="tti_detail_has_template.html#the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro" title="Using the BOOST_TTI_HAS_TEMPLATE macro">Using
+      the BOOST_TTI_HAS_TEMPLATE macro</a>
+</h3></div></div></div>
+<p>
+        The TTI macro <code class="computeroutput"><a class="link" href="../BOOST_TTI_HAS_TEMPLATE.html" title="Macro BOOST_TTI_HAS_TEMPLATE">BOOST_TTI_HAS_TEMPLATE</a></code>
+        introspects an inner class template of a class. The macro must specify, at
+        the least, the name of the class template to introspect.
+      </p>
+<h5>
+<a name="the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro.h0"></a>
+        <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro.two_forms_of_introspection"></a></span><a class="link" href="tti_detail_has_template.html#the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro.two_forms_of_introspection">Two
+        forms of introspection</a>
+      </h5>
+<p>
+        There are two general forms of template introspection which can be used.
+        The first is to find a class template with any number of only template type
+        parameters ( template parameters starting with <code class="computeroutput"><span class="keyword">class</span></code>
+        or <code class="computeroutput"><span class="keyword">typename</span></code> ). In this form
+        only the name of the class template needs to be specified when invoking the
+        macro. We will call this form of the macro the <code class="computeroutput"><span class="keyword">template</span>
+        <span class="identifier">type</span> <span class="identifier">parameters</span></code>
+        form. An example of a class template of this form which could be successfully
+        introspected would be:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">X</span><span class="special">,</span><span class="keyword">typename</span> <span class="identifier">Y</span><span class="special">,</span><span class="keyword">class</span> <span class="identifier">Z</span><span class="special">,</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="keyword">class</span> <span class="identifier">AClassTemplate</span> <span class="special">{</span> <span class="comment">/* etc. */</span> <span class="special">};</span>
+</pre>
+<p>
+        The second is to find a class template with specific template parameters.
+        In this form both the name of the class template and the template parameters
+        are passed to the macro.
+      </p>
+<p>
+        We will call this form of the macro the <code class="computeroutput"><span class="identifier">specific</span>
+        <span class="identifier">parameters</span></code> form. An example of
+        a class template of this form which could be successfully introspected would
+        be:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">X</span><span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">class</span> <span class="identifier">Y</span><span class="special">,</span> <span class="keyword">int</span> <span class="identifier">Z</span><span class="special">&gt;</span> <span class="identifier">BClassTemplate</span> <span class="special">{</span> <span class="comment">/* etc. */</span> <span class="special">};</span>
+</pre>
+<p>
+        When using the specific form of the macro, there are two things which need
+        to be understood when passing the template parameters to the macro. First,
+        the actual names of the template parameters passed are irrelevant. They can
+        be left out completely or be different from the names in the nested class
+        template itself. Second, the use of 'typename' or 'class', when referring
+        to a template type parameter, is completely interchangeable, as it is in
+        the actual class template itself.
+      </p>
+<h5>
+<a name="the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro.h1"></a>
+        <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro.variadic_and_non_variadic_macro_usage"></a></span><a class="link" href="tti_detail_has_template.html#the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro.variadic_and_non_variadic_macro_usage">Variadic
+        and non-variadic macro usage</a>
+      </h5>
+<p>
+        When using the BOOST_TTI_HAS_TEMPLATE macro we distinguish between compilers
+        supporting variadic macros or not supporting variadic macros.
+      </p>
+<p>
+        The programmer can always tell whether or not the compiler supports variadic
+        macros by checking the value of the macro BOOST_PP_VARIADIC after including
+        the necessary header file <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tti</span><span class="special">/</span><span class="identifier">has_template</span><span class="special">.</span><span class="identifier">hpp</span></code> in order to use the BOOST_TTI_TEMPLATE
+        macro. A value of 1 indicates the compiler supports variadic macros while
+        a value of 0 indicates the compiler does not support variadic macros.
+      </p>
+<p>
+        Modern C++ compilers, in supporting the latest C++11 standard, normally support
+        variadic macros. Even before the latest C++11 standard a number of C++ compilers
+        already supported variadic macros. If you feel your compiler supports variadic
+        macros and BOOST_PP_VARIADIC is 0 even after including <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tti</span><span class="special">/</span><span class="identifier">has_template</span><span class="special">.</span><span class="identifier">hpp</span></code>, you can predefine BOOST_PP_VARIADIC
+        to 1 before including <code class="computeroutput"><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tti</span><span class="special">/</span><span class="identifier">has_template</span><span class="special">.</span><span class="identifier">hpp</span></code>.
+      </p>
+<h5>
+<a name="the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro.h2"></a>
+        <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro.non_variadic_macro_usage"></a></span><a class="link" href="tti_detail_has_template.html#the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro.non_variadic_macro_usage">Non-variadic
+        macro usage</a>
+      </h5>
+<p>
+        We start with syntax for compilers not supporting variadic macros since this
+        syntax can also be used by compilers which do support variadic macros. The
+        form for non-variadic macros always takes two macro parameters. The first
+        macro parameter is always the name of the class template you are trying to
+        introspect.
+      </p>
+<p>
+        The second macro parameter, when using the <code class="computeroutput"><span class="identifier">specific</span>
+        <span class="identifier">parameters</span></code> form of the macro, is
+        the template parameters in the form of a Boost preprocessor library array
+        data type. When using the <code class="computeroutput"><span class="keyword">template</span>
+        <span class="identifier">type</span> <span class="identifier">parameters</span></code>
+        form of the macro the second macro parameter is BOOST_PP_NIL. If the second
+        parameter is neither a Boost preprocessor library array data type or BOOS_PP_NIL
+        you will get a compiler error if your compiler only supports non-variadic
+        macros.
+      </p>
+<p>
+        The non-variadic macro form for introspecting the class templates above using
+        the <code class="computeroutput"><span class="keyword">template</span> <span class="identifier">type</span>
+        <span class="identifier">parameters</span></code> form would be:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_TEMPLATE</span><span class="special">(</span><span class="identifier">AClassTemplate</span><span class="special">,</span><span class="identifier">BOOST_PP_NIL</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_TEMPLATE</span><span class="special">(</span><span class="identifier">BClassTemplate</span><span class="special">,</span><span class="identifier">BOOST_PP_NIL</span><span class="special">)</span>
+</pre>
+<p>
+        Invoking the metafunction in the second case would always fail since the
+        BClassTemplate does not have all template type parameters.
+      </p>
+<p>
+        The non-variadic macro form for introspecting the class templates above using
+        the <code class="computeroutput"><span class="identifier">specific</span> <span class="identifier">parameters</span></code>
+        form would be:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_TEMPLATE</span><span class="special">(</span><span class="identifier">AClassTemplate</span><span class="special">,(</span><span class="number">4</span><span class="special">,(</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">typename</span><span class="special">,</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">typename</span><span class="special">)))</span>
+<span class="identifier">BOOST_TTI_TEMPLATE</span><span class="special">(</span><span class="identifier">BClassTemplate</span><span class="special">,(</span><span class="number">3</span><span class="special">,(</span><span class="keyword">class</span><span class="special">,</span> <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">class</span><span class="special">,</span> <span class="keyword">int</span><span class="special">)))</span>
+</pre>
+<p>
+        You need to be careful using the non-variadic <code class="computeroutput"><span class="identifier">specific</span>
+        <span class="identifier">parameters</span></code> form to specify the
+        correct number of array parameters. This can sometimes be tricky if you have
+        a template template parameter, or a non-type template parameter which has
+        parentheses surrounding part of the type specification. In the latter case,
+        when parentheses surround a comma ( ',' ), do not count that as creating
+        another Boost PP array token. Two examples:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">void</span> <span class="special">(*</span><span class="identifier">FunctionPointer</span><span class="special">)(</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">long</span><span class="special">)&gt;</span> <span class="keyword">class</span> <span class="identifier">CClassTemplate</span> <span class="special">{</span> <span class="comment">/* etc. */</span> <span class="special">};</span>
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span> <span class="keyword">class</span> <span class="identifier">DClassTemplate</span> <span class="special">{</span> <span class="comment">/* etc. */</span> <span class="special">};</span>
+
+<span class="identifier">BOOST_TTI_TEMPLATE</span><span class="special">(</span><span class="identifier">CClassTemplate</span><span class="special">,(</span><span class="number">1</span><span class="special">,(</span><span class="keyword">void</span> <span class="special">(*)(</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">long</span><span class="special">))))</span>
+<span class="identifier">BOOST_TTI_TEMPLATE</span><span class="special">(</span><span class="identifier">DClassTemplate</span><span class="special">,(</span><span class="number">2</span><span class="special">,(</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">class</span><span class="special">)))</span>
+</pre>
+<p>
+        In the case of using the macro to introspect CClassTemplate the number of
+        Boost PP array parameters is 1, even though there is a comma separating the
+        tokens in <code class="computeroutput"><span class="keyword">void</span> <span class="special">(*</span><span class="identifier">FunctionPointer</span><span class="special">)(</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">long</span><span class="special">)</span></code>. This is because the comma is within parentheses.
+      </p>
+<p>
+        In the case of using the macro to introspect DClassTemplate the number of
+        Boost PP array parameters is 2, because there is a comma separating the tokens
+        in <code class="computeroutput"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">class</span> <span class="identifier">T</span></code>.
+      </p>
+<h5>
+<a name="the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro.h3"></a>
+        <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro.variadic_macro_usage"></a></span><a class="link" href="tti_detail_has_template.html#the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro.variadic_macro_usage">Variadic
+        macro usage</a>
+      </h5>
+<p>
+        Having the ability to use variadic macros makes the syntax for using BOOST_TTI_TEMPLATE
+        easier to specify in both the <code class="computeroutput"><span class="keyword">template</span>
+        <span class="identifier">type</span> <span class="identifier">parameters</span></code>
+        form and the <code class="computeroutput"><span class="identifier">specific</span> <span class="identifier">parameters</span></code>
+        form of using the macro. This is because variadic macros can take a variable
+        number of parameters. When using the variadic macro form the first macro
+        parameter is always the name of the class template you are trying to introspect.
+        You only specify further parameters when using the <code class="computeroutput"><span class="identifier">specific</span>
+        <span class="identifier">parameters</span></code> form of the macro, in
+        which case the further parameters to the macro are the specific template
+        parameters.
+      </p>
+<p>
+        Introspecting the first class template above using the <code class="computeroutput"><span class="keyword">template</span>
+        <span class="identifier">type</span> <span class="identifier">parameters</span></code>
+        form the variadic macro would be:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_TEMPLATE</span><span class="special">(</span><span class="identifier">AClassTemplate</span><span class="special">)</span>
+</pre>
+<p>
+        Introspecting the other class templates above using the <code class="computeroutput"><span class="identifier">specific</span>
+        <span class="identifier">parameters</span></code> form the variadic macros
+        would be:
+      </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_TEMPLATE</span><span class="special">(</span><span class="identifier">BClassTemplate</span><span class="special">,</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">class</span><span class="special">,</span> <span class="keyword">int</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_TEMPLATE</span><span class="special">(</span><span class="identifier">CClassTemplate</span><span class="special">,</span><span class="keyword">void</span> <span class="special">(*)(</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">long</span><span class="special">))</span>
+<span class="identifier">BOOST_TTI_TEMPLATE</span><span class="special">(</span><span class="identifier">DClassTemplate</span><span class="special">,</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span><span class="special">,</span><span class="keyword">class</span><span class="special">&gt;</span> <span class="keyword">class</span><span class="special">)</span>
+</pre>
+<p>
+        Here we have no problem with counting the number of tuple tokens for the
+        Boost PP array, nor do we have to specify BOOST_PP_NIL if we are using the
+        <code class="computeroutput"><span class="keyword">template</span> <span class="identifier">type</span>
+        <span class="identifier">parameters</span></code> form. Also for the specific
+        parameters form we simply use the template parameters as the remaining tokens
+        of the variadic macro.
+      </p>
+<h5>
+<a name="the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro.h4"></a>
+        <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro.the_resulting_metafunction"></a></span><a class="link" href="tti_detail_has_template.html#the_type_traits_introspection_library.tti_detail_has_template.tti_detail_has_template_macro.the_resulting_metafunction">The
+        resulting metafunction</a>
+      </h5>
+<p>
+        Using either form of the macro, whether using variadic or non-variadic syntax,
+        the macro generates a metafunction called 'has_template_'name_of_inner_class_template'.
+      </p>
+<p>
+        The metafunction can be invoked by passing it the enclosing type to introspect.
+      </p>
+<p>
+        The metafunction returns a single type called 'type', which is a boost::mpl::bool_.
+        As a convenience the metafunction returns the value of this type directly
+        as a compile time bool constant called 'value'. This is true or false depending
+        on whether the inner class template exists or not.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Tropic Software
+      East Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_detail_has_type.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_detail_has_template/tti_detail_has_template_metafunction.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

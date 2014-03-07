@@ -1,0 +1,466 @@
+
+# Boost.Context Library Build Jamfile
+
+#          Copyright Oliver Kowalke 2009.
+# Distributed under the Boost Software License, Version 1.0.
+#    (See accompanying file LICENSE_1_0.txt or copy at
+#          http://www.boost.org/LICENSE_1_0.txt)
+
+import common ;
+import feature ;
+import indirect ;
+import modules ;
+import os ;
+import toolset ;
+import architecture ;
+
+project boost/context
+    : requirements
+      <os>SOLARIS:<define>_XOPEN_SOURCE=600
+      <link>shared:<define>BOOST_CONTEXT_DYN_LINK=1
+      <define>BOOST_CONTEXT_SOURCE
+    : usage-requirements
+      <link>shared:<define>BOOST_CONTEXT_DYN_LINK=1
+    : source-location ../src
+    ;
+
+local rule default_binary_format ( )
+{
+    local tmp = elf ;
+    if [ os.name ] = "MACOSX" { tmp = mach-o ; }
+    if [ os.name ] = "NT" { tmp = pe ; }
+    return $(tmp) ;
+}
+
+feature.feature binary-format
+   : elf
+     mach-o
+     pe
+   : propagated
+   ;
+feature.set-default binary-format : [ default_binary_format ] ;
+
+
+local rule default_abi ( )
+{
+    local tmp = sysv ;
+    if [ os.name ] = "NT" { tmp = ms ; }
+    else if [ os.platform ] = "ARM" { tmp = aapcs ; }
+    else if [ os.platform ] = "MIPS" { tmp = o32 ; }
+    return $(tmp) ;
+}
+
+feature.feature abi
+   : aapcs
+     eabi
+     ms
+     n32
+     n64
+     o32
+     o64
+     sysv
+   : propagated
+   ;
+feature.set-default abi : [ default_abi ] ;
+
+
+actions gas
+{
+    as -o "$(<)" "$(>)"
+}
+
+actions armasm
+{
+    armasm "$(>)" "$(<)"
+}
+
+actions masm
+{
+    ml /c /Fo"$(<)" "$(>)"
+}
+
+actions masm64
+{
+    ml64 /c /Fo"$(<)" "$(>)"
+}
+
+
+rule configure ( properties * )
+{
+    local result  ;
+
+#   if ( ! ( <toolset>gcc in $(properties)
+#           || <toolset>intel in $(properties)
+#           || <toolset>msvc in $(properties) ) )
+#   {
+#       result = <build>no ;
+#       ECHO "toolset not supported" ;
+#   }
+
+    return $(result) ;
+}
+
+# ARM
+alias asm_context_sources
+   : asm/make_arm_aapcs_elf_gas.S
+     asm/jump_arm_aapcs_elf_gas.S
+   : <architecture>arm
+     <binary-format>elf
+     <toolset>gcc
+   ;
+
+alias asm_context_sources
+   : asm/make_arm_aapcs_elf_gas.S
+     asm/jump_arm_aapcs_elf_gas.S
+   : <architecture>arm
+     <binary-format>elf
+     <toolset>qcc
+   ;
+
+alias asm_context_sources
+   : asm/make_arm_aapcs_macho_gas.S
+     asm/jump_arm_aapcs_macho_gas.S
+   : <architecture>arm
+     <binary-format>mach-o
+     <toolset>darwin
+   ;
+
+alias asm_context_sources
+   : [ make asm/make_arm_aapcs_pe_armasm.o : asm/make_arm_aapcs_pe_armasm.asm : @armasm ]
+     [ make asm/jump_arm_aapcs_pe_armasm.o : asm/jump_arm_aapcs_pe_armasm.asm : @armasm ]
+   : <architecture>arm
+     <binary-format>pe
+   ;
+
+alias asm_context_sources
+   : [ make asm/make_arm_aapcs_elf_gas.o : asm/make_arm_aapcs_elf_gas.S : @gas ]
+     [ make asm/jump_arm_aapcs_elf_gas.o : asm/jump_arm_aapcs_elf_gas.S : @gas ]
+   : <architecture>arm
+     <binary-format>elf
+   ;
+
+# MIPS
+alias asm_context_sources
+   : asm/make_mips32_o32_elf_gas.S
+     asm/jump_mips32_o32_elf_gas.S
+   : <architecture>mips1
+     <binary-format>elf
+     <toolset>gcc
+   ;
+
+alias asm_context_sources
+   : asm/make_mips32_o32_elf_gas.S
+     asm/jump_mips32_o32_elf_gas.S
+   : <architecture>mips1
+     <binary-format>elf
+     <toolset>qcc
+   ;
+
+alias asm_context_sources
+   : [ make asm/make_mips32_o32_elf_gas.o : asm/make_mips32_o32_elf_gas.S : @gas ]
+     [ make asm/jump_mips32_o32_elf_gas.o : asm/jump_mips32_o32_elf_gas.S : @gas ]
+   : <architecture>mips1
+     <binary-format>elf
+   ;
+
+# POWERPC
+alias asm_context_sources
+   : asm/make_ppc32_sysv_elf_gas.S
+     asm/jump_ppc32_sysv_elf_gas.S
+   : <address-model>32
+     <architecture>power
+     <binary-format>elf
+     <toolset>gcc
+   ;
+
+alias asm_context_sources
+   : asm/make_ppc32_sysv_elf_gas.S
+     asm/jump_ppc32_sysv_elf_gas.S
+   : <address-model>32
+     <architecture>power
+     <binary-format>elf
+     <toolset>qcc
+   ;
+
+alias asm_context_sources
+   : [ make asm/make_ppc32_sysv_elf_gas.o : asm/make_ppc32_sysv_elf_gas.S : @gas ]
+     [ make asm/jump_ppc32_sysv_elf_gas.o : asm/jump_ppc32_sysv_elf_gas.S : @gas ]
+   : <address-model>32
+     <architecture>power
+     <binary-format>elf
+   ;
+
+# POWERPC_64
+alias asm_context_sources
+   : asm/make_ppc64_sysv_elf_gas.S
+     asm/jump_ppc64_sysv_elf_gas.S
+   : <address-model>64
+     <architecture>power
+     <binary-format>elf
+     <toolset>gcc
+   ;
+
+alias asm_context_sources
+   : asm/make_ppc64_sysv_elf_gas.S
+     asm/jump_ppc64_sysv_elf_gas.S
+   : <address-model>64
+     <architecture>power
+     <binary-format>elf
+     <toolset>qcc
+   ;
+
+alias asm_context_sources
+   : [ make asm/make_ppc64_sysv_elf_gas.o : asm/make_ppc64_sysv_elf_gas.S : @gas ]
+     [ make asm/jump_ppc64_sysv_elf_gas.o : asm/jump_ppc64_sysv_elf_gas.S : @gas ]
+   : <address-model>64
+     <architecture>power
+     <binary-format>elf
+   ;
+
+# SPARC
+alias asm_context_sources
+   : asm/make_sparc_sysv_elf_gas.S
+     asm/jump_sparc_sysv_elf_gas.S
+   : <address-model>32
+     <architecture>sparc
+     <binary-format>elf
+     <toolset>gcc
+   ;
+
+alias asm_context_sources
+   : [ make asm/make_sparc_sysv_elf_gas.o : asm/make_sparc_sysv_elf_gas.S : @gas ]
+     [ make asm/jump_sparc_sysv_elf_gas.o : asm/jump_sparc_sysv_elf_gas.S : @gas ]
+   : <address-model>32
+     <architecture>sparc
+     <binary-format>elf
+   ;
+
+# SPARC_64
+alias asm_context_sources
+   : asm/make_sparc64_sysv_elf_gas.S
+     asm/jump_sparc64_sysv_elf_gas.S
+   : <address-model>64
+     <architecture>sparc
+     <binary-format>elf
+     <toolset>gcc
+   ;
+
+alias asm_context_sources
+   : [ make asm/make_sparc64_sysv_elf_gas.o : asm/make_sparc64_sysv_elf_gas.S : @gas ]
+     [ make asm/jump_sparc64_sysv_elf_gas.o : asm/jump_sparc64_sysv_elf_gas.S : @gas ]
+   : <address-model>64
+     <architecture>sparc
+     <binary-format>elf
+   ;
+
+# X86
+alias asm_context_sources
+   : asm/make_i386_sysv_elf_gas.S
+     asm/jump_i386_sysv_elf_gas.S
+   : <address-model>32
+     <architecture>x86
+     <binary-format>elf
+     <toolset>gcc
+   ;
+
+alias asm_context_sources
+   : asm/make_i386_sysv_elf_gas.S
+     asm/jump_i386_sysv_elf_gas.S
+   : <address-model>32
+     <architecture>x86
+     <binary-format>elf
+     <toolset>qcc
+   ;
+
+alias asm_context_sources
+   : asm/make_i386_sysv_elf_gas.S
+     asm/jump_i386_sysv_elf_gas.S
+   : <address-model>32
+     <architecture>x86
+     <binary-format>elf
+     <toolset>intel
+   ;
+
+alias asm_context_sources
+   : [ make asm/make_i386_sysv_elf_gas.o : asm/make_i386_sysv_elf_gas.S : @gas ]
+     [ make asm/jump_i386_sysv_elf_gas.o : asm/jump_i386_sysv_elf_gas.S : @gas ]
+   : <address-model>32
+     <architecture>x86
+     <binary-format>elf
+   ;
+
+alias asm_context_sources
+   : asm/make_i386_sysv_macho_gas.S
+     asm/jump_i386_sysv_macho_gas.S
+   : <address-model>32
+     <architecture>x86
+     <binary-format>mach-o
+     <target-os>darwin
+     <toolset>darwin
+   ;
+
+alias asm_context_sources
+   : asm/make_i386_sysv_macho_gas.S
+     asm/jumjumpysv_macho_gas.S
+   : <address-model>32
+     <architecture>x86
+     <binary-format>mach-o
+     <target-os>darwin
+     <toolset>intel
+   ;
+
+alias asm_context_sources
+   : [ make asm/make_i386_sysv_macho_gas.o : asm/make_i386_sysv_macho_gas.S : @gas ]
+     [ make asm/jump_i386_sysv_macho_gas.o : asm/jump_i386_sysv_macho_gas.S : @gas ]
+   : <address-model>32
+     <architecture>x86
+     <binary-format>mach-o
+     <target-os>darwin
+   ;
+
+alias asm_context_sources
+   : asm/make_i386_ms_pe_masm.asm
+     asm/jump_i386_ms_pe_masm.asm
+     dummy.cpp
+   : <address-model>32
+     <architecture>x86
+     <binary-format>pe
+     <target-os>windows
+     <toolset>intel
+   ;
+
+alias asm_context_sources
+   : asm/make_i386_ms_pe_masm.asm
+     asm/jump_i386_ms_pe_masm.asm
+     dummy.cpp
+   : <address-model>32
+     <architecture>x86
+     <binary-format>pe
+     <target-os>windows
+     <toolset>msvc
+   ;
+
+alias asm_context_sources
+   : [ make asm/make_i386_ms_pe_masm.o : asm/make_i386_ms_pe_masm.asm : @masm ]
+     [ make asm/jump_i386_ms_pe_masm.o : asm/jump_i386_ms_pe_masm.asm : @masm ]
+     dummy.cpp
+   : <address-model>32
+     <architecture>x86
+     <binary-format>pe
+     <target-os>windows
+   ;
+
+# X86_64
+alias asm_context_sources
+   : asm/make_x86_64_sysv_elf_gas.S
+     asm/jump_x86_64_sysv_elf_gas.S
+   : <address-model>64
+     <architecture>x86
+     <binary-format>elf
+     <toolset>gcc
+   ;
+
+alias asm_context_sources
+   : asm/make_x86_64_sysv_elf_gas.S
+     asm/jump_x86_64_sysv_elf_gas.S
+   : <address-model>64
+     <architecture>x86
+     <binary-format>elf
+     <toolset>qcc
+   ;
+
+alias asm_context_sources
+   : asm/make_x86_64_sysv_elf_gas.S
+     asm/jump_x86_64_sysv_elf_gas.S
+   : <address-model>64
+     <architecture>x86
+     <binary-format>elf
+     <toolset>intel
+   ;
+
+alias asm_context_sources
+   : [ make asm/make_x86_64_sysv_elf_gas.o : asm/make_x86_64_sysv_elf_gas.S : @gas ]
+     [ make asm/jump_x86_64_sysv_elf_gas.o : asm/jump_x86_64_sysv_elf_gas.S : @gas ]
+   : <address-model>64
+     <architecture>x86
+     <binary-format>elf
+   ;
+
+alias asm_context_sources
+   : asm/make_x86_64_sysv_macho_gas.S
+     asm/jump_x86_64_sysv_macho_gas.S
+   : <address-model>64
+     <architecture>x86
+     <binary-format>mach-o
+     <target-os>darwin
+     <toolset>darwin
+   ;
+
+alias asm_context_sources
+   : asm/make_x86_64_sysv_macho_gas.S
+     asm/jump_x86_64_sysv_macho_gas.S
+   : <address-model>64
+     <architecture>x86
+     <binary-format>mach-o
+     <target-os>darwin
+     <toolset>intel
+   ;
+
+alias asm_context_sources
+   : [ make asm/make_x86_64_sysv_macho_gas.o : asm/make_x86_64_sysv_macho_gas.S : @gas ]
+     [ make asm/jump_x86_64_sysv_macho_gas.o : asm/jump_x86_64_sysv_macho_gas.S : @gas ]
+   : <address-model>64
+     <architecture>x86
+     <binary-format>mach-o
+     <target-os>darwin
+   ;
+
+alias asm_context_sources
+   : asm/make_x86_64_ms_pe_masm.asm
+     asm/jump_x86_64_ms_pe_masm.asm
+     dummy.cpp
+   : <address-model>64
+     <architecture>x86
+     <binary-format>pe
+     <target-os>windows
+     <toolset>intel
+   ;
+
+alias asm_context_sources
+   : asm/make_x86_64_ms_pe_masm.asm
+     asm/jump_x86_64_ms_pe_masm.asm
+     dummy.cpp
+   : <address-model>64
+     <architecture>x86
+     <binary-format>pe
+     <target-os>windows
+     <toolset>msvc
+   ;
+
+alias asm_context_sources
+   : [ make asm/make_x86_64_ms_pe_masm.o : asm/make_x86_64_ms_pe_masm.asm : @masm64 ]
+     [ make asm/jump_x86_64_ms_pe_masm.o : asm/jump_x86_64_ms_pe_masm.asm : @masm64 ]
+     dummy.cpp
+   : <address-model>64
+     <architecture>x86
+     <binary-format>pe
+     <target-os>windows
+   ;
+
+alias asm_context_sources
+   : unsupported.cpp
+   ;
+
+explicit asm_context_sources ;
+
+alias select_asm_context_sources
+  : asm_context_sources
+  : [ architecture.architecture ]
+    [ architecture.address-model ]
+  ;
+
+lib boost_context
+   : select_asm_context_sources
+   ;
+
+boost-install boost_context ;

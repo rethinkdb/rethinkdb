@@ -1,0 +1,91 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+    <TITLE>Acknowledgments</TITLE>
+    <LINK REL="stylesheet" HREF="../../../boost.css">
+    <LINK REL="stylesheet" HREF="theme/iostreams.css">
+</HEAD>
+<BODY>
+
+<!-- Begin Banner -->
+
+    <H1 CLASS="title">Acknowledgments</H1>
+    <HR CLASS="banner">
+
+<!-- End Banner -->
+
+<H3>1.35</H3>
+
+<P>Numerous users submitted bug reports and patches to correct and optimize Boost.Iostreams for release 1.35. Frank Birbacher and Chad Walters deserve special thanks for diagnosing and fixing bugs and for prodding the author to resume active maintenance of the library.
+
+<H3>1.33</H3>
+
+<P>
+    The original idea for the library came from the example stream buffer implementations in <I>Standard C++ IOStreams and Locales</I>, by Angelika Langer and Klaus Kreft (<A CLASS="bib_ref" HREF="bibliography.html#langer">[Langer]</A>). <A HREF="http://lists.boost.org/MailArchives/boost/msg48300.php" TARGET="_top">Robert Ramey</A> suggested extending the library to handle filtering. In addition:
+</P>
+
+<UL>
+    <LI CLASS="square">
+        The implementation of <A HREF="guide/generic_streams.html#stream_buffer"><CODE>stream_buffer</CODE></A> is indebted to work of Angelika Langer and Klaus Kreft (<A CLASS="bib_ref" HREF="bibliography.html#langer">[Langer]</A>, <I>pp.</I> 228-43).
+    </LI>
+    <LI CLASS="square">
+        The filtering stream buffer concept was invented by James Kanze and Dietmar K&uuml;hl. <I>See</I> <A CLASS="bib_ref" HREF="bibliography.html#kanze">[Kanze]</A>. 
+    </LI>
+    <LI>
+        The concepts <A HREF="concepts/input_filter.html">InputFilter</A> and <A HREF="concepts/output_filter.html">OutputFilter</A> were inspired by James Kanze's <I>extractors</I> and <I>inserters</I>. In addition, the names of the components <A HREF="classes/filtering_stream.html"><CODE>filtering_stream</CODE></A> and <A HREF="classes/filtering_streambuf.html"><CODE>filtering_streambuf</CODE></A> are borrwed from Kanze, as are several of the Filters from the <A HREF="tutorial/tutorial.html">Tutorial</A>. <I>See</I> <A CLASS="bib_ref" HREF="bibliography.html#kanze">[Kanze]</A>. 
+    </LI>
+    <LI CLASS="square">
+        <A HREF="guide/pipelines.html">Pipelines</A> were introduce by Jan Christiaan van Winkel and John van Krieken. <I>See</I> <A CLASS="bib_ref" HREF="bibliography.html#van_winkel">[van Winkel].</A> Dietmar K&uuml;hl suggested adding this functionality to the Iostreams library.
+    </LI>
+    <LI CLASS="square">
+        The facility for adding iterator ranges and output iterators to filter chains was inspired by work of Maxim Egorushkin. <I>See</I> <A CLASS="bib_ref" HREF="bibliography.html#egorushkin">[Egorushkin]</A>.
+    </LI>
+    <LI CLASS="square">
+        The devices for accessing <A HREF="classes/mapped_file.html">memory-mapped file</A> are based on work of Craig Henderson; <I>see</I> (<A CLASS="bib_ref" HREF="bibliography.html#henderson">[Henderson]</A>). Jonathan Graehl added several useful features. 
+    </LI>
+    <LI CLASS="square">
+        The devices for accessing <A HREF="classes/file_descriptor.html">file descriptors</A> are based on work of Nicolai Josuttis (<A CLASS="bib_ref" HREF="bibliography.html#josuttis1">[Josuttis1]</A> and <A CLASS="bib_ref" HREF="bibliography.html#josuttis2">[Josuttis2]</A>).
+    </LI>
+    <LI CLASS="square">
+        The <A HREF="classes/array.html">array devices</A> and <A HREF="classes/null.html">null devices</A> were inspired by work of Dayle Walker.
+    </LI>
+    <LI CLASS="square">
+        The Filters for compression and decompression were influenced by the work of Jeff Garland (<A CLASS="bib_ref" HREF="bibliography.html#garland">[Garland]</A>) and Jonathan de Halleux (<A CLASS="bib_ref" HREF="bibliography.html#de_halleux">[de Halleux]</A>).
+    </LI>
+    <LI CLASS="square">
+        The template <A HREF="classes/stdio_filter.html"><CODE>basic_stdio_filter</CODE></A> was inspired by work of Christopher Diggins. <I>See</I> <A CLASS="bib_ref" HREF="bibliography.html#diggins">[Diggins]</A>.
+    </LI>
+    <LI CLASS="square">
+        The treatment of 64-bit <A HREF="functions/positioning.html">stream offsets</A> was suggested by Gareth Sylvester-Bradley, who also supplied the implementation of the positioning functions used with the Dinkumware standard library.
+    </LI>
+    <LI CLASS="square">
+        The template <A HREF="functions/restrict.html#restriction"><CODE>restiction</CODE></A> was suggested by David Abrahams. <I>See</I>  <A CLASS="bib_ref" HREF="bibliography.html#abrahams2">[Abrahams2]</A>.
+    </LI>
+    <LI CLASS="square">
+        Maxim Egorushkin, Larry Evans, George M. Garner, Jonathan Graehl, Robert Ramey, Rob Stewart, John Torjo, Pavel Vozenilek and Carlo Woods provided extensive criticism of various versions of the library.
+    </LI>
+    <LI CLASS="square">
+        Angelika Langer and James Kanze provided useful insights into the proper role of exceptions in the Iostream library.
+    </LI>
+    <LI CLASS="square">
+        Robert Ramey's documentation for <A HREF="../../serialization/index.html" TARGET="_top">Boost.Serialization</A> provided the inspiration for the <A HREF="http://www.kangaroologic.com/tree_control/doc/tree/doc/demo.html?path=1" TARGET="_top">Javascript Tree Control</A> used in this documenation.
+    </LI>
+    <LI CLASS="square">
+        Jeff Garland served as review manager and provided helpful criticism and guidance.
+    </LI>
+    <LI CLASS="square">
+        Those who participated in the formal review or the post-review discussions, or who submitted bug reports or patches, include (in no particular order) Adam Peterson, Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz, Neal D. Becker, Stas Garifulin, Vladimir Prus, Rob Stewart, Robert Ramey, Michel Decima, Michiel Salters, Pedro Lamar&atilde;o, Dietmar K&uuml;hl, Oleg Rekutin, Reece Dunn, Stefan Slapeta, Jeff Flinn, Jeff Garland, Eugene Lazutkin, John Torjo, Brian Braatz, Keith Burton, Keith MacDonald, Phil Richards, Arjen Wagenaar, Caleb Epstein, Dylan Trotter, Ben Hutchings, Daniel James, Daniel Schlyder, Jan Christiaan van Winkel, Jonathan Graehl, Jonathan Wakely, Rene Rivera, Tony Juricic, Bronek Kozicki, George M. Garner, Jr., Thorsten Ottosen, Bertolt Mildner, Carlo Wood, Christoper Diggins, Christoph Ludwig, Daryle Walker, Dirk Griffioen, Gareth Sylvester-Bradley, J&uuml;rgen Hunold, Larry Evans, Markus Sch&ouml;pflin, Martin Ecker, Martin Wille, Russel Hind, Matthew Vogt, Matthias Troyer, Peter Dimov, Bruno Mart&iacute;nez Aguerre, Douglas Gregor, Paul A. Bristow, David B. Held, Kevin Wheatley, Pavel Vozenilek, Emmanuel Thomé, Scott Woods, Israel Fern&aacute;ndez Cabrera, Felix Gartsman, Pavel Chikulaev, Lisa Glendenning, Yuval Ronen and Paul Harris.
+    </LI>
+</UL>
+
+<!-- Begin Footer -->
+
+<HR>
+
+
+<P CLASS="copyright">&copy; Copyright 2008 <a href="http://www.coderage.com/" target="_top">CodeRage, LLC</a><br/>&copy; Copyright 2004-2007 <a href="http://www.coderage.com/turkanis/" target="_top">Jonathan Turkanis</a></P>
+<P CLASS="copyright"> 
+    Distributed under the Boost Software License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at <A HREF="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>)
+</P>
+<!-- End Footer -->
+</BODY>

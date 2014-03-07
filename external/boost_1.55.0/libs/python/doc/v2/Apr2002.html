@@ -1,0 +1,166 @@
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<link rel="stylesheet" type="text/css" href="../boost.css">
+<title>Boost.Python - April 2002 Progress Report</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+  <tr> 
+    <td valign="top" width="300"> 
+          <h3><a href="../../../../index.htm"><img height="86" width="277" alt=
+          "C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+      <h2 align="center">April 2002 Progress Report</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+<h2>Contents</h2>
+<dl class="index">
+  <dt><a href="#accomplishments">Accomplishments</a></dt>
+  <dl class="index">
+    <dt><a href="#arity">Arbitrary Arity Support</a></dt>
+    <dt><a href="#callbacks">New Callback Interface</a></dt>
+    <dt><a href="#policies">Call Policies for Construtors</a></dt>
+    <dt><a href="#bugs">Real Users, Real Bugs</a></dt>
+    <dt><a href="#insights">New Insights</a></dt>
+    <dt><a href="#v1">Boost.Python V1 Maintenance</a></dt>
+  </dl>
+
+  <dt><a href="#missing">What's Missing</a></dt>
+
+</dl>
+
+<h2><a name="accomplishments">Accomplishments</a></h2>
+
+April was a short month as far as Boost.Python was concerned, since
+the spring ISO C++ Committee Meeting (and associated vacation)
+occupied me for the 2nd half of the month. However, a suprising amount
+of work got done...
+
+<h3><a name="arity">Arbitrary Arity Support</a></h3>
+
+I began using the <a
+href="../../../preprocessor/doc/index.html">Boost.Preprocessor</a>
+metaprogramming library to generate support for functions and member
+functions of arbitrary arity, which was, to say the least, quite an
+adventure. The feedback cycle resulting from my foray into
+Boost.Preprocessor resulted in several improvements to the library,
+most notably in its documentation. 
+
+<p>
+
+Boost.Python now supports calls of up to 17 arguments on most
+compilers. Because most EDG-based compilers have dismal preprocessor
+performance, I had to &quot;manually&quot; expand the metaprograms for
+arities from zero to fifteen arguments, and EDG-based compilers with
+<code>__EDG_VERSION__&nbsp;&lt;=&nbsp;245</code> only support 15
+arguments by default. If some crazy program finds a need for more than
+the default arity support, users can increase the base support by
+setting the <code>BOOST_PYTHON_MAX_ARITY</code> preprocessor symbol.
+
+<h3><a name="callbacks">New Callback Interface</a></h3>
+
+I mentioned in <a href="Mar2002.html">last month's report</a> that I
+wasn't pleased with the interface for the interface for calling into
+Python, so now it has been redesigned. The new interface is outlined
+in <a
+href="http://mail.python.org/pipermail/c++-sig/2002-April/000953.html">this
+message</a> (though the GCC 2.95.3 bugs have been fixed).
+
+<h3><a name="policies">Call Policies for Constructors</a></h3>
+
+On April 2nd, I <a
+href="http://mail.python.org/pipermail/c++-sig/2002-April/000916.html">announced</a>
+support for the use of call policies with constructors.
+
+<h3><a name="bugs">Real Users, Real Bugs</a></h3>
+
+At least two people outside of Kull began actually using Boost.Python
+v2 in earnest this month. Peter Bienstman and Pearu Pearson both
+provided valuable real-world bug reports that helped me to improve the
+library's robustness.
+
+<h3><a name="insights">New Insights</a></h3>
+
+<a
+href="http://mail.python.org/pipermail/c++-sig/2002-May/001010.html"
+>Answering some of Pearu's questions</a> about explicitly converting
+objects between Python and C++ actually led me to a new understanding
+of the role of the current conversion facilities. In Boost.Python v1,
+all conversions between Python and C++ were handled by a single family
+of functions, called <code>to_python()</code> and
+<code>from_python()</code>. Since the primary role of Boost.Python is
+to wrap C++ functions in Python, I used these names for the first kind
+of converters I needed: those that extract C++ objects to be used as
+function arguments and which C++ function return values to
+Python. The better-considered approach in Boost.Python v2 uses a
+completely different mechanism for conversions used when calling
+Python from C++, as in wrapped virtual function implementations. I
+usually think of this as a &quot;callback&quot;, as in &quot;calling
+back into Python&quot;, and I named the converters used in callbacks
+accordingly: <code>to_python_callback</code> and
+<code>from_python_callback</code>. However, as it turns out, the
+behavior of the &quot;callback&quot; converters is the appropriate one
+for users who want to explicitly extract a C++ value from a Python
+object, or create a Python object from a C++ value. The upshot is that
+it probably makes sense to change the name of the existing <code>to_python</code> and
+<code>from_python</code> so those names are available for the
+user-friendly explicit converters.
+
+<p>
+<a
+href="http://mail.python.org/pipermail/c++-sig/2002-May/001013.html">Another
+of Pearu's questions</a> pushes momentum further in the direction of a
+more-sophisticated overloading mechanism than the current
+simple-minded &quot;first match&quot; approach, as I suggested <a
+href="Mar2002.html#implicit_conversions">last month</a>.
+
+<h3><a name="v1">Boost.Python V1 Maintenance</a></h3>
+
+As much as I'm looking forward to retiring Boost.Python v1, a
+significant amount of effort has been being spent dealing with support
+problems; the saying that code rots when left alone is true, and
+Boost.Python is no exception. Eventually it became obvious to me that
+we were going to have to invest some effort in keeping V1 healthy
+while working on V2. Ralf and I have expanded support for various
+compilers and stabilized the V1 codebase considerably. We discarded
+the obsolete Visual Studio projects which were causing so much
+confusion. Still to do before the next Boost release:
+<ol>
+<li>Update the build/test documentation with detailed instructions for
+configuring various toolsets.
+<li>Provide some links to Boost.Python v2 to let people know what's
+coming.
+</ol>
+
+
+<h2><a name="missing">What's Missing</a></h2>
+
+Last month I announced that I would implement the following which are
+not yet complete:
+<ol>
+<li>Document all implemented features
+<li>Implement conversions for <code>char</code> types. This is
+implemented but not tested, so we have to assume it doesn't work.
+</ol>
+
+These are my first priority for this month (especially the
+documentation).
+
+<p>Revised 
+  <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+  13 November, 2002
+  <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+</p>
+<p><i>&copy; Copyright <a href="http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 
+  2002. </i></p>
+</body>
+</html>

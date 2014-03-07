@@ -1,0 +1,23 @@
+﻿# ***************************************************************************
+# *
+# *  Copyright (C) 2004-2010, International Business Machines
+# *  Corporation; Unicode, Inc.; and others.  All Rights Reserved.
+# *
+# ***************************************************************************
+# File: Any_Publishing.txt
+# Generated from CLDR 
+#
+$single = \' ;
+$space = ' ' ;
+$double = \" ;
+$back = \` ;
+$tab = \u0008 ;
+$makeRight = [[:Z:][:Ps:][:Pi:]$] ;
+$back $back → “ ;
+$back → ‘ ;
+$makeRight {$double} ↔ “ ;
+$double ↔ ” ;
+$makeRight {$single} ↔ ‘ ;
+$single ↔ ’;
+$space {$space} → ;
+'--' ↔ — ;

@@ -1,0 +1,56 @@
+# copyright John Maddock 2003
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or copy at 
+# http://www.boost.org/LICENSE_1_0.txt.
+
+SOURCES = command_line main time_boost time_greta time_localised_boost time_pcre time_dynamic_xpressive time_posix time_safe_greta ;
+
+local HS_REGEX_PATH = [ modules.peek : HS_REGEX_PATH ] ;
+local USE_POSIX = [ modules.peek : USE_POSIX ] ;
+local PCRE_PATH = [ modules.peek : PCRE_PATH ] ;
+local USE_PCRE = [ modules.peek : USE_PCRE ] ;
+
+if $(HS_REGEX_PATH)
+{
+   HS_SOURCES = $(HS_REGEX_PATH)/regcomp.c $(HS_REGEX_PATH)/regerror.c $(HS_REGEX_PATH)/regexec.c $(HS_REGEX_PATH)/regfree.c ;
+   POSIX_OPTS = <define>BOOST_HAS_POSIX=1 <include>$(HS_REGEX_PATH) ;
+}
+else if $(USE_POSIX)
+{
+   POSIX_OPTS = <define>BOOST_HAS_POSIX=1 ;
+}
+
+lib pcre : : <name>pcre ;
+
+if $(PCRE_PATH)
+{
+   PCRE_SOURCES = $(PCRE_PATH)/chartables.c $(PCRE_PATH)/get.c $(PCRE_PATH)/pcre.c $(PCRE_PATH)/study.c ;
+   PCRE_OPTS = <define>BOOST_HAS_PCRE=1 <include>$(PCRE_PATH) ;
+}
+else if $(USE_PCRE)
+{
+   PCRE_OPTS = <define>BOOST_HAS_PCRE=1 ;
+   PCRE_SOURCES = pcre ;
+}
+
+
+exe regex_comparison : 
+    $(SOURCES).cpp
+    $(HS_SOURCES)
+    $(PCRE_SOURCES)
+    ../build//boost_regex
+    ../../test/build//boost_prg_exec_monitor/<link>static
+    : 
+    <define>BOOST_REGEX_NO_LIB=1
+    <define>BOOST_REGEX_STATIC_LINK=1
+    $(POSIX_OPTS)
+    $(PCRE_OPTS)
+    ;
+
+
+install . : regex_comparison ;
+
+
+
+
+

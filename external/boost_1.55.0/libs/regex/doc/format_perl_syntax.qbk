@@ -1,0 +1,69 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:perl_format Perl Format String Syntax]
+
+Perl-style format strings treat all characters as literals except 
+'$' and '\\' which start placeholder and escape sequences respectively.
+
+Placeholder sequences specify that some part of what matched the regular expression 
+should be sent to output as follows:
+
+[table
+[[Placeholder][Meaning]]
+[[$&][Outputs what matched the whole expression.]]
+[[$MATCH][As $&]]
+[[${^MATCH}][As $&]]
+[[$\`][Outputs the text between the end of the last match found (or the 
+      start of the text if no previous match was found), and the start 
+      of the current match.]]
+[[$PREMATCH][As $\`]]
+[[${^PREMATCH}][As $\`]]
+[[$'][Outputs all the text following the end of the current match.]]
+[[$POSTMATCH][As $']]
+[[${^POSTMATCH}][As $']]
+[[$+][Outputs what matched the last marked sub-expression in the regular expression.]]
+[[$LAST_PAREN_MATCH][As $+]]
+[[$LAST_SUBMATCH_RESULT][Outputs what matched the last sub-expression to be actually matched.]]
+[[$^N][As $LAST_SUBMATCH_RESULT]]
+[[$$][Outputs a literal '$']]
+[[$n][Outputs what matched the n'th sub-expression.]]
+[[${n}][Outputs what matched the n'th sub-expression.]]
+[[$+{NAME}][Outputs whatever matched the sub-expression named "NAME".]]
+]
+
+Any $-placeholder sequence not listed above, results in '$' being treated 
+as a literal.
+
+An escape character followed by any character x, outputs that character unless 
+x is one of the escape sequences shown below.
+
+
+[table
+[[Escape][Meaning]]
+[[\\a][Outputs the bell character: '\\a'.]]
+[[\\e][Outputs the ANSI escape character (code point 27).]]
+[[\\f][Outputs a form feed character: '\\f']]
+[[\\n][Outputs a newline character: '\\n'.]]
+[[\\r][Outputs a carriage return character: '\\r'.]]
+[[\\t][Outputs a tab character: '\\t'.]]
+[[\\v][Outputs a vertical tab character: '\\v'.]]
+[[\\xDD][Outputs the character whose hexadecimal code point is 0xDD]]
+[[\\x{DDDD}][Outputs the character whose hexadecimal code point is 0xDDDDD]]
+[[\\cX][Outputs the ANSI escape sequence "escape-X".]]
+[[\\D][If D is a decimal digit in the range 1-9, then outputs the text that matched sub-expression D.]]
+[[\\l][Causes the next character to be outputted, to be output in lower case.]]
+[[\\u][Causes the next character to be outputted, to be output in upper case.]]
+[[\\L][Causes all subsequent characters to be output in lower case, until a \\E is found.]]
+[[\\U][Causes all subsequent characters to be output in upper case, until a \\E is found.]]
+[[\\E][Terminates a \\L or \\U sequence.]]
+]
+
+[endsect]
+
+

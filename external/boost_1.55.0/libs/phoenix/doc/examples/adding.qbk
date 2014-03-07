@@ -1,0 +1,111 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Adding an expression]
+
+This is not a toy example. This is actually part of the library. Remember the
+[link phoenix.modules.statement.while__statement `while`] lazy statement? Putting together
+everything we've learned so far, we eill present it here in its entirety
+(verbatim):
+
+    BOOST_PHOENIX_DEFINE_EXPRESSION(
+        (boost)(phoenix)(while_)
+      , (meta_grammar)           // Cond
+        (meta_grammar)           // Do
+    )
+
+    namespace boost { namespace phoenix
+    {
+        struct while_eval
+        {
+            typedef void result_type;
+
+            template <typename Cond, typename Do, typename Context>
+            result_type
+            operator()(Cond const& cond, Do const& do_, Context & ctx) const
+            {
+                while(eval(cond, ctx))
+                {
+                    eval(do_, ctx);
+                }
+            }
+        };
+        
+        template <typename Dummy>
+        struct default_actions::when<rule::while_, Dummy>
+            : call<while_eval, Dummy>
+        {};
+
+        template <typename Cond>
+        struct while_gen
+        {
+            while_gen(Cond const& cond) : cond(cond) {}
+
+            template <typename Do>
+            typename expression::while_<Cond, Do>::type const
+            operator[](Do const& do_) const
+            {
+                return expression::while_<Cond, Do>::make(cond, do_);
+            }
+
+            Cond const& cond;
+        };
+
+        template <typename Cond>
+        while_gen<Cond> const
+        while_(Cond const& cond)
+        {
+            return while_gen<Cond>(cond);
+        }
+    }}
+
+`while_eval` is an example of how to evaluate an expression. It gets called in
+the `rule::while` action. `while_gen` and `while_` are the expression template
+front ends. Let's break this apart to undestand what's happening. Let's start at
+the bottom. It's easier that way.
+
+When you write:
+
+    while_(cond)
+
+we generate an instance of `while_gen<Cond>`, where `Cond` is the type of `cond`.
+`cond` can be an arbitrarily complex actor expression. The `while_gen` template
+class has an `operator[]` accepting another expression. If we write:
+
+    while_(cond)
+    [
+        do_
+    ]
+
+it will generate a proper composite with the type:
+
+    expression::while_<Cond, Do>::type
+
+where `Cond` is the type of `cond` and `Do` is the type of `do_`. Notice how we are using Phoenix's
+[link phoenix.inside.expression Expression] mechanism here
+        
+    template <typename Do>
+    typename expression::while_<Cond, Do>::type const
+    operator[](Do const& do_) const
+    {
+        return expression::while_<Cond, Do>::make(cond, do_);
+    }
+
+Finally, the `while_eval` does its thing:
+
+    while(eval(cond, ctx))
+    {
+        eval(do_, ctx);
+    }
+
+`cond` and `do_`, at this point, are instances of [link phoenix.inside.actor Actor]. `cond` and `do_` are the [link phoenix.inside.actor Actors] 
+passed as parameters by `call`, ctx is the [link phoenix.inside.actor Context]
+
+[endsect]
+

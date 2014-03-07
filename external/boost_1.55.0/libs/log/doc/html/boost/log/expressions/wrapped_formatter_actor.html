@@ -1,0 +1,90 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template wrapped_formatter_actor</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../../../expressions.html#header.boost.log.expressions.formatters.wrap_formatter_hpp" title="Header &lt;boost/log/expressions/formatters/wrap_formatter.hpp&gt;">
+<link rel="prev" href="wrapped_formatter_terminal.html" title="Class template wrapped_formatter_terminal">
+<link rel="next" href="wrap_formatter_idp26488840.html" title="Function template wrap_formatter">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="wrapped_formatter_terminal.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../expressions.html#header.boost.log.expressions.formatters.wrap_formatter_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="wrap_formatter_idp26488840.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.expressions.wrapped_formatter_actor"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template wrapped_formatter_actor</span></h2>
+<p>boost::log::expressions::wrapped_formatter_actor</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../expressions.html#header.boost.log.expressions.formatters.wrap_formatter_hpp" title="Header &lt;boost/log/expressions/formatters/wrap_formatter.hpp&gt;">boost/log/expressions/formatters/wrap_formatter.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> FunT<span class="special">,</span> <span class="keyword">typename</span> CharT<span class="special">,</span> 
+         <span class="keyword">template</span><span class="special">&lt;</span> <span class="keyword">typename</span> <span class="special">&gt;</span> <span class="keyword">class</span> ActorT <span class="special">=</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">actor</span><span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="wrapped_formatter_actor.html" title="Class template wrapped_formatter_actor">wrapped_formatter_actor</a> <span class="special">:</span>
+  <span class="keyword">public</span> <span class="identifier">ActorT</span><span class="special">&lt;</span> <span class="identifier">wrapped_formatter_terminal</span><span class="special">&lt;</span> <span class="identifier">FunT</span><span class="special">,</span> <span class="identifier">CharT</span> <span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">CharT</span>                                                  <a name="boost.log.expressions.wrapped_formatter_actor.char_type"></a><span class="identifier">char_type</span><span class="special">;</span>      <span class="comment">// Character type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">FunT</span>                                                   <a name="boost.log.expressions.wrapped_formatter_actor.function_type"></a><span class="identifier">function_type</span><span class="special">;</span>  <span class="comment">// Wrapped function type. </span>
+  <span class="keyword">typedef</span> <a class="link" href="wrapped_formatter_terminal.html" title="Class template wrapped_formatter_terminal">wrapped_formatter_terminal</a><span class="special">&lt;</span> <span class="identifier">function_type</span><span class="special">,</span> <span class="identifier">char_type</span> <span class="special">&gt;</span> <a name="boost.log.expressions.wrapped_formatter_actor.terminal_type"></a><span class="identifier">terminal_type</span><span class="special">;</span>  <span class="comment">// Base terminal type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">ActorT</span><span class="special">&lt;</span> <span class="identifier">terminal_type</span> <span class="special">&gt;</span>                                <a name="boost.log.expressions.wrapped_formatter_actor.base_type"></a><span class="identifier">base_type</span><span class="special">;</span>      <span class="comment">// Base actor type. </span>
+
+  <span class="comment">// <a class="link" href="wrapped_formatter_actor.html#boost.log.expressions.wrapped_formatter_actorconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="wrapped_formatter_actor.html#idp26488136-bb"><span class="identifier">wrapped_formatter_actor</span></a><span class="special">(</span><span class="identifier">base_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="wrapped_formatter_actor.html#idp26487016-bb">public member functions</a></span>
+  <span class="identifier">function_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a class="link" href="wrapped_formatter_actor.html#idp26487224-bb"><span class="identifier">get_function</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp59630936"></a><h2>Description</h2>
+<p>Wrapped formatter function actor. </p>
+<div class="refsect2">
+<a name="idp59631320"></a><h3>
+<a name="boost.log.expressions.wrapped_formatter_actorconstruct-copy-destruct"></a><code class="computeroutput">wrapped_formatter_actor</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp26488136-bb"></a><span class="identifier">wrapped_formatter_actor</span><span class="special">(</span><span class="identifier">base_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> act<span class="special">)</span><span class="special">;</span></pre>Initializing constructor. </li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp59635736"></a><h3>
+<a name="idp26487016-bb"></a><code class="computeroutput">wrapped_formatter_actor</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="identifier">function_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a name="idp26487224-bb"></a><span class="identifier">get_function</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>The wrapped function </p></td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="wrapped_formatter_terminal.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../../expressions.html#header.boost.log.expressions.formatters.wrap_formatter_hpp"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="wrap_formatter_idp26488840.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

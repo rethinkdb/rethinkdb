@@ -1,0 +1,92 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:character_classes Character Class Names]
+
+[section:std_char_clases Character Classes that are Always Supported]
+
+The following character class names are always supported by Boost.Regex:
+
+[table
+[[Name] 	[POSIX-standard name] 	[Description]]
+[[alnum] 	[Yes] 	[Any alpha-numeric character.]]
+[[alpha] 	[Yes] 	[Any alphabetic character.]]
+[[blank] 	[Yes] 	[Any whitespace character that is not a line separator.]]
+[[cntrl] 	[Yes] 	[Any control character.]]
+[[d] 	      [No] 	[Any decimal digit]]
+[[digit] 	[Yes] 	[Any decimal digit.]]
+[[graph] 	[Yes] 	[Any graphical character.]]
+[[l] 	      [No] 	[Any lower case character.]]
+[[lower] 	[Yes] 	[Any lower case character.]]
+[[print] 	[Yes] 	[Any printable character.]]
+[[punct] 	[Yes] 	[Any punctuation character.]]
+[[s] 	      [No] 	[Any whitespace character.]]
+[[space] 	[Yes] 	[Any whitespace character.]]
+[[unicode] 	[No] 	[Any extended character whose code point is above 255 in value.]]
+[[u] 	      [No] 	[Any upper case character.]]
+[[upper] 	[Yes] 	[Any upper case character.]]
+[[w] 	      [No] 	[Any word character (alphanumeric characters plus the underscore).]]
+[[word] 	   [No] 	[Any word character (alphanumeric characters plus the underscore).]]
+[[xdigit] 	[Yes] 	[Any hexadecimal digit character.]]
+]
+
+[endsect]
+
+[section:optional_char_class_names Character classes that are supported by Unicode Regular Expressions]
+
+The following character classes are only supported by Unicode Regular Expressions: 
+that is those that use the `u32regex` type.  The names used are the same as 
+those from Chapter 4 of the Unicode standard.
+
+[table
+[[Short Name] 	[Long Name]]
+[[ ]	[ASCII]]
+[[ ]	[Any]]
+[[ ]	[Assigned]]
+[[C*] 	[Other]]
+[[Cc] 	[Control]]
+[[Cf] 	[Format]]
+[[Cn] 	[Not Assigned]]
+[[Co] 	[Private Use]]
+[[Cs] 	[Surrogate]]
+[[L*] 	[Letter]]
+[[Ll] 	[Lowercase Letter]]
+[[Lm] 	[Modifier Letter]]
+[[Lo] 	[Other Letter]]
+[[Lt] 	[Titlecase]]
+[[Lu] 	[Uppercase Letter]]
+[[M*] 	[Mark]]
+[[Mc] 	[Spacing Combining Mark]]
+[[Me] 	[Enclosing Mark]]
+[[Mn] 	[Non-Spacing Mark]]
+[[N*] 	[Number]]
+[[Nd] 	[Decimal Digit Number]]
+[[Nl] 	[Letter Number]]
+[[No] 	[Other Number]]
+[[P*] 	[Punctuation]]
+[[Pc] 	[Connector Punctuation]]
+[[Pd] 	[Dash Punctuation]]
+[[Pe] 	[Close Punctuation]]
+[[Pf] 	[Final Punctuation]]
+[[Pi] 	[Initial Punctuation]]
+[[Po] 	[Other Punctuation]]
+[[Ps] 	[Open Punctuation]]
+[[S*] 	[Symbol]]
+[[Sc] 	[Currency Symbol]]
+[[Sk] 	[Modifier Symbol]]
+[[Sm] 	[Math Symbol]]
+[[So] 	[Other Symbol]]
+[[Z*] 	[Separator]]
+[[Zl] 	[Line Separator]]
+[[Zp] 	[Paragraph Separator]]
+[[Zs] 	[Space Separator]]
+]
+
+[endsect]
+[endsect]
+

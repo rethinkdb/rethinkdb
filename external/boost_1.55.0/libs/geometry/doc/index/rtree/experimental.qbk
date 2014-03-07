@@ -1,0 +1,111 @@
+[/============================================================================
+  Boost.Geometry Index
+
+  Copyright (c) 2011-2013 Adam Wulkiewicz.
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section Experimental Features]
+
+This section describes experimental features which are implemented but unavailable by default.
+Be aware that they may not be released in the future or functionalities may be released but
+behind different interface.
+
+To enable them one must define `BOOST_GEOMETRY_INDEX_DETAIL_EXPERIMENTAL` in compiler's command line or before
+including spatial index.
+
+[heading Nearest query distance calculation]
+
+It is possible to define how distance to the non-point `__value__` should be calculated. To do this one may pass
+a relation object instead of a Point to the nearest predicate, as follows:
+
+ /* calculate distance to the Indexables' nearest points */
+ rtree.query(index::nearest(index::to_nearest(pt), k), std::back_inserter(returned_values)); // same as default
+
+ /* calculate distance to the Indexables' centroid */
+ rtree.query(index::nearest(index::to_centroid(pt), k), std::back_inserter(returned_values));
+
+ /* calculate distance to the Indexables' furthest points */
+ rtree.query(index::nearest(index::to_furthest(pt), k), std::back_inserter(returned_values));
+
+[heading Path query]
+
+Path query returns `k` first `__value__`s intersecting a path defined by a `Segment` or a`Linestring`. The result of a query returning first 5
+values intersecting a path is presented below. Path's flow is denoted by blue arrows, returned values are orange.
+
+[$img/index/rtree/path.png]
+ 
+To perform this query one may pass a `path()` predicate taking a `Segment` or a `Linestring` and maximum number of `__value__`s which
+should be returned:
+
+ rtree.query(index::path(segment, k), std::back_inserter(returned_values));
+ rtree.query(index::path(linestring, k), std::back_inserter(returned_values));
+
+[warning Only one distance predicate may be used in a query. This means that there can be only one `nearest()` or `path()` predicate passed. Passing more of them will result in compile-time error.]
+
+[heading Incremental queries]
+
+Sometimes there is a need to stop querying at some desired moment because for example the decision that query should find another value
+is made after analysis of previously returned values. There can also be desirable to pause querying and resume it later. 
+
+Currently, those kind of incremental queries are implemented as input (single pass) const iterators, relatively
+big fat-iterators storing stack used in the tree-traversing process. Because the type of predicates passed
+to the query varies, the type of the iterator varies as well.
+
+Therefore to use query iterators one must pass them to some function template, then types will be deduced
+automatically. If iterators objects must be stored one may use Boost.Typeof library to retrieve a type from
+an expression or use C++11 `auto` or `decltype`.
+
+ /* function call */
+ std::copy(rtree.qbegin(index::intersects(box)), rtree.qend(index::intersects(box)), std::back_inserter(returned_values));
+ 
+ /* Boost.Typeof */
+ typedef BOOST_TYPEOF(rtree.qbegin(index::nearest(pt, 5))) const_query_iterator;
+ const_query_iterator first = rtree.qbegin(index::nearest(pt, 5));
+ const_query_iterator last = rtree.qend(index::nearest(pt, 5));
+ // ...
+ for ( ; first != last ; ++first )
+     *first; // do something with Value
+ 
+ /* C++11 */
+ auto first = rtree.qbegin(index::nearest(pt, 5));
+ auto last = rtree.qend(index::nearest(pt, 5));
+ // ...
+ for ( ; first != last ; ++first )
+     *first; // do something with Value
+
+`qend()` method is overloaded to return a different, lighter type of iterator which may be compared
+with query iterator to check if the querying was finished. But since it has different type than the one returned by
+`qbegin(Pred)` it can't be used with STL-like functions like `std::copy()` which expect that `first` and `last`
+iterators have the same type.
+
+ /* function call */
+ template <typename First, typename Last, typename Out>
+ void my_copy(First first, Last last, Out out)
+ {
+     for ( ; first != last ; ++out, ++first )
+         *out = *first;
+ }
+ // ...
+ my_copy(rtree.qbegin(index::intersects(box)), rtree.qend(), std::back_inserter(returned_values));
+ 
+ /* Boost.Typeof */
+ typedef BOOST_TYPEOF(rtree.qbegin(index::nearest(pt, 5))) const_query_iterator;
+ typedef BOOST_TYPEOF(rtree.qend()) end_iterator;
+ const_query_iterator first = rtree.qbegin(index::nearest(pt, 5));
+ end_iterator last = rtree.qend();
+ // ...
+ for ( ; first != last ; ++first )
+     *first; // do something with Value
+ 
+ /* C++11 */
+ auto first = rtree.qbegin(index::nearest(pt, 5));
+ auto last = rtree.qend();
+ // ...
+ for ( ; first != last ; ++first )
+     *first; // do something with Value
+
+[endsect] [/ Experimental features /]

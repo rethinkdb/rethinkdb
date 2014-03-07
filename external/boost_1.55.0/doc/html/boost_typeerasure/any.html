@@ -1,0 +1,308 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Using Any</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../boost_typeerasure.html" title="Chapter&#160;34.&#160;Boost.TypeErasure">
+<link rel="prev" href="concept.html" title="Concepts in Depth">
+<link rel="next" href="examples.html" title="Examples">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="concept.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_typeerasure.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="examples.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_typeerasure.any"></a><a class="link" href="any.html" title="Using Any">Using Any</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="any.html#boost_typeerasure.any.construction">Construction</a></span></dt>
+<dt><span class="section"><a href="any.html#boost_typeerasure.any.conversions">Conversions</a></span></dt>
+<dt><span class="section"><a href="any.html#boost_typeerasure.any.references">References</a></span></dt>
+<dt><span class="section"><a href="any.html#boost_typeerasure.any.limit">Syntax Limitations</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_typeerasure.any.construction"></a><a class="link" href="any.html#boost_typeerasure.any.construction" title="Construction">Construction</a>
+</h3></div></div></div>
+<p>
+        (For the source of the examples in this section see <a href="../../../libs/type_erasure/example/construction.cpp" target="_top">construction.cpp</a>)
+      </p>
+<p>
+        The library provides the <code class="computeroutput"><a class="link" href="../boost/type_erasure/constructible.html" title="Struct template constructible">constructible</a></code>
+        concept to allow an <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code>
+        to capture constructors. The single template argument should be a function
+        signature. The return type must be a placeholder specifying the type to be
+        constructed. The arguments are the arguments of the constructor.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span>
+    <span class="identifier">copy_constructible</span><span class="special">&lt;</span><span class="identifier">_a</span><span class="special">&gt;,</span>
+    <span class="identifier">copy_constructible</span><span class="special">&lt;</span><span class="identifier">_b</span><span class="special">&gt;,</span>
+    <span class="identifier">copy_constructible</span><span class="special">&lt;</span><span class="identifier">_c</span><span class="special">&gt;,</span>
+    <span class="identifier">constructible</span><span class="special">&lt;</span><span class="identifier">_a</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">_b</span><span class="special">&amp;,</span> <span class="keyword">const</span> <span class="identifier">_c</span><span class="special">&amp;)&gt;</span>
+<span class="special">&gt;</span> <span class="identifier">construct</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span>
+    <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">_a</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="special">&gt;,</span>
+    <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">_b</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">&gt;,</span>
+    <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">_c</span><span class="special">,</span> <span class="keyword">double</span><span class="special">&gt;</span>
+<span class="special">&gt;</span> <span class="identifier">types</span><span class="special">;</span>
+
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">construct</span><span class="special">,</span> <span class="identifier">_b</span><span class="special">&gt;</span> <span class="identifier">size</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">(</span><span class="number">10</span><span class="special">),</span> <span class="identifier">make_binding</span><span class="special">&lt;</span><span class="identifier">types</span><span class="special">&gt;());</span>
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">construct</span><span class="special">,</span> <span class="identifier">_c</span><span class="special">&gt;</span> <span class="identifier">val</span><span class="special">(</span><span class="number">2.5</span><span class="special">,</span> <span class="identifier">make_binding</span><span class="special">&lt;</span><span class="identifier">types</span><span class="special">&gt;());</span>
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">construct</span><span class="special">,</span> <span class="identifier">_a</span><span class="special">&gt;</span> <span class="identifier">v</span><span class="special">(</span><span class="identifier">size</span><span class="special">,</span> <span class="identifier">val</span><span class="special">);</span>
+<span class="comment">// v holds std::vector&lt;double&gt;(10, 2.5);</span>
+</pre>
+<p>
+      </p>
+<p>
+        Now, suppose that we want a default constructor? We can't have the default
+        constructor of <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code>
+        call the default constructor of the contained type, because it would have
+        no way of knowing what the contained type is. So, we'll need to pass the
+        placeholder binding information explicitly.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span>
+    <span class="identifier">copy_constructible</span><span class="special">&lt;&gt;,</span>
+    <span class="identifier">constructible</span><span class="special">&lt;</span><span class="identifier">_self</span><span class="special">()&gt;</span>
+<span class="special">&gt;</span> <span class="identifier">construct</span><span class="special">;</span>
+
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">construct</span><span class="special">&gt;</span> <span class="identifier">x</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="string">"Test"</span><span class="special">));</span>
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">construct</span><span class="special">&gt;</span> <span class="identifier">y</span><span class="special">(</span><span class="identifier">binding_of</span><span class="special">(</span><span class="identifier">x</span><span class="special">));</span> <span class="comment">// y == ""</span>
+</pre>
+<p>
+      </p>
+<p>
+        This method is not restricted to the default constructor. If the constructor
+        takes arguments, they can be passed after the bindings.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span>
+    <span class="identifier">copy_constructible</span><span class="special">&lt;&gt;,</span>
+    <span class="identifier">constructible</span><span class="special">&lt;</span><span class="identifier">_self</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span><span class="special">,</span> <span class="keyword">char</span><span class="special">)&gt;</span>
+<span class="special">&gt;</span> <span class="identifier">construct</span><span class="special">;</span>
+
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">construct</span><span class="special">&gt;</span> <span class="identifier">x</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">(</span><span class="string">"Test"</span><span class="special">));</span>
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">construct</span><span class="special">&gt;</span> <span class="identifier">y</span><span class="special">(</span><span class="identifier">binding_of</span><span class="special">(</span><span class="identifier">x</span><span class="special">),</span> <span class="number">5</span><span class="special">,</span> <span class="char">'A'</span><span class="special">);</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_typeerasure.any.conversions"></a><a class="link" href="any.html#boost_typeerasure.any.conversions" title="Conversions">Conversions</a>
+</h3></div></div></div>
+<p>
+        (For the source of the examples in this section see <a href="../../../libs/type_erasure/example/convert.cpp" target="_top">convert.cpp</a>)
+      </p>
+<p>
+        An <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code> can be converted
+        to another <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code> as long
+        as the conversion is an "upcast."
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">any</span><span class="special">&lt;</span>
+    <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span>
+        <span class="identifier">copy_constructible</span><span class="special">&lt;&gt;,</span>
+        <span class="identifier">typeid_</span><span class="special">&lt;&gt;,</span>
+        <span class="identifier">ostreamable</span><span class="special">&lt;&gt;</span>
+    <span class="special">&gt;</span>
+<span class="special">&gt;</span> <span class="identifier">any_printable</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">any</span><span class="special">&lt;</span>
+    <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span>
+        <span class="identifier">copy_constructible</span><span class="special">&lt;&gt;,</span>
+        <span class="identifier">typeid_</span><span class="special">&lt;&gt;</span>
+    <span class="special">&gt;</span>
+<span class="special">&gt;</span> <span class="identifier">common_any</span><span class="special">;</span>
+<span class="identifier">any_printable</span> <span class="identifier">x</span><span class="special">(</span><span class="number">10</span><span class="special">);</span>
+<span class="identifier">common_any</span> <span class="identifier">y</span><span class="special">(</span><span class="identifier">x</span><span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        This conversion is okay because the requirements of <code class="computeroutput"><span class="identifier">common_any</span></code>
+        are a subset of the requirements of <code class="computeroutput"><span class="identifier">any_printable</span></code>.
+        Conversion in the other direction is illegal.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">common_any</span> <span class="identifier">x</span><span class="special">(</span><span class="number">10</span><span class="special">);</span>
+<span class="identifier">any_printable</span> <span class="identifier">y</span><span class="special">(</span><span class="identifier">x</span><span class="special">);</span> <span class="comment">// error</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_typeerasure.any.references"></a><a class="link" href="any.html#boost_typeerasure.any.references" title="References">References</a>
+</h3></div></div></div>
+<p>
+        (For the source of the examples in this section see <a href="../../../libs/type_erasure/example/references.cpp" target="_top">references.cpp</a>)
+      </p>
+<p>
+        To capture by reference, we simply add a reference to the <code class="computeroutput"><a class="link" href="../boost/type_erasure/placeholder.html" title="Struct placeholder">placeholder</a></code>.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span><span class="special">;</span>
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">typeid_</span><span class="special">&lt;&gt;,</span> <span class="identifier">_self</span><span class="special">&amp;&gt;</span> <span class="identifier">x</span><span class="special">(</span><span class="identifier">i</span><span class="special">);</span>
+<span class="identifier">any_cast</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&amp;&gt;(</span><span class="identifier">x</span><span class="special">)</span> <span class="special">=</span> <span class="number">5</span><span class="special">;</span> <span class="comment">// now i is 5</span>
+</pre>
+<p>
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          <code class="computeroutput"><span class="identifier">_self</span></code> is the default <code class="computeroutput"><a class="link" href="../boost/type_erasure/placeholder.html" title="Struct placeholder">placeholder</a></code>, so it is
+          easiest to use <code class="computeroutput"><span class="identifier">_self</span><span class="special">&amp;</span></code>.
+          We could use another <code class="computeroutput"><a class="link" href="../boost/type_erasure/placeholder.html" title="Struct placeholder">placeholder</a></code>
+          instead. <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code><code class="computeroutput"><span class="special">&lt;</span></code><code class="computeroutput"><a class="link" href="../boost/type_erasure/typeid_.html" title="Struct template typeid_">typeid_</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">_a</span><span class="special">&gt;,</span> <span class="identifier">_a</span><span class="special">&amp;&gt;</span></code> has exactly the same behavior.
+        </p></td></tr>
+</table></div>
+<p>
+        References cannot be rebound. Just like a built-in C++ reference, once you've
+        initialized it you can't change it to point to something else.
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span><span class="special">,</span> <span class="identifier">j</span><span class="special">;</span>
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">typeid_</span><span class="special">&lt;&gt;,</span> <span class="identifier">_self</span><span class="special">&amp;&gt;</span> <span class="identifier">x</span><span class="special">(</span><span class="identifier">i</span><span class="special">),</span> <span class="identifier">y</span><span class="special">(</span><span class="identifier">j</span><span class="special">);</span>
+<span class="identifier">x</span> <span class="special">=</span> <span class="identifier">y</span><span class="special">;</span> <span class="comment">// error</span>
+</pre>
+<p>
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          As with any other operation, <code class="computeroutput"><span class="identifier">x</span>
+          <span class="special">=</span> <span class="identifier">y</span></code>
+          for references acts on <code class="computeroutput"><span class="identifier">i</span></code>
+          and <code class="computeroutput"><span class="identifier">j</span></code>. Assignment like
+          this is legal if <code class="computeroutput"><a class="link" href="../boost/type_erasure/assignable.html" title="Struct template assignable">assignable</a></code><code class="computeroutput"><span class="special">&lt;&gt;</span></code> is in the Concept, but <code class="computeroutput"><span class="identifier">x</span></code> would still hold a reference to <code class="computeroutput"><span class="identifier">i</span></code>.
+        </p></td></tr>
+</table></div>
+<p>
+        A reference can be bound to another <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code>.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span>
+    <span class="identifier">copy_constructible</span><span class="special">&lt;&gt;,</span>
+    <span class="identifier">incrementable</span><span class="special">&lt;&gt;</span>
+<span class="special">&gt;</span> <span class="identifier">requirements</span><span class="special">;</span>
+
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">requirements</span><span class="special">&gt;</span> <span class="identifier">x</span><span class="special">(</span><span class="number">10</span><span class="special">);</span>
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">requirements</span><span class="special">,</span> <span class="identifier">_self</span><span class="special">&amp;&gt;</span> <span class="identifier">y</span><span class="special">(</span><span class="identifier">x</span><span class="special">);</span>
+<span class="special">++</span><span class="identifier">y</span><span class="special">;</span> <span class="comment">// x is now 11</span>
+</pre>
+<p>
+      </p>
+<p>
+        If a reference is used after the underlying object goes out of scope or is
+        reset, the behavior is undefined.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span>
+    <span class="identifier">copy_constructible</span><span class="special">&lt;&gt;,</span>
+    <span class="identifier">incrementable</span><span class="special">&lt;&gt;,</span>
+    <span class="identifier">relaxed</span>
+<span class="special">&gt;</span> <span class="identifier">requirements</span><span class="special">;</span>
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">requirements</span><span class="special">&gt;</span> <span class="identifier">x</span><span class="special">(</span><span class="number">10</span><span class="special">);</span>
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">requirements</span><span class="special">,</span> <span class="identifier">_self</span><span class="special">&amp;&gt;</span> <span class="identifier">y</span><span class="special">(</span><span class="identifier">x</span><span class="special">);</span>
+<span class="identifier">x</span> <span class="special">=</span> <span class="number">1.0</span><span class="special">;</span>
+<span class="special">++</span><span class="identifier">y</span><span class="special">;</span> <span class="comment">// undefined behavior.</span>
+</pre>
+<p>
+      </p>
+<p>
+        This only applies when a reference is constructed from a value. If a reference
+        is constructed from another reference, the new reference does not depend
+        on the old one.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">requirements</span><span class="special">&gt;</span> <span class="identifier">x</span><span class="special">(</span><span class="number">10</span><span class="special">);</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">shared_ptr</span><span class="special">&lt;</span><span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">requirements</span><span class="special">,</span> <span class="identifier">_self</span><span class="special">&amp;&gt;</span> <span class="special">&gt;</span> <span class="identifier">p</span><span class="special">(</span>
+    <span class="keyword">new</span> <span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">requirements</span><span class="special">,</span> <span class="identifier">_self</span><span class="special">&amp;&gt;(</span><span class="identifier">x</span><span class="special">));</span>
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">requirements</span><span class="special">,</span> <span class="identifier">_self</span><span class="special">&amp;&gt;</span> <span class="identifier">y</span><span class="special">(*</span><span class="identifier">p</span><span class="special">);</span> <span class="comment">// equivalent to y(x);</span>
+<span class="identifier">p</span><span class="special">.</span><span class="identifier">reset</span><span class="special">();</span>
+<span class="special">++</span><span class="identifier">y</span><span class="special">;</span> <span class="comment">// okay</span>
+</pre>
+<p>
+      </p>
+<p>
+        Both const and non-const references are supported.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">incrementable</span><span class="special">&lt;&gt;,</span> <span class="identifier">_self</span><span class="special">&amp;&gt;</span> <span class="identifier">x</span><span class="special">(</span><span class="identifier">i</span><span class="special">);</span>
+<span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">incrementable</span><span class="special">&lt;&gt;,</span> <span class="keyword">const</span> <span class="identifier">_self</span><span class="special">&amp;&gt;</span> <span class="identifier">y</span><span class="special">(</span><span class="identifier">x</span><span class="special">);</span>
+</pre>
+<p>
+      </p>
+<p>
+        A reference to non-const can be converted to a reference to const, but not
+        the other way around. Naturally, we can't apply mutating operations to a
+        const reference.
+      </p>
+<pre class="programlisting"><span class="identifier">any</span><span class="special">&lt;</span><span class="identifier">incrementable</span><span class="special">&lt;&gt;,</span> <span class="identifier">_self</span><span class="special">&amp;&gt;</span> <span class="identifier">z</span><span class="special">(</span><span class="identifier">y</span><span class="special">);</span> <span class="comment">// error</span>
+<span class="special">++</span><span class="identifier">y</span><span class="special">;</span> <span class="comment">// error</span>
+</pre>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_typeerasure.any.limit"></a><a class="link" href="any.html#boost_typeerasure.any.limit" title="Syntax Limitations">Syntax Limitations</a>
+</h3></div></div></div>
+<p>
+        In most cases using an any has the same syntax as using the underlying object.
+        However, there are a few cases where this is not possible to implement. An
+        <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code> reference is proxy
+        and cannot be used in contexts where a real reference is required. In particular,
+        <code class="computeroutput"><a class="link" href="../boost/type_erasure/forward_iterator.html" title="Struct template forward_iterator">forward_iterator</a></code>
+        does not create a conforming ForwardIterator (unless the value_type is fixed.)
+        Another difference is that all operations which do not take at least one
+        <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code> argument have to
+        be passed the type information explicitly. Static member functions and constructors
+        can fall in this category. All this means that generic algorithms might not
+        work when applied to <code class="computeroutput"><a class="link" href="../boost/type_erasure/any.html" title="Class template any">any</a></code>
+        arguments.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Steven Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="concept.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost_typeerasure.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="examples.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<section last-revision="$Date: 2013-06-20 14:18:17 -0700 (Thu, 20 Jun 2013) $">
+
+<title>Introduction</title>
+
+<note>
+<para><emphasis role="bold">Boost.Signals is no longer being actively maintained.</emphasis>
+Do not use Boost.Signals for new development (use 
+<link linkend="signals2">Boost.Signals2</link>
+instead). If you have existing Boost.Signals-based code, it will
+continue to work, but consider moving to Boost.Signals2. There is
+<link linkend="signals2.porting">
+a porting guide</link> in the Signals2 documentation.</para>
+</note>
+
+<para>The Boost.Signals library is an implementation of a managed
+signals and slots system. Signals represent callbacks with multiple
+targets, and are also called publishers or events in similar
+systems. Signals are connected to some set of slots, which are
+callback receivers (also called event targets or subscribers), which
+are called when the signal is "emitted."</para>
+
+<para>Signals and slots are managed, in that signals and slots (or,
+more properly, objects that occur as part of the slots) track all
+connections and are capable of automatically disconnecting signal/slot
+connections when either is destroyed. This enables the user to make
+signal/slot connections without expending a great effort to manage the
+lifetimes of those connections with regard to the lifetimes of all
+objects involved.</para>
+
+<para>When signals are connected to multiple slots, there is a
+question regarding the relationship between the return values of the
+slots and the return value of the signals. Boost.Signals allows the
+user to specify the manner in which multiple return values are
+combined.</para>
+
+</section>

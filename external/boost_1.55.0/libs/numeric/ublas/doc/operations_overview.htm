@@ -1,0 +1,261 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="generator" content=
+"HTML Tidy for Linux/x86 (vers 1st March 2004), see www.w3.org" />
+<meta name="GENERATOR" content="Quanta Plus" />
+<meta http-equiv="Content-Type" content=
+"text/html; charset=us-ascii" />
+<link rel="stylesheet" href="../../../../boost.css" type="text/css"/>
+<link rel="stylesheet" href="ublas.css" type="text/css" />
+<script type="text/javascript" src="js/jquery-1.3.2.min.js" async="async" ></script>
+<script type="text/javascript" src="js/jquery.toc-gw.js" async="async" ></script>
+<title>uBLAS operations overview</title>
+</head>
+<body>
+<h1><img src="../../../../boost.png" align="middle" />Overview of Matrix and Vector Operations</h1>
+<div class="toc" id="toc"></div>
+
+<dl>
+<dt>Contents:</dt>
+<dd><a href="#blas">Basic Linear Algebra</a></dd>
+<dd><a href="#advanced">Advanced Functions</a></dd>
+<dd><a href="#sub">Submatrices, Subvectors</a></dd>
+<dd><a href="#speed">Speed Improvements</a></dd>
+</dl>
+
+<h2>Definitions</h2>
+
+<table style="" summary="notation">
+<tr><td><code>A, B, C</code></td>
+<td> are matrices</td></tr>
+<tr><td><code>u, v, w</code></td> 
+<td>are vectors</td></tr>
+<tr><td><code>i, j, k</code></td> 
+<td>are integer values</td></tr>
+<tr><td><code>t, t1, t2</code></td> 
+<td>are scalar values</td></tr>
+<tr><td><code>r, r1, r2</code></td> 
+<td>are <a href="range.htm">ranges</a>, e.g. <code>range(0, 3)</code></td></tr>
+<tr><td><code>s, s1, s2</code></td> 
+<td>are <a href="range.htm#slice">slices</a>, e.g. <code>slice(0, 1, 3)</code></td></tr>
+</table>
+
+<h2><a name="blas">Basic Linear Algebra</a></h2>
+
+<h3>standard operations: addition, subtraction, multiplication by a
+scalar</h3>
+
+<pre><code>
+C = A + B; C = A - B; C = -A;
+w = u + v; w = u - v; w = -u;
+C = t * A; C = A * t; C = A / t;
+w = t * u; w = u * t; w = u / t;
+</code></pre>
+
+<h3>computed assignments</h3>
+
+<pre><code>
+C += A; C -= A; 
+w += u; w -= u; 
+C *= t; C /= t; 
+w *= t; w /= t;
+</code></pre>
+
+<h3>inner, outer and other products</h3>
+
+<pre><code>
+t = inner_prod(u, v);
+C = outer_prod(u, v);
+w = prod(A, u); w = prod(u, A); w = prec_prod(A, u); w = prec_prod(u, A);
+C = prod(A, B); C = prec_prod(A, B);
+w = element_prod(u, v); w = element_div(u, v);
+C = element_prod(A, B); C = element_div(A, B);
+</code></pre>
+
+<h3>transformations</h3>
+
+<pre><code>
+w = conj(u); w = real(u); w = imag(u);
+C = trans(A); C = conj(A); C = herm(A); C = real(A); C = imag(A);
+</code></pre>
+
+<h2><a name="advanced">Advanced functions</a></h2>
+
+<h3>norms</h3>
+
+<pre><code>
+t = norm_inf(v); i = index_norm_inf(v);
+t = norm_1(v);   t = norm_2(v); 
+t = norm_inf(A); i = index_norm_inf(A);
+t = norm_1(A);   t = norm_frobenius(A); 
+</code></pre>
+
+<h3>products</h3>
+
+<pre><code>
+axpy_prod(A, u, w, true);  // w = A * u
+axpy_prod(A, u, w, false); // w += A * u
+axpy_prod(u, A, w, true);  // w = trans(A) * u
+axpy_prod(u, A, w, false); // w += trans(A) * u
+axpy_prod(A, B, C, true);  // C = A * B
+axpy_prod(A, B, C, false); // C += A * B
+</code></pre>
+<p><em>Note:</em> The last argument (<code>bool init</code>) of
+<code>axpy_prod</code> is optional. Currently it defaults to
+<code>true</code>, but this may change in the future. Setting the
+<code>init</code> to <code>true</code> is equivalent to calling
+<code>w.clear()</code> before <code>axpy_prod</code>. 
+There are some specialisation for products of compressed matrices that give a
+large speed up compared to <code>prod</code>.</p>
+<pre><code>
+w = block_prod&lt;matrix_type, 64&gt; (A, u); // w = A * u
+w = block_prod&lt;matrix_type, 64&gt; (u, A); // w = trans(A) * u
+C = block_prod&lt;matrix_type, 64&gt; (A, B); // C = A * B
+</code></pre>
+<p><em>Note:</em> The blocksize can be any integer. However, the
+actual speed depends very significantly on the combination of blocksize,
+CPU and compiler. The function <code>block_prod</code> is designed
+for large dense matrices.</p>
+<h3>rank-k updates</h3>
+<pre><code>
+opb_prod(A, B, C, true);  // C = A * B
+opb_prod(A, B, C, false); // C += A * B
+</code></pre>
+<p><em>Note:</em> The last argument (<code>bool init</code>) of
+<code>opb_prod</code> is optional. Currently it defaults to
+<code>true</code>, but this may change in the future. This function
+may give a speedup if <code>A</code> has less columns than rows,
+because the product is computed as a sum of outer products.</p>
+
+<h2><a name="sub">Submatrices, Subvectors</a></h2>
+<p>Accessing submatrices and subvectors via <b>proxies</b> using <code>project</code> functions:</p>
+<pre><code>
+w = project(u, r);         // the subvector of u specifed by the index range r
+w = project(u, s);         // the subvector of u specifed by the index slice s
+C = project(A, r1, r2);    // the submatrix of A specified by the two index ranges r1 and r2
+C = project(A, s1, s2);    // the submatrix of A specified by the two index slices s1 and s2
+w = row(A, i); w = column(A, j);    // a row or column of matrix as a vector
+</code></pre>
+<p>Assigning to submatrices and subvectors via <b>proxies</b> using <code>project</code> functions:</p>
+<pre><code>
+project(u, r) = w;         // assign the subvector of u specifed by the index range r
+project(u, s) = w;         // assign the subvector of u specifed by the index slice s
+project(A, r1, r2) = C;    // assign the submatrix of A specified by the two index ranges r1 and r2
+project(A, s1, s2) = C;    // assign the submatrix of A specified by the two index slices s1 and s2
+row(A, i) = w; column(A, j) = w;    // a row or column of matrix as a vector
+</code></pre>
+<p><em>Note:</em> A range <code>r = range(start, stop)</code>
+contains all indices <code>i</code> with <code>start &lt;= i &lt;
+stop</code>. A slice is something more general. The slice
+<code>s = slice(start, stride, size)</code> contains the indices
+<code>start, start+stride, ..., start+(size-1)*stride</code>. The
+stride can be 0 or negative! If <code>start >= stop</code> for a range
+or <code>size == 0</code> for a slice then it contains no elements.</p>
+<p>Sub-ranges and sub-slices of vectors and matrices can be created directly with the <code>subrange</code> and <code>sublice</code> functions:</p>
+<pre><code>
+w = subrange(u, 0, 2);         // the 2 element subvector of u
+w = subslice(u, 0, 1, 2);      // the 2 element subvector of u
+C = subrange(A, 0,2, 0,3);     // the 2x3 element submatrix of A
+C = subslice(A, 0,1,2, 0,1,3); // the 2x3 element submatrix of A
+subrange(u, 0, 2) = w;         // assign the 2 element subvector of u
+subslice(u, 0, 1, 2) = w;      // assign the 2 element subvector of u
+subrange(A, 0,2, 0,3) = C;     // assign the 2x3 element submatrix of A
+subrange(A, 0,1,2, 0,1,3) = C; // assigne the 2x3 element submatrix of A
+</code></pre>
+<p>There are to more ways to access some matrix elements as a
+vector:</p>
+<pre><code>matrix_vector_range&lt;matrix_type&gt; (A, r1, r2);
+matrix_vector_slice&lt;matrix_type&gt; (A, s1, s2);
+</code></pre>
+<p><em>Note:</em> These matrix proxies take a sequence of elements
+of a matrix and allow you to access these as a vector. In
+particular <code>matrix_vector_slice</code> can do this in a very
+general way. <code>matrix_vector_range</code> is less useful as the
+elements must lie along a diagonal.</p>
+<p><em>Example:</em> To access the first two elements of a sub
+column of a matrix we access the row with a slice with stride 1 and
+the column with a slice with stride 0 thus:<br />
+<code>matrix_vector_slice&lt;matrix_type&gt; (A, slice(0,1,2),
+slice(0,0,2));
+</code></p>
+
+<h2><a name="speed">Speed improvements</a></h2>
+<h3><a name='noalias'>Matrix / Vector assignment</a></h3>
+<p>If you know for sure that the left hand expression and the right
+hand expression have no common storage, then assignment has
+no <em>aliasing</em>. A more efficient assignment can be specified
+in this case:</p>
+<pre><code>noalias(C) = prod(A, B);
+</code></pre>
+<p>This avoids the creation of a temporary matrix that is required in a normal assignment.
+'noalias' assignment requires that the left and right hand side be size conformant.</p>
+
+<h3>Sparse element access</h3>
+<p>The matrix element access function <code>A(i1,i2)</code> or the equivalent vector
+element access functions (<code>v(i) or v[i]</code>) usually create 'sparse element proxies'
+when applied to a sparse matrix or vector. These <em>proxies</em> allow access to elements
+without having to worry about nasty C++ issues where references are invalidated.</p>
+<p>These 'sparse element proxies' can be implemented more efficiently when applied to <code>const</code>
+objects.
+Sadly in C++ there is no way to distinguish between an element access on the left and right hand side of
+an assignment. Most often elements on the right hand side will not be changed and therefore it would
+be better to use the <code>const</code> proxies. We can do this by making the matrix or vector
+<code>const</code> before accessing it's elements. For example:</p>
+<pre><code>value = const_cast&lt;const VEC&gt;(v)[i];   // VEC is the type of V
+</code></pre>
+<p>If more then one element needs to be accessed <code>const_iterator</code>'s should be used
+in preference to <code>iterator</code>'s for the same reason. For the more daring 'sparse element proxies'
+can be completely turned off in uBLAS by defining the configuration macro <code>BOOST_UBLAS_NO_ELEMENT_PROXIES</code>.
+</p>
+
+
+<h3>Controlling the complexity of nested products</h3>
+
+<p>What is the  complexity (the number of add and multiply operations) required to compute the following?
+</p>
+<pre>
+ R = prod(A, prod(B,C)); 
+</pre>
+<p>Firstly the complexity depends on matrix size. Also since prod is transitive (not commutative)
+the bracket order affects the complexity.
+</p>
+<p>uBLAS evaluates expressions without matrix or vector temporaries and honours
+the bracketing structure. However avoiding temporaries for nested product unnecessarly increases the complexity.
+Conversly by explictly using temporary matrices the complexity of a nested product can be reduced.
+</p>
+<p>uBLAS provides 3 alternative syntaxes for this purpose:
+</p>
+<pre>
+ temp_type T = prod(B,C); R = prod(A,T);   // Preferable if T is preallocated
+</pre>
+<pre>
+ prod(A, temp_type(prod(B,C));
+</pre>
+<pre>
+ prod(A, prod&lt;temp_type&gt;(B,C));
+</pre>
+<p>The 'temp_type' is important. Given A,B,C are all of the same type. Say
+matrix&lt;float&gt;, the choice is easy. However if the value_type is mixed (int with float or double)
+or the matrix type is mixed (sparse with symmetric) the best solution is not so obvious. It is up to you! It
+depends on numerical properties of A and the result of the prod(B,C).
+</p>
+
+<hr />
+<p>Copyright (&copy;) 2000-2007 Joerg Walter, Mathias Koch, Gunter
+Winkler, Michael Stevens<br />
+   Use, modification and distribution are subject to the
+   Boost Software License, Version 1.0.
+   (See accompanying file LICENSE_1_0.txt
+   or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+      http://www.boost.org/LICENSE_1_0.txt
+   </a>).
+</p>
+<script type="text/javascript">
+(function($) {
+    $('#toc').toc();
+})(jQuery);
+</script>
+</body>
+</html>

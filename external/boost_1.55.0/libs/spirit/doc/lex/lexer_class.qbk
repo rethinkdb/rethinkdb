@@ -1,0 +1,19 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:lexer Lexer Class]
+
+[heading The lexertl::lexer Class Implementing the Dynamic Model]
+
+[heading The lexertl::actor_lexer Class Implementing the Dynamic Model]
+
+[heading The lexertl::static_lexer Class Implementing the Static Model]
+
+[heading The lexertl::static_actor_lexer Class Implementing the Static Model]
+
+[endsect]

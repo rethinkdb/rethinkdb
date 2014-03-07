@@ -1,0 +1,7 @@
+[article Templates 1.5
+[quickbook 1.5]
+]
+
+[include templates-inc1.quickbook]
+
+[foo]

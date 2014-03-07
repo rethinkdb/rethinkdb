@@ -1,0 +1,191 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<!-- Copyright David Abrahams 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<html>
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Cygwin (vers 1st April 2002), see www.w3.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+    <link rel="stylesheet" type="text/css" href="../boost.css">
+
+    <title>Boost.Python - &lt;boost/python/def.hpp&gt;</title>
+  </head>
+
+  <body>
+    <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+    "header">
+      <tr>
+        <td valign="top" width="300">
+          <h3><a href="../../../../index.htm"><img height="86" width="277"
+          alt="C++ Boost" src="../../../../boost.png" border="0"></a></h3>
+        </td>
+
+        <td valign="top">
+          <h1 align="center"><a href="../index.html">Boost.Python</a></h1>
+
+          <h2 align="center">Header &lt;boost/python/def.hpp&gt;</h2>
+        </td>
+      </tr>
+    </table>
+    <hr>
+
+    <h2>Contents</h2>
+
+    <dl class="page-index">
+      <dt><a href="#introduction">Introduction</a></dt>
+
+      <dt><a href="#functions">Functions</a></dt>
+
+      <dd>
+        <dl class="page-index">
+          <dt><a href="#def-spec">def</a></dt>
+        </dl>
+      </dd>
+
+      <dt><a href="#examples">Example</a></dt>
+    </dl>
+    <hr>
+
+    <h2><a name="introduction"></a>Introduction</h2>
+
+    <p><code><a href="#def-spec">def</a>()</code> is the function which can
+    be used to expose C++ functions and callable objects as Python functions
+    in the current <code><a href="scope.html">scope</a></code>.</p>
+
+    <h2><a name="functions"></a>Functions</h2>
+    <a name="def-spec"></a>def 
+<pre>
+template &lt;class F&gt;
+void def(char const* name, F f);
+
+template &lt;class Fn, class A1&gt;
+void def(char const* name, Fn fn, A1 const&amp;);
+
+template &lt;class Fn, class A1, class A2&gt;
+void def(char const* name, Fn fn, A1 const&amp;, A2 const&amp;);
+
+template &lt;class Fn, class A1, class A2, class A3&gt;
+void def(char const* name, Fn fn, A1 const&amp;, A2 const&amp;, A3 const&amp;);
+</pre>
+
+    <dl class="function-semantics">
+      <dt><b>Requires:</b> <code>name</code> is an <a href=
+      "definitions.html#ntbs">ntbs</a> which conforms to Python's <a href=
+      "http://www.python.org/doc/current/ref/identifiers.html">identifier
+      naming rules</a>.</dt>
+
+      <dd>
+        <ul>
+          <li>If <code>Fn</code> is [derived from] <code><a href=
+          "object.html#object-spec">object</a></code>, it will be added to
+          the current scope as a single overload. To be useful,
+          <code>fn</code> should be <a href=
+          "http://www.python.org/doc/current/lib/built-in-funcs.html#l2h-6">callable</a>.</li>
+
+          <li>
+            If <code>a1</code> is the result of an <a href=
+            "overloads.html#overload-dispatch-expression"><em>overload-dispatch-expression</em></a>,
+            only the second form is allowed and fn must be a pointer to
+            function or pointer to member function whose <a href=
+            "definitions.html#arity">arity</a> is the same as A1's <a href=
+            "overloads.html#overload-dispatch-expression"><em>maximum
+            arity</em></a>. 
+
+            <dl>
+              <dt><b>Effects:</b> For each prefix <em>P</em> of
+              <code>Fn</code>'s sequence of argument types, beginning with
+              the one whose length is <code>A1</code>'s <a href=
+              "overloads.html#overload-dispatch-expression"><em>minimum
+              arity</em></a>, adds a
+              <code><em>name</em>(</code>...<code>)</code> function overload
+              to the <a href="scope.html">current scope</a>. Each overload
+              generated invokes <code>a1</code>'s call-expression with
+              <em>P</em>, using a copy of <code>a1</code>'s <a href=
+              "CallPolicies.html">call policies</a>. If the longest valid
+              prefix of <code>A1</code> contains <em>N</em> types and
+              <code>a1</code> holds <em>M</em> keywords, an initial sequence
+              of the keywords are used for all but the first
+              <em>N</em>&nbsp;-&nbsp;<em>M</em> arguments of each
+              overload.<br>
+              </dt>
+            </dl>
+          </li>
+
+          <li>Otherwise, fn must be a non-null function or member function
+          pointer, and a single function overload built around fn is added to
+          the <a href="scope.html">current scope</a>. If any of
+          <code>a1</code>-<code>a3</code> are supplied, they may be selected
+          in any order from the table below.</li>
+        </ul>
+
+        <table border="1" summary="def() optional arguments">
+          <tr>
+            <th>Memnonic Name</th>
+
+            <th>Requirements/Type properties</th>
+
+            <th>Effects</th>
+          </tr>
+
+          <tr>
+            <td>docstring</td>
+
+            <td>Any <a href="definitions.html#ntbs">ntbs</a>.</td>
+
+            <td>Value will be bound to the <code>__doc__</code> attribute of
+            the resulting method overload.</td>
+          </tr>
+
+          <tr>
+            <td>policies</td>
+
+            <td>A model of <a href="CallPolicies.html">CallPolicies</a></td>
+
+            <td>A copy will be used as the call policies of the resulting
+            method overload.</td>
+          </tr>
+
+          <tr>
+            <td>keywords</td>
+
+            <td>The result of a <a href=
+            "args.html#keyword-expression"><em>keyword-expression</em></a>
+            specifying no more arguments than the <a href=
+            "definitions.html#arity">arity</a> of <code>fn</code>.</td>
+
+            <td>A copy will be used as the call policies of the resulting
+            method overload.</td>
+          </tr>
+        </table>
+      </dd>
+    </dl>
+
+    <h2><a name="examples"></a>Example</h2>
+<pre>
+#include &lt;boost/python/def.hpp&gt;
+#include &lt;boost/python/module.hpp&gt;
+#include &lt;boost/python/args.hpp&gt;
+
+using namespace boost::python;
+
+char const* foo(int x, int y) { return "foo"; }
+
+BOOST_PYTHON_MODULE(def_test)
+{
+    def("foo", foo, args("x", "y"), "foo's docstring");
+}
+</pre>
+
+    <p>
+    <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan -->
+     7 March, 2003
+    <!--webbot bot="Timestamp" endspan i-checksum="39359" -->
+    </p>
+
+    <p><i>&copy; Copyright <a href=
+    "http://www.boost.org/people/dave_abrahams.htm">Dave Abrahams</a> 2002.</i></p>
+  </body>
+</html>
+

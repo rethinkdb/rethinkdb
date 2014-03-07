@@ -1,0 +1,174 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>cpp_dec_float</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../floats.html" title="Floating Point Numbers">
+<link rel="prev" href="../floats.html" title="Floating Point Numbers">
+<link rel="next" href="gmp_float.html" title="gmp_float">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../floats.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../floats.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="gmp_float.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_multiprecision.tut.floats.cpp_dec_float"></a><a class="link" href="cpp_dec_float.html" title="cpp_dec_float">cpp_dec_float</a>
+</h4></div></div></div>
+<p>
+          <code class="computeroutput"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">cpp_dec_float</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">multiprecision</span><span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">unsigned</span> <span class="identifier">Digits10</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">ExponentType</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">int32_t</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Allocator</span> <span class="special">=</span> <span class="keyword">void</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">cpp_dec_float</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_dec_float</span><span class="special">&lt;</span><span class="number">50</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">cpp_dec_float_50</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_dec_float</span><span class="special">&lt;</span><span class="number">100</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">cpp_dec_float_100</span><span class="special">;</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<p>
+          The <code class="computeroutput"><span class="identifier">cpp_dec_float</span></code> back-end
+          is used in conjunction with <code class="computeroutput"><span class="identifier">number</span></code>:
+          It acts as an entirely C++ (header only and dependency free) floating-point
+          number type that is a drop-in replacement for the native C++ floating-point
+          types, but with much greater precision.
+        </p>
+<p>
+          Type <code class="computeroutput"><span class="identifier">cpp_dec_float</span></code> can
+          be used at fixed precision by specifying a non-zero <code class="computeroutput"><span class="identifier">Digits10</span></code>
+          template parameter. The typedefs <code class="computeroutput"><span class="identifier">cpp_dec_float_50</span></code>
+          and <code class="computeroutput"><span class="identifier">cpp_dec_float_100</span></code> provide
+          arithmetic types at 50 and 100 decimal digits precision respectively. Optionally,
+          you can specify an integer type to use for the exponent, this defaults
+          to a 32-bit integer type which is more than large enough for the vast majority
+          of use cases, but larger types such as <code class="computeroutput"><span class="keyword">long</span>
+          <span class="keyword">long</span></code> can also be specified if you
+          need a truly huge exponent range. In any case the ExponentType must be
+          a built in signed integer type at least 2 bytes and 16-bits wide.
+        </p>
+<p>
+          Normally <code class="computeroutput"><span class="identifier">cpp_dec_float</span></code>
+          allocates no memory: all of the space required for its digits are allocated
+          directly within the class. As a result care should be taken not to use
+          the class with too high a digit count as stack space requirements can grow
+          out of control. If that represents a problem then providing an allocator
+          as the final template parameter causes <code class="computeroutput"><span class="identifier">cpp_dec_float</span></code>
+          to dynamically allocate the memory it needs: this significantly reduces
+          the size of <code class="computeroutput"><span class="identifier">cpp_dec_float</span></code>
+          and increases the viable upper limit on the number of digits at the expense
+          of performance. However, please bear in mind that arithmetic operations
+          rapidly become <span class="emphasis"><em>very</em></span> expensive as the digit count grows:
+          the current implementation really isn't optimized or designed for large
+          digit counts.
+        </p>
+<p>
+          There is full standard library and <code class="computeroutput"><span class="identifier">numeric_limits</span></code>
+          support available for this type.
+        </p>
+<p>
+          Things you should know when using this type:
+        </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+              Default constructed <code class="computeroutput"><span class="identifier">cpp_dec_float</span></code>s
+              have a value of zero.
+            </li>
+<li class="listitem">
+              The radix of this type is 10. As a result it can behave subtly differently
+              from base-2 types.
+            </li>
+<li class="listitem">
+              The type has a number of internal guard digits over and above those
+              specified in the template argument. Normally these should not be visible
+              to the user.
+            </li>
+<li class="listitem">
+              The type supports both infinities and NaN's. An infinity is generated
+              whenever the result would overflow, and a NaN is generated for any
+              mathematically undefined operation.
+            </li>
+<li class="listitem">
+              There is a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span></code> specialisation for
+              this type.
+            </li>
+<li class="listitem">
+              Any <code class="computeroutput"><span class="identifier">number</span></code> instantiated
+              on this type, is convertible to any other <code class="computeroutput"><span class="identifier">number</span></code>
+              instantiated on this type - for example you can convert from <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_dec_float</span><span class="special">&lt;</span><span class="number">50</span><span class="special">&gt;</span> <span class="special">&gt;</span></code> to <code class="computeroutput"><span class="identifier">number</span><span class="special">&lt;</span><span class="identifier">cpp_dec_float</span><span class="special">&lt;</span><span class="identifier">SomeOtherValue</span><span class="special">&gt;</span> <span class="special">&gt;</span></code>.
+              Narrowing conversions are truncating and <code class="computeroutput"><span class="keyword">explicit</span></code>.
+            </li>
+<li class="listitem">
+              Conversion from a string results in a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">runtime_error</span></code>
+              being thrown if the string can not be interpreted as a valid floating
+              point number.
+            </li>
+<li class="listitem">
+              The actual precision of a <code class="computeroutput"><span class="identifier">cpp_dec_float</span></code>
+              is always slightly higher than the number of digits specified in the
+              template parameter, actually how much higher is an implementation detail
+              but is always at least 8 decimal digits.
+            </li>
+<li class="listitem">
+              Operations involving <code class="computeroutput"><span class="identifier">cpp_dec_float</span></code>
+              are always truncating. However, note that since their are guard digits
+              in effect, in practice this has no real impact on accuracy for most
+              use cases.
+            </li>
+</ul></div>
+<h6>
+<a name="boost_multiprecision.tut.floats.cpp_dec_float.h0"></a>
+          <span class="phrase"><a name="boost_multiprecision.tut.floats.cpp_dec_float.cpp_dec_float_example_"></a></span><a class="link" href="cpp_dec_float.html#boost_multiprecision.tut.floats.cpp_dec_float.cpp_dec_float_example_">cpp_dec_float
+          example:</a>
+        </h6>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">multiprecision</span><span class="special">/</span><span class="identifier">cpp_dec_float</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">multiprecision</span><span class="special">;</span>
+
+<span class="comment">// Operations at fixed precision and full numeric_limits support:</span>
+<span class="identifier">cpp_dec_float_100</span> <span class="identifier">b</span> <span class="special">=</span> <span class="number">2</span><span class="special">;</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">cpp_dec_float_100</span><span class="special">&gt;::</span><span class="identifier">digits</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="comment">// Note that digits10 is the same as digits, since we're base 10! :</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">cpp_dec_float_100</span><span class="special">&gt;::</span><span class="identifier">digits10</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="comment">// We can use any C++ std lib function, lets print all the digits as well:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setprecision</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">cpp_dec_float_100</span><span class="special">&gt;::</span><span class="identifier">max_digits10</span><span class="special">)</span>
+   <span class="special">&lt;&lt;</span> <span class="identifier">log</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="comment">// print log(2)</span>
+<span class="comment">// We can also use any function from Boost.Math:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">b</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="comment">// These even work when the argument is an expression template:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">b</span> <span class="special">*</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="comment">// And since we have an extended exponent range we can generate some really large </span>
+<span class="comment">// numbers here (4.0238726007709377354370243e+2564):</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">tgamma</span><span class="special">(</span><span class="identifier">cpp_dec_float_100</span><span class="special">(</span><span class="number">1000</span><span class="special">))</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../floats.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../floats.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="gmp_float.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

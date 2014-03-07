@@ -1,0 +1,92 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template insert_iterator</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../../header/boost/icl/iterator_hpp.html" title="Header &lt;boost/icl/iterator.hpp&gt;">
+<link rel="prev" href="add_iterator.html" title="Class template add_iterator">
+<link rel="next" href="adder.html" title="Function template adder">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="add_iterator.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../header/boost/icl/iterator_hpp.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="adder.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry" lang="en">
+<a name="boost.icl.insert_iterator"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template insert_iterator</span></h2>
+<p>boost::icl::insert_iterator &#8212; Performes an insertion using a container's memberfunction add, when operator= is called. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../header/boost/icl/iterator_hpp.html" title="Header &lt;boost/icl/iterator.hpp&gt;">boost/icl/iterator.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> ContainerT<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="insert_iterator.html" title="Class template insert_iterator">insert_iterator</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">ContainerT</span>               <a name="boost.icl.insert_iterator.container_type"></a><span class="identifier">container_type</span><span class="special">;</span>     <span class="comment">// The container's type. </span>
+  <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">output_iterator_tag</span> <a name="boost.icl.insert_iterator.iterator_category"></a><span class="identifier">iterator_category</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="insert_iterator.html#boost.icl.insert_iteratorconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="insert_iterator.html#id671837-bb"><span class="identifier">insert_iterator</span></a><span class="special">(</span><span class="identifier">ContainerT</span> <span class="special">&amp;</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">ContainerT</span><span class="special">::</span><span class="identifier">iterator</span><span class="special">)</span><span class="special">;</span>
+  insert_iterator&amp; <a class="link" href="insert_iterator.html#id671856-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">ContainerT</span><span class="special">::</span><span class="identifier">const_reference</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="insert_iterator.html#id671805-bb">public member functions</a></span>
+  <a class="link" href="insert_iterator.html" title="Class template insert_iterator">insert_iterator</a> <span class="special">&amp;</span> <a class="link" href="insert_iterator.html#id671807-bb"><span class="keyword">operator</span><span class="special">*</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="insert_iterator.html" title="Class template insert_iterator">insert_iterator</a> <span class="special">&amp;</span> <a class="link" href="insert_iterator.html#id671815-bb"><span class="keyword">operator</span><span class="special">++</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="insert_iterator.html" title="Class template insert_iterator">insert_iterator</a> <span class="special">&amp;</span> <a class="link" href="insert_iterator.html#id671824-bb"><span class="keyword">operator</span><span class="special">++</span></a><span class="special">(</span><span class="keyword">int</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1" lang="en">
+<a name="id1267376"></a><h2>Description</h2>
+<div class="refsect2" lang="en">
+<a name="id1267379"></a><h3>
+<a name="boost.icl.insert_iteratorconstruct-copy-destruct"></a><code class="computeroutput">insert_iterator</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol type="1">
+<li>
+<pre class="literallayout"><a name="id671837-bb"></a><span class="identifier">insert_iterator</span><span class="special">(</span><span class="identifier">ContainerT</span> <span class="special">&amp;</span> cont<span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">ContainerT</span><span class="special">::</span><span class="identifier">iterator</span> iter<span class="special">)</span><span class="special">;</span></pre>
+<p>An <code class="computeroutput"><a class="link" href="insert_iterator.html" title="Class template insert_iterator">insert_iterator</a></code> is constructed with a container and a position that has to be maintained. </p>
+</li>
+<li>
+<pre class="literallayout">insert_iterator&amp; <a name="id671856-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">ContainerT</span><span class="special">::</span><span class="identifier">const_reference</span> value<span class="special">)</span><span class="special">;</span></pre>
+<p>This assignment operator adds the <code class="computeroutput">value</code> before the current position. It maintains it's position by incrementing after addition. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2" lang="en">
+<a name="id1267508"></a><h3>
+<a name="id671805-bb"></a><code class="computeroutput">insert_iterator</code> public member functions</h3>
+<div class="orderedlist"><ol type="1">
+<li><pre class="literallayout"><a class="link" href="insert_iterator.html" title="Class template insert_iterator">insert_iterator</a> <span class="special">&amp;</span> <a name="id671807-bb"></a><span class="keyword">operator</span><span class="special">*</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li><pre class="literallayout"><a class="link" href="insert_iterator.html" title="Class template insert_iterator">insert_iterator</a> <span class="special">&amp;</span> <a name="id671815-bb"></a><span class="keyword">operator</span><span class="special">++</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li><pre class="literallayout"><a class="link" href="insert_iterator.html" title="Class template insert_iterator">insert_iterator</a> <span class="special">&amp;</span> <a name="id671824-bb"></a><span class="keyword">operator</span><span class="special">++</span><span class="special">(</span><span class="keyword">int</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="add_iterator.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../header/boost/icl/iterator_hpp.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="adder.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

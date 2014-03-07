@@ -1,0 +1,1174 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>The multi pass iterator</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../support.html" title="Supporting Libraries">
+<link rel="prev" href="../support.html" title="Supporting Libraries">
+<link rel="next" href="line_pos_iterator.html" title="The line position iterator">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../support.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../support.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="line_pos_iterator.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="spirit.support.multi_pass"></a><a class="link" href="multi_pass.html" title="The multi pass iterator">The multi pass iterator</a>
+</h3></div></div></div>
+<p>
+        Backtracking in <span class="emphasis"><em>Spirit.Qi</em></span> requires the use of the following
+        types of iterator: forward, bidirectional, or random access. Because of backtracking,
+        input iterators cannot be used. Therefore, the standard library classes
+        <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">istreambuf_iterator</span></code> and <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">istream_iterator</span></code>,
+        that fall under the category of input iterators, cannot be used. Another
+        input iterator that is of interest is one that wraps a lexer, such as LEX.
+      </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          In general, <span class="emphasis"><em>Spirit.Qi</em></span> generates recursive descent
+          parser which require backtracking parsers by design. For this reason we
+          need to provide at least forward iterators to any of <span class="emphasis"><em>Spirit.Qi</em></span>'s
+          API functions. This is not an absolute requirement though. In the future,
+          we shall see more deterministic parsers that require no more than 1 character
+          (token) of lookahead. Such parsers allow us to use input iterators such
+          as the <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">istream_iterator</span></code> as is.
+        </p></td></tr>
+</table></div>
+<p>
+        Backtracking can be implemented only if we are allowed to save an iterator
+        position, i.e. making a copy of the current iterator. Unfortunately, with
+        an input iterator, there is no way to do so, and thus input iterators will
+        not work with backtracking in <span class="emphasis"><em>Spirit.Qi</em></span>. One solution
+        to this problem is to simply load all the data to be parsed into a container,
+        such as a vector or deque, and then pass the begin and end of the container
+        to <span class="emphasis"><em>Spirit.Qi</em></span>. This method can be too memory intensive
+        for certain applications, which is why the <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+        iterator was created.
+      </p>
+<h5>
+<a name="spirit.support.multi_pass.h0"></a>
+        <span class="phrase"><a name="spirit.support.multi_pass.using_the_multi_pass"></a></span><a class="link" href="multi_pass.html#spirit.support.multi_pass.using_the_multi_pass">Using
+        the multi_pass</a>
+      </h5>
+<p>
+        The <code class="computeroutput"><span class="identifier">multi_pass</span></code> iterator will
+        convert any input iterator into a forward iterator suitable for use with
+        <span class="emphasis"><em>Spirit.Qi</em></span>. <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+        will buffer data when needed and will discard the buffer when its contents
+        is not needed anymore. This happens either if only one copy of the iterator
+        exists or if no backtracking can occur.
+      </p>
+<p>
+        A grammar must be designed with care if the <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+        iterator is used. Any rule that may need to backtrack, such as one that contains
+        an alternative, will cause data to be buffered. The rules that are optimal
+        to use are repetition constructs (as kleene and plus).
+      </p>
+<p>
+        Sequences of the form <code class="computeroutput"><span class="identifier">a</span> <span class="special">&gt;&gt;</span> <span class="identifier">b</span></code>
+        will buffer data as well. This is different from the behavior of <a href="../../../../../../libs/spirit/classic/index.html" target="_top"><span class="emphasis"><em>Spirit.Classic</em></span></a>
+        but for a good reason. Sequences need to reset the current iterator to its
+        initial state if one of the components of a sequence fails to match. To compensate
+        for this behavior we added functionality to the <code class="computeroutput"><span class="identifier">expect</span></code>
+        parsers (i.e. constructs like <code class="computeroutput"><span class="identifier">a</span>
+        <span class="special">&gt;</span> <span class="identifier">b</span></code>).
+        Expectation points introduce deterministic points into the grammar ensuring
+        no backtracking can occur if they match. For this reason we clear the buffers
+        of any multi_pass iterator on each expectation point, ensuring minimal buffer
+        content even for large grammars.
+      </p>
+<div class="important"><table border="0" summary="Important">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Important]" src="../../images/important.png"></td>
+<th align="left">Important</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+          If you use an error handler in conjunction with the <code class="computeroutput"><span class="identifier">expect</span></code>
+          parser while utilizing a <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+          iterator and you intend to use the error handler to force a <code class="computeroutput"><span class="identifier">retry</span></code> or a <code class="computeroutput"><span class="identifier">fail</span></code>
+          (see the description of error handlers - <span class="bold"><strong>FIXME</strong></span>:
+          insert link), then you need to instantiate the error handler using <code class="computeroutput"><span class="identifier">retry</span></code> or <code class="computeroutput"><span class="identifier">fail</span></code>,
+          for instance:
+</p>
+<pre class="programlisting"><span class="identifier">rule</span> <span class="identifier">r</span><span class="special">&lt;</span><span class="identifier">iterator_type</span><span class="special">&gt;</span> <span class="identifier">r</span><span class="special">;</span>
+<span class="identifier">on_error</span><span class="special">&lt;</span><span class="identifier">retry</span><span class="special">&gt;(</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">phoenix</span><span class="special">::</span><span class="identifier">val</span><span class="special">(</span><span class="string">"Error!"</span><span class="special">));</span>
+</pre>
+<p>
+          If you fail to do so the resulting code will trigger an assert statement
+          at runtime.
+        </p>
+</td></tr>
+</table></div>
+<p>
+        Any rule that repeats, such as kleene_star (<code class="computeroutput"><span class="special">*</span><span class="identifier">a</span></code>) or positive such as (<code class="computeroutput"><span class="special">+</span><span class="identifier">a</span></code>), will only buffer the data for the current
+        repetition.
+      </p>
+<p>
+        In typical grammars, ambiguity and therefore lookahead is often localized.
+        In fact, many well designed languages are fully deterministic and require
+        no lookahead at all. Peeking at the first character from the input will immediately
+        determine the alternative branch to take. Yet, even with highly ambiguous
+        grammars, alternatives are often of the form <code class="computeroutput"><span class="special">*(</span><span class="identifier">a</span> <span class="special">|</span> <span class="identifier">b</span>
+        <span class="special">|</span> <span class="identifier">c</span> <span class="special">|</span> <span class="identifier">d</span><span class="special">)</span></code>.
+        The input iterator moves on and is never stuck at the beginning. Let's look
+        at a Pascal snippet for example:
+      </p>
+<pre class="programlisting"><span class="identifier">program</span> <span class="special">=</span>
+        <span class="identifier">programHeading</span> <span class="special">&gt;&gt;</span> <span class="identifier">block</span> <span class="special">&gt;&gt;</span> <span class="char">'.'</span>
+    <span class="special">;</span>
+
+<span class="identifier">block</span> <span class="special">=</span>
+       <span class="special">*(</span>   <span class="identifier">labelDeclarationPart</span>
+        <span class="special">|</span>   <span class="identifier">constantDefinitionPart</span>
+        <span class="special">|</span>   <span class="identifier">typeDefinitionPart</span>
+        <span class="special">|</span>   <span class="identifier">variableDeclarationPart</span>
+        <span class="special">|</span>   <span class="identifier">procedureAndFunctionDeclarationPart</span>
+        <span class="special">)</span>
+    <span class="special">&gt;&gt;</span>  <span class="identifier">statementPart</span>
+    <span class="special">;</span>
+</pre>
+<p>
+        Notice the alternatives inside the Kleene star in the rule block . The rule
+        gobbles the input in a linear manner and throws away the past history with
+        each iteration. As this is fully deterministic LL(1) grammar, each failed
+        alternative only has to peek 1 character (token). The alternative that consumes
+        more than 1 character (token) is definitely a winner. After which, the Kleene
+        star moves on to the next.
+      </p>
+<p>
+        Now, after the lecture on the features to be careful with when using <code class="computeroutput"><span class="identifier">multi_pass</span></code>, you may think that <code class="computeroutput"><span class="identifier">multi_pass</span></code> is way too restrictive to use.
+        That's not the case. If your grammar is deterministic, you can make use of
+        the <code class="computeroutput"><span class="identifier">flush_multi_pass</span></code> pseudo
+        parser in your grammar to ensure that data is not buffered when unnecessary
+        (<code class="computeroutput"><span class="identifier">flush_multi_pass</span></code> is available
+        from the <span class="emphasis"><em>Spirit.Qi</em></span> parser <a href="../../../../repository/doc/html/index.html" target="_top">Repository</a>).
+      </p>
+<p>
+        Here we present a minimal example showing a minimal use case. The <code class="computeroutput"><span class="identifier">multi_pass</span></code> iterator is highly configurable,
+        but the default policies have been chosen so that its easily usable with
+        input iterators such as <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">istreambuf_iterator</span></code>.
+        For the complete source code of this example please refer to <a href="../../../../example/support/multi_pass.cpp" target="_top">multi_pass.cpp</a>.
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="keyword">namespace</span> <span class="identifier">spirit</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">char_</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">eol</span><span class="special">;</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">ifstream</span> <span class="identifier">in</span><span class="special">(</span><span class="string">"multi_pass.txt"</span><span class="special">);</span>    <span class="comment">// we get our input from this file</span>
+    <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">in</span><span class="special">.</span><span class="identifier">is_open</span><span class="special">())</span> <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Could not open input file: 'multi_pass.txt'"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+        <span class="keyword">return</span> <span class="special">-</span><span class="number">1</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">istreambuf_iterator</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="identifier">base_iterator_type</span><span class="special">;</span>
+    <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">multi_pass</span><span class="special">&lt;</span><span class="identifier">base_iterator_type</span><span class="special">&gt;</span> <span class="identifier">first</span> <span class="special">=</span>
+        <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">make_default_multi_pass</span><span class="special">(</span><span class="identifier">base_iterator_type</span><span class="special">(</span><span class="identifier">in</span><span class="special">));</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">v</span><span class="special">;</span>
+    <span class="keyword">bool</span> <span class="identifier">result</span> <span class="special">=</span> <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_parse</span><span class="special">(</span><span class="identifier">first</span>
+      <span class="special">,</span> <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">make_default_multi_pass</span><span class="special">(</span><span class="identifier">base_iterator_type</span><span class="special">())</span>
+      <span class="special">,</span> <span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="char">','</span> <span class="special">&gt;&gt;</span> <span class="identifier">double_</span><span class="special">)</span>              <span class="comment">// recognize list of doubles</span>
+      <span class="special">,</span> <span class="identifier">space</span> <span class="special">|</span> <span class="char">'#'</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="identifier">eol</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="identifier">eol</span>      <span class="comment">// comment skipper</span>
+      <span class="special">,</span> <span class="identifier">v</span><span class="special">);</span>                                       <span class="comment">// data read from file</span>
+
+    <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">result</span><span class="special">)</span> <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Failed parsing input file!"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+        <span class="keyword">return</span> <span class="special">-</span><span class="number">2</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Successfully parsed input file!"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+<h5>
+<a name="spirit.support.multi_pass.h1"></a>
+        <span class="phrase"><a name="spirit.support.multi_pass.using_the_flush_multi_pass_parser"></a></span><a class="link" href="multi_pass.html#spirit.support.multi_pass.using_the_flush_multi_pass_parser">Using
+        the flush_multi_pass parser</a>
+      </h5>
+<p>
+        The <a href="http://boost-spirit.com" target="_top">Spirit</a> <a href="../../../../repository/doc/html/index.html" target="_top">Repository</a>
+        contains the <code class="computeroutput"><span class="identifier">flush_multi_pass</span></code>
+        parser component. This is usable in conjunction with the <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+        iterator to minimize the buffering. It allows to insert explicit synchronization
+        points into your grammar where it is safe to clear any stored input as it
+        is ensured that no backtracking can occur at this point anymore.
+      </p>
+<p>
+        When the <code class="computeroutput"><span class="identifier">flush_multi_pass</span></code>
+        parser is used with <code class="computeroutput"><span class="identifier">multi_pass</span></code>,
+        it will call <code class="computeroutput"><span class="identifier">multi_pass</span><span class="special">::</span><span class="identifier">clear_queue</span><span class="special">()</span></code>.
+        This will cause any buffered data to be erased. This also will invalidate
+        all other copies of multi_pass and they should not be used. If they are,
+        an <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">illegal_backtracking</span></code> exception will be
+        thrown.
+      </p>
+<h5>
+<a name="spirit.support.multi_pass.h2"></a>
+        <span class="phrase"><a name="spirit.support.multi_pass.the_multi_pass_policies"></a></span><a class="link" href="multi_pass.html#spirit.support.multi_pass.the_multi_pass_policies">The
+        multi_pass Policies</a>
+      </h5>
+<p>
+        The <code class="computeroutput"><span class="identifier">multi_pass</span></code> iterator is
+        a templated class configurable using policies. The description of <code class="computeroutput"><span class="identifier">multi_pass</span></code> above is how it was originally
+        implemented (before it used policies), and is the default configuration now.
+        But, <code class="computeroutput"><span class="identifier">multi_pass</span></code> is capable
+        of much more. Because of the open-ended nature of policies, you can write
+        your own policy to make <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+        behave in a way that we never before imagined.
+      </p>
+<p>
+        The multi_pass class has two template parameters:
+      </p>
+<div class="variablelist">
+<p class="title"><b>The multi_pass template parameters</b></p>
+<dl class="variablelist">
+<dt><span class="term">Input</span></dt>
+<dd><p>
+              The type multi_pass uses to acquire it's input. This is typically an
+              input iterator, or functor.
+            </p></dd>
+<dt><span class="term">Policies</span></dt>
+<dd><p>
+              The combined policies to use to create an instance of a multi_pass
+              iterator. This combined policy type is described below
+            </p></dd>
+</dl>
+</div>
+<p>
+        It is possible to implement all of the required functionality of the combined
+        policy in a single class. But it has shown to be more convenient to split
+        this into four different groups of functions, i.e. four separate, but well
+        coordinated policies. For this reason the <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+        library implements a template <code class="computeroutput"><span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">default_policy</span></code>
+        allowing to combine several different policies, each implementing one of
+        the functionality groups:
+      </p>
+<div class="table">
+<a name="spirit.support.multi_pass.policies_needed_for_default_policy_template"></a><p class="title"><b>Table&#160;12.&#160;Policies needed for default_policy template</b></p>
+<div class="table-contents"><table class="table" summary="Policies needed for default_policy template">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Template Parameter
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">OwnershipPolicy</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  This policy determines how <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+                  deals with it's shared components.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">CheckingPolicy</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  This policy determines how checking for invalid iterators is done.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">InputPolicy</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  A class that defines how <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+                  acquires its input. The <code class="computeroutput"><span class="identifier">InputPolicy</span></code>
+                  is parameterized by the <code class="computeroutput"><span class="identifier">Input</span></code>
+                  template parameter to the <code class="computeroutput"><span class="identifier">multi_pass</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">StoragePolicy</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  The buffering scheme used by <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+                  is determined and managed by the StoragePolicy.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+        The <code class="computeroutput"><span class="identifier">multi_pass</span></code> library contains
+        several predefined policy implementations for each of the policy types as
+        described above. First we will describe those predefined types. Afterwards
+        we will give some guidelines how you can write your own policy implementations.
+      </p>
+<h5>
+<a name="spirit.support.multi_pass.h3"></a>
+        <span class="phrase"><a name="spirit.support.multi_pass.predefined_policies"></a></span><a class="link" href="multi_pass.html#spirit.support.multi_pass.predefined_policies">Predefined
+        policies</a>
+      </h5>
+<p>
+        All predefined <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+        policies are defined in the namespace <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">iterator_policies</span></code>.
+      </p>
+<div class="table">
+<a name="spirit.support.multi_pass.predefined_policy_classes"></a><p class="title"><b>Table&#160;13.&#160;Predefined policy classes</b></p>
+<div class="table-contents"><table class="table" summary="Predefined policy classes">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Class name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>InputPolicy</strong></span> classes
+                </p>
+              </td>
+<td class="auto-generated">&#160;</td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">input_iterator</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  This policy directs <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+                  to read from an input iterator of type <code class="computeroutput"><span class="identifier">Input</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">buffering_input_iterator</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  This policy directs <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+                  to read from an input iterator of type <code class="computeroutput"><span class="identifier">Input</span></code>.
+                  Additionally it buffers the last character received from the underlying
+                  iterator. This allows to wrap iterators not buffering the last
+                  character on their own (as <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">istreambuf_iterator</span></code>).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">istream</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  This policy directs <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+                  to read from an input stream of type <code class="computeroutput"><span class="identifier">Input</span></code>
+                  (usually a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span></code>).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">lex_input</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  This policy obtains it's input by calling yylex(), which would
+                  typically be provided by a scanner generated by <a href="http://flex.sourceforge.net/" target="_top">Flex</a>.
+                  If you use this policy your code must link against a <a href="http://flex.sourceforge.net/" target="_top">Flex</a>
+                  generated scanner.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">functor_input</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  This input policy obtains it's data by calling a functor of type
+                  <code class="computeroutput"><span class="identifier">Input</span></code>. The functor
+                  must meet certain requirements. It must have a typedef called
+                  <code class="computeroutput"><span class="identifier">result_type</span></code> which
+                  should be the type returned from <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>. Also, since an input policy
+                  needs a way to determine when the end of input has been reached,
+                  the functor must contain a static variable named <code class="computeroutput"><span class="identifier">eof</span></code> which is comparable to a
+                  variable of <code class="computeroutput"><span class="identifier">result_type</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">split_functor_input</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  This is essentially the same as the <code class="computeroutput"><span class="identifier">functor_input</span></code>
+                  policy except that the (user supplied) function object exposes
+                  separate <code class="computeroutput"><span class="identifier">unique</span></code>
+                  and <code class="computeroutput"><span class="identifier">shared</span></code> sub
+                  classes, allowing to integrate the functors <span class="emphasis"><em>unique</em></span>
+                  data members with the <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+                  data items held by each instance and its <span class="emphasis"><em>shared</em></span>
+                  data members will be integrated with the <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+                  members shared by all copies.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>OwnershipPolicy</strong></span> classes
+                </p>
+              </td>
+<td class="auto-generated">&#160;</td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">ref_counted</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  This class uses a reference counting scheme. The <code class="computeroutput"><span class="identifier">multi_pass</span></code> will delete it's shared
+                  components when the count reaches zero.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">first_owner</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  When this policy is used, the first <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+                  created will be the one that deletes the shared data. Each copy
+                  will not take ownership of the shared data. This works well for
+                  <a href="http://boost-spirit.com" target="_top">Spirit</a>, since no dynamic
+                  allocation of iterators is done. All copies are made on the stack,
+                  so the original iterator has the longest lifespan.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>CheckingPolicy</strong></span> classes
+                </p>
+              </td>
+<td class="auto-generated">&#160;</td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">no_check</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  This policy does no checking at all.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">buf_id_check</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  This policy keeps around a buffer id, or a buffer age. Every time
+                  <code class="computeroutput"><span class="identifier">clear_queue</span><span class="special">()</span></code>
+                  is called on a <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+                  iterator, it is possible that all other iterators become invalid.
+                  When <code class="computeroutput"><span class="identifier">clear_queue</span><span class="special">()</span></code> is called, <code class="computeroutput"><span class="identifier">buf_id_check</span></code>
+                  increments the buffer id. When an iterator is dereferenced, this
+                  policy checks that the buffer id of the iterator matches the shared
+                  buffer id. This policy is most effective when used together with
+                  the <code class="computeroutput"><span class="identifier">split_std_deque</span></code>
+                  StoragePolicy. It should not be used with the <code class="computeroutput"><span class="identifier">fixed_size_queue</span></code>
+                  StoragePolicy, because it will not detect iterator dereferences
+                  that are out of range.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  full_check
+                </p>
+              </td>
+<td>
+                <p>
+                  This policy has not been implemented yet. When it is, it will keep
+                  track of all iterators and make sure that they are all valid. This
+                  will be mostly useful for debugging purposes as it will incur significant
+                  overhead.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <span class="bold"><strong>StoragePolicy</strong></span> classes
+                </p>
+              </td>
+<td class="auto-generated">&#160;</td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">split_std_deque</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Despite its name this policy keeps all buffered data in a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">vector</span></code>. All data is stored as
+                  long as there is more than one iterator. Once the iterator count
+                  goes down to one, and the queue is no longer needed, it is cleared,
+                  freeing up memory. The queue can also be forcibly cleared by calling
+                  <code class="computeroutput"><span class="identifier">multi_pass</span><span class="special">::</span><span class="identifier">clear_queue</span><span class="special">()</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">fixed_size_queue</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  This policy keeps a circular buffer that is size <code class="computeroutput"><span class="identifier">N</span><span class="special">+</span><span class="number">1</span></code> and stores <code class="computeroutput"><span class="identifier">N</span></code>
+                  elements. <code class="computeroutput"><span class="identifier">fixed_size_queue</span></code>
+                  is a template with a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span></code>
+                  parameter that specified the queue size. It is your responsibility
+                  to ensure that <code class="computeroutput"><span class="identifier">N</span></code>
+                  is big enough for your parser. Whenever the foremost iterator is
+                  incremented, the last character of the buffer is automatically
+                  erased. Currently there is no way to tell if an iterator is trailing
+                  too far behind and has become invalid. No dynamic allocation is
+                  done by this policy during normal iterator operation, only on initial
+                  construction. The memory usage of this <code class="computeroutput"><span class="identifier">StoragePolicy</span></code>
+                  is set at <code class="computeroutput"><span class="identifier">N</span><span class="special">+</span><span class="number">1</span></code> bytes, unlike <code class="computeroutput"><span class="identifier">split_std_deque</span></code>,
+                  which is unbounded.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><h5>
+<a name="spirit.support.multi_pass.h4"></a>
+        <span class="phrase"><a name="spirit.support.multi_pass.combinations__how_to_specify_your_own_custom_multi_pass"></a></span><a class="link" href="multi_pass.html#spirit.support.multi_pass.combinations__how_to_specify_your_own_custom_multi_pass">Combinations:
+        How to specify your own custom multi_pass</a>
+      </h5>
+<p>
+        The beauty of policy based designs is that you can mix and match policies
+        to create your own custom iterator by selecting the policies you want. Here's
+        an example of how to specify a custom <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+        that wraps an <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">istream_iterator</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span></code>,
+        and is slightly more efficient than the default <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+        (as generated by the <code class="computeroutput"><span class="identifier">make_default_multi_pass</span><span class="special">()</span></code> API function) because it uses the <code class="computeroutput"><span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">first_owner</span></code> OwnershipPolicy and the <code class="computeroutput"><span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">no_check</span></code> CheckingPolicy:
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">multi_pass</span><span class="special">&lt;</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">istream_iterator</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span>
+  <span class="special">,</span> <span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">default_policy</span><span class="special">&lt;</span>
+        <span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">first_owner</span>
+      <span class="special">,</span> <span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">no_check</span>
+      <span class="special">,</span> <span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">buffering_input_iterator</span>
+      <span class="special">,</span> <span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">split_std_deque</span>
+    <span class="special">&gt;</span>
+<span class="special">&gt;</span> <span class="identifier">first_owner_multi_pass_type</span><span class="special">;</span>
+</pre>
+<p>
+        The default template parameters for <code class="computeroutput"><span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">default_policy</span></code>
+        are:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">ref_counted</span></code> OwnershipPolicy
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">no_check</span></code> CheckingPolicy, if <code class="computeroutput"><span class="identifier">BOOST_SPIRIT_DEBUG</span></code> is defined: <code class="computeroutput"><span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">buf_id_check</span></code> CheckingPolicy
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">buffering_input_iterator</span></code> InputPolicy,
+            and
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">split_std_deque</span></code> StoragePolicy.
+          </li>
+</ul></div>
+<p>
+        So if you use <code class="computeroutput"><span class="identifier">multi_pass</span><span class="special">&lt;</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">istream_iterator</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span>
+        <span class="special">&gt;</span></code> you will get those pre-defined
+        behaviors while wrapping an <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">istream_iterator</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span></code>.
+      </p>
+<h5>
+<a name="spirit.support.multi_pass.h5"></a>
+        <span class="phrase"><a name="spirit.support.multi_pass.dealing_with_constant_look_ahead"></a></span><a class="link" href="multi_pass.html#spirit.support.multi_pass.dealing_with_constant_look_ahead">Dealing
+        with constant look ahead</a>
+      </h5>
+<p>
+        There is one other pre-defined class called <code class="computeroutput"><span class="identifier">look_ahead</span></code>.
+        The class <code class="computeroutput"><span class="identifier">look_ahead</span></code> is another
+        predefine <code class="computeroutput"><span class="identifier">multi_pass</span></code> iterator
+        type. It has two template parameters: <code class="computeroutput"><span class="identifier">Input</span></code>,
+        the type of the input iterator to wrap, and a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span></code>, which specifies the size of the buffer
+        to the <code class="computeroutput"><span class="identifier">fixed_size_queue</span></code> policy.
+        While the default multi_pass configuration is designed for safety, <code class="computeroutput"><span class="identifier">look_ahead</span></code> is designed for speed. <code class="computeroutput"><span class="identifier">look_ahead</span></code> is derived from a multi_pass
+        with the following policies: <code class="computeroutput"><span class="identifier">input_iterator</span></code>
+        InputPolicy, <code class="computeroutput"><span class="identifier">first_owner</span></code>
+        OwnershipPolicy, <code class="computeroutput"><span class="identifier">no_check</span></code>
+        CheckingPolicy, and <code class="computeroutput"><span class="identifier">fixed_size_queue</span><span class="special">&lt;</span><span class="identifier">N</span><span class="special">&gt;</span></code>
+        StoragePolicy.
+      </p>
+<p>
+        This iterator is defined by including the files:
+      </p>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/support/look_ahead.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">support_look_ahead</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Also, see <a class="link" href="../structure/include.html" title="Include">Include Structure</a>.
+      </p>
+<h5>
+<a name="spirit.support.multi_pass.h6"></a>
+        <span class="phrase"><a name="spirit.support.multi_pass.reading_from_standard_input_streams"></a></span><a class="link" href="multi_pass.html#spirit.support.multi_pass.reading_from_standard_input_streams">Reading
+        from standard input streams</a>
+      </h5>
+<p>
+        Yet another predefined iterator for wrapping standard input streams (usually
+        a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">basic_istream</span><span class="special">&lt;&gt;</span></code>)
+        is called <code class="computeroutput"><span class="identifier">basic_istream_iterator</span><span class="special">&lt;</span><span class="identifier">Char</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">&gt;</span></code>. This class is usable as a drop in replacement
+        for <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">istream_iterator</span><span class="special">&lt;</span><span class="identifier">Char</span><span class="special">,</span> <span class="identifier">Traits</span><span class="special">&gt;</span></code>.
+        Its only difference is that it is a forward iterator (instead of the <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">istream_iterator</span></code>,
+        which is an input iterator). <code class="computeroutput"><span class="identifier">basic_istream_iterator</span></code>
+        is derived from a multi_pass with the following policies: <code class="computeroutput"><span class="identifier">istream</span></code>
+        InputPolicy, <code class="computeroutput"><span class="identifier">ref_counted</span></code>
+        OwnershipPolicy, <code class="computeroutput"><span class="identifier">no_check</span></code>
+        CheckingPolicy, and <code class="computeroutput"><span class="identifier">split_std_deque</span></code>
+        StoragePolicy.
+      </p>
+<p>
+        There exists an additional predefined typedef:
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">basic_istream_iterator</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">char_traits</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">istream_iterator</span><span class="special">;</span>
+</pre>
+<p>
+        This iterator is defined by including the files:
+      </p>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/support/istream_iterator.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">support_istream_iterator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        Also, see <a class="link" href="../structure/include.html" title="Include">Include Structure</a>.
+      </p>
+<h5>
+<a name="spirit.support.multi_pass.h7"></a>
+        <span class="phrase"><a name="spirit.support.multi_pass.how_to_write_a_functor_for_use_with_the__code__phrase_role__identifier__functor_input__phrase___code__inputpolicy"></a></span><a class="link" href="multi_pass.html#spirit.support.multi_pass.how_to_write_a_functor_for_use_with_the__code__phrase_role__identifier__functor_input__phrase___code__inputpolicy">How
+        to write a functor for use with the <code class="computeroutput"><span class="identifier">functor_input</span></code>
+        InputPolicy</a>
+      </h5>
+<p>
+        If you want to use the <code class="computeroutput"><span class="identifier">functor_input</span></code>
+        InputPolicy, you can write your own function object that will supply the
+        input to <code class="computeroutput"><span class="identifier">multi_pass</span></code>. The
+        function object must satisfy several requirements. It must have a typedef
+        <code class="computeroutput"><span class="identifier">result_type</span></code> which specifies
+        the return type of its <code class="computeroutput"><span class="keyword">operator</span><span class="special">()</span></code>. This is standard practice in the STL.
+        Also, it must supply a static variable called eof which is compared against
+        to know whether the input has reached the end. Last but not least the function
+        object must be default constructible. Here is an example:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">qi</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">support</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">support</span><span class="special">/</span><span class="identifier">multi_pass</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">home</span><span class="special">/</span><span class="identifier">support</span><span class="special">/</span><span class="identifier">iterators</span><span class="special">/</span><span class="identifier">detail</span><span class="special">/</span><span class="identifier">functor_input_policy</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="comment">// define the function object</span>
+<span class="keyword">class</span> <span class="identifier">iterate_a2m</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+    <span class="keyword">typedef</span> <span class="keyword">char</span> <span class="identifier">result_type</span><span class="special">;</span>
+
+    <span class="identifier">iterate_a2m</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">c_</span><span class="special">(</span><span class="char">'A'</span><span class="special">)</span> <span class="special">{}</span>
+    <span class="identifier">iterate_a2m</span><span class="special">(</span><span class="keyword">char</span> <span class="identifier">c</span><span class="special">)</span> <span class="special">:</span> <span class="identifier">c_</span><span class="special">(</span><span class="identifier">c</span><span class="special">)</span> <span class="special">{}</span>
+
+    <span class="identifier">result_type</span> <span class="keyword">operator</span><span class="special">()()</span>
+    <span class="special">{</span>
+        <span class="keyword">if</span> <span class="special">(</span><span class="identifier">c_</span> <span class="special">==</span> <span class="char">'M'</span><span class="special">)</span>
+            <span class="keyword">return</span> <span class="identifier">eof</span><span class="special">;</span>
+        <span class="keyword">return</span> <span class="identifier">c_</span><span class="special">++;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">static</span> <span class="identifier">result_type</span> <span class="identifier">eof</span><span class="special">;</span>
+
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="keyword">char</span> <span class="identifier">c_</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="identifier">iterate_a2m</span><span class="special">::</span><span class="identifier">result_type</span> <span class="identifier">iterate_a2m</span><span class="special">::</span><span class="identifier">eof</span> <span class="special">=</span> <span class="identifier">iterate_a2m</span><span class="special">::</span><span class="identifier">result_type</span><span class="special">(</span><span class="char">'M'</span><span class="special">);</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">;</span>
+
+<span class="comment">// create two iterators using the define function object, one of which is </span>
+<span class="comment">// an end iterator</span>
+<span class="keyword">typedef</span> <span class="identifier">multi_pass</span><span class="special">&lt;</span><span class="identifier">iterate_a2m</span>
+  <span class="special">,</span> <span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">first_owner</span>
+  <span class="special">,</span> <span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">no_check</span>
+  <span class="special">,</span> <span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">functor_input</span>
+  <span class="special">,</span> <span class="identifier">iterator_policies</span><span class="special">::</span><span class="identifier">split_std_deque</span><span class="special">&gt;</span>
+<span class="identifier">functor_multi_pass_type</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">functor_multi_pass_type</span> <span class="identifier">first</span> <span class="special">=</span> <span class="identifier">functor_multi_pass_type</span><span class="special">(</span><span class="identifier">iterate_a2m</span><span class="special">());</span>
+    <span class="identifier">functor_multi_pass_type</span> <span class="identifier">last</span><span class="special">;</span>
+
+    <span class="comment">// use the iterators: this will print "ABCDEFGHIJKL"</span>
+    <span class="keyword">while</span> <span class="special">(</span><span class="identifier">first</span> <span class="special">!=</span> <span class="identifier">last</span><span class="special">)</span> <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="special">*</span><span class="identifier">first</span><span class="special">;</span>
+        <span class="special">++</span><span class="identifier">first</span><span class="special">;</span>
+    <span class="special">}</span>
+    <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<h5>
+<a name="spirit.support.multi_pass.h8"></a>
+        <span class="phrase"><a name="spirit.support.multi_pass.how_to_write_policies_for_use_with_multi_pass"></a></span><a class="link" href="multi_pass.html#spirit.support.multi_pass.how_to_write_policies_for_use_with_multi_pass">How
+        to write policies for use with multi_pass</a>
+      </h5>
+<p>
+        All policies to be used with the <code class="computeroutput"><span class="identifier">default_policy</span></code>
+        template need to have two embedded classes: <code class="computeroutput"><span class="identifier">unique</span></code>
+        and <code class="computeroutput"><span class="identifier">shared</span></code>. The <code class="computeroutput"><span class="identifier">unique</span></code> class needs to implement all required
+        functions for a particular policy type. In addition it may hold all member
+        data items being <span class="emphasis"><em>unique</em></span> for a particular instance of
+        a <code class="computeroutput"><span class="identifier">multi_pass</span></code> (hence the name).
+        The <code class="computeroutput"><span class="identifier">shared</span></code> class does not
+        expose any member functions (except sometimes a constructor), but it may
+        hold all member data items to be <span class="emphasis"><em>shared</em></span> between all
+        copies of a particular <code class="computeroutput"><span class="identifier">multi_pass</span></code>.
+      </p>
+<h5>
+<a name="spirit.support.multi_pass.h9"></a>
+        <span class="phrase"><a name="spirit.support.multi_pass.inputpolicy"></a></span><a class="link" href="multi_pass.html#spirit.support.multi_pass.inputpolicy">InputPolicy</a>
+      </h5>
+<p>
+        An <code class="computeroutput"><span class="identifier">InputPolicy</span></code> must have
+        the following interface:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">input_policy</span>
+<span class="special">{</span>
+    <span class="comment">// Input is the same type used as the first template parameter</span>
+    <span class="comment">// while instantiating the multi_pass</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Input</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">unique</span>
+    <span class="special">{</span>
+        <span class="comment">// these typedef's will be exposed as the multi_pass iterator</span>
+        <span class="comment">// properties</span>
+        <span class="keyword">typedef</span> <span class="identifier">__unspecified_type__</span> <span class="identifier">value_type</span><span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="identifier">__unspecified_type__</span> <span class="identifier">difference_type</span><span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="identifier">__unspecified_type__</span> <span class="identifier">distance_type</span><span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="identifier">__unspecified_type__</span> <span class="identifier">pointer</span><span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="identifier">__unspecified_type__</span> <span class="identifier">reference</span><span class="special">;</span>
+
+        <span class="identifier">unique</span><span class="special">()</span> <span class="special">{}</span>
+        <span class="keyword">explicit</span> <span class="identifier">unique</span><span class="special">(</span><span class="identifier">Input</span><span class="special">)</span> <span class="special">{}</span>
+
+        <span class="comment">// destroy is called whenever the last copy of a multi_pass is</span>
+        <span class="comment">// destructed (ownership_policy::release() returned true)</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">destroy</span><span class="special">(</span><span class="identifier">MultiPass</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+
+        <span class="comment">// swap is called by multi_pass::swap()</span>
+        <span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">unique</span><span class="special">&amp;);</span>
+
+        <span class="comment">// get_input is called whenever the next input character/token</span>
+        <span class="comment">// should be fetched. </span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="comment">//</span>
+        <span class="comment">// This method is expected to return a reference to the next </span>
+        <span class="comment">// character/token</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">::</span><span class="identifier">reference</span> <span class="identifier">get_input</span><span class="special">(</span><span class="identifier">MultiPass</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+
+        <span class="comment">// advance_input is called whenever the underlying input stream </span>
+        <span class="comment">// should be advanced so that the next call to get_input will be </span>
+        <span class="comment">// able to return the next input character/token</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">advance_input</span><span class="special">(</span><span class="identifier">MultiPass</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+
+        <span class="comment">// input_at_eof is called to test whether this instance is a </span>
+        <span class="comment">// end of input iterator.</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="comment">//</span>
+        <span class="comment">// This method is expected to return true if the end of input is </span>
+        <span class="comment">// reached. It is often used in the implementation of the function</span>
+        <span class="comment">// storage_policy::is_eof.</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">bool</span> <span class="identifier">input_at_eof</span><span class="special">(</span><span class="identifier">MultiPass</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+
+        <span class="comment">// input_is_valid is called to verify if the parameter t represents </span>
+        <span class="comment">// a valid input character/token</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="comment">//   t:     is the character/token to test for validity</span>
+        <span class="comment">// </span>
+        <span class="comment">// This method is expected to return true if the parameter t </span>
+        <span class="comment">// represents a valid character/token.</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">bool</span> <span class="identifier">input_is_valid</span><span class="special">(</span><span class="identifier">MultiPass</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">,</span> <span class="identifier">value_type</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">t</span><span class="special">);</span>
+    <span class="special">};</span>
+
+    <span class="comment">// Input is the same type used as the first template parameter passed</span>
+    <span class="comment">// while instantiating the multi_pass</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Input</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">shared</span>
+    <span class="special">{</span>
+        <span class="keyword">explicit</span> <span class="identifier">shared</span><span class="special">(</span><span class="identifier">Input</span><span class="special">)</span> <span class="special">{}</span>
+    <span class="special">};</span>
+<span class="special">};</span>
+</pre>
+<p>
+        It is possible to derive the struct <code class="computeroutput"><span class="identifier">unique</span></code>
+        from the type <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">default_input_policy</span></code>. This type implements
+        a minimal sufficient interface for some of the required functions, simplifying
+        the task of writing a new input policy.
+      </p>
+<p>
+        This class may implement a function <code class="computeroutput"><span class="identifier">destroy</span><span class="special">()</span></code> being called during destruction of the
+        last copy of a <code class="computeroutput"><span class="identifier">multi_pass</span></code>.
+        This function should be used to free any of the shared data items the policy
+        might have allocated during construction of its <code class="computeroutput"><span class="identifier">shared</span></code>
+        part. Because of the way <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+        is implemented any allocated data members in <code class="computeroutput"><span class="identifier">shared</span></code>
+        should <span class="underline">not</span> be deep copied in a copy
+        constructor of <code class="computeroutput"><span class="identifier">shared</span></code>.
+      </p>
+<h5>
+<a name="spirit.support.multi_pass.h10"></a>
+        <span class="phrase"><a name="spirit.support.multi_pass.ownershippolicy"></a></span><a class="link" href="multi_pass.html#spirit.support.multi_pass.ownershippolicy">OwnershipPolicy</a>
+      </h5>
+<p>
+        The <code class="computeroutput"><span class="identifier">OwnershipPolicy</span></code> must
+        have the following interface:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">ownership_policy</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">unique</span>
+    <span class="special">{</span>
+        <span class="comment">// destroy is called whenever the last copy of a multi_pass is</span>
+        <span class="comment">// destructed (ownership_policy::release() returned true)</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">destroy</span><span class="special">(</span><span class="identifier">MultiPass</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+
+        <span class="comment">// swap is called by multi_pass::swap()</span>
+        <span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">unique</span><span class="special">&amp;);</span>
+
+        <span class="comment">// clone is called whenever a multi_pass is copied</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">clone</span><span class="special">(</span><span class="identifier">MultiPass</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+
+        <span class="comment">// release is called whenever a multi_pass is destroyed</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="comment">//</span>
+        <span class="comment">// The method is expected to return true if the destructed </span>
+        <span class="comment">// instance is the last copy of a particular multi_pass. </span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">bool</span> <span class="identifier">release</span><span class="special">(</span><span class="identifier">MultiPass</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+
+        <span class="comment">// is_unique is called to test whether this instance is the only </span>
+        <span class="comment">// existing copy of a particular multi_pass</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="comment">//</span>
+        <span class="comment">// The method is expected to return true if this instance is unique</span>
+        <span class="comment">// (no other copies of this multi_pass exist).</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">bool</span> <span class="identifier">is_unique</span><span class="special">(</span><span class="identifier">MultiPass</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+    <span class="special">};</span>
+
+    <span class="keyword">struct</span> <span class="identifier">shared</span> <span class="special">{};</span>
+<span class="special">};</span>
+</pre>
+<p>
+        It is possible to derive the struct <code class="computeroutput"><span class="identifier">unique</span></code>
+        from the type <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">default_ownership_policy</span></code>. This type implements
+        a minimal sufficient interface for some of the required functions, simplifying
+        the task of writing a new ownership policy.
+      </p>
+<p>
+        This class may implement a function <code class="computeroutput"><span class="identifier">destroy</span><span class="special">()</span></code> being called during destruction of the
+        last copy of a <code class="computeroutput"><span class="identifier">multi_pass</span></code>.
+        This function should be used to free any of the shared data items the policy
+        might have allocated during construction of its <code class="computeroutput"><span class="identifier">shared</span></code>
+        part. Because of the way <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+        is implemented any allocated data members in <code class="computeroutput"><span class="identifier">shared</span></code>
+        should <span class="underline">not</span> be deep copied in a copy
+        constructor of <code class="computeroutput"><span class="identifier">shared</span></code>.
+      </p>
+<h5>
+<a name="spirit.support.multi_pass.h11"></a>
+        <span class="phrase"><a name="spirit.support.multi_pass.checkingpolicy"></a></span><a class="link" href="multi_pass.html#spirit.support.multi_pass.checkingpolicy">CheckingPolicy</a>
+      </h5>
+<p>
+        The <code class="computeroutput"><span class="identifier">CheckingPolicy</span></code> must have
+        the following interface:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">checking_policy</span>
+<span class="special">{</span>
+    <span class="keyword">struct</span> <span class="identifier">unique</span>
+    <span class="special">{</span>
+        <span class="comment">// swap is called by multi_pass::swap()</span>
+        <span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">unique</span><span class="special">&amp;);</span>
+
+        <span class="comment">// destroy is called whenever the last copy of a multi_pass is</span>
+        <span class="comment">// destructed (ownership_policy::release() returned true)</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">destroy</span><span class="special">(</span><span class="identifier">MultiPass</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+
+        <span class="comment">// docheck is called before the multi_pass is dereferenced or </span>
+        <span class="comment">// incremented. </span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="comment">//</span>
+        <span class="comment">// This method is expected to make sure the multi_pass instance is</span>
+        <span class="comment">// still valid. If it is invalid an exception should be thrown.</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">docheck</span><span class="special">(</span><span class="identifier">MultiPass</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+
+        <span class="comment">// clear_queue is called whenever the function </span>
+        <span class="comment">// multi_pass::clear_queue is called on this instance</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">clear_queue</span><span class="special">(</span><span class="identifier">MultiPass</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+    <span class="special">};</span>
+
+    <span class="keyword">struct</span> <span class="identifier">shared</span> <span class="special">{};</span>
+<span class="special">};</span>
+</pre>
+<p>
+        It is possible to derive the struct <code class="computeroutput"><span class="identifier">unique</span></code>
+        from the type <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">default_checking_policy</span></code>. This type implements
+        a minimal sufficient interface for some of the required functions, simplifying
+        the task of writing a new checking policy.
+      </p>
+<p>
+        This class may implement a function <code class="computeroutput"><span class="identifier">destroy</span><span class="special">()</span></code> being called during destruction of the
+        last copy of a <code class="computeroutput"><span class="identifier">multi_pass</span></code>.
+        This function should be used to free any of the shared data items the policy
+        might have allocated during construction of its <code class="computeroutput"><span class="identifier">shared</span></code>
+        part. Because of the way <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+        is implemented any allocated data members in <code class="computeroutput"><span class="identifier">shared</span></code>
+        should <span class="underline">not</span> be deep copied in a copy
+        constructor of <code class="computeroutput"><span class="identifier">shared</span></code>.
+      </p>
+<h5>
+<a name="spirit.support.multi_pass.h12"></a>
+        <span class="phrase"><a name="spirit.support.multi_pass.storagepolicy"></a></span><a class="link" href="multi_pass.html#spirit.support.multi_pass.storagepolicy">StoragePolicy</a>
+      </h5>
+<p>
+        A <code class="computeroutput"><span class="identifier">StoragePolicy</span></code> must have
+        the following interface:
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">storage_policy</span>
+<span class="special">{</span>
+    <span class="comment">// Value is the same type as typename MultiPass::value_type</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Value</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">unique</span>
+    <span class="special">{</span>
+        <span class="comment">// destroy is called whenever the last copy of a multi_pass is</span>
+        <span class="comment">// destructed (ownership_policy::release() returned true)</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">destroy</span><span class="special">(</span><span class="identifier">MultiPass</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+
+        <span class="comment">// swap is called by multi_pass::swap()</span>
+        <span class="keyword">void</span> <span class="identifier">swap</span><span class="special">(</span><span class="identifier">unique</span><span class="special">&amp;);</span>
+
+        <span class="comment">// dereference is called whenever multi_pass::operator*() is invoked</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="comment">//</span>
+        <span class="comment">// This function is expected to return a reference to the current</span>
+        <span class="comment">// character/token.</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">::</span><span class="identifier">reference</span> <span class="identifier">dereference</span><span class="special">(</span><span class="identifier">MultiPass</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+
+        <span class="comment">// increment is called whenever multi_pass::operator++ is invoked</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">increment</span><span class="special">(</span><span class="identifier">MultiPass</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">clear_queue</span><span class="special">(</span><span class="identifier">MultiPass</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+
+        <span class="comment">// is_eof is called to test whether this instance is a end of input </span>
+        <span class="comment">// iterator.</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="comment">//</span>
+        <span class="comment">// This method is expected to return true if the end of input is </span>
+        <span class="comment">// reached. </span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">bool</span> <span class="identifier">is_eof</span><span class="special">(</span><span class="identifier">MultiPass</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">);</span>
+
+        <span class="comment">// less_than is called whenever multi_pass::operator==() is invoked</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="comment">//   rhs:   is the multi_pass reference this instance is compared </span>
+        <span class="comment">//          to</span>
+        <span class="comment">//</span>
+        <span class="comment">// This function is expected to return true if the current instance</span>
+        <span class="comment">// is equal to the right hand side multi_pass instance</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">bool</span> <span class="identifier">equal_to</span><span class="special">(</span><span class="identifier">MultiPass</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">,</span> <span class="identifier">MultiPass</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+
+        <span class="comment">// less_than is called whenever multi_pass::operator&lt;() is invoked</span>
+        <span class="comment">//</span>
+        <span class="comment">//   mp:    is a reference to the whole multi_pass instance</span>
+        <span class="comment">//   rhs:   is the multi_pass reference this instance is compared </span>
+        <span class="comment">//          to</span>
+        <span class="comment">//</span>
+        <span class="comment">// This function is expected to return true if the current instance</span>
+        <span class="comment">// is less than the right hand side multi_pass instance</span>
+        <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">MultiPass</span><span class="special">&gt;</span>
+        <span class="keyword">static</span> <span class="keyword">bool</span> <span class="identifier">less_than</span><span class="special">(</span><span class="identifier">MultiPass</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">mp</span><span class="special">,</span> <span class="identifier">MultiPass</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">rhs</span><span class="special">);</span>
+    <span class="special">};</span>
+
+    <span class="comment">// Value is the same type as typename MultiPass::value_type</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Value</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">shared</span> <span class="special">{};</span>
+<span class="special">};</span>
+</pre>
+<p>
+        It is possible to derive the struct <code class="computeroutput"><span class="identifier">unique</span></code>
+        from the type <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">detail</span><span class="special">::</span><span class="identifier">default_storage_policy</span></code>. This type implements
+        a minimal sufficient interface for some of the required functions, simplifying
+        the task of writing a new storage policy.
+      </p>
+<p>
+        This class may implement a function <code class="computeroutput"><span class="identifier">destroy</span><span class="special">()</span></code> being called during destruction of the
+        last copy of a <code class="computeroutput"><span class="identifier">multi_pass</span></code>.
+        This function should be used to free any of the shared data items the policy
+        might have allocated during construction of its <code class="computeroutput"><span class="identifier">shared</span></code>
+        part. Because of the way <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+        is implemented any allocated data members in <code class="computeroutput"><span class="identifier">shared</span></code>
+        should <span class="underline">not</span> be deep copied in a copy
+        constructor of <code class="computeroutput"><span class="identifier">shared</span></code>.
+      </p>
+<p>
+        Generally, a <code class="computeroutput"><span class="identifier">StoragePolicy</span></code>
+        is the trickiest policy to implement. You should study and understand the
+        existing <code class="computeroutput"><span class="identifier">StoragePolicy</span></code> classes
+        before you try and write your own.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../support.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../support.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="line_pos_iterator.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

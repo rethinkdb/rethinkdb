@@ -1,0 +1,247 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Auto-unlink hooks</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../intrusive.html" title="Chapter&#160;15.&#160;Boost.Intrusive">
+<link rel="prev" href="safe_hook.html" title="Safe hooks">
+<link rel="next" href="slist.html" title="Intrusive singly linked list: slist">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="safe_hook.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="slist.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="intrusive.auto_unlink_hooks"></a><a class="link" href="auto_unlink_hooks.html" title="Auto-unlink hooks">Auto-unlink hooks</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="auto_unlink_hooks.html#intrusive.auto_unlink_hooks.auto_unlink_hooks_what">What's
+      an auto-unlink hook?</a></span></dt>
+<dt><span class="section"><a href="auto_unlink_hooks.html#intrusive.auto_unlink_hooks.auto_unlink_hooks_example">Auto-unlink
+      hook example</a></span></dt>
+<dt><span class="section"><a href="auto_unlink_hooks.html#intrusive.auto_unlink_hooks.auto_unlink_and_constant_time">Auto-unlink
+      hooks and containers with constant-time <code class="computeroutput"><span class="identifier">size</span><span class="special">()</span></code></a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.auto_unlink_hooks.auto_unlink_hooks_what"></a><a class="link" href="auto_unlink_hooks.html#intrusive.auto_unlink_hooks.auto_unlink_hooks_what" title="What's an auto-unlink hook?">What's
+      an auto-unlink hook?</a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Boost.Intrusive</strong></span> offers additional hooks
+        with unique features:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            When the destructor of the hook is called, the hook checks if the node
+            is inserted in a container. If so, the hook removes the node from the
+            container.
+          </li>
+<li class="listitem">
+            The hook has a member function called <code class="computeroutput"><span class="identifier">unlink</span><span class="special">()</span></code> that can be used to unlink the node
+            from the container at any time, without having any reference to the container,
+            if the user wants to do so.
+          </li>
+</ul></div>
+<p>
+        These hooks have exactly the same size overhead as their analog non auto-unlinking
+        hooks, but they have a restriction: they can only be used with <a class="link" href="presenting_containers.html" title="Presenting Boost.Intrusive containers">non-constant
+        time containers</a>. There is a reason for this:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Auto-unlink hooks don't store any reference to the container where they
+            are inserted.
+          </li>
+<li class="listitem">
+            Only containers with non constant-time <code class="computeroutput"><span class="identifier">size</span><span class="special">()</span></code> allow removing an object from the container
+            without referring to the container.
+          </li>
+</ul></div>
+<p>
+        This auto-unlink feature is useful in certain applications but it must be
+        used <span class="bold"><strong>very carefully</strong></span>:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            If several threads are using the same container the destructor of the
+            auto-unlink hook will be called without any thread synchronization so
+            removing the object is thread-unsafe.
+          </li>
+<li class="listitem">
+            Container contents change silently without modifying the container directly.
+            This can lead to surprising effects.
+          </li>
+</ul></div>
+<p>
+        These auto-unlink hooks have also safe-mode properties:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Hooks' constructors put the hook in a well-known default state.
+          </li>
+<li class="listitem">
+            Every time an object is inserted in the intrusive container, the container
+            checks if the hook is in the well-known default state. If not, an assertion
+            is raised.
+          </li>
+<li class="listitem">
+            Every time an object is erased from an intrusive container, the container
+            puts the erased object in the well-known default state.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.auto_unlink_hooks.auto_unlink_hooks_example"></a><a class="link" href="auto_unlink_hooks.html#intrusive.auto_unlink_hooks.auto_unlink_hooks_example" title="Auto-unlink hook example">Auto-unlink
+      hook example</a>
+</h3></div></div></div>
+<p>
+        Let's see an example of an auto-unlink hook:
+      </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">cassert</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="keyword">typedef</span> <span class="identifier">list_base_hook</span><span class="special">&lt;</span><span class="identifier">link_mode</span><span class="special">&lt;</span><span class="identifier">auto_unlink</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">auto_unlink_hook</span><span class="special">;</span>
+
+<span class="keyword">class</span> <span class="identifier">MyClass</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">auto_unlink_hook</span>
+               <span class="comment">//This hook removes the node in the destructor</span>
+<span class="special">{</span>
+   <span class="keyword">int</span> <span class="identifier">int_</span><span class="special">;</span>
+
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="identifier">MyClass</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span>   <span class="special">:</span>  <span class="identifier">int_</span><span class="special">(</span><span class="identifier">i</span><span class="special">)</span>  <span class="special">{}</span>
+   <span class="keyword">void</span> <span class="identifier">unlink</span><span class="special">()</span>     <span class="special">{</span>  <span class="identifier">auto_unlink_hook</span><span class="special">::</span><span class="identifier">unlink</span><span class="special">();</span>  <span class="special">}</span>
+   <span class="keyword">bool</span> <span class="identifier">is_linked</span><span class="special">()</span>  <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">auto_unlink_hook</span><span class="special">::</span><span class="identifier">is_linked</span><span class="special">();</span>  <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="comment">//Define a list that will store values using the base hook</span>
+<span class="comment">//The list can't have constant-time size!</span>
+<span class="keyword">typedef</span> <span class="identifier">list</span><span class="special">&lt;</span> <span class="identifier">MyClass</span><span class="special">,</span> <span class="identifier">constant_time_size</span><span class="special">&lt;</span><span class="keyword">false</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">List</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="comment">//Create the list</span>
+   <span class="identifier">List</span> <span class="identifier">l</span><span class="special">;</span>
+   <span class="special">{</span>
+      <span class="comment">//Create myclass and check it's linked</span>
+      <span class="identifier">MyClass</span> <span class="identifier">myclass</span><span class="special">;</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">myclass</span><span class="special">.</span><span class="identifier">is_linked</span><span class="special">()</span> <span class="special">==</span> <span class="keyword">false</span><span class="special">);</span>
+
+      <span class="comment">//Insert the object</span>
+      <span class="identifier">l</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">myclass</span><span class="special">);</span>
+
+      <span class="comment">//Check that we have inserted the object</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">empty</span><span class="special">()</span> <span class="special">==</span> <span class="keyword">false</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(&amp;</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">front</span><span class="special">()</span> <span class="special">==</span> <span class="special">&amp;</span><span class="identifier">myclass</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">myclass</span><span class="special">.</span><span class="identifier">is_linked</span><span class="special">()</span> <span class="special">==</span> <span class="keyword">true</span><span class="special">);</span>
+
+      <span class="comment">//Now myclass' destructor will unlink it</span>
+      <span class="comment">//automatically</span>
+   <span class="special">}</span>
+
+   <span class="comment">//Check auto-unlink has been executed</span>
+   <span class="identifier">assert</span><span class="special">(</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">empty</span><span class="special">()</span> <span class="special">==</span> <span class="keyword">true</span><span class="special">);</span>
+
+   <span class="special">{</span>
+      <span class="comment">//Now test the unlink() function</span>
+
+      <span class="comment">//Create myclass and check it's linked</span>
+      <span class="identifier">MyClass</span> <span class="identifier">myclass</span><span class="special">;</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">myclass</span><span class="special">.</span><span class="identifier">is_linked</span><span class="special">()</span> <span class="special">==</span> <span class="keyword">false</span><span class="special">);</span>
+
+      <span class="comment">//Insert the object</span>
+      <span class="identifier">l</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(</span><span class="identifier">myclass</span><span class="special">);</span>
+
+      <span class="comment">//Check that we have inserted the object</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">empty</span><span class="special">()</span> <span class="special">==</span> <span class="keyword">false</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(&amp;</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">front</span><span class="special">()</span> <span class="special">==</span> <span class="special">&amp;</span><span class="identifier">myclass</span><span class="special">);</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">myclass</span><span class="special">.</span><span class="identifier">is_linked</span><span class="special">()</span> <span class="special">==</span> <span class="keyword">true</span><span class="special">);</span>
+
+      <span class="comment">//Now unlink the node</span>
+      <span class="identifier">myclass</span><span class="special">.</span><span class="identifier">unlink</span><span class="special">();</span>
+
+      <span class="comment">//Check auto-unlink has been executed</span>
+      <span class="identifier">assert</span><span class="special">(</span><span class="identifier">l</span><span class="special">.</span><span class="identifier">empty</span><span class="special">()</span> <span class="special">==</span> <span class="keyword">true</span><span class="special">);</span>
+   <span class="special">}</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.auto_unlink_hooks.auto_unlink_and_constant_time"></a><a class="link" href="auto_unlink_hooks.html#intrusive.auto_unlink_hooks.auto_unlink_and_constant_time" title="Auto-unlink hooks and containers with constant-time size()">Auto-unlink
+      hooks and containers with constant-time <code class="computeroutput"><span class="identifier">size</span><span class="special">()</span></code></a>
+</h3></div></div></div>
+<p>
+        As explained, <span class="bold"><strong>Boost.Intrusive</strong></span> auto-unlink
+        hooks are incompatible with containers that have constant-time <code class="computeroutput"><span class="identifier">size</span><span class="special">()</span></code>,
+        so if you try to define such container with an auto-unlink hook's value_traits,
+        you will get a static assertion:
+      </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="keyword">struct</span> <span class="identifier">MyTag</span><span class="special">;</span>
+
+<span class="keyword">class</span> <span class="identifier">MyClass</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">list_base_hook</span><span class="special">&lt;</span> <span class="identifier">link_mode</span><span class="special">&lt;</span><span class="identifier">auto_unlink</span><span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">{/**/};</span>
+
+<span class="identifier">list</span> <span class="special">&lt;</span><span class="identifier">MyClass</span><span class="special">,</span> <span class="identifier">constant_time_size</span><span class="special">&lt;</span><span class="keyword">true</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">bad_list</span><span class="special">;</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="identifier">bad_list</span> <span class="identifier">list</span><span class="special">;</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        leads to an error similar to:
+      </p>
+<pre class="programlisting">error : use of undefined type 'boost::STATIC_ASSERTION_FAILURE&lt;false&gt;'
+</pre>
+<p>
+        Pointing to code like this:
+      </p>
+<pre class="programlisting"><span class="comment">//Constant-time size is incompatible with auto-unlink hooks!</span>
+<span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">(!(</span><span class="identifier">constant_time_size</span> <span class="special">&amp;&amp;</span> <span class="special">((</span><span class="keyword">int</span><span class="special">)</span><span class="identifier">value_traits</span><span class="special">::</span><span class="identifier">link_mode</span> <span class="special">==</span> <span class="special">(</span><span class="keyword">int</span><span class="special">)</span><span class="identifier">auto_unlink</span><span class="special">)));</span>
+</pre>
+<p>
+        This way, there is no way to compile a program if you try to use auto-unlink
+        hooks in constant-time size containers.
+      </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="safe_hook.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="slist.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

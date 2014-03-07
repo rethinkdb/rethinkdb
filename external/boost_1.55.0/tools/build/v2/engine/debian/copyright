@@ -1,0 +1,25 @@
+This package was debianized by Vladimir Prus <ghost@cs.msu.su> on
+Wed, 17 July 2002, 19:27:00 +0400.
+
+Copyright:
+
+    /+\
+    +\	Copyright 1993-2002 Christopher Seiwald and Perforce Software, Inc.
+    \+/
+
+    This is Release 2.4 of Jam/MR, a make-like program.
+
+    License is hereby granted to use this software and distribute it
+    freely, as long as this copyright notice is retained and modifications 
+    are clearly marked.
+
+    ALL WARRANTIES ARE HEREBY DISCLAIMED.
+
+Some portions are also:
+
+    Copyright 2001-2006 David Abrahams.
+    Copyright 2002-2006 Rene Rivera.
+    Copyright 2003-2006 Vladimir Prus.
+    
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)

@@ -1,0 +1,132 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:windows Windows-Specific Functionality]
+
+[link boost_asio.overview.windows.stream_handle Stream-Oriented HANDLEs]
+
+[link boost_asio.overview.windows.random_access_handle Random-Access HANDLEs]
+
+[link boost_asio.overview.windows.object_handle Object HANDLEs]
+
+[section:stream_handle Stream-Oriented HANDLEs]
+
+Boost.Asio contains classes to allow asynchronous read and write operations to be
+performed on Windows `HANDLE`s, such as named pipes.
+
+For example, to perform asynchronous operations on a named pipe, the following
+object may be created:
+
+  HANDLE handle = ::CreateFile(...);
+  windows::stream_handle pipe(my_io_service, handle);
+
+These are then used as synchronous or asynchronous read and write streams. This
+means the objects can be used with any of the [link boost_asio.reference.read
+read()], [link boost_asio.reference.async_read async_read()], [link
+boost_asio.reference.write write()], [link boost_asio.reference.async_write
+async_write()], [link boost_asio.reference.read_until read_until()] or [link
+boost_asio.reference.async_read_until async_read_until()] free functions.
+
+The kernel object referred to by the `HANDLE` must support use with I/O
+completion ports (which means that named pipes are supported, but anonymous
+pipes and console streams are not).
+
+[heading See Also]
+
+[link boost_asio.reference.windows__stream_handle windows::stream_handle],
+[link boost_asio.reference.windows__basic_stream_handle windows::basic_stream_handle],
+[link boost_asio.reference.windows__stream_handle_service windows::stream_handle_service].
+
+[heading Notes]
+
+Windows stream `HANDLE`s are only available at compile time when targeting
+Windows and only when the I/O completion port backend is used (which is the
+default). A program may test for the macro `BOOST_ASIO_HAS_WINDOWS_STREAM_HANDLE` to
+determine whether they are supported.
+
+[endsect]
+
+[/-----------------------------------------------------------------------------]
+
+[section:random_access_handle Random-Access HANDLEs]
+
+Boost.Asio provides Windows-specific classes that permit asynchronous read and write
+operations to be performed on HANDLEs that refer to regular files.
+
+For example, to perform asynchronous operations on a file the following object
+may be created:
+
+  HANDLE handle = ::CreateFile(...);
+  windows::random_access_handle file(my_io_service, handle);
+
+Data may be read from or written to the handle using one of the
+`read_some_at()`, `async_read_some_at()`, `write_some_at()` or
+`async_write_some_at()` member functions. However, like the equivalent
+functions (`read_some()`, etc.) on streams, these functions are only required
+to transfer one or more bytes in a single operation. Therefore free functions
+called [link boost_asio.reference.read_at read_at()], [link
+boost_asio.reference.async_read_at async_read_at()], [link boost_asio.reference.write_at
+write_at()] and [link boost_asio.reference.async_write_at async_write_at()] have been
+created to repeatedly call the corresponding [^[**]_some_at()] function until
+all data has been transferred.
+
+[heading See Also]
+
+[link boost_asio.reference.windows__random_access_handle windows::random_access_handle],
+[link boost_asio.reference.windows__basic_random_access_handle windows::basic_random_access_handle],
+[link boost_asio.reference.windows__random_access_handle_service windows::random_access_handle_service].
+
+[heading Notes]
+
+Windows random-access `HANDLE`s are only available at compile time when
+targeting Windows and only when the I/O completion port backend is used (which
+is the default). A program may test for the macro
+`BOOST_ASIO_HAS_WINDOWS_RANDOM_ACCESS_HANDLE` to determine whether they are
+supported.
+
+[endsect]
+
+[/-----------------------------------------------------------------------------]
+
+[section:object_handle Object HANDLEs]
+
+Boost.Asio provides Windows-specific classes that permit asynchronous wait operations
+to be performed on HANDLEs to kernel objects of the following types:
+
+* Change notification
+* Console input
+* Event
+* Memory resource notification
+* Process
+* Semaphore
+* Thread
+* Waitable timer
+
+For example, to perform asynchronous operations on an event, the following
+object may be created:
+
+  HANDLE handle = ::CreateEvent(...);
+  windows::object_handle file(my_io_service, handle);
+
+The `wait()` and `async_wait()` member functions may then be used to wait until
+the kernel object is signalled.
+
+[heading See Also]
+
+[link boost_asio.reference.windows__object_handle windows::object_handle],
+[link boost_asio.reference.windows__basic_object_handle windows::basic_object_handle],
+[link boost_asio.reference.windows__object_handle_service windows::object_handle_service].
+
+[heading Notes]
+
+Windows object `HANDLE`s are only available at compile time when targeting
+Windows. Programs may test for the macro `BOOST_ASIO_HAS_WINDOWS_OBJECT_HANDLE` to
+determine whether they are supported.
+
+[endsect]
+
+[endsect]

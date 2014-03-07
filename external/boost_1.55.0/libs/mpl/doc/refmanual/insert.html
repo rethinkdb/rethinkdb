@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: insert</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./has-key.html" class="navigation-link">Prev</a>&nbsp;<a href="./insert-range.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./has-key.html" class="navigation-link">Back</a>&nbsp;<a href="./insert-range.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./intrinsic-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./sequences.html" class="navigation-link">Sequences</a> / <a href="./intrinsic-metafunctions.html" class="navigation-link">Intrinsic Metafunctions</a> / <a href="./insert.html" class="navigation-link">insert</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="insert">
+<h1><a class="toc-backref" href="./intrinsic-metafunctions.html#id1436">insert</a></h1>
+<div class="section" id="id274">
+<h3><a class="subsection-title" href="#synopsis" name="synopsis">Synopsis</a></h3>
+<pre class="literal-block">
+template&lt;
+      typename Sequence
+    , typename Pos
+    , typename T
+    &gt;
+struct <a href="./insert.html" class="identifier">insert</a>
+{
+    typedef <em>unspecified</em> type;
+};
+
+
+template&lt;
+      typename Sequence
+    , typename T
+    &gt;
+struct <a href="./insert.html" class="identifier">insert</a>
+{
+    typedef <em>unspecified</em> type;
+};
+</pre>
+</div>
+<div class="section" id="id275">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p><tt class="literal"><span class="pre"><a href="./insert.html" class="identifier">insert</a></span></tt> is an <a class="reference internal" href="./terminology.html#overloaded-name">overloaded name</a>:</p>
+<ul class="simple">
+<li><tt class="literal"><span class="pre"><a href="./insert.html" class="identifier">insert</a>&lt;Sequence,Pos,T&gt;</span></tt> performs an insertion of
+type <tt class="literal"><span class="pre">T</span></tt> at an arbitrary position <tt class="literal"><span class="pre">Pos</span></tt> in <tt class="literal"><span class="pre">Sequence</span></tt>. <tt class="literal"><span class="pre">Pos</span></tt> is ignored is
+<tt class="literal"><span class="pre">Sequence</span></tt> is a model of <a class="reference internal" href="./extensible-associative-sequence.html">Extensible Associative Sequence</a>.</li>
+<li><tt class="literal"><span class="pre"><a href="./insert.html" class="identifier">insert</a>&lt;Sequence,T&gt;</span></tt> is a shortcut notation for <tt class="literal"><span class="pre"><a href="./insert.html" class="identifier">insert</a>&lt;Sequence,Pos,T&gt;</span></tt> for the
+case when <tt class="literal"><span class="pre">Sequence</span></tt> is a model of <a class="reference internal" href="./extensible-associative-sequence.html">Extensible Associative Sequence</a>.</li>
+</ul>
+</div>
+<div class="section" id="id276">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/insert.hpp" class="header">boost/mpl/insert.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id277">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./tag-dispatched-metafunction.html">Tag Dispatched Metafunction</a></p>
+</div>
+<div class="section" id="id278">
+<h3><a class="subsection-title" href="#parameters" name="parameters">Parameters</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="15%" />
+<col width="36%" />
+<col width="48%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Requirement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="literal"><span class="pre">Sequence</span></tt></td>
+<td><a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a> or
+<a class="reference internal" href="./extensible-associative-sequence.html">Extensible Associative Sequence</a></td>
+<td>A sequence to insert into.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">Pos</span></tt></td>
+<td><a class="reference internal" href="./forward-iterator.html">Forward Iterator</a></td>
+<td>An iterator in <tt class="literal"><span class="pre">Sequence</span></tt> specifying the
+insertion position.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre">T</span></tt></td>
+<td>Any type</td>
+<td>The element to be inserted.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id279">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<div class="expression-semantics compound">
+<p class="compound-first">For any <a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a> <tt class="literal"><span class="pre">s</span></tt>, iterator <tt class="literal"><span class="pre">pos</span></tt> in <tt class="literal"><span class="pre">s</span></tt>, and arbitrary type <tt class="literal"><span class="pre">x</span></tt>:</p>
+<pre class="compound-middle literal-block">
+typedef <a href="./insert.html" class="identifier">insert</a>&lt;s,pos,x&gt;::type r;
+</pre>
+<table class="compound-last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a></p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><p class="first"><tt class="literal"><span class="pre">pos</span></tt> is an iterator in <tt class="literal"><span class="pre">s</span></tt>.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><p class="first"><tt class="literal"><span class="pre">r</span></tt> is a sequence, <a class="reference internal" href="./terminology.html#concept-identical">concept-identical</a> to <tt class="literal"><span class="pre">s</span></tt>, of the following elements:
+[<tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;s&gt;::type</span></tt>, <tt class="literal"><span class="pre">pos</span></tt>), <tt class="literal"><span class="pre">x</span></tt>, [<tt class="literal"><span class="pre">pos</span></tt>, <tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;s&gt;::type</span></tt>).</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Postcondition:</th><td class="field-body"><p class="first">The relative order of the elements in <tt class="literal"><span class="pre">r</span></tt> is the same as in <tt class="literal"><span class="pre">s</span></tt>.</p>
+<pre class="literal-block">
+<a href="./at.html" class="identifier">at</a>&lt; r, <a href="./distance.html" class="identifier">distance</a>&lt; <a href="./begin.html" class="identifier">begin</a>&lt;s&gt;::type,pos &gt;::type &gt;::type
+</pre>
+<p>is identical to <tt class="literal"><span class="pre">x</span></tt>;</p>
+<pre class="last literal-block">
+<a href="./size.html" class="identifier">size</a>&lt;r&gt;::value == <a href="./size.html" class="identifier">size</a>&lt;s&gt;::value + 1;
+</pre>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="expression-semantics compound">
+<p class="compound-first">For any <a class="reference internal" href="./extensible-associative-sequence.html">Extensible Associative Sequence</a> <tt class="literal"><span class="pre">s</span></tt>, iterator <tt class="literal"><span class="pre">pos</span></tt> in <tt class="literal"><span class="pre">s</span></tt>,
+and arbitrary type <tt class="literal"><span class="pre">x</span></tt>:</p>
+<pre class="compound-middle literal-block">
+typedef <a href="./insert.html" class="identifier">insert</a>&lt;s,x&gt;::type r;
+</pre>
+<table class="compound-middle docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="./extensible-associative-sequence.html">Extensible Associative Sequence</a></td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body"><tt class="literal"><span class="pre">r</span></tt> is <a class="reference internal" href="./terminology.html#concept-identical">concept-identical</a> and equivalent to <tt class="literal"><span class="pre">s</span></tt>, except that
+<tt class="literal"><span class="pre"><a href="./at.html" class="identifier">at</a>&lt;</span> <span class="pre">r,</span> <span class="pre"><a href="./key-type.html" class="identifier">key_type</a>&lt;s,x&gt;::type</span> <span class="pre">&gt;::type</span></tt> is identical to <tt class="literal"><span class="pre"><a href="./value-type.html" class="identifier">value_type</a>&lt;s,x&gt;::type</span></tt>.</td>
+</tr>
+<tr class="field"><th class="field-name">Postcondition:</th><td class="field-body"><tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;r&gt;::value</span> <span class="pre">==</span> <span class="pre"><a href="./size.html" class="identifier">size</a>&lt;s&gt;::value</span> <span class="pre">+</span> <span class="pre">1</span></tt>.</td>
+</tr>
+</tbody>
+</table>
+<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+<pre class="compound-middle literal-block">
+typedef <a href="./insert.html" class="identifier">insert</a>&lt;s,pos,x&gt;::type r;
+</pre>
+<table class="compound-last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="./extensible-associative-sequence.html">Extensible Associative Sequence</a></td>
+</tr>
+<tr class="field"><th class="field-name">Precondition:</th><td class="field-body"><tt class="literal"><span class="pre">pos</span></tt> is an iterator in <tt class="literal"><span class="pre">s</span></tt>.</td>
+</tr>
+<tr class="field"><th class="field-name">Semantics:</th><td class="field-body">Equivalent to <tt class="literal"><span class="pre">typedef</span> <span class="pre"><a href="./insert.html" class="identifier">insert</a>&lt;s,x&gt;::type</span> <span class="pre">r</span></tt>; <tt class="literal"><span class="pre">pos</span></tt> is ignored.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="id280">
+<h3><a class="subsection-title" href="#complexity" name="complexity">Complexity</a></h3>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="45%" />
+<col width="55%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Sequence archetype</th>
+<th class="head">Complexity</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><a class="reference internal" href="./extensible-associative-sequence.html">Extensible Associative Sequence</a></td>
+<td>Amortized constant time.</td>
+</tr>
+<tr><td><a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a></td>
+<td>Linear in the worst case, or amortized
+constant time.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id281">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./vector-c.html" class="identifier">vector_c</a>&lt;int,0,1,3,4,5,6,7,8,9&gt; numbers;
+typedef <a href="./find.html" class="identifier">find</a>&lt; numbers,<a href="./integral-c.html" class="identifier">integral_c</a>&lt;int,3&gt; &gt;::type pos;
+typedef <a href="./insert.html" class="identifier">insert</a>&lt; numbers,pos,<a href="./integral-c.html" class="identifier">integral_c</a>&lt;int,2&gt; &gt;::type range;
+
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./size.html" class="identifier">size</a>&lt;range&gt;::value, ==, 10 );
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( <a href="./equal.html" class="identifier">equal</a>&lt; range,<a href="./range-c.html" class="identifier">range_c</a>&lt;int,0,10&gt; > ));
+</pre>
+<pre class="literal-block">
+typedef <a href="./map.html" class="identifier">map</a>&lt; mpl::<a href="./pair.html" class="identifier">pair</a>&lt;int,unsigned&gt; &gt; m;
+typedef <a href="./insert.html" class="identifier">insert</a>&lt;m,mpl::<a href="./pair.html" class="identifier">pair</a>&lt;char,long&gt; &gt;::type m1;
+
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./size.html" class="identifier">size</a>&lt;m1&gt;::value, ==, 2 );
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; <a href="./at.html" class="identifier">at</a>&lt;m1,int&gt;::type,unsigned &gt; ));
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; <a href="./at.html" class="identifier">at</a>&lt;m1,char&gt;::type,long > ));
+</pre>
+</div>
+<div class="section" id="id282">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a>, <a class="reference internal" href="./extensible-associative-sequence.html">Extensible Associative Sequence</a>, <a class="reference internal" href="./insert-range.html">insert_range</a>, <a class="reference internal" href="./push-front.html">push_front</a>, <a class="reference internal" href="./push-back.html">push_back</a>, <a class="reference internal" href="./erase.html">erase</a></p>
+<!-- Sequences/Intrinsic Metafunctions//insert_range -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./has-key.html" class="navigation-link">Prev</a>&nbsp;<a href="./insert-range.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./has-key.html" class="navigation-link">Back</a>&nbsp;<a href="./insert-range.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./intrinsic-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

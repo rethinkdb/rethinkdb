@@ -1,0 +1,294 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Warming up</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../tutorials.html" title="Tutorials">
+<link rel="prev" href="quick_start.html" title="Quick Start">
+<link rel="next" href="semantic_actions.html" title="Parser Semantic Actions">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="quick_start.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="semantic_actions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit.qi.tutorials.warming_up"></a><a class="link" href="warming_up.html" title="Warming up">Warming up</a>
+</h4></div></div></div>
+<p>
+          We'll start by showing examples of parser expressions to give you a feel
+          on how to build parsers from the simplest parser, building up as we go.
+          When comparing EBNF to <a href="http://boost-spirit.com" target="_top">Spirit</a>,
+          the expressions may seem awkward at first. <a href="http://boost-spirit.com" target="_top">Spirit</a>
+          heavily uses operator overloading to accomplish its magic.
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.warming_up.h0"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.warming_up.trivial_example__1_parsing_a_number"></a></span><a class="link" href="warming_up.html#spirit.qi.tutorials.warming_up.trivial_example__1_parsing_a_number">Trivial
+          Example #1 Parsing a number</a>
+        </h6>
+<p>
+          Create a parser that will parse a floating-point number.
+        </p>
+<pre class="programlisting"><span class="identifier">double_</span>
+</pre>
+<p>
+          (You've got to admit, that's trivial!) The above code actually generates
+          a Spirit floating point parser (a built-in parser). Spirit has many pre-defined
+          parsers and consistent naming conventions help you keep from going insane!
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.warming_up.h1"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.warming_up.trivial_example__2_parsing_two_numbers"></a></span><a class="link" href="warming_up.html#spirit.qi.tutorials.warming_up.trivial_example__2_parsing_two_numbers">Trivial
+          Example #2 Parsing two numbers</a>
+        </h6>
+<p>
+          Create a parser that will accept a line consisting of two floating-point
+          numbers.
+        </p>
+<pre class="programlisting"><span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="identifier">double_</span>
+</pre>
+<p>
+          Here you see the familiar floating-point numeric parser <code class="computeroutput"><span class="identifier">double_</span></code>
+          used twice, once for each number. What's that <code class="computeroutput"><span class="special">&gt;&gt;</span></code>
+          operator doing in there? Well, they had to be separated by something, and
+          this was chosen as the "followed by" sequence operator. The above
+          program creates a parser from two simpler parsers, glueing them together
+          with the sequence operator. The result is a parser that is a composition
+          of smaller parsers. Whitespace between numbers can implicitly be consumed
+          depending on how the parser is invoked (see below).
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            When we combine parsers, we end up with a "bigger" parser,
+            but it's still a parser. Parsers can get bigger and bigger, nesting more
+            and more, but whenever you glue two parsers together, you end up with
+            one bigger parser. This is an important concept.
+          </p></td></tr>
+</table></div>
+<h6>
+<a name="spirit.qi.tutorials.warming_up.h2"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.warming_up.trivial_example__3_parsing_zero_or_more_numbers"></a></span><a class="link" href="warming_up.html#spirit.qi.tutorials.warming_up.trivial_example__3_parsing_zero_or_more_numbers">Trivial
+          Example #3 Parsing zero or more numbers</a>
+        </h6>
+<p>
+          Create a parser that will accept zero or more floating-point numbers.
+        </p>
+<pre class="programlisting"><span class="special">*</span><span class="identifier">double_</span>
+</pre>
+<p>
+          This is like a regular-expression Kleene Star, though the syntax might
+          look a bit odd for a C++ programmer not used to seeing the <code class="computeroutput"><span class="special">*</span></code> operator overloaded like this. Actually,
+          if you know regular expressions it may look odd too since the star is before
+          the expression it modifies. C'est la vie. Blame it on the fact that we
+          must work with the syntax rules of C++.
+        </p>
+<p>
+          Any expression that evaluates to a parser may be used with the Kleene Star.
+          Keep in mind that C++ operator precedence rules may require you to put
+          expressions in parentheses for complex expressions. The Kleene Star is
+          also known as a Kleene Closure, but we call it the Star in most places.
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.warming_up.h3"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.warming_up.trivial_example__4_parsing_a_comma_delimited_list_of_numbers"></a></span><a class="link" href="warming_up.html#spirit.qi.tutorials.warming_up.trivial_example__4_parsing_a_comma_delimited_list_of_numbers">Trivial
+          Example #4 Parsing a comma-delimited list of numbers</a>
+        </h6>
+<p>
+          This example will create a parser that accepts a comma-delimited list of
+          numbers.
+        </p>
+<pre class="programlisting"><span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="identifier">char_</span><span class="special">(</span><span class="char">','</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="identifier">double_</span><span class="special">)</span>
+</pre>
+<p>
+          Notice <code class="computeroutput"><span class="identifier">char_</span><span class="special">(</span><span class="char">','</span><span class="special">)</span></code>. It is
+          a literal character parser that can recognize the comma <code class="computeroutput"><span class="char">','</span></code>.
+          In this case, the Kleene Star is modifying a more complex parser, namely,
+          the one generated by the expression:
+        </p>
+<pre class="programlisting"><span class="special">(</span><span class="identifier">char_</span><span class="special">(</span><span class="char">','</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="identifier">double_</span><span class="special">)</span>
+</pre>
+<p>
+          Note that this is a case where the parentheses are necessary. The Kleene
+          star encloses the complete expression above.
+        </p>
+<h6>
+<a name="spirit.qi.tutorials.warming_up.h4"></a>
+          <span class="phrase"><a name="spirit.qi.tutorials.warming_up.let_s_parse_"></a></span><a class="link" href="warming_up.html#spirit.qi.tutorials.warming_up.let_s_parse_">Let's
+          Parse!</a>
+        </h6>
+<p>
+          We're done with defining the parser. So the next step is now invoking this
+          parser to do its work. There are a couple of ways to do this. For now,
+          we will use the <code class="computeroutput"><span class="identifier">phrase_parse</span></code>
+          function. One overload of this function accepts four arguments:
+        </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+              An iterator pointing to the start of the input
+            </li>
+<li class="listitem">
+              An iterator pointing to one past the end of the input
+            </li>
+<li class="listitem">
+              The parser object
+            </li>
+<li class="listitem">
+              Another parser called the skip parser
+            </li>
+</ol></div>
+<p>
+          In our example, we wish to skip spaces and tabs. Another parser named
+          <code class="computeroutput"><span class="identifier">space</span></code> is included in Spirit's
+          repertoire of predefined parsers. It is a very simple parser that simply
+          recognizes whitespace. We will use <code class="computeroutput"><span class="identifier">space</span></code>
+          as our skip parser. The skip parser is the one responsible for skipping
+          characters in between parser elements such as the <code class="computeroutput"><span class="identifier">double_</span></code>
+          and <code class="computeroutput"><span class="identifier">char_</span></code>.
+        </p>
+<p>
+          Ok, so now let's parse!
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">&gt;</span>
+<span class="keyword">bool</span> <span class="identifier">parse_numbers</span><span class="special">(</span><span class="identifier">Iterator</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iterator</span> <span class="identifier">last</span><span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">double_</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">qi</span><span class="special">::</span><span class="identifier">phrase_parse</span><span class="special">;</span>
+    <span class="keyword">using</span> <span class="identifier">ascii</span><span class="special">::</span><span class="identifier">space</span><span class="special">;</span>
+
+    <span class="keyword">bool</span> <span class="identifier">r</span> <span class="special">=</span> <span class="identifier">phrase_parse</span><span class="special">(</span>
+        <span class="identifier">first</span><span class="special">,</span>                          <a class="co" name="spirit.qi.tutorials.warming_up.c0" href="warming_up.html#spirit.qi.tutorials.warming_up.c1"><img src="../../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a>
+        <span class="identifier">last</span><span class="special">,</span>                           <a class="co" name="spirit.qi.tutorials.warming_up.c2" href="warming_up.html#spirit.qi.tutorials.warming_up.c3"><img src="../../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a>
+        <span class="identifier">double_</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="char">','</span> <span class="special">&gt;&gt;</span> <span class="identifier">double_</span><span class="special">),</span>   <a class="co" name="spirit.qi.tutorials.warming_up.c4" href="warming_up.html#spirit.qi.tutorials.warming_up.c5"><img src="../../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a>
+        <span class="identifier">space</span>                           <a class="co" name="spirit.qi.tutorials.warming_up.c6" href="warming_up.html#spirit.qi.tutorials.warming_up.c7"><img src="../../../../../../../doc/src/images/callouts/4.png" alt="4" border="0"></a>
+    <span class="special">);</span>
+    <span class="keyword">if</span> <span class="special">(</span><span class="identifier">first</span> <span class="special">!=</span> <span class="identifier">last</span><span class="special">)</span> <span class="comment">// fail if we did not get a full match</span>
+        <span class="keyword">return</span> <span class="keyword">false</span><span class="special">;</span>
+    <span class="keyword">return</span> <span class="identifier">r</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        </p>
+<div class="calloutlist"><table border="0" summary="Callout list">
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="spirit.qi.tutorials.warming_up.c1"></a><a href="#spirit.qi.tutorials.warming_up.c0"><img src="../../../../../../../doc/src/images/callouts/1.png" alt="1" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              start iterator
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="spirit.qi.tutorials.warming_up.c3"></a><a href="#spirit.qi.tutorials.warming_up.c2"><img src="../../../../../../../doc/src/images/callouts/2.png" alt="2" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              end iterator
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="spirit.qi.tutorials.warming_up.c5"></a><a href="#spirit.qi.tutorials.warming_up.c4"><img src="../../../../../../../doc/src/images/callouts/3.png" alt="3" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              the parser
+            </p></td>
+</tr>
+<tr>
+<td width="5%" valign="top" align="left"><p><a name="spirit.qi.tutorials.warming_up.c7"></a><a href="#spirit.qi.tutorials.warming_up.c6"><img src="../../../../../../../doc/src/images/callouts/4.png" alt="4" border="0"></a> </p></td>
+<td valign="top" align="left"><p>
+              the skip-parser
+            </p></td>
+</tr>
+</table></div>
+<p>
+          The parse function returns <code class="computeroutput"><span class="keyword">true</span></code>
+          or <code class="computeroutput"><span class="keyword">false</span></code> depending on the
+          result of the parse. The first iterator is passed by reference. On a successful
+          parse, this iterator is repositioned to the rightmost position consumed
+          by the parser. If this becomes equal to <code class="computeroutput"><span class="identifier">last</span></code>,
+          then we have a full match. If not, then we have a partial match. A partial
+          match happens when the parser is only able to parse a portion of the input.
+        </p>
+<p>
+          Note that we inlined the parser directly in the call to parse. Upon calling
+          parse, the expression evaluates into a temporary, unnamed parser which
+          is passed into the parse() function, used, and then destroyed.
+        </p>
+<p>
+          Here, we opted to make the parser generic by making it a template, parameterized
+          by the iterator type. By doing so, it can take in data coming from any
+          STL conforming sequence as long as the iterators conform to a forward iterator.
+        </p>
+<p>
+          You can find the full cpp file here: <a href="../../../../../example/qi/num_list1.cpp" target="_top">../../example/qi/num_list1.cpp</a>
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+            <code class="computeroutput"><span class="keyword">char</span></code> and <code class="computeroutput"><span class="keyword">wchar_t</span></code>
+            operands
+          </p>
+<p>
+            The careful reader may notice that the parser expression has <code class="computeroutput"><span class="char">','</span></code> instead of <code class="computeroutput"><span class="identifier">char_</span><span class="special">(</span><span class="char">','</span><span class="special">)</span></code>
+            as the previous examples did. This is ok due to C++ syntax rules of conversion.
+            There are <code class="computeroutput"><span class="special">&gt;&gt;</span></code> operators
+            that are overloaded to accept a <code class="computeroutput"><span class="keyword">char</span></code>
+            or <code class="computeroutput"><span class="keyword">wchar_t</span></code> argument on its
+            left or right (but not both). An operator may be overloaded if at least
+            one of its parameters is a user-defined type. In this case, the <code class="computeroutput"><span class="identifier">double_</span></code> is the 2nd argument to <code class="computeroutput"><span class="keyword">operator</span><span class="special">&gt;&gt;</span></code>,
+            and so the proper overload of <code class="computeroutput"><span class="special">&gt;&gt;</span></code>
+            is used, converting <code class="computeroutput"><span class="char">','</span></code> into
+            a character literal parser.
+          </p>
+<p>
+            The problem with omitting the <code class="computeroutput"><span class="identifier">char_</span></code>
+            should be obvious: <code class="computeroutput"><span class="char">'a'</span> <span class="special">&gt;&gt;</span>
+            <span class="char">'b'</span></code> is not a spirit parser, it is
+            a numeric expression, right-shifting the ASCII (or another encoding)
+            value of <code class="computeroutput"><span class="char">'a'</span></code> by the ASCII value
+            of <code class="computeroutput"><span class="char">'b'</span></code>. However, both <code class="computeroutput"><span class="identifier">char_</span><span class="special">(</span><span class="char">'a'</span><span class="special">)</span> <span class="special">&gt;&gt;</span>
+            <span class="char">'b'</span></code> and <code class="computeroutput"><span class="char">'a'</span>
+            <span class="special">&gt;&gt;</span> <span class="identifier">char_</span><span class="special">(</span><span class="char">'b'</span><span class="special">)</span></code>
+            are Spirit sequence parsers for the letter <code class="computeroutput"><span class="char">'a'</span></code>
+            followed by <code class="computeroutput"><span class="char">'b'</span></code>. You'll get
+            used to it, sooner or later.
+          </p>
+</td></tr>
+</table></div>
+<p>
+          Finally, take note that we test for a full match (i.e. the parser fully
+          parsed the input) by checking if the first iterator, after parsing, is
+          equal to the end iterator. You may strike out this part if partial matches
+          are to be allowed.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="quick_start.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tutorials.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="semantic_actions.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,353 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:rules Predefined Expressions and Rules]
+
+This section is the "behind the scenes" counter part of the __phoenix_modules__
+section. A listing of all the predefined expressions and rules:
+
+[table
+ [[Expression] [Rule] []]
+ [[`expression::value<T>`]     [``
+rule::value
+    : expression::value<proto::_>
+``]]
+ [[`expression::reference<T>`] [``
+rule::custom_terminal
+``]]
+ [[`expression::argument<N>`]  [``rule::argument``]]
+ [[`expression::null`]         [``rule::custom_terminal``]]
+ [[`expression::function<F, A0, ..., AN>`] [``
+rule::function
+    : expression::function<vararg<meta_grammar> >
+``]]
+ [[`expression::negate<A0>`]     [``
+rule::negate
+    : expression::negate<meta_grammar>
+``]]
+ [[`expression::unary_plus<A0>`] [``
+rule::negate
+    : expression::unary_plus<meta_grammar>
+``]]
+ [[`expression::pre_inc<A0>`]    [``
+rule::negate
+    : expression::pre_inc<meta_grammar>
+``]]
+ [[`expression::pre_dec<A0>`]    [``
+rule::negate
+    : expression::pre_dec<meta_grammar>
+``]]
+ [[`expression::post_inc<A0>`]   [``
+rule::negate
+    : expression::post_inc<meta_grammar>
+``]]
+ [[`expression::post_dec<A0>`]   [``
+rule::negate
+    : expression::post_dec<meta_grammar>
+``]]
+ [[`expression::plus_assign<Lhs, Rhs>`] [
+``
+rule::plus_assign
+    : expression::plus_assign<meta_grammar, meta_grammar>
+``]]
+ [[`expression::minus_assign<Lhs, Rhs>`] [``
+rule::minus_assign
+    : expression::minus_assign<meta_grammar, meta_grammar>
+``]]
+ [[`expression::multiplies_assign<Lhs, Rhs>`] [``
+rule::multiplies_assign
+    : expression::multiplies_assign<meta_grammar, meta_grammar>
+``]]
+ [[`expression::divides_assign<Lhs, Rhs>`] [``
+rule::divides_assign
+    : expression::divides_assign<meta_grammar, meta_grammar>
+``]]
+ [[`expression::modules_assign<Lhs, Rhs>`] [``
+rule::modules_assign
+    : expression::modules_assign<meta_grammar, meta_grammar>
+``]]
+ [[`expression::plus<Lhs, Rhs>`] [``
+rule::plus
+    : expression::plus<meta_grammar, meta_grammar>
+``]]
+ [[`expression::minus<Lhs, Rhs>`] [``
+rule::minus
+    : expression::minus<meta_grammar, meta_grammar>
+``]]
+ [[`expression::multiplies<Lhs, Rhs>`] [
+``
+rule::multiplies
+    : expression::multiplies<meta_grammar, meta_grammar>
+``]]
+ [[`expression::divides<Lhs, Rhs>`] [``
+rule::divides
+    : expression::divides<meta_grammar, meta_grammar>
+``]]
+ [[`expression::modulus<Lhs, Rhs>`] [``
+rule::modulus
+    : expression::modulus<meta_grammar, meta_grammar>
+``]]
+ [[`expression::complement<A0>`] [``
+rule::complement
+    : expression::complement<A0>
+``]]
+ [[`expression::bitwise_and_assign<Lhs, Rhs>`] [``
+rule::bitwise_and_assign
+    : expression::bitwise_and_assign<meta_grammar, meta_grammar>
+``]]
+ [[`expression::bitwise_or_assign<Lhs, Rhs>`]  [``
+rule::bitwise_or_assign
+    : expression::bitwise_or_assign<meta_grammar, meta_grammar>
+``] ]
+ [[`expression::bitwise_xor_assign<Lhs, Rhs>`] [``
+rule::bitwise_xor_assign
+    : expression::bitwise_xor_assign<meta_grammar, meta_grammar>
+``]]
+ [[`expression::shift_left_assign<Lhs, Rhs>`]  [``
+rule::shift_left_assign
+    : expression::shift_left_assign<meta_grammar, meta_grammar>
+``] ]
+ [[`expression::shift_right_assign<Lhs, Rhs>`] [``
+rule::shift_right_assign
+    : expression::shift_right_assign<meta_grammar, meta_grammar>
+``]]
+ [[`expression::bitwise_and<Lhs, Rhs>`]        [``
+rule::bitwise_and
+    : expression::bitwise_and<meta_grammar, meta_grammar>
+``]]
+ [[`expression::bitwise_or<Lhs, Rhs>`]         [``
+rule::bitwise_or
+    : expression::bitwise_or<meta_grammar, meta_grammar>
+``]]
+ [[`expression::bitwise_xor<Lhs, Rhs>`]        [``
+rule::bitwise_xor
+    : expression::bitwise_xor<meta_grammar, meta_grammar>
+``]]
+ [[`expression::shift_left<Lhs, Rhs>`]         [``
+rule::shift_left
+    : expression::shift_left<meta_grammar, meta_grammar>
+``]]
+ [[`expression::shift_right<Lhs, Rhs>`]        [``
+rule::shift_right
+    : expression::shift_right<meta_grammar, meta_grammar>
+``]]
+ [[`expression::equal_to<Lhs, Rhs>`]           [``
+rule::equal_to
+    : expression::equal_to<meta_grammar, meta_grammar>
+``]]
+ [[`expression::not_equal_to<Lhs, Rhs>`]       [``
+rule::not_equal_to
+    : expression::not_equal_to<meta_grammar, meta_grammar>
+``]]
+ [[`expression::less_equal_to<Lhs, Rhs>`]      [``
+rule::less_equal_to
+    : expression::less_equal_to<meta_grammar, meta_grammar>
+``]]
+ [[`expression::greater_equal<Lhs, Rhs>`]      [``
+rule::greater_equal
+    : expression::greater_equal<meta_grammar, meta_grammar>
+``]]
+ [[`expression::less<Lhs, Rhs>`]               [``
+rule::less
+    : expression::less<meta_grammar, meta_grammar>
+``]]
+ [[`expression::greater<Lhs, Rhs>`]            [``
+rule::greater
+    : expression::greater<meta_grammar, meta_grammar>
+``]]
+ [[`expression::if_else_operator<Cond, Then, Else>`] [``
+rule::if_else
+    : expression::if_else<meta_grammar, meta_grammar, meta_grammar>
+``]]
+ [[`expression::logical_not<A0>`] [``
+rule::logical_not
+    : expression::logical_not<meta_grammar>
+``]]
+ [[`expression::logical_and<Lhs, Rhs>`] [``
+rule::logical_and
+    : expression::logical_and<meta_grammar, meta_grammar>
+``]]
+ [[`expression::logical_or<Lhs, Rhs>`] [``
+rule::logical_or
+    : expression::logical_or<meta_grammar, meta_grammar>
+``]]
+ [[`expression::mem_fun_ptr<Object, MemPtr, A0, ..., AN>`] [``
+rule::mem_fun_ptr
+    : expression::mem_fun_ptr<meta_grammar, meta_grammar, vararg<meta_grammar> >
+``]]
+ [[`expression::address_of<A0>`] [``
+rule::address_of
+    : expression::address_of<meta_grammar>
+``]]
+ [[`expression::dereference<A0>`] [``
+rule::dereference
+    : expression::dereference<meta_grammar>
+``]]
+ [[`expression::assign<Lhs, Rhs>`] [``
+rule::assign
+    : expression::assign<meta_grammar, meta_grammar>
+``]]
+ [[`expression::subscript<Lhs, Rhs>`] [``
+rule::subscript 
+    : expression::subscript<meta_grammar, meta_grammar>
+``]]
+ [[`expression::sequence<A0, A1>`] [``
+rule::sequence
+    : expression::sequence<meta_grammar, meta_grammar>
+``]]
+ [[`expression::if_<Cond, Then>`] [``
+rule::if_
+    : expression::if_<meta_grammar, meta_grammar>
+``]]
+ [[`expression::if_else_statement<Cond, Then, Else>`] [``
+rule::if_else_statement
+    : expression::if_else_statement<meta_grammar, meta_grammar, meta_grammar>
+``]]
+ [[`expression::switch_case<Label, Statement>`] [``
+rule::switch_case
+    : expression::switch_case< terminal<mpl::int_<N> >, meta_grammar>
+``]]
+ [[`expression::switch_default_case<Statement>`] [``
+rule::switch_default_case
+    : expression::switch_default_case<meta_grammar>
+``]]
+ [[`expression::switch_<Cond, Cases>`] [``
+rule::switch_
+    : expression::switch_<
+        meta_grammar
+      , switch_grammar
+    >
+``]]
+ [[`expression::while_<Cond, Do>`] [``
+rule::while_
+    : expression::while_<
+        meta_grammar
+      , meta_grammar
+    >
+``]]
+ [[`expression::do_while<Cond, Do>`] [``
+rule::do_while
+    : expression::do_while<
+        meta_grammar
+      , meta_grammar
+    >
+``]]
+ [[`expression::for_<Init, Cond, Step, Do>`] [``
+rule::for_
+    : expression::for_<
+        meta_grammar
+      , meta_grammar
+      , meta_grammar
+      , meta_grammar
+    >
+``]]
+ [[`expression::catch_<Exception, Statement>`] [``
+rule::catch_
+    : expression::catch_<
+        catch_exception<proto::_>
+      , meta_grammar
+    >
+``]]
+ [[`expression::catch_all<Statement>`] [``
+rule::catch_all
+    : expression::catch_<meta_grammar>
+``]]
+ [
+  [`expression::try_catch<Try, Catch0, ..., CatchN>`]
+  [``
+rule::try_catch
+    : proto::or_<
+        expression::try_catch<
+            meta_grammar
+          , vararg<rule::catch_>
+        >
+      , expression::try_catch<
+            meta_grammar
+          , vararg<rule::catch_>
+          , rule::catch_all
+        >
+      , expression::try_catch<
+            meta_grammar
+          , catch_all
+        >
+    >
+``]]
+ [[`expression::throw_<A0>`] [``
+rule::throw_
+    : expression::throw_<meta_grammar>
+``]]
+ [[`expression::construct<Target, A0, ..., AN>`] [``
+ rule::construct
+    : expression::construct<
+        terminal<detail::target<proto::_> >
+      , A0
+        ...
+      , AN
+    >
+ ``]]
+ [[`expression::new_<Target, A0, ..., AN>`] [``
+ rule::new_
+    : expression::new_<
+        terminal<detail::target<proto::_> >
+      , A0
+        ...
+      , AN
+    >
+ ``]]
+ [[`expression::delete_<A0>`] [``
+rule::delete_
+      : expression::delete_<meta_grammar>
+``]]
+ [[`expression::static_cast_<Target, A>`] [``
+ rule::static_cast_
+    : expression::static_cast_<
+        terminal<detail::target<proto::_> >
+      , A
+    >
+ ``]]
+ [[`expression::dynamic_cast_<Target, A>`] [``
+ rule::dynamic_cast_
+    : expression::dynamic_cast_<
+        terminal<detail::target<proto::_> >
+      , A
+    >
+ ``]]
+ [[`expression::reinterpret_cast_<Target, A>`] [``
+ rule::reinterpret_cast_
+    : expression::reinterpret_cast_<
+        terminal<detail::target<proto::_> >
+      , A
+    >
+ ``]]
+ [[`expression::const_cast_<Target, A>`] [``
+ rule::const_cast_
+    : expression::const_cast_<
+        terminal<detail::target<proto::_> >
+      , A
+    >
+ ``]]
+ [[`expression::local_variable<Key>`] [``rule::custom_terminal``]]
+ [[`expression::let<Locals, Statement`] [
+``
+rule::let
+    : expression::let<terminal<proto::_>, meta_grammar>
+``]]
+ [[`expression::lambda<OuterEnv, Locals, Statement`] [
+``
+rule::lambda
+    : expression::lambda<terminal<proto::_>, terminal<proto::_>, meta_grammar>
+``]]
+ [[`expression::lambda_actor<Locals, Statement`] [
+``
+rule::lambda_actor
+    : expression::lambda_actor<terminal<proto::_>, meta_grammar>
+``]]
+]
+
+[endsect]

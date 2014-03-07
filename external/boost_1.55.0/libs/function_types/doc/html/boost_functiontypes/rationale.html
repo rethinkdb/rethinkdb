@@ -1,0 +1,152 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Rationale</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.FunctionTypes 2.5">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.FunctionTypes 2.5">
+<link rel="prev" href="reference/macros.html" title="Macros">
+<link rel="next" href="acknowledgements.html" title="Acknowledgements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reference/macros.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="acknowledgements.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_functiontypes.rationale"></a><a class="link" href="rationale.html" title="Rationale">Rationale</a>
+</h2></div></div></div>
+<a name="boost_functiontypes.rationale.error_handling_rationale"></a><h4>
+<a name="boost_functiontypes.rationale.error_handling_rationale-heading"></a>
+      <a class="link" href="rationale.html#boost_functiontypes.rationale.error_handling_rationale">Error
+      handling rationale</a>
+    </h4>
+<p>
+      The library does not define the required members of class templates in case
+      of an error. This technique causes the compiler to stop displaying diagnostics
+      in client code, at the point where the error actually is, instead of tracing
+      template instantiations into the implementation of the library.
+    </p>
+<p>
+      The library's components have limited error conditions, so problematic input
+      can be spotted easily.
+    </p>
+<a name="boost_functiontypes.rationale.why_mpl_sequences_"></a><h4>
+<a name="boost_functiontypes.rationale.why_mpl_sequences_-heading"></a>
+      <a class="link" href="rationale.html#boost_functiontypes.rationale.why_mpl_sequences_">Why MPL Sequences?</a>
+    </h4>
+<p>
+      MPL provides algorithms on Sequences, so transformations (such as turning by-value
+      parameter types into const references for optimized forwarding or computing
+      a signature to specialize <a href="../../../../function/index.html" target="_top"><code class="literal">boost::function</code></a>
+      after applying <a href="../../../../bind/index.html" target="_top"><code class="literal">boost::bind</code></a>)
+      can be expressed more easily. The MPL Sequence concept is compatible with several
+      other Boost libraries (most importantly <a href="../../../../fusion/index.html" target="_top">Fusion</a>),
+      so another reason is interoperability.
+    </p>
+<a name="boost_functiontypes.rationale.pointer_to_member_object_types"></a><h4>
+<a name="boost_functiontypes.rationale.pointer_to_member_object_types-heading"></a>
+      <a class="link" href="rationale.html#boost_functiontypes.rationale.pointer_to_member_object_types">Pointer
+      to member object types</a>
+    </h4>
+<p>
+      Despite their syntax, pointer to member object types can be seen as dereferencing
+      functionals.
+    </p>
+<a name="boost_functiontypes.rationale.the_classtransform_template_parameter"></a><h4>
+<a name="boost_functiontypes.rationale.the_classtransform_template_parameter-heading"></a>
+      <a class="link" href="rationale.html#boost_functiontypes.rationale.the_classtransform_template_parameter">The
+      ClassTransform template parameter</a>
+    </h4>
+<p>
+      <code class="literal">This</code>-pointer, <code class="literal">this</code>-reference or just
+      the object (or maybe even a smart pointer to the object) plus adjustments of
+      cv-qualification - all these cases have their place, somewhere and there is
+      no single best answer.
+    </p>
+<p>
+      Special treatment of the class type within the sequence can significantly complicate
+      client code. A custom <code class="literal">ClassTransform</code> argument allows the
+      client to adjust the class type before the sequence is formed and then treat
+      all parameters uniformly.
+    </p>
+<a name="boost_functiontypes.rationale.why_tag_types_"></a><h4>
+<a name="boost_functiontypes.rationale.why_tag_types_-heading"></a>
+      <a class="link" href="rationale.html#boost_functiontypes.rationale.why_tag_types_">Why tag types?</a>
+    </h4>
+<p>
+      Let's consider the alternatives.
+    </p>
+<p>
+      The first one is just using more templates so every property has to be asked
+      for explicitly. This approach results in more complicated client code if more
+      than one propery has to be checked and in a exponentially larger library interface.
+    </p>
+<p>
+      The second alternative is having the client pass in bit patterns via non-type
+      template parameters. The logic has to be performed by the client and there
+      are much more error conditions. Further, class templates with non-type template
+      parameters do not work within MPL lambda expressions and can cause problems
+      with older compilers.
+    </p>
+<a name="boost_functiontypes.rationale.is_it_safe_to_have_the_synthesis_templates_take_a_callable__builtin_type_or_an_mpl_sequence_as_the_first_template_argument_"></a><h4>
+<a name="boost_functiontypes.rationale.is_it_safe_to_have_the_synthesis_templates_take_a_callable__builtin_type_or_an_mpl_sequence_as_the_first_template_argument_-heading"></a>
+      <a class="link" href="rationale.html#boost_functiontypes.rationale.is_it_safe_to_have_the_synthesis_templates_take_a_callable__builtin_type_or_an_mpl_sequence_as_the_first_template_argument_">Is
+      it safe to have the synthesis templates take a callable builtin type or an
+      MPL sequence as the first template argument?</a>
+    </h4>
+<p>
+      Yes, but it isn't immediately obvious as the set of possible MPL sequences
+      isn't inherently disjoint from the set of callable builtin types.
+    </p>
+<p>
+      However, any attempt to make a builtin type work as an MPL sequence is a bad
+      idea, because builtin types are accessible before the headers that make the
+      type a sequence have been included, which can easily violate the ODR.
+    </p>
+<a name="boost_functiontypes.rationale.why_does_the_hidden__literal_this__literal__parameter_count_for_the__function_arity_of_member_functions_"></a><h4>
+<a name="boost_functiontypes.rationale.why_does_the_hidden__literal_this__literal__parameter_count_for_the__function_arity_of_member_functions_-heading"></a>
+      <a class="link" href="rationale.html#boost_functiontypes.rationale.why_does_the_hidden__literal_this__literal__parameter_count_for_the__function_arity_of_member_functions_">Why
+      does the hidden <code class="literal">this</code> parameter count for the function arity
+      of member functions?</a>
+    </h4>
+<p>
+      It was found preferable that the following condition holds:
+    </p>
+<pre class="programlisting"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">size</span><span class="special">&lt;</span> <a class="link" href="reference/decomposition.html#boost_functiontypes.reference.decomposition.parameter_types" title="parameter_types">parameter_types</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">value</span> <span class="special">==</span> <a class="link" href="reference/decomposition.html#boost_functiontypes.reference.decomposition.function_arity" title="function_arity">function_arity</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">value</span>
+</pre>
+<a name="boost_functiontypes.rationale.why_ignore_top_level_cv_qualifiers_on_pointers_"></a><h4>
+<a name="boost_functiontypes.rationale.why_ignore_top_level_cv_qualifiers_on_pointers_-heading"></a>
+      <a class="link" href="rationale.html#boost_functiontypes.rationale.why_ignore_top_level_cv_qualifiers_on_pointers_">Why
+      ignore top-level cv-qualifiers on pointers?</a>
+    </h4>
+<p>
+      A cv-qualified pointer is still a pointer. It usually doesn't matter and even
+      if it does, it's a job for <a href="../../../../type_traits/index.html" target="_top">Boost.TypeTraits</a>.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2004-2007 Tobias
+      Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="reference/macros.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="acknowledgements.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

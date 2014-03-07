@@ -1,0 +1,262 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/it.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/it.xml
+ */
+it{
+    Version{"2.0.51.59"}
+    zoneStrings{
+        "Africa:Addis_Ababa"{
+            ec{"Addis Abeba"}
+        }
+        "Africa:Algiers"{
+            ec{"Algeri"}
+        }
+        "Africa:Djibouti"{
+            ec{"Gibuti"}
+        }
+        "Africa:Mogadishu"{
+            ec{"Mogadiscio"}
+        }
+        "Africa:Sao_Tome"{
+            ec{"Sao Tomè"}
+        }
+        "Africa:Tunis"{
+            ec{"Tunisi"}
+        }
+        "America:Anchorage"{
+            ec{"Fuso orario Alaska"}
+        }
+        "America:Cordoba"{
+            ec{"Cordova"}
+        }
+        "America:El_Salvador"{
+            ec{"Salvador"}
+        }
+        "America:Guadeloupe"{
+            ec{"Guadalupa"}
+        }
+        "America:Guyana"{
+            ec{"Guiana"}
+        }
+        "America:Jamaica"{
+            ec{"Giamaica"}
+        }
+        "America:Martinique"{
+            ec{"Martinica"}
+        }
+        "America:Mexico_City"{
+            ec{"Città del Messico"}
+        }
+        "America:North_Dakota:Center"{
+            ec{"Center, Dakota del nord"}
+        }
+        "America:Puerto_Rico"{
+            ec{"Portorico"}
+        }
+        "America:Sao_Paulo"{
+            ec{"San Paolo"}
+        }
+        "America:St_Johns"{
+            ec{"St. Johns"}
+        }
+        "America:St_Kitts"{
+            ec{"St. Kitts"}
+        }
+        "America:St_Lucia"{
+            ec{"Santa Lucia"}
+        }
+        "America:St_Thomas"{
+            ec{"St. Thomas"}
+        }
+        "America:St_Vincent"{
+            ec{"St. Vincent"}
+        }
+        "Antarctica:DumontDUrville"{
+            ec{"Dumont D'Urville"}
+        }
+        "Antarctica:South_Pole"{
+            ec{"Polo Sud"}
+        }
+        "Asia:Bahrain"{
+            ec{"Bahrein"}
+        }
+        "Asia:Damascus"{
+            ec{"Damasco"}
+        }
+        "Asia:Jakarta"{
+            ec{"Giacarta"}
+        }
+        "Asia:Jerusalem"{
+            ec{"Gerusalemme"}
+        }
+        "Asia:Macau"{
+            ec{"Macao"}
+        }
+        "Asia:Samarkand"{
+            ec{"Samarcanda"}
+        }
+        "Asia:Seoul"{
+            ec{"Seul"}
+        }
+        "Asia:Tehran"{
+            ec{"Teheran"}
+        }
+        "Atlantic:Azores"{
+            ec{"Azzorre"}
+        }
+        "Atlantic:Canary"{
+            ec{"Canarie"}
+        }
+        "Atlantic:Cape_Verde"{
+            ec{"Capo Verde"}
+        }
+        "Atlantic:Faeroe"{
+            ec{"Isole Faeroe"}
+        }
+        "Atlantic:South_Georgia"{
+            ec{"Georgia meridionale"}
+        }
+        "Atlantic:St_Helena"{
+            ec{"Sant'Elena"}
+        }
+        "Etc:Unknown"{
+            ec{"Sconosciuto"}
+        }
+        "Europe:Athens"{
+            ec{"Atene"}
+        }
+        "Europe:Berlin"{
+            ec{"Berlino"}
+        }
+        "Europe:Brussels"{
+            ec{"Bruxelles"}
+        }
+        "Europe:Bucharest"{
+            ec{"Bucarest"}
+        }
+        "Europe:Copenhagen"{
+            ec{"Copenaghen"}
+        }
+        "Europe:Dublin"{
+            ec{"Dublino"}
+        }
+        "Europe:Gibraltar"{
+            ec{"Gibilterra"}
+        }
+        "Europe:Lisbon"{
+            ec{"Lisbona"}
+        }
+        "Europe:London"{
+            ec{"Londra"}
+        }
+        "Europe:Luxembourg"{
+            ec{"Lussemburgo"}
+        }
+        "Europe:Moscow"{
+            ec{"Mosca"}
+        }
+        "Europe:Paris"{
+            ec{"Parigi"}
+        }
+        "Europe:Rome"{
+            ec{"Roma"}
+        }
+        "Europe:Stockholm"{
+            ec{"Stoccolma"}
+        }
+        "Europe:Tirane"{
+            ec{"Tirana"}
+        }
+        "Europe:Warsaw"{
+            ec{"Varsavia"}
+        }
+        "Europe:Zurich"{
+            ec{"Zurigo"}
+        }
+        "Indian:Christmas"{
+            ec{"Natale"}
+        }
+        "Indian:Comoro"{
+            ec{"Comore"}
+        }
+        "Indian:Maldives"{
+            ec{"Maldive"}
+        }
+        "Indian:Reunion"{
+            ec{"Riunione, isola di"}
+        }
+        "Pacific:Easter"{
+            ec{"Pasqua"}
+        }
+        "Pacific:Fiji"{
+            ec{"Figi"}
+        }
+        "Pacific:Pitcairn"{
+            ec{"Pitcairn, isole"}
+        }
+        "meta:Alaska"{
+            ld{"Ora Legale Alaska"}
+            ls{"Ora Standard Alaska"}
+        }
+        "meta:America_Central"{
+            ld{"Ora legale centrale USA"}
+            lg{"Ora centrale USA"}
+            ls{"Ora standard centrale USA"}
+        }
+        "meta:America_Eastern"{
+            ld{"Ora legale orientale USA"}
+            lg{"Ora orientale USA"}
+            ls{"Ora standard orientale USA"}
+        }
+        "meta:America_Mountain"{
+            ld{"Ora legale delle Montagne Rocciose USA"}
+            lg{"Ora sulle Montagne Rocciose USA"}
+            ls{"Ora standard sulle Montagne Rocciose USA"}
+        }
+        "meta:America_Pacific"{
+            ld{"Ora legale della costa del Pacifico USA"}
+            lg{"Ora del Pacifico USA"}
+            ls{"Ora standard della costa del Pacifico USA"}
+        }
+        "meta:China"{
+            ld{"Ora Legale Cina"}
+            ls{"Ora Standard Cina"}
+            sd{"CDT (Cina)"}
+            ss{"CST (Cina)"}
+        }
+        "meta:Europe_Central"{
+            ld{"Ora Legale Europa Centrale"}
+            ls{"Ora Standard Europa Centrale"}
+        }
+        "meta:Europe_Eastern"{
+            ld{"Ora Legale Europa Orientale"}
+            ls{"Ora Standard Europa Orientale"}
+        }
+        "meta:Europe_Western"{
+            ld{"Ora Legale Europa Occidentale"}
+            ls{"Ora Standard Europa Occidentale"}
+        }
+        "meta:Hawaii"{
+            ld{"Ora Legale Hawaii"}
+            ls{"Ora Standard Hawaii"}
+        }
+        "meta:Israel"{
+            ld{"Ora Legale Israele"}
+            ls{"Ora Standard Israele"}
+        }
+        "meta:Japan"{
+            ld{"Ora Legale Giappone"}
+            ls{"Ora Standard Giappone"}
+        }
+        gmtFormat{"GMT{0}"}
+        hourFormat{"+HH:mm;-HH:mm"}
+        regionFormat{"{0}"}
+    }
+}

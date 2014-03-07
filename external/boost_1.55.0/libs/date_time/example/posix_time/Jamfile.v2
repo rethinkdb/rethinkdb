@@ -1,0 +1,13 @@
+# Copyright (c) 2002-2005 CrystalClear Software, Inc.
+# Use, modification and distribution is subject to the 
+# Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+project
+    : requirements <library>../../build/boost_date_time
+    ;
+
+exe time_math : time_math.cpp ;
+exe local_utc_conversion : local_utc_conversion.cpp ;
+exe print_hours : print_hours.cpp ;
+exe time_periods : time_periods.cpp ;

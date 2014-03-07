@@ -1,0 +1,242 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+	<head>
+		<title>weak_ptr</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+	</head>
+	<body text="#000000" bgColor="#ffffff">
+		<h1><A href="../../index.htm"><IMG height="86" alt="boost.png (6897 bytes)" src="../../boost.png" width="277" align="middle"
+					border="0"></A>weak_ptr class template</h1>
+		<p><A href="#Introduction">Introduction</A><br>
+			<A href="#Synopsis">Synopsis</A><br>
+			<A href="#Members">Members</A><br>
+			<A href="#functions">Free Functions</A><br>
+			<A href="#FAQ">Frequently Asked Questions</A>
+		</p>
+		<h2><a name="Introduction">Introduction</a></h2>
+		<p>The <b>weak_ptr</b> class template stores a "weak reference" to an object that's 
+			already managed by a <b>shared_ptr</b>. To access the object, a <STRONG>weak_ptr</STRONG>
+			can be converted to a <STRONG>shared_ptr</STRONG> using <A href="shared_ptr.htm#constructors">
+				the <STRONG>shared_ptr</STRONG> constructor</A> or the member function <STRONG><A href="#lock">
+					lock</A></STRONG>. When the last <b>shared_ptr</b> to the object goes 
+			away and the object is deleted, the attempt to obtain a <STRONG>shared_ptr</STRONG>
+			from the <b>weak_ptr</b> instances that refer to the deleted object will fail: 
+			the constructor will throw an exception of type <STRONG>boost::bad_weak_ptr</STRONG>, 
+			and <STRONG>weak_ptr::lock</STRONG> will return an <EM>empty</EM> <STRONG>shared_ptr</STRONG>.</p>
+		<p>Every <b>weak_ptr</b> meets the <b>CopyConstructible</b> and <b>Assignable</b> requirements 
+			of the C++ Standard Library, and so can be used in standard library containers. 
+			Comparison operators are supplied so that <b>weak_ptr</b> works with the 
+			standard library's associative containers.</p>
+		<P><STRONG>weak_ptr</STRONG> operations never throw&nbsp;exceptions.</P>
+		<p>The class template is parameterized on <b>T</b>, the type of the object pointed 
+			to.</p>
+		<P>Compared to <STRONG>shared_ptr</STRONG>, <STRONG>weak_ptr</STRONG> provides a 
+			very limited subset of operations since accessing its stored pointer is often 
+			dangerous in multithreaded programs, and sometimes unsafe even within a single 
+			thread (that is, it may invoke undefined behavior.) Pretend for a moment that <b>weak_ptr</b>
+			has a <b>get</b> member function that returns a raw pointer, and consider this 
+			innocent piece of code:</P>
+		<pre>shared_ptr&lt;int&gt; p(new int(5));
+weak_ptr&lt;int&gt; q(p);
+
+// some time later
+
+if(int * r = q.get())
+{
+    // use *r
+}
+</pre>
+		<P>Imagine that after the <STRONG>if</STRONG>, but immediately before <STRONG>r</STRONG>
+			is used, another thread executes the statement <code>p.reset()</code>. Now <STRONG>r</STRONG>
+			is a dangling pointer.</P>
+		<P>The solution to this problem is to create a temporary <STRONG>shared_ptr</STRONG>
+			from <STRONG>q</STRONG>:</P>
+		<pre>shared_ptr&lt;int&gt; p(new int(5));
+weak_ptr&lt;int&gt; q(p);
+
+// some time later
+
+if(shared_ptr&lt;int&gt; r = q.<A href="#lock" >lock</A>())
+{
+    // use *r
+}
+</pre>
+		<p>Now <STRONG>r</STRONG> holds a reference to the object that was pointed by <STRONG>q</STRONG>. 
+			Even if <code>p.reset()</code> is executed in another thread, the object will 
+			stay alive until <STRONG>r</STRONG> goes out of scope or is reset. By obtaining 
+			a <STRONG>shared_ptr</STRONG> to the object, we have effectively locked it 
+			against destruction.</p>
+		<h2><a name="Synopsis">Synopsis</a></h2>
+		<pre>namespace boost {
+
+  template&lt;class T&gt; class weak_ptr {
+
+    public:
+      typedef T <A href="#element_type" >element_type</A>;
+
+      <A href="#default-constructor" >weak_ptr</A>();
+
+      template&lt;class Y&gt; <A href="#constructors" >weak_ptr</A>(shared_ptr&lt;Y&gt; const &amp; r);
+      <A href="#constructors" >weak_ptr</A>(weak_ptr const &amp; r);
+      template&lt;class Y&gt; <A href="#constructors" >weak_ptr</A>(weak_ptr&lt;Y&gt; const &amp; r);
+
+      <A href="#destructor" >~weak_ptr</A>();
+
+      weak_ptr &amp; <A href="#assignment" >operator=</A>(weak_ptr const &amp; r);
+      template&lt;class Y&gt; weak_ptr &amp; <A href="#assignment" >operator=</A>(weak_ptr&lt;Y&gt; const &amp; r);
+      template&lt;class Y&gt; weak_ptr &amp; <A href="#assignment" >operator=</A>(shared_ptr&lt;Y&gt; const &amp; r);
+
+      long <A href="#use_count" >use_count</A>() const;
+      bool <A href="#expired" >expired</A>() const;
+      shared_ptr&lt;T&gt; <A href="#lock" >lock</A>() const;
+
+      void <A href="#reset" >reset</A>();
+      void <A href="#swap" >swap</A>(weak_ptr&lt;T&gt; &amp; b);
+  };
+
+  template&lt;class T, class U&gt;
+    bool <A href="#comparison" >operator&lt;</A>(weak_ptr&lt;T&gt; const &amp; a, weak_ptr&lt;U&gt; const &amp; b);
+
+  template&lt;class T&gt;
+    void <A href="#free-swap" >swap</A>(weak_ptr&lt;T&gt; &amp; a, weak_ptr&lt;T&gt; &amp; b);
+}
+</pre>
+		<h2><a name="Members">Members</a></h2>
+		<h3><a name="element_type">element_type</a></h3>
+		<pre>typedef T element_type;</pre>
+		<blockquote>
+			<p>Provides the type of the template parameter T.</p>
+		</blockquote>
+		<h3><a name="default-constructor">constructors</a></h3>
+		<pre>weak_ptr();</pre>
+		<blockquote>
+			<p><b>Effects:</b> Constructs an <EM>empty</EM> <b>weak_ptr</b>.</p>
+			<p><b>Postconditions:</b> <code>use_count() == 0</code>.</p>
+			<p><b>Throws:</b> nothing.</p>
+		</blockquote><a name="constructors"></a>
+		<pre>template&lt;class Y&gt; weak_ptr</A>(shared_ptr&lt;Y&gt; const &amp; r);
+weak_ptr(weak_ptr const &amp; r);
+template&lt;class Y&gt; weak_ptr(weak_ptr&lt;Y&gt; const &amp; r);</pre>
+		<blockquote>
+			<p><b>Effects:</b> If <STRONG>r</STRONG> is <EM>empty</EM>, constructs an <EM>empty</EM>
+				<STRONG>weak_ptr</STRONG>; otherwise, constructs a <b>weak_ptr</b> that <EM>shares 
+					ownership</EM> with <STRONG>r</STRONG> as if by storing a copy of the 
+				pointer stored in <b>r</b>.</p>
+			<p><b>Postconditions:</b> <code>use_count() == r.use_count()</code>.</p>
+			<p><b>Throws:</b> nothing.</p>
+		</blockquote>
+		<h3><a name="destructor">destructor</a></h3>
+		<pre>~weak_ptr();</pre>
+		<BLOCKQUOTE>
+			<P><B>Effects:</B> Destroys this <b>weak_ptr</b> but has no effect on the object 
+				its stored pointer points to.</P>
+			<P><B>Throws:</B> nothing.</P>
+		</BLOCKQUOTE>
+		<h3><a name="assignment">assignment</a></h3>
+		<pre>weak_ptr &amp; operator=(weak_ptr const &amp; r);
+template&lt;class Y&gt; weak_ptr &amp; operator=(weak_ptr&lt;Y&gt; const &amp; r);
+template&lt;class Y&gt; weak_ptr &amp; operator=(shared_ptr&lt;Y&gt; const &amp; r);</pre>
+		<BLOCKQUOTE>
+			<P><B>Effects:</B> Equivalent to <code>weak_ptr(r).swap(*this)</code>.</P>
+			<P><B>Throws:</B> nothing.</P>
+			<P><B>Notes:</B> The implementation is free to meet the effects (and the implied 
+				guarantees) via different means, without creating a temporary.</P>
+		</BLOCKQUOTE>
+		<h3><a name="use_count">use_count</a></h3>
+		<pre>long use_count() const;</pre>
+		<blockquote>
+			<p><b>Returns:</b> 0 if <STRONG>*this</STRONG> is <EM>empty</EM>; otherwise, the 
+				number of <b>shared_ptr</b> objects that <EM>share ownership</EM> with <STRONG>*this</STRONG>.</p>
+			<p><b>Throws:</b> nothing.</p>
+			<P><B>Notes:</B> <code>use_count()</code> is not necessarily efficient. Use only 
+				for debugging and testing purposes, not for production code.</P>
+		</blockquote>
+		<h3><a name="expired">expired</a></h3>
+		<pre>bool expired() const;</pre>
+		<blockquote>
+			<p><b>Returns:</b> <code>use_count() == 0</code>.</p>
+			<p><b>Throws:</b> nothing.</p>
+			<P><B>Notes:</B> <code>expired()</code> may be faster than <code>use_count()</code>.</P>
+		</blockquote>
+		<h3><a name="lock">lock</a></h3>
+		<pre>shared_ptr&lt;T&gt; lock() const;</pre>
+		<BLOCKQUOTE>
+			<P><B>Returns:</B> <code>expired()? shared_ptr&lt;T&gt;(): shared_ptr&lt;T&gt;(*this)</code>.</P>
+			<P><B>Throws:</B> nothing.</P>
+		</BLOCKQUOTE>
+		<h3><a name="reset">reset</a></h3>
+		<pre>void reset();</pre>
+		<BLOCKQUOTE>
+			<P><B>Effects:</B> Equivalent to <code>weak_ptr().swap(*this)</code>.</P>
+		</BLOCKQUOTE>
+		<h3><a name="swap">swap</a></h3>
+		<pre>void swap(weak_ptr &amp; b);</pre>
+		<blockquote>
+			<p><b>Effects:</b> Exchanges the contents of the two smart pointers.</p>
+			<p><b>Throws:</b> nothing.</p>
+		</blockquote>
+		<h2><a name="functions">Free Functions</a></h2>
+		<h3><a name="comparison">comparison</a></h3>
+		<pre>template&lt;class T, class U&gt;
+  bool operator&lt;(weak_ptr&lt;T&gt; const &amp; a, weak_ptr&lt;U&gt; const &amp; b);</pre>
+		<blockquote>
+			<p><b>Returns:</b> an unspecified value such that</p>
+			<UL>
+				<LI>
+					<b>operator&lt;</b> is a strict weak ordering as described in section 25.3 <code>[lib.alg.sorting]</code>
+				of the C++ standard;
+				<LI>
+					under the equivalence relation defined by <STRONG>operator&lt;</STRONG>, <code>!(a 
+						&lt; b) &amp;&amp; !(b &lt; a)</code>, two <STRONG>weak_ptr</STRONG> instances 
+					are equivalent if and only if they <EM>share ownership</EM> or are both <EM>empty</EM>.</LI></UL>
+			<p><b>Throws:</b> nothing.</p>
+			<P><B>Notes:</B> Allows <STRONG>weak_ptr</STRONG> objects to be used as keys in 
+				associative containers.</P>
+		</blockquote>
+		<h3><a name="free-swap">swap</a></h3>
+		<pre>template&lt;class T&gt;
+  void swap(weak_ptr&lt;T&gt; &amp; a, weak_ptr&lt;T&gt; &amp; b)</pre>
+		<BLOCKQUOTE>
+			<P><B>Effects:</B> Equivalent to <code>a.swap(b)</code>.</P>
+			<P><B>Throws:</B> nothing.</P>
+			<P><B>Notes:</B> Matches the interface of <B>std::swap</B>. Provided as an aid to 
+				generic programming.</P>
+		</BLOCKQUOTE>
+		<h2><a name="FAQ">Frequently Asked Questions</a></h2>
+		<P><B>Q.</B> Can an object create a <STRONG>weak_ptr</STRONG> to itself in its 
+			constructor?</P>
+		<P><b>A.</b> No. A <STRONG>weak_ptr</STRONG> can only be created from a <STRONG>shared_ptr</STRONG>, 
+			and at object construction time no <STRONG>shared_ptr</STRONG> to the object 
+			exists yet. Even if you could create a temporary <STRONG>shared_ptr</STRONG> to <STRONG>
+				this</STRONG>, it would go out of scope at the end of the constructor, and 
+			all <STRONG>weak_ptr</STRONG> instances would instantly expire.</P>
+		<P>The solution is to make the constructor private, and supply a factory function 
+			that returns a <STRONG>shared_ptr</STRONG>:<BR>
+		</P>
+		<pre>
+class X
+{
+private:
+
+    X();
+
+public:
+
+    static shared_ptr&lt;X&gt; create()
+    {
+        shared_ptr&lt;X&gt; px(new X);
+        // create weak pointers from px here
+        return px;
+    }
+};
+</pre>
+		<p><br>
+		</p>
+		<hr>
+		<p>$Date: 2007-11-25 10:38:02 -0800 (Sun, 25 Nov 2007) $</p>
+		<p><small>Copyright 1999 Greg Colvin and Beman Dawes. Copyright 2002 Darin Adler. 
+			Copyright 2002-2005 Peter Dimov. Distributed under the Boost Software License, Version 
+			1.0. See accompanying file <A href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</A> or 
+			copy at <A href="http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</A>.</small></p>
+	</body>
+</html>

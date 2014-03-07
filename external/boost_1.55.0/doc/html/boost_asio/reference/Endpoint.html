@@ -1,0 +1,248 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Endpoint requirements</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="DescriptorService.html" title="Descriptor service requirements">
+<link rel="next" href="GettableSerialPortOption.html" title="Gettable serial port option requirements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="DescriptorService.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="GettableSerialPortOption.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.Endpoint"></a><a class="link" href="Endpoint.html" title="Endpoint requirements">Endpoint requirements</a>
+</h3></div></div></div>
+<p>
+        An endpoint must meet the requirements of <code class="computeroutput"><span class="identifier">CopyConstructible</span></code>
+        types (C++ Std, 20.1.3), and the requirements of <code class="computeroutput"><span class="identifier">Assignable</span></code>
+        types (C++ Std, 23.1).
+      </p>
+<p>
+        In the table below, <code class="computeroutput"><span class="identifier">X</span></code> denotes
+        an endpoint class, <code class="computeroutput"><span class="identifier">a</span></code> denotes
+        a value of type <code class="computeroutput"><span class="identifier">X</span></code>, <code class="computeroutput"><span class="identifier">s</span></code> denotes a size in bytes, and <code class="computeroutput"><span class="identifier">u</span></code> denotes an identifier.
+      </p>
+<div class="table">
+<a name="boost_asio.reference.Endpoint.t0"></a><p class="title"><b>Table&#160;10.&#160;Endpoint requirements</b></p>
+<div class="table-contents"><table class="table" summary="Endpoint requirements">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  expression
+                </p>
+              </th>
+<th>
+                <p>
+                  type
+                </p>
+              </th>
+<th>
+                <p>
+                  assertion/note<br> pre/post-conditions
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">X</span><span class="special">::</span><span class="identifier">protocol_type</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  type meeting <a class="link" href="Protocol.html" title="Protocol requirements">protocol</a>
+                  requirements
+                </p>
+              </td>
+<td>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">X</span> <span class="identifier">u</span><span class="special">;</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+<td>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">X</span><span class="special">();</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+<td>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">protocol</span><span class="special">();</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">protocol_type</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">data</span><span class="special">();</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  a pointer
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns a pointer suitable for passing as the <span class="emphasis"><em>address</em></span>
+                  argument to <span class="emphasis"><em>POSIX</em></span> functions such as <a href="http://www.opengroup.org/onlinepubs/000095399/functions/accept.html" target="_top"><code class="computeroutput"><span class="identifier">accept</span><span class="special">()</span></code></a>,
+                  <a href="http://www.opengroup.org/onlinepubs/000095399/functions/getpeername.html" target="_top"><code class="computeroutput"><span class="identifier">getpeername</span><span class="special">()</span></code></a>,
+                  <a href="http://www.opengroup.org/onlinepubs/000095399/functions/getsockname.html" target="_top"><code class="computeroutput"><span class="identifier">getsockname</span><span class="special">()</span></code></a>
+                  and <a href="http://www.opengroup.org/onlinepubs/000095399/functions/recvfrom.html" target="_top"><code class="computeroutput"><span class="identifier">recvfrom</span><span class="special">()</span></code></a>.
+                  The implementation shall perform a <code class="computeroutput"><span class="keyword">reinterpret_cast</span></code>
+                  on the pointer to convert it to <code class="computeroutput"><span class="identifier">sockaddr</span><span class="special">*</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="keyword">const</span> <span class="identifier">X</span><span class="special">&amp;</span> <span class="identifier">u</span>
+                  <span class="special">=</span> <span class="identifier">a</span><span class="special">;</span> <span class="identifier">u</span><span class="special">.</span><span class="identifier">data</span><span class="special">();</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  a pointer
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns a pointer suitable for passing as the <span class="emphasis"><em>address</em></span>
+                  argument to <span class="emphasis"><em>POSIX</em></span> functions such as <a href="http://www.opengroup.org/onlinepubs/000095399/functions/connect.html" target="_top"><code class="computeroutput"><span class="identifier">connect</span><span class="special">()</span></code></a>,
+                  or as the <span class="emphasis"><em>dest_addr</em></span> argument to <span class="emphasis"><em>POSIX</em></span>
+                  functions such as <a href="http://www.opengroup.org/onlinepubs/000095399/functions/sendto.html" target="_top"><code class="computeroutput"><span class="identifier">sendto</span><span class="special">()</span></code></a>.
+                  The implementation shall perform a <code class="computeroutput"><span class="keyword">reinterpret_cast</span></code>
+                  on the pointer to convert it to <code class="computeroutput"><span class="keyword">const</span>
+                  <span class="identifier">sockaddr</span><span class="special">*</span></code>.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">size</span><span class="special">();</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">size_t</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns a value suitable for passing as the <span class="emphasis"><em>address_len</em></span>
+                  argument to <span class="emphasis"><em>POSIX</em></span> functions such as <a href="http://www.opengroup.org/onlinepubs/000095399/functions/connect.html" target="_top"><code class="computeroutput"><span class="identifier">connect</span><span class="special">()</span></code></a>,
+                  or as the <span class="emphasis"><em>dest_len</em></span> argument to <span class="emphasis"><em>POSIX</em></span>
+                  functions such as <a href="http://www.opengroup.org/onlinepubs/000095399/functions/sendto.html" target="_top"><code class="computeroutput"><span class="identifier">sendto</span><span class="special">()</span></code></a>,
+                  after appropriate integer conversion has been performed.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">resize</span><span class="special">(</span><span class="identifier">s</span><span class="special">);</span></code>
+                </p>
+              </td>
+<td>
+              </td>
+<td>
+                <p>
+                  post: <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">size</span><span class="special">()</span>
+                  <span class="special">==</span> <span class="identifier">s</span></code><br>
+                  Passed the value contained in the <span class="emphasis"><em>address_len</em></span>
+                  argument to <span class="emphasis"><em>POSIX</em></span> functions such as <a href="http://www.opengroup.org/onlinepubs/000095399/functions/accept.html" target="_top"><code class="computeroutput"><span class="identifier">accept</span><span class="special">()</span></code></a>,
+                  <a href="http://www.opengroup.org/onlinepubs/000095399/functions/getpeername.html" target="_top"><code class="computeroutput"><span class="identifier">getpeername</span><span class="special">()</span></code></a>,
+                  <a href="http://www.opengroup.org/onlinepubs/000095399/functions/getsockname.html" target="_top"><code class="computeroutput"><span class="identifier">getsockname</span><span class="special">()</span></code></a>
+                  and <a href="http://www.opengroup.org/onlinepubs/000095399/functions/recvfrom.html" target="_top"><code class="computeroutput"><span class="identifier">recvfrom</span><span class="special">()</span></code></a>,
+                  after successful completion of the function. Permitted to throw
+                  an exception if the protocol associated with the endpoint object
+                  <code class="computeroutput"><span class="identifier">a</span></code> does not support
+                  the specified size.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">a</span><span class="special">.</span><span class="identifier">capacity</span><span class="special">();</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="identifier">size_t</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Returns a value suitable for passing as the <span class="emphasis"><em>address_len</em></span>
+                  argument to <span class="emphasis"><em>POSIX</em></span> functions such as <a href="http://www.opengroup.org/onlinepubs/000095399/functions/accept.html" target="_top"><code class="computeroutput"><span class="identifier">accept</span><span class="special">()</span></code></a>,
+                  <a href="http://www.opengroup.org/onlinepubs/000095399/functions/getpeername.html" target="_top"><code class="computeroutput"><span class="identifier">getpeername</span><span class="special">()</span></code></a>,
+                  <a href="http://www.opengroup.org/onlinepubs/000095399/functions/getsockname.html" target="_top"><code class="computeroutput"><span class="identifier">getsockname</span><span class="special">()</span></code></a>
+                  and <a href="http://www.opengroup.org/onlinepubs/000095399/functions/recvfrom.html" target="_top"><code class="computeroutput"><span class="identifier">recvfrom</span><span class="special">()</span></code></a>,
+                  after appropriate integer conversion has been performed.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="DescriptorService.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="GettableSerialPortOption.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

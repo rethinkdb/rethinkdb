@@ -1,0 +1,49 @@
+# Boost Interval Library test Jamfile
+#
+# Copyright 2003 Guillaume Melquiond
+#
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or
+# copy at http://www.boost.org/LICENSE_1_0.txt)
+
+project
+  :
+  source-location $(BOOST_ROOT)
+  :
+  requirements
+    # Enable dynamic rounding on Tru64 (Alpha CPU).
+    <toolset>hp_cxx,<os>OSF:<cflags>"-fprm d"
+    <toolset>gcc,<os>OSF:<cflags>-mfp-rounding-mode=d
+  ;
+
+# bring in rules for testing
+import testing ;
+
+{
+  test-suite numeric/interval :
+    [ compile libs/numeric/interval/test/integer.cpp ]
+
+    [ run libs/numeric/interval/test/add.cpp      ]
+    [ run libs/numeric/interval/test/det.cpp      ]
+    [ run libs/numeric/interval/test/fmod.cpp     ]
+    [ run libs/numeric/interval/test/mul.cpp      ]
+    [ run libs/numeric/interval/test/overflow.cpp ]
+    [ run libs/numeric/interval/test/pi.cpp       ]
+    [ run libs/numeric/interval/test/pow.cpp      ]
+
+    [ run libs/numeric/interval/test/cmp.cpp
+        ../../../test/build//boost_test_exec_monitor/<link>static ]
+    [ run libs/numeric/interval/test/cmp_exn.cpp
+        ../../../test/build//boost_test_exec_monitor/<link>static ]
+    [ run libs/numeric/interval/test/cmp_exp.cpp
+        ../../../test/build//boost_test_exec_monitor/<link>static ]
+    [ run libs/numeric/interval/test/cmp_lex.cpp
+        ../../../test/build//boost_test_exec_monitor/<link>static ]
+    [ run libs/numeric/interval/test/cmp_set.cpp
+        ../../../test/build//boost_test_exec_monitor/<link>static ]
+    [ run libs/numeric/interval/test/cmp_tribool.cpp
+        ../../../test/build//boost_test_exec_monitor/<link>static ]
+    [ run libs/numeric/interval/test/test_float.cpp
+        ../../../test/build//boost_test_exec_monitor/<link>static ]
+  ;
+}

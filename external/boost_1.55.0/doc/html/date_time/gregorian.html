@@ -1,0 +1,1456 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Gregorian</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../date_time.html" title="Chapter&#160;9.&#160;Boost.Date_Time">
+<link rel="prev" href="examples/general_usage_examples.html" title="General Usage Examples">
+<link rel="next" href="posix_time.html" title="Posix Time">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="examples/general_usage_examples.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../date_time.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="posix_time.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="date_time.gregorian"></a>Gregorian</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="gregorian.html#date_time.gregorian.date_class">Date</a></span></dt>
+<dt><span class="section"><a href="gregorian.html#date_time.gregorian.date_duration">Date Duration (aka Days)</a></span></dt>
+<dt><span class="section"><a href="gregorian.html#date_time.gregorian.date_period">Date Period</a></span></dt>
+<dt><span class="section"><a href="gregorian.html#date_time.gregorian.date_iterators">Date Iterators</a></span></dt>
+<dt><span class="section"><a href="gregorian.html#date_time.gregorian.date_algorithms">Date Generators/Algorithms</a></span></dt>
+<dt><span class="section"><a href="gregorian.html#date_time.gregorian.gregorian_calendar">Gregorian Calendar</a></span></dt>
+</dl></div>
+<h3>
+<a name="idp80688792"></a>Gregorian Date System</h3>
+<p>
+    <a class="link" href="gregorian.html#greg_intro">Introduction</a> -- 
+    <a class="link" href="gregorian.html#greg_ex">Usage Examples</a>
+  </p>
+<a name="greg_intro"></a><h4>
+<a name="idp80690632"></a>Introduction</h4>
+<p>The gregorian date system provides a date programming system based the Gregorian Calendar. The first introduction of the Gregorian calendar was in 1582 to fix an error in the Julian Calendar. However, many local jurisdictions did not adopt this change until much later. Thus there is potential confusion with historical dates. 
+  </p>
+<p>The implemented calendar is a "proleptic Gregorian calendar" which extends dates back prior to the Gregorian Calendar's first adoption in 1582. The current implementation supports dates in the range 1400-Jan-01 to 9999-Dec-31. Many references will represent dates prior to 1582 using the Julian Calendar, so caution is in order if accurate calculations are required on historic dates. See <a href="http://emr.cs.iit.edu/home/reingold/calendar-book/second-edition" target="_top">Calendrical Calculations</a> by Reingold &amp; Dershowitz for more details. Date information from Calendrical Calculations has been used to cross-test the correctness of the Gregorian calendar implementation. 
+  </p>
+<p>All types for the gregorian system are found in namespace boost::gregorian. The library supports a convenience header boost/date_time/gregorian/gregorian_types.hpp that will include all the classes of the library with no input/output dependency. Another header boost/date_time/gregorian/gregorian.hpp will include the types and the input/output code. 
+  </p>
+<p>The class <a class="link" href="gregorian.html#date_time.gregorian.date_class" title="Date">boost::gregorian::date</a> is the primary temporal type for users. If you are interested in learning about writing programs that do specialized date calculations such as finding the "first sunday in april" see the date <a class="link" href="gregorian.html#date_time.gregorian.date_algorithms" title="Date Generators/Algorithms">generators and algorithms page</a>. 
+  </p>
+<a name="greg_ex"></a><h4>
+<a name="idp80695288"></a>Usage Examples</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>Example</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr>
+<td valign="top"><div class="literallayout"><p><br>
+<a class="link" href="examples.html#date_time.examples.days_alive" title="Days Alive">Days&#160;Alive</a>&#160;&#160;&#160;<br>
+<a class="link" href="examples.html#date_time.examples.days_between_new_year" title="Days Between New Years">Days&#160;Between&#160;New&#160;Years</a></p></div></td>
+<td>Simple date arithmetic. Retrieve current day from clock.</td>
+</tr>
+<tr>
+<td valign="top"><div class="literallayout"><p><a class="link" href="examples.html#date_time.examples.dates_as_strings" title="Dates as Strings">Dates&#160;as&#160;strings</a></p></div></td>
+<td>Simple parsing and formatting of dates from/to strings</td>
+</tr>
+<tr>
+<td valign="top"><div class="literallayout"><p><a class="link" href="examples.html#date_time.examples.date_period_calc" title="Date Period Calculations">Date&#160;Period&#160;Calculations</a></p></div></td>
+<td>See if a date is in a set of date periods (eg: is it a holiday/weekend)</td>
+</tr>
+<tr>
+<td valign="top"><div class="literallayout"><p><a class="link" href="examples.html#date_time.examples.print_month" title="Print Month">Print&#160;a&#160;month</a></p></div></td>
+<td>Small utility program which prints out all the days in a month from command line. Need to know if 1999-Jan-1 was a Friday or a Saturday? This program shows how to do it.</td>
+</tr>
+<tr>
+<td valign="top"><div class="literallayout"><p><a class="link" href="examples.html#date_time.examples.print_holidays" title="Print Holidays">Print&#160;Holidays</a></p></div></td>
+<td>Uses date generators to convert abstract specification into concrete set of dates.</td>
+</tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.gregorian.date_class"></a>Date</h3></div></div></div>
+<a class="link" href="gregorian.html#date_intro">Introduction</a> --
+  <a class="link" href="gregorian.html#date_header">Header</a> --
+  <a class="link" href="gregorian.html#date_construction">Construction</a> --
+  <a class="link" href="gregorian.html#date_construct_from_string">Construct from String</a> --
+  <a class="link" href="gregorian.html#date_construct_from_clock">Construct from Clock</a> --
+  <a class="link" href="gregorian.html#date_accessors">Accessors</a> --
+  <a class="link" href="gregorian.html#date_convert_to_string">Convert to String</a> --
+  <a class="link" href="gregorian.html#date_operators">Operators</a> --
+  <a class="link" href="gregorian.html#date_tm_funcs">Struct tm Functions</a><a name="date_intro"></a><h4>
+<a name="idp80711224"></a>Introduction</h4>
+<p>
+    The class boost::gregorian::date is the primary interface for date programming. In general, 
+    the date class is immutable once constructed although it does allow assignment from another 
+    date.  
+    Techniques for creating dates include reading the 
+    <a class="link" href="gregorian.html#date_construct_from_clock">current date from the clock</a>, 
+    using <a class="link" href="gregorian.html#date_time.gregorian.date_iterators" title="Date Iterators">date iterators</a>, and 
+    <a class="link" href="gregorian.html#date_time.gregorian.date_algorithms" title="Date Generators/Algorithms">date algorithms or generators</a>.  
+  </p>
+<p>
+    Internally boost::gregorian::date is stored as a 32 bit integer type.  The class is specifically
+    designed to NOT contain virtual functions. This design allows for efficient
+    calculation and memory usage with large collections of dates.
+  </p>
+<p>
+    The construction of a date validates all input so that it is not possible to
+    construct an 'invalid' date.  That is 2001-Feb-29 cannot be constructed as a date. 
+    Various exceptions derived from std::out_of_range are thrown to indicate which aspect 
+    of the date input is invalid.  Note that the
+    special value not-a-date-time can be used as 'invalid' or 'null' date if so desired.
+  </p>
+<a name="date_header"></a><h4>
+<a name="idp80714952"></a>Header</h4>
+<p>
+    </p>
+<pre class="programlisting">#include "boost/date_time/gregorian/gregorian.hpp" //include all types plus i/o
+or
+#include "boost/date_time/gregorian/gregorian_types.hpp" //no i/o just types</pre>
+<p>
+  </p>
+<a name="date_construction"></a><h4>
+<a name="idp80716344"></a>Construction</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date(greg_year, greg_month, greg_day)</pre></td>
+<td>Construct from parts of date. Throws bad_year, bad_day_of_month, or bad_day_month (derivatives of std::out_of_range) if the year, month or day are out of range.</td>
+</tr>
+<tr><td><pre class="screen">date d(2002,Jan,10);</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date(date d)</pre></td>
+<td>Copy constructor</td>
+</tr>
+<tr><td><pre class="screen">date d1(d);</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date(special_values sv)</pre></td>
+<td>Constructor for infinities, not-a-date-time, max_date_time, and min_date_time</td>
+</tr>
+<tr><td><pre class="screen">date d1(neg_infin);
+date d2(pos_infin);
+date d3(not_a_date_time);
+date d4(max_date_time);
+date d5(min_date_time);</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date()</pre></td>
+<td>Default constructor. Creates a date object initialized to not_a_date_time. NOTE: this constructor can be disabled by defining DATE_TIME_NO_DEFAULT_CONSTRUCTOR (see compiler_config.hpp)</td>
+</tr>
+<tr><td><pre class="screen">date d; // d =&gt; not_a_date_time</pre></td></tr>
+</tbody>
+</table></div>
+<a name="date_construct_from_string"></a><h4>
+<a name="idp80726424"></a>Construct from String</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date from_string(std::string)</pre></td>
+<td>From delimited date string where with order year-month-day eg: 2002-1-25</td>
+</tr>
+<tr><td><pre class="screen">std::string ds("2002/1/25");
+date d(from_string(ds));</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date from_undelimited_string(std::string)</pre></td>
+<td>From iso type date string where with order year-month-day eg: 20020125</td>
+</tr>
+<tr><td><pre class="screen">std::string ds("20020125");
+date d(from_undelimited_string(ds));</pre></td></tr>
+</tbody>
+</table></div>
+<a name="date_construct_from_clock"></a><h4>
+<a name="idp80732872"></a>Construct from Clock</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">day_clock::local_day()</pre></td>
+<td>Get the local day based on the time zone settings of the computer.</td>
+</tr>
+<tr><td><pre class="screen">date d(day_clock::local_day());</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">day_clock::universal_day()</pre></td>
+<td>Get the UTC day.</td>
+</tr>
+<tr><td><pre class="screen">date d(day_clock::universal_day());</pre></td></tr>
+</tbody>
+</table></div>
+<a name="date_accessors"></a><h4>
+<a name="idp80739160"></a>Accessors</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">greg_year year() const</pre></td>
+<td>Get the year part of the date.</td>
+</tr>
+<tr><td><pre class="screen">date d(2002,Jan,10); 
+d.year(); // --&gt; 2002</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">greg_month month() const</pre></td>
+<td>Get the month part of the date.</td>
+</tr>
+<tr><td><pre class="screen">date d(2002,Jan,10); 
+d.month(); // --&gt; 1</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">greg_day day() const</pre></td>
+<td> Get the day part of the date.</td>
+</tr>
+<tr><td><pre class="screen">date d(2002,Jan,10); 
+d.day(); // --&gt; 10</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">greg_ymd year_month_day() const</pre></td>
+<td>Return a year_month_day struct. More efficient when all 3 parts of the date are needed.</td>
+</tr>
+<tr><td><pre class="screen">date d(2002,Jan,10);
+date::ymd_type ymd = d.year_month_day();
+// ymd.year  --&gt; 2002, 
+// ymd.month --&gt; 1, 
+// ymd.day   --&gt; 10</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">greg_day_of_week day_of_week() const</pre></td>
+<td>Get the day of the week (Sunday, Monday, etc.)</td>
+</tr>
+<tr><td><pre class="screen">date d(2002,Jan,10);
+d.day(); // --&gt; Thursday</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">greg_day_of_year day_of_year() const</pre></td>
+<td>Get the day of the year. Number from 1 to 366 </td>
+</tr>
+<tr><td><pre class="screen">date d(2000,Jan,10);
+d.day_of_year(); // --&gt; 10</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date end_of_month() const</pre></td>
+<td>Returns a <code class="computeroutput">date</code> object set to the last day of the calling objects current month.</td>
+</tr>
+<tr><td><pre class="screen">date d(2000,Jan,10);
+d.end_of_month(); // --&gt; 2000-Jan-31</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_infinity() const</pre></td>
+<td>Returns true if date is either positive or negative infinity</td>
+</tr>
+<tr><td><pre class="screen">date d(pos_infin); 
+d.is_infinity(); // --&gt; true</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_neg_infinity() const</pre></td>
+<td>Returns true if date is negative infinity</td>
+</tr>
+<tr><td><pre class="screen">date d(neg_infin);
+d.is_neg_infinity(); // --&gt; true</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_pos_infinity() const</pre></td>
+<td>Returns true if date is positive infinity</td>
+</tr>
+<tr><td><pre class="screen">date d(neg_infin); 
+d.is_pos_infinity(); // --&gt; true</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_not_a_date() const</pre></td>
+<td>Returns true if value is not a date</td>
+</tr>
+<tr><td><pre class="screen">date d(not_a_date_time);
+d.is_not_a_date(); // --&gt; true</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_special() const</pre></td>
+<td>Returns true if date is any <code class="computeroutput">special_value</code>
+</td>
+</tr>
+<tr><td><pre class="screen">date d(pos_infin); 
+date d2(not_a_date_time); 
+date d3(2005,Mar,1);
+d.is_special(); // --&gt; true
+d2.is_special(); // --&gt; true
+d3.is_special(); // --&gt; false</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">special_value as_special() const</pre></td>
+<td>Returns represented <code class="computeroutput">special_value</code> or <code class="computeroutput">not_special</code> if the represented date is a normal date.</td>
+</tr>
+<tr><td><pre class="screen"></pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">long modjulian_day() const</pre></td>
+<td>Returns the modified julian day for the date.</td>
+</tr>
+<tr><td><pre class="screen"></pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">long julian_day() const</pre></td>
+<td>Returns the julian day for the date.</td>
+</tr>
+<tr><td><pre class="screen"></pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">int week_number() const</pre></td>
+<td>Returns the ISO 8601 week number for the date.</td>
+</tr>
+<tr><td><pre class="screen"></pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date end_of_month() const</pre></td>
+<td>Returns the last day of the month for the date.</td>
+</tr>
+<tr><td><pre class="screen">date d(2000,Feb,1);
+//gets Feb 29 -- 2000 was leap year
+date eom = d.end_of_month();</pre></td></tr>
+</tbody>
+</table></div>
+<a name="date_convert_to_string"></a><h4>
+<a name="idp80772648"></a>Convert to String</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">std::string to_simple_string(date d)</pre></td>
+<td>To <code class="computeroutput">YYYY-mmm-DD</code> string where <code class="computeroutput">mmm</code> is a 3 char month name.</td>
+</tr>
+<tr><td><pre class="screen">"2002-Jan-01"</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">std::string to_iso_string(date d)</pre></td>
+<td>To <code class="computeroutput">YYYYMMDD</code> where all components are integers.</td>
+</tr>
+<tr><td><pre class="screen">"20020131"</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">std::string to_iso_extended_string(date d)</pre></td>
+<td> To <code class="computeroutput">YYYY-MM-DD</code> where all components are integers.</td>
+</tr>
+<tr><td><pre class="screen">"2002-01-31"</pre></td></tr>
+</tbody>
+</table></div>
+<a name="date_operators"></a><h4>
+<a name="idp80781960"></a>Operators</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator&lt;&lt;</pre></td>
+<td>Stream output operator</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,1);
+std::cout &lt;&lt; d &lt;&lt; std::endl;</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator&gt;&gt;</pre></td>
+<td>Stream input operator. <span class="strong"><strong>Note:</strong></span> As of version 1.33, streaming operations have been greatly improved. See <a class="link" href="date_time_io.html" title="Date Time Input/Output">Date Time IO System</a> for details on exceptions and error conditions.</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(not_a_date_time);
+stringstream ss("2002-Jan-01");
+ss &gt;&gt; d;</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator==, operator!=,
+operator&gt;, operator&lt;,
+operator&gt;=, operator&lt;=</pre></td>
+<td>A full complement of comparison operators</td>
+</tr>
+<tr><td><pre class="screen">d1 == d2, etc</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date operator+(date_duration) const</pre></td>
+<td>Return a date adding a day offset</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,1);
+date_duration dd(1);
+date d2 = d + dd;</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date operator-(date_duration) const</pre></td>
+<td>Return a date by substracting a day offset</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,1);
+date_duration dd(1);
+date d2 = d - dd;</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_duration operator-(date) const</pre></td>
+<td>Return a date_duration by subtracting two dates</td>
+</tr>
+<tr><td>
+<pre class="screen">date d1(2002,Jan,1);
+date d2(2002,Jan,2);
+date_duration dd = d2-d1;</pre>
+	  </td></tr>
+</tbody>
+</table></div>
+<a name="date_tm_funcs"></a><h4>
+<a name="idp80796600"></a>Struct tm Functions</h4>
+<p>Functions for converting a <code class="computeroutput">date</code> object to, and from, a <code class="computeroutput">tm</code> struct are provided.</p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">tm to_tm(date)</pre></td>
+<td>A function for converting a <code class="computeroutput">date</code> object to a <code class="computeroutput">tm</code> struct. The fields: <code class="computeroutput">tm_hour</code>, <code class="computeroutput">tm_min</code>, and <code class="computeroutput">tm_sec</code> are set to zero. The <code class="computeroutput">tm_isdst</code> field is set to -1.</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2005,Jan,1);
+tm d_tm = to_tm(d);
+/* tm_year =&gt; 105
+   tm_mon  =&gt; 0
+   tm_mday =&gt; 1
+   tm_wday =&gt; 6 (Saturday)
+   tm_yday =&gt; 0
+   tm_hour =&gt; 0
+   tm_min  =&gt; 0
+   tm_sec  =&gt; 0
+   tm_isddst =&gt; -1 */</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date date_from_tm(tm datetm)</pre></td>
+<td>A function for converting a <code class="computeroutput">tm</code> struct to a <code class="computeroutput">date</code> object. The fields: <code class="computeroutput">tm_wday </code>, <code class="computeroutput">tm_yday </code>, <code class="computeroutput">tm_hour</code>, <code class="computeroutput">tm_min</code>, <code class="computeroutput">tm_sec</code>, and <code class="computeroutput">tm_isdst</code> are ignored.</td>
+</tr>
+<tr><td>
+<pre class="screen">tm d_tm;
+d_tm.tm_year = 105;
+d_tm.tm_mon  = 0;
+d_tm.tm_mday = 1;
+date d = date_from_tm(d_tm);
+// d =&gt; 2005-Jan-01</pre>
+          </td></tr>
+</tbody>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.gregorian.date_duration"></a>Date Duration (aka Days)</h3></div></div></div>
+<a class="link" href="gregorian.html#duration_intro">Introduction</a> --
+  <a class="link" href="gregorian.html#duration_header">Header</a> --
+  <a class="link" href="gregorian.html#duration_construction">Construction</a> --
+  <a class="link" href="gregorian.html#duration_accessors">Accessors</a> --
+  <a class="link" href="gregorian.html#duration_operators">Operators</a> --
+  <a class="link" href="gregorian.html#additional_duration_types">Additional Duration Types</a><a name="duration_intro"></a><h4>
+<a name="idp80813016"></a>Introduction</h4>
+<p>
+    The class boost::gregorian::date_duration is a simple day count used for arithmetic with <a class="link" href="gregorian.html#date_time.gregorian.date_class" title="Date">gregorian::date</a>. A duration can be either positive or negative. 
+  </p>
+<p>
+    As of version 1_32 the date_duration class has been typedef'd as days in the boost::gregorian namespace. Throughout the examples you will find days used instead of date_duration.
+  </p>
+<a name="duration_header"></a><h4>
+<a name="idp80814824"></a>Header</h4>
+<p>
+    </p>
+<pre class="programlisting">#include "boost/date_time/gregorian/gregorian.hpp" //include all types plus i/o
+or
+#include "boost/date_time/gregorian/gregorian_types.hpp" //no i/o just types</pre>
+<p>
+  </p>
+<a name="duration_construction"></a><h4>
+<a name="idp80816216"></a>Construction</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_duration(long)</pre></td>
+<td>Create a duration count.</td>
+</tr>
+<tr><td><pre class="screen">date_duration dd(3); //3 days</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">days(special_values sv)</pre></td>
+<td>Constructor for infinities, not-a-date-time, max_date_time, and min_date_time</td>
+</tr>
+<tr><td><pre class="screen">days dd1(neg_infin);
+days dd2(pos_infin);
+days dd3(not_a_date_time);
+days dd4(max_date_time);
+days dd5(min_date_time);</pre></td></tr>
+</tbody>
+</table></div>
+<a name="duration_accessors"></a><h4>
+<a name="idp80822616"></a>Accessors</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">long days() const</pre></td>
+<td>Get the day count.</td>
+</tr>
+<tr><td><pre class="screen">date_duration dd(3); dd.days() --&gt; 3</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_negative() const</pre></td>
+<td>True if number of days is less than zero.</td>
+</tr>
+<tr><td><pre class="screen">date_duration dd(-1); dd.is_negative() --&gt; true</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">static date_duration unit()</pre></td>
+<td>Return smallest possible unit of duration type.</td>
+</tr>
+<tr><td><pre class="screen">date_duration::unit() --&gt; date_duration(1)</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_special() const</pre></td>
+<td>Returns true if days is any <code class="computeroutput">special_value</code>
+</td>
+</tr>
+<tr><td><pre class="screen">days dd(pos_infin); 
+days dd2(not_a_date_time); 
+days dd3(25);
+dd.is_special(); // --&gt; true
+dd2.is_special(); // --&gt; true
+dd3.is_special(); // --&gt; false</pre></td></tr>
+</tbody>
+</table></div>
+<a name="duration_operators"></a><h4>
+<a name="idp80832856"></a>Operators</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator&lt;&lt;, operator&gt;&gt;</pre></td>
+<td>Streaming operators. <span class="strong"><strong>Note:</strong></span> As of version 1.33, streaming operations have been greatly improved. See <a class="link" href="date_time_io.html" title="Date Time Input/Output">Date Time IO System</a> for more details (including exceptions and error conditions).</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(not_a_date_time);
+stringstream ss("2002-Jan-01");
+ss &gt;&gt; d; 
+std::cout &lt;&lt; d; // "2002-Jan-01"
+</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top">
+<pre class="screen">operator==, operator!=,
+operator&gt;, operator&lt;,
+operator&gt;=, operator&lt;=</pre>
+	  </td>
+<td>A full complement of comparison operators</td>
+</tr>
+<tr><td><pre class="screen">dd1 == dd2, etc</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_duration operator+(date_duration) const</pre></td>
+<td>Add date durations.</td>
+</tr>
+<tr><td>
+<pre class="screen">date_duration dd1(3);
+date_duration dd2(5);
+date_duration dd3 = dd1 + dd2;</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_duration operator-(date_duration) const</pre></td>
+<td>Subtract durations.</td>
+</tr>
+<tr><td>
+<pre class="screen">date_duration dd1(3);
+date_duration dd2(5);
+date_duration dd3 = dd1 - dd2;</pre>
+	  </td></tr>
+</tbody>
+</table></div>
+<a name="additional_duration_types"></a><h4>
+<a name="idp80843960"></a>Additional Duration Types</h4>
+<p>These additional types are logical representations of spans of days.</p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">months(int num_of_months)</pre></td>
+<td>A logical month representation. Depending on the usage, this <code class="computeroutput">months</code> object may cover a span of 28 to 31 days. The objects also use a snap to end-of-month behavior when used in conjunction with a date that is the last day of a given month. <span class="strong"><strong>WARNING: this behavior may lead to unexpected results.</strong></span> See: <a class="link" href="gregorian.html#snap_to_details">Reversibility of Operations Pitfall</a> for complete details and alternatives.</td>
+</tr>
+<tr><td><pre class="screen">months single(1);
+date leap_year(2004,Jan,31);
+date norm_year(2005,Jan,31);
+leap_year + single; // =&gt; 2004-Feb-29
+norm_year + single; // =&gt; 2005-Feb-28
+date(2005,Jan,1) + single; // =&gt; 2005-Feb-01
+date(2005,Feb,1) + single; // =&gt; 2005-Mar-01
+date(2005,Feb,28) + single; // =&gt; 2005-Mar-31</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">years(int num_of_years)</pre></td>
+<td>A logical representation of a year. The <code class="computeroutput">years</code> object has the same behavior as the <code class="computeroutput">months</code> objects with regards to the end-of-the-month.</td>
+</tr>
+<tr><td><pre class="screen">years single(1);
+date(2003,Feb,28) + single;
+// results in =&gt; 2004-Feb-29
+date(2004,Feb,29) + single;
+// results in =&gt; 2005-Feb-28</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">weeks(int num_of_weeks)</pre></td>
+<td>A duration type representing a number of <code class="computeroutput">n * 7</code> days.</td>
+</tr>
+<tr><td><pre class="screen">weeks single(1);
+date(2005,Jan,1) + single; // =&gt; 2005-Jan-08</pre></td></tr>
+</tbody>
+</table></div>
+<p>
+<a name="snap_to_details"></a>
+</p>
+<h5>
+<a name="idp80855672"></a>Reversibility of Operations Pitfall</h5>
+<p>
+</p>
+<p>A natural expectation when adding a number of months to a date, and then subtracting the same number of months, is to end up exactly where you started. This is most often the result the <code class="computeroutput">date_time</code> library provides but there is one significant exception: The snap-to-end-of-month behavior implemented by the <a class="link" href="gregorian.html#additional_duration_types">months</a> duration type. The <a class="link" href="gregorian.html#additional_duration_types">months</a> duration type may provide unexpected results when the starting day is the 28th, 29th, or 30th in a 31 day month. The <a class="link" href="gregorian.html#iterators_intro">month_iterator</a> is not affected by this issue and is therefore included in the examples to illustrate a possible alternative.
+</p>
+<p>
+
+</p>
+<p>When the starting date is in the middle of a month, adding or subtracting any number of months will result in a date that is the same day of month (e.g. if you start on the 15th, you will end on the 15th). When a date is the last day of the month, adding or subtracting any number of months will give a result that is also the last day of the month (e.g if you start on Jan 31st, you will land on: Feb 28th, Mar 31st, etc).
+  </p>
+<pre class="programlisting">
+    // using months duration type
+    date d(2005, Nov, 30); // last day of November
+    d + months(1); // result is last day of December "2005-Dec-31"
+    d - months(1); // result is last day of October "2005-Oct-31"
+
+    // using month_iterator
+    month_iterator itr(d); // last day of November
+    ++itr; // result is last day of December "2005-Dec-31"
+    --itr; // back to original starting point "2005-Nov-30"
+    --itr; // last day of October "2005-Oct-31"
+  </pre>
+<p>
+</p>
+<p>
+
+</p>
+<p>If the start date is the 28th, 29th, or 30th in a 31 day month, the result of adding or subtracting a month may result in the snap-to-end-of-month behavior kicking in unexpectedly. This would cause the final result to be different than the starting date.
+  </p>
+<pre class="programlisting">
+    // using months duration type
+    date d(2005, Nov, 29);
+    d += months(1); // "2005-Dec-29"
+    d += months(1); // "2006-Jan-29"
+    d += months(1); // "2006-Feb-28" --&gt; snap-to-end-of-month behavior kicks in
+    d += months(1); // "2006-Mar-31" --&gt; unexpected result
+    d -= months(4); // "2005-Nov-30" --&gt; unexpected result, not where we started
+
+    // using month_iterator
+    month_iterator itr(date(2005, Dec, 30));
+    ++itr; // "2006-Jan-30" --&gt; ok
+    ++itr; // "2006-Feb-28" --&gt; snap-to DOES NOT kick in 
+    ++itr; // "2006-Mar-30" --&gt; ok
+    --itr; // "2006-Feb-28" --&gt; ok
+    --itr; // "2006-Jan-30" --&gt; ok
+    --itr; // "2005-Dec-30" --&gt; ok, back where we started
+  </pre>
+<p>
+</p>
+<p>
+
+</p>
+<p>The additional duration types (<code class="computeroutput">months</code>, <code class="computeroutput">years</code>, and <code class="computeroutput">weeks</code>) are provided as a convenience and can be easily removed to insure this pitfall never occurs. To remove these types simply undefine BOOST_DATE_TIME_OPTIONAL_GREGORIAN_TYPES.</p>
+<p>
+</p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.gregorian.date_period"></a>Date Period</h3></div></div></div>
+<a class="link" href="gregorian.html#period_intro">Introduction</a> --
+  <a class="link" href="gregorian.html#period_header">Header</a> --
+  <a class="link" href="gregorian.html#period_construction">Construction</a> --
+  <a class="link" href="gregorian.html#date_period_mutators">Mutators</a> --
+  <a class="link" href="gregorian.html#period_accessors">Accessors</a> --
+  <a class="link" href="gregorian.html#period_convert_to_string">Convert to String</a> --
+  <a class="link" href="gregorian.html#period_operators">Operators</a><a name="period_intro"></a><h4>
+<a name="idp80866824"></a>Introduction</h4>
+<p>
+    The class boost::gregorian::date_period provides direct representation for ranges between two dates. Periods provide the ability to simplify some types of calculations by simplifying the conditional logic of the program. For example, testing if a date is within an irregular schedule such as a weekend or holiday can be accomplished using collections of date periods. This is facilitated by several methods that allow evaluation if a date_period intersects with another date period, and to generate the period resulting from the intersection. The <a class="link" href="examples.html#date_time.examples.date_period_calc" title="Date Period Calculations">date period calculation example</a> provides an example of this.
+  </p>
+<p>
+    A period that is created with beginning and end points being equal, or with a duration of zero, is known as a zero length period. Zero length periods are considered invalid (it is perfectly legal to construct an invalid period). For these periods, the <code class="computeroutput">last</code> point will always be one unit less that the <code class="computeroutput">begin</code> point.
+  </p>
+<p>
+    Date periods used in combination with infinity values have the ability to represent complex concepts such as 'until further notice'. 
+  </p>
+<a name="period_header"></a><h4>
+<a name="idp80869752"></a>Header</h4>
+<p>
+    </p>
+<pre class="programlisting">#include "boost/date_time/gregorian/gregorian.hpp" //include all types plus i/o
+or
+#include "boost/date_time/gregorian/gregorian_types.hpp" //no i/o just types</pre>
+<p>
+  </p>
+<a name="period_construction"></a><h4>
+<a name="idp80871112"></a>Construction</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_period(date, date)</pre></td>
+<td>Create a period as [begin, end). If end is &lt;= begin then the period will be invalid.</td>
+</tr>
+<tr><td><pre class="screen">date_period dp(date(2002,Jan,10),
+               date(2002,Jan,12));</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_period(date, days)</pre></td>
+<td>Create a period as [begin, begin+len) where end point would be begin+len. If len is &lt;= zero then the period will be defined as invalid.</td>
+</tr>
+<tr><td><pre class="screen">date_period dp(date(2002,Jan,10),
+               days(2));</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_period(date_period)</pre></td>
+<td> Copy constructor</td>
+</tr>
+<tr><td><pre class="screen">date_period dp1(dp);</pre></td></tr>
+</tbody>
+</table></div>
+<a name="date_period_mutators"></a><h4>
+<a name="idp80879352"></a>Mutators</h4>
+<p>
+    </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_period shift(days)</pre></td>
+<td>Add duration to both begin and end.</td>
+</tr>
+<tr><td>
+              <pre class="screen">
+date_period dp(date(2005,Jan,1), days(3));
+dp.shift(days(3)); 
+// dp == 2005-Jan-04 to 2005-Jan-07
+             </pre>
+	    </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_period expand(days)</pre></td>
+<td>Subtract duration from begin and add duration to end.</td>
+</tr>
+<tr><td>
+              <pre class="screen">
+date_period dp(date(2005,Jan,2), days(2));
+dp.expand(days(1)); 
+// dp == 2005-Jan-01 to 2005-Jan-04
+              </pre>
+            </td></tr>
+</tbody>
+</table></div>
+<p>
+  </p>
+<a name="period_accessors"></a><h4>
+<a name="idp80886296"></a>Accessors</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date begin()</pre></td>
+<td> Return first day of period.</td>
+</tr>
+<tr><td>
+<pre class="screen">date_period dp(date(2002,Jan,1),
+               date(2002,Jan,10));
+dp.begin() --&gt; 2002-Jan-01</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date last()</pre></td>
+<td>Return last date in the period</td>
+</tr>
+<tr><td>
+<pre class="screen">date_period dp(date(2002,Jan,1),
+               date(2002,Jan,10));
+dp.last() --&gt; 2002-Jan-09</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date end()</pre></td>
+<td>Return one past the last in period</td>
+</tr>
+<tr><td>
+<pre class="screen">date_period dp(date(2002,Jan,1),
+               date(2002,Jan,10));
+dp.end() --&gt; 2002-Jan-10</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">days length()</pre></td>
+<td>Return the length of the date_period</td>
+</tr>
+<tr><td>
+<pre class="screen">date_period dp(date(2002,Jan,1),
+               days(2));
+dp.length() --&gt; 2</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool is_null()</pre></td>
+<td>True if period is not well formed. eg: end less than or equal to begin.</td>
+</tr>
+<tr><td>
+<pre class="screen">date_period dp(date(2002,Jan,10),
+               date(2002,Jan,1));
+dp.begin() --&gt; true</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool contains(date)</pre></td>
+<td>True if date is within the period. Zero length periods cannot contain any points</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2002,Jan,1);
+date_period dp(d, date(2002,Jan,10));
+dp.contains(date(2002,Jan,2));// true
+date_period dp2(d, d);
+dp.contains(date(2002,Jan,1));// false</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool contains(date_period)</pre></td>
+<td>True if date period is within the period</td>
+</tr>
+<tr><td>
+<pre class="screen">date_period dp1(date(2002,Jan,1),
+                date(2002,Jan,10));
+date_period dp2(date(2002,Jan,2),
+                date(2002,Jan,3));
+dp1.contains(dp2) --&gt; true
+dp2.contains(dp1) --&gt; false</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">bool intersects(date_period)</pre></td>
+<td>True if periods overlap</td>
+</tr>
+<tr><td>
+<pre class="screen">date_period dp1(date(2002,Jan,1),
+               date(2002,Jan,10));
+date_period dp2(date(2002,Jan,2),
+               date(2002,Jan,3));
+dp2.intersects(dp1) --&gt; true</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_period intersection(date_period)</pre></td>
+<td>Calculate the intersection of 2 periods. Null if no intersection.</td>
+</tr>
+<tr><td>
+<pre class="screen">date_period dp1(date(2002,Jan,1),
+                date(2002,Jan,10));
+date_period dp2(date(2002,Jan,2),
+                date(2002,Jan,3));
+dp2.intersection(dp1) --&gt; dp2</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_period is_adjacent(date_period)</pre></td>
+<td>Check if two periods are adjacent, but not overlapping.</td>
+</tr>
+<tr><td>
+<pre class="screen">date_period dp1(date(2002,Jan,1),
+                date(2002,Jan,3));
+date_period dp2(date(2002,Jan,3),
+                date(2002,Jan,10));
+dp2.is_adjacent(dp1) --&gt; true</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_period is_after(date)</pre></td>
+<td>Determine the period is after a given date.</td>
+</tr>
+<tr><td>
+<pre class="screen">date_period dp1(date(2002,Jan,10),
+                date(2002,Jan,30));
+date d(2002,Jan,3);
+dp1.is_after(d) --&gt; true</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_period is_before(date)</pre></td>
+<td>Determine the period is before a given date.</td>
+</tr>
+<tr><td>
+<pre class="screen">date_period dp1(date(2002,Jan,1),
+                date(2002,Jan,3));
+date d(2002,Jan,10);
+dp1.is_before(d) --&gt; true</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_period merge(date_period)</pre></td>
+<td>Returns union of two periods. Null if no intersection.</td>
+</tr>
+<tr><td>
+<pre class="screen">date_period dp1(date(2002,Jan,1),
+                date(2002,Jan,10));
+date_period dp2(date(2002,Jan,9),
+                date(2002,Jan,31));
+dp2.merge(dp1)
+// 2002-Jan-01/2002-Jan-31</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_period span(date_period)</pre></td>
+<td>Combines two periods and any gap between them such that begin = min(p1.begin, p2.begin) and end = max(p1.end , p2.end)</td>
+</tr>
+<tr><td>
+<pre class="screen">
+date_period dp1(date(2002,Jan,1),
+                date(2002,Jan,5));
+date_period dp2(date(2002,Jan,9),
+                date(2002,Jan,31));
+dp2.span(dp1); // 2002-Jan-01/2002-Jan-31</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_period shift(days)</pre></td>
+<td>Add duration to both begin and end.</td>
+</tr>
+<tr><td>
+<pre class="screen">date_period dp1(date(2002,Jan,1),
+                date(2002,Jan,10));
+dp1.shift(days(1));
+// 2002-Jan-02/2002-Jan-11</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_period expand(days)</pre></td>
+<td>Subtract duration from begin and add duration to end.</td>
+</tr>
+<tr><td>
+<pre class="screen">date_period dp1(date(2002,Jan,4),
+                date(2002,Jan,10));
+dp1.expand(days(2));
+// 2002-Jan-02/2002-Jan-12</pre>
+	  </td></tr>
+</tbody>
+</table></div>
+<a name="period_convert_to_string"></a><h4>
+<a name="idp80920264"></a>Convert to String</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">std::string to_simple_string(date_period dp)</pre></td>
+<td>To <code class="computeroutput">[YYYY-mmm-DD/YYYY-mmm-DD]</code> string where <code class="computeroutput">mmm</code> is 3 char month name.</td>
+</tr>
+<tr><td><pre class="screen">[2002-Jan-01/2002-Jan-31]</pre></td></tr>
+</tbody>
+</table></div>
+<a name="period_operators"></a><h4>
+<a name="idp80925496"></a>Operators</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator&lt;&lt;</pre></td>
+<td>ostream operator for date_period. Uses facet to format time points. Typical output: [2002-Jan-01/2002-Jan-31].</td>
+</tr>
+<tr><td><pre class="screen">std::cout &lt;&lt; dp &lt;&lt; std::endl;</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator&gt;&gt;</pre></td>
+<td>istream operator for date_period. Uses facet to parse time points.</td>
+</tr>
+<tr><td><pre class="screen">"[2002-Jan-01/2002-Jan-31]"</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top">
+<pre class="screen">operator==, operator!=,
+operator&gt;, operator&lt;</pre>
+	  </td>
+<td>A full complement of comparison operators</td>
+</tr>
+<tr><td><pre class="screen">dp1 == dp2, etc</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator&lt;</pre></td>
+<td>True if dp1.end() less than dp2.begin()</td>
+</tr>
+<tr><td><pre class="screen">dp1 &lt; dp2, etc</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">operator&gt;</pre></td>
+<td>True if dp1.begin() greater than dp2.end()</td>
+</tr>
+<tr><td><pre class="screen">dp1 &gt; dp2, etc</pre></td></tr>
+</tbody>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.gregorian.date_iterators"></a>Date Iterators</h3></div></div></div>
+<a class="link" href="gregorian.html#iterators_intro">Introduction</a> --
+  <a class="link" href="gregorian.html#iterators_header">Header</a> --
+  <a class="link" href="gregorian.html#iterators_overview">Overview</a><a name="iterators_intro"></a><h4>
+<a name="idp80939176"></a>Introduction</h4>
+<p>
+    Date iterators provide a standard mechanism for iteration through dates. Date iterators are a model of <a href="http://www.sgi.com/tech/stl/BidirectionalIterator.html" target="_top">Bidirectional Iterator</a> and can be used to populate collections with dates and other date generation tasks. For example, the <a class="link" href="examples.html#date_time.examples.print_month" title="Print Month">print month</a> example iterates through all the days in a month and prints them.  
+  </p>
+<p>
+    All of the iterators here derive from boost::gregorian::date_iterator. 
+  </p>
+<a name="iterators_header"></a><h4>
+<a name="idp80941496"></a>Header</h4>
+<p>
+    </p>
+<pre class="programlisting">#include "boost/date_time/gregorian/gregorian.hpp" //include all types plus i/o
+or
+#include "boost/date_time/gregorian/gregorian_types.hpp" //no i/o just types</pre>
+<p>
+  </p>
+<a name="iterators_overview"></a><h4>
+<a name="idp80942872"></a>Overview</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date_iterator</pre></td>
+<td>Common (abstract) base class for all day level iterators.</td>
+</tr>
+<tr><td><pre class="screen"></pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">day_iterator(date start_date, int day_count=1)</pre></td>
+<td>Iterate <code class="computeroutput">day_count</code> days at a time. This iterator does not provide postfix increment/decrement operators. Only prefix operators are provided.</td>
+</tr>
+<tr><td><pre class="screen">day_iterator day_itr(date(2005,Jan,1));
+++d_itr; // 2005-Jan-02
+day_iterator 2day_itr(date(2005,Feb,1),2);
+++2d_itr; // 2005-Feb-03</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">week_iterator(...)
+  Parameters:
+    date start_date
+    int week_offset (defaults to 1)</pre></td>
+<td>Iterate <code class="computeroutput">week_offset</code> weeks at a time. This iterator does not provide postfix increment/decrement operators. Only prefix operators are provided.</td>
+</tr>
+<tr><td><pre class="screen">week_iterator wk_itr(date(2005,Jan,1));
+++wk_itr; // 2005-Jan-08
+week_iterator 2wk_itr(date(2005,Jan,1),2);
+++2wk_itr; // 2005-Feb-15</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">month_iterator(...)
+  Parameters:
+    date start_date
+    int month_offset (defaults to 1)</pre></td>
+<td>Iterate <code class="computeroutput">month_offset</code> months. There are special rules for handling the end of the month. These are: if start date is last day of the month, always adjust to last day of the month. If date is beyond the end of the month (e.g. Jan 31 + 1 month) adjust back to end of month (for more details and examples of this, see <a class="link" href="gregorian.html#snap_to_details">Reversibility of Operations Pitfall</a>. <span class="strong"><strong>NOTE:</strong></span> the <code class="computeroutput">month_iterator</code> is not effected by this pitfall.) This iterator does not provide postfix increment/decrement operators. Only prefix operators are provided.</td>
+</tr>
+<tr><td><pre class="screen">month_iterator m_itr(date(2005,Jan,1));
+++m_itr; // 2005-Feb-01
+month_iterator 2m_itr(date(2005,Feb,1),2);
+++2m_itr; // 2005-Apr-01</pre></td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">year_iterator(...)
+  Parameters:
+    date start_date
+    int year_offset (defaults to 1)</pre></td>
+<td>Iterate year_offset years. The year_iterator will always land on the day of the date parameter except when date is Feb 28 in a non-leap year. In this case the iterator will return Feb 29 for leap years (eg: 2003-Feb-28, 2004-Feb-29, 2005-Feb-28). This iterator does not provide postfix increment/decrement operators. Only prefix operators are provided.</td>
+</tr>
+<tr><td><pre class="screen">year_iterator y_itr(date(2005,Jan,1));
+++y_itr; // 2006-Jan-01
+year_iterator 2y_itr(date(2005,Feb,1),2);
+++2y_itr; // 2007-Feb-01</pre></td></tr>
+</tbody>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.gregorian.date_algorithms"></a>Date Generators/Algorithms</h3></div></div></div>
+<h3>
+<a name="idp80958152"></a>Date Generators/Algorithms</h3>
+<a class="link" href="gregorian.html#algo_intro">Introduction</a> --
+  <a class="link" href="gregorian.html#algo_header">Header</a> --
+  <a class="link" href="gregorian.html#algo_overview">Class Overview</a> --
+  <a class="link" href="gregorian.html#algo_func_overview">Function Overview</a><a name="algo_intro"></a><h4>
+<a name="idp80960824"></a>Introduction</h4>
+<p> 
+    Date algorithms or generators are tools for generating other dates or schedules of dates. A generator function starts with some part of a date such as a month and day and is supplied another part to then generate a concrete date. This allows the programmer to represent concepts such as "The first Sunday in February" and then create a concrete set of dates when provided with one or more years.
+    <span class="emphasis"><em>Note</em></span>: As of boost version 1_31_0, date generator names have been changed. Old names are still available but are no longer documented and may someday be deprecated
+  </p>
+<p>Also provided are stand-alone functions for generating a date, or calculation a duration of days. These functions take a date object and a weekday object as parameters.
+  </p>
+<p>All date generator classes and functions are in the boost::gregorian namespace.
+  </p>
+<p> 
+    The <a class="link" href="examples.html#date_time.examples.print_holidays" title="Print Holidays">print holidays</a> example shows a detailed usage example. 
+  </p>
+<a name="algo_header"></a><h4>
+<a name="idp80963864"></a>Header</h4>
+<pre class="programlisting">#include "boost/date_time/gregorian/gregorian.hpp"</pre>
+<p>
+  </p>
+<a name="algo_overview"></a><h4>
+<a name="idp80965048"></a>Overview</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Class and get_date Parameter</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">year_based_generator
+date get_date(greg_year year)</pre></td>
+<td>A unifying (abstract) date_generator base type for: <code class="computeroutput">partial_date</code>, <code class="computeroutput">nth_day_of_the_week_in_month</code>, <code class="computeroutput">first_day_of_the_week_in_month</code>, and <code class="computeroutput">last_day_of_the_week_in_month</code>.</td>
+</tr>
+<tr><td>The <a class="link" href="examples.html#date_time.examples.print_holidays" title="Print Holidays">print holidays</a> example shows a detailed usage example.</td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">last_day_of_the_week_in_month(greg_weekday, 
+                              greg_month)
+date get_date(greg_year year)</pre></td>
+<td>Calculate something like last Monday of January</td>
+</tr>
+<tr><td>
+<pre class="screen">last_day_of_the_week_in_month lwdm(Monday,Jan);
+date d = lwdm.get_date(2002);
+//2002-Jan-28</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">first_day_of_the_week_in_month(greg_weekday,
+                               greg_month)
+date get_date(greg_year year)</pre></td>
+<td>Calculate something like first Monday of January</td>
+</tr>
+<tr><td>
+<pre class="screen">first_day_of_the_week_in_month fdm(Monday,Jan);
+date d = fdm.get_date(2002);
+//2002-Jan-07</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">nth_day_of_the_week_in_month(week_num, 
+                             greg_weekday,
+                             greg_month)
+date get_date(greg_year year)</pre></td>
+<td>
+<code class="computeroutput">week_num</code> is a public enum member of <code class="computeroutput">nth_day_of_the_week_in_month</code>. Calculate something like first Monday of January, second Tuesday of March, Third Sunday of December, etc. (first through fifth are provided, fifth is the equivalent of last)</td>
+</tr>
+<tr><td>
+<pre class="screen">typedef nth_day_of_the_week_in_month nth_dow;
+nth_dow ndm(nth_dow::third, Monday,Jan);
+date d = ndm.get_date(2002);
+//2002-Jan-21</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">partial_date(greg_day, greg_month)
+date get_date(greg_year year)</pre></td>
+<td>Generates a date by applying the year to the given month and day.</td>
+</tr>
+<tr><td>
+<pre class="screen">partial_date pd(1,Jan);
+date d = pd.get_date(2002);
+//2002-Jan-01</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">first_day_of_the_week_after(greg_weekday)
+date get_date(date d)</pre></td>
+<td>Calculate something like First Sunday after Jan 1,2002</td>
+</tr>
+<tr><td>
+<pre class="screen">first_day_of_the_week_after fdaf(Monday);
+date d = fdaf.get_date(date(2002,Jan,1));
+//2002-Jan-07</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">first_day_of_the_week_before(greg_weekday)
+date get_date(date d)</pre></td>
+<td>Calculate something like First Monday before Feb 1,2002</td>
+</tr>
+<tr><td>
+<pre class="screen">first_day_of_the_week_before fdbf(Monday);
+date d = fdbf.get_date(date(2002,Feb,1));
+//2002-Jan-28</pre>
+	  </td></tr>
+</tbody>
+</table></div>
+<a name="algo_func_overview"></a><h4>
+<a name="idp80983640"></a>Function Overview</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Function Prototype</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">days days_until_weekday date, greg_weekday)</pre></td>
+<td> Calculates the number of days from given date until given weekday.</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2004,Jun,1); // Tuesday
+greg_weekday gw(Friday);
+days_until_weekday(d, gw); // 3 days</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">days days_before_weekday(date, greg_weekday)</pre></td>
+<td> Calculates the number of day from given date to previous given weekday.</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2004,Jun,1); // Tuesday
+greg_weekday gw(Friday);
+days_before_weekday(d, gw); // 4 days</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date next_weekday(date, greg_weekday)</pre></td>
+<td> Generates a date object representing the date of the following weekday from the given date.</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2004,Jun,1); // Tuesday
+greg_weekday gw(Friday);
+next_weekday(d, gw); // 2004-Jun-4</pre>
+	  </td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">date previous_weekday(date, greg_weekday)</pre></td>
+<td> Generates a date object representing the date of the previous weekday from the given date.</td>
+</tr>
+<tr><td>
+<pre class="screen">date d(2004,Jun,1); // Tuesday
+greg_weekday gw(Friday);
+previous_weekday(d, gw); // 2004-May-28</pre>
+	  </td></tr>
+</tbody>
+</table></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.gregorian.gregorian_calendar"></a>Gregorian Calendar</h3></div></div></div>
+<a class="link" href="gregorian.html#gregcal_intro">Introduction</a> --
+  <a class="link" href="gregorian.html#gregcal_header">Header</a> --
+  <a class="link" href="gregorian.html#gregcal_functions">Functions</a><a name="gregcal_intro"></a><h4>
+<a name="idp80996216"></a>Introduction</h4>
+<p>
+    The class boost::gregorian::gregorian_calendar implements the functions necessary to create the gregorian date system. It converts to the year-month-day form of a date to a day number representation and back. 
+  </p>
+<p>
+    For most purposes this class is simply accessed by <a class="link" href="gregorian.html#date_time.gregorian.date_class" title="Date">gregorian::date</a> and is not used directly by the user. However, there are useful functions that might be of use such as the end_of_month_day function. 
+  </p>
+<p>
+    The <a class="link" href="examples.html#date_time.examples.print_month" title="Print Month">print month</a> example demonstrates this. 
+  </p>
+<a name="gregcal_header"></a><h4>
+<a name="idp80998808"></a>Header</h4>
+<p>
+    </p>
+<pre class="programlisting">#include "boost/date_time/gregorian/gregorian.hpp" //include all types plus i/o
+or
+#include "boost/date_time/gregorian/gregorian_types.hpp" //no i/o just types</pre>
+<p>
+  </p>
+<a name="gregcal_functions"></a><h4>
+<a name="idp81000200"></a>Functions</h4>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead>
+<tr>
+<th rowspan="2" valign="top">Syntax</th>
+<th>Description</th>
+</tr>
+<tr><th>Example</th></tr>
+</thead>
+<tbody>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">static short day_of_week(ymd_type)</pre></td>
+<td>Return the day of the week (0==Sunday, 1==Monday, etc)</td>
+</tr>
+<tr><td>See also <a class="link" href="gregorian.html#date_time.gregorian.date_class" title="Date">gregorian::date</a> day_of_week</td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">static date_int_type day_number(ymd_type)</pre></td>
+<td> Convert a ymd_type into a day number. The day number is an absolute number of days since the epoch start.</td>
+</tr>
+<tr><td>&#160;</td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">static short end_of_month_day(year_type,
+                              month_type)</pre></td>
+<td>Given a year and month determine the last day of the month.</td>
+</tr>
+<tr><td>&#160;</td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">static ymd_type from_day_number(date_int_type)</pre></td>
+<td> Convert a day number to a ymd struct.</td>
+</tr>
+<tr><td>&#160;</td></tr>
+<tr>
+<td rowspan="2" valign="top"><pre class="screen">static bool is_leap_year(year_type)</pre></td>
+<td>Returns true if specified year is a leap year.</td>
+</tr>
+<tr><td><pre class="screen">gregorian_calendar::is_leap_year(2000)
+//--&gt; true</pre></td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="examples/general_usage_examples.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../date_time.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="posix_time.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;9.&#160;Boost.Date_Time</title>
+<link rel="stylesheet" href="../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="libraries.html" title="Part&#160;I.&#160;The Boost C++ Libraries (BoostBook Subset)">
+<link rel="prev" href="container/release_notes.html" title="Release Notes">
+<link rel="next" href="date_time/examples/general_usage_examples.html" title="General Usage Examples">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../boost.png"></td>
+<td align="center"><a href="../../index.html">Home</a></td>
+<td align="center"><a href="../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="container/release_notes.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="date_time/examples/general_usage_examples.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="date_time"></a>Chapter&#160;9.&#160;Boost.Date_Time</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Jeff</span> <span class="surname">Garland</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2001-2005 CrystalClear Software, Inc</p></div>
+<div><div class="legalnotice">
+<a name="idp80643592"></a><p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="date_time.html#date_time.conceptual">Conceptual</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="date_time.html#Motivation">Motivation</a></span></dt>
+<dt><span class="section"><a href="date_time.html#date_time.domain_concepts">Domain Concepts</a></span></dt>
+<dt><span class="section"><a href="date_time.html#date_time.design_concepts">Design Concepts</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="date_time/examples/general_usage_examples.html">General Usage Examples</a></span></dt>
+<dt><span class="section"><a href="date_time/gregorian.html">Gregorian</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="date_time/gregorian.html#date_time.gregorian.date_class">Date</a></span></dt>
+<dt><span class="section"><a href="date_time/gregorian.html#date_time.gregorian.date_duration">Date Duration (aka Days)</a></span></dt>
+<dt><span class="section"><a href="date_time/gregorian.html#date_time.gregorian.date_period">Date Period</a></span></dt>
+<dt><span class="section"><a href="date_time/gregorian.html#date_time.gregorian.date_iterators">Date Iterators</a></span></dt>
+<dt><span class="section"><a href="date_time/gregorian.html#date_time.gregorian.date_algorithms">Date Generators/Algorithms</a></span></dt>
+<dt><span class="section"><a href="date_time/gregorian.html#date_time.gregorian.gregorian_calendar">Gregorian Calendar</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="date_time/posix_time.html">Posix Time</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="date_time/posix_time.html#date_time.posix_time.ptime_class">Ptime</a></span></dt>
+<dt><span class="section"><a href="date_time/posix_time.html#date_time.posix_time.time_duration">Time Duration</a></span></dt>
+<dt><span class="section"><a href="date_time/posix_time.html#date_time.posix_time.time_period">Time Period</a></span></dt>
+<dt><span class="section"><a href="date_time/posix_time.html#date_time.posix_time.time_iterators">Time Iterators</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="date_time/local_time.html">Local Time</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="date_time/local_time.html#date_time.local_time.time_zone_base">Time Zone (abstract)</a></span></dt>
+<dt><span class="section"><a href="date_time/local_time.html#date_time.local_time.posix_time_zone">Posix Time Zone</a></span></dt>
+<dt><span class="section"><a href="date_time/local_time.html#date_time.local_time.tz_database">Time Zone Database</a></span></dt>
+<dt><span class="section"><a href="date_time/local_time.html#date_time.local_time.custom_time_zone">Custom Time Zone</a></span></dt>
+<dt><span class="section"><a href="date_time/local_time.html#date_time.local_time.local_date_time">Local Date Time</a></span></dt>
+<dt><span class="section"><a href="date_time/local_time.html#date_time.local_time.local_time_period">Local Time Period</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="date_time/date_time_io.html">Date Time Input/Output</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="date_time/date_time_io.html#date_time.format_flags">Format Flags</a></span></dt>
+<dt><span class="section"><a href="date_time/date_time_io.html#date_time.date_facet">Date Facet</a></span></dt>
+<dt><span class="section"><a href="date_time/date_time_io.html#date_time.date_input_facet">Date Input Facet</a></span></dt>
+<dt><span class="section"><a href="date_time/date_time_io.html#date_time.time_facet">Time Facet</a></span></dt>
+<dt><span class="section"><a href="date_time/date_time_io.html#date_time.time_input_facet">Time Input Facet</a></span></dt>
+<dt><span class="section"><a href="date_time/date_time_io.html#date_time.io_objects">Date Time Formatter/Parser Objects</a></span></dt>
+<dt><span class="section"><a href="date_time/date_time_io.html#date_time.io_tutorial">Date Time IO Tutorial</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="date_time/serialization.html">Serialization</a></span></dt>
+<dt><span class="section"><a href="date_time/details.html">Details</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="date_time/details.html#date_time.calculations">Calculations</a></span></dt>
+<dt><span class="section"><a href="date_time/details.html#date_time.design_goals">Design Goals</a></span></dt>
+<dt><span class="section"><a href="date_time/details.html#date_time.tradeoffs">Tradeoffs: Stability, Predictability, and Approximations</a></span></dt>
+<dt><span class="section"><a href="date_time/details.html#date_time.terminology">Terminology</a></span></dt>
+<dt><span class="section"><a href="date_time/details.html#date_time.references">References</a></span></dt>
+<dt><span class="section"><a href="date_time/details.html#date_time.buildinfo">Build-Compiler Information</a></span></dt>
+<dt><span class="section"><a href="date_time/details.html#date_time.tests">Tests</a></span></dt>
+<dt><span class="section"><a href="date_time/details.html#date_time.changes">Change History</a></span></dt>
+<dt><span class="section"><a href="date_time/details.html#date_time.acknowledgements">Acknowledgements</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="date_time/examples.html">Examples</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.dates_as_strings">Dates as Strings</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.days_alive">Days Alive</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.days_between_new_year">Days Between New Years</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.end_of_month_day">Last Day of the Months</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.localization">Localization Demonstration</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.date_period_calc">Date Period Calculations</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.print_holidays">Print Holidays</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.print_month">Print Month</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.month_add">Month Adding</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.time_math">Time Math</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.print_hours">Print Hours</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.local_utc_conversion">Local to UTC Conversion</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.time_periods">Time Periods</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.simple_time_zone">Simple Time Zones</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.calc_rules">Daylight Savings Calc Rules</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.flight">Flight Time Example</a></span></dt>
+<dt><span class="section"><a href="date_time/examples.html#date_time.examples.seconds_since_epoch">Seconds Since Epoch</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="date_time/doxy.html">Library Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="date_time/doxy.html#date_time_reference">Date Time Reference</a></span></dt>
+<dt><span class="section"><a href="date_time/doxy.html#gregorian_reference">Gregorian Reference</a></span></dt>
+<dt><span class="section"><a href="date_time/doxy.html#posix_time_reference">Posix Time Reference</a></span></dt>
+<dt><span class="section"><a href="date_time/doxy.html#local_time_reference">Local Time Reference</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+<h3>
+<a name="idp80645016"></a>Introduction</h3>
+<p>
+    A set of date-time libraries based on generic programming concepts.
+  </p>
+<p>This documentation is also available in PDF format. It can be found at:
+    </p>
+<table border="0" summary="Simple list" class="simplelist"><tr><td><a href="http://www.crystalclearsoftware.com/libraries/date_time/date_time.pdf" target="_top">http://www.crystalclearsoftware.com/libraries/date_time/date_time.pdf</a></td></tr></table>
+<p>
+    In addition, a full doxygen reference can be found at:
+    </p>
+<table border="0" summary="Simple list" class="simplelist"><tr><td><a href="http://www.crystalclearsoftware.com/libraries/date_time/ref_guide/index.html" target="_top">http://www.crystalclearsoftware.com/libraries/date_time/ref_guide/index.html</a></td></tr></table>
+<p>
+    The most current version of the documentation can be found at:
+    </p>
+<table border="0" summary="Simple list" class="simplelist"><tr><td><a href="http://www.crystalclearsoftware.com/libraries/date_time/index.html" target="_top">http://www.crystalclearsoftware.com/libraries/date_time/index.html</a></td></tr></table>
+<p>
+  </p>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="date_time.conceptual"></a>Conceptual</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="date_time.html#Motivation">Motivation</a></span></dt>
+<dt><span class="section"><a href="date_time.html#date_time.domain_concepts">Domain Concepts</a></span></dt>
+<dt><span class="section"><a href="date_time.html#date_time.design_concepts">Design Concepts</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="Motivation"></a>Motivation</h3></div></div></div>
+<p>
+    The motivation for this library comes from working with and helping build several date-time libraries on several projects. Date-time libraries provide fundamental infrastructure for most development projects. However, most of them have limitations in their ability to calculate, format, convert, or perform some other functionality. For example, most libraries do not correctly handle leap seconds, provide concepts such as infinity, or provide the ability to use high resolution or network time sources.  These libraries also tend to be rigid in their representation of dates and times. Thus customized policies for a project or subproject are not possible.
+  </p>
+<p>
+    Programming with dates and times should be almost as simple and natural as programming with strings and integers.  Applications with lots of temporal logic can be radically simplified by having a robust set of operators and calculation capabilities. Classes should provide the ability to compare dates and times, add lengths or time durations, retrieve dates and times from  clocks, and work naturally with date and time intervals.
+  </p>
+<p>
+    Another motivation for development of the library was to apply modern C++ library design techniques to the date-time domain.  Really to build a framework for the construction of building temporal types. For example, by providing iterators and traits classes to control fundamental properties of the library. To the authors knowledge this library is the only substantial attempt to apply modern C++ to a date-time library.
+  </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.domain_concepts"></a>Domain Concepts</h3></div></div></div>
+<p>
+    The date time domain is rich in terminology and problems. 
+    The following is a brief introduction to the concepts you 
+    will find reflected in the library. 
+  </p>
+<p>
+    The library supports 3 basic temporal types:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc">
+<span class="strong"><strong>Time Point</strong></span> -- Specifier 
+	for a location in the time continuum.
+      </li>
+<li class="listitem" style="list-style-type: disc">
+<span class="strong"><strong>Time Duration</strong></span> -- A 
+	length of time unattached to any point on the time continuum.
+      </li>
+<li class="listitem" style="list-style-type: disc">
+<span class="strong"><strong>Time Interval</strong></span> -- A duration 
+	of time attached to a specific point in the time continuum. 
+	Also known as a time period. 
+      </li>
+</ul></div>
+<p>
+  </p>
+<p>
+    Each of these temporal types has a <span class="strong"><strong>Resolution</strong></span> which is defined by the smallest representable duration. A <span class="strong"><strong>Time system</strong></span> provides all these categories of temporal types as well as the rules for labeling and calculating with time points. <span class="strong"><strong>Calendar Systems</strong></span> are simply time systems with a maximum resolution of one day. The <span class="strong"><strong>Gregorian</strong></span> system is the most widely used calendar system today (the ISO system is basically a derivative of this). However, there are many other calendar systems as well. <span class="strong"><strong>UTC (Coordinated Universal Time)</strong></span> is a widely used civil time system. UTC is adjusted for earth rotation at longitude 0 by the use of leap seconds (This is not predictable, only as necessary). Most <span class="strong"><strong>local time</strong></span> systems are based on UTC but are also adjusted for earth rotation so that daylight hours are similar everywhere. In addition, some local times include <span class="strong"><strong>daylight savings time (DST)</strong></span> adjustments to shift the daylight hours during the summer.
+  </p>
+<p>
+    A <span class="strong"><strong>Clock Device</strong></span> is software component (tied to some hardware) that provides the current date or time with respect to a time system. A clock can measure the current time to a known resolution which may be higher or lower than a particular time representation. 
+  </p>
+<p>
+    The library provides support for calculating with dates and times. However, time calculations are not quite the same as calculating with integers. If you are serious about the accuracy of your time calculations need to read about <a class="link" href="date_time/details.html#date_time.tradeoffs" title="Tradeoffs: Stability, Predictability, and Approximations">Stability, Predictability, and Approximations</a>. 
+  </p>
+<p>
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: bullet; ">
+<li class="listitem" style="list-style-type: disc"><a class="link" href="date_time/details.html#date_time.terminology" title="Terminology">Basic Terminology</a></li>
+<li class="listitem" style="list-style-type: disc"><a class="link" href="date_time/details.html#date_time.calculations" title="Calculations">Calculations</a></li>
+<li class="listitem" style="list-style-type: disc"><a class="link" href="date_time/details.html#date_time.tradeoffs" title="Tradeoffs: Stability, Predictability, and Approximations">Stability, Predictability, and Approximations</a></li>
+<li class="listitem" style="list-style-type: disc"><a class="link" href="date_time/details.html#date_time.references" title="References">References</a></li>
+</ul></div>
+<p>
+  </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="date_time.design_concepts"></a>Design Concepts</h3></div></div></div>
+<p>
+    A large part of the genesis of this library has been the observation that few date-time libraries are built in a fashion that allows customization and extension. A typical example, the calendar logic is built directly into the date class. Or the clock retrieval functions are built directly into the time class. These design decisions usually make it impossible to extend or change the library behavior. At a more fundamental level, there are usually assumptions about the resolution of time representation or the gregorian calendar. 
+  </p>
+<p>
+    Often times, the result is that a project must settle for a less than complete library because of a requirement for high resolution time representation or other assumptions that do not match the implementation of the library. This is extremely unfortunate because development of a library of this sort is far from a trivial task. 
+  </p>
+<p>
+    While the design is far from perfect the current design is far more flexible than any date-time library the author is aware of. It is expected that the various aspects of extensibility will be better documented in future versions. Information about the design goals of the library is <a class="link" href="date_time/details.html#date_time.design_goals" title="Design Goals">summarized here</a>. 
+  </p>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: June 12, 2005 at 21:53:10 +0100</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="container/release_notes.html"><img src="../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="libraries.html"><img src="../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="index.html"><img src="../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="date_time/examples/general_usage_examples.html"><img src="../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

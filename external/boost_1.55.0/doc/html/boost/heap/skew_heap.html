@@ -1,0 +1,354 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template skew_heap</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../heap/reference.html#header.boost.heap.skew_heap_hpp" title="Header &lt;boost/heap/skew_heap.hpp&gt;">
+<link rel="prev" href="priority_queue.html" title="Class template priority_queue">
+<link rel="next" href="skew_heap/implementation_defined.html" title="Struct implementation_defined">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="priority_queue.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../heap/reference.html#header.boost.heap.skew_heap_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="skew_heap/implementation_defined.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.heap.skew_heap"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template skew_heap</span></h2>
+<p>boost::heap::skew_heap &#8212; skew heap </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../heap/reference.html#header.boost.heap.skew_heap_hpp" title="Header &lt;boost/heap/skew_heap.hpp&gt;">boost/heap/skew_heap.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> T<span class="special">,</span> <span class="keyword">class</span><span class="special">...</span> Options<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="skew_heap.html" title="Class template skew_heap">skew_heap</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="skew_heap.html#boost.heap.skew_heaptypes">types</a></span>
+  <span class="keyword">typedef</span> <span class="identifier">T</span>                                                                                   <a name="boost.heap.skew_heap.value_type"></a><span class="identifier">value_type</span><span class="special">;</span>      
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">size_type</span>                                                   <a name="boost.heap.skew_heap.size_type"></a><span class="identifier">size_type</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">difference_type</span>                                             <a name="boost.heap.skew_heap.difference_type"></a><span class="identifier">difference_type</span><span class="special">;</span> 
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">value_compare</span>                                               <a name="boost.heap.skew_heap.value_compare"></a><span class="identifier">value_compare</span><span class="special">;</span>   
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">allocator_type</span>                                              <a name="boost.heap.skew_heap.allocator_type"></a><span class="identifier">allocator_type</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">reference</span>                                                   <a name="boost.heap.skew_heap.reference"></a><span class="identifier">reference</span><span class="special">;</span>       
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">const_reference</span>                                             <a name="boost.heap.skew_heap.const_reference"></a><span class="identifier">const_reference</span><span class="special">;</span> 
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">pointer</span>                                                     <a name="boost.heap.skew_heap.pointer"></a><span class="identifier">pointer</span><span class="special">;</span>         
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">const_pointer</span>                                               <a name="boost.heap.skew_heap.const_pointer"></a><span class="identifier">const_pointer</span><span class="special">;</span>   
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">iterator</span>                                                    <a class="link" href="skew_heap.html#boost.heap.skew_heap.iterator"><span class="identifier">iterator</span></a><span class="special">;</span>        
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">const_iterator</span>                                              <a name="boost.heap.skew_heap.const_iterator"></a><span class="identifier">const_iterator</span><span class="special">;</span>  
+  <span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">ordered_iterator</span>                                            <a name="boost.heap.skew_heap.ordered_iterator"></a><span class="identifier">ordered_iterator</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">if_c</span><span class="special">&lt;</span> <span class="identifier">is_mutable</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">handle_type</span><span class="special">,</span> <span class="keyword">void</span> <span class="special">*</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="boost.heap.skew_heap.handle_type"></a><span class="identifier">handle_type</span><span class="special">;</span>     
+
+  <span class="comment">// member classes/structs/unions</span>
+
+  <span class="keyword">struct</span> <a class="link" href="skew_heap/implementation_defined.html" title="Struct implementation_defined">implementation_defined</a> <span class="special">{</span>
+    <span class="comment">// types</span>
+    <span class="keyword">typedef</span> <span class="identifier">T</span>                               <a class="link" href="skew_heap/implementation_defined.html#boost.heap.skew_heap.implementation_defined.value_type"><span class="identifier">value_type</span></a><span class="special">;</span>         
+    <span class="keyword">typedef</span> <span class="identifier">base_maker</span><span class="special">::</span><span class="identifier">compare_argument</span>    <a class="link" href="skew_heap/implementation_defined.html#boost.heap.skew_heap.implementation_defined.value_compare"><span class="identifier">value_compare</span></a><span class="special">;</span>      
+    <span class="keyword">typedef</span> <span class="identifier">base_maker</span><span class="special">::</span><span class="identifier">allocator_type</span>      <a class="link" href="skew_heap/implementation_defined.html#boost.heap.skew_heap.implementation_defined.allocator_type"><span class="identifier">allocator_type</span></a><span class="special">;</span>     
+    <span class="keyword">typedef</span> <span class="identifier">base_maker</span><span class="special">::</span><span class="identifier">node_type</span>           <a class="link" href="skew_heap/implementation_defined.html#boost.heap.skew_heap.implementation_defined.node"><span class="identifier">node</span></a><span class="special">;</span>               
+    <span class="keyword">typedef</span> <span class="identifier">allocator_type</span><span class="special">::</span><span class="identifier">pointer</span>         <a class="link" href="skew_heap/implementation_defined.html#boost.heap.skew_heap.implementation_defined.node_pointer"><span class="identifier">node_pointer</span></a><span class="special">;</span>       
+    <span class="keyword">typedef</span> <span class="identifier">allocator_type</span><span class="special">::</span><span class="identifier">const_pointer</span>   <a class="link" href="skew_heap/implementation_defined.html#boost.heap.skew_heap.implementation_defined.const_node_pointer"><span class="identifier">const_node_pointer</span></a><span class="special">;</span> 
+    <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                     <a class="link" href="skew_heap/implementation_defined.html#boost.heap.skew_heap.implementation_defined.value_extractor"><span class="identifier">value_extractor</span></a><span class="special">;</span>    
+    <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">array</span><span class="special">&lt;</span> <span class="identifier">node_pointer</span><span class="special">,</span> <span class="number">2</span> <span class="special">&gt;</span> <a class="link" href="skew_heap/implementation_defined.html#boost.heap.skew_heap.implementation_defined.child_list_type"><span class="identifier">child_list_type</span></a><span class="special">;</span>    
+    <span class="keyword">typedef</span> <span class="identifier">child_list_type</span><span class="special">::</span><span class="identifier">iterator</span>       <a class="link" href="skew_heap/implementation_defined.html#boost.heap.skew_heap.implementation_defined.child_list_iterator"><span class="identifier">child_list_iterator</span></a><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                     <a class="link" href="skew_heap/implementation_defined.html#boost.heap.skew_heap.implementation_defined.iterator"><span class="identifier">iterator</span></a><span class="special">;</span>           
+    <span class="keyword">typedef</span> <span class="identifier">iterator</span>                        <a class="link" href="skew_heap/implementation_defined.html#boost.heap.skew_heap.implementation_defined.const_iterator"><span class="identifier">const_iterator</span></a><span class="special">;</span>     
+    <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                     <a class="link" href="skew_heap/implementation_defined.html#boost.heap.skew_heap.implementation_defined.ordered_iterator"><span class="identifier">ordered_iterator</span></a><span class="special">;</span>   
+    <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                     <a class="link" href="skew_heap/implementation_defined.html#boost.heap.skew_heap.implementation_defined.reference"><span class="identifier">reference</span></a><span class="special">;</span>          
+    <span class="keyword">typedef</span> <span class="emphasis"><em><span class="identifier">unspecified</span></em></span>                     <a class="link" href="skew_heap/implementation_defined.html#boost.heap.skew_heap.implementation_defined.handle_type"><span class="identifier">handle_type</span></a><span class="special">;</span>        
+  <span class="special">}</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="skew_heap.html#boost.heap.skew_heapconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="skew_heap.html#idp51467576-bb"><span class="identifier">skew_heap</span></a><span class="special">(</span><span class="identifier">value_compare</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">value_compare</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="skew_heap.html#idp22179960-bb"><span class="identifier">skew_heap</span></a><span class="special">(</span><a class="link" href="skew_heap.html" title="Class template skew_heap">skew_heap</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="skew_heap.html#idp21613560-bb"><span class="identifier">skew_heap</span></a><span class="special">(</span><a class="link" href="skew_heap.html" title="Class template skew_heap">skew_heap</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  skew_heap&amp; <a class="link" href="skew_heap.html#idp20753592-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="skew_heap.html" title="Class template skew_heap">skew_heap</a> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  skew_heap&amp; <a class="link" href="skew_heap.html#idp19196840-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><a class="link" href="skew_heap.html" title="Class template skew_heap">skew_heap</a> <span class="special">&amp;&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="skew_heap.html#idp52298552-bb"><span class="special">~</span><span class="identifier">skew_heap</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="skew_heap.html#idp52325992-bb">public member functions</a></span>
+  <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">if_c</span><span class="special">&lt;</span> <span class="identifier">is_mutable</span><span class="special">,</span> <span class="identifier">handle_type</span><span class="special">,</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a class="link" href="skew_heap.html#idp52326200-bb"><span class="identifier">push</span></a><span class="special">(</span><span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">...</span> Args<span class="special">&gt;</span> 
+    <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">if_c</span><span class="special">&lt;</span> <span class="identifier">is_mutable</span><span class="special">,</span> <span class="identifier">handle_type</span><span class="special">,</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a class="link" href="skew_heap.html#idp19710136-bb"><span class="identifier">emplace</span></a><span class="special">(</span><span class="identifier">Args</span> <span class="special">&amp;&amp;</span><span class="special">...</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="skew_heap.html#idp19501608-bb"><span class="identifier">empty</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="skew_heap.html#idp54791432-bb"><span class="identifier">size</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="skew_heap.html#idp54793256-bb"><span class="identifier">max_size</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="skew_heap.html#idp54795016-bb"><span class="identifier">clear</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">allocator_type</span> <a class="link" href="skew_heap.html#idp54339688-bb"><span class="identifier">get_allocator</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="skew_heap.html#idp18830968-bb"><span class="identifier">swap</span></a><span class="special">(</span><a class="link" href="skew_heap.html" title="Class template skew_heap">skew_heap</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">const_reference</span> <a class="link" href="skew_heap.html#idp34977960-bb"><span class="identifier">top</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="skew_heap.html#idp20243704-bb"><span class="identifier">pop</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="skew_heap.html#idp54749384-bb"><span class="identifier">begin</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">iterator</span> <a class="link" href="skew_heap.html#idp54751144-bb"><span class="identifier">end</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">ordered_iterator</span> <a class="link" href="skew_heap.html#idp54752888-bb"><span class="identifier">ordered_begin</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">ordered_iterator</span> <a class="link" href="skew_heap.html#idp51576200-bb"><span class="identifier">ordered_end</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="skew_heap.html#idp54127912-bb"><span class="identifier">merge</span></a><span class="special">(</span><a class="link" href="skew_heap.html" title="Class template skew_heap">skew_heap</a> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">value_compare</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a class="link" href="skew_heap.html#idp34969720-bb"><span class="identifier">value_comp</span></a><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> HeapType<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="skew_heap.html#idp51472696-bb"><span class="keyword">operator</span><span class="special">&lt;</span></a><span class="special">(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> HeapType<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="skew_heap.html#idp19187816-bb"><span class="keyword">operator</span><span class="special">&gt;</span></a><span class="special">(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> HeapType<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="skew_heap.html#idp53262456-bb"><span class="keyword">operator</span><span class="special">&gt;=</span></a><span class="special">(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> HeapType<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="skew_heap.html#idp22326424-bb"><span class="keyword">operator</span><span class="special">&lt;=</span></a><span class="special">(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> HeapType<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="skew_heap.html#idp22328008-bb"><span class="keyword">operator</span><span class="special">==</span></a><span class="special">(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> HeapType<span class="special">&gt;</span> <span class="keyword">bool</span> <a class="link" href="skew_heap.html#idp54811064-bb"><span class="keyword">operator</span><span class="special">!=</span></a><span class="special">(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="skew_heap.html#idp54812648-bb"><span class="identifier">erase</span></a><span class="special">(</span><span class="identifier">handle_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="skew_heap.html#idp54814984-bb"><span class="identifier">update</span></a><span class="special">(</span><span class="identifier">handle_type</span><span class="special">,</span> <span class="identifier">const_reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="skew_heap.html#idp36636600-bb"><span class="identifier">update</span></a><span class="special">(</span><span class="identifier">handle_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="skew_heap.html#idp19385384-bb"><span class="identifier">increase</span></a><span class="special">(</span><span class="identifier">handle_type</span><span class="special">,</span> <span class="identifier">const_reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="skew_heap.html#idp22397960-bb"><span class="identifier">increase</span></a><span class="special">(</span><span class="identifier">handle_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="skew_heap.html#idp22400456-bb"><span class="identifier">decrease</span></a><span class="special">(</span><span class="identifier">handle_type</span><span class="special">,</span> <span class="identifier">const_reference</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="skew_heap.html#idp52476088-bb"><span class="identifier">decrease</span></a><span class="special">(</span><span class="identifier">handle_type</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="skew_heap.html#idp52298952-bb">public static functions</a></span>
+  <span class="keyword">static</span> <span class="identifier">handle_type</span> <a class="link" href="skew_heap.html#idp52299160-bb"><span class="identifier">s_handle_from_iterator</span></a><span class="special">(</span><span class="identifier">iterator</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// public data members</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">constant_time_size</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">has_ordered_iterators</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_mergable</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_stable</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">has_reserve</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">bool</span> <span class="identifier">is_mutable</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp101673288"></a><h2>Description</h2>
+<p>The template parameter T is the type to be managed by the container. The user can specify additional options and if no options are provided default options are used.</p>
+<p>The container supports the following options:</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p><code class="computeroutput">boost::heap::compare&lt;&gt;</code>, defaults to <code class="computeroutput">compare&lt;std::less&lt;T&gt;</code> &gt;</p></li>
+<li class="listitem"><p><code class="computeroutput">boost::heap::stable&lt;&gt;</code>, defaults to <code class="computeroutput">stable&lt;false&gt;</code> </p></li>
+<li class="listitem"><p><code class="computeroutput">boost::heap::stability_counter_type&lt;&gt;</code>, defaults to <code class="computeroutput">stability_counter_type&lt;boost::uintmax_t&gt;</code> </p></li>
+<li class="listitem"><p><code class="computeroutput">boost::heap::allocator&lt;&gt;</code>, defaults to <code class="computeroutput">allocator&lt;std::allocator&lt;T&gt;</code> &gt;</p></li>
+<li class="listitem"><p><code class="computeroutput">boost::heap::constant_time_size&lt;&gt;</code>, defaults to <code class="computeroutput">constant_time_size&lt;true&gt;</code> </p></li>
+<li class="listitem"><p><code class="computeroutput">boost::heap::store_parent_pointer&lt;&gt;</code>, defaults to <code class="computeroutput">store_parent_pointer&lt;true&gt;</code>. Maintaining a parent pointer adds some maintenance and size overhead, but iterating a heap is more efficient.</p></li>
+<li class="listitem"><p><code class="computeroutput">boost::heap::mutable&lt;&gt;</code>, defaults to <code class="computeroutput">mutable&lt;false&gt;</code>. </p></li>
+</ul></div>
+<p>
+</p>
+<div class="refsect2">
+<a name="idp101680568"></a><h3>
+<a name="boost.heap.skew_heaptypes"></a><code class="computeroutput">skew_heap</code> 
+        public
+       types</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<p>
+<span class="keyword">typedef</span> <span class="identifier">implementation_defined</span><span class="special">::</span><span class="identifier">iterator</span> <a name="boost.heap.skew_heap.iterator"></a><span class="identifier">iterator</span><span class="special">;</span></p>
+<p><span class="bold"><strong>Note:</strong></span> The iterator does not traverse the priority queue in order of the priorities. </p>
+</li></ol></div>
+</div>
+<div class="refsect2">
+<a name="idp101684360"></a><h3>
+<a name="boost.heap.skew_heapconstruct-copy-destruct"></a><code class="computeroutput">skew_heap</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="idp51467576-bb"></a><span class="identifier">skew_heap</span><span class="special">(</span><span class="identifier">value_compare</span> <span class="keyword">const</span> <span class="special">&amp;</span> cmp <span class="special">=</span> <span class="identifier">value_compare</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> constructs an empty priority queue.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp22179960-bb"></a><span class="identifier">skew_heap</span><span class="special">(</span><a class="link" href="skew_heap.html" title="Class template skew_heap">skew_heap</a> <span class="keyword">const</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> copy-constructs priority queue from rhs.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Linear. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp21613560-bb"></a><span class="identifier">skew_heap</span><span class="special">(</span><a class="link" href="skew_heap.html" title="Class template skew_heap">skew_heap</a> <span class="special">&amp;&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> C++11-style move constructor.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Constant.</p>
+<p><span class="bold"><strong>Note:</strong></span> Only available, if BOOST_NO_CXX11_RVALUE_REFERENCES is not defined </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">skew_heap&amp; <a name="idp20753592-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="skew_heap.html" title="Class template skew_heap">skew_heap</a> <span class="keyword">const</span> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Assigns priority queue from rhs.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Linear. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout">skew_heap&amp; <a name="idp19196840-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><a class="link" href="skew_heap.html" title="Class template skew_heap">skew_heap</a> <span class="special">&amp;&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> C++11-style move assignment.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Constant.</p>
+<p><span class="bold"><strong>Note:</strong></span> Only available, if BOOST_NO_CXX11_RVALUE_REFERENCES is not defined </p>
+</li>
+<li class="listitem"><pre class="literallayout"><a name="idp52298552-bb"></a><span class="special">~</span><span class="identifier">skew_heap</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp101708680"></a><h3>
+<a name="idp52325992-bb"></a><code class="computeroutput">skew_heap</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">if_c</span><span class="special">&lt;</span> <span class="identifier">is_mutable</span><span class="special">,</span> <span class="identifier">handle_type</span><span class="special">,</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="idp52326200-bb"></a><span class="identifier">push</span><span class="special">(</span><span class="identifier">value_type</span> <span class="keyword">const</span> <span class="special">&amp;</span> v<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Adds a new element to the priority queue.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Logarithmic (amortized). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span><span class="special">...</span> Args<span class="special">&gt;</span> 
+  <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">if_c</span><span class="special">&lt;</span> <span class="identifier">is_mutable</span><span class="special">,</span> <span class="identifier">handle_type</span><span class="special">,</span> <span class="keyword">void</span> <span class="special">&gt;</span><span class="special">::</span><span class="identifier">type</span> <a name="idp19710136-bb"></a><span class="identifier">emplace</span><span class="special">(</span><span class="identifier">Args</span> <span class="special">&amp;&amp;</span><span class="special">...</span> args<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Adds a new element to the priority queue. The element is directly constructed in-place.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Logarithmic (amortized). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="idp19501608-bb"></a><span class="identifier">empty</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Returns true, if the priority queue contains no elements.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp54791432-bb"></a><span class="identifier">size</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Returns the number of elements contained in the priority queue.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Constant, if configured with constant_time_size&lt;true&gt;, otherwise linear. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="idp54793256-bb"></a><span class="identifier">max_size</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Returns the maximum number of elements the priority queue can contain.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp54795016-bb"></a><span class="identifier">clear</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Removes all elements from the priority queue.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Linear. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">allocator_type</span> <a name="idp54339688-bb"></a><span class="identifier">get_allocator</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Returns allocator.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp18830968-bb"></a><span class="identifier">swap</span><span class="special">(</span><a class="link" href="skew_heap.html" title="Class template skew_heap">skew_heap</a> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Swaps two priority queues.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">const_reference</span> <a name="idp34977960-bb"></a><span class="identifier">top</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Returns a const_reference to the maximum element.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp20243704-bb"></a><span class="identifier">pop</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Removes the top element from the priority queue.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Logarithmic (amortized). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp54749384-bb"></a><span class="identifier">begin</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Returns an iterator to the first element contained in the priority queue.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">iterator</span> <a name="idp54751144-bb"></a><span class="identifier">end</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Returns an iterator to the end of the priority queue.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Constant. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">ordered_iterator</span> <a name="idp54752888-bb"></a><span class="identifier">ordered_begin</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Returns an ordered iterator to the first element contained in the priority queue.</p>
+<p><span class="bold"><strong>Note:</strong></span> Ordered iterators traverse the priority queue in heap order. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">ordered_iterator</span> <a name="idp51576200-bb"></a><span class="identifier">ordered_end</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Returns an ordered iterator to the first element contained in the priority queue.</p>
+<p><span class="bold"><strong>Note:</strong></span> Ordered iterators traverse the priority queue in heap order. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp54127912-bb"></a><span class="identifier">merge</span><span class="special">(</span><a class="link" href="skew_heap.html" title="Class template skew_heap">skew_heap</a> <span class="special">&amp;</span> rhs<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Merge all elements from rhs into this</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Logarithmic (amortized). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">value_compare</span> <span class="keyword">const</span> <span class="special">&amp;</span> <a name="idp34969720-bb"></a><span class="identifier">value_comp</span><span class="special">(</span><span class="keyword">void</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effect:</strong></span> Returns the value_compare object used by the priority queue </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> HeapType<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp51472696-bb"></a><span class="keyword">operator</span><span class="special">&lt;</span><span class="special">(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;</span> rhs<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>const <p>const </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> HeapType<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp19187816-bb"></a><span class="keyword">operator</span><span class="special">&gt;</span><span class="special">(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;</span> rhs<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>const <p>const </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> HeapType<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp53262456-bb"></a><span class="keyword">operator</span><span class="special">&gt;=</span><span class="special">(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;</span> rhs<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>const <p>const </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> HeapType<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp22326424-bb"></a><span class="keyword">operator</span><span class="special">&lt;=</span><span class="special">(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;</span> rhs<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>const <p>const </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> HeapType<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp22328008-bb"></a><span class="keyword">operator</span><span class="special">==</span><span class="special">(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;</span> rhs<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>const <p>const </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> HeapType<span class="special">&gt;</span> <span class="keyword">bool</span> <a name="idp54811064-bb"></a><span class="keyword">operator</span><span class="special">!=</span><span class="special">(</span><span class="identifier">HeapType</span> <span class="keyword">const</span> <span class="special">&amp;</span> rhs<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>const <p>const </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp54812648-bb"></a><span class="identifier">erase</span><span class="special">(</span><span class="identifier">handle_type</span> object<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Removes the element handled by <code class="computeroutput">handle</code> from the <code class="computeroutput"><a class="link" href="priority_queue.html" title="Class template priority_queue">priority_queue</a></code>.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Logarithmic (amortized). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp54814984-bb"></a><span class="identifier">update</span><span class="special">(</span><span class="identifier">handle_type</span> handle<span class="special">,</span> <span class="identifier">const_reference</span> v<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Assigns <code class="computeroutput">v</code> to the element handled by <code class="computeroutput">handle</code> &amp; updates the priority queue.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Logarithmic (amortized). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp36636600-bb"></a><span class="identifier">update</span><span class="special">(</span><span class="identifier">handle_type</span> handle<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Updates the heap after the element handled by <code class="computeroutput">handle</code> has been changed.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Logarithmic (amortized).</p>
+<p><span class="bold"><strong>Note:</strong></span> If this is not called, after a handle has been updated, the behavior of the data structure is undefined! </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp19385384-bb"></a><span class="identifier">increase</span><span class="special">(</span><span class="identifier">handle_type</span> handle<span class="special">,</span> <span class="identifier">const_reference</span> v<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Assigns <code class="computeroutput">v</code> to the element handled by <code class="computeroutput">handle</code> &amp; updates the priority queue.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Logarithmic (amortized).</p>
+<p><span class="bold"><strong>Note:</strong></span> The new value is expected to be greater than the current one </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp22397960-bb"></a><span class="identifier">increase</span><span class="special">(</span><span class="identifier">handle_type</span> handle<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Updates the heap after the element handled by <code class="computeroutput">handle</code> has been changed.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Logarithmic (amortized).</p>
+<p><span class="bold"><strong>Note:</strong></span> If this is not called, after a handle has been updated, the behavior of the data structure is undefined! </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp22400456-bb"></a><span class="identifier">decrease</span><span class="special">(</span><span class="identifier">handle_type</span> handle<span class="special">,</span> <span class="identifier">const_reference</span> v<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Assigns <code class="computeroutput">v</code> to the element handled by <code class="computeroutput">handle</code> &amp; updates the priority queue.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Logarithmic (amortized).</p>
+<p><span class="bold"><strong>Note:</strong></span> The new value is expected to be less than the current one </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp52476088-bb"></a><span class="identifier">decrease</span><span class="special">(</span><span class="identifier">handle_type</span> handle<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Updates the heap after the element handled by <code class="computeroutput">handle</code> has been changed.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Logarithmic (amortized).</p>
+<p><span class="bold"><strong>Note:</strong></span> The new value is expected to be less than the current one. If this is not called, after a handle has been updated, the behavior of the data structure is undefined! </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp101838424"></a><h3>
+<a name="idp52298952-bb"></a><code class="computeroutput">skew_heap</code> public static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="identifier">handle_type</span> <a name="idp52299160-bb"></a><span class="identifier">s_handle_from_iterator</span><span class="special">(</span><span class="identifier">iterator</span> <span class="keyword">const</span> <span class="special">&amp;</span> it<span class="special">)</span><span class="special">;</span></pre>
+<p><span class="bold"><strong>Effects:</strong></span> Casts an iterator to a node handle.</p>
+<p><span class="bold"><strong>Complexity:</strong></span> Constant.</p>
+<p><span class="bold"><strong>Requirement:</strong></span> data structure must be configured as mutable </p>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2010, 2011 Tim Blechmann<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="priority_queue.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../heap/reference.html#header.boost.heap.skew_heap_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="skew_heap/implementation_defined.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>insert(value_type const &amp;)</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Geometry">
+<link rel="up" href="../boost__geometry__index__rtree.html" title="boost::geometry::index::rtree">
+<link rel="prev" href="swap_rtree___.html" title="swap(rtree &amp;)">
+<link rel="next" href="insert_iterator__iterator_.html" title="insert(Iterator, Iterator)">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="swap_rtree___.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost__geometry__index__rtree.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="insert_iterator__iterator_.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.insert_value_type_const___"></a><a name="classboost_1_1geometry_1_1index_1_1rtree_1ad47980467e66b8644df18a480dbf9d86"></a><a class="link" href="insert_value_type_const___.html" title="insert(value_type const &amp;)">insert(value_type
+          const &amp;)</a>
+</h5></div></div></div>
+<p>
+            <a class="indexterm" name="idp60847848"></a>
+Insert a value to the index.
+          </p>
+<h6>
+<a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.insert_value_type_const___.h0"></a>
+            <span class="phrase"><a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.insert_value_type_const___.synopsis"></a></span><a class="link" href="insert_value_type_const___.html#geometry.reference.spatial_indexes.boost__geometry__index__rtree.insert_value_type_const___.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><code class="computeroutput"><span class="keyword">void</span></code> <code class="computeroutput"><span class="identifier">insert</span></code><code class="computeroutput"><span class="special">(</span></code><code class="literal"><a class="link" href="../boost__geometry__index__rtree.html#classboost_1_1geometry_1_1index_1_1rtree_1a5761a41d87b93d4fd548ecb6600ae757">value_type</a></code><code class="computeroutput"> <span class="keyword">const</span> <span class="special">&amp;</span></code> <code class="computeroutput"><span class="identifier">value</span></code><code class="computeroutput"><span class="special">)</span></code>
+</pre>
+<h6>
+<a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.insert_value_type_const___.h1"></a>
+            <span class="phrase"><a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.insert_value_type_const___.parameter_s_"></a></span><a class="link" href="insert_value_type_const___.html#geometry.reference.spatial_indexes.boost__geometry__index__rtree.insert_value_type_const___.parameter_s_">Parameter(s)</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Type
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Name
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                    <p>
+                      <code class="literal"><a class="link" href="../boost__geometry__index__rtree.html#classboost_1_1geometry_1_1index_1_1rtree_1a5761a41d87b93d4fd548ecb6600ae757">value_type</a></code><code class="computeroutput">
+                      <span class="keyword">const</span> <span class="special">&amp;</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">value</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The value which will be stored in the container.
+                    </p>
+                  </td>
+</tr></tbody>
+</table></div>
+<h6>
+<a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.insert_value_type_const___.h2"></a>
+            <span class="phrase"><a name="geometry.reference.spatial_indexes.boost__geometry__index__rtree.insert_value_type_const___.throws"></a></span><a class="link" href="insert_value_type_const___.html#geometry.reference.spatial_indexes.boost__geometry__index__rtree.insert_value_type_const___.throws">Throws</a>
+          </h6>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                If Value copy constructor or copy assignment throws.
+              </li>
+<li class="listitem">
+                If allocation throws or returns invalid value.
+              </li>
+</ul></div>
+<div class="warning"><table border="0" summary="Warning">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Warning]" src="../../../../../../../../doc/src/images/warning.png"></td>
+<th align="left">Warning</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              This operation only guarantees that there will be no memory leaks.
+              After an exception is thrown the R-tree may be left in an inconsistent
+              state, elements must not be inserted or removed. Other operations are
+              allowed however some of them may return invalid data.
+            </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2009-2013 Barend Gehrels, Bruno Lalande, Mateusz Loskot, Adam Wulkiewicz<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="swap_rtree___.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../boost__geometry__index__rtree.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="insert_iterator__iterator_.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

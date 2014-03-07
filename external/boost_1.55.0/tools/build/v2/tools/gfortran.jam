@@ -1,0 +1,39 @@
+# Copyright (C) 2004 Toon Knapen
+#
+#  Use, modification and distribution is subject to the Boost Software
+#  License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+#  http://www.boost.org/LICENSE_1_0.txt)
+
+import toolset : flags ;
+import feature ;
+import fortran ;
+
+rule init ( version ? : command * : options * )
+{
+}
+
+# Declare flags and action for compilation
+flags gfortran OPTIONS <fflags> ;
+
+flags gfortran OPTIONS <optimization>off : -O0 ;
+flags gfortran OPTIONS <optimization>speed : -O3 ;
+flags gfortran OPTIONS <optimization>space : -Os ;
+
+flags gfortran OPTIONS <debug-symbols>on : -g ;
+flags gfortran OPTIONS <profiling>on : -pg ;
+
+flags gfortran OPTIONS <link>shared/<main-target-type>LIB : -fPIC ;
+
+flags gfortran DEFINES <define> ;
+flags gfortran INCLUDES <include> ;
+
+rule compile.fortran
+{
+}
+
+actions compile.fortran
+{
+  gcc -Wall $(OPTIONS) -D$(DEFINES) -I$(INCLUDES) -c -o "$(<)" "$(>)" 
+}
+
+generators.register-fortran-compiler gfortran.compile.fortran : FORTRAN FORTRAN90 : OBJ ; 

@@ -1,0 +1,165 @@
+[library Boost.Bimap
+    [quickbook 1.4]
+    [authors [Capeletto, Matias]]
+    [copyright 2006-2012 Matias Capeletto]
+    [category container]
+    [id bimap]
+    [dirname bimap]
+    [purpose
+        Bidirectional map
+    ]
+    [source-mode c++]
+    [license
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at
+[@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[/ QuickBook Document version 1.4 ]
+
+[/ Logos ]
+
+[def __BOOST_BIMAP_LOGO__ [$images/bimap/boost.bimap.logo.png]]
+[def __GOOGLE_SOC_2006__ [$images/extern/googlesoc.png]]
+
+[/ Helpers ]
+
+[def __MI_FRAMEWORK__ [$images/bimap/miBimapFramework.png]]
+[def __SIMPLE_BIMAP__ [$images/bimap/simple.bimap.png]]
+[def __STANDARD_MAPPING_FRAMEWORK__ [$images/bimap/standard.mapping.framework.png]]
+[def __EXTENDED_MAPPING_FRAMEWORK__ [$images/bimap/extended.mapping.framework.png]]
+[def __RELATION__ [$images/bimap/relation.png]]
+[def __STD_PAIR__ [$images/bimap/std_pair.png]]
+[def __COLLECTION_TYPE_OF_RELATION__ [$images/bimap/collection.type.of.relation.png]]
+[def __BIMAP_STRUCTURES__ [$images/bimap/bimap.structures.png]]
+[def __TAGGED__ [$images/bimap/tagged.png]]
+[def __MORE_BIMAP_STRUCTURES__ [$images/bimap/more.bimap.structures.png]]
+[def __RELATION_AND_PAIR__ [$images/bimap/relation.and.pair.png]]
+[def __RELATION_AND_PAIR_WITH_INFO__ [$images/bimap/relation.and.pair.with.info.png]]
+
+
+[/ People ]
+
+[def __MATIAS_PHOTO__ [$images/people/matias.png]]
+[def __JOAQUIN_PHOTO__ [$images/people/joaquin.png]]
+[def __MAFALDA_PHOTO__ [$images/people/mafalda.png]]
+[def __HECTOR_PHOTO__ [$images/people/hector.png]]
+
+[/ Icons ]
+
+[def __NOTE__ [$images/note.png]]
+[def __ALERT__ [$images/caution.png]]
+[def __DETAIL__ [$images/note.png]]
+[def __TIP__ [$images/tip.png]]
+[def __QUESTION_MARK__ [$images/question.png]]
+
+
+[/ Boost Libraries ]
+
+[def __BOOST_MULTI_INDEX__ [@http://www.boost.org/libs/multi_index/doc/index.html [*Boost.MultiIndex]]]
+[def __BOOST_MPL__ [@http://www.boost.org/libs/mpl/doc/index.html [*Boost.MPL]]]
+[def __BOOST_TYPE_TRAITS__ [@http://www.boost.org/doc/html/boost_typetraits.html [*Boost.TypeTraits]]]
+[def __BOOST_ENABLE_IF__ [@http://www.boost.org/libs/utility/enable_if.html [*Boost.enable_if]]]
+[def __BOOST_ITERATORS__ [@http://www.boost.org/libs/iterator/doc/index.html [*Boost.Iterators]]]
+[def __BOOST_CALL_TRAITS__ [@http://www.boost.org/libs/utility/call_traits.htm [*Boost.call_traits]]]
+[def __BOOST_STATIC_ASSERT__ [@http://www.boost.org/doc/html/boost_staticassert.html [*Boost.StaticAssert]]]
+
+[def __BOOST_SERIALIZATION__ [@http://www.boost.org/libs/serialization/doc/index.html [*Boost.Serialization]]]
+[def __BOOST_HASH__ [@http://www.boost.org/doc/html/hash.html [*Boost.Hash]]]
+[def __BOOST_ASSIGN__ [@http://www.boost.org/libs/assign/doc/index.html [*Boost.Assign]]]
+[def __BOOST_LAMBDA__ [@http://www.boost.org/doc/html/lambda.html [*Boost.Lambda]]]
+[def __BOOST_PROPERTY_MAP__ [@http://www.boost.org/doc/html/property_map.html [*Boost.PropertyMap]]]
+[def __BOOST_RANGE__ [@http://www.boost.org/doc/html/range.html [*Boost.Range]]]
+[def __BOOST_FOREACH__ [@http://www.boost.org/doc/html/foreach.html [*Boost.Foreach]]]
+[def __BOOST_TEST__ [@http://www.boost.org/libs/test/doc/index.html [*Boost.Test]]]
+[def __BOOST_TYPEOF__ [@http://www.boost.org/libs/typeof/doc/index.html [*Boost.Typeof]]]
+[def __BOOST_XPRESSIVE__ [@http://www.boost.org/libs/xpressive/doc/index.html [*Boost.Xpressive]]]
+
+
+[/ Extern Links ]
+
+[def __CPP_STANDARD_LIBRARY_TECHNICAL_REPORT__ [@http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2005/n1836.pdf C++ Standard Library Technical Report]]
+[def __CPP_DEFECT_REPORT_130__ [@http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-defects.html#130 Defect Report 130]]
+[def __TR1_ISSUES_LIST__ [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2005/n1837.pdf Issues List]]
+
+[def __BOOST_HASH_FUNCTION__ [@http://www.boost.org/regression-logs/cs-win32_metacomm/doc/html/hash.html boost::hash]]
+
+[def __BOOST_PERMUTATION_ITERATOR__ [@http://www.boost.org/libs/iterator/doc/permutation_iterator.html `permutation_iterator`]]
+
+[def __BOOST_ASSERT_MACRO__ [@where_it_is `BOOST_ASSERT`]]
+[def __BOOST_MPL_FORWARD_SEQUENCE__ [@http://www.boost.org/libs/mpl/doc/refmanual/forward-sequence.html MPL Forward Sequence]]
+[def __BOOST_MPL_RANDOM_ACCESS_SEQUENCE__ [@http://www.boost.org/libs/mpl/doc/refmanual/random-access-sequence.html MPL Random Access Sequence]]
+[def __BOOST_MPL_EXTENSIBLE_SEQUENCE__ [@http://www.boost.org/libs/mpl/doc/refmanual/extensible-sequence.html MPL Extensible Sequence]]
+
+[def __SGI_UNARY_FUNCTION__ [@http://www.sgi.com/tech/stl/UnaryFunction.html Unary Function]]
+[def __SGI_BINARY_FUNCTION__ [@http://www.sgi.com/tech/stl/BinaryFunction.html Binary Function]]
+
+[def __SGI_ASSIGNABLE__ [@http://www.sgi.com/tech/stl/Assignable.html Assignable]]
+[def __SGI_DEFAULT_CONSTRUCTIBLE__ [@http://www.sgi.com/tech/stl/DefaultConstructible.html Default Constructible]]
+[def __SGI_BINARY_PREDICATE__ [@http://www.sgi.com/tech/stl/BinaryPredicate.html Binary Predicate]]
+[def __SGI_CONTAINER__ [@http://www.sgi.com/tech/stl/Container.html Container]]
+[def __SGI_SORTED_ASSOCIATIVE_CONTAINER__ [@http://www.sgi.com/tech/stl/SortedAssociativeContainer.html Sorted Associative Container]]
+[def __SGI_UNIQUE_ASSOCIATIVE_CONTAINER__ [@http://www.sgi.com/tech/stl/UniqueAssociativeContainer.html Unique Associative Container]]
+[def __SGI_REVERSIBLE_CONTAINER__ [@http://www.sgi.com/tech/stl/ReversibleContainer.html Reversible Container]]
+[def __SGI_RANDOM_ACCESS_CONTAINER__ [@http://www.sgi.com/tech/stl/RandomAccessContainer.html Random Access Container]]
+[def __SGI_FRONT_INSERTION_SEQUENCE__ [@http://www.sgi.com/tech/stl/FrontInsertionSequence.html Front Insertion Sequence]]
+[def __SGI_BACK_INSERTION_SEQUENCE__ [@http://www.sgi.com/tech/stl/BackInsertionSequence.html Back Insertion Sequence]]
+[def __SGI_INPUT_ITERATOR__ [@http://www.sgi.com/tech/stl/InputIterator.html Input Iterator]]
+[def __SGI_FORWARD_ITERATOR__ [@http://www.sgi.com/tech/stl/ForwardIterator.html Forward Iterator]]
+[def __SGI_STRICT_WEAK_ORDERING__ [@http://www.sgi.com/tech/stl/StrictWeakOrdering.html   Strict Weak Ordering]]
+
+[def __EIFFEL__ [@http://www.eiffel.com/ Eiffel]]
+[def __SAFE_STL__ [@http://www.horstmann.com/safestl.html Safe STL]]
+[def __STL_PORT_DEBUG_MODE__ [@http://www.stlport.com/doc/debug_mode.html STLport Debug Mode]]
+
+[def __CGAL__ [@http://www.cgal.org/ CGAL]]
+[def __MYSQLPP__ [@http://tangentsoft.net/mysql++/ MySQL++]]
+
+
+[def __STL_TREE_H__ [@http://www.sgi.com/tech/stl/stl_tree.h stl_tree.h]]
+[def __ORDER_STATISTICS_TREE__ [@http://pine.cs.yale.edu/pinewiki/OrderStatisticsTree ['order-statistics trees]]]
+
+[def __GENERIC_PROGRAMMING_MOVE_CONSTRUCTORS__ [@http://www.ddj.com/dept/cpp/184403855 "Generic<Programming>: Move Constructors]]
+[def __CLARIFICATION_OF_INITIALIZATION__ [@http://anubis.dkuug.dk/jtc1/sc22/wg21/docs/papers/2004/n1610.html "Clarification of Initialization of Class Objects by rvalues"]]
+
+
+[/ Code snippets ]
+
+[import ../example/simple_bimap.cpp]
+[import ../example/mighty_bimap.cpp]
+
+[section Preface]
+
+[heading Description]
+
+__BOOST_BIMAP_LOGO__
+
+Boost.Bimap is a bidirectional maps library for C++. With Boost.Bimap you can create associative containers in which both types can be used as key. A `bimap<X,Y>` 
+can be thought of as a combination of a `std::map<X,Y>` and a `std::map<Y,X>`. 
+The learning curve of bimap is almost flat if you know how to use standard 
+containers. A great deal of effort has been put into mapping the naming scheme of the
+STL in Boost.Bimap. The library is designed to match the common STL containers.
+
+[heading Influences and Related Work]
+
+The design of Boost.Bimap interface follows the standard template library.
+It has been strongly influenced by Joaquin Lopez Muñoz's Boost.MultiIndex library
+(the heart of bimaps) and codeproject::bimap library.
+
+[endsect]
+
+[include introduction.qbk]
+[include quick_tutorial.qbk]
+[include tutorial.qbk]
+[include bimap_and_boost.qbk]
+[include reference.qbk]
+[include compiler_specifics.qbk]
+[include performance.qbk]
+[include examples.qbk]
+[include test_suite.qbk]
+[include future_work.qbk]
+[include release_notes.qbk]
+[include rationale.qbk]
+[include history.qbk]
+[include acknowledgements.qbk]

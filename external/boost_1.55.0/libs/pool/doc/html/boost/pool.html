@@ -1,0 +1,452 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template pool</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Boost.Pool">
+<link rel="up" href="../header/boost/pool/pool_hpp.html" title="Header &lt;boost/pool/pool.hpp&gt;">
+<link rel="prev" href="default_user_allocator_malloc_free.html" title="Struct default_user_allocator_malloc_free">
+<link rel="next" href="../header/boost/pool/pool_alloc_hpp.html" title="Header &lt;boost/pool/pool_alloc.hpp&gt;">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="default_user_allocator_malloc_free.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../header/boost/pool/pool_hpp.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../header/boost/pool/pool_alloc_hpp.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.pool"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template pool</span></h2>
+<p>boost::pool &#8212; A fast memory allocator that guarantees proper alignment of all allocated chunks. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../header/boost/pool/pool_hpp.html" title="Header &lt;boost/pool/pool.hpp&gt;">boost/pool/pool.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> UserAllocator<span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="pool.html" title="Class template pool">pool</a> <span class="special">:</span>
+  <span class="keyword">protected</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">simple_segregated_storage</span><span class="special">&lt;</span> <span class="identifier">UserAllocator</span><span class="special">::</span><span class="identifier">size_type</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">UserAllocator</span>                  <a name="boost.pool.user_allocator"></a><span class="identifier">user_allocator</span><span class="special">;</span>   <span class="comment">// User allocator. </span>
+  <span class="keyword">typedef</span> <span class="identifier">UserAllocator</span><span class="special">::</span><span class="identifier">size_type</span>       <a name="boost.pool.size_type"></a><span class="identifier">size_type</span><span class="special">;</span>        <span class="comment">// An unsigned integral type that can represent the size of the largest object to be allocated. </span>
+  <span class="keyword">typedef</span> <span class="identifier">UserAllocator</span><span class="special">::</span><span class="identifier">difference_type</span> <a name="boost.pool.difference_type"></a><span class="identifier">difference_type</span><span class="special">;</span>  <span class="comment">// A signed integral type that can represent the difference of any two pointers. </span>
+
+  <span class="comment">// <a class="link" href="pool.html#boost.poolconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="pool.html#id490806-bb"><span class="identifier">pool</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">size_type</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">32</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">size_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="pool.html#id490843-bb"><span class="special">~</span><span class="identifier">pool</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="pool.html#id490380-bb">private member functions</a></span>
+  <span class="keyword">void</span> <span class="special">*</span> <a class="link" href="pool.html#id490382-bb"><span class="identifier">malloc_need_resize</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <span class="special">*</span> <a class="link" href="pool.html#id490402-bb"><span class="identifier">ordered_malloc_need_resize</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="pool.html#id490418-bb">protected member functions</a></span>
+  <a class="link" href="simple_segregated_storage.html" title="Class template simple_segregated_storage">simple_segregated_storage</a><span class="special">&lt;</span> <span class="identifier">size_type</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <a class="link" href="pool.html#id490420-bb"><span class="identifier">store</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">const</span> <a class="link" href="simple_segregated_storage.html" title="Class template simple_segregated_storage">simple_segregated_storage</a><span class="special">&lt;</span> <span class="identifier">size_type</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <a class="link" href="pool.html#id490436-bb"><span class="identifier">store</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  details::PODptr<span class="special">&lt;</span> <span class="identifier">size_type</span> <span class="special">&gt;</span> <a class="link" href="pool.html#id490453-bb"><span class="identifier">find_POD</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="pool.html#id490478-bb"><span class="identifier">alloc_size</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="pool.html#id490491-bb">protected static functions</a></span>
+  <span class="keyword">static</span> <span class="keyword">bool</span> <a class="link" href="pool.html#id490494-bb"><span class="identifier">is_from</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span><span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span><span class="keyword">const</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="keyword">void</span> <span class="special">*</span><span class="special">&amp;</span> <a class="link" href="pool.html#id490534-bb"><span class="identifier">nextof</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="pool.html#id490552-bb">public member functions</a></span>
+  <span class="keyword">bool</span> <a class="link" href="pool.html#id490555-bb"><span class="identifier">release_memory</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="pool.html#id490568-bb"><span class="identifier">purge_memory</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="pool.html#id490584-bb"><span class="identifier">get_next_size</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="pool.html#id490597-bb"><span class="identifier">set_next_size</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="pool.html#id490615-bb"><span class="identifier">get_max_size</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="pool.html#id490628-bb"><span class="identifier">set_max_size</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="identifier">size_type</span> <a class="link" href="pool.html#id490643-bb"><span class="identifier">get_requested_size</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <span class="special">*</span> <a class="link" href="pool.html#id490656-bb"><span class="identifier">malloc</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <span class="special">*</span> <a class="link" href="pool.html#id490669-bb"><span class="identifier">ordered_malloc</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <span class="special">*</span> <a class="link" href="pool.html#id490682-bb"><span class="identifier">ordered_malloc</span></a><span class="special">(</span><span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="pool.html#id490703-bb"><span class="identifier">free</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="pool.html#id490727-bb"><span class="identifier">ordered_free</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="pool.html#id490744-bb"><span class="identifier">free</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="pool.html#id490766-bb"><span class="identifier">ordered_free</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">size_type</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">bool</span> <a class="link" href="pool.html#id490788-bb"><span class="identifier">is_from</span></a><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="id1030091"></a><h2>Description</h2>
+<p>Whenever an object of type pool needs memory from the system, it will request it from its UserAllocator template parameter. The amount requested is determined using a doubling algorithm; that is, each time more system memory is allocated, the amount of system memory requested is doubled.</p>
+<p>Users may control the doubling algorithm by using the following extensions:</p>
+<p>Users may pass an additional constructor parameter to pool. This parameter is of type size_type, and is the number of chunks to request from the system the first time that object needs to allocate system memory. The default is 32. This parameter may not be 0.</p>
+<p>Users may also pass an optional third parameter to pool's constructor. This parameter is of type size_type, and sets a maximum size for allocated chunks. When this parameter takes the default value of 0, then there is no upper limit on chunk size.</p>
+<p>Finally, if the doubling algorithm results in no memory being allocated, the pool will backtrack just once, halving the chunk size and trying again.</p>
+<p><span class="bold"><strong>UserAllocator type</strong></span> - the method that the Pool will use to allocate memory from the system.</p>
+<p>There are essentially two ways to use class pool: the client can call malloc() and free() to allocate and free single chunks of memory, this is the most efficient way to use a pool, but does not allow for the efficient allocation of arrays of chunks. Alternatively, the client may call ordered_malloc() and ordered_free(), in which case the free list is maintained in an ordered state, and efficient allocation of arrays of chunks are possible. However, this latter option can suffer from poor performance when large numbers of allocations are performed. </p>
+<div class="refsect2">
+<a name="id1030115"></a><h3>
+<a name="boost.poolconstruct-copy-destruct"></a><code class="computeroutput">pool</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">explicit</span> <a name="id490806-bb"></a><span class="identifier">pool</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">size_type</span> nrequested_size<span class="special">,</span> 
+              <span class="keyword">const</span> <span class="identifier">size_type</span> nnext_size <span class="special">=</span> <span class="number">32</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">size_type</span> nmax_size <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs a new empty Pool that can be used to allocate chunks of size RequestedSize. 
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">nmax_size</code></span></p></td>
+<td><p>is the maximum number of chunks to allocate in one block. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">nnext_size</code></span></p></td>
+<td><p>parameter is of type size_type, is the number of chunks to request from the system the first time that object needs to allocate system memory. The default is 32. This parameter may not be 0. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">nrequested_size</code></span></p></td>
+<td><p>Requested chunk size </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="id490843-bb"></a><span class="special">~</span><span class="identifier">pool</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Destructs the Pool, freeing its list of memory blocks. </p>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="id1030284"></a><h3>
+<a name="id490380-bb"></a><code class="computeroutput">pool</code> private member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <span class="special">*</span> <a name="id490382-bb"></a><span class="identifier">malloc_need_resize</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>
+</p>
+<p>No memory in any of our storages; make a new storage, Allocates chunk in newly malloc aftert resize. 
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>0 if out-of-memory. Called if malloc/ordered_malloc needs to resize the free list. </p></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>pointer to chunk. </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <span class="special">*</span> <a name="id490402-bb"></a><span class="identifier">ordered_malloc_need_resize</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>Called if malloc needs to resize the free list. <p>No memory in any of our storages; make a new storage, 
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>pointer to new chunk. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="id1030399"></a><h3>
+<a name="id490418-bb"></a><code class="computeroutput">pool</code> protected member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a class="link" href="simple_segregated_storage.html" title="Class template simple_segregated_storage">simple_segregated_storage</a><span class="special">&lt;</span> <span class="identifier">size_type</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <a name="id490420-bb"></a><span class="identifier">store</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>pointer to store. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">const</span> <a class="link" href="simple_segregated_storage.html" title="Class template simple_segregated_storage">simple_segregated_storage</a><span class="special">&lt;</span> <span class="identifier">size_type</span> <span class="special">&gt;</span> <span class="special">&amp;</span> <a name="id490436-bb"></a><span class="identifier">store</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>pointer to store. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout">details::PODptr<span class="special">&lt;</span> <span class="identifier">size_type</span> <span class="special">&gt;</span> <a name="id490453-bb"></a><span class="identifier">find_POD</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span> chunk<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>finds which POD in the list 'chunk' was allocated from. <p>find which PODptr storage memory that this chunk is from. 
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>the PODptr that holds this chunk. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="id490478-bb"></a><span class="identifier">alloc_size</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Calculated size of the memory chunks that will be allocated by this Pool. 
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>allocated size. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="id1030657"></a><h3>
+<a name="id490491-bb"></a><code class="computeroutput">pool</code> protected static functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">bool</span> <a name="id490494-bb"></a><span class="identifier">is_from</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span> chunk<span class="special">,</span> <span class="keyword">char</span> <span class="special">*</span><span class="keyword">const</span> i<span class="special">,</span> 
+                    <span class="keyword">const</span> <span class="identifier">size_type</span> sizeof_i<span class="special">)</span><span class="special">;</span></pre>
+<p>
+
+Returns false if chunk was allocated from some other pool, or may be returned as the result of a future allocation from some other pool. Otherwise, the return value is meaningless.</p>
+<p>Note that this function may not be used to reliably test random pointer values. </p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">chunk</code></span></p></td>
+<td><p>chunk to check if is from this pool. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">i</code></span></p></td>
+<td><p>memory chunk at i with element sizeof_i. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">sizeof_i</code></span></p></td>
+<td><p>element size (size of the chunk area of that block, not the total size of that block). </p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>true if chunk was allocated or may be returned. as the result of a future allocation.</p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">static</span> <span class="keyword">void</span> <span class="special">*</span><span class="special">&amp;</span> <a name="id490534-bb"></a><span class="identifier">nextof</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span> ptr<span class="special">)</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Pointer dereferenced. (Provided and used for the sake of code readability :) </p></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="id1030868"></a><h3>
+<a name="id490552-bb"></a><code class="computeroutput">pool</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="id490555-bb"></a><span class="identifier">release_memory</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>pool must be ordered. Frees every memory block that doesn't have any allocated chunks. 
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>true if at least one memory block was freed. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="id490568-bb"></a><span class="identifier">purge_memory</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>pool must be ordered. Frees every memory block.</p>
+<p>This function invalidates any pointers previously returned by allocation functions of t. 
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>true if at least one memory block was freed. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="id490584-bb"></a><span class="identifier">get_next_size</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Number of chunks to request from the system the next time that object needs to allocate system memory. This value should never be 0. 
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>next_size; </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="id490597-bb"></a><span class="identifier">set_next_size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">size_type</span> nnext_size<span class="special">)</span><span class="special">;</span></pre>
+<p>Set number of chunks to request from the system the next time that object needs to allocate system memory. This value should never be set to 0. 
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>nnext_size. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="id490615-bb"></a><span class="identifier">get_max_size</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>max_size. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="id490628-bb"></a><span class="identifier">set_max_size</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">size_type</span> nmax_size<span class="special">)</span><span class="special">;</span></pre>
+<p>Set max_size. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">size_type</span> <a name="id490643-bb"></a><span class="identifier">get_requested_size</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>the requested size passed into the constructor. (This value will not change during the lifetime of a Pool object). </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <span class="special">*</span> <a name="id490656-bb"></a><span class="identifier">malloc</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Allocates a chunk of memory. Searches in the list of memory blocks for a block that has a free chunk, and returns that free chunk if found. Otherwise, creates a new memory block, adds its free list to pool's free list, 
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>a free chunk from that block. If a new memory block cannot be allocated, returns 0. Amortized O(1). </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <span class="special">*</span> <a name="id490669-bb"></a><span class="identifier">ordered_malloc</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Same as malloc, only merges the free lists, to preserve order. Amortized O(1). 
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>a free chunk from that block. If a new memory block cannot be allocated, returns 0. Amortized O(1). </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <span class="special">*</span> <a name="id490682-bb"></a><span class="identifier">ordered_malloc</span><span class="special">(</span><span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p>Gets address of a chunk n, allocating new memory if not already available. 
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td>
+<p>Address of chunk n if allocated ok. </p>
+<p>0 if not enough memory for n chunks. </p>
+</td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="id490703-bb"></a><span class="identifier">free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span> chunk<span class="special">)</span><span class="special">;</span></pre>
+<p>Same as malloc, only allocates enough contiguous chunks to cover n * requested_size bytes. Amortized O(n). 
+</p>
+<p>Deallocates a chunk of memory. Note that chunk may not be 0. O(1).</p>
+<p>Chunk must have been previously returned by t.malloc() or t.ordered_malloc(). Assumes that chunk actually refers to a block of chunks spanning n * partition_sz bytes. deallocates each chunk in that block. Note that chunk may not be 0. O(n). </p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>a free chunk from that block. If a new memory block cannot be allocated, returns 0. Amortized O(1). </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="id490727-bb"></a><span class="identifier">ordered_free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span> chunk<span class="special">)</span><span class="special">;</span></pre>
+<p>Same as above, but is order-preserving.</p>
+<p>Note that chunk may not be 0. O(N) with respect to the size of the free list. chunk must have been previously returned by t.malloc() or t.ordered_malloc(). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="id490744-bb"></a><span class="identifier">free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span> chunks<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p>Assumes that chunk actually refers to a block of chunks.</p>
+<p>chunk must have been previously returned by t.ordered_malloc(n) spanning n * partition_sz bytes. Deallocates each chunk in that block. Note that chunk may not be 0. O(n). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="id490766-bb"></a><span class="identifier">ordered_free</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span> chunks<span class="special">,</span> <span class="keyword">const</span> <span class="identifier">size_type</span> n<span class="special">)</span><span class="special">;</span></pre>
+<p>Assumes that chunk actually refers to a block of chunks spanning n * partition_sz bytes; deallocates each chunk in that block.</p>
+<p>Note that chunk may not be 0. Order-preserving. O(N + n) where N is the size of the free list. chunk must have been previously returned by t.malloc() or t.ordered_malloc(). </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">bool</span> <a name="id490788-bb"></a><span class="identifier">is_from</span><span class="special">(</span><span class="keyword">void</span> <span class="special">*</span><span class="keyword">const</span> chunk<span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>
+</p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>Returns true if chunk was allocated from u or may be returned as the result of a future allocation from u. Returns false if chunk was allocated from some other pool or may be returned as the result of a future allocation from some other pool. Otherwise, the return value is meaningless. Note that this function may not be used to reliably test random pointer values. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000-2006 Stephen Cleary<br>Copyright &#169; 2011 Paul A. Bristow<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="default_user_allocator_malloc_free.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../header/boost/pool/pool_hpp.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../header/boost/pool/pool_alloc_hpp.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

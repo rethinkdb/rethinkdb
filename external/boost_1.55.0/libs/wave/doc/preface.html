@@ -1,0 +1,183 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+
+
+  <title>Preface</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+
+  <link href="theme/style.css" rel="stylesheet" type="text/css">
+</head>
+
+
+<body background="theme/bkd.gif" text="#000000">
+
+<table background="theme/bkd2.gif" border="0" cellspacing="2" width="100%">
+
+  <tbody>
+    <tr>
+ 
+    <td width="21"> 
+      <h1></h1>
+      </td>
+
+    <td width="885"> <font face="Verdana, Arial, Helvetica, sans-serif"><b><font size="6">Preface</font></b></font></td>
+
+    <td width="96"><a href="http://www.boost.org"><img src="theme/wave.gif" align="right" border="0" height="68" width="93"></a></td>
+
+  </tr>
+
+  </tbody>
+</table>
+
+<br>
+
+<table border="0">
+
+  <tbody>
+    <tr>
+ 
+    <td width="10"></td>
+
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+
+    <td width="30"><img src="theme/l_arr_disabled.gif" border="0" height="19" width="20"></td>
+
+    <td width="30"><a href="introduction.html"><img src="theme/r_arr.gif" border="0"></a></td>
+
+  </tr>
+
+  </tbody>
+</table>
+
+<p>During the last time many new features have been developed as additions to the <tt>Spirit</tt> 
+  <a href="references.html#spirit">[4]</a> parser construction framework and we 
+  felt more and more, that it would be very helpful, to have a 'real world' example, 
+  which could be used as a sandbox for testing the usability of certain features. 
+  Additionally&nbsp;a recent discussion on the Boost mailing list showed the widespread 
+  interest of developers to have a modern, open source C++ preprocessor library 
+  to play with.&nbsp; So we had the idea to implement a C++ preprocessor to fit 
+  this needs&nbsp;-&nbsp;<tt>Wave</tt> was born.</p>
+
+<p align="justify">The <tt>Wave</tt> C++ preprocessor library uses the <a href="http://www.boost.org/"> 
+  </a> <tt>Spirit<a href="references.html#spirit">[4]</a></tt> parser construction 
+  library to implement a C++ lexer with ISO/ANSI Standards conformant preprocessing 
+  capabilities. It exposes an iterator interface, which returns the current preprocessed 
+  token from the input stream. This preprocessed token is generated on the fly 
+  while iterating over the preprocessor iterator sequence (in the terminology 
+  of the STL these iterators are forward iterators). </p>
+
+<p align="justify"> The C++ preprocessor is a macro processor that under normal 
+  circumstances is used automatically by your C++ compiler to transform your program 
+  before actual compilation. It is called a macro processor because it allows 
+   to define macros, which are brief abbreviations for longer constructs. The 
+  C++ preprocessor provides four separate facilities that you can use as you see 
+  fit: </p>
+
+<blockquote> 
+  
+  <p><b><img src="theme/bullet.gif" id="IMG1" height="13" width="13">&nbsp;</b>Inclusion 
+    of header files<br>
+
+    <b><img src="theme/bullet.gif" id="IMG2" height="13" width="13">&nbsp;</b>Macro 
+    expansion<br>
+
+    <b><img src="theme/bullet.gif" id="IMG3" height="13" width="13">&nbsp;</b>Conditional 
+    compilation<br>
+
+    <b><img src="theme/bullet.gif" id="IMG4" height="13" width="13">&nbsp;</b>Line 
+    control</p>
+
+</blockquote>
+
+<p>These features are greatly underestimated today, even more, the preprocessor 
+  has been frowned on for so long that its usage just hasn't been effectively 
+  pushed until the Boost preprocessor library <a href="references.html#pp_lib">[7]</a> 
+  came into being a few years ago. Only today we begin to understand, that preprocessor 
+  generative metaprogramming combined with template metaprogramming in C++ is 
+  by far one of the most powerful compile-time reflection/metaprogramming facilities 
+  that any language has ever supported.</p>
+
+<p>The C++ Standard <a href="http://webstore.ansi.org/ansidocstore/product.asp?sku=INCITS%2FISO%2FIEC%2B14882%2D1998">[2] </a>
+was adopted back in 1998, but there is still no (known to me)
+commercial C++ compiler, which has a bugfree implementation of the
+rather simple preprocessor requirements mandated therein. This may be a
+result of the mentioned underestimation or even banning of the
+preprocessor from good programming style during the last few years or
+may stem from the somewhat awkward standardese dialect of English used
+to describe it. Two open source projects are exceptions of this: gcc
+and Clang (a subproject of LLVM), both providing preprocessors with
+very good standards conformance. </p>
+
+<p align="justify">So the main goals for the <tt>Wave</tt> project are:</p>
+
+<blockquote> 
+  
+  <p><b><img src="theme/bullet.gif" id="IMG5" height="13" width="13">&nbsp;</b>full 
+    conformance with the C++ standard (ISO/IEC 14882:1998) <a href="references.html#iso_cpp">[1]</a> 
+    and with the C99 standard (INCITS/ISO/IEC 9899:1999) <a href="references.html#iso_c">[2]</a><br>
+
+    <b><img src="theme/bullet.gif" height="13" width="13">&nbsp;</b>usage of <tt>Spirit<a href="references.html#spirit">[4]</a></tt> 
+    for the parsing parts of the game (certainly :-)<br>
+
+    <b><img src="theme/bullet.gif" height="13" width="13">&nbsp;</b>maximal usage 
+    of STL and/or <tt>Boost</tt> libraries (for compactness and maintainability)<br>
+
+    <b><img src="theme/bullet.gif" height="13" width="13">&nbsp;</b>straightforward 
+    extendability for the implementation of additional features<br>
+
+    <b><img src="theme/bullet.gif" height="13" width="13">&nbsp;</b>building a 
+    flexible library for different C++ lexing and preprocessing needs</p>
+
+</blockquote>
+
+<p>At the first steps it is not planned to make a very high performance
+or very small C++ preprocessor. If you are looking for these objectives
+you probably have to look at other places. Although our C++
+preprocessor iterator works as expected and is usable as a reference
+implementation, for instance for testing of other preprocessor oriented
+libraries as the Boost Preprocessor library <a href="references.html#pp_lib">[7]</a> et.al. Nevertheless recent work has lead to surprising performance enhancements (if compared
+  with earlier versions). Wave is still somewhat slower as for instance EDG
+  based preprocessors (Intel, Comeau) on simple input files, however, as
+  complexity increases, time dilates expontentially on EDG. Preprocessing time
+  dilates linearly under Wave, which causes it to easily outperform EDG based
+preprocessors when complexity increases.</p>
+
+<p>As tests showed, the <tt>Wave</tt> library is very conformant to the C++ Standard, 
+  such that it compiles several strict conformant macro definitions, which are 
+not even compilable with EDG based preprocessors (i.e. Comeau or Intel). </p>
+
+<table border="0">
+
+  <tbody>
+    <tr>
+ 
+    <td width="10"></td>
+
+    <td width="30"><a href="../index.html"><img src="theme/u_arr.gif" border="0"></a></td>
+
+    <td width="30"><img src="theme/l_arr_disabled.gif" border="0" height="19" width="20"></td>
+
+    <td width="30"><a href="introduction.html"><img src="theme/r_arr.gif" border="0"></a></td>
+
+  </tr>
+
+  </tbody>
+</table>
+
+<hr size="1">
+<p class="copyright">Copyright &copy; 2003-2011 Hartmut Kaiser<br>
+
+  <br>
+
+<font size="2">Distributed under the Boost Software License, Version
+1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) </font> </p>
+
+<span class="updated"></span>
+<p class="copyright"><span class="updated">Last updated: 
+  <!-- #BeginDate format:fcAm1m -->Sunday, January 9, 2011  16:17<!-- #EndDate -->
+</span></p>
+
+</body>
+</html>

@@ -1,0 +1,366 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Inverse Gamma Distribution</title>
+<link rel="stylesheet" href="../../../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Math Toolkit">
+<link rel="up" href="../dists.html" title="Distributions">
+<link rel="prev" href="inverse_chi_squared_dist.html" title="Inverse Chi Squared Distribution">
+<link rel="next" href="inverse_gaussian_dist.html" title="Inverse Gaussian (or Inverse Normal) Distribution">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="inverse_chi_squared_dist.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../dists.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="inverse_gaussian_dist.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="math_toolkit.dist_ref.dists.inverse_gamma_dist"></a><a class="link" href="inverse_gamma_dist.html" title="Inverse Gamma Distribution">Inverse
+        Gamma Distribution</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">math</span><span class="special">/</span><span class="identifier">distributions</span><span class="special">/</span><span class="identifier">inverse_gamma</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></pre>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">math</span><span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">RealType</span> <span class="special">=</span> <span class="keyword">double</span><span class="special">,</span>
+          <span class="keyword">class</span> <a class="link" href="../../../policy.html" title="Chapter&#160;13.&#160;Policies: Controlling Precision, Error Handling etc">Policy</a>   <span class="special">=</span> <a class="link" href="../../pol_ref/pol_ref_ref.html" title="Policy Class Reference">policies::policy&lt;&gt;</a> <span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">inverse_gamma_distribution</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+   <span class="keyword">typedef</span> <span class="identifier">RealType</span> <span class="identifier">value_type</span><span class="special">;</span>
+   <span class="keyword">typedef</span> <span class="identifier">Policy</span>   <span class="identifier">policy_type</span><span class="special">;</span>
+
+   <span class="identifier">inverse_gamma_distribution</span><span class="special">(</span><span class="identifier">RealType</span> <span class="identifier">shape</span><span class="special">,</span> <span class="identifier">RealType</span> <span class="identifier">scale</span> <span class="special">=</span> <span class="number">1</span><span class="special">)</span>
+
+   <span class="identifier">RealType</span> <span class="identifier">shape</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+   <span class="identifier">RealType</span> <span class="identifier">scale</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="special">}}</span> <span class="comment">// namespaces</span>
+</pre>
+<p>
+          The inverse_gamma distribution is a continuous probability distribution
+          of the reciprocal of a variable distributed according to the gamma distribution.
+        </p>
+<p>
+          The inverse_gamma distribution is used in Bayesian statistics.
+        </p>
+<p>
+          See <a href="http://en.wikipedia.org/wiki/Inverse-gamma_distribution" target="_top">inverse
+          gamma distribution</a>.
+        </p>
+<p>
+          <a href="http://rss.acs.unt.edu/Rdoc/library/pscl/html/igamma.html" target="_top">R
+          inverse gamma distribution functions</a>.
+        </p>
+<p>
+          <a href="http://reference.wolfram.com/mathematica/ref/InverseGammaDistribution.html" target="_top">Wolfram
+          inverse gamma distribution</a>.
+        </p>
+<p>
+          See also <a class="link" href="gamma_dist.html" title="Gamma (and Erlang) Distribution">Gamma Distribution</a>.
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top">
+<p>
+            In spite of potential confusion with the inverse gamma function, this
+            distribution <span class="bold"><strong>does</strong></span> provide the typedef:
+          </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">inverse_gamma_distribution</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span> <span class="identifier">gamma</span><span class="special">;</span></pre>
+<p>
+            If you want a <code class="computeroutput"><span class="keyword">double</span></code> precision
+            gamma distribution you can use
+          </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">math</span><span class="special">::</span><span class="identifier">inverse_gamma_distribution</span><span class="special">&lt;&gt;</span></pre>
+<p>
+            or you can write <code class="computeroutput"><span class="identifier">inverse_gamma</span>
+            <span class="identifier">my_ig</span><span class="special">(</span><span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">);</span></code>
+          </p>
+</td></tr>
+</table></div>
+<p>
+          For shape parameter &#945; and scale parameter &#946;, it is defined by the probability
+          density function (PDF):
+        </p>
+<p>
+          &#8192;&#8192; f(x;&#945;, &#946;) = &#946;<sup>&#945;</sup> * (1/x) <sup>&#945;+1</sup> exp(-&#946;/x) / &#915;(&#945;)
+        </p>
+<p>
+          and cumulative density function (CDF)
+        </p>
+<p>
+          &#8192;&#8192; F(x;&#945;, &#946;) = &#915;(&#945;, &#946;/x) / &#915;(&#945;)
+        </p>
+<p>
+          The following graphs illustrate how the PDF and CDF of the inverse gamma
+          distribution varies as the parameters vary:
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../../../../graphs/inverse_gamma_pdf.png" align="middle"></span>
+        </p>
+<p>
+          <span class="inlinemediaobject"><img src="../../../../graphs/inverse_gamma_cdf.png" align="middle"></span>
+        </p>
+<h5>
+<a name="math_toolkit.dist_ref.dists.inverse_gamma_dist.h0"></a>
+          <span class="phrase"><a name="math_toolkit.dist_ref.dists.inverse_gamma_dist.member_functions"></a></span><a class="link" href="inverse_gamma_dist.html#math_toolkit.dist_ref.dists.inverse_gamma_dist.member_functions">Member
+          Functions</a>
+        </h5>
+<pre class="programlisting"><span class="identifier">inverse_gamma_distribution</span><span class="special">(</span><span class="identifier">RealType</span> <span class="identifier">shape</span> <span class="special">=</span> <span class="number">1</span><span class="special">,</span> <span class="identifier">RealType</span> <span class="identifier">scale</span> <span class="special">=</span> <span class="number">1</span><span class="special">);</span>
+</pre>
+<p>
+          Constructs an inverse gamma distribution with shape &#945; and scale &#946;.
+        </p>
+<p>
+          Requires that the shape and scale parameters are greater than zero, otherwise
+          calls <a class="link" href="../../error_handling.html#math_toolkit.error_handling.domain_error">domain_error</a>.
+        </p>
+<pre class="programlisting"><span class="identifier">RealType</span> <span class="identifier">shape</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+          Returns the &#945; shape parameter of this inverse gamma distribution.
+        </p>
+<pre class="programlisting"><span class="identifier">RealType</span> <span class="identifier">scale</span><span class="special">()</span><span class="keyword">const</span><span class="special">;</span>
+</pre>
+<p>
+          Returns the &#946; scale parameter of this inverse gamma distribution.
+        </p>
+<h5>
+<a name="math_toolkit.dist_ref.dists.inverse_gamma_dist.h1"></a>
+          <span class="phrase"><a name="math_toolkit.dist_ref.dists.inverse_gamma_dist.non_member_accessors"></a></span><a class="link" href="inverse_gamma_dist.html#math_toolkit.dist_ref.dists.inverse_gamma_dist.non_member_accessors">Non-member
+          Accessors</a>
+        </h5>
+<p>
+          All the <a class="link" href="../nmp.html" title="Non-Member Properties">usual non-member accessor
+          functions</a> that are generic to all distributions are supported:
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.cdf">Cumulative Distribution Function</a>,
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.pdf">Probability Density Function</a>,
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.quantile">Quantile</a>, <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.hazard">Hazard Function</a>, <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.chf">Cumulative Hazard Function</a>,
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.mean">mean</a>, <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.median">median</a>,
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.mode">mode</a>, <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.variance">variance</a>,
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.sd">standard deviation</a>,
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.skewness">skewness</a>, <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.kurtosis">kurtosis</a>, <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.kurtosis_excess">kurtosis_excess</a>,
+          <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.range">range</a> and <a class="link" href="../nmp.html#math_toolkit.dist_ref.nmp.support">support</a>.
+        </p>
+<p>
+          The domain of the random variate is [0,+&#8734;].
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../../../../doc/src/images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Unlike some definitions, this implementation supports a random variate
+            equal to zero as a special case, returning zero for pdf and cdf.
+          </p></td></tr>
+</table></div>
+<h5>
+<a name="math_toolkit.dist_ref.dists.inverse_gamma_dist.h2"></a>
+          <span class="phrase"><a name="math_toolkit.dist_ref.dists.inverse_gamma_dist.accuracy"></a></span><a class="link" href="inverse_gamma_dist.html#math_toolkit.dist_ref.dists.inverse_gamma_dist.accuracy">Accuracy</a>
+        </h5>
+<p>
+          The inverse gamma distribution is implemented in terms of the incomplete
+          gamma functions <a class="link" href="../../sf_gamma/igamma.html" title="Incomplete Gamma Functions">gamma_p</a>
+          and <a class="link" href="../../sf_gamma/igamma.html" title="Incomplete Gamma Functions">gamma_q</a> and their
+          inverses <a class="link" href="../../sf_gamma/igamma_inv.html" title="Incomplete Gamma Function Inverses">gamma_p_inv</a>
+          and <a class="link" href="../../sf_gamma/igamma_inv.html" title="Incomplete Gamma Function Inverses">gamma_q_inv</a>:
+          refer to the accuracy data for those functions for more information. But
+          in general, inverse_gamma results are accurate to a few epsilon, &gt;14
+          decimal digits accuracy for 64-bit double.
+        </p>
+<h5>
+<a name="math_toolkit.dist_ref.dists.inverse_gamma_dist.h3"></a>
+          <span class="phrase"><a name="math_toolkit.dist_ref.dists.inverse_gamma_dist.implementation"></a></span><a class="link" href="inverse_gamma_dist.html#math_toolkit.dist_ref.dists.inverse_gamma_dist.implementation">Implementation</a>
+        </h5>
+<p>
+          In the following table &#945; is the shape parameter of the distribution, &#945; &#160; is its
+          scale parameter, <span class="emphasis"><em>x</em></span> is the random variate, <span class="emphasis"><em>p</em></span>
+          is the probability and <span class="emphasis"><em>q = 1-p</em></span>.
+        </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    Implementation Notes
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    pdf
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Using the relation: pdf = <a class="link" href="../../sf_gamma/gamma_derivatives.html" title="Derivative of the Incomplete Gamma Function">gamma_p_derivative</a>(&#945;,
+                    &#946;/ x, &#946;) / x * x
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    cdf
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Using the relation: p = <a class="link" href="../../sf_gamma/igamma.html" title="Incomplete Gamma Functions">gamma_q</a>(&#945;,
+                    &#946; / x)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    cdf complement
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Using the relation: q = <a class="link" href="../../sf_gamma/igamma.html" title="Incomplete Gamma Functions">gamma_p</a>(&#945;,
+                    &#946; / x)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    quantile
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Using the relation: x = &#946; &#160;/ <a class="link" href="../../sf_gamma/igamma_inv.html" title="Incomplete Gamma Function Inverses">gamma_q_inv</a>(&#945;,
+                    p)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    quantile from the complement
+                  </p>
+                </td>
+<td>
+                  <p>
+                    Using the relation: x = &#945; &#160;/ <a class="link" href="../../sf_gamma/igamma_inv.html" title="Incomplete Gamma Function Inverses">gamma_p_inv</a>(&#945;,
+                    q)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    mode
+                  </p>
+                </td>
+<td>
+                  <p>
+                    &#946; / (&#945; + 1)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    median
+                  </p>
+                </td>
+<td>
+                  <p>
+                    no analytic equation is known, but is evaluated as quantile(0.5)
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    mean
+                  </p>
+                </td>
+<td>
+                  <p>
+                    &#946; / (&#945; - 1) for &#945; &gt; 1, else a <a class="link" href="../../error_handling.html#math_toolkit.error_handling.domain_error">domain_error</a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    variance
+                  </p>
+                </td>
+<td>
+                  <p>
+                    (&#946; * &#946;) / ((&#945; - 1) * (&#945; - 1) * (&#945; - 2)) for &#945; &gt;2, else a <a class="link" href="../../error_handling.html#math_toolkit.error_handling.domain_error">domain_error</a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    skewness
+                  </p>
+                </td>
+<td>
+                  <p>
+                    4 * sqrt (&#945; -2) / (&#945; -3) for &#945; &gt;3, else a <a class="link" href="../../error_handling.html#math_toolkit.error_handling.domain_error">domain_error</a>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    kurtosis_excess
+                  </p>
+                </td>
+<td>
+                  <p>
+                    (30 * &#945; - 66) / ((&#945;-3)*(&#945; - 4)) for &#945; &gt;4, else a <a class="link" href="../../error_handling.html#math_toolkit.error_handling.domain_error">domain_error</a>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2006-2010, 2012, 2013 Paul A. Bristow, Christopher Kormanyos,
+      Hubert Holin, Bruno Lalande, John Maddock, Johan R&#229;de, Gautam Sewani, Benjamin
+      Sobotta, Thijs van den Berg, Daryle Walker and Xiaogang Zhang<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="inverse_chi_squared_dist.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../dists.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="inverse_gaussian_dist.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

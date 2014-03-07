@@ -1,0 +1,117 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Testsuite</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../signals2.html" title="Chapter&#160;28.&#160;Boost.Signals2">
+<link rel="prev" href="api_changes.html" title="Signals2 API Changes">
+<link rel="next" href="../boost_staticassert.html" title="Chapter&#160;29.&#160;Boost.StaticAssert">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="api_changes.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../boost_staticassert.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="signals2.tests"></a>Testsuite</h2></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="tests.html#idp206618728">Acceptance tests</a></span></dt></dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp206618728"></a>Acceptance tests</h3></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col width="1in">
+<col>
+</colgroup>
+<thead><tr>
+<th>Test</th>
+<th>Type</th>
+<th>Description</th>
+<th>If failing...</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><p><a href="../../../libs/signals2/test/connection_test.cpp" target="_top">connection_test.cpp</a></p></td>
+<td><p>run</p></td>
+<td><p>Test functionality of <code class="computeroutput"><a class="link" href="../boost/signals2/connection.html" title="Class connection">boost::signals2::connection</a></code>
+        and <code class="computeroutput"><a class="link" href="../boost/signals2/scoped_connection.html" title="Class scoped_connection">boost::signals2::scoped_connection</a></code>
+        objects, including release() and swap().</p></td>
+<td>&#160;</td>
+</tr>
+<tr>
+<td><p><a href="../../../libs/signals2/test/dead_slot_test.cpp" target="_top">dead_slot_test.cpp</a></p></td>
+<td><p>run</p></td>
+<td><p>Ensure that calling <code class="computeroutput"><a class="link" href="../boost/signals2/signal.html#idp101703096-bb">connect</a></code> with a slot
+that has already expired does not actually
+connect to the slot.</p></td>
+<td>&#160;</td>
+</tr>
+<tr>
+<td><p><a href="../../../libs/signals2/test/deconstruct_test.cpp" target="_top">deconstruct_test.cpp</a></p></td>
+<td><p>run</p></td>
+<td><p>Test postconstruction/predestruction functionality of
+        <code class="computeroutput"><a class="link" href="../boost/signals2/deconstruct.html" title="Function deconstruct">boost::signals2::deconstruct</a></code>.</p></td>
+<td>&#160;</td>
+</tr>
+<tr>
+<td><p><a href="../../../libs/signals2/test/deletion_test.cpp" target="_top">deletion_test.cpp</a></p></td>
+<td><p>run</p></td>
+<td><p>Test deletion of slots.</p></td>
+<td>&#160;</td>
+</tr>
+<tr>
+<td><p><a href="../../../libs/signals2/test/ordering_test.cpp" target="_top">ordering_test.cpp</a></p></td>
+<td><p>run</p></td>
+<td><p>Test slot group ordering.</p></td>
+<td>&#160;</td>
+</tr>
+<tr>
+<td><p><a href="../../../libs/signals2/test/regression_test.cpp" target="_top">regression_test.cpp</a></p></td>
+<td><p>run</p></td>
+<td><p>Tests for various bugs that have occurred in the past,
+        to make sure they are fixed and stay fixed.</p></td>
+<td>&#160;</td>
+</tr>
+<tr>
+<td><p><a href="../../../libs/signals2/test/signal_test.cpp" target="_top">signal_test.cpp</a></p></td>
+<td><p>run</p></td>
+<td><p>Basic test of signal/slot connections and invocation using the
+<code class="computeroutput"><a class="link" href="../boost/signals2/signal.html" title="Class template signal">boost::signals2::signal</a></code> class template.</p></td>
+<td>&#160;</td>
+</tr>
+<tr>
+<td><p><a href="../../../libs/signals2/test/track_test.cpp" target="_top">track_test.cpp</a></p></td>
+<td><p>run</p></td>
+<td><p>Test automatic connection management of signals
+      and slots.</p></td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<br>Copyright &#169; 2007-2009 Frank Mori Hess<p>Distributed under the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="api_changes.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals2.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../boost_staticassert.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+digraph TC {
+ node[shape=circle];
+  a
+  b
+  c
+  d
+
+  b -> c
+  b -> d
+  c -> b
+  d -> c
+  d -> a
+}

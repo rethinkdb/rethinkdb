@@ -1,0 +1,45 @@
+{
+  "name": "escope",
+  "description": "ECMAScript scope analyzer",
+  "homepage": "http://github.com/Constellation/escope.html",
+  "main": "escope.js",
+  "version": "0.0.16",
+  "engines": {
+    "node": ">=0.4.0"
+  },
+  "maintainers": [
+    {
+      "name": "Yusuke Suzuki",
+      "email": "utatane.tea@gmail.com",
+      "web": "http://github.com/Constellation"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/Constellation/escope.git"
+  },
+  "dependencies": {
+    "estraverse": ">= 0.0.2"
+  },
+  "devDependencies": {
+    "jshint": "~1.1.0",
+    "grunt-mocha-test": "~0.6.3",
+    "grunt-cli": "~0.1.9",
+    "grunt": "~0.4.1",
+    "grunt-contrib-jshint": "~0.6.3",
+    "coffee-script": "~1.6.3",
+    "chai": "~1.7.2",
+    "esprima": "~1.0.3"
+  },
+  "licenses": [
+    {
+      "type": "BSD",
+      "url": "http://github.com/Constellation/escope/raw/master/LICENSE.BSD"
+    }
+  ],
+  "scripts": {
+    "test": "grunt travis",
+    "unit-test": "grunt test",
+    "lint": "grunt lint"
+  }
+}

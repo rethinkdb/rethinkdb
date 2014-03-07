@@ -1,0 +1,204 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Qi flush_multi_pass parser</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Spirit Repository 0.2">
+<link rel="up" href="../primitive.html" title="Qi Parser Primitives">
+<link rel="prev" href="advance.html" title="Qi advance Parser">
+<link rel="next" href="../directives.html" title="Qi Parser Directives">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="advance.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../primitive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../directives.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="spirit_repository.qi_components.primitive.flush_multi_pass"></a><a class="link" href="flush_multi_pass.html" title="Qi flush_multi_pass parser">Qi
+        flush_multi_pass parser</a>
+</h4></div></div></div>
+<h6>
+<a name="spirit_repository.qi_components.primitive.flush_multi_pass.h0"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.flush_multi_pass.description"></a></span><a class="link" href="flush_multi_pass.html#spirit_repository.qi_components.primitive.flush_multi_pass.description">Description</a>
+        </h6>
+<p>
+          The <span class="emphasis"><em>Spirit.Qi</em></span> <code class="computeroutput"><span class="identifier">flush_multi_pass</span></code>
+          parser is a primitive (pseudo) parser component allowing to clear the internal
+          buffer of a <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+          iterator. Clearing the buffer of a <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+          might be beneficial for grammars where it is clear that no backtracking
+          can occur. The general syntax for using the <code class="computeroutput"><span class="identifier">flush_multi_pass</span></code>
+          is:
+        </p>
+<pre class="programlisting"><span class="identifier">flush_multi_pass</span>
+</pre>
+<p>
+          which will call the <code class="computeroutput"><span class="identifier">clear_queue</span><span class="special">()</span></code> member function if the current iterators
+          are of the type <code class="computeroutput"><span class="identifier">multi_pass</span></code>.
+          This will cause any buffered data to be erased. This also will invalidate
+          all other copies of multi_pass and they should not be used. If they are,
+          an <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">illegal_backtracking</span></code> exception will be
+          thrown. For all other iterator types this is a no-op. The <code class="computeroutput"><span class="identifier">flush_multi_pass</span></code> generates a parser component
+          which always succeeds and which does not consume any input (very much like
+          <code class="computeroutput"><span class="identifier">eps</span></code>).
+        </p>
+<h6>
+<a name="spirit_repository.qi_components.primitive.flush_multi_pass.h1"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.flush_multi_pass.header"></a></span><a class="link" href="flush_multi_pass.html#spirit_repository.qi_components.primitive.flush_multi_pass.header">Header</a>
+        </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/repository/home/qi/primitive/flush_multi_pass.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">repository</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_flush_multi_pass</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<h6>
+<a name="spirit_repository.qi_components.primitive.flush_multi_pass.h2"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.flush_multi_pass.synopsis"></a></span><a class="link" href="flush_multi_pass.html#spirit_repository.qi_components.primitive.flush_multi_pass.synopsis">Synopsis</a>
+        </h6>
+<pre class="programlisting"><span class="identifier">flush_multi_pass</span>
+</pre>
+<h6>
+<a name="spirit_repository.qi_components.primitive.flush_multi_pass.h3"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.flush_multi_pass.parameters"></a></span><a class="link" href="flush_multi_pass.html#spirit_repository.qi_components.primitive.flush_multi_pass.parameters">Parameters</a>
+        </h6>
+<p>
+          The <code class="computeroutput"><span class="identifier">flush_multi_pass</span></code> does
+          not require any parameters.
+        </p>
+<h6>
+<a name="spirit_repository.qi_components.primitive.flush_multi_pass.h4"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.flush_multi_pass.attribute"></a></span><a class="link" href="flush_multi_pass.html#spirit_repository.qi_components.primitive.flush_multi_pass.attribute">Attribute</a>
+        </h6>
+<p>
+          The <code class="computeroutput"><span class="identifier">flush_multi_pass</span></code> component
+          exposes no attribute (the exposed attribute type is <code class="computeroutput"><span class="identifier">unused_type</span></code>):
+        </p>
+<pre class="programlisting"><span class="identifier">flush_multi_pass</span> <span class="special">--&gt;</span> <span class="identifier">unused</span>
+</pre>
+<h6>
+<a name="spirit_repository.qi_components.primitive.flush_multi_pass.h5"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.flush_multi_pass.example"></a></span><a class="link" href="flush_multi_pass.html#spirit_repository.qi_components.primitive.flush_multi_pass.example">Example</a>
+        </h6>
+<p>
+          The following example shows a simple use case of the <code class="computeroutput"><span class="identifier">flush_multi_pass</span></code>
+          parser.
+        </p>
+<p>
+          We will illustrate its usage by generating different comment styles and
+          a function prototype (for the full example code see here: <a href="../../../../../example/qi/flush_multi_pass.cpp" target="_top">flush_multi_pass.cpp</a>)
+        </p>
+<h6>
+<a name="spirit_repository.qi_components.primitive.flush_multi_pass.h6"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.flush_multi_pass.prerequisites"></a></span><a class="link" href="flush_multi_pass.html#spirit_repository.qi_components.primitive.flush_multi_pass.prerequisites">Prerequisites</a>
+        </h6>
+<p>
+          In addition to the main header file needed to include the core components
+          implemented in <span class="emphasis"><em>Spirit.Qi</em></span> we add the header file needed
+          for the new <code class="computeroutput"><span class="identifier">flush_multi_pass</span></code>
+          parser.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">repository</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">qi_flush_multi_pass</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+        </p>
+<p>
+          To make all the code below more readable we introduce the following namespaces.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">spirit</span> <span class="special">=</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">repository</span><span class="special">::</span><span class="identifier">flush_multi_pass</span><span class="special">;</span>
+</pre>
+<p>
+        </p>
+<h6>
+<a name="spirit_repository.qi_components.primitive.flush_multi_pass.h7"></a>
+          <span class="phrase"><a name="spirit_repository.qi_components.primitive.flush_multi_pass.clearing_the_internal_buffer"></a></span><a class="link" href="flush_multi_pass.html#spirit_repository.qi_components.primitive.flush_multi_pass.clearing_the_internal_buffer">Clearing
+          the internal buffer</a>
+        </h6>
+<p>
+          The example grammar recognizes the (simplified) preprocessor commands
+          <code class="computeroutput"><span class="preprocessor">#define</span></code> and <code class="computeroutput"><span class="preprocessor">#undef</span></code> both of which are constraint
+          to a single line. This makes it possible to delete all internal iterator
+          buffers on each detected line break. This is safe as no backtracking will
+          occur after any line end. The following code snippet shows the usage of
+          <code class="computeroutput"><span class="identifier">flush_multi_pass</span></code> for this
+          purpose.
+        </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iterator</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Skipper</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">preprocessor</span> <span class="special">:</span> <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">grammar</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">Skipper</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="comment">// This is a simplified preprocessor grammar recognizing</span>
+    <span class="comment">//</span>
+    <span class="comment">//   #define MACRONAME something</span>
+    <span class="comment">//   #undef MACRONAME</span>
+    <span class="comment">//</span>
+    <span class="comment">// Its sole purpose is to show an example how to use the </span>
+    <span class="comment">// flush_multi_pass parser. At the end of each line no backtracking can</span>
+    <span class="comment">// occur anymore so that it's safe to clear all internal buffers in the </span>
+    <span class="comment">// multi_pass.</span>
+    <span class="identifier">preprocessor</span><span class="special">()</span> <span class="special">:</span> <span class="identifier">preprocessor</span><span class="special">::</span><span class="identifier">base_type</span><span class="special">(</span><span class="identifier">file</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">using</span> <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">ascii</span><span class="special">::</span><span class="identifier">char_</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">eol</span><span class="special">;</span>
+        <span class="keyword">using</span> <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">lit</span><span class="special">;</span>
+
+        <span class="identifier">file</span> <span class="special">=</span>
+            <span class="special">*</span><span class="identifier">line</span>
+            <span class="special">;</span>
+
+        <span class="identifier">line</span> <span class="special">=</span>  <span class="special">(</span> <span class="identifier">command</span> <span class="special">|</span>  <span class="special">*(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="identifier">eol</span><span class="special">)</span> <span class="special">)</span>
+            <span class="special">&gt;&gt;</span>  <span class="identifier">eol</span>
+            <span class="special">&gt;&gt;</span>  <span class="identifier">flush_multi_pass</span>
+            <span class="special">;</span>
+
+        <span class="identifier">command</span> <span class="special">=</span>
+                <span class="string">"#define"</span> <span class="special">&gt;&gt;</span> <span class="special">*</span><span class="identifier">lit</span><span class="special">(</span><span class="char">' '</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="char">' '</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="special">*</span><span class="identifier">lit</span><span class="special">(</span><span class="char">' '</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="identifier">eol</span><span class="special">)</span>
+            <span class="special">|</span>   <span class="string">"#undef"</span>  <span class="special">&gt;&gt;</span> <span class="special">*</span><span class="identifier">lit</span><span class="special">(</span><span class="char">' '</span><span class="special">)</span> <span class="special">&gt;&gt;</span> <span class="special">*(</span><span class="identifier">char_</span> <span class="special">-</span> <span class="identifier">eol</span><span class="special">)</span>
+            <span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">spirit</span><span class="special">::</span><span class="identifier">qi</span><span class="special">::</span><span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">Iterator</span><span class="special">,</span> <span class="identifier">Skipper</span><span class="special">&gt;</span> <span class="identifier">file</span><span class="special">,</span> <span class="identifier">line</span><span class="special">,</span> <span class="identifier">command</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        </p>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+            Using the <code class="computeroutput"><span class="identifier">flush_multi_pass</span></code>
+            parser component with iterators other than <code class="computeroutput"><span class="identifier">multi_pass</span></code>
+            is safe as it has no effect on the parsing.
+          </p></td></tr>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="advance.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../primitive.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../directives.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,232 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/kln.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/kln.xml
+ */
+kln{
+    Currencies{
+        AED{
+            "AED",
+            "Rabisiekab Kibagegeitab arabuk",
+        }
+        AOA{
+            "Kz",
+            "Rabisiekab Angolan",
+        }
+        AUD{
+            "AU$",
+            "Dolaitab Australian",
+        }
+        BHD{
+            "BD",
+            "Rabisiekab Bahrain",
+        }
+        BIF{
+            "FBu",
+            "Rabisiekab Burundi",
+        }
+        BWP{
+            "BWP",
+            "Rabisiekab Botswana",
+        }
+        CAD{
+            "CA$",
+            "Dolaitab Kanada",
+        }
+        CDF{
+            "CDF",
+            "Rabisiekab Congo",
+        }
+        CHF{
+            "CHF",
+            "Rabisiekab Swiss",
+        }
+        CNY{
+            "CN¥",
+            "Rabisiekab China",
+        }
+        CVE{
+            "CV$",
+            "Rabisiekab Kepuvede",
+        }
+        DJF{
+            "Fdj",
+            "Rabisiekab Jibuti",
+        }
+        DZD{
+            "DA",
+            "Rabisiekab Algerian",
+        }
+        EGP{
+            "EGP",
+            "Pauditab Misri",
+        }
+        ERN{
+            "Nfk",
+            "Rabisiekab Eritrea",
+        }
+        ETB{
+            "Br",
+            "Rabisiekab Ethiopia",
+        }
+        EUR{
+            "€",
+            "Yuroit",
+        }
+        GBP{
+            "£",
+            "pounditab Uingereza",
+        }
+        GHC{
+            "₵",
+            "Rabisiekab Ghana",
+        }
+        GMD{
+            "GMD",
+            "Rabisiekab Gambia",
+        }
+        GNS{
+            "GNS" /** ===  */,
+            "Rabisiekab Guinea",
+        }
+        INR{
+            "Rs",
+            "Rabisiekab India",
+        }
+        JPY{
+            "JP¥",
+            "Rabisiekab Japan",
+        }
+        KES{
+            "Ksh",
+            "Silingitab ya Kenya",
+        }
+        KMF{
+            "CF",
+            "Rabisiekab Komoro",
+        }
+        LRD{
+            "L$",
+            "Dolaitab Liberia",
+        }
+        LSL{
+            "LSL",
+            "Rabisiekab Lesoto",
+        }
+        LYD{
+            "LD",
+            "Rabisiekab Libya",
+        }
+        MAD{
+            "MAD",
+            "Rabisiekab Moroccan",
+        }
+        MGA{
+            "MGA",
+            "Rabisiekab Malagasy",
+        }
+        MRO{
+            "UM",
+            "Rabisiekab Mauritania",
+        }
+        MUR{
+            "MURs",
+            "Rabisiekab Mauritius",
+        }
+        MWK{
+            "MWK",
+            "Rabisiekaby Malawi",
+        }
+        MZM{
+            "Mt",
+            "Rabisiekab Msumbiji",
+        }
+        NAD{
+            "N$",
+            "Dolaitab Namibia",
+        }
+        NGN{
+            "₦",
+            "Rabisiekab Nigeria",
+        }
+        RWF{
+            "RWF",
+            "Rabisiekab Rwanda",
+        }
+        SAR{
+            "SR",
+            "Rabisiekab Saudia",
+        }
+        SCR{
+            "SRe",
+            "Rabisiekab Shelisheli",
+        }
+        SDG{
+            "SDG",
+            "Pouditab Sudan",
+        }
+        SHP{
+            "SH£",
+            "Pouditab helena ne tilil",
+        }
+        SLL{
+            "Le",
+            "Leonit",
+        }
+        SOS{
+            "Ssh",
+            "siligitab Somalia",
+        }
+        STD{
+            "Db",
+            "Rabisiekab Sao Tome ak Principe",
+        }
+        SZL{
+            "SZL",
+            "Lilangenit",
+        }
+        TND{
+            "DT",
+            "RabisiekabTunisia",
+        }
+        TZS{
+            "TSh",
+            "silingitab Tanzania",
+        }
+        UGX{
+            "USh",
+            "Silingitab Uganda",
+        }
+        USD{
+            "US$",
+            "Dolaitab ya Amareka",
+        }
+        XAF{
+            "FCFA",
+            "Rabisiekab CFA BEAC",
+        }
+        XOF{
+            "CFA",
+            "Rabisiekab CFA BCEAO",
+        }
+        ZAR{
+            "R",
+            "Randitab Afrika nebo murot tai",
+        }
+        ZMK{
+            "ZK",
+            "Kwachaitab Zambia",
+        }
+        ZWD{
+            "Z$",
+            "Dolaitab ya Zimbabwe",
+        }
+    }
+    Version{"2.0.47.63"}
+}

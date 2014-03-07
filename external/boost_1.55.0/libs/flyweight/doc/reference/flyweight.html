@@ -1,0 +1,630 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0.1 Transitional//EN">
+
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Boost.Flyweight Documentation - flyweight reference</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+<link rel="start" href="../index.html">
+<link rel="prev" href="index.html">
+<link rel="up" href="index.html">
+<link rel="next" href="key_value.html">
+</head>
+
+<body>
+<h1><img src="../../../../boost.png" alt="Boost logo" align=
+"middle" width="277" height="86">Boost.Flyweight
+<code>flyweight</code> reference</h1>
+
+<div class="prev_link"><a href="index.html"><img src="../prev.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div>
+<div class="next_link"><a href="key_value.html"><img src="../next.gif" alt="key-value flyweights" border="0"><br>
+Key-value flyweights
+</a></div><br clear="all" style="clear: all;">
+
+<hr>
+
+<h2>Contents</h2>
+
+<ul>
+  <li><a href="#flyweight_fwd_synopsis">Header
+    <code>"boost/flyweight/flyweight_fwd.hpp"</code> synopsis</a></li>
+  <li><a href="#synopsis">Header
+    <code>"boost/flyweight/flyweight.hpp"</code> synopsis</a>
+    <ul>
+      <li><a href="#flyweight">Class template <code>flyweight</code></a>
+        <ul>
+          <li><a href="#instantiation_types">Instantiation types</a></li>
+          <li><a href="#static_init">Static data initialization</a></li>
+          <li><a href="#constructors">Constructors, copy and assignment</a></li>
+          <li><a href="#convertibility">Convertibility to the underlying types</a></li>
+          <li><a href="#modifiers">Modifiers</a></li>
+          <li><a href="#comparison">Comparison operators</a></li>
+          <li><a href="#specialized">Specialized algorithms</a></li>
+          <li><a href="#config_macros">Configuration macros</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h2>
+<a name="flyweight_fwd_synopsis">Header
+<a href="../../../../boost/flyweight/flyweight_fwd.hpp"><code>"boost/flyweight/flyweight_fwd.hpp"</code></a>
+synopsis</a>
+</h2>
+
+<blockquote><pre>
+<span class=keyword>namespace</span> <span class=identifier>boost</span><span class=special>{</span>
+  
+<span class=keyword>namespace</span> <span class=identifier>flyweights</span><span class=special>{</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>T</span><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Arg1</span><span class=special>=</span><b>implementation defined</b><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Arg2</span><span class=special>=</span><b>implementation defined</b><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Arg3</span><span class=special>=</span><b>implementation defined</b><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Arg4</span><span class=special>=</span><b>implementation defined</b><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Arg5</span><span class=special>=</span><b>implementation defined</b>
+<span class=special>&gt;</span>
+<span class=keyword>class</span> <span class=identifier>flyweight</span><span class=special>;</span>
+
+<span class=comment>// comparison:
+
+// <b>OP</b> is any of ==,&lt;,!=,&gt;,&gt;=,&lt;=</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>T1</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg11</span><span class=special>,...,</span><span class=keyword>typename</span> <span class=identifier>Arg15</span><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>T2</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg21</span><span class=special>,...,</span><span class=keyword>typename</span> <span class=identifier>Arg25</span>
+<span class=special>&gt;</span>
+<span class=keyword>bool</span> <span class=keyword>operator</span> <span class=identifier><b><i>OP</i></b></span><span class=special>(</span>
+  <span class=keyword>const</span> <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>T1</span><span class=special>,</span><span class=identifier>Arg11</span><span class=special>,...,</span><span class=identifier>Arg15</span><span class=special>&gt;&amp;</span> <span class=identifier>x</span><span class=special>,</span>
+  <span class=keyword>const</span> <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>T2</span><span class=special>,</span><span class=identifier>Arg21</span><span class=special>,...,</span><span class=identifier>Arg25</span><span class=special>&gt;&amp;</span> <span class=identifier>y</span><span class=special>);</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>T1</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg11</span><span class=special>,...,</span><span class=keyword>typename</span> <span class=identifier>Arg15</span><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>T2</span>
+<span class=special>&gt;</span>
+<span class=keyword>bool</span> <span class=keyword>operator</span> <span class=identifier><b><i>OP</i></b></span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>T1</span><span class=special>,</span><span class=identifier>Arg11</span><span class=special>,...,</span><span class=identifier>Arg15</span><span class=special>&gt;&amp;</span> <span class=identifier>x</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>T2</span><span class=special>&amp;</span> <span class=identifier>y</span><span class=special>);</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>T1</span><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>T2</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg21</span><span class=special>,...,</span><span class=keyword>typename</span> <span class=identifier>Arg25</span>
+<span class=special>&gt;</span>
+<span class=keyword>bool</span> <span class=keyword>operator</span> <span class=identifier><b><i>OP</i></b></span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>T1</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>,</span><span class=keyword>const</span> <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>T2</span><span class=special>,</span><span class=identifier>Arg21</span><span class=special>,...,</span><span class=identifier>Arg25</span><span class=special>&gt;&amp;</span> <span class=identifier>y</span><span class=special>);</span>
+
+<span class=comment>// specialized algorithms:</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg1</span><span class=special>,...,</span><span class=keyword>typename</span> <span class=identifier>Arg5</span><span class=special>&gt;</span>
+<span class=keyword>inline</span> <span class=keyword>void</span> <span class=identifier>swap</span><span class=special>(</span>
+  <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>,</span><span class=identifier>Arg1</span><span class=special>,...,</span><span class=identifier>Arg5</span><span class=special>&gt;&amp;</span> <span class=identifier>x</span><span class=special>,</span><span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>,</span><span class=identifier>Arg1</span><span class=special>,...,</span><span class=identifier>Arg5</span><span class=special>&gt;&amp;</span> <span class=identifier>y</span><span class=special>);</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>ElemType</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Traits</span><span class=special>,</span> 
+  <span class=keyword>typename</span> <span class=identifier>T</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg1</span><span class=special>,...,</span><span class=keyword>typename</span> <span class=identifier>Arg5</span>
+<span class=special>&gt;</span>
+<span class=keyword>inline</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>basic_ostream</span><span class=special>&lt;</span><span class=identifier>ElemType</span><span class=special>,</span><span class=identifier>Traits</span><span class=special>&gt;&amp;</span> <span class=keyword>operator</span><span class=special>&lt;&lt;(</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>basic_ostream</span><span class=special>&lt;</span><span class=identifier>ElemType</span><span class=special>,</span><span class=identifier>Traits</span><span class=special>&gt;&amp;</span> <span class=identifier>out</span><span class=special>,</span>
+  <span class=keyword>const</span> <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>,</span><span class=identifier>Arg1</span><span class=special>,...,</span><span class=identifier>Arg5</span><span class=special>&gt;&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>ElemType</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Traits</span><span class=special>,</span> 
+  <span class=keyword>typename</span> <span class=identifier>T</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg1</span><span class=special>,...,</span><span class=keyword>typename</span> <span class=identifier>Arg5</span>
+<span class=special>&gt;</span>
+<span class=keyword>inline</span> <span class=identifier>std</span><span class=special>::</span><span class=identifier>basic_ostream</span><span class=special>&lt;</span><span class=identifier>ElemType</span><span class=special>,</span><span class=identifier>Traits</span><span class=special>&gt;&amp;</span> <span class=keyword>operator</span><span class=special>&gt;&gt;(</span>
+  <span class=identifier>std</span><span class=special>::</span><span class=identifier>basic_istream</span><span class=special>&lt;</span><span class=identifier>ElemType</span><span class=special>,</span><span class=identifier>Traits</span><span class=special>&gt;&amp;</span> <span class=identifier>in</span><span class=special>,</span>
+  <span class=identifier>flyweight</span><span class=special>&lt;</span><span class=identifier>T</span><span class=special>,</span><span class=identifier>Arg1</span><span class=special>,...,</span><span class=identifier>Arg5</span><span class=special>&gt;&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost::flyweights</span>
+
+<span class=keyword>using</span> <span class=identifier>flyweights</span><span class=special>::</span><span class=identifier>flyweight</span><span class=special>;</span>
+
+<span class=special>}</span> <span class=comment>// namespace boost</span>
+</pre></blockquote>
+
+<p>
+<code>flyweight_fwd.hpp</code> forward declares the class template
+<a href="#flyweight"><code>flyweight</code></a> and its associated global functions.
+</p>
+
+<h2>
+<a name="synopsis">Header
+<a href="../../../../boost/flyweight/flyweight.hpp"><code>"boost/flyweight/flyweight.hpp"</code></a>
+synopsis</a>
+</h2>
+
+<h3><a name="flyweight">
+Class template <code>flyweight</code>
+</a></h3>
+
+<p>
+Objects of type <code>flyweight&lt;...&gt;</code> provide access to immutable
+values of type <code>flyweight&lt;...&gt;::value_type</code>, with the following advantages over using
+plain <code>value_type</code> objects:
+<ul>
+  <li>Flyweight objects with equivalent value share the same representation
+    (the associated <code>value_type</code> object).
+  </li>
+  <li>The size of flyweights is typically that of a pointer, which is in general
+    smaller than <code>sizeof(value_type)</code>.
+  </li>
+</ul>
+
+So, if the level of redundancy (ratio of total objects to different values)
+is high enough, substituting a suitable instantiation of <code>flyweight</code>
+for <code>value_type</code> results in a reduction in memory usage.
+</p>
+
+<p>
+<code>flyweight</code> is parameterized according to some aspects:
+<ul>
+  <li>Types <code>key_value</code> and <code>value_type</code>
+    (possibly equal), where <code>key_type</code> serves as a
+    key type to lookup and construct internal shared instances of
+    objects of <code>value_type</code>.
+  </li>
+  <li>An optional <a href="tags.html#tag">tag</a> type meant to syntactically
+     differentiate between otherwise identical instantiations.
+  </li>
+  <li>The <a href="factories.html#factory">factory class</a> used to store
+    and retrieve the shared value objects.
+  </li>
+  <li>The type of <a href="holders.html#holder">holder</a> used to
+    instantiate the flyweight factory and a mutex object, both of
+    which are unique to each specialization of the <code>flyweight</code>
+    class template.
+  </li>
+  <li>A <a href="locking.html#locking">locking policy</a> determining
+    the synchronization mechanisms for internal access to shared resources.
+  </li>
+  <li>A <a href="tracking.html#tracking">tracking policy</a> which controls
+   how values are treated when all their associated flyweight objects are
+   destroyed.
+  </li>
+</ul>
+These aspects impact the internal structure and behavior
+of the <code>flyweight</code> instantiation in the following manner:
+<ul>
+  <li>Each instantation of <code>flyweight</code> internally owns
+    a unique factory object and a unique synchronization
+    <a href="locking.html#preliminary">mutex</a> object, both of which
+    are created through the use of an associated holder type.
+  </li>
+  <li>The flyweight factory stores elements of an undisclosed type
+    <code>Entry</code> that is implicitly convertible to
+    <code>const key_type&amp;</code> and also stores a subobject of
+    <code>value_type</code>. Every flyweight object is associated
+    to a <code>value_type</code> subobject of some <code>Entry</code>
+    stored in the factory.
+  </li>
+  <li>The associated mutex object is used to protect all invocations
+    to the insertion and deletion functions of the internal flyweight
+    factory.
+  </li>
+  <li>Each flyweight object internally stores a value of some
+    undisclosed type <code>Handle</code>. <code>Handle</code> and
+    the <code>Entry</code> type referred to above are obtained
+    from invocations to the associated tracking policy, in the
+    manner described for this concept.
+  </li>
+</ul>
+In what follows, we implicitly assume that <code>key_type</code> equivalence
+refers to the equivalence relationship induced by the factory class used.
+Also, two values of <code>value_type</code> are considered equivalent
+if they are constructed from equivalent keys, or are copies of
+objects constructed from equivalent keys.
+</p>
+
+<blockquote><pre>
+<span class=keyword>template</span><span class=special>&lt;</span>
+  <span class=keyword>typename</span> <span class=identifier>T</span><span class=special>,</span>
+  <span class=keyword>typename</span> <span class=identifier>Arg1</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg2</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg3</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg4</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>Arg5</span>
+<span class=special>&gt;</span>
+<span class=keyword>class</span> <span class=identifier>flyweight</span>
+<span class=special>{</span>
+<span class=keyword>public</span><span class=special>:</span>
+  <span class=keyword>typedef</span> <span class=identifier><b>dependent on T</b></span> <span class=identifier>key_type</span><span class=special>;</span>
+  <span class=keyword>typedef</span> <span class=identifier><b>dependent on T</b></span> <span class=identifier>value_type</span><span class=special>;</span>
+
+  <span class=comment>// static data initialization:</span>
+
+  <span class=keyword>static</span> <span class=keyword>bool</span> <span class=identifier>init</span><span class=special>();</span>
+  <span class=keyword>class</span> <span class=identifier>initializer</span><span class=special>{</span><span class=keyword>public</span><span class=special>:</span><span class=identifier>initializer</span><span class=special>();</span><span class=special>};</span>
+    
+  <span class=comment>// construct/copy/destroy:</span>
+  
+  <span class=identifier>flyweight</span><span class=special>();</span>
+  <span class=identifier>flyweight</span><span class=special>(</span><span class=keyword>const</span> <span class=identifier>flyweight</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+  <span class=identifier>flyweight</span><span class=special>(</span><span class=identifier>flyweight</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+
+  <span class=comment>// forwarding constructors:
+  // n is implementation defined. All combinations of constant
+  // and non constant reference arguments are provided.</span>
+
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T0</span><span class=special>&gt;</span>
+  <span class=keyword>explicit</span> <span class=identifier>flyweight</span><span class=special>([</span><span class=keyword>const</span><span class=special>]</span> <span class=identifier>T0</span><span class=special>&amp;</span> <span class=identifier>t0</span><span class=special>);</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T0</span><span class=special>,</span><span class=keyword>typename</span> <span class=identifier>T1</span><span class=special>&gt;</span>
+  <span class=identifier>flyweight</span><span class=special>([</span><span class=keyword>const</span><span class=special>]</span> <span class=identifier>T0</span><span class=special>&amp;</span> <span class=identifier>t0</span><span class=special>,[</span><span class=keyword>const</span><span class=special>]</span> <span class=identifier>T1</span><span class=special>&amp;</span> <span class=identifier>t1</span><span class=special>);</span>
+  <span class=special>...</span>
+  <span class=keyword>template</span><span class=special>&lt;</span><span class=keyword>typename</span> <span class=identifier>T0</span><span class=special>,...,</span><span class=keyword>typename</span> <span class=identifier>Tn</span><span class=special>-</span><span class=number>1</span><span class=special>&gt;</span>
+  <span class=identifier>flyweight</span><span class=special>([</span><span class=keyword>const</span><span class=special>]</span> <span class=identifier>T0</span><span class=special>&amp;</span> <span class=identifier>t0</span><span class=special>,...,[</span><span class=keyword>const</span><span class=special>]</span> <span class=identifier>Tn</span><span class=special>-</span><span class=number>1</span><span class=special>&amp;</span> <span class=identifier>tn</span><span class=special>-</span><span class=number>1</span><span class=special>);</span>
+
+  <span class=identifier>flyweight</span><span class=special>&amp;</span> <span class=keyword>operator</span><span class=special>=(</span><span class=keyword>const</span> <span class=identifier>flyweight</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>  
+  <span class=identifier>flyweight</span><span class=special>&amp;</span> <span class=keyword>operator</span><span class=special>=(</span><span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+
+  <span class=comment>// convertibility to underlying type:</span>
+
+  <span class=keyword>const</span> <span class=identifier>key_type</span><span class=special>&amp;</span>   <span class=identifier>get_key</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=keyword>const</span> <span class=identifier>value_type</span><span class=special>&amp;</span> <span class=identifier>get</span><span class=special>()</span><span class=keyword>const</span><span class=special>;</span>
+  <span class=keyword>operator</span> <span class=keyword>const</span>    <span class=identifier>value_type</span><span class=special>&amp;()</span><span class=keyword>const</span><span class=special>;</span>  
+
+  <span class=comment>// modifiers:</span>
+
+  <span class=keyword>void</span> <span class=identifier>swap</span><span class=special>(</span><span class=identifier>flyweight</span><span class=special>&amp;</span> <span class=identifier>x</span><span class=special>);</span>
+<span class=special>};</span>
+</pre></blockquote>
+
+<h4><a name="instantiation_types">Instantiation types</a></h4>
+
+<p>
+<code>T</code> can be either:
+<ul>
+  <li>An arbitrary type,</li>
+  <li>a type of the form 
+    <a href="key_value.html#key_value_construct"><code>key_value&lt;Key,Value[,KeyFromValue]&gt;</code></a>.</li>
+</ul>
+In the first case, the nested types <code>key_type</code> and <code>value_type</code>
+are both equal to <code>T</code>. In the second case, <code>key_type</code>=<code>Key</code>,
+<code>value_type</code>=<code>Value</code>; we say then that the instantiation
+of <code>flyweight</code> is a <i>key-value</i> flyweight.
+<code>value_type</code> is the type of the values flyweight objects give access to,
+while value lookup is based on associated <code>key_type</code> values.
+<code>key_value</code> must be
+<a href="http://www.sgi.com/tech/stl/Assignable.html"><code>Assignable</code></a>
+and <code>value_type</code> must be constructible from <code>key_type</code>;
+additionally, <code>key_value</code> must
+conform to any extra requirements imposed by the type of factory used.
+For key-value flyweights, it is guaranteed that the creation or assignment of a flyweight
+object results in at most one construction (or copy construction in some
+particular cases) of an object
+of <code>value_type</code>, and this construction only occurs in the case that no
+equivalent value existed previously in the flyweight factory.
+</p>
+
+<p>
+The types <code>Arg1</code>, ... , <code>Arg5</code>, if provided, must be any
+of the following, in no particular order:
+<ul>
+  <li>A <a href="tags.html#tag">tag</a>,</li>
+  <li>a <a href="factories.html#factory">factory specifier</a>,</li>
+  <li>a <a href="holders.html#holder">holder specifier</a>,</li>
+  <li>a <a href="locking.html#locking">locking policy</a>,</li>
+  <li>a <a href="tracking.html#tracking">tracking policy</a>.</li>
+</ul>
+No aspect can be specified twice. Each internal component of the
+<code>flyweight</code> instantiation is obtained through use of the
+corresponding specifier; for instance, the factory results from a
+certain (MPL) invocation of the given factory specifier, the internal
+mutex from the given locking policy, etc.
+The default configuration arguments are:
+<ul>
+  <li>No tagging,</li>
+  <li><a href="factories.html#hashed_factory"><code>hashed_factory&lt;&gt;</code></a>,</li>
+  <li><a href="holders.html#static_holder"><code>static_holder</code></a>,</li>
+  <li><a href="locking.html#simple_locking"><code>simple_locking</code></a>,</li>
+  <li><a href="tracking.html#refcounted"><code>refcounted</code></a> tracking policy.</li>
+</ul>
+</p>
+
+<h4><a name="static_init">Static data initialization</a></h4>
+
+<p>
+The static data internal to a given <code>flyweight</code> instantiation
+(factory instance, etc.) is constructed during the dynamic initialization
+phase of the program and always before the first program-wide use of the
+instantiated class. The following utilities can be
+used when more control about the moment of construction is required.
+</p>
+
+<code>static bool init();</code>
+
+<blockquote>
+<b>Effects:</b> After execution of this function the static data associated
+to the instantiation of <code>flyweight</code> is guaranteed to be
+constructed.<br>
+<b>Note:</b> Concurrent execution of this function is not thread safe.
+</blockquote>
+
+<code>initializer::initializer();</code>
+
+<blockquote>
+<b>Effects:</b> Executes <code>init()</code>.
+</blockquote>
+
+<h4><a name="constructors">Constructors, copy and assignment</a></h4>
+
+<code>flyweight();</code>
+
+<blockquote>
+<b>Requires:</b> <code>key_type</code> is
+<a href="http://www.sgi.com/tech/stl/DefaultConstructible.html"><code>Default
+Constructible</code></a>.<br>
+<b>Effects:</b> Constructs a <code>flyweight</code> object associated
+with value <code>value_type(key_type())</code>.
+</blockquote>
+
+<code>flyweight(const flyweight&amp; x);<br>
+flyweight(flyweight&amp; x);</code>
+
+<blockquote>
+<b>Effects:</b> Constructs a <code>flyweight</code> object with value
+<code>x.get()</code>.<br>
+<b>Exception safety:</b> <code>nothrow</code>.
+</blockquote>
+
+<a name="fwd_ctors">
+<code>template&lt;typename T0&gt;<br>
+explicit flyweight([const] T0&amp; t0);<br>
+template&lt;typename T0,typename T1&gt;<br>
+flyweight([const] T0&amp; t0,[const] T1&amp; t1);<br>
+...<br>
+template&lt;typename T0,...,typename Tn-1&gt;<br>
+flyweight([const] T0&amp; t0,...,[const] Tn-1&amp; tn-1);</code></a>
+
+<blockquote>
+<b>Effects:</b> Constructs a <code>flyweight</code> object with value
+<code>value_type(key_type(t0,...,ti))</code>, up to an implementation defined number
+of arguments.<br>
+<b>Note:</b> In this implementation, the maximum number of arguments
+can be globally <a href="#limit_num_ctor_args">configured</a> by the user.
+</blockquote>
+
+<code>flyweight&amp; operator=(const flyweight&amp; x);</code>
+
+<blockquote>
+<b>Effects:</b> Associates the <code>flyweight</code> object with the same value
+as <code>x</code>.<br>
+<b>Returns:</b> <code>*this</code>.<br>
+<b>Exception safety:</b> <code>nothrow</code>.
+</blockquote>
+
+<code>flyweight&amp; operator=(const value_type&amp; x);</code>
+
+<blockquote>
+<b>Requires:</b> If <code>flyweight</code> is key-value,
+<code>value_type</code> is
+<a href="http://www.sgi.com/tech/stl/Assignable.html"><code>Assignable</code></a>
+and the
+<a href="key_value.html#key_extractor"><code>Key Extractor</code></a>
+<code>KeyFromValue</code> must have been supplied as part of the
+<code>key_value&lt;&gt;</code> construct.<br>
+<b>Effects:</b> Associates the <code>flyweight</code> object with a
+copy of <code>x</code> or with a <code>value_type</code> constructed
+from a key equivalent to that associated to <code>x</code>. For non-key-value
+flyweights, <code>x</code> is its own key; for key-value flyweights,
+the key is extracted through use of an object of type <code>KeyFromValue</code>.<br>
+<b>Returns:</b> <code>*this</code>.<br>
+</blockquote>
+
+<h4><a name="convertibility">Convertibility to the underlying types</a></h4>
+
+<code>const key_type&amp; get_key()const;</code>
+
+<blockquote>
+<b>Return:</b> A copy of the key used to construct the
+<code>value_type</code> associated to the <code>flyweight</code>
+object.<br>
+<b>Exception safety:</b> If <code>flyweight</code> is not key-value or
+if <code>KeyFromValue</code> was not provided, <code>nothrow</code>.
+</blockquote>
+
+<code>const value_type&amp; get()const;<br>
+	operator const value_type&amp;()const;</code>
+
+<blockquote>
+<b>Return:</b> The value associated to the <code>flyweight</code>
+object.<br>
+<b>Exception safety:</b> <code>nothrow</code>.
+</blockquote>
+
+<h4><a name="modifiers">Modifiers</a></h4>
+
+<code>void swap(flyweight&amp; x);</code>
+
+<blockquote>
+<b>Effects:</b> Swaps the associations to <code>value_type</code>s each
+flyweight object has. No swapping of <code>key_type</code> or
+<code>value_type</code> objects is done.<br>
+<b>Exception safety:</b> <code>nothrow</code>.
+</blockquote>
+
+<h4><a name="comparison">Comparison operators</a></h4>
+
+<code>template&lt;<br>
+&nbsp;&nbsp;typename T1,typename Arg11,...,typename Arg15,<br>
+&nbsp;&nbsp;typename T2,typename Arg21,...,typename Arg25<br>
+&gt;<br>
+bool operator ==(<br>
+&nbsp;&nbsp;const flyweight&lt;T1,Arg11,...,Arg15&gt;&amp; x,<br>
+&nbsp;&nbsp;const flyweight&lt;T2,Arg21,...,Arg25&gt;&amp; y);</code>
+
+<blockquote>
+<b>Returns:</b> If <code>x</code> and <code>y</code> are of the same type, returns
+<code>true</code> if and only if they are associated to the same value; if
+<code>x</code> and <code>y</code> have different types, returns
+<code>x.get()==y.get()</code>.<br>
+<b>Exception safety:</b> If <code>x</code> and <code>y</code> are of the same type,
+<code>nothrow</code>.
+</blockquote>
+
+<code>template&lt;<br>
+&nbsp;&nbsp;typename T1,typename Arg11,...,typename Arg15,<br>
+&nbsp;&nbsp;typename T2<br>
+&gt;<br>
+bool operator ==(const flyweight&lt;T1,Arg11,...,Arg15&gt;&amp; x,const T2&amp; y);</code>
+
+<blockquote>
+<b>Returns:</b> <code>x.get()==y</code>.
+</blockquote>
+
+<code>template&lt;<br>
+&nbsp;&nbsp;typename T1,<br>
+&nbsp;&nbsp;typename T2,typename Arg21,...,typename Arg25<br>
+&gt;<br>
+bool operator ==(const T1&amp; x,const flyweight&lt;T2,Arg21,...,Arg25&gt;&amp; y);</code>
+
+<blockquote>
+<b>Returns:</b> <code>x()==y.get()</code>.
+</blockquote>
+
+<code>template&lt;<br>
+&nbsp;&nbsp;typename T1,typename Arg11,...,typename Arg15,<br>
+&nbsp;&nbsp;typename T2,typename Arg21,...,typename Arg25<br>
+&gt;<br>
+bool operator &lt;(<br>
+&nbsp;&nbsp;const flyweight&lt;T1,Arg11,...,Arg15&gt;&amp; x,<br>
+&nbsp;&nbsp;const flyweight&lt;T2,Arg21,...,Arg25&gt;&amp; y);</code>
+
+<blockquote>
+<b>Returns:</b> <code>x.get()&lt;y.get()</code>.
+</blockquote>
+
+<code>template&lt;<br>
+&nbsp;&nbsp;typename T1,typename Arg11,...,typename Arg15,<br>
+&nbsp;&nbsp;typename T2<br>
+&gt;<br>
+bool operator &lt;(const flyweight&lt;T1,Arg11,...,Arg15&gt;&amp; x,const T2&amp; y);</code>
+
+<blockquote>
+<b>Returns:</b> <code>x.get()&lt;y</code>.
+</blockquote>
+
+<code>template&lt;<br>
+&nbsp;&nbsp;typename T1,<br>
+&nbsp;&nbsp;typename T2,typename Arg21,...,typename Arg25<br>
+&gt;<br>
+bool operator &lt;(const T1&amp; x,const flyweight&lt;T2,Arg21,...,Arg25&gt;&amp; y);</code>
+
+<blockquote>
+<b>Returns:</b> <code>x()&lt;y.get()</code>.
+</blockquote>
+
+
+<code>template&lt;<br>
+&nbsp;&nbsp;typename T1,typename Arg11,...,typename Arg15,<br>
+&nbsp;&nbsp;typename T2,typename Arg21,...,typename Arg25<br>
+&gt;<br>
+bool operator <b><i>OP</i></b>(<br>
+&nbsp;&nbsp;const flyweight&lt;T1,Arg11,...,Arg15&gt;&amp; x,<br>
+&nbsp;&nbsp;const flyweight&lt;T2,Arg21,...,Arg25&gt;&amp; y);<br>
+template&lt;<br>
+&nbsp;&nbsp;typename T1,typename Arg11,...,typename Arg15,<br>
+&nbsp;&nbsp;typename T2<br>
+&gt;<br>
+bool operator <b><i>OP</i></b>(const flyweight&lt;T1,Arg11,...,Arg15&gt;&amp; x,const T2&amp; y);</br>
+template&lt;<br>
+&nbsp;&nbsp;typename T1,<br>
+&nbsp;&nbsp;typename T2,typename Arg21,...,typename Arg25<br>
+&gt;<br>
+bool operator <b><i>OP</i></b>(const T1&amp; x,const flyweight&lt;T2,Arg21,...,Arg25&gt;&amp; y);</code>
+
+<p>
+(<code><b><i>OP</i></b></code> is any of <code>!=</code>, <code>></code>,
+<code>>=</code>, <code>&lt;=</code>.)
+</p>
+
+<blockquote>
+<b>Returns:</b> <code>true</code> if and only if
+<blockquote>
+<code>!(x==y)</code> (<code><b><i>OP</i></b></code> is <code>!=</code>),<br>
+<code>&nbsp;&nbsp;y&lt;&nbsp;x&nbsp;</code> (<code><b><i>OP</i></b></code> is <code>>&nbsp;</code>),<br>
+<code>!(x&lt;&nbsp;y)</code> (<code><b><i>OP</i></b></code> is <code>>=</code>),<br>
+<code>!(y&lt;&nbsp;x)</code> (<code><b><i>OP</i></b></code> is <code>&lt;=</code>).
+</blockquote>
+</blockquote>
+
+<h4><a name="specialized">Specialized algorithms</a></h4>
+
+<code>template&lt;typename T,typename Arg1,...,typename Arg5&gt;<br>
+inline void swap(<br>
+&nbsp;&nbsp;flyweight&lt;T,Arg1,...,Arg5&gt;&amp; x,flyweight&lt;T,Arg1,...,Arg5&gt;&amp; y);</code>
+
+<blockquote>
+<b>Effects:</b> <code>x.swap(y)</code>.
+</blockquote>
+
+<code>template&lt;<br>
+&nbsp;&nbsp;typename ElemType,typename Traits, <br>
+&nbsp;&nbsp;typename T,typename Arg1,...,typename Arg5<br>
+&gt;<br>
+inline std::basic_ostream&lt;ElemType,Traits&gt;&amp; operator&lt;&lt;(<br>
+&nbsp;&nbsp;std::basic_ostream&lt;ElemType,Traits&gt;&amp; out,<br>
+&nbsp;&nbsp;const flyweight&lt;T,Arg1,...,Arg5&gt;&amp; x);</code>
+
+<blockquote>
+<b>Effects:</b> <code>out&lt;&lt;x.get()</code>.<br>
+<b>Returns:</b> <code>out</code>.
+</blockquote>
+
+<code>template&lt;<br>
+&nbsp;&nbsp;typename ElemType,typename Traits, <br>
+&nbsp;&nbsp;typename T,typename Arg1,...,typename Arg5<br>
+&gt;<br>
+inline std::basic_ostream&lt;ElemType,Traits&gt;&amp; operator&gt;&gt;(<br>
+&nbsp;&nbsp;std::basic_istream&lt;ElemType,Traits&gt;&amp; in,<br>
+&nbsp;&nbsp;flyweight&lt;T,Arg1,...,Arg5&gt;&amp; x);</code>
+
+<blockquote>
+<b>Requires:</b> If <code>flyweight</code> is key-value,
+<code>value_type</code> is
+<a href="http://www.sgi.com/tech/stl/Assignable.html"><code>Assignable</code></a>
+and the
+<a href="key_value.html#key_extractor"><code>Key Extractor</code></a>
+<code>KeyFromValue</code> must have been supplied as part of the
+<code>key_value&lt;&gt;</code> construct.<br>
+<b>Effects:</b> Reads an object of type <code>value_type</code> from <code>in</code>
+and assigns it to <code>x</code>.<br>
+<b>Returns:</b> <code>in</code>.
+</blockquote>
+
+<h4><a name="config_macros">Configuration macros</a></h4>
+
+<a name="limit_num_ctor_args">
+<code>BOOST_FLYWEIGHT_LIMIT_PERFECT_FWD_ARGS</code></a>
+
+<blockquote>
+<b>Effects:</b> Globally define this macro to set the maximum number of
+arguments accepted by <code>flyweight</code>
+<a href="#fwd_ctors">forwarding constructors</a>, which by default
+is 5.
+</blockquote>
+
+<hr>
+
+<div class="prev_link"><a href="index.html"><img src="../prev.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div>
+<div class="up_link"><a href="index.html"><img src="../up.gif" alt="Boost.Flyweight reference" border="0"><br>
+Boost.Flyweight reference
+</a></div>
+<div class="next_link"><a href="key_value.html"><img src="../next.gif" alt="key-value flyweights" border="0"><br>
+Key-value flyweights
+</a></div><br clear="all" style="clear: all;">
+
+<br>
+
+<p>Revised December 2nd 2008</p>
+
+<p>&copy; Copyright 2006-2008 Joaqu&iacute;n M L&oacute;pez Mu&ntilde;oz.
+Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../../../LICENSE_1_0.txt">
+LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+http://www.boost.org/LICENSE_1_0.txt</a>)
+</p>
+
+</body>
+</html>

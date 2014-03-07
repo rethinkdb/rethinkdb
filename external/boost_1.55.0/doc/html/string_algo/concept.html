@@ -1,0 +1,246 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Concepts</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../string_algo.html" title="Chapter&#160;30.&#160;Boost String Algorithms Library">
+<link rel="prev" href="design.html" title="Design Topics">
+<link rel="next" href="reference.html" title="Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="design.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../string_algo.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="string_algo.concept"></a>Concepts</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="concept.html#idp207064472">Definitions</a></span></dt>
+<dt><span class="section"><a href="concept.html#string_algo.finder_concept">Finder Concept</a></span></dt>
+<dt><span class="section"><a href="concept.html#string_algo.formatter_concept">Formatter concept</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp207064472"></a>Definitions</h3></div></div></div>
+<div class="table">
+<a name="idp207064792"></a><p class="title"><b>Table&#160;30.13.&#160;Notation</b></p>
+<div class="table-contents"><table class="table" summary="Notation">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td align="left"><code class="computeroutput">F</code></td>
+<td align="left">A type that is a model of Finder</td>
+</tr>
+<tr>
+<td align="left"><code class="computeroutput">Fmt</code></td>
+<td align="left">A type that is a model of Formatter</td>
+</tr>
+<tr>
+<td align="left"><code class="computeroutput">Iter</code></td>
+<td align="left">
+                            Iterator Type
+                        </td>
+</tr>
+<tr>
+<td align="left"><code class="computeroutput">f</code></td>
+<td align="left">Object of type <code class="computeroutput">F</code>
+</td>
+</tr>
+<tr>
+<td align="left"><code class="computeroutput">fmt</code></td>
+<td align="left">Object of type <code class="computeroutput">Fmt</code>
+</td>
+</tr>
+<tr>
+<td align="left"><code class="computeroutput">i,j</code></td>
+<td align="left">Objects of type <code class="computeroutput">Iter</code>
+</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="string_algo.finder_concept"></a>Finder Concept</h3></div></div></div>
+<p>
+            Finder is a functor which searches for an arbitrary part of a container. 
+            The result of the search is given as an <code class="computeroutput">iterator_range</code> 
+            delimiting the selected part.
+        </p>
+<div class="table">
+<a name="idp207072904"></a><p class="title"><b>Table&#160;30.14.&#160;Valid Expressions</b></p>
+<div class="table-contents"><table class="table" summary="Valid Expressions">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th align="left">Expression</th>
+<th align="left">Return Type</th>
+<th align="left">Effects</th>
+</tr></thead>
+<tbody><tr>
+<td align="left"><code class="computeroutput">f(i,j)</code></td>
+<td align="left">Convertible to <code class="computeroutput">iterator_range&lt;Iter&gt;</code>
+</td>
+<td align="left">Perform the search on the interval [i,j) and returns the result of the search</td>
+</tr></tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+            Various algorithms need to perform a search in a container and a Finder is a generalization of such
+            search operations that allows algorithms to abstract from searching. For instance, generic replace
+            algorithms can replace any part of the input, and the Finder is used to select the desired one.
+        </p>
+<p>
+            Note, that it is only required that the finder works with a particular iterator type. However,
+            a Finder operation can be defined as a template, allowing the Finder to work with any iterator.
+        </p>
+<p>
+            <span class="bold"><strong>Examples</strong></span>
+        </p>
+<p> 
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                    Finder implemented as a class. This Finder always returns the whole input as a match. <code class="computeroutput">operator()</code>
+                    is templated, so that the finder can be used on any iterator type.
+                    
+                    <pre class="programlisting">
+struct simple_finder
+{
+    template&lt;typename ForwardIteratorT&gt;
+    boost::iterator_range&lt;ForwardIteratorT&gt; operator()(
+        ForwardIteratorT Begin,
+        ForwardIteratorT End )
+    {
+        return boost::make_range( Begin, End );
+    }
+};
+        </pre>
+</li>
+<li class="listitem">
+                    Function Finder. Finder can be any function object. That is, any ordinary function with the
+                    required signature can be used as well. However, such a function can be used only for
+                    a specific iterator type. 
+                    
+                    <pre class="programlisting">
+boost::iterator_range&lt;std::string&gt; simple_finder(
+    std::string::const_iterator Begin,
+    std::string::const_iterator End )
+{
+    return boost::make_range( Begin, End );
+}
+        </pre>
+</li>
+</ul></div>
+<p>
+        </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="string_algo.formatter_concept"></a>Formatter concept</h3></div></div></div>
+<p>
+            Formatters are used by <a class="link" href="design.html#string_algo.replace" title="Replace Algorithms">replace algorithms</a>.
+            They are used in close combination with finders.
+            A formatter is a functor, which takes a result from a Finder operation and transforms it in a specific way. 
+            The operation of the formatter can use additional information provided by a specific finder,
+            for example <code class="computeroutput"><a class="link" href="../boost/algorithm/regex_formatter.html" title="Function template regex_formatter">regex_formatter()</a></code> uses the match information from
+            <code class="computeroutput"><a class="link" href="../boost/algorithm/regex_finder.html" title="Function template regex_finder">regex_finder()</a></code> to format the result of formatter operation.
+        </p>
+<div class="table">
+<a name="idp207083640"></a><p class="title"><b>Table&#160;30.15.&#160;Valid Expressions</b></p>
+<div class="table-contents"><table class="table" summary="Valid Expressions">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th align="left">Expression</th>
+<th align="left">Return Type</th>
+<th align="left">Effects</th>
+</tr></thead>
+<tbody><tr>
+<td align="left"><code class="computeroutput">fmt(f(i,j))</code></td>
+<td align="left">A container type, accessible using container traits</td>
+<td align="left">Formats the result of the finder operation</td>
+</tr></tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+            Similarly to finders, formatters generalize format operations. When a finder is used to 
+            select a part of the input, formatter takes this selection and performs some formatting
+            on it. Algorithms can abstract from formatting using a formatter.
+        </p>
+<p>
+            <span class="bold"><strong>Examples</strong></span>
+        </p>
+<p> 
+            </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+                    Formatter implemented as a class. This Formatter does not perform any formatting and 
+                    returns the match, repackaged. <code class="computeroutput">operator()</code>
+                    is templated, so that the Formatter can be used on any Finder type.
+                    
+                    <pre class="programlisting">
+struct simple_formatter
+{
+    template&lt;typename FindResultT&gt;
+    std::string operator()( const FindResultT&amp; Match )
+    {
+        std::string Temp( Match.begin(), Match.end() );
+        return Temp;
+    }
+};
+                </pre>
+</li>
+<li class="listitem">
+                    Function Formatter. Similarly to Finder, Formatter can be any function object. 
+                    However, as a function, it can be used only with a specific Finder type. 
+                  
+                    <pre class="programlisting">
+std::string simple_formatter( boost::iterator_range&lt;std::string::const_iterator&gt;&amp; Match )
+{
+    std::string Temp( Match.begin(), Match.end() );
+    return Temp;
+}
+                    </pre>
+</li>
+</ul></div>
+<p>
+        </p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: December 28, 2012 at 18:19:25 +0000</small></p></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2004 Pavol Droba<p>Use, modification and distribution is subject to the Boost
+                Software License, Version 1.0. (See accompanying file
+                <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+            </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="design.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../string_algo.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="reference.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

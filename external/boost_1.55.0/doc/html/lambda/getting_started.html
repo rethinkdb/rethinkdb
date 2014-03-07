@@ -1,0 +1,113 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Getting Started</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../lambda.html" title="Chapter&#160;16.&#160;Boost.Lambda">
+<link rel="prev" href="../lambda.html" title="Chapter&#160;16.&#160;Boost.Lambda">
+<link rel="next" href="s03.html" title="Introduction">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../lambda.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lambda.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="s03.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="lambda.getting_started"></a>Getting Started</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="getting_started.html#idp153231768">Installing the library</a></span></dt>
+<dt><span class="section"><a href="getting_started.html#idp153249048">Conventions used in this document</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp153231768"></a>Installing the library</h3></div></div></div>
+<p>
+	The library consists of include files only, hence there is no
+	installation procedure. The <code class="literal">boost</code> include directory
+	must be on the include path.
+	There are a number of include files that give different functionality:
+
+	
+	</p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem"><p>
+	      <code class="filename">lambda/lambda.hpp</code> defines lambda expressions for different C++
+	      operators, see <a class="xref" href="le_in_details.html#lambda.operator_expressions" title="Operator expressions">the section called &#8220;Operator expressions&#8221;</a>.
+	    </p></li>
+<li class="listitem"><p>
+	      <code class="filename">lambda/bind.hpp</code> defines <code class="literal">bind</code> functions for up to 9 arguments, see <a class="xref" href="le_in_details.html#lambda.bind_expressions" title="Bind expressions">the section called &#8220;Bind expressions&#8221;</a>.</p></li>
+<li class="listitem"><p>
+	      <code class="filename">lambda/if.hpp</code> defines lambda function equivalents for if statements and the conditional operator, see <a class="xref" href="le_in_details.html#lambda.lambda_expressions_for_control_structures" title="Lambda expressions for control structures">the section called &#8220;Lambda expressions for control structures&#8221;</a> (includes <code class="filename">lambda.hpp</code>).
+	    </p></li>
+<li class="listitem"><p>
+	      <code class="filename">lambda/loops.hpp</code> defines lambda function equivalent for looping constructs, see <a class="xref" href="le_in_details.html#lambda.lambda_expressions_for_control_structures" title="Lambda expressions for control structures">the section called &#8220;Lambda expressions for control structures&#8221;</a>.
+	    </p></li>
+<li class="listitem"><p>
+	      <code class="filename">lambda/switch.hpp</code> defines lambda function equivalent for the switch statement, see <a class="xref" href="le_in_details.html#lambda.lambda_expressions_for_control_structures" title="Lambda expressions for control structures">the section called &#8220;Lambda expressions for control structures&#8221;</a>.
+	    </p></li>
+<li class="listitem"><p>
+	      <code class="filename">lambda/construct.hpp</code> provides tools for writing lambda expressions with constructor, destructor, new and delete invocations, see <a class="xref" href="le_in_details.html#lambda.construction_and_destruction" title="Construction and destruction">the section called &#8220;Construction and destruction&#8221;</a> (includes <code class="filename">lambda.hpp</code>).
+	    </p></li>
+<li class="listitem"><p>
+	      <code class="filename">lambda/casts.hpp</code> provides lambda versions of different casts, as well as <code class="literal">sizeof</code> and <code class="literal">typeid</code>, see <a class="xref" href="le_in_details.html#lambda.cast_expressions" title="Cast expressions">the section called &#8220;
+Cast expressions
+&#8221;</a>.
+	    </p></li>
+<li class="listitem"><p>
+	      <code class="filename">lambda/exceptions.hpp</code> gives tools for throwing and catching
+	      exceptions within lambda functions, <a class="xref" href="le_in_details.html#lambda.exceptions" title="Exceptions">the section called &#8220;Exceptions&#8221;</a> (includes
+	      <code class="filename">lambda.hpp</code>).
+	    </p></li>
+<li class="listitem"><p>
+	      <code class="filename">lambda/algorithm.hpp</code> and <code class="filename">lambda/numeric.hpp</code> (cf. standard <code class="filename">algortihm</code> and <code class="filename">numeric</code> headers) allow nested STL algorithm invocations, see <a class="xref" href="le_in_details.html#lambda.nested_stl_algorithms" title="Nesting STL algorithm invocations">the section called &#8220;Nesting STL algorithm invocations&#8221;</a>.
+	    </p></li>
+</ul></div>
+<p>
+
+	Any other header files in the package are for internal use.
+	Additionally, the library depends on two other Boost Libraries, the
+	<span class="emphasis"><em>Tuple</em></span> <a class="xref" href="../lambda.html#cit:boost::tuple" title="The Boost Tuple Library">[<abbr class="abbrev">tuple</abbr>]</a> and the <span class="emphasis"><em>type_traits</em></span> <a class="xref" href="../lambda.html#cit:boost::type_traits" title="The Boost type_traits">[<abbr class="abbrev">type_traits</abbr>]</a> libraries, and on the <code class="filename">boost/ref.hpp</code> header.
+      </p>
+<p>
+	All definitions are placed in the namespace <code class="literal">boost::lambda</code> and its subnamespaces.
+      </p>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="idp153249048"></a>Conventions used in this document</h3></div></div></div>
+<p>In most code examples, we omit the namespace prefixes for names in the <code class="literal">std</code> and <code class="literal">boost::lambda</code> namespaces.
+Implicit using declarations
+</p>
+<pre class="programlisting">
+using namespace std;
+using namespace boost::lambda;
+</pre>
+<p>
+are assumed to be in effect.
+</p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1999-2004 Jaakko J&#228;rvi, Gary Powell<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../lambda.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lambda.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="s03.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

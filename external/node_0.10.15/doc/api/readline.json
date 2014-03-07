@@ -1,0 +1,204 @@
+{
+  "source": "doc/api/readline.markdown",
+  "modules": [
+    {
+      "textRaw": "Readline",
+      "name": "readline",
+      "stability": 2,
+      "stabilityText": "Unstable",
+      "desc": "<p>To use this module, do <code>require(&#39;readline&#39;)</code>. Readline allows reading of a\nstream (such as <code>process.stdin</code>) on a line-by-line basis.\n\n</p>\n<p>Note that once you&#39;ve invoked this module, your node program will not\nterminate until you&#39;ve closed the interface. Here&#39;s how to allow your\nprogram to gracefully exit:\n\n</p>\n<pre><code>var readline = require(&#39;readline&#39;);\n\nvar rl = readline.createInterface({\n  input: process.stdin,\n  output: process.stdout\n});\n\nrl.question(&quot;What do you think of node.js? &quot;, function(answer) {\n  // TODO: Log the answer in a database\n  console.log(&quot;Thank you for your valuable feedback:&quot;, answer);\n\n  rl.close();\n});</code></pre>\n",
+      "methods": [
+        {
+          "textRaw": "readline.createInterface(options)",
+          "type": "method",
+          "name": "createInterface",
+          "desc": "<p>Creates a readline <code>Interface</code> instance. Accepts an &quot;options&quot; Object that takes\nthe following values:\n\n</p>\n<ul>\n<li><p><code>input</code> - the readable stream to listen to (Required).</p>\n</li>\n<li><p><code>output</code> - the writable stream to write readline data to (Required).</p>\n</li>\n<li><p><code>completer</code> - an optional function that is used for Tab autocompletion. See\nbelow for an example of using this.</p>\n</li>\n<li><p><code>terminal</code> - pass <code>true</code> if the <code>input</code> and <code>output</code> streams should be\ntreated like a TTY, and have ANSI/VT100 escape codes written to it.\nDefaults to checking <code>isTTY</code> on the <code>output</code> stream upon instantiation.</p>\n</li>\n</ul>\n<p>The <code>completer</code> function is given a the current line entered by the user, and\nis supposed to return an Array with 2 entries:\n\n</p>\n<ol>\n<li><p>An Array with matching entries for the completion.</p>\n</li>\n<li><p>The substring that was used for the matching.</p>\n</li>\n</ol>\n<p>Which ends up looking something like:\n<code>[[substr1, substr2, ...], originalsubstring]</code>.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>function completer(line) {\n  var completions = &#39;.help .error .exit .quit .q&#39;.split(&#39; &#39;)\n  var hits = completions.filter(function(c) { return c.indexOf(line) == 0 })\n  // show all completions if none found\n  return [hits.length ? hits : completions, line]\n}</code></pre>\n<p>Also <code>completer</code> can be run in async mode if it accepts two arguments:\n\n</p>\n<pre><code>function completer(linePartial, callback) {\n  callback(null, [[&#39;123&#39;], linePartial]);\n}</code></pre>\n<p><code>createInterface</code> is commonly used with <code>process.stdin</code> and\n<code>process.stdout</code> in order to accept user input:\n\n</p>\n<pre><code>var readline = require(&#39;readline&#39;);\nvar rl = readline.createInterface({\n  input: process.stdin,\n  output: process.stdout\n});</code></pre>\n<p>Once you have a readline instance, you most commonly listen for the\n<code>&quot;line&quot;</code> event.\n\n</p>\n<p>If <code>terminal</code> is <code>true</code> for this instance then the <code>output</code> stream will get\nthe best compatibility if it defines an <code>output.columns</code> property, and fires\na <code>&quot;resize&quot;</code> event on the <code>output</code> if/when the columns ever change\n(<code>process.stdout</code> does this automatically when it is a TTY).\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "options"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "textRaw": "Class: Interface",
+          "type": "class",
+          "name": "Interface",
+          "desc": "<p>The class that represents a readline interface with an input and output\nstream.\n\n</p>\n",
+          "methods": [
+            {
+              "textRaw": "rl.setPrompt(prompt, length)",
+              "type": "method",
+              "name": "setPrompt",
+              "desc": "<p>Sets the prompt, for example when you run <code>node</code> on the command line, you see\n<code>&gt; </code>, which is node&#39;s prompt.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "prompt"
+                    },
+                    {
+                      "name": "length"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "rl.prompt([preserveCursor])",
+              "type": "method",
+              "name": "prompt",
+              "desc": "<p>Readies readline for input from the user, putting the current <code>setPrompt</code>\noptions on a new line, giving the user a new spot to write. Set <code>preserveCursor</code>\nto <code>true</code> to prevent the cursor placement being reset to <code>0</code>.\n\n</p>\n<p>This will also resume the <code>input</code> stream used with <code>createInterface</code> if it has\nbeen paused.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "preserveCursor",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "rl.question(query, callback)",
+              "type": "method",
+              "name": "question",
+              "desc": "<p>Prepends the prompt with <code>query</code> and invokes <code>callback</code> with the user&#39;s\nresponse. Displays the query to the user, and then invokes <code>callback</code>\nwith the user&#39;s response after it has been typed.\n\n</p>\n<p>This will also resume the <code>input</code> stream used with <code>createInterface</code> if\nit has been paused.\n\n</p>\n<p>Example usage:\n\n</p>\n<pre><code>interface.question(&#39;What is your favorite food?&#39;, function(answer) {\n  console.log(&#39;Oh, so your favorite food is &#39; + answer);\n});</code></pre>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "query"
+                    },
+                    {
+                      "name": "callback"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "rl.pause()",
+              "type": "method",
+              "name": "pause",
+              "desc": "<p>Pauses the readline <code>input</code> stream, allowing it to be resumed later if needed.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            },
+            {
+              "textRaw": "rl.resume()",
+              "type": "method",
+              "name": "resume",
+              "desc": "<p>Resumes the readline <code>input</code> stream.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            },
+            {
+              "textRaw": "rl.close()",
+              "type": "method",
+              "name": "close",
+              "desc": "<p>Closes the <code>Interface</code> instance, relinquishing control on the <code>input</code> and\n<code>output</code> streams. The &quot;close&quot; event will also be emitted.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            },
+            {
+              "textRaw": "rl.write(data, [key])",
+              "type": "method",
+              "name": "write",
+              "desc": "<p>Writes <code>data</code> to <code>output</code> stream. <code>key</code> is an object literal to represent a key\nsequence; available if the terminal is a TTY.\n\n</p>\n<p>This will also resume the <code>input</code> stream if it has been paused.\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>rl.write(&#39;Delete me!&#39;);\n// Simulate ctrl+u to delete the line written previously\nrl.write(null, {ctrl: true, name: &#39;u&#39;});</code></pre>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "data"
+                    },
+                    {
+                      "name": "key",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "modules": [
+        {
+          "textRaw": "Events",
+          "name": "events",
+          "events": [
+            {
+              "textRaw": "Event: 'line'",
+              "type": "event",
+              "name": "line",
+              "desc": "<p><code>function (line) {}</code>\n\n</p>\n<p>Emitted whenever the <code>input</code> stream receives a <code>\\n</code>, usually received when the\nuser hits enter, or return. This is a good hook to listen for user input.\n\n</p>\n<p>Example of listening for <code>line</code>:\n\n</p>\n<pre><code>rl.on(&#39;line&#39;, function (cmd) {\n  console.log(&#39;You just typed: &#39;+cmd);\n});</code></pre>\n",
+              "params": []
+            },
+            {
+              "textRaw": "Event: 'pause'",
+              "type": "event",
+              "name": "pause",
+              "desc": "<p><code>function () {}</code>\n\n</p>\n<p>Emitted whenever the <code>input</code> stream is paused.\n\n</p>\n<p>Also emitted whenever the <code>input</code> stream is not paused and receives the\n<code>SIGCONT</code> event. (See events <code>SIGTSTP</code> and <code>SIGCONT</code>)\n\n</p>\n<p>Example of listening for <code>pause</code>:\n\n</p>\n<pre><code>rl.on(&#39;pause&#39;, function() {\n  console.log(&#39;Readline paused.&#39;);\n});</code></pre>\n",
+              "params": []
+            },
+            {
+              "textRaw": "Event: 'resume'",
+              "type": "event",
+              "name": "resume",
+              "desc": "<p><code>function () {}</code>\n\n</p>\n<p>Emitted whenever the <code>input</code> stream is resumed.\n\n</p>\n<p>Example of listening for <code>resume</code>:\n\n</p>\n<pre><code>rl.on(&#39;resume&#39;, function() {\n  console.log(&#39;Readline resumed.&#39;);\n});</code></pre>\n",
+              "params": []
+            },
+            {
+              "textRaw": "Event: 'close'",
+              "type": "event",
+              "name": "close",
+              "desc": "<p><code>function () {}</code>\n\n</p>\n<p>Emitted when <code>close()</code> is called.\n\n</p>\n<p>Also emitted when the <code>input</code> stream receives its &quot;end&quot; event. The <code>Interface</code>\ninstance should be considered &quot;finished&quot; once this is emitted. For example, when\nthe <code>input</code> stream receives <code>^D</code>, respectively known as <code>EOT</code>.\n\n</p>\n<p>This event is also called if there is no <code>SIGINT</code> event listener present when\nthe <code>input</code> stream receives a <code>^C</code>, respectively known as <code>SIGINT</code>.\n\n</p>\n",
+              "params": []
+            },
+            {
+              "textRaw": "Event: 'SIGINT'",
+              "type": "event",
+              "name": "SIGINT",
+              "desc": "<p><code>function () {}</code>\n\n</p>\n<p>Emitted whenever the <code>input</code> stream receives a <code>^C</code>, respectively known as\n<code>SIGINT</code>. If there is no <code>SIGINT</code> event listener present when the <code>input</code>\nstream receives a <code>SIGINT</code>, <code>pause</code> will be triggered.\n\n</p>\n<p>Example of listening for <code>SIGINT</code>:\n\n</p>\n<pre><code>rl.on(&#39;SIGINT&#39;, function() {\n  rl.question(&#39;Are you sure you want to exit?&#39;, function(answer) {\n    if (answer.match(/^y(es)?$/i)) rl.pause();\n  });\n});</code></pre>\n",
+              "params": []
+            },
+            {
+              "textRaw": "Event: 'SIGTSTP'",
+              "type": "event",
+              "name": "SIGTSTP",
+              "desc": "<p><code>function () {}</code>\n\n</p>\n<p><strong>This does not work on Windows.</strong>\n\n</p>\n<p>Emitted whenever the <code>input</code> stream receives a <code>^Z</code>, respectively known as\n<code>SIGTSTP</code>. If there is no <code>SIGTSTP</code> event listener present when the <code>input</code>\nstream receives a <code>SIGTSTP</code>, the program will be sent to the background.\n\n</p>\n<p>When the program is resumed with <code>fg</code>, the <code>pause</code> and <code>SIGCONT</code> events will be\nemitted. You can use either to resume the stream.\n\n</p>\n<p>The <code>pause</code> and <code>SIGCONT</code> events will not be triggered if the stream was paused\nbefore the program was sent to the background.\n\n</p>\n<p>Example of listening for <code>SIGTSTP</code>:\n\n</p>\n<pre><code>rl.on(&#39;SIGTSTP&#39;, function() {\n  // This will override SIGTSTP and prevent the program from going to the\n  // background.\n  console.log(&#39;Caught SIGTSTP.&#39;);\n});</code></pre>\n",
+              "params": []
+            },
+            {
+              "textRaw": "Event: 'SIGCONT'",
+              "type": "event",
+              "name": "SIGCONT",
+              "desc": "<p><code>function () {}</code>\n\n</p>\n<p><strong>This does not work on Windows.</strong>\n\n</p>\n<p>Emitted whenever the <code>input</code> stream is sent to the background with <code>^Z</code>,\nrespectively known as <code>SIGTSTP</code>, and then continued with <code>fg(1)</code>. This event\nonly emits if the stream was not paused before sending the program to the\nbackground.\n\n</p>\n<p>Example of listening for <code>SIGCONT</code>:\n\n</p>\n<pre><code>rl.on(&#39;SIGCONT&#39;, function() {\n  // `prompt` will automatically resume the stream\n  rl.prompt();\n});</code></pre>\n<h2>Example: Tiny CLI</h2>\n<p>Here&#39;s an example of how to use all these together to craft a tiny command\nline interface:\n\n</p>\n<pre><code>var readline = require(&#39;readline&#39;),\n    rl = readline.createInterface(process.stdin, process.stdout);\n\nrl.setPrompt(&#39;OHAI&gt; &#39;);\nrl.prompt();\n\nrl.on(&#39;line&#39;, function(line) {\n  switch(line.trim()) {\n    case &#39;hello&#39;:\n      console.log(&#39;world!&#39;);\n      break;\n    default:\n      console.log(&#39;Say what? I might have heard `&#39; + line.trim() + &#39;`&#39;);\n      break;\n  }\n  rl.prompt();\n}).on(&#39;close&#39;, function() {\n  console.log(&#39;Have a great day!&#39;);\n  process.exit(0);\n});</code></pre>\n",
+              "params": []
+            }
+          ],
+          "type": "module",
+          "displayName": "Events"
+        }
+      ],
+      "type": "module",
+      "displayName": "Readline"
+    }
+  ]
+}

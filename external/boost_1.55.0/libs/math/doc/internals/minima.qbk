@@ -1,0 +1,64 @@
+[section:minima Locating Function Minima: Brent's algorithm]
+
+[h4 synopsis]
+
+``
+#include <boost/math/tools/minima.hpp>
+``
+
+   template <class F, class T>
+   std::pair<T, T> brent_find_minima(F f, T min, T max, int bits);
+   
+   template <class F, class T>
+   std::pair<T, T> brent_find_minima(F f, T min, T max, int bits, boost::uintmax_t& max_iter);
+
+[h4 Description]
+
+These two functions locate the minima of the continuous function /f/ using Brent's
+algorithm.  Parameters are:
+
+[variablelist
+[[f] [The function to minimise.  The function should be smooth over the
+          range \[min,max\], with no maxima occurring in that interval.]]
+[[min] [The lower endpoint of the range in which to search
+          for the minima.]]
+[[max] [The upper endpoint of the range in which to search
+          for the minima.]]
+[[bits] [The number of bits precision to which the minima should be found.
+             Note that in principle, the minima can not be located to greater
+             accuracy than the square root of machine epsilon (for 64-bit double, sqrt(1e-16)[cong]1e-8),
+             therefore if /bits/ is set to a value greater than one half of the bits in type T,
+             then the value will be ignored.]]
+[[max_iter] [The maximum number of iterations to use
+             in the algorithm, if not provided the algorithm will just
+             keep on going until the minima is found.]]             
+]
+
+[*Returns:] a pair containing the value of the abscissa at the minima and the value
+of f(x) at the minima.
+
+[h4 Implementation]
+
+This is a reasonably faithful implementation of Brent's algorithm, refer
+to:
+
+Brent, R.P. 1973, Algorithms for Minimization without Derivatives 
+(Englewood Cliffs, NJ: Prentice-Hall), Chapter 5.
+
+Numerical Recipes in C, The Art of Scientific Computing,
+Second Edition, William H. Press, Saul A. Teukolsky,
+William T. Vetterling, and Brian P. Flannery.
+Cambridge University Press. 1988, 1992.
+
+An algorithm with guaranteed convergence for finding a zero
+of a function, R. P. Brent, The Computer Journal, Vol 44, 1971.
+
+[endsect][/section:minima Locating Function Minima]
+
+[/ 
+  Copyright 2006 John Maddock and Paul A. Bristow.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+

@@ -1,0 +1,339 @@
+# Copyright 2003 Dave Abrahams
+# Copyright 2002, 2003 Rene Rivera
+# Copyright 2002, 2003, 2004 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+# Various container classes.
+
+# Base for container objects. This lets us construct recursive structures. That
+# is containers with containers in them, specifically so we can tell literal
+# values from node values.
+#
+class node
+{
+    rule __init__ (
+        value ?  # Optional value to set node to initially.
+    )
+    {
+        self.value = $(value) ;
+    }
+
+    # Set the value of this node, passing nothing will clear it.
+    #
+    rule set ( value * )
+    {
+        self.value = $(value) ;
+    }
+
+    # Get the value of this node.
+    #
+    rule get ( )
+    {
+        return $(self.value) ;
+    }
+}
+
+
+# A simple vector. Interface mimics the C++ std::vector and std::list, with the
+# exception that indices are one (1) based to follow Jam standard.
+#
+# TODO: Possibly add assertion checks.
+#
+class vector : node
+{
+    import numbers ;
+    import utility ;
+    import sequence ;
+
+    rule __init__ (
+        values *  # Initial contents of vector.
+    )
+    {
+        node.__init__ ;
+        self.value = $(values) ;
+    }
+
+    # Get the value of the first element.
+    #
+    rule front ( )
+    {
+        return $(self.value[1]) ;
+    }
+
+    # Get the value of the last element.
+    #
+    rule back ( )
+    {
+        return $(self.value[-1]) ;
+    }
+
+    # Get the value of the element at the given index, one based. Access to
+    # elements of recursive structures is supported directly. Specifying
+    # additional index values recursively accesses the elements as containers.
+    # For example: [ $(v).at 1 : 2 ] would retrieve the second element of our
+    # first element, assuming the first element is a container.
+    #
+    rule at (
+        index  # The element index, one based.
+        : *  # Additional indices to access recursively.
+    )
+    {
+        local r = $(self.value[$(index)]) ;
+        if $(2)
+        {
+            r = [ $(r).at $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ] ;
+        }
+        return $(r) ;
+    }
+
+    # Get the value contained in the given element. This has the same
+    # functionality and interface as "at" but in addition gets the value of the
+    # referenced element, assuming it is a "node".
+    #
+    rule get-at (
+        index  # The element index, one based.
+        : *  # Additional indices to access recursively.
+    )
+    {
+        local r = $(self.value[$(index)]) ;
+        if $(2)
+        {
+            r = [ $(r).at $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ] ;
+        }
+        return [ $(r).get ] ;
+    }
+
+    # Insert the given value into the front of the vector pushing the rest of
+    # the elements back.
+    #
+    rule push-front (
+        value  # Value to become first element.
+    )
+    {
+        self.value = $(value) $(self.value) ;
+    }
+
+    # Remove the front element from the vector. Does not return the value. No
+    # effect if vector is empty.
+    #
+    rule pop-front ( )
+    {
+        self.value = $(self.value[2-]) ;
+    }
+
+    # Add the given value at the end of the vector.
+    #
+    rule push-back (
+        value  # Value to become back element.
+    )
+    {
+        self.value += $(value) ;
+    }
+
+    # Remove the back element from the vector. Does not return the value. No
+    # effect if vector is empty.
+    #
+    rule pop-back ( )
+    {
+        self.value = $(self.value[1--2]) ;
+    }
+
+    # Insert the given value at the given index, one based. The values at and to
+    # the right of the index are pushed back to make room for the new value.
+    # If the index is passed the end of the vector the element is added to the
+    # end.
+    #
+    rule insert (
+        index  # The index to insert at, one based.
+        : value  # The value to insert.
+    )
+    {
+        local left = $(self.value[1-$(index)]) ;
+        local right = $(self.value[$(index)-]) ;
+        if $(right)-is-not-empty
+        {
+            left = $(left[1--2]) ;
+        }
+        self.value = $(left) $(value) $(right) ;
+    }
+
+    # Remove one or more elements from the vector. The range is inclusive, and
+    # not specifying an end is equivalent to the [start, start] range.
+    #
+    rule erase (
+        start  # Index of first element to remove.
+        end ?  # Optional, index of last element to remove.
+    )
+    {
+        end ?= $(start) ;
+        local left = $(self.value[1-$(start)]) ;
+        left = $(left[1--2]) ;
+        local right = $(self.value[$(end)-]) ;
+        right = $(right[2-]) ;
+        self.value = $(left) $(right) ;
+    }
+
+    # Remove all elements from the vector.
+    #
+    rule clear ( )
+    {
+        self.value = ;
+    }
+
+    # The number of elements in the vector.
+    #
+    rule size ( )
+    {
+        return [ sequence.length $(self.value) ] ;
+    }
+
+    # Returns "true" if there are NO elements in the vector, empty otherwise.
+    #
+    rule empty ( )
+    {
+        if ! $(self.value)-is-not-empty
+        {
+            return true ;
+        }
+    }
+
+    # Returns the textual representation of content.
+    #
+    rule str ( )
+    {
+        return "[" [ sequence.transform utility.str : $(self.value) ] "]" ;
+    }
+
+    # Sorts the vector inplace, calling 'utility.less' for comparisons.
+    #
+    rule sort ( )
+    {
+        self.value = [ sequence.insertion-sort $(self.value) : utility.less ] ;
+    }
+
+    # Returns true if content is equal to the content of other vector. Uses
+    # 'utility.equal' for comparison.
+    #
+    rule equal ( another )
+    {
+        local mismatch ;
+        local size = [ size ] ;
+        if $(size) = [ $(another).size ]
+        {
+            for local i in [ numbers.range 1 $(size) ]
+            {
+                if ! [ utility.equal [ at $(i) ] [ $(another).at $(i) ] ]
+                {
+                    mismatch = true ;
+                }
+            }
+        }
+        else
+        {
+            mismatch = true ;
+        }
+
+        if ! $(mismatch)
+        {
+            return true ;
+        }
+    }
+}
+
+
+rule __test__ ( )
+{
+    import assert ;
+    import "class" : new ;
+
+    local v1 = [ new vector ] ;
+    assert.true $(v1).equal $(v1) ;
+    assert.true $(v1).empty ;
+    assert.result 0 : $(v1).size ;
+    assert.result "[" "]" : $(v1).str ;
+    $(v1).push-back b ;
+    $(v1).push-front a ;
+    assert.result "[" a b "]" : $(v1).str ;
+    assert.result a : $(v1).front ;
+    assert.result b : $(v1).back ;
+    $(v1).insert 2 : d ;
+    $(v1).insert 2 : c ;
+    $(v1).insert 4 : f ;
+    $(v1).insert 4 : e ;
+    $(v1).pop-back ;
+    assert.result 5 : $(v1).size ;
+    assert.result d : $(v1).at 3 ;
+    $(v1).pop-front ;
+    assert.result c : $(v1).front ;
+    assert.false $(v1).empty ;
+    $(v1).erase 3 4 ;
+    assert.result 2 : $(v1).size ;
+
+    local v2 = [ new vector q w e r t y ] ;
+    assert.result 6 : $(v2).size ;
+    $(v1).push-back $(v2) ;
+    assert.result 3 : $(v1).size ;
+    local v2-alias = [ $(v1).back ] ;
+    assert.result e : $(v2-alias).at 3 ;
+    $(v1).clear ;
+    assert.true $(v1).empty ;
+    assert.false $(v2-alias).empty ;
+    $(v2).pop-back ;
+    assert.result t : $(v2-alias).back ;
+
+    local v3 = [ new vector ] ;
+    $(v3).push-back [ new vector 1 2 3 4 5 ] ;
+    $(v3).push-back [ new vector a b c ] ;
+    assert.result "[" "[" 1 2 3 4 5 "]" "[" a b c "]" "]" : $(v3).str ;
+    $(v3).push-back [ new vector [ new vector x y z ] [ new vector 7 8 9 ] ] ;
+    assert.result 1 : $(v3).at 1 : 1 ;
+    assert.result b : $(v3).at 2 : 2 ;
+    assert.result a b c : $(v3).get-at 2 ;
+    assert.result 7 8 9 : $(v3).get-at 3 : 2 ;
+
+    local v4 = [ new vector 4 3 6 ] ;
+    $(v4).sort ;
+    assert.result 3 4 6 : $(v4).get ;
+    assert.false $(v4).equal $(v3) ;
+
+    local v5 = [ new vector 3 4 6 ] ;
+    assert.true $(v4).equal $(v5) ;
+    # Check that vectors of different sizes are considered non-equal.
+    $(v5).pop-back ;
+    assert.false $(v4).equal $(v5) ;
+
+    local v6 = [ new vector [ new vector 1 2 3 ] ] ;
+    assert.true $(v6).equal [ new vector [ new vector 1 2 3 ] ] ;
+
+    local v7 = [ new vector 111 222 333 ] ;
+    assert.true $(v7).equal $(v7) ;
+    $(v7).insert 4 : 444 ;
+    assert.result 111 222 333 444 : $(v7).get ;
+    $(v7).insert 999 : xxx ;
+    assert.result 111 222 333 444 xxx : $(v7).get ;
+
+    local v8 = [ new vector "" "" "" ] ;
+    assert.true $(v8).equal $(v8) ;
+    assert.false $(v8).empty ;
+    assert.result 3  : $(v8).size ;
+    assert.result "" : $(v8).at 1 ;
+    assert.result "" : $(v8).at 2 ;
+    assert.result "" : $(v8).at 3 ;
+    assert.result    : $(v8).at 4 ;
+    $(v8).insert 2 : 222 ;
+    assert.result 4 : $(v8).size ;
+    assert.result "" 222 "" "" : $(v8).get ;
+    $(v8).insert 999 : "" ;
+    assert.result 5 : $(v8).size ;
+    assert.result "" 222 "" "" "" : $(v8).get ;
+    $(v8).insert 999 : xxx ;
+    assert.result 6 : $(v8).size ;
+    assert.result "" 222 "" "" "" xxx : $(v8).get ;
+
+    # Regression test for a bug causing vector.equal to compare only the first
+    # and the last element in the given vectors.
+    local v9 = [ new vector 111 xxx 222 ] ;
+    local v10 = [ new vector 111 yyy 222 ] ;
+    assert.false $(v9).equal $(v10) ;
+}

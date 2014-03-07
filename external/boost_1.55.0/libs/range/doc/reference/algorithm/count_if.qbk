@@ -1,0 +1,37 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:count_if count_if]
+
+[heading Prototype]
+
+``
+template<class SinglePassRange, class UnaryPredicate>
+typename range_difference<const SinglePassRange>::type
+count_if(const SinglePassRange& rng, UnaryPredicate pred);
+``
+
+[heading Description]
+
+`count_if` returns the number of elements `x` in `rng` where `pred(x)` is `true`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/count_if.hpp`
+
+[heading Requirements]
+
+* `SinglePassRange` is a model of the __single_pass_range__ Concept.
+* `UnaryPredicate` is a model of the `UnaryPredicateConcept`.
+* `SinglePassRange`'s value type is a model of the `EqualityComparableConcept`.
+* The value type of `SinglePassRange` is convertible to the argument type of `UnaryPredicate`.
+
+[heading Complexity]
+
+Linear. Exactly `distance(rng)` invocations of `pred`.
+
+[endsect]
+
+

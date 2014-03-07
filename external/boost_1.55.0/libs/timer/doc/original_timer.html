@@ -1,0 +1,267 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Language" content="en-us">
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<meta name="GENERATOR" content="Microsoft FrontPage 5.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>Original Timers</title>
+<style type="text/css">
+ ins {background-color:#A0FFA0}
+ del {background-color:#FFA0A0}
+ body
+ { 
+   font-family: sans-serif;
+   max-width : 8.5in;
+   margin: 1em;
+ }
+</style>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000">
+
+<table border="0" cellpadding="5" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="750">
+  <tr>
+    <td width="300">
+<a href="../../../index.htm">
+<img src="../../../boost.png" alt="boost.png (6897 bytes)" align="middle" width="300" height="86" border="0"></a></td>
+    <td align="middle" width="430">
+    <font size="7">Timer Library<br>
+    Original Timers and Progress Display</font></td>
+  </tr>
+</table>
+
+<table border="0" cellpadding="5" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" bgcolor="#D7EEFF" width="100%">
+  <tr>
+    <td><a href="index.html">Timer Home</a> &nbsp;&nbsp;
+    <a href="cpu_timers.html">CPU timers</a> &nbsp;&nbsp;
+    <a href="original_timer.html">Original timers</a> &nbsp;&nbsp;
+    </td>
+  </tr>
+</table>
+
+<p></p>
+
+<center>
+  <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="80%">
+    <tr>
+      <td width="100%" bgcolor="#FFFF66">
+<p><i><b>These timers are deprecated.</b></i> They date from the earliest days 
+of Boost and do not conform 
+to current Boost practice.</p>
+<ul>
+  <li>The interfaces are the same across all platforms, but the semantics differ 
+  according to platform. Wall-clock time is measured on Windows, while CPU time 
+  is measured on POSIX-like systems.</li>
+  <li>The internal implementation uses only C/C++ standard library functions, so 
+  cannot supply desirable precision and functionality.</li>
+  <li>The headers live in the main Boost header directory.</li>
+  <li>The content are in namespace <code>boost</code>.</li>
+</ul>
+      Please see the Version 2
+    <a href="cpu_timers.html">CPU timers</a> for replacements that conform to 
+      current Boost practice.</td>
+    </tr>
+  </table>
+</center>
+  
+<p>The timer library provides two headers and three classes: </p>
+
+<blockquote>
+  <table border="1" cellpadding="5">
+    <tr>
+      <td><b>Header</b></td>
+      <td><b>Class</b></td>
+      <td><b>Functionality</b></td>
+    </tr>
+    <tr>
+      <td><a href="../../boost/timer.hpp">timer.hpp</a></td>
+      <td><a href="#Class timer">timer</a></td>
+      <td>Measure elapsed time.</td>
+    </tr>
+    <tr>
+      <td><a href="../../boost/progress.hpp">progress.hpp</a></td>
+      <td><a href="#Class progress_timer">progress_timer</a></td>
+      <td>Measure elapsed time (using timer), display on destruction.</td>
+    </tr>
+    <tr>
+      <td><a href="../../boost/progress.hpp">progress.hpp</a></td>
+      <td><a href="#Class progress_display">progress_display</a></td>
+      <td>Display an indication of progress toward a known goal.</td>
+    </tr>
+  </table>
+</blockquote>
+<p>The objective in designing these classes was fairly limited - they are
+intended for simple uses like timing and reporting progress for programmer's
+tests or batch job streams. The specifications of the progress classes are
+worded in very general terms to permit alternate implementations such as for
+graphical user interfaces.</p>
+<h2><a name="Class timer">Class timer</a></h2>
+<p>Class timer measures elapsed time.&nbsp; It is generally useful for minor
+timing tasks.&nbsp; Its supplied implementation offers moderate portability at
+the cost of depending on the unknown accuracy and precision of the C Standard
+Library clock() function.&nbsp; The maximum measurable elapsed time may be as
+low as 596.5 hours (or even less) for the supplied implementation. Because of
+these limitations, this timer cannot be depended upon to
+be robust, and should not be used if that is of any concern.</p>
+<h3>Synopsis</h3>
+<pre>#include &lt;<a href="../../boost/timer.hpp">boost/timer.hpp</a>&gt;
+namespace boost {
+class timer {
+ public:
+         timer();                        // postcondition: elapsed()==0
+  // compiler generated copy constructor, copy assignment, and dtor apply
+  void   restart();                      // post: elapsed()==0
+  double elapsed() const;                // return elapsed time in seconds
+
+  double elapsed_max() const;  // return estimated maximum value for elapsed()
+  // Portability warning: elapsed_max() may return too high a value on systems
+  // where std::clock_t overflows or resets at surprising values.
+
+  double elapsed_min() const;            // return minimum value for elapsed()
+  }; // timer
+} // namespace boost</pre>
+<h3>Exception safety</h3>
+<p>The constructors may throw <code>std::bad_alloc</code>.&nbsp; No other member
+functions throw exceptions.</p>
+<h3>Future directions</h3>
+<p>There was a very reasonable request from Ed Brey for a method of determining
+the maximum value which may be returned by elapsed(), but there isn't a way to do so
+portably.  The issue has been raised with the group working on extended time functionality for the C language.  A solution
+may be years in the future. In the meantime, elapsed_max() provides an
+approximation.</p>
+<h2><a name="Class progress_timer">Class progress_timer</a></h2>
+<p>Class progress_timer automatically measures elapsed time, and then on
+destruction displays an elapsed time message at an appropriate place in an appropriate form.&nbsp;
+The supplied implementation defaults to a character display on std::cout.</p>
+<p>Class progress_timer is often used to time program execution.&nbsp; Its use is as simple as:</p>
+<blockquote>
+  <pre>#include &lt;<a href="../../boost/progress.hpp">boost/progress.hpp</a>&gt;
+int main()
+{
+   progress_timer t;  // start timing
+   // do something ...
+   return 0;
+}</pre>
+</blockquote>
+<p>Which will produce some appropriate output, for example:</p>
+<blockquote>
+  <pre>1.23 s</pre>
+</blockquote>
+<p>Note that &quot;s&quot; is the official System International d'Unités
+abbreviation for seconds.</p>
+<h3>Synopsis</h3>
+<pre>#include &lt;<a href="../../boost/progress.hpp">boost/progress.hpp</a>&gt;
+namespace boost {
+class progress_timer : public <a href="#Class timer">timer</a>, <a href="../utility/utility.htm#Class_noncopyable">noncopyable</a>  {
+ public:
+   progress_timer();
+   progress_timer( std::ostream&amp; os ); // os is hint; implementation may ignore
+   ~progress_timer();
+   }; // progress_display
+} // namespace boost</pre>
+<h3>Exception safety</h3>
+<p>The constructors may throw <code>std::bad_alloc</code>.&nbsp; No other member
+functions throw exceptions.</p>
+<h2><a name="Class progress_display">Class progress_display</a></h2>
+<p>Class progress_display displays an appropriate indication of progress toward
+a predefined goal at an appropriate place in an appropriate form.&nbsp; This
+meets a human need to know if a program is progressing.</p>
+<p>For example, if a lengthy computation must be done on a std::map&lt;&gt;
+named big_map, the follow code would display an indication of progress:</p>
+<pre>  progress_display show_progress( big_map.size() );
+  for ( big_map_t::iterator itr = big_map:begin();
+        itr != big_map.end(); ++itr )
+  {
+     // do the computation
+     ...
+     ++show_progress;
+  }</pre>
+<p>After 70% of the elements have been processed, the display might look
+something like this:</p>
+<blockquote>
+  <pre>0%   10   20   30   40   50   60   70   80   90   100%
+|----|----|----|----|----|----|----|----|----|----|
+************************************</pre>
+</blockquote>
+
+<h2>Synopsis</h2>
+<pre>#include &lt;boost/progress.hpp&gt;
+namespace boost {
+class progress_display : <a href="../utility/utility.htm#Class_noncopyable">noncopyable</a> {
+ public:
+   progress_display( unsigned long expected_count );
+   // Effects: restart(expected_count)
+
+   progress_display( unsigned long expected_count,
+                     std::ostream&amp; os,  // os is hint; implementation may ignore
+                     const std::string &amp; s1 = &quot;\n&quot;, //leading strings
+                     const std::string &amp; s2 = &quot;&quot;,
+                     const std::string &amp; s3 = &quot;&quot; )
+   // Effects: save copy of leading strings, restart(expected_count)
+
+   void           restart( unsigned long expected_count );
+   //  Effects: display appropriate scale on three lines,
+   //  prefaced by stored copy of s1, s2, s3, respectively, from constructor
+   //  Postconditions: count()==0, expected_count()==expected_count
+
+   unsigned long  operator+=( unsigned long increment )
+   //  Effects: Display appropriate progress tic if needed.
+   //  Postconditions: count()== original count() + increment
+   //  Returns: count().
+
+   unsigned long  operator++()
+   //  Returns: operator+=( 1 ).
+
+   unsigned long  count() const
+   //  Returns: The internal count.
+
+   unsigned long  expected_count() const
+   //  Returns: The expected_count from the constructor.
+
+   }; // progress_display
+} // namespace boost</pre>
+<h3>Exception safety</h3>
+<p>All member functions except count() and expected_count() do output, and so in
+theory may throw exceptions.&nbsp; In practice it seems an exception being
+thrown is pretty unlikely, and probably implies such serious problems that an
+exception is warranted.&nbsp; Note that there is no explicit destructor, so the
+destructor throwing is not an issue.</p>
+<h2>History</h2>
+<p>These classes are descended from older C++ and C functionality found useful
+by programmers for many years. Via the Boost mailing list, Reid Sweatman
+suggested separating the more widely useful timer class from the more targeted
+progress classes. Sean Corfield suggested allowing output to any ostream.&nbsp;
+Dave Abrahams, Valentin Bonnard, Ed Brey, Andy Glew, and Dietmar Kühl also
+provided useful comments.&nbsp; Ed Brey suggested timer::elapsed_max(). John
+Maddock suggested timer::elapsed_min(). Toon Knapen suggested the optional 
+leading strings, to allow for labeling the progress display</p>
+<h2>Rationale</h2>
+<p>The early versions of the timer classes had separate implementation
+files.&nbsp; This caused problems for users not wishing to build libraries,
+caused difficulties building DLL's (because of cascaded use of other libraries
+which in turn brought illuminated compiler deficiencies), and caused the classes
+not to be used even when clearly applicable.&nbsp; Thus the implementation was
+changed to all inline code.</p>
+<p>There have been several requests for platform specific implementations to use
+supposedly high-performance timers from the operating system API.&nbsp; John
+Maddock submitted an implementation using the Win32 API.&nbsp; Tests showed that
+while the precision of these timers was high, the latency was sometimes very
+much higher than for the std::clock() function, and that is very bad.&nbsp;
+Furthermore, results using the Win32 API were very dependent on both the
+compiler (Microsoft and Borland were tested) and the operating system version
+(Windows NT, Windows 95, etc.)&nbsp; Thus the std::clock() function was much
+more reliable, and so was retained even on this platform with its own timer API.</p>
+<hr>
+<p><font size="2">Revised:
+<!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B %Y" startspan -->04 October 2011<!--webbot bot="Timestamp" endspan i-checksum="32185" --></font></p>
+
+<p><font size="2">© Copyright Beman Dawes 1999.</font></p>
+
+<p><font size="2">Distributed under the Boost Software License, Version 1.0. See
+</font>
+<a href="http://www.boost.org/LICENSE_1_0.txt"><font size="2">www.boost.org/LICENSE_1_0.txt</font></a></p>
+
+</body>
+
+</html>

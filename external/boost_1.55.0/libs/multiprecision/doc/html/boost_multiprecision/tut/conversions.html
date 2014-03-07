@@ -1,0 +1,177 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Constructing and Interconverting Between Number Types</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Multiprecision">
+<link rel="up" href="../tut.html" title="Tutorial">
+<link rel="prev" href="misc/visualizers.html" title="Visual C++ Debugger Visualizers">
+<link rel="next" href="random.html" title="Generating Random Numbers">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="misc/visualizers.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="random.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_multiprecision.tut.conversions"></a><a class="link" href="conversions.html" title="Constructing and Interconverting Between Number Types">Constructing and
+      Interconverting Between Number Types</a>
+</h3></div></div></div>
+<p>
+        All of the number types that are based on <code class="computeroutput"><span class="identifier">number</span></code>
+        have certain conversion rules in common. In particular:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Any number type can be constructed (or assigned) from any builtin arithmetic
+            type, as long as the conversion isn't lossy (for example float to int
+            conversion):
+          </li></ul></div>
+<pre class="programlisting"><span class="identifier">cpp_dec_float_50</span> <span class="identifier">df</span><span class="special">(</span><span class="number">0.5</span><span class="special">);</span>   <span class="comment">// OK construction from double</span>
+<span class="identifier">cpp_int</span>          <span class="identifier">i</span><span class="special">(</span><span class="number">450</span><span class="special">);</span>    <span class="comment">// OK constructs from signed int</span>
+<span class="identifier">cpp_int</span>          <span class="identifier">j</span> <span class="special">=</span> <span class="number">3.14</span><span class="special">;</span>  <span class="comment">// Error, lossy conversion.</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            A number can be explicitly constructed from an arithmetic type, even
+            when the conversion is lossy:
+          </li></ul></div>
+<pre class="programlisting"><span class="identifier">cpp_int</span>          <span class="identifier">i</span><span class="special">(</span><span class="number">3.14</span><span class="special">);</span>       <span class="comment">// OK explicit conversion</span>
+<span class="identifier">i</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">cpp_int</span><span class="special">&gt;(</span><span class="number">3.14</span><span class="special">)</span>  <span class="comment">// OK explicit conversion</span>
+<span class="identifier">i</span><span class="special">.</span><span class="identifier">assign</span><span class="special">(</span><span class="number">3.14</span><span class="special">);</span>                 <span class="comment">// OK, explicit assign and avoid a temporary from the cast above</span>
+<span class="identifier">i</span> <span class="special">=</span> <span class="number">3.14</span><span class="special">;</span>                       <span class="comment">// Error, no implicit assignment operator for lossy conversion.</span>
+<span class="identifier">cpp_int</span>          <span class="identifier">j</span> <span class="special">=</span> <span class="number">3.14</span><span class="special">;</span>      <span class="comment">// Error, no implicit constructor for lossy conversion.</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            A <code class="computeroutput"><span class="identifier">number</span></code> can be converted
+            to any built in type, via the <code class="computeroutput"><span class="identifier">convert_to</span></code>
+            member function:
+          </li></ul></div>
+<pre class="programlisting"><span class="identifier">mpz_int</span> <span class="identifier">z</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+<span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="identifier">z</span><span class="special">.</span><span class="keyword">template</span> <span class="identifier">convert_to</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;();</span> <span class="comment">// sets i to 2</span>
+</pre>
+<p>
+        Additional conversions may be supported by particular backends.
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            A <code class="computeroutput"><span class="identifier">number</span></code> can be converted
+            to any built in type, via an explicit conversion operator: this functionality
+            is only available on compilers supporting C++11's explicit conversion
+            syntax.
+          </li></ul></div>
+<pre class="programlisting"><span class="identifier">mpz_int</span> <span class="identifier">z</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+<span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="identifier">z</span><span class="special">;</span>                     <span class="comment">// Error, implicit conversion not allowed.</span>
+<span class="keyword">int</span> <span class="identifier">j</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;(</span><span class="identifier">z</span><span class="special">);</span>   <span class="comment">// OK explicit conversion.</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Any number type can be <span class="emphasis"><em>explicitly</em></span> constructed (or
+            assigned) from a <code class="computeroutput"><span class="keyword">const</span> <span class="keyword">char</span><span class="special">*</span></code>
+            or a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>:
+          </li></ul></div>
+<pre class="programlisting"><span class="comment">// pi to 50 places from a string:</span>
+<span class="identifier">cpp_dec_float_50</span> <span class="identifier">df</span><span class="special">(</span><span class="string">"3.14159265358979323846264338327950288419716939937510"</span><span class="special">);</span>
+<span class="comment">// Integer type will automatically detect "0x" and "0" prefixes and parse the string accordingly:</span>
+<span class="identifier">cpp_int</span>          <span class="identifier">i</span><span class="special">(</span><span class="string">"0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000"</span><span class="special">);</span>
+<span class="comment">// Invalid input always results in a std::runtime_error being thrown:</span>
+<span class="identifier">i</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">cpp_int</span><span class="special">&gt;(</span><span class="string">"3.14"</span><span class="special">);</span>
+<span class="comment">// implicit conversions from strings are not allowed:</span>
+<span class="identifier">i</span> <span class="special">=</span> <span class="string">"23"</span><span class="special">;</span> <span class="comment">// Error, no assignment operator for implicit conversion from string</span>
+<span class="comment">// assign member function, avoids having to create a temporary via a static_cast:</span>
+<span class="identifier">i</span><span class="special">.</span><span class="identifier">assign</span><span class="special">(</span><span class="string">"23"</span><span class="special">);</span>  <span class="comment">// OK</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Any number type will interoperate with the builtin types in arithmetic
+            expressions as long as the conversions are not lossy:
+          </li></ul></div>
+<pre class="programlisting"><span class="comment">// pi to 50 places from a string:</span>
+<span class="identifier">cpp_dec_float_50</span> <span class="identifier">df</span> <span class="special">=</span> <span class="string">"3.14159265358979323846264338327950288419716939937510"</span><span class="special">;</span>
+<span class="comment">// Multiply by 2 - using an integer literal here is usually more efficient</span>
+<span class="comment">// than constructing a temporary:</span>
+<span class="identifier">df</span> <span class="special">*=</span> <span class="number">2</span><span class="special">;</span>
+
+<span class="comment">// You can't mix integer types with floats though:</span>
+<span class="identifier">cpp_int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">2</span><span class="special">;</span>
+<span class="identifier">i</span> <span class="special">*=</span> <span class="number">3.14</span><span class="special">;</span>  <span class="comment">// Error, no *= operator will be found.</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Any number type can be streamed to and from the C++ iostreams:
+          </li></ul></div>
+<pre class="programlisting"><span class="identifier">cpp_dec_float_50</span> <span class="identifier">df</span> <span class="special">=</span> <span class="string">"3.14159265358979323846264338327950288419716939937510"</span><span class="special">;</span>
+<span class="comment">// Now print at full precision:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">setprecision</span><span class="special">(</span><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">cpp_dec_float_50</span><span class="special">&gt;::</span><span class="identifier">max_digits10</span><span class="special">)</span>
+   <span class="special">&lt;&lt;</span> <span class="identifier">df</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span>
+<span class="identifier">cpp_int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">1</span><span class="special">;</span>
+<span class="identifier">i</span> <span class="special">&lt;&lt;=</span> <span class="number">256</span><span class="special">;</span>
+<span class="comment">// Now print in hex format with prefix:</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">hex</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">showbase</span> <span class="special">&lt;&lt;</span> <span class="identifier">i</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Interconversions between number types of the same family are allowed
+            and are implicit conversions if no loss of precision is involved, and
+            explicit if it is:
+          </li></ul></div>
+<pre class="programlisting"><span class="identifier">int128_t</span>     <span class="identifier">i128</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+<span class="identifier">int266_t</span>     <span class="identifier">i256</span> <span class="special">=</span> <span class="identifier">i128</span><span class="special">;</span>  <span class="comment">// OK implicit widening conversion</span>
+<span class="identifier">i128_t</span>            <span class="special">=</span> <span class="identifier">i256</span><span class="special">;</span>  <span class="comment">// Error, no assignment operator found, narrowing conversion is explicit</span>
+<span class="identifier">i128_t</span>            <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">int128_t</span><span class="special">&gt;(</span><span class="identifier">i256</span><span class="special">);</span> <span class="comment">// OK, explicit narrowing conversion</span>
+
+<span class="identifier">mpz_int</span>      <span class="identifier">z</span>    <span class="special">=</span> <span class="number">0</span><span class="special">;</span>
+<span class="identifier">mpf_float</span>    <span class="identifier">f</span>    <span class="special">=</span> <span class="identifier">z</span><span class="special">;</span>    <span class="comment">// OK, GMP handles this conversion natively, and it's not lossy and therefore implicit</span>
+
+<span class="identifier">mpf_float_50</span> <span class="identifier">f50</span>  <span class="special">=</span> <span class="number">2</span><span class="special">;</span>
+<span class="identifier">f</span>                 <span class="special">=</span> <span class="identifier">f50</span><span class="special">;</span>  <span class="comment">// OK, conversion from fixed to variable precision, f will have 50 digits precision.</span>
+<span class="identifier">f50</span>               <span class="special">=</span> <span class="identifier">f</span><span class="special">;</span>    <span class="comment">// Error, conversion from variable to fixed precision is potentially lossy, explicit cast required.</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Some interconversions between number types are completely generic, and
+            are always available, albeit the conversions are always <span class="emphasis"><em>explicit</em></span>:
+          </li></ul></div>
+<pre class="programlisting"><span class="identifier">cpp_int</span> <span class="identifier">cppi</span><span class="special">(</span><span class="number">2</span><span class="special">);</span>
+<span class="comment">// We can always convert between numbers of the same category - </span>
+<span class="comment">// int to int, rational to rational, or float to float, so this is OK</span>
+<span class="comment">// as long as we use an explicit conversion:</span>
+<span class="identifier">mpz_int</span> <span class="identifier">z</span><span class="special">(</span><span class="identifier">cppi</span><span class="special">);</span>
+<span class="comment">// We can always promote from int to rational, int to float, or rational to float:</span>
+<span class="identifier">cpp_rational</span>     <span class="identifier">cppr</span><span class="special">(</span><span class="identifier">cppi</span><span class="special">);</span>  <span class="comment">// OK, int to rational</span>
+<span class="identifier">cpp_dec_float_50</span> <span class="identifier">df</span><span class="special">(</span><span class="identifier">cppi</span><span class="special">);</span>    <span class="comment">// OK, int to float</span>
+<span class="identifier">df</span>                  <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">cpp_dec_float_50</span><span class="special">&gt;(</span><span class="identifier">cppr</span><span class="special">);</span>  <span class="comment">// OK, explicit rational to float conversion</span>
+<span class="comment">// However narrowing and/or implicit conversions always fail:</span>
+<span class="identifier">cppi</span>                <span class="special">=</span>   <span class="identifier">df</span><span class="special">;</span>    <span class="comment">// Compiler error, conversion not allowed</span>
+</pre>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Other interconversions may be allowed as special cases, whenever the
+            backend allows it:
+          </li></ul></div>
+<pre class="programlisting"><span class="identifier">mpf_t</span>     <span class="identifier">m</span><span class="special">;</span>           <span class="comment">// Native GMP type.</span>
+<span class="identifier">mpf_init_set_ui</span><span class="special">(</span><span class="identifier">m</span><span class="special">,</span> <span class="number">0</span><span class="special">);</span> <span class="comment">// set to a value;</span>
+<span class="identifier">mpf_float</span> <span class="identifier">i</span><span class="special">(</span><span class="identifier">m</span><span class="special">);</span>        <span class="comment">// copies the value of the native type.</span>
+</pre>
+<p>
+        More information on what additional types a backend supports conversions
+        from are given in the tutorial for each backend. The converting constructor
+        will be implicit if the backend's converting constructor is also implicit,
+        and explicit if the backends converting constructor is also explicit.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2012 John Maddock and Christopher Kormanyos<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="misc/visualizers.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../tut.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="random.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,21 @@
+[/==============================================================================
+    Copyright (C) 2001-2010 Joel de Guzman
+    Copyright (C) 2001-2005 Dan Marsden
+    Copyright (C) 2001-2010 Thomas Heller
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section More]
+
+As mentioned earlier, this chapter is not a thorough discourse of the library.
+It is meant only to cover enough ground to get you into high gear as quickly as
+possible. Some advanced stuff is not discussed here (e.g. [link phoenix.modules.scope
+Scopes]); nor are features that provide alternative (short-hand) ways to do the
+same things (e.g. [link phoenix.modules.bind Bind] vs. [link phoenix.modules.function Lazy Functions]).
+
+[blurb __tip__ ...*If you still wish to learn more, the read on...*]
+
+[endsect]
+

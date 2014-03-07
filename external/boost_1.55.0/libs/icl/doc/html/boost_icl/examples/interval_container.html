@@ -1,0 +1,148 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Interval container</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../examples.html" title="Examples">
+<link rel="prev" href="static_interval.html" title="Static interval">
+<link rel="next" href="overlap_counter.html" title="Overlap counter">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="static_interval.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="overlap_counter.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_examples_interval_container" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.examples.interval_container"></a><a class="link" href="interval_container.html" title="Interval container">Interval container</a>
+</h3></div></div></div>
+<p>
+        Example <span class="bold"><strong>interval container</strong></span> demonstrates
+        the characteristic behaviors of different interval containers that are also
+        summarized in the introductory <a class="link" href="../../index.html#boost_icl.introduction.interval_combining_styles" title="Interval Combining Styles">Interval
+        Combining Styles</a>.
+      </p>
+<p>
+        </p>
+<p>
+          
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">interval_set</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">separate_interval_set</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">split_interval_set</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">icl</span><span class="special">/</span><span class="identifier">split_interval_map</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="string">"../toytime.hpp"</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">std</span><span class="special">;</span>
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">icl</span><span class="special">;</span>
+
+<span class="keyword">void</span> <span class="identifier">interval_container_basics</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">Time</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">night_and_day</span><span class="special">(</span><span class="identifier">Time</span><span class="special">(</span><span class="identifier">monday</span><span class="special">,</span>   <span class="number">20</span><span class="special">,</span><span class="number">00</span><span class="special">),</span> <span class="identifier">Time</span><span class="special">(</span><span class="identifier">tuesday</span><span class="special">,</span>  <span class="number">20</span><span class="special">,</span><span class="number">00</span><span class="special">));</span>
+    <span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">Time</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">day_and_night</span><span class="special">(</span><span class="identifier">Time</span><span class="special">(</span><span class="identifier">tuesday</span><span class="special">,</span>   <span class="number">7</span><span class="special">,</span><span class="number">00</span><span class="special">),</span> <span class="identifier">Time</span><span class="special">(</span><span class="identifier">wednesday</span><span class="special">,</span> <span class="number">7</span><span class="special">,</span><span class="number">00</span><span class="special">));</span>
+    <span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">Time</span><span class="special">&gt;::</span><span class="identifier">type</span>  <span class="identifier">next_morning</span><span class="special">(</span><span class="identifier">Time</span><span class="special">(</span><span class="identifier">wednesday</span><span class="special">,</span> <span class="number">7</span><span class="special">,</span><span class="number">00</span><span class="special">),</span> <span class="identifier">Time</span><span class="special">(</span><span class="identifier">wednesday</span><span class="special">,</span><span class="number">10</span><span class="special">,</span><span class="number">00</span><span class="special">));</span>
+    <span class="identifier">interval</span><span class="special">&lt;</span><span class="identifier">Time</span><span class="special">&gt;::</span><span class="identifier">type</span>  <span class="identifier">next_evening</span><span class="special">(</span><span class="identifier">Time</span><span class="special">(</span><span class="identifier">wednesday</span><span class="special">,</span><span class="number">18</span><span class="special">,</span><span class="number">00</span><span class="special">),</span> <span class="identifier">Time</span><span class="special">(</span><span class="identifier">wednesday</span><span class="special">,</span><span class="number">21</span><span class="special">,</span><span class="number">00</span><span class="special">));</span>
+
+    <span class="comment">// An interval set of type interval_set joins intervals that that overlap or touch each other.
+</span>    <span class="identifier">interval_set</span><span class="special">&lt;</span><span class="identifier">Time</span><span class="special">&gt;</span> <span class="identifier">joinedTimes</span><span class="special">;</span>
+    <span class="identifier">joinedTimes</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">night_and_day</span><span class="special">);</span>
+    <span class="identifier">joinedTimes</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">day_and_night</span><span class="special">);</span> <span class="comment">//overlapping in 'day' [07:00, 20.00)
+</span>    <span class="identifier">joinedTimes</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">next_morning</span><span class="special">);</span>  <span class="comment">//touching
+</span>    <span class="identifier">joinedTimes</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">next_evening</span><span class="special">);</span>  <span class="comment">//disjoint
+</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Joined times  :"</span> <span class="special">&lt;&lt;</span> <span class="identifier">joinedTimes</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="comment">// A separate interval set of type separate_interval_set joins intervals that that 
+</span>    <span class="comment">// overlap but it preserves interval borders that just touch each other. You may 
+</span>    <span class="comment">// represent time grids like the months of a year as a split_interval_set.
+</span>    <span class="identifier">separate_interval_set</span><span class="special">&lt;</span><span class="identifier">Time</span><span class="special">&gt;</span> <span class="identifier">separateTimes</span><span class="special">;</span>
+    <span class="identifier">separateTimes</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">night_and_day</span><span class="special">);</span>
+    <span class="identifier">separateTimes</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">day_and_night</span><span class="special">);</span> <span class="comment">//overlapping in 'day' [07:00, 20.00)
+</span>    <span class="identifier">separateTimes</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">next_morning</span><span class="special">);</span>  <span class="comment">//touching
+</span>    <span class="identifier">separateTimes</span><span class="special">.</span><span class="identifier">insert</span><span class="special">(</span><span class="identifier">next_evening</span><span class="special">);</span>  <span class="comment">//disjoint
+</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Separate times:"</span> <span class="special">&lt;&lt;</span> <span class="identifier">separateTimes</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="comment">// A split interval set of type split_interval_set preserves all interval
+</span>    <span class="comment">// borders. On insertion of overlapping intervals the intervals in the
+</span>    <span class="comment">// set are split up at the interval borders of the inserted interval.
+</span>    <span class="identifier">split_interval_set</span><span class="special">&lt;</span><span class="identifier">Time</span><span class="special">&gt;</span> <span class="identifier">splitTimes</span><span class="special">;</span>
+    <span class="identifier">splitTimes</span> <span class="special">+=</span> <span class="identifier">night_and_day</span><span class="special">;</span>
+    <span class="identifier">splitTimes</span> <span class="special">+=</span> <span class="identifier">day_and_night</span><span class="special">;</span> <span class="comment">//overlapping in 'day' [07:00, 20:00)
+</span>    <span class="identifier">splitTimes</span> <span class="special">+=</span> <span class="identifier">next_morning</span><span class="special">;</span>  <span class="comment">//touching
+</span>    <span class="identifier">splitTimes</span> <span class="special">+=</span> <span class="identifier">next_evening</span><span class="special">;</span>  <span class="comment">//disjoint
+</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Split times   :\n"</span> <span class="special">&lt;&lt;</span> <span class="identifier">splitTimes</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="comment">// A split interval map splits up inserted intervals on overlap and aggregates the
+</span>    <span class="comment">// associated quantities via the operator +=
+</span>    <span class="identifier">split_interval_map</span><span class="special">&lt;</span><span class="identifier">Time</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">overlapCounter</span><span class="special">;</span>
+    <span class="identifier">overlapCounter</span> <span class="special">+=</span> <span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">night_and_day</span><span class="special">,</span><span class="number">1</span><span class="special">);</span>
+    <span class="identifier">overlapCounter</span> <span class="special">+=</span> <span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">day_and_night</span><span class="special">,</span><span class="number">1</span><span class="special">);</span> <span class="comment">//overlapping in 'day' [07:00, 20.00)
+</span>    <span class="identifier">overlapCounter</span> <span class="special">+=</span> <span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">next_morning</span><span class="special">,</span> <span class="number">1</span><span class="special">);</span> <span class="comment">//touching
+</span>    <span class="identifier">overlapCounter</span> <span class="special">+=</span> <span class="identifier">make_pair</span><span class="special">(</span><span class="identifier">next_evening</span><span class="special">,</span> <span class="number">1</span><span class="special">);</span> <span class="comment">//disjoint
+</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Split times overlap counted:\n"</span> <span class="special">&lt;&lt;</span> <span class="identifier">overlapCounter</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+
+    <span class="comment">// An interval map joins touching intervals, if associated values are equal
+</span>    <span class="identifier">interval_map</span><span class="special">&lt;</span><span class="identifier">Time</span><span class="special">,</span> <span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">joiningOverlapCounter</span><span class="special">;</span>
+    <span class="identifier">joiningOverlapCounter</span> <span class="special">=</span> <span class="identifier">overlapCounter</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"Times overlap counted:\n"</span> <span class="special">&lt;&lt;</span> <span class="identifier">joiningOverlapCounter</span> <span class="special">&lt;&lt;</span> <span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"&gt;&gt;Interval Container Library: Sample interval_container.cpp &lt;&lt;\n"</span><span class="special">;</span>
+    <span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"--------------------------------------------------------------\n"</span><span class="special">;</span>
+    <span class="identifier">interval_container_basics</span><span class="special">();</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+
+
+<span class="comment">// Program output:
+</span><span class="comment">/* ----------------------------------------------------------------------------
+&gt;&gt;Interval Container Library: Sample interval_container.cpp &lt;&lt;
+--------------------------------------------------------------
+Joined times  :[mon:20:00,wed:10:00)[wed:18:00,wed:21:00)
+Separate times:[mon:20:00,wed:07:00)[wed:07:00,wed:10:00)[wed:18:00,wed:21:00)
+Split times   :
+[mon:20:00,tue:07:00)[tue:07:00,tue:20:00)[tue:20:00,wed:07:00)
+[wed:07:00,wed:10:00)[wed:18:00,wed:21:00)
+Split times overlap counted:
+{([mon:20:00,tue:07:00)-&gt;1)([tue:07:00,tue:20:00)-&gt;2)([tue:20:00,wed:07:00)-&gt;1)
+([wed:07:00,wed:10:00)-&gt;1)([wed:18:00,wed:21:00)-&gt;1)}
+Times overlap counted:
+{([mon:20:00,tue:07:00)-&gt;1)([tue:07:00,tue:20:00)-&gt;2)([tue:20:00,wed:10:00)-&gt;1)
+([wed:18:00,wed:21:00)-&gt;1)}
+-----------------------------------------------------------------------------*/</span>
+</pre>
+<p>
+        </p>
+<p>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="static_interval.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../examples.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="overlap_counter.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

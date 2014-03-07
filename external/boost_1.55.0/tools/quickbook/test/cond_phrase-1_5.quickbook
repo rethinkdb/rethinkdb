@@ -1,0 +1,12 @@
+[article Coniditional Phrase Test
+    [quickbook 1.5]
+]
+
+[def __defined__]
+
+[? __defined__ This should show]
+[? __undefined__ This should not show]
+
+The should be no sp[?__undefined__ just some junk]ace inserted.
+
+[? __defined__ [*Bold text]]

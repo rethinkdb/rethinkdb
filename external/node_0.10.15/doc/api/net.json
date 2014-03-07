@@ -1,0 +1,781 @@
+{
+  "source": "doc/api/net.markdown",
+  "modules": [
+    {
+      "textRaw": "net",
+      "name": "net",
+      "stability": 3,
+      "stabilityText": "Stable",
+      "desc": "<p>The <code>net</code> module provides you with an asynchronous network wrapper. It contains\nmethods for creating both servers and clients (called streams). You can include\nthis module with <code>require(&#39;net&#39;);</code>\n\n</p>\n",
+      "methods": [
+        {
+          "textRaw": "net.createServer([options], [connectionListener])",
+          "type": "method",
+          "name": "createServer",
+          "desc": "<p>Creates a new TCP server. The <code>connectionListener</code> argument is\nautomatically set as a listener for the [&#39;connection&#39;][] event.\n\n</p>\n<p><code>options</code> is an object with the following defaults:\n\n</p>\n<pre><code>{ allowHalfOpen: false\n}</code></pre>\n<p>If <code>allowHalfOpen</code> is <code>true</code>, then the socket won&#39;t automatically send a FIN\npacket when the other end of the socket sends a FIN packet. The socket becomes\nnon-readable, but still writable. You should call the <code>end()</code> method explicitly.\nSee [&#39;end&#39;][] event for more information.\n\n</p>\n<p>Here is an example of an echo server which listens for connections\non port 8124:\n\n</p>\n<pre><code>var net = require(&#39;net&#39;);\nvar server = net.createServer(function(c) { //&#39;connection&#39; listener\n  console.log(&#39;server connected&#39;);\n  c.on(&#39;end&#39;, function() {\n    console.log(&#39;server disconnected&#39;);\n  });\n  c.write(&#39;hello\\r\\n&#39;);\n  c.pipe(c);\n});\nserver.listen(8124, function() { //&#39;listening&#39; listener\n  console.log(&#39;server bound&#39;);\n});</code></pre>\n<p>Test this by using <code>telnet</code>:\n\n</p>\n<pre><code>telnet localhost 8124</code></pre>\n<p>To listen on the socket <code>/tmp/echo.sock</code> the third line from the last would\njust be changed to\n\n</p>\n<pre><code>server.listen(&#39;/tmp/echo.sock&#39;, function() { //&#39;listening&#39; listener</code></pre>\n<p>Use <code>nc</code> to connect to a UNIX domain socket server:\n\n</p>\n<pre><code>nc -U /tmp/echo.sock</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "options",
+                  "optional": true
+                },
+                {
+                  "name": "connectionListener",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "net.connect(options, [connectionListener])",
+          "type": "method",
+          "name": "connect",
+          "desc": "<p>Constructs a new socket object and opens the socket to the given location.\nWhen the socket is established, the [&#39;connect&#39;][] event will be emitted.\n\n</p>\n<p>For TCP sockets, <code>options</code> argument should be an object which specifies:\n\n</p>\n<ul>\n<li><p><code>port</code>: Port the client should connect to (Required).</p>\n</li>\n<li><p><code>host</code>: Host the client should connect to. Defaults to <code>&#39;localhost&#39;</code>.</p>\n</li>\n<li><p><code>localAddress</code>: Local interface to bind to for network connections.</p>\n</li>\n</ul>\n<p>For UNIX domain sockets, <code>options</code> argument should be an object which specifies:\n\n</p>\n<ul>\n<li><code>path</code>: Path the client should connect to (Required).</li>\n</ul>\n<p>Common options are:\n\n</p>\n<ul>\n<li><code>allowHalfOpen</code>: if <code>true</code>, the socket won&#39;t automatically send\na FIN packet when the other end of the socket sends a FIN packet.\nDefaults to <code>false</code>.  See [&#39;end&#39;][] event for more information.</li>\n</ul>\n<p>The <code>connectListener</code> parameter will be added as an listener for the\n[&#39;connect&#39;][] event.\n\n</p>\n<p>Here is an example of a client of echo server as described previously:\n\n</p>\n<pre><code>var net = require(&#39;net&#39;);\nvar client = net.connect({port: 8124},\n    function() { //&#39;connect&#39; listener\n  console.log(&#39;client connected&#39;);\n  client.write(&#39;world!\\r\\n&#39;);\n});\nclient.on(&#39;data&#39;, function(data) {\n  console.log(data.toString());\n  client.end();\n});\nclient.on(&#39;end&#39;, function() {\n  console.log(&#39;client disconnected&#39;);\n});</code></pre>\n<p>To connect on the socket <code>/tmp/echo.sock</code> the second line would just be\nchanged to\n\n</p>\n<pre><code>var client = net.connect({path: &#39;/tmp/echo.sock&#39;},</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "options"
+                },
+                {
+                  "name": "connectionListener",
+                  "optional": true
+                }
+              ]
+            },
+            {
+              "params": [
+                {
+                  "name": "options"
+                },
+                {
+                  "name": "connectionListener",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "net.createConnection(options, [connectionListener])",
+          "type": "method",
+          "name": "createConnection",
+          "desc": "<p>Constructs a new socket object and opens the socket to the given location.\nWhen the socket is established, the [&#39;connect&#39;][] event will be emitted.\n\n</p>\n<p>For TCP sockets, <code>options</code> argument should be an object which specifies:\n\n</p>\n<ul>\n<li><p><code>port</code>: Port the client should connect to (Required).</p>\n</li>\n<li><p><code>host</code>: Host the client should connect to. Defaults to <code>&#39;localhost&#39;</code>.</p>\n</li>\n<li><p><code>localAddress</code>: Local interface to bind to for network connections.</p>\n</li>\n</ul>\n<p>For UNIX domain sockets, <code>options</code> argument should be an object which specifies:\n\n</p>\n<ul>\n<li><code>path</code>: Path the client should connect to (Required).</li>\n</ul>\n<p>Common options are:\n\n</p>\n<ul>\n<li><code>allowHalfOpen</code>: if <code>true</code>, the socket won&#39;t automatically send\na FIN packet when the other end of the socket sends a FIN packet.\nDefaults to <code>false</code>.  See [&#39;end&#39;][] event for more information.</li>\n</ul>\n<p>The <code>connectListener</code> parameter will be added as an listener for the\n[&#39;connect&#39;][] event.\n\n</p>\n<p>Here is an example of a client of echo server as described previously:\n\n</p>\n<pre><code>var net = require(&#39;net&#39;);\nvar client = net.connect({port: 8124},\n    function() { //&#39;connect&#39; listener\n  console.log(&#39;client connected&#39;);\n  client.write(&#39;world!\\r\\n&#39;);\n});\nclient.on(&#39;data&#39;, function(data) {\n  console.log(data.toString());\n  client.end();\n});\nclient.on(&#39;end&#39;, function() {\n  console.log(&#39;client disconnected&#39;);\n});</code></pre>\n<p>To connect on the socket <code>/tmp/echo.sock</code> the second line would just be\nchanged to\n\n</p>\n<pre><code>var client = net.connect({path: &#39;/tmp/echo.sock&#39;},</code></pre>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "options"
+                },
+                {
+                  "name": "connectionListener",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "net.connect(port, [host], [connectListener])",
+          "type": "method",
+          "name": "connect",
+          "desc": "<p>Creates a TCP connection to <code>port</code> on <code>host</code>. If <code>host</code> is omitted,\n<code>&#39;localhost&#39;</code> will be assumed.\nThe <code>connectListener</code> parameter will be added as an listener for the\n[&#39;connect&#39;][] event.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "port"
+                },
+                {
+                  "name": "host",
+                  "optional": true
+                },
+                {
+                  "name": "connectListener",
+                  "optional": true
+                }
+              ]
+            },
+            {
+              "params": [
+                {
+                  "name": "port"
+                },
+                {
+                  "name": "host",
+                  "optional": true
+                },
+                {
+                  "name": "connectListener",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "net.createConnection(port, [host], [connectListener])",
+          "type": "method",
+          "name": "createConnection",
+          "desc": "<p>Creates a TCP connection to <code>port</code> on <code>host</code>. If <code>host</code> is omitted,\n<code>&#39;localhost&#39;</code> will be assumed.\nThe <code>connectListener</code> parameter will be added as an listener for the\n[&#39;connect&#39;][] event.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "port"
+                },
+                {
+                  "name": "host",
+                  "optional": true
+                },
+                {
+                  "name": "connectListener",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "net.connect(path, [connectListener])",
+          "type": "method",
+          "name": "connect",
+          "desc": "<p>Creates unix socket connection to <code>path</code>.\nThe <code>connectListener</code> parameter will be added as an listener for the\n[&#39;connect&#39;][] event.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "path"
+                },
+                {
+                  "name": "connectListener",
+                  "optional": true
+                }
+              ]
+            },
+            {
+              "params": [
+                {
+                  "name": "path"
+                },
+                {
+                  "name": "connectListener",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "net.createConnection(path, [connectListener])",
+          "type": "method",
+          "name": "createConnection",
+          "desc": "<p>Creates unix socket connection to <code>path</code>.\nThe <code>connectListener</code> parameter will be added as an listener for the\n[&#39;connect&#39;][] event.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "path"
+                },
+                {
+                  "name": "connectListener",
+                  "optional": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "net.isIP(input)",
+          "type": "method",
+          "name": "isIP",
+          "desc": "<p>Tests if input is an IP address. Returns 0 for invalid strings,\nreturns 4 for IP version 4 addresses, and returns 6 for IP version 6 addresses.\n\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "input"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "net.isIPv4(input)",
+          "type": "method",
+          "name": "isIPv4",
+          "desc": "<p>Returns true if input is a version 4 IP address, otherwise returns false.\n\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "input"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "textRaw": "net.isIPv6(input)",
+          "type": "method",
+          "name": "isIPv6",
+          "desc": "<p>Returns true if input is a version 6 IP address, otherwise returns false.\n\n</p>\n",
+          "signatures": [
+            {
+              "params": [
+                {
+                  "name": "input"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "classes": [
+        {
+          "textRaw": "Class: net.Server",
+          "type": "class",
+          "name": "net.Server",
+          "desc": "<p>This class is used to create a TCP or UNIX server.\nA server is a <code>net.Socket</code> that can listen for new incoming connections.\n\n</p>\n",
+          "methods": [
+            {
+              "textRaw": "server.listen(port, [host], [backlog], [callback])",
+              "type": "method",
+              "name": "listen",
+              "desc": "<p>Begin accepting connections on the specified <code>port</code> and <code>host</code>.  If the\n<code>host</code> is omitted, the server will accept connections directed to any\nIPv4 address (<code>INADDR_ANY</code>). A port value of zero will assign a random port.\n\n</p>\n<p>Backlog is the maximum length of the queue of pending connections.\nThe actual length will be determined by your OS through sysctl settings such as\n<code>tcp_max_syn_backlog</code> and <code>somaxconn</code> on linux. The default value of this\nparameter is 511 (not 512).\n\n</p>\n<p>This function is asynchronous.  When the server has been bound,\n[&#39;listening&#39;][] event will be emitted.  The last parameter <code>callback</code>\nwill be added as an listener for the [&#39;listening&#39;][] event.\n\n</p>\n<p>One issue some users run into is getting <code>EADDRINUSE</code> errors. This means that\nanother server is already running on the requested port. One way of handling this\nwould be to wait a second and then try again. This can be done with\n\n</p>\n<pre><code>server.on(&#39;error&#39;, function (e) {\n  if (e.code == &#39;EADDRINUSE&#39;) {\n    console.log(&#39;Address in use, retrying...&#39;);\n    setTimeout(function () {\n      server.close();\n      server.listen(PORT, HOST);\n    }, 1000);\n  }\n});</code></pre>\n<p>(Note: All sockets in Node set <code>SO_REUSEADDR</code> already)\n\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "port"
+                    },
+                    {
+                      "name": "host",
+                      "optional": true
+                    },
+                    {
+                      "name": "backlog",
+                      "optional": true
+                    },
+                    {
+                      "name": "callback",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "server.listen(path, [callback])",
+              "type": "method",
+              "name": "listen",
+              "desc": "<p>Start a UNIX socket server listening for connections on the given <code>path</code>.\n\n</p>\n<p>This function is asynchronous.  When the server has been bound,\n[&#39;listening&#39;][] event will be emitted.  The last parameter <code>callback</code>\nwill be added as an listener for the [&#39;listening&#39;][] event.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "path"
+                    },
+                    {
+                      "name": "callback",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "server.listen(handle, [callback])",
+              "type": "method",
+              "name": "listen",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "textRaw": "`handle` {Object} ",
+                      "name": "handle",
+                      "type": "Object"
+                    },
+                    {
+                      "textRaw": "`callback` {Function} ",
+                      "name": "callback",
+                      "type": "Function",
+                      "optional": true
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "handle"
+                    },
+                    {
+                      "name": "callback",
+                      "optional": true
+                    }
+                  ]
+                }
+              ],
+              "desc": "<p>The <code>handle</code> object can be set to either a server or socket (anything\nwith an underlying <code>_handle</code> member), or a <code>{fd: &lt;n&gt;}</code> object.\n\n</p>\n<p>This will cause the server to accept connections on the specified\nhandle, but it is presumed that the file descriptor or handle has\nalready been bound to a port or domain socket.\n\n</p>\n<p>Listening on a file descriptor is not supported on Windows.\n\n</p>\n<p>This function is asynchronous.  When the server has been bound,\n<a href=\"#event_listening_\">&#39;listening&#39;</a> event will be emitted.\nthe last parameter <code>callback</code> will be added as an listener for the\n<a href=\"#event_listening_\">&#39;listening&#39;</a> event.\n\n</p>\n"
+            },
+            {
+              "textRaw": "server.close([callback])",
+              "type": "method",
+              "name": "close",
+              "desc": "<p>Stops the server from accepting new connections and keeps existing\nconnections. This function is asynchronous, the server is finally\nclosed when all connections are ended and the server emits a <code>&#39;close&#39;</code>\nevent. Optionally, you can pass a callback to listen for the <code>&#39;close&#39;</code>\nevent.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "callback",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "server.address()",
+              "type": "method",
+              "name": "address",
+              "desc": "<p>Returns the bound address, the address family name and port of the server\nas reported by the operating system.\nUseful to find which port was assigned when giving getting an OS-assigned address.\nReturns an object with three properties, e.g.\n<code>{ port: 12346, family: &#39;IPv4&#39;, address: &#39;127.0.0.1&#39; }</code>\n\n</p>\n<p>Example:\n\n</p>\n<pre><code>var server = net.createServer(function (socket) {\n  socket.end(&quot;goodbye\\n&quot;);\n});\n\n// grab a random port.\nserver.listen(function() {\n  address = server.address();\n  console.log(&quot;opened server on %j&quot;, address);\n});</code></pre>\n<p>Don&#39;t call <code>server.address()</code> until the <code>&#39;listening&#39;</code> event has been emitted.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            },
+            {
+              "textRaw": "server.unref()",
+              "type": "method",
+              "name": "unref",
+              "desc": "<p>Calling <code>unref</code> on a server will allow the program to exit if this is the only\nactive server in the event system. If the server is already <code>unref</code>d calling\n<code>unref</code> again will have no effect.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            },
+            {
+              "textRaw": "server.ref()",
+              "type": "method",
+              "name": "ref",
+              "desc": "<p>Opposite of <code>unref</code>, calling <code>ref</code> on a previously <code>unref</code>d server will <em>not</em>\nlet the program exit if it&#39;s the only server left (the default behavior). If\nthe server is <code>ref</code>d calling <code>ref</code> again will have no effect.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            },
+            {
+              "textRaw": "server.getConnections(callback)",
+              "type": "method",
+              "name": "getConnections",
+              "desc": "<p>Asynchronously get the number of concurrent connections on the server. Works\nwhen sockets were sent to forks.\n\n</p>\n<p>Callback should take two arguments <code>err</code> and <code>count</code>.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "callback"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": [
+            {
+              "textRaw": "server.maxConnections",
+              "name": "maxConnections",
+              "desc": "<p>Set this property to reject connections when the server&#39;s connection count gets\nhigh.\n\n</p>\n<p>It is not recommended to use this option once a socket has been sent to a child\nwith <code>child_process.fork()</code>.\n\n</p>\n"
+            },
+            {
+              "textRaw": "server.connections",
+              "name": "connections",
+              "desc": "<p>This function is <strong>deprecated</strong>; please use [server.getConnections()][] instead.\nThe number of concurrent connections on the server.\n\n</p>\n<p>This becomes <code>null</code> when sending a socket to a child with\n<code>child_process.fork()</code>. To poll forks and get current number of active\nconnections use asynchronous <code>server.getConnections</code> instead.\n\n</p>\n<p><code>net.Server</code> is an [EventEmitter][] with the following events:\n\n</p>\n"
+            }
+          ],
+          "events": [
+            {
+              "textRaw": "Event: 'listening'",
+              "type": "event",
+              "name": "listening",
+              "desc": "<p>Emitted when the server has been bound after calling <code>server.listen</code>.\n\n</p>\n",
+              "params": []
+            },
+            {
+              "textRaw": "Event: 'connection'",
+              "type": "event",
+              "name": "connection",
+              "params": [],
+              "desc": "<p>Emitted when a new connection is made. <code>socket</code> is an instance of\n<code>net.Socket</code>.\n\n</p>\n"
+            },
+            {
+              "textRaw": "Event: 'close'",
+              "type": "event",
+              "name": "close",
+              "desc": "<p>Emitted when the server closes. Note that if connections exist, this\nevent is not emitted until all connections are ended.\n\n</p>\n",
+              "params": []
+            },
+            {
+              "textRaw": "Event: 'error'",
+              "type": "event",
+              "name": "error",
+              "params": [],
+              "desc": "<p>Emitted when an error occurs.  The <code>&#39;close&#39;</code> event will be called directly\nfollowing this event.  See example in discussion of <code>server.listen</code>.\n\n</p>\n"
+            }
+          ]
+        },
+        {
+          "textRaw": "Class: net.Socket",
+          "type": "class",
+          "name": "net.Socket",
+          "desc": "<p>This object is an abstraction of a TCP or UNIX socket.  <code>net.Socket</code>\ninstances implement a duplex Stream interface.  They can be created by the\nuser and used as a client (with <code>connect()</code>) or they can be created by Node\nand passed to the user through the <code>&#39;connection&#39;</code> event of a server.\n\n</p>\n",
+          "methods": [
+            {
+              "textRaw": "new net.Socket([options])",
+              "type": "method",
+              "name": "Socket",
+              "desc": "<p>Construct a new socket object.\n\n</p>\n<p><code>options</code> is an object with the following defaults:\n\n</p>\n<pre><code>{ fd: null\n  type: null\n  allowHalfOpen: false\n}</code></pre>\n<p><code>fd</code> allows you to specify the existing file descriptor of socket. <code>type</code>\nspecified underlying protocol. It can be <code>&#39;tcp4&#39;</code>, <code>&#39;tcp6&#39;</code>, or <code>&#39;unix&#39;</code>.\nAbout <code>allowHalfOpen</code>, refer to <code>createServer()</code> and <code>&#39;end&#39;</code> event.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "options",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.connect(port, [host], [connectListener])",
+              "type": "method",
+              "name": "connect",
+              "desc": "<p>Opens the connection for a given socket. If <code>port</code> and <code>host</code> are given,\nthen the socket will be opened as a TCP socket, if <code>host</code> is omitted,\n<code>localhost</code> will be assumed. If a <code>path</code> is given, the socket will be\nopened as a unix socket to that path.\n\n</p>\n<p>Normally this method is not needed, as <code>net.createConnection</code> opens the\nsocket. Use this only if you are implementing a custom Socket.\n\n</p>\n<p>This function is asynchronous. When the [&#39;connect&#39;][] event is emitted the\nsocket is established. If there is a problem connecting, the <code>&#39;connect&#39;</code> event\nwill not be emitted, the <code>&#39;error&#39;</code> event will be emitted with the exception.\n\n</p>\n<p>The <code>connectListener</code> parameter will be added as an listener for the\n[&#39;connect&#39;][] event.\n\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "path"
+                    },
+                    {
+                      "name": "connectListener",
+                      "optional": true
+                    }
+                  ]
+                },
+                {
+                  "params": [
+                    {
+                      "name": "port"
+                    },
+                    {
+                      "name": "host",
+                      "optional": true
+                    },
+                    {
+                      "name": "connectListener",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.connect(path, [connectListener])",
+              "type": "method",
+              "name": "connect",
+              "desc": "<p>Opens the connection for a given socket. If <code>port</code> and <code>host</code> are given,\nthen the socket will be opened as a TCP socket, if <code>host</code> is omitted,\n<code>localhost</code> will be assumed. If a <code>path</code> is given, the socket will be\nopened as a unix socket to that path.\n\n</p>\n<p>Normally this method is not needed, as <code>net.createConnection</code> opens the\nsocket. Use this only if you are implementing a custom Socket.\n\n</p>\n<p>This function is asynchronous. When the [&#39;connect&#39;][] event is emitted the\nsocket is established. If there is a problem connecting, the <code>&#39;connect&#39;</code> event\nwill not be emitted, the <code>&#39;error&#39;</code> event will be emitted with the exception.\n\n</p>\n<p>The <code>connectListener</code> parameter will be added as an listener for the\n[&#39;connect&#39;][] event.\n\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "path"
+                    },
+                    {
+                      "name": "connectListener",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.setEncoding([encoding])",
+              "type": "method",
+              "name": "setEncoding",
+              "desc": "<p>Set the encoding for the socket as a Readable Stream. See\n[stream.setEncoding()][] for more information.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.write(data, [encoding], [callback])",
+              "type": "method",
+              "name": "write",
+              "desc": "<p>Sends data on the socket. The second parameter specifies the encoding in the\ncase of a string--it defaults to UTF8 encoding.\n\n</p>\n<p>Returns <code>true</code> if the entire data was flushed successfully to the kernel\nbuffer. Returns <code>false</code> if all or part of the data was queued in user memory.\n<code>&#39;drain&#39;</code> will be emitted when the buffer is again free.\n\n</p>\n<p>The optional <code>callback</code> parameter will be executed when the data is finally\nwritten out - this may not be immediately.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "data"
+                    },
+                    {
+                      "name": "encoding",
+                      "optional": true
+                    },
+                    {
+                      "name": "callback",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.end([data], [encoding])",
+              "type": "method",
+              "name": "end",
+              "desc": "<p>Half-closes the socket. i.e., it sends a FIN packet. It is possible the\nserver will still send some data.\n\n</p>\n<p>If <code>data</code> is specified, it is equivalent to calling\n<code>socket.write(data, encoding)</code> followed by <code>socket.end()</code>.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "data",
+                      "optional": true
+                    },
+                    {
+                      "name": "encoding",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.destroy()",
+              "type": "method",
+              "name": "destroy",
+              "desc": "<p>Ensures that no more I/O activity happens on this socket. Only necessary in\ncase of errors (parse error or so).\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.pause()",
+              "type": "method",
+              "name": "pause",
+              "desc": "<p>Pauses the reading of data. That is, <code>&#39;data&#39;</code> events will not be emitted.\nUseful to throttle back an upload.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.resume()",
+              "type": "method",
+              "name": "resume",
+              "desc": "<p>Resumes reading after a call to <code>pause()</code>.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.setTimeout(timeout, [callback])",
+              "type": "method",
+              "name": "setTimeout",
+              "desc": "<p>Sets the socket to timeout after <code>timeout</code> milliseconds of inactivity on\nthe socket. By default <code>net.Socket</code> do not have a timeout.\n\n</p>\n<p>When an idle timeout is triggered the socket will receive a <code>&#39;timeout&#39;</code>\nevent but the connection will not be severed. The user must manually <code>end()</code>\nor <code>destroy()</code> the socket.\n\n</p>\n<p>If <code>timeout</code> is 0, then the existing idle timeout is disabled.\n\n</p>\n<p>The optional <code>callback</code> parameter will be added as a one time listener for the\n<code>&#39;timeout&#39;</code> event.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "timeout"
+                    },
+                    {
+                      "name": "callback",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.setNoDelay([noDelay])",
+              "type": "method",
+              "name": "setNoDelay",
+              "desc": "<p>Disables the Nagle algorithm. By default TCP connections use the Nagle\nalgorithm, they buffer data before sending it off. Setting <code>true</code> for\n<code>noDelay</code> will immediately fire off data each time <code>socket.write()</code> is called.\n<code>noDelay</code> defaults to <code>true</code>.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "noDelay",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.setKeepAlive([enable], [initialDelay])",
+              "type": "method",
+              "name": "setKeepAlive",
+              "desc": "<p>Enable/disable keep-alive functionality, and optionally set the initial\ndelay before the first keepalive probe is sent on an idle socket.\n<code>enable</code> defaults to <code>false</code>.\n\n</p>\n<p>Set <code>initialDelay</code> (in milliseconds) to set the delay between the last\ndata packet received and the first keepalive probe. Setting 0 for\ninitialDelay will leave the value unchanged from the default\n(or previous) setting. Defaults to <code>0</code>.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": [
+                    {
+                      "name": "enable",
+                      "optional": true
+                    },
+                    {
+                      "name": "initialDelay",
+                      "optional": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.address()",
+              "type": "method",
+              "name": "address",
+              "desc": "<p>Returns the bound address, the address family name and port of the\nsocket as reported by the operating system. Returns an object with\nthree properties, e.g.\n<code>{ port: 12346, family: &#39;IPv4&#39;, address: &#39;127.0.0.1&#39; }</code>\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.unref()",
+              "type": "method",
+              "name": "unref",
+              "desc": "<p>Calling <code>unref</code> on a socket will allow the program to exit if this is the only\nactive socket in the event system. If the socket is already <code>unref</code>d calling\n<code>unref</code> again will have no effect.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            },
+            {
+              "textRaw": "socket.ref()",
+              "type": "method",
+              "name": "ref",
+              "desc": "<p>Opposite of <code>unref</code>, calling <code>ref</code> on a previously <code>unref</code>d socket will <em>not</em>\nlet the program exit if it&#39;s the only socket left (the default behavior). If\nthe socket is <code>ref</code>d calling <code>ref</code> again will have no effect.\n\n</p>\n",
+              "signatures": [
+                {
+                  "params": []
+                }
+              ]
+            }
+          ],
+          "properties": [
+            {
+              "textRaw": "socket.bufferSize",
+              "name": "bufferSize",
+              "desc": "<p><code>net.Socket</code> has the property that <code>socket.write()</code> always works. This is to\nhelp users get up and running quickly. The computer cannot always keep up\nwith the amount of data that is written to a socket - the network connection\nsimply might be too slow. Node will internally queue up the data written to a\nsocket and send it out over the wire when it is possible. (Internally it is\npolling on the socket&#39;s file descriptor for being writable).\n\n</p>\n<p>The consequence of this internal buffering is that memory may grow. This\nproperty shows the number of characters currently buffered to be written.\n(Number of characters is approximately equal to the number of bytes to be\nwritten, but the buffer may contain strings, and the strings are lazily\nencoded, so the exact number of bytes is not known.)\n\n</p>\n<p>Users who experience large or growing <code>bufferSize</code> should attempt to\n&quot;throttle&quot; the data flows in their program with <code>pause()</code> and <code>resume()</code>.\n\n\n</p>\n"
+            },
+            {
+              "textRaw": "socket.remoteAddress",
+              "name": "remoteAddress",
+              "desc": "<p>The string representation of the remote IP address. For example,\n<code>&#39;74.125.127.100&#39;</code> or <code>&#39;2001:4860:a005::68&#39;</code>.\n\n</p>\n"
+            },
+            {
+              "textRaw": "socket.remotePort",
+              "name": "remotePort",
+              "desc": "<p>The numeric representation of the remote port. For example,\n<code>80</code> or <code>21</code>.\n\n</p>\n"
+            },
+            {
+              "textRaw": "socket.localAddress",
+              "name": "localAddress",
+              "desc": "<p>The string representation of the local IP address the remote client is\nconnecting on. For example, if you are listening on <code>&#39;0.0.0.0&#39;</code> and the\nclient connects on <code>&#39;192.168.1.1&#39;</code>, the value would be <code>&#39;192.168.1.1&#39;</code>.\n\n</p>\n"
+            },
+            {
+              "textRaw": "socket.localPort",
+              "name": "localPort",
+              "desc": "<p>The numeric representation of the local port. For example,\n<code>80</code> or <code>21</code>.\n\n</p>\n"
+            },
+            {
+              "textRaw": "socket.bytesRead",
+              "name": "bytesRead",
+              "desc": "<p>The amount of received bytes.\n\n</p>\n"
+            },
+            {
+              "textRaw": "socket.bytesWritten",
+              "name": "bytesWritten",
+              "desc": "<p>The amount of bytes sent.\n\n\n</p>\n<p><code>net.Socket</code> instances are [EventEmitter][] with the following events:\n\n</p>\n"
+            }
+          ],
+          "events": [
+            {
+              "textRaw": "Event: 'connect'",
+              "type": "event",
+              "name": "connect",
+              "desc": "<p>Emitted when a socket connection is successfully established.\nSee <code>connect()</code>.\n\n</p>\n",
+              "params": []
+            },
+            {
+              "textRaw": "Event: 'data'",
+              "type": "event",
+              "name": "data",
+              "params": [],
+              "desc": "<p>Emitted when data is received.  The argument <code>data</code> will be a <code>Buffer</code> or\n<code>String</code>.  Encoding of data is set by <code>socket.setEncoding()</code>.\n(See the [Readable Stream][] section for more information.)\n\n</p>\n<p>Note that the <strong>data will be lost</strong> if there is no listener when a <code>Socket</code>\nemits a <code>&#39;data&#39;</code> event.\n\n</p>\n"
+            },
+            {
+              "textRaw": "Event: 'end'",
+              "type": "event",
+              "name": "end",
+              "desc": "<p>Emitted when the other end of the socket sends a FIN packet.\n\n</p>\n<p>By default (<code>allowHalfOpen == false</code>) the socket will destroy its file\ndescriptor  once it has written out its pending write queue.  However, by\nsetting <code>allowHalfOpen == true</code> the socket will not automatically <code>end()</code>\nits side allowing the user to write arbitrary amounts of data, with the\ncaveat that the user is required to <code>end()</code> their side now.\n\n\n</p>\n",
+              "params": []
+            },
+            {
+              "textRaw": "Event: 'timeout'",
+              "type": "event",
+              "name": "timeout",
+              "desc": "<p>Emitted if the socket times out from inactivity. This is only to notify that\nthe socket has been idle. The user must manually close the connection.\n\n</p>\n<p>See also: <code>socket.setTimeout()</code>\n\n\n</p>\n",
+              "params": []
+            },
+            {
+              "textRaw": "Event: 'drain'",
+              "type": "event",
+              "name": "drain",
+              "desc": "<p>Emitted when the write buffer becomes empty. Can be used to throttle uploads.\n\n</p>\n<p>See also: the return values of <code>socket.write()</code>\n\n</p>\n",
+              "params": []
+            },
+            {
+              "textRaw": "Event: 'error'",
+              "type": "event",
+              "name": "error",
+              "params": [],
+              "desc": "<p>Emitted when an error occurs.  The <code>&#39;close&#39;</code> event will be called directly\nfollowing this event.\n\n</p>\n"
+            },
+            {
+              "textRaw": "Event: 'close'",
+              "type": "event",
+              "name": "close",
+              "params": [],
+              "desc": "<p>Emitted once the socket is fully closed. The argument <code>had_error</code> is a boolean\nwhich says if the socket was closed due to a transmission error.\n\n</p>\n"
+            }
+          ]
+        }
+      ],
+      "type": "module",
+      "displayName": "net"
+    }
+  ]
+}

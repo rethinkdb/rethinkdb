@@ -1,0 +1,450 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Map Traits</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../concepts.html" title="Concepts">
+<link rel="prev" href="aggrovering.html" title="Addability, Subtractability and Aggregate on Overlap">
+<link rel="next" href="../semantics.html" title="Semantics">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="aggrovering.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../semantics.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_concepts_map_traits" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.concepts.map_traits"></a><a class="link" href="map_traits.html" title="Map Traits">Map Traits</a>
+</h3></div></div></div>
+<p>
+        Icl maps differ in their behavior dependent on how they handle <a href="http://en.wikipedia.org/wiki/Identity_element" target="_top"><span class="emphasis"><em><span class="bold"><strong>identity elements</strong></span></em></span></a> of the associated
+        type <code class="computeroutput"><span class="identifier">CodomainT</span></code>.
+      </p>
+<a name="boost_icl.concepts.map_traits.remarks_on_identity_elements"></a><h5>
+<a name="id1115128"></a>
+        <a class="link" href="map_traits.html#boost_icl.concepts.map_traits.remarks_on_identity_elements">Remarks
+        on Identity Elements</a>
+      </h5>
+<p>
+        In the pseudo code snippets below <code class="computeroutput"><span class="number">0</span></code>
+        will be used to denote <a href="http://en.wikipedia.org/wiki/Identity_element" target="_top"><code class="computeroutput"><span class="identifier">identity</span> <span class="identifier">elements</span></code></a>,
+        which can be different objects like <code class="computeroutput"><span class="keyword">const</span>
+        <span class="keyword">double</span> <span class="number">0.0</span></code>,
+        empty sets, empty strings, null-vectors etc. dependent of the instance type
+        for parameter <code class="computeroutput"><span class="identifier">CodomainT</span></code>.
+        The existence of an <span class="emphasis"><em><span class="bold"><strong>identity element</strong></span></em></span>
+        wrt. an <code class="computeroutput"><span class="keyword">operator</span><span class="special">+=</span></code>
+        is a requirement for template type <code class="computeroutput"><span class="identifier">CodomainT</span></code>.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                type
+              </p>
+              </th>
+<th>
+              <p>
+                operation
+              </p>
+              </th>
+<th>
+              <p>
+                identity element
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">int</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                addition
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="number">0</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">string</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                concatenation
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="string">""</span></code>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">set</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                union
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="special">{}</span></code>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        In these cases the <code class="computeroutput"><span class="identifier">identity</span> <span class="identifier">element</span></code> value is delivered by the default
+        constructor of the maps <code class="computeroutput"><span class="identifier">CodomainT</span></code>
+        type. But there are well known exceptions like e.g. numeric multiplication:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                type
+              </p>
+              </th>
+<th>
+              <p>
+                operation
+              </p>
+              </th>
+<th>
+              <p>
+                identity element
+              </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="keyword">int</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                multiplication
+              </p>
+              </td>
+<td>
+              <p>
+                <code class="computeroutput"><span class="number">1</span></code>
+              </p>
+              </td>
+</tr></tbody>
+</table></div>
+<p>
+        Therefore icl functors, that serve as <code class="computeroutput"><span class="identifier">Combiner</span></code>
+        parameters of icl Maps implement a static function <code class="computeroutput"><span class="identifier">identity_element</span><span class="special">()</span></code> to make sure that the correct <code class="computeroutput"><span class="identifier">identity_element</span><span class="special">()</span></code>
+        is used in the implementation of <span class="emphasis"><em>aggregate on overlap</em></span>.
+        
+</p>
+<pre class="programlisting"><span class="identifier">inplace_times</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">identity_element</span><span class="special">()</span> <span class="special">==</span> <span class="number">1</span>
+<span class="comment">// or more general
+</span><span class="identifier">inplace_times</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">identity_element</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">unit_element</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">()</span>
+</pre>
+<p>
+      </p>
+<a name="boost_icl.concepts.map_traits.definedness_and_storage_of_identity_elements"></a><h5>
+<a name="id1115606"></a>
+        <a class="link" href="map_traits.html#boost_icl.concepts.map_traits.definedness_and_storage_of_identity_elements">Definedness
+        and Storage of Identity Elements</a>
+      </h5>
+<p>
+        There are two <span class="emphasis"><em>properties</em></span> or <span class="emphasis"><em>traits</em></span>
+        of icl maps that can be chosen by a template parameter <code class="computeroutput"><span class="identifier">Traits</span></code>.
+        The <span class="emphasis"><em><span class="bold"><strong>first trait</strong></span></em></span> relates
+        to the <span class="emphasis"><em><span class="bold"><strong>definedness</strong></span></em></span>
+        of the map. Icl maps can be <span class="bold"><strong>partial</strong></span> or
+        <span class="bold"><strong>total</strong></span> on the set of values given by domain
+        type <code class="computeroutput"><span class="identifier">DomainT</span></code>.
+      </p>
+<div class="itemizedlist"><ul type="disc">
+<li>
+          A <span class="emphasis"><em><span class="bold"><strong>partial</strong></span></em></span> map is
+          only defined on those key elements that have been inserted into the Map.
+          This is usually expected and so <span class="emphasis"><em><span class="bold"><strong>partial
+          definedness</strong></span></em></span> is the default.
+        </li>
+<li>
+          Alternatively an icl Map can be <span class="emphasis"><em><span class="bold"><strong>total</strong></span></em></span>.
+          It is then considered to contain a <span class="emphasis"><em><span class="bold"><strong>neutral
+          value</strong></span></em></span> for all key values that are not stored in the
+          map.
+        </li>
+</ul></div>
+<p>
+        The <span class="emphasis"><em><span class="bold"><strong>second trait</strong></span></em></span> is
+        related to the representation of <code class="computeroutput"><span class="identifier">identity</span>
+        <span class="identifier">elements</span></code> in the map. An icl map
+        can be a <span class="emphasis"><em><span class="bold"><strong>identity absorber</strong></span></em></span>
+        or a <span class="emphasis"><em><span class="bold"><strong>identity enricher</strong></span></em></span>.
+      </p>
+<div class="itemizedlist"><ul type="disc">
+<li>
+          A <span class="emphasis"><em><span class="bold"><strong>identity absorber</strong></span></em></span>
+          never stores value pairs <code class="computeroutput"><span class="special">(</span><span class="identifier">k</span><span class="special">,</span><span class="number">0</span><span class="special">)</span></code> that carry identity elements.
+        </li>
+<li>
+          A <span class="emphasis"><em><span class="bold"><strong>identity enricher</strong></span></em></span>
+          stores value pairs <code class="computeroutput"><span class="special">(</span><span class="identifier">k</span><span class="special">,</span><span class="number">0</span><span class="special">)</span></code>.
+        </li>
+</ul></div>
+<p>
+        For the template parameter <code class="computeroutput"><span class="identifier">Traits</span></code>
+        of icl Maps we have the following four values.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+              </p>
+              </th>
+<th>
+              <p>
+                identity absorber
+              </p>
+              </th>
+<th>
+              <p>
+                identity enricher
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                partial
+              </p>
+              </td>
+<td>
+              <p>
+                partial_absorber <span class="emphasis"><em>(default)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                partial_enricher
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                total
+              </p>
+              </td>
+<td>
+              <p>
+                total_absorber
+              </p>
+              </td>
+<td>
+              <p>
+                total_enricher
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<a name="boost_icl.concepts.map_traits.map_traits_motivated"></a><h5>
+<a name="id1115901"></a>
+        <a class="link" href="map_traits.html#boost_icl.concepts.map_traits.map_traits_motivated">Map Traits
+        motivated</a>
+      </h5>
+<p>
+        Map traits are a late extension to the <span class="bold"><strong>icl</strong></span>.
+        Interval maps have been used for a couple of years in a variety of applications
+        at Cortex Software GmbH with an implementation that resembled the default
+        trait. Only the deeper analysis of the icl's <span class="emphasis"><em><span class="bold"><strong>aggregating
+        Map's concept</strong></span></em></span> in the course of preparation of the library
+        for boost led to the introduction of map Traits.
+      </p>
+<a name="boost_icl.concepts.map_traits.add_subtract_antinomy_in_aggregating_maps"></a><h6>
+<a name="id1115929"></a>
+        <a class="link" href="map_traits.html#boost_icl.concepts.map_traits.add_subtract_antinomy_in_aggregating_maps">Add-Subtract
+        Antinomy in Aggregating Maps</a>
+      </h6>
+<p>
+        Constitutional for the absorber/enricher propery is a little antinomy.
+      </p>
+<p>
+        We can insert value pairs to the map by <span class="emphasis"><em><span class="bold"><strong>adding</strong></span></em></span>
+        them to the map via operations <code class="computeroutput"><span class="identifier">add</span><span class="special">,</span> <span class="special">+=</span></code> or <code class="computeroutput"><span class="special">+</span></code>: 
+</p>
+<pre class="programlisting"><span class="special">{}</span> <span class="special">+</span> <span class="special">{(</span><span class="identifier">k</span><span class="special">,</span><span class="number">1</span><span class="special">)}</span> <span class="special">==</span> <span class="special">{(</span><span class="identifier">k</span><span class="special">,</span><span class="number">1</span><span class="special">)}</span> <span class="comment">// addition</span></pre>
+<p>
+      </p>
+<p>
+        Further addition on common keys triggers aggregation: 
+</p>
+<pre class="programlisting"><span class="special">{(</span><span class="identifier">k</span><span class="special">,</span><span class="number">1</span><span class="special">)}</span> <span class="special">+</span> <span class="special">{(</span><span class="identifier">k</span><span class="special">,</span><span class="number">1</span><span class="special">)}</span> <span class="special">==</span> <span class="special">{(</span><span class="identifier">k</span><span class="special">,</span><span class="number">2</span><span class="special">)}</span> <span class="comment">// aggregation for common key k</span></pre>
+<p>
+      </p>
+<p>
+        A subtraction of existing pairs 
+</p>
+<pre class="programlisting"><span class="special">{(</span><span class="identifier">k</span><span class="special">,</span><span class="number">2</span><span class="special">)}</span> <span class="special">-</span> <span class="special">{(</span><span class="identifier">k</span><span class="special">,</span><span class="number">2</span><span class="special">)}</span> <span class="special">==</span> <span class="special">{(</span><span class="identifier">k</span><span class="special">,</span><span class="number">0</span><span class="special">)}</span> <span class="comment">// aggregation for common key k</span></pre>
+<p>
+        yields value pairs that are associated with 0-values or <code class="computeroutput"><span class="identifier">identity</span>
+        <span class="identifier">elements</span></code>.
+      </p>
+<p>
+        So once a value pair is created for a key <code class="computeroutput"><span class="identifier">k</span></code>
+        it can not be removed from the map via subtraction (<code class="computeroutput"><span class="identifier">subtract</span><span class="special">,</span> <span class="special">-=</span></code> or <code class="computeroutput"><span class="special">-</span></code>).
+      </p>
+<p>
+        The very basic fact on sets, that we can remove what we have previously added
+        
+</p>
+<pre class="programlisting"><span class="identifier">x</span> <span class="special">-</span> <span class="identifier">x</span> <span class="special">=</span> <span class="special">{}</span></pre>
+<p>
+        does not apply.
+      </p>
+<p>
+        This is the motivation for the <span class="emphasis"><em><span class="bold"><strong>identity absorber</strong></span></em></span>
+        Trait. A identity absorber map handles value pairs that carry identity elements
+        as <span class="emphasis"><em><span class="bold"><strong>non-existent</strong></span></em></span>, which
+        saves the law: 
+</p>
+<pre class="programlisting"><span class="identifier">x</span> <span class="special">-</span> <span class="identifier">x</span> <span class="special">=</span> <span class="special">{}</span></pre>
+<p>
+      </p>
+<p>
+        Yet this introduces a new problem: With such a <span class="emphasis"><em>identity absorber</em></span>
+        we are <span class="emphasis"><em>by definition</em></span> unable to store a value <code class="computeroutput"><span class="special">(</span><span class="identifier">k</span><span class="special">,</span><span class="number">0</span><span class="special">)</span></code> in the map.
+        This may be unfavorable because it is not inline with the behavior of stl::maps
+        and this is not necessarily expected by clients of the library.
+      </p>
+<p>
+        The solution to the problem is the introduction of the identity enricher
+        Trait, so the user can choose a map variant according to her needs.
+      </p>
+<a name="boost_icl.concepts.map_traits.partial_and_total_maps"></a><h6>
+<a name="id1116350"></a>
+        <a class="link" href="map_traits.html#boost_icl.concepts.map_traits.partial_and_total_maps">Partial
+        and Total Maps</a>
+      </h6>
+<p>
+        The idea of a identity absorbing map is, that an <span class="emphasis"><em><span class="bold"><strong>associated
+        identity element</strong></span></em></span> value of a pair <code class="computeroutput"><span class="special">(</span><span class="identifier">k</span><span class="special">,</span><span class="number">0</span><span class="special">)</span></code> <span class="emphasis"><em><span class="bold"><strong>codes non-existence</strong></span></em></span>
+        for it's key <code class="computeroutput"><span class="identifier">k</span></code>. So the pair
+        <code class="computeroutput"><span class="special">(</span><span class="identifier">k</span><span class="special">,</span><span class="number">0</span><span class="special">)</span></code>
+        immediately tunnels from a map where it may emerge into the realm of non
+        existence. 
+</p>
+<pre class="programlisting"><span class="special">{(</span><span class="identifier">k</span><span class="special">,</span><span class="number">0</span><span class="special">)}</span> <span class="special">==</span> <span class="special">{}</span></pre>
+<p>
+      </p>
+<p>
+        If identity elements do not code <span class="emphasis"><em><span class="bold"><strong>non-existence</strong></span></em></span>
+        but <span class="emphasis"><em><span class="bold"><strong>existence with null quantification</strong></span></em></span>,
+        we can also think of a map that has an associated identity element <span class="emphasis"><em><span class="bold"><strong>for every</strong></span></em></span> key <code class="computeroutput"><span class="identifier">k</span></code>
+        that has no associated value different from 0. So in contrast to modelling
+        <span class="bold"><strong>all</strong></span> neutral value pairs <code class="computeroutput"><span class="special">(</span><span class="identifier">k</span><span class="special">,</span><span class="number">0</span><span class="special">)</span></code> as being <span class="emphasis"><em><span class="bold"><strong>non-existent</strong></span></em></span>
+        we can model <span class="bold"><strong>all</strong></span> neutral value pairs <code class="computeroutput"><span class="special">(</span><span class="identifier">k</span><span class="special">,</span><span class="number">0</span><span class="special">)</span></code> as being
+        <span class="emphasis"><em><span class="bold"><strong>implicitly existent</strong></span></em></span>.
+      </p>
+<p>
+        A map that is modelled in this way, is one large vector with a value <code class="computeroutput"><span class="identifier">v</span></code> for every key <code class="computeroutput"><span class="identifier">k</span></code>
+        of it's domain type <code class="computeroutput"><span class="identifier">DomainT</span></code>.
+        But only non-identity values are actually stored. This is the motivation
+        for the definedness-Trait on <code class="computeroutput"><span class="identifier">icl</span>
+        <span class="identifier">Maps</span></code>.
+      </p>
+<p>
+        A <span class="emphasis"><em><span class="bold"><strong>partial</strong></span></em></span> map models
+        the intuitive view that only value pairs are existent, that are stored in
+        the map. A <span class="emphasis"><em><span class="bold"><strong>total</strong></span></em></span> map
+        exploits the possibility that all value pairs that are not stored can be
+        considered as being existent and <span class="emphasis"><em><span class="bold"><strong>quantified</strong></span></em></span>
+        with the identity element.
+      </p>
+<a name="boost_icl.concepts.map_traits.pragmatical_aspects_of_map_traits"></a><h5>
+<a name="id1116616"></a>
+        <a class="link" href="map_traits.html#boost_icl.concepts.map_traits.pragmatical_aspects_of_map_traits">Pragmatical
+        Aspects of Map Traits</a>
+      </h5>
+<p>
+        From a pragmatic perspective value pairs that carry <code class="computeroutput"><span class="identifier">identity</span>
+        <span class="identifier">elements</span></code> as mapped values can often
+        be ignored. If we count, for instance, the number of overlaps of inserted
+        intervals in an <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code>
+        (see example <a class="link" href="../examples/overlap_counter.html" title="Overlap counter">overlap counter</a>),
+        most of the time, we are not interested in whether an overlap has been counted
+        <code class="computeroutput"><span class="number">0</span></code> times or has not been counted
+        at all. A identity enricher map is only needed, if we want to distinct between
+        non-existence and 0-quantification.
+      </p>
+<p>
+        The following distinction can <span class="bold"><strong>not</strong></span> be made
+        for a <code class="computeroutput"><a class="link" href="../../boost/icl/partial_absorber.html" title="Struct partial_absorber">partial_absorber</a></code>
+        map but it can be made for an <code class="computeroutput"><a class="link" href="../../boost/icl/partial_enricher.html" title="Struct partial_enricher">partial_enricher</a></code>
+        map:
+      </p>
+<pre class="programlisting">(k,v) does not exist in the map: Pair (k,v) has NOT been dealt with
+(k,0) key k carries 0          : Pair (k,v) has     been dealt with resulting in v=0
+</pre>
+<p>
+        Sometimes this subtle distinction is needed. Then a <code class="computeroutput"><a class="link" href="../../boost/icl/partial_enricher.html" title="Struct partial_enricher">partial_enricher</a></code>
+        is the right choice. Also, If we want to give two <code class="computeroutput"><span class="identifier">icl</span><span class="special">::</span><span class="identifier">Maps</span></code>
+        a common set of keys in order to, say, iterate synchronously over both maps,
+        we need <span class="emphasis"><em>enrichers</em></span>.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="aggrovering.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../concepts.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../semantics.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,220 @@
+<HTML>
+<!--
+     Copyright (c) Jeremy Siek, Lie-Quan Lee, and Andrew Lumsdaine 2000
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<Head>
+<Title>Boost Graph Library: BFSVisitor</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><img src="figs/python.gif" alt="(Python)"/>BFS Visitor Concept</H1>
+
+This concept defines the visitor interface for <a
+href="./breadth_first_search.html"><tt>breadth_first_search()</tt></a>.
+Users can define a class with the BFS Visitor interface and pass and
+object of the class to <tt>breadth_first_search()</tt>, thereby
+augmenting the actions taken during the graph search.
+
+<h3>Refinement of</h3>
+
+<a href="../../utility/CopyConstructible.html">Copy Constructible</a>
+(copying a visitor should be a lightweight operation).
+
+
+<h3>Notation</h3>
+
+<Table>
+<TR>
+<TD><tt>V</tt></TD>
+<TD>A type that is a model of BFS Visitor.</TD>
+</TR>
+
+<TR>
+<TD><tt>vis</tt></TD>
+<TD>An object of type <tt>V</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>G</tt></TD>
+<TD>A type that is a model of Graph.</TD>
+</TR>
+
+<TR>
+<TD><tt>g</tt></TD>
+<TD>An object of type <tt>G</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>e</tt></TD>
+<TD>An object of type <tt>boost::graph_traits&lt;G&gt;::edge_descriptor</tt>.</TD>
+</TR>
+
+<TR>
+<TD><tt>s,u</tt></TD>
+<TD>An object of type <tt>boost::graph_traits&lt;G&gt;::vertex_descriptor</tt>.</TD>
+</TR>
+
+</table>
+
+<h3>Associated Types</h3>
+
+none
+<p>
+
+<h3>Valid Expressions</h3>
+
+<table border>
+<tr>
+<th>Name</th><th>Expression</th><th>Return Type</th><th>Description</th>
+</tr>
+
+<tr>
+<td>Initialize Vertex</td>
+<td><tt>vis.initialize_vertex(s, g)</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked on every vertex of the graph before the start of the
+graph search.
+</td>
+</tr>
+
+<tr>
+<td>Discover Vertex</td>
+<td><tt>vis.discover_vertex(u, g)</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked when a vertex is encountered for the first time.
+</td>
+</tr>
+
+<tr>
+<td>Examine Vertex</td>
+<td><tt>vis.examine_vertex(u, g)</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked on a vertex as it is popped from the queue. This
+happens immediately before <tt>examine_edge()</tt> is invoked
+on each of the out-edges of vertex <tt>u</tt>.
+</td>
+</tr>
+
+<tr>
+<td>Examine Edge</td>
+<td><tt>vis.examine_edge(e, g)</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked on every out-edge of each vertex after it is discovered.
+</td>
+</tr>
+
+
+<tr>
+<td>Tree Edge</td>
+<td><tt>vis.tree_edge(e, g)</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked on each edge as it becomes a member of the edges that
+form the search tree.</td>
+</tr>
+
+<tr>
+<td>Non-Tree Edge</td>
+<td><tt>vis.non_tree_edge(e, g)</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked on back or cross edges for directed graphs and cross
+edges for undirected graphs.
+</td>
+</tr>
+
+<tr>
+<td>Gray Target</td>
+<td><tt>vis.gray_target(e, g)</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked on the subset of non-tree edges whose target vertex is
+colored gray at the time of examination. The color gray indicates
+that the vertex is currently in the queue. 
+</td>
+</tr>
+
+<tr>
+<td>Black Target</td>
+<td><tt>vis.black_target(e, g)</tt></td>
+<td><tt>void</tt></td>
+<td>
+This is invoked on the subset of non-tree edges whose target vertex is
+colored black at the time of examination. The color black indicates
+that the vertex has been removed from the queue.
+</td>
+</tr>
+
+<tr>
+<td>Finish Vertex</td>
+<td><tt>vis.finish_vertex(u, g)</tt></td>
+<td><tt>void</tt></td>
+<td>
+This invoked on a vertex after all of its out edges have been added to the
+search tree and all of the adjacent vertices have been discovered
+(but before the out-edges of the adjacent vertices have been examined).
+</td>
+</tr>
+
+</table>
+
+<h3>Models</h3>
+
+<ul>
+ <li><a href="./bfs_visitor.html"><tt>bfs_visitor</tt></a>
+</ul>
+
+<a name="python"></a><h3>Python</h3>
+To implement a model of the <tt>BFSVisitor</tt> concept in Python,
+create a new class that derives from the <tt>BFSVisitor</tt> type of
+the graph, which will be
+named <tt><i>GraphType</i>.BFSVisitor</tt>. The events and syntax are
+the same as with visitors in C++. Here is an example for the
+Python <tt>bgl.Graph</tt> graph type:
+
+<pre>
+class count_tree_edges_bfs_visitor(bgl.Graph.BFSVisitor):
+  def __init__(self, name_map):
+    bgl.Graph.BFSVisitor.__init__(self)
+    self.name_map = name_map
+
+  def tree_edge(self, e, g):
+    (u, v) = (g.source(e), g.target(e))
+    print "Tree edge ",
+    print self.name_map[u],
+    print " -> ",
+    print self.name_map[v]
+</pre>
+
+<h3>See also</h3>
+
+<a href="./visitor_concepts.html">Visitor concepts</a>
+
+<br>
+<HR>
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2000-2001</TD><TD>
+<A HREF="http://www.boost.org/people/jeremy_siek.htm">Jeremy Siek</A>,
+Indiana University (<A
+HREF="mailto:jsiek@osl.iu.edu">jsiek@osl.iu.edu</A>)<br>
+<A HREF="http://www.boost.org/people/liequan_lee.htm">Lie-Quan Lee</A>, Indiana University (<A HREF="mailto:llee@cs.indiana.edu">llee@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+
+</BODY>
+</HTML> 

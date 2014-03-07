@@ -1,0 +1,118 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Inplace and infix operators</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../implementation.html" title="Implementation">
+<link rel="prev" href="complexity.html" title="Complexity">
+<link rel="next" href="../function_reference.html" title="Function Reference">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="complexity.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../implementation.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../function_reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_implementation_inplace_and_infix_operators" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.implementation.inplace_and_infix_operators"></a><a class="link" href="inplace_and_infix_operators.html" title="Inplace and infix operators">Inplace
+      and infix operators</a>
+</h3></div></div></div>
+<p>
+        For the major operations <span class="emphasis"><em>addition, subtraction, intersection</em></span>
+        of <span class="bold"><strong>icl</strong></span> containers and for <span class="emphasis"><em>symmetric
+        difference</em></span> inplace <code class="computeroutput"><span class="keyword">operator</span></code>s
+        <code class="computeroutput"><span class="special">+=</span> <span class="special">|=,</span>
+        <span class="special">-=,</span> <span class="special">&amp;=</span></code>
+        and <code class="computeroutput"><span class="special">^=</span></code> are provided.
+      </p>
+<p>
+        For every <span class="emphasis"><em><span class="bold"><strong>inplace</strong></span></em></span> operator
+        
+</p>
+<pre class="programlisting"><span class="identifier">T</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="identifier">o</span><span class="special">=</span> <span class="special">(</span><span class="identifier">T</span><span class="special">&amp;</span> <span class="identifier">object</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">operand</span><span class="special">)</span>
+</pre>
+<p>
+        the <span class="bold"><strong>icl</strong></span> provides corresponding <span class="emphasis"><em><span class="bold"><strong>infix</strong></span></em></span> operators. 
+</p>
+<pre class="programlisting"><span class="identifier">T</span> <span class="keyword">operator</span> <span class="identifier">o</span> <span class="special">(</span><span class="identifier">T</span> <span class="identifier">object</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">operand</span><span class="special">){</span> <span class="keyword">return</span> <span class="identifier">object</span> <span class="identifier">o</span><span class="special">=</span> <span class="identifier">operand</span><span class="special">;</span> <span class="special">}</span>
+<span class="identifier">T</span> <span class="keyword">operator</span> <span class="identifier">o</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">P</span><span class="special">&amp;</span> <span class="identifier">operand</span><span class="special">,</span> <span class="identifier">T</span> <span class="identifier">object</span><span class="special">){</span> <span class="keyword">return</span> <span class="identifier">object</span> <span class="identifier">o</span><span class="special">=</span> <span class="identifier">operand</span><span class="special">;</span> <span class="special">}</span>
+</pre>
+<p>
+      </p>
+<p>
+        From this implementation of the infix <code class="computeroutput"><span class="keyword">operator</span>
+        <span class="identifier">o</span></code> the compiler will hopefully use
+        return value optimization <a href="http://en.wikipedia.org/wiki/Return_value_optimization" target="_top">(RVO)</a>
+        creating no temporary object and performing one copy of the first argument
+        <code class="computeroutput"><span class="identifier">object</span></code>.
+      </p>
+<div class="caution"><table border="0" summary="Caution">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Caution]" src="../../../../../../doc/src/images/caution.png"></td>
+<th align="left">Caution</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          Compared to the <span class="emphasis"><em>inplace</em></span> <code class="computeroutput"><span class="keyword">operator</span>
+          <span class="identifier">o</span><span class="special">=</span></code>
+          every use of an <span class="emphasis"><em>infix</em></span> <code class="computeroutput"><span class="keyword">operator</span>
+          <span class="identifier">o</span></code> requires <span class="emphasis"><em><span class="bold"><strong>one extra copy</strong></span></em></span> of the first argument
+          <code class="computeroutput"><span class="identifier">object</span></code> that passes a container.
+        </p></td></tr>
+</table></div>
+<p>
+        Use infix operators only, if
+      </p>
+<div class="itemizedlist"><ul type="disc">
+<li>
+          efficiency is not crucial, e.g. the containers copied are small.
+        </li>
+<li>
+          a concise and short notation is more important than efficiency in your
+          context.
+        </li>
+<li>
+          you need the result of operator <code class="computeroutput"><span class="identifier">o</span><span class="special">=</span></code> as a copy anyway.
+        </li>
+</ul></div>
+<a name="boost_icl.implementation.inplace_and_infix_operators.time_complexity_of_infix__code__phrase_role__identifier__operators__phrase___phrase_role__identifier__o__phrase___code_"></a><h6>
+<a name="id1168197"></a>
+        <a class="link" href="inplace_and_infix_operators.html#boost_icl.implementation.inplace_and_infix_operators.time_complexity_of_infix__code__phrase_role__identifier__operators__phrase___phrase_role__identifier__o__phrase___code_">Time
+        Complexity of infix <code class="computeroutput"><span class="identifier">operators</span> <span class="identifier">o</span></code></a>
+      </h6>
+<p>
+        The time complexity of all infix operators of the <span class="bold"><strong>icl</strong></span>
+        is biased by the extra copy of the <code class="computeroutput"><span class="identifier">object</span></code>
+        argument. So all infix <code class="computeroutput"><span class="identifier">operators</span>
+        <span class="identifier">o</span></code> are at least <span class="emphasis"><em>linear</em></span>
+        in <code class="computeroutput"><span class="identifier">n</span> <span class="special">=</span>
+        <span class="identifier">object</span><span class="special">.</span><span class="identifier">iterative_size</span><span class="special">()</span></code>.
+        Taking this into account, the complexities of all infix operators can be
+        determined from the corresponding inplace <code class="computeroutput"><span class="identifier">operators</span>
+        <span class="identifier">o</span><span class="special">=</span></code>
+        they depend on.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="complexity.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../implementation.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../function_reference.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

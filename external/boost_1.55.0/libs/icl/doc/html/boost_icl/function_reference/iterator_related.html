@@ -1,0 +1,450 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Iterator related</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../function_reference.html" title="Function Reference">
+<link rel="prev" href="symmetric_difference.html" title="Symmetric Difference">
+<link rel="next" href="element_iteration.html" title="Element iteration">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="symmetric_difference.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function_reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="element_iteration.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_function_reference_iterator_related" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.function_reference.iterator_related"></a><a class="link" href="iterator_related.html" title="Iterator related">Iterator
+      related</a>
+</h3></div></div></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                <span class="emphasis"><em><span class="bold"><strong>Synopsis Complexities</strong></span></em></span>
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> sets
+              </p>
+              </th>
+<th>
+              <p>
+                interval<br> maps
+              </p>
+              </th>
+<th>
+              <p>
+                element<br> sets
+              </p>
+              </th>
+<th>
+              <p>
+                element<br> maps
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">J</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">begin</span><span class="special">()</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">J</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">end</span><span class="special">()</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">J</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">rbegin</span><span class="special">()</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">J</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">rend</span><span class="special">()</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(1)</em></span>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">J</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">lower_bound</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">J</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">upper_bound</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                <code class="computeroutput"><span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">J</span><span class="special">,</span><span class="identifier">J</span><span class="special">&gt;</span>
+                <span class="identifier">T</span><span class="special">::</span><span class="identifier">equal_range</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span><span class="special">&amp;)</span></code>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+<td>
+              <p>
+                <span class="emphasis"><em>O(log n)</em></span>
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                <span class="emphasis"><em><span class="bold"><strong>Iterator related</strong></span></em></span>
+              </p>
+              </th>
+<th>
+              <p>
+              </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting">      <span class="identifier">iterator</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">begin</span><span class="special">()</span>
+<span class="identifier">const_iterator</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">begin</span><span class="special">()</span><span class="keyword">const</span></pre>
+<p>
+              </p>
+              </td>
+<td>
+              <p>
+                Returns an iterator to the first value of the container.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting">      <span class="identifier">iterator</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">end</span><span class="special">()</span>
+<span class="identifier">const_iterator</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">end</span><span class="special">()</span><span class="keyword">const</span></pre>
+<p>
+              </p>
+              </td>
+<td>
+              <p>
+                Returns an iterator to a position <code class="computeroutput"><span class="identifier">end</span><span class="special">()</span></code> after the last value of the container.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting">      <span class="identifier">reverse_iterator</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">rbegin</span><span class="special">()</span>
+<span class="identifier">const_reverse_iterator</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">rbegin</span><span class="special">()</span><span class="keyword">const</span></pre>
+<p>
+              </p>
+              </td>
+<td>
+              <p>
+                Returns a reverse iterator to the last value of the container.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting">      <span class="identifier">reverse_iterator</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">rend</span><span class="special">()</span>
+<span class="identifier">const_reverse_iterator</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">rend</span><span class="special">()</span><span class="keyword">const</span></pre>
+<p>
+              </p>
+              </td>
+<td>
+              <p>
+                Returns a reverse iterator to a position <code class="computeroutput"><span class="identifier">rend</span><span class="special">()</span></code> before the first value of the container.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting">      <span class="identifier">iterator</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">lower_bound</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span><span class="special">&amp;</span> <span class="identifier">k</span><span class="special">)</span>
+<span class="identifier">const_iterator</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">lower_bound</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span><span class="special">&amp;</span> <span class="identifier">key</span><span class="special">)</span><span class="keyword">const</span></pre>
+<p>
+              </p>
+              </td>
+<td>
+              <p>
+                Returns an iterator that points to the first element <code class="computeroutput"><span class="identifier">first</span></code>, that does not compare less
+                than <code class="computeroutput"><span class="identifier">key_type</span> <span class="identifier">key</span></code>.
+                <code class="computeroutput"><span class="identifier">first</span></code> can be equal
+                or greater than <code class="computeroutput"><span class="identifier">key</span></code>,
+                or it may overlap <code class="computeroutput"><span class="identifier">key</span></code>
+                for interval containers.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting">      <span class="identifier">iterator</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">upper_bound</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span><span class="special">&amp;)</span>
+<span class="identifier">const_iterator</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">upper_bound</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span><span class="special">&amp;)</span><span class="keyword">const</span></pre>
+<p>
+              </p>
+              </td>
+<td>
+              <p>
+                Returns an iterator that points to the first element <code class="computeroutput"><span class="identifier">past</span></code>, that compares greater than
+                <code class="computeroutput"><span class="identifier">key_type</span> <span class="identifier">key</span></code>.
+              </p>
+              </td>
+</tr>
+<tr>
+<td>
+              <p>
+                
+</p>
+<pre xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="table-programlisting">            <span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">iterator</span><span class="special">,</span><span class="identifier">iterator</span><span class="special">&gt;</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">equal_range</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span><span class="special">&amp;</span> <span class="identifier">key</span><span class="special">)</span>
+<span class="identifier">pair</span><span class="special">&lt;</span><span class="identifier">const_iterator</span><span class="special">,</span><span class="identifier">const_iterator</span><span class="special">&gt;</span> <span class="identifier">T</span><span class="special">::</span><span class="identifier">equal_range</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">key_type</span><span class="special">&amp;</span> <span class="identifier">key</span><span class="special">)</span><span class="keyword">const</span>
+</pre>
+<p>
+              </p>
+              </td>
+<td>
+              <p>
+                Returns a range <code class="computeroutput"><span class="special">[</span><span class="identifier">first</span><span class="special">,</span> <span class="identifier">past</span><span class="special">)</span></code> of iterators to all elements of
+                the container that compare neither less than nor greater than <code class="computeroutput"><span class="identifier">key_type</span> <span class="identifier">key</span></code>.
+                For element containers <a href="http://www.cplusplus.com/reference/stl/set/" target="_top"><code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span></code> </a> and <code class="computeroutput"><a class="link" href="../../boost/icl/map.html" title="Class template map">icl::map</a></code>,
+                <code class="computeroutput"><span class="identifier">equal_range</span></code> contains
+                at most one iterator pointing the element equal to <code class="computeroutput"><span class="identifier">key</span></code>, if it exists.
+              </p>
+              <p>
+                For interval containers <code class="computeroutput"><span class="identifier">equal_range</span></code>
+                contains iterators to all intervals that overlap interval <code class="computeroutput"><span class="identifier">key</span></code>.
+              </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        <span class="emphasis"><em><span class="bold"><strong>See also . . .</strong></span></em></span>
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr></tr></thead>
+<tbody><tr><td>
+              <p>
+                <a class="link" href="element_iteration.html" title="Element iteration"><span class="emphasis"><em><span class="bold"><strong>Element iteration</strong></span></em></span></a>
+              </p>
+              </td></tr></tbody>
+</table></div>
+<p>
+        <span class="emphasis"><em><span class="bold"><strong>Back to section . . .</strong></span></em></span>
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr></tr></thead>
+<tbody>
+<tr><td>
+              <p>
+                <a class="link" href="../interface/function_synopsis.html#function_synopsis_table"><span class="emphasis"><em><span class="bold"><strong>Function
+                Synopsis</strong></span></em></span></a>
+              </p>
+              </td></tr>
+<tr><td>
+              <p>
+                <a class="link" href="../interface.html" title="Interface"><span class="emphasis"><em><span class="bold"><strong>Interface</strong></span></em></span></a>
+              </p>
+              </td></tr>
+</tbody>
+</table></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="symmetric_difference.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../function_reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="element_iteration.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

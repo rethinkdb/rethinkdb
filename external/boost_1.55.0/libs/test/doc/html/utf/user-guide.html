@@ -1,0 +1,283 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Unit Test Framework: User's guide</title>
+<link rel="stylesheet" href="../../style/style.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../index.html" title="Boost Test Library">
+<link rel="up" href="../utf.html" title="Part IV. Boost Test Library: The Unit Test Framework">
+<link rel="prev" href="compilation/direct-include.html" title="Including the UTF directly into your test module">
+<link rel="next" href="user-guide/usage-variants.html" title="The UTF usage variants or the Buridan's donkey parable">
+<script language="JavaScript1.2" src="../../js/boost-test.js"></script>
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table width="100%"><tr>
+<td width="10%"><a href="../index.html"><img alt="Home" width="229" height="61" border="0" src="../../../../../libs/test/docbook/img/boost.test.logo.png"></a></td>
+<td valign="middle" align="left"> &gt; <a href="../utf.html">The Unit Test Framework</a> &gt; <b>User's guide</b><a href="testing-tools.html">
+      &gt;
+      </a>
+</td>
+<td><div class="spirit-nav">
+<a href="compilation/direct-include.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a href="user-guide/usage-variants.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div></td>
+</tr></table>
+<hr>
+<div class="chapter" lang="en">
+<div class="titlepage"><div><div><h2 class="title">
+<a name="utf.user-guide"></a>Unit Test Framework: User's guide</h2></div></div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl>
+<dt><a href="user-guide/usage-variants.html">Usage variants</a></dt>
+<dl>
+<dt><a href="user-guide/usage-variants/static-lib-variant.html">Static library</a></dt>
+<dt><a href="user-guide/usage-variants/dynamic-lib-variant.html">Dynamic library</a></dt>
+<dt><a href="user-guide/usage-variants/single-header-variant.html">Single header</a></dt>
+<dt><a href="user-guide/usage-variants/extern-test-runner-variant.html">External test runner</a></dt>
+</dl>
+<dt><a href="user-guide/test-runners.html">Supplied test runners</a></dt>
+<dl><dt><a href="user-guide/usage-variants/extern-test-runner.html">External test runner</a></dt></dl>
+<dt><a href="user-guide/initialization.html">Test module initialization</a></dt>
+<dt><a href="user-guide/test-organization.html">Test organization</a></dt>
+<dl>
+<dt><a href="user-guide/test-organization/nullary-test-case.html">Nullary function based test case</a></dt>
+<dl>
+<dt><a href="user-guide/test-organization/manual-nullary-test-case.html">Manual registration</a></dt>
+<dt><a href="user-guide/test-organization/auto-nullary-test-case.html">Automated registration</a></dt>
+</dl>
+<dt><a href="user-guide/test-organization/unary-test-case.html">Unary function based test case</a></dt>
+<dt><a href="user-guide/test-organization/test-case-template.html">Test case template</a></dt>
+<dl>
+<dt><a href="user-guide/test-organization/manual-test-case-template.html">Manual registration</a></dt>
+<dt><a href="user-guide/test-organization/auto-test-case-template.html">Automated registration</a></dt>
+</dl>
+<dt><a href="user-guide/test-organization/test-suite.html">Test suite</a></dt>
+<dl>
+<dt><a href="user-guide/test-organization/manual-test-suite.html">Manual registration</a></dt>
+<dt><a href="user-guide/test-organization/auto-test-suite.html">Automated registration</a></dt>
+<dt><a href="user-guide/test-organization/master-test-suite.html">Master Test Suite</a></dt>
+</dl>
+<dt><a href="user-guide/test-organization/expected-failures.html">Expected failures specification</a></dt>
+</dl>
+<dt><a href="user-guide/fixture.html">Fixtures</a></dt>
+<dl>
+<dt><a href="user-guide/fixture/model.html">Generic model</a></dt>
+<dt><a href="user-guide/fixture/per-test-case.html">Per test case</a></dt>
+<dt><a href="user-guide/fixture/test-suite-shared.html">Test suite shared</a></dt>
+<dt><a href="user-guide/fixture/global.html">Global fixture</a></dt>
+</dl>
+<dt><a href="user-guide/test-output.html">Test Output </a></dt>
+<dl>
+<dt><a href="user-guide/test-output/test-log.html">Test log</a></dt>
+<dl>
+<dt><a href="user-guide/test-output/BOOST_TEST_MESSAGE.html">BOOST_TEST_MESSAGE</a></dt>
+<dt><a href="user-guide/test-output/BOOST_TEST_CHECKPOINT.html">BOOST_TEST_CHECKPOINT</a></dt>
+<dt><a href="user-guide/test-output/BOOST_TEST_PASSPOINT.html">BOOST_TEST_PASSPOINT</a></dt>
+<dt><a href="user-guide/test-output/BOOST_TEST_PASSPOINT.html">Logging floating point type numbers</a></dt>
+<dt><a href="user-guide/test-output/log-hr-format.html">Human readable format</a></dt>
+<dt><a href="user-guide/test-output/log-xml-format.html">XML based log output format</a></dt>
+<dt><a href="user-guide/test-output/log-ct-config.html">Compile time configuration</a></dt>
+</dl>
+<dt><a href="user-guide/test-output/results-report.html">Test report output</a></dt>
+<dt><a href="user-guide/test-output/test-progress.html">Progress display</a></dt>
+</dl>
+<dt><a href="user-guide/runtime-config.html">Runtime configuration </a></dt>
+<dl>
+<dt><a href="user-guide/runtime-config/run-by-name.html">Run by name</a></dt>
+<dt><a href="user-guide/runtime-config/reference.html">Parameters reference</a></dt>
+</dl>
+</dl>
+</div>
+<div class="section" lang="en">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="utf.user-guide.intro"></a>Introduction  or what's your name?</h4></div></div></div>
+<p class="first-line-indented">
+   Without further ado, let's define terms regularly used by the <acronym class="acronym">UTF</acronym>.
+  </p>
+<div class="variablelist"><table border="0">
+<col align="left" valign="top">
+<tbody>
+<tr>
+<td><p><a name="test-module.def"></a><span class="term"><em class="firstterm">The test module</em></span></p></td>
+<td>
+      This is a single binary that performs the test. Physically a test module consists of one or more test source files,
+      which can be built into an executable or a dynamic library. A test module that consists of a single test source 
+      file is called <em class="firstterm"><a name="single-file-test-module.def"></a>single-file test module</em>. Otherwise 
+      it's called <em class="firstterm"><a name="multi-file-test-module.def"></a>multi-file test module</em>. Logically a test 
+      module consists of four parts: <a class="link" href="user-guide.html#test-setup.def">test setup</a> (or test initialization), 
+      <a class="link" href="user-guide.html#test-body.def">test body</a>, <a class="link" href="user-guide.html#test-cleanup.def">test cleanup</a> and 
+      <a class="link" href="user-guide.html#test-runner.def">test runner</a>. The test runner part is optional. If a test module is built as
+      an executable the test runner is built-in. If a test module is built as a dynamic library, it is run by an 
+      external test runner.
+     </td>
+</tr>
+<tr>
+<td><p><a name="test-body.def"></a><span class="term"><em class="firstterm">The test body</em></span></p></td>
+<td>
+      This is the part of a test module that actually performs the test.
+      Logically test body is a collection of <a class="link" href="user-guide.html#test-assertion.def">test assertions</a> wrapped in
+      <a class="link" href="user-guide.html#test-case.def">test cases</a>, which are organized in a <a class="link" href="user-guide.html#test-tree.def">test tree
+      </a>.
+     </td>
+</tr>
+<tr>
+<td><p><a name="test-tree.def"></a><span class="term"><em class="firstterm">The test tree</em></span></p></td>
+<td>
+      This is a hierarchical structure of <a class="link" href="user-guide.html#test-suite.def">test suites</a> (non-leaf nodes) and
+      <a class="link" href="user-guide.html#test-case.def">test cases</a> (leaf nodes).
+     </td>
+</tr>
+<tr>
+<td><p><a name="test-unit.def"></a><span class="term"><em class="firstterm">The test unit</em></span></p></td>
+<td>
+      This is a collective name when referred to either <a class="link" href="user-guide.html#test-suite.def">test suite</a> or
+      <a class="link" href="user-guide.html#test-case.def">test case</a>
+     </td>
+</tr>
+<tr>
+<td><p><a name="test-assertion.def"></a><span class="term"><em class="firstterm">Test assertion</em></span></p></td>
+<td>
+<p>
+      This is a single binary condition (binary in a sense that is has two outcomes: pass and fail) checked
+      by a test module.
+     </p>
+<p>
+      There are different schools of thought on how many test assertions a test case should consist of. Two polar
+      positions are the one advocated by TDD followers - one assertion per test case; and opposite of this - all test
+      assertions within single test case - advocated by those only interested in the first error in a
+      test module. The <acronym class="acronym">UTF</acronym> supports both approaches.
+     </p>
+</td>
+</tr>
+<tr>
+<td><p><a name="test-case.def"></a><span class="term"><em class="firstterm">The test case</em></span></p></td>
+<td>
+      This is an independently monitored function within a test module that
+      consists of one or more test assertions. The term "independently monitored" in the definition above is
+      used to emphasize the fact, that all test cases are monitored independently. An uncaught exception or other normal
+      test case execution termination doesn't cause the testing to cease. Instead the error is caught by the test 
+      case execution monitor, reported by the <acronym class="acronym">UTF</acronym> and testing proceeds to the next test case. Later on you are going 
+      to see that this is on of the primary reasons to prefer multiple small test cases to a single big test function.
+     </td>
+</tr>
+<tr>
+<td><p><a name="test-suite.def"></a><span class="term"><em class="firstterm">The test suite</em></span></p></td>
+<td>
+<p>
+      This is a container for one or more test cases. The test suite gives you an ability to group
+      test cases into a single referable entity. There are various reasons why you may opt to do so, including:
+     </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>To group test cases per subsystems of the unit being tested.</li>
+<li>To share test case setup/cleanup code.</li>
+<li>To run selected group of test cases only.</li>
+<li>To see test report split by groups of test cases</li>
+<li>To skip groups of test cases based on the result of another test unit in a test tree.</li>
+</ul></div>
+<p>
+      A test suite can also contain other test suites, thus allowing a hierarchical test tree structure to be formed.
+      The <acronym class="acronym">UTF</acronym> requires the test tree to contain at least one test suite with at least one test case. The top level 
+      test suite - root node of the test tree - is called the master test suite.
+     </p>
+</td>
+</tr>
+<tr>
+<td><p><a name="test-setup.def"></a><span class="term"><em class="firstterm">The test setup</em></span></p></td>
+<td>
+<p>
+      This is the part of a test module that is responsible for the test
+      preparation. It includes the following operations that take place prior to a start of the test:
+     </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>
+        The <acronym class="acronym">UTF</acronym> initialization
+       </li>
+<li>
+        Test tree construction
+       </li>
+<li>
+        Global test module setup code
+       </li>
+</ul></div>
+<p>
+      Per test case" setup code, invoked for every test case it's assigned to, is also attributed to the
+      test initialization, even though it's executed as a part of the test case.
+     </p>
+</td>
+</tr>
+<tr>
+<td><p><a name="test-cleanup.def"></a><span class="term"><em class="firstterm">The test cleanup</em></span></p></td>
+<td>
+      This is the part of test module that is responsible for cleanup operations.
+     </td>
+</tr>
+<tr>
+<td><p><a name="test-fixture.def"></a><span class="term"><em class="firstterm">The test fixture</em></span></p></td>
+<td>
+      Matching setup and cleanup operations are frequently united into a single entity called test fixture.
+     </td>
+</tr>
+<tr>
+<td><p><a name="test-runner.def"></a><span class="term"><em class="firstterm">The test runner</em></span></p></td>
+<td>
+<p>
+      This is an "executive manager" that runs the show. The test runner's functionality should include
+      the following interfaces and operations:
+     </p>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="itemizedlist"><ul type="disc">
+<li>
+        Entry point to a test module. This is usually either the function main() itself or single function that can be
+        invoked from it to start testing.
+       </li>
+<li>
+        Initialize the <acronym class="acronym">UTF</acronym> based on runtime parameters
+       </li>
+<li>
+        Select an output media for the test log and the test results report
+       </li>
+<li>
+        Select test cases to execute based on runtime parameters
+       </li>
+<li>
+        Execute all or selected test cases
+       </li>
+<li>
+        Produce the test results report
+       </li>
+<li>
+        Generate a test module result code.
+       </li>
+</ul></div>
+<p class="first-line-indented">
+      An advanced test runner may provide additional features, including interactive <acronym class="acronym">GUI</acronym> interfaces,
+      test coverage and profiling support.
+     </p>
+</td>
+</tr>
+<tr>
+<td><p><a name="test-log.def"></a><span class="term"><em class="firstterm">The test log</em></span></p></td>
+<td>
+      This is the record of all events that occur during the testing.
+     </td>
+</tr>
+<tr>
+<td><p><a name="test-results-report.def"></a><span class="term"><em class="firstterm">The test results report</em></span></p></td>
+<td>
+      This is the report produced by the <acronym class="acronym">UTF</acronym> after the testing is completed, that indicates which test cases/test
+      suites passed and which failed.
+     </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright © 2001-2007 Gennadiy Rozental</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="compilation/direct-include.html"><img src="../../../../../doc/html/images/prev.png" alt="Prev"></a><a accesskey="u" href="../utf.html"><img src="../../../../../doc/html/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/html/images/home.png" alt="Home"></a><a accesskey="n" href="user-guide/usage-variants.html"><img src="../../../../../doc/html/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

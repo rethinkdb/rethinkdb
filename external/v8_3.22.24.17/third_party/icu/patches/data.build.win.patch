@@ -1,0 +1,45 @@
+Index: source/data/makedata.mak
+===================================================================
+--- source/data/makedata.mak	(revision 68397)
++++ source/data/makedata.mak	(working copy)
+@@ -480,7 +480,18 @@
+ #############################################################################
+ ALL : GODATA "$(ICU_LIB_TARGET)" "$(TESTDATAOUT)\testdata.dat"
+ 	@echo All targets are up to date
++#############################################################################
++#
++# DATALIB
++#     This target builds the data library. It's identical to 
++#     ALL except that testdata.dat is not built.
++#
++#############################################################################
++DATALIB : GODATA "$(ICU_LIB_TARGET)"
++	@echo Data library is built
+ 
++
++
+ # The core Unicode properties files (uprops.icu, ucase.icu, ubidi.icu)
+ # are hardcoded in the common DLL and therefore not included in the data package any more.
+ # They are not built by default but need to be built for ICU4J data and for getting the .c source files
+@@ -581,6 +592,7 @@
+ 	cd "$(ICUBLD_PKG)"
+ 	"$(ICUPBIN)\icupkg" -x * --list "$(ICUDATA_SOURCE_ARCHIVE)" > "$(ICUTMP)\icudata.lst"
+ 	"$(ICUPBIN)\pkgdata" $(COMMON_ICUDATA_ARGUMENTS) "$(ICUTMP)\icudata.lst"
++	editbin /NXCOMPAT /DYNAMICBASE "$(U_ICUDATA_NAME).dll"
+ 	copy "$(U_ICUDATA_NAME).dll" "$(DLL_OUTPUT)"
+ 	-@erase "$(U_ICUDATA_NAME).dll"
+ 	copy "$(ICUTMP)\$(ICUPKG).dat" "$(ICUOUT)\$(U_ICUDATA_NAME)$(U_ICUDATA_ENDIAN_SUFFIX).dat"
+@@ -914,7 +926,7 @@
+ # If you modify this, modify winmode.c in pkgdata.
+ "$(ICUTMP)\icudata.res": "$(ICUMISC)\icudata.rc"
+ 	@echo Creating data DLL version information from $**
+-	@rc.exe /i "..\..\..\..\common" /r /fo $@ $**
++	@rc.exe /i "..\..\..\..\common;..\..\..\..\..\public\common" /r /fo $@ $**
+ 
+ # Targets for converters
+ "$(ICUBLD_PKG)\cnvalias.icu" : {"$(ICUSRCDATA)\$(ICUUCM)"}\convrtrs.txt "$(ICUTOOLS)\gencnval\$(CFG)\gencnval.exe"
+@@ -990,4 +1002,3 @@
+ # See Jitterbug 4497 for details.
+ $(BRK_SOURCE) : "$(ICUBLD_PKG)\unames.icu" "$(ICUBLD_PKG)\pnames.icu" "$(ICUBLD_PKG)\nfc.nrm"
+ !ENDIF
+-

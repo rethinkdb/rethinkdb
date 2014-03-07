@@ -1,0 +1,1141 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Algorithm</title>
+<link rel="stylesheet" href="../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../index.html" title="Chapter&#160;1.&#160;Phoenix 3.0">
+<link rel="up" href="../stl.html" title="STL">
+<link rel="prev" href="container.html" title="Container">
+<link rel="next" href="../../inside.html" title="Inside Phoenix">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="container.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../stl.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../inside.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="phoenix.modules.stl.algorithm"></a><a class="link" href="algorithm.html" title="Algorithm">Algorithm</a>
+</h4></div></div></div>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">stl</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          The algorithm module provides wrappers for the standard algorithms in the
+          <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">algorithm</span><span class="special">&gt;</span></code> and <code class="computeroutput"><span class="special">&lt;</span><span class="identifier">numeric</span><span class="special">&gt;</span></code>
+          headers.
+        </p>
+<p>
+          The algorithms are divided into the categories iteration, transformation
+          and querying, modeling the <a href="http://boost.org/libs/mpl/doc/index.html" target="_top">Boost.MPL</a>
+          library. The different algorithm classes can be included using the headers:
+        </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">stl</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">/</span><span class="identifier">iteration</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">stl</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">/</span><span class="identifier">transformation</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">phoenix</span><span class="special">/</span><span class="identifier">stl</span><span class="special">/</span><span class="identifier">algorithm</span><span class="special">/</span><span class="identifier">querying</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+          The functions of the algorithm module take ranges as arguments where appropriate.
+          This is different to the standard library, but easy enough to pick up.
+          Ranges are described in detail in the <a href="http://boost.org/libs/range/index.html" target="_top">Boost.Range</a>
+          library.
+        </p>
+<p>
+          For example, using the standard copy algorithm to copy between 2 arrays:
+        </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">array</span><span class="special">[]</span> <span class="special">=</span> <span class="special">{</span><span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">};</span>
+<span class="keyword">int</span> <span class="identifier">output</span><span class="special">[</span><span class="number">3</span><span class="special">];</span>
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">copy</span><span class="special">(</span><span class="identifier">array</span><span class="special">,</span> <span class="identifier">array</span> <span class="special">+</span> <span class="number">3</span><span class="special">,</span> <span class="identifier">output</span><span class="special">);</span> <span class="comment">// We have to provide iterators</span>
+                                     <span class="comment">// to both the start and end of array</span>
+</pre>
+<p>
+          The analogous code using the phoenix algorithm module is:
+        </p>
+<pre class="programlisting"><span class="keyword">int</span> <span class="identifier">array</span><span class="special">[]</span> <span class="special">=</span> <span class="special">{</span><span class="number">1</span><span class="special">,</span> <span class="number">2</span><span class="special">,</span> <span class="number">3</span><span class="special">};</span>
+<span class="keyword">int</span> <span class="identifier">output</span><span class="special">[</span><span class="number">3</span><span class="special">];</span>
+<span class="identifier">copy</span><span class="special">(</span><span class="identifier">arg1</span><span class="special">,</span> <span class="identifier">arg2</span><span class="special">)(</span><span class="identifier">array</span><span class="special">,</span> <span class="identifier">output</span><span class="special">);</span> <span class="comment">// Notice only 2 arguments, the end of</span>
+                                 <span class="comment">// array is established automatically</span>
+</pre>
+<p>
+          The <a href="http://boost.org/libs/range/index.html" target="_top">Boost.Range</a>
+          library provides support for standard containers, strings and arrays, and
+          can be extended to support additional types.
+        </p>
+<p>
+          The following tables describe the different categories of algorithms, and
+          their semantics.
+        </p>
+<div class="sidebar">
+<div class="titlepage"></div>
+<p>
+          <span class="inlinemediaobject"><img src="../../../images/tip.png" alt="tip"></span> Arguments in brackets denote optional parameters.
+        </p>
+</div>
+<div class="table">
+<a name="phoenix.modules.stl.algorithm.t0"></a><p class="title"><b>Table&#160;1.6.&#160;Iteration Algorithms</b></p>
+<div class="table-contents"><table class="table" summary="Iteration Algorithms">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    stl Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">accumulate</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">o</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">accumulate</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">o</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="phoenix.modules.stl.algorithm.t1"></a><p class="title"><b>Table&#160;1.7.&#160;Querying Algorithms</b></p>
+<div class="table-contents"><table class="table" summary="Querying Algorithms">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    stl Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">find</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">find</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">find_if</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">find_if</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">find_end</span><span class="special">(</span><span class="identifier">r1</span><span class="special">,</span>
+                    <span class="identifier">r2</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">find_end</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span>
+                    <span class="identifier">begin</span><span class="special">(</span><span class="identifier">r2</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r2</span><span class="special">)[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">find_first_of</span><span class="special">(</span><span class="identifier">r1</span><span class="special">,</span> <span class="identifier">r2</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">find_first_of</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span> <span class="identifier">begin</span><span class="special">(</span><span class="identifier">r2</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r2</span><span class="special">)[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">adjacent_find</span><span class="special">(</span><span class="identifier">r</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">adjacent_find</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">)[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">count</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">count</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">count_if</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">count_if</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">distance</span><span class="special">(</span><span class="identifier">r</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">distance</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">))</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">mismatch</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">i</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">mismatch</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">i</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">equal</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">i</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">equal</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">i</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">search</span><span class="special">(</span><span class="identifier">r1</span><span class="special">,</span>
+                    <span class="identifier">r2</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">search</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span>
+                    <span class="identifier">begin</span><span class="special">(</span><span class="identifier">r2</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r2</span><span class="special">)[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">lower_bound</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">a</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">lower_bound</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">a</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">upper_bound</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">a</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">upper_bound</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">a</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">equal_range</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">a</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">equal_range</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">a</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">binary_search</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">a</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">binary_search</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">a</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">includes</span><span class="special">(</span><span class="identifier">r1</span><span class="special">,</span>
+                    <span class="identifier">r2</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">includes</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span>
+                    <span class="identifier">begin</span><span class="special">(</span><span class="identifier">r2</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r2</span><span class="special">)[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">min_element</span><span class="special">(</span><span class="identifier">r</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">min_element</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">)[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">max_element</span><span class="special">(</span><span class="identifier">r</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">max_element</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">)[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">lexicographical_compare</span><span class="special">(</span><span class="identifier">r1</span><span class="special">,</span> <span class="identifier">r2</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">lexicographical_compare</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span> <span class="identifier">begin</span><span class="special">(</span><span class="identifier">r2</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r2</span><span class="special">)[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="table">
+<a name="phoenix.modules.stl.algorithm.t2"></a><p class="title"><b>Table&#160;1.8.&#160;Transformation Algorithms</b></p>
+<div class="table-contents"><table class="table" summary="Transformation Algorithms">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                  <p>
+                    Function
+                  </p>
+                </th>
+<th>
+                  <p>
+                    stl Semantics
+                  </p>
+                </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">copy</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">o</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">copy</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">o</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">copy_backward</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">o</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">copy_backward</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">o</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">transform</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">o</span><span class="special">,</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">transform</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">o</span><span class="special">,</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">transform</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">i</span><span class="special">,</span>
+                    <span class="identifier">o</span><span class="special">,</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">transform</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">i</span><span class="special">,</span>
+                    <span class="identifier">o</span><span class="special">,</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">replace</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">a</span><span class="special">,</span>
+                    <span class="identifier">b</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">replace</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">a</span><span class="special">,</span>
+                    <span class="identifier">b</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">replace_if</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">f</span><span class="special">,</span>
+                    <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">replace</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">f</span><span class="special">,</span>
+                    <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">replace_copy</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">o</span><span class="special">,</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">replace_copy</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">o</span><span class="special">,</span> <span class="identifier">a</span><span class="special">,</span> <span class="identifier">b</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">replace_copy_if</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">o</span><span class="special">,</span> <span class="identifier">f</span><span class="special">,</span> <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">replace_copy_if</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">o</span><span class="special">,</span> <span class="identifier">f</span><span class="special">,</span> <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">fill</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">fill</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">fill_n</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">n</span><span class="special">,</span>
+                    <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">fill_n</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">n</span><span class="special">,</span>
+                    <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">generate</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">generate</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">generate_n</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">n</span><span class="special">,</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">generate_n</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">n</span><span class="special">,</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">remove</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">remove</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">remove_if</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">remove_if</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">remove_copy</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">o</span><span class="special">,</span>
+                    <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">remove_copy</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">o</span><span class="special">,</span>
+                    <span class="identifier">a</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">remove_copy_if</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">o</span><span class="special">,</span> <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">remove_copy_if</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">o</span><span class="special">,</span> <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unique</span><span class="special">(</span><span class="identifier">r</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unique</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">)[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unique_copy</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">o</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">unique_copy</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">o</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">reverse</span><span class="special">(</span><span class="identifier">r</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">reverse</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">))</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">reverse_copy</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">o</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">reverse_copy</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">o</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">rotate</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">m</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">rotate</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">m</span><span class="special">,</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">))</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">rotate_copy</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">m</span><span class="special">,</span>
+                    <span class="identifier">o</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">rotate_copy</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">m</span><span class="special">,</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">o</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">random_shuffle</span><span class="special">(</span><span class="identifier">r</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">random_shuffle</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">partition</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">partition</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">stable_partition</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">stable_partition</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">f</span><span class="special">)</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">sort</span><span class="special">(</span><span class="identifier">r</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">sort</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">)[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">stable_sort</span><span class="special">(</span><span class="identifier">r</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">stable_sort</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">)[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">partial_sort</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">m</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">partial_sort</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">m</span><span class="special">,</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">)[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">partial_sort_copy</span><span class="special">(</span><span class="identifier">r1</span><span class="special">,</span> <span class="identifier">r2</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">partial_sort_copy</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span> <span class="identifier">begin</span><span class="special">(</span><span class="identifier">r2</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r2</span><span class="special">)[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">nth_element</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">n</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">nth_element</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">n</span><span class="special">,</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">)[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">merge</span><span class="special">(</span><span class="identifier">r1</span><span class="special">,</span>
+                    <span class="identifier">r2</span><span class="special">,</span>
+                    <span class="identifier">o</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">merge</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span>
+                    <span class="identifier">begin</span><span class="special">(</span><span class="identifier">r2</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r2</span><span class="special">),</span>
+                    <span class="identifier">o</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">inplace_merge</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">m</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">inplace_merge</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">m</span><span class="special">,</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">)[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">set_union</span><span class="special">(</span><span class="identifier">r1</span><span class="special">,</span>
+                    <span class="identifier">r2</span><span class="special">,</span>
+                    <span class="identifier">o</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">set_union</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span>
+                    <span class="identifier">begin</span><span class="special">(</span><span class="identifier">r2</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r2</span><span class="special">)[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">set_intersection</span><span class="special">(</span><span class="identifier">r1</span><span class="special">,</span> <span class="identifier">r2</span><span class="special">,</span> <span class="identifier">o</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">set_intersection</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span> <span class="identifier">begin</span><span class="special">(</span><span class="identifier">r2</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r2</span><span class="special">)[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">set_difference</span><span class="special">(</span><span class="identifier">r1</span><span class="special">,</span> <span class="identifier">r2</span><span class="special">,</span> <span class="identifier">o</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">set_difference</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span> <span class="identifier">begin</span><span class="special">(</span><span class="identifier">r2</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r2</span><span class="special">)[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">set_symmetric_difference</span><span class="special">(</span><span class="identifier">r1</span><span class="special">,</span> <span class="identifier">r2</span><span class="special">,</span> <span class="identifier">o</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">set_symmetric_difference</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r1</span><span class="special">),</span> <span class="identifier">begin</span><span class="special">(</span><span class="identifier">r2</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r2</span><span class="special">)[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">push_heap</span><span class="special">(</span><span class="identifier">r</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">push_heap</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">)[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">pop_heap</span><span class="special">(</span><span class="identifier">r</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">pop_heap</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">)[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">make_heap</span><span class="special">(</span><span class="identifier">r</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">make_heap</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">)[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">sort_heap</span><span class="special">(</span><span class="identifier">r</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">sort_heap</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">)[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">next_permutation</span><span class="special">(</span><span class="identifier">r</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">next_permutation</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">)[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">prev_permutation</span><span class="special">(</span><span class="identifier">r</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">prev_permutation</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">)[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">inner_product</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">o</span><span class="special">,</span> <span class="identifier">a</span><span class="special">[,</span> <span class="identifier">f1</span><span class="special">,</span> <span class="identifier">f2</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">inner_product</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">o</span><span class="special">[,</span> <span class="identifier">f1</span><span class="special">,</span> <span class="identifier">f2</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">partial_sum</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span>
+                    <span class="identifier">o</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">partial_sum</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span>
+                    <span class="identifier">o</span><span class="special">[,</span>
+                    <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+<tr>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">adjacent_difference</span><span class="special">(</span><span class="identifier">r</span><span class="special">,</span> <span class="identifier">o</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+<td>
+                  <p>
+                    <code class="computeroutput"><span class="identifier">adjacent_difference</span><span class="special">(</span><span class="identifier">begin</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">end</span><span class="special">(</span><span class="identifier">r</span><span class="special">),</span> <span class="identifier">o</span><span class="special">[,</span> <span class="identifier">f</span><span class="special">])</span></code>
+                  </p>
+                </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2002-2005, 2010 Joel de Guzman, Dan Marsden, Thomas Heller<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="container.html"><img src="../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../stl.html"><img src="../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../index.html"><img src="../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../inside.html"><img src="../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,8 @@
+[article Include Test
+    [quickbook 1.6]
+    [id include-test]
+]
+
+[include include-inc-1_5.quickbook]
+[include include-inc.quickbook]
+[include:foo include-inc.quickbook]

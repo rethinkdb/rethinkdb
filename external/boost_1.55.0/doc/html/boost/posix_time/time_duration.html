@@ -1,0 +1,84 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class time_duration</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../date_time/doxy.html#header.boost.date_time.posix_time.posix_time_config_hpp" title="Header &lt;boost/date_time/posix_time/posix_time_config.hpp&gt;">
+<link rel="prev" href="operator-__idp51742776.html" title="Function operator-=">
+<link rel="next" href="simple_time_rep.html" title="Struct simple_time_rep">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="operator-__idp51742776.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.posix_time.posix_time_config_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="simple_time_rep.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.posix_time.time_duration"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class time_duration</span></h2>
+<p>boost::posix_time::time_duration &#8212; Base time duration type. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../date_time/doxy.html#header.boost.date_time.posix_time.posix_time_config_hpp" title="Header &lt;boost/date_time/posix_time/posix_time_config.hpp&gt;">boost/date_time/posix_time/posix_time_config.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="time_duration.html" title="Class time_duration">time_duration</a> <span class="special">:</span>
+  <span class="keyword">public</span> <span class="identifier">date_time</span><span class="special">::</span><span class="identifier">time_duration</span><span class="special">&lt;</span> <span class="identifier">time_duration</span><span class="special">,</span> <span class="identifier">time_res_traits</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// types</span>
+  <span class="keyword">typedef</span> <span class="identifier">time_res_traits</span>                          <a name="boost.posix_time.time_duration.rep_type"></a><span class="identifier">rep_type</span><span class="special">;</span>               
+  <span class="keyword">typedef</span> <span class="identifier">time_res_traits</span><span class="special">::</span><span class="identifier">day_type</span>                <a name="boost.posix_time.time_duration.day_type"></a><span class="identifier">day_type</span><span class="special">;</span>               
+  <span class="keyword">typedef</span> <span class="identifier">time_res_traits</span><span class="special">::</span><span class="identifier">hour_type</span>               <a name="boost.posix_time.time_duration.hour_type"></a><span class="identifier">hour_type</span><span class="special">;</span>              
+  <span class="keyword">typedef</span> <span class="identifier">time_res_traits</span><span class="special">::</span><span class="identifier">min_type</span>                <a name="boost.posix_time.time_duration.min_type"></a><span class="identifier">min_type</span><span class="special">;</span>               
+  <span class="keyword">typedef</span> <span class="identifier">time_res_traits</span><span class="special">::</span><span class="identifier">sec_type</span>                <a name="boost.posix_time.time_duration.sec_type"></a><span class="identifier">sec_type</span><span class="special">;</span>               
+  <span class="keyword">typedef</span> <span class="identifier">time_res_traits</span><span class="special">::</span><span class="identifier">fractional_seconds_type</span> <a name="boost.posix_time.time_duration.fractional_seconds_type"></a><span class="identifier">fractional_seconds_type</span><span class="special">;</span>
+  <span class="keyword">typedef</span> <span class="identifier">time_res_traits</span><span class="special">::</span><span class="identifier">tick_type</span>               <a name="boost.posix_time.time_duration.tick_type"></a><span class="identifier">tick_type</span><span class="special">;</span>              
+  <span class="keyword">typedef</span> <span class="identifier">time_res_traits</span><span class="special">::</span><span class="identifier">impl_type</span>               <a name="boost.posix_time.time_duration.impl_type"></a><span class="identifier">impl_type</span><span class="special">;</span>              
+
+  <span class="comment">// <a class="link" href="time_duration.html#boost.posix_time.time_durationconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="time_duration.html#idp51719624-bb"><span class="identifier">time_duration</span></a><span class="special">(</span><span class="identifier">hour_type</span><span class="special">,</span> <span class="identifier">min_type</span><span class="special">,</span> <span class="identifier">sec_type</span><span class="special">,</span> <span class="identifier">fractional_seconds_type</span> <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="time_duration.html#idp52570104-bb"><span class="identifier">time_duration</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="time_duration.html#idp52570168-bb"><span class="identifier">time_duration</span></a><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">date_time</span><span class="special">::</span><span class="identifier">special_values</span><span class="special">)</span><span class="special">;</span>
+  <span class="keyword">explicit</span> <a class="link" href="time_duration.html#idp52570968-bb"><span class="identifier">time_duration</span></a><span class="special">(</span><span class="identifier">impl_type</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp93671320"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp93671528"></a><h3>
+<a name="boost.posix_time.time_durationconstruct-copy-destruct"></a><code class="computeroutput">time_duration</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><a name="idp51719624-bb"></a><span class="identifier">time_duration</span><span class="special">(</span><span class="identifier">hour_type</span> hour<span class="special">,</span> <span class="identifier">min_type</span> min<span class="special">,</span> <span class="identifier">sec_type</span> sec<span class="special">,</span> 
+              <span class="identifier">fractional_seconds_type</span> fs <span class="special">=</span> <span class="number">0</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><a name="idp52570104-bb"></a><span class="identifier">time_duration</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp52570168-bb"></a><span class="identifier">time_duration</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">date_time</span><span class="special">::</span><span class="identifier">special_values</span> sv<span class="special">)</span><span class="special">;</span></pre>Construct from special_values. </li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">explicit</span> <a name="idp52570968-bb"></a><span class="identifier">time_duration</span><span class="special">(</span><span class="identifier">impl_type</span> tick_count<span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2005 CrystalClear Software, Inc<p>Subject to the Boost Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="operator-__idp51742776.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../date_time/doxy.html#header.boost.date_time.posix_time.posix_time_config_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="simple_time_rep.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

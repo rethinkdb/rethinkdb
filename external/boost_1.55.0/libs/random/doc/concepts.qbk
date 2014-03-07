@@ -1,0 +1,246 @@
+[/
+ / Copyright (c) 2009 Steven Watanabe
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See
+ / accompanying file LICENSE_1_0.txt or copy at
+ / http://www.boost.org/LICENSE_1_0.txt)
+]
+
+[section Introduction]
+
+Random numbers are required in a number of different problem domains, such as
+
+* numerics (simulation, Monte-Carlo integration) 
+* games (non-deterministic enemy behavior) 
+* security (key generation) 
+* testing (random coverage in white-box tests) 
+
+The Boost Random Number Generator Library provides a framework for random
+number generators with well-defined properties so that the generators can be
+used in the demanding numerics and security domains. For a general
+introduction to random numbers in numerics, see 
+
+[:"Numerical Recipes in C: The art of scientific computing", William H. Press,
+Saul A. Teukolsky, William A. Vetterling, Brian P. Flannery, 2nd ed., 1992,
+pp. 274-328]
+ 
+Depending on the requirements of the problem domain, different variations of
+random number generators are appropriate: 
+
+* non-deterministic random number generator 
+* pseudo-random number generator 
+* quasi-random number generator 
+
+All variations have some properties in common, the concepts (in the STL
+sense) is called __UniformRandomNumberGenerator. This
+concept will be defined in a subsequent section.
+
+The goals for this library are the following:
+
+* allow easy integration of third-party random-number generators
+* provide easy-to-use front-end classes which model popular distributions 
+* provide maximum efficiency 
+
+[endsect]
+
+[section Uniform Random Number Generator]
+
+A uniform random number generator provides a
+sequence of random numbers uniformly distributed on a given range. The
+range can be compile-time fixed or available (only) after run-time construction
+of the object.
+
+The /tight lower bound/ of some (finite) set S is the (unique) member l in S, so
+that for all v in S, l <= v holds. Likewise, the /tight upper bound/ of some
+(finite) set S is the (unique) member u in S, so that for all v in S, v <= u
+holds.
+
+In the following table, X denotes a number generator class returning objects
+of type T, and v is a const value of X.
+
+[table UniformRandomNumberGenerator requirements
+  [[expression] [return type] [pre/post-condition]]
+  [[`X::result_type`] [`T`] [`std::numeric_limits<T>::is_specialized` is
+                             `true`, `T` is __LessThanComparable]]
+  [[`u.operator()()`] [`T`] [-]]
+  [[`v.min()`] [`T`] [tight lower bound on the set of all values returned by
+                      `operator()`. The return value of this function shall not
+                      change during the lifetime of the object.]]
+  [[`v.max()`] [`T`] [if `std::numeric_limits<T>::is_integer`, tight upper
+                      bound on the set of all values returned by `operator()`,
+                      otherwise, the smallest representable number larger than
+                      the tight upper bound on the set of all values returned
+                      by `operator()`.  In any case, the return value of this
+                      function shall not change during the lifetime of the
+                      object.]]
+]
+
+The member functions `min`, `max`, and `operator()` shall have amortized
+constant time complexity.
+
+[note For integer generators (i.e. integer `T`), the generated values `x`
+fulfill `min() <= x <= max()`, for non-integer generators (i.e. non-integer
+`T`), the generated values `x` fulfill `min() <= x < max()`.
+
+Rationale: The range description with min and max serves two purposes. First,
+it allows scaling of the values to some canonical range, such as [0..1).
+Second, it describes the significant bits of the values, which may be
+relevant for further processing.
+
+The range is a closed interval \[min,max\] for integers, because the underlying
+type may not be able to represent the half-open interval \[min,max+1). It is
+a half-open interval \[min, max) for non-integers, because this is much more
+practical for borderline cases of continuous distributions.]
+
+[note The __UniformRandomNumberGenerator concept does not require
+`operator()(long)` and thus it does not fulfill the `RandomNumberGenerator`
+(std:25.2.11 \[lib.alg.random.shuffle\]) requirements. Use the
+__random_number_generator adapter for that.
+
+Rationale: `operator()(long)` is not provided, because mapping the output of
+some generator with integer range to a different integer range is not trivial.]
+
+[endsect]
+
+[section Non-deterministic Uniform Random Number Generator]
+
+A non-deterministic uniform random number generator is a
+__UniformRandomNumberGenerator that is based on some stochastic process.
+Thus, it provides a sequence of truly-random numbers. Examples for such
+processes are nuclear decay, noise of a Zehner diode, tunneling of quantum
+particles, rolling a die, drawing from an urn, and tossing a coin. Depending
+on the environment, inter-arrival times of network packets or keyboard events
+may be close approximations of stochastic processes.
+
+The class __random_device is a model for a non-deterministic random number
+generator.
+
+[note This type of random-number generator is useful for security
+applications, where it is important to prevent an outside attacker from
+guessing the numbers and thus obtaining your encryption or authentication key.
+Thus, models of this concept should be cautious not to leak any information,
+to the extent possible by the environment. For example, it might be advisable
+to explicitly clear any temporary storage as soon as it is no longer needed.]
+
+[endsect]
+
+[section Pseudo-Random Number Generator]
+
+A pseudo-random number generator is a __UniformRandomNumberGenerator which
+provides a deterministic sequence of pseudo-random numbers, based on some
+algorithm and internal state.
+[classref boost::random::linear_congruential_engine
+Linear congruential] and [classref boost::random::inversive_congruential_engine
+inversive congruential] generators are examples of such [prng pseudo-random
+number generators]. Often, these generators are very sensitive to their
+parameters. In order to prevent wrong implementations from being used, an
+external testsuite should check that the generated sequence and the validation
+value provided do indeed match.
+
+Donald E. Knuth gives an extensive overview on pseudo-random number generation
+in his book "The Art of Computer Programming, Vol. 2, 3rd edition,
+Addison-Wesley, 1997". The descriptions for the specific generators contain
+additional references.
+
+[note Because the state of a pseudo-random number generator is necessarily
+finite, the sequence of numbers returned by the generator will loop
+eventually.]
+
+In addition to the __UniformRandomNumberGenerator requirements,
+a pseudo-random number generator has some additional requirements. In the
+following table, `X` denotes a pseudo-random number generator class returning
+objects of type `T`, `x` is a value of `T`, `u` is a value of `X`, and `v` is
+a const value of `X`.
+
+[table PseudoRandomNumberGenerator requirements
+  [[expression] [return type] [pre/post-condition]]
+  [[`X()`] [-] [creates a generator in some implementation-defined state.
+                Note: Several generators thusly created may possibly produce
+                dependent or identical sequences of random numbers.]]
+  [[`X(...)`] [-] [creates a generator with user-provided state; the
+                            implementation shall specify the constructor
+                            argument(s)]]
+  [[`u.seed(...)`] [`void`] [sets the current state according to the
+                             argument(s); at least functions with the same
+                             signature as the non-default constructor(s)
+                             shall be provided.]]
+]
+
+[note The seed member function is similar to the assign member function in
+STL containers. However, the naming did not seem appropriate.]
+
+Classes which model a pseudo-random number generator shall also model
+__EqualityComparable, i.e. implement `operator==`. Two pseudo-random number
+generators are defined to be /equivalent/ if they both return an identical
+sequence of numbers starting from a given state.
+
+Classes which model a pseudo-random number generator should also model the
+__Streamable concept, i.e. implement `operator<<` and `operator>>`. If so,
+`operator<<` writes all current state of the pseudo-random number generator
+to the given `ostream` so that `operator>>` can restore the state at a later
+time. The state shall be written in a platform-independent manner, but it is
+assumed that the `locales` used for writing and reading be the same. The
+pseudo-random number generator with the restored state and the original at
+the just-written state shall be equivalent.
+
+Classes which model a pseudo-random number generator should also model the
+__CopyConstructible and __Assignable concepts. However, note that the
+sequences of the original and the copy are strongly correlated (in fact,
+they are identical), which may make them unsuitable for some problem domains.
+Thus, copying pseudo-random number generators is discouraged; they should
+always be passed by (non-const) reference.
+
+The classes __rand48, __minstd_rand, and __mt19937 are models for a
+pseudo-random number generator.
+
+[note This type of random-number generator is useful for numerics, games and
+testing. The non-zero arguments constructor(s) and the `seed()` member
+function(s) allow for a user-provided state to be installed in the generator.
+This is useful for debugging Monte-Carlo algorithms and analyzing particular
+test scenarios. The __Streamable concept allows to save/restore the state of
+the generator, for example to re-run a test suite at a later time.]
+
+[endsect]
+
+[section Random Distribution]
+
+A random distribution produces random numbers distributed according to some
+distribution, given uniformly distributed random values as input. In the
+following table, `X` denotes a random distribution class returning objects of
+type `T`, `u` is a value of `X`, `x` is a (possibly const) value of `X`, and
+`e` is an lvalue of an arbitrary type that meets the requirements of a
+__UniformRandomNumberGenerator, returning values of type `U`.
+
+[table Random distribution requirements (in addition to CopyConstructible, and Assignable)
+  [[expression] [return type] [pre/post-condition] [complexity]]
+  [[`X::result_type`] [`T`] [-] [compile-time]]
+  [[`u.reset()`] [`void`] [subsequent uses of `u` do not depend on values
+                           produced by any engine prior to invoking `reset`.]
+                         [constant]]
+  [[`u(e)`] [`T`] [the sequence of numbers returned by successive invocations
+                   with the same object `e` is randomly distributed with some
+                   probability density function `p(x)`]
+                  [amortized constant number of invocations of `e`]]
+  [[`os << x`] [`std::ostream&`] [writes a textual representation for the
+                                  parameters and additional internal data of
+                                  the distribution `x` to `os`.
+                                  post: The `os.fmtflags` and fill character
+                                  are unchanged.]
+                                 [O(size of state)]]
+  [[`is >> u`] [`std::istream&`] [restores the parameters and additional
+                                  internal data of the distribution `u`.
+                                  pre: `is` provides a textual representation
+                                  that was previously written by `operator<<`
+                                  post: The `is.fmtflags` are unchanged.]
+                                 [O(size of state)]]
+]
+
+Additional requirements: The sequence of numbers produced by repeated
+invocations of `x(e)` does not change whether or not `os << x` is invoked
+between any of the invocations `x(e)`. If a textual representation is written
+using `os << x` and that representation is restored into the same or a
+different object `y` of the same type using `is >> y`, repeated invocations
+of `y(e)` produce the same sequence of random numbers as would repeated
+invocations of `x(e)`.
+
+[endsect]

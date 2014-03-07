@@ -1,0 +1,37 @@
+# (C) Copyright John Maddock 2006.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+exe bcp
+    :
+    add_dependent_lib.cpp add_path.cpp bcp_imp.cpp copy_path.cpp file_types.cpp
+    fileview.cpp main.cpp path_operations.cpp scan_cvs_path.cpp 
+    licence_info.cpp scan_licence.cpp output_licence_info.cpp
+    /boost/filesystem//boost_filesystem
+    /boost/regex//boost_regex
+    /boost/test//boost_prg_exec_monitor
+    :
+    :
+    release
+    ;
+
+install dist-bin
+    :
+    bcp
+    :
+    <install-type>EXE
+    <location>../../dist/bin
+    :
+    release
+    ;
+
+install dist-lib
+    :
+    bcp
+    :
+    <install-type>LIB
+    <location>../../dist/lib
+    :
+    release
+    ;
+

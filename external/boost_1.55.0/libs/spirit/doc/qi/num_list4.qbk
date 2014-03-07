@@ -1,0 +1,51 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Number List Attribute - one more, with style]
+
+You've seen that the `double_` parser has a `double` attribute. All parsers have
+an attribute, even complex parsers. Those that are composed from primitives
+using operators, like the list parser, also have an attribute. It so happens that
+the attribute of a list parser:
+
+    p % d
+
+is a `std::vector` of the attribute of `p`. So, for our parser:
+
+
+    double_ % ','
+
+we'll have an attribute of:
+
+    std::vector<double>
+
+
+So, what does this give us? Well, we can simply pass in a `std::vector<double>`
+to our number list parser and it will happily churn out our result in our
+vector. For that to happen, we'll use a variation of the `phrase_parse` with
+an additional argument: the parser's attribute. With the following arguments
+passed to `phrase_parse`
+
+# An iterator pointing to the start of the input
+# An iterator pointing to one past the end of the input
+# The parser object
+# Another parser called the skip parser
+# The parser's attribute
+
+our parser now is further simplified to:
+
+[import ../../example/qi/num_list4.cpp]
+
+[tutorial_numlist4]
+
+The full cpp file for this example can be found here: [@../../example/qi/num_list4.cpp]
+
+[*Hey, no more actions!!!] Now we're entering the realm of attribute grammars.
+Cool eh?
+
+[endsect]

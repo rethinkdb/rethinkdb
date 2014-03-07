@@ -1,0 +1,307 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<!--
+     Copyright (c) 2004 Trustees of Indiana University
+    
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+  -->
+  <head>
+    <title>Boost Graph Library: Brandes' Betweenness Centrality</title>
+  </head>
+
+  <body>
+    <IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+<h1><img src="figs/python.gif" alt="(Python)"/><tt>brandes_betweenness_centrality</tt></h1>
+
+    <p>
+    <pre>
+<em>// named parameter versions</em>
+template&lt;typename Graph, typename Param, typename Tag, typename Rest&gt;
+void 
+brandes_betweenness_centrality(const Graph&amp; g,
+                               const bgl_named_params&lt;Param,Tag,Rest&gt;&amp; params);
+
+template&lt;typename Graph, typename CentralityMap&gt;
+void 
+brandes_betweenness_centrality(const Graph&amp; g, CentralityMap centrality_map);
+
+template&lt;typename Graph, typename CentralityMap, typename EdgeCentralityMap&gt;
+void 
+brandes_betweenness_centrality(const Graph&amp; g, CentralityMap centrality_map,
+                               EdgeCentralityMap edge_centrality);
+
+<em>// non-named parameter versions</em>
+template&lt;typename Graph, typename CentralityMap, typename EdgeCentralityMap,
+         typename IncomingMap, typename DistanceMap, typename DependencyMap, 
+         typename PathCountMap, typename VertexIndexMap&gt;
+void 
+brandes_betweenness_centrality(const Graph&amp; g, CentralityMap centrality_map,
+                               EdgeCentralityMap edge_centrality,
+                               IncomingMap incoming,
+                               DistanceMap distance, DependencyMap dependency,
+                               PathCountMap path_count, 
+                               VertexIndexMap vertex_index);
+
+template&lt;typename Graph, typename CentralityMap, typename EdgeCentralityMap,
+         typename IncomingMap, typename DistanceMap, typename DependencyMap, 
+         typename PathCountMap, typename VertexIndexMap, typename WeightMap&gt;    
+void 
+brandes_betweenness_centrality(const Graph&amp; g, CentralityMap centrality_map,
+                               EdgeCentralityMap edge_centrality,
+                               IncomingMap incoming, 
+                               DistanceMap distance,  DependencyMap dependency,
+                               PathCountMap path_count,      
+                               VertexIndexMap vertex_index,
+                               WeightMap weight_map);
+
+<em>// helper functions</em>
+template&lt;typename Graph, typename CentralityMap&gt;
+void 
+relative_betweenness_centrality(const Graph&amp; g, CentralityMap centrality_map);
+
+template&lt;typename Graph, typename CentralityMap&gt;
+typename property_traits&lt;CentralityMap&gt;::value_type
+central_point_dominance(const Graph&amp; g, CentralityMap centrality_map);
+    </pre>
+
+<p>This algorithm&nbsp;[<a href="bibliography.html#brandes01">54</a>]
+computes the <em>betweenness centrality</em>&nbsp;[<a
+href="bibliography.html#freeman77">55</a>,<a
+href="bibliography.html#anthonisse71">56</a>] of each vertex or each
+edge in the graph. The betweenness centrality of a vertex <em>v</em>
+is defined by
+
+<p><img src="figs/betweenness_centrality.gif">,
+
+<p>where <img src="figs/sigma_st.gif"> is the number of shortest paths from
+vertex <em>s</em> to vertex <em>t</em> and <img src="figs/sigma_stv.gif">
+is the number of shortest paths from vertex <em>s</em> to vertex
+<em>t</em> that pass through vertex <em>v</em>.
+
+<!-- \sum_{s \neq v \neq t}\frac{\sigma_{st}(v)}{\sigma_{st}} -->
+
+<p>The edge betweenness centrality indicates for each edge the
+betweenness centrality that was contributed to the target(s) of the
+edge (plural for undirected graphs). Similar to (vertex) betweenness
+centrality, edge betweenness centrality can be used to determine the
+edges through which most shortest paths must pass. A single invocation
+of this algorithm can compute either the vertex or edge centrality (or
+both).</p>
+
+<p>This algorithm can operate either on weighted graphs (if a suitable
+edge weight map is supplied) or unweighted graphs (if no edge weight
+map is supplied). The result is the absolute betweenness centrality;
+to convert to the relative betweenness centrality, which scales each
+absolute centrality by <img src="figs/rel_betweenness_centrality.gif">
+(where <em>n</em> is the number of vertices in the graph), use
+<tt>relative_betweenness_centrality</tt>. Given the relative
+betweenness centrality, one can compute the <em>central point
+dominance</em>&nbsp;[<a href="bibliography.html#freeman77">55</a>], which is a measure of the maximum "betweenness" of any
+point in the graph: it will be 0 for complete graphs and
+1 for "wheel" graphs (in which there is a central vertex that all
+paths include; see <a href="#Fig1">Fig. 1</a>). Let <img src="figs/v_star.gif"> be the vertex with the largest relative betweenness centrality; then, the central point dominance is defined as:
+
+<p><img src="figs/central_point_dominance.gif">
+
+<!-- C_B' = \frac{\sum_{v \in V} C_B(v^*) - C_B'(v)}{n-1} -->
+
+<p><a name="Fig1">
+    <table border="1">
+      <thead>
+        <tr>
+          <th>Fig. 1: A wheel graph, where every path travels through the central node. <br>The central point dominance of this graph is 1.</td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td align="center"><img src="figs/wheel_graph.gif"></td>
+        </tr>
+      </tbody>
+    </table>
+
+<h3>Where Defined</h3>
+<a href="../../../boost/graph/betweenness_centrality.hpp"><tt>boost/graph/betweenness_centrality.hpp</tt></a>
+
+<h3>Parameters</h3>
+IN: <tt>const Graph&amp; g</tt>
+<blockquote>
+  The graph object on which the algorithm will be applied.  The type
+  <tt>Graph</tt> must be a model of <a
+  href="VertexListGraph.html">Vertex List Graph</a> and <a
+  href="IncidenceGraph.html">Incidence Graph</a>. When an edge
+  centrality map is supplied, it must also model <a
+  href="EdgeListGraph.html">Edge List Graph</a>.<br>
+
+<b>Python</b>: The parameter is named <tt>graph</tt>.
+</blockquote>
+    
+UTIL: <tt>IncomingMap incoming</tt> 
+<blockquote>
+  This property map records the set of edges incoming to each vertex that comprise a shortest path from a particular source vertex through this vertex, and is used internally by the algorithm.The <tt>IncomingMap</tt> type must be a <a
+  href="../../property_map/doc/LvaluePropertyMap.html">Lvalue Property
+  Map</a> whose key type is the same as the vertex descriptor type of
+  the graph and whose value type is a Sequence (e.g., an
+  <tt>std::vector</tt>) containing edge descriptors.<br>
+
+  <b>Default:</b> <a
+  href="../../property_map/doc/iterator_property_map.html">
+  <tt>iterator_property_map</tt></a> created from a
+  <tt>std::vector</tt> of <tt>std::vector&lt;Edge&gt;</tt>, where
+  <tt>Edge</tt> is the edge descriptor type of the graph.<br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+UTIL: <tt>DistanceMap distance_map</tt> 
+<blockquote>
+  The shortest path weight from each source vertex <tt>s</tt> to each
+  vertex in the graph <tt>g</tt> is recorded in this property map, but
+  the result is only used internally. The type <tt>DistanceMap</tt>
+  must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a>. The vertex descriptor type of the graph needs to
+  be usable as the key type of the distance map. The value type of the
+  distance map is the element type of a <a
+  href="./Monoid.html">Monoid</a>.<br>
+
+  <b>Default:</b> <a
+  href="../../property_map/doc/iterator_property_map.html">
+  <tt>iterator_property_map</tt></a> created from a
+  <tt>std::vector</tt> of the <tt>WeightMap</tt>'s value type (or the
+  <tt>vertices_size_type</tt> of the graph when no weight map exists)
+  of size <tt>num_vertices(g)</tt> and using the <tt>vertex_index</tt> for
+  the index map.<br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+UTIL: <tt>DependencyMap dependency</tt> 
+<blockquote>
+  Property map used internally to accumulate partial betweenness
+  centrality results. The type <tt>DependencyMap</tt> must be a model
+  of <a href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a>. The vertex descriptor type of the graph needs to
+  be usable as the key type of the dependency map. The value type of
+  the dependency map must be compatible with the value type of the
+  centrality map.<br>
+
+  <b>Default:</b> <a
+  href="../../property_map/doc/iterator_property_map.html">
+  <tt>iterator_property_map</tt></a> created from a
+  <tt>std::vector</tt> of the <tt>CentralityMap</tt>'s value type of
+  size <tt>num_vertices(g)</tt> and using the <tt>vertex_index</tt>
+  for the index map.<br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+UTIL: <tt>PathCountMap path_count</tt> 
+<blockquote>
+  Property map used internally to accumulate the number of paths that
+  pass through each particular vertex. The type <tt>PathCountMap</tt>
+  must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a>. The vertex descriptor type of the graph needs to
+  be usable as the key type of the dependency map. The value type of
+  the dependency map must be an integral type large enough to store
+  the number of paths in the graph.<br>
+
+  <b>Default:</b> <a
+  href="../../property_map/doc/iterator_property_map.html">
+  <tt>iterator_property_map</tt></a> created from a
+  <tt>std::vector</tt> of the <tt>degree_size_type</tt> of the graph of
+  size <tt>num_vertices(g)</tt> and using the <tt>vertex_index</tt>
+  for the index map.<br>
+
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+<h3>Named parameters</h3>
+OUT/UTIL: <tt>CentralityMap centrality_map</tt>
+<blockquote>
+  This property map is used to accumulate the betweenness centrality
+  of each vertex, and is the primary output of the algorithm. The type
+  <tt>CentralityMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a>, with the graph's vertex descriptor type as its key
+  type. The value type of this property map should be a floating-point
+  or rational type.<br>
+
+  <b>Default:</b> a <tt>dummy_property_map</tt>, which requires no
+  work to compute and returns no answer.<br>
+  <b>Python</b>: The color map must be a <tt>vertex_double_map</tt> for
+  the graph.<br>
+  <b>Python default</b>: <tt>graph.get_vertex_double_map("centrality")</tt>
+</blockquote>
+
+OUT/UTIL: <tt>EdgeCentralityMap edge_centrality_map</tt>
+<blockquote>
+  This property map is used to accumulate the betweenness centrality
+  of each edge, and is a secondary form of output for the
+  algorithm. The type <tt>EdgeCentralityMap</tt> must be a model of <a
+  href="../../property_map/doc/ReadWritePropertyMap.html">Read/Write
+  Property Map</a>, with the graph's edge descriptor type as its key
+  type. The value type of this property map should be the same as the
+  value type of the <tt>CentralityMap</tt> property map.<br>
+
+  <b>Default:</b> a <tt>dummy_property_map</tt>, which requires no
+  work to compute and returns no answer.<br>
+  <b>Python</b>: The color map must be a <tt>edge_double_map</tt> for
+  the graph.<br>
+  <b>Python default</b>: <tt>graph.get_edge_double_map("centrality")</tt>
+</blockquote>
+
+IN: <tt>vertex_index_map(VertexIndexMap vertex_index)</tt> 
+<blockquote>
+  This maps each vertex to an integer in the range <tt>[0,
+    num_vertices(g))</tt>. This is necessary for efficient updates of the
+  heap data structure when an edge is relaxed.  The type
+  <tt>VertexIndexMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>. The value type of the map must be an
+  integer type. The vertex descriptor type of the graph needs to be
+  usable as the key type of the map.<br>
+  <b>Default:</b> <tt>get(vertex_index, g)</tt>.
+    Note: if you use this default, make sure your graph has
+    an internal <tt>vertex_index</tt> property. For example,
+    <tt>adjacenty_list</tt> with <tt>VertexList=listS</tt> does
+    not have an internal <tt>vertex_index</tt> property.<br>
+  <b>Python</b>: Unsupported parameter.
+</blockquote>
+
+IN: <tt>weight_map(WeightMap w_map)</tt>   
+<blockquote>
+  The weight or ``length'' of each edge in the graph. The weights
+  must all be non-negative, and the algorithm will throw a
+  <a href="./exception.html#negative_edge"><tt>negative_edge</tt></a> 
+  exception is one of the edges is negative.
+  The type <tt>WeightMap</tt> must be a model of
+  <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a>. The edge descriptor type of
+  the graph needs to be usable as the key type for the weight
+  map. The value type for this map must be
+  the same as the value type of the distance map.<br>
+  <b>Default:</b> All edge weights are assumed to be equivalent.
+  <b>Python</b>: If supplied, must be an <tt>edge_double_map</tt> for the graph.
+</blockquote>
+
+<h3>Complexity</h3> 
+The time complexity is <em>O(VE)</em> for unweighted graphs and
+<em>O(VE + V(V+E) log V)</em> for weighted graphs. The space complexity
+is <em>O(VE)</em>.
+
+    <hr>
+
+<TABLE>
+<TR valign=top>
+<TD nowrap>Copyright &copy; 2004</TD><TD>
+<A HREF="http://www.boost.org/people/doug_gregor.html">Douglas Gregor</A>, Indiana University (dgregor@cs.indiana.edu</A>)<br>
+<A HREF="http://www.osl.iu.edu/~lums">Andrew Lumsdaine</A>,
+Indiana University (<A
+HREF="mailto:lums@osl.iu.edu">lums@osl.iu.edu</A>)
+</TD></TR></TABLE>
+<!-- Created: Fri Jun  4 16:42:50 EST 2004 -->
+<!-- hhmts start -->Last modified: Tue Mar  1 14:14:51 EST 2005 <!-- hhmts end -->
+  </body>
+</html>

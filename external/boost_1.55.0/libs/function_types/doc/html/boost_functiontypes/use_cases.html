@@ -1,0 +1,175 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Use Cases</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.FunctionTypes 2.5">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.FunctionTypes 2.5">
+<link rel="prev" href="introduction.html" title="Introduction">
+<link rel="next" href="about_tag_types.html" title="About Tag Types">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="about_tag_types.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_functiontypes.use_cases"></a><a class="link" href="use_cases.html" title="Use Cases">Use Cases</a>
+</h2></div></div></div>
+<p>
+      Generic libraries that accept callable arguments are common in C++. Accepting
+      a callable argument of builin type often involves a lot of repetitive code
+      because the accepting function is overloaded for different function arities.
+      Further, member functions may have <code class="literal">const</code>/<code class="literal">volatile</code>-qualifiers,
+      a function may take a variable number of (additional, POD-typed) arguments
+      (such as <code class="literal">printf</code>) and several C++ implementations encode
+      a calling convention with each function's type to allow calls across language
+      or (sub-)system boundaries.
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">accept_function</span><span class="special">(</span><span class="identifier">R</span><span class="special">(*</span> <span class="identifier">func</span><span class="special">)());</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">accept_function</span><span class="special">(</span><span class="identifier">R</span><span class="special">(&amp;</span> <span class="identifier">func</span><span class="special">)());</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">C</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">accept_function</span><span class="special">(</span><span class="identifier">R</span><span class="special">(</span><span class="identifier">C</span><span class="special">::*</span> <span class="identifier">func</span><span class="special">)());</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">C</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">accept_function</span><span class="special">(</span><span class="identifier">R</span><span class="special">(</span><span class="identifier">C</span><span class="special">::*</span> <span class="identifier">func</span><span class="special">)()</span> <span class="keyword">const</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">C</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">accept_function</span><span class="special">(</span><span class="identifier">R</span><span class="special">(</span><span class="identifier">C</span><span class="special">::*</span> <span class="identifier">func</span><span class="special">)()</span> <span class="keyword">volatile</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">C</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">accept_function</span><span class="special">(</span><span class="identifier">R</span><span class="special">(</span><span class="identifier">C</span><span class="special">::*</span> <span class="identifier">func</span><span class="special">)()</span> <span class="keyword">const</span> <span class="keyword">volatile</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">accept_function</span><span class="special">(</span><span class="identifier">R</span><span class="special">(*</span> <span class="identifier">func</span><span class="special">)(...));</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">accept_function</span><span class="special">(</span><span class="identifier">R</span><span class="special">(&amp;</span> <span class="identifier">func</span><span class="special">)(...));</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">C</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">accept_function</span><span class="special">(</span><span class="identifier">R</span><span class="special">(</span><span class="identifier">C</span><span class="special">::*</span> <span class="identifier">func</span><span class="special">)(...));</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">C</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">accept_function</span><span class="special">(</span><span class="identifier">R</span><span class="special">(</span><span class="identifier">C</span><span class="special">::*</span> <span class="identifier">func</span><span class="special">)(...)</span> <span class="keyword">const</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">C</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">accept_function</span><span class="special">(</span><span class="identifier">R</span><span class="special">(</span><span class="identifier">C</span><span class="special">::*</span> <span class="identifier">func</span><span class="special">)(...)</span> <span class="keyword">volatile</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">C</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">accept_function</span><span class="special">(</span><span class="identifier">R</span><span class="special">(</span><span class="identifier">C</span><span class="special">::*</span> <span class="identifier">func</span><span class="special">)(...)</span> <span class="keyword">const</span> <span class="keyword">volatile</span><span class="special">);</span>
+
+<span class="comment">// ...
+</span>
+<span class="comment">// needs to be repeated for every additional function parameter
+</span><span class="comment">// times the number of possible calling conventions
+</span></pre>
+<p>
+      The "overloading approach" obviously does not scale well: There might
+      be several functions that accept callable arguments in one library and client
+      code might end up using several libraries that use this pattern. On the developer
+      side, library developers spend their time solving the same problem, working
+      around the same portability issues, and apply similar optimizations to keep
+      the compilation time down.
+    </p>
+<p>
+      Using Boost.FunctionTypes it is possible to write a single function template
+      instead:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">F</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">accept_function</span><span class="special">(</span><span class="identifier">F</span> <span class="identifier">f</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="comment">// ... use Boost.FunctionTypes to analyse F
+</span><span class="special">}</span>
+</pre>
+<p>
+      The combination with a tuples library that provides an invoker component, such
+      as <a href="../../../../fusion/index.html" target="_top">Boost.Fusion</a>, allows to
+      build flexible callback facilities that are entirely free of repetitive code
+      as shown by the <a href="../../../../function_types/example/interpreter.hpp" target="_top">interpreter
+      example</a>.
+    </p>
+<p>
+      When taking the address of an overloaded function or function template, the
+      type of the function must be known from the context the expression is used
+      in. The code below shows three examples for choosing the <code class="literal">float(float)</code>
+      overload of <code class="literal">std::abs</code>.
+    </p>
+<pre class="programlisting"><span class="keyword">float</span> <span class="special">(*</span><span class="identifier">ptr_absf</span><span class="special">)(</span><span class="keyword">float</span><span class="special">)</span> <span class="special">=</span> <span class="special">&amp;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">abs</span><span class="special">;</span>
+
+
+<span class="keyword">void</span> <span class="identifier">foo</span><span class="special">(</span><span class="keyword">float</span><span class="special">(*</span><span class="identifier">func</span><span class="special">)(</span><span class="keyword">float</span><span class="special">));</span>
+
+<span class="keyword">void</span> <span class="identifier">bar</span><span class="special">()</span> 
+<span class="special">{</span> 
+  <span class="identifier">foo</span><span class="special">(&amp;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">abs</span><span class="special">);</span> 
+<span class="special">}</span>
+
+
+<span class="identifier">std</span><span class="special">::</span><span class="identifier">transform</span><span class="special">(</span><span class="identifier">b</span><span class="special">,</span> <span class="identifier">e</span><span class="special">,</span> <span class="identifier">o</span><span class="special">,</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">(*)(</span><span class="keyword">float</span><span class="special">)&gt;(&amp;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">abs</span><span class="special">));</span>
+</pre>
+<p>
+      The library's type synthesis capabilities can be used to automate overload
+      selection and instantiation of function templates. Given an overloaded function
+      template
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T0</span><span class="special">&gt;</span>
+<span class="identifier">R</span> <span class="identifier">overloaded</span><span class="special">(</span><span class="identifier">T0</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T1</span><span class="special">&gt;</span>
+<span class="identifier">R</span> <span class="identifier">overloaded</span><span class="special">(</span><span class="identifier">T0</span><span class="special">,</span><span class="identifier">T1</span><span class="special">);</span>
+
+<span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">R</span><span class="special">.</span> <span class="keyword">typename</span> <span class="identifier">T0</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T2</span><span class="special">&gt;</span>
+<span class="identifier">R</span> <span class="identifier">overloaded</span><span class="special">(</span><span class="identifier">T0</span><span class="special">,</span><span class="identifier">T1</span><span class="special">,</span><span class="identifier">T2</span><span class="special">);</span>
+</pre>
+<p>
+      we can pick any of the three overloads and instantiate the template with template
+      arguments from a type sequence in a single expression:
+    </p>
+<pre class="programlisting"><span class="keyword">static_cast</span><span class="special">&lt;</span><a class="link" href="reference/synthesis.html#boost_functiontypes.reference.synthesis.function_pointer" title="function_pointer">function_pointer</a><span class="special">&lt;</span><span class="identifier">Seq</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;(&amp;</span> <span class="identifier">overloaded</span><span class="special">)</span>
+</pre>
+<p>
+      This technique can be occasionally more flexible than template argument deduction
+      from a function call because the exact types from the sequence are used to
+      specialize the template (including possibly cv-qualified reference types and
+      the result type). It is applied twice in the <a href="../../../../function_types/example/interface.hpp" target="_top">interface
+      example</a>.
+    </p>
+<p>
+      Another interersting property of callable, builtin types is that they can be
+      valid types for non-type template parameters. This way, a function can be pinpointed
+      at compile time, allowing the compiler to eliminate the call by inlining. The
+      <a href="../../../../function_types/example/fast_mem_fn.hpp" target="_top">fast_mem_fn example</a>
+      exploits this characteristic and implements a potentially inlining version
+      of <a href="../../../../bind/mem_fn.html" target="_top">boost::mem_fn</a> limited to
+      member functions that are known at compile time.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2004-2007 Tobias
+      Schwinger<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="introduction.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="about_tag_types.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

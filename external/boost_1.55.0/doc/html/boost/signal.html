@@ -1,0 +1,101 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class template signal</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../signals/reference.html#header.boost.signal_hpp" title="Header &lt;boost/signal.hpp&gt;">
+<link rel="prev" href="signalN.html" title="Class template signalN">
+<link rel="next" href="slot.html" title="Class template slot">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="signalN.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals/reference.html#header.boost.signal_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="slot.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.signal"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class template signal</span></h2>
+<p>boost::signal &#8212; Safe multicast callback.</p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../signals/reference.html#header.boost.signal_hpp" title="Header &lt;boost/signal.hpp&gt;">boost/signal.hpp</a>&gt;
+
+</span><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> Signature<span class="special">,</span> <span class="keyword">typename</span> Combiner <span class="special">=</span> <a class="link" href="last_value.html" title="Class template last_value">last_value</a><span class="special">&lt;</span><span class="identifier">R</span><span class="special">&gt;</span><span class="special">,</span> 
+         <span class="keyword">typename</span> Group <span class="special">=</span> <span class="keyword">int</span><span class="special">,</span> <span class="keyword">typename</span> GroupCompare <span class="special">=</span> std::less<span class="special">&lt;</span><span class="identifier">Group</span><span class="special">&gt;</span><span class="special">,</span> 
+         <span class="keyword">typename</span> SlotFunction <span class="special">=</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">Signature</span><span class="special">&gt;</span> <span class="special">&gt;</span> 
+<span class="keyword">class</span> <a class="link" href="signal.html" title="Class template signal">signal</a> <span class="special">:</span> <span class="keyword">public</span> <a class="link" href="signalN.html" title="Class template signalN">signalN</a>&lt;R, T1, T2, ..., TN, Combiner, Group, GroupCompare, SlotFunction&gt;
+<span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="signal.html#boost.signalconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="signal.html#idp57861192-bb"><span class="identifier">signal</span></a><span class="special">(</span><span class="keyword">const</span> <span class="identifier">combiner_type</span><span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">combiner_type</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+         <span class="keyword">const</span> <span class="identifier">group_compare_type</span><span class="special">&amp;</span> <span class="special">=</span> <span class="identifier">group_compare_type</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp204354632"></a><h2>Description</h2>
+<p>Class template <a class="link" href="signal.html" title="Class template signal">signal</a> is a thin
+        wrapper around the numbered class templates <a class="link" href="signalN.html" title="Class template signalN">signal0</a>, <a class="link" href="signalN.html" title="Class template signalN">signal1</a>, etc. It accepts a function
+        type with N arguments instead of N separate arguments, and
+        derives from the appropriate <a class="link" href="signalN.html" title="Class template signalN">signalN</a>
+        instantiation.</p>
+<p>All functionality of this class template is in its base
+        class <a class="link" href="signalN.html" title="Class template signalN">signalN</a>.</p>
+<div class="refsect2">
+<a name="idp204357624"></a><h3>Template Parameters</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">typename</span> Signature</pre>
+<p></p>
+</li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">typename</span> Combiner <span class="special">=</span> <a class="link" href="last_value.html" title="Class template last_value">last_value</a><span class="special">&lt;</span><span class="identifier">R</span><span class="special">&gt;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">typename</span> Group <span class="special">=</span> <span class="keyword">int</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">typename</span> GroupCompare <span class="special">=</span> std::less<span class="special">&lt;</span><span class="identifier">Group</span><span class="special">&gt;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><span class="keyword">typename</span> SlotFunction <span class="special">=</span> <a class="link" href="functionN.html" title="Class template functionN">functionN</a><span class="special">&lt;</span><span class="identifier">Signature</span><span class="special">&gt;</span></pre></li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp204366920"></a><h3>
+<a name="boost.signalconstruct-copy-destruct"></a><code class="computeroutput">signal</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem">
+<pre class="literallayout"><a name="idp57861192-bb"></a><span class="identifier">signal</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">combiner_type</span><span class="special">&amp;</span> combiner <span class="special">=</span> <span class="identifier">combiner_type</span><span class="special">(</span><span class="special">)</span><span class="special">,</span> 
+       <span class="keyword">const</span> <span class="identifier">group_compare_type</span><span class="special">&amp;</span> compare <span class="special">=</span> <span class="identifier">group_compare_type</span><span class="special">(</span><span class="special">)</span><span class="special">)</span><span class="special">;</span></pre>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Effects:</span></p></td>
+<td>Initializes the base class with the given combiner
+        and comparison objects.</td>
+</tr></tbody>
+</table></div>
+</li></ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2004 Douglas Gregor<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="signalN.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../signals/reference.html#header.boost.signal_hpp"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="slot.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

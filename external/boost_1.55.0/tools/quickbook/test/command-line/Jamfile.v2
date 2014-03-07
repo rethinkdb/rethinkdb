@@ -1,0 +1,28 @@
+
+#
+#   Copyright (c) 2011 Daniel James
+#
+#   Distributed under the Boost Software License, Version 1.0. (See
+#   accompanying file LICENSE_1_0.txt or copy at
+#   http://www.boost.org/LICENSE_1_0.txt)
+#
+
+project quickbook/tests/command-line ;
+
+import quickbook-testing : quickbook-test quickbook-fail-test quickbook-error-test ;
+
+test-suite command-line.test :
+    # Check that expect-errors works as advertised.
+    [ quickbook-fail-test error-fail : : <testing.arg>--expect-errors ]
+    [ quickbook-error-test error1 ]
+    [ quickbook-error-test error2 ]
+
+    [ quickbook-error-test
+        non_existent_output :
+        basic-1_6.quickbook :
+        <testing.arg>--output-file=non-existent/basic.xml ]
+    [ quickbook-error-test
+        output_nested_in_file :
+        basic-1_6.quickbook :
+        <testing.arg>--output-file=basic-1_6.quickbook/basic.xml ]
+    ;

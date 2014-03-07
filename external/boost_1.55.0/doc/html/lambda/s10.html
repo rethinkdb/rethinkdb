@@ -1,0 +1,111 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Rationale for some of the design decisions</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../lambda.html" title="Chapter&#160;16.&#160;Boost.Lambda">
+<link rel="prev" href="s09.html" title="Contributors">
+<link rel="next" href="../boost_lexical_cast.html" title="Chapter&#160;17.&#160;Boost.Lexical_Cast 1.0">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="s09.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lambda.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../boost_lexical_cast.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="idp153653320"></a>Rationale for some of the design decisions</h2></div></div></div>
+<div class="toc"><dl class="toc"><dt><span class="section"><a href="s10.html#lambda.why_weak_arity">
+Lambda functor arity
+</a></span></dt></dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="lambda.why_weak_arity"></a>
+Lambda functor arity
+</h3></div></div></div>
+<p>
+The highest placeholder index in a lambda expression determines the arity of the resulting function object.
+However, this is just the minimal arity, as the function object can take arbitrarily many arguments; those not needed are discarded.
+Consider the two bind expressions and their invocations below:
+
+</p>
+<pre class="programlisting">
+bind(g, _3, _3, _3)(x, y, z); 
+bind(g, _1, _1, _1)(x, y, z); 
+</pre>
+<p>
+
+This first line discards arguments <code class="literal">x</code> and
+<code class="literal">y</code>, and makes the call:
+</p>
+<pre class="programlisting">
+g(z, z, z) 
+</pre>
+<p>
+whereas the second line discards arguments <code class="literal">y</code> and
+<code class="literal">z</code>, and calls:
+</p>
+<pre class="programlisting">
+g(x, x, x)
+</pre>
+<p>
+In earlier versions of the library, the latter line resulted in a compile 
+time error.
+
+This is basically a tradeoff between safety and flexibility, and the issue
+was extensively discussed during the Boost review period of the library.
+The main points for the <span class="emphasis"><em>strict arity</em></span> checking
+was that it might
+catch a programming error at an earlier time and that a lambda expression that
+explicitly discards its arguments is easy to write:
+</p>
+<pre class="programlisting">
+(_3, bind(g, _1, _1, _1))(x, y, z);
+</pre>
+<p>
+This lambda expression takes three arguments.
+The left-hand argument of the comma operator does nothing, and as comma 
+returns the result of evaluating the right-hand argument we end up with 
+the call
+<code class="literal">g(x, x, x)</code>
+even with the strict arity.
+</p>
+<p>
+The main points against the strict arity checking were that the need to 
+discard arguments is commonplace, and should therefore be straightforward, 
+and that strict arity checking does not really buy that much more safety, 
+particularly as it is not symmetric.
+For example, if the programmer wanted to write the expression 
+<code class="literal">_1 + _2</code> but mistakenly wrote <code class="literal">_1 + 2</code>, 
+with strict arity checking, the complier would spot the error.
+However, if the erroneous expression was <code class="literal">1 + _2</code> instead,
+the error would go unnoticed.
+Furthermore, weak arity checking simplifies the implementation a bit.
+Following the recommendation of the Boost review, strict arity checking 
+was dropped.
+</p>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1999-2004 Jaakko J&#228;rvi, Gary Powell<p>Use, modification and distribution is subject to the Boost
+    Software License, Version 1.0. (See accompanying file
+    <code class="filename">LICENSE_1_0.txt</code> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="s09.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../lambda.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../boost_lexical_cast.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

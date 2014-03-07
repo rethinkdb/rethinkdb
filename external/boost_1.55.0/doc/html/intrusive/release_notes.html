@@ -1,0 +1,333 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Release Notes</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../intrusive.html" title="Chapter&#160;15.&#160;Boost.Intrusive">
+<link rel="prev" href="performance.html" title="Performance">
+<link rel="next" href="tested_compilers.html" title="Tested compilers">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="performance.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tested_compilers.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="intrusive.release_notes"></a><a class="link" href="release_notes.html" title="Release Notes">Release Notes</a>
+</h2></div></div></div>
+<div class="toc"><dl class="toc">
+<dt><span class="section"><a href="release_notes.html#intrusive.release_notes.release_notes_boost_1_55_00">Boost
+      1.55 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#intrusive.release_notes.release_notes_boost_1_54_00">Boost
+      1.54 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#intrusive.release_notes.release_notes_boost_1_53_00">Boost
+      1.53 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#intrusive.release_notes.release_notes_boost_1_51_00">Boost
+      1.51 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#intrusive.release_notes.release_notes_boost_1_49_00">Boost
+      1.49 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#intrusive.release_notes.release_notes_boost_1_48_00">Boost
+      1.48 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#intrusive.release_notes.release_notes_boost_1_46_00">Boost
+      1.46 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#intrusive.release_notes.release_notes_boost_1_45_00">Boost
+      1.45 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#intrusive.release_notes.release_notes_boost_1_40_00">Boost
+      1.40 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#intrusive.release_notes.release_notes_boost_1_39_00">Boost
+      1.39 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#intrusive.release_notes.release_notes_boost_1_38_00">Boost
+      1.38 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#intrusive.release_notes.release_notes_boost_1_37_00">Boost
+      1.37 Release</a></span></dt>
+<dt><span class="section"><a href="release_notes.html#intrusive.release_notes.release_notes_boost_1_36_00">Boost
+      1.36 Release</a></span></dt>
+</dl></div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.release_notes.release_notes_boost_1_55_00"></a><a class="link" href="release_notes.html#intrusive.release_notes.release_notes_boost_1_55_00" title="Boost 1.55 Release">Boost
+      1.55 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            <span class="bold"><strong>Source breaking</strong></span>: Deprecated <code class="computeroutput"><span class="identifier">xxx_dont_splay</span></code> functions from splay
+            containers. Deprecated <code class="computeroutput"><span class="identifier">splay_set_hook</span></code>
+            from splay containers, use <code class="computeroutput"><span class="identifier">bs_set_hook</span></code>
+            instead. Both will be removed in Boost 1.56.
+          </li>
+<li class="listitem">
+            <span class="bold"><strong>ABI breaking</strong></span>: Hash containers' end iterator
+            was implemented pointing to one-past the end of the bucket array (see
+            <a href="https://svn.boost.org/trac/boost/ticket/8698" target="_top">#8698</a>)
+            causing severe bugs when values to be inserted where allocated next to
+            the bucket array. End iterator implementation was changed to point to
+            the beginning of the bucket array.
+          </li>
+<li class="listitem">
+            Big refactoring in order to reduce template and debug symbol bloat. Test
+            object files have been slashed to half in MSVC compilers in Debug mode.
+            Toolchains without Identical COMDAT Folding (ICF) should notice size
+            improvements.
+          </li>
+<li class="listitem">
+            Implemented <a class="link" href="scary_iterators.html" title="Scary Iterators">SCARY iterators</a>.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.release_notes.release_notes_boost_1_54_00"></a><a class="link" href="release_notes.html#intrusive.release_notes.release_notes_boost_1_54_00" title="Boost 1.54 Release">Boost
+      1.54 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">BOOST_NO_EXCEPTIONS</span></code>
+            support (bug <a href="https://svn.boost.org/trac/boost/ticket/7849" target="_top">#7849</a>).
+          </li></ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.release_notes.release_notes_boost_1_53_00"></a><a class="link" href="release_notes.html#intrusive.release_notes.release_notes_boost_1_53_00" title="Boost 1.53 Release">Boost
+      1.53 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/7174" target="_top">#7174</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/7529" target="_top">#7529</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/7815" target="_top">#7815</a>.
+          </li>
+<li class="listitem">
+            Fixed GCC -Wshadow warnings.
+          </li>
+<li class="listitem">
+            Added missing <code class="computeroutput"><span class="keyword">explicit</span></code> keyword
+            in several intrusive container constructors.
+          </li>
+<li class="listitem">
+            Replaced deprecated BOOST_NO_XXXX with newer BOOST_NO_CXX11_XXX macros.
+          </li>
+<li class="listitem">
+            Small documentation fixes.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.release_notes.release_notes_boost_1_51_00"></a><a class="link" href="release_notes.html#intrusive.release_notes.release_notes_boost_1_51_00" title="Boost 1.51 Release">Boost
+      1.51 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/6841" target="_top">#6841</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/6907" target="_top">#6907</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/6922" target="_top">#6922</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/7033" target="_top">#7033</a>,
+          </li>
+<li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">bounded_range</span></code> function
+            to trees.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.release_notes.release_notes_boost_1_49_00"></a><a class="link" href="release_notes.html#intrusive.release_notes.release_notes_boost_1_49_00" title="Boost 1.49 Release">Boost
+      1.49 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/6347" target="_top">#6347</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/6223" target="_top">#6223</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/6153" target="_top">#6153</a>.
+          </li></ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.release_notes.release_notes_boost_1_48_00"></a><a class="link" href="release_notes.html#intrusive.release_notes.release_notes_boost_1_48_00" title="Boost 1.48 Release">Boost
+      1.48 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/4797" target="_top">#4797</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/5165" target="_top">#5165</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/5183" target="_top">#5183</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/5191" target="_top">#5191</a>.
+          </li></ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.release_notes.release_notes_boost_1_46_00"></a><a class="link" href="release_notes.html#intrusive.release_notes.release_notes_boost_1_46_00" title="Boost 1.46 Release">Boost
+      1.46 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem">
+            Fixed bug <a href="https://svn.boost.org/trac/boost/ticket/4980" target="_top">#4980</a>,
+          </li></ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.release_notes.release_notes_boost_1_45_00"></a><a class="link" href="release_notes.html#intrusive.release_notes.release_notes_boost_1_45_00" title="Boost 1.45 Release">Boost
+      1.45 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">function_hook</span></code> option.
+          </li>
+<li class="listitem">
+            Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/2611" target="_top">#2611</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3288" target="_top">#3288</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3304" target="_top">#3304</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3489" target="_top">#3489</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3668" target="_top">#3668</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3339" target="_top">#3688</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3698" target="_top">#3698</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3706" target="_top">#3706</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3721" target="_top">#3721</a>.
+            <a href="https://svn.boost.org/trac/boost/ticket/3729" target="_top">#3729</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3746" target="_top">#3746</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3781" target="_top">#3781</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3840" target="_top">#3840</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3849" target="_top">#3849</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3339" target="_top">#3339</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3419" target="_top">#3419</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/3431" target="_top">#3431</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/4021" target="_top">#4021</a>.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.release_notes.release_notes_boost_1_40_00"></a><a class="link" href="release_notes.html#intrusive.release_notes.release_notes_boost_1_40_00" title="Boost 1.40 Release">Boost
+      1.40 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Code cleanup in bstree_algorithms.hpp and avl_tree_algorithms.hpp
+          </li>
+<li class="listitem">
+            Fixed bug <a href="https://svn.boost.org/trac/boost/ticket/3164" target="_top">#3164</a>.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.release_notes.release_notes_boost_1_39_00"></a><a class="link" href="release_notes.html#intrusive.release_notes.release_notes_boost_1_39_00" title="Boost 1.39 Release">Boost
+      1.39 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Optimized <code class="computeroutput"><span class="identifier">list</span><span class="special">::</span><span class="identifier">merge</span></code> and <code class="computeroutput"><span class="identifier">slist</span><span class="special">::</span><span class="identifier">merge</span></code>
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">list</span><span class="special">::</span><span class="identifier">sort</span></code> and <code class="computeroutput"><span class="identifier">slist</span><span class="special">::</span><span class="identifier">sort</span></code>
+            are now stable.
+          </li>
+<li class="listitem">
+            Fixed bugs <a href="https://svn.boost.org/trac/boost/ticket/2689" target="_top">#2689</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/2755" target="_top">#2755</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/2786" target="_top">#2786</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/2807" target="_top">#2807</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/2810" target="_top">#2810</a>,
+            <a href="https://svn.boost.org/trac/boost/ticket/2862" target="_top">#2862</a>.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.release_notes.release_notes_boost_1_38_00"></a><a class="link" href="release_notes.html#intrusive.release_notes.release_notes_boost_1_38_00" title="Boost 1.38 Release">Boost
+      1.38 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            New treap-based containers: treap, treap_set, treap_multiset.
+          </li>
+<li class="listitem">
+            Corrected compilation bug for Windows-based 64 bit compilers.
+          </li>
+<li class="listitem">
+            Corrected exception-safety bugs in container constructors.
+          </li>
+<li class="listitem">
+            Updated documentation to show rvalue-references functions instead of
+            emulation functions.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.release_notes.release_notes_boost_1_37_00"></a><a class="link" href="release_notes.html#intrusive.release_notes.release_notes_boost_1_37_00" title="Boost 1.37 Release">Boost
+      1.37 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Intrusive now takes advantage of compilers with variadic templates.
+          </li>
+<li class="listitem">
+            <code class="computeroutput"><span class="identifier">clone_from</span></code> functions
+            now copy predicates and hash functions of associative containers.
+          </li>
+<li class="listitem">
+            Added incremental hashing to unordered containers via <code class="computeroutput"><span class="identifier">incremental</span><span class="special">&lt;&gt;</span></code> option.
+          </li>
+<li class="listitem">
+            Update some function parameters from <code class="computeroutput"><span class="identifier">iterator</span></code>
+            to <code class="computeroutput"><span class="identifier">const_iterator</span></code> in
+            containers to keep up with the draft of the next standard.
+          </li>
+<li class="listitem">
+            Added an option to specify include files for intrusive configurable assertion
+            macros.
+          </li>
+</ul></div>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="intrusive.release_notes.release_notes_boost_1_36_00"></a><a class="link" href="release_notes.html#intrusive.release_notes.release_notes_boost_1_36_00" title="Boost 1.36 Release">Boost
+      1.36 Release</a>
+</h3></div></div></div>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">linear</span><span class="special">&lt;&gt;</span></code>
+            and <code class="computeroutput"><span class="identifier">cache_last</span><span class="special">&lt;&gt;</span></code>
+            options to singly linked lists.
+          </li>
+<li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">optimize_multikey</span><span class="special">&lt;&gt;</span></code> option to unordered container
+            hooks.
+          </li>
+<li class="listitem">
+            Optimized unordered containers when <code class="computeroutput"><span class="identifier">store_hash</span></code>
+            option is used in the hook.
+          </li>
+<li class="listitem">
+            Implementation changed to be exception agnostic so that it can be used
+            in environments without exceptions.
+          </li>
+<li class="listitem">
+            Added <code class="computeroutput"><span class="identifier">container_from_iterator</span></code>
+            function to tree-based containers.
+          </li>
+</ul></div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="performance.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tested_compilers.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

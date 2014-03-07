@@ -1,0 +1,89 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/pt_PT.xml
+// *
+// ***************************************************************************
+pt_PT{
+    Currencies{
+        AFA{
+            "AFA" /** ===  */,
+            "Afeghani (1927-2002)",
+        }
+        BAD{
+            "BAD" /** ===  */,
+            "Dinar da Bósnia-Herzegóvina",
+        }
+        BAM{
+            "KM",
+            "Marco bósnio-herzegóvino conversível",
+        }
+        BEC{
+            "BEC" /** ===  */,
+            "Franco belga (convertível)",
+        }
+        BYB{
+            "BYB" /** ===  */,
+            "Rublo novo bielorusso (1994-1999)",
+        }
+        CYP{
+            "CY£",
+            "Libra de Chipre",
+        }
+        CZK{
+            "Kč",
+            "Coroa da República Checa",
+        }
+        ECV{
+            "ECV" /** ===  */,
+            "Unidad de Valor Constante (UVC) do Equador",
+        }
+        KYD{
+            "KY$",
+            "Dólar das Ilhas Caimão",
+        }
+        MWK{
+            "MWK",
+            "Cuacha do Malawi",
+        }
+        MXP{
+            "MXP" /** ===  */,
+            "Peso Plata mexicano (1861-1992)",
+        }
+        MXV{
+            "MXV" /** ===  */,
+            "Unidad de Inversion (UDI) mexicana",
+        }
+        NIC{
+            "NIC" /** ===  */,
+            "Córdoba nicaraguano",
+        }
+        NIO{
+            "C$",
+            "Córdoba Ouro nicaraguano",
+        }
+        PTE{
+            "Esc.",
+            "Escudo português",
+            {
+                /**
+                 * Duplicated from NumberPatterns resource
+                 */
+                "#,##0.00 ¤",
+                "$",
+                ",",
+            }
+        }
+        TZS{
+            "TSh",
+            "Xelim de Tanzânia",
+        }
+        WST{
+            "WS$",
+            "Tala de Samoa Ocidental",
+        }
+    }
+    Version{"2.0.50.84"}
+}

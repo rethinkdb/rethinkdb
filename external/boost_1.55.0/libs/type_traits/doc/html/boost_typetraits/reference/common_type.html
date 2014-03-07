@@ -1,0 +1,352 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>common_type</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.TypeTraits">
+<link rel="up" href="../reference.html" title="Alphabetical Reference">
+<link rel="prev" href="conditional.html" title="conditional">
+<link rel="next" href="decay.html" title="decay">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="conditional.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="decay.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_typetraits.reference.common_type"></a><a class="link" href="common_type.html" title="common_type">common_type</a>
+</h3></div></div></div>
+<p>
+        <span class="bold"><strong>Header:</strong></span> <code class="computeroutput"> <span class="preprocessor">#include</span>
+        <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">/</span><span class="identifier">common_type</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+        or <code class="computeroutput"> <span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">type_traits</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span></code>
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span>
+  <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="special">...</span><span class="identifier">T</span><span class="special">&gt;</span>  <span class="keyword">struct</span> <a class="link" href="common_type.html" title="common_type">common_type</a><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+        <a class="link" href="common_type.html" title="common_type">common_type</a>
+        is a traits class used to deduce a type common to a several types, useful
+        as the return type of functions operating on multiple input types such as
+        in mixed-mode arithmetic..
+      </p>
+<p>
+        The nested typedef <code class="computeroutput"><span class="special">::</span><span class="identifier">type</span></code>
+        could be defined as follows:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="special">...</span><span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">common_type</span><span class="special">;</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">U</span><span class="special">,</span> <span class="keyword">class</span> <span class="special">...</span><span class="identifier">V</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span><span class="identifier">U</span><span class="special">,...</span><span class="identifier">V</span><span class="special">&gt;</span> <span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">typename</span> <a class="link" href="common_type.html" title="common_type">common_type</a><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="common_type.html" title="common_type">common_type</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">U</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span> <span class="identifier">V</span><span class="special">...&gt;::</span><span class="identifier">type</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span> <span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">T</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">U</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">U</span><span class="special">&gt;</span> <span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="keyword">decltype</span><span class="special">(</span><a href="../../../../../utility/doc/html/declval.html" target="_top">declval</a><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;()</span> <span class="special">?</span> <a href="../../../../../utility/doc/html/declval.html" target="_top">declval</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;()</span> <span class="special">:</span> <a href="../../../../../utility/doc/html/declval.html" target="_top">declval</a><span class="special">&lt;</span><span class="identifier">U</span><span class="special">&gt;())</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<p>
+        All parameter types must be complete. This trait is permitted to be specialized
+        by a user if at least one template parameter is a user-defined type. <span class="bold"><strong>Note:</strong></span> Such specializations are required when only
+        explicit conversions are desired among the <a class="link" href="common_type.html" title="common_type">common_type</a>
+        arguments.
+      </p>
+<p>
+        Note that when the compiler does not support variadic templates (and the
+        macro BOOST_NO_VARIADIC_TEMPLATES is defined) then the maximum number of
+        template arguments is 3.
+      </p>
+<h5>
+<a name="boost_typetraits.reference.common_type.h0"></a>
+        <span><a name="boost_typetraits.reference.common_type.configuration_macros"></a></span><a class="link" href="common_type.html#boost_typetraits.reference.common_type.configuration_macros">Configuration
+        macros</a>
+      </h5>
+<p>
+        When the compiler does not support static assertions then the user can select
+        the way static assertions are reported. Define
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+            BOOST_COMMON_TYPE_USES_STATIC_ASSERT: define it if you want to use Boost.StaticAssert
+          </li>
+<li class="listitem">
+            BOOST_COMMON_TYPE_USES_MPL_ASSERT: define it if you want to use Boost.MPL
+            static assertions
+          </li>
+</ul></div>
+<p>
+        The default behavior is to use mpl assertions in this case, but setting BOOST_COMMON_TYPE_USES_STATIC_ASSERT
+        may reduce compile times and header dependencies somewhat.
+      </p>
+<p>
+        Depending on the static assertion used you will have an hint of the failing
+        assertion either through the symbol or through the text.
+      </p>
+<p>
+        When possible common_type is implemented using <code class="computeroutput"><span class="keyword">decltype</span></code>.
+        Otherwise when BOOST_COMMON_TYPE_DONT_USE_TYPEOF is not defined it uses Boost.TypeOf.
+      </p>
+<h5>
+<a name="boost_typetraits.reference.common_type.h1"></a>
+        <span><a name="boost_typetraits.reference.common_type.tutorial"></a></span><a class="link" href="common_type.html#boost_typetraits.reference.common_type.tutorial">Tutorial</a>
+      </h5>
+<p>
+        In a nutshell, <a class="link" href="common_type.html" title="common_type">common_type</a>
+        is a trait that takes 1 or more types, and returns a type which all of the
+        types will convert to. The default definition demands this conversion be
+        implicit. However the trait can be specialized for user-defined types which
+        want to limit their inter-type conversions to explicit, and yet still want
+        to interoperate with the <a class="link" href="common_type.html" title="common_type">common_type</a>
+        facility.
+      </p>
+<p>
+        <span class="bold"><strong>Example:</strong></span>
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">U</span><span class="special">&gt;</span>
+<span class="identifier">complex</span><span class="special">&lt;</span><span class="keyword">typename</span> <a class="link" href="common_type.html" title="common_type">common_type</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">U</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">&gt;</span>
+<span class="keyword">operator</span><span class="special">+(</span><span class="identifier">complex</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;,</span> <span class="identifier">complex</span><span class="special">&lt;</span><span class="identifier">U</span><span class="special">&gt;);</span>
+</pre>
+<p>
+        In the above example, "mixed-mode" complex arithmetic is allowed.
+        The return type is described by <a class="link" href="common_type.html" title="common_type">common_type</a>.
+        For example the resulting type of adding a <code class="computeroutput"><span class="identifier">complex</span><span class="special">&lt;</span><span class="keyword">float</span><span class="special">&gt;</span></code> and <code class="computeroutput"><span class="identifier">complex</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span></code> might be a <code class="computeroutput"><span class="identifier">complex</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span></code>.
+      </p>
+<p>
+        Here is how someone might produce a variadic comparison function:
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="special">...</span><span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <a class="link" href="common_type.html" title="common_type">common_type</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">...&gt;::</span><span class="identifier">type</span>
+<span class="identifier">min</span><span class="special">(</span><span class="identifier">T</span><span class="special">...</span> <span class="identifier">t</span><span class="special">);</span>
+</pre>
+<p>
+        This is a very useful and broadly applicable utility.
+      </p>
+<h5>
+<a name="boost_typetraits.reference.common_type.h2"></a>
+        <span><a name="boost_typetraits.reference.common_type.how_to_get_the_common_type_of_types_with_explicit_conversions_"></a></span><a class="link" href="common_type.html#boost_typetraits.reference.common_type.how_to_get_the_common_type_of_types_with_explicit_conversions_">How
+        to get the common type of types with explicit conversions?</a>
+      </h5>
+<p>
+        Another choice for the author of the preceding operator could be
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">U</span><span class="special">&gt;</span>
+<span class="keyword">typename</span> <a class="link" href="common_type.html" title="common_type">common_type</a><span class="special">&lt;</span><span class="identifier">complex</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;,</span> <span class="identifier">complex</span><span class="special">&lt;</span><span class="identifier">U</span><span class="special">&gt;</span> <span class="special">&gt;::</span><span class="identifier">type</span>
+<span class="keyword">operator</span><span class="special">+(</span><span class="identifier">complex</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;,</span> <span class="identifier">complex</span><span class="special">&lt;</span><span class="identifier">U</span><span class="special">&gt;);</span>
+</pre>
+<p>
+        As the default definition of <a class="link" href="common_type.html" title="common_type">common_type</a>
+        demands the conversion be implicit, we need to specialize the trait for complex
+        types as follows.
+      </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">U</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="common_type.html" title="common_type">common_type</a><span class="special">&lt;</span><span class="identifier">complex</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;,</span> <span class="identifier">complex</span><span class="special">&lt;</span><span class="identifier">U</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">complex</span><span class="special">&lt;</span> <a class="link" href="common_type.html" title="common_type">common_type</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">U</span><span class="special">&gt;</span> <span class="special">&gt;</span> <span class="identifier">type</span><span class="special">;</span>
+<span class="special">};</span>
+</pre>
+<h5>
+<a name="boost_typetraits.reference.common_type.h3"></a>
+        <span><a name="boost_typetraits.reference.common_type.how_important_is_the_order_of_the_common_type_lt__gt__template_arguments_"></a></span><a class="link" href="common_type.html#boost_typetraits.reference.common_type.how_important_is_the_order_of_the_common_type_lt__gt__template_arguments_">How
+        important is the order of the common_type&lt;&gt; template arguments?</a>
+      </h5>
+<p>
+        The order of the template parameters is important.
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span><span class="identifier">B</span><span class="special">,</span><span class="identifier">C</span><span class="special">&gt;::</span><span class="identifier">type</span></code> is not equivalent to <code class="computeroutput"><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">,</span><span class="identifier">A</span><span class="special">,</span><span class="identifier">B</span><span class="special">&gt;::</span><span class="identifier">type</span></code>, but to <code class="computeroutput"><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span><span class="identifier">B</span><span class="special">&gt;::</span><span class="identifier">type</span><span class="special">,</span> <span class="identifier">C</span><span class="special">&gt;::</span><span class="identifier">type</span></code>.
+      </p>
+<p>
+        Consider
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">A</span> <span class="special">{};</span>
+<span class="keyword">struct</span> <span class="identifier">B</span> <span class="special">{};</span>
+<span class="keyword">struct</span> <span class="identifier">C</span> <span class="special">{</span>
+    <span class="identifier">C</span><span class="special">()</span> <span class="special">{}</span>
+    <span class="identifier">C</span><span class="special">(</span><span class="identifier">A</span> <span class="keyword">const</span><span class="special">&amp;)</span> <span class="special">{}</span>
+    <span class="identifier">C</span><span class="special">(</span><span class="identifier">B</span> <span class="keyword">const</span><span class="special">&amp;)</span> <span class="special">{}</span>
+    <span class="identifier">C</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">C</span> <span class="keyword">const</span><span class="special">&amp;)</span> <span class="special">{</span>
+        <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+        The following doesn't compile
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">,</span> <span class="identifier">C</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">ABC</span><span class="special">;</span> <span class="comment">// Does not compile</span>
+</pre>
+<p>
+        while
+      </p>
+<pre class="programlisting"><span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">C</span><span class="special">,</span> <span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">ABC</span><span class="special">;</span>
+</pre>
+<p>
+        compiles.
+      </p>
+<p>
+        Thus, as <code class="computeroutput"><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span><span class="identifier">B</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+        is undefined, <code class="computeroutput"><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span><span class="identifier">B</span><span class="special">,</span><span class="identifier">C</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+        is also undefined.
+      </p>
+<p>
+        It is intended that clients who wish for <code class="computeroutput"><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span>
+        <span class="identifier">B</span><span class="special">&gt;</span></code>
+        to be well defined to define it themselves:
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">&gt;</span> <span class="special">{</span><span class="keyword">typedef</span> <span class="identifier">C</span> <span class="identifier">type</span><span class="special">;};</span>
+
+<span class="special">}</span>
+</pre>
+<p>
+        Now this client can ask for <code class="computeroutput"><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span>
+        <span class="identifier">B</span><span class="special">,</span> <span class="identifier">C</span><span class="special">&gt;</span></code> (and
+        get the same answer).
+      </p>
+<p>
+        Clients wanting to ask <code class="computeroutput"><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span>
+        <span class="identifier">B</span><span class="special">,</span> <span class="identifier">C</span><span class="special">&gt;</span></code> in
+        any order and get the same result need to add in addition:
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span> <span class="keyword">struct</span> <span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;</span>
+<span class="special">:</span> <span class="keyword">public</span> <span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">&gt;</span> <span class="special">{};</span>
+
+<span class="special">}</span>
+</pre>
+<p>
+        This is needed as the specialization of <code class="computeroutput"><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span>
+        <span class="identifier">B</span><span class="special">&gt;</span></code>
+        is not be used implicitly for <code class="computeroutput"><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">,</span>
+        <span class="identifier">A</span><span class="special">&gt;</span></code>.
+      </p>
+<h5>
+<a name="boost_typetraits.reference.common_type.h4"></a>
+        <span><a name="boost_typetraits.reference.common_type.can_the_common_type_of_two_types_be_a_third_type_"></a></span><a class="link" href="common_type.html#boost_typetraits.reference.common_type.can_the_common_type_of_two_types_be_a_third_type_">Can
+        the common_type of two types be a third type?</a>
+      </h5>
+<p>
+        Given the preceding example, one might expect <code class="computeroutput"><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span><span class="identifier">B</span><span class="special">&gt;::</span><span class="identifier">type</span></code> to be <code class="computeroutput"><span class="identifier">C</span></code>
+        without any intervention from the user. But the default <code class="computeroutput"><span class="identifier">common_type</span><span class="special">&lt;&gt;</span></code> implementation doesn't grant that.
+        It is intended that clients who wish for <code class="computeroutput"><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span>
+        <span class="identifier">B</span><span class="special">&gt;</span></code>
+        to be well defined to define it themselves:
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">&gt;</span> <span class="special">{</span><span class="keyword">typedef</span> <span class="identifier">C</span> <span class="identifier">type</span><span class="special">;};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span> <span class="keyword">struct</span> <span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">B</span><span class="special">,</span> <span class="identifier">A</span><span class="special">&gt;</span>
+<span class="special">:</span> <span class="keyword">public</span> <span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">&gt;</span> <span class="special">{};</span>
+
+<span class="special">}</span>
+</pre>
+<p>
+        Now this client can ask for <code class="computeroutput"><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span>
+        <span class="identifier">B</span><span class="special">&gt;</span></code>.
+      </p>
+<h5>
+<a name="boost_typetraits.reference.common_type.h5"></a>
+        <span><a name="boost_typetraits.reference.common_type.how_common_type_behaves_with_pointers_"></a></span><a class="link" href="common_type.html#boost_typetraits.reference.common_type.how_common_type_behaves_with_pointers_">How
+        common_type behaves with pointers?</a>
+      </h5>
+<p>
+        Consider
+      </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">C</span> <span class="special">{</span> <span class="special">}:</span>
+<span class="keyword">struct</span> <span class="identifier">B</span> <span class="special">:</span> <span class="identifier">C</span> <span class="special">{</span> <span class="special">};</span>
+<span class="keyword">struct</span> <span class="identifier">A</span> <span class="special">:</span> <span class="identifier">C</span> <span class="special">{</span> <span class="special">};</span>
+</pre>
+<p>
+        Shouldn't <code class="computeroutput"><span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">*,</span><span class="identifier">B</span><span class="special">*&gt;::</span><span class="identifier">type</span></code>
+        be <code class="computeroutput"><span class="identifier">C</span><span class="special">*</span></code>?
+        I would say yes, but the default implementation will make it ill-formed.
+      </p>
+<p>
+        The library could add a specialization for pointers, as
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">A</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">B</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">*,</span> <span class="identifier">B</span><span class="special">*&gt;</span> <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">common_type</span><span class="special">&lt;</span><span class="identifier">A</span><span class="special">,</span> <span class="identifier">B</span><span class="special">&gt;*</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+<span class="special">}</span>
+</pre>
+<p>
+        But in the absence of a motivating use cases, we prefer not to add more than
+        the standard specifies.
+      </p>
+<p>
+        Of course the user can always make this specialization.
+      </p>
+<h5>
+<a name="boost_typetraits.reference.common_type.h6"></a>
+        <span><a name="boost_typetraits.reference.common_type.can_you_explain_the_pros_cons_of_common_type_against_boost_typeof_"></a></span><a class="link" href="common_type.html#boost_typetraits.reference.common_type.can_you_explain_the_pros_cons_of_common_type_against_boost_typeof_">Can
+        you explain the pros/cons of common_type against Boost.Typeof?</a>
+      </h5>
+<p>
+        Even if they appear to be close, <code class="computeroutput"><a class="link" href="common_type.html" title="common_type">common_type</a></code>
+        and <code class="computeroutput"><span class="identifier">typeof</span></code> have different
+        purposes. You use <code class="computeroutput"><span class="identifier">typeof</span></code>
+        to get the type of an expression, while you use <a class="link" href="common_type.html" title="common_type">common_type</a>
+        to set explicitly the type returned of a template function. Both are complementary,
+        and indeed <a class="link" href="common_type.html" title="common_type">common_type</a>
+        is equivalent to <code class="computeroutput"><span class="keyword">decltype</span><span class="special">(</span><a href="../../../../../utility/doc/html/declval.html" target="_top">declval</a><span class="special">&lt;</span><span class="keyword">bool</span><span class="special">&gt;()</span> <span class="special">?</span> <a href="../../../../../utility/doc/html/declval.html" target="_top">declval</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;()</span>
+        <span class="special">:</span> <a href="../../../../../utility/doc/html/declval.html" target="_top">declval</a><span class="special">&lt;</span><span class="identifier">U</span><span class="special">&gt;())</span></code>
+      </p>
+<p>
+        <a class="link" href="common_type.html" title="common_type">common_type</a>
+        is also similar to promote_args&lt;class ...T&gt; in boost/math/tools/promotion.hpp,
+        though it is not exactly the same as promote_args either. <a class="link" href="common_type.html" title="common_type">common_type</a>&lt;T1,
+        T2&gt;::type simply represents the result of some operation on T1 and T2,
+        and defaults to the type obtained by putting T1 and T2 into a conditional
+        statement.
+      </p>
+<p>
+        It is meant to be customizable (via specialization) if this default is not
+        appropriate.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000, 2011 Adobe Systems Inc, David Abrahams,
+      Frederic Bron, Steve Cleary, Beman Dawes, Aleksey Gurtovoy, Howard Hinnant,
+      Jesse Jones, Mat Marcus, Itay Maman, John Maddock, Alexander Nasonov, Thorsten
+      Ottosen, Roman Perepelitsa, Robert Ramey, Jeremy Siek, Robert Stewart and Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="conditional.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="decay.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

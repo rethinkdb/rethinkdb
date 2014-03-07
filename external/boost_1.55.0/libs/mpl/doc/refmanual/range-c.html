@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: range_c</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./map.html" class="navigation-link">Prev</a>&nbsp;<a href="./vector-c.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./map.html" class="navigation-link">Back</a>&nbsp;<a href="./vector-c.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./classes.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./sequences.html" class="navigation-link">Sequences</a> / <a href="./classes.html" class="navigation-link">Classes</a> / <a href="./range-c.html" class="navigation-link">range_c</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="range-c">
+<h1><a class="toc-backref" href="./classes.html#id1411">range_c</a></h1>
+<div class="section" id="synopsis">
+<h3>Synopsis</h3>
+<pre class="literal-block">
+template&lt;
+      typename T
+    , T Start
+    , T Finish
+    &gt;
+struct <a href="./range-c.html" class="identifier">range_c</a>
+{
+    typedef <a href="./integral-c.html" class="identifier">integral_c</a>&lt;T,Start&gt; start;
+    typedef <a href="./integral-c.html" class="identifier">integral_c</a>&lt;T,Finish&gt; finish;
+    // <em>unspecified</em>
+    // <em>...</em>
+};
+</pre>
+</div>
+<div class="section" id="id88">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p><tt class="literal"><span class="pre"><a href="./range-c.html" class="identifier">range_c</a></span></tt> is a sorted <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a> of <a class="reference internal" href="./integral-constant.html">Integral Constant</a>s. Note
+that because it is not an <a class="reference internal" href="./extensible-sequence.html">Extensible Sequence</a>, sequence-building
+intrinsic metafunctions such as <tt class="literal"><span class="pre"><a href="./push-front.html" class="identifier">push_front</a></span></tt> and transformation algorithms
+such as <tt class="literal"><span class="pre"><a href="./replace.html" class="identifier">replace</a></span></tt> are not directly applicable — to be able to use
+them, you'd first need to copy the content of the range into a more suitable
+sequence.</p>
+</div>
+<div class="section" id="id89">
+<h3><a class="subsection-title" href="#header" name="header">Header</a></h3>
+<pre class="literal-block">
+#include &lt;<a href="../../../../boost/mpl/range_c.hpp" class="header">boost/mpl/range_c.hpp</a>&gt;
+</pre>
+</div>
+<div class="section" id="id90">
+<h3><a class="subsection-title" href="#model-of" name="model-of">Model of</a></h3>
+<p><a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a></p>
+</div>
+<div class="section" id="id91">
+<h3><a class="subsection-title" href="#expression-semantics" name="expression-semantics">Expression semantics</a></h3>
+<p>In the following table, <tt class="literal"><span class="pre">r</span></tt> is an instance of <tt class="literal"><span class="pre"><a href="./range-c.html" class="identifier">range_c</a></span></tt>, <tt class="literal"><span class="pre">n</span></tt> is an <a class="reference internal" href="./integral-constant.html">Integral Constant</a>,
+<tt class="literal"><span class="pre">T</span></tt> is an arbitrary integral type, and <tt class="literal"><span class="pre">n</span></tt> and <tt class="literal"><span class="pre">m</span></tt> are integral constant values of type <tt class="literal"><span class="pre">T</span></tt>.</p>
+<table border="1" class="docutils table">
+<colgroup>
+<col width="34%" />
+<col width="66%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Expression</th>
+<th class="head">Semantics</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><pre class="first last literal-block">
+<tt class="literal"><span class="pre"><a href="./range-c.html" class="identifier">range_c</a>&lt;T,n,m&gt;</span></tt>
+<tt class="literal"><span class="pre"><a href="./range-c.html" class="identifier">range_c</a>&lt;T,n,m&gt;::type</span></tt>
+</pre>
+</td>
+<td>A sorted <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a> of integral constant
+wrappers for the half-open range of values [<tt class="literal"><span class="pre">n</span></tt>,
+<tt class="literal"><span class="pre">m</span></tt>): <tt class="literal"><span class="pre"><a href="./integral-c.html" class="identifier">integral_c</a>&lt;T,n&gt;</span></tt>, <tt class="literal"><span class="pre"><a href="./integral-c.html" class="identifier">integral_c</a>&lt;T,n+1&gt;</span></tt>,...
+<tt class="literal"><span class="pre"><a href="./integral-c.html" class="identifier">integral_c</a>&lt;T,m-1&gt;</span></tt>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./begin.html" class="identifier">begin</a>&lt;r&gt;::type</span></tt></td>
+<td>An iterator pointing to the beginning of <tt class="literal"><span class="pre">r</span></tt>;
+see <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./end.html" class="identifier">end</a>&lt;r&gt;::type</span></tt></td>
+<td>An iterator pointing to the end of <tt class="literal"><span class="pre">r</span></tt>;
+see <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./size.html" class="identifier">size</a>&lt;r&gt;::type</span></tt></td>
+<td>The size of <tt class="literal"><span class="pre">r</span></tt>; see <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./empty.html" class="identifier">empty</a>&lt;r&gt;::type</span></tt></td>
+<td>A boolean <a class="reference internal" href="./integral-constant.html">Integral Constant</a> <tt class="literal"><span class="pre">c</span></tt> such that
+<tt class="literal"><span class="pre">c::value</span> <span class="pre">==</span> <span class="pre">true</span></tt> if and only if <tt class="literal"><span class="pre">r</span></tt> is empty; see
+<a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./front.html" class="identifier">front</a>&lt;r&gt;::type</span></tt></td>
+<td>The first element in <tt class="literal"><span class="pre">r</span></tt>; see
+<a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./back.html" class="identifier">back</a>&lt;r&gt;::type</span></tt></td>
+<td>The last element in <tt class="literal"><span class="pre">r</span></tt>; see
+<a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+<tr><td><tt class="literal"><span class="pre"><a href="./at.html" class="identifier">at</a>&lt;r,n&gt;::type</span></tt></td>
+<td>The <tt class="literal"><span class="pre">n</span></tt>th element from the beginning of <tt class="literal"><span class="pre">r</span></tt>; see
+<a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id92">
+<h3><a class="subsection-title" href="#example" name="example">Example</a></h3>
+<pre class="literal-block">
+typedef <a href="./range-c.html" class="identifier">range_c</a>&lt;int,0,0&gt; range0;
+typedef <a href="./range-c.html" class="identifier">range_c</a>&lt;int,0,1&gt; range1;
+typedef <a href="./range-c.html" class="identifier">range_c</a>&lt;int,0,10&gt; range10;
+
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./size.html" class="identifier">size</a>&lt;range0&gt;::value, ==, 0 );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./size.html" class="identifier">size</a>&lt;range1&gt;::value, ==, 1 );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./size.html" class="identifier">size</a>&lt;range10&gt;::value, ==, 10 );
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( <a href="./empty.html" class="identifier">empty</a>&lt;range0&gt; ));
+<a href="./assert-not.html" class="identifier">BOOST_MPL_ASSERT_NOT</a>(( <a href="./empty.html" class="identifier">empty</a>&lt;range1&gt; ));
+<a href="./assert-not.html" class="identifier">BOOST_MPL_ASSERT_NOT</a>(( <a href="./empty.html" class="identifier">empty</a>&lt;range10&gt; ));
+
+<a href="./assert.html" class="identifier">BOOST_MPL_ASSERT</a>(( is_same&lt; <a href="./begin.html" class="identifier">begin</a>&lt;range0&gt;::type, <a href="./end.html" class="identifier">end</a>&lt;range0&gt;::type &gt; ));
+<a href="./assert-not.html" class="identifier">BOOST_MPL_ASSERT_NOT</a>(( is_same&lt; <a href="./begin.html" class="identifier">begin</a>&lt;range1&gt;::type, <a href="./end.html" class="identifier">end</a>&lt;range1&gt;::type &gt; ));
+<a href="./assert-not.html" class="identifier">BOOST_MPL_ASSERT_NOT</a>(( is_same&lt; <a href="./begin.html" class="identifier">begin</a>&lt;range10&gt;::type, <a href="./end.html" class="identifier">end</a>&lt;range10&gt;::type &gt; ));
+
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./front.html" class="identifier">front</a>&lt;range1&gt;::type::value, ==, 0 );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./back.html" class="identifier">back</a>&lt;range1&gt;::type::value, ==, 0 );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./front.html" class="identifier">front</a>&lt;range10&gt;::type::value, ==, 0 );
+<a href="./assert-relation.html" class="identifier">BOOST_MPL_ASSERT_RELATION</a>( <a href="./back.html" class="identifier">back</a>&lt;range10&gt;::type::value, ==, 9 );
+</pre>
+</div>
+<div class="section" id="id93">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./sequences.html">Sequences</a>, <a class="reference internal" href="./random-access-sequence.html">Random Access Sequence</a>, <a class="reference internal" href="./vector-c.html">vector_c</a>, <a class="reference internal" href="./set-c.html">set_c</a>, <a class="reference internal" href="./list-c.html">list_c</a></p>
+<!-- Sequences/Classes//vector_c |70 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./map.html" class="navigation-link">Prev</a>&nbsp;<a href="./vector-c.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./map.html" class="navigation-link">Back</a>&nbsp;<a href="./vector-c.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./classes.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

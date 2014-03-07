@@ -1,0 +1,180 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>How the library works</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../move.html" title="Chapter&#160;19.&#160;Boost.Move">
+<link rel="prev" href="emulation_limitations.html" title="Emulation limitations">
+<link rel="next" href="thanks_to.html" title="Thanks and credits">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="emulation_limitations.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../move.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="thanks_to.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="move.how_the_library_works"></a><a class="link" href="how_the_library_works.html" title="How the library works">How the library works</a>
+</h2></div></div></div>
+<p>
+      <span class="bold"><strong>Boost.Move</strong></span> is based on macros that are expanded
+      to true rvalue references in C++0x compilers and emulated rvalue reference
+      classes and conversion operators in C++03 compilers.
+    </p>
+<p>
+      In C++03 compilers <span class="bold"><strong>Boost.Move</strong></span> defines a class
+      named <code class="computeroutput"><span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span></code>:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">rv</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">T</span>
+<span class="special">{</span>
+   <span class="identifier">rv</span><span class="special">();</span>
+   <span class="special">~</span><span class="identifier">rv</span><span class="special">();</span>
+   <span class="identifier">rv</span><span class="special">(</span><span class="identifier">rv</span> <span class="keyword">const</span><span class="special">&amp;);</span>
+   <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">rv</span> <span class="keyword">const</span><span class="special">&amp;);</span>
+<span class="special">};</span>
+</pre>
+<p>
+      which is convertible to the movable base class (usual C++ derived to base conversion).
+      When users mark their classes as <code class="computeroutput"><a class="link" href="../BOOST_MOVABLE_BUT_NOT_COPYABLE.html" title="Macro BOOST_MOVABLE_BUT_NOT_COPYABLE">BOOST_MOVABLE_BUT_NOT_COPYABLE</a></code>
+      or <code class="computeroutput"><a class="link" href="../BOOST_COPYABLE_AND_MOVABLE.html" title="Macro BOOST_COPYABLE_AND_MOVABLE">BOOST_COPYABLE_AND_MOVABLE</a></code>,
+      these macros define conversion operators to references to <code class="computeroutput"><span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span></code>:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_MOVABLE_BUT_NOT_COPYABLE</span><span class="special">(</span><span class="identifier">TYPE</span><span class="special">)\</span>
+   <span class="keyword">public</span><span class="special">:\</span>
+   <span class="keyword">operator</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span><span class="identifier">TYPE</span><span class="special">&gt;&amp;()</span> <span class="special">\</span>
+   <span class="special">{</span>  <span class="keyword">return</span> <span class="special">*</span><span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span><span class="identifier">TYPE</span><span class="special">&gt;*</span> <span class="special">&gt;(</span><span class="keyword">this</span><span class="special">);</span>  <span class="special">}\</span>
+   <span class="keyword">operator</span> <span class="keyword">const</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span><span class="identifier">TYPE</span><span class="special">&gt;&amp;()</span> <span class="keyword">const</span> <span class="special">\</span>
+   <span class="special">{</span>  <span class="keyword">return</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span><span class="identifier">TYPE</span><span class="special">&gt;*</span> <span class="special">&gt;(</span><span class="keyword">this</span><span class="special">);</span>  <span class="special">}\</span>
+   <span class="keyword">private</span><span class="special">:\</span>
+   <span class="comment">//More stuff...</span>
+</pre>
+<p>
+      <code class="computeroutput"><a class="link" href="../BOOST_MOVABLE_BUT_NOT_COPYABLE.html" title="Macro BOOST_MOVABLE_BUT_NOT_COPYABLE">BOOST_MOVABLE_BUT_NOT_COPYABLE</a></code>
+      also declares a private copy constructor and assignment. <code class="computeroutput"><a class="link" href="../BOOST_COPYABLE_AND_MOVABLE.html" title="Macro BOOST_COPYABLE_AND_MOVABLE">BOOST_COPYABLE_AND_MOVABLE</a></code>
+      defines a non-const copy constructor <code class="computeroutput"><span class="identifier">TYPE</span>
+      <span class="special">&amp;</span><span class="keyword">operator</span><span class="special">=(</span><span class="identifier">TYPE</span><span class="special">&amp;)</span></code>
+      that forwards to a const version:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_COPYABLE_AND_MOVABLE</span><span class="special">(</span><span class="identifier">TYPE</span><span class="special">)\</span>
+   <span class="keyword">public</span><span class="special">:\</span>
+   <span class="identifier">TYPE</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=(</span><span class="identifier">TYPE</span> <span class="special">&amp;</span><span class="identifier">t</span><span class="special">)\</span>
+   <span class="special">{</span>  <span class="keyword">this</span><span class="special">-&gt;</span><span class="keyword">operator</span><span class="special">=(</span><span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span><span class="identifier">TYPE</span><span class="special">&gt;</span> <span class="special">&amp;&gt;(</span><span class="keyword">const_cast</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">TYPE</span> <span class="special">&amp;&gt;(</span><span class="identifier">t</span><span class="special">)));</span> <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;}\</span>
+   <span class="comment">//More stuff...</span>
+</pre>
+<p>
+      In C++0x compilers <code class="computeroutput"><span class="identifier">BOOST_COPYABLE_AND_MOVABLE</span></code>
+      expands to nothing and <code class="computeroutput"><span class="identifier">BOOST_MOVABLE_BUT_NOT_COPYABLE</span></code>
+      declares copy constructor and assigment operator private.
+    </p>
+<p>
+      When users define the <code class="computeroutput"><a class="link" href="../BOOST_RV_REF.html" title="Macro BOOST_RV_REF">BOOST_RV_REF</a></code>
+      overload of a copy constructor/assignment, in C++0x compilers it is expanded
+      to a rvalue reference (<code class="computeroutput"><span class="identifier">T</span><span class="special">&amp;&amp;</span></code>)
+      overload and in C++03 compilers it is expanded to a <code class="computeroutput"><span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span>
+      <span class="special">&amp;</span></code> overload:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_RV_REF</span><span class="special">(</span><span class="identifier">TYPE</span><span class="special">)</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span> <span class="identifier">TYPE</span> <span class="special">&gt;&amp;</span> <span class="special">\</span>
+</pre>
+<p>
+      When users define the <code class="computeroutput"><a class="link" href="../BOOST_COPY_ASSIGN_REF.html" title="Macro BOOST_COPY_ASSIGN_REF">BOOST_COPY_ASSIGN_REF</a></code>
+      overload, it is expanded to a usual copy assignment (<code class="computeroutput"><span class="keyword">const</span>
+      <span class="identifier">T</span> <span class="special">&amp;</span></code>)
+      overload in C++0x compilers and to a <code class="computeroutput"><span class="keyword">const</span>
+      <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span> <span class="special">&amp;</span></code>
+      overload in C++03 compilers:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#define</span> <span class="identifier">BOOST_COPY_ASSIGN_REF</span><span class="special">(</span><span class="identifier">TYPE</span><span class="special">)</span> <span class="keyword">const</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span> <span class="identifier">TYPE</span> <span class="special">&gt;&amp;</span>
+</pre>
+<p>
+      As seen, in <span class="bold"><strong>Boost.Move</strong></span> generates efficient
+      and clean code for C++0x move semantics, without modifying any resolution overload.
+      For C++03 compilers when overload resolution is performed these are the bindings:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+          a) non-const rvalues (e.g.: temporaries), bind to <code class="computeroutput"><span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span> <span class="identifier">TYPE</span> <span class="special">&gt;&amp;</span></code>
+        </li>
+<li class="listitem">
+          b) const rvalue and lvalues, bind to <code class="computeroutput"><span class="keyword">const</span>
+          <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span> <span class="identifier">TYPE</span> <span class="special">&gt;&amp;</span></code>
+        </li>
+<li class="listitem">
+          c) non-const lvalues (e.g. non-const references) bind to <code class="computeroutput"><span class="identifier">TYPE</span><span class="special">&amp;</span></code>
+        </li>
+</ul></div>
+<p>
+      The library does not define the equivalent of <code class="computeroutput"><a class="link" href="../BOOST_COPY_ASSIGN_REF.html" title="Macro BOOST_COPY_ASSIGN_REF">BOOST_COPY_ASSIGN_REF</a></code>
+      for copy construction (say, <code class="computeroutput"><span class="identifier">BOOST_COPY_CTOR_REF</span></code>)
+      because nearly all modern compilers implement RVO and this is much more efficient
+      than any move emulation. <code class="computeroutput"><a class="link" href="../boost/move_idp97640488.html" title="Function template move">move</a></code>
+      just casts <code class="computeroutput"><span class="identifier">TYPE</span> <span class="special">&amp;</span></code>
+      into <code class="computeroutput"><span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span><span class="identifier">TYPE</span><span class="special">&gt;</span> <span class="special">&amp;</span></code>.
+    </p>
+<p>
+      Here's an example that demostrates how different rlvalue objects bind to <code class="computeroutput"><span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span></code> references in the presence of three overloads
+      and the conversion operators in C++03 compilers:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">move</span><span class="special">/</span><span class="identifier">core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+
+<span class="keyword">class</span> <span class="identifier">sink_tester</span>
+<span class="special">{</span>
+   <span class="keyword">public</span><span class="special">:</span> <span class="comment">//conversions provided by BOOST_COPYABLE_AND_MOVABLE</span>
+   <span class="keyword">operator</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span><span class="identifier">sink_tester</span><span class="special">&gt;&amp;()</span>
+      <span class="special">{</span>  <span class="keyword">return</span> <span class="special">*</span><span class="keyword">static_cast</span><span class="special">&lt;</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span><span class="identifier">sink_tester</span><span class="special">&gt;*</span> <span class="special">&gt;(</span><span class="keyword">this</span><span class="special">);</span>  <span class="special">}</span>
+   <span class="keyword">operator</span> <span class="keyword">const</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span><span class="identifier">sink_tester</span><span class="special">&gt;&amp;()</span> <span class="keyword">const</span>
+      <span class="special">{</span>  <span class="keyword">return</span> <span class="special">*</span><span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">const</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span><span class="identifier">sink_tester</span><span class="special">&gt;*</span> <span class="special">&gt;(</span><span class="keyword">this</span><span class="special">);</span>  <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="comment">//Functions returning different r/lvalue types</span>
+      <span class="identifier">sink_tester</span>    <span class="identifier">rvalue</span><span class="special">()</span>       <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">sink_tester</span><span class="special">();</span> <span class="special">}</span>
+<span class="keyword">const</span> <span class="identifier">sink_tester</span>    <span class="identifier">const_rvalue</span><span class="special">()</span> <span class="special">{</span>  <span class="keyword">return</span> <span class="identifier">sink_tester</span><span class="special">();</span> <span class="special">}</span>
+      <span class="identifier">sink_tester</span> <span class="special">&amp;</span>  <span class="identifier">lvalue</span><span class="special">()</span>       <span class="special">{</span>  <span class="keyword">static</span> <span class="identifier">sink_tester</span> <span class="identifier">lv</span><span class="special">;</span> <span class="keyword">return</span> <span class="identifier">lv</span><span class="special">;</span> <span class="special">}</span>
+<span class="keyword">const</span> <span class="identifier">sink_tester</span> <span class="special">&amp;</span>  <span class="identifier">const_lvalue</span><span class="special">()</span> <span class="special">{</span>  <span class="keyword">static</span> <span class="keyword">const</span> <span class="identifier">sink_tester</span> <span class="identifier">clv</span> <span class="special">=</span> <span class="identifier">sink_tester</span><span class="special">();</span> <span class="keyword">return</span> <span class="identifier">clv</span><span class="special">;</span> <span class="special">}</span>
+
+<span class="comment">//BOOST_RV_REF overload</span>
+<span class="keyword">void</span> <span class="identifier">sink</span><span class="special">(::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span><span class="identifier">sink_tester</span><span class="special">&gt;</span> <span class="special">&amp;)</span>      <span class="special">{</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"non-const rvalue catched"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="special">}</span>
+<span class="comment">//BOOST_COPY_ASSIGN_REF overload</span>
+<span class="keyword">void</span> <span class="identifier">sink</span><span class="special">(</span><span class="keyword">const</span> <span class="special">::</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">rv</span><span class="special">&lt;</span><span class="identifier">sink_tester</span><span class="special">&gt;</span> <span class="special">&amp;){</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"const (r-l)value catched"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="special">}</span>
+<span class="comment">//Overload provided by BOOST_COPYABLE_AND_MOVABLE</span>
+<span class="keyword">void</span> <span class="identifier">sink</span><span class="special">(</span><span class="identifier">sink_tester</span> <span class="special">&amp;)</span>                   <span class="special">{</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="string">"non-const lvalue catched"</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span> <span class="special">}</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="identifier">sink</span><span class="special">(</span><span class="identifier">const_rvalue</span><span class="special">());</span>   <span class="comment">//"const (r-l)value catched"</span>
+   <span class="identifier">sink</span><span class="special">(</span><span class="identifier">const_lvalue</span><span class="special">());</span>   <span class="comment">//"const (r-l)value catched"</span>
+   <span class="identifier">sink</span><span class="special">(</span><span class="identifier">lvalue</span><span class="special">());</span>         <span class="comment">//"non-const lvalue catched"</span>
+   <span class="identifier">sink</span><span class="special">(</span><span class="identifier">rvalue</span><span class="special">());</span>         <span class="comment">//"non-const rvalue catched"</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2008-2012 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="emulation_limitations.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../move.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="thanks_to.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

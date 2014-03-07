@@ -1,0 +1,208 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>TCP, UDP and ICMP</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../networking.html" title="Networking">
+<link rel="prev" href="../networking.html" title="Networking">
+<link rel="next" href="other_protocols.html" title="Support for Other Protocols">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../networking.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../networking.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="other_protocols.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h4 class="title">
+<a name="boost_asio.overview.networking.protocols"></a><a class="link" href="protocols.html" title="TCP, UDP and ICMP">TCP, UDP
+        and ICMP</a>
+</h4></div></div></div>
+<p>
+          Boost.Asio provides off-the-shelf support for the internet protocols TCP,
+          UDP and ICMP.
+        </p>
+<h6>
+<a name="boost_asio.overview.networking.protocols.h0"></a>
+          <span class="phrase"><a name="boost_asio.overview.networking.protocols.tcp_clients"></a></span><a class="link" href="protocols.html#boost_asio.overview.networking.protocols.tcp_clients">TCP Clients</a>
+        </h6>
+<p>
+          Hostname resolution is performed using a resolver, where host and service
+          names are looked up and converted into one or more endpoints:
+        </p>
+<pre class="programlisting"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">resolver</span> <span class="identifier">resolver</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">);</span>
+<span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">resolver</span><span class="special">::</span><span class="identifier">query</span> <span class="identifier">query</span><span class="special">(</span><span class="string">"www.boost.org"</span><span class="special">,</span> <span class="string">"http"</span><span class="special">);</span>
+<span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">resolver</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">iter</span> <span class="special">=</span> <span class="identifier">resolver</span><span class="special">.</span><span class="identifier">resolve</span><span class="special">(</span><span class="identifier">query</span><span class="special">);</span>
+<span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">resolver</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">end</span><span class="special">;</span> <span class="comment">// End marker.</span>
+<span class="keyword">while</span> <span class="special">(</span><span class="identifier">iter</span> <span class="special">!=</span> <span class="identifier">end</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">endpoint</span> <span class="identifier">endpoint</span> <span class="special">=</span> <span class="special">*</span><span class="identifier">iter</span><span class="special">++;</span>
+  <span class="identifier">std</span><span class="special">::</span><span class="identifier">cout</span> <span class="special">&lt;&lt;</span> <span class="identifier">endpoint</span> <span class="special">&lt;&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">endl</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+          The list of endpoints obtained above could contain both IPv4 and IPv6 endpoints,
+          so a program should try each of them until it finds one that works. This
+          keeps the client program independent of a specific IP version.
+        </p>
+<p>
+          To simplify the development of protocol-independent programs, TCP clients
+          may establish connections using the free functions <a class="link" href="../../reference/connect.html" title="connect">connect()</a>
+          and <a class="link" href="../../reference/async_connect.html" title="async_connect">async_connect()</a>.
+          These operations try each endpoint in a list until the socket is successfully
+          connected. For example, a single call:
+        </p>
+<pre class="programlisting"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">);</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">connect</span><span class="special">(</span><span class="identifier">socket</span><span class="special">,</span> <span class="identifier">resolver</span><span class="special">.</span><span class="identifier">resolve</span><span class="special">(</span><span class="identifier">query</span><span class="special">));</span>
+</pre>
+<p>
+          will synchronously try all endpoints until one is successfully connected.
+          Similarly, an asynchronous connect may be performed by writing:
+        </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">async_connect</span><span class="special">(</span><span class="identifier">socket_</span><span class="special">,</span> <span class="identifier">iter</span><span class="special">,</span>
+    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">bind</span><span class="special">(&amp;</span><span class="identifier">client</span><span class="special">::</span><span class="identifier">handle_connect</span><span class="special">,</span> <span class="keyword">this</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><span class="identifier">asio</span><span class="special">::</span><span class="identifier">placeholders</span><span class="special">::</span><span class="identifier">error</span><span class="special">));</span>
+
+<span class="comment">// ...</span>
+
+<span class="keyword">void</span> <span class="identifier">handle_connect</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">error_code</span><span class="special">&amp;</span> <span class="identifier">error</span><span class="special">)</span>
+<span class="special">{</span>
+  <span class="keyword">if</span> <span class="special">(!</span><span class="identifier">error</span><span class="special">)</span>
+  <span class="special">{</span>
+    <span class="comment">// Start read or write operations.</span>
+  <span class="special">}</span>
+  <span class="keyword">else</span>
+  <span class="special">{</span>
+    <span class="comment">// Handle error.</span>
+  <span class="special">}</span>
+<span class="special">}</span>
+</pre>
+<p>
+          When a specific endpoint is available, a socket can be created and connected:
+        </p>
+<pre class="programlisting"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">);</span>
+<span class="identifier">socket</span><span class="special">.</span><span class="identifier">connect</span><span class="special">(</span><span class="identifier">endpoint</span><span class="special">);</span>
+</pre>
+<p>
+          Data may be read from or written to a connected TCP socket using the <a class="link" href="../../reference/basic_stream_socket/receive.html" title="basic_stream_socket::receive">receive()</a>,
+          <a class="link" href="../../reference/basic_stream_socket/async_receive.html" title="basic_stream_socket::async_receive">async_receive()</a>,
+          <a class="link" href="../../reference/basic_stream_socket/send.html" title="basic_stream_socket::send">send()</a>
+          or <a class="link" href="../../reference/basic_stream_socket/async_send.html" title="basic_stream_socket::async_send">async_send()</a>
+          member functions. However, as these could result in <a class="link" href="../core/streams.html" title="Streams, Short Reads and Short Writes">short
+          writes or reads</a>, an application will typically use the following
+          operations instead: <a class="link" href="../../reference/read.html" title="read">read()</a>,
+          <a class="link" href="../../reference/async_read.html" title="async_read">async_read()</a>, <a class="link" href="../../reference/write.html" title="write">write()</a> and <a class="link" href="../../reference/async_write.html" title="async_write">async_write()</a>.
+        </p>
+<h6>
+<a name="boost_asio.overview.networking.protocols.h1"></a>
+          <span class="phrase"><a name="boost_asio.overview.networking.protocols.tcp_servers"></a></span><a class="link" href="protocols.html#boost_asio.overview.networking.protocols.tcp_servers">TCP Servers</a>
+        </h6>
+<p>
+          A program uses an acceptor to accept incoming TCP connections:
+        </p>
+<pre class="programlisting"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">acceptor</span> <span class="identifier">acceptor</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">,</span> <span class="identifier">my_endpoint</span><span class="special">);</span>
+<span class="special">...</span>
+<span class="identifier">ip</span><span class="special">::</span><span class="identifier">tcp</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">);</span>
+<span class="identifier">acceptor</span><span class="special">.</span><span class="identifier">accept</span><span class="special">(</span><span class="identifier">socket</span><span class="special">);</span>
+</pre>
+<p>
+          After a socket has been successfully accepted, it may be read from or written
+          to as illustrated for TCP clients above.
+        </p>
+<h6>
+<a name="boost_asio.overview.networking.protocols.h2"></a>
+          <span class="phrase"><a name="boost_asio.overview.networking.protocols.udp"></a></span><a class="link" href="protocols.html#boost_asio.overview.networking.protocols.udp">UDP</a>
+        </h6>
+<p>
+          UDP hostname resolution is also performed using a resolver:
+        </p>
+<pre class="programlisting"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">udp</span><span class="special">::</span><span class="identifier">resolver</span> <span class="identifier">resolver</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">);</span>
+<span class="identifier">ip</span><span class="special">::</span><span class="identifier">udp</span><span class="special">::</span><span class="identifier">resolver</span><span class="special">::</span><span class="identifier">query</span> <span class="identifier">query</span><span class="special">(</span><span class="string">"localhost"</span><span class="special">,</span> <span class="string">"daytime"</span><span class="special">);</span>
+<span class="identifier">ip</span><span class="special">::</span><span class="identifier">udp</span><span class="special">::</span><span class="identifier">resolver</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">iter</span> <span class="special">=</span> <span class="identifier">resolver</span><span class="special">.</span><span class="identifier">resolve</span><span class="special">(</span><span class="identifier">query</span><span class="special">);</span>
+<span class="special">...</span>
+</pre>
+<p>
+          A UDP socket is typically bound to a local endpoint. The following code
+          will create an IP version 4 UDP socket and bind it to the "any"
+          address on port <code class="computeroutput"><span class="number">12345</span></code>:
+        </p>
+<pre class="programlisting"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">udp</span><span class="special">::</span><span class="identifier">endpoint</span> <span class="identifier">endpoint</span><span class="special">(</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">udp</span><span class="special">::</span><span class="identifier">v4</span><span class="special">(),</span> <span class="number">12345</span><span class="special">);</span>
+<span class="identifier">ip</span><span class="special">::</span><span class="identifier">udp</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">,</span> <span class="identifier">endpoint</span><span class="special">);</span>
+</pre>
+<p>
+          Data may be read from or written to an unconnected UDP socket using the
+          <a class="link" href="../../reference/basic_datagram_socket/receive_from.html" title="basic_datagram_socket::receive_from">receive_from()</a>,
+          <a class="link" href="../../reference/basic_datagram_socket/async_receive_from.html" title="basic_datagram_socket::async_receive_from">async_receive_from()</a>,
+          <a class="link" href="../../reference/basic_datagram_socket/send_to.html" title="basic_datagram_socket::send_to">send_to()</a>
+          or <a class="link" href="../../reference/basic_datagram_socket/async_send_to.html" title="basic_datagram_socket::async_send_to">async_send_to()</a>
+          member functions. For a connected UDP socket, use the <a class="link" href="../../reference/basic_datagram_socket/receive.html" title="basic_datagram_socket::receive">receive()</a>,
+          <a class="link" href="../../reference/basic_datagram_socket/async_receive.html" title="basic_datagram_socket::async_receive">async_receive()</a>,
+          <a class="link" href="../../reference/basic_datagram_socket/send.html" title="basic_datagram_socket::send">send()</a>
+          or <a class="link" href="../../reference/basic_datagram_socket/async_send.html" title="basic_datagram_socket::async_send">async_send()</a>
+          member functions.
+        </p>
+<h6>
+<a name="boost_asio.overview.networking.protocols.h3"></a>
+          <span class="phrase"><a name="boost_asio.overview.networking.protocols.icmp"></a></span><a class="link" href="protocols.html#boost_asio.overview.networking.protocols.icmp">ICMP</a>
+        </h6>
+<p>
+          As with TCP and UDP, ICMP hostname resolution is performed using a resolver:
+        </p>
+<pre class="programlisting"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">icmp</span><span class="special">::</span><span class="identifier">resolver</span> <span class="identifier">resolver</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">);</span>
+<span class="identifier">ip</span><span class="special">::</span><span class="identifier">icmp</span><span class="special">::</span><span class="identifier">resolver</span><span class="special">::</span><span class="identifier">query</span> <span class="identifier">query</span><span class="special">(</span><span class="string">"localhost"</span><span class="special">,</span> <span class="string">""</span><span class="special">);</span>
+<span class="identifier">ip</span><span class="special">::</span><span class="identifier">icmp</span><span class="special">::</span><span class="identifier">resolver</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">iter</span> <span class="special">=</span> <span class="identifier">resolver</span><span class="special">.</span><span class="identifier">resolve</span><span class="special">(</span><span class="identifier">query</span><span class="special">);</span>
+<span class="special">...</span>
+</pre>
+<p>
+          An ICMP socket may be bound to a local endpoint. The following code will
+          create an IP version 6 ICMP socket and bind it to the "any" address:
+        </p>
+<pre class="programlisting"><span class="identifier">ip</span><span class="special">::</span><span class="identifier">icmp</span><span class="special">::</span><span class="identifier">endpoint</span> <span class="identifier">endpoint</span><span class="special">(</span><span class="identifier">ip</span><span class="special">::</span><span class="identifier">icmp</span><span class="special">::</span><span class="identifier">v6</span><span class="special">(),</span> <span class="number">0</span><span class="special">);</span>
+<span class="identifier">ip</span><span class="special">::</span><span class="identifier">icmp</span><span class="special">::</span><span class="identifier">socket</span> <span class="identifier">socket</span><span class="special">(</span><span class="identifier">my_io_service</span><span class="special">,</span> <span class="identifier">endpoint</span><span class="special">);</span>
+</pre>
+<p>
+          The port number is not used for ICMP.
+        </p>
+<p>
+          Data may be read from or written to an unconnected ICMP socket using the
+          <a class="link" href="../../reference/basic_raw_socket/receive_from.html" title="basic_raw_socket::receive_from">receive_from()</a>,
+          <a class="link" href="../../reference/basic_raw_socket/async_receive_from.html" title="basic_raw_socket::async_receive_from">async_receive_from()</a>,
+          <a class="link" href="../../reference/basic_raw_socket/send_to.html" title="basic_raw_socket::send_to">send_to()</a>
+          or <a class="link" href="../../reference/basic_raw_socket/async_send_to.html" title="basic_raw_socket::async_send_to">async_send_to()</a>
+          member functions.
+        </p>
+<h6>
+<a name="boost_asio.overview.networking.protocols.h4"></a>
+          <span class="phrase"><a name="boost_asio.overview.networking.protocols.see_also"></a></span><a class="link" href="protocols.html#boost_asio.overview.networking.protocols.see_also">See
+          Also</a>
+        </h6>
+<p>
+          <a class="link" href="../../reference/ip__tcp.html" title="ip::tcp">ip::tcp</a>, <a class="link" href="../../reference/ip__udp.html" title="ip::udp">ip::udp</a>,
+          <a class="link" href="../../reference/ip__icmp.html" title="ip::icmp">ip::icmp</a>, <a class="link" href="../../tutorial/tutdaytime1.html" title="Daytime.1 - A synchronous TCP daytime client">daytime
+          protocol tutorials</a>, <a class="link" href="../../examples/cpp03_examples.html#boost_asio.examples.cpp03_examples.icmp">ICMP
+          ping example</a>.
+        </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../networking.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../networking.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../boost_asio.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="other_protocols.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

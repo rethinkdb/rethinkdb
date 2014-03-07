@@ -1,0 +1,120 @@
+[/
+ / Copyright (c) 2009 Eric Niebler
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section Named Captures]
+
+[h2 Overview]
+
+For complicated regular expressions, dealing with numbered captures can be a
+pain. Counting left parentheses to figure out which capture to reference is
+no fun. Less fun is the fact that merely editing a regular expression could
+cause a capture to be assigned a new number, invaliding code that refers back
+to it by the old number.
+
+Other regular expression engines solve this problem with a feature called
+/named captures/. This feature allows you to assign a name to a capture, and
+to refer back to the capture by name rather by number. Xpressive also supports
+named captures, both in dynamic and in static regexes.
+
+[h2 Dynamic Named Captures]
+
+For dynamic regular expressions, xpressive follows the lead of other popular
+regex engines with the syntax of named captures. You can create a named capture
+with `"(?P<xxx>...)"` and refer back to that capture with `"(?P=xxx)"`. Here,
+for instance, is a regular expression that creates a named capture and refers
+back to it:
+
+    // Create a named capture called "char" that matches a single
+    // character and refer back to that capture by name.
+    sregex rx = sregex::compile("(?P<char>.)(?P=char)");
+
+The effect of the above regular expression is to find the first doubled
+character.
+
+Once you have executed a match or search operation using a regex with named
+captures, you can access the named capture through the _match_results_ object
+using the capture's name.
+
+    std::string str("tweet");
+    sregex rx = sregex::compile("(?P<char>.)(?P=char)");
+    smatch what;
+    if(regex_search(str, what, rx))
+    {
+        std::cout << "char = " << what["char"] << std::endl;
+    }
+
+The above code displays:
+
+[pre
+char = e
+]
+
+You can also refer back to a named capture from within a substitution string.
+The syntax for that is `"\\g<xxx>"`. Below is some code that demonstrates how
+to use named captures when doing string substitution.
+
+    std::string str("tweet");
+    sregex rx = sregex::compile("(?P<char>.)(?P=char)");
+    str = regex_replace(str, rx, "**\\g<char>**", regex_constants::format_perl);
+    std::cout << str << std::endl;
+
+Notice that you have to specify `format_perl` when using named captures. Only
+the perl syntax recognizes the `"\\g<xxx>"` syntax. The above code displays:
+
+[pre
+tw\*\*e\*\*t
+]
+
+[h2 Static Named Captures]
+
+If you're using static regular expressions, creating and using named
+captures is even easier. You can use the _mark_tag_ type to create
+a variable that you can use like [globalref boost::xpressive::s1 `s1`],
+[globalref boost::xpressive::s1 `s2`] and friends, but with a name
+that is more meaningful. Below is how the above example would look 
+using static regexes:
+
+    mark_tag char_(1); // char_ is now a synonym for s1
+    sregex rx = (char_= _) >> char_;
+
+After a match operation, you can use the `mark_tag` to index into the
+_match_results_ to access the named capture:
+
+    std::string str("tweet");
+    mark_tag char_(1);
+    sregex rx = (char_= _) >> char_;
+    smatch what;
+    if(regex_search(str, what, rx))
+    {
+        std::cout << what[char_] << std::endl;
+    }
+
+The above code displays:
+
+[pre
+char = e
+]
+
+When doing string substitutions with _regex_replace_, you can use named
+captures to create /format expressions/ as below:
+
+    std::string str("tweet");
+    mark_tag char_(1);
+    sregex rx = (char_= _) >> char_;
+    str = regex_replace(str, rx, "**" + char_ + "**");
+    std::cout << str << std::endl;
+
+The above code displays:
+
+[pre
+tw\*\*e\*\*t
+]
+
+[note You need to include [^<boost/xpressive/regex_actions.hpp>] to
+use format expressions.]
+
+[endsect]

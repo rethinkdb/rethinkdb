@@ -1,0 +1,212 @@
+# Copyright 2003 Dave Abrahams 
+# Copyright 2003, 2006 Rene Rivera 
+# Copyright 2003, 2006 Vladimir Prus 
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) 
+
+# This module is the plug-in handler for the --help and --help-.*
+# command-line options
+import modules ;
+import assert ;
+import doc : do-scan set-option set-output set-output-file print-help-usage print-help-top ;
+import sequence ;
+import set ;
+import project ;
+import print ;
+import os ;
+import version ;
+import path ;
+
+# List of possible modules, but which really aren't.
+#
+.not-modules =
+    boost-build bootstrap site-config test user-config
+    -tools allyourbase boost-base features python stlport testing unit-tests ;
+
+# The help system options are parsed here and handed off to the doc
+# module to translate into documentation requests and actions. The
+# understood options are:
+#
+#    --help-disable-<option>
+#    --help-doc-options
+#    --help-enable-<option>
+#    --help-internal
+#    --help-options
+#    --help-usage
+#    --help-output <type>
+#    --help-output-file <file>
+#    --help [<module-or-class>]
+#
+rule process (
+    command # The option.
+    : values * # The values, starting after the "=".
+    )
+{
+    assert.result --help : MATCH ^(--help).* : $(command) ;
+    local did-help = ;
+    switch $(command)
+    {
+        case --help-internal :
+        local path-to-modules = [ modules.peek : BOOST_BUILD_PATH ] ;
+        path-to-modules ?= . ;
+        local possible-modules = [ GLOB $(path-to-modules) : *\\.jam ] ;
+        local not-modules = [ GLOB $(path-to-modules) : *$(.not-modules)\\.jam ] ;
+        local modules-to-list =
+            [ sequence.insertion-sort
+                [ set.difference $(possible-modules:D=:S=) : $(not-modules:D=:S=) ] ] ;
+        local modules-to-scan ;
+        for local m in $(modules-to-list)
+        {
+            local module-files = [ GLOB $(path-to-modules) : $(m)\\.jam ] ;
+            modules-to-scan += $(module-files[1]) ;
+        }
+        do-scan $(modules-to-scan) : print-help-all ;
+        did-help = true ;
+
+        case --help-enable-* :
+        local option = [ MATCH --help-enable-(.*) : $(command) ] ; option = $(option:L) ;
+        set-option $(option) : enabled ;
+        did-help = true ;
+
+        case --help-disable-* :
+        local option = [ MATCH --help-disable-(.*) : $(command) ] ; option = $(option:L) ;
+        set-option $(option) ;
+        did-help = true ;
+
+        case --help-output :
+        set-output $(values[1]) ;
+        did-help = true ;
+
+        case --help-output-file :
+        set-output-file $(values[1]) ;
+        did-help = true ;
+
+        case --help-doc-options :
+        local doc-module-spec = [ split-symbol doc ] ;
+        do-scan $(doc-module-spec[1]) : print-help-options ;
+        did-help = true ;
+
+        case --help-options :
+        print-help-usage ;
+        did-help = true ;
+
+        case --help :
+        local spec = $(values[1]) ;
+        if $(spec)
+        {
+            local spec-parts = [ split-symbol $(spec) ] ;
+            if $(spec-parts)
+            {
+                if $(spec-parts[2])
+                {
+                    do-scan $(spec-parts[1]) : print-help-classes $(spec-parts[2]) ;
+                    do-scan $(spec-parts[1]) : print-help-rules $(spec-parts[2]) ;
+                    do-scan $(spec-parts[1]) : print-help-variables $(spec-parts[2]) ;
+                }
+                else
+                {
+                    do-scan $(spec-parts[1]) : print-help-module ;
+                }
+            }
+            else
+            {
+                EXIT "Unrecognized help option '"$(command)" "$(spec)"'." ;
+            }
+        }
+        else
+        {
+            version.print ;
+            ECHO ;
+            # First print documentation from the current Jamfile, if any.            
+            # FIXME: Generally, this duplication of project.jam logic is bad.
+            local names = [ modules.peek project : JAMROOT ]
+              [ modules.peek project : JAMFILE ] ;
+            local project-file = [ path.glob . : $(names) ] ;
+            if ! $(project-file)
+            {
+                project-file = [ path.glob-in-parents . : $(names) ] ;
+            }
+            
+            for local p in $(project-file)
+            {
+                do-scan $(p) : print-help-project $(p) ;
+            }
+            
+            # Next any user-config help.
+            local user-path = [ os.home-directories ] [ os.environ BOOST_BUILD_PATH ] ;
+            local user-config = [ GLOB $(user-path) : user-config.jam ] ;
+            if $(user-config)
+            {
+                do-scan $(user-config[1]) : print-help-config user $(user-config[1]) ;
+            }
+            
+            # Next any site-config help.
+            local site-config = [ GLOB $(user-path) : site-config.jam ] ;
+            if $(site-config)
+            {
+                do-scan $(site-config[1]) : print-help-config site $(site-config[1]) ;
+            }
+
+            # Then the overall help.
+            print-help-top ;
+        }
+        did-help = true ;
+    }
+    if $(did-help)
+    {
+        UPDATE all ;
+        NOCARE all ;
+    }
+    return $(did-help) ;
+}
+
+# Split a reference to a symbol into module and symbol parts.
+#
+local rule split-symbol (
+    symbol # The symbol to split.
+    )
+{
+    local path-to-modules = [ modules.peek : BOOST_BUILD_PATH ] ;
+    path-to-modules ?= . ;
+    local module-name = $(symbol) ;
+    local symbol-name = ;
+    local result = ;
+    while ! $(result)
+    {
+        local module-path = [ GLOB $(path-to-modules) : $(module-name)\\.jam ] ;
+        if $(module-path)
+        {
+            # The 'module-name' in fact refers to module. Return the full
+            # module path and a symbol within it. If 'symbol' passed to this
+            # rule is already module, 'symbol-name' will be empty. Otherwise,
+            # it's initialized on the previous loop iteration.
+            # In case there are several modules by this name,
+            # use the first one.
+            result = $(module-path[1]) $(symbol-name) ;
+        }
+        else
+        {
+            if ! $(module-name:S)
+            {
+                result = - ;
+            }
+            else
+            {
+                local next-symbol-part = [ MATCH ^.(.*) : $(module-name:S) ] ;
+                if $(symbol-name)
+                {
+                    symbol-name = $(next-symbol-part).$(symbol-name) ;
+                }
+                else
+                {
+                    symbol-name = $(next-symbol-part) ;
+                }
+                module-name = $(module-name:B) ;
+            }
+        }
+    }
+    if $(result) != -
+    {
+        return $(result) ;
+    }
+}

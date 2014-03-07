@@ -1,0 +1,322 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>Shared Container Iterator Documentation</title>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000">
+
+<img src="../../boost.png" alt="boost.png (6897 bytes)"
+align="center" width="277" height="86">
+
+<h1>Shared Container Iterator</h1>
+
+Defined in header
+<a href="../../boost/shared_container_iterator.hpp">boost/shared_container_iterator.hpp</a>
+
+<p>
+The purpose of the shared container iterator is to attach the lifetime
+of a container to the lifetime of its iterators. In other words, the
+container will not be deleted until after all its iterators are
+destroyed.  The shared container iterator is typically used to
+implement functions that return iterators over a range of objects that
+only need to exist for the lifetime of the iterators.  By returning a
+pair of shared iterators from a function, the callee can return a
+heap-allocated range of objects whose lifetime is automatically managed.
+<p>
+The shared container iterator augments an iterator over a shared
+container.  It maintains a reference count on the shared 
+container. If only shared container iterators hold references to
+the container, the container's lifetime will end when the last shared
+container iterator over it is destroyed.  In any case, the shared
+container is guaranteed to persist beyond the lifetime of all
+the iterators. In all other ways, the
+shared container iterator behaves the same as its base iterator.
+
+
+<h2>Synopsis</h2>
+
+<pre>
+namespace boost {
+  template &lt;typename <a href="http://www.sgi.com/tech/stl/Container.html">Container</a>&gt;
+  class shared_container_iterator;
+
+  template &lt;typename <a href="http://www.sgi.com/tech/stl/Container.html">Container</a>&gt;
+  shared_container_iterator&lt;Container&gt;
+  make_shared_container_iterator(typename Container::iterator base, 
+    boost::shared_ptr&lt;Container&gt; const&amp; container);
+
+  std::pair&lt;
+    typename shared_container_iterator&lt;Container&gt;,
+    typename shared_container_iterator&lt;Container&gt;
+  &gt;
+  make_shared_container_range(boost::shared_ptr&lt;Container&gt; const&amp; container);
+}
+</pre>
+
+<hr>
+
+<h2><a name="generator">The Shared Container Iterator Type</a></h2>
+
+<pre>
+template &lt;typename Container&gt; class shared_container_iterator;
+</pre>
+
+The class template <tt>shared_container_iterator</tt> 
+is the shared container iterator type.  The <tt>Container</tt> template
+type argument must model the
+<a href="http://www.sgi.com/tech/stl/Container.html">Container</a>
+concept.
+
+<h3>Example</h3>
+
+<p>
+The following example illustrates how to create an iterator that 
+regulates the lifetime of a reference counted <tt>std::vector</tt>.
+Though the original shared pointer <tt>ints</tt> ceases to exist
+after <tt>set_range()</tt> returns, the
+<tt>shared_counter_iterator</tt> objects maintain references to the
+      underlying vector and thereby extend the container's lifetime.
+<p>
+<a href="./shared_iterator_example1.cpp">shared_iterator_example1.cpp</a>:
+<PRE>
+<font color="#008040">#include "shared_container_iterator.hpp"</font>
+<font color="#008040">#include "boost/shared_ptr.hpp"</font>
+<font color="#008040">#include &lt;algorithm&gt;</font>
+<font color="#008040">#include &lt;iostream&gt;</font>
+<font color="#008040">#include &lt;vector&gt;</font>
+
+<B>typedef</B> boost::shared_container_iterator&lt; std::vector&lt;<B>int</B>&gt; &gt; iterator;
+
+
+<B>void</B> set_range(iterator& i, iterator& end)  {
+
+  boost::shared_ptr&lt; std::vector&lt;<B>int</B>&gt; &gt; ints(<B>new</B> std::vector&lt;<B>int</B>&gt;());
+  
+  ints-&gt;push_back(<font color="#0000A0">0</font>);
+  ints-&gt;push_back(<font color="#0000A0">1</font>);
+  ints-&gt;push_back(<font color="#0000A0">2</font>);
+  ints-&gt;push_back(<font color="#0000A0">3</font>);
+  ints-&gt;push_back(<font color="#0000A0">4</font>);
+  ints-&gt;push_back(<font color="#0000A0">5</font>);
+  
+  i = iterator(ints-&gt;begin(),ints);
+  end = iterator(ints-&gt;end(),ints);
+}
+
+
+<B>int</B> main() {
+
+  iterator i,end;
+
+  set_range(i,end);
+
+  std::copy(i,end,std::ostream_iterator&lt;<B>int</B>&gt;(std::cout,<font color="#0000FF">","</font>));
+  std::cout.put(<font color="#0000FF">'\n'</font>);
+
+  <B>return</B> <font color="#0000A0">0</font>;
+}
+</PRE>
+
+The output from this part is:
+<pre>
+0,1,2,3,4,5,
+</pre>
+
+<h3>Template Parameters</h3>
+
+<Table border>
+<TR>
+<TH>Parameter</TH><TH>Description</TH>
+</TR>
+
+<TR>
+<TD><a
+href="http://www.sgi.com/tech/stl/Container.html"><tt>Container</tt></a></TD>
+<TD>The type of the container that we wish to iterate over. It must be 
+a model of the 
+<a href="http://www.sgi.com/tech/stl/Container.html"><tt>Container</tt></a>
+concept.
+</TD>
+</TR>
+</Table>
+
+<h3>Model of</h3>
+
+The <tt>shared_container_iterator<Container></tt> type models the
+same iterator concept as the base iterator
+    (<tt>Container::iterator</tt>).
+
+<h3>Members</h3>
+
+The shared container iterator type implements the member functions and
+operators required of the <a
+href="http://www.sgi.com/tech/stl/RandomAccessIterator.html">Random Access Iterator</a>
+concept, though only operations defined for the base iterator will be valid.
+In addition it has the following constructor:
+
+<pre>
+shared_container_iterator(Container::iterator const&amp; it,
+                          boost::shared_ptr&lt;Container&gt; const&amp; container)
+</pre>
+
+<p>
+<hr>
+<p>
+
+
+<h2><a name="make_iterator">The Shared Container Iterator Object Generator</a></h2>
+
+<pre>
+template &lt;typename Container&gt;
+shared_container_iterator&lt;Container&gt;
+make_shared_container_iterator(Container::iterator base,
+                               boost::shared_ptr&lt;Container&gt; const&amp; container)
+</pre>
+
+This function provides an alternative to directly constructing a
+shared container iterator.  Using the object generator, a shared
+container iterator can be created and passed to a function without
+explicitly specifying its type.
+
+<h3>Example</h3>
+
+This example, similar to the previous, uses 
+<tt>make_shared_container_iterator()</tt> to create the iterators.
+
+<p>
+<a href="./shared_iterator_example2.cpp">shared_iterator_example2.cpp</a>:
+
+<PRE>
+<font color="#008040">#include "shared_container_iterator.hpp"</font>
+<font color="#008040">#include "boost/shared_ptr.hpp"</font>
+<font color="#008040">#include &lt;algorithm&gt;</font>
+<font color="#008040">#include &lt;iterator&gt;</font>
+<font color="#008040">#include &lt;iostream&gt;</font>
+<font color="#008040">#include &lt;vector&gt;</font>
+
+
+<B>template</B> &lt;<B>typename</B> Iterator&gt;
+<B>void</B> print_range_nl (Iterator begin, Iterator end) {
+  <B>typedef</B> <B>typename</B> std::iterator_traits&lt;Iterator&gt;::value_type val;
+  std::copy(begin,end,std::ostream_iterator&lt;val&gt;(std::cout,<font color="#0000FF">","</font>));
+  std::cout.put(<font color="#0000FF">'\n'</font>);
+}
+
+
+<B>int</B> main() {
+
+  <B>typedef</B> boost::shared_ptr&lt; std::vector&lt;<B>int</B>&gt; &gt; ints_t;
+  {
+    ints_t ints(<B>new</B> std::vector&lt;<B>int</B>&gt;());
+
+    ints-&gt;push_back(<font color="#0000A0">0</font>);
+    ints-&gt;push_back(<font color="#0000A0">1</font>);
+    ints-&gt;push_back(<font color="#0000A0">2</font>);
+    ints-&gt;push_back(<font color="#0000A0">3</font>);
+    ints-&gt;push_back(<font color="#0000A0">4</font>);
+    ints-&gt;push_back(<font color="#0000A0">5</font>);
+
+    print_range_nl(boost::make_shared_container_iterator(ints-&gt;begin(),ints),
+		   boost::make_shared_container_iterator(ints-&gt;end(),ints));
+  }
+  
+
+
+  <B>return</B> <font color="#0000A0">0</font>;
+}
+</PRE>
+
+Observe that the <tt>shared_container_iterator</tt> type is never
+explicitly named. The output from this example is the same as the previous.
+
+<h2><a name="make_range">The Shared Container Iterator Range Generator</a></h2>
+
+<pre>
+template &lt;typename Container&gt;
+std::pair&lt
+  shared_container_iterator&lt;Container&gt;,
+  shared_container_iterator&lt;Container&gt;
+&gt;
+make_shared_container_range(boost::shared_ptr&lt;Container&gt; const&amp; container);
+</pre>
+
+Class <tt>shared_container_iterator</tt> is meant primarily to return,
+using iterators, a range of values that we can guarantee will be alive as 
+long as the iterators are. This is a convenience
+function to do just that. It is equivalent to
+
+<pre>
+std::make_pair(make_shared_container_iterator(container-&gt;begin(),container),
+               make_shared_container_iterator(container-&gt;end(),container));
+</pre>
+
+<h3>Example</h3>
+
+In the following example, a range of values is returned as a pair of
+<tt>shared_container_iterator</tt> objects.  
+
+
+<p>
+<a href="./shared_iterator_example3.cpp">shared_iterator_example3.cpp</a>:
+
+<PRE>
+<font color="#008040">#include "shared_container_iterator.hpp"</font>
+<font color="#008040">#include "boost/shared_ptr.hpp"</font>
+<font color="#008040">#include "boost/tuple/tuple.hpp" // for boost::tie</font>
+<font color="#008040">#include &lt;algorithm&gt;              // for std::copy</font>
+<font color="#008040">#include &lt;iostream&gt;              </font>
+<font color="#008040">#include &lt;vector&gt;</font>
+
+
+<B>typedef</B> boost::shared_container_iterator&lt; std::vector&lt;<B>int</B>&gt; &gt; iterator; 
+
+std::pair&lt;iterator,iterator&gt;
+return_range() {
+  boost::shared_ptr&lt; std::vector&lt;<B>int</B>&gt; &gt; range(<B>new</B> std::vector&lt;<B>int</B>&gt;());
+  range-&gt;push_back(<font color="#0000A0">0</font>);
+  range-&gt;push_back(<font color="#0000A0">1</font>);
+  range-&gt;push_back(<font color="#0000A0">2</font>);
+  range-&gt;push_back(<font color="#0000A0">3</font>);
+  range-&gt;push_back(<font color="#0000A0">4</font>);
+  range-&gt;push_back(<font color="#0000A0">5</font>);
+  <B>return</B> boost::make_shared_container_range(range);
+}
+
+
+<B>int</B> main() {
+
+
+  iterator i,end;
+  
+  boost::tie(i,end) = return_range();
+
+  std::copy(i,end,std::ostream_iterator&lt;<B>int</B>&gt;(std::cout,<font color="#0000FF">","</font>));
+  std::cout.put(<font color="#0000FF">'\n'</font>);
+
+  <B>return</B> <font color="#0000A0">0</font>;
+}
+</PRE>
+
+Though the <tt>range</tt> object only lives for the duration of the
+<tt>return_range</tt> call, the reference counted
+<tt>std::vector</tt> will live until <tt>i</tt> and <tt>end</tt>
+are both destroyed.  The output from this example is the same as
+the previous two.
+
+
+<hr>
+<!-- hhmts start -->
+Last modified: Mon Aug 11 11:27:03 EST 2003
+<!-- hhmts end -->
+<p>© Copyright 2003 The Trustees of Indiana University.
+ Use, modification and distribution is subject to the Boost Software 
+ License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+ http://www.boost.org/LICENSE_1_0.txt)</p>
+
+</body>
+
+</html>

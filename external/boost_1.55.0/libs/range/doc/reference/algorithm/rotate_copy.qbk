@@ -1,0 +1,43 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:rotate_copy rotate_copy]
+
+[heading Prototype]
+
+``
+template<class ForwardRange, class OutputIterator>
+OutputIterator rotate_copy(
+    const ForwardRange& rng,
+    typename range_iterator<ForwardRange>::type middle,
+    OutputIterator out);
+``
+
+[heading Description]
+
+`rotate_copy` rotates the elements in a range. It copies the two ranges `[begin(rng), middle)` and `[middle, end(rng))` to `out`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/rotate_copy.hpp`
+
+[heading Requirements]
+
+* `ForwardRange` is a model of the __forward_range__ Concept.
+* `ForwardRange` is mutable.
+* `OutputIterator` is a model of the `OutputIteratorConcept`.
+
+[heading Precondition:]
+
+* `[begin(rng), middle)` is a valid range.
+* `[middle, end(rng))` is a valid range.
+
+[heading Complexity]
+
+Linear. Exactly `distance(rng)` elements are copied.
+
+[endsect]
+
+

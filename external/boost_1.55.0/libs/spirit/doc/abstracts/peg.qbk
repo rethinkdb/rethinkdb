@@ -1,0 +1,113 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+[section Parsing Expression Grammar]
+
+Parsing Expression Grammars (PEG) [footnote Bryan Ford: Parsing Expression 
+Grammars: A Recognition-Based Syntactic Foundation, 
+[@http://pdos.csail.mit.edu/~baford/packrat/popl04/]] are a derivative of 
+Extended Backus-Naur Form (EBNF) [footnote Richard E. Pattis: EBNF: A Notation 
+to Describe Syntax, [@http://www.cs.cmu.edu/~pattis/misc/ebnf.pdf]]
+with a different interpretation, designed to represent a recursive descent 
+parser. A PEG can be directly represented as a recursive-descent parser.
+
+Like EBNF, PEG is a formal grammar for describing a formal language in
+terms of a set of rules used to recognize strings of this language.
+Unlike EBNF, PEGs have an exact interpretation. There is only one valid
+parse tree (see __ast__) for each PEG grammar.
+
+[heading Sequences]
+
+Sequences are represented by juxtaposition like in EBNF:
+
+    a b
+
+The PEG expression above states that, in order for this to succeed,
+`b` must follow `a`. Here's the syntax diagram:
+
+[:__sd_sequence__]
+
+Here's a trivial example:
+
+    'x' digit
+
+which means the character `x` must be followed by a digit.
+
+[note In __qi__, we use the `>>` for sequences since C++ does not
+allow juxtaposition, while in __karma__ we use the `<<` instead.]
+
+[heading Alternatives]
+
+Alternatives are represented in PEG using the slash:
+
+    a / b
+
+[note In __qi__ and __karma__, we use the `|` for alternatives just as in EBNF.]
+
+Alternatives allow for choices. The expression above reads: try to match
+`a`. If `a` succeeds, success, if not try to match `b`. This is a bit of
+a deviation from the usual EBNF interpretation where you simply match
+`a` *or* `b`. Here's the syntax diagram:
+
+[:__sd_choice__]
+
+PEGs allow for ambiguity in the alternatives. In the expression above,
+both `a` or `b` can both match an input string. However, only the first
+matching alternative is valid. As noted, there can only be one valid
+parse tree. [/FIXME: $$$ explain more about this $$$]
+
+[heading Loops]
+
+Again, like EBNF, PEG uses the regular-expression Kleene star and the
+plus loops:
+
+    a*
+    a+
+
+[note __qi__ and __karma__ use the prefix star and plus since there is no 
+postfix star or plus in C++.]
+
+Here are the syntax diagrams:
+
+[:__sd_kleene__]
+[:__sd_plus__]
+
+The first, called the Kleene star, matches zero or more of its subject
+`a`. The second, plus, matches one ore more of its subject `a`.
+
+Unlike EBNF, PEGs have greedy loops. It will match as much as it can
+until its subject fails to match without regard to what follows. The
+following is a classic example of a fairly common EBNF/regex expression
+failing to match in PEG:
+
+    alnum* digit
+
+In PEG, alnum will eat as much alpha-numeric characters as it can
+leaving nothing more left behind. Thus, the trailing digit will get
+nothing. Loops are simply implemented in recursive descent code as
+for/while loops making them extremely efficient. That is a definite
+advantage. On the other hand, those who are familiar with EBNF and regex
+behavior might find the behavior a major gotcha. PEG provides a couple
+of other mechanisms to circumvent this. We will see more of these other
+mechanisms shortly.
+
+[heading Difference]
+
+In some cases, you may want to restrict a certain expression. You can
+think of a PEG expression as a match for a potentially infinite set of
+strings. The difference operator allows you to restrict this set:
+
+    a - b
+
+The expression reads: match `a` but not `b`.
+
+[note There is no difference operator in __karma__, as the concept does not 
+make sense in the context of output generation.]
+
+[endsect]
+
+

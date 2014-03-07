@@ -1,0 +1,35 @@
+
+[/ Copyright (C) 2009-2012 Lorenzo Caminiti ]
+[/ Distributed under the Boost Software License, Version 1.0 ]
+[/ (see accompanying file LICENSE_1_0.txt or a copy at ]
+[/ http://www.boost.org/LICENSE_1_0.txt) ]
+[/ Home at http://www.boost.org/libs/local_function ]
+
+[section Acknowledgments]
+
+This section aims to recognize the contributions of /all/ the different people that participated directly or indirectly to the design and development of this library.
+
+Many thanks to Steven Watanabe and Vicente Botet for suggesting to me to use __Boost_ScopeExit__ binding to [@http://lists.boost.org/Archives/boost/2010/04/165149.php emulate local functions].
+Many thanks to Alexander Nasonov for clarifying how __Boost_ScopeExit__ binding could be used to implement local functions and for some [@http://thread.gmane.org/gmane.comp.lib.boost.devel/168612 early work] in this direction.
+
+Many thanks to Gregory Crosswhite for using an early version of this library in [@https://github.com/gcross/CodeSearch one of his projects].
+
+Thanks to David Abrahams, Vicente Botet, et al. for suggesting to provide the [@http://lists.boost.org/Archives/boost/2011/02/176712.php variadic macro syntax] on compilers that support variadic macros.
+
+Thanks to Pierre Morcello for sharing some code that experimented with implementing local functions using __Boost_ScopeExit__ binding (even if this library is not based on such a code).
+
+Thanks to John Bytheway for checking the authors' virtual functor technique that originally allowed this library to pass local functions as template parameters.
+
+Thanks to Jeffrey Lee Hellrung for suggesting the use of the "keyword" `bind` to bind variables in scope and for suggesting to use [^bind(/type/)] to optionally specify the bound variable type.
+Thanks to Vicente Botet for suggesting to provide a macro to expose the bound variable type to the public API.
+
+Thanks to Steven Watanabe, Vicente Botet, Michael Caisse, Yechezkel Mett, Joel de Guzman, Thomas Heller, et al. for helping with the __Alternatives__ section and with the profiling of the different alternatives.
+
+Many thanks to Jeffrey Lee Hellrung for managing the [@http://lists.boost.org/boost-announce/2011/12/0340.php Boost review] of this library.
+Thanks also to all the people that submitted a Boost review: Andrzej Krzemienski, Edward Diener, Gregory Crosswhite, John Bytheway, Hartmut Kaiser, Krzysztof Czainski, Nat Lindon, Pierre Morcello, Thomas Heller, and Vicente J. Botet.
+Thanks to everyone that commented on the library during its Boost review.
+
+Finally, many thanks to the entire __Boost__ community and [@http://lists.boost.org mailing list] for providing valuable comments about this library and great insights on the C++ programming language.
+
+[endsect]
+

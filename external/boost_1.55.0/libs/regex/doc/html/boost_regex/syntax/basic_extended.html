@@ -1,0 +1,1198 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>POSIX Extended Regular Expression Syntax</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="Boost.Regex">
+<link rel="up" href="../syntax.html" title="Regular Expression Syntax">
+<link rel="prev" href="perl_syntax.html" title="Perl Regular Expression Syntax">
+<link rel="next" href="basic_syntax.html" title="POSIX Basic Regular Expression Syntax">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="perl_syntax.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../syntax.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_syntax.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section  boost_regex_syntax_basic_extended">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_regex.syntax.basic_extended"></a><a class="link" href="basic_extended.html" title="POSIX Extended Regular Expression Syntax">POSIX Extended Regular
+      Expression Syntax</a>
+</h3></div></div></div>
+<h4>
+<a name="boost_regex.syntax.basic_extended.h0"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.synopsis"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.synopsis">Synopsis</a>
+      </h4>
+<p>
+        The POSIX-Extended regular expression syntax is supported by the POSIX C
+        regular expression API's, and variations are used by the utilities <code class="computeroutput"><span class="identifier">egrep</span></code> and <code class="computeroutput"><span class="identifier">awk</span></code>.
+        You can construct POSIX extended regular expressions in Boost.Regex by passing
+        the flag <code class="computeroutput"><span class="identifier">extended</span></code> to the
+        regex constructor, for example:
+      </p>
+<pre class="programlisting"><span class="comment">// e1 is a case sensitive POSIX-Extended expression:</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span> <span class="identifier">e1</span><span class="special">(</span><span class="identifier">my_expression</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span><span class="special">::</span><span class="identifier">extended</span><span class="special">);</span>
+<span class="comment">// e2 a case insensitive POSIX-Extended expression:</span>
+<span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span> <span class="identifier">e2</span><span class="special">(</span><span class="identifier">my_expression</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span><span class="special">::</span><span class="identifier">extended</span><span class="special">|</span><span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span><span class="special">::</span><span class="identifier">icase</span><span class="special">);</span>
+</pre>
+<a name="boost_regex.posix_extended_syntax"></a><h4>
+<a name="boost_regex.syntax.basic_extended.h1"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.posix_extended_syntax"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.posix_extended_syntax">POSIX Extended
+        Syntax</a>
+      </h4>
+<p>
+        In POSIX-Extended regular expressions, all characters match themselves except
+        for the following special characters:
+      </p>
+<pre class="programlisting">.[{}()\*+?|^$</pre>
+<h5>
+<a name="boost_regex.syntax.basic_extended.h2"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.wildcard_"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.wildcard_">Wildcard:</a>
+      </h5>
+<p>
+        The single character '.' when used outside of a character set will match
+        any single character except:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            The NULL character when the flag <code class="computeroutput"><span class="identifier">match_no_dot_null</span></code>
+            is passed to the matching algorithms.
+          </li>
+<li class="listitem">
+            The newline character when the flag <code class="computeroutput"><span class="identifier">match_not_dot_newline</span></code>
+            is passed to the matching algorithms.
+          </li>
+</ul></div>
+<h5>
+<a name="boost_regex.syntax.basic_extended.h3"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.anchors_"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.anchors_">Anchors:</a>
+      </h5>
+<p>
+        A '^' character shall match the start of a line when used as the first character
+        of an expression, or the first character of a sub-expression.
+      </p>
+<p>
+        A '$' character shall match the end of a line when used as the last character
+        of an expression, or the last character of a sub-expression.
+      </p>
+<h5>
+<a name="boost_regex.syntax.basic_extended.h4"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.marked_sub_expressions_"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.marked_sub_expressions_">Marked
+        sub-expressions:</a>
+      </h5>
+<p>
+        A section beginning <code class="computeroutput"><span class="special">(</span></code> and ending
+        <code class="computeroutput"><span class="special">)</span></code> acts as a marked sub-expression.
+        Whatever matched the sub-expression is split out in a separate field by the
+        matching algorithms. Marked sub-expressions can also repeated, or referred
+        to by a back-reference.
+      </p>
+<h5>
+<a name="boost_regex.syntax.basic_extended.h5"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.repeats_"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.repeats_">Repeats:</a>
+      </h5>
+<p>
+        Any atom (a single character, a marked sub-expression, or a character class)
+        can be repeated with the <code class="computeroutput"><span class="special">*</span></code>,
+        <code class="computeroutput"><span class="special">+</span></code>, <code class="computeroutput"><span class="special">?</span></code>,
+        and <code class="computeroutput"><span class="special">{}</span></code> operators.
+      </p>
+<p>
+        The <code class="computeroutput"><span class="special">*</span></code> operator will match the
+        preceding atom <span class="emphasis"><em>zero or more times</em></span>, for example the expression
+        <code class="computeroutput"><span class="identifier">a</span><span class="special">*</span><span class="identifier">b</span></code> will match any of the following:
+      </p>
+<pre class="programlisting">b
+ab
+aaaaaaaab
+</pre>
+<p>
+        The <code class="computeroutput"><span class="special">+</span></code> operator will match the
+        preceding atom <span class="emphasis"><em>one or more times</em></span>, for example the expression
+        a+b will match any of the following:
+      </p>
+<pre class="programlisting">ab
+aaaaaaaab
+</pre>
+<p>
+        But will not match:
+      </p>
+<pre class="programlisting">b
+</pre>
+<p>
+        The <code class="computeroutput"><span class="special">?</span></code> operator will match the
+        preceding atom <span class="emphasis"><em>zero or one times</em></span>, for example the expression
+        <code class="computeroutput"><span class="identifier">ca</span><span class="special">?</span><span class="identifier">b</span></code> will match any of the following:
+      </p>
+<pre class="programlisting">cb
+cab
+</pre>
+<p>
+        But will not match:
+      </p>
+<pre class="programlisting">caab
+</pre>
+<p>
+        An atom can also be repeated with a bounded repeat:
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">a</span><span class="special">{</span><span class="identifier">n</span><span class="special">}</span></code> Matches
+        'a' repeated <span class="emphasis"><em>exactly n times</em></span>.
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">a</span><span class="special">{</span><span class="identifier">n</span><span class="special">,}</span></code> Matches
+        'a' repeated <span class="emphasis"><em>n or more times</em></span>.
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">a</span><span class="special">{</span><span class="identifier">n</span><span class="special">,</span> <span class="identifier">m</span><span class="special">}</span></code> Matches 'a' repeated <span class="emphasis"><em>between n
+        and m times inclusive</em></span>.
+      </p>
+<p>
+        For example:
+      </p>
+<pre class="programlisting">^a{2,3}$</pre>
+<p>
+        Will match either of:
+      </p>
+<pre class="programlisting"><span class="identifier">aa</span>
+<span class="identifier">aaa</span>
+</pre>
+<p>
+        But neither of:
+      </p>
+<pre class="programlisting"><span class="identifier">a</span>
+<span class="identifier">aaaa</span>
+</pre>
+<p>
+        It is an error to use a repeat operator, if the preceding construct can not
+        be repeated, for example:
+      </p>
+<pre class="programlisting"><span class="identifier">a</span><span class="special">(*)</span>
+</pre>
+<p>
+        Will raise an error, as there is nothing for the <code class="computeroutput"><span class="special">*</span></code>
+        operator to be applied to.
+      </p>
+<h5>
+<a name="boost_regex.syntax.basic_extended.h6"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.back_references_"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.back_references_">Back
+        references:</a>
+      </h5>
+<p>
+        An escape character followed by a digit <span class="emphasis"><em>n</em></span>, where <span class="emphasis"><em>n</em></span>
+        is in the range 1-9, matches the same string that was matched by sub-expression
+        <span class="emphasis"><em>n</em></span>. For example the expression:
+      </p>
+<pre class="programlisting">^(a*).*\1$</pre>
+<p>
+        Will match the string:
+      </p>
+<pre class="programlisting"><span class="identifier">aaabbaaa</span>
+</pre>
+<p>
+        But not the string:
+      </p>
+<pre class="programlisting"><span class="identifier">aaabba</span>
+</pre>
+<div class="caution"><table border="0" summary="Caution">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Caution]" src="../../../../../../doc/src/images/caution.png"></td>
+<th align="left">Caution</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+          The POSIX standard does not support back-references for "extended"
+          regular expressions, this is a compatible extension to that standard.
+        </p></td></tr>
+</table></div>
+<h5>
+<a name="boost_regex.syntax.basic_extended.h7"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.alternation"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.alternation">Alternation</a>
+      </h5>
+<p>
+        The <code class="computeroutput"><span class="special">|</span></code> operator will match either
+        of its arguments, so for example: <code class="computeroutput"><span class="identifier">abc</span><span class="special">|</span><span class="identifier">def</span></code> will
+        match either "abc" or "def".
+      </p>
+<p>
+        Parenthesis can be used to group alternations, for example: <code class="computeroutput"><span class="identifier">ab</span><span class="special">(</span><span class="identifier">d</span><span class="special">|</span><span class="identifier">ef</span><span class="special">)</span></code>
+        will match either of "abd" or "abef".
+      </p>
+<h5>
+<a name="boost_regex.syntax.basic_extended.h8"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.character_sets_"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.character_sets_">Character
+        sets:</a>
+      </h5>
+<p>
+        A character set is a bracket-expression starting with [ and ending with ],
+        it defines a set of characters, and matches any single character that is
+        a member of that set.
+      </p>
+<p>
+        A bracket expression may contain any combination of the following:
+      </p>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h9"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.single_characters_"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.single_characters_">Single characters:</a>
+      </h6>
+<p>
+        For example <code class="computeroutput"><span class="special">[</span><span class="identifier">abc</span><span class="special">]</span></code>, will match any of the characters 'a', 'b',
+        or 'c'.
+      </p>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h10"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.character_ranges_"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.character_ranges_">Character
+        ranges:</a>
+      </h6>
+<p>
+        For example <code class="computeroutput"><span class="special">[</span><span class="identifier">a</span><span class="special">-</span><span class="identifier">c</span><span class="special">]</span></code>
+        will match any single character in the range 'a' to 'c'. By default, for
+        POSIX-Extended regular expressions, a character <span class="emphasis"><em>x</em></span> is
+        within the range <span class="emphasis"><em>y</em></span> to <span class="emphasis"><em>z</em></span>, if it
+        collates within that range; this results in locale specific behavior . This
+        behavior can be turned off by unsetting the <code class="computeroutput"><span class="identifier">collate</span></code>
+        <a class="link" href="../ref/syntax_option_type.html" title="syntax_option_type">option flag</a> - in
+        which case whether a character appears within a range is determined by comparing
+        the code points of the characters only.
+      </p>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h11"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.negation_"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.negation_">Negation:</a>
+      </h6>
+<p>
+        If the bracket-expression begins with the ^ character, then it matches the
+        complement of the characters it contains, for example <code class="computeroutput"><span class="special">[^</span><span class="identifier">a</span><span class="special">-</span><span class="identifier">c</span><span class="special">]</span></code> matches any character that is not in the
+        range <code class="computeroutput"><span class="identifier">a</span><span class="special">-</span><span class="identifier">c</span></code>.
+      </p>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h12"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.character_classes_"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.character_classes_">Character
+        classes:</a>
+      </h6>
+<p>
+        An expression of the form <code class="computeroutput"><span class="special">[[:</span><span class="identifier">name</span><span class="special">:]]</span></code>
+        matches the named character class "name", for example <code class="computeroutput"><span class="special">[[:</span><span class="identifier">lower</span><span class="special">:]]</span></code> matches any lower case character. See
+        <a class="link" href="character_classes.html" title="Character Class Names">character class names</a>.
+      </p>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h13"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.collating_elements_"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.collating_elements_">Collating
+        Elements:</a>
+      </h6>
+<p>
+        An expression of the form <code class="computeroutput"><span class="special">[[.</span><span class="identifier">col</span><span class="special">.]</span></code> matches
+        the collating element <span class="emphasis"><em>col</em></span>. A collating element is any
+        single character, or any sequence of characters that collates as a single
+        unit. Collating elements may also be used as the end point of a range, for
+        example: <code class="computeroutput"><span class="special">[[.</span><span class="identifier">ae</span><span class="special">.]-</span><span class="identifier">c</span><span class="special">]</span></code>
+        matches the character sequence "ae", plus any single character
+        in the range "ae"-c, assuming that "ae" is treated as
+        a single collating element in the current locale.
+      </p>
+<p>
+        Collating elements may be used in place of escapes (which are not normally
+        allowed inside character sets), for example <code class="computeroutput"><span class="special">[[.^.]</span><span class="identifier">abc</span><span class="special">]</span></code> would
+        match either one of the characters 'abc^'.
+      </p>
+<p>
+        As an extension, a collating element may also be specified via its <a class="link" href="collating_names.html" title="Collating Names">symbolic name</a>, for example:
+      </p>
+<pre class="programlisting"><span class="special">[[.</span><span class="identifier">NUL</span><span class="special">.]]</span>
+</pre>
+<p>
+        matches a NUL character.
+      </p>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h14"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.equivalence_classes_"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.equivalence_classes_">Equivalence
+        classes:</a>
+      </h6>
+<p>
+        An expression of the form <code class="computeroutput"><span class="special">[[=</span><span class="identifier">col</span><span class="special">=]]</span></code>,
+        matches any character or collating element whose primary sort key is the
+        same as that for collating element <span class="emphasis"><em>col</em></span>, as with colating
+        elements the name <span class="emphasis"><em>col</em></span> may be a <a class="link" href="collating_names.html" title="Collating Names">symbolic
+        name</a>. A primary sort key is one that ignores case, accentation, or
+        locale-specific tailorings; so for example <code class="computeroutput"><span class="special">[[=</span><span class="identifier">a</span><span class="special">=]]</span></code> matches
+        any of the characters: a, &#192;, &#193;, &#194;, &#195;, &#196;, &#197;, A, &#224;, &#225;, &#226;, &#227;, &#228; and &#229;. Unfortunately implementation
+        of this is reliant on the platform's collation and localisation support;
+        this feature can not be relied upon to work portably across all platforms,
+        or even all locales on one platform.
+      </p>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h15"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.combinations_"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.combinations_">Combinations:</a>
+      </h6>
+<p>
+        All of the above can be combined in one character set declaration, for example:
+        <code class="computeroutput"><span class="special">[[:</span><span class="identifier">digit</span><span class="special">:]</span><span class="identifier">a</span><span class="special">-</span><span class="identifier">c</span><span class="special">[.</span><span class="identifier">NUL</span><span class="special">.]]</span></code>.
+      </p>
+<h5>
+<a name="boost_regex.syntax.basic_extended.h16"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.escapes"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.escapes">Escapes</a>
+      </h5>
+<p>
+        The POSIX standard defines no escape sequences for POSIX-Extended regular
+        expressions, except that:
+      </p>
+<div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
+<li class="listitem">
+            Any special character preceded by an escape shall match itself.
+          </li>
+<li class="listitem">
+            The effect of any ordinary character being preceded by an escape is undefined.
+          </li>
+<li class="listitem">
+            An escape inside a character class declaration shall match itself: in
+            other words the escape character is not "special" inside a
+            character class declaration; so <code class="computeroutput"><span class="special">[\^]</span></code>
+            will match either a literal '\' or a '^'.
+          </li>
+</ul></div>
+<p>
+        However, that's rather restrictive, so the following standard-compatible
+        extensions are also supported by Boost.Regex:
+      </p>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h17"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.escapes_matching_a_specific_character"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.escapes_matching_a_specific_character">Escapes
+        matching a specific character</a>
+      </h6>
+<p>
+        The following escape sequences are all synonyms for single characters:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Escape
+                </p>
+              </th>
+<th>
+                <p>
+                  Character
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  \a
+                </p>
+              </td>
+<td>
+                <p>
+                  '\a'
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \e
+                </p>
+              </td>
+<td>
+                <p>
+                  0x1B
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \f
+                </p>
+              </td>
+<td>
+                <p>
+                  \f
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \n
+                </p>
+              </td>
+<td>
+                <p>
+                  \n
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \r
+                </p>
+              </td>
+<td>
+                <p>
+                  \r
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \t
+                </p>
+              </td>
+<td>
+                <p>
+                  \t
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \v
+                </p>
+              </td>
+<td>
+                <p>
+                  \v
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \b
+                </p>
+              </td>
+<td>
+                <p>
+                  \b (but only inside a character class declaration).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \cX
+                </p>
+              </td>
+<td>
+                <p>
+                  An ASCII escape sequence - the character whose code point is X
+                  % 32
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \xdd
+                </p>
+              </td>
+<td>
+                <p>
+                  A hexadecimal escape sequence - matches the single character whose
+                  code point is 0xdd.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \x{dddd}
+                </p>
+              </td>
+<td>
+                <p>
+                  A hexadecimal escape sequence - matches the single character whose
+                  code point is 0xdddd.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \0ddd
+                </p>
+              </td>
+<td>
+                <p>
+                  An octal escape sequence - matches the single character whose code
+                  point is 0ddd.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \N{Name}
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches the single character which has the symbolic name name.
+                  For example <code class="computeroutput"><span class="special">\\</span><span class="identifier">N</span><span class="special">{</span><span class="identifier">newline</span><span class="special">}</span></code> matches the single character \n.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h18"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended._quot_single_character_quot__character_classes_"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended._quot_single_character_quot__character_classes_">"Single
+        character" character classes:</a>
+      </h6>
+<p>
+        Any escaped character <span class="emphasis"><em>x</em></span>, if <span class="emphasis"><em>x</em></span> is
+        the name of a character class shall match any character that is a member
+        of that class, and any escaped character <span class="emphasis"><em>X</em></span>, if <span class="emphasis"><em>x</em></span>
+        is the name of a character class, shall match any character not in that class.
+      </p>
+<p>
+        The following are supported by default:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Escape sequence
+                </p>
+              </th>
+<th>
+                <p>
+                  Equivalent to
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">d</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">[[:</span><span class="identifier">digit</span><span class="special">:]]</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">l</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">[[:</span><span class="identifier">lower</span><span class="special">:]]</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">s</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">[[:</span><span class="identifier">space</span><span class="special">:]]</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">u</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">[[:</span><span class="identifier">upper</span><span class="special">:]]</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">w</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">[[:</span><span class="identifier">word</span><span class="special">:]]</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">D</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">[^[:</span><span class="identifier">digit</span><span class="special">:]]</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">L</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">[^[:</span><span class="identifier">lower</span><span class="special">:]]</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">S</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">[^[:</span><span class="identifier">space</span><span class="special">:]]</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">U</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">[^[:</span><span class="identifier">upper</span><span class="special">:]]</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">W</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">[^[:</span><span class="identifier">word</span><span class="special">:]]</span></code>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h19"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.character_properties"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.character_properties">Character
+        Properties</a>
+      </h6>
+<p>
+        The character property names in the following table are all equivalent to
+        the names used in character classes.
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Form
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+<th>
+                <p>
+                  Equivalent character set form
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">pX</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches any character that has the property X.
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">[[:</span><span class="identifier">X</span><span class="special">:]]</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">p</span><span class="special">{</span><span class="identifier">Name</span><span class="special">}</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches any character that has the property Name.
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">[[:</span><span class="identifier">Name</span><span class="special">:]]</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">PX</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches any character that does not have the property X.
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">[^[:</span><span class="identifier">X</span><span class="special">:]]</span></code>
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">P</span><span class="special">{</span><span class="identifier">Name</span><span class="special">}</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches any character that does not have the property Name.
+                </p>
+              </td>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">[^[:</span><span class="identifier">Name</span><span class="special">:]]</span></code>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+        For example <code class="computeroutput"><span class="special">\</span><span class="identifier">pd</span></code>
+        matches any "digit" character, as does <code class="computeroutput"><span class="special">\</span><span class="identifier">p</span><span class="special">{</span><span class="identifier">digit</span><span class="special">}</span></code>.
+      </p>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h20"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.word_boundaries"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.word_boundaries">Word
+        Boundaries</a>
+      </h6>
+<p>
+        The following escape sequences match the boundaries of words:
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Escape
+                </p>
+              </th>
+<th>
+                <p>
+                  Meaning
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\&lt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches the start of a word.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\&gt;</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches the end of a word.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">b</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches a word boundary (the start or end of a word).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">B</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches only when not at a word boundary.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h21"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.buffer_boundaries"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.buffer_boundaries">Buffer
+        boundaries</a>
+      </h6>
+<p>
+        The following match only at buffer boundaries: a "buffer" in this
+        context is the whole of the input text that is being matched against (note
+        that ^ and $ may match embedded newlines within the text).
+      </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Escape
+                </p>
+              </th>
+<th>
+                <p>
+                  Meaning
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  \`
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches at the start of a buffer only.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  \'
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches at the end of a buffer only.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">A</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches at the start of a buffer only (the same as \`).
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">z</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches at the end of a buffer only (the same as \').
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">Z</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches an optional sequence of newlines at the end of a buffer:
+                  equivalent to the regular expression <code class="computeroutput"><span class="special">\</span><span class="identifier">n</span><span class="special">*\</span><span class="identifier">z</span></code>
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h22"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.continuation_escape"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.continuation_escape">Continuation
+        Escape</a>
+      </h6>
+<p>
+        The sequence <code class="computeroutput"><span class="special">\</span><span class="identifier">G</span></code>
+        matches only at the end of the last match found, or at the start of the text
+        being matched if no previous match was found. This escape useful if you're
+        iterating over the matches contained within a text, and you want each subsequence
+        match to start where the last one ended.
+      </p>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h23"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.quoting_escape"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.quoting_escape">Quoting
+        escape</a>
+      </h6>
+<p>
+        The escape sequence <code class="computeroutput"><span class="special">\</span><span class="identifier">Q</span></code>
+        begins a "quoted sequence": all the subsequent characters are treated
+        as literals, until either the end of the regular expression or <code class="computeroutput"><span class="special">\</span><span class="identifier">E</span></code> is found.
+        For example the expression: <code class="computeroutput"><span class="special">\</span><span class="identifier">Q</span><span class="special">\*+\</span><span class="identifier">Ea</span><span class="special">+</span></code> would match either of:
+      </p>
+<pre class="programlisting"><span class="special">\*+</span><span class="identifier">a</span>
+<span class="special">\*+</span><span class="identifier">aaa</span>
+</pre>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h24"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.unicode_escapes"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.unicode_escapes">Unicode
+        escapes</a>
+      </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Escape
+                </p>
+              </th>
+<th>
+                <p>
+                  Meaning
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">C</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches a single code point: in Boost regex this has exactly the
+                  same effect as a "." operator.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <code class="computeroutput"><span class="special">\</span><span class="identifier">X</span></code>
+                </p>
+              </td>
+<td>
+                <p>
+                  Matches a combining character sequence: that is any non-combining
+                  character followed by a sequence of zero or more combining characters.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="boost_regex.syntax.basic_extended.h25"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.any_other_escape"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.any_other_escape">Any
+        other escape</a>
+      </h6>
+<p>
+        Any other escape sequence matches the character that is escaped, for example
+        \@ matches a literal '@'.
+      </p>
+<h5>
+<a name="boost_regex.syntax.basic_extended.h26"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.operator_precedence"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.operator_precedence">Operator
+        precedence</a>
+      </h5>
+<p>
+        The order of precedence for of operators is as follows:
+      </p>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+            Collation-related bracket symbols <code class="computeroutput"><span class="special">[==]</span>
+            <span class="special">[::]</span> <span class="special">[..]</span></code>
+          </li>
+<li class="listitem">
+            Escaped characters <code class="computeroutput"><span class="special">\</span></code>
+          </li>
+<li class="listitem">
+            Character set (bracket expression) <code class="computeroutput"><span class="special">[]</span></code>
+          </li>
+<li class="listitem">
+            Grouping <code class="computeroutput"><span class="special">()</span></code>
+          </li>
+<li class="listitem">
+            Single-character-ERE duplication <code class="computeroutput"><span class="special">*</span>
+            <span class="special">+</span> <span class="special">?</span>
+            <span class="special">{</span><span class="identifier">m</span><span class="special">,</span><span class="identifier">n</span><span class="special">}</span></code>
+          </li>
+<li class="listitem">
+            Concatenation
+          </li>
+<li class="listitem">
+            Anchoring ^$
+          </li>
+<li class="listitem">
+            Alternation <code class="computeroutput"><span class="special">|</span></code>
+          </li>
+</ol></div>
+<h5>
+<a name="boost_regex.syntax.basic_extended.h27"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.what_gets_matched"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.what_gets_matched">What
+        Gets Matched</a>
+      </h5>
+<p>
+        When there is more that one way to match a regular expression, the "best"
+        possible match is obtained using the <a class="link" href="leftmost_longest_rule.html" title="The Leftmost Longest Rule">leftmost-longest
+        rule</a>.
+      </p>
+<h4>
+<a name="boost_regex.syntax.basic_extended.h28"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.variations"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.variations">Variations</a>
+      </h4>
+<h5>
+<a name="boost_regex.syntax.basic_extended.h29"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.egrep"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.egrep">Egrep</a>
+      </h5>
+<p>
+        When an expression is compiled with the <a class="link" href="../ref/syntax_option_type.html" title="syntax_option_type">flag
+        <code class="computeroutput"><span class="identifier">egrep</span></code></a> set, then the
+        expression is treated as a newline separated list of <a class="link" href="basic_extended.html#boost_regex.posix_extended_syntax">POSIX-Extended
+        expressions</a>, a match is found if any of the expressions in the list
+        match, for example:
+      </p>
+<pre class="programlisting"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span> <span class="identifier">e</span><span class="special">(</span><span class="string">"abc\ndef"</span><span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">regex</span><span class="special">::</span><span class="identifier">egrep</span><span class="special">);</span>
+</pre>
+<p>
+        will match either of the POSIX-Basic expressions "abc" or "def".
+      </p>
+<p>
+        As its name suggests, this behavior is consistent with the Unix utility
+        <code class="computeroutput"><span class="identifier">egrep</span></code>, and with grep when
+        used with the -E option.
+      </p>
+<h5>
+<a name="boost_regex.syntax.basic_extended.h30"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.awk"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.awk">awk</a>
+      </h5>
+<p>
+        In addition to the <a class="link" href="basic_extended.html#boost_regex.posix_extended_syntax">POSIX-Extended
+        features</a> the escape character is special inside a character class
+        declaration.
+      </p>
+<p>
+        In addition, some escape sequences that are not defined as part of POSIX-Extended
+        specification are required to be supported - however Boost.Regex supports
+        these by default anyway.
+      </p>
+<h4>
+<a name="boost_regex.syntax.basic_extended.h31"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.options"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.options">Options</a>
+      </h4>
+<p>
+        There are a <a class="link" href="../ref/syntax_option_type/syntax_option_type_extended.html" title="Options for POSIX Extended Regular Expressions">variety
+        of flags</a> that may be combined with the <code class="computeroutput"><span class="identifier">extended</span></code>
+        and <code class="computeroutput"><span class="identifier">egrep</span></code> options when constructing
+        the regular expression, in particular note that the <a class="link" href="../ref/syntax_option_type/syntax_option_type_extended.html" title="Options for POSIX Extended Regular Expressions"><code class="computeroutput"><span class="identifier">newline_alt</span></code></a> option alters the syntax,
+        while the <a class="link" href="../ref/syntax_option_type/syntax_option_type_extended.html" title="Options for POSIX Extended Regular Expressions"><code class="computeroutput"><span class="identifier">collate</span></code>, <code class="computeroutput"><span class="identifier">nosubs</span></code>
+        and <code class="computeroutput"><span class="identifier">icase</span></code> options</a>
+        modify how the case and locale sensitivity are to be applied.
+      </p>
+<h4>
+<a name="boost_regex.syntax.basic_extended.h32"></a>
+        <span class="phrase"><a name="boost_regex.syntax.basic_extended.references"></a></span><a class="link" href="basic_extended.html#boost_regex.syntax.basic_extended.references">References</a>
+      </h4>
+<p>
+        <a href="http://www.opengroup.org/onlinepubs/000095399/basedefs/xbd_chap09.html" target="_top">IEEE
+        Std 1003.1-2001, Portable Operating System Interface (POSIX ), Base Definitions
+        and Headers, Section 9, Regular Expressions.</a>
+      </p>
+<p>
+        <a href="http://www.opengroup.org/onlinepubs/000095399/utilities/grep.html" target="_top">IEEE
+        Std 1003.1-2001, Portable Operating System Interface (POSIX ), Shells and
+        Utilities, Section 4, Utilities, egrep.</a>
+      </p>
+<p>
+        <a href="http://www.opengroup.org/onlinepubs/000095399/utilities/awk.html" target="_top">IEEE
+        Std 1003.1-2001, Portable Operating System Interface (POSIX ), Shells and
+        Utilities, Section 4, Utilities, awk.</a>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 1998-2010 John Maddock<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="perl_syntax.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../syntax.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="basic_syntax.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

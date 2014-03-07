@@ -1,0 +1,131 @@
+See README.alpha for Linux on DEC AXP info.
+
+This file applies mostly to Linux/Intel IA32.  Ports to Linux on an M68K, IA64,
+SPARC, MIPS, Alpha and PowerPC are also integrated.  They should behave
+similarly, except that the PowerPC port lacks incremental GC support, and
+it is unknown to what extent the Linux threads code is functional.
+See below for M68K specific notes.
+
+Incremental GC is generally supported.
+
+Dynamic libraries are supported on an ELF system.  A static executable
+should be linked with the gcc option "-Wl,-defsym,_DYNAMIC=0".
+
+The collector appears to work reliably with Linux threads, but beware 
+of older versions of glibc and gdb.
+
+The garbage collector uses SIGPWR and SIGXCPU if it is used with
+Linux threads.  These should not be touched by the client program.
+
+To use threads, you need to abide by the following requirements:
+
+1) You need to use LinuxThreads or NPTL (which are included in libc6).
+
+   The collector relies on some implementation details of the LinuxThreads
+   package.  This code may not work on other
+   pthread implementations (in particular it will *not* work with
+   MIT pthreads).
+
+2) You must compile the collector with -DGC_LINUX_THREADS (or
+   just -DGC_THREADS) and -D_REENTRANT specified in the Makefile.
+
+3a) Every file that makes thread calls should define GC_LINUX_THREADS and 
+   _REENTRANT and then include gc.h.  Gc.h redefines some of the
+   pthread primitives as macros which also provide the collector with
+   information it requires.
+
+3b) A new alternative to (3a) is to build the collector and compile GC clients
+   with -DGC_USE_LD_WRAP, and to link the final program with
+
+   (for ld) --wrap read --wrap dlopen --wrap pthread_create \
+	    --wrap pthread_join --wrap pthread_detach \
+	    --wrap pthread_sigmask --wrap sleep
+
+   (for gcc) -Wl,--wrap -Wl,read -Wl,--wrap -Wl,dlopen -Wl,--wrap \
+	     -Wl,pthread_create -Wl,--wrap -Wl,pthread_join -Wl,--wrap \
+	     -Wl,pthread_detach -Wl,--wrap -Wl,pthread_sigmask \
+	     -Wl,--wrap -Wl,sleep
+
+   In any case, _REENTRANT should be defined during compilation.
+
+4) Dlopen() disables collection during its execution.  (It can't run
+   concurrently with the collector, since the collector looks at its
+   data structures.  It can't acquire the allocator lock, since arbitrary
+   user startup code may run as part of dlopen().)  Under unusual
+   conditions, this may cause unexpected heap growth.
+
+5) The combination of GC_LINUX_THREADS, REDIRECT_MALLOC, and incremental
+   collection is probably not fully reliable, though it now seems to work
+   in simple cases.
+
+6) Thread local storage may not be viewed as part of the root set by the
+   collector.  This probably depends on the linuxthreads version.  For the
+   time being, any collectable memory referenced by thread local storage should
+   also be referenced from elsewhere, or be allocated as uncollectable.
+   (This is really a bug that should be fixed somehow.  The current GC
+   version probably gets things right if there are not too many tls locations
+   and if dlopen is not used.)
+
+
+M68K LINUX:
+(From Richard Zidlicky)
+The bad news is that it can crash every linux-m68k kernel on a 68040,
+so an additional test is needed somewhere on startup. I have meanwhile
+patches to correct the problem in 68040 buserror handler but it is not
+yet in any standard kernel.
+
+Here is a simple test program to detect whether the kernel has the
+problem. It could be run as a separate check in configure or tested 
+upon startup. If it fails (return !0) than mprotect can't be used
+on that system.
+
+/*
+ * test for bug that may crash 68040 based Linux
+ */
+
+#include <sys/mman.h>
+#include <signal.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+
+char *membase;
+int pagesize=4096;
+int pageshift=12;
+int x_taken=0;
+
+int sighandler(int sig)
+{
+   mprotect(membase,pagesize,PROT_READ|PROT_WRITE);
+   x_taken=1;
+}
+
+main()
+{
+  long l;
+
+   signal(SIGSEGV,sighandler);
+   l=(long)mmap(NULL,pagesize,PROT_READ,MAP_PRIVATE | MAP_ANON,-1,0);
+  if (l==-1)
+     {
+       perror("mmap/malloc");
+       abort();
+     }
+  membase=(char*)l;
+    *(long*)(membase+sizeof(long))=123456789;
+  if (*(long*)(membase+sizeof(long)) != 123456789 )
+    {
+      fprintf(stderr,"writeback failed !\n");
+      exit(1);
+    }
+  if (!x_taken)
+    {
+      fprintf(stderr,"exception not taken !\n");
+      exit(1);
+    }
+  fprintf(stderr,"vmtest Ok\n");
+  exit(0);
+}
+
+

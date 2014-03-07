@@ -1,0 +1,170 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section Roman Numerals]
+
+This example demonstrates:
+
+* symbol table
+* rule
+* grammar
+
+[heading Symbol Table]
+
+The symbol table holds a dictionary of symbols where each symbol is a sequence
+of characters (a `char`, `wchar_t`, `int`, enumeration etc.) . The template
+class, parameterized by the character type, can work efficiently with 8, 16, 32
+and even 64 bit characters. Mutable data of type T are associated with each
+symbol.
+
+Traditionally, symbol table management is maintained separately outside the BNF
+grammar through semantic actions. Contrary to standard practice, the Spirit
+symbol table class `symbols` is a parser. An object of which may be used
+anywhere in the EBNF grammar specification. It is an example of a dynamic
+parser. A dynamic parser is characterized by its ability to modify its behavior
+at run time. Initially, an empty symbols object matches nothing. At any time,
+symbols may be added or removed, thus, dynamically altering its behavior.
+
+Each entry in a symbol table has an associated mutable data slot. In this
+regard, one can view the symbol table as an associative container (or map) of
+key-value pairs where the keys are strings.
+
+The symbols class expects two template parameters. The first parameter specifies
+the character type of the symbols. The second specifies the data type associated
+with each symbol: its attribute.
+
+Here's a parser for roman hundreds (100..900) using the symbol table. Keep in
+mind that the data associated with each slot is the parser's attribute (which is
+passed to attached semantic actions).
+
+[import ../../example/qi/roman.cpp]
+
+[tutorial_roman_hundreds]
+
+Here's a parser for roman tens (10..90):
+
+[tutorial_roman_tens]
+
+and, finally, for ones (1..9):
+
+[tutorial_roman_ones]
+
+Now we can use `hundreds`, `tens` and `ones` anywhere in our parser expressions.
+They are all parsers.
+
+[heading Rules]
+
+Up until now, we've been inlining our parser expressions, passing them directly
+to the `phrase_parse` function. The expression evaluates into a temporary,
+unnamed parser which is passed into the `phrase_parse` function, used, and then
+destroyed. This is fine for small parsers. When the expressions get complicated,
+you'd want to break the expressions into smaller easier-to-understand pieces,
+name them, and refer to them from other parser expressions by name.
+
+A parser expression can be assigned to what is called a "rule". There are
+various ways to declare rules. The simplest form is:
+
+    rule<Iterator> r;
+
+At the very least, the rule needs to know the iterator type it will be working
+on. This rule cannot be used with `phrase_parse`. It can only be used with the
+`parse` function -- a version that does not do white space skipping (does not
+have the skipper argument). If you want to have it skip white spaces, you need
+to pass in the type skip parser, as in the next form:
+
+    rule<Iterator, Skipper> r;
+
+Example:
+
+    rule<std::string::iterator, space_type> r;
+
+This type of rule can be used for both `phrase_parse` and `parse`.
+
+For our next example, there's one more rule form you should know about:
+
+    rule<Iterator, Signature> r;
+
+or
+
+    rule<Iterator, Signature, Skipper> r;
+
+[tip All rule template arguments after Iterator can be supplied in any order.]
+
+The Signature specifies the attributes of the rule. You've seen that our parsers
+can have an attribute. Recall that the `double_` parser has an attribute of
+`double`. To be precise, these are /synthesized/ attributes. The parser
+"synthesizes" the attribute value. Think of them as function return values.
+
+There's another type of attribute called "inherited" attribute. We won't need
+them for now, but it's good that you be aware of such attributes. You can think
+of them as function arguments. And, rightly so, the rule signature is a function
+signature of the form:
+
+    result(argN, argN,..., argN)
+
+After having declared a rule, you can now assign any parser expression to it.
+Example:
+
+    r = double_ >> *(',' >> double_);
+
+[heading Grammars]
+
+A grammar encapsulates one or more rules. It has the same template parameters as
+the rule. You declare a grammar by:
+
+# deriving a struct (or class) from the `grammar` class template
+# declare one or more rules as member variables
+# initialize the base grammar class by giving it the start rule (its the first
+  rule that gets called when the grammar starts parsing)
+# initialize your rules in your constructor
+
+The roman numeral grammar is a very nice and simple example of a grammar:
+
+[tutorial_roman_grammar]
+
+Things to take notice of:
+
+* The grammar and start rule signature is `unsigned()`. It has a synthesized
+  attribute (return value) of type `unsigned` with no inherited attributes
+  (arguments).
+
+* We did not specify a skip-parser. We don't want to skip in between the
+  numerals.
+
+* `roman::base_type` is a typedef for `grammar<Iterator, unsigned()>`. If
+   `roman` was not a template, you could simply write: base_type(start)
+
+* It's best to make your grammar templates such that they can be reused
+  for different iterator types.
+
+* `_val` is another __phoenix__ placeholder representing the rule's synthesized
+  attribute.
+
+* `eps` is a special spirit parser that consumes no input but is always
+  successful. We use it to initialize `_val`, the rule's synthesized
+  attribute, to zero before anything else. The actual parser starts at
+  `+char_('M')`, parsing roman thousands. Using `eps` this way is good
+  for doing pre and post initializations.
+
+* The expression `a || b` reads: match a or b and in sequence. That is, if both
+  `a` and `b` match, it must be in sequence; this is equivalent to `a >> -b | b`,
+  but more efficient.
+
+[heading Let's Parse!]
+
+[tutorial_roman_grammar_parse]
+
+`roman_parser` is an object of type `roman`, our roman numeral parser. This time
+around we are using the no-skipping version of the parse functions. We do not
+want to skip any spaces! We are also passing in an attribute, `unsigned result`,
+which will receive the parsed value.
+
+The full cpp file for this example can be found here: [@../../example/qi/roman.cpp]
+
+
+[endsect]

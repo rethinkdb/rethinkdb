@@ -1,0 +1,61 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ebu.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ebu.xml
+ */
+ebu{
+    Languages{
+        ak{"Kĩakan"}
+        am{"Kĩamhari"}
+        ar{"Kĩarabu"}
+        be{"Kĩmbelarusi"}
+        bg{"Kĩbulgaria"}
+        bn{"Kĩbangla"}
+        cs{"Kĩcheki"}
+        de{"Kĩnjeremani"}
+        ebu{"Kĩembu"}
+        el{"Kĩngriki"}
+        en{"Kĩthungu"}
+        es{"Kĩhispania"}
+        fa{"Kĩanjemi"}
+        fr{"Kĩfaransa"}
+        ha{"Kĩhausa"}
+        hi{"Kĩhindĩ"}
+        hu{"Kĩhungari"}
+        id{"Kĩindonesia"}
+        ig{"Kĩigbo"}
+        it{"Kĩitaliano"}
+        ja{"Kĩnjapani"}
+        jv{"Kĩjava"}
+        km{"Kĩkambodia"}
+        ko{"Kĩkorea"}
+        ms{"Kĩmalesia"}
+        my{"Kĩburma"}
+        ne{"Kĩnepali"}
+        nl{"Kĩholanzi"}
+        pa{"Kĩpunjabi"}
+        pl{"Kĩpolandi"}
+        pt{"Kĩreno"}
+        ro{"Kĩromania"}
+        ru{"Kĩrusi"}
+        rw{"Kĩnyarwanda"}
+        so{"Kĩsomali"}
+        sv{"Kĩswidi"}
+        ta{"Kĩtamil"}
+        th{"Kĩtailandi"}
+        tr{"Kĩturuki"}
+        uk{"Kĩukrania"}
+        ur{"Kĩurdu"}
+        vi{"Kĩvietinamu"}
+        yo{"Kĩyoruba"}
+        zh{"Kĩchina"}
+        zu{"Kĩzulu"}
+    }
+    Version{"2.0.45.90"}
+}

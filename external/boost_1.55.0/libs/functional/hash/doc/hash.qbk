@@ -1,0 +1,29 @@
+[library Boost.Functional/Hash
+    [quickbook 1.5]
+    [authors [James, Daniel]]
+    [copyright 2005 2006 2007 2008 Daniel James]
+    [purpose A TR1 hash function object that can be extended to hash user
+        defined types]
+    [category higher-order]
+    [id hash]
+    [dirname functional/hash]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[def __issues__
+    [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2005/n1837.pdf
+    Library Extension Technical Report Issues List]]
+
+[include:hash intro.qbk]
+[include:hash tutorial.qbk]
+[include:hash portability.qbk]
+[include:hash disable.qbk]
+[include:hash changes.qbk]
+[include:hash rationale.qbk]
+[xinclude ref.xml]
+[include:hash links.qbk]
+[include:hash thanks.qbk]

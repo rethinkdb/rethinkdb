@@ -1,0 +1,60 @@
+[/============================================================================
+  Boost.odeint
+
+  Copyright (c) 2009-2012 Karsten Ahnert
+  Copyright (c) 2009-2012 Mario Mulansky
+
+  Use, modification and distribution is subject to the Boost Software License,
+  Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================/]
+
+[section Using boost::range]
+
+Most steppers in odeint also accept the state give as a range. A range is
+sequence of values modeled by a range concept. See __boost_range for an
+overview over existing concepts and examples of ranges. This means that the
+`state_type` of the stepper need not necessarily be used to call the `do_step` method.
+
+One use-case for __boost_range in odeint has been shown in __tut_chaotic_system where the state consists of two parts: one for the original system and one for the perturbations. The ranges are used to initialize (solve) only the system part where the perturbation part is not touched, that is a range consisting only of the system part is used. After that the complete state including the perturbations is solved.
+
+Another use case is a system consisting of coupled units where you want to initialize each unit separately with the ODE of the uncoupled unit. An example is a chain of coupled van-der-Pol-oscillators which are initialized uniformly from the uncoupled van-der-Pol-oscillator. Then you can use __boost_range to solve only one individual oscillator in the chain.
+
+In short, you can __boost_range to use one state within two system functions which expect states with different sizes.
+
+An example was given in the __tut_chaotic_system tutorial. Using Boost.Range usually means that your system function needs to adapt to the iterators of Boost.Range. That is, your function is called with a range and you need to get the iterators from that range. This can easily be done. You have to implement your system as a class or a struct and you have to templatize the `operator()`. Then you can use the `range_iterator`-meta function and `boost::begin` and `boost::end` to obtain the iterators of your range:
+
+``
+class sys
+{
+    template< class State , class Deriv >
+    void operator()( const State &x_ , Deriv &dxdt_ , double t ) const
+    {
+         typename boost::range_iterator< const State >::type x = boost::begin( x_ );
+         typename boost::range_iterator< Deriv >::type dxdt = boost::begin( dxdt_ );
+
+         // fill dxdt
+    }
+};
+``
+
+If your range is a random access-range you can also apply the bracket operator to the iterator to access the elements in the range:
+``
+class sys
+{
+    template< class State , class Deriv >
+    void operator()( const State &x_ , Deriv &dxdt_ , double t ) const
+    {
+         typename boost::range_iterator< const State >::type x = boost::begin( x_ );
+         typename boost::range_iterator< Deriv >::type dxdt = boost::begin( dxdt_ );
+
+         dxdt[0] = f1( x[0] , x[1] );
+         dxdt[1] = f2( x[0] , x[1] );
+    }
+};
+``
+
+The following two tables show which steppers and which algebras are compatible with __boost_range.
+[include range_table.qbk]
+
+[endsect]

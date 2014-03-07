@@ -1,0 +1,92 @@
+[/
+ / Copyright (c) 2009-2010 Steven Watanabe
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See
+ / accompanying file LICENSE_1_0.txt or copy at
+ / http://www.boost.org/LICENSE_1_0.txt)
+]
+
+This library provides several [prng pseudo-random number generators]. The
+quality of a [prng pseudo random number generator] crucially depends on both
+the algorithm and its parameters. This library implements the algorithms as
+class templates with template value parameters, hidden in
+`namespace boost::random`. Any particular choice of parameters is represented
+as the appropriately specializing `typedef` in `namespace boost`.
+
+[prng Pseudo-random number generators] should not be constructed (initialized)
+frequently during program execution, for two reasons. First, initialization
+requires full initialization of the internal state of the generator. Thus,
+generators with a lot of internal state (see below) are costly to initialize.
+Second, initialization always requires some value used as a "seed" for the
+generated sequence. It is usually difficult to obtain several good seed
+values. For example, one method to obtain a seed is to determine the current
+time at the highest resolution available, e.g. microseconds or nanoseconds.
+When the [prng pseudo-random number generator] is initialized again with the
+then-current time as the seed, it is likely that this is at a near-constant
+(non-random) distance from the time given as the seed for first
+initialization. The distance could even be zero if the resolution of the
+clock is low, thus the generator re-iterates the same sequence of random
+numbers. For some applications, this is inappropriate.
+
+Note that all [prng pseudo-random number generators] described below are
+__CopyConstructible and __Assignable. Copying or assigning a generator will
+copy all its internal state, so the original and the copy will generate the
+identical sequence of random numbers. Often, such behavior is not wanted. In
+particular, beware of the algorithms from the standard library such as
+`std::generate`. They take a functor argument by value, thereby invoking the
+copy constructor when called.
+
+The following table gives an overview of some characteristics of the
+generators. The cycle length is a rough estimate of the quality of the
+generator; the approximate relative speed is a performance measure, higher
+numbers mean faster random number generation.
+
+[table generators
+  [[generator] [length of cycle] [approx. memory requirements] [approx. speed compared to fastest] [comment]]
+  [[__minstd_rand0] [2[sup 31]-2] [`sizeof(int32_t)`] [[minstd_rand0_speed]] [-]]
+  [[__minstd_rand] [2[sup 31]-2] [`sizeof(int32_t)`] [[minstd_rand_speed]] [-]]
+  [[__rand48][2[sup 48]-1] [`sizeof(uint64_t)`] [[rand48_speed]] [-]]
+  [[__ecuyer1988] [approx. 2[sup 61]] [`2*sizeof(int32_t)`] [[ecuyer_combined_speed]] [-]]
+  [[__knuth_b] [?] [`257*sizeof(uint32_t)`] [[knuth_b_speed]] [-]]
+  [[__kreutzer1986] [?] [`1368*sizeof(uint32_t)`] [[kreutzer1986_speed]] [-]]
+  [[__taus88] [~2[sup 88]] [`3*sizeof(uint32_t)`] [[taus88_speed]] [-]]
+  [[__hellekalek1995] [2[sup 31]-1] [`sizeof(int32_t)`] [[hellekalek1995__inversive__speed]] [good uniform distribution in several dimensions]]
+  [[__mt11213b] [2[sup 11213]-1] [`352*sizeof(uint32_t)`] [[mt11213b_speed]] [good uniform distribution in up to 350 dimensions]]
+  [[__mt19937] [2[sup 19937]-1] [`625*sizeof(uint32_t)`] [[mt19937_speed]] [good uniform distribution in up to 623 dimensions]]
+  [[__mt19937_64] [2[sup 19937]-1] [`312*sizeof(uint64_t)`] [[mt19937_64_speed]] [good uniform distribution in up to 311 dimensions]]
+  [[__lagged_fibonacci607] [~2[sup 32000]] [`607*sizeof(double)`] [[lagged_fibonacci607_speed]] [-]] 
+  [[__lagged_fibonacci1279] [~2[sup 67000]] [`1279*sizeof(double)`] [[lagged_fibonacci1279_speed]] [-]]
+  [[__lagged_fibonacci2281] [~2[sup 120000]] [`2281*sizeof(double)`] [[lagged_fibonacci2281_speed]] [-]]
+  [[__lagged_fibonacci3217] [~2[sup 170000]] [`3217*sizeof(double)`] [[lagged_fibonacci3217_speed]] [-]]
+  [[__lagged_fibonacci4423] [~2[sup 230000]] [`4423*sizeof(double)`] [[lagged_fibonacci4423_speed]] [-]]
+  [[__lagged_fibonacci9689] [~2[sup 510000]] [`9689*sizeof(double)`] [[lagged_fibonacci9689_speed]] [-]]
+  [[__lagged_fibonacci19937] [~2[sup 1050000]] [`19937*sizeof(double)`] [[lagged_fibonacci19937_speed]] [-]] 
+  [[__lagged_fibonacci23209] [~2[sup 1200000]] [`23209*sizeof(double)`] [[lagged_fibonacci23209_speed]] [-]]
+  [[__lagged_fibonacci44497] [~2[sup 2300000]] [`44497*sizeof(double)`] [[lagged_fibonacci44497_speed]] [-]]
+  [[__ranlux3] [~10[sup 171]] [`24*sizeof(int)`] [[ranlux3_speed]] [-]]
+  [[__ranlux4] [~10[sup 171]] [`24*sizeof(int)`] [[ranlux4_speed]] [-]]
+  [[__ranlux64_3] [~10[sup 171]] [`24*sizeof(int64_t)`] [[ranlux64_3_speed]] [-]]
+  [[__ranlux64_4] [~10[sup 171]] [`24*sizeof(int64_t)`] [[ranlux64_4_speed]] [-]]
+  [[__ranlux3_01] [~10[sup 171]] [`24*sizeof(float)`] [[ranlux3_speed]] [-]]
+  [[__ranlux4_01] [~10[sup 171]] [`24*sizeof(float)`] [[ranlux4_speed]] [-]]
+  [[__ranlux64_3_01] [~10[sup 171]] [`24*sizeof(double)`] [[ranlux64_3_speed]] [-]]
+  [[__ranlux64_4_01] [~10[sup 171]] [`24*sizeof(double)`] [[ranlux64_4_speed]] [-]]
+  [[__ranlux24] [~10[sup 171]] [`24*sizeof(uint32_t)`] [[ranlux24_speed]] [-]]
+  [[__ranlux48] [~10[sup 171]] [`12*sizeof(uint64_t)`] [[ranlux48_speed]] [-]]
+]
+
+As observable from the table, there is generally a quality/performance/memory
+trade-off to be decided upon when choosing a random-number generator. The
+multitude of generators provided in this library allows the application
+programmer to optimize the trade-off with regard to his application domain.
+Additionally, employing several fundamentally different random number
+generators for a given application of Monte Carlo simulation will improve
+the confidence in the results.
+
+If the names of the generators don't ring any bell and you have no idea
+which generator to use, it is reasonable to employ __mt19937 for a start: It
+is fast and has acceptable quality.
+
+[note These random number generators are not intended for use in applications
+where non-deterministic random numbers are required. See __random_device
+for a choice of (hopefully) non-deterministic random number generators.]

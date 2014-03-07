@@ -1,0 +1,737 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Symbols Generator (symbols)</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Spirit 2.5.2">
+<link rel="up" href="../string.html" title="String Generators">
+<link rel="prev" href="string.html" title="String Generators (string, lit)">
+<link rel="next" href="../../performance_measurements.html" title="Performance Measurements">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="string.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../string.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../performance_measurements.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h5 class="title">
+<a name="spirit.karma.reference.string.symbols"></a><a class="link" href="symbols.html" title="Symbols Generator (symbols)">Symbols Generator
+          (<code class="computeroutput"><span class="identifier">symbols</span></code>)</a>
+</h5></div></div></div>
+<h6>
+<a name="spirit.karma.reference.string.symbols.h0"></a>
+            <span class="phrase"><a name="spirit.karma.reference.string.symbols.description"></a></span><a class="link" href="symbols.html#spirit.karma.reference.string.symbols.description">Description</a>
+          </h6>
+<p>
+            The class <code class="computeroutput"><span class="identifier">symbols</span></code> implements
+            an 'inverse' symbol table: an associative container (or map) of key-value
+            pairs where the values are (most of the time) strings. It maps the value
+            to be generated (the key) to any other value which will be emitted instead
+            of the original key.
+          </p>
+<p>
+            The Karma symbol table class <code class="computeroutput"><span class="identifier">symbols</span></code>
+            is-a generator, an instance of which may be used anywhere in the grammar
+            specification. It is an example of a dynamic generator. A dynamic generator
+            is characterized by its ability to modify its behavior at run time. Initially,
+            an empty symbols object will emit nothing. At any time, symbols may be
+            added, thus, dynamically altering its behavior.
+          </p>
+<h6>
+<a name="spirit.karma.reference.string.symbols.h1"></a>
+            <span class="phrase"><a name="spirit.karma.reference.string.symbols.header"></a></span><a class="link" href="symbols.html#spirit.karma.reference.string.symbols.header">Header</a>
+          </h6>
+<pre class="programlisting"><span class="comment">// forwards to &lt;boost/spirit/home/karma/string/symbols.hpp&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma_symbols</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+</pre>
+<p>
+            Also, see <a class="link" href="../../../structure/include.html" title="Include">Include Structure</a>.
+          </p>
+<h6>
+<a name="spirit.karma.reference.string.symbols.h2"></a>
+            <span class="phrase"><a name="spirit.karma.reference.string.symbols.namespace"></a></span><a class="link" href="symbols.html#spirit.karma.reference.string.symbols.namespace">Namespace</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup><col></colgroup>
+<thead><tr><th>
+                    <p>
+                      Name
+                    </p>
+                  </th></tr></thead>
+<tbody><tr><td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">symbols</span></code>
+                    </p>
+                  </td></tr></tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.string.symbols.h3"></a>
+            <span class="phrase"><a name="spirit.karma.reference.string.symbols.synopsis"></a></span><a class="link" href="symbols.html#spirit.karma.reference.string.symbols.synopsis">Synopsis</a>
+          </h6>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Attrib</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Lookup</span>
+  <span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">CharEncoding</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Tag</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">symbols</span><span class="special">;</span>
+</pre>
+<h6>
+<a name="spirit.karma.reference.string.symbols.h4"></a>
+            <span class="phrase"><a name="spirit.karma.reference.string.symbols.template_parameters"></a></span><a class="link" href="symbols.html#spirit.karma.reference.string.symbols.template_parameters">Template
+            parameters</a>
+          </h6>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Parameter
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Description
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Default
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Attrib</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The type of the original attribute to be used as the key into
+                      the symbol generator (the symbol).
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="keyword">char</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">T</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The data type associated with each key.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">unused_type</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Lookup</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      The symbol search implementation
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      if T is <code class="computeroutput"><span class="identifier">unused_type</span></code>,
+                      <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span><span class="special">&lt;</span><span class="identifier">Attrib</span><span class="special">&gt;</span></code>,
+                      and <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="identifier">Attrib</span><span class="special">,</span>
+                      <span class="identifier">T</span><span class="special">&gt;</span></code>
+                      otherwise
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">CharEncoding</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Used for character set selection, normally not used by end
+                      user.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">unused_type</span></code>
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Tag</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Used for character set selection, normally not used by end
+                      user.
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">unused_type</span></code>
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<h6>
+<a name="spirit.karma.reference.string.symbols.h5"></a>
+            <span class="phrase"><a name="spirit.karma.reference.string.symbols.model_of"></a></span><a class="link" href="symbols.html#spirit.karma.reference.string.symbols.model_of">Model
+            of</a>
+          </h6>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              <a class="link" href="../generator_concepts/primitivegenerator.html" title="PrimitiveGenerator"><code class="computeroutput"><span class="identifier">PrimitiveGenerator</span></code></a>
+            </p></blockquote></div>
+<div class="variablelist">
+<p class="title"><b>Notation</b></p>
+<dl class="variablelist">
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Sym</span></code></span></dt>
+<dd><p>
+                  A <code class="computeroutput"><span class="identifier">symbols</span></code> type.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">Attrib</span></code></span></dt>
+<dd><p>
+                  An attribute type.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">T</span></code></span></dt>
+<dd><p>
+                  A data type.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">sym</span></code>, <code class="computeroutput"><span class="identifier">sym2</span></code></span></dt>
+<dd><p>
+                  <code class="computeroutput"><span class="identifier">symbols</span></code> objects.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">sseq</span></code></span></dt>
+<dd><p>
+                  An <a href="http://www.sgi.com/tech/stl/" target="_top">STL</a> container
+                  of strings.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">dseq</span></code></span></dt>
+<dd><p>
+                  An <a href="http://www.sgi.com/tech/stl/" target="_top">STL</a> container
+                  of data with <code class="computeroutput"><span class="identifier">value_type</span></code>
+                  <code class="computeroutput"><span class="identifier">T</span></code>.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">s1</span></code>...<code class="computeroutput"><span class="identifier">sN</span></code></span></dt>
+<dd><p>
+                  A <a class="link" href="../../../qi/reference/basics.html#spirit.qi.reference.basics.string">String</a>.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">d1</span></code>...<code class="computeroutput"><span class="identifier">dN</span></code></span></dt>
+<dd><p>
+                  Objects of type <code class="computeroutput"><span class="identifier">T</span></code>.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">f</span></code></span></dt>
+<dd><p>
+                  A callable function or function object.
+                </p></dd>
+<dt><span class="term"><code class="computeroutput"><span class="identifier">f</span></code>, <code class="computeroutput"><span class="identifier">l</span></code></span></dt>
+<dd><p>
+                  <code class="computeroutput"><span class="identifier">ForwardIterator</span></code>
+                  first/last pair.
+                </p></dd>
+</dl>
+</div>
+<h6>
+<a name="spirit.karma.reference.string.symbols.h6"></a>
+            <span class="phrase"><a name="spirit.karma.reference.string.symbols.expression_semantics"></a></span><a class="link" href="symbols.html#spirit.karma.reference.string.symbols.expression_semantics">Expression
+            Semantics</a>
+          </h6>
+<p>
+            Semantics of an expression is defined only where it differs from, or
+            is not defined in <a class="link" href="../generator_concepts/primitivegenerator.html" title="PrimitiveGenerator"><code class="computeroutput"><span class="identifier">PrimitiveGenerator</span></code></a>.
+          </p>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                    <p>
+                      Expression
+                    </p>
+                  </th>
+<th>
+                    <p>
+                      Semantics
+                    </p>
+                  </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Sym</span><span class="special">()</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Construct an empty symbols object instance named <code class="computeroutput"><span class="string">"symbols"</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Sym</span><span class="special">(</span><span class="identifier">name</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Construct an empty symbols object instance named <code class="computeroutput"><span class="identifier">name</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Sym</span><span class="special">(</span><span class="identifier">sym2</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Copy construct a symbols from <code class="computeroutput"><span class="identifier">sym2</span></code>
+                      (Another <code class="computeroutput"><span class="identifier">symbols</span></code>
+                      object).
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Sym</span><span class="special">(</span><span class="identifier">sseq</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Construct symbols from <code class="computeroutput"><span class="identifier">sseq</span></code>
+                      (An <a href="http://www.sgi.com/tech/stl/" target="_top">STL</a> container
+                      of symbols of type <code class="computeroutput"><span class="identifier">Attrib</span></code>)
+                      named <code class="computeroutput"><span class="string">"symbols"</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Sym</span><span class="special">(</span><span class="identifier">sseq</span><span class="special">,</span>
+                      <span class="identifier">name</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Construct symbols from <code class="computeroutput"><span class="identifier">sseq</span></code>
+                      (an <a href="http://www.sgi.com/tech/stl/" target="_top">STL</a> container
+                      of symbols of type <code class="computeroutput"><span class="identifier">Attrib</span></code>)
+                      named <code class="computeroutput"><span class="identifier">name</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Sym</span><span class="special">(</span><span class="identifier">sseq</span><span class="special">,</span>
+                      <span class="identifier">dseq</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Construct symbols from <code class="computeroutput"><span class="identifier">sseq</span></code>
+                      and <code class="computeroutput"><span class="identifier">dseq</span></code> (An
+                      <a href="http://www.sgi.com/tech/stl/" target="_top">STL</a> container
+                      of symbols of type <code class="computeroutput"><span class="identifier">Attrib</span></code>
+                      and an <a href="http://www.sgi.com/tech/stl/" target="_top">STL</a>
+                      container of data with <code class="computeroutput"><span class="identifier">value_type</span></code>
+                      <code class="computeroutput"><span class="identifier">T</span></code>) which is
+                      named <code class="computeroutput"><span class="string">"symbols"</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">Sym</span><span class="special">(</span><span class="identifier">sseq</span><span class="special">,</span>
+                      <span class="identifier">dseq</span><span class="special">,</span>
+                      <span class="identifier">name</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Construct symbols from <code class="computeroutput"><span class="identifier">sseq</span></code>
+                      and <code class="computeroutput"><span class="identifier">dseq</span></code> (An
+                      <a href="http://www.sgi.com/tech/stl/" target="_top">STL</a> container
+                      of symbols of type <code class="computeroutput"><span class="identifier">Attrib</span></code>
+                      and an <a href="http://www.sgi.com/tech/stl/" target="_top">STL</a>
+                      container of data with <code class="computeroutput"><span class="identifier">value_type</span></code>
+                      <code class="computeroutput"><span class="identifier">T</span></code>) which is
+                      named <code class="computeroutput"><span class="identifier">name</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">sym</span> <span class="special">=</span>
+                      <span class="identifier">sym2</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Assign <code class="computeroutput"><span class="identifier">sym2</span></code>
+                      to <code class="computeroutput"><span class="identifier">sym</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">sym</span> <span class="special">=</span>
+                      <span class="identifier">s1</span><span class="special">,</span>
+                      <span class="identifier">s2</span><span class="special">,</span>
+                      <span class="special">...,</span> <span class="identifier">sN</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Assign one or more symbols (<code class="computeroutput"><span class="identifier">s1</span></code>...<code class="computeroutput"><span class="identifier">sN</span></code>) to <code class="computeroutput"><span class="identifier">sym</span></code>.
+                      The associated data values of type <code class="computeroutput"><span class="identifier">T</span></code>
+                      are default constructed.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">sym</span> <span class="special">+=</span>
+                      <span class="identifier">s1</span><span class="special">,</span>
+                      <span class="identifier">s2</span><span class="special">,</span>
+                      <span class="special">...,</span> <span class="identifier">sN</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Add one or more symbols (<code class="computeroutput"><span class="identifier">s1</span></code>...<code class="computeroutput"><span class="identifier">sN</span></code>) to <code class="computeroutput"><span class="identifier">sym</span></code>.
+                      The associated data values of type <code class="computeroutput"><span class="identifier">T</span></code>
+                      are default constructed.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">sym</span><span class="special">.</span><span class="identifier">add</span><span class="special">(</span><span class="identifier">s1</span><span class="special">)(</span><span class="identifier">s2</span><span class="special">)...(</span><span class="identifier">sN</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Add one or more symbols (<code class="computeroutput"><span class="identifier">s1</span></code>...<code class="computeroutput"><span class="identifier">sN</span></code>) to <code class="computeroutput"><span class="identifier">sym</span></code>.
+                      The associated data values of type <code class="computeroutput"><span class="identifier">T</span></code>
+                      are default constructed.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">sym</span><span class="special">.</span><span class="identifier">add</span><span class="special">(</span><span class="identifier">s1</span><span class="special">,</span>
+                      <span class="identifier">d1</span><span class="special">)(</span><span class="identifier">s2</span><span class="special">,</span>
+                      <span class="identifier">d2</span><span class="special">)...(</span><span class="identifier">sN</span><span class="special">,</span>
+                      <span class="identifier">dN</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Add one or more symbols (<code class="computeroutput"><span class="identifier">s1</span></code>...<code class="computeroutput"><span class="identifier">sN</span></code>) with associated data
+                      (<code class="computeroutput"><span class="identifier">d1</span></code>...<code class="computeroutput"><span class="identifier">dN</span></code>) to <code class="computeroutput"><span class="identifier">sym</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">sym</span> <span class="special">-=</span>
+                      <span class="identifier">s1</span><span class="special">,</span>
+                      <span class="identifier">s2</span><span class="special">,</span>
+                      <span class="special">...,</span> <span class="identifier">sN</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Remove one or more symbols (<code class="computeroutput"><span class="identifier">s1</span></code>...<code class="computeroutput"><span class="identifier">sN</span></code>) from <code class="computeroutput"><span class="identifier">sym</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">sym</span><span class="special">.</span><span class="identifier">remove</span><span class="special">(</span><span class="identifier">s1</span><span class="special">)(</span><span class="identifier">s2</span><span class="special">)...(</span><span class="identifier">sN</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Remove one or more symbols (<code class="computeroutput"><span class="identifier">s1</span></code>...<code class="computeroutput"><span class="identifier">sN</span></code>) from <code class="computeroutput"><span class="identifier">sym</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">sym</span><span class="special">.</span><span class="identifier">clear</span><span class="special">()</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Erase all of the symbols in <code class="computeroutput"><span class="identifier">sym</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">sym</span><span class="special">.</span><span class="identifier">at</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Return a reference to the object associated with symbol, <code class="computeroutput"><span class="identifier">s</span></code>. If <code class="computeroutput"><span class="identifier">sym</span></code>
+                      does not already contain such an object, <code class="computeroutput"><span class="identifier">at</span></code>
+                      inserts the default object <code class="computeroutput"><span class="identifier">T</span><span class="special">()</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">sym</span><span class="special">.</span><span class="identifier">find</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Return a pointer to the object associated with symbol, <code class="computeroutput"><span class="identifier">s</span></code>. If <code class="computeroutput"><span class="identifier">sym</span></code>
+                      does not already contain such an object, <code class="computeroutput"><span class="identifier">find</span></code>
+                      returns a null pointer.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">sym</span><span class="special">.</span><span class="identifier">for_each</span><span class="special">(</span><span class="identifier">f</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      For each symbol in <code class="computeroutput"><span class="identifier">sym</span></code>
+                      <code class="computeroutput"><span class="identifier">s</span></code> invoke <code class="computeroutput"><span class="identifier">f</span><span class="special">(</span><span class="keyword">typename</span> <span class="identifier">Lookup</span><span class="special">::</span><span class="identifier">value_type</span><span class="special">)</span></code>.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">sym</span><span class="special">.</span><span class="identifier">name</span><span class="special">()</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Retrieve the current name of the symbols object.
+                    </p>
+                  </td>
+</tr>
+<tr>
+<td>
+                    <p>
+                      <code class="computeroutput"><span class="identifier">sym</span><span class="special">.</span><span class="identifier">name</span><span class="special">(</span><span class="identifier">name</span><span class="special">)</span></code>
+                    </p>
+                  </td>
+<td>
+                    <p>
+                      Set the current name of the symbols object to be <code class="computeroutput"><span class="identifier">name</span></code>.
+                    </p>
+                  </td>
+</tr>
+</tbody>
+</table></div>
+<p>
+            The symbols generator uses the supplied attribute as the key to be looked
+            up in the internal associative container. If the key exists the generator
+            emits the associated value and succeeds (unless the underlying output
+            stream reports an error). If the value type stored in the symbol generator
+            is <code class="computeroutput"><span class="identifier">unused_type</span></code> it will
+            emit the key instead. If the key does not exist the generator fails while
+            not emitting anything.
+          </p>
+<h6>
+<a name="spirit.karma.reference.string.symbols.h7"></a>
+            <span class="phrase"><a name="spirit.karma.reference.string.symbols.attributes"></a></span><a class="link" href="symbols.html#spirit.karma.reference.string.symbols.attributes">Attributes</a>
+          </h6>
+<p>
+            The attribute of <code class="computeroutput"><span class="identifier">symbol</span><span class="special">&lt;</span><span class="identifier">Attrib</span><span class="special">,</span> <span class="identifier">T</span><span class="special">&gt;</span></code> is <code class="computeroutput"><span class="identifier">Attrib</span></code>.
+          </p>
+<p>
+            If the supplied attribute is a <a href="../../../../../../../../libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>
+            sequence, then the symbol table generator will use the first element
+            of that <a href="../../../../../../../../libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>
+            sequence as the key to be used for lookup. The type of that first element
+            needs to be convertible to <code class="computeroutput"><span class="identifier">Attrib</span></code>.
+            In this case the second element of the <a href="../../../../../../../../libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>
+            sequence is used as the attribute while calling a generator derived from
+            the value stored in the symbol table for the found entry.
+          </p>
+<p>
+            If the supplied attribute is a container type (<a class="link" href="../../../advanced/customize/is_container.html" title="Determine if a Type Should be Treated as a Container (Qi and Karma)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">is_container</span></code></a> resolves to <code class="computeroutput"><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span></code>), then the symbol table generator
+            will use the first element stored in that container as the key to be
+            used for lookup. The <code class="computeroutput"><span class="identifier">value_type</span></code>
+            (returned by <a class="link" href="../../../advanced/customize/store_value/container_value.html" title="Determine the Type to be Stored in a Container (Qi)"><code class="computeroutput"><span class="identifier">traits</span><span class="special">::</span><span class="identifier">container_value</span></code></a>) has to be convertible
+            to <code class="computeroutput"><span class="identifier">Attrib</span></code>. In this case
+            the second element stored in that container is used as the attribute
+            while calling a generator derived from the value stored in the symbol
+            table for the found entry.
+          </p>
+<p>
+            If the supplied attribute is not a <a href="../../../../../../../../libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>
+            sequence and not a container type, the supplied attribute is directly
+            used as the key for item lookup. The attribute is used as the attribute
+            while calling a generator derived from the value stored in the symbol
+            table for the found entry.
+          </p>
+<p>
+            In any case, because the supplied key (i.e. either the first element
+            of the <a href="../../../../../../../../libs/fusion/doc/html/index.html" target="_top">Boost.Fusion</a>
+            sequence, the first container element, or the attribute otherwise) is
+            passed as the attribute to a generator derived from the value stored
+            in the symbol table for the found entry, the symbol table may store generators,
+            which will produce output based on that value. For instance:
+          </p>
+<pre class="programlisting"><span class="comment">// The symbol table maps a single character key to a rule&lt;&gt;</span>
+<span class="comment">// The rule&lt;&gt; exposes an attribute of char as well</span>
+<span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">output_iterator_type</span><span class="special">,</span> <span class="keyword">char</span><span class="special">()&gt;</span> <span class="identifier">r1</span> <span class="special">=</span> <span class="identifier">char_</span><span class="special">;</span>
+
+<span class="identifier">symbols</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="identifier">rule</span><span class="special">&lt;</span><span class="identifier">output_iterator_type</span><span class="special">,</span> <span class="keyword">char</span><span class="special">()&gt;</span> <span class="special">&gt;</span> <span class="identifier">sym</span><span class="special">;</span>
+<span class="identifier">sym</span><span class="special">.</span><span class="identifier">add</span>
+    <span class="special">(</span><span class="char">'j'</span><span class="special">,</span> <span class="identifier">r1</span><span class="special">.</span><span class="identifier">alias</span><span class="special">())</span>
+    <span class="special">(</span><span class="char">'h'</span><span class="special">,</span> <span class="identifier">r1</span><span class="special">.</span><span class="identifier">alias</span><span class="special">())</span>
+    <span class="special">(</span><span class="char">'t'</span><span class="special">,</span> <span class="identifier">r1</span><span class="special">.</span><span class="identifier">alias</span><span class="special">())</span>
+    <span class="special">(</span><span class="char">'k'</span><span class="special">,</span> <span class="identifier">r1</span><span class="special">.</span><span class="identifier">alias</span><span class="special">())</span>
+<span class="special">;</span>
+
+<span class="comment">// Supplying a fusion vector as the attribute will use the first element</span>
+<span class="comment">// (the 'j') as the key to be looked up, while the second element (the 'J') </span>
+<span class="comment">// is passed on as the attribute to the rule&lt;&gt; stored in the symbol table. </span>
+<span class="comment">// Consequently, the example generates a single 'J'.</span>
+<span class="identifier">BOOST_ASSERT</span><span class="special">(</span><span class="identifier">test</span><span class="special">(</span><span class="string">"J"</span><span class="special">,</span> <span class="identifier">sym</span><span class="special">,</span> <span class="identifier">make_vector</span><span class="special">(</span><span class="char">'j'</span><span class="special">,</span> <span class="char">'J'</span><span class="special">)));</span>
+</pre>
+<h6>
+<a name="spirit.karma.reference.string.symbols.h8"></a>
+            <span class="phrase"><a name="spirit.karma.reference.string.symbols.complexity"></a></span><a class="link" href="symbols.html#spirit.karma.reference.string.symbols.complexity">Complexity</a>
+          </h6>
+<p>
+            The default implementation uses a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;&gt;</span></code> or a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">set</span><span class="special">&lt;&gt;</span></code> with a complexity of:
+          </p>
+<div class="blockquote"><blockquote class="blockquote"><p>
+              O(log n)
+            </p></blockquote></div>
+<p>
+            Where n is the number of stored symbols.
+          </p>
+<h6>
+<a name="spirit.karma.reference.string.symbols.h9"></a>
+            <span class="phrase"><a name="spirit.karma.reference.string.symbols.example"></a></span><a class="link" href="symbols.html#spirit.karma.reference.string.symbols.example">Example</a>
+          </h6>
+<div class="note"><table border="0" summary="Note">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Note]" src="../../../../images/note.png"></td>
+<th align="left">Note</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+              The test harness for the example(s) below is presented in the <a class="link" href="../basics.html#spirit.karma.reference.basics.examples">Basics Examples</a>
+              section.
+            </p></td></tr>
+</table></div>
+<p>
+            Some includes:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">karma</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">support_utree</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_core</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">spirit</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">phoenix_operator</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">fusion</span><span class="special">/</span><span class="identifier">include</span><span class="special">/</span><span class="identifier">std_pair</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">iostream</span><span class="special">&gt;</span>
+<span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">string</span><span class="special">&gt;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Some using declarations:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">spirit</span><span class="special">::</span><span class="identifier">karma</span><span class="special">::</span><span class="identifier">symbols</span><span class="special">;</span>
+</pre>
+<p>
+          </p>
+<p>
+            Basic usage of <code class="computeroutput"><span class="identifier">symbol</span></code>
+            generators:
+          </p>
+<p>
+</p>
+<pre class="programlisting"><span class="identifier">symbols</span><span class="special">&lt;</span><span class="keyword">char</span><span class="special">,</span> <span class="keyword">char</span> <span class="keyword">const</span><span class="special">*&gt;</span> <span class="identifier">sym</span><span class="special">;</span>
+
+<span class="identifier">sym</span><span class="special">.</span><span class="identifier">add</span>
+    <span class="special">(</span><span class="char">'a'</span><span class="special">,</span> <span class="string">"Apple"</span><span class="special">)</span>
+    <span class="special">(</span><span class="char">'b'</span><span class="special">,</span> <span class="string">"Banana"</span><span class="special">)</span>
+    <span class="special">(</span><span class="char">'o'</span><span class="special">,</span> <span class="string">"Orange"</span><span class="special">)</span>
+<span class="special">;</span>
+
+<span class="identifier">test_generator_attr</span><span class="special">(</span><span class="string">"Banana"</span><span class="special">,</span> <span class="identifier">sym</span><span class="special">,</span> <span class="char">'b'</span><span class="special">);</span>
+</pre>
+<p>
+          </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2001-2011 Joel de Guzman, Hartmut Kaiser<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="string.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../string.html"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="../../performance_measurements.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

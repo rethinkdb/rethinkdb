@@ -1,0 +1,156 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/cs.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/cs.xml
+ */
+cs{
+    Version{"2.0.49.93"}
+    zoneStrings{
+        "America:Belem"{
+            ec{"Belém"}
+        }
+        "America:Cordoba"{
+            ec{"Kordoba"}
+        }
+        "America:St_Johns"{
+            ec{"St. Johns"}
+        }
+        "America:Tijuana"{
+            ec{"Tichuana"}
+        }
+        "Antarctica:DumontDUrville"{
+            ec{"Dumont D'Urville"}
+        }
+        "Antarctica:South_Pole"{
+            ec{"Jižní pól"}
+        }
+        "Asia:Jerusalem"{
+            ec{"Jeruzalém"}
+        }
+        "Asia:Kamchatka"{
+            ec{"Kamčatka"}
+        }
+        "Asia:Kashgar"{
+            ec{"Kašghar"}
+        }
+        "Asia:Krasnoyarsk"{
+            ec{"Krasnojarsk"}
+        }
+        "Asia:Sakhalin"{
+            ec{"Sachalin"}
+        }
+        "Asia:Shanghai"{
+            ec{"Šanghaj"}
+        }
+        "Asia:Tashkent"{
+            ec{"Taškent"}
+        }
+        "Asia:Tokyo"{
+            ec{"Tokio"}
+        }
+        "Asia:Ulaanbaatar"{
+            ec{"Ulánbátar"}
+        }
+        "Asia:Yakutsk"{
+            ec{"Jakutsk"}
+        }
+        "Asia:Yekaterinburg"{
+            ec{"Jekatěrinburg"}
+        }
+        "Atlantic:Azores"{
+            ec{"Azorské ostrovy"}
+        }
+        "Atlantic:Canary"{
+            ec{"Kanárské ostrovy"}
+        }
+        "Etc:Unknown"{
+            ec{"Není známo"}
+        }
+        "Europe:Bucharest"{
+            ec{"Bukurešť"}
+        }
+        "Europe:Kiev"{
+            ec{"Kyjev"}
+        }
+        "Europe:Lisbon"{
+            ec{"Lisabon"}
+        }
+        "Europe:London"{
+            ec{"Londýn"}
+        }
+        "Europe:Moscow"{
+            ec{"Moskva"}
+        }
+        "Europe:Paris"{
+            ec{"Paříž"}
+        }
+        "Europe:Uzhgorod"{
+            ec{"Užhorod"}
+        }
+        "Europe:Zaporozhye"{
+            ec{"Záporoží"}
+        }
+        "Pacific:Easter"{
+            ec{"Velikonoční ostrov"}
+        }
+        "Pacific:Galapagos"{
+            ec{"Galapágy"}
+        }
+        "meta:Alaska"{
+            ld{"Aljašský letní čas"}
+            ls{"Aljašský standardní čas"}
+        }
+        "meta:America_Central"{
+            ld{"Centrální letní čas"}
+            ls{"Centrální standardní čas"}
+        }
+        "meta:America_Eastern"{
+            ld{"Východní letní čas"}
+            ls{"Východní standardní čas"}
+        }
+        "meta:America_Mountain"{
+            ld{"Horský letní čas"}
+            ls{"Horský standardní čas"}
+        }
+        "meta:America_Pacific"{
+            ld{"Pacifický letní čas"}
+            ls{"Pacifický standardní čas"}
+        }
+        "meta:Atlantic"{
+            ld{"Atlantický letní čas"}
+            ls{"Atlantický standardní čas"}
+        }
+        "meta:China"{
+            ls{"Čínský standardní čas"}
+        }
+        "meta:Europe_Central"{
+            ld{"Středoevropský letní čas"}
+            ls{"Středoevropský standardní čas"}
+        }
+        "meta:Europe_Eastern"{
+            ld{"Východoevropský letní čas"}
+            ls{"Východoevropský standardní čas"}
+        }
+        "meta:GMT"{
+            ls{"Greenwichský střední čas"}
+        }
+        "meta:Israel"{
+            ld{"Izraelský letní čas"}
+            ls{"Izraelský standardní čas"}
+        }
+        "meta:Japan"{
+            ld{"Japonský letní čas"}
+            ls{"Japonský standardní čas"}
+        }
+        "meta:Newfoundland"{
+            ld{"Newfoundlandský letní čas"}
+            ls{"Newfoundlandský standardní čas"}
+        }
+    }
+}

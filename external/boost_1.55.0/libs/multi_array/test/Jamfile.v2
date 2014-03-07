@@ -1,0 +1,51 @@
+# Copyright David Abrahams 2003. Permission to copy, use,
+# modify, sell and distribute this software is granted provided this
+# copyright notice appears in all copies. This software is provided
+# "as is" without express or implied warranty, and with no claim as
+# to its suitability for any purpose.
+
+test-suite multi_array
+    : 
+      [ compile-fail fail_cbracket.cpp ]
+      [ compile-fail fail_cdata.cpp ]
+      [ compile-fail fail_citerator.cpp ]
+      [ compile-fail fail_cparen.cpp ]
+      [ compile-fail fail_criterator.cpp ]
+      [ compile-fail fail_csubarray.cpp ]
+      [ compile-fail fail_csubarray2.cpp ]
+      [ compile-fail fail_csubarray3.cpp ]
+      [ compile-fail fail_cview.cpp ]
+      [ compile-fail fail_cview2.cpp ]
+      [ compile-fail fail_cview3.cpp ]
+      [ compile-fail fail_ref_cbracket.cpp ]
+      [ compile-fail fail_ref_cdata.cpp ]
+      [ compile-fail fail_ref_citerator.cpp ]
+      [ compile-fail fail_ref_cparen.cpp ]
+      [ compile-fail fail_ref_criterator.cpp ]
+      [ compile-fail fail_ref_csubarray.cpp ]
+      [ compile-fail fail_ref_csubarray2.cpp ]
+      [ compile-fail fail_ref_csubarray3.cpp ]
+      [ compile-fail fail_ref_cview.cpp ]
+      [ compile-fail fail_ref_cview2.cpp ]
+      [ compile-fail fail_ref_cview3.cpp ]
+  
+      [ run constructors.cpp ../../test/build//boost_test_exec_monitor ]
+      [ run access.cpp ../../test/build//boost_test_exec_monitor ]
+      [ run compare.cpp ../../test/build//boost_test_exec_monitor ]
+      [ run iterators.cpp ../../test/build//boost_test_exec_monitor ]
+      [ run slice.cpp ../../test/build//boost_test_exec_monitor ]
+      [ run assign.cpp ../../test/build//boost_test_exec_monitor ]
+      [ run assign_to_array.cpp ../../test/build//boost_test_exec_monitor ]
+      [ run index_bases.cpp ../../test/build//boost_test_exec_monitor ]
+      [ run storage_order_convert.cpp ../../test/build//boost_test_exec_monitor ]
+      [ run storage_order.cpp ../../test/build//boost_test_exec_monitor ]
+      [ run reshape.cpp ../../test/build//boost_test_exec_monitor ]
+      [ run range1.cpp ../../test/build//boost_test_exec_monitor  ]
+      [ run idxgen1.cpp ../../test/build//boost_test_exec_monitor ]
+      [ run stl_interaction.cpp ../../test/build//boost_test_exec_monitor ]
+      [ run resize.cpp ../../test/build//boost_test_exec_monitor ]
+      [ run assert.cpp ../../test/build//boost_test_exec_monitor ]
+      [ run reverse_view.cpp ../../test/build//boost_test_exec_monitor ]
+
+      [ compile concept_checks.cpp ]
+    ;

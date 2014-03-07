@@ -1,0 +1,588 @@
+# Copyright 2003 Christopher Currie
+# Copyright 2006 Dave Abrahams 
+# Copyright 2003, 2004, 2005, 2006 Vladimir Prus 
+# Copyright 2005-2007 Mat Marcus
+# Copyright 2005-2007 Adobe Systems Incorporated
+# Copyright 2007-2010 Rene Rivera
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) 
+
+#  Please see http://article.gmane.org/gmane.comp.lib.boost.build/3389/
+#  for explanation why it's a separate toolset.
+
+import feature : feature ;
+import toolset : flags ;
+import type ;
+import common ;
+import generators ;
+import path : basename ;
+import version ;
+import property-set ;
+import regex ;
+import errors ;
+
+## Use a framework.
+feature framework : : free ;
+
+## The MacOSX version to compile for, which maps to the SDK to use (sysroot).
+feature macosx-version : : propagated link-incompatible symmetric optional ;
+
+## The minimal MacOSX version to target.
+feature macosx-version-min : : propagated optional ;
+
+## A dependency, that is forced to be included in the link.
+feature force-load : : free dependency incidental ;
+
+#############################################################################
+
+_ = " " ;
+
+if [ MATCH (--debug-configuration) : [ modules.peek : ARGV ] ]
+{
+    .debug-configuration = true ;
+}
+
+feature.extend toolset : darwin ;
+import gcc ;
+toolset.inherit-generators darwin : gcc : gcc.mingw.link gcc.mingw.link.dll ;
+
+generators.override darwin.prebuilt : builtin.prebuilt ;
+generators.override darwin.searched-lib-generator : searched-lib-generator ;
+
+# Override default do-nothing generators.
+generators.override darwin.compile.c.pch   : pch.default-c-pch-generator   ;
+generators.override darwin.compile.c++.pch : pch.default-cpp-pch-generator ;
+
+type.set-generated-target-suffix PCH : <toolset>darwin : gch ;
+
+toolset.inherit-rules darwin : gcc : localize ;
+toolset.inherit-flags darwin : gcc     
+  :  <runtime-link>static
+     <architecture>arm/<address-model>32
+     <architecture>arm/<address-model>64
+     <architecture>arm/<instruction-set>
+     <architecture>x86/<address-model>32
+     <architecture>x86/<address-model>64
+     <architecture>x86/<instruction-set>
+     <architecture>power/<address-model>32
+     <architecture>power/<address-model>64
+     <architecture>power/<instruction-set>  ;
+
+# Options:
+#
+#   <root>PATH
+#       Platform root path. The common autodetection will set this to
+#       "/Developer". And when a command is given it will be set to
+#       the corresponding "*.platform/Developer" directory.
+#
+rule init ( version ? : command * : options * : requirement * )
+{
+    # First time around, figure what is host OSX version
+    if ! $(.host-osx-version)  
+    {
+        .host-osx-version = [ MATCH "^([0-9.]+)"
+          : [ SHELL "/usr/bin/sw_vers -productVersion" ] ] ;
+        if $(.debug-configuration)
+        {
+            ECHO notice: OSX version on this machine is $(.host-osx-version) ;
+        }
+    }
+                      
+    # - The root directory of the tool install.
+    local root = [ feature.get-values <root> : $(options) ] ;
+    
+    # - The bin directory where to find the commands to execute.
+    local bin ;
+    
+    # - The configured compile driver command.
+    local command = [ common.get-invocation-command darwin : g++ : $(command) ] ;
+    
+    # The version as reported by the compiler
+    local real-version ;
+    
+    # - Autodetect the root and bin dir if not given.
+    if $(command)
+    {
+        bin ?= [ common.get-absolute-tool-path $(command[1]) ] ;
+        if $(bin) = "/usr/bin"
+        {
+            root ?= /Developer ;
+        }
+        else
+        {
+            local r = $(bin:D) ;
+            r = $(r:D) ;
+            root ?= $(r) ;
+        }
+    }
+    
+    # - Autodetect the version if not given.
+    if $(command)
+    {
+        # - The 'command' variable can have multiple elements. When calling
+        #   the SHELL builtin we need a single string.
+        local command-string = $(command:J=" ") ;
+        real-version = [ MATCH "^([0-9.]+)"
+            : [ SHELL "$(command-string) -dumpversion" ] ] ;
+        version ?= $(real-version) ;
+    }
+    
+    .real-version.$(version) = $(real-version) ;
+    
+    # - Define the condition for this toolset instance.
+    local condition =
+        [ common.check-init-parameters darwin $(requirement) : version $(version) ] ;
+    
+    # - Set the toolset generic common options.
+    common.handle-options darwin : $(condition) : $(command) : $(options) ;
+    
+    # - GCC 4.0 and higher in Darwin does not have -fcoalesce-templates.
+    if $(real-version) < "4.0.0"
+    {
+        flags darwin.compile.c++ OPTIONS $(condition) : -fcoalesce-templates ;
+    }
+    # - GCC 4.2 and higher in Darwin does not have -Wno-long-double.
+    if $(real-version) < "4.2.0"
+    {
+        flags darwin.compile OPTIONS $(condition) : -Wno-long-double ;
+    }
+
+    # - Set the link flags common with the GCC toolset.
+    gcc.init-link-flags darwin darwin $(condition) ;
+
+    # - The symbol strip program.
+    local strip ;
+    if <striper> in $(options)
+    {
+        # We can turn off strip by specifying it as empty. In which
+        # case we switch to using the linker to do the strip.
+        flags darwin.link.dll OPTIONS
+            $(condition)/<main-target-type>LIB/<link>shared/<address-model>32/<strip>on : -Wl,-x ;
+        flags darwin.link.dll OPTIONS
+            $(condition)/<main-target-type>LIB/<link>shared/<address-model>/<strip>on : -Wl,-x ;
+        flags darwin.link OPTIONS
+            $(condition)/<main-target-type>EXE/<address-model>32/<strip>on : -s ;
+        flags darwin.link OPTIONS
+            $(condition)/<main-target-type>EXE/<address-model>/<strip>on : -s ;
+    }
+    else
+    {
+        # Otherwise we need to find a strip program to use. And hence
+        # also tell the link action that we need to use a strip
+        # post-process.
+        flags darwin.link NEED_STRIP $(condition)/<strip>on : "" ;
+        strip =
+            [ common.get-invocation-command darwin
+                : strip : [ feature.get-values <striper> : $(options) ] : $(bin) : search-path ] ;
+        flags darwin.link .STRIP $(condition) : $(strip[1]) ;
+        if $(.debug-configuration)
+        {
+            ECHO notice: using strip for $(condition) at $(strip[1]) ;
+        }
+    }
+
+    # - The archive builder (libtool is the default as creating
+    #   archives in darwin is complicated.
+    local archiver =
+        [ common.get-invocation-command darwin
+            : libtool : [ feature.get-values <archiver> : $(options) ] : $(bin) : search-path ] ;
+    flags darwin.archive .LIBTOOL $(condition) : $(archiver[1]) ;
+    if $(.debug-configuration)
+    {
+        ECHO notice: using archiver for $(condition) at $(archiver[1]) ;
+    }
+    
+    # - Initialize the SDKs available in the root for this tool.
+    local sdks = [ init-available-sdk-versions $(condition) : $(root) ] ;
+    
+    #~ ECHO --- ;
+    #~ ECHO --- bin :: $(bin) ;
+    #~ ECHO --- root :: $(root) ;
+    #~ ECHO --- version :: $(version) ;
+    #~ ECHO --- condition :: $(condition) ;
+    #~ ECHO --- strip :: $(strip) ;
+    #~ ECHO --- archiver :: $(archiver) ;
+    #~ ECHO --- sdks :: $(sdks) ;
+    #~ ECHO --- ;
+    #~ EXIT ;
+}
+
+# Add and set options for a discovered SDK version.
+local rule init-sdk ( condition * : root ? : version + : version-feature ? )
+{
+    local rule version-to-feature ( version + )
+    {
+        switch $(version[1])
+        {
+            case iphone* :
+            {
+                return $(version[1])-$(version[2-]:J=.) ;
+            }
+            case mac* :
+            {
+                return $(version[2-]:J=.) ;
+            }
+            case * :
+            {
+                return $(version:J=.) ;
+            }
+        }
+    }
+    
+    if $(version-feature)
+    {
+        if $(.debug-configuration)
+        {
+            ECHO notice: available sdk for $(condition)/<macosx-version>$(version-feature) at $(root) ;
+        }
+        
+        # Add the version to the features for specifying them.
+        if ! $(version-feature) in [ feature.values macosx-version ]
+        {
+            feature.extend macosx-version : $(version-feature) ;
+        }
+        if ! $(version-feature) in [ feature.values macosx-version-min ]
+        {
+            feature.extend macosx-version-min : $(version-feature) ;
+        }
+        
+        # Set the flags the version needs to compile with, first
+        # generic options.
+        flags darwin.compile OPTIONS $(condition)/<macosx-version>$(version-feature)
+            : -isysroot $(root) ;
+        flags darwin.link OPTIONS $(condition)/<macosx-version>$(version-feature)
+            : -isysroot $(root) ;
+        
+        # Then device variation options.
+        switch $(version[1])
+        {
+            case iphonesim* :
+            {
+                local N = $(version[2]) ;
+                if ! $(version[3]) { N += 00 ; }
+                else if [ regex.match (..) : $(version[3]) ] { N += $(version[3]) ; }
+                else { N += 0$(version[3]) ; }
+                if ! $(version[4]) { N += 00 ; }
+                else if [ regex.match (..) : $(version[4]) ] { N += $(version[4]) ; }
+                else { N += 0$(version[4]) ; }
+                N = $(N:J=) ;
+                flags darwin.compile OPTIONS <macosx-version-min>$(version-feature)
+                    : -D__IPHONE_OS_VERSION_MIN_REQUIRED=$(N) ;
+                flags darwin.link OPTIONS <macosx-version-min>$(version-feature)
+                    : -D__IPHONE_OS_VERSION_MIN_REQUIRED=$(N) ;
+            }
+            
+            case iphone* :
+            {
+                flags darwin.compile OPTIONS <macosx-version-min>$(version-feature)
+                    : -miphoneos-version-min=$(version[2-]:J=.) ;
+                flags darwin.link OPTIONS <macosx-version-min>$(version-feature)
+                    : -miphoneos-version-min=$(version[2-]:J=.) ;
+            }
+            
+            case mac* :
+            {
+                flags darwin.compile OPTIONS <macosx-version-min>$(version-feature)
+                    : -mmacosx-version-min=$(version[2-]:J=.) ;
+                flags darwin.link OPTIONS <macosx-version-min>$(version-feature)
+                    : -mmacosx-version-min=$(version[2-]:J=.) ;
+            }
+        }
+        
+        if $(version[3]) > 0
+        {
+            # We have a minor version of an SDK. We want to set up
+            # previous minor versions, plus the current minor version.
+            # So we recurse to set up the previous minor versions, up to
+            # the current version.
+            local minor-minus-1 = [ CALC $(version[3]) - 1 ] ;
+            return
+                [ init-sdk $(condition) : $(root)
+                    : $(version[1-2]) $(minor-minus-1) : [ version-to-feature $(version[1-2]) $(minor-minus-1) ] ]
+                $(version-feature) ;
+        }
+        else
+        {
+            return $(version-feature) ;
+        }
+    }
+    else if $(version[4])
+    {
+        # We have a patch version of an SDK. We want to set up
+        # both the specific patch version, and the minor version.
+        # So we recurse to set up the patch version. Plus the minor version.
+        return
+            [ init-sdk $(condition) : $(root)
+                : $(version[1-3]) : [ version-to-feature $(version[1-3]) ] ]
+            [ init-sdk $(condition) : $(root)
+                : $(version) : [ version-to-feature $(version) ] ] ;
+    }
+    else
+    {
+        # Yes, this is intentionally recursive.
+        return
+            [ init-sdk $(condition) : $(root)
+                : $(version) : [ version-to-feature $(version) ] ] ;
+    }
+}
+
+# Determine the MacOSX SDK versions installed and their locations.
+local rule init-available-sdk-versions ( condition * : root ? )
+{
+    root ?= /Developer ;
+    local sdks-root = $(root)/SDKs ;
+    local sdks = [ GLOB $(sdks-root) : MacOSX*.sdk iPhoneOS*.sdk iPhoneSimulator*.sdk ] ;
+    local result ;
+    for local sdk in $(sdks)
+    {
+        local sdk-match = [ MATCH ([^0-9]+)([0-9]+)[.]([0-9x]+)[.]?([0-9x]+)? : $(sdk:D=) ] ;
+        local sdk-platform = $(sdk-match[1]:L) ;
+        local sdk-version = $(sdk-match[2-]) ;
+        if $(sdk-version)
+        {
+            switch $(sdk-platform)
+            {
+                case macosx :
+                {
+                    sdk-version = mac $(sdk-version) ;
+                }
+                case iphoneos :
+                {
+                    sdk-version = iphone $(sdk-version) ;
+                }
+                case iphonesimulator :
+                {
+                    sdk-version = iphonesim $(sdk-version) ;
+                }
+                case * :
+                {
+                    sdk-version = $(sdk-version:J=-) ;
+                }
+            }
+            result += [ init-sdk $(condition) : $(sdk) : $(sdk-version) ] ;
+        }
+    }
+    return $(result) ;
+}
+
+# Generic options.
+flags darwin.compile OPTIONS <flags> ;
+
+# The following adds objective-c support to darwin.
+# Thanks to http://thread.gmane.org/gmane.comp.lib.boost.build/13759
+
+generators.register-c-compiler darwin.compile.m : OBJECTIVE_C : OBJ : <toolset>darwin ;
+generators.register-c-compiler darwin.compile.mm : OBJECTIVE_CPP : OBJ : <toolset>darwin ;
+
+rule setup-address-model ( targets * : sources * : properties * )
+{
+    local ps = [ property-set.create $(properties) ] ;
+    local arch = [ $(ps).get <architecture> ] ;
+    local instruction-set = [ $(ps).get <instruction-set> ] ;
+    local address-model = [ $(ps).get <address-model> ] ;
+    local osx-version = [ $(ps).get <macosx-version> ] ;
+    local gcc-version = [ $(ps).get <toolset-darwin:version> ] ;
+    gcc-version = $(.real-version.$(gcc-version)) ;
+    local options ;
+    
+    local support-ppc64 = 1 ;
+    
+    osx-version ?= $(.host-osx-version) ;
+
+    switch $(osx-version)
+    {
+        case iphone* :
+        {
+            support-ppc64 = ;
+        }
+        
+        case * :
+        if $(osx-version) && ! [ version.version-less [ regex.split $(osx-version) \\. ] : 10 6 ]
+        {
+            # When targeting 10.6:
+            # - gcc 4.2 will give a compiler errir if ppc64 compilation is requested
+            # - gcc 4.0 will compile fine, somehow, but then fail at link time
+            support-ppc64 = ;
+        }
+    }
+    switch $(arch)
+    {
+        case combined : 
+        {
+            if $(address-model) = 32_64 {
+                if $(support-ppc64) {
+                    options = -arch i386 -arch ppc -arch x86_64 -arch ppc64 ;                    
+                } else {
+                    # Build 3-way binary
+                    options = -arch i386 -arch ppc -arch x86_64 ;
+                }                                
+            } else if $(address-model) = 64 {
+                if $(support-ppc64) {
+                    options = -arch x86_64 -arch ppc64 ;
+                } else {
+                    errors.user-error "64-bit PPC compilation is not supported when targeting OSX 10.6 or later" ;
+                }                
+            } else {
+                options = -arch i386 -arch ppc ;
+            }
+        }
+        
+        case x86 : 
+        {
+            if $(address-model) = 32_64 {
+                options = -arch i386 -arch x86_64 ;
+            } else if $(address-model) = 64 {
+                options = -arch x86_64 ;
+            } else {
+                options = -arch i386 ;
+            }
+        }        
+        
+        case power :
+        {
+            if ! $(support-ppc64) 
+              && (  $(address-model) = 32_64 || $(address-model) = 64 )
+            {
+                errors.user-error "64-bit PPC compilation is not supported when targeting OSX 10.6 or later" ;
+            }
+            
+            if $(address-model) = 32_64 {
+                options = -arch ppc -arch ppc64 ;
+            } else if $(address-model) = 64 {
+                options = -arch ppc64 ;
+            } else {
+                options = -arch ppc ;
+            }
+        }
+        
+        case arm :
+        {
+            if $(instruction-set) {
+                options = -arch$(_)$(instruction-set) ;
+            } else {
+                options = -arch arm ;
+            }
+        }
+    }
+    
+    if $(options)
+    {
+        OPTIONS on $(targets) += $(options) ;
+    }            
+}
+
+rule setup-threading ( targets * : sources * : properties * )
+{
+    gcc.setup-threading $(targets) : $(sources) : $(properties) ;
+}
+
+rule setup-fpic ( targets * : sources * : properties * )
+{
+    gcc.setup-fpic $(targets) : $(sources) : $(properties) ;
+}
+
+rule compile.m ( targets * : sources * : properties * )
+{
+    LANG on $(<) = "-x objective-c" ;
+    gcc.setup-fpic $(targets) : $(sources) : $(properties) ;
+    setup-address-model $(targets) : $(sources) : $(properties) ;
+}
+
+actions compile.m
+{
+    "$(CONFIG_COMMAND)" $(LANG) $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+rule compile.mm  ( targets * : sources * : properties * )
+{
+    LANG on $(<) = "-x objective-c++" ;
+    gcc.setup-fpic $(targets) : $(sources) : $(properties) ;
+    setup-address-model $(targets) : $(sources) : $(properties) ;
+}
+
+actions compile.mm
+{
+    "$(CONFIG_COMMAND)" $(LANG) $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+# Set the max header padding to allow renaming of libs for installation.
+flags darwin.link.dll OPTIONS : -headerpad_max_install_names ;
+
+# To link the static runtime we need to link to all the core runtime libraries.
+flags darwin.link OPTIONS <runtime-link>static
+    : -nodefaultlibs -shared-libgcc -lstdc++-static -lgcc_eh -lgcc -lSystem ;
+
+# Strip as much as possible when optimizing.
+flags darwin.link OPTIONS <optimization>speed : -Wl,-dead_strip -no_dead_strip_inits_and_terms ;
+flags darwin.link OPTIONS <optimization>space : -Wl,-dead_strip -no_dead_strip_inits_and_terms ;
+
+# Dynamic/shared linking.
+flags darwin.compile OPTIONS <link>shared : -dynamic ;
+
+# Misc options.
+flags darwin.compile OPTIONS : -gdwarf-2 -fexceptions ;
+#~ flags darwin.link OPTIONS : -fexceptions ;
+
+# Add the framework names to use.
+flags darwin.link FRAMEWORK <framework> ;
+
+#
+flags darwin.link FORCE_LOAD <force-load> ;
+
+# This is flag is useful for debugging the link step
+# uncomment to see what libtool is doing under the hood
+#~ flags darwin.link.dll OPTIONS : -Wl,-v ;
+
+# set up the -F option to include the paths to any frameworks used.
+local rule prepare-framework-path ( target + )
+{
+    # The -framework option only takes basename of the framework.
+    # The -F option specifies the directories where a framework
+    # is searched for.  So, if we find <framework> feature
+    # with some path, we need to generate property -F option.
+    local framework-paths = [ on $(target) return $(FRAMEWORK:D) ] ;
+
+    # Be sure to generate no -F if there's no path.
+    for local framework-path in $(framework-paths)
+    {
+        if $(framework-path) != ""
+        {
+            FRAMEWORK_PATH on $(target) += -F$(framework-path) ;
+        }
+    }
+}
+
+rule link ( targets * : sources * : properties * )
+{
+    DEPENDS $(targets) : [ on $(targets) return $(FORCE_LOAD) ] ;
+    setup-address-model $(targets) : $(sources) : $(properties) ;
+    prepare-framework-path $(<) ;
+}
+
+# Note that using strip without any options was reported to result in broken
+# binaries, at least on OS X 10.5.5, see:
+#    http://svn.boost.org/trac/boost/ticket/2347
+# So we pass -S -x.
+actions link bind LIBRARIES FORCE_LOAD
+{
+    "$(CONFIG_COMMAND)" -L"$(LINKPATH)" -o "$(<)" "$(>)" -Wl,-force_load$(_)"$(FORCE_LOAD)" "$(LIBRARIES)" -l$(FINDLIBS-SA) -l$(FINDLIBS-ST) $(FRAMEWORK_PATH) -framework$(_)$(FRAMEWORK:D=:S=) $(OPTIONS) $(USER_OPTIONS)
+    $(NEED_STRIP)"$(.STRIP)" $(NEED_STRIP)-S $(NEED_STRIP)-x $(NEED_STRIP)"$(<)"
+}
+
+rule link.dll ( targets * : sources * : properties * )
+{
+    setup-address-model $(targets) : $(sources) : $(properties) ;
+    prepare-framework-path $(<) ;
+}
+
+actions link.dll bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" -dynamiclib -Wl,-single_module -install_name "$(<:B)$(<:S)" -L"$(LINKPATH)" -o "$(<)" "$(>)" "$(LIBRARIES)" -l$(FINDLIBS-SA) -l$(FINDLIBS-ST) $(FRAMEWORK_PATH) -framework$(_)$(FRAMEWORK:D=:S=) $(OPTIONS) $(USER_OPTIONS)
+}
+
+# We use libtool instead of ar to support universal binary linking
+# TODO: Find a way to use the underlying tools, i.e. lipo, to do this.
+actions piecemeal archive
+{
+    "$(.LIBTOOL)" -static -o "$(<:T)"  $(ARFLAGS)  "$(>:T)"
+}

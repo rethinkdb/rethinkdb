@@ -1,0 +1,168 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class content</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../../mpi/reference.html#header.boost.mpi.skeleton_and_content_hpp" title="Header &lt;boost/mpi/skeleton_and_content.hpp&gt;">
+<link rel="prev" href="skeleton_proxy.html" title="Struct template skeleton_proxy">
+<link rel="next" href="packed_skeleton_iarchive.html" title="Class packed_skeleton_iarchive">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="skeleton_proxy.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.skeleton_and_content_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="packed_skeleton_iarchive.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.mpi.content"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class content</span></h2>
+<p>boost::mpi::content &#8212; A proxy object that transfers the content of an object without its structure. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../mpi/reference.html#header.boost.mpi.skeleton_and_content_hpp" title="Header &lt;boost/mpi/skeleton_and_content.hpp&gt;">boost/mpi/skeleton_and_content.hpp</a>&gt;
+
+</span>
+<span class="keyword">class</span> <a class="link" href="content.html" title="Class content">content</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="content.html#boost.mpi.contentconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <a class="link" href="content.html#idp94772024-bb"><span class="identifier">content</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="content.html#idp94772616-bb"><span class="identifier">content</span></a><span class="special">(</span><span class="identifier">MPI_Datatype</span><span class="special">,</span> <span class="keyword">bool</span> <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span>
+  content&amp; <a class="link" href="content.html#idp94775272-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="identifier">MPI_Datatype</span><span class="special">)</span><span class="special">;</span>
+
+  <span class="comment">// <a class="link" href="content.html#idp94769672-bb">public member functions</a></span>
+  <span class="identifier">MPI_Datatype</span> <a class="link" href="content.html#idp94769880-bb"><span class="identifier">get_mpi_datatype</span></a><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span>
+  <span class="keyword">void</span> <a class="link" href="content.html#idp94771288-bb"><span class="identifier">commit</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp162838104"></a><h2>Description</h2>
+<p>The <code class="computeroutput">content</code> class indicates that Boost.MPI should transmit or receive the content of an object, but without any information about the structure of the object. It is only meaningful to transmit the content of an object after the receiver has already received the skeleton for the same object.</p>
+<p>Most users will not use <code class="computeroutput">content</code> objects directly. Rather, they will invoke <code class="computeroutput">send</code>, <code class="computeroutput">recv</code>, or <code class="computeroutput">broadcast</code> operations using <code class="computeroutput">get_content()</code>. </p>
+<div class="refsect2">
+<a name="idp162841016"></a><h3>
+<a name="boost.mpi.contentconstruct-copy-destruct"></a><code class="computeroutput">content</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><a name="idp94772024-bb"></a><span class="identifier">content</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Constructs an empty <code class="computeroutput">content</code> object. This object will not be useful for any Boost.MPI operations until it is reassigned. </p>
+</li>
+<li class="listitem">
+<pre class="literallayout"><a name="idp94772616-bb"></a><span class="identifier">content</span><span class="special">(</span><span class="identifier">MPI_Datatype</span> d<span class="special">,</span> <span class="keyword">bool</span> committed <span class="special">=</span> <span class="keyword">true</span><span class="special">)</span><span class="special">;</span></pre>
+<p>This routine initializes the <code class="computeroutput">content</code> object with an MPI data type that refers to the content of an object without its structure.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><code class="computeroutput">committed</code></span></p></td>
+<td><p><code class="computeroutput">true</code> indicates that <code class="computeroutput">MPI_Type_commit</code> has already been excuted for the data type <code class="computeroutput">d</code>. </p></td>
+</tr>
+<tr>
+<td><p><span class="term"><code class="computeroutput">d</code></span></p></td>
+<td><p>the MPI data type referring to the content of the object.</p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout">content&amp; <a name="idp94775272-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="identifier">MPI_Datatype</span> d<span class="special">)</span><span class="special">;</span></pre>
+<p>Replace the MPI data type referencing the content of an object.</p>
+<p>
+
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term">Parameters:</span></p></td>
+<td><div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term"><code class="computeroutput">d</code></span></p></td>
+<td><p>the new MPI data type referring to the content of the object.</p></td>
+</tr></tbody>
+</table></div></td>
+</tr>
+<tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>*this </p></td>
+</tr>
+</tbody>
+</table></div>
+</li>
+</ol></div>
+</div>
+<div class="refsect2">
+<a name="idp162856520"></a><h3>
+<a name="idp94769672-bb"></a><code class="computeroutput">content</code> public member functions</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+<pre class="literallayout"><span class="identifier">MPI_Datatype</span> <a name="idp94769880-bb"></a><span class="identifier">get_mpi_datatype</span><span class="special">(</span><span class="special">)</span> <span class="keyword">const</span><span class="special">;</span></pre>
+<p>Retrieve the MPI data type that refers to the content of the object.</p>
+<p>
+</p>
+<div class="variablelist"><table border="0" class="variablelist compact">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody><tr>
+<td><p><span class="term">Returns:</span></p></td>
+<td><p>the MPI data type, which should only be transmitted or received using <code class="computeroutput">MPI_BOTTOM</code> as the address. </p></td>
+</tr></tbody>
+</table></div>
+</li>
+<li class="listitem">
+<pre class="literallayout"><span class="keyword">void</span> <a name="idp94771288-bb"></a><span class="identifier">commit</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre>
+<p>Commit the MPI data type referring to the content of the object. </p>
+</li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005-2007 Douglas Gregor,
+      Matthias Troyer, Trustees of Indiana University<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">
+        http://www.boost.org/LICENSE_1_0.txt </a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="skeleton_proxy.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../../mpi/reference.html#header.boost.mpi.skeleton_and_content_hpp"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="packed_skeleton_iarchive.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

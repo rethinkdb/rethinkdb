@@ -1,0 +1,82 @@
+[/ File mismatch.qbk]
+
+[section:mismatch mismatch ]
+
+[/license
+Copyright (c) 2013 Marshall Clow
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+]
+
+The header file 'mismatch.hpp' contains two variants of a the stl algorithm `mismatch`. The algorithm finds the first point in two sequences where they do not match.
+
+Before (the proposed) C++14 the algorithm `std::mismatch` took three iterators and an optional comparison predicate. The first two iterators `[first1, last1)` defined a sequence, and the second one `first2` defined the start of the second sequence. The second sequence was assumed to be the same length as the first. 
+
+In C++14, two new variants were introduced, taking four iterators and an optional comparison predicate. The four iterators define two sequences `[first1, last1)` and `[first2, last2)` explicitly, rather than defining the second one implicitly. This leads to correct answers in more cases (and avoid undefined behavior in others).
+
+Consider the two sequences:
+```
+	auto seq1 = { 0, 1, 2 };
+	auto seq2 = { 0, 1, 2, 3, 4 };
+	
+	std::mismatch ( seq1.begin (), seq1.end (), seq2.begin ()); // <3, 3>
+	std::mismatch ( seq2.begin (), seq2.end (), seq1.begin ()); // Undefined behavior
+	std::mismatch ( seq1.begin (), seq1.end (), seq2.begin (), seq2.end ()); // <3, 3>
+```
+
+The first N entries in `seq2` are the same as the entries in `seq1` - but that's not all that's in `seq2`. In the second case, the algorithm will read past the end of `seq1`, resulting in undefined behavior (large earthquake, incorrect results, pregnant cat, etc).
+
+However, if the two sequences are specified completely, it's clear that where the mismatch occurs.
+
+[heading interface]
+
+The function `mismatch` returns a pair of iterators which denote the first mismatching elements in each sequence. If the sequences match completely, `mismatch` returns their end iterators. One version uses `std::equal_to` to do the comparison; the other lets the caller pass predicate to do the comparisons. 
+
+``
+template <class InputIterator1, class InputIterator2>
+std::pair<InputIterator1, InputIterator2>
+mismatch ( InputIterator1 first1, InputIterator1 last1, 
+           InputIterator2 first2, InputIterator2 last2 );
+             
+template <class InputIterator1, class InputIterator2, class BinaryPredicate>
+std::pair<InputIterator1, InputIterator2>
+mismatch ( InputIterator1 first1, InputIterator1 last1, 
+           InputIterator2 first2, InputIterator2 last2, BinaryPredicate pred );
+``
+
+[heading Examples]
+
+Given the container `c1` containing `{ 0, 1, 2, 3, 14, 15 }`, and `c2` containing `{ 1, 2, 3 }`,  then
+``
+mismatch ( c1.begin(),     c1.end(),       c2.begin(), c2.end()) --> <c1.begin(), c2.begin()> // first elements do not match
+mismatch ( c1.begin() + 1, c1.begin() + 4, c2.begin(), c2.end()) --> <c1.begin() + 4, c2.end ()> // all elements of `c2` match
+mismatch ( c1.end(),       c1.end(),       c2.end(),   c2.end()) --> <c1.end(), c2.end()> // empty sequences don't match at the end.
+``
+
+[heading Iterator Requirements]
+
+`mismatch` works on all iterators except output iterators.
+
+[heading Complexity]
+
+Both of the variants of `mismatch` run in ['O(N)] (linear) time; that is, they compare against each element in the list once. If the sequence is found to be equal at any point, the routine will terminate immediately, without examining the rest of the elements.
+
+[heading Exception Safety]
+
+Both of the variants of `mismatch` take their parameters by value and do not depend upon any global state. Therefore, all the routines in this file provide the strong exception guarantee.
+
+[heading Notes]
+
+* If the sequences are equal (or both are empty), then mismatch returns the end iterators of both sequences. 
+
+* The four iterator version of the routine `mismatch` is part of the C++14 standard. When C++14 standard library implementations become available, the implementation from the standard library should be used.
+
+[endsect]
+
+[/ File mismatch.qbk
+Copyright 2011 Marshall Clow
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt).
+]
+

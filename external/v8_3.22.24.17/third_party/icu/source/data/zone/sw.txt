@@ -1,0 +1,19 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/sw.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/sw.xml
+ */
+sw{
+    Version{"2.0.49.7"}
+    zoneStrings{
+        "meta:Africa_Eastern"{
+            ls{"Saa za Africa Mashariki"}
+        }
+    }
+}

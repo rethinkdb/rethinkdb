@@ -1,0 +1,1205 @@
+[/
+ / Copyright (c) 2000 - 2006 Stephen Cleary
+ / Copyright (c) 2011  Paul A. Bristow (conversion to Quickbook format)
+ / Distributed under the Boost Software License, Version 1.0.
+ / (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[article Boost.Pool
+    [quickbook 1.5]
+    [authors [Cleary, Stephen]]
+    [copyright 2000 - 2006 Stephen Cleary, 2011 Paul A. Bristow]
+    [license
+        Distributed under the Boost Software License, Version 1.0.
+        (See accompanying file LICENSE_1_0.txt or copy at
+        [@http://www.boost.org/LICENSE_1_0.txt])
+    ]
+]
+
+[def __BoostPool__ [*Boost.Pool]]
+
+[def __inherit [*Inherits:]]
+[def __std_ref [*C++ Standard Reference:]]
+[def __header [*Header:]]
+[def __compat [*Compiler Compatibility:]]
+[def __examples [*Examples:]]
+[def __example [*Example:]]
+[def __type [*type:]]
+[def __returns [*Returns:]]
+[def __throws [*Throws:]]
+[def __remarks [*Remarks:]]
+[def __effects [*Effects:]]
+[def __post_conditions [*PostConditions:]]
+[def __pre_conditions [*PreConditions:]]
+[def __requires [*Requires:]]
+
+[def __pool_interfaces [link boost_pool.pool.interfaces Pool Interfaces]]
+[def __pool_interface [link boost_pool.pool.interfaces.pool Pool Interface]]
+[def __object_pool_interface [link boost_pool.pool.interfaces.object_pool Object Pool Interface]]
+[def __singleton_pool_interface [link boost_pool.pool.interfaces.singleton_pool Singleton Pool Interface]]
+[def __singleton_pool_exceptions_interface [link boost_pool.pool.interfaces.pool_alloc Singleton Pool with exceptions Interface]]
+
+[def __pool_references [link boost_pool.pool.appendices.references References]]
+[def __pool_concepts [link boost_pool.pool.pooling.concepts concepts]]
+[def __pool_simple_segregated_storage [link boost_pool.pool.pooling.simple Simple Segregated Storage]]
+
+[def __todo [link boost_pool.appendices.todo TODO]]
+[def __UserAllocator [link boost_pool.pool.pooling.user_allocator UserAllocator]]
+
+[template mu[]'''&#x3BC;'''] [/ µ Greek small letter mu]
+[template plusminus[]'''&#x00B1;'''] [/ plus or minus sign]
+
+[template graphic[name]  
+'''
+<inlinemediaobject>
+<imageobject role="html">
+<imagedata align="center" fileref="../images/'''[name]'''.png"></imagedata>
+</imageobject>
+<imageobject role="print">
+<imagedata align="center" fileref="../images/'''[name]'''.svg"></imagedata>
+</imageobject>
+</inlinemediaobject>
+''']
+
+[section:pool Introduction and Overview]
+
+[section:conventions Documentation Naming and Formatting Conventions]
+
+This documentation makes use of the following naming and formatting conventions.
+
+* Code is in `fixed width font` and is syntax-highlighted in color.
+* Replaceable text that you will need to supply is in [~italics].
+* Free functions are rendered in the `code font` followed by `()`, as in `free_function()`.
+* If a name refers to a class template, it is specified like this:   `class_template<>`; that is, it is in code font and its name is followed by `<>`   to indicate that it is a class template.
+* If a name refers to a function-like macro, it is specified like this: `MACRO()`;
+  that is, it is uppercase in code font and its name is followed by `()` to   indicate that it is a function-like macro. Object-like macros appear without the   trailing `()`.
+* Names that refer to /concepts/ in the generic programming sense are  specified in CamelCase.
+
+[note In addition, notes such as this one specify non-essential information that provides additional background or rationale.]
+
+Finally, you can mentally add the following to any code fragments in this document:
+
+    // Include all of Pool files
+    #include <boost/pool.hpp>
+
+[endsect] [/section:conventions Documentation Naming and Formatting Conventions]
+
+[section:introduction Introduction]
+[h5 What is Pool?]
+
+Pool allocation is a memory allocation scheme that is very fast, but limited in its usage.
+For more information on pool allocation (also called ['simple segregated storage],
+see __pool_concepts concepts and __pool_simple_segregated_storage).
+
+[h5 Why should I use Pool?]
+
+Using Pools gives you more control over how memory is used in your program.
+For example, you could have a situation where you want to allocate a 
+bunch of small objects at one point, and then reach a point in your program
+where none of them are needed any more. Using pool interfaces,
+you can choose to run their destructors or just drop them off into oblivion;
+the pool interface will guarantee that there are no system memory leaks.
+
+[h5 When should I use Pool?]
+
+Pools are generally used when there is a lot of allocation and deallocation of small objects.
+Another common usage is the situation above, where many objects may be dropped out of memory.
+
+In general, use Pools when you need a more efficient way to do unusual memory control.
+
+[h5 Which pool allocator should I use?]
+
+`pool_allocator` is a more general-purpose solution, geared towards
+efficiently servicing requests for any number of contiguous chunks.
+
+`fast_pool_allocator` is also a general-purpose solution
+but is geared towards efficiently servicing requests for one chunk at a time;
+it will work for contiguous chunks, but not as well as pool_allocator.
+
+If you are seriously concerned about performance,
+use `fast_pool_allocator` when dealing with containers such as `std::list`,
+and use `pool_allocator` when dealing with containers such as `std::vector`.
+
+[endsect] [/section:introduction Introduction]
+
+[section:usage How do I use Pool?]
+
+See the __pool_interfaces section that covers the different Pool interfaces supplied by this library.
+
+[h5 Library Structure and Dependencies]
+
+Forward declarations of all the exposed symbols for this library 
+are in the header made inscope by `#include <boost/pool/poolfwd.hpp>`.
+
+The library may use macros, which will be prefixed with `BOOST_POOL_`.
+The exception to this rule are the include file guards,
+which (for file `xxx.hpp`) is `BOOST_xxx_HPP`.
+
+All exposed symbols defined by the library will be in namespace boost::.
+All symbols used only by the implementation will be in namespace boost::details::pool.
+
+Every header used only by the implementation is in the subdirectory `/detail/`.
+
+Any header in the library may include any other header in the library
+or any system-supplied header at its discretion.
+
+[endsect] [/section:usage How do I use Pool?]
+
+[section:installation Installation]
+
+The Boost Pool library is a header-only library.
+That means there is no .lib, .dll, or .so to build;
+just add the Boost directory to your compiler's include file path,
+and you should be good to go!
+
+[endsect] [/section:installation Installation]
+
+[section:testing Building the Test Programs]
+
+A jamfile.v2 is provided which can be run is the usual way, for example:
+
+``boost\libs\pool\test> bjam -a >pool_test.log``
+
+[endsect] [/section:testing Building the Test Programs]
+
+[section:interfaces Boost Pool Interfaces - What interfaces are provided and when to use each one.]
+
+[h4 Introduction]
+
+There are several interfaces provided which allow users great flexibility
+in how they want to use Pools. 
+Review the __pool_concepts document to get the basic understanding of how the various pools work.
+
+[h3 Terminology and Tradeoffs]
+
+[h5 Object Usage vs. Singleton Usage]
+
+Object Usage is the method where each Pool is an object that may be created and destroyed.
+Destroying a Pool implicitly frees all chunks that have been allocated from it.
+
+Singleton Usage is the method where each Pool is an object with static duration;
+that is, it will not be destroyed until program exit.
+Pool objects with Singleton Usage may be shared;
+thus, Singleton Usage implies thread-safety as well.
+System memory allocated by Pool objects with Singleton Usage
+may be freed through release_memory or purge_memory.
+
+[h5 Out-of-Memory Conditions: Exceptions vs. Null Return]
+
+Some Pool interfaces throw exceptions when out-of-memory;
+others will `return 0`. In general, unless mandated by the Standard,
+Pool interfaces will always prefer to `return 0` instead of throwing an exception.
+
+[h5 Ordered versus unordered]
+
+An ordered pool maintains it's free list in order of the address of each free block - 
+this is the most efficient way if you're likely to allocate arrays of objects.
+However, freeing an object can be O(N) in the number of currently free blocks which 
+can be prohibitively expensive in some situations.
+
+An unordered pool does not maintain it's free list in any particular order, as a result
+allocation and freeing single objects is very fast, but allocating arrays may be slow 
+(and in particular the pool may not be aware that it contains enough free memory for the
+allocation request, and unnecessarily allocate more memory).
+
+[section:interfaces Pool Interfaces]
+
+[section:pool pool]
+
+The [classref boost::pool pool]
+interface is a simple Object Usage interface with Null Return.
+
+[classref boost::pool pool] is a fast memory allocator,
+and guarantees proper alignment of all allocated chunks.
+
+[headerref boost/pool/pool.hpp pool.hpp] provides two __UserAllocator classes
+and a [classref boost::pool template class pool],
+which extends and generalizes the framework provided by the
+__pool_simple_segregated_storage solution.
+For information on other pool-based interfaces, see the other __pool_interfaces.
+
+[*Synopsis]
+
+There are two __UserAllocator classes provided. 
+Both of them are in [headerref boost/pool/pool.hpp pool.hpp].
+
+The default value for the template parameter __UserAllocator is always
+`default_user_allocator_new_delete`.
+
+``
+  struct default_user_allocator_new_delete
+  {
+    typedef std::size_t size_type;
+    typedef std::ptrdiff_t difference_type;
+
+    static char * malloc(const size_type bytes)
+    { return new (std::nothrow) char[bytes]; }
+    static void free(char * const block)
+    { delete [] block; }
+  };
+
+  struct default_user_allocator_malloc_free
+  {
+    typedef std::size_t size_type;
+    typedef std::ptrdiff_t difference_type;
+
+    static char * malloc(const size_type bytes)
+    { return reinterpret_cast<char *>(std::malloc(bytes)); }
+    static void free(char * const block)
+    { std::free(block); }
+  };
+
+  template <typename UserAllocator = default_user_allocator_new_delete>
+  class pool
+  {
+    private:
+      pool(const pool &);
+      void operator=(const pool &);
+
+    public:
+      typedef UserAllocator user_allocator;
+      typedef typename UserAllocator::size_type size_type;
+      typedef typename UserAllocator::difference_type difference_type;
+
+      explicit pool(size_type requested_size);
+      ~pool();
+
+      bool release_memory();
+      bool purge_memory();
+
+      bool is_from(void * chunk) const;
+      size_type get_requested_size() const;
+
+      void * malloc();
+      void * ordered_malloc();
+      void * ordered_malloc(size_type n);
+
+      void free(void * chunk);
+      void ordered_free(void * chunk);
+      void free(void * chunks, size_type n);
+      void ordered_free(void * chunks, size_type n);
+  };
+``
+
+[*Example:]
+`` 
+void func()
+{
+  boost::pool<> p(sizeof(int));
+  for (int i = 0; i < 10000; ++i)
+  {
+    int * const t = p.malloc();
+    ... // Do something with t; don't take the time to free() it.
+  }
+} // on function exit, p is destroyed, and all malloc()'ed ints are implicitly freed.
+``
+
+[endsect] [/section pool]
+
+
+[section:object_pool Object_pool]
+
+The [classref boost::object_pool template class object_pool] 
+interface is an Object Usage interface with Null Return,
+but is aware of the type of the object for which it is allocating chunks.
+On destruction, any chunks that have been allocated
+from that `object_pool` will have their destructors called.
+
+[headerref  boost/pool/object_pool.hpp object_pool.hpp]
+provides a template type that can be used for fast and efficient memory allocation.
+It also provides automatic destruction of non-deallocated objects.
+
+For information on other pool-based interfaces, see the other __pool_interfaces.
+
+[*Synopsis]
+
+``template <typename ElementType, typename UserAllocator = default_user_allocator_new_delete>
+class object_pool
+{
+  private:
+    object_pool(const object_pool &);
+    void operator=(const object_pool &);
+
+  public:
+    typedef ElementType element_type;
+    typedef UserAllocator user_allocator;
+    typedef typename pool<UserAllocator>::size_type size_type;
+    typedef typename pool<UserAllocator>::difference_type difference_type;
+
+    object_pool();
+    ~object_pool();
+
+    element_type * malloc();
+    void free(element_type * p);
+    bool is_from(element_type * p) const;
+
+    element_type * construct();
+    // other construct() functions
+    void destroy(element_type * p);
+};
+``
+[*Template Parameters]
+
+['ElementType]
+
+The template parameter is the type of object to allocate/deallocate.
+It must have a non-throwing destructor.
+
+['UserAllocator]
+
+Defines the method that the underlying Pool will use to allocate memory from the system.
+Default is default_user_allocator_new_delete.  See ____UserAllocator for details.
+
+[*Example:]
+  struct X { ... }; // has destructor with side-effects.
+
+  void func()
+  {
+    boost::object_pool<X> p;
+    for (int i = 0; i < 10000; ++i)
+    {
+      X * const t = p.malloc();
+      ... // Do something with t; don't take the time to free() it.
+    }
+  } // on function exit, p is destroyed, and all destructors for the X objects are called.
+
+[endsect] [/section object_pool]
+
+[section:singleton_pool Singleton_pool]
+
+The [classref boost::singleton_pool singleton_pool interface]
+at [headerref boost/pool/singleton_pool.hpp singleton_pool.hpp] 
+is a Singleton Usage interface with Null Return.
+It's just the same as the pool interface but with Singleton Usage instead.
+
+[*Synopsis]
+
+``template <typename Tag, unsigned RequestedSize,
+    typename UserAllocator = default_user_allocator_new_delete>
+struct singleton_pool
+{
+  public:
+    typedef Tag tag;
+    typedef UserAllocator user_allocator;
+    typedef typename pool<UserAllocator>::size_type size_type;
+    typedef typename pool<UserAllocator>::difference_type difference_type;
+
+    static const unsigned requested_size = RequestedSize;
+
+  private:
+    static pool<size_type> p; // exposition only!
+
+    singleton_pool();
+
+  public:
+    static bool is_from(void * ptr);
+
+    static void * malloc();
+    static void * ordered_malloc();
+    static void * ordered_malloc(size_type n);
+
+    static void free(void * ptr);
+    static void ordered_free(void * ptr);
+    static void free(void * ptr, std::size_t n);
+    static void ordered_free(void * ptr, size_type n);
+
+    static bool release_memory();
+    static bool purge_memory();
+};
+``
+[*Notes]
+
+The underlying pool `p` referenced by the static functions in `singleton_pool`
+is actually declared in a way so that it is:
+
+* Thread-safe if there is only one thread running before `main()` begins and after `main()` ends. All of the static functions of singleton_pool synchronize their access to `p`.
+* Guaranteed to be constructed before it is used, so that the simple static object in the synopsis above would actually be an incorrect implementation. The actual implementation to guarantee this is considerably more complicated.
+
+[*Note] that a different underlying pool `p` exists for each different set of template parameters, including implementation-specific ones.
+
+[*Template Parameters]
+
+['Tag]
+
+The ['Tag] template parameter allows different unbounded sets of singleton pools to exist.
+For example, the pool allocators use two tag classes to ensure that the two different
+ allocator types never share the same underlying singleton pool.
+
+['Tag] is never actually used by `singleton_pool`.
+
+['RequestedSize]
+The requested size of memory chunks to allocate.
+This is passed as a constructor parameter to the underlying pool.
+Must be greater than 0.
+
+['UserAllocator]
+
+Defines the method that the underlying pool will use to allocate memory from the system. See User Allocators for details.
+
+[*Example:]
+  struct MyPoolTag { };
+
+  typedef boost::singleton_pool<MyPoolTag, sizeof(int)> my_pool;
+  void func()
+  {
+    for (int i = 0; i < 10000; ++i)
+    {
+      int * const t = my_pool::malloc();
+      ... // Do something with t; don't take the time to free() it.
+    }
+    // Explicitly free all malloc()'ed ints.
+    my_pool::purge_memory();
+  }
+[endsect] [/section singleton_pool]
+
+[section:pool_allocator pool_allocator]
+
+The [classref boost::pool_allocator pool_allocator interface]
+is a Singleton Usage interface with Exceptions.
+It is built on the singleton_pool interface,
+and provides a Standard Allocator-compliant class (for use in containers, etc.).
+
+[*Introduction]
+
+[headerref boost/pool/pool_alloc.hpp pool_alloc.hpp]
+
+Provides two template types that can be used for fast and efficient memory allocation.
+These types both satisfy the Standard Allocator requirements [20.1.5]
+and the additional requirements in [20.1.5/4],
+so they can be used with Standard or user-supplied containers.
+
+For information on other pool-based interfaces, see the other __pool_interfaces.
+
+[*Synopsis]
+
+``
+struct pool_allocator_tag { };
+
+template <typename T,
+    typename UserAllocator = default_user_allocator_new_delete>
+class pool_allocator
+{
+  public:
+    typedef UserAllocator user_allocator;
+    typedef T value_type;
+    typedef value_type * pointer;
+    typedef const value_type * const_pointer;
+    typedef value_type & reference;
+    typedef const value_type & const_reference;
+    typedef typename pool<UserAllocator>::size_type size_type;
+    typedef typename pool<UserAllcoator>::difference_type difference_type;
+
+    template <typename U>
+    struct rebind
+    { typedef pool_allocator<U, UserAllocator> other; };
+
+  public:
+    pool_allocator();
+    pool_allocator(const pool_allocator &);
+    // The following is not explicit, mimicking std::allocator [20.4.1]
+    template <typename U>
+    pool_allocator(const pool_allocator<U, UserAllocator> &);
+    pool_allocator & operator=(const pool_allocator &);
+    ~pool_allocator();
+
+    static pointer address(reference r);
+    static const_pointer address(const_reference s);
+    static size_type max_size();
+    static void construct(pointer ptr, const value_type & t);
+    static void destroy(pointer ptr);
+
+    bool operator==(const pool_allocator &) const;
+    bool operator!=(const pool_allocator &) const;
+
+    static pointer allocate(size_type n);
+    static pointer allocate(size_type n, pointer);
+    static void deallocate(pointer ptr, size_type n);
+};
+
+struct fast_pool_allocator_tag { };
+
+template <typename T
+    typename UserAllocator = default_user_allocator_new_delete>
+class fast_pool_allocator
+{
+  public:
+    typedef UserAllocator user_allocator;
+    typedef T value_type;
+    typedef value_type * pointer;
+    typedef const value_type * const_pointer;
+    typedef value_type & reference;
+    typedef const value_type & const_reference;
+    typedef typename pool<UserAllocator>::size_type size_type;
+    typedef typename pool<UserAllocator>::difference_type difference_type;
+
+    template <typename U>
+    struct rebind
+    { typedef fast_pool_allocator<U, UserAllocator> other; };
+
+  public:
+    fast_pool_allocator();
+    fast_pool_allocator(const fast_pool_allocator &);
+    // The following is not explicit, mimicking std::allocator [20.4.1]
+    template <typename U>
+    fast_pool_allocator(const fast_pool_allocator<U, UserAllocator> &);
+    fast_pool_allocator & operator=(const fast_pool_allocator &);
+    ~fast_pool_allocator();
+
+    static pointer address(reference r);
+    static const_pointer address(const_reference s);
+    static size_type max_size();
+    static void construct(pointer ptr, const value_type & t);
+    static void destroy(pointer ptr);
+
+    bool operator==(const fast_pool_allocator &) const;
+    bool operator!=(const fast_pool_allocator &) const;
+
+    static pointer allocate(size_type n);
+    static pointer allocate(size_type n, pointer);
+    static void deallocate(pointer ptr, size_type n);
+
+    static pointer allocate();
+    static void deallocate(pointer ptr);
+};
+``
+[*Template Parameters]
+
+['T]  The first template parameter is the type of object to allocate/deallocate.
+
+['UserAllocator]  Defines the method that the underlying Pool will use to allocate memory from the system.
+See User Allocators for details.
+
+[*Example:]
+
+  void func()
+  {
+    std::vector<int, boost::pool_allocator<int> > v;
+    for (int i = 0; i < 10000; ++i)
+      v.push_back(13);
+  } // Exiting the function does NOT free the system memory allocated by the pool allocator.
+    // You must call
+    //  boost::singleton_pool<boost::pool_allocator_tag, sizeof(int)>::release_memory();
+    // in order to force freeing the system memory.
+
+[endsect] [/section pool_alloc]
+
+[endsect] [/section:interfaces The Interfaces - pool, object_pool and singleton_pool]
+
+[endsect] [/section:interfaces- What interfaces are provided and when to use each one.]
+
+[section:pooling Pool in More Depth]
+
+[section:concepts Basic ideas behind pooling]
+
+['Dynamic memory allocation has been a fundamental part
+of most computer systems since roughly 1960...] [link ref1 1]
+
+Everyone uses dynamic memory allocation.
+If you have ever called malloc or new, then you have used dynamic memory allocation.
+Most programmers have a tendency to treat the heap as a ["magic bag"]:
+we ask it for memory, and it magically creates some for us.
+Sometimes we run into problems because the heap is not magic.
+
+The heap is limited.
+Even on large systems (i.e., not embedded) with huge amounts of virtual memory available,
+there is a limit. Everyone is aware of the physical limit,
+but there is a more subtle, 'virtual' limit, that limit at which your program
+(or the entire system) slows down due to the use of virtual memory.
+This virtual limit is much closer to your program than the physical limit,
+especially if you are running on a multitasking system.
+Therefore, when running on a large system, it is considered ['nice] 
+to make your program use as few resources as necessary, and release them as soon as possible.
+When using an embedded system, programmers usually have no memory to waste.
+
+The heap is complicated.
+It has to satisfy any type of memory request, for any size, and do it fast.
+The common approaches to memory management have to do with splitting the memory up into portions,
+and keeping them ordered by size in some sort of a tree or list structure. Add in other factors,
+such as locality and estimating lifetime, and heaps quickly become very complicated.
+So complicated, in fact, that there is no known ['perfect] answer to the
+problem of how to do dynamic memory allocation.
+The diagrams below illustrate how most common memory managers work: for each chunk of memory,
+it uses part of that memory to maintain its internal tree or list structure.
+Even when a chunk is malloc'ed out to a program, the memory manager
+must ['save] some information in it - usually just its size.
+Then, when the block is free'd, the memory manager can easily tell how large it is.
+
+[graphic pc1]
+
+[graphic pc2]
+
+[h5 Dynamic memory allocation is often inefficient]
+
+Because of the complication of dynamic memory allocation,
+it is often inefficient in terms of time and/or space.
+Most memory allocation algorithms store some form of information with each memory block,
+either the block size or some relational information,
+such as its position in the internal tree or list structure.
+It is common for such ['header fields] to take up one machine word in a block
+that is being used by the program. The obvious disadvantage, then,
+is when small objects are dynamically allocated.
+For example, if ints were dynamically allocated,
+then automatically the algorithm will reserve space for the header fields as well,
+and we end up with a 50% waste of memory. Of course, this is a worst-case scenario.
+However, more modern programs are making use of small objects on the heap;
+and that is making this problem more and more apparent. Wilson et. al. state that
+an average-case memory overhead is about ten to twenty percent[@#ref2 2].
+This memory overhead will grow higher as more programs use more smaller objects.
+It is this memory overhead that brings programs closer to the virtual limit.
+
+In larger systems, the memory overhead is not as big of a problem
+(compared to the amount of time it would take to work around it),
+and thus is often ignored. However, there are situations
+where many allocations and/or deallocations of smaller objects
+are taking place as part of a time-critical algorithm, and in these situations,
+the system-supplied memory allocator is often too slow.
+
+Simple segregated storage addresses both of these issues.
+Almost all memory overhead is done away with, and all allocations can take place
+in a small amount of (amortized) constant time.
+However, this is done at the loss of generality;
+simple segregated storage only can allocate memory chunks of a single size.
+
+[endsect] [/section:concepts Basic ideas behind pooling]
+
+[section:simple Simple Segregated Storage]
+
+Simple Segregated Storage is the basic idea behind the Boost Pool library.
+Simple Segregated Storage is the simplest, and probably the fastest,
+memory allocation/deallocation algorithm.
+It begins by partitioning a memory block into fixed-size chunks.
+Where the block comes from is not important until implementation time.
+A Pool is some object that uses Simple Segregated Storage in this fashion.
+To illustrate:
+
+[graphic pc3]
+
+Each of the chunks in any given block are always the same size.
+This is the fundamental restriction of Simple Segregated Storage:
+you cannot ask for chunks of different sizes.
+For example, you cannot ask a Pool of integers for a character,
+or a Pool of characters for an integer
+(assuming that characters and integers are different sizes).
+
+Simple Segregated Storage works by interleaving a free list within the unused chunks.
+For example:
+
+[graphic pc4]
+
+By interleaving the free list inside the chunks,
+each Simple Segregated Storage only has the overhead of a single pointer
+(the pointer to the first element in the list).
+It has no memory overhead for chunks that are in use by the process.
+
+Simple Segregated Storage is also extremely fast.
+In the simplest case, memory allocation is merely
+removing the first chunk from the free list,
+a O(1) operation. In the case where the free list is empty,
+another block may have to be acquired and partitioned,
+which would result in an amortized O(1) time.
+Memory deallocation may be as simple as adding that chunk
+to the front of the free list, a O(1) operation.
+However, more complicated uses of Simple Segregated Storage may require a sorted free list,
+which makes deallocation O(N).
+
+[graphic pc5]
+
+Simple Segregated Storage gives faster execution and less memory overhead
+than a system-supplied allocator, but at the loss of generality.
+A good place to use a Pool is in situations
+where many (noncontiguous) small objects may be allocated on the heap,
+or if allocation and deallocation of the same-sized objects happens repeatedly.
+
+[endsect] [/section:simple Simple Segregated Storage]
+
+[section:alignment Guaranteeing Alignment - How we guarantee alignment portably.]
+
+[h4 Terminology]
+
+Review the __pool_concepts section if you are not already familiar with it.
+Remember that block is a contiguous section of memory,
+which is partitioned or segregated into fixed-size chunks.
+These chunks are what are allocated and deallocated by the user.
+
+[h4 Overview]
+
+Each Pool has a single free list that can extend over a number of memory blocks.
+Thus, Pool also has a linked list of allocated memory blocks.
+Each memory block, by default, is allocated using `new[]`,
+and all memory blocks are freed on destruction.
+It is the use of `new[]` that allows us to guarantee alignment.
+
+[h4 Proof of Concept: Guaranteeing Alignment]
+
+Each block of memory is allocated as a POD type
+(specifically, an array of characters) through `operator new[]`.
+Let `POD_size` be the number of characters allocated.
+
+[h5 Predicate 1: Arrays may not have padding]
+
+This follows from the following quote:
+
+[5.3.3/2] (Expressions::Unary expressions::Sizeof)
+['... When applied to an array, the result is the total number of bytes in the array. 
+This implies that the size of an array of n elements is n times the size of an element.]
+
+Therefore, arrays cannot contain padding, 
+though the elements within the arrays may contain padding.
+
+[h5 Predicate 2: Any block of memory allocated as an array of characters through `operator new[]`
+(hereafter referred to as the block) is properly aligned for any object of that size or smaller]
+
+This follows from:
+
+* [3.7.3.1/2] (Basic concepts::Storage duration::Dynamic storage duration::Allocation functions)
+['"... The pointer returned shall be suitably aligned 
+so that it can be converted to a pointer of any complete object type
+and then used to access the object or array in the storage allocated ..."]
+* [5.3.4/10] (Expressions::Unary expressions::New)
+['"... For arrays of char and unsigned char,
+the difference between the result of the new-expression and 
+the address returned by the allocation function shall be an integral multiple
+of the most stringent alignment requirement (3.9) of any object type whose size
+is no greater than the size of the array being created.
+[Note: Because allocation functions are assumed to return pointers to storage
+that is appropriately aligned for objects of any type,
+this constraint on array allocation overhead permits
+the common idiom of allocating character arrays
+into which objects of other types will later be placed."]
+
+[h5 Consider: imaginary object type Element of a size which is a
+multiple of some actual object size; assume `sizeof(Element) > POD_size`]
+
+Note that an object of that size can exist.
+One object of that size is an array of the "actual" objects.
+
+Note that the block is properly aligned for an Element.
+This directly follows from Predicate 2.
+
+[h5 Corollary 1: The block is properly aligned for an array of Elements]
+
+This follows from Predicates 1 and 2, and the following quote:
+
+[3.9/9] (Basic concepts::Types) 
+['"An object type is a (possibly cv-qualified) type that is not a function type,
+not a reference type, and not a void type."]
+
+(Specifically, array types are object types.)
+
+[h5 Corollary 2: For any pointer `p` and integer `i`,
+if `p` is properly aligned for the type it points to, then `p + i` (when well-defined)
+is properly aligned for that type; in other words, if an array is properly aligned,
+then each element in that array is properly aligned]
+
+There are no quotes from the Standard to directly support this argument,
+but it fits the common conception of the meaning of "alignment".
+
+Note that the conditions for `p + i` being well-defined are outlined in [5.7/5].
+We do not quote that here, but only make note that it is well-defined
+if `p` and `p + i` both point into or one past the same array.
+
+[h5 Let: `sizeof(Element)` be the least common multiple of sizes
+of several actual objects (T1, T2, T3, ...)]
+
+[h5 Let: block be a pointer to the memory block,
+pe be (Element *) block, and pn be (Tn *) block]
+
+[h5 Corollary 3: For each integer `i`, such that `pe + i` is well-defined,
+then for each n, there exists some integer `jn` such that `pn + jn` is well-defined
+and refers to the same memory address as `pe + i`]
+
+This follows naturally, since the memory block is an array of Elements,
+and for each n, `sizeof(Element) % sizeof(Tn) == 0;`
+thus, the boundary of each element in the array of Elements
+is also a boundary of each element in each array of Tn.
+
+[h5 Theorem: For each integer `i`, such that `pe + i` is well-defined,
+that address (pe + i) is properly aligned for each type Tn]
+
+Since `pe + i` is well-defined, then by Corollary 3, `pn + jn` is well-defined.
+It is properly aligned from Predicate 2 and Corollaries 1 and 2.
+
+[h4 Use of the Theorem]
+
+The proof above covers alignment requirements for cutting chunks out of a block.
+The implementation uses actual object sizes of:
+
+* The requested object size (`requested_size`); this is the size of chunks requested by the user
+* `void*` (pointer to void); this is because we interleave our free list through the chunks
+* `size_type`; this is because we store the size of the next block within each memory block
+
+Each block also contains a pointer to the next block;
+but that is stored as a pointer to void and cast when necessary,
+to simplify alignment requirements to the three types above.
+
+Therefore, `alloc_size` is defined to be the largest of the sizes above, rounded up to be a multiple
+of all three sizes.  This guarantees alignment provided all alignments are powers of two: something that 
+appears to be true on all known platforms.
+
+[h4 A Look at the Memory Block]
+
+Each memory block consists of three main sections.
+The first section is the part that chunks are cut out of,
+and contains the interleaved free list.
+The second section is the pointer to the next block,
+and the third section is the size of the next block.
+
+Each of these sections may contain padding as necessary
+to guarantee alignment for each of the next sections.
+The size of the first section is `number_of_chunks * lcm(requested_size, sizeof(void *), sizeof(size_type));`
+the size of the second section is `lcm(sizeof(void *), sizeof(size_type);`
+and the size of the third section is `sizeof(size_type)`.
+
+Here's an example memory block, where `requested_size == sizeof(void *) == sizeof(size_type) == 4`:
+
+[graphic mb1] 
+
+To show a visual example of possible padding,
+here's an example memory block where 
+`requested_size == 8 and sizeof(void *) == sizeof(size_type) == 4`
+
+[graphic mb2] 
+
+[section:chunks How Contiguous Chunks are Handled]
+
+The theorem above guarantees all alignment requirements for allocating chunks
+and also implementation details such as the interleaved free list.
+However, it does so by adding padding when necessary;
+therefore, we have to treat allocations of contiguous chunks in a different way.
+
+Using array arguments similar to the above,
+we can translate any request for contiguous memory for `n` objects of `requested_size`
+into a request for m contiguous chunks.
+`m` is simply `ceil(n * requested_size / alloc_size)`,
+where `alloc_size` is the actual size of the chunks.
+
+To illustrate:
+
+Here's an example memory block,
+where `requested_size == 1` and `sizeof(void *) == sizeof(size_type) == 4`:
+
+[graphic mb4] 
+
+Then, when the user deallocates the contiguous memory,
+we can split it up into chunks again.
+
+Note that the implementation provided for allocating contiguous chunks 
+uses a linear instead of quadratic algorithm.
+This means that it may not find contiguous free chunks if the free list is not ordered.
+Thus, it is recommended to always use an ordered free list
+when dealing with contiguous allocation of chunks.
+(In the example above, if Chunk 1 pointed to Chunk 3 pointed to Chunk 2 pointed to Chunk 4,
+instead of being in order,
+the contiguous allocation algorithm would have failed to find any of the contiguous chunks).
+
+[endsect] [/section:chunks How Contiguous Chunks are Handled]
+
+[endsect] [/section:alignment  Guaranteeing Alignment - How we guarantee alignment portably.]
+
+[section:simple_segregated Simple Segregated Storage (Not for the faint of heart - Embedded programmers only!)]
+
+[h4 Introduction]
+
+[headerref boost/pool/simple_segregated_storage.hpp simple_segregated_storage.hpp]
+provides a template class simple_segregated_storage
+that controls access to a free list of memory chunks.
+
+Note that this is a very simple class, with unchecked preconditions on almost all its functions.
+It is intended to be the fastest and smallest possible quick memory allocator
+for example, something to use in embedded systems.
+This class delegates many difficult preconditions to the user (especially alignment issues).
+For more general usage, see the other __pool_interfaces.
+
+[h4 Synopsis]
+[pre 
+template <typename SizeType = std::size_t>
+class simple_segregated_storage
+{
+  private:
+    simple_segregated_storage(const simple_segregated_storage &);
+    void operator=(const simple_segregated_storage &);
+
+  public:
+    typedef SizeType size_type;
+
+    simple_segregated_storage();
+    ~simple_segregated_storage();
+
+    static void * segregate(void * block,
+        size_type nsz, size_type npartition_sz,
+        void * end = 0);
+    void add_block(void * block,
+        size_type nsz, size_type npartition_sz);
+    void add_ordered_block(void * block,
+        size_type nsz, size_type npartition_sz);
+
+    bool empty() const;
+
+    void * malloc();
+    void free(void * chunk);
+    void ordered_free(void * chunk);
+    void * malloc_n(size_type n, size_type partition_sz);
+    void free_n(void * chunks, size_type n,
+        size_type partition_sz);
+    void ordered_free_n(void * chunks, size_type n,
+        size_type partition_sz);
+};
+]
+
+[h4 Semantics]
+
+An object of type `simple_segregated_storage<SizeType>`
+is empty if its free list is empty.
+If it is not empty, then it is ordered if its free list is ordered.
+A free list is ordered if repeated calls to` malloc()` will result in
+a constantly-increasing sequence of values, as determined by `std::less<void *>`.
+A member function is order-preserving if the free-list maintains its order orientation
+(that is, an ordered free list is still ordered after the member function call).
+
+[table:ss_symbols Symbol Table 
+[[Symbol] [Meaning] ]
+[[Store] [simple_segregated_storage<SizeType>]]
+[[t] [value of type Store]]
+[[u] [value of type const Store]]
+[[block, chunk, end] [values of type void *]]
+[[partition_sz, sz, n] [values of type Store::size_type]]
+]
+
+[table:templates Template Parameters
+[[Parameter] [Default] [Requirements]]
+[[SizeType] [std::size_t] [An unsigned integral type]]
+]
+
+[table:Typedefs Typedefs
+[[Symbol] [Type]]
+[[size_type] [SizeType]]
+]
+
+[table:Constructors Constructors, Destructors, and State
+[[Expression] [Return Type] [Post-Condition] [Notes]]
+[[Store()] [not used] [empty()] [Constructs a new Store]]
+[[(&t)->~Store()] [not used] [] [Destructs the Store]]
+[[u.empty()] [bool] [] [Returns true if u is empty. Order-preserving.]]
+]
+
+[table:Segregation Segregation
+[ [Expression] [Return Type] [Pre-Condition] [Post-Condition] [Semantic Equivalence] [Notes] ]
+[ [Store::segregate(block, sz, partition_sz, end)] [void *] [partition_sz >= sizeof(void *)
+partition_sz = sizeof(void *) * i, for some integer i
+sz >= partition_sz
+block is properly aligned for an array of objects of size partition_sz
+block is properly aligned for an array of void *] [] [] [Interleaves a free list through the memory block specified by block of size sz bytes, partitioning it into as many partition_sz-sized chunks as possible. The last chunk is set to point to end, and a pointer to the first chunck is returned (this is always equal to block). This interleaved free list is ordered. O(sz).] ]
+[ [Store::segregate(block, sz, partition_sz)] [void *] [Same as above] [] [Store::segregate(block, sz, partition_sz, 0)] [] ]
+[ [t.add_block(block, sz, partition_sz)] [void] [Same as above] [!t.empty()] [] [Segregates the memory block specified by block of size sz bytes into partition_sz-sized chunks, and adds that free list to its own. If t was empty before this call, then it is ordered after this call. O(sz).] ]
+[ [t.add_ordered_block(block, sz, partition_sz)] [void] [Same as above] [!t.empty()] [] [Segregates the memory block specified by block of size sz bytes into partition_sz-sized chunks, and merges that free list into its own. Order-preserving. O(sz).] ]
+]
+
+[table:alloc Allocation and Deallocation 
+[ [Expression] [Return Type] [Pre-Condition] [Post-Condition] [Semantic Equivalence] [Notes] ]
+[ [t.malloc()] [void *] [!t.empty()] [] [] [Takes the first available chunk from the free list and returns it. Order-preserving. O(1).] ]
+[ [t.free(chunk)] [void] [chunk was previously returned from a call to t.malloc()] [!t.empty()] [] [Places chunk back on the free list. Note that chunk may not be 0. O(1).] ]
+[ [t.ordered_free(chunk)] [void] [Same as above] [!t.empty()] [] [Places chunk back on the free list. Note that chunk may not be 0. Order-preserving. O(N) with respect to the size of the free list.] ]
+[ [t.malloc_n(n, partition_sz)] [void *] [] [] [] [Attempts to find a contiguous sequence of n partition_sz-sized chunks. If found, removes them all from the free list and returns a pointer to the first. If not found, returns 0. It is strongly recommended (but not required) that the free list be ordered, as this algorithm will fail to find a contiguous sequence unless it is contiguous in the free list as well. Order-preserving. O(N) with respect to the size of the free list.] ]
+[ [t.free_n(chunk, n, partition_sz)] [void] [chunk was previously returned from a call to t.malloc_n(n, partition_sz)] [!t.empty()] [t.add_block(chunk, n * partition_sz, partition_sz)] [Assumes that chunk actually refers to a block of chunks spanning n * partition_sz bytes; segregates and adds in that block. Note that chunk may not be 0. O(n).] ]
+[ [t.ordered_free_n(chunk, n, partition_sz)] [void] [same as above] [same as above] [t.add_ordered_block(chunk, n * partition_sz, partition_sz)] [Same as above, except it merges in the free list. Order-preserving. O(N + n) where N is the size of the free list.] ]
+]
+
+[endsect] [/section:simple_segregated_storage]
+
+[section:user_allocator The UserAllocator Concept]
+
+Pool objects need to request memory blocks from the system, which the Pool then splits into chunks to allocate 
+to the user. By specifying a UserAllocator template parameter to various Pool interfaces, users can control how 
+those system memory blocks are allocated.
+
+In the following table, /UserAllocator/ is a User Allocator type, 
+/block/ is a value of type char *, and 
+/n/ is a value of type UserAllocator::size_type
+
+[table UserAllocator Requirements
+[[Expression][Result][Description]]
+[[UserAllocator::size_type][][An unsigned integral type that can represent the size of the largest object to be allocated.]]
+[[UserAllocator::difference_type][][A signed integral type that can represent the difference of any two pointers.]]
+[[UserAllocator::malloc(n)][char *][Attempts to allocate n bytes from the system. Returns 0 if out-of-memory.]]
+[[UserAllocator::free(block)][void][block must have been previously returned from a call to UserAllocator::malloc.]]
+]
+
+There are two UserAllocator classes provided in this library: 
+[classref boost::default_user_allocator_new_delete `default_user_allocator_new_delete`] and 
+[classref boost::default_user_allocator_malloc_free `default_user_allocator_malloc_free`],
+both in pool.hpp. The default value for the template parameter UserAllocator is always 
+[classref boost::default_user_allocator_new_delete `default_user_allocator_new_delete`].
+
+[endsect][/section:user_allocator The UserAllocator Concept]
+[endsect] [/section:pooling Pool in more depth]
+
+[endsect] 
+
+[/Note that there will be always some warnings about the .ipp files in Doxygen warnings and Autodoxywarnings.log files. 
+"Warning: include file boost/pool/detail/pool_construct.ipp not found, perhaps you forgot to add its directory to INCLUDE_PATH?"
+This is unavoidable because these must be included in the middle of the class declaration.
+All the automatically generated constructors are documented in the Doxygen standalone version:
+only the access to source files is missing.
+The current Quickbook version does not deal with the /details directory so the problem does not arise
+- unless the details files are included in future.]
+
+[/Note also that there is something funny about implementation class PODptr.
+It is always necessary to qualify it thus "details::PODptr"
+
+and this confuses Doxygen complaining thus:
+
+Cannot find class named 'details::PODptr'
+Cannot find class named 'details::PODptr'
+Cannot find class named 'details::PODptr'
+Cannot find class named 'details::PODptr'
+
+Attempts to avoid this with "using boost::details::PODptr;" have so far failed.
+
+]
+
+[xinclude autodoc.xml] [/ Boost.Pool Reference section, using Doxygen reference documentation.]
+
+
+[/section:pool Introduction/Overview]
+
+[section:appendices Appendices]
+
+[section:history Appendix A: History]
+
+[h4 Version 2.0.0, January 11, 2011]
+
+['Documentation and testing revision]
+
+[*Features:]
+
+* Fix issues 
+[@https://svn.boost.org/trac/boost/ticket/1252 1252],
+[@https://svn.boost.org/trac/boost/ticket/4960 4960],
+[@https://svn.boost.org/trac/boost/ticket/5526 5526],
+[@https://svn.boost.org/trac/boost/ticket/5700 5700],
+[@https://svn.boost.org/trac/boost/ticket/2696 2696].
+
+* Documentation converted and rewritten and revised 
+by Paul A. Bristow using Quickbook, Doxygen, for html and pdf,
+based on Stephen Cleary's html version, Revised 05 December, 2006.
+
+This used Opera 11.0, and `html_to_quickbook.css` as a special display format.
+On the Opera full taskbar (chose ['enable full taskbar]) View, Style, Manage modes, Display.
+
+Choose ['add `\boost-sandbox\boost_docs\trunk\doc\style\html\conversion\html_to_quickbook.css`]
+to My Style Sheet.  Html pages are now displayed as Quickbook and can be copied and pasted
+into quickbook files using your favored text editor for Quickbook.
+
+[h4 Version 1.0.0, January 1, 2000]
+
+['First release]
+
+[endsect] [/section:history Appendix A: History]
+
+[section:faq Appendix B: FAQ]
+
+[h5 Why should I use Pool?]
+
+Using Pools gives you more control over how memory is used in your program.
+For example, you could have a situation where you want to allocate a 
+bunch of small objects at one point, and then reach a point in your program
+where none of them are needed any more. Using pool interfaces,
+you can choose to run their destructors or just drop them off into oblivion;
+the pool interface will guarantee that there are no system memory leaks.
+
+[h5 When should I use Pool?]
+
+Pools are generally used when there is a lot of allocation and deallocation of small objects.
+Another common usage is the situation above, where many objects may be dropped out of memory.
+
+In general, use Pools when you need a more efficient way to do unusual memory control.
+
+[endsect] [/section:faq Appendix B: FAQ]
+
+[section:acknowledgements Appendix C: Acknowledgements]
+
+Many, many thanks to the Boost peers, notably Jeff Garland, Beman Dawes, Ed Brey,
+Gary Powell, Peter Dimov, and Jens Maurer for providing helpful suggestions!
+
+[endsect] [/section:acknowledgements Appendix C: Acknowledgements]
+
+[section:tests  Appendix D: Tests]
+
+See folder `boost/libs/pool/test/`.
+
+[endsect] [/section:tests  Appendix D: Tests]
+
+[section:tickets  Appendix E: Tickets]
+
+Report and view bugs and features by adding a ticket at [@https://svn.boost.org/trac/boost Boost.Trac].
+
+Existing open tickets for this library alone can be viewed 
+[@https://svn.boost.org/trac/boost/query?status=assigned&status=new&status=reopened&component=pool&col=id&col=summary&col=status&col=owner&col=type&col=milestone&order=priority here].
+Existing tickets for this library - including closed ones - can be viewed 
+[@https://svn.boost.org/trac/boost/query?status=assigned&status=closed&status=new&status=reopened&component=pool&col=id&col=summary&col=status&col=owner&col=type&col=milestone&order=priority here].
+
+[endsect] [/section:tickets  Appendix E: Tickets]
+
+[section:implementations  Appendix F: Other Implementations]
+
+Pool allocators are found in many programming languages, and in many variations.
+The beginnings of many implementations may be found in common programming literature;
+some of these are given below. Note that none of these are complete implementations of a Pool;
+most of these leave some aspects of a Pool as a user exercise. However, in each case,
+even though some aspects are missing, these examples use the same underlying concept
+of a Simple Segregated Storage described in this document.
+
+# ['The C++ Programming Language], 3rd ed., by Bjarne Stroustrup, Section 19.4.2. Missing aspects:
+  * Not portable.
+  * Cannot handle allocations of arbitrary numbers of objects (this was left as an exercise).
+  * Not thread-safe.
+  * Suffers from the static initialization problem.
+# ['MicroC/OS-II: The Real-Time Kernel], by Jean J. Labrosse, Chapter 7 and Appendix B.04.
+  * An example of the Simple Segregated Storage scheme at work in the internals of an actual OS.
+  * Missing aspects: 
+  * Not portable (though this is OK, since it's part of its own OS).
+  * Cannot handle allocations of arbitrary numbers of blocks (which is also OK, since this feature is not needed).
+  * Requires non-intuitive user code to create and destroy the Pool.
+# ['Efficient C++: Performance Programming Techniques], by Dov Bulka and David Mayhew, Chapters 6 and 7.
+  * This is a good example of iteratively developing a Pool solutio.
+  * however, their premise (that the system-supplied allocation mechanism is hopelessly inefficient) is flawed on every system I've tested on.
+  * Run their timings on your system before you accept their conclusions.
+  * Missing aspect: Requires non-intuitive user code to create and destroy the Pool.
+# ['Advanced C++: Programming Styles and Idioms], by James O. Coplien, Section 3.6.
+  * Has examples of both static and dynamic pooling, but missing aspects: 
+  * Not thread-safe.
+  * The static pooling example is not portable.
+
+[endsect] [/section:implementations  Appendix F: Other Implementations]
+
+[section:references  Appendix G: References]
+
+# [#ref1] Doug Lea, A Memory Allocator. See [@http://gee.cs.oswego.edu/dl/html/malloc.html http://gee.cs.oswego.edu/dl/html/malloc.html]
+# [#ref2]Paul R. Wilson, Mark S. Johnstone, Michael Neely, and David Boles,
+['Dynamic Storage Allocation: A Survey and Critical Review]
+in International Workshop on Memory Management, September 1995, pg. 28, 36.
+See [@ftp://ftp.cs.utexas.edu/pub/garbage/allocsrv.ps ftp://ftp.cs.utexas.edu/pub/garbage/allocsrv.ps]
+
+[endsect] [/section:references  Appendix G: references]
+
+[section:todo  Appendix H: Future plans]
+
+Another pool interface will be written: a base class for per-class pool allocation.
+
+This "pool_base" interface will be Singleton Usage with Exceptions,
+and built on the singleton_pool interface.
+
+[endsect] [/section:todo  Appendix G: Future plans]
+
+[endsect] [/section:appendices Appendices]
+
+[section:indexes Indexes]
+
+[include auto_index_helpers.qbk]
+
+[named_index function_name Function Index]
+[named_index class_name Class Index]
+[named_index typedef_name Typedef Index]
+[index]
+
+[endsect] [/section:indexes Indexes]

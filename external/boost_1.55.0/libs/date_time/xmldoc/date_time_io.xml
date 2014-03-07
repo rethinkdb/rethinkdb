@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2005 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.date_time_io" 
+  xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Date Time Input/Output</title>
+  <using-namespace name="boost"/>
+  <using-namespace name="boost::date_time"/>
+  <bridgehead renderas="sect2">Date Time IO System</bridgehead>
+  <para>
+    <link linkend="streaming_exceptions">Exception Handling on Streams</link>
+  </para>
+  
+  <para>As of version 1.33, the date_time library utilizes a new IO streaming system. This new system gives the user great control over how dates and times can be represented. The customization options can be broken down into two groups: format flags and string elements. Format flags provide flexibility in the order of the date elements as well as the type. Customizing the string elements allows the replacement of built in strings from month names, weekday names, and other strings used in the IO.</para>
+
+  <para>The output system is based on a date_facet (derived from std::facet), while the input system is based on a date_input_facet (also derived from std::facet). The time and local_time facets are derived from these base types. The output system utilizes three formatter objects, whereas the input system uses four parser objects. These formatter and parser objetcs are also customizable.</para>
+
+  <para>It is important to note, that while all the examples shown here use narrow streams, there are wide stream facets available as well (see <link linkend="io_objects_table">IO Objects</link> for a complete list).</para>
+
+  <para>It should be further noted that not all compilers are capable of using this IO system. For those compilers the IO system used in previous <code>date_time</code> versions is still available. The "legacy IO" is automatically selected for these compilers, however, the legacy IO system can be manually selected by defining <code>USE_DATE_TIME_PRE_1_33_FACET_IO</code>. See the <link linkend="date_time.buildinfo">Build-Compiler Information</link> for more information.</para>
+
+  <anchor id="streaming_exceptions" />
+  <bridgehead renderas="sect5">Exception Handling on Streams</bridgehead>
+  <para>When an error occurs during the input streaming process, the <code>std::ios_base::failbit</code> will (always) be set on the stream. It is also possible to have exceptions thrown when an error occurs. To "turn on" these exceptions, call the stream's <code>exceptions</code> function with a parameter of <code>std::ios_base::failbit</code>.</para>
+  <screen>// "Turning on" exceptions
+date d(not_a_date_time);
+std::stringstream ss;
+ss.exceptions(std::ios_base::failbit);
+ss.str("204-Jan-01");
+ss >> d; // throws bad_year exception AND sets failbit on stream</screen>
+  
+  <bridgehead renderas="sect5">A simple example of this new system:</bridgehead>
+  <screen>//example to customize output to be "LongWeekday LongMonthname day, year"
+//                                  "%A %b %d, %Y"
+date d(2005,Jun,25);
+date_facet* facet(new date_facet("%A %B %d, %Y"));
+std::cout.imbue(std::locale(std::cout.getloc(), facet));
+std::cout &lt;&lt; d &lt;&lt; std::endl;
+// "Saturday June 25, 2005"</screen>
+
+  <xi:include href="format_flags.xml" />
+  
+  <para>The following table lists the available facets.</para>
+
+  <anchor id="io_objects_table" />
+  <bridgehead renderas="sect3">IO Objects</bridgehead>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry>Output</entry>
+	    <entry>Input</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+            <entry><classname>date_facet</classname></entry>
+	    <entry><classname>date_input_facet</classname></entry>
+	  </row>
+          <row>
+            <entry><classname alt="boost::date_time::date_facet">wdate_facet</classname></entry>
+	    <entry><classname alt="boost::date_time::date_input_facet">wdate_input_facet</classname></entry>
+	  </row>
+          <row>
+            <entry><classname>time_facet</classname></entry>
+	    <entry><classname>time_input_facet</classname></entry>
+	  </row>
+          <row>
+            <entry><classname alt="boost::date_time::time_facet">wtime_facet</classname></entry>
+	    <entry><classname alt="boost::date_time::time_input_facet">wtime_input_facet</classname></entry>
+	  </row>
+          <row>
+            <entry><classname alt="boost::date_time::time_facet">local_time_facet</classname>*</entry>
+	    <entry><classname alt="boost::date_time::time_input_facet">local_time_input_facet</classname>*</entry>
+	  </row>
+          <row>
+            <entry><classname alt="boost::date_time::time_facet">wlocal_time_facet</classname>*</entry>
+	    <entry><classname alt="boost::date_time::time_input_facet">wlocal_time_input_facet</classname>*</entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+    * These links lead to the <code>time_facet</code> and <code>time_input_facet</code> reference sections. They are not actual classes but typedefs.
+  </para>
+  
+  <bridgehead renderas="sect3">Formatter/Parser Objects</bridgehead>
+  <para>To implement the new i/o facets the date-time library uses a number of new parsers and formatters. These classes are available for users that want to implement specialized input/output routines.</para>
+  <para>
+    <informaltable frame="all">
+      <tgroup cols="2">
+	<thead>
+	  <row>
+	    <entry>Output</entry>
+	    <entry>Input</entry>
+	  </row>
+	</thead>
+	<tbody>
+          <row>
+            <entry><classname>period_formatter</classname></entry>
+	    <entry><classname>period_parser</classname></entry>
+	  </row>
+          <row>
+            <entry><classname>date_generator_formatter</classname></entry>
+	    <entry><classname>date_generator_parser</classname></entry>
+	  </row>
+          <row>
+            <entry><classname>special_values_formatter</classname></entry>
+	    <entry><classname>special_values_parser</classname></entry>
+	  </row>
+          <row>
+            <entry></entry>
+	    <entry><classname>format_date_parser</classname></entry>
+	  </row>
+	</tbody>
+      </tgroup>
+    </informaltable>
+  </para>
+
+  <xi:include href="date_facet.xml" />
+  <xi:include href="date_input_facet.xml" />
+  <xi:include href="time_facet.xml" />
+  <xi:include href="time_input_facet.xml" />
+  <xi:include href="io_objects.xml" />
+  <xi:include href="io_tutorial.xml" />
+  
+</section>

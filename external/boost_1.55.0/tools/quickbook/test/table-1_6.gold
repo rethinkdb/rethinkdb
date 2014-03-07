@@ -1,0 +1,478 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="table_tests" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Table 1.6</title>
+  <table frame="all" id="table_tests.table1">
+    <title>Table 1</title>
+    <tgroup cols="1">
+      <thead>
+        <row>
+          <entry>
+            <para>
+              Heading
+            </para>
+          </entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+            <para>
+              cell
+            </para>
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+  <table frame="all" id="table_tests.table_2">
+    <title>Table 2</title>
+    <tgroup cols="1">
+      <thead>
+        <row>
+          <entry>
+            <para>
+              Heading
+            </para>
+          </entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+            <para>
+              cell
+            </para>
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+  <informaltable frame="all">
+    <tgroup cols="1">
+      <thead>
+        <row>
+          <entry>
+            <para>
+              Heading
+            </para>
+          </entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+            <para>
+              cell
+            </para>
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+  <informaltable frame="all" id="table_tests.table4">
+    <tgroup cols="1">
+      <thead>
+        <row>
+          <entry>
+            <para>
+              Heading
+            </para>
+          </entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+            <para>
+              cell
+            </para>
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+  <table frame="all" id="table_tests.table5">
+    <title>-table5-</title>
+    <tgroup cols="1">
+      <thead>
+        <row>
+          <entry>
+            <para>
+              Heading
+            </para>
+          </entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+            <para>
+              cell
+            </para>
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+  <table frame="all" id="table_tests.title">
+    <title>Title</title>
+    <tgroup cols="1">
+      <thead>
+        <row>
+          <entry>
+            <para>
+              Heading
+            </para>
+          </entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+            <para>
+              cell
+            </para>
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+  <table frame="all" id="table_tests.title0">
+    <title>Title</title>
+    <tgroup cols="1">
+      <thead>
+        <row>
+          <entry>
+            <para>
+              Heading
+            </para>
+          </entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+            <para>
+              cell
+            </para>
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+  <table frame="all" id="table_tests.title_containing_a_comment">
+    <title>Title containing a comment</title>
+    <tgroup cols="1">
+      <thead>
+        <row>
+          <entry>
+            <para>
+              Heading
+            </para>
+          </entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+            <para>
+              cell
+            </para>
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+  <table frame="all" id="table_tests.title1">
+    <title>Title</title>
+    <tgroup cols="1">
+      <thead>
+        <row>
+          <entry>
+            <para>
+              Heading
+            </para>
+          </entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+            <para>
+              cell
+            </para>
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+  <informaltable frame="all">
+    <tgroup cols="1">
+      <thead>
+        <row>
+          <entry>
+            <para>
+              Heading
+            </para>
+          </entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+            <para>
+              Cell 1
+            </para>
+          </entry>
+        </row>
+        <row>
+          <entry>
+            <para>
+              Cell 2
+            </para>
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+  <table frame="all" id="table_tests.title_on_multiple_lines_with_bol">
+    <title>Title on multiple lines with <emphasis role="bold">bold</emphasis> text?</title>
+    <tgroup cols="1">
+      <thead>
+        <row>
+          <entry>
+            <para>
+              Heading
+            </para>
+          </entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+            <para>
+              Cell 1
+            </para>
+          </entry>
+        </row>
+        <row>
+          <entry>
+            <para>
+              Cell 2
+            </para>
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </table>
+  <section id="table_tests.section1">
+    <title><link linkend="table_tests.section1">Section 1</link></title>
+    <table frame="all" id="table_tests.section1.table1">
+      <title>Table 1</title>
+      <tgroup cols="1">
+        <thead>
+          <row>
+            <entry>
+              <para>
+                Heading
+              </para>
+            </entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>
+              <para>
+                cell
+              </para>
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+    <table frame="all" id="table_tests.section1.a_b">
+      <title>A &amp; B</title>
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry>
+              <para>
+                A
+              </para>
+            </entry>
+            <entry>
+              <para>
+                B
+              </para>
+            </entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>
+              <para>
+                a
+              </para>
+            </entry>
+            <entry>
+              <para>
+                b
+              </para>
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+    <table frame="all" id="table_tests.section1.empty_table">
+      <title>Empty Table</title>
+      <tgroup cols="0">
+        <tbody>
+        </tbody>
+      </tgroup>
+    </table>
+    <table frame="all" id="table_tests.section1.table_with_an_empty_cell">
+      <title>Table with an empty cell</title>
+      <tgroup cols="1">
+        <tbody>
+          <row>
+            <entry>
+              <para>
+                x
+              </para>
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+    <table frame="all" id="table_tests.section1.indentation">
+      <title>Indentation</title>
+      <tgroup cols="2">
+        <thead>
+          <row>
+            <entry>
+              <para>
+                Header 1. Paragraph 1
+              </para>
+              <para>
+                Header 1. Paragraph 2
+              </para>
+            </entry>
+            <entry>
+              <para>
+                Header 2
+              </para>
+            </entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>
+              <para>
+                Row 1. Cell 1.
+              </para>
+            </entry>
+            <entry>
+              <para>
+                Row 1. Cell 2.
+              </para>
+              <para>
+                Row 1. Cell 2. Paragraph 2.
+              </para>
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+    <table frame="all" id="table_tests.section1.nested_tables">
+      <title>Nested Tables</title>
+      <tgroup cols="1">
+        <thead>
+          <row>
+            <entry>
+              <para>
+                Header 1
+              </para>
+            </entry>
+            <entry>
+              <para>
+                Header 2
+              </para>
+            </entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>
+              <table frame="all" id="table_tests.section1.inner_table">
+                <title>Inner Table</title>
+                <tgroup cols="2">
+                  <thead>
+                    <row>
+                      <entry>
+                        <para>
+                          1.1
+                        </para>
+                      </entry>
+                      <entry>
+                        <para>
+                          1.2
+                        </para>
+                      </entry>
+                    </row>
+                  </thead>
+                  <tbody>
+                    <row>
+                      <entry>
+                        <para>
+                          2.1
+                        </para>
+                      </entry>
+                      <entry>
+                        <para>
+                          2.2
+                        </para>
+                      </entry>
+                    </row>
+                  </tbody>
+                </tgroup>
+              </table>
+            </entry>
+          </row>
+          <row>
+            <entry>
+              <para>
+                Something.
+              </para>
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+    <anchor id="id1"/>
+    <table frame="all" id="table_tests.section1.table_with_anchors">
+      <title>Table with anchors</title>
+      <tgroup cols="1">
+        <thead>
+          <row>
+            <entry>
+              <para>
+                <anchor id="id2"/>a<anchor id="id3"/>
+              </para>
+            </entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>
+              <para>
+                b
+              </para>
+            </entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+  </section>
+</article>

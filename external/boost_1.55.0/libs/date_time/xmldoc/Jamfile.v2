@@ -1,0 +1,90 @@
+# Copyright (c) 2002-2006 CrystalClear Software, Inc.
+# Use, modification and distribution is subject to the 
+# Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+#
+
+import boostbook : boostbook ;
+import toolset ;
+import set ;
+toolset.using doxygen ;
+
+boostbook date_time : date_time.xml 
+	:
+        <format>pdf:<xsl:param>boost.url.prefix=http://www.boost.org/doc/libs/release/doc/html
+        <dependency>date_time_autodoc
+        <dependency>gregorian_autodoc
+        <dependency>posix_time_autodoc
+        <dependency>local_time_autodoc
+        <xsl:param>boost.root=../../../..
+	;
+
+# boostbook date_time_doc : exclusive_date_time.xml ;
+
+# file lists take the form of [ set.difference [ glob include/these ] : [ glob but/not/these ] ] 
+
+local date_time_files = [ glob ../../../boost/date_time/*.hpp ] ;
+
+# local date_time_files = [ set.difference  
+# 	[ glob ../../../boost/date_time/*.hpp ] : 
+# 	[ glob ../../../boost/date_time/testfrmwk.hpp 
+# 	#	../../../boost/date_time/time_zone_base.hpp  
+# 	#	../../../boost/date_time/time_zone_names.hpp  
+# 	#	../../../boost/date_time/tz_db_base.hpp  
+# 	#	../../../boost/date_time/dst_transition_generators.hpp 
+# 	] 
+# 	] ;
+
+local gregorian_files = [ set.difference  
+	[ glob ../../../boost/date_time/gregorian/*.hpp ] : 
+	[ glob ../../../boost/date_time/gregorian/event_schedule.hpp ]
+	] ;
+
+#ECHO $(date_time_files) ; # useful for debugging
+
+# to build the autodoc files, run bjam --v2 autodoc_target. copy generated
+# file from bin.v2 dir to here. run ref_tag_fix.pl.
+
+doxygen date_time_autodoc : 
+	$(date_time_files) : 
+        <doxygen:param>ENABLE_PREPROCESSING=NO 
+        <xsl:param>boost.doxygen.reftitle="Date Time Reference"
+        <doxygen.doxproc.title>"Date Time Reference"
+        <doxygen.doxproc.id>"date_time_reference"
+	;
+
+doxygen gregorian_autodoc :
+	$(gregorian_files) : 
+        <doxygen:param>ENABLE_PREPROCESSING=NO 
+        <xsl:param>boost.doxygen.reftitle="Gregorian Reference"
+        <doxygen.doxproc.title>"Gregorian Reference"
+        <doxygen.doxproc.id>"gregorian_reference"
+	;
+
+doxygen posix_time_autodoc :
+	[ glob ../../../boost/date_time/posix_time/*.hpp ] : 
+        <doxygen:param>ENABLE_PREPROCESSING=NO 
+        <xsl:param>boost.doxygen.reftitle="Posix Time Reference"
+        <doxygen.doxproc.title>"Posix Time Reference"
+        <doxygen.doxproc.id>"posix_time_reference"
+	;
+
+doxygen local_time_autodoc :
+        [ glob ../../../boost/date_time/local_time/*.hpp ] : 
+        <doxygen:param>ENABLE_PREPROCESSING=NO 
+        <xsl:param>boost.doxygen.reftitle="Local Time Reference"
+        <doxygen.doxproc.title>"Local Time Reference"
+        <doxygen.doxproc.id>"local_time_reference"
+        ;
+
+
+# Copyright (c) 2004
+# CrystalClear Software, Inc.
+#
+# Permission to use, copy, modify, distribute and sell this software
+# and its documentation for any purpose is hereby granted without fee,
+# provided that the above copyright notice appear in all copies and
+# that both that copyright notice and this permission notice appear
+# in supporting documentation.  CrystalClear Software makes no
+# representations about the suitability of this software for any
+# purpose.  It is provided "as is" without express or implied warranty.

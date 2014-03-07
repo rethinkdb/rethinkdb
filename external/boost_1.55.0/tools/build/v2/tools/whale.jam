@@ -1,0 +1,116 @@
+#  Copyright (C) Vladimir Prus 2002-2005. 
+
+#  Use, modification and distribution is subject to the Boost Software
+#  License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+#  http://www.boost.org/LICENSE_1_0.txt)
+
+#  This module implements support for Whale/Dolphin/WD parser/lexer tools. 
+#  See http://www.cs.queensu.ca/home/okhotin/whale/ for details.
+#
+#  There are three interesting target types:
+#  - WHL (the parser sources), that are converted to CPP and H
+#  - DLP (the lexer sources), that are converted to CPP and H
+#  - WD (combined parser/lexer sources), that are converted to WHL + DLP
+
+import type ;
+import generators ;
+import path ;
+import "class" : new ;
+import errors ;
+
+rule init ( path # path the Whale/Dolphin/WD binaries 
+          )
+{
+    if $(.configured) && $(.path) != $(path)
+    {
+        errors.user-error "Attempt to reconfigure Whale support" :
+          "Previously configured with path \"$(.path:E=<empty>)\"" :
+          "Now configuring with path \"$(path:E=<empty>)\"" ;
+
+    }
+    .configured = true ;
+    .path = $(path) ;
+
+    .whale = [ path.join $(path) whale ] ;
+    .dolphin = [ path.join $(path) dolphin ] ;
+    .wd = [ path.join $(path) wd ] ;
+}     
+
+
+# Declare the types.
+type.register WHL : whl ;
+type.register DLP : dlp ;
+type.register WHL_LR0 : lr0 ;
+type.register WD : wd ;
+
+# Declare standard generators.
+generators.register-standard whale.whale : WHL : CPP H H(%_symbols) ;
+generators.register-standard whale.dolphin : DLP : CPP H ;
+generators.register-standard whale.wd : WD : WHL(%_parser) DLP(%_lexer) ;
+
+# The conversions defines above a ambiguious when we generated CPP from WD.
+# We can either go via WHL type, or via DLP type.
+# The following custom generator handles this by running both conversions.
+
+class wd-to-cpp : generator
+{
+    rule __init__ ( * : * : * )
+    {
+        generator.__init__ $(1) : $(2) : $(3) ;
+    }
+    
+    rule run ( project name ? : property-set : source * )
+    {
+        if ! $(source[2])
+        {                
+            local new-sources ;
+            if ! [ $(source).type ] in WHL DLP
+            {            
+                local r1 = [ generators.construct $(project) $(name) 
+                  : WHL : $(property-set) : $(source) ] ;
+                local r2 = [ generators.construct $(project) $(name) 
+                  : DLP : $(property-set) : $(source) ] ;
+                
+                new-sources = [ sequence.unique $(r1[2-]) $(r2[2-]) ] ;
+            }
+            else
+            {
+                new-sources = $(source) ;
+            }
+            
+            local result ;
+            for local i in $(new-sources) 
+            {
+                local t = [ generators.construct $(project) $(name) : CPP 
+                  : $(property-set) : $(i) ] ;          
+                result += $(t[2-]) ;
+            }
+            return $(result) ;
+        }        
+    }
+    
+}
+
+
+generators.override whale.wd-to-cpp : whale.whale ;
+generators.override whale.wd-to-cpp : whale.dolphin ;
+
+
+generators.register [ new wd-to-cpp whale.wd-to-cpp : : CPP ] ;
+
+
+actions whale 
+{
+    $(.whale) -d $(<[1]:D) $(>)      
+}
+
+actions dolphin
+{    
+    $(.dolphin) -d $(<[1]:D) $(>)
+}
+
+actions wd
+{    
+    $(.wd) -d $(<[1]:D) -g $(>)
+}
+

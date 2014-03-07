@@ -1,0 +1,173 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Chapter&#160;1.&#160;Boost.Numeric.Odeint</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Chapter&#160;1.&#160;Boost.Numeric.Odeint">
+<link rel="next" href="boost_numeric_odeint/getting_started.html" title="Getting started">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="logo.jpg"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_numeric_odeint/getting_started.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a></div>
+<div class="chapter">
+<div class="titlepage"><div>
+<div><h2 class="title">
+<a name="odeint"></a>Chapter&#160;1.&#160;Boost.Numeric.Odeint</h2></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Karsten</span> <span class="surname">Ahnert</span>
+</h3></div></div>
+<div><div class="author"><h3 class="author">
+<span class="firstname">Mario</span> <span class="surname">Mulansky</span>
+</h3></div></div>
+<div><p class="copyright">Copyright &#169; 2009-2012 Karsten
+      Ahnert and Mario Mulansky</p></div>
+<div><div class="legalnotice">
+<a name="odeint.legal"></a><p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></div>
+</div></div>
+<div class="toc">
+<p><b>Table of Contents</b></p>
+<dl class="toc">
+<dt><span class="section"><a href="boost_numeric_odeint/getting_started.html">Getting started</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_numeric_odeint/getting_started/overview.html">Overview</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/getting_started/usage__compilation__headers.html">Usage,
+      Compilation, Headers</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/getting_started/short_example.html">Short
+      Example</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_numeric_odeint/tutorial.html">Tutorial</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_numeric_odeint/tutorial/harmonic_oscillator.html">Harmonic
+      oscillator</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/tutorial/solar_system.html">Solar system</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/tutorial/chaotic_systems_and_lyapunov_exponents.html">Chaotic
+      systems and Lyapunov exponents</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/tutorial/stiff_systems.html">Stiff systems</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/tutorial/complex_state_types.html">Complex
+      state types</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/tutorial/lattice_systems.html">Lattice
+      systems</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/tutorial/ensembles_of_oscillators.html">Ensembles
+      of oscillators</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/tutorial/using_boost__units.html">Using
+      boost::units</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/tutorial/using_matrices_as_state_types.html">Using
+      matrices as state types</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/tutorial/using_arbitrary_precision_floating_point_types.html">Using
+      arbitrary precision floating point types</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/tutorial/self_expanding_lattices.html">Self
+      expanding lattices</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/tutorial/using_cuda__or_openmp__tbb_______via_thrust.html">Using
+      CUDA (or OpenMP, TBB, ...) via Thrust</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/tutorial/using_opencl_via_vexcl.html">Using
+      OpenCL via VexCL</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/tutorial/all_examples.html">All examples</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_numeric_odeint/odeint_in_detail.html">odeint in detail</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_numeric_odeint/odeint_in_detail/steppers.html">Steppers</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/odeint_in_detail/generation_functions.html">Generation
+      functions</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/odeint_in_detail/integrate_functions.html">Integrate
+      functions</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/odeint_in_detail/state_types__algebras_and_operations.html">State
+      types, algebras and operations</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/odeint_in_detail/using_boost__ref.html">Using
+      boost::ref</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/odeint_in_detail/using_boost__range.html">Using
+      boost::range</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/odeint_in_detail/binding_member_functions.html">Binding
+      member functions</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_numeric_odeint/concepts.html">Concepts</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="boost_numeric_odeint/concepts/system.html">System</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/concepts/symplectic_system.html">Symplectic
+      System</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/concepts/simple_symplectic_system.html">Simple
+      Symplectic System</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/concepts/implicit_system.html">Implicit
+      System</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/concepts/stepper.html">Stepper</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/concepts/error_stepper.html">Error Stepper</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/concepts/controlled_stepper.html">Controlled
+      Stepper</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/concepts/dense_output_stepper.html">Dense
+      Output Stepper</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/concepts/state_algebra_operations.html">State
+      Algebra Operations</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/concepts/state_wrapper.html">State Wrapper</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="boost_numeric_odeint/literature.html">Literature</a></span></dt>
+<dt><span class="section"><a href="boost_numeric_odeint/acknowledgments.html">Acknowledgments</a></span></dt>
+<dt><span class="section"><a href="odeint_reference.html">odeint Reference</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="header/boost/numeric/odeint/integrate/integrate_hpp.html">Header &lt;boost/numeric/odeint/integrate/integrate.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/integrate/integrate_adaptive_hpp.html">Header &lt;boost/numeric/odeint/integrate/integrate_adaptive.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/integrate/integrate_const_hpp.html">Header &lt;boost/numeric/odeint/integrate/integrate_const.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/integrate/integrate_n_steps_hpp.html">Header &lt;boost/numeric/odeint/integrate/integrate_n_steps.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/integrate/integrate_times_hpp.html">Header &lt;boost/numeric/odeint/integrate/integrate_times.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/integrate/null_observer_hpp.html">Header &lt;boost/numeric/odeint/integrate/null_observer.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/integrate/observer_collection_hpp.html">Header &lt;boost/numeric/odeint/integrate/observer_collection.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/adams_bashforth_hpp.html">Header &lt;boost/numeric/odeint/stepper/adams_bashforth.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/adams_bashforth_moulton_hpp.html">Header &lt;boost/numeric/odeint/stepper/adams_bashforth_moulton.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/adams_moulton_hpp.html">Header &lt;boost/numeric/odeint/stepper/adams_moulton.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/base/algebra_stepper_base_hpp.html">Header &lt;boost/numeric/odeint/stepper/base/algebra_stepper_base.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/base/explicit_error_stepper_base_hpp.html">Header &lt;boost/numeric/odeint/stepper/base/explicit_error_stepper_base.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/base/explicit_error_stepper_fsal_base_hpp.html">Header &lt;boost/numeric/odeint/stepper/base/explicit_error_stepper_fsal_base.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/base/explicit_stepper_base_hpp.html">Header &lt;boost/numeric/odeint/stepper/base/explicit_stepper_base.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/base/symplectic_rkn_stepper_base_hpp.html">Header &lt;boost/numeric/odeint/stepper/base/symplectic_rkn_stepper_base.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/bulirsch_stoer_hpp.html">Header &lt;boost/numeric/odeint/stepper/bulirsch_stoer.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/bulirsch_stoer_dense_out_hpp.html">Header &lt;boost/numeric/odeint/stepper/bulirsch_stoer_dense_out.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/controlled_runge_kutta_hpp.html">Header &lt;boost/numeric/odeint/stepper/controlled_runge_kutta.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/controlled_step_result_hpp.html">Header &lt;boost/numeric/odeint/stepper/controlled_step_result.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/dense_output_runge_kutta_hpp.html">Header &lt;boost/numeric/odeint/stepper/dense_output_runge_kutta.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/euler_hpp.html">Header &lt;boost/numeric/odeint/stepper/euler.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/explicit_error_generic_rk_hpp.html">Header &lt;boost/numeric/odeint/stepper/explicit_error_generic_rk.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/explicit_generic_rk_hpp.html">Header &lt;boost/numeric/odeint/stepper/explicit_generic_rk.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/implicit_euler_hpp.html">Header &lt;boost/numeric/odeint/stepper/implicit_euler.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/modified_midpoint_hpp.html">Header &lt;boost/numeric/odeint/stepper/modified_midpoint.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/rosenbrock4_hpp.html">Header &lt;boost/numeric/odeint/stepper/rosenbrock4.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/rosenbrock4_controller_hpp.html">Header &lt;boost/numeric/odeint/stepper/rosenbrock4_controller.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/rosenbrock4_dense_output_hpp.html">Header &lt;boost/numeric/odeint/stepper/rosenbrock4_dense_output.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/runge_kutta4_hpp.html">Header &lt;boost/numeric/odeint/stepper/runge_kutta4.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/runge_kutta4_classic_hpp.html">Header &lt;boost/numeric/odeint/stepper/runge_kutta4_classic.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/runge_kutta_cash_karp54_hpp.html">Header &lt;boost/numeric/odeint/stepper/runge_kutta_cash_karp54.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/runge_kutta_cash_karp54_classic_hpp.html">Header &lt;boost/numeric/odeint/stepper/runge_kutta_cash_karp54_classic.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/runge_kutta_dopri5_hpp.html">Header &lt;boost/numeric/odeint/stepper/runge_kutta_dopri5.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/runge_kutta_fehlberg78_hpp.html">Header &lt;boost/numeric/odeint/stepper/runge_kutta_fehlberg78.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/stepper_categories_hpp.html">Header &lt;boost/numeric/odeint/stepper/stepper_categories.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/symplectic_euler_hpp.html">Header &lt;boost/numeric/odeint/stepper/symplectic_euler.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/symplectic_rkn_sb3a_m4_mclachlan_hpp.html">Header &lt;boost/numeric/odeint/stepper/symplectic_rkn_sb3a_m4_mclachlan.hpp&gt;</a></span></dt>
+<dt><span class="section"><a href="header/boost/numeric/odeint/stepper/symplectic_rkn_sb3a_mclachlan_hpp.html">Header &lt;boost/numeric/odeint/stepper/symplectic_rkn_sb3a_mclachlan.hpp&gt;</a></span></dt>
+</dl></dd>
+<dt><span class="section"><a href="odeint/indexes.html">Indexes</a></span></dt>
+<dd><dl>
+<dt><span class="section"><a href="odeint/indexes/s01.html">Class Index</a></span></dt>
+<dt><span class="section"><a href="odeint/indexes/s02.html">Function Index</a></span></dt>
+<dt><span class="section"><a href="odeint/indexes/s03.html">Index</a></span></dt>
+</dl></dd>
+</dl>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"><p><small>Last revised: October 28, 2013 at 23:42:16 GMT</small></p></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav"><a accesskey="n" href="boost_numeric_odeint/getting_started.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a></div>
+</body>
+</html>

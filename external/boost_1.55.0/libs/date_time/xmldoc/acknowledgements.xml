@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE library PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" 
+"../../../tools/boostbook/dtd/boostbook.dtd">
+
+<!-- Copyright (c) 2001-2004 CrystalClear Software, Inc.
+     Subject to the Boost Software License, Version 1.0. 
+     (See accompanying file LICENSE_1_0.txt or  http://www.boost.org/LICENSE_1_0.txt)
+-->
+
+<section id="date_time.acknowledgements">
+  <title>Acknowledgements</title>
+
+  <para>
+    Many people have contributed to the development of this library. In particular Hugo Duncan and Joel de Guzman for help with porting to various compilers. For initial development of concepts and design Corwin Joy and Michael Kenniston deserve special thanks. Also extra thanks to Michael for writing up the theory and tradeoffs part of the documentation. Dave Zumbro for initial inspiration and sage thoughts. Many thanks to boost reviewers and users including: William Seymour, Kjell Elster, Beman Dawes, Gary Powell, Andrew Maclean, William Kempf, Peter Dimov, Chris Little, David Moore, Darin Adler, Gennadiy Rozental, Joachim Achtzehnter, Paul Bristow, Jan Langer, Mark Rodgers, Glen Knowles, Matthew Denman, and George Heintzelman. 
+  </para>
+</section>

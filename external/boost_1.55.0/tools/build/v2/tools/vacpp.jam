@@ -1,0 +1,150 @@
+# Copyright Vladimir Prus 2004.
+# Copyright Toon Knapen 2004.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt
+# or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#
+# Boost.Build V2 toolset for the IBM XL C++ compiler
+#
+
+import toolset : flags ;
+import feature ;
+import common ;
+import generators ;
+import os ;
+
+feature.extend toolset : vacpp ;
+toolset.inherit vacpp : unix ;
+generators.override vacpp.prebuilt : builtin.prebuilt ;
+generators.override vacpp.searched-lib-generator : searched-lib-generator ;
+
+# Configure the vacpp toolset
+rule init ( version ? : command * : options * )
+{
+    local condition = [ 
+        common.check-init-parameters vacpp : version $(version) ] ;
+              
+    command = [ common.get-invocation-command vacpp : xlC
+        : $(command) : "/usr/vacpp/bin/xlC" ] ;
+        
+    common.handle-options vacpp : $(condition) : $(command) : $(options) ;
+}
+
+# Declare generators
+generators.register-c-compiler vacpp.compile.c : C : OBJ : <toolset>vacpp ;
+generators.register-c-compiler vacpp.compile.c++ : CPP : OBJ : <toolset>vacpp ;
+
+# Allow C++ style comments in C files
+flags vacpp CFLAGS : -qcpluscmt ;
+
+# Declare flags
+flags vacpp CFLAGS <optimization>off : -qNOOPTimize ;
+flags vacpp CFLAGS <optimization>speed : -O3 -qstrict ;
+flags vacpp CFLAGS <optimization>space : -O2 -qcompact ;
+
+# Discretionary inlining (not recommended)
+flags vacpp CFLAGS <inlining>off : -qnoinline ;
+flags vacpp CFLAGS <inlining>on : -qinline ;
+#flags vacpp CFLAGS <inlining>full : -qinline ;
+flags vacpp CFLAGS <inlining>full : ;
+
+# Exception handling
+flags vacpp C++FLAGS <exception-handling>off : -qnoeh ;
+flags vacpp C++FLAGS <exception-handling>on : -qeh ;
+
+# Run-time Type Identification
+flags vacpp C++FLAGS <rtti>off : -qnortti ;
+flags vacpp C++FLAGS <rtti>on : -qrtti ;
+
+# Enable 64-bit memory addressing model
+flags vacpp CFLAGS <address-model>64 : -q64 ;
+flags vacpp LINKFLAGS <address-model>64 : -q64 ;
+flags vacpp ARFLAGS <target-os>aix/<address-model>64 : -X 64 ;
+
+# Use absolute path when generating debug information
+flags vacpp CFLAGS <debug-symbols>on : -g -qfullpath ;
+flags vacpp LINKFLAGS <debug-symbols>on : -g -qfullpath ;
+flags vacpp LINKFLAGS <debug-symbols>off : -s ;
+
+if [ os.name ] = AIX
+{
+    flags vacpp.compile C++FLAGS : -qfuncsect ;
+
+    # The -bnoipath strips the prepending (relative) path of libraries from
+    # the loader section in the target library or executable. Hence, during
+    # load-time LIBPATH (identical to LD_LIBRARY_PATH) or a hard-coded
+    # -blibpath (*similar* to -lrpath/-lrpath-link) is searched. Without
+    # this option, the prepending (relative) path + library name is
+    # hard-coded in the loader section, causing *only* this path to be
+    # searched during load-time. Note that the AIX linker does not have an
+    # -soname equivalent, this is as close as it gets.
+    #
+    # The above options are definately for AIX 5.x, and most likely also for
+    # AIX 4.x and AIX 6.x. For details about the AIX linker see:
+    # http://download.boulder.ibm.com/ibmdl/pub/software/dw/aix/es-aix_ll.pdf
+    #
+    flags vacpp.link LINKFLAGS <link>shared : -bnoipath ;
+
+    # Run-time linking
+    flags vacpp.link EXE-LINKFLAGS <link>shared : -brtl ;
+}
+else
+{
+    # Linux PPC
+    flags vacpp.compile CFLAGS <link>shared : -qpic=large ;
+    flags vacpp FINDLIBS : rt ;
+}
+
+# Profiling
+flags vacpp CFLAGS <profiling>on : -pg ;
+flags vacpp LINKFLAGS <profiling>on : -pg ;
+
+flags vacpp.compile OPTIONS <cflags> ;
+flags vacpp.compile.c++ OPTIONS <cxxflags> ;
+flags vacpp DEFINES <define> ;
+flags vacpp UNDEFS <undef> ;
+flags vacpp HDRS <include> ;
+flags vacpp STDHDRS <sysinclude> ;
+flags vacpp.link OPTIONS <linkflags> ;
+flags vacpp ARFLAGS <arflags> ;
+
+flags vacpp LIBPATH <library-path> ;
+flags vacpp NEEDLIBS <library-file> ;
+flags vacpp FINDLIBS <find-shared-library> ;
+flags vacpp FINDLIBS <find-static-library> ;
+
+# Select the compiler name according to the threading model.
+flags vacpp VA_C_COMPILER  <threading>single : xlc   ;
+flags vacpp VA_C_COMPILER  <threading>multi : xlc_r ;
+flags vacpp VA_CXX_COMPILER <threading>single : xlC   ;
+flags vacpp VA_CXX_COMPILER <threading>multi : xlC_r ;
+
+SPACE = " " ;
+
+flags vacpp.link.dll HAVE_SONAME <target-os>linux : "" ;
+
+actions vacpp.link bind NEEDLIBS
+{
+    $(VA_CXX_COMPILER) $(EXE-LINKFLAGS) $(LINKFLAGS) -o "$(<[1])" -L$(LIBPATH) -L$(STDLIBPATH) "$(>)" "$(NEEDLIBS)" "$(NEEDLIBS)" -l$(FINDLIBS) $(OPTIONS) $(USER_OPTIONS)
+}
+
+actions vacpp.link.dll bind NEEDLIBS
+{
+    xlC_r -G $(LINKFLAGS) -o "$(<[1])" $(HAVE_SONAME)-Wl,-soname$(SPACE)-Wl,$(<[-1]:D=) -L$(LIBPATH) -L$(STDLIBPATH) "$(>)" "$(NEEDLIBS)" "$(NEEDLIBS)" -l$(FINDLIBS) $(OPTIONS) $(USER_OPTIONS) 
+}
+
+actions vacpp.compile.c
+{
+    $(VA_C_COMPILER) -c $(OPTIONS) $(USER_OPTIONS) -I$(BOOST_ROOT) -U$(UNDEFS) -D$(DEFINES) $(CFLAGS) -I"$(HDRS)" -I"$(STDHDRS)" -o "$(<)" "$(>)"
+}
+
+actions vacpp.compile.c++
+{
+    $(VA_CXX_COMPILER) -c $(OPTIONS) $(USER_OPTIONS) -I$(BOOST_ROOT) -U$(UNDEFS) -D$(DEFINES) $(CFLAGS) $(C++FLAGS) -I"$(HDRS)" -I"$(STDHDRS)" -o "$(<)" "$(>)"
+}
+
+actions updated together piecemeal vacpp.archive
+{
+    ar $(ARFLAGS) ru "$(<)" "$(>)"
+}

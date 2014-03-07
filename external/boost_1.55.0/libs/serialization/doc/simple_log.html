@@ -1,0 +1,95 @@
+<!doctype HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+(C) Copyright 2002-10 Robert Ramey - http://www.rrsd.com .
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt)
+-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" type="text/css" href="../../../boost.css">
+<link rel="stylesheet" type="text/css" href="style.css">
+<title>Serialization - Derivation from an Existing Archive</title>
+</head>
+<body link="#0000ff" vlink="#800080">
+<table border="0" cellpadding="7" cellspacing="0" width="100%" summary="header">
+  <tr> 
+    <td valign="top" width="300"> 
+      <h3><a href="../../../index.htm"><img height="86" width="277" alt="C++ Boost" src="../../../boost.png" border="0"></a></h3>
+    </td>
+    <td valign="top"> 
+      <h1 align="center">Serialization</h1>
+      <h2 align="center">A Simple Logging Archive Class</h2>
+    </td>
+  </tr>
+</table>
+<hr>
+The purpose of this example help clarify the usage of the
+<a href="archives.html"><strong>Archive Concept</strong></a> 
+so that one can implement his own archive classes.  
+<a href="../example/simple_log_archive.hpp" target="simple_archive_hpp">
+<code>simple_log_archive.hpp</code></a> implements a simple but useful
+archive class. This class can be used to send any serializable types
+on an output text stream in a readable format. Usage of this facility
+is trivially easy:
+
+<pre><code>
+#include "simple_log_archive.hpp"
+...
+// display the complete schedule
+simple_log_archive log(std::cout);
+log << schedule;
+</code></pre>
+
+and it produces the following output
+
+<pre><code>
+schedule 
+ count 6
+ item 
+  first 
+   driver bob
+   hour 6
+   minute 24
+  second -> 
+   stops 
+    count 3
+    item -> 
+     latitude 
+      degrees 34
+      minutes 135
+      seconds 52.56
+     longitude 
+      degrees 134
+      minutes 22
+      seconds 78.3
+...
+</code></pre>
+
+The complete example is <a href="../example/demo_simple_log.cpp" target="demo_simple_log_cpp">
+<code>demo_simple_log.cpp</code></a>.  Look at 
+<a href="archive_reference.html#trivial">Trivial Archive</a> to get a 
+better understanding of how this works.
+
+Also, note the following:
+<ul>
+  <li>Only 160 lines of code.
+  <li>Header only - linking with the serialization library not required.
+  <li>Displays ALL <a href="serialization.html"><strong>Serializable</strong></a> types.
+  <li>Lacks some features.
+  <ul>
+    <li>it will not display the data from the derived type given the pointer to a 
+    polymorphic base class.  That is, only displays the information of the base class.
+    To add that see the next example.
+    <li>doesn't display information serialized as binary data
+  </ul>
+</ul>
+
+<hr>
+<p><i>&copy; Copyright <a href="http://www.rrsd.com">Robert Ramey</a> 2002-2010. 
+Distributed under the Boost Software License, Version 1.0. (See
+accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+</i></p>
+</body>
+</html>

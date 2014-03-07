@@ -1,0 +1,57 @@
+[/
+    Copyright (c) 2008-2010 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[/ //= Range ===================================================================]
+[section Range]
+
+[table
+[[['*Range*]]                 [__ch_itvs__][__ch_itv_sets__][__ch_itv_maps__][condition]   ]
+[[`interval_type hull(const T&)`]         [      ]  [__O1__] [__O1__][]          ]
+[[`T hull(const T&, const T&)`]           [__O1__]  [      ] [      ][]          ]
+[[`domain_type lower(const T&)`]          [__O1__]  [__O1__] [__O1__][]          ]
+[[`domain_type upper(const T&)`]          [__O1__]  [__O1__] [__O1__][]          ]
+[[`domain_type first(const T&)`]          [__O1__]  [__O1__] [__O1__][`is_discrete<domain_type>::value`]]
+[[`domain_type last(const T&)`]           [__O1__]  [__O1__] [__O1__][`is_discrete<domain_type>::value`]]
+]
+
+The table above shows the availability of functions 
+`hull`, `lower`, `upper`, `first` and `last` on intervals 
+and interval containers that are all of ['*constant time complexity*].
+Find the functions description and some simple properties below.
+
+[table
+[[['*Range*]]                               [Types] [Description]                                        ]
+[[`interval_type hull(const T&)`]      [__S __M] [`hull(x)` returns the smallest interval that contains all intervals of an interval container `x`.] ]
+[[`T hull(const T&, const T&)`]        [__S __M] [`hull(i,j)` returns the smallest interval that contains intervals `i` abd 'j'.] ]
+[[`domain_type lower(const T&)`]       [__i __S __M][`lower(x)` returns the lower bound of an interval or interval container `x`.]  ]
+[[`domain_type upper(const T&)`]       [__i __S __M][`upper(x)` returns the upper bound of an interval or interval container `x`.]         ]
+[[`domain_type first(const T&)`]       [__i __S __M][`first(x)` returns the first element of an interval or interval container `x`. 
+                                                     `first(const T&)` is defined for a discrete `domain_type` only.] ]
+[[`domain_type last(const T&)`]        [__i __S __M][`last(x)` returns the last element of an interval or interval container `x`. 
+                                                     `last(const T&)` is defined for a discrete `domain_type` only.] ]                                                                                                     
+]
+
+``
+// for interval_containers x:
+lower(hull(x)) == lower(x)
+upper(hull(x)) == upper(x)
+first(hull(x)) == first(x)
+last(hull(x))  == last(x)
+``
+
+['*Back to section . . .*]
+[table
+[]
+[[[link function_synopsis_table ['*Function Synopsis*]]    ]]
+[[[link boost_icl.interface ['*Interface*]]                ]]
+]
+
+[endsect][/ Range]
+
+

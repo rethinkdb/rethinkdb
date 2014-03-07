@@ -1,0 +1,1125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE section PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN"
+  "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<section last-revision="$Date: 2007-01-29 12:05:29 -0800 (Mon, 29 Jan 2007) $" id="signals.tutorial">
+  <title>Tutorial</title>
+
+  <using-namespace name="boost"/>
+  <using-namespace name="boost::signals"/>
+  <using-class name="boost::signalN"/>
+
+  <section>
+    <title>How to Read this Tutorial</title>
+<para>This tutorial is not meant to be read linearly. Its top-level
+structure roughly separates different concepts in the library
+(e.g., handling calling multiple slots, passing values to and from
+slots) and in each of these concepts the basic ideas are presented
+first and then more complex uses of the library are described
+later. Each of the sections is marked <emphasis>Beginner</emphasis>,
+<emphasis>Intermediate</emphasis>, or <emphasis>Advanced</emphasis> to help guide the
+reader. The <emphasis>Beginner</emphasis> sections include information that all
+library users should know; one can make good use of the Signals
+library after having read only the <emphasis>Beginner</emphasis> sections. The
+<emphasis>Intermediate</emphasis> sections build on the <emphasis>Beginner</emphasis>
+sections with slightly more complex uses of the library. Finally,
+the <emphasis>Advanced</emphasis> sections detail very advanced uses of the
+Signals library, that often require a solid working knowledge of
+the <emphasis>Beginner</emphasis> and <emphasis>Intermediate</emphasis> topics; most users
+will not need to read the <emphasis>Advanced</emphasis> sections.</para>
+</section>
+
+<section><title>Compatibility Note</title> 
+
+<para>Boost.Signals has two syntactical forms: the preferred form and
+the compatibility form. The preferred form fits more closely with the
+C++ language and reduces the number of separate template parameters
+that need to be considered, often improving readability; however, the
+preferred form is not supported on all platforms due to compiler
+bugs. The compatible form will work on all compilers supported by
+Boost.Signals. Consult the table below to determine which syntactic
+form to use for your compiler. Users of Boost.Function, please note
+that the preferred syntactic form in Signals is equivalent to that of
+Function's preferred syntactic form.</para>
+
+<para>If your compiler does not appear in this list, please try the
+preferred syntax and report your results to the Boost list so that
+we can keep this table up-to-date.</para>
+
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+            <itemizedlist>
+              <listitem><para>GNU C++ 2.95.x, 3.0.x, 3.1.x</para></listitem>
+              <listitem><para>Comeau C++ 4.2.45.2</para></listitem>
+              <listitem><para>SGI MIPSpro 7.3.0</para></listitem>
+              <listitem><para>Intel C++ 5.0, 6.0</para></listitem>
+              <listitem><para>Compaq's cxx 6.2</para></listitem>
+              <listitem><para>Microsoft Visual C++ 7.1</para></listitem>
+            </itemizedlist>
+          </entry>
+          <entry>
+            <itemizedlist>
+              <listitem><para><emphasis>Any compiler supporting the preferred syntax</emphasis></para></listitem>
+              <listitem><para>Microsoft Visual C++ 6.0, 7.0</para></listitem>
+              <listitem><para>Borland C++ 5.5.1</para></listitem>
+              <listitem><para>Sun WorkShop 6 update 2 C++ 5.3</para></listitem>
+              <listitem><para>Metrowerks CodeWarrior 8.1</para></listitem>
+            </itemizedlist>
+          </entry>
+        </row>
+      </tbody>
+    </tgroup>
+  </informaltable>
+</section>
+
+<section><title>Hello, World! (Beginner)</title>
+<para>The following example writes "Hello, World!" using signals and
+slots. First, we create a signal <code>sig</code>, a signal that
+takes no arguments and has a void return value. Next, we connect
+the <code>hello</code> function object to the signal using the
+<code>connect</code> method. Finally, use the signal
+<code>sig</code> like a function to call the slots, which in turns
+invokes <code>HelloWorld::operator()</code> to print "Hello,
+World!".</para>
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+<programlisting>
+struct HelloWorld 
+{
+  void operator()() const 
+  { 
+    std::cout &lt;&lt; "Hello, World!" &lt;&lt; std::endl;
+  } 
+};
+
+// ...
+
+// Signal with no arguments and a void return value
+<classname>boost::signal</classname>&lt;void ()&gt; sig;
+
+// Connect a HelloWorld slot
+HelloWorld hello;
+sig.<methodname>connect</methodname>(hello);
+
+// Call all of the slots
+sig();
+</programlisting>
+</entry>
+<entry>
+<programlisting>
+struct HelloWorld 
+{
+  void operator()() const 
+  { 
+    std::cout &lt;&lt; "Hello, World!" &lt;&lt; std::endl;
+  } 
+};
+
+// ...
+
+// Signal with no arguments and a void return value
+<classname alt="boost::signalN">boost::signal0</classname>&lt;void&gt; sig;
+
+// Connect a HelloWorld slot
+HelloWorld hello;
+sig.<methodname>connect</methodname>(hello);
+
+// Call all of the slots
+sig();
+</programlisting>
+</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+</section>
+
+<section><title>Calling multiple slots</title>
+<section><title>Connecting multiple slots (Beginner)</title>
+<para>Calling a single slot from a signal isn't very interesting, so
+we can make the Hello, World program more interesting by splitting
+the work of printing "Hello, World!" into two completely separate
+slots. The first slot will print "Hello" and may look like
+this:</para>
+<programlisting>
+struct Hello 
+{
+  void operator()() const
+  {
+    std::cout &lt;&lt; "Hello";
+  }
+};
+</programlisting>
+<para>The second slot will print ", World!" and a newline, to complete
+the program. The second slot may look like this:</para>
+<programlisting>
+struct World
+{
+  void operator()() const
+  {
+    std::cout &lt;&lt; ", World!" &lt;&lt; std::endl;
+  }
+};
+</programlisting>
+<para>Like in our previous example, we can create a signal
+<code>sig</code> that takes no arguments and has a
+<code>void</code> return value. This time, we connect both a
+<code>hello</code> and a <code>world</code> slot to the same
+signal, and when we call the signal both slots will be called.</para>
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+<programlisting>
+<classname>boost::signal</classname>&lt;void ()&gt; sig;
+
+sig.<methodname>connect</methodname>(Hello());
+sig.<methodname>connect</methodname>(World());
+
+sig();
+</programlisting>
+</entry>
+<entry>
+<programlisting>
+<classname alt="boost::signalN">boost::signal0</classname>&lt;void&gt; sig;
+
+sig.<methodname>connect</methodname>(Hello());
+sig.<methodname>connect</methodname>(World());
+
+sig();
+</programlisting>
+</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+<para>By default, slots are called in first-in first-out (FIFO) order,
+so the output of this program will be as expected:</para>
+<programlisting>
+Hello, World!
+</programlisting>
+</section>
+
+<section><title>Ordering slot call groups (Intermediate)</title>
+<para>Slots are free to have side effects, and that can mean that some
+slots will have to be called before others even if they are not connected in that order. The Boost.Signals
+library allows slots to be placed into groups that are ordered in
+some way. For our Hello, World program, we want "Hello" to be
+printed before ", World!", so we put "Hello" into a group that must
+be executed before the group that ", World!" is in. To do this, we
+can supply an extra parameter at the beginning of the
+<code>connect</code> call that specifies the group. Group values
+are, by default, <code>int</code>s, and are ordered by the integer
+&lt; relation. Here's how we construct Hello, World:</para>
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+<programlisting>
+<classname>boost::signal</classname>&lt;void ()&gt; sig;
+sig.<methodname>connect</methodname>(1, World());
+sig.<methodname>connect</methodname>(0, Hello());
+sig();
+</programlisting>
+</entry>
+            <entry>
+<programlisting>
+<classname alt="boost::signalN">boost::signal0</classname>&lt;void&gt; sig;
+sig.<methodname>connect</methodname>(1, World());
+sig.<methodname>connect</methodname>(0, Hello());
+sig();
+</programlisting>
+</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+
+<para>This program will correctly print "Hello, World!", because the
+<code>Hello</code> object is in group 0, which precedes group 1 where
+the <code>World</code> object resides. The group
+parameter is, in fact, optional. We omitted it in the first Hello,
+World example because it was unnecessary when all of the slots are
+independent. So what happens if we mix calls to connect that use the
+group parameter and those that don't? The "unnamed" slots (i.e., those
+that have been connected without specifying a group name) can be
+placed at the front or back of the slot list (by passing
+<code>boost::signals::at_front</code> or <code>boost::signals::at_back</code>
+as the last parameter to <code><methodname
+alt="boost::signalN::connect">connect</methodname></code>, respectively), and defaults to the end of the list. When
+a group is specified, the final parameter describes where the slot
+will be placed within the group ordering. If we add a new slot
+to our example like this:</para>
+<programlisting>
+struct GoodMorning
+{
+  void operator()() const
+  {
+    std::cout &lt;&lt; "... and good morning!" &lt;&lt; std::endl;
+  }
+};
+
+sig.<methodname>connect</methodname>(GoodMorning());
+</programlisting>
+<para>... we will get the result we wanted:</para>
+<programlisting>
+Hello, World!
+... and good morning!
+</programlisting>
+</section>
+</section>
+
+<section><title>Passing values to and from slots</title>
+<section><title>Slot Arguments (Beginner)</title>
+<para>Signals can propagate arguments to each of the slots they call.
+For instance, a signal that propagates mouse motion events might
+want to pass along the new mouse coordinates and whether the mouse
+buttons are pressed.</para>
+<para>As an example, we'll create a signal that passes two
+<code>float</code> arguments to its slots. Then we'll create a few
+slots that print the results of various arithmetic operations on
+these values.</para>
+<programlisting>
+void print_sum(float x, float y)
+{
+  std::cout &lt;&lt; "The sum is " &lt;&lt; x+y &lt;&lt; std::endl;
+}
+
+void print_product(float x, float y)
+{
+  std::cout &lt;&lt; "The product is " &lt;&lt; x*y &lt;&lt; std::endl;
+}
+
+void print_difference(float x, float y)
+{
+  std::cout &lt;&lt; "The difference is " &lt;&lt; x-y &lt;&lt; std::endl;
+}
+
+void print_quotient(float x, float y)
+{
+  std::cout &lt;&lt; "The quotient is " &lt;&lt; x/y &lt;&lt; std::endl;
+}
+</programlisting>
+
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+<programlisting>
+<classname>boost::signal</classname>&lt;void (float, float)&gt; sig;
+
+sig.<methodname>connect</methodname>(&amp;print_sum);
+sig.<methodname>connect</methodname>(&amp;print_product);
+sig.<methodname>connect</methodname>(&amp;print_difference);
+sig.<methodname>connect</methodname>(&amp;print_quotient);
+
+sig(5, 3);
+</programlisting>
+</entry>
+<entry>
+<programlisting>
+<classname alt="boost::signalN">boost::signal2</classname>&lt;void, float, float&gt; sig;
+
+sig.<methodname>connect</methodname>(&amp;print_sum);
+sig.<methodname>connect</methodname>(&amp;print_product);
+sig.<methodname>connect</methodname>(&amp;print_difference);
+sig.<methodname>connect</methodname>(&amp;print_quotient);
+
+sig(5, 3);
+</programlisting>
+</entry>
+              </row>
+            </tbody>
+          </tgroup>
+        </informaltable>
+
+<para>This program will print out the following:</para>
+<programlisting>
+The sum is 8
+The product is 15
+The difference is 2
+The quotient is 1.66667
+</programlisting>
+<para>So any values that are given to <code>sig</code> when it is
+called like a function are passed to each of the slots. We have to
+declare the types of these values up front when we create the
+signal. The type <code><classname>boost::signal</classname>&lt;void (float,
+float)&gt;</code> means that the signal has a <code>void</code>
+return value and takes two <code>float</code> values. Any slot
+connected to <code>sig</code> must therefore be able to take two
+<code>float</code> values.</para>
+</section>
+
+<section><title>Signal Return Values (Advanced)</title>
+<para>Just as slots can receive arguments, they can also return
+values. These values can then be returned back to the caller of the
+signal through a <firstterm>combiner</firstterm>. The combiner is a mechanism
+that can take the results of calling slots (there many be no
+results or a hundred; we don't know until the program runs) and
+coalesces them into a single result to be returned to the caller.
+The single result is often a simple function of the results of the
+slot calls: the result of the last slot call, the maximum value
+returned by any slot, or a container of all of the results are some
+possibilities.</para>
+<para>We can modify our previous arithmetic operations example
+slightly so that the slots all return the results of computing the
+product, quotient, sum, or difference. Then the signal itself can
+return a value based on these results to be printed:</para>
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+<programlisting>
+float product(float x, float y) { return x*y; }
+float quotient(float x, float y) { return x/y; }
+float sum(float x, float y) { return x+y; }
+float difference(float x, float y) { return x-y; }
+
+<classname>boost::signal</classname>&lt;float (float x, float y)&gt; sig;
+
+sig.<methodname>connect</methodname>(&amp;product);
+sig.<methodname>connect</methodname>(&amp;quotient);
+sig.<methodname>connect</methodname>(&amp;sum);
+sig.<methodname>connect</methodname>(&amp;difference);
+
+std::cout &lt;&lt; sig(5, 3) &lt;&lt; std::endl;
+</programlisting>
+</entry>
+<entry>
+<programlisting>
+float product(float x, float y) { return x*y; }
+float quotient(float x, float y) { return x/y; }
+float sum(float x, float y) { return x+y; }
+float difference(float x, float y) { return x-y; }
+
+<classname alt="boost::signalN">boost::signal2</classname>&lt;float, float, float&gt; sig;
+
+sig.<methodname>connect</methodname>(&amp;product);
+sig.<methodname>connect</methodname>(&amp;quotient);
+sig.<methodname>connect</methodname>(&amp;sum);
+sig.<methodname>connect</methodname>(&amp;difference);
+
+std::cout &lt;&lt; sig(5, 3) &lt;&lt; std::endl;
+</programlisting>
+</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+
+<para>This example program will output <code>2</code>. This is because the
+default behavior of a signal that has a return type
+(<code>float</code>, the first template argument given to the
+<code><classname>boost::signal</classname></code> class template) is to call all slots and
+then return the result returned by the last slot called. This
+behavior is admittedly silly for this example, because slots have
+no side effects and the result is the last slot connect.</para>
+<para>A more interesting signal result would be the maximum of the
+values returned by any slot. To do this, we create a custom
+combiner that looks like this:</para>
+<programlisting>
+template&lt;typename T&gt;
+struct maximum
+{
+  typedef T result_type;
+
+  template&lt;typename InputIterator&gt;
+  T operator()(InputIterator first, InputIterator last) const
+  {
+    // If there are no slots to call, just return the
+    // default-constructed value
+    if (first == last)
+      return T();
+
+    T max_value = *first++;
+    while (first != last) {
+      if (max_value &lt; *first)
+        max_value = *first;
+      ++first;
+    }
+  
+    return max_value;
+  }
+};
+</programlisting>
+<para>The <code>maximum</code> class template acts as a function
+object. Its result type is given by its template parameter, and
+this is the type it expects to be computing the maximum based on
+(e.g., <code>maximum&lt;float&gt;</code> would find the maximum
+<code>float</code> in a sequence of <code>float</code>s). When a
+<code>maximum</code> object is invoked, it is given an input
+iterator sequence <code>[first, last)</code> that includes the
+results of calling all of the slots. <code>maximum</code> uses this
+input iterator sequence to calculate the maximum element, and
+returns that maximum value.</para>
+<para>We actually use this new function object type by installing it
+as a combiner for our signal. The combiner template argument
+follows the signal's calling signature:</para>
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+<programlisting>
+<classname>boost::signal</classname>&lt;float (float x, float y), 
+              maximum&lt;float&gt; &gt; sig;
+</programlisting>
+</entry>
+<entry>
+<programlisting>
+<classname alt="boost::signalN">boost::signal2</classname>&lt;float, float, float, 
+               maximum&lt;float&gt; &gt; sig;
+</programlisting>
+</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+
+<para>Now we can connect slots that perform arithmetic functions and
+use the signal:</para>
+<programlisting>
+sig.<methodname>connect</methodname>(&amp;quotient);
+sig.<methodname>connect</methodname>(&amp;product);
+sig.<methodname>connect</methodname>(&amp;sum);
+sig.<methodname>connect</methodname>(&amp;difference);
+
+std::cout &lt;&lt; sig(5, 3) &lt;&lt; std::endl;
+</programlisting>
+<para>The output of this program will be <code>15</code>, because
+regardless of the order in which the slots are connected, the product
+of 5 and 3 will be larger than the quotient, sum, or
+difference.</para>
+<para>In other cases we might want to return all of the values
+computed by the slots together, in one large data structure. This
+is easily done with a different combiner:</para>
+<programlisting>
+template&lt;typename Container&gt;
+struct aggregate_values
+{
+  typedef Container result_type;
+
+  template&lt;typename InputIterator&gt;
+  Container operator()(InputIterator first, InputIterator last) const
+  {
+    return Container(first, last);
+  }
+};
+</programlisting>
+<para>
+Again, we can create a signal with this new combiner: 
+</para>
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+<programlisting>
+<classname>boost::signal</classname>&lt;float (float, float), 
+    aggregate_values&lt;std::vector&lt;float&gt; &gt; &gt; sig;
+
+sig.<methodname>connect</methodname>(&amp;quotient);
+sig.<methodname>connect</methodname>(&amp;product);
+sig.<methodname>connect</methodname>(&amp;sum);
+sig.<methodname>connect</methodname>(&amp;difference);
+
+std::vector&lt;float&gt; results = sig(5, 3);
+std::copy(results.begin(), results.end(), 
+    std::ostream_iterator&lt;float&gt;(cout, " "));
+</programlisting>
+</entry>
+<entry>
+<programlisting>
+<classname alt="boost::signalN">boost::signal2</classname>&lt;float, float, float,
+    aggregate_values&lt;std::vector&lt;float&gt; &gt; &gt; sig;
+
+sig.<methodname>connect</methodname>(&amp;quotient);
+sig.<methodname>connect</methodname>(&amp;product);
+sig.<methodname>connect</methodname>(&amp;sum);
+sig.<methodname>connect</methodname>(&amp;difference);
+
+std::vector&lt;float&gt; results = sig(5, 3);
+std::copy(results.begin(), results.end(), 
+    std::ostream_iterator&lt;float&gt;(cout, " "));
+</programlisting>
+</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+
+<para>The output of this program will contain 15, 8, 1.6667, and 2. It
+is interesting here that
+the first template argument for the <code>signal</code> class,
+<code>float</code>, is not actually the return type of the signal.
+Instead, it is the return type used by the connected slots and will
+also be the <code>value_type</code> of the input iterators passed
+to the combiner. The combiner itself is a function object and its
+<code>result_type</code> member type becomes the return type of the
+signal.</para>
+<para>The input iterators passed to the combiner transform dereference
+operations into slot calls. Combiners therefore have the option to
+invoke only some slots until some particular criterion is met. For
+instance, in a distributed computing system, the combiner may ask
+each remote system whether it will handle the request. Only one
+remote system needs to handle a particular request, so after a
+remote system accepts the work we do not want to ask any other
+remote systems to perform the same task. Such a combiner need only
+check the value returned when dereferencing the iterator, and
+return when the value is acceptable. The following combiner returns
+the first non-NULL pointer to a <code>FulfilledRequest</code> data
+structure, without asking any later slots to fulfill the
+request:</para>
+<programlisting>
+struct DistributeRequest {
+  typedef FulfilledRequest* result_type;
+
+  template&lt;typename InputIterator&gt;
+  result_type operator()(InputIterator first, InputIterator last) const
+  {
+    while (first != last) {
+      if (result_type fulfilled = *first)
+        return fulfilled;
+      ++first;
+    }
+    return 0;
+  }
+};
+</programlisting>
+</section>
+</section>
+
+<section><title>Connection Management</title>
+<section><title>Disconnecting Slots (Beginner)</title>
+<para>Slots aren't expected to exist indefinately after they are
+connected. Often slots are only used to receive a few events and
+are then disconnected, and the programmer needs control to decide
+when a slot should no longer be connected.</para>
+<para>The entry point for managing connections explicitly is the
+<code><classname>boost::signals::connection</classname></code> class. The
+<code><classname>connection</classname></code> class uniquely represents the connection
+between a particular signal and a particular slot. The
+<code><methodname alt="connection::connected">connected</methodname>()</code> method checks if the signal and slot are
+still connected, and the <code><methodname alt="connection::disconnect">disconnect()</methodname></code> method
+disconnects the signal and slot if they are connected before it is
+called. Each call to the signal's <code>connect()</code> method
+returns a connection object, which can be used to determine if the
+connection still exists or to disconnect the signal and slot.</para>
+<programlisting>
+boost::signals::connection c = sig.<methodname>connect</methodname>(HelloWorld());
+if (c.<methodname>connected</methodname>()) {
+<emphasis>// c is still connected to the signal</emphasis>
+  sig(); <emphasis>// Prints "Hello, World!"</emphasis>
+}
+
+c.disconnect(); <emphasis>// Disconnect the HelloWorld object</emphasis>
+assert(!c.<methodname>connected</methodname>()); <emphasis>c isn't connected any more</emphasis>
+
+sig(); <emphasis>// Does nothing: there are no connected slots</emphasis>
+</programlisting>
+</section>
+
+<section><title>Blocking Slots (Beginner)</title> 
+
+<para>Slots can be temporarily "blocked", meaning that they will be
+ignored when the signal is invoked but have not been disconnected. The
+<code><methodname>block</methodname></code> member function
+temporarily blocks a slot, which can be unblocked via
+<code><methodname>unblock</methodname></code>. Here is an example of
+blocking/unblocking slots:</para>
+
+<programlisting>
+boost::signals::connection c = sig.<methodname>connect</methodname>(HelloWorld());
+sig(); <emphasis>// Prints "Hello, World!"</emphasis>
+
+c.<methodname>block</methodname>(); <emphasis>// block the slot</emphasis>
+assert(c.<methodname>blocked</methodname>());
+sig(); <emphasis>// No output: the slot is blocked</emphasis>
+
+c.<methodname>unblock</methodname>(); <emphasis>// unblock the slot</emphasis>
+sig(); <emphasis>// Prints "Hello, World!"</emphasis>
+</programlisting>
+
+</section>
+
+<section><title>Scoped connections (Intermediate)</title>
+<para>The <code>boost::signals::scoped_connection</code> class
+references a signal/slot connection that will be disconnected when
+the <code>scoped_connection</code> class goes out of scope. This
+ability is useful when a connection need only be temporary,
+e.g.,</para>
+<programlisting>
+{
+  boost::signals::scoped_connection c = sig.<methodname>connect</methodname>(ShortLived());
+  sig(); <emphasis>// will call ShortLived function object</emphasis>
+}
+sig(); <emphasis>// ShortLived function object no longer connected to sig</emphasis>
+</programlisting>
+</section>
+
+<section><title>Disconnecting equivalent slots (Intermediate)</title>
+<para>One can disconnect slots that are equivalent to a given function
+object using a form of the
+<code><methodname>disconnect</methodname></code> method, so long as
+the type of the function object has an accessible <code>==</code>
+operator. For instance:
+
+</para>
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+<programlisting>
+void foo();
+void bar();
+
+signal&lt;void()&gt; sig;
+
+sig.connect(&amp;foo);
+sig.connect(&amp;bar);
+
+// disconnects foo, but not bar
+sig.disconnect(&amp;foo);
+</programlisting>
+</entry>
+<entry>
+<programlisting>
+void foo();
+void bar();
+
+signal0&lt;void&gt; sig;
+
+sig.connect(&amp;foo);
+sig.connect(&amp;bar);
+
+// disconnects foo, but not bar
+sig.disconnect(&amp;foo);
+</programlisting>
+</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+
+</section>
+
+<section><title>Automatic connection management (Intermediate)</title>
+<para>Boost.Signals can automatically track the lifetime of objects
+involved in signal/slot connections, including automatic
+disconnection of slots when objects involved in the slot call are
+destroyed. For instance, consider a simple news delivery service,
+where clients connect to a news provider that then sends news to
+all connected clients as information arrives. The news delivery
+service may be constructed like this: </para>
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+<programlisting>
+class NewsItem { /* ... */ };
+
+boost::signal&lt;void (const NewsItem&amp;)&gt; deliverNews;
+</programlisting>
+</entry>
+<entry>
+<programlisting>
+class NewsItem { /* ... */ };
+
+boost::signal1&lt;void, const NewsItem&amp;&gt; deliverNews;
+</programlisting>
+</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+
+<para>Clients that wish to receive news updates need only connect a
+function object that can receive news items to the
+<code>deliverNews</code> signal. For instance, we may have a
+special message area in our application specifically for news,
+e.g.,:</para>
+<programlisting>
+struct NewsMessageArea : public MessageArea
+{
+public:
+  // ...
+
+  void displayNews(const NewsItem&amp; news) const
+  {
+    messageText = news.text();
+    update();
+  }
+};
+
+// ...
+NewsMessageArea newsMessageArea = new NewsMessageArea(/* ... */);
+// ...
+deliverNews.<methodname>connect</methodname>(boost::bind(&amp;NewsMessageArea::displayNews, 
+                                newsMessageArea, _1));
+</programlisting>
+<para>However, what if the user closes the news message area,
+destroying the <code>newsMessageArea</code> object that
+<code>deliverNews</code> knows about? Most likely, a segmentation
+fault will occur. However, with Boost.Signals one need only make
+<code>NewsMessageArea</code> <emphasis>trackable</emphasis>, and the slot
+involving <code>newsMessageArea</code> will be disconnected when
+<code>newsMessageArea</code> is destroyed. The
+<code>NewsMessageArea</code> class is made trackable by deriving
+publicly from the <code>boost::signals::trackable</code> class,
+e.g.:</para>
+<programlisting>
+struct NewsMessageArea : public MessageArea, public boost::signals::trackable
+{
+  // ...
+};
+</programlisting>
+<para>At this time there is a significant limitation to the use of
+<code>trackable</code> objects in making slot connections: function
+objects built using Boost.Bind are understood, such that pointers
+or references to <code>trackable</code> objects passed to
+<code>boost::bind</code> will be found and tracked.</para>
+<para><emphasis role="bold">Warning</emphasis>: User-defined function objects and function
+objects from other libraries (e.g., Boost.Function or Boost.Lambda)
+do not implement the required interfaces for <code>trackable</code>
+object detection, and <emphasis>will silently ignore any bound trackable
+objects</emphasis>. Future versions of the Boost libraries will address
+this limitation.</para>
+</section>
+
+<section><title>When can disconnections occur? (Intermediate)</title>
+<para>Signal/slot disconnections occur when any of these conditions
+occur:</para>
+<itemizedlist>
+<listitem><para>The connection is explicitly disconnected via the connection's
+<code>disconnect</code> method directly, or indirectly via the
+signal's <code>disconnect</code> method or
+<code>scoped_connection</code>'s destructor.</para></listitem>
+<listitem><para>A <code>trackable</code> object bound to the slot is
+destroyed.</para></listitem>
+<listitem><para>The signal is destroyed.</para></listitem></itemizedlist>
+<para>These events can occur at any time without disrupting a signal's
+calling sequence. If a signal/slot connection is disconnected at
+any time during a signal's calling sequence, the calling sequence
+will still continue but will not invoke the disconnected slot.
+Additionally, a signal may be destroyed while it is in a calling
+sequence, and which case it will complete its slot call sequence
+but may not be accessed directly.</para>
+<para>Signals may be invoked recursively (e.g., a signal A calls a
+slot B that invokes signal A...). The disconnection behavior does
+not change in the recursive case, except that the slot calling
+sequence includes slot calls for all nested invocations of the
+signal.</para>
+</section>
+
+<section><title>Passing slots (Intermediate)</title>
+<para>Slots in the Boost.Signals library are created from arbitrary
+function objects, and therefore have no fixed type. However, it is
+commonplace to require that slots be passed through interfaces that
+cannot be templates. Slots can be passed via the
+<code>slot_type</code> for each particular signal type and any
+function object compatible with the signature of the signal can be
+passed to a <code>slot_type</code> parameter. For instance:</para>
+  <informaltable>
+    <tgroup cols="2" align="left">
+      <thead>
+        <row>
+          <entry>Preferred syntax</entry>
+          <entry>Portable syntax</entry>
+        </row>
+      </thead>
+      <tbody>
+        <row>
+          <entry>
+<programlisting>
+class Button 
+{
+  typedef boost::signal&lt;void (int x, int y)&gt; OnClick;
+
+public:
+  void doOnClick(const OnClick::slot_type&amp; slot);
+
+private:
+  OnClick onClick;
+};
+
+void Button::doOnClick(
+      const OnClick::slot_type&amp; slot
+    )
+{
+  onClick.<methodname>connect</methodname>(slot);
+}
+
+void printCoordinates(long x, long y)
+{
+  std::cout &lt;&lt; "(" &lt;&lt; x &lt;&lt; ", " &lt;&lt; y &lt;&lt; ")\n";
+}
+
+void f(Button&amp; button)
+{
+  button.doOnClick(&amp;printCoordinates);
+}
+</programlisting>
+</entry>
+<entry>
+<programlisting>
+class Button 
+{
+  typedef <classname alt="boost::signalN">boost::signal2</classname>&lt;void,int,int&gt; OnClick;
+
+public:
+  void doOnClick(const OnClick::slot_type&amp; slot);
+
+private:
+  OnClick onClick;
+};
+
+void Button::doOnClick(
+      const OnClick::slot_type&amp; slot
+    )
+{
+  onClick.<methodname>connect</methodname>(slot);
+}
+
+void printCoordinates(long x, long y)
+{
+  std::cout &lt;&lt; "(" &lt;&lt; x &lt;&lt; ", " &lt;&lt; y &lt;&lt; ")\n";
+}
+
+void f(Button&amp; button)
+{
+  button.doOnClick(&amp;printCoordinates);
+}
+</programlisting>
+</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </informaltable>
+
+<para>The <code>doOnClick</code> method is now functionally equivalent
+to the <code>connect</code> method of the <code>onClick</code>
+signal, but the details of the <code>doOnClick</code> method can be
+hidden in an implementation detail file.</para>
+</section>
+</section>
+
+<section>
+  <title>Example: Document-View</title>
+  
+  <para>Signals can be used to implement flexible Document-View
+  architectures. The document will contain a signal to which each of
+  the views can connect. The following <code>Document</code> class
+  defines a simple text document that supports mulitple views. Note
+  that it stores a single signal to which all of the views will be
+  connected.</para>
+
+  <programlisting>class Document
+{
+public:
+    typedef boost::signal&lt;void (bool)&gt;  signal_t;
+    typedef boost::signals::connection  connection_t;
+
+public:
+    Document()
+    {}
+
+    connection_t connect(signal_t::slot_function_type subscriber)
+    {
+        return m_sig.connect(subscriber);
+    }
+
+    void disconnect(connection_t subscriber)
+    {
+        subscriber.disconnect();
+    }
+
+    void append(const char* s)
+    {
+        m_text += s;
+        m_sig(true);
+    }
+
+    const std::string&amp; getText() const
+    {
+        return m_text;
+    }
+
+private:
+    signal_t    m_sig;
+    std::string m_text;
+};</programlisting>
+
+  <para>Next, we can define a <code>View</code> base class from which
+  views can derive. This isn't strictly required, but it keeps the
+  Document-View logic separate from the logic itself. Note that the
+  constructor just connects the view to the document and the
+  destructor disconnects the view.</para>
+
+  <programlisting>
+class View
+{
+public:
+    View(Document&amp; m)
+        : m_document(m)
+    {
+        m_connection = m_document.connect(boost::bind(&amp;View::refresh, this, _1));
+    }
+
+    virtual ~View()
+    {
+        m_document.disconnect(m_connection);
+    }
+
+    virtual void refresh(bool bExtended) const = 0;
+
+protected:
+    Document&amp;               m_document;
+
+private:
+    Document::connection_t  m_connection;
+};
+  </programlisting>
+
+  <para>Finally, we can begin to define views. The
+  following <code>TextView</code> class provides a simple view of the
+    document text.</para>
+
+  <programlisting>class TextView : public View
+{
+public:
+    TextView(Document&amp; doc)
+        : View(doc)
+    {}
+
+    virtual void refresh(bool bExtended) const
+    {
+        std::cout &lt;&lt; "TextView: " &lt;&lt; m_document.getText() &lt;&lt; std::endl;
+    }
+};</programlisting>
+
+  <para>Alternatively, we can provide a view of the document
+    translated into hex values using the <code>HexView</code>
+    view:</para>
+
+  <programlisting>class HexView : public View
+{
+public:
+    HexView(Document&amp; doc)
+        : View(doc)
+    {}
+
+    virtual void refresh(bool bExtended) const
+    {
+        const std::string&amp;  s = m_document.getText();
+
+        std::cout &lt;&lt; "HexView:";
+
+        for (std::string::const_iterator it = s.begin(); it != s.end(); ++it)
+            std::cout &lt;&lt; ' ' &lt;&lt; std::hex &lt;&lt; static_cast&lt;int&gt;(*it);
+
+        std::cout &lt;&lt; std::endl;
+    }
+};</programlisting>
+
+  <para>To tie the example together, here is a
+  simple <code>main</code> function that sets up two views and then
+    modifies the document:</para>
+
+  <programlisting>int main(int argc, char* argv[])
+{
+    Document    doc;
+    TextView    v1(doc);
+    HexView     v2(doc);
+
+    doc.append(argc == 2 ? argv[1] : "Hello world!");
+    return 0;
+}</programlisting>
+
+  <para>The complete example source, contributed by Keith MacDonald,
+    is available in <ulink
+    url="../../libs/signals/example/doc_view.cpp"><code>libs/signals/example/doc_view.cpp</code></ulink>.</para>
+</section>
+
+<section>
+  <title>Linking against the Signals library</title>
+
+  <para>Part of the Boost.Signals library is compiled into a binary
+  library that must be linked into your application to use
+  Signals. Please refer to
+    the <ulink url="../../more/getting_started.html">Getting Started</ulink>
+  guide. You will need to link against the <code>boost_signals</code>
+  library.</para>
+</section>
+
+</section>

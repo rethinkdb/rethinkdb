@@ -1,0 +1,145 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Erasing and disposing values from Boost.Intrusive containers</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../intrusive.html" title="Chapter&#160;15.&#160;Boost.Intrusive">
+<link rel="prev" href="advanced_lookups_insertions.html" title="Advanced lookup and insertion functions for associative containers">
+<link rel="next" href="clone_from.html" title="Cloning Boost.Intrusive containers">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="advanced_lookups_insertions.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="clone_from.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="intrusive.erasing_and_disposing"></a><a class="link" href="erasing_and_disposing.html" title="Erasing and disposing values from Boost.Intrusive containers">Erasing and disposing
+    values from Boost.Intrusive containers</a>
+</h2></div></div></div>
+<p>
+      One of the most tedious tasks when using intrusive containers is the management
+      of the erased elements. When using STL containers, the container itself unlinks
+      and destroys the contained elements, but with intrusive containers, the user
+      must explicitly destroy the object after erasing an element from the container.
+      This makes STL-like functions erasing multiple objects unhelpful: the user
+      can't destroy every erased element. For example, let's take the function <code class="computeroutput"><span class="identifier">remove_if</span></code> from <code class="computeroutput"><a class="link" href="../boost/intrusive/list.html" title="Class template list">list</a></code>:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Pred</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">remove_if</span><span class="special">(</span><span class="identifier">Pred</span> <span class="identifier">pred</span><span class="special">);</span>
+</pre>
+<p>
+      How can the user destroy the elements (say, using <code class="computeroutput"><span class="keyword">operator</span>
+      <span class="keyword">delete</span></code>) that will be erased according
+      to the predicate? <span class="bold"><strong>Boost.Intrusive</strong></span> containers
+      offer additional functions that take a function object that will be called
+      after the element has been erased from the container. For example, <code class="computeroutput"><a class="link" href="../boost/intrusive/list.html" title="Class template list">list</a></code> offers:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">Pred</span><span class="special">,</span> <span class="keyword">class</span> <span class="identifier">Disposer</span><span class="special">&gt;</span>
+<span class="keyword">void</span> <span class="identifier">remove_and_dispose_if</span><span class="special">(</span><span class="identifier">Pred</span> <span class="identifier">pred</span><span class="special">,</span> <span class="identifier">Disposer</span> <span class="identifier">disposer</span><span class="special">)</span>
+</pre>
+<p>
+      With this function the user can efficiently remove and destroy elements if
+      the disposer function destroys an object: <code class="computeroutput"><span class="identifier">remove_and_dispose_if</span></code>
+      will call the "disposer" function object for every removed element.
+      <code class="computeroutput"><a class="link" href="../boost/intrusive/list.html" title="Class template list">list</a></code> offers more functions
+      taking a disposer function object as argument, like <code class="computeroutput"><span class="identifier">erase_and_dispose</span></code>,
+      <code class="computeroutput"><span class="identifier">clear_and_dispose</span></code>, <code class="computeroutput"><span class="identifier">remove_and_dispose</span></code>, etc.
+    </p>
+<p>
+      Note that the disposing function does not need to just destroy the object.
+      It can implement any other operation like inserting the remove object in another
+      container. Let's see a small example:
+    </p>
+<p>
+</p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">intrusive</span><span class="special">/</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">intrusive</span><span class="special">;</span>
+
+<span class="comment">//A class that can be inserted in an intrusive list</span>
+<span class="keyword">class</span> <span class="identifier">my_class</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">list_base_hook</span><span class="special">&lt;&gt;</span>
+<span class="special">{</span>
+   <span class="keyword">public</span><span class="special">:</span>
+   <span class="identifier">my_class</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span><span class="special">)</span>
+      <span class="special">:</span>  <span class="identifier">int_</span><span class="special">(</span><span class="identifier">i</span><span class="special">)</span>
+   <span class="special">{}</span>
+
+   <span class="keyword">int</span> <span class="identifier">int_</span><span class="special">;</span>
+   <span class="comment">//...</span>
+<span class="special">};</span>
+
+<span class="comment">//Definition of the intrusive list</span>
+<span class="keyword">typedef</span> <span class="identifier">list</span><span class="special">&lt;</span><span class="identifier">my_class</span><span class="special">&gt;</span> <span class="identifier">my_class_list</span><span class="special">;</span>
+
+<span class="comment">//The predicate function</span>
+<span class="keyword">struct</span> <span class="identifier">is_even</span>
+<span class="special">{</span>
+   <span class="keyword">bool</span> <span class="keyword">operator</span><span class="special">()(</span><span class="keyword">const</span> <span class="identifier">my_class</span> <span class="special">&amp;</span><span class="identifier">c</span><span class="special">)</span> <span class="keyword">const</span>
+   <span class="special">{</span>  <span class="keyword">return</span> <span class="number">0</span> <span class="special">==</span> <span class="special">(</span><span class="identifier">c</span><span class="special">.</span><span class="identifier">int_</span> <span class="special">%</span> <span class="number">2</span><span class="special">);</span>  <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="comment">//The disposer object function</span>
+<span class="keyword">struct</span> <span class="identifier">delete_disposer</span>
+<span class="special">{</span>
+   <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()(</span><span class="identifier">my_class</span> <span class="special">*</span><span class="identifier">delete_this</span><span class="special">)</span>
+   <span class="special">{</span>  <span class="keyword">delete</span> <span class="identifier">delete_this</span><span class="special">;</span>  <span class="special">}</span>
+<span class="special">};</span>
+
+<span class="keyword">int</span> <span class="identifier">main</span><span class="special">()</span>
+<span class="special">{</span>
+   <span class="keyword">const</span> <span class="keyword">int</span> <span class="identifier">MaxElem</span> <span class="special">=</span> <span class="number">100</span><span class="special">;</span>
+
+   <span class="comment">//Fill all the nodes and insert them in the list</span>
+   <span class="identifier">my_class_list</span> <span class="identifier">list</span><span class="special">;</span>
+
+   <span class="keyword">try</span><span class="special">{</span>
+      <span class="comment">//Insert new objects in the container</span>
+      <span class="keyword">for</span><span class="special">(</span><span class="keyword">int</span> <span class="identifier">i</span> <span class="special">=</span> <span class="number">0</span><span class="special">;</span> <span class="identifier">i</span> <span class="special">&lt;</span> <span class="identifier">MaxElem</span><span class="special">;</span> <span class="special">++</span><span class="identifier">i</span><span class="special">)</span> <span class="identifier">list</span><span class="special">.</span><span class="identifier">push_back</span><span class="special">(*</span><span class="keyword">new</span> <span class="identifier">my_class</span><span class="special">(</span><span class="identifier">i</span><span class="special">));</span>
+
+      <span class="comment">//Now use remove_and_dispose_if to erase and delete the objects</span>
+      <span class="identifier">list</span><span class="special">.</span><span class="identifier">remove_and_dispose_if</span><span class="special">(</span><span class="identifier">is_even</span><span class="special">(),</span> <span class="identifier">delete_disposer</span><span class="special">());</span>
+   <span class="special">}</span>
+   <span class="keyword">catch</span><span class="special">(...){</span>
+      <span class="comment">//If something throws, make sure that all the memory is freed</span>
+      <span class="identifier">list</span><span class="special">.</span><span class="identifier">clear_and_dispose</span><span class="special">(</span><span class="identifier">delete_disposer</span><span class="special">());</span>
+      <span class="keyword">throw</span><span class="special">;</span>
+   <span class="special">}</span>
+
+   <span class="comment">//Dispose remaining elements</span>
+   <span class="identifier">list</span><span class="special">.</span><span class="identifier">erase_and_dispose</span><span class="special">(</span><span class="identifier">list</span><span class="special">.</span><span class="identifier">begin</span><span class="special">(),</span> <span class="identifier">list</span><span class="special">.</span><span class="identifier">end</span><span class="special">(),</span> <span class="identifier">delete_disposer</span><span class="special">());</span>
+   <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+    </p>
+<p>
+      All <span class="bold"><strong>Boost.Intrusive</strong></span> containers offer these
+      "erase + dispose" additional members for all functions that erase
+      an element from the container.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2005 Olaf Krzikalla<br>Copyright &#169; 2006-2013 Ion Gaztanaga<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="advanced_lookups_insertions.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../intrusive.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="clone_from.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

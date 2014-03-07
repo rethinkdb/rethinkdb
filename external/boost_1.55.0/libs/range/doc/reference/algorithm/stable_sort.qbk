@@ -1,0 +1,59 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:stable_sort stable_sort]
+
+[heading Prototype]
+
+``
+template<class RandomAccessRange>
+RandomAccessRange& stable_sort(RandomAccessRange& rng);
+
+template<class RandomAccessRange>
+const RandomAccessRange& stable_sort(const RandomAccessRange& rng);
+
+template<class RandomAccessRange, class BinaryPredicate>
+RandomAccessRange& stable_sort(RandomAccessRange& rng, BinaryPredicate pred);
+
+template<class RandomAccessRange, class BinaryPredicate>
+const RandomAccessRange& stable_sort(const RandomAccessRange& rng, BinaryPredicate pred);
+``
+
+[heading Description]
+
+`stable_sort` sorts the elements in `rng` into ascending order. `stable_sort` is guaranteed to be stable. The order is preserved for equivalent elements.
+
+For versions of the `stable_sort` function without a predicate ascending order is defined by `operator<()` such that for all adjacent elements `[x,y]`, `y < x == false`.
+
+For versions of the `stable_sort` function with a predicate, ascending order is designed by `pred` such that for all adjacent elements `[x,y]`, `pred(y,x) == false`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm/stable_sort.hpp`
+
+[heading Requirements]
+
+[*For versions of stable_sort without a predicate]
+
+* `RandomAccessRange` is a model of the __random_access_range__ Concept.
+* `RandomAccessRange` is mutable.
+* `RandomAccessRange`'s value type is a model of the `LessThanComparableConcept`.
+* The ordering relation on `RandomAccessRange`'s value type is a [*strict weak ordering], as defined in the `LessThanComparableConcept` requirements.
+
+[*For versions of stable_sort with a predicate:]
+
+* `RandomAccessRange` is a model of the __random_access_range__ Concept.
+* `RandomAccessRange` is mutable.
+* `BinaryPredicate` is a model of the `StrictWeakOrderingConcept`.
+* `RandomAccessRange`'s value type is convertible to both of `BinaryPredicate`'s argument types.
+
+[heading Complexity]
+
+Best case: `O(N)` where `N` is `distance(rng)`.
+Worst case: `O(N log(N)^2)` comparisons, where `N` is `distance(rng)`.
+
+[endsect]
+
+

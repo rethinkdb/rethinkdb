@@ -1,0 +1,94 @@
+[/==============================================================================
+    Copyright (C) 2001-2011 Joel de Guzman
+    Copyright (C) 2001-2011 Hartmut Kaiser
+    Copyright (C) 2011 Jamboree 
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+===============================================================================/]
+
+[section:seek Qi Seek Parser Directive ]
+
+[heading Description]
+
+The `seek[]` parser-directive skips all input until the subject parser matches.
+On failure, the current position is the end of the input.
+
+[heading Header]
+
+    // forwards to <boost/spirit/repository/home/qi/directive/seek.hpp>
+    #include <boost/spirit/repository/include/qi_seek.hpp>
+
+Also, see __include_structure__.
+
+[heading Namespace]
+
+[table
+    [[Name]]
+    [[`boost::spirit::repository::qi::seek`]]
+]
+
+[heading Model of]
+
+[:__unary_parser_concept__]
+
+[variablelist Notation
+    [[`a`]          [A __parser_concept__.]]
+]
+
+[heading Expression Semantics]
+
+Semantics of an expression is defined only where it differs from, or is
+not defined in __unary_parser_concept__.
+
+[table
+    [[Expression]               [Semantics]]
+    [[`seek[a]`]                [Advances until the parser `a` matches.]]
+]
+
+[heading Attributes]
+
+See __qi_comp_attr_notation__.
+
+[table
+    [[Expression]       [Attribute]]
+    [[`seek[a]`]
+[``a: A --> seek[a]: A
+a: Unused --> seek[a]: Unused``]]
+]
+
+[heading Complexity]
+
+[:The overall complexity is defined by the complexity of its subject
+parser. The complexity of `seek` itself is O(N), where N is the number
+of unsuccessful matches.]
+
+[note *seeking sequence with skipping*
+
+Using `seek[a >> b]` with skipping is inefficient, because when sequence fails, the backtracked position is non-skipped.
+The solution is to ensure the input will always be pre-skipped, for example:
+``
+    seek[lexeme[skip[a >> b]]]
+``	
+does the trick.]
+
+[heading Example]
+
+[import ../../example/qi/seek.cpp]
+
+The following example shows a simple use case of the `seek[]` directive, parsing C-style comment.
+(For the full source of the example, see [@../../example/qi/seek.cpp seek.cpp])
+
+Some namespace aliases:
+
+[reference_qi_seek_namespace]
+
+The input string and its iterators:
+
+[reference_qi_seek_vars]
+
+Parsing and showing the result:
+
+[reference_qi_seek_parse]
+
+[endsect]

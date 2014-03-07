@@ -1,0 +1,87 @@
+[/ 
+  Copyright 2006-2007 John Maddock.
+  Distributed under the Boost Software License, Version 1.0.
+  (See accompanying file LICENSE_1_0.txt or copy at
+  http://www.boost.org/LICENSE_1_0.txt).
+]
+
+
+[section:configuration Configuration]
+
+[section:compiler Compiler Setup]
+
+You shouldn't need to do anything special to configure Boost.Regex for use 
+with your compiler - the [@../../../config/index.html Boost.Config subsystem] should already take care of it, 
+if you do have problems (or you are using a particularly obscure compiler 
+or platform) then [@../../../config/index.html Boost.Config] has a configure script that you can run.
+
+[endsect]
+
+[section:locale Locale and traits class selection]
+
+The following macros (see [@../../../../boost/regex/user.hpp user.hpp]) control how Boost.Regex interacts with 
+the user's locale:
+
+[table
+[[macro][description]]
+[[BOOST_REGEX_USE_C_LOCALE][Forces Boost.Regex to use the global C locale in its traits class support: this is now deprecated in favour of the C++ locale.]]
+[[BOOST_REGEX_USE_CPP_LOCALE][Forces Boost.Regex to use std::locale in it's default traits class, regular expressions can then be imbued with an instance specific locale.  This is the default behaviour on non-Windows platforms.]]
+[[BOOST_REGEX_NO_W32][Tells Boost.Regex not to use any Win32 API's even when available (implies BOOST_REGEX_USE_CPP_LOCALE unless BOOST_REGEX_USE_C_LOCALE is set).]]
+]
+
+[endsect]
+
+
+[section:linkage Linkage Options]
+
+[table
+[[macro][description]]
+[[BOOST_REGEX_DYN_LINK][For Microsoft and Borland C++ builds, this tells Boost.Regex that it should link to the dll build of the Boost.Regex.  By default boost.regex will link to its static library build, even if the dynamic C runtime library is in use.]]
+[[BOOST_REGEX_NO_LIB][For Microsoft and Borland C++ builds, this tells Boost.Regex that it should not automatically select the library to link to.]]
+[[BOOST_REGEX_NO_FASTCALL][For Microsoft builds, this tells Boost.Regex to use the `__cdecl` calling convention rather than `__fastcall`.  Useful if you want to use the same library from both managed and unmanaged code.]]
+]
+
+[endsect]
+
+[section:algorithm Algorithm Selection]
+
+[table
+[[macro][description]]
+[[BOOST_REGEX_RECURSIVE][Tells Boost.Regex to use a stack-recursive matching algorithm.  This is generally the fastest option (although there is very little in it), but can cause stack overflow in extreme cases, on Win32 this can be handled safely, but this is not the case on other platforms.]]
+[[BOOST_REGEX_NON_RECURSIVE][Tells Boost.Regex to use a non-stack recursive matching algorithm, this can be slightly slower than the alternative, but is always safe no matter how pathological the regular expression.  This is the default on non-Win32 platforms.]]
+]
+
+[endsect]
+
+[section:tuning Algorithm Tuning]
+
+The following option applies only if BOOST_REGEX_RECURSIVE is set.
+
+[table
+[[macro][description]]
+[[BOOST_REGEX_HAS_MS_STACK_GUARD][Tells Boost.Regex that Microsoft style __try - __except blocks are supported, and can be used to safely trap stack overflow.]]
+]
+
+
+The following options apply only if BOOST_REGEX_NON_RECURSIVE is set.
+
+[table
+[[macro][description]]
+[[BOOST_REGEX_BLOCKSIZE][In non-recursive mode, Boost.Regex uses largish blocks of memory to act as a stack for the state machine, the larger the block size then the fewer allocations that will take place.  This defaults to 4096 bytes, which is large enough to match the vast majority of regular expressions without further allocations, however, you can choose smaller or larger values depending upon your platforms characteristics.]]
+[[BOOST_REGEX_MAX_BLOCKS][Tells Boost.Regex how many blocks of size BOOST_REGEX_BLOCKSIZE it is permitted to use.  If this value is exceeded then Boost.Regex will stop trying to find a match and throw a std::runtime_error.  Defaults to 1024, don't forget to tweek this value if you alter BOOST_REGEX_BLOCKSIZE by much.]]
+[[BOOST_REGEX_MAX_CACHE_BLOCKS][Tells Boost.Regex how many memory blocks to store in 
+         it's internal cache - memory blocks are taken from this cache rather than by calling 
+         ::operator new.  Generally speeking this can be an order of magnitude faster than 
+         calling ::opertator new each time a memory block is required, but has the 
+         downside that Boost.Regex can end up caching a large chunk of memory (by default 
+         up to 16 blocks each of BOOST_REGEX_BLOCKSIZE size).  If memory is tight then try 
+         defining this to 0 (disables all caching), or if that is too slow, then a value of 
+         1 or 2, may be sufficient.  On the other hand, on large multi-processor, 
+multi-threaded systems, you may find that a higher value is in order.]]
+]
+
+[endsect]
+
+[endsect]
+
+

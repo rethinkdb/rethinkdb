@@ -1,0 +1,489 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright 2012 Eric Niebler
+
+  Distributed under the Boost
+  Software License, Version 1.0. (See accompanying
+  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+  -->
+<header name="boost/proto/make_expr.hpp">
+  <para>
+    Definition of the <computeroutput><functionname alt="boost::proto::make_expr">proto::make_expr()</functionname>
+    </computeroutput> and <computeroutput><functionname alt="boost::proto::unpack_expr">proto::unpack_expr()</functionname>
+    </computeroutput> utilities for building Proto expression nodes from child nodes or from a Fusion sequence of child
+    nodes, respectively.
+  </para>
+  <namespace name="boost">
+    <namespace name="proto">
+      <namespace name="functional">
+        <!-- proto::functional::make_expr -->
+        <struct name="make_expr">
+          <template>
+            <template-type-parameter name="Tag"/>
+            <template-type-parameter name="Domain">
+              <default><classname>proto::deduce_domain</classname></default>
+            </template-type-parameter>
+          </template>
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> equivalent to the <computeroutput>
+            <functionname alt="proto::make_expr">proto::make_expr()</functionname></computeroutput> function.</purpose>
+          <description>
+            <para>
+              In all cases, <computeroutput>proto::functional::make_expr&lt;Tag, Domain&gt;()(a...)</computeroutput>
+              is equivalent to <computeroutput><functionname>proto::make_expr</functionname>&lt;Tag, Domain&gt;(a...)</computeroutput>.
+            </para>
+            <para>
+              <computeroutput>proto::functional::make_expr&lt;Tag&gt;()(a...)</computeroutput> is equivalent to
+              <computeroutput><functionname>proto::make_expr</functionname>&lt;Tag&gt;(a...)</computeroutput>.
+            </para>
+          </description>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="A" pack="1"/>
+            </template>
+            <specialization>
+              <template-arg>This(A...)</template-arg>
+            </specialization>
+            <inherit>
+              <type>
+    <classname>proto::result_of::make_expr</classname>&lt; Tag, Domain, A... &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::make_expr</classname>&lt; Tag, Domain, A const... &gt;::type const</type>
+              <template>
+                <template-type-parameter name="A" pack="1"/>
+              </template>
+              <parameter name="a" pack="1">
+                <paramtype>A const &amp;</paramtype>
+              </parameter>
+              <description>
+                <para>
+                  Construct an expression node with tag type <computeroutput>Tag</computeroutput> and in the 
+                  domain <computeroutput>Domain</computeroutput>.
+                </para>
+                <para>
+                </para>
+              </description>
+              <returns>
+                <para>
+                  <computeroutput><functionname>proto::make_expr</functionname>&lt;Tag, Domain&gt;(a...)</computeroutput>
+                </para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+        
+        <!-- proto::functional::unpack_expr -->
+        <struct name="unpack_expr">
+          <template>
+            <template-type-parameter name="Tag"/>
+            <template-type-parameter name="Domain">
+              <default><classname>proto::deduce_domain</classname></default>
+            </template-type-parameter>
+          </template>
+          <purpose>A <conceptname>PolymorphicFunctionObject</conceptname> equivalent to the 
+            <computeroutput><functionname alt="proto::unpack_expr">proto::unpack_expr()</functionname></computeroutput> function.
+          </purpose>
+          <description>
+            <para>
+              In all cases, <computeroutput>proto::functional::unpack_expr&lt;Tag, Domain&gt;()(seq)</computeroutput> is
+              equivalent to <computeroutput><functionname alt="proto::unpack_expr">proto::unpack_expr()</functionname>&lt;Tag,
+              Domain&gt;(seq)</computeroutput>.
+            </para>
+            <para>
+              <computeroutput>proto::functional::unpack_expr&lt;Tag&gt;()(seq)</computeroutput> is equivalent to
+              <computeroutput><functionname alt="proto::unpack_expr">proto::unpack_expr()</functionname>&lt;Tag&gt;(seq)</computeroutput>.
+            </para>
+          </description>
+          <inherit>
+            <type><classname>proto::callable</classname></type>
+          </inherit>
+          <struct-specialization name="result">
+            <template>
+              <template-type-parameter name="This"/>
+              <template-type-parameter name="Sequence"/>
+            </template>
+            <specialization>
+              <template-arg>This(Sequence)</template-arg>
+            </specialization>
+            <inherit>
+              <type>
+    <classname>proto::result_of::unpack_expr</classname>&lt;
+      Tag,
+      Domain,
+      typename boost::remove_reference&lt; Sequence &gt;::type
+    &gt;</type>
+            </inherit>
+          </struct-specialization>
+          <method-group name="public member functions">
+            <method name="operator()" cv="const">
+              <type>typename <classname>proto::result_of::unpack_expr</classname>&lt; Tag, Domain, Sequence const &gt;::type const</type>
+              <template>
+                <template-type-parameter name="Sequence"/>
+              </template>
+              <parameter name="sequence">
+                <paramtype>Sequence const &amp;</paramtype>
+                <description>
+                  <para>A Fusion Forward Sequence </para>
+                </description>
+              </parameter>
+              <description>
+                <para>
+                  Construct an expression node with tag type <computeroutput>Tag</computeroutput> and in the
+                  domain <computeroutput>Domain</computeroutput>.
+                </para>
+              </description>
+              <returns>
+                <para>
+                  <computeroutput><functionname>proto::unpack_expr</functionname>&lt;Tag, Domain&gt;(sequence)</computeroutput>
+                </para>
+              </returns>
+            </method>
+          </method-group>
+        </struct>
+      </namespace>
+      
+      <namespace name="result_of">
+        <!-- proto::result_of::make_expr -->
+        <struct name="make_expr">
+          <template>
+            <template-type-parameter name="Tag"/>
+            <template-type-parameter name="A" pack="1"/>
+          </template>
+          <purpose>Metafunction that computes the return type of the
+            <computeroutput><functionname alt="proto::make_expr">proto::make_expr()</functionname></computeroutput>
+            function, with a domain deduced from the domains of the children.</purpose>
+          <description>
+            <para>
+              Computes the return type of the
+              <computeroutput><functionname alt="proto::make_expr">proto::make_expr()</functionname></computeroutput> function.
+            </para>
+            <para>
+              In this specialization, the domain is deduced from the domains of the child types.
+              If <computeroutput><classname>proto::is_domain</classname>&lt;A<subscript>0</subscript>&gt;::value</computeroutput>
+              is <computeroutput>true</computeroutput>, then another specialization is selected.
+            </para>
+          </description>
+          <typedef name="D">
+            <purpose>For exposition only</purpose>
+            <type><replaceable>domain-deduced-from-child-types</replaceable></type>
+            <description>
+              <para>
+                In this specialization, Proto uses the domains of the child expressions to compute the
+                domain of the parent. See
+                <computeroutput><classname>proto::deduce_domain</classname></computeroutput> for a full
+                description of the procedure used.
+              </para>
+            </description>
+          </typedef>
+          <typedef name="type">
+            <type>typename <classname>proto::result_of::make_expr</classname>&lt;Tag, D, A...&gt;::type</type>
+          </typedef>
+        </struct>
+        <struct-specialization name="make_expr">
+          <template>
+            <template-type-parameter name="Tag"/>
+            <template-type-parameter name="Domain"/>
+            <template-type-parameter name="A" pack="1"/>
+          </template>
+          <specialization>
+            <template-arg>Tag</template-arg>
+            <template-arg>Domain</template-arg>
+            <template-arg pack="1">A</template-arg>
+          </specialization>
+          <purpose>Metafunction that computes the return type of the
+            <computeroutput><functionname alt="proto::make_expr">proto::make_expr()</functionname></computeroutput>
+            function, within the specified domain.</purpose>
+          <description>
+            <para>
+              Computes the return type of the
+              <computeroutput><functionname alt="proto::make_expr">proto::make_expr()</functionname></computeroutput>
+              function.
+            </para>
+          </description>
+          <typedef name="type">
+            <description>
+              <para>
+                Let <computeroutput><replaceable>WRAP&lt;X&gt;</replaceable></computeroutput> be defined such that:
+                <itemizedlist>
+                  <listitem>
+                    <para>
+                      If <computeroutput>X</computeroutput> is <computeroutput>Y &amp;</computeroutput>
+                      or (possibly cv-qualified) <computeroutput>boost::reference_wrapper&lt;Y&gt;</computeroutput>,
+                      then <computeroutput><replaceable>WRAP&lt;X&gt;</replaceable></computeroutput> is equivalent to
+                      <computeroutput><classname>proto::result_of::as_child</classname>&lt;Y, Domain&gt;</computeroutput>.
+                    </para>
+                  </listitem>
+                  <listitem>
+                    <para>
+                      Otherwise, <computeroutput><replaceable>WRAP&lt;X&gt;</replaceable></computeroutput> is equivalent to
+                      <computeroutput><classname>proto::result_of::as_expr</classname>&lt;X, Domain&gt;</computeroutput>.
+                    </para>
+                  </listitem>
+                </itemizedlist>
+              </para>
+              <para>
+                If <computeroutput><classname>proto::wants_basic_expr</classname>&lt;typename Domain::proto_generator&gt;::value</computeroutput>
+                is true, then let <computeroutput><replaceable>E</replaceable></computeroutput> be
+                <computeroutput><classname>proto::basic_expr</classname></computeroutput>; otherwise,
+                let <computeroutput><replaceable>E</replaceable></computeroutput> be
+                <computeroutput><classname>proto::expr</classname></computeroutput>.
+              </para>
+              <para>
+                If <computeroutput>Tag</computeroutput> is
+                <computeroutput><classname>proto::tag::terminal</classname></computeroutput>, then
+                <computeroutput>type</computeroutput> is a typedef for
+                <computeroutput>typename <replaceable>WRAP&lt;A<subscript>0</subscript>&gt;</replaceable>::type</computeroutput>.
+              </para>
+              <para>
+                Otherwise, <computeroutput>type</computeroutput> is a typedef for
+                <computeroutput>boost::result_of&lt;Domain(<replaceable>E</replaceable>&lt;
+                Tag, <classname alt="proto::listN">proto::list<emphasis>N</emphasis></classname>&lt;
+                typename <replaceable>WRAP&lt;A&gt;</replaceable>::type...&gt; &gt;)&gt;::type</computeroutput>
+              </para>
+            </description>
+            <type><emphasis>see-below</emphasis></type>
+          </typedef>
+        </struct-specialization>
+        <!-- proto::result_of::unpack_expr -->
+        <struct name="unpack_expr">
+          <template>
+            <template-type-parameter name="Tag"/>
+            <template-type-parameter name="Sequence"/>
+            <template-type-parameter name="Void">
+              <default><type>void</type></default>
+            </template-type-parameter>
+          </template>
+          <purpose>Metafunction that computes the return type of the
+            <computeroutput><functionname alt="proto::unpack_expr">proto::unpack_expr()</functionname></computeroutput>
+            function, with a domain deduced from the domains of the children.
+          </purpose>
+          <description>
+            <para>
+              Compute the return type of the
+              <computeroutput><functionname alt="proto::unpack_expr">proto::unpack_expr()</functionname></computeroutput>
+              function.
+            </para>
+            <para>
+              <computeroutput>Sequence</computeroutput> is a Fusion Forward Sequence.
+            </para>
+            <para>
+              In this specialization, the domain is deduced from the domains of the child types.
+              If <computeroutput><classname>proto::is_domain</classname>&lt;Sequence&gt;::value</computeroutput>
+              is <computeroutput>true</computeroutput>, then another specialization is selected.
+            </para>
+          </description>
+          <typedef name="type">
+            <purpose>Where S is a Fusion RandomAccessSequence equivalent to Sequence, and N is the size of S.</purpose>
+            <type>
+    typename <classname>proto::result_of::make_expr</classname>&lt;
+      Tag,
+      typename fusion::result_of::value_at_c&lt;<replaceable>S</replaceable>, 0&gt;::type,
+      ...
+      typename fusion::result_of::value_at_c&lt;<replaceable>S</replaceable>, <replaceable>N</replaceable>-1&gt;::type
+    &gt;::type
+  </type>
+          </typedef>
+        </struct>
+        <struct-specialization name="unpack_expr">
+          <template>
+            <template-type-parameter name="Tag"/>
+            <template-type-parameter name="Domain"/>
+            <template-type-parameter name="Sequence"/>
+          </template>
+          <specialization>
+            <template-arg>Tag</template-arg>
+            <template-arg>Domain</template-arg>
+            <template-arg>Sequence</template-arg>
+          </specialization>
+          <purpose>Metafunction that computes the return type of the
+            <computeroutput><functionname alt="proto::unpack_expr">proto::unpack_expr()</functionname></computeroutput>
+            function, within the specified domain.
+          </purpose>
+          <description>
+            <para>
+              Computes the return type of the
+              <computeroutput><functionname alt="proto::unpack_expr">proto::unpack_expr()</functionname></computeroutput>
+              function.
+            </para>
+          </description>
+          <typedef name="type">
+            <purpose>Where S is a RandomAccessSequence equivalent to Sequence, and N is the size of S.</purpose>
+            <type>
+    typename <classname>proto::result_of::make_expr</classname>&lt;
+      Tag,
+      Domain,
+      typename fusion::result_of::value_at_c&lt;<replaceable>S</replaceable>, 0&gt;::type,
+      ...
+      typename fusion::result_of::value_at_c&lt;<replaceable>S</replaceable>, <replaceable>N</replaceable>-1&gt;::type
+    &gt;::type
+  </type>
+          </typedef>
+        </struct-specialization>
+      </namespace>
+
+      <!-- proto::make_expr() -->
+      <overloaded-function name="make_expr">
+        <signature>
+          <type>typename <classname>proto::result_of::make_expr</classname>&lt;Tag, A const...&gt;::type const</type>
+          <template>
+            <template-type-parameter name="Tag"/>
+            <template-type-parameter name="A" pack="1"/>
+          </template>
+          <parameter name="a" pack="1">
+            <paramtype>A const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::make_expr</classname>&lt;Tag, Domain, A const...&gt;::type const</type>
+          <template>
+            <template-type-parameter name="Tag"/>
+            <template-type-parameter name="Domain"/>
+            <template-type-parameter name="A" pack="1"/>
+          </template>
+          <parameter name="a" pack="1">
+            <paramtype>A const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <purpose>Construct an expression of the requested tag type with a domain and with the specified
+          arguments as children.</purpose>
+        <description>
+          <para>
+            This function template may be invoked either with or without specifying a
+            <computeroutput>Domain</computeroutput> template parameter. If no domain is specified, the domain
+            is deduced by examining domains of the given arguments. See
+            <computeroutput><classname>proto::deduce_domain</classname></computeroutput> for a full
+            description of the procedure used.
+          </para>
+          <para>
+            Let <computeroutput><replaceable>WRAP</replaceable>(x)</computeroutput> be defined such that:
+            <itemizedlist>
+              <listitem>
+                <para>
+                  If <computeroutput>x</computeroutput> is a <computeroutput>boost::reference_wrapper&lt;&gt;</computeroutput>,
+                  <computeroutput><replaceable>WRAP</replaceable>(x)</computeroutput> is equivalent to
+                  <computeroutput><functionname>proto::as_child</functionname>&lt;Domain&gt;(x.get())</computeroutput>.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  Otherwise, <computeroutput><replaceable>WRAP</replaceable>(x)</computeroutput> is equivalent to
+                  <computeroutput><functionname>proto::as_expr</functionname>&lt;Domain&gt;(x)</computeroutput>.
+                </para>
+              </listitem>
+            </itemizedlist>
+          </para>
+          <para>
+            If <computeroutput><classname>proto::wants_basic_expr</classname>&lt;typename Domain::proto_generator&gt;::value</computeroutput>
+            is true, then let <computeroutput><replaceable>E</replaceable></computeroutput> be
+            <computeroutput><classname>proto::basic_expr</classname></computeroutput>; otherwise,
+            let <computeroutput><replaceable>E</replaceable></computeroutput> be
+            <computeroutput><classname>proto::expr</classname></computeroutput>.
+          </para>
+          <para>
+            Let <computeroutput><replaceable>MAKE</replaceable>(Tag, b...)</computeroutput> be defined as
+            <computeroutput><replaceable>E</replaceable>&lt;Tag,
+            <classname alt="proto::listN">proto::list<emphasis>N</emphasis></classname>&lt;decltype(b)...&gt; &gt;::make(b...)</computeroutput>.
+          </para>
+          <para>
+            If <computeroutput>Tag</computeroutput> is
+            <computeroutput><classname>proto::tag::terminal</classname></computeroutput>, then return
+            <computeroutput><replaceable>WRAP</replaceable>(a<subscript>0</subscript>)</computeroutput>.
+          </para>
+          <para>
+            Otherwise, return
+            <computeroutput>Domain()(<replaceable>MAKE</replaceable>(Tag, <replaceable>WRAP</replaceable>(a)...))</computeroutput>.
+          </para>
+        </description>
+      </overloaded-function>
+
+      <!-- proto::unpack_expr() -->
+      <overloaded-function name="unpack_expr">
+        <signature>
+          <type>typename <classname>proto::result_of::unpack_expr</classname>&lt;Tag, Sequence const&gt;::type const</type>
+          <template>
+            <template-type-parameter name="Tag"/>
+            <template-type-parameter name="Sequence"/>
+          </template>
+          <parameter name="sequence">
+            <paramtype>Sequence const &amp;</paramtype>
+            <description>
+              <para>A Fusion Forward Sequence.</para>
+            </description>
+          </parameter>
+        </signature>
+        <signature>
+          <type>typename <classname>proto::result_of::unpack_expr</classname>&lt;Tag, Domain, Sequence const&gt;::type const</type>
+          <template>
+            <template-type-parameter name="Tag"/>
+            <template-type-parameter name="Domain"/>
+            <template-type-parameter name="Sequence"/>
+          </template>
+          <parameter name="sequence">
+            <paramtype>Sequence const &amp;</paramtype>
+          </parameter>
+        </signature>
+        <purpose>Construct an expression of the requested tag type with a domain and with children
+          from the specified Fusion Forward Sequence.</purpose>
+        <description>
+          <para>
+            This function template may be invoked either with or without specifying a
+            <computeroutput>Domain</computeroutput> argument. If no domain is specified, the domain
+            is deduced by examining domains of each element of the sequence. See
+            <computeroutput><classname>proto::deduce_domain</classname></computeroutput> for a full
+            description of the procedure used.
+          </para>
+          <para>
+            Let <computeroutput>s</computeroutput> be a Fusion RandomAccessSequence equivalent to
+            <computeroutput>sequence</computeroutput>.
+            Let <computeroutput><replaceable>WRAP</replaceable>(N, s)</computeroutput> be defined such that:
+            <itemizedlist>
+              <listitem>
+                <para>
+                  If <computeroutput>fusion::result_of::value_at_c&lt;decltype(s),N&gt;::type</computeroutput> is a reference type
+                  or an instantiation of <computeroutput>boost::reference_wrapper&lt;&gt;</computeroutput>,
+                  <computeroutput><replaceable>WRAP</replaceable>(N, s)</computeroutput> is equivalent to
+                  <computeroutput><functionname>proto::as_child</functionname>&lt;Domain&gt;(fusion::at_c&lt;N&gt;(s))</computeroutput>.
+                </para>
+              </listitem>
+              <listitem>
+                <para>
+                  Otherwise, <computeroutput><replaceable>WRAP</replaceable>(N, s)</computeroutput> is equivalent to
+                  <computeroutput><functionname>proto::as_expr</functionname>&lt;Domain&gt;(fusion::at_c&lt;N&gt;(s))</computeroutput>.
+                </para>
+              </listitem>
+            </itemizedlist>
+          </para>
+          <para>
+            If <computeroutput><classname>proto::wants_basic_expr</classname>&lt;typename Domain::proto_generator&gt;::value</computeroutput>
+            is true, then let <computeroutput><replaceable>E</replaceable></computeroutput> be
+            <computeroutput><classname>proto::basic_expr</classname></computeroutput>; otherwise,
+            let <computeroutput><replaceable>E</replaceable></computeroutput> be
+            <computeroutput><classname>proto::expr</classname></computeroutput>.
+          </para>
+          <para>
+            Let <computeroutput><replaceable>MAKE</replaceable>(Tag, b...)</computeroutput> be defined as
+            <computeroutput><replaceable>E</replaceable>&lt;Tag,
+            <classname alt="proto::listN">proto::list<emphasis>N</emphasis></classname>&lt;decltype(b)...&gt; &gt;::make(b...)</computeroutput>.
+          </para>
+          <para>
+            If <computeroutput>Tag</computeroutput> is
+            <computeroutput><classname>proto::tag::terminal</classname></computeroutput>, then return
+            <computeroutput><replaceable>WRAP</replaceable>(0, s)</computeroutput>.
+          </para>
+          <para>
+            Otherwise, return
+            <computeroutput>Domain()(<replaceable>MAKE</replaceable>(Tag, <replaceable>WRAP</replaceable>(0, s),...
+            <replaceable>WRAP</replaceable>(<replaceable>N</replaceable>-1, s)))</computeroutput>, where
+            <replaceable>N</replaceable> is the size of <computeroutput>Sequence</computeroutput>.
+          </para>
+        </description>
+      </overloaded-function>
+    </namespace>
+  </namespace>
+</header>

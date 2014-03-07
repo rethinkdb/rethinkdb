@@ -1,0 +1,576 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <meta http-equiv="Content-Language" content="en-us">
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <link rel="stylesheet" type="text/css" href="../../boost.css">
+
+  <title>Writing Documentation for Boost - HTML Design</title>
+</head>
+
+<body link="#0000FF" vlink="#800080">
+  <table border="0" cellpadding="7" cellspacing="0" width="100%" summary=
+  "header">
+    <tr>
+      <td valign="top" width="300">
+        <h3><a href="index.html"><img height="86" width="277" alt="C++ Boost"
+        src="../../boost.png" border="0"></a></h3>
+      </td>
+
+      <td valign="top">
+        <h1 align="center">Writing Documentation for Boost</h1>
+
+        <h2 align="center">HTML Design</h2>
+      </td>
+    </tr>
+  </table>
+  <hr>
+
+  <dl class="page-index">
+    <dt><a href="#introduction">Introduction</a></dt>
+
+    <dt><a href="#common-pages">Common Pages Included in HTML
+    Documentation</a></dt>
+
+    <dd>
+      <dl class="page-index">
+        <dt><a href="#index-page">Index</a></dt>
+
+        <dt><a href="#overview-page">Overview</a></dt>
+
+        <dt><a href="#definitions-page">Definitions</a></dt>
+
+        <dt><a href="#rationale-page">Rationale</a></dt>
+
+        <dt><a href="#configuration-page">Configuration Information</a></dt>
+
+        <dt><a href="#faq-page">Frequently Asked Questions</a></dt>
+
+        <dt><a href="#bibliography-page">Bibliography</a></dt>
+
+        <dt><a href="#acknowledgements-page">Acknowledgment</a></dt>
+
+        <dt><a href="#header-page">Header Reference</a></dt>
+      </dl>
+    </dd>
+
+    <dt><a href="#layout">Layout</a></dt>
+
+    <dd>
+      <dl class="page-index">
+        <dt><a href="#page-banner">Page Banner</a></dt>
+
+        <dt><a href="#page-index">Page Index</a></dt>
+
+        <dt><a href="#content">Documentation Content</a></dt>
+
+        <dd>
+          <dl class="page-index">
+            <dt><a href="#doc-footnotes">Footnotes</a></dt>
+          </dl>
+        </dd>
+
+        <dt><a href="#revision-info">Revision Information</a></dt>
+
+        <dt><a href="#copyright">Copyright Information</a></dt>
+      </dl>
+    </dd>
+
+    <dt><a href="#format">Format</a></dt>
+
+    <dd>
+      <dl class="page-index">
+        <dt><a href="#style-sheets">Cascading Style Sheets</a></dt>
+
+        <dd>
+          <dl class="page-index">
+            <dt><a href="#boost-style-sheet">Boost Style Sheet</a></dt>
+          </dl>
+        </dd>
+      </dl>
+    </dd>
+
+    <dt><a href="#templates">Templates</a></dt>
+
+    <dd>
+      <dl class="page-index">
+        <dt><a href="#index-template">Index Page Template</a></dt>
+
+        <dt><a href="#overview-template">Overview Page Template</a></dt>
+
+        <dt><a href="#definitions-template">Definitions Page
+        Template</a></dt>
+
+        <dt><a href="#rationale-template">Rationale Page Template</a></dt>
+
+        <dt><a href="#configuration-template">Configuration Page
+        Template</a></dt>
+
+        <dt><a href="#faq-template">FAQ (Frequently Asked Questions) Page
+        Template</a></dt>
+
+        <dt><a href="#bibliography-template">Bibliography Page
+        Template</a></dt>
+
+        <dt><a href="#acknowledgements-template">Acknowledgments Page
+        Template</a></dt>
+
+        <dt><a href="#header-template">Header Page Template</a></dt>
+      </dl>
+    </dd>
+  </dl>
+
+  <h2><a name="introduction" id="introduction"></a>Introduction</h2>
+
+  <p>Boost places no requirements on the design of HTML documentation for
+  library submitters. If you are submitting a library for which documentation
+  already exists in either HTML or in a form easily converted to HTML then
+  there is no need for you to read this document. However, if you have not
+  yet written the documentation, or if you expect to have to translate
+  documentation written in a format not easily convertible to HTML then this
+  document can give you a lot of information on how to go about writing
+  documentation in HTML.</p>
+
+  <p>In several places this document assumes you're writing the documentation
+  to conform to the structure described in the <a href=
+  "structure.html">Documentation Structure</a> document. There is no
+  requirement that your documentation content follow these guidelines, but
+  they provide an effective way to communicate technical specifications for a
+  library in a terse yet precise manner that's familiar to many Boost
+  users.</p>
+
+  <p>This document also contains links to <a href="#templates">HTML template
+  files</a> that can be used to rapidly develop documentation for a library
+  submission. These templates follow the guidelines presented here and in the
+  <a href="structure.html">Documentation Structure</a> document.</p>
+
+  <h2><a name="common-pages" id="common-pages"></a>Common Pages Included in
+  HTML Documentation</h2>
+
+  <p>Most HTML documentation projects will contain some common pages. General
+  guidelines for these common pages are provided below.</p>
+
+  <h3><a name="index-page" id="index-page"></a>Index</h3>
+
+  <p>The index page is the first page presented to a user when he browses the
+  documentation. Generally this page should not contain any actual content,
+  but instead contains a list of links to specific content. At a minimum this
+  list should contain a link to every HTML page contained in the
+  documentation. Optionally, sub-lists may be provided for individual pages
+  linking to specific subjects within the page. These sub-lists should form a
+  "tree" hierarchy based on the level of heading tag used for the specific
+  subject. Inclusion of such sub-lists for every page can make the index
+  rather lengthy, and since each page should include its own <a href=
+  "#page-index">Page Index</a>, it may make the navigation of the
+  documentation easier if such sub-lists are avoided. However, there is one
+  exception to this guideline: reference documentation should contain a link
+  to every header file in the library and a sub-list with a link to every
+  macro, value, type, class, function and object (see <a href=
+  "structure.html">Documentation Structure</a>) found in the header. Users
+  aren't always sure what header file any of these may be contained in, so
+  this structure in the index allows for easy navigation of the reference
+  documentation.</p>
+
+  <p>The index list should generally be constructed using an HTML "definition
+  list" (&lt;dl&gt; and &lt;dt&gt; tags). A definition list has no bullets or
+  ordered specifications and produces a cleaner layout then an unordered list
+  (&lt;ul&gt; and &lt;li&gt; tags) or an ordered list (&lt;ol&gt; and
+  &lt;li&gt; tags). If you choose to use the common <a href=
+  "#boost-style-sheet">Boost Style Sheet</a> you should add a
+  <code>class="index"</code> attribute/value pair to the &lt;dl&gt; tag.</p>
+
+  <p>An Index page <a href="#index-template">template</a> is provided for
+  use.</p>
+
+  <h3><a name="overview-page" id="overview-page"></a>Overview</h3>
+
+  <p>The Overview page is used to introduce the reader to the library. It
+  should give a high-level overview of the purpose of the library and
+  introduce the reader to any concepts they may be unfamiliar with. This may
+  also be an appropriate place for some "light" rationale, though more
+  thorough presentation of any rationale would be better placed in the
+  <a href="#rationale-page">Rational Page</a>.</p>
+
+  <p>Like most content pages, the Overview page should include a <a href=
+  "#page-index">Page Index</a>.</p>
+
+  <p>An Overview page <a href="#overview-template">template</a> is provided
+  for use.</p>
+
+  <h3><a name="definitions-page" id="definitions-page"></a>Definitions</h3>
+
+  <p>The Definitions page is used to provide a list of definitions for terms
+  that a user may be unfamiliar with.</p>
+
+  <p>The definition list should generally be constructed using an HTML
+  "definition list" (&lt;dl&gt; and &lt;DT&gt; tags). A definition list has
+  no bullets or ordered specifications and produces a cleaner layout then an
+  unordered list (&lt;UL&gt; and &lt;li&gt; tags) or an ordered list
+  (&lt;ol&gt; and &lt;li&gt; tags). If you choose to use the common <a href=
+  "#boost-style-sheet">Boost Style Sheet</a> you should add a
+  <code>class="definition"</code> attribute/value pair to the &lt;dl&gt;
+  tag.</p>
+
+  <p>Because this page's content should only contain a list of definitions,
+  it should not have a <a href="#page-index">Page Index</a>.</p>
+
+  <p>A Definitions page <a href="#definitions-template">template</a> is
+  provided for use.</p>
+
+  <h3><a name="rationale-page" id="rationale-page"></a>Rationale</h3>
+
+  <p>The Rationale page is used to provide lengthy descriptions of the
+  rationale behind the library's design. This information helps users to
+  understand why a library was designed the way it was and may reduce the
+  frequency of a number of frequently asked questions. For a better
+  description of why rationale is important see the <a href=
+  "http://www.boost.org/more/lib_guide.htm#Rationale">Rationale rationale</a>
+  in the general submission guidelines.</p>
+
+  <p>Like most content pages, the Rationale page should include a <a href=
+  "#page-index">Page Index</a>.</p>
+
+  <p>A Rationale page <a href="#rationale-template">template</a> is provided
+  for use.</p>
+
+  <h3><a name="configuration-page" id="configuration-page"></a>Configuration
+  Information</h3>
+
+  <p>The Configuration Information page is used to document configuration
+  macros used by the library. Such macros belong in one of three groups:
+  macros used by library implenters defined in
+  <code>&lt;boost/config.hpp&gt;</code>, macros used by library users to
+  detect platform configuration information and macros defined by library
+  users to configure library behavior.</p>
+
+  <p>Like most content pages, the Overview page should include a <a href=
+  "#page-index">Page Index</a>.</p>
+
+  <p>A Configuration page <a href="#configuration-template">template</a> is
+  provided for use.</p>
+
+  <h3><a name="faq-page" id="faq-page"></a>Frequently Asked Questions</h3>
+
+  <p>As a library matures the users will have questions about the usage of
+  the library. Often users will ask the same questions over and over again.
+  Rather than having to deal with answering the question every time it's
+  asked, a Frequently Asked Questions (commonly known as FAQs) page can be
+  used to document the questions and answers. This is such a valuable piece
+  of documentation not only for the users but for the maintainers as well,
+  that a FAQ page should be provided from the outset. If there are no
+  questions that will obviously become a FAQ, the initial page may just
+  indicate that there are no FAQs yet. This empty place holder helps to
+  indicate to the users that you plan to address any FAQs as they occur.</p>
+
+  <p>The <a href="#page-index">Page Index</a> for the FAQ page should contain
+  a list of all the questions contained in the document. The actual question
+  entries should be formatted with the question in a heading tag and the
+  answers in standard paragraph format. This provides a clean presentation
+  that's easy to read.</p>
+
+  <p>A Frequently Asked Questions page <a href="#faq-template">template</a>
+  is provided for use.</p>
+
+  <h3><a name="bibliography-page" id=
+  "bibliography-page"></a>Bibliography</h3>
+
+  <p>The Bibliography page is used to document any bibliographical
+  information associated with references made within the documentation to
+  external resources. Parenthetical references are used within the
+  documentation which link to entries in the Bibliography page.
+  Bibliographical entries provide detailed information about the external
+  resource and may contain hyper links to the resource if it's available
+  online. There are several formal styles used for writing bibliographies.
+  You may use what ever style you want, but one of the better styles to
+  consider using can be referenced <a href=
+  "http://www.columbia.edu/cu/cup/cgos/idx_basic.html">here</a>.</p>
+
+  <p>Since the Bibliography page should contain only bibliographical
+  information there is no need for a <a href="#page-index">Page
+  Index</a>.</p>
+
+  <p>A Bibliography page <a href="#bibliography-template">template</a> is
+  provided for use.</p>
+
+  <h3><a name="acknowledgements-page" id=
+  "acknowledgements-page"></a>Acknowledgment</h3>
+
+  <p>The Acknowledgment page is used to give credit where credit is due. When
+  individuals provide input on the design or implementation, or when you make
+  use of someone else's work, you should acknowledge them. This is a courtesy
+  that you'd expect others to extend to you, so you should strive to
+  acknowledge the efforts of everyone else in your own documentation.</p>
+
+  <p>Since the Acknowledgment page should contain only a list of
+  acknowledgment there is no need for a <a href="#page-index">Page
+  Index</a>.</p>
+
+  <p>An Acknowledgments page <a href=
+  "#acknowledgements-template">template</a> is provided for use.</p>
+
+  <h3><a name="header-page" id="header-page"></a>Header Reference</h3>
+
+  <p>The Header Reference pages are the most important pages in your
+  documentation. They document all library headers, including all the macros,
+  values, types, classes, functions and objects defined in them. In general
+  it may prove useful to follow the guidelines in <a href=
+  "structure.html">Documentation Structure</a> when writing the content for
+  these pages.</p>
+
+  <p>Like most content pages, the Header Reference pages should include a
+  <a href="#page-index">Page Index</a>.</p>
+
+  <p>A Header Reference page <a href="#header-template">template</a> is
+  provided for use.</p>
+
+  <h2><a name="layout" id="layout"></a>Layout</h2>
+
+  <p>There are certain page layout concepts that will be used frequently in
+  many of your pages. This section outlines some general guidelines that you
+  can follow when designing each of these layout concepts for your
+  documentation.</p>
+
+  <h3><a name="page-banner" id="page-banner"></a>Page Banner</h3>
+
+  <p>The Page Banner is located at the very top of a page and provides quick
+  information about the page contents. This includes the Boost logo, which
+  indicates to the reader that this page is part of the Boost web site, a
+  title for the documentation (generally the library name) and the page
+  title. The Boost logo should hyper link to the Boost home page on the index
+  page and to the index page on all other pages. This allows the user to
+  easily navigate through the Boost web site and through the documentation.
+  The &lt;title&gt; tag for the HTML page should consist of the documentation
+  title and the page title separated by a hyphen.</p>
+
+  <p>The Page Banner should be separated from the rest of the page by the use
+  of an &lt;hr&gt; tag. This helps to clearly separate the actual content
+  from the title information and produces cleaner text.</p>
+
+  <h3><a name="page-index" id="page-index"></a>Page Index</h3>
+
+  <p>The page index is used to quickly navigate to the various sections of
+  the documentation on the page, and when present should be located just
+  below the Page Banner.</p>
+
+  <p>The index list should generally be constructed using an HTML "definition
+  list" (&lt;dl&gt; and &lt;DT&gt; tags). A definition list has no bullets or
+  ordered specifications and produces a cleaner layout then an unordered list
+  (&lt;UL&gt; and &lt;li&gt; tags) or an ordered list (&lt;ol&gt; and
+  &lt;li&gt; tags). If you choose to use the Boost Style Sheet you should add
+  a <code>class="page-index"</code> attribute/value pair to the &lt;dl&gt;
+  tag.</p>
+
+  <p>Most pages should include a Page Index.</p>
+
+  <h3><a name="content" id="content"></a>Documentation Content</h3>
+
+  <p>The page's actual documentation content will be formatted according to
+  the specific needs of individual pages, and should be placed right after
+  the Page Index if present, or after the Page Banner if not. In general the
+  documentation content will take the form of paragraph text contained
+  underneath section headings.</p>
+
+  <h3><a name="doc-footnotes" id="doc-footnotes"></a>Footnotes</h3>
+
+  <p>Footnotes may be used within a page's documentation. Within the
+  documentation content a footnote reference should take the form of a
+  footnote number in parentheses (the parentheses make it easier for the
+  reader to click on the hyper link) hyper linking to the actual footnote at
+  the bottom of the page's documentation content. You may either use the
+  &lt;sup&gt; tag to format such footnote numbers, or, preferably, you can
+  use a CSS style class in order to distinguish the number as a footnote
+  instead of as part of the actual text. If you choose to use the common
+  <a href="#boost-style-sheet">Boost Style Sheet</a>, a <code>footnote</code>
+  class is defined for this purpose.</p>
+
+  <h3><a name="revision-info" id="revision-info"></a>Revision
+  Information</h3>
+
+  <p>At the bottom of every page should be some revision information
+  indicating when the page was last revised. This information should be
+  separated from the rest of the page above by an &lt;hr&gt; tag. The
+  following HTML code snippet can be used to track this revision information
+  (this code uses some server components that exist on the Boost web site to
+  automatically track revision dates with out the need for hand editing the
+  date text):</p>
+  <pre>
+&lt;hr&gt;
+&lt;p&gt;Revised
+  &lt;!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B, %Y" startspan --&gt;
+  01 January, 2001
+  &lt;!--webbot bot="Timestamp" endspan i-checksum="39359" --&gt;
+&lt;/p&gt;
+</pre>
+
+  <h3><a name="copyright" id="copyright"></a>Copyright Information</h3>
+
+  <p>The very bottom of the page should contain any copyright information
+  that applies to the document.</p>
+
+  <h2><a name="format" id="format"></a>Format</h2>
+
+  <p>This section provides general guidelines for formatting documentation
+  using HTML. The description of the various "common pages" gave specific
+  details for formatting specific sections of the documentation, which should
+  override these guidelines.</p>
+
+  <h3><a name="code-format" id="code-format"></a>Code</h3>
+
+  <p>Code within the documentation should be placed within either
+  &lt;code&gt;&lt;/code&gt; or &lt;pre&gt;&lt;/pre&gt; tags. For code that's
+  placed inline with other text you use &lt;code&gt;&lt;/code&gt; tags, while
+  &lt;pre&gt;&lt;/pre&gt; tags are used for code "blocks". If a cascading
+  style sheet is used to specify formatting for these tags, a fixed width
+  sans serif font should be used. This insures that the code is easily
+  distinguishable from the rest of the text. It may also be beneficial to set
+  the style for &lt;pre&gt;&lt;/pre&gt; tags to indent the text, to help
+  separate code blocks from other structural HTML blocks. The <a href=
+  "#boost-style-sheet">Boost Style Sheet</a> specifies formatting for these
+  tags.</p>
+
+  <p><b>Note:</b> "Code" includes variable names, function names, etc.</p>
+
+  <h3><a name="lists" id="lists"></a>Lists</h3>
+
+  <p>Lists should be constructed as unordered (&lt;UL&gt; and &lt;li&gt;
+  tags), ordered (&lt;ol&gt; and &lt;li&gt; tags) or definition (&lt;dl&gt;
+  and &lt;DT&gt; tags) lists in HTML. You use an unordered list when you need
+  a collection of items that don't have any kind of logical ordering, such as
+  a list of data types that are defined by the library and can be used for a
+  template argument. You use an ordered list when the collection of items
+  must be grouped in a logical ordering, such as when enumerating the steps
+  that an action logically performs. You use a definition list when the list
+  consists of not only items that have no logical ordering, but also contains
+  definitions/descriptions/etc. of the items. A good example of this is the
+  function specifications as described in <a href=
+  "structure.html">Documentation Structure</a>.</p>
+
+  <h3><a name="graphics" id="graphics"></a>Graphics</h3>
+
+  <p>Graphics should be used very sparingly, if at all. Graphic images
+  greatly effect the download time for many people, which can discourage
+  users from reading the documentation. If you need graphic images to help
+  illustrate something in your documentation consider supplying only a link
+  to the image within the documentation, instead of embedding it directly in
+  the text. If an image is going to be included in the text of the document
+  you should specify the image's size in the &lt;img&gt; tag, in order to
+  allow the user's browser to optimize the formatting of the text before the
+  image is loaded.</p>
+
+  <h3><a name="non-breaking-spaces" id="non-breaking-spaces"></a>Non-breaking
+  Spaces</h3>
+
+  <p>Non-breaking spaces (&amp;nbsp;) should be avoided in HTML text.
+  Generally there are more appropriate ways to format the document, such as
+  using list constructs or specifying indentation as a style attribute or in
+  cascading style sheets.</p>
+
+  <h3><a name="style-sheets" id="style-sheets"></a>Cascading Style
+  Sheets</h3>
+
+  <p>Cascading style sheets allow you to apply some advanced formatting
+  styles to an HTML document. More importantly, they allow you to change the
+  formatting in a single file and effect all pages using the style sheet.
+  Instead of struggling to produce a specific format in HTML it's often
+  easier and more flexible to specify the formatting in a style sheet.</p>
+
+  <h4><a name="boost-style-sheet" id="boost-style-sheet"></a>Boost Style
+  Sheet</h4>
+
+  <p>The concept of using cascading style sheets to format HTML is such a
+  good idea that it can be beneficial to apply this across the entire Boost
+  site. Of course we can't require this (if Boost were to require such trivia
+  for submissions it's likely that many programmers would be discouraged from
+  contributing). However, a "standard" Boost style sheet
+  (http://www.boost.org/boost.css) is supplied anyway, so that a contributer
+  can quickly and easily produce clear and consistent documentation that
+  reflects a Boost "brand" if they so choose. If, at a later date, it's
+  decided to update the Boost "brand", it may be done in this single file and
+  all documents using the style sheet will automatically be updated.</p>
+
+  <p>The Boost supplied style sheet not only specifies styles for many
+  standard tags, it also specifies several style "classes". A class is
+  specified for a given tag instead of being applied to all instances of a
+  given tag type. Below is a list of the classes specified in the Boost style
+  sheet and a description of when to use them:</p>
+
+  <dl>
+    <dt><b>index</b> Used for &lt;dl&gt; tags when writing index lists.</dt>
+
+    <dt><b>page-index</b> Used for &lt;dl&gt; tags when writing page index
+    lists.</dt>
+
+    <dt><b>Footnote</b> Used when writing Footnote numbers.</dt>
+
+    <dt><b>function-semantics</b> Used for &lt;dl&gt; tags when writing
+    function semantic lists.</dt>
+  </dl>
+
+  <h2><a name="templates" id="templates"></a>Templates</h2>
+
+  <p>Instead of hand coding every HTML page, HTML "templates" can be used
+  instead. The list below provides links to templates that may be used when
+  writing documentation for a contribution to Boost. Links provided in these
+  templates assume the files will reside in the "traditional" directory
+  hierarchy of <i>boost/libs/library/doc</i>. They may need correcting if the
+  file will reside in some other location.</p>
+
+  <p><b>Note:</b> Since these "templates" are just HTML pages simply clicking
+  on the links below will load the template in your browser. You will need to
+  use a browser specific method to download the files instead of loading them
+  into the browser (for instance, on most Windows browsers you can right
+  click on the link and select the appropriate command from the context
+  sensitive menu).</p>
+
+  <ul>
+    <li><a name="index-template" id="index-template"></a><a href=
+    "template/index.html">Index Page Template</a></li>
+
+    <li><a name="overview-template" id="overview-template"></a><a href=
+    "template/overview.html">Overview Page Template</a></li>
+
+    <li><a name="definitions-template" id="definitions-template"></a><a href=
+    "template/definitions.html">Definitions Page Template</a></li>
+
+    <li><a name="rationale-template" id="rationale-template"></a><a href=
+    "template/rationale.html">Rationale Page Template</a></li>
+
+    <li><a name="configuration-template" id=
+    "configuration-template"></a><a href=
+    "template/configuration.html">Configuration Page Template</a></li>
+
+    <li><a name="faq-template" id="faq-template"></a><a href=
+    "template/faq.html">FAQ (Frequently Asked Questions) Page
+    Template</a></li>
+
+    <li><a name="bibliography-template" id=
+    "bibliography-template"></a><a href=
+    "template/bibliography.html">Bibliography Page Template</a></li>
+
+    <li><a name="acknowledgements-template" id=
+    "acknowledgements-template"></a><a href=
+    "template/acknowledgments.html">Acknowledgments Page Template</a></li>
+
+    <li><a name="header-template" id="header-template"></a><a href=
+    "template/header.html">Header Page Template</a></li>
+  </ul>
+  <hr>
+
+  <p><a href="http://validator.w3.org/check?uri=referer"><img border="0" src=
+  "../../doc/images/valid-html401.png" alt="Valid HTML 4.01 Transitional"
+  height="31" width="88"></a></p>
+
+  <p>Revised 
+  <!--webbot bot="Timestamp" s-type="EDITED" s-format="%d %B, %Y" startspan -->04
+  December, 2006<!--webbot bot="Timestamp" endspan i-checksum="38514" --></p>
+
+  <p><i>Copyright &copy; 2001 <a href=
+  "mailto:williamkempf@hotmail.com">William E. Kempf</a></i></p>
+
+  <p><i>Distributed under the Boost Software License, Version 1.0. (See
+  accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or
+  copy at <a href=
+  "http://www.boost.org/LICENSE_1_0.txt">http://www.boost.org/LICENSE_1_0.txt</a>)</i></p>
+</body>
+</html>

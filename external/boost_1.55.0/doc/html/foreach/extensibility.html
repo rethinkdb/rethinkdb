@@ -1,0 +1,231 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Extensibility</title>
+<link rel="stylesheet" href="../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="The Boost C++ Libraries BoostBook Documentation Subset">
+<link rel="up" href="../foreach.html" title="Chapter&#160;10.&#160;Boost.Foreach">
+<link rel="prev" href="../foreach.html" title="Chapter&#160;10.&#160;Boost.Foreach">
+<link rel="next" href="portability.html" title="Portability">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../boost.png"></td>
+<td align="center"><a href="../../../index.html">Home</a></td>
+<td align="center"><a href="../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../foreach.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../foreach.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="portability.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="foreach.extensibility"></a><a class="link" href="extensibility.html" title="Extensibility">Extensibility</a>
+</h2></div></div></div>
+<p>
+      If we want to use <code class="literal">BOOST_FOREACH</code> to iterate over some new
+      collection type, we must "teach" <code class="literal">BOOST_FOREACH</code>
+      how to interact with our type. Since <code class="literal">BOOST_FOREACH</code> is built
+      on top of <a href="../../../libs/range/index.html" target="_top">Boost.Range</a>, we
+      must extend <a href="../../../libs/range/index.html" target="_top">Boost.Range</a> in
+      order to extend <code class="literal">BOOST_FOREACH</code>. The section <a href="../../../libs/range/doc/html/range/reference/extending.html" target="_top">Extending
+      Boost.Range</a> explores this topic in detail.
+    </p>
+<p>
+      Below is an example for extending <code class="literal">BOOST_FOREACH</code> to iterate
+      over a sub-string type, which contains two iterators into a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span></code>.
+    </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">my</span>
+<span class="special">{</span>
+    <span class="comment">// sub_string: part of a string, as delimited by a pair</span>
+    <span class="comment">// of iterators</span>
+    <span class="keyword">struct</span> <span class="identifier">sub_string</span>
+    <span class="special">{</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">begin</span><span class="special">;</span>
+        <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">end</span><span class="special">;</span>
+
+        <span class="comment">/* ... implementation ... */</span>
+    <span class="special">};</span>
+
+    <span class="comment">// Add overloads of range_begin() and range_end() in the</span>
+    <span class="comment">// same namespace as sub_string, to be found by Argument-Dependent Lookup.</span>
+
+    <span class="keyword">inline</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">range_begin</span><span class="special">(</span> <span class="identifier">sub_string</span> <span class="special">&amp;</span> <span class="identifier">x</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">inline</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">range_end</span><span class="special">(</span> <span class="identifier">sub_string</span> <span class="special">&amp;</span> <span class="identifier">x</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">end</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="comment">// Also add overloads for const sub_strings. Note we use the conversion</span>
+    <span class="comment">// from string::iterator to string::const_iterator here.</span>
+
+    <span class="keyword">inline</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">range_begin</span><span class="special">(</span> <span class="identifier">sub_string</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">x</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">begin</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">inline</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">range_end</span><span class="special">(</span> <span class="identifier">sub_string</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="identifier">x</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">x</span><span class="special">.</span><span class="identifier">end</span><span class="special">;</span>
+    <span class="special">}</span>
+<span class="special">}</span>
+
+<span class="keyword">namespace</span> <span class="identifier">boost</span>
+<span class="special">{</span>
+    <span class="comment">// specialize range_mutable_iterator and range_const_iterator in namespace boost</span>
+    <span class="keyword">template</span><span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">range_mutable_iterator</span><span class="special">&lt;</span> <span class="identifier">my</span><span class="special">::</span><span class="identifier">sub_string</span> <span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">range_const_iterator</span><span class="special">&lt;</span> <span class="identifier">my</span><span class="special">::</span><span class="identifier">sub_string</span> <span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">const_iterator</span> <span class="identifier">type</span><span class="special">;</span>
+    <span class="special">};</span>
+<span class="special">}</span>
+</pre>
+<p>
+      Now that we have taught <a href="../../../libs/range/index.html" target="_top">Boost.Range</a>
+      (and hence <code class="literal">BOOST_FOREACH</code>) about our type, we can now use
+      <code class="literal">BOOST_FOREACH</code> to iterate over our sub_string type.
+    </p>
+<pre class="programlisting"><span class="identifier">my</span><span class="special">::</span><span class="identifier">sub_string</span> <span class="identifier">substr</span><span class="special">;</span>
+<span class="identifier">BOOST_FOREACH</span><span class="special">(</span> <span class="keyword">char</span> <span class="identifier">ch</span><span class="special">,</span> <span class="identifier">substr</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="comment">// Woo-hoo!</span>
+<span class="special">}</span>
+</pre>
+<p>
+      There are some portability issues we should be aware of when extending <code class="literal">BOOST_FOREACH</code>.
+      Be sure to check out the <a class="link" href="portability.html" title="Portability">Portability</a>
+      section. In particular, if your compiler does not support Argument-Dependent
+      Lookup, the <a href="../../../libs/range/doc/html/range/portability.html" target="_top">Boost.Range
+      Portability</a> section offers some suggested work-arounds.
+    </p>
+<h3>
+<a name="foreach.extensibility.h0"></a>
+      <span class="phrase"><a name="foreach.extensibility.making__literal_boost_foreach__literal__work_with_non_copyable_sequence_types"></a></span><a class="link" href="extensibility.html#foreach.extensibility.making__literal_boost_foreach__literal__work_with_non_copyable_sequence_types">Making
+      <code class="literal">BOOST_FOREACH</code> Work with Non-Copyable Sequence Types</a>
+    </h3>
+<p>
+      For sequence types that are non-copyable, we will need to tell <code class="literal">BOOST_FOREACH</code>
+      to not try to make copies. If our type inherits from <a href="../../../libs/utility/utility.htm#Class_noncopyable" target="_top"><code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">noncopyable</span></code></a>,
+      no further action is required. If not, we must specialize the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">foreach</span><span class="special">::</span><span class="identifier">is_noncopyable</span><span class="special">&lt;&gt;</span></code> template, as follows:
+    </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">noncopy_vector</span>
+<span class="special">{</span>
+    <span class="comment">// ...</span>
+<span class="keyword">private</span><span class="special">:</span>
+    <span class="identifier">noncopy_vector</span><span class="special">(</span> <span class="identifier">noncopy_vector</span> <span class="keyword">const</span> <span class="special">&amp;</span> <span class="special">);</span> <span class="comment">// non-copyable!</span>
+<span class="special">};</span>
+
+<span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">foreach</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">is_noncopyable</span><span class="special">&lt;</span> <span class="identifier">noncopy_vector</span> <span class="special">&gt;</span>
+      <span class="special">:</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span>
+    <span class="special">{</span>
+    <span class="special">};</span>
+<span class="special">}}</span>
+</pre>
+<p>
+      Another way to achieve the same effect is to override the global <code class="computeroutput"><span class="identifier">boost_foreach_is_noncopyable</span><span class="special">()</span></code>
+      function. Doing it this way has the advantage of being portable to older compilers.
+    </p>
+<pre class="programlisting"><span class="comment">// At global scope...</span>
+<span class="keyword">inline</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span> <span class="special">*</span>
+<span class="identifier">boost_foreach_is_noncopyable</span><span class="special">(</span> <span class="identifier">noncopy_vector</span> <span class="special">*&amp;,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">foreach</span><span class="special">::</span><span class="identifier">tag</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<div class="tip"><table border="0" summary="Tip">
+<tr>
+<td rowspan="2" align="center" valign="top" width="25"><img alt="[Tip]" src="../../../doc/src/images/tip.png"></td>
+<th align="left">Tip</th>
+</tr>
+<tr><td align="left" valign="top"><p>
+        Even though we have to tell <code class="literal">BOOST_FOREACH</code> that our type
+        is non-copyable, that doesn't mean that <code class="literal">BOOST_FOREACH</code>
+        always makes a copy of our sequence type. Obviously, doing so would be expensive
+        and even wrong in some cases. <code class="literal">BOOST_FOREACH</code> is quite smart
+        about when to make a copy and when not to. The <code class="computeroutput"><span class="identifier">is_noncopyable</span><span class="special">&lt;&gt;</span></code> trait is needed to elide the copy,
+        which is on a branch that might never get taken.
+      </p></td></tr>
+</table></div>
+<h3>
+<a name="foreach.extensibility.h1"></a>
+      <span class="phrase"><a name="foreach.extensibility.optimizing__literal_boost_foreach__literal__for_lightweight_proxy_sequence_types"></a></span><a class="link" href="extensibility.html#foreach.extensibility.optimizing__literal_boost_foreach__literal__for_lightweight_proxy_sequence_types">Optimizing
+      <code class="literal">BOOST_FOREACH</code> for Lightweight Proxy Sequence Types</a>
+    </h3>
+<p>
+      On some compilers, <code class="literal">BOOST_FOREACH</code> must occasionally take
+      a slightly slower code path to guarantee correct handling of sequences stored
+      in temporary objects. It asks itself, "Should I make a copy of this object?"
+      and later, "Did I make a copy or not?" For some types of sequences,
+      this is overkill. Consider a sequence which is a simple pair of iterators.
+      Jumping through hoops of fire to avoid copying it doesn't make sense because
+      copying it is so cheap.
+    </p>
+<p>
+      A pair of iterators is an example of a lightweight proxy. It does not store
+      the values of the sequence; rather, it stores iterators to them. This means
+      that iterating over a copy of the proxy object will give the same results as
+      using the object itself. For such types, <code class="literal">BOOST_FOREACH</code> provides
+      a hook that lets us tell it not to worry about the expense of making a copy.
+      This can result in slightly faster loop execution. Simply specialize the <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">foreach</span><span class="special">::</span><span class="identifier">is_lightweight_proxy</span><span class="special">&lt;&gt;</span></code> trait, as follows:
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">sub_string</span>
+  <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">iterator_range</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">string</span><span class="special">::</span><span class="identifier">iterator</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="comment">// ...</span>
+<span class="special">};</span>
+
+<span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">foreach</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">is_lightweight_proxy</span><span class="special">&lt;</span> <span class="identifier">sub_string</span> <span class="special">&gt;</span>
+      <span class="special">:</span> <span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span>
+    <span class="special">{</span>
+    <span class="special">};</span>
+<span class="special">}}</span>
+</pre>
+<p>
+      Alternately, we could achieve the same effect by overriding the global <code class="computeroutput"><span class="identifier">boost_foreach_is_lightweight_proxy</span><span class="special">()</span></code>
+      function, as follows:
+    </p>
+<pre class="programlisting"><span class="comment">// At global scope...</span>
+<span class="keyword">inline</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">true_</span> <span class="special">*</span>
+<span class="identifier">boost_foreach_is_lightweight_proxy</span><span class="special">(</span> <span class="identifier">sub_string</span> <span class="special">*&amp;,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">foreach</span><span class="special">::</span><span class="identifier">tag</span> <span class="special">)</span>
+<span class="special">{</span>
+    <span class="keyword">return</span> <span class="number">0</span><span class="special">;</span>
+<span class="special">}</span>
+</pre>
+<p>
+      This method is portable to older compilers.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2004 Eric Niebler<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../foreach.html"><img src="../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../foreach.html"><img src="../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="portability.html"><img src="../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

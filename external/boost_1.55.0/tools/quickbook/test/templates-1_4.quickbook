@@ -1,0 +1,53 @@
+[article Template 1.4
+    [quickbook 1.4]
+]
+
+[/ 1.4 uses dynamic scoping ]
+
+[template x static scoping]
+[template foo1[] [x]]
+[template foo2[x] [foo1]]
+[foo2 dynamic scoping]
+
+[/ In 1.4 template arguments are scoped at the point they are used]
+
+[template y new]
+[template foo3[a y] [a]]
+[foo3 [y] old]
+
+[/ 1.4 template arguments]
+
+[template binary[x y] {[x]-[y]}]
+[binary 1..2]     [/ {1-2} ]
+[binary 1 2]      [/ {1-2} ]
+[binary 1..2 3 4] [/ {1-2 3 4} ]
+[binary 1 2..3 4] [/ {1 2-3 4} ]
+[binary 1 2 3..4] [/ {1 2 3-4} ]
+[binary [1..2]    [/ {(1-2} but with a square bracket ]
+[binary 1.\.2..3] [/ {1..2-3} ]
+[binary 1.\.2 3]  [/ {1..2-3} ]
+
+[binary [binary 1 2..3] 4] [/ {[binary 1 2-3} 4] ]
+
+[template ternary[x y z] {[x]-[y]-[z]}]
+[ternary 1..2..3]  [/ {1-2-3} ]
+[ternary 1 2 3]    [/ {1-2-3} ]
+[ternary 1..2 3 4] [/ {1-2-3 4} ]
+[ternary 1 2..3 4] [/ {1 2-3-4} ]
+[ternary [1..2..3] [/ {(1-2-3} (but with a square bracket) ]
+
+[/----------------------------------- Escaped templates ]
+
+[section Escaped templates]
+
+[template raw_markup <thingbob>Not real boostbook</thingbob>]
+[template | <thingbob>Also not real boostbook</thingbob>]
+[template escaped1 [|] [`|]]
+[template escaped2 [x] [`x]]
+
+[`raw_markup]
+[`|]
+[escaped1 <thingbob>More fake boostbook</thingbob>]
+[escaped2 <thingbob>Final fake boostbook</thingbob>]
+
+[endsect]

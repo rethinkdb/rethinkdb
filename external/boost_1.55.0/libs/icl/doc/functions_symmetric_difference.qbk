@@ -1,0 +1,163 @@
+[/
+    Copyright (c) 2008-2010 Joachim Faulhaber
+
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+]
+
+
+[/ //= Symmetric Difference ===================================================]
+[section Symmetric Difference]
+
+[section Synopsis][/ Symmetric difference]
+
+[table
+[[Symmetric difference]         [__ch_itv_sets__][__ch_itv_maps__][__ch_ele_sets__][__ch_ele_maps__] ]
+
+[[`T& T::flip(const P&)`]                      [__ei]     [__bp]   [ ]     [__b]     ]
+[[`T& flip(T&, const P&)`]                     [__ei]     [__bp]   [__e]   [__b]     ]
+[[`T& operator ^=(T&, const P&)`]              [__eiS]    [__bpM]  [__es]  [__bm]    ]
+[[`T  operator ^ (T, const P&)`\n
+  `T  operator ^ (const P&, T)`]               [__eiS]    [__bpM]  [__es]  [__bm]    ]
+
+]
+
+Functions and operators that implement ['*symmetric difference*] on *icl* objects
+are given in the table above.
+
+[table
+[[]      [Description of symmetric difference]]
+[[`Sets`][`operator ^` implements ['*set symmetric difference*]]]
+[[`Maps`][`operator ^` implements a ['*map symmetric difference*] 
+          function similar to /set symmetric difference/.
+          All pairs that are common to both arguments are removed. All others unified.
+         ]]
+]
+
+
+[endsect][/ Synopsis Symmetric difference]
+
+[section Functions][/ Symmetric difference]
+
+/Symmetric difference/ is implemented on interval containers
+by the function `T& flip(T&, const P& operand)`.
+
+``
+flip(y,x)
+`` 
+
+deletes every element of `y`, 
+if it is contained in `x`. Elements of
+`x` not contained in `y` are added.
+For icl containers flip is also availabel as memeber function
+`T& T::flip(const P& operand)`.
+
+[/ paratract, surtract, symetract, topple, symmetric_subtract]
+
+The admissible combinations of types for member function 
+`T& T::flip(const P&)` can be summarized in the 
+['*overload table*] below:
+
+``
+/* overload table for */           T\P| e i b p  
+T& T::flip(const P&)               ---+--------
+T& flip(T&, const P&)               s | s
+                                    m |     m
+                                    S | S S     
+                                    M |     M M
+``
+
+The next table contains complexity characteristics for functions `flip`.
+
+[table Time Complexity for member functions flip on icl containers
+[[`T& T::flip(const P&)`\n
+  `T& flip(T&, const P&)`]     [__ch_dom_t__][__ch_itv_t__][__ch_dom_mp_t__][__ch_itv_mp_t__]]
+[[__icl_set__]                 [__Olgn__] []          []        []          ]
+[[__icl_map__]                 []         []          [__Olgn__][]          ]
+[[__itv_set__\n__sep_itv_set__][__Olgn__] [__On__]    []        []          ]
+[[__spl_itv_set__]             [__Olgn__] [__On__]    []        []          ]
+[[__itv_map__\n__spl_itv_map__][]         []          [__Olgn__][__On__]    ]
+]
+
+[endsect][/ Member functions Symmetric difference]
+
+
+[section Inplace operators][/ Symmetric Difference]
+
+The overload tables below are giving admissible
+type combinations for `operator ^=`
+that implements ['*symmetric difference*].
+
+``
+// overload tables for             element containers:     interval containers:
+T& operator ^= (T&, const P&)      ^= | e b s m            ^= | e i b p S M    
+                                   ---+--------            ---+------------    
+                                   s  | s   s              S  | S S     S      
+                                   m  |   m   m            M  |     M M   M    
+``
+Complexity characteristics for inplace operators
+that implement ['*symmetric difference*]
+are given by the next tables where 
+``
+n = iterative_size(y);
+m = iterative_size(x); //if P is a container
+``
+
+[table Time Complexity for inplace symmetric difference on element containers
+[[`T& operator &= (T& y, const P& x)`][__ch_dom_t__][__ch_dom_mp_t__][__ch_icl_set__][__ch_icl_map__]]
+[[__icl_set__]                    [__Olgn__]    []               [__Omlgn__]     []              ]
+[[__icl_map__]                    [__Olgn__]    [__Olgn__]       [__Omlgn__]     [__Omlgn__]     ]
+]
+
+[table Time Complexity for inplace symmetric difference on interval containers
+[[`T& operator &= (T&, const P&)`][__ch_dom_t__][__ch_itv_t__][__ch_dom_mp_t__][__ch_itv_mp_t__][__ch_itv_sets__][__ch_itv_maps__]]
+[[interval_sets]                  [__Olgn__]    [__On__]      []               []               [__Omlgnpm__]    []               ]
+[[interval_maps]                  [__Olgn__]    [__On__]      [__Olgn__]       [__On__]         [__Omlgnpm__]    [__Omlgnpm__]    ]
+]
+
+[endsect][/ Inplace operators Symmetric Difference]
+
+[section Infix operators][/ Symmetric Difference]
+
+For the infix version of symmetric difference the
+following overloads are available:
+
+``
+// overload tables for             element containers:     interval containers:
+T operator ^ (T, const P&)         ^  | e b s m            ^  | e  i  b  p  S1 S2 S3 M1 M3
+T operator ^ (const P&, T)         ---+--------            ---+---------------------------
+                                   e  |     s              e  |             S1 S2 S3
+                                   b  |       m            i  |             S1 S2 S3
+                                   s  | s   s              b  |                      M1 M3
+                                   m  |   m   m            p  |                      M1 M3
+                                                           S1 | S1 S1       S1 S2 S3
+                                                           S2 | S2 S2       S2 S2 S3
+                                                           S3 | S3 S3       S3 S3 S3
+                                                           M1 |       M1 M1          M1 M3
+                                                           M3 |       M3 M3          M3 M3
+``
+
+To resolve ambiguities among interval containers
+the ['*finer*] container type is chosen as result type.
+
+[endsect][/ Infix operators Symmetric Difference]
+
+
+['*See also . . .*]
+[table
+[]
+[[[link boost_icl.function_reference.intersection ['*Intersection*]] ]]
+[[[link boost_icl.function_reference.subtraction  ['*Subtraction*]]  ]]
+[[[link boost_icl.function_reference.addition     ['*Addition*]]     ]]
+]
+['*Back to section . . .*]
+[table
+[]
+[[[link function_synopsis_table ['*Function Synopsis*]]    ]]
+[[[link boost_icl.interface ['*Interface*]]                ]]
+]
+
+[endsect][/ Symmetric Difference]
+
+

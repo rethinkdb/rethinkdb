@@ -1,0 +1,151 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Introspecting inner data</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;The Type Traits Introspection Library">
+<link rel="prev" href="tti_detail_has_static_member_function.html" title="Introspecting static member function">
+<link rel="next" href="tti_detail_has_function.html" title="Introspecting an inner function">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_detail_has_static_member_function.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_detail_has_function.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="the_type_traits_introspection_library.tti_detail_has_data"></a><a class="link" href="tti_detail_has_data.html" title="Introspecting inner data">Introspecting
+    inner data</a>
+</h2></div></div></div>
+<p>
+      The TTI macro <code class="computeroutput"><a class="link" href="../BOOST_TTI_HAS_DATA.html" title="Macro BOOST_TTI_HAS_DATA">BOOST_TTI_HAS_DATA</a></code>
+      introspects the data of a class. The data can be member data or static member
+      data.
+    </p>
+<p>
+      BOOST_TTI_HAS_DATA macro takes a single parameter, which is the name of an
+      inner member data or static member data, whose existence the programmer wants
+      to check. The macro generates a metafunction called 'has_data_'name_of_inner_data'.
+    </p>
+<p>
+      The metafunction can be invoked by passing it the enclosing type to introspect
+      and the type of the data.
+    </p>
+<p>
+      The metafunction returns a single type called 'type', which is a boost::mpl::bool_.
+      As a convenience the metafunction returns the value of this type directly as
+      a compile time bool constant called 'value'. This is true or false depending
+      on whether the inner data, of the specified type, exists or not.
+    </p>
+<h4>
+<a name="the_type_traits_introspection_library.tti_detail_has_data.h0"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_data.generating_the_metafunction"></a></span><a class="link" href="tti_detail_has_data.html#the_type_traits_introspection_library.tti_detail_has_data.generating_the_metafunction">Generating
+      the metafunction</a>
+    </h4>
+<p>
+      You generate the metafunction by invoking the macro with the name of an inner
+      data member:
+    </p>
+<pre class="programlisting"><span class="identifier">BOOST_TTI_HAS_DATA</span><span class="special">(</span><span class="identifier">AData</span><span class="special">)</span>
+</pre>
+<p>
+      generates a metafunction called 'has_data_AStaticMemberData' in the current
+      scope.
+    </p>
+<h4>
+<a name="the_type_traits_introspection_library.tti_detail_has_data.h1"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_data.invoking_the_metafunction"></a></span><a class="link" href="tti_detail_has_data.html#the_type_traits_introspection_library.tti_detail_has_data.invoking_the_metafunction">Invoking
+      the metafunction</a>
+    </h4>
+<p>
+      You invoke the metafunction by instantiating the template with an enclosing
+      type to introspect and the type of the data. A return value called 'value'
+      is a compile time bool constant.
+    </p>
+<pre class="programlisting"><span class="identifier">has_data_AData</span><span class="special">&lt;</span><span class="identifier">Enclosing_Type</span><span class="special">,</span><span class="identifier">Data_Type</span><span class="special">&gt;::</span><span class="identifier">value</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_detail_has_data.h2"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_data.examples"></a></span><a class="link" href="tti_detail_has_data.html#the_type_traits_introspection_library.tti_detail_has_data.examples">Examples</a>
+    </h4>
+<p>
+      First we generate metafunctions for various inner data names:
+    </p>
+<pre class="programlisting"><span class="preprocessor">#include</span> <span class="special">&lt;</span><span class="identifier">boost</span><span class="special">/</span><span class="identifier">tti</span><span class="special">/</span><span class="identifier">has_data</span><span class="special">.</span><span class="identifier">hpp</span><span class="special">&gt;</span>
+
+<span class="identifier">BOOST_TTI_HAS_DATA</span><span class="special">(</span><span class="identifier">data1</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_HAS_DATA</span><span class="special">(</span><span class="identifier">data2</span><span class="special">)</span>
+<span class="identifier">BOOST_TTI_HAS_DATA</span><span class="special">(</span><span class="identifier">data3</span><span class="special">)</span>
+</pre>
+<p>
+      Next let us create some user-defined types we want to introspect.
+    </p>
+<pre class="programlisting"><span class="keyword">struct</span> <span class="identifier">AClass</span>
+  <span class="special">{</span>
+  <span class="special">};</span>
+<span class="keyword">struct</span> <span class="identifier">Top</span>
+  <span class="special">{</span>
+  <span class="keyword">int</span> <span class="identifier">data1</span><span class="special">;</span>
+  <span class="keyword">static</span> <span class="identifier">AClass</span> <span class="special">*</span> <span class="identifier">data2</span><span class="special">;</span>
+  <span class="special">};</span>
+<span class="keyword">struct</span> <span class="identifier">Top2</span>
+  <span class="special">{</span>
+  <span class="keyword">static</span> <span class="keyword">long</span> <span class="identifier">data1</span><span class="special">;</span>
+  <span class="identifier">Top</span> <span class="identifier">data3</span><span class="special">;</span>
+  <span class="special">};</span>
+</pre>
+<p>
+      Finally we invoke our metafunction and return our value. This all happens at
+      compile time, and can be used by programmers doing compile time template metaprogramming.
+    </p>
+<pre class="programlisting"><span class="identifier">has_data_data1</span><span class="special">&lt;</span><span class="identifier">Top</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true</span>
+<span class="identifier">has_data_data1</span><span class="special">&lt;</span><span class="identifier">Top</span><span class="special">,</span><span class="keyword">long</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// false</span>
+<span class="identifier">has_data_data1</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// false</span>
+<span class="identifier">has_data_data1</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">,</span><span class="keyword">long</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true</span>
+
+<span class="identifier">has_data_data2</span><span class="special">&lt;</span><span class="identifier">Top</span><span class="special">,</span><span class="identifier">AClass</span> <span class="special">*&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true</span>
+<span class="identifier">has_data_data2</span><span class="special">&lt;</span><span class="identifier">Top</span><span class="special">,</span><span class="keyword">int</span> <span class="special">*&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// false</span>
+
+<span class="identifier">has_data_data3</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// false</span>
+<span class="identifier">has_data_data3</span><span class="special">&lt;</span><span class="identifier">Top2</span><span class="special">,</span><span class="identifier">Top</span><span class="special">&gt;::</span><span class="identifier">value</span><span class="special">;</span> <span class="comment">// true;</span>
+</pre>
+<h4>
+<a name="the_type_traits_introspection_library.tti_detail_has_data.h3"></a>
+      <span class="phrase"><a name="the_type_traits_introspection_library.tti_detail_has_data.metafunction_re_use"></a></span><a class="link" href="tti_detail_has_data.html#the_type_traits_introspection_library.tti_detail_has_data.metafunction_re_use">Metafunction
+      re-use</a>
+    </h4>
+<p>
+      The macro encodes only the name of the data for which we are searching and
+      the fact that we are introspecting for data within an enclosing type.
+    </p>
+<p>
+      Because of this, once we create our metafunction for introspecting an inner
+      data by name, we can reuse the metafunction for introspecting any enclosing
+      type, having any inner data type, for that name.
+    </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2011-2013 Tropic Software
+      East Inc<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="tti_detail_has_static_member_function.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="tti_detail_has_function.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

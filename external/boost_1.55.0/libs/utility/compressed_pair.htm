@@ -1,0 +1,76 @@
+<html>
+   <head>
+      <title>Header </title>
+      <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+      <meta name="Template" content="C:\PROGRAM FILES\MICROSOFT OFFICE\OFFICE\html.dot">
+      <meta name="GENERATOR" content="Microsoft FrontPage 5.0">
+      <boostcompressed_pair.hpp>
+   </head>
+   <body bgcolor="#ffffff" text="#000000" link="#0000ff" vlink="#800080">
+      <h2><img src="../../boost.png" width="276" height="86">Header &lt;<a href="../../boost/detail/compressed_pair.hpp">boost/compressed_pair.hpp</a>&gt;</h2>
+      <p>All of the contents of &lt;boost/compressed_pair.hpp&gt; are defined inside 
+         namespace boost.</p>
+      <p>The class compressed pair is very similar to std::pair, but if either of the 
+         template arguments are empty classes, then the "empty base-class optimisation" 
+         is applied to compress the size of the pair.</p>
+      <pre>template &lt;class T1, class T2&gt;
+class compressed_pair
+{
+public:
+	typedef T1                                                 first_type;
+	typedef T2                                                 second_type;
+	typedef typename call_traits&lt;first_type&gt;::param_type       first_param_type;
+	typedef typename call_traits&lt;second_type&gt;::param_type      second_param_type;
+	typedef typename call_traits&lt;first_type&gt;::reference        first_reference;
+	typedef typename call_traits&lt;second_type&gt;::reference       second_reference;
+	typedef typename call_traits&lt;first_type&gt;::const_reference  first_const_reference;
+	typedef typename call_traits&lt;second_type&gt;::const_reference second_const_reference;
+
+	         compressed_pair() : base() {}
+	         compressed_pair(first_param_type x, second_param_type y);
+	explicit compressed_pair(first_param_type x);
+	explicit compressed_pair(second_param_type y);
+
+	compressed_pair&amp; operator=(const compressed_pair&amp;);
+
+	first_reference       first();
+	first_const_reference first() const;
+
+	second_reference       second();
+	second_const_reference second() const;
+
+	void swap(compressed_pair&amp; y);
+};</pre>
+      <p>The two members of the pair can be accessed using the member functions first() 
+         and second(). Note that not all member functions can be instantiated for all 
+         template parameter types. In particular compressed_pair can be instantiated for 
+         reference and array types, however in these cases the range of constructors 
+         that can be used are limited. If types T1 and T2 are the same type, then there 
+         is only one version of the single-argument constructor, and this constructor 
+         initialises both values in the pair to the passed value.</p>
+      <P>Note that if either member is a POD type, then that member is not 
+         zero-initialized by the compressed_pair default constructor: it's up to you to 
+         supply an initial value for these types if you want them to have a default 
+         value.</P>
+      <p>Note that compressed_pair can not be instantiated if either of the template 
+         arguments is a union type, unless there is compiler support for 
+         boost::is_union, or if boost::is_union is specialised for the union type.</p>
+      <p>Finally, a word of caution for Visual C++ 6 users: if either argument is an 
+         empty type, then assigning to that member will produce memory corruption, 
+         unless the empty type has a "do nothing" assignment operator defined. This is 
+         due to a bug in the way VC6 generates implicit assignment operators.</p>
+      <h3>Acknowledgements</h3>
+      <p>Based on contributions by Steve Cleary, Beman Dawes, Howard Hinnant and John 
+         Maddock.</p>
+      <p>Maintained by <a href="mailto:john@johnmaddock.co.uk">John Maddock</a>, the 
+         latest version of this file can be found at <a href="http://www.boost.org">www.boost.org</a>, 
+         and the boost discussion list at <a href="http://www.yahoogroups.com/list/boost">www.yahoogroups.com/list/boost</a>.</p>
+      <hr>
+      <p>Revised
+      <!--webbot bot="Timestamp" S-Type="EDITED" S-Format="%d %B %Y" startspan -->07 November 2007<!--webbot bot="Timestamp" endspan i-checksum="40338" --></p>
+      <p>© Copyright Beman Dawes, 2000.</p>
+<p>Distributed under the Boost Software License, Version 1.0. See
+<a href="http://www.boost.org/LICENSE_1_0.txt">www.boost.org/LICENSE_1_0.txt</a></p>
+
+   </body>
+</html>

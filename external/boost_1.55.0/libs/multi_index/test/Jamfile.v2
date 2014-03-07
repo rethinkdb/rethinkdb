@@ -1,0 +1,57 @@
+# Boost.MultiIndex tests Jamfile
+#
+# Copyright 2003-2007 Joaquín M López Muñoz.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+#
+# See http://www.boost.org/libs/multi_index for library home page.
+
+import os ;
+import type ;
+
+# Windows Vista UAC has an heuristic by which executable files whose name
+# contains any of the words "install", "setup", "update", etc. are assumed
+# to be installation packages needing administrative rights, which causes
+# the system to bring up a window asking for execution confirmation by the
+# user, thus interferring in the unattended bjam process.
+# Problem bypassed by changing the EXE names containing a taboo word.
+# Thanks to Rene Rivera for guidance on the use of the <tag> feature.
+
+rule change-test_update-exe-name ( name : type ? : property-set ) 
+{ 
+    if [ os.on-windows ] && [ type.is-subtype $(type) EXE ]
+    {
+        return test_updat.exe ;
+    }
+} 
+
+test-suite "multi_index" :
+    [ run test_basic.cpp            test_basic_main.cpp            ]
+    [ run test_capacity.cpp         test_capacity_main.cpp         ]
+    [ run test_comparison.cpp       test_comparison_main.cpp       ]
+    [ run test_composite_key.cpp    test_composite_key_main.cpp    ]
+    [ run test_conv_iterators.cpp   test_conv_iterators_main.cpp   ]
+    [ run test_copy_assignment.cpp  test_copy_assignment_main.cpp  ]
+    [ run test_hash_ops.cpp         test_hash_ops_main.cpp         ]
+    [ run test_iterators.cpp        test_iterators_main.cpp        ]
+    [ run test_key_extractors.cpp   test_key_extractors_main.cpp   ]
+    [ run test_list_ops.cpp         test_list_ops_main.cpp         ]
+    [ run test_modifiers.cpp        test_modifiers_main.cpp        ]
+    [ run test_mpl_ops.cpp          test_mpl_ops_main.cpp          ]
+    [ run test_observers.cpp        test_observers_main.cpp        ]    
+    [ run test_projection.cpp       test_projection_main.cpp       ]
+    [ run test_range.cpp            test_range_main.cpp            ]
+    [ run test_rearrange.cpp        test_rearrange_main.cpp        ]
+    [ run test_safe_mode.cpp        test_safe_mode_main.cpp        ]
+    [ run test_serialization.cpp    test_serialization1.cpp
+          test_serialization2.cpp   test_serialization3.cpp
+          test_serialization_main.cpp
+                /boost/serialization//boost_serialization          ]
+    [ run test_set_ops.cpp          test_set_ops_main.cpp          ]
+    [ run test_special_set_ops.cpp  test_special_set_ops_main.cpp  ]
+    [ run test_update.cpp           test_update_main.cpp 
+        : : : 
+        -<tag>@$(BOOST_JAMROOT_MODULE)%$(BOOST_JAMROOT_MODULE).tag
+        <tag>@change-test_update-exe-name                          ] 
+    ;

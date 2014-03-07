@@ -1,0 +1,344 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Quantifiers: Maps of Numbers</title>
+<link rel="stylesheet" href="../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.74.0">
+<link rel="home" href="../../index.html" title="Chapter&#160;1.&#160;Boost.Icl">
+<link rel="up" href="../semantics.html" title="Semantics">
+<link rel="prev" href="collectors__maps_of_sets.html" title="Collectors: Maps of Sets">
+<link rel="next" href="concept_induction.html" title="Concept Induction">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="collectors__maps_of_sets.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../semantics.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concept_induction.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section boost_icl_semantics_quantifiers__maps_of_numbers" lang="en">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_icl.semantics.quantifiers__maps_of_numbers"></a><a class="link" href="quantifiers__maps_of_numbers.html" title="Quantifiers: Maps of Numbers">Quantifiers:
+      Maps of Numbers</a>
+</h3></div></div></div>
+<a name="boost_icl.semantics.quantifiers__maps_of_numbers.subtraction_on_quantifiers"></a><h6>
+<a name="id1128756"></a>
+        <a class="link" href="quantifiers__maps_of_numbers.html#boost_icl.semantics.quantifiers__maps_of_numbers.subtraction_on_quantifiers">Subtraction
+        on Quantifiers</a>
+      </h6>
+<p>
+        With <code class="computeroutput"><span class="identifier">Sets</span></code> and <code class="computeroutput"><span class="identifier">Collectors</span></code> the semantics of <code class="computeroutput"><span class="keyword">operator</span> <span class="special">-</span></code>
+        is that of <span class="emphasis"><em>set difference</em></span> which means, that you can
+        only subtract what has been put into the container before. With <code class="computeroutput"><span class="identifier">Quantifiers</span></code> that <span class="emphasis"><em><span class="bold"><strong>count</strong></span></em></span>
+        or <span class="emphasis"><em><span class="bold"><strong>quantify</strong></span></em></span> their key
+        values in some way, the semantics of <code class="computeroutput"><span class="keyword">operator</span>
+        <span class="special">-</span></code> may be different.
+      </p>
+<p>
+        The question is how subtraction should be defined here? 
+</p>
+<pre class="programlisting"><span class="comment">//Pseudocode:
+</span><span class="identifier">icl</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="identifier">some_number</span><span class="special">&gt;</span> <span class="identifier">q</span> <span class="special">=</span> <span class="special">{(</span><span class="number">1</span><span class="special">-&gt;</span><span class="number">1</span><span class="special">)};</span>
+<span class="identifier">q</span> <span class="special">-=</span> <span class="special">(</span><span class="number">2</span><span class="special">-&gt;</span><span class="number">1</span><span class="special">);</span>
+</pre>
+<p>
+        If type <code class="computeroutput"><span class="identifier">some_number</span></code> is <code class="computeroutput"><span class="keyword">unsigned</span></code> a <span class="emphasis"><em>set difference</em></span>
+        kind of subtraction make sense 
+</p>
+<pre class="programlisting"><span class="identifier">icl</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="identifier">some_number</span><span class="special">&gt;</span> <span class="identifier">q</span> <span class="special">=</span> <span class="special">{(</span><span class="number">1</span><span class="special">-&gt;</span><span class="number">1</span><span class="special">)};</span>
+<span class="identifier">q</span> <span class="special">-=</span> <span class="special">(</span><span class="number">2</span><span class="special">-&gt;</span><span class="number">1</span><span class="special">);</span>   <span class="comment">// key 2 is not in the map so  
+</span><span class="identifier">q</span> <span class="special">==</span> <span class="special">{(</span><span class="number">1</span><span class="special">-&gt;</span><span class="number">1</span><span class="special">)};</span> <span class="comment">// q is unchanged by 'aggregate on collision'
+</span></pre>
+<p>
+        If <code class="computeroutput"><span class="identifier">some_number</span></code> is a <code class="computeroutput"><span class="keyword">signed</span></code> numerical type the result can also
+        be this 
+</p>
+<pre class="programlisting"><span class="identifier">icl</span><span class="special">::</span><span class="identifier">map</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="identifier">some_number</span><span class="special">&gt;</span> <span class="identifier">q</span> <span class="special">=</span> <span class="special">{(</span><span class="number">1</span><span class="special">-&gt;</span><span class="number">1</span><span class="special">)};</span>
+<span class="identifier">q</span> <span class="special">-=</span> <span class="special">(</span><span class="number">2</span><span class="special">-&gt;</span><span class="number">1</span><span class="special">);</span>             <span class="comment">// subtracting works like  
+</span><span class="identifier">q</span> <span class="special">==</span> <span class="special">{(</span><span class="number">1</span><span class="special">-&gt;</span><span class="number">1</span><span class="special">),</span> <span class="special">(</span><span class="number">2</span><span class="special">-&gt;</span> <span class="special">-</span><span class="number">1</span><span class="special">)};</span> <span class="comment">// adding the inverse element
+</span></pre>
+<p>
+        As commented in the example, subtraction of a key value pair <code class="computeroutput"><span class="special">(</span><span class="identifier">k</span><span class="special">,</span><span class="identifier">v</span><span class="special">)</span></code> can
+        obviously be defined as adding the <span class="emphasis"><em><span class="bold"><strong>inverse
+        element</strong></span></em></span> for that key <code class="computeroutput"><span class="special">(</span><span class="identifier">k</span><span class="special">,-</span><span class="identifier">v</span><span class="special">)</span></code>, if the key is not yet stored in the map.
+      </p>
+<a name="boost_icl.semantics.quantifiers__maps_of_numbers.partial_and_total_quantifiers_and_infinite_vectors"></a><h5>
+<a name="id1129293"></a>
+        <a class="link" href="quantifiers__maps_of_numbers.html#boost_icl.semantics.quantifiers__maps_of_numbers.partial_and_total_quantifiers_and_infinite_vectors">Partial
+        and Total Quantifiers and Infinite Vectors</a>
+      </h5>
+<p>
+        Another concept, that we can think of, is that in a <code class="computeroutput"><span class="identifier">Quantifier</span></code>
+        every <code class="computeroutput"><span class="identifier">key_value</span></code> is initially
+        quantified <code class="computeroutput"><span class="number">0</span></code>-times, where <code class="computeroutput"><span class="number">0</span></code> stands for the neutral element of the numeric
+        <code class="computeroutput"><span class="identifier">CodomainT</span></code> type. Such a <code class="computeroutput"><span class="identifier">Quantifier</span></code> would be totally defined on
+        all values of it's <code class="computeroutput"><span class="identifier">DomainT</span></code>
+        type and can be conceived as an <code class="computeroutput"><span class="identifier">InfiniteVector</span></code>.
+      </p>
+<p>
+        To create an infinite vector that is totally defined on it's domain we can
+        set the map's <code class="computeroutput"><span class="identifier">Trait</span></code> parameter
+        to the value <code class="computeroutput"><a class="link" href="../../boost/icl/total_absorber.html" title="Struct total_absorber">total_absorber</a></code>.
+        The <code class="computeroutput"><a class="link" href="../../boost/icl/total_absorber.html" title="Struct total_absorber">total_absorber</a></code>
+        trait fits specifically well with a <code class="computeroutput"><span class="identifier">Quantifier</span></code>
+        if it's <code class="computeroutput"><span class="identifier">CodomainT</span></code> has an
+        inverse element, like all signed numerical type have. As we can see later
+        in this section this kind of a total <code class="computeroutput"><span class="identifier">Quantifier</span></code>
+        has the basic properties that elements of a <a href="http://en.wikipedia.org/wiki/Vector_space" target="_top">vector
+        space</a> do provide.
+      </p>
+<a name="boost_icl.semantics.quantifiers__maps_of_numbers.intersection_on_quantifiers"></a><h6>
+<a name="id1129423"></a>
+        <a class="link" href="quantifiers__maps_of_numbers.html#boost_icl.semantics.quantifiers__maps_of_numbers.intersection_on_quantifiers">Intersection
+        on Quantifiers</a>
+      </h6>
+<p>
+        Another difference between <code class="computeroutput"><span class="identifier">Collectors</span></code>
+        and <code class="computeroutput"><span class="identifier">Quantifiers</span></code> is the semantics
+        of <code class="computeroutput"><span class="keyword">operator</span> <span class="special">&amp;</span></code>,
+        that has the meaning of set intersection for <code class="computeroutput"><span class="identifier">Collectors</span></code>.
+      </p>
+<p>
+        For the <span class="emphasis"><em>aggregate on overlap principle</em></span> the operation
+        <code class="computeroutput"><span class="special">&amp;</span></code> has to be passed to combine
+        associated values on overlap of intervals or collision of keys. This can
+        not be done for <code class="computeroutput"><span class="identifier">Quantifiers</span></code>,
+        since numeric types do not implement intersection.
+      </p>
+<p>
+        For <code class="computeroutput"><span class="identifier">CodomainT</span></code> types that
+        are not models of <code class="computeroutput"><span class="identifier">Sets</span></code> <code class="computeroutput"><span class="keyword">operator</span> <span class="special">&amp;</span> </code>
+        is defined as <span class="emphasis"><em>aggregation on the intersection of the domains</em></span>.
+        Instead of the <code class="computeroutput"><span class="identifier">codomain_intersect</span></code>
+        functor <code class="computeroutput"><span class="identifier">codomain_combine</span></code>
+        is used as aggregation operation: 
+</p>
+<pre class="programlisting"><span class="comment">//Pseudocode example for partial Quantifiers p, q:
+</span><span class="identifier">interval_map</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">q</span><span class="special">;</span>
+<span class="identifier">p</span>     <span class="special">=</span> <span class="special">{[</span><span class="number">1</span>     <span class="number">3</span><span class="special">)-&gt;</span><span class="number">1</span>   <span class="special">};</span>
+<span class="identifier">q</span>     <span class="special">=</span> <span class="special">{</span>   <span class="special">([</span><span class="number">2</span>    <span class="number">4</span><span class="special">)-&gt;</span><span class="number">1</span><span class="special">};</span>
+<span class="identifier">p</span> <span class="special">&amp;</span> <span class="identifier">q</span> <span class="special">=={</span>    <span class="special">[</span><span class="number">2</span> <span class="number">3</span><span class="special">)-&gt;</span><span class="number">2</span>   <span class="special">};</span>
+</pre>
+<p>
+        So an addition or aggregation of associated values is done like for <code class="computeroutput"><span class="keyword">operator</span> <span class="special">+</span></code>
+        but value pairs that have no common keys are not added to the result.
+      </p>
+<p>
+        For a <code class="computeroutput"><span class="identifier">Quantifier</span></code> that is
+        a model of an <code class="computeroutput"><span class="identifier">InfiniteVector</span></code>
+        and which is therefore defined for every key value of the <code class="computeroutput"><span class="identifier">DomainT</span></code>
+        type, this definition of <code class="computeroutput"><span class="keyword">operator</span>
+        <span class="special">&amp;</span></code> degenerates to the same sematics
+        that <code class="computeroutput"><span class="identifier">operaotor</span> <span class="special">+</span></code>
+        implements: 
+</p>
+<pre class="programlisting"><span class="comment">//Pseudocode example for total Quantifiers p, q:
+</span><span class="identifier">interval_map</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">,</span><span class="keyword">int</span><span class="special">&gt;</span> <span class="identifier">p</span><span class="special">,</span> <span class="identifier">q</span><span class="special">;</span>
+<span class="identifier">p</span>   <span class="special">=</span> <span class="special">{[</span><span class="identifier">min</span>   <span class="number">1</span><span class="special">)[</span><span class="number">1</span>      <span class="number">3</span><span class="special">)[</span><span class="number">3</span>         <span class="identifier">max</span><span class="special">]};</span>
+          <span class="special">-&gt;</span><span class="number">0</span>      <span class="special">-&gt;</span><span class="number">1</span>         <span class="special">-&gt;</span><span class="number">0</span>
+<span class="identifier">q</span>   <span class="special">=</span> <span class="special">{[</span><span class="identifier">min</span>        <span class="number">2</span><span class="special">)[</span><span class="number">2</span>      <span class="number">4</span><span class="special">)[</span><span class="number">4</span>    <span class="identifier">max</span><span class="special">]};</span>
+            <span class="special">-&gt;</span><span class="number">0</span>         <span class="special">-&gt;</span><span class="number">1</span>       <span class="special">-&gt;</span><span class="number">0</span>
+<span class="identifier">p</span><span class="special">&amp;</span><span class="identifier">q</span> <span class="special">=={[</span><span class="identifier">min</span>   <span class="number">1</span><span class="special">)[</span><span class="number">1</span>  <span class="number">2</span><span class="special">)[</span><span class="number">2</span> <span class="number">3</span><span class="special">)[</span><span class="number">3</span> <span class="number">4</span><span class="special">)[</span><span class="number">4</span>   <span class="identifier">max</span><span class="special">]};</span>
+          <span class="special">-&gt;</span><span class="number">0</span>    <span class="special">-&gt;</span><span class="number">1</span>   <span class="special">-&gt;</span><span class="number">2</span>  <span class="special">-&gt;</span><span class="number">1</span>    <span class="special">-&gt;</span><span class="number">0</span>
+</pre>
+<p>
+      </p>
+<a name="boost_icl.semantics.quantifiers__maps_of_numbers.laws_for_quantifiers_of_unsigned_numbers"></a><h5>
+<a name="id1132271"></a>
+        <a class="link" href="quantifiers__maps_of_numbers.html#boost_icl.semantics.quantifiers__maps_of_numbers.laws_for_quantifiers_of_unsigned_numbers">Laws
+        for Quantifiers of unsigned Numbers</a>
+      </h5>
+<p>
+        The semantics of icl Maps of Numbers is different for unsigned or signed
+        numbers. So the sets of laws that are valid for Quantifiers will be different
+        depending on the instantiation of an unsigned or a signed number type as
+        <code class="computeroutput"><span class="identifier">CodomainT</span></code> parameter.
+      </p>
+<p>
+        Again, we are presenting the investigated sets of laws, this time for <code class="computeroutput"><span class="identifier">Quantifier</span></code> types <code class="computeroutput"><span class="identifier">Q</span></code>
+        which are <code class="computeroutput"><a class="link" href="../../boost/icl/map.html" title="Class template map">icl::map</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">N</span><span class="special">,</span><span class="identifier">T</span><span class="special">&gt;</span></code>, <code class="computeroutput"><a class="link" href="../../boost/icl/interval_map.html" title="Class template interval_map">interval_map</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">N</span><span class="special">,</span><span class="identifier">T</span><span class="special">&gt;</span></code> and <code class="computeroutput"><a class="link" href="../../boost/icl/split_interval_map.html" title="Class template split_interval_map">split_interval_map</a></code><code class="computeroutput"><span class="special">&lt;</span><span class="identifier">D</span><span class="special">,</span><span class="identifier">N</span><span class="special">,</span><span class="identifier">T</span><span class="special">&gt;</span></code> where <code class="computeroutput"><span class="identifier">CodomainT</span></code>
+        type <code class="computeroutput"><span class="identifier">N</span></code> is a <code class="computeroutput"><span class="identifier">Number</span></code> and <code class="computeroutput"><span class="identifier">Trait</span></code>
+        type <code class="computeroutput"><span class="identifier">T</span></code> is one of the icl's
+        map traits.
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting"><span class="identifier">Associativity</span><span class="special">&lt;</span><span class="identifier">Q</span><span class="special">,+,==</span> <span class="special">&gt;:</span> <span class="identifier">Q</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="identifier">a</span><span class="special">+(</span><span class="identifier">b</span><span class="special">+</span><span class="identifier">c</span><span class="special">)</span> <span class="special">==</span> <span class="special">(</span><span class="identifier">a</span><span class="special">+</span><span class="identifier">b</span><span class="special">)+</span><span class="identifier">c</span>
+<span class="identifier">Neutrality</span><span class="special">&lt;</span><span class="identifier">Q</span><span class="special">,+,==</span> <span class="special">&gt;</span>   <span class="special">:</span> <span class="identifier">Q</span> <span class="identifier">a</span><span class="special">;</span>       <span class="identifier">a</span><span class="special">+</span><span class="identifier">Q</span><span class="special">()</span> <span class="special">==</span> <span class="identifier">a</span>
+<span class="identifier">Commutativity</span><span class="special">&lt;</span><span class="identifier">Q</span><span class="special">,+,==</span> <span class="special">&gt;:</span> <span class="identifier">Q</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">;</span>       <span class="identifier">a</span><span class="special">+</span><span class="identifier">b</span> <span class="special">==</span> <span class="identifier">b</span><span class="special">+</span><span class="identifier">a</span>
+
+<span class="identifier">Associativity</span><span class="special">&lt;</span><span class="identifier">Q</span><span class="special">,&amp;,==</span> <span class="special">&gt;:</span> <span class="identifier">Q</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="identifier">a</span><span class="special">&amp;(</span><span class="identifier">b</span><span class="special">&amp;</span><span class="identifier">c</span><span class="special">)</span> <span class="special">==(</span><span class="identifier">a</span><span class="special">&amp;</span><span class="identifier">b</span><span class="special">)&amp;</span><span class="identifier">c</span>
+<span class="identifier">Commutativity</span><span class="special">&lt;</span><span class="identifier">Q</span><span class="special">,&amp;,==</span> <span class="special">&gt;:</span> <span class="identifier">Q</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">;</span>       <span class="identifier">a</span><span class="special">&amp;</span><span class="identifier">b</span> <span class="special">==</span> <span class="identifier">b</span><span class="special">&amp;</span><span class="identifier">a</span>
+
+<span class="identifier">RightNeutrality</span><span class="special">&lt;</span><span class="identifier">Q</span><span class="special">,-,==</span> <span class="special">&gt;:</span> <span class="identifier">Q</span> <span class="identifier">a</span><span class="special">;</span>   <span class="identifier">a</span><span class="special">-</span><span class="identifier">Q</span><span class="special">()</span> <span class="special">==</span>  <span class="identifier">a</span>
+<span class="identifier">Inversion</span><span class="special">&lt;</span><span class="identifier">Q</span><span class="special">,-,=</span><span class="identifier">v</span><span class="special">=</span> <span class="special">&gt;</span>     <span class="special">:</span> <span class="identifier">Q</span> <span class="identifier">a</span><span class="special">;</span>   <span class="identifier">a</span> <span class="special">-</span> <span class="identifier">a</span> <span class="special">=</span><span class="identifier">v</span><span class="special">=</span> <span class="identifier">Q</span><span class="special">()</span>
+</pre>
+<p>
+      </p>
+<p>
+        For an <code class="computeroutput"><span class="keyword">unsigned</span> <span class="identifier">Quantifier</span></code>,
+        an icl Map of <code class="computeroutput"><span class="keyword">unsigned</span> <span class="identifier">numbers</span></code>,
+        the same basic laws apply that are valid for <code class="computeroutput"><span class="identifier">Collectors</span></code>:
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting">                               <span class="special">+</span>    <span class="special">&amp;</span>    <span class="special">-</span>
+<span class="identifier">Associativity</span>                  <span class="special">==</span>   <span class="special">==</span> 
+<span class="identifier">Neutrality</span>                     <span class="special">==</span>        <span class="special">==</span>
+<span class="identifier">Commutativity</span>                  <span class="special">==</span>   <span class="special">==</span>
+<span class="identifier">Inversion</span> <span class="identifier">absorbs_identities</span>             <span class="special">==</span>
+          <span class="identifier">enriches_identities</span>            <span class="special">=</span><span class="identifier">d</span><span class="special">=</span>
+</pre>
+<p>
+      </p>
+<p>
+        The subset of laws, that relates to <code class="computeroutput"><span class="keyword">operator</span>
+        <span class="special">+</span></code> and the neutral element <code class="computeroutput"><span class="identifier">Q</span><span class="special">()</span></code> is
+        that of a commutative monoid. This is the same concept, that applies for
+        the <code class="computeroutput"><span class="identifier">CodomainT</span></code> type. This
+        gives rise to the assumption that an icl <code class="computeroutput"><span class="identifier">Map</span></code>
+        over a <code class="computeroutput"><span class="identifier">CommutativeModoid</span></code>
+        is again a <code class="computeroutput"><span class="identifier">CommutativeModoid</span></code>.
+      </p>
+<p>
+        Other laws that were valid for <code class="computeroutput"><span class="identifier">Collectors</span></code>
+        are not valid for an <code class="computeroutput"><span class="keyword">unsigned</span> <span class="identifier">Quantifier</span></code>.
+      </p>
+<a name="boost_icl.semantics.quantifiers__maps_of_numbers.laws_for_quantifiers_of_signed_numbers"></a><h5>
+<a name="id1133206"></a>
+        <a class="link" href="quantifiers__maps_of_numbers.html#boost_icl.semantics.quantifiers__maps_of_numbers.laws_for_quantifiers_of_signed_numbers">Laws
+        for Quantifiers of signed Numbers</a>
+      </h5>
+<p>
+        For <code class="computeroutput"><span class="identifier">Quantifiers</span></code> of signed
+        numbers, or <code class="computeroutput"><span class="keyword">signed</span> <span class="identifier">Quantifiers</span></code>,
+        the pattern of valid laws is somewhat different: 
+</p>
+<pre class="programlisting">                               <span class="special">+</span>    <span class="special">&amp;</span>    <span class="special">-</span>
+<span class="identifier">Associativity</span>                  <span class="special">=</span><span class="identifier">v</span><span class="special">=</span>  <span class="special">=</span><span class="identifier">v</span><span class="special">=</span>  
+<span class="identifier">Neutrality</span>                     <span class="special">==</span>        <span class="special">==</span>
+<span class="identifier">Commutativity</span>                  <span class="special">==</span>   <span class="special">==</span>
+<span class="identifier">Inversion</span> <span class="identifier">absorbs_identities</span>             <span class="special">==</span>
+          <span class="identifier">enriches_identities</span>            <span class="special">=</span><span class="identifier">d</span><span class="special">=</span>
+</pre>
+<p>
+      </p>
+<p>
+        The differences are tagged as <code class="computeroutput"><span class="special">=</span><span class="identifier">v</span><span class="special">=</span></code> indicating,
+        that the associativity law is not uniquely valid for a single equality relation
+        <code class="computeroutput"><span class="special">==</span></code> as this was the case for
+        <code class="computeroutput"><span class="identifier">Collector</span></code> and <code class="computeroutput"><span class="keyword">unsigned</span> <span class="identifier">Quntifier</span></code>
+        maps.
+      </p>
+<p>
+        The differences are these: 
+</p>
+<pre class="programlisting">                                   <span class="special">+</span>  
+<span class="identifier">Associativity</span>         <span class="identifier">icl</span><span class="special">::</span><span class="identifier">map</span>     <span class="special">==</span>   
+                  <span class="identifier">interval_map</span>     <span class="special">==</span>
+            <span class="identifier">split_interval_map</span>     <span class="special">=</span><span class="identifier">e</span><span class="special">=</span>
+</pre>
+<p>
+        For <code class="computeroutput"><span class="keyword">operator</span> <span class="special">+</span></code>
+        the associativity on <code class="computeroutput"><a class="link" href="../../boost/icl/split_interval_map.html" title="Class template split_interval_map">split_interval_maps</a></code>
+        is only valid with element equality <code class="computeroutput"><span class="special">=</span><span class="identifier">e</span><span class="special">=</span></code>, which
+        is not a big constrained, because only element equality is required.
+      </p>
+<p>
+        For <code class="computeroutput"><span class="keyword">operator</span> <span class="special">&amp;</span></code>
+        the associativity is broken for all maps that are partial absorbers. For
+        total absorbers associativity is valid for element equality. All maps having
+        the <span class="emphasis"><em>identity enricher</em></span> Trait are associative wrt. lexicographical
+        equality <code class="computeroutput"><span class="special">==</span></code>. 
+</p>
+<pre class="programlisting"><span class="identifier">Associativity</span>                        <span class="special">&amp;</span>
+   <span class="identifier">absorbs_identities</span> <span class="special">&amp;&amp;</span> <span class="special">!</span><span class="identifier">is_total</span>   <span class="keyword">false</span>
+   <span class="identifier">absorbs_identities</span> <span class="special">&amp;&amp;</span>  <span class="identifier">is_total</span>   <span class="special">=</span><span class="identifier">e</span><span class="special">=</span>
+   <span class="identifier">enriches_identities</span>               <span class="special">==</span>                  
+</pre>
+<p>
+      </p>
+<p>
+        Note, that all laws that establish a commutative monoid for <code class="computeroutput"><span class="keyword">operator</span> <span class="special">+</span></code>
+        and identity element <code class="computeroutput"><span class="identifier">Q</span><span class="special">()</span></code>
+        are valid for <code class="computeroutput"><span class="keyword">signed</span> <span class="identifier">Quantifiers</span></code>.
+        In addition symmetric difference that does not hold for <code class="computeroutput"><span class="keyword">unsigned</span>
+        <span class="identifier">Qunatifiers</span></code> is valid for <code class="computeroutput"><span class="keyword">signed</span> <span class="identifier">Qunatifiers</span></code>.
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting"><span class="identifier">SymmetricDifference</span><span class="special">&lt;</span><span class="identifier">Q</span><span class="special">,==</span> <span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">Q</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">+</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">-</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">&amp;</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">==</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">-</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">+</span> <span class="special">(</span><span class="identifier">b</span> <span class="special">-</span> <span class="identifier">a</span><span class="special">)</span>
+</pre>
+<p>
+        For a <code class="computeroutput"><span class="keyword">signed</span> <span class="identifier">TotalQuantifier</span></code>
+        <code class="computeroutput"><span class="identifier">Qt</span></code> symmetrical difference
+        degenerates to a trivial form since <code class="computeroutput"><span class="keyword">operator</span>
+        <span class="special">&amp;</span></code> and <code class="computeroutput"><span class="keyword">operator</span>
+        <span class="special">+</span></code> become identical 
+</p>
+<pre class="programlisting"><span class="identifier">SymmetricDifference</span><span class="special">&lt;</span><span class="identifier">Qt</span><span class="special">,==</span> <span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">Qt</span> <span class="identifier">a</span><span class="special">,</span><span class="identifier">b</span><span class="special">,</span><span class="identifier">c</span><span class="special">;</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">+</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">-</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">+</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">==</span> <span class="special">(</span><span class="identifier">a</span> <span class="special">-</span> <span class="identifier">b</span><span class="special">)</span> <span class="special">+</span> <span class="special">(</span><span class="identifier">b</span> <span class="special">-</span> <span class="identifier">a</span><span class="special">)</span> <span class="special">==</span> <span class="identifier">Qt</span><span class="special">()</span>
+</pre>
+<p>
+      </p>
+<a name="boost_icl.semantics.quantifiers__maps_of_numbers.existence_of_an_inverse"></a><h6>
+<a name="id1134028"></a>
+        <a class="link" href="quantifiers__maps_of_numbers.html#boost_icl.semantics.quantifiers__maps_of_numbers.existence_of_an_inverse">Existence
+        of an Inverse</a>
+      </h6>
+<p>
+        By now <code class="computeroutput"><span class="keyword">signed</span> <span class="identifier">Quantifiers</span></code>
+        <code class="computeroutput"><span class="identifier">Q</span></code> are commutative monoids
+        with respect to the <code class="computeroutput"><span class="keyword">operator</span> <span class="special">+</span></code> and the neutral element <code class="computeroutput"><span class="identifier">Q</span><span class="special">()</span></code>. If the Quantifier's <code class="computeroutput"><span class="identifier">CodomainT</span></code>
+        type has an <span class="emphasis"><em>inverse element</em></span> like e.g. <code class="computeroutput"><span class="keyword">signed</span> <span class="identifier">numbers</span></code>
+        do, the <code class="computeroutput"><span class="identifier">CodomainT</span></code> type is
+        a <span class="emphasis"><em><span class="bold"><strong>commutative</strong></span></em></span> or <span class="emphasis"><em><span class="bold"><strong>abelian group</strong></span></em></span>. In this case a <code class="computeroutput"><span class="keyword">signed</span> <span class="identifier">Quantifier</span></code>
+        that is also <span class="emphasis"><em><span class="bold"><strong>total</strong></span></em></span>
+        has an <span class="emphasis"><em><span class="bold"><strong>inverse</strong></span></em></span> and
+        the following law holds:
+      </p>
+<p>
+        
+</p>
+<pre class="programlisting"><span class="identifier">InverseElement</span><span class="special">&lt;</span><span class="identifier">Qt</span><span class="special">,==</span> <span class="special">&gt;</span> <span class="special">:</span> <span class="identifier">Qt</span> <span class="identifier">a</span><span class="special">;</span> <span class="special">(</span><span class="number">0</span> <span class="special">-</span> <span class="identifier">a</span><span class="special">)</span> <span class="special">+</span> <span class="identifier">a</span> <span class="special">==</span> <span class="number">0</span>
+</pre>
+<p>
+      </p>
+<p>
+        Which means that each <code class="computeroutput"><span class="identifier">TotalQuantifier</span></code>
+        over an abelian group is an abelian group itself.
+      </p>
+<p>
+        This also implies that a <code class="computeroutput"><span class="identifier">Quantifier</span></code>
+        of <code class="computeroutput"><span class="identifier">Quantifiers</span></code> is again a
+        <code class="computeroutput"><span class="identifier">Quantifiers</span></code> and a <code class="computeroutput"><span class="identifier">TotalQuantifier</span></code> of <code class="computeroutput"><span class="identifier">TotalQuantifiers</span></code>
+        is also a <code class="computeroutput"><span class="identifier">TotalQuantifier</span></code>.
+      </p>
+<p>
+        <code class="computeroutput"><span class="identifier">TotalQuantifiers</span></code> resemble
+        the notion of a vector space partially. The concept could be completed to
+        a vector space, if a scalar multiplication was added.
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007 -2010 Joachim Faulhaber<br>Copyright &#169; 1999 -2006 Cortex Software GmbH<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="collectors__maps_of_sets.html"><img src="../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../semantics.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="concept_induction.html"><img src="../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

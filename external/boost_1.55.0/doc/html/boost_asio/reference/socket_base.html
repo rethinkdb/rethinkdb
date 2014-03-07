@@ -1,0 +1,388 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>socket_base</title>
+<link rel="stylesheet" href="../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../boost_asio.html" title="Boost.Asio">
+<link rel="up" href="../reference.html" title="Reference">
+<link rel="prev" href="socket_acceptor_service/socket_acceptor_service.html" title="socket_acceptor_service::socket_acceptor_service">
+<link rel="next" href="socket_base/broadcast.html" title="socket_base::broadcast">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../boost.png"></td>
+<td align="center"><a href="../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="socket_acceptor_service/socket_acceptor_service.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="socket_base/broadcast.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_asio.reference.socket_base"></a><a class="link" href="socket_base.html" title="socket_base">socket_base</a>
+</h3></div></div></div>
+<p>
+        The <a class="link" href="socket_base.html" title="socket_base"><code class="computeroutput"><span class="identifier">socket_base</span></code></a>
+        class is used as a base for the <a class="link" href="basic_stream_socket.html" title="basic_stream_socket"><code class="computeroutput"><span class="identifier">basic_stream_socket</span></code></a> and <a class="link" href="basic_datagram_socket.html" title="basic_datagram_socket"><code class="computeroutput"><span class="identifier">basic_datagram_socket</span></code></a> class templates
+        so that we have a common place to define the shutdown_type and enum.
+      </p>
+<pre class="programlisting"><span class="keyword">class</span> <span class="identifier">socket_base</span>
+</pre>
+<h5>
+<a name="boost_asio.reference.socket_base.h0"></a>
+        <span class="phrase"><a name="boost_asio.reference.socket_base.types"></a></span><a class="link" href="socket_base.html#boost_asio.reference.socket_base.types">Types</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/broadcast.html" title="socket_base::broadcast"><span class="bold"><strong>broadcast</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Socket option to permit sending of broadcast messages.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/bytes_readable.html" title="socket_base::bytes_readable"><span class="bold"><strong>bytes_readable</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  IO control command to get the amount of data that can be read without
+                  blocking.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/debug.html" title="socket_base::debug"><span class="bold"><strong>debug</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Socket option to enable socket-level debugging.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/do_not_route.html" title="socket_base::do_not_route"><span class="bold"><strong>do_not_route</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Socket option to prevent routing, use local interfaces only.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/enable_connection_aborted.html" title="socket_base::enable_connection_aborted"><span class="bold"><strong>enable_connection_aborted</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Socket option to report aborted connections on accept.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/keep_alive.html" title="socket_base::keep_alive"><span class="bold"><strong>keep_alive</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Socket option to send keep-alives.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/linger.html" title="socket_base::linger"><span class="bold"><strong>linger</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Socket option to specify whether the socket lingers on close if
+                  unsent data is present.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/message_flags.html" title="socket_base::message_flags"><span class="bold"><strong>message_flags</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Bitmask type for flags that can be passed to send and receive operations.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/non_blocking_io.html" title="socket_base::non_blocking_io"><span class="bold"><strong>non_blocking_io</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  (Deprecated: Use non_blocking().) IO control command to set the
+                  blocking mode of the socket.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/receive_buffer_size.html" title="socket_base::receive_buffer_size"><span class="bold"><strong>receive_buffer_size</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Socket option for the receive buffer size of a socket.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/receive_low_watermark.html" title="socket_base::receive_low_watermark"><span class="bold"><strong>receive_low_watermark</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Socket option for the receive low watermark.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/reuse_address.html" title="socket_base::reuse_address"><span class="bold"><strong>reuse_address</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Socket option to allow the socket to be bound to an address that
+                  is already in use.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/send_buffer_size.html" title="socket_base::send_buffer_size"><span class="bold"><strong>send_buffer_size</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Socket option for the send buffer size of a socket.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/send_low_watermark.html" title="socket_base::send_low_watermark"><span class="bold"><strong>send_low_watermark</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Socket option for the send low watermark.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/shutdown_type.html" title="socket_base::shutdown_type"><span class="bold"><strong>shutdown_type</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Different ways a socket may be shutdown.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.socket_base.h1"></a>
+        <span class="phrase"><a name="boost_asio.reference.socket_base.protected_member_functions"></a></span><a class="link" href="socket_base.html#boost_asio.reference.socket_base.protected_member_functions">Protected
+        Member Functions</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody><tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/_socket_base.html" title="socket_base::~socket_base"><span class="bold"><strong>~socket_base</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Protected destructor to prevent deletion through this type.
+                </p>
+              </td>
+</tr></tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.socket_base.h2"></a>
+        <span class="phrase"><a name="boost_asio.reference.socket_base.data_members"></a></span><a class="link" href="socket_base.html#boost_asio.reference.socket_base.data_members">Data
+        Members</a>
+      </h5>
+<div class="informaltable"><table class="table">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+                <p>
+                  Name
+                </p>
+              </th>
+<th>
+                <p>
+                  Description
+                </p>
+              </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/max_connections.html" title="socket_base::max_connections"><span class="bold"><strong>max_connections</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  The maximum length of the queue of pending incoming connections.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/message_do_not_route.html" title="socket_base::message_do_not_route"><span class="bold"><strong>message_do_not_route</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Specify that the data should not be subject to routing.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/message_end_of_record.html" title="socket_base::message_end_of_record"><span class="bold"><strong>message_end_of_record</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Specifies that the data marks the end of a record.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/message_out_of_band.html" title="socket_base::message_out_of_band"><span class="bold"><strong>message_out_of_band</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Process out-of-band data.
+                </p>
+              </td>
+</tr>
+<tr>
+<td>
+                <p>
+                  <a class="link" href="socket_base/message_peek.html" title="socket_base::message_peek"><span class="bold"><strong>message_peek</strong></span></a>
+                </p>
+              </td>
+<td>
+                <p>
+                  Peek at incoming data without removing it from the input queue.
+                </p>
+              </td>
+</tr>
+</tbody>
+</table></div>
+<h5>
+<a name="boost_asio.reference.socket_base.h3"></a>
+        <span class="phrase"><a name="boost_asio.reference.socket_base.requirements"></a></span><a class="link" href="socket_base.html#boost_asio.reference.socket_base.requirements">Requirements</a>
+      </h5>
+<p>
+        <span class="emphasis"><em>Header: </em></span><code class="literal">boost/asio/socket_base.hpp</code>
+      </p>
+<p>
+        <span class="emphasis"><em>Convenience header: </em></span><code class="literal">boost/asio.hpp</code>
+      </p>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2003-2013 Christopher M. Kohlhoff<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="socket_acceptor_service/socket_acceptor_service.html"><img src="../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../reference.html"><img src="../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../boost_asio.html"><img src="../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="socket_base/broadcast.html"><img src="../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

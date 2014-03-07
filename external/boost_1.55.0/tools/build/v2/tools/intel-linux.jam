@@ -1,0 +1,250 @@
+#  Copyright (c) 2003 Michael Stevens
+#  Copyright (c) 2011 Bryce Lelbach
+#
+#  Use, modification and distribution is subject to the Boost Software
+#  License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+#  http://www.boost.org/LICENSE_1_0.txt)
+
+import toolset ;
+import feature ;
+import toolset : flags ;
+
+import intel ;
+import gcc ;
+import common ;
+import errors ;
+import generators ;
+import type ;
+import numbers ;
+
+feature.extend-subfeature toolset intel : platform : linux ;
+
+toolset.inherit-generators intel-linux 
+     <toolset>intel <toolset-intel:platform>linux : gcc : gcc.mingw.link gcc.mingw.link.dll ;
+generators.override intel-linux.prebuilt : builtin.lib-generator ;
+generators.override intel-linux.prebuilt : builtin.prebuilt ;
+generators.override intel-linux.searched-lib-generator : searched-lib-generator ;
+
+# Override default do-nothing generators.
+generators.override intel-linux.compile.c.pch   : pch.default-c-pch-generator   ;
+generators.override intel-linux.compile.c++.pch : pch.default-cpp-pch-generator ;
+ 
+type.set-generated-target-suffix PCH : <toolset>intel <toolset-intel:platform>linux : pchi ;
+
+toolset.inherit-rules intel-linux : gcc ;
+toolset.inherit-flags intel-linux : gcc 
+        : <inlining>off <inlining>on <inlining>full
+          <optimization>space <optimization>speed
+          <warnings>off <warnings>all <warnings>on
+        ;
+        
+if [ MATCH (--debug-configuration) : [ modules.peek : ARGV ] ]
+{
+    .debug-configuration = true ;
+}
+                       
+# Initializes the intel-linux toolset
+#   version in mandatory
+#   name (default icpc) is used to invoke the specified intel-linux complier
+#   compile and link options allow you to specify addition command line options for each version
+rule init ( version ? :  command * : options * )
+{
+    local condition = [ common.check-init-parameters intel-linux
+        : version $(version) ] ;
+    
+    if $(.debug-configuration)
+    {
+        ECHO "notice: intel-linux version is" $(version) ;
+    }
+
+    local default_path ;
+
+    # Intel C++ Composer XE 2011 for Linux, aka Intel C++ Compiler XE 12.0,
+    # aka intel-linux-12.0. In this version, Intel thankfully decides to install
+    # to a sane 'intel' folder in /opt.
+    if [ MATCH "(12[.]0|12)" : $(version) ]
+        { default_path = /opt/intel/bin ; }
+    # Intel C++ Compiler 11.1. 
+    else if [ MATCH "(11[.]1)" : $(version) ]
+        { default_path = /opt/intel_cce_11.1.064.x86_64/bin ; }
+    # Intel C++ Compiler 11.0. 
+    else if [ MATCH "(11[.]0|11)" : $(version) ]
+        { default_path = /opt/intel_cce_11.0.074.x86_64/bin ; }
+    # Intel C++ Compiler 10.1. 
+    else if [ MATCH "(10[.]1)" : $(version) ]
+        { default_path = /opt/intel_cce_10.1.013_x64/bin ; }
+    # Intel C++ Compiler 9.1. 
+    else if [ MATCH "(9[.]1)" : $(version) ]
+        { default_path = /opt/intel_cc_91/bin ; }
+    # Intel C++ Compiler 9.0. 
+    else if [ MATCH "(9[.]0|9)" : $(version) ]
+        { default_path = /opt/intel_cc_90/bin ; }
+    # Intel C++ Compiler 8.1. 
+    else if [ MATCH "(8[.]1)" : $(version) ]
+        { default_path = /opt/intel_cc_81/bin ; }
+    # Intel C++ Compiler 8.0 - this used to be the default, so now it's the
+    # fallback. 
+    else 
+        { default_path = /opt/intel_cc_80/bin ; }
+            
+    if $(.debug-configuration)
+    {
+        ECHO "notice: default search path for intel-linux is" $(default_path) ;
+    }
+
+    command = [ common.get-invocation-command intel-linux : icpc 
+        : $(command) : $(default_path) ] ;
+                
+    common.handle-options intel-linux : $(condition) : $(command) : $(options) ;
+
+    gcc.init-link-flags intel-linux gnu $(condition) ;
+    
+    local root = [ feature.get-values <root> : $(options) ] ;
+    local bin ;
+    if $(command) || $(root)
+    {
+        bin ?= [ common.get-absolute-tool-path $(command[-1]) ] ;
+        root ?= $(bin:D) ;
+        
+        local command-string = $(command:J=" ") ;
+        local version-output = [ SHELL "$(command-string) --version" ] ;
+        local real-version = [ MATCH "([0-9.]+)" : $(version-output) ] ;
+        local major = [ MATCH "([0-9]+).*" : $(real-version) ] ;
+        
+        # If we failed to determine major version, use the behaviour for
+        # the current compiler.
+        if $(major) && [ numbers.less $(major) 10 ]
+        {
+            flags intel-linux.compile OPTIONS $(condition)/<inlining>off : "-Ob0" ;
+            flags intel-linux.compile OPTIONS $(condition)/<inlining>on : "-Ob1" ;
+            flags intel-linux.compile OPTIONS $(condition)/<inlining>full : "-Ob2" ;            
+            flags intel-linux.compile OPTIONS $(condition)/<optimization>space : "-O1" ;
+            flags intel-linux.compile OPTIONS $(condition)/<optimization>speed : "-O3 -ip" ;
+        }
+        else if $(major) && [ numbers.less $(major) 11 ]
+        {
+            flags intel-linux.compile OPTIONS $(condition)/<inlining>off : "-inline-level=0" ; 
+            flags intel-linux.compile OPTIONS $(condition)/<inlining>on : "-inline-level=1" ; 
+            flags intel-linux.compile OPTIONS $(condition)/<inlining>full : "-inline-level=2" ;                
+            flags intel-linux.compile OPTIONS $(condition)/<optimization>space : "-O1" ;
+            flags intel-linux.compile OPTIONS $(condition)/<optimization>speed : "-O3 -ip" ;
+        }
+        else # newer version of intel do have -Os (at least 11+, don't know about 10)
+        {                        
+            flags intel-linux.compile OPTIONS $(condition)/<inlining>off : "-inline-level=0" ; 
+            flags intel-linux.compile OPTIONS $(condition)/<inlining>on : "-inline-level=1" ; 
+            flags intel-linux.compile OPTIONS $(condition)/<inlining>full : "-inline-level=2" ;                
+            flags intel-linux.compile OPTIONS $(condition)/<optimization>space : "-Os" ;
+            flags intel-linux.compile OPTIONS $(condition)/<optimization>speed : "-O3 -ip" ;
+        }        
+           
+        if $(root)
+        {
+            # Libraries required to run the executable may be in either
+            # $(root)/lib (10.1 and earlier) 
+            #     or 
+            # $(root)/lib/architecture-name (11.0 and later:
+            local lib_path = $(root)/lib $(root:P)/lib/$(bin:B) ;
+            if $(.debug-configuration)
+            {
+                ECHO notice: using intel libraries :: $(condition) :: $(lib_path) ;
+            }
+            flags intel-linux.link RUN_PATH $(condition) : $(lib_path) ;
+        }   
+    }
+}
+
+SPACE = " " ;
+
+flags intel-linux.compile OPTIONS <warnings>off : -w0 ;
+flags intel-linux.compile OPTIONS <warnings>on : -w1 ;
+flags intel-linux.compile OPTIONS <warnings>all : -w2 ;
+
+rule compile.c++ ( targets * : sources * : properties * )
+{
+    gcc.setup-threading $(targets) : $(sources) : $(properties) ;
+    gcc.setup-fpic $(targets) : $(sources) : $(properties) ;
+    gcc.setup-address-model $(targets) : $(sources) : $(properties) ;
+    DEPENDS $(<) : [ on $(<) return $(PCH_FILE) ] ;
+}
+
+actions compile.c++ bind PCH_FILE
+{
+    "$(CONFIG_COMMAND)" -c -xc++ $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)"  -use-pch"$(PCH_FILE)" -c -o "$(<)" "$(>)"
+}
+
+rule compile.c ( targets * : sources * : properties * )
+{
+    gcc.setup-threading $(targets) : $(sources) : $(properties) ;
+    gcc.setup-fpic $(targets) : $(sources) : $(properties) ;
+    gcc.setup-address-model $(targets) : $(sources) : $(properties) ;    
+    DEPENDS $(<) : [ on $(<) return $(PCH_FILE) ] ;
+}
+
+actions compile.c bind PCH_FILE
+{
+    "$(CONFIG_COMMAND)" -c -xc $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -use-pch"$(PCH_FILE)" -c -o "$(<)" "$(>)"
+}
+
+rule compile.c++.pch ( targets * : sources * : properties * )
+{
+    gcc.setup-threading $(targets) : $(sources) : $(properties) ;
+    gcc.setup-fpic $(targets) : $(sources) : $(properties) ;
+    gcc.setup-address-model $(targets) : $(sources) : $(properties) ;    
+}
+#
+# Compiling a pch first deletes any existing *.pchi file, as Intel's compiler
+# won't over-write an existing pch: instead it creates filename$1.pchi, filename$2.pchi
+# etc - which appear not to do anything except take up disk space :-(
+#
+actions compile.c++.pch
+{
+    rm -f "$(<)" && "$(CONFIG_COMMAND)" -x c++-header $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -pch-create "$(<)" "$(>)"
+}
+
+actions compile.fortran
+{
+    "ifort" -c $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -o "$(<)" "$(>)"
+}
+
+rule compile.c.pch ( targets * : sources * : properties * )
+{
+    gcc.setup-threading $(targets) : $(sources) : $(properties) ;
+    gcc.setup-fpic $(targets) : $(sources) : $(properties) ;
+    gcc.setup-address-model $(targets) : $(sources) : $(properties) ;    
+}
+
+actions compile.c.pch
+{
+    rm -f "$(<)" && "$(CONFIG_COMMAND)" -x c-header $(OPTIONS) $(USER_OPTIONS) -D$(DEFINES) -I"$(INCLUDES)" -c -pch-create "$(<)" "$(>)"
+}
+
+rule link ( targets * : sources * : properties * )
+{
+    gcc.setup-threading $(targets) : $(sources) : $(properties) ;
+    gcc.setup-address-model $(targets) : $(sources) : $(properties) ;    
+    SPACE on $(targets) = " " ;
+    JAM_SEMAPHORE on $(targets) = <s>intel-linux-link-semaphore ;
+}
+
+actions link bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" -L"$(LINKPATH)" -Wl,-R$(SPACE)-Wl,"$(RPATH)" -Wl,-rpath-link$(SPACE)-Wl,"$(RPATH_LINK)" -o "$(<)" "$(>)" "$(LIBRARIES)" -l$(FINDLIBS-SA) -l$(FINDLIBS-ST) $(OPTIONS) $(USER_OPTIONS)
+}
+
+rule link.dll ( targets * : sources * : properties * )
+{
+    gcc.setup-threading $(targets) : $(sources) : $(properties) ;
+    gcc.setup-address-model $(targets) : $(sources) : $(properties) ;    
+    SPACE on $(targets) = " " ;
+    JAM_SEMAPHORE on $(targets) = <s>intel-linux-link-semaphore ;
+}
+
+# Differ from 'link' above only by -shared.
+actions link.dll bind LIBRARIES
+{
+    "$(CONFIG_COMMAND)" -L"$(LINKPATH)" -Wl,-R$(SPACE)-Wl,"$(RPATH)" -o "$(<)" -Wl,-soname$(SPACE)-Wl,$(<[1]:D=) -shared "$(>)"  "$(LIBRARIES)" -l$(FINDLIBS-SA) -l$(FINDLIBS-ST) $(OPTIONS) $(USER_OPTIONS)
+}
+
+
+

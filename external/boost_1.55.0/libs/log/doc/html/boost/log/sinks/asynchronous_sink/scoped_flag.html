@@ -1,0 +1,70 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Class scoped_flag</title>
+<link rel="stylesheet" href="../../../../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="../../../../index.html" title="Chapter&#160;1.&#160;Boost.Log v2">
+<link rel="up" href="../asynchronous_sink.html#idp63591400" title="Description">
+<link rel="prev" href="../asynchronous_sink.html" title="Class template asynchronous_sink">
+<link rel="next" href="scoped_thread_id.html" title="Class scoped_thread_id">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr><td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../../../boost.png"></td></tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../asynchronous_sink.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../asynchronous_sink.html#idp63591400"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="scoped_thread_id.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="refentry">
+<a name="boost.log.sinks.asynchronous_sink.scoped_flag"></a><div class="titlepage"></div>
+<div class="refnamediv">
+<h2><span class="refentrytitle">Class scoped_flag</span></h2>
+<p>boost::log::sinks::asynchronous_sink::scoped_flag &#8212; A scope guard that resets a flag on destructor. </p>
+</div>
+<h2 xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv-title">Synopsis</h2>
+<div xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" class="refsynopsisdiv"><pre class="synopsis"><span class="comment">// In header: &lt;<a class="link" href="../../../../sinks.html#header.boost.log.sinks.async_frontend_hpp" title="Header &lt;boost/log/sinks/async_frontend.hpp&gt;">boost/log/sinks/async_frontend.hpp</a>&gt;
+
+</span>
+
+<span class="comment">// A scope guard that resets a flag on destructor.</span>
+
+<span class="keyword">class</span> <a class="link" href="scoped_flag.html" title="Class scoped_flag">scoped_flag</a> <span class="special">{</span>
+<span class="keyword">public</span><span class="special">:</span>
+  <span class="comment">// <a class="link" href="scoped_flag.html#boost.log.sinks.asynchronous_sink.scoped_flagconstruct-copy-destruct">construct/copy/destruct</a></span>
+  <span class="keyword">explicit</span> <a class="link" href="scoped_flag.html#idp27056344-bb"><span class="identifier">scoped_flag</span></a><span class="special">(</span><span class="identifier">frontend_mutex_type</span> <span class="special">&amp;</span><span class="special">,</span> <span class="identifier">condition_variable_any</span> <span class="special">&amp;</span><span class="special">,</span> 
+                       <span class="keyword">volatile</span> <span class="keyword">bool</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="scoped_flag.html#idp27057848-bb"><span class="identifier">scoped_flag</span></a><span class="special">(</span><span class="identifier">scoped_flag</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  scoped_flag&amp; <a class="link" href="scoped_flag.html#idp27058264-bb"><span class="keyword">operator</span><span class="special">=</span></a><span class="special">(</span><span class="identifier">scoped_flag</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span>
+  <a class="link" href="scoped_flag.html#idp27057576-bb"><span class="special">~</span><span class="identifier">scoped_flag</span></a><span class="special">(</span><span class="special">)</span><span class="special">;</span>
+<span class="special">}</span><span class="special">;</span></pre></div>
+<div class="refsect1">
+<a name="idp63653688"></a><h2>Description</h2>
+<div class="refsect2">
+<a name="idp63653896"></a><h3>
+<a name="boost.log.sinks.asynchronous_sink.scoped_flagconstruct-copy-destruct"></a><code class="computeroutput">scoped_flag</code> 
+        public
+       construct/copy/destruct</h3>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem"><pre class="literallayout"><span class="keyword">explicit</span> <a name="idp27056344-bb"></a><span class="identifier">scoped_flag</span><span class="special">(</span><span class="identifier">frontend_mutex_type</span> <span class="special">&amp;</span> mut<span class="special">,</span> <span class="identifier">condition_variable_any</span> <span class="special">&amp;</span> cond<span class="special">,</span> 
+                     <span class="keyword">volatile</span> <span class="keyword">bool</span> <span class="special">&amp;</span> f<span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><a name="idp27057848-bb"></a><span class="identifier">scoped_flag</span><span class="special">(</span><span class="identifier">scoped_flag</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout">scoped_flag&amp; <a name="idp27058264-bb"></a><span class="keyword">operator</span><span class="special">=</span><span class="special">(</span><span class="identifier">scoped_flag</span> <span class="keyword">const</span> <span class="special">&amp;</span><span class="special">)</span><span class="special">;</span></pre></li>
+<li class="listitem"><pre class="literallayout"><a name="idp27057576-bb"></a><span class="special">~</span><span class="identifier">scoped_flag</span><span class="special">(</span><span class="special">)</span><span class="special">;</span></pre></li>
+</ol></div>
+</div>
+</div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2007-2013 Andrey Semashev<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>).
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="../asynchronous_sink.html"><img src="../../../../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../asynchronous_sink.html#idp63591400"><img src="../../../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../../../../index.html"><img src="../../../../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="scoped_thread_id.html"><img src="../../../../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

@@ -1,0 +1,62 @@
+# Copyright 2008 Vladimir Prus
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+
+# Defines main target type 'message', that prints a message when built for the
+# first time.
+
+import project ;
+import "class" : new ;
+import targets ;
+import property-set ;
+
+class message-target-class : basic-target
+{
+    rule set-message ( * )
+    {
+        self.1 = $(1) ;
+        self.2 = $(2) ;
+        self.3 = $(3) ;
+        self.4 = $(4) ;
+        self.5 = $(5) ;
+        self.6 = $(6) ;
+        self.7 = $(7) ;
+        self.8 = $(8) ;        
+        self.9 = $(9) ;      
+        self.built = ;
+    }
+    
+    rule construct ( name : source-targets * : property-set )
+    {
+        if ! $(self.built)
+        {
+            for i in 1 2 3 4 5 6 7 8 9
+            {
+                if $(self.$(i))
+                {
+                    ECHO $(self.$(i)) ;
+                }
+            }
+            self.built = 1 ;
+        }
+        
+        return [ property-set.empty ] ;
+    }
+}
+
+
+rule message ( name : * )
+{
+    local project = [ project.current ] ;
+
+    local result = [ targets.main-target-alternative
+        [ new message-target-class $(name) : $(project)
+            : [ targets.main-target-sources : $(name) ]
+            : [ targets.main-target-requirements : $(project) ]
+            : [ targets.main-target-default-build : $(project) ]
+            : [ targets.main-target-usage-requirements : $(project) ]
+        ] ] ;
+    $(result).set-message $(2) : $(3) : $(4) : $(5) : $(6) : $(7) : $(8) : $(9) ;
+    return $(result) ;
+}
+IMPORT $(__name__) : message : : message ;

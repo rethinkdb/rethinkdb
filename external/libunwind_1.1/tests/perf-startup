@@ -1,0 +1,19 @@
+#!/bin/sh
+platform=$1
+LIBUNWIND=../src/.libs/libunwind.so
+LIBUNWIND_PLAT=../src/.libs/libunwind-$platform.so
+warmup=$(./forker 2000 /bin/true | cut -f1 -d' ')
+
+nsec1=$(./forker 2000 /bin/true | cut -f1 -d' ')
+printf "\"/bin/true\"\t\t\t\t\t\t: $nsec1 nsec/execution\n"
+
+nsec2=$(LD_PRELOAD=$LIBUNWIND ./forker 2000 /bin/true | cut -f1 -d' ')
+printf "\"LD_PRELOAD=$LIBUNWIND /bin/true\"\t: $nsec2 nsec/execution\n"
+
+nsec3=$(LD_PRELOAD=$LIBUNWIND_PLAT ./forker 2000 /bin/true | cut -f1 -d' ')
+printf "\"LD_PRELOAD=$LIBUNWIND_PLAT /bin/true\"\t: $nsec3 nsec/execution\n"
+
+echo
+
+printf "Overhead of preloading $LIBUNWIND\t: $(($nsec2 - $nsec1)) nsec\n"
+printf "Overhead of preloading $LIBUNWIND_PLAT\t: $(($nsec3 - $nsec1)) nsec\n"

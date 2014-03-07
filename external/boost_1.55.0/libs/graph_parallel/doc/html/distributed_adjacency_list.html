@@ -1,0 +1,804 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.6: http://docutils.sourceforge.net/" />
+<title>Parallel BGL Distributed Adjacency List</title>
+<link rel="stylesheet" href="../../../../rst.css" type="text/css" />
+</head>
+<body>
+<div class="document" id="logo-distributed-adjacency-list">
+<h1 class="title"><a class="reference external" href="http://www.osl.iu.edu/research/pbgl"><img align="middle" alt="Parallel BGL" class="align-middle" src="pbgl-logo.png" /></a> Distributed Adjacency List</h1>
+
+<!-- Copyright (C) 2004-2008 The Trustees of Indiana University.
+Use, modification and distribution is subject to the Boost Software
+License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+http://www.boost.org/LICENSE_1_0.txt) -->
+<div class="contents topic" id="contents">
+<p class="topic-title first">Contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#introduction" id="id1">Introduction</a><ul>
+<li><a class="reference internal" href="#defining-a-distributed-adjacency-list" id="id2">Defining a Distributed Adjacency List</a></li>
+<li><a class="reference internal" href="#distributed-vertex-and-edge-properties" id="id3">Distributed Vertex and Edge Properties</a></li>
+<li><a class="reference internal" href="#named-vertices" id="id4">Named Vertices</a></li>
+<li><a class="reference internal" href="#building-a-distributed-graph" id="id5">Building a Distributed Graph</a></li>
+<li><a class="reference internal" href="#graph-concepts" id="id6">Graph Concepts</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#reference" id="id7">Reference</a><ul>
+<li><a class="reference internal" href="#where-defined" id="id8">Where Defined</a></li>
+<li><a class="reference internal" href="#associated-types" id="id9">Associated Types</a></li>
+<li><a class="reference internal" href="#member-functions" id="id10">Member Functions</a></li>
+<li><a class="reference internal" href="#non-member-functions" id="id11">Non-Member Functions</a></li>
+<li><a class="reference internal" href="#structure-modification" id="id12">Structure Modification</a></li>
+<li><a class="reference internal" href="#property-map-accessors" id="id13">Property Map Accessors</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="introduction">
+<h1><a class="toc-backref" href="#id1">Introduction</a></h1>
+<p>The distributed adjacency list implements a graph data structure using
+an adjacency list representation. Its interface and behavior are
+roughly equivalent to the Boost Graph Library's <a class="reference external" href="http://www.boost.org/libs/graph/doc/adjacency_list.html">adjacency_list</a>
+class template. However, the distributed adjacency list partitions the
+vertices of the graph across several processes (which need not share
+an address space). Edges outgoing from any vertex stored by a process
+are also stored on that process, except in the case of undirected
+graphs, where either the source or the target may store the edge.</p>
+<pre class="literal-block">
+template&lt;typename OutEdgeListS, typename ProcessGroup, typename VertexListS,
+         typename DirectedS, typename VertexProperty, typename EdgeProperty,
+         typename GraphProperty, typename EdgeListS&gt;
+class adjacency_list&lt;OutEdgeListS,
+                     distributedS&lt;ProcessGroup, VertexListS&gt;,
+                     DirectedS, VertexProperty,
+                     EdgeProperty, GraphProperty, EdgeListS&gt;;
+</pre>
+<div class="section" id="defining-a-distributed-adjacency-list">
+<h2><a class="toc-backref" href="#id2">Defining a Distributed Adjacency List</a></h2>
+<p>To create a distributed adjacency list, first determine the
+representation of the graph in a single address space using these
+<a class="reference external" href="http://www.boost.org/libs/graph/doc/using_adjacency_list.html">guidelines</a>. Next, replace the vertex list selector (<tt class="docutils literal"><span class="pre">VertexListS</span></tt>)
+with an instantiation of <a class="reference external" href="distributedS.html">distributedS</a>, which includes:</p>
+<ul class="simple">
+<li>Selecting a <a class="reference external" href="process_group.html">process group</a> type that represents the various
+coordinating processes that will store the distributed graph. For
+example, the <a class="reference external" href="process_group.html">MPI process group</a>.</li>
+<li>A selector indicating how the vertex lists in each process will be
+stored. Only the <tt class="docutils literal"><span class="pre">vecS</span></tt> and <tt class="docutils literal"><span class="pre">listS</span></tt> selectors are well-supported
+at this time.</li>
+</ul>
+<p>The following <tt class="docutils literal"><span class="pre">typedef</span></tt> defines a distributed adjacency list
+containing directed edges. The vertices in the graph will be
+distributed over several processes, using the MPI process group
+for communication. In each process, the vertices and outgoing edges
+will be stored in STL vectors. There are no properties attached to the
+vertices or edges of the graph.</p>
+<pre class="literal-block">
+using namespace boost;
+typedef adjacency_list&lt;vecS,
+                       distributedS&lt;parallel::mpi::bsp_process_group, vecS&gt;,
+                       directedS&gt;
+  Graph;
+</pre>
+</div>
+<div class="section" id="distributed-vertex-and-edge-properties">
+<h2><a class="toc-backref" href="#id3">Distributed Vertex and Edge Properties</a></h2>
+<p>Vertex and edge properties for distributed graphs mirror their
+counterparts for non-distributed graphs. With a distributed graph,
+however, vertex and edge properties are stored only in the process
+that owns the vertex or edge.</p>
+<p>The most direct way to attach properties to a distributed graph is to
+create a structure that will be attached to each of the vertices and
+edges of the graph. For example, if we wish to model a simplistic map
+of the United States interstate highway system, we might state that
+the vertices of the graph are cities and the edges are highways, then
+define the information that we maintain for each city and highway:</p>
+<pre class="literal-block">
+struct City {
+  City() { }
+  City(const std::string&amp; name, const std::string&amp; mayor = &quot;Unknown&quot;, int population = 0)
+    : name(name), mayor(mayor), population(population) { }
+
+  std::string name;
+  std::string mayor;
+  int population;
+
+  // Serialization support is required!
+  template&lt;typename Archiver&gt;
+  void serialize(Archiver&amp; ar, const unsigned int /*version*/) {
+    ar &amp; name &amp; mayor &amp; population;
+  }
+};
+
+struct Highway {
+  Highway() { }
+  Highway(const std::string&amp; name, int lanes, int miles_per_hour, int length)
+    : name(name), lanes(lanes), miles_per_hour(miles_per_hour), length(length) { }
+
+  std::string name;
+  int lanes;
+  int miles_per_hour;
+  int length;
+
+  // Serialization support is required!
+  template&lt;typename Archiver&gt;
+  void serialize(Archiver&amp; ar, const unsigned int /*version*/) {
+    ar &amp; name &amp; lanes &amp; miles_per_hour &amp; length;
+  }
+};
+</pre>
+<p>To create a distributed graph for a road map, we supply <tt class="docutils literal"><span class="pre">City</span></tt> and
+<tt class="docutils literal"><span class="pre">Highway</span></tt> as the fourth and fifth parameters to <tt class="docutils literal"><span class="pre">adjacency_list</span></tt>,
+respectively:</p>
+<pre class="literal-block">
+typedef adjacency_list&lt;vecS,
+                       distributedS&lt;parallel::mpi::bsp_process_group, vecS&gt;,
+                       directedS,
+                       City, Highway&gt;
+  RoadMap;
+</pre>
+<p>Property maps for internal properties retain their behavior with
+distributed graphs via <a class="reference external" href="distributed_property_map.html">distributed property maps</a>, which automate
+communication among processes so that <tt class="docutils literal"><span class="pre">put</span></tt> and <tt class="docutils literal"><span class="pre">get</span></tt> operations
+may be applied to non-local vertices and edges. However, for
+distributed adjacency lists that store vertices in a vector
+(<tt class="docutils literal"><span class="pre">VertexListS</span></tt> is <tt class="docutils literal"><span class="pre">vecS</span></tt>), the automatic <tt class="docutils literal"><span class="pre">vertex_index</span></tt>
+property map restricts the domain of <tt class="docutils literal"><span class="pre">put</span></tt> and <tt class="docutils literal"><span class="pre">get</span></tt> operations
+to vertices local to the process executing the operation. For example,
+we can create a property map that accesses the length of each highway
+as follows:</p>
+<pre class="literal-block">
+RoadMap map; // distributed graph instance
+
+typedef property_map&lt;RoadMap, int Highway::*&gt;::type
+  road_length = get(&amp;Highway::length, map);
+</pre>
+<p>Now, one can access the length of any given road based on its edge
+descriptor <tt class="docutils literal"><span class="pre">e</span></tt> with the expression <tt class="docutils literal"><span class="pre">get(road_length,</span> <span class="pre">e)</span></tt>,
+regardless of which process stores the edge <tt class="docutils literal"><span class="pre">e</span></tt>.</p>
+</div>
+<div class="section" id="named-vertices">
+<h2><a class="toc-backref" href="#id4">Named Vertices</a></h2>
+<p>The vertices of a graph typically correspond to named entities within
+the application domain. In the road map example from the previous
+section, the vertices in the graph represent cities. The distributed
+adjacency list supports named vertices, which provides an implicit
+mapping from the names of the vertices in the application domain
+(e.g., the name of a city, such as &quot;Bloomington&quot;) to the actual vertex
+descriptor stored within the distributed graph (e.g., the third vertex
+on processor 1). By enabling support for named vertices, one can refer
+to vertices by name when manipulating the graph. For example, one can
+add a highway from Indianapolis to Chicago:</p>
+<pre class="literal-block">
+add_edge(&quot;Indianapolis&quot;, &quot;Chicago&quot;, Highway(&quot;I-65&quot;, 4, 65, 151), map);
+</pre>
+<p>The distributed adjacency list will find vertices associated with the
+names &quot;Indianapolis&quot; and &quot;Chicago&quot;, then add an edge between these
+vertices that represents I-65. The vertices may be stored on any
+processor, local or remote.</p>
+<p>To enable named vertices, specialize the <tt class="docutils literal"><span class="pre">internal_vertex_name</span></tt>
+property for the structure attached to the vertices in your
+graph. <tt class="docutils literal"><span class="pre">internal_vertex_name</span></tt> contains a single member, <tt class="docutils literal"><span class="pre">type</span></tt>,
+which is the type of a function object that accepts a vertex property
+and returns the name stored within that vertex property. In the case
+of our road map, the <tt class="docutils literal"><span class="pre">name</span></tt> field contains the name of each city, so
+we use the <tt class="docutils literal"><span class="pre">member</span></tt> function object from the <a class="reference external" href="http://www.boost.org/libs/multi_index/doc/index.html">Boost.MultiIndex</a>
+library to extract the name, e.g.,</p>
+<pre class="literal-block">
+namespace boost { namespace graph {
+
+template&lt;&gt;
+struct internal_vertex_name&lt;City&gt;
+{
+  typedef multi_index::member&lt;City, std::string, &amp;City::name&gt; type;
+};
+
+} }
+</pre>
+<p>That's it! One can now refer to vertices by name when interacting with
+the distributed adjacency list.</p>
+<p>What happens when one uses the name of a vertex that does not exist?
+For example, in our <tt class="docutils literal"><span class="pre">add_edge</span></tt> call above, what happens if the
+vertex named &quot;Indianapolis&quot; has not yet been added to the graph? By
+default, the distributed adjacency list will throw an exception if a
+named vertex does not yet exist. However, one can customize this
+behavior by specifying a function object that constructs an instance
+of the vertex property (e.g., <tt class="docutils literal"><span class="pre">City</span></tt>) from just the name of the
+vertex. This customization occurs via the
+<tt class="docutils literal"><span class="pre">internal_vertex_constructor</span></tt> trait. For example, using the
+<tt class="docutils literal"><span class="pre">vertex_from_name</span></tt> template (provided with the Parallel BGL), we can
+state that a <tt class="docutils literal"><span class="pre">City</span></tt> can be constructed directly from the name of the
+city using its second constructor:</p>
+<pre class="literal-block">
+namespace boost { namespace graph {
+
+template&lt;&gt;
+struct internal_vertex_constructor&lt;City&gt;
+{
+  typedef vertex_from_name&lt;City&gt; type;
+};
+
+} }
+</pre>
+<p>Now, one can add edges by vertex name freely, without worrying about
+the explicit addition of vertices. The <tt class="docutils literal"><span class="pre">mayor</span></tt> and <tt class="docutils literal"><span class="pre">population</span></tt>
+fields will have default values, but the graph structure will be
+correct.</p>
+</div>
+<div class="section" id="building-a-distributed-graph">
+<h2><a class="toc-backref" href="#id5">Building a Distributed Graph</a></h2>
+<p>Once you have determined the layout of your graph type, including the
+specific data structures and properties, it is time to construct an
+instance of the graph by adding the appropriate vertices and
+edges. Construction of distributed graphs can be slightly more
+complicated than construction of normal, non-distributed graph data
+structures, because one must account for both the distribution of the
+vertices and edges and the multiple processes executing
+concurrently. There are three main ways to construct distributed
+graphs:</p>
+<p>1. <em>Sequence constructors</em>: if your data can easily be generated by a
+pair of iterators that produce (source, target) pairs, you can use the
+sequence constructors to build the distributed graph in parallel. This
+method is often preferred when creating benchmarks, because random
+graph generators like the <a class="reference external" href="http://www.boost.org/libs/graph/doc/sorted_erdos_renyi_gen.html">sorted_erdos_renyi_iterator</a> create the
+appropriate input sequence. Note that one must provide the same input
+iterator sequence on all processes. This method has the advantage that
+the sequential graph-building code is identical to the parallel
+graph-building code. An example constructing a random graph this way:</p>
+<blockquote>
+<pre class="literal-block">
+typedef boost::sorted_erdos_renyi_iterator&lt;boost::minstd_rand, Graph&gt; ERIter;
+boost::minstd_rand gen;
+unsigned long n = 1000000; // 1M vertices
+Graph g(ERIter(gen, n, 0.00005), ERIter(), n);
+</pre>
+</blockquote>
+<p>2. <em>Adding edges by vertex number</em>: if you are able to map your
+vertices into values in the random [0, <em>n</em>), where <em>n</em> is the number
+of vertices in the distributed graph. Use this method rather than the
+sequence constructors when your algorithm cannot easily be moved into
+input iterators, or if you can't replicate the input sequence. For
+example, you might be reading the graph from an input file:</p>
+<blockquote>
+<pre class="literal-block">
+Graph g(n); // initialize with the total number of vertices, n
+if (process_id(g.process_group()) == 0) {
+  // Only process 0 loads the graph, which is distributed automatically
+  int source, target;
+  for (std::cin &gt;&gt; source &gt;&gt; target)
+    add_edge(vertex(source, g), vertex(target, g), g);
+}
+
+// All processes synchronize at this point, then the graph is complete
+synchronize(g.process_group());
+</pre>
+</blockquote>
+<p>3. <em>Adding edges by name</em>: if you are using named vertices, you can
+construct your graph just by calling <tt class="docutils literal"><span class="pre">add_edge</span></tt> with the names of
+the source and target vertices. Be careful to make sure that each edge
+is added by only one process (it doesn't matter which process it is),
+otherwise you will end up with multiple edges. For example, in the
+following program we read edges from the standard input of process 0,
+adding those edges by name. Vertices and edges will be created and
+distributed automatically.</p>
+<blockquote>
+<pre class="literal-block">
+Graph g;
+if (process_id(g.process_group()) == 0) {
+  // Only process 0 loads the graph, which is distributed automatically
+  std:string source, target;
+  for(std::cin &gt;&gt; source &gt;&gt; target)
+    add_edge(source, target, g);
+}
+
+// All processes synchronize at this point, then the graph is complete
+synchronize(g.process_group());
+</pre>
+</blockquote>
+</div>
+<div class="section" id="graph-concepts">
+<h2><a class="toc-backref" href="#id6">Graph Concepts</a></h2>
+<p>The distributed adjacency list models the <a class="reference external" href="http://www.boost.org/libs/graph/doc/Graph.html">Graph</a> concept, and in
+particular the <a class="reference external" href="DistributedGraph.html">Distributed Graph</a> concept. It also models the
+<a class="reference external" href="http://www.boost.org/libs/graph/doc/IncidenceGraph.html">Incidence Graph</a> and <a class="reference external" href="http://www.boost.org/libs/graph/doc/AdjacencyGraph.html">Adjacency Graph</a> concept, but restricts the
+input domain of the operations to correspond to local vertices
+only. For instance, a process may only access the outgoing edges of a
+vertex if that vertex is stored in that process. Undirected and
+bidirectional distributed adjacency lists model the <a class="reference external" href="http://www.boost.org/libs/graph/doc/BidirectionalGraph.html">Bidirectional
+Graph</a> concept, with the same domain restrictions. Distributed
+adjacency lists also model the <a class="reference external" href="http://www.boost.org/libs/graph/doc/MutableGraph.html">Mutable Graph</a> concept (with domain
+restrictions; see the <a class="reference internal" href="#reference">Reference</a> section), <a class="reference external" href="http://www.boost.org/libs/graph/doc/PropertyGraph.html">Property Graph</a> concept,
+and <a class="reference external" href="http://www.boost.org/libs/graph/doc/MutablePropertyGraph.html">Mutable Property Graph</a> concept.</p>
+<p>Unlike its non-distributed counterpart, the distributed adjacency
+list does <strong>not</strong> model the <a class="reference external" href="http://www.boost.org/libs/graph/doc/VertexListGraph.html">Vertex List Graph</a> or <a class="reference external" href="http://www.boost.org/libs/graph/doc/EdgeListGraph.html">Edge List
+Graph</a> concepts, because one cannot enumerate all vertices or edges
+within a distributed graph. Instead, it models the weaker
+<a class="reference external" href="DistributedVertexListGraph.html">Distributed Vertex List Graph</a> and <a class="reference external" href="DistributedEdgeListGraph.html">Distributed Edge List Graph</a>
+concepts, which permit access to the local edges and vertices on each
+processor. Note that if all processes within the process group over
+which the graph is distributed iterator over their respective vertex
+or edge lists, all vertices and edges will be covered once.</p>
+</div>
+</div>
+<div class="section" id="reference">
+<h1><a class="toc-backref" href="#id7">Reference</a></h1>
+<p>Since the distributed adjacency list closely follows the
+non-distributed <a class="reference external" href="http://www.boost.org/libs/graph/doc/adjacency_list.html">adjacency_list</a>, this reference documentation
+only describes where the two implementations differ.</p>
+<div class="section" id="where-defined">
+<h2><a class="toc-backref" href="#id8">Where Defined</a></h2>
+<p>&lt;boost/graph/distributed/adjacency_list.hpp&gt;</p>
+</div>
+<div class="section" id="associated-types">
+<h2><a class="toc-backref" href="#id9">Associated Types</a></h2>
+<pre class="literal-block">
+adjacency_list::process_group_type
+</pre>
+<p>The type of the process group over which the graph will be
+distributed.</p>
+<hr class="docutils" />
+<blockquote>
+adjacency_list::distribution_type</blockquote>
+<p>The type of distribution used to partition vertices in the graph.</p>
+<hr class="docutils" />
+<blockquote>
+adjacency_list::vertex_name_type</blockquote>
+<p>If the graph supports named vertices, this is the type used to name
+vertices. Otherwise, this type is not present within the distributed
+adjacency list.</p>
+</div>
+<div class="section" id="member-functions">
+<h2><a class="toc-backref" href="#id10">Member Functions</a></h2>
+<pre class="literal-block">
+adjacency_list(const ProcessGroup&amp; pg = ProcessGroup());
+
+adjacency_list(const GraphProperty&amp; g,
+               const ProcessGroup&amp; pg = ProcessGroup());
+</pre>
+<p>Construct an empty distributed adjacency list with the given process
+group (or default) and graph property (or default).</p>
+<hr class="docutils" />
+<pre class="literal-block">
+adjacency_list(vertices_size_type n, const GraphProperty&amp; p,
+               const ProcessGroup&amp; pg, const Distribution&amp; distribution);
+
+adjacency_list(vertices_size_type n, const ProcessGroup&amp; pg,
+               const Distribution&amp; distribution);
+
+adjacency_list(vertices_size_type n, const GraphProperty&amp; p,
+               const ProcessGroup&amp; pg = ProcessGroup());
+
+adjacency_list(vertices_size_type n,
+               const ProcessGroup&amp; pg = ProcessGroup());
+</pre>
+<p>Construct a distributed adjacency list with <tt class="docutils literal"><span class="pre">n</span></tt> vertices,
+optionally providing the graph property, process group, or
+distribution. The <tt class="docutils literal"><span class="pre">n</span></tt> vertices will be distributed via the given
+(or default-constructed) distribution. This operation is collective,
+requiring all processes with the process group to execute it
+concurrently.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template &lt;class EdgeIterator&gt;
+adjacency_list(EdgeIterator first, EdgeIterator last,
+               vertices_size_type n,
+               const ProcessGroup&amp; pg = ProcessGroup(),
+               const GraphProperty&amp; p = GraphProperty());
+
+template &lt;class EdgeIterator, class EdgePropertyIterator&gt;
+adjacency_list(EdgeIterator first, EdgeIterator last,
+               EdgePropertyIterator ep_iter,
+               vertices_size_type n,
+               const ProcessGroup&amp; pg = ProcessGroup(),
+               const GraphProperty&amp; p = GraphProperty());
+
+template &lt;class EdgeIterator&gt;
+adjacency_list(EdgeIterator first, EdgeIterator last,
+               vertices_size_type n,
+               const ProcessGroup&amp; process_group,
+               const Distribution&amp; distribution,
+               const GraphProperty&amp; p = GraphProperty());
+
+template &lt;class EdgeIterator, class EdgePropertyIterator&gt;
+adjacency_list(EdgeIterator first, EdgeIterator last,
+               EdgePropertyIterator ep_iter,
+               vertices_size_type n,
+               const ProcessGroup&amp; process_group,
+               const Distribution&amp; distribution,
+               const GraphProperty&amp; p = GraphProperty());
+</pre>
+<p>Construct a distributed adjacency list with <tt class="docutils literal"><span class="pre">n</span></tt> vertices and with
+edges specified in the edge list given by the range <tt class="docutils literal"><span class="pre">[first,</span> <span class="pre">last)</span></tt>. The
+<tt class="docutils literal"><span class="pre">EdgeIterator</span></tt> must be a model of <a class="reference external" href="http://www.boost.org/doc/html/InputIterator.html">InputIterator</a>. The value type of the
+<tt class="docutils literal"><span class="pre">EdgeIterator</span></tt> must be a <tt class="docutils literal"><span class="pre">std::pair</span></tt>, where the type in the pair is an
+integer type. The integers will correspond to vertices, and they must
+all fall in the range of <tt class="docutils literal"><span class="pre">[0,</span> <span class="pre">n)</span></tt>. When provided, <tt class="docutils literal"><span class="pre">ep_iter</span></tt>
+refers to an edge property list <tt class="docutils literal"><span class="pre">[ep_iter,</span> <span class="pre">ep_iter</span> <span class="pre">+</span> <span class="pre">m)</span></tt> contains
+properties for each of the edges.</p>
+<p>This constructor is a collective operation and must be executed
+concurrently by each process with the same argument list. Most
+importantly, the edge lists provided to the constructor in each process
+should be equivalent. The vertices will be partitioned among the
+processes according to the <tt class="docutils literal"><span class="pre">distribution</span></tt>, with edges placed on the
+process owning the source of the edge. Note that this behavior
+permits sequential graph construction code to be parallelized
+automatically, regardless of the underlying distribution.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void clear()
+</pre>
+<p>Removes all of the edges and vertices from the local graph. To
+eliminate all vertices and edges from the graph, this routine must be
+executed in all processes.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+process_group_type&amp; process_group();
+const process_group_type&amp; process_group() const;
+</pre>
+<p>Returns the process group over which this graph is distributed.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+distribution_type&amp;       distribution();
+const distribution_type&amp; distribution() const;
+</pre>
+<p>Returns the distribution used for initial placement of vertices.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template&lt;typename VertexProcessorMap&gt;
+  void redistribute(VertexProcessorMap vertex_to_processor);
+</pre>
+<p>Redistributes the vertices (and, therefore, the edges) of the
+graph. The property map <tt class="docutils literal"><span class="pre">vertex_to_processor</span></tt> provides, for each
+vertex, the process identifier indicating where the vertex should be
+moved. Once this collective routine has completed, the distributed
+graph will reflect the new distribution. All vertex and edge
+descsriptors and internal and external property maps are invalidated
+by this operation.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template&lt;typename OStreamConstructibleArchive&gt;
+  void save(std::string const&amp; filename) const;
+
+template&lt;typename IStreamConstructibleArchive&gt;
+  void load(std::string const&amp; filename);
+</pre>
+<p>Serializes the graph to a Boost.Serialization archive.
+<tt class="docutils literal"><span class="pre">OStreamConstructibleArchive</span></tt> and <tt class="docutils literal"><span class="pre">IStreamConstructibleArchive</span></tt>
+are models of Boost.Serialization <em>Archive</em> with the extra
+requirement that they can be constructed from a <tt class="docutils literal"><span class="pre">std::ostream</span></tt>
+and <tt class="docutils literal"><span class="pre">std::istream</span></tt>.
+<tt class="docutils literal"><span class="pre">filename</span></tt> names a directory that will hold files for
+the different processes.</p>
+</div>
+<div class="section" id="non-member-functions">
+<h2><a class="toc-backref" href="#id11">Non-Member Functions</a></h2>
+<pre class="literal-block">
+std::pair&lt;vertex_iterator, vertex_iterator&gt;
+vertices(const adjacency_list&amp; g);
+</pre>
+<p>Returns an iterator-range providing access to the vertex set of graph
+<tt class="docutils literal"><span class="pre">g</span></tt> stored in this process. Each of the processes that contain <tt class="docutils literal"><span class="pre">g</span></tt>
+will get disjoint sets of vertices.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+std::pair&lt;edge_iterator, edge_iterator&gt;
+edges(const adjacency_list&amp; g);
+</pre>
+<p>Returns an iterator-range providing access to the edge set of graph
+<tt class="docutils literal"><span class="pre">g</span></tt> stored in this process.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+std::pair&lt;adjacency_iterator, adjacency_iterator&gt;
+adjacent_vertices(vertex_descriptor u, const adjacency_list&amp; g);
+</pre>
+<p>Returns an iterator-range providing access to the vertices adjacent to
+vertex <tt class="docutils literal"><span class="pre">u</span></tt> in graph <tt class="docutils literal"><span class="pre">g</span></tt>. The vertex <tt class="docutils literal"><span class="pre">u</span></tt> must be local to this process.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+std::pair&lt;out_edge_iterator, out_edge_iterator&gt;
+out_edges(vertex_descriptor u, const adjacency_list&amp; g);
+</pre>
+<p>Returns an iterator-range providing access to the out-edges of vertex
+<tt class="docutils literal"><span class="pre">u</span></tt> in graph <tt class="docutils literal"><span class="pre">g</span></tt>. If the graph is undirected, this iterator-range
+provides access to all edges incident on vertex <tt class="docutils literal"><span class="pre">u</span></tt>. For both
+directed and undirected graphs, for an out-edge <tt class="docutils literal"><span class="pre">e</span></tt>, <tt class="docutils literal"><span class="pre">source(e,</span> <span class="pre">g)</span>
+<span class="pre">==</span> <span class="pre">u</span></tt> and <tt class="docutils literal"><span class="pre">target(e,</span> <span class="pre">g)</span> <span class="pre">==</span> <span class="pre">v</span></tt> where <tt class="docutils literal"><span class="pre">v</span></tt> is a vertex adjacent to
+<tt class="docutils literal"><span class="pre">u</span></tt>. The vertex <tt class="docutils literal"><span class="pre">u</span></tt> must be local to this process.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+std::pair&lt;in_edge_iterator, in_edge_iterator&gt;
+in_edges(vertex_descriptor v, const adjacency_list&amp; g);
+</pre>
+<p>Returns an iterator-range providing access to the in-edges of vertex
+<tt class="docutils literal"><span class="pre">v</span></tt> in graph <tt class="docutils literal"><span class="pre">g</span></tt>. This operation is only available if
+<tt class="docutils literal"><span class="pre">bidirectionalS</span></tt> was specified for the <tt class="docutils literal"><span class="pre">Directed</span></tt> template
+parameter. For an in-edge <tt class="docutils literal"><span class="pre">e</span></tt>, <tt class="docutils literal"><span class="pre">target(e,</span> <span class="pre">g)</span> <span class="pre">==</span> <span class="pre">v</span></tt> and <tt class="docutils literal"><span class="pre">source(e,</span>
+<span class="pre">g)</span> <span class="pre">==</span> <span class="pre">u</span></tt> for some vertex <tt class="docutils literal"><span class="pre">u</span></tt> that is adjacent to <tt class="docutils literal"><span class="pre">v</span></tt>, whether the
+graph is directed or undirected. The vertex <tt class="docutils literal"><span class="pre">v</span></tt> must be local to
+this process.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+degree_size_type
+out_degree(vertex_descriptor u, const adjacency_list&amp; g);
+</pre>
+<p>Returns the number of edges leaving vertex <tt class="docutils literal"><span class="pre">u</span></tt>. Vertex <tt class="docutils literal"><span class="pre">u</span></tt> must
+be local to the executing process.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+degree_size_type
+in_degree(vertex_descriptor u, const adjacency_list&amp; g);
+</pre>
+<p>Returns the number of edges entering vertex <tt class="docutils literal"><span class="pre">u</span></tt>. This operation is
+only available if <tt class="docutils literal"><span class="pre">bidirectionalS</span></tt> was specified for the
+<tt class="docutils literal"><span class="pre">Directed</span></tt> template parameter. Vertex <tt class="docutils literal"><span class="pre">u</span></tt> must be local to the
+executing process.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+vertices_size_type
+num_vertices(const adjacency_list&amp; g);
+</pre>
+<p>Returns the number of vertices in the graph <tt class="docutils literal"><span class="pre">g</span></tt> that are stored in
+the executing process.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+edges_size_type
+num_edges(const adjacency_list&amp; g);
+</pre>
+<p>Returns the number of edges in the graph <tt class="docutils literal"><span class="pre">g</span></tt> that are stored in the
+executing process.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+vertex_descriptor
+vertex(vertices_size_type n, const adjacency_list&amp; g);
+</pre>
+<p>Returns the <tt class="docutils literal"><span class="pre">n``th</span> <span class="pre">vertex</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">graph's</span> <span class="pre">vertex</span> <span class="pre">list,</span> <span class="pre">according</span> <span class="pre">to</span> <span class="pre">the</span>
+<span class="pre">distribution</span> <span class="pre">used</span> <span class="pre">to</span> <span class="pre">partition</span> <span class="pre">the</span> <span class="pre">graph.</span> <span class="pre">``n</span></tt> must be a value
+between zero and the sum of <tt class="docutils literal"><span class="pre">num_vertices(g)</span></tt> in each process (minus
+one). Note that it is not necessarily the case that <tt class="docutils literal"><span class="pre">vertex(0,</span> <span class="pre">g)</span> <span class="pre">==</span>
+<span class="pre">*num_vertices(g).first</span></tt>. This function is only guaranteed to be
+accurate when no vertices have been added to or removed from the
+graph after its initial construction.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+std::pair&lt;edge_descriptor, bool&gt;
+edge(vertex_descriptor u, vertex_descriptor v,
+     const adjacency_list&amp; g);
+</pre>
+<p>Returns an edge connecting vertex <tt class="docutils literal"><span class="pre">u</span></tt> to vertex <tt class="docutils literal"><span class="pre">v</span></tt> in graph
+<tt class="docutils literal"><span class="pre">g</span></tt>. For bidirectional and undirected graphs, either vertex <tt class="docutils literal"><span class="pre">u</span></tt> or
+vertex <tt class="docutils literal"><span class="pre">v</span></tt> must be local; for directed graphs, vertex <tt class="docutils literal"><span class="pre">u</span></tt> must be
+local.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+std::pair&lt;out_edge_iterator, out_edge_iterator&gt;
+edge_range(vertex_descriptor u, vertex_descriptor v,
+           const adjacency_list&amp; g);
+</pre>
+<p>TODO: Not implemented.  Returns a pair of out-edge iterators that give
+the range for all the parallel edges from <tt class="docutils literal"><span class="pre">u</span></tt> to <tt class="docutils literal"><span class="pre">v</span></tt>. This function only
+works when the <tt class="docutils literal"><span class="pre">OutEdgeList</span></tt> for the <tt class="docutils literal"><span class="pre">adjacency_list</span></tt> is a container that
+sorts the out edges according to target vertex, and allows for
+parallel edges. The <tt class="docutils literal"><span class="pre">multisetS</span></tt> selector chooses such a
+container. Vertex <tt class="docutils literal"><span class="pre">u</span></tt> must be stored in the executing process.</p>
+</div>
+<div class="section" id="structure-modification">
+<h2><a class="toc-backref" href="#id12">Structure Modification</a></h2>
+<pre class="literal-block">
+unspecified add_edge(vertex_descriptor u, vertex_descriptor v, adjacency_list&amp; g);
+unspecified add_edge(vertex_name_type u, vertex_descriptor v, adjacency_list&amp; g);
+unspecified add_edge(vertex_descriptor u, vertex_name_type v, adjacency_list&amp; g);
+unspecified add_edge(vertex_name_type u, vertex_name_type v, adjacency_list&amp; g);
+</pre>
+<p>Adds edge <tt class="docutils literal"><span class="pre">(u,v)</span></tt> to the graph. The return type itself is
+unspecified, but the type can be copy-constructed and implicitly
+converted into a <tt class="docutils literal"><span class="pre">std::pair&lt;edge_descriptor,bool&gt;</span></tt>. The edge
+descriptor describes the added (or found) edge. For graphs that do not
+allow parallel edges, if the edge
+is already in the graph then a duplicate will not be added and the
+<tt class="docutils literal"><span class="pre">bool</span></tt> flag will be <tt class="docutils literal"><span class="pre">false</span></tt>. Also, if u and v are descriptors for
+the same vertex (creating a self loop) and the graph is undirected,
+then the edge will not be added and the flag will be <tt class="docutils literal"><span class="pre">false</span></tt>. When
+the flag is <tt class="docutils literal"><span class="pre">false</span></tt>, the returned edge descriptor points to the
+already existing edge.</p>
+<p>The parameters <tt class="docutils literal"><span class="pre">u</span></tt> and <tt class="docutils literal"><span class="pre">v</span></tt> can be either vertex descriptors or, if
+the graph uses named vertices, the names of vertices. If no vertex
+with the given name exists, the internal vertex constructor will be
+invoked to create a new vertex property and a vertex with that
+property will be added to the graph implicitly. The default internal
+vertex constructor throws an exception.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+unspecified add_edge(vertex_descriptor u, vertex_descriptor v, const EdgeProperties&amp; p, adjacency_list&amp; g);
+unspecified add_edge(vertex_name_type u, vertex_descriptor v, const EdgeProperties&amp; p, adjacency_list&amp; g);
+unspecified add_edge(vertex_descriptor u, vertex_name_type v, const EdgeProperties&amp; p, adjacency_list&amp; g);
+unspecified add_edge(vertex_name_type u, vertex_name_type v, const EdgeProperties&amp; p, adjacency_list&amp; g);
+</pre>
+<p>Adds edge <tt class="docutils literal"><span class="pre">(u,v)</span></tt> to the graph and attaches <tt class="docutils literal"><span class="pre">p</span></tt> as the value of the edge's
+internal property storage. See the previous <tt class="docutils literal"><span class="pre">add_edge()</span></tt> member
+function for more details.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void
+remove_edge(vertex_descriptor u, vertex_descriptor v,
+            adjacency_list&amp; g);
+</pre>
+<p>Removes the edge <tt class="docutils literal"><span class="pre">(u,v)</span></tt> from the graph. If the directed selector is
+<tt class="docutils literal"><span class="pre">bidirectionalS</span></tt> or <tt class="docutils literal"><span class="pre">undirectedS</span></tt>, either the source or target
+vertex of the graph must be local. If the directed selector is
+<tt class="docutils literal"><span class="pre">directedS</span></tt>, then the source vertex must be local.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void
+remove_edge(edge_descriptor e, adjacency_list&amp; g);
+</pre>
+<p>Removes the edge <tt class="docutils literal"><span class="pre">e</span></tt> from the graph. If the directed selector is
+<tt class="docutils literal"><span class="pre">bidirectionalS</span></tt> or <tt class="docutils literal"><span class="pre">undirectedS</span></tt>, either the source or target
+vertex of the graph must be local. If the directed selector is
+<tt class="docutils literal"><span class="pre">directedS</span></tt>, then the source vertex must be local.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void remove_edge(out_edge_iterator iter, adjacency_list&amp; g);
+</pre>
+<p>This has the same effect as <tt class="docutils literal"><span class="pre">remove_edge(*iter,</span> <span class="pre">g)</span></tt>. For directed
+(but not bidirectional) graphs, this will be more efficient than
+<tt class="docutils literal"><span class="pre">remove_edge(*iter,</span> <span class="pre">g)</span></tt>.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template &lt;class Predicate &gt;
+void remove_out_edge_if(vertex_descriptor u, Predicate predicate,
+                        adjacency_list&amp; g);
+</pre>
+<p>Removes all out-edges of vertex <tt class="docutils literal"><span class="pre">u</span></tt> from the graph that satisfy the
+predicate. That is, if the predicate returns <tt class="docutils literal"><span class="pre">true</span></tt> when applied to an
+edge descriptor, then the edge is removed. The vertex <tt class="docutils literal"><span class="pre">u</span></tt> must be local.</p>
+<p>The affect on descriptor and iterator stability is the same as that of
+invoking remove_edge() on each of the removed edges.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template &lt;class Predicate &gt;
+void remove_in_edge_if(vertex_descriptor v, Predicate predicate,
+                       adjacency_list&amp; g);
+</pre>
+<p>Removes all in-edges of vertex <tt class="docutils literal"><span class="pre">v</span></tt> from the graph that satisfy the
+predicate. That is, if the predicate returns true when applied to an
+edge descriptor, then the edge is removed. The vertex <tt class="docutils literal"><span class="pre">v</span></tt> must be local.</p>
+<p>The affect on descriptor and iterator stability is the same as that of
+invoking <tt class="docutils literal"><span class="pre">remove_edge()</span></tt> on each of the removed edges.</p>
+<p>This operation is available for undirected and bidirectional
+adjacency_list graphs, but not for directed.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template &lt;class Predicate&gt;
+void remove_edge_if(Predicate predicate, adjacency_list&amp; g);
+</pre>
+<p>Removes all edges from the graph that satisfy the predicate. That is,
+if the predicate returns true when applied to an edge descriptor, then
+the edge is removed.</p>
+<p>The affect on descriptor and iterator stability is the same as that
+of invoking <tt class="docutils literal"><span class="pre">remove_edge()</span></tt> on each of the removed edges.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+vertex_descriptor add_vertex(adjacency_list&amp; g);
+</pre>
+<p>Adds a vertex to the graph and returns the vertex descriptor for the
+new vertex. The vertex will be stored in the local process. This
+function is not available when using named vertices.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+unspecified add_vertex(const VertexProperties&amp; p, adjacency_list&amp; g);
+unspecified add_vertex(const vertex_name_type&amp; p, adjacency_list&amp; g);
+</pre>
+<p>Adds a vertex to the graph with the specified properties. If the graph
+is using vertex names, the vertex will be added on whichever process
+&quot;owns&quot; that name. Otherwise, the vertex will be stored in the local
+process. Note that the second constructor will invoke the
+user-customizable internal vertex constructor, which (by default)
+throws an exception when it sees an unknown vertex.</p>
+<p>The return type is of unspecified type, but can be copy-constructed
+and can be implicitly converted into a vertex descriptor.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void clear_vertex(vertex_descriptor u, adjacency_list&amp; g);
+</pre>
+<p>Removes all edges to and from vertex <tt class="docutils literal"><span class="pre">u</span></tt>. The vertex still appears
+in the vertex set of the graph.</p>
+<p>The affect on descriptor and iterator stability is the same as that of
+invoking <tt class="docutils literal"><span class="pre">remove_edge()</span></tt> for all of the edges that have <tt class="docutils literal"><span class="pre">u</span></tt> as the source
+or target.</p>
+<p>This operation is not applicable to directed graphs, because the
+incoming edges to vertex <tt class="docutils literal"><span class="pre">u</span></tt> are not known.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void clear_out_edges(vertex_descriptor u, adjacency_list&amp; g);
+</pre>
+<p>Removes all out-edges from vertex <tt class="docutils literal"><span class="pre">u</span></tt>. The vertex still appears in
+the vertex set of the graph.</p>
+<p>The affect on descriptor and iterator stability is the same as that of
+invoking <tt class="docutils literal"><span class="pre">remove_edge()</span></tt> for all of the edges that have <tt class="docutils literal"><span class="pre">u</span></tt> as the
+source.</p>
+<p>This operation is not applicable to undirected graphs (use
+<tt class="docutils literal"><span class="pre">clear_vertex()</span></tt> instead).</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void clear_in_edges(vertex_descriptor u, adjacency_list&amp; g);
+</pre>
+<p>Removes all in-edges from vertex <tt class="docutils literal"><span class="pre">u</span></tt>. The vertex still appears in
+the vertex set of the graph.</p>
+<p>The affect on descriptor and iterator stability is the same as that of
+invoking <tt class="docutils literal"><span class="pre">remove_edge()</span></tt> for all of the edges that have <tt class="docutils literal"><span class="pre">u</span></tt> as the
+target.</p>
+<p>This operation is only applicable to bidirectional graphs.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+void remove_vertex(vertex_descriptor u, adjacency_list&amp; g);
+</pre>
+<p>Remove vertex <tt class="docutils literal"><span class="pre">u</span></tt> from the vertex set of the graph. It is assumed
+that there are no edges to or from vertex <tt class="docutils literal"><span class="pre">u</span></tt> when it is
+removed. One way to make sure of this is to invoke <tt class="docutils literal"><span class="pre">clear_vertex()</span></tt>
+beforehand. The vertex <tt class="docutils literal"><span class="pre">u</span></tt> must be stored locally.</p>
+</div>
+<div class="section" id="property-map-accessors">
+<h2><a class="toc-backref" href="#id13">Property Map Accessors</a></h2>
+<pre class="literal-block">
+template &lt;class PropertyTag&gt;
+property_map&lt;adjacency_list, PropertyTag&gt;::type
+get(PropertyTag, adjacency_list&amp; g);
+
+template &lt;class PropertyTag&gt;
+property_map&lt;adjacency_list, Tag&gt;::const_type
+get(PropertyTag, const adjacency_list&amp; g);
+</pre>
+<p>Returns the property map object for the vertex property specified by
+<tt class="docutils literal"><span class="pre">PropertyTag</span></tt>. The <tt class="docutils literal"><span class="pre">PropertyTag</span></tt> must match one of the properties
+specified in the graph's <tt class="docutils literal"><span class="pre">VertexProperty</span></tt> template argument. The
+returned property map will be a <a class="reference external" href="distributed_property_map.html">distributed property map</a>.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template &lt;class PropertyTag , class X&gt;
+typename property_traits&lt;property_map&lt;adjacency_list, PropertyTag&gt;::const_type&gt;::value_type
+get(PropertyTag, const adjacency_list&amp; g, X x);
+</pre>
+<p>This returns the property value for <tt class="docutils literal"><span class="pre">x</span></tt>, where <tt class="docutils literal"><span class="pre">x</span></tt> is either a vertex or
+edge descriptor.  The entity referred to by descriptor <tt class="docutils literal"><span class="pre">x</span></tt> must be
+stored in the local process.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template &lt;class PropertyTag , class X, class Value&gt;
+void put(PropertyTag, const adjacency_list&amp; g, X x, const Value&amp; value);
+</pre>
+<p>This sets the property value for <tt class="docutils literal"><span class="pre">x</span></tt> to value. <tt class="docutils literal"><span class="pre">x</span></tt> is either a
+vertex or edge descriptor. <tt class="docutils literal"><span class="pre">Value</span></tt> must be convertible to <tt class="docutils literal"><span class="pre">typename</span>
+<span class="pre">property_traits&lt;property_map&lt;adjacency_list,</span>
+<span class="pre">PropertyTag&gt;::type&gt;::value_type</span></tt>.</p>
+<hr class="docutils" />
+<pre class="literal-block">
+template &lt;class GraphProperties, class GraphPropertyTag&gt;
+typename graph_property&lt;adjacency_list, GraphPropertyTag&gt;::type&amp;
+get_property(adjacency_list&amp; g, GraphPropertyTag);
+
+template &lt;class GraphProperties, class GraphPropertyTag &gt;
+const typename graph_property&lt;adjacency_list, GraphPropertyTag&gt;::type&amp;
+get_property(const adjacency_list&amp; g, GraphPropertyTag);
+</pre>
+<p>TODO: not implemented.</p>
+<p>Return the property specified by <tt class="docutils literal"><span class="pre">GraphPropertyTag</span></tt> that is attached
+to the graph object <tt class="docutils literal"><span class="pre">g</span></tt>. The <tt class="docutils literal"><span class="pre">graph_property</span></tt> traits class is
+defined in <tt class="docutils literal"><span class="pre">boost/graph/adjacency_list.hpp</span></tt>.</p>
+<hr class="docutils" />
+<p>Copyright (C) 2004 The Trustees of Indiana University.</p>
+<p>Copyright (C) 2007 Douglas Gregor</p>
+<p>Authors: Douglas Gregor and Andrew Lumsdaine</p>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr class="footer" />
+Generated on: 2009-05-31 00:21 UTC.
+Generated by <a class="reference external" href="http://docutils.sourceforge.net/">Docutils</a> from <a class="reference external" href="http://docutils.sourceforge.net/rst.html">reStructuredText</a> source.
+
+</div>
+</body>
+</html>

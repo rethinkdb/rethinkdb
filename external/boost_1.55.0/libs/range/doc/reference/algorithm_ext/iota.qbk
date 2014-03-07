@@ -1,0 +1,33 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:iota iota]
+
+[heading Prototype]
+
+``
+template<class ForwardRange, class Value>
+ForwardRange& iota(ForwardRange& rng, Value x);
+``
+
+[heading Description]
+
+`iota` traverses forward through `rng`, each element `y` in `rng` is assigned a value equivalent
+to `x + boost::distance(boost::begin(rng), it)`
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm_ext/iota.hpp`
+
+[heading Requirements]
+
+# `ForwardRange` is a model of the __forward_range__ Concept.
+# `Value` is a model of the `Incrementable` Concept.
+
+[heading Complexity]
+
+Linear. Exactly `distance(rng)` assignments into `rng`.
+
+[endsect]

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>The MPL Reference Manual: Lambda Expression</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe refmanual">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./metafunction-class.html" class="navigation-link">Prev</a>&nbsp;<a href="./placeholder-expression.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./metafunction-class.html" class="navigation-link">Back</a>&nbsp;<a href="./placeholder-expression.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./metafunctions-concepts.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../refmanual.html" class="navigation-link">Front Page</a> / <a href="./metafunctions.html" class="navigation-link">Metafunctions</a> / <a href="./metafunctions-concepts.html" class="navigation-link">Concepts</a> / <a href="./lambda-expression.html" class="navigation-link">Lambda Expression</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="lambda-expression">
+<h1><a class="toc-backref" href="./metafunctions-concepts.html#id1514">Lambda Expression</a></h1>
+<div class="section" id="id831">
+<h3><a class="subsection-title" href="#description" name="description">Description</a></h3>
+<p>A <a class="reference internal" href="./lambda-expression.html">Lambda Expression</a> is a compile-time invocable entity in either of the following two
+forms:</p>
+<ul class="simple">
+<li><a class="reference internal" href="./metafunction-class.html">Metafunction Class</a></li>
+<li><a class="reference internal" href="./placeholder-expression.html">Placeholder Expression</a></li>
+</ul>
+<p>Most of the MPL components accept either of those, and the concept
+gives us a consice way to describe these requirements.</p>
+</div>
+<div class="section" id="id832">
+<h3><a class="subsection-title" href="#expression-requirements" name="expression-requirements">Expression requirements</a></h3>
+<p>See corresponding <a class="reference internal" href="./metafunction-class.html">Metafunction Class</a> and <a class="reference internal" href="./placeholder-expression.html">Placeholder Expression</a> specifications.</p>
+</div>
+<div class="section" id="id833">
+<h3><a class="subsection-title" href="#models" name="models">Models</a></h3>
+<ul class="simple">
+<li><a class="reference internal" href="./always.html">always</a></li>
+<li><a class="reference internal" href="./unpack-args.html">unpack_args</a></li>
+<li><tt class="literal"><span class="pre"><a href="./plus.html" class="identifier">plus</a>&lt;_,</span> <span class="pre"><a href="./int.html" class="identifier">int_</a>&lt;2&gt;</span> <span class="pre">&gt;</span></tt></li>
+<li><tt class="literal"><span class="pre"><a href="./if.html" class="identifier">if_</a>&lt;</span> <span class="pre"><a href="./less.html" class="identifier">less</a>&lt;<a href="./placeholders.html" class="identifier">_1</a>,</span> <span class="pre"><a href="./int.html" class="identifier">int_</a>&lt;7&gt;</span> <span class="pre">&gt;,</span> <span class="pre"><a href="./plus.html" class="identifier">plus</a>&lt;<a href="./placeholders.html" class="identifier">_1</a>,<a href="./placeholders.html" class="identifier">_2</a>&gt;,</span> <span class="pre"><a href="./placeholders.html" class="identifier">_1</a></span> <span class="pre">&gt;</span></tt></li>
+</ul>
+</div>
+<div class="section" id="id834">
+<h3><a class="subsection-title" href="#see-also" name="see-also">See also</a></h3>
+<p><a class="reference internal" href="./metafunctions.html">Metafunctions</a>, <a class="reference internal" href="./placeholders.html">Placeholders</a>, <a class="reference internal" href="./apply.html">apply</a>, <a class="reference internal" href="./lambda.html">lambda</a></p>
+<!-- Metafunctions/Concepts//Placeholder Expression |40 -->
+</div>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./metafunction-class.html" class="navigation-link">Prev</a>&nbsp;<a href="./placeholder-expression.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./metafunction-class.html" class="navigation-link">Back</a>&nbsp;<a href="./placeholder-expression.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./metafunctions-concepts.html" class="navigation-link">Up</a>&nbsp;<a href="../refmanual.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./refmanual_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td><div class="copyright-footer"><div class="copyright">Copyright ©  2001-2009 Aleksey Gurtovoy and David Abrahams</div>
+Distributed under the Boost Software License, Version 1.0. (See accompanying
+file LICENSE_1_0.txt or copy at <a class="reference external" href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)</div></td></tr></table></body>
+</html>

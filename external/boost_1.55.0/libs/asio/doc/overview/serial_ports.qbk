@@ -1,0 +1,47 @@
+[/
+ / Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+ /
+ / Distributed under the Boost Software License, Version 1.0. (See accompanying
+ / file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+ /]
+
+[section:serial_ports Serial Ports]
+
+Boost.Asio includes classes for creating and manipulating serial ports in a portable
+manner. For example, a serial port may be opened using:
+
+  serial_port port(my_io_service, name);
+
+where name is something like `"COM1"` on Windows, and `"/dev/ttyS0"` on POSIX
+platforms.
+
+Once opened, the serial port may be used as a [link boost_asio.overview.core.streams
+stream]. This means the objects can be used with any of the [link
+boost_asio.reference.read read()], [link boost_asio.reference.async_read async_read()],
+[link boost_asio.reference.write write()], [link boost_asio.reference.async_write
+async_write()], [link boost_asio.reference.read_until read_until()] or [link
+boost_asio.reference.async_read_until async_read_until()] free functions.
+
+The serial port implementation also includes option classes for configuring the
+port's baud rate, flow control type, parity, stop bits and character size.
+
+[heading See Also]
+
+[link boost_asio.reference.serial_port serial_port],
+[link boost_asio.reference.serial_port_base serial_port_base],
+[link boost_asio.reference.basic_serial_port basic_serial_port],
+[link boost_asio.reference.serial_port_service serial_port_service],
+[link boost_asio.reference.serial_port_base__baud_rate serial_port_base::baud_rate],
+[link boost_asio.reference.serial_port_base__flow_control serial_port_base::flow_control],
+[link boost_asio.reference.serial_port_base__parity serial_port_base::parity],
+[link boost_asio.reference.serial_port_base__stop_bits serial_port_base::stop_bits],
+[link boost_asio.reference.serial_port_base__character_size serial_port_base::character_size].
+
+[heading Notes]
+
+Serial ports are available on all POSIX platforms. For Windows, serial ports
+are only available at compile time when the I/O completion port backend is used
+(which is the default). A program may test for the macro
+`BOOST_ASIO_HAS_SERIAL_PORT` to determine whether they are supported.
+
+[endsect]

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//Boost//DTD BoostBook XML V1.0//EN" "http://www.boost.org/tools/boostbook/dtd/boostbook.dtd">
+<article id="python_code_blocks" last-revision="DEBUG MODE Date: 2000/12/20 12:00:00 $"
+ xmlns:xi="http://www.w3.org/2001/XInclude">
+  <title>Python Code Blocks</title>
+<programlisting><phrase role="comment"># No escape</phrase>
+<phrase role="comment"># Escape: <emphasis role="bold">bold</emphasis></phrase>
+<phrase role="comment"># Escape: <emphasis role="underline">underline</emphasis><emphasis>italic</emphasis></phrase>
+</programlisting>
+</article>

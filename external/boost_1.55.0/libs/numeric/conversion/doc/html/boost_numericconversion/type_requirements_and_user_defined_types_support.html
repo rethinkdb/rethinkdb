@@ -1,0 +1,566 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Type Requirements and User-defined-types support</title>
+<link rel="stylesheet" href="../boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL-NS Stylesheets V1.76.1">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.NumericConversion">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_numericconversion.type_requirements_and_user_defined_types_support"></a><a class="link" href="type_requirements_and_user_defined_types_support.html" title="Type Requirements and User-defined-types support">Type
+    Requirements and User-defined-types support</a>
+</h2></div></div></div>
+    
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.type_requirements_and_user_defined_types_support.type_requirements"></a><a class="link" href="type_requirements_and_user_defined_types_support.html#boost_numericconversion.type_requirements_and_user_defined_types_support.type_requirements" title="Type Requirements">Type
+      Requirements</a>
+</h3></div></div></div>
+      
+      <p>
+        Both arithmetic (built-in) and user-defined numeric types require proper
+        specialization of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;&gt;</span></code>
+        (that is, with (in-class) integral constants).
+      </p>
+      <p>
+        The library uses <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">is_specialized</span></code> to detect whether the type
+        is builtin or user defined, and <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">is_integer</span></code>, <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">is_signed</span></code> to detect whether the type is
+        integer or floating point; and whether it is signed/unsigned.
+      </p>
+      <p>
+        The default <code class="computeroutput"><span class="identifier">Float2IntRounder</span></code>
+        policies uses unqualified calls to functions <code class="computeroutput"><span class="identifier">floor</span><span class="special">()</span></code> and <code class="computeroutput"><span class="identifier">ceil</span><span class="special">()</span></code>; but the standard functions are introduced
+        in scope by a using directive:
+      </p>
+<pre class="programlisting"><span class="keyword">using</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">floor</span> <span class="special">;</span> <span class="keyword">return</span> <span class="identifier">floor</span><span class="special">(</span><span class="identifier">s</span><span class="special">);</span>
+</pre>
+      <p>
+        Therefore, for builtin arithmetic types, the std functions will be used.
+        User defined types should provide overloaded versions of these functions
+        in order to use the default rounder policies. If these overloads are defined
+        within a user namespace argument dependent lookup (ADL) should find them,
+        but if your compiler has a weak ADL you might need to put these functions
+        some place else or write your own rounder policy.
+      </p>
+      <p>
+        The default <code class="computeroutput"><span class="identifier">Trunc</span><span class="special">&lt;&gt;</span></code>
+        rounder policy needs to determine if the source value is positive or not,
+        and for this it evaluates the expression <code class="computeroutput"><span class="identifier">s</span>
+        <span class="special">&lt;</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">&gt;(</span><span class="number">0</span><span class="special">)</span></code>. Therefore,
+        user defined types require a visible <code class="computeroutput"><span class="keyword">operator</span><span class="special">&lt;</span></code> in order to use the <code class="computeroutput"><span class="identifier">Trunc</span><span class="special">&lt;&gt;</span></code> policy (the default).
+      </p>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.type_requirements_and_user_defined_types_support.udt_s_special_semantics"></a><a class="link" href="type_requirements_and_user_defined_types_support.html#boost_numericconversion.type_requirements_and_user_defined_types_support.udt_s_special_semantics" title="UDT's special semantics">UDT's
+      special semantics</a>
+</h3></div></div></div>
+      
+      <h5>
+<a name="boost_numericconversion.type_requirements_and_user_defined_types_support.udt_s_special_semantics.h0"></a>
+        <span><a name="boost_numericconversion.type_requirements_and_user_defined_types_support.udt_s_special_semantics.conversion_traits"></a></span><a class="link" href="type_requirements_and_user_defined_types_support.html#boost_numericconversion.type_requirements_and_user_defined_types_support.udt_s_special_semantics.conversion_traits">Conversion
+        Traits</a>
+      </h5>
+      <p>
+        If a User Defined Type is involved in a conversion, it is <span class="emphasis"><em>assumed</em></span>
+        that the UDT has <a class="link" href="definitions.html#boost_numericconversion.definitions.range_and_precision" title="Range and Precision">wider
+        range</a> than any built-in type, and consequently the values of some
+        <code class="computeroutput"><span class="identifier">converter_traits</span><span class="special">&lt;&gt;</span></code>
+        members are hardwired regardless of the reality. The following table summarizes
+        this:
+      </p>
+      <div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          
+            <code class="computeroutput"><span class="identifier">Target</span><span class="special">=</span></code><span class="emphasis"><em>UDT</em></span>
+            and <code class="computeroutput"><span class="identifier">Source</span><span class="special">=</span></code><span class="emphasis"><em>built-in</em></span>
+            <div class="itemizedlist"><ul class="itemizedlist" type="circle">
+<li class="listitem">
+                
+                  <code class="computeroutput"><span class="identifier">subranged</span><span class="special">=</span><span class="keyword">false</span></code>
+                
+              </li>
+<li class="listitem">
+                
+                  <code class="computeroutput"><span class="identifier">supertype</span><span class="special">=</span><span class="identifier">Target</span></code>
+                
+              </li>
+<li class="listitem">
+                
+                  <code class="computeroutput"><span class="identifier">subtype</span><span class="special">=</span><span class="identifier">Source</span></code>
+                
+              </li>
+</ul></div>
+          
+        </li>
+<li class="listitem">
+          
+            <code class="computeroutput"><span class="identifier">Target</span><span class="special">=</span></code><span class="emphasis"><em>built-in</em></span>
+            and <code class="computeroutput"><span class="identifier">Source</span><span class="special">=</span></code><span class="emphasis"><em>UDT</em></span>
+            <div class="itemizedlist"><ul class="itemizedlist" type="circle">
+<li class="listitem">
+                
+                  <code class="computeroutput"><span class="identifier">subranged</span><span class="special">=</span><span class="keyword">true</span></code>
+                
+              </li>
+<li class="listitem">
+                
+                  <code class="computeroutput"><span class="identifier">supertype</span><span class="special">=</span><span class="identifier">Source</span></code>
+                
+              </li>
+<li class="listitem">
+                
+                  <code class="computeroutput"><span class="identifier">subtype</span><span class="special">=</span><span class="identifier">Target</span></code>
+                
+              </li>
+</ul></div>
+          
+        </li>
+<li class="listitem">
+          
+            <code class="computeroutput"><span class="identifier">Target</span><span class="special">=</span></code><span class="emphasis"><em>UDT</em></span>
+            and <code class="computeroutput"><span class="identifier">Source</span><span class="special">=</span></code><span class="emphasis"><em>UDT</em></span>
+            <div class="itemizedlist"><ul class="itemizedlist" type="circle">
+<li class="listitem">
+                
+                  <code class="computeroutput"><span class="identifier">subranged</span><span class="special">=</span><span class="keyword">false</span></code>
+                
+              </li>
+<li class="listitem">
+                
+                  <code class="computeroutput"><span class="identifier">supertype</span><span class="special">=</span><span class="identifier">Target</span></code>
+                
+              </li>
+<li class="listitem">
+                
+                  <code class="computeroutput"><span class="identifier">subtype</span><span class="special">=</span><span class="identifier">Source</span></code>
+                
+              </li>
+</ul></div>
+          
+        </li>
+</ul></div>
+      <p>
+        The <code class="computeroutput"><span class="identifier">Traits</span></code> member <code class="computeroutput"><span class="identifier">udt_mixture</span></code> can be used to detect whether
+        a UDT is involved and to infer the validity of the other members as shown
+        above.
+      </p>
+      <h5>
+<a name="boost_numericconversion.type_requirements_and_user_defined_types_support.udt_s_special_semantics.h1"></a>
+        <span><a name="boost_numericconversion.type_requirements_and_user_defined_types_support.udt_s_special_semantics.range_checking"></a></span><a class="link" href="type_requirements_and_user_defined_types_support.html#boost_numericconversion.type_requirements_and_user_defined_types_support.udt_s_special_semantics.range_checking">Range
+        Checking</a>
+      </h5>
+      <p>
+        Because User Defined Numeric Types might have peculiar ranges (such as an
+        unbounded range), this library does not attempt to supply a meaningful range
+        checking logic when UDTs are involved in a conversion. Therefore, if either
+        Target or Source are not built-in types, the bundled range checking of the
+        <code class="computeroutput"><span class="identifier">converter</span><span class="special">&lt;&gt;</span></code>
+        function object is automatically disabled. However, it is possible to supply
+        a user-defined range-checker. See <a class="link" href="type_requirements_and_user_defined_types_support.html#boost_numericconversion.type_requirements_and_user_defined_types_support.special_policies" title="Special Policies">Special
+        Policies</a>
+      </p>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.type_requirements_and_user_defined_types_support.special_policies"></a><a class="link" href="type_requirements_and_user_defined_types_support.html#boost_numericconversion.type_requirements_and_user_defined_types_support.special_policies" title="Special Policies">Special
+      Policies</a>
+</h3></div></div></div>
+      
+      <p>
+        There are two components of the <code class="computeroutput"><span class="identifier">converter</span><span class="special">&lt;&gt;</span></code> class that might require special
+        behavior if User Defined Numeric Types are involved: the Range Checking and
+        the Raw Conversion.
+      </p>
+      <p>
+        When both Target and Source are built-in types, the converter class uses
+        an internal range checking logic which is optimized and customized for the
+        combined properties of the types.
+      </p>
+      <p>
+        However, this internal logic is disabled when either type is User Defined.
+        In this case, the user can specify an <span class="emphasis"><em>external</em></span> range
+        checking policy which will be used in place of the internal code. See <a class="link" href="type_requirements_and_user_defined_types_support.html#boost_numericconversion.type_requirements_and_user_defined_types_support.udts_with_numeric_cast" title="UDTs with numeric_cast">numeric_cast_traits</a>
+        for details on using UDTs with <code class="computeroutput"><span class="identifier">numeric_cast</span></code>.
+      </p>
+      <p>
+        The converter class performs the actual conversion using a Raw Converter
+        policy. The default raw converter simply performs a <code class="computeroutput"><span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">Target</span><span class="special">&gt;(</span><span class="identifier">source</span><span class="special">)</span></code>.
+      </p>
+      <p>
+        However, if the a UDT is involved, the <code class="computeroutput"><span class="keyword">static_cast</span></code>
+        might not work. In this case, the user can implement and pass a different
+        raw converter policy. See <a class="link" href="numeric_converter_policy_classes.html#boost_numericconversion.numeric_converter_policy_classes.policy_rawconverter" title="Policy RawConverter">RawConverter</a>
+        policy for details.
+      </p>
+    </div>
+    <div class="section">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="boost_numericconversion.type_requirements_and_user_defined_types_support.udts_with_numeric_cast"></a><a class="link" href="type_requirements_and_user_defined_types_support.html#boost_numericconversion.type_requirements_and_user_defined_types_support.udts_with_numeric_cast" title="UDTs with numeric_cast">UDTs
+      with numeric_cast</a>
+</h3></div></div></div>
+      
+      <p>
+        In order to employ UDTs with <code class="computeroutput"><span class="identifier">numeric_cast</span></code>,
+        the user should define a <code class="computeroutput"><span class="identifier">numeric_cast_traits</span></code>
+        specialization on the UDT for each conversion. Here is an example of specializations
+        for converting between the UDT and any other type:
+      </p>
+<pre class="programlisting"><span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Source</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">numeric_cast_traits</span><span class="special">&lt;</span><span class="identifier">UDT</span><span class="special">,</span> <span class="identifier">Source</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">conversion_traits</span><span class="special">&lt;</span><span class="identifier">UDT</span><span class="special">,</span> <span class="identifier">Source</span><span class="special">&gt;</span>      <span class="identifier">conv_traits</span><span class="special">;</span>
+
+    <span class="comment">//! The following are required:</span>
+    <span class="keyword">typedef</span> <span class="identifier">YourOverflowHandlerPolicy</span>           <span class="identifier">overflow_policy</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">YourRangeCheckerPolicy</span><span class="special">&lt;</span><span class="identifier">conv_traits</span><span class="special">&gt;</span> <span class="identifier">range_checking_policy</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">YourFloat2IntRounderPolicy</span><span class="special">&lt;</span><span class="identifier">Source</span><span class="special">&gt;</span>  <span class="identifier">rounding_policy</span><span class="special">;</span>
+<span class="special">};</span>
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Target</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">numeric_cast_traits</span><span class="special">&lt;</span><span class="identifier">Target</span><span class="special">,</span> <span class="identifier">UDT</span><span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="keyword">typedef</span> <span class="identifier">conversion_traits</span><span class="special">&lt;</span><span class="identifier">Target</span><span class="special">,</span> <span class="identifier">UDT</span><span class="special">&gt;</span>      <span class="identifier">conv_traits</span><span class="special">;</span>
+
+    <span class="comment">//! The following are required:</span>
+    <span class="keyword">typedef</span> <span class="identifier">YourOverflowHandlerPolicy</span>           <span class="identifier">overflow_policy</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">YourRangeCheckerPolicy</span><span class="special">&lt;</span><span class="identifier">conv_traits</span><span class="special">&gt;</span> <span class="identifier">range_checking_policy</span><span class="special">;</span>
+    <span class="keyword">typedef</span> <span class="identifier">YourFloat2IntRounderPolicy</span><span class="special">&lt;</span><span class="identifier">UDT</span><span class="special">&gt;</span>     <span class="identifier">rounding_policy</span><span class="special">;</span>
+<span class="special">};</span>
+<span class="special">}}//</span><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">;</span>
+</pre>
+      <p>
+        These specializations are already defined with default values for the built-in
+        numeric types. It is possible to disable the generation of specializations
+        for built-in types by defining <code class="computeroutput"><span class="identifier">BOOST_NUMERIC_CONVERSION_RELAX_BUILT_IN_CAST_TRAITS</span></code>.
+        For details on defining custom policies see <a class="link" href="numeric_converter_policy_classes.html" title="Numeric Converter Policy Classes">Converter
+        Policies</a>.
+      </p>
+      <p>
+        Here is a full example of how to define a custom UDT for use with <code class="computeroutput"><span class="identifier">numeric_cast</span></code>:
+      </p>
+<pre class="programlisting"><span class="comment">//! Define a simple custom number</span>
+<span class="keyword">struct</span> <span class="identifier">Double</span>
+    <span class="special">:</span>   <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ordered_field_operators</span>
+        <span class="special">&lt;</span>
+            <span class="identifier">Double</span>
+          <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ordered_field_operators2</span><span class="special">&lt;</span> <span class="identifier">Double</span><span class="special">,</span> <span class="keyword">long</span> <span class="keyword">double</span>
+          <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ordered_field_operators2</span><span class="special">&lt;</span> <span class="identifier">Double</span><span class="special">,</span> <span class="keyword">double</span>
+          <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ordered_field_operators2</span><span class="special">&lt;</span> <span class="identifier">Double</span><span class="special">,</span> <span class="keyword">float</span>
+          <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ordered_field_operators2</span><span class="special">&lt;</span> <span class="identifier">Double</span><span class="special">,</span> <span class="keyword">int</span>
+          <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ordered_field_operators2</span><span class="special">&lt;</span> <span class="identifier">Double</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">int</span>
+          <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ordered_field_operators2</span><span class="special">&lt;</span> <span class="identifier">Double</span><span class="special">,</span> <span class="keyword">long</span>
+          <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ordered_field_operators2</span><span class="special">&lt;</span> <span class="identifier">Double</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">long</span>
+          <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ordered_field_operators2</span><span class="special">&lt;</span> <span class="identifier">Double</span><span class="special">,</span> <span class="keyword">long</span> <span class="keyword">long</span>
+          <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ordered_field_operators2</span><span class="special">&lt;</span> <span class="identifier">Double</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>
+          <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ordered_field_operators2</span><span class="special">&lt;</span> <span class="identifier">Double</span><span class="special">,</span> <span class="keyword">char</span>
+          <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ordered_field_operators2</span><span class="special">&lt;</span> <span class="identifier">Double</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">char</span>
+          <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ordered_field_operators2</span><span class="special">&lt;</span> <span class="identifier">Double</span><span class="special">,</span> <span class="keyword">short</span>
+          <span class="special">,</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">ordered_field_operators2</span><span class="special">&lt;</span> <span class="identifier">Double</span><span class="special">,</span> <span class="keyword">unsigned</span> <span class="keyword">short</span>
+        <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span> <span class="special">&gt;</span>
+<span class="special">{</span>
+    <span class="identifier">Double</span><span class="special">()</span>
+        <span class="special">:</span> <span class="identifier">v</span><span class="special">(</span><span class="number">0</span><span class="special">)</span>
+    <span class="special">{}</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">explicit</span> <span class="identifier">Double</span><span class="special">(</span> <span class="identifier">T</span> <span class="identifier">v</span> <span class="special">)</span>
+        <span class="special">:</span> <span class="identifier">v</span><span class="special">(</span><span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;(</span><span class="identifier">v</span><span class="special">))</span>
+    <span class="special">{}</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="identifier">Double</span><span class="special">&amp;</span> <span class="keyword">operator</span><span class="special">=</span> <span class="special">(</span> <span class="identifier">T</span> <span class="identifier">t</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">v</span> <span class="special">=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;(</span><span class="identifier">t</span><span class="special">);</span>
+        <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">bool</span> <span class="keyword">operator</span> <span class="special">&lt;</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">Double</span><span class="special">&amp;</span> <span class="identifier">rhs</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">v</span> <span class="special">&lt;</span> <span class="identifier">rhs</span><span class="special">.</span><span class="identifier">v</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">bool</span> <span class="keyword">operator</span> <span class="special">&lt;</span> <span class="special">(</span> <span class="identifier">T</span> <span class="identifier">rhs</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">v</span> <span class="special">&lt;</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;(</span><span class="identifier">rhs</span><span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="keyword">bool</span> <span class="keyword">operator</span> <span class="special">&gt;</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">Double</span><span class="special">&amp;</span> <span class="identifier">rhs</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">v</span> <span class="special">&gt;</span> <span class="identifier">rhs</span><span class="special">.</span><span class="identifier">v</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">bool</span> <span class="keyword">operator</span> <span class="special">&gt;</span> <span class="special">(</span> <span class="identifier">T</span> <span class="identifier">rhs</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">v</span> <span class="special">&gt;</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;(</span><span class="identifier">rhs</span><span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="keyword">bool</span> <span class="keyword">operator</span> <span class="special">==(</span> <span class="keyword">const</span> <span class="identifier">Double</span><span class="special">&amp;</span> <span class="identifier">rhs</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">v</span> <span class="special">==</span> <span class="identifier">rhs</span><span class="special">.</span><span class="identifier">v</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">bool</span> <span class="keyword">operator</span> <span class="special">==</span> <span class="special">(</span> <span class="identifier">T</span> <span class="identifier">rhs</span> <span class="special">)</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">v</span> <span class="special">==</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;(</span><span class="identifier">rhs</span><span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="keyword">bool</span> <span class="keyword">operator</span> <span class="special">!()</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">v</span> <span class="special">==</span> <span class="number">0</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">Double</span> <span class="keyword">operator</span> <span class="special">-()</span> <span class="keyword">const</span>
+    <span class="special">{</span>
+        <span class="keyword">return</span> <span class="identifier">Double</span><span class="special">(-</span><span class="identifier">v</span><span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="identifier">Double</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">+=(</span> <span class="keyword">const</span> <span class="identifier">Double</span><span class="special">&amp;</span> <span class="identifier">t</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">v</span> <span class="special">+=</span> <span class="identifier">t</span><span class="special">.</span><span class="identifier">v</span><span class="special">;</span>
+        <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="identifier">Double</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">+=(</span> <span class="identifier">T</span> <span class="identifier">t</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">v</span> <span class="special">+=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;(</span><span class="identifier">t</span><span class="special">);</span>
+        <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">Double</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">-=(</span> <span class="keyword">const</span> <span class="identifier">Double</span><span class="special">&amp;</span> <span class="identifier">t</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">v</span> <span class="special">-=</span> <span class="identifier">t</span><span class="special">.</span><span class="identifier">v</span><span class="special">;</span>
+        <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="identifier">Double</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">-=(</span> <span class="identifier">T</span> <span class="identifier">t</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">v</span> <span class="special">-=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;(</span><span class="identifier">t</span><span class="special">);</span>
+        <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">Double</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">*=</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">Double</span><span class="special">&amp;</span> <span class="identifier">factor</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">v</span> <span class="special">*=</span> <span class="identifier">factor</span><span class="special">.</span><span class="identifier">v</span><span class="special">;</span>
+        <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="identifier">Double</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">*=(</span> <span class="identifier">T</span> <span class="identifier">t</span> <span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">v</span> <span class="special">*=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;(</span><span class="identifier">t</span><span class="special">);</span>
+        <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="identifier">Double</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">/=</span> <span class="special">(</span><span class="keyword">const</span> <span class="identifier">Double</span><span class="special">&amp;</span> <span class="identifier">divisor</span><span class="special">)</span>
+    <span class="special">{</span>
+        <span class="identifier">v</span> <span class="special">/=</span> <span class="identifier">divisor</span><span class="special">.</span><span class="identifier">v</span><span class="special">;</span>
+        <span class="keyword">return</span> <span class="special">*</span><span class="keyword">this</span><span class="special">;</span>
+    <span class="special">}</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="identifier">Double</span><span class="special">&amp;</span> <span class="keyword">operator</span> <span class="special">/=(</span> <span class="identifier">T</span> <span class="identifier">t</span> <span class="special">)</span>
+    <span class="special">{</span>
+         <span class="identifier">v</span> <span class="special">/=</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;(</span><span class="identifier">t</span><span class="special">);</span>
+        <span class="keyword">return</span> <span class="special">(*</span><span class="keyword">this</span><span class="special">);</span>
+    <span class="special">}</span>
+
+    <span class="keyword">double</span> <span class="identifier">v</span><span class="special">;</span>
+<span class="special">};</span>
+
+<span class="comment">//! Define numeric_limits for the custom type.</span>
+<span class="keyword">namespace</span> <span class="identifier">std</span>
+<span class="special">{</span>
+    <span class="keyword">template</span><span class="special">&lt;&gt;</span>
+    <span class="keyword">class</span> <span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">Double</span><span class="special">&gt;</span> <span class="special">:</span> <span class="keyword">public</span> <span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;</span>
+    <span class="special">{</span>
+    <span class="keyword">public</span><span class="special">:</span>
+
+        <span class="comment">//! Limit our Double to a range of +/- 100.0</span>
+        <span class="keyword">static</span> <span class="identifier">Double</span> <span class="special">(</span><span class="identifier">min</span><span class="special">)()</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="identifier">Double</span><span class="special">(</span><span class="number">1.e-2</span><span class="special">);</span>
+        <span class="special">}</span>
+
+        <span class="keyword">static</span> <span class="identifier">Double</span> <span class="special">(</span><span class="identifier">max</span><span class="special">)()</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="identifier">Double</span><span class="special">(</span><span class="number">1.e2</span><span class="special">);</span>
+        <span class="special">}</span>
+
+        <span class="keyword">static</span> <span class="identifier">Double</span> <span class="identifier">epsilon</span><span class="special">()</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="identifier">Double</span><span class="special">(</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="keyword">double</span><span class="special">&gt;::</span><span class="identifier">epsilon</span><span class="special">()</span> <span class="special">);</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+<span class="special">}</span>
+
+<span class="comment">//! Define range checking and overflow policies.</span>
+<span class="keyword">namespace</span> <span class="identifier">custom</span>
+<span class="special">{</span>
+    <span class="comment">//! Define a custom range checker</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Traits</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">OverFlowHandler</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">range_checker</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Traits</span><span class="special">::</span><span class="identifier">argument_type</span> <span class="identifier">argument_type</span> <span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Traits</span><span class="special">::</span><span class="identifier">source_type</span> <span class="identifier">S</span><span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="keyword">typename</span> <span class="identifier">Traits</span><span class="special">::</span><span class="identifier">target_type</span> <span class="identifier">T</span><span class="special">;</span>
+
+        <span class="comment">//! Check range of integral types.</span>
+        <span class="keyword">static</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">range_check_result</span> <span class="identifier">out_of_range</span><span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">;</span>
+            <span class="keyword">if</span><span class="special">(</span> <span class="identifier">s</span> <span class="special">&gt;</span> <span class="identifier">bounds</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">highest</span><span class="special">()</span> <span class="special">)</span>
+                <span class="keyword">return</span> <span class="identifier">cPosOverflow</span><span class="special">;</span>
+            <span class="keyword">else</span> <span class="keyword">if</span><span class="special">(</span> <span class="identifier">s</span> <span class="special">&lt;</span> <span class="identifier">bounds</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">lowest</span><span class="special">()</span> <span class="special">)</span>
+                <span class="keyword">return</span> <span class="identifier">cNegOverflow</span><span class="special">;</span>
+            <span class="keyword">else</span>
+                <span class="keyword">return</span> <span class="identifier">cInRange</span><span class="special">;</span>
+        <span class="special">}</span>
+
+        <span class="keyword">static</span> <span class="keyword">void</span> <span class="identifier">validate_range</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="identifier">BOOST_STATIC_ASSERT</span><span class="special">(</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">numeric_limits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">is_bounded</span> <span class="special">);</span>
+            <span class="identifier">OverFlowHandler</span><span class="special">()(</span> <span class="identifier">out_of_range</span><span class="special">(</span><span class="identifier">s</span><span class="special">)</span> <span class="special">);</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+    <span class="comment">//! Overflow handler</span>
+    <span class="keyword">struct</span> <span class="identifier">positive_overflow</span><span class="special">{};</span>
+    <span class="keyword">struct</span> <span class="identifier">negative_overflow</span><span class="special">{};</span>
+
+    <span class="keyword">struct</span> <span class="identifier">overflow_handler</span>
+    <span class="special">{</span>
+        <span class="keyword">void</span> <span class="keyword">operator</span><span class="special">()</span> <span class="special">(</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">range_check_result</span> <span class="identifier">r</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">;</span>
+            <span class="keyword">if</span><span class="special">(</span> <span class="identifier">r</span> <span class="special">==</span> <span class="identifier">cNegOverflow</span> <span class="special">)</span>
+                <span class="keyword">throw</span> <span class="identifier">negative_overflow</span><span class="special">()</span> <span class="special">;</span>
+            <span class="keyword">else</span> <span class="keyword">if</span><span class="special">(</span> <span class="identifier">r</span> <span class="special">==</span> <span class="identifier">cPosOverflow</span> <span class="special">)</span>
+                <span class="keyword">throw</span> <span class="identifier">positive_overflow</span><span class="special">()</span> <span class="special">;</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+    <span class="comment">//! Define a rounding policy and specialize on the custom type.</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">S</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">Ceil</span> <span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">Ceil</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">&gt;{};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">Ceil</span><span class="special">&lt;</span><span class="identifier">Double</span><span class="special">&gt;</span>
+    <span class="special">{</span>
+      <span class="keyword">typedef</span> <span class="identifier">Double</span> <span class="identifier">source_type</span><span class="special">;</span>
+
+      <span class="keyword">typedef</span> <span class="identifier">Double</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">argument_type</span><span class="special">;</span>
+
+      <span class="keyword">static</span> <span class="identifier">source_type</span> <span class="identifier">nearbyint</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span>
+      <span class="special">{</span>
+<span class="preprocessor">#if</span> <span class="special">!</span><span class="identifier">defined</span><span class="special">(</span><span class="identifier">BOOST_NO_STDC_NAMESPACE</span><span class="special">)</span>
+          <span class="keyword">using</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">ceil</span> <span class="special">;</span>
+<span class="preprocessor">#endif</span>
+          <span class="keyword">return</span> <span class="identifier">Double</span><span class="special">(</span> <span class="identifier">ceil</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">v</span><span class="special">)</span> <span class="special">);</span>
+      <span class="special">}</span>
+
+      <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">float_round_style</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">round_toward_infinity</span><span class="special">&gt;</span> <span class="identifier">round_style</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="comment">//! Define a rounding policy and specialize on the custom type.</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">class</span> <span class="identifier">S</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">Trunc</span><span class="special">:</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">Trunc</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">&gt;{};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">Trunc</span><span class="special">&lt;</span><span class="identifier">Double</span><span class="special">&gt;</span>
+    <span class="special">{</span>
+      <span class="keyword">typedef</span> <span class="identifier">Double</span> <span class="identifier">source_type</span><span class="special">;</span>
+
+      <span class="keyword">typedef</span> <span class="identifier">Double</span> <span class="keyword">const</span><span class="special">&amp;</span> <span class="identifier">argument_type</span><span class="special">;</span>
+
+      <span class="keyword">static</span> <span class="identifier">source_type</span> <span class="identifier">nearbyint</span> <span class="special">(</span> <span class="identifier">argument_type</span> <span class="identifier">s</span> <span class="special">)</span>
+      <span class="special">{</span>
+<span class="preprocessor">#if</span> <span class="special">!</span><span class="identifier">defined</span><span class="special">(</span><span class="identifier">BOOST_NO_STDC_NAMESPACE</span><span class="special">)</span>
+          <span class="keyword">using</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">floor</span><span class="special">;</span>
+<span class="preprocessor">#endif</span>
+          <span class="keyword">return</span> <span class="identifier">Double</span><span class="special">(</span> <span class="identifier">floor</span><span class="special">(</span><span class="identifier">s</span><span class="special">.</span><span class="identifier">v</span><span class="special">)</span> <span class="special">);</span>
+      <span class="special">}</span>
+
+      <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">mpl</span><span class="special">::</span><span class="identifier">integral_c</span><span class="special">&lt;</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">float_round_style</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">round_toward_zero</span><span class="special">&gt;</span> <span class="identifier">round_style</span><span class="special">;</span>
+    <span class="special">};</span>
+<span class="special">}//</span><span class="keyword">namespace</span> <span class="identifier">custom</span><span class="special">;</span>
+
+<span class="keyword">namespace</span> <span class="identifier">boost</span> <span class="special">{</span> <span class="keyword">namespace</span> <span class="identifier">numeric</span> <span class="special">{</span>
+
+    <span class="comment">//! Define the numeric_cast_traits specializations on the custom type.</span>
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">S</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">numeric_cast_traits</span><span class="special">&lt;</span><span class="identifier">Double</span><span class="special">,</span> <span class="identifier">S</span><span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">custom</span><span class="special">::</span><span class="identifier">overflow_handler</span>                         <span class="identifier">overflow_policy</span><span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="identifier">custom</span><span class="special">::</span><span class="identifier">range_checker</span>
+                <span class="special">&lt;</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">conversion_traits</span><span class="special">&lt;</span><span class="identifier">Double</span><span class="special">,</span> <span class="identifier">S</span><span class="special">&gt;</span>
+                  <span class="special">,</span> <span class="identifier">overflow_policy</span>
+                <span class="special">&gt;</span>                                                <span class="identifier">range_checking_policy</span><span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">Trunc</span><span class="special">&lt;</span><span class="identifier">S</span><span class="special">&gt;</span>                         <span class="identifier">rounding_policy</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">numeric_cast_traits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">Double</span><span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">typedef</span> <span class="identifier">custom</span><span class="special">::</span><span class="identifier">overflow_handler</span>                         <span class="identifier">overflow_policy</span><span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="identifier">custom</span><span class="special">::</span><span class="identifier">range_checker</span>
+                <span class="special">&lt;</span>
+                    <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">::</span><span class="identifier">conversion_traits</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">,</span> <span class="identifier">Double</span><span class="special">&gt;</span>
+                  <span class="special">,</span> <span class="identifier">overflow_policy</span>
+                <span class="special">&gt;</span>                                                <span class="identifier">range_checking_policy</span><span class="special">;</span>
+        <span class="keyword">typedef</span> <span class="identifier">custom</span><span class="special">::</span><span class="identifier">Trunc</span><span class="special">&lt;</span><span class="identifier">Double</span><span class="special">&gt;</span>                            <span class="identifier">rounding_policy</span><span class="special">;</span>
+    <span class="special">};</span>
+
+    <span class="comment">//! Define the conversion from the custom type to built-in types and vice-versa.</span>
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">raw_converter</span><span class="special">&lt;</span> <span class="identifier">conversion_traits</span><span class="special">&lt;</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">Double</span> <span class="special">&gt;</span> <span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">static</span> <span class="identifier">T</span> <span class="identifier">low_level_convert</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">Double</span><span class="special">&amp;</span> <span class="identifier">n</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="keyword">static_cast</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;(</span> <span class="identifier">n</span><span class="special">.</span><span class="identifier">v</span> <span class="special">);</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+
+    <span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">S</span><span class="special">&gt;</span>
+    <span class="keyword">struct</span> <span class="identifier">raw_converter</span><span class="special">&lt;</span> <span class="identifier">conversion_traits</span><span class="special">&lt;</span> <span class="identifier">Double</span><span class="special">,</span> <span class="identifier">S</span> <span class="special">&gt;</span> <span class="special">&gt;</span>
+    <span class="special">{</span>
+        <span class="keyword">static</span> <span class="identifier">Double</span> <span class="identifier">low_level_convert</span> <span class="special">(</span> <span class="keyword">const</span> <span class="identifier">S</span><span class="special">&amp;</span> <span class="identifier">n</span> <span class="special">)</span>
+        <span class="special">{</span>
+            <span class="keyword">return</span> <span class="identifier">Double</span><span class="special">(</span><span class="identifier">n</span><span class="special">);</span>
+        <span class="special">}</span>
+    <span class="special">};</span>
+<span class="special">}}//</span><span class="keyword">namespace</span> <span class="identifier">boost</span><span class="special">::</span><span class="identifier">numeric</span><span class="special">;</span>
+</pre>
+    </div>
+  </div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer"></div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="u" href="../index.html"><img src="../../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../../doc/src/images/home.png" alt="Home"></a>
+</div>
+</body>
+</html>

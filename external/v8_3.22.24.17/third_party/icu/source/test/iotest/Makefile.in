@@ -1,0 +1,101 @@
+#******************************************************************************
+#
+#   Copyright (C) 1999-2010, International Business Machines
+#   Corporation and others.  All Rights Reserved.
+#
+#******************************************************************************
+## Makefile.in for ICU - test/iotest
+
+## Source directory information
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+
+top_builddir = ../..
+
+## All the flags and other definitions are included here.
+include $(top_builddir)/icudefs.mk
+
+## Build directory information
+subdir = test/iotest
+
+## Extra files to remove for 'make clean'
+CLEANFILES = *~ $(DEPS) $(TESTXML)
+
+## Target information
+TARGET = iotest$(EXEEXT)
+
+BUILDDIR := $(CURR_SRCCODE_FULL_DIR)/../../
+# Simplify the path for Unix
+BUILDDIR := $(BUILDDIR:test/iotest/../../=)
+# Simplify the path for Windows
+BUILDDIR := $(BUILDDIR:test\\iotest/../../=)
+# Simplify the path for Windows 98
+BUILDDIR := $(BUILDDIR:TEST\\IOTEST/../../=)
+
+ifneq ($(top_builddir),$(top_srcdir))
+CPPFLAGS += -I$(top_builddir)/common
+endif
+CPPFLAGS += -I$(top_srcdir)/common -I$(top_srcdir)/i18n -I$(top_srcdir)/tools/ctestfw -I$(top_srcdir)/io
+DEFS += -D'U_TOPSRCDIR="$(top_srcdir)/"' -D'U_TOPBUILDDIR="$(BUILDDIR)"'
+LIBS = $(LIBCTESTFW) $(LIBICUTOOLUTIL) $(LIBICUIO) $(LIBICUI18N) $(LIBICUUC) $(DEFAULT_LIBS) $(LIB_M)
+
+OBJECTS = iotest.o stream.o strtst.o filetst.o trnstst.o
+
+DEPS = $(OBJECTS:.o=.d)
+
+-include Makefile.local
+
+## List of phony targets
+.PHONY : all all-local install install-local clean clean-local	\
+distclean distclean-local dist dist-local check check-local xcheck
+
+## Clear suffix list
+.SUFFIXES :
+
+## List of standard targets
+all: all-local
+install: install-local
+clean: clean-local
+distclean : distclean-local
+dist: dist-local
+check: all check-local
+xcheck: all xcheck-local
+
+all-local: $(TARGET)
+
+install-local:
+
+dist-local:
+
+clean-local:
+	test -z "$(CLEANFILES)" || $(RMV) $(CLEANFILES)
+	$(RMV) $(OBJECTS) $(TARGET)
+
+distclean-local: clean-local
+	$(RMV) Makefile
+
+check-local: all-local
+	$(INVOKE) ./$(TARGET) $(IOTEST_OPTS) 
+
+TESTXML=$(top_builddir)/test-$(TARGET).xml
+xcheck-local: all-local
+	$(INVOKE) ./$(TARGET) $(IOTEST_OPTS) -x $(TESTXML)
+
+Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
+	cd $(top_builddir) \
+	 && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
+
+$(TARGET) : $(OBJECTS)
+	$(LINK.cc) $(OUTOPT)$@ $^ $(LIBS)
+	$(POST_BUILD_STEP)
+
+ifeq (,$(MAKECMDGOALS))
+-include $(DEPS)
+else
+ifneq ($(patsubst %clean,,$(MAKECMDGOALS)),)
+ifneq ($(patsubst %install,,$(MAKECMDGOALS)),)
+-include $(DEPS)
+endif
+endif
+endif
+

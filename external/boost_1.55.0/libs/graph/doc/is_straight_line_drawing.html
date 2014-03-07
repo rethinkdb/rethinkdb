@@ -1,0 +1,93 @@
+<HTML>
+<!-- Copyright 2007 Aaron Windsor
+     
+     Distributed under the Boost Software License, Version 1.0.
+     (See accompanying file LICENSE_1_0.txt or copy at
+     http://www.boost.org/LICENSE_1_0.txt)
+    
+  -->
+<Head>
+<Title>Boost Graph Library: is_straight_line_drawing</Title>
+<BODY BGCOLOR="#ffffff" LINK="#0000ee" TEXT="#000000" VLINK="#551a8b" 
+        ALINK="#ff0000"> 
+<IMG SRC="../../../boost.png" 
+     ALT="C++ Boost" width="277" height="86"> 
+
+<BR Clear>
+
+<H1><tt>is_straight_line_drawing</tt></H1>
+
+<p>
+<pre>
+template &lt;typename Graph, typename GridPositionMap, typename VertexIndexMap&gt;
+bool is_straight_line_drawing(const Graph& g, GridPositionMap drawing, VertexIndexMap vm);
+</pre>
+
+<p>
+If <tt>drawing</tt> is a property map modeling the PositionMap 
+concept, <tt>is_straight_line_drawing</tt> returns true exactly when no two of 
+the line segments induced by edges in the graph under <tt>drawing</tt>
+intersect. This function works correctly in the presence of self-loops and
+parallel edges, and can be used to verify the output of the function 
+<tt>
+<a href="straight_line_drawing.html">chrobak_payne_straight_line_embedding.</a>
+</tt>
+
+<p>
+
+<h3>Complexity</h3>
+
+Runs in time <i>O(n log n)</i> on a planar graph with <i>n</i> vertices.
+
+<H3>Where Defined</H3>
+
+<P>
+<a href="../../../boost/graph/is_straight_line_drawing.hpp"><TT>boost/graph/is_straight_line_drawing.hpp</TT></a>
+
+<h3>Parameters</h3>
+
+IN: <tt>Graph&amp; g</tt>
+
+<blockquote>
+An undirected graph. The graph type must be a model of <a
+href="EdgeListGraph.html">Edge List Graph</a>
+</blockquote>
+
+IN: <tt>PositionMap</tt> 
+
+<blockquote>
+A <a href="../../property_map/doc/LvaluePropertyMap.html">Readable LValue Property 
+Map</a> that models the Position Map concept. The Position Map concept requires
+that the value mapped to be an object that has members <tt>x</tt> and
+<tt>y</tt>. For example, if <tt>p</tt> models PositionMap and <tt>v</tt>
+is a vertex in the graph, <tt>p[v].x</tt> and <tt>p[v].y</tt> are valid
+expressions. The type of <tt>x</tt> and <tt>y</tt> must be implicitly 
+convertable to <tt>std::size_t</tt>.
+</blockquote>
+
+IN: <tt>VertexIndexMap vm</tt>
+
+<blockquote>
+A <a href="../../property_map/doc/ReadablePropertyMap.html">Readable Property Map</a> that maps vertices from <tt>g</tt> to distinct integers in the range <tt>[0, num_vertices(g) )</tt><br>
+<b>Default</b>: <tt>get(vertex_index,g)</tt><br>
+</blockquote>
+
+<H3>Example</H3>
+
+<P>
+<a href="../example/straight_line_drawing.cpp"><TT>examples/straight_line_drawing.cpp</TT></a>
+
+<h3>See Also</h3>
+
+<p>
+<ul>
+<li><a href="planar_graphs.html">Planar Graphs in the Boost Graph Library</a>
+<li><a href="straight_line_drawing.html">
+<tt>chrobak_payne_straight_line_drawing</tt></a>
+</ul>
+
+<br>
+<HR>
+Copyright &copy; 2007 Aaron Windsor (<a href="mailto:aaron.windsor@gmail.com">aaron.windsor@gmail.com</a>)
+</BODY>
+</HTML> 

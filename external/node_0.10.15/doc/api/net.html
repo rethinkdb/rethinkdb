@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>net Node.js v0.10.15 Manual &amp; Documentation</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/sh.css">
+  <link rel="canonical" href="http://nodejs.org/api/net.html">
+</head>
+<body class="alt apidoc" id="api-section-net">
+    <div id="intro" class="interior">
+        <a href="/" title="Go back to the home page">
+            <img id="logo" src="http://nodejs.org/images/logo-light.png" alt="node.js">
+        </a>
+    </div>
+    <div id="content" class="clearfix">
+        <div id="column2" class="interior">
+            <ul>
+                <li><a href="/" class="home">Home</a></li>
+                <li><a href="/download/" class="download">Download</a></li>
+                <li><a href="/about/" class="about">About</a></li>
+                <li><a href="http://npmjs.org/" class="npm">npm Registry</a></li>
+                <li><a href="http://nodejs.org/api/" class="docs current">Docs</a></li>
+                <li><a href="http://blog.nodejs.org" class="blog">Blog</a></li>
+                <li><a href="/community/" class="community">Community</a></li>
+                <li><a href="/logos/" class="logos">Logos</a></li>
+                <li><a href="http://jobs.nodejs.org/" class="jobs">Jobs</a></li>
+            </ul>
+            <p class="twitter"><a href="http://twitter.com/nodejs">@nodejs</a></p>
+        </div>
+
+        <div id="column1" class="interior">
+          <header>
+            <h1>Node.js v0.10.15 Manual &amp; Documentation</h1>
+            <div id="gtoc">
+              <p>
+                <a href="index.html" name="toc">Index</a> |
+                <a href="all.html">View on single page</a> |
+                <a href="net.json">View as JSON</a>
+              </p>
+            </div>
+            <hr>
+          </header>
+
+          <div id="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+<li><a href="#net_net">net</a><ul>
+<li><a href="#net_net_createserver_options_connectionlistener">net.createServer([options], [connectionListener])</a></li>
+<li><a href="#net_net_connect_options_connectionlistener">net.connect(options, [connectionListener])</a></li>
+<li><a href="#net_net_createconnection_options_connectionlistener">net.createConnection(options, [connectionListener])</a></li>
+<li><a href="#net_net_connect_port_host_connectlistener">net.connect(port, [host], [connectListener])</a></li>
+<li><a href="#net_net_createconnection_port_host_connectlistener">net.createConnection(port, [host], [connectListener])</a></li>
+<li><a href="#net_net_connect_path_connectlistener">net.connect(path, [connectListener])</a></li>
+<li><a href="#net_net_createconnection_path_connectlistener">net.createConnection(path, [connectListener])</a></li>
+<li><a href="#net_class_net_server">Class: net.Server</a><ul>
+<li><a href="#net_server_listen_port_host_backlog_callback">server.listen(port, [host], [backlog], [callback])</a></li>
+<li><a href="#net_server_listen_path_callback">server.listen(path, [callback])</a></li>
+<li><a href="#net_server_listen_handle_callback">server.listen(handle, [callback])</a></li>
+<li><a href="#net_server_close_callback">server.close([callback])</a></li>
+<li><a href="#net_server_address">server.address()</a></li>
+<li><a href="#net_server_unref">server.unref()</a></li>
+<li><a href="#net_server_ref">server.ref()</a></li>
+<li><a href="#net_server_maxconnections">server.maxConnections</a></li>
+<li><a href="#net_server_connections">server.connections</a></li>
+<li><a href="#net_server_getconnections_callback">server.getConnections(callback)</a></li>
+<li><a href="#net_event_listening">Event: &#39;listening&#39;</a></li>
+<li><a href="#net_event_connection">Event: &#39;connection&#39;</a></li>
+<li><a href="#net_event_close">Event: &#39;close&#39;</a></li>
+<li><a href="#net_event_error">Event: &#39;error&#39;</a></li>
+</ul>
+</li>
+<li><a href="#net_class_net_socket">Class: net.Socket</a><ul>
+<li><a href="#net_new_net_socket_options">new net.Socket([options])</a></li>
+<li><a href="#net_socket_connect_port_host_connectlistener">socket.connect(port, [host], [connectListener])</a></li>
+<li><a href="#net_socket_connect_path_connectlistener">socket.connect(path, [connectListener])</a></li>
+<li><a href="#net_socket_buffersize">socket.bufferSize</a></li>
+<li><a href="#net_socket_setencoding_encoding">socket.setEncoding([encoding])</a></li>
+<li><a href="#net_socket_write_data_encoding_callback">socket.write(data, [encoding], [callback])</a></li>
+<li><a href="#net_socket_end_data_encoding">socket.end([data], [encoding])</a></li>
+<li><a href="#net_socket_destroy">socket.destroy()</a></li>
+<li><a href="#net_socket_pause">socket.pause()</a></li>
+<li><a href="#net_socket_resume">socket.resume()</a></li>
+<li><a href="#net_socket_settimeout_timeout_callback">socket.setTimeout(timeout, [callback])</a></li>
+<li><a href="#net_socket_setnodelay_nodelay">socket.setNoDelay([noDelay])</a></li>
+<li><a href="#net_socket_setkeepalive_enable_initialdelay">socket.setKeepAlive([enable], [initialDelay])</a></li>
+<li><a href="#net_socket_address">socket.address()</a></li>
+<li><a href="#net_socket_unref">socket.unref()</a></li>
+<li><a href="#net_socket_ref">socket.ref()</a></li>
+<li><a href="#net_socket_remoteaddress">socket.remoteAddress</a></li>
+<li><a href="#net_socket_remoteport">socket.remotePort</a></li>
+<li><a href="#net_socket_localaddress">socket.localAddress</a></li>
+<li><a href="#net_socket_localport">socket.localPort</a></li>
+<li><a href="#net_socket_bytesread">socket.bytesRead</a></li>
+<li><a href="#net_socket_byteswritten">socket.bytesWritten</a></li>
+<li><a href="#net_event_connect">Event: &#39;connect&#39;</a></li>
+<li><a href="#net_event_data">Event: &#39;data&#39;</a></li>
+<li><a href="#net_event_end">Event: &#39;end&#39;</a></li>
+<li><a href="#net_event_timeout">Event: &#39;timeout&#39;</a></li>
+<li><a href="#net_event_drain">Event: &#39;drain&#39;</a></li>
+<li><a href="#net_event_error_1">Event: &#39;error&#39;</a></li>
+<li><a href="#net_event_close_1">Event: &#39;close&#39;</a></li>
+</ul>
+</li>
+<li><a href="#net_net_isip_input">net.isIP(input)</a></li>
+<li><a href="#net_net_isipv4_input">net.isIPv4(input)</a></li>
+<li><a href="#net_net_isipv6_input">net.isIPv6(input)</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+
+          <div id="apicontent">
+            <h1>net<span><a class="mark" href="#net_net" id="net_net">#</a></span></h1>
+<pre class="api_stability_3">Stability: 3 - Stable</pre><p>The <code>net</code> module provides you with an asynchronous network wrapper. It contains
+methods for creating both servers and clients (called streams). You can include
+this module with <code>require(&#39;net&#39;);</code>
+
+</p>
+<h2>net.createServer([options], [connectionListener])<span><a class="mark" href="#net_net_createserver_options_connectionlistener" id="net_net_createserver_options_connectionlistener">#</a></span></h2>
+<p>Creates a new TCP server. The <code>connectionListener</code> argument is
+automatically set as a listener for the <a href="#net_event_connection">&#39;connection&#39;</a> event.
+
+</p>
+<p><code>options</code> is an object with the following defaults:
+
+</p>
+<pre><code>{ allowHalfOpen: false
+}</code></pre>
+<p>If <code>allowHalfOpen</code> is <code>true</code>, then the socket won&#39;t automatically send a FIN
+packet when the other end of the socket sends a FIN packet. The socket becomes
+non-readable, but still writable. You should call the <code>end()</code> method explicitly.
+See <a href="#net_event_end">&#39;end&#39;</a> event for more information.
+
+</p>
+<p>Here is an example of an echo server which listens for connections
+on port 8124:
+
+</p>
+<pre><code>var net = require(&#39;net&#39;);
+var server = net.createServer(function(c) { //&#39;connection&#39; listener
+  console.log(&#39;server connected&#39;);
+  c.on(&#39;end&#39;, function() {
+    console.log(&#39;server disconnected&#39;);
+  });
+  c.write(&#39;hello\r\n&#39;);
+  c.pipe(c);
+});
+server.listen(8124, function() { //&#39;listening&#39; listener
+  console.log(&#39;server bound&#39;);
+});</code></pre>
+<p>Test this by using <code>telnet</code>:
+
+</p>
+<pre><code>telnet localhost 8124</code></pre>
+<p>To listen on the socket <code>/tmp/echo.sock</code> the third line from the last would
+just be changed to
+
+</p>
+<pre><code>server.listen(&#39;/tmp/echo.sock&#39;, function() { //&#39;listening&#39; listener</code></pre>
+<p>Use <code>nc</code> to connect to a UNIX domain socket server:
+
+</p>
+<pre><code>nc -U /tmp/echo.sock</code></pre>
+<h2>net.connect(options, [connectionListener])<span><a class="mark" href="#net_net_connect_options_connectionlistener" id="net_net_connect_options_connectionlistener">#</a></span></h2>
+<h2>net.createConnection(options, [connectionListener])<span><a class="mark" href="#net_net_createconnection_options_connectionlistener" id="net_net_createconnection_options_connectionlistener">#</a></span></h2>
+<p>Constructs a new socket object and opens the socket to the given location.
+When the socket is established, the <a href="#net_event_connect">&#39;connect&#39;</a> event will be emitted.
+
+</p>
+<p>For TCP sockets, <code>options</code> argument should be an object which specifies:
+
+</p>
+<ul>
+<li><p><code>port</code>: Port the client should connect to (Required).</p>
+</li>
+<li><p><code>host</code>: Host the client should connect to. Defaults to <code>&#39;localhost&#39;</code>.</p>
+</li>
+<li><p><code>localAddress</code>: Local interface to bind to for network connections.</p>
+</li>
+</ul>
+<p>For UNIX domain sockets, <code>options</code> argument should be an object which specifies:
+
+</p>
+<ul>
+<li><code>path</code>: Path the client should connect to (Required).</li>
+</ul>
+<p>Common options are:
+
+</p>
+<ul>
+<li><code>allowHalfOpen</code>: if <code>true</code>, the socket won&#39;t automatically send
+a FIN packet when the other end of the socket sends a FIN packet.
+Defaults to <code>false</code>.  See <a href="#net_event_end">&#39;end&#39;</a> event for more information.</li>
+</ul>
+<p>The <code>connectListener</code> parameter will be added as an listener for the
+<a href="#net_event_connect">&#39;connect&#39;</a> event.
+
+</p>
+<p>Here is an example of a client of echo server as described previously:
+
+</p>
+<pre><code>var net = require(&#39;net&#39;);
+var client = net.connect({port: 8124},
+    function() { //&#39;connect&#39; listener
+  console.log(&#39;client connected&#39;);
+  client.write(&#39;world!\r\n&#39;);
+});
+client.on(&#39;data&#39;, function(data) {
+  console.log(data.toString());
+  client.end();
+});
+client.on(&#39;end&#39;, function() {
+  console.log(&#39;client disconnected&#39;);
+});</code></pre>
+<p>To connect on the socket <code>/tmp/echo.sock</code> the second line would just be
+changed to
+
+</p>
+<pre><code>var client = net.connect({path: &#39;/tmp/echo.sock&#39;},</code></pre>
+<h2>net.connect(port, [host], [connectListener])<span><a class="mark" href="#net_net_connect_port_host_connectlistener" id="net_net_connect_port_host_connectlistener">#</a></span></h2>
+<h2>net.createConnection(port, [host], [connectListener])<span><a class="mark" href="#net_net_createconnection_port_host_connectlistener" id="net_net_createconnection_port_host_connectlistener">#</a></span></h2>
+<p>Creates a TCP connection to <code>port</code> on <code>host</code>. If <code>host</code> is omitted,
+<code>&#39;localhost&#39;</code> will be assumed.
+The <code>connectListener</code> parameter will be added as an listener for the
+<a href="#net_event_connect">&#39;connect&#39;</a> event.
+
+</p>
+<h2>net.connect(path, [connectListener])<span><a class="mark" href="#net_net_connect_path_connectlistener" id="net_net_connect_path_connectlistener">#</a></span></h2>
+<h2>net.createConnection(path, [connectListener])<span><a class="mark" href="#net_net_createconnection_path_connectlistener" id="net_net_createconnection_path_connectlistener">#</a></span></h2>
+<p>Creates unix socket connection to <code>path</code>.
+The <code>connectListener</code> parameter will be added as an listener for the
+<a href="#net_event_connect">&#39;connect&#39;</a> event.
+
+</p>
+<h2>Class: net.Server<span><a class="mark" href="#net_class_net_server" id="net_class_net_server">#</a></span></h2>
+<p>This class is used to create a TCP or UNIX server.
+A server is a <code>net.Socket</code> that can listen for new incoming connections.
+
+</p>
+<h3>server.listen(port, [host], [backlog], [callback])<span><a class="mark" href="#net_server_listen_port_host_backlog_callback" id="net_server_listen_port_host_backlog_callback">#</a></span></h3>
+<p>Begin accepting connections on the specified <code>port</code> and <code>host</code>.  If the
+<code>host</code> is omitted, the server will accept connections directed to any
+IPv4 address (<code>INADDR_ANY</code>). A port value of zero will assign a random port.
+
+</p>
+<p>Backlog is the maximum length of the queue of pending connections.
+The actual length will be determined by your OS through sysctl settings such as
+<code>tcp_max_syn_backlog</code> and <code>somaxconn</code> on linux. The default value of this
+parameter is 511 (not 512).
+
+</p>
+<p>This function is asynchronous.  When the server has been bound,
+<a href="#net_event_listening">&#39;listening&#39;</a> event will be emitted.  The last parameter <code>callback</code>
+will be added as an listener for the <a href="#net_event_listening">&#39;listening&#39;</a> event.
+
+</p>
+<p>One issue some users run into is getting <code>EADDRINUSE</code> errors. This means that
+another server is already running on the requested port. One way of handling this
+would be to wait a second and then try again. This can be done with
+
+</p>
+<pre><code>server.on(&#39;error&#39;, function (e) {
+  if (e.code == &#39;EADDRINUSE&#39;) {
+    console.log(&#39;Address in use, retrying...&#39;);
+    setTimeout(function () {
+      server.close();
+      server.listen(PORT, HOST);
+    }, 1000);
+  }
+});</code></pre>
+<p>(Note: All sockets in Node set <code>SO_REUSEADDR</code> already)
+
+
+</p>
+<h3>server.listen(path, [callback])<span><a class="mark" href="#net_server_listen_path_callback" id="net_server_listen_path_callback">#</a></span></h3>
+<p>Start a UNIX socket server listening for connections on the given <code>path</code>.
+
+</p>
+<p>This function is asynchronous.  When the server has been bound,
+<a href="#net_event_listening">&#39;listening&#39;</a> event will be emitted.  The last parameter <code>callback</code>
+will be added as an listener for the <a href="#net_event_listening">&#39;listening&#39;</a> event.
+
+</p>
+<h3>server.listen(handle, [callback])<span><a class="mark" href="#net_server_listen_handle_callback" id="net_server_listen_handle_callback">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>handle</code> <span class="type">Object</span></li>
+<li><code>callback</code> <span class="type">Function</span></li>
+</div></ul>
+<p>The <code>handle</code> object can be set to either a server or socket (anything
+with an underlying <code>_handle</code> member), or a <code>{fd: &lt;n&gt;}</code> object.
+
+</p>
+<p>This will cause the server to accept connections on the specified
+handle, but it is presumed that the file descriptor or handle has
+already been bound to a port or domain socket.
+
+</p>
+<p>Listening on a file descriptor is not supported on Windows.
+
+</p>
+<p>This function is asynchronous.  When the server has been bound,
+<a href="#event_listening_">&#39;listening&#39;</a> event will be emitted.
+the last parameter <code>callback</code> will be added as an listener for the
+<a href="#event_listening_">&#39;listening&#39;</a> event.
+
+</p>
+<h3>server.close([callback])<span><a class="mark" href="#net_server_close_callback" id="net_server_close_callback">#</a></span></h3>
+<p>Stops the server from accepting new connections and keeps existing
+connections. This function is asynchronous, the server is finally
+closed when all connections are ended and the server emits a <code>&#39;close&#39;</code>
+event. Optionally, you can pass a callback to listen for the <code>&#39;close&#39;</code>
+event.
+
+</p>
+<h3>server.address()<span><a class="mark" href="#net_server_address" id="net_server_address">#</a></span></h3>
+<p>Returns the bound address, the address family name and port of the server
+as reported by the operating system.
+Useful to find which port was assigned when giving getting an OS-assigned address.
+Returns an object with three properties, e.g.
+<code>{ port: 12346, family: &#39;IPv4&#39;, address: &#39;127.0.0.1&#39; }</code>
+
+</p>
+<p>Example:
+
+</p>
+<pre><code>var server = net.createServer(function (socket) {
+  socket.end(&quot;goodbye\n&quot;);
+});
+
+// grab a random port.
+server.listen(function() {
+  address = server.address();
+  console.log(&quot;opened server on %j&quot;, address);
+});</code></pre>
+<p>Don&#39;t call <code>server.address()</code> until the <code>&#39;listening&#39;</code> event has been emitted.
+
+</p>
+<h3>server.unref()<span><a class="mark" href="#net_server_unref" id="net_server_unref">#</a></span></h3>
+<p>Calling <code>unref</code> on a server will allow the program to exit if this is the only
+active server in the event system. If the server is already <code>unref</code>d calling
+<code>unref</code> again will have no effect.
+
+</p>
+<h3>server.ref()<span><a class="mark" href="#net_server_ref" id="net_server_ref">#</a></span></h3>
+<p>Opposite of <code>unref</code>, calling <code>ref</code> on a previously <code>unref</code>d server will <em>not</em>
+let the program exit if it&#39;s the only server left (the default behavior). If
+the server is <code>ref</code>d calling <code>ref</code> again will have no effect.
+
+</p>
+<h3>server.maxConnections<span><a class="mark" href="#net_server_maxconnections" id="net_server_maxconnections">#</a></span></h3>
+<p>Set this property to reject connections when the server&#39;s connection count gets
+high.
+
+</p>
+<p>It is not recommended to use this option once a socket has been sent to a child
+with <code>child_process.fork()</code>.
+
+</p>
+<h3>server.connections<span><a class="mark" href="#net_server_connections" id="net_server_connections">#</a></span></h3>
+<p>This function is <strong>deprecated</strong>; please use [server.getConnections()][] instead.
+The number of concurrent connections on the server.
+
+</p>
+<p>This becomes <code>null</code> when sending a socket to a child with
+<code>child_process.fork()</code>. To poll forks and get current number of active
+connections use asynchronous <code>server.getConnections</code> instead.
+
+</p>
+<p><code>net.Server</code> is an <a href="events.html#events_class_events_eventemitter">EventEmitter</a> with the following events:
+
+</p>
+<h3>server.getConnections(callback)<span><a class="mark" href="#net_server_getconnections_callback" id="net_server_getconnections_callback">#</a></span></h3>
+<p>Asynchronously get the number of concurrent connections on the server. Works
+when sockets were sent to forks.
+
+</p>
+<p>Callback should take two arguments <code>err</code> and <code>count</code>.
+
+</p>
+<h3>Event: &#39;listening&#39;<span><a class="mark" href="#net_event_listening" id="net_event_listening">#</a></span></h3>
+<p>Emitted when the server has been bound after calling <code>server.listen</code>.
+
+</p>
+<h3>Event: &#39;connection&#39;<span><a class="mark" href="#net_event_connection" id="net_event_connection">#</a></span></h3>
+<div class="signature"><ul>
+<li><span class="type">Socket object</span> The connection object</li>
+</div></ul>
+<p>Emitted when a new connection is made. <code>socket</code> is an instance of
+<code>net.Socket</code>.
+
+</p>
+<h3>Event: &#39;close&#39;<span><a class="mark" href="#net_event_close" id="net_event_close">#</a></span></h3>
+<p>Emitted when the server closes. Note that if connections exist, this
+event is not emitted until all connections are ended.
+
+</p>
+<h3>Event: &#39;error&#39;<span><a class="mark" href="#net_event_error" id="net_event_error">#</a></span></h3>
+<div class="signature"><ul>
+<li><span class="type">Error Object</span></li>
+</div></ul>
+<p>Emitted when an error occurs.  The <code>&#39;close&#39;</code> event will be called directly
+following this event.  See example in discussion of <code>server.listen</code>.
+
+</p>
+<h2>Class: net.Socket<span><a class="mark" href="#net_class_net_socket" id="net_class_net_socket">#</a></span></h2>
+<p>This object is an abstraction of a TCP or UNIX socket.  <code>net.Socket</code>
+instances implement a duplex Stream interface.  They can be created by the
+user and used as a client (with <code>connect()</code>) or they can be created by Node
+and passed to the user through the <code>&#39;connection&#39;</code> event of a server.
+
+</p>
+<h3>new net.Socket([options])<span><a class="mark" href="#net_new_net_socket_options" id="net_new_net_socket_options">#</a></span></h3>
+<p>Construct a new socket object.
+
+</p>
+<p><code>options</code> is an object with the following defaults:
+
+</p>
+<pre><code>{ fd: null
+  type: null
+  allowHalfOpen: false
+}</code></pre>
+<p><code>fd</code> allows you to specify the existing file descriptor of socket. <code>type</code>
+specified underlying protocol. It can be <code>&#39;tcp4&#39;</code>, <code>&#39;tcp6&#39;</code>, or <code>&#39;unix&#39;</code>.
+About <code>allowHalfOpen</code>, refer to <code>createServer()</code> and <code>&#39;end&#39;</code> event.
+
+</p>
+<h3>socket.connect(port, [host], [connectListener])<span><a class="mark" href="#net_socket_connect_port_host_connectlistener" id="net_socket_connect_port_host_connectlistener">#</a></span></h3>
+<h3>socket.connect(path, [connectListener])<span><a class="mark" href="#net_socket_connect_path_connectlistener" id="net_socket_connect_path_connectlistener">#</a></span></h3>
+<p>Opens the connection for a given socket. If <code>port</code> and <code>host</code> are given,
+then the socket will be opened as a TCP socket, if <code>host</code> is omitted,
+<code>localhost</code> will be assumed. If a <code>path</code> is given, the socket will be
+opened as a unix socket to that path.
+
+</p>
+<p>Normally this method is not needed, as <code>net.createConnection</code> opens the
+socket. Use this only if you are implementing a custom Socket.
+
+</p>
+<p>This function is asynchronous. When the <a href="#net_event_connect">&#39;connect&#39;</a> event is emitted the
+socket is established. If there is a problem connecting, the <code>&#39;connect&#39;</code> event
+will not be emitted, the <code>&#39;error&#39;</code> event will be emitted with the exception.
+
+</p>
+<p>The <code>connectListener</code> parameter will be added as an listener for the
+<a href="#net_event_connect">&#39;connect&#39;</a> event.
+
+
+</p>
+<h3>socket.bufferSize<span><a class="mark" href="#net_socket_buffersize" id="net_socket_buffersize">#</a></span></h3>
+<p><code>net.Socket</code> has the property that <code>socket.write()</code> always works. This is to
+help users get up and running quickly. The computer cannot always keep up
+with the amount of data that is written to a socket - the network connection
+simply might be too slow. Node will internally queue up the data written to a
+socket and send it out over the wire when it is possible. (Internally it is
+polling on the socket&#39;s file descriptor for being writable).
+
+</p>
+<p>The consequence of this internal buffering is that memory may grow. This
+property shows the number of characters currently buffered to be written.
+(Number of characters is approximately equal to the number of bytes to be
+written, but the buffer may contain strings, and the strings are lazily
+encoded, so the exact number of bytes is not known.)
+
+</p>
+<p>Users who experience large or growing <code>bufferSize</code> should attempt to
+&quot;throttle&quot; the data flows in their program with <code>pause()</code> and <code>resume()</code>.
+
+
+</p>
+<h3>socket.setEncoding([encoding])<span><a class="mark" href="#net_socket_setencoding_encoding" id="net_socket_setencoding_encoding">#</a></span></h3>
+<p>Set the encoding for the socket as a Readable Stream. See
+<a href="stream.html#stream_stream_setencoding_encoding">stream.setEncoding()</a> for more information.
+
+</p>
+<h3>socket.write(data, [encoding], [callback])<span><a class="mark" href="#net_socket_write_data_encoding_callback" id="net_socket_write_data_encoding_callback">#</a></span></h3>
+<p>Sends data on the socket. The second parameter specifies the encoding in the
+case of a string--it defaults to UTF8 encoding.
+
+</p>
+<p>Returns <code>true</code> if the entire data was flushed successfully to the kernel
+buffer. Returns <code>false</code> if all or part of the data was queued in user memory.
+<code>&#39;drain&#39;</code> will be emitted when the buffer is again free.
+
+</p>
+<p>The optional <code>callback</code> parameter will be executed when the data is finally
+written out - this may not be immediately.
+
+</p>
+<h3>socket.end([data], [encoding])<span><a class="mark" href="#net_socket_end_data_encoding" id="net_socket_end_data_encoding">#</a></span></h3>
+<p>Half-closes the socket. i.e., it sends a FIN packet. It is possible the
+server will still send some data.
+
+</p>
+<p>If <code>data</code> is specified, it is equivalent to calling
+<code>socket.write(data, encoding)</code> followed by <code>socket.end()</code>.
+
+</p>
+<h3>socket.destroy()<span><a class="mark" href="#net_socket_destroy" id="net_socket_destroy">#</a></span></h3>
+<p>Ensures that no more I/O activity happens on this socket. Only necessary in
+case of errors (parse error or so).
+
+</p>
+<h3>socket.pause()<span><a class="mark" href="#net_socket_pause" id="net_socket_pause">#</a></span></h3>
+<p>Pauses the reading of data. That is, <code>&#39;data&#39;</code> events will not be emitted.
+Useful to throttle back an upload.
+
+</p>
+<h3>socket.resume()<span><a class="mark" href="#net_socket_resume" id="net_socket_resume">#</a></span></h3>
+<p>Resumes reading after a call to <code>pause()</code>.
+
+</p>
+<h3>socket.setTimeout(timeout, [callback])<span><a class="mark" href="#net_socket_settimeout_timeout_callback" id="net_socket_settimeout_timeout_callback">#</a></span></h3>
+<p>Sets the socket to timeout after <code>timeout</code> milliseconds of inactivity on
+the socket. By default <code>net.Socket</code> do not have a timeout.
+
+</p>
+<p>When an idle timeout is triggered the socket will receive a <code>&#39;timeout&#39;</code>
+event but the connection will not be severed. The user must manually <code>end()</code>
+or <code>destroy()</code> the socket.
+
+</p>
+<p>If <code>timeout</code> is 0, then the existing idle timeout is disabled.
+
+</p>
+<p>The optional <code>callback</code> parameter will be added as a one time listener for the
+<code>&#39;timeout&#39;</code> event.
+
+</p>
+<h3>socket.setNoDelay([noDelay])<span><a class="mark" href="#net_socket_setnodelay_nodelay" id="net_socket_setnodelay_nodelay">#</a></span></h3>
+<p>Disables the Nagle algorithm. By default TCP connections use the Nagle
+algorithm, they buffer data before sending it off. Setting <code>true</code> for
+<code>noDelay</code> will immediately fire off data each time <code>socket.write()</code> is called.
+<code>noDelay</code> defaults to <code>true</code>.
+
+</p>
+<h3>socket.setKeepAlive([enable], [initialDelay])<span><a class="mark" href="#net_socket_setkeepalive_enable_initialdelay" id="net_socket_setkeepalive_enable_initialdelay">#</a></span></h3>
+<p>Enable/disable keep-alive functionality, and optionally set the initial
+delay before the first keepalive probe is sent on an idle socket.
+<code>enable</code> defaults to <code>false</code>.
+
+</p>
+<p>Set <code>initialDelay</code> (in milliseconds) to set the delay between the last
+data packet received and the first keepalive probe. Setting 0 for
+initialDelay will leave the value unchanged from the default
+(or previous) setting. Defaults to <code>0</code>.
+
+</p>
+<h3>socket.address()<span><a class="mark" href="#net_socket_address" id="net_socket_address">#</a></span></h3>
+<p>Returns the bound address, the address family name and port of the
+socket as reported by the operating system. Returns an object with
+three properties, e.g.
+<code>{ port: 12346, family: &#39;IPv4&#39;, address: &#39;127.0.0.1&#39; }</code>
+
+</p>
+<h3>socket.unref()<span><a class="mark" href="#net_socket_unref" id="net_socket_unref">#</a></span></h3>
+<p>Calling <code>unref</code> on a socket will allow the program to exit if this is the only
+active socket in the event system. If the socket is already <code>unref</code>d calling
+<code>unref</code> again will have no effect.
+
+</p>
+<h3>socket.ref()<span><a class="mark" href="#net_socket_ref" id="net_socket_ref">#</a></span></h3>
+<p>Opposite of <code>unref</code>, calling <code>ref</code> on a previously <code>unref</code>d socket will <em>not</em>
+let the program exit if it&#39;s the only socket left (the default behavior). If
+the socket is <code>ref</code>d calling <code>ref</code> again will have no effect.
+
+</p>
+<h3>socket.remoteAddress<span><a class="mark" href="#net_socket_remoteaddress" id="net_socket_remoteaddress">#</a></span></h3>
+<p>The string representation of the remote IP address. For example,
+<code>&#39;74.125.127.100&#39;</code> or <code>&#39;2001:4860:a005::68&#39;</code>.
+
+</p>
+<h3>socket.remotePort<span><a class="mark" href="#net_socket_remoteport" id="net_socket_remoteport">#</a></span></h3>
+<p>The numeric representation of the remote port. For example,
+<code>80</code> or <code>21</code>.
+
+</p>
+<h3>socket.localAddress<span><a class="mark" href="#net_socket_localaddress" id="net_socket_localaddress">#</a></span></h3>
+<p>The string representation of the local IP address the remote client is
+connecting on. For example, if you are listening on <code>&#39;0.0.0.0&#39;</code> and the
+client connects on <code>&#39;192.168.1.1&#39;</code>, the value would be <code>&#39;192.168.1.1&#39;</code>.
+
+</p>
+<h3>socket.localPort<span><a class="mark" href="#net_socket_localport" id="net_socket_localport">#</a></span></h3>
+<p>The numeric representation of the local port. For example,
+<code>80</code> or <code>21</code>.
+
+</p>
+<h3>socket.bytesRead<span><a class="mark" href="#net_socket_bytesread" id="net_socket_bytesread">#</a></span></h3>
+<p>The amount of received bytes.
+
+</p>
+<h3>socket.bytesWritten<span><a class="mark" href="#net_socket_byteswritten" id="net_socket_byteswritten">#</a></span></h3>
+<p>The amount of bytes sent.
+
+
+</p>
+<p><code>net.Socket</code> instances are <a href="events.html#events_class_events_eventemitter">EventEmitter</a> with the following events:
+
+</p>
+<h3>Event: &#39;connect&#39;<span><a class="mark" href="#net_event_connect" id="net_event_connect">#</a></span></h3>
+<p>Emitted when a socket connection is successfully established.
+See <code>connect()</code>.
+
+</p>
+<h3>Event: &#39;data&#39;<span><a class="mark" href="#net_event_data" id="net_event_data">#</a></span></h3>
+<div class="signature"><ul>
+<li><span class="type">Buffer object</span></li>
+</div></ul>
+<p>Emitted when data is received.  The argument <code>data</code> will be a <code>Buffer</code> or
+<code>String</code>.  Encoding of data is set by <code>socket.setEncoding()</code>.
+(See the <a href="stream.html#stream_readable_stream">Readable Stream</a> section for more information.)
+
+</p>
+<p>Note that the <strong>data will be lost</strong> if there is no listener when a <code>Socket</code>
+emits a <code>&#39;data&#39;</code> event.
+
+</p>
+<h3>Event: &#39;end&#39;<span><a class="mark" href="#net_event_end" id="net_event_end">#</a></span></h3>
+<p>Emitted when the other end of the socket sends a FIN packet.
+
+</p>
+<p>By default (<code>allowHalfOpen == false</code>) the socket will destroy its file
+descriptor  once it has written out its pending write queue.  However, by
+setting <code>allowHalfOpen == true</code> the socket will not automatically <code>end()</code>
+its side allowing the user to write arbitrary amounts of data, with the
+caveat that the user is required to <code>end()</code> their side now.
+
+
+</p>
+<h3>Event: &#39;timeout&#39;<span><a class="mark" href="#net_event_timeout" id="net_event_timeout">#</a></span></h3>
+<p>Emitted if the socket times out from inactivity. This is only to notify that
+the socket has been idle. The user must manually close the connection.
+
+</p>
+<p>See also: <code>socket.setTimeout()</code>
+
+
+</p>
+<h3>Event: &#39;drain&#39;<span><a class="mark" href="#net_event_drain" id="net_event_drain">#</a></span></h3>
+<p>Emitted when the write buffer becomes empty. Can be used to throttle uploads.
+
+</p>
+<p>See also: the return values of <code>socket.write()</code>
+
+</p>
+<h3>Event: &#39;error&#39;<span><a class="mark" href="#net_event_error_1" id="net_event_error_1">#</a></span></h3>
+<div class="signature"><ul>
+<li><span class="type">Error object</span></li>
+</div></ul>
+<p>Emitted when an error occurs.  The <code>&#39;close&#39;</code> event will be called directly
+following this event.
+
+</p>
+<h3>Event: &#39;close&#39;<span><a class="mark" href="#net_event_close_1" id="net_event_close_1">#</a></span></h3>
+<div class="signature"><ul>
+<li><code>had_error</code> <span class="type">Boolean</span> true if the socket had a transmission error</li>
+</div></ul>
+<p>Emitted once the socket is fully closed. The argument <code>had_error</code> is a boolean
+which says if the socket was closed due to a transmission error.
+
+</p>
+<h2>net.isIP(input)<span><a class="mark" href="#net_net_isip_input" id="net_net_isip_input">#</a></span></h2>
+<p>Tests if input is an IP address. Returns 0 for invalid strings,
+returns 4 for IP version 4 addresses, and returns 6 for IP version 6 addresses.
+
+
+</p>
+<h2>net.isIPv4(input)<span><a class="mark" href="#net_net_isipv4_input" id="net_net_isipv4_input">#</a></span></h2>
+<p>Returns true if input is a version 4 IP address, otherwise returns false.
+
+
+</p>
+<h2>net.isIPv6(input)<span><a class="mark" href="#net_net_isipv6_input" id="net_net_isipv6_input">#</a></span></h2>
+<p>Returns true if input is a version 6 IP address, otherwise returns false.
+
+</p>
+
+          </div>
+        </div>
+    </div>
+    <div id="footer">
+        <a href="http://joyent.com" class="joyent-logo">Joyent</a>
+        <ul class="clearfix">
+            <li><a href="/">Node.js</a></li>
+            <li><a href="/download/">Download</a></li>
+            <li><a href="/about/">About</a></li>
+            <li><a href="http://npmjs.org/">npm Registry</a></li>
+            <li><a href="http://nodejs.org/api/">Docs</a></li>
+            <li><a href="http://blog.nodejs.org">Blog</a></li>
+            <li><a href="/community/">Community</a></li>
+            <li><a href="/logos/">Logos</a></li>
+            <li><a href="http://jobs.nodejs.org/">Jobs</a></li>
+            <li><a href="http://twitter.com/nodejs" class="twitter">@nodejs</a></li>
+        </ul>
+
+        <p>Copyright <a href="http://joyent.com/">Joyent, Inc</a>, Node.js is a <a href="/trademark-policy.pdf">trademark</a> of Joyent, Inc. View <a href="https://raw.github.com/joyent/node/v0.10.15/LICENSE">license</a>.</p>
+    </div>
+
+  <script src="../sh_main.js"></script>
+  <script src="../sh_javascript.min.js"></script>
+  <script>highlight(undefined, undefined, 'pre');</script>
+  <script>
+    window._gaq = [['_setAccount', 'UA-10874194-2'], ['_trackPageview']];
+    (function(d, t) {
+      var g = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      g.src = '//www.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g, s);
+    }(document, 'script'));
+  </script>
+</body>
+</html>
+

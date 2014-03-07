@@ -1,0 +1,51 @@
+[article Callout Tests
+    [quickbook 1.5]
+]
+
+[import callouts.cpp]
+
+Example 1:
+
+[example1]
+
+Example 2:
+
+[example2]
+
+Example 3:
+
+[example3]
+
+Example 3 (again!):
+
+[example3]
+
+Example 4:
+
+[example4]
+[example4a]
+
+[section:test_section Try callouts in a section]
+
+Example 1:
+
+[example1]
+
+Example 2:
+
+[example2]
+
+Example 3:
+
+[example3]
+
+Example 3 (again!):
+
+[example3]
+
+Example 4:
+
+[example4]
+[example4a]
+
+[endsect]

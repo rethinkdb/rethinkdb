@@ -1,0 +1,18 @@
+# Jamfile.jam
+#
+# Copyright 2012 Steven Watanabe
+#
+# Distributed under the Boost Software License Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+project /boost/architecture ;
+
+obj 32 : 32.cpp ;
+obj 64 : 64.cpp ;
+
+obj arm   : arm.cpp ;
+obj mips1 : mips1.cpp ;
+obj power : power.cpp ;
+obj sparc : sparc.cpp ;
+obj x86   : x86.cpp ;

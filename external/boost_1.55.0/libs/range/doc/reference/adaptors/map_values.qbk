@@ -1,0 +1,31 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:map_values map_values]
+
+[table
+    [[Syntax] [Code]]
+    [[Pipe] [`rng | boost::adaptors::map_values`]]
+    [[Function] [`boost::adaptors::values(rng)`]]
+]
+
+* [*Precondition:] The `value_type` of the range is an instantiation of `std::pair`.
+* [*Postcondition:] For all elements `x` in the returned range, `x` is the result of `y.second` where `y` is the corresponding element in the original range.
+* [*Range Category:] __single_pass_range__
+* [*Range Return Type:] for constant ranges, `boost::select_second_const<typeof(rng)>` otherwise `boost:select_second_mutable<typeof(rng)>`
+* [*Returned Range Category:] The range category of `rng`.
+
+[section:map_values_example map_values example]
+[import ../../../test/adaptor_test/map_values_example.cpp]
+[map_values_example]
+[endsect]
+
+This would produce the output:
+``
+0,10,20,30,40,50,60,70,80,90,
+``
+[endsect]
+
+

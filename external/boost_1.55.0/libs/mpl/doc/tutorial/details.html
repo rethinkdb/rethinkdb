@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!-- Copyright Aleksey Gurtovoy 2006. Distributed under the Boost -->
+<!-- Software License, Version 1.0. (See accompanying -->
+<!-- file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt) -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.3.6: http://docutils.sourceforge.net/" />
+<title>THE BOOST MPL LIBRARY: Details</title>
+<link rel="stylesheet" href="../style.css" type="text/css" />
+</head>
+<body class="docframe">
+<table class="header"><tr class="header"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./the-importance-of-being.html" class="navigation-link">Prev</a>&nbsp;<a href="./exercises.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./lambda-details.html" class="navigation-link">Back</a>&nbsp;<a href="./exercises.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+<td class="header-group page-location"><a href="../index.html" class="navigation-link">Front Page</a> / <a href="./tutorial-metafunctions.html" class="navigation-link">Tutorial: Metafunctions and Higher-Order Metaprogramming</a> / <a href="./details.html" class="navigation-link">Details</a></td>
+</tr></table><div class="header-separator"></div>
+<div class="section" id="details">
+<h1><a class="toc-backref" href="./tutorial-metafunctions.html#id59" name="details">Details</a></h1>
+<p>By now you should have a fairly complete view of the fundamental
+concepts and language of both template metaprogramming in general
+and of the Boost Metaprogramming Library.  This section 
+reviews the highlights.</p>
+<dl>
+<dt>Metafunction forwarding.</dt>
+<dd>The technique of using public derivation to
+supply the nested <tt class="literal"><span class="pre">type</span></tt> of a metafunction by accessing the one
+provided by its base class.</dd>
+<dt>Metafunction class.</dt>
+<dd>The most basic way to formulate a compile-time
+function so that it can be treated as polymorphic metadata; that
+is, as a type.  A metafunction class is a class with a nested
+metafunction called <tt class="literal"><span class="pre">apply</span></tt>.</dd>
+<dt>MPL.</dt>
+<dd><p class="first">Most of this book's examples will use the Boost
+Metaprogramming Library.  Like the Boost type traits headers,
+MPL
+headers follow a simple convention:</p>
+<pre class="literal-block">
+#include &lt;boost/mpl/<em>component-name</em>.hpp&gt;
+</pre>
+<p class="last">If the component's name ends in an underscore, however, the
+corresponding MPL header name does not include the trailing
+underscore.  For example, <tt class="literal"><span class="pre">mpl::bool_</span></tt> can be found in
+<tt class="literal"><span class="pre">&lt;boost/mpl/bool.hpp&gt;</span></tt>.  Where the library deviates from this
+convention, we'll be sure to point it out to you.</p>
+</dd>
+</dl>
+<!-- @ignore() -->
+<dl>
+<dt>Higher-order function.</dt>
+<dd>A function that operates on or returns a function.  Making
+metafunctions polymorphic with other metadata is a key
+ingredient in higher-order metaprogramming.</dd>
+<dt>Lambda expression.</dt>
+<dd>Simply put, a lambda expression is callable metadata.  Without
+some form of callable metadata, higher-order metafunctions
+would be impossible.  Lambda expressions have two basic forms:
+<em>metafunction classes</em> and <em>placeholder expressions</em>.</dd>
+<dt>Placeholder expression.</dt>
+<dd><p class="first">A kind of lambda expression that, through the use of
+placeholders, enables in-place <em>partial metafunction
+application</em> and <em>metafunction composition</em>.  As you will see
+throughout this book, these features give us the truly amazing
+ability to build up almost any kind of complex type computation
+from more primitive metafunctions, right at its point of use:</p>
+<pre class="literal-block">
+// find the position of a type x in some_sequence such that:
+//         x is convertible to 'int'
+//      &amp;&amp; x is not 'char'
+//      &amp;&amp; x is not a floating type
+typedef mpl::find_if&lt;
+      some_sequence
+    , mpl::and_&lt;
+          boost::is_convertible&lt;_1,int&gt;
+        , mpl::not_&lt;boost::is_same&lt;_1,char&gt; &gt;
+        , mpl::not_&lt;boost::is_float&lt;_1&gt; &gt;
+      &gt;
+    &gt;::type iter;
+</pre>
+<p class="last">Placeholder expressions make good on the promise of algorithm reuse
+without forcing us to write new metafunction classes.  The
+corresponding capability is often sorely missed in the runtime
+world of the STL, since it is often much easier to write a loop
+by hand than it is to use standard algorithms, despite their
+correctness and efficiency advantages.</p>
+</dd>
+</dl>
+<!-- @ example.prepend('''
+#include <boost/mpl/and.hpp>
+#include <boost/mpl/not.hpp>
+#include <boost/mpl/find_if.hpp>
+#include <boost/type_traits/is_convertible.hpp>
+#include <boost/type_traits/is_float.hpp>
+typedef mpl::vector<char, double, short, long> some_sequence;
+''')
+compile() -->
+<dl>
+<dt>The <tt class="literal"><span class="pre">lambda</span></tt> metafunction.</dt>
+<dd>A metafunction that transforms a lambda expression into a
+corresponding metafunction class.  For detailed information on
+<tt class="literal"><span class="pre">lambda</span></tt> and the lambda evaluation process,
+please see the <a class="reference" href="./reference-manual.html">the MPL reference manual</a>.</dd>
+<dt>The <tt class="literal"><span class="pre">apply</span></tt> metafunction.</dt>
+<dd>A metafunction that invokes its first argument, which must be a
+lambda expression, on its remaining arguments.  In general, to
+invoke a lambda expression, you should always pass it to
+<tt class="literal"><span class="pre">mpl::apply</span></tt> along with the arguments you want to apply it
+to in lieu of using <tt class="literal"><span class="pre">lambda</span></tt> and invoking the result &quot;manually.&quot;</dd>
+<dt>Lazy evaluation.</dt>
+<dd>A strategy of delaying evaluation until a result is
+required, thereby avoiding any unnecessary computation and any
+associated unnecessary errors.  Metafunctions are only invoked
+when we access their nested <tt class="literal"><span class="pre">::type</span></tt>s, so we can supply all
+of their arguments without performing any computation and
+delay evaluation to the last possible moment.</dd>
+</dl>
+</div>
+
+<div class="footer-separator"></div>
+<table class="footer"><tr class="footer"><td class="header-group navigation-bar"><span class="navigation-group"><a href="./the-importance-of-being.html" class="navigation-link">Prev</a>&nbsp;<a href="./exercises.html" class="navigation-link">Next</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./lambda-details.html" class="navigation-link">Back</a>&nbsp;<a href="./exercises.html" class="navigation-link">Along</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial-metafunctions.html" class="navigation-link">Up</a>&nbsp;<a href="../index.html" class="navigation-link">Home</a></span><span class="navigation-group-separator">&nbsp;|&nbsp;</span><span class="navigation-group"><a href="./tutorial_toc.html" class="navigation-link">Full TOC</a></span></td>
+</tr></table></body>
+</html>

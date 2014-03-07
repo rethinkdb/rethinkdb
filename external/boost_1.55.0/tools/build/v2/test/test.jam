@@ -1,0 +1,39 @@
+# Copyright 2001, 2002, 2003 Dave Abrahams 
+# Copyright 2002 Rene Rivera 
+# Copyright 2002, 2003, 2004 Vladimir Prus 
+# Distributed under the Boost Software License, Version 1.0. 
+# (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt) 
+
+# util
+import assert ;
+import container ;
+import indirect ;
+import numbers ;
+import order ;
+import os ;
+import path ;
+import print ;
+import regex ;
+import sequence ;
+import set ;
+import string ;
+import utility ;
+
+# kernel
+import "class" ;
+import errors ;
+import modules ;
+
+# build
+import build-request ;
+import feature ;
+import property ;
+import toolset ;
+import type ;
+import version ;
+
+# tools
+import common ;
+
+actions nothing { }
+nothing all ;

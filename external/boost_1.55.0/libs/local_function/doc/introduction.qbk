@@ -1,0 +1,40 @@
+
+[/ Copyright (C) 2009-2012 Lorenzo Caminiti ]
+[/ Distributed under the Boost Software License, Version 1.0 ]
+[/ (see accompanying file LICENSE_1_0.txt or a copy at ]
+[/ http://www.boost.org/LICENSE_1_0.txt) ]
+[/ Home at http://www.boost.org/libs/local_function ]
+
+[section Introduction]
+
+/Local functions/ (a.k.a., [@http://en.wikipedia.org/wiki/Nested_function /nested functions/]) are a form of /information hiding/ and they are useful for dividing procedural tasks into subtasks which are only meaningful locally, avoiding cluttering other parts of the program with functions, variables, etc unrelated to those parts.
+Therefore, local functions complement other structuring possibilities such as namespaces and classes.
+Local functions are a feature of many programming languages, notably [@http://en.wikipedia.org/wiki/Nested_function#An_example Pascal] and [@http://en.wikipedia.org/wiki/Nesting_(computing)#In_programming Ada], yet lacking from __CXX03__ (see also __N2511__).
+
+Using __CXX11_lambda_functions__, it is possible to implement local functions by naming lambda functions assigning them to local variables.
+For example (see also [@../../example/add_cxx11_lambda.cpp =add_cxx11_lambda.cpp=]):
+
+[add_cxx11_lambda]
+
+This library allows to program local functions portably between __CXX03__ and __CXX11__ (and with performances comparable to lambda functions on __CXX11__ compilers).
+For example (see also [@../../test/add.cpp =add.cpp=]):
+
+[add]
+
+This library supports the following features for local functions:
+
+* Local functions can capture, or better [@http://en.wikipedia.org/wiki/Name_binding /bind/], any of the variables from the enclosing scope (a function together with its captured variables is also called a [@http://en.wikipedia.org/wiki/Closure_(computer_science) /closure/]).
+* The local function body is programmed using the usual C++ statement syntax (as a consequence, compiler errors and debugging retain their usual meaning and format).
+* Local functions can be passed as template parameters so they can be conveniently used with STL algorithms and other templates.
+[footnote
+This is a strength with respect to __CXX03__ functors implemented using local classes which cannot be passed as template parameters (see __N2657__ and the __Alternatives__ section).
+]
+* However, local functions must be specified within a declarative context (e.g., at a point in the code where local variables can be declared) thus they cannot be specified within expressions.
+[footnote
+This is a weakness with respect to __CXX11_lambda_functions__ which can instead be specified also within expressions (see the __Alternatives__ section).
+]
+
+See the __Alternatives__ section for a comparison between this library, __CXX11_lambda_functions__, __Boost_Phoenix__, and other C++ techniques that implement features related to local functions.
+
+[endsect]
+

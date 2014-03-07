@@ -1,0 +1,691 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<title>Background and Tutorial</title>
+<link rel="stylesheet" href="../../../../../doc/src/boostbook.css" type="text/css">
+<meta name="generator" content="DocBook XSL Stylesheets V1.75.2">
+<link rel="home" href="../index.html" title="Chapter&#160;1.&#160;Boost.TypeTraits">
+<link rel="up" href="../index.html" title="Chapter&#160;1.&#160;Boost.TypeTraits">
+<link rel="prev" href="intro.html" title="Introduction">
+<link rel="next" href="category.html" title="Type Traits by Category">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table cellpadding="2" width="100%"><tr>
+<td valign="top"><img alt="Boost C++ Libraries" width="277" height="86" src="../../../../../boost.png"></td>
+<td align="center"><a href="../../../../../index.html">Home</a></td>
+<td align="center"><a href="../../../../../libs/libraries.htm">Libraries</a></td>
+<td align="center"><a href="http://www.boost.org/users/people.html">People</a></td>
+<td align="center"><a href="http://www.boost.org/users/faq.html">FAQ</a></td>
+<td align="center"><a href="../../../../../more/index.htm">More</a></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="intro.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="category.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+<div class="section">
+<div class="titlepage"><div><div><h2 class="title" style="clear: both">
+<a name="boost_typetraits.background"></a><a class="link" href="background.html" title="Background and Tutorial">Background and Tutorial</a>
+</h2></div></div></div>
+<p>
+      The following is an updated version of the article "C++ Type traits"
+      by John Maddock and Steve Cleary that appeared in the October 2000 issue of
+      <a href="http://www.ddj.com" target="_top">Dr Dobb's Journal</a>.
+    </p>
+<p>
+      Generic programming (writing code which works with any data type meeting a
+      set of requirements) has become the method of choice for providing reusable
+      code. However, there are times in generic programming when "generic"
+      just isn't good enough - sometimes the differences between types are too large
+      for an efficient generic implementation. This is when the traits technique
+      becomes important - by encapsulating those properties that need to be considered
+      on a type by type basis inside a traits class, we can minimize the amount of
+      code that has to differ from one type to another, and maximize the amount of
+      generic code.
+    </p>
+<p>
+      Consider an example: when working with character strings, one common operation
+      is to determine the length of a null terminated string. Clearly it's possible
+      to write generic code that can do this, but it turns out that there are much
+      more efficient methods available: for example, the C library functions <code class="computeroutput"><span class="identifier">strlen</span></code> and <code class="computeroutput"><span class="identifier">wcslen</span></code>
+      are usually written in assembler, and with suitable hardware support can be
+      considerably faster than a generic version written in C++. The authors of the
+      C++ standard library realized this, and abstracted the properties of <code class="computeroutput"><span class="keyword">char</span></code> and <code class="computeroutput"><span class="keyword">wchar_t</span></code>
+      into the class <code class="computeroutput"><span class="identifier">char_traits</span></code>.
+      Generic code that works with character strings can simply use <code class="computeroutput"><span class="identifier">char_traits</span><span class="special">&lt;&gt;::</span><span class="identifier">length</span></code> to determine the length of a null
+      terminated string, safe in the knowledge that specializations of <code class="computeroutput"><span class="identifier">char_traits</span></code> will use the most appropriate
+      method available to them.
+    </p>
+<h5>
+<a name="boost_typetraits.background.h0"></a>
+      <span><a name="boost_typetraits.background.type_traits"></a></span><a class="link" href="background.html#boost_typetraits.background.type_traits">Type
+      Traits</a>
+    </h5>
+<p>
+      Class <code class="computeroutput"><span class="identifier">char_traits</span></code> is a classic
+      example of a collection of type specific properties wrapped up in a single
+      class - what Nathan Myers termed a <span class="emphasis"><em>baggage class</em></span><a class="link" href="background.html#background.references">[1]</a>. In the Boost type-traits library,
+      we<a class="link" href="background.html#background.references">[2]</a> have written a set of very
+      specific traits classes, each of which encapsulate a single trait from the
+      C++ type system; for example, is a type a pointer or a reference type? Or does
+      a type have a trivial constructor, or a const-qualifier? The type-traits classes
+      share a unified design: each class inherits from the type <a class="link" href="reference/integral_constant.html" title="integral_constant">true_type</a>
+      if the type has the specified property and inherits from <a class="link" href="reference/integral_constant.html" title="integral_constant">false_type</a>
+      otherwise. As we will show, these classes can be used in generic programming
+      to determine the properties of a given type and introduce optimizations that
+      are appropriate for that case.
+    </p>
+<p>
+      The type-traits library also contains a set of classes that perform a specific
+      transformation on a type; for example, they can remove a top-level const or
+      volatile qualifier from a type. Each class that performs a transformation defines
+      a single typedef-member <code class="computeroutput"><span class="identifier">type</span></code>
+      that is the result of the transformation. All of the type-traits classes are
+      defined inside namespace <code class="computeroutput"><span class="identifier">boost</span></code>;
+      for brevity, namespace-qualification is omitted in most of the code samples
+      given.
+    </p>
+<h5>
+<a name="boost_typetraits.background.h1"></a>
+      <span><a name="boost_typetraits.background.implementation"></a></span><a class="link" href="background.html#boost_typetraits.background.implementation">Implementation</a>
+    </h5>
+<p>
+      There are far too many separate classes contained in the type-traits library
+      to give a full implementation here - see the source code in the Boost library
+      for the full details - however, most of the implementation is fairly repetitive
+      anyway, so here we will just give you a flavor for how some of the classes
+      are implemented. Beginning with possibly the simplest class in the library,
+      <code class="computeroutput"><span class="identifier">is_void</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code> inherits
+      from <code class="computeroutput"><a class="link" href="reference/integral_constant.html" title="integral_constant">true_type</a></code>
+      only if <code class="computeroutput"><span class="identifier">T</span></code> is <code class="computeroutput"><span class="keyword">void</span></code>.
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="reference/is_void.html" title="is_void">is_void</a> <span class="special">:</span> <span class="keyword">public</span> <a class="link" href="reference/integral_constant.html" title="integral_constant">false_type</a><span class="special">{};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="reference/is_void.html" title="is_void">is_void</a><span class="special">&lt;</span><span class="keyword">void</span><span class="special">&gt;</span> <span class="special">:</span> <span class="keyword">public</span> <a class="link" href="reference/integral_constant.html" title="integral_constant">true_type</a><span class="special">{};</span>
+</pre>
+<p>
+      Here we define a primary version of the template class <code class="computeroutput"><a class="link" href="reference/is_void.html" title="is_void">is_void</a></code>,
+      and provide a full-specialization when <code class="computeroutput"><span class="identifier">T</span></code>
+      is <code class="computeroutput"><span class="keyword">void</span></code>. While full specialization
+      of a template class is an important technique, sometimes we need a solution
+      that is halfway between a fully generic solution, and a full specialization.
+      This is exactly the situation for which the standards committee defined partial
+      template-class specialization. As an example, consider the class <code class="computeroutput"><span class="identifier">boost</span><span class="special">::</span><span class="identifier">is_pointer</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>:
+      here we needed a primary version that handles all the cases where T is not
+      a pointer, and a partial specialization to handle all the cases where T is
+      a pointer:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="reference/is_pointer.html" title="is_pointer">is_pointer</a> <span class="special">:</span> <span class="keyword">public</span> <a class="link" href="reference/integral_constant.html" title="integral_constant">false_type</a><span class="special">{};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="reference/is_pointer.html" title="is_pointer">is_pointer</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">*&gt;</span> <span class="special">:</span> <span class="keyword">public</span> <a class="link" href="reference/integral_constant.html" title="integral_constant">true_type</a><span class="special">{};</span>
+</pre>
+<p>
+      The syntax for partial specialization is somewhat arcane and could easily occupy
+      an article in its own right; like full specialization, in order to write a
+      partial specialization for a class, you must first declare the primary template.
+      The partial specialization contains an extra &lt;...&gt; after the class name
+      that contains the partial specialization parameters; these define the types
+      that will bind to that partial specialization rather than the default template.
+      The rules for what can appear in a partial specialization are somewhat convoluted,
+      but as a rule of thumb if you can legally write two function overloads of the
+      form:
+    </p>
+<pre class="programlisting"><span class="keyword">void</span> <span class="identifier">foo</span><span class="special">(</span><span class="identifier">T</span><span class="special">);</span>
+<span class="keyword">void</span> <span class="identifier">foo</span><span class="special">(</span><span class="identifier">U</span><span class="special">);</span>
+</pre>
+<p>
+      Then you can also write a partial specialization of the form:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">c</span><span class="special">{</span> <span class="comment">/*details*/</span> <span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">class</span> <span class="identifier">c</span><span class="special">&lt;</span><span class="identifier">U</span><span class="special">&gt;{</span> <span class="comment">/*details*/</span> <span class="special">};</span>
+</pre>
+<p>
+      This rule is by no means foolproof, but it is reasonably simple to remember
+      and close enough to the actual rule to be useful for everyday use.
+    </p>
+<p>
+      As a more complex example of partial specialization consider the class <code class="computeroutput"><span class="identifier">remove_extent</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;</span></code>. This
+      class defines a single typedef-member <code class="computeroutput"><span class="identifier">type</span></code>
+      that is the same type as T but with any top-level array bounds removed; this
+      is an example of a traits class that performs a transformation on a type:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="reference/remove_extent.html" title="remove_extent">remove_extent</a>
+<span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">T</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+
+<span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T</span><span class="special">,</span> <span class="identifier">std</span><span class="special">::</span><span class="identifier">size_t</span> <span class="identifier">N</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <a class="link" href="reference/remove_extent.html" title="remove_extent">remove_extent</a><span class="special">&lt;</span><span class="identifier">T</span><span class="special">[</span><span class="identifier">N</span><span class="special">]&gt;</span>
+<span class="special">{</span> <span class="keyword">typedef</span> <span class="identifier">T</span> <span class="identifier">type</span><span class="special">;</span> <span class="special">};</span>
+</pre>
+<p>
+      The aim of <code class="computeroutput"><a class="link" href="reference/remove_extent.html" title="remove_extent">remove_extent</a></code>
+      is this: imagine a generic algorithm that is passed an array type as a template
+      parameter, <code class="computeroutput"><a class="link" href="reference/remove_extent.html" title="remove_extent">remove_extent</a></code>
+      provides a means of determining the underlying type of the array. For example
+      <code class="computeroutput"><span class="identifier">remove_extent</span><span class="special">&lt;</span><span class="keyword">int</span><span class="special">[</span><span class="number">4</span><span class="special">][</span><span class="number">5</span><span class="special">]&gt;::</span><span class="identifier">type</span></code> would evaluate to the type <code class="computeroutput"><span class="keyword">int</span><span class="special">[</span><span class="number">5</span><span class="special">]</span></code>. This example also shows that the number of
+      template parameters in a partial specialization does not have to match the
+      number in the default template. However, the number of parameters that appear
+      after the class name do have to match the number and type of the parameters
+      in the default template.
+    </p>
+<h5>
+<a name="boost_typetraits.background.h2"></a>
+      <span><a name="boost_typetraits.background.optimized_copy"></a></span><a class="link" href="background.html#boost_typetraits.background.optimized_copy">Optimized
+      copy</a>
+    </h5>
+<p>
+      As an example of how the type traits classes can be used, consider the standard
+      library algorithm copy:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span><span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">Iter1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">Iter2</span><span class="special">&gt;</span>
+<span class="identifier">Iter2</span> <span class="identifier">copy</span><span class="special">(</span><span class="identifier">Iter1</span> <span class="identifier">first</span><span class="special">,</span> <span class="identifier">Iter1</span> <span class="identifier">last</span><span class="special">,</span> <span class="identifier">Iter2</span> <span class="identifier">out</span><span class="special">);</span>
+</pre>
+<p>
+      Obviously, there's no problem writing a generic version of copy that works
+      for all iterator types <code class="computeroutput"><span class="identifier">Iter1</span></code>
+      and <code class="computeroutput"><span class="identifier">Iter2</span></code>; however, there are
+      some circumstances when the copy operation can best be performed by a call
+      to <code class="computeroutput"><span class="identifier">memcpy</span></code>. In order to implement
+      copy in terms of <code class="computeroutput"><span class="identifier">memcpy</span></code> all
+      of the following conditions need to be met:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          Both of the iterator types <code class="computeroutput"><span class="identifier">Iter1</span></code>
+          and <code class="computeroutput"><span class="identifier">Iter2</span></code> must be pointers.
+        </li>
+<li class="listitem">
+          Both <code class="computeroutput"><span class="identifier">Iter1</span></code> and <code class="computeroutput"><span class="identifier">Iter2</span></code> must point to the same type - excluding
+          const and volatile-qualifiers.
+        </li>
+<li class="listitem">
+          The type pointed to by <code class="computeroutput"><span class="identifier">Iter1</span></code>
+          must have a trivial assignment operator.
+        </li>
+</ul></div>
+<p>
+      By trivial assignment operator we mean that the type is either a scalar type<a class="link" href="background.html#background.references">[3]</a> or:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          The type has no user defined assignment operator.
+        </li>
+<li class="listitem">
+          The type does not have any data members that are references.
+        </li>
+<li class="listitem">
+          All base classes, and all data member objects must have trivial assignment
+          operators.
+        </li>
+</ul></div>
+<p>
+      If all these conditions are met then a type can be copied using <code class="computeroutput"><span class="identifier">memcpy</span></code> rather than using a compiler generated
+      assignment operator. The type-traits library provides a class <code class="computeroutput"><a class="link" href="reference/has_trivial_assign.html" title="has_trivial_assign">has_trivial_assign</a></code>,
+      such that <code class="computeroutput"><span class="identifier">has_trivial_assign</span><span class="special">&lt;</span><span class="identifier">T</span><span class="special">&gt;::</span><span class="identifier">value</span></code> is true only if T has a trivial assignment
+      operator. This class "just works" for scalar types, but has to be
+      explicitly specialised for class/struct types that also happen to have a trivial
+      assignment operator. In other words if <a class="link" href="reference/has_trivial_assign.html" title="has_trivial_assign">has_trivial_assign</a>
+      gives the wrong answer, it will give the "safe" wrong answer - that
+      trivial assignment is not allowable.
+    </p>
+<p>
+      The code for an optimized version of copy that uses <code class="computeroutput"><span class="identifier">memcpy</span></code>
+      where appropriate is given in <a class="link" href="examples/copy.html" title="An Optimized Version of std::copy">the
+      examples</a>. The code begins by defining a template function <code class="computeroutput"><span class="identifier">do_copy</span></code> that performs a "slow but safe"
+      copy. The last parameter passed to this function may be either a <code class="computeroutput"><a class="link" href="reference/integral_constant.html" title="integral_constant">true_type</a></code>
+      or a <code class="computeroutput"><a class="link" href="reference/integral_constant.html" title="integral_constant">false_type</a></code>.
+      Following that there is an overload of do_copy that uses <code class="computeroutput"><span class="identifier">memcpy</span></code>:
+      this time the iterators are required to actually be pointers to the same type,
+      and the final parameter must be a <code class="computeroutput"><a class="link" href="reference/integral_constant.html" title="integral_constant">true_type</a></code>.
+      Finally, the version of <code class="computeroutput"><span class="identifier">copy</span></code>
+      calls <code class="computeroutput"><span class="identifier">do_copy</span></code>, passing <code class="computeroutput"><a class="link" href="reference/has_trivial_assign.html" title="has_trivial_assign">has_trivial_assign</a><span class="special">&lt;</span><span class="identifier">value_type</span><span class="special">&gt;()</span></code> as the final parameter: this will dispatch
+      to the optimized version where appropriate, otherwise it will call the "slow
+      but safe version".
+    </p>
+<h5>
+<a name="boost_typetraits.background.h3"></a>
+      <span><a name="boost_typetraits.background.was_it_worth_it_"></a></span><a class="link" href="background.html#boost_typetraits.background.was_it_worth_it_">Was
+      it worth it?</a>
+    </h5>
+<p>
+      It has often been repeated in these columns that "premature optimization
+      is the root of all evil" <a class="link" href="background.html#background.references">[4]</a>.
+      So the question must be asked: was our optimization premature? To put this
+      in perspective the timings for our version of copy compared a conventional
+      generic copy<a class="link" href="background.html#background.references">[5]</a> are shown in table
+      1.
+    </p>
+<p>
+      Clearly the optimization makes a difference in this case; but, to be fair,
+      the timings are loaded to exclude cache miss effects - without this accurate
+      comparison between algorithms becomes difficult. However, perhaps we can add
+      a couple of caveats to the premature optimization rule:
+    </p>
+<div class="itemizedlist"><ul class="itemizedlist" type="disc">
+<li class="listitem">
+          If you use the right algorithm for the job in the first place then optimization
+          will not be required; in some cases, memcpy is the right algorithm.
+        </li>
+<li class="listitem">
+          If a component is going to be reused in many places by many people then
+          optimizations may well be worthwhile where they would not be so for a single
+          case - in other words, the likelihood that the optimization will be absolutely
+          necessary somewhere, sometime is that much higher. Just as importantly
+          the perceived value of the stock implementation will be higher: there is
+          no point standardizing an algorithm if users reject it on the grounds that
+          there are better, more heavily optimized versions available.
+        </li>
+</ul></div>
+<div class="table">
+<a name="boost_typetraits.background.time_taken_to_copy_1000_elements_using__copy_const_t___t_____times_in_micro_seconds_"></a><p class="title"><b>Table&#160;1.1.&#160;Time taken to copy 1000 elements using `copy&lt;const T*, T*&gt;` (times
+      in micro-seconds)</b></p>
+<div class="table-contents"><table class="table" summary="Time taken to copy 1000 elements using `copy&lt;const T*, T*&gt;` (times
+      in micro-seconds)">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Version
+              </p>
+            </th>
+<th>
+              <p>
+                T
+              </p>
+            </th>
+<th>
+              <p>
+                Time
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                "Optimized" copy
+              </p>
+            </td>
+<td>
+              <p>
+                char
+              </p>
+            </td>
+<td>
+              <p>
+                0.99
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Conventional copy
+              </p>
+            </td>
+<td>
+              <p>
+                char
+              </p>
+            </td>
+<td>
+              <p>
+                8.07
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                "Optimized" copy
+              </p>
+            </td>
+<td>
+              <p>
+                int
+              </p>
+            </td>
+<td>
+              <p>
+                2.52
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                Conventional copy
+              </p>
+            </td>
+<td>
+              <p>
+                int
+              </p>
+            </td>
+<td>
+              <p>
+                8.02
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><h5>
+<a name="boost_typetraits.background.h4"></a>
+      <span><a name="boost_typetraits.background.pair_of_references"></a></span><a class="link" href="background.html#boost_typetraits.background.pair_of_references">Pair
+      of References</a>
+    </h5>
+<p>
+      The optimized copy example shows how type traits may be used to perform optimization
+      decisions at compile-time. Another important usage of type traits is to allow
+      code to compile that otherwise would not do so unless excessive partial specialization
+      is used. This is possible by delegating partial specialization to the type
+      traits classes. Our example for this form of usage is a pair that can hold
+      references <a class="link" href="background.html#background.references">[6]</a>.
+    </p>
+<p>
+      First, let us examine the definition of <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code>, omitting
+      the comparison operators, default constructor, and template copy constructor
+      for simplicity:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T2</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">pair</span>
+<span class="special">{</span>
+<span class="keyword">typedef</span> <span class="identifier">T1</span> <span class="identifier">first_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">T2</span> <span class="identifier">second_type</span><span class="special">;</span>
+
+<span class="identifier">T1</span> <span class="identifier">first</span><span class="special">;</span>
+<span class="identifier">T2</span> <span class="identifier">second</span><span class="special">;</span>
+
+<span class="identifier">pair</span><span class="special">(</span><span class="keyword">const</span> <span class="identifier">T1</span> <span class="special">&amp;</span> <span class="identifier">nfirst</span><span class="special">,</span> <span class="keyword">const</span> <span class="identifier">T2</span> <span class="special">&amp;</span> <span class="identifier">nsecond</span><span class="special">)</span>
+<span class="special">:</span><span class="identifier">first</span><span class="special">(</span><span class="identifier">nfirst</span><span class="special">),</span> <span class="identifier">second</span><span class="special">(</span><span class="identifier">nsecond</span><span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      Now, this "pair" cannot hold references as it currently stands, because
+      the constructor would require taking a reference to a reference, which is currently
+      illegal <a class="link" href="background.html#background.references">[7]</a>. Let us consider what
+      the constructor's parameters would have to be in order to allow "pair"
+      to hold non-reference types, references, and constant references:
+    </p>
+<div class="table">
+<a name="boost_typetraits.background.required_constructor_argument_types"></a><p class="title"><b>Table&#160;1.2.&#160;Required Constructor Argument Types</b></p>
+<div class="table-contents"><table class="table" summary="Required Constructor Argument Types">
+<colgroup>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Type of <code class="computeroutput"><span class="identifier">T1</span></code>
+              </p>
+            </th>
+<th>
+              <p>
+                Type of parameter to initializing constructor
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                T
+              </p>
+            </td>
+<td>
+              <p>
+                const T &amp;
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                T &amp;
+              </p>
+            </td>
+<td>
+              <p>
+                T &amp;
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                const T &amp;
+              </p>
+            </td>
+<td>
+              <p>
+                const T &amp;
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+      A little familiarity with the type traits classes allows us to construct a
+      single mapping that allows us to determine the type of parameter from the type
+      of the contained class. The type traits classes provide a transformation <a class="link" href="reference/add_reference.html" title="add_reference">add_reference</a>, which
+      adds a reference to its type, unless it is already a reference.
+    </p>
+<div class="table">
+<a name="boost_typetraits.background.using_add_reference_to_synthesize_the_correct_constructor_type"></a><p class="title"><b>Table&#160;1.3.&#160;Using add_reference to synthesize the correct constructor type</b></p>
+<div class="table-contents"><table class="table" summary="Using add_reference to synthesize the correct constructor type">
+<colgroup>
+<col>
+<col>
+<col>
+</colgroup>
+<thead><tr>
+<th>
+              <p>
+                Type of <code class="computeroutput"><span class="identifier">T1</span></code>
+              </p>
+            </th>
+<th>
+              <p>
+                Type of <code class="computeroutput"><span class="keyword">const</span> <span class="identifier">T1</span></code>
+              </p>
+            </th>
+<th>
+              <p>
+                Type of <code class="computeroutput"><span class="identifier">add_reference</span><span class="special">&lt;</span><span class="keyword">const</span>
+                <span class="identifier">T1</span><span class="special">&gt;::</span><span class="identifier">type</span></code>
+              </p>
+            </th>
+</tr></thead>
+<tbody>
+<tr>
+<td>
+              <p>
+                T
+              </p>
+            </td>
+<td>
+              <p>
+                const T
+              </p>
+            </td>
+<td>
+              <p>
+                const T &amp;
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                T &amp;
+              </p>
+            </td>
+<td>
+              <p>
+                T &amp; [8]
+              </p>
+            </td>
+<td>
+              <p>
+                T &amp;
+              </p>
+            </td>
+</tr>
+<tr>
+<td>
+              <p>
+                const T &amp;
+              </p>
+            </td>
+<td>
+              <p>
+                const T &amp;
+              </p>
+            </td>
+<td>
+              <p>
+                const T &amp;
+              </p>
+            </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><p>
+      This allows us to build a primary template definition for <code class="computeroutput"><span class="identifier">pair</span></code>
+      that can contain non-reference types, reference types, and constant reference
+      types:
+    </p>
+<pre class="programlisting"><span class="keyword">template</span> <span class="special">&lt;</span><span class="keyword">typename</span> <span class="identifier">T1</span><span class="special">,</span> <span class="keyword">typename</span> <span class="identifier">T2</span><span class="special">&gt;</span>
+<span class="keyword">struct</span> <span class="identifier">pair</span>
+<span class="special">{</span>
+<span class="keyword">typedef</span> <span class="identifier">T1</span> <span class="identifier">first_type</span><span class="special">;</span>
+<span class="keyword">typedef</span> <span class="identifier">T2</span> <span class="identifier">second_type</span><span class="special">;</span>
+
+<span class="identifier">T1</span> <span class="identifier">first</span><span class="special">;</span>
+<span class="identifier">T2</span> <span class="identifier">second</span><span class="special">;</span>
+
+<span class="identifier">pair</span><span class="special">(</span><span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference/add_reference.html" title="add_reference">add_reference</a><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">T1</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">nfirst</span><span class="special">,</span>
+      <span class="identifier">boost</span><span class="special">::</span><a class="link" href="reference/add_reference.html" title="add_reference">add_reference</a><span class="special">&lt;</span><span class="keyword">const</span> <span class="identifier">T2</span><span class="special">&gt;::</span><span class="identifier">type</span> <span class="identifier">nsecond</span><span class="special">)</span>
+<span class="special">:</span><span class="identifier">first</span><span class="special">(</span><span class="identifier">nfirst</span><span class="special">),</span> <span class="identifier">second</span><span class="special">(</span><span class="identifier">nsecond</span><span class="special">)</span> <span class="special">{</span> <span class="special">}</span>
+<span class="special">};</span>
+</pre>
+<p>
+      Add back in the standard comparison operators, default constructor, and template
+      copy constructor (which are all the same), and you have a <code class="computeroutput"><span class="identifier">std</span><span class="special">::</span><span class="identifier">pair</span></code> that
+      can hold reference types!
+    </p>
+<p>
+      This same extension could have been done using partial template specialization
+      of <code class="computeroutput"><span class="identifier">pair</span></code>, but to specialize
+      <code class="computeroutput"><span class="identifier">pair</span></code> in this way would require
+      three partial specializations, plus the primary template. Type traits allows
+      us to define a single primary template that adjusts itself auto-magically to
+      any of these partial specializations, instead of a brute-force partial specialization
+      approach. Using type traits in this fashion allows programmers to delegate
+      partial specialization to the type traits classes, resulting in code that is
+      easier to maintain and easier to understand.
+    </p>
+<h5>
+<a name="boost_typetraits.background.h5"></a>
+      <span><a name="boost_typetraits.background.conclusion"></a></span><a class="link" href="background.html#boost_typetraits.background.conclusion">Conclusion</a>
+    </h5>
+<p>
+      We hope that in this article we have been able to give you some idea of what
+      type-traits are all about. A more complete listing of the available classes
+      are in the boost documentation, along with further examples using type traits.
+      Templates have enabled C++ uses to take the advantage of the code reuse that
+      generic programming brings; hopefully this article has shown that generic programming
+      does not have to sink to the lowest common denominator, and that templates
+      can be optimal as well as generic.
+    </p>
+<h5>
+<a name="boost_typetraits.background.h6"></a>
+      <span><a name="boost_typetraits.background.acknowledgements"></a></span><a class="link" href="background.html#boost_typetraits.background.acknowledgements">Acknowledgements</a>
+    </h5>
+<p>
+      The authors would like to thank Beman Dawes and Howard Hinnant for their helpful
+      comments when preparing this article.
+    </p>
+<h5>
+<a name="boost_typetraits.background.h7"></a>
+      <span><a name="boost_typetraits.background._anchor_id__background_references___references"></a></span><a class="link" href="background.html#boost_typetraits.background._anchor_id__background_references___references"><a name="background.references"></a>References</a>
+    </h5>
+<div class="orderedlist"><ol class="orderedlist" type="1">
+<li class="listitem">
+          Nathan C. Myers, C++ Report, June 1995.
+        </li>
+<li class="listitem">
+          The type traits library is based upon contributions by Steve Cleary, Beman
+          Dawes, Howard Hinnant and John Maddock: it can be found at www.boost.org.
+        </li>
+<li class="listitem">
+          A scalar type is an arithmetic type (i.e. a built-in integer or floating
+          point type), an enumeration type, a pointer, a pointer to member, or a
+          const- or volatile-qualified version of one of these types.
+        </li>
+<li class="listitem">
+          This quote is from Donald Knuth, ACM Computing Surveys, December 1974,
+          pg 268.
+        </li>
+<li class="listitem">
+          The test code is available as part of the boost utility library (see algo_opt_examples.cpp),
+          the code was compiled with gcc 2.95 with all optimisations turned on, tests
+          were conducted on a 400MHz Pentium II machine running Microsoft Windows
+          98.
+        </li>
+<li class="listitem">
+          John Maddock and Howard Hinnant have submitted a "compressed_pair"
+          library to Boost, which uses a technique similar to the one described here
+          to hold references. Their pair also uses type traits to determine if any
+          of the types are empty, and will derive instead of contain to conserve
+          space -- hence the name "compressed".
+        </li>
+<li class="listitem">
+          This is actually an issue with the C++ Core Language Working Group (issue
+          #106), submitted by Bjarne Stroustrup. The tentative resolution is to allow
+          a "reference to a reference to T" to mean the same thing as a
+          "reference to T", but only in template instantiation, in a method
+          similar to multiple cv-qualifiers.
+        </li>
+<li class="listitem">
+          For those of you who are wondering why this shouldn't be const-qualified,
+          remember that references are always implicitly constant (for example, you
+          can't re-assign a reference). Remember also that "const T &amp;"
+          is something completely different. For this reason, cv-qualifiers on template
+          type arguments that are references are ignored.
+        </li>
+</ol></div>
+</div>
+<table xmlns:rev="http://www.cs.rpi.edu/~gregod/boost/tools/doc/revision" width="100%"><tr>
+<td align="left"></td>
+<td align="right"><div class="copyright-footer">Copyright &#169; 2000, 2011 Adobe Systems Inc, David Abrahams,
+      Frederic Bron, Steve Cleary, Beman Dawes, Aleksey Gurtovoy, Howard Hinnant,
+      Jesse Jones, Mat Marcus, Itay Maman, John Maddock, Alexander Nasonov, Thorsten
+      Ottosen, Roman Perepelitsa, Robert Ramey, Jeremy Siek, Robert Stewart and Steven
+      Watanabe<p>
+        Distributed under the Boost Software License, Version 1.0. (See accompanying
+        file LICENSE_1_0.txt or copy at <a href="http://www.boost.org/LICENSE_1_0.txt" target="_top">http://www.boost.org/LICENSE_1_0.txt</a>)
+      </p>
+</div></td>
+</tr></table>
+<hr>
+<div class="spirit-nav">
+<a accesskey="p" href="intro.html"><img src="../../../../../doc/src/images/prev.png" alt="Prev"></a><a accesskey="u" href="../index.html"><img src="../../../../../doc/src/images/up.png" alt="Up"></a><a accesskey="h" href="../index.html"><img src="../../../../../doc/src/images/home.png" alt="Home"></a><a accesskey="n" href="category.html"><img src="../../../../../doc/src/images/next.png" alt="Next"></a>
+</div>
+</body>
+</html>

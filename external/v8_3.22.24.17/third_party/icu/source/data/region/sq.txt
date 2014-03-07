@@ -1,0 +1,173 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/sq.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/sq.xml
+ */
+sq{
+    Countries{
+        AD{"Andorrë"}
+        AE{"Emiratet Arabe te Bashkuara"}
+        AF{"Afganistan"}
+        AG{"Antigua e Barbuda"}
+        AL{"Shqipëria"}
+        AM{"Armeni"}
+        AO{"Angolë"}
+        AR{"Argjentinë"}
+        AT{"Austri"}
+        AU{"Australi"}
+        AX{"Ishujt Aland"}
+        AZ{"Azerbajxhan"}
+        BA{"Bosnja dhe Hercegovina"}
+        BE{"Belgjikë"}
+        BG{"Bullgari"}
+        BH{"Bahrein"}
+        BN{"Brunej"}
+        BO{"Bolivi"}
+        BR{"Brazili"}
+        BT{"Butan"}
+        BW{"Botsvana"}
+        BY{"Bjellorusi"}
+        CA{"Kanada"}
+        CF{"Republika Qendrore e Afrikës"}
+        CG{"Kongo"}
+        CH{"Zvicër"}
+        CI{"Bregu i Fildishtë"}
+        CL{"Kili"}
+        CM{"Kamerun"}
+        CN{"Kinë"}
+        CO{"Kolumbi"}
+        CR{"Kosta Rika"}
+        CS{"Serbië en Montenegro"}
+        CU{"Kubë"}
+        CV{"Kap Verde"}
+        CY{"Qipro"}
+        CZ{"Republika e Çekisë"}
+        DE{"Gjermani"}
+        DJ{"Xhibuti"}
+        DK{"Danimarkë"}
+        DM{"Dominikë"}
+        DO{"Republika Dominikanë"}
+        DZ{"Algjeri"}
+        EC{"Ekuator"}
+        EE{"Estoni"}
+        EG{"Egjipt"}
+        EH{"Saharaja Perëndimore"}
+        ER{"Eritre"}
+        ES{"Spanjë"}
+        ET{"Etiopi"}
+        FI{"Finlandë"}
+        FJ{"Fixhi"}
+        FM{"Mikronezi"}
+        FR{"Francë"}
+        GA{"Gjabon"}
+        GB{"Mbretëria e Bashkuar"}
+        GE{"Gjeorgji"}
+        GH{"Ganë"}
+        GM{"Gambi"}
+        GN{"Guine"}
+        GQ{"Guineja Ekuatoriale"}
+        GR{"Greqi"}
+        GT{"Guatemalë"}
+        GW{"Guine Bisau"}
+        GY{"Guajana"}
+        HR{"Kroaci"}
+        HU{"Hungari"}
+        ID{"Indonezi"}
+        IE{"Irlandë"}
+        IL{"Izrael"}
+        IN{"Indi"}
+        IQ{"Irak"}
+        IS{"Islandë"}
+        IT{"Itali"}
+        JM{"Xhamajkë"}
+        JO{"Jordani"}
+        JP{"Japoni"}
+        KE{"Kenia"}
+        KG{"Kirgistan"}
+        KH{"Kamboxhi"}
+        KI{"Qiribati"}
+        KM{"Komore"}
+        KN{"Saint Kitts e Nevis"}
+        KP{"Koreja e Veriut"}
+        KR{"Koreja e Jugut"}
+        KW{"Kuvajt"}
+        KZ{"Kazakistan"}
+        LB{"Liban"}
+        LI{"Lihtënshtajn"}
+        LR{"Liberi"}
+        LS{"Lesoto"}
+        LT{"Lituani"}
+        LU{"Luksemburg"}
+        LV{"Letoni"}
+        LY{"Libi"}
+        MA{"Maroko"}
+        MC{"Monako"}
+        MD{"Moldavi"}
+        MG{"Madagaskar"}
+        MH{"Ishujt Marshall"}
+        MK{"Maqedoni"}
+        MN{"Mongoli"}
+        MR{"Mauritani"}
+        MT{"Maltë"}
+        MV{"Maldivit"}
+        MW{"Malavi"}
+        MX{"Meksikë"}
+        MY{"Malajzi"}
+        MZ{"Mozambik"}
+        NA{"Namibi"}
+        NG{"Nigeri"}
+        NI{"Nikaragua"}
+        NL{"Vendet e Ulëta"}
+        NO{"Norvegji"}
+        NZ{"Zelanda e Re"}
+        PG{"Papua Guineja e Re"}
+        PH{"Filipine"}
+        PL{"Poloni"}
+        PT{"Portugali"}
+        PY{"Paraguaj"}
+        QA{"Katar"}
+        RO{"Rumani"}
+        RU{"Rusi"}
+        RW{"Ruanda"}
+        SA{"Arabia Saudite"}
+        SB{"Ishujt Solomon"}
+        SC{"Sishel"}
+        SE{"Suedi"}
+        SG{"Singapor"}
+        SI{"Slloveni"}
+        SK{"Sllovaki"}
+        SL{"Siera Leone"}
+        SO{"Somali"}
+        ST{"Sao Tome e Prinsipe"}
+        SY{"Siri"}
+        SZ{"Svazilandë"}
+        TD{"Çad"}
+        TG{"Togo"}
+        TH{"Tajlandë"}
+        TJ{"Taxhikistan"}
+        TN{"Tunisi"}
+        TO{"Tonga"}
+        TR{"Turqi"}
+        TT{"Trinidad e Tobago"}
+        TW{"Tajvan"}
+        TZ{"Tanzani"}
+        UA{"Ukrainë"}
+        US{"Shtetet e Bashkuara të Amerikës"}
+        UY{"Uruguaj"}
+        VA{"Vatikan"}
+        VC{"Saint Vincent e Grenadinet"}
+        VE{"Venezuelë"}
+        YE{"Jemen"}
+        ZA{"Afrika e Jugut"}
+        ZM{"Zambi"}
+        ZW{"Zimbabve"}
+        ZZ{"Rajon i panjohur ose i pavlefshëm"}
+    }
+    Version{"2.0.47.69"}
+}

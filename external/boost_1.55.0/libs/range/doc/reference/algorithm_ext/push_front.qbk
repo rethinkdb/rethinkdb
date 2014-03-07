@@ -1,0 +1,37 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:push_front push_front]
+
+[heading Prototype]
+
+``
+template<
+    class Container,
+    class SinglePassRange
+    >
+Container& push_front(Container& target,
+                      const SinglePassRange& from);
+``
+
+[heading Description]
+
+`push_front` all of the elements in the range `from` to the front of the container `target`.
+
+[heading Definition]
+
+Defined in the header file `boost/range/algorithm_ext/push_front.hpp`
+
+[heading Requirements]
+
+# `SinglePassRange` is a model of the __single_pass_range__ Concept.
+# `Container` supports insert at `begin()`.
+# `SinglePassRange`'s value type is convertible to `Container`'s value type.
+
+[heading Complexity]
+
+Linear. `distance(from)` assignments are performed.
+
+[endsect]

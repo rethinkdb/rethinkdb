@@ -1,0 +1,28 @@
+[/
+    Copyright 2010 Neil Groves
+    Distributed under the Boost Software License, Version 1.0.
+    (See accompanying file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+/]
+[section:examples Examples]
+
+Some examples are given in the accompanying test files:
+
+* [@http://www.boost.org/libs/range/test/string.cpp string.cpp] shows how to implement a container version of `std::find()` that works with `char[]`,`wchar_t[]`,`char*`,`wchar_t*`.
+
+* [@http://www.boost.org/libs/range/test/algorithm_example.cpp algorithm_example.cpp] shows the replace example from the introduction.
+
+* [@http://www.boost.org/libs/range/test/iterator_range.cpp iterator_range.cpp]
+
+* [@http://www.boost.org/libs/range/test/sub_range.cpp sub_range.cpp]
+
+* [@http://www.boost.org/libs/range/test/iterator_pair.cpp iterator_pair.cpp]
+
+* [@http://www.boost.org/libs/range/test/reversible_range.cpp reversible_range.cpp]
+
+* [@http://www.boost.org/libs/range/test/std_container.cpp std_container.cpp]
+
+* [@http://www.boost.org/libs/range/test/array.cpp array.cpp]
+
+[endsect]
+
+

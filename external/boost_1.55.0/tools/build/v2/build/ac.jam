@@ -1,0 +1,303 @@
+# Copyright (c) 2010 Vladimir Prus.
+# Copyright (c) 2013 Steven Watanabe
+#
+# Use, modification and distribution is subject to the Boost Software
+# License Version 1.0. (See accompanying file LICENSE_1_0.txt or
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import property-set ;
+import path ;
+import modules ;
+import "class" ; 
+import errors ;
+import configure ;
+import project ;
+import virtual-target ;
+import generators ;
+import property ;
+import print ;
+
+project.initialize $(__name__) ;
+.project = [ project.current ] ;
+project ac ;
+
+rule generate-include ( target : sources * : properties * )
+{
+    local header = [ property.select <include> : $(properties) ] ;
+    print.output $(target) ;
+    print.text "#include <$(header:G=)>" : true ;
+}
+
+rule generate-main ( target : sources * : properties * )
+{
+    print.output $(target) ;
+    print.text "int main() {}" : true ;
+}
+
+rule find-include-path ( properties : header : provided-path ? )
+{
+    if $(provided-path) && [ path.exists [ path.root $(header) $(provided-path) ] ]
+    {
+        return $(provided-path) ;
+    }
+    else
+    {
+        local a = [ class.new action : ac.generate-include : [ property-set.create <include>$(header) ] ] ;
+        local cpp = [ class.new file-target $(header).cpp exact : CPP : $(.project) : $(a) ] ;
+        cpp = [ virtual-target.register $(cpp) ] ;
+        local result = [ generators.construct $(.project) $(header) : OBJ : $(properties) : $(cpp) : true ] ;
+        local jam-targets ;
+        for t in $(result[2-])
+        {
+            jam-targets += [ $(t).actualize ] ;
+        }
+        if [ UPDATE_NOW $(jam-targets) : [ modules.peek configure : .log-fd ]
+            : ignore-minus-n : ignore-minus-q ]
+        {
+            return %default ;
+        }
+    }
+}
+
+rule construct-library ( name : property-set : provided-path ? )
+{
+    property-set = [ $(property-set).refine [ property-set.create $(link-opt) ] ] ;
+    local lib-props = [ $(property-set).add-raw <name>$(name) <search>$(provided-path) ] ;
+    return [ generators.construct $(.project) lib-$(name)
+        : SEARCHED_LIB : $(lib-props) : : true ] ;
+}
+
+
+rule find-library ( properties : names + : provided-path ? )
+{
+    local result ;
+    if ! $(.main.cpp)
+    {
+        local a = [ class.new action : ac.generate-main :
+                    [ property-set.empty ] ] ;
+        .main.cpp = [ virtual-target.register
+            [ class.new file-target main.cpp exact
+                : CPP : $(.project) : $(a) ] ] ;
+    }
+    if [ $(properties).get <link> ] = shared
+    {
+        link-opts = <link>shared <link>static ;
+    }
+    else
+    {
+        link-opts = <link>static <link>shared ;
+    }
+    while $(link-opts)
+    {
+        local names-iter = $(names) ;
+        properties = [ $(properties).refine [ property-set.create $(link-opts[1]) ] ] ;
+        while $(names-iter)
+        {
+            local name = $(names-iter[1]) ;
+            local lib = [ construct-library $(name) : $(properties) : $(provided-path) ] ;
+            local test = [ generators.construct $(.project) $(name) : EXE
+                : [ $(properties).add $(lib[1]) ] : $(.main.cpp) $(lib[2-])
+                : true ] ;
+            local jam-targets ;
+            for t in $(test[2-])
+            {
+                jam-targets += [ $(t).actualize ] ;
+            }
+            if [ UPDATE_NOW $(jam-targets) : [ modules.peek configure : .log-fd ]
+                    : ignore-minus-n : ignore-minus-q ]
+            {
+                result = $(name) $(link-opts[1]) ;
+                names-iter = ; link-opts = ; # break
+            }
+            names-iter = $(names-iter[2-]) ;
+        }
+        link-opts = $(link-opts[2-]) ;
+    }
+    return $(result) ;
+}
+
+class ac-library : basic-target
+{
+    import errors ;
+    import indirect ;
+    import virtual-target ;
+    import ac ;
+    import configure ;
+    import config-cache ;
+
+    rule __init__ ( name : project : requirements * : include-path ? : library-path ? : library-name ? )
+    {
+        basic-target.__init__ $(name) : $(project) : : $(requirements) ;
+        
+        reconfigure $(include-path) : $(library-path) : $(library-name) ; 
+    }
+    
+    rule set-header ( header )
+    {
+        self.header = $(header) ; 
+    }
+        
+    rule set-default-names ( names + )
+    {
+        self.default-names = $(names) ;
+    }
+
+    rule reconfigure ( include-path ? : library-path ? : library-name ? )
+    {
+        if $(include-path) || $(library-path) || $(library-name)
+        {
+            check-not-configured ;
+
+            self.include-path = $(include-path) ;
+            self.library-path = $(library-path) ;
+            self.library-name = $(library-name) ;
+        }
+    }
+
+    rule set-target ( target )
+    {
+        check-not-configured ;
+        self.target = $(target) ;
+    }
+
+    rule check-not-configured ( )
+    {
+        if $(self.include-path) || $(self.library-path) || $(self.library-name) || $(self.target)
+        {
+            errors.user-error [ name ] "is already configured" ;
+        }
+    }
+    
+    rule construct ( name : sources * : property-set )
+    {
+        if $(self.target)
+        {
+            return [ $(self.target).generate $(property-set) ] ;
+        }
+        else
+        {
+            local use-environment ;
+            if ! $(self.library-name) && ! $(self.include-path) && ! $(self.library-path)
+            {
+                use-environment = true ;
+            }
+            local libnames = $(self.library-name) ;
+            if ! $(libnames) && $(use-environment)
+            {
+                libnames = [ modules.peek : $(name:U)_NAME ] ;
+                # Backward compatibility only.
+                libnames ?= [ modules.peek : $(name:U)_BINARY ] ;
+            }
+            libnames ?= $(self.default-names) ;
+
+            local include-path = $(self.include-path) ;
+            if ! $(include-path) && $(use-environment)
+            {
+                include-path = [ modules.peek : $(name:U)_INCLUDE ] ;
+            }
+
+            local library-path = $(self.library-path) ;
+            if ! $(library-path) && $(use-environment)
+            {
+                library-path = [ modules.peek : $(name:U)_LIBRARY_PATH ] ;
+                # Backwards compatibility only
+                library-path ?= [ modules.peek : $(name:U)_LIBPATH ] ;
+            }
+
+            local toolset = [ $(property-set).get <toolset> ] ;
+            local toolset-version-property = "<toolset-$(toolset):version>" ;
+            local relevant = [ property.select <target-os> <toolset>
+                $(toolset-version-property) <link> <address-model> <architecture> :
+                [ $(property-set).raw ] ] ;
+
+            local key = ac-library-$(name)-$(relevant:J=-) ;
+            local lookup = [ config-cache.get $(key) ] ;
+
+            if $(lookup)
+            {
+                if $(lookup) = missing
+                {
+                    configure.log-library-search-result $(name) : "no  (cached)" ;
+                    return [ property-set.empty ] ;
+                }
+                else
+                {
+                    local includes = $(lookup[1]) ;
+                    if $(includes) = %default
+                    {
+                        includes = ;
+                    }
+                    local library = [ ac.construct-library $(lookup[2]) :
+                        [ $(property-set).refine [ property-set.create $(lookup[3]) ] ] : $(library-path) ] ;
+                    configure.log-library-search-result $(name) : "yes (cached)" ;
+                    return [ $(library[1]).add-raw <include>$(includes) ] $(library[2-]) ;
+                }
+            }
+            else
+            {
+                local includes = [ ac.find-include-path $(property-set) : $(self.header) : $(include-path) ] ;
+                local library = [ ac.find-library $(property-set) : $(libnames) : $(library-path) ] ;
+                if $(includes) && $(library)
+                {
+                    config-cache.set $(key) : $(includes) $(library) ;
+                    if $(includes) = %default
+                    {
+                        includes = ;
+                    }
+                    library = [ ac.construct-library $(library[1]) :
+                        [ $(property-set).refine [ property-set.create $(library[2]) ] ]  : $(library-path) ] ;
+                    configure.log-library-search-result $(name) : "yes" ;
+                    return [ $(library[1]).add-raw <include>$(includes) ] $(library[2-]) ;
+                }
+                else
+                {
+                    config-cache.set $(key) : missing ;
+                    configure.log-library-search-result $(name) : "no" ;
+                    return [ property-set.empty ] ;
+                }
+            }
+        }       
+    }
+}
+
+class check-library-worker
+{
+    import property-set ;
+    import targets ;
+    import property ;
+
+    rule __init__ ( target : true-properties * : false-properties * )
+    {
+        self.target = $(target) ;
+        self.true-properties = $(true-properties) ;
+        self.false-properties = $(false-properties) ;
+    }
+
+    rule check ( properties * )
+    {
+        local choosen ;
+        local t = [ targets.current ] ;
+        local p =  [ $(t).project ] ;
+        local ps = [ property-set.create $(properties) ] ;
+        ps = [ $(ps).propagated ] ;
+        local generated =
+            [ targets.generate-from-reference $(self.target) : $(p) : $(ps) ] ;
+        if $(generated[2])
+        {
+            choosen = $(self.true-properties) ;
+        }
+        else
+        {
+            choosen = $(self.false-properties) ;
+        }
+        return [ property.evaluate-conditionals-in-context $(choosen) :
+            $(properties) ] ;
+    }
+}
+
+rule check-library ( target : true-properties * : false-properties * )
+{
+    local instance = [ class.new check-library-worker $(target) :
+        $(true-properties) : $(false-properties) ] ;
+    return <conditional>@$(instance).check ;
+}

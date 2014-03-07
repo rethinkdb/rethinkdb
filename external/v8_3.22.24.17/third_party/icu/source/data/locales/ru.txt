@@ -1,0 +1,1215 @@
+﻿// ***************************************************************************
+// *
+// * Copyright (C) 2010 International Business Machines
+// * Corporation and others.  All Rights Reserved.
+// * Tool: com.ibm.icu.dev.tool.cldr.LDML2ICUConverter.java
+// * Source File:<path>/common/main/ru.xml
+// *
+// ***************************************************************************
+/**
+ *  ICU <specials> source: <path>/xml/main/ru.xml
+ */
+ru{
+    AuxExemplarCharacters{
+        "[a á à â ä b c ç d e é è ê ë f g h i j k l m n o ó ò ô ö p q r s t u ú ù û ü"
+        " v w x y ÿ z]"
+    }
+    ExemplarCharacters{"[а б в г д е ё ж з и й к л м н о п р с т у ф х ц ч ш щ ъ ы ь э ю я]"}
+    ExemplarCharactersCurrency{"[a b c d e f g h i j k l m n o p q r s t u v w x y z]"}
+    ExemplarCharactersIndex{"[А Б В Г Д Е Ё Ж З И Й К Л М Н О П Р С Т У Ф Х Ц Ч Ш Щ Ы Э Ю Я]"}
+    LocaleScript{
+        "Cyrl",
+    }
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"#,##0.00 ¤"}
+                decimalFormat{"#,##0.###"}
+                percentFormat{"#,##0 %"}
+                scientificFormat{"#E0"}
+            }
+            symbols{
+                decimal{","}
+                exponential{"E"}
+                group{" "}
+                infinity{"∞"}
+                list{";"}
+                minusSign{"-"}
+                perMille{"‰"}
+                percentSign{"%"}
+                plusSign{"+"}
+            }
+        }
+    }
+    Version{"2.0.50.96"}
+    calendar{
+        buddhist{
+            DateTimePatterns{
+                "H:mm:ss zzzz",
+                "H:mm:ss z",
+                "H:mm:ss",
+                "H:mm",
+                "EEEE, d MMMM y 'г'. G",
+                "d MMMM y 'г'. G",
+                "dd.MM.yyyy G",
+                "dd.MM.yy G",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E, d"}
+                H{"H"}
+                Hm{"H:mm"}
+                Hms{"H:mm:ss"}
+                M{"L"}
+                MEd{"E, d.M"}
+                MMM{"LLL"}
+                MMMEd{"ccc, d MMM"}
+                MMMd{"d MMM"}
+                MMdd{"dd.MM"}
+                Md{"d.M"}
+                d{"d"}
+                ms{"mm:ss"}
+                y{"y G"}
+                yM{"M.y G"}
+                yMEd{"EEE, d.M.y G"}
+                yMMM{"LLL y G"}
+                yMMMEd{"E, d MMM y G"}
+                yMd{"d.M.y G"}
+                yQQQ{"QQQ y G"}
+                yyMM{"MM.yy G"}
+                yyMMM{"LLL yy G"}
+                yyMMMEEEd{"EEE, d MMM yy G"}
+                yyQ{"Q yy G"}
+                yyyy{"y G"}
+                yyyyLLLL{"LLLL y G"}
+                yyyyMM{"MM.yyyy G"}
+                yyyyMMMM{"LLLL y G"}
+                yyyyQQQQ{"QQQQ y 'г'. G"}
+            }
+        }
+        gregorian{
+            DateTimePatterns{
+                "H:mm:ss zzzz",
+                "H:mm:ss z",
+                "H:mm:ss",
+                "H:mm",
+                "EEEE, d MMMM y 'г'.",
+                "d MMMM y 'г'.",
+                "dd.MM.yyyy",
+                "dd.MM.yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E, d"}
+                H{"H"}
+                Hm{"H:mm"}
+                Hms{"H:mm:ss"}
+                M{"L"}
+                MEd{"E, d.M"}
+                MMM{"LLL"}
+                MMMEd{"ccc, d MMM"}
+                MMMd{"d MMM"}
+                MMdd{"dd.MM"}
+                Md{"d.M"}
+                d{"d"}
+                ms{"mm:ss"}
+                y{"y"}
+                yM{"M.y"}
+                yMEd{"EEE, d.M.y"}
+                yMMM{"LLL y"}
+                yMMMEd{"E, d MMM y"}
+                yQQQ{"y QQQ"}
+                yyMM{"MM.yy"}
+                yyMMM{"LLL yy"}
+                yyMMMEEEd{"EEE, d MMM yy"}
+                yyQ{"Q yy"}
+                yyyy{"y"}
+                yyyyLLLL{"LLLL y"}
+                yyyyMM{"MM.yyyy"}
+                yyyyMMMM{"LLLL y"}
+                yyyyQQQQ{"QQQQ y 'г'."}
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "вс",
+                        "пн",
+                        "вт",
+                        "ср",
+                        "чт",
+                        "пт",
+                        "сб",
+                    }
+                    wide{
+                        "воскресенье",
+                        "понедельник",
+                        "вторник",
+                        "среда",
+                        "четверг",
+                        "пятница",
+                        "суббота",
+                    }
+                }
+                stand-alone{
+                    abbreviated{
+                        "Вс",
+                        "Пн",
+                        "Вт",
+                        "Ср",
+                        "Чт",
+                        "Пт",
+                        "Сб",
+                    }
+                    narrow{
+                        "В",
+                        "П",
+                        "В",
+                        "С",
+                        "Ч",
+                        "П",
+                        "С",
+                    }
+                    wide{
+                        "Воскресенье",
+                        "Понедельник",
+                        "Вторник",
+                        "Среда",
+                        "Четверг",
+                        "Пятница",
+                        "Суббота",
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "до н.э.",
+                    "н.э.",
+                }
+            }
+            fields{
+                day{
+                    dn{"День"}
+                    relative{
+                        "-1"{"Вчера"}
+                        "-2"{"Позавчера"}
+                        "0"{"Сегодня"}
+                        "1"{"Завтра"}
+                        "2"{"Послезавтра"}
+                    }
+                }
+                dayperiod{
+                    dn{"AM/PM"}
+                }
+                era{
+                    dn{"Эра"}
+                }
+                hour{
+                    dn{"Час"}
+                }
+                minute{
+                    dn{"Минута"}
+                }
+                month{
+                    dn{"Месяц"}
+                }
+                second{
+                    dn{"Секунда"}
+                }
+                week{
+                    dn{"Неделя"}
+                }
+                weekday{
+                    dn{"День недели"}
+                }
+                year{
+                    dn{"Год"}
+                }
+                zone{
+                    dn{"Часовой пояс"}
+                }
+            }
+            intervalFormats{
+                H{
+                    H{"H-H"}
+                    a{"H-H"}
+                }
+                Hm{
+                    H{"H:mm-H:mm"}
+                    a{"H:mm-H:mm"}
+                    m{"H:mm-H:mm"}
+                }
+                Hmv{
+                    H{"H:mm-H:mm v"}
+                    a{"H:mm-H:mm v"}
+                    m{"H:mm-H:mm v"}
+                }
+                Hv{
+                    H{"H-H v"}
+                    a{"H-H v"}
+                }
+                M{
+                    M{"M-M"}
+                }
+                MEd{
+                    M{"E, MM-dd – E, MM-dd"}
+                    d{"E, MM-dd – E, MM-dd"}
+                }
+                MMM{
+                    M{"MMM-MMM"}
+                }
+                MMMEd{
+                    M{"d MMM - d MMM"}
+                    d{"d-d MMM"}
+                }
+                MMMM{
+                    M{"LLLL-LLLL"}
+                }
+                MMMd{
+                    M{"d MMM - d MMM"}
+                    d{"d-d MMM"}
+                }
+                Md{
+                    M{"dd.MM - dd.MM"}
+                    d{"dd.MM - dd.MM"}
+                }
+                d{
+                    d{"d-d"}
+                }
+                fallback{"{0} - {1}"}
+                h{
+                    a{"h a - h a"}
+                    h{"h-h a"}
+                }
+                hm{
+                    a{"h:mm a - h:mm a"}
+                    h{"h:mm-h:mm a"}
+                    m{"h:mm-h:mm a"}
+                }
+                hmv{
+                    a{"h:mm a - h:mm a v"}
+                    h{"h:mm-h:mm a v"}
+                    m{"h:mm-h:mm a v"}
+                }
+                hv{
+                    a{"h a - h a v"}
+                    h{"h-h a v"}
+                }
+                y{
+                    y{"y-y"}
+                }
+                yM{
+                    M{"MM.yy - MM.yy"}
+                    y{"MM.yy - MM.yy"}
+                }
+                yMEd{
+                    M{"dd.MM.yy - dd.MM.yy"}
+                    d{"dd.MM.yy - dd.MM.yy"}
+                    y{"dd.MM.yy - dd.MM.yy"}
+                }
+                yMMM{
+                    M{"LLL-LLL y 'г'."}
+                    y{"LLL y - LLL y 'г'."}
+                }
+                yMMMEd{
+                    M{"d MMM - d MMM y 'г'."}
+                    d{"d-d MMM y 'г'."}
+                    y{"d MMM y - d MMM y 'г'."}
+                }
+                yMMMM{
+                    M{"LLLL-LLLL y 'г'."}
+                    y{"LLLL y - LLLL y 'г'."}
+                }
+                yMMMd{
+                    M{"d MMM - d MMM y 'г'."}
+                    d{"d-d MMM y 'г'."}
+                    y{"d MMM y - d MMM y 'г'."}
+                }
+                yMd{
+                    M{"dd.MM.yy - dd.MM.yy"}
+                    d{"dd.MM.yy - dd.MM.yy"}
+                    y{"dd.MM.yy - dd.MM.yy"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "янв.",
+                        "февр.",
+                        "марта",
+                        "апр.",
+                        "мая",
+                        "июня",
+                        "июля",
+                        "авг.",
+                        "сент.",
+                        "окт.",
+                        "нояб.",
+                        "дек.",
+                    }
+                    wide{
+                        "января",
+                        "февраля",
+                        "марта",
+                        "апреля",
+                        "мая",
+                        "июня",
+                        "июля",
+                        "августа",
+                        "сентября",
+                        "октября",
+                        "ноября",
+                        "декабря",
+                    }
+                }
+                stand-alone{
+                    abbreviated{
+                        "янв.",
+                        "февр.",
+                        "март",
+                        "апр.",
+                        "май",
+                        "июнь",
+                        "июль",
+                        "авг.",
+                        "сент.",
+                        "окт.",
+                        "нояб.",
+                        "дек.",
+                    }
+                    narrow{
+                        "Я",
+                        "Ф",
+                        "М",
+                        "А",
+                        "М",
+                        "И",
+                        "И",
+                        "А",
+                        "С",
+                        "О",
+                        "Н",
+                        "Д",
+                    }
+                    wide{
+                        "Январь",
+                        "Февраль",
+                        "Март",
+                        "Апрель",
+                        "Май",
+                        "Июнь",
+                        "Июль",
+                        "Август",
+                        "Сентябрь",
+                        "Октябрь",
+                        "Ноябрь",
+                        "Декабрь",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "1-й кв.",
+                        "2-й кв.",
+                        "3-й кв.",
+                        "4-й кв.",
+                    }
+                    wide{
+                        "1-й квартал",
+                        "2-й квартал",
+                        "3-й квартал",
+                        "4-й квартал",
+                    }
+                }
+            }
+        }
+        hebrew{
+            monthNames{
+                format{
+                    wide{
+                        "Тишрей",
+                        "Хешван",
+                        "Кислев",
+                        "Тевет",
+                        "Шеват",
+                        "Адар I",
+                        "Адар",
+                        "Нисан",
+                        "Ияр",
+                        "Сиван",
+                        "Таммуз",
+                        "Ав",
+                        "Элул",
+                        "Адар II",
+                    }
+                }
+            }
+        }
+        islamic{
+            DateTimePatterns{
+                "H:mm:ss zzzz",
+                "H:mm:ss z",
+                "H:mm:ss",
+                "H:mm",
+                "EEEE, d MMMM y 'г'. G",
+                "d MMMM y 'г'. G",
+                "dd.MM.yyyy G",
+                "dd.MM.yy G",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E, d"}
+                H{"H"}
+                Hm{"H:mm"}
+                Hms{"H:mm:ss"}
+                M{"L"}
+                MEd{"E, d.M"}
+                MMM{"LLL"}
+                MMMEd{"ccc, d MMM"}
+                MMMd{"d MMM"}
+                MMdd{"dd.MM"}
+                Md{"d.M"}
+                d{"d"}
+                ms{"mm:ss"}
+                yyMM{"MM.yy G"}
+                yyMMM{"LLL yy G"}
+                yyMMMEEEd{"EEE, d MMM yy G"}
+                yyQ{"Q yy G"}
+                yyyy{"y G"}
+                yyyyLLLL{"LLLL y G"}
+                yyyyM{"M.y G"}
+                yyyyMEd{"EEE, d.M.y G"}
+                yyyyMM{"MM.yyyy G"}
+                yyyyMMM{"LLL y G"}
+                yyyyMMMEd{"E, d MMM y G"}
+                yyyyMMMM{"LLLL y G"}
+                yyyyQQQ{"QQQ y G"}
+                yyyyQQQQ{"QQQQ y 'г'. G"}
+            }
+            monthNames{
+                format{
+                    wide{
+                        "Мухаррам",
+                        "Сафар",
+                        "Раби-уль-авваль",
+                        "Раби-уль-ахир",
+                        "Джумад-уль-авваль",
+                        "Джумад-уль-ахир",
+                        "Раджаб",
+                        "Шаабан",
+                        "Рамадан",
+                        "Шавваль",
+                        "Зуль-Каада",
+                        "Зуль-Хиджжа",
+                    }
+                }
+            }
+        }
+        japanese{
+            DateTimePatterns{
+                "H:mm:ss zzzz",
+                "H:mm:ss z",
+                "H:mm:ss",
+                "H:mm",
+                "EEEE, d MMMM y 'г'. G",
+                "d MMMM y 'г'. G",
+                "dd.MM.yyyy G",
+                "dd.MM.yy G",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E, d"}
+                H{"H"}
+                Hm{"H:mm"}
+                Hms{"H:mm:ss"}
+                M{"L"}
+                MEd{"E, d.M"}
+                MMM{"LLL"}
+                MMMEd{"ccc, d MMM"}
+                MMMd{"d MMM"}
+                MMdd{"dd.MM"}
+                Md{"d.M"}
+                d{"d"}
+                ms{"mm:ss"}
+                yyMM{"MM.yy G"}
+                yyMMM{"LLL yy G"}
+                yyMMMEEEd{"EEE, d MMM yy G"}
+                yyQ{"Q yy G"}
+                yyyy{"y G"}
+                yyyyLLLL{"LLLL y G"}
+                yyyyM{"M.y G"}
+                yyyyMEd{"EEE, d.M.y G"}
+                yyyyMM{"MM.yyyy G"}
+                yyyyMMM{"LLL y G"}
+                yyyyMMMEd{"E, d MMM y G"}
+                yyyyMMMM{"LLLL y G"}
+                yyyyQQQ{"QQQ y G"}
+                yyyyQQQQ{"QQQQ y 'г'. G"}
+            }
+            eras{
+                abbreviated{
+                    "Эпоха Тайка",
+                    "Эпоха Хакути",
+                    "Эпоха Хакухо",
+                    "Эпоха  Сючё",
+                    "Эпоха Тайхо",
+                    "Эпоха Кёюн",
+                    "Эпоха Вадо",
+                    "Эпоха Рэйки",
+                    "Эпоха Ёро",
+                    "Эпоха Дзинки",
+                    "Эпоха Темпьё",
+                    "Эпоха Темпьё",
+                    "Эпоха Темпьё-Сьохо",
+                    "Эпоха Темпьё-Ходзи",
+                    "Эпоха Темпьё-Ходзи",
+                    "Эпоха Джинго-Кёюн",
+                    "Эпоха Хоки",
+                    "Эпоха Теньё",
+                    "Эпоха Енряку",
+                    "Эпоха Дайдо",
+                    "Эпоха Конин",
+                    "Эпоха Тентьо",
+                    "Эпоха Шова",
+                    "Эпоха Кайо",
+                    "Эпоха Ниндзю",
+                    "Эпоха Сайко",
+                    "Эпоха Теннан",
+                    "Эпоха Йоган",
+                    "Эпоха Генкей",
+                    "Эпоха Нинна",
+                    "Эпоха Кампьё",
+                    "Эпоха Сьотай",
+                    "Эпоха Энги",
+                    "Эпоха Ентьо",
+                    "Эпоха Сьёхэй",
+                    "Эпоха Тенгьо",
+                    "Эпоха Тенрияку",
+                    "Эпоха Тентоку",
+                    "Эпоха Ова",
+                    "Эпоха  Кохо",
+                    "Эпоха Анна",
+                    "Эпоха Тенроку",
+                    "Эпоха Теньен",
+                    "Эпоха Дзьоген",
+                    "Эпоха Тенген",
+                    "Эпоха Ейкан",
+                    "Эпоха Канна",
+                    "Эпоха Ейен",
+                    "Эпоха Ейсо",
+                    "Shōryaku",
+                    "Chōtoku",
+                    "Chōhō",
+                    "Kankō",
+                    "Chōwa",
+                    "Kannin",
+                    "Jian",
+                    "Manju",
+                    "Chōgen",
+                    "Chōryaku",
+                    "Chōkyū",
+                    "Kantoku",
+                    "Eishō",
+                    "Tengi",
+                    "Kōhei",
+                    "Jiryaku",
+                    "Enkyū",
+                    "Shōho",
+                    "Shōryaku",
+                    "Eiho",
+                    "Ōtoku",
+                    "Kanji",
+                    "Kaho",
+                    "Eichō",
+                    "Shōtoku",
+                    "Kōwa",
+                    "Chōji",
+                    "Kashō",
+                    "Tennin",
+                    "Ten-ei",
+                    "Eikyū",
+                    "Gen-ei",
+                    "Hoan",
+                    "Tenji",
+                    "Daiji",
+                    "Tenshō",
+                    "Chōshō",
+                    "Hoen",
+                    "Eiji",
+                    "Kōji",
+                    "Tenyō",
+                    "Kyūan",
+                    "Ninpei",
+                    "Kyūju",
+                    "Hogen",
+                    "Heiji",
+                    "Eiryaku",
+                    "Ōho",
+                    "Chōkan",
+                    "Eiman",
+                    "Nin-an",
+                    "Kaō",
+                    "Shōan",
+                    "Angen",
+                    "Jishō",
+                    "Yōwa",
+                    "Juei",
+                    "Genryuku",
+                    "Bunji",
+                    "Kenkyū",
+                    "Shōji",
+                    "Kennin",
+                    "Genkyū",
+                    "Ken-ei",
+                    "Shōgen",
+                    "Kenryaku",
+                    "Kenpō",
+                    "Shōkyū",
+                    "Jōō",
+                    "Gennin",
+                    "Karoku",
+                    "Antei",
+                    "Kanki",
+                    "Jōei",
+                    "Tempuku",
+                    "Bunryaku",
+                    "Katei",
+                    "Ryakunin",
+                    "En-ō",
+                    "Ninji",
+                    "Kangen",
+                    "Hōji",
+                    "Kenchō",
+                    "Kōgen",
+                    "Shōka",
+                    "Shōgen",
+                    "Bun-ō",
+                    "Kōchō",
+                    "Bun-ei",
+                    "Kenji",
+                    "Kōan",
+                    "Shōō",
+                    "Einin",
+                    "Shōan",
+                    "Kengen",
+                    "Kagen",
+                    "Tokuji",
+                    "Enkei",
+                    "Ōchō",
+                    "Shōwa",
+                    "Bunpō",
+                    "Genō",
+                    "Genkyō",
+                    "Shōchū",
+                    "Kareki",
+                    "Gentoku",
+                    "Genkō",
+                    "Kemmu",
+                    "Engen",
+                    "Kōkoku",
+                    "Shōhei",
+                    "Kentoku",
+                    "Bunchũ",
+                    "Tenju",
+                    "Kōryaku",
+                    "Kōwa",
+                    "Genchũ",
+                    "Meitoku",
+                    "Kakei",
+                    "Kōō",
+                    "Meitoku",
+                    "Ōei",
+                    "Shōchō",
+                    "Eikyō",
+                    "Kakitsu",
+                    "Bun-an",
+                    "Hōtoku",
+                    "Kyōtoku",
+                    "Kōshō",
+                    "Chōroku",
+                    "Kanshō",
+                    "Bunshō",
+                    "Ōnin",
+                    "Bunmei",
+                    "Chōkyō",
+                    "Entoku",
+                    "Meiō",
+                    "Bunki",
+                    "Eishō",
+                    "Taiei",
+                    "Kyōroku",
+                    "Tenmon",
+                    "Kōji",
+                    "Eiroku",
+                    "Genki",
+                    "Tenshō",
+                    "Bunroku",
+                    "Keichō",
+                    "Genwa",
+                    "Kan-ei",
+                    "Shōho",
+                    "Keian",
+                    "Shōō",
+                    "Meiryaku",
+                    "Manji",
+                    "Kanbun",
+                    "Enpō",
+                    "Tenwa",
+                    "Jōkyō",
+                    "Genroku",
+                    "Hōei",
+                    "Shōtoku",
+                    "Kyōhō",
+                    "Genbun",
+                    "Kanpō",
+                    "Enkyō",
+                    "Kan-en",
+                    "Hōryaku",
+                    "Meiwa",
+                    "An-ei",
+                    "Tenmei",
+                    "Kansei",
+                    "Kyōwa",
+                    "Bunka",
+                    "Bunsei",
+                    "Tenpō",
+                    "Kōka",
+                    "Kaei",
+                    "Ansei",
+                    "Man-en",
+                    "Bunkyū",
+                    "Эпоха Гендзи",
+                    "Эпоха Кейо",
+                    "Эпоха  Мэйдзи",
+                    "Эпоха Тайсьо",
+                    "Сьова",
+                    "Эпоха  Хэйсэй",
+                }
+                narrow{
+                    "Эпоха Тайка" /** (abbr.)  */,
+                    "Эпоха Хакути" /** (abbr.)  */,
+                    "Эпоха Хакухо" /** (abbr.)  */,
+                    "Эпоха  Сючё" /** (abbr.)  */,
+                    "Эпоха Тайхо" /** (abbr.)  */,
+                    "Эпоха Кёюн" /** (abbr.)  */,
+                    "Эпоха Вадо" /** (abbr.)  */,
+                    "Эпоха Рэйки" /** (abbr.)  */,
+                    "Эпоха Ёро" /** (abbr.)  */,
+                    "Эпоха Дзинки" /** (abbr.)  */,
+                    "Эпоха Темпьё" /** (abbr.)  */,
+                    "Эпоха Темпьё" /** (abbr.)  */,
+                    "Эпоха Темпьё-Сьохо" /** (abbr.)  */,
+                    "Эпоха Темпьё-Ходзи" /** (abbr.)  */,
+                    "Эпоха Темпьё-Ходзи" /** (abbr.)  */,
+                    "Эпоха Джинго-Кёюн" /** (abbr.)  */,
+                    "Эпоха Хоки" /** (abbr.)  */,
+                    "Эпоха Теньё" /** (abbr.)  */,
+                    "Эпоха Енряку" /** (abbr.)  */,
+                    "Эпоха Дайдо" /** (abbr.)  */,
+                    "Эпоха Конин" /** (abbr.)  */,
+                    "Эпоха Тентьо" /** (abbr.)  */,
+                    "Эпоха Шова" /** (abbr.)  */,
+                    "Эпоха Кайо" /** (abbr.)  */,
+                    "Эпоха Ниндзю" /** (abbr.)  */,
+                    "Эпоха Сайко" /** (abbr.)  */,
+                    "Эпоха Теннан" /** (abbr.)  */,
+                    "Эпоха Йоган" /** (abbr.)  */,
+                    "Эпоха Генкей" /** (abbr.)  */,
+                    "Эпоха Нинна" /** (abbr.)  */,
+                    "Эпоха Кампьё" /** (abbr.)  */,
+                    "Эпоха Сьотай" /** (abbr.)  */,
+                    "Эпоха Энги" /** (abbr.)  */,
+                    "Эпоха Ентьо" /** (abbr.)  */,
+                    "Эпоха Сьёхэй" /** (abbr.)  */,
+                    "Эпоха Тенгьо" /** (abbr.)  */,
+                    "Эпоха Тенрияку" /** (abbr.)  */,
+                    "Эпоха Тентоку" /** (abbr.)  */,
+                    "Эпоха Ова" /** (abbr.)  */,
+                    "Эпоха  Кохо" /** (abbr.)  */,
+                    "Эпоха Анна" /** (abbr.)  */,
+                    "Эпоха Тенроку" /** (abbr.)  */,
+                    "Эпоха Теньен" /** (abbr.)  */,
+                    "Эпоха Дзьоген" /** (abbr.)  */,
+                    "Эпоха Тенген" /** (abbr.)  */,
+                    "Эпоха Ейкан" /** (abbr.)  */,
+                    "Эпоха Канна" /** (abbr.)  */,
+                    "Эпоха Ейен" /** (abbr.)  */,
+                    "Эпоха Ейсо" /** (abbr.)  */,
+                    "Shōryaku" /** (abbr.)  */,
+                    "Chōtoku" /** (abbr.)  */,
+                    "Chōhō" /** (abbr.)  */,
+                    "Kankō" /** (abbr.)  */,
+                    "Chōwa" /** (abbr.)  */,
+                    "Kannin" /** (abbr.)  */,
+                    "Jian" /** (abbr.)  */,
+                    "Manju" /** (abbr.)  */,
+                    "Chōgen" /** (abbr.)  */,
+                    "Chōryaku" /** (abbr.)  */,
+                    "Chōkyū" /** (abbr.)  */,
+                    "Kantoku" /** (abbr.)  */,
+                    "Eishō" /** (abbr.)  */,
+                    "Tengi" /** (abbr.)  */,
+                    "Kōhei" /** (abbr.)  */,
+                    "Jiryaku" /** (abbr.)  */,
+                    "Enkyū" /** (abbr.)  */,
+                    "Shōho" /** (abbr.)  */,
+                    "Shōryaku" /** (abbr.)  */,
+                    "Eiho" /** (abbr.)  */,
+                    "Ōtoku" /** (abbr.)  */,
+                    "Kanji" /** (abbr.)  */,
+                    "Kaho" /** (abbr.)  */,
+                    "Eichō" /** (abbr.)  */,
+                    "Shōtoku" /** (abbr.)  */,
+                    "Kōwa" /** (abbr.)  */,
+                    "Chōji" /** (abbr.)  */,
+                    "Kashō" /** (abbr.)  */,
+                    "Tennin" /** (abbr.)  */,
+                    "Ten-ei" /** (abbr.)  */,
+                    "Eikyū" /** (abbr.)  */,
+                    "Gen-ei" /** (abbr.)  */,
+                    "Hoan" /** (abbr.)  */,
+                    "Tenji" /** (abbr.)  */,
+                    "Daiji" /** (abbr.)  */,
+                    "Tenshō" /** (abbr.)  */,
+                    "Chōshō" /** (abbr.)  */,
+                    "Hoen" /** (abbr.)  */,
+                    "Eiji" /** (abbr.)  */,
+                    "Kōji" /** (abbr.)  */,
+                    "Tenyō" /** (abbr.)  */,
+                    "Kyūan" /** (abbr.)  */,
+                    "Ninpei" /** (abbr.)  */,
+                    "Kyūju" /** (abbr.)  */,
+                    "Hogen" /** (abbr.)  */,
+                    "Heiji" /** (abbr.)  */,
+                    "Eiryaku" /** (abbr.)  */,
+                    "Ōho" /** (abbr.)  */,
+                    "Chōkan" /** (abbr.)  */,
+                    "Eiman" /** (abbr.)  */,
+                    "Nin-an" /** (abbr.)  */,
+                    "Kaō" /** (abbr.)  */,
+                    "Shōan" /** (abbr.)  */,
+                    "Angen" /** (abbr.)  */,
+                    "Jishō" /** (abbr.)  */,
+                    "Yōwa" /** (abbr.)  */,
+                    "Juei" /** (abbr.)  */,
+                    "Genryuku" /** (abbr.)  */,
+                    "Bunji" /** (abbr.)  */,
+                    "Kenkyū" /** (abbr.)  */,
+                    "Shōji" /** (abbr.)  */,
+                    "Kennin" /** (abbr.)  */,
+                    "Genkyū" /** (abbr.)  */,
+                    "Ken-ei" /** (abbr.)  */,
+                    "Shōgen" /** (abbr.)  */,
+                    "Kenryaku" /** (abbr.)  */,
+                    "Kenpō" /** (abbr.)  */,
+                    "Shōkyū" /** (abbr.)  */,
+                    "Jōō" /** (abbr.)  */,
+                    "Gennin" /** (abbr.)  */,
+                    "Karoku" /** (abbr.)  */,
+                    "Antei" /** (abbr.)  */,
+                    "Kanki" /** (abbr.)  */,
+                    "Jōei" /** (abbr.)  */,
+                    "Tempuku" /** (abbr.)  */,
+                    "Bunryaku" /** (abbr.)  */,
+                    "Katei" /** (abbr.)  */,
+                    "Ryakunin" /** (abbr.)  */,
+                    "En-ō" /** (abbr.)  */,
+                    "Ninji" /** (abbr.)  */,
+                    "Kangen" /** (abbr.)  */,
+                    "Hōji" /** (abbr.)  */,
+                    "Kenchō" /** (abbr.)  */,
+                    "Kōgen" /** (abbr.)  */,
+                    "Shōka" /** (abbr.)  */,
+                    "Shōgen" /** (abbr.)  */,
+                    "Bun-ō" /** (abbr.)  */,
+                    "Kōchō" /** (abbr.)  */,
+                    "Bun-ei" /** (abbr.)  */,
+                    "Kenji" /** (abbr.)  */,
+                    "Kōan" /** (abbr.)  */,
+                    "Shōō" /** (abbr.)  */,
+                    "Einin" /** (abbr.)  */,
+                    "Shōan" /** (abbr.)  */,
+                    "Kengen" /** (abbr.)  */,
+                    "Kagen" /** (abbr.)  */,
+                    "Tokuji" /** (abbr.)  */,
+                    "Enkei" /** (abbr.)  */,
+                    "Ōchō" /** (abbr.)  */,
+                    "Shōwa" /** (abbr.)  */,
+                    "Bunpō" /** (abbr.)  */,
+                    "Genō" /** (abbr.)  */,
+                    "Genkyō" /** (abbr.)  */,
+                    "Shōchū" /** (abbr.)  */,
+                    "Kareki" /** (abbr.)  */,
+                    "Gentoku" /** (abbr.)  */,
+                    "Genkō" /** (abbr.)  */,
+                    "Kemmu" /** (abbr.)  */,
+                    "Engen" /** (abbr.)  */,
+                    "Kōkoku" /** (abbr.)  */,
+                    "Shōhei" /** (abbr.)  */,
+                    "Kentoku" /** (abbr.)  */,
+                    "Bunchũ" /** (abbr.)  */,
+                    "Tenju" /** (abbr.)  */,
+                    "Kōryaku" /** (abbr.)  */,
+                    "Kōwa" /** (abbr.)  */,
+                    "Genchũ" /** (abbr.)  */,
+                    "Meitoku" /** (abbr.)  */,
+                    "Kakei" /** (abbr.)  */,
+                    "Kōō" /** (abbr.)  */,
+                    "Meitoku" /** (abbr.)  */,
+                    "Ōei" /** (abbr.)  */,
+                    "Shōchō" /** (abbr.)  */,
+                    "Eikyō" /** (abbr.)  */,
+                    "Kakitsu" /** (abbr.)  */,
+                    "Bun-an" /** (abbr.)  */,
+                    "Hōtoku" /** (abbr.)  */,
+                    "Kyōtoku" /** (abbr.)  */,
+                    "Kōshō" /** (abbr.)  */,
+                    "Chōroku" /** (abbr.)  */,
+                    "Kanshō" /** (abbr.)  */,
+                    "Bunshō" /** (abbr.)  */,
+                    "Ōnin" /** (abbr.)  */,
+                    "Bunmei" /** (abbr.)  */,
+                    "Chōkyō" /** (abbr.)  */,
+                    "Entoku" /** (abbr.)  */,
+                    "Meiō" /** (abbr.)  */,
+                    "Bunki" /** (abbr.)  */,
+                    "Eishō" /** (abbr.)  */,
+                    "Taiei" /** (abbr.)  */,
+                    "Kyōroku" /** (abbr.)  */,
+                    "Tenmon" /** (abbr.)  */,
+                    "Kōji" /** (abbr.)  */,
+                    "Eiroku" /** (abbr.)  */,
+                    "Genki" /** (abbr.)  */,
+                    "Tenshō" /** (abbr.)  */,
+                    "Bunroku" /** (abbr.)  */,
+                    "Keichō" /** (abbr.)  */,
+                    "Genwa" /** (abbr.)  */,
+                    "Kan-ei" /** (abbr.)  */,
+                    "Shōho" /** (abbr.)  */,
+                    "Keian" /** (abbr.)  */,
+                    "Shōō" /** (abbr.)  */,
+                    "Meiryaku" /** (abbr.)  */,
+                    "Manji" /** (abbr.)  */,
+                    "Kanbun" /** (abbr.)  */,
+                    "Enpō" /** (abbr.)  */,
+                    "Tenwa" /** (abbr.)  */,
+                    "Jōkyō" /** (abbr.)  */,
+                    "Genroku" /** (abbr.)  */,
+                    "Hōei" /** (abbr.)  */,
+                    "Shōtoku" /** (abbr.)  */,
+                    "Kyōhō" /** (abbr.)  */,
+                    "Genbun" /** (abbr.)  */,
+                    "Kanpō" /** (abbr.)  */,
+                    "Enkyō" /** (abbr.)  */,
+                    "Kan-en" /** (abbr.)  */,
+                    "Hōryaku" /** (abbr.)  */,
+                    "Meiwa" /** (abbr.)  */,
+                    "An-ei" /** (abbr.)  */,
+                    "Tenmei" /** (abbr.)  */,
+                    "Kansei" /** (abbr.)  */,
+                    "Kyōwa" /** (abbr.)  */,
+                    "Bunka" /** (abbr.)  */,
+                    "Bunsei" /** (abbr.)  */,
+                    "Tenpō" /** (abbr.)  */,
+                    "Kōka" /** (abbr.)  */,
+                    "Kaei" /** (abbr.)  */,
+                    "Ansei" /** (abbr.)  */,
+                    "Man-en" /** (abbr.)  */,
+                    "Bunkyū" /** (abbr.)  */,
+                    "Эпоха Гендзи" /** (abbr.)  */,
+                    "Эпоха Кейо" /** (abbr.)  */,
+                    "Мэйдзи",
+                    "Тайсьо",
+                    "Сьова",
+                    "Хэйсэй",
+                }
+            }
+        }
+        persian{
+            monthNames{
+                format{
+                    wide{
+                        "Фарвардин",
+                        "Ордибехешт",
+                        "Хордад",
+                        "Тир",
+                        "Мордад",
+                        "Шахривер",
+                        "Мехр",
+                        "Абан",
+                        "Азер",
+                        "Дей",
+                        "Бахман",
+                        "Эсфанд",
+                    }
+                }
+            }
+        }
+        roc{
+            DateTimePatterns{
+                "H:mm:ss zzzz",
+                "H:mm:ss z",
+                "H:mm:ss",
+                "H:mm",
+                "EEEE, d MMMM y 'г'. G",
+                "d MMMM y 'г'. G",
+                "dd.MM.yyyy G",
+                "dd.MM.yy G",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E, d"}
+                H{"H"}
+                Hm{"H:mm"}
+                Hms{"H:mm:ss"}
+                M{"L"}
+                MEd{"E, d.M"}
+                MMM{"LLL"}
+                MMMEd{"ccc, d MMM"}
+                MMMd{"d MMM"}
+                MMdd{"dd.MM"}
+                Md{"d.M"}
+                d{"d"}
+                ms{"mm:ss"}
+                yyMM{"MM.yy G"}
+                yyMMM{"LLL yy G"}
+                yyMMMEEEd{"EEE, d MMM yy G"}
+                yyQ{"Q yy G"}
+                yyyy{"y G"}
+                yyyyLLLL{"LLLL y G"}
+                yyyyM{"M.y G"}
+                yyyyMEd{"EEE, d.M.y G"}
+                yyyyMM{"MM.yyyy G"}
+                yyyyMMM{"LLL y G"}
+                yyyyMMMEd{"E, d MMM y G"}
+                yyyyMMMM{"LLLL y G"}
+                yyyyQQQ{"QQQ y G"}
+                yyyyQQQQ{"QQQQ y 'г'. G"}
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"“"}
+        alternateQuotationStart{"„"}
+        quotationEnd{"»"}
+        quotationStart{"«"}
+    }
+    listPattern{
+        standard{
+            2{"{0} и {1}"}
+            end{"{0} и {1}"}
+        }
+    }
+    measurementSystemNames{
+        US{"Англо-американская"}
+        metric{"Метрическая"}
+    }
+    units{
+        day{
+            few{"{0} дня"}
+            many{"{0} дней"}
+            one{"{0} день"}
+            other{"{0} дня"}
+        }
+        hour{
+            few{"{0} часа"}
+            many{"{0} часов"}
+            one{"{0} час"}
+            other{"{0} часа"}
+        }
+        minute{
+            few{"{0} минуты"}
+            many{"{0} минут"}
+            one{"{0} минута"}
+            other{"{0} минуты"}
+        }
+        month{
+            few{"{0} месяца"}
+            many{"{0} месяцев"}
+            one{"{0} месяц"}
+            other{"{0} месяца"}
+        }
+        second{
+            few{"{0} секунды"}
+            many{"{0} секунд"}
+            one{"{0} секунда"}
+            other{"{0} секунды"}
+        }
+        week{
+            few{"{0} недели"}
+            many{"{0} недель"}
+            one{"{0} неделя"}
+            other{"{0} недели"}
+        }
+        year{
+            few{"{0} года"}
+            many{"{0} лет"}
+            one{"{0} год"}
+            other{"{0} года"}
+        }
+    }
+    unitsShort{
+        day{
+            few{"{0} дн."}
+            many{"{0} дн."}
+            one{"{0} дн."}
+            other{"{0} дн."}
+        }
+        hour{
+            few{"{0} ч."}
+            many{"{0} ч."}
+            one{"{0} ч."}
+            other{"{0} ч."}
+        }
+        minute{
+            few{"{0} мин."}
+            many{"{0} мин."}
+            one{"{0} мин."}
+            other{"{0} мин."}
+        }
+        month{
+            few{"{0} мес."}
+            many{"{0} мес."}
+            one{"{0} мес."}
+            other{"{0} мес."}
+        }
+        second{
+            few{"{0} сек."}
+            many{"{0} сек."}
+            one{"{0} сек."}
+            other{"{0} сек."}
+        }
+        week{
+            few{"{0} нед."}
+            many{"{0} нед."}
+            one{"{0} нед."}
+            other{"{0} нед."}
+        }
+        year{
+            few{"{0} г."}
+            many{"{0} лет"}
+            one{"{0} г."}
+            other{"{0} г."}
+        }
+    }
+}
